@@ -45,6 +45,12 @@ func Load(path string) (*Config, error) {
 	return config, nil
 }
 
+// Given a handle to a libucl object, this recurses into the structure
+// and pulls out a list of resources.
+//
+// The resulting resources may not be unique, but each resource
+// represents exactly one resource definition in the libucl configuration.
+// We leave it up to another pass to merge them together.
 func loadResourcesLibucl(o *libucl.Object) ([]Resource, error) {
 	var allTypes []*libucl.Object
 
