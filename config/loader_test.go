@@ -81,6 +81,13 @@ func resourcesStr(rs []Resource) string {
 func variablesStr(vs map[string]Variable) string {
 	result := ""
 	for k, v := range vs {
+		if v.Default == "" {
+			v.Default = "<>"
+		}
+		if v.Description == "" {
+			v.Description = "<>"
+		}
+
 		result += fmt.Sprintf(
 			"%s\n  %s\n  %s\n",
 			k,
@@ -105,8 +112,10 @@ foo
 `
 
 const importVariablesStr = `
+bar
+  <>
+  <>
 foo
   bar
   bar
-bar
 `

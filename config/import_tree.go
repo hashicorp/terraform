@@ -80,7 +80,16 @@ func (t *importTree) ConfigTree() (*configTree, error) {
 		Config: config,
 	}
 
-	// TODO: Follow children and load them
+	// Build the config trees for the children
+	result.Children = make([]*configTree, len(t.Children))
+	for i, ct := range t.Children {
+		t, err := ct.ConfigTree()
+		if err != nil {
+			return nil, err
+		}
+
+		result.Children[i] = t
+	}
 
 	return result, nil
 }

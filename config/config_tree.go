@@ -11,5 +11,58 @@ type configTree struct {
 // Flatten flattens the entire tree down to a single merged Config
 // structure.
 func (t *configTree) Flatten() (*Config, error) {
-	return t.Config, nil
+	// No children is easy: we're already merged!
+	if len(t.Children) == 0 {
+		return t.Config, nil
+	}
+
+	// Depth-first, merge all the children first.
+	childConfigs := make([]*Config, len(t.Children))
+	for i, ct := range t.Children {
+		c, err := ct.Flatten()
+		if err != nil {
+			return nil, err
+		}
+
+		childConfigs[i] = c
+	}
+
+	// Merge all the children in order
+	config := childConfigs[0]
+	childConfigs = childConfigs[1:]
+	for _, config2 := range childConfigs {
+		var err error
+		config, err = mergeConfig(config, config2)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	// Merge the final merged child config with our own
+	return mergeConfig(config, t.Config)
+}
+
+func mergeConfig(c1, c2 *Config) (*Config, error) {
+	c := new(Config)
+
+	// Merge variables: Variable merging is quite simple. Set fields in
+	// later set variables override those earlier.
+	c.Variables = c1.Variables
+	for k, v2 := range c2.Variables {
+		v1, ok := c.Variables[k]
+		if ok {
+			if v2.Default == "" {
+				v2.Default = v1.Default
+			}
+			if v2.Description == "" {
+				v2.Description = v1.Description
+			}
+		}
+
+		c.Variables[k] = v2
+	}
+
+	// TODO: merge resources
+
+	return c, nil
 }
