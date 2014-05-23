@@ -7,6 +7,13 @@ import (
 	"testing"
 )
 
+func TestLoad_badType(t *testing.T) {
+	_, err := Load(filepath.Join(fixtureDir, "bad_type.tf.nope"))
+	if err == nil {
+		t.Fatal("should have error")
+	}
+}
+
 func TestLoadBasic(t *testing.T) {
 	c, err := Load(filepath.Join(fixtureDir, "basic.tf"))
 	if err != nil {

@@ -2,6 +2,7 @@ package config
 
 import (
 	"fmt"
+	"path/filepath"
 )
 
 // configurable is an interface that must be implemented by any configuration
@@ -30,7 +31,17 @@ type fileLoaderFunc func(path string) (configurable, []string, error)
 // file. This function detects what kind of configuration file it is an
 // executes the proper fileLoaderFunc.
 func loadTree(root string) (*importTree, error) {
-	c, imps, err := loadFileLibucl(root)
+	var f fileLoaderFunc
+	switch filepath.Ext(root) {
+	case ".tf":
+		f = loadFileLibucl
+	default:
+		return nil, fmt.Errorf(
+			"%s: uknown configuration format. Use '.tf' or '.tf.rb' extension",
+			root)
+	}
+
+	c, imps, err := f(root)
 	if err != nil {
 		return nil, err
 	}
