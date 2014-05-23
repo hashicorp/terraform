@@ -11,6 +11,8 @@ import (
 // equally behaving parsing everywhere.
 const libuclParseFlags = libucl.ParserKeyLowercase
 
+// libuclConfigurable is an implementation of configurable that knows
+// how to turn libucl configuration into a *Config object.
 type libuclConfigurable struct {
 	Object *libucl.Object
 }
@@ -43,6 +45,8 @@ func (t *libuclConfigurable) Config() (*Config, error) {
 	return config, nil
 }
 
+// loadFileLibucl is a fileLoaderFunc that knows how to read libucl
+// files and turn them into libuclConfigurables.
 func loadFileLibucl(root string) (configurable, []string, error) {
 	var obj *libucl.Object = nil
 
