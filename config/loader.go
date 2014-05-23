@@ -10,42 +10,102 @@ import (
 // equally behaving parsing everywhere.
 const libuclParseFlags = libucl.ParserKeyLowercase
 
+// libuclImportTree represents a tree structure of the imports from the
+// configuration files along with the raw libucl objects from those files.
+type libuclImportTree struct {
+	Path     string
+	Object   *libucl.Object
+	Children []*libuclImportTree
+}
+
+// libuclConfigTree represents a tree structure of the loaded configurations
+// of all the Terraform files.
+type libuclConfigTree struct {
+	Path     string
+	Config   *Config
+	Children []*libuclConfigTree
+}
+
 // Load loads the Terraform configuration from a given file.
 func Load(path string) (*Config, error) {
-	var rawConfig struct {
-		Variable map[string]Variable
-		Object   *libucl.Object `libucl:",object"`
+	importTree, err := loadTreeLibucl(path)
+	if err != nil {
+		return nil, err
 	}
 
-	// Parse the libucl file into the raw format
-	if err := parseFile(path, &rawConfig); err != nil {
+	configTree, err := importTree.ConfigTree()
+	if err != nil {
+		return nil, err
+	}
+
+	return configTree.Config, nil
+}
+
+func loadTreeLibucl(root string) (*libuclImportTree, error) {
+	var obj *libucl.Object = nil
+
+	// Parse and store the object. We don't use a defer here so that
+	// we clear resources right away rather than stack them up all the
+	// way through our recursive calls.
+	parser := libucl.NewParser(libuclParseFlags)
+	err := parser.AddFile(root)
+	if err == nil {
+		obj = parser.Object()
+		defer obj.Close()
+	}
+	parser.Close()
+
+	// If there was an error, return early
+	if err != nil {
+		return nil, err
+	}
+
+	// Start building the result
+	result := &libuclImportTree{
+		Path:   root,
+		Object: obj,
+	}
+
+	// Otherwise, dive in, find the imports.
+	imports := obj.Get("import")
+	if imports == nil {
+		result.Object.Ref()
+		return result, nil
+	}
+
+	if imports.Type() != libucl.ObjectTypeString {
+		imports.Close()
+
 		return nil, fmt.Errorf(
-			"Error loading %s: %s",
-			path,
-			err)
+			"Error in %s: all 'import' declarations should be in the format\n"+
+				"`import \"foo\"` (Got type %s)",
+			root,
+			imports.Type())
 	}
 
-	// Make sure we close the raw object
-	defer rawConfig.Object.Close()
+	// Gather all the import paths
+	importPaths := make([]string, 0, imports.Len())
+	iter := imports.Iterate(false)
+	for imp := iter.Next(); imp != nil; imp = iter.Next() {
+		importPaths = append(importPaths, imp.ToString())
+		imp.Close()
+	}
+	iter.Close()
+	imports.Close()
 
-	// Start building up the actual configuration. We first
-	// copy the fields that can be directly assigned.
-	config := new(Config)
-	config.Variables = rawConfig.Variable
-
-	// Build the resources
-	resources := rawConfig.Object.Get("resource")
-	if resources != nil {
-		defer resources.Close()
-
-		var err error
-		config.Resources, err = loadResourcesLibucl(resources)
+	// Load them all
+	result.Children = make([]*libuclImportTree, len(importPaths))
+	for i, path := range importPaths {
+		imp, err := loadTreeLibucl(path)
 		if err != nil {
 			return nil, err
 		}
+
+		result.Children[i] = imp
 	}
 
-	return config, nil
+	result.Object.Ref()
+	return result, nil
 }
 
 // Given a handle to a libucl object, this recurses into the structure
@@ -117,6 +177,43 @@ func loadResourcesLibucl(o *libucl.Object) ([]Resource, error) {
 				Config: config,
 			})
 		}
+	}
+
+	return result, nil
+}
+
+func (t *libuclImportTree) ConfigTree() (*libuclConfigTree, error) {
+	var rawConfig struct {
+		Variable map[string]Variable
+	}
+
+	if err := t.Object.Decode(&rawConfig); err != nil {
+		return nil, fmt.Errorf(
+			"Error decoding %s: %s",
+			t.Path,
+			err)
+	}
+
+	// Start building up the actual configuration. We first
+	// copy the fields that can be directly assigned.
+	config := new(Config)
+	config.Variables = rawConfig.Variable
+
+	// Build the resources
+	resources := t.Object.Get("resource")
+	if resources != nil {
+		var err error
+		config.Resources, err = loadResourcesLibucl(resources)
+		resources.Close()
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	// Build our result
+	result := &libuclConfigTree{
+		Path:   t.Path,
+		Config: config,
 	}
 
 	return result, nil
