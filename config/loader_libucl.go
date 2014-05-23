@@ -17,6 +17,10 @@ type libuclConfigurable struct {
 	Object *libucl.Object
 }
 
+func (t *libuclConfigurable) Close() error {
+	return t.Object.Close()
+}
+
 func (t *libuclConfigurable) Config() (*Config, error) {
 	var rawConfig struct {
 		Variable map[string]Variable

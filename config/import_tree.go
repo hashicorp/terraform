@@ -1,6 +1,7 @@
 package config
 
 import (
+	"io"
 	"fmt"
 	"path/filepath"
 )
@@ -61,6 +62,21 @@ func loadTree(root string) (*importTree, error) {
 		Raw:      c,
 		Children: children,
 	}, nil
+}
+
+// Close releases any resources we might be holding open for the importTree.
+//
+// This can safely be called even while ConfigTree results are alive. The
+// importTree is not bound to these.
+func (t *importTree) Close() error {
+	if c, ok := t.Raw.(io.Closer); ok {
+		c.Close()
+	}
+	for _, ct := range t.Children {
+		ct.Close()
+	}
+
+	return nil
 }
 
 // ConfigTree traverses the importTree and turns each node into a *Config

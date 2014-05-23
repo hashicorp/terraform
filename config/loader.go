@@ -11,6 +11,11 @@ func Load(path string) (*Config, error) {
 	}
 
 	configTree, err := importTree.ConfigTree()
+
+	// Close the importTree now so that we can clear resources as quickly
+	// as possible.
+	importTree.Close()
+
 	if err != nil {
 		return nil, err
 	}
