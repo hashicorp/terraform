@@ -11,38 +11,39 @@ import (
 // equally behaving parsing everywhere.
 const libuclParseFlags = libucl.ParserKeyLowercase
 
-// libuclImportTree represents a tree structure of the imports from the
-// configuration files along with the raw libucl objects from those files.
-type libuclImportTree struct {
-	Path     string
-	Object   *libucl.Object
-	Children []*libuclImportTree
+type libuclConfigurable struct {
+	Object *libucl.Object
 }
 
-// libuclConfigTree represents a tree structure of the loaded configurations
-// of all the Terraform files.
-type libuclConfigTree struct {
-	Path     string
-	Config   *Config
-	Children []*libuclConfigTree
-}
+func (t *libuclConfigurable) Config() (*Config, error) {
+	var rawConfig struct {
+		Variable map[string]Variable
+	}
 
-// Load loads the Terraform configuration from a given file.
-func Load(path string) (*Config, error) {
-	importTree, err := loadTreeLibucl(path)
-	if err != nil {
+	if err := t.Object.Decode(&rawConfig); err != nil {
 		return nil, err
 	}
 
-	configTree, err := importTree.ConfigTree()
-	if err != nil {
-		return nil, err
+	// Start building up the actual configuration. We first
+	// copy the fields that can be directly assigned.
+	config := new(Config)
+	config.Variables = rawConfig.Variable
+
+	// Build the resources
+	resources := t.Object.Get("resource")
+	if resources != nil {
+		var err error
+		config.Resources, err = loadResourcesLibucl(resources)
+		resources.Close()
+		if err != nil {
+			return nil, err
+		}
 	}
 
-	return configTree.Config, nil
+	return config, nil
 }
 
-func loadTreeLibucl(root string) (*libuclImportTree, error) {
+func loadFileLibucl(root string) (configurable, []string, error) {
 	var obj *libucl.Object = nil
 
 	// Parse and store the object. We don't use a defer here so that
@@ -58,12 +59,11 @@ func loadTreeLibucl(root string) (*libuclImportTree, error) {
 
 	// If there was an error, return early
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	// Start building the result
-	result := &libuclImportTree{
-		Path:   root,
+	result := &libuclConfigurable{
 		Object: obj,
 	}
 
@@ -71,13 +71,13 @@ func loadTreeLibucl(root string) (*libuclImportTree, error) {
 	imports := obj.Get("import")
 	if imports == nil {
 		result.Object.Ref()
-		return result, nil
+		return result, nil, nil
 	}
 
 	if imports.Type() != libucl.ObjectTypeString {
 		imports.Close()
 
-		return nil, fmt.Errorf(
+		return nil, nil, fmt.Errorf(
 			"Error in %s: all 'import' declarations should be in the format\n"+
 				"`import \"foo\"` (Got type %s)",
 			root,
@@ -88,31 +88,21 @@ func loadTreeLibucl(root string) (*libuclImportTree, error) {
 	importPaths := make([]string, 0, imports.Len())
 	iter := imports.Iterate(false)
 	for imp := iter.Next(); imp != nil; imp = iter.Next() {
-		importPaths = append(importPaths, imp.ToString())
-		imp.Close()
-	}
-	iter.Close()
-	imports.Close()
-
-	// Load them all
-	result.Children = make([]*libuclImportTree, len(importPaths))
-	for i, path := range importPaths {
+		path := imp.ToString()
 		if !filepath.IsAbs(path) {
 			// Relative paths are relative to the Terraform file itself
 			dir := filepath.Dir(root)
 			path = filepath.Join(dir, path)
 		}
 
-		imp, err := loadTreeLibucl(path)
-		if err != nil {
-			return nil, err
-		}
-
-		result.Children[i] = imp
+		importPaths = append(importPaths, path)
+		imp.Close()
 	}
+	iter.Close()
+	imports.Close()
 
 	result.Object.Ref()
-	return result, nil
+	return result, importPaths, nil
 }
 
 // Given a handle to a libucl object, this recurses into the structure
@@ -187,61 +177,4 @@ func loadResourcesLibucl(o *libucl.Object) ([]Resource, error) {
 	}
 
 	return result, nil
-}
-
-func (t *libuclImportTree) ConfigTree() (*libuclConfigTree, error) {
-	var rawConfig struct {
-		Variable map[string]Variable
-	}
-
-	if err := t.Object.Decode(&rawConfig); err != nil {
-		return nil, fmt.Errorf(
-			"Error decoding %s: %s",
-			t.Path,
-			err)
-	}
-
-	// Start building up the actual configuration. We first
-	// copy the fields that can be directly assigned.
-	config := new(Config)
-	config.Variables = rawConfig.Variable
-
-	// Build the resources
-	resources := t.Object.Get("resource")
-	if resources != nil {
-		var err error
-		config.Resources, err = loadResourcesLibucl(resources)
-		resources.Close()
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	// Build our result
-	result := &libuclConfigTree{
-		Path:   t.Path,
-		Config: config,
-	}
-
-	return result, nil
-}
-
-// Helper for parsing a single libucl-formatted file into
-// the given structure.
-func parseFile(path string, result interface{}) error {
-	parser := libucl.NewParser(libuclParseFlags)
-	defer parser.Close()
-
-	if err := parser.AddFile(path); err != nil {
-		return err
-	}
-
-	root := parser.Object()
-	defer root.Close()
-
-	if err := root.Decode(result); err != nil {
-		return err
-	}
-
-	return nil
 }
