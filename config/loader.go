@@ -19,7 +19,10 @@ func Load(path string) (*Config, error) {
 
 	// Parse the libucl file into the raw format
 	if err := parseFile(path, &rawConfig); err != nil {
-		return nil, err
+		return nil, fmt.Errorf(
+			"Error loading %s: %s",
+			path,
+			err)
 	}
 
 	// Make sure we close the raw object
