@@ -28,6 +28,29 @@ func TestLoadBasic(t *testing.T) {
 	}
 }
 
+func TestLoadBasic_import(t *testing.T) {
+	c, err := Load(filepath.Join(fixtureDir, "import.tf"))
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	if c == nil {
+		t.Fatal("config should not be nil")
+	}
+
+	actual := variablesStr(c.Variables)
+	if actual != strings.TrimSpace(importVariablesStr) {
+		t.Fatalf("bad:\n%s", actual)
+	}
+
+	/*
+	actual = resourcesStr(c.Resources)
+	if actual != strings.TrimSpace(basicResourcesStr) {
+		t.Fatalf("bad:\n%s", actual)
+	}
+	*/
+}
+
 // This helper turns a resources field into a deterministic
 // string value for comparison in tests.
 func resourcesStr(rs []Resource) string {
@@ -72,4 +95,11 @@ const basicVariablesStr = `
 foo
   bar
   bar
+`
+
+const importVariablesStr = `
+foo
+  bar
+  bar
+bar
 `

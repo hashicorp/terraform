@@ -2,6 +2,7 @@ package config
 
 import (
 	"fmt"
+	"path/filepath"
 
 	"github.com/mitchellh/go-libucl"
 )
@@ -96,6 +97,12 @@ func loadTreeLibucl(root string) (*libuclImportTree, error) {
 	// Load them all
 	result.Children = make([]*libuclImportTree, len(importPaths))
 	for i, path := range importPaths {
+		if !filepath.IsAbs(path) {
+			// Relative paths are relative to the Terraform file itself
+			dir := filepath.Dir(root)
+			path = filepath.Join(dir, path)
+		}
+
 		imp, err := loadTreeLibucl(path)
 		if err != nil {
 			return nil, err
