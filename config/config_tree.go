@@ -1,5 +1,9 @@
 package config
 
+import (
+	"fmt"
+)
+
 // configTree represents a tree of configurations where the root is the
 // first file and its children are the configurations it has imported.
 type configTree struct {
@@ -62,7 +66,22 @@ func mergeConfig(c1, c2 *Config) (*Config, error) {
 		c.Variables[k] = v2
 	}
 
-	// TODO: merge resources
+	// Merge resources: If they collide, we just take the latest one
+	// for now. In the future, we might provide smarter merge functionality.
+	resources := make(map[string]Resource)
+	for _, r := range c1.Resources {
+		id := fmt.Sprintf("%s[%s]", r.Type, r.Name)
+		resources[id] = r
+	}
+	for _, r := range c2.Resources {
+		id := fmt.Sprintf("%s[%s]", r.Type, r.Name)
+		resources[id] = r
+	}
+
+	c.Resources = make([]Resource, 0, len(resources))
+	for _, r := range resources {
+		c.Resources = append(c.Resources, r)
+	}
 
 	return c, nil
 }

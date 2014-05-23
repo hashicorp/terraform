@@ -50,12 +50,10 @@ func TestLoadBasic_import(t *testing.T) {
 		t.Fatalf("bad:\n%s", actual)
 	}
 
-	/*
 	actual = resourcesStr(c.Resources)
-	if actual != strings.TrimSpace(basicResourcesStr) {
+	if actual != strings.TrimSpace(importResourcesStr) {
 		t.Fatalf("bad:\n%s", actual)
 	}
-	*/
 }
 
 // This helper turns a resources field into a deterministic
@@ -109,6 +107,11 @@ const basicVariablesStr = `
 foo
   bar
   bar
+`
+
+const importResourcesStr = `
+aws_security_group[db]
+aws_security_group[web]
 `
 
 const importVariablesStr = `
