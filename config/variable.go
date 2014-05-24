@@ -5,6 +5,8 @@ import (
 	"reflect"
 	"regexp"
 	"strings"
+
+	"github.com/mitchellh/reflectwalk"
 )
 
 // varRegexp is a regexp that matches variables such as ${foo.bar}
@@ -23,6 +25,9 @@ type variableDetectWalker struct {
 
 func (w *variableDetectWalker) Primitive(v reflect.Value) error {
 	// We only care about strings
+	if v.Kind() == reflect.Interface {
+		v = v.Elem()
+	}
 	if v.Kind() != reflect.String {
 		return nil
 	}
@@ -72,6 +77,84 @@ func (w *variableDetectWalker) Primitive(v reflect.Value) error {
 		}
 
 		w.Variables[key] = iv
+	}
+
+	return nil
+}
+
+// variableReplaceWalker implements interfaces for reflectwalk that
+// is used to replace variables with their values.
+//
+// If Values does not have every available value, then the program
+// will _panic_. The variableDetectWalker will tell you all variables
+// you need.
+type variableReplaceWalker struct {
+	Values map[string]string
+
+	loc reflectwalk.Location
+	m, mk reflect.Value
+}
+
+func (w *variableReplaceWalker) Enter(loc reflectwalk.Location) error {
+	w.loc = loc
+	return nil
+}
+
+func (w *variableReplaceWalker) Exit(loc reflectwalk.Location) error {
+	w.loc = reflectwalk.None
+	return nil
+}
+
+func (w *variableReplaceWalker) MapElem(m, k, v reflect.Value) error {
+	w.m = m
+	w.mk = k
+	return nil
+}
+
+func (w *variableReplaceWalker) Primitive(v reflect.Value) error {
+	// We only care about strings
+	setV := v
+	if v.Kind() == reflect.Interface {
+		setV = v
+		v = v.Elem()
+	}
+	if v.Kind() != reflect.String {
+		return nil
+	}
+
+	matches := varRegexp.FindAllStringSubmatch(v.String(), -1)
+	if len(matches) == 0 {
+		return nil
+	}
+
+	result := v.String()
+	for _, match := range matches {
+		dollars := len(match[1])
+
+		// If there are even amounts of dollar signs, then it is escaped
+		if dollars%2 == 0 {
+			continue
+		}
+
+		// Get the key
+		key := match[2]
+		value, ok := w.Values[key]
+		if !ok {
+			panic("no value for variable key: " + key)
+		}
+
+		// Replace
+		result = strings.Replace(result, match[0], value, -1)
+	}
+
+	resultVal := reflect.ValueOf(result)
+	if w.loc == reflectwalk.MapValue {
+		// If we're in a map, then the only way to set a map value is
+		// to set it directly.
+		w.m.SetMapIndex(w.mk, resultVal)
+	} else {
+		// Otherwise, we should be addressable
+		setV.Set(resultVal)
 	}
 
 	return nil

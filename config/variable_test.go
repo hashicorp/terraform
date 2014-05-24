@@ -3,6 +3,8 @@ package config
 import (
 	"reflect"
 	"testing"
+
+	"github.com/mitchellh/reflectwalk"
 )
 
 func BenchmarkVariableDetectWalker(b *testing.B) {
@@ -83,3 +85,55 @@ func TestVariableDetectWalker_empty(t *testing.T) {
 	}
 }
 
+func TestVariableReplaceWalker(t *testing.T) {
+	w := &variableReplaceWalker{
+		Values: map[string]string{
+			"var.bar": "bar",
+		},
+	}
+
+	cases := []struct {
+		Input  interface{}
+		Output interface{}
+	}{
+		{
+			`foo ${var.bar}`,
+			"foo bar",
+		},
+		{
+			[]string{"foo", "${var.bar}"},
+			[]string{"foo", "bar"},
+		},
+		{
+			map[string]interface{}{
+				"ami": "${var.bar}",
+				"security_groups": []interface{}{
+					"foo",
+					"${var.bar}",
+				},
+			},
+			map[string]interface{}{
+				"ami": "bar",
+				"security_groups": []interface{}{
+					"foo",
+					"bar",
+				},
+			},
+		},
+	}
+
+	for i, tc := range cases {
+		var input interface{} = tc.Input
+		if reflect.ValueOf(tc.Input).Kind() == reflect.String {
+			input = &tc.Input
+		}
+
+		if err := reflectwalk.Walk(input, w); err != nil {
+			t.Fatalf("err: %s", err)
+		}
+
+		if !reflect.DeepEqual(tc.Input, tc.Output) {
+			t.Fatalf("bad %d: %#v", i, tc.Input)
+		}
+	}
+}
