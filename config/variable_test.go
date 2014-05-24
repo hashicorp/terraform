@@ -18,6 +18,24 @@ func BenchmarkVariableDetectWalker(b *testing.B) {
 	}
 }
 
+func BenchmarkVariableReplaceWalker(b *testing.B) {
+	w := &variableReplaceWalker{
+		Values: map[string]string{
+			"var.bar":      "bar",
+			"bar.baz.bing": "baz",
+		},
+	}
+
+	str := `foo ${var.bar} bar ${bar.baz.bing} $${escaped}`
+
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		if err := reflectwalk.Walk(&str, w); err != nil {
+			panic(err)
+		}
+	}
+}
+
 func TestVariableDetectWalker(t *testing.T) {
 	w := new(variableDetectWalker)
 
