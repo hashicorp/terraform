@@ -58,7 +58,7 @@ func TestLoadBasic_import(t *testing.T) {
 
 // This helper turns a resources field into a deterministic
 // string value for comparison in tests.
-func resourcesStr(rs []Resource) string {
+func resourcesStr(rs []*Resource) string {
 	result := ""
 	for _, r := range rs {
 		result += fmt.Sprintf(

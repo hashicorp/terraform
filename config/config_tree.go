@@ -68,7 +68,7 @@ func mergeConfig(c1, c2 *Config) (*Config, error) {
 
 	// Merge resources: If they collide, we just take the latest one
 	// for now. In the future, we might provide smarter merge functionality.
-	resources := make(map[string]Resource)
+	resources := make(map[string]*Resource)
 	for _, r := range c1.Resources {
 		id := fmt.Sprintf("%s[%s]", r.Type, r.Name)
 		resources[id] = r
@@ -78,7 +78,7 @@ func mergeConfig(c1, c2 *Config) (*Config, error) {
 		resources[id] = r
 	}
 
-	c.Resources = make([]Resource, 0, len(resources))
+	c.Resources = make([]*Resource, 0, len(resources))
 	for _, r := range resources {
 		c.Resources = append(c.Resources, r)
 	}

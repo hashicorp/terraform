@@ -120,7 +120,7 @@ func loadFileLibucl(root string) (configurable, []string, error) {
 // The resulting resources may not be unique, but each resource
 // represents exactly one resource definition in the libucl configuration.
 // We leave it up to another pass to merge them together.
-func loadResourcesLibucl(o *libucl.Object) ([]Resource, error) {
+func loadResourcesLibucl(o *libucl.Object) ([]*Resource, error) {
 	var allTypes []*libucl.Object
 
 	// Libucl object iteration is really nasty. Below is likely to make
@@ -154,7 +154,7 @@ func loadResourcesLibucl(o *libucl.Object) ([]Resource, error) {
 	iter.Close()
 
 	// Where all the results will go
-	var result []Resource
+	var result []*Resource
 
 	// Now go over all the types and their children in order to get
 	// all of the actual resources.
@@ -186,7 +186,7 @@ func loadResourcesLibucl(o *libucl.Object) ([]Resource, error) {
 					err)
 			}
 
-			result = append(result, Resource{
+			result = append(result, &Resource{
 				Name:      r.Key(),
 				Type:      t.Key(),
 				Config:    config,

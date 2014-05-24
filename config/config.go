@@ -3,14 +3,17 @@
 package config
 
 import (
+	"fmt"
 	"strings"
+
+	"github.com/hashicorp/terraform/depgraph"
 )
 
 // Config is the configuration that comes from loading a collection
 // of Terraform templates.
 type Config struct {
 	Variables map[string]Variable
-	Resources []Resource
+	Resources []*Resource
 }
 
 // A resource represents a single Terraform resource in the configuration.
@@ -57,6 +60,70 @@ type UserVariable struct {
 	key string
 }
 
+// A unique identifier for this resource.
+func (r *Resource) Id() string {
+	return fmt.Sprintf("%s.%s", r.Type, r.Name)
+}
+
+// ResourceGraph returns a dependency graph of the resources from this
+// Terraform configuration.
+func (c *Config) ResourceGraph() *depgraph.Graph {
+	resource2Noun := func(r *Resource) *depgraph.Noun {
+		return &depgraph.Noun{
+			Name: r.Id(),
+			Meta: r,
+		}
+	}
+
+	nouns := make(map[string]*depgraph.Noun)
+	for _, r := range c.Resources {
+		noun := resource2Noun(r)
+		nouns[noun.Name] = noun
+	}
+
+	for _, noun := range nouns {
+		r := noun.Meta.(*Resource)
+		for _, v := range r.Variables {
+			// Only resource variables impose dependencies
+			rv, ok := v.(*ResourceVariable)
+			if !ok {
+				continue
+			}
+
+			// Build the dependency
+			dep := &depgraph.Dependency{
+				Name:   rv.ResourceId(),
+				Source: noun,
+				Target: nouns[rv.ResourceId()],
+			}
+
+			noun.Deps = append(noun.Deps, dep)
+		}
+	}
+
+	// Create the list of nouns that the depgraph.Graph struct expects
+	nounsList := make([]*depgraph.Noun, 0, len(nouns))
+	for _, n := range nouns {
+		nounsList = append(nounsList, n)
+	}
+
+	// Create a root that just depends on everything else finishing.
+	root := &depgraph.Noun{Name: "root"}
+	for _, n := range nounsList {
+		root.Deps = append(root.Deps, &depgraph.Dependency{
+			Name:   n.Name,
+			Source: root,
+			Target: n,
+		})
+	}
+	nounsList = append(nounsList, root)
+
+	return &depgraph.Graph{
+		Name:  "resources",
+		Nouns: nounsList,
+	}
+}
+
 func NewResourceVariable(key string) (*ResourceVariable, error) {
 	parts := strings.SplitN(key, ".", 3)
 	return &ResourceVariable{
@@ -65,6 +132,10 @@ func NewResourceVariable(key string) (*ResourceVariable, error) {
 		Field: parts[2],
 		key:   key,
 	}, nil
+}
+
+func (v *ResourceVariable) ResourceId() string {
+	return fmt.Sprintf("%s.%s", v.Type, v.Name)
 }
 
 func (v *ResourceVariable) FullKey() string {

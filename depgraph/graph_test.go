@@ -69,13 +69,20 @@ c -> e`)
 	actual := g.String()
 
 	expected := `
+root: a
+  a -> b
+  a -> c
 a
-  c
-    e
-    d
-  b
-    e
-    d
+  a -> b
+  a -> c
+b
+  b -> d
+  b -> e
+c
+  c -> d
+  c -> e
+d
+e
 `
 
 	actual = strings.TrimSpace(actual)
