@@ -5,6 +5,7 @@ import (
 	"path/filepath"
 
 	"github.com/mitchellh/go-libucl"
+	"github.com/mitchellh/reflectwalk"
 )
 
 // Put the parse flags we use for libucl in a constant so we can get
@@ -176,10 +177,20 @@ func loadResourcesLibucl(o *libucl.Object) ([]Resource, error) {
 					err)
 			}
 
+			walker := new(variableDetectWalker)
+			if err := reflectwalk.Walk(config, walker); err != nil {
+				return nil, fmt.Errorf(
+					"Error reading config for %s[%s]: %s",
+					t.Key(),
+					r.Key(),
+					err)
+			}
+
 			result = append(result, Resource{
-				Name:   r.Key(),
-				Type:   t.Key(),
-				Config: config,
+				Name:      r.Key(),
+				Type:      t.Key(),
+				Config:    config,
+				Variables: walker.Variables,
 			})
 		}
 	}

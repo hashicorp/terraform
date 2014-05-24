@@ -69,6 +69,23 @@ func resourcesStr(rs []Resource) string {
 		for k, _ := range r.Config {
 			result += fmt.Sprintf("  %s\n", k)
 		}
+
+		if len(r.Variables) > 0 {
+			result += fmt.Sprintf("  vars\n")
+			for _, rawV := range r.Variables {
+				kind := "unknown"
+				str := rawV.FullKey()
+
+				switch rawV.(type) {
+				case *ResourceVariable:
+					kind = "resource"
+				case *UserVariable:
+					kind = "user"
+				}
+
+				result += fmt.Sprintf("    %s: %s\n", kind, str)
+			}
+		}
 	}
 
 	return strings.TrimSpace(result)
@@ -101,6 +118,9 @@ aws_security_group[firewall]
 aws_instance[web]
   ami
   security_groups
+  vars
+    user: var.foo
+    resource: aws_security_group.firewall.foo
 `
 
 const basicVariablesStr = `
