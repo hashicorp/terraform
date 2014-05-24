@@ -91,7 +91,7 @@ func (w *variableDetectWalker) Primitive(v reflect.Value) error {
 type variableReplaceWalker struct {
 	Values map[string]string
 
-	loc reflectwalk.Location
+	loc   reflectwalk.Location
 	m, mk reflect.Value
 }
 

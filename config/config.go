@@ -54,7 +54,7 @@ type ResourceVariable struct {
 type UserVariable struct {
 	Name string
 
-	key  string
+	key string
 }
 
 func NewResourceVariable(key string) (*ResourceVariable, error) {

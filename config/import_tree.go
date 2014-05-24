@@ -1,8 +1,8 @@
 package config
 
 import (
-	"io"
 	"fmt"
+	"io"
 	"path/filepath"
 )
 
