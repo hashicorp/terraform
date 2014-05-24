@@ -11,12 +11,97 @@ import (
 	"github.com/hashicorp/terraform/digraph"
 )
 
-// Graph is used to represent the entire dependency graph
+// Graph is used to represent a dependency graph.
 type Graph struct {
 	Name  string
 	Meta  interface{}
 	Nouns []*Noun
 	Root  *Noun
+}
+
+// ValidateError implements the Error interface but provides
+// additional information on a validation error.
+type ValidateError struct {
+	// If set, then the graph is missing a single root, on which
+	// there are no depdendencies
+	MissingRoot bool
+
+	// Unreachable are nodes that could not be reached from
+	// the root noun.
+	Unreachable []*Noun
+
+	// Cycles are groups of strongly connected nodes, which
+	// form a cycle. This is disallowed.
+	Cycles [][]*Noun
+}
+
+func (v *ValidateError) Error() string {
+	return "The depedency graph is not valid"
+}
+
+// ConstraintError is used to return detailed violation
+// information from CheckConstraints
+type ConstraintError struct {
+	Violations []*Violation
+}
+
+func (c *ConstraintError) Error() string {
+	return fmt.Sprintf("%d constraint violations", len(c.Violations))
+}
+
+// Violation is used to pass along information about
+// a constraint violation
+type Violation struct {
+	Source     *Noun
+	Target     *Noun
+	Dependency *Dependency
+	Constraint Constraint
+	Err        error
+}
+
+func (v *Violation) Error() string {
+	return fmt.Sprintf("Constraint %v between %v and %v violated: %v",
+		v.Constraint, v.Source, v.Target, v.Err)
+}
+
+// CheckConstraints walks the graph and ensures that all
+// user imposed constraints are satisfied.
+func (g *Graph) CheckConstraints() error {
+	// Ensure we have a root
+	if g.Root == nil {
+		return fmt.Errorf("Graph must be validated before checking constraint violations")
+	}
+
+	// Create a constraint error
+	cErr := &ConstraintError{}
+
+	// Walk from the root
+	digraph.DepthFirstWalk(g.Root, func(n digraph.Node) bool {
+		noun := n.(*Noun)
+		for _, dep := range noun.Deps {
+			target := dep.Target
+			for _, constraint := range dep.Constraints {
+				ok, err := constraint.Satisfied(noun, target)
+				if ok {
+					continue
+				}
+				violation := &Violation{
+					Source:     noun,
+					Target:     target,
+					Dependency: dep,
+					Constraint: constraint,
+					Err:        err,
+				}
+				cErr.Violations = append(cErr.Violations, violation)
+			}
+		}
+		return true
+	})
+
+	if cErr.Violations != nil {
+		return cErr
+	}
+	return nil
 }
 
 // Validate is used to ensure that a few properties of the graph are not violated:
@@ -67,89 +152,4 @@ CHECK_CYCLES:
 		return vErr
 	}
 	return nil
-}
-
-// ValidateError implements the Error interface but provides
-// additional information on a validation error
-type ValidateError struct {
-	// If set, then the graph is missing a single root, on which
-	// there are no depdendencies
-	MissingRoot bool
-
-	// Unreachable are nodes that could not be reached from
-	// the root noun.
-	Unreachable []*Noun
-
-	// Cycles are groups of strongly connected nodes, which
-	// form a cycle. This is disallowed.
-	Cycles [][]*Noun
-}
-
-func (v *ValidateError) Error() string {
-	return "The depedency graph is not valid"
-}
-
-// CheckConstraints walks the graph and ensures that all
-// user imposed constraints are satisfied.
-func (g *Graph) CheckConstraints() error {
-	// Ensure we have a root
-	if g.Root == nil {
-		return fmt.Errorf("Graph must be validated before checking constraint violations")
-	}
-
-	// Create a constraint error
-	cErr := &ConstraintError{}
-
-	// Walk from the root
-	digraph.DepthFirstWalk(g.Root, func(n digraph.Node) bool {
-		noun := n.(*Noun)
-		for _, dep := range noun.Deps {
-			target := dep.Target
-			for _, constraint := range dep.Constraints {
-				ok, err := constraint.Satisfied(noun, target)
-				if ok {
-					continue
-				}
-				violation := &Violation{
-					Source:     noun,
-					Target:     target,
-					Dependency: dep,
-					Constraint: constraint,
-					Err:        err,
-				}
-				cErr.Violations = append(cErr.Violations, violation)
-			}
-		}
-		return true
-	})
-
-	if cErr.Violations != nil {
-		return cErr
-	}
-	return nil
-}
-
-// ConstraintError is used to return detailed violation
-// information from CheckConstraints
-type ConstraintError struct {
-	Violations []*Violation
-}
-
-func (c *ConstraintError) Error() string {
-	return fmt.Sprintf("%d constraint violations", len(c.Violations))
-}
-
-// Violation is used to pass along information about
-// a constraint violation
-type Violation struct {
-	Source     *Noun
-	Target     *Noun
-	Dependency *Dependency
-	Constraint Constraint
-	Err        error
-}
-
-func (v *Violation) Error() string {
-	return fmt.Sprintf("Constraint %v between %v and %v violated: %v",
-		v.Constraint, v.Source, v.Target, v.Err)
 }

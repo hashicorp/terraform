@@ -53,9 +53,55 @@ func NounMapToList(m map[string]*Noun) []*Noun {
 	return list
 }
 
-func TestGraph_Validate_NoRoot(t *testing.T) {
+func TestGraph_Validate(t *testing.T) {
 	nodes := ParseNouns(`a -> b
-b -> a`)
+a -> c
+b -> d
+b -> e
+c -> d
+c -> e`)
+	list := NounMapToList(nodes)
+
+	g := &Graph{Name: "Test", Nouns: list}
+	if err := g.Validate(); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+}
+
+func TestGraph_Validate_Cycle(t *testing.T) {
+	nodes := ParseNouns(`a -> b
+a -> c
+b -> d
+d -> b`)
+	list := NounMapToList(nodes)
+
+	g := &Graph{Name: "Test", Nouns: list}
+	err := g.Validate()
+	if err == nil {
+		t.Fatalf("expected err")
+	}
+
+	vErr, ok := err.(*ValidateError)
+	if !ok {
+		t.Fatalf("expected validate error")
+	}
+
+	if len(vErr.Cycles) != 1 {
+		t.Fatalf("expected cycles")
+	}
+
+	cycle := vErr.Cycles[0]
+	if cycle[0].Name != "d" {
+		t.Fatalf("bad: %v", cycle)
+	}
+	if cycle[1].Name != "b" {
+		t.Fatalf("bad: %v", cycle)
+	}
+}
+
+func TestGraph_Validate_MultiRoot(t *testing.T) {
+	nodes := ParseNouns(`a -> b
+c -> d`)
 	list := NounMapToList(nodes)
 
 	g := &Graph{Name: "Test", Nouns: list}
@@ -74,9 +120,9 @@ b -> a`)
 	}
 }
 
-func TestGraph_Validate_MultiRoot(t *testing.T) {
+func TestGraph_Validate_NoRoot(t *testing.T) {
 	nodes := ParseNouns(`a -> b
-c -> d`)
+b -> a`)
 	list := NounMapToList(nodes)
 
 	g := &Graph{Name: "Test", Nouns: list}
@@ -119,53 +165,6 @@ x -> x`)
 
 	if vErr.Unreachable[0].Name != "x" {
 		t.Fatalf("bad: %v", vErr.Unreachable[0])
-	}
-}
-
-func TestGraph_Validate_Cycle(t *testing.T) {
-	nodes := ParseNouns(`a -> b
-a -> c
-b -> d
-d -> b`)
-	list := NounMapToList(nodes)
-
-	g := &Graph{Name: "Test", Nouns: list}
-	err := g.Validate()
-	if err == nil {
-		t.Fatalf("expected err")
-	}
-
-	vErr, ok := err.(*ValidateError)
-	if !ok {
-		t.Fatalf("expected validate error")
-	}
-
-	if len(vErr.Cycles) != 1 {
-		t.Fatalf("expected cycles")
-	}
-
-	cycle := vErr.Cycles[0]
-	if cycle[0].Name != "d" {
-		t.Fatalf("bad: %v", cycle)
-	}
-	if cycle[1].Name != "b" {
-		t.Fatalf("bad: %v", cycle)
-	}
-}
-
-func TestGraph_Validate(t *testing.T) {
-	nodes := ParseNouns(`a -> b
-a -> c
-b -> d
-b -> e
-c -> d
-c -> e`)
-	list := NounMapToList(nodes)
-
-	g := &Graph{Name: "Test", Nouns: list}
-	err := g.Validate()
-	if err != nil {
-		t.Fatalf("err: %v", err)
 	}
 }
 
