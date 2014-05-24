@@ -11,6 +11,8 @@ endif
 
 export CGO_CFLAGS CGO_LDFLAGS PATH
 
+default: test
+
 libucl: vendor/libucl/$(LIBUCL_NAME)
 
 test: libucl
@@ -35,4 +37,4 @@ vendor/libucl:
 clean:
 	rm -rf vendor
 
-.PHONY: clean libucl test
+.PHONY: clean default libucl test
