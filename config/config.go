@@ -68,16 +68,12 @@ func (r *Resource) Id() string {
 // ResourceGraph returns a dependency graph of the resources from this
 // Terraform configuration.
 func (c *Config) ResourceGraph() *depgraph.Graph {
-	resource2Noun := func(r *Resource) *depgraph.Noun {
-		return &depgraph.Noun{
+	nouns := make(map[string]*depgraph.Noun)
+	for _, r := range c.Resources {
+		noun := &depgraph.Noun{
 			Name: r.Id(),
 			Meta: r,
 		}
-	}
-
-	nouns := make(map[string]*depgraph.Noun)
-	for _, r := range c.Resources {
-		noun := resource2Noun(r)
 		nouns[noun.Name] = noun
 	}
 
