@@ -53,6 +53,38 @@ func NounMapToList(m map[string]*Noun) []*Noun {
 	return list
 }
 
+func TestGraph_String(t *testing.T) {
+	nodes := ParseNouns(`a -> b
+a -> c
+b -> d
+b -> e
+c -> d
+c -> e`)
+
+	g := &Graph{
+		Name: "Test",
+		Nouns: NounMapToList(nodes),
+		Root: nodes["a"],
+	}
+	actual := g.String()
+
+	expected := `
+a
+  c
+    e
+    d
+  b
+    e
+    d
+`
+
+	actual = strings.TrimSpace(actual)
+	expected = strings.TrimSpace(expected)
+	if actual != expected {
+		t.Fatalf("bad:\n%s\n!=\n%s", actual, expected)
+	}
+}
+
 func TestGraph_Validate(t *testing.T) {
 	nodes := ParseNouns(`a -> b
 a -> c

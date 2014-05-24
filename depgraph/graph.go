@@ -6,7 +6,9 @@
 package depgraph
 
 import (
+	"bytes"
 	"fmt"
+	"strings"
 
 	"github.com/hashicorp/terraform/digraph"
 )
@@ -102,6 +104,44 @@ func (g *Graph) CheckConstraints() error {
 		return cErr
 	}
 	return nil
+}
+
+// String generates a little ASCII string of the graph, useful in
+// debugging output.
+func (g *Graph) String() string {
+	var buf bytes.Buffer
+
+	cb := func(n *Noun, depth int) {
+		buf.WriteString(fmt.Sprintf(
+			"%s%s\n",
+			strings.Repeat("  ", depth),
+			n.Name))
+	}
+
+	type listItem struct {
+		n *Noun
+		d int
+	}
+	nodes := []listItem{{g.Root, 0}}
+	for len(nodes) > 0 {
+		// Pop current node
+		n := len(nodes)
+		current := nodes[n-1]
+		nodes = nodes[:n-1]
+
+		// Visit
+		cb(current.n, current.d)
+
+		// Traverse
+		for _, dep := range current.n.Deps {
+			nodes = append(nodes, listItem{
+				n: dep.Target,
+				d: current.d + 1,
+			})
+		}
+	}
+
+	return buf.String()
 }
 
 // Validate is used to ensure that a few properties of the graph are not violated:
