@@ -5,6 +5,16 @@ import (
 	"testing"
 )
 
+func BenchmarkVariableDetectWalker(b *testing.B) {
+	w := new(variableDetectWalker)
+
+	str := reflect.ValueOf(`foo ${var.bar} bar ${bar.baz.bing} $${escaped}`)
+	for i := 0; i < b.N; i++ {
+		w.Variables = nil
+		w.Primitive(str)
+	}
+}
+
 func TestVariableDetectWalker(t *testing.T) {
 	w := new(variableDetectWalker)
 
