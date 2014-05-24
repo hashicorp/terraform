@@ -52,7 +52,8 @@ type ResourceVariable struct {
 // that is inputted from outside the configuration. This looks like
 // "${var.foo}"
 type UserVariable struct {
-	name string
+	Name string
+
 	key  string
 }
 
@@ -74,7 +75,7 @@ func NewUserVariable(key string) (*UserVariable, error) {
 	name := key[len("var."):]
 	return &UserVariable{
 		key:  key,
-		name: name,
+		Name: name,
 	}, nil
 }
 
