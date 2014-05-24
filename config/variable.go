@@ -1,6 +1,7 @@
 package config
 
 import (
+	"fmt"
 	"reflect"
 	"regexp"
 	"strings"
@@ -53,6 +54,13 @@ func (w *variableDetectWalker) Primitive(v reflect.Value) error {
 
 		var err error
 		var iv InterpolatedVariable
+		if strings.Index(key, ".") == -1 {
+			return fmt.Errorf(
+				"Interpolated variable '%s' has bad format. "+
+					"Did you mean 'var.%s'?",
+				key, key)
+		}
+
 		if strings.HasPrefix(key, "var.") {
 			iv, err = NewUserVariable(key)
 		} else {
