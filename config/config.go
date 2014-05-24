@@ -1,3 +1,5 @@
+// The config package is responsible for loading and validating the
+// configuration.
 package config
 
 import (
