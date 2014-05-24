@@ -67,10 +67,14 @@ const resourceGraphValue = `
 root: root
   root -> aws_security_group.firewall
   root -> aws_instance.web
+  root -> aws_load_balancer.weblb
 aws_security_group.firewall
 aws_instance.web
   aws_instance.web -> aws_security_group.firewall
+aws_load_balancer.weblb
+  aws_load_balancer.weblb -> aws_instance.web
 root
   root -> aws_security_group.firewall
   root -> aws_instance.web
+  root -> aws_load_balancer.weblb
 `
