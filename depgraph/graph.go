@@ -116,7 +116,7 @@ func (g *Graph) String() string {
 			"  %s -> %s\n",
 			dep.Source,
 			dep.Target))
-		}
+	}
 
 	for _, n := range g.Nouns {
 		buf.WriteString(fmt.Sprintf("%s\n", n.Name))

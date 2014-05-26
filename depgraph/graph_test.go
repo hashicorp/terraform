@@ -62,9 +62,9 @@ c -> d
 c -> e`)
 
 	g := &Graph{
-		Name: "Test",
+		Name:  "Test",
 		Nouns: NounMapToList(nodes),
-		Root: nodes["a"],
+		Root:  nodes["a"],
 	}
 	actual := g.String()
 
