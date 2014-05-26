@@ -66,6 +66,16 @@ func mergeConfig(c1, c2 *Config) (*Config, error) {
 		c.Variables[k] = v2
 	}
 
+	// Merge provider configs: If they collide, we just take the latest one
+	// for now. In the future, we might provide smarter merge functionality.
+	c.ProviderConfigs = make(map[string]*ProviderConfig)
+	for k, v := range c1.ProviderConfigs {
+		c.ProviderConfigs[k] = v
+	}
+	for k, v := range c2.ProviderConfigs {
+		c.ProviderConfigs[k] = v
+	}
+
 	// Merge resources: If they collide, we just take the latest one
 	// for now. In the future, we might provide smarter merge functionality.
 	resources := make(map[string]*Resource)

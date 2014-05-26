@@ -5,4 +5,8 @@ variable "foo" {
     description = "bar";
 }
 
+provider "aws" {
+    foo = "bar";
+}
+
 resource "aws_security_group" "web" {}

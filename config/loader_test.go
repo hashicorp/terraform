@@ -29,6 +29,11 @@ func TestLoadBasic(t *testing.T) {
 		t.Fatalf("bad:\n%s", actual)
 	}
 
+	actual = providerConfigsStr(c.ProviderConfigs)
+	if actual != strings.TrimSpace(basicProvidersStr) {
+		t.Fatalf("bad:\n%s", actual)
+	}
+
 	actual = resourcesStr(c.Resources)
 	if actual != strings.TrimSpace(basicResourcesStr) {
 		t.Fatalf("bad:\n%s", actual)
@@ -50,10 +55,47 @@ func TestLoadBasic_import(t *testing.T) {
 		t.Fatalf("bad:\n%s", actual)
 	}
 
+	actual = providerConfigsStr(c.ProviderConfigs)
+	if actual != strings.TrimSpace(importProvidersStr) {
+		t.Fatalf("bad:\n%s", actual)
+	}
+
 	actual = resourcesStr(c.Resources)
 	if actual != strings.TrimSpace(importResourcesStr) {
 		t.Fatalf("bad:\n%s", actual)
 	}
+}
+
+// This helper turns a provider configs field into a deterministic
+// string value for comparison in tests.
+func providerConfigsStr(pcs map[string]*ProviderConfig) string {
+	result := ""
+	for n, pc := range pcs {
+		result += fmt.Sprintf("%s\n", n)
+
+		for k, _ := range pc.Config {
+			result += fmt.Sprintf("  %s\n", k)
+		}
+
+		if len(pc.Variables) > 0 {
+			result += fmt.Sprintf("  vars\n")
+			for _, rawV := range pc.Variables {
+				kind := "unknown"
+				str := rawV.FullKey()
+
+				switch rawV.(type) {
+				case *ResourceVariable:
+					kind = "resource"
+				case *UserVariable:
+					kind = "user"
+				}
+
+				result += fmt.Sprintf("    %s: %s\n", kind, str)
+			}
+		}
+	}
+
+	return strings.TrimSpace(result)
 }
 
 // This helper turns a resources field into a deterministic
@@ -113,6 +155,16 @@ func variablesStr(vs map[string]Variable) string {
 	return strings.TrimSpace(result)
 }
 
+const basicProvidersStr = `
+aws
+  access_key
+  secret_key
+do
+  api_key
+  vars
+    user: var.foo
+`
+
 const basicResourcesStr = `
 aws_security_group[firewall]
 aws_instance[web]
@@ -127,6 +179,11 @@ const basicVariablesStr = `
 foo
   bar
   bar
+`
+
+const importProvidersStr = `
+aws
+  foo
 `
 
 const importResourcesStr = `

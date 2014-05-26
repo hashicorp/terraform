@@ -36,6 +36,17 @@ func (t *libuclConfigurable) Config() (*Config, error) {
 	config := new(Config)
 	config.Variables = rawConfig.Variable
 
+	// Build the provider configs
+	providers := t.Object.Get("provider")
+	if providers != nil {
+		var err error
+		config.ProviderConfigs, err = loadProvidersLibucl(providers)
+		providers.Close()
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	// Build the resources
 	resources := t.Object.Get("resource")
 	if resources != nil {
@@ -112,6 +123,52 @@ func loadFileLibucl(root string) (configurable, []string, error) {
 
 	result.Object.Ref()
 	return result, importPaths, nil
+}
+
+// LoadProvidersLibucl recurses into the given libucl object and turns
+// it into a mapping of provider configs.
+func loadProvidersLibucl(o *libucl.Object) (map[string]*ProviderConfig, error) {
+	objects := make(map[string]*libucl.Object)
+
+	// Iterate over all the "provider" blocks and get the keys along with
+	// their raw configuration objects. We'll parse those later.
+	iter := o.Iterate(false)
+	for o1 := iter.Next(); o1 != nil; o1 = iter.Next() {
+		iter2 := o1.Iterate(true)
+		for o2 := iter2.Next(); o2 != nil; o2 = iter2.Next() {
+			objects[o2.Key()] = o2
+			defer o2.Close()
+		}
+
+		o1.Close()
+		iter2.Close()
+	}
+	iter.Close()
+
+	// Go through each object and turn it into an actual result.
+	result := make(map[string]*ProviderConfig)
+	for n, o := range objects {
+		var config map[string]interface{}
+
+		if err := o.Decode(&config); err != nil {
+			return nil, err
+		}
+
+		walker := new(variableDetectWalker)
+		if err := reflectwalk.Walk(config, walker); err != nil {
+			return nil, fmt.Errorf(
+				"Error reading config for provider config %s: %s",
+				n,
+				err)
+		}
+
+		result[n] = &ProviderConfig{
+			Config:    config,
+			Variables: walker.Variables,
+		}
+	}
+
+	return result, nil
 }
 
 // Given a handle to a libucl object, this recurses into the structure

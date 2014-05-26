@@ -12,8 +12,18 @@ import (
 // Config is the configuration that comes from loading a collection
 // of Terraform templates.
 type Config struct {
-	Variables map[string]Variable
-	Resources []*Resource
+	ProviderConfigs map[string]*ProviderConfig
+	Resources       []*Resource
+	Variables       map[string]Variable
+}
+
+// ProviderConfig is the configuration for a resource provider.
+//
+// For example, Terraform needs to set the AWS access keys for the AWS
+// resource provider.
+type ProviderConfig struct {
+	Config    map[string]interface{}
+	Variables map[string]InterpolatedVariable
 }
 
 // A resource represents a single Terraform resource in the configuration.
