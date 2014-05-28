@@ -8,11 +8,12 @@ import (
 
 type ResourceProvider struct {
 	Client *rpc.Client
+	Name   string
 }
 
 func (p *ResourceProvider) Configure(c map[string]interface{}) ([]string, error) {
 	var resp ResourceProviderConfigureResponse
-	err := p.Client.Call("ResourceProvider.Configure", c, &resp)
+	err := p.Client.Call(p.Name+".Configure", c, &resp)
 	if err != nil {
 		return nil, err
 	}

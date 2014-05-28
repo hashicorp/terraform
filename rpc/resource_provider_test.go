@@ -10,11 +10,11 @@ import (
 func TestResourceProvider_configure(t *testing.T) {
 	p := new(terraform.MockResourceProvider)
 	client, server := testClientServer(t)
-	server.RegisterName("ResourceProvider", &ResourceProviderServer{
-		Provider: p,
-	})
-
-	provider := &ResourceProvider{Client: client}
+	name, err := Register(server, p)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	provider := &ResourceProvider{Client: client, Name: name}
 
 	// Configure
 	config := map[string]interface{}{"foo": "bar"}
