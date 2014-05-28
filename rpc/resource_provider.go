@@ -17,8 +17,11 @@ func (p *ResourceProvider) Configure(c map[string]interface{}) ([]string, error)
 	if err != nil {
 		return nil, err
 	}
+	if resp.Error != nil {
+		err = resp.Error
+	}
 
-	return resp.Warnings, resp.Error
+	return resp.Warnings, err
 }
 
 type ResourceProviderServer struct {
@@ -27,7 +30,7 @@ type ResourceProviderServer struct {
 
 type ResourceProviderConfigureResponse struct {
 	Warnings []string
-	Error    error
+	Error    *BasicError
 }
 
 func (s *ResourceProviderServer) Configure(
@@ -36,7 +39,7 @@ func (s *ResourceProviderServer) Configure(
 	warnings, err := s.Provider.Configure(config)
 	*reply = ResourceProviderConfigureResponse{
 		Warnings: warnings,
-		Error:    err,
+		Error:    NewBasicError(err),
 	}
 	return nil
 }
