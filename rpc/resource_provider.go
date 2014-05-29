@@ -6,6 +6,8 @@ import (
 	"github.com/hashicorp/terraform/terraform"
 )
 
+// ResourceProvider is an implementation of terraform.ResourceProvider
+// that communicates over RPC.
 type ResourceProvider struct {
 	Client *rpc.Client
 	Name   string
@@ -24,6 +26,8 @@ func (p *ResourceProvider) Configure(c map[string]interface{}) ([]string, error)
 	return resp.Warnings, err
 }
 
+// ResourceProviderServer is a net/rpc compatible structure for serving
+// a ResourceProvider. This should not be used directly.
 type ResourceProviderServer struct {
 	Provider terraform.ResourceProvider
 }
