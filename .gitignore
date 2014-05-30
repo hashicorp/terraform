@@ -1,4 +1,5 @@
 *.dll
 *.exe
 example.tf
+bin/
 vendor/
