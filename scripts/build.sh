@@ -44,4 +44,4 @@ cp bin/terraform* ${GOPATHSINGLE}/bin
 # Done!
 echo
 echo "--> Results:"
-ls -l bin/
+ls -hl bin/
