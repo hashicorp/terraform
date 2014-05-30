@@ -3,10 +3,13 @@ CGO_LDFLAGS:=-L$(CURDIR)/vendor/libucl
 LIBUCL_NAME=libucl.a
 TEST?=./...
 
-# If we're on Windows, we need to change some variables so things compile
-# properly.
+# Windows-only
 ifeq ($(OS), Windows_NT)
+	# The Libucl library is named libucl.dll
 	LIBUCL_NAME=libucl.dll
+
+	# Add the current directory on the path so the DLL is available.
+	export PATH := $(CURDIR):$(PATH)
 endif
 
 export CGO_CFLAGS CGO_LDFLAGS PATH
