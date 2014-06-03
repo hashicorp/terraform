@@ -23,3 +23,13 @@ type ResourceType struct {
 // ResourceProviderFactory is a function type that creates a new instance
 // of a resource provider.
 type ResourceProviderFactory func() (ResourceProvider, error)
+
+func ProviderSatisfies(p ResourceProvider, n string) bool {
+	for _, rt := range p.Resources() {
+		if rt.Name == n {
+			return true
+		}
+	}
+
+	return false
+}

@@ -3,6 +3,9 @@ package terraform
 // MockResourceProvider implements ResourceProvider but mocks out all the
 // calls for testing purposes.
 type MockResourceProvider struct {
+	// Anything you want, in case you need to store extra data with the mock.
+	Meta interface{}
+
 	ConfigureCalled         bool
 	ConfigureConfig         map[string]interface{}
 	ConfigureReturnWarnings []string
