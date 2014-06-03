@@ -30,6 +30,27 @@ type Config struct {
 // time, as well as richer checks such as verifying that the resource providers
 // can be properly initialized, can be configured, etc.
 func New(c *Config) (*Terraform, error) {
+	// Validate that all required variables have values
+	required := make(map[string]struct{})
+	for k, v := range c.Config.Variables {
+		if v.Required() {
+			required[k] = struct{}{}
+		}
+	}
+	for k, _ := range c.Variables {
+		delete(required, k)
+	}
+	if len(required) > 0 {
+		errs := make([]error, 0, len(required))
+		for k, _ := range required {
+			errs = append(errs, fmt.Errorf(
+				"Required variable not set: %s", k))
+		}
+
+		// TODO(mitchellh): Return multi-error
+		return nil, errs[0]
+	}
+
 	// Go through each resource and match it up to a provider
 	mapping := make(map[*config.Resource]ResourceProvider)
 	providers := make(map[string]ResourceProvider)

@@ -79,3 +79,47 @@ func TestNew(t *testing.T) {
 		t.Fatalf("bad: %#v", mapping)
 	}
 }
+
+func TestNew_variables(t *testing.T) {
+	config := testConfig(t, "new-variables")
+	tfConfig := &Config{
+		Config: config,
+	}
+
+	// Missing
+	tfConfig.Variables = map[string]string{
+		"bar": "baz",
+	}
+	tf, err := New(tfConfig)
+	if err == nil {
+		t.Fatal("should error")
+	}
+	if tf != nil {
+		t.Fatalf("should not return tf")
+	}
+
+	// Good
+	tfConfig.Variables = map[string]string{
+		"foo": "bar",
+	}
+	tf, err = New(tfConfig)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if tf == nil {
+		t.Fatal("tf should not be nil")
+	}
+
+	// Good
+	tfConfig.Variables = map[string]string{
+		"foo": "bar",
+		"bar": "baz",
+	}
+	tf, err = New(tfConfig)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if tf == nil {
+		t.Fatal("tf should not be nil")
+	}
+}
