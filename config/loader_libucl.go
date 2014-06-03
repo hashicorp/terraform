@@ -23,18 +23,39 @@ func (t *libuclConfigurable) Close() error {
 }
 
 func (t *libuclConfigurable) Config() (*Config, error) {
+	type LibuclVariable struct {
+		Default     string
+		Description string
+		Fields      []string `libucl:",decodedFields"`
+	}
+
 	var rawConfig struct {
-		Variable map[string]Variable
+		Variable map[string]*LibuclVariable
 	}
 
 	if err := t.Object.Decode(&rawConfig); err != nil {
 		return nil, err
 	}
 
-	// Start building up the actual configuration. We first
-	// copy the fields that can be directly assigned.
+	// Start building up the actual configuration. We start with
+	// variables.
 	config := new(Config)
-	config.Variables = rawConfig.Variable
+	config.Variables = make(map[string]*Variable)
+	for k, v := range rawConfig.Variable {
+		defaultSet := false
+		for _, f := range v.Fields {
+			if f == "Default" {
+				defaultSet = true
+				break
+			}
+		}
+
+		config.Variables[k] = &Variable{
+			Default:     v.Default,
+			Description: v.Description,
+			defaultSet:  defaultSet,
+		}
+	}
 
 	// Build the provider configs
 	providers := t.Object.Get("provider")

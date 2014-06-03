@@ -66,6 +66,31 @@ func TestLoadBasic_import(t *testing.T) {
 	}
 }
 
+func TestLoad_variables(t *testing.T) {
+	c, err := Load(filepath.Join(fixtureDir, "variables.tf"))
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if c == nil {
+		t.Fatal("config should not be nil")
+	}
+
+	actual := variablesStr(c.Variables)
+	if actual != strings.TrimSpace(variablesVariablesStr) {
+		t.Fatalf("bad:\n%s", actual)
+	}
+
+	if !c.Variables["foo"].Required() {
+		t.Fatal("foo should be required")
+	}
+	if c.Variables["bar"].Required() {
+		t.Fatal("bar should not be required")
+	}
+	if c.Variables["baz"].Required() {
+		t.Fatal("baz should not be required")
+	}
+}
+
 // This helper turns a provider configs field into a deterministic
 // string value for comparison in tests.
 func providerConfigsStr(pcs map[string]*ProviderConfig) string {
@@ -135,7 +160,7 @@ func resourcesStr(rs []*Resource) string {
 
 // This helper turns a variables field into a deterministic
 // string value for comparison in tests.
-func variablesStr(vs map[string]Variable) string {
+func variablesStr(vs map[string]*Variable) string {
 	result := ""
 	for k, v := range vs {
 		if v.Default == "" {
@@ -198,4 +223,16 @@ bar
 foo
   bar
   bar
+`
+
+const variablesVariablesStr = `
+foo
+  <>
+  <>
+bar
+  <>
+  <>
+baz
+  foo
+  <>
 `

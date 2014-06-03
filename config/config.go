@@ -14,7 +14,7 @@ import (
 type Config struct {
 	ProviderConfigs map[string]*ProviderConfig
 	Resources       []*Resource
-	Variables       map[string]Variable
+	Variables       map[string]*Variable
 }
 
 // ProviderConfig is the configuration for a resource provider.
@@ -36,9 +36,11 @@ type Resource struct {
 	Variables map[string]InterpolatedVariable
 }
 
+// Variable is a variable defined within the configuration.
 type Variable struct {
 	Default     string
 	Description string
+	defaultSet  bool
 }
 
 // An InterpolatedVariable is a variable that is embedded within a string
@@ -128,6 +130,11 @@ func (c *Config) ResourceGraph() *depgraph.Graph {
 		Name:  "resources",
 		Nouns: nounsList,
 	}
+}
+
+// Required tests whether a variable is required or not.
+func (v *Variable) Required() bool {
+	return !v.defaultSet
 }
 
 func NewResourceVariable(key string) (*ResourceVariable, error) {
