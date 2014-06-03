@@ -26,6 +26,18 @@ func (p *ResourceProvider) Configure(c map[string]interface{}) ([]string, error)
 	return resp.Warnings, err
 }
 
+func (p *ResourceProvider) Resources() []terraform.ResourceType {
+	var result []terraform.ResourceType
+
+	err := p.Client.Call(p.Name+".Resources", new(interface{}), &result)
+	if err != nil {
+		// TODO: panic, log, what?
+		return nil
+	}
+
+	return result
+}
+
 // ResourceProviderServer is a net/rpc compatible structure for serving
 // a ResourceProvider. This should not be used directly.
 type ResourceProviderServer struct {
@@ -45,5 +57,12 @@ func (s *ResourceProviderServer) Configure(
 		Warnings: warnings,
 		Error:    NewBasicError(err),
 	}
+	return nil
+}
+
+func (s *ResourceProviderServer) Resources(
+	nothing interface{},
+	result *[]terraform.ResourceType) error {
+	*result = s.Provider.Resources()
 	return nil
 }

@@ -12,7 +12,7 @@ type ResourceProvider interface {
 
 	// Resources returns all the available resource types that this provider
 	// knows how to manage.
-	//Resources() []ResourceType
+	Resources() []ResourceType
 }
 
 // ResourceType is a type of resource that a resource provider can manage.

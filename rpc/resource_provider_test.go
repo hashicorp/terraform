@@ -95,3 +95,29 @@ func TestResourceProvider_configure_warnings(t *testing.T) {
 		t.Fatalf("bad: %#v", e)
 	}
 }
+
+func TestResourceProvider_resources(t *testing.T) {
+	p := new(terraform.MockResourceProvider)
+	client, server := testClientServer(t)
+	name, err := Register(server, p)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	provider := &ResourceProvider{Client: client, Name: name}
+
+	expected := []terraform.ResourceType{
+		{"foo"},
+		{"bar"},
+	}
+
+	p.ResourcesReturn = expected
+
+	// Resources
+	result := provider.Resources()
+	if !p.ResourcesCalled {
+		t.Fatal("resources should be called")
+	}
+	if !reflect.DeepEqual(result, expected) {
+		t.Fatalf("bad: %#v", result)
+	}
+}
