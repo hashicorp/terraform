@@ -11,8 +11,9 @@ import (
 // Terraform from code, and can perform operations such as returning
 // all resources, a resource tree, a specific resource, etc.
 type Terraform struct {
-	config  *config.Config
-	mapping map[*config.Resource]ResourceProvider
+	config    *config.Config
+	mapping   map[*config.Resource]ResourceProvider
+	variables map[string]string
 }
 
 // Config is the configuration that must be given to instantiate
@@ -98,8 +99,9 @@ func New(c *Config) (*Terraform, error) {
 	}
 
 	return &Terraform{
-		config:  c.Config,
-		mapping: mapping,
+		config:    c.Config,
+		mapping:   mapping,
+		variables: c.Variables,
 	}, nil
 }
 
