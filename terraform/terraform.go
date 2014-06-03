@@ -50,6 +50,8 @@ func New(c *Config) (*Terraform, error) {
 		}
 	}
 
+	// TODO(mitchellh): variables that are unknown
+
 	// Go through each resource and match it up to a provider
 	mapping := make(map[*config.Resource]ResourceProvider)
 	providers := make(map[string]ResourceProvider)
