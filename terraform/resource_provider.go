@@ -13,6 +13,42 @@ type ResourceProvider interface {
 	// Resources returns all the available resource types that this provider
 	// knows how to manage.
 	Resources() []ResourceType
+
+	// Apply applies a diff to a specific resource and returns the new
+	// resource state along with an error.
+	//
+	// If the resource state given has an empty ID, then a new resource
+	// is expected to be created.
+	//Apply(ResourceState, ResourceDiff) (ResourceState, error)
+
+	// Diff diffs a resource versus a desired state and returns
+	// a diff.
+	Diff(
+		ResourceState,
+		map[string]interface{}) (ResourceDiff, error)
+}
+
+// ResourceDiff is the diff of a resource from some state to another.
+type ResourceDiff struct {
+	Attributes map[string]ResourceDiffAttribute
+}
+
+// ResourceDiffAttribute is the diff of a single attribute of a resource.
+type ResourceDiffAttribute struct {
+	Old         string
+	New         string
+	RequiresNew bool
+}
+
+// ResourceState holds the state of a resource that is used so that
+// a provider can find and manage an existing resource as well as for
+// storing attributes that are uesd to populate variables of child
+// resources.
+type ResourceState struct {
+	Type       string
+	ID         string
+	Attributes map[string]string
+	Extra      map[string]interface{}
 }
 
 // ResourceType is a type of resource that a resource provider can manage.
