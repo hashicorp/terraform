@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/hashicorp/terraform/config"
+	"github.com/hashicorp/terraform/depgraph"
 )
 
 // Terraform is the primary structure that is used to interact with
@@ -12,6 +13,7 @@ import (
 // all resources, a resource tree, a specific resource, etc.
 type Terraform struct {
 	config    *config.Config
+	graph     *depgraph.Graph
 	mapping   map[*config.Resource]ResourceProvider
 	variables map[string]string
 }
@@ -98,6 +100,13 @@ func New(c *Config) (*Terraform, error) {
 		mapping[r] = provider
 	}
 
+	// Build the resource graph
+	graph := c.Config.ResourceGraph()
+	if err := graph.Validate(); err != nil {
+		errs = append(errs, fmt.Errorf(
+			"Resource graph has an error: %s", err))
+	}
+
 	// If we accumulated any errors, then return them all
 	if len(errs) > 0 {
 		return nil, &MultiError{Errors: errs}
@@ -105,6 +114,7 @@ func New(c *Config) (*Terraform, error) {
 
 	return &Terraform{
 		config:    c.Config,
+		graph:     graph,
 		mapping:   mapping,
 		variables: c.Variables,
 	}, nil

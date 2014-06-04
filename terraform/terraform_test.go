@@ -80,6 +80,24 @@ func TestNew(t *testing.T) {
 	}
 }
 
+func TestNew_graphCycle(t *testing.T) {
+	config := testConfig(t, "new-graph-cycle")
+	tfConfig := &Config{
+		Config: config,
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFunc("aws", []string{"aws_instance"}),
+		},
+	}
+
+	tf, err := New(tfConfig)
+	if err == nil {
+		t.Fatal("should error")
+	}
+	if tf != nil {
+		t.Fatalf("should not return tf")
+	}
+}
+
 func TestNew_variables(t *testing.T) {
 	config := testConfig(t, "new-variables")
 	tfConfig := &Config{

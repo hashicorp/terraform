@@ -9,6 +9,10 @@ import (
 	"github.com/hashicorp/terraform/depgraph"
 )
 
+// ResourceGraphRoot is the name of the resource graph root that should be
+// ignored since it doesn't map to an exact resource.
+const ResourceGraphRoot = "root"
+
 // Config is the configuration that comes from loading a collection
 // of Terraform templates.
 type Config struct {
@@ -116,7 +120,7 @@ func (c *Config) ResourceGraph() *depgraph.Graph {
 	}
 
 	// Create a root that just depends on everything else finishing.
-	root := &depgraph.Noun{Name: "root"}
+	root := &depgraph.Noun{Name: ResourceGraphRoot}
 	for _, n := range nounsList {
 		root.Deps = append(root.Deps, &depgraph.Dependency{
 			Name:   n.Name,
