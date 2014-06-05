@@ -41,17 +41,17 @@ func TestNew(t *testing.T) {
 	}
 
 	/*
-	val := testProviderMock(mapping["aws_instance.foo"]).
-		ConfigureCommonConfig.TFComputedPlaceholder
-	if val == "" {
-		t.Fatal("should have computed placeholder")
-	}
+		val := testProviderMock(mapping["aws_instance.foo"]).
+			ConfigureCommonConfig.TFComputedPlaceholder
+		if val == "" {
+			t.Fatal("should have computed placeholder")
+		}
 
-	val = testProviderMock(mapping["aws_instance.bar"]).
-		ConfigureCommonConfig.TFComputedPlaceholder
-	if val == "" {
-		t.Fatal("should have computed placeholder")
-	}
+		val = testProviderMock(mapping["aws_instance.bar"]).
+			ConfigureCommonConfig.TFComputedPlaceholder
+		if val == "" {
+			t.Fatal("should have computed placeholder")
+		}
 	*/
 }
 
