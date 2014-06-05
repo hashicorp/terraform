@@ -2,7 +2,9 @@ package depgraph
 
 import (
 	"fmt"
+	"reflect"
 	"strings"
+	"sync"
 	"testing"
 )
 
@@ -311,5 +313,69 @@ c -> e`)
 	err = g.CheckConstraints()
 	if err != nil {
 		t.Fatalf("err: %v", err)
+	}
+}
+
+func TestGraphWalk(t *testing.T) {
+	nodes := ParseNouns(`a -> b
+a -> c
+b -> d
+b -> e
+c -> d
+c -> e`)
+	list := NounMapToList(nodes)
+	g := &Graph{Name: "Test", Nouns: list}
+	if err := g.Validate(); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	var namesLock sync.Mutex
+	names := make([]string, 0, 0)
+	err := g.Walk(func(n *Noun) error {
+		namesLock.Lock()
+		defer namesLock.Unlock()
+		names = append(names, n.Name)
+		return nil
+	})
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	expected := [][]string{
+		{"e", "d", "c", "b", "a"},
+		{"e", "d", "b", "c", "a"},
+		{"d", "e", "c", "b", "a"},
+		{"d", "e", "b", "c", "a"},
+	}
+	found := false
+	for _, expect := range expected {
+		if reflect.DeepEqual(expect, names) {
+			found = true
+			break
+		}
+	}
+	if !found {
+		t.Fatalf("bad: %#v", names)
+	}
+}
+
+func TestGraphWalk_error(t *testing.T) {
+	nodes := ParseNouns(`a -> b
+a -> c
+b -> d
+b -> e
+c -> d
+c -> e`)
+	list := NounMapToList(nodes)
+	g := &Graph{Name: "Test", Nouns: list}
+	if err := g.Validate(); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	err := g.Walk(func(n *Noun) error {
+		return fmt.Errorf("foo")
+	})
+	if err == nil {
+		t.Fatal("should error")
 	}
 }
