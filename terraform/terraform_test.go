@@ -2,6 +2,7 @@ package terraform
 
 import (
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/hashicorp/terraform/config"
@@ -113,6 +114,12 @@ func TestTerraformDiff(t *testing.T) {
 	if len(diff.Resources) < 2 {
 		t.Fatalf("bad: %#v", diff.Resources)
 	}
+
+	actual := strings.TrimSpace(testDiffStr(diff))
+	expected := strings.TrimSpace(testTerraformDiffStr)
+	if actual != expected {
+		t.Fatalf("bad:\n%s", actual)
+	}
 }
 
 func testConfig(t *testing.T, name string) *config.Config {
@@ -133,17 +140,28 @@ func testProviderFunc(n string, rs []string) ResourceProviderFactory {
 	}
 
 	return func() (ResourceProvider, error) {
-		var diff ResourceDiff
-		diff.Attributes = map[string]*ResourceAttrDiff{
-			n: &ResourceAttrDiff{
-				Old: "foo",
-				New: "bar",
-			},
+		diffFn := func(
+			_ ResourceState,
+			c map[string]interface{}) (ResourceDiff, error) {
+			var diff ResourceDiff
+			diff.Attributes = make(map[string]*ResourceAttrDiff)
+			for k, v := range c {
+				if _, ok := v.(string); !ok {
+					continue
+				}
+
+				diff.Attributes[k] = &ResourceAttrDiff{
+					Old: "",
+					New: v.(string),
+				}
+			}
+
+			return diff, nil
 		}
 
 		result := &MockResourceProvider{
 			Meta:            n,
-			DiffReturn:      diff,
+			DiffFn:          diffFn,
 			ResourcesReturn: resources,
 		}
 
@@ -184,3 +202,10 @@ func testTerraform(t *testing.T, name string) *Terraform {
 
 	return tf
 }
+
+const testTerraformDiffStr = `
+aws_instance.bar
+  foo: "" => "${aws_instance.foo.num}"
+aws_instance.foo
+  num: "" => "2"
+`

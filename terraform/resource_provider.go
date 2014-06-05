@@ -28,22 +28,6 @@ type ResourceProvider interface {
 		map[string]interface{}) (ResourceDiff, error)
 }
 
-// ResourceDiff is the diff of a resource from some state to another.
-type ResourceDiff struct {
-	Attributes map[string]*ResourceAttrDiff
-}
-
-// ResourceState holds the state of a resource that is used so that
-// a provider can find and manage an existing resource as well as for
-// storing attributes that are uesd to populate variables of child
-// resources.
-type ResourceState struct {
-	Type       string
-	ID         string
-	Attributes map[string]string
-	Extra      map[string]interface{}
-}
-
 // ResourceType is a type of resource that a resource provider can manage.
 type ResourceType struct {
 	Name string

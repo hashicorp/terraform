@@ -91,19 +91,19 @@ func TestResourceReplaceVariables(t *testing.T) {
 	}
 
 	/*
-	TODO(mitchellh): Eventually, preserve original config...
+		TODO(mitchellh): Eventually, preserve original config...
 
-	expectedOriginal := &Resource{
-		Name: "foo",
-		Type: "bar",
-		Config: map[string]interface{}{
-			"foo": "${var.bar}",
-		},
-	}
+		expectedOriginal := &Resource{
+			Name: "foo",
+			Type: "bar",
+			Config: map[string]interface{}{
+				"foo": "${var.bar}",
+			},
+		}
 
-	if !reflect.DeepEqual(r, expectedOriginal) {
-		t.Fatalf("bad: %#v", r)
-	}
+		if !reflect.DeepEqual(r, expectedOriginal) {
+			t.Fatalf("bad: %#v", r)
+		}
 	*/
 }
 

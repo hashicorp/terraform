@@ -13,6 +13,7 @@ type MockResourceProvider struct {
 	DiffCalled              bool
 	DiffState               ResourceState
 	DiffDesired             map[string]interface{}
+	DiffFn                  func(ResourceState, map[string]interface{}) (ResourceDiff, error)
 	DiffReturn              ResourceDiff
 	DiffReturnError         error
 	ResourcesCalled         bool
@@ -31,6 +32,10 @@ func (p *MockResourceProvider) Diff(
 	p.DiffCalled = true
 	p.DiffState = state
 	p.DiffDesired = desired
+	if p.DiffFn != nil {
+		return p.DiffFn(state, desired)
+	}
+
 	return p.DiffReturn, p.DiffReturnError
 }
 
