@@ -72,8 +72,6 @@ c -> e`)
 
 	expected := `
 root: a
-  a -> b
-  a -> c
 a
   a -> b
   a -> c
