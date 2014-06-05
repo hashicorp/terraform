@@ -155,6 +155,12 @@ func (t *Terraform) diffWalkFn(
 	// This is the value that will be used for computed properties
 	computedId := "computed"
 
+	// Initialize the variables for application
+	vars := make(map[string]string)
+	for k, v := range t.variables {
+		vars[k] = v
+	}
+
 	return func(n *depgraph.Noun) error {
 		// If it is the root node, ignore
 		if n.Name == config.ResourceGraphRoot {
@@ -169,9 +175,8 @@ func (t *Terraform) diffWalkFn(
 
 		l.RLock()
 		rs := state.resources[r.Id()]
-		vs := t.replaceVariables(r, state)
-		if len(vs) > 0 {
-			r = r.ReplaceVariables(vs)
+		if len(vars) > 0 {
+			r = r.ReplaceVariables(vars)
 		}
 		l.RUnlock()
 
@@ -192,29 +197,14 @@ func (t *Terraform) diffWalkFn(
 		// Update the resulting diff
 		result.Resources[r.Id()] = diff.Attributes
 
-		// Update the state for child dependencies
-		state.resources[r.Id()] = rs.MergeDiff(diff.Attributes, computedId)
+		// Determine the new state and update variables
+		rs = rs.MergeDiff(diff.Attributes, computedId)
+		for ak, av := range rs.Attributes {
+			vars[fmt.Sprintf("%s.%s", r.Id(), ak)] = av
+		}
 
 		return nil
 	}
-}
-
-// replaceVariables will return the mapping of variable replacements to
-// apply for a given resource with a given state.
-func (t *Terraform) replaceVariables(
-	r *config.Resource,
-	s *State) map[string]string {
-	result := make(map[string]string)
-	for k, v := range t.variables {
-		result[k] = v
-	}
-	for n, rs := range s.resources {
-		for attrK, attrV := range rs.Attributes {
-			result[fmt.Sprintf("%s.%s", n, attrK)] = attrV
-		}
-	}
-
-	return result
 }
 
 // matchingPrefixes takes a resource type and a set of resource
