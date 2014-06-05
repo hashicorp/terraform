@@ -82,6 +82,20 @@ func (r *Resource) Id() string {
 	return fmt.Sprintf("%s.%s", r.Type, r.Name)
 }
 
+// ProviderConfigName returns the name of the provider configuration in
+// the given mapping that maps to the proper provider configuration
+// for this resource.
+func (r *Resource) ProviderConfigName(pcs map[string]*ProviderConfig) string {
+	lk := ""
+	for k, _ := range pcs {
+		if strings.HasPrefix(r.Type, k) && len(k) > len(lk) {
+			lk = k
+		}
+	}
+
+	return lk
+}
+
 // ReplaceVariables replaces the variables in the configuration
 // with the given values.
 //
