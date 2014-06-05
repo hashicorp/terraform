@@ -7,7 +7,6 @@ import (
 	"strings"
 
 	"github.com/hashicorp/terraform/depgraph"
-	"github.com/mitchellh/reflectwalk"
 )
 
 // ResourceGraphRoot is the name of the resource graph root that should be
@@ -77,6 +76,20 @@ type UserVariable struct {
 	key string
 }
 
+// ReplaceVariables replaces the variables in the configuration
+// with the given values.
+//
+// This replacement is not in place. Instead, this function will
+// return a new resource with the variables replaced.
+func (r *ProviderConfig) ReplaceVariables(
+	vs map[string]string) *ProviderConfig {
+	result := *r
+	if err := replaceVariables(result.Config, vs); err != nil {
+		panic(err)
+	}
+	return &result
+}
+
 // A unique identifier for this resource.
 func (r *Resource) Id() string {
 	return fmt.Sprintf("%s.%s", r.Type, r.Name)
@@ -103,20 +116,18 @@ func (r *Resource) ProviderConfigName(pcs map[string]*ProviderConfig) string {
 // return a new resource with the variables replaced.
 func (r *Resource) ReplaceVariables(vs map[string]string) *Resource {
 	result := *r
-
-	w := &variableReplaceWalker{
-		Values: vs,
-	}
-
-	if err := reflectwalk.Walk(result.Config, w); err != nil {
+	if err := replaceVariables(result.Config, vs); err != nil {
 		panic(err)
 	}
-
 	return &result
 }
 
 // ResourceGraph returns a dependency graph of the resources from this
 // Terraform configuration.
+//
+// The graph can contain both *Resource and *ProviderConfig. When consuming
+// the graph, you'll have to use type inference to determine what it is
+// and the proper behavior.
 func (c *Config) ResourceGraph() *depgraph.Graph {
 	// This tracks all the resource nouns
 	nouns := make(map[string]*depgraph.Noun)

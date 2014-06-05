@@ -16,6 +16,16 @@ func init() {
 	varRegexp = regexp.MustCompile(`(?i)(\$+)\{([-.a-z0-9_]+)\}`)
 }
 
+// replaceVariables takes a configuration and a mapping of variables
+// and performs the structure walking necessary to properly replace
+// all the variables.
+func replaceVariables(
+	c map[string]interface{},
+	vs map[string]string) error {
+	w := &variableReplaceWalker{Values: vs}
+	return reflectwalk.Walk(c, w)
+}
+
 // variableDetectWalker implements interfaces for the reflectwalk package
 // (github.com/mitchellh/reflectwalk) that can be used to automatically
 // pull out the variables that need replacing.
