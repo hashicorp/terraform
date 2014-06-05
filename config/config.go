@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/hashicorp/terraform/depgraph"
+	"github.com/mitchellh/reflectwalk"
 )
 
 // ResourceGraphRoot is the name of the resource graph root that should be
@@ -79,6 +80,25 @@ type UserVariable struct {
 // A unique identifier for this resource.
 func (r *Resource) Id() string {
 	return fmt.Sprintf("%s.%s", r.Type, r.Name)
+}
+
+// ReplaceVariables replaces the variables in the configuration
+// with the given values.
+//
+// This replacement is not in place. Instead, this function will
+// return a new resource with the variables replaced.
+func (r *Resource) ReplaceVariables(vs map[string]string) *Resource {
+	result := *r
+
+	w := &variableReplaceWalker{
+		Values: vs,
+	}
+
+	if err := reflectwalk.Walk(result.Config, w); err != nil {
+		panic(err)
+	}
+
+	return &result
 }
 
 // ResourceGraph returns a dependency graph of the resources from this

@@ -2,6 +2,7 @@ package config
 
 import (
 	"path/filepath"
+	"reflect"
 	"strings"
 	"testing"
 )
@@ -61,6 +62,49 @@ func TestNewUserVariable(t *testing.T) {
 	if v.FullKey() != "var.bar" {
 		t.Fatalf("bad: %#v", v)
 	}
+}
+
+func TestResourceReplaceVariables(t *testing.T) {
+	r := &Resource{
+		Name: "foo",
+		Type: "bar",
+		Config: map[string]interface{}{
+			"foo": "${var.bar}",
+		},
+	}
+
+	values := map[string]string{
+		"var.bar": "value",
+	}
+
+	r2 := r.ReplaceVariables(values)
+
+	expected := &Resource{
+		Name: "foo",
+		Type: "bar",
+		Config: map[string]interface{}{
+			"foo": "value",
+		},
+	}
+	if !reflect.DeepEqual(r2, expected) {
+		t.Fatalf("bad: %#v", r2)
+	}
+
+	/*
+	TODO(mitchellh): Eventually, preserve original config...
+
+	expectedOriginal := &Resource{
+		Name: "foo",
+		Type: "bar",
+		Config: map[string]interface{}{
+			"foo": "${var.bar}",
+		},
+	}
+
+	if !reflect.DeepEqual(r, expectedOriginal) {
+		t.Fatalf("bad: %#v", r)
+	}
+	*/
 }
 
 const resourceGraphValue = `
