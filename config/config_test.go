@@ -29,6 +29,18 @@ func TestConfigResourceGraph(t *testing.T) {
 	}
 }
 
+func TestConfigResourceGraph_cycle(t *testing.T) {
+	c, err := Load(filepath.Join(fixtureDir, "resource_graph_cycle.tf"))
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	graph := c.ResourceGraph()
+	if err := graph.Validate(); err == nil {
+		t.Fatal("graph should be invalid")
+	}
+}
+
 func TestNewResourceVariable(t *testing.T) {
 	v, err := NewResourceVariable("foo.bar.baz")
 	if err != nil {
