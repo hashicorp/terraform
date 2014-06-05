@@ -41,3 +41,24 @@ func TestResourceState_MergeDiff(t *testing.T) {
 		t.Fatalf("bad: %#v", rs2.Attributes)
 	}
 }
+
+func TestResourceState_MergeDiff_nil(t *testing.T) {
+	var rs *ResourceState = nil
+
+	diff := map[string]*ResourceAttrDiff{
+		"foo": &ResourceAttrDiff{
+			Old: "",
+			New: "baz",
+		},
+	}
+
+	rs2 := rs.MergeDiff(diff, "computed")
+
+	expected := map[string]string{
+		"foo": "baz",
+	}
+
+	if !reflect.DeepEqual(expected, rs2.Attributes) {
+		t.Fatalf("bad: %#v", rs2.Attributes)
+	}
+}

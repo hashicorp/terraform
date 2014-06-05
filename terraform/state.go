@@ -34,10 +34,16 @@ type ResourceState struct {
 func (s *ResourceState) MergeDiff(
 	d map[string]*ResourceAttrDiff,
 	computedID string) ResourceState {
-	result := *s
+	var result ResourceState
+	if s != nil {
+		result = *s
+	}
+
 	result.Attributes = make(map[string]string)
-	for k, v := range s.Attributes {
-		result.Attributes[k] = v
+	if s != nil {
+		for k, v := range s.Attributes {
+			result.Attributes[k] = v
+		}
 	}
 	for k, diff := range d {
 		if diff.NewComputed {
