@@ -1,10 +1,21 @@
 package terraform
 
+import (
+	"sync"
+)
+
 // State keeps track of a snapshot state-of-the-world that Terraform
 // can use to keep track of what real world resources it is actually
 // managing.
 type State struct {
-	resources map[string]ResourceState
+	resources map[string]*ResourceState
+	once      sync.Once
+}
+
+func (s *State) init() {
+	s.once.Do(func() {
+		s.resources = make(map[string]*ResourceState)
+	})
 }
 
 // ResourceState holds the state of a resource that is used so that
@@ -33,7 +44,7 @@ type ResourceState struct {
 // computeID.
 func (s *ResourceState) MergeDiff(
 	d map[string]*ResourceAttrDiff,
-	computedID string) ResourceState {
+	computedID string) *ResourceState {
 	var result ResourceState
 	if s != nil {
 		result = *s
@@ -54,5 +65,5 @@ func (s *ResourceState) MergeDiff(
 		result.Attributes[k] = diff.New
 	}
 
-	return result
+	return &result
 }

@@ -141,7 +141,19 @@ func (t *Terraform) Refresh(*State) (*State, error) {
 
 func (t *Terraform) diffWalkFn(
 	state *State, result *Diff) depgraph.WalkFunc {
-	var resultLock sync.Mutex
+	var l sync.RWMutex
+
+	// Initialize the state since we always read it
+	if state == nil {
+		state = new(State)
+		state.init()
+	}
+
+	// Initialize the result diff so we can write to it
+	result.init()
+
+	// This is the value that will be used for computed properties
+	computedId := "computed"
 
 	return func(n *depgraph.Noun) error {
 		// If it is the root node, ignore
@@ -155,7 +167,14 @@ func (t *Terraform) diffWalkFn(
 			panic(fmt.Sprintf("No provider for resource: %s", r.Id()))
 		}
 
-		var rs ResourceState
+		l.RLock()
+		rs := state.resources[r.Id()]
+		vs := t.replaceVariables(r, state)
+		if len(vs) > 0 {
+			r = r.ReplaceVariables(vs)
+		}
+		l.RUnlock()
+
 		diff, err := p.Diff(rs, r.Config)
 		if err != nil {
 			return err
@@ -166,14 +185,36 @@ func (t *Terraform) diffWalkFn(
 			return nil
 		}
 
-		// Acquire a lock and modify the resulting diff
-		resultLock.Lock()
-		defer resultLock.Unlock()
-		result.init()
+		// Acquire a lock since this function is called in parallel
+		l.Lock()
+		defer l.Unlock()
+
+		// Update the resulting diff
 		result.Resources[r.Id()] = diff.Attributes
+
+		// Update the state for child dependencies
+		state.resources[r.Id()] = rs.MergeDiff(diff.Attributes, computedId)
 
 		return nil
 	}
+}
+
+// replaceVariables will return the mapping of variable replacements to
+// apply for a given resource with a given state.
+func (t *Terraform) replaceVariables(
+	r *config.Resource,
+	s *State) map[string]string {
+	result := make(map[string]string)
+	for k, v := range t.variables {
+		result[k] = v
+	}
+	for n, rs := range s.resources {
+		for attrK, attrV := range rs.Attributes {
+			result[fmt.Sprintf("%s.%s", n, attrK)] = attrV
+		}
+	}
+
+	return result
 }
 
 // matchingPrefixes takes a resource type and a set of resource

@@ -24,7 +24,7 @@ type ResourceProvider interface {
 	// Diff diffs a resource versus a desired state and returns
 	// a diff.
 	Diff(
-		ResourceState,
+		*ResourceState,
 		map[string]interface{}) (ResourceDiff, error)
 }
 

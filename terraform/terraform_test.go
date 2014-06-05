@@ -141,7 +141,7 @@ func testProviderFunc(n string, rs []string) ResourceProviderFactory {
 
 	return func() (ResourceProvider, error) {
 		diffFn := func(
-			_ ResourceState,
+			_ *ResourceState,
 			c map[string]interface{}) (ResourceDiff, error) {
 			var diff ResourceDiff
 			diff.Attributes = make(map[string]*ResourceAttrDiff)
@@ -205,7 +205,7 @@ func testTerraform(t *testing.T, name string) *Terraform {
 
 const testTerraformDiffStr = `
 aws_instance.bar
-  foo: "" => "${aws_instance.foo.num}"
+  foo: "" => "2"
 aws_instance.foo
   num: "" => "2"
 `
