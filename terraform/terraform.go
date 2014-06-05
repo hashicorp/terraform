@@ -111,6 +111,14 @@ func (t *Terraform) diffWalkFn(
 			return nil
 		}
 
+		switch n.Meta.(type) {
+		case *config.ProviderConfig:
+			// Ignore, we don't treat this any differently.
+			return nil
+		case *config.Resource:
+			// Continue
+		}
+
 		r := n.Meta.(*config.Resource)
 		p := t.mapping[r]
 		if p == nil {
