@@ -7,8 +7,9 @@ import (
 	"github.com/hashicorp/terraform/config"
 )
 
-// smcProviders matches up the resources with a provider
-// those providers and does the initial `Configure` on the provider.
+// smcProviders matches up the resources with a provider and initializes
+// it. This does not call "Configure" on the ResourceProvider, since that
+// might actually depend on upstream resources.
 func smcProviders(c *Config) (map[*config.Resource]ResourceProvider, []error) {
 	var errs []error
 
