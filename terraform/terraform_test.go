@@ -10,46 +10,6 @@ import (
 // This is the directory where our test fixtures are.
 const fixtureDir = "./test-fixtures"
 
-func testConfig(t *testing.T, name string) *config.Config {
-	c, err := config.Load(filepath.Join(fixtureDir, name, "main.tf"))
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-
-	return c
-}
-
-func testProviderFunc(n string, rs []string) ResourceProviderFactory {
-	resources := make([]ResourceType, len(rs))
-	for i, v := range rs {
-		resources[i] = ResourceType{
-			Name: v,
-		}
-	}
-
-	return func() (ResourceProvider, error) {
-		result := &MockResourceProvider{
-			Meta:            n,
-			ResourcesReturn: resources,
-		}
-
-		return result, nil
-	}
-}
-
-func testProviderName(p ResourceProvider) string {
-	return p.(*MockResourceProvider).Meta.(string)
-}
-
-func testResourceMapping(tf *Terraform) map[string]ResourceProvider {
-	result := make(map[string]ResourceProvider)
-	for resource, provider := range tf.mapping {
-		result[resource.Id()] = provider
-	}
-
-	return result
-}
-
 func TestNew(t *testing.T) {
 	config := testConfig(t, "new-good")
 	tfConfig := &Config{
@@ -140,4 +100,87 @@ func TestNew_variables(t *testing.T) {
 	if tf == nil {
 		t.Fatal("tf should not be nil")
 	}
+}
+
+func TestTerraformDiff(t *testing.T) {
+	tf := testTerraform(t, "diff-good")
+
+	diff, err := tf.Diff(nil)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	if len(diff.Resources) < 2 {
+		t.Fatalf("bad: %#v", diff.Resources)
+	}
+}
+
+func testConfig(t *testing.T, name string) *config.Config {
+	c, err := config.Load(filepath.Join(fixtureDir, name, "main.tf"))
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	return c
+}
+
+func testProviderFunc(n string, rs []string) ResourceProviderFactory {
+	resources := make([]ResourceType, len(rs))
+	for i, v := range rs {
+		resources[i] = ResourceType{
+			Name: v,
+		}
+	}
+
+	return func() (ResourceProvider, error) {
+		var diff ResourceDiff
+		diff.Attributes = map[string]*ResourceAttrDiff{
+			n: &ResourceAttrDiff{
+				Old: "foo",
+				New: "bar",
+			},
+		}
+
+		result := &MockResourceProvider{
+			Meta:            n,
+			DiffReturn:      diff,
+			ResourcesReturn: resources,
+		}
+
+		return result, nil
+	}
+}
+
+func testProviderName(p ResourceProvider) string {
+	return p.(*MockResourceProvider).Meta.(string)
+}
+
+func testResourceMapping(tf *Terraform) map[string]ResourceProvider {
+	result := make(map[string]ResourceProvider)
+	for resource, provider := range tf.mapping {
+		result[resource.Id()] = provider
+	}
+
+	return result
+}
+
+func testTerraform(t *testing.T, name string) *Terraform {
+	config := testConfig(t, name)
+	tfConfig := &Config{
+		Config: config,
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFunc("aws", []string{"aws_instance"}),
+			"do":  testProviderFunc("do", []string{"do_droplet"}),
+		},
+	}
+
+	tf, err := New(tfConfig)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if tf == nil {
+		t.Fatal("tf should not be nil")
+	}
+
+	return tf
 }

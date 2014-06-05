@@ -10,11 +10,11 @@ type MockResourceProvider struct {
 	ConfigureConfig         map[string]interface{}
 	ConfigureReturnWarnings []string
 	ConfigureReturnError    error
-	ResourceDiffCalled      bool
-	ResourceDiffState       ResourceState
-	ResourceDiffDesired     map[string]interface{}
-	ResourceDiffReturn      ResourceDiff
-	ResourceDiffReturnError error
+	DiffCalled              bool
+	DiffState               ResourceState
+	DiffDesired             map[string]interface{}
+	DiffReturn              ResourceDiff
+	DiffReturnError         error
 	ResourcesCalled         bool
 	ResourcesReturn         []ResourceType
 }
@@ -28,10 +28,10 @@ func (p *MockResourceProvider) Configure(c map[string]interface{}) ([]string, er
 func (p *MockResourceProvider) Diff(
 	state ResourceState,
 	desired map[string]interface{}) (ResourceDiff, error) {
-	p.ResourceDiffCalled = true
-	p.ResourceDiffState = state
-	p.ResourceDiffDesired = desired
-	return p.ResourceDiffReturn, p.ResourceDiffReturnError
+	p.DiffCalled = true
+	p.DiffState = state
+	p.DiffDesired = desired
+	return p.DiffReturn, p.DiffReturnError
 }
 
 func (p *MockResourceProvider) Resources() []ResourceType {

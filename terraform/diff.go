@@ -1,15 +1,26 @@
 package terraform
 
+import (
+	"sync"
+)
+
 // Diff tracks the differences between resources to apply.
 type Diff struct {
-	resources map[string]map[string]*resourceDiff
+	Resources map[string]map[string]*ResourceAttrDiff
+	once      sync.Once
 }
 
-// resourceDiff is the diff of a single attribute of a resource.
+func (d *Diff) init() {
+	d.once.Do(func() {
+		d.Resources = make(map[string]map[string]*ResourceAttrDiff)
+	})
+}
+
+// ResourceAttrDiff is the diff of a single attribute of a resource.
 //
 // This tracks the old value, the new value, and whether the change of this
 // value actually requires an entirely new resource.
-type resourceDiff struct {
+type ResourceAttrDiff struct {
 	Old         string
 	New         string
 	RequiresNew bool

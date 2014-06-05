@@ -3,6 +3,7 @@ package terraform
 import (
 	"fmt"
 	"strings"
+	"sync"
 
 	"github.com/hashicorp/terraform/config"
 	"github.com/hashicorp/terraform/depgraph"
@@ -124,12 +125,55 @@ func (t *Terraform) Apply(*State, *Diff) (*State, error) {
 	return nil, nil
 }
 
-func (t *Terraform) Diff(*State) (*Diff, error) {
-	return nil, nil
+func (t *Terraform) Diff(s *State) (*Diff, error) {
+	result := new(Diff)
+	err := t.graph.Walk(t.diffWalkFn(s, result))
+	if err != nil {
+		return nil, err
+	}
+
+	return result, nil
 }
 
 func (t *Terraform) Refresh(*State) (*State, error) {
 	return nil, nil
+}
+
+func (t *Terraform) diffWalkFn(
+	state *State, result *Diff) depgraph.WalkFunc {
+	var resultLock sync.Mutex
+
+	return func(n *depgraph.Noun) error {
+		// If it is the root node, ignore
+		if n.Name == config.ResourceGraphRoot {
+			return nil
+		}
+
+		r := n.Meta.(*config.Resource)
+		p := t.mapping[r]
+		if p == nil {
+			panic(fmt.Sprintf("No provider for resource: %s", r.Id()))
+		}
+
+		var rs ResourceState
+		diff, err := p.Diff(rs, r.Config)
+		if err != nil {
+			return err
+		}
+
+		// If there were no diff items, return right away
+		if len(diff.Attributes) == 0 {
+			return nil
+		}
+
+		// Acquire a lock and modify the resulting diff
+		resultLock.Lock()
+		defer resultLock.Unlock()
+		result.init()
+		result.Resources[r.Id()] = diff.Attributes
+
+		return nil
+	}
 }
 
 // matchingPrefixes takes a resource type and a set of resource

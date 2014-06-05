@@ -30,14 +30,7 @@ type ResourceProvider interface {
 
 // ResourceDiff is the diff of a resource from some state to another.
 type ResourceDiff struct {
-	Attributes map[string]ResourceDiffAttribute
-}
-
-// ResourceDiffAttribute is the diff of a single attribute of a resource.
-type ResourceDiffAttribute struct {
-	Old         string
-	New         string
-	RequiresNew bool
+	Attributes map[string]*ResourceAttrDiff
 }
 
 // ResourceState holds the state of a resource that is used so that

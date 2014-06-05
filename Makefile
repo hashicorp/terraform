@@ -19,7 +19,7 @@ default: test
 libucl: vendor/libucl/$(LIBUCL_NAME)
 
 test: libucl
-	go test $(TEST)
+	go test $(TEST) -timeout=5s
 
 vendor/libucl/libucl.a: vendor/libucl
 	cd vendor/libucl && \
