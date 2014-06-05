@@ -107,7 +107,7 @@ func (t *Terraform) diffWalkFn(
 
 	return func(n *depgraph.Noun) error {
 		// If it is the root node, ignore
-		if n.Name == config.GraphRoot {
+		if n.Meta == nil {
 			return nil
 		}
 
