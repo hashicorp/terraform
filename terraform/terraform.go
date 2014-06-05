@@ -52,7 +52,7 @@ func New(c *Config) (*Terraform, error) {
 	}
 
 	// Build the resource graph
-	graph := c.Config.ResourceGraph()
+	graph := c.Config.Graph()
 	if err := graph.Validate(); err != nil {
 		errs = append(errs, fmt.Errorf(
 			"Resource graph has an error: %s", err))
@@ -107,7 +107,7 @@ func (t *Terraform) diffWalkFn(
 
 	return func(n *depgraph.Noun) error {
 		// If it is the root node, ignore
-		if n.Name == config.ResourceGraphRoot {
+		if n.Name == config.GraphRoot {
 			return nil
 		}
 
