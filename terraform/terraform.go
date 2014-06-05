@@ -143,12 +143,6 @@ func (t *Terraform) diffWalkFn(
 	state *State, result *Diff) depgraph.WalkFunc {
 	var l sync.RWMutex
 
-	// Initialize the state since we always read it
-	if state == nil {
-		state = new(State)
-		state.init()
-	}
-
 	// Initialize the result diff so we can write to it
 	result.init()
 
@@ -174,7 +168,10 @@ func (t *Terraform) diffWalkFn(
 		}
 
 		l.RLock()
-		rs := state.resources[r.Id()]
+		var rs *ResourceState
+		if state != nil {
+			rs = state.resources[r.Id()]
+		}
 		if len(vars) > 0 {
 			r = r.ReplaceVariables(vars)
 		}
