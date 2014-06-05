@@ -10,13 +10,13 @@ import (
 // This is the directory where our test fixtures are.
 const fixtureDir = "./test-fixtures"
 
-func TestConfigResourceGraph(t *testing.T) {
+func TestConfigGraph(t *testing.T) {
 	c, err := Load(filepath.Join(fixtureDir, "resource_graph.tf"))
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
 
-	graph := c.ResourceGraph()
+	graph := c.Graph()
 	if err := graph.Validate(); err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -29,13 +29,13 @@ func TestConfigResourceGraph(t *testing.T) {
 	}
 }
 
-func TestConfigResourceGraph_cycle(t *testing.T) {
+func TestConfigGraph_cycle(t *testing.T) {
 	c, err := Load(filepath.Join(fixtureDir, "resource_graph_cycle.tf"))
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
 
-	graph := c.ResourceGraph()
+	graph := c.Graph()
 	if err := graph.Validate(); err == nil {
 		t.Fatal("graph should be invalid")
 	}

@@ -9,9 +9,9 @@ import (
 	"github.com/hashicorp/terraform/depgraph"
 )
 
-// ResourceGraphRoot is the name of the resource graph root that should be
+// GraphRoot is the name of the resource graph root that should be
 // ignored since it doesn't map to an exact resource.
-const ResourceGraphRoot = "root"
+const GraphRoot = "root"
 
 // Config is the configuration that comes from loading a collection
 // of Terraform templates.
@@ -122,13 +122,13 @@ func (r *Resource) ReplaceVariables(vs map[string]string) *Resource {
 	return &result
 }
 
-// ResourceGraph returns a dependency graph of the resources from this
+// Graph returns a dependency graph of the resources from this
 // Terraform configuration.
 //
 // The graph can contain both *Resource and *ProviderConfig. When consuming
 // the graph, you'll have to use type inference to determine what it is
 // and the proper behavior.
-func (c *Config) ResourceGraph() *depgraph.Graph {
+func (c *Config) Graph() *depgraph.Graph {
 	// This tracks all the resource nouns
 	nouns := make(map[string]*depgraph.Noun)
 	for _, r := range c.Resources {
@@ -207,7 +207,7 @@ func (c *Config) ResourceGraph() *depgraph.Graph {
 	}
 
 	// Create a root that just depends on everything else finishing.
-	root := &depgraph.Noun{Name: ResourceGraphRoot}
+	root := &depgraph.Noun{Name: GraphRoot}
 	for _, n := range nounsList {
 		root.Deps = append(root.Deps, &depgraph.Dependency{
 			Name:   n.Name,
