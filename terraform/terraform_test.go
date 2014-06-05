@@ -39,6 +39,20 @@ func TestNew(t *testing.T) {
 	if testProviderName(mapping["do_droplet.bar"]) != "do" {
 		t.Fatalf("bad: %#v", mapping)
 	}
+
+	/*
+	val := testProviderMock(mapping["aws_instance.foo"]).
+		ConfigureCommonConfig.TFComputedPlaceholder
+	if val == "" {
+		t.Fatal("should have computed placeholder")
+	}
+
+	val = testProviderMock(mapping["aws_instance.bar"]).
+		ConfigureCommonConfig.TFComputedPlaceholder
+	if val == "" {
+		t.Fatal("should have computed placeholder")
+	}
+	*/
 }
 
 func TestNew_graphCycle(t *testing.T) {
@@ -169,8 +183,12 @@ func testProviderFunc(n string, rs []string) ResourceProviderFactory {
 	}
 }
 
+func testProviderMock(p ResourceProvider) *MockResourceProvider {
+	return p.(*MockResourceProvider)
+}
+
 func testProviderName(p ResourceProvider) string {
-	return p.(*MockResourceProvider).Meta.(string)
+	return testProviderMock(p).Meta.(string)
 }
 
 func testResourceMapping(tf *Terraform) map[string]ResourceProvider {
