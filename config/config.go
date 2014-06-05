@@ -118,6 +118,7 @@ func (r *Resource) ReplaceVariables(vs map[string]string) *Resource {
 // ResourceGraph returns a dependency graph of the resources from this
 // Terraform configuration.
 func (c *Config) ResourceGraph() *depgraph.Graph {
+	// This tracks all the resource nouns
 	nouns := make(map[string]*depgraph.Noun)
 	for _, r := range c.Resources {
 		noun := &depgraph.Noun{
@@ -127,9 +128,30 @@ func (c *Config) ResourceGraph() *depgraph.Graph {
 		nouns[noun.Name] = noun
 	}
 
-	for _, noun := range nouns {
-		r := noun.Meta.(*Resource)
-		for _, v := range r.Variables {
+	// Build the list of nouns that we iterate over
+	nounsList := make([]*depgraph.Noun, 0, len(nouns))
+	for _, n := range nouns {
+		nounsList = append(nounsList, n)
+	}
+
+	// This tracks the provider configs that are nouns in our dep graph
+	pcNouns := make(map[string]*depgraph.Noun)
+
+	i := 0
+	for i < len(nounsList) {
+		noun := nounsList[i]
+		i += 1
+
+		// Determine depenencies based on variables. Both resources
+		// and provider configurations have dependencies in this case.
+		var vars map[string]InterpolatedVariable
+		switch n := noun.Meta.(type) {
+		case *Resource:
+			vars = n.Variables
+		case *ProviderConfig:
+			vars = n.Variables
+		}
+		for _, v := range vars {
 			// Only resource variables impose dependencies
 			rv, ok := v.(*ResourceVariable)
 			if !ok {
@@ -145,12 +167,32 @@ func (c *Config) ResourceGraph() *depgraph.Graph {
 
 			noun.Deps = append(noun.Deps, dep)
 		}
-	}
 
-	// Create the list of nouns that the depgraph.Graph struct expects
-	nounsList := make([]*depgraph.Noun, 0, len(nouns))
-	for _, n := range nouns {
-		nounsList = append(nounsList, n)
+		// If this is a Resource, then check if we have to also
+		// depend on a provider configuration.
+		if r, ok := noun.Meta.(*Resource); ok {
+			// If there is a provider config that matches this resource
+			// then we add that as a dependency.
+			if pcName := r.ProviderConfigName(c.ProviderConfigs); pcName != "" {
+				pcNoun, ok := pcNouns[pcName]
+				if !ok {
+					pcNoun = &depgraph.Noun{
+						Name: fmt.Sprintf("provider.%s", pcName),
+						Meta: c.ProviderConfigs[pcName],
+					}
+					pcNouns[pcName] = pcNoun
+					nounsList = append(nounsList, pcNoun)
+				}
+
+				dep := &depgraph.Dependency{
+					Name:   pcName,
+					Source: noun,
+					Target: pcNoun,
+				}
+
+				noun.Deps = append(noun.Deps, dep)
+			}
+		}
 	}
 
 	// Create a root that just depends on everything else finishing.
@@ -168,6 +210,14 @@ func (c *Config) ResourceGraph() *depgraph.Graph {
 		Name:  "resources",
 		Nouns: nounsList,
 	}
+}
+
+// Validate does some basic semantic checking of the configuration.
+func (c *Config) Validate() error {
+	// TODO(mitchellh): make sure all referenced variables exist
+	// TODO(mitchellh): make sure types/names have valid values (characters)
+
+	return nil
 }
 
 // Required tests whether a variable is required or not.

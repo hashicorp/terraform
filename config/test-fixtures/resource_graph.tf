@@ -3,6 +3,12 @@ variable "foo" {
     description = "bar";
 }
 
+provider "aws" {
+    foo = "${openstack_floating_ip.random.value}"
+}
+
+resource "openstack_floating_ip" "random" {}
+
 resource "aws_security_group" "firewall" {}
 
 resource "aws_instance" "web" {

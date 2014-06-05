@@ -114,13 +114,6 @@ func (g *Graph) String() string {
 	var buf bytes.Buffer
 
 	buf.WriteString(fmt.Sprintf("root: %s\n", g.Root.Name))
-	for _, dep := range g.Root.Deps {
-		buf.WriteString(fmt.Sprintf(
-			"  %s -> %s\n",
-			dep.Source,
-			dep.Target))
-	}
-
 	for _, n := range g.Nouns {
 		buf.WriteString(fmt.Sprintf("%s\n", n.Name))
 		for _, dep := range n.Deps {
