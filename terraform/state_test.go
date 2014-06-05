@@ -22,13 +22,19 @@ func TestResourceState_MergeDiff(t *testing.T) {
 			Old: "",
 			New: "foo",
 		},
+		"baz": &ResourceAttrDiff{
+			Old:         "",
+			New:         "foo",
+			NewComputed: true,
+		},
 	}
 
-	rs2 := rs.MergeDiff(diff)
+	rs2 := rs.MergeDiff(diff, "what")
 
 	expected := map[string]string{
 		"foo": "baz",
 		"bar": "foo",
+		"baz": "what",
 	}
 
 	if !reflect.DeepEqual(expected, rs2.Attributes) {

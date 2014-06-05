@@ -27,14 +27,24 @@ type ResourceState struct {
 // this resource state in order to generate a new state. This new
 // state can be used to provide updated attribute lookups for
 // variable interpolation.
+//
+// If the diff attribute requires computing the value, and hence
+// won't be available until apply, the value is replaced with the
+// computeID.
 func (s *ResourceState) MergeDiff(
-	d map[string]*ResourceAttrDiff) ResourceState {
+	d map[string]*ResourceAttrDiff,
+	computedID string) ResourceState {
 	result := *s
 	result.Attributes = make(map[string]string)
 	for k, v := range s.Attributes {
 		result.Attributes[k] = v
 	}
 	for k, diff := range d {
+		if diff.NewComputed {
+			result.Attributes[k] = computedID
+			continue
+		}
+
 		result.Attributes[k] = diff.New
 	}
 
