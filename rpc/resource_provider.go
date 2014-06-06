@@ -13,9 +13,28 @@ type ResourceProvider struct {
 	Name   string
 }
 
-func (p *ResourceProvider) Configure(c map[string]interface{}) ([]string, error) {
+func (p *ResourceProvider) Configure(c map[string]interface{}) error {
 	var resp ResourceProviderConfigureResponse
 	err := p.Client.Call(p.Name+".Configure", c, &resp)
+	if err != nil {
+		return err
+	}
+	if resp.Error != nil {
+		err = resp.Error
+	}
+
+	return err
+}
+
+func (p *ResourceProvider) Diff(
+	s *terraform.ResourceState,
+	c map[string]interface{}) (*terraform.ResourceDiff, error) {
+	var resp ResourceProviderDiffResponse
+	args := &ResourceProviderDiffArgs{
+		State:  s,
+		Config: c,
+	}
+	err := p.Client.Call(p.Name+".Diff", args, &resp)
 	if err != nil {
 		return nil, err
 	}
@@ -23,7 +42,7 @@ func (p *ResourceProvider) Configure(c map[string]interface{}) ([]string, error)
 		err = resp.Error
 	}
 
-	return resp.Warnings, err
+	return resp.Diff, err
 }
 
 func (p *ResourceProvider) Resources() []terraform.ResourceType {
@@ -45,17 +64,36 @@ type ResourceProviderServer struct {
 }
 
 type ResourceProviderConfigureResponse struct {
-	Warnings []string
-	Error    *BasicError
+	Error *BasicError
+}
+
+type ResourceProviderDiffArgs struct {
+	State  *terraform.ResourceState
+	Config map[string]interface{}
+}
+
+type ResourceProviderDiffResponse struct {
+	Diff  *terraform.ResourceDiff
+	Error *BasicError
 }
 
 func (s *ResourceProviderServer) Configure(
 	config map[string]interface{},
 	reply *ResourceProviderConfigureResponse) error {
-	warnings, err := s.Provider.Configure(config)
+	err := s.Provider.Configure(config)
 	*reply = ResourceProviderConfigureResponse{
-		Warnings: warnings,
-		Error:    NewBasicError(err),
+		Error: NewBasicError(err),
+	}
+	return nil
+}
+
+func (s *ResourceProviderServer) Diff(
+	args *ResourceProviderDiffArgs,
+	result *ResourceProviderDiffResponse) error {
+	diff, err := s.Provider.Diff(args.State, args.Config)
+	*result = ResourceProviderDiffResponse{
+		Diff:  diff,
+		Error: NewBasicError(err),
 	}
 	return nil
 }

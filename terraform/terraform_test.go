@@ -261,7 +261,7 @@ func testProviderFunc(n string, rs []string) ResourceProviderFactory {
 	return func() (ResourceProvider, error) {
 		diffFn := func(
 			_ *ResourceState,
-			c map[string]interface{}) (ResourceDiff, error) {
+			c map[string]interface{}) (*ResourceDiff, error) {
 			var diff ResourceDiff
 			diff.Attributes = make(map[string]*ResourceAttrDiff)
 			for k, v := range c {
@@ -290,7 +290,7 @@ func testProviderFunc(n string, rs []string) ResourceProviderFactory {
 				diff.Attributes[k] = attrDiff
 			}
 
-			return diff, nil
+			return &diff, nil
 		}
 
 		result := &MockResourceProvider{

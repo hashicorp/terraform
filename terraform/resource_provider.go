@@ -30,7 +30,7 @@ type ResourceProvider interface {
 	// a diff.
 	Diff(
 		*ResourceState,
-		map[string]interface{}) (ResourceDiff, error)
+		map[string]interface{}) (*ResourceDiff, error)
 }
 
 // ResourceType is a type of resource that a resource provider can manage.
