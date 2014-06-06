@@ -106,9 +106,6 @@ func (t *Terraform) diffWalkFn(
 	// Initialize the result diff so we can write to it
 	result.init()
 
-	// This is the value that will be used for computed properties
-	computedId := "computed"
-
 	// Initialize the variables for application
 	vars := make(map[string]string)
 	for k, v := range t.variables {
@@ -167,7 +164,7 @@ func (t *Terraform) diffWalkFn(
 		result.Resources[r.Id()] = diff.Attributes
 
 		// Determine the new state and update variables
-		rs = rs.MergeDiff(diff.Attributes, computedId)
+		rs = rs.MergeDiff(diff.Attributes, ComputedPlaceholder)
 		for ak, av := range rs.Attributes {
 			vars[fmt.Sprintf("%s.%s", r.Id(), ak)] = av
 		}

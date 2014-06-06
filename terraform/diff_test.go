@@ -19,11 +19,16 @@ func testDiffStr(d *Diff) string {
 		r := d.Resources[n]
 		buf.WriteString(fmt.Sprintf("%s\n", n))
 		for attr, attrDiff := range r {
+			v := attrDiff.New
+			if attrDiff.NewComputed {
+				v = "<computed>"
+			}
+
 			buf.WriteString(fmt.Sprintf(
 				"  %s: %#v => %#v\n",
 				attr,
 				attrDiff.Old,
-				attrDiff.New,
+				v,
 			))
 		}
 	}

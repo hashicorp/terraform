@@ -202,6 +202,25 @@ func TestTerraformDiff(t *testing.T) {
 	}
 }
 
+func TestTerraformDiff_computed(t *testing.T) {
+	tf := testTerraform(t, "diff-computed")
+
+	diff, err := tf.Diff(nil)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	if len(diff.Resources) < 2 {
+		t.Fatalf("bad: %#v", diff.Resources)
+	}
+
+	actual := strings.TrimSpace(testDiffStr(diff))
+	expected := strings.TrimSpace(testTerraformDiffComputedStr)
+	if actual != expected {
+		t.Fatalf("bad:\n%s", actual)
+	}
+}
+
 func testConfig(t *testing.T, name string) *config.Config {
 	c, err := config.Load(filepath.Join(fixtureDir, name, "main.tf"))
 	if err != nil {
@@ -230,10 +249,25 @@ func testProviderFunc(n string, rs []string) ResourceProviderFactory {
 					continue
 				}
 
-				diff.Attributes[k] = &ResourceAttrDiff{
+				if k == "compute" {
+					diff.Attributes[v.(string)] = &ResourceAttrDiff{
+						Old:         "",
+						New:         "",
+						NewComputed: true,
+					}
+					continue
+				}
+
+				attrDiff := &ResourceAttrDiff{
 					Old: "",
 					New: v.(string),
 				}
+
+				if strings.Contains(attrDiff.New, ComputedPlaceholder) {
+					attrDiff.NewComputed = true
+				}
+
+				diff.Attributes[k] = attrDiff
 			}
 
 			return diff, nil
@@ -325,4 +359,12 @@ aws_instance.bar
   foo: "" => "2"
 aws_instance.foo
   num: "" => "2"
+`
+
+const testTerraformDiffComputedStr = `
+aws_instance.bar
+  foo: "" => "<computed>"
+aws_instance.foo
+  num: "" => "2"
+  id: "" => "<computed>"
 `
