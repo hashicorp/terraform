@@ -134,7 +134,9 @@ func (t *Terraform) diffWalkFn(
 		}
 
 		// Initialize the provider if we haven't already
-		p.init(vars)
+		if err := p.init(vars); err != nil {
+			return err
+		}
 
 		l.RLock()
 		var rs *ResourceState
@@ -173,17 +175,15 @@ func (t *Terraform) diffWalkFn(
 	}
 }
 
-func (t *terraformProvider) init(vars map[string]string) error {
-	var err error
-
+func (t *terraformProvider) init(vars map[string]string) (err error) {
 	t.Once.Do(func() {
 		var c map[string]interface{}
 		if t.Config != nil {
 			c = t.Config.ReplaceVariables(vars).Config
 		}
 
-		_, err = t.Provider.Configure(c)
+		err = t.Provider.Configure(c)
 	})
 
-	return err
+	return
 }

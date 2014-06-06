@@ -6,24 +6,23 @@ type MockResourceProvider struct {
 	// Anything you want, in case you need to store extra data with the mock.
 	Meta interface{}
 
-	ConfigureCalled         bool
-	ConfigureConfig         map[string]interface{}
-	ConfigureReturnWarnings []string
-	ConfigureReturnError    error
-	DiffCalled              bool
-	DiffState               *ResourceState
-	DiffDesired             map[string]interface{}
-	DiffFn                  func(*ResourceState, map[string]interface{}) (ResourceDiff, error)
-	DiffReturn              ResourceDiff
-	DiffReturnError         error
-	ResourcesCalled         bool
-	ResourcesReturn         []ResourceType
+	ConfigureCalled      bool
+	ConfigureConfig      map[string]interface{}
+	ConfigureReturnError error
+	DiffCalled           bool
+	DiffState            *ResourceState
+	DiffDesired          map[string]interface{}
+	DiffFn               func(*ResourceState, map[string]interface{}) (ResourceDiff, error)
+	DiffReturn           ResourceDiff
+	DiffReturnError      error
+	ResourcesCalled      bool
+	ResourcesReturn      []ResourceType
 }
 
-func (p *MockResourceProvider) Configure(c map[string]interface{}) ([]string, error) {
+func (p *MockResourceProvider) Configure(c map[string]interface{}) error {
 	p.ConfigureCalled = true
 	p.ConfigureConfig = c
-	return p.ConfigureReturnWarnings, p.ConfigureReturnError
+	return p.ConfigureReturnError
 }
 
 func (p *MockResourceProvider) Diff(

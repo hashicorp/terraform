@@ -12,8 +12,8 @@ type ResourceProvider interface {
 	// Configure configures the provider itself with the configuration
 	// given. This is useful for setting things like access keys.
 	//
-	// Configure returns a list of warnings and a potential error.
-	Configure(config map[string]interface{}) ([]string, error)
+	// Configure returns an error if it occurred.
+	Configure(config map[string]interface{}) error
 
 	// Resources returns all the available resource types that this provider
 	// knows how to manage.
