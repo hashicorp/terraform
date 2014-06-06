@@ -12,9 +12,9 @@ import (
 const fixtureDir = "./test-fixtures"
 
 func TestNew(t *testing.T) {
-	config := testConfig(t, "new-good")
+	configVal := testConfig(t, "new-good")
 	tfConfig := &Config{
-		Config: config,
+		Config: configVal,
 		Providers: map[string]ResourceProviderFactory{
 			"aws": testProviderFunc("aws", []string{"aws_instance"}),
 			"do":  testProviderFunc("do", []string{"do_droplet"}),
@@ -29,30 +29,27 @@ func TestNew(t *testing.T) {
 		t.Fatal("tf should not be nil")
 	}
 
-	mapping := testResourceMapping(tf)
-	if len(mapping) != 2 {
-		t.Fatalf("bad: %#v", mapping)
+	if len(tf.mapping) != 2 {
+		t.Fatalf("bad: %#v", tf.mapping)
 	}
-	if testProviderName(mapping["aws_instance.foo"]) != "aws" {
-		t.Fatalf("bad: %#v", mapping)
+	if testProviderName(t, tf, "aws_instance.foo") != "aws" {
+		t.Fatalf("bad: %#v", tf.mapping)
 	}
-	if testProviderName(mapping["do_droplet.bar"]) != "do" {
-		t.Fatalf("bad: %#v", mapping)
+	if testProviderName(t, tf, "do_droplet.bar") != "do" {
+		t.Fatalf("bad: %#v", tf.mapping)
 	}
 
-	/*
-		val := testProviderMock(mapping["aws_instance.foo"]).
-			ConfigureCommonConfig.TFComputedPlaceholder
-		if val == "" {
-			t.Fatal("should have computed placeholder")
-		}
+	var pc *config.ProviderConfig
 
-		val = testProviderMock(mapping["aws_instance.bar"]).
-			ConfigureCommonConfig.TFComputedPlaceholder
-		if val == "" {
-			t.Fatal("should have computed placeholder")
-		}
-	*/
+	pc = testProviderConfig(tf, "do_droplet.bar")
+	if pc != nil {
+		t.Fatalf("bad: %#v", pc)
+	}
+
+	pc = testProviderConfig(tf, "aws_instance.foo")
+	if pc.Config["foo"].(string) != "bar" {
+		t.Fatalf("bad: %#v", pc)
+	}
 }
 
 func TestNew_graphCycle(t *testing.T) {
@@ -70,6 +67,75 @@ func TestNew_graphCycle(t *testing.T) {
 	}
 	if tf != nil {
 		t.Fatalf("should not return tf")
+	}
+}
+
+func TestNew_providerConfigCache(t *testing.T) {
+	configVal := testConfig(t, "new-pc-cache")
+	tfConfig := &Config{
+		Config: configVal,
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFunc(
+				"aws", []string{"aws_elb", "aws_instance"}),
+			"do": testProviderFunc("do", []string{"do_droplet"}),
+		},
+	}
+
+	tf, err := New(tfConfig)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if tf == nil {
+		t.Fatal("tf should not be nil")
+	}
+
+	if testProviderName(t, tf, "aws_instance.foo") != "aws" {
+		t.Fatalf("bad: %#v", tf.mapping)
+	}
+	if testProviderName(t, tf, "aws_elb.lb") != "aws" {
+		t.Fatalf("bad: %#v", tf.mapping)
+	}
+	if testProviderName(t, tf, "do_droplet.bar") != "do" {
+		t.Fatalf("bad: %#v", tf.mapping)
+	}
+
+	if testProvider(tf, "aws_instance.foo") !=
+		testProvider(tf, "aws_instance.bar") {
+		t.Fatalf("bad equality")
+	}
+	if testProvider(tf, "aws_instance.foo") ==
+		testProvider(tf, "aws_elb.lb") {
+		t.Fatal("should not be equal")
+	}
+
+	var pc *config.ProviderConfig
+	pc = testProviderConfig(tf, "do_droplet.bar")
+	if pc != nil {
+		t.Fatalf("bad: %#v", pc)
+	}
+	pc = testProviderConfig(tf, "aws_instance.foo")
+	if pc.Config["foo"].(string) != "bar" {
+		t.Fatalf("bad: %#v", pc)
+	}
+	pc = testProviderConfig(tf, "aws_elb.lb")
+	if pc.Config["foo"].(string) != "baz" {
+		t.Fatalf("bad: %#v", pc)
+	}
+
+	if testProviderConfig(tf, "aws_instance.foo") !=
+		testProviderConfig(tf, "aws_instance.bar") {
+		t.Fatal("should be same")
+	}
+	if testProviderConfig(tf, "aws_instance.foo") ==
+		testProviderConfig(tf, "aws_elb.lb") {
+		t.Fatal("should be different")
+	}
+
+	// Finally, verify some internals here that we're using the
+	// IDENTICAL *terraformProvider pointer for matching types
+	if testTerraformProvider(tf, "aws_instance.foo") !=
+		testTerraformProvider(tf, "aws_instance.bar") {
+		t.Fatal("should be same")
 	}
 }
 
@@ -183,21 +249,44 @@ func testProviderFunc(n string, rs []string) ResourceProviderFactory {
 	}
 }
 
+func testProvider(tf *Terraform, n string) ResourceProvider {
+	for r, tp := range tf.mapping {
+		if r.Id() == n {
+			return tp.Provider
+		}
+	}
+
+	return nil
+}
+
 func testProviderMock(p ResourceProvider) *MockResourceProvider {
 	return p.(*MockResourceProvider)
 }
 
-func testProviderName(p ResourceProvider) string {
-	return testProviderMock(p).Meta.(string)
-}
-
-func testResourceMapping(tf *Terraform) map[string]ResourceProvider {
-	result := make(map[string]ResourceProvider)
-	for resource, provider := range tf.mapping {
-		result[resource.Id()] = provider
+func testProviderConfig(tf *Terraform, n string) *config.ProviderConfig {
+	for r, tp := range tf.mapping {
+		if r.Id() == n {
+			return tp.Config
+		}
 	}
 
-	return result
+	return nil
+}
+
+func testProviderName(t *testing.T, tf *Terraform, n string) string {
+	var p ResourceProvider
+	for r, tp := range tf.mapping {
+		if r.Id() == n {
+			p = tp.Provider
+			break
+		}
+	}
+
+	if p == nil {
+		t.Fatalf("resource not found: %s", n)
+	}
+
+	return testProviderMock(p).Meta.(string)
 }
 
 func testTerraform(t *testing.T, name string) *Terraform {
@@ -219,6 +308,16 @@ func testTerraform(t *testing.T, name string) *Terraform {
 	}
 
 	return tf
+}
+
+func testTerraformProvider(tf *Terraform, n string) *terraformProvider {
+	for r, tp := range tf.mapping {
+		if r.Id() == n {
+			return tp
+		}
+	}
+
+	return nil
 }
 
 const testTerraformDiffStr = `

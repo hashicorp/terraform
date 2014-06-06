@@ -14,8 +14,18 @@ import (
 type Terraform struct {
 	config    *config.Config
 	graph     *depgraph.Graph
-	mapping   map[*config.Resource]ResourceProvider
+	mapping   map[*config.Resource]*terraformProvider
 	variables map[string]string
+}
+
+// terraformProvider contains internal state information about a resource
+// provider for Terraform.
+type terraformProvider struct {
+	Provider   ResourceProvider
+	Config     *config.ProviderConfig
+	Configured bool
+
+	sync.Mutex
 }
 
 // Config is the configuration that must be given to instantiate
@@ -125,6 +135,8 @@ func (t *Terraform) diffWalkFn(
 			panic(fmt.Sprintf("No provider for resource: %s", r.Id()))
 		}
 
+		// TODO(mitchellh): initialize provider if we haven't
+
 		l.RLock()
 		var rs *ResourceState
 		if state != nil {
@@ -135,7 +147,7 @@ func (t *Terraform) diffWalkFn(
 		}
 		l.RUnlock()
 
-		diff, err := p.Diff(rs, r.Config)
+		diff, err := p.Provider.Diff(rs, r.Config)
 		if err != nil {
 			return err
 		}
