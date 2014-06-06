@@ -1,9 +1,5 @@
 package terraform
 
-import (
-	"github.com/mitchellh/mapstructure"
-)
-
 // MockResourceProvider implements ResourceProvider but mocks out all the
 // calls for testing purposes.
 type MockResourceProvider struct {
@@ -11,7 +7,6 @@ type MockResourceProvider struct {
 	Meta interface{}
 
 	ConfigureCalled         bool
-	ConfigureCommonConfig   ResourceProviderCommonConfig
 	ConfigureConfig         map[string]interface{}
 	ConfigureReturnWarnings []string
 	ConfigureReturnError    error
@@ -28,11 +23,6 @@ type MockResourceProvider struct {
 func (p *MockResourceProvider) Configure(c map[string]interface{}) ([]string, error) {
 	p.ConfigureCalled = true
 	p.ConfigureConfig = c
-
-	if err := mapstructure.Decode(&p.ConfigureCommonConfig, c); err != nil {
-		return nil, err
-	}
-
 	return p.ConfigureReturnWarnings, p.ConfigureReturnError
 }
 

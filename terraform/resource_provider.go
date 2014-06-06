@@ -1,9 +1,9 @@
 package terraform
 
-// ComputedPlaceholderKey is the configuration key given to Configure
-// in a ResourceProvider that contains the value for the computed value
-// placeholder when diffs are being done.
-const ComputedPlaceholderKey = "tf_computed_placeholder"
+// ComputedPlaceholder is the placeholder value for computed attributes.
+// ResourceProviders can compare values to this during a diff to determine
+// if it is just a placeholder.
+const ComputedPlaceholder = "74D93920-ED26-11E3-AC10-0800200C9A66"
 
 // ResourceProvider is an interface that must be implemented by any
 // resource provider: the thing that creates and manages the resources in
@@ -31,14 +31,6 @@ type ResourceProvider interface {
 	Diff(
 		*ResourceState,
 		map[string]interface{}) (ResourceDiff, error)
-}
-
-// ResourceProviderCommonConfig contains the common configuration
-// keys that are sent with every resource provider configuration.
-// This can be used with something like mapstructure to extract
-// the proper value.
-type ResourceProviderCommonConfig struct {
-	TFComputedPlaceholder string `mapstructure:"tf_computed_placeholder"`
 }
 
 // ResourceType is a type of resource that a resource provider can manage.

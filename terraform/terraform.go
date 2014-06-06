@@ -123,7 +123,9 @@ func (t *Terraform) diffWalkFn(
 
 		switch n.Meta.(type) {
 		case *config.ProviderConfig:
-			// Ignore, we don't treat this any differently.
+			// Ignore, we don't treat this any differently since we always
+			// initialize the provider on first use and use a lock to make
+			// sure we only do this once.
 			return nil
 		case *config.Resource:
 			// Continue
