@@ -221,6 +221,26 @@ func TestTerraformDiff_computed(t *testing.T) {
 	}
 }
 
+func TestTerraformDiff_providerInit(t *testing.T) {
+	tf := testTerraform(t, "diff-provider-init")
+
+	_, err := tf.Diff(nil)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	p := testProviderMock(testProvider(tf, "do_droplet.bar"))
+	if p == nil {
+		t.Fatal("should have provider")
+	}
+	if !p.ConfigureCalled {
+		t.Fatal("configure should be called")
+	}
+	if p.ConfigureConfig["foo"].(string) != "2" {
+		t.Fatalf("bad: %#v", p.ConfigureConfig)
+	}
+}
+
 func testConfig(t *testing.T, name string) *config.Config {
 	c, err := config.Load(filepath.Join(fixtureDir, name, "main.tf"))
 	if err != nil {

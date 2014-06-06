@@ -21,11 +21,10 @@ type Terraform struct {
 // terraformProvider contains internal state information about a resource
 // provider for Terraform.
 type terraformProvider struct {
-	Provider   ResourceProvider
-	Config     *config.ProviderConfig
-	Configured bool
+	Provider ResourceProvider
+	Config   *config.ProviderConfig
 
-	sync.Mutex
+	sync.Once
 }
 
 // Config is the configuration that must be given to instantiate
@@ -134,7 +133,8 @@ func (t *Terraform) diffWalkFn(
 			panic(fmt.Sprintf("No provider for resource: %s", r.Id()))
 		}
 
-		// TODO(mitchellh): initialize provider if we haven't
+		// Initialize the provider if we haven't already
+		p.init(vars)
 
 		l.RLock()
 		var rs *ResourceState
@@ -171,4 +171,19 @@ func (t *Terraform) diffWalkFn(
 
 		return nil
 	}
+}
+
+func (t *terraformProvider) init(vars map[string]string) error {
+	var err error
+
+	t.Once.Do(func() {
+		var c map[string]interface{}
+		if t.Config != nil {
+			c = t.Config.ReplaceVariables(vars).Config
+		}
+
+		_, err = t.Provider.Configure(c)
+	})
+
+	return err
 }
