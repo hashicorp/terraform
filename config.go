@@ -1,8 +1,15 @@
 package main
 
 import (
+	"github.com/hashicorp/terraform/terraform"
 	"github.com/mitchellh/go-libucl"
 )
+
+// TFConfig is the global base configuration that has the
+// basic providers registered. Users of this configuration
+// should copy it (call the Copy method) before using it so
+// that it isn't corrupted.
+var TFConfig terraform.Config
 
 // Config is the structure of the configuration for the Terraform CLI.
 //

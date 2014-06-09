@@ -20,6 +20,13 @@ func init() {
 			}, nil
 		},
 
+		"diff": func() (cli.Command, error) {
+			return &command.DiffCommand{
+				TFConfig: &TFConfig,
+				Ui:       ui,
+			}, nil
+		},
+
 		"version": func() (cli.Command, error) {
 			return &command.VersionCommand{
 				Revision:          GitCommit,
