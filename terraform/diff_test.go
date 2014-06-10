@@ -19,8 +19,9 @@ func TestDiff_String(t *testing.T) {
 						NewComputed: true,
 					},
 					"longfoo": &ResourceAttrDiff{
-						Old: "foo",
-						New: "bar",
+						Old:         "foo",
+						New:         "bar",
+						RequiresNew: true,
 					},
 				},
 			},
@@ -38,5 +39,5 @@ const diffStrBasic = `
 nodeA
   bar:     "foo" => "<computed>"
   foo:     "foo" => "bar"
-  longfoo: "foo" => "bar"
+  longfoo: "foo" => "bar" (forces new resource)
 `

@@ -14,6 +14,19 @@ type Diff struct {
 	once      sync.Once
 }
 
+// ResourceDiff is the diff of a resource from some state to another.
+type ResourceDiff struct {
+	Attributes map[string]*ResourceAttrDiff
+}
+
+// ResourceAttrDiff is the diff of a single attribute of a resource.
+type ResourceAttrDiff struct {
+	Old         string // Old Value
+	New         string // New Value
+	NewComputed bool   // True if new value is computed (unknown currently)
+	RequiresNew bool   // True if change requires new resource
+}
+
 func (d *Diff) init() {
 	d.once.Do(func() {
 		if d.Resources == nil {
@@ -56,27 +69,20 @@ func (d *Diff) String() string {
 				v = "<computed>"
 			}
 
+			newResource := ""
+			if attrDiff.RequiresNew {
+				newResource = " (forces new resource)"
+			}
+
 			buf.WriteString(fmt.Sprintf(
-				"  %s:%s %#v => %#v\n",
+				"  %s:%s %#v => %#v%s\n",
 				attrK,
 				strings.Repeat(" ", keyLen-len(attrK)),
 				attrDiff.Old,
-				v))
+				v,
+				newResource))
 		}
 	}
 
 	return buf.String()
-}
-
-// ResourceDiff is the diff of a resource from some state to another.
-type ResourceDiff struct {
-	Attributes map[string]*ResourceAttrDiff
-}
-
-// ResourceAttrDiff is the diff of a single attribute of a resource.
-type ResourceAttrDiff struct {
-	Old         string // Old Value
-	New         string // New Value
-	NewComputed bool   // True if new value is computed (unknown currently)
-	RequiresNew bool   // True if change requires new resource
 }
