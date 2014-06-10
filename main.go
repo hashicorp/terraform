@@ -114,6 +114,9 @@ func wrappedMain() int {
 	return exitCode
 }
 
+// copyOutput uses output prefixes to determine whether data on stdout
+// should go to stdout or stderr. This is due to panicwrap using stderr
+// as the log and error channel.
 func copyOutput(r io.Reader) {
 	pr, err := prefixedio.NewReader(r)
 	if err != nil {
