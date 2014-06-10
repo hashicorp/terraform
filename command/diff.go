@@ -42,11 +42,19 @@ func (c *DiffCommand) Run(args []string) int {
 	tfconfig := c.TFConfig
 	tfconfig.Config = b
 
-	_, err = terraform.New(tfconfig)
+	tf, err := terraform.New(tfconfig)
 	if err != nil {
 		c.Ui.Error(fmt.Sprintf("Error initializing Terraform: %s", err))
 		return 1
 	}
+
+	diff, err := tf.Diff(nil)
+	if err != nil {
+		c.Ui.Error(fmt.Sprintf("Error running diff: %s", err))
+		return 1
+	}
+
+	c.Ui.Output(strings.TrimSpace(diff.String()))
 
 	return 0
 }
