@@ -1,8 +1,14 @@
 package main
 
 import (
+	"os/exec"
+	"path/filepath"
+
+	"github.com/hashicorp/terraform/plugin"
+	"github.com/hashicorp/terraform/rpc"
 	"github.com/hashicorp/terraform/terraform"
 	"github.com/mitchellh/go-libucl"
+	"github.com/mitchellh/osext"
 )
 
 // TFConfig is the global base configuration that has the
@@ -19,9 +25,19 @@ type Config struct {
 	Providers map[string]string
 }
 
+// BuiltinConfig is the built-in defaults for the configuration. These
+// can be overridden by user configurations.
+var BuiltinConfig Config
+
 // Put the parse flags we use for libucl in a constant so we can get
 // equally behaving parsing everywhere.
 const libuclParseFlags = libucl.ParserKeyLowercase
+
+func init() {
+	BuiltinConfig.Providers = map[string]string{
+		"aws": "terraform-provider-aws",
+	}
+}
 
 // LoadConfig loads the CLI configuration from ".terraformrc" files.
 func LoadConfig(path string) (*Config, error) {
@@ -49,4 +65,64 @@ func LoadConfig(path string) (*Config, error) {
 	}
 
 	return &result, nil
+}
+
+// ProviderFactories returns the mapping of prefixes to
+// ResourceProviderFactory that can be used to instantiate a
+// binary-based plugin.
+func (c *Config) ProviderFactories() map[string]terraform.ResourceProviderFactory {
+	result := make(map[string]terraform.ResourceProviderFactory)
+	for k, v := range c.Providers {
+		result[k] = c.providerFactory(v)
+	}
+
+	return result
+}
+
+func (c *Config) providerFactory(path string) terraform.ResourceProviderFactory {
+	originalPath := path
+
+	return func() (terraform.ResourceProvider, error) {
+		// First look for the provider on the PATH.
+		path, err := exec.LookPath(path)
+		if err != nil {
+			// If that doesn't work, look for it in the same directory
+			// as the executable that is running.
+			exePath, err := osext.Executable()
+			if err == nil {
+				path = filepath.Join(
+					filepath.Dir(exePath),
+					filepath.Base(originalPath))
+			}
+		}
+
+		// If we still don't have a path set, then set it to the
+		// original path and let any errors that happen bubble out.
+		if path == "" {
+			path = originalPath
+		}
+
+		// Build the plugin client configuration and init the plugin
+		var config plugin.ClientConfig
+		config.Cmd = exec.Command(path)
+		config.Managed = true
+		client := plugin.NewClient(&config)
+
+		// Request the RPC client and service name from the client
+		// so we can build the actual RPC-implemented provider.
+		rpcClient, err := client.Client()
+		if err != nil {
+			return nil, err
+		}
+
+		service, err := client.Service()
+		if err != nil {
+			return nil, err
+		}
+
+		return &rpc.ResourceProvider{
+			Client: rpcClient,
+			Name:   service,
+		}, nil
+	}
 }

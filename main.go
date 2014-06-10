@@ -7,6 +7,7 @@ import (
 	"os"
 
 	"github.com/ActiveState/tail"
+	"github.com/hashicorp/terraform/plugin"
 	"github.com/mitchellh/cli"
 	"github.com/mitchellh/panicwrap"
 )
@@ -108,6 +109,9 @@ func wrappedMain() int {
 		Commands: Commands,
 		HelpFunc: cli.BasicHelpFunc("terraform"),
 	}
+
+	// Make sure we clean up any managed plugins at the end of this
+	defer plugin.CleanupClients()
 
 	exitCode, err := cli.Run()
 	if err != nil {
