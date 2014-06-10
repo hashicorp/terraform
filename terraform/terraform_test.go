@@ -195,7 +195,7 @@ func TestTerraformDiff(t *testing.T) {
 		t.Fatalf("bad: %#v", diff.Resources)
 	}
 
-	actual := strings.TrimSpace(testDiffStr(diff))
+	actual := strings.TrimSpace(diff.String())
 	expected := strings.TrimSpace(testTerraformDiffStr)
 	if actual != expected {
 		t.Fatalf("bad:\n%s", actual)
@@ -226,7 +226,7 @@ func TestTerraformDiff_computed(t *testing.T) {
 		t.Fatalf("bad: %#v", diff.Resources)
 	}
 
-	actual := strings.TrimSpace(testDiffStr(diff))
+	actual := strings.TrimSpace(diff.String())
 	expected := strings.TrimSpace(testTerraformDiffComputedStr)
 	if actual != expected {
 		t.Fatalf("bad:\n%s", actual)

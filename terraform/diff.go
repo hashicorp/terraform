@@ -1,19 +1,56 @@
 package terraform
 
 import (
+	"bytes"
+	"fmt"
+	"sort"
 	"sync"
 )
 
 // Diff tracks the differences between resources to apply.
 type Diff struct {
-	Resources map[string]map[string]*ResourceAttrDiff
+	Resources map[string]*ResourceDiff
 	once      sync.Once
 }
 
 func (d *Diff) init() {
 	d.once.Do(func() {
-		d.Resources = make(map[string]map[string]*ResourceAttrDiff)
+		if d.Resources == nil {
+			d.Resources = make(map[string]*ResourceDiff)
+		}
 	})
+}
+
+// String outputs the diff in a long but command-line friendly output
+// format that users can read to quickly inspect a diff.
+func (d *Diff) String() string {
+	var buf bytes.Buffer
+
+	names := make([]string, 0, len(d.Resources))
+	for name, _ := range d.Resources {
+		names = append(names, name)
+	}
+	sort.Strings(names)
+
+	for _, name := range names {
+		buf.WriteString(name + "\n")
+
+		rdiff := d.Resources[name]
+		for attrK, attrDiff := range rdiff.Attributes {
+			v := attrDiff.New
+			if attrDiff.NewComputed {
+				v = "<computed>"
+			}
+
+			buf.WriteString(fmt.Sprintf(
+				"  %s: %#v => %#v\n",
+				attrK,
+				attrDiff.Old,
+				v))
+		}
+	}
+
+	return buf.String()
 }
 
 // ResourceDiff is the diff of a resource from some state to another.

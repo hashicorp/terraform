@@ -163,7 +163,7 @@ func (t *Terraform) diffWalkFn(
 		defer l.Unlock()
 
 		// Update the resulting diff
-		result.Resources[r.Id()] = diff.Attributes
+		result.Resources[r.Id()] = diff
 
 		// Determine the new state and update variables
 		rs = rs.MergeDiff(diff.Attributes, ComputedPlaceholder)
