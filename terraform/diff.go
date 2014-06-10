@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"sort"
+	"strings"
 	"sync"
 )
 
@@ -37,9 +38,13 @@ func (d *Diff) String() string {
 
 		buf.WriteString(name + "\n")
 
+		keyLen := 0
 		keys := make([]string, 0, len(rdiff.Attributes))
 		for key, _ := range rdiff.Attributes {
 			keys = append(keys, key)
+			if len(key) > keyLen {
+				keyLen = len(key)
+			}
 		}
 		sort.Strings(keys)
 
@@ -52,8 +57,9 @@ func (d *Diff) String() string {
 			}
 
 			buf.WriteString(fmt.Sprintf(
-				"  %s: %#v => %#v\n",
+				"  %s:%s %#v => %#v\n",
 				attrK,
+				strings.Repeat(" ", keyLen-len(attrK)),
 				attrDiff.Old,
 				v))
 		}

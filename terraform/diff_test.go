@@ -18,6 +18,10 @@ func TestDiff_String(t *testing.T) {
 						Old:         "foo",
 						NewComputed: true,
 					},
+					"longfoo": &ResourceAttrDiff{
+						Old: "foo",
+						New: "bar",
+					},
 				},
 			},
 		},
@@ -32,6 +36,7 @@ func TestDiff_String(t *testing.T) {
 
 const diffStrBasic = `
 nodeA
-  bar: "foo" => "<computed>"
-  foo: "foo" => "bar"
+  bar:     "foo" => "<computed>"
+  foo:     "foo" => "bar"
+  longfoo: "foo" => "bar"
 `

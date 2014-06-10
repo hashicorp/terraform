@@ -401,6 +401,6 @@ const testTerraformDiffComputedStr = `
 aws_instance.bar
   foo: "" => "<computed>"
 aws_instance.foo
-  id: "" => "<computed>"
+  id:  "" => "<computed>"
   num: "" => "2"
 `
