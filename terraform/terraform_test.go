@@ -391,16 +391,16 @@ func testTerraformProvider(tf *Terraform, n string) *terraformProvider {
 }
 
 const testTerraformDiffStr = `
-aws_instance.bar
+UPDATE: aws_instance.bar
   foo: "" => "2"
-aws_instance.foo
+UPDATE: aws_instance.foo
   num: "" => "2"
 `
 
 const testTerraformDiffComputedStr = `
-aws_instance.bar
+UPDATE: aws_instance.bar
   foo: "" => "<computed>"
-aws_instance.foo
+UPDATE: aws_instance.foo
   id:  "" => "<computed>"
   num: "" => "2"
 `

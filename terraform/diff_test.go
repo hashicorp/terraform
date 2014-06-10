@@ -36,7 +36,7 @@ func TestDiff_String(t *testing.T) {
 }
 
 const diffStrBasic = `
-nodeA
+CREATE: nodeA
   bar:     "foo" => "<computed>"
   foo:     "foo" => "bar"
   longfoo: "foo" => "bar" (forces new resource)

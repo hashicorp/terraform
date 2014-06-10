@@ -14,19 +14,6 @@ type Diff struct {
 	once      sync.Once
 }
 
-// ResourceDiff is the diff of a resource from some state to another.
-type ResourceDiff struct {
-	Attributes map[string]*ResourceAttrDiff
-}
-
-// ResourceAttrDiff is the diff of a single attribute of a resource.
-type ResourceAttrDiff struct {
-	Old         string // Old Value
-	New         string // New Value
-	NewComputed bool   // True if new value is computed (unknown currently)
-	RequiresNew bool   // True if change requires new resource
-}
-
 func (d *Diff) init() {
 	d.once.Do(func() {
 		if d.Resources == nil {
@@ -49,7 +36,15 @@ func (d *Diff) String() string {
 	for _, name := range names {
 		rdiff := d.Resources[name]
 
-		buf.WriteString(name + "\n")
+		crud := "UPDATE"
+		if rdiff.RequiresNew() {
+			crud = "CREATE"
+		}
+
+		buf.WriteString(fmt.Sprintf(
+			"%s: %s\n",
+			crud,
+			name))
 
 		keyLen := 0
 		keys := make([]string, 0, len(rdiff.Attributes))
@@ -85,4 +80,29 @@ func (d *Diff) String() string {
 	}
 
 	return buf.String()
+}
+
+// ResourceDiff is the diff of a resource from some state to another.
+type ResourceDiff struct {
+	Attributes map[string]*ResourceAttrDiff
+}
+
+// ResourceAttrDiff is the diff of a single attribute of a resource.
+type ResourceAttrDiff struct {
+	Old         string // Old Value
+	New         string // New Value
+	NewComputed bool   // True if new value is computed (unknown currently)
+	RequiresNew bool   // True if change requires new resource
+}
+
+// RequiresNew returns true if the diff requires the creation of a new
+// resource (implying the destruction of the old).
+func (d *ResourceDiff) RequiresNew() bool {
+	for _, rd := range d.Attributes {
+		if rd.RequiresNew {
+			return true
+		}
+	}
+
+	return false
 }
