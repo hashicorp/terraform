@@ -33,10 +33,19 @@ func (d *Diff) String() string {
 	sort.Strings(names)
 
 	for _, name := range names {
+		rdiff := d.Resources[name]
+
 		buf.WriteString(name + "\n")
 
-		rdiff := d.Resources[name]
-		for attrK, attrDiff := range rdiff.Attributes {
+		keys := make([]string, 0, len(rdiff.Attributes))
+		for key, _ := range rdiff.Attributes {
+			keys = append(keys, key)
+		}
+		sort.Strings(keys)
+
+		for _, attrK := range keys {
+			attrDiff := rdiff.Attributes[attrK]
+
 			v := attrDiff.New
 			if attrDiff.NewComputed {
 				v = "<computed>"

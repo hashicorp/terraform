@@ -32,6 +32,6 @@ func TestDiff_String(t *testing.T) {
 
 const diffStrBasic = `
 nodeA
-  foo: "foo" => "bar"
   bar: "foo" => "<computed>"
+  foo: "foo" => "bar"
 `
