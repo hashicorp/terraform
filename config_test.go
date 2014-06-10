@@ -26,3 +26,32 @@ func TestLoadConfig(t *testing.T) {
 		t.Fatalf("bad: %#v", c)
 	}
 }
+
+func TestConfig_Merge(t *testing.T) {
+	c1 := &Config{
+		Providers: map[string]string{
+			"foo": "bar",
+			"bar": "blah",
+		},
+	}
+
+	c2 := &Config{
+		Providers: map[string]string{
+			"bar": "baz",
+			"baz": "what",
+		},
+	}
+
+	expected := &Config{
+		Providers: map[string]string{
+			"foo": "bar",
+			"bar": "baz",
+			"baz": "what",
+		},
+	}
+
+	actual := c1.Merge(c2)
+	if !reflect.DeepEqual(actual, expected) {
+		t.Fatalf("bad: %#v", actual)
+	}
+}

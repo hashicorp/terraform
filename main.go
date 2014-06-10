@@ -91,6 +91,15 @@ func wrappedMain() int {
 		log.SetOutput(logOutput)
 	}
 
+	// Load the configuration
+	config := BuiltinConfig
+
+	// Make sure we clean up any managed plugins at the end of this
+	defer plugin.CleanupClients()
+
+	// Initialize the TFConfig settings for the commands...
+	TFConfig.Providers = config.ProviderFactories()
+
 	// Get the command line args. We shortcut "--version" and "-v" to
 	// just show the version.
 	args := os.Args[1:]
@@ -109,9 +118,6 @@ func wrappedMain() int {
 		Commands: Commands,
 		HelpFunc: cli.BasicHelpFunc("terraform"),
 	}
-
-	// Make sure we clean up any managed plugins at the end of this
-	defer plugin.CleanupClients()
 
 	exitCode, err := cli.Run()
 	if err != nil {

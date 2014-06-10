@@ -67,6 +67,21 @@ func LoadConfig(path string) (*Config, error) {
 	return &result, nil
 }
 
+// Merge merges two configurations and returns a third entirely
+// new configuration with the two merged.
+func (c1 *Config) Merge(c2 *Config) *Config {
+	var result Config
+	result.Providers = make(map[string]string)
+	for k, v := range c1.Providers {
+		result.Providers[k] = v
+	}
+	for k, v := range c2.Providers {
+		result.Providers[k] = v
+	}
+
+	return &result
+}
+
 // ProviderFactories returns the mapping of prefixes to
 // ResourceProviderFactory that can be used to instantiate a
 // binary-based plugin.
