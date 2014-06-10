@@ -2,14 +2,15 @@ package main
 
 import (
 	"fmt"
+	"io"
 	"io/ioutil"
 	"log"
 	"os"
 
-	"github.com/ActiveState/tail"
 	"github.com/hashicorp/terraform/plugin"
 	"github.com/mitchellh/cli"
 	"github.com/mitchellh/panicwrap"
+	"github.com/mitchellh/prefixedio"
 )
 
 func main() {
@@ -26,6 +27,9 @@ func realMain() int {
 			fmt.Fprintf(os.Stderr, "Couldn't setup log output: %s", err)
 			return 1
 		}
+		if logWriter == nil {
+			logWriter = ioutil.Discard
+		}
 
 		// We always send logs to a temporary file that we use in case
 		// there is a panic. Otherwise, we delete it.
@@ -34,33 +38,22 @@ func realMain() int {
 			fmt.Fprintf(os.Stderr, "Couldn't setup logging tempfile: %s", err)
 			return 1
 		}
-		logTempFile.Close()
 		defer os.Remove(logTempFile.Name())
+		defer logTempFile.Close()
 
 		// Tell the logger to log to this file
-		os.Setenv(EnvLog, "1")
-		os.Setenv(EnvLogFile, logTempFile.Name())
+		os.Setenv(EnvLog, "")
+		os.Setenv(EnvLogFile, "")
 
-		if logWriter != nil {
-			// Start tailing the file beforehand to get the data
-			t, err := tail.TailFile(logTempFile.Name(), tail.Config{
-				Follow:    true,
-				Logger:    tail.DiscardingLogger,
-				MustExist: true,
-			})
-			if err != nil {
-				fmt.Fprintf(os.Stderr, "Couldn't setup logging tempfile: %s", err)
-				return 1
-			}
-			go func() {
-				for line := range t.Lines {
-					logWriter.Write([]byte(line.Text + "\n"))
-				}
-			}()
-		}
+		// Setup the prefixed readers that send data properly to
+		// stdout/stderr.
+		outR, outW := io.Pipe()
+		go copyOutput(outR)
 
 		// Create the configuration for panicwrap and wrap our executable
 		wrapConfig.Handler = panicHandler(logTempFile)
+		wrapConfig.Writer = io.MultiWriter(logTempFile, logWriter)
+		wrapConfig.Stdout = outW
 		exitStatus, err := panicwrap.Wrap(&wrapConfig)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "Couldn't start Terraform: %s", err)
@@ -82,14 +75,7 @@ func realMain() int {
 }
 
 func wrappedMain() int {
-	logOutput, err := logOutput()
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error starting Terraform: %s", err)
-		return 1
-	}
-	if logOutput != nil {
-		log.SetOutput(logOutput)
-	}
+	log.SetOutput(os.Stderr)
 
 	// Load the configuration
 	config := BuiltinConfig
@@ -126,4 +112,23 @@ func wrappedMain() int {
 	}
 
 	return exitCode
+}
+
+func copyOutput(r io.Reader) {
+	pr, err := prefixedio.NewReader(r)
+	if err != nil {
+		panic(err)
+	}
+
+	stderrR, err := pr.Prefix(ErrorPrefix)
+	if err != nil {
+		panic(err)
+	}
+	stdoutR, err := pr.Prefix(OutputPrefix)
+	if err != nil {
+		panic(err)
+	}
+
+	go io.Copy(os.Stderr, stderrR)
+	go io.Copy(os.Stdout, stdoutR)
 }

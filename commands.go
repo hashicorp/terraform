@@ -10,8 +10,17 @@ import (
 // Commands is the mapping of all the available Terraform commands.
 var Commands map[string]cli.CommandFactory
 
+const ErrorPrefix = "e:"
+const OutputPrefix = "o:"
+
 func init() {
-	ui := &cli.BasicUi{Writer: os.Stdout}
+	ui := &cli.PrefixedUi{
+		AskPrefix:    OutputPrefix,
+		OutputPrefix: OutputPrefix,
+		InfoPrefix:   OutputPrefix,
+		ErrorPrefix:  ErrorPrefix,
+		Ui:           &cli.BasicUi{Writer: os.Stdout},
+	}
 
 	Commands = map[string]cli.CommandFactory{
 		"apply": func() (cli.Command, error) {
