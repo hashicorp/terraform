@@ -202,6 +202,18 @@ func TestTerraformDiff(t *testing.T) {
 	}
 }
 
+func TestTerraformDiff_nil(t *testing.T) {
+	tf := testTerraform(t, "diff-nil")
+
+	diff, err := tf.Diff(nil)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if len(diff.Resources) != 0 {
+		t.Fatalf("bad: %#v", diff.Resources)
+	}
+}
+
 func TestTerraformDiff_computed(t *testing.T) {
 	tf := testTerraform(t, "diff-computed")
 
@@ -267,6 +279,10 @@ func testProviderFunc(n string, rs []string) ResourceProviderFactory {
 			for k, v := range c {
 				if _, ok := v.(string); !ok {
 					continue
+				}
+
+				if k == "nil" {
+					return nil, nil
 				}
 
 				if k == "compute" {

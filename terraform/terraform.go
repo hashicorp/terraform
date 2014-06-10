@@ -154,7 +154,7 @@ func (t *Terraform) diffWalkFn(
 		}
 
 		// If there were no diff items, return right away
-		if len(diff.Attributes) == 0 {
+		if diff == nil || len(diff.Attributes) == 0 {
 			return nil
 		}
 
