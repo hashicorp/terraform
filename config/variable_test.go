@@ -106,7 +106,8 @@ func TestVariableDetectWalker_empty(t *testing.T) {
 func TestVariableReplaceWalker(t *testing.T) {
 	w := &variableReplaceWalker{
 		Values: map[string]string{
-			"var.bar": "bar",
+			"var.bar":     "bar",
+			"var.unknown": UnknownVariableValue,
 		},
 	}
 
@@ -137,6 +138,33 @@ func TestVariableReplaceWalker(t *testing.T) {
 					"bar",
 				},
 			},
+		},
+		{
+			map[string]interface{}{
+				"foo": map[string]interface{}{
+					"foo": []string{"${var.bar}"},
+				},
+			},
+			map[string]interface{}{
+				"foo": map[string]interface{}{
+					"foo": []string{"bar"},
+				},
+			},
+		},
+		{
+			map[string]interface{}{
+				"foo": "bar",
+				"bar": "hello${var.unknown}world",
+			},
+			map[string]interface{}{
+				"foo": "bar",
+			},
+		},
+		{
+			map[string]interface{}{
+				"foo": []string{"foo", "${var.unknown}", "bar"},
+			},
+			map[string]interface{}{},
 		},
 	}
 

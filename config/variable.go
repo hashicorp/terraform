@@ -101,8 +101,10 @@ func (w *variableDetectWalker) Primitive(v reflect.Value) error {
 type variableReplaceWalker struct {
 	Values map[string]string
 
-	loc   reflectwalk.Location
-	m, mk reflect.Value
+	loc    reflectwalk.Location
+	m, mk  reflect.Value
+	cs     []reflect.Value
+	csData interface{}
 }
 
 func (w *variableReplaceWalker) Enter(loc reflectwalk.Location) error {
@@ -112,16 +114,24 @@ func (w *variableReplaceWalker) Enter(loc reflectwalk.Location) error {
 
 func (w *variableReplaceWalker) Exit(loc reflectwalk.Location) error {
 	w.loc = reflectwalk.None
+
+	switch loc {
+	case reflectwalk.Map:
+		w.cs = w.cs[:len(w.cs)-1]
+	}
+
 	return nil
 }
 
-func (w *variableReplaceWalker) Map(reflect.Value) error {
+func (w *variableReplaceWalker) Map(m reflect.Value) error {
+	w.cs = append(w.cs, m)
 	return nil
 }
 
 func (w *variableReplaceWalker) MapElem(m, k, v reflect.Value) error {
 	w.m = m
 	w.mk = k
+	w.csData = k
 	return nil
 }
 
@@ -157,6 +167,13 @@ func (w *variableReplaceWalker) Primitive(v reflect.Value) error {
 			panic("no value for variable key: " + key)
 		}
 
+		// If this is an unknown variable, then we remove it from
+		// the configuration.
+		if value == UnknownVariableValue {
+			w.removeCurrent()
+			return nil
+		}
+
 		// Replace
 		result = strings.Replace(result, match[0], value, -1)
 	}
@@ -172,4 +189,17 @@ func (w *variableReplaceWalker) Primitive(v reflect.Value) error {
 	}
 
 	return nil
+}
+
+func (w *variableReplaceWalker) removeCurrent() {
+	c := w.cs[len(w.cs)-1]
+	switch c.Kind() {
+	case reflect.Map:
+		// Zero value so that we delete the map key
+		var val reflect.Value
+
+		// Get the key and delete it
+		k := w.csData.(reflect.Value)
+		c.SetMapIndex(k, val)
+	}
 }
