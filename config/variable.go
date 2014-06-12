@@ -115,6 +115,10 @@ func (w *variableReplaceWalker) Exit(loc reflectwalk.Location) error {
 	return nil
 }
 
+func (w *variableReplaceWalker) Map(reflect.Value) error {
+	return nil
+}
+
 func (w *variableReplaceWalker) MapElem(m, k, v reflect.Value) error {
 	w.m = m
 	w.mk = k
