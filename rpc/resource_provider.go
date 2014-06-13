@@ -13,7 +13,7 @@ type ResourceProvider struct {
 	Name   string
 }
 
-func (p *ResourceProvider) Configure(c map[string]interface{}) error {
+func (p *ResourceProvider) Configure(c *terraform.ResourceConfig) error {
 	var resp ResourceProviderConfigureResponse
 	err := p.Client.Call(p.Name+".Configure", c, &resp)
 	if err != nil {
@@ -28,7 +28,7 @@ func (p *ResourceProvider) Configure(c map[string]interface{}) error {
 
 func (p *ResourceProvider) Diff(
 	s *terraform.ResourceState,
-	c map[string]interface{}) (*terraform.ResourceDiff, error) {
+	c *terraform.ResourceConfig) (*terraform.ResourceDiff, error) {
 	var resp ResourceProviderDiffResponse
 	args := &ResourceProviderDiffArgs{
 		State:  s,
@@ -69,7 +69,7 @@ type ResourceProviderConfigureResponse struct {
 
 type ResourceProviderDiffArgs struct {
 	State  *terraform.ResourceState
-	Config map[string]interface{}
+	Config *terraform.ResourceConfig
 }
 
 type ResourceProviderDiffResponse struct {
@@ -78,7 +78,7 @@ type ResourceProviderDiffResponse struct {
 }
 
 func (s *ResourceProviderServer) Configure(
-	config map[string]interface{},
+	config *terraform.ResourceConfig,
 	reply *ResourceProviderConfigureResponse) error {
 	err := s.Provider.Configure(config)
 	*reply = ResourceProviderConfigureResponse{

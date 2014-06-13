@@ -18,7 +18,9 @@ func TestResourceProvider_configure(t *testing.T) {
 	provider := &ResourceProvider{Client: client, Name: name}
 
 	// Configure
-	config := map[string]interface{}{"foo": "bar"}
+	config := &terraform.ResourceConfig{
+		Raw: map[string]interface{}{"foo": "bar"},
+	}
 	e := provider.Configure(config)
 	if !p.ConfigureCalled {
 		t.Fatal("configure should be called")
@@ -43,7 +45,9 @@ func TestResourceProvider_configure_errors(t *testing.T) {
 	p.ConfigureReturnError = errors.New("foo")
 
 	// Configure
-	config := map[string]interface{}{"foo": "bar"}
+	config := &terraform.ResourceConfig{
+		Raw: map[string]interface{}{"foo": "bar"},
+	}
 	e := provider.Configure(config)
 	if !p.ConfigureCalled {
 		t.Fatal("configure should be called")
@@ -69,7 +73,9 @@ func TestResourceProvider_configure_warnings(t *testing.T) {
 	provider := &ResourceProvider{Client: client, Name: name}
 
 	// Configure
-	config := map[string]interface{}{"foo": "bar"}
+	config := &terraform.ResourceConfig{
+		Raw: map[string]interface{}{"foo": "bar"},
+	}
 	e := provider.Configure(config)
 	if !p.ConfigureCalled {
 		t.Fatal("configure should be called")
@@ -102,7 +108,9 @@ func TestResourceProvider_diff(t *testing.T) {
 
 	// Diff
 	state := &terraform.ResourceState{}
-	config := map[string]interface{}{"foo": "bar"}
+	config := &terraform.ResourceConfig{
+		Raw: map[string]interface{}{"foo": "bar"},
+	}
 	diff, err := provider.Diff(state, config)
 	if !p.DiffCalled {
 		t.Fatal("diff should be called")
@@ -131,7 +139,9 @@ func TestResourceProvider_diff_error(t *testing.T) {
 
 	// Diff
 	state := &terraform.ResourceState{}
-	config := map[string]interface{}{"foo": "bar"}
+	config := &terraform.ResourceConfig{
+		Raw: map[string]interface{}{"foo": "bar"},
+	}
 	diff, err := provider.Diff(state, config)
 	if !p.DiffCalled {
 		t.Fatal("diff should be called")
