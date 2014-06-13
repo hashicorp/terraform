@@ -144,11 +144,13 @@ func (t *Terraform) diffWalkFn(
 			rs = state.resources[r.Id()]
 		}
 		if len(vars) > 0 {
-			r = r.ReplaceVariables(vars)
+			if err := r.RawConfig.Interpolate(vars); err != nil {
+				panic(fmt.Sprintf("Interpolate error: %s", err))
+			}
 		}
 		l.RUnlock()
 
-		diff, err := p.Provider.Diff(rs, r.Config)
+		diff, err := p.Provider.Diff(rs, r.RawConfig.Config())
 		if err != nil {
 			return err
 		}
@@ -166,7 +168,7 @@ func (t *Terraform) diffWalkFn(
 		result.Resources[r.Id()] = diff
 
 		// Determine the new state and update variables
-		rs = rs.MergeDiff(diff.Attributes, ComputedPlaceholder)
+		rs = rs.MergeDiff(diff.Attributes)
 		for ak, av := range rs.Attributes {
 			vars[fmt.Sprintf("%s.%s", r.Id(), ak)] = av
 		}
@@ -179,7 +181,11 @@ func (t *terraformProvider) init(vars map[string]string) (err error) {
 	t.Once.Do(func() {
 		var c map[string]interface{}
 		if t.Config != nil {
-			c = t.Config.ReplaceVariables(vars).Config
+			if err := t.Config.RawConfig.Interpolate(vars); err != nil {
+				panic(err)
+			}
+
+			c = t.Config.RawConfig.Config()
 		}
 
 		err = t.Provider.Configure(c)

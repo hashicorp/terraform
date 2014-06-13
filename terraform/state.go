@@ -2,6 +2,8 @@ package terraform
 
 import (
 	"sync"
+
+	"github.com/hashicorp/terraform/config"
 )
 
 // State keeps track of a snapshot state-of-the-world that Terraform
@@ -43,8 +45,7 @@ type ResourceState struct {
 // won't be available until apply, the value is replaced with the
 // computeID.
 func (s *ResourceState) MergeDiff(
-	d map[string]*ResourceAttrDiff,
-	computedID string) *ResourceState {
+	d map[string]*ResourceAttrDiff) *ResourceState {
 	var result ResourceState
 	if s != nil {
 		result = *s
@@ -58,7 +59,7 @@ func (s *ResourceState) MergeDiff(
 	}
 	for k, diff := range d {
 		if diff.NewComputed {
-			result.Attributes[k] = computedID
+			result.Attributes[k] = config.UnknownVariableValue
 			continue
 		}
 

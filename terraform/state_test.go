@@ -3,6 +3,8 @@ package terraform
 import (
 	"reflect"
 	"testing"
+
+	"github.com/hashicorp/terraform/config"
 )
 
 func TestResourceState_MergeDiff(t *testing.T) {
@@ -29,12 +31,12 @@ func TestResourceState_MergeDiff(t *testing.T) {
 		},
 	}
 
-	rs2 := rs.MergeDiff(diff, "what")
+	rs2 := rs.MergeDiff(diff)
 
 	expected := map[string]string{
 		"foo": "baz",
 		"bar": "foo",
-		"baz": "what",
+		"baz": config.UnknownVariableValue,
 	}
 
 	if !reflect.DeepEqual(expected, rs2.Attributes) {
@@ -52,7 +54,7 @@ func TestResourceState_MergeDiff_nil(t *testing.T) {
 		},
 	}
 
-	rs2 := rs.MergeDiff(diff, "computed")
+	rs2 := rs.MergeDiff(diff)
 
 	expected := map[string]string{
 		"foo": "baz",

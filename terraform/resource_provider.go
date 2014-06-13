@@ -1,10 +1,5 @@
 package terraform
 
-// ComputedPlaceholder is the placeholder value for computed attributes.
-// ResourceProviders can compare values to this during a diff to determine
-// if it is just a placeholder.
-const ComputedPlaceholder = "74D93920-ED26-11E3-AC10-0800200C9A66"
-
 // ResourceProvider is an interface that must be implemented by any
 // resource provider: the thing that creates and manages the resources in
 // a Terraform configuration.

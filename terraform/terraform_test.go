@@ -47,7 +47,7 @@ func TestNew(t *testing.T) {
 	}
 
 	pc = testProviderConfig(tf, "aws_instance.foo")
-	if pc.Config["foo"].(string) != "bar" {
+	if pc.RawConfig.Raw["foo"].(string) != "bar" {
 		t.Fatalf("bad: %#v", pc)
 	}
 }
@@ -114,11 +114,11 @@ func TestNew_providerConfigCache(t *testing.T) {
 		t.Fatalf("bad: %#v", pc)
 	}
 	pc = testProviderConfig(tf, "aws_instance.foo")
-	if pc.Config["foo"].(string) != "bar" {
+	if pc.RawConfig.Raw["foo"].(string) != "bar" {
 		t.Fatalf("bad: %#v", pc)
 	}
 	pc = testProviderConfig(tf, "aws_elb.lb")
-	if pc.Config["foo"].(string) != "baz" {
+	if pc.RawConfig.Raw["foo"].(string) != "baz" {
 		t.Fatalf("bad: %#v", pc)
 	}
 
@@ -299,7 +299,7 @@ func testProviderFunc(n string, rs []string) ResourceProviderFactory {
 					New: v.(string),
 				}
 
-				if strings.Contains(attrDiff.New, ComputedPlaceholder) {
+				if strings.Contains(attrDiff.New, config.UnknownVariableValue) {
 					attrDiff.NewComputed = true
 				}
 
