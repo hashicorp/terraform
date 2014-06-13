@@ -48,6 +48,45 @@ func TestRawConfig(t *testing.T) {
 	}
 }
 
+func TestRawConfig_double(t *testing.T) {
+	raw := map[string]interface{}{
+		"foo": "${var.bar}",
+	}
+
+	rc, err := NewRawConfig(raw)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	vars := map[string]string{"var.bar": "baz"}
+	if err := rc.Interpolate(vars); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	actual := rc.Config()
+	expected := map[string]interface{}{
+		"foo": "baz",
+	}
+
+	if !reflect.DeepEqual(actual, expected) {
+		t.Fatalf("bad: %#v", actual)
+	}
+
+	vars = map[string]string{"var.bar": "what"}
+	if err := rc.Interpolate(vars); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	actual = rc.Config()
+	expected = map[string]interface{}{
+		"foo": "what",
+	}
+
+	if !reflect.DeepEqual(actual, expected) {
+		t.Fatalf("bad: %#v", actual)
+	}
+}
+
 func TestRawConfig_unknown(t *testing.T) {
 	raw := map[string]interface{}{
 		"foo": "${var.bar}",
