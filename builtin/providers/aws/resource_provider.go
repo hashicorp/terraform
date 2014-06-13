@@ -7,13 +7,13 @@ import (
 type ResourceProvider struct {
 }
 
-func (p *ResourceProvider) Configure(map[string]interface{}) error {
+func (p *ResourceProvider) Configure(*terraform.ResourceConfig) error {
 	return nil
 }
 
 func (p *ResourceProvider) Diff(
 	s *terraform.ResourceState,
-	c map[string]interface{}) (*terraform.ResourceDiff, error) {
+	c *terraform.ResourceConfig) (*terraform.ResourceDiff, error) {
 	return &terraform.ResourceDiff{
 		Attributes: map[string]*terraform.ResourceAttrDiff{
 			"id": &terraform.ResourceAttrDiff{
