@@ -8,7 +8,7 @@ type ResourceProvider interface {
 	// given. This is useful for setting things like access keys.
 	//
 	// Configure returns an error if it occurred.
-	Configure(config map[string]interface{}) error
+	Configure(*ResourceConfig) error
 
 	// Resources returns all the available resource types that this provider
 	// knows how to manage.
@@ -25,7 +25,14 @@ type ResourceProvider interface {
 	// a diff.
 	Diff(
 		*ResourceState,
-		map[string]interface{}) (*ResourceDiff, error)
+		*ResourceConfig) (*ResourceDiff, error)
+}
+
+// ResourceConfig holds the configuration given for a resource. This is
+// done instead of a raw `map[string]interface{}` type so that rich
+// methods can be added to it to make dealing with it easier.
+type ResourceConfig struct {
+	Raw map[string]interface{}
 }
 
 // ResourceType is a type of resource that a resource provider can manage.

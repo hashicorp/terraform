@@ -248,7 +248,7 @@ func TestTerraformDiff_providerInit(t *testing.T) {
 	if !p.ConfigureCalled {
 		t.Fatal("configure should be called")
 	}
-	if p.ConfigureConfig["foo"].(string) != "2" {
+	if p.ConfigureConfig.Raw["foo"].(string) != "2" {
 		t.Fatalf("bad: %#v", p.ConfigureConfig)
 	}
 }
@@ -273,10 +273,10 @@ func testProviderFunc(n string, rs []string) ResourceProviderFactory {
 	return func() (ResourceProvider, error) {
 		diffFn := func(
 			_ *ResourceState,
-			c map[string]interface{}) (*ResourceDiff, error) {
+			c *ResourceConfig) (*ResourceDiff, error) {
 			var diff ResourceDiff
 			diff.Attributes = make(map[string]*ResourceAttrDiff)
-			for k, v := range c {
+			for k, v := range c.Raw {
 				if _, ok := v.(string); !ok {
 					continue
 				}
