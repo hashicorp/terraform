@@ -22,8 +22,7 @@ type Config struct {
 // For example, Terraform needs to set the AWS access keys for the AWS
 // resource provider.
 type ProviderConfig struct {
-	Config    map[string]interface{}
-	Variables map[string]InterpolatedVariable
+	RawConfig *RawConfig
 }
 
 // A resource represents a single Terraform resource in the configuration.
@@ -32,8 +31,7 @@ type ProviderConfig struct {
 type Resource struct {
 	Name      string
 	Type      string
-	Config    map[string]interface{}
-	Variables map[string]InterpolatedVariable
+	RawConfig *RawConfig
 }
 
 // Variable is a variable defined within the configuration.
@@ -72,20 +70,6 @@ type UserVariable struct {
 	key string
 }
 
-// ReplaceVariables replaces the variables in the configuration
-// with the given values.
-//
-// This replacement is not in place. Instead, this function will
-// return a new resource with the variables replaced.
-func (r *ProviderConfig) ReplaceVariables(
-	vs map[string]string) *ProviderConfig {
-	result := *r
-	if err := replaceVariables(result.Config, vs); err != nil {
-		panic(err)
-	}
-	return &result
-}
-
 // A unique identifier for this resource.
 func (r *Resource) Id() string {
 	return fmt.Sprintf("%s.%s", r.Type, r.Name)
@@ -103,19 +87,6 @@ func (r *Resource) ProviderConfigName(pcs map[string]*ProviderConfig) string {
 	}
 
 	return lk
-}
-
-// ReplaceVariables replaces the variables in the configuration
-// with the given values.
-//
-// This replacement is not in place. Instead, this function will
-// return a new resource with the variables replaced.
-func (r *Resource) ReplaceVariables(vs map[string]string) *Resource {
-	result := *r
-	if err := replaceVariables(result.Config, vs); err != nil {
-		panic(err)
-	}
-	return &result
 }
 
 // Graph returns a dependency graph of the resources from this
@@ -154,9 +125,9 @@ func (c *Config) Graph() *depgraph.Graph {
 		var vars map[string]InterpolatedVariable
 		switch n := noun.Meta.(type) {
 		case *Resource:
-			vars = n.Variables
+			vars = n.RawConfig.Variables
 		case *ProviderConfig:
-			vars = n.Variables
+			vars = n.RawConfig.Variables
 		}
 		for _, v := range vars {
 			// Only resource variables impose dependencies

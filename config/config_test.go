@@ -2,7 +2,6 @@ package config
 
 import (
 	"path/filepath"
-	"reflect"
 	"strings"
 	"testing"
 )
@@ -76,45 +75,6 @@ func TestNewUserVariable(t *testing.T) {
 	}
 }
 
-func TestProviderConfigReplaceVariables(t *testing.T) {
-	r := &ProviderConfig{
-		Config: map[string]interface{}{
-			"foo": "${var.bar}",
-		},
-	}
-
-	values := map[string]string{
-		"var.bar": "value",
-	}
-
-	r2 := r.ReplaceVariables(values)
-
-	expected := &ProviderConfig{
-		Config: map[string]interface{}{
-			"foo": "value",
-		},
-	}
-	if !reflect.DeepEqual(r2, expected) {
-		t.Fatalf("bad: %#v", r2)
-	}
-
-	/*
-		TODO(mitchellh): Eventually, preserve original config...
-
-		expectedOriginal := &Resource{
-			Name: "foo",
-			Type: "bar",
-			Config: map[string]interface{}{
-				"foo": "${var.bar}",
-			},
-		}
-
-		if !reflect.DeepEqual(r, expectedOriginal) {
-			t.Fatalf("bad: %#v", r)
-		}
-	*/
-}
-
 func TestResourceProviderConfigName(t *testing.T) {
 	r := &Resource{
 		Name: "foo",
@@ -132,49 +92,6 @@ func TestResourceProviderConfigName(t *testing.T) {
 	if n != "aws" {
 		t.Fatalf("bad: %s", n)
 	}
-}
-
-func TestResourceReplaceVariables(t *testing.T) {
-	r := &Resource{
-		Name: "foo",
-		Type: "bar",
-		Config: map[string]interface{}{
-			"foo": "${var.bar}",
-		},
-	}
-
-	values := map[string]string{
-		"var.bar": "value",
-	}
-
-	r2 := r.ReplaceVariables(values)
-
-	expected := &Resource{
-		Name: "foo",
-		Type: "bar",
-		Config: map[string]interface{}{
-			"foo": "value",
-		},
-	}
-	if !reflect.DeepEqual(r2, expected) {
-		t.Fatalf("bad: %#v", r2)
-	}
-
-	/*
-		TODO(mitchellh): Eventually, preserve original config...
-
-		expectedOriginal := &Resource{
-			Name: "foo",
-			Type: "bar",
-			Config: map[string]interface{}{
-				"foo": "${var.bar}",
-			},
-		}
-
-		if !reflect.DeepEqual(r, expectedOriginal) {
-			t.Fatalf("bad: %#v", r)
-		}
-	*/
 }
 
 const resourceGraphValue = `

@@ -5,7 +5,6 @@ import (
 	"path/filepath"
 
 	"github.com/mitchellh/go-libucl"
-	"github.com/mitchellh/reflectwalk"
 )
 
 // Put the parse flags we use for libucl in a constant so we can get
@@ -175,8 +174,8 @@ func loadProvidersLibucl(o *libucl.Object) (map[string]*ProviderConfig, error) {
 			return nil, err
 		}
 
-		walker := new(variableDetectWalker)
-		if err := reflectwalk.Walk(config, walker); err != nil {
+		rawConfig, err := NewRawConfig(config)
+		if err != nil {
 			return nil, fmt.Errorf(
 				"Error reading config for provider config %s: %s",
 				n,
@@ -184,8 +183,7 @@ func loadProvidersLibucl(o *libucl.Object) (map[string]*ProviderConfig, error) {
 		}
 
 		result[n] = &ProviderConfig{
-			Config:    config,
-			Variables: walker.Variables,
+			RawConfig: rawConfig,
 		}
 	}
 
@@ -255,8 +253,8 @@ func loadResourcesLibucl(o *libucl.Object) ([]*Resource, error) {
 					err)
 			}
 
-			walker := new(variableDetectWalker)
-			if err := reflectwalk.Walk(config, walker); err != nil {
+			rawConfig, err := NewRawConfig(config)
+			if err != nil {
 				return nil, fmt.Errorf(
 					"Error reading config for %s[%s]: %s",
 					t.Key(),
@@ -267,8 +265,7 @@ func loadResourcesLibucl(o *libucl.Object) ([]*Resource, error) {
 			result = append(result, &Resource{
 				Name:      r.Key(),
 				Type:      t.Key(),
-				Config:    config,
-				Variables: walker.Variables,
+				RawConfig: rawConfig,
 			})
 		}
 	}

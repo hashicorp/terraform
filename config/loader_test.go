@@ -98,13 +98,13 @@ func providerConfigsStr(pcs map[string]*ProviderConfig) string {
 	for n, pc := range pcs {
 		result += fmt.Sprintf("%s\n", n)
 
-		for k, _ := range pc.Config {
+		for k, _ := range pc.RawConfig.Raw {
 			result += fmt.Sprintf("  %s\n", k)
 		}
 
-		if len(pc.Variables) > 0 {
+		if len(pc.RawConfig.Variables) > 0 {
 			result += fmt.Sprintf("  vars\n")
-			for _, rawV := range pc.Variables {
+			for _, rawV := range pc.RawConfig.Variables {
 				kind := "unknown"
 				str := rawV.FullKey()
 
@@ -133,13 +133,13 @@ func resourcesStr(rs []*Resource) string {
 			r.Type,
 			r.Name)
 
-		for k, _ := range r.Config {
+		for k, _ := range r.RawConfig.Raw {
 			result += fmt.Sprintf("  %s\n", k)
 		}
 
-		if len(r.Variables) > 0 {
+		if len(r.RawConfig.Variables) > 0 {
 			result += fmt.Sprintf("  vars\n")
-			for _, rawV := range r.Variables {
+			for _, rawV := range r.RawConfig.Variables {
 				kind := "unknown"
 				str := rawV.FullKey()
 
