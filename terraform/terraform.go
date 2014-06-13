@@ -151,7 +151,8 @@ func (t *Terraform) diffWalkFn(
 		l.RUnlock()
 
 		diff, err := p.Provider.Diff(rs, &ResourceConfig{
-			Raw: r.RawConfig.Config(),
+			ComputedKeys: r.RawConfig.UnknownKeys(),
+			Raw:          r.RawConfig.Config(),
 		})
 		if err != nil {
 			return err
@@ -181,18 +182,19 @@ func (t *Terraform) diffWalkFn(
 
 func (t *terraformProvider) init(vars map[string]string) (err error) {
 	t.Once.Do(func() {
-		var c map[string]interface{}
+		var rc *ResourceConfig
 		if t.Config != nil {
 			if err := t.Config.RawConfig.Interpolate(vars); err != nil {
 				panic(err)
 			}
 
-			c = t.Config.RawConfig.Config()
+			rc = &ResourceConfig{
+				ComputedKeys: t.Config.RawConfig.UnknownKeys(),
+				Raw: t.Config.RawConfig.Config(),
+			}
 		}
 
-		err = t.Provider.Configure(&ResourceConfig{
-			Raw: c,
-		})
+		err = t.Provider.Configure(rc)
 	})
 
 	return

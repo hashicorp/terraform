@@ -306,6 +306,13 @@ func testProviderFunc(n string, rs []string) ResourceProviderFactory {
 				diff.Attributes[k] = attrDiff
 			}
 
+			for _, k := range c.ComputedKeys {
+				diff.Attributes[k] = &ResourceAttrDiff{
+					Old:         "",
+					NewComputed: true,
+				}
+			}
+
 			return &diff, nil
 		}
 

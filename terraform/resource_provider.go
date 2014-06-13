@@ -32,7 +32,8 @@ type ResourceProvider interface {
 // done instead of a raw `map[string]interface{}` type so that rich
 // methods can be added to it to make dealing with it easier.
 type ResourceConfig struct {
-	Raw map[string]interface{}
+	ComputedKeys []string
+	Raw          map[string]interface{}
 }
 
 // ResourceType is a type of resource that a resource provider can manage.
