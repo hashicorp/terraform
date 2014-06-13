@@ -7,8 +7,13 @@ import (
 type ResourceProvider struct {
 }
 
-func (p *ResourceProvider) Validate(*terraform.ResourceConfig) ([]string, []error) {
-	return nil, nil
+func (p *ResourceProvider) Validate(c *terraform.ResourceConfig) ([]string, []error) {
+	errs := c.CheckSet([]string{
+		"access_key",
+		"secret_key",
+	})
+
+	return nil, errs
 }
 
 func (p *ResourceProvider) Configure(*terraform.ResourceConfig) error {
