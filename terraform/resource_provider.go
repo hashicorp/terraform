@@ -1,9 +1,22 @@
 package terraform
 
+import (
+	"github.com/hashicorp/terraform/config"
+)
+
 // ResourceProvider is an interface that must be implemented by any
 // resource provider: the thing that creates and manages the resources in
 // a Terraform configuration.
 type ResourceProvider interface {
+	// Validate is called once at the beginning with the raw configuration
+	// (no interpolation done) and can return a list of warnings and/or
+	// errors.
+	//
+	// This should not assume that any values of the configurations are valid.
+	// The primary use case of this call is to check that required keys are
+	// set.
+	Validate(*ResourceConfig) ([]string, []error)
+
 	// Configure configures the provider itself with the configuration
 	// given. This is useful for setting things like access keys.
 	//
@@ -44,6 +57,14 @@ type ResourceType struct {
 // ResourceProviderFactory is a function type that creates a new instance
 // of a resource provider.
 type ResourceProviderFactory func() (ResourceProvider, error)
+
+// NewResourceConfig creates a new ResourceConfig from a config.RawConfig.
+func NewResourceConfig(c *config.RawConfig) *ResourceConfig {
+	return &ResourceConfig{
+		ComputedKeys: c.UnknownKeys(),
+		Raw:          c.Raw,
+	}
+}
 
 func ProviderSatisfies(p ResourceProvider, n string) bool {
 	for _, rt := range p.Resources() {

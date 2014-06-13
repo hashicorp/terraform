@@ -17,6 +17,16 @@ type MockResourceProvider struct {
 	DiffReturnError      error
 	ResourcesCalled      bool
 	ResourcesReturn      []ResourceType
+	ValidateCalled       bool
+	ValidateConfig       *ResourceConfig
+	ValidateReturnWarns  []string
+	ValidateReturnErrors []error
+}
+
+func (p *MockResourceProvider) Validate(c *ResourceConfig) ([]string, []error) {
+	p.ValidateCalled = true
+	p.ValidateConfig = c
+	return p.ValidateReturnWarns, p.ValidateReturnErrors
 }
 
 func (p *MockResourceProvider) Configure(c *ResourceConfig) error {

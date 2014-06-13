@@ -139,6 +139,26 @@ func TestNew_providerConfigCache(t *testing.T) {
 	}
 }
 
+func TestNew_providerValidate(t *testing.T) {
+	config := testConfig(t, "new-provider-validate")
+	tfConfig := &Config{
+		Config: config,
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFunc("aws", []string{"aws_instance"}),
+		},
+	}
+
+	tf, err := New(tfConfig)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	p := testProviderMock(testProvider(tf, "aws_instance.foo"))
+	if !p.ValidateCalled {
+		t.Fatal("validate should be called")
+	}
+}
+
 func TestNew_variables(t *testing.T) {
 	config := testConfig(t, "new-variables")
 	tfConfig := &Config{

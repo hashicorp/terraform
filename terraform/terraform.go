@@ -60,6 +60,25 @@ func New(c *Config) (*Terraform, error) {
 		errs = append(errs, err...)
 	}
 
+	// Validate all the configurations, once.
+	tps := make(map[*terraformProvider]struct{})
+	for _, tp := range mapping {
+		if _, ok := tps[tp]; !ok {
+			tps[tp] = struct{}{}
+		}
+	}
+	for tp, _ := range tps {
+		var rc *ResourceConfig
+		if tp.Config != nil {
+			rc = NewResourceConfig(tp.Config.RawConfig)
+		}
+
+		_, tpErrs := tp.Provider.Validate(rc)
+		if len(tpErrs) > 0 {
+			errs = append(errs, tpErrs...)
+		}
+	}
+
 	// Build the resource graph
 	graph := c.Config.Graph()
 	if err := graph.Validate(); err != nil {
@@ -190,7 +209,7 @@ func (t *terraformProvider) init(vars map[string]string) (err error) {
 
 			rc = &ResourceConfig{
 				ComputedKeys: t.Config.RawConfig.UnknownKeys(),
-				Raw: t.Config.RawConfig.Config(),
+				Raw:          t.Config.RawConfig.Config(),
 			}
 		}
 
