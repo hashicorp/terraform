@@ -7,6 +7,10 @@ import (
 type ResourceProvider struct {
 }
 
+func (p *ResourceProvider) Validate(*terraform.ResourceConfig) ([]string, []error) {
+	return nil, nil
+}
+
 func (p *ResourceProvider) Configure(*terraform.ResourceConfig) error {
 	return nil
 }
