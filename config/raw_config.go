@@ -39,6 +39,7 @@ func NewRawConfig(raw map[string]interface{}) (*RawConfig, error) {
 	return &RawConfig{
 		Raw:       raw,
 		Variables: walker.Variables,
+		config:    raw,
 	}, nil
 }
 

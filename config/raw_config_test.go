@@ -30,6 +30,11 @@ func TestRawConfig(t *testing.T) {
 		t.Fatalf("err: %s", err)
 	}
 
+	// Before interpolate, Config() should be the raw
+	if !reflect.DeepEqual(rc.Config(), raw) {
+		t.Fatalf("bad: %#v", rc.Config())
+	}
+
 	vars := map[string]string{"var.bar": "baz"}
 	if err := rc.Interpolate(vars); err != nil {
 		t.Fatalf("err: %s", err)
