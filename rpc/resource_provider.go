@@ -13,6 +13,24 @@ type ResourceProvider struct {
 	Name   string
 }
 
+func (p *ResourceProvider) Validate(c *terraform.ResourceConfig) ([]string, []error) {
+	var resp ResourceProviderValidateResponse
+	err := p.Client.Call(p.Name+".Validate", c, &resp)
+	if err != nil {
+		return nil, []error{err}
+	}
+
+	var errs []error
+	if len(resp.Errors) > 0 {
+		errs = make([]error, len(resp.Errors))
+		for i, err := range resp.Errors {
+			errs[i] = err
+		}
+	}
+
+	return resp.Warnings, errs
+}
+
 func (p *ResourceProvider) Configure(c *terraform.ResourceConfig) error {
 	var resp ResourceProviderConfigureResponse
 	err := p.Client.Call(p.Name+".Configure", c, &resp)
@@ -75,6 +93,26 @@ type ResourceProviderDiffArgs struct {
 type ResourceProviderDiffResponse struct {
 	Diff  *terraform.ResourceDiff
 	Error *BasicError
+}
+
+type ResourceProviderValidateResponse struct {
+	Warnings []string
+	Errors   []*BasicError
+}
+
+func (s *ResourceProviderServer) Validate(
+	config *terraform.ResourceConfig,
+	reply *ResourceProviderValidateResponse) error {
+	warns, errs := s.Provider.Validate(config)
+	berrs := make([]*BasicError, len(errs))
+	for i, err := range errs {
+		berrs[i] = NewBasicError(err)
+	}
+	*reply = ResourceProviderValidateResponse{
+		Warnings: warns,
+		Errors:   berrs,
+	}
+	return nil
 }
 
 func (s *ResourceProviderServer) Configure(
