@@ -42,6 +42,21 @@ func NewRawConfig(raw map[string]interface{}) (*RawConfig, error) {
 	}, nil
 }
 
+// Config returns the entire configuration with the variables
+// interpolated from any call to Interpolate.
+//
+// If any interpolated variables are unknown (value set to
+// UnknownVariableValue), the first non-container (map, slice, etc.) element
+// will be removed from the config. The keys of unknown variables
+// can be found using the UnknownKeys function.
+//
+// By pruning out unknown keys from the configuration, the raw
+// structure will always successfully decode into its ultimate
+// structure using something like mapstructure.
+func (r *RawConfig) Config() map[string]interface{} {
+	return r.config
+}
+
 // Interpolate uses the given mapping of variable values and uses
 // those as the values to replace any variables in this raw
 // configuration.
@@ -64,21 +79,6 @@ func (r *RawConfig) Interpolate(vs map[string]string) error {
 
 	r.unknownKeys = w.UnknownKeys
 	return nil
-}
-
-// Config returns the entire configuration with the variables
-// interpolated from any call to Interpolate.
-//
-// If any interpolated variables are unknown (value set to
-// UnknownVariableValue), the first non-container (map, slice, etc.) element
-// will be removed from the config. The keys of unknown variables
-// can be found using the UnknownKeys function.
-//
-// By pruning out unknown keys from the configuration, the raw
-// structure will always successfully decode into its ultimate
-// structure using something like mapstructure.
-func (r *RawConfig) Config() map[string]interface{} {
-	return r.config
 }
 
 // UnknownKeys returns the keys of the configuration that are unknown
