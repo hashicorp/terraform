@@ -1,6 +1,7 @@
 package terraform
 
 import (
+	"reflect"
 	"testing"
 )
 
@@ -46,6 +47,71 @@ func TestResourceConfig_CheckSet(t *testing.T) {
 		errs := rc.CheckSet(tc.Input)
 		if tc.Errs != (len(errs) > 0) {
 			t.Fatalf("bad: %d", i)
+		}
+	}
+}
+
+func TestResourceConfig_Get(t *testing.T) {
+	cases := []struct {
+		Raw      map[string]interface{}
+		Computed []string
+		Input    string
+		Output   interface{}
+		OutputOk bool
+	}{
+		{
+			map[string]interface{}{
+				"foo": "bar",
+			},
+			nil,
+			"foo",
+			"bar",
+			true,
+		},
+		{
+			map[string]interface{}{},
+			nil,
+			"foo",
+			nil,
+			false,
+		},
+		{
+			map[string]interface{}{
+				"foo": map[interface{}]interface{}{
+					"bar": "baz",
+				},
+			},
+			nil,
+			"foo.bar",
+			"baz",
+			true,
+		},
+		{
+			map[string]interface{}{
+				"foo": []string{
+					"one",
+					"two",
+				},
+			},
+			nil,
+			"foo.1",
+			"two",
+			true,
+		},
+	}
+
+	for i, tc := range cases {
+		rc := &ResourceConfig{
+			ComputedKeys: tc.Computed,
+			Raw:          tc.Raw,
+		}
+
+		actual, ok := rc.Get(tc.Input)
+		if tc.OutputOk != ok {
+			t.Fatalf("bad ok: %d", i)
+		}
+		if !reflect.DeepEqual(tc.Output, actual) {
+			t.Fatalf("bad %d: %#v", i, actual)
 		}
 	}
 }

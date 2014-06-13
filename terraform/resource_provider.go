@@ -3,6 +3,7 @@ package terraform
 import (
 	"fmt"
 	"reflect"
+	"strconv"
 	"strings"
 
 	"github.com/hashicorp/terraform/config"
@@ -107,6 +108,14 @@ func (c *ResourceConfig) Get(k string) (interface{}, bool) {
 				return nil, false
 			}
 			current = v.Interface()
+		case reflect.Slice:
+			i, err := strconv.ParseInt(part, 0, 0)
+			if err != nil {
+				return nil, false
+			}
+			current = cv.Index(int(i)).Interface()
+		default:
+			panic(fmt.Sprintf("Unknown kind: %s", cv.Kind()))
 		}
 	}
 
