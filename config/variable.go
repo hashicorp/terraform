@@ -104,7 +104,6 @@ type variableReplaceWalker struct {
 
 	key    []string
 	loc    reflectwalk.Location
-	m, mk  reflect.Value
 	cs     []reflect.Value
 	csData interface{}
 }
@@ -133,8 +132,6 @@ func (w *variableReplaceWalker) Map(m reflect.Value) error {
 }
 
 func (w *variableReplaceWalker) MapElem(m, k, v reflect.Value) error {
-	w.m = m
-	w.mk = k
 	w.csData = k
 	w.key = append(w.key, k.String())
 	return nil
@@ -187,7 +184,9 @@ func (w *variableReplaceWalker) Primitive(v reflect.Value) error {
 	if w.loc == reflectwalk.MapValue {
 		// If we're in a map, then the only way to set a map value is
 		// to set it directly.
-		w.m.SetMapIndex(w.mk, resultVal)
+		m := w.cs[len(w.cs)-1]
+		mk := w.csData.(reflect.Value)
+		m.SetMapIndex(mk, resultVal)
 	} else {
 		// Otherwise, we should be addressable
 		setV.Set(resultVal)
