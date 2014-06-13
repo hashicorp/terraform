@@ -129,6 +129,10 @@ func (c *ResourceConfig) Get(k string) (interface{}, bool) {
 // raw configuration itself, since a key may be omitted from the raw
 // configuration if it is being computed.
 func (c *ResourceConfig) IsSet(k string) bool {
+	if c == nil {
+		return false
+	}
+
 	for _, ck := range c.ComputedKeys {
 		if ck == k {
 			return true

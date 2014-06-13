@@ -167,3 +167,11 @@ func TestResourceConfig_IsSet(t *testing.T) {
 		}
 	}
 }
+
+func TestResourceConfig_IsSet_nil(t *testing.T) {
+	var rc *ResourceConfig
+
+	if rc.IsSet("foo") {
+		t.Fatal("bad")
+	}
+}
