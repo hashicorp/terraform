@@ -183,3 +183,65 @@ func TestVariableReplaceWalker(t *testing.T) {
 		}
 	}
 }
+
+func TestVariableReplaceWalker_unknown(t *testing.T) {
+	cases := []struct {
+		Input  interface{}
+		Output interface{}
+		Keys   []string
+	}{
+		{
+			map[string]interface{}{
+				"foo": "bar",
+				"bar": "hello${var.unknown}world",
+			},
+			map[string]interface{}{
+				"foo": "bar",
+			},
+			[]string{"bar"},
+		},
+		{
+			map[string]interface{}{
+				"foo": []string{"foo", "${var.unknown}", "bar"},
+			},
+			map[string]interface{}{},
+			[]string{"foo"},
+		},
+		{
+			map[string]interface{}{
+				"foo": map[string]interface{}{
+					"bar": "${var.unknown}",
+				},
+			},
+			map[string]interface{}{
+				"foo": map[string]interface{}{},
+			},
+			[]string{"foo.bar"},
+		},
+	}
+
+	for i, tc := range cases {
+		var input interface{} = tc.Input
+		w := &variableReplaceWalker{
+			Values: map[string]string{
+				"var.unknown": UnknownVariableValue,
+			},
+		}
+
+		if reflect.ValueOf(tc.Input).Kind() == reflect.String {
+			input = &tc.Input
+		}
+
+		if err := reflectwalk.Walk(input, w); err != nil {
+			t.Fatalf("err: %s", err)
+		}
+
+		if !reflect.DeepEqual(tc.Input, tc.Output) {
+			t.Fatalf("bad %d: %#v", i, tc.Input)
+		}
+
+		if !reflect.DeepEqual(tc.Keys, w.UnknownKeys) {
+			t.Fatalf("bad: %#v", w.UnknownKeys)
+		}
+	}
+}

@@ -99,8 +99,10 @@ func (w *variableDetectWalker) Primitive(v reflect.Value) error {
 // will _panic_. The variableDetectWalker will tell you all variables
 // you need.
 type variableReplaceWalker struct {
-	Values map[string]string
+	Values      map[string]string
+	UnknownKeys []string
 
+	key    []string
 	loc    reflectwalk.Location
 	m, mk  reflect.Value
 	cs     []reflect.Value
@@ -118,6 +120,8 @@ func (w *variableReplaceWalker) Exit(loc reflectwalk.Location) error {
 	switch loc {
 	case reflectwalk.Map:
 		w.cs = w.cs[:len(w.cs)-1]
+	case reflectwalk.MapValue:
+		w.key = w.key[:len(w.key)-1]
 	}
 
 	return nil
@@ -132,6 +136,7 @@ func (w *variableReplaceWalker) MapElem(m, k, v reflect.Value) error {
 	w.m = m
 	w.mk = k
 	w.csData = k
+	w.key = append(w.key, k.String())
 	return nil
 }
 
@@ -202,4 +207,7 @@ func (w *variableReplaceWalker) removeCurrent() {
 		k := w.csData.(reflect.Value)
 		c.SetMapIndex(k, val)
 	}
+
+	// Append the key to the unknown keys
+	w.UnknownKeys = append(w.UnknownKeys, strings.Join(w.key, "."))
 }
