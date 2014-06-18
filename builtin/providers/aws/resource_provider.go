@@ -22,6 +22,16 @@ func (p *ResourceProvider) Configure(*terraform.ResourceConfig) error {
 	return nil
 }
 
+func (p *ResourceProvider) Apply(
+	s *terraform.ResourceState,
+	d *terraform.ResourceDiff) (*terraform.ResourceState, error) {
+	result := &terraform.ResourceState{
+		ID: "foo",
+	}
+
+	return result, nil
+}
+
 func (p *ResourceProvider) Diff(
 	s *terraform.ResourceState,
 	c *terraform.ResourceConfig) (*terraform.ResourceDiff, error) {
