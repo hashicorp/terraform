@@ -1,0 +1,77 @@
+package diff
+
+import (
+	"bytes"
+	"fmt"
+	"sort"
+	"strings"
+	"testing"
+
+	"github.com/hashicorp/terraform/config"
+	"github.com/hashicorp/terraform/terraform"
+)
+
+func testConfig(
+	t *testing.T,
+	c map[string]interface{},
+	vs map[string]string) *terraform.ResourceConfig {
+	rc, err := config.NewRawConfig(c)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	if len(vs) > 0 {
+		if err := rc.Interpolate(vs); err != nil {
+			t.Fatalf("err: %s", err)
+		}
+	}
+
+	return terraform.NewResourceConfig(rc)
+}
+
+func testResourceDiffStr(rd *terraform.ResourceDiff) string {
+	var buf bytes.Buffer
+
+	crud := "UPDATE"
+	if rd.RequiresNew() {
+		crud = "CREATE"
+	}
+
+	buf.WriteString(fmt.Sprintf(
+		"%s\n",
+		crud))
+
+	keyLen := 0
+	keys := make([]string, 0, len(rd.Attributes))
+	for key, _ := range rd.Attributes {
+		keys = append(keys, key)
+		if len(key) > keyLen {
+			keyLen = len(key)
+		}
+	}
+	sort.Strings(keys)
+
+	for _, attrK := range keys {
+		attrDiff := rd.Attributes[attrK]
+
+		v := attrDiff.New
+		if attrDiff.NewComputed {
+			v = "<computed>"
+		}
+
+		newResource := ""
+		if attrDiff.RequiresNew {
+			newResource = " (forces new resource)"
+		}
+
+		buf.WriteString(fmt.Sprintf(
+			"  %s:%s %#v => %#v%s\n",
+			attrK,
+			strings.Repeat(" ", keyLen-len(attrK)),
+			attrDiff.Old,
+			v,
+			newResource))
+	}
+
+	return buf.String()
+}
