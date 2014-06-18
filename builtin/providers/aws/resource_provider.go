@@ -23,33 +23,7 @@ func (p *ResourceProvider) Configure(*terraform.ResourceConfig) error {
 func (p *ResourceProvider) Diff(
 	s *terraform.ResourceState,
 	c *terraform.ResourceConfig) (*terraform.ResourceDiff, error) {
-	diffMap.CreateAttrs([]string{
-		"ami",
-		"availability_zone",
-		"instance_type",
-		"region",
-	})
-	diffMap.CreateComputedAttrs([]string{
-		"id",
-		"public_dns",
-		"public_ip",
-		"private_dns",
-		"private_ip",
-	})
-
-	return &terraform.ResourceDiff{
-		Attributes: map[string]*terraform.ResourceAttrDiff{
-			"id": &terraform.ResourceAttrDiff{
-				Old:         "",
-				NewComputed: true,
-				RequiresNew: true,
-			},
-			"created": &terraform.ResourceAttrDiff{
-				Old: "false",
-				New: "true",
-			},
-		},
-	}, nil
+	return nil, nil
 }
 
 func (p *ResourceProvider) Resources() []terraform.ResourceType {
