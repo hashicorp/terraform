@@ -98,6 +98,10 @@ type ResourceAttrDiff struct {
 // RequiresNew returns true if the diff requires the creation of a new
 // resource (implying the destruction of the old).
 func (d *ResourceDiff) RequiresNew() bool {
+	if d == nil {
+		return false
+	}
+
 	for _, rd := range d.Attributes {
 		if rd.RequiresNew {
 			return true

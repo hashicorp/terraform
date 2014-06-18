@@ -35,6 +35,32 @@ func TestDiff_String(t *testing.T) {
 	}
 }
 
+func TestResourceDiff_RequiresNew(t *testing.T) {
+	rd := &ResourceDiff{
+		Attributes: map[string]*ResourceAttrDiff{
+			"foo": &ResourceAttrDiff{},
+		},
+	}
+
+	if rd.RequiresNew() {
+		t.Fatal("should not require new")
+	}
+
+	rd.Attributes["foo"].RequiresNew = true
+
+	if !rd.RequiresNew() {
+		t.Fatal("should require new")
+	}
+}
+
+func TestResourceDiff_RequiresNew_nil(t *testing.T) {
+	var rd *ResourceDiff
+
+	if rd.RequiresNew() {
+		t.Fatal("should not require new")
+	}
+}
+
 const diffStrBasic = `
 CREATE: nodeA
   bar:     "foo" => "<computed>"
