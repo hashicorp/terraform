@@ -1,20 +1,32 @@
+// The diff package provides high-level constructs for easily building
+// and working with Terraform diff structures.
 package diff
 
 import (
 	"github.com/hashicorp/terraform/terraform"
 )
 
+// Builder is a helper that is able to build terraform.ResourceDiff
+// structures, and should be used by providers instead of hand-building
+// them which can be tedious and error-prone.
 type Builder struct {
 	Resources map[string]*ResourceBuilder
 }
 
+// ResourceBuilder is a helper that can knows about how a single resource
+// changes and how those changes affect the diff.
 type ResourceBuilder struct {
 	CreateComputedAttrs []string
 	RequiresNewAttrs    []string
 }
 
+// ResourceBuilderFactory is a factory function for creating a resource
+// builder that is used for lazy loading resource builders in the Builder
+// struct.
 type ResourceBuilderFactory func() *ResourceBuilder
 
+// Diff returns the ResourceDiff for a resource given its state and
+// configuration.
 func (b *ResourceBuilder) Diff(
 	s *terraform.ResourceState,
 	c *terraform.ResourceConfig) (*terraform.ResourceDiff, error) {
