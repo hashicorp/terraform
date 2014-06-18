@@ -1,6 +1,8 @@
 package terraform
 
 import (
+	"bytes"
+	"fmt"
 	"sync"
 
 	"github.com/hashicorp/terraform/config"
@@ -19,6 +21,21 @@ func (s *State) init() {
 	s.once.Do(func() {
 		s.Resources = make(map[string]*ResourceState)
 	})
+}
+
+func (s *State) String() string {
+	var buf bytes.Buffer
+
+	for k, rs := range s.Resources {
+		buf.WriteString(fmt.Sprintf("%s:\n", k))
+		buf.WriteString(fmt.Sprintf("  ID = %s\n", rs.ID))
+
+		for ak, av := range rs.Attributes {
+			buf.WriteString(fmt.Sprintf("  %s = %s\n", ak, av))
+		}
+	}
+
+	return buf.String()
 }
 
 // ResourceState holds the state of a resource that is used so that

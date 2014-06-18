@@ -207,7 +207,10 @@ func TestTerraformApply(t *testing.T) {
 	tf := testTerraform(t, "apply-good")
 
 	s := &State{}
-	d := &Diff{}
+	d, err := tf.Diff(s)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
 
 	state, err := tf.Apply(s, d)
 	if err != nil {
@@ -216,6 +219,12 @@ func TestTerraformApply(t *testing.T) {
 
 	if len(state.Resources) < 2 {
 		t.Fatalf("bad: %#v", state.Resources)
+	}
+
+	actual := strings.TrimSpace(state.String())
+	expected := strings.TrimSpace(testTerraformApplyStr)
+	if actual != expected {
+		t.Fatalf("bad: \n%s", actual)
 	}
 }
 
@@ -455,6 +464,17 @@ func testTerraformProvider(tf *Terraform, n string) *terraformProvider {
 
 	return nil
 }
+
+const testTerraformApplyStr = `
+aws_instance.bar:
+  ID = foo
+  type = aws_instance
+  foo = bar
+aws_instance.foo:
+  ID = foo
+  type = aws_instance
+  num = 2
+`
 
 const testTerraformDiffStr = `
 UPDATE: aws_instance.bar
