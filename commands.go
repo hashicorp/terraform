@@ -25,7 +25,8 @@ func init() {
 	Commands = map[string]cli.CommandFactory{
 		"apply": func() (cli.Command, error) {
 			return &command.ApplyCommand{
-				Ui: ui,
+				TFConfig: &TFConfig,
+				Ui:       ui,
 			}, nil
 		},
 
