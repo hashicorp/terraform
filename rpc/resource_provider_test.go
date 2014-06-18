@@ -92,6 +92,37 @@ func TestResourceProvider_configure_warnings(t *testing.T) {
 	}
 }
 
+func TestResourceProvider_apply(t *testing.T) {
+	p := new(terraform.MockResourceProvider)
+	client, server := testClientServer(t)
+	name, err := Register(server, p)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	provider := &ResourceProvider{Client: client, Name: name}
+
+	p.ApplyReturn = &terraform.ResourceState{
+		ID: "bob",
+	}
+
+	// Apply
+	state := &terraform.ResourceState{}
+	diff := &terraform.ResourceDiff{}
+	newState, err := provider.Apply(state, diff)
+	if !p.ApplyCalled {
+		t.Fatal("apply should be called")
+	}
+	if !reflect.DeepEqual(p.ApplyDiff, diff) {
+		t.Fatalf("bad: %#v", p.ApplyDiff)
+	}
+	if err != nil {
+		t.Fatalf("bad: %#v", err)
+	}
+	if !reflect.DeepEqual(p.ApplyReturn, newState) {
+		t.Fatalf("bad: %#v", newState)
+	}
+}
+
 func TestResourceProvider_diff(t *testing.T) {
 	p := new(terraform.MockResourceProvider)
 	client, server := testClientServer(t)

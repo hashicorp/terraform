@@ -48,6 +48,26 @@ func (p *ResourceProvider) Configure(c *terraform.ResourceConfig) error {
 	return err
 }
 
+func (p *ResourceProvider) Apply(
+	s *terraform.ResourceState,
+	d *terraform.ResourceDiff) (*terraform.ResourceState, error) {
+	var resp ResourceProviderApplyResponse
+	args := &ResourceProviderApplyArgs{
+		State: s,
+		Diff:  d,
+	}
+
+	err := p.Client.Call(p.Name+".Apply", args, &resp)
+	if err != nil {
+		return nil, err
+	}
+	if resp.Error != nil {
+		err = resp.Error
+	}
+
+	return resp.State, err
+}
+
 func (p *ResourceProvider) Diff(
 	s *terraform.ResourceState,
 	c *terraform.ResourceConfig) (*terraform.ResourceDiff, error) {
@@ -86,6 +106,16 @@ type ResourceProviderServer struct {
 }
 
 type ResourceProviderConfigureResponse struct {
+	Error *BasicError
+}
+
+type ResourceProviderApplyArgs struct {
+	State *terraform.ResourceState
+	Diff  *terraform.ResourceDiff
+}
+
+type ResourceProviderApplyResponse struct {
+	State *terraform.ResourceState
 	Error *BasicError
 }
 
@@ -128,6 +158,17 @@ func (s *ResourceProviderServer) Configure(
 	reply *ResourceProviderConfigureResponse) error {
 	err := s.Provider.Configure(config)
 	*reply = ResourceProviderConfigureResponse{
+		Error: NewBasicError(err),
+	}
+	return nil
+}
+
+func (s *ResourceProviderServer) Apply(
+	args *ResourceProviderApplyArgs,
+	result *ResourceProviderApplyResponse) error {
+	state, err := s.Provider.Apply(args.State, args.Diff)
+	*result = ResourceProviderApplyResponse{
+		State: state,
 		Error: NewBasicError(err),
 	}
 	return nil
