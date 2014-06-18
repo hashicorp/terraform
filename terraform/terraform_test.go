@@ -310,9 +310,18 @@ func testProviderFunc(n string, rs []string) ResourceProviderFactory {
 		applyFn := func(
 			s *ResourceState,
 			d *ResourceDiff) (*ResourceState, error) {
-			return &ResourceState{
-				ID: "foo",
-			}, nil
+			result := &ResourceState{
+				ID:         "foo",
+				Attributes: make(map[string]string),
+			}
+
+			if d != nil {
+				for ak, ad := range d.Attributes {
+					result.Attributes[ak] = ad.New
+				}
+			}
+
+			return result, nil
 		}
 
 		diffFn := func(
