@@ -162,12 +162,20 @@ func (t *Terraform) diffWalkFn(
 		if state != nil {
 			rs = state.resources[r.Id()]
 		}
+		l.RUnlock()
+
 		if len(vars) > 0 {
 			if err := r.RawConfig.Interpolate(vars); err != nil {
 				panic(fmt.Sprintf("Interpolate error: %s", err))
 			}
 		}
-		l.RUnlock()
+
+		// If we have no state, then create an empty state with the
+		// type fulfilled at the least.
+		if rs == nil {
+			rs = new(ResourceState)
+		}
+		rs.Type = r.Type
 
 		diff, err := p.Provider.Diff(rs, &ResourceConfig{
 			ComputedKeys: r.RawConfig.UnknownKeys(),

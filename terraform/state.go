@@ -32,6 +32,7 @@ func (s *State) init() {
 // for later, but is not exposed in any way to the user.
 type ResourceState struct {
 	ID         string
+	Type       string
 	Attributes map[string]string
 	Extra      map[string]interface{}
 }

@@ -292,10 +292,15 @@ func testProviderFunc(n string, rs []string) ResourceProviderFactory {
 
 	return func() (ResourceProvider, error) {
 		diffFn := func(
-			_ *ResourceState,
+			s *ResourceState,
 			c *ResourceConfig) (*ResourceDiff, error) {
 			var diff ResourceDiff
 			diff.Attributes = make(map[string]*ResourceAttrDiff)
+			diff.Attributes["type"] = &ResourceAttrDiff{
+				Old: "",
+				New: s.Type,
+			}
+
 			for k, v := range c.Raw {
 				if _, ok := v.(string); !ok {
 					continue
@@ -419,15 +424,19 @@ func testTerraformProvider(tf *Terraform, n string) *terraformProvider {
 
 const testTerraformDiffStr = `
 UPDATE: aws_instance.bar
-  foo: "" => "2"
+  foo:  "" => "2"
+  type: "" => "aws_instance"
 UPDATE: aws_instance.foo
-  num: "" => "2"
+  num:  "" => "2"
+  type: "" => "aws_instance"
 `
 
 const testTerraformDiffComputedStr = `
 UPDATE: aws_instance.bar
-  foo: "" => "<computed>"
+  foo:  "" => "<computed>"
+  type: "" => "aws_instance"
 UPDATE: aws_instance.foo
-  id:  "" => "<computed>"
-  num: "" => "2"
+  id:   "" => "<computed>"
+  num:  "" => "2"
+  type: "" => "aws_instance"
 `
