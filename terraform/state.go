@@ -10,13 +10,14 @@ import (
 // can use to keep track of what real world resources it is actually
 // managing.
 type State struct {
-	resources map[string]*ResourceState
-	once      sync.Once
+	Resources map[string]*ResourceState
+
+	once sync.Once
 }
 
 func (s *State) init() {
 	s.once.Do(func() {
-		s.resources = make(map[string]*ResourceState)
+		s.Resources = make(map[string]*ResourceState)
 	})
 }
 

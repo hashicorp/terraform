@@ -27,6 +27,10 @@ type terraformProvider struct {
 	sync.Once
 }
 
+// This is a function type used to implement a walker for the resource
+// tree internally on the Terraform structure.
+type genericWalkFunc func(*Resource) (map[string]string, error)
+
 // Config is the configuration that must be given to instantiate
 // a Terraform structure.
 type Config struct {
@@ -99,8 +103,14 @@ func New(c *Config) (*Terraform, error) {
 	}, nil
 }
 
-func (t *Terraform) Apply(*State, *Diff) (*State, error) {
-	return nil, nil
+func (t *Terraform) Apply(s *State, d *Diff) (*State, error) {
+	result := new(State)
+	err := t.graph.Walk(t.applyWalkFn(s, d, result))
+	if err != nil {
+		return nil, err
+	}
+
+	return result, nil
 }
 
 func (t *Terraform) Diff(s *State) (*Diff, error) {
@@ -117,12 +127,79 @@ func (t *Terraform) Refresh(*State) (*State, error) {
 	return nil, nil
 }
 
+func (t *Terraform) applyWalkFn(
+	state *State,
+	diff *Diff,
+	result *State) depgraph.WalkFunc {
+	var l sync.Mutex
+
+	// Initialize the result
+	result.init()
+
+	cb := func(r *Resource) (map[string]string, error) {
+		rs, err := r.Provider.Apply(r.State, r.Diff)
+		if err != nil {
+			return nil, err
+		}
+
+		// Update the resulting diff
+		l.Lock()
+		result.Resources[r.Id] = rs
+		l.Unlock()
+
+		// Determine the new state and update variables
+		vars := make(map[string]string)
+		for ak, av := range rs.Attributes {
+			vars[fmt.Sprintf("%s.%s", r.Id, ak)] = av
+		}
+
+		return vars, nil
+	}
+
+	return t.genericWalkFn(state, diff, cb)
+}
+
 func (t *Terraform) diffWalkFn(
 	state *State, result *Diff) depgraph.WalkFunc {
-	var l sync.RWMutex
+	var l sync.Mutex
 
 	// Initialize the result diff so we can write to it
 	result.init()
+
+	cb := func(r *Resource) (map[string]string, error) {
+		diff, err := r.Provider.Diff(r.State, r.Config)
+		if err != nil {
+			return nil, err
+		}
+
+		// If there were no diff items, return right away
+		if diff == nil || len(diff.Attributes) == 0 {
+			return nil, nil
+		}
+
+		// Update the resulting diff
+		l.Lock()
+		result.Resources[r.Id] = diff
+		l.Unlock()
+
+		// Determine the new state and update variables
+		vars := make(map[string]string)
+		rs := r.State.MergeDiff(diff.Attributes)
+		for ak, av := range rs.Attributes {
+			vars[fmt.Sprintf("%s.%s", r.Id, ak)] = av
+		}
+
+		return vars, nil
+	}
+
+	return t.genericWalkFn(state, nil, cb)
+}
+
+func (t *Terraform) genericWalkFn(
+	state *State,
+	diff *Diff,
+	cb genericWalkFunc) depgraph.WalkFunc {
+	var l sync.Mutex
 
 	// Initialize the variables for application
 	vars := make(map[string]string)
@@ -157,12 +234,17 @@ func (t *Terraform) diffWalkFn(
 			return err
 		}
 
-		l.RLock()
+		// Get the resource state
 		var rs *ResourceState
 		if state != nil {
-			rs = state.resources[r.Id()]
+			rs = state.Resources[r.Id()]
 		}
-		l.RUnlock()
+
+		// Get the resource diff
+		var rd *ResourceDiff
+		if diff != nil {
+			rd = diff.Resources[r.Id()]
+		}
 
 		if len(vars) > 0 {
 			if err := r.RawConfig.Interpolate(vars); err != nil {
@@ -177,30 +259,30 @@ func (t *Terraform) diffWalkFn(
 		}
 		rs.Type = r.Type
 
-		diff, err := p.Provider.Diff(rs, &ResourceConfig{
-			ComputedKeys: r.RawConfig.UnknownKeys(),
-			Raw:          r.RawConfig.Config(),
+		// Call the callack
+		newVars, err := cb(&Resource{
+			Id: r.Id(),
+			Config: &ResourceConfig{
+				ComputedKeys: r.RawConfig.UnknownKeys(),
+				Raw:          r.RawConfig.Config(),
+			},
+			Diff:     rd,
+			Provider: p.Provider,
+			State:    rs,
 		})
 		if err != nil {
 			return err
 		}
 
-		// If there were no diff items, return right away
-		if diff == nil || len(diff.Attributes) == 0 {
-			return nil
-		}
+		if len(newVars) > 0 {
+			// Acquire a lock since this function is called in parallel
+			l.Lock()
+			defer l.Unlock()
 
-		// Acquire a lock since this function is called in parallel
-		l.Lock()
-		defer l.Unlock()
-
-		// Update the resulting diff
-		result.Resources[r.Id()] = diff
-
-		// Determine the new state and update variables
-		rs = rs.MergeDiff(diff.Attributes)
-		for ak, av := range rs.Attributes {
-			vars[fmt.Sprintf("%s.%s", r.Id(), ak)] = av
+			// Update variables
+			for k, v := range newVars {
+				vars[k] = v
+			}
 		}
 
 		return nil

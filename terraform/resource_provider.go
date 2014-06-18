@@ -37,7 +37,9 @@ type ResourceProvider interface {
 	//
 	// If the resource state given has an empty ID, then a new resource
 	// is expected to be created.
-	//Apply(ResourceState, ResourceDiff) (ResourceState, error)
+	Apply(
+		*ResourceState,
+		*ResourceDiff) (*ResourceState, error)
 
 	// Diff diffs a resource versus a desired state and returns
 	// a diff.

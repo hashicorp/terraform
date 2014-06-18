@@ -203,6 +203,22 @@ func TestNew_variables(t *testing.T) {
 	}
 }
 
+func TestTerraformApply(t *testing.T) {
+	tf := testTerraform(t, "apply-good")
+
+	s := &State{}
+	d := &Diff{}
+
+	state, err := tf.Apply(s, d)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	if len(state.Resources) < 2 {
+		t.Fatalf("bad: %#v", state.Resources)
+	}
+}
+
 func TestTerraformDiff(t *testing.T) {
 	tf := testTerraform(t, "diff-good")
 
@@ -291,6 +307,14 @@ func testProviderFunc(n string, rs []string) ResourceProviderFactory {
 	}
 
 	return func() (ResourceProvider, error) {
+		applyFn := func(
+			s *ResourceState,
+			d *ResourceDiff) (*ResourceState, error) {
+			return &ResourceState{
+				ID: "foo",
+			}, nil
+		}
+
 		diffFn := func(
 			s *ResourceState,
 			c *ResourceConfig) (*ResourceDiff, error) {
@@ -343,6 +367,7 @@ func testProviderFunc(n string, rs []string) ResourceProviderFactory {
 
 		result := &MockResourceProvider{
 			Meta:            n,
+			ApplyFn:         applyFn,
 			DiffFn:          diffFn,
 			ResourcesReturn: resources,
 		}
