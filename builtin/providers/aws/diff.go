@@ -4,10 +4,10 @@ import (
 	"github.com/hashicorp/terraform/diff"
 )
 
-var diffBuilder *diff.LazyResourceMap
+var diffMap *diff.LazyResourceMap
 
 func init() {
-	diffBuilder = &diff.LazyResourceMap{
+	diffMap = &diff.LazyResourceMap{
 		Resources: map[string]diff.ResourceBuilderFactory{
 			"aws_instance": diffBuilder_aws_instance,
 		},

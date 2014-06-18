@@ -1,6 +1,8 @@
 package aws
 
 import (
+	"fmt"
+
 	"github.com/hashicorp/terraform/terraform"
 )
 
@@ -23,7 +25,12 @@ func (p *ResourceProvider) Configure(*terraform.ResourceConfig) error {
 func (p *ResourceProvider) Diff(
 	s *terraform.ResourceState,
 	c *terraform.ResourceConfig) (*terraform.ResourceDiff, error) {
-	return nil, nil
+	b := diffMap.Get(s.Type)
+	if b == nil {
+		return nil, fmt.Errorf("Unknown type: %s", s.Type)
+	}
+
+	return b.Diff(s, c)
 }
 
 func (p *ResourceProvider) Resources() []terraform.ResourceType {
