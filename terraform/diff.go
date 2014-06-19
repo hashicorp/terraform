@@ -3,12 +3,15 @@ package terraform
 import (
 	"bytes"
 	"encoding/gob"
+	"errors"
 	"fmt"
 	"io"
 	"sort"
 	"strings"
 	"sync"
 )
+
+const diffFormatByte byte = 1
 
 // Diff tracks the differences between resources to apply.
 type Diff struct {
@@ -21,6 +24,19 @@ type Diff struct {
 func ReadDiff(src io.Reader) (*Diff, error) {
 	var result *Diff
 
+	var formatByte [1]byte
+	n, err := src.Read(formatByte[:])
+	if err != nil {
+		return nil, err
+	}
+	if n != len(formatByte) {
+		return nil, errors.New("failed to read diff version byte")
+	}
+
+	if formatByte[0] != diffFormatByte {
+		return nil, fmt.Errorf("unknown diff file version: %d", formatByte[0])
+	}
+
 	dec := gob.NewDecoder(src)
 	if err := dec.Decode(&result); err != nil {
 		return nil, err
@@ -31,6 +47,14 @@ func ReadDiff(src io.Reader) (*Diff, error) {
 
 // WriteDiff writes a diff somewhere in a binary format.
 func WriteDiff(d *Diff, dst io.Writer) error {
+	n, err := dst.Write([]byte{diffFormatByte})
+	if err != nil {
+		return err
+	}
+	if n != 1 {
+		return errors.New("failed to write diff version byte")
+	}
+
 	return gob.NewEncoder(dst).Encode(d)
 }
 
