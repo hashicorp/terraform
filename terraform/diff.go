@@ -2,7 +2,9 @@ package terraform
 
 import (
 	"bytes"
+	"encoding/gob"
 	"fmt"
+	"io"
 	"sort"
 	"strings"
 	"sync"
@@ -12,6 +14,24 @@ import (
 type Diff struct {
 	Resources map[string]*ResourceDiff
 	once      sync.Once
+}
+
+// ReadDiff reads a diff structure out of a reader in the format that
+// was written by WriteDiff.
+func ReadDiff(src io.Reader) (*Diff, error) {
+	var result *Diff
+
+	dec := gob.NewDecoder(src)
+	if err := dec.Decode(&result); err != nil {
+		return nil, err
+	}
+
+	return result, nil
+}
+
+// WriteDiff writes a diff somewhere in a binary format.
+func WriteDiff(d *Diff, dst io.Writer) error {
+	return gob.NewEncoder(dst).Encode(d)
 }
 
 func (d *Diff) init() {

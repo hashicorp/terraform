@@ -1,6 +1,8 @@
 package terraform
 
 import (
+	"bytes"
+	"reflect"
 	"strings"
 	"testing"
 )
@@ -58,6 +60,44 @@ func TestResourceDiff_RequiresNew_nil(t *testing.T) {
 
 	if rd.RequiresNew() {
 		t.Fatal("should not require new")
+	}
+}
+
+func TestReadWriteDiff(t *testing.T) {
+	diff := &Diff{
+		Resources: map[string]*ResourceDiff{
+			"nodeA": &ResourceDiff{
+				Attributes: map[string]*ResourceAttrDiff{
+					"foo": &ResourceAttrDiff{
+						Old: "foo",
+						New: "bar",
+					},
+					"bar": &ResourceAttrDiff{
+						Old:         "foo",
+						NewComputed: true,
+					},
+					"longfoo": &ResourceAttrDiff{
+						Old:         "foo",
+						New:         "bar",
+						RequiresNew: true,
+					},
+				},
+			},
+		},
+	}
+
+	buf := new(bytes.Buffer)
+	if err := WriteDiff(diff, buf); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	actual, err := ReadDiff(buf)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	if !reflect.DeepEqual(actual, diff) {
+		t.Fatalf("bad: %#v", actual)
 	}
 }
 
