@@ -110,8 +110,7 @@ type ResourceState struct {
 // If the diff attribute requires computing the value, and hence
 // won't be available until apply, the value is replaced with the
 // computeID.
-func (s *ResourceState) MergeDiff(
-	d map[string]*ResourceAttrDiff) *ResourceState {
+func (s *ResourceState) MergeDiff(d *ResourceDiff) *ResourceState {
 	var result ResourceState
 	if s != nil {
 		result = *s
@@ -123,7 +122,7 @@ func (s *ResourceState) MergeDiff(
 			result.Attributes[k] = v
 		}
 	}
-	for k, diff := range d {
+	for k, diff := range d.Attributes {
 		if diff.NewComputed {
 			result.Attributes[k] = config.UnknownVariableValue
 			continue

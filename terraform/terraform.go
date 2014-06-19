@@ -190,7 +190,7 @@ func (t *Terraform) diffWalkFn(
 
 		// Determine the new state and update variables
 		vars := make(map[string]string)
-		rs := r.State.MergeDiff(diff.Attributes)
+		rs := r.State.MergeDiff(diff)
 		for ak, av := range rs.Attributes {
 			vars[fmt.Sprintf("%s.%s", r.Id, ak)] = av
 		}

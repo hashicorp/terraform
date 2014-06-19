@@ -16,19 +16,21 @@ func TestResourceState_MergeDiff(t *testing.T) {
 		},
 	}
 
-	diff := map[string]*ResourceAttrDiff{
-		"foo": &ResourceAttrDiff{
-			Old: "bar",
-			New: "baz",
-		},
-		"bar": &ResourceAttrDiff{
-			Old: "",
-			New: "foo",
-		},
-		"baz": &ResourceAttrDiff{
-			Old:         "",
-			New:         "foo",
-			NewComputed: true,
+	diff := &ResourceDiff{
+		Attributes: map[string]*ResourceAttrDiff{
+			"foo": &ResourceAttrDiff{
+				Old: "bar",
+				New: "baz",
+			},
+			"bar": &ResourceAttrDiff{
+				Old: "",
+				New: "foo",
+			},
+			"baz": &ResourceAttrDiff{
+				Old:         "",
+				New:         "foo",
+				NewComputed: true,
+			},
 		},
 	}
 
@@ -48,10 +50,12 @@ func TestResourceState_MergeDiff(t *testing.T) {
 func TestResourceState_MergeDiff_nil(t *testing.T) {
 	var rs *ResourceState = nil
 
-	diff := map[string]*ResourceAttrDiff{
-		"foo": &ResourceAttrDiff{
-			Old: "",
-			New: "baz",
+	diff := &ResourceDiff{
+		Attributes: map[string]*ResourceAttrDiff{
+			"foo": &ResourceAttrDiff{
+				Old: "",
+				New: "baz",
+			},
 		},
 	}
 
