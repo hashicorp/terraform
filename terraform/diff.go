@@ -11,6 +11,9 @@ import (
 	"sync"
 )
 
+// The format byte is prefixed into the diff file format so that we have
+// the ability in the future to change the file format if we want for any
+// reason.
 const diffFormatByte byte = 1
 
 // Diff tracks the differences between resources to apply.
