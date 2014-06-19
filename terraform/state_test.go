@@ -1,6 +1,7 @@
 package terraform
 
 import (
+	"bytes"
 	"reflect"
 	"testing"
 
@@ -62,5 +63,29 @@ func TestResourceState_MergeDiff_nil(t *testing.T) {
 
 	if !reflect.DeepEqual(expected, rs2.Attributes) {
 		t.Fatalf("bad: %#v", rs2.Attributes)
+	}
+}
+
+func TestReadWriteState(t *testing.T) {
+	state := &State{
+		Resources: map[string]*ResourceState{
+			"foo": &ResourceState{
+				ID: "bar",
+			},
+		},
+	}
+
+	buf := new(bytes.Buffer)
+	if err := WriteState(state, buf); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	actual, err := ReadState(buf)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	if !reflect.DeepEqual(actual, state) {
+		t.Fatalf("bad: %#v", actual)
 	}
 }

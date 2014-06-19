@@ -2,7 +2,10 @@ package terraform
 
 import (
 	"bytes"
+	"encoding/gob"
+	"errors"
 	"fmt"
+	"io"
 	"sync"
 
 	"github.com/hashicorp/terraform/config"
@@ -36,6 +39,50 @@ func (s *State) String() string {
 	}
 
 	return buf.String()
+}
+
+// The format byte is prefixed into the state file format so that we have
+// the ability in the future to change the file format if we want for any
+// reason.
+const stateFormatByte byte = 1
+
+// ReadState reads a state structure out of a reader in the format that
+// was written by WriteState.
+func ReadState(src io.Reader) (*State, error) {
+	var result *State
+
+	var formatByte [1]byte
+	n, err := src.Read(formatByte[:])
+	if err != nil {
+		return nil, err
+	}
+	if n != len(formatByte) {
+		return nil, errors.New("failed to read state version byte")
+	}
+
+	if formatByte[0] != stateFormatByte {
+		return nil, fmt.Errorf("unknown state file version: %d", formatByte[0])
+	}
+
+	dec := gob.NewDecoder(src)
+	if err := dec.Decode(&result); err != nil {
+		return nil, err
+	}
+
+	return result, nil
+}
+
+// WriteState writes a state somewhere in a binary format.
+func WriteState(d *State, dst io.Writer) error {
+	n, err := dst.Write([]byte{stateFormatByte})
+	if err != nil {
+		return err
+	}
+	if n != 1 {
+		return errors.New("failed to write state version byte")
+	}
+
+	return gob.NewEncoder(dst).Encode(d)
 }
 
 // ResourceState holds the state of a resource that is used so that
