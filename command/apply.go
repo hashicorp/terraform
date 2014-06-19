@@ -19,9 +19,11 @@ type ApplyCommand struct {
 }
 
 func (c *ApplyCommand) Run(args []string) int {
+	var init bool
 	var statePath, stateOutPath string
 
 	cmdFlags := flag.NewFlagSet("apply", flag.ContinueOnError)
+	cmdFlags.BoolVar(&init, "init", false, "init")
 	cmdFlags.StringVar(&statePath, "state", "terraform.tfstate", "path")
 	cmdFlags.StringVar(&stateOutPath, "state-out", "", "path")
 	cmdFlags.Usage = func() { c.Ui.Error(c.Help()) }
@@ -48,6 +50,23 @@ func (c *ApplyCommand) Run(args []string) int {
 		stateOutPath = statePath
 	}
 
+	// Load up the state
+	var state *terraform.State
+	if !init {
+		f, err := os.Open(statePath)
+		if err != nil {
+			c.Ui.Error(fmt.Sprintf("Error loading state: %s", err))
+			return 1
+		}
+
+		state, err = terraform.ReadState(f)
+		f.Close()
+		if err != nil {
+			c.Ui.Error(fmt.Sprintf("Error loading state: %s", err))
+			return 1
+		}
+	}
+
 	b, err := config.Load(args[0])
 	if err != nil {
 		c.Ui.Error(fmt.Sprintf("Error loading blueprint: %s", err))
@@ -63,13 +82,13 @@ func (c *ApplyCommand) Run(args []string) int {
 		return 1
 	}
 
-	diff, err := tf.Diff(nil)
+	diff, err := tf.Diff(state)
 	if err != nil {
 		c.Ui.Error(fmt.Sprintf("Error running diff: %s", err))
 		return 1
 	}
 
-	state, err := tf.Apply(nil, diff)
+	state, err = tf.Apply(state, diff)
 	if err != nil {
 		c.Ui.Error(fmt.Sprintf("Error applying diff: %s", err))
 		return 1
