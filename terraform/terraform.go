@@ -142,6 +142,12 @@ func (t *Terraform) applyWalkFn(
 			return nil, err
 		}
 
+		// If no state was returned, then no variables were updated so
+		// just return.
+		if rs == nil {
+			return nil, nil
+		}
+
 		// Update the resulting diff
 		l.Lock()
 		result.Resources[r.Id] = rs
