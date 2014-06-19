@@ -113,6 +113,10 @@ func TestApply_state(t *testing.T) {
 
 	// Verify that the provider was called with the existing state
 	expectedState := originalState.Resources["test_instance.foo"]
+	if !reflect.DeepEqual(p.DiffState, expectedState) {
+		t.Fatalf("bad: %#v", p.DiffState)
+	}
+
 	if !reflect.DeepEqual(p.ApplyState, expectedState) {
 		t.Fatalf("bad: %#v", p.ApplyState)
 	}
