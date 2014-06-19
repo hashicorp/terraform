@@ -75,7 +75,11 @@ func (c *DiffCommand) Run(args []string) int {
 		return 1
 	}
 
-	c.Ui.Output(strings.TrimSpace(diff.String()))
+	if diff.Empty() {
+		c.Ui.Output("No changes. Infrastructure is up-to-date.")
+	} else {
+		c.Ui.Output(strings.TrimSpace(diff.String()))
+	}
 
 	return 0
 }
