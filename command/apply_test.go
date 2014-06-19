@@ -153,8 +153,6 @@ func TestApply_stateNoExist(t *testing.T) {
 		"-state=idontexist.tfstate",
 		testFixturePath("apply"),
 	}
-	// TODO
-	return
 	if code := c.Run(args); code != 1 {
 		t.Fatalf("bad: \n%s", ui.OutputWriter.String())
 	}

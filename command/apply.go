@@ -40,14 +40,27 @@ func (c *ApplyCommand) Run(args []string) int {
 		return 1
 	}
 
-	// TODO: if state, but not exist, -init required
-
 	if statePath == "" {
 		c.Ui.Error("-state cannot be blank")
 		return 1
 	}
 	if stateOutPath == "" {
 		stateOutPath = statePath
+	}
+	if !init {
+		if _, err := os.Stat(statePath); err != nil {
+			c.Ui.Error(fmt.Sprintf(
+				"There was an error reading the state file. The path\n"+
+					"and error are shown below. If you're trying to build a\n"+
+					"brand new infrastructure, explicitly pass the '-init'\n"+
+					"flag to Terraform to tell it it is okay to build new\n"+
+					"state.\n\n"+
+					"Path: %s\n"+
+					"Error: %s",
+				statePath,
+				err))
+			return 1
+		}
 	}
 
 	// Load up the state
