@@ -3,6 +3,7 @@ package command
 import (
 	"flag"
 	"fmt"
+	"os"
 	"strings"
 
 	"github.com/hashicorp/terraform/config"
@@ -18,7 +19,11 @@ type ApplyCommand struct {
 }
 
 func (c *ApplyCommand) Run(args []string) int {
+	var statePath, stateOutPath string
+
 	cmdFlags := flag.NewFlagSet("apply", flag.ContinueOnError)
+	cmdFlags.StringVar(&statePath, "state", "terraform.tfstate", "path")
+	cmdFlags.StringVar(&stateOutPath, "state-out", "", "path")
 	cmdFlags.Usage = func() { c.Ui.Error(c.Help()) }
 	if err := cmdFlags.Parse(args); err != nil {
 		return 1
@@ -31,6 +36,16 @@ func (c *ApplyCommand) Run(args []string) int {
 				"to a Terraform configuration.\n")
 		cmdFlags.Usage()
 		return 1
+	}
+
+	// TODO: if state, but not exist, -init required
+
+	if statePath == "" {
+		c.Ui.Error("-state cannot be blank")
+		return 1
+	}
+	if stateOutPath == "" {
+		stateOutPath = statePath
 	}
 
 	b, err := config.Load(args[0])
@@ -60,6 +75,19 @@ func (c *ApplyCommand) Run(args []string) int {
 		return 1
 	}
 
+	// Write state out to the file
+	f, err := os.Create(stateOutPath)
+	if err != nil {
+		c.Ui.Error(fmt.Sprintf("Failed to save state: %s", err))
+		return 1
+	}
+	defer f.Close()
+
+	if err := terraform.WriteState(state, f); err != nil {
+		c.Ui.Error(fmt.Sprintf("Failed to save state: %s", err))
+		return 1
+	}
+
 	c.Ui.Output(strings.TrimSpace(state.String()))
 
 	return 0
@@ -74,8 +102,15 @@ Usage: terraform apply [terraform.tf]
 
 Options:
 
-  -init   If specified, it is okay to build brand new infrastructure
-          (with no state file specified).
+  -init                     If specified, it is okay to build brand new
+                            infrastructure (with no state file specified).
+
+  -state=terraform.tfstate  Path to the state file to build off of. This file
+                            will also be written to with updated state unless
+                            -state-out is specified.
+
+  -state-out=file.tfstate   Path to save the new state. If not specified, the
+                            -state value will be used.
 
 `
 	return strings.TrimSpace(helpText)
