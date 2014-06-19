@@ -28,6 +28,7 @@ func (p *ResourceProvider) Apply(
 	result := &terraform.ResourceState{
 		ID: "foo",
 	}
+	result = result.MergeDiff(d)
 
 	return result, nil
 }
