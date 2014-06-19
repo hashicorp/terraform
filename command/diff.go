@@ -3,6 +3,7 @@ package command
 import (
 	"flag"
 	"fmt"
+	"os"
 	"strings"
 
 	"github.com/hashicorp/terraform/config"
@@ -18,7 +19,10 @@ type DiffCommand struct {
 }
 
 func (c *DiffCommand) Run(args []string) int {
+	var statePath string
+
 	cmdFlags := flag.NewFlagSet("diff", flag.ContinueOnError)
+	cmdFlags.StringVar(&statePath, "state", "", "path")
 	cmdFlags.Usage = func() { c.Ui.Error(c.Help()) }
 	if err := cmdFlags.Parse(args); err != nil {
 		return 1
@@ -31,6 +35,23 @@ func (c *DiffCommand) Run(args []string) int {
 				"to a Terraform configuration.\n")
 		cmdFlags.Usage()
 		return 1
+	}
+
+	// Load up the state
+	var state *terraform.State
+	if statePath != "" {
+		f, err := os.Open(statePath)
+		if err != nil {
+			c.Ui.Error(fmt.Sprintf("Error loading state: %s", err))
+			return 1
+		}
+
+		state, err = terraform.ReadState(f)
+		f.Close()
+		if err != nil {
+			c.Ui.Error(fmt.Sprintf("Error loading state: %s", err))
+			return 1
+		}
 	}
 
 	b, err := config.Load(args[0])
@@ -48,7 +69,7 @@ func (c *DiffCommand) Run(args []string) int {
 		return 1
 	}
 
-	diff, err := tf.Diff(nil)
+	diff, err := tf.Diff(state)
 	if err != nil {
 		c.Ui.Error(fmt.Sprintf("Error running diff: %s", err))
 		return 1
