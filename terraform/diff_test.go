@@ -7,6 +7,32 @@ import (
 	"testing"
 )
 
+func TestDiff_Empty(t *testing.T) {
+	diff := new(Diff)
+	if !diff.Empty() {
+		t.Fatal("should be empty")
+	}
+
+	diff.Resources = map[string]*ResourceDiff{
+		"nodeA": &ResourceDiff{},
+	}
+
+	if !diff.Empty() {
+		t.Fatal("should be empty")
+	}
+
+	diff.Resources["nodeA"].Attributes = map[string]*ResourceAttrDiff{
+		"foo": &ResourceAttrDiff{
+			Old: "foo",
+			New: "bar",
+		},
+	}
+
+	if diff.Empty() {
+		t.Fatal("should not be empty")
+	}
+}
+
 func TestDiff_String(t *testing.T) {
 	diff := &Diff{
 		Resources: map[string]*ResourceDiff{

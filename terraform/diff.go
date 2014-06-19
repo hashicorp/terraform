@@ -69,6 +69,21 @@ func (d *Diff) init() {
 	})
 }
 
+// Empty returns true if the diff has no changes.
+func (d *Diff) Empty() bool {
+	if len(d.Resources) == 0 {
+		return true
+	}
+
+	for _, rd := range d.Resources {
+		if len(rd.Attributes) > 0 {
+			return false
+		}
+	}
+
+	return true
+}
+
 // String outputs the diff in a long but command-line friendly output
 // format that users can read to quickly inspect a diff.
 func (d *Diff) String() string {
