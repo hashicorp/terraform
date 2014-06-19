@@ -33,6 +33,7 @@ func TestDiff_noState(t *testing.T) {
 		t.Fatalf("bad: %#v", p.DiffState)
 	}
 }
+
 func TestDiff_state(t *testing.T) {
 	// Write out some prior state
 	tf, err := ioutil.TempFile("", "tf")
