@@ -95,15 +95,15 @@ func (c *ApplyCommand) Run(args []string) int {
 		return 1
 	}
 
-	diff, err := tf.Diff(state)
+	_, err = tf.Plan(state)
 	if err != nil {
-		c.Ui.Error(fmt.Sprintf("Error running diff: %s", err))
+		c.Ui.Error(fmt.Sprintf("Error running plan: %s", err))
 		return 1
 	}
 
-	state, err = tf.Apply(state, diff)
+	state, err = tf.Apply(state, nil)
 	if err != nil {
-		c.Ui.Error(fmt.Sprintf("Error applying diff: %s", err))
+		c.Ui.Error(fmt.Sprintf("Error applying plan: %s", err))
 		return 1
 	}
 

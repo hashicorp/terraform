@@ -30,8 +30,8 @@ func init() {
 			}, nil
 		},
 
-		"diff": func() (cli.Command, error) {
-			return &command.DiffCommand{
+		"plan": func() (cli.Command, error) {
+			return &command.PlanCommand{
 				TFConfig: &TFConfig,
 				Ui:       ui,
 			}, nil

@@ -11,17 +11,17 @@ import (
 	"github.com/mitchellh/cli"
 )
 
-// DiffCommand is a Command implementation that compares a Terraform
+// PlanCommand is a Command implementation that compares a Terraform
 // configuration to an actual infrastructure and shows the differences.
-type DiffCommand struct {
+type PlanCommand struct {
 	TFConfig *terraform.Config
 	Ui       cli.Ui
 }
 
-func (c *DiffCommand) Run(args []string) int {
+func (c *PlanCommand) Run(args []string) int {
 	var statePath string
 
-	cmdFlags := flag.NewFlagSet("diff", flag.ContinueOnError)
+	cmdFlags := flag.NewFlagSet("plan", flag.ContinueOnError)
 	cmdFlags.StringVar(&statePath, "state", "", "path")
 	cmdFlags.Usage = func() { c.Ui.Error(c.Help()) }
 	if err := cmdFlags.Parse(args); err != nil {
@@ -31,7 +31,7 @@ func (c *DiffCommand) Run(args []string) int {
 	args = cmdFlags.Args()
 	if len(args) != 1 {
 		c.Ui.Error(
-			"The diff command expects only one argument with the path\n" +
+			"The plan command expects only one argument with the path\n" +
 				"to a Terraform configuration.\n")
 		cmdFlags.Usage()
 		return 1
@@ -69,24 +69,24 @@ func (c *DiffCommand) Run(args []string) int {
 		return 1
 	}
 
-	diff, err := tf.Diff(state)
+	plan, err := tf.Plan(state)
 	if err != nil {
-		c.Ui.Error(fmt.Sprintf("Error running diff: %s", err))
+		c.Ui.Error(fmt.Sprintf("Error running plan: %s", err))
 		return 1
 	}
 
-	if diff.Empty() {
+	if plan.Diff.Empty() {
 		c.Ui.Output("No changes. Infrastructure is up-to-date.")
 	} else {
-		c.Ui.Output(strings.TrimSpace(diff.String()))
+		c.Ui.Output(strings.TrimSpace(plan.String()))
 	}
 
 	return 0
 }
 
-func (c *DiffCommand) Help() string {
+func (c *PlanCommand) Help() string {
 	helpText := `
-Usage: terraform diff [options] [terraform.tf]
+Usage: terraform plan [options] [terraform.tf]
 
   Shows the differences between the Terraform configuration and
   the actual state of an infrastructure.
@@ -100,6 +100,6 @@ Options:
 	return strings.TrimSpace(helpText)
 }
 
-func (c *DiffCommand) Synopsis() string {
+func (c *PlanCommand) Synopsis() string {
 	return "Show changes between Terraform config and infrastructure"
 }

@@ -10,16 +10,16 @@ import (
 	"github.com/mitchellh/cli"
 )
 
-func TestDiff_noState(t *testing.T) {
+func TestPlan_noState(t *testing.T) {
 	p := testProvider()
 	ui := new(cli.MockUi)
-	c := &DiffCommand{
+	c := &PlanCommand{
 		TFConfig: testTFConfig(p),
 		Ui:       ui,
 	}
 
 	args := []string{
-		testFixturePath("diff"),
+		testFixturePath("plan"),
 	}
 	if code := c.Run(args); code != 0 {
 		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
@@ -34,7 +34,7 @@ func TestDiff_noState(t *testing.T) {
 	}
 }
 
-func TestDiff_state(t *testing.T) {
+func TestPlan_state(t *testing.T) {
 	// Write out some prior state
 	tf, err := ioutil.TempFile("", "tf")
 	if err != nil {
@@ -60,14 +60,14 @@ func TestDiff_state(t *testing.T) {
 
 	p := testProvider()
 	ui := new(cli.MockUi)
-	c := &DiffCommand{
+	c := &PlanCommand{
 		TFConfig: testTFConfig(p),
 		Ui:       ui,
 	}
 
 	args := []string{
 		"-state", statePath,
-		testFixturePath("diff"),
+		testFixturePath("plan"),
 	}
 	if code := c.Run(args); code != 0 {
 		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
