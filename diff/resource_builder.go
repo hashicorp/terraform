@@ -30,6 +30,9 @@ func (b *ResourceBuilder) Diff(
 	// Go through the configuration and find the changed attributes
 	for k, v := range c.Raw {
 		newV := v.(string)
+		if cleanV, ok := c.Config[k]; ok {
+			newV = cleanV.(string)
+		}
 
 		var oldV string
 		var ok bool
