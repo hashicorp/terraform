@@ -113,9 +113,9 @@ func (t *Terraform) Apply(s *State, d *Diff) (*State, error) {
 	return result, nil
 }
 
-func (t *Terraform) Diff(s *State) (*Diff, error) {
-	result := new(Diff)
-	err := t.graph.Walk(t.diffWalkFn(s, result))
+func (t *Terraform) Plan(s *State) (*Plan, error) {
+	result := new(Plan)
+	err := t.graph.Walk(t.planWalkFn(s, result))
 	if err != nil {
 		return nil, err
 	}
@@ -165,8 +165,8 @@ func (t *Terraform) applyWalkFn(
 	return t.genericWalkFn(state, diff, cb)
 }
 
-func (t *Terraform) diffWalkFn(
-	state *State, result *Diff) depgraph.WalkFunc {
+func (t *Terraform) planWalkFn(
+	state *State, result *Plan) depgraph.WalkFunc {
 	var l sync.Mutex
 
 	// Initialize the result diff so we can write to it
@@ -192,7 +192,7 @@ func (t *Terraform) diffWalkFn(
 
 		// Update the resulting diff
 		l.Lock()
-		result.Resources[r.Id] = diff
+		result.Diff.Resources[r.Id] = diff
 		l.Unlock()
 
 		// Determine the new state and update variables

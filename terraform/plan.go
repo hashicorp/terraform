@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"sync"
 
 	"github.com/hashicorp/terraform/config"
 )
@@ -16,6 +17,30 @@ type Plan struct {
 	Diff   *Diff
 	State  *State
 	Vars   map[string]string
+
+	once sync.Once
+}
+
+func (p *Plan) String() string {
+	return p.Diff.String()
+}
+
+func (p *Plan) init() {
+	p.once.Do(func() {
+		if p.Diff == nil {
+			p.Diff = new(Diff)
+			p.Diff.init()
+		}
+
+		if p.State == nil {
+			p.State = new(State)
+			p.State.init()
+		}
+
+		if p.Vars == nil {
+			p.Vars = make(map[string]string)
+		}
+	})
 }
 
 // The format byte is prefixed into the plan file format so that we have
