@@ -58,6 +58,7 @@ type ResourceProvider interface {
 type ResourceConfig struct {
 	ComputedKeys []string
 	Raw          map[string]interface{}
+	Config       map[string]interface{}
 }
 
 // ResourceType is a type of resource that a resource provider can manage.
@@ -74,6 +75,7 @@ func NewResourceConfig(c *config.RawConfig) *ResourceConfig {
 	return &ResourceConfig{
 		ComputedKeys: c.UnknownKeys(),
 		Raw:          c.Raw,
+		Config:       c.Config(),
 	}
 }
 

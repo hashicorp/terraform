@@ -371,6 +371,19 @@ func testProviderFunc(n string, rs []string) ResourceProviderFactory {
 					continue
 				}
 
+				// If this key is not computed, then look it up in the
+				// cleaned config.
+				found := false
+				for _, ck := range c.ComputedKeys {
+					if ck == k {
+						found = true
+						break
+					}
+				}
+				if !found {
+					v = c.Config[k]
+				}
+
 				attrDiff := &ResourceAttrDiff{
 					Old: "",
 					New: v.(string),

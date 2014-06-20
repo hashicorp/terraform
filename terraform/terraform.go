@@ -278,11 +278,8 @@ func (t *Terraform) genericWalkFn(
 
 		// Call the callack
 		newVars, err := cb(&Resource{
-			Id: r.Id(),
-			Config: &ResourceConfig{
-				ComputedKeys: r.RawConfig.UnknownKeys(),
-				Raw:          r.RawConfig.Config(),
-			},
+			Id:       r.Id(),
+			Config:   NewResourceConfig(r.RawConfig),
 			Diff:     rd,
 			Provider: p.Provider,
 			State:    rs,
