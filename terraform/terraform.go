@@ -103,9 +103,9 @@ func New(c *Config) (*Terraform, error) {
 	}, nil
 }
 
-func (t *Terraform) Apply(s *State, d *Diff) (*State, error) {
+func (t *Terraform) Apply(p *Plan) (*State, error) {
 	result := new(State)
-	err := t.graph.Walk(t.applyWalkFn(s, d, result))
+	err := t.graph.Walk(t.applyWalkFn(p, result))
 	if err != nil {
 		return nil, err
 	}
@@ -128,8 +128,7 @@ func (t *Terraform) Refresh(*State) (*State, error) {
 }
 
 func (t *Terraform) applyWalkFn(
-	state *State,
-	diff *Diff,
+	p *Plan,
 	result *State) depgraph.WalkFunc {
 	var l sync.Mutex
 
@@ -162,7 +161,7 @@ func (t *Terraform) applyWalkFn(
 		return vars, nil
 	}
 
-	return t.genericWalkFn(state, diff, cb)
+	return t.genericWalkFn(p.State, p.Diff, cb)
 }
 
 func (t *Terraform) planWalkFn(

@@ -203,17 +203,16 @@ func TestNew_variables(t *testing.T) {
 	}
 }
 
-/*
 func TestTerraformApply(t *testing.T) {
 	tf := testTerraform(t, "apply-good")
 
 	s := &State{}
-	d, err := tf.Diff(s)
+	p, err := tf.Plan(s)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
 
-	state, err := tf.Apply(s, d)
+	state, err := tf.Apply(p)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -228,7 +227,6 @@ func TestTerraformApply(t *testing.T) {
 		t.Fatalf("bad: \n%s", actual)
 	}
 }
-*/
 
 func TestTerraformPlan(t *testing.T) {
 	tf := testTerraform(t, "plan-good")
