@@ -172,6 +172,10 @@ func (t *Terraform) planWalkFn(
 	// Initialize the result diff so we can write to it
 	result.init()
 
+	// Write our configuration out
+	result.Config = t.config
+	result.Vars = t.variables
+
 	cb := func(r *Resource) (map[string]string, error) {
 		// Refresh the state so we're working with the latest resource info
 		newState, err := r.Provider.Refresh(r.State)
@@ -185,19 +189,19 @@ func (t *Terraform) planWalkFn(
 			return nil, err
 		}
 
-		// If there were no diff items, return right away
-		if diff == nil || len(diff.Attributes) == 0 {
-			return nil, nil
-		}
-
-		// Update the resulting diff
 		l.Lock()
-		result.Diff.Resources[r.Id] = diff
+		if !diff.Empty() {
+			result.Diff.Resources[r.Id] = diff
+		}
+		result.State.Resources[r.Id] = newState
 		l.Unlock()
 
 		// Determine the new state and update variables
 		vars := make(map[string]string)
-		rs := r.State.MergeDiff(diff)
+		rs := newState
+		if !diff.Empty() {
+			rs = r.State.MergeDiff(diff)
+		}
 		for ak, av := range rs.Attributes {
 			vars[fmt.Sprintf("%s.%s", r.Id, ak)] = av
 		}

@@ -157,6 +157,16 @@ type ResourceAttrDiff struct {
 	RequiresNew bool   // True if change requires new resource
 }
 
+// Empty returns true if this diff encapsulates no changes.
+// TODO(mitchellh): test
+func (d *ResourceDiff) Empty() bool {
+	if d == nil {
+		return true
+	}
+
+	return len(d.Attributes) == 0
+}
+
 // RequiresNew returns true if the diff requires the creation of a new
 // resource (implying the destruction of the old).
 func (d *ResourceDiff) RequiresNew() bool {
