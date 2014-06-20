@@ -44,6 +44,11 @@ func (p *ResourceProvider) Diff(
 	return b.Diff(s, c)
 }
 
+func (p *ResourceProvider) Refresh(
+	s *terraform.ResourceState) (*terraform.ResourceState, error) {
+	return s, nil
+}
+
 func (p *ResourceProvider) Resources() []terraform.ResourceType {
 	return []terraform.ResourceType{
 		terraform.ResourceType{
