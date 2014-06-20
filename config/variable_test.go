@@ -36,6 +36,25 @@ func BenchmarkVariableReplaceWalker(b *testing.B) {
 	}
 }
 
+func TestReplaceVariables(t *testing.T) {
+	input := "foo-${var.bar}"
+	expected := "foo-bar"
+
+	unk, err := ReplaceVariables(&input, map[string]string{
+		"var.bar": "bar",
+	})
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if len(unk) > 0 {
+		t.Fatal("bad: %#v", unk)
+	}
+
+	if input != expected {
+		t.Fatalf("bad: %#v", input)
+	}
+}
+
 func TestVariableDetectWalker(t *testing.T) {
 	w := new(variableDetectWalker)
 
