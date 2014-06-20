@@ -87,6 +87,20 @@ func (p *ResourceProvider) Diff(
 	return resp.Diff, err
 }
 
+func (p *ResourceProvider) Refresh(
+	s *terraform.ResourceState) (*terraform.ResourceState, error) {
+	var resp ResourceProviderRefreshResponse
+	err := p.Client.Call(p.Name+".Refresh", s, &resp)
+	if err != nil {
+		return nil, err
+	}
+	if resp.Error != nil {
+		err = resp.Error
+	}
+
+	return resp.State, err
+}
+
 func (p *ResourceProvider) Resources() []terraform.ResourceType {
 	var result []terraform.ResourceType
 
@@ -126,6 +140,11 @@ type ResourceProviderDiffArgs struct {
 
 type ResourceProviderDiffResponse struct {
 	Diff  *terraform.ResourceDiff
+	Error *BasicError
+}
+
+type ResourceProviderRefreshResponse struct {
+	State *terraform.ResourceState
 	Error *BasicError
 }
 
@@ -180,6 +199,17 @@ func (s *ResourceProviderServer) Diff(
 	diff, err := s.Provider.Diff(args.State, args.Config)
 	*result = ResourceProviderDiffResponse{
 		Diff:  diff,
+		Error: NewBasicError(err),
+	}
+	return nil
+}
+
+func (s *ResourceProviderServer) Refresh(
+	state *terraform.ResourceState,
+	result *ResourceProviderRefreshResponse) error {
+	newState, err := s.Provider.Refresh(state)
+	*result = ResourceProviderRefreshResponse{
+		State: newState,
 		Error: NewBasicError(err),
 	}
 	return nil

@@ -192,6 +192,36 @@ func TestResourceProvider_diff_error(t *testing.T) {
 	}
 }
 
+func TestResourceProvider_refresh(t *testing.T) {
+	p := new(terraform.MockResourceProvider)
+	client, server := testClientServer(t)
+	name, err := Register(server, p)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	provider := &ResourceProvider{Client: client, Name: name}
+
+	p.RefreshReturn = &terraform.ResourceState{
+		ID: "bob",
+	}
+
+	// Refresh
+	state := &terraform.ResourceState{}
+	newState, err := provider.Refresh(state)
+	if !p.RefreshCalled {
+		t.Fatal("refresh should be called")
+	}
+	if !reflect.DeepEqual(p.RefreshState, state) {
+		t.Fatalf("bad: %#v", p.RefreshState)
+	}
+	if err != nil {
+		t.Fatalf("bad: %#v", err)
+	}
+	if !reflect.DeepEqual(p.RefreshReturn, newState) {
+		t.Fatalf("bad: %#v", newState)
+	}
+}
+
 func TestResourceProvider_resources(t *testing.T) {
 	p := new(terraform.MockResourceProvider)
 	client, server := testClientServer(t)
