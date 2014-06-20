@@ -21,6 +21,11 @@ type MockResourceProvider struct {
 	DiffFn               func(*ResourceState, *ResourceConfig) (*ResourceDiff, error)
 	DiffReturn           *ResourceDiff
 	DiffReturnError      error
+	RefreshCalled        bool
+	RefreshState         *ResourceState
+	RefreshFn            func(*ResourceState) (*ResourceState, error)
+	RefreshReturn        *ResourceState
+	RefreshReturnError   error
 	ResourcesCalled      bool
 	ResourcesReturn      []ResourceType
 	ValidateCalled       bool
@@ -65,6 +70,18 @@ func (p *MockResourceProvider) Diff(
 	}
 
 	return p.DiffReturn, p.DiffReturnError
+}
+
+func (p *MockResourceProvider) Refresh(
+	s *ResourceState) (*ResourceState, error) {
+	p.RefreshCalled = true
+	p.RefreshState = s
+
+	if p.RefreshFn != nil {
+		return p.RefreshFn(s)
+	}
+
+	return p.RefreshReturn, p.RefreshReturnError
 }
 
 func (p *MockResourceProvider) Resources() []ResourceType {

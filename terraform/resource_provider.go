@@ -46,6 +46,10 @@ type ResourceProvider interface {
 	Diff(
 		*ResourceState,
 		*ResourceConfig) (*ResourceDiff, error)
+
+	// Refresh refreshes a resource and updates all of its attributes
+	// with the latest information.
+	Refresh(*ResourceState) (*ResourceState, error)
 }
 
 // ResourceConfig holds the configuration given for a resource. This is

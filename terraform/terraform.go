@@ -173,7 +173,14 @@ func (t *Terraform) diffWalkFn(
 	result.init()
 
 	cb := func(r *Resource) (map[string]string, error) {
-		diff, err := r.Provider.Diff(r.State, r.Config)
+		// Refresh the state so we're working with the latest resource info
+		newState, err := r.Provider.Refresh(r.State)
+		if err != nil {
+			return nil, err
+		}
+
+		// Get a diff from the newest state
+		diff, err := r.Provider.Diff(newState, r.Config)
 		if err != nil {
 			return nil, err
 		}

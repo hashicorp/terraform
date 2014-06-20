@@ -245,6 +245,14 @@ func TestTerraformDiff(t *testing.T) {
 	if actual != expected {
 		t.Fatalf("bad:\n%s", actual)
 	}
+
+	p := testProviderMock(testProvider(tf, "aws_instance.foo"))
+	if !p.RefreshCalled {
+		t.Fatal("refresh should be called")
+	}
+	if p.RefreshState == nil {
+		t.Fatal("refresh should have state")
+	}
 }
 
 func TestTerraformDiff_nil(t *testing.T) {
@@ -383,10 +391,15 @@ func testProviderFunc(n string, rs []string) ResourceProviderFactory {
 			return &diff, nil
 		}
 
+		refreshFn := func(s *ResourceState) (*ResourceState, error) {
+			return s, nil
+		}
+
 		result := &MockResourceProvider{
 			Meta:            n,
 			ApplyFn:         applyFn,
 			DiffFn:          diffFn,
+			RefreshFn:       refreshFn,
 			ResourcesReturn: resources,
 		}
 
