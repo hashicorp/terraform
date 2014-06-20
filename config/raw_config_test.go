@@ -1,6 +1,7 @@
 package config
 
 import (
+	"encoding/gob"
 	"reflect"
 	"testing"
 )
@@ -118,4 +119,9 @@ func TestRawConfig_unknown(t *testing.T) {
 	if !reflect.DeepEqual(rc.UnknownKeys(), expectedKeys) {
 		t.Fatalf("bad: %#v", rc.UnknownKeys())
 	}
+}
+
+func TestRawConfig_implGob(t *testing.T) {
+	var _ gob.GobDecoder = new(RawConfig)
+	var _ gob.GobEncoder = new(RawConfig)
 }

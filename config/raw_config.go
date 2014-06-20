@@ -1,6 +1,9 @@
 package config
 
 import (
+	"bytes"
+	"encoding/gob"
+
 	"github.com/mitchellh/copystructure"
 	"github.com/mitchellh/reflectwalk"
 )
@@ -31,16 +34,12 @@ type RawConfig struct {
 // NewRawConfig creates a new RawConfig structure and populates the
 // publicly readable struct fields.
 func NewRawConfig(raw map[string]interface{}) (*RawConfig, error) {
-	walker := new(variableDetectWalker)
-	if err := reflectwalk.Walk(raw, walker); err != nil {
+	result := &RawConfig{Raw: raw}
+	if err := result.init(); err != nil {
 		return nil, err
 	}
 
-	return &RawConfig{
-		Raw:       raw,
-		Variables: walker.Variables,
-		config:    raw,
-	}, nil
+	return result, nil
 }
 
 // Config returns the entire configuration with the variables
@@ -82,8 +81,42 @@ func (r *RawConfig) Interpolate(vs map[string]string) error {
 	return nil
 }
 
+func (r *RawConfig) init() error {
+	walker := new(variableDetectWalker)
+	if err := reflectwalk.Walk(r.Raw, walker); err != nil {
+		return err
+	}
+
+	r.Variables = walker.Variables
+	r.config = r.Raw
+	return nil
+}
+
 // UnknownKeys returns the keys of the configuration that are unknown
 // because they had interpolated variables that must be computed.
 func (r *RawConfig) UnknownKeys() []string {
 	return r.unknownKeys
+}
+
+// See GobEncode
+func (r *RawConfig) GobDecode(b []byte) error {
+	err := gob.NewDecoder(bytes.NewReader(b)).Decode(&r.Raw)
+	if err != nil {
+		return err
+	}
+
+	return r.init()
+}
+
+// GobEncode is a custom Gob encoder to use so that we only include the
+// raw configuration. Interpolated variables and such are lost and the
+// tree of interpolated variables is recomputed on decode, since it is
+// referentially transparent.
+func (r *RawConfig) GobEncode() ([]byte, error) {
+	var buf bytes.Buffer
+	if err := gob.NewEncoder(&buf).Encode(r.Raw); err != nil {
+		return nil, err
+	}
+
+	return buf.Bytes(), nil
 }
