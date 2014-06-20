@@ -30,6 +30,9 @@ func (b *ResourceBuilder) Diff(
 	// Go through the configuration and find the changed attributes
 	for k, v := range c.Raw {
 		newV := v.(string)
+
+		// If this key is in the cleaned config, then use that value
+		// because it'll have its variables properly interpolated
 		if cleanV, ok := c.Config[k]; ok {
 			newV = cleanV.(string)
 		}
