@@ -25,6 +25,10 @@ func testTFConfig(p terraform.ResourceProvider) *terraform.Config {
 
 func testProvider() *terraform.MockResourceProvider {
 	p := new(terraform.MockResourceProvider)
+	p.RefreshFn = func(
+		s *terraform.ResourceState) (*terraform.ResourceState, error) {
+		return s, nil
+	}
 	p.ResourcesReturn = []terraform.ResourceType{
 		terraform.ResourceType{
 			Name: "test_instance",

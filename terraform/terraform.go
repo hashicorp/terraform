@@ -201,8 +201,10 @@ func (t *Terraform) planWalkFn(
 		if !diff.Empty() {
 			rs = r.State.MergeDiff(diff)
 		}
-		for ak, av := range rs.Attributes {
-			vars[fmt.Sprintf("%s.%s", r.Id, ak)] = av
+		if rs != nil {
+			for ak, av := range rs.Attributes {
+				vars[fmt.Sprintf("%s.%s", r.Id, ak)] = av
+			}
 		}
 
 		return vars, nil
