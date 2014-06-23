@@ -256,6 +256,31 @@ func TestTerraformApply_compute(t *testing.T) {
 	}
 }
 
+func TestTerraformApply_vars(t *testing.T) {
+	tf := testTerraform(t, "apply-vars")
+	tf.variables = map[string]string{"foo": "baz"}
+
+	s := &State{}
+	p, err := tf.Plan(s)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	// Explicitly set the "foo" variable
+	p.Vars["foo"] = "bar"
+
+	state, err := tf.Apply(p)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	actual := strings.TrimSpace(state.String())
+	expected := strings.TrimSpace(testTerraformApplyVarsStr)
+	if actual != expected {
+		t.Fatalf("bad: \n%s", actual)
+	}
+}
+
 func TestTerraformPlan(t *testing.T) {
 	tf := testTerraform(t, "plan-good")
 
@@ -548,6 +573,17 @@ aws_instance.foo:
   type = aws_instance
   num = 2
   id = computed_id
+`
+
+const testTerraformApplyVarsStr = `
+aws_instance.bar:
+  ID = foo
+  type = aws_instance
+  foo = bar
+aws_instance.foo:
+  ID = foo
+  type = aws_instance
+  num = 2
 `
 
 const testTerraformPlanStr = `

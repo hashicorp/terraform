@@ -167,7 +167,7 @@ func (t *Terraform) applyWalkFn(
 		return vars, nil
 	}
 
-	return t.genericWalkFn(p.State, p.Diff, cb)
+	return t.genericWalkFn(p.State, p.Diff, p.Vars, cb)
 }
 
 func (t *Terraform) planWalkFn(
@@ -179,7 +179,12 @@ func (t *Terraform) planWalkFn(
 
 	// Write our configuration out
 	result.Config = t.config
-	result.Vars = t.variables
+
+	// Copy the variables
+	result.Vars = make(map[string]string)
+	for k, v := range t.variables {
+		result.Vars[k] = v
+	}
 
 	cb := func(r *Resource) (map[string]string, error) {
 		// Refresh the state so we're working with the latest resource info
@@ -216,19 +221,20 @@ func (t *Terraform) planWalkFn(
 		return vars, nil
 	}
 
-	return t.genericWalkFn(state, nil, cb)
+	return t.genericWalkFn(state, nil, t.variables, cb)
 }
 
 func (t *Terraform) genericWalkFn(
 	state *State,
 	diff *Diff,
+	invars map[string]string,
 	cb genericWalkFunc) depgraph.WalkFunc {
 	var l sync.Mutex
 
 	// Initialize the variables for application
 	vars := make(map[string]string)
-	for k, v := range t.variables {
-		vars[k] = v
+	for k, v := range invars {
+		vars[fmt.Sprintf("var.%s", k)] = v
 	}
 
 	return func(n *depgraph.Noun) error {
