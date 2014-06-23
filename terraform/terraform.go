@@ -142,6 +142,10 @@ func (t *Terraform) applyWalkFn(
 			return nil, err
 		}
 
+		// TODO(mitchellh): we need to verify the diff doesn't change
+		// anything and that the diff has no computed values (pre-computed)
+
+		// With the completed diff, apply!
 		rs, err := r.Provider.Apply(r.State, diff)
 		if err != nil {
 			return nil, err
