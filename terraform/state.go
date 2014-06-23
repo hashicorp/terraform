@@ -131,13 +131,15 @@ func (s *ResourceState) MergeDiff(d *ResourceDiff) *ResourceState {
 			result.Attributes[k] = v
 		}
 	}
-	for k, diff := range d.Attributes {
-		if diff.NewComputed {
-			result.Attributes[k] = config.UnknownVariableValue
-			continue
-		}
+	if d != nil {
+		for k, diff := range d.Attributes {
+			if diff.NewComputed {
+				result.Attributes[k] = config.UnknownVariableValue
+				continue
+			}
 
-		result.Attributes[k] = diff.New
+			result.Attributes[k] = diff.New
+		}
 	}
 
 	return &result

@@ -70,6 +70,25 @@ func TestResourceState_MergeDiff_nil(t *testing.T) {
 	}
 }
 
+func TestResourceState_MergeDiff_nilDiff(t *testing.T) {
+	rs := ResourceState{
+		ID: "foo",
+		Attributes: map[string]string{
+			"foo": "bar",
+		},
+	}
+
+	rs2 := rs.MergeDiff(nil)
+
+	expected := map[string]string{
+		"foo": "bar",
+	}
+
+	if !reflect.DeepEqual(expected, rs2.Attributes) {
+		t.Fatalf("bad: %#v", rs2.Attributes)
+	}
+}
+
 func TestReadWriteState(t *testing.T) {
 	state := &State{
 		Resources: map[string]*ResourceState{
