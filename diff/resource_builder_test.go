@@ -145,23 +145,23 @@ func TestResourceBuilder_vars(t *testing.T) {
 }
 
 const testRBNewDiff = `CREATE
-  foo:        "" => "bar"
-  id:         "" => "<computed>" (forces new resource)
-  private_ip: "" => "<computed>"
+  IN  foo:        "" => "bar"
+  OUT id:         "" => "<computed>" (forces new resource)
+  OUT private_ip: "" => "<computed>"
 `
 
 const testRBRequiresNewDiff = `CREATE
-  ami:        "foo" => "bar" (forces new resource)
-  id:         "1" => "<computed>" (forces new resource)
-  private_ip: "127.0.0.1" => "<computed>"
+  IN  ami:        "foo" => "bar" (forces new resource)
+  OUT id:         "1" => "<computed>" (forces new resource)
+  OUT private_ip: "127.0.0.1" => "<computed>"
 `
 
 const testRBUnknownDiff = `CREATE
-  foo: "" => "${var.unknown}"
-  id:  "" => "<computed>" (forces new resource)
+  IN  foo: "" => "${var.unknown}"
+  OUT id:  "" => "<computed>" (forces new resource)
 `
 
 const testRBVarsDiff = `CREATE
-  foo: "" => "bar"
-  id:  "" => "<computed>" (forces new resource)
+  IN  foo: "" => "bar"
+  OUT id:  "" => "<computed>" (forces new resource)
 `

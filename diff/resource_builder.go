@@ -56,6 +56,7 @@ func (b *ResourceBuilder) Diff(
 		// boolean.
 		if _, ok := requiresNewSet[k]; ok {
 			attrs[k].RequiresNew = true
+			attrs[k].Type = terraform.DiffAttrInput
 			requiresNew = true
 		}
 	}
@@ -67,6 +68,7 @@ func (b *ResourceBuilder) Diff(
 			Old:         s.ID,
 			NewComputed: true,
 			RequiresNew: true,
+			Type:        terraform.DiffAttrOutput,
 		}
 
 		for _, k := range b.CreateComputedAttrs {
@@ -74,6 +76,7 @@ func (b *ResourceBuilder) Diff(
 			attrs[k] = &terraform.ResourceAttrDiff{
 				Old:         old,
 				NewComputed: true,
+				Type:        terraform.DiffAttrOutput,
 			}
 		}
 	}

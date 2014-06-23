@@ -155,7 +155,21 @@ type ResourceAttrDiff struct {
 	New         string // New Value
 	NewComputed bool   // True if new value is computed (unknown currently)
 	RequiresNew bool   // True if change requires new resource
+	Type        DiffAttrType
 }
+
+// DiffAttrType is an enum type that says whether a resource attribute
+// diff is an input attribute (comes from the configuration) or an
+// output attribute (comes as a result of applying the configuration). An
+// example input would be "ami" for AWS and an example output would be
+// "private_ip".
+type DiffAttrType byte
+
+const (
+	DiffAttrUnknown DiffAttrType = iota
+	DiffAttrInput
+	DiffAttrOutput
+)
 
 // Empty returns true if this diff encapsulates no changes.
 // TODO(mitchellh): test

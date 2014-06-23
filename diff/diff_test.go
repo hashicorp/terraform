@@ -64,8 +64,14 @@ func testResourceDiffStr(rd *terraform.ResourceDiff) string {
 			newResource = " (forces new resource)"
 		}
 
+		inOut := "IN "
+		if attrDiff.Type == terraform.DiffAttrOutput {
+			inOut = "OUT"
+		}
+
 		buf.WriteString(fmt.Sprintf(
-			"  %s:%s %#v => %#v%s\n",
+			"  %s %s:%s %#v => %#v%s\n",
+			inOut,
 			attrK,
 			strings.Repeat(" ", keyLen-len(attrK)),
 			attrDiff.Old,
