@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"sort"
 	"sync"
 
 	"github.com/hashicorp/terraform/config"
@@ -29,7 +30,15 @@ func (s *State) init() {
 func (s *State) String() string {
 	var buf bytes.Buffer
 
-	for k, rs := range s.Resources {
+	names := make([]string, 0, len(s.Resources))
+	for name, _ := range s.Resources {
+		names = append(names, name)
+	}
+	sort.Strings(names)
+
+	for _, k := range names {
+		rs := s.Resources[k]
+
 		buf.WriteString(fmt.Sprintf("%s:\n", k))
 		buf.WriteString(fmt.Sprintf("  ID = %s\n", rs.ID))
 

@@ -1,6 +1,7 @@
 package terraform
 
 import (
+	"fmt"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -228,6 +229,33 @@ func TestTerraformApply(t *testing.T) {
 	}
 }
 
+func TestTerraformApply_compute(t *testing.T) {
+	// This tests that computed variables are properly re-diffed
+	// to get the value prior to application (Apply).
+	tf := testTerraform(t, "apply-compute")
+
+	s := &State{}
+	p, err := tf.Plan(s)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	// Set meta to change behavior so that computed variables are filled
+	testProviderMock(testProvider(tf, "aws_instance.foo")).Meta =
+		"compute"
+
+	state, err := tf.Apply(p)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	actual := strings.TrimSpace(state.String())
+	expected := strings.TrimSpace(testTerraformApplyComputeStr)
+	if actual != expected {
+		t.Fatalf("bad: \n%s", actual)
+	}
+}
+
 func TestTerraformPlan(t *testing.T) {
 	tf := testTerraform(t, "plan-good")
 
@@ -324,6 +352,8 @@ func testProviderFunc(n string, rs []string) ResourceProviderFactory {
 	}
 
 	return func() (ResourceProvider, error) {
+		p := &MockResourceProvider{Meta: n}
+
 		applyFn := func(
 			s *ResourceState,
 			d *ResourceDiff) (*ResourceState, error) {
@@ -361,11 +391,20 @@ func testProviderFunc(n string, rs []string) ResourceProviderFactory {
 				}
 
 				if k == "compute" {
-					diff.Attributes[v.(string)] = &ResourceAttrDiff{
+					attrDiff := &ResourceAttrDiff{
 						Old:         "",
 						New:         "",
 						NewComputed: true,
 					}
+
+					// If the value of Meta turns into "compute", then we
+					// fill the computed values.
+					if mv, ok := p.Meta.(string); ok && mv == "compute" {
+						attrDiff.NewComputed = false
+						attrDiff.New = fmt.Sprintf("computed_%s", v.(string))
+					}
+
+					diff.Attributes[v.(string)] = attrDiff
 					continue
 				}
 
@@ -408,15 +447,12 @@ func testProviderFunc(n string, rs []string) ResourceProviderFactory {
 			return s, nil
 		}
 
-		result := &MockResourceProvider{
-			Meta:            n,
-			ApplyFn:         applyFn,
-			DiffFn:          diffFn,
-			RefreshFn:       refreshFn,
-			ResourcesReturn: resources,
-		}
+		p.ApplyFn = applyFn
+		p.DiffFn = diffFn
+		p.RefreshFn = refreshFn
+		p.ResourcesReturn = resources
 
-		return result, nil
+		return p, nil
 	}
 }
 
@@ -500,6 +536,18 @@ aws_instance.foo:
   ID = foo
   type = aws_instance
   num = 2
+`
+
+const testTerraformApplyComputeStr = `
+aws_instance.bar:
+  ID = foo
+  type = aws_instance
+  foo = computed_id
+aws_instance.foo:
+  ID = foo
+  type = aws_instance
+  num = 2
+  id = computed_id
 `
 
 const testTerraformPlanStr = `

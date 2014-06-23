@@ -136,7 +136,13 @@ func (t *Terraform) applyWalkFn(
 	result.init()
 
 	cb := func(r *Resource) (map[string]string, error) {
-		rs, err := r.Provider.Apply(r.State, r.Diff)
+		// Get the latest diff since there are no computed values anymore
+		diff, err := r.Provider.Diff(r.State, r.Config)
+		if err != nil {
+			return nil, err
+		}
+
+		rs, err := r.Provider.Apply(r.State, diff)
 		if err != nil {
 			return nil, err
 		}
