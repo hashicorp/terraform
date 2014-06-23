@@ -106,11 +106,7 @@ func New(c *Config) (*Terraform, error) {
 func (t *Terraform) Apply(p *Plan) (*State, error) {
 	result := new(State)
 	err := t.graph.Walk(t.applyWalkFn(p, result))
-	if err != nil {
-		return nil, err
-	}
-
-	return result, nil
+	return result, err
 }
 
 func (t *Terraform) Plan(s *State) (*Plan, error) {
@@ -157,6 +153,17 @@ func (t *Terraform) applyWalkFn(
 			return nil, nil
 		}
 
+		var errs []error
+		for ak, av := range rs.Attributes {
+			// If the value is the unknown variable value, then it is an error.
+			// In this case we record the error and remove it from the state
+			if av == config.UnknownVariableValue {
+				errs = append(errs, fmt.Errorf(
+					"Attribute with unknown value: %s", ak))
+				delete(rs.Attributes, ak)
+			}
+		}
+
 		// Update the resulting diff
 		l.Lock()
 		result.Resources[r.Id] = rs
@@ -168,7 +175,12 @@ func (t *Terraform) applyWalkFn(
 			vars[fmt.Sprintf("%s.%s", r.Id, ak)] = av
 		}
 
-		return vars, nil
+		err = nil
+		if len(errs) > 0 {
+			err = &MultiError{Errors: errs}
+		}
+
+		return vars, err
 	}
 
 	return t.genericWalkFn(p.State, p.Diff, p.Vars, cb)

@@ -256,6 +256,27 @@ func TestTerraformApply_compute(t *testing.T) {
 	}
 }
 
+func TestTerraformApply_unknownAttribute(t *testing.T) {
+	tf := testTerraform(t, "apply-unknown")
+
+	s := &State{}
+	p, err := tf.Plan(s)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	state, err := tf.Apply(p)
+	if err == nil {
+		t.Fatal("should error")
+	}
+
+	actual := strings.TrimSpace(state.String())
+	expected := strings.TrimSpace(testTerraformApplyUnknownAttrStr)
+	if actual != expected {
+		t.Fatalf("bad: \n%s", actual)
+	}
+}
+
 func TestTerraformApply_vars(t *testing.T) {
 	tf := testTerraform(t, "apply-vars")
 	tf.variables = map[string]string{"foo": "baz"}
@@ -388,9 +409,7 @@ func testProviderFunc(n string, rs []string) ResourceProviderFactory {
 			}
 
 			if d != nil {
-				for ak, ad := range d.Attributes {
-					result.Attributes[ak] = ad.New
-				}
+				result = result.MergeDiff(d)
 			}
 
 			return result, nil
@@ -449,10 +468,6 @@ func testProviderFunc(n string, rs []string) ResourceProviderFactory {
 				attrDiff := &ResourceAttrDiff{
 					Old: "",
 					New: v.(string),
-				}
-
-				if strings.Contains(attrDiff.New, config.UnknownVariableValue) {
-					attrDiff.NewComputed = true
 				}
 
 				diff.Attributes[k] = attrDiff
@@ -573,6 +588,13 @@ aws_instance.foo:
   type = aws_instance
   num = 2
   id = computed_id
+`
+
+const testTerraformApplyUnknownAttrStr = `
+aws_instance.foo:
+  ID = foo
+  type = aws_instance
+  num = 2
 `
 
 const testTerraformApplyVarsStr = `
