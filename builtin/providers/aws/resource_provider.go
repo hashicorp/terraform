@@ -29,6 +29,10 @@ func (p *ResourceProvider) Apply(
 		ID: "foo",
 	}
 	result = result.MergeDiff(d)
+	result.Attributes["public_dns"] = "foo"
+	result.Attributes["public_ip"] = "foo"
+	result.Attributes["private_dns"] = "foo"
+	result.Attributes["private_ip"] = "foo"
 
 	return result, nil
 }

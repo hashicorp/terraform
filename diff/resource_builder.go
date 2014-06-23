@@ -64,13 +64,6 @@ func (b *ResourceBuilder) Diff(
 	// If we require a new resource, then process all the attributes
 	// that will be changing due to the creation of the resource.
 	if requiresNew {
-		attrs["id"] = &terraform.ResourceAttrDiff{
-			Old:         s.ID,
-			NewComputed: true,
-			RequiresNew: true,
-			Type:        terraform.DiffAttrOutput,
-		}
-
 		for _, k := range b.CreateComputedAttrs {
 			old := s.Attributes[k]
 			attrs[k] = &terraform.ResourceAttrDiff{
