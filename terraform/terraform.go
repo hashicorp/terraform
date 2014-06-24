@@ -13,7 +13,6 @@ import (
 // all resources, a resource tree, a specific resource, etc.
 type Terraform struct {
 	config    *config.Config
-	graph     *depgraph.Graph
 	mapping   map[*config.Resource]*terraformProvider
 	variables map[string]string
 }
@@ -97,21 +96,30 @@ func New(c *Config) (*Terraform, error) {
 
 	return &Terraform{
 		config:    c.Config,
-		graph:     graph,
 		mapping:   mapping,
 		variables: c.Variables,
 	}, nil
 }
 
 func (t *Terraform) Apply(p *Plan) (*State, error) {
+	graph := t.config.Graph()
+	if err := graph.Validate(); err != nil {
+		panic(fmt.Sprintf("Graph invalid after prior validation: %s", err))
+	}
+
 	result := new(State)
-	err := t.graph.Walk(t.applyWalkFn(p, result))
+	err := graph.Walk(t.applyWalkFn(p, result))
 	return result, err
 }
 
 func (t *Terraform) Plan(s *State) (*Plan, error) {
+	graph := t.config.Graph()
+	if err := graph.Validate(); err != nil {
+		panic(fmt.Sprintf("Graph invalid after prior validation: %s", err))
+	}
+
 	result := new(Plan)
-	err := t.graph.Walk(t.planWalkFn(s, result))
+	err := graph.Walk(t.planWalkFn(s, result))
 	if err != nil {
 		return nil, err
 	}
