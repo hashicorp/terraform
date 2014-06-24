@@ -209,6 +209,11 @@ func (t *Terraform) planWalkFn(
 			return nil, err
 		}
 
+		// Make sure the state is set to at the very least the empty state
+		if newState == nil {
+			newState = new(ResourceState)
+		}
+
 		// Get a diff from the newest state
 		diff, err := r.Provider.Diff(newState, r.Config)
 		if err != nil {

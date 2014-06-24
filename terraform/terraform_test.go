@@ -375,8 +375,28 @@ func TestTerraformPlan_providerInit(t *testing.T) {
 	if !p.ConfigureCalled {
 		t.Fatal("configure should be called")
 	}
-	if p.ConfigureConfig.Raw["foo"].(string) != "2" {
+	if p.ConfigureConfig.Config["foo"].(string) != "2" {
 		t.Fatalf("bad: %#v", p.ConfigureConfig)
+	}
+}
+
+func TestTerraformPlan_refreshNil(t *testing.T) {
+	tf := testTerraform(t, "plan-nil")
+
+	s := new(State)
+	s.init()
+	s.Resources["aws_instance.foo"] = &ResourceState{
+		Attributes: map[string]string{
+			"nil": "1",
+		},
+	}
+
+	plan, err := tf.Plan(s)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if len(plan.Diff.Resources) != 0 {
+		t.Fatalf("bad: %#v", plan.Diff.Resources)
 	}
 }
 
@@ -484,6 +504,10 @@ func testProviderFunc(n string, rs []string) ResourceProviderFactory {
 		}
 
 		refreshFn := func(s *ResourceState) (*ResourceState, error) {
+			if _, ok := s.Attributes["nil"]; ok {
+				return nil, nil
+			}
+
 			return s, nil
 		}
 
