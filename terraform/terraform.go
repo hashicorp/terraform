@@ -340,10 +340,7 @@ func (t *terraformProvider) init(vars map[string]string) (err error) {
 				panic(err)
 			}
 
-			rc = &ResourceConfig{
-				ComputedKeys: t.Config.RawConfig.UnknownKeys(),
-				Raw:          t.Config.RawConfig.Config(),
-			}
+			rc = NewResourceConfig(t.Config.RawConfig)
 		}
 
 		err = t.Provider.Configure(rc)

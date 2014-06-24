@@ -27,7 +27,6 @@ func diffBuilder_aws_instance() *diff.ResourceBuilder {
 			"ami",
 			"availability_zone",
 			"instance_type",
-			"region",
 		},
 	}
 }
