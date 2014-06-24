@@ -55,24 +55,3 @@ func TestProviderConfigName(t *testing.T) {
 		t.Fatalf("bad: %s", n)
 	}
 }
-
-const resourceGraphValue = `
-root: root
-openstack_floating_ip.random
-aws_security_group.firewall
-  aws_security_group.firewall -> provider.aws
-aws_instance.web
-  aws_instance.web -> aws_security_group.firewall
-  aws_instance.web -> provider.aws
-aws_load_balancer.weblb
-  aws_load_balancer.weblb -> aws_instance.web
-  aws_load_balancer.weblb -> provider.aws
-provider.aws
-  provider.aws -> openstack_floating_ip.random
-root
-  root -> openstack_floating_ip.random
-  root -> aws_security_group.firewall
-  root -> aws_instance.web
-  root -> aws_load_balancer.weblb
-  root -> provider.aws
-`
