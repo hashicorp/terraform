@@ -24,18 +24,21 @@ func (m *Map) Apply(
 	}
 
 	if d.Destroy {
-		// If we're destroying a resource that doesn't exist, then we're
-		// already done.
-		if s.ID == "" {
-			return nil, nil
+		if s.ID != "" {
+			// Destroy the resource if it is created
+			err := r.Destroy(s, meta)
+			if err != nil {
+				return s, err
+			}
+
+			s.ID = ""
 		}
 
-		// Otherwise call the destroy function
-		err := r.Destroy(s, meta)
-		if err == nil {
-			s = nil
+		// If we're only destroying, and not creating, then return now.
+		// Otherwise, we continue so that we can create a new resource.
+		if !d.RequiresNew() {
+			return nil, nil
 		}
-		return s, err
 	}
 
 	if s.ID == "" {
