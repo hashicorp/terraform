@@ -70,23 +70,23 @@ type UserVariable struct {
 	key string
 }
 
-// A unique identifier for this resource.
-func (r *Resource) Id() string {
-	return fmt.Sprintf("%s.%s", r.Type, r.Name)
-}
-
 // ProviderConfigName returns the name of the provider configuration in
 // the given mapping that maps to the proper provider configuration
 // for this resource.
-func (r *Resource) ProviderConfigName(pcs map[string]*ProviderConfig) string {
+func ProviderConfigName(t string, pcs map[string]*ProviderConfig) string {
 	lk := ""
 	for k, _ := range pcs {
-		if strings.HasPrefix(r.Type, k) && len(k) > len(lk) {
+		if strings.HasPrefix(t, k) && len(k) > len(lk) {
 			lk = k
 		}
 	}
 
 	return lk
+}
+
+// A unique identifier for this resource.
+func (r *Resource) Id() string {
+	return fmt.Sprintf("%s.%s", r.Type, r.Name)
 }
 
 // Graph returns a dependency graph of the resources from this
@@ -151,7 +151,7 @@ func (c *Config) Graph() *depgraph.Graph {
 		if r, ok := noun.Meta.(*Resource); ok {
 			// If there is a provider config that matches this resource
 			// then we add that as a dependency.
-			if pcName := r.ProviderConfigName(c.ProviderConfigs); pcName != "" {
+			if pcName := ProviderConfigName(r.Type, c.ProviderConfigs); pcName != "" {
 				pcNoun, ok := pcNouns[pcName]
 				if !ok {
 					pcNoun = &depgraph.Noun{

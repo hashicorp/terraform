@@ -75,12 +75,7 @@ func TestNewUserVariable(t *testing.T) {
 	}
 }
 
-func TestResourceProviderConfigName(t *testing.T) {
-	r := &Resource{
-		Name: "foo",
-		Type: "aws_instance",
-	}
-
+func TestProviderConfigName(t *testing.T) {
 	pcs := map[string]*ProviderConfig{
 		"aw":   new(ProviderConfig),
 		"aws":  new(ProviderConfig),
@@ -88,7 +83,7 @@ func TestResourceProviderConfigName(t *testing.T) {
 		"gce_": new(ProviderConfig),
 	}
 
-	n := r.ProviderConfigName(pcs)
+	n := ProviderConfigName("aws_instance", pcs)
 	if n != "aws" {
 		t.Fatalf("bad: %s", n)
 	}
