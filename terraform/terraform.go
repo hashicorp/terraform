@@ -36,8 +36,6 @@ type Config struct {
 	Config    *config.Config
 	Providers map[string]ResourceProviderFactory
 	Variables map[string]string
-
-	computedPlaceholder string
 }
 
 // New creates a new Terraform structure, initializes resource providers
@@ -48,9 +46,6 @@ type Config struct {
 // can be properly initialized, can be configured, etc.
 func New(c *Config) (*Terraform, error) {
 	var errs []error
-
-	// Calculate the computed key placeholder
-	c.computedPlaceholder = "tf_computed_placeholder"
 
 	// Validate that all required variables have values
 	if err := smcVariables(c); err != nil {
