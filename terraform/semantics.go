@@ -81,7 +81,7 @@ ResourceLoop:
 
 		// Find the matching provider configuration for this resource
 		var pc *config.ProviderConfig
-		pcName := r.ProviderConfigName(c.Config.ProviderConfigs)
+		pcName := config.ProviderConfigName(r.Type, c.Config.ProviderConfigs)
 		if pcName != "" {
 			pc = c.Config.ProviderConfigs[pcName]
 		}

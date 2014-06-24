@@ -46,42 +46,45 @@ type Config struct {
 // can be properly initialized, can be configured, etc.
 func New(c *Config) (*Terraform, error) {
 	var errs []error
+	var mapping map[*config.Resource]*terraformProvider
 
-	// Validate that all required variables have values
-	if err := smcVariables(c); err != nil {
-		errs = append(errs, err...)
-	}
-
-	// Match all the resources with a provider and initialize the providers
-	mapping, err := smcProviders(c)
-	if err != nil {
-		errs = append(errs, err...)
-	}
-
-	// Validate all the configurations, once.
-	tps := make(map[*terraformProvider]struct{})
-	for _, tp := range mapping {
-		if _, ok := tps[tp]; !ok {
-			tps[tp] = struct{}{}
-		}
-	}
-	for tp, _ := range tps {
-		var rc *ResourceConfig
-		if tp.Config != nil {
-			rc = NewResourceConfig(tp.Config.RawConfig)
+	if c.Config != nil {
+		// Validate that all required variables have values
+		if err := smcVariables(c); err != nil {
+			errs = append(errs, err...)
 		}
 
-		_, tpErrs := tp.Provider.Validate(rc)
-		if len(tpErrs) > 0 {
-			errs = append(errs, tpErrs...)
+		// Match all the resources with a provider and initialize the providers
+		mapping, err := smcProviders(c)
+		if err != nil {
+			errs = append(errs, err...)
 		}
-	}
 
-	// Build the resource graph
-	graph := c.Config.Graph()
-	if err := graph.Validate(); err != nil {
-		errs = append(errs, fmt.Errorf(
-			"Resource graph has an error: %s", err))
+		// Validate all the configurations, once.
+		tps := make(map[*terraformProvider]struct{})
+		for _, tp := range mapping {
+			if _, ok := tps[tp]; !ok {
+				tps[tp] = struct{}{}
+			}
+		}
+		for tp, _ := range tps {
+			var rc *ResourceConfig
+			if tp.Config != nil {
+				rc = NewResourceConfig(tp.Config.RawConfig)
+			}
+
+			_, tpErrs := tp.Provider.Validate(rc)
+			if len(tpErrs) > 0 {
+				errs = append(errs, tpErrs...)
+			}
+		}
+
+		// Build the resource graph
+		graph := c.Config.Graph()
+		if err := graph.Validate(); err != nil {
+			errs = append(errs, fmt.Errorf(
+				"Resource graph has an error: %s", err))
+		}
 	}
 
 	// If we accumulated any errors, then return them all
@@ -107,6 +110,20 @@ func (t *Terraform) Apply(p *Plan) (*State, error) {
 	return result, err
 }
 
+// Graph returns the dependency graph for the given configuration and
+// state file.
+//
+// The resulting graph may have more resources than the configuration, because
+// it can contain resources in the state file that need to be modified.
+func (t *Terraform) Graph(c *config.Config, s *State) (*depgraph.Graph, error) {
+	g := Graph(c, s)
+	if err := g.Validate(); err != nil {
+		return nil, err
+	}
+
+	return g, nil
+}
+
 func (t *Terraform) Plan(s *State) (*Plan, error) {
 	graph := t.config.Graph()
 	if err := graph.Validate(); err != nil {
@@ -122,8 +139,17 @@ func (t *Terraform) Plan(s *State) (*Plan, error) {
 	return result, nil
 }
 
-func (t *Terraform) Refresh(*State) (*State, error) {
-	return nil, nil
+// Refresh goes through all the resources in the state and refreshes them
+// to their latest status.
+func (t *Terraform) Refresh(c *config.Config, s *State) (*State, error) {
+	_, err := t.Graph(c, s)
+	if err != nil {
+		return s, err
+	}
+
+	result := new(State)
+	//err = graph.Walk(t.refreshWalkFn(s, result))
+	return result, err
 }
 
 func (t *Terraform) applyWalkFn(

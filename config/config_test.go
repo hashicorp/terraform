@@ -1,44 +1,11 @@
 package config
 
 import (
-	"path/filepath"
-	"strings"
 	"testing"
 )
 
 // This is the directory where our test fixtures are.
 const fixtureDir = "./test-fixtures"
-
-func TestConfigGraph(t *testing.T) {
-	c, err := Load(filepath.Join(fixtureDir, "resource_graph.tf"))
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-
-	graph := c.Graph()
-	if err := graph.Validate(); err != nil {
-		t.Fatalf("err: %s", err)
-	}
-
-	actual := strings.TrimSpace(graph.String())
-	expected := resourceGraphValue
-
-	if actual != strings.TrimSpace(expected) {
-		t.Fatalf("bad:\n%s", actual)
-	}
-}
-
-func TestConfigGraph_cycle(t *testing.T) {
-	c, err := Load(filepath.Join(fixtureDir, "resource_graph_cycle.tf"))
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-
-	graph := c.Graph()
-	if err := graph.Validate(); err == nil {
-		t.Fatal("graph should be invalid")
-	}
-}
 
 func TestNewResourceVariable(t *testing.T) {
 	v, err := NewResourceVariable("foo.bar.baz")

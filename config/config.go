@@ -5,8 +5,6 @@ package config
 import (
 	"fmt"
 	"strings"
-
-	"github.com/hashicorp/terraform/depgraph"
 )
 
 // Config is the configuration that comes from loading a collection
@@ -87,107 +85,6 @@ func ProviderConfigName(t string, pcs map[string]*ProviderConfig) string {
 // A unique identifier for this resource.
 func (r *Resource) Id() string {
 	return fmt.Sprintf("%s.%s", r.Type, r.Name)
-}
-
-// Graph returns a dependency graph of the resources from this
-// Terraform configuration.
-//
-// The graph can contain both *Resource and *ProviderConfig. When consuming
-// the graph, you'll have to use type inference to determine what it is
-// and the proper behavior.
-func (c *Config) Graph() *depgraph.Graph {
-	// This tracks all the resource nouns
-	nouns := make(map[string]*depgraph.Noun)
-	for _, r := range c.Resources {
-		noun := &depgraph.Noun{
-			Name: r.Id(),
-			Meta: r,
-		}
-		nouns[noun.Name] = noun
-	}
-
-	// Build the list of nouns that we iterate over
-	nounsList := make([]*depgraph.Noun, 0, len(nouns))
-	for _, n := range nouns {
-		nounsList = append(nounsList, n)
-	}
-
-	// This tracks the provider configs that are nouns in our dep graph
-	pcNouns := make(map[string]*depgraph.Noun)
-
-	i := 0
-	for i < len(nounsList) {
-		noun := nounsList[i]
-		i += 1
-
-		// Determine depenencies based on variables. Both resources
-		// and provider configurations have dependencies in this case.
-		var vars map[string]InterpolatedVariable
-		switch n := noun.Meta.(type) {
-		case *Resource:
-			vars = n.RawConfig.Variables
-		case *ProviderConfig:
-			vars = n.RawConfig.Variables
-		}
-		for _, v := range vars {
-			// Only resource variables impose dependencies
-			rv, ok := v.(*ResourceVariable)
-			if !ok {
-				continue
-			}
-
-			// Build the dependency
-			dep := &depgraph.Dependency{
-				Name:   rv.ResourceId(),
-				Source: noun,
-				Target: nouns[rv.ResourceId()],
-			}
-
-			noun.Deps = append(noun.Deps, dep)
-		}
-
-		// If this is a Resource, then check if we have to also
-		// depend on a provider configuration.
-		if r, ok := noun.Meta.(*Resource); ok {
-			// If there is a provider config that matches this resource
-			// then we add that as a dependency.
-			if pcName := ProviderConfigName(r.Type, c.ProviderConfigs); pcName != "" {
-				pcNoun, ok := pcNouns[pcName]
-				if !ok {
-					pcNoun = &depgraph.Noun{
-						Name: fmt.Sprintf("provider.%s", pcName),
-						Meta: c.ProviderConfigs[pcName],
-					}
-					pcNouns[pcName] = pcNoun
-					nounsList = append(nounsList, pcNoun)
-				}
-
-				dep := &depgraph.Dependency{
-					Name:   pcName,
-					Source: noun,
-					Target: pcNoun,
-				}
-
-				noun.Deps = append(noun.Deps, dep)
-			}
-		}
-	}
-
-	// Create a root that just depends on everything else finishing.
-	root := &depgraph.Noun{Name: "root"}
-	for _, n := range nounsList {
-		root.Deps = append(root.Deps, &depgraph.Dependency{
-			Name:   n.Name,
-			Source: root,
-			Target: n,
-		})
-	}
-	nounsList = append(nounsList, root)
-
-	return &depgraph.Graph{
-		Name:  "resources",
-		Nouns: nounsList,
-	}
 }
 
 // Validate does some basic semantic checking of the configuration.

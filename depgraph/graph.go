@@ -8,6 +8,7 @@ package depgraph
 import (
 	"bytes"
 	"fmt"
+	"sort"
 
 	"github.com/hashicorp/terraform/digraph"
 )
@@ -113,10 +114,31 @@ func (g *Graph) CheckConstraints() error {
 func (g *Graph) String() string {
 	var buf bytes.Buffer
 
-	buf.WriteString(fmt.Sprintf("root: %s\n", g.Root.Name))
+	// Alphabetize the output based on the noun name
+	keys := make([]string, 0, len(g.Nouns))
+	mapping := make(map[string]*Noun)
 	for _, n := range g.Nouns {
+		mapping[n.Name] = n
+		keys = append(keys, n.Name)
+	}
+	sort.Strings(keys)
+
+	buf.WriteString(fmt.Sprintf("root: %s\n", g.Root.Name))
+	for _, k := range keys {
+		n := mapping[k]
 		buf.WriteString(fmt.Sprintf("%s\n", n.Name))
-		for _, dep := range n.Deps {
+
+		// Alphabetize the dependency names
+		depKeys := make([]string, 0, len(n.Deps))
+		depMapping := make(map[string]*Dependency)
+		for _, d := range n.Deps {
+			depMapping[d.Target.Name] = d
+			depKeys = append(depKeys, d.Target.Name)
+		}
+		sort.Strings(depKeys)
+
+		for _, k := range depKeys {
+			dep := depMapping[k]
 			buf.WriteString(fmt.Sprintf(
 				"  %s -> %s\n",
 				dep.Source,

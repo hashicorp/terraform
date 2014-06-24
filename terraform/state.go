@@ -27,6 +27,27 @@ func (s *State) init() {
 	})
 }
 
+// Orphans returns a list of keys of resources that are in the State
+// but aren't present in the configuration itself. Hence, these keys
+// represent the state of resources that are orphans.
+func (s *State) Orphans(c *config.Config) []string {
+	keys := make(map[string]struct{})
+	for k, _ := range s.Resources {
+		keys[k] = struct{}{}
+	}
+
+	for _, r := range c.Resources {
+		delete(keys, r.Id())
+	}
+
+	result := make([]string, 0, len(keys))
+	for k, _ := range keys {
+		result = append(result, k)
+	}
+
+	return result
+}
+
 func (s *State) String() string {
 	var buf bytes.Buffer
 
