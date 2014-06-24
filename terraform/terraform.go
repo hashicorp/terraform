@@ -214,6 +214,9 @@ func (t *Terraform) planWalkFn(
 			newState = new(ResourceState)
 		}
 
+		// Set the type, the provider shouldn't modify this
+		newState.Type = r.State.Type
+
 		// Get a diff from the newest state
 		diff, err := r.Provider.Diff(newState, r.Config)
 		if err != nil {
