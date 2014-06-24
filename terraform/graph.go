@@ -15,6 +15,16 @@ const GraphRootNode = "root"
 //
 // This dependency graph shows the correct order that any resources need
 // to be operated on.
+//
+// The Meta field of a graph Noun can contain one of the follow types. A
+// description is next to each type to explain what it is.
+//
+//   *config.Resource - A resource itself
+//   *config.ProviderConfig - The configuration for a provider that
+//     should be initialized.
+//   *ResourceState - An orphan resource that we only have the state of
+//     and no more configuration.
+//
 func Graph(c *config.Config, s *State) *depgraph.Graph {
 	g := new(depgraph.Graph)
 
