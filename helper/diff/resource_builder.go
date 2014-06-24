@@ -4,7 +4,7 @@ import (
 	"github.com/hashicorp/terraform/terraform"
 )
 
-// ResourceBuilder is a helper that can knows about how a single resource
+// ResourceBuilder is a helper that knows about how a single resource
 // changes and how those changes affect the diff.
 type ResourceBuilder struct {
 	CreateComputedAttrs []string
