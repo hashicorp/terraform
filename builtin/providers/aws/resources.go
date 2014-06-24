@@ -9,6 +9,8 @@ import (
 	"github.com/mitchellh/goamz/ec2"
 )
 
+// resourceMap is the mapping of resources we support to their basic
+// operations. This makes it easy to implement new resource types.
 var resourceMap *resource.Map
 
 func init() {
