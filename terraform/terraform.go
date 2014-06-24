@@ -78,13 +78,6 @@ func New(c *Config) (*Terraform, error) {
 				errs = append(errs, tpErrs...)
 			}
 		}
-
-		// Build the resource graph
-		graph := c.Config.Graph()
-		if err := graph.Validate(); err != nil {
-			errs = append(errs, fmt.Errorf(
-				"Resource graph has an error: %s", err))
-		}
 	}
 
 	// If we accumulated any errors, then return them all
@@ -100,13 +93,13 @@ func New(c *Config) (*Terraform, error) {
 }
 
 func (t *Terraform) Apply(p *Plan) (*State, error) {
-	graph := t.config.Graph()
-	if err := graph.Validate(); err != nil {
-		panic(fmt.Sprintf("Graph invalid after prior validation: %s", err))
+	graph, err := t.Graph(p.Config, p.State)
+	if err != nil {
+		return nil, err
 	}
 
 	result := new(State)
-	err := graph.Walk(t.applyWalkFn(p, result))
+	err = graph.Walk(t.applyWalkFn(p, result))
 	return result, err
 }
 
@@ -116,22 +109,27 @@ func (t *Terraform) Apply(p *Plan) (*State, error) {
 // The resulting graph may have more resources than the configuration, because
 // it can contain resources in the state file that need to be modified.
 func (t *Terraform) Graph(c *config.Config, s *State) (*depgraph.Graph, error) {
+	// Get the basic graph with the raw metadata
 	g := Graph(c, s)
 	if err := g.Validate(); err != nil {
 		return nil, err
 	}
 
+	// Next, we want to go through the graph and make sure that we
+	// map a provider to each of the resources.
+
 	return g, nil
 }
 
 func (t *Terraform) Plan(s *State) (*Plan, error) {
-	graph := t.config.Graph()
-	if err := graph.Validate(); err != nil {
-		panic(fmt.Sprintf("Graph invalid after prior validation: %s", err))
+	// TODO: add config param
+	graph, err := t.Graph(nil, s)
+	if err != nil {
+		return nil, err
 	}
 
 	result := new(Plan)
-	err := graph.Walk(t.planWalkFn(s, result))
+	err = graph.Walk(t.planWalkFn(s, result))
 	if err != nil {
 		return nil, err
 	}

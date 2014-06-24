@@ -11,7 +11,29 @@ import (
 // graph. This node is just a placemarker and has no associated functionality.
 const GraphRootNode = "root"
 
+// GraphNodeResource is a node type in the graph that represents a resource.
+type GraphNodeResource struct {
+	Type               string
+	Config             *config.Resource
+	Orphan             bool
+	Resource           *Resource
+	ResourceProviderID string
+}
+
+// GraphNodeResourceProvider is a node type in the graph that represents
+// the configuration for a resource provider.
+type GraphNodeResourceProvider struct {
+	ID       string
+	Provider ResourceProvider
+	Config   *config.ProviderConfig
+}
+
 // Graph builds a dependency graph for the given configuration and state.
+//
+// Before using this graph, Validate should be called on it. This will perform
+// some initialization necessary such as setting up a root node. This function
+// doesn't perform the Validate automatically in case the caller wants to
+// modify the graph.
 //
 // This dependency graph shows the correct order that any resources need
 // to be operated on.
@@ -19,11 +41,10 @@ const GraphRootNode = "root"
 // The Meta field of a graph Noun can contain one of the follow types. A
 // description is next to each type to explain what it is.
 //
-//   *config.Resource - A resource itself
-//   *config.ProviderConfig - The configuration for a provider that
-//     should be initialized.
-//   *ResourceState - An orphan resource that we only have the state of
-//     and no more configuration.
+//   *GraphNodeResource - A resource. See the documentation of this
+//     struct for more details.
+//   *GraphNodeResourceProvider - A resource provider that needs to be
+//     configured at this point.
 //
 func Graph(c *config.Config, s *State) *depgraph.Graph {
 	g := new(depgraph.Graph)
@@ -56,7 +77,10 @@ func graphAddConfigResources(g *depgraph.Graph, c *config.Config) {
 	for _, r := range c.Resources {
 		noun := &depgraph.Noun{
 			Name: r.Id(),
-			Meta: r,
+			Meta: &GraphNodeResource{
+				Type:   r.Type,
+				Config: r,
+			},
 		}
 		nouns[noun.Name] = noun
 	}
@@ -77,7 +101,13 @@ func graphAddOrphans(g *depgraph.Graph, c *config.Config, s *State) {
 		rs := s.Resources[k]
 		noun := &depgraph.Noun{
 			Name: k,
-			Meta: rs,
+			Meta: &GraphNodeResource{
+				Type:   rs.Type,
+				Orphan: true,
+				Resource: &Resource{
+					State: rs,
+				},
+			},
 		}
 		g.Nouns = append(g.Nouns, noun)
 	}
@@ -89,18 +119,10 @@ func graphAddProviderConfigs(g *depgraph.Graph, c *config.Config) {
 	nounsList := make([]*depgraph.Noun, 0, 2)
 	pcNouns := make(map[string]*depgraph.Noun)
 	for _, noun := range g.Nouns {
-		var rtype string
-		switch m := noun.Meta.(type) {
-		case *config.Resource:
-			rtype = m.Type
-		case *ResourceState:
-			rtype = m.Type
-		default:
-			continue
-		}
+		resourceNode := noun.Meta.(*GraphNodeResource)
 
 		// Look up the provider config for this resource
-		pcName := config.ProviderConfigName(rtype, c.ProviderConfigs)
+		pcName := config.ProviderConfigName(resourceNode.Type, c.ProviderConfigs)
 		if pcName == "" {
 			continue
 		}
@@ -110,12 +132,20 @@ func graphAddProviderConfigs(g *depgraph.Graph, c *config.Config) {
 		if !ok {
 			pcNoun = &depgraph.Noun{
 				Name: fmt.Sprintf("provider.%s", pcName),
-				Meta: c.ProviderConfigs[pcName],
+				Meta: &GraphNodeResourceProvider{
+					ID:     pcName,
+					Config: c.ProviderConfigs[pcName],
+				},
 			}
 			pcNouns[pcName] = pcNoun
 			nounsList = append(nounsList, pcNoun)
 		}
 
+		// Set the resource provider ID for this noun so we can look it
+		// up later easily.
+		resourceNode.ResourceProviderID = pcName
+
+		// Add the provider configuration noun as a dependency
 		dep := &depgraph.Dependency{
 			Name:   pcName,
 			Source: noun,
@@ -148,10 +178,12 @@ func graphAddVariableDeps(g *depgraph.Graph) {
 	for _, n := range g.Nouns {
 		var vars map[string]config.InterpolatedVariable
 		switch m := n.Meta.(type) {
-		case *config.Resource:
-			vars = m.RawConfig.Variables
-		case *config.ProviderConfig:
-			vars = m.RawConfig.Variables
+		case *GraphNodeResource:
+			if !m.Orphan {
+				vars = m.Config.RawConfig.Variables
+			}
+		case *GraphNodeResourceProvider:
+			vars = m.Config.RawConfig.Variables
 		default:
 			continue
 		}
