@@ -16,6 +16,7 @@ func init() {
 		Mapping: map[string]resource.Resource{
 			"aws_instance": resource.Resource{
 				Create:  resource_aws_instance_create,
+				Destroy: resource_aws_instance_destroy,
 				Refresh: resource_aws_instance_refresh,
 			},
 		},
@@ -56,7 +57,7 @@ func resource_aws_instance_create(
 	instanceRaw, err := WaitForState(&StateChangeConf{
 		Pending: []string{"pending"},
 		Target:  "running",
-		Refresh: InstanceStateRefreshFunc(ec2conn, instance),
+		Refresh: InstanceStateRefreshFunc(ec2conn, instance.InstanceId),
 	})
 	if err != nil {
 		return rs, fmt.Errorf(
@@ -68,6 +69,34 @@ func resource_aws_instance_create(
 	// Set our attributes
 	rs = rs.MergeDiff(d)
 	return resource_aws_instance_update_state(rs, instance)
+}
+
+func resource_aws_instance_destroy(
+	s *terraform.ResourceState,
+	meta interface{}) error {
+	p := meta.(*ResourceProvider)
+	ec2conn := p.ec2conn
+
+	log.Printf("[INFO] Terminating instance: %s", s.ID)
+	if _, err := ec2conn.TerminateInstances([]string{s.ID}); err != nil {
+		return fmt.Errorf("Error terminating instance: %s", err)
+	}
+
+	log.Printf(
+		"[DEBUG] Waiting for instance (%s) to become terminated",
+		s.ID)
+	_, err := WaitForState(&StateChangeConf{
+		Pending: []string{"pending", "running", "shutting-down", "stopped", "stopping"},
+		Target:  "terminated",
+		Refresh: InstanceStateRefreshFunc(ec2conn, s.ID),
+	})
+	if err != nil {
+		return fmt.Errorf(
+			"Error waiting for instance (%s) to terminate: %s",
+			s.ID, err)
+	}
+
+	return nil
 }
 
 func resource_aws_instance_refresh(

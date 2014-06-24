@@ -30,9 +30,9 @@ type StateChangeConf struct {
 
 // InstanceStateRefreshFunc returns a StateRefreshFunc that is used to watch
 // an EC2 instance.
-func InstanceStateRefreshFunc(conn *ec2.EC2, i *ec2.Instance) StateRefreshFunc {
+func InstanceStateRefreshFunc(conn *ec2.EC2, instanceID string) StateRefreshFunc {
 	return func() (interface{}, string, error) {
-		resp, err := conn.Instances([]string{i.InstanceId}, ec2.NewFilter())
+		resp, err := conn.Instances([]string{instanceID}, ec2.NewFilter())
 		if err != nil {
 			if ec2err, ok := err.(*ec2.Error); ok && ec2err.Code == "InvalidInstanceID.NotFound" {
 				// Set this to nil as if we didn't find anything.
@@ -49,7 +49,7 @@ func InstanceStateRefreshFunc(conn *ec2.EC2, i *ec2.Instance) StateRefreshFunc {
 			return nil, "", nil
 		}
 
-		i = &resp.Reservations[0].Instances[0]
+		i := &resp.Reservations[0].Instances[0]
 		return i, i.State.Name, nil
 	}
 }
