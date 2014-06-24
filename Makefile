@@ -2,6 +2,7 @@ CGO_CFLAGS:=-I$(CURDIR)/vendor/libucl/include
 CGO_LDFLAGS:=-L$(CURDIR)/vendor/libucl
 LIBUCL_NAME=libucl.a
 TEST?=./...
+TESTARGS?=-timeout=5s
 
 # Windows-only
 ifeq ($(OS), Windows_NT)
@@ -22,7 +23,7 @@ dev: libucl
 libucl: vendor/libucl/$(LIBUCL_NAME)
 
 test: libucl
-	go test $(TEST) -timeout=5s
+	go test $(TEST) $(TESTARGS)
 
 vendor/libucl/libucl.a: vendor/libucl
 	cd vendor/libucl && \
