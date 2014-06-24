@@ -89,6 +89,12 @@ func resource_aws_instance_refresh(
 	}
 
 	instance := &resp.Reservations[0].Instances[0]
+
+	// If the instance is terminated, then it is gone
+	if instance.State.Name == "terminated" {
+		return nil, nil
+	}
+
 	return resource_aws_instance_update_state(s, instance)
 }
 
