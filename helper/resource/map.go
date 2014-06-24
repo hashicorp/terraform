@@ -23,6 +23,21 @@ func (m *Map) Apply(
 		return nil, fmt.Errorf("Unknown resource type: %s", s.Type)
 	}
 
+	if d.Destroy {
+		// If we're destroying a resource that doesn't exist, then we're
+		// already done.
+		if s.ID == "" {
+			return nil, nil
+		}
+
+		// Otherwise call the destroy function
+		err := r.Destroy(s, meta)
+		if err == nil {
+			s = nil
+		}
+		return s, err
+	}
+
 	if s.ID == "" {
 		return r.Create(s, d, meta)
 	} else {
