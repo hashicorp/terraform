@@ -1,7 +1,6 @@
 package aws
 
 import (
-	"fmt"
 	"log"
 
 	"github.com/hashicorp/terraform/helper/config"
@@ -60,12 +59,7 @@ func (p *ResourceProvider) Apply(
 func (p *ResourceProvider) Diff(
 	s *terraform.ResourceState,
 	c *terraform.ResourceConfig) (*terraform.ResourceDiff, error) {
-	b := diffMap.Get(s.Type)
-	if b == nil {
-		return nil, fmt.Errorf("Unknown type: %s", s.Type)
-	}
-
-	return b.Diff(s, c)
+	return resourceMap.Diff(s, c, p)
 }
 
 func (p *ResourceProvider) Refresh(

@@ -31,6 +31,19 @@ func (m *Map) Apply(
 	}
 }
 
+// Diff peforms a diff on the proper resource type.
+func (m *Map) Diff(
+	s *terraform.ResourceState,
+	c *terraform.ResourceConfig,
+	meta interface{}) (*terraform.ResourceDiff, error) {
+	r, ok := m.Mapping[s.Type]
+	if !ok {
+		return nil, fmt.Errorf("Unknown resource type: %s", s.Type)
+	}
+
+	return r.Diff(s, c, meta)
+}
+
 // Refresh performs a Refresh on the proper resource type.
 //
 // Refresh on the Resource won't be called if the state represents a

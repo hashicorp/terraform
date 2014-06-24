@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 
+	"github.com/hashicorp/terraform/helper/diff"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
 	"github.com/mitchellh/goamz/ec2"
@@ -19,6 +20,7 @@ func init() {
 			"aws_instance": resource.Resource{
 				Create:  resource_aws_instance_create,
 				Destroy: resource_aws_instance_destroy,
+				Diff:    resource_aws_instance_diff,
 				Refresh: resource_aws_instance_refresh,
 			},
 		},
@@ -99,6 +101,28 @@ func resource_aws_instance_destroy(
 	}
 
 	return nil
+}
+
+func resource_aws_instance_diff(
+	s *terraform.ResourceState,
+	c *terraform.ResourceConfig,
+	meta interface{}) (*terraform.ResourceDiff, error) {
+	b := &diff.ResourceBuilder{
+		CreateComputedAttrs: []string{
+			"public_dns",
+			"public_ip",
+			"private_dns",
+			"private_ip",
+		},
+
+		RequiresNewAttrs: []string{
+			"ami",
+			"availability_zone",
+			"instance_type",
+		},
+	}
+
+	return b.Diff(s, c)
 }
 
 func resource_aws_instance_refresh(
