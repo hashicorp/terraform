@@ -67,20 +67,37 @@ func resource_aws_instance_create(
 
 	// Set our attributes
 	rs = rs.MergeDiff(d)
-	rs.Attributes["public_dns"] = instance.DNSName
-	rs.Attributes["public_ip"] = instance.PublicIpAddress
-	rs.Attributes["private_dns"] = instance.PrivateDNSName
-	rs.Attributes["private_ip"] = instance.PrivateIpAddress
-
-	return rs, nil
+	return resource_aws_instance_update_state(rs, instance)
 }
 
 func resource_aws_instance_refresh(
 	s *terraform.ResourceState,
 	meta interface{}) (*terraform.ResourceState, error) {
-	if s.ID != "" {
-		panic("OH MY WOW")
+	p := meta.(*ResourceProvider)
+	ec2conn := p.ec2conn
+
+	resp, err := ec2conn.Instances([]string{s.ID}, ec2.NewFilter())
+	if err != nil {
+		// If the instance was not found, return nil so that we can show
+		// that the instance is gone.
+		if ec2err, ok := err.(*ec2.Error); ok && ec2err.Code == "InvalidInstanceID.NotFound" {
+			return nil, nil
+		}
+
+		// Some other error, report it
+		return s, err
 	}
 
+	instance := &resp.Reservations[0].Instances[0]
+	return resource_aws_instance_update_state(s, instance)
+}
+
+func resource_aws_instance_update_state(
+	s *terraform.ResourceState,
+	instance *ec2.Instance) (*terraform.ResourceState, error) {
+	s.Attributes["public_dns"] = instance.DNSName
+	s.Attributes["public_ip"] = instance.PublicIpAddress
+	s.Attributes["private_dns"] = instance.PrivateDNSName
+	s.Attributes["private_ip"] = instance.PrivateIpAddress
 	return s, nil
 }
