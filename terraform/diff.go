@@ -147,6 +147,7 @@ func (d *Diff) String() string {
 // ResourceDiff is the diff of a resource from some state to another.
 type ResourceDiff struct {
 	Attributes map[string]*ResourceAttrDiff
+	Destroy    bool
 }
 
 // ResourceAttrDiff is the diff of a single attribute of a resource.
