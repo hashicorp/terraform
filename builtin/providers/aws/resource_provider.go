@@ -54,16 +54,7 @@ func (p *ResourceProvider) Configure(c *terraform.ResourceConfig) error {
 func (p *ResourceProvider) Apply(
 	s *terraform.ResourceState,
 	d *terraform.ResourceDiff) (*terraform.ResourceState, error) {
-	result := &terraform.ResourceState{
-		ID: "foo",
-	}
-	result = result.MergeDiff(d)
-	result.Attributes["public_dns"] = "foo"
-	result.Attributes["public_ip"] = "foo"
-	result.Attributes["private_dns"] = "foo"
-	result.Attributes["private_ip"] = "foo"
-
-	return result, nil
+	return resourceMap.Apply(s, d, p)
 }
 
 func (p *ResourceProvider) Diff(
@@ -79,24 +70,9 @@ func (p *ResourceProvider) Diff(
 
 func (p *ResourceProvider) Refresh(
 	s *terraform.ResourceState) (*terraform.ResourceState, error) {
-	// If there isn't an ID previously, then the thing didn't exist,
-	// so there is nothing to refresh.
-	if s.ID == "" {
-		return s, nil
-	}
-
-	f, ok := refreshMap[s.Type]
-	if !ok {
-		return s, fmt.Errorf("Unknown resource type: %s", s.Type)
-	}
-
-	return f(p, s)
+	return resourceMap.Refresh(s, p)
 }
 
 func (p *ResourceProvider) Resources() []terraform.ResourceType {
-	return []terraform.ResourceType{
-		terraform.ResourceType{
-			Name: "aws_instance",
-		},
-	}
+	return resourceMap.Resources()
 }
