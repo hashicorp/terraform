@@ -54,7 +54,7 @@ func Graph(c *config.Config, s *State) *depgraph.Graph {
 
 	// First, build the initial resource graph. This only has the resources
 	// and no dependencies.
-	graphAddConfigResources(g, c)
+	graphAddConfigResources(g, c, s)
 
 	// Next, add the state orphans if we have any
 	if s != nil {
@@ -103,17 +103,24 @@ func GraphFull(g *depgraph.Graph, ps map[string]ResourceProviderFactory) error {
 }
 
 // configGraph turns a configuration structure into a dependency graph.
-func graphAddConfigResources(g *depgraph.Graph, c *config.Config) {
+func graphAddConfigResources(
+	g *depgraph.Graph, c *config.Config, s *State) {
 	// This tracks all the resource nouns
 	nouns := make(map[string]*depgraph.Noun)
 	for _, r := range c.Resources {
+		var state *ResourceState
+		if s != nil {
+			state = s.Resources[r.Id()]
+		}
+
 		noun := &depgraph.Noun{
 			Name: r.Id(),
 			Meta: &GraphNodeResource{
 				Type:   r.Type,
 				Config: r,
 				Resource: &Resource{
-					Id: r.Id(),
+					Id:    r.Id(),
+					State: state,
 				},
 			},
 		}

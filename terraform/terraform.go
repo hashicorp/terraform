@@ -142,23 +142,22 @@ func (t *Terraform) Plan(s *State) (*Plan, error) {
 
 // Refresh goes through all the resources in the state and refreshes them
 // to their latest status.
-func (t *Terraform) Refresh(
-	c *config.Config, s *State, vs map[string]string) (*State, error) {
+func (t *Terraform) Refresh(c *config.Config, s *State) (*State, error) {
 	g, err := t.Graph(c, s)
 	if err != nil {
 		return s, err
 	}
 
-	return t.refresh(g, vs)
+	return t.refresh(g)
 }
 
-func (t *Terraform) refresh(g *depgraph.Graph, vars map[string]string) (*State, error) {
+func (t *Terraform) refresh(g *depgraph.Graph) (*State, error) {
 	s := new(State)
-	err := g.Walk(t.refreshWalkFn(vars, s))
+	err := g.Walk(t.refreshWalkFn(s))
 	return s, err
 }
 
-func (t *Terraform) refreshWalkFn(vars map[string]string, result *State) depgraph.WalkFunc {
+func (t *Terraform) refreshWalkFn(result *State) depgraph.WalkFunc {
 	var l sync.Mutex
 
 	// Initialize the result so we don't have to nil check everywhere
@@ -177,7 +176,7 @@ func (t *Terraform) refreshWalkFn(vars map[string]string, result *State) depgrap
 		return nil, nil
 	}
 
-	return t.genericWalkFn(vars, cb)
+	return t.genericWalkFn(nil, cb)
 }
 
 func (t *Terraform) applyWalkFn(

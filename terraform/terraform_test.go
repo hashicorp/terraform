@@ -226,12 +226,55 @@ func TestTerraformRefresh(t *testing.T) {
 		ID: "foo",
 	}
 
-	s, err := tf.Refresh(c, nil, nil)
+	s, err := tf.Refresh(c, nil)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
 	if !rpAWS.RefreshCalled {
 		t.Fatal("refresh should be called")
+	}
+	if rpAWS.RefreshState != nil {
+		t.Fatalf("bad: %#v", rpAWS.RefreshState)
+	}
+	if !reflect.DeepEqual(s.Resources["aws_instance.web"], rpAWS.RefreshReturn) {
+		t.Fatalf("bad: %#v", s.Resources)
+	}
+}
+
+func TestTerraformRefresh_state(t *testing.T) {
+	rpAWS := new(MockResourceProvider)
+	rpAWS.ResourcesReturn = []ResourceType{
+		ResourceType{Name: "aws_instance"},
+	}
+
+	c := testConfig(t, "refresh-basic")
+	tf := testTerraform2(t, &Config{
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(rpAWS),
+		},
+	})
+
+	rpAWS.RefreshReturn = &ResourceState{
+		ID: "foo",
+	}
+
+	state := &State{
+		Resources: map[string]*ResourceState{
+			"aws_instance.web": &ResourceState{
+				ID: "bar",
+			},
+		},
+	}
+
+	s, err := tf.Refresh(c, state)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if !rpAWS.RefreshCalled {
+		t.Fatal("refresh should be called")
+	}
+	if !reflect.DeepEqual(rpAWS.RefreshState, state.Resources["aws_instance.web"]) {
+		t.Fatalf("bad: %#v", rpAWS.RefreshState)
 	}
 	if !reflect.DeepEqual(s.Resources["aws_instance.web"], rpAWS.RefreshReturn) {
 		t.Fatalf("bad: %#v", s.Resources)
