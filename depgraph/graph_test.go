@@ -55,6 +55,28 @@ func NounMapToList(m map[string]*Noun) []*Noun {
 	return list
 }
 
+func TestGraph_Noun(t *testing.T) {
+	nodes := ParseNouns(`a -> b
+a -> c
+b -> d
+b -> e
+c -> d
+c -> e`)
+
+	g := &Graph{
+		Name:  "Test",
+		Nouns: NounMapToList(nodes),
+	}
+
+	n := g.Noun("a")
+	if n == nil {
+		t.Fatal("should not be nil")
+	}
+	if n.Name != "a" {
+		t.Fatalf("bad: %#v", n)
+	}
+}
+
 func TestGraph_String(t *testing.T) {
 	nodes := ParseNouns(`a -> b
 a -> c

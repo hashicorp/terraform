@@ -109,6 +109,17 @@ func (g *Graph) CheckConstraints() error {
 	return nil
 }
 
+// Noun returns the noun with the given name, or nil if it cannot be found.
+func (g *Graph) Noun(name string) *Noun {
+	for _, n := range g.Nouns {
+		if n.Name == name {
+			return n
+		}
+	}
+
+	return nil
+}
+
 // String generates a little ASCII string of the graph, useful in
 // debugging output.
 func (g *Graph) String() string {
