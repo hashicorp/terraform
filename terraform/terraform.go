@@ -112,13 +112,8 @@ func (t *Terraform) Graph(c *config.Config, s *State) (*depgraph.Graph, error) {
 		return nil, err
 	}
 
-	// Initialize all the providers
-	if err := graphInitResourceProviders(g, t.providers); err != nil {
-		return nil, err
-	}
-
-	// Map the providers to resources
-	if err := graphMapResourceProviders(g); err != nil {
+	// Fill the graph with the providers
+	if err := GraphFull(g, t.providers); err != nil {
 		return nil, err
 	}
 

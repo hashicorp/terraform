@@ -2,6 +2,7 @@ package terraform
 
 import (
 	"fmt"
+	"sort"
 	"strings"
 
 	"github.com/hashicorp/terraform/config"
@@ -24,9 +25,10 @@ type GraphNodeResource struct {
 // GraphNodeResourceProvider is a node type in the graph that represents
 // the configuration for a resource provider.
 type GraphNodeResourceProvider struct {
-	ID        string
-	Providers []ResourceProvider
-	Config    *config.ProviderConfig
+	ID           string
+	Providers    map[string]ResourceProvider
+	ProviderKeys []string
+	Config       *config.ProviderConfig
 }
 
 // Graph builds a dependency graph for the given configuration and state.
@@ -71,6 +73,25 @@ func Graph(c *config.Config, s *State) *depgraph.Graph {
 	return g
 }
 
+func GraphFull(g *depgraph.Graph, ps map[string]ResourceProviderFactory) error {
+	// Add missing providers from the mapping
+	if err := graphAddMissingResourceProviders(g, ps); err != nil {
+		return err
+	}
+
+	// Initialize all the providers
+	if err := graphInitResourceProviders(g, ps); err != nil {
+		return err
+	}
+
+	// Map the providers to resources
+	if err := graphMapResourceProviders(g); err != nil {
+		return err
+	}
+
+	return nil
+}
+
 // configGraph turns a configuration structure into a dependency graph.
 func graphAddConfigResources(g *depgraph.Graph, c *config.Config) {
 	// This tracks all the resource nouns
@@ -95,6 +116,65 @@ func graphAddConfigResources(g *depgraph.Graph, c *config.Config) {
 
 	g.Name = "terraform"
 	g.Nouns = append(g.Nouns, nounsList...)
+}
+
+// graphAddMissingResourceProviders adds GraphNodeResourceProvider nodes for
+// the resources that do not have an explicit resource provider specified
+// because no provider configuration was given.
+func graphAddMissingResourceProviders(
+	g *depgraph.Graph,
+	ps map[string]ResourceProviderFactory) error {
+	var errs []error
+
+	for _, n := range g.Nouns {
+		rn, ok := n.Meta.(*GraphNodeResource)
+		if !ok {
+			continue
+		}
+		if rn.ResourceProviderID != "" {
+			continue
+		}
+
+		prefixes := matchingPrefixes(rn.Type, ps)
+		if len(prefixes) == 0 {
+			errs = append(errs, fmt.Errorf(
+				"No matching provider for type: %s",
+				rn.Type))
+			continue
+		}
+
+		// The resource provider ID is simply the shortest matching
+		// prefix, since that'll give us the most resource providers
+		// to choose from.
+		rn.ResourceProviderID = prefixes[len(prefixes)-1]
+
+		// If we don't have a matching noun for this yet, insert it.
+		pn := g.Noun(fmt.Sprintf("provider.%s", rn.ResourceProviderID))
+		if pn == nil {
+			pn = &depgraph.Noun{
+				Name: fmt.Sprintf("provider.%s", rn.ResourceProviderID),
+				Meta: &GraphNodeResourceProvider{
+					ID:     rn.ResourceProviderID,
+					Config: nil,
+				},
+			}
+			g.Nouns = append(g.Nouns, pn)
+		}
+
+		// Add the provider configuration noun as a dependency
+		dep := &depgraph.Dependency{
+			Name:   pn.Name,
+			Source: n,
+			Target: pn,
+		}
+		n.Deps = append(n.Deps, dep)
+	}
+
+	if len(errs) > 0 {
+		return &MultiError{Errors: errs}
+	}
+
+	return nil
 }
 
 // graphAddOrphans adds the orphans to the graph.
@@ -249,6 +329,8 @@ func graphInitResourceProviders(
 
 		// Go through each prefix and instantiate if necessary, then
 		// verify if this provider is of use to us or not.
+		rn.Providers = make(map[string]ResourceProvider)
+		rn.ProviderKeys = prefixes
 		for _, prefix := range prefixes {
 			p, err := ps[prefix]()
 			if err != nil {
@@ -263,7 +345,7 @@ func graphInitResourceProviders(
 				continue
 			}
 
-			rn.Providers = append(rn.Providers, p)
+			rn.Providers[prefix] = p
 		}
 
 		// If we never found a provider, then error and continue
@@ -317,7 +399,13 @@ func graphMapResourceProviders(g *depgraph.Graph) error {
 		}
 
 		var provider ResourceProvider
-		for _, rp := range rpn.Providers {
+		for _, k := range rpn.ProviderKeys {
+			// Only try this provider if it has the right prefix
+			if !strings.HasPrefix(rn.Type, k) {
+				continue
+			}
+
+			rp := rpn.Providers[k]
 			if ProviderSatisfies(rp, rn.Type) {
 				provider = rp
 				break
@@ -356,7 +444,24 @@ func matchingPrefixes(
 		}
 	}
 
-	// TODO(mitchellh): Order by longest prefix first
+	// Sort by longest first
+	sort.Sort(stringLenSort(result))
 
 	return result
+}
+
+// stringLenSort implements sort.Interface and sorts strings in increasing
+// length order. i.e. "a", "aa", "aaa"
+type stringLenSort []string
+
+func (s stringLenSort) Len() int {
+	return len(s)
+}
+
+func (s stringLenSort) Less(i, j int) bool {
+	return len(s[i]) < len(s[j])
+}
+
+func (s stringLenSort) Swap(i, j int) {
+	s[i], s[j] = s[j], s[i]
 }
