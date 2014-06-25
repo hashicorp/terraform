@@ -2,6 +2,7 @@ package terraform
 
 import (
 	"fmt"
+	"log"
 	"sync"
 
 	"github.com/hashicorp/terraform/config"
@@ -13,7 +14,6 @@ import (
 // all resources, a resource tree, a specific resource, etc.
 type Terraform struct {
 	providers map[string]ResourceProviderFactory
-	variables map[string]string
 }
 
 // terraformProvider contains internal state information about a resource
@@ -85,7 +85,6 @@ func New(c *Config) (*Terraform, error) {
 
 	return &Terraform{
 		providers: c.Providers,
-		variables: c.Variables,
 	}, nil
 }
 
@@ -117,6 +116,11 @@ func (t *Terraform) Graph(c *config.Config, s *State) (*depgraph.Graph, error) {
 		return nil, err
 	}
 
+	// Validate the graph so that it can setup a root and such
+	if err := g.Validate(); err != nil {
+		return nil, err
+	}
+
 	return g, nil
 }
 
@@ -138,15 +142,42 @@ func (t *Terraform) Plan(s *State) (*Plan, error) {
 
 // Refresh goes through all the resources in the state and refreshes them
 // to their latest status.
-func (t *Terraform) Refresh(c *config.Config, s *State) (*State, error) {
-	_, err := t.Graph(c, s)
+func (t *Terraform) Refresh(
+	c *config.Config, s *State, vs map[string]string) (*State, error) {
+	g, err := t.Graph(c, s)
 	if err != nil {
 		return s, err
 	}
 
-	result := new(State)
-	//err = graph.Walk(t.refreshWalkFn(s, result))
-	return result, err
+	return t.refresh(g, vs)
+}
+
+func (t *Terraform) refresh(g *depgraph.Graph, vars map[string]string) (*State, error) {
+	s := new(State)
+	err := g.Walk(t.refreshWalkFn(vars, s))
+	return s, err
+}
+
+func (t *Terraform) refreshWalkFn(vars map[string]string, result *State) depgraph.WalkFunc {
+	var l sync.Mutex
+
+	// Initialize the result so we don't have to nil check everywhere
+	result.init()
+
+	cb := func(r *Resource) (map[string]string, error) {
+		rs, err := r.Provider.Refresh(r.State)
+		if err != nil {
+			return nil, err
+		}
+
+		l.Lock()
+		result.Resources[r.Id] = rs
+		l.Unlock()
+
+		return nil, nil
+	}
+
+	return t.genericWalkFn(vars, cb)
 }
 
 func (t *Terraform) applyWalkFn(
@@ -209,7 +240,7 @@ func (t *Terraform) applyWalkFn(
 		return vars, err
 	}
 
-	return t.genericWalkFn(p.State, p.Diff, p.Vars, cb)
+	return t.genericWalkFn(p.Vars, cb)
 }
 
 func (t *Terraform) planWalkFn(
@@ -223,10 +254,12 @@ func (t *Terraform) planWalkFn(
 	//result.Config = t.config
 
 	// Copy the variables
-	result.Vars = make(map[string]string)
-	for k, v := range t.variables {
-		result.Vars[k] = v
-	}
+	/*
+		result.Vars = make(map[string]string)
+		for k, v := range t.variables {
+			result.Vars[k] = v
+		}
+	*/
 
 	cb := func(r *Resource) (map[string]string, error) {
 		// Refresh the state so we're working with the latest resource info
@@ -271,15 +304,13 @@ func (t *Terraform) planWalkFn(
 		return vars, nil
 	}
 
-	return t.genericWalkFn(state, nil, t.variables, cb)
+	return t.genericWalkFn(nil, cb)
 }
 
 func (t *Terraform) genericWalkFn(
-	state *State,
-	diff *Diff,
 	invars map[string]string,
 	cb genericWalkFunc) depgraph.WalkFunc {
-	//var l sync.Mutex
+	var l sync.Mutex
 
 	// Initialize the variables for application
 	vars := make(map[string]string)
@@ -288,99 +319,60 @@ func (t *Terraform) genericWalkFn(
 	}
 
 	return func(n *depgraph.Noun) error {
-		/*
-			// If it is the root node, ignore
-			if n.Meta == nil {
-				return nil
+		// If it is the root node, ignore
+		if n.Name == GraphRootNode {
+			return nil
+		}
+
+		switch m := n.Meta.(type) {
+		case *GraphNodeResource:
+		case *GraphNodeResourceProvider:
+			var rc *ResourceConfig
+			if m.Config != nil {
+				if err := m.Config.RawConfig.Interpolate(vars); err != nil {
+					panic(err)
+				}
+				rc = NewResourceConfig(m.Config.RawConfig)
 			}
 
-			switch n.Meta.(type) {
-			case *config.ProviderConfig:
-				// Ignore, we don't treat this any differently since we always
-				// initialize the provider on first use and use a lock to make
-				// sure we only do this once.
-				return nil
-			case *config.Resource:
-				// Continue
-			}
-
-			r := n.Meta.(*config.Resource)
-			p := t.mapping[r]
-			if p == nil {
-				panic(fmt.Sprintf("No provider for resource: %s", r.Id()))
-			}
-
-			// Initialize the provider if we haven't already
-			if err := p.init(vars); err != nil {
-				return err
-			}
-
-			// Get the resource state
-			var rs *ResourceState
-			if state != nil {
-				rs = state.Resources[r.Id()]
-			}
-
-			// Get the resource diff
-			var rd *ResourceDiff
-			if diff != nil {
-				rd = diff.Resources[r.Id()]
-			}
-
-			if len(vars) > 0 {
-				if err := r.RawConfig.Interpolate(vars); err != nil {
-					panic(fmt.Sprintf("Interpolate error: %s", err))
+			for k, p := range m.Providers {
+				log.Printf("Configuring provider: %s", k)
+				err := p.Configure(rc)
+				if err != nil {
+					return err
 				}
 			}
 
-			// If we have no state, then create an empty state with the
-			// type fulfilled at the least.
-			if rs == nil {
-				rs = new(ResourceState)
-			}
-			rs.Type = r.Type
+			return nil
+		}
 
-			// Call the callack
-			newVars, err := cb(&Resource{
-				Id:       r.Id(),
-				Config:   NewResourceConfig(r.RawConfig),
-				Diff:     rd,
-				Provider: p.Provider,
-				State:    rs,
-			})
-			if err != nil {
-				return err
+		rn := n.Meta.(*GraphNodeResource)
+		if len(vars) > 0 && rn.Config != nil {
+			if err := rn.Config.RawConfig.Interpolate(vars); err != nil {
+				panic(fmt.Sprintf("Interpolate error: %s", err))
 			}
 
-			if len(newVars) > 0 {
-				// Acquire a lock since this function is called in parallel
-				l.Lock()
-				defer l.Unlock()
+			// Set the config
+			rn.Resource.Config = NewResourceConfig(rn.Config.RawConfig)
+		}
 
-				// Update variables
-				for k, v := range newVars {
-					vars[k] = v
-				}
+		// Call the callack
+		newVars, err := cb(rn.Resource)
+		if err != nil {
+			return err
+		}
+
+		if len(newVars) > 0 {
+			// Acquire a lock since this function is called in parallel
+			l.Lock()
+			defer l.Unlock()
+
+			// Update variables
+			for k, v := range newVars {
+				vars[k] = v
 			}
-		*/
+		}
 
 		return nil
 	}
-}
-
-func (t *terraformProvider) init(vars map[string]string) (err error) {
-	t.Once.Do(func() {
-		var rc *ResourceConfig
-		if t.Config != nil {
-			if err := t.Config.RawConfig.Interpolate(vars); err != nil {
-				panic(err)
-			}
-
-			rc = NewResourceConfig(t.Config.RawConfig)
-		}
-
-		err = t.Provider.Configure(rc)
-	})
-
-	return
 }

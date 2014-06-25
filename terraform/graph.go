@@ -110,9 +110,11 @@ func graphAddConfigResources(g *depgraph.Graph, c *config.Config) {
 		noun := &depgraph.Noun{
 			Name: r.Id(),
 			Meta: &GraphNodeResource{
-				Type:     r.Type,
-				Config:   r,
-				Resource: new(Resource),
+				Type:   r.Type,
+				Config: r,
+				Resource: &Resource{
+					Id: r.Id(),
+				},
 			},
 		}
 		nouns[noun.Name] = noun
@@ -197,6 +199,7 @@ func graphAddOrphans(g *depgraph.Graph, c *config.Config, s *State) {
 				Type:   rs.Type,
 				Orphan: true,
 				Resource: &Resource{
+					Id:    k,
 					State: rs,
 				},
 			},

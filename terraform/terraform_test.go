@@ -3,6 +3,7 @@ package terraform
 import (
 	"fmt"
 	"path/filepath"
+	"reflect"
 	"strings"
 	"testing"
 
@@ -87,7 +88,7 @@ func TestTerraformApply_unknownAttribute(t *testing.T) {
 
 func TestTerraformApply_vars(t *testing.T) {
 	tf := testTerraform(t, "apply-vars")
-	tf.variables = map[string]string{"foo": "baz"}
+	//tf.variables = map[string]string{"foo": "baz"}
 
 	s := &State{}
 	p, err := tf.Plan(s)
@@ -205,6 +206,35 @@ func TestTerraformPlan_refreshNil(t *testing.T) {
 	}
 	if len(plan.Diff.Resources) != 0 {
 		t.Fatalf("bad: %#v", plan.Diff.Resources)
+	}
+}
+
+func TestTerraformRefresh(t *testing.T) {
+	rpAWS := new(MockResourceProvider)
+	rpAWS.ResourcesReturn = []ResourceType{
+		ResourceType{Name: "aws_instance"},
+	}
+
+	c := testConfig(t, "refresh-basic")
+	tf := testTerraform2(t, &Config{
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(rpAWS),
+		},
+	})
+
+	rpAWS.RefreshReturn = &ResourceState{
+		ID: "foo",
+	}
+
+	s, err := tf.Refresh(c, nil, nil)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if !rpAWS.RefreshCalled {
+		t.Fatal("refresh should be called")
+	}
+	if !reflect.DeepEqual(s.Resources["aws_instance.web"], rpAWS.RefreshReturn) {
+		t.Fatalf("bad: %#v", s.Resources)
 	}
 }
 
