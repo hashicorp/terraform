@@ -73,6 +73,16 @@ func Graph(c *config.Config, s *State) *depgraph.Graph {
 	return g
 }
 
+// GraphFull completes the raw graph returned by Graph by initializing
+// all the resource providers.
+//
+// This may add new nodes to the graph, since it can add new resource
+// providers based on the mapping given in the case that a provider
+// configuration was not specified.
+//
+// Various errors can be returned from this function, such as if there
+// is no matching provider for a resource, a resource provider can't be
+// created, etc.
 func GraphFull(g *depgraph.Graph, ps map[string]ResourceProviderFactory) error {
 	// Add missing providers from the mapping
 	if err := graphAddMissingResourceProviders(g, ps); err != nil {

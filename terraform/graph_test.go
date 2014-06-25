@@ -52,6 +52,63 @@ func TestGraph_state(t *testing.T) {
 	}
 }
 
+func TestGraphFull(t *testing.T) {
+	rpAws := new(MockResourceProvider)
+	rpOS := new(MockResourceProvider)
+
+	rpAws.ResourcesReturn = []ResourceType{
+		ResourceType{Name: "aws_instance"},
+		ResourceType{Name: "aws_load_balancer"},
+		ResourceType{Name: "aws_security_group"},
+	}
+	rpOS.ResourcesReturn = []ResourceType{
+		ResourceType{Name: "openstack_floating_ip"},
+	}
+
+	ps := map[string]ResourceProviderFactory{
+		"aws":  testProviderFuncFixed(rpAws),
+		"open": testProviderFuncFixed(rpOS),
+	}
+
+	c := testConfig(t, "graph-basic")
+	g := Graph(c, nil)
+	if err := GraphFull(g, ps); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if err := g.Validate(); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	// A helper to help get us the provider for a resource.
+	graphProvider := func(n string) ResourceProvider {
+		return g.Noun(n).Meta.(*GraphNodeResource).Resource.Provider
+	}
+
+	// Test a couple
+	if graphProvider("aws_instance.web") != rpAws {
+		t.Fatalf("bad: %#v", graphProvider("aws_instance.web"))
+	}
+	if graphProvider("openstack_floating_ip.random") != rpOS {
+		t.Fatalf("bad: %#v", graphProvider("openstack_floating_ip.random"))
+	}
+
+	// Test that all providers have been set
+	for _, n := range g.Nouns {
+		switch m := n.Meta.(type) {
+		case *GraphNodeResource:
+			if m.Resource.Provider == nil {
+				t.Fatalf("bad: %#v", m)
+			}
+		case *GraphNodeResourceProvider:
+			if len(m.Providers) == 0 {
+				t.Fatalf("bad: %#v", m)
+			}
+		default:
+			continue
+		}
+	}
+}
+
 const testTerraformGraphStr = `
 root: root
 aws_instance.web
