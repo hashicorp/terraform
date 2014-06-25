@@ -2,7 +2,6 @@ package terraform
 
 import (
 	"fmt"
-	"strings"
 
 	"github.com/hashicorp/terraform/config"
 )
@@ -153,24 +152,4 @@ func smcVariables(c *Config) []error {
 	// TODO(mitchellh): variables that are unknown
 
 	return errs
-}
-
-// matchingPrefixes takes a resource type and a set of resource
-// providers we know about by prefix and returns a list of prefixes
-// that might be valid for that resource.
-//
-// The list returned is in the order that they should be attempted.
-func matchingPrefixes(
-	t string,
-	ps map[string]ResourceProviderFactory) []string {
-	result := make([]string, 0, 1)
-	for prefix, _ := range ps {
-		if strings.HasPrefix(t, prefix) {
-			result = append(result, prefix)
-		}
-	}
-
-	// TODO(mitchellh): Order by longest prefix first
-
-	return result
 }

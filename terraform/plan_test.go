@@ -8,9 +8,8 @@ import (
 )
 
 func TestReadWritePlan(t *testing.T) {
-	tf := testTerraform(t, "new-good")
 	plan := &Plan{
-		Config: tf.config,
+		Config: testConfig(t, "new-good"),
 		Diff: &Diff{
 			Resources: map[string]*ResourceDiff{
 				"nodeA": &ResourceDiff{

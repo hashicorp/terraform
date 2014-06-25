@@ -12,8 +12,7 @@ import (
 // Terraform from code, and can perform operations such as returning
 // all resources, a resource tree, a specific resource, etc.
 type Terraform struct {
-	config    *config.Config
-	mapping   map[*config.Resource]*terraformProvider
+	providers map[string]ResourceProviderFactory
 	variables map[string]string
 }
 
@@ -46,7 +45,6 @@ type Config struct {
 // can be properly initialized, can be configured, etc.
 func New(c *Config) (*Terraform, error) {
 	var errs []error
-	var mapping map[*config.Resource]*terraformProvider
 
 	if c.Config != nil {
 		// Validate that all required variables have values
@@ -86,8 +84,7 @@ func New(c *Config) (*Terraform, error) {
 	}
 
 	return &Terraform{
-		config:    c.Config,
-		mapping:   mapping,
+		providers: c.Providers,
 		variables: c.Variables,
 	}, nil
 }
@@ -115,8 +112,15 @@ func (t *Terraform) Graph(c *config.Config, s *State) (*depgraph.Graph, error) {
 		return nil, err
 	}
 
-	// Next, we want to go through the graph and make sure that we
-	// map a provider to each of the resources.
+	// Initialize all the providers
+	if err := graphInitResourceProviders(g, t.providers); err != nil {
+		return nil, err
+	}
+
+	// Map the providers to resources
+	if err := graphMapResourceProviders(g); err != nil {
+		return nil, err
+	}
 
 	return g, nil
 }
@@ -221,7 +225,7 @@ func (t *Terraform) planWalkFn(
 	result.init()
 
 	// Write our configuration out
-	result.Config = t.config
+	//result.Config = t.config
 
 	// Copy the variables
 	result.Vars = make(map[string]string)
@@ -280,7 +284,7 @@ func (t *Terraform) genericWalkFn(
 	diff *Diff,
 	invars map[string]string,
 	cb genericWalkFunc) depgraph.WalkFunc {
-	var l sync.Mutex
+	//var l sync.Mutex
 
 	// Initialize the variables for application
 	vars := make(map[string]string)
@@ -289,79 +293,81 @@ func (t *Terraform) genericWalkFn(
 	}
 
 	return func(n *depgraph.Noun) error {
-		// If it is the root node, ignore
-		if n.Meta == nil {
-			return nil
-		}
-
-		switch n.Meta.(type) {
-		case *config.ProviderConfig:
-			// Ignore, we don't treat this any differently since we always
-			// initialize the provider on first use and use a lock to make
-			// sure we only do this once.
-			return nil
-		case *config.Resource:
-			// Continue
-		}
-
-		r := n.Meta.(*config.Resource)
-		p := t.mapping[r]
-		if p == nil {
-			panic(fmt.Sprintf("No provider for resource: %s", r.Id()))
-		}
-
-		// Initialize the provider if we haven't already
-		if err := p.init(vars); err != nil {
-			return err
-		}
-
-		// Get the resource state
-		var rs *ResourceState
-		if state != nil {
-			rs = state.Resources[r.Id()]
-		}
-
-		// Get the resource diff
-		var rd *ResourceDiff
-		if diff != nil {
-			rd = diff.Resources[r.Id()]
-		}
-
-		if len(vars) > 0 {
-			if err := r.RawConfig.Interpolate(vars); err != nil {
-				panic(fmt.Sprintf("Interpolate error: %s", err))
+		/*
+			// If it is the root node, ignore
+			if n.Meta == nil {
+				return nil
 			}
-		}
 
-		// If we have no state, then create an empty state with the
-		// type fulfilled at the least.
-		if rs == nil {
-			rs = new(ResourceState)
-		}
-		rs.Type = r.Type
-
-		// Call the callack
-		newVars, err := cb(&Resource{
-			Id:       r.Id(),
-			Config:   NewResourceConfig(r.RawConfig),
-			Diff:     rd,
-			Provider: p.Provider,
-			State:    rs,
-		})
-		if err != nil {
-			return err
-		}
-
-		if len(newVars) > 0 {
-			// Acquire a lock since this function is called in parallel
-			l.Lock()
-			defer l.Unlock()
-
-			// Update variables
-			for k, v := range newVars {
-				vars[k] = v
+			switch n.Meta.(type) {
+			case *config.ProviderConfig:
+				// Ignore, we don't treat this any differently since we always
+				// initialize the provider on first use and use a lock to make
+				// sure we only do this once.
+				return nil
+			case *config.Resource:
+				// Continue
 			}
-		}
+
+			r := n.Meta.(*config.Resource)
+			p := t.mapping[r]
+			if p == nil {
+				panic(fmt.Sprintf("No provider for resource: %s", r.Id()))
+			}
+
+			// Initialize the provider if we haven't already
+			if err := p.init(vars); err != nil {
+				return err
+			}
+
+			// Get the resource state
+			var rs *ResourceState
+			if state != nil {
+				rs = state.Resources[r.Id()]
+			}
+
+			// Get the resource diff
+			var rd *ResourceDiff
+			if diff != nil {
+				rd = diff.Resources[r.Id()]
+			}
+
+			if len(vars) > 0 {
+				if err := r.RawConfig.Interpolate(vars); err != nil {
+					panic(fmt.Sprintf("Interpolate error: %s", err))
+				}
+			}
+
+			// If we have no state, then create an empty state with the
+			// type fulfilled at the least.
+			if rs == nil {
+				rs = new(ResourceState)
+			}
+			rs.Type = r.Type
+
+			// Call the callack
+			newVars, err := cb(&Resource{
+				Id:       r.Id(),
+				Config:   NewResourceConfig(r.RawConfig),
+				Diff:     rd,
+				Provider: p.Provider,
+				State:    rs,
+			})
+			if err != nil {
+				return err
+			}
+
+			if len(newVars) > 0 {
+				// Acquire a lock since this function is called in parallel
+				l.Lock()
+				defer l.Unlock()
+
+				// Update variables
+				for k, v := range newVars {
+					vars[k] = v
+				}
+			}
+		*/
 
 		return nil
 	}

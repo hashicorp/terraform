@@ -2,6 +2,7 @@ package terraform
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/hashicorp/terraform/config"
 	"github.com/hashicorp/terraform/depgraph"
@@ -23,9 +24,9 @@ type GraphNodeResource struct {
 // GraphNodeResourceProvider is a node type in the graph that represents
 // the configuration for a resource provider.
 type GraphNodeResourceProvider struct {
-	ID       string
-	Provider ResourceProvider
-	Config   *config.ProviderConfig
+	ID        string
+	Providers []ResourceProvider
+	Config    *config.ProviderConfig
 }
 
 // Graph builds a dependency graph for the given configuration and state.
@@ -78,8 +79,9 @@ func graphAddConfigResources(g *depgraph.Graph, c *config.Config) {
 		noun := &depgraph.Noun{
 			Name: r.Id(),
 			Meta: &GraphNodeResource{
-				Type:   r.Type,
-				Config: r,
+				Type:     r.Type,
+				Config:   r,
+				Resource: new(Resource),
 			},
 		}
 		nouns[noun.Name] = noun
@@ -196,12 +198,9 @@ func graphAddVariableDeps(g *depgraph.Graph) {
 			}
 
 			// Find the target
-			var target *depgraph.Noun
-			for _, n := range g.Nouns {
-				if n.Name == rv.ResourceId() {
-					target = n
-					break
-				}
+			target := g.Noun(rv.ResourceId())
+			if target == nil {
+				continue
 			}
 
 			// Build the dependency
@@ -214,4 +213,150 @@ func graphAddVariableDeps(g *depgraph.Graph) {
 			n.Deps = append(n.Deps, dep)
 		}
 	}
+}
+
+// graphInitResourceProviders maps the resource providers onto the graph
+// given a mapping of prefixes to resource providers.
+//
+// Unlike the graphAdd* functions, this one can return an error if resource
+// providers can't be found or can't be instantiated.
+func graphInitResourceProviders(
+	g *depgraph.Graph,
+	ps map[string]ResourceProviderFactory) error {
+	var errs []error
+
+	// Keep track of providers we know we couldn't instantiate so
+	// that we don't get a ton of errors about the same provider.
+	failures := make(map[string]struct{})
+
+	for _, n := range g.Nouns {
+		// We only care about the resource providers first. There is guaranteed
+		// to be only one node per tuple (providerId, providerConfig), which
+		// means we don't need to verify we have instantiated it before.
+		rn, ok := n.Meta.(*GraphNodeResourceProvider)
+		if !ok {
+			continue
+		}
+
+		prefixes := matchingPrefixes(rn.ID, ps)
+		if len(prefixes) > 0 {
+			if _, ok := failures[prefixes[0]]; ok {
+				// We already failed this provider, meaning this
+				// resource will never succeed, so just continue.
+				continue
+			}
+		}
+
+		// Go through each prefix and instantiate if necessary, then
+		// verify if this provider is of use to us or not.
+		for _, prefix := range prefixes {
+			p, err := ps[prefix]()
+			if err != nil {
+				errs = append(errs, fmt.Errorf(
+					"Error instantiating resource provider for "+
+						"prefix %s: %s", prefix, err))
+
+				// Record the error so that we don't check it again
+				failures[prefix] = struct{}{}
+
+				// Jump to the next prefix
+				continue
+			}
+
+			rn.Providers = append(rn.Providers, p)
+		}
+
+		// If we never found a provider, then error and continue
+		if len(rn.Providers) == 0 {
+			errs = append(errs, fmt.Errorf(
+				"Provider for configuration '%s' not found.",
+				rn.ID))
+			continue
+		}
+	}
+
+	if len(errs) > 0 {
+		return &MultiError{Errors: errs}
+	}
+
+	return nil
+}
+
+// graphMapResourceProviders takes a graph that already has initialized
+// the resource providers (using graphInitResourceProviders) and maps the
+// resource providers to the resources themselves.
+func graphMapResourceProviders(g *depgraph.Graph) error {
+	var errs []error
+
+	// First build a mapping of resource provider ID to the node that
+	// contains those resources.
+	mapping := make(map[string]*GraphNodeResourceProvider)
+	for _, n := range g.Nouns {
+		rn, ok := n.Meta.(*GraphNodeResourceProvider)
+		if !ok {
+			continue
+		}
+		mapping[rn.ID] = rn
+	}
+
+	// Now go through each of the resources and find a matching provider.
+	for _, n := range g.Nouns {
+		rn, ok := n.Meta.(*GraphNodeResource)
+		if !ok {
+			continue
+		}
+
+		rpn, ok := mapping[rn.ResourceProviderID]
+		if !ok {
+			// This should never happen since when building the graph
+			// we ensure that everything matches up.
+			panic(fmt.Sprintf(
+				"Resource provider ID not found: %s (type: %s)",
+				rn.ResourceProviderID,
+				rn.Type))
+		}
+
+		var provider ResourceProvider
+		for _, rp := range rpn.Providers {
+			if ProviderSatisfies(rp, rn.Type) {
+				provider = rp
+				break
+			}
+		}
+
+		if provider == nil {
+			errs = append(errs, fmt.Errorf(
+				"Resource provider not found for resource type '%s'",
+				rn.Type))
+			continue
+		}
+
+		rn.Resource.Provider = provider
+	}
+
+	if len(errs) > 0 {
+		return &MultiError{Errors: errs}
+	}
+
+	return nil
+}
+
+// matchingPrefixes takes a resource type and a set of resource
+// providers we know about by prefix and returns a list of prefixes
+// that might be valid for that resource.
+//
+// The list returned is in the order that they should be attempted.
+func matchingPrefixes(
+	t string,
+	ps map[string]ResourceProviderFactory) []string {
+	result := make([]string, 0, 1)
+	for prefix, _ := range ps {
+		if strings.HasPrefix(t, prefix) {
+			result = append(result, prefix)
+		}
+	}
+
+	// TODO(mitchellh): Order by longest prefix first
+
+	return result
 }

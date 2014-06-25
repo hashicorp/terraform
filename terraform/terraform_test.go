@@ -110,6 +110,46 @@ func TestTerraformApply_vars(t *testing.T) {
 	}
 }
 
+func TestTerraformGraph(t *testing.T) {
+	rpAws := new(MockResourceProvider)
+	rpOS := new(MockResourceProvider)
+
+	rpAws.ResourcesReturn = []ResourceType{
+		ResourceType{Name: "aws_instance"},
+		ResourceType{Name: "aws_load_balancer"},
+		ResourceType{Name: "aws_security_group"},
+	}
+	rpOS.ResourcesReturn = []ResourceType{
+		ResourceType{Name: "openstack_floating_ip"},
+	}
+
+	tf := testTerraform2(t, &Config{
+		Providers: map[string]ResourceProviderFactory{
+			"aws":  testProviderFuncFixed(rpAws),
+			"open": testProviderFuncFixed(rpOS),
+		},
+	})
+
+	c := testConfig(t, "graph-basic")
+
+	g, err := tf.Graph(c, nil)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	// A helper to help get us the provider for a resource.
+	graphProvider := func(n string) ResourceProvider {
+		return g.Noun(n).Meta.(*GraphNodeResource).Resource.Provider
+	}
+
+	if graphProvider("aws_instance.web") != rpAws {
+		t.Fatalf("bad: %#v", graphProvider("aws_instance.web"))
+	}
+	if graphProvider("openstack_floating_ip.random") != rpOS {
+		t.Fatalf("bad: %#v", graphProvider("openstack_floating_ip.random"))
+	}
+}
+
 func TestTerraformPlan(t *testing.T) {
 	tf := testTerraform(t, "plan-good")
 
@@ -328,12 +368,20 @@ func testProviderFunc(n string, rs []string) ResourceProviderFactory {
 	}
 }
 
-func testProvider(tf *Terraform, n string) ResourceProvider {
-	for r, tp := range tf.mapping {
-		if r.Id() == n {
-			return tp.Provider
-		}
+func testProviderFuncFixed(rp ResourceProvider) ResourceProviderFactory {
+	return func() (ResourceProvider, error) {
+		return rp, nil
 	}
+}
+
+func testProvider(tf *Terraform, n string) ResourceProvider {
+	/*
+		for r, tp := range tf.mapping {
+			if r.Id() == n {
+				return tp.Provider
+			}
+		}
+	*/
 
 	return nil
 }
@@ -343,23 +391,27 @@ func testProviderMock(p ResourceProvider) *MockResourceProvider {
 }
 
 func testProviderConfig(tf *Terraform, n string) *config.ProviderConfig {
-	for r, tp := range tf.mapping {
-		if r.Id() == n {
-			return tp.Config
+	/*
+		for r, tp := range tf.mapping {
+			if r.Id() == n {
+				return tp.Config
+			}
 		}
-	}
+	*/
 
 	return nil
 }
 
 func testProviderName(t *testing.T, tf *Terraform, n string) string {
 	var p ResourceProvider
-	for r, tp := range tf.mapping {
-		if r.Id() == n {
-			p = tp.Provider
-			break
+	/*
+		for r, tp := range tf.mapping {
+			if r.Id() == n {
+				p = tp.Provider
+				break
+			}
 		}
-	}
+	*/
 
 	if p == nil {
 		t.Fatalf("resource not found: %s", n)
@@ -406,11 +458,13 @@ func testTerraform2(t *testing.T, c *Config) *Terraform {
 }
 
 func testTerraformProvider(tf *Terraform, n string) *terraformProvider {
-	for r, tp := range tf.mapping {
-		if r.Id() == n {
-			return tp
+	/*
+		for r, tp := range tf.mapping {
+			if r.Id() == n {
+				return tp
+			}
 		}
-	}
+	*/
 
 	return nil
 }

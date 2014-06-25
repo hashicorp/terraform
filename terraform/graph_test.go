@@ -5,7 +5,7 @@ import (
 	"testing"
 )
 
-func TestTerraformGraph(t *testing.T) {
+func TestGraph(t *testing.T) {
 	config := testConfig(t, "graph-basic")
 
 	g := Graph(config, nil)
@@ -20,7 +20,7 @@ func TestTerraformGraph(t *testing.T) {
 	}
 }
 
-func TestTerraformGraph_cycle(t *testing.T) {
+func TestGraph_cycle(t *testing.T) {
 	config := testConfig(t, "graph-cycle")
 
 	g := Graph(config, nil)
@@ -29,7 +29,7 @@ func TestTerraformGraph_cycle(t *testing.T) {
 	}
 }
 
-func TestTerraformGraph_state(t *testing.T) {
+func TestGraph_state(t *testing.T) {
 	config := testConfig(t, "graph-basic")
 	state := &State{
 		Resources: map[string]*ResourceState{
