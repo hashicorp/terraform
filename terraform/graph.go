@@ -111,7 +111,8 @@ func graphAddConfigResources(
 		var state *ResourceState
 		if s != nil {
 			state = s.Resources[r.Id()]
-		} else {
+		}
+		if state == nil {
 			state = &ResourceState{
 				Type: r.Type,
 			}

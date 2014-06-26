@@ -89,14 +89,12 @@ func New(c *Config) (*Terraform, error) {
 }
 
 func (t *Terraform) Apply(p *Plan) (*State, error) {
-	graph, err := t.Graph(p.Config, p.State)
+	g, err := t.Graph(p.Config, p.State)
 	if err != nil {
 		return nil, err
 	}
 
-	result := new(State)
-	err = graph.Walk(t.applyWalkFn(p, result))
-	return result, err
+	return t.apply(g, p)
 }
 
 // Graph returns the dependency graph for the given configuration and
@@ -145,6 +143,14 @@ func (t *Terraform) Refresh(c *config.Config, s *State) (*State, error) {
 	return t.refresh(g)
 }
 
+func (t *Terraform) apply(
+	g *depgraph.Graph,
+	p *Plan) (*State, error) {
+	s := new(State)
+	err := g.Walk(t.applyWalkFn(s, p.Vars))
+	return s, err
+}
+
 func (t *Terraform) plan(
 	g *depgraph.Graph,
 	c *config.Config,
@@ -187,8 +193,8 @@ func (t *Terraform) refreshWalkFn(result *State) depgraph.WalkFunc {
 }
 
 func (t *Terraform) applyWalkFn(
-	p *Plan,
-	result *State) depgraph.WalkFunc {
+	result *State,
+	vs map[string]string) depgraph.WalkFunc {
 	var l sync.Mutex
 
 	// Initialize the result
@@ -246,7 +252,7 @@ func (t *Terraform) applyWalkFn(
 		return vars, err
 	}
 
-	return t.genericWalkFn(p.Vars, cb)
+	return t.genericWalkFn(vs, cb)
 }
 
 func (t *Terraform) planWalkFn(

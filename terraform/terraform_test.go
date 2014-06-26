@@ -13,12 +13,11 @@ import (
 // This is the directory where our test fixtures are.
 const fixtureDir = "./test-fixtures"
 
-/*
 func TestTerraformApply(t *testing.T) {
-	tf := testTerraform(t, "apply-good")
+	c := testConfig(t, "apply-good")
+	tf := testTerraform2(t, nil)
 
-	s := &State{}
-	p, err := tf.Plan(s)
+	p, err := tf.Plan(c, nil, nil)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -42,17 +41,15 @@ func TestTerraformApply(t *testing.T) {
 func TestTerraformApply_compute(t *testing.T) {
 	// This tests that computed variables are properly re-diffed
 	// to get the value prior to application (Apply).
-	tf := testTerraform(t, "apply-compute")
+	c := testConfig(t, "apply-compute")
+	tf := testTerraform2(t, nil)
 
-	s := &State{}
-	p, err := tf.Plan(s)
+	p, err := tf.Plan(c, nil, nil)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
 
-	// Set meta to change behavior so that computed variables are filled
-	testProviderMock(testProvider(tf, "aws_instance.foo")).Meta =
-		"compute"
+	p.Vars["value"] = "1"
 
 	state, err := tf.Apply(p)
 	if err != nil {
@@ -67,10 +64,10 @@ func TestTerraformApply_compute(t *testing.T) {
 }
 
 func TestTerraformApply_unknownAttribute(t *testing.T) {
-	tf := testTerraform(t, "apply-unknown")
+	c := testConfig(t, "apply-unknown")
+	tf := testTerraform2(t, nil)
 
-	s := &State{}
-	p, err := tf.Plan(s)
+	p, err := tf.Plan(c, nil, nil)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -88,11 +85,10 @@ func TestTerraformApply_unknownAttribute(t *testing.T) {
 }
 
 func TestTerraformApply_vars(t *testing.T) {
-	tf := testTerraform(t, "apply-vars")
-	//tf.variables = map[string]string{"foo": "baz"}
+	c := testConfig(t, "apply-vars")
+	tf := testTerraform2(t, nil)
 
-	s := &State{}
-	p, err := tf.Plan(s)
+	p, err := tf.Plan(c, nil, map[string]string{"foo": "baz"})
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -111,7 +107,6 @@ func TestTerraformApply_vars(t *testing.T) {
 		t.Fatalf("bad: \n%s", actual)
 	}
 }
-*/
 
 func TestTerraformPlan(t *testing.T) {
 	c := testConfig(t, "plan-good")
@@ -190,7 +185,7 @@ func TestTerraformRefresh(t *testing.T) {
 	if !rpAWS.RefreshCalled {
 		t.Fatal("refresh should be called")
 	}
-	if rpAWS.RefreshState != nil {
+	if rpAWS.RefreshState.ID != "" {
 		t.Fatalf("bad: %#v", rpAWS.RefreshState)
 	}
 	if !reflect.DeepEqual(s.Resources["aws_instance.web"], rpAWS.RefreshReturn) {
@@ -292,6 +287,11 @@ func testProviderFunc(n string, rs []string) ResourceProviderFactory {
 					return nil, nil
 				}
 
+				// This key is used for other purposes
+				if k == "compute_value" {
+					continue
+				}
+
 				if k == "compute" {
 					attrDiff := &ResourceAttrDiff{
 						Old:         "",
@@ -299,11 +299,11 @@ func testProviderFunc(n string, rs []string) ResourceProviderFactory {
 						NewComputed: true,
 					}
 
-					// If the value of Meta turns into "compute", then we
-					// fill the computed values.
-					if mv, ok := p.Meta.(string); ok && mv == "compute" {
-						attrDiff.NewComputed = false
-						attrDiff.New = fmt.Sprintf("computed_%s", v.(string))
+					if cv, ok := c.Config["compute_value"]; ok {
+						if cv.(string) == "1" {
+							attrDiff.NewComputed = false
+							attrDiff.New = fmt.Sprintf("computed_%s", v.(string))
+						}
 					}
 
 					diff.Attributes[v.(string)] = attrDiff
