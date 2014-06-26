@@ -19,9 +19,11 @@ type PlanCommand struct {
 }
 
 func (c *PlanCommand) Run(args []string) int {
+	var refresh bool
 	var statePath string
 
 	cmdFlags := flag.NewFlagSet("plan", flag.ContinueOnError)
+	cmdFlags.BoolVar(&refresh, "refresh", true, "refresh")
 	cmdFlags.StringVar(&statePath, "state", "", "path")
 	cmdFlags.Usage = func() { c.Ui.Error(c.Help()) }
 	if err := cmdFlags.Parse(args); err != nil {
@@ -66,6 +68,14 @@ func (c *PlanCommand) Run(args []string) int {
 		return 1
 	}
 
+	if refresh {
+		state, err = tf.Refresh(b, state)
+		if err != nil {
+			c.Ui.Error(fmt.Sprintf("Error refreshing state: %s", err))
+			return 1
+		}
+	}
+
 	plan, err := tf.Plan(b, state, nil)
 	if err != nil {
 		c.Ui.Error(fmt.Sprintf("Error running plan: %s", err))
@@ -89,6 +99,8 @@ Usage: terraform plan [options] [terraform.tf]
   the actual state of an infrastructure.
 
 Options:
+
+  -refresh=true       Update state prior to checking for differences.
 
   -state=statefile    Path to a Terraform state file to use to look
                       up Terraform-managed resources.
