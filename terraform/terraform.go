@@ -170,6 +170,9 @@ func (t *Terraform) applyWalkFn(
 			return nil, err
 		}
 
+		// Force the resource state type to be our type
+		rs.Type = r.State.Type
+
 		// If no state was returned, then no variables were updated so
 		// just return.
 		if rs == nil {
