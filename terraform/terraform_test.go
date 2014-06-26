@@ -161,6 +161,31 @@ func TestTerraformPlan_computed(t *testing.T) {
 	}
 }
 
+func TestTerraformPlan_orphan(t *testing.T) {
+	c := testConfig(t, "plan-orphan")
+	tf := testTerraform2(t, nil)
+
+	s := &State{
+		Resources: map[string]*ResourceState{
+			"aws_instance.baz": &ResourceState{
+				ID:   "bar",
+				Type: "aws_instance",
+			},
+		},
+	}
+
+	plan, err := tf.Plan(c, s, nil)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	actual := strings.TrimSpace(plan.String())
+	expected := strings.TrimSpace(testTerraformPlanOrphanStr)
+	if actual != expected {
+		t.Fatalf("bad:\n%s", actual)
+	}
+}
+
 func TestTerraformPlan_state(t *testing.T) {
 	c := testConfig(t, "plan-good")
 	tf := testTerraform2(t, nil)
@@ -493,6 +518,20 @@ UPDATE: aws_instance.foo
 STATE:
 
 <no state>
+`
+
+const testTerraformPlanOrphanStr = `
+DIFF:
+
+DESTROY: aws_instance.baz
+UPDATE: aws_instance.foo
+  num:  "" => "2"
+  type: "" => "aws_instance"
+
+STATE:
+
+aws_instance.baz:
+  ID = bar
 `
 
 const testTerraformPlanStateStr = `

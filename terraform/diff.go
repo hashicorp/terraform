@@ -99,7 +99,11 @@ func (d *Diff) String() string {
 		rdiff := d.Resources[name]
 
 		crud := "UPDATE"
-		if rdiff.RequiresNew() {
+		if rdiff.RequiresNew() && rdiff.Destroy {
+			crud = "DESTROY/CREATE"
+		} else if rdiff.Destroy {
+			crud = "DESTROY"
+		} else if rdiff.RequiresNew() {
 			crud = "CREATE"
 		}
 
@@ -179,7 +183,7 @@ func (d *ResourceDiff) Empty() bool {
 		return true
 	}
 
-	return len(d.Attributes) == 0
+	return !d.Destroy && len(d.Attributes) == 0
 }
 
 // RequiresNew returns true if the diff requires the creation of a new

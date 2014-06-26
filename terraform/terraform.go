@@ -225,10 +225,18 @@ func (t *Terraform) planWalkFn(
 	result.init()
 
 	cb := func(r *Resource) (map[string]string, error) {
-		// Get a diff from the newest state
-		diff, err := r.Provider.Diff(r.State, r.Config)
-		if err != nil {
-			return nil, err
+		var diff *ResourceDiff
+
+		if r.Config == nil {
+			// This is an orphan (no config), so we mark it to be destroyed
+			diff = &ResourceDiff{Destroy: true}
+		} else {
+			// Get a diff from the newest state
+			var err error
+			diff, err = r.Provider.Diff(r.State, r.Config)
+			if err != nil {
+				return nil, err
+			}
 		}
 
 		l.Lock()
@@ -304,7 +312,7 @@ func (t *Terraform) genericWalkFn(
 		}
 
 		// Make sure that at least some resource configuration is set
-		if rn.Resource.Config == nil {
+		if rn.Resource.Config == nil && !rn.Orphan {
 			if rn.Config == nil {
 				rn.Resource.Config = new(ResourceConfig)
 			} else {
