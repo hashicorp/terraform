@@ -100,9 +100,10 @@ func wrappedMain() int {
 	}
 
 	cli := &cli.CLI{
-		Args:     args,
-		Commands: Commands,
-		HelpFunc: cli.BasicHelpFunc("terraform"),
+		Args:       args,
+		Commands:   Commands,
+		HelpFunc:   cli.BasicHelpFunc("terraform"),
+		HelpWriter: os.Stdout,
 	}
 
 	exitCode, err := cli.Run()
@@ -131,7 +132,12 @@ func copyOutput(r io.Reader) {
 	if err != nil {
 		panic(err)
 	}
+	defaultR, err := pr.Prefix("")
+	if err != nil {
+		panic(err)
+	}
 
 	go io.Copy(os.Stderr, stderrR)
 	go io.Copy(os.Stdout, stdoutR)
+	go io.Copy(os.Stdout, defaultR)
 }

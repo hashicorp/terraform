@@ -38,11 +38,11 @@ func resource_aws_instance_create(
 	// properly.
 	rs := s.MergeDiff(d)
 
+	// Create the instance
 	runOpts := &ec2.RunInstances{
 		ImageId:      rs.Attributes["ami"],
 		InstanceType: rs.Attributes["instance_type"],
 	}
-
 	log.Printf("[DEBUG] Run configuration: %#v", runOpts)
 	runResp, err := ec2conn.RunInstances(runOpts)
 	if err != nil {
@@ -52,8 +52,7 @@ func resource_aws_instance_create(
 	instance := &runResp.Instances[0]
 	log.Printf("[INFO] Instance ID: %s", instance.InstanceId)
 
-	// Store the resource state now so that we can return it in the case
-	// of any errors.
+	// Store the resulting ID so we can look this up later
 	rs.ID = instance.InstanceId
 
 	// Wait for the instance to become running so we can get some attributes
