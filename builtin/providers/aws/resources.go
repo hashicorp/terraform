@@ -145,6 +145,11 @@ func resource_aws_instance_refresh(
 		return s, err
 	}
 
+	// If nothing was found, then return no state
+	if len(resp.Reservations) == 0 {
+		return nil, nil
+	}
+
 	instance := &resp.Reservations[0].Instances[0]
 
 	// If the instance is terminated, then it is gone

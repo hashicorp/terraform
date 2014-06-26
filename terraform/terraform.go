@@ -132,6 +132,9 @@ func (t *Terraform) refreshWalkFn(result *State) depgraph.WalkFunc {
 		if err != nil {
 			return nil, err
 		}
+		if rs == nil {
+			rs = new(ResourceState)
+		}
 
 		// Fix the type to be the type we have
 		rs.Type = r.State.Type
