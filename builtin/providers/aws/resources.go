@@ -34,9 +34,15 @@ func resource_aws_instance_create(
 	p := meta.(*ResourceProvider)
 	ec2conn := p.ec2conn
 
+	// Merge the diff into the state so that we have all the attributes
+	// properly. Note that this merged state will contain some computed
+	// properties so it won't actually be our result (which we build from
+	// scratch later).
+	ms := s.MergeDiff(d)
+
 	runOpts := &ec2.RunInstances{
-		ImageId:      d.Attributes["ami"].New,
-		InstanceType: d.Attributes["instance_type"].New,
+		ImageId:      ms.Attributes["ami"],
+		InstanceType: ms.Attributes["instance_type"],
 	}
 
 	log.Printf("[DEBUG] Run configuration: %#v", runOpts)

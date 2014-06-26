@@ -170,6 +170,11 @@ func (t *Terraform) applyWalkFn(
 			return nil, err
 		}
 
+		// Make sure the result is instantiated
+		if rs == nil {
+			rs = new(ResourceState)
+		}
+
 		// Force the resource state type to be our type
 		rs.Type = r.State.Type
 
