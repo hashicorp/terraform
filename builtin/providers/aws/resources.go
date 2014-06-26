@@ -35,14 +35,12 @@ func resource_aws_instance_create(
 	ec2conn := p.ec2conn
 
 	// Merge the diff into the state so that we have all the attributes
-	// properly. Note that this merged state will contain some computed
-	// properties so it won't actually be our result (which we build from
-	// scratch later).
-	ms := s.MergeDiff(d)
+	// properly.
+	rs := s.MergeDiff(d)
 
 	runOpts := &ec2.RunInstances{
-		ImageId:      ms.Attributes["ami"],
-		InstanceType: ms.Attributes["instance_type"],
+		ImageId:      rs.Attributes["ami"],
+		InstanceType: rs.Attributes["instance_type"],
 	}
 
 	log.Printf("[DEBUG] Run configuration: %#v", runOpts)
@@ -56,7 +54,6 @@ func resource_aws_instance_create(
 
 	// Store the resource state now so that we can return it in the case
 	// of any errors.
-	rs := new(terraform.ResourceState)
 	rs.ID = instance.InstanceId
 
 	// Wait for the instance to become running so we can get some attributes
@@ -77,7 +74,6 @@ func resource_aws_instance_create(
 	instance = instanceRaw.(*ec2.Instance)
 
 	// Set our attributes
-	rs = rs.MergeDiff(d)
 	return resource_aws_instance_update_state(rs, instance)
 }
 
