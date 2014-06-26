@@ -1,6 +1,7 @@
 package terraform
 
 import (
+	"bytes"
 	"encoding/gob"
 	"errors"
 	"fmt"
@@ -22,7 +23,12 @@ type Plan struct {
 }
 
 func (p *Plan) String() string {
-	return p.Diff.String()
+	buf := new(bytes.Buffer)
+	buf.WriteString("DIFF:\n\n")
+	buf.WriteString(p.Diff.String())
+	buf.WriteString("\nSTATE:\n\n")
+	buf.WriteString(p.State.String())
+	return buf.String()
 }
 
 func (p *Plan) init() {

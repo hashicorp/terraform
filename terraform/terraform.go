@@ -109,6 +109,7 @@ func (t *Terraform) plan(
 	p := &Plan{
 		Config: c,
 		Vars:   vs,
+		State:  s,
 	}
 	err := g.Walk(t.planWalkFn(p, vs))
 	return p, err

@@ -161,6 +161,34 @@ func TestTerraformPlan_computed(t *testing.T) {
 	}
 }
 
+func TestTerraformPlan_state(t *testing.T) {
+	c := testConfig(t, "plan-good")
+	tf := testTerraform2(t, nil)
+
+	s := &State{
+		Resources: map[string]*ResourceState{
+			"aws_instance.foo": &ResourceState{
+				ID: "bar",
+			},
+		},
+	}
+
+	plan, err := tf.Plan(c, s, nil)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	if len(plan.Diff.Resources) < 2 {
+		t.Fatalf("bad: %#v", plan.Diff.Resources)
+	}
+
+	actual := strings.TrimSpace(plan.String())
+	expected := strings.TrimSpace(testTerraformPlanStateStr)
+	if actual != expected {
+		t.Fatalf("bad:\n%s", actual)
+	}
+}
+
 func TestTerraformRefresh(t *testing.T) {
 	rpAWS := new(MockResourceProvider)
 	rpAWS.ResourcesReturn = []ResourceType{
@@ -431,15 +459,23 @@ aws_instance.foo:
 `
 
 const testTerraformPlanStr = `
+DIFF:
+
 UPDATE: aws_instance.bar
   foo:  "" => "2"
   type: "" => "aws_instance"
 UPDATE: aws_instance.foo
   num:  "" => "2"
   type: "" => "aws_instance"
+
+STATE:
+
+<no state>
 `
 
 const testTerraformPlanComputedStr = `
+DIFF:
+
 UPDATE: aws_instance.bar
   foo:  "" => "<computed>"
   type: "" => "aws_instance"
@@ -447,4 +483,24 @@ UPDATE: aws_instance.foo
   id:   "" => "<computed>"
   num:  "" => "2"
   type: "" => "aws_instance"
+
+STATE:
+
+<no state>
+`
+
+const testTerraformPlanStateStr = `
+DIFF:
+
+UPDATE: aws_instance.bar
+  foo:  "" => "2"
+  type: "" => "aws_instance"
+UPDATE: aws_instance.foo
+  num:  "" => "2"
+  type: "" => ""
+
+STATE:
+
+aws_instance.foo:
+  ID = bar
 `

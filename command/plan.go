@@ -60,16 +60,13 @@ func (c *PlanCommand) Run(args []string) int {
 		return 1
 	}
 
-	tfconfig := c.TFConfig
-	tfconfig.Config = b
-
-	tf, err := terraform.New(tfconfig)
+	tf, err := terraform.New(c.TFConfig)
 	if err != nil {
 		c.Ui.Error(fmt.Sprintf("Error initializing Terraform: %s", err))
 		return 1
 	}
 
-	plan, err := tf.Plan(state)
+	plan, err := tf.Plan(b, state, nil)
 	if err != nil {
 		c.Ui.Error(fmt.Sprintf("Error running plan: %s", err))
 		return 1

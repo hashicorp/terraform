@@ -49,6 +49,10 @@ func (s *State) Orphans(c *config.Config) []string {
 }
 
 func (s *State) String() string {
+	if len(s.Resources) == 0 {
+		return "<no state>"
+	}
+
 	var buf bytes.Buffer
 
 	names := make([]string, 0, len(s.Resources))
