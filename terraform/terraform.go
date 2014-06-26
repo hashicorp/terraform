@@ -16,15 +16,6 @@ type Terraform struct {
 	providers map[string]ResourceProviderFactory
 }
 
-// terraformProvider contains internal state information about a resource
-// provider for Terraform.
-type terraformProvider struct {
-	Provider ResourceProvider
-	Config   *config.ProviderConfig
-
-	sync.Once
-}
-
 // This is a function type used to implement a walker for the resource
 // tree internally on the Terraform structure.
 type genericWalkFunc func(*Resource) (map[string]string, error)
@@ -32,9 +23,7 @@ type genericWalkFunc func(*Resource) (map[string]string, error)
 // Config is the configuration that must be given to instantiate
 // a Terraform structure.
 type Config struct {
-	Config    *config.Config
 	Providers map[string]ResourceProviderFactory
-	Variables map[string]string
 }
 
 // New creates a new Terraform structure, initializes resource providers
@@ -44,45 +33,6 @@ type Config struct {
 // time, as well as richer checks such as verifying that the resource providers
 // can be properly initialized, can be configured, etc.
 func New(c *Config) (*Terraform, error) {
-	var errs []error
-
-	if c.Config != nil {
-		// Validate that all required variables have values
-		if err := smcVariables(c); err != nil {
-			errs = append(errs, err...)
-		}
-
-		// Match all the resources with a provider and initialize the providers
-		mapping, err := smcProviders(c)
-		if err != nil {
-			errs = append(errs, err...)
-		}
-
-		// Validate all the configurations, once.
-		tps := make(map[*terraformProvider]struct{})
-		for _, tp := range mapping {
-			if _, ok := tps[tp]; !ok {
-				tps[tp] = struct{}{}
-			}
-		}
-		for tp, _ := range tps {
-			var rc *ResourceConfig
-			if tp.Config != nil {
-				rc = NewResourceConfig(tp.Config.RawConfig)
-			}
-
-			_, tpErrs := tp.Provider.Validate(rc)
-			if len(tpErrs) > 0 {
-				errs = append(errs, tpErrs...)
-			}
-		}
-	}
-
-	// If we accumulated any errors, then return them all
-	if len(errs) > 0 {
-		return nil, &MultiError{Errors: errs}
-	}
-
 	return &Terraform{
 		providers: c.Providers,
 	}, nil

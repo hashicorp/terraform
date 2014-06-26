@@ -364,71 +364,8 @@ func testProviderFuncFixed(rp ResourceProvider) ResourceProviderFactory {
 	}
 }
 
-func testProvider(tf *Terraform, n string) ResourceProvider {
-	/*
-		for r, tp := range tf.mapping {
-			if r.Id() == n {
-				return tp.Provider
-			}
-		}
-	*/
-
-	return nil
-}
-
 func testProviderMock(p ResourceProvider) *MockResourceProvider {
 	return p.(*MockResourceProvider)
-}
-
-func testProviderConfig(tf *Terraform, n string) *config.ProviderConfig {
-	/*
-		for r, tp := range tf.mapping {
-			if r.Id() == n {
-				return tp.Config
-			}
-		}
-	*/
-
-	return nil
-}
-
-func testProviderName(t *testing.T, tf *Terraform, n string) string {
-	var p ResourceProvider
-	/*
-		for r, tp := range tf.mapping {
-			if r.Id() == n {
-				p = tp.Provider
-				break
-			}
-		}
-	*/
-
-	if p == nil {
-		t.Fatalf("resource not found: %s", n)
-	}
-
-	return testProviderMock(p).Meta.(string)
-}
-
-func testTerraform(t *testing.T, name string) *Terraform {
-	config := testConfig(t, name)
-	tfConfig := &Config{
-		Config: config,
-		Providers: map[string]ResourceProviderFactory{
-			"aws": testProviderFunc("aws", []string{"aws_instance"}),
-			"do":  testProviderFunc("do", []string{"do_droplet"}),
-		},
-	}
-
-	tf, err := New(tfConfig)
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-	if tf == nil {
-		t.Fatal("tf should not be nil")
-	}
-
-	return tf
 }
 
 func testTerraform2(t *testing.T, c *Config) *Terraform {
@@ -450,18 +387,6 @@ func testTerraform2(t *testing.T, c *Config) *Terraform {
 	}
 
 	return tf
-}
-
-func testTerraformProvider(tf *Terraform, n string) *terraformProvider {
-	/*
-		for r, tp := range tf.mapping {
-			if r.Id() == n {
-				return tp
-			}
-		}
-	*/
-
-	return nil
 }
 
 const testTerraformApplyStr = `

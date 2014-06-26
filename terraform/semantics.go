@@ -1,11 +1,13 @@
 package terraform
 
+/*
 import (
 	"fmt"
 
 	"github.com/hashicorp/terraform/config"
 )
 
+/*
 // smcProviders matches up the resources with a provider and initializes
 // it. This does not call "Configure" on the ResourceProvider, since that
 // might actually depend on upstream resources.
@@ -153,3 +155,4 @@ func smcVariables(c *Config) []error {
 
 	return errs
 }
+*/
