@@ -18,7 +18,7 @@ export CGO_CFLAGS CGO_LDFLAGS PATH
 default: test
 
 dev: libucl
-	sh -c "$(CURDIR)/scripts/build.sh"
+	@sh -c "$(CURDIR)/scripts/build.sh"
 
 libucl: vendor/libucl/$(LIBUCL_NAME)
 
