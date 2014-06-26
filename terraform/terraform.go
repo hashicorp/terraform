@@ -13,6 +13,7 @@ import (
 // Terraform from code, and can perform operations such as returning
 // all resources, a resource tree, a specific resource, etc.
 type Terraform struct {
+	hooks     []Hook
 	providers map[string]ResourceProviderFactory
 }
 
@@ -23,6 +24,7 @@ type genericWalkFunc func(*Resource) (map[string]string, error)
 // Config is the configuration that must be given to instantiate
 // a Terraform structure.
 type Config struct {
+	Hooks     []Hook
 	Providers map[string]ResourceProviderFactory
 }
 
@@ -34,6 +36,7 @@ type Config struct {
 // can be properly initialized, can be configured, etc.
 func New(c *Config) (*Terraform, error) {
 	return &Terraform{
+		hooks:     c.Hooks,
 		providers: c.Providers,
 	}, nil
 }
@@ -128,6 +131,11 @@ func (t *Terraform) refreshWalkFn(result *State) depgraph.WalkFunc {
 	result.init()
 
 	cb := func(r *Resource) (map[string]string, error) {
+		for _, h := range t.hooks {
+			// TODO: return value
+			h.PreRefresh(r.State)
+		}
+
 		rs, err := r.Provider.Refresh(r.State)
 		if err != nil {
 			return nil, err
@@ -142,6 +150,11 @@ func (t *Terraform) refreshWalkFn(result *State) depgraph.WalkFunc {
 		l.Lock()
 		result.Resources[r.Id] = rs
 		l.Unlock()
+
+		for _, h := range t.hooks {
+			// TODO: return value
+			h.PostRefresh(rs)
+		}
 
 		return nil, nil
 	}

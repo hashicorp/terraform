@@ -252,6 +252,39 @@ func TestTerraformRefresh(t *testing.T) {
 	}
 }
 
+func TestTerraformRefresh_hook(t *testing.T) {
+	rpAWS := new(MockResourceProvider)
+	rpAWS.ResourcesReturn = []ResourceType{
+		ResourceType{Name: "aws_instance"},
+	}
+
+	h := new(MockHook)
+
+	c := testConfig(t, "refresh-basic")
+	tf := testTerraform2(t, &Config{
+		Hooks: []Hook{h},
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(rpAWS),
+		},
+	})
+
+	if _, err := tf.Refresh(c, nil); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if !h.PreRefreshCalled {
+		t.Fatal("should be called")
+	}
+	if h.PreRefreshState.Type != "aws_instance" {
+		t.Fatalf("bad: %#v", h.PreRefreshState)
+	}
+	if !h.PostRefreshCalled {
+		t.Fatal("should be called")
+	}
+	if h.PostRefreshState.Type != "aws_instance" {
+		t.Fatalf("bad: %#v", h.PostRefreshState)
+	}
+}
+
 func TestTerraformRefresh_state(t *testing.T) {
 	rpAWS := new(MockResourceProvider)
 	rpAWS.ResourcesReturn = []ResourceType{
