@@ -10,3 +10,4 @@ This is just to keep track of what we need to do before 0.1:
   * `ValidateResource` ResourceProvider API for checking the structure of a resource config
   * A module system for better Terraform file organization. More details on this later.
   * Commands to inspect and manipulate plans and states.
+  * Cancellation support (Ctrl-C)
