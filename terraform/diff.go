@@ -76,7 +76,7 @@ func (d *Diff) Empty() bool {
 	}
 
 	for _, rd := range d.Resources {
-		if len(rd.Attributes) > 0 {
+		if !rd.Empty() {
 			return false
 		}
 	}

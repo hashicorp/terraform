@@ -228,9 +228,13 @@ func (t *Terraform) planWalkFn(
 		var diff *ResourceDiff
 
 		if r.Config == nil {
+			log.Printf("[DEBUG] %s: Orphan, marking for destroy", r.Id)
+
 			// This is an orphan (no config), so we mark it to be destroyed
 			diff = &ResourceDiff{Destroy: true}
 		} else {
+			log.Printf("[DEBUG] %s: Executing diff", r.Id)
+
 			// Get a diff from the newest state
 			var err error
 			diff, err = r.Provider.Diff(r.State, r.Config)
@@ -312,15 +316,20 @@ func (t *Terraform) genericWalkFn(
 		}
 
 		// Make sure that at least some resource configuration is set
-		if rn.Resource.Config == nil && !rn.Orphan {
-			if rn.Config == nil {
-				rn.Resource.Config = new(ResourceConfig)
-			} else {
-				rn.Resource.Config = NewResourceConfig(rn.Config.RawConfig)
+		if !rn.Orphan {
+			if rn.Resource.Config == nil {
+				if rn.Config == nil {
+					rn.Resource.Config = new(ResourceConfig)
+				} else {
+					rn.Resource.Config = NewResourceConfig(rn.Config.RawConfig)
+				}
 			}
+		} else {
+			rn.Resource.Config = nil
 		}
 
 		// Call the callack
+		log.Printf("Walking: %s", rn.Resource.Id)
 		newVars, err := cb(rn.Resource)
 		if err != nil {
 			return err
