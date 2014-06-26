@@ -133,6 +133,9 @@ func (t *Terraform) refreshWalkFn(result *State) depgraph.WalkFunc {
 			return nil, err
 		}
 
+		// Fix the type to be the type we have
+		rs.Type = r.State.Type
+
 		l.Lock()
 		result.Resources[r.Id] = rs
 		l.Unlock()

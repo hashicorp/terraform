@@ -219,6 +219,12 @@ func TestTerraformRefresh(t *testing.T) {
 	if !reflect.DeepEqual(s.Resources["aws_instance.web"], rpAWS.RefreshReturn) {
 		t.Fatalf("bad: %#v", s.Resources)
 	}
+
+	for _, r := range s.Resources {
+		if r.Type == "" {
+			t.Fatalf("no type: %#v", r)
+		}
+	}
 }
 
 func TestTerraformRefresh_state(t *testing.T) {
