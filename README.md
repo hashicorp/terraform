@@ -18,7 +18,7 @@ with cgo support. You can verify this by running `go env` and checking that
 
 Next, install [Git](http://git-scm.com/), which is needed for some dependencies.
 
-Finally, install [Gox](https://github.com/mitchellh/gox), which is used
+Then, install [Gox](https://github.com/mitchellh/gox), which is used
 as a compilation tool on top of Go:
 
     $ go get -u github.com/mitchellh/gox
