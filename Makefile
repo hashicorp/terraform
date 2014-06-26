@@ -25,6 +25,9 @@ libucl: vendor/libucl/$(LIBUCL_NAME)
 test: libucl
 	go test $(TEST) $(TESTARGS)
 
+updatedeps:
+	go get -u -v ./...
+
 vendor/libucl/libucl.a: vendor/libucl
 	cd vendor/libucl && \
 		cmake cmake/ && \
@@ -44,4 +47,4 @@ vendor/libucl:
 clean:
 	rm -rf vendor
 
-.PHONY: clean default libucl test
+.PHONY: clean default libucl test updatedeps
