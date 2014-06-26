@@ -23,7 +23,7 @@ func (m *Map) Apply(
 		return nil, fmt.Errorf("Unknown resource type: %s", s.Type)
 	}
 
-	if d.Destroy {
+	if d.Destroy || d.RequiresNew() {
 		if s.ID != "" {
 			// Destroy the resource if it is created
 			err := r.Destroy(s, meta)
