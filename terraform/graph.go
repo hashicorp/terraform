@@ -111,6 +111,10 @@ func graphAddConfigResources(
 		var state *ResourceState
 		if s != nil {
 			state = s.Resources[r.Id()]
+		} else {
+			state = &ResourceState{
+				Type: r.Type,
+			}
 		}
 
 		noun := &depgraph.Noun{

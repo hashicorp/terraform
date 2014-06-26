@@ -13,6 +13,7 @@ import (
 // This is the directory where our test fixtures are.
 const fixtureDir = "./test-fixtures"
 
+/*
 func TestTerraformApply(t *testing.T) {
 	tf := testTerraform(t, "apply-good")
 
@@ -110,11 +111,13 @@ func TestTerraformApply_vars(t *testing.T) {
 		t.Fatalf("bad: \n%s", actual)
 	}
 }
+*/
 
 func TestTerraformPlan(t *testing.T) {
-	tf := testTerraform(t, "plan-good")
+	c := testConfig(t, "plan-good")
+	tf := testTerraform2(t, nil)
 
-	plan, err := tf.Plan(nil)
+	plan, err := tf.Plan(c, nil, nil)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -128,20 +131,13 @@ func TestTerraformPlan(t *testing.T) {
 	if actual != expected {
 		t.Fatalf("bad:\n%s", actual)
 	}
-
-	p := testProviderMock(testProvider(tf, "aws_instance.foo"))
-	if !p.RefreshCalled {
-		t.Fatal("refresh should be called")
-	}
-	if p.RefreshState == nil {
-		t.Fatal("refresh should have state")
-	}
 }
 
 func TestTerraformPlan_nil(t *testing.T) {
-	tf := testTerraform(t, "plan-nil")
+	c := testConfig(t, "plan-nil")
+	tf := testTerraform2(t, nil)
 
-	plan, err := tf.Plan(nil)
+	plan, err := tf.Plan(c, nil, nil)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -151,9 +147,10 @@ func TestTerraformPlan_nil(t *testing.T) {
 }
 
 func TestTerraformPlan_computed(t *testing.T) {
-	tf := testTerraform(t, "plan-computed")
+	c := testConfig(t, "plan-computed")
+	tf := testTerraform2(t, nil)
 
-	plan, err := tf.Plan(nil)
+	plan, err := tf.Plan(c, nil, nil)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -166,46 +163,6 @@ func TestTerraformPlan_computed(t *testing.T) {
 	expected := strings.TrimSpace(testTerraformPlanComputedStr)
 	if actual != expected {
 		t.Fatalf("bad:\n%s", actual)
-	}
-}
-
-func TestTerraformPlan_providerInit(t *testing.T) {
-	tf := testTerraform(t, "plan-provider-init")
-
-	_, err := tf.Plan(nil)
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-
-	p := testProviderMock(testProvider(tf, "do_droplet.bar"))
-	if p == nil {
-		t.Fatal("should have provider")
-	}
-	if !p.ConfigureCalled {
-		t.Fatal("configure should be called")
-	}
-	if p.ConfigureConfig.Config["foo"].(string) != "2" {
-		t.Fatalf("bad: %#v", p.ConfigureConfig)
-	}
-}
-
-func TestTerraformPlan_refreshNil(t *testing.T) {
-	tf := testTerraform(t, "plan-nil")
-
-	s := new(State)
-	s.init()
-	s.Resources["aws_instance.foo"] = &ResourceState{
-		Attributes: map[string]string{
-			"nil": "1",
-		},
-	}
-
-	plan, err := tf.Plan(s)
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-	if len(plan.Diff.Resources) != 0 {
-		t.Fatalf("bad: %#v", plan.Diff.Resources)
 	}
 }
 
@@ -476,7 +433,12 @@ func testTerraform(t *testing.T, name string) *Terraform {
 
 func testTerraform2(t *testing.T, c *Config) *Terraform {
 	if c == nil {
-		c = new(Config)
+		c = &Config{
+			Providers: map[string]ResourceProviderFactory{
+				"aws": testProviderFunc("aws", []string{"aws_instance"}),
+				"do":  testProviderFunc("do", []string{"do_droplet"}),
+			},
+		}
 	}
 
 	tf, err := New(c)

@@ -124,20 +124,14 @@ func (t *Terraform) Graph(c *config.Config, s *State) (*depgraph.Graph, error) {
 	return g, nil
 }
 
-func (t *Terraform) Plan(s *State) (*Plan, error) {
-	// TODO: add config param
-	graph, err := t.Graph(nil, s)
+func (t *Terraform) Plan(
+	c *config.Config, s *State, vs map[string]string) (*Plan, error) {
+	g, err := t.Graph(c, s)
 	if err != nil {
 		return nil, err
 	}
 
-	result := new(Plan)
-	err = graph.Walk(t.planWalkFn(s, result))
-	if err != nil {
-		return nil, err
-	}
-
-	return result, nil
+	return t.plan(g, c, s, vs)
 }
 
 // Refresh goes through all the resources in the state and refreshes them
@@ -149,6 +143,19 @@ func (t *Terraform) Refresh(c *config.Config, s *State) (*State, error) {
 	}
 
 	return t.refresh(g)
+}
+
+func (t *Terraform) plan(
+	g *depgraph.Graph,
+	c *config.Config,
+	s *State,
+	vs map[string]string) (*Plan, error) {
+	p := &Plan{
+		Config: c,
+		Vars:   vs,
+	}
+	err := g.Walk(t.planWalkFn(p, vs))
+	return p, err
 }
 
 func (t *Terraform) refresh(g *depgraph.Graph) (*State, error) {
@@ -243,40 +250,15 @@ func (t *Terraform) applyWalkFn(
 }
 
 func (t *Terraform) planWalkFn(
-	state *State, result *Plan) depgraph.WalkFunc {
+	result *Plan, vs map[string]string) depgraph.WalkFunc {
 	var l sync.Mutex
 
-	// Initialize the result diff so we can write to it
+	// Initialize the result
 	result.init()
 
-	// Write our configuration out
-	//result.Config = t.config
-
-	// Copy the variables
-	/*
-		result.Vars = make(map[string]string)
-		for k, v := range t.variables {
-			result.Vars[k] = v
-		}
-	*/
-
 	cb := func(r *Resource) (map[string]string, error) {
-		// Refresh the state so we're working with the latest resource info
-		newState, err := r.Provider.Refresh(r.State)
-		if err != nil {
-			return nil, err
-		}
-
-		// Make sure the state is set to at the very least the empty state
-		if newState == nil {
-			newState = new(ResourceState)
-		}
-
-		// Set the type, the provider shouldn't modify this
-		newState.Type = r.State.Type
-
 		// Get a diff from the newest state
-		diff, err := r.Provider.Diff(newState, r.Config)
+		diff, err := r.Provider.Diff(r.State, r.Config)
 		if err != nil {
 			return nil, err
 		}
@@ -285,17 +267,15 @@ func (t *Terraform) planWalkFn(
 		if !diff.Empty() {
 			result.Diff.Resources[r.Id] = diff
 		}
-		result.State.Resources[r.Id] = newState
 		l.Unlock()
 
 		// Determine the new state and update variables
 		vars := make(map[string]string)
-		rs := newState
 		if !diff.Empty() {
-			rs = r.State.MergeDiff(diff)
+			r.State = r.State.MergeDiff(diff)
 		}
-		if rs != nil {
-			for ak, av := range rs.Attributes {
+		if r.State != nil {
+			for ak, av := range r.State.Attributes {
 				vars[fmt.Sprintf("%s.%s", r.Id, ak)] = av
 			}
 		}
@@ -303,7 +283,7 @@ func (t *Terraform) planWalkFn(
 		return vars, nil
 	}
 
-	return t.genericWalkFn(nil, cb)
+	return t.genericWalkFn(vs, cb)
 }
 
 func (t *Terraform) genericWalkFn(
@@ -351,8 +331,17 @@ func (t *Terraform) genericWalkFn(
 				panic(fmt.Sprintf("Interpolate error: %s", err))
 			}
 
-			// Set the config
-			rn.Resource.Config = NewResourceConfig(rn.Config.RawConfig)
+			// Force the config to be set later
+			rn.Resource.Config = nil
+		}
+
+		// Make sure that at least some resource configuration is set
+		if rn.Resource.Config == nil {
+			if rn.Config == nil {
+				rn.Resource.Config = new(ResourceConfig)
+			} else {
+				rn.Resource.Config = NewResourceConfig(rn.Config.RawConfig)
+			}
 		}
 
 		// Call the callack
