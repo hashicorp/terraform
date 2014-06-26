@@ -31,6 +31,13 @@ func TestDiff_Empty(t *testing.T) {
 	if diff.Empty() {
 		t.Fatal("should not be empty")
 	}
+
+	diff.Resources["nodeA"].Attributes = nil
+	diff.Resources["nodeA"].Destroy = true
+
+	if diff.Empty() {
+		t.Fatal("should not be empty")
+	}
 }
 
 func TestDiff_String(t *testing.T) {
