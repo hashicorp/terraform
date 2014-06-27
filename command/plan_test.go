@@ -39,6 +39,44 @@ func TestPlan_noState(t *testing.T) {
 	}
 }
 
+func TestPlan_outPath(t *testing.T) {
+	tf, err := ioutil.TempFile("", "tf")
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	outPath := tf.Name()
+	os.Remove(tf.Name())
+
+	p := testProvider()
+	ui := new(cli.MockUi)
+	c := &PlanCommand{
+		TFConfig: testTFConfig(p),
+		Ui:       ui,
+	}
+
+	p.DiffReturn = &terraform.ResourceDiff{
+		Destroy: true,
+	}
+
+	args := []string{
+		"-out", outPath,
+		testFixturePath("plan"),
+	}
+	if code := c.Run(args); code != 0 {
+		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
+	}
+
+	f, err := os.Open(outPath)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	defer f.Close()
+
+	if _, err := terraform.ReadPlan(f); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+}
+
 func TestPlan_refresh(t *testing.T) {
 	p := testProvider()
 	ui := new(cli.MockUi)

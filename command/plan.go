@@ -3,6 +3,7 @@ package command
 import (
 	"flag"
 	"fmt"
+	"log"
 	"os"
 	"strings"
 
@@ -20,10 +21,11 @@ type PlanCommand struct {
 
 func (c *PlanCommand) Run(args []string) int {
 	var refresh bool
-	var statePath string
+	var outPath, statePath string
 
 	cmdFlags := flag.NewFlagSet("plan", flag.ContinueOnError)
 	cmdFlags.BoolVar(&refresh, "refresh", true, "refresh")
+	cmdFlags.StringVar(&outPath, "out", "", "path")
 	cmdFlags.StringVar(&statePath, "state", "", "path")
 	cmdFlags.Usage = func() { c.Ui.Error(c.Help()) }
 	if err := cmdFlags.Parse(args); err != nil {
@@ -85,8 +87,22 @@ func (c *PlanCommand) Run(args []string) int {
 
 	if plan.Diff.Empty() {
 		c.Ui.Output("No changes. Infrastructure is up-to-date.")
-	} else {
-		c.Ui.Output(strings.TrimSpace(plan.String()))
+		return 0
+	}
+
+	c.Ui.Output(strings.TrimSpace(plan.String()))
+
+	if outPath != "" {
+		log.Printf("[INFO] Writing plan output to: %s", outPath)
+		f, err := os.Create(outPath)
+		if err == nil {
+			defer f.Close()
+			err = terraform.WritePlan(plan, f)
+		}
+		if err != nil {
+			c.Ui.Error(fmt.Sprintf("Error writing plan file: %s", err))
+			return 1
+		}
 	}
 
 	return 0
@@ -100,6 +116,9 @@ Usage: terraform plan [options] [terraform.tf]
   the actual state of an infrastructure.
 
 Options:
+
+  -out=path           Write a plan file to the given path. This can be used as
+                      input to the "apply" command.
 
   -refresh=true       Update state prior to checking for differences.
 
