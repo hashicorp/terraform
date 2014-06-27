@@ -17,6 +17,16 @@ type UiHook struct {
 	ui   cli.Ui
 }
 
+func (h *UiHook) PreApply(
+	id string,
+	s *terraform.ResourceState,
+	d *terraform.ResourceDiff) (terraform.HookAction, error) {
+	h.once.Do(h.init)
+
+	h.ui.Output(fmt.Sprintf("%s: Applying...", id))
+	return terraform.HookActionContinue, nil
+}
+
 func (h *UiHook) PreDiff(
 	id string, s *terraform.ResourceState) (terraform.HookAction, error) {
 	h.once.Do(h.init)
