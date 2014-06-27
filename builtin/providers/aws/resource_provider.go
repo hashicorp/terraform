@@ -7,7 +7,7 @@ import (
 	"github.com/hashicorp/terraform/helper/multierror"
 	"github.com/hashicorp/terraform/terraform"
 	"github.com/mitchellh/goamz/ec2"
-	"github.com/pearkes/goamz/elb"
+	"github.com/mitchellh/goamz/elb"
 )
 
 type ResourceProvider struct {
