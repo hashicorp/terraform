@@ -1,7 +1,10 @@
 package command
 
 import (
+	"io/ioutil"
+	"os"
 	"path/filepath"
+	"testing"
 
 	"github.com/hashicorp/terraform/terraform"
 )
@@ -23,6 +26,38 @@ func testTFConfig(p terraform.ResourceProvider) *terraform.Config {
 	}
 }
 
+func testPlanFile(t *testing.T, plan *terraform.Plan) string {
+	path := testTempFile(t)
+
+	f, err := os.Create(path)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	defer f.Close()
+
+	if err := terraform.WritePlan(plan, f); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	return path
+}
+
+func testStateFile(t *testing.T, s *terraform.State) string {
+	path := testTempFile(t)
+
+	f, err := os.Create(path)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	defer f.Close()
+
+	if err := terraform.WriteState(s, f); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	return path
+}
+
 func testProvider() *terraform.MockResourceProvider {
 	p := new(terraform.MockResourceProvider)
 	p.RefreshFn = func(
@@ -36,4 +71,22 @@ func testProvider() *terraform.MockResourceProvider {
 	}
 
 	return p
+}
+
+func testTempFile(t *testing.T) string {
+	tf, err := ioutil.TempFile("", "tf")
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	result := tf.Name()
+
+	if err := tf.Close(); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if err := os.Remove(result); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	return result
 }

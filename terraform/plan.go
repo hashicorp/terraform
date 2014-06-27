@@ -33,6 +33,10 @@ func (p *Plan) String() string {
 
 func (p *Plan) init() {
 	p.once.Do(func() {
+		if p.Config == nil {
+			p.Config = new(config.Config)
+		}
+
 		if p.Diff == nil {
 			p.Diff = new(Diff)
 			p.Diff.init()

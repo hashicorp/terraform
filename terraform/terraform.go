@@ -42,6 +42,10 @@ func New(c *Config) (*Terraform, error) {
 }
 
 func (t *Terraform) Apply(p *Plan) (*State, error) {
+	// Make sure we're working with a plan that doesn't have null pointers
+	// everywhere, and is instead just empty otherwise.
+	p.init()
+
 	g, err := t.Graph(p.Config, p.State)
 	if err != nil {
 		return nil, err

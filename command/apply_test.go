@@ -1,7 +1,6 @@
 package command
 
 import (
-	"io/ioutil"
 	"os"
 	"reflect"
 	"testing"
@@ -11,13 +10,7 @@ import (
 )
 
 func TestApply(t *testing.T) {
-	tf, err := ioutil.TempFile("", "tf")
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-	statePath := tf.Name()
-	tf.Close()
-	os.Remove(tf.Name())
+	statePath := testTempFile(t)
 
 	p := testProvider()
 	ui := new(cli.MockUi)
@@ -28,7 +21,7 @@ func TestApply(t *testing.T) {
 
 	args := []string{
 		"-init",
-		"-state", statePath,
+		statePath,
 		testFixturePath("apply"),
 	}
 	if code := c.Run(args); code != 0 {
@@ -54,7 +47,10 @@ func TestApply(t *testing.T) {
 	}
 }
 
-func TestApply_noState(t *testing.T) {
+func TestApply_plan(t *testing.T) {
+	planPath := testPlanFile(t, new(terraform.Plan))
+	statePath := testTempFile(t)
+
 	p := testProvider()
 	ui := new(cli.MockUi)
 	c := &ApplyCommand{
@@ -63,23 +59,33 @@ func TestApply_noState(t *testing.T) {
 	}
 
 	args := []string{
-		"-state=",
-		testFixturePath("apply"),
+		statePath,
+		planPath,
 	}
-	if code := c.Run(args); code != 1 {
-		t.Fatalf("bad: \n%s", ui.OutputWriter.String())
+	if code := c.Run(args); code != 0 {
+		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
+	}
+
+	if _, err := os.Stat(statePath); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	f, err := os.Open(statePath)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	defer f.Close()
+
+	state, err := terraform.ReadState(f)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if state == nil {
+		t.Fatal("state should not be nil")
 	}
 }
 
 func TestApply_state(t *testing.T) {
-	// Write out some prior state
-	tf, err := ioutil.TempFile("", "tf")
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-	statePath := tf.Name()
-	defer os.Remove(tf.Name())
-
 	originalState := &terraform.State{
 		Resources: map[string]*terraform.ResourceState{
 			"test_instance.foo": &terraform.ResourceState{
@@ -89,11 +95,7 @@ func TestApply_state(t *testing.T) {
 		},
 	}
 
-	err = terraform.WriteState(originalState, tf)
-	tf.Close()
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
+	statePath := testStateFile(t, originalState)
 
 	p := testProvider()
 	ui := new(cli.MockUi)
@@ -104,7 +106,7 @@ func TestApply_state(t *testing.T) {
 
 	// Run the apply command pointing to our existing state
 	args := []string{
-		"-state", statePath,
+		statePath,
 		testFixturePath("apply"),
 	}
 	if code := c.Run(args); code != 0 {
@@ -150,7 +152,7 @@ func TestApply_stateNoExist(t *testing.T) {
 	}
 
 	args := []string{
-		"-state=idontexist.tfstate",
+		"idontexist.tfstate",
 		testFixturePath("apply"),
 	}
 	if code := c.Run(args); code != 1 {
