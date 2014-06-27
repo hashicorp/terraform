@@ -40,6 +40,13 @@ func init() {
 			}, nil
 		},
 
+		"refresh": func() (cli.Command, error) {
+			return &command.RefreshCommand{
+				TFConfig: &TFConfig,
+				Ui:       Ui,
+			}, nil
+		},
+
 		"version": func() (cli.Command, error) {
 			return &command.VersionCommand{
 				Revision:          GitCommit,
