@@ -63,6 +63,30 @@ func TestTerraformApply_compute(t *testing.T) {
 	}
 }
 
+func TestTerraformApply_hook(t *testing.T) {
+	c := testConfig(t, "apply-good")
+	h := new(MockHook)
+	tf := testTerraform2(t, &Config{
+		Hooks: []Hook{h},
+	})
+
+	p, err := tf.Plan(c, nil, nil)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	if _, err := tf.Apply(p); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	if !h.PreApplyCalled {
+		t.Fatal("should be called")
+	}
+	if !h.PostApplyCalled {
+		t.Fatal("should be called")
+	}
+}
+
 func TestTerraformApply_unknownAttribute(t *testing.T) {
 	c := testConfig(t, "apply-unknown")
 	tf := testTerraform2(t, nil)

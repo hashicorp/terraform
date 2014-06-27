@@ -21,6 +21,11 @@ const (
 // NilHook into your struct, which implements all of the interface but does
 // nothing. Then, override only the functions you want to implement.
 type Hook interface {
+	// PreApply and PostApply are called before and after a single
+	// resource is applied.
+	PreApply(string, *ResourceState, *ResourceDiff) (HookAction, error)
+	PostApply(string, *ResourceState) (HookAction, error)
+
 	// PreDiff and PostDiff are called before and after a single resource
 	// resource is diffed.
 	PreDiff(string, *ResourceState) (HookAction, error)
@@ -36,6 +41,14 @@ type Hook interface {
 // simplify implementing hooks. You can embed this into your Hook implementation
 // and only implement the functions you are interested in.
 type NilHook struct{}
+
+func (*NilHook) PreApply(string, *ResourceState, *ResourceDiff) (HookAction, error) {
+	return HookActionContinue, nil
+}
+
+func (*NilHook) PostApply(string, *ResourceState) (HookAction, error) {
+	return HookActionContinue, nil
+}
 
 func (*NilHook) PreDiff(string, *ResourceState) (HookAction, error) {
 	return HookActionContinue, nil

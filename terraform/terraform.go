@@ -180,6 +180,11 @@ func (t *Terraform) applyWalkFn(
 		// TODO(mitchellh): we need to verify the diff doesn't change
 		// anything and that the diff has no computed values (pre-computed)
 
+		for _, h := range t.hooks {
+			// TODO: return value
+			h.PreApply(r.Id, r.State, diff)
+		}
+
 		// With the completed diff, apply!
 		rs, err := r.Provider.Apply(r.State, diff)
 		if err != nil {
@@ -215,6 +220,11 @@ func (t *Terraform) applyWalkFn(
 		l.Lock()
 		result.Resources[r.Id] = rs
 		l.Unlock()
+
+		for _, h := range t.hooks {
+			// TODO: return value
+			h.PostApply(r.Id, r.State)
+		}
 
 		// Determine the new state and update variables
 		vars := make(map[string]string)

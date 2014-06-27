@@ -3,6 +3,19 @@ package terraform
 // MockHook is an implementation of Hook that can be used for tests.
 // It records all of its function calls.
 type MockHook struct {
+	PreApplyCalled bool
+	PreApplyId     string
+	PreApplyDiff   *ResourceDiff
+	PreApplyState  *ResourceState
+	PreApplyReturn HookAction
+	PreApplyError  error
+
+	PostApplyCalled bool
+	PostApplyId     string
+	PostApplyState  *ResourceState
+	PostApplyReturn HookAction
+	PostApplyError  error
+
 	PreDiffCalled bool
 	PreDiffId     string
 	PreDiffState  *ResourceState
@@ -26,6 +39,21 @@ type MockHook struct {
 	PreRefreshState  *ResourceState
 	PreRefreshReturn HookAction
 	PreRefreshError  error
+}
+
+func (h *MockHook) PreApply(n string, s *ResourceState, d *ResourceDiff) (HookAction, error) {
+	h.PreApplyCalled = true
+	h.PreApplyId = n
+	h.PreApplyDiff = d
+	h.PreApplyState = s
+	return h.PreApplyReturn, h.PreApplyError
+}
+
+func (h *MockHook) PostApply(n string, s *ResourceState) (HookAction, error) {
+	h.PostApplyCalled = true
+	h.PostApplyId = n
+	h.PostApplyState = s
+	return h.PostApplyReturn, h.PostApplyError
 }
 
 func (h *MockHook) PreDiff(n string, s *ResourceState) (HookAction, error) {
