@@ -6,12 +6,14 @@ import (
 	"github.com/hashicorp/terraform/helper/config"
 	"github.com/hashicorp/terraform/terraform"
 	"github.com/mitchellh/goamz/ec2"
+	"github.com/pearkes/goamz/elb"
 )
 
 type ResourceProvider struct {
 	Config Config
 
 	ec2conn *ec2.EC2
+	elbconn *elb.ELB
 }
 
 func (p *ResourceProvider) Validate(c *terraform.ResourceConfig) ([]string, []error) {
@@ -41,6 +43,8 @@ func (p *ResourceProvider) Configure(c *terraform.ResourceConfig) error {
 	if len(errs) == 0 {
 		log.Println("Initializing EC2 connection")
 		p.ec2conn = ec2.New(auth, region)
+		log.Println("Initializing ELB connection")
+		p.elbconn = elb.New(auth, region)
 	}
 
 	if len(errs) > 0 {
