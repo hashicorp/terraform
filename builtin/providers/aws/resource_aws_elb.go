@@ -6,7 +6,7 @@ import (
 
 	"github.com/hashicorp/terraform/helper/diff"
 	"github.com/hashicorp/terraform/terraform"
-	"github.com/pearkes/goamz/elb"
+	"github.com/mitchellh/goamz/elb"
 )
 
 func resource_aws_elb_create(
