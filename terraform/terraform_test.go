@@ -161,6 +161,24 @@ func TestTerraformPlan_computed(t *testing.T) {
 	}
 }
 
+func TestTerraformPlan_hook(t *testing.T) {
+	c := testConfig(t, "plan-good")
+	h := new(MockHook)
+	tf := testTerraform2(t, &Config{
+		Hooks: []Hook{h},
+	})
+
+	if _, err := tf.Plan(c, nil, nil); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if !h.PreDiffCalled {
+		t.Fatal("should be called")
+	}
+	if !h.PostDiffCalled {
+		t.Fatal("should be called")
+	}
+}
+
 func TestTerraformPlan_orphan(t *testing.T) {
 	c := testConfig(t, "plan-orphan")
 	tf := testTerraform2(t, nil)
@@ -462,11 +480,13 @@ func testProviderMock(p ResourceProvider) *MockResourceProvider {
 
 func testTerraform2(t *testing.T, c *Config) *Terraform {
 	if c == nil {
-		c = &Config{
-			Providers: map[string]ResourceProviderFactory{
-				"aws": testProviderFunc("aws", []string{"aws_instance"}),
-				"do":  testProviderFunc("do", []string{"do_droplet"}),
-			},
+		c = new(Config)
+	}
+
+	if c.Providers == nil {
+		c.Providers = map[string]ResourceProviderFactory{
+			"aws": testProviderFunc("aws", []string{"aws_instance"}),
+			"do":  testProviderFunc("do", []string{"do_droplet"}),
 		}
 	}
 

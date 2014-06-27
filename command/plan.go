@@ -62,6 +62,7 @@ func (c *PlanCommand) Run(args []string) int {
 		return 1
 	}
 
+	c.TFConfig.Hooks = append(c.TFConfig.Hooks, &UiHook{Ui: c.Ui})
 	tf, err := terraform.New(c.TFConfig)
 	if err != nil {
 		c.Ui.Error(fmt.Sprintf("Error initializing Terraform: %s", err))

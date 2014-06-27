@@ -243,6 +243,11 @@ func (t *Terraform) planWalkFn(
 	cb := func(r *Resource) (map[string]string, error) {
 		var diff *ResourceDiff
 
+		for _, h := range t.hooks {
+			// TODO: return value
+			h.PreDiff(r.Id, r.State)
+		}
+
 		if r.Config == nil {
 			log.Printf("[DEBUG] %s: Orphan, marking for destroy", r.Id)
 
@@ -264,6 +269,11 @@ func (t *Terraform) planWalkFn(
 			result.Diff.Resources[r.Id] = diff
 		}
 		l.Unlock()
+
+		for _, h := range t.hooks {
+			// TODO: return value
+			h.PostDiff(r.Id, diff)
+		}
 
 		// Determine the new state and update variables
 		vars := make(map[string]string)
@@ -311,7 +321,7 @@ func (t *Terraform) genericWalkFn(
 			}
 
 			for k, p := range m.Providers {
-				log.Printf("Configuring provider: %s", k)
+				log.Printf("[INFO] Configuring provider: %s", k)
 				err := p.Configure(rc)
 				if err != nil {
 					return err
@@ -345,7 +355,7 @@ func (t *Terraform) genericWalkFn(
 		}
 
 		// Call the callack
-		log.Printf("Walking: %s", rn.Resource.Id)
+		log.Printf("[INFO] Walking: %s", rn.Resource.Id)
 		newVars, err := cb(rn.Resource)
 		if err != nil {
 			return err
