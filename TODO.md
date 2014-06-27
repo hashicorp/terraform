@@ -2,7 +2,6 @@ This is just to keep track of what we need to do before 0.1:
 
   * `terraform destroy`
   * `terraform apply` should take a plan file
-  * `terraform plan` should output a plan file
   * `terraform refresh` to update state to latest
   * `terraform apply/plan/refresh/destroy` need to be able to take variables as input
   * Provisioners on top of static resource creation: Shell, Chef, Puppet, etc.
