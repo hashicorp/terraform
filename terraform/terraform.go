@@ -133,7 +133,7 @@ func (t *Terraform) refreshWalkFn(result *State) depgraph.WalkFunc {
 	cb := func(r *Resource) (map[string]string, error) {
 		for _, h := range t.hooks {
 			// TODO: return value
-			h.PreRefresh(r.State)
+			h.PreRefresh(r.Id, r.State)
 		}
 
 		rs, err := r.Provider.Refresh(r.State)
@@ -153,7 +153,7 @@ func (t *Terraform) refreshWalkFn(result *State) depgraph.WalkFunc {
 
 		for _, h := range t.hooks {
 			// TODO: return value
-			h.PostRefresh(rs)
+			h.PostRefresh(r.Id, rs)
 		}
 
 		return nil, nil

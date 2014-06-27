@@ -22,10 +22,10 @@ const (
 // nothing. Then, override only the functions you want to implement.
 type Hook interface {
 	// PreRefresh is called before a resource is refreshed.
-	PreRefresh(*ResourceState) (HookAction, error)
+	PreRefresh(string, *ResourceState) (HookAction, error)
 
 	// PostRefresh is called after a resource is refreshed.
-	PostRefresh(*ResourceState) (HookAction, error)
+	PostRefresh(string, *ResourceState) (HookAction, error)
 }
 
 // NilHook is a Hook implementation that does nothing. It exists only to
@@ -33,10 +33,10 @@ type Hook interface {
 // and only implement the functions you are interested in.
 type NilHook struct{}
 
-func (*NilHook) PreRefresh(*ResourceState) (HookAction, error) {
+func (*NilHook) PreRefresh(string, *ResourceState) (HookAction, error) {
 	return HookActionContinue, nil
 }
 
-func (*NilHook) PostRefresh(*ResourceState) (HookAction, error) {
+func (*NilHook) PostRefresh(string, *ResourceState) (HookAction, error) {
 	return HookActionContinue, nil
 }

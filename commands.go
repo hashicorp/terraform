@@ -10,11 +10,14 @@ import (
 // Commands is the mapping of all the available Terraform commands.
 var Commands map[string]cli.CommandFactory
 
+// Ui is the cli.Ui used for communicating to the outside world.
+var Ui cli.Ui
+
 const ErrorPrefix = "e:"
 const OutputPrefix = "o:"
 
 func init() {
-	ui := &cli.PrefixedUi{
+	Ui = &cli.PrefixedUi{
 		AskPrefix:    OutputPrefix,
 		OutputPrefix: OutputPrefix,
 		InfoPrefix:   OutputPrefix,
@@ -26,14 +29,14 @@ func init() {
 		"apply": func() (cli.Command, error) {
 			return &command.ApplyCommand{
 				TFConfig: &TFConfig,
-				Ui:       ui,
+				Ui:       Ui,
 			}, nil
 		},
 
 		"plan": func() (cli.Command, error) {
 			return &command.PlanCommand{
 				TFConfig: &TFConfig,
-				Ui:       ui,
+				Ui:       Ui,
 			}, nil
 		},
 
@@ -42,7 +45,7 @@ func init() {
 				Revision:          GitCommit,
 				Version:           Version,
 				VersionPrerelease: VersionPrerelease,
-				Ui:                ui,
+				Ui:                Ui,
 			}, nil
 		},
 	}

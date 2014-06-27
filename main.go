@@ -7,7 +7,9 @@ import (
 	"log"
 	"os"
 
+	"github.com/hashicorp/terraform/command"
 	"github.com/hashicorp/terraform/plugin"
+	"github.com/hashicorp/terraform/terraform"
 	"github.com/mitchellh/cli"
 	"github.com/mitchellh/panicwrap"
 	"github.com/mitchellh/prefixedio"
@@ -84,6 +86,7 @@ func wrappedMain() int {
 	defer plugin.CleanupClients()
 
 	// Initialize the TFConfig settings for the commands...
+	TFConfig.Hooks = []terraform.Hook{&command.UiHook{Ui: Ui}}
 	TFConfig.Providers = config.ProviderFactories()
 
 	// Get the command line args. We shortcut "--version" and "-v" to
