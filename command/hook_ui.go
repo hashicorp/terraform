@@ -13,6 +13,12 @@ type UiHook struct {
 	Ui cli.Ui
 }
 
+func (h *UiHook) PreDiff(
+	id string, s *terraform.ResourceState) (terraform.HookAction, error) {
+	h.Ui.Output(fmt.Sprintf("Calculating diff for %s", id))
+	return terraform.HookActionContinue, nil
+}
+
 func (h *UiHook) PreRefresh(
 	id string, s *terraform.ResourceState) (terraform.HookAction, error) {
 	h.Ui.Output(fmt.Sprintf("Refreshing state for %s (ID: %s)", id, s.ID))
