@@ -160,7 +160,10 @@ func (c *ApplyCommand) configToPlan(
 		return nil, fmt.Errorf("Error loading config: %s", err)
 	}
 
-	plan, err := tf.Plan(config, state, nil)
+	plan, err := tf.Plan(&terraform.PlanOpts{
+		Config: config,
+		State:  state,
+	})
 	if err != nil {
 		return nil, fmt.Errorf("Error running plan: %s", err)
 	}

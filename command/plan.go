@@ -79,7 +79,10 @@ func (c *PlanCommand) Run(args []string) int {
 		}
 	}
 
-	plan, err := tf.Plan(b, state, nil)
+	plan, err := tf.Plan(&terraform.PlanOpts{
+		Config: b,
+		State:  state,
+	})
 	if err != nil {
 		c.Ui.Error(fmt.Sprintf("Error running plan: %s", err))
 		return 1

@@ -17,7 +17,7 @@ func TestTerraformApply(t *testing.T) {
 	c := testConfig(t, "apply-good")
 	tf := testTerraform2(t, nil)
 
-	p, err := tf.Plan(c, nil, nil)
+	p, err := tf.Plan(&PlanOpts{Config: c})
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -44,7 +44,7 @@ func TestTerraformApply_compute(t *testing.T) {
 	c := testConfig(t, "apply-compute")
 	tf := testTerraform2(t, nil)
 
-	p, err := tf.Plan(c, nil, nil)
+	p, err := tf.Plan(&PlanOpts{Config: c})
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -70,7 +70,7 @@ func TestTerraformApply_hook(t *testing.T) {
 		Hooks: []Hook{h},
 	})
 
-	p, err := tf.Plan(c, nil, nil)
+	p, err := tf.Plan(&PlanOpts{Config: c})
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -91,7 +91,7 @@ func TestTerraformApply_unknownAttribute(t *testing.T) {
 	c := testConfig(t, "apply-unknown")
 	tf := testTerraform2(t, nil)
 
-	p, err := tf.Plan(c, nil, nil)
+	p, err := tf.Plan(&PlanOpts{Config: c})
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -112,7 +112,10 @@ func TestTerraformApply_vars(t *testing.T) {
 	c := testConfig(t, "apply-vars")
 	tf := testTerraform2(t, nil)
 
-	p, err := tf.Plan(c, nil, map[string]string{"foo": "baz"})
+	p, err := tf.Plan(&PlanOpts{
+		Config: c,
+		Vars:   map[string]string{"foo": "baz"},
+	})
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -136,7 +139,7 @@ func TestTerraformPlan(t *testing.T) {
 	c := testConfig(t, "plan-good")
 	tf := testTerraform2(t, nil)
 
-	plan, err := tf.Plan(c, nil, nil)
+	plan, err := tf.Plan(&PlanOpts{Config: c})
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -156,7 +159,7 @@ func TestTerraformPlan_nil(t *testing.T) {
 	c := testConfig(t, "plan-nil")
 	tf := testTerraform2(t, nil)
 
-	plan, err := tf.Plan(c, nil, nil)
+	plan, err := tf.Plan(&PlanOpts{Config: c})
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -169,7 +172,7 @@ func TestTerraformPlan_computed(t *testing.T) {
 	c := testConfig(t, "plan-computed")
 	tf := testTerraform2(t, nil)
 
-	plan, err := tf.Plan(c, nil, nil)
+	plan, err := tf.Plan(&PlanOpts{Config: c})
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -192,7 +195,7 @@ func TestTerraformPlan_hook(t *testing.T) {
 		Hooks: []Hook{h},
 	})
 
-	if _, err := tf.Plan(c, nil, nil); err != nil {
+	if _, err := tf.Plan(&PlanOpts{Config: c}); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 	if !h.PreDiffCalled {
@@ -216,7 +219,10 @@ func TestTerraformPlan_orphan(t *testing.T) {
 		},
 	}
 
-	plan, err := tf.Plan(c, s, nil)
+	plan, err := tf.Plan(&PlanOpts{
+		Config: c,
+		State:  s,
+	})
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -240,7 +246,10 @@ func TestTerraformPlan_state(t *testing.T) {
 		},
 	}
 
-	plan, err := tf.Plan(c, s, nil)
+	plan, err := tf.Plan(&PlanOpts{
+		Config: c,
+		State:  s,
+	})
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}

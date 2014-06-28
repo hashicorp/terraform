@@ -79,14 +79,13 @@ func (t *Terraform) Graph(c *config.Config, s *State) (*depgraph.Graph, error) {
 	return g, nil
 }
 
-func (t *Terraform) Plan(
-	c *config.Config, s *State, vs map[string]string) (*Plan, error) {
-	g, err := t.Graph(c, s)
+func (t *Terraform) Plan(opts *PlanOpts) (*Plan, error) {
+	g, err := t.Graph(opts.Config, opts.State)
 	if err != nil {
 		return nil, err
 	}
 
-	return t.plan(g, c, s, vs)
+	return t.plan(g, opts)
 }
 
 // Refresh goes through all the resources in the state and refreshes them
@@ -108,17 +107,13 @@ func (t *Terraform) apply(
 	return s, err
 }
 
-func (t *Terraform) plan(
-	g *depgraph.Graph,
-	c *config.Config,
-	s *State,
-	vs map[string]string) (*Plan, error) {
+func (t *Terraform) plan(g *depgraph.Graph, opts *PlanOpts) (*Plan, error) {
 	p := &Plan{
-		Config: c,
-		Vars:   vs,
-		State:  s,
+		Config: opts.Config,
+		Vars:   opts.Vars,
+		State:  opts.State,
 	}
-	err := g.Walk(t.planWalkFn(p, vs))
+	err := g.Walk(t.planWalkFn(p, opts))
 	return p, err
 }
 
@@ -247,8 +242,7 @@ func (t *Terraform) applyWalkFn(
 	return t.genericWalkFn(vs, cb)
 }
 
-func (t *Terraform) planWalkFn(
-	result *Plan, vs map[string]string) depgraph.WalkFunc {
+func (t *Terraform) planWalkFn(result *Plan, opts *PlanOpts) depgraph.WalkFunc {
 	var l sync.Mutex
 
 	// Initialize the result
@@ -303,7 +297,7 @@ func (t *Terraform) planWalkFn(
 		return vars, nil
 	}
 
-	return t.genericWalkFn(vs, cb)
+	return t.genericWalkFn(opts.Vars, cb)
 }
 
 func (t *Terraform) genericWalkFn(

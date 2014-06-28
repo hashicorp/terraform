@@ -11,6 +11,19 @@ import (
 	"github.com/hashicorp/terraform/config"
 )
 
+// PlanOpts are the options used to generate an execution plan for
+// Terraform.
+type PlanOpts struct {
+	// If set to true, then the generated plan will destroy all resources
+	// that are created. Otherwise, it will move towards the desired state
+	// specified in the configuration.
+	Destroy bool
+
+	Config *config.Config
+	State  *State
+	Vars   map[string]string
+}
+
 // Plan represents a single Terraform execution plan, which contains
 // all the information necessary to make an infrastructure change.
 type Plan struct {
