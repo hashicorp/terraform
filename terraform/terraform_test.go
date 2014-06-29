@@ -188,6 +188,43 @@ func TestTerraformPlan_computed(t *testing.T) {
 	}
 }
 
+func TestTerraformPlan_destroy(t *testing.T) {
+	c := testConfig(t, "plan-good")
+	tf := testTerraform2(t, nil)
+
+	s := &State{
+		Resources: map[string]*ResourceState{
+			"aws_instance.one": &ResourceState{
+				ID:   "bar",
+				Type: "aws_instance",
+			},
+			"aws_instance.two": &ResourceState{
+				ID:   "baz",
+				Type: "aws_instance",
+			},
+		},
+	}
+
+	plan, err := tf.Plan(&PlanOpts{
+		Destroy: true,
+		Config:  c,
+		State:   s,
+	})
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	if len(plan.Diff.Resources) != 2 {
+		t.Fatalf("bad: %#v", plan.Diff.Resources)
+	}
+
+	actual := strings.TrimSpace(plan.String())
+	expected := strings.TrimSpace(testTerraformPlanDestroyStr)
+	if actual != expected {
+		t.Fatalf("bad:\n%s", actual)
+	}
+}
+
 func TestTerraformPlan_hook(t *testing.T) {
 	c := testConfig(t, "plan-good")
 	h := new(MockHook)
@@ -604,6 +641,20 @@ UPDATE: aws_instance.foo
 STATE:
 
 <no state>
+`
+
+const testTerraformPlanDestroyStr = `
+DIFF:
+
+DESTROY: aws_instance.one
+DESTROY: aws_instance.two
+
+STATE:
+
+aws_instance.one:
+  ID = bar
+aws_instance.two:
+  ID = baz
 `
 
 const testTerraformPlanOrphanStr = `

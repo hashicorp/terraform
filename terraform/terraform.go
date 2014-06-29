@@ -256,7 +256,12 @@ func (t *Terraform) planWalkFn(result *Plan, opts *PlanOpts) depgraph.WalkFunc {
 			h.PreDiff(r.Id, r.State)
 		}
 
-		if r.Config == nil {
+		if opts.Destroy {
+			if r.State.ID != "" {
+				log.Printf("[DEBUG] %s: Making for destroy", r.Id)
+				diff = &ResourceDiff{Destroy: true}
+			}
+		} else if r.Config == nil {
 			log.Printf("[DEBUG] %s: Orphan, marking for destroy", r.Id)
 
 			// This is an orphan (no config), so we mark it to be destroyed
