@@ -103,7 +103,7 @@ func (t *Terraform) apply(
 	g *depgraph.Graph,
 	p *Plan) (*State, error) {
 	s := new(State)
-	err := g.Walk(t.applyWalkFn(s, p.Vars))
+	err := g.Walk(t.applyWalkFn(s, p))
 	return s, err
 }
 
@@ -163,17 +163,26 @@ func (t *Terraform) refreshWalkFn(result *State) depgraph.WalkFunc {
 
 func (t *Terraform) applyWalkFn(
 	result *State,
-	vs map[string]string) depgraph.WalkFunc {
+	p *Plan) depgraph.WalkFunc {
 	var l sync.Mutex
 
 	// Initialize the result
 	result.init()
 
 	cb := func(r *Resource) (map[string]string, error) {
-		// Get the latest diff since there are no computed values anymore
-		diff, err := r.Provider.Diff(r.State, r.Config)
-		if err != nil {
-			return nil, err
+		diff, ok := p.Diff.Resources[r.Id]
+		if !ok {
+			// Skip if there is no diff for a resource
+			log.Printf("[DEBUG] No diff for %s, skipping.", r.Id)
+			return nil, nil
+		}
+
+		if !diff.Destroy {
+			var err error
+			diff, err = r.Provider.Diff(r.State, r.Config)
+			if err != nil {
+				return nil, err
+			}
 		}
 
 		// TODO(mitchellh): we need to verify the diff doesn't change
@@ -239,7 +248,7 @@ func (t *Terraform) applyWalkFn(
 		return vars, err
 	}
 
-	return t.genericWalkFn(vs, cb)
+	return t.genericWalkFn(p.Vars, cb)
 }
 
 func (t *Terraform) planWalkFn(result *Plan, opts *PlanOpts) depgraph.WalkFunc {

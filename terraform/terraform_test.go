@@ -5,6 +5,7 @@ import (
 	"path/filepath"
 	"reflect"
 	"strings"
+	"sync"
 	"testing"
 
 	"github.com/hashicorp/terraform/config"
@@ -60,6 +61,57 @@ func TestTerraformApply_compute(t *testing.T) {
 	expected := strings.TrimSpace(testTerraformApplyComputeStr)
 	if actual != expected {
 		t.Fatalf("bad: \n%s", actual)
+	}
+}
+
+func TestTerraformApply_destroy(t *testing.T) {
+	h := new(HookRecordApplyOrder)
+
+	// First, apply the good configuration, build it
+	c := testConfig(t, "apply-destroy")
+	tf := testTerraform2(t, &Config{
+		Hooks: []Hook{h},
+	})
+
+	p, err := tf.Plan(&PlanOpts{Config: c})
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	state, err := tf.Apply(p)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	// Next, plan and apply a destroy operation
+	p, err = tf.Plan(&PlanOpts{
+		Config:  new(config.Config),
+		State:   state,
+		Destroy: true,
+	})
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	h.Active = true
+
+	state, err = tf.Apply(p)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	// Test that things were destroyed
+	actual := strings.TrimSpace(state.String())
+	expected := strings.TrimSpace(testTerraformApplyDestroyStr)
+	if actual != expected {
+		t.Fatalf("bad: \n%s", actual)
+	}
+
+	// Test that things were destroyed _in the right order_
+	expected2 := []string{"aws_instance.bar", "aws_instance.foo"}
+	actual2 := h.IDs
+	if !reflect.DeepEqual(actual2, expected2) {
+		t.Fatalf("bad: %#v", actual2)
 	}
 }
 
@@ -189,7 +241,7 @@ func TestTerraformPlan_computed(t *testing.T) {
 }
 
 func TestTerraformPlan_destroy(t *testing.T) {
-	c := testConfig(t, "plan-good")
+	c := testConfig(t, "plan-destroy")
 	tf := testTerraform2(t, nil)
 
 	s := &State{
@@ -436,6 +488,10 @@ func testProviderFunc(n string, rs []string) ResourceProviderFactory {
 		applyFn := func(
 			s *ResourceState,
 			d *ResourceDiff) (*ResourceState, error) {
+			if d.Destroy {
+				return nil, nil
+			}
+
 			result := &ResourceState{
 				ID:         "foo",
 				Attributes: make(map[string]string),
@@ -571,6 +627,39 @@ func testTerraform2(t *testing.T, c *Config) *Terraform {
 	return tf
 }
 
+// HookRecordApplyOrder is a test hook that records the order of applies
+// by recording the PreApply event.
+type HookRecordApplyOrder struct {
+	NilHook
+
+	Active bool
+
+	IDs    []string
+	States []*ResourceState
+	Diffs  []*ResourceDiff
+
+	l sync.Mutex
+}
+
+func (h *HookRecordApplyOrder) PreApply(
+	id string,
+	s *ResourceState,
+	d *ResourceDiff) (HookAction, error) {
+	if h.Active {
+		h.l.Lock()
+		defer h.l.Unlock()
+
+		h.IDs = append(h.IDs, id)
+		h.Diffs = append(h.Diffs, d)
+		h.States = append(h.States, s)
+	}
+
+	return HookActionContinue, nil
+}
+
+// Below are all the constant strings that are the expected output for
+// various tests.
+
 const testTerraformApplyStr = `
 aws_instance.bar:
   ID = foo
@@ -592,6 +681,13 @@ aws_instance.foo:
   type = aws_instance
   num = 2
   id = computed_id
+`
+
+const testTerraformApplyDestroyStr = `
+aws_instance.bar:
+  ID = <not created>
+aws_instance.foo:
+  ID = <not created>
 `
 
 const testTerraformApplyUnknownAttrStr = `
