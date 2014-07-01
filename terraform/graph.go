@@ -111,9 +111,8 @@ func GraphFull(g *depgraph.Graph, ps map[string]ResourceProviderFactory) error {
 // destroying the VPC's subnets first, whereas creating a VPC requires
 // doing it before the subnets are created. This function handles inserting
 // these nodes for you.
-//
-// Note that all nodes modifying the same resource will have the same name.
 func GraphAddDiff(g *depgraph.Graph, d *Diff) error {
+	var nlist []*depgraph.Noun
 	for _, n := range g.Nouns {
 		rn, ok := n.Meta.(*GraphNodeResource)
 		if !ok {
@@ -124,9 +123,78 @@ func GraphAddDiff(g *depgraph.Graph, d *Diff) error {
 		if !ok {
 			continue
 		}
+		if rd.Empty() {
+			continue
+		}
+
+		if rd.Destroy || rd.RequiresNew() {
+			// If we're destroying, we create a new destroy node with
+			// the proper dependencies. Perform a dirty copy operation.
+			newNode := new(GraphNodeResource)
+			*newNode = *rn
+			newNode.Resource = new(Resource)
+			*newNode.Resource = *rn.Resource
+
+			// Make the diff _just_ the destroy.
+			newNode.Resource.Diff = &ResourceDiff{Destroy: true}
+
+			// Append it to the list so we handle it later
+			deps := make([]*depgraph.Dependency, len(n.Deps))
+			copy(deps, n.Deps)
+			newN := &depgraph.Noun{
+				Name: fmt.Sprintf("%s (destroy)", newNode.Resource.Id),
+				Meta: newNode,
+				Deps: deps,
+			}
+			nlist = append(nlist, newN)
+
+			// Mark the old diff to not destroy since we handle that in
+			// the dedicated node.
+			rd.Destroy = false
+
+			// Add to the new noun to our dependencies so that the destroy
+			// happens before the apply.
+			n.Deps = append(n.Deps, &depgraph.Dependency{
+				Name:   newN.Name,
+				Source: n,
+				Target: newN,
+			})
+		}
 
 		rn.Resource.Diff = rd
 	}
+
+	// Go through each noun and make sure we calculate all the dependencies
+	// properly.
+	for _, n := range nlist {
+		rn := n.Meta.(*GraphNodeResource)
+
+		// If we have no dependencies, then just continue
+		deps := rn.Resource.State.Dependencies
+		if len(deps) == 0 {
+			continue
+		}
+
+		// We have dependencies. We must be destroyed BEFORE those
+		// dependencies. Look to see if they're managed.
+		for _, dep := range deps {
+			for _, n2 := range nlist {
+				rn2 := n2.Meta.(*GraphNodeResource)
+				if rn2.Resource.State.ID == dep.ID {
+					n2.Deps = append(n2.Deps, &depgraph.Dependency{
+						Name:   n.Name,
+						Source: n2,
+						Target: n,
+					})
+
+					break
+				}
+			}
+		}
+	}
+
+	// Add the nouns to the graph
+	g.Nouns = append(g.Nouns, nlist...)
 
 	return nil
 }
