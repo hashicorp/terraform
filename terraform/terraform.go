@@ -253,6 +253,8 @@ func (t *Terraform) planWalkFn(result *Plan, opts *PlanOpts) depgraph.WalkFunc {
 			if r.State.ID != "" {
 				log.Printf("[DEBUG] %s: Making for destroy", r.Id)
 				diff = &ResourceDiff{Destroy: true}
+			} else {
+				log.Printf("[DEBUG] %s: Not marking for destroy, no ID", r.Id)
 			}
 		} else if r.Config == nil {
 			log.Printf("[DEBUG] %s: Orphan, marking for destroy", r.Id)

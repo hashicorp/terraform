@@ -20,10 +20,11 @@ type PlanCommand struct {
 }
 
 func (c *PlanCommand) Run(args []string) int {
-	var refresh bool
+	var destroy, refresh bool
 	var outPath, statePath string
 
 	cmdFlags := flag.NewFlagSet("plan", flag.ContinueOnError)
+	cmdFlags.BoolVar(&destroy, "destroy", false, "destroy")
 	cmdFlags.BoolVar(&refresh, "refresh", true, "refresh")
 	cmdFlags.StringVar(&outPath, "out", "", "path")
 	cmdFlags.StringVar(&statePath, "state", "", "path")
@@ -80,8 +81,9 @@ func (c *PlanCommand) Run(args []string) int {
 	}
 
 	plan, err := tf.Plan(&terraform.PlanOpts{
-		Config: b,
-		State:  state,
+		Config:  b,
+		Destroy: destroy,
+		State:   state,
 	})
 	if err != nil {
 		c.Ui.Error(fmt.Sprintf("Error running plan: %s", err))
