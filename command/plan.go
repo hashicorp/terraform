@@ -122,6 +122,9 @@ Usage: terraform plan [options] [terraform.tf]
 
 Options:
 
+  -destroy            If set, a plan will be generated to destroy all resources
+                      managed by the given configuration and state.
+
   -out=path           Write a plan file to the given path. This can be used as
                       input to the "apply" command.
 
