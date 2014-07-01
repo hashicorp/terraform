@@ -7,9 +7,51 @@ import (
 	"github.com/hashicorp/terraform/terraform"
 )
 
+func TestResourceBuilder_complex(t *testing.T) {
+	rb := &ResourceBuilder{
+		Attrs: map[string]AttrType{
+			"listener": AttrTypeUpdate,
+		},
+	}
+
+	state := &terraform.ResourceState{
+		ID: "foo",
+		Attributes: map[string]string{
+			"ignore":          "1",
+			"listener.#":      "1",
+			"listener.0.port": "80",
+		},
+	}
+
+	c := testConfig(t, map[string]interface{}{
+		"listener": []interface{}{
+			map[interface{}]interface{}{
+				"port": 3000,
+			},
+		},
+	}, nil)
+
+	diff, err := rb.Diff(state, c)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if diff == nil {
+		t.Fatal("should not be nil")
+	}
+
+	actual := testResourceDiffStr(diff)
+	expected := testRBComplexDiff
+	if actual != expected {
+		t.Fatalf("bad: %s", actual)
+	}
+}
+
 func TestResourceBuilder_new(t *testing.T) {
 	rb := &ResourceBuilder{
-		CreateComputedAttrs: []string{"private_ip"},
+		Attrs: map[string]AttrType{
+			"foo": AttrTypeUpdate,
+		},
+		ComputedAttrs: []string{"private_ip"},
 	}
 
 	state := &terraform.ResourceState{}
@@ -35,8 +77,10 @@ func TestResourceBuilder_new(t *testing.T) {
 
 func TestResourceBuilder_requiresNew(t *testing.T) {
 	rb := &ResourceBuilder{
-		CreateComputedAttrs: []string{"private_ip"},
-		RequiresNewAttrs:    []string{"ami"},
+		ComputedAttrs: []string{"private_ip"},
+		Attrs: map[string]AttrType{
+			"ami": AttrTypeCreate,
+		},
 	}
 
 	state := &terraform.ResourceState{
@@ -68,7 +112,7 @@ func TestResourceBuilder_requiresNew(t *testing.T) {
 
 func TestResourceBuilder_same(t *testing.T) {
 	rb := &ResourceBuilder{
-		CreateComputedAttrs: []string{"private_ip"},
+		ComputedAttrs: []string{"private_ip"},
 	}
 
 	state := &terraform.ResourceState{
@@ -92,7 +136,11 @@ func TestResourceBuilder_same(t *testing.T) {
 }
 
 func TestResourceBuilder_unknown(t *testing.T) {
-	rb := &ResourceBuilder{}
+	rb := &ResourceBuilder{
+		Attrs: map[string]AttrType{
+			"foo": AttrTypeUpdate,
+		},
+	}
 
 	state := &terraform.ResourceState{}
 
@@ -119,7 +167,11 @@ func TestResourceBuilder_unknown(t *testing.T) {
 }
 
 func TestResourceBuilder_vars(t *testing.T) {
-	rb := &ResourceBuilder{}
+	rb := &ResourceBuilder{
+		Attrs: map[string]AttrType{
+			"foo": AttrTypeUpdate,
+		},
+	}
 
 	state := &terraform.ResourceState{}
 
@@ -143,6 +195,10 @@ func TestResourceBuilder_vars(t *testing.T) {
 		t.Fatalf("bad: %s", actual)
 	}
 }
+
+const testRBComplexDiff = `UPDATE
+  IN  listener.0.port: "80" => "3000"
+`
 
 const testRBNewDiff = `UPDATE
   IN  foo:        "" => "bar"
