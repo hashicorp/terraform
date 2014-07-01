@@ -1,6 +1,5 @@
 This is just to keep track of what we need to do before 0.1:
 
-  * `terraform destroy`
   * `terraform apply/plan/refresh/destroy` need to be able to take variables as input
   * Provisioners on top of static resource creation: Shell, Chef, Puppet, etc.
   * `ValidateResource` ResourceProvider API for checking the structure of a resource config
