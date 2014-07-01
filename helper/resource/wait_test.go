@@ -35,10 +35,14 @@ func TestWaitForState_timeout(t *testing.T) {
 		Timeout: 1 * time.Millisecond,
 	}
 
-	_, err := conf.WaitForState()
+	obj, err := conf.WaitForState()
 
 	if err == nil && err.Error() != "timeout while waiting for state to become 'running'" {
 		t.Fatalf("err: %s", err)
+	}
+
+	if obj != nil {
+		t.Fatalf("should not return obj")
 	}
 
 }
@@ -51,11 +55,16 @@ func TestWaitForState_success(t *testing.T) {
 		Timeout: 200 * time.Second,
 	}
 
-	_, err := conf.WaitForState()
+	obj, err := conf.WaitForState()
 
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
+
+	if obj == nil {
+		t.Fatalf("should return obj")
+	}
+
 }
 
 func TestWaitForState_failure(t *testing.T) {
@@ -66,9 +75,13 @@ func TestWaitForState_failure(t *testing.T) {
 		Timeout: 200 * time.Second,
 	}
 
-	_, err := conf.WaitForState()
+	obj, err := conf.WaitForState()
 
 	if err == nil && err.Error() != "failed" {
 		t.Fatalf("err: %s", err)
+	}
+
+	if obj != nil {
+		t.Fatalf("should not return obj")
 	}
 }
