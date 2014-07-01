@@ -20,10 +20,11 @@ type PlanCommand struct {
 }
 
 func (c *PlanCommand) Run(args []string) int {
-	var refresh bool
+	var destroy, refresh bool
 	var outPath, statePath string
 
 	cmdFlags := flag.NewFlagSet("plan", flag.ContinueOnError)
+	cmdFlags.BoolVar(&destroy, "destroy", false, "destroy")
 	cmdFlags.BoolVar(&refresh, "refresh", true, "refresh")
 	cmdFlags.StringVar(&outPath, "out", "", "path")
 	cmdFlags.StringVar(&statePath, "state", "", "path")
@@ -80,8 +81,9 @@ func (c *PlanCommand) Run(args []string) int {
 	}
 
 	plan, err := tf.Plan(&terraform.PlanOpts{
-		Config: b,
-		State:  state,
+		Config:  b,
+		Destroy: destroy,
+		State:   state,
 	})
 	if err != nil {
 		c.Ui.Error(fmt.Sprintf("Error running plan: %s", err))
@@ -119,6 +121,9 @@ Usage: terraform plan [options] [terraform.tf]
   the actual state of an infrastructure.
 
 Options:
+
+  -destroy            If set, a plan will be generated to destroy all resources
+                      managed by the given configuration and state.
 
   -out=path           Write a plan file to the given path. This can be used as
                       input to the "apply" command.

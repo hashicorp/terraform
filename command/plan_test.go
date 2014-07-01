@@ -10,6 +10,43 @@ import (
 	"github.com/mitchellh/cli"
 )
 
+func TestPlan_destroy(t *testing.T) {
+	originalState := &terraform.State{
+		Resources: map[string]*terraform.ResourceState{
+			"test_instance.foo": &terraform.ResourceState{
+				ID:   "bar",
+				Type: "test_instance",
+			},
+		},
+	}
+
+	outPath := testTempFile(t)
+	statePath := testStateFile(t, originalState)
+
+	p := testProvider()
+	ui := new(cli.MockUi)
+	c := &PlanCommand{
+		TFConfig: testTFConfig(p),
+		Ui:       ui,
+	}
+
+	args := []string{
+		"-destroy",
+		"-out", outPath,
+		"-state", statePath,
+		testFixturePath("plan"),
+	}
+	if code := c.Run(args); code != 0 {
+		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
+	}
+
+	plan := testReadPlan(t, outPath)
+	for _, r := range plan.Diff.Resources {
+		if !r.Destroy {
+			t.Fatalf("bad: %#v", r)
+		}
+	}
+}
 func TestPlan_noState(t *testing.T) {
 	p := testProvider()
 	ui := new(cli.MockUi)

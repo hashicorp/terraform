@@ -42,6 +42,21 @@ func testPlanFile(t *testing.T, plan *terraform.Plan) string {
 	return path
 }
 
+func testReadPlan(t *testing.T, path string) *terraform.Plan {
+	f, err := os.Open(path)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	defer f.Close()
+
+	p, err := terraform.ReadPlan(f)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	return p
+}
+
 func testStateFile(t *testing.T, s *terraform.State) string {
 	path := testTempFile(t)
 
