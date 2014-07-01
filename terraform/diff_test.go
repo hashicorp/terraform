@@ -70,6 +70,38 @@ func TestDiff_String(t *testing.T) {
 	}
 }
 
+func TestResourceDiff_Empty(t *testing.T) {
+	var rd *ResourceDiff
+
+	if !rd.Empty() {
+		t.Fatal("should be empty")
+	}
+
+	rd = new(ResourceDiff)
+
+	if !rd.Empty() {
+		t.Fatal("should be empty")
+	}
+
+	rd = &ResourceDiff{Destroy: true}
+
+	if rd.Empty() {
+		t.Fatal("should not be empty")
+	}
+
+	rd = &ResourceDiff{
+		Attributes: map[string]*ResourceAttrDiff{
+			"foo": &ResourceAttrDiff{
+				New: "bar",
+			},
+		},
+	}
+
+	if rd.Empty() {
+		t.Fatal("should not be empty")
+	}
+}
+
 func TestResourceDiff_RequiresNew(t *testing.T) {
 	rd := &ResourceDiff{
 		Attributes: map[string]*ResourceAttrDiff{

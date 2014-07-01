@@ -177,7 +177,6 @@ const (
 )
 
 // Empty returns true if this diff encapsulates no changes.
-// TODO(mitchellh): test
 func (d *ResourceDiff) Empty() bool {
 	if d == nil {
 		return true
