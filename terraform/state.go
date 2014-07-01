@@ -16,8 +16,7 @@ import (
 // can use to keep track of what real world resources it is actually
 // managing.
 type State struct {
-	Dependencies map[string][][]string
-	Resources    map[string]*ResourceState
+	Resources map[string]*ResourceState
 
 	once sync.Once
 }
@@ -74,6 +73,13 @@ func (s *State) String() string {
 
 		for ak, av := range rs.Attributes {
 			buf.WriteString(fmt.Sprintf("  %s = %s\n", ak, av))
+		}
+
+		if len(rs.Dependencies) > 0 {
+			buf.WriteString(fmt.Sprintf("\n  Dependencies:\n"))
+			for _, dep := range rs.Dependencies {
+				buf.WriteString(fmt.Sprintf("    %s\n", dep.ID))
+			}
 		}
 	}
 
@@ -135,10 +141,43 @@ func WriteState(d *State, dst io.Writer) error {
 // Extra is just extra data that a provider can return that we store
 // for later, but is not exposed in any way to the user.
 type ResourceState struct {
-	ID         string
-	Type       string
+	// This is filled in and managed by Terraform, and is the resource
+	// type itself such as "mycloud_instance". If a resource provider sets
+	// this value, it won't be persisted.
+	Type string
+
+	// The attributes below are all meant to be filled in by the
+	// resource providers themselves. Documentation for each are above
+	// each element.
+
+	// A unique ID for this resource. This is opaque to Terraform
+	// and is only meant as a lookup mechanism for the providers.
+	ID string
+
+	// Attributes are basic information about the resource. Any keys here
+	// are accessible in variable format within Terraform configurations:
+	// ${resourcetype.name.attribute}.
 	Attributes map[string]string
-	Extra      map[string]interface{}
+
+	// Extra information that the provider can store about a resource.
+	// This data is opaque, never shown to the user, and is sent back to
+	// the provider as-is for whatever purpose appropriate.
+	Extra map[string]interface{}
+
+	// Dependencies are a list of things that this resource relies on
+	// existing to remain intact. For example: an AWS instance might
+	// depend on a subnet (which itself might depend on a VPC, and so
+	// on).
+	//
+	// Terraform uses this information to build valid destruction
+	// orders and to warn the user if they're destroying a resource that
+	// another resource depends on.
+	//
+	// Things can be put into this list that may not be managed by
+	// Terraform. If Terraform doesn't find a matching ID in the
+	// overall state, then it assumes it isn't managed and doesn't
+	// worry about it.
+	Dependencies []ResourceDependency
 }
 
 // MergeDiff takes a ResourceDiff and merges the attributes into
@@ -173,4 +212,12 @@ func (s *ResourceState) MergeDiff(d *ResourceDiff) *ResourceState {
 	}
 
 	return &result
+}
+
+// ResourceDependency maps a resource to another resource that it
+// depends on to remain intact and uncorrupted.
+type ResourceDependency struct {
+	// ID of the resource that we depend on. This ID should map
+	// directly to another ResourceState's ID.
+	ID string
 }

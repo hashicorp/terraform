@@ -104,6 +104,10 @@ func (t *Terraform) apply(
 	p *Plan) (*State, error) {
 	s := new(State)
 	err := g.Walk(t.applyWalkFn(s, p))
+
+	// Now that we've built the state and have the graph, re-calculate
+	// the dependencies for our state based on what we did.
+
 	return s, err
 }
 
