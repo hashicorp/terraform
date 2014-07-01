@@ -20,20 +20,63 @@ func resource_aws_elb_create(
 	// properly.
 	rs := s.MergeDiff(d)
 
-	// Create
+	// The name specified for the ELB. This is also our unique ID
+	// we save to state if the creation is succesful (amazon verifies
+	// it is unique)
+	elbName := rs.Attributes["name"]
 
-	return
+	// Provision the elb
+	elbOpts := &elb.CreateLoadBalancer{
+		LoadBalancerName: elbName,
+	}
+	log.Printf("[DEBUG] ELB create configuration: %#v", elbOpts)
+
+	_, err := elbconn.CreateLoadBalancer(elbOpts)
+	if err != nil {
+		return nil, fmt.Errorf("Error creating ELB: %s", err)
+	}
+
+	// Assign the elb's unique identifer for use later
+	rs.ID = elbName
+	log.Printf("[INFO] ELB ID: %s", elbName)
+
+	// Filter by our name
+	describeElbOpts := &elb.DescribeLoadBalancer{
+		Names: []string{elbName},
+	}
+
+	// Retrieve the ELB properties for updating the state
+	describeResp, err := elbconn.DescribeLoadBalancers(describeElbOpts)
+	if err != nil {
+		return nil, fmt.Errorf("Error retrieving ELB: %s", err)
+	}
+
+	// Verify AWS returned our ELB
+	if len(describeResp.LoadBalancers) != 1 ||
+		describeResp.LoadBalancers[0].LoadBalancerName != elbName {
+		if err != nil {
+			return nil, fmt.Errorf("Unable to find ELB: %#v", describeResp.LoadBalancers)
+		}
+	}
+	loadBalancer := describeResp.LoadBalancers[0]
+
+	return resource_aws_elb_update_state(rs, &loadBalancer)
 }
 
 func resource_aws_elb_destroy(
 	s *terraform.ResourceState,
 	meta interface{}) error {
-	p := meta.(*ResourceProvider)
-	elbconn := p.elbconn
 
-	// destroy
+	return nil
+}
 
-	return
+func resource_aws_elb_refresh(
+	s *terraform.ResourceState,
+	meta interface{}) (*terraform.ResourceState, error) {
+
+	loadBalancer := &elb.LoadBalancer{}
+
+	return resource_aws_elb_update_state(s, loadBalancer)
 }
 
 func resource_aws_elb_diff(
@@ -41,16 +84,23 @@ func resource_aws_elb_diff(
 	c *terraform.ResourceConfig,
 	meta interface{}) (*terraform.ResourceDiff, error) {
 
-	// diff
+	b := &diff.ResourceBuilder{
+		CreateComputedAttrs: []string{
+			"dns_name",
+		},
+
+		RequiresNewAttrs: []string{
+			"name",
+		},
+	}
+
+	return b.Diff(s, c)
 }
 
-func resource_aws_elb_refresh(
+func resource_aws_elb_update_state(
 	s *terraform.ResourceState,
-	meta interface{}) (*terraform.ResourceState, error) {
-	p := meta.(*ResourceProvider)
-	elbconn := p.elbconn
-
-	// retrieve elb health status and describe instances?
-
-	return
+	balancer *elb.LoadBalancer) (*terraform.ResourceState, error) {
+	s.Attributes["name"] = balancer.LoadBalancerName
+	s.Attributes["dns_name"] = balancer.DNSName
+	return s, nil
 }
