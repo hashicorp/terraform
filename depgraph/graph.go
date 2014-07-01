@@ -9,6 +9,7 @@ import (
 	"bytes"
 	"fmt"
 	"sort"
+	"sync"
 
 	"github.com/hashicorp/terraform/digraph"
 )
@@ -217,6 +218,7 @@ CHECK_CYCLES:
 // then introduce a lock in your callback.
 func (g *Graph) Walk(fn WalkFunc) error {
 	// Set so we don't callback for a single noun multiple times
+	var seenMapL sync.RWMutex
 	seenMap := make(map[*Noun]chan struct{})
 	seenMap[g.Root] = make(chan struct{})
 
@@ -236,7 +238,9 @@ func (g *Graph) Walk(fn WalkFunc) error {
 		// Go through each dependency and run that first
 		for _, dep := range current.Deps {
 			if _, ok := seenMap[dep.Target]; !ok {
+				seenMapL.Lock()
 				seenMap[dep.Target] = make(chan struct{})
+				seenMapL.Unlock()
 				tovisit = append(tovisit, dep.Target)
 			}
 		}
@@ -244,12 +248,20 @@ func (g *Graph) Walk(fn WalkFunc) error {
 		// Spawn off a goroutine to execute our callback once
 		// all our dependencies are satisified.
 		go func(current *Noun) {
-			defer close(seenMap[current])
+			seenMapL.RLock()
+			closeCh := seenMap[current]
+			seenMapL.RUnlock()
+
+			defer close(closeCh)
 
 			// Wait for all our dependencies
 			for _, dep := range current.Deps {
+				seenMapL.RLock()
+				ch := seenMap[dep.Target]
+				seenMapL.RUnlock()
+
 				select {
-				case <-seenMap[dep.Target]:
+				case <-ch:
 				case <-quitCh:
 					return
 				}
