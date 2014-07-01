@@ -1,6 +1,7 @@
 package terraform
 
 import (
+	"errors"
 	"fmt"
 	"sort"
 	"strings"
@@ -19,10 +20,10 @@ type GraphOpts struct {
 	// This is the only required item.
 	Config *config.Config
 
-	// Diff of changes that will be applied to the given state. If specified,
-	// State becomes required. This will associate a ResourceDiff with
-	// applicable resources. Additionally, new resource nodes representing
-	// resource destruction may be inserted into the graph.
+	// Diff of changes that will be applied to the given state. This will
+	// associate a ResourceDiff with applicable resources. Additionally,
+	// new resource nodes representing resource destruction may be inserted
+	// into the graph.
 	Diff *Diff
 
 	// State, if present, will make the ResourceState available on each
