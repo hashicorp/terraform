@@ -3,8 +3,10 @@ package aws
 import (
 	"fmt"
 	"log"
+	"time"
 
 	"github.com/hashicorp/terraform/helper/diff"
+	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
 	"github.com/mitchellh/goamz/ec2"
 )
@@ -42,16 +44,22 @@ func resource_aws_instance_create(
 	log.Printf(
 		"[DEBUG] Waiting for instance (%s) to become running",
 		instance.InstanceId)
-	instanceRaw, err := WaitForState(&StateChangeConf{
+
+	stateConf := &resource.StateChangeConf{
 		Pending: []string{"pending"},
 		Target:  "running",
 		Refresh: InstanceStateRefreshFunc(ec2conn, instance.InstanceId),
-	})
+		Timeout: 10 * time.Minute,
+	}
+
+	instanceRaw, err := stateConf.WaitForState()
+
 	if err != nil {
 		return rs, fmt.Errorf(
 			"Error waiting for instance (%s) to become ready: %s",
 			instance.InstanceId, err)
 	}
+
 	instance = instanceRaw.(*ec2.Instance)
 
 	// Set our attributes
@@ -72,11 +80,15 @@ func resource_aws_instance_destroy(
 	log.Printf(
 		"[DEBUG] Waiting for instance (%s) to become terminated",
 		s.ID)
-	_, err := WaitForState(&StateChangeConf{
+
+	stateConf := &resource.StateChangeConf{
 		Pending: []string{"pending", "running", "shutting-down", "stopped", "stopping"},
 		Target:  "terminated",
 		Refresh: InstanceStateRefreshFunc(ec2conn, s.ID),
-	})
+	}
+
+	_, err := stateConf.WaitForState()
+
 	if err != nil {
 		return fmt.Errorf(
 			"Error waiting for instance (%s) to terminate: %s",
@@ -149,4 +161,30 @@ func resource_aws_instance_update_state(
 	s.Attributes["private_dns"] = instance.PrivateDNSName
 	s.Attributes["private_ip"] = instance.PrivateIpAddress
 	return s, nil
+}
+
+// InstanceStateRefreshFunc returns a resource.StateRefreshFunc that is used to watch
+// an EC2 instance.
+func InstanceStateRefreshFunc(conn *ec2.EC2, instanceID string) resource.StateRefreshFunc {
+	return func() (interface{}, string, error) {
+		resp, err := conn.Instances([]string{instanceID}, ec2.NewFilter())
+		if err != nil {
+			if ec2err, ok := err.(*ec2.Error); ok && ec2err.Code == "InvalidInstanceID.NotFound" {
+				// Set this to nil as if we didn't find anything.
+				resp = nil
+			} else {
+				log.Printf("Error on InstanceStateRefresh: %s", err)
+				return nil, "", err
+			}
+		}
+
+		if resp == nil || len(resp.Reservations) == 0 || len(resp.Reservations[0].Instances) == 0 {
+			// Sometimes AWS just has consistency issues and doesn't see
+			// our instance yet. Return an empty state.
+			return nil, "", nil
+		}
+
+		i := &resp.Reservations[0].Instances[0]
+		return i, i.State.Name, nil
+	}
 }
