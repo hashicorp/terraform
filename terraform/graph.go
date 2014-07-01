@@ -77,6 +77,10 @@ type GraphNodeResourceProvider struct {
 //     configured at this point.
 //
 func Graph(opts *GraphOpts) (*depgraph.Graph, error) {
+	if opts.Config == nil {
+		return nil, errors.New("Config is required for Graph")
+	}
+
 	g := new(depgraph.Graph)
 
 	// First, build the initial resource graph. This only has the resources

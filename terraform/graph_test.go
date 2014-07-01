@@ -21,6 +21,12 @@ func TestGraph(t *testing.T) {
 	}
 }
 
+func TestGraph_configRequired(t *testing.T) {
+	if _, err := Graph(new(GraphOpts)); err == nil {
+		t.Fatal("should error")
+	}
+}
+
 func TestGraph_cycle(t *testing.T) {
 	config := testConfig(t, "graph-cycle")
 
