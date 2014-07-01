@@ -492,13 +492,25 @@ func testProviderFunc(n string, rs []string) ResourceProviderFactory {
 				return nil, nil
 			}
 
+			id := "foo"
+			if idAttr, ok := d.Attributes["id"]; ok && !idAttr.NewComputed {
+				id = idAttr.New
+			}
+
 			result := &ResourceState{
-				ID:         "foo",
-				Attributes: make(map[string]string),
+				ID: id,
 			}
 
 			if d != nil {
 				result = result.MergeDiff(d)
+			}
+
+			if depAttr, ok := d.Attributes["dep"]; ok {
+				result.Dependencies = []ResourceDependency{
+					ResourceDependency{
+						ID: depAttr.New,
+					},
+				}
 			}
 
 			return result, nil
@@ -675,12 +687,12 @@ const testTerraformApplyComputeStr = `
 aws_instance.bar:
   ID = foo
   type = aws_instance
-  foo = computed_id
+  foo = computed_dynamical
 aws_instance.foo:
   ID = foo
   type = aws_instance
   num = 2
-  id = computed_id
+  dynamical = computed_dynamical
 `
 
 const testTerraformApplyDestroyStr = `

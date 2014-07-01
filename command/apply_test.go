@@ -98,6 +98,14 @@ func TestApply_state(t *testing.T) {
 	statePath := testStateFile(t, originalState)
 
 	p := testProvider()
+	p.DiffReturn = &terraform.ResourceDiff{
+		Attributes: map[string]*terraform.ResourceAttrDiff{
+			"ami": &terraform.ResourceAttrDiff{
+				New: "bar",
+			},
+		},
+	}
+
 	ui := new(cli.MockUi)
 	c := &ApplyCommand{
 		TFConfig: testTFConfig(p),

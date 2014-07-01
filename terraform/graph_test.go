@@ -1,6 +1,7 @@
 package terraform
 
 import (
+	"reflect"
 	"strings"
 	"testing"
 )
@@ -109,6 +110,111 @@ func TestGraphFull(t *testing.T) {
 	}
 }
 
+func TestGraphAddDiff(t *testing.T) {
+	config := testConfig(t, "graph-diff")
+
+	g := Graph(config, nil)
+	if err := g.Validate(); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	diff := &Diff{
+		Resources: map[string]*ResourceDiff{
+			"aws_instance.foo": &ResourceDiff{
+				Attributes: map[string]*ResourceAttrDiff{
+					"foo": &ResourceAttrDiff{
+						New: "bar",
+					},
+				},
+			},
+		},
+	}
+
+	if err := GraphAddDiff(g, diff); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if err := g.Validate(); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	actual := strings.TrimSpace(g.String())
+	expected := strings.TrimSpace(testTerraformGraphDiffStr)
+	if actual != expected {
+		t.Fatalf("bad:\n\n%s", actual)
+	}
+
+	// Verify that the state has been added
+	n := g.Noun("aws_instance.foo")
+	rn := n.Meta.(*GraphNodeResource)
+
+	expected2 := diff.Resources["aws_instance.foo"]
+	actual2 := rn.Resource.Diff
+	if !reflect.DeepEqual(actual2, expected2) {
+		t.Fatalf("bad: %#v", actual2)
+	}
+}
+
+func TestGraphAddDiff_destroy(t *testing.T) {
+	config := testConfig(t, "graph-diff-destroy")
+	state := &State{
+		Resources: map[string]*ResourceState{
+			"aws_instance.foo": &ResourceState{
+				ID:   "foo",
+				Type: "aws_instance",
+			},
+
+			"aws_instance.bar": &ResourceState{
+				ID:   "bar",
+				Type: "aws_instance",
+				Dependencies: []ResourceDependency{
+					ResourceDependency{
+						ID: "foo",
+					},
+				},
+			},
+		},
+	}
+
+	g := Graph(config, state)
+	if err := g.Validate(); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	diff := &Diff{
+		Resources: map[string]*ResourceDiff{
+			"aws_instance.foo": &ResourceDiff{
+				Destroy: true,
+			},
+			"aws_instance.bar": &ResourceDiff{
+				Destroy: true,
+			},
+		},
+	}
+
+	if err := GraphAddDiff(g, diff); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if err := g.Validate(); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	actual := strings.TrimSpace(g.String())
+	expected := strings.TrimSpace(testTerraformGraphDiffDestroyStr)
+	if actual != expected {
+		t.Fatalf("bad:\n\n%s", actual)
+	}
+
+	// Verify that the state has been added
+	n := g.Noun("aws_instance.foo")
+	rn := n.Meta.(*GraphNodeResource)
+
+	expected2 := diff.Resources["aws_instance.foo"]
+	actual2 := rn.Resource.Diff
+	if !reflect.DeepEqual(actual2, expected2) {
+		t.Fatalf("bad: %#v", actual2)
+	}
+}
+
 const testTerraformGraphStr = `
 root: root
 aws_instance.web
@@ -128,6 +234,27 @@ root
   root -> aws_security_group.firewall
   root -> openstack_floating_ip.random
   root -> provider.aws
+`
+
+const testTerraformGraphDiffStr = `
+root: root
+aws_instance.foo
+root
+  root -> aws_instance.foo
+`
+
+const testTerraformGraphDiffDestroyStr = `
+root: root
+aws_instance.bar
+  aws_instance.bar -> aws_instance.bar (destroy)
+aws_instance.bar (destroy)
+aws_instance.foo
+  aws_instance.foo -> aws_instance.foo (destroy)
+aws_instance.foo (destroy)
+  aws_instance.foo (destroy) -> aws_instance.bar (destroy)
+root
+  root -> aws_instance.bar
+  root -> aws_instance.foo
 `
 
 const testTerraformGraphStateStr = `
