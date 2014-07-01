@@ -85,12 +85,12 @@ func resource_aws_elb_diff(
 	meta interface{}) (*terraform.ResourceDiff, error) {
 
 	b := &diff.ResourceBuilder{
-		CreateComputedAttrs: []string{
-			"dns_name",
+		Attrs: map[string]diff.AttrType{
+			"name": diff.AttrTypeCreate,
 		},
 
-		RequiresNewAttrs: []string{
-			"name",
+		ComputedAttrs: []string{
+			"dns_name",
 		},
 	}
 

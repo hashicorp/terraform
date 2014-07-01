@@ -104,17 +104,17 @@ func resource_aws_instance_diff(
 	c *terraform.ResourceConfig,
 	meta interface{}) (*terraform.ResourceDiff, error) {
 	b := &diff.ResourceBuilder{
-		CreateComputedAttrs: []string{
+		Attrs: map[string]diff.AttrType{
+			"ami":               diff.AttrTypeCreate,
+			"availability_zone": diff.AttrTypeCreate,
+			"instance_type":     diff.AttrTypeCreate,
+		},
+
+		ComputedAttrs: []string{
 			"public_dns",
 			"public_ip",
 			"private_dns",
 			"private_ip",
-		},
-
-		RequiresNewAttrs: []string{
-			"ami",
-			"availability_zone",
-			"instance_type",
 		},
 	}
 
