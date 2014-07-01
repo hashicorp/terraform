@@ -9,8 +9,8 @@ import (
 func TestGraph(t *testing.T) {
 	config := testConfig(t, "graph-basic")
 
-	g := Graph(config, nil)
-	if err := g.Validate(); err != nil {
+	g, err := Graph(&GraphOpts{Config: config})
+	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
 
@@ -24,8 +24,8 @@ func TestGraph(t *testing.T) {
 func TestGraph_cycle(t *testing.T) {
 	config := testConfig(t, "graph-cycle")
 
-	g := Graph(config, nil)
-	if err := g.Validate(); err == nil {
+	_, err := Graph(&GraphOpts{Config: config})
+	if err == nil {
 		t.Fatal("should error")
 	}
 }
@@ -41,8 +41,8 @@ func TestGraph_state(t *testing.T) {
 		},
 	}
 
-	g := Graph(config, state)
-	if err := g.Validate(); err != nil {
+	g, err := Graph(&GraphOpts{Config: config, State: state})
+	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
 
@@ -72,11 +72,8 @@ func TestGraphFull(t *testing.T) {
 	}
 
 	c := testConfig(t, "graph-basic")
-	g := Graph(c, nil)
-	if err := GraphFull(g, ps); err != nil {
-		t.Fatalf("err: %s", err)
-	}
-	if err := g.Validate(); err != nil {
+	g, err := Graph(&GraphOpts{Config: c, Providers: ps})
+	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
 
@@ -112,12 +109,6 @@ func TestGraphFull(t *testing.T) {
 
 func TestGraphAddDiff(t *testing.T) {
 	config := testConfig(t, "graph-diff")
-
-	g := Graph(config, nil)
-	if err := g.Validate(); err != nil {
-		t.Fatalf("err: %s", err)
-	}
-
 	diff := &Diff{
 		Resources: map[string]*ResourceDiff{
 			"aws_instance.foo": &ResourceDiff{
@@ -130,10 +121,8 @@ func TestGraphAddDiff(t *testing.T) {
 		},
 	}
 
-	if err := GraphAddDiff(g, diff); err != nil {
-		t.Fatalf("err: %s", err)
-	}
-	if err := g.Validate(); err != nil {
+	g, err := Graph(&GraphOpts{Config: config, Diff: diff})
+	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
 
@@ -156,6 +145,16 @@ func TestGraphAddDiff(t *testing.T) {
 
 func TestGraphAddDiff_destroy(t *testing.T) {
 	config := testConfig(t, "graph-diff-destroy")
+	diff := &Diff{
+		Resources: map[string]*ResourceDiff{
+			"aws_instance.foo": &ResourceDiff{
+				Destroy: true,
+			},
+			"aws_instance.bar": &ResourceDiff{
+				Destroy: true,
+			},
+		},
+	}
 	state := &State{
 		Resources: map[string]*ResourceState{
 			"aws_instance.foo": &ResourceState{
@@ -175,26 +174,12 @@ func TestGraphAddDiff_destroy(t *testing.T) {
 		},
 	}
 
-	g := Graph(config, state)
-	if err := g.Validate(); err != nil {
-		t.Fatalf("err: %s", err)
-	}
-
-	diff := &Diff{
-		Resources: map[string]*ResourceDiff{
-			"aws_instance.foo": &ResourceDiff{
-				Destroy: true,
-			},
-			"aws_instance.bar": &ResourceDiff{
-				Destroy: true,
-			},
-		},
-	}
-
-	if err := GraphAddDiff(g, diff); err != nil {
-		t.Fatalf("err: %s", err)
-	}
-	if err := g.Validate(); err != nil {
+	g, err := Graph(&GraphOpts{
+		Config: config,
+		Diff:   diff,
+		State:  state,
+	})
+	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
 
