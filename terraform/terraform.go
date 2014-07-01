@@ -46,7 +46,12 @@ func (t *Terraform) Apply(p *Plan) (*State, error) {
 	// everywhere, and is instead just empty otherwise.
 	p.init()
 
-	g, err := t.Graph(p.Config, p.State)
+	g, err := Graph(&GraphOpts{
+		Config:    p.Config,
+		Diff:      p.Diff,
+		Providers: t.providers,
+		State:     p.State,
+	})
 	if err != nil {
 		return nil, err
 	}
@@ -54,33 +59,12 @@ func (t *Terraform) Apply(p *Plan) (*State, error) {
 	return t.apply(g, p)
 }
 
-// Graph returns the dependency graph for the given configuration and
-// state file.
-//
-// The resulting graph may have more resources than the configuration, because
-// it can contain resources in the state file that need to be modified.
-func (t *Terraform) Graph(c *config.Config, s *State) (*depgraph.Graph, error) {
-	// Get the basic graph with the raw metadata
-	g := Graph(c, s)
-	if err := g.Validate(); err != nil {
-		return nil, err
-	}
-
-	// Fill the graph with the providers
-	if err := GraphFull(g, t.providers); err != nil {
-		return nil, err
-	}
-
-	// Validate the graph so that it can setup a root and such
-	if err := g.Validate(); err != nil {
-		return nil, err
-	}
-
-	return g, nil
-}
-
 func (t *Terraform) Plan(opts *PlanOpts) (*Plan, error) {
-	g, err := t.Graph(opts.Config, opts.State)
+	g, err := Graph(&GraphOpts{
+		Config:    opts.Config,
+		Providers: t.providers,
+		State:     opts.State,
+	})
 	if err != nil {
 		return nil, err
 	}
@@ -91,7 +75,11 @@ func (t *Terraform) Plan(opts *PlanOpts) (*Plan, error) {
 // Refresh goes through all the resources in the state and refreshes them
 // to their latest status.
 func (t *Terraform) Refresh(c *config.Config, s *State) (*State, error) {
-	g, err := t.Graph(c, s)
+	g, err := Graph(&GraphOpts{
+		Config:    c,
+		Providers: t.providers,
+		State:     s,
+	})
 	if err != nil {
 		return s, err
 	}
@@ -102,13 +90,6 @@ func (t *Terraform) Refresh(c *config.Config, s *State) (*State, error) {
 func (t *Terraform) apply(
 	g *depgraph.Graph,
 	p *Plan) (*State, error) {
-	if err := GraphAddDiff(g, p.Diff); err != nil {
-		return nil, err
-	}
-	if err := g.Validate(); err != nil {
-		return nil, err
-	}
-
 	s := new(State)
 	err := g.Walk(t.applyWalkFn(s, p))
 	return s, err

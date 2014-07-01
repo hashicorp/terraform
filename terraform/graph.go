@@ -1,6 +1,7 @@
 package terraform
 
 import (
+	"errors"
 	"fmt"
 	"sort"
 	"strings"
@@ -8,6 +9,36 @@ import (
 	"github.com/hashicorp/terraform/config"
 	"github.com/hashicorp/terraform/depgraph"
 )
+
+// GraphOpts are options used to create the resource graph that Terraform
+// walks to make changes to infrastructure.
+//
+// Depending on what options are set, the resulting graph will come in
+// varying degrees of completeness.
+type GraphOpts struct {
+	// Config is the configuration from which to build the basic graph.
+	// This is the only required item.
+	Config *config.Config
+
+	// Diff of changes that will be applied to the given state. This will
+	// associate a ResourceDiff with applicable resources. Additionally,
+	// new resource nodes representing resource destruction may be inserted
+	// into the graph.
+	Diff *Diff
+
+	// State, if present, will make the ResourceState available on each
+	// resource node. Additionally, any orphans will be added automatically
+	// to the graph.
+	State *State
+
+	// Providers is a mapping of prefixes to a resource provider. If given,
+	// resource providers will be found, initialized, and associated to the
+	// resources in the graph.
+	//
+	// This will also potentially insert new nodes into the graph for
+	// the configuration of resource providers.
+	Providers map[string]ResourceProviderFactory
+}
 
 // GraphRootNode is the name of the root node in the Terraform resource
 // graph. This node is just a placemarker and has no associated functionality.
@@ -31,12 +62,8 @@ type GraphNodeResourceProvider struct {
 	Config       *config.ProviderConfig
 }
 
-// Graph builds a dependency graph for the given configuration and state.
-//
-// Before using this graph, Validate should be called on it. This will perform
-// some initialization necessary such as setting up a root node. This function
-// doesn't perform the Validate automatically in case the caller wants to
-// modify the graph.
+// Graph builds a dependency graph of all the resources for infrastructure
+// change.
 //
 // This dependency graph shows the correct order that any resources need
 // to be operated on.
@@ -49,20 +76,24 @@ type GraphNodeResourceProvider struct {
 //   *GraphNodeResourceProvider - A resource provider that needs to be
 //     configured at this point.
 //
-func Graph(c *config.Config, s *State) *depgraph.Graph {
+func Graph(opts *GraphOpts) (*depgraph.Graph, error) {
+	if opts.Config == nil {
+		return nil, errors.New("Config is required for Graph")
+	}
+
 	g := new(depgraph.Graph)
 
 	// First, build the initial resource graph. This only has the resources
 	// and no dependencies.
-	graphAddConfigResources(g, c, s)
+	graphAddConfigResources(g, opts.Config, opts.State)
 
 	// Next, add the state orphans if we have any
-	if s != nil {
-		graphAddOrphans(g, c, s)
+	if opts.State != nil {
+		graphAddOrphans(g, opts.Config, opts.State)
 	}
 
 	// Map the provider configurations to all of the resources
-	graphAddProviderConfigs(g, c)
+	graphAddProviderConfigs(g, opts.Config)
 
 	// Add all the variable dependencies
 	graphAddVariableDeps(g)
@@ -70,39 +101,81 @@ func Graph(c *config.Config, s *State) *depgraph.Graph {
 	// Build the root so that we have a single valid root
 	graphAddRoot(g)
 
-	return g
+	// If providers were given, lets associate the proper providers and
+	// instantiate them.
+	if len(opts.Providers) > 0 {
+		// Add missing providers from the mapping
+		if err := graphAddMissingResourceProviders(g, opts.Providers); err != nil {
+			return nil, err
+		}
+
+		// Initialize all the providers
+		if err := graphInitResourceProviders(g, opts.Providers); err != nil {
+			return nil, err
+		}
+
+		// Map the providers to resources
+		if err := graphMapResourceProviders(g); err != nil {
+			return nil, err
+		}
+	}
+
+	// If we have a diff, then make sure to add that in
+	if opts.Diff != nil {
+		if err := graphAddDiff(g, opts.Diff); err != nil {
+			return nil, err
+		}
+	}
+
+	// Validate
+	if err := g.Validate(); err != nil {
+		return nil, err
+	}
+
+	return g, nil
 }
 
-// GraphFull completes the raw graph returned by Graph by initializing
-// all the resource providers.
-//
-// This may add new nodes to the graph, since it can add new resource
-// providers based on the mapping given in the case that a provider
-// configuration was not specified.
-//
-// Various errors can be returned from this function, such as if there
-// is no matching provider for a resource, a resource provider can't be
-// created, etc.
-func GraphFull(g *depgraph.Graph, ps map[string]ResourceProviderFactory) error {
-	// Add missing providers from the mapping
-	if err := graphAddMissingResourceProviders(g, ps); err != nil {
-		return err
+// configGraph turns a configuration structure into a dependency graph.
+func graphAddConfigResources(
+	g *depgraph.Graph, c *config.Config, s *State) {
+	// This tracks all the resource nouns
+	nouns := make(map[string]*depgraph.Noun)
+	for _, r := range c.Resources {
+		var state *ResourceState
+		if s != nil {
+			state = s.Resources[r.Id()]
+		}
+		if state == nil {
+			state = &ResourceState{
+				Type: r.Type,
+			}
+		}
+
+		noun := &depgraph.Noun{
+			Name: r.Id(),
+			Meta: &GraphNodeResource{
+				Type:   r.Type,
+				Config: r,
+				Resource: &Resource{
+					Id:    r.Id(),
+					State: state,
+				},
+			},
+		}
+		nouns[noun.Name] = noun
 	}
 
-	// Initialize all the providers
-	if err := graphInitResourceProviders(g, ps); err != nil {
-		return err
+	// Build the list of nouns that we iterate over
+	nounsList := make([]*depgraph.Noun, 0, len(nouns))
+	for _, n := range nouns {
+		nounsList = append(nounsList, n)
 	}
 
-	// Map the providers to resources
-	if err := graphMapResourceProviders(g); err != nil {
-		return err
-	}
-
-	return nil
+	g.Name = "terraform"
+	g.Nouns = append(g.Nouns, nounsList...)
 }
 
-// GraphAddDiff takes an already-built graph of resources and adds the
+// graphAddDiff takes an already-built graph of resources and adds the
 // diffs to the resource nodes themselves.
 //
 // This may also introduces new graph elements. If there are diffs that
@@ -111,7 +184,7 @@ func GraphFull(g *depgraph.Graph, ps map[string]ResourceProviderFactory) error {
 // destroying the VPC's subnets first, whereas creating a VPC requires
 // doing it before the subnets are created. This function handles inserting
 // these nodes for you.
-func GraphAddDiff(g *depgraph.Graph, d *Diff) error {
+func graphAddDiff(g *depgraph.Graph, d *Diff) error {
 	var nlist []*depgraph.Noun
 	for _, n := range g.Nouns {
 		rn, ok := n.Meta.(*GraphNodeResource)
@@ -197,46 +270,6 @@ func GraphAddDiff(g *depgraph.Graph, d *Diff) error {
 	g.Nouns = append(g.Nouns, nlist...)
 
 	return nil
-}
-
-// configGraph turns a configuration structure into a dependency graph.
-func graphAddConfigResources(
-	g *depgraph.Graph, c *config.Config, s *State) {
-	// This tracks all the resource nouns
-	nouns := make(map[string]*depgraph.Noun)
-	for _, r := range c.Resources {
-		var state *ResourceState
-		if s != nil {
-			state = s.Resources[r.Id()]
-		}
-		if state == nil {
-			state = &ResourceState{
-				Type: r.Type,
-			}
-		}
-
-		noun := &depgraph.Noun{
-			Name: r.Id(),
-			Meta: &GraphNodeResource{
-				Type:   r.Type,
-				Config: r,
-				Resource: &Resource{
-					Id:    r.Id(),
-					State: state,
-				},
-			},
-		}
-		nouns[noun.Name] = noun
-	}
-
-	// Build the list of nouns that we iterate over
-	nounsList := make([]*depgraph.Noun, 0, len(nouns))
-	for _, n := range nouns {
-		nounsList = append(nounsList, n)
-	}
-
-	g.Name = "terraform"
-	g.Nouns = append(g.Nouns, nounsList...)
 }
 
 // graphAddMissingResourceProviders adds GraphNodeResourceProvider nodes for
