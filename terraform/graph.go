@@ -102,6 +102,35 @@ func GraphFull(g *depgraph.Graph, ps map[string]ResourceProviderFactory) error {
 	return nil
 }
 
+// GraphAddDiff takes an already-built graph of resources and adds the
+// diffs to the resource nodes themselves.
+//
+// This may also introduces new graph elements. If there are diffs that
+// require a destroy, new elements may be introduced since destroy order
+// is different than create order. For example, destroying a VPC requires
+// destroying the VPC's subnets first, whereas creating a VPC requires
+// doing it before the subnets are created. This function handles inserting
+// these nodes for you.
+//
+// Note that all nodes modifying the same resource will have the same name.
+func GraphAddDiff(g *depgraph.Graph, d *Diff) error {
+	for _, n := range g.Nouns {
+		rn, ok := n.Meta.(*GraphNodeResource)
+		if !ok {
+			continue
+		}
+
+		rd, ok := d.Resources[rn.Resource.Id]
+		if !ok {
+			continue
+		}
+
+		rn.Resource.Diff = rd
+	}
+
+	return nil
+}
+
 // configGraph turns a configuration structure into a dependency graph.
 func graphAddConfigResources(
 	g *depgraph.Graph, c *config.Config, s *State) {
