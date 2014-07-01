@@ -61,12 +61,8 @@ type GraphNodeResourceProvider struct {
 	Config       *config.ProviderConfig
 }
 
-// Graph builds a dependency graph for the given configuration and state.
-//
-// Before using this graph, Validate should be called on it. This will perform
-// some initialization necessary such as setting up a root node. This function
-// doesn't perform the Validate automatically in case the caller wants to
-// modify the graph.
+// Graph builds a dependency graph of all the resources for infrastructure
+// change.
 //
 // This dependency graph shows the correct order that any resources need
 // to be operated on.
@@ -174,7 +170,7 @@ func graphAddConfigResources(
 	g.Nouns = append(g.Nouns, nounsList...)
 }
 
-// GraphAddDiff takes an already-built graph of resources and adds the
+// graphAddDiff takes an already-built graph of resources and adds the
 // diffs to the resource nodes themselves.
 //
 // This may also introduces new graph elements. If there are diffs that
