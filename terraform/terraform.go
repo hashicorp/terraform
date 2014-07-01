@@ -297,7 +297,7 @@ func (t *Terraform) planWalkFn(result *Plan, opts *PlanOpts) depgraph.WalkFunc {
 func (t *Terraform) genericWalkFn(
 	invars map[string]string,
 	cb genericWalkFunc) depgraph.WalkFunc {
-	var l sync.Mutex
+	var l sync.RWMutex
 
 	// Initialize the variables for application
 	vars := make(map[string]string)
@@ -334,6 +334,8 @@ func (t *Terraform) genericWalkFn(
 		}
 
 		rn := n.Meta.(*GraphNodeResource)
+
+		l.RLock()
 		if len(vars) > 0 && rn.Config != nil {
 			if err := rn.Config.RawConfig.Interpolate(vars); err != nil {
 				panic(fmt.Sprintf("Interpolate error: %s", err))
@@ -342,6 +344,7 @@ func (t *Terraform) genericWalkFn(
 			// Force the config to be set later
 			rn.Resource.Config = nil
 		}
+		l.RUnlock()
 
 		// Make sure that at least some resource configuration is set
 		if !rn.Orphan {
