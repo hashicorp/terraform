@@ -85,6 +85,7 @@ func resource_aws_instance_destroy(
 		Pending: []string{"pending", "running", "shutting-down", "stopped", "stopping"},
 		Target:  "terminated",
 		Refresh: InstanceStateRefreshFunc(ec2conn, s.ID),
+		Timeout: 10 * time.Minute,
 	}
 
 	_, err := stateConf.WaitForState()
