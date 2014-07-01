@@ -1,14 +1,43 @@
 package diff
 
 import (
+	"strings"
+
+	"github.com/hashicorp/terraform/flatmap"
 	"github.com/hashicorp/terraform/terraform"
+)
+
+// AttrType is an enum that tells the ResourceBuilder what type of attribute
+// an attribute is, affecting the overall diff output.
+//
+// The valid values are:
+//
+//   * AttrTypeCreate - This attribute can only be set or updated on create.
+//       This means that if this attribute is changed, it will require a new
+//       resource to be created if it is already created.
+//
+//   * AttrTypeUpdate - This attribute can be set at create time or updated
+//       in-place. Changing this attribute does not require a new resource.
+//
+type AttrType byte
+
+const (
+	AttrTypeUnknown AttrType = iota
+	AttrTypeCreate
+	AttrTypeUpdate
 )
 
 // ResourceBuilder is a helper that knows about how a single resource
 // changes and how those changes affect the diff.
 type ResourceBuilder struct {
-	CreateComputedAttrs []string
-	RequiresNewAttrs    []string
+	// Attrs are the mapping of attributes that can be set from the
+	// configuration, and the affect they have. See the documentation for
+	// AttrType for more info.
+	Attrs map[string]AttrType
+
+	// ComputedAttrs are the attributes that are computed at
+	// resource creation time.
+	ComputedAttrs []string
 }
 
 // Diff returns the ResourceDiff for a resource given its state and
@@ -18,45 +47,52 @@ func (b *ResourceBuilder) Diff(
 	c *terraform.ResourceConfig) (*terraform.ResourceDiff, error) {
 	attrs := make(map[string]*terraform.ResourceAttrDiff)
 
-	requiresNewSet := make(map[string]struct{})
-	for _, k := range b.RequiresNewAttrs {
-		requiresNewSet[k] = struct{}{}
-	}
-
 	// We require a new resource if the ID is empty. Or, later, we set
 	// this to true if any configuration changed that triggers a new resource.
 	requiresNew := s.ID == ""
 
-	// Go through the configuration and find the changed attributes
-	for k, v := range c.Raw {
-		newV := v.(string)
+	// Flatten the raw and processed configuration
+	flatRaw := flatmap.Flatten(c.Raw)
+	flatConfig := flatmap.Flatten(c.Config)
+
+	for k, v := range flatRaw {
+		// Make sure this is an attribute that actually affects
+		// the diff in some way.
+		var attr AttrType
+		for ak, at := range b.Attrs {
+			if strings.HasPrefix(k, ak) {
+				attr = at
+				break
+			}
+		}
+		if attr == AttrTypeUnknown {
+			continue
+		}
 
 		// If this key is in the cleaned config, then use that value
 		// because it'll have its variables properly interpolated
-		if cleanV, ok := c.Config[k]; ok {
-			newV = cleanV.(string)
+		if cleanV, ok := flatConfig[k]; ok {
+			v = cleanV
 		}
 
-		var oldV string
-		var ok bool
-		if oldV, ok = s.Attributes[k]; ok {
-			// Old value exists! We check to see if there is a change
-			if oldV == newV {
-				continue
-			}
+		oldV, ok := s.Attributes[k]
+
+		// If there is an old value and they're the same, no change
+		if ok && oldV == v {
+			continue
 		}
 
-		// There has been a change. Record it
+		// Record the change
 		attrs[k] = &terraform.ResourceAttrDiff{
-			Old: oldV,
-			New: newV,
+			Old:  oldV,
+			New:  v,
+			Type: terraform.DiffAttrInput,
 		}
 
 		// If this requires a new resource, record that and flag our
 		// boolean.
-		if _, ok := requiresNewSet[k]; ok {
+		if attr == AttrTypeCreate {
 			attrs[k].RequiresNew = true
-			attrs[k].Type = terraform.DiffAttrInput
 			requiresNew = true
 		}
 	}
@@ -64,7 +100,7 @@ func (b *ResourceBuilder) Diff(
 	// If we require a new resource, then process all the attributes
 	// that will be changing due to the creation of the resource.
 	if requiresNew {
-		for _, k := range b.CreateComputedAttrs {
+		for _, k := range b.ComputedAttrs {
 			old := s.Attributes[k]
 			attrs[k] = &terraform.ResourceAttrDiff{
 				Old:         old,
