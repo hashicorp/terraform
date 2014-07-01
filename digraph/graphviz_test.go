@@ -27,31 +27,31 @@ b -> e
 	if !strings.HasSuffix(out, "\n}\n") {
 		t.Fatalf("bad: %v", out)
 	}
-	if !strings.Contains(out, "\n\ta;\n") {
+	if !strings.Contains(out, "\n\t\"a\";\n") {
 		t.Fatalf("bad: %v", out)
 	}
-	if !strings.Contains(out, "\n\tb;\n") {
+	if !strings.Contains(out, "\n\t\"b\";\n") {
 		t.Fatalf("bad: %v", out)
 	}
-	if !strings.Contains(out, "\n\tc;\n") {
+	if !strings.Contains(out, "\n\t\"c\";\n") {
 		t.Fatalf("bad: %v", out)
 	}
-	if !strings.Contains(out, "\n\td;\n") {
+	if !strings.Contains(out, "\n\t\"d\";\n") {
 		t.Fatalf("bad: %v", out)
 	}
-	if !strings.Contains(out, "\n\te;\n") {
+	if !strings.Contains(out, "\n\t\"e\";\n") {
 		t.Fatalf("bad: %v", out)
 	}
-	if !strings.Contains(out, "\n\ta -> b [label=\"foo\"];\n") {
+	if !strings.Contains(out, "\n\t\"a\" -> \"b\" [label=\"foo\"];\n") {
 		t.Fatalf("bad: %v", out)
 	}
-	if !strings.Contains(out, "\n\ta -> c [label=\"Edge\"];\n") {
+	if !strings.Contains(out, "\n\t\"a\" -> \"c\" [label=\"Edge\"];\n") {
 		t.Fatalf("bad: %v", out)
 	}
-	if !strings.Contains(out, "\n\tb -> d [label=\"Edge\"];\n") {
+	if !strings.Contains(out, "\n\t\"b\" -> \"d\" [label=\"Edge\"];\n") {
 		t.Fatalf("bad: %v", out)
 	}
-	if !strings.Contains(out, "\n\tb -> e [label=\"Edge\"];\n") {
+	if !strings.Contains(out, "\n\t\"b\" -> \"e\" [label=\"Edge\"];\n") {
 		t.Fatalf("bad: %v", out)
 	}
 }
