@@ -493,7 +493,7 @@ func testProviderFunc(n string, rs []string) ResourceProviderFactory {
 			}
 
 			id := "foo"
-			if idAttr, ok := d.Attributes["id"]; ok {
+			if idAttr, ok := d.Attributes["id"]; ok && !idAttr.NewComputed {
 				id = idAttr.New
 			}
 
@@ -687,12 +687,12 @@ const testTerraformApplyComputeStr = `
 aws_instance.bar:
   ID = foo
   type = aws_instance
-  foo = computed_id
+  foo = computed_dynamical
 aws_instance.foo:
   ID = foo
   type = aws_instance
   num = 2
-  id = computed_id
+  dynamical = computed_dynamical
 `
 
 const testTerraformApplyDestroyStr = `

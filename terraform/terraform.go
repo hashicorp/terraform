@@ -102,6 +102,13 @@ func (t *Terraform) Refresh(c *config.Config, s *State) (*State, error) {
 func (t *Terraform) apply(
 	g *depgraph.Graph,
 	p *Plan) (*State, error) {
+	if err := GraphAddDiff(g, p.Diff); err != nil {
+		return nil, err
+	}
+	if err := g.Validate(); err != nil {
+		return nil, err
+	}
+
 	s := new(State)
 	err := g.Walk(t.applyWalkFn(s, p))
 	return s, err
@@ -170,11 +177,9 @@ func (t *Terraform) applyWalkFn(
 	result.init()
 
 	cb := func(r *Resource) (map[string]string, error) {
-		diff, ok := p.Diff.Resources[r.Id]
-		if !ok {
-			// Skip if there is no diff for a resource
-			log.Printf("[DEBUG] No diff for %s, skipping.", r.Id)
-			return nil, nil
+		diff := r.Diff
+		if diff.Empty() {
+			return r.Vars(), nil
 		}
 
 		if !diff.Destroy {
@@ -229,23 +234,21 @@ func (t *Terraform) applyWalkFn(
 		result.Resources[r.Id] = rs
 		l.Unlock()
 
+		// Update the state for the resource itself
+		r.State = rs
+
 		for _, h := range t.hooks {
 			// TODO: return value
 			h.PostApply(r.Id, r.State)
 		}
 
 		// Determine the new state and update variables
-		vars := make(map[string]string)
-		for ak, av := range rs.Attributes {
-			vars[fmt.Sprintf("%s.%s", r.Id, ak)] = av
-		}
-
 		err = nil
 		if len(errs) > 0 {
 			err = &MultiError{Errors: errs}
 		}
 
-		return vars, err
+		return r.Vars(), err
 	}
 
 	return t.genericWalkFn(p.Vars, cb)
@@ -298,17 +301,11 @@ func (t *Terraform) planWalkFn(result *Plan, opts *PlanOpts) depgraph.WalkFunc {
 		}
 
 		// Determine the new state and update variables
-		vars := make(map[string]string)
 		if !diff.Empty() {
 			r.State = r.State.MergeDiff(diff)
 		}
-		if r.State != nil {
-			for ak, av := range r.State.Attributes {
-				vars[fmt.Sprintf("%s.%s", r.Id, ak)] = av
-			}
-		}
 
-		return vars, nil
+		return r.Vars(), nil
 	}
 
 	return t.genericWalkFn(opts.Vars, cb)
