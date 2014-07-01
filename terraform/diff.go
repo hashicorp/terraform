@@ -156,10 +156,11 @@ type ResourceDiff struct {
 
 // ResourceAttrDiff is the diff of a single attribute of a resource.
 type ResourceAttrDiff struct {
-	Old         string // Old Value
-	New         string // New Value
-	NewComputed bool   // True if new value is computed (unknown currently)
-	RequiresNew bool   // True if change requires new resource
+	Old         string      // Old Value
+	New         string      // New Value
+	NewComputed bool        // True if new value is computed (unknown currently)
+	NewExtra    interface{} // Extra information for the provider
+	RequiresNew bool        // True if change requires new resource
 	Type        DiffAttrType
 }
 
