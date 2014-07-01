@@ -15,7 +15,8 @@ type Resource struct {
 	State    *ResourceState
 }
 
-// TODO: test
+// Vars returns the mapping of variables that should be replaced in
+// configuration based on the attributes of this resource.
 func (r *Resource) Vars() map[string]string {
 	if r.State == nil {
 		return nil
