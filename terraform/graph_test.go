@@ -224,7 +224,6 @@ root
   root -> aws_load_balancer.weblb
   root -> aws_security_group.firewall
   root -> openstack_floating_ip.random
-  root -> provider.aws
 `
 
 const testTerraformGraphDiffStr = `
@@ -269,5 +268,4 @@ root
   root -> aws_load_balancer.weblb
   root -> aws_security_group.firewall
   root -> openstack_floating_ip.random
-  root -> provider.aws
 `

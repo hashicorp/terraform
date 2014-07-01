@@ -400,6 +400,11 @@ func graphAddProviderConfigs(g *depgraph.Graph, c *config.Config) {
 func graphAddRoot(g *depgraph.Graph) {
 	root := &depgraph.Noun{Name: GraphRootNode}
 	for _, n := range g.Nouns {
+		// The root only needs to depend on all the resources
+		if _, ok := n.Meta.(*GraphNodeResource); !ok {
+			continue
+		}
+
 		root.Deps = append(root.Deps, &depgraph.Dependency{
 			Name:   n.Name,
 			Source: root,
