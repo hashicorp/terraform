@@ -6,7 +6,6 @@ import (
 	"os"
 	"strings"
 
-	"github.com/hashicorp/terraform/config"
 	"github.com/hashicorp/terraform/terraform"
 	"github.com/mitchellh/cli"
 )
@@ -54,26 +53,14 @@ func (c *ApplyCommand) Run(args []string) int {
 
 	// Attempt to read a plan from the path given. This is how we test that
 	// it is a plan or not (kind of jank, but if it quacks like a duck...)
-	var plan *terraform.Plan
-	f, err := os.Open(configPath)
-	if err == nil {
-		plan, err = terraform.ReadPlan(f)
-		f.Close()
-		if err != nil {
-			// Make sure the plan is nil so that we try to load as
-			// configuration.
-			plan = nil
-		}
+	planStatePath := statePath
+	if init {
+		planStatePath = ""
 	}
-
-	if plan == nil {
-		// No plan was given, so we're loading from configuration. Generate
-		// the plan given the configuration.
-		plan, err = c.configToPlan(tf, init, statePath, configPath)
-		if err != nil {
-			c.Ui.Error(err.Error())
-			return 1
-		}
+	plan, err := PlanArg(configPath, planStatePath, tf)
+	if err != nil {
+		c.Ui.Error(err.Error())
+		return 1
 	}
 
 	state, err := tf.Apply(plan)
@@ -83,7 +70,7 @@ func (c *ApplyCommand) Run(args []string) int {
 	}
 
 	// Write state out to the file
-	f, err = os.Create(stateOutPath)
+	f, err := os.Create(stateOutPath)
 	if err == nil {
 		err = terraform.WriteState(state, f)
 		f.Close()
@@ -119,54 +106,4 @@ Options:
 
 func (c *ApplyCommand) Synopsis() string {
 	return "Builds or changes infrastructure"
-}
-
-func (c *ApplyCommand) configToPlan(
-	tf *terraform.Terraform,
-	init bool,
-	statePath string,
-	configPath string) (*terraform.Plan, error) {
-	if !init {
-		if _, err := os.Stat(statePath); err != nil {
-			return nil, fmt.Errorf(
-				"There was an error reading the state file. The path\n"+
-					"and error are shown below. If you're trying to build a\n"+
-					"brand new infrastructure, explicitly pass the '-init'\n"+
-					"flag to Terraform to tell it it is okay to build new\n"+
-					"state.\n\n"+
-					"Path: %s\n"+
-					"Error: %s",
-				statePath,
-				err)
-		}
-	}
-
-	// Load up the state
-	var state *terraform.State
-	if !init {
-		f, err := os.Open(statePath)
-		if err == nil {
-			state, err = terraform.ReadState(f)
-			f.Close()
-		}
-
-		if err != nil {
-			return nil, fmt.Errorf("Error loading state: %s", err)
-		}
-	}
-
-	config, err := config.Load(configPath)
-	if err != nil {
-		return nil, fmt.Errorf("Error loading config: %s", err)
-	}
-
-	plan, err := tf.Plan(&terraform.PlanOpts{
-		Config: config,
-		State:  state,
-	})
-	if err != nil {
-		return nil, fmt.Errorf("Error running plan: %s", err)
-	}
-
-	return plan, nil
 }

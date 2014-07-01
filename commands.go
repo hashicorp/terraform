@@ -33,6 +33,13 @@ func init() {
 			}, nil
 		},
 
+		"graph": func() (cli.Command, error) {
+			return &command.GraphCommand{
+				TFConfig: &TFConfig,
+				Ui:       Ui,
+			}, nil
+		},
+
 		"plan": func() (cli.Command, error) {
 			return &command.PlanCommand{
 				TFConfig: &TFConfig,
