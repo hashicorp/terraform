@@ -25,6 +25,9 @@ libucl: vendor/libucl/$(LIBUCL_NAME)
 test: libucl
 	go test $(TEST) $(TESTARGS)
 
+testrace: libucl
+	go test -race $(TEST) $(TESTARGS)
+
 updatedeps:
 	go get -u -v ./...
 
