@@ -1,6 +1,8 @@
 package digraph
 
 import (
+	"reflect"
+	"sort"
 	"testing"
 )
 
@@ -63,13 +65,14 @@ g -> a
 		t.Fatalf("bad: %v", sccs)
 	}
 
-	if cycle[0].(*BasicNode).Name != "g" {
-		t.Fatalf("bad: %v", cycle)
+	cycleNodes := make([]string, len(cycle))
+	for i, c := range cycle {
+		cycleNodes[i] = c.(*BasicNode).Name
 	}
-	if cycle[1].(*BasicNode).Name != "c" {
-		t.Fatalf("bad: %v", cycle)
-	}
-	if cycle[2].(*BasicNode).Name != "a" {
-		t.Fatalf("bad: %v", cycle)
+	sort.Strings(cycleNodes)
+
+	expected := []string{"a", "c", "g"}
+	if !reflect.DeepEqual(cycleNodes, expected) {
+		t.Fatalf("bad: %#v", cycleNodes)
 	}
 }

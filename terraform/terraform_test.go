@@ -675,24 +675,24 @@ func (h *HookRecordApplyOrder) PreApply(
 const testTerraformApplyStr = `
 aws_instance.bar:
   ID = foo
-  type = aws_instance
   foo = bar
+  type = aws_instance
 aws_instance.foo:
   ID = foo
-  type = aws_instance
   num = 2
+  type = aws_instance
 `
 
 const testTerraformApplyComputeStr = `
 aws_instance.bar:
   ID = foo
-  type = aws_instance
   foo = computed_dynamical
+  type = aws_instance
 aws_instance.foo:
   ID = foo
-  type = aws_instance
-  num = 2
   dynamical = computed_dynamical
+  num = 2
+  type = aws_instance
 `
 
 const testTerraformApplyDestroyStr = `
@@ -705,19 +705,19 @@ aws_instance.foo:
 const testTerraformApplyUnknownAttrStr = `
 aws_instance.foo:
   ID = foo
-  type = aws_instance
   num = 2
+  type = aws_instance
 `
 
 const testTerraformApplyVarsStr = `
 aws_instance.bar:
   ID = foo
-  type = aws_instance
   foo = bar
+  type = aws_instance
 aws_instance.foo:
   ID = foo
-  type = aws_instance
   num = 2
+  type = aws_instance
 `
 
 const testTerraformPlanStr = `

@@ -3,6 +3,7 @@ package depgraph
 import (
 	"fmt"
 	"reflect"
+	"sort"
 	"strings"
 	"sync"
 	"testing"
@@ -152,10 +153,16 @@ d -> b`)
 	}
 
 	cycle := vErr.Cycles[0]
-	if cycle[0].Name != "d" {
+	cycleNodes := make([]string, len(cycle))
+	for i, c := range cycle {
+		cycleNodes[i] = c.Name
+	}
+	sort.Strings(cycleNodes)
+
+	if cycleNodes[0] != "b" {
 		t.Fatalf("bad: %v", cycle)
 	}
-	if cycle[1].Name != "b" {
+	if cycleNodes[1] != "d" {
 		t.Fatalf("bad: %v", cycle)
 	}
 }

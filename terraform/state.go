@@ -71,7 +71,14 @@ func (s *State) String() string {
 		buf.WriteString(fmt.Sprintf("%s:\n", k))
 		buf.WriteString(fmt.Sprintf("  ID = %s\n", id))
 
-		for ak, av := range rs.Attributes {
+		attrKeys := make([]string, 0, len(rs.Attributes))
+		for ak, _ := range rs.Attributes {
+			attrKeys = append(attrKeys, ak)
+		}
+		sort.Strings(attrKeys)
+
+		for _, ak := range attrKeys {
+			av := rs.Attributes[ak]
 			buf.WriteString(fmt.Sprintf("  %s = %s\n", ak, av))
 		}
 

@@ -3,6 +3,7 @@ package config
 import (
 	"fmt"
 	"path/filepath"
+	"sort"
 	"strings"
 	"testing"
 )
@@ -95,10 +96,25 @@ func TestLoad_variables(t *testing.T) {
 // string value for comparison in tests.
 func providerConfigsStr(pcs map[string]*ProviderConfig) string {
 	result := ""
-	for n, pc := range pcs {
+
+	ns := make([]string, 0, len(pcs))
+	for n, _ := range pcs {
+		ns = append(ns, n)
+	}
+	sort.Strings(ns)
+
+	for _, n := range ns {
+		pc := pcs[n]
+
 		result += fmt.Sprintf("%s\n", n)
 
+		keys := make([]string, 0, len(pc.RawConfig.Raw))
 		for k, _ := range pc.RawConfig.Raw {
+			keys = append(keys, k)
+		}
+		sort.Strings(keys)
+
+		for _, k := range keys {
 			result += fmt.Sprintf("  %s\n", k)
 		}
 
@@ -133,7 +149,13 @@ func resourcesStr(rs []*Resource) string {
 			r.Type,
 			r.Name)
 
+		ks := make([]string, 0, len(r.RawConfig.Raw))
 		for k, _ := range r.RawConfig.Raw {
+			ks = append(ks, k)
+		}
+		sort.Strings(ks)
+
+		for _, k := range ks {
 			result += fmt.Sprintf("  %s\n", k)
 		}
 
@@ -162,7 +184,15 @@ func resourcesStr(rs []*Resource) string {
 // string value for comparison in tests.
 func variablesStr(vs map[string]*Variable) string {
 	result := ""
-	for k, v := range vs {
+	ks := make([]string, 0, len(vs))
+	for k, _ := range vs {
+		ks = append(ks, k)
+	}
+	sort.Strings(ks)
+
+	for _, k := range ks {
+		v := vs[k]
+
 		if v.Default == "" {
 			v.Default = "<>"
 		}
@@ -226,13 +256,13 @@ foo
 `
 
 const variablesVariablesStr = `
-foo
-  <>
-  <>
 bar
   <>
   <>
 baz
   foo
+  <>
+foo
+  <>
   <>
 `
