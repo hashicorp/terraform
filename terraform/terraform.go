@@ -1,7 +1,6 @@
 package terraform
 
 import (
-	"errors"
 	"fmt"
 	"log"
 	"sync"
@@ -24,19 +23,11 @@ type Terraform struct {
 // tree internally on the Terraform structure.
 type genericWalkFunc func(*Resource) (map[string]string, error)
 
-// genericWalkStop is a special return value that can be returned from a
-// genericWalkFunc that causes the walk to cease immediately.
-var genericWalkStop error
-
 // Config is the configuration that must be given to instantiate
 // a Terraform structure.
 type Config struct {
 	Hooks     []Hook
 	Providers map[string]ResourceProviderFactory
-}
-
-func init() {
-	genericWalkStop = errors.New("genericWalkStop")
 }
 
 // New creates a new Terraform structure, initializes resource providers
@@ -183,8 +174,7 @@ func (t *Terraform) refreshWalkFn(result *State) depgraph.WalkFunc {
 
 	cb := func(r *Resource) (map[string]string, error) {
 		for _, h := range t.hooks {
-			// TODO: return value
-			h.PreRefresh(r.Id, r.State)
+			handleHook(h.PreRefresh(r.Id, r.State))
 		}
 
 		rs, err := r.Provider.Refresh(r.State)
@@ -203,8 +193,7 @@ func (t *Terraform) refreshWalkFn(result *State) depgraph.WalkFunc {
 		l.Unlock()
 
 		for _, h := range t.hooks {
-			// TODO: return value
-			h.PostRefresh(r.Id, rs)
+			handleHook(h.PostRefresh(r.Id, rs))
 		}
 
 		return nil, nil
@@ -239,15 +228,7 @@ func (t *Terraform) applyWalkFn(
 		// anything and that the diff has no computed values (pre-computed)
 
 		for _, h := range t.hooks {
-			a, err := h.PreApply(r.Id, r.State, diff)
-			if err != nil {
-				return nil, err
-			}
-
-			switch a {
-			case HookActionHalt:
-				return nil, genericWalkStop
-			}
+			handleHook(h.PreApply(r.Id, r.State, diff))
 		}
 
 		// With the completed diff, apply!
@@ -291,15 +272,7 @@ func (t *Terraform) applyWalkFn(
 		r.State = rs
 
 		for _, h := range t.hooks {
-			a, err := h.PostApply(r.Id, r.State)
-			if err != nil {
-				return nil, err
-			}
-
-			switch a {
-			case HookActionHalt:
-				return nil, genericWalkStop
-			}
+			handleHook(h.PostApply(r.Id, r.State))
 		}
 
 		// Determine the new state and update variables
@@ -324,8 +297,7 @@ func (t *Terraform) planWalkFn(result *Plan, opts *PlanOpts) depgraph.WalkFunc {
 		var diff *ResourceDiff
 
 		for _, h := range t.hooks {
-			// TODO: return value
-			h.PreDiff(r.Id, r.State)
+			handleHook(h.PreDiff(r.Id, r.State))
 		}
 
 		if opts.Destroy {
@@ -358,8 +330,7 @@ func (t *Terraform) planWalkFn(result *Plan, opts *PlanOpts) depgraph.WalkFunc {
 		l.Unlock()
 
 		for _, h := range t.hooks {
-			// TODO: return value
-			h.PostDiff(r.Id, diff)
+			handleHook(h.PostDiff(r.Id, diff))
 		}
 
 		// Determine the new state and update variables
@@ -446,15 +417,21 @@ func (t *Terraform) genericWalkFn(
 			rn.Resource.Config = nil
 		}
 
+		// Handle recovery of special panic scenarios
+		defer func() {
+			if v := recover(); v != nil {
+				if v == HookActionHalt {
+					atomic.StoreUint32(&stop, 1)
+				} else {
+					panic(v)
+				}
+			}
+		}()
+
 		// Call the callack
 		log.Printf("[INFO] Walking: %s", rn.Resource.Id)
 		newVars, err := cb(rn.Resource)
 		if err != nil {
-			if err == genericWalkStop {
-				atomic.StoreUint32(&stop, 1)
-				return nil
-			}
-
 			return err
 		}
 
