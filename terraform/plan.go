@@ -11,6 +11,10 @@ import (
 	"github.com/hashicorp/terraform/config"
 )
 
+func init() {
+	gob.Register(make([]map[string]interface{}, 0))
+}
+
 // PlanOpts are the options used to generate an execution plan for
 // Terraform.
 type PlanOpts struct {
