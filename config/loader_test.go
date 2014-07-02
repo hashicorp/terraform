@@ -224,6 +224,7 @@ const basicResourcesStr = `
 aws_security_group[firewall]
 aws_instance[web]
   ami
+  network_interface
   security_groups
   vars
     user: var.foo
