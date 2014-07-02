@@ -16,6 +16,9 @@ func testConf() map[string]string {
 		"listener.0.lb_protocol":       "http",
 		"listener.0.instance_port":     "8000",
 		"listener.0.instance_protocol": "http",
+		"availability_zones.#":         "2",
+		"availability_zones.0":         "us-east-1a",
+		"availability_zones.1":         "us-east-1b",
 	}
 }
 
@@ -33,6 +36,23 @@ func Test_expandListeners(t *testing.T) {
 		t.Fatalf(
 			"Got:\n\n%#v\n\nExpected:\n\n%#v\n",
 			listeners[0],
+			expected)
+	}
+
+}
+
+func Test_expandStringList(t *testing.T) {
+	expanded := flatmap.Expand(testConf(), "availability_zones").([]interface{})
+	stringList := expandStringList(expanded)
+	expected := []string{
+		"us-east-1a",
+		"us-east-1b",
+	}
+
+	if !reflect.DeepEqual(stringList, expected) {
+		t.Fatalf(
+			"Got:\n\n%#v\n\nExpected:\n\n%#v\n",
+			stringList,
 			expected)
 	}
 

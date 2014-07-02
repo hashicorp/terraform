@@ -30,14 +30,14 @@ func resource_aws_elb_create(
 	v := flatmap.Expand(rs.Attributes, "listener").([]interface{})
 	listeners := expandListeners(v)
 
+	v = flatmap.Expand(rs.Attributes, "availability_zones").([]interface{})
+	zones := expandStringList(v)
+
 	// Provision the elb
 	elbOpts := &elb.CreateLoadBalancer{
 		LoadBalancerName: elbName,
 		Listeners:        listeners,
-		AvailZone: []string{
-			"us-east-1a",
-			"us-east-1b",
-		},
+		AvailZone:        zones,
 	}
 
 	log.Printf("[DEBUG] ELB create configuration: %#v", elbOpts)
@@ -103,7 +103,7 @@ func resource_aws_elb_diff(
 
 		ComputedAttrs: []string{
 			"dns_name",
-			"instances",
+			"instances	",
 		},
 	}
 
