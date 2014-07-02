@@ -7,3 +7,4 @@ This is just to keep track of what we need to do before 0.1:
   * Commands to inspect and manipulate plans and states.
   * Cancellation support (Ctrl-C)
   * Support for "outputs" in configuration
+  * "count" meta-parameter for instantiating multiple identical resources
