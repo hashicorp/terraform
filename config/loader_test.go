@@ -161,7 +161,15 @@ func resourcesStr(rs []*Resource) string {
 
 		if len(r.RawConfig.Variables) > 0 {
 			result += fmt.Sprintf("  vars\n")
-			for _, rawV := range r.RawConfig.Variables {
+
+			ks := make([]string, 0, len(r.RawConfig.Variables))
+			for k, _ := range r.RawConfig.Variables {
+				ks = append(ks, k)
+			}
+			sort.Strings(ks)
+
+			for _, k := range ks {
+				rawV := r.RawConfig.Variables[k]
 				kind := "unknown"
 				str := rawV.FullKey()
 
@@ -227,8 +235,8 @@ aws_instance[web]
   network_interface
   security_groups
   vars
-    user: var.foo
     resource: aws_security_group.firewall.foo
+    user: var.foo
 `
 
 const basicVariablesStr = `
