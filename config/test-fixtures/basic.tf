@@ -21,4 +21,10 @@ resource aws_instance "web" {
         "foo",
         "${aws_security_group.firewall.foo}"
     ]
+
+    network_interface = {
+      device_index = 0
+      description = "Main network interface"
+    }
+
 }
