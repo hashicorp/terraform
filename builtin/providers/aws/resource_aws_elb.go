@@ -24,11 +24,26 @@ func resource_aws_elb_create(
 	// we save to state if the creation is succesful (amazon verifies
 	// it is unique)
 	elbName := rs.Attributes["name"]
+	// v := flatmap.Expand(rs.Attributes, "listener")
+	// log.Println(v)
 
 	// Provision the elb
 	elbOpts := &elb.CreateLoadBalancer{
 		LoadBalancerName: elbName,
+		Listeners: []elb.Listener{
+			elb.Listener{
+				InstancePort:     8000,
+				InstanceProtocol: "http",
+				LoadBalancerPort: 80,
+				Protocol:         "http",
+			},
+		},
+		AvailZone: []string{
+			"us-east-1a",
+			"us-east-1b",
+		},
 	}
+
 	log.Printf("[DEBUG] ELB create configuration: %#v", elbOpts)
 
 	_, err := elbconn.CreateLoadBalancer(elbOpts)
@@ -40,7 +55,6 @@ func resource_aws_elb_create(
 	rs.ID = elbName
 	log.Printf("[INFO] ELB ID: %s", elbName)
 
-	// Filter by our name
 	describeElbOpts := &elb.DescribeLoadBalancer{
 		Names: []string{elbName},
 	}
@@ -86,7 +100,8 @@ func resource_aws_elb_diff(
 
 	b := &diff.ResourceBuilder{
 		Attrs: map[string]diff.AttrType{
-			"name": diff.AttrTypeCreate,
+			"name":              diff.AttrTypeCreate,
+			"availability_zone": diff.AttrTypeCreate,
 		},
 
 		ComputedAttrs: []string{
