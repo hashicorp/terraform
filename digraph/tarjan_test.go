@@ -33,11 +33,15 @@ d -> e`)
 		t.Fatalf("bad: %v", sccs)
 	}
 
-	if cycle[0].(*BasicNode).Name != "c" {
-		t.Fatalf("bad: %v", cycle)
+	cycleNodes := make([]string, len(cycle))
+	for i, c := range cycle {
+		cycleNodes[i] = c.(*BasicNode).Name
 	}
-	if cycle[1].(*BasicNode).Name != "b" {
-		t.Fatalf("bad: %v", cycle)
+	sort.Strings(cycleNodes)
+
+	expected := []string{"b", "c"}
+	if !reflect.DeepEqual(cycleNodes, expected) {
+		t.Fatalf("bad: %#v", cycleNodes)
 	}
 }
 
