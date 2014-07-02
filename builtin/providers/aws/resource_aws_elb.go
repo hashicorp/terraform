@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 
+	"github.com/hashicorp/terraform/flatmap"
 	"github.com/hashicorp/terraform/helper/diff"
 	"github.com/hashicorp/terraform/terraform"
 	"github.com/mitchellh/goamz/elb"
@@ -24,20 +25,15 @@ func resource_aws_elb_create(
 	// we save to state if the creation is succesful (amazon verifies
 	// it is unique)
 	elbName := rs.Attributes["name"]
-	// v := flatmap.Expand(rs.Attributes, "listener")
-	// log.Println(v)
+
+	// Expand the "listener" array to goamz compat []elb.Listener
+	v := flatmap.Expand(rs.Attributes, "listener").([]interface{})
+	listeners := expandListeners(v)
 
 	// Provision the elb
 	elbOpts := &elb.CreateLoadBalancer{
 		LoadBalancerName: elbName,
-		Listeners: []elb.Listener{
-			elb.Listener{
-				InstancePort:     8000,
-				InstanceProtocol: "http",
-				LoadBalancerPort: 80,
-				Protocol:         "http",
-			},
-		},
+		Listeners:        listeners,
 		AvailZone: []string{
 			"us-east-1a",
 			"us-east-1b",
@@ -102,10 +98,12 @@ func resource_aws_elb_diff(
 		Attrs: map[string]diff.AttrType{
 			"name":              diff.AttrTypeCreate,
 			"availability_zone": diff.AttrTypeCreate,
+			"listener":          diff.AttrTypeCreate,
 		},
 
 		ComputedAttrs: []string{
 			"dns_name",
+			"instances",
 		},
 	}
 
