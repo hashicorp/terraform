@@ -15,8 +15,8 @@ import (
 // RefreshCommand is a cli.Command implementation that refreshes the state
 // file.
 type RefreshCommand struct {
-	TFConfig *terraform.Config
-	Ui       cli.Ui
+	ContextOpts *terraform.ContextOpts
+	Ui          cli.Ui
 }
 
 func (c *RefreshCommand) Run(args []string) int {
@@ -66,14 +66,11 @@ func (c *RefreshCommand) Run(args []string) int {
 		return 1
 	}
 
-	c.TFConfig.Hooks = append(c.TFConfig.Hooks, &UiHook{Ui: c.Ui})
-	tf, err := terraform.New(c.TFConfig)
-	if err != nil {
-		c.Ui.Error(fmt.Sprintf("Error initializing Terraform: %s", err))
-		return 1
-	}
+	c.ContextOpts.Config = b
+	c.ContextOpts.Hooks = append(c.ContextOpts.Hooks, &UiHook{Ui: c.Ui})
+	ctx := terraform.NewContext(c.ContextOpts)
 
-	state, err = tf.Refresh(b, state)
+	state, err = ctx.Refresh()
 	if err != nil {
 		c.Ui.Error(fmt.Sprintf("Error refreshing state: %s", err))
 		return 1

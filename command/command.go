@@ -8,17 +8,17 @@ import (
 	"github.com/hashicorp/terraform/terraform"
 )
 
-func PlanArg(
+func ContextArg(
 	path string,
 	statePath string,
-	tf *terraform.Terraform) (*terraform.Plan, error) {
+	opts *terraform.ContextOpts) (*terraform.Context, error) {
 	// First try to just read the plan directly from the path given.
 	f, err := os.Open(path)
 	if err == nil {
 		plan, err := terraform.ReadPlan(f)
 		f.Close()
 		if err == nil {
-			return plan, nil
+			return plan.Context(opts), nil
 		}
 	}
 
@@ -59,13 +59,13 @@ func PlanArg(
 		return nil, fmt.Errorf("Error validating config: %s", err)
 	}
 
-	plan, err := tf.Plan(&terraform.PlanOpts{
-		Config: config,
-		State:  state,
-	})
-	if err != nil {
+	opts.Config = config
+	opts.State = state
+	ctx := terraform.NewContext(opts)
+
+	if _, err := ctx.Plan(nil); err != nil {
 		return nil, fmt.Errorf("Error running plan: %s", err)
 	}
 
-	return plan, nil
+	return ctx, nil
 }

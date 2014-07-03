@@ -66,7 +66,7 @@ func NewContext(opts *ContextOpts) *Context {
 		providers: opts.Providers,
 		variables: opts.Variables,
 
-		sh:   sh,
+		sh: sh,
 	}
 }
 

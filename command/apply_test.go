@@ -6,6 +6,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/hashicorp/terraform/config"
 	"github.com/hashicorp/terraform/terraform"
 	"github.com/mitchellh/cli"
 )
@@ -16,8 +17,8 @@ func TestApply(t *testing.T) {
 	p := testProvider()
 	ui := new(cli.MockUi)
 	c := &ApplyCommand{
-		TFConfig: testTFConfig(p),
-		Ui:       ui,
+		ContextOpts: testCtxConfig(p),
+		Ui:          ui,
 	}
 
 	args := []string{
@@ -52,8 +53,8 @@ func TestApply_configInvalid(t *testing.T) {
 	p := testProvider()
 	ui := new(cli.MockUi)
 	c := &ApplyCommand{
-		TFConfig: testTFConfig(p),
-		Ui:       ui,
+		ContextOpts: testCtxConfig(p),
+		Ui:          ui,
 	}
 
 	args := []string{
@@ -67,14 +68,16 @@ func TestApply_configInvalid(t *testing.T) {
 }
 
 func TestApply_plan(t *testing.T) {
-	planPath := testPlanFile(t, new(terraform.Plan))
+	planPath := testPlanFile(t, &terraform.Plan{
+		Config: new(config.Config),
+	})
 	statePath := testTempFile(t)
 
 	p := testProvider()
 	ui := new(cli.MockUi)
 	c := &ApplyCommand{
-		TFConfig: testTFConfig(p),
-		Ui:       ui,
+		ContextOpts: testCtxConfig(p),
+		Ui:          ui,
 	}
 
 	args := []string{
@@ -115,9 +118,9 @@ func TestApply_shutdown(t *testing.T) {
 	shutdownCh := make(chan struct{})
 	ui := new(cli.MockUi)
 	c := &ApplyCommand{
-		ShutdownCh: shutdownCh,
-		TFConfig:   testTFConfig(p),
-		Ui:         ui,
+		ContextOpts: testCtxConfig(p),
+		ShutdownCh:  shutdownCh,
+		Ui:          ui,
 	}
 
 	p.DiffFn = func(
@@ -215,8 +218,8 @@ func TestApply_state(t *testing.T) {
 
 	ui := new(cli.MockUi)
 	c := &ApplyCommand{
-		TFConfig: testTFConfig(p),
-		Ui:       ui,
+		ContextOpts: testCtxConfig(p),
+		Ui:          ui,
 	}
 
 	// Run the apply command pointing to our existing state
@@ -262,8 +265,8 @@ func TestApply_stateNoExist(t *testing.T) {
 	p := testProvider()
 	ui := new(cli.MockUi)
 	c := &ApplyCommand{
-		TFConfig: testTFConfig(p),
-		Ui:       ui,
+		ContextOpts: testCtxConfig(p),
+		Ui:          ui,
 	}
 
 	args := []string{

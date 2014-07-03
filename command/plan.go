@@ -15,8 +15,8 @@ import (
 // PlanCommand is a Command implementation that compares a Terraform
 // configuration to an actual infrastructure and shows the differences.
 type PlanCommand struct {
-	TFConfig *terraform.Config
-	Ui       cli.Ui
+	ContextOpts *terraform.ContextOpts
+	Ui          cli.Ui
 }
 
 func (c *PlanCommand) Run(args []string) int {
@@ -65,26 +65,19 @@ func (c *PlanCommand) Run(args []string) int {
 		return 1
 	}
 
-	c.TFConfig.Hooks = append(c.TFConfig.Hooks, &UiHook{Ui: c.Ui})
-	tf, err := terraform.New(c.TFConfig)
-	if err != nil {
-		c.Ui.Error(fmt.Sprintf("Error initializing Terraform: %s", err))
-		return 1
-	}
+	c.ContextOpts.Config = b
+	c.ContextOpts.Hooks = append(c.ContextOpts.Hooks, &UiHook{Ui: c.Ui})
+	c.ContextOpts.State = state
+	ctx := terraform.NewContext(c.ContextOpts)
 
 	if refresh {
-		state, err = tf.Refresh(b, state)
-		if err != nil {
+		if _, err := ctx.Refresh(); err != nil {
 			c.Ui.Error(fmt.Sprintf("Error refreshing state: %s", err))
 			return 1
 		}
 	}
 
-	plan, err := tf.Plan(&terraform.PlanOpts{
-		Config:  b,
-		Destroy: destroy,
-		State:   state,
-	})
+	plan, err := ctx.Plan(&terraform.PlanOpts{Destroy: destroy})
 	if err != nil {
 		c.Ui.Error(fmt.Sprintf("Error running plan: %s", err))
 		return 1

@@ -30,8 +30,8 @@ func TestRefresh(t *testing.T) {
 	p := testProvider()
 	ui := new(cli.MockUi)
 	c := &RefreshCommand{
-		TFConfig: testTFConfig(p),
-		Ui:       ui,
+		ContextOpts: testCtxConfig(p),
+		Ui:          ui,
 	}
 
 	p.RefreshFn = nil
@@ -96,8 +96,8 @@ func TestRefresh_outPath(t *testing.T) {
 	p := testProvider()
 	ui := new(cli.MockUi)
 	c := &RefreshCommand{
-		TFConfig: testTFConfig(p),
-		Ui:       ui,
+		ContextOpts: testCtxConfig(p),
+		Ui:          ui,
 	}
 
 	p.RefreshFn = nil

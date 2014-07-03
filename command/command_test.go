@@ -16,8 +16,8 @@ func testFixturePath(name string) string {
 	return filepath.Join(fixtureDir, name, "main.tf")
 }
 
-func testTFConfig(p terraform.ResourceProvider) *terraform.Config {
-	return &terraform.Config{
+func testCtxConfig(p terraform.ResourceProvider) *terraform.ContextOpts {
+	return &terraform.ContextOpts{
 		Providers: map[string]terraform.ResourceProviderFactory{
 			"test": func() (terraform.ResourceProvider, error) {
 				return p, nil
