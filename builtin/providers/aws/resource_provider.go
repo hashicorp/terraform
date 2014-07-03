@@ -4,6 +4,7 @@ import (
 	"log"
 
 	"github.com/hashicorp/terraform/helper/config"
+	"github.com/hashicorp/terraform/helper/multierror"
 	"github.com/hashicorp/terraform/terraform"
 	"github.com/mitchellh/goamz/ec2"
 )
@@ -15,6 +16,11 @@ type ResourceProvider struct {
 }
 
 func (p *ResourceProvider) Validate(c *terraform.ResourceConfig) ([]string, []error) {
+	return nil, nil
+}
+
+func (p *ResourceProvider) ValidateResource(
+	t string, c *terraform.ResourceConfig) ([]string, []error) {
 	return nil, nil
 }
 
@@ -44,7 +50,7 @@ func (p *ResourceProvider) Configure(c *terraform.ResourceConfig) error {
 	}
 
 	if len(errs) > 0 {
-		return &terraform.MultiError{Errors: errs}
+		return &multierror.Error{Errors: errs}
 	}
 
 	return nil
