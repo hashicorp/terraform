@@ -17,13 +17,30 @@ type ResourceProvider interface {
 	// (no interpolation done) and can return a list of warnings and/or
 	// errors.
 	//
+	// This is called once with the provider configuration only. It may not
+	// be called at all if no provider configuration is given.
+	//
 	// This should not assume that any values of the configurations are valid.
 	// The primary use case of this call is to check that required keys are
 	// set.
 	Validate(*ResourceConfig) ([]string, []error)
 
+	// ValidateResource is called once at the beginning with the raw
+	// configuration (no interpolation done) and can return a list of warnings
+	// and/or errors.
+	//
+	// This is called once per resource.
+	//
+	// This should not assume any of the values in the resource configuration
+	// are valid since it is possible they have to be interpolated still.
+	// The primary use case of this call is to check that the required keys
+	// are set and that the general structure is correct.
+	ValidateResource(string, *ResourceConfig) ([]string, []error)
+
 	// Configure configures the provider itself with the configuration
 	// given. This is useful for setting things like access keys.
+	//
+	// This won't be called at all if no provider configuration is given.
 	//
 	// Configure returns an error if it occurred.
 	Configure(*ResourceConfig) error

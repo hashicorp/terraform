@@ -6,38 +6,50 @@ type MockResourceProvider struct {
 	// Anything you want, in case you need to store extra data with the mock.
 	Meta interface{}
 
-	ApplyCalled          bool
-	ApplyState           *ResourceState
-	ApplyDiff            *ResourceDiff
-	ApplyFn              func(*ResourceState, *ResourceDiff) (*ResourceState, error)
-	ApplyReturn          *ResourceState
-	ApplyReturnError     error
-	ConfigureCalled      bool
-	ConfigureConfig      *ResourceConfig
-	ConfigureReturnError error
-	DiffCalled           bool
-	DiffState            *ResourceState
-	DiffDesired          *ResourceConfig
-	DiffFn               func(*ResourceState, *ResourceConfig) (*ResourceDiff, error)
-	DiffReturn           *ResourceDiff
-	DiffReturnError      error
-	RefreshCalled        bool
-	RefreshState         *ResourceState
-	RefreshFn            func(*ResourceState) (*ResourceState, error)
-	RefreshReturn        *ResourceState
-	RefreshReturnError   error
-	ResourcesCalled      bool
-	ResourcesReturn      []ResourceType
-	ValidateCalled       bool
-	ValidateConfig       *ResourceConfig
-	ValidateReturnWarns  []string
-	ValidateReturnErrors []error
+	ApplyCalled                  bool
+	ApplyState                   *ResourceState
+	ApplyDiff                    *ResourceDiff
+	ApplyFn                      func(*ResourceState, *ResourceDiff) (*ResourceState, error)
+	ApplyReturn                  *ResourceState
+	ApplyReturnError             error
+	ConfigureCalled              bool
+	ConfigureConfig              *ResourceConfig
+	ConfigureReturnError         error
+	DiffCalled                   bool
+	DiffState                    *ResourceState
+	DiffDesired                  *ResourceConfig
+	DiffFn                       func(*ResourceState, *ResourceConfig) (*ResourceDiff, error)
+	DiffReturn                   *ResourceDiff
+	DiffReturnError              error
+	RefreshCalled                bool
+	RefreshState                 *ResourceState
+	RefreshFn                    func(*ResourceState) (*ResourceState, error)
+	RefreshReturn                *ResourceState
+	RefreshReturnError           error
+	ResourcesCalled              bool
+	ResourcesReturn              []ResourceType
+	ValidateCalled               bool
+	ValidateConfig               *ResourceConfig
+	ValidateReturnWarns          []string
+	ValidateReturnErrors         []error
+	ValidateResourceCalled       bool
+	ValidateResourceType         string
+	ValidateResourceConfig       *ResourceConfig
+	ValidateResourceReturnWarns  []string
+	ValidateResourceReturnErrors []error
 }
 
 func (p *MockResourceProvider) Validate(c *ResourceConfig) ([]string, []error) {
 	p.ValidateCalled = true
 	p.ValidateConfig = c
 	return p.ValidateReturnWarns, p.ValidateReturnErrors
+}
+
+func (p *MockResourceProvider) ValidateResource(t string, c *ResourceConfig) ([]string, []error) {
+	p.ValidateResourceCalled = true
+	p.ValidateResourceType = t
+	p.ValidateResourceConfig = c
+	return p.ValidateResourceReturnWarns, p.ValidateResourceReturnErrors
 }
 
 func (p *MockResourceProvider) Configure(c *ResourceConfig) error {
