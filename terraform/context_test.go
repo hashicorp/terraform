@@ -84,30 +84,28 @@ func TestContextApply(t *testing.T) {
 	}
 }
 
-/*
 func TestContextApply_cancel(t *testing.T) {
 	stopped := false
-	stopCh := make(chan struct{})
-	stopReplyCh := make(chan struct{})
 
-	rpAWS := new(MockResourceProvider)
-	rpAWS.ResourcesReturn = []ResourceType{
-		ResourceType{Name: "aws_instance"},
-	}
-	rpAWS.DiffFn = func(*ResourceState, *ResourceConfig) (*ResourceDiff, error) {
-		return &ResourceDiff{
-			Attributes: map[string]*ResourceAttrDiff{
-				"num": &ResourceAttrDiff{
-					New: "bar",
-				},
-			},
-		}, nil
-	}
-	rpAWS.ApplyFn = func(*ResourceState, *ResourceDiff) (*ResourceState, error) {
+	c := testConfig(t, "apply-cancel")
+	p := testProvider("aws")
+	ctx := testContext(t, &ContextOpts{
+		Config: c,
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+	})
+
+	p.ApplyFn = func(*ResourceState, *ResourceDiff) (*ResourceState, error) {
 		if !stopped {
 			stopped = true
-			close(stopCh)
-			<-stopReplyCh
+			go ctx.Stop()
+
+			for {
+				if ctx.sh.Stopped() {
+					break
+				}
+			}
 		}
 
 		return &ResourceState{
@@ -117,41 +115,30 @@ func TestContextApply_cancel(t *testing.T) {
 			},
 		}, nil
 	}
+	p.DiffFn = func(*ResourceState, *ResourceConfig) (*ResourceDiff, error) {
+		return &ResourceDiff{
+			Attributes: map[string]*ResourceAttrDiff{
+				"num": &ResourceAttrDiff{
+					New: "bar",
+				},
+			},
+		}, nil
+	}
 
-	c := testConfig(t, "apply-cancel")
-	tf := testTerraform2(t, &Config{
-		Providers: map[string]ResourceProviderFactory{
-			"aws": testProviderFuncFixed(rpAWS),
-		},
-	})
-
-	p, err := tf.Plan(&PlanOpts{Config: c})
-	if err != nil {
+	if _, err := ctx.Plan(nil); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 
 	// Start the Apply in a goroutine
 	stateCh := make(chan *State)
 	go func() {
-		state, err := tf.Apply(p)
+		state, err := ctx.Apply()
 		if err != nil {
 			panic(err)
 		}
 
 		stateCh <- state
 	}()
-
-	// Start a goroutine so we can inject exactly when we stop
-	s := tf.stopHook.ref()
-	go func() {
-		defer tf.stopHook.unref(s)
-		<-tf.stopHook.ch
-		close(stopReplyCh)
-		tf.stopHook.stoppedCh <- struct{}{}
-	}()
-
-	<-stopCh
-	tf.Stop()
 
 	state := <-stateCh
 
@@ -165,7 +152,6 @@ func TestContextApply_cancel(t *testing.T) {
 		t.Fatalf("bad: \n%s", actual)
 	}
 }
-*/
 
 func TestContextApply_compute(t *testing.T) {
 	c := testConfig(t, "apply-compute")

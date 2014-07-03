@@ -23,6 +23,11 @@ type Context struct {
 	state     *State
 	providers map[string]ResourceProviderFactory
 	variables map[string]string
+
+	l     sync.Mutex
+	cond  *sync.Cond
+	runCh <-chan struct{}
+	sh    *stopHook
 }
 
 // ContextOpts are the user-creatable configuration structure to create
@@ -42,13 +47,24 @@ type ContextOpts struct {
 // not be mutated in any way, since the pointers are copied, not the values
 // themselves.
 func NewContext(opts *ContextOpts) *Context {
+	sh := new(stopHook)
+
+	// Copy all the hooks and add our stop hook. We don't append directly
+	// to the Config so that we're not modifying that in-place.
+	hooks := make([]Hook, len(opts.Hooks)+1)
+	copy(hooks, opts.Hooks)
+	hooks[len(opts.Hooks)] = sh
+
 	return &Context{
 		config:    opts.Config,
 		diff:      opts.Diff,
-		hooks:     opts.Hooks,
+		hooks:     hooks,
 		state:     opts.State,
 		providers: opts.Providers,
 		variables: opts.Variables,
+
+		cond: sync.NewCond(new(sync.Mutex)),
+		sh:   sh,
 	}
 }
 
@@ -58,6 +74,9 @@ func NewContext(opts *ContextOpts) *Context {
 // In addition to returning the resulting state, this context is updated
 // with the latest state.
 func (c *Context) Apply() (*State, error) {
+	v := c.acquireRun()
+	defer c.releaseRun(v)
+
 	g, err := Graph(&GraphOpts{
 		Config:    c.config,
 		Diff:      c.diff,
@@ -138,6 +157,27 @@ func (c *Context) Refresh() (*State, error) {
 	return s, err
 }
 
+// Stop stops the running task.
+//
+// Stop will block until the task completes.
+func (c *Context) Stop() {
+	c.l.Lock()
+	ch := c.runCh
+
+	// If we aren't running, then just return
+	if ch == nil {
+		c.l.Unlock()
+		return
+	}
+
+	// Tell the hook we want to stop
+	c.sh.Stop()
+
+	// Wait for us to stop
+	c.l.Unlock()
+	<-ch
+}
+
 // Validate validates the configuration and returns any warnings or errors.
 func (c *Context) Validate() ([]string, []error) {
 	var rerr *multierror.Error
@@ -158,6 +198,32 @@ func (c *Context) Validate() ([]string, []error) {
 	}
 
 	return nil, errs
+}
+
+func (c *Context) acquireRun() chan<- struct{} {
+	c.l.Lock()
+	defer c.l.Unlock()
+
+	// Wait for no channel to exist
+	for c.runCh != nil {
+		c.l.Unlock()
+		ch := c.runCh
+		<-ch
+		c.l.Lock()
+	}
+
+	ch := make(chan struct{})
+	c.runCh = ch
+	return ch
+}
+
+func (c *Context) releaseRun(ch chan<- struct{}) {
+	c.l.Lock()
+	defer c.l.Unlock()
+
+	close(ch)
+	c.runCh = nil
+	c.sh.Reset()
 }
 
 func (c *Context) applyWalkFn(result *State) depgraph.WalkFunc {
