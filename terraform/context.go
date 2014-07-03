@@ -117,6 +117,9 @@ func (c *Context) Apply() (*State, error) {
 // Plan also updates the diff of this context to be the diff generated
 // by the plan, so Apply can be called after.
 func (c *Context) Plan(opts *PlanOpts) (*Plan, error) {
+	v := c.acquireRun()
+	defer c.releaseRun(v)
+
 	g, err := Graph(&GraphOpts{
 		Config:    c.config,
 		Providers: c.providers,
@@ -146,6 +149,9 @@ func (c *Context) Plan(opts *PlanOpts) (*Plan, error) {
 // Even in the case an error is returned, the state will be returned and
 // will potentially be partially updated.
 func (c *Context) Refresh() (*State, error) {
+	v := c.acquireRun()
+	defer c.releaseRun(v)
+
 	g, err := Graph(&GraphOpts{
 		Config:    c.config,
 		Providers: c.providers,
