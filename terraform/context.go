@@ -451,7 +451,31 @@ func (c *Context) validateWalkFn(rws *[]string, res *[]error) depgraph.WalkFunc 
 
 		switch rn := n.Meta.(type) {
 		case *GraphNodeResource:
+			if rn.Resource == nil {
+				panic("resource should never be nil")
+			}
+
+			// If it doesn't have a provider, that is a different problem
+			if rn.Resource.Provider == nil {
+				return nil
+			}
+
+			ws, es := rn.Resource.Provider.ValidateResource(
+				rn.Type, rn.Resource.Config)
+			for i, w := range ws {
+				ws[i] = fmt.Sprintf("'%s' warning: %s", rn.Resource.Id, w)
+			}
+			for i, e := range es {
+				es[i] = fmt.Errorf("'%s' error: %s", rn.Resource.Id, e)
+			}
+
+			*rws = append(*rws, ws...)
+			*res = append(*res, es...)
 		case *GraphNodeResourceProvider:
+			if rn.Config == nil {
+				return nil
+			}
+
 			rc := NewResourceConfig(rn.Config.RawConfig)
 
 			for k, p := range rn.Providers {
