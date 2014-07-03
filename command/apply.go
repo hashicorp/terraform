@@ -13,7 +13,7 @@ import (
 // ApplyCommand is a Command implementation that applies a Terraform
 // configuration and actually builds or changes infrastructure.
 type ApplyCommand struct {
-	ShutdownCh chan struct{}
+	ShutdownCh <-chan struct{}
 	TFConfig   *terraform.Config
 	Ui         cli.Ui
 }
