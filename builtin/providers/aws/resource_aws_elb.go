@@ -68,9 +68,41 @@ func resource_aws_elb_create(
 			return nil, fmt.Errorf("Unable to find ELB: %#v", describeResp.LoadBalancers)
 		}
 	}
+
 	loadBalancer := describeResp.LoadBalancers[0]
 
+	// If we have any instances, we need to register them
+	v = flatmap.Expand(rs.Attributes, "instances").([]interface{})
+	instances := expandStringList(v)
+
+	if len(instances) > 0 {
+		registerInstancesOpts := elb.RegisterInstancesWithLoadBalancer{
+			LoadBalancerName: elbName,
+			Instances:        instances,
+		}
+
+		registerResp, err := elbconn.RegisterInstancesWithLoadBalancer(registerInstancesOpts)
+	}
+
 	return resource_aws_elb_update_state(rs, &loadBalancer)
+}
+
+func resource_aws_elb_update(
+	s *terraform.ResourceState,
+	d *terraform.ResourceDiff,
+	meta interface{}) (*terraform.ResourceState, error) {
+	// p := meta.(*ResourceProvider)
+	// elbconn := p.elbconn
+
+	// Merge the diff into the state so that we have all the attributes
+	// properly.
+	rs := s.MergeDiff(d)
+
+	log.Println(rs)
+
+	rs.Attributes
+
+	return nil, nil
 }
 
 func resource_aws_elb_destroy(
@@ -99,11 +131,11 @@ func resource_aws_elb_diff(
 			"name":              diff.AttrTypeCreate,
 			"availability_zone": diff.AttrTypeCreate,
 			"listener":          diff.AttrTypeCreate,
+			"instances":         diff.AttrTypeUpdate,
 		},
 
 		ComputedAttrs: []string{
 			"dns_name",
-			"instances	",
 		},
 	}
 

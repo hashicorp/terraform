@@ -19,6 +19,7 @@ func init() {
 			},
 			"aws_elb": resource.Resource{
 				Create:  resource_aws_elb_create,
+				Update:  resource_aws_elb_update,
 				Destroy: resource_aws_elb_destroy,
 				Diff:    resource_aws_elb_diff,
 				Refresh: resource_aws_elb_refresh,
