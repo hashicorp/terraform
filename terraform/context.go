@@ -204,12 +204,40 @@ func (c *Context) Validate() ([]string, []error) {
 		rerr = multierror.ErrorAppend(rerr, errs...)
 	}
 
+	// Validate the graph
+	g, err := c.graph()
+	if err != nil {
+		rerr = multierror.ErrorAppend(rerr, fmt.Errorf(
+			"Error creating graph: %s", err))
+	}
+
+	// Walk the graph and validate all the configs
+	var warns []string
 	var errs []error
+	err = g.Walk(c.validateWalkFn(&warns, &errs))
+	if err != nil {
+		rerr = multierror.ErrorAppend(rerr, fmt.Errorf(
+			"Error validating resources in graph: %s", err))
+	}
+	if len(errs) > 0 {
+		rerr = multierror.ErrorAppend(rerr, errs...)
+	}
+
+	errs = nil
 	if rerr != nil && len(rerr.Errors) > 0 {
 		errs = rerr.Errors
 	}
 
-	return nil, errs
+	return warns, errs
+}
+
+func (c *Context) graph() (*depgraph.Graph, error) {
+	return Graph(&GraphOpts{
+		Config:    c.config,
+		Diff:      c.diff,
+		Providers: c.providers,
+		State:     c.state,
+	})
 }
 
 func (c *Context) acquireRun() chan<- struct{} {
@@ -412,6 +440,37 @@ func (c *Context) refreshWalkFn(result *State) depgraph.WalkFunc {
 	}
 
 	return c.genericWalkFn(c.variables, cb)
+}
+
+func (c *Context) validateWalkFn(rws *[]string, res *[]error) depgraph.WalkFunc {
+	return func(n *depgraph.Noun) error {
+		// If it is the root node, ignore
+		if n.Name == GraphRootNode {
+			return nil
+		}
+
+		switch rn := n.Meta.(type) {
+		case *GraphNodeResource:
+		case *GraphNodeResourceProvider:
+			rc := NewResourceConfig(rn.Config.RawConfig)
+
+			for k, p := range rn.Providers {
+				log.Printf("[INFO] Validating provider: %s", k)
+				ws, es := p.Validate(rc)
+				for i, w := range ws {
+					ws[i] = fmt.Sprintf("Provider '%s' warning: %s", k, w)
+				}
+				for i, e := range es {
+					es[i] = fmt.Errorf("Provider '%s' error: %s", k, e)
+				}
+
+				*rws = append(*rws, ws...)
+				*res = append(*res, es...)
+			}
+		}
+
+		return nil
+	}
 }
 
 func (c *Context) genericWalkFn(
