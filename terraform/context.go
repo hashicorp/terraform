@@ -52,6 +52,29 @@ func NewContext(opts *ContextOpts) *Context {
 	}
 }
 
+// Plan generates an execution plan for the given context.
+//
+// The execution plan encapsulates the context and can be stored
+// in order to reinstantiate a context later for Apply.
+func (c *Context) Plan(opts *PlanOpts) (*Plan, error) {
+	g, err := Graph(&GraphOpts{
+		Config:    c.config,
+		Providers: c.providers,
+		State:     c.state,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	p := &Plan{
+		Config: c.config,
+		Vars:   c.variables,
+		State:  c.state,
+	}
+	err = g.Walk(c.planWalkFn(p, opts))
+	return p, err
+}
+
 // Refresh goes through all the resources in the state and refreshes them
 // to their latest state. This will update the state that this context
 // works with, along with returning it.
@@ -94,6 +117,68 @@ func (c *Context) Validate() ([]string, []error) {
 	}
 
 	return nil, errs
+}
+
+func (c *Context) planWalkFn(result *Plan, opts *PlanOpts) depgraph.WalkFunc {
+	var l sync.Mutex
+
+	// If we were given nil options, instantiate it
+	if opts == nil {
+		opts = new(PlanOpts)
+	}
+
+	// Initialize the result
+	result.init()
+
+	cb := func(r *Resource) (map[string]string, error) {
+		var diff *ResourceDiff
+
+		for _, h := range c.hooks {
+			handleHook(h.PreDiff(r.Id, r.State))
+		}
+
+		if opts.Destroy {
+			if r.State.ID != "" {
+				log.Printf("[DEBUG] %s: Making for destroy", r.Id)
+				diff = &ResourceDiff{Destroy: true}
+			} else {
+				log.Printf("[DEBUG] %s: Not marking for destroy, no ID", r.Id)
+			}
+		} else if r.Config == nil {
+			log.Printf("[DEBUG] %s: Orphan, marking for destroy", r.Id)
+
+			// This is an orphan (no config), so we mark it to be destroyed
+			diff = &ResourceDiff{Destroy: true}
+		} else {
+			log.Printf("[DEBUG] %s: Executing diff", r.Id)
+
+			// Get a diff from the newest state
+			var err error
+			diff, err = r.Provider.Diff(r.State, r.Config)
+			if err != nil {
+				return nil, err
+			}
+		}
+
+		l.Lock()
+		if !diff.Empty() {
+			result.Diff.Resources[r.Id] = diff
+		}
+		l.Unlock()
+
+		for _, h := range c.hooks {
+			handleHook(h.PostDiff(r.Id, diff))
+		}
+
+		// Determine the new state and update variables
+		if !diff.Empty() {
+			r.State = r.State.MergeDiff(diff)
+		}
+
+		return r.Vars(), nil
+	}
+
+	return c.genericWalkFn(c.variables, cb)
 }
 
 func (c *Context) refreshWalkFn(result *State) depgraph.WalkFunc {
