@@ -52,6 +52,455 @@ func TestContextValidate_requiredVar(t *testing.T) {
 	}
 }
 
+func TestContextApply(t *testing.T) {
+	c := testConfig(t, "apply-good")
+	p := testProvider("aws")
+	p.ApplyFn = testApplyFn
+	p.DiffFn = testDiffFn
+	ctx := testContext(t, &ContextOpts{
+		Config: c,
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+	})
+
+	if _, err := ctx.Plan(nil); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	state, err := ctx.Apply()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	if len(state.Resources) < 2 {
+		t.Fatalf("bad: %#v", state.Resources)
+	}
+
+	actual := strings.TrimSpace(state.String())
+	expected := strings.TrimSpace(testTerraformApplyStr)
+	if actual != expected {
+		t.Fatalf("bad: \n%s", actual)
+	}
+}
+
+/*
+func TestContextApply_cancel(t *testing.T) {
+	stopped := false
+	stopCh := make(chan struct{})
+	stopReplyCh := make(chan struct{})
+
+	rpAWS := new(MockResourceProvider)
+	rpAWS.ResourcesReturn = []ResourceType{
+		ResourceType{Name: "aws_instance"},
+	}
+	rpAWS.DiffFn = func(*ResourceState, *ResourceConfig) (*ResourceDiff, error) {
+		return &ResourceDiff{
+			Attributes: map[string]*ResourceAttrDiff{
+				"num": &ResourceAttrDiff{
+					New: "bar",
+				},
+			},
+		}, nil
+	}
+	rpAWS.ApplyFn = func(*ResourceState, *ResourceDiff) (*ResourceState, error) {
+		if !stopped {
+			stopped = true
+			close(stopCh)
+			<-stopReplyCh
+		}
+
+		return &ResourceState{
+			ID: "foo",
+			Attributes: map[string]string{
+				"num": "2",
+			},
+		}, nil
+	}
+
+	c := testConfig(t, "apply-cancel")
+	tf := testTerraform2(t, &Config{
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(rpAWS),
+		},
+	})
+
+	p, err := tf.Plan(&PlanOpts{Config: c})
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	// Start the Apply in a goroutine
+	stateCh := make(chan *State)
+	go func() {
+		state, err := tf.Apply(p)
+		if err != nil {
+			panic(err)
+		}
+
+		stateCh <- state
+	}()
+
+	// Start a goroutine so we can inject exactly when we stop
+	s := tf.stopHook.ref()
+	go func() {
+		defer tf.stopHook.unref(s)
+		<-tf.stopHook.ch
+		close(stopReplyCh)
+		tf.stopHook.stoppedCh <- struct{}{}
+	}()
+
+	<-stopCh
+	tf.Stop()
+
+	state := <-stateCh
+
+	if len(state.Resources) != 1 {
+		t.Fatalf("bad: %#v", state.Resources)
+	}
+
+	actual := strings.TrimSpace(state.String())
+	expected := strings.TrimSpace(testTerraformApplyCancelStr)
+	if actual != expected {
+		t.Fatalf("bad: \n%s", actual)
+	}
+}
+*/
+
+func TestContextApply_compute(t *testing.T) {
+	c := testConfig(t, "apply-compute")
+	p := testProvider("aws")
+	p.ApplyFn = testApplyFn
+	p.DiffFn = testDiffFn
+	ctx := testContext(t, &ContextOpts{
+		Config: c,
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+	})
+
+	if _, err := ctx.Plan(nil); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	ctx.variables = map[string]string{"value": "1"}
+
+	state, err := ctx.Apply()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	actual := strings.TrimSpace(state.String())
+	expected := strings.TrimSpace(testTerraformApplyComputeStr)
+	if actual != expected {
+		t.Fatalf("bad: \n%s", actual)
+	}
+}
+
+func TestContextApply_destroy(t *testing.T) {
+	c := testConfig(t, "apply-destroy")
+	h := new(HookRecordApplyOrder)
+	p := testProvider("aws")
+	p.ApplyFn = testApplyFn
+	p.DiffFn = testDiffFn
+	ctx := testContext(t, &ContextOpts{
+		Config: c,
+		Hooks:  []Hook{h},
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+	})
+
+	// First plan and apply a create operation
+	if _, err := ctx.Plan(nil); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	if _, err := ctx.Apply(); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	// Next, plan and apply a destroy operation
+	if _, err := ctx.Plan(&PlanOpts{Destroy: true}); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	h.Active = true
+
+	state, err := ctx.Apply()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	// Test that things were destroyed
+	actual := strings.TrimSpace(state.String())
+	expected := strings.TrimSpace(testTerraformApplyDestroyStr)
+	if actual != expected {
+		t.Fatalf("bad: \n%s", actual)
+	}
+
+	// Test that things were destroyed _in the right order_
+	expected2 := []string{"aws_instance.bar", "aws_instance.foo"}
+	actual2 := h.IDs
+	if !reflect.DeepEqual(actual2, expected2) {
+		t.Fatalf("bad: %#v", actual2)
+	}
+}
+
+func TestContextApply_destroyOrphan(t *testing.T) {
+	c := testConfig(t, "apply-error")
+	p := testProvider("aws")
+	s := &State{
+		Resources: map[string]*ResourceState{
+			"aws_instance.baz": &ResourceState{
+				ID:   "bar",
+				Type: "aws_instance",
+			},
+		},
+	}
+	ctx := testContext(t, &ContextOpts{
+		Config: c,
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+		State: s,
+	})
+
+	p.ApplyFn = func(*ResourceState, *ResourceDiff) (*ResourceState, error) {
+		return nil, nil
+	}
+	p.DiffFn = func(*ResourceState, *ResourceConfig) (*ResourceDiff, error) {
+		return &ResourceDiff{
+			Attributes: map[string]*ResourceAttrDiff{
+				"num": &ResourceAttrDiff{
+					New: "bar",
+				},
+			},
+		}, nil
+	}
+
+	if _, err := ctx.Plan(nil); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	state, err := ctx.Apply()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	if len(state.Resources) != 0 {
+		t.Fatalf("bad: %#v", state.Resources)
+	}
+}
+
+func TestContextApply_error(t *testing.T) {
+	errored := false
+
+	c := testConfig(t, "apply-error")
+	p := testProvider("aws")
+	ctx := testContext(t, &ContextOpts{
+		Config: c,
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+	})
+
+	p.ApplyFn = func(*ResourceState, *ResourceDiff) (*ResourceState, error) {
+		if errored {
+			return nil, fmt.Errorf("error")
+		}
+		errored = true
+
+		return &ResourceState{
+			ID: "foo",
+			Attributes: map[string]string{
+				"num": "2",
+			},
+		}, nil
+	}
+	p.DiffFn = func(*ResourceState, *ResourceConfig) (*ResourceDiff, error) {
+		return &ResourceDiff{
+			Attributes: map[string]*ResourceAttrDiff{
+				"num": &ResourceAttrDiff{
+					New: "bar",
+				},
+			},
+		}, nil
+	}
+
+	if _, err := ctx.Plan(nil); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	state, err := ctx.Apply()
+	if err == nil {
+		t.Fatal("should have error")
+	}
+
+	if len(state.Resources) != 1 {
+		t.Fatalf("bad: %#v", state.Resources)
+	}
+
+	actual := strings.TrimSpace(state.String())
+	expected := strings.TrimSpace(testTerraformApplyErrorStr)
+	if actual != expected {
+		t.Fatalf("bad: \n%s", actual)
+	}
+}
+
+func TestContextApply_errorPartial(t *testing.T) {
+	errored := false
+
+	c := testConfig(t, "apply-error")
+	p := testProvider("aws")
+	s := &State{
+		Resources: map[string]*ResourceState{
+			"aws_instance.bar": &ResourceState{
+				ID:   "bar",
+				Type: "aws_instance",
+			},
+		},
+	}
+	ctx := testContext(t, &ContextOpts{
+		Config: c,
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+		State: s,
+	})
+
+	p.ApplyFn = func(*ResourceState, *ResourceDiff) (*ResourceState, error) {
+		if errored {
+			return nil, fmt.Errorf("error")
+		}
+		errored = true
+
+		return &ResourceState{
+			ID: "foo",
+			Attributes: map[string]string{
+				"num": "2",
+			},
+		}, nil
+	}
+	p.DiffFn = func(*ResourceState, *ResourceConfig) (*ResourceDiff, error) {
+		return &ResourceDiff{
+			Attributes: map[string]*ResourceAttrDiff{
+				"num": &ResourceAttrDiff{
+					New: "bar",
+				},
+			},
+		}, nil
+	}
+
+	if _, err := ctx.Plan(nil); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	state, err := ctx.Apply()
+	if err == nil {
+		t.Fatal("should have error")
+	}
+
+	if len(state.Resources) != 2 {
+		t.Fatalf("bad: %#v", state.Resources)
+	}
+
+	actual := strings.TrimSpace(state.String())
+	expected := strings.TrimSpace(testTerraformApplyErrorPartialStr)
+	if actual != expected {
+		t.Fatalf("bad: \n%s", actual)
+	}
+}
+
+func TestContextApply_hook(t *testing.T) {
+	c := testConfig(t, "apply-good")
+	h := new(MockHook)
+	p := testProvider("aws")
+	p.ApplyFn = testApplyFn
+	p.DiffFn = testDiffFn
+	ctx := testContext(t, &ContextOpts{
+		Config: c,
+		Hooks:  []Hook{h},
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+	})
+
+	if _, err := ctx.Plan(nil); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	if _, err := ctx.Apply(); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	if !h.PreApplyCalled {
+		t.Fatal("should be called")
+	}
+	if !h.PostApplyCalled {
+		t.Fatal("should be called")
+	}
+}
+
+func TestContextApply_unknownAttribute(t *testing.T) {
+	c := testConfig(t, "apply-unknown")
+	p := testProvider("aws")
+	p.ApplyFn = testApplyFn
+	p.DiffFn = testDiffFn
+	ctx := testContext(t, &ContextOpts{
+		Config: c,
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+	})
+
+	if _, err := ctx.Plan(nil); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	state, err := ctx.Apply()
+	if err == nil {
+		t.Fatal("should error")
+	}
+
+	actual := strings.TrimSpace(state.String())
+	expected := strings.TrimSpace(testTerraformApplyUnknownAttrStr)
+	if actual != expected {
+		t.Fatalf("bad: \n%s", actual)
+	}
+}
+
+func TestContextApply_vars(t *testing.T) {
+	c := testConfig(t, "apply-vars")
+	p := testProvider("aws")
+	p.ApplyFn = testApplyFn
+	p.DiffFn = testDiffFn
+	ctx := testContext(t, &ContextOpts{
+		Config: c,
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+		Variables: map[string]string{
+			"foo": "bar",
+		},
+	})
+
+	if _, err := ctx.Plan(nil); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	state, err := ctx.Apply()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	actual := strings.TrimSpace(state.String())
+	expected := strings.TrimSpace(testTerraformApplyVarsStr)
+	if actual != expected {
+		t.Fatalf("bad: \n%s", actual)
+	}
+}
+
 func TestContextPlan(t *testing.T) {
 	c := testConfig(t, "plan-good")
 	p := testProvider("aws")
@@ -364,6 +813,37 @@ func TestContextRefresh_state(t *testing.T) {
 
 func testContext(t *testing.T, opts *ContextOpts) *Context {
 	return NewContext(opts)
+}
+
+func testApplyFn(
+	s *ResourceState,
+	d *ResourceDiff) (*ResourceState, error) {
+	if d.Destroy {
+		return nil, nil
+	}
+
+	id := "foo"
+	if idAttr, ok := d.Attributes["id"]; ok && !idAttr.NewComputed {
+		id = idAttr.New
+	}
+
+	result := &ResourceState{
+		ID: id,
+	}
+
+	if d != nil {
+		result = result.MergeDiff(d)
+	}
+
+	if depAttr, ok := d.Attributes["dep"]; ok {
+		result.Dependencies = []ResourceDependency{
+			ResourceDependency{
+				ID: depAttr.New,
+			},
+		}
+	}
+
+	return result, nil
 }
 
 func testDiffFn(

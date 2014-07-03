@@ -52,10 +52,47 @@ func NewContext(opts *ContextOpts) *Context {
 	}
 }
 
+// Apply applies the changes represented by this context and returns
+// the resulting state.
+//
+// In addition to returning the resulting state, this context is updated
+// with the latest state.
+func (c *Context) Apply() (*State, error) {
+	g, err := Graph(&GraphOpts{
+		Config:    c.config,
+		Diff:      c.diff,
+		Providers: c.providers,
+		State:     c.state,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	// Create our result. Make sure we preserve the prior states
+	s := new(State)
+	s.init()
+	if c.state != nil {
+		for k, v := range c.state.Resources {
+			s.Resources[k] = v
+		}
+	}
+
+	// Walk
+	err = g.Walk(c.applyWalkFn(s))
+
+	// Update our state, even if we have an error, for partial updates
+	c.state = s
+
+	return s, err
+}
+
 // Plan generates an execution plan for the given context.
 //
 // The execution plan encapsulates the context and can be stored
 // in order to reinstantiate a context later for Apply.
+//
+// Plan also updates the diff of this context to be the diff generated
+// by the plan, so Apply can be called after.
 func (c *Context) Plan(opts *PlanOpts) (*Plan, error) {
 	g, err := Graph(&GraphOpts{
 		Config:    c.config,
@@ -72,6 +109,10 @@ func (c *Context) Plan(opts *PlanOpts) (*Plan, error) {
 		State:  c.state,
 	}
 	err = g.Walk(c.planWalkFn(p, opts))
+
+	// Update the diff so that our context is up-to-date
+	c.diff = p.Diff
+
 	return p, err
 }
 
@@ -117,6 +158,87 @@ func (c *Context) Validate() ([]string, []error) {
 	}
 
 	return nil, errs
+}
+
+func (c *Context) applyWalkFn(result *State) depgraph.WalkFunc {
+	var l sync.Mutex
+
+	// Initialize the result
+	result.init()
+
+	cb := func(r *Resource) (map[string]string, error) {
+		diff := r.Diff
+		if diff.Empty() {
+			return r.Vars(), nil
+		}
+
+		if !diff.Destroy {
+			var err error
+			diff, err = r.Provider.Diff(r.State, r.Config)
+			if err != nil {
+				return nil, err
+			}
+		}
+
+		// TODO(mitchellh): we need to verify the diff doesn't change
+		// anything and that the diff has no computed values (pre-computed)
+
+		for _, h := range c.hooks {
+			handleHook(h.PreApply(r.Id, r.State, diff))
+		}
+
+		// With the completed diff, apply!
+		log.Printf("[DEBUG] %s: Executing Apply", r.Id)
+		rs, err := r.Provider.Apply(r.State, diff)
+		if err != nil {
+			return nil, err
+		}
+
+		// Make sure the result is instantiated
+		if rs == nil {
+			rs = new(ResourceState)
+		}
+
+		// Force the resource state type to be our type
+		rs.Type = r.State.Type
+
+		var errs []error
+		for ak, av := range rs.Attributes {
+			// If the value is the unknown variable value, then it is an error.
+			// In this case we record the error and remove it from the state
+			if av == config.UnknownVariableValue {
+				errs = append(errs, fmt.Errorf(
+					"Attribute with unknown value: %s", ak))
+				delete(rs.Attributes, ak)
+			}
+		}
+
+		// Update the resulting diff
+		l.Lock()
+		if rs.ID == "" {
+			delete(result.Resources, r.Id)
+		} else {
+			result.Resources[r.Id] = rs
+		}
+		l.Unlock()
+
+		// Update the state for the resource itself
+		r.State = rs
+
+		for _, h := range c.hooks {
+			handleHook(h.PostApply(r.Id, r.State))
+		}
+
+		// Determine the new state and update variables
+		err = nil
+		if len(errs) > 0 {
+			err = &multierror.Error{Errors: errs}
+		}
+
+		return r.Vars(), err
+	}
+
+	return c.genericWalkFn(c.variables, cb)
 }
 
 func (c *Context) planWalkFn(result *Plan, opts *PlanOpts) depgraph.WalkFunc {
