@@ -26,10 +26,6 @@ func testProviderFuncFixed(rp ResourceProvider) ResourceProviderFactory {
 	}
 }
 
-func testProviderMock(p ResourceProvider) *MockResourceProvider {
-	return p.(*MockResourceProvider)
-}
-
 // HookRecordApplyOrder is a test hook that records the order of applies
 // by recording the PreApply event.
 type HookRecordApplyOrder struct {
