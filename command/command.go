@@ -55,6 +55,9 @@ func PlanArg(
 	if err != nil {
 		return nil, fmt.Errorf("Error loading config: %s", err)
 	}
+	if err := config.Validate(); err != nil {
+		return nil, fmt.Errorf("Error validating config: %s", err)
+	}
 
 	plan, err := tf.Plan(&terraform.PlanOpts{
 		Config: config,

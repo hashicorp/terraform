@@ -48,6 +48,24 @@ func TestApply(t *testing.T) {
 	}
 }
 
+func TestApply_configInvalid(t *testing.T) {
+	p := testProvider()
+	ui := new(cli.MockUi)
+	c := &ApplyCommand{
+		TFConfig: testTFConfig(p),
+		Ui:       ui,
+	}
+
+	args := []string{
+		"-init",
+		testTempFile(t),
+		testFixturePath("apply-config-invalid"),
+	}
+	if code := c.Run(args); code != 1 {
+		t.Fatalf("bad: \n%s", ui.OutputWriter.String())
+	}
+}
+
 func TestApply_plan(t *testing.T) {
 	planPath := testPlanFile(t, new(terraform.Plan))
 	statePath := testTempFile(t)
