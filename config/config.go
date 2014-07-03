@@ -89,10 +89,50 @@ func (r *Resource) Id() string {
 
 // Validate does some basic semantic checking of the configuration.
 func (c *Config) Validate() error {
-	// TODO(mitchellh): make sure all referenced variables exist
-	// TODO(mitchellh): make sure types/names have valid values (characters)
+	// Check for references to user variables that do not actually
+	// exist and record those errors.
+	var errs []error
+	for source, v := range c.allVariables() {
+		uv, ok := v.(*UserVariable)
+		if !ok {
+			continue
+		}
+
+		if _, ok := c.Variables[uv.Name]; !ok {
+			errs = append(errs, fmt.Errorf(
+				"%s: unknown variable referenced: %s",
+				source,
+				uv.Name))
+		}
+	}
+
+	if len(errs) > 0 {
+		return &MultiError{Errors: errs}
+	}
 
 	return nil
+}
+
+// allVariables is a helper that returns a mapping of all the interpolated
+// variables within the configuration. This is used to verify references
+// are valid in the Validate step.
+func (c *Config) allVariables() map[string]InterpolatedVariable {
+	result := make(map[string]InterpolatedVariable)
+	for n, pc := range c.ProviderConfigs {
+		source := fmt.Sprintf("provider config '%s'", n)
+		for _, v := range pc.RawConfig.Variables {
+			result[source] = v
+		}
+	}
+
+	for _, rc := range c.Resources {
+		source := fmt.Sprintf("resource '%s'", rc.Id())
+		for _, v := range rc.RawConfig.Variables {
+			result[source] = v
+		}
+	}
+
+	return result
 }
 
 // Required tests whether a variable is required or not.

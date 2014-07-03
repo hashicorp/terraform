@@ -1,11 +1,26 @@
 package config
 
 import (
+	"path/filepath"
 	"testing"
 )
 
 // This is the directory where our test fixtures are.
 const fixtureDir = "./test-fixtures"
+
+func TestConfigValidate(t *testing.T) {
+	c := testConfig(t, "validate-good")
+	if err := c.Validate(); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+}
+
+func TestConfigValidate_unknownVar(t *testing.T) {
+	c := testConfig(t, "validate-unknownvar")
+	if err := c.Validate(); err == nil {
+		t.Fatal("should not be valid")
+	}
+}
 
 func TestNewResourceVariable(t *testing.T) {
 	v, err := NewResourceVariable("foo.bar.baz")
@@ -54,4 +69,13 @@ func TestProviderConfigName(t *testing.T) {
 	if n != "aws" {
 		t.Fatalf("bad: %s", n)
 	}
+}
+
+func testConfig(t *testing.T, name string) *Config {
+	c, err := Load(filepath.Join(fixtureDir, name, "main.tf"))
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	return c
 }
