@@ -312,6 +312,10 @@ func loadResourcesLibucl(o *libucl.Object) ([]*Resource, error) {
 			// Remove the "count" from the config, since we treat that special
 			delete(config, "count")
 
+			// Delete the "provisioner" section from the config since
+			// that is treated specially.
+			delete(config, "provisioner")
+
 			rawConfig, err := NewRawConfig(config)
 			if err != nil {
 				return nil, fmt.Errorf(
@@ -335,13 +339,85 @@ func loadResourcesLibucl(o *libucl.Object) ([]*Resource, error) {
 				}
 			}
 
+			// If we have provisioners, then parse those out
+			var provisioners []*Provisioner
+			if po := r.Get("provisioner"); po != nil {
+				var err error
+				provisioners, err = loadProvisionersLibucl(po)
+				po.Close()
+				if err != nil {
+					return nil, fmt.Errorf(
+						"Error reading provisioners for %s[%s]: %s",
+						t.Key(),
+						r.Key(),
+						err)
+				}
+			}
+
 			result = append(result, &Resource{
-				Name:      r.Key(),
-				Type:      t.Key(),
-				Count:     count,
-				RawConfig: rawConfig,
+				Name:         r.Key(),
+				Type:         t.Key(),
+				Count:        count,
+				RawConfig:    rawConfig,
+				Provisioners: provisioners,
 			})
 		}
+	}
+
+	return result, nil
+}
+
+func loadProvisionersLibucl(o *libucl.Object) ([]*Provisioner, error) {
+	pos := make([]*libucl.Object, 0, int(o.Len()))
+
+	// Accumulate all the actual provisioner configuration objects. We
+	// have to iterate twice here:
+	//
+	//  1. The first iteration is of the list of `provisioner` blocks.
+	//  2. The second iteration is of the dictionary within the
+	//      provisioner which will have only one element which is the
+	//      type of provisioner to use along with tis config.
+	//
+	// In JSON it looks kind of like this:
+	//
+	//   [
+	//     {
+	//       "shell": {
+	//         ...
+	//       }
+	//     }
+	//   ]
+	//
+	iter := o.Iterate(false)
+	for o1 := iter.Next(); o1 != nil; o1 = iter.Next() {
+		iter2 := o1.Iterate(true)
+		for o2 := iter2.Next(); o2 != nil; o2 = iter2.Next() {
+			pos = append(pos, o2)
+		}
+
+		o1.Close()
+		iter2.Close()
+	}
+	iter.Close()
+
+	result := make([]*Provisioner, 0, len(pos))
+	for _, po := range pos {
+		defer po.Close()
+
+		var config map[string]interface{}
+		if err := po.Decode(&config); err != nil {
+			return nil, err
+		}
+
+		rawConfig, err := NewRawConfig(config)
+		if err != nil {
+			return nil, err
+		}
+
+		result = append(result, &Provisioner{
+			Type:      po.Key(),
+			RawConfig: rawConfig,
+		})
 	}
 
 	return result, nil
