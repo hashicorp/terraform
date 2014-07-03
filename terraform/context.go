@@ -460,6 +460,7 @@ func (c *Context) validateWalkFn(rws *[]string, res *[]error) depgraph.WalkFunc 
 				return nil
 			}
 
+			log.Printf("[INFO] Validating resource: %s", rn.Resource.Id)
 			ws, es := rn.Resource.Provider.ValidateResource(
 				rn.Type, rn.Resource.Config)
 			for i, w := range ws {
