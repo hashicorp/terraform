@@ -12,8 +12,8 @@ import (
 )
 
 func init() {
-	gob.Register(make([]map[string]interface{}, 0))
 	gob.Register(make([]interface{}, 0))
+	gob.Register(make([]map[string]interface{}, 0))
 }
 
 // PlanOpts are the options used to generate an execution plan for
