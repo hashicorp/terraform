@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"sync"
+	"sync/atomic"
 
 	"github.com/hashicorp/terraform/config"
 	"github.com/hashicorp/terraform/depgraph"
@@ -15,6 +16,7 @@ import (
 type Terraform struct {
 	hooks     []Hook
 	providers map[string]ResourceProviderFactory
+	stopHook  *stopHook
 }
 
 // This is a function type used to implement a walker for the resource
@@ -35,13 +37,29 @@ type Config struct {
 // time, as well as richer checks such as verifying that the resource providers
 // can be properly initialized, can be configured, etc.
 func New(c *Config) (*Terraform, error) {
+	sh := new(stopHook)
+	sh.Lock()
+	sh.reset()
+	sh.Unlock()
+
+	// Copy all the hooks and add our stop hook. We don't append directly
+	// to the Config so that we're not modifying that in-place.
+	hooks := make([]Hook, len(c.Hooks)+1)
+	copy(hooks, c.Hooks)
+	hooks[len(c.Hooks)] = sh
+
 	return &Terraform{
-		hooks:     c.Hooks,
+		hooks:     hooks,
+		stopHook:  sh,
 		providers: c.Providers,
 	}, nil
 }
 
 func (t *Terraform) Apply(p *Plan) (*State, error) {
+	// Increase the count on the stop hook so we know when to stop
+	serial := t.stopHook.ref()
+	defer t.stopHook.unref(serial)
+
 	// Make sure we're working with a plan that doesn't have null pointers
 	// everywhere, and is instead just empty otherwise.
 	p.init()
@@ -59,7 +77,40 @@ func (t *Terraform) Apply(p *Plan) (*State, error) {
 	return t.apply(g, p)
 }
 
+// Stop stops all running tasks (applies, plans, refreshes).
+//
+// This will block until all running tasks are stopped. While Stop is
+// blocked, any new calls to Apply, Plan, Refresh, etc. will also block. New
+// calls, however, will start once this Stop has returned.
+func (t *Terraform) Stop() {
+	log.Printf("[INFO] Terraform stopping tasks")
+
+	t.stopHook.Lock()
+	defer t.stopHook.Unlock()
+
+	// Setup the stoppedCh
+	stoppedCh := make(chan struct{}, t.stopHook.count)
+	t.stopHook.stoppedCh = stoppedCh
+
+	// Close the channel to signal that we're done
+	close(t.stopHook.ch)
+
+	// Expect the number of count stops...
+	log.Printf("[DEBUG] Waiting for %d tasks to stop", t.stopHook.count)
+	for i := 0; i < t.stopHook.count; i++ {
+		<-stoppedCh
+	}
+	log.Printf("[DEBUG] Stopped!")
+
+	// Success, everything stopped, reset everything
+	t.stopHook.reset()
+}
+
 func (t *Terraform) Plan(opts *PlanOpts) (*Plan, error) {
+	// Increase the count on the stop hook so we know when to stop
+	serial := t.stopHook.ref()
+	defer t.stopHook.unref(serial)
+
 	g, err := Graph(&GraphOpts{
 		Config:    opts.Config,
 		Providers: t.providers,
@@ -75,6 +126,10 @@ func (t *Terraform) Plan(opts *PlanOpts) (*Plan, error) {
 // Refresh goes through all the resources in the state and refreshes them
 // to their latest status.
 func (t *Terraform) Refresh(c *config.Config, s *State) (*State, error) {
+	// Increase the count on the stop hook so we know when to stop
+	serial := t.stopHook.ref()
+	defer t.stopHook.unref(serial)
+
 	g, err := Graph(&GraphOpts{
 		Config:    c,
 		Providers: t.providers,
@@ -119,8 +174,7 @@ func (t *Terraform) refreshWalkFn(result *State) depgraph.WalkFunc {
 
 	cb := func(r *Resource) (map[string]string, error) {
 		for _, h := range t.hooks {
-			// TODO: return value
-			h.PreRefresh(r.Id, r.State)
+			handleHook(h.PreRefresh(r.Id, r.State))
 		}
 
 		rs, err := r.Provider.Refresh(r.State)
@@ -139,8 +193,7 @@ func (t *Terraform) refreshWalkFn(result *State) depgraph.WalkFunc {
 		l.Unlock()
 
 		for _, h := range t.hooks {
-			// TODO: return value
-			h.PostRefresh(r.Id, rs)
+			handleHook(h.PostRefresh(r.Id, rs))
 		}
 
 		return nil, nil
@@ -175,11 +228,11 @@ func (t *Terraform) applyWalkFn(
 		// anything and that the diff has no computed values (pre-computed)
 
 		for _, h := range t.hooks {
-			// TODO: return value
-			h.PreApply(r.Id, r.State, diff)
+			handleHook(h.PreApply(r.Id, r.State, diff))
 		}
 
 		// With the completed diff, apply!
+		log.Printf("[DEBUG] %s: Executing Apply", r.Id)
 		rs, err := r.Provider.Apply(r.State, diff)
 		if err != nil {
 			return nil, err
@@ -219,8 +272,7 @@ func (t *Terraform) applyWalkFn(
 		r.State = rs
 
 		for _, h := range t.hooks {
-			// TODO: return value
-			h.PostApply(r.Id, r.State)
+			handleHook(h.PostApply(r.Id, r.State))
 		}
 
 		// Determine the new state and update variables
@@ -245,8 +297,7 @@ func (t *Terraform) planWalkFn(result *Plan, opts *PlanOpts) depgraph.WalkFunc {
 		var diff *ResourceDiff
 
 		for _, h := range t.hooks {
-			// TODO: return value
-			h.PreDiff(r.Id, r.State)
+			handleHook(h.PreDiff(r.Id, r.State))
 		}
 
 		if opts.Destroy {
@@ -279,8 +330,7 @@ func (t *Terraform) planWalkFn(result *Plan, opts *PlanOpts) depgraph.WalkFunc {
 		l.Unlock()
 
 		for _, h := range t.hooks {
-			// TODO: return value
-			h.PostDiff(r.Id, diff)
+			handleHook(h.PostDiff(r.Id, diff))
 		}
 
 		// Determine the new state and update variables
@@ -305,9 +355,17 @@ func (t *Terraform) genericWalkFn(
 		vars[fmt.Sprintf("var.%s", k)] = v
 	}
 
+	// This will keep track of whether we're stopped or not
+	var stop uint32 = 0
+
 	return func(n *depgraph.Noun) error {
 		// If it is the root node, ignore
 		if n.Name == GraphRootNode {
+			return nil
+		}
+
+		// If we're stopped, return right away
+		if atomic.LoadUint32(&stop) != 0 {
 			return nil
 		}
 
@@ -358,6 +416,17 @@ func (t *Terraform) genericWalkFn(
 		} else {
 			rn.Resource.Config = nil
 		}
+
+		// Handle recovery of special panic scenarios
+		defer func() {
+			if v := recover(); v != nil {
+				if v == HookActionHalt {
+					atomic.StoreUint32(&stop, 1)
+				} else {
+					panic(v)
+				}
+			}
+		}()
 
 		// Call the callack
 		log.Printf("[INFO] Walking: %s", rn.Resource.Id)

@@ -13,8 +13,9 @@ import (
 // ApplyCommand is a Command implementation that applies a Terraform
 // configuration and actually builds or changes infrastructure.
 type ApplyCommand struct {
-	TFConfig *terraform.Config
-	Ui       cli.Ui
+	ShutdownCh chan struct{}
+	TFConfig   *terraform.Config
+	Ui         cli.Ui
 }
 
 func (c *ApplyCommand) Run(args []string) int {
@@ -63,7 +64,41 @@ func (c *ApplyCommand) Run(args []string) int {
 		return 1
 	}
 
-	state, err := tf.Apply(plan)
+	errCh := make(chan error)
+	stateCh := make(chan *terraform.State)
+	go func() {
+		state, err := tf.Apply(plan)
+		if err != nil {
+			errCh <- err
+			return
+		}
+
+		stateCh <- state
+	}()
+
+	err = nil
+	var state *terraform.State
+	select {
+	case <-c.ShutdownCh:
+		c.Ui.Output("Interrupt received. Gracefully shutting down...")
+
+		// Stop execution
+		tf.Stop()
+
+		// Still get the result, since there is still one
+		select {
+		case <-c.ShutdownCh:
+			c.Ui.Error(
+				"Two interrupts received. Exiting immediately. Note that data\n" +
+					"loss may have occurred.")
+			return 1
+		case state = <-stateCh:
+		case err = <-errCh:
+		}
+	case state = <-stateCh:
+	case err = <-errCh:
+	}
+
 	if err != nil {
 		c.Ui.Error(fmt.Sprintf("Error applying plan: %s", err))
 		return 1

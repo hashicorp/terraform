@@ -39,6 +39,87 @@ func TestTerraformApply(t *testing.T) {
 	}
 }
 
+func TestTerraformApply_cancel(t *testing.T) {
+	stopped := false
+	stopCh := make(chan struct{})
+	stopReplyCh := make(chan struct{})
+
+	rpAWS := new(MockResourceProvider)
+	rpAWS.ResourcesReturn = []ResourceType{
+		ResourceType{Name: "aws_instance"},
+	}
+	rpAWS.DiffFn = func(*ResourceState, *ResourceConfig) (*ResourceDiff, error) {
+		return &ResourceDiff{
+			Attributes: map[string]*ResourceAttrDiff{
+				"num": &ResourceAttrDiff{
+					New: "bar",
+				},
+			},
+		}, nil
+	}
+	rpAWS.ApplyFn = func(*ResourceState, *ResourceDiff) (*ResourceState, error) {
+		if !stopped {
+			stopped = true
+			close(stopCh)
+			<-stopReplyCh
+		}
+
+		return &ResourceState{
+			ID: "foo",
+			Attributes: map[string]string{
+				"num": "2",
+			},
+		}, nil
+	}
+
+	c := testConfig(t, "apply-cancel")
+	tf := testTerraform2(t, &Config{
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(rpAWS),
+		},
+	})
+
+	p, err := tf.Plan(&PlanOpts{Config: c})
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	// Start the Apply in a goroutine
+	stateCh := make(chan *State)
+	go func() {
+		state, err := tf.Apply(p)
+		if err != nil {
+			panic(err)
+		}
+
+		stateCh <- state
+	}()
+
+	// Start a goroutine so we can inject exactly when we stop
+	s := tf.stopHook.ref()
+	go func() {
+		defer tf.stopHook.unref(s)
+		<-tf.stopHook.ch
+		close(stopReplyCh)
+		tf.stopHook.stoppedCh <- struct{}{}
+	}()
+
+	<-stopCh
+	tf.Stop()
+
+	state := <-stateCh
+
+	if len(state.Resources) != 1 {
+		t.Fatalf("bad: %#v", state.Resources)
+	}
+
+	actual := strings.TrimSpace(state.String())
+	expected := strings.TrimSpace(testTerraformApplyCancelStr)
+	if actual != expected {
+		t.Fatalf("bad: \n%s", actual)
+	}
+}
+
 func TestTerraformApply_compute(t *testing.T) {
 	// This tests that computed variables are properly re-diffed
 	// to get the value prior to application (Apply).
@@ -681,6 +762,12 @@ aws_instance.foo:
   ID = foo
   num = 2
   type = aws_instance
+`
+
+const testTerraformApplyCancelStr = `
+aws_instance.foo:
+  ID = foo
+  num = 2
 `
 
 const testTerraformApplyComputeStr = `
