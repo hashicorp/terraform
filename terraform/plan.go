@@ -40,6 +40,18 @@ type Plan struct {
 	once sync.Once
 }
 
+// Context returns a Context with the data encapsulated in this plan.
+//
+// The following fields in opts are overridden by the plan: Config,
+// Diff, State, Variables.
+func (p *Plan) Context(opts *ContextOpts) *Context {
+	opts.Config = p.Config
+	opts.Diff = p.Diff
+	opts.State = p.State
+	opts.Variables = p.Vars
+	return NewContext(opts)
+}
+
 func (p *Plan) String() string {
 	buf := new(bytes.Buffer)
 	buf.WriteString("DIFF:\n\n")
