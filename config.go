@@ -23,6 +23,9 @@ type Config struct {
 // can be overridden by user configurations.
 var BuiltinConfig Config
 
+// ContextOpts are the global ContextOpts we use to initialize the CLI.
+var ContextOpts terraform.ContextOpts
+
 // Put the parse flags we use for libucl in a constant so we can get
 // equally behaving parsing everywhere.
 const libuclParseFlags = libucl.ParserKeyLowercase
