@@ -2,6 +2,7 @@ package resource
 
 import (
 	"fmt"
+	"sort"
 
 	"github.com/hashicorp/terraform/terraform"
 )
@@ -87,8 +88,14 @@ func (m *Map) Refresh(
 // resource map and can be used to satisfy the Resources method of
 // a ResourceProvider.
 func (m *Map) Resources() []terraform.ResourceType {
-	rs := make([]terraform.ResourceType, 0, len(m.Mapping))
+	ks := make([]string, 0, len(m.Mapping))
 	for k, _ := range m.Mapping {
+		ks = append(ks, k)
+	}
+	sort.Strings(ks)
+
+	rs := make([]terraform.ResourceType, 0, len(m.Mapping))
+	for _, k := range ks {
 		rs = append(rs, terraform.ResourceType{
 			Name: k,
 		})
