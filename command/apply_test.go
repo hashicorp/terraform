@@ -4,6 +4,7 @@ import (
 	"os"
 	"reflect"
 	"testing"
+	"time"
 
 	"github.com/hashicorp/terraform/terraform"
 	"github.com/mitchellh/cli"
@@ -132,6 +133,12 @@ func TestApply_shutdown(t *testing.T) {
 	go func() {
 		<-stopCh
 		shutdownCh <- struct{}{}
+
+		// This is really dirty, but we have no other way to assure that
+		// tf.Stop() has been called. This doesn't assure it either, but
+		// it makes it much more certain.
+		time.Sleep(50 * time.Millisecond)
+
 		close(stopReplyCh)
 	}()
 
