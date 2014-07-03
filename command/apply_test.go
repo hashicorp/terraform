@@ -85,6 +85,88 @@ func TestApply_plan(t *testing.T) {
 	}
 }
 
+func TestApply_shutdown(t *testing.T) {
+	stopped := false
+	stopCh := make(chan struct{})
+	stopReplyCh := make(chan struct{})
+
+	statePath := testTempFile(t)
+
+	p := testProvider()
+	shutdownCh := make(chan struct{})
+	ui := new(cli.MockUi)
+	c := &ApplyCommand{
+		ShutdownCh: shutdownCh,
+		TFConfig:   testTFConfig(p),
+		Ui:         ui,
+	}
+
+	p.DiffFn = func(
+		*terraform.ResourceState,
+		*terraform.ResourceConfig) (*terraform.ResourceDiff, error) {
+		return &terraform.ResourceDiff{
+			Attributes: map[string]*terraform.ResourceAttrDiff{
+				"ami": &terraform.ResourceAttrDiff{
+					New: "bar",
+				},
+			},
+		}, nil
+	}
+	p.ApplyFn = func(
+		*terraform.ResourceState,
+		*terraform.ResourceDiff) (*terraform.ResourceState, error) {
+		if !stopped {
+			stopped = true
+			close(stopCh)
+			<-stopReplyCh
+		}
+
+		return &terraform.ResourceState{
+			ID: "foo",
+			Attributes: map[string]string{
+				"ami": "2",
+			},
+		}, nil
+	}
+
+	go func() {
+		<-stopCh
+		shutdownCh <- struct{}{}
+		close(stopReplyCh)
+	}()
+
+	args := []string{
+		"-init",
+		statePath,
+		testFixturePath("apply-shutdown"),
+	}
+	if code := c.Run(args); code != 0 {
+		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
+	}
+
+	if _, err := os.Stat(statePath); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	f, err := os.Open(statePath)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	defer f.Close()
+
+	state, err := terraform.ReadState(f)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if state == nil {
+		t.Fatal("state should not be nil")
+	}
+
+	if len(state.Resources) != 1 {
+		t.Fatalf("bad: %d", len(state.Resources))
+	}
+}
+
 func TestApply_state(t *testing.T) {
 	originalState := &terraform.State{
 		Resources: map[string]*terraform.ResourceState{

@@ -2,6 +2,7 @@ package main
 
 import (
 	"os"
+	"os/signal"
 
 	"github.com/hashicorp/terraform/command"
 	"github.com/mitchellh/cli"
@@ -28,8 +29,9 @@ func init() {
 	Commands = map[string]cli.CommandFactory{
 		"apply": func() (cli.Command, error) {
 			return &command.ApplyCommand{
-				TFConfig: &TFConfig,
-				Ui:       Ui,
+				ShutdownCh: makeShutdownCh(),
+				TFConfig:   &TFConfig,
+				Ui:         Ui,
 			}, nil
 		},
 
@@ -63,4 +65,21 @@ func init() {
 			}, nil
 		},
 	}
+}
+
+// makeShutdownCh creates an interrupt listener and returns a channel.
+// A message will be sent on the channel for every interrupt received.
+func makeShutdownCh() <-chan struct{} {
+	resultCh := make(chan struct{})
+
+	signalCh := make(chan os.Signal, 4)
+	signal.Notify(signalCh, os.Interrupt)
+	go func() {
+		for {
+			<-signalCh
+			resultCh <- struct{}{}
+		}
+	}()
+
+	return resultCh
 }
