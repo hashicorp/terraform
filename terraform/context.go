@@ -164,6 +164,10 @@ func (c *Context) Refresh() (*State, error) {
 	s := new(State)
 	s.init()
 	err = g.Walk(c.refreshWalkFn(s))
+
+	// Update our state
+	c.state = s
+
 	return s, err
 }
 
