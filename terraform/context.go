@@ -29,7 +29,6 @@ type Context struct {
 	variables map[string]string
 
 	l     sync.Mutex
-	cond  *sync.Cond
 	runCh <-chan struct{}
 	sh    *stopHook
 }
@@ -67,7 +66,6 @@ func NewContext(opts *ContextOpts) *Context {
 		providers: opts.Providers,
 		variables: opts.Variables,
 
-		cond: sync.NewCond(new(sync.Mutex)),
 		sh:   sh,
 	}
 }
