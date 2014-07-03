@@ -23,10 +23,6 @@ type PlanOpts struct {
 	// that are created. Otherwise, it will move towards the desired state
 	// specified in the configuration.
 	Destroy bool
-
-	Config *config.Config
-	State  *State
-	Vars   map[string]string
 }
 
 // Plan represents a single Terraform execution plan, which contains
