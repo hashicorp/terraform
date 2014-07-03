@@ -196,6 +196,131 @@ func TestTerraformApply_destroy(t *testing.T) {
 	}
 }
 
+func TestTerraformApply_error(t *testing.T) {
+	errored := false
+
+	rpAWS := new(MockResourceProvider)
+	rpAWS.ResourcesReturn = []ResourceType{
+		ResourceType{Name: "aws_instance"},
+	}
+	rpAWS.DiffFn = func(*ResourceState, *ResourceConfig) (*ResourceDiff, error) {
+		return &ResourceDiff{
+			Attributes: map[string]*ResourceAttrDiff{
+				"num": &ResourceAttrDiff{
+					New: "bar",
+				},
+			},
+		}, nil
+	}
+	rpAWS.ApplyFn = func(*ResourceState, *ResourceDiff) (*ResourceState, error) {
+		if errored {
+			return nil, fmt.Errorf("error")
+		}
+		errored = true
+
+		return &ResourceState{
+			ID: "foo",
+			Attributes: map[string]string{
+				"num": "2",
+			},
+		}, nil
+	}
+
+	c := testConfig(t, "apply-error")
+	tf := testTerraform2(t, &Config{
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(rpAWS),
+		},
+	})
+
+	p, err := tf.Plan(&PlanOpts{Config: c})
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	state, err := tf.Apply(p)
+	if err == nil {
+		t.Fatal("should have error")
+	}
+
+	if len(state.Resources) != 1 {
+		t.Fatalf("bad: %#v", state.Resources)
+	}
+
+	actual := strings.TrimSpace(state.String())
+	expected := strings.TrimSpace(testTerraformApplyErrorStr)
+	if actual != expected {
+		t.Fatalf("bad: \n%s", actual)
+	}
+}
+
+func TestTerraformApply_errorPartial(t *testing.T) {
+	errored := false
+
+	rpAWS := new(MockResourceProvider)
+	rpAWS.ResourcesReturn = []ResourceType{
+		ResourceType{Name: "aws_instance"},
+	}
+	rpAWS.DiffFn = func(*ResourceState, *ResourceConfig) (*ResourceDiff, error) {
+		return &ResourceDiff{
+			Attributes: map[string]*ResourceAttrDiff{
+				"num": &ResourceAttrDiff{
+					New: "bar",
+				},
+			},
+		}, nil
+	}
+	rpAWS.ApplyFn = func(*ResourceState, *ResourceDiff) (*ResourceState, error) {
+		if errored {
+			return nil, fmt.Errorf("error")
+		}
+		errored = true
+
+		return &ResourceState{
+			ID: "foo",
+			Attributes: map[string]string{
+				"num": "2",
+			},
+		}, nil
+	}
+
+	c := testConfig(t, "apply-error")
+	tf := testTerraform2(t, &Config{
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(rpAWS),
+		},
+	})
+
+	s := &State{
+		Resources: map[string]*ResourceState{
+			"aws_instance.bar": &ResourceState{
+				ID:   "bar",
+				Type: "aws_instance",
+			},
+		},
+	}
+
+	p, err := tf.Plan(&PlanOpts{Config: c, State: s})
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	state, err := tf.Apply(p)
+	if err == nil {
+		t.Fatal("should have error")
+	}
+
+	if len(state.Resources) != 2 {
+		t.Fatalf("bad: %#v", state.Resources)
+	}
+
+	actual := strings.TrimSpace(state.String())
+	expected := strings.TrimSpace(testTerraformApplyErrorPartialStr)
+	if actual != expected {
+		t.Fatalf("bad: \n%s", actual)
+	}
+}
+
 func TestTerraformApply_hook(t *testing.T) {
 	c := testConfig(t, "apply-good")
 	h := new(MockHook)
@@ -787,6 +912,20 @@ aws_instance.bar:
   ID = <not created>
 aws_instance.foo:
   ID = <not created>
+`
+
+const testTerraformApplyErrorStr = `
+aws_instance.foo:
+  ID = foo
+  num = 2
+`
+
+const testTerraformApplyErrorPartialStr = `
+aws_instance.bar:
+  ID = bar
+aws_instance.foo:
+  ID = foo
+  num = 2
 `
 
 const testTerraformApplyUnknownAttrStr = `

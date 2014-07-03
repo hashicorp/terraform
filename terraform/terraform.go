@@ -145,7 +145,13 @@ func (t *Terraform) Refresh(c *config.Config, s *State) (*State, error) {
 func (t *Terraform) apply(
 	g *depgraph.Graph,
 	p *Plan) (*State, error) {
+	// Create our result. Make sure we preserve the prior states
 	s := new(State)
+	s.init()
+	for k, v := range p.State.Resources {
+		s.Resources[k] = v
+	}
+
 	err := g.Walk(t.applyWalkFn(s, p))
 	return s, err
 }
