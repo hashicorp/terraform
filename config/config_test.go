@@ -15,6 +15,13 @@ func TestConfigValidate(t *testing.T) {
 	}
 }
 
+func TestConfigValidate_unknownResourceVar(t *testing.T) {
+	c := testConfig(t, "validate-unknown-resource-var")
+	if err := c.Validate(); err == nil {
+		t.Fatal("should not be valid")
+	}
+}
+
 func TestConfigValidate_unknownVar(t *testing.T) {
 	c := testConfig(t, "validate-unknownvar")
 	if err := c.Validate(); err == nil {

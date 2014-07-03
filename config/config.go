@@ -89,10 +89,13 @@ func (r *Resource) Id() string {
 
 // Validate does some basic semantic checking of the configuration.
 func (c *Config) Validate() error {
+	var errs []error
+
+	vars := c.allVariables()
+
 	// Check for references to user variables that do not actually
 	// exist and record those errors.
-	var errs []error
-	for source, v := range c.allVariables() {
+	for source, v := range vars {
 		uv, ok := v.(*UserVariable)
 		if !ok {
 			continue
@@ -103,6 +106,27 @@ func (c *Config) Validate() error {
 				"%s: unknown variable referenced: %s",
 				source,
 				uv.Name))
+		}
+	}
+
+	// Check that all references to resources are valid
+	resources := make(map[string]struct{})
+	for _, r := range c.Resources {
+		resources[r.Id()] = struct{}{}
+	}
+	for source, v := range vars {
+		rv, ok := v.(*ResourceVariable)
+		if !ok {
+			continue
+		}
+
+		id := fmt.Sprintf("%s.%s", rv.Type, rv.Name)
+		if _, ok := resources[id]; !ok {
+			errs = append(errs, fmt.Errorf(
+				"%s: unknown resource '%s' referenced in variable %s",
+				source,
+				id,
+				rv.FullKey()))
 		}
 	}
 
