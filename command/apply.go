@@ -56,6 +56,9 @@ func (c *ApplyCommand) Run(args []string) int {
 		c.Ui.Error(err.Error())
 		return 1
 	}
+	if !validateContext(ctx, c.Ui) {
+		return 1
+	}
 
 	errCh := make(chan error)
 	stateCh := make(chan *terraform.State)

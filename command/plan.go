@@ -69,6 +69,9 @@ func (c *PlanCommand) Run(args []string) int {
 	c.ContextOpts.Hooks = append(c.ContextOpts.Hooks, &UiHook{Ui: c.Ui})
 	c.ContextOpts.State = state
 	ctx := terraform.NewContext(c.ContextOpts)
+	if !validateContext(ctx, c.Ui) {
+		return 1
+	}
 
 	if refresh {
 		if _, err := ctx.Refresh(); err != nil {
