@@ -44,8 +44,7 @@ func (m *Map) Apply(
 	if s.ID == "" {
 		return r.Create(s, d, meta)
 	} else {
-		panic("update no implemented yet")
-		//return r.Update(s, d, meta)
+		return r.Update(s, d, meta)
 	}
 }
 

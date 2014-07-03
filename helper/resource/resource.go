@@ -9,6 +9,7 @@ type Resource struct {
 	Destroy DestroyFunc
 	Diff    DiffFunc
 	Refresh RefreshFunc
+	Update  UpdateFunc
 }
 
 // CreateFunc is a function that creates a resource that didn't previously
@@ -34,4 +35,13 @@ type DiffFunc func(
 // of resource.
 type RefreshFunc func(
 	*terraform.ResourceState,
+	interface{}) (*terraform.ResourceState, error)
+
+// UpdateFunc is a function that is called to update a resource that
+// previously existed. The difference between this and CreateFunc is that
+// the diff is guaranteed to only contain attributes that don't require
+// a new resource.
+type UpdateFunc func(
+	*terraform.ResourceState,
+	*terraform.ResourceDiff,
 	interface{}) (*terraform.ResourceState, error)
