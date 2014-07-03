@@ -1,7 +1,13 @@
 package terraform
 
 import (
+	"fmt"
+	"log"
+	"sync"
+	"sync/atomic"
+
 	"github.com/hashicorp/terraform/config"
+	"github.com/hashicorp/terraform/depgraph"
 	"github.com/hashicorp/terraform/helper/multierror"
 )
 
@@ -46,6 +52,28 @@ func NewContext(opts *ContextOpts) *Context {
 	}
 }
 
+// Refresh goes through all the resources in the state and refreshes them
+// to their latest state. This will update the state that this context
+// works with, along with returning it.
+//
+// Even in the case an error is returned, the state will be returned and
+// will potentially be partially updated.
+func (c *Context) Refresh() (*State, error) {
+	g, err := Graph(&GraphOpts{
+		Config:    c.config,
+		Providers: c.providers,
+		State:     c.state,
+	})
+	if err != nil {
+		return c.state, err
+	}
+
+	s := new(State)
+	s.init()
+	err = g.Walk(c.refreshWalkFn(s))
+	return s, err
+}
+
 // Validate validates the configuration and returns any warnings or errors.
 func (c *Context) Validate() ([]string, []error) {
 	var rerr *multierror.Error
@@ -66,4 +94,143 @@ func (c *Context) Validate() ([]string, []error) {
 	}
 
 	return nil, errs
+}
+
+func (c *Context) refreshWalkFn(result *State) depgraph.WalkFunc {
+	var l sync.Mutex
+
+	cb := func(r *Resource) (map[string]string, error) {
+		for _, h := range c.hooks {
+			handleHook(h.PreRefresh(r.Id, r.State))
+		}
+
+		rs, err := r.Provider.Refresh(r.State)
+		if err != nil {
+			return nil, err
+		}
+		if rs == nil {
+			rs = new(ResourceState)
+		}
+
+		// Fix the type to be the type we have
+		rs.Type = r.State.Type
+
+		l.Lock()
+		result.Resources[r.Id] = rs
+		l.Unlock()
+
+		for _, h := range c.hooks {
+			handleHook(h.PostRefresh(r.Id, rs))
+		}
+
+		return nil, nil
+	}
+
+	return c.genericWalkFn(c.variables, cb)
+}
+
+func (c *Context) genericWalkFn(
+	invars map[string]string,
+	cb genericWalkFunc) depgraph.WalkFunc {
+	var l sync.RWMutex
+
+	// Initialize the variables for application
+	vars := make(map[string]string)
+	for k, v := range invars {
+		vars[fmt.Sprintf("var.%s", k)] = v
+	}
+
+	// This will keep track of whether we're stopped or not
+	var stop uint32 = 0
+
+	return func(n *depgraph.Noun) error {
+		// If it is the root node, ignore
+		if n.Name == GraphRootNode {
+			return nil
+		}
+
+		// If we're stopped, return right away
+		if atomic.LoadUint32(&stop) != 0 {
+			return nil
+		}
+
+		switch m := n.Meta.(type) {
+		case *GraphNodeResource:
+		case *GraphNodeResourceProvider:
+			var rc *ResourceConfig
+			if m.Config != nil {
+				if err := m.Config.RawConfig.Interpolate(vars); err != nil {
+					panic(err)
+				}
+				rc = NewResourceConfig(m.Config.RawConfig)
+			}
+
+			for k, p := range m.Providers {
+				log.Printf("[INFO] Configuring provider: %s", k)
+				err := p.Configure(rc)
+				if err != nil {
+					return err
+				}
+			}
+
+			return nil
+		}
+
+		rn := n.Meta.(*GraphNodeResource)
+
+		l.RLock()
+		if len(vars) > 0 && rn.Config != nil {
+			if err := rn.Config.RawConfig.Interpolate(vars); err != nil {
+				panic(fmt.Sprintf("Interpolate error: %s", err))
+			}
+
+			// Force the config to be set later
+			rn.Resource.Config = nil
+		}
+		l.RUnlock()
+
+		// Make sure that at least some resource configuration is set
+		if !rn.Orphan {
+			if rn.Resource.Config == nil {
+				if rn.Config == nil {
+					rn.Resource.Config = new(ResourceConfig)
+				} else {
+					rn.Resource.Config = NewResourceConfig(rn.Config.RawConfig)
+				}
+			}
+		} else {
+			rn.Resource.Config = nil
+		}
+
+		// Handle recovery of special panic scenarios
+		defer func() {
+			if v := recover(); v != nil {
+				if v == HookActionHalt {
+					atomic.StoreUint32(&stop, 1)
+				} else {
+					panic(v)
+				}
+			}
+		}()
+
+		// Call the callack
+		log.Printf("[INFO] Walking: %s", rn.Resource.Id)
+		newVars, err := cb(rn.Resource)
+		if err != nil {
+			return err
+		}
+
+		if len(newVars) > 0 {
+			// Acquire a lock since this function is called in parallel
+			l.Lock()
+			defer l.Unlock()
+
+			// Update variables
+			for k, v := range newVars {
+				vars[k] = v
+			}
+		}
+
+		return nil
+	}
 }
