@@ -11,6 +11,10 @@ import (
 	"github.com/hashicorp/terraform/helper/multierror"
 )
 
+// This is a function type used to implement a walker for the resource
+// tree internally on the Terraform structure.
+type genericWalkFunc func(*Resource) (map[string]string, error)
+
 // Context represents all the context that Terraform needs in order to
 // perform operations on infrastructure. This structure is built using
 // ContextOpts and NewContext. See the documentation for those.
