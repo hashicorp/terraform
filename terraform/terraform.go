@@ -8,6 +8,7 @@ import (
 
 	"github.com/hashicorp/terraform/config"
 	"github.com/hashicorp/terraform/depgraph"
+	"github.com/hashicorp/terraform/helper/multierror"
 )
 
 // Terraform is the primary structure that is used to interact with
@@ -282,7 +283,7 @@ func (t *Terraform) applyWalkFn(
 		// Determine the new state and update variables
 		err = nil
 		if len(errs) > 0 {
-			err = &MultiError{Errors: errs}
+			err = &multierror.Error{Errors: errs}
 		}
 
 		return r.Vars(), err

@@ -8,6 +8,7 @@ import (
 
 	"github.com/hashicorp/terraform/config"
 	"github.com/hashicorp/terraform/depgraph"
+	"github.com/hashicorp/terraform/helper/multierror"
 )
 
 // GraphOpts are options used to create the resource graph that Terraform
@@ -325,7 +326,7 @@ func graphAddMissingResourceProviders(
 	}
 
 	if len(errs) > 0 {
-		return &MultiError{Errors: errs}
+		return &multierror.Error{Errors: errs}
 	}
 
 	return nil
@@ -518,7 +519,7 @@ func graphInitResourceProviders(
 	}
 
 	if len(errs) > 0 {
-		return &MultiError{Errors: errs}
+		return &multierror.Error{Errors: errs}
 	}
 
 	return nil
@@ -583,7 +584,7 @@ func graphMapResourceProviders(g *depgraph.Graph) error {
 	}
 
 	if len(errs) > 0 {
-		return &MultiError{Errors: errs}
+		return &multierror.Error{Errors: errs}
 	}
 
 	return nil

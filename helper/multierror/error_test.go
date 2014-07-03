@@ -1,19 +1,19 @@
-package config
+package multierror
 
 import (
 	"errors"
 	"testing"
 )
 
-func TestMultiError_Impl(t *testing.T) {
+func TestError_Impl(t *testing.T) {
 	var raw interface{}
-	raw = &MultiError{}
+	raw = &Error{}
 	if _, ok := raw.(error); !ok {
-		t.Fatal("MultiError must implement error")
+		t.Fatal("Error must implement error")
 	}
 }
 
-func TestMultiErrorError(t *testing.T) {
+func TestErrorError(t *testing.T) {
 	expected := `2 error(s) occurred:
 
 * foo
@@ -24,32 +24,32 @@ func TestMultiErrorError(t *testing.T) {
 		errors.New("bar"),
 	}
 
-	multi := &MultiError{errors}
+	multi := &Error{errors}
 	if multi.Error() != expected {
 		t.Fatalf("bad: %s", multi.Error())
 	}
 }
 
-func TestMultiErrorAppend_MultiError(t *testing.T) {
-	original := &MultiError{
+func TestErrorAppend_Error(t *testing.T) {
+	original := &Error{
 		Errors: []error{errors.New("foo")},
 	}
 
-	result := MultiErrorAppend(original, errors.New("bar"))
+	result := ErrorAppend(original, errors.New("bar"))
 	if len(result.Errors) != 2 {
 		t.Fatalf("wrong len: %d", len(result.Errors))
 	}
 
-	original = &MultiError{}
-	result = MultiErrorAppend(original, errors.New("bar"))
+	original = &Error{}
+	result = ErrorAppend(original, errors.New("bar"))
 	if len(result.Errors) != 1 {
 		t.Fatalf("wrong len: %d", len(result.Errors))
 	}
 }
 
-func TestMultiErrorAppend_NonMultiError(t *testing.T) {
+func TestErrorAppend_NonError(t *testing.T) {
 	original := errors.New("foo")
-	result := MultiErrorAppend(original, errors.New("bar"))
+	result := ErrorAppend(original, errors.New("bar"))
 	if len(result.Errors) != 2 {
 		t.Fatalf("wrong len: %d", len(result.Errors))
 	}

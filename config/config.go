@@ -5,6 +5,8 @@ package config
 import (
 	"fmt"
 	"strings"
+
+	"github.com/hashicorp/terraform/helper/multierror"
 )
 
 // Config is the configuration that comes from loading a collection
@@ -131,7 +133,7 @@ func (c *Config) Validate() error {
 	}
 
 	if len(errs) > 0 {
-		return &MultiError{Errors: errs}
+		return &multierror.Error{Errors: errs}
 	}
 
 	return nil

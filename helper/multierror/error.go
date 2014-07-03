@@ -1,18 +1,18 @@
-package config
+package multierror
 
 import (
 	"fmt"
 	"strings"
 )
 
-// MultiError is an error type to track multiple errors. This is used to
+// Error is an error type to track multiple errors. This is used to
 // accumulate errors in cases such as configuration parsing, and returning
 // them as a single error.
-type MultiError struct {
+type Error struct {
 	Errors []error
 }
 
-func (e *MultiError) Error() string {
+func (e *Error) Error() string {
 	points := make([]string, len(e.Errors))
 	for i, err := range e.Errors {
 		points[i] = fmt.Sprintf("* %s", err)
@@ -23,18 +23,18 @@ func (e *MultiError) Error() string {
 		len(e.Errors), strings.Join(points, "\n"))
 }
 
-// MultiErrorAppend is a helper function that will append more errors
-// onto a MultiError in order to create a larger multi-error. If the
-// original error is not a MultiError, it will be turned into one.
-func MultiErrorAppend(err error, errs ...error) *MultiError {
+// ErrorAppend is a helper function that will append more errors
+// onto a Error in order to create a larger multi-error. If the
+// original error is not a Error, it will be turned into one.
+func ErrorAppend(err error, errs ...error) *Error {
 	if err == nil {
-		err = new(MultiError)
+		err = new(Error)
 	}
 
 	switch err := err.(type) {
-	case *MultiError:
+	case *Error:
 		if err == nil {
-			err = new(MultiError)
+			err = new(Error)
 		}
 
 		err.Errors = append(err.Errors, errs...)
@@ -43,7 +43,7 @@ func MultiErrorAppend(err error, errs ...error) *MultiError {
 		newErrs := make([]error, len(errs)+1)
 		newErrs[0] = err
 		copy(newErrs[1:], errs)
-		return &MultiError{
+		return &Error{
 			Errors: newErrs,
 		}
 	}
