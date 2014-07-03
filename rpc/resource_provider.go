@@ -35,6 +35,30 @@ func (p *ResourceProvider) Validate(c *terraform.ResourceConfig) ([]string, []er
 	return resp.Warnings, errs
 }
 
+func (p *ResourceProvider) ValidateResource(
+	t string, c *terraform.ResourceConfig) ([]string, []error) {
+	var resp ResourceProviderValidateResourceResponse
+	args := ResourceProviderValidateResourceArgs{
+		Config: c,
+		Type:   t,
+	}
+
+	err := p.Client.Call(p.Name+".ValidateResource", &args, &resp)
+	if err != nil {
+		return nil, []error{err}
+	}
+
+	var errs []error
+	if len(resp.Errors) > 0 {
+		errs = make([]error, len(resp.Errors))
+		for i, err := range resp.Errors {
+			errs[i] = err
+		}
+	}
+
+	return resp.Warnings, errs
+}
+
 func (p *ResourceProvider) Configure(c *terraform.ResourceConfig) error {
 	var resp ResourceProviderConfigureResponse
 	err := p.Client.Call(p.Name+".Configure", c, &resp)
@@ -157,6 +181,16 @@ type ResourceProviderValidateResponse struct {
 	Errors   []*BasicError
 }
 
+type ResourceProviderValidateResourceArgs struct {
+	Config *terraform.ResourceConfig
+	Type   string
+}
+
+type ResourceProviderValidateResourceResponse struct {
+	Warnings []string
+	Errors   []*BasicError
+}
+
 func (s *ResourceProviderServer) Validate(
 	args *ResourceProviderValidateArgs,
 	reply *ResourceProviderValidateResponse) error {
@@ -166,6 +200,21 @@ func (s *ResourceProviderServer) Validate(
 		berrs[i] = NewBasicError(err)
 	}
 	*reply = ResourceProviderValidateResponse{
+		Warnings: warns,
+		Errors:   berrs,
+	}
+	return nil
+}
+
+func (s *ResourceProviderServer) ValidateResource(
+	args *ResourceProviderValidateResourceArgs,
+	reply *ResourceProviderValidateResourceResponse) error {
+	warns, errs := s.Provider.ValidateResource(args.Type, args.Config)
+	berrs := make([]*BasicError, len(errs))
+	for i, err := range errs {
+		berrs[i] = NewBasicError(err)
+	}
+	*reply = ResourceProviderValidateResourceResponse{
 		Warnings: warns,
 		Errors:   berrs,
 	}

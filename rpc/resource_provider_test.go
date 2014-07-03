@@ -341,3 +341,106 @@ func TestResourceProvider_validate_warns(t *testing.T) {
 		t.Fatalf("bad: %#v", w)
 	}
 }
+
+func TestResourceProvider_validateResource(t *testing.T) {
+	p := new(terraform.MockResourceProvider)
+	client, server := testClientServer(t)
+	name, err := Register(server, p)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	provider := &ResourceProvider{Client: client, Name: name}
+
+	// Configure
+	config := &terraform.ResourceConfig{
+		Raw: map[string]interface{}{"foo": "bar"},
+	}
+	w, e := provider.ValidateResource("foo", config)
+	if !p.ValidateResourceCalled {
+		t.Fatal("configure should be called")
+	}
+	if p.ValidateResourceType != "foo" {
+		t.Fatalf("bad: %#v", p.ValidateResourceType)
+	}
+	if !reflect.DeepEqual(p.ValidateResourceConfig, config) {
+		t.Fatalf("bad: %#v", p.ValidateResourceConfig)
+	}
+	if w != nil {
+		t.Fatalf("bad: %#v", w)
+	}
+	if e != nil {
+		t.Fatalf("bad: %#v", e)
+	}
+}
+
+func TestResourceProvider_validateResource_errors(t *testing.T) {
+	p := new(terraform.MockResourceProvider)
+	p.ValidateResourceReturnErrors = []error{errors.New("foo")}
+
+	client, server := testClientServer(t)
+	name, err := Register(server, p)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	provider := &ResourceProvider{Client: client, Name: name}
+
+	// Configure
+	config := &terraform.ResourceConfig{
+		Raw: map[string]interface{}{"foo": "bar"},
+	}
+	w, e := provider.ValidateResource("foo", config)
+	if !p.ValidateResourceCalled {
+		t.Fatal("configure should be called")
+	}
+	if p.ValidateResourceType != "foo" {
+		t.Fatalf("bad: %#v", p.ValidateResourceType)
+	}
+	if !reflect.DeepEqual(p.ValidateResourceConfig, config) {
+		t.Fatalf("bad: %#v", p.ValidateResourceConfig)
+	}
+	if w != nil {
+		t.Fatalf("bad: %#v", w)
+	}
+
+	if len(e) != 1 {
+		t.Fatalf("bad: %#v", e)
+	}
+	if e[0].Error() != "foo" {
+		t.Fatalf("bad: %#v", e)
+	}
+}
+
+func TestResourceProvider_validateResource_warns(t *testing.T) {
+	p := new(terraform.MockResourceProvider)
+	p.ValidateResourceReturnWarns = []string{"foo"}
+
+	client, server := testClientServer(t)
+	name, err := Register(server, p)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	provider := &ResourceProvider{Client: client, Name: name}
+
+	// Configure
+	config := &terraform.ResourceConfig{
+		Raw: map[string]interface{}{"foo": "bar"},
+	}
+	w, e := provider.ValidateResource("foo", config)
+	if !p.ValidateResourceCalled {
+		t.Fatal("configure should be called")
+	}
+	if p.ValidateResourceType != "foo" {
+		t.Fatalf("bad: %#v", p.ValidateResourceType)
+	}
+	if !reflect.DeepEqual(p.ValidateResourceConfig, config) {
+		t.Fatalf("bad: %#v", p.ValidateResourceConfig)
+	}
+	if e != nil {
+		t.Fatalf("bad: %#v", e)
+	}
+
+	expected := []string{"foo"}
+	if !reflect.DeepEqual(w, expected) {
+		t.Fatalf("bad: %#v", w)
+	}
+}
