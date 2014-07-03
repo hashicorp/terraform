@@ -11,12 +11,6 @@ import (
 	"github.com/mitchellh/osext"
 )
 
-// TFConfig is the global base configuration that has the
-// basic providers registered. Users of this configuration
-// should copy it (call the Copy method) before using it so
-// that it isn't corrupted.
-var TFConfig terraform.Config
-
 // Config is the structure of the configuration for the Terraform CLI.
 //
 // This is not the configuration for Terraform itself. That is in the
@@ -28,6 +22,9 @@ type Config struct {
 // BuiltinConfig is the built-in defaults for the configuration. These
 // can be overridden by user configurations.
 var BuiltinConfig Config
+
+// ContextOpts are the global ContextOpts we use to initialize the CLI.
+var ContextOpts terraform.ContextOpts
 
 // Put the parse flags we use for libucl in a constant so we can get
 // equally behaving parsing everywhere.

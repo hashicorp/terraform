@@ -26,8 +26,8 @@ func TestPlan_destroy(t *testing.T) {
 	p := testProvider()
 	ui := new(cli.MockUi)
 	c := &PlanCommand{
-		TFConfig: testTFConfig(p),
-		Ui:       ui,
+		ContextOpts: testCtxConfig(p),
+		Ui:          ui,
 	}
 
 	args := []string{
@@ -51,8 +51,8 @@ func TestPlan_noState(t *testing.T) {
 	p := testProvider()
 	ui := new(cli.MockUi)
 	c := &PlanCommand{
-		TFConfig: testTFConfig(p),
-		Ui:       ui,
+		ContextOpts: testCtxConfig(p),
+		Ui:          ui,
 	}
 
 	args := []string{
@@ -87,8 +87,8 @@ func TestPlan_outPath(t *testing.T) {
 	p := testProvider()
 	ui := new(cli.MockUi)
 	c := &PlanCommand{
-		TFConfig: testTFConfig(p),
-		Ui:       ui,
+		ContextOpts: testCtxConfig(p),
+		Ui:          ui,
 	}
 
 	p.DiffReturn = &terraform.ResourceDiff{
@@ -118,8 +118,8 @@ func TestPlan_refresh(t *testing.T) {
 	p := testProvider()
 	ui := new(cli.MockUi)
 	c := &PlanCommand{
-		TFConfig: testTFConfig(p),
-		Ui:       ui,
+		ContextOpts: testCtxConfig(p),
+		Ui:          ui,
 	}
 
 	args := []string{
@@ -162,8 +162,8 @@ func TestPlan_state(t *testing.T) {
 	p := testProvider()
 	ui := new(cli.MockUi)
 	c := &PlanCommand{
-		TFConfig: testTFConfig(p),
-		Ui:       ui,
+		ContextOpts: testCtxConfig(p),
+		Ui:          ui,
 	}
 
 	args := []string{

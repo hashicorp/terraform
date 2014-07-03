@@ -6,19 +6,20 @@ import (
 
 	"github.com/hashicorp/terraform/config"
 	"github.com/hashicorp/terraform/terraform"
+	"github.com/mitchellh/cli"
 )
 
-func PlanArg(
+func ContextArg(
 	path string,
 	statePath string,
-	tf *terraform.Terraform) (*terraform.Plan, error) {
+	opts *terraform.ContextOpts) (*terraform.Context, error) {
 	// First try to just read the plan directly from the path given.
 	f, err := os.Open(path)
 	if err == nil {
 		plan, err := terraform.ReadPlan(f)
 		f.Close()
 		if err == nil {
-			return plan, nil
+			return plan.Context(opts), nil
 		}
 	}
 
@@ -55,14 +56,47 @@ func PlanArg(
 	if err != nil {
 		return nil, fmt.Errorf("Error loading config: %s", err)
 	}
+	if err := config.Validate(); err != nil {
+		return nil, fmt.Errorf("Error validating config: %s", err)
+	}
 
-	plan, err := tf.Plan(&terraform.PlanOpts{
-		Config: config,
-		State:  state,
-	})
-	if err != nil {
+	opts.Config = config
+	opts.State = state
+	ctx := terraform.NewContext(opts)
+
+	if _, err := ctx.Plan(nil); err != nil {
 		return nil, fmt.Errorf("Error running plan: %s", err)
 	}
 
-	return plan, nil
+	return ctx, nil
+}
+
+func validateContext(ctx *terraform.Context, ui cli.Ui) bool {
+	if ws, es := ctx.Validate(); len(ws) > 0 || len(es) > 0 {
+		ui.Output(
+			"There are warnings and/or errors related to your configuration. Please\n" +
+				"fix these before continuing.\n")
+
+		if len(ws) > 0 {
+			ui.Output("Warnings:\n")
+			for _, w := range ws {
+				ui.Output(fmt.Sprintf("  * %s", w))
+			}
+
+			if len(es) > 0 {
+				ui.Output("")
+			}
+		}
+
+		if len(es) > 0 {
+			ui.Output("Errors:\n")
+			for _, e := range es {
+				ui.Output(fmt.Sprintf("  * %s", e))
+			}
+		}
+
+		return false
+	}
+
+	return true
 }

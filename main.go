@@ -84,7 +84,7 @@ func wrappedMain() int {
 	defer plugin.CleanupClients()
 
 	// Initialize the TFConfig settings for the commands...
-	TFConfig.Providers = config.ProviderFactories()
+	ContextOpts.Providers = config.ProviderFactories()
 
 	// Get the command line args. We shortcut "--version" and "-v" to
 	// just show the version.

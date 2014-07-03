@@ -29,30 +29,30 @@ func init() {
 	Commands = map[string]cli.CommandFactory{
 		"apply": func() (cli.Command, error) {
 			return &command.ApplyCommand{
-				ShutdownCh: makeShutdownCh(),
-				TFConfig:   &TFConfig,
-				Ui:         Ui,
+				ShutdownCh:  makeShutdownCh(),
+				ContextOpts: &ContextOpts,
+				Ui:          Ui,
 			}, nil
 		},
 
 		"graph": func() (cli.Command, error) {
 			return &command.GraphCommand{
-				TFConfig: &TFConfig,
-				Ui:       Ui,
+				ContextOpts: &ContextOpts,
+				Ui:          Ui,
 			}, nil
 		},
 
 		"plan": func() (cli.Command, error) {
 			return &command.PlanCommand{
-				TFConfig: &TFConfig,
-				Ui:       Ui,
+				ContextOpts: &ContextOpts,
+				Ui:          Ui,
 			}, nil
 		},
 
 		"refresh": func() (cli.Command, error) {
 			return &command.RefreshCommand{
-				TFConfig: &TFConfig,
-				Ui:       Ui,
+				ContextOpts: &ContextOpts,
+				Ui:          Ui,
 			}, nil
 		},
 

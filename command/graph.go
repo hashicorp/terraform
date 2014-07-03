@@ -15,8 +15,8 @@ import (
 // GraphCommand is a Command implementation that takes a Terraform
 // configuration and outputs the dependency tree in graphical form.
 type GraphCommand struct {
-	TFConfig *terraform.Config
-	Ui       cli.Ui
+	ContextOpts *terraform.ContextOpts
+	Ui          cli.Ui
 }
 
 func (c *GraphCommand) Run(args []string) int {
@@ -41,7 +41,7 @@ func (c *GraphCommand) Run(args []string) int {
 
 	g, err := terraform.Graph(&terraform.GraphOpts{
 		Config:    conf,
-		Providers: c.TFConfig.Providers,
+		Providers: c.ContextOpts.Providers,
 	})
 	if err != nil {
 		c.Ui.Error(fmt.Sprintf("Error creating graph: %s", err))

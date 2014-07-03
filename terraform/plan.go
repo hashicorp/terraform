@@ -23,10 +23,6 @@ type PlanOpts struct {
 	// that are created. Otherwise, it will move towards the desired state
 	// specified in the configuration.
 	Destroy bool
-
-	Config *config.Config
-	State  *State
-	Vars   map[string]string
 }
 
 // Plan represents a single Terraform execution plan, which contains
@@ -38,6 +34,18 @@ type Plan struct {
 	Vars   map[string]string
 
 	once sync.Once
+}
+
+// Context returns a Context with the data encapsulated in this plan.
+//
+// The following fields in opts are overridden by the plan: Config,
+// Diff, State, Variables.
+func (p *Plan) Context(opts *ContextOpts) *Context {
+	opts.Config = p.Config
+	opts.Diff = p.Diff
+	opts.State = p.State
+	opts.Variables = p.Vars
+	return NewContext(opts)
 }
 
 func (p *Plan) String() string {

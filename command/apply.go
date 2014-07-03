@@ -13,9 +13,9 @@ import (
 // ApplyCommand is a Command implementation that applies a Terraform
 // configuration and actually builds or changes infrastructure.
 type ApplyCommand struct {
-	ShutdownCh <-chan struct{}
-	TFConfig   *terraform.Config
-	Ui         cli.Ui
+	ShutdownCh  <-chan struct{}
+	ContextOpts *terraform.ContextOpts
+	Ui          cli.Ui
 }
 
 func (c *ApplyCommand) Run(args []string) int {
@@ -44,30 +44,26 @@ func (c *ApplyCommand) Run(args []string) int {
 		stateOutPath = statePath
 	}
 
-	// Initialize Terraform right away
-	c.TFConfig.Hooks = append(c.TFConfig.Hooks, &UiHook{Ui: c.Ui})
-	tf, err := terraform.New(c.TFConfig)
-	if err != nil {
-		c.Ui.Error(fmt.Sprintf("Error initializing Terraform: %s", err))
-		return 1
-	}
-
-	// Attempt to read a plan from the path given. This is how we test that
-	// it is a plan or not (kind of jank, but if it quacks like a duck...)
 	planStatePath := statePath
 	if init {
 		planStatePath = ""
 	}
-	plan, err := PlanArg(configPath, planStatePath, tf)
+
+	// Initialize Terraform right away
+	c.ContextOpts.Hooks = append(c.ContextOpts.Hooks, &UiHook{Ui: c.Ui})
+	ctx, err := ContextArg(configPath, planStatePath, c.ContextOpts)
 	if err != nil {
 		c.Ui.Error(err.Error())
+		return 1
+	}
+	if !validateContext(ctx, c.Ui) {
 		return 1
 	}
 
 	errCh := make(chan error)
 	stateCh := make(chan *terraform.State)
 	go func() {
-		state, err := tf.Apply(plan)
+		state, err := ctx.Apply()
 		if err != nil {
 			errCh <- err
 			return
@@ -83,7 +79,7 @@ func (c *ApplyCommand) Run(args []string) int {
 		c.Ui.Output("Interrupt received. Gracefully shutting down...")
 
 		// Stop execution
-		tf.Stop()
+		ctx.Stop()
 
 		// Still get the result, since there is still one
 		select {
