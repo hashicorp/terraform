@@ -196,6 +196,55 @@ func TestTerraformApply_destroy(t *testing.T) {
 	}
 }
 
+func TestTerraformApply_destroyOrphan(t *testing.T) {
+	rpAWS := new(MockResourceProvider)
+	rpAWS.ResourcesReturn = []ResourceType{
+		ResourceType{Name: "aws_instance"},
+	}
+	rpAWS.DiffFn = func(*ResourceState, *ResourceConfig) (*ResourceDiff, error) {
+		return &ResourceDiff{
+			Attributes: map[string]*ResourceAttrDiff{
+				"num": &ResourceAttrDiff{
+					New: "bar",
+				},
+			},
+		}, nil
+	}
+	rpAWS.ApplyFn = func(*ResourceState, *ResourceDiff) (*ResourceState, error) {
+		return nil, nil
+	}
+
+	c := testConfig(t, "apply-error")
+	tf := testTerraform2(t, &Config{
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(rpAWS),
+		},
+	})
+
+	s := &State{
+		Resources: map[string]*ResourceState{
+			"aws_instance.baz": &ResourceState{
+				ID:   "bar",
+				Type: "aws_instance",
+			},
+		},
+	}
+
+	p, err := tf.Plan(&PlanOpts{Config: c, State: s})
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	state, err := tf.Apply(p)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	if len(state.Resources) != 0 {
+		t.Fatalf("bad: %#v", state.Resources)
+	}
+}
+
 func TestTerraformApply_error(t *testing.T) {
 	errored := false
 
@@ -908,10 +957,7 @@ aws_instance.foo:
 `
 
 const testTerraformApplyDestroyStr = `
-aws_instance.bar:
-  ID = <not created>
-aws_instance.foo:
-  ID = <not created>
+<no state>
 `
 
 const testTerraformApplyErrorStr = `

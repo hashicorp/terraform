@@ -252,12 +252,6 @@ func (t *Terraform) applyWalkFn(
 		// Force the resource state type to be our type
 		rs.Type = r.State.Type
 
-		// If no state was returned, then no variables were updated so
-		// just return.
-		if rs == nil {
-			return nil, nil
-		}
-
 		var errs []error
 		for ak, av := range rs.Attributes {
 			// If the value is the unknown variable value, then it is an error.
@@ -271,7 +265,11 @@ func (t *Terraform) applyWalkFn(
 
 		// Update the resulting diff
 		l.Lock()
-		result.Resources[r.Id] = rs
+		if rs.ID == "" {
+			delete(result.Resources, r.Id)
+		} else {
+			result.Resources[r.Id] = rs
+		}
 		l.Unlock()
 
 		// Update the state for the resource itself
