@@ -15,6 +15,7 @@ type Config struct {
 	ProviderConfigs map[string]*ProviderConfig
 	Resources       []*Resource
 	Variables       map[string]*Variable
+	Outputs         map[string]*Output
 }
 
 // ProviderConfig is the configuration for a resource provider.
@@ -40,6 +41,13 @@ type Variable struct {
 	Default     string
 	Description string
 	defaultSet  bool
+}
+
+// Output is an output defined within the configuration. An output is
+// resulting data that is highlighted by Terraform when finished.
+type Output struct {
+	Name      string
+	RawConfig *RawConfig
 }
 
 // An InterpolatedVariable is a variable that is embedded within a string

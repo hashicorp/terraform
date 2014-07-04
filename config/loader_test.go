@@ -39,6 +39,11 @@ func TestLoadBasic(t *testing.T) {
 	if actual != strings.TrimSpace(basicResourcesStr) {
 		t.Fatalf("bad:\n%s", actual)
 	}
+
+	actual = outputsStr(c.Outputs)
+	if actual != strings.TrimSpace(basicOutputsStr) {
+		t.Fatalf("bad:\n%s", actual)
+	}
 }
 
 func TestLoadBasic_import(t *testing.T) {
@@ -90,6 +95,40 @@ func TestLoad_variables(t *testing.T) {
 	if c.Variables["baz"].Required() {
 		t.Fatal("baz should not be required")
 	}
+}
+
+func outputsStr(os map[string]*Output) string {
+	ns := make([]string, 0, len(os))
+	for n, _ := range os {
+		ns = append(ns, n)
+	}
+	sort.Strings(ns)
+
+	result := ""
+	for _, n := range ns {
+		o := os[n]
+
+		result += fmt.Sprintf("%s\n", n)
+
+		if len(o.RawConfig.Variables) > 0 {
+			result += fmt.Sprintf("  vars\n")
+			for _, rawV := range o.RawConfig.Variables {
+				kind := "unknown"
+				str := rawV.FullKey()
+
+				switch rawV.(type) {
+				case *ResourceVariable:
+					kind = "resource"
+				case *UserVariable:
+					kind = "user"
+				}
+
+				result += fmt.Sprintf("    %s: %s\n", kind, str)
+			}
+		}
+	}
+
+	return strings.TrimSpace(result)
 }
 
 // This helper turns a provider configs field into a deterministic
@@ -218,6 +257,12 @@ func variablesStr(vs map[string]*Variable) string {
 
 	return strings.TrimSpace(result)
 }
+
+const basicOutputsStr = `
+web_ip
+  vars
+    resource: aws_instance.web.private_ip
+`
 
 const basicProvidersStr = `
 aws
