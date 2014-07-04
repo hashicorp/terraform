@@ -115,6 +115,7 @@ func resource_aws_instance_diff(
 			"public_ip",
 			"private_dns",
 			"private_ip",
+			"instance_id",
 		},
 	}
 
@@ -161,6 +162,7 @@ func resource_aws_instance_update_state(
 	s.Attributes["public_ip"] = instance.PublicIpAddress
 	s.Attributes["private_dns"] = instance.PrivateDNSName
 	s.Attributes["private_ip"] = instance.PrivateIpAddress
+	s.Attributes["instance_id"] = instance.InstanceId
 	return s, nil
 }
 

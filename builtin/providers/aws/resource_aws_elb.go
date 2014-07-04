@@ -51,26 +51,6 @@ func resource_aws_elb_create(
 	rs.ID = elbName
 	log.Printf("[INFO] ELB ID: %s", elbName)
 
-	describeElbOpts := &elb.DescribeLoadBalancer{
-		Names: []string{elbName},
-	}
-
-	// Retrieve the ELB properties for updating the state
-	describeResp, err := elbconn.DescribeLoadBalancers(describeElbOpts)
-	if err != nil {
-		return nil, fmt.Errorf("Error retrieving ELB: %s", err)
-	}
-
-	// Verify AWS returned our ELB
-	if len(describeResp.LoadBalancers) != 1 ||
-		describeResp.LoadBalancers[0].LoadBalancerName != elbName {
-		if err != nil {
-			return nil, fmt.Errorf("Unable to find ELB: %#v", describeResp.LoadBalancers)
-		}
-	}
-
-	loadBalancer := describeResp.LoadBalancers[0]
-
 	// If we have any instances, we need to register them
 	v = flatmap.Expand(rs.Attributes, "instances").([]interface{})
 	instances := expandStringList(v)
@@ -81,7 +61,31 @@ func resource_aws_elb_create(
 			Instances:        instances,
 		}
 
-		registerResp, err := elbconn.RegisterInstancesWithLoadBalancer(registerInstancesOpts)
+		_, err := elbconn.RegisterInstancesWithLoadBalancer(&registerInstancesOpts)
+
+		if err != nil {
+			return nil, fmt.Errorf("Failure registering instances: %s", err)
+		}
+	}
+
+	describeElbOpts := &elb.DescribeLoadBalancer{
+		Names: []string{elbName},
+	}
+
+	// Retrieve the ELB properties for updating the state
+	describeResp, err := elbconn.DescribeLoadBalancers(describeElbOpts)
+	if err != nil {
+		return nil, fmt.Errorf("Error retrieving ELB: %s", err)
+	}
+
+	loadBalancer := describeResp.LoadBalancers[0]
+
+	// Verify AWS returned our ELB
+	if len(describeResp.LoadBalancers) != 1 ||
+		describeResp.LoadBalancers[0].LoadBalancerName != elbName {
+		if err != nil {
+			return nil, fmt.Errorf("Unable to find ELB: %#v", describeResp.LoadBalancers)
+		}
 	}
 
 	return resource_aws_elb_update_state(rs, &loadBalancer)
@@ -96,11 +100,7 @@ func resource_aws_elb_update(
 
 	// Merge the diff into the state so that we have all the attributes
 	// properly.
-	rs := s.MergeDiff(d)
-
-	log.Println(rs)
-
-	rs.Attributes
+	// rs := s.MergeDiff(d)
 
 	return nil, nil
 }
