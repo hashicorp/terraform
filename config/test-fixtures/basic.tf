@@ -13,6 +13,7 @@ provider "do" {
 }
 
 resource "aws_security_group" "firewall" {
+    count = 5
 }
 
 resource aws_instance "web" {

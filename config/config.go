@@ -31,6 +31,7 @@ type ProviderConfig struct {
 type Resource struct {
 	Name      string
 	Type      string
+	Count     int
 	RawConfig *RawConfig
 }
 

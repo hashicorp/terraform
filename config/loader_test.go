@@ -145,9 +145,10 @@ func resourcesStr(rs []*Resource) string {
 	result := ""
 	for _, r := range rs {
 		result += fmt.Sprintf(
-			"%s[%s]\n",
+			"%s[%s] (x%d)\n",
 			r.Type,
-			r.Name)
+			r.Name,
+			r.Count)
 
 		ks := make([]string, 0, len(r.RawConfig.Raw))
 		for k, _ := range r.RawConfig.Raw {
@@ -229,8 +230,8 @@ do
 `
 
 const basicResourcesStr = `
-aws_security_group[firewall]
-aws_instance[web]
+aws_security_group[firewall] (x5)
+aws_instance[web] (x1)
   ami
   network_interface
   security_groups
@@ -251,8 +252,8 @@ aws
 `
 
 const importResourcesStr = `
-aws_security_group[db]
-aws_security_group[web]
+aws_security_group[db] (x1)
+aws_security_group[web] (x1)
 `
 
 const importVariablesStr = `
