@@ -238,6 +238,10 @@ aws_instance[web] (x1)
   vars
     resource: aws_security_group.firewall.foo
     user: var.foo
+aws_instance[db] (x1)
+  security_groups
+  vars
+    resource: aws_security_group.firewall.*.id
 `
 
 const basicVariablesStr = `

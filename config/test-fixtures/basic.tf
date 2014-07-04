@@ -28,3 +28,7 @@ resource aws_instance "web" {
         description = "Main network interface"
     }
 }
+
+resource "aws_instance" "db" {
+    security_groups = "${aws_security_group.firewall.*.id}"
+}

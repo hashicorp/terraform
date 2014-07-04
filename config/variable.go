@@ -13,7 +13,7 @@ import (
 var varRegexp *regexp.Regexp
 
 func init() {
-	varRegexp = regexp.MustCompile(`(?i)(\$+)\{([-.a-z0-9_]+)\}`)
+	varRegexp = regexp.MustCompile(`(?i)(\$+)\{([*-.a-z0-9_]+)\}`)
 }
 
 // ReplaceVariables takes a configuration and a mapping of variables
