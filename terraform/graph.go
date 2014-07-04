@@ -172,10 +172,18 @@ func graphAddConfigResources(
 			if s != nil {
 				state = s.Resources[name]
 
-				// If the count is one, check the state for ".0" appended, which
-				// might exist if we go from count > 1 to count == 1.
-				if state == nil && r.Count == 1 {
-					state = s.Resources[r.Id()+".0"]
+				if state == nil {
+					if r.Count == 1 {
+						// If the count is one, check the state for ".0"
+						// appended, which might exist if we go from
+						// count > 1 to count == 1.
+						state = s.Resources[r.Id()+".0"]
+					} else if i == 0 {
+						// If count is greater than one, check for state
+						// with just the ID, which might exist if we go
+						// from count == 1 to count > 1
+						state = s.Resources[r.Id()]
+					}
 				}
 			}
 			if state == nil {
