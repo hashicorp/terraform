@@ -27,6 +27,21 @@ func TestGraph_configRequired(t *testing.T) {
 	}
 }
 
+func TestGraph_count(t *testing.T) {
+	config := testConfig(t, "graph-count")
+
+	g, err := Graph(&GraphOpts{Config: config})
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	actual := strings.TrimSpace(g.String())
+	expected := strings.TrimSpace(testTerraformGraphCountStr)
+	if actual != expected {
+		t.Fatalf("bad:\n\n%s", actual)
+	}
+}
+
 func TestGraph_cycle(t *testing.T) {
 	config := testConfig(t, "graph-cycle")
 
@@ -224,6 +239,25 @@ root
   root -> aws_load_balancer.weblb
   root -> aws_security_group.firewall
   root -> openstack_floating_ip.random
+`
+
+const testTerraformGraphCountStr = `
+root: root
+aws_instance.web
+  aws_instance.web -> aws_instance.web.0
+  aws_instance.web -> aws_instance.web.1
+  aws_instance.web -> aws_instance.web.2
+aws_instance.web.0
+aws_instance.web.1
+aws_instance.web.2
+aws_load_balancer.weblb
+  aws_load_balancer.weblb -> aws_instance.web
+root
+  root -> aws_instance.web
+  root -> aws_instance.web.0
+  root -> aws_instance.web.1
+  root -> aws_instance.web.2
+  root -> aws_load_balancer.weblb
 `
 
 const testTerraformGraphDiffStr = `
