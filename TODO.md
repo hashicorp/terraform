@@ -5,4 +5,3 @@ This is just to keep track of what we need to do before 0.1:
   * A module system for better Terraform file organization. More details on this later.
   * Commands to inspect and manipulate plans and states.
   * Support for "outputs" in configuration
-  * "count" meta-parameter for instantiating multiple identical resources
