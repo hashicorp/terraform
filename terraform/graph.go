@@ -62,6 +62,7 @@ type GraphNodeResource struct {
 // metadata for a resource. There will be one meta node for every resource
 // in the configuration.
 type GraphNodeResourceMeta struct {
+	ID    string
 	Name  string
 	Type  string
 	Count int
@@ -197,7 +198,8 @@ func graphAddConfigResources(
 			metaNoun := &depgraph.Noun{
 				Name: r.Id(),
 				Meta: &GraphNodeResourceMeta{
-					Name:  r.Id(),
+					ID:    r.Id(),
+					Name:  r.Name,
 					Type:  r.Type,
 					Count: r.Count,
 				},

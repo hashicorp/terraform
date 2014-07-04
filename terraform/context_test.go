@@ -641,6 +641,33 @@ func TestContextPlan_computed(t *testing.T) {
 	}
 }
 
+func TestContextPlan_count(t *testing.T) {
+	c := testConfig(t, "plan-count")
+	p := testProvider("aws")
+	p.DiffFn = testDiffFn
+	ctx := testContext(t, &ContextOpts{
+		Config: c,
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+	})
+
+	plan, err := ctx.Plan(nil)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	if len(plan.Diff.Resources) < 6 {
+		t.Fatalf("bad: %#v", plan.Diff.Resources)
+	}
+
+	actual := strings.TrimSpace(plan.String())
+	expected := strings.TrimSpace(testTerraformPlanCountStr)
+	if actual != expected {
+		t.Fatalf("bad:\n%s", actual)
+	}
+}
+
 func TestContextPlan_destroy(t *testing.T) {
 	c := testConfig(t, "plan-destroy")
 	p := testProvider("aws")

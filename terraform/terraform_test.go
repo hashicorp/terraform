@@ -155,6 +155,33 @@ STATE:
 <no state>
 `
 
+const testTerraformPlanCountStr = `
+DIFF:
+
+UPDATE: aws_instance.bar
+  foo:  "" => "foo,foo,foo,foo,foo"
+  type: "" => "aws_instance"
+UPDATE: aws_instance.foo.0
+  foo:  "" => "foo"
+  type: "" => "aws_instance"
+UPDATE: aws_instance.foo.1
+  foo:  "" => "foo"
+  type: "" => "aws_instance"
+UPDATE: aws_instance.foo.2
+  foo:  "" => "foo"
+  type: "" => "aws_instance"
+UPDATE: aws_instance.foo.3
+  foo:  "" => "foo"
+  type: "" => "aws_instance"
+UPDATE: aws_instance.foo.4
+  foo:  "" => "foo"
+  type: "" => "aws_instance"
+
+STATE:
+
+<no state>
+`
+
 const testTerraformPlanDestroyStr = `
 DIFF:
 
