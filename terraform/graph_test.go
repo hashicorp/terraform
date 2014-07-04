@@ -254,9 +254,6 @@ aws_load_balancer.weblb
   aws_load_balancer.weblb -> aws_instance.web
 root
   root -> aws_instance.web
-  root -> aws_instance.web.0
-  root -> aws_instance.web.1
-  root -> aws_instance.web.2
   root -> aws_load_balancer.weblb
 `
 

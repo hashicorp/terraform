@@ -168,16 +168,19 @@ func graphAddConfigResources(
 		resourceNouns := make([]*depgraph.Noun, r.Count)
 		for i := 0; i < r.Count; i++ {
 			name := r.Id()
+			index := -1
 
 			// If we have a count that is more than one, then make sure
 			// we suffix with the number of the resource that this is.
 			if r.Count > 1 {
 				name = fmt.Sprintf("%s.%d", name, i)
+				index = i
 			}
 
 			resourceNouns[i] = &depgraph.Noun{
 				Name: name,
 				Meta: &GraphNodeResource{
+					Index:  index,
 					Type:   r.Type,
 					Config: r,
 					Resource: &Resource{
@@ -391,6 +394,7 @@ func graphAddOrphans(g *depgraph.Graph, c *config.Config, s *State) {
 		noun := &depgraph.Noun{
 			Name: k,
 			Meta: &GraphNodeResource{
+				Index:  -1,
 				Type:   rs.Type,
 				Orphan: true,
 				Resource: &Resource{
@@ -456,6 +460,20 @@ func graphAddProviderConfigs(g *depgraph.Graph, c *config.Config) {
 func graphAddRoot(g *depgraph.Graph) {
 	root := &depgraph.Noun{Name: GraphRootNode}
 	for _, n := range g.Nouns {
+		switch m := n.Meta.(type) {
+		case *GraphNodeResource:
+			// If the resource is part of a group, we don't need to make a dep
+			if m.Index != -1 {
+				continue
+			}
+		case *GraphNodeResourceMeta:
+			// Always in the graph
+		case *GraphNodeResourceProvider:
+			// ResourceProviders don't need to be in the root deps because
+			// they're always pointed to by some resource.
+			continue
+		}
+
 		root.Deps = append(root.Deps, &depgraph.Dependency{
 			Name:   n.Name,
 			Source: root,
