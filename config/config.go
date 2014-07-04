@@ -146,6 +146,19 @@ func (c *Config) Validate() error {
 	}
 
 	// Check that all outputs are valid
+	for _, o := range c.Outputs {
+		invalid := false
+		for k, _ := range o.RawConfig.Raw {
+			if k != "value" {
+				invalid = true
+				break
+			}
+		}
+		if invalid {
+			errs = append(errs, fmt.Errorf(
+				"%s: output should only have 'value' field", o.Name))
+		}
+	}
 
 	if len(errs) > 0 {
 		return &multierror.Error{Errors: errs}
