@@ -155,6 +155,75 @@ STATE:
 <no state>
 `
 
+const testTerraformPlanCountStr = `
+DIFF:
+
+UPDATE: aws_instance.bar
+  foo:  "" => "foo,foo,foo,foo,foo"
+  type: "" => "aws_instance"
+UPDATE: aws_instance.foo.0
+  foo:  "" => "foo"
+  type: "" => "aws_instance"
+UPDATE: aws_instance.foo.1
+  foo:  "" => "foo"
+  type: "" => "aws_instance"
+UPDATE: aws_instance.foo.2
+  foo:  "" => "foo"
+  type: "" => "aws_instance"
+UPDATE: aws_instance.foo.3
+  foo:  "" => "foo"
+  type: "" => "aws_instance"
+UPDATE: aws_instance.foo.4
+  foo:  "" => "foo"
+  type: "" => "aws_instance"
+
+STATE:
+
+<no state>
+`
+
+const testTerraformPlanCountDecreaseStr = `
+DIFF:
+
+UPDATE: aws_instance.bar
+  foo:  "" => "bar"
+  type: "" => "aws_instance"
+DESTROY: aws_instance.foo.1
+DESTROY: aws_instance.foo.2
+
+STATE:
+
+aws_instance.foo.0:
+  ID = bar
+  foo = foo
+  type = aws_instance
+aws_instance.foo.1:
+  ID = bar
+aws_instance.foo.2:
+  ID = bar
+`
+
+const testTerraformPlanCountIncreaseStr = `
+DIFF:
+
+UPDATE: aws_instance.bar
+  foo:  "" => "bar"
+  type: "" => "aws_instance"
+UPDATE: aws_instance.foo.1
+  foo:  "" => "foo"
+  type: "" => "aws_instance"
+UPDATE: aws_instance.foo.2
+  foo:  "" => "foo"
+  type: "" => "aws_instance"
+
+STATE:
+
+aws_instance.foo:
+  ID = bar
+  foo = foo
+  type = aws_instance
+`
+
 const testTerraformPlanDestroyStr = `
 DIFF:
 

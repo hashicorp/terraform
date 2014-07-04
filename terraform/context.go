@@ -3,6 +3,7 @@ package terraform
 import (
 	"fmt"
 	"log"
+	"strings"
 	"sync"
 	"sync/atomic"
 
@@ -509,6 +510,9 @@ func (c *Context) genericWalkFn(
 		vars[fmt.Sprintf("var.%s", k)] = v
 	}
 
+	// This will keep track of the counts of multi-count resources
+	counts := make(map[string]int)
+
 	// This will keep track of whether we're stopped or not
 	var stop uint32 = 0
 
@@ -523,8 +527,20 @@ func (c *Context) genericWalkFn(
 			return nil
 		}
 
+		// Calculate any aggregate interpolated variables if we have to.
+		// Aggregate variables (such as "test_instance.foo.*.id") are not
+		// pre-computed since the fanout would be expensive. We calculate
+		// them on-demand here.
+		computeAggregateVars(&l, n, counts, vars)
+
 		switch m := n.Meta.(type) {
 		case *GraphNodeResource:
+		case *GraphNodeResourceMeta:
+			// Record the count and then just ignore
+			l.Lock()
+			counts[m.ID] = m.Count
+			l.Unlock()
+			return nil
 		case *GraphNodeResourceProvider:
 			var rc *ResourceConfig
 			if m.Config != nil {
@@ -543,6 +559,8 @@ func (c *Context) genericWalkFn(
 			}
 
 			return nil
+		default:
+			panic(fmt.Sprintf("unknown graph node: %#v", n.Meta))
 		}
 
 		rn := n.Meta.(*GraphNodeResource)
@@ -601,5 +619,70 @@ func (c *Context) genericWalkFn(
 		}
 
 		return nil
+	}
+}
+
+func computeAggregateVars(
+	l *sync.RWMutex,
+	n *depgraph.Noun,
+	cs map[string]int,
+	vs map[string]string) {
+	var ivars map[string]config.InterpolatedVariable
+	switch m := n.Meta.(type) {
+	case *GraphNodeResource:
+		if m.Config != nil {
+			ivars = m.Config.RawConfig.Variables
+		}
+	case *GraphNodeResourceProvider:
+		if m.Config != nil {
+			ivars = m.Config.RawConfig.Variables
+		}
+	}
+	if len(ivars) == 0 {
+		return
+	}
+
+	for _, v := range ivars {
+		rv, ok := v.(*config.ResourceVariable)
+		if !ok {
+			continue
+		}
+
+		idx := strings.Index(rv.Field, ".")
+		if idx == -1 {
+			// It isn't an aggregated var
+			continue
+		}
+		if rv.Field[:idx] != "*" {
+			// It isn't an aggregated var
+			continue
+		}
+		field := rv.Field[idx+1:]
+
+		// Get the meta node so that we can determine the count
+		key := fmt.Sprintf("%s.%s", rv.Type, rv.Name)
+		l.RLock()
+		count, ok := cs[key]
+		l.RUnlock()
+		if !ok {
+			// This should never happen due to semantic checks
+			panic(fmt.Sprintf(
+				"non-existent resource variable access: %s\n\n%#v", key, rv))
+		}
+
+		var values []string
+		for i := 0; i < count; i++ {
+			key := fmt.Sprintf(
+				"%s.%s.%d.%s",
+				rv.Type,
+				rv.Name,
+				i,
+				field)
+			if v, ok := vs[key]; ok {
+				values = append(values, v)
+			}
+		}
+
+		vs[rv.FullKey()] = strings.Join(values, ",")
 	}
 }

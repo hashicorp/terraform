@@ -253,6 +253,9 @@ func loadResourcesLibucl(o *libucl.Object) ([]*Resource, error) {
 					err)
 			}
 
+			// Remove the "count" from the config, since we treat that special
+			delete(config, "count")
+
 			rawConfig, err := NewRawConfig(config)
 			if err != nil {
 				return nil, fmt.Errorf(
@@ -262,9 +265,24 @@ func loadResourcesLibucl(o *libucl.Object) ([]*Resource, error) {
 					err)
 			}
 
+			// If we have a count, then figure it out
+			var count int = 1
+			if o := r.Get("count"); o != nil {
+				err = o.Decode(&count)
+				o.Close()
+				if err != nil {
+					return nil, fmt.Errorf(
+						"Error parsing count for %s[%s]: %s",
+						t.Key(),
+						r.Key(),
+						err)
+				}
+			}
+
 			result = append(result, &Resource{
 				Name:      r.Key(),
 				Type:      t.Key(),
+				Count:     count,
 				RawConfig: rawConfig,
 			})
 		}

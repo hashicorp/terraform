@@ -13,6 +13,7 @@ provider "do" {
 }
 
 resource "aws_security_group" "firewall" {
+    count = 5
 }
 
 resource aws_instance "web" {
@@ -26,4 +27,8 @@ resource aws_instance "web" {
         device_index = 0
         description = "Main network interface"
     }
+}
+
+resource "aws_instance" "db" {
+    security_groups = "${aws_security_group.firewall.*.id}"
 }

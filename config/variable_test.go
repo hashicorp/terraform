@@ -87,6 +87,22 @@ func TestVariableDetectWalker_resource(t *testing.T) {
 	}
 }
 
+func TestVariableDetectWalker_resourceMulti(t *testing.T) {
+	w := new(variableDetectWalker)
+
+	str := `foo ${ec2.foo.*.bar}`
+	if err := w.Primitive(reflect.ValueOf(str)); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	if len(w.Variables) != 1 {
+		t.Fatalf("bad: %#v", w.Variables)
+	}
+	if w.Variables["ec2.foo.*.bar"].(*ResourceVariable).FullKey() != "ec2.foo.*.bar" {
+		t.Fatalf("bad: %#v", w.Variables)
+	}
+}
+
 func TestVariableDetectWalker_bad(t *testing.T) {
 	w := new(variableDetectWalker)
 

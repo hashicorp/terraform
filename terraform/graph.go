@@ -45,13 +45,27 @@ type GraphOpts struct {
 // graph. This node is just a placemarker and has no associated functionality.
 const GraphRootNode = "root"
 
-// GraphNodeResource is a node type in the graph that represents a resource.
+// GraphNodeResource is a node type in the graph that represents a resource
+// that will be created or managed. Unlike the GraphNodeResourceMeta node,
+// this represents a _single_, _resource_ to be managed, not a set of resources
+// or a component of a resource.
 type GraphNodeResource struct {
+	Index              int
 	Type               string
 	Config             *config.Resource
 	Orphan             bool
 	Resource           *Resource
 	ResourceProviderID string
+}
+
+// GraphNodeResourceMeta is a node type in the graph that represents the
+// metadata for a resource. There will be one meta node for every resource
+// in the configuration.
+type GraphNodeResourceMeta struct {
+	ID    string
+	Name  string
+	Type  string
+	Count int
 }
 
 // GraphNodeResourceProvider is a node type in the graph that represents
@@ -142,28 +156,85 @@ func graphAddConfigResources(
 	// This tracks all the resource nouns
 	nouns := make(map[string]*depgraph.Noun)
 	for _, r := range c.Resources {
-		var state *ResourceState
-		if s != nil {
-			state = s.Resources[r.Id()]
-		}
-		if state == nil {
-			state = &ResourceState{
-				Type: r.Type,
+		resourceNouns := make([]*depgraph.Noun, r.Count)
+		for i := 0; i < r.Count; i++ {
+			name := r.Id()
+			index := -1
+
+			// If we have a count that is more than one, then make sure
+			// we suffix with the number of the resource that this is.
+			if r.Count > 1 {
+				name = fmt.Sprintf("%s.%d", name, i)
+				index = i
+			}
+
+			var state *ResourceState
+			if s != nil {
+				state = s.Resources[name]
+
+				if state == nil {
+					if r.Count == 1 {
+						// If the count is one, check the state for ".0"
+						// appended, which might exist if we go from
+						// count > 1 to count == 1.
+						state = s.Resources[r.Id()+".0"]
+					} else if i == 0 {
+						// If count is greater than one, check for state
+						// with just the ID, which might exist if we go
+						// from count == 1 to count > 1
+						state = s.Resources[r.Id()]
+					}
+				}
+			}
+			if state == nil {
+				state = &ResourceState{
+					Type: r.Type,
+				}
+			}
+
+			resourceNouns[i] = &depgraph.Noun{
+				Name: name,
+				Meta: &GraphNodeResource{
+					Index:  index,
+					Type:   r.Type,
+					Config: r,
+					Resource: &Resource{
+						Id:    name,
+						State: state,
+					},
+				},
 			}
 		}
 
-		noun := &depgraph.Noun{
-			Name: r.Id(),
-			Meta: &GraphNodeResource{
-				Type:   r.Type,
-				Config: r,
-				Resource: &Resource{
-					Id:    r.Id(),
-					State: state,
+		// If we have more than one, then create a meta node to track
+		// the resources.
+		if r.Count > 1 {
+			metaNoun := &depgraph.Noun{
+				Name: r.Id(),
+				Meta: &GraphNodeResourceMeta{
+					ID:    r.Id(),
+					Name:  r.Name,
+					Type:  r.Type,
+					Count: r.Count,
 				},
-			},
+			}
+
+			// Create the dependencies on this noun
+			for _, n := range resourceNouns {
+				metaNoun.Deps = append(metaNoun.Deps, &depgraph.Dependency{
+					Name:   n.Name,
+					Source: metaNoun,
+					Target: n,
+				})
+			}
+
+			// Assign it to the map so that we have it
+			nouns[metaNoun.Name] = metaNoun
 		}
-		nouns[noun.Name] = noun
+
+		for _, n := range resourceNouns {
+			nouns[n.Name] = n
+		}
 	}
 
 	// Build the list of nouns that we iterate over
@@ -339,6 +410,7 @@ func graphAddOrphans(g *depgraph.Graph, c *config.Config, s *State) {
 		noun := &depgraph.Noun{
 			Name: k,
 			Meta: &GraphNodeResource{
+				Index:  -1,
 				Type:   rs.Type,
 				Orphan: true,
 				Resource: &Resource{
@@ -357,7 +429,10 @@ func graphAddProviderConfigs(g *depgraph.Graph, c *config.Config) {
 	nounsList := make([]*depgraph.Noun, 0, 2)
 	pcNouns := make(map[string]*depgraph.Noun)
 	for _, noun := range g.Nouns {
-		resourceNode := noun.Meta.(*GraphNodeResource)
+		resourceNode, ok := noun.Meta.(*GraphNodeResource)
+		if !ok {
+			continue
+		}
 
 		// Look up the provider config for this resource
 		pcName := config.ProviderConfigName(resourceNode.Type, c.ProviderConfigs)
@@ -401,8 +476,17 @@ func graphAddProviderConfigs(g *depgraph.Graph, c *config.Config) {
 func graphAddRoot(g *depgraph.Graph) {
 	root := &depgraph.Noun{Name: GraphRootNode}
 	for _, n := range g.Nouns {
-		// The root only needs to depend on all the resources
-		if _, ok := n.Meta.(*GraphNodeResource); !ok {
+		switch m := n.Meta.(type) {
+		case *GraphNodeResource:
+			// If the resource is part of a group, we don't need to make a dep
+			if m.Index != -1 {
+				continue
+			}
+		case *GraphNodeResourceMeta:
+			// Always in the graph
+		case *GraphNodeResourceProvider:
+			// ResourceProviders don't need to be in the root deps because
+			// they're always pointed to by some resource.
 			continue
 		}
 

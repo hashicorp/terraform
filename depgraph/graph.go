@@ -9,6 +9,7 @@ import (
 	"bytes"
 	"fmt"
 	"sort"
+	"strings"
 	"sync"
 
 	"github.com/hashicorp/terraform/digraph"
@@ -42,7 +43,34 @@ type ValidateError struct {
 }
 
 func (v *ValidateError) Error() string {
-	return "The depedency graph is not valid"
+	var msgs []string
+
+	if v.MissingRoot {
+		msgs = append(msgs, "The graph has no single root")
+	}
+
+	for _, n := range v.Unreachable {
+		msgs = append(msgs, fmt.Sprintf(
+			"Unreachable node: %s", n.Name))
+	}
+
+	for _, c := range v.Cycles {
+		cycleNodes := make([]string, len(c))
+		for i, n := range c {
+			cycleNodes[i] = n.Name
+		}
+
+		msgs = append(msgs, fmt.Sprintf(
+			"Cycle: %s", strings.Join(cycleNodes, " -> ")))
+	}
+
+	for i, m := range msgs {
+		msgs[i] = fmt.Sprintf("* %s", m)
+	}
+
+	return fmt.Sprintf(
+		"The dependency graph is not valid:\n\n%s",
+		strings.Join(msgs, "\n"))
 }
 
 // ConstraintError is used to return detailed violation
