@@ -156,16 +156,6 @@ func graphAddConfigResources(
 	// This tracks all the resource nouns
 	nouns := make(map[string]*depgraph.Noun)
 	for _, r := range c.Resources {
-		var state *ResourceState
-		if s != nil {
-			state = s.Resources[r.Id()]
-		}
-		if state == nil {
-			state = &ResourceState{
-				Type: r.Type,
-			}
-		}
-
 		resourceNouns := make([]*depgraph.Noun, r.Count)
 		for i := 0; i < r.Count; i++ {
 			name := r.Id()
@@ -176,6 +166,22 @@ func graphAddConfigResources(
 			if r.Count > 1 {
 				name = fmt.Sprintf("%s.%d", name, i)
 				index = i
+			}
+
+			var state *ResourceState
+			if s != nil {
+				state = s.Resources[name]
+
+				// If the count is one, check the state for ".0" appended, which
+				// might exist if we go from count > 1 to count == 1.
+				if state == nil && r.Count == 1 {
+					state = s.Resources[r.Id()+".0"]
+				}
+			}
+			if state == nil {
+				state = &ResourceState{
+					Type: r.Type,
+				}
 			}
 
 			resourceNouns[i] = &depgraph.Noun{

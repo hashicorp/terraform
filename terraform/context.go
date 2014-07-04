@@ -630,7 +630,9 @@ func computeAggregateVars(
 	var ivars map[string]config.InterpolatedVariable
 	switch m := n.Meta.(type) {
 	case *GraphNodeResource:
-		ivars = m.Config.RawConfig.Variables
+		if m.Config != nil {
+			ivars = m.Config.RawConfig.Variables
+		}
 	case *GraphNodeResourceProvider:
 		if m.Config != nil {
 			ivars = m.Config.RawConfig.Variables

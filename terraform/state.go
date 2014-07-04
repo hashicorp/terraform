@@ -38,6 +38,12 @@ func (s *State) Orphans(c *config.Config) []string {
 
 	for _, r := range c.Resources {
 		delete(keys, r.Id())
+
+		// If there is only one of this instance, then we alias that
+		// to the ".0" version as well so that it can count
+		if r.Count == 1 {
+			delete(keys, r.Id()+".0")
+		}
 	}
 
 	result := make([]string, 0, len(keys))

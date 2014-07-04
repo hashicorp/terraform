@@ -668,6 +668,50 @@ func TestContextPlan_count(t *testing.T) {
 	}
 }
 
+func TestContextPlan_countDecrease(t *testing.T) {
+	c := testConfig(t, "plan-count-dec")
+	p := testProvider("aws")
+	p.DiffFn = testDiffFn
+	s := &State{
+		Resources: map[string]*ResourceState{
+			"aws_instance.foo.0": &ResourceState{
+				ID:   "bar",
+				Type: "aws_instance",
+				Attributes: map[string]string{
+					"foo":  "foo",
+					"type": "aws_instance",
+				},
+			},
+			"aws_instance.foo.1": &ResourceState{
+				ID:   "bar",
+				Type: "aws_instance",
+			},
+			"aws_instance.foo.2": &ResourceState{
+				ID:   "bar",
+				Type: "aws_instance",
+			},
+		},
+	}
+	ctx := testContext(t, &ContextOpts{
+		Config: c,
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+		State: s,
+	})
+
+	plan, err := ctx.Plan(nil)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	actual := strings.TrimSpace(plan.String())
+	expected := strings.TrimSpace(testTerraformPlanCountDecreaseStr)
+	if actual != expected {
+		t.Fatalf("bad:\n%s", actual)
+	}
+}
+
 func TestContextPlan_destroy(t *testing.T) {
 	c := testConfig(t, "plan-destroy")
 	p := testProvider("aws")
@@ -944,10 +988,6 @@ func testDiffFn(
 	c *ResourceConfig) (*ResourceDiff, error) {
 	var diff ResourceDiff
 	diff.Attributes = make(map[string]*ResourceAttrDiff)
-	diff.Attributes["type"] = &ResourceAttrDiff{
-		Old: "",
-		New: s.Type,
-	}
 
 	for k, v := range c.Raw {
 		if _, ok := v.(string); !ok {
@@ -1006,6 +1046,27 @@ func testDiffFn(
 		diff.Attributes[k] = &ResourceAttrDiff{
 			Old:         "",
 			NewComputed: true,
+		}
+	}
+
+	for k, v := range diff.Attributes {
+		if v.NewComputed {
+			continue
+		}
+
+		old, ok := s.Attributes[k]
+		if !ok {
+			continue
+		}
+		if old == v.New {
+			delete(diff.Attributes, k)
+		}
+	}
+
+	if !diff.Empty() {
+		diff.Attributes["type"] = &ResourceAttrDiff{
+			Old: "",
+			New: s.Type,
 		}
 	}
 
