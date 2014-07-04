@@ -105,6 +105,18 @@ func (c *Context) Apply() (*State, error) {
 	// Update our state, even if we have an error, for partial updates
 	c.state = s
 
+	// If we have no errors, then calculate the outputs if we have any
+	if err == nil && len(c.config.Outputs) > 0 {
+		s.Outputs = make(map[string]string)
+		for _, o := range c.config.Outputs {
+			if err = c.computeVars(s, o.RawConfig); err != nil {
+				break
+			}
+
+			s.Outputs[o.Name] = o.RawConfig.Config()["value"].(string)
+		}
+	}
+
 	return s, err
 }
 
@@ -230,6 +242,48 @@ func (c *Context) Validate() ([]string, []error) {
 	}
 
 	return warns, errs
+}
+
+// computeVars takes the State and given RawConfig and processes all
+// the variables. This dynamically discovers the attributes instead of
+// using a static map[string]string that the genericWalkFn uses.
+func (c *Context) computeVars(s *State, raw *config.RawConfig) error {
+	// If there are on variables, then we're done
+	if len(raw.Variables) == 0 {
+		return nil
+	}
+
+	// Go through each variable and find it
+	vs := make(map[string]string)
+	for n, rawV := range raw.Variables {
+		switch v := rawV.(type) {
+		case *config.ResourceVariable:
+			r, ok := s.Resources[v.ResourceId()]
+			if !ok {
+				return fmt.Errorf(
+					"Resource '%s' not found for variable '%s'",
+					v.ResourceId(),
+					v.FullKey())
+			}
+
+			attr, ok := r.Attributes[v.Field]
+			if !ok {
+				return fmt.Errorf(
+					"Resource '%s' does not have attribute '%s' "+
+						"for variable '%s'",
+					v.ResourceId(),
+					v.Field,
+					v.FullKey())
+			}
+
+			vs[n] = attr
+		case *config.UserVariable:
+			vs[n] = c.variables[v.Name]
+		}
+	}
+
+	// Interpolate the variables
+	return raw.Interpolate(vs)
 }
 
 func (c *Context) graph() (*depgraph.Graph, error) {

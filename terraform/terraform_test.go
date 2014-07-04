@@ -106,6 +106,21 @@ aws_instance.foo:
   num = 2
 `
 
+const testTerraformApplyOutputStr = `
+aws_instance.bar:
+  ID = foo
+  foo = bar
+  type = aws_instance
+aws_instance.foo:
+  ID = foo
+  num = 2
+  type = aws_instance
+
+Outputs:
+
+foo_num = 2
+`
+
 const testTerraformApplyUnknownAttrStr = `
 aws_instance.foo:
   ID = foo
