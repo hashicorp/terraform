@@ -63,9 +63,10 @@ type InterpolatedVariable interface {
 // A ResourceVariable is a variable that is referencing the field
 // of a resource, such as "${aws_instance.foo.ami}"
 type ResourceVariable struct {
-	Type  string
-	Name  string
-	Field string
+	Type  string // Resource type, i.e. "aws_instance"
+	Name  string // Resource name
+	Field string // Resource field
+	Multi bool   // True if multi-variable: aws_instance.foo.*.id
 
 	key string
 }
@@ -203,10 +204,19 @@ func (v *Variable) Required() bool {
 
 func NewResourceVariable(key string) (*ResourceVariable, error) {
 	parts := strings.SplitN(key, ".", 3)
+	field := parts[2]
+	multi := false
+
+	if idx := strings.Index(field, "."); idx != -1 && field[:idx] == "*" {
+		multi = true
+		field = field[idx+1:]
+	}
+
 	return &ResourceVariable{
 		Type:  parts[0],
 		Name:  parts[1],
-		Field: parts[2],
+		Field: field,
+		Multi: multi,
 		key:   key,
 	}, nil
 }

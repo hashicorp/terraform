@@ -58,9 +58,32 @@ func TestNewResourceVariable(t *testing.T) {
 	if v.Field != "baz" {
 		t.Fatalf("bad: %#v", v)
 	}
+	if v.Multi {
+		t.Fatal("should not be multi")
+	}
 
 	if v.FullKey() != "foo.bar.baz" {
 		t.Fatalf("bad: %#v", v)
+	}
+}
+
+func TestResourceVariable_Multi(t *testing.T) {
+	v, err := NewResourceVariable("foo.bar.*.baz")
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	if v.Type != "foo" {
+		t.Fatalf("bad: %#v", v)
+	}
+	if v.Name != "bar" {
+		t.Fatalf("bad: %#v", v)
+	}
+	if v.Field != "baz" {
+		t.Fatalf("bad: %#v", v)
+	}
+	if !v.Multi {
+		t.Fatal("should be multi")
 	}
 }
 
