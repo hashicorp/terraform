@@ -78,6 +78,16 @@ func (t *libuclConfigurable) Config() (*Config, error) {
 		}
 	}
 
+	// Build the outputs
+	if outputs := t.Object.Get("output"); outputs != nil {
+		var err error
+		config.Outputs, err = loadOutputsLibucl(outputs)
+		outputs.Close()
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	return config, nil
 }
 
@@ -143,6 +153,52 @@ func loadFileLibucl(root string) (configurable, []string, error) {
 
 	result.Object.Ref()
 	return result, importPaths, nil
+}
+
+// LoadOutputsLibucl recurses into the given libucl object and turns
+// it into a mapping of outputs.
+func loadOutputsLibucl(o *libucl.Object) (map[string]*Output, error) {
+	objects := make(map[string]*libucl.Object)
+
+	// Iterate over all the "output" blocks and get the keys along with
+	// their raw configuration objects. We'll parse those later.
+	iter := o.Iterate(false)
+	for o1 := iter.Next(); o1 != nil; o1 = iter.Next() {
+		iter2 := o1.Iterate(true)
+		for o2 := iter2.Next(); o2 != nil; o2 = iter2.Next() {
+			objects[o2.Key()] = o2
+			defer o2.Close()
+		}
+
+		o1.Close()
+		iter2.Close()
+	}
+	iter.Close()
+
+	// Go through each object and turn it into an actual result.
+	result := make(map[string]*Output)
+	for n, o := range objects {
+		var config map[string]interface{}
+
+		if err := o.Decode(&config); err != nil {
+			return nil, err
+		}
+
+		rawConfig, err := NewRawConfig(config)
+		if err != nil {
+			return nil, fmt.Errorf(
+				"Error reading config for output %s: %s",
+				n,
+				err)
+		}
+
+		result[n] = &Output{
+			Name:      n,
+			RawConfig: rawConfig,
+		}
+	}
+
+	return result, nil
 }
 
 // LoadProvidersLibucl recurses into the given libucl object and turns

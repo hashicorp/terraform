@@ -16,6 +16,7 @@ import (
 // can use to keep track of what real world resources it is actually
 // managing.
 type State struct {
+	Outputs   map[string]string
 	Resources map[string]*ResourceState
 
 	once sync.Once
@@ -93,6 +94,21 @@ func (s *State) String() string {
 			for _, dep := range rs.Dependencies {
 				buf.WriteString(fmt.Sprintf("    %s\n", dep.ID))
 			}
+		}
+	}
+
+	if len(s.Outputs) > 0 {
+		buf.WriteString("\nOutputs:\n\n")
+
+		ks := make([]string, 0, len(s.Outputs))
+		for k, _ := range s.Outputs {
+			ks = append(ks, k)
+		}
+		sort.Strings(ks)
+
+		for _, k := range ks {
+			v := s.Outputs[k]
+			buf.WriteString(fmt.Sprintf("%s = %s\n", k, v))
 		}
 	}
 
