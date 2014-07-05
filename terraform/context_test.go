@@ -536,6 +536,34 @@ func TestContextApply_output(t *testing.T) {
 	}
 }
 
+func TestContextApply_outputMulti(t *testing.T) {
+	c := testConfig(t, "apply-output-multi")
+	p := testProvider("aws")
+	p.ApplyFn = testApplyFn
+	p.DiffFn = testDiffFn
+	ctx := testContext(t, &ContextOpts{
+		Config: c,
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+	})
+
+	if _, err := ctx.Plan(nil); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	state, err := ctx.Apply()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	actual := strings.TrimSpace(state.String())
+	expected := strings.TrimSpace(testTerraformApplyOutputMultiStr)
+	if actual != expected {
+		t.Fatalf("bad: \n%s", actual)
+	}
+}
+
 func TestContextApply_unknownAttribute(t *testing.T) {
 	c := testConfig(t, "apply-unknown")
 	p := testProvider("aws")

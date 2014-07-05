@@ -109,7 +109,7 @@ func (c *Context) Apply() (*State, error) {
 	if err == nil && len(c.config.Outputs) > 0 {
 		s.Outputs = make(map[string]string)
 		for _, o := range c.config.Outputs {
-			if err = c.computeVars(s, o.RawConfig); err != nil {
+			if err = c.computeVars(o.RawConfig); err != nil {
 				break
 			}
 
@@ -247,7 +247,7 @@ func (c *Context) Validate() ([]string, []error) {
 // computeVars takes the State and given RawConfig and processes all
 // the variables. This dynamically discovers the attributes instead of
 // using a static map[string]string that the genericWalkFn uses.
-func (c *Context) computeVars(s *State, raw *config.RawConfig) error {
+func (c *Context) computeVars(raw *config.RawConfig) error {
 	// If there are on variables, then we're done
 	if len(raw.Variables) == 0 {
 		return nil
@@ -258,22 +258,15 @@ func (c *Context) computeVars(s *State, raw *config.RawConfig) error {
 	for n, rawV := range raw.Variables {
 		switch v := rawV.(type) {
 		case *config.ResourceVariable:
-			r, ok := s.Resources[v.ResourceId()]
-			if !ok {
-				return fmt.Errorf(
-					"Resource '%s' not found for variable '%s'",
-					v.ResourceId(),
-					v.FullKey())
+			var attr string
+			var err error
+			if v.Multi {
+				attr, err = c.computeResourceMultiVariable(v)
+			} else {
+				attr, err = c.computeResourceVariable(v)
 			}
-
-			attr, ok := r.Attributes[v.Field]
-			if !ok {
-				return fmt.Errorf(
-					"Resource '%s' does not have attribute '%s' "+
-						"for variable '%s'",
-					v.ResourceId(),
-					v.Field,
-					v.FullKey())
+			if err != nil {
+				return err
 			}
 
 			vs[n] = attr
@@ -284,6 +277,75 @@ func (c *Context) computeVars(s *State, raw *config.RawConfig) error {
 
 	// Interpolate the variables
 	return raw.Interpolate(vs)
+}
+
+func (c *Context) computeResourceVariable(
+	v *config.ResourceVariable) (string, error) {
+	r, ok := c.state.Resources[v.ResourceId()]
+	if !ok {
+		return "", fmt.Errorf(
+			"Resource '%s' not found for variable '%s'",
+			v.ResourceId(),
+			v.FullKey())
+	}
+
+	attr, ok := r.Attributes[v.Field]
+	if !ok {
+		return "", fmt.Errorf(
+			"Resource '%s' does not have attribute '%s' "+
+				"for variable '%s'",
+			v.ResourceId(),
+			v.Field,
+			v.FullKey())
+	}
+
+	return attr, nil
+}
+
+func (c *Context) computeResourceMultiVariable(
+	v *config.ResourceVariable) (string, error) {
+	// Get the resource from the configuration so we can know how
+	// many of the resource there is.
+	var cr *config.Resource
+	for _, r := range c.config.Resources {
+		if r.Id() == v.ResourceId() {
+			cr = r
+			break
+		}
+	}
+	if cr == nil {
+		return "", fmt.Errorf(
+			"Resource '%s' not found for variable '%s'",
+			v.ResourceId(),
+			v.FullKey())
+	}
+
+	var values []string
+	for i := 0; i < cr.Count; i++ {
+		id := fmt.Sprintf("%s.%d", v.ResourceId(), i)
+		r, ok := c.state.Resources[id]
+		if !ok {
+			continue
+		}
+
+		attr, ok := r.Attributes[v.Field]
+		if !ok {
+			continue
+		}
+
+		values = append(values, attr)
+	}
+
+	if len(values) == 0 {
+		return "", fmt.Errorf(
+			"Resource '%s' does not have attribute '%s' "+
+				"for variable '%s'",
+			v.ResourceId(),
+			v.Field,
+			v.FullKey())
+	}
+
+	return strings.Join(values, ","), nil
 }
 
 func (c *Context) graph() (*depgraph.Graph, error) {
@@ -701,17 +763,9 @@ func computeAggregateVars(
 		if !ok {
 			continue
 		}
-
-		idx := strings.Index(rv.Field, ".")
-		if idx == -1 {
-			// It isn't an aggregated var
+		if !rv.Multi {
 			continue
 		}
-		if rv.Field[:idx] != "*" {
-			// It isn't an aggregated var
-			continue
-		}
-		field := rv.Field[idx+1:]
 
 		// Get the meta node so that we can determine the count
 		key := fmt.Sprintf("%s.%s", rv.Type, rv.Name)
@@ -731,7 +785,7 @@ func computeAggregateVars(
 				rv.Type,
 				rv.Name,
 				i,
-				field)
+				rv.Field)
 			if v, ok := vs[key]; ok {
 				values = append(values, v)
 			}
