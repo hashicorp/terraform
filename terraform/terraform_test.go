@@ -144,6 +144,29 @@ Outputs:
 foo_num = bar,bar,bar
 `
 
+const testTerraformApplyOutputMultiIndexStr = `
+aws_instance.bar.0:
+  ID = foo
+  foo = bar
+  type = aws_instance
+aws_instance.bar.1:
+  ID = foo
+  foo = bar
+  type = aws_instance
+aws_instance.bar.2:
+  ID = foo
+  foo = bar
+  type = aws_instance
+aws_instance.foo:
+  ID = foo
+  num = 2
+  type = aws_instance
+
+Outputs:
+
+foo_num = bar
+`
+
 const testTerraformApplyUnknownAttrStr = `
 aws_instance.foo:
   ID = foo

@@ -564,6 +564,34 @@ func TestContextApply_outputMulti(t *testing.T) {
 	}
 }
 
+func TestContextApply_outputMultiIndex(t *testing.T) {
+	c := testConfig(t, "apply-output-multi-index")
+	p := testProvider("aws")
+	p.ApplyFn = testApplyFn
+	p.DiffFn = testDiffFn
+	ctx := testContext(t, &ContextOpts{
+		Config: c,
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+	})
+
+	if _, err := ctx.Plan(nil); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	state, err := ctx.Apply()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	actual := strings.TrimSpace(state.String())
+	expected := strings.TrimSpace(testTerraformApplyOutputMultiIndexStr)
+	if actual != expected {
+		t.Fatalf("bad: \n%s", actual)
+	}
+}
+
 func TestContextApply_unknownAttribute(t *testing.T) {
 	c := testConfig(t, "apply-unknown")
 	p := testProvider("aws")

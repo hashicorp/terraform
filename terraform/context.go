@@ -260,7 +260,7 @@ func (c *Context) computeVars(raw *config.RawConfig) error {
 		case *config.ResourceVariable:
 			var attr string
 			var err error
-			if v.Multi {
+			if v.Multi && v.Index == -1 {
 				attr, err = c.computeResourceMultiVariable(v)
 			} else {
 				attr, err = c.computeResourceVariable(v)
@@ -281,11 +281,16 @@ func (c *Context) computeVars(raw *config.RawConfig) error {
 
 func (c *Context) computeResourceVariable(
 	v *config.ResourceVariable) (string, error) {
-	r, ok := c.state.Resources[v.ResourceId()]
+	id := v.ResourceId()
+	if v.Multi {
+		id = fmt.Sprintf("%s.%d", id, v.Index)
+	}
+
+	r, ok := c.state.Resources[id]
 	if !ok {
 		return "", fmt.Errorf(
 			"Resource '%s' not found for variable '%s'",
-			v.ResourceId(),
+			id,
 			v.FullKey())
 	}
 
@@ -294,7 +299,7 @@ func (c *Context) computeResourceVariable(
 		return "", fmt.Errorf(
 			"Resource '%s' does not have attribute '%s' "+
 				"for variable '%s'",
-			v.ResourceId(),
+			id,
 			v.Field,
 			v.FullKey())
 	}
