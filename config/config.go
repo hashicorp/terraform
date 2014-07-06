@@ -4,6 +4,7 @@ package config
 
 import (
 	"fmt"
+	"strconv"
 	"strings"
 
 	"github.com/hashicorp/terraform/helper/multierror"
@@ -222,10 +223,24 @@ func NewResourceVariable(key string) (*ResourceVariable, error) {
 	parts := strings.SplitN(key, ".", 3)
 	field := parts[2]
 	multi := false
+	var index int
 
-	if idx := strings.Index(field, "."); idx != -1 && field[:idx] == "*" {
-		multi = true
-		field = field[idx+1:]
+	if idx := strings.Index(field, "."); idx != -1 {
+		indexStr := field[:idx]
+		multi = indexStr == "*"
+		index = -1
+
+		if !multi {
+			indexInt, err := strconv.ParseInt(indexStr, 0, 0)
+			if err == nil {
+				multi = true
+				index = int(indexInt)
+			}
+		}
+
+		if multi {
+			field = field[idx+1:]
+		}
 	}
 
 	return &ResourceVariable{
@@ -233,6 +248,7 @@ func NewResourceVariable(key string) (*ResourceVariable, error) {
 		Name:  parts[1],
 		Field: field,
 		Multi: multi,
+		Index: index,
 		key:   key,
 	}, nil
 }

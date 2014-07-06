@@ -94,6 +94,34 @@ func TestResourceVariable_Multi(t *testing.T) {
 	}
 }
 
+func TestResourceVariable_MultiIndex(t *testing.T) {
+	cases := []struct {
+		Input string
+		Index int
+		Field string
+	}{
+		{"foo.bar.*.baz", -1, "baz"},
+		{"foo.bar.0.baz", 0, "baz"},
+		{"foo.bar.5.baz", 5, "baz"},
+	}
+
+	for _, tc := range cases {
+		v, err := NewResourceVariable(tc.Input)
+		if err != nil {
+			t.Fatalf("err: %s", err)
+		}
+		if !v.Multi {
+			t.Fatalf("should be multi: %s", tc.Input)
+		}
+		if v.Index != tc.Index {
+			t.Fatalf("bad: %d\n\n%s", v.Index, tc.Input)
+		}
+		if v.Field != tc.Field {
+			t.Fatalf("bad: %s\n\n%s", v.Field, tc.Input)
+		}
+	}
+}
+
 func TestNewUserVariable(t *testing.T) {
 	v, err := NewUserVariable("var.bar")
 	if err != nil {
