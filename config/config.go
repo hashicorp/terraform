@@ -66,7 +66,9 @@ type ResourceVariable struct {
 	Type  string // Resource type, i.e. "aws_instance"
 	Name  string // Resource name
 	Field string // Resource field
-	Multi bool   // True if multi-variable: aws_instance.foo.*.id
+
+	Multi bool // True if multi-variable: aws_instance.foo.*.id
+	Index int  // Index for multi-variable: aws_instance.foo.1.id == 1
 
 	key string
 }
@@ -124,9 +126,9 @@ func (c *Config) Validate() error {
 	}
 
 	// Check that all references to resources are valid
-	resources := make(map[string]struct{})
+	resources := make(map[string]*Resource)
 	for _, r := range c.Resources {
-		resources[r.Id()] = struct{}{}
+		resources[r.Id()] = r
 	}
 	for source, vs := range vars {
 		for _, v := range vs {
@@ -136,12 +138,26 @@ func (c *Config) Validate() error {
 			}
 
 			id := fmt.Sprintf("%s.%s", rv.Type, rv.Name)
-			if _, ok := resources[id]; !ok {
+			r, ok := resources[id]
+			if !ok {
 				errs = append(errs, fmt.Errorf(
 					"%s: unknown resource '%s' referenced in variable %s",
 					source,
 					id,
 					rv.FullKey()))
+				continue
+			}
+
+			// If it is a multi reference and resource has a single
+			// count, it is an error.
+			if r.Count > 1 && !rv.Multi {
+				errs = append(errs, fmt.Errorf(
+					"%s: variable '%s' must specify index for multi-count "+
+						"resource %s",
+					source,
+					rv.FullKey(),
+					id))
+				continue
 			}
 		}
 	}
