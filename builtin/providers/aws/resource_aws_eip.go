@@ -122,17 +122,56 @@ func resource_aws_eip_update(
 func resource_aws_eip_destroy(
 	s *terraform.ResourceState,
 	meta interface{}) error {
+	p := meta.(*ResourceProvider)
+	ec2conn := p.ec2conn
 
-	return nil
+	log.Printf("[DEBUG] EIP release (destroy) address: %v", s.ID)
+
+	_, err := ec2conn.ReleaseAddress(s.ID)
+
+	return err
 }
 
 func resource_aws_eip_refresh(
 	s *terraform.ResourceState,
 	meta interface{}) (*terraform.ResourceState, error) {
+	p := meta.(*ResourceProvider)
+	ec2conn := p.ec2conn
 
-	address := &ec2.Address{}
+	vpc := false
+	if s.Attributes["vpc"] == "true" {
+		vpc = true
+	}
 
-	return resource_aws_eip_update_state(s, address)
+	// Get the full address description for saving to state for
+	// use in other resources
+	assocIds := []string{}
+	publicIps := []string{}
+	if vpc {
+		assocIds = []string{s.ID}
+	} else {
+		publicIps = []string{s.ID}
+	}
+
+	log.Printf("[DEBUG] EIP describe configuration: %#v, %#v (vpc: %v)", assocIds, publicIps, vpc)
+
+	describeAddresses, err := ec2conn.Addresses(publicIps, assocIds, nil)
+
+	if err != nil {
+		return s, fmt.Errorf("Error retrieving EIP: %s", err)
+	}
+
+	// Verify AWS returned our EIP
+	if len(describeAddresses.Addresses) != 1 ||
+		describeAddresses.Addresses[0].AllocationId != s.ID {
+		if err != nil {
+			return s, fmt.Errorf("Unable to find EIP: %#v", describeAddresses.Addresses)
+		}
+	}
+
+	address := describeAddresses.Addresses[0]
+
+	return resource_aws_eip_update_state(s, &address)
 }
 
 func resource_aws_eip_diff(
