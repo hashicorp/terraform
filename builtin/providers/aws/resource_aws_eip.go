@@ -120,35 +120,13 @@ func resource_aws_eip_refresh(
 		vpc = true
 	}
 
-	// Get the full address description for saving to state for
-	// use in other resources
-	assocIds := []string{}
-	publicIps := []string{}
-	if vpc {
-		assocIds = []string{s.ID}
-	} else {
-		publicIps = []string{s.ID}
-	}
-
-	log.Printf("[DEBUG] EIP describe configuration: %#v, %#v (vpc: %v)", assocIds, publicIps, vpc)
-
-	describeAddresses, err := ec2conn.Addresses(publicIps, assocIds, nil)
+	address, err := resource_aws_eip_retrieve_address(s.ID, vpc, ec2conn)
 
 	if err != nil {
-		return s, fmt.Errorf("Error retrieving EIP: %s", err)
+		return s, err
 	}
 
-	// Verify AWS returned our EIP
-	if len(describeAddresses.Addresses) != 1 ||
-		describeAddresses.Addresses[0].AllocationId != s.ID {
-		if err != nil {
-			return s, fmt.Errorf("Unable to find EIP: %#v", describeAddresses.Addresses)
-		}
-	}
-
-	address := describeAddresses.Addresses[0]
-
-	return resource_aws_eip_update_state(s, &address)
+	return resource_aws_eip_update_state(s, address)
 }
 
 func resource_aws_eip_diff(
