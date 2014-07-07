@@ -126,8 +126,12 @@ func VPCStateRefreshFunc(conn *ec2.EC2, id string) resource.StateRefreshFunc {
 	return func() (interface{}, string, error) {
 		resp, err := conn.DescribeVpcs([]string{id}, ec2.NewFilter())
 		if err != nil {
-			log.Printf("Error on VPCStateRefresh: %s", err)
-			return nil, "", err
+			if ec2err, ok := err.(*ec2.Error); ok && ec2err.Code == "InvalidVpcID.NotFound" {
+				resp = nil
+			} else {
+				log.Printf("Error on VPCStateRefresh: %s", err)
+				return nil, "", err
+			}
 		}
 
 		if resp == nil {
