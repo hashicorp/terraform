@@ -64,13 +64,13 @@ func resource_aws_elb_create(
 		_, err := elbconn.RegisterInstancesWithLoadBalancer(&registerInstancesOpts)
 
 		if err != nil {
-			return nil, fmt.Errorf("Failure registering instances: %s", err)
+			return rs, fmt.Errorf("Failure registering instances: %s", err)
 		}
 	}
 
 	loadBalancer, err := resource_aws_elb_retrieve_balancer(rs.ID, elbconn)
 	if err != nil {
-		return nil, err
+		return rs, err
 	}
 
 	return resource_aws_elb_update_state(rs, loadBalancer)

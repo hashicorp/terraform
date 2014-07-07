@@ -75,35 +75,12 @@ func resource_aws_eip_create(
 		}
 	}
 
-	// Get the full address description for saving to state for
-	// use in other resources
-	assocIds := []string{}
-	publicIps := []string{}
-	if vpc {
-		assocIds = []string{rs.ID}
-	} else {
-		publicIps = []string{rs.ID}
-	}
-
-	log.Printf("[DEBUG] EIP describe configuration: %#v, %#v (vpc: %v)", assocIds, publicIps, vpc)
-
-	describeAddresses, err := ec2conn.Addresses(publicIps, assocIds, nil)
-
+	address, err := resource_aws_eip_retrieve_address(rs.ID, vpc, ec2conn)
 	if err != nil {
-		return rs, fmt.Errorf("Error retrieving EIP: %s", err)
+		return rs, err
 	}
 
-	// Verify AWS returned our EIP
-	if len(describeAddresses.Addresses) != 1 ||
-		describeAddresses.Addresses[0].AllocationId != rs.ID {
-		if err != nil {
-			return rs, fmt.Errorf("Unable to find EIP: %#v", describeAddresses.Addresses)
-		}
-	}
-
-	address := describeAddresses.Addresses[0]
-
-	return resource_aws_eip_update_state(rs, &address)
+	return resource_aws_eip_update_state(rs, address)
 }
 
 func resource_aws_eip_update(
@@ -202,4 +179,38 @@ func resource_aws_eip_update_state(
 	s.Attributes["public_ip"] = address.PublicIp
 
 	return s, nil
+}
+
+// Returns a single address by it's ID
+func resource_aws_eip_retrieve_address(id string, vpc bool, ec2conn *ec2.EC2) (*ec2.Address, error) {
+	// Get the full address description for saving to state for
+	// use in other resources
+	assocIds := []string{}
+	publicIps := []string{}
+	if vpc {
+		assocIds = []string{id}
+	} else {
+		publicIps = []string{id}
+	}
+
+	log.Printf("[DEBUG] EIP describe configuration: %#v, %#v (vpc: %v)", assocIds, publicIps, vpc)
+
+	describeAddresses, err := ec2conn.Addresses(publicIps, assocIds, nil)
+
+	if err != nil {
+		return nil, fmt.Errorf("Error retrieving EIP: %s", err)
+	}
+
+	// Verify AWS returned our EIP
+	if len(describeAddresses.Addresses) != 1 ||
+		describeAddresses.Addresses[0].AllocationId != id ||
+		describeAddresses.Addresses[0].PublicIp != id {
+		if err != nil {
+			return nil, fmt.Errorf("Unable to find EIP: %#v", describeAddresses.Addresses)
+		}
+	}
+
+	address := describeAddresses.Addresses[0]
+
+	return &address, nil
 }
