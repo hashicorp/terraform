@@ -222,7 +222,23 @@ UPDATE: aws_instance.bar
   foo:  "" => "<computed>"
   type: "" => "aws_instance"
 UPDATE: aws_instance.foo
-  id:   "" => "<computed>"
+  foo:  "" => "<computed>"
+  num:  "" => "2"
+  type: "" => "aws_instance"
+
+STATE:
+
+<no state>
+`
+
+const testTerraformPlanComputedIdStr = `
+DIFF:
+
+UPDATE: aws_instance.bar
+  foo:  "" => "<computed>"
+  type: "" => "aws_instance"
+UPDATE: aws_instance.foo
+  foo:  "" => "<computed>"
   num:  "" => "2"
   type: "" => "aws_instance"
 

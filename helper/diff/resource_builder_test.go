@@ -202,18 +202,22 @@ const testRBComplexDiff = `UPDATE
 
 const testRBNewDiff = `UPDATE
   IN  foo:        "" => "bar"
+  OUT id:         "" => "<computed>"
   OUT private_ip: "" => "<computed>"
 `
 
 const testRBRequiresNewDiff = `CREATE
   IN  ami:        "foo" => "bar" (forces new resource)
+  OUT id:         "1" => "<computed>"
   OUT private_ip: "127.0.0.1" => "<computed>"
 `
 
 const testRBUnknownDiff = `UPDATE
   IN  foo: "" => "${var.unknown}"
+  OUT id:  "" => "<computed>"
 `
 
 const testRBVarsDiff = `UPDATE
   IN  foo: "" => "bar"
+  OUT id:  "" => "<computed>"
 `
