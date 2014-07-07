@@ -277,11 +277,16 @@ root: root
 aws_instance.bar
   aws_instance.bar -> aws_instance.bar (destroy)
   aws_instance.bar -> aws_instance.foo
+  aws_instance.bar -> provider.aws
 aws_instance.bar (destroy)
+  aws_instance.bar (destroy) -> provider.aws
 aws_instance.foo
   aws_instance.foo -> aws_instance.foo (destroy)
+  aws_instance.foo -> provider.aws
 aws_instance.foo (destroy)
   aws_instance.foo (destroy) -> aws_instance.bar (destroy)
+  aws_instance.foo (destroy) -> provider.aws
+provider.aws
 root
   root -> aws_instance.bar
   root -> aws_instance.foo

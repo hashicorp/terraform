@@ -283,11 +283,26 @@ func graphAddDiff(g *depgraph.Graph, d *Diff) error {
 			// Make the diff _just_ the destroy.
 			newNode.Resource.Diff = &ResourceDiff{Destroy: true}
 
-			// Append it to the list so we handle it later
+			// Create the new node
 			newN := &depgraph.Noun{
 				Name: fmt.Sprintf("%s (destroy)", newNode.Resource.Id),
 				Meta: newNode,
 			}
+			newN.Deps = make([]*depgraph.Dependency, 0, len(n.Deps))
+			for _, d := range n.Deps {
+				// We don't want to copy any resource dependencies
+				if _, ok := d.Target.Meta.(*GraphNodeResource); ok {
+					continue
+				}
+
+				newN.Deps = append(newN.Deps, &depgraph.Dependency{
+					Name:   d.Name,
+					Source: newN,
+					Target: d.Target,
+				})
+			}
+
+			// Append it to the list so we handle it later
 			nlist = append(nlist, newN)
 
 			// Mark the old diff to not destroy since we handle that in
