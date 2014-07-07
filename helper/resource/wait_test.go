@@ -6,8 +6,6 @@ import (
 	"time"
 )
 
-type nullObject struct{}
-
 func FailedStateRefreshFunc() StateRefreshFunc {
 	return func() (interface{}, string, error) {
 		return nil, "", errors.New("failed")
@@ -23,7 +21,7 @@ func TimeoutStateRefreshFunc() StateRefreshFunc {
 
 func SuccessfulStateRefreshFunc() StateRefreshFunc {
 	return func() (interface{}, string, error) {
-		return &nullObject{}, "running", nil
+		return struct{}{}, "running", nil
 	}
 }
 
@@ -56,15 +54,31 @@ func TestWaitForState_success(t *testing.T) {
 	}
 
 	obj, err := conf.WaitForState()
-
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
-
 	if obj == nil {
 		t.Fatalf("should return obj")
 	}
+}
 
+func TestWaitForState_successEmpty(t *testing.T) {
+	conf := &StateChangeConf{
+		Pending: []string{"pending", "incomplete"},
+		Target:  "",
+		Refresh: func() (interface{}, string, error) {
+			return nil, "", nil
+		},
+		Timeout: 200 * time.Second,
+	}
+
+	obj, err := conf.WaitForState()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if obj != nil {
+		t.Fatalf("obj should be nil")
+	}
 }
 
 func TestWaitForState_failure(t *testing.T) {
@@ -76,11 +90,9 @@ func TestWaitForState_failure(t *testing.T) {
 	}
 
 	obj, err := conf.WaitForState()
-
 	if err == nil && err.Error() != "failed" {
 		t.Fatalf("err: %s", err)
 	}
-
 	if obj != nil {
 		t.Fatalf("should not return obj")
 	}

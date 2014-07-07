@@ -51,6 +51,12 @@ func (conf *StateChangeConf) WaitForState() (i interface{}, err error) {
 				return
 			}
 
+			// If we're waiting for the absense of a thing, then return
+			if i == nil && conf.Target == "" {
+				result <- waitResult{nil, nil}
+				return
+			}
+
 			if i == nil {
 				// If we didn't find the resource, check if we have been
 				// not finding it for awhile, and if so, report an error.
