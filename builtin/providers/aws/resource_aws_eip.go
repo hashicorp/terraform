@@ -155,6 +155,7 @@ func resource_aws_eip_update_state(
 
 	s.Attributes["private_ip"] = address.PrivateIpAddress
 	s.Attributes["public_ip"] = address.PublicIp
+	s.Attributes["instance"] = address.InstanceId
 
 	return s, nil
 }
