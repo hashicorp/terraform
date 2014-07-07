@@ -332,8 +332,14 @@ func TestContextApply_destroyOrphan(t *testing.T) {
 		State: s,
 	})
 
-	p.ApplyFn = func(*ResourceState, *ResourceDiff) (*ResourceState, error) {
-		return nil, nil
+	p.ApplyFn = func(s *ResourceState, d *ResourceDiff) (*ResourceState, error) {
+		if d.Destroy {
+			return nil, nil
+		}
+
+		result := s.MergeDiff(d)
+		result.ID = "foo"
+		return result, nil
 	}
 	p.DiffFn = func(*ResourceState, *ResourceConfig) (*ResourceDiff, error) {
 		return &ResourceDiff{
@@ -354,7 +360,7 @@ func TestContextApply_destroyOrphan(t *testing.T) {
 		t.Fatalf("err: %s", err)
 	}
 
-	if len(state.Resources) != 0 {
+	if _, ok := state.Resources["aws_instance.baz"]; ok {
 		t.Fatalf("bad: %#v", state.Resources)
 	}
 }

@@ -14,7 +14,7 @@ import (
 
 // This is a function type used to implement a walker for the resource
 // tree internally on the Terraform structure.
-type genericWalkFunc func(*Resource) (map[string]string, error)
+type genericWalkFunc func(*Resource) error
 
 // Context represents all the context that Terraform needs in order to
 // perform operations on infrastructure. This structure is built using
@@ -29,7 +29,8 @@ type Context struct {
 	providers map[string]ResourceProviderFactory
 	variables map[string]string
 
-	l     sync.Mutex
+	l     sync.Mutex   // Lock acquired during any task
+	sl    sync.RWMutex // Lock acquired to R/W internal data
 	runCh <-chan struct{}
 	sh    *stopHook
 }
@@ -90,34 +91,26 @@ func (c *Context) Apply() (*State, error) {
 		return nil, err
 	}
 
-	// Create our result. Make sure we preserve the prior states
-	s := new(State)
-	s.init()
-	if c.state != nil {
-		for k, v := range c.state.Resources {
-			s.Resources[k] = v
-		}
-	}
+	// Set our state right away. No matter what, this IS our new state,
+	// even if there is an error below.
+	c.state = c.state.deepcopy()
 
 	// Walk
-	err = g.Walk(c.applyWalkFn(s))
-
-	// Update our state, even if we have an error, for partial updates
-	c.state = s
+	err = g.Walk(c.applyWalkFn())
 
 	// If we have no errors, then calculate the outputs if we have any
 	if err == nil && len(c.config.Outputs) > 0 {
-		s.Outputs = make(map[string]string)
+		c.state.Outputs = make(map[string]string)
 		for _, o := range c.config.Outputs {
 			if err = c.computeVars(o.RawConfig); err != nil {
 				break
 			}
 
-			s.Outputs[o.Name] = o.RawConfig.Config()["value"].(string)
+			c.state.Outputs[o.Name] = o.RawConfig.Config()["value"].(string)
 		}
 	}
 
-	return s, err
+	return c.state, err
 }
 
 // Plan generates an execution plan for the given context.
@@ -145,7 +138,28 @@ func (c *Context) Plan(opts *PlanOpts) (*Plan, error) {
 		Vars:   c.variables,
 		State:  c.state,
 	}
-	err = g.Walk(c.planWalkFn(p, opts))
+
+	var walkFn depgraph.WalkFunc
+
+	if opts != nil && opts.Destroy {
+		// If we're destroying, we use a different walk function since it
+		// doesn't need as many details.
+		walkFn = c.planDestroyWalkFn(p)
+	} else {
+		// Set our state to be something temporary. We do this so that
+		// the plan can update a fake state so that variables work, then
+		// we replace it back with our old state.
+		old := c.state
+		c.state = old.deepcopy()
+		defer func() {
+			c.state = old
+		}()
+
+		walkFn = c.planWalkFn(p)
+	}
+
+	// Walk and run the plan
+	err = g.Walk(walkFn)
 
 	// Update the diff so that our context is up-to-date
 	c.diff = p.Diff
@@ -286,6 +300,9 @@ func (c *Context) computeResourceVariable(
 		id = fmt.Sprintf("%s.%d", id, v.Index)
 	}
 
+	c.sl.RLock()
+	defer c.sl.RUnlock()
+
 	r, ok := c.state.Resources[id]
 	if !ok {
 		return "", fmt.Errorf(
@@ -309,6 +326,9 @@ func (c *Context) computeResourceVariable(
 
 func (c *Context) computeResourceMultiVariable(
 	v *config.ResourceVariable) (string, error) {
+	c.sl.RLock()
+	defer c.sl.RUnlock()
+
 	// Get the resource from the configuration so we can know how
 	// many of the resource there is.
 	var cr *config.Resource
@@ -388,23 +408,18 @@ func (c *Context) releaseRun(ch chan<- struct{}) {
 	c.sh.Reset()
 }
 
-func (c *Context) applyWalkFn(result *State) depgraph.WalkFunc {
-	var l sync.Mutex
-
-	// Initialize the result
-	result.init()
-
-	cb := func(r *Resource) (map[string]string, error) {
+func (c *Context) applyWalkFn() depgraph.WalkFunc {
+	cb := func(r *Resource) error {
 		diff := r.Diff
 		if diff.Empty() {
-			return r.Vars(), nil
+			return nil
 		}
 
 		if !diff.Destroy {
 			var err error
 			diff, err = r.Provider.Diff(r.State, r.Config)
 			if err != nil {
-				return nil, err
+				return err
 			}
 		}
 
@@ -419,7 +434,7 @@ func (c *Context) applyWalkFn(result *State) depgraph.WalkFunc {
 		log.Printf("[DEBUG] %s: Executing Apply", r.Id)
 		rs, err := r.Provider.Apply(r.State, diff)
 		if err != nil {
-			return nil, err
+			return err
 		}
 
 		// Make sure the result is instantiated
@@ -442,13 +457,13 @@ func (c *Context) applyWalkFn(result *State) depgraph.WalkFunc {
 		}
 
 		// Update the resulting diff
-		l.Lock()
+		c.sl.Lock()
 		if rs.ID == "" {
-			delete(result.Resources, r.Id)
+			delete(c.state.Resources, r.Id)
 		} else {
-			result.Resources[r.Id] = rs
+			c.state.Resources[r.Id] = rs
 		}
-		l.Unlock()
+		c.sl.Unlock()
 
 		// Update the state for the resource itself
 		r.State = rs
@@ -463,38 +478,26 @@ func (c *Context) applyWalkFn(result *State) depgraph.WalkFunc {
 			err = &multierror.Error{Errors: errs}
 		}
 
-		return r.Vars(), err
+		return err
 	}
 
 	return c.genericWalkFn(cb)
 }
 
-func (c *Context) planWalkFn(result *Plan, opts *PlanOpts) depgraph.WalkFunc {
+func (c *Context) planWalkFn(result *Plan) depgraph.WalkFunc {
 	var l sync.Mutex
-
-	// If we were given nil options, instantiate it
-	if opts == nil {
-		opts = new(PlanOpts)
-	}
 
 	// Initialize the result
 	result.init()
 
-	cb := func(r *Resource) (map[string]string, error) {
+	cb := func(r *Resource) error {
 		var diff *ResourceDiff
 
 		for _, h := range c.hooks {
 			handleHook(h.PreDiff(r.Id, r.State))
 		}
 
-		if opts.Destroy {
-			if r.State.ID != "" {
-				log.Printf("[DEBUG] %s: Making for destroy", r.Id)
-				diff = &ResourceDiff{Destroy: true}
-			} else {
-				log.Printf("[DEBUG] %s: Not marking for destroy, no ID", r.Id)
-			}
-		} else if r.Config == nil {
+		if r.Config == nil {
 			log.Printf("[DEBUG] %s: Orphan, marking for destroy", r.Id)
 
 			// This is an orphan (no config), so we mark it to be destroyed
@@ -506,7 +509,7 @@ func (c *Context) planWalkFn(result *Plan, opts *PlanOpts) depgraph.WalkFunc {
 			var err error
 			diff, err = r.Provider.Diff(r.State, r.Config)
 			if err != nil {
-				return nil, err
+				return err
 			}
 		}
 
@@ -525,23 +528,55 @@ func (c *Context) planWalkFn(result *Plan, opts *PlanOpts) depgraph.WalkFunc {
 			r.State = r.State.MergeDiff(diff)
 		}
 
-		return r.Vars(), nil
+		// Update our internal state so that variable computation works
+		c.sl.Lock()
+		defer c.sl.Unlock()
+		c.state.Resources[r.Id] = r.State
+
+		return nil
 	}
 
 	return c.genericWalkFn(cb)
 }
 
+func (c *Context) planDestroyWalkFn(result *Plan) depgraph.WalkFunc {
+	var l sync.Mutex
+
+	// Initialize the result
+	result.init()
+
+	return func(n *depgraph.Noun) error {
+		rn, ok := n.Meta.(*GraphNodeResource)
+		if !ok {
+			return nil
+		}
+
+		r := rn.Resource
+		if r.State.ID != "" {
+			log.Printf("[DEBUG] %s: Making for destroy", r.Id)
+
+			l.Lock()
+			defer l.Unlock()
+			result.Diff.Resources[r.Id] = &ResourceDiff{Destroy: true}
+		} else {
+			log.Printf("[DEBUG] %s: Not marking for destroy, no ID", r.Id)
+		}
+
+		return nil
+	}
+}
+
 func (c *Context) refreshWalkFn(result *State) depgraph.WalkFunc {
 	var l sync.Mutex
 
-	cb := func(r *Resource) (map[string]string, error) {
+	cb := func(r *Resource) error {
 		for _, h := range c.hooks {
 			handleHook(h.PreRefresh(r.Id, r.State))
 		}
 
 		rs, err := r.Provider.Refresh(r.State)
 		if err != nil {
-			return nil, err
+			return err
 		}
 		if rs == nil {
 			rs = new(ResourceState)
@@ -558,7 +593,7 @@ func (c *Context) refreshWalkFn(result *State) depgraph.WalkFunc {
 			handleHook(h.PostRefresh(r.Id, rs))
 		}
 
-		return nil, nil
+		return nil
 	}
 
 	return c.genericWalkFn(cb)
@@ -621,17 +656,6 @@ func (c *Context) validateWalkFn(rws *[]string, res *[]error) depgraph.WalkFunc 
 }
 
 func (c *Context) genericWalkFn(cb genericWalkFunc) depgraph.WalkFunc {
-	var l sync.RWMutex
-
-	// Initialize the variables for application
-	vars := make(map[string]string)
-	for k, v := range c.variables {
-		vars[fmt.Sprintf("var.%s", k)] = v
-	}
-
-	// This will keep track of the counts of multi-count resources
-	counts := make(map[string]int)
-
 	// This will keep track of whether we're stopped or not
 	var stop uint32 = 0
 
@@ -646,24 +670,17 @@ func (c *Context) genericWalkFn(cb genericWalkFunc) depgraph.WalkFunc {
 			return nil
 		}
 
-		// Calculate any aggregate interpolated variables if we have to.
-		// Aggregate variables (such as "test_instance.foo.*.id") are not
-		// pre-computed since the fanout would be expensive. We calculate
-		// them on-demand here.
-		computeAggregateVars(&l, n, counts, vars)
-
 		switch m := n.Meta.(type) {
 		case *GraphNodeResource:
+			// Continue, we care about this the most
 		case *GraphNodeResourceMeta:
-			// Record the count and then just ignore
-			l.Lock()
-			counts[m.ID] = m.Count
-			l.Unlock()
+			// Skip it
 			return nil
 		case *GraphNodeResourceProvider:
+			// Interpolate in the variables and configure all the providers
 			var rc *ResourceConfig
 			if m.Config != nil {
-				if err := m.Config.RawConfig.Interpolate(vars); err != nil {
+				if err := c.computeVars(m.Config.RawConfig); err != nil {
 					panic(err)
 				}
 				rc = NewResourceConfig(m.Config.RawConfig)
@@ -684,16 +701,14 @@ func (c *Context) genericWalkFn(cb genericWalkFunc) depgraph.WalkFunc {
 
 		rn := n.Meta.(*GraphNodeResource)
 
-		l.RLock()
-		if len(vars) > 0 && rn.Config != nil {
-			if err := rn.Config.RawConfig.Interpolate(vars); err != nil {
+		if rn.Config != nil {
+			if err := c.computeVars(rn.Config.RawConfig); err != nil {
 				panic(fmt.Sprintf("Interpolate error: %s", err))
 			}
 
 			// Force the config to be set later
 			rn.Resource.Config = nil
 		}
-		l.RUnlock()
 
 		// Make sure that at least some resource configuration is set
 		if !rn.Orphan {
@@ -721,79 +736,10 @@ func (c *Context) genericWalkFn(cb genericWalkFunc) depgraph.WalkFunc {
 
 		// Call the callack
 		log.Printf("[INFO] Walking: %s", rn.Resource.Id)
-		newVars, err := cb(rn.Resource)
-		if err != nil {
+		if err := cb(rn.Resource); err != nil {
 			return err
 		}
 
-		if len(newVars) > 0 {
-			// Acquire a lock since this function is called in parallel
-			l.Lock()
-			defer l.Unlock()
-
-			// Update variables
-			for k, v := range newVars {
-				vars[k] = v
-			}
-		}
-
 		return nil
-	}
-}
-
-func computeAggregateVars(
-	l *sync.RWMutex,
-	n *depgraph.Noun,
-	cs map[string]int,
-	vs map[string]string) {
-	var ivars map[string]config.InterpolatedVariable
-	switch m := n.Meta.(type) {
-	case *GraphNodeResource:
-		if m.Config != nil {
-			ivars = m.Config.RawConfig.Variables
-		}
-	case *GraphNodeResourceProvider:
-		if m.Config != nil {
-			ivars = m.Config.RawConfig.Variables
-		}
-	}
-	if len(ivars) == 0 {
-		return
-	}
-
-	for _, v := range ivars {
-		rv, ok := v.(*config.ResourceVariable)
-		if !ok {
-			continue
-		}
-		if !rv.Multi {
-			continue
-		}
-
-		// Get the meta node so that we can determine the count
-		key := fmt.Sprintf("%s.%s", rv.Type, rv.Name)
-		l.RLock()
-		count, ok := cs[key]
-		l.RUnlock()
-		if !ok {
-			// This should never happen due to semantic checks
-			panic(fmt.Sprintf(
-				"non-existent resource variable access: %s\n\n%#v", key, rv))
-		}
-
-		var values []string
-		for i := 0; i < count; i++ {
-			key := fmt.Sprintf(
-				"%s.%s.%d.%s",
-				rv.Type,
-				rv.Name,
-				i,
-				rv.Field)
-			if v, ok := vs[key]; ok {
-				values = append(values, v)
-			}
-		}
-
-		vs[rv.FullKey()] = strings.Join(values, ",")
 	}
 }

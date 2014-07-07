@@ -28,6 +28,18 @@ func (s *State) init() {
 	})
 }
 
+func (s *State) deepcopy() *State {
+	result := new(State)
+	result.init()
+	if s != nil {
+		for k, v := range s.Resources {
+			result.Resources[k] = v
+		}
+	}
+
+	return result
+}
+
 // Orphans returns a list of keys of resources that are in the State
 // but aren't present in the configuration itself. Hence, these keys
 // represent the state of resources that are orphans.
