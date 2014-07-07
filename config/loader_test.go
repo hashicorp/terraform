@@ -362,7 +362,7 @@ foo
 `
 
 const provisionerResourcesStr = `
-aws_instance[web]
+aws_instance[web] (x1)
   ami
   security_groups
   provisioners
