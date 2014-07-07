@@ -175,6 +175,21 @@ func WriteState(d *State, dst io.Writer) error {
 	return gob.NewEncoder(dst).Encode(d)
 }
 
+// ResourceConnectionInfo holds addresses, credentials and configuration
+// information require to connect to a resource. This is populated
+// by a provider so that provisioners can connect and run on the
+// resource.
+type ResourceConnectionInfo struct {
+	// Type is set so that an appropriate connection can be formed.
+	// As an example, for a Linux machine, the Type may be "ssh"
+	Type string
+
+	// Raw is used to store any relevant keys for the given Type
+	// so that a provisioner can connect to the resource. This could
+	// contain credentials or address information.
+	Raw map[string]string
+}
+
 // ResourceState holds the state of a resource that is used so that
 // a provider can find and manage an existing resource as well as for
 // storing attributes that are uesd to populate variables of child
@@ -203,6 +218,11 @@ type ResourceState struct {
 	// are accessible in variable format within Terraform configurations:
 	// ${resourcetype.name.attribute}.
 	Attributes map[string]string
+
+	// ConnInfo is used for the providers to export information which is
+	// used to connect to the resource for provisioning. For example,
+	// this could contain SSH or WinRM credentials.
+	ConnInfo *ResourceConnectionInfo
 
 	// Extra information that the provider can store about a resource.
 	// This data is opaque, never shown to the user, and is sent back to
