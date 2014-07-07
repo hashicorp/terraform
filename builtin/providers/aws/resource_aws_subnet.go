@@ -123,6 +123,12 @@ func resource_aws_subnet_update_state(
 	s.Attributes["availability_zone"] = subnet.AvailabilityZone
 	s.Attributes["cidr_block"] = subnet.CidrBlock
 	s.Attributes["vpc_id"] = subnet.VpcId
+
+	// We belong to a VPC
+	s.Dependencies = []terraform.ResourceDependency{
+		terraform.ResourceDependency{ID: subnet.VpcId},
+	}
+
 	return s, nil
 }
 
