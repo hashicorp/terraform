@@ -295,7 +295,10 @@ func graphAddDiff(g *depgraph.Graph, d *Diff) error {
 
 			// Mark the old diff to not destroy since we handle that in
 			// the dedicated node.
-			rd.Destroy = false
+			newDiff := new(ResourceDiff)
+			*newDiff = *rd
+			newDiff.Destroy = false
+			rd = newDiff
 
 			// Add to the new noun to our dependencies so that the destroy
 			// happens before the apply.

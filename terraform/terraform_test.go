@@ -1,6 +1,10 @@
 package terraform
 
 import (
+	"bytes"
+	"crypto/sha1"
+	"encoding/gob"
+	"encoding/hex"
 	"path/filepath"
 	"sync"
 	"testing"
@@ -10,6 +14,17 @@ import (
 
 // This is the directory where our test fixtures are.
 const fixtureDir = "./test-fixtures"
+
+func checksumStruct(t *testing.T, i interface{}) string {
+	buf := new(bytes.Buffer)
+	enc := gob.NewEncoder(buf)
+	if err := enc.Encode(i); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	sum := sha1.Sum(buf.Bytes())
+	return hex.EncodeToString(sum[:])
+}
 
 func testConfig(t *testing.T, name string) *config.Config {
 	c, err := config.Load(filepath.Join(fixtureDir, name, "main.tf"))

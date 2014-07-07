@@ -412,6 +412,7 @@ func (c *Context) applyWalkFn() depgraph.WalkFunc {
 	cb := func(r *Resource) error {
 		diff := r.Diff
 		if diff.Empty() {
+			log.Printf("[DEBUG] %s: Diff is empty. Will not apply.", r.Id)
 			return nil
 		}
 

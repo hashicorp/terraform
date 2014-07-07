@@ -195,6 +195,8 @@ func TestGraphAddDiff_destroy(t *testing.T) {
 		},
 	}
 
+	diffHash := checksumStruct(t, diff)
+
 	g, err := Graph(&GraphOpts{
 		Config: config,
 		Diff:   diff,
@@ -211,13 +213,19 @@ func TestGraphAddDiff_destroy(t *testing.T) {
 	}
 
 	// Verify that the state has been added
-	n := g.Noun("aws_instance.foo")
+	n := g.Noun("aws_instance.foo (destroy)")
 	rn := n.Meta.(*GraphNodeResource)
 
-	expected2 := diff.Resources["aws_instance.foo"]
+	expected2 := &ResourceDiff{Destroy: true}
 	actual2 := rn.Resource.Diff
 	if !reflect.DeepEqual(actual2, expected2) {
 		t.Fatalf("bad: %#v", actual2)
+	}
+
+	// Verify that our original structure has not been modified
+	diffHash2 := checksumStruct(t, diff)
+	if diffHash != diffHash2 {
+		t.Fatal("diff has been modified")
 	}
 }
 
