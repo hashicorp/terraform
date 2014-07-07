@@ -241,13 +241,15 @@ func (c *Context) Validate() ([]string, []error) {
 	// Walk the graph and validate all the configs
 	var warns []string
 	var errs []error
-	err = g.Walk(c.validateWalkFn(&warns, &errs))
-	if err != nil {
-		rerr = multierror.ErrorAppend(rerr, fmt.Errorf(
-			"Error validating resources in graph: %s", err))
-	}
-	if len(errs) > 0 {
-		rerr = multierror.ErrorAppend(rerr, errs...)
+	if g != nil {
+		err = g.Walk(c.validateWalkFn(&warns, &errs))
+		if err != nil {
+			rerr = multierror.ErrorAppend(rerr, fmt.Errorf(
+				"Error validating resources in graph: %s", err))
+		}
+		if len(errs) > 0 {
+			rerr = multierror.ErrorAppend(rerr, errs...)
+		}
 	}
 
 	errs = nil
