@@ -62,7 +62,7 @@ func resource_aws_internet_gateway_destroy(
 	// Wait for the internet gateway to actually delete
 	log.Printf("[DEBUG] Waiting for internet gateway (%s) to delete", s.ID)
 	stateConf := &resource.StateChangeConf{
-		Pending: []string{"available", "pending"},
+		Pending: []string{"available"},
 		Target:  "",
 		Refresh: IGStateRefreshFunc(ec2conn, s.ID),
 		Timeout: 10 * time.Minute,
@@ -132,6 +132,6 @@ func IGStateRefreshFunc(conn *ec2.EC2, id string) resource.StateRefreshFunc {
 		}
 
 		ig := &resp.InternetGateways[0]
-		return ig, "", nil
+		return ig, "available", nil
 	}
 }
