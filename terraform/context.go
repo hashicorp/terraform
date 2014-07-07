@@ -186,14 +186,11 @@ func (c *Context) Refresh() (*State, error) {
 		return c.state, err
 	}
 
-	s := new(State)
-	s.init()
-	err = g.Walk(c.refreshWalkFn(s))
-
 	// Update our state
-	c.state = s
+	c.state = c.state.deepcopy()
 
-	return s, err
+	err = g.Walk(c.refreshWalkFn())
+	return c.state, err
 }
 
 // Stop stops the running task.
@@ -569,9 +566,7 @@ func (c *Context) planDestroyWalkFn(result *Plan) depgraph.WalkFunc {
 	}
 }
 
-func (c *Context) refreshWalkFn(result *State) depgraph.WalkFunc {
-	var l sync.Mutex
-
+func (c *Context) refreshWalkFn() depgraph.WalkFunc {
 	cb := func(r *Resource) error {
 		if r.State.ID == "" {
 			return nil
@@ -592,9 +587,9 @@ func (c *Context) refreshWalkFn(result *State) depgraph.WalkFunc {
 		// Fix the type to be the type we have
 		rs.Type = r.State.Type
 
-		l.Lock()
-		result.Resources[r.Id] = rs
-		l.Unlock()
+		c.sl.Lock()
+		c.state.Resources[r.Id] = rs
+		c.sl.Unlock()
 
 		for _, h := range c.hooks {
 			handleHook(h.PostRefresh(r.Id, rs))
