@@ -466,7 +466,7 @@ func (c *Context) applyWalkFn(result *State) depgraph.WalkFunc {
 		return r.Vars(), err
 	}
 
-	return c.genericWalkFn(c.variables, cb)
+	return c.genericWalkFn(cb)
 }
 
 func (c *Context) planWalkFn(result *Plan, opts *PlanOpts) depgraph.WalkFunc {
@@ -528,7 +528,7 @@ func (c *Context) planWalkFn(result *Plan, opts *PlanOpts) depgraph.WalkFunc {
 		return r.Vars(), nil
 	}
 
-	return c.genericWalkFn(c.variables, cb)
+	return c.genericWalkFn(cb)
 }
 
 func (c *Context) refreshWalkFn(result *State) depgraph.WalkFunc {
@@ -561,7 +561,7 @@ func (c *Context) refreshWalkFn(result *State) depgraph.WalkFunc {
 		return nil, nil
 	}
 
-	return c.genericWalkFn(c.variables, cb)
+	return c.genericWalkFn(cb)
 }
 
 func (c *Context) validateWalkFn(rws *[]string, res *[]error) depgraph.WalkFunc {
@@ -620,14 +620,12 @@ func (c *Context) validateWalkFn(rws *[]string, res *[]error) depgraph.WalkFunc 
 	}
 }
 
-func (c *Context) genericWalkFn(
-	invars map[string]string,
-	cb genericWalkFunc) depgraph.WalkFunc {
+func (c *Context) genericWalkFn(cb genericWalkFunc) depgraph.WalkFunc {
 	var l sync.RWMutex
 
 	// Initialize the variables for application
 	vars := make(map[string]string)
-	for k, v := range invars {
+	for k, v := range c.variables {
 		vars[fmt.Sprintf("var.%s", k)] = v
 	}
 
