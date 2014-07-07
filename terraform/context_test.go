@@ -979,6 +979,14 @@ func TestContextRefresh(t *testing.T) {
 		Providers: map[string]ResourceProviderFactory{
 			"aws": testProviderFuncFixed(p),
 		},
+		State: &State{
+			Resources: map[string]*ResourceState{
+				"aws_instance.web": &ResourceState{
+					ID:   "foo",
+					Type: "aws_instance",
+				},
+			},
+		},
 	})
 
 	p.RefreshFn = nil
@@ -993,7 +1001,7 @@ func TestContextRefresh(t *testing.T) {
 	if !p.RefreshCalled {
 		t.Fatal("refresh should be called")
 	}
-	if p.RefreshState.ID != "" {
+	if p.RefreshState.ID != "foo" {
 		t.Fatalf("bad: %#v", p.RefreshState)
 	}
 	if !reflect.DeepEqual(s.Resources["aws_instance.web"], p.RefreshReturn) {
@@ -1007,6 +1015,31 @@ func TestContextRefresh(t *testing.T) {
 	}
 }
 
+func TestContextRefresh_ignoreUncreated(t *testing.T) {
+	p := testProvider("aws")
+	c := testConfig(t, "refresh-basic")
+	ctx := testContext(t, &ContextOpts{
+		Config: c,
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+		State: nil,
+	})
+
+	p.RefreshFn = nil
+	p.RefreshReturn = &ResourceState{
+		ID: "foo",
+	}
+
+	_, err := ctx.Refresh()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if p.RefreshCalled {
+		t.Fatal("refresh should not be called")
+	}
+}
+
 func TestContextRefresh_hook(t *testing.T) {
 	h := new(MockHook)
 	p := testProvider("aws")
@@ -1016,6 +1049,14 @@ func TestContextRefresh_hook(t *testing.T) {
 		Hooks:  []Hook{h},
 		Providers: map[string]ResourceProviderFactory{
 			"aws": testProviderFuncFixed(p),
+		},
+		State: &State{
+			Resources: map[string]*ResourceState{
+				"aws_instance.web": &ResourceState{
+					ID:   "foo",
+					Type: "aws_instance",
+				},
+			},
 		},
 	})
 

@@ -573,6 +573,10 @@ func (c *Context) refreshWalkFn(result *State) depgraph.WalkFunc {
 	var l sync.Mutex
 
 	cb := func(r *Resource) error {
+		if r.State.ID == "" {
+			return nil
+		}
+
 		for _, h := range c.hooks {
 			handleHook(h.PreRefresh(r.Id, r.State))
 		}
