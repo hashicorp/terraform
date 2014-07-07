@@ -276,6 +276,7 @@ const testTerraformGraphDiffDestroyStr = `
 root: root
 aws_instance.bar
   aws_instance.bar -> aws_instance.bar (destroy)
+  aws_instance.bar -> aws_instance.foo
 aws_instance.bar (destroy)
 aws_instance.foo
   aws_instance.foo -> aws_instance.foo (destroy)

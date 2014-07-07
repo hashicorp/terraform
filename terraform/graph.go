@@ -284,12 +284,9 @@ func graphAddDiff(g *depgraph.Graph, d *Diff) error {
 			newNode.Resource.Diff = &ResourceDiff{Destroy: true}
 
 			// Append it to the list so we handle it later
-			deps := make([]*depgraph.Dependency, len(n.Deps))
-			copy(deps, n.Deps)
 			newN := &depgraph.Noun{
 				Name: fmt.Sprintf("%s (destroy)", newNode.Resource.Id),
 				Meta: newNode,
-				Deps: deps,
 			}
 			nlist = append(nlist, newN)
 
