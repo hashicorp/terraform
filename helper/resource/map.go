@@ -50,7 +50,7 @@ func (m *Map) Apply(
 		result, err = r.Update(s, d, meta)
 	}
 	if result != nil {
-		result.Attributes["id"] = s.ID
+		result.Attributes["id"] = result.ID
 	}
 
 	return result, err
