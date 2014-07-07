@@ -30,7 +30,7 @@ func resource_aws_subnet_create(
 	log.Printf("[DEBUG] Subnet create config: %#v", createOpts)
 	resp, err := ec2conn.CreateSubnet(createOpts)
 	if err != nil {
-		return nil, fmt.Errorf("Error creating subnet: %s", resp)
+		return nil, fmt.Errorf("Error creating subnet: %s", err)
 	}
 
 	// Get the ID and store it
