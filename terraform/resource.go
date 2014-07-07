@@ -17,6 +17,7 @@ import (
 type ResourceProvisionerConfig struct {
 	Provisioner ResourceProvisioner
 	Config      *ResourceConfig
+	RawConfig   *config.RawConfig
 }
 
 // Resource encapsulates a resource, its configuration, its provider,

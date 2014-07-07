@@ -39,6 +39,10 @@ type GraphOpts struct {
 	// This will also potentially insert new nodes into the graph for
 	// the configuration of resource providers.
 	Providers map[string]ResourceProviderFactory
+
+	// Provisioners is a mapping of names to a resource provisioner.
+	// These must be provided to support resource provisioners.
+	Provisioners map[string]ResourceProvisionerFactory
 }
 
 // GraphRootNode is the name of the root node in the Terraform resource
@@ -109,6 +113,12 @@ func Graph(opts *GraphOpts) (*depgraph.Graph, error) {
 
 	// Map the provider configurations to all of the resources
 	graphAddProviderConfigs(g, opts.Config)
+
+	// Setup the provisioners. These may have variable dependencies,
+	// and must be done before dependency setup
+	if err := graphMapResourceProvisioners(g, opts.Provisioners); err != nil {
+		return nil, err
+	}
 
 	// Add all the variable dependencies
 	graphAddVariableDeps(g)
@@ -523,37 +533,55 @@ func graphAddVariableDeps(g *depgraph.Graph) {
 		var vars map[string]config.InterpolatedVariable
 		switch m := n.Meta.(type) {
 		case *GraphNodeResource:
-			if !m.Orphan {
-				vars = m.Config.RawConfig.Variables
+			// Ignore orphan nodes
+			if m.Orphan {
+				continue
 			}
+
+			// Handle the resource variables
+			vars = m.Config.RawConfig.Variables
+			nounAddVariableDeps(g, n, vars)
+
+			// Handle the variables of the resource provisioners
+			for _, p := range m.Resource.Provisioners {
+				vars = p.RawConfig.Variables
+				nounAddVariableDeps(g, n, vars)
+			}
+
 		case *GraphNodeResourceProvider:
 			vars = m.Config.RawConfig.Variables
+			nounAddVariableDeps(g, n, vars)
+
 		default:
 			continue
 		}
+	}
+}
 
-		for _, v := range vars {
-			// Only resource variables impose dependencies
-			rv, ok := v.(*config.ResourceVariable)
-			if !ok {
-				continue
-			}
-
-			// Find the target
-			target := g.Noun(rv.ResourceId())
-			if target == nil {
-				continue
-			}
-
-			// Build the dependency
-			dep := &depgraph.Dependency{
-				Name:   rv.ResourceId(),
-				Source: n,
-				Target: target,
-			}
-
-			n.Deps = append(n.Deps, dep)
+// nounAddVariableDeps updates the dependencies of a noun given
+// a set of associated variable values
+func nounAddVariableDeps(g *depgraph.Graph, n *depgraph.Noun, vars map[string]config.InterpolatedVariable) {
+	for _, v := range vars {
+		// Only resource variables impose dependencies
+		rv, ok := v.(*config.ResourceVariable)
+		if !ok {
+			continue
 		}
+
+		// Find the target
+		target := g.Noun(rv.ResourceId())
+		if target == nil {
+			continue
+		}
+
+		// Build the dependency
+		dep := &depgraph.Dependency{
+			Name:   rv.ResourceId(),
+			Source: n,
+			Target: target,
+		}
+
+		n.Deps = append(n.Deps, dep)
 	}
 }
 
@@ -688,6 +716,65 @@ func graphMapResourceProviders(g *depgraph.Graph) error {
 		return &multierror.Error{Errors: errs}
 	}
 
+	return nil
+}
+
+// graphMapResourceProvisioners takes a graph that already has
+// the resources and maps the resource provisioners to the resources themselves.
+func graphMapResourceProvisioners(g *depgraph.Graph,
+	provisioners map[string]ResourceProvisionerFactory) error {
+	var errs []error
+
+	// Create a cache of resource provisioners, avoids duplicate
+	// initialization of the instances
+	cache := make(map[string]ResourceProvisioner)
+
+	// Go through each of the resources and find a matching provisioners
+	for _, n := range g.Nouns {
+		rn, ok := n.Meta.(*GraphNodeResource)
+		if !ok {
+			continue
+		}
+
+		// Check each provisioner
+		for _, p := range rn.Config.Provisioners {
+			// Check for a cached provisioner
+			provisioner, ok := cache[p.Type]
+			if !ok {
+				// Lookup the factory method
+				factory, ok := provisioners[p.Type]
+				if !ok {
+					errs = append(errs, fmt.Errorf(
+						"Resource provisioner not found for provisioner type '%s'",
+						p.Type))
+					continue
+				}
+
+				// Initialize the provisioner
+				prov, err := factory()
+				if err != nil {
+					errs = append(errs, fmt.Errorf(
+						"Failed to instantiate provisioner type '%s': %v",
+						p.Type, err))
+					continue
+				}
+				provisioner = prov
+
+				// Cache this type of provisioner
+				cache[p.Type] = prov
+			}
+
+			// Save the provisioner
+			rn.Resource.Provisioners = append(rn.Resource.Provisioners, &ResourceProvisionerConfig{
+				Provisioner: provisioner,
+				RawConfig:   p.RawConfig,
+			})
+		}
+	}
+
+	if len(errs) > 0 {
+		return &multierror.Error{Errors: errs}
+	}
 	return nil
 }
 
