@@ -33,6 +33,13 @@ func init() {
 				Refresh: resource_aws_instance_refresh,
 			},
 
+			"aws_subnet": resource.Resource{
+				Create:  resource_aws_subnet_create,
+				Destroy: resource_aws_subnet_destroy,
+				Diff:    resource_aws_subnet_diff,
+				Refresh: resource_aws_subnet_refresh,
+			},
+
 			"aws_vpc": resource.Resource{
 				Create:  resource_aws_vpc_create,
 				Destroy: resource_aws_vpc_destroy,
