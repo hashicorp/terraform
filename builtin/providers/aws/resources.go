@@ -25,6 +25,13 @@ func init() {
 				Diff:    resource_aws_instance_diff,
 				Refresh: resource_aws_instance_refresh,
 			},
+
+			"aws_vpc": resource.Resource{
+				Create:  resource_aws_vpc_create,
+				Destroy: resource_aws_vpc_destroy,
+				Diff:    resource_aws_vpc_diff,
+				Refresh: resource_aws_vpc_refresh,
+			},
 		},
 	}
 }
