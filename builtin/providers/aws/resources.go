@@ -33,6 +33,13 @@ func init() {
 				Refresh: resource_aws_instance_refresh,
 			},
 
+			"aws_internet_gateway": resource.Resource{
+				Create:  resource_aws_internet_gateway_create,
+				Destroy: resource_aws_internet_gateway_destroy,
+				Diff:    resource_aws_internet_gateway_diff,
+				Refresh: resource_aws_internet_gateway_refresh,
+			},
+
 			"aws_subnet": resource.Resource{
 				Create:  resource_aws_subnet_create,
 				Destroy: resource_aws_subnet_destroy,
