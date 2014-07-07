@@ -68,27 +68,12 @@ func resource_aws_elb_create(
 		}
 	}
 
-	describeElbOpts := &elb.DescribeLoadBalancer{
-		Names: []string{elbName},
-	}
-
-	// Retrieve the ELB properties for updating the state
-	describeResp, err := elbconn.DescribeLoadBalancers(describeElbOpts)
+	loadBalancer, err := resource_aws_elb_retrieve_balancer(rs.ID, elbconn)
 	if err != nil {
-		return nil, fmt.Errorf("Error retrieving ELB: %s", err)
+		return nil, err
 	}
 
-	loadBalancer := describeResp.LoadBalancers[0]
-
-	// Verify AWS returned our ELB
-	if len(describeResp.LoadBalancers) != 1 ||
-		describeResp.LoadBalancers[0].LoadBalancerName != elbName {
-		if err != nil {
-			return nil, fmt.Errorf("Unable to find ELB: %#v", describeResp.LoadBalancers)
-		}
-	}
-
-	return resource_aws_elb_update_state(rs, &loadBalancer)
+	return resource_aws_elb_update_state(rs, loadBalancer)
 }
 
 func resource_aws_elb_update(
@@ -136,8 +121,13 @@ func resource_aws_elb_destroy(
 func resource_aws_elb_refresh(
 	s *terraform.ResourceState,
 	meta interface{}) (*terraform.ResourceState, error) {
+	p := meta.(*ResourceProvider)
+	elbconn := p.elbconn
 
-	loadBalancer := &elb.LoadBalancer{}
+	loadBalancer, err := resource_aws_elb_retrieve_balancer(s.ID, elbconn)
+	if err != nil {
+		return nil, err
+	}
 
 	return resource_aws_elb_update_state(s, loadBalancer)
 }
@@ -169,4 +159,29 @@ func resource_aws_elb_update_state(
 	s.Attributes["name"] = balancer.LoadBalancerName
 	s.Attributes["dns_name"] = balancer.DNSName
 	return s, nil
+}
+
+// retrieves an ELB by it's ID
+func resource_aws_elb_retrieve_balancer(id string, elbconn *elb.ELB) (*elb.LoadBalancer, error) {
+	describeElbOpts := &elb.DescribeLoadBalancer{
+		Names: []string{id},
+	}
+
+	// Retrieve the ELB properties for updating the state
+	describeResp, err := elbconn.DescribeLoadBalancers(describeElbOpts)
+	if err != nil {
+		return nil, fmt.Errorf("Error retrieving ELB: %s", err)
+	}
+
+	loadBalancer := describeResp.LoadBalancers[0]
+
+	// Verify AWS returned our ELB
+	if len(describeResp.LoadBalancers) != 1 ||
+		describeResp.LoadBalancers[0].LoadBalancerName != id {
+		if err != nil {
+			return nil, fmt.Errorf("Unable to find ELB: %#v", describeResp.LoadBalancers)
+		}
+	}
+
+	return &loadBalancer, nil
 }
