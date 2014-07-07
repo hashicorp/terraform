@@ -42,11 +42,18 @@ func (m *Map) Apply(
 		}
 	}
 
+	var result *terraform.ResourceState
+	var err error
 	if s.ID == "" {
-		return r.Create(s, d, meta)
+		result, err = r.Create(s, d, meta)
 	} else {
-		return r.Update(s, d, meta)
+		result, err = r.Update(s, d, meta)
 	}
+	if result != nil {
+		result.Attributes["id"] = s.ID
+	}
+
+	return result, err
 }
 
 // Diff peforms a diff on the proper resource type.
