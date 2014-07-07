@@ -1115,6 +1115,50 @@ func TestContextRefresh_state(t *testing.T) {
 	}
 }
 
+func TestContextRefresh_vars(t *testing.T) {
+	p := testProvider("aws")
+	c := testConfig(t, "refresh-vars")
+	ctx := testContext(t, &ContextOpts{
+		Config: c,
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+		State: &State{
+			Resources: map[string]*ResourceState{
+				"aws_instance.web": &ResourceState{
+					ID:   "foo",
+					Type: "aws_instance",
+				},
+			},
+		},
+	})
+
+	p.RefreshFn = nil
+	p.RefreshReturn = &ResourceState{
+		ID: "foo",
+	}
+
+	s, err := ctx.Refresh()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if !p.RefreshCalled {
+		t.Fatal("refresh should be called")
+	}
+	if p.RefreshState.ID != "foo" {
+		t.Fatalf("bad: %#v", p.RefreshState)
+	}
+	if !reflect.DeepEqual(s.Resources["aws_instance.web"], p.RefreshReturn) {
+		t.Fatalf("bad: %#v", s.Resources["aws_instance.web"])
+	}
+
+	for _, r := range s.Resources {
+		if r.Type == "" {
+			t.Fatalf("no type: %#v", r)
+		}
+	}
+}
+
 func testContext(t *testing.T, opts *ContextOpts) *Context {
 	return NewContext(opts)
 }

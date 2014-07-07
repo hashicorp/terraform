@@ -416,6 +416,11 @@ func (c *Context) applyWalkFn() depgraph.WalkFunc {
 		}
 
 		if !diff.Destroy {
+			// Since we need the configuration, interpolate the variables
+			if err := r.Config.interpolate(c); err != nil {
+				return err
+			}
+
 			var err error
 			diff, err = r.Provider.Diff(r.State, r.Config)
 			if err != nil {
@@ -503,9 +508,13 @@ func (c *Context) planWalkFn(result *Plan) depgraph.WalkFunc {
 			// This is an orphan (no config), so we mark it to be destroyed
 			diff = &ResourceDiff{Destroy: true}
 		} else {
-			log.Printf("[DEBUG] %s: Executing diff", r.Id)
+			// Make sure the configuration is interpolated
+			if err := r.Config.interpolate(c); err != nil {
+				return err
+			}
 
 			// Get a diff from the newest state
+			log.Printf("[DEBUG] %s: Executing diff", r.Id)
 			var err error
 			diff, err = r.Provider.Diff(r.State, r.Config)
 			if err != nil {
@@ -703,23 +712,12 @@ func (c *Context) genericWalkFn(cb genericWalkFunc) depgraph.WalkFunc {
 
 		rn := n.Meta.(*GraphNodeResource)
 
-		if rn.Config != nil {
-			if err := c.computeVars(rn.Config.RawConfig); err != nil {
-				panic(fmt.Sprintf("Interpolate error: %s", err))
-			}
-
-			// Force the config to be set later
-			rn.Resource.Config = nil
-		}
-
 		// Make sure that at least some resource configuration is set
 		if !rn.Orphan {
-			if rn.Resource.Config == nil {
-				if rn.Config == nil {
-					rn.Resource.Config = new(ResourceConfig)
-				} else {
-					rn.Resource.Config = NewResourceConfig(rn.Config.RawConfig)
-				}
+			if rn.Config == nil {
+				rn.Resource.Config = new(ResourceConfig)
+			} else {
+				rn.Resource.Config = NewResourceConfig(rn.Config.RawConfig)
 			}
 		} else {
 			rn.Resource.Config = nil
