@@ -98,16 +98,37 @@ func resource_aws_elb_update(
 	// p := meta.(*ResourceProvider)
 	// elbconn := p.elbconn
 
-	// Merge the diff into the state so that we have all the attributes
-	// properly.
-	// rs := s.MergeDiff(d)
+	rs := s.MergeDiff(d)
+	log.Printf("ResourceDiff: %s", d)
+	log.Printf("ResourceState: %s", s)
+	log.Printf("Merged: %s", rs)
 
-	return nil, nil
+	// If we have any instances, we need to register them
+	v := flatmap.Expand(rs.Attributes, "instances").([]interface{})
+	instances := expandStringList(v)
+
+	log.Println(instances)
+
+	return nil, fmt.Errorf("Did not update")
 }
 
 func resource_aws_elb_destroy(
 	s *terraform.ResourceState,
 	meta interface{}) error {
+	p := meta.(*ResourceProvider)
+	elbconn := p.elbconn
+
+	log.Printf("[INFO] Deleting ELB: %s", s.ID)
+
+	// Destroy the load balancer
+	deleteElbOpts := elb.DeleteLoadBalancer{
+		LoadBalancerName: s.ID,
+	}
+	_, err := elbconn.DeleteLoadBalancer(&deleteElbOpts)
+
+	if err != nil {
+		return fmt.Errorf("Error deleting ELB: %s", err)
+	}
 
 	return nil
 }
