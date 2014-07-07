@@ -81,6 +81,20 @@ func resource_aws_subnet_destroy(
 		return fmt.Errorf("Error deleting subnet: %s", err)
 	}
 
+	// Wait for the Subnet to actually delete
+	log.Printf("[DEBUG] Waiting for subnet (%s) to delete", s.ID)
+	stateConf := &resource.StateChangeConf{
+		Pending: []string{"available", "pending"},
+		Target:  "",
+		Refresh: SubnetStateRefreshFunc(ec2conn, s.ID),
+		Timeout: 10 * time.Minute,
+	}
+	if _, err := stateConf.WaitForState(); err != nil {
+		return fmt.Errorf(
+			"Error waiting for subnet (%s) to destroy",
+			s.ID, err)
+	}
+
 	return nil
 }
 
