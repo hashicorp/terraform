@@ -33,8 +33,8 @@ func resource_aws_vpc_create(
 
 	// Get the ID and store it
 	vpc := &vpcResp.VPC
-	log.Printf("[INFO] VPC ID: %s", vpc.VPCID)
-	s.ID = vpc.VPCID
+	log.Printf("[INFO] VPC ID: %s", vpc.VpcId)
+	s.ID = vpc.VpcId
 
 	// Wait for the VPC to become available
 	log.Printf(
