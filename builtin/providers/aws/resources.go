@@ -19,6 +19,13 @@ func init() {
 				Refresh: resource_aws_elb_refresh,
 			},
 
+			"aws_eip": resource.Resource{
+				Create:  resource_aws_eip_create,
+				Destroy: resource_aws_eip_destroy,
+				Diff:    resource_aws_eip_diff,
+				Refresh: resource_aws_eip_refresh,
+			},
+
 			"aws_instance": resource.Resource{
 				Create:  resource_aws_instance_create,
 				Destroy: resource_aws_instance_destroy,
