@@ -199,8 +199,9 @@ func graphAddConfigResources(
 					Type:   r.Type,
 					Config: r,
 					Resource: &Resource{
-						Id:    name,
-						State: state,
+						Id:     name,
+						State:  state,
+						Config: NewResourceConfig(r.RawConfig),
 					},
 				},
 			}
@@ -429,8 +430,9 @@ func graphAddOrphans(g *depgraph.Graph, c *config.Config, s *State) {
 				Type:   rs.Type,
 				Orphan: true,
 				Resource: &Resource{
-					Id:    k,
-					State: rs,
+					Id:     k,
+					State:  rs,
+					Config: NewResourceConfig(nil),
 				},
 			},
 		}

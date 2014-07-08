@@ -135,8 +135,11 @@ func (c *ResourceConfig) interpolate(ctx *Context) error {
 		}
 	}
 
-	c.ComputedKeys = c.raw.UnknownKeys()
-	c.Raw = c.raw.Raw
-	c.Config = c.raw.Config()
+	if c.raw != nil {
+		c.ComputedKeys = c.raw.UnknownKeys()
+		c.Raw = c.raw.Raw
+		c.Config = c.raw.Config()
+	}
+
 	return nil
 }
