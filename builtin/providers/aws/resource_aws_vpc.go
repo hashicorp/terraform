@@ -76,6 +76,11 @@ func resource_aws_vpc_destroy(
 
 	log.Printf("[INFO] Deleting VPC: %s", s.ID)
 	if _, err := ec2conn.DeleteVpc(s.ID); err != nil {
+		ec2err, ok := err.(*ec2.Error)
+		if ok && ec2err.Code == "InvalidVpcID.NotFound" {
+			return nil
+		}
+
 		return fmt.Errorf("Error deleting ELB: %s", err)
 	}
 

@@ -56,6 +56,11 @@ func resource_aws_internet_gateway_destroy(
 
 	log.Printf("[INFO] Deleting Internet Gateway: %s", s.ID)
 	if _, err := ec2conn.DeleteInternetGateway(s.ID); err != nil {
+		ec2err, ok := err.(*ec2.Error)
+		if ok && ec2err.Code == "InvalidInternetGatewayID.NotFound" {
+			return nil
+		}
+
 		return fmt.Errorf("Error deleting internet gateway: %s", err)
 	}
 

@@ -78,6 +78,11 @@ func resource_aws_subnet_destroy(
 
 	log.Printf("[INFO] Deleting Subnet: %s", s.ID)
 	if _, err := ec2conn.DeleteSubnet(s.ID); err != nil {
+		ec2err, ok := err.(*ec2.Error)
+		if ok && ec2err.Code == "InvalidSubnetID.NotFound" {
+			return nil
+		}
+
 		return fmt.Errorf("Error deleting subnet: %s", err)
 	}
 
