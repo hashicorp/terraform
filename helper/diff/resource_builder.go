@@ -108,13 +108,6 @@ func (b *ResourceBuilder) Diff(
 				Type:        terraform.DiffAttrOutput,
 			}
 		}
-
-		// The ID will change
-		attrs["id"] = &terraform.ResourceAttrDiff{
-			Old:         s.ID,
-			NewComputed: true,
-			Type:        terraform.DiffAttrOutput,
-		}
 	}
 
 	// Build our resulting diff if we had attributes change
