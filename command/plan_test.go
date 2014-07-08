@@ -40,6 +40,10 @@ func TestPlan_destroy(t *testing.T) {
 		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
 	}
 
+	if !p.RefreshCalled {
+		t.Fatal("refresh should be called")
+	}
+
 	plan := testReadPlan(t, outPath)
 	for _, r := range plan.Diff.Resources {
 		if !r.Destroy {
@@ -63,8 +67,8 @@ func TestPlan_noState(t *testing.T) {
 	}
 
 	// Verify that refresh was called
-	if !p.RefreshCalled {
-		t.Fatal("refresh should be called")
+	if p.RefreshCalled {
+		t.Fatal("refresh should not be called")
 	}
 
 	// Verify that the provider was called with the existing state

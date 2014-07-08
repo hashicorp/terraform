@@ -67,6 +67,7 @@ func (c *RefreshCommand) Run(args []string) int {
 	}
 
 	c.ContextOpts.Config = b
+	c.ContextOpts.State = state
 	c.ContextOpts.Hooks = append(c.ContextOpts.Hooks, &UiHook{Ui: c.Ui})
 	ctx := terraform.NewContext(c.ContextOpts)
 	if !validateContext(ctx, c.Ui) {

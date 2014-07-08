@@ -11,21 +11,15 @@ import (
 )
 
 func TestRefresh(t *testing.T) {
-	// Write out some prior state
-	tf, err := ioutil.TempFile("", "tf")
-	if err != nil {
-		t.Fatalf("err: %s", err)
+	state := &terraform.State{
+		Resources: map[string]*terraform.ResourceState{
+			"test_instance.foo": &terraform.ResourceState{
+				ID:   "bar",
+				Type: "test_instance",
+			},
+		},
 	}
-	statePath := tf.Name()
-	defer os.Remove(tf.Name())
-
-	state := &terraform.State{}
-
-	err = terraform.WriteState(state, tf)
-	tf.Close()
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
+	statePath := testStateFile(t, state)
 
 	p := testProvider()
 	ui := new(cli.MockUi)
@@ -68,13 +62,15 @@ func TestRefresh(t *testing.T) {
 }
 
 func TestRefresh_outPath(t *testing.T) {
-	// Write out some prior state
-	tf, err := ioutil.TempFile("", "tf")
-	if err != nil {
-		t.Fatalf("err: %s", err)
+	state := &terraform.State{
+		Resources: map[string]*terraform.ResourceState{
+			"test_instance.foo": &terraform.ResourceState{
+				ID:   "bar",
+				Type: "test_instance",
+			},
+		},
 	}
-	statePath := tf.Name()
-	defer os.Remove(tf.Name())
+	statePath := testStateFile(t, state)
 
 	// Output path
 	outf, err := ioutil.TempFile("", "tf")
@@ -84,14 +80,6 @@ func TestRefresh_outPath(t *testing.T) {
 	outPath := outf.Name()
 	outf.Close()
 	os.Remove(outPath)
-
-	state := &terraform.State{}
-
-	err = terraform.WriteState(state, tf)
-	tf.Close()
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
 
 	p := testProvider()
 	ui := new(cli.MockUi)
