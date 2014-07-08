@@ -66,7 +66,7 @@ func resource_aws_internet_gateway_update(
 		rs.Attributes["vpc_id"] = attr.New
 	}
 
-	return rs, nil
+	return resource_aws_internet_gateway_update_state(rs, nil)
 }
 
 func resource_aws_internet_gateway_destroy(
@@ -206,6 +206,13 @@ func resource_aws_internet_gateway_detach(
 func resource_aws_internet_gateway_update_state(
 	s *terraform.ResourceState,
 	ig *ec2.InternetGateway) (*terraform.ResourceState, error) {
+	if s.Attributes["vpc_id"] != "" {
+		// We belong to a VPC
+		s.Dependencies = []terraform.ResourceDependency{
+			terraform.ResourceDependency{ID: s.Attributes["vpc_id"]},
+		}
+	}
+
 	return s, nil
 }
 
