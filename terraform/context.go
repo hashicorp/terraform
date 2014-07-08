@@ -480,6 +480,16 @@ func (c *Context) applyWalkFn() depgraph.WalkFunc {
 			}
 		}
 
+		// Invoke any provisioners we have defined. This is only done
+		// if the resource was created, as updates or deletes do not
+		// invoke provisioners.
+		if r.State.ID == "" && len(r.Provisioners) > 0 {
+			rs, err = c.applyProvisioners(r, rs)
+			if err != nil {
+				errs = append(errs, err)
+			}
+		}
+
 		// Update the resulting diff
 		c.sl.Lock()
 		if rs.ID == "" {
@@ -506,6 +516,26 @@ func (c *Context) applyWalkFn() depgraph.WalkFunc {
 	}
 
 	return c.genericWalkFn(cb)
+}
+
+// applyProvisioners is used to run any provisioners a resource has
+// defined after the resource creation has already completed.
+func (c *Context) applyProvisioners(r *Resource, rs *ResourceState) (*ResourceState, error) {
+	var err error
+	for _, prov := range r.Provisioners {
+		// Interpolate since we may have variables that depend on the
+		// local resource.
+		if err := r.Config.interpolate(c); err != nil {
+			return rs, err
+		}
+
+		// Invoke the Provisioner
+		rs, err = prov.Provisioner.Apply(rs, r.Config)
+		if err != nil {
+			return rs, err
+		}
+	}
+	return rs, nil
 }
 
 func (c *Context) planWalkFn(result *Plan) depgraph.WalkFunc {
@@ -677,9 +707,21 @@ func (c *Context) validateWalkFn(rws *[]string, res *[]error) depgraph.WalkFunc 
 			for i, e := range es {
 				es[i] = fmt.Errorf("'%s' error: %s", rn.Resource.Id, e)
 			}
-
 			*rws = append(*rws, ws...)
 			*res = append(*res, es...)
+
+			for idx, p := range rn.Resource.Provisioners {
+				ws, es := p.Provisioner.Validate(p.Config)
+				for i, w := range ws {
+					ws[i] = fmt.Sprintf("'%s.provisioner.%d' warning: %s", rn.Resource.Id, idx, w)
+				}
+				for i, e := range es {
+					es[i] = fmt.Errorf("'%s.provisioner.%d' error: %s", rn.Resource.Id, idx, e)
+				}
+				*rws = append(*rws, ws...)
+				*res = append(*res, es...)
+			}
+
 		case *GraphNodeResourceProvider:
 			if rn.Config == nil {
 				return nil
@@ -764,6 +806,14 @@ func (c *Context) genericWalkFn(cb genericWalkFunc) depgraph.WalkFunc {
 				rn.Resource.Config = new(ResourceConfig)
 			} else {
 				rn.Resource.Config = NewResourceConfig(rn.Config.RawConfig)
+			}
+
+			for _, prov := range rn.Resource.Provisioners {
+				if prov.RawConfig == nil {
+					prov.Config = new(ResourceConfig)
+				} else {
+					prov.Config = NewResourceConfig(prov.RawConfig)
+				}
 			}
 		} else {
 			rn.Resource.Config = nil
