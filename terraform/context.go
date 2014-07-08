@@ -29,8 +29,9 @@ type Context struct {
 	providers map[string]ResourceProviderFactory
 	variables map[string]string
 
-	l     sync.Mutex   // Lock acquired during any task
-	sl    sync.RWMutex // Lock acquired to R/W internal data
+	l     sync.Mutex    // Lock acquired during any task
+	parCh chan struct{} // Semaphore used to limit parallelism
+	sl    sync.RWMutex  // Lock acquired to R/W internal data
 	runCh <-chan struct{}
 	sh    *stopHook
 }
@@ -38,12 +39,13 @@ type Context struct {
 // ContextOpts are the user-creatable configuration structure to create
 // a context with NewContext.
 type ContextOpts struct {
-	Config    *config.Config
-	Diff      *Diff
-	Hooks     []Hook
-	State     *State
-	Providers map[string]ResourceProviderFactory
-	Variables map[string]string
+	Config      *config.Config
+	Diff        *Diff
+	Hooks       []Hook
+	Parallelism int
+	State       *State
+	Providers   map[string]ResourceProviderFactory
+	Variables   map[string]string
 }
 
 // NewContext creates a new context.
@@ -60,6 +62,13 @@ func NewContext(opts *ContextOpts) *Context {
 	copy(hooks, opts.Hooks)
 	hooks[len(opts.Hooks)] = sh
 
+	// Make the parallelism channel
+	par := opts.Parallelism
+	if par == 0 {
+		par = 10
+	}
+	parCh := make(chan struct{}, par)
+
 	return &Context{
 		config:    opts.Config,
 		diff:      opts.Diff,
@@ -68,7 +77,8 @@ func NewContext(opts *ContextOpts) *Context {
 		providers: opts.Providers,
 		variables: opts.Variables,
 
-		sh: sh,
+		parCh: parCh,
+		sh:    sh,
 	}
 }
 
@@ -681,6 +691,12 @@ func (c *Context) genericWalkFn(cb genericWalkFunc) depgraph.WalkFunc {
 		if atomic.LoadUint32(&stop) != 0 {
 			return nil
 		}
+
+		// Limit parallelism
+		c.parCh <- struct{}{}
+		defer func() {
+			<-c.parCh
+		}()
 
 		switch m := n.Meta.(type) {
 		case *GraphNodeResource:
