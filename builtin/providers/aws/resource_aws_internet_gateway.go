@@ -44,61 +44,26 @@ func resource_aws_internet_gateway_update(
 	// Merge the diff so we have the latest attributes
 	rs := s.MergeDiff(d)
 
-	// If we're already attached, detach it first
-	if s.Attributes["vpc_id"] != "" {
-		log.Printf(
-			"[INFO] Detaching Internet Gateway '%s' from VPC '%s'",
-			s.ID,
-			s.Attributes["vpc_id"])
-		_, err := ec2conn.DetachInternetGateway(s.ID, s.Attributes["vpc_id"])
-		if err != nil {
-			return s, err
-		}
-
-		delete(s.Attributes, "vpc_id")
-	}
-
 	// A note on the states below: the AWS docs (as of July, 2014) say
 	// that the states would be: attached, attaching, detached, detaching,
 	// but when running, I noticed that the state is usually "available" when
 	// it is attached.
 
-	// Wait for it to be fully detached before continuing
-	log.Printf("[DEBUG] Waiting for internet gateway (%s) to detach", s.ID)
-	stateConf := &resource.StateChangeConf{
-		Pending: []string{"attached", "detaching", "available"},
-		Target:  "detached",
-		Refresh: IGAttachStateRefreshFunc(ec2conn, s.ID),
-		Timeout: 1 * time.Minute,
-	}
-	if _, err := stateConf.WaitForState(); err != nil {
-		return s, fmt.Errorf(
-			"Error waiting for internet gateway (%s) to detach: %s",
-			s.ID, err)
-	}
-
-	// Attach
-	log.Printf(
-		"[INFO] Attaching Internet Gateway '%s' to VPC '%s'",
-		rs.ID,
-		rs.Attributes["vpc_id"])
-	_, err := ec2conn.AttachInternetGateway(rs.ID, rs.Attributes["vpc_id"])
-	if err != nil {
+	// If we're already attached, detach it first
+	if err := resource_aws_internet_gateway_detach(ec2conn, s); err != nil {
 		return s, err
 	}
 
-	// Wait for it to be fully attached before continuing
-	log.Printf("[DEBUG] Waiting for internet gateway (%s) to attach", s.ID)
-	stateConf = &resource.StateChangeConf{
-		Pending: []string{"detached", "attaching"},
-		Target:  "available",
-		Refresh: IGAttachStateRefreshFunc(ec2conn, s.ID),
-		Timeout: 1 * time.Minute,
-	}
-	if _, err := stateConf.WaitForState(); err != nil {
-		return rs, fmt.Errorf(
-			"Error waiting for internet gateway (%s) to attach: %s",
-			rs.ID, err)
+	// Set the VPC ID to empty since we're detached at this point
+	delete(rs.Attributes, "vpc_id")
+
+	if attr, ok := d.Attributes["vpc_id"]; ok && attr.New != "" {
+		err := resource_aws_internet_gateway_attach(ec2conn, s, attr.New)
+		if err != nil {
+			return s, err
+		}
+
+		rs.Attributes["vpc_id"] = attr.New
 	}
 
 	return rs, nil
@@ -109,6 +74,11 @@ func resource_aws_internet_gateway_destroy(
 	meta interface{}) error {
 	p := meta.(*ResourceProvider)
 	ec2conn := p.ec2conn
+
+	// Detach if it is attached
+	if err := resource_aws_internet_gateway_detach(ec2conn, s); err != nil {
+		return err
+	}
 
 	log.Printf("[INFO] Deleting Internet Gateway: %s", s.ID)
 	if _, err := ec2conn.DeleteInternetGateway(s.ID); err != nil {
@@ -166,6 +136,71 @@ func resource_aws_internet_gateway_diff(
 	}
 
 	return b.Diff(s, c)
+}
+
+func resource_aws_internet_gateway_attach(
+	ec2conn *ec2.EC2,
+	s *terraform.ResourceState,
+	vpcId string) error {
+	log.Printf(
+		"[INFO] Attaching Internet Gateway '%s' to VPC '%s'",
+		s.ID,
+		vpcId)
+	_, err := ec2conn.AttachInternetGateway(s.ID, vpcId)
+	if err != nil {
+		return err
+	}
+
+	// Wait for it to be fully attached before continuing
+	log.Printf("[DEBUG] Waiting for internet gateway (%s) to attach", s.ID)
+	stateConf := &resource.StateChangeConf{
+		Pending: []string{"detached", "attaching"},
+		Target:  "available",
+		Refresh: IGAttachStateRefreshFunc(ec2conn, s.ID),
+		Timeout: 1 * time.Minute,
+	}
+	if _, err := stateConf.WaitForState(); err != nil {
+		return fmt.Errorf(
+			"Error waiting for internet gateway (%s) to attach: %s",
+			s.ID, err)
+	}
+
+	return nil
+}
+
+func resource_aws_internet_gateway_detach(
+	ec2conn *ec2.EC2,
+	s *terraform.ResourceState) error {
+	if s.Attributes["vpc_id"] == "" {
+		return nil
+	}
+
+	log.Printf(
+		"[INFO] Detaching Internet Gateway '%s' from VPC '%s'",
+		s.ID,
+		s.Attributes["vpc_id"])
+	_, err := ec2conn.DetachInternetGateway(s.ID, s.Attributes["vpc_id"])
+	if err != nil {
+		return err
+	}
+
+	delete(s.Attributes, "vpc_id")
+
+	// Wait for it to be fully detached before continuing
+	log.Printf("[DEBUG] Waiting for internet gateway (%s) to detach", s.ID)
+	stateConf := &resource.StateChangeConf{
+		Pending: []string{"attached", "detaching", "available"},
+		Target:  "detached",
+		Refresh: IGAttachStateRefreshFunc(ec2conn, s.ID),
+		Timeout: 1 * time.Minute,
+	}
+	if _, err := stateConf.WaitForState(); err != nil {
+		return fmt.Errorf(
+			"Error waiting for internet gateway (%s) to detach: %s",
+			s.ID, err)
+	}
+
+	return nil
 }
 
 func resource_aws_internet_gateway_update_state(
