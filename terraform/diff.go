@@ -115,6 +115,10 @@ func (d *Diff) String() string {
 		keyLen := 0
 		keys := make([]string, 0, len(rdiff.Attributes))
 		for key, _ := range rdiff.Attributes {
+			if key == "id" {
+				continue
+			}
+
 			keys = append(keys, key)
 			if len(key) > keyLen {
 				keyLen = len(key)
@@ -152,6 +156,8 @@ func (d *Diff) String() string {
 type ResourceDiff struct {
 	Attributes map[string]*ResourceAttrDiff
 	Destroy    bool
+
+	once sync.Once
 }
 
 // ResourceAttrDiff is the diff of a single attribute of a resource.
@@ -176,6 +182,14 @@ const (
 	DiffAttrInput
 	DiffAttrOutput
 )
+
+func (d *ResourceDiff) init() {
+	d.once.Do(func() {
+		if d.Attributes == nil {
+			d.Attributes = make(map[string]*ResourceAttrDiff)
+		}
+	})
+}
 
 // Empty returns true if this diff encapsulates no changes.
 func (d *ResourceDiff) Empty() bool {

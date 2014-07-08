@@ -273,7 +273,7 @@ func graphAddDiff(g *depgraph.Graph, d *Diff) error {
 			continue
 		}
 
-		if rd.Destroy || rd.RequiresNew() {
+		if rd.Destroy {
 			// If we're destroying, we create a new destroy node with
 			// the proper dependencies. Perform a dirty copy operation.
 			newNode := new(GraphNodeResource)

@@ -180,8 +180,6 @@ func TestContextApply_Minimal(t *testing.T) {
 		t.Fatalf("err: %s", err)
 	}
 
-	ctx.variables = map[string]string{"value": "1"}
-
 	state, err := ctx.Apply()
 	if err != nil {
 		t.Fatalf("err: %s", err)
@@ -242,7 +240,9 @@ func TestContextApply_cancel(t *testing.T) {
 	// Start the Apply in a goroutine
 	stateCh := make(chan *State)
 	go func() {
+		println("START")
 		state, err := ctx.Apply()
+		println("STOP")
 		if err != nil {
 			panic(err)
 		}
@@ -714,6 +714,29 @@ func TestContextPlan(t *testing.T) {
 	}
 }
 
+func TestContextPlan_minimal(t *testing.T) {
+	c := testConfig(t, "plan-empty")
+	p := testProvider("aws")
+	p.DiffFn = testDiffFn
+	ctx := testContext(t, &ContextOpts{
+		Config: c,
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+	})
+
+	plan, err := ctx.Plan(nil)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	actual := strings.TrimSpace(plan.String())
+	expected := strings.TrimSpace(testTerraformPlanEmptyStr)
+	if actual != expected {
+		t.Fatalf("bad:\n%s", actual)
+	}
+}
+
 func TestContextPlan_nil(t *testing.T) {
 	c := testConfig(t, "plan-nil")
 	p := testProvider("aws")
@@ -722,6 +745,14 @@ func TestContextPlan_nil(t *testing.T) {
 		Config: c,
 		Providers: map[string]ResourceProviderFactory{
 			"aws": testProviderFuncFixed(p),
+		},
+		State: &State{
+			Resources: map[string]*ResourceState{
+				"aws_instance.foo": &ResourceState{
+					ID:   "bar",
+					Type: "aws_instance",
+				},
+			},
 		},
 	})
 

@@ -129,6 +129,10 @@ func (c *ResourceConfig) IsSet(k string) bool {
 }
 
 func (c *ResourceConfig) interpolate(ctx *Context) error {
+	if c == nil {
+		return nil
+	}
+
 	if ctx != nil {
 		if err := ctx.computeVars(c.raw); err != nil {
 			return err

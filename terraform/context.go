@@ -532,6 +532,26 @@ func (c *Context) planWalkFn(result *Plan) depgraph.WalkFunc {
 			}
 		}
 
+		if diff == nil {
+			diff = new(ResourceDiff)
+		}
+
+		if diff.RequiresNew() && r.State.ID != "" {
+			// This will also require a destroy
+			diff.Destroy = true
+		}
+
+		if diff.RequiresNew() || r.State.ID == "" {
+			// Add diff to compute new ID
+			diff.init()
+			diff.Attributes["id"] = &ResourceAttrDiff{
+				Old:         r.State.Attributes["id"],
+				NewComputed: true,
+				RequiresNew: true,
+				Type:        DiffAttrOutput,
+			}
+		}
+
 		l.Lock()
 		if !diff.Empty() {
 			result.Diff.Resources[r.Id] = diff
@@ -752,7 +772,10 @@ func (c *Context) genericWalkFn(cb genericWalkFunc) depgraph.WalkFunc {
 		}()
 
 		// Call the callack
-		log.Printf("[INFO] Walking: %s", rn.Resource.Id)
+		log.Printf(
+			"[INFO] Walking: %s (Graph node: %s)",
+			rn.Resource.Id,
+			n.Name)
 		if err := cb(rn.Resource); err != nil {
 			log.Printf("[ERROR] Error walking '%s': %s", rn.Resource.Id, err)
 			return err

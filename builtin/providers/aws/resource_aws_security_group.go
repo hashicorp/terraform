@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"log"
 
+	"github.com/hashicorp/terraform/flatmap"
 	"github.com/hashicorp/terraform/helper/diff"
 	"github.com/hashicorp/terraform/terraform"
-	"github.com/hashicorp/terraform/flatmap"
 	"github.com/mitchellh/goamz/ec2"
 )
 
@@ -132,7 +132,7 @@ func resource_aws_security_group_diff(
 			"name":        diff.AttrTypeCreate,
 			"description": diff.AttrTypeCreate,
 			"vpc_id":      diff.AttrTypeUpdate,
-			"ingress":      diff.AttrTypeUpdate,
+			"ingress":     diff.AttrTypeUpdate,
 			"egress":      diff.AttrTypeUpdate,
 		},
 
