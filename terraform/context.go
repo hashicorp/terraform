@@ -578,6 +578,7 @@ func (c *Context) planDestroyWalkFn(result *Plan) depgraph.WalkFunc {
 func (c *Context) refreshWalkFn() depgraph.WalkFunc {
 	cb := func(r *Resource) error {
 		if r.State.ID == "" {
+			log.Printf("[DEBUG] %s: Not refreshing, ID is empty", r.Id)
 			return nil
 		}
 
