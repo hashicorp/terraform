@@ -45,6 +45,12 @@ func testProviderFuncFixed(rp ResourceProvider) ResourceProviderFactory {
 	}
 }
 
+func testProvisionerFuncFixed(rp ResourceProvisioner) ResourceProvisionerFactory {
+	return func() (ResourceProvisioner, error) {
+		return rp, nil
+	}
+}
+
 // HookRecordApplyOrder is a test hook that records the order of applies
 // by recording the PreApply event.
 type HookRecordApplyOrder struct {
