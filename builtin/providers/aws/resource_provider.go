@@ -23,7 +23,7 @@ func (p *ResourceProvider) Validate(c *terraform.ResourceConfig) ([]string, []er
 
 func (p *ResourceProvider) ValidateResource(
 	t string, c *terraform.ResourceConfig) ([]string, []error) {
-	return nil, nil
+	return resourceMap.Validate(t, c)
 }
 
 func (p *ResourceProvider) Configure(c *terraform.ResourceConfig) error {
