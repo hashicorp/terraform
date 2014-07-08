@@ -1,6 +1,7 @@
 package config
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/hashicorp/terraform/config"
@@ -19,20 +20,54 @@ func TestValidator(t *testing.T) {
 	c = testConfig(t, map[string]interface{}{
 		"foo": "bar",
 	})
-	testValid(t, v, c)
+	testValid(v, c)
+
+	// Valid + optional
+	c = testConfig(t, map[string]interface{}{
+		"foo": "bar",
+		"bar": "baz",
+	})
+	testValid(v, c)
 
 	// Missing required
 	c = testConfig(t, map[string]interface{}{
 		"bar": "baz",
 	})
-	testInvalid(t, v, c)
+	testInvalid(v, c)
 
 	// Unknown key
 	c = testConfig(t, map[string]interface{}{
 		"foo":  "bar",
 		"what": "what",
 	})
-	testInvalid(t, v, c)
+	testInvalid(v, c)
+}
+
+func TestValidator_complex(t *testing.T) {
+	v := &Validator{
+		Required: []string{
+			"foo",
+			"nested.*",
+		},
+	}
+
+	var c *terraform.ResourceConfig
+
+	// Valid
+	c = testConfig(t, map[string]interface{}{
+		"foo": "bar",
+		"nested": []map[string]interface{}{
+			map[string]interface{}{"foo": "bar"},
+		},
+	})
+	testValid(v, c)
+
+	// Not a nested structure
+	c = testConfig(t, map[string]interface{}{
+		"foo":    "bar",
+		"nested": "baa",
+	})
+	testInvalid(v, c)
 }
 
 func testConfig(
@@ -46,22 +81,22 @@ func testConfig(
 	return terraform.NewResourceConfig(r)
 }
 
-func testInvalid(t *testing.T, v *Validator, c *terraform.ResourceConfig) {
+func testInvalid(v *Validator, c *terraform.ResourceConfig) {
 	ws, es := v.Validate(c)
 	if len(ws) > 0 {
-		t.Fatalf("bad: %#v", ws)
+		panic(fmt.Sprintf("bad: %#v", ws))
 	}
 	if len(es) == 0 {
-		t.Fatalf("bad: %#v", es)
+		panic(fmt.Sprintf("bad: %#v", es))
 	}
 }
 
-func testValid(t *testing.T, v *Validator, c *terraform.ResourceConfig) {
+func testValid(v *Validator, c *terraform.ResourceConfig) {
 	ws, es := v.Validate(c)
 	if len(ws) > 0 {
-		t.Fatalf("bad: %#v", ws)
+		panic(fmt.Sprintf("bad: %#v", ws))
 	}
 	if len(es) > 0 {
-		t.Fatalf("bad: %#v", es)
+		panic(fmt.Sprintf("bad: %#v", es))
 	}
 }
