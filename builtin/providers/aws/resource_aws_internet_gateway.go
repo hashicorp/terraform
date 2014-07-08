@@ -18,9 +18,6 @@ func resource_aws_internet_gateway_create(
 	p := meta.(*ResourceProvider)
 	ec2conn := p.ec2conn
 
-	// Merge the diff so that we have all the proper attributes
-	s = s.MergeDiff(d)
-
 	// Create the gateway
 	log.Printf("[DEBUG] Creating internet gateway")
 	resp, err := ec2conn.CreateInternetGateway(nil)
@@ -34,18 +31,77 @@ func resource_aws_internet_gateway_create(
 	log.Printf("[INFO] InternetGateway ID: %s", s.ID)
 
 	// Update our attributes and return
-	return resource_aws_internet_gateway_update_state(s, ig)
+	return resource_aws_internet_gateway_update(s, d, meta)
 }
 
 func resource_aws_internet_gateway_update(
 	s *terraform.ResourceState,
 	d *terraform.ResourceDiff,
 	meta interface{}) (*terraform.ResourceState, error) {
-	// This should never be called because we have no update-able
-	// attributes
-	panic("Update for internet gateway is not supported")
+	p := meta.(*ResourceProvider)
+	ec2conn := p.ec2conn
 
-	return nil, nil
+	// Merge the diff so we have the latest attributes
+	rs := s.MergeDiff(d)
+
+	// If we're already attached, detach it first
+	if s.Attributes["vpc_id"] != "" {
+		log.Printf(
+			"[INFO] Detaching Internet Gateway '%s' from VPC '%s'",
+			s.ID,
+			s.Attributes["vpc_id"])
+		_, err := ec2conn.DetachInternetGateway(s.ID, s.Attributes["vpc_id"])
+		if err != nil {
+			return s, err
+		}
+
+		delete(s.Attributes, "vpc_id")
+	}
+
+	// A note on the states below: the AWS docs (as of July, 2014) say
+	// that the states would be: attached, attaching, detached, detaching,
+	// but when running, I noticed that the state is usually "available" when
+	// it is attached.
+
+	// Wait for it to be fully detached before continuing
+	log.Printf("[DEBUG] Waiting for internet gateway (%s) to detach", s.ID)
+	stateConf := &resource.StateChangeConf{
+		Pending: []string{"attached", "detaching", "available"},
+		Target:  "detached",
+		Refresh: IGAttachStateRefreshFunc(ec2conn, s.ID),
+		Timeout: 1 * time.Minute,
+	}
+	if _, err := stateConf.WaitForState(); err != nil {
+		return s, fmt.Errorf(
+			"Error waiting for internet gateway (%s) to detach: %s",
+			s.ID, err)
+	}
+
+	// Attach
+	log.Printf(
+		"[INFO] Attaching Internet Gateway '%s' to VPC '%s'",
+		rs.ID,
+		rs.Attributes["vpc_id"])
+	_, err := ec2conn.AttachInternetGateway(rs.ID, rs.Attributes["vpc_id"])
+	if err != nil {
+		return s, err
+	}
+
+	// Wait for it to be fully attached before continuing
+	log.Printf("[DEBUG] Waiting for internet gateway (%s) to attach", s.ID)
+	stateConf = &resource.StateChangeConf{
+		Pending: []string{"detached", "attaching"},
+		Target:  "available",
+		Refresh: IGAttachStateRefreshFunc(ec2conn, s.ID),
+		Timeout: 1 * time.Minute,
+	}
+	if _, err := stateConf.WaitForState(); err != nil {
+		return rs, fmt.Errorf(
+			"Error waiting for internet gateway (%s) to attach: %s",
+			rs.ID, err)
+	}
+
+	return rs, nil
 }
 
 func resource_aws_internet_gateway_destroy(
@@ -104,7 +160,9 @@ func resource_aws_internet_gateway_diff(
 	c *terraform.ResourceConfig,
 	meta interface{}) (*terraform.ResourceDiff, error) {
 	b := &diff.ResourceBuilder{
-		Attrs: map[string]diff.AttrType{},
+		Attrs: map[string]diff.AttrType{
+			"vpc_id": diff.AttrTypeUpdate,
+		},
 	}
 
 	return b.Diff(s, c)
@@ -139,5 +197,37 @@ func IGStateRefreshFunc(conn *ec2.EC2, id string) resource.StateRefreshFunc {
 
 		ig := &resp.InternetGateways[0]
 		return ig, "available", nil
+	}
+}
+
+// IGAttachStateRefreshFunc returns a resource.StateRefreshFunc that is used
+// watch the state of an internet gateway's attachment.
+func IGAttachStateRefreshFunc(conn *ec2.EC2, id string) resource.StateRefreshFunc {
+	return func() (interface{}, string, error) {
+		resp, err := conn.DescribeInternetGateways([]string{id}, ec2.NewFilter())
+		if err != nil {
+			ec2err, ok := err.(*ec2.Error)
+			if ok && ec2err.Code == "InvalidInternetGatewayID.NotFound" {
+				resp = nil
+			} else {
+				log.Printf("[ERROR] Error on IGStateRefresh: %s", err)
+				return nil, "", err
+			}
+		}
+
+		if resp == nil {
+			// Sometimes AWS just has consistency issues and doesn't see
+			// our instance yet. Return an empty state.
+			return nil, "", nil
+		}
+
+		ig := &resp.InternetGateways[0]
+
+		if len(ig.Attachments) == 0 {
+			// No attachments, we're detached
+			return ig, "detached", nil
+		}
+
+		return ig, ig.Attachments[0].State, nil
 	}
 }
