@@ -181,7 +181,14 @@ func resource_aws_internet_gateway_detach(
 		s.Attributes["vpc_id"])
 	_, err := ec2conn.DetachInternetGateway(s.ID, s.Attributes["vpc_id"])
 	if err != nil {
-		return err
+		ec2err, ok := err.(*ec2.Error)
+		if ok && ec2err.Code == "Gateway.NotAttached" {
+			err = nil
+		}
+
+		if err != nil {
+			return err
+		}
 	}
 
 	delete(s.Attributes, "vpc_id")
