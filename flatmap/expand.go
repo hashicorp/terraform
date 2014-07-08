@@ -61,12 +61,15 @@ func expandMap(m map[string]string, prefix string) map[string]interface{} {
 
 		key := k[len(prefix):]
 		idx := strings.Index(key, ".")
-		if idx == -1 {
-			idx = len(k)
+		if idx != -1 {
+			key = key[:idx]
+		}
+		if _, ok := result[key]; ok {
+			continue
 		}
 
 		// It contains a period, so it is a more complex structure
-		result[key] = Expand(m, k[:idx])
+		result[key] = Expand(m, k[:len(prefix)+len(key)])
 	}
 
 	return result
