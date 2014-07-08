@@ -182,8 +182,12 @@ func resource_aws_internet_gateway_detach(
 	_, err := ec2conn.DetachInternetGateway(s.ID, s.Attributes["vpc_id"])
 	if err != nil {
 		ec2err, ok := err.(*ec2.Error)
-		if ok && ec2err.Code == "Gateway.NotAttached" {
-			err = nil
+		if ok {
+			if ec2err.Code == "InvalidInternetGatewayID.NotFound" {
+				err = nil
+			} else if ec2err.Code == "Gateway.NotAttached" {
+				err = nil
+			}
 		}
 
 		if err != nil {
