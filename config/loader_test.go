@@ -182,7 +182,21 @@ func providerConfigsStr(pcs map[string]*ProviderConfig) string {
 // string value for comparison in tests.
 func resourcesStr(rs []*Resource) string {
 	result := ""
-	for _, r := range rs {
+	order := make([]int, 0, len(rs))
+	ks := make([]string, 0, len(rs))
+	mapping := make(map[string]int)
+	for i, r := range rs {
+		k := fmt.Sprintf("%s[%s]", r.Type, r.Name)
+		ks = append(ks, k)
+		mapping[k] = i
+	}
+	sort.Strings(ks)
+	for _, k := range ks {
+		order = append(order, mapping[k])
+	}
+
+	for _, i := range order {
+		r := rs[i]
 		result += fmt.Sprintf(
 			"%s[%s] (x%d)\n",
 			r.Type,
@@ -275,7 +289,10 @@ do
 `
 
 const basicResourcesStr = `
-aws_security_group[firewall] (x5)
+aws_instance[db] (x1)
+  security_groups
+  vars
+    resource: aws_security_group.firewall.*.id
 aws_instance[web] (x1)
   ami
   network_interface
@@ -283,10 +300,7 @@ aws_instance[web] (x1)
   vars
     resource: aws_security_group.firewall.foo
     user: var.foo
-aws_instance[db] (x1)
-  security_groups
-  vars
-    resource: aws_security_group.firewall.*.id
+aws_security_group[firewall] (x5)
 `
 
 const basicVariablesStr = `
