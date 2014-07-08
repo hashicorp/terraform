@@ -50,6 +50,10 @@ func (m *Map) Apply(
 		result, err = r.Update(s, d, meta)
 	}
 	if result != nil {
+		if result.Attributes == nil {
+			result.Attributes = make(map[string]string)
+		}
+
 		result.Attributes["id"] = result.ID
 	}
 
