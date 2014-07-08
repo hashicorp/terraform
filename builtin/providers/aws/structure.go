@@ -3,7 +3,6 @@ package aws
 import (
 	"github.com/mitchellh/goamz/ec2"
 	"github.com/mitchellh/goamz/elb"
-	"log"
 )
 
 // Takes the result of flatmap.Expand for an array of listeners and
@@ -38,17 +37,18 @@ func expandIPPerms(configured []interface{}) []ec2.IPPerm {
 	// an array of goamz/ec2 compatabile objects
 	for _, perm := range configured {
 		newP := perm.(map[string]interface{})
-		log.Println(newP)
-
 		// Loop over the array of sg ids and built
 		// compatibile goamz objects
-		groups := expandStringList(newP["security_groups"].([]interface{}))
-		expandedGroups := make([]ec2.UserSecurityGroup, 0, len(groups))
-		for _, g := range groups {
-			newG := ec2.UserSecurityGroup{
-				Id: g,
+		expandedGroups := []ec2.UserSecurityGroup{}
+		configGroups, ok := newP["security_groups"].([]interface{})
+		if ok {
+			gs := expandStringList(configGroups)
+			for _, g := range gs {
+				newG := ec2.UserSecurityGroup{
+					Id: g,
+				}
+				expandedGroups = append(expandedGroups, newG)
 			}
-			expandedGroups = append(expandedGroups, newG)
 		}
 
 		// Create the permission objet

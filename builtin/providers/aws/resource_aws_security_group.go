@@ -37,14 +37,20 @@ func resource_aws_security_group_create(
 	group := createResp.SecurityGroup
 
 	log.Printf("[INFO] Security Group ID: %s", rs.ID)
+	ingressRules := []ec2.IPPerm{}
+	egressRules := []ec2.IPPerm{}
 
 	// Expand the "ingress" array to goamz compat []ec2.IPPerm
-	v := flatmap.Expand(rs.Attributes, "ingress").([]interface{})
-	ingressRules := expandIPPerms(v)
+	v, ok := flatmap.Expand(rs.Attributes, "ingress").([]interface{})
+	if ok {
+		ingressRules = expandIPPerms(v)
+	}
 
 	// Expand the "egress" array to goamz compat []ec2.IPPerm
-	v = flatmap.Expand(rs.Attributes, "egress").([]interface{})
-	egressRules := expandIPPerms(v)
+	v, ok = flatmap.Expand(rs.Attributes, "egress").([]interface{})
+	if ok {
+		egressRules = expandIPPerms(v)
+	}
 
 	if len(egressRules) > 0 {
 		_, err = ec2conn.AuthorizeSecurityGroupEgress(group, egressRules)
@@ -53,7 +59,7 @@ func resource_aws_security_group_create(
 		}
 	}
 
-	if len(egressRules) > 0 {
+	if len(ingressRules) > 0 {
 		_, err = ec2conn.AuthorizeSecurityGroup(group, ingressRules)
 		if err != nil {
 			return rs, fmt.Errorf("Error authorizing security group ingress rules: %s", err)
@@ -126,6 +132,8 @@ func resource_aws_security_group_diff(
 			"name":        diff.AttrTypeCreate,
 			"description": diff.AttrTypeCreate,
 			"vpc_id":      diff.AttrTypeUpdate,
+			"ingress":      diff.AttrTypeUpdate,
+			"egress":      diff.AttrTypeUpdate,
 		},
 
 		ComputedAttrs: []string{
@@ -139,8 +147,6 @@ func resource_aws_security_group_diff(
 func resource_aws_security_group_update_state(
 	s *terraform.ResourceState,
 	sg *ec2.SecurityGroupInfo) (*terraform.ResourceState, error) {
-
-	log.Println(sg)
 
 	s.Attributes["description"] = sg.Description
 	s.Attributes["name"] = sg.Name
