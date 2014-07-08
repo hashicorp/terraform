@@ -1,8 +1,10 @@
 package command
 
 import (
+	"fmt"
 	"os"
 	"reflect"
+	"sync"
 	"testing"
 	"time"
 
@@ -64,6 +66,74 @@ func TestApply_configInvalid(t *testing.T) {
 	}
 	if code := c.Run(args); code != 1 {
 		t.Fatalf("bad: \n%s", ui.OutputWriter.String())
+	}
+}
+
+func TestApply_error(t *testing.T) {
+	statePath := testTempFile(t)
+
+	p := testProvider()
+	ui := new(cli.MockUi)
+	c := &ApplyCommand{
+		ContextOpts: testCtxConfig(p),
+		Ui:          ui,
+	}
+
+	var lock sync.Mutex
+	errored := false
+	p.ApplyFn = func(
+		s *terraform.ResourceState,
+		d *terraform.ResourceDiff) (*terraform.ResourceState, error) {
+		lock.Lock()
+		defer lock.Unlock()
+
+		if !errored {
+			errored = true
+			return nil, fmt.Errorf("error")
+		}
+
+		return &terraform.ResourceState{ID: "foo"}, nil
+	}
+	p.DiffFn = func(
+		*terraform.ResourceState,
+		*terraform.ResourceConfig) (*terraform.ResourceDiff, error) {
+		return &terraform.ResourceDiff{
+			Attributes: map[string]*terraform.ResourceAttrDiff{
+				"ami": &terraform.ResourceAttrDiff{
+					New: "bar",
+				},
+			},
+		}, nil
+	}
+
+	args := []string{
+		"-init",
+		statePath,
+		testFixturePath("apply-error"),
+	}
+	if code := c.Run(args); code != 1 {
+		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
+	}
+
+	if _, err := os.Stat(statePath); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	f, err := os.Open(statePath)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	defer f.Close()
+
+	state, err := terraform.ReadState(f)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if state == nil {
+		t.Fatal("state should not be nil")
+	}
+	if len(state.Resources) == 0 {
+		t.Fatal("no resources in state")
 	}
 }
 

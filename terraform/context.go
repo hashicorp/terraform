@@ -738,6 +738,7 @@ func (c *Context) genericWalkFn(cb genericWalkFunc) depgraph.WalkFunc {
 		// Call the callack
 		log.Printf("[INFO] Walking: %s", rn.Resource.Id)
 		if err := cb(rn.Resource); err != nil {
+			log.Printf("[ERROR] Error walking '%s': %s", rn.Resource.Id, err)
 			return err
 		}
 

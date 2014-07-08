@@ -60,20 +60,15 @@ func (c *ApplyCommand) Run(args []string) int {
 		return 1
 	}
 
-	errCh := make(chan error)
-	stateCh := make(chan *terraform.State)
+	var state *terraform.State
+	var applyErr error
+	doneCh := make(chan struct{})
 	go func() {
-		state, err := ctx.Apply()
-		if err != nil {
-			errCh <- err
-			return
-		}
-
-		stateCh <- state
+		defer close(doneCh)
+		state, applyErr = ctx.Apply()
 	}()
 
 	err = nil
-	var state *terraform.State
 	select {
 	case <-c.ShutdownCh:
 		c.Ui.Output("Interrupt received. Gracefully shutting down...")
@@ -88,26 +83,26 @@ func (c *ApplyCommand) Run(args []string) int {
 				"Two interrupts received. Exiting immediately. Note that data\n" +
 					"loss may have occurred.")
 			return 1
-		case state = <-stateCh:
-		case err = <-errCh:
+		case <-doneCh:
 		}
-	case state = <-stateCh:
-	case err = <-errCh:
+	case <-doneCh:
 	}
 
-	if err != nil {
-		c.Ui.Error(fmt.Sprintf("Error applying plan: %s", err))
-		return 1
+	if state != nil {
+		// Write state out to the file
+		f, err := os.Create(stateOutPath)
+		if err == nil {
+			err = terraform.WriteState(state, f)
+			f.Close()
+		}
+		if err != nil {
+			c.Ui.Error(fmt.Sprintf("Failed to save state: %s", err))
+			return 1
+		}
 	}
 
-	// Write state out to the file
-	f, err := os.Create(stateOutPath)
-	if err == nil {
-		err = terraform.WriteState(state, f)
-		f.Close()
-	}
-	if err != nil {
-		c.Ui.Error(fmt.Sprintf("Failed to save state: %s", err))
+	if applyErr != nil {
+		c.Ui.Error(fmt.Sprintf("Error applying plan: %s", applyErr))
 		return 1
 	}
 
