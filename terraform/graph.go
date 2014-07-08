@@ -736,6 +736,11 @@ func graphMapResourceProvisioners(g *depgraph.Graph,
 			continue
 		}
 
+		// Ignore orphan nodes with no provisioners
+		if rn.Config == nil {
+			continue
+		}
+
 		// Check each provisioner
 		for _, p := range rn.Config.Provisioners {
 			// Check for a cached provisioner
