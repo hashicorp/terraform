@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/hashicorp/terraform/flatmap"
+	"github.com/mitchellh/goamz/ec2"
 	"github.com/mitchellh/goamz/elb"
 )
 
@@ -19,7 +20,39 @@ func testConf() map[string]string {
 		"availability_zones.#":         "2",
 		"availability_zones.0":         "us-east-1a",
 		"availability_zones.1":         "us-east-1b",
+		"egress.#":                     "1",
+		"egress.0.protocol":            "icmp",
+		"egress.0.from_port":           "1",
+		"egress.0.to_port":             "-1",
+		"egress.0.cidr_blocks.#":       "1",
+		"egress.0.cidr_blocks.0":       "0.0.0.0/0",
+		"egress.0.security_groups.#":   "1",
+		"egress.0.security_groups.0":   "sg-11111",
 	}
+}
+
+func Test_expandIPPerms(t *testing.T) {
+	expanded := flatmap.Expand(testConf(), "egress").([]interface{})
+	perms := expandIPPerms(expanded)
+	expected := ec2.IPPerm{
+		Protocol:  "icmp",
+		FromPort:  1,
+		ToPort:    -1,
+		SourceIPs: []string{"0.0.0.0/0"},
+		SourceGroups: []ec2.UserSecurityGroup{
+			ec2.UserSecurityGroup{
+				Id: "sg-11111",
+			},
+		},
+	}
+
+	if !reflect.DeepEqual(perms[0], expected) {
+		t.Fatalf(
+			"Got:\n\n%#v\n\nExpected:\n\n%#v\n",
+			perms[0],
+			expected)
+	}
+
 }
 
 func Test_expandListeners(t *testing.T) {

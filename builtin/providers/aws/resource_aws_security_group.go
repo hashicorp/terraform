@@ -6,6 +6,7 @@ import (
 
 	"github.com/hashicorp/terraform/helper/diff"
 	"github.com/hashicorp/terraform/terraform"
+	"github.com/hashicorp/terraform/flatmap"
 	"github.com/mitchellh/goamz/ec2"
 )
 
@@ -33,8 +34,31 @@ func resource_aws_security_group_create(
 	}
 
 	rs.ID = createResp.Id
+	group := createResp.SecurityGroup
 
 	log.Printf("[INFO] Security Group ID: %s", rs.ID)
+
+	// Expand the "ingress" array to goamz compat []ec2.IPPerm
+	v := flatmap.Expand(rs.Attributes, "ingress").([]interface{})
+	ingressRules := expandIPPerms(v)
+
+	// Expand the "egress" array to goamz compat []ec2.IPPerm
+	v = flatmap.Expand(rs.Attributes, "egress").([]interface{})
+	egressRules := expandIPPerms(v)
+
+	if len(egressRules) > 0 {
+		_, err = ec2conn.AuthorizeSecurityGroupEgress(group, egressRules)
+		if err != nil {
+			return rs, fmt.Errorf("Error authorizing security group egress rules: %s", err)
+		}
+	}
+
+	if len(egressRules) > 0 {
+		_, err = ec2conn.AuthorizeSecurityGroup(group, ingressRules)
+		if err != nil {
+			return rs, fmt.Errorf("Error authorizing security group ingress rules: %s", err)
+		}
+	}
 
 	sg, err := resource_aws_security_group_retrieve(rs.ID, ec2conn)
 	if err != nil {
