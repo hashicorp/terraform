@@ -1,6 +1,7 @@
 package aws
 
 import (
+	"github.com/hashicorp/terraform/helper/config"
 	"github.com/hashicorp/terraform/helper/resource"
 )
 
@@ -41,6 +42,9 @@ func init() {
 			},
 
 			"aws_route_table": resource.Resource{
+				ConfigValidator: &config.Validator{
+					Required: []string{"vpc_id"},
+				},
 				Create:  resource_aws_route_table_create,
 				Destroy: resource_aws_route_table_destroy,
 				Diff:    resource_aws_route_table_diff,
