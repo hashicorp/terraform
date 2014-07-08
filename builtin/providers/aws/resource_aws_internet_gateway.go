@@ -122,10 +122,11 @@ func IGStateRefreshFunc(conn *ec2.EC2, id string) resource.StateRefreshFunc {
 	return func() (interface{}, string, error) {
 		resp, err := conn.DescribeInternetGateways([]string{id}, ec2.NewFilter())
 		if err != nil {
-			if ec2err, ok := err.(*ec2.Error); ok && ec2err.Code == "InvalidInternetGatewayID.NotFound" {
+			ec2err, ok := err.(*ec2.Error)
+			if ok && ec2err.Code == "InvalidInternetGatewayID.NotFound" {
 				resp = nil
 			} else {
-				log.Printf("Error on IGStateRefresh: %s", err)
+				log.Printf("[ERROR] Error on IGStateRefresh: %s", err)
 				return nil, "", err
 			}
 		}
