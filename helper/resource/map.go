@@ -13,6 +13,21 @@ type Map struct {
 	Mapping map[string]Resource
 }
 
+func (m *Map) Validate(
+	t string, c *terraform.ResourceConfig) ([]string, []error) {
+	r, ok := m.Mapping[t]
+	if !ok {
+		return nil, []error{fmt.Errorf("Unknown resource type: %s", t)}
+	}
+
+	// If there is no validator set, then it is valid
+	if r.ConfigValidator == nil {
+		return nil, nil
+	}
+
+	return r.ConfigValidator.Validate(c)
+}
+
 // Apply performs a create or update depending on the diff, and calls
 // the proper function on the matching Resource.
 func (m *Map) Apply(

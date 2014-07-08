@@ -1,15 +1,17 @@
 package resource
 
 import (
+	"github.com/hashicorp/terraform/helper/config"
 	"github.com/hashicorp/terraform/terraform"
 )
 
 type Resource struct {
-	Create  CreateFunc
-	Destroy DestroyFunc
-	Diff    DiffFunc
-	Refresh RefreshFunc
-	Update  UpdateFunc
+	ConfigValidator *config.Validator
+	Create          CreateFunc
+	Destroy         DestroyFunc
+	Diff            DiffFunc
+	Refresh         RefreshFunc
+	Update          UpdateFunc
 }
 
 // CreateFunc is a function that creates a resource that didn't previously
