@@ -107,6 +107,15 @@ aws_instance.foo:
   type = aws_instance
 `
 
+const testTerraformApplyMinimalStr = `
+aws_instance.bar:
+  ID = foo
+  type = aws_instance
+aws_instance.foo:
+  ID = foo
+  type = aws_instance
+`
+
 const testTerraformApplyDestroyStr = `
 <no state>
 `
