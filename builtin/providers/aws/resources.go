@@ -43,7 +43,13 @@ func init() {
 
 			"aws_route_table": resource.Resource{
 				ConfigValidator: &config.Validator{
-					Required: []string{"vpc_id"},
+					Required: []string{
+						"vpc_id",
+						"route.*.cidr_block",
+					},
+					Optional: []string{
+						"route.*.gateway_id",
+					}
 				},
 				Create:  resource_aws_route_table_create,
 				Destroy: resource_aws_route_table_destroy,

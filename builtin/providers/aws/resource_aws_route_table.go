@@ -97,6 +97,7 @@ func resource_aws_route_table_diff(
 	b := &diff.ResourceBuilder{
 		Attrs: map[string]diff.AttrType{
 			"vpc_id": diff.AttrTypeCreate,
+			"route":  diff.AttrTypeUpdate,
 		},
 	}
 
