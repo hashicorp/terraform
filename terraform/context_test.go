@@ -161,6 +161,12 @@ func TestContextValidate_provisionerConfig_good(t *testing.T) {
 	config := testConfig(t, "validate-bad-prov-conf")
 	p := testProvider("aws")
 	pr := testProvisioner()
+	pr.ValidateFn = func(c *ResourceConfig) ([]string, []error) {
+		if c == nil {
+			t.Fatalf("missing resource config for provisioner")
+		}
+		return nil, nil
+	}
 	c := testContext(t, &ContextOpts{
 		Config: config,
 		Providers: map[string]ResourceProviderFactory{
