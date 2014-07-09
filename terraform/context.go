@@ -532,12 +532,12 @@ func (c *Context) applyProvisioners(r *Resource, rs *ResourceState) (*ResourceSt
 	for _, prov := range r.Provisioners {
 		// Interpolate since we may have variables that depend on the
 		// local resource.
-		if err := r.Config.interpolate(c); err != nil {
+		if err := prov.Config.interpolate(c); err != nil {
 			return rs, err
 		}
 
 		// Invoke the Provisioner
-		rs, err = prov.Provisioner.Apply(rs, r.Config)
+		rs, err = prov.Provisioner.Apply(rs, prov.Config)
 		if err != nil {
 			return rs, err
 		}

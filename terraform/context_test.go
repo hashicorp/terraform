@@ -352,6 +352,10 @@ func TestContextApply_Provisioner_compute(t *testing.T) {
 	p.ApplyFn = testApplyFn
 	p.DiffFn = testDiffFn
 	pr.ApplyFn = func(rs *ResourceState, c *ResourceConfig) (*ResourceState, error) {
+		val, ok := c.Config["foo"]
+		if !ok || val != "computed_dynamical" {
+			t.Fatalf("bad value for foo: %v %#v", val, c)
+		}
 		return rs, nil
 	}
 	ctx := testContext(t, &ContextOpts{
@@ -362,13 +366,14 @@ func TestContextApply_Provisioner_compute(t *testing.T) {
 		Provisioners: map[string]ResourceProvisionerFactory{
 			"shell": testProvisionerFuncFixed(pr),
 		},
+		Variables: map[string]string{
+			"value": "1",
+		},
 	})
 
 	if _, err := ctx.Plan(nil); err != nil {
 		t.Fatalf("err: %s", err)
 	}
-
-	ctx.variables = map[string]string{"value": "1"}
 
 	state, err := ctx.Apply()
 	if err != nil {
