@@ -12,7 +12,8 @@ func TestResourceState_MergeDiff(t *testing.T) {
 	rs := ResourceState{
 		ID: "foo",
 		Attributes: map[string]string{
-			"foo": "bar",
+			"foo":  "bar",
+			"port": "8000",
 		},
 	}
 
@@ -30,6 +31,9 @@ func TestResourceState_MergeDiff(t *testing.T) {
 				Old:         "",
 				New:         "foo",
 				NewComputed: true,
+			},
+			"port": &ResourceAttrDiff{
+				NewRemoved: true,
 			},
 		},
 	}

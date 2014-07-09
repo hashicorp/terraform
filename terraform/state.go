@@ -247,6 +247,10 @@ func (s *ResourceState) MergeDiff(d *ResourceDiff) *ResourceState {
 	}
 	if d != nil {
 		for k, diff := range d.Attributes {
+			if diff.NewRemoved {
+				delete(result.Attributes, k)
+				continue
+			}
 			if diff.NewComputed {
 				result.Attributes[k] = config.UnknownVariableValue
 				continue
