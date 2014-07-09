@@ -179,14 +179,17 @@ func resource_aws_internet_gateway_detach(
 		"[INFO] Detaching Internet Gateway '%s' from VPC '%s'",
 		s.ID,
 		s.Attributes["vpc_id"])
+	wait := true
 	_, err := ec2conn.DetachInternetGateway(s.ID, s.Attributes["vpc_id"])
 	if err != nil {
 		ec2err, ok := err.(*ec2.Error)
 		if ok {
 			if ec2err.Code == "InvalidInternetGatewayID.NotFound" {
 				err = nil
+				wait = false
 			} else if ec2err.Code == "Gateway.NotAttached" {
 				err = nil
+				wait = false
 			}
 		}
 
@@ -196,6 +199,10 @@ func resource_aws_internet_gateway_detach(
 	}
 
 	delete(s.Attributes, "vpc_id")
+
+	if !wait {
+		return nil
+	}
 
 	// Wait for it to be fully detached before continuing
 	log.Printf("[DEBUG] Waiting for internet gateway (%s) to detach", s.ID)
