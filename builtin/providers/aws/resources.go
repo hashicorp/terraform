@@ -49,7 +49,7 @@ func init() {
 					},
 					Optional: []string{
 						"route.*.gateway_id",
-					}
+					},
 				},
 				Create:  resource_aws_route_table_create,
 				Destroy: resource_aws_route_table_destroy,
