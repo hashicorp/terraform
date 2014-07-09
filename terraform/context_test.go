@@ -542,6 +542,56 @@ func TestContextApply_hook(t *testing.T) {
 	}
 }
 
+func TestContextApply_idAttr(t *testing.T) {
+	c := testConfig(t, "apply-idattr")
+	p := testProvider("aws")
+	ctx := testContext(t, &ContextOpts{
+		Config: c,
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+	})
+
+	p.ApplyFn = func(s *ResourceState, d *ResourceDiff) (*ResourceState, error) {
+		result := s.MergeDiff(d)
+		result.ID = "foo"
+		result.Attributes = map[string]string{
+			"id": "bar",
+		}
+
+		return result, nil
+	}
+	p.DiffFn = func(*ResourceState, *ResourceConfig) (*ResourceDiff, error) {
+		return &ResourceDiff{
+			Attributes: map[string]*ResourceAttrDiff{
+				"num": &ResourceAttrDiff{
+					New: "bar",
+				},
+			},
+		}, nil
+	}
+
+	if _, err := ctx.Plan(nil); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	state, err := ctx.Apply()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	rs, ok := state.Resources["aws_instance.foo"]
+	if !ok {
+		t.Fatal("not in state")
+	}
+	if rs.ID != "foo" {
+		t.Fatalf("bad: %#v", rs.ID)
+	}
+	if rs.Attributes["id"] != "foo" {
+		t.Fatalf("bad: %#v", rs.Attributes)
+	}
+}
+
 func TestContextApply_output(t *testing.T) {
 	c := testConfig(t, "apply-output")
 	p := testProvider("aws")

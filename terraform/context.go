@@ -460,6 +460,15 @@ func (c *Context) applyWalkFn() depgraph.WalkFunc {
 		// Force the resource state type to be our type
 		rs.Type = r.State.Type
 
+		// Force the "id" attribute to be our ID
+		if rs.ID != "" {
+			if rs.Attributes == nil {
+				rs.Attributes = make(map[string]string)
+			}
+
+			rs.Attributes["id"] = rs.ID
+		}
+
 		var errs []error
 		for ak, av := range rs.Attributes {
 			// If the value is the unknown variable value, then it is an error.

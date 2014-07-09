@@ -92,6 +92,10 @@ func (s *State) String() string {
 
 		attrKeys := make([]string, 0, len(rs.Attributes))
 		for ak, _ := range rs.Attributes {
+			if ak == "id" {
+				continue
+			}
+
 			attrKeys = append(attrKeys, ak)
 		}
 		sort.Strings(attrKeys)
