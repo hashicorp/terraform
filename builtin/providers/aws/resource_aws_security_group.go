@@ -133,7 +133,7 @@ func resource_aws_security_group_update_state(
 	s *terraform.ResourceState,
 	sg *ec2.SecurityGroupInfo) (*terraform.ResourceState, error) {
 
-	s.Attributes["description"] = sg.Descriptifon
+	s.Attributes["description"] = sg.Description
 	s.Attributes["name"] = sg.Name
 	s.Attributes["vpc_id"] = sg.VpcId
 	s.Attributes["owner_id"] = sg.OwnerId
