@@ -38,25 +38,11 @@ func resource_aws_security_group_create(
 
 	log.Printf("[INFO] Security Group ID: %s", rs.ID)
 	ingressRules := []ec2.IPPerm{}
-	egressRules := []ec2.IPPerm{}
 
 	// Expand the "ingress" array to goamz compat []ec2.IPPerm
 	v, ok := flatmap.Expand(rs.Attributes, "ingress").([]interface{})
 	if ok {
 		ingressRules = expandIPPerms(v)
-	}
-
-	// Expand the "egress" array to goamz compat []ec2.IPPerm
-	v, ok = flatmap.Expand(rs.Attributes, "egress").([]interface{})
-	if ok {
-		egressRules = expandIPPerms(v)
-	}
-
-	if len(egressRules) > 0 {
-		_, err = ec2conn.AuthorizeSecurityGroupEgress(group, egressRules)
-		if err != nil {
-			return rs, fmt.Errorf("Error authorizing security group egress rules: %s", err)
-		}
 	}
 
 	if len(ingressRules) > 0 {
@@ -133,7 +119,6 @@ func resource_aws_security_group_diff(
 			"description": diff.AttrTypeCreate,
 			"vpc_id":      diff.AttrTypeUpdate,
 			"ingress":     diff.AttrTypeUpdate,
-			"egress":      diff.AttrTypeUpdate,
 		},
 
 		ComputedAttrs: []string{
@@ -148,10 +133,18 @@ func resource_aws_security_group_update_state(
 	s *terraform.ResourceState,
 	sg *ec2.SecurityGroupInfo) (*terraform.ResourceState, error) {
 
-	s.Attributes["description"] = sg.Description
+	s.Attributes["description"] = sg.Descriptifon
 	s.Attributes["name"] = sg.Name
 	s.Attributes["vpc_id"] = sg.VpcId
 	s.Attributes["owner_id"] = sg.OwnerId
+
+	// Flatten our sg values
+	toFlatten := make(map[string]interface{})
+	toFlatten["ingress"] = flattenIPPerms(sg.IPPerms)
+
+	for k, v := range flatmap.Flatten(toFlatten) {
+		s.Attributes[k] = v
+	}
 
 	return s, nil
 }

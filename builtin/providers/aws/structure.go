@@ -66,6 +66,32 @@ func expandIPPerms(configured []interface{}) []ec2.IPPerm {
 	return perms
 }
 
+// Flattens an array of ipPerms into a list of primitives that
+// flatmap.Flatten() can handle
+func flattenIPPerms(list []ec2.IPPerm) []map[string]interface{} {
+	result := make([]map[string]interface{}, 0, len(list))
+
+	for _, perm := range list {
+		n := make(map[string]interface{})
+		n["from_port"] = perm.FromPort
+		n["protocol"] = perm.Protocol
+		n["to_port"] = perm.ToPort
+		n["cidr_blocks"] = perm.SourceIPs
+		n["security_groups"] = flattenSecurityGroups(perm.SourceGroups)
+	}
+
+	return result
+}
+
+// Flattens an array of SecurityGroups into a []string
+func flattenSecurityGroups(list []ec2.UserSecurityGroup) []string {
+	result := make([]string, 0, len(list))
+	for _, g := range list {
+		result = append(result, g.Id)
+	}
+	return result
+}
+
 // Takes the result of flatmap.Expand for an array of strings
 // and returns a []string
 func expandStringList(configured []interface{}) []string {
