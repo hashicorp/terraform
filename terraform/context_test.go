@@ -240,9 +240,7 @@ func TestContextApply_cancel(t *testing.T) {
 	// Start the Apply in a goroutine
 	stateCh := make(chan *State)
 	go func() {
-		println("START")
 		state, err := ctx.Apply()
-		println("STOP")
 		if err != nil {
 			panic(err)
 		}
