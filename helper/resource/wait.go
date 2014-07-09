@@ -36,7 +36,7 @@ type waitResult struct {
 // specified in the configuration using the specified Refresh() func,
 // waiting the number of seconds specified in the timeout configuration.
 func (conf *StateChangeConf) WaitForState() (i interface{}, err error) {
-	log.Printf("Waiting for state to become: %s", conf.Target)
+	log.Printf("[DEBUG] Waiting for state to become: %s", conf.Target)
 
 	notfoundTick := 0
 
@@ -87,10 +87,10 @@ func (conf *StateChangeConf) WaitForState() (i interface{}, err error) {
 					return
 				}
 			}
-		}
 
-		// Wait between refreshes
-		time.Sleep(2 * time.Second)
+			// Wait between refreshes
+			time.Sleep(2 * time.Second)
+		}
 	}()
 
 	select {
