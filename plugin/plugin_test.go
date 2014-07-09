@@ -60,6 +60,12 @@ func TestHelperProcess(*testing.T) {
 			log.Printf("[ERR] %s", err)
 			os.Exit(1)
 		}
+	case "resource-provisioner":
+		err := Serve(new(terraform.MockResourceProvisioner))
+		if err != nil {
+			log.Printf("[ERR] %s", err)
+			os.Exit(1)
+		}
 	case "invalid-rpc-address":
 		fmt.Println("lolinvalid")
 	case "mock":
