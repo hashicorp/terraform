@@ -46,6 +46,45 @@ func TestResourceBuilder_complex(t *testing.T) {
 	}
 }
 
+func TestResourceBuilder_complexReplace(t *testing.T) {
+	rb := &ResourceBuilder{
+		Attrs: map[string]AttrType{
+			"listener": AttrTypeUpdate,
+		},
+	}
+
+	state := &terraform.ResourceState{
+		ID: "foo",
+		Attributes: map[string]string{
+			"ignore":          "1",
+			"listener.#":      "1",
+			"listener.0.port": "80",
+		},
+	}
+
+	c := testConfig(t, map[string]interface{}{
+		"listener": []interface{}{
+			map[interface{}]interface{}{
+				"value": "50",
+			},
+		},
+	}, nil)
+
+	diff, err := rb.Diff(state, c)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if diff == nil {
+		t.Fatal("should not be nil")
+	}
+
+	actual := testResourceDiffStr(diff)
+	expected := testRBComplexReplaceDiff
+	if actual != expected {
+		t.Fatalf("bad: %s", actual)
+	}
+}
+
 func TestResourceBuilder_new(t *testing.T) {
 	rb := &ResourceBuilder{
 		Attrs: map[string]AttrType{
@@ -198,6 +237,11 @@ func TestResourceBuilder_vars(t *testing.T) {
 
 const testRBComplexDiff = `UPDATE
   IN  listener.0.port: "80" => "3000"
+`
+
+const testRBComplexReplaceDiff = `UPDATE
+  IN  listener.0.port:  "80" => ""
+  IN  listener.0.value: "" => "50"
 `
 
 const testRBNewDiff = `UPDATE

@@ -55,45 +55,70 @@ func (b *ResourceBuilder) Diff(
 	flatRaw := flatmap.Flatten(c.Raw)
 	flatConfig := flatmap.Flatten(c.Config)
 
-	for k, v := range flatRaw {
-		// Make sure this is an attribute that actually affects
-		// the diff in some way.
-		var attr AttrType
-		for ak, at := range b.Attrs {
-			if strings.HasPrefix(k, ak) {
-				attr = at
-				break
+	for ak, at := range b.Attrs {
+		// Keep track of all the keys we saw in the raw structure
+		// so that we can prune our attributes later.
+		seenKeys := make([]string, 0)
+
+		// Go through and find the added/changed keys in flatRaw
+		for k, v := range flatRaw {
+			// Find only the attributes that match our prefix
+			if !strings.HasPrefix(k, ak) {
+				continue
+			}
+
+			// Track that we saw this key
+			seenKeys = append(seenKeys, k)
+
+			// If this key is in the cleaned config, then use that value
+			// because it'll have its variables properly interpolated
+			if cleanV, ok := flatConfig[k]; ok {
+				v = cleanV
+			}
+
+			oldV, ok := s.Attributes[k]
+
+			// If there is an old value and they're the same, no change
+			if ok && oldV == v {
+				continue
+			}
+
+			// Record the change
+			attrs[k] = &terraform.ResourceAttrDiff{
+				Old:  oldV,
+				New:  v,
+				Type: terraform.DiffAttrInput,
+			}
+
+			// If this requires a new resource, record that and flag our
+			// boolean.
+			if at == AttrTypeCreate {
+				attrs[k].RequiresNew = true
+				requiresNew = true
 			}
 		}
-		if attr == AttrTypeUnknown {
-			continue
+
+		// Go through our attribues and find the deleted keys
+		matchingKeys := make(map[string]struct{})
+		for k, _ := range s.Attributes {
+			// Find only the attributes that match our prefix
+			if !strings.HasPrefix(k, ak) {
+				continue
+			}
+
+			matchingKeys[k] = struct{}{}
 		}
 
-		// If this key is in the cleaned config, then use that value
-		// because it'll have its variables properly interpolated
-		if cleanV, ok := flatConfig[k]; ok {
-			v = cleanV
+		// Delete the keys we saw to find the deleted keys
+		for _, k := range seenKeys {
+			delete(matchingKeys, k)
 		}
-
-		oldV, ok := s.Attributes[k]
-
-		// If there is an old value and they're the same, no change
-		if ok && oldV == v {
-			continue
-		}
-
-		// Record the change
-		attrs[k] = &terraform.ResourceAttrDiff{
-			Old:  oldV,
-			New:  v,
-			Type: terraform.DiffAttrInput,
-		}
-
-		// If this requires a new resource, record that and flag our
-		// boolean.
-		if attr == AttrTypeCreate {
-			attrs[k].RequiresNew = true
-			requiresNew = true
+		for k, _ := range matchingKeys {
+			attrs[k] = &terraform.ResourceAttrDiff{
+				Old:  s.Attributes[k],
+				New:  "",
+				Type: terraform.DiffAttrInput,
+			}
 		}
 	}
 
