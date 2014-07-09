@@ -339,6 +339,48 @@ func TestContextApply_compute(t *testing.T) {
 	}
 }
 
+func TestContextApply_Provisioner_compute(t *testing.T) {
+	c := testConfig(t, "apply-provisioner-compute")
+	p := testProvider("aws")
+	pr := testProvisioner()
+	p.ApplyFn = testApplyFn
+	p.DiffFn = testDiffFn
+	pr.ApplyFn = func(rs *ResourceState, c *ResourceConfig) (*ResourceState, error) {
+		return rs, nil
+	}
+	ctx := testContext(t, &ContextOpts{
+		Config: c,
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+		Provisioners: map[string]ResourceProvisionerFactory{
+			"shell": testProvisionerFuncFixed(pr),
+		},
+	})
+
+	if _, err := ctx.Plan(nil); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	ctx.variables = map[string]string{"value": "1"}
+
+	state, err := ctx.Apply()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	actual := strings.TrimSpace(state.String())
+	expected := strings.TrimSpace(testTerraformApplyProvisionerStr)
+	if actual != expected {
+		t.Fatalf("bad: \n%s", actual)
+	}
+
+	// Verify apply was invoked
+	if !pr.ApplyCalled {
+		t.Fatalf("provisioner not invoked")
+	}
+}
+
 func TestContextApply_destroy(t *testing.T) {
 	c := testConfig(t, "apply-destroy")
 	h := new(HookRecordApplyOrder)
