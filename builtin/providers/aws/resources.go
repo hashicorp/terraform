@@ -12,6 +12,13 @@ var resourceMap *resource.Map
 func init() {
 	resourceMap = &resource.Map{
 		Mapping: map[string]resource.Resource{
+			"aws_autoscaling_group": resource.Resource{
+				Create:  resource_aws_autoscaling_group_create,
+				Destroy: resource_aws_autoscaling_group_destroy,
+				Diff:    resource_aws_autoscaling_group_diff,
+				Refresh: resource_aws_autoscaling_group_refresh,
+			},
+
 			"aws_elb": resource.Resource{
 				Create:  resource_aws_elb_create,
 				Update:  resource_aws_elb_update,

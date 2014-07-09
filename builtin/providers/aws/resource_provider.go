@@ -6,6 +6,7 @@ import (
 	"github.com/hashicorp/terraform/helper/config"
 	"github.com/hashicorp/terraform/helper/multierror"
 	"github.com/hashicorp/terraform/terraform"
+	"github.com/mitchellh/goamz/autoscaling"
 	"github.com/mitchellh/goamz/ec2"
 	"github.com/mitchellh/goamz/elb"
 )
@@ -13,8 +14,9 @@ import (
 type ResourceProvider struct {
 	Config Config
 
-	ec2conn *ec2.EC2
-	elbconn *elb.ELB
+	ec2conn         *ec2.EC2
+	elbconn         *elb.ELB
+	autoscalingconn *autoscaling.AutoScaling
 }
 
 func (p *ResourceProvider) Validate(c *terraform.ResourceConfig) ([]string, []error) {
@@ -51,6 +53,8 @@ func (p *ResourceProvider) Configure(c *terraform.ResourceConfig) error {
 		p.ec2conn = ec2.New(auth, region)
 		log.Println("Initializing ELB connection")
 		p.elbconn = elb.New(auth, region)
+		log.Println("Initializing AutoScaling connection")
+		p.autoscalingconn = autoscaling.New(auth, region)
 	}
 
 	if len(errs) > 0 {

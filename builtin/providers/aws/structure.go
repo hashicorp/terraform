@@ -1,6 +1,7 @@
 package aws
 
 import (
+	"github.com/mitchellh/goamz/autoscaling"
 	"github.com/mitchellh/goamz/ec2"
 	"github.com/mitchellh/goamz/elb"
 )
@@ -88,6 +89,24 @@ func flattenSecurityGroups(list []ec2.UserSecurityGroup) []string {
 	result := make([]string, 0, len(list))
 	for _, g := range list {
 		result = append(result, g.Id)
+	}
+	return result
+}
+
+// Flattens an array of AvailabilityZones into a []string
+func flattenAvailabilityZones(list []autoscaling.AvailabilityZone) []string {
+	result := make([]string, 0, len(list))
+	for _, g := range list {
+		result = append(result, g.AvailabilityZone)
+	}
+	return result
+}
+
+// Flattens an array of LoadBalancerName into a []string
+func flattenLoadBalancers(list []autoscaling.LoadBalancerName) []string {
+	result := make([]string, 0, len(list))
+	for _, g := range list {
+		result = append(result, g.LoadBalancerName)
 	}
 	return result
 }
