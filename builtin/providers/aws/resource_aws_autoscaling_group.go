@@ -21,7 +21,6 @@ func resource_aws_autoscaling_group_create(
 	// Merge the diff into the state so that we have all the attributes
 	// properly.
 	rs := s.MergeDiff(d)
-	log.Println(rs.Attributes["availability_zones"])
 
 	var err error
 	autoScalingGroupOpts := autoscaling.CreateAutoScalingGroup{}
@@ -50,17 +49,17 @@ func resource_aws_autoscaling_group_create(
 		return nil, fmt.Errorf("Error parsing configuration: %s", err)
 	}
 
-	if rs.Attributes["availability_zones"] != "" {
+	if _, ok := rs.Attributes["availability_zones.#"]; ok {
 		autoScalingGroupOpts.AvailZone = expandStringList(flatmap.Expand(
 			rs.Attributes, "availability_zones").([]interface{}))
 	}
 
-	if rs.Attributes["load_balancers"] != "" {
+	if _, ok := rs.Attributes["load_balancers.#"]; ok {
 		autoScalingGroupOpts.LoadBalancerNames = expandStringList(flatmap.Expand(
 			rs.Attributes, "load_balancers").([]interface{}))
 	}
 
-	if rs.Attributes["vpc_identifier"] != "" {
+	if _, ok := rs.Attributes["vpc_identifier.#"]; ok {
 		autoScalingGroupOpts.VPCZoneIdentifier = expandStringList(flatmap.Expand(
 			rs.Attributes, "vpc_identifier").([]interface{}))
 	}
@@ -154,7 +153,7 @@ func resource_aws_autoscaling_group_diff(
 			"launch_configuration":      diff.AttrTypeCreate,
 			"vpc_zone_identifier":       diff.AttrTypeCreate,
 			"load_balancers":            diff.AttrTypeCreate,
-			"availability_zones":        diff.AttrTypeCreate,
+			"availability_zone":         diff.AttrTypeCreate,
 		},
 
 		ComputedAttrs: []string{},
@@ -177,9 +176,15 @@ func resource_aws_autoscaling_group_update_state(
 	s.Attributes["launch_configuration"] = g.LaunchConfigurationName
 	s.Attributes["vpc_zone_identifier"] = g.VPCZoneIdentifier
 
-	// Flatten our sg values
+	// Flatten our group values
 	toFlatten := make(map[string]interface{})
-	toFlatten["load_balancers"] = flattenLoadBalancers(g.LoadBalancerNames)
+
+	// Special case the return of amazons load balancers names in the XML having
+	// a blank entry
+	if len(g.LoadBalancerNames) > 0 && g.LoadBalancerNames[0].LoadBalancerName != "" {
+		toFlatten["load_balancers"] = flattenLoadBalancers(g.LoadBalancerNames)
+	}
+
 	toFlatten["availability_zones"] = flattenAvailabilityZones(g.AvailabilityZones)
 
 	for k, v := range flatmap.Flatten(toFlatten) {

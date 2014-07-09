@@ -106,7 +106,9 @@ func flattenAvailabilityZones(list []autoscaling.AvailabilityZone) []string {
 func flattenLoadBalancers(list []autoscaling.LoadBalancerName) []string {
 	result := make([]string, 0, len(list))
 	for _, g := range list {
-		result = append(result, g.LoadBalancerName)
+		if g.LoadBalancerName != "" {
+			result = append(result, g.LoadBalancerName)
+		}
 	}
 	return result
 }
