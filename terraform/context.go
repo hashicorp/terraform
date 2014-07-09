@@ -814,14 +814,6 @@ func (c *Context) genericWalkFn(cb genericWalkFunc) depgraph.WalkFunc {
 			} else {
 				rn.Resource.Config = NewResourceConfig(rn.Config.RawConfig)
 			}
-
-			for _, prov := range rn.Resource.Provisioners {
-				if prov.RawConfig == nil {
-					prov.Config = new(ResourceConfig)
-				} else {
-					prov.Config = NewResourceConfig(prov.RawConfig)
-				}
-			}
 		} else {
 			rn.Resource.Config = nil
 		}

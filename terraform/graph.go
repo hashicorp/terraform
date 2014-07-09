@@ -772,6 +772,7 @@ func graphMapResourceProvisioners(g *depgraph.Graph,
 			// Save the provisioner
 			rn.Resource.Provisioners = append(rn.Resource.Provisioners, &ResourceProvisionerConfig{
 				Provisioner: provisioner,
+				Config:      NewResourceConfig(p.RawConfig),
 				RawConfig:   p.RawConfig,
 			})
 		}
