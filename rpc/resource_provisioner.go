@@ -1,8 +1,9 @@
 package rpc
 
 import (
-	"github.com/hashicorp/terraform/terraform"
 	"net/rpc"
+
+	"github.com/hashicorp/terraform/terraform"
 )
 
 // ResourceProvisioner is an implementation of terraform.ResourceProvisioner
