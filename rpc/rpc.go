@@ -23,6 +23,9 @@ func Register(server *rpc.Server, thing interface{}) (name string, err error) {
 	case terraform.ResourceProvider:
 		name = fmt.Sprintf("Terraform%d", nextId)
 		err = server.RegisterName(name, &ResourceProviderServer{Provider: t})
+	case terraform.ResourceProvisioner:
+		name = fmt.Sprintf("Terraform%d", nextId)
+		err = server.RegisterName(name, &ResourceProvisionerServer{Provisioner: t})
 	default:
 		return "", errors.New("Unknown type to register for RPC server.")
 	}
