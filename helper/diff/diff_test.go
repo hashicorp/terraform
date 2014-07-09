@@ -58,6 +58,9 @@ func testResourceDiffStr(rd *terraform.ResourceDiff) string {
 		if attrDiff.NewComputed {
 			v = "<computed>"
 		}
+		if attrDiff.NewRemoved {
+			v = "<removed>"
+		}
 
 		newResource := ""
 		if attrDiff.RequiresNew {

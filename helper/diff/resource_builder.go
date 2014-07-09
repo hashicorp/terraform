@@ -115,9 +115,9 @@ func (b *ResourceBuilder) Diff(
 		}
 		for k, _ := range matchingKeys {
 			attrs[k] = &terraform.ResourceAttrDiff{
-				Old:  s.Attributes[k],
-				New:  "",
-				Type: terraform.DiffAttrInput,
+				Old:        s.Attributes[k],
+				NewRemoved: true,
+				Type:       terraform.DiffAttrInput,
 			}
 		}
 	}

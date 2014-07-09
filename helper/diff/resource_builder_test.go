@@ -240,7 +240,7 @@ const testRBComplexDiff = `UPDATE
 `
 
 const testRBComplexReplaceDiff = `UPDATE
-  IN  listener.0.port:  "80" => ""
+  IN  listener.0.port:  "80" => "<removed>"
   IN  listener.0.value: "" => "50"
 `
 

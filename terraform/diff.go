@@ -165,6 +165,7 @@ type ResourceAttrDiff struct {
 	Old         string      // Old Value
 	New         string      // New Value
 	NewComputed bool        // True if new value is computed (unknown currently)
+	NewRemoved  bool        // True if this attribute is being removed
 	NewExtra    interface{} // Extra information for the provider
 	RequiresNew bool        // True if change requires new resource
 	Type        DiffAttrType
