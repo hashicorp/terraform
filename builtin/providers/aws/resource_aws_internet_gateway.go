@@ -288,7 +288,7 @@ func IGAttachStateRefreshFunc(conn *ec2.EC2, id string, expected string) resourc
 
 		ig := &resp.InternetGateways[0]
 
-		if time.Now().Sub(start) > 5 * time.Second {
+		if time.Now().Sub(start) > 10 * time.Second {
 			return ig, expected, nil
 		}
 
