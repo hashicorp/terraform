@@ -2,7 +2,6 @@ package aws
 
 import (
 	"fmt"
-	"log"
 	"testing"
 
 	"github.com/hashicorp/terraform/helper/resource"
