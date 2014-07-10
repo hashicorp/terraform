@@ -1,6 +1,7 @@
 package aws
 
 import (
+	"os"
 	"strings"
 	"unicode"
 
@@ -34,6 +35,10 @@ func (c *Config) AWSAuth() (aws.Auth, error) {
 func (c *Config) AWSRegion() (aws.Region, error) {
 	if c.Region != "" {
 		return aws.Regions[c.Region], nil
+	}
+
+	if v := os.Getenv("AWS_REGION"); v != "" {
+		return aws.Regions[v], nil
 	}
 
 	md, err := aws.GetMetaData("placement/availability-zone")
