@@ -48,6 +48,13 @@ func init() {
 				Refresh: resource_aws_internet_gateway_refresh,
 			},
 
+			"aws_launch_configuration": resource.Resource{
+				Create:  resource_aws_launch_configuration_create,
+				Destroy: resource_aws_launch_configuration_destroy,
+				Diff:    resource_aws_launch_configuration_diff,
+				Refresh: resource_aws_launch_configuration_refresh,
+			},
+
 			"aws_route_table": resource.Resource{
 				ConfigValidator: &config.Validator{
 					Required: []string{

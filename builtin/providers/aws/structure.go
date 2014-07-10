@@ -84,11 +84,20 @@ func flattenIPPerms(list []ec2.IPPerm) []map[string]interface{} {
 	return result
 }
 
-// Flattens an array of SecurityGroups into a []string
+// Flattens an array of UserSecurityGroups into a []string
 func flattenSecurityGroups(list []ec2.UserSecurityGroup) []string {
 	result := make([]string, 0, len(list))
 	for _, g := range list {
 		result = append(result, g.Id)
+	}
+	return result
+}
+
+// Flattens an array of SecurityGroups into a []string
+func flattenAutoscalingSecurityGroups(list []autoscaling.SecurityGroup) []string {
+	result := make([]string, 0, len(list))
+	for _, g := range list {
+		result = append(result, g.SecurityGroup)
 	}
 	return result
 }
