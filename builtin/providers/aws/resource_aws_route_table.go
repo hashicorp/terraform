@@ -18,12 +18,9 @@ func resource_aws_route_table_create(
 	p := meta.(*ResourceProvider)
 	ec2conn := p.ec2conn
 
-	// Merge the diff so that we have all the proper attributes
-	s = s.MergeDiff(d)
-
 	// Create the routing table
 	createOpts := &ec2.CreateRouteTable{
-		VpcId: s.Attributes["vpc_id"],
+		VpcId: d.Attributes["vpc_id"].New,
 	}
 	log.Printf("[DEBUG] RouteTable create config: %#v", createOpts)
 	resp, err := ec2conn.CreateRouteTable(createOpts)
