@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"math"
 	"time"
 )
 
@@ -43,7 +44,13 @@ func (conf *StateChangeConf) WaitForState() (i interface{}, err error) {
 	result := make(chan waitResult, 1)
 
 	go func() {
-		for {
+		for tries := 0; ; tries++ {
+			// Wait between refreshes
+			wait := time.Duration(math.Pow(2, float64(tries))) *
+				100 * time.Millisecond
+			log.Printf("[TRACE] Waiting %s before next try", wait)
+			time.Sleep(wait)
+
 			var currentState string
 			i, currentState, err = conf.Refresh()
 			if err != nil {
@@ -87,9 +94,6 @@ func (conf *StateChangeConf) WaitForState() (i interface{}, err error) {
 					return
 				}
 			}
-
-			// Wait between refreshes
-			time.Sleep(2 * time.Second)
 		}
 	}()
 
