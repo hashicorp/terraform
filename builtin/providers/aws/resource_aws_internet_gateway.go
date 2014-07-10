@@ -156,7 +156,7 @@ func resource_aws_internet_gateway_attach(
 	stateConf := &resource.StateChangeConf{
 		Pending: []string{"detached", "attaching"},
 		Target:  "available",
-		Refresh: IGAttachStateRefreshFunc(ec2conn, s.ID),
+		Refresh: IGAttachStateRefreshFunc(ec2conn, s.ID, "available"),
 		Timeout: 1 * time.Minute,
 	}
 	if _, err := stateConf.WaitForState(); err != nil {
@@ -209,7 +209,7 @@ func resource_aws_internet_gateway_detach(
 	stateConf := &resource.StateChangeConf{
 		Pending: []string{"attached", "detaching", "available"},
 		Target:  "detached",
-		Refresh: IGAttachStateRefreshFunc(ec2conn, s.ID),
+		Refresh: IGAttachStateRefreshFunc(ec2conn, s.ID, "detached"),
 		Timeout: 1 * time.Minute,
 	}
 	if _, err := stateConf.WaitForState(); err != nil {
@@ -262,8 +262,13 @@ func IGStateRefreshFunc(conn *ec2.EC2, id string) resource.StateRefreshFunc {
 
 // IGAttachStateRefreshFunc returns a resource.StateRefreshFunc that is used
 // watch the state of an internet gateway's attachment.
-func IGAttachStateRefreshFunc(conn *ec2.EC2, id string) resource.StateRefreshFunc {
+func IGAttachStateRefreshFunc(conn *ec2.EC2, id string, expected string) resource.StateRefreshFunc {
+	var start time.Time
 	return func() (interface{}, string, error) {
+		if start.IsZero() {
+			start = time.Now()
+		}
+
 		resp, err := conn.DescribeInternetGateways([]string{id}, ec2.NewFilter())
 		if err != nil {
 			ec2err, ok := err.(*ec2.Error)
@@ -282,6 +287,10 @@ func IGAttachStateRefreshFunc(conn *ec2.EC2, id string) resource.StateRefreshFun
 		}
 
 		ig := &resp.InternetGateways[0]
+
+		if time.Now().Sub(start) > 5 * time.Second {
+			return ig, expected, nil
+		}
 
 		if len(ig.Attachments) == 0 {
 			// No attachments, we're detached
