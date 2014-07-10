@@ -17,7 +17,10 @@ func TestAccVpc(t *testing.T) {
 		Steps: []resource.TestStep{
 			resource.TestStep{
 				Config: testAccVpcConfig,
-				Check:  testAccCheckVpcExists("aws_vpc.foo"),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckVpcExists("aws_vpc.foo"),
+					testAccCheckVpcCidr("aws_vpc.foo", "10.1.0.0/16"),
+				),
 			},
 		},
 	})
@@ -52,6 +55,26 @@ func testAccCheckVpcDestroy(s *terraform.State) error {
 	}
 
 	return nil
+}
+
+func testAccCheckVpcCidr(n, expected string) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		rs, ok := s.Resources[n]
+		if !ok {
+			return fmt.Errorf("Not found: %s", n)
+		}
+
+		v, ok := rs.Attributes["cidr_block"]
+		if !ok {
+			return fmt.Errorf("No cidr_block")
+		}
+
+		if v != expected {
+			return fmt.Errorf("Bad cidr: %s", v)
+		}
+
+		return nil
+	}
 }
 
 func testAccCheckVpcExists(n string) resource.TestCheckFunc {
