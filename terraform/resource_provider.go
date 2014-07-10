@@ -69,6 +69,14 @@ type ResourceType struct {
 // of a resource provider.
 type ResourceProviderFactory func() (ResourceProvider, error)
 
+// ResourceProviderFactoryFixed is a helper that creates a
+// ResourceProviderFactory that just returns some fixed provider.
+func ResourceProviderFactoryFixed(p ResourceProvider) ResourceProviderFactory {
+	return func() (ResourceProvider, error) {
+		return p, nil
+	}
+}
+
 func ProviderSatisfies(p ResourceProvider, n string) bool {
 	for _, rt := range p.Resources() {
 		if rt.Name == n {
