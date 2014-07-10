@@ -3,6 +3,7 @@ package localexec
 import (
 	"io/ioutil"
 	"os"
+	"strings"
 	"testing"
 
 	"github.com/hashicorp/terraform/config"
@@ -31,8 +32,10 @@ func TestResourceProvider_Apply(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 
-	if string(raw) != "foo\n" {
-		t.Fatalf("bad: %s", raw)
+	actual := strings.TrimSpace(string(raw))
+	expected := "foo"
+	if actual != expected {
+		t.Fatalf("bad: %#v", actual)
 	}
 }
 
