@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"log"
 	"os"
 	"strings"
 	"testing"
@@ -101,6 +102,7 @@ func Test(t TestT, c TestCase) {
 	// Go through each step and run it
 	for i, step := range c.Steps {
 		var err error
+		log.Printf("[WARN] Test: Executing step %d", i)
 		state, err = testStep(opts, state, step)
 		if err != nil {
 			t.Error(fmt.Sprintf(
@@ -117,6 +119,7 @@ func Test(t TestT, c TestCase) {
 			Destroy: true,
 		}
 
+		log.Printf("[WARN] Test: Executing destroy step")
 		state, err := testStep(opts, state, destroyStep)
 		if err != nil {
 			t.Error(fmt.Sprintf(
@@ -126,6 +129,8 @@ func Test(t TestT, c TestCase) {
 				err,
 				state))
 		}
+	} else {
+		log.Printf("[WARN] Skipping destroy test since there is no state.")
 	}
 }
 
@@ -166,6 +171,7 @@ func testStep(
 
 	// Build the context
 	opts.Config = config
+	opts.State = state
 	ctx := terraform.NewContext(&opts)
 	if ws, es := ctx.Validate(); len(ws) > 0 || len(es) > 0 {
 		return state, fmt.Errorf(
