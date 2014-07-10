@@ -1,8 +1,8 @@
 package aws
 
 import (
-	"os"
 	"log"
+	"os"
 	"reflect"
 	"testing"
 

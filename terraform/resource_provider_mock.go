@@ -1,8 +1,14 @@
 package terraform
 
+import (
+	"sync"
+)
+
 // MockResourceProvider implements ResourceProvider but mocks out all the
 // calls for testing purposes.
 type MockResourceProvider struct {
+	sync.Mutex
+
 	// Anything you want, in case you need to store extra data with the mock.
 	Meta interface{}
 
@@ -40,12 +46,18 @@ type MockResourceProvider struct {
 }
 
 func (p *MockResourceProvider) Validate(c *ResourceConfig) ([]string, []error) {
+	p.Lock()
+	defer p.Unlock()
+
 	p.ValidateCalled = true
 	p.ValidateConfig = c
 	return p.ValidateReturnWarns, p.ValidateReturnErrors
 }
 
 func (p *MockResourceProvider) ValidateResource(t string, c *ResourceConfig) ([]string, []error) {
+	p.Lock()
+	defer p.Unlock()
+
 	p.ValidateResourceCalled = true
 	p.ValidateResourceType = t
 	p.ValidateResourceConfig = c
@@ -53,6 +65,9 @@ func (p *MockResourceProvider) ValidateResource(t string, c *ResourceConfig) ([]
 }
 
 func (p *MockResourceProvider) Configure(c *ResourceConfig) error {
+	p.Lock()
+	defer p.Unlock()
+
 	p.ConfigureCalled = true
 	p.ConfigureConfig = c
 	return p.ConfigureReturnError
@@ -61,6 +76,9 @@ func (p *MockResourceProvider) Configure(c *ResourceConfig) error {
 func (p *MockResourceProvider) Apply(
 	state *ResourceState,
 	diff *ResourceDiff) (*ResourceState, error) {
+	p.Lock()
+	defer p.Unlock()
+
 	p.ApplyCalled = true
 	p.ApplyState = state
 	p.ApplyDiff = diff
@@ -74,6 +92,9 @@ func (p *MockResourceProvider) Apply(
 func (p *MockResourceProvider) Diff(
 	state *ResourceState,
 	desired *ResourceConfig) (*ResourceDiff, error) {
+	p.Lock()
+	defer p.Unlock()
+
 	p.DiffCalled = true
 	p.DiffState = state
 	p.DiffDesired = desired
@@ -86,6 +107,9 @@ func (p *MockResourceProvider) Diff(
 
 func (p *MockResourceProvider) Refresh(
 	s *ResourceState) (*ResourceState, error) {
+	p.Lock()
+	defer p.Unlock()
+
 	p.RefreshCalled = true
 	p.RefreshState = s
 
@@ -97,6 +121,9 @@ func (p *MockResourceProvider) Refresh(
 }
 
 func (p *MockResourceProvider) Resources() []ResourceType {
+	p.Lock()
+	defer p.Unlock()
+
 	p.ResourcesCalled = true
 	return p.ResourcesReturn
 }
