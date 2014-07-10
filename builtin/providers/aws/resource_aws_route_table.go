@@ -108,7 +108,7 @@ func resource_aws_route_table_update(
 		"route": resultRoutes,
 	}))
 
-	return rs, nil
+	return rs, err
 }
 
 func resource_aws_route_table_destroy(
@@ -205,9 +205,9 @@ func routeTableOps(a interface{}, b interface{}) []routeTableOp {
 	// Build up the actual ec2.Route objects
 	oldRoutes := make(map[string]ec2.Route)
 	newRoutes := make(map[string]ec2.Route)
-	for _, raws := range []interface{}{a, b} {
+	for i, raws := range []interface{}{a, b} {
 		result := oldRoutes
-		if raws == b {
+		if i == 1 {
 			result = newRoutes
 		}
 
