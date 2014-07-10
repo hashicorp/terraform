@@ -2,7 +2,6 @@ CGO_CFLAGS:=-I$(CURDIR)/vendor/libucl/include
 CGO_LDFLAGS:=-L$(CURDIR)/vendor/libucl
 LIBUCL_NAME=libucl.a
 TEST?=./...
-TESTARGS?=-timeout=5s
 
 # Windows-only
 ifeq ($(OS), Windows_NT)
@@ -23,7 +22,14 @@ dev: libucl
 libucl: vendor/libucl/$(LIBUCL_NAME)
 
 test: libucl
-	go test $(TEST) $(TESTARGS)
+	go test $(TEST) $(TESTARGS) -timeout=10s
+
+testacc: libucl
+	@if [ "$(TEST)" = "./..." ]; then \
+		echo "ERROR: Set TEST to a specific package"; \
+		exit 1; \
+	fi
+	TF_ACC=1 go test $(TEST) -v $(TESTARGS)
 
 testrace: libucl
 	go test -race $(TEST) $(TESTARGS)

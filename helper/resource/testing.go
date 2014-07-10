@@ -1,0 +1,214 @@
+package resource
+
+import (
+	"fmt"
+	"io"
+	"io/ioutil"
+	"log"
+	"os"
+	"strings"
+	"testing"
+
+	"github.com/hashicorp/terraform/config"
+	"github.com/hashicorp/terraform/terraform"
+)
+
+const TestEnvVar = "TF_ACC"
+
+// TestCheckFunc is the callback type used with acceptance tests to check
+// the state of a resource. The state passed in is the latest state known,
+// or in the case of being after a destroy, it is the last known state when
+// it was created.
+type TestCheckFunc func(*terraform.State) error
+
+// TestCase is a single acceptance test case used to test the apply/destroy
+// lifecycle of a resource in a specific configuration.
+//
+// When the destroy plan is executed, the config from the last TestStep
+// is used to plan it.
+type TestCase struct {
+	// Provider is the ResourceProvider that will be under test.
+	Providers map[string]terraform.ResourceProvider
+
+	// CheckDestroy is called after the resource is finally destroyed
+	// to allow the tester to test that the resource is truly gone.
+	CheckDestroy TestCheckFunc
+
+	// Steps are the apply sequences done within the context of the
+	// same state. Each step can have its own check to verify correctness.
+	Steps []TestStep
+}
+
+// TestStep is a single apply sequence of a test, done within the
+// context of a state.
+//
+// Multiple TestSteps can be sequenced in a Test to allow testing
+// potentially complex update logic. In general, simply create/destroy
+// tests will only need one step.
+type TestStep struct {
+	// Config a string of the configuration to give to Terraform.
+	Config string
+
+	// Check is called after the Config is applied. Use this step to
+	// make your own API calls to check the status of things, and to
+	// inspect the format of the ResourceState itself.
+	//
+	// If an error is returned, the test will fail. In this case, a
+	// destroy plan will still be attempted.
+	//
+	// If this is nil, no check is done on this step.
+	Check TestCheckFunc
+
+	// Destroy will create a destroy plan if set to true.
+	Destroy bool
+}
+
+// Test performs an acceptance test on a resource.
+//
+// Tests are not run unless an environmental variable "TF_ACC" is
+// set to some non-empty value. This is to avoid test cases surprising
+// a user by creating real resources.
+//
+// Tests will fail unless the verbose flag (`go test -v`, or explicitly
+// the "-test.v" flag) is set. Because some acceptance tests take quite
+// long, we require the verbose flag so users are able to see progress
+// output.
+func Test(t TestT, c TestCase) {
+	// We only run acceptance tests if an env var is set because they're
+	// slow and generally require some outside configuration.
+	if os.Getenv(TestEnvVar) == "" {
+		t.Skip(fmt.Sprintf(
+			"Acceptance tests skipped unless env '%s' set",
+			TestEnvVar))
+		return
+	}
+
+	// We require verbose mode so that the user knows what is going on.
+	if !testTesting && !testing.Verbose() {
+		t.Fatal("Acceptance tests must be run with the -v flag on tests")
+		return
+	}
+
+	// Build our context options that we can
+	ctxProviders := make(map[string]terraform.ResourceProviderFactory)
+	for k, p := range c.Providers {
+		ctxProviders[k] = terraform.ResourceProviderFactoryFixed(p)
+	}
+	opts := terraform.ContextOpts{Providers: ctxProviders}
+
+	// A single state variable to track the lifecycle, starting with no state
+	var state *terraform.State
+
+	// Go through each step and run it
+	for i, step := range c.Steps {
+		var err error
+		log.Printf("[WARN] Test: Executing step %d", i)
+		state, err = testStep(opts, state, step)
+		if err != nil {
+			t.Error(fmt.Sprintf(
+				"Step %d error: %s", i, err))
+			break
+		}
+	}
+
+	// If we have a state, then run the destroy
+	if state != nil {
+		destroyStep := TestStep{
+			Config:  c.Steps[len(c.Steps)-1].Config,
+			Check:   c.CheckDestroy,
+			Destroy: true,
+		}
+
+		log.Printf("[WARN] Test: Executing destroy step")
+		state, err := testStep(opts, state, destroyStep)
+		if err != nil {
+			t.Error(fmt.Sprintf(
+				"Error destroying resource! WARNING: Dangling resources\n"+
+					"may exist. The full state and error is shown below.\n\n"+
+					"Error: %s\n\nState: %s",
+				err,
+				state))
+		}
+	} else {
+		log.Printf("[WARN] Skipping destroy test since there is no state.")
+	}
+}
+
+func testStep(
+	opts terraform.ContextOpts,
+	state *terraform.State,
+	step TestStep) (*terraform.State, error) {
+	// Write the configuration
+	cfgF, err := ioutil.TempFile("", "tf-test")
+	if err != nil {
+		return state, fmt.Errorf(
+			"Error creating temporary file for config: %s", err)
+	}
+	cfgPath := cfgF.Name() + ".tf"
+	cfgF.Close()
+	os.Remove(cfgF.Name())
+
+	cfgF, err = os.Create(cfgPath)
+	if err != nil {
+		return state, fmt.Errorf(
+			"Error creating temporary file for config: %s", err)
+	}
+	defer os.Remove(cfgPath)
+
+	_, err = io.Copy(cfgF, strings.NewReader(step.Config))
+	cfgF.Close()
+	if err != nil {
+		return state, fmt.Errorf(
+			"Error creating temporary file for config: %s", err)
+	}
+
+	// Parse the configuration
+	config, err := config.Load(cfgPath)
+	if err != nil {
+		return state, fmt.Errorf(
+			"Error parsing configuration: %s", err)
+	}
+
+	// Build the context
+	opts.Config = config
+	opts.State = state
+	ctx := terraform.NewContext(&opts)
+	if ws, es := ctx.Validate(); len(ws) > 0 || len(es) > 0 {
+		return state, fmt.Errorf(
+			"Configuration is invalid.\n\nWarnings: %#v\n\nErrors: %#v",
+			ws, es)
+	}
+
+	// Plan!
+	if _, err := ctx.Plan(&terraform.PlanOpts{Destroy: step.Destroy}); err != nil {
+		return state, fmt.Errorf(
+			"Error planning: %s", err)
+	}
+
+	// Apply!
+	state, err = ctx.Apply()
+	if err != nil {
+		return state, fmt.Errorf("Error applying: %s", err)
+	}
+
+	// Check! Excitement!
+	if step.Check != nil {
+		if err = step.Check(state); err != nil {
+			err = fmt.Errorf("Check failed: %s", err)
+		}
+	}
+
+	return state, err
+}
+
+// TestT is the interface used to handle the test lifecycle of a test.
+//
+// Users should just use a *testing.T object, which implements this.
+type TestT interface {
+	Error(args ...interface{})
+	Fatal(args ...interface{})
+	Skip(args ...interface{})
+}
+
+// This is set to true by unit tests to alter some behavior
+var testTesting = false

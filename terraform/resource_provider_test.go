@@ -175,3 +175,15 @@ func TestResourceConfig_IsSet_nil(t *testing.T) {
 		t.Fatal("bad")
 	}
 }
+
+func TestResourceProviderFactoryFixed(t *testing.T) {
+	p := new(MockResourceProvider)
+	var f ResourceProviderFactory = ResourceProviderFactoryFixed(p)
+	actual, err := f()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if actual != p {
+		t.Fatal("should be identical")
+	}
+}

@@ -20,7 +20,15 @@ type ResourceProvider struct {
 }
 
 func (p *ResourceProvider) Validate(c *terraform.ResourceConfig) ([]string, []error) {
-	return nil, nil
+	v := &config.Validator{
+		Optional: []string{
+			"access_key",
+			"secret_key",
+			"region",
+		},
+	}
+
+	return v.Validate(c)
 }
 
 func (p *ResourceProvider) ValidateResource(
@@ -36,24 +44,24 @@ func (p *ResourceProvider) Configure(c *terraform.ResourceConfig) error {
 	// Get the auth and region. This can fail if keys/regions were not
 	// specified and we're attempting to use the environment.
 	var errs []error
-	log.Println("Building AWS auth structure")
+	log.Println("[INFO] Building AWS auth structure")
 	auth, err := p.Config.AWSAuth()
 	if err != nil {
 		errs = append(errs, err)
 	}
 
-	log.Println("Building AWS region structure")
+	log.Println("[INFO] Building AWS region structure")
 	region, err := p.Config.AWSRegion()
 	if err != nil {
 		errs = append(errs, err)
 	}
 
 	if len(errs) == 0 {
-		log.Println("Initializing EC2 connection")
+		log.Println("[INFO] Initializing EC2 connection")
 		p.ec2conn = ec2.New(auth, region)
-		log.Println("Initializing ELB connection")
+		log.Println("[INFO] Initializing ELB connection")
 		p.elbconn = elb.New(auth, region)
-		log.Println("Initializing AutoScaling connection")
+		log.Println("[INFO] Initializing AutoScaling connection")
 		p.autoscalingconn = autoscaling.New(auth, region)
 	}
 
