@@ -207,6 +207,9 @@ func routeTableOps(a interface{}, b interface{}) []routeTableOp {
 		if i == 1 {
 			result = newRoutes
 		}
+		if raws == nil {
+			continue
+		}
 
 		for _, raw := range raws.([]interface{}) {
 			m := raw.(map[string]interface{})
