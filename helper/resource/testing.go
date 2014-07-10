@@ -190,6 +190,13 @@ func testStep(
 			ws, es)
 	}
 
+	// Refresh!
+	state, err = ctx.Refresh()
+	if err != nil {
+		return state, fmt.Errorf(
+			"Error refreshing: %s", err)
+	}
+
 	// Plan!
 	if _, err := ctx.Plan(&terraform.PlanOpts{Destroy: step.Destroy}); err != nil {
 		return state, fmt.Errorf(
