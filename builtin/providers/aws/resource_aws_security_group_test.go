@@ -10,9 +10,8 @@ import (
 )
 
 func TestAccAwsSecurityGroup(t *testing.T) {
-	testAccPreCheck(t)
-
 	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAWSSecurityGroupDestroy,
 		Steps: []resource.TestStep{
