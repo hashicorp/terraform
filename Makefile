@@ -22,7 +22,7 @@ dev: libucl
 libucl: vendor/libucl/$(LIBUCL_NAME)
 
 test: libucl
-	go test $(TEST) $(TESTARGS) -timeout=10s
+	TF_ACC= go test $(TEST) $(TESTARGS) -timeout=10s
 
 testacc: libucl
 	@if [ "$(TEST)" = "./..." ]; then \
