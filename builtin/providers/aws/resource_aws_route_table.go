@@ -3,7 +3,9 @@ package aws
 import (
 	"fmt"
 	"log"
+	"reflect"
 
+	"github.com/hashicorp/terraform/flatmap"
 	"github.com/hashicorp/terraform/helper/diff"
 	"github.com/hashicorp/terraform/terraform"
 	"github.com/mitchellh/goamz/ec2"
@@ -19,7 +21,7 @@ func resource_aws_route_table_create(
 	// Merge the diff so that we have all the proper attributes
 	s = s.MergeDiff(d)
 
-	// Create the Subnet
+	// Create the routing table
 	createOpts := &ec2.CreateRouteTable{
 		VpcId: s.Attributes["vpc_id"],
 	}
@@ -34,17 +36,79 @@ func resource_aws_route_table_create(
 	s.ID = rt.RouteTableId
 	log.Printf("[INFO] Route Table ID: %s", s.ID)
 
-	// Update our attributes and return
-	return resource_aws_route_table_update_state(s, rt)
+	// Update our routes
+	return resource_aws_route_table_update(s, d, meta)
 }
 
 func resource_aws_route_table_update(
 	s *terraform.ResourceState,
 	d *terraform.ResourceDiff,
 	meta interface{}) (*terraform.ResourceState, error) {
-	panic("Update for route table is not supported")
+	p := meta.(*ResourceProvider)
+	ec2conn := p.ec2conn
 
-	return nil, nil
+	// Our resulting state
+	rs := s.MergeDiff(d)
+
+	// Get our routes out of the merge
+	oldroutes := flatmap.Expand(s.Attributes, "route")
+	routes := flatmap.Expand(s.MergeDiff(d).Attributes, "route")
+
+	// Determine the route operations we need to perform
+	ops := routeTableOps(oldroutes, routes)
+	if len(ops) == 0 {
+		return s, nil
+	}
+
+	// Go through each operation, performing each one at a time.
+	// We store the updated state on each operation so that if any
+	// individual operation fails, we can return a valid partial state.
+	var err error
+	resultRoutes := make([]map[string]string, 0, len(ops))
+	for _, op := range ops {
+		switch op.Op {
+		case routeTableOpCreate:
+			opts := ec2.CreateRoute{
+				RouteTableId:         s.ID,
+				DestinationCidrBlock: op.Route.DestinationCidrBlock,
+				GatewayId:            op.Route.GatewayId,
+				InstanceId:           op.Route.InstanceId,
+			}
+
+			_, err = ec2conn.CreateRoute(&opts)
+		case routeTableOpReplace:
+			opts := ec2.ReplaceRoute{
+				RouteTableId:         s.ID,
+				DestinationCidrBlock: op.Route.DestinationCidrBlock,
+				GatewayId:            op.Route.GatewayId,
+				InstanceId:           op.Route.InstanceId,
+			}
+
+			_, err = ec2conn.ReplaceRoute(&opts)
+		case routeTableOpDelete:
+			_, err = ec2conn.DeleteRoute(
+				s.ID, op.Route.DestinationCidrBlock)
+		}
+
+		if err != nil {
+			// Exit early so we can return what we've done so far
+			break
+		}
+
+		// Append to the routes what we've done so far
+		resultRoutes = append(resultRoutes, map[string]string{
+			"cidr_block":  op.Route.DestinationCidrBlock,
+			"gateway_id":  op.Route.GatewayId,
+			"instance_id": op.Route.InstanceId,
+		})
+	}
+
+	// Update our state with the settings
+	flatmap.Map(rs.Attributes).Merge(flatmap.Flatten(map[string]interface{}{
+		"route": resultRoutes,
+	}))
+
+	return rs, nil
 }
 
 func resource_aws_route_table_destroy(
@@ -115,4 +179,83 @@ func resource_aws_route_table_update_state(
 	}
 
 	return s, nil
+}
+
+// routeTableOp represents a minor operation on the routing table.
+// This tells us what we should do to the routing table.
+type routeTableOp struct {
+	Op    routeTableOpType
+	Route ec2.Route
+}
+
+// routeTableOpType is the type of operation related to a route that
+// can be operated on a routing table.
+type routeTableOpType byte
+
+const (
+	routeTableOpCreate routeTableOpType = iota
+	routeTableOpReplace
+	routeTableOpDelete
+)
+
+// routeTableOps takes the old and new routes from flatmap.Expand
+// and returns a set of operations that must be performed in order
+// to get to the desired state.
+func routeTableOps(a interface{}, b interface{}) []routeTableOp {
+	// Build up the actual ec2.Route objects
+	oldRoutes := make(map[string]ec2.Route)
+	newRoutes := make(map[string]ec2.Route)
+	for _, raws := range []interface{}{a, b} {
+		result := oldRoutes
+		if raws == b {
+			result = newRoutes
+		}
+
+		for _, raw := range raws.([]interface{}) {
+			m := raw.(map[string]interface{})
+			r := ec2.Route{
+				DestinationCidrBlock: m["cidr_block"].(string),
+			}
+			if v, ok := m["gateway_id"]; ok {
+				r.GatewayId = v.(string)
+			}
+			if v, ok := m["instance_id"]; ok {
+				r.InstanceId = v.(string)
+			}
+
+			result[r.DestinationCidrBlock] = r
+		}
+	}
+
+	// Now, start building up the ops
+	ops := make([]routeTableOp, 0, len(newRoutes))
+	for n, r := range newRoutes {
+		op := routeTableOpCreate
+		if oldR, ok := oldRoutes[n]; ok {
+			if reflect.DeepEqual(r, oldR) {
+				// No changes!
+				continue
+			}
+
+			op = routeTableOpReplace
+		}
+
+		ops = append(ops, routeTableOp{
+			Op:    op,
+			Route: r,
+		})
+	}
+
+	// Determine what routes we need to delete
+	for _, op := range ops {
+		delete(oldRoutes, op.Route.DestinationCidrBlock)
+	}
+	for _, r := range oldRoutes {
+		ops = append(ops, routeTableOp{
+			Op:    routeTableOpDelete,
+			Route: r,
+		})
+	}
+
+	return ops
 }
