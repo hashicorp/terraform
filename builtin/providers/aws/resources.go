@@ -46,6 +46,7 @@ func init() {
 				Destroy: resource_aws_internet_gateway_destroy,
 				Diff:    resource_aws_internet_gateway_diff,
 				Refresh: resource_aws_internet_gateway_refresh,
+				Update:  resource_aws_internet_gateway_update,
 			},
 
 			"aws_launch_configuration": resource.Resource{
