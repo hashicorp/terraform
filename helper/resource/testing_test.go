@@ -110,7 +110,7 @@ func TestTest_preCheck(t *testing.T) {
 
 	mt := new(mockT)
 	Test(mt, TestCase{
-		PreCheck:     func() { called = true },
+		PreCheck: func() { called = true },
 	})
 
 	if !called {
@@ -156,6 +156,59 @@ func TestTest_stepError(t *testing.T) {
 
 	if !checkDestroy {
 		t.Fatal("didn't call check for destroy")
+	}
+}
+
+func TestComposeTestCheckFunc(t *testing.T) {
+	cases := []struct {
+		F      []TestCheckFunc
+		Result string
+	}{
+		{
+			F: []TestCheckFunc{
+				func(*terraform.State) error { return nil },
+			},
+			Result: "",
+		},
+
+		{
+			F: []TestCheckFunc{
+				func(*terraform.State) error {
+					return fmt.Errorf("error")
+				},
+				func(*terraform.State) error { return nil },
+			},
+			Result: "error",
+		},
+
+		{
+			F: []TestCheckFunc{
+				func(*terraform.State) error { return nil },
+				func(*terraform.State) error {
+					return fmt.Errorf("error")
+				},
+			},
+			Result: "error",
+		},
+
+		{
+			F: []TestCheckFunc{
+				func(*terraform.State) error { return nil },
+				func(*terraform.State) error { return nil },
+			},
+			Result: "",
+		},
+	}
+
+	for i, tc := range cases {
+		f := ComposeTestCheckFunc(tc.F...)
+		err := f(nil)
+		if err == nil {
+			err = fmt.Errorf("")
+		}
+		if tc.Result != err.Error() {
+			t.Fatalf("Case %d bad: %s", i, err)
+		}
 	}
 }
 

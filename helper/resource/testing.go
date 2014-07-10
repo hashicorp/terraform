@@ -219,6 +219,23 @@ func testStep(
 	return state, err
 }
 
+// ComposeTestCheckFunc lets you compose multiple TestCheckFuncs into
+// a single TestCheckFunc.
+//
+// As a user testing their provider, this lets you decompose your checks
+// into smaller pieces more easily.
+func ComposeTestCheckFunc(fs ...TestCheckFunc) TestCheckFunc {
+	return func(s *terraform.State) error {
+		for _, f := range fs {
+			if err := f(s); err != nil {
+				return err
+			}
+		}
+
+		return nil
+	}
+}
+
 // TestT is the interface used to handle the test lifecycle of a test.
 //
 // Users should just use a *testing.T object, which implements this.
