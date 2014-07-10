@@ -2,6 +2,7 @@ package flatmap
 
 import (
 	"reflect"
+	"sort"
 	"testing"
 )
 
@@ -36,14 +37,18 @@ func TestMapKeys(t *testing.T) {
 				"bar.0.baz": "bar",
 			},
 			Output: []string{
-				"foo",
 				"bar",
+				"foo",
 			},
 		},
 	}
 
 	for _, tc := range cases {
 		actual := Map(tc.Input).Keys()
+
+		// Sort so we have a consistent view of the output
+		sort.Strings(actual)
+
 		if !reflect.DeepEqual(actual, tc.Output) {
 			t.Fatalf("input: %#v\n\nbad: %#v", tc.Input, actual)
 		}
