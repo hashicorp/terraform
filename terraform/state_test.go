@@ -98,19 +98,38 @@ func TestReadWriteState(t *testing.T) {
 		Resources: map[string]*ResourceState{
 			"foo": &ResourceState{
 				ID: "bar",
+				ConnInfo: &ResourceConnectionInfo{
+					Type: "ssh",
+					Raw: map[string]string{
+						"user":     "root",
+						"password": "supersecret",
+					},
+				},
 			},
 		},
 	}
+
+	// Checksum before the write
+	chksum := checksumStruct(t, state)
 
 	buf := new(bytes.Buffer)
 	if err := WriteState(state, buf); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 
+	// Checksum after the write
+	chksumAfter := checksumStruct(t, state)
+	if chksumAfter != chksum {
+		t.Fatalf("structure changed during serialization!")
+	}
+
 	actual, err := ReadState(buf)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
+
+	// ReadState should not restore sensitive information!
+	state.Resources["foo"].ConnInfo = nil
 
 	if !reflect.DeepEqual(actual, state) {
 		t.Fatalf("bad: %#v", actual)

@@ -132,6 +132,60 @@ func TestContextValidate_requiredVar(t *testing.T) {
 	}
 }
 
+func TestContextValidate_provisionerConfig_bad(t *testing.T) {
+	config := testConfig(t, "validate-bad-prov-conf")
+	p := testProvider("aws")
+	pr := testProvisioner()
+	c := testContext(t, &ContextOpts{
+		Config: config,
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+		Provisioners: map[string]ResourceProvisionerFactory{
+			"shell": testProvisionerFuncFixed(pr),
+		},
+	})
+
+	pr.ValidateReturnErrors = []error{fmt.Errorf("bad")}
+
+	w, e := c.Validate()
+	if len(w) > 0 {
+		t.Fatalf("bad: %#v", w)
+	}
+	if len(e) == 0 {
+		t.Fatalf("bad: %#v", e)
+	}
+}
+
+func TestContextValidate_provisionerConfig_good(t *testing.T) {
+	config := testConfig(t, "validate-bad-prov-conf")
+	p := testProvider("aws")
+	pr := testProvisioner()
+	pr.ValidateFn = func(c *ResourceConfig) ([]string, []error) {
+		if c == nil {
+			t.Fatalf("missing resource config for provisioner")
+		}
+		return nil, nil
+	}
+	c := testContext(t, &ContextOpts{
+		Config: config,
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+		Provisioners: map[string]ResourceProvisionerFactory{
+			"shell": testProvisionerFuncFixed(pr),
+		},
+	})
+
+	w, e := c.Validate()
+	if len(w) > 0 {
+		t.Fatalf("bad: %#v", w)
+	}
+	if len(e) > 0 {
+		t.Fatalf("bad: %#v", e)
+	}
+}
+
 func TestContextApply(t *testing.T) {
 	c := testConfig(t, "apply-good")
 	p := testProvider("aws")
@@ -288,6 +342,53 @@ func TestContextApply_compute(t *testing.T) {
 	expected := strings.TrimSpace(testTerraformApplyComputeStr)
 	if actual != expected {
 		t.Fatalf("bad: \n%s", actual)
+	}
+}
+
+func TestContextApply_Provisioner_compute(t *testing.T) {
+	c := testConfig(t, "apply-provisioner-compute")
+	p := testProvider("aws")
+	pr := testProvisioner()
+	p.ApplyFn = testApplyFn
+	p.DiffFn = testDiffFn
+	pr.ApplyFn = func(rs *ResourceState, c *ResourceConfig) (*ResourceState, error) {
+		val, ok := c.Config["foo"]
+		if !ok || val != "computed_dynamical" {
+			t.Fatalf("bad value for foo: %v %#v", val, c)
+		}
+		return rs, nil
+	}
+	ctx := testContext(t, &ContextOpts{
+		Config: c,
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+		Provisioners: map[string]ResourceProvisionerFactory{
+			"shell": testProvisionerFuncFixed(pr),
+		},
+		Variables: map[string]string{
+			"value": "1",
+		},
+	})
+
+	if _, err := ctx.Plan(nil); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	state, err := ctx.Apply()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	actual := strings.TrimSpace(state.String())
+	expected := strings.TrimSpace(testTerraformApplyProvisionerStr)
+	if actual != expected {
+		t.Fatalf("bad: \n%s", actual)
+	}
+
+	// Verify apply was invoked
+	if !pr.ApplyCalled {
+		t.Fatalf("provisioner not invoked")
 	}
 }
 
@@ -1404,5 +1505,10 @@ func testProvider(prefix string) *MockResourceProvider {
 		},
 	}
 
+	return p
+}
+
+func testProvisioner() *MockResourceProvisioner {
+	p := new(MockResourceProvisioner)
 	return p
 }

@@ -9,15 +9,27 @@ import (
 	"github.com/hashicorp/terraform/config"
 )
 
+// ResourceProvisionerConfig is used to pair a provisioner
+// with it's provided configuration. This allows us to use singleton
+// instances of each ResourceProvisioner and to keep the relevant
+// configuration instead of instantiating a new Provisioner for each
+// resource.
+type ResourceProvisionerConfig struct {
+	Provisioner ResourceProvisioner
+	Config      *ResourceConfig
+	RawConfig   *config.RawConfig
+}
+
 // Resource encapsulates a resource, its configuration, its provider,
 // its current state, and potentially a desired diff from the state it
 // wants to reach.
 type Resource struct {
-	Id       string
-	Config   *ResourceConfig
-	Diff     *ResourceDiff
-	Provider ResourceProvider
-	State    *ResourceState
+	Id           string
+	Config       *ResourceConfig
+	Diff         *ResourceDiff
+	Provider     ResourceProvider
+	State        *ResourceState
+	Provisioners []*ResourceProvisionerConfig
 }
 
 // Vars returns the mapping of variables that should be replaced in

@@ -45,6 +45,12 @@ func testProviderFuncFixed(rp ResourceProvider) ResourceProviderFactory {
 	}
 }
 
+func testProvisionerFuncFixed(rp ResourceProvisioner) ResourceProvisionerFactory {
+	return func() (ResourceProvisioner, error) {
+		return rp, nil
+	}
+}
+
 // HookRecordApplyOrder is a test hook that records the order of applies
 // by recording the PreApply event.
 type HookRecordApplyOrder struct {
@@ -112,6 +118,16 @@ aws_instance.bar:
   ID = foo
 aws_instance.foo:
   ID = foo
+`
+
+const testTerraformApplyProvisionerStr = `
+aws_instance.bar:
+  ID = foo
+aws_instance.foo:
+  ID = foo
+  dynamical = computed_dynamical
+  num = 2
+  type = aws_instance
 `
 
 const testTerraformApplyDestroyStr = `

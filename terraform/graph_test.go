@@ -128,6 +128,80 @@ func TestGraphFull(t *testing.T) {
 	}
 }
 
+func TestGraphProvisioners(t *testing.T) {
+	rpAws := new(MockResourceProvider)
+	provShell := new(MockResourceProvisioner)
+	provWinRM := new(MockResourceProvisioner)
+
+	rpAws.ResourcesReturn = []ResourceType{
+		ResourceType{Name: "aws_instance"},
+		ResourceType{Name: "aws_load_balancer"},
+		ResourceType{Name: "aws_security_group"},
+	}
+
+	ps := map[string]ResourceProvisionerFactory{
+		"shell": testProvisionerFuncFixed(provShell),
+		"winrm": testProvisionerFuncFixed(provWinRM),
+	}
+
+	pf := map[string]ResourceProviderFactory{
+		"aws": testProviderFuncFixed(rpAws),
+	}
+
+	c := testConfig(t, "graph-provisioners")
+	g, err := Graph(&GraphOpts{Config: c, Providers: pf, Provisioners: ps})
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	// A helper to help get us the provider for a resource.
+	graphProvisioner := func(n string, idx int) *ResourceProvisionerConfig {
+		return g.Noun(n).Meta.(*GraphNodeResource).Resource.Provisioners[idx]
+	}
+
+	// A helper to verify depedencies
+	depends := func(a, b string) bool {
+		aNoun := g.Noun(a)
+		bNoun := g.Noun(b)
+		for _, dep := range aNoun.Deps {
+			if dep.Source == aNoun && dep.Target == bNoun {
+				return true
+			}
+		}
+		return false
+	}
+
+	// Test a couple
+	prov := graphProvisioner("aws_instance.web", 0)
+	if prov.Provisioner != provWinRM {
+		t.Fatalf("bad: %#v", prov)
+	}
+	if prov.RawConfig.Config()["cmd"] != "echo foo" {
+		t.Fatalf("bad: %#v", prov)
+	}
+
+	prov = graphProvisioner("aws_instance.web", 1)
+	if prov.Provisioner != provWinRM {
+		t.Fatalf("bad: %#v", prov)
+	}
+	if prov.RawConfig.Config()["cmd"] != "echo bar" {
+		t.Fatalf("bad: %#v", prov)
+	}
+
+	prov = graphProvisioner("aws_load_balancer.weblb", 0)
+	if prov.Provisioner != provShell {
+		t.Fatalf("bad: %#v", prov)
+	}
+	if prov.RawConfig.Config()["cmd"] != "add ${aws_instance.web.id}" {
+		t.Fatalf("bad: %#v", prov)
+	}
+
+	// Check that the variable dependency is handled
+	if !depends("aws_load_balancer.weblb", "aws_instance.web") {
+		t.Fatalf("missing dependency from provisioner variable")
+	}
+}
+
 func TestGraphAddDiff(t *testing.T) {
 	config := testConfig(t, "graph-diff")
 	diff := &Diff{

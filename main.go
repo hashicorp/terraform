@@ -85,6 +85,7 @@ func wrappedMain() int {
 
 	// Initialize the TFConfig settings for the commands...
 	ContextOpts.Providers = config.ProviderFactories()
+	ContextOpts.Provisioners = config.ProvisionerFactories()
 
 	// Get the command line args. We shortcut "--version" and "-v" to
 	// just show the version.

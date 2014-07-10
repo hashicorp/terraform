@@ -22,12 +22,13 @@ type genericWalkFunc func(*Resource) error
 //
 // Additionally, a context can be created from a Plan using Plan.Context.
 type Context struct {
-	config    *config.Config
-	diff      *Diff
-	hooks     []Hook
-	state     *State
-	providers map[string]ResourceProviderFactory
-	variables map[string]string
+	config       *config.Config
+	diff         *Diff
+	hooks        []Hook
+	state        *State
+	providers    map[string]ResourceProviderFactory
+	provisioners map[string]ResourceProvisionerFactory
+	variables    map[string]string
 
 	l     sync.Mutex    // Lock acquired during any task
 	parCh chan struct{} // Semaphore used to limit parallelism
@@ -39,13 +40,14 @@ type Context struct {
 // ContextOpts are the user-creatable configuration structure to create
 // a context with NewContext.
 type ContextOpts struct {
-	Config      *config.Config
-	Diff        *Diff
-	Hooks       []Hook
-	Parallelism int
-	State       *State
-	Providers   map[string]ResourceProviderFactory
-	Variables   map[string]string
+	Config       *config.Config
+	Diff         *Diff
+	Hooks        []Hook
+	Parallelism  int
+	State        *State
+	Providers    map[string]ResourceProviderFactory
+	Provisioners map[string]ResourceProvisionerFactory
+	Variables    map[string]string
 }
 
 // NewContext creates a new context.
@@ -70,12 +72,13 @@ func NewContext(opts *ContextOpts) *Context {
 	parCh := make(chan struct{}, par)
 
 	return &Context{
-		config:    opts.Config,
-		diff:      opts.Diff,
-		hooks:     hooks,
-		state:     opts.State,
-		providers: opts.Providers,
-		variables: opts.Variables,
+		config:       opts.Config,
+		diff:         opts.Diff,
+		hooks:        hooks,
+		state:        opts.State,
+		providers:    opts.Providers,
+		provisioners: opts.Provisioners,
+		variables:    opts.Variables,
 
 		parCh: parCh,
 		sh:    sh,
@@ -92,10 +95,11 @@ func (c *Context) Apply() (*State, error) {
 	defer c.releaseRun(v)
 
 	g, err := Graph(&GraphOpts{
-		Config:    c.config,
-		Diff:      c.diff,
-		Providers: c.providers,
-		State:     c.state,
+		Config:       c.config,
+		Diff:         c.diff,
+		Providers:    c.providers,
+		Provisioners: c.provisioners,
+		State:        c.state,
 	})
 	if err != nil {
 		return nil, err
@@ -135,9 +139,10 @@ func (c *Context) Plan(opts *PlanOpts) (*Plan, error) {
 	defer c.releaseRun(v)
 
 	g, err := Graph(&GraphOpts{
-		Config:    c.config,
-		Providers: c.providers,
-		State:     c.state,
+		Config:       c.config,
+		Providers:    c.providers,
+		Provisioners: c.provisioners,
+		State:        c.state,
 	})
 	if err != nil {
 		return nil, err
@@ -188,9 +193,10 @@ func (c *Context) Refresh() (*State, error) {
 	defer c.releaseRun(v)
 
 	g, err := Graph(&GraphOpts{
-		Config:    c.config,
-		Providers: c.providers,
-		State:     c.state,
+		Config:       c.config,
+		Providers:    c.providers,
+		Provisioners: c.provisioners,
+		State:        c.state,
 	})
 	if err != nil {
 		return c.state, err
@@ -389,10 +395,11 @@ func (c *Context) computeResourceMultiVariable(
 
 func (c *Context) graph() (*depgraph.Graph, error) {
 	return Graph(&GraphOpts{
-		Config:    c.config,
-		Diff:      c.diff,
-		Providers: c.providers,
-		State:     c.state,
+		Config:       c.config,
+		Diff:         c.diff,
+		Providers:    c.providers,
+		Provisioners: c.provisioners,
+		State:        c.state,
 	})
 }
 
@@ -485,6 +492,16 @@ func (c *Context) applyWalkFn() depgraph.WalkFunc {
 			}
 		}
 
+		// Invoke any provisioners we have defined. This is only done
+		// if the resource was created, as updates or deletes do not
+		// invoke provisioners.
+		if r.State.ID == "" && len(r.Provisioners) > 0 {
+			rs, err = c.applyProvisioners(r, rs)
+			if err != nil {
+				errs = append(errs, err)
+			}
+		}
+
 		// Update the resulting diff
 		c.sl.Lock()
 		if rs.ID == "" {
@@ -511,6 +528,26 @@ func (c *Context) applyWalkFn() depgraph.WalkFunc {
 	}
 
 	return c.genericWalkFn(cb)
+}
+
+// applyProvisioners is used to run any provisioners a resource has
+// defined after the resource creation has already completed.
+func (c *Context) applyProvisioners(r *Resource, rs *ResourceState) (*ResourceState, error) {
+	var err error
+	for _, prov := range r.Provisioners {
+		// Interpolate since we may have variables that depend on the
+		// local resource.
+		if err := prov.Config.interpolate(c); err != nil {
+			return rs, err
+		}
+
+		// Invoke the Provisioner
+		rs, err = prov.Provisioner.Apply(rs, prov.Config)
+		if err != nil {
+			return rs, err
+		}
+	}
+	return rs, nil
 }
 
 func (c *Context) planWalkFn(result *Plan) depgraph.WalkFunc {
@@ -682,9 +719,21 @@ func (c *Context) validateWalkFn(rws *[]string, res *[]error) depgraph.WalkFunc 
 			for i, e := range es {
 				es[i] = fmt.Errorf("'%s' error: %s", rn.Resource.Id, e)
 			}
-
 			*rws = append(*rws, ws...)
 			*res = append(*res, es...)
+
+			for idx, p := range rn.Resource.Provisioners {
+				ws, es := p.Provisioner.Validate(p.Config)
+				for i, w := range ws {
+					ws[i] = fmt.Sprintf("'%s.provisioner.%d' warning: %s", rn.Resource.Id, idx, w)
+				}
+				for i, e := range es {
+					es[i] = fmt.Errorf("'%s.provisioner.%d' error: %s", rn.Resource.Id, idx, e)
+				}
+				*rws = append(*rws, ws...)
+				*res = append(*res, es...)
+			}
+
 		case *GraphNodeResourceProvider:
 			if rn.Config == nil {
 				return nil

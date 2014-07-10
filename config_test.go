@@ -33,12 +33,19 @@ func TestConfig_Merge(t *testing.T) {
 			"foo": "bar",
 			"bar": "blah",
 		},
+		Provisioners: map[string]string{
+			"local":  "local",
+			"remote": "bad",
+		},
 	}
 
 	c2 := &Config{
 		Providers: map[string]string{
 			"bar": "baz",
 			"baz": "what",
+		},
+		Provisioners: map[string]string{
+			"remote": "remote",
 		},
 	}
 
@@ -47,6 +54,10 @@ func TestConfig_Merge(t *testing.T) {
 			"foo": "bar",
 			"bar": "baz",
 			"baz": "what",
+		},
+		Provisioners: map[string]string{
+			"local":  "local",
+			"remote": "remote",
 		},
 	}
 

@@ -16,7 +16,8 @@ import (
 // This is not the configuration for Terraform itself. That is in the
 // "config" package.
 type Config struct {
-	Providers map[string]string
+	Providers    map[string]string
+	Provisioners map[string]string
 }
 
 // BuiltinConfig is the built-in defaults for the configuration. These
@@ -33,6 +34,9 @@ const libuclParseFlags = libucl.ParserKeyLowercase
 func init() {
 	BuiltinConfig.Providers = map[string]string{
 		"aws": "terraform-provider-aws",
+	}
+	BuiltinConfig.Provisioners = map[string]string{
+		"local-exec": "terraform-provisioner-local-exec",
 	}
 }
 
@@ -69,11 +73,18 @@ func LoadConfig(path string) (*Config, error) {
 func (c1 *Config) Merge(c2 *Config) *Config {
 	var result Config
 	result.Providers = make(map[string]string)
+	result.Provisioners = make(map[string]string)
 	for k, v := range c1.Providers {
 		result.Providers[k] = v
 	}
 	for k, v := range c2.Providers {
 		result.Providers[k] = v
+	}
+	for k, v := range c1.Provisioners {
+		result.Provisioners[k] = v
+	}
+	for k, v := range c2.Provisioners {
+		result.Provisioners[k] = v
 	}
 
 	return &result
@@ -133,6 +144,66 @@ func (c *Config) providerFactory(path string) terraform.ResourceProviderFactory 
 		}
 
 		return &rpc.ResourceProvider{
+			Client: rpcClient,
+			Name:   service,
+		}, nil
+	}
+}
+
+// ProvisionerFactories returns the mapping of prefixes to
+// ResourceProvisionerFactory that can be used to instantiate a
+// binary-based plugin.
+func (c *Config) ProvisionerFactories() map[string]terraform.ResourceProvisionerFactory {
+	result := make(map[string]terraform.ResourceProvisionerFactory)
+	for k, v := range c.Provisioners {
+		result[k] = c.provisionerFactory(v)
+	}
+
+	return result
+}
+
+func (c *Config) provisionerFactory(path string) terraform.ResourceProvisionerFactory {
+	originalPath := path
+
+	return func() (terraform.ResourceProvisioner, error) {
+		// First look for the provider on the PATH.
+		path, err := exec.LookPath(path)
+		if err != nil {
+			// If that doesn't work, look for it in the same directory
+			// as the executable that is running.
+			exePath, err := osext.Executable()
+			if err == nil {
+				path = filepath.Join(
+					filepath.Dir(exePath),
+					filepath.Base(originalPath))
+			}
+		}
+
+		// If we still don't have a path set, then set it to the
+		// original path and let any errors that happen bubble out.
+		if path == "" {
+			path = originalPath
+		}
+
+		// Build the plugin client configuration and init the plugin
+		var config plugin.ClientConfig
+		config.Cmd = exec.Command(path)
+		config.Managed = true
+		client := plugin.NewClient(&config)
+
+		// Request the RPC client and service name from the client
+		// so we can build the actual RPC-implemented provider.
+		rpcClient, err := client.Client()
+		if err != nil {
+			return nil, err
+		}
+
+		service, err := client.Service()
+		if err != nil {
+			return nil, err
+		}
+
+		return &rpc.ResourceProvisioner{
 			Client: rpcClient,
 			Name:   service,
 		}, nil

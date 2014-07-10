@@ -131,6 +131,22 @@ func outputsStr(os map[string]*Output) string {
 	return strings.TrimSpace(result)
 }
 
+func TestLoad_provisioners(t *testing.T) {
+	c, err := Load(filepath.Join(fixtureDir, "provisioners.tf"))
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	if c == nil {
+		t.Fatal("config should not be nil")
+	}
+
+	actual := resourcesStr(c.Resources)
+	if actual != strings.TrimSpace(provisionerResourcesStr) {
+		t.Fatalf("bad:\n%s", actual)
+	}
+}
+
 // This helper turns a provider configs field into a deterministic
 // string value for comparison in tests.
 func providerConfigsStr(pcs map[string]*ProviderConfig) string {
@@ -211,6 +227,23 @@ func resourcesStr(rs []*Resource) string {
 
 		for _, k := range ks {
 			result += fmt.Sprintf("  %s\n", k)
+		}
+
+		if len(r.Provisioners) > 0 {
+			result += fmt.Sprintf("  provisioners\n")
+			for _, p := range r.Provisioners {
+				result += fmt.Sprintf("    %s\n", p.Type)
+
+				ks := make([]string, 0, len(p.RawConfig.Raw))
+				for k, _ := range p.RawConfig.Raw {
+					ks = append(ks, k)
+				}
+				sort.Strings(ks)
+
+				for _, k := range ks {
+					result += fmt.Sprintf("      %s\n", k)
+				}
+			}
 		}
 
 		if len(r.RawConfig.Variables) > 0 {
@@ -326,6 +359,18 @@ bar
 foo
   bar
   bar
+`
+
+const provisionerResourcesStr = `
+aws_instance[web] (x1)
+  ami
+  security_groups
+  provisioners
+    shell
+      path
+  vars
+    resource: aws_security_group.firewall.foo
+    user: var.foo
 `
 
 const variablesVariablesStr = `
