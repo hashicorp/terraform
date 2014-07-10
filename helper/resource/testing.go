@@ -236,6 +236,26 @@ func ComposeTestCheckFunc(fs ...TestCheckFunc) TestCheckFunc {
 	}
 }
 
+func TestCheckResourceAttr(name, key, value string) TestCheckFunc {
+	return func(s *terraform.State) error {
+		rs, ok := s.Resources[name]
+		if !ok {
+			return fmt.Errorf("Not found: %s", name)
+		}
+
+		if rs.Attributes[key] != value {
+			return fmt.Errorf(
+				"%s: Attribute '%s' expected %#v, got %#v",
+				name,
+				key,
+				value,
+				rs.Attributes[key])
+		}
+
+		return nil
+	}
+}
+
 // TestT is the interface used to handle the test lifecycle of a test.
 //
 // Users should just use a *testing.T object, which implements this.

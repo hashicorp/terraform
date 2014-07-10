@@ -10,6 +10,8 @@ import (
 )
 
 func TestAccVpc(t *testing.T) {
+	var vpc ec2.VPC
+
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
@@ -18,8 +20,10 @@ func TestAccVpc(t *testing.T) {
 			resource.TestStep{
 				Config: testAccVpcConfig,
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckVpcExists("aws_vpc.foo"),
-					testAccCheckVpcCidr("aws_vpc.foo", "10.1.0.0/16"),
+					testAccCheckVpcExists("aws_vpc.foo", &vpc),
+					testAccCheckVpcCidr(&vpc, "10.1.0.0/16"),
+					resource.TestCheckResourceAttr(
+						"aws_vpc.foo", "cidr_block", "10.1.0.0/16"),
 				),
 			},
 		},
@@ -57,27 +61,17 @@ func testAccCheckVpcDestroy(s *terraform.State) error {
 	return nil
 }
 
-func testAccCheckVpcCidr(n, expected string) resource.TestCheckFunc {
+func testAccCheckVpcCidr(vpc *ec2.VPC, expected string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
-		rs, ok := s.Resources[n]
-		if !ok {
-			return fmt.Errorf("Not found: %s", n)
-		}
-
-		v, ok := rs.Attributes["cidr_block"]
-		if !ok {
-			return fmt.Errorf("No cidr_block")
-		}
-
-		if v != expected {
-			return fmt.Errorf("Bad cidr: %s", v)
+		if vpc.CidrBlock != expected {
+			return fmt.Errorf("Bad cidr: %s", vpc.CidrBlock)
 		}
 
 		return nil
 	}
 }
 
-func testAccCheckVpcExists(n string) resource.TestCheckFunc {
+func testAccCheckVpcExists(n string, vpc *ec2.VPC) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		rs, ok := s.Resources[n]
 		if !ok {
@@ -96,6 +90,8 @@ func testAccCheckVpcExists(n string) resource.TestCheckFunc {
 		if len(resp.VPCs) == 0 {
 			return fmt.Errorf("VPC not found")
 		}
+
+		*vpc = resp.VPCs[0]
 
 		return nil
 	}
