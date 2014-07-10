@@ -2,6 +2,7 @@ package aws
 
 import (
 	"fmt"
+	"log"
 	"testing"
 
 	"github.com/hashicorp/terraform/helper/resource"
@@ -10,7 +11,24 @@ import (
 )
 
 func TestAccAWSInternetGateway(t *testing.T) {
-	var v ec2.InternetGateway
+	var v, v2 ec2.InternetGateway
+
+	testNotEqual := func(*terraform.State) error {
+		if len(v.Attachments) == 0 {
+			return fmt.Errorf("IG A is not attached")
+		}
+		if len(v2.Attachments) == 0 {
+			return fmt.Errorf("IG B is not attached")
+		}
+
+		id1 := v.Attachments[0].VpcId
+		id2 := v2.Attachments[0].VpcId
+		if id1 == id2 {
+			return fmt.Errorf("Both attachment IDs are the same")
+		}
+
+		return nil
+	}
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -22,6 +40,15 @@ func TestAccAWSInternetGateway(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckInternetGatewayExists(
 						"aws_internet_gateway.foo", &v),
+				),
+			},
+
+			resource.TestStep{
+				Config: testAccInternetGatewayConfigChangeVPC,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckInternetGatewayExists(
+						"aws_internet_gateway.foo", &v2),
+					testNotEqual,
 				),
 			},
 		},
@@ -94,5 +121,19 @@ resource "aws_vpc" "foo" {
 
 resource "aws_internet_gateway" "foo" {
 	vpc_id = "${aws_vpc.foo.id}"
+}
+`
+
+const testAccInternetGatewayConfigChangeVPC = `
+resource "aws_vpc" "foo" {
+	cidr_block = "10.1.0.0/16"
+}
+
+resource "aws_vpc" "bar" {
+	cidr_block = "10.2.0.0/16"
+}
+
+resource "aws_internet_gateway" "foo" {
+	vpc_id = "${aws_vpc.bar.id}"
 }
 `
