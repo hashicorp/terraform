@@ -4,9 +4,11 @@ import (
 	"fmt"
 	"log"
 	"reflect"
+	"time"
 
 	"github.com/hashicorp/terraform/flatmap"
 	"github.com/hashicorp/terraform/helper/diff"
+	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
 	"github.com/mitchellh/goamz/ec2"
 )
@@ -32,6 +34,22 @@ func resource_aws_route_table_create(
 	rt := &resp.RouteTable
 	s.ID = rt.RouteTableId
 	log.Printf("[INFO] Route Table ID: %s", s.ID)
+
+	// Wait for the route table to become available
+	log.Printf(
+		"[DEBUG] Waiting for route table (%s) to become available",
+		s.ID)
+	stateConf := &resource.StateChangeConf{
+		Pending: []string{"pending"},
+		Target:  "ready",
+		Refresh: RouteTableStateRefreshFunc(ec2conn, s.ID),
+		Timeout: 1 * time.Minute,
+	}
+	if _, err := stateConf.WaitForState(); err != nil {
+		return s, fmt.Errorf(
+			"Error waiting for route table (%s) to become available: %s",
+			s.ID, err)
+	}
 
 	// Update our routes
 	return resource_aws_route_table_update(s, d, meta)
@@ -124,6 +142,22 @@ func resource_aws_route_table_destroy(
 		return fmt.Errorf("Error deleting route table: %s", err)
 	}
 
+	// Wait for the route table to really destroy
+	log.Printf(
+		"[DEBUG] Waiting for route table (%s) to become destroyed",
+		s.ID)
+	stateConf := &resource.StateChangeConf{
+		Pending: []string{"ready"},
+		Target:  "",
+		Refresh: RouteTableStateRefreshFunc(ec2conn, s.ID),
+		Timeout: 1 * time.Minute,
+	}
+	if _, err := stateConf.WaitForState(); err != nil {
+		return fmt.Errorf(
+			"Error waiting for route table (%s) to become destroyed: %s",
+			s.ID, err)
+	}
+
 	return nil
 }
 
@@ -133,21 +167,15 @@ func resource_aws_route_table_refresh(
 	p := meta.(*ResourceProvider)
 	ec2conn := p.ec2conn
 
-	resp, err := ec2conn.DescribeRouteTables([]string{s.ID}, ec2.NewFilter())
+	rtRaw, _, err := RouteTableStateRefreshFunc(ec2conn, s.ID)()
 	if err != nil {
-		if ec2err, ok := err.(*ec2.Error); ok && ec2err.Code == "InvalidRouteTableID.NotFound" {
-			return nil, nil
-		}
-
-		log.Printf("[ERROR] Error searching for route table: %s", err)
 		return s, err
 	}
-
-	if len(resp.RouteTables) == 0 {
+	if rtRaw == nil {
 		return nil, nil
 	}
 
-	rt := &resp.RouteTables[0]
+	rt := rtRaw.(*ec2.RouteTable)
 	return resource_aws_route_table_update_state(s, rt)
 }
 
@@ -258,4 +286,29 @@ func routeTableOps(a interface{}, b interface{}) []routeTableOp {
 	}
 
 	return ops
+}
+
+// RouteTableStateRefreshFunc returns a resource.StateRefreshFunc that is used to watch
+// a RouteTable.
+func RouteTableStateRefreshFunc(conn *ec2.EC2, id string) resource.StateRefreshFunc {
+	return func() (interface{}, string, error) {
+		resp, err := conn.DescribeRouteTables([]string{id}, ec2.NewFilter())
+		if err != nil {
+			if ec2err, ok := err.(*ec2.Error); ok && ec2err.Code == "InvalidRouteTableID.NotFound" {
+				resp = nil
+			} else {
+				log.Printf("Error on RouteTableStateRefresh: %s", err)
+				return nil, "", err
+			}
+		}
+
+		if resp == nil {
+			// Sometimes AWS just has consistency issues and doesn't see
+			// our instance yet. Return an empty state.
+			return nil, "", nil
+		}
+
+		rt := &resp.RouteTables[0]
+		return rt, "ready", nil
+	}
 }

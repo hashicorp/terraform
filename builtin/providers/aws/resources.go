@@ -70,6 +70,7 @@ func init() {
 				Destroy: resource_aws_route_table_destroy,
 				Diff:    resource_aws_route_table_diff,
 				Refresh: resource_aws_route_table_refresh,
+				Update:  resource_aws_route_table_update,
 			},
 
 			"aws_security_group": resource.Resource{
