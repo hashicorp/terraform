@@ -32,7 +32,7 @@ testacc: libucl
 	TF_ACC=1 go test $(TEST) -v $(TESTARGS)
 
 testrace: libucl
-	go test -race $(TEST) $(TESTARGS)
+	TF_ACC= go test -race $(TEST) $(TESTARGS)
 
 updatedeps:
 	go get -u -v ./...
