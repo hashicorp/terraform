@@ -271,6 +271,11 @@ func (c *Context) Validate() ([]string, []error) {
 // the variables. This dynamically discovers the attributes instead of
 // using a static map[string]string that the genericWalkFn uses.
 func (c *Context) computeVars(raw *config.RawConfig) error {
+	// If there isn't a raw configuration, don't do anything
+	if raw == nil {
+		return nil
+	}
+
 	// If there are on variables, then we're done
 	if len(raw.Variables) == 0 {
 		return nil
@@ -735,13 +740,13 @@ func (c *Context) genericWalkFn(cb genericWalkFunc) depgraph.WalkFunc {
 			return nil
 		case *GraphNodeResourceProvider:
 			// Interpolate in the variables and configure all the providers
-			var rc *ResourceConfig
+			var raw *config.RawConfig
 			if m.Config != nil {
-				if err := c.computeVars(m.Config.RawConfig); err != nil {
-					panic(err)
-				}
-				rc = NewResourceConfig(m.Config.RawConfig)
+				raw = m.Config.RawConfig
 			}
+
+			rc := NewResourceConfig(raw)
+			rc.interpolate(c)
 
 			for k, p := range m.Providers {
 				log.Printf("[INFO] Configuring provider: %s", k)
