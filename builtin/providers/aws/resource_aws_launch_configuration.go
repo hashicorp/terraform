@@ -85,10 +85,20 @@ func resource_aws_launch_configuration_update(
 func resource_aws_launch_configuration_destroy(
 	s *terraform.ResourceState,
 	meta interface{}) error {
-	// p := meta.(*ResourceProvider)
-	// autoscalingconn := p.autoscalingconn
+	p := meta.(*ResourceProvider)
+	autoscalingconn := p.autoscalingconn
 
-	log.Printf("[DEBUG] launch configuration destroy: %v", s.ID)
+	log.Printf("[DEBUG] Launch Configuration destroy: %v", s.ID)
+
+	_, err := autoscalingconn.DeleteLaunchConfiguration(&autoscaling.DeleteLaunchConfiguration{Name: s.ID})
+
+	if err != nil {
+		autoscalingerr, ok := err.(*autoscaling.Error)
+		if ok && autoscalingerr.Code == "InvalidConfiguration.NotFound" {
+			return nil
+		}
+		return err
+	}
 
 	return nil
 }

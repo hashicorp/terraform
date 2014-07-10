@@ -102,21 +102,20 @@ func resource_aws_autoscaling_group_update(
 func resource_aws_autoscaling_group_destroy(
 	s *terraform.ResourceState,
 	meta interface{}) error {
-	// p := meta.(*ResourceProvider)
-	// autoscalingconn := p.autoscalingconn
+	p := meta.(*ResourceProvider)
+	autoscalingconn := p.autoscalingconn
 
 	log.Printf("[DEBUG] autoscaling Group destroy: %v", s.ID)
 
-	// err := nil
+	_, err := autoscalingconn.DeleteAutoScalingGroup(&autoscaling.DeleteAutoScalingGroup{Name: s.ID})
 
-	// _, err := autoscalingconn.DeleteAutoScalingGroup(autoscaling.autoscalingGroup{Id: s.ID})
-
-	// if err != nil {
-	// 	autoscalingerr, ok := err.(*autoscaling.Error)
-	// 	if ok && autoscalingerr.Code == "InvalidGroup.NotFound" {
-	// 		return nil
-	// 	}
-	// }
+	if err != nil {
+		autoscalingerr, ok := err.(*autoscaling.Error)
+		if ok && autoscalingerr.Code == "InvalidGroup.NotFound" {
+			return nil
+		}
+		return err
+	}
 
 	return nil
 }
