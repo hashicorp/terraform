@@ -131,6 +131,21 @@ func (s *State) String() string {
 	return buf.String()
 }
 
+// sensitiveState is used to store sensitive state information
+// that should not be serialized. This is only used temporarily
+// and is restored into the state.
+type sensitiveState struct {
+	ConnInfo map[string]*ResourceConnectionInfo
+
+	once sync.Once
+}
+
+func (s *sensitiveState) init() {
+	s.once.Do(func() {
+		s.ConnInfo = make(map[string]*ResourceConnectionInfo)
+	})
+}
+
 // The format byte is prefixed into the state file format so that we have
 // the ability in the future to change the file format if we want for any
 // reason.
@@ -172,7 +187,25 @@ func WriteState(d *State, dst io.Writer) error {
 		return errors.New("failed to write state version byte")
 	}
 
-	return gob.NewEncoder(dst).Encode(d)
+	// Prevent sensitive information from being serialized
+	sensitive := &sensitiveState{}
+	sensitive.init()
+	for name, r := range d.Resources {
+		if r.ConnInfo != nil {
+			sensitive.ConnInfo[name] = r.ConnInfo
+			r.ConnInfo = nil
+		}
+	}
+
+	// Serialize the state
+	err = gob.NewEncoder(dst).Encode(d)
+
+	// Restore the state
+	for name, info := range sensitive.ConnInfo {
+		d.Resources[name].ConnInfo = info
+	}
+
+	return err
 }
 
 // ResourceConnectionInfo holds addresses, credentials and configuration
