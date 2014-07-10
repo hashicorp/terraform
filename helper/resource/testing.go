@@ -102,7 +102,6 @@ func Test(t TestT, c TestCase) {
 	for i, step := range c.Steps {
 		var err error
 		state, err = testStep(opts, state, step)
-		println(fmt.Sprintf("FOO: %#v", state))
 		if err != nil {
 			t.Error(fmt.Sprintf(
 				"Step %d error: %s", i, err))
