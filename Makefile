@@ -25,6 +25,13 @@ libucl: vendor/libucl/$(LIBUCL_NAME)
 test: libucl
 	go test $(TEST) $(TESTARGS)
 
+testacc: libucl
+	@if [ "$(TEST)" = "./..." ]; then \
+		echo "ERROR: Set TEST to a specific package"; \
+		exit 1; \
+	fi
+	TF_ACC=1 go test $(TEST) -v $(TESTARGS)
+
 testrace: libucl
 	go test -race $(TEST) $(TESTARGS)
 
