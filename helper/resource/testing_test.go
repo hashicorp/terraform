@@ -1,6 +1,7 @@
 package resource
 
 import (
+	"fmt"
 	"os"
 	"testing"
 
@@ -94,12 +95,54 @@ func TestTest_noEnv(t *testing.T) {
 	if err := os.Setenv(TestEnvVar, ""); err != nil {
 		t.Fatalf("err: %s", err)
 	}
+	defer os.Setenv(TestEnvVar, "1")
 
 	mt := new(mockT)
 	Test(mt, TestCase{})
 
 	if !mt.SkipCalled {
 		t.Fatal("skip not called")
+	}
+}
+
+func TestTest_stepError(t *testing.T) {
+	mp := testProvider()
+	mp.ApplyReturn = &terraform.ResourceState{
+		ID: "foo",
+	}
+
+	checkDestroy := false
+
+	checkDestroyFn := func(*terraform.State) error {
+		checkDestroy = true
+		return nil
+	}
+
+	checkStepFn := func(*terraform.State) error {
+		return fmt.Errorf("error")
+	}
+
+	mt := new(mockT)
+	Test(mt, TestCase{
+		Providers: map[string]terraform.ResourceProvider{
+			"test": mp,
+		},
+		CheckDestroy: checkDestroyFn,
+		Steps: []TestStep{
+			TestStep{
+				Config: testConfigStr,
+				Check:  checkStepFn,
+			},
+		},
+	})
+
+	if !mt.failed() {
+		t.Fatal("test should've failed")
+	}
+	t.Logf("Fail message: %s", mt.failMessage())
+
+	if !checkDestroy {
+		t.Fatal("didn't call check for destroy")
 	}
 }
 
@@ -151,6 +194,13 @@ func (t *mockT) failMessage() string {
 
 func testProvider() *terraform.MockResourceProvider {
 	mp := new(terraform.MockResourceProvider)
+	mp.DiffReturn = &terraform.ResourceDiff{
+		Attributes: map[string]*terraform.ResourceAttrDiff{
+			"foo": &terraform.ResourceAttrDiff{
+				New: "bar",
+			},
+		},
+	}
 	mp.ResourcesReturn = []terraform.ResourceType{
 		terraform.ResourceType{Name: "test_instance"},
 	}

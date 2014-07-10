@@ -22,6 +22,9 @@ type TestCheckFunc func(*terraform.State) error
 
 // TestCase is a single acceptance test case used to test the apply/destroy
 // lifecycle of a resource in a specific configuration.
+//
+// When the destroy plan is executed, the config from the last TestStep
+// is used to plan it.
 type TestCase struct {
 	// Provider is the ResourceProvider that will be under test.
 	Providers map[string]terraform.ResourceProvider
@@ -99,6 +102,7 @@ func Test(t TestT, c TestCase) {
 	for i, step := range c.Steps {
 		var err error
 		state, err = testStep(opts, state, step)
+		println(fmt.Sprintf("FOO: %#v", state))
 		if err != nil {
 			t.Error(fmt.Sprintf(
 				"Step %d error: %s", i, err))
