@@ -27,6 +27,12 @@ type TestCheckFunc func(*terraform.State) error
 // When the destroy plan is executed, the config from the last TestStep
 // is used to plan it.
 type TestCase struct {
+	// PreCheck, if non-nil, will be called before any test steps are
+	// executed. It will only be executed in the case that the steps
+	// would run, so it can be used for some validation before running
+	// acceptance tests, such as verifying that keys are setup.
+	PreCheck func()
+
 	// Provider is the ResourceProvider that will be under test.
 	Providers map[string]terraform.ResourceProvider
 
@@ -87,6 +93,11 @@ func Test(t TestT, c TestCase) {
 	if !testTesting && !testing.Verbose() {
 		t.Fatal("Acceptance tests must be run with the -v flag on tests")
 		return
+	}
+
+	// Run the PreCheck if we have it
+	if c.PreCheck != nil {
+		c.PreCheck()
 	}
 
 	// Build our context options that we can

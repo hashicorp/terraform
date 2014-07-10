@@ -10,9 +10,8 @@ import (
 )
 
 func TestAccVpc(t *testing.T) {
-	testAccPreCheck(t)
-
 	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckVpcDestroy,
 		Steps: []resource.TestStep{

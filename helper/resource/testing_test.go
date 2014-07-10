@@ -105,6 +105,19 @@ func TestTest_noEnv(t *testing.T) {
 	}
 }
 
+func TestTest_preCheck(t *testing.T) {
+	called := false
+
+	mt := new(mockT)
+	Test(mt, TestCase{
+		PreCheck:     func() { called = true },
+	})
+
+	if !called {
+		t.Fatal("precheck should be called")
+	}
+}
+
 func TestTest_stepError(t *testing.T) {
 	mp := testProvider()
 	mp.ApplyReturn = &terraform.ResourceState{
