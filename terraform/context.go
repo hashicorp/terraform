@@ -693,6 +693,8 @@ func (c *Context) refreshWalkFn() depgraph.WalkFunc {
 }
 
 func (c *Context) validateWalkFn(rws *[]string, res *[]error) depgraph.WalkFunc {
+	var l sync.Mutex
+
 	return func(n *depgraph.Noun) error {
 		// If it is the root node, ignore
 		if n.Name == GraphRootNode {
@@ -719,8 +721,11 @@ func (c *Context) validateWalkFn(rws *[]string, res *[]error) depgraph.WalkFunc 
 			for i, e := range es {
 				es[i] = fmt.Errorf("'%s' error: %s", rn.Resource.Id, e)
 			}
+
+			l.Lock()
 			*rws = append(*rws, ws...)
 			*res = append(*res, es...)
+			l.Unlock()
 
 			for idx, p := range rn.Resource.Provisioners {
 				ws, es := p.Provisioner.Validate(p.Config)
@@ -730,8 +735,11 @@ func (c *Context) validateWalkFn(rws *[]string, res *[]error) depgraph.WalkFunc 
 				for i, e := range es {
 					es[i] = fmt.Errorf("'%s.provisioner.%d' error: %s", rn.Resource.Id, idx, e)
 				}
+
+				l.Lock()
 				*rws = append(*rws, ws...)
 				*res = append(*res, es...)
+				l.Unlock()
 			}
 
 		case *GraphNodeResourceProvider:
@@ -751,8 +759,10 @@ func (c *Context) validateWalkFn(rws *[]string, res *[]error) depgraph.WalkFunc 
 					es[i] = fmt.Errorf("Provider '%s' error: %s", k, e)
 				}
 
+				l.Lock()
 				*rws = append(*rws, ws...)
 				*res = append(*res, es...)
+				l.Unlock()
 			}
 		}
 
