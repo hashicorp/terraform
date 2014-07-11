@@ -195,10 +195,18 @@ func TestGraphProvisioners(t *testing.T) {
 	if prov.RawConfig.Config()["cmd"] != "add ${aws_instance.web.id}" {
 		t.Fatalf("bad: %#v", prov)
 	}
+	if prov.ConnInfo == nil || len(prov.ConnInfo.Raw) != 2 {
+		t.Fatalf("bad: %#v", prov)
+	}
 
 	// Check that the variable dependency is handled
 	if !depends("aws_load_balancer.weblb", "aws_instance.web") {
 		t.Fatalf("missing dependency from provisioner variable")
+	}
+
+	// Check that the connection variable dependency is handled
+	if !depends("aws_load_balancer.weblb", "aws_security_group.firewall") {
+		t.Fatalf("missing dependency from provisioner connection")
 	}
 }
 
