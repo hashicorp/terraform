@@ -316,6 +316,10 @@ func loadResourcesLibucl(o *libucl.Object) ([]*Resource, error) {
 			// that is treated specially.
 			delete(config, "provisioner")
 
+			// Delete the "connection" section since we handle that
+			// seperately
+			delete(config, "connection")
+
 			rawConfig, err := NewRawConfig(config)
 			if err != nil {
 				return nil, fmt.Errorf(
@@ -339,11 +343,26 @@ func loadResourcesLibucl(o *libucl.Object) ([]*Resource, error) {
 				}
 			}
 
+			// If we have connection info, then parse those out
+			var connInfo map[string]interface{}
+			if conn := r.Get("connection"); conn != nil {
+				var err error
+				connInfo, err = loadConnInfoLibucl(conn)
+				conn.Close()
+				if err != nil {
+					return nil, fmt.Errorf(
+						"Error reading connection info for %s[%s]: %s",
+						t.Key(),
+						r.Key(),
+						err)
+				}
+			}
+
 			// If we have provisioners, then parse those out
 			var provisioners []*Provisioner
 			if po := r.Get("provisioner"); po != nil {
 				var err error
-				provisioners, err = loadProvisionersLibucl(po)
+				provisioners, err = loadProvisionersLibucl(po, connInfo)
 				po.Close()
 				if err != nil {
 					return nil, fmt.Errorf(
@@ -367,7 +386,7 @@ func loadResourcesLibucl(o *libucl.Object) ([]*Resource, error) {
 	return result, nil
 }
 
-func loadProvisionersLibucl(o *libucl.Object) ([]*Provisioner, error) {
+func loadProvisionersLibucl(o *libucl.Object, connInfo map[string]interface{}) ([]*Provisioner, error) {
 	pos := make([]*libucl.Object, 0, int(o.Len()))
 
 	// Accumulate all the actual provisioner configuration objects. We
@@ -409,7 +428,40 @@ func loadProvisionersLibucl(o *libucl.Object) ([]*Provisioner, error) {
 			return nil, err
 		}
 
+		// Delete the "connection" section, handle seperately
+		delete(config, "connection")
+
 		rawConfig, err := NewRawConfig(config)
+		if err != nil {
+			return nil, err
+		}
+
+		// Check if we have a provisioner-level connection
+		// block that overrides the resource-level
+		var subConnInfo map[string]interface{}
+		if conn := po.Get("connection"); conn != nil {
+			var err error
+			subConnInfo, err = loadConnInfoLibucl(conn)
+			conn.Close()
+			if err != nil {
+				return nil, err
+			}
+		}
+
+		// Inherit from the resource connInfo any keys
+		// that are not explicitly overriden.
+		if connInfo != nil && subConnInfo != nil {
+			for k, v := range connInfo {
+				if _, ok := subConnInfo[k]; !ok {
+					subConnInfo[k] = v
+				}
+			}
+		} else if subConnInfo == nil {
+			subConnInfo = connInfo
+		}
+
+		// Parse the connInfo
+		connRaw, err := NewRawConfig(subConnInfo)
 		if err != nil {
 			return nil, err
 		}
@@ -417,8 +469,17 @@ func loadProvisionersLibucl(o *libucl.Object) ([]*Provisioner, error) {
 		result = append(result, &Provisioner{
 			Type:      po.Key(),
 			RawConfig: rawConfig,
+			ConnInfo:  connRaw,
 		})
 	}
 
 	return result, nil
+}
+
+func loadConnInfoLibucl(o *libucl.Object) (map[string]interface{}, error) {
+	var config map[string]interface{}
+	if err := o.Decode(&config); err != nil {
+		return nil, err
+	}
+	return config, nil
 }

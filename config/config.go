@@ -42,6 +42,7 @@ type Resource struct {
 type Provisioner struct {
 	Type      string
 	RawConfig *RawConfig
+	ConnInfo  *RawConfig
 }
 
 // Variable is a variable defined within the configuration.
