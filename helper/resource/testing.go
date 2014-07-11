@@ -185,9 +185,13 @@ func testStep(
 	opts.State = state
 	ctx := terraform.NewContext(&opts)
 	if ws, es := ctx.Validate(); len(ws) > 0 || len(es) > 0 {
+		estrs := make([]string, len(es))
+		for i, e := range es {
+			estrs[i] = e.Error()
+		}
 		return state, fmt.Errorf(
 			"Configuration is invalid.\n\nWarnings: %#v\n\nErrors: %#v",
-			ws, es)
+			ws, estrs)
 	}
 
 	// Refresh!
