@@ -7,6 +7,36 @@ import (
 	"github.com/hashicorp/terraform/terraform"
 )
 
+func TestResourceBuilder_attrSetComputed(t *testing.T) {
+	rb := &ResourceBuilder{
+		Attrs: map[string]AttrType{
+			"foo": AttrTypeCreate,
+		},
+		ComputedAttrs: []string{
+			"foo",
+		},
+	}
+
+	state := &terraform.ResourceState{}
+	c := testConfig(t, map[string]interface{}{
+		"foo": "bar",
+	}, nil)
+
+	diff, err := rb.Diff(state, c)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if diff == nil {
+		t.Fatal("diff shold not be nil")
+	}
+
+	actual := testResourceDiffStr(diff)
+	expected := testRBAttrSetComputedDiff
+	if actual != expected {
+		t.Fatalf("bad: %s", actual)
+	}
+}
+
 func TestResourceBuilder_replaceComputed(t *testing.T) {
 	rb := &ResourceBuilder{
 		Attrs: map[string]AttrType{
@@ -261,6 +291,10 @@ func TestResourceBuilder_vars(t *testing.T) {
 		t.Fatalf("bad: %s", actual)
 	}
 }
+
+const testRBAttrSetComputedDiff = `CREATE
+  IN  foo: "" => "bar" (forces new resource)
+`
 
 const testRBComplexDiff = `UPDATE
   IN  listener.0.port: "80" => "3000"

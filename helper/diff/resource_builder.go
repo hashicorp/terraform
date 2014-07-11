@@ -146,6 +146,10 @@ func (b *ResourceBuilder) Diff(
 	// that will be changing due to the creation of the resource.
 	if requiresNew {
 		for _, k := range b.ComputedAttrs {
+			if _, ok := attrs[k]; ok {
+				continue
+			}
+
 			old := s.Attributes[k]
 			attrs[k] = &terraform.ResourceAttrDiff{
 				Old:         old,
