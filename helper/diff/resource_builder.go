@@ -33,6 +33,12 @@ type ResourceBuilder struct {
 	// Attrs are the mapping of attributes that can be set from the
 	// configuration, and the affect they have. See the documentation for
 	// AttrType for more info.
+	//
+	// Sometimes attributes in here are also computed. For example, an
+	// "availability_zone" might be optional, but will be chosen for you
+	// by AWS. In that case, specify it both here and in ComputedAttrs.
+	// This will make sure that the absense of the configuration won't
+	// cause a diff by setting it to the empty string.
 	Attrs map[string]AttrType
 
 	// ComputedAttrs are the attributes that are computed at
@@ -98,7 +104,8 @@ func (b *ResourceBuilder) Diff(
 			}
 		}
 
-		// Go through our attribues and find the deleted keys
+		// Find all the keys that are in our attributes right now that
+		// we also care about.
 		matchingKeys := make(map[string]struct{})
 		for k, _ := range s.Attributes {
 			// Find only the attributes that match our prefix
@@ -106,10 +113,23 @@ func (b *ResourceBuilder) Diff(
 				continue
 			}
 
+			// If this key is computed, then we don't ever delete it
+			comp := false
+			for _, ck := range b.ComputedAttrs {
+				if ck == k {
+					comp = true
+					break
+				}
+			}
+			if comp {
+				continue
+			}
+
 			matchingKeys[k] = struct{}{}
 		}
 
-		// Delete the keys we saw to find the deleted keys
+		// Delete the keys we saw in the configuration from the keys
+		// that are currently set.
 		for _, k := range seenKeys {
 			delete(matchingKeys, k)
 		}

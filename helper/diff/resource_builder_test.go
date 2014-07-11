@@ -7,6 +7,33 @@ import (
 	"github.com/hashicorp/terraform/terraform"
 )
 
+func TestResourceBuilder_replaceComputed(t *testing.T) {
+	rb := &ResourceBuilder{
+		Attrs: map[string]AttrType{
+			"foo": AttrTypeCreate,
+		},
+		ComputedAttrs: []string{
+			"foo",
+		},
+	}
+
+	state := &terraform.ResourceState{
+		ID: "foo",
+		Attributes: map[string]string{
+			"foo": "bar",
+		},
+	}
+	c := testConfig(t, nil, nil)
+
+	diff, err := rb.Diff(state, c)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if diff != nil {
+		t.Fatalf("should be nil: %#v", diff)
+	}
+}
+
 func TestResourceBuilder_complex(t *testing.T) {
 	rb := &ResourceBuilder{
 		Attrs: map[string]AttrType{
