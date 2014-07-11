@@ -202,9 +202,11 @@ func testStep(
 	}
 
 	// Plan!
-	if _, err := ctx.Plan(&terraform.PlanOpts{Destroy: step.Destroy}); err != nil {
+	if p, err := ctx.Plan(&terraform.PlanOpts{Destroy: step.Destroy}); err != nil {
 		return state, fmt.Errorf(
 			"Error planning: %s", err)
+	} else {
+		log.Printf("[WARN] Test: Step plan: %s", p)
 	}
 
 	// Apply!

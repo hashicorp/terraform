@@ -62,6 +62,12 @@ func (m *Map) Apply(
 	if s.ID == "" {
 		result, err = r.Create(s, d, meta)
 	} else {
+		if r.Update == nil {
+			return s, fmt.Errorf(
+				"Resource type '%s' doesn't support update",
+				s.Type)
+		}
+
 		result, err = r.Update(s, d, meta)
 	}
 	if result != nil {
