@@ -1,7 +1,8 @@
 package remoteexec
 
 import (
-	"github.com/hashicorp/terraform/helper/config"
+	"fmt"
+
 	"github.com/hashicorp/terraform/terraform"
 )
 
@@ -14,12 +15,22 @@ func (p *ResourceProvisioner) Apply(
 	return s, nil
 }
 
-func (p *ResourceProvisioner) Validate(c *terraform.ResourceConfig) ([]string, []error) {
-	validator := config.Validator{
-		Optional: []string{
-			"command",
-			"inline",
-		},
+func (p *ResourceProvisioner) Validate(c *terraform.ResourceConfig) (ws []string, es []error) {
+	var hasCommand, hasInline bool
+	for name := range c.Raw {
+		switch name {
+		case "command":
+			hasCommand = true
+		case "inline":
+			hasInline = true
+		default:
+			es = append(es, fmt.Errorf("Unknown configuration '%s'", name))
+		}
 	}
-	return validator.Validate(c)
+	if hasInline && hasCommand {
+		es = append(es, fmt.Errorf("Cannot provide both 'command' and 'inline' to remote-exec"))
+	} else if !hasInline && !hasCommand {
+		es = append(es, fmt.Errorf("Must provide 'command' or 'inline' to remote-exec"))
+	}
+	return
 }
