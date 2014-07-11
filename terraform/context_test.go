@@ -433,6 +433,58 @@ func TestContextApply_Provisioner_compute(t *testing.T) {
 	}
 }
 
+func TestContextApply_outputDiffVars(t *testing.T) {
+	c := testConfig(t, "apply-good")
+	p := testProvider("aws")
+	s := &State{
+		Resources: map[string]*ResourceState{
+			"aws_instance.baz": &ResourceState{
+				ID:   "bar",
+				Type: "aws_instance",
+			},
+		},
+	}
+	ctx := testContext(t, &ContextOpts{
+		Config: c,
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+		State: s,
+	})
+
+	p.ApplyFn = func(s *ResourceState, d *ResourceDiff) (*ResourceState, error) {
+		for k, ad := range d.Attributes {
+			if ad.NewComputed {
+				return nil, fmt.Errorf("%s: computed", k)
+			}
+		}
+
+		result := s.MergeDiff(d)
+		result.ID = "foo"
+		return result, nil
+	}
+	p.DiffFn = func(*ResourceState, *ResourceConfig) (*ResourceDiff, error) {
+		return &ResourceDiff{
+			Attributes: map[string]*ResourceAttrDiff{
+				"foo": &ResourceAttrDiff{
+					NewComputed: true,
+					Type:        DiffAttrOutput,
+				},
+				"bar": &ResourceAttrDiff{
+					New: "baz",
+				},
+			},
+		}, nil
+	}
+
+	if _, err := ctx.Plan(nil); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if _, err := ctx.Apply(); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+}
+
 func TestContextApply_destroy(t *testing.T) {
 	c := testConfig(t, "apply-destroy")
 	h := new(HookRecordApplyOrder)

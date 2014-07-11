@@ -453,6 +453,13 @@ func (c *Context) applyWalkFn() depgraph.WalkFunc {
 		// TODO(mitchellh): we need to verify the diff doesn't change
 		// anything and that the diff has no computed values (pre-computed)
 
+		// Remove any output values from the diff
+		for k, ad := range diff.Attributes {
+			if ad.Type == DiffAttrOutput {
+				delete(diff.Attributes, k)
+			}
+		}
+
 		for _, h := range c.hooks {
 			handleHook(h.PreApply(r.Id, r.State, diff))
 		}
