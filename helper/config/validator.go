@@ -145,7 +145,7 @@ func (v *nestedValidatorKey) Validate(
 	m map[string]string) ([]string, []string, []error) {
 	countStr, ok := m[v.Prefix+".#"]
 	if !ok {
-		if !v.Required {
+		if !v.Required || v.Key != "" {
 			// Not present, that is okay
 			return nil, nil, nil
 		} else {

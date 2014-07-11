@@ -70,6 +70,39 @@ func TestValidator_complex(t *testing.T) {
 	testInvalid(v, c)
 }
 
+func TestValidator_complexDeepRequired(t *testing.T) {
+	v := &Validator{
+		Required: []string{
+			"foo",
+			"nested.*.foo",
+		},
+	}
+
+	var c *terraform.ResourceConfig
+
+	// Valid
+	c = testConfig(t, map[string]interface{}{
+		"foo": "bar",
+		"nested": []map[string]interface{}{
+			map[string]interface{}{"foo": "bar"},
+		},
+	})
+	testValid(v, c)
+
+	// Valid
+	c = testConfig(t, map[string]interface{}{
+		"foo": "bar",
+	})
+	testValid(v, c)
+
+	// Not a nested structure
+	c = testConfig(t, map[string]interface{}{
+		"foo":    "bar",
+		"nested": "baa",
+	})
+	testInvalid(v, c)
+}
+
 func testConfig(
 	t *testing.T,
 	c map[string]interface{}) *terraform.ResourceConfig {
@@ -97,6 +130,10 @@ func testValid(v *Validator, c *terraform.ResourceConfig) {
 		panic(fmt.Sprintf("bad: %#v", ws))
 	}
 	if len(es) > 0 {
-		panic(fmt.Sprintf("bad: %#v", es))
+		estrs := make([]string, len(es))
+		for i, e := range es {
+			estrs[i] = e.Error()
+		}
+		panic(fmt.Sprintf("bad: %#v", estrs))
 	}
 }
