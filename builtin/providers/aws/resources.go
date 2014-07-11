@@ -73,6 +73,20 @@ func init() {
 				Update:  resource_aws_route_table_update,
 			},
 
+			"aws_route_table_association": resource.Resource{
+				ConfigValidator: &config.Validator{
+					Required: []string{
+						"route_table_id",
+						"subnet_id",
+					},
+				},
+				Create:  resource_aws_route_table_association_create,
+				Destroy: resource_aws_route_table_association_destroy,
+				Diff:    resource_aws_route_table_association_diff,
+				Refresh: resource_aws_route_table_association_refresh,
+				Update:  resource_aws_route_table_association_update,
+			},
+
 			"aws_security_group": resource.Resource{
 				Create:  resource_aws_security_group_create,
 				Destroy: resource_aws_security_group_destroy,
