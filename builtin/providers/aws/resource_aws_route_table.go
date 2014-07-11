@@ -132,6 +132,25 @@ func resource_aws_route_table_destroy(
 	p := meta.(*ResourceProvider)
 	ec2conn := p.ec2conn
 
+	// First request the routing table since we'll have to disassociate
+	// all the subnets first.
+	rtRaw, _, err := RouteTableStateRefreshFunc(ec2conn, s.ID)()
+	if err != nil {
+		return err
+	}
+	if rtRaw == nil {
+		return nil
+	}
+	rt := rtRaw.(*ec2.RouteTable)
+
+	// Do all the disassociations
+	for _, a := range rt.Associations {
+		if _, err := ec2conn.DisassociateRouteTable(a.AssociationId); err != nil {
+			return err
+		}
+	}
+
+	// Delete the route table
 	log.Printf("[INFO] Deleting Route Table: %s", s.ID)
 	if _, err := ec2conn.DeleteRouteTable(s.ID); err != nil {
 		ec2err, ok := err.(*ec2.Error)
