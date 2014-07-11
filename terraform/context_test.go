@@ -8,9 +8,13 @@ import (
 )
 
 func TestContextValidate(t *testing.T) {
+	p := testProvider("aws")
 	config := testConfig(t, "validate-good")
 	c := testContext(t, &ContextOpts{
 		Config: config,
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
 	})
 
 	w, e := c.Validate()
@@ -23,9 +27,13 @@ func TestContextValidate(t *testing.T) {
 }
 
 func TestContextValidate_badVar(t *testing.T) {
+	p := testProvider("aws")
 	config := testConfig(t, "validate-bad-var")
 	c := testContext(t, &ContextOpts{
 		Config: config,
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
 	})
 
 	w, e := c.Validate()
@@ -33,6 +41,39 @@ func TestContextValidate_badVar(t *testing.T) {
 		t.Fatalf("bad: %#v", w)
 	}
 	if len(e) == 0 {
+		t.Fatalf("bad: %#v", e)
+	}
+}
+
+func TestContextValidate_orphans(t *testing.T) {
+	p := testProvider("aws")
+	config := testConfig(t, "validate-good")
+	state := &State{
+		Resources: map[string]*ResourceState{
+			"aws_instance.web": &ResourceState{
+				ID:   "bar",
+				Type: "aws_instance",
+			},
+		},
+	}
+	c := testContext(t, &ContextOpts{
+		Config: config,
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+		State: state,
+	})
+
+	p.ValidateResourceFn = func(
+		t string, c *ResourceConfig) ([]string, []error) {
+		return nil, c.CheckSet([]string{"foo"})
+	}
+
+	w, e := c.Validate()
+	if len(w) > 0 {
+		t.Fatalf("bad: %#v", w)
+	}
+	if len(e) > 0 {
 		t.Fatalf("bad: %#v", e)
 	}
 }

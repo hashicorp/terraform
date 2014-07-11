@@ -712,6 +712,11 @@ func (c *Context) validateWalkFn(rws *[]string, res *[]error) depgraph.WalkFunc 
 				return nil
 			}
 
+			// Don't validate orphans since they never have a config
+			if rn.Orphan {
+				return nil
+			}
+
 			log.Printf("[INFO] Validating resource: %s", rn.Resource.Id)
 			ws, es := rn.Resource.Provider.ValidateResource(
 				rn.Type, rn.Resource.Config)
