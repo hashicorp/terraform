@@ -18,6 +18,7 @@ type ResourceProvisionerConfig struct {
 	Provisioner ResourceProvisioner
 	Config      *ResourceConfig
 	RawConfig   *config.RawConfig
+	ConnInfo    *config.RawConfig
 }
 
 // Resource encapsulates a resource, its configuration, its provider,

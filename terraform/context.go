@@ -555,12 +555,37 @@ func (c *Context) applyWalkFn() depgraph.WalkFunc {
 // defined after the resource creation has already completed.
 func (c *Context) applyProvisioners(r *Resource, rs *ResourceState) (*ResourceState, error) {
 	var err error
+
+	// Store the original connection info, restore later
+	origConnInfo := rs.ConnInfo
+	defer func() {
+		rs.ConnInfo = origConnInfo
+	}()
+
 	for _, prov := range r.Provisioners {
 		// Interpolate since we may have variables that depend on the
 		// local resource.
 		if err := prov.Config.interpolate(c); err != nil {
 			return rs, err
 		}
+
+		// Interpolate the conn info, since it may contain variables
+		connInfo := NewResourceConfig(prov.ConnInfo)
+		if err := connInfo.interpolate(c); err != nil {
+			return rs, err
+		}
+
+		// Merge the connection information
+		overlay := make(map[string]interface{})
+		if origConnInfo != nil {
+			for k, v := range origConnInfo.Raw {
+				overlay[k] = v
+			}
+		}
+		for k, v := range connInfo.Config {
+			overlay[k] = v
+		}
+		rs.ConnInfo = &ResourceConnectionInfo{Raw: overlay}
 
 		// Invoke the Provisioner
 		rs, err = prov.Provisioner.Apply(rs, prov.Config)

@@ -250,14 +250,10 @@ func WriteState(d *State, dst io.Writer) error {
 // by a provider so that provisioners can connect and run on the
 // resource.
 type ResourceConnectionInfo struct {
-	// Type is set so that an appropriate connection can be formed.
-	// As an example, for a Linux machine, the Type may be "ssh"
-	Type string
-
-	// Raw is used to store any relevant keys for the given Type
+	// Raw is used to store any relevant keys for the given 'type'
 	// so that a provisioner can connect to the resource. This could
 	// contain credentials or address information.
-	Raw map[string]string
+	Raw map[string]interface{}
 }
 
 // ResourceState holds the state of a resource that is used so that

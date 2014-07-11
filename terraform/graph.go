@@ -546,6 +546,9 @@ func graphAddVariableDeps(g *depgraph.Graph) {
 			for _, p := range m.Resource.Provisioners {
 				vars = p.RawConfig.Variables
 				nounAddVariableDeps(g, n, vars)
+
+				vars = p.ConnInfo.Variables
+				nounAddVariableDeps(g, n, vars)
 			}
 
 		case *GraphNodeResourceProvider:
@@ -774,6 +777,7 @@ func graphMapResourceProvisioners(g *depgraph.Graph,
 				Provisioner: provisioner,
 				Config:      NewResourceConfig(p.RawConfig),
 				RawConfig:   p.RawConfig,
+				ConnInfo:    p.ConnInfo,
 			})
 		}
 	}
