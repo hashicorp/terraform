@@ -10,7 +10,7 @@ import (
 )
 
 func TestAccAWSRouteTableAssociation(t *testing.T) {
-	var v ec2.RouteTable
+	var v, v2 ec2.RouteTable
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -22,6 +22,14 @@ func TestAccAWSRouteTableAssociation(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckRouteTableAssociationExists(
 						"aws_route_table_association.foo", &v),
+				),
+			},
+
+			resource.TestStep{
+				Config: testAccRouteTableAssociationConfigChange,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckRouteTableAssociationExists(
+						"aws_route_table_association.foo", &v2),
 				),
 			},
 		},
@@ -109,6 +117,26 @@ resource "aws_route_table" "foo" {
 
 resource "aws_route_table_association" "foo" {
 	route_table_id = "${aws_route_table.foo.id}"
+	subnet_id = "${aws_subnet.foo.id}"
+}
+`
+
+const testAccRouteTableAssociationConfigChange = `
+resource "aws_vpc" "foo" {
+	cidr_block = "10.1.0.0/16"
+}
+
+resource "aws_subnet" "foo" {
+	vpc_id = "${aws_vpc.foo.id}"
+	cidr_block = "10.1.1.0/24"
+}
+
+resource "aws_route_table" "bar" {
+	vpc_id = "${aws_vpc.foo.id}"
+}
+
+resource "aws_route_table_association" "foo" {
+	route_table_id = "${aws_route_table.bar.id}"
 	subnet_id = "${aws_subnet.foo.id}"
 }
 `

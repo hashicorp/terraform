@@ -145,6 +145,7 @@ func resource_aws_route_table_destroy(
 
 	// Do all the disassociations
 	for _, a := range rt.Associations {
+		log.Printf("[INFO] Disassociating association: %s", a.AssociationId)
 		if _, err := ec2conn.DisassociateRouteTable(a.AssociationId); err != nil {
 			return err
 		}

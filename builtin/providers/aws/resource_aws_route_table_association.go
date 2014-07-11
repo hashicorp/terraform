@@ -55,6 +55,12 @@ func resource_aws_route_table_association_update(
 		rs.ID,
 		rs.Attributes["route_table_id"])
 	if err != nil {
+		ec2err, ok := err.(*ec2.Error)
+		if ok && ec2err.Code == "InvalidAssociationID.NotFound" {
+			// Not found, so just create a new one
+			return resource_aws_route_table_association_create(s, d, meta)
+		}
+
 		return s, err
 	}
 

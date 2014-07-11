@@ -131,6 +131,10 @@ func resource_aws_subnet_diff(
 			"cidr_block":        diff.AttrTypeCreate,
 			"vpc_id":            diff.AttrTypeCreate,
 		},
+
+		ComputedAttrs: []string{
+			"availability_zone",
+		},
 	}
 
 	return b.Diff(s, c)
