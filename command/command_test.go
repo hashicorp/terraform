@@ -13,7 +13,7 @@ import (
 const fixtureDir = "./test-fixtures"
 
 func testFixturePath(name string) string {
-	return filepath.Join(fixtureDir, name, "main.tf")
+	return filepath.Join(fixtureDir, name)
 }
 
 func testCtxConfig(p terraform.ResourceProvider) *terraform.ContextOpts {

@@ -1,9 +1,9 @@
 package command
 
 import (
+	"bytes"
 	"flag"
 	"fmt"
-	"os"
 	"strings"
 
 	"github.com/hashicorp/terraform/config"
@@ -33,7 +33,9 @@ func (c *GraphCommand) Run(args []string) int {
 		return 1
 	}
 
-	conf, err := config.Load(args[0])
+	path := args[0]
+
+	conf, err := config.LoadDir(path)
 	if err != nil {
 		c.Ui.Error(fmt.Sprintf("Error loading config: %s", err))
 		return 1
@@ -48,11 +50,14 @@ func (c *GraphCommand) Run(args []string) int {
 		return 1
 	}
 
+	buf := new(bytes.Buffer)
 	nodes := make([]digraph.Node, len(g.Nouns))
 	for i, n := range g.Nouns {
 		nodes[i] = n
 	}
-	digraph.GenerateDot(nodes, os.Stdout)
+	digraph.GenerateDot(nodes, buf)
+
+	c.Ui.Output(buf.String())
 
 	return 0
 }
@@ -65,6 +70,10 @@ Usage: terraform graph [options] PATH
   the path to a configuration, the dependency graph of the resources are
   shown. If the path is a plan file, then the dependency graph of the
   plan itself is shown.
+
+  The graph is outputted in DOT format. The typical program that can
+  read this format is GraphViz, but many web services are also available
+  to read this format.
 
 `
 	return strings.TrimSpace(helpText)
