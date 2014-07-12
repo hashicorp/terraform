@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"flag"
 	"fmt"
+	"os"
 	"strings"
 
 	"github.com/hashicorp/terraform/config"
@@ -26,14 +27,21 @@ func (c *GraphCommand) Run(args []string) int {
 		return 1
 	}
 
+	var path string
 	args = cmdFlags.Args()
-	if len(args) != 1 {
+	if len(args) > 1 {
 		c.Ui.Error("The graph command expects one argument.\n")
 		cmdFlags.Usage()
 		return 1
+	} else if len(args) == 1 {
+		path = args[0]
+	} else {
+		var err error
+		path, err = os.Getwd()
+		if err != nil {
+			c.Ui.Error(fmt.Sprintf("Error getting pwd: %s", err))
+		}
 	}
-
-	path := args[0]
 
 	conf, err := config.LoadDir(path)
 	if err != nil {
