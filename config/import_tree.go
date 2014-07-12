@@ -38,7 +38,7 @@ func loadTree(root string) (*importTree, error) {
 		f = loadFileLibucl
 	default:
 		return nil, fmt.Errorf(
-			"%s: uknown configuration format. Use '.tf' or '.tf.rb' extension",
+			"%s: unknown configuration format. Use '.tf' extension",
 			root)
 	}
 
