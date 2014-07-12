@@ -453,6 +453,12 @@ func (c *Context) applyWalkFn() depgraph.WalkFunc {
 		// TODO(mitchellh): we need to verify the diff doesn't change
 		// anything and that the diff has no computed values (pre-computed)
 
+		// If we don't have a diff, just make an empty one
+		if diff == nil {
+			diff = new(ResourceDiff)
+			diff.init()
+		}
+
 		// Remove any output values from the diff
 		for k, ad := range diff.Attributes {
 			if ad.Type == DiffAttrOutput {
