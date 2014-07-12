@@ -31,13 +31,21 @@ func (c *ApplyCommand) Run(args []string) int {
 		return 1
 	}
 
+	var configPath string
 	args = cmdFlags.Args()
 	if len(args) > 1 {
 		c.Ui.Error("The apply command expacts at most one argument.")
 		cmdFlags.Usage()
 		return 1
+	} else if len(args) == 1 {
+		configPath = args[0]
+	} else {
+		var err error
+		configPath, err = os.Getwd()
+		if err != nil {
+			c.Ui.Error(fmt.Sprintf("Error getting pwd: %s", err))
+		}
 	}
-	configPath := args[0]
 
 	// If we don't specify an output path, default to out normal state
 	// path.

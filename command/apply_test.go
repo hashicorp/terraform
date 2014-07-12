@@ -190,6 +190,52 @@ func TestApply_error(t *testing.T) {
 	}
 }
 
+func TestApply_noArgs(t *testing.T) {
+	cwd, err := os.Getwd()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if err := os.Chdir(testFixturePath("plan")); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	defer os.Chdir(cwd)
+
+	statePath := testTempFile(t)
+
+	p := testProvider()
+	ui := new(cli.MockUi)
+	c := &ApplyCommand{
+		ContextOpts: testCtxConfig(p),
+		Ui:          ui,
+	}
+
+	args := []string{
+		"-init",
+		"-state", statePath,
+	}
+	if code := c.Run(args); code != 0 {
+		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
+	}
+
+	if _, err := os.Stat(statePath); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	f, err := os.Open(statePath)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	defer f.Close()
+
+	state, err := terraform.ReadState(f)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if state == nil {
+		t.Fatal("state should not be nil")
+	}
+}
+
 func TestApply_plan(t *testing.T) {
 	planPath := testPlanFile(t, &terraform.Plan{
 		Config: new(config.Config),
