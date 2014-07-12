@@ -33,13 +33,22 @@ func (c *PlanCommand) Run(args []string) int {
 		return 1
 	}
 
+	var path string
 	args = cmdFlags.Args()
-	if len(args) != 1 {
+	if len(args) > 1 {
 		c.Ui.Error(
-			"The plan command expects only one argument with the path\n" +
+			"The plan command expects at most one argument with the path\n" +
 				"to a Terraform configuration.\n")
 		cmdFlags.Usage()
 		return 1
+	} else if len(args) == 1 {
+		path = args[0]
+	} else {
+		var err error
+		path, err = os.Getwd()
+		if err != nil {
+			c.Ui.Error(fmt.Sprintf("Error getting pwd: %s", err))
+		}
 	}
 
 	// Load up the state
@@ -59,7 +68,7 @@ func (c *PlanCommand) Run(args []string) int {
 		}
 	}
 
-	b, err := config.Load(args[0])
+	b, err := config.LoadDir(path)
 	if err != nil {
 		c.Ui.Error(fmt.Sprintf("Error loading blueprint: %s", err))
 		return 1
@@ -111,10 +120,14 @@ func (c *PlanCommand) Run(args []string) int {
 
 func (c *PlanCommand) Help() string {
 	helpText := `
-Usage: terraform plan [options] [terraform.tf]
+Usage: terraform plan [options] [dir]
 
-  Shows the differences between the Terraform configuration and
-  the actual state of an infrastructure.
+  Generates an execution plan for Terraform.
+
+  This execution plan can be reviewed prior to running apply to get a
+  sense for what Terraform will do. Optionally, the plan can be saved to
+  a Terraform plan file, and apply can take this plan file to execute
+  this plan exactly.
 
 Options:
 
@@ -127,7 +140,8 @@ Options:
   -refresh=true       Update state prior to checking for differences.
 
   -state=statefile    Path to a Terraform state file to use to look
-                      up Terraform-managed resources.
+                      up Terraform-managed resources. By default it will
+                      use the state "terraform.tfstate" if it exists.
 
 `
 	return strings.TrimSpace(helpText)

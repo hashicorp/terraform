@@ -10,6 +10,29 @@ import (
 	"github.com/mitchellh/cli"
 )
 
+func TestPlan(t *testing.T) {
+	cwd, err := os.Getwd()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if err := os.Chdir(testFixturePath("plan")); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	defer os.Chdir(cwd)
+
+	p := testProvider()
+	ui := new(cli.MockUi)
+	c := &PlanCommand{
+		ContextOpts: testCtxConfig(p),
+		Ui:          ui,
+	}
+
+	args := []string{}
+	if code := c.Run(args); code != 0 {
+		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
+	}
+}
+
 func TestPlan_destroy(t *testing.T) {
 	originalState := &terraform.State{
 		Resources: map[string]*terraform.ResourceState{
