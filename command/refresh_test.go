@@ -62,6 +62,23 @@ func TestRefresh(t *testing.T) {
 	}
 }
 
+func TestRefresh_badState(t *testing.T) {
+	p := testProvider()
+	ui := new(cli.MockUi)
+	c := &RefreshCommand{
+		ContextOpts: testCtxConfig(p),
+		Ui:          ui,
+	}
+
+	args := []string{
+		"-state", "i-should-not-exist-ever",
+		testFixturePath("refresh"),
+	}
+	if code := c.Run(args); code != 1 {
+		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
+	}
+}
+
 func TestRefresh_cwd(t *testing.T) {
 	cwd, err := os.Getwd()
 	if err != nil {

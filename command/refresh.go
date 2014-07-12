@@ -51,6 +51,30 @@ func (c *RefreshCommand) Run(args []string) int {
 		stateOutPath = statePath
 	}
 
+	// Verify that the state path exists
+	if _, err := os.Stat(statePath); err != nil {
+		if os.IsNotExist(err) {
+			c.Ui.Error(fmt.Sprintf(
+				"The Terraform state file for your infrastructure does not\n"+
+					"exist. The 'refresh' command only works and only makes sense\n"+
+					"when there is existing state that Terraform is managing. Please\n"+
+					"double-check the value given below and try again. If you\n"+
+					"haven't created infrastructure with Terraform yet, use the\n"+
+					"'terraform apply' command.\n\n"+
+					"Path: %s",
+				statePath))
+			return 1
+		}
+
+		c.Ui.Error(fmt.Sprintf(
+			"There was an error reading the Terraform state that is needed\n"+
+				"for refreshing. The path and error are shown below.\n\n"+
+				"Path: %s\n\nError: %s",
+			statePath,
+			err))
+		return 1
+	}
+
 	// Build the context based on the arguments given
 	c.ContextOpts.Hooks = append(c.ContextOpts.Hooks, &UiHook{Ui: c.Ui})
 	ctx, err := ContextArg(configPath, statePath, c.ContextOpts)
