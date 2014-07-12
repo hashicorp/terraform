@@ -51,7 +51,9 @@ func (c *RefreshCommand) Run(args []string) int {
 		stateOutPath = statePath
 	}
 
-	// Verify that the state path exists
+	// Verify that the state path exists. The "ContextArg" function below
+	// will actually do this, but we want to provide a richer error message
+	// if possible.
 	if _, err := os.Stat(statePath); err != nil {
 		if os.IsNotExist(err) {
 			c.Ui.Error(fmt.Sprintf(
