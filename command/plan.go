@@ -109,8 +109,6 @@ func (c *PlanCommand) Run(args []string) int {
 		return 0
 	}
 
-	c.Ui.Output(strings.TrimSpace(plan.String()))
-
 	if outPath != "" {
 		log.Printf("[INFO] Writing plan output to: %s", outPath)
 		f, err := os.Create(outPath)
@@ -123,6 +121,16 @@ func (c *PlanCommand) Run(args []string) int {
 			return 1
 		}
 	}
+
+	if outPath == "" {
+		c.Ui.Output(strings.TrimSpace(planHeaderNoOutput)+"\n")
+	} else {
+		c.Ui.Output(fmt.Sprintf(
+			strings.TrimSpace(planHeaderYesOutput)+"\n",
+			outPath))
+	}
+
+	c.Ui.Output(FormatPlan(plan, nil))
 
 	return 0
 }
@@ -159,3 +167,28 @@ Options:
 func (c *PlanCommand) Synopsis() string {
 	return "Show changes between Terraform config and infrastructure"
 }
+
+const planHeaderNoOutput = `
+The Terraform execution plan has been generated and is shown below.
+Resources are shown in alphabetical order for quick scanning. Green resources
+will be created (or destroyed and then created if an existing resource
+exists), yellow resources are being changed in-place, and red resources
+will be destroyed.
+
+Note: You didn't specify an "-out" parameter to save this plan, so when
+"apply" is called, Terraform can't guarantee this is what will execute.
+`
+
+const planHeaderYesOutput = `
+The Terraform execution plan has been generated and is shown below.
+Resources are shown in alphabetical order for quick scanning. Green resources
+will be created (or destroyed and then created if an existing resource
+exists), yellow resources are being changed in-place, and red resources
+will be destroyed.
+
+Your plan was also saved to the path below. Call the "apply" subcommand
+with this plan file and Terraform will exactly execute this execution
+plan.
+
+Path: %s
+`

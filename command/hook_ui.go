@@ -29,9 +29,6 @@ func (h *UiHook) PreApply(
 
 func (h *UiHook) PreDiff(
 	id string, s *terraform.ResourceState) (terraform.HookAction, error) {
-	h.once.Do(h.init)
-
-	h.ui.Output(fmt.Sprintf("%s: Calculating diff", id))
 	return terraform.HookActionContinue, nil
 }
 
