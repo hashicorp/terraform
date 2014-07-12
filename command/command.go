@@ -55,7 +55,7 @@ func ContextArg(
 		}
 	}
 
-	config, err := config.Load(path)
+	config, err := config.LoadDir(path)
 	if err != nil {
 		return nil, fmt.Errorf("Error loading config: %s", err)
 	}

@@ -2,7 +2,9 @@ package command
 
 import (
 	"fmt"
+	"io/ioutil"
 	"os"
+	"path/filepath"
 	"reflect"
 	"sync"
 	"testing"
@@ -25,7 +27,7 @@ func TestApply(t *testing.T) {
 
 	args := []string{
 		"-init",
-		statePath,
+		"-state", statePath,
 		testFixturePath("apply"),
 	}
 	if code := c.Run(args); code != 0 {
@@ -61,11 +63,62 @@ func TestApply_configInvalid(t *testing.T) {
 
 	args := []string{
 		"-init",
-		testTempFile(t),
+		"-state", testTempFile(t),
 		testFixturePath("apply-config-invalid"),
 	}
 	if code := c.Run(args); code != 1 {
 		t.Fatalf("bad: \n%s", ui.OutputWriter.String())
+	}
+}
+
+func TestApply_defaultState(t *testing.T) {
+	td, err := ioutil.TempDir("", "tf")
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	statePath := filepath.Join(td, DefaultStateFilename)
+
+	// Change to the temporary directory
+	cwd, err := os.Getwd()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if err := os.Chdir(filepath.Dir(statePath)); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	defer os.Chdir(cwd)
+
+	p := testProvider()
+	ui := new(cli.MockUi)
+	c := &ApplyCommand{
+		ContextOpts: testCtxConfig(p),
+		Ui:          ui,
+	}
+
+	args := []string{
+		"-init",
+		testFixturePath("apply"),
+	}
+	if code := c.Run(args); code != 0 {
+		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
+	}
+
+	if _, err := os.Stat(statePath); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	f, err := os.Open(statePath)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	defer f.Close()
+
+	state, err := terraform.ReadState(f)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if state == nil {
+		t.Fatal("state should not be nil")
 	}
 }
 
@@ -108,7 +161,7 @@ func TestApply_error(t *testing.T) {
 
 	args := []string{
 		"-init",
-		statePath,
+		"-state", statePath,
 		testFixturePath("apply-error"),
 	}
 	if code := c.Run(args); code != 1 {
@@ -151,7 +204,7 @@ func TestApply_plan(t *testing.T) {
 	}
 
 	args := []string{
-		statePath,
+		"-state", statePath,
 		planPath,
 	}
 	if code := c.Run(args); code != 0 {
@@ -235,7 +288,7 @@ func TestApply_shutdown(t *testing.T) {
 
 	args := []string{
 		"-init",
-		statePath,
+		"-state", statePath,
 		testFixturePath("apply-shutdown"),
 	}
 	if code := c.Run(args); code != 0 {
@@ -294,7 +347,7 @@ func TestApply_state(t *testing.T) {
 
 	// Run the apply command pointing to our existing state
 	args := []string{
-		statePath,
+		"-state", statePath,
 		testFixturePath("apply"),
 	}
 	if code := c.Run(args); code != 0 {

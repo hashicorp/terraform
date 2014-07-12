@@ -20,36 +20,39 @@ type ApplyCommand struct {
 
 func (c *ApplyCommand) Run(args []string) int {
 	var init bool
-	var stateOutPath string
+	var statePath, stateOutPath string
 
 	cmdFlags := flag.NewFlagSet("apply", flag.ContinueOnError)
 	cmdFlags.BoolVar(&init, "init", false, "init")
-	cmdFlags.StringVar(&stateOutPath, "out", "", "path")
+	cmdFlags.StringVar(&statePath, "state", DefaultStateFilename, "path")
+	cmdFlags.StringVar(&stateOutPath, "state-out", "", "path")
 	cmdFlags.Usage = func() { c.Ui.Error(c.Help()) }
 	if err := cmdFlags.Parse(args); err != nil {
 		return 1
 	}
 
 	args = cmdFlags.Args()
-	if len(args) != 2 {
-		c.Ui.Error("The apply command expects two arguments.\n")
+	if len(args) > 1 {
+		c.Ui.Error("The apply command expacts at most one argument.")
 		cmdFlags.Usage()
 		return 1
 	}
+	configPath := args[0]
 
-	statePath := args[0]
-	configPath := args[1]
-
+	// If we don't specify an output path, default to out normal state
+	// path.
 	if stateOutPath == "" {
 		stateOutPath = statePath
 	}
 
+	// The state path to use to generate a plan. If we're initializing
+	// a new infrastructure, then we don't use a state path.
 	planStatePath := statePath
 	if init {
 		planStatePath = ""
 	}
 
-	// Initialize Terraform right away
+	// Build the context based on the arguments given
 	c.ContextOpts.Hooks = append(c.ContextOpts.Hooks, &UiHook{Ui: c.Ui})
 	ctx, err := ContextArg(configPath, planStatePath, c.ContextOpts)
 	if err != nil {
@@ -113,18 +116,24 @@ func (c *ApplyCommand) Run(args []string) int {
 
 func (c *ApplyCommand) Help() string {
 	helpText := `
-Usage: terraform apply [options] STATE PATH
+Usage: terraform apply [options] [dir]
 
-  Builds or changes infrastructure according to the Terraform configuration
-  file.
+  Builds or changes infrastructure according to Terraform configuration
+  files .
 
 Options:
 
-  -init                     If specified, it is okay to build brand new
-                            infrastructure (with no state file specified).
+  -init                  If specified, new infrastructure can be built (no
+                         previous state). This is just a safety switch
+                         to prevent accidentally spinning up a new
+                         infrastructure.
 
-  -out=file.tfstate         Path to save the new state. If not specified, the
-                            state path argument will be used.
+  -state=path            Path to read and save state (unless state-out
+                         is specified). Defaults to "terraform.tfstate".
+
+  -state-out=path        Path to write state to that is different than
+                         "-state". This can be used to preserve the old
+                         state.
 
 `
 	return strings.TrimSpace(helpText)
