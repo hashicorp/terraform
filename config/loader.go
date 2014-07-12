@@ -1,6 +1,7 @@
 package config
 
 import (
+	"fmt"
 	"path/filepath"
 )
 
@@ -33,6 +34,12 @@ func LoadDir(path string) (*Config, error) {
 	matches, err := filepath.Glob(filepath.Join(path, "*.tf"))
 	if err != nil {
 		return nil, err
+	}
+
+	if len(matches) == 0 {
+		return nil, fmt.Errorf(
+			"No Terraform configuration files found in directory: %s",
+			path)
 	}
 
 	var result *Config
