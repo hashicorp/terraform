@@ -149,15 +149,31 @@ func (s *sensitiveState) init() {
 // The format byte is prefixed into the state file format so that we have
 // the ability in the future to change the file format if we want for any
 // reason.
-const stateFormatByte byte = 1
+const stateFormatMagic = "tfstate"
+const stateFormatVersion byte = 1
 
 // ReadState reads a state structure out of a reader in the format that
 // was written by WriteState.
 func ReadState(src io.Reader) (*State, error) {
 	var result *State
+	var err error
+	n := 0
 
+	// Verify the magic bytes
+	magic := make([]byte, len(stateFormatMagic))
+	for n < len(magic) {
+		n, err = src.Read(magic[n:])
+		if err != nil {
+			return nil, fmt.Errorf("error while reading magic bytes: %s", err)
+		}
+	}
+	if string(magic) != stateFormatMagic {
+		return nil, fmt.Errorf("not a valid state file")
+	}
+
+	// Verify the version is something we can read
 	var formatByte [1]byte
-	n, err := src.Read(formatByte[:])
+	n, err = src.Read(formatByte[:])
 	if err != nil {
 		return nil, err
 	}
@@ -165,10 +181,11 @@ func ReadState(src io.Reader) (*State, error) {
 		return nil, errors.New("failed to read state version byte")
 	}
 
-	if formatByte[0] != stateFormatByte {
+	if formatByte[0] != stateFormatVersion {
 		return nil, fmt.Errorf("unknown state file version: %d", formatByte[0])
 	}
 
+	// Decode
 	dec := gob.NewDecoder(src)
 	if err := dec.Decode(&result); err != nil {
 		return nil, err
@@ -179,7 +196,17 @@ func ReadState(src io.Reader) (*State, error) {
 
 // WriteState writes a state somewhere in a binary format.
 func WriteState(d *State, dst io.Writer) error {
-	n, err := dst.Write([]byte{stateFormatByte})
+	// Write the magic bytes so we can determine the file format later
+	n, err := dst.Write([]byte(stateFormatMagic))
+	if err != nil {
+		return err
+	}
+	if n != len(stateFormatMagic) {
+		return errors.New("failed to write state format magic bytes")
+	}
+
+	// Write a version byte so we can iterate on version at some point
+	n, err = dst.Write([]byte{stateFormatVersion})
 	if err != nil {
 		return err
 	}
