@@ -105,7 +105,11 @@ func (c *PlanCommand) Run(args []string) int {
 	}
 
 	if plan.Diff.Empty() {
-		c.Ui.Output("No changes. Infrastructure is up-to-date.")
+		c.Ui.Output(
+			"No changes. Infrastructure is up-to-date. This means that Terraform\n" +
+				"could not detect any differences between your configuration and\n" +
+				"the real physical resources that exist. As a result, Terraform\n" +
+				"doesn't need to do anything.")
 		return 0
 	}
 
@@ -123,7 +127,7 @@ func (c *PlanCommand) Run(args []string) int {
 	}
 
 	if outPath == "" {
-		c.Ui.Output(strings.TrimSpace(planHeaderNoOutput)+"\n")
+		c.Ui.Output(strings.TrimSpace(planHeaderNoOutput) + "\n")
 	} else {
 		c.Ui.Output(fmt.Sprintf(
 			strings.TrimSpace(planHeaderYesOutput)+"\n",
