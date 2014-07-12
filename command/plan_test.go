@@ -3,6 +3,7 @@ package command
 import (
 	"io/ioutil"
 	"os"
+	"path/filepath"
 	"reflect"
 	"testing"
 
@@ -195,6 +196,65 @@ func TestPlan_state(t *testing.T) {
 
 	args := []string{
 		"-state", statePath,
+		testFixturePath("plan"),
+	}
+	if code := c.Run(args); code != 0 {
+		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
+	}
+
+	// Verify that the provider was called with the existing state
+	expectedState := originalState.Resources["test_instance.foo"]
+	if !reflect.DeepEqual(p.DiffState, expectedState) {
+		t.Fatalf("bad: %#v", p.DiffState)
+	}
+}
+
+func TestPlan_stateDefault(t *testing.T) {
+	originalState := &terraform.State{
+		Resources: map[string]*terraform.ResourceState{
+			"test_instance.foo": &terraform.ResourceState{
+				ID:   "bar",
+				Type: "test_instance",
+			},
+		},
+	}
+
+	// Write the state file in a temporary directory with the
+	// default filename.
+	td, err := ioutil.TempDir("", "tf")
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	statePath := filepath.Join(td, DefaultStateFilename)
+
+	f, err := os.Create(statePath)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	err = terraform.WriteState(originalState, f)
+	f.Close()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	// Change to that directory
+	cwd, err := os.Getwd()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if err := os.Chdir(filepath.Dir(statePath)); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	defer os.Chdir(cwd)
+
+	p := testProvider()
+	ui := new(cli.MockUi)
+	c := &PlanCommand{
+		ContextOpts: testCtxConfig(p),
+		Ui:          ui,
+	}
+
+	args := []string{
 		testFixturePath("plan"),
 	}
 	if code := c.Run(args); code != 0 {

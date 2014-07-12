@@ -27,7 +27,7 @@ func (c *PlanCommand) Run(args []string) int {
 	cmdFlags.BoolVar(&destroy, "destroy", false, "destroy")
 	cmdFlags.BoolVar(&refresh, "refresh", true, "refresh")
 	cmdFlags.StringVar(&outPath, "out", "", "path")
-	cmdFlags.StringVar(&statePath, "state", "", "path")
+	cmdFlags.StringVar(&statePath, "state", DefaultStateFilename, "path")
 	cmdFlags.Usage = func() { c.Ui.Error(c.Help()) }
 	if err := cmdFlags.Parse(args); err != nil {
 		return 1
@@ -51,6 +51,15 @@ func (c *PlanCommand) Run(args []string) int {
 		}
 	}
 
+	// If the default state path doesn't exist, ignore it.
+	if statePath != "" {
+		if _, err := os.Stat(statePath); err != nil {
+			if os.IsNotExist(err) && statePath == DefaultStateFilename {
+				statePath = ""
+			}
+		}
+	}
+
 	// Load up the state
 	var state *terraform.State
 	if statePath != "" {
@@ -70,7 +79,7 @@ func (c *PlanCommand) Run(args []string) int {
 
 	b, err := config.LoadDir(path)
 	if err != nil {
-		c.Ui.Error(fmt.Sprintf("Error loading blueprint: %s", err))
+		c.Ui.Error(fmt.Sprintf("Error loading config: %s", err))
 		return 1
 	}
 

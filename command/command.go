@@ -9,6 +9,9 @@ import (
 	"github.com/mitchellh/cli"
 )
 
+// DefaultStateFilename is the default filename used for the state file.
+const DefaultStateFilename = "terraform.tfstate"
+
 func ContextArg(
 	path string,
 	statePath string,
