@@ -7,81 +7,94 @@ import (
 	"os"
 	"strings"
 
-	"github.com/hashicorp/terraform/config"
 	"github.com/hashicorp/terraform/terraform"
-	"github.com/mitchellh/cli"
 )
 
 // RefreshCommand is a cli.Command implementation that refreshes the state
 // file.
 type RefreshCommand struct {
-	ContextOpts *terraform.ContextOpts
-	Ui          cli.Ui
+	Meta
 }
 
 func (c *RefreshCommand) Run(args []string) int {
-	var outPath string
-	statePath := "terraform.tfstate"
-	configPath := "."
+	var statePath, stateOutPath string
+
+	args = c.Meta.process(args)
 
 	cmdFlags := flag.NewFlagSet("refresh", flag.ContinueOnError)
-	cmdFlags.StringVar(&outPath, "out", "", "output path")
+	cmdFlags.StringVar(&statePath, "state", DefaultStateFilename, "path")
+	cmdFlags.StringVar(&stateOutPath, "state-out", "", "path")
 	cmdFlags.Usage = func() { c.Ui.Error(c.Help()) }
 	if err := cmdFlags.Parse(args); err != nil {
 		return 1
 	}
 
+	var configPath string
 	args = cmdFlags.Args()
-	if len(args) != 2 {
-		// TODO(mitchellh): this is temporary until we can assume current
-		// dir for Terraform config.
-		c.Ui.Error("TEMPORARY: The refresh command requires two args.")
+	if len(args) > 1 {
+		c.Ui.Error("The apply command expacts at most one argument.")
 		cmdFlags.Usage()
 		return 1
+	} else if len(args) == 1 {
+		configPath = args[0]
+	} else {
+		var err error
+		configPath, err = os.Getwd()
+		if err != nil {
+			c.Ui.Error(fmt.Sprintf("Error getting pwd: %s", err))
+		}
 	}
 
-	statePath = args[0]
-	configPath = args[1]
-	if outPath == "" {
-		outPath = statePath
+	// If we don't specify an output path, default to out normal state
+	// path.
+	if stateOutPath == "" {
+		stateOutPath = statePath
 	}
 
-	// Load up the state
-	f, err := os.Open(statePath)
-	if err != nil {
-		c.Ui.Error(fmt.Sprintf("Error loading state: %s", err))
+	// Verify that the state path exists. The "ContextArg" function below
+	// will actually do this, but we want to provide a richer error message
+	// if possible.
+	if _, err := os.Stat(statePath); err != nil {
+		if os.IsNotExist(err) {
+			c.Ui.Error(fmt.Sprintf(
+				"The Terraform state file for your infrastructure does not\n"+
+					"exist. The 'refresh' command only works and only makes sense\n"+
+					"when there is existing state that Terraform is managing. Please\n"+
+					"double-check the value given below and try again. If you\n"+
+					"haven't created infrastructure with Terraform yet, use the\n"+
+					"'terraform apply' command.\n\n"+
+					"Path: %s",
+				statePath))
+			return 1
+		}
+
+		c.Ui.Error(fmt.Sprintf(
+			"There was an error reading the Terraform state that is needed\n"+
+				"for refreshing. The path and error are shown below.\n\n"+
+				"Path: %s\n\nError: %s",
+			statePath,
+			err))
 		return 1
 	}
 
-	state, err := terraform.ReadState(f)
-	f.Close()
+	// Build the context based on the arguments given
+	ctx, err := c.Context(configPath, statePath)
 	if err != nil {
-		c.Ui.Error(fmt.Sprintf("Error loading state: %s", err))
+		c.Ui.Error(err.Error())
 		return 1
 	}
-
-	b, err := config.Load(configPath)
-	if err != nil {
-		c.Ui.Error(fmt.Sprintf("Error loading blueprint: %s", err))
-		return 1
-	}
-
-	c.ContextOpts.Config = b
-	c.ContextOpts.State = state
-	c.ContextOpts.Hooks = append(c.ContextOpts.Hooks, &UiHook{Ui: c.Ui})
-	ctx := terraform.NewContext(c.ContextOpts)
 	if !validateContext(ctx, c.Ui) {
 		return 1
 	}
 
-	state, err = ctx.Refresh()
+	state, err := ctx.Refresh()
 	if err != nil {
 		c.Ui.Error(fmt.Sprintf("Error refreshing state: %s", err))
 		return 1
 	}
 
-	log.Printf("[INFO] Writing state output to: %s", outPath)
-	f, err = os.Create(outPath)
+	log.Printf("[INFO] Writing state output to: %s", stateOutPath)
+	f, err := os.Create(stateOutPath)
 	if err == nil {
 		defer f.Close()
 		err = terraform.WriteState(state, f)
@@ -96,21 +109,29 @@ func (c *RefreshCommand) Run(args []string) int {
 
 func (c *RefreshCommand) Help() string {
 	helpText := `
-Usage: terraform refresh [options] [terraform.tfstate] [terraform.tf]
+Usage: terraform refresh [options] [dir]
 
-  Refresh and update the state of your infrastructure. This is read-only
-  operation that will not modify infrastructure. The read-only property
-  is dependent on resource providers being implemented correctly.
+  Update the state file of your infrastructure with metadata that matches
+  the physical resources they are tracking.
+
+  This will not modify your infrastructure, but it can modify your
+  state file to update metadata. This metadata might cause new changes
+  to occur when you generate a plan or call apply next.
 
 Options:
 
-  -out=path     Path to write updated state file. If this is not specified,
-                the existing state file will be overridden.
+  -no-color           If specified, output won't contain any color.
+
+  -state=path         Path to read and save state (unless state-out
+                      is specified). Defaults to "terraform.tfstate".
+
+  -state-out=path     Path to write updated state file. By default, the
+                      "-state" path will be used.
 
 `
 	return strings.TrimSpace(helpText)
 }
 
 func (c *RefreshCommand) Synopsis() string {
-	return "Refresh the state of your infrastructure"
+	return "Update local state file against real resources"
 }

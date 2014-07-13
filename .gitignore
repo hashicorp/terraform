@@ -1,6 +1,7 @@
 *.dll
 *.exe
 example.tf
+terraform.tfplan
 terraform.tfstate
 bin/
 vendor/

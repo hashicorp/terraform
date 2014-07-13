@@ -1,57 +1,70 @@
 package command
 
 import (
+	"bytes"
 	"flag"
 	"fmt"
 	"os"
+	"sort"
 	"strings"
 
 	"github.com/hashicorp/terraform/terraform"
-	"github.com/mitchellh/cli"
 )
 
 // ApplyCommand is a Command implementation that applies a Terraform
 // configuration and actually builds or changes infrastructure.
 type ApplyCommand struct {
-	ShutdownCh  <-chan struct{}
-	ContextOpts *terraform.ContextOpts
-	Ui          cli.Ui
+	Meta
+
+	ShutdownCh <-chan struct{}
 }
 
 func (c *ApplyCommand) Run(args []string) int {
 	var init bool
-	var stateOutPath string
+	var statePath, stateOutPath string
+
+	args = c.Meta.process(args)
 
 	cmdFlags := flag.NewFlagSet("apply", flag.ContinueOnError)
 	cmdFlags.BoolVar(&init, "init", false, "init")
-	cmdFlags.StringVar(&stateOutPath, "out", "", "path")
+	cmdFlags.StringVar(&statePath, "state", DefaultStateFilename, "path")
+	cmdFlags.StringVar(&stateOutPath, "state-out", "", "path")
 	cmdFlags.Usage = func() { c.Ui.Error(c.Help()) }
 	if err := cmdFlags.Parse(args); err != nil {
 		return 1
 	}
 
+	var configPath string
 	args = cmdFlags.Args()
-	if len(args) != 2 {
-		c.Ui.Error("The apply command expects two arguments.\n")
+	if len(args) > 1 {
+		c.Ui.Error("The apply command expacts at most one argument.")
 		cmdFlags.Usage()
 		return 1
+	} else if len(args) == 1 {
+		configPath = args[0]
+	} else {
+		var err error
+		configPath, err = os.Getwd()
+		if err != nil {
+			c.Ui.Error(fmt.Sprintf("Error getting pwd: %s", err))
+		}
 	}
 
-	statePath := args[0]
-	configPath := args[1]
-
+	// If we don't specify an output path, default to out normal state
+	// path.
 	if stateOutPath == "" {
 		stateOutPath = statePath
 	}
 
+	// The state path to use to generate a plan. If we're initializing
+	// a new infrastructure, then we don't use a state path.
 	planStatePath := statePath
 	if init {
 		planStatePath = ""
 	}
 
-	// Initialize Terraform right away
-	c.ContextOpts.Hooks = append(c.ContextOpts.Hooks, &UiHook{Ui: c.Ui})
-	ctx, err := ContextArg(configPath, planStatePath, c.ContextOpts)
+	// Build the context based on the arguments given
+	ctx, err := c.Context(configPath, planStatePath)
 	if err != nil {
 		c.Ui.Error(err.Error())
 		return 1
@@ -60,6 +73,7 @@ func (c *ApplyCommand) Run(args []string) int {
 		return 1
 	}
 
+	// Start the apply in a goroutine so that we can be interrupted.
 	var state *terraform.State
 	var applyErr error
 	doneCh := make(chan struct{})
@@ -68,6 +82,8 @@ func (c *ApplyCommand) Run(args []string) int {
 		state, applyErr = ctx.Apply()
 	}()
 
+	// Wait for the apply to finish or for us to be interrupted so
+	// we can handle it properly.
 	err = nil
 	select {
 	case <-c.ShutdownCh:
@@ -106,25 +122,71 @@ func (c *ApplyCommand) Run(args []string) int {
 		return 1
 	}
 
-	c.Ui.Output(strings.TrimSpace(state.String()))
+	c.Ui.Output(c.Colorize().Color(fmt.Sprintf(
+		"[reset][bold][green]\n"+
+			"Apply succeeded! Infrastructure created and/or updated.\n"+
+			"The state of your infrastructure has been saved to the path\n"+
+			"below. This state is required to modify and destroy your\n"+
+			"infrastructure, so keep it safe. To inspect the complete state\n"+
+			"use the `terraform show` command.\n\n"+
+			"State path: %s",
+		stateOutPath)))
+
+	// If we have outputs, then output those at the end.
+	if len(state.Outputs) > 0 {
+		outputBuf := new(bytes.Buffer)
+		outputBuf.WriteString("[reset][bold][green]\nOutputs:\n\n")
+
+		// Output the outputs in alphabetical order
+		keyLen := 0
+		keys := make([]string, 0, len(state.Outputs))
+		for key, _ := range state.Outputs {
+			keys = append(keys, key)
+			if len(key) > keyLen {
+				keyLen = len(key)
+			}
+		}
+		sort.Strings(keys)
+
+		for _, k := range keys {
+			v := state.Outputs[k]
+
+			outputBuf.WriteString(fmt.Sprintf(
+				"  %s%s = %s\n",
+				k,
+				strings.Repeat(" ", keyLen-len(k)),
+				v))
+		}
+
+		c.Ui.Output(c.Colorize().Color(
+			strings.TrimSpace(outputBuf.String())))
+	}
 
 	return 0
 }
 
 func (c *ApplyCommand) Help() string {
 	helpText := `
-Usage: terraform apply [options] STATE PATH
+Usage: terraform apply [options] [dir]
 
-  Builds or changes infrastructure according to the Terraform configuration
-  file.
+  Builds or changes infrastructure according to Terraform configuration
+  files .
 
 Options:
 
-  -init                     If specified, it is okay to build brand new
-                            infrastructure (with no state file specified).
+  -init                  If specified, new infrastructure can be built (no
+                         previous state). This is just a safety switch
+                         to prevent accidentally spinning up a new
+                         infrastructure.
 
-  -out=file.tfstate         Path to save the new state. If not specified, the
-                            state path argument will be used.
+  -no-color              If specified, output won't contain any color.
+
+  -state=path            Path to read and save state (unless state-out
+                         is specified). Defaults to "terraform.tfstate".
+
+  -state-out=path        Path to write state to that is different than
+                         "-state". This can be used to preserve the old
+                         state.
 
 `
 	return strings.TrimSpace(helpText)

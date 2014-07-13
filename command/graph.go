@@ -1,58 +1,66 @@
 package command
 
 import (
+	"bytes"
 	"flag"
 	"fmt"
 	"os"
 	"strings"
 
-	"github.com/hashicorp/terraform/config"
 	"github.com/hashicorp/terraform/digraph"
-	"github.com/hashicorp/terraform/terraform"
-	"github.com/mitchellh/cli"
 )
 
 // GraphCommand is a Command implementation that takes a Terraform
 // configuration and outputs the dependency tree in graphical form.
 type GraphCommand struct {
-	ContextOpts *terraform.ContextOpts
-	Ui          cli.Ui
+	Meta
 }
 
 func (c *GraphCommand) Run(args []string) int {
+	args = c.Meta.process(args)
+
 	cmdFlags := flag.NewFlagSet("graph", flag.ContinueOnError)
 	cmdFlags.Usage = func() { c.Ui.Error(c.Help()) }
 	if err := cmdFlags.Parse(args); err != nil {
 		return 1
 	}
 
+	var path string
 	args = cmdFlags.Args()
-	if len(args) != 1 {
+	if len(args) > 1 {
 		c.Ui.Error("The graph command expects one argument.\n")
 		cmdFlags.Usage()
 		return 1
+	} else if len(args) == 1 {
+		path = args[0]
+	} else {
+		var err error
+		path, err = os.Getwd()
+		if err != nil {
+			c.Ui.Error(fmt.Sprintf("Error getting pwd: %s", err))
+		}
 	}
 
-	conf, err := config.Load(args[0])
+	ctx, err := c.Context(path, "")
 	if err != nil {
-		c.Ui.Error(fmt.Sprintf("Error loading config: %s", err))
+		c.Ui.Error(fmt.Sprintf("Error loading Terraform: %s", err))
 		return 1
 	}
 
-	g, err := terraform.Graph(&terraform.GraphOpts{
-		Config:    conf,
-		Providers: c.ContextOpts.Providers,
-	})
+	g, err := ctx.Graph()
 	if err != nil {
 		c.Ui.Error(fmt.Sprintf("Error creating graph: %s", err))
 		return 1
 	}
 
+	buf := new(bytes.Buffer)
 	nodes := make([]digraph.Node, len(g.Nouns))
 	for i, n := range g.Nouns {
 		nodes[i] = n
 	}
-	digraph.GenerateDot(nodes, os.Stdout)
+	digraph.GenerateDot(nodes, buf)
+
+	c.Ui.Output(buf.String())
 
 	return 0
 }
@@ -66,10 +74,14 @@ Usage: terraform graph [options] PATH
   shown. If the path is a plan file, then the dependency graph of the
   plan itself is shown.
 
+  The graph is outputted in DOT format. The typical program that can
+  read this format is GraphViz, but many web services are also available
+  to read this format.
+
 `
 	return strings.TrimSpace(helpText)
 }
 
 func (c *GraphCommand) Synopsis() string {
-	return "Output visual graph of Terraform resources"
+	return "Create a visual graph of Terraform resources"
 }

@@ -82,15 +82,31 @@ func (p *Plan) init() {
 // The format byte is prefixed into the plan file format so that we have
 // the ability in the future to change the file format if we want for any
 // reason.
-const planFormatByte byte = 1
+const planFormatMagic = "tfplan"
+const planFormatVersion byte = 1
 
 // ReadPlan reads a plan structure out of a reader in the format that
 // was written by WritePlan.
 func ReadPlan(src io.Reader) (*Plan, error) {
 	var result *Plan
+	var err error
+	n := 0
 
+	// Verify the magic bytes
+	magic := make([]byte, len(planFormatMagic))
+	for n < len(magic) {
+		n, err = src.Read(magic[n:])
+		if err != nil {
+			return nil, fmt.Errorf("error while reading magic bytes: %s", err)
+		}
+	}
+	if string(magic) != planFormatMagic {
+		return nil, fmt.Errorf("not a valid plan file")
+	}
+
+	// Verify the version is something we can read
 	var formatByte [1]byte
-	n, err := src.Read(formatByte[:])
+	n, err = src.Read(formatByte[:])
 	if err != nil {
 		return nil, err
 	}
@@ -98,7 +114,7 @@ func ReadPlan(src io.Reader) (*Plan, error) {
 		return nil, errors.New("failed to read plan version byte")
 	}
 
-	if formatByte[0] != planFormatByte {
+	if formatByte[0] != planFormatVersion {
 		return nil, fmt.Errorf("unknown plan file version: %d", formatByte[0])
 	}
 
@@ -112,7 +128,17 @@ func ReadPlan(src io.Reader) (*Plan, error) {
 
 // WritePlan writes a plan somewhere in a binary format.
 func WritePlan(d *Plan, dst io.Writer) error {
-	n, err := dst.Write([]byte{planFormatByte})
+	// Write the magic bytes so we can determine the file format later
+	n, err := dst.Write([]byte(planFormatMagic))
+	if err != nil {
+		return err
+	}
+	if n != len(planFormatMagic) {
+		return errors.New("failed to write plan format magic bytes")
+	}
+
+	// Write a version byte so we can iterate on version at some point
+	n, err = dst.Write([]byte{planFormatVersion})
 	if err != nil {
 		return err
 	}

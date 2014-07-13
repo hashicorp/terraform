@@ -127,6 +127,11 @@ func (c *Context) Apply() (*State, error) {
 	return c.state, err
 }
 
+// Graph returns the graph for this context.
+func (c *Context) Graph() (*depgraph.Graph, error) {
+	return c.graph()
+}
+
 // Plan generates an execution plan for the given context.
 //
 // The execution plan encapsulates the context and can be stored

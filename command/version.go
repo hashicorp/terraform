@@ -3,24 +3,26 @@ package command
 import (
 	"bytes"
 	"fmt"
-
-	"github.com/mitchellh/cli"
 )
 
 // VersionCommand is a Command implementation prints the version.
 type VersionCommand struct {
+	Meta
+
 	Revision          string
 	Version           string
 	VersionPrerelease string
-	Ui                cli.Ui
 }
 
 func (c *VersionCommand) Help() string {
 	return ""
 }
 
-func (c *VersionCommand) Run(_ []string) int {
+func (c *VersionCommand) Run(args []string) int {
 	var versionString bytes.Buffer
+
+	args = c.Meta.process(args)
+
 	fmt.Fprintf(&versionString, "Terraform v%s", c.Version)
 	if c.VersionPrerelease != "" {
 		fmt.Fprintf(&versionString, ".%s", c.VersionPrerelease)

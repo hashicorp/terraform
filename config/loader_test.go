@@ -128,6 +128,13 @@ func TestLoadDir_basic(t *testing.T) {
 	}
 }
 
+func TestLoadDir_noConfigs(t *testing.T) {
+	_, err := LoadDir(filepath.Join(fixtureDir, "dir-empty"))
+	if err == nil {
+		t.Fatal("should error")
+	}
+}
+
 func outputsStr(os map[string]*Output) string {
 	ns := make([]string, 0, len(os))
 	for n, _ := range os {

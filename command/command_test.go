@@ -10,10 +10,20 @@ import (
 )
 
 // This is the directory where our test fixtures are.
-const fixtureDir = "./test-fixtures"
+var fixtureDir = "./test-fixtures"
+
+func init() {
+	// Expand the fixture dir on init because we change the working
+	// directory in some tests.
+	var err error
+	fixtureDir, err = filepath.Abs(fixtureDir)
+	if err != nil {
+		panic(err)
+	}
+}
 
 func testFixturePath(name string) string {
-	return filepath.Join(fixtureDir, name, "main.tf")
+	return filepath.Join(fixtureDir, name)
 }
 
 func testCtxConfig(p terraform.ResourceProvider) *terraform.ContextOpts {
