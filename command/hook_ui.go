@@ -97,7 +97,7 @@ func (h *UiHook) PreRefresh(
 
 func (h *UiHook) init() {
 	if h.Colorize == nil {
-		h.Colorize = Colorize()
+		panic("colorize not given")
 	}
 
 	// Wrap the ui so that it is safe for concurrency regardless of the

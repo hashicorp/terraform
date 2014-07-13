@@ -21,8 +21,10 @@ func TestApply(t *testing.T) {
 	p := testProvider()
 	ui := new(cli.MockUi)
 	c := &ApplyCommand{
-		ContextOpts: testCtxConfig(p),
-		Ui:          ui,
+		Meta: Meta{
+			ContextOpts: testCtxConfig(p),
+			Ui:          ui,
+		},
 	}
 
 	args := []string{
@@ -57,8 +59,10 @@ func TestApply_configInvalid(t *testing.T) {
 	p := testProvider()
 	ui := new(cli.MockUi)
 	c := &ApplyCommand{
-		ContextOpts: testCtxConfig(p),
-		Ui:          ui,
+		Meta: Meta{
+			ContextOpts: testCtxConfig(p),
+			Ui:          ui,
+		},
 	}
 
 	args := []string{
@@ -91,8 +95,10 @@ func TestApply_defaultState(t *testing.T) {
 	p := testProvider()
 	ui := new(cli.MockUi)
 	c := &ApplyCommand{
-		ContextOpts: testCtxConfig(p),
-		Ui:          ui,
+		Meta: Meta{
+			ContextOpts: testCtxConfig(p),
+			Ui:          ui,
+		},
 	}
 
 	args := []string{
@@ -128,8 +134,10 @@ func TestApply_error(t *testing.T) {
 	p := testProvider()
 	ui := new(cli.MockUi)
 	c := &ApplyCommand{
-		ContextOpts: testCtxConfig(p),
-		Ui:          ui,
+		Meta: Meta{
+			ContextOpts: testCtxConfig(p),
+			Ui:          ui,
+		},
 	}
 
 	var lock sync.Mutex
@@ -205,8 +213,10 @@ func TestApply_noArgs(t *testing.T) {
 	p := testProvider()
 	ui := new(cli.MockUi)
 	c := &ApplyCommand{
-		ContextOpts: testCtxConfig(p),
-		Ui:          ui,
+		Meta: Meta{
+			ContextOpts: testCtxConfig(p),
+			Ui:          ui,
+		},
 	}
 
 	args := []string{
@@ -245,8 +255,10 @@ func TestApply_plan(t *testing.T) {
 	p := testProvider()
 	ui := new(cli.MockUi)
 	c := &ApplyCommand{
-		ContextOpts: testCtxConfig(p),
-		Ui:          ui,
+		Meta: Meta{
+			ContextOpts: testCtxConfig(p),
+			Ui:          ui,
+		},
 	}
 
 	args := []string{
@@ -287,9 +299,12 @@ func TestApply_shutdown(t *testing.T) {
 	shutdownCh := make(chan struct{})
 	ui := new(cli.MockUi)
 	c := &ApplyCommand{
-		ContextOpts: testCtxConfig(p),
-		ShutdownCh:  shutdownCh,
-		Ui:          ui,
+		Meta: Meta{
+			ContextOpts: testCtxConfig(p),
+			Ui:          ui,
+		},
+
+		ShutdownCh: shutdownCh,
 	}
 
 	p.DiffFn = func(
@@ -387,8 +402,10 @@ func TestApply_state(t *testing.T) {
 
 	ui := new(cli.MockUi)
 	c := &ApplyCommand{
-		ContextOpts: testCtxConfig(p),
-		Ui:          ui,
+		Meta: Meta{
+			ContextOpts: testCtxConfig(p),
+			Ui:          ui,
+		},
 	}
 
 	// Run the apply command pointing to our existing state
@@ -434,8 +451,10 @@ func TestApply_stateNoExist(t *testing.T) {
 	p := testProvider()
 	ui := new(cli.MockUi)
 	c := &ApplyCommand{
-		ContextOpts: testCtxConfig(p),
-		Ui:          ui,
+		Meta: Meta{
+			ContextOpts: testCtxConfig(p),
+			Ui:          ui,
+		},
 	}
 
 	args := []string{

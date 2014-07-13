@@ -7,7 +7,6 @@ import (
 	"strings"
 
 	"github.com/hashicorp/terraform/terraform"
-	"github.com/mitchellh/cli"
 )
 
 // ApplyCommand is a Command implementation that applies a Terraform
@@ -15,9 +14,7 @@ import (
 type ApplyCommand struct {
 	Meta
 
-	ShutdownCh  <-chan struct{}
-	ContextOpts *terraform.ContextOpts
-	Ui          cli.Ui
+	ShutdownCh <-chan struct{}
 }
 
 func (c *ApplyCommand) Run(args []string) int {
@@ -65,8 +62,7 @@ func (c *ApplyCommand) Run(args []string) int {
 	}
 
 	// Build the context based on the arguments given
-	c.ContextOpts.Hooks = append(c.ContextOpts.Hooks, &UiHook{Ui: c.Ui})
-	ctx, err := ContextArg(configPath, planStatePath, c.ContextOpts)
+	ctx, err := c.Context(configPath, planStatePath)
 	if err != nil {
 		c.Ui.Error(err.Error())
 		return 1

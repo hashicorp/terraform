@@ -12,12 +12,12 @@ import (
 
 // FormatState takes a state and returns a string
 func FormatState(s *terraform.State, c *colorstring.Colorize) string {
-	if len(s.Resources) == 0 {
-		return "The state file is empty. No resources are represented."
+	if c == nil {
+		panic("colorize not given")
 	}
 
-	if c == nil {
-		c = Colorize()
+	if len(s.Resources) == 0 {
+		return "The state file is empty. No resources are represented."
 	}
 
 	buf := new(bytes.Buffer)

@@ -8,18 +8,17 @@ import (
 	"strings"
 
 	"github.com/hashicorp/terraform/digraph"
-	"github.com/hashicorp/terraform/terraform"
-	"github.com/mitchellh/cli"
 )
 
 // GraphCommand is a Command implementation that takes a Terraform
 // configuration and outputs the dependency tree in graphical form.
 type GraphCommand struct {
-	ContextOpts *terraform.ContextOpts
-	Ui          cli.Ui
+	Meta
 }
 
 func (c *GraphCommand) Run(args []string) int {
+	args = c.Meta.process(args)
+
 	cmdFlags := flag.NewFlagSet("graph", flag.ContinueOnError)
 	cmdFlags.Usage = func() { c.Ui.Error(c.Help()) }
 	if err := cmdFlags.Parse(args); err != nil {
@@ -42,7 +41,7 @@ func (c *GraphCommand) Run(args []string) int {
 		}
 	}
 
-	ctx, err := ContextArg(path, "", c.ContextOpts)
+	ctx, err := c.Context(path, "")
 	if err != nil {
 		c.Ui.Error(fmt.Sprintf("Error loading Terraform: %s", err))
 		return 1

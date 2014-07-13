@@ -7,18 +7,13 @@ import (
 	"os"
 	"strings"
 
-	"github.com/hashicorp/terraform/config"
 	"github.com/hashicorp/terraform/terraform"
-	"github.com/mitchellh/cli"
 )
 
 // PlanCommand is a Command implementation that compares a Terraform
 // configuration to an actual infrastructure and shows the differences.
 type PlanCommand struct {
 	Meta
-
-	ContextOpts *terraform.ContextOpts
-	Ui          cli.Ui
 }
 
 func (c *PlanCommand) Run(args []string) int {
@@ -64,33 +59,11 @@ func (c *PlanCommand) Run(args []string) int {
 		}
 	}
 
-	// Load up the state
-	var state *terraform.State
-	if statePath != "" {
-		f, err := os.Open(statePath)
-		if err != nil {
-			c.Ui.Error(fmt.Sprintf("Error loading state: %s", err))
-			return 1
-		}
-
-		state, err = terraform.ReadState(f)
-		f.Close()
-		if err != nil {
-			c.Ui.Error(fmt.Sprintf("Error loading state: %s", err))
-			return 1
-		}
-	}
-
-	b, err := config.LoadDir(path)
+	ctx, err := c.Context(path, statePath)
 	if err != nil {
-		c.Ui.Error(fmt.Sprintf("Error loading config: %s", err))
+		c.Ui.Error(err.Error())
 		return 1
 	}
-
-	c.ContextOpts.Config = b
-	c.ContextOpts.Hooks = append(c.ContextOpts.Hooks, &UiHook{Ui: c.Ui})
-	c.ContextOpts.State = state
-	ctx := terraform.NewContext(c.ContextOpts)
 	if !validateContext(ctx, c.Ui) {
 		return 1
 	}

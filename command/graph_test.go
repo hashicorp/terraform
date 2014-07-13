@@ -13,8 +13,10 @@ import (
 func TestGraph(t *testing.T) {
 	ui := new(cli.MockUi)
 	c := &GraphCommand{
-		ContextOpts: testCtxConfig(testProvider()),
-		Ui:          ui,
+		Meta: Meta{
+			ContextOpts: testCtxConfig(testProvider()),
+			Ui:          ui,
+		},
 	}
 
 	args := []string{
@@ -33,8 +35,10 @@ func TestGraph(t *testing.T) {
 func TestGraph_multipleArgs(t *testing.T) {
 	ui := new(cli.MockUi)
 	c := &GraphCommand{
-		ContextOpts: testCtxConfig(testProvider()),
-		Ui:          ui,
+		Meta: Meta{
+			ContextOpts: testCtxConfig(testProvider()),
+			Ui:          ui,
+		},
 	}
 
 	args := []string{
@@ -58,8 +62,10 @@ func TestGraph_noArgs(t *testing.T) {
 
 	ui := new(cli.MockUi)
 	c := &GraphCommand{
-		ContextOpts: testCtxConfig(testProvider()),
-		Ui:          ui,
+		Meta: Meta{
+			ContextOpts: testCtxConfig(testProvider()),
+			Ui:          ui,
+		},
 	}
 
 	args := []string{}
@@ -80,8 +86,10 @@ func TestGraph_plan(t *testing.T) {
 
 	ui := new(cli.MockUi)
 	c := &GraphCommand{
-		ContextOpts: testCtxConfig(testProvider()),
-		Ui:          ui,
+		Meta: Meta{
+			ContextOpts: testCtxConfig(testProvider()),
+			Ui:          ui,
+		},
 	}
 
 	args := []string{

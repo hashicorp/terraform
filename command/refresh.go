@@ -8,16 +8,12 @@ import (
 	"strings"
 
 	"github.com/hashicorp/terraform/terraform"
-	"github.com/mitchellh/cli"
 )
 
 // RefreshCommand is a cli.Command implementation that refreshes the state
 // file.
 type RefreshCommand struct {
 	Meta
-
-	ContextOpts *terraform.ContextOpts
-	Ui          cli.Ui
 }
 
 func (c *RefreshCommand) Run(args []string) int {
@@ -82,8 +78,7 @@ func (c *RefreshCommand) Run(args []string) int {
 	}
 
 	// Build the context based on the arguments given
-	c.ContextOpts.Hooks = append(c.ContextOpts.Hooks, &UiHook{Ui: c.Ui})
-	ctx, err := ContextArg(configPath, statePath, c.ContextOpts)
+	ctx, err := c.Context(configPath, statePath)
 	if err != nil {
 		c.Ui.Error(err.Error())
 		return 1

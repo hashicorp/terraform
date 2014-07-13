@@ -25,8 +25,10 @@ func TestRefresh(t *testing.T) {
 	p := testProvider()
 	ui := new(cli.MockUi)
 	c := &RefreshCommand{
-		ContextOpts: testCtxConfig(p),
-		Ui:          ui,
+		Meta: Meta{
+			ContextOpts: testCtxConfig(p),
+			Ui:          ui,
+		},
 	}
 
 	p.RefreshFn = nil
@@ -66,8 +68,10 @@ func TestRefresh_badState(t *testing.T) {
 	p := testProvider()
 	ui := new(cli.MockUi)
 	c := &RefreshCommand{
-		ContextOpts: testCtxConfig(p),
-		Ui:          ui,
+		Meta: Meta{
+			ContextOpts: testCtxConfig(p),
+			Ui:          ui,
+		},
 	}
 
 	args := []string{
@@ -102,8 +106,10 @@ func TestRefresh_cwd(t *testing.T) {
 	p := testProvider()
 	ui := new(cli.MockUi)
 	c := &RefreshCommand{
-		ContextOpts: testCtxConfig(p),
-		Ui:          ui,
+		Meta: Meta{
+			ContextOpts: testCtxConfig(p),
+			Ui:          ui,
+		},
 	}
 
 	p.RefreshFn = nil
@@ -179,8 +185,10 @@ func TestRefresh_defaultState(t *testing.T) {
 	p := testProvider()
 	ui := new(cli.MockUi)
 	c := &RefreshCommand{
-		ContextOpts: testCtxConfig(p),
-		Ui:          ui,
+		Meta: Meta{
+			ContextOpts: testCtxConfig(p),
+			Ui:          ui,
+		},
 	}
 
 	p.RefreshFn = nil
@@ -238,8 +246,10 @@ func TestRefresh_outPath(t *testing.T) {
 	p := testProvider()
 	ui := new(cli.MockUi)
 	c := &RefreshCommand{
-		ContextOpts: testCtxConfig(p),
-		Ui:          ui,
+		Meta: Meta{
+			ContextOpts: testCtxConfig(p),
+			Ui:          ui,
+		},
 	}
 
 	p.RefreshFn = nil
