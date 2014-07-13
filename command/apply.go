@@ -120,7 +120,7 @@ func (c *ApplyCommand) Run(args []string) int {
 		return 1
 	}
 
-	c.Ui.Output(strings.TrimSpace(state.String()))
+	c.Ui.Output(FormatState(state, c.Colorize()))
 
 	return 0
 }
