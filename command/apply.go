@@ -71,6 +71,7 @@ func (c *ApplyCommand) Run(args []string) int {
 		return 1
 	}
 
+	// Start the apply in a goroutine so that we can be interrupted.
 	var state *terraform.State
 	var applyErr error
 	doneCh := make(chan struct{})
@@ -79,6 +80,8 @@ func (c *ApplyCommand) Run(args []string) int {
 		state, applyErr = ctx.Apply()
 	}()
 
+	// Wait for the apply to finish or for us to be interrupted so
+	// we can handle it properly.
 	err = nil
 	select {
 	case <-c.ShutdownCh:

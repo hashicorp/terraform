@@ -81,7 +81,7 @@ func FormatPlan(p *terraform.Plan, c *colorstring.Colorize) string {
 			}
 
 			buf.WriteString(fmt.Sprintf(
-				"  %s:%s %#v => %#v%s\n",
+				"    %s:%s %#v => %#v%s\n",
 				attrK,
 				strings.Repeat(" ", keyLen-len(attrK)),
 				attrDiff.Old,
