@@ -15,6 +15,8 @@ import (
 // PlanCommand is a Command implementation that compares a Terraform
 // configuration to an actual infrastructure and shows the differences.
 type PlanCommand struct {
+	Meta
+
 	ContextOpts *terraform.ContextOpts
 	Ui          cli.Ui
 }
@@ -22,6 +24,8 @@ type PlanCommand struct {
 func (c *PlanCommand) Run(args []string) int {
 	var destroy, refresh bool
 	var outPath, statePath string
+
+	args = c.Meta.process(args)
 
 	cmdFlags := flag.NewFlagSet("plan", flag.ContinueOnError)
 	cmdFlags.BoolVar(&destroy, "destroy", false, "destroy")
@@ -136,7 +140,7 @@ func (c *PlanCommand) Run(args []string) int {
 			outPath))
 	}
 
-	c.Ui.Output(FormatPlan(plan, nil))
+	c.Ui.Output(FormatPlan(plan, c.Colorize()))
 
 	return 0
 }
@@ -156,6 +160,8 @@ Options:
 
   -destroy            If set, a plan will be generated to destroy all resources
                       managed by the given configuration and state.
+
+  -no-color           If specified, output won't contain any color.
 
   -out=path           Write a plan file to the given path. This can be used as
                       input to the "apply" command.

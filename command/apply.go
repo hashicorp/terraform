@@ -13,6 +13,8 @@ import (
 // ApplyCommand is a Command implementation that applies a Terraform
 // configuration and actually builds or changes infrastructure.
 type ApplyCommand struct {
+	Meta
+
 	ShutdownCh  <-chan struct{}
 	ContextOpts *terraform.ContextOpts
 	Ui          cli.Ui
@@ -21,6 +23,8 @@ type ApplyCommand struct {
 func (c *ApplyCommand) Run(args []string) int {
 	var init bool
 	var statePath, stateOutPath string
+
+	args = c.Meta.process(args)
 
 	cmdFlags := flag.NewFlagSet("apply", flag.ContinueOnError)
 	cmdFlags.BoolVar(&init, "init", false, "init")
@@ -138,6 +142,8 @@ Options:
                          previous state). This is just a safety switch
                          to prevent accidentally spinning up a new
                          infrastructure.
+
+  -no-color              If specified, output won't contain any color.
 
   -state=path            Path to read and save state (unless state-out
                          is specified). Defaults to "terraform.tfstate".

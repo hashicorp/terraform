@@ -13,11 +13,15 @@ import (
 // ShowCommand is a Command implementation that reads and outputs the
 // contents of a Terraform plan or state file.
 type ShowCommand struct {
+	Meta
+
 	ContextOpts *terraform.ContextOpts
 	Ui          cli.Ui
 }
 
 func (c *ShowCommand) Run(args []string) int {
+	args = c.Meta.process(args)
+
 	cmdFlags := flag.NewFlagSet("show", flag.ContinueOnError)
 	cmdFlags.Usage = func() { c.Ui.Error(c.Help()) }
 	if err := cmdFlags.Parse(args); err != nil {
@@ -72,11 +76,11 @@ func (c *ShowCommand) Run(args []string) int {
 	}
 
 	if plan != nil {
-		c.Ui.Output(FormatPlan(plan, nil))
+		c.Ui.Output(FormatPlan(plan, c.Colorize()))
 		return 0
 	}
 
-	c.Ui.Output(FormatState(state, nil))
+	c.Ui.Output(FormatState(state, c.Colorize()))
 	return 0
 }
 
@@ -86,6 +90,10 @@ Usage: terraform show [options] path
 
   Reads and outputs a Terraform state or plan file in a human-readable
   form.
+
+Options:
+
+  -no-color     If specified, output won't contain any color.
 
 `
 	return strings.TrimSpace(helpText)

@@ -7,11 +7,24 @@ import (
 	"github.com/hashicorp/terraform/config"
 	"github.com/hashicorp/terraform/terraform"
 	"github.com/mitchellh/cli"
+	"github.com/mitchellh/colorstring"
 )
 
 // DefaultStateFilename is the default filename used for the state file.
 const DefaultStateFilename = "terraform.tfstate"
 
+// Colorize returns our default coloring settings for strings.
+func Colorize() *colorstring.Colorize {
+	return &colorstring.Colorize{
+		Colors: colorstring.DefaultColors,
+		Reset:  true,
+	}
+}
+
+// ContextArg is a helper function that creates a context based on
+// the arguments given. If the path is a plan file, it creates a context
+// from that. Otherwise, it creates a context based on the state file
+// (if given).
 func ContextArg(
 	path string,
 	statePath string,

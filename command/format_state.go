@@ -17,10 +17,7 @@ func FormatState(s *terraform.State, c *colorstring.Colorize) string {
 	}
 
 	if c == nil {
-		c = &colorstring.Colorize{
-			Colors: colorstring.DefaultColors,
-			Reset:  false,
-		}
+		c = Colorize()
 	}
 
 	buf := new(bytes.Buffer)

@@ -97,10 +97,7 @@ func (h *UiHook) PreRefresh(
 
 func (h *UiHook) init() {
 	if h.Colorize == nil {
-		h.Colorize = &colorstring.Colorize{
-			Colors: colorstring.DefaultColors,
-			Reset:  true,
-		}
+		h.Colorize = Colorize()
 	}
 
 	// Wrap the ui so that it is safe for concurrency regardless of the

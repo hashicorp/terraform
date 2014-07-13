@@ -14,12 +14,16 @@ import (
 // RefreshCommand is a cli.Command implementation that refreshes the state
 // file.
 type RefreshCommand struct {
+	Meta
+
 	ContextOpts *terraform.ContextOpts
 	Ui          cli.Ui
 }
 
 func (c *RefreshCommand) Run(args []string) int {
 	var statePath, stateOutPath string
+
+	args = c.Meta.process(args)
 
 	cmdFlags := flag.NewFlagSet("refresh", flag.ContinueOnError)
 	cmdFlags.StringVar(&statePath, "state", DefaultStateFilename, "path")
@@ -120,6 +124,8 @@ Usage: terraform refresh [options] [dir]
   to occur when you generate a plan or call apply next.
 
 Options:
+
+  -no-color           If specified, output won't contain any color.
 
   -state=path         Path to read and save state (unless state-out
                       is specified). Defaults to "terraform.tfstate".
