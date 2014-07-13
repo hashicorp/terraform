@@ -12,6 +12,10 @@ import (
 
 // FormatPlan takes a plan and returns a
 func FormatPlan(p *terraform.Plan, c *colorstring.Colorize) string {
+	if p.Diff == nil || p.Diff.Empty() {
+		return "This plan does nothing."
+	}
+
 	if c == nil {
 		c = &colorstring.Colorize{
 			Colors: colorstring.DefaultColors,

@@ -56,6 +56,13 @@ func init() {
 			}, nil
 		},
 
+		"show": func() (cli.Command, error) {
+			return &command.ShowCommand{
+				ContextOpts: &ContextOpts,
+				Ui:          Ui,
+			}, nil
+		},
+
 		"version": func() (cli.Command, error) {
 			return &command.VersionCommand{
 				Revision:          GitCommit,

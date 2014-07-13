@@ -32,7 +32,7 @@ func TestGraph(t *testing.T) {
 
 func TestGraph_multipleArgs(t *testing.T) {
 	ui := new(cli.MockUi)
-	c := &ApplyCommand{
+	c := &GraphCommand{
 		ContextOpts: testCtxConfig(testProvider()),
 		Ui:          ui,
 	}
