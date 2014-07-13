@@ -15,6 +15,8 @@ type Meta struct {
 	Color       bool
 	ContextOpts *terraform.ContextOpts
 	Ui          cli.Ui
+
+	oldUi cli.Ui
 }
 
 // Colorize returns the colorization structure for a command.
@@ -104,13 +106,28 @@ func (m *Meta) contextOpts() *terraform.ContextOpts {
 // will potentially modify the args in-place. It will return the resulting
 // slice.
 func (m *Meta) process(args []string) []string {
-	m.Color = true
+	// We do this so that we retain the ability to technically call
+	// process multiple times, even if we have no plans to do so
+	if m.oldUi != nil {
+		m.Ui = m.oldUi
+	}
 
+	// Set colorization
+	m.Color = true
 	for i, v := range args {
 		if v == "-no-color" {
 			m.Color = false
-			return append(args[:i], args[i+1:]...)
+			args = append(args[:i], args[i+1:]...)
+			break
 		}
+	}
+
+	// Set the UI
+	m.oldUi = m.Ui
+	m.Ui = &ColorizeUi{
+		Colorize:   m.Colorize(),
+		ErrorColor: "[red]",
+		Ui:         m.oldUi,
 	}
 
 	return args
