@@ -7,16 +7,12 @@ import (
 	"strings"
 
 	"github.com/hashicorp/terraform/terraform"
-	"github.com/mitchellh/cli"
 )
 
 // ShowCommand is a Command implementation that reads and outputs the
 // contents of a Terraform plan or state file.
 type ShowCommand struct {
 	Meta
-
-	ContextOpts *terraform.ContextOpts
-	Ui          cli.Ui
 }
 
 func (c *ShowCommand) Run(args []string) int {
