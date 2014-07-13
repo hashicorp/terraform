@@ -110,12 +110,18 @@ func resource_aws_route_table_update(
 			break
 		}
 
-		// Append to the routes what we've done so far
-		resultRoutes = append(resultRoutes, map[string]string{
-			"cidr_block":  op.Route.DestinationCidrBlock,
-			"gateway_id":  op.Route.GatewayId,
-			"instance_id": op.Route.InstanceId,
-		})
+		// If we didn't delete the route, append it to the list of routes
+		// we have.
+		if op.Op != routeTableOpDelete {
+			resultMap := map[string]string{"cidr_block": op.Route.DestinationCidrBlock}
+			if op.Route.GatewayId != "" {
+				resultMap["gateway_id"] = op.Route.GatewayId
+			} else if op.Route.InstanceId != "" {
+				resultMap["instance_id"] = op.Route.InstanceId
+			}
+
+			resultRoutes = append(resultRoutes, resultMap)
+		}
 	}
 
 	// Update our state with the settings
