@@ -120,7 +120,15 @@ func (c *ApplyCommand) Run(args []string) int {
 		return 1
 	}
 
-	c.Ui.Output(FormatState(state, c.Colorize()))
+	c.Ui.Output(c.Colorize().Color(fmt.Sprintf(
+		"[reset][bold][green]\n"+
+			"Apply succeeded! Infrastructure created and/or updated.\n"+
+			"The state of your infrastructure has been saved to the path\n"+
+			"below. This state is required to modify and destroy your\n"+
+			"infrastructure, so keep it safe. To inspect the complete state\n"+
+			"use the `terraform show` command.\n\n"+
+			"State path: %s",
+		stateOutPath)))
 
 	return 0
 }

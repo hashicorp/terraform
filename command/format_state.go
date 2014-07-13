@@ -78,5 +78,5 @@ func FormatState(s *terraform.State, c *colorstring.Colorize) string {
 		}
 	}
 
-	return strings.TrimSpace(buf.String())
+	return strings.TrimSpace(c.Color(buf.String()))
 }
