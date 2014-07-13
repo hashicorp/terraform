@@ -45,6 +45,12 @@ func init() {
 			}, nil
 		},
 
+		"output": func() (cli.Command, error) {
+			return &command.OutputCommand{
+				Meta: meta,
+			}, nil
+		},
+
 		"plan": func() (cli.Command, error) {
 			return &command.PlanCommand{
 				Meta: meta,

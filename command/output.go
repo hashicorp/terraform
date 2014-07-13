@@ -1,0 +1,92 @@
+package command
+
+import (
+	"flag"
+	"fmt"
+	"os"
+	"strings"
+
+	"github.com/hashicorp/terraform/terraform"
+)
+
+// OutputCommand is a Command implementation that reads an output
+// from a Terraform state and prints it.
+type OutputCommand struct {
+	Meta
+}
+
+func (c *OutputCommand) Run(args []string) int {
+	var statePath string
+
+	args = c.Meta.process(args)
+
+	cmdFlags := flag.NewFlagSet("output", flag.ContinueOnError)
+	cmdFlags.StringVar(&statePath, "state", DefaultStateFilename, "path")
+	cmdFlags.Usage = func() { c.Ui.Error(c.Help()) }
+	if err := cmdFlags.Parse(args); err != nil {
+		return 1
+	}
+
+	args = cmdFlags.Args()
+	if len(args) != 1 {
+		c.Ui.Error(
+			"The output command expects exactly one argument with the name\n" +
+				"of an output variable.\n")
+		cmdFlags.Usage()
+		return 1
+	}
+	name := args[0]
+
+	f, err := os.Open(statePath)
+	if err != nil {
+		c.Ui.Error(fmt.Sprintf("Error loading file: %s", err))
+		return 1
+	}
+
+	state, err := terraform.ReadState(f)
+	f.Close()
+	if err != nil {
+		c.Ui.Error(fmt.Sprintf("Error reading state: %s", err))
+		return 1
+	}
+
+	if len(state.Outputs) == 0 {
+		c.Ui.Error(fmt.Sprintf(
+			"The state file has no outputs defined. Define an output\n" +
+				"in your configuration with the `output` directive and re-run\n" +
+				"`terraform apply` for it to become available."))
+		return 1
+	}
+	v, ok := state.Outputs[name]
+	if !ok {
+		c.Ui.Error(fmt.Sprintf(
+			"The output variable requested could not be found in the state\n" +
+				"file. If you recently added this to your configuration, be\n" +
+				"sure to run `terraform apply`, since the state won't be updated\n" +
+				"with new output variables until that command is run."))
+		return 1
+	}
+
+	c.Ui.Output(v)
+	return 0
+}
+
+func (c *OutputCommand) Help() string {
+	helpText := `
+Usage: terraform output [options] NAME
+
+  Reads an output variable from a Terraform state file and prints
+  the value.
+
+Options:
+
+  -state=path      Path to the state file to read. Defaults to
+                   "terraform.tfstate".
+
+`
+	return strings.TrimSpace(helpText)
+}
+
+func (c *OutputCommand) Synopsis() string {
+	return "Read an output from a state file"
+}
