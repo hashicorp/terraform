@@ -132,5 +132,5 @@ Options:
 }
 
 func (c *RefreshCommand) Synopsis() string {
-	return "Refresh the local state of your infrastructure"
+	return "Update local state file against real resources"
 }

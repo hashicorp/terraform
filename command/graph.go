@@ -84,5 +84,5 @@ Usage: terraform graph [options] PATH
 }
 
 func (c *GraphCommand) Synopsis() string {
-	return "Output visual graph of Terraform resources"
+	return "Create a visual graph of Terraform resources"
 }

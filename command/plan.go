@@ -171,7 +171,7 @@ Options:
 }
 
 func (c *PlanCommand) Synopsis() string {
-	return "Show changes between Terraform config and infrastructure"
+	return "Generate and show an execution plan"
 }
 
 const planHeaderNoOutput = `
