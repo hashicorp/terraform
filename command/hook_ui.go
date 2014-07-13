@@ -71,11 +71,16 @@ func (h *UiHook) PreApply(
 			v))
 	}
 
+	attrString := strings.TrimSpace(attrBuf.String())
+	if attrString != "" {
+		attrString = "\n  " + attrString
+	}
+
 	h.ui.Output(h.Colorize.Color(fmt.Sprintf(
-		"[reset][bold]%s: %s[reset_bold]\n  %s",
+		"[reset][bold]%s: %s[reset_bold]%s",
 		id,
 		operation,
-		strings.TrimSpace(attrBuf.String()))))
+		attrString)))
 
 	return terraform.HookActionContinue, nil
 }

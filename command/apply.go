@@ -1,9 +1,11 @@
 package command
 
 import (
+	"bytes"
 	"flag"
 	"fmt"
 	"os"
+	"sort"
 	"strings"
 
 	"github.com/hashicorp/terraform/terraform"
@@ -129,6 +131,36 @@ func (c *ApplyCommand) Run(args []string) int {
 			"use the `terraform show` command.\n\n"+
 			"State path: %s",
 		stateOutPath)))
+
+	// If we have outputs, then output those at the end.
+	if len(state.Outputs) > 0 {
+		outputBuf := new(bytes.Buffer)
+		outputBuf.WriteString("[reset][bold][green]\nOutputs:\n\n")
+
+		// Output the outputs in alphabetical order
+		keyLen := 0
+		keys := make([]string, 0, len(state.Outputs))
+		for key, _ := range state.Outputs {
+			keys = append(keys, key)
+			if len(key) > keyLen {
+				keyLen = len(key)
+			}
+		}
+		sort.Strings(keys)
+
+		for _, k := range keys {
+			v := state.Outputs[k]
+
+			outputBuf.WriteString(fmt.Sprintf(
+				"  %s%s = %s\n",
+				k,
+				strings.Repeat(" ", keyLen-len(k)),
+				v))
+		}
+
+		c.Ui.Output(c.Colorize().Color(
+			strings.TrimSpace(outputBuf.String())))
+	}
 
 	return 0
 }
