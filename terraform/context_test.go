@@ -7,6 +7,28 @@ import (
 	"testing"
 )
 
+func TestContextGraph(t *testing.T) {
+	p := testProvider("aws")
+	config := testConfig(t, "validate-good")
+	c := testContext(t, &ContextOpts{
+		Config: config,
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+	})
+
+	g, err := c.Graph()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	actual := strings.TrimSpace(g.String())
+	expected := strings.TrimSpace(testContextGraph)
+	if actual != expected {
+		t.Fatalf("bad: %s", actual)
+	}
+}
+
 func TestContextValidate(t *testing.T) {
 	p := testProvider("aws")
 	config := testConfig(t, "validate-good")
@@ -1605,3 +1627,15 @@ func testProvisioner() *MockResourceProvisioner {
 	p := new(MockResourceProvisioner)
 	return p
 }
+
+const testContextGraph = `
+root: root
+aws_instance.bar
+  aws_instance.bar -> provider.aws
+aws_instance.foo
+  aws_instance.foo -> provider.aws
+provider.aws
+root
+  root -> aws_instance.bar
+  root -> aws_instance.foo
+`
