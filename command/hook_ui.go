@@ -72,7 +72,7 @@ func (h *UiHook) PreApply(
 	}
 
 	h.ui.Output(h.Colorize.Color(fmt.Sprintf(
-		"[bold]%s: %s[reset_bold]\n  %s",
+		"[reset][bold]%s: %s[reset_bold]\n  %s",
 		id,
 		operation,
 		strings.TrimSpace(attrBuf.String()))))
@@ -89,7 +89,9 @@ func (h *UiHook) PreRefresh(
 	id string, s *terraform.ResourceState) (terraform.HookAction, error) {
 	h.once.Do(h.init)
 
-	//h.ui.Output(fmt.Sprintf("%s: Refreshing state (ID: %s)", id, s.ID))
+	h.ui.Output(h.Colorize.Color(fmt.Sprintf(
+		"[reset][bold]%s: Refreshing (ID: %s)",
+		id, s.ID)))
 	return terraform.HookActionContinue, nil
 }
 

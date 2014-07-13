@@ -92,10 +92,12 @@ func (c *PlanCommand) Run(args []string) int {
 	}
 
 	if refresh {
+		c.Ui.Output("Refreshing Terraform state prior to plan...\n")
 		if _, err := ctx.Refresh(); err != nil {
 			c.Ui.Error(fmt.Sprintf("Error refreshing state: %s", err))
 			return 1
 		}
+		c.Ui.Output("")
 	}
 
 	plan, err := ctx.Plan(&terraform.PlanOpts{Destroy: destroy})
