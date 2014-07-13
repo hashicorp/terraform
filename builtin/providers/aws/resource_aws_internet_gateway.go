@@ -60,7 +60,7 @@ func resource_aws_internet_gateway_update(
 	if attr, ok := d.Attributes["vpc_id"]; ok && attr.New != "" {
 		err := resource_aws_internet_gateway_attach(ec2conn, s, attr.New)
 		if err != nil {
-			return s, err
+			return rs, err
 		}
 
 		rs.Attributes["vpc_id"] = attr.New
