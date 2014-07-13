@@ -7,7 +7,6 @@ import (
 	"os"
 	"strings"
 
-	"github.com/hashicorp/terraform/config"
 	"github.com/hashicorp/terraform/digraph"
 	"github.com/hashicorp/terraform/terraform"
 	"github.com/mitchellh/cli"
@@ -43,16 +42,13 @@ func (c *GraphCommand) Run(args []string) int {
 		}
 	}
 
-	conf, err := config.LoadDir(path)
+	ctx, err := ContextArg(path, "", c.ContextOpts)
 	if err != nil {
-		c.Ui.Error(fmt.Sprintf("Error loading config: %s", err))
+		c.Ui.Error(fmt.Sprintf("Error loading Terraform: %s", err))
 		return 1
 	}
 
-	g, err := terraform.Graph(&terraform.GraphOpts{
-		Config:    conf,
-		Providers: c.ContextOpts.Providers,
-	})
+	g, err := ctx.Graph()
 	if err != nil {
 		c.Ui.Error(fmt.Sprintf("Error creating graph: %s", err))
 		return 1
