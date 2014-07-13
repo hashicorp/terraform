@@ -68,6 +68,32 @@ func TestOutput_badVar(t *testing.T) {
 	}
 }
 
+func TestOutput_blank(t *testing.T) {
+	originalState := &terraform.State{
+		Outputs: map[string]string{
+			"foo": "bar",
+		},
+	}
+
+	statePath := testStateFile(t, originalState)
+
+	ui := new(cli.MockUi)
+	c := &OutputCommand{
+		Meta: Meta{
+			ContextOpts: testCtxConfig(testProvider()),
+			Ui:          ui,
+		},
+	}
+
+	args := []string{
+		"-state", statePath,
+		"",
+	}
+	if code := c.Run(args); code != 1 {
+		t.Fatalf("bad: \n%s", ui.ErrorWriter.String())
+	}
+}
+
 func TestOutput_manyArgs(t *testing.T) {
 	ui := new(cli.MockUi)
 	c := &OutputCommand{

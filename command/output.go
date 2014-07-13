@@ -28,7 +28,7 @@ func (c *OutputCommand) Run(args []string) int {
 	}
 
 	args = cmdFlags.Args()
-	if len(args) != 1 {
+	if len(args) != 1 || args[0] == "" {
 		c.Ui.Error(
 			"The output command expects exactly one argument with the name\n" +
 				"of an output variable.\n")
