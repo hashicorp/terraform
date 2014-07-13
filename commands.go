@@ -26,40 +26,40 @@ func init() {
 		Ui:           &cli.BasicUi{Writer: os.Stdout},
 	}
 
+	meta := command.Meta{
+		ContextOpts: &ContextOpts,
+		Ui:          Ui,
+	}
+
 	Commands = map[string]cli.CommandFactory{
 		"apply": func() (cli.Command, error) {
 			return &command.ApplyCommand{
-				ShutdownCh:  makeShutdownCh(),
-				ContextOpts: &ContextOpts,
-				Ui:          Ui,
+				Meta:       meta,
+				ShutdownCh: makeShutdownCh(),
 			}, nil
 		},
 
 		"graph": func() (cli.Command, error) {
 			return &command.GraphCommand{
-				ContextOpts: &ContextOpts,
-				Ui:          Ui,
+				Meta: meta,
 			}, nil
 		},
 
 		"plan": func() (cli.Command, error) {
 			return &command.PlanCommand{
-				ContextOpts: &ContextOpts,
-				Ui:          Ui,
+				Meta: meta,
 			}, nil
 		},
 
 		"refresh": func() (cli.Command, error) {
 			return &command.RefreshCommand{
-				ContextOpts: &ContextOpts,
-				Ui:          Ui,
+				Meta: meta,
 			}, nil
 		},
 
 		"show": func() (cli.Command, error) {
 			return &command.ShowCommand{
-				ContextOpts: &ContextOpts,
-				Ui:          Ui,
+				Meta: meta,
 			}, nil
 		},
 
