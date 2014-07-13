@@ -11,8 +11,10 @@ import (
 func TestShow(t *testing.T) {
 	ui := new(cli.MockUi)
 	c := &ShowCommand{
-		ContextOpts: testCtxConfig(testProvider()),
-		Ui:          ui,
+		Meta: Meta{
+			ContextOpts: testCtxConfig(testProvider()),
+			Ui:          ui,
+		},
 	}
 
 	args := []string{
@@ -27,8 +29,10 @@ func TestShow(t *testing.T) {
 func TestShow_noArgs(t *testing.T) {
 	ui := new(cli.MockUi)
 	c := &ShowCommand{
-		ContextOpts: testCtxConfig(testProvider()),
-		Ui:          ui,
+		Meta: Meta{
+			ContextOpts: testCtxConfig(testProvider()),
+			Ui:          ui,
+		},
 	}
 
 	args := []string{}
@@ -44,8 +48,10 @@ func TestShow_plan(t *testing.T) {
 
 	ui := new(cli.MockUi)
 	c := &ShowCommand{
-		ContextOpts: testCtxConfig(testProvider()),
-		Ui:          ui,
+		Meta: Meta{
+			ContextOpts: testCtxConfig(testProvider()),
+			Ui:          ui,
+		},
 	}
 
 	args := []string{
@@ -70,8 +76,10 @@ func TestShow_state(t *testing.T) {
 
 	ui := new(cli.MockUi)
 	c := &ShowCommand{
-		ContextOpts: testCtxConfig(testProvider()),
-		Ui:          ui,
+		Meta: Meta{
+			ContextOpts: testCtxConfig(testProvider()),
+			Ui:          ui,
+		},
 	}
 
 	args := []string{
