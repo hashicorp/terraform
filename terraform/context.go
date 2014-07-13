@@ -112,8 +112,11 @@ func (c *Context) Apply() (*State, error) {
 	// Walk
 	err = g.Walk(c.applyWalkFn())
 
+	// Prune the state so that we have as clean a state as possible
+	c.state.prune()
+
 	// If we have no errors, then calculate the outputs if we have any
-	if err == nil && len(c.config.Outputs) > 0 {
+	if err == nil && len(c.config.Outputs) > 0 && len(c.state.Resources) > 0 {
 		c.state.Outputs = make(map[string]string)
 		for _, o := range c.config.Outputs {
 			if err = c.computeVars(o.RawConfig); err != nil {

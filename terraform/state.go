@@ -40,6 +40,16 @@ func (s *State) deepcopy() *State {
 	return result
 }
 
+// prune is a helper that removes any empty IDs from the state
+// and cleans it up in general.
+func (s *State) prune() {
+	for k, v := range s.Resources {
+		if v.ID == "" {
+			delete(s.Resources, k)
+		}
+	}
+}
+
 // Orphans returns a list of keys of resources that are in the State
 // but aren't present in the configuration itself. Hence, these keys
 // represent the state of resources that are orphans.

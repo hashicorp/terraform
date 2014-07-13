@@ -557,6 +557,46 @@ func TestContextApply_destroy(t *testing.T) {
 	}
 }
 
+func TestContextApply_destroyOutputs(t *testing.T) {
+	c := testConfig(t, "apply-destroy-outputs")
+	h := new(HookRecordApplyOrder)
+	p := testProvider("aws")
+	p.ApplyFn = testApplyFn
+	p.DiffFn = testDiffFn
+	ctx := testContext(t, &ContextOpts{
+		Config: c,
+		Hooks:  []Hook{h},
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+	})
+
+	// First plan and apply a create operation
+	if _, err := ctx.Plan(nil); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	if _, err := ctx.Apply(); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	// Next, plan and apply a destroy operation
+	if _, err := ctx.Plan(&PlanOpts{Destroy: true}); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	h.Active = true
+
+	state, err := ctx.Apply()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	if len(state.Resources) > 0 {
+		t.Fatalf("bad: %#v", state)
+	}
+}
+
 func TestContextApply_destroyOrphan(t *testing.T) {
 	c := testConfig(t, "apply-error")
 	p := testProvider("aws")
