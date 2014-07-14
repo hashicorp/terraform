@@ -3,6 +3,7 @@ package aws
 import (
 	"fmt"
 	"log"
+	"strconv"
 	"time"
 
 	"github.com/hashicorp/terraform/helper/diff"
@@ -21,6 +22,7 @@ func resource_aws_instance_create(
 	// Merge the diff into the state so that we have all the attributes
 	// properly.
 	rs := s.MergeDiff(d)
+	delete(rs.Attributes, "source_dest_check")
 
 	// Create the instance
 	runOpts := &ec2.RunInstances{
@@ -64,7 +66,41 @@ func resource_aws_instance_create(
 	instance = instanceRaw.(*ec2.Instance)
 
 	// Set our attributes
-	return resource_aws_instance_update_state(rs, instance)
+	rs, err = resource_aws_instance_update_state(rs, instance)
+	if err != nil {
+		return rs, err
+	}
+
+	// Update if we need to
+	return resource_aws_instance_update(rs, d, meta)
+}
+
+func resource_aws_instance_update(
+	s *terraform.ResourceState,
+	d *terraform.ResourceDiff,
+	meta interface{}) (*terraform.ResourceState, error) {
+	p := meta.(*ResourceProvider)
+	ec2conn := p.ec2conn
+	rs := s.MergeDiff(d)
+
+	modify := false
+	opts := new(ec2.ModifyInstance)
+
+	if attr, ok := d.Attributes["source_dest_check"]; ok {
+		modify = true
+		opts.SourceDestCheck = attr.New != "" && attr.New != "false"
+		rs.Attributes["source_dest_check"] = strconv.FormatBool(
+			opts.SourceDestCheck)
+	}
+
+	if modify {
+		log.Printf("[INFO] Modifing instance %s: %#v", s.ID, opts)
+		if _, err := ec2conn.ModifyInstance(s.ID, opts); err != nil {
+			return s, err
+		}
+	}
+
+	return rs, nil
 }
 
 func resource_aws_instance_destroy(
@@ -110,6 +146,7 @@ func resource_aws_instance_diff(
 			"availability_zone": diff.AttrTypeCreate,
 			"instance_type":     diff.AttrTypeCreate,
 			"subnet_id":         diff.AttrTypeCreate,
+			"source_dest_check": diff.AttrTypeUpdate,
 		},
 
 		ComputedAttrs: []string{

@@ -28,6 +28,34 @@ func TestAccAWSInstance(t *testing.T) {
 	})
 }
 
+func TestAccAWSInstance_sourceDestCheck(t *testing.T) {
+	var v ec2.Instance
+
+	testCheck := func(*terraform.State) error {
+		if !v.SourceDestCheck {
+			return fmt.Errorf("no source_dest_check")
+		}
+
+		return nil
+	}
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckInstanceDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccInstanceConfigSourceDest,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckInstanceExists(
+						"aws_instance.foo", &v),
+					testCheck,
+				),
+			},
+		},
+	})
+}
+
 func TestAccAWSInstance_vpc(t *testing.T) {
 	var v ec2.Instance
 
@@ -111,6 +139,25 @@ resource "aws_instance" "foo" {
 	# us-west-2
 	ami = "ami-4fccb37f"
 	instance_type = "m1.small"
+}
+`
+
+const testAccInstanceConfigSourceDest = `
+resource "aws_vpc" "foo" {
+	cidr_block = "10.1.0.0/16"
+}
+
+resource "aws_subnet" "foo" {
+	cidr_block = "10.1.1.0/24"
+	vpc_id = "${aws_vpc.foo.id}"
+}
+
+resource "aws_instance" "foo" {
+	# us-west-2
+	ami = "ami-4fccb37f"
+	instance_type = "m1.small"
+	subnet_id = "${aws_subnet.foo.id}"
+	source_dest_check = true
 }
 `
 
