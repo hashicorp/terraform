@@ -1,6 +1,8 @@
 package remoteexec
 
 import (
+	"bytes"
+	"io"
 	"testing"
 
 	"github.com/hashicorp/terraform/config"
@@ -125,6 +127,94 @@ cd /tmp
 wget http://foobar
 exit 0
 `
+
+func TestResourceProvider_CollectScripts_inline(t *testing.T) {
+	p := new(ResourceProvisioner)
+	conf := testConfig(t, map[string]interface{}{
+		"inline": []string{
+			"cd /tmp",
+			"wget http://foobar",
+			"exit 0",
+		},
+	})
+
+	scripts, err := p.collectScripts(conf)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	if len(scripts) != 1 {
+		t.Fatalf("bad: %v", scripts)
+	}
+
+	var out bytes.Buffer
+	_, err = io.Copy(&out, scripts[0])
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	if string(out.Bytes()) != expectedScriptOut {
+		t.Fatalf("bad: %v", out.Bytes())
+	}
+}
+
+func TestResourceProvider_CollectScripts_script(t *testing.T) {
+	p := new(ResourceProvisioner)
+	conf := testConfig(t, map[string]interface{}{
+		"script": "test-fixtures/script1.sh",
+	})
+
+	scripts, err := p.collectScripts(conf)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	if len(scripts) != 1 {
+		t.Fatalf("bad: %v", scripts)
+	}
+
+	var out bytes.Buffer
+	_, err = io.Copy(&out, scripts[0])
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	if string(out.Bytes()) != expectedScriptOut {
+		t.Fatalf("bad: %v", out.Bytes())
+	}
+}
+
+func TestResourceProvider_CollectScripts_scripts(t *testing.T) {
+	p := new(ResourceProvisioner)
+	conf := testConfig(t, map[string]interface{}{
+		"scripts": []interface{}{
+			"test-fixtures/script1.sh",
+			"test-fixtures/script1.sh",
+			"test-fixtures/script1.sh",
+		},
+	})
+
+	scripts, err := p.collectScripts(conf)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	if len(scripts) != 3 {
+		t.Fatalf("bad: %v", scripts)
+	}
+
+	for idx := range scripts {
+		var out bytes.Buffer
+		_, err = io.Copy(&out, scripts[idx])
+		if err != nil {
+			t.Fatalf("err: %v", err)
+		}
+
+		if string(out.Bytes()) != expectedScriptOut {
+			t.Fatalf("bad: %v", out.Bytes())
+		}
+	}
+}
 
 func testConfig(
 	t *testing.T,

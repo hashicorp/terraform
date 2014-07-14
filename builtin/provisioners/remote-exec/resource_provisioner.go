@@ -1,7 +1,11 @@
 package remoteexec
 
 import (
+	"bytes"
 	"fmt"
+	"io"
+	"io/ioutil"
+	"os"
 	"strings"
 
 	"github.com/hashicorp/terraform/terraform"
@@ -54,6 +58,13 @@ func (p *ResourceProvisioner) Apply(s *terraform.ResourceState,
 		return s, err
 	}
 
+	// Collect the scripts
+	_, err = p.collectScripts(c)
+	if err != nil {
+		return s, err
+	}
+
+	// For-each script, copy + exec
 	panic("not implemented")
 	return s, nil
 }
@@ -146,4 +157,65 @@ func (p *ResourceProvisioner) generateScript(c *terraform.ResourceConfig) (strin
 	}
 	lines = append(lines, "")
 	return strings.Join(lines, "\n"), nil
+}
+
+// collectScripts is used to collect all the scripts we need
+// to execute in preperation for copying them.
+func (p *ResourceProvisioner) collectScripts(c *terraform.ResourceConfig) ([]io.ReadCloser, error) {
+	// Check if inline
+	_, ok := c.Config["inline"]
+	if ok {
+		script, err := p.generateScript(c)
+		if err != nil {
+			return nil, err
+		}
+		rc := ioutil.NopCloser(bytes.NewReader([]byte(script)))
+		return []io.ReadCloser{rc}, nil
+	}
+
+	// Collect scripts
+	var scripts []string
+	s, ok := c.Config["script"]
+	if ok {
+		sStr, ok := s.(string)
+		if !ok {
+			return nil, fmt.Errorf("Unsupported 'script' type! Must be a string.")
+		}
+		scripts = append(scripts, sStr)
+	}
+
+	sl, ok := c.Config["scripts"]
+	if ok {
+		switch slt := sl.(type) {
+		case []string:
+			scripts = append(scripts, slt...)
+		case []interface{}:
+			for _, l := range slt {
+				lStr, ok := l.(string)
+				if ok {
+					scripts = append(scripts, lStr)
+				} else {
+					return nil, fmt.Errorf("Unsupported 'scripts' type! Must be list of strings.")
+				}
+			}
+		default:
+			return nil, fmt.Errorf("Unsupported 'scripts' type! Must be list of strings.")
+		}
+	}
+
+	// Open all the scripts
+	var fhs []io.ReadCloser
+	for _, s := range scripts {
+		fh, err := os.Open(s)
+		if err != nil {
+			for _, fh := range fhs {
+				fh.Close()
+			}
+			return nil, fmt.Errorf("Failed to open script '%s': %v", s, err)
+		}
+		fhs = append(fhs, fh)
+	}
+
+	// Done, return the file handles
+	return fhs, nil
 }
