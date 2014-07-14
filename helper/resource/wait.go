@@ -48,6 +48,10 @@ func (conf *StateChangeConf) WaitForState() (i interface{}, err error) {
 			// Wait between refreshes
 			wait := time.Duration(math.Pow(2, float64(tries))) *
 				100 * time.Millisecond
+			if wait > 10*time.Second {
+				wait = 10 * time.Second
+			}
+
 			log.Printf("[TRACE] Waiting %s before next try", wait)
 			time.Sleep(wait)
 
