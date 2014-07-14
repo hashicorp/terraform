@@ -15,7 +15,7 @@ func TestAccAWSAutoScalingGroup(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
-		CheckDestroy: testAccCheckVpcDestroy,
+		CheckDestroy: testAccCheckAWSAutoScalingGroupDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
 				Config: testAccAWSAutoScalingGroupConfig,
