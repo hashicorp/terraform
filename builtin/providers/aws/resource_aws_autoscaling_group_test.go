@@ -23,20 +23,20 @@ func TestAccAWSAutoScalingGroup(t *testing.T) {
 					testAccCheckAWSAutoScalingGroupExists("aws_autoscaling_group.bar", &group),
 					testAccCheckAWSAutoScalingGroupAttributes(&group),
 					resource.TestCheckResourceAttr(
-                        "aws_autoscaling_group.bar", "availability_zones.#.0", "us-east-1a"),
-                    resource.TestCheckResourceAttr(
-                        "aws_autoscaling_group.bar", "name", "foobar3-terraform-test"),
-                    resource.TestCheckResourceAttr(
-                        "aws_autoscaling_group.bar", "max_size", "5"),
-                    resource.TestCheckResourceAttr(
-                        "aws_autoscaling_group.bar", "min_size", "2"),
-                    resource.TestCheckResourceAttr(
-                        "aws_autoscaling_group.bar", "health_check_grace_period", "300"),
-                    resource.TestCheckResourceAttr(
-                        "aws_autoscaling_group.bar", "health_check_type", "ELB"),
-                    resource.TestCheckResourceAttr(
-                        "aws_autoscaling_group.bar", "desired_capicity", "4"),
-                    resource.TestCheckResourceAttr(
+						"aws_autoscaling_group.bar", "availability_zones.#.0", "us-east-1a"),
+					resource.TestCheckResourceAttr(
+						"aws_autoscaling_group.bar", "name", "foobar3-terraform-test"),
+					resource.TestCheckResourceAttr(
+						"aws_autoscaling_group.bar", "max_size", "5"),
+					resource.TestCheckResourceAttr(
+						"aws_autoscaling_group.bar", "min_size", "2"),
+					resource.TestCheckResourceAttr(
+						"aws_autoscaling_group.bar", "health_check_grace_period", "300"),
+					resource.TestCheckResourceAttr(
+						"aws_autoscaling_group.bar", "health_check_type", "ELB"),
+					resource.TestCheckResourceAttr(
+						"aws_autoscaling_group.bar", "desired_capicity", "4"),
+					resource.TestCheckResourceAttr(
 						"aws_autoscaling_group.bar", "force_delete", "true"),
 				),
 			},
@@ -53,17 +53,17 @@ func testAccCheckAWSAutoScalingGroupDestroy(s *terraform.State) error {
 		}
 
 		// Try to find the Group
-        describeGroups, err := conn.DescribeAutoScalingGroups(
-            &autoscaling.DescribeAutoScalingGroups{
-                Names: []string{rs.ID},
-            })
+		describeGroups, err := conn.DescribeAutoScalingGroups(
+			&autoscaling.DescribeAutoScalingGroups{
+				Names: []string{rs.ID},
+			})
 
-        if err == nil {
-            if len(describeGroups.AutoScalingGroups) != 0 &&
-                describeGroups.AutoScalingGroups[0].Name == rs.ID {
-                return fmt.Errorf("AutoScaling Group still exists")
-            }
-        }
+		if err == nil {
+			if len(describeGroups.AutoScalingGroups) != 0 &&
+				describeGroups.AutoScalingGroups[0].Name == rs.ID {
+				return fmt.Errorf("AutoScaling Group still exists")
+			}
+		}
 
 		// Verify the error
 		ec2err, ok := err.(*autoscaling.Error)
