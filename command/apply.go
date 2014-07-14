@@ -64,7 +64,7 @@ func (c *ApplyCommand) Run(args []string) int {
 	}
 
 	// Build the context based on the arguments given
-	ctx, err := c.Context(configPath, planStatePath)
+	ctx, err := c.Context(configPath, planStatePath, true)
 	if err != nil {
 		c.Ui.Error(err.Error())
 		return 1
