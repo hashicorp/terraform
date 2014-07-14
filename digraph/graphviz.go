@@ -5,7 +5,7 @@ import (
 	"io"
 )
 
-// GenerateDot is used to emit a GraphViz compatible definition
+// WriteDot is used to emit a GraphViz compatible definition
 // for a directed graph. It can be used to dump a .dot file.
 func WriteDot(w io.Writer, nodes []Node) error {
 	w.Write([]byte("digraph {\n"))
