@@ -1,13 +1,17 @@
 package remoteexec
 
 import (
+	"bufio"
 	"bytes"
 	"fmt"
 	"io"
 	"io/ioutil"
+	"log"
 	"os"
 	"strings"
 
+	"code.google.com/p/go.crypto/ssh"
+	helper "github.com/hashicorp/terraform/helper/ssh"
 	"github.com/hashicorp/terraform/terraform"
 	"github.com/mitchellh/mapstructure"
 )
@@ -53,19 +57,24 @@ func (p *ResourceProvisioner) Apply(s *terraform.ResourceState,
 	}
 
 	// Get the SSH configuration
-	_, err := p.sshConfig(s)
+	conf, err := p.sshConfig(s)
 	if err != nil {
 		return s, err
 	}
 
 	// Collect the scripts
-	_, err = p.collectScripts(c)
+	scripts, err := p.collectScripts(c)
 	if err != nil {
 		return s, err
 	}
+	for _, s := range scripts {
+		defer s.Close()
+	}
 
-	// For-each script, copy + exec
-	panic("not implemented")
+	// Copy and execute each script
+	if err := p.runScripts(conf, scripts); err != nil {
+		return s, err
+	}
 	return s, nil
 }
 
@@ -218,4 +227,83 @@ func (p *ResourceProvisioner) collectScripts(c *terraform.ResourceConfig) ([]io.
 
 	// Done, return the file handles
 	return fhs, nil
+}
+
+// runScripts is used to copy and execute a set of scripts
+func (p *ResourceProvisioner) runScripts(conf *SSHConfig, scripts []io.ReadCloser) error {
+	sshConf := &ssh.ClientConfig{
+		User: conf.User,
+	}
+	if conf.KeyFile != "" {
+		key, err := ioutil.ReadFile(conf.KeyFile)
+		if err != nil {
+			return fmt.Errorf("Failed to read key file '%s': %v", conf.KeyFile, err)
+		}
+		signer, err := ssh.ParsePrivateKey(key)
+		if err != nil {
+			return fmt.Errorf("Failed to parse key file '%s': %v", conf.KeyFile, err)
+		}
+		sshConf.Auth = append(sshConf.Auth, ssh.PublicKeys(signer))
+	}
+	if conf.Password != "" {
+		sshConf.Auth = append(sshConf.Auth,
+			ssh.Password(conf.Password))
+		sshConf.Auth = append(sshConf.Auth,
+			ssh.KeyboardInteractive(helper.PasswordKeyboardInteractive(conf.Password)))
+	}
+	host := fmt.Sprintf("%s:%d", conf.Host, conf.Port)
+	comm, err := helper.New(host, &helper.Config{SSHConfig: sshConf})
+	if err != nil {
+		return err
+	}
+
+	for _, script := range scripts {
+		if err := comm.Upload(conf.ScriptPath, script); err != nil {
+			return fmt.Errorf("Failed to upload script: %v", err)
+		}
+		cmd := &helper.RemoteCmd{
+			Command: fmt.Sprintf("chmod 0777 %s", conf.ScriptPath),
+		}
+		if err := comm.Start(cmd); err != nil {
+			return fmt.Errorf(
+				"Error chmodding script file to 0777 in remote "+
+					"machine: %s", err)
+		}
+		cmd.Wait()
+
+		rPipe1, wPipe1 := io.Pipe()
+		rPipe2, wPipe2 := io.Pipe()
+		go streamLogs(rPipe1, "stdout")
+		go streamLogs(rPipe2, "stderr")
+
+		cmd = &helper.RemoteCmd{
+			Command: conf.ScriptPath,
+			Stdout:  wPipe1,
+			Stderr:  wPipe2,
+		}
+		if err := comm.Start(cmd); err != nil {
+			return fmt.Errorf("Error starting script: %v", err)
+		}
+		cmd.Wait()
+
+		if cmd.ExitStatus != 0 {
+			return fmt.Errorf("Script exited with non-zero exit status: %d", cmd.ExitStatus)
+		}
+	}
+
+	return nil
+}
+
+// streamLogs is used to stream lines from stdout/stderr
+// of a remote command to log output for users.
+func streamLogs(r io.ReadCloser, name string) {
+	defer r.Close()
+	bufR := bufio.NewReader(r)
+	for {
+		line, err := bufR.ReadString('\n')
+		if err != nil {
+			return
+		}
+		log.Printf("remote-exec: %s: %s", name, line)
+	}
 }
