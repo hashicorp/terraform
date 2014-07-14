@@ -513,6 +513,10 @@ func TestContextApply_Provisioner_ConnInfo(t *testing.T) {
 	pr := testProvisioner()
 
 	p.ApplyFn = func(s *ResourceState, d *ResourceDiff) (*ResourceState, error) {
+		if s.ConnInfo == nil || s.ConnInfo.Raw == nil {
+			t.Fatalf("ConnInfo not initialized")
+		}
+
 		result, _ := testApplyFn(s, d)
 		result.ConnInfo = &ResourceConnectionInfo{
 			Raw: map[string]interface{}{

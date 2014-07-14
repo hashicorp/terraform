@@ -467,6 +467,14 @@ func (c *Context) applyWalkFn() depgraph.WalkFunc {
 			diff.init()
 		}
 
+		// If we do not have any connection info, initialize
+		if r.State.ConnInfo == nil {
+			r.State.ConnInfo = &ResourceConnectionInfo{}
+		}
+		if r.State.ConnInfo.Raw == nil {
+			r.State.ConnInfo.Raw = make(map[string]interface{})
+		}
+
 		// Remove any output values from the diff
 		for k, ad := range diff.Attributes {
 			if ad.Type == DiffAttrOutput {
