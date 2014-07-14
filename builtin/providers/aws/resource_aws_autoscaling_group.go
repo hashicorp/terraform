@@ -41,8 +41,8 @@ func resource_aws_autoscaling_group_create(
 		autoScalingGroupOpts.DesiredCapacity, err = strconv.Atoi(rs.Attributes["desired_capicity"])
 	}
 
-	if rs.Attributes["healthcheck_grace_period"] != "" {
-		autoScalingGroupOpts.HealthCheckGracePeriod, err = strconv.Atoi(rs.Attributes["healthcheck_grace_period"])
+	if rs.Attributes["health_check_grace_period"] != "" {
+		autoScalingGroupOpts.HealthCheckGracePeriod, err = strconv.Atoi(rs.Attributes["health_check_grace_period"])
 	}
 
 	if err != nil {
@@ -68,15 +68,15 @@ func resource_aws_autoscaling_group_create(
 	autoScalingGroupOpts.HealthCheckType = rs.Attributes["health_check_type"]
 	autoScalingGroupOpts.LaunchConfigurationName = rs.Attributes["launch_configuration"]
 
-	log.Printf("[DEBUG] autoscaling Group create configuration: %#v", autoScalingGroupOpts)
+	log.Printf("[DEBUG] AutoScaling Group create configuration: %#v", autoScalingGroupOpts)
 	_, err = autoscalingconn.CreateAutoScalingGroup(&autoScalingGroupOpts)
 	if err != nil {
-		return nil, fmt.Errorf("Error creating autoscaling Group: %s", err)
+		return nil, fmt.Errorf("Error creating AutoScaling Group: %s", err)
 	}
 
 	rs.ID = rs.Attributes["name"]
 
-	log.Printf("[INFO] autoscaling Group ID: %s", rs.ID)
+	log.Printf("[INFO] AutoScaling Group ID: %s", rs.ID)
 
 	g, err := resource_aws_autoscaling_group_retrieve(rs.ID, autoscalingconn)
 	if err != nil {
@@ -105,9 +105,20 @@ func resource_aws_autoscaling_group_destroy(
 	p := meta.(*ResourceProvider)
 	autoscalingconn := p.autoscalingconn
 
-	log.Printf("[DEBUG] autoscaling Group destroy: %v", s.ID)
+	log.Printf("[DEBUG] AutoScaling Group destroy: %v", s.ID)
 
-	_, err := autoscalingconn.DeleteAutoScalingGroup(&autoscaling.DeleteAutoScalingGroup{Name: s.ID})
+	deleteopts := autoscaling.DeleteAutoScalingGroup{Name: s.ID}
+
+	// You can force an autoscaling group to delete
+	// even if it's in the process of scaling a resource.
+	// Normally, you would set the min-size and max-size to 0,0
+	// and then delete the group. This bypasses that and leaves
+	// resources potentially dangling.
+	if s.Attributes["force_delete"] != "" {
+		deleteopts.ForceDelete = true
+	}
+
+	_, err := autoscalingconn.DeleteAutoScalingGroup(&deleteopts)
 
 	if err != nil {
 		autoscalingerr, ok := err.(*autoscaling.Error)
@@ -153,6 +164,7 @@ func resource_aws_autoscaling_group_diff(
 			"vpc_zone_identifier":       diff.AttrTypeCreate,
 			"load_balancers":            diff.AttrTypeCreate,
 			"availability_zone":         diff.AttrTypeCreate,
+			"force_delete":         diff.AttrTypeCreate,
 		},
 
 		ComputedAttrs: []string{},
@@ -199,19 +211,19 @@ func resource_aws_autoscaling_group_retrieve(id string, autoscalingconn *autosca
 		Names: []string{id},
 	}
 
-	log.Printf("[DEBUG] autoscaling Group describe configuration: %#v", describeOpts)
+	log.Printf("[DEBUG] AutoScaling Group describe configuration: %#v", describeOpts)
 
 	describeGroups, err := autoscalingconn.DescribeAutoScalingGroups(&describeOpts)
 
 	if err != nil {
-		return nil, fmt.Errorf("Error retrieving autoscaling groups: %s", err)
+		return nil, fmt.Errorf("Error retrieving AutoScaling groups: %s", err)
 	}
 
 	// Verify AWS returned our sg
 	if len(describeGroups.AutoScalingGroups) != 1 ||
 		describeGroups.AutoScalingGroups[0].Name != id {
 		if err != nil {
-			return nil, fmt.Errorf("Unable to find autoscaling group: %#v", describeGroups.AutoScalingGroups)
+			return nil, fmt.Errorf("Unable to find AutoScaling group: %#v", describeGroups.AutoScalingGroups)
 		}
 	}
 
