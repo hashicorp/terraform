@@ -34,12 +34,13 @@ func testAccCheckAWSEIPDestroy(s *terraform.State) error {
 	for _, rs := range s.Resources {
 		if rs.Type != "aws_eip" {
 			continue
+		}
 
-		describe, err := ec2conn.Addresses([]string{}, []string{rs.ID}, nil)
+		describe, err := conn.Addresses([]string{rs.ID}, []string{}, nil)
 
 		if err == nil {
-			if len(describeGroups.EIPs) != 0 &&
-				describeGroups.EIPs[0].Name == rs.ID {
+			if len(describe.Addresses) != 0 &&
+				describe.Addresses[0].PublicIp == rs.ID {
 				return fmt.Errorf("EIP still exists")
 			}
 		}
@@ -49,8 +50,9 @@ func testAccCheckAWSEIPDestroy(s *terraform.State) error {
 		if !ok {
 			return err
 		}
-		if providerErr.Code != "InvalidEIP.NotFound" {
-			return err
+
+		if providerErr.Code != "InvalidAllocationID.NotFound" {
+			return fmt.Errorf("Unexpected error: %s", err)
 		}
 	}
 
@@ -63,19 +65,15 @@ func testAccCheckAWSEIPAttributes(conf *ec2.Address) resource.TestCheckFunc {
 			return fmt.Errorf("empty public_ip")
 		}
 
-		if conf.PrivateIpAddress == "" {
-			return fmt.Errorf("empty private_ip")
-		}
-
-		if conf.InstanceId == "" {
-			return fmt.Errorf("empty instance_id")
+		if conf.PrivateIpAddress != "" {
+			return fmt.Errorf("should not have private_ip for non-vpc")
 		}
 
 		return nil
 	}
 }
 
-func testAccCheckAWSEIPExists(n string, res *ec2.EIP) resource.TestCheckFunc {
+func testAccCheckAWSEIPExists(n string, res *ec2.Address) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		rs, ok := s.Resources[n]
 		if !ok {
@@ -88,21 +86,18 @@ func testAccCheckAWSEIPExists(n string, res *ec2.EIP) resource.TestCheckFunc {
 
 		conn := testAccProvider.ec2conn
 
-		describeOpts := ec2.DescribeEIPs{
-			Names: []string{rs.ID},
-		}
-		describe, err := conn.DescribeEIPs(&describeOpts)
+		describe, err := conn.Addresses([]string{rs.ID}, []string{}, nil)
 
 		if err != nil {
 			return err
 		}
 
-		if len(describe.EIPs) != 1 ||
-			describe.EIPs[0].Name != rs.ID {
-			return fmt.Errorf("EIP Group not found")
+		if len(describe.Addresses) != 1 ||
+			describe.Addresses[0].PublicIp != rs.ID {
+			return fmt.Errorf("EIP not found")
 		}
 
-		*res = describe.EIPs[0]
+		*res = describe.Addresses[0]
 
 		return nil
 	}

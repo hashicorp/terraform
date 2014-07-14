@@ -102,11 +102,18 @@ func resource_aws_eip_destroy(
 	p := meta.(*ResourceProvider)
 	ec2conn := p.ec2conn
 
-	log.Printf("[DEBUG] EIP release (destroy) address: %v", s.ID)
+	var err error
+	if s.Attributes["vpc"] == "true" {
+		log.Printf("[DEBUG] EIP release (destroy) address allocation: %v", s.ID)
+		_, err = ec2conn.ReleaseAddress(s.ID)
+		return err
+	} else {
+		log.Printf("[DEBUG] EIP release (destroy) address: %v", s.ID)
+		_, err = ec2conn.ReleasePublicAddress(s.ID)
+		return err
+	}
 
-	_, err := ec2conn.ReleaseAddress(s.ID)
-
-	return err
+	return nil
 }
 
 func resource_aws_eip_refresh(
