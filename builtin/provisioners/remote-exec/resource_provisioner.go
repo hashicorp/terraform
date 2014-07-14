@@ -9,6 +9,7 @@ import (
 	"log"
 	"os"
 	"strings"
+	"time"
 
 	"code.google.com/p/go.crypto/ssh"
 	helper "github.com/hashicorp/terraform/helper/ssh"
@@ -28,7 +29,7 @@ const (
 	DefaultScriptPath = "/tmp/script.sh"
 
 	// DefaultTimeout is used if there is no timeout given
-	DefaultTimeout = "5m"
+	DefaultTimeout = 5 * time.Minute
 
 	// DefaultShebang is added at the top of the script file
 	DefaultShebang = "#!/bin/sh"
@@ -47,6 +48,7 @@ type SSHConfig struct {
 	Port       int
 	Timeout    string
 	ScriptPath string `mapstructure:"script_path"`
+	TimeoutVal time.Duration
 }
 
 func (p *ResourceProvisioner) Apply(s *terraform.ResourceState,
@@ -134,8 +136,10 @@ func (p *ResourceProvisioner) sshConfig(s *terraform.ResourceState) (*SSHConfig,
 	if sshConf.ScriptPath == "" {
 		sshConf.ScriptPath = DefaultScriptPath
 	}
-	if sshConf.Timeout == "" {
-		sshConf.Timeout = DefaultTimeout
+	if sshConf.Timeout != "" {
+		sshConf.TimeoutVal = safeDuration(sshConf.Timeout, DefaultTimeout)
+	} else {
+		sshConf.TimeoutVal = DefaultTimeout
 	}
 	return sshConf, nil
 }
@@ -258,40 +262,75 @@ func (p *ResourceProvisioner) runScripts(conf *SSHConfig, scripts []io.ReadClose
 	}
 
 	for _, script := range scripts {
-		if err := comm.Upload(conf.ScriptPath, script); err != nil {
-			return fmt.Errorf("Failed to upload script: %v", err)
+		var cmd *helper.RemoteCmd
+		err := retryFunc(conf.TimeoutVal, func() error {
+			if err := comm.Upload(conf.ScriptPath, script); err != nil {
+				return fmt.Errorf("Failed to upload script: %v", err)
+			}
+			cmd = &helper.RemoteCmd{
+				Command: fmt.Sprintf("chmod 0777 %s", conf.ScriptPath),
+			}
+			if err := comm.Start(cmd); err != nil {
+				return fmt.Errorf(
+					"Error chmodding script file to 0777 in remote "+
+						"machine: %s", err)
+			}
+			cmd.Wait()
+
+			rPipe1, wPipe1 := io.Pipe()
+			rPipe2, wPipe2 := io.Pipe()
+			go streamLogs(rPipe1, "stdout")
+			go streamLogs(rPipe2, "stderr")
+
+			cmd = &helper.RemoteCmd{
+				Command: conf.ScriptPath,
+				Stdout:  wPipe1,
+				Stderr:  wPipe2,
+			}
+			if err := comm.Start(cmd); err != nil {
+				return fmt.Errorf("Error starting script: %v", err)
+			}
+			return nil
+		})
+		if err != nil {
+			return err
 		}
-		cmd := &helper.RemoteCmd{
-			Command: fmt.Sprintf("chmod 0777 %s", conf.ScriptPath),
-		}
-		if err := comm.Start(cmd); err != nil {
-			return fmt.Errorf(
-				"Error chmodding script file to 0777 in remote "+
-					"machine: %s", err)
-		}
+
 		cmd.Wait()
-
-		rPipe1, wPipe1 := io.Pipe()
-		rPipe2, wPipe2 := io.Pipe()
-		go streamLogs(rPipe1, "stdout")
-		go streamLogs(rPipe2, "stderr")
-
-		cmd = &helper.RemoteCmd{
-			Command: conf.ScriptPath,
-			Stdout:  wPipe1,
-			Stderr:  wPipe2,
-		}
-		if err := comm.Start(cmd); err != nil {
-			return fmt.Errorf("Error starting script: %v", err)
-		}
-		cmd.Wait()
-
 		if cmd.ExitStatus != 0 {
 			return fmt.Errorf("Script exited with non-zero exit status: %d", cmd.ExitStatus)
 		}
 	}
 
 	return nil
+}
+
+// retryFunc is used to retry a function for a given duration
+func retryFunc(timeout time.Duration, f func() error) error {
+	finish := time.After(timeout)
+	for {
+		err := f()
+		if err == nil {
+			return nil
+		}
+		log.Printf("Retryable error: %v", err)
+
+		select {
+		case <-finish:
+			return err
+		case <-time.After(3 * time.Second):
+		}
+	}
+}
+
+// safeDuration returns either the parsed duration or a default value
+func safeDuration(dur string, defaultDur time.Duration) time.Duration {
+	d, err := time.ParseDuration(dur)
+	if err != nil {
+		log.Printf("Invalid duration '%s' for remote-exec, using default", dur)
+		return defaultDur
+	}
+	return d
 }
 
 // streamLogs is used to stream lines from stdout/stderr
