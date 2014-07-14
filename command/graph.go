@@ -1,13 +1,12 @@
 package command
 
 import (
-	"bytes"
 	"flag"
 	"fmt"
 	"os"
 	"strings"
 
-	"github.com/hashicorp/terraform/digraph"
+	"github.com/hashicorp/terraform/terraform"
 )
 
 // GraphCommand is a Command implementation that takes a Terraform
@@ -53,14 +52,7 @@ func (c *GraphCommand) Run(args []string) int {
 		return 1
 	}
 
-	buf := new(bytes.Buffer)
-	nodes := make([]digraph.Node, len(g.Nouns))
-	for i, n := range g.Nouns {
-		nodes[i] = n
-	}
-	digraph.GenerateDot(nodes, buf)
-
-	c.Ui.Output(buf.String())
+	c.Ui.Output(terraform.GraphDot(g))
 
 	return 0
 }
