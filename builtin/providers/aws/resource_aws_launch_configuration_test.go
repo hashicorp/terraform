@@ -42,15 +42,14 @@ func testAccCheckAWSLaunchConfigurationDestroy(s *terraform.State) error {
 			continue
 		}
 
-		// Try to find the Group
-		describeGroups, err := conn.DescribeLaunchConfigurations(
+		describe, err := conn.DescribeLaunchConfigurations(
 			&autoscaling.DescribeLaunchConfigurations{
 				Names: []string{rs.ID},
 			})
 
 		if err == nil {
-			if len(describeGroups.LaunchConfigurations) != 0 &&
-				describeGroups.LaunchConfigurations[0].Name == rs.ID {
+			if len(describe.LaunchConfigurations) != 0 &&
+				describe.LaunchConfigurations[0].Name == rs.ID {
 				return fmt.Errorf("Launch Configuration still exists")
 			}
 		}
