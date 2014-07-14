@@ -40,7 +40,7 @@ func (c *GraphCommand) Run(args []string) int {
 		}
 	}
 
-	ctx, err := c.Context(path, "")
+	ctx, err := c.Context(path, "", false)
 	if err != nil {
 		c.Ui.Error(fmt.Sprintf("Error loading Terraform: %s", err))
 		return 1

@@ -30,7 +30,7 @@ func (m *Meta) Colorize() *colorstring.Colorize {
 
 // Context returns a Terraform Context taking into account the context
 // options used to initialize this meta configuration.
-func (m *Meta) Context(path, statePath string) (*terraform.Context, error) {
+func (m *Meta) Context(path, statePath string, doPlan bool) (*terraform.Context, error) {
 	opts := m.contextOpts()
 
 	// First try to just read the plan directly from the path given.
@@ -84,8 +84,10 @@ func (m *Meta) Context(path, statePath string) (*terraform.Context, error) {
 	opts.State = state
 	ctx := terraform.NewContext(opts)
 
-	if _, err := ctx.Plan(nil); err != nil {
-		return nil, fmt.Errorf("Error running plan: %s", err)
+	if doPlan {
+		if _, err := ctx.Plan(nil); err != nil {
+			return nil, fmt.Errorf("Error running plan: %s", err)
+		}
 	}
 
 	return ctx, nil
