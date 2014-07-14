@@ -68,7 +68,7 @@ func testAccCheckAWSELBAttributes(conf *elb.LoadBalancer) resource.TestCheckFunc
 			return fmt.Errorf("bad availability_zones")
 		}
 
-		if conf.LoadBalancerName == "foobar-terraform-test" {
+		if conf.LoadBalancerName != "foobar-terraform-test" {
 			return fmt.Errorf("bad name")
 		}
 
@@ -78,6 +78,7 @@ func testAccCheckAWSELBAttributes(conf *elb.LoadBalancer) resource.TestCheckFunc
 			LoadBalancerPort: 80,
 			Protocol:         "http",
 		}
+
 		if !reflect.DeepEqual(conf.Listeners[0], l) {
 			return fmt.Errorf("bad listener")
 		}
@@ -127,11 +128,13 @@ resource "aws_elb" "bar" {
   name = "foobar-terraform-test"
   availability_zones = ["us-east-1a"]
 
-  listener = {
+  listener {
     instance_port = 8000
     instance_protocol = "http"
     lb_port = 80
     lb_protocol = "http"
   }
+
+  instances = []
 }
 `
