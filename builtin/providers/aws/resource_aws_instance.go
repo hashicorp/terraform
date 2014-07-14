@@ -26,6 +26,7 @@ func resource_aws_instance_create(
 	runOpts := &ec2.RunInstances{
 		ImageId:      rs.Attributes["ami"],
 		InstanceType: rs.Attributes["instance_type"],
+		SubnetId:     rs.Attributes["subnet_id"],
 	}
 	log.Printf("[DEBUG] Run configuration: %#v", runOpts)
 	runResp, err := ec2conn.RunInstances(runOpts)
@@ -108,6 +109,7 @@ func resource_aws_instance_diff(
 			"ami":               diff.AttrTypeCreate,
 			"availability_zone": diff.AttrTypeCreate,
 			"instance_type":     diff.AttrTypeCreate,
+			"subnet_id":         diff.AttrTypeCreate,
 		},
 
 		ComputedAttrs: []string{
@@ -163,6 +165,15 @@ func resource_aws_instance_update_state(
 	s.Attributes["public_ip"] = instance.PublicIpAddress
 	s.Attributes["private_dns"] = instance.PrivateDNSName
 	s.Attributes["private_ip"] = instance.PrivateIpAddress
+	s.Attributes["subnet_id"] = instance.SubnetId
+	s.Dependencies = nil
+
+	if instance.SubnetId != "" {
+		s.Dependencies = append(s.Dependencies,
+			terraform.ResourceDependency{ID: instance.SubnetId},
+		)
+	}
+
 	return s, nil
 }
 
