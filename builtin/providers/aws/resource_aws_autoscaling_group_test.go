@@ -23,7 +23,21 @@ func TestAccAWSAutoScalingGroup(t *testing.T) {
 					testAccCheckAWSAutoScalingGroupExists("aws_autoscaling_group.bar", &group),
 					testAccCheckAWSAutoScalingGroupAttributes(&group),
 					resource.TestCheckResourceAttr(
-						"aws_autoscaling_group.bar", "availability_zones.#.0", "us-east-1a"),
+                        "aws_autoscaling_group.bar", "availability_zones.#.0", "us-east-1a"),
+                    resource.TestCheckResourceAttr(
+                        "aws_autoscaling_group.bar", "name", "foobar3-terraform-test"),
+                    resource.TestCheckResourceAttr(
+                        "aws_autoscaling_group.bar", "max_size", "5"),
+                    resource.TestCheckResourceAttr(
+                        "aws_autoscaling_group.bar", "min_size", "2"),
+                    resource.TestCheckResourceAttr(
+                        "aws_autoscaling_group.bar", "health_check_grace_period", "300"),
+                    resource.TestCheckResourceAttr(
+                        "aws_autoscaling_group.bar", "health_check_type", "ELB"),
+                    resource.TestCheckResourceAttr(
+                        "aws_autoscaling_group.bar", "desired_capicity", "4"),
+                    resource.TestCheckResourceAttr(
+						"aws_autoscaling_group.bar", "force_delete", "true"),
 				),
 			},
 		},
