@@ -13,7 +13,7 @@ func TestResourceProvisioner_impl(t *testing.T) {
 
 func TestResourceProvider_Validate_good(t *testing.T) {
 	c := testConfig(t, map[string]interface{}{
-		"command": "echo foo",
+		"inline": "echo foo",
 	})
 	p := new(ResourceProvisioner)
 	warn, errs := p.Validate(c)
@@ -38,6 +38,93 @@ func TestResourceProvider_Validate_bad(t *testing.T) {
 		t.Fatalf("Should have errors")
 	}
 }
+
+func TestResourceProvider_verifySSH(t *testing.T) {
+	p := new(ResourceProvisioner)
+	r := &terraform.ResourceState{
+		ConnInfo: &terraform.ResourceConnectionInfo{
+			Raw: map[string]interface{}{
+				"type": "telnet",
+			},
+		},
+	}
+	if err := p.verifySSH(r); err == nil {
+		t.Fatalf("expected error with telnet")
+	}
+	r.ConnInfo.Raw["type"] = "ssh"
+	if err := p.verifySSH(r); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+}
+
+func TestResourceProvider_sshConfig(t *testing.T) {
+	p := new(ResourceProvisioner)
+	r := &terraform.ResourceState{
+		ConnInfo: &terraform.ResourceConnectionInfo{
+			Raw: map[string]interface{}{
+				"type":     "ssh",
+				"user":     "root",
+				"password": "supersecret",
+				"key_file": "/my/key/file.pem",
+				"host":     "127.0.0.1",
+				"port":     "22",
+				"timeout":  "30s",
+			},
+		},
+	}
+
+	conf, err := p.sshConfig(r)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	if conf.User != "root" {
+		t.Fatalf("bad: %v", conf)
+	}
+	if conf.Password != "supersecret" {
+		t.Fatalf("bad: %v", conf)
+	}
+	if conf.KeyFile != "/my/key/file.pem" {
+		t.Fatalf("bad: %v", conf)
+	}
+	if conf.Host != "127.0.0.1" {
+		t.Fatalf("bad: %v", conf)
+	}
+	if conf.Port != 22 {
+		t.Fatalf("bad: %v", conf)
+	}
+	if conf.Timeout != "30s" {
+		t.Fatalf("bad: %v", conf)
+	}
+	if conf.ScriptPath != DefaultScriptPath {
+		t.Fatalf("bad: %v", conf)
+	}
+}
+
+func TestResourceProvider_generateScript(t *testing.T) {
+	p := new(ResourceProvisioner)
+	conf := testConfig(t, map[string]interface{}{
+		"inline": []string{
+			"cd /tmp",
+			"wget http://foobar",
+			"exit 0",
+		},
+	})
+	out, err := p.generateScript(conf)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	if out != expectedScriptOut {
+		t.Fatalf("bad: %v", out)
+	}
+}
+
+var expectedScriptOut = `#!/bin/sh
+cd /tmp
+wget http://foobar
+exit 0
+`
 
 func testConfig(
 	t *testing.T,
