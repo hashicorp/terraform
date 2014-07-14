@@ -164,7 +164,7 @@ func resource_aws_autoscaling_group_diff(
 			"vpc_zone_identifier":       diff.AttrTypeCreate,
 			"load_balancers":            diff.AttrTypeCreate,
 			"availability_zone":         diff.AttrTypeCreate,
-			"force_delete":         diff.AttrTypeCreate,
+			"force_delete":              diff.AttrTypeCreate,
 		},
 
 		ComputedAttrs: []string{},
