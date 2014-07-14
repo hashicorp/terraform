@@ -111,6 +111,7 @@ func resource_aws_instance_diff(
 		},
 
 		ComputedAttrs: []string{
+			"availability_zone",
 			"public_dns",
 			"public_ip",
 			"private_dns",
@@ -157,6 +158,7 @@ func resource_aws_instance_refresh(
 func resource_aws_instance_update_state(
 	s *terraform.ResourceState,
 	instance *ec2.Instance) (*terraform.ResourceState, error) {
+	s.Attributes["availability_zone"] = instance.AvailZone
 	s.Attributes["public_dns"] = instance.DNSName
 	s.Attributes["public_ip"] = instance.PublicIpAddress
 	s.Attributes["private_dns"] = instance.PrivateDNSName
