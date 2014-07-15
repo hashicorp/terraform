@@ -5,6 +5,7 @@ import (
 	"log"
 
 	"github.com/hashicorp/terraform/flatmap"
+	"github.com/hashicorp/terraform/helper/config"
 	"github.com/hashicorp/terraform/helper/diff"
 	"github.com/hashicorp/terraform/terraform"
 	"github.com/mitchellh/goamz/ec2"
@@ -176,4 +177,15 @@ func resource_aws_security_group_retrieve(id string, ec2conn *ec2.EC2) (*ec2.Sec
 	sg := describeGroups.Groups[0]
 
 	return &sg, nil
+}
+
+func resource_aws_security_group_validation() *config.Validator {
+	return &config.Validator{
+		Required: []string{
+			"name",
+		},
+		Optional: []string{
+			"description",
+		},
+	}
 }
