@@ -74,13 +74,9 @@ func resource_aws_launch_configuration_update(
 	s *terraform.ResourceState,
 	d *terraform.ResourceDiff,
 	meta interface{}) (*terraform.ResourceState, error) {
+	panic("Update for AWS Launch Configuration is not supported")
 
-	rs := s.MergeDiff(d)
-	log.Printf("ResourceDiff: %s", d)
-	log.Printf("ResourceState: %s", s)
-	log.Printf("Merged: %s", rs)
-
-	return nil, fmt.Errorf("Did not update")
+	return nil, nil
 }
 
 func resource_aws_launch_configuration_destroy(
