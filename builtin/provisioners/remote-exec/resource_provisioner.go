@@ -14,7 +14,6 @@ import (
 	"code.google.com/p/go.crypto/ssh"
 	helper "github.com/hashicorp/terraform/helper/ssh"
 	"github.com/hashicorp/terraform/terraform"
-	"github.com/mitchellh/mapstructure"
 )
 
 const (
@@ -37,29 +36,15 @@ const (
 
 type ResourceProvisioner struct{}
 
-// SSHConfig is decoded from the ConnInfo of the resource. These
-// are the only keys we look at. If a KeyFile is given, that is used
-// instead of a password.
-type SSHConfig struct {
-	User       string
-	Password   string
-	KeyFile    string `mapstructure:"key_file"`
-	Host       string
-	Port       int
-	Timeout    string
-	ScriptPath string        `mapstructure:"script_path"`
-	TimeoutVal time.Duration `mapstructure:"-"`
-}
-
 func (p *ResourceProvisioner) Apply(s *terraform.ResourceState,
 	c *terraform.ResourceConfig) (*terraform.ResourceState, error) {
 	// Ensure the connection type is SSH
-	if err := p.verifySSH(s); err != nil {
+	if err := helper.VerifySSH(s); err != nil {
 		return s, err
 	}
 
 	// Get the SSH configuration
-	conf, err := p.sshConfig(s)
+	conf, err := helper.ParseSSHConfig(s)
 	if err != nil {
 		return s, err
 	}
@@ -98,50 +83,6 @@ func (p *ResourceProvisioner) Validate(c *terraform.ResourceConfig) (ws []string
 		es = append(es, fmt.Errorf("Must provide one of 'scripts', 'script' or 'inline' to remote-exec"))
 	}
 	return
-}
-
-// verifySSH is used to verify the ConnInfo is usable by remote-exec
-func (p *ResourceProvisioner) verifySSH(s *terraform.ResourceState) error {
-	connType := s.ConnInfo["type"]
-	switch connType {
-	case "":
-	case "ssh":
-	default:
-		return fmt.Errorf("Connection type '%s' not supported", connType)
-	}
-	return nil
-}
-
-// sshConfig is used to convert the ConnInfo of the ResourceState into
-// a SSHConfig struct
-func (p *ResourceProvisioner) sshConfig(s *terraform.ResourceState) (*SSHConfig, error) {
-	sshConf := &SSHConfig{}
-	decConf := &mapstructure.DecoderConfig{
-		WeaklyTypedInput: true,
-		Result:           sshConf,
-	}
-	dec, err := mapstructure.NewDecoder(decConf)
-	if err != nil {
-		return nil, err
-	}
-	if err := dec.Decode(s.ConnInfo); err != nil {
-		return nil, err
-	}
-	if sshConf.User == "" {
-		sshConf.User = DefaultUser
-	}
-	if sshConf.Port == 0 {
-		sshConf.Port = DefaultPort
-	}
-	if sshConf.ScriptPath == "" {
-		sshConf.ScriptPath = DefaultScriptPath
-	}
-	if sshConf.Timeout != "" {
-		sshConf.TimeoutVal = safeDuration(sshConf.Timeout, DefaultTimeout)
-	} else {
-		sshConf.TimeoutVal = DefaultTimeout
-	}
-	return sshConf, nil
 }
 
 // generateScript takes the configuration and creates a script to be executed
@@ -234,7 +175,7 @@ func (p *ResourceProvisioner) collectScripts(c *terraform.ResourceConfig) ([]io.
 }
 
 // runScripts is used to copy and execute a set of scripts
-func (p *ResourceProvisioner) runScripts(conf *SSHConfig, scripts []io.ReadCloser) error {
+func (p *ResourceProvisioner) runScripts(conf *helper.SSHConfig, scripts []io.ReadCloser) error {
 	sshConf := &ssh.ClientConfig{
 		User: conf.User,
 	}
@@ -332,16 +273,6 @@ func retryFunc(timeout time.Duration, f func() error) error {
 		case <-time.After(3 * time.Second):
 		}
 	}
-}
-
-// safeDuration returns either the parsed duration or a default value
-func safeDuration(dur string, defaultDur time.Duration) time.Duration {
-	d, err := time.ParseDuration(dur)
-	if err != nil {
-		log.Printf("Invalid duration '%s' for remote-exec, using default", dur)
-		return defaultDur
-	}
-	return d
 }
 
 // streamLogs is used to stream lines from stdout/stderr
