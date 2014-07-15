@@ -6,6 +6,39 @@ import (
 	"testing"
 )
 
+func TestMapContains(t *testing.T) {
+	cases := []struct {
+		Input  map[string]string
+		Key    string
+		Result bool
+	}{
+		{
+			Input: map[string]string{
+				"foo": "bar",
+				"bar": "nope",
+			},
+			Key:    "foo",
+			Result: true,
+		},
+
+		{
+			Input: map[string]string{
+				"foo": "bar",
+				"bar": "nope",
+			},
+			Key:    "baz",
+			Result: false,
+		},
+	}
+
+	for i, tc := range cases {
+		actual := Map(tc.Input).Contains(tc.Key)
+		if actual != tc.Result {
+			t.Fatalf("case %d bad: %#v", i, tc.Input)
+		}
+	}
+}
+
 func TestMapDelete(t *testing.T) {
 	m := Flatten(map[string]interface{}{
 		"foo": "bar",

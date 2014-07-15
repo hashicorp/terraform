@@ -12,6 +12,17 @@ import (
 // otherwise noted.
 type Map map[string]string
 
+// Contains returns true if the map contains the given key.
+func (m Map) Contains (key string) bool {
+	for _, k := range m.Keys() {
+		if k == key {
+			return true
+		}
+	}
+
+	return false
+}
+
 // Delete deletes a key out of the map with the given prefix.
 func (m Map) Delete(prefix string) {
 	for k, _ := range m {
