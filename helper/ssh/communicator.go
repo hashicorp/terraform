@@ -13,6 +13,7 @@ import (
 	"os"
 	"path/filepath"
 	"sync"
+	"time"
 )
 
 // RemoteCmd represents a remote command being prepared or run.
@@ -521,4 +522,22 @@ func scpUploadDir(root string, fs []os.FileInfo, w io.Writer, r *bufio.Reader) e
 	}
 
 	return nil
+}
+
+// ConnectFunc is a convenience method for returning a function
+// that just uses net.Dial to communicate with the remote end that
+// is suitable for use with the SSH communicator configuration.
+func ConnectFunc(network, addr string) func() (net.Conn, error) {
+	return func() (net.Conn, error) {
+		c, err := net.DialTimeout(network, addr, 15*time.Second)
+		if err != nil {
+			return nil, err
+		}
+
+		if tcpConn, ok := c.(*net.TCPConn); ok {
+			tcpConn.SetKeepAlive(true)
+		}
+
+		return c, nil
+	}
 }
