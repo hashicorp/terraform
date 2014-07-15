@@ -6,6 +6,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/hashicorp/terraform/flatmap"
 	"github.com/hashicorp/terraform/helper/diff"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
@@ -24,13 +25,34 @@ func resource_aws_instance_create(
 	rs := s.MergeDiff(d)
 	delete(rs.Attributes, "source_dest_check")
 
-	// Create the instance
+	// Build the creation struct
 	runOpts := &ec2.RunInstances{
 		ImageId:      rs.Attributes["ami"],
 		InstanceType: rs.Attributes["instance_type"],
 		KeyName:      rs.Attributes["key_name"],
 		SubnetId:     rs.Attributes["subnet_id"],
 	}
+	if raw := flatmap.Expand(rs.Attributes, "security_groups"); raw != nil {
+		if sgs, ok := raw.([]interface{}); ok {
+			for _, sg := range sgs {
+				str, ok := sg.(string)
+				if !ok {
+					continue
+				}
+
+				var g ec2.SecurityGroup
+				if runOpts.SubnetId != "" {
+					g.Id = str
+				} else {
+					g.Name = str
+				}
+
+				runOpts.SecurityGroups = append(runOpts.SecurityGroups, g)
+			}
+		}
+	}
+
+	// Create the instance
 	log.Printf("[DEBUG] Run configuration: %#v", runOpts)
 	runResp, err := ec2conn.RunInstances(runOpts)
 	if err != nil {
@@ -151,6 +173,7 @@ func resource_aws_instance_diff(
 			"availability_zone": diff.AttrTypeCreate,
 			"instance_type":     diff.AttrTypeCreate,
 			"key_name":          diff.AttrTypeCreate,
+			"security_groups":   diff.AttrTypeCreate,
 			"subnet_id":         diff.AttrTypeCreate,
 			"source_dest_check": diff.AttrTypeUpdate,
 		},
@@ -211,6 +234,23 @@ func resource_aws_instance_update_state(
 	s.Attributes["private_ip"] = instance.PrivateIpAddress
 	s.Attributes["subnet_id"] = instance.SubnetId
 	s.Dependencies = nil
+
+	// Build up the security groups
+	sgs := make([]string, len(instance.SecurityGroups))
+	for i, sg := range instance.SecurityGroups {
+		if instance.SubnetId != "" {
+			sgs[i] = sg.Id
+		} else {
+			sgs[i] = sg.Name
+		}
+
+		s.Dependencies = append(s.Dependencies,
+			terraform.ResourceDependency{ID: sg.Id},
+		)
+	}
+	flatmap.Map(s.Attributes).Merge(flatmap.Flatten(map[string]interface{}{
+		"security_groups": sgs,
+	}))
 
 	if instance.SubnetId != "" {
 		s.Dependencies = append(s.Dependencies,

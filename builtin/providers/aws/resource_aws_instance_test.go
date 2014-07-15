@@ -9,8 +9,19 @@ import (
 	"github.com/mitchellh/goamz/ec2"
 )
 
-func TestAccAWSInstance(t *testing.T) {
+func TestAccAWSInstance_normal(t *testing.T) {
 	var v ec2.Instance
+
+	testCheck := func(*terraform.State) error {
+		if len(v.SecurityGroups) == 0 {
+			return fmt.Errorf("no security groups: %#v", v.SecurityGroups)
+		}
+		if v.SecurityGroups[0].Name != "tf_test_foo" {
+			return fmt.Errorf("no security groups: %#v", v.SecurityGroups)
+		}
+
+		return nil
+	}
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -22,6 +33,7 @@ func TestAccAWSInstance(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckInstanceExists(
 						"aws_instance.foo", &v),
+					testCheck,
 				),
 			},
 		},
@@ -146,10 +158,16 @@ func testAccCheckInstanceExists(n string, i *ec2.Instance) resource.TestCheckFun
 }
 
 const testAccInstanceConfig = `
+resource "aws_security_group" "tf_test_foo" {
+	name = "tf_test_foo"
+	description = "foo"
+}
+
 resource "aws_instance" "foo" {
 	# us-west-2
 	ami = "ami-4fccb37f"
 	instance_type = "m1.small"
+	security_groups = ["${aws_security_group.tf_test_foo.name}"]
 }
 `
 
