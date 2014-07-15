@@ -47,8 +47,8 @@ type SSHConfig struct {
 	Host       string
 	Port       int
 	Timeout    string
-	ScriptPath string `mapstructure:"script_path"`
-	TimeoutVal time.Duration
+	ScriptPath string        `mapstructure:"script_path"`
+	TimeoutVal time.Duration `mapstructure:"-"`
 }
 
 func (p *ResourceProvisioner) Apply(s *terraform.ResourceState,
@@ -104,6 +104,7 @@ func (p *ResourceProvisioner) Validate(c *terraform.ResourceConfig) (ws []string
 func (p *ResourceProvisioner) verifySSH(s *terraform.ResourceState) error {
 	connType := s.ConnInfo.Raw["type"]
 	switch connType {
+	case nil:
 	case "":
 	case "ssh":
 	default:
@@ -256,7 +257,18 @@ func (p *ResourceProvisioner) runScripts(conf *SSHConfig, scripts []io.ReadClose
 			ssh.KeyboardInteractive(helper.PasswordKeyboardInteractive(conf.Password)))
 	}
 	host := fmt.Sprintf("%s:%d", conf.Host, conf.Port)
-	comm, err := helper.New(host, &helper.Config{SSHConfig: sshConf})
+	config := &helper.Config{
+		SSHConfig:  sshConf,
+		Connection: helper.ConnectFunc("tcp", host),
+	}
+
+	// Wait and retry until we establish the SSH connection
+	var comm *helper.SSHCommunicator
+	err := retryFunc(conf.TimeoutVal, func() error {
+		var err error
+		comm, err = helper.New(host, config)
+		return err
+	})
 	if err != nil {
 		return err
 	}
