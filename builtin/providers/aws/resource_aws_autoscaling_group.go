@@ -6,6 +6,7 @@ import (
 	"strconv"
 
 	"github.com/hashicorp/terraform/flatmap"
+	"github.com/hashicorp/terraform/helper/config"
 	"github.com/hashicorp/terraform/helper/diff"
 	"github.com/hashicorp/terraform/terraform"
 	"github.com/mitchellh/goamz/autoscaling"
@@ -230,4 +231,22 @@ func resource_aws_autoscaling_group_retrieve(id string, autoscalingconn *autosca
 	g := describeGroups.AutoScalingGroups[0]
 
 	return &g, nil
+}
+
+func resource_aws_autoscaling_group_validation() *config.Validator {
+	return &config.Validator{
+		Required: []string{
+			"name",
+			"max_size",
+			"min_size",
+			"availability_zones.*",
+			"launch_configuration",
+		},
+		Optional: []string{
+			"health_check_grace_period",
+			"health_check_type",
+			"desired_capicity",
+			"force_delete",
+		},
+	}
 }
