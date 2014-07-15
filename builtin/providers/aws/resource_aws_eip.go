@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 
+	"github.com/hashicorp/terraform/helper/config"
 	"github.com/hashicorp/terraform/helper/diff"
 	"github.com/hashicorp/terraform/terraform"
 	"github.com/mitchellh/goamz/ec2"
@@ -199,4 +200,13 @@ func resource_aws_eip_retrieve_address(id string, vpc bool, ec2conn *ec2.EC2) (*
 	address := describeAddresses.Addresses[0]
 
 	return &address, nil
+}
+
+func resource_aws_eip_validation() *config.Validator {
+	return &config.Validator{
+		Optional: []string{
+			"vpc",
+			"instance",
+		},
+	}
 }

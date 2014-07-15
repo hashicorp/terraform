@@ -5,6 +5,7 @@ import (
 	"log"
 
 	"github.com/hashicorp/terraform/flatmap"
+	"github.com/hashicorp/terraform/helper/config"
 	"github.com/hashicorp/terraform/helper/diff"
 	"github.com/hashicorp/terraform/terraform"
 	"github.com/mitchellh/goamz/elb"
@@ -184,4 +185,21 @@ func resource_aws_elb_retrieve_balancer(id string, elbconn *elb.ELB) (*elb.LoadB
 	}
 
 	return &loadBalancer, nil
+}
+
+func resource_aws_elb_validation() *config.Validator {
+	return &config.Validator{
+		Required: []string{
+			"name",
+			"availability_zones.*",
+			"listener.*",
+			"listener.*.instance_port",
+			"listener.*.instance_protocol",
+			"listener.*.lb_port",
+			"listener.*.lb_protocol",
+		},
+		Optional: []string{
+			"instances",
+		},
+	}
 }

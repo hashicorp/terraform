@@ -20,18 +20,20 @@ func init() {
 			},
 
 			"aws_elb": resource.Resource{
-				Create:  resource_aws_elb_create,
-				Update:  resource_aws_elb_update,
-				Destroy: resource_aws_elb_destroy,
-				Diff:    resource_aws_elb_diff,
-				Refresh: resource_aws_elb_refresh,
+				ConfigValidator: resource_aws_elb_validation(),
+				Create:          resource_aws_elb_create,
+				Update:          resource_aws_elb_update,
+				Destroy:         resource_aws_elb_destroy,
+				Diff:            resource_aws_elb_diff,
+				Refresh:         resource_aws_elb_refresh,
 			},
 
 			"aws_eip": resource.Resource{
-				Create:  resource_aws_eip_create,
-				Destroy: resource_aws_eip_destroy,
-				Diff:    resource_aws_eip_diff,
-				Refresh: resource_aws_eip_refresh,
+				ConfigValidator: resource_aws_eip_validation(),
+				Create:          resource_aws_eip_create,
+				Destroy:         resource_aws_eip_destroy,
+				Diff:            resource_aws_eip_diff,
+				Refresh:         resource_aws_eip_refresh,
 			},
 
 			"aws_instance": resource.Resource{
