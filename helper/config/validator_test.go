@@ -43,6 +43,31 @@ func TestValidator(t *testing.T) {
 	testInvalid(v, c)
 }
 
+func TestValidator_array(t *testing.T) {
+	v := &Validator{
+		Required: []string{
+			"foo",
+			"nested.*",
+		},
+	}
+
+	var c *terraform.ResourceConfig
+
+	// Valid
+	c = testConfig(t, map[string]interface{}{
+		"foo":    "bar",
+		"nested": []string{"foo", "bar"},
+	})
+	testValid(v, c)
+
+	// Not a nested structure
+	c = testConfig(t, map[string]interface{}{
+		"foo":    "bar",
+		"nested": "baa",
+	})
+	testInvalid(v, c)
+}
+
 func TestValidator_complex(t *testing.T) {
 	v := &Validator{
 		Required: []string{

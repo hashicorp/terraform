@@ -84,6 +84,8 @@ func (v *Validator) Validate(
 }
 
 type validatorKey interface {
+	// Validate validates the given configuration and returns viewed keys,
+	// warnings, and errors.
 	Validate(map[string]string) ([]string, []string, []error)
 }
 
@@ -179,8 +181,10 @@ func (v *nestedValidatorKey) Validate(
 		}
 
 		for k, _ := range m {
-			if !strings.HasPrefix(k, prefix) {
-				continue
+			if k != prefix[:len(prefix)-1] {
+				if !strings.HasPrefix(k, prefix) {
+					continue
+				}
 			}
 
 			used = append(used, k)
