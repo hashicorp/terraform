@@ -74,13 +74,16 @@ func testAccCheckAWSELBAttributes(conf *elb.LoadBalancer) resource.TestCheckFunc
 
 		l := elb.Listener{
 			InstancePort:     8000,
-			InstanceProtocol: "http",
+			InstanceProtocol: "HTTP",
 			LoadBalancerPort: 80,
-			Protocol:         "http",
+			Protocol:         "HTTP",
 		}
 
 		if !reflect.DeepEqual(conf.Listeners[0], l) {
-			return fmt.Errorf("bad listener")
+			return fmt.Errorf(
+				"Got:\n\n%#v\n\nExpected:\n\n%#v\n",
+				conf.Listeners[0],
+				l)
 		}
 
 		if conf.DNSName == "" {
