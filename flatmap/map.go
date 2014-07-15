@@ -13,7 +13,7 @@ import (
 type Map map[string]string
 
 // Contains returns true if the map contains the given key.
-func (m Map) Contains (key string) bool {
+func (m Map) Contains(key string) bool {
 	for _, k := range m.Keys() {
 		if k == key {
 			return true
