@@ -98,12 +98,10 @@ func TestReadWriteState(t *testing.T) {
 		Resources: map[string]*ResourceState{
 			"foo": &ResourceState{
 				ID: "bar",
-				ConnInfo: &ResourceConnectionInfo{
-					Raw: map[string]interface{}{
-						"type":     "ssh",
-						"user":     "root",
-						"password": "supersecret",
-					},
+				ConnInfo: map[string]string{
+					"type":     "ssh",
+					"user":     "root",
+					"password": "supersecret",
 				},
 			},
 		},

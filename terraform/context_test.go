@@ -513,31 +513,29 @@ func TestContextApply_Provisioner_ConnInfo(t *testing.T) {
 	pr := testProvisioner()
 
 	p.ApplyFn = func(s *ResourceState, d *ResourceDiff) (*ResourceState, error) {
-		if s.ConnInfo == nil || s.ConnInfo.Raw == nil {
+		if s.ConnInfo == nil {
 			t.Fatalf("ConnInfo not initialized")
 		}
 
 		result, _ := testApplyFn(s, d)
-		result.ConnInfo = &ResourceConnectionInfo{
-			Raw: map[string]interface{}{
-				"type": "ssh",
-				"host": "127.0.0.1",
-				"port": 22,
-			},
+		result.ConnInfo = map[string]string{
+			"type": "ssh",
+			"host": "127.0.0.1",
+			"port": "22",
 		}
 		return result, nil
 	}
 	p.DiffFn = testDiffFn
 
 	pr.ApplyFn = func(rs *ResourceState, c *ResourceConfig) (*ResourceState, error) {
-		conn := rs.ConnInfo.Raw
+		conn := rs.ConnInfo
 		if conn["type"] != "telnet" {
 			t.Fatalf("Bad: %#v", conn)
 		}
 		if conn["host"] != "127.0.0.1" {
 			t.Fatalf("Bad: %#v", conn)
 		}
-		if conn["port"] != 2222 {
+		if conn["port"] != "2222" {
 			t.Fatalf("Bad: %#v", conn)
 		}
 		if conn["user"] != "superuser" {

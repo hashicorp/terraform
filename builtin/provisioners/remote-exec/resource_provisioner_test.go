@@ -44,16 +44,14 @@ func TestResourceProvider_Validate_bad(t *testing.T) {
 func TestResourceProvider_verifySSH(t *testing.T) {
 	p := new(ResourceProvisioner)
 	r := &terraform.ResourceState{
-		ConnInfo: &terraform.ResourceConnectionInfo{
-			Raw: map[string]interface{}{
-				"type": "telnet",
-			},
+		ConnInfo: map[string]string{
+			"type": "telnet",
 		},
 	}
 	if err := p.verifySSH(r); err == nil {
 		t.Fatalf("expected error with telnet")
 	}
-	r.ConnInfo.Raw["type"] = "ssh"
+	r.ConnInfo["type"] = "ssh"
 	if err := p.verifySSH(r); err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -62,16 +60,14 @@ func TestResourceProvider_verifySSH(t *testing.T) {
 func TestResourceProvider_sshConfig(t *testing.T) {
 	p := new(ResourceProvisioner)
 	r := &terraform.ResourceState{
-		ConnInfo: &terraform.ResourceConnectionInfo{
-			Raw: map[string]interface{}{
-				"type":     "ssh",
-				"user":     "root",
-				"password": "supersecret",
-				"key_file": "/my/key/file.pem",
-				"host":     "127.0.0.1",
-				"port":     "22",
-				"timeout":  "30s",
-			},
+		ConnInfo: map[string]string{
+			"type":     "ssh",
+			"user":     "root",
+			"password": "supersecret",
+			"key_file": "/my/key/file.pem",
+			"host":     "127.0.0.1",
+			"port":     "22",
+			"timeout":  "30s",
 		},
 	}
 

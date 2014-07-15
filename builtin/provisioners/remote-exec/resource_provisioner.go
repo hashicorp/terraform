@@ -102,9 +102,8 @@ func (p *ResourceProvisioner) Validate(c *terraform.ResourceConfig) (ws []string
 
 // verifySSH is used to verify the ConnInfo is usable by remote-exec
 func (p *ResourceProvisioner) verifySSH(s *terraform.ResourceState) error {
-	connType := s.ConnInfo.Raw["type"]
+	connType := s.ConnInfo["type"]
 	switch connType {
-	case nil:
 	case "":
 	case "ssh":
 	default:
@@ -125,7 +124,7 @@ func (p *ResourceProvisioner) sshConfig(s *terraform.ResourceState) (*SSHConfig,
 	if err != nil {
 		return nil, err
 	}
-	if err := dec.Decode(s.ConnInfo.Raw); err != nil {
+	if err := dec.Decode(s.ConnInfo); err != nil {
 		return nil, err
 	}
 	if sshConf.User == "" {
