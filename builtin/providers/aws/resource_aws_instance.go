@@ -89,6 +89,7 @@ func resource_aws_instance_update(
 	if attr, ok := d.Attributes["source_dest_check"]; ok {
 		modify = true
 		opts.SourceDestCheck = attr.New != "" && attr.New != "false"
+		opts.SetSourceDestCheck = true
 		rs.Attributes["source_dest_check"] = strconv.FormatBool(
 			opts.SourceDestCheck)
 	}
@@ -98,6 +99,9 @@ func resource_aws_instance_update(
 		if _, err := ec2conn.ModifyInstance(s.ID, opts); err != nil {
 			return s, err
 		}
+
+		// TODO(mitchellh): wait for the attributes we modified to
+		// persist the change...
 	}
 
 	return rs, nil

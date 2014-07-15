@@ -31,12 +31,14 @@ func TestAccAWSInstance(t *testing.T) {
 func TestAccAWSInstance_sourceDestCheck(t *testing.T) {
 	var v ec2.Instance
 
-	testCheck := func(*terraform.State) error {
-		if !v.SourceDestCheck {
-			return fmt.Errorf("no source_dest_check")
-		}
+	testCheck := func(enabled bool) resource.TestCheckFunc {
+		return func(*terraform.State) error {
+			if v.SourceDestCheck != enabled {
+				return fmt.Errorf("bad source_dest_check: %#v", v.SourceDestCheck)
+			}
 
-		return nil
+			return nil
+		}
 	}
 
 	resource.Test(t, resource.TestCase{
@@ -49,7 +51,16 @@ func TestAccAWSInstance_sourceDestCheck(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckInstanceExists(
 						"aws_instance.foo", &v),
-					testCheck,
+					testCheck(true),
+				),
+			},
+
+			resource.TestStep{
+				Config: testAccInstanceConfigSourceDestDisable,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckInstanceExists(
+						"aws_instance.foo", &v),
+					testCheck(false),
 				),
 			},
 		},
@@ -158,6 +169,25 @@ resource "aws_instance" "foo" {
 	instance_type = "m1.small"
 	subnet_id = "${aws_subnet.foo.id}"
 	source_dest_check = true
+}
+`
+
+const testAccInstanceConfigSourceDestDisable = `
+resource "aws_vpc" "foo" {
+	cidr_block = "10.1.0.0/16"
+}
+
+resource "aws_subnet" "foo" {
+	cidr_block = "10.1.1.0/24"
+	vpc_id = "${aws_vpc.foo.id}"
+}
+
+resource "aws_instance" "foo" {
+	# us-west-2
+	ami = "ami-4fccb37f"
+	instance_type = "m1.small"
+	subnet_id = "${aws_subnet.foo.id}"
+	source_dest_check = false
 }
 `
 
