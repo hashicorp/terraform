@@ -28,22 +28,27 @@ func resource_aws_autoscaling_group_create(
 
 	if rs.Attributes["min_size"] != "" {
 		autoScalingGroupOpts.MinSize, err = strconv.Atoi(rs.Attributes["min_size"])
+		autoScalingGroupOpts.SetMinSize = true
 	}
 
 	if rs.Attributes["max_size"] != "" {
 		autoScalingGroupOpts.MaxSize, err = strconv.Atoi(rs.Attributes["max_size"])
+		autoScalingGroupOpts.SetMaxSize = true
 	}
 
 	if rs.Attributes["default_cooldown"] != "" {
 		autoScalingGroupOpts.DefaultCooldown, err = strconv.Atoi(rs.Attributes["default_cooldown"])
+		autoScalingGroupOpts.SetDefaultCooldown = true
 	}
 
 	if rs.Attributes["desired_capicity"] != "" {
 		autoScalingGroupOpts.DesiredCapacity, err = strconv.Atoi(rs.Attributes["desired_capicity"])
+		autoScalingGroupOpts.SetDesiredCapacity = true
 	}
 
 	if rs.Attributes["health_check_grace_period"] != "" {
 		autoScalingGroupOpts.HealthCheckGracePeriod, err = strconv.Atoi(rs.Attributes["health_check_grace_period"])
+		autoScalingGroupOpts.SetHealthCheckGracePeriod = true
 	}
 
 	if err != nil {
@@ -91,13 +96,45 @@ func resource_aws_autoscaling_group_update(
 	s *terraform.ResourceState,
 	d *terraform.ResourceDiff,
 	meta interface{}) (*terraform.ResourceState, error) {
-
+	p := meta.(*ResourceProvider)
+	autoscalingconn := p.autoscalingconn
 	rs := s.MergeDiff(d)
-	log.Printf("ResourceDiff: %s", d)
-	log.Printf("ResourceState: %s", s)
-	log.Printf("Merged: %s", rs)
 
-	return nil, fmt.Errorf("Did not update")
+	opts := autoscaling.UpdateAutoScalingGroup{
+		Name: rs.ID,
+	}
+
+	var err error
+
+	if _, ok := d.Attributes["min_size"]; ok {
+		opts.MinSize, err = strconv.Atoi(rs.Attributes["min_size"])
+		opts.SetMinSize = true
+	}
+
+	if _, ok := d.Attributes["max_size"]; ok {
+		opts.MaxSize, err = strconv.Atoi(rs.Attributes["max_size"])
+		opts.SetMaxSize = true
+	}
+
+	if err != nil {
+		return s, fmt.Errorf("Error parsing configuration: %s", err)
+	}
+
+	log.Printf("[DEBUG] AutoScaling Group update configuration: %#v", opts)
+
+	_, err = autoscalingconn.UpdateAutoScalingGroup(&opts)
+
+	if err != nil {
+		return rs, fmt.Errorf("Error updating AutoScaling group: %s", err)
+	}
+
+	g, err := resource_aws_autoscaling_group_retrieve(rs.ID, autoscalingconn)
+
+	if err != nil {
+		return rs, err
+	}
+
+	return resource_aws_autoscaling_group_update_state(rs, g)
 }
 
 func resource_aws_autoscaling_group_destroy(
@@ -154,21 +191,29 @@ func resource_aws_autoscaling_group_diff(
 
 	b := &diff.ResourceBuilder{
 		Attrs: map[string]diff.AttrType{
-			"min_size":                  diff.AttrTypeCreate,
-			"max_size":                  diff.AttrTypeCreate,
+			"availability_zone":         diff.AttrTypeCreate,
 			"default_cooldown":          diff.AttrTypeCreate,
-			"name":                      diff.AttrTypeCreate,
 			"desired_capicity":          diff.AttrTypeCreate,
+			"force_delete":              diff.AttrTypeCreate,
 			"health_check_grace_period": diff.AttrTypeCreate,
 			"health_check_type":         diff.AttrTypeCreate,
 			"launch_configuration":      diff.AttrTypeCreate,
-			"vpc_zone_identifier":       diff.AttrTypeCreate,
 			"load_balancers":            diff.AttrTypeCreate,
-			"availability_zone":         diff.AttrTypeCreate,
-			"force_delete":              diff.AttrTypeCreate,
+			"name":                      diff.AttrTypeCreate,
+			"vpc_zone_identifier":       diff.AttrTypeCreate,
+
+			"max_size": diff.AttrTypeUpdate,
+			"min_size": diff.AttrTypeUpdate,
 		},
 
-		ComputedAttrs: []string{},
+		ComputedAttrs: []string{
+			"health_check_grace_period",
+			"health_check_type",
+			"default_cooldown",
+			"vpc_zone_identifier",
+			"desired_capicity",
+			"force_delete",
+		},
 	}
 
 	return b.Diff(s, c)

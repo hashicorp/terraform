@@ -18,6 +18,7 @@ func init() {
 				Destroy:         resource_aws_autoscaling_group_destroy,
 				Diff:            resource_aws_autoscaling_group_diff,
 				Refresh:         resource_aws_autoscaling_group_refresh,
+				Update:          resource_aws_autoscaling_group_update,
 			},
 
 			"aws_elb": resource.Resource{

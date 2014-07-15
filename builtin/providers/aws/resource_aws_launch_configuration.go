@@ -130,7 +130,9 @@ func resource_aws_launch_configuration_diff(
 			"security_groups": diff.AttrTypeCreate,
 		},
 
-		ComputedAttrs: []string{},
+		ComputedAttrs: []string{
+			"key_name",
+		},
 	}
 
 	return b.Diff(s, c)
