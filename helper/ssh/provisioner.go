@@ -22,9 +22,6 @@ const (
 
 	// DefaultTimeout is used if there is no timeout given
 	DefaultTimeout = 5 * time.Minute
-
-	// DefaultShebang is added at the top of the script file
-	DefaultShebang = "#!/bin/sh"
 )
 
 // SSHConfig is decoded from the ConnInfo of the resource. These

@@ -17,19 +17,6 @@ import (
 )
 
 const (
-	// DefaultUser is used if there is no default user given
-	DefaultUser = "root"
-
-	// DefaultPort is used if there is no port given
-	DefaultPort = 22
-
-	// DefaultScriptPath is used as the path to copy the file to
-	// for remote execution if not provided otherwise.
-	DefaultScriptPath = "/tmp/script.sh"
-
-	// DefaultTimeout is used if there is no timeout given
-	DefaultTimeout = 5 * time.Minute
-
 	// DefaultShebang is added at the top of the script file
 	DefaultShebang = "#!/bin/sh"
 )
