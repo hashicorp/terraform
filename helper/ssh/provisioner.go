@@ -2,9 +2,11 @@ package ssh
 
 import (
 	"fmt"
+	"io/ioutil"
 	"log"
 	"time"
 
+	"code.google.com/p/go.crypto/ssh"
 	"github.com/hashicorp/terraform/terraform"
 	"github.com/mitchellh/mapstructure"
 )
@@ -90,4 +92,35 @@ func safeDuration(dur string, defaultDur time.Duration) time.Duration {
 		return defaultDur
 	}
 	return d
+}
+
+// PrepareConfig is used to turn the *SSHConfig provided into a
+// usable *Config for client initialization.
+func PrepareConfig(conf *SSHConfig) (*Config, error) {
+	sshConf := &ssh.ClientConfig{
+		User: conf.User,
+	}
+	if conf.KeyFile != "" {
+		key, err := ioutil.ReadFile(conf.KeyFile)
+		if err != nil {
+			return nil, fmt.Errorf("Failed to read key file '%s': %v", conf.KeyFile, err)
+		}
+		signer, err := ssh.ParsePrivateKey(key)
+		if err != nil {
+			return nil, fmt.Errorf("Failed to parse key file '%s': %v", conf.KeyFile, err)
+		}
+		sshConf.Auth = append(sshConf.Auth, ssh.PublicKeys(signer))
+	}
+	if conf.Password != "" {
+		sshConf.Auth = append(sshConf.Auth,
+			ssh.Password(conf.Password))
+		sshConf.Auth = append(sshConf.Auth,
+			ssh.KeyboardInteractive(PasswordKeyboardInteractive(conf.Password)))
+	}
+	host := fmt.Sprintf("%s:%d", conf.Host, conf.Port)
+	config := &Config{
+		SSHConfig:  sshConf,
+		Connection: ConnectFunc("tcp", host),
+	}
+	return config, nil
 }

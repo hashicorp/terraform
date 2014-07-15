@@ -11,7 +11,6 @@ import (
 	"strings"
 	"time"
 
-	"code.google.com/p/go.crypto/ssh"
 	helper "github.com/hashicorp/terraform/helper/ssh"
 	"github.com/hashicorp/terraform/terraform"
 )
@@ -163,36 +162,16 @@ func (p *ResourceProvisioner) collectScripts(c *terraform.ResourceConfig) ([]io.
 
 // runScripts is used to copy and execute a set of scripts
 func (p *ResourceProvisioner) runScripts(conf *helper.SSHConfig, scripts []io.ReadCloser) error {
-	sshConf := &ssh.ClientConfig{
-		User: conf.User,
-	}
-	if conf.KeyFile != "" {
-		key, err := ioutil.ReadFile(conf.KeyFile)
-		if err != nil {
-			return fmt.Errorf("Failed to read key file '%s': %v", conf.KeyFile, err)
-		}
-		signer, err := ssh.ParsePrivateKey(key)
-		if err != nil {
-			return fmt.Errorf("Failed to parse key file '%s': %v", conf.KeyFile, err)
-		}
-		sshConf.Auth = append(sshConf.Auth, ssh.PublicKeys(signer))
-	}
-	if conf.Password != "" {
-		sshConf.Auth = append(sshConf.Auth,
-			ssh.Password(conf.Password))
-		sshConf.Auth = append(sshConf.Auth,
-			ssh.KeyboardInteractive(helper.PasswordKeyboardInteractive(conf.Password)))
-	}
-	host := fmt.Sprintf("%s:%d", conf.Host, conf.Port)
-	config := &helper.Config{
-		SSHConfig:  sshConf,
-		Connection: helper.ConnectFunc("tcp", host),
+	// Get the SSH client config
+	config, err := helper.PrepareConfig(conf)
+	if err != nil {
+		return err
 	}
 
 	// Wait and retry until we establish the SSH connection
 	var comm *helper.SSHCommunicator
-	err := retryFunc(conf.TimeoutVal, func() error {
-		var err error
+	err = retryFunc(conf.TimeoutVal, func() error {
+		host := fmt.Sprintf("%s:%d", conf.Host, conf.Port)
 		comm, err = helper.New(host, config)
 		return err
 	})
