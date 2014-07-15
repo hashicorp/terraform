@@ -96,7 +96,7 @@ func testAccCheckAWSAutoScalingGroupAttributes(group *autoscaling.AutoScalingGro
 			return fmt.Errorf("Bad max_size: %s", group.MinSize)
 		}
 
-		if group.HealthCheckType != "elb" {
+		if group.HealthCheckType != "ELB" {
 			return fmt.Errorf("Bad health_check_type: %s", group.HealthCheckType)
 		}
 
@@ -151,7 +151,7 @@ func testAccCheckAWSAutoScalingGroupExists(n string, group *autoscaling.AutoScal
 
 const testAccAWSAutoScalingGroupConfig = `
 resource "aws_launch_configuration" "foobar" {
-  name = "foobar-terraform-test"
+  name = "foobarautoscaling-terraform-test"
   image_id = "ami-fb8e9292"
   instance_type = "t1.micro"
 }
