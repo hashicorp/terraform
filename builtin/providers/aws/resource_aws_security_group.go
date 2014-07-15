@@ -183,9 +183,13 @@ func resource_aws_security_group_validation() *config.Validator {
 	return &config.Validator{
 		Required: []string{
 			"name",
+			"ingress.*",
+			"ingress.",
 		},
 		Optional: []string{
 			"description",
+			"vpc_id",
+			"owner_id",
 		},
 	}
 }
