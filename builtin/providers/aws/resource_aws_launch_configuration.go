@@ -5,6 +5,7 @@ import (
 	"log"
 
 	"github.com/hashicorp/terraform/flatmap"
+	"github.com/hashicorp/terraform/helper/config"
 	"github.com/hashicorp/terraform/helper/diff"
 	"github.com/hashicorp/terraform/terraform"
 	"github.com/mitchellh/goamz/autoscaling"
@@ -187,4 +188,18 @@ func resource_aws_launch_configuration_retrieve(id string, autoscalingconn *auto
 	l := describConfs.LaunchConfigurations[0]
 
 	return &l, nil
+}
+
+func resource_aws_launch_configuration_validation() *config.Validator {
+	return &config.Validator{
+		Required: []string{
+			"name",
+			"image_id",
+			"instance_type",
+		},
+		Optional: []string{
+			"key_name",
+			"security_groups.*",
+		},
+	}
 }

@@ -54,10 +54,11 @@ func init() {
 			},
 
 			"aws_launch_configuration": resource.Resource{
-				Create:  resource_aws_launch_configuration_create,
-				Destroy: resource_aws_launch_configuration_destroy,
-				Diff:    resource_aws_launch_configuration_diff,
-				Refresh: resource_aws_launch_configuration_refresh,
+				ConfigValidator: resource_aws_launch_configuration_validation(),
+				Create:          resource_aws_launch_configuration_create,
+				Destroy:         resource_aws_launch_configuration_destroy,
+				Diff:            resource_aws_launch_configuration_diff,
+				Refresh:         resource_aws_launch_configuration_refresh,
 			},
 
 			"aws_route_table": resource.Resource{
