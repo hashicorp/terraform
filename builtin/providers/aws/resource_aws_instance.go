@@ -205,7 +205,6 @@ func resource_aws_instance_diff(
 
 		PreProcess: map[string]diff.PreProcessFunc{
 			"user_data": func(v string) string {
-				println("SUMMIN: " + v)
 				hash := sha1.Sum([]byte(v))
 				return hex.EncodeToString(hash[:])
 			},
