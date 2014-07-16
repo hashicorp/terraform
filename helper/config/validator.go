@@ -94,14 +94,8 @@ func newValidatorKey(k string, req bool) (validatorKey, error) {
 
 	parts := strings.Split(k, ".")
 	if len(parts) > 1 && parts[1] == "*" {
-		key := ""
-		if len(parts) >= 3 {
-			key = parts[2]
-		}
-
 		result = &nestedValidatorKey{
-			Prefix:   parts[0],
-			Key:      key,
+			Parts:    parts,
 			Required: req,
 		}
 	} else {
@@ -138,23 +132,43 @@ func (v *basicValidatorKey) Validate(
 }
 
 type nestedValidatorKey struct {
-	Prefix   string
-	Key      string
+	Parts    []string
 	Required bool
 }
 
-func (v *nestedValidatorKey) Validate(
-	m map[string]string) ([]string, []string, []error) {
-	countStr, ok := m[v.Prefix+".#"]
+func (v *nestedValidatorKey) validate(
+	m map[string]string,
+	prefix string,
+	offset int) ([]string, []string, []error) {
+	if offset >= len(v.Parts) {
+		// We're at the end. Look for a specific key.
+		v2 := &basicValidatorKey{Key: prefix, Required: v.Required}
+		return v2.Validate(m)
+	}
+
+	current := v.Parts[offset]
+
+	// If we're at offset 0, special case to start at the next one.
+	if offset == 0 {
+		return v.validate(m, current, offset+1)
+	}
+
+	// Determine if we're doing a "for all" or a specific key
+	if current != "*" {
+		// We're looking at a specific key, continue on.
+		return v.validate(m, prefix+"."+current, offset+1)
+	}
+
+	// We're doing a "for all", so we loop over.
+	countStr, ok := m[prefix+".#"]
 	if !ok {
-		if !v.Required || v.Key != "" {
-			// Not present, that is okay
+		if !v.Required {
+			// It wasn't required, so its no problem.
 			return nil, nil, nil
-		} else {
-			// Required and isn't present
-			return nil, nil, []error{fmt.Errorf(
-				"Key not found: %s", v.Prefix)}
 		}
+
+		return nil, nil, []error{fmt.Errorf(
+			"Key not found: %s", prefix)}
 	}
 
 	count, err := strconv.ParseInt(countStr, 0, 0)
@@ -163,33 +177,38 @@ func (v *nestedValidatorKey) Validate(
 		panic("invalid flatmap array")
 	}
 
-	var errs []error
-	used := make([]string, 1, count+1)
-	used[0] = v.Prefix + ".#"
+	var e []error
+	var w []string
+	u := make([]string, 1, count+1)
+	u[0] = prefix + ".#"
 	for i := 0; i < int(count); i++ {
-		prefix := fmt.Sprintf("%s.%d.", v.Prefix, i)
+		prefix := fmt.Sprintf("%s.%d", prefix, i)
 
-		if v.Key != "" {
-			key := prefix + v.Key
-			if _, ok := m[key]; !ok {
-				errs = append(errs, fmt.Errorf(
-					"%s[%d]: does not contain required key %s",
-					v.Prefix,
-					i,
-					v.Key))
+		// Mark that we saw this specific key
+		u = append(u, prefix)
+
+		// Mark all prefixes of this
+		for k, _ := range m {
+			if !strings.HasPrefix(k, prefix+".") {
+				continue
 			}
+			u = append(u, k)
 		}
 
-		for k, _ := range m {
-			if k != prefix[:len(prefix)-1] {
-				if !strings.HasPrefix(k, prefix) {
-					continue
-				}
-			}
+		// If we have more parts, then validate deeper
+		if offset+1 < len(v.Parts) {
+			u2, w2, e2 := v.validate(m, prefix, offset+1)
 
-			used = append(used, k)
+			u = append(u, u2...)
+			w = append(w, w2...)
+			e = append(e, e2...)
 		}
 	}
 
-	return used, nil, errs
+	return u, w, e
+}
+
+func (v *nestedValidatorKey) Validate(
+	m map[string]string) ([]string, []string, []error) {
+	return v.validate(m, "", 0)
 }

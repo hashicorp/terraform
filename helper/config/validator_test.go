@@ -95,6 +95,42 @@ func TestValidator_complex(t *testing.T) {
 	testInvalid(v, c)
 }
 
+func TestValidator_complexNested(t *testing.T) {
+	v := &Validator{
+		Required: []string{
+			"ingress.*",
+			"ingress.*.from_port",
+		},
+
+		Optional: []string{
+			"ingress.*.cidr_blocks.*",
+		},
+	}
+
+	var c *terraform.ResourceConfig
+
+	// Valid
+	c = testConfig(t, map[string]interface{}{
+		"ingress": []map[string]interface{}{
+			map[string]interface{}{
+				"from_port": "80",
+			},
+		},
+	})
+	testValid(v, c)
+
+	// Valid
+	c = testConfig(t, map[string]interface{}{
+		"ingress": []map[string]interface{}{
+			map[string]interface{}{
+				"from_port":   "80",
+				"cidr_blocks": []string{"foo"},
+			},
+		},
+	})
+	testValid(v, c)
+}
+
 func TestValidator_complexDeepRequired(t *testing.T) {
 	v := &Validator{
 		Required: []string{
@@ -118,7 +154,7 @@ func TestValidator_complexDeepRequired(t *testing.T) {
 	c = testConfig(t, map[string]interface{}{
 		"foo": "bar",
 	})
-	testValid(v, c)
+	testInvalid(v, c)
 
 	// Not a nested structure
 	c = testConfig(t, map[string]interface{}{
