@@ -36,7 +36,23 @@ func TestAccAWSInstance_normal(t *testing.T) {
 					testCheck,
 					resource.TestCheckResourceAttr(
 						"aws_instance.foo",
-						"user_data_hash",
+						"user_data",
+						"0beec7b5ea3f0fdbc95d0dd47f3c5bc275da8a33"),
+				),
+			},
+
+			// We repeat the exact same test so that we can be sure
+			// that the user data hash stuff is working without generating
+			// an incorrect diff.
+			resource.TestStep{
+				Config: testAccInstanceConfig,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckInstanceExists(
+						"aws_instance.foo", &v),
+					testCheck,
+					resource.TestCheckResourceAttr(
+						"aws_instance.foo",
+						"user_data",
 						"0beec7b5ea3f0fdbc95d0dd47f3c5bc275da8a33"),
 				),
 			},

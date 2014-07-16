@@ -29,16 +29,8 @@ func resource_aws_instance_create(
 
 	// Figure out user data
 	userData := ""
-	if v, ok := rs.Attributes["user_data"]; ok {
-		userData = v
-		delete(rs.Attributes, "user_data")
-	}
-
-	if userData != "" {
-		// Set the SHA1 hash of the data as an attribute so we can
-		// compare for diffs.
-		hash := sha1.Sum([]byte(userData))
-		rs.Attributes["user_data_hash"] = hex.EncodeToString(hash[:])
+	if attr, ok := d.Attributes["user_data"]; ok {
+		userData = attr.NewExtra.(string)
 	}
 
 	// Build the creation struct
@@ -210,9 +202,15 @@ func resource_aws_instance_diff(
 			"security_groups",
 			"subnet_id",
 		},
-	}
 
-	// TODO(mitchellh): figure out way to diff user_data_hash
+		PreProcess: map[string]diff.PreProcessFunc{
+			"user_data": func(v string) string {
+				println("SUMMIN: " + v)
+				hash := sha1.Sum([]byte(v))
+				return hex.EncodeToString(hash[:])
+			},
+		},
+	}
 
 	return b.Diff(s, c)
 }

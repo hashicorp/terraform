@@ -104,12 +104,12 @@ func resource_aws_elb_update(
 		var toAdd []string
 
 		for _, instanceId := range mergedInstances {
-		   for _, prevId := range previousInstances {
+			for _, prevId := range previousInstances {
 				// If the merged instance ID existed
 				// previously, we don't have to do anything
 				if instanceId == prevId {
 					continue
-				// Otherwise, we need to add it to the load balancer
+					// Otherwise, we need to add it to the load balancer
 				} else {
 					toAdd = append(toAdd, instanceId)
 				}
@@ -117,14 +117,14 @@ func resource_aws_elb_update(
 		}
 
 		for i, instanceId := range toAdd {
-		   for _, prevId := range previousInstances {
+			for _, prevId := range previousInstances {
 				// If the instance ID we are adding existed
 				// previously, we want to not add it, but rather remove
 				// it
 				if instanceId == prevId {
 					toRemove = append(toRemove, instanceId)
 					toAdd = append(toAdd[:i], toAdd[i+1:]...)
-				// Otherwise, we continue adding it to the ELB
+					// Otherwise, we continue adding it to the ELB
 				} else {
 					continue
 				}
