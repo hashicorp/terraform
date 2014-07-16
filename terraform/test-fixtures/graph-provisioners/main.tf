@@ -24,5 +24,9 @@ resource "aws_instance" "web" {
 resource "aws_load_balancer" "weblb" {
     provisioner "shell" {
         cmd = "add ${aws_instance.web.id}"
+        connection {
+            type = "magic"
+            user = "${aws_security_group.firewall.id}"
+        }
     }
 }

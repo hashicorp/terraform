@@ -185,6 +185,44 @@ func TestLoad_provisioners(t *testing.T) {
 	}
 }
 
+func TestLoad_connections(t *testing.T) {
+	c, err := Load(filepath.Join(fixtureDir, "connection.tf"))
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	if c == nil {
+		t.Fatal("config should not be nil")
+	}
+
+	actual := resourcesStr(c.Resources)
+	if actual != strings.TrimSpace(connectionResourcesStr) {
+		t.Fatalf("bad:\n%s", actual)
+	}
+
+	// Check for the connection info
+	r := c.Resources[0]
+	if r.Name != "web" && r.Type != "aws_instance" {
+		t.Fatalf("Bad: %#v", r)
+	}
+
+	p1 := r.Provisioners[0]
+	if p1.ConnInfo == nil || len(p1.ConnInfo.Raw) != 2 {
+		t.Fatalf("Bad: %#v", p1.ConnInfo)
+	}
+	if p1.ConnInfo.Raw["user"] != "nobody" {
+		t.Fatalf("Bad: %#v", p1.ConnInfo)
+	}
+
+	p2 := r.Provisioners[1]
+	if p2.ConnInfo == nil || len(p2.ConnInfo.Raw) != 2 {
+		t.Fatalf("Bad: %#v", p2.ConnInfo)
+	}
+	if p2.ConnInfo.Raw["user"] != "root" {
+		t.Fatalf("Bad: %#v", p2.ConnInfo)
+	}
+}
+
 // This helper turns a provider configs field into a deterministic
 // string value for comparison in tests.
 func providerConfigsStr(pcs map[string]*ProviderConfig) string {
@@ -441,6 +479,20 @@ aws_instance[web] (x1)
   ami
   security_groups
   provisioners
+    shell
+      path
+  vars
+    resource: aws_security_group.firewall.foo
+    user: var.foo
+`
+
+const connectionResourcesStr = `
+aws_instance[web] (x1)
+  ami
+  security_groups
+  provisioners
+    shell
+      path
     shell
       path
   vars

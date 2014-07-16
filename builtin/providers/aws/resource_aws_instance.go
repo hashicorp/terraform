@@ -88,6 +88,10 @@ func resource_aws_instance_create(
 
 	instance = instanceRaw.(*ec2.Instance)
 
+	// Initialize the connection info
+	rs.ConnInfo["type"] = "ssh"
+	rs.ConnInfo["host"] = instance.PublicIpAddress
+
 	// Set our attributes
 	rs, err = resource_aws_instance_update_state(rs, instance)
 	if err != nil {

@@ -507,6 +507,81 @@ func TestContextApply_outputDiffVars(t *testing.T) {
 	}
 }
 
+func TestContextApply_Provisioner_ConnInfo(t *testing.T) {
+	c := testConfig(t, "apply-provisioner-conninfo")
+	p := testProvider("aws")
+	pr := testProvisioner()
+
+	p.ApplyFn = func(s *ResourceState, d *ResourceDiff) (*ResourceState, error) {
+		if s.ConnInfo == nil {
+			t.Fatalf("ConnInfo not initialized")
+		}
+
+		result, _ := testApplyFn(s, d)
+		result.ConnInfo = map[string]string{
+			"type": "ssh",
+			"host": "127.0.0.1",
+			"port": "22",
+		}
+		return result, nil
+	}
+	p.DiffFn = testDiffFn
+
+	pr.ApplyFn = func(rs *ResourceState, c *ResourceConfig) (*ResourceState, error) {
+		conn := rs.ConnInfo
+		if conn["type"] != "telnet" {
+			t.Fatalf("Bad: %#v", conn)
+		}
+		if conn["host"] != "127.0.0.1" {
+			t.Fatalf("Bad: %#v", conn)
+		}
+		if conn["port"] != "2222" {
+			t.Fatalf("Bad: %#v", conn)
+		}
+		if conn["user"] != "superuser" {
+			t.Fatalf("Bad: %#v", conn)
+		}
+		if conn["pass"] != "test" {
+			t.Fatalf("Bad: %#v", conn)
+		}
+		return rs, nil
+	}
+
+	ctx := testContext(t, &ContextOpts{
+		Config: c,
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+		Provisioners: map[string]ResourceProvisionerFactory{
+			"shell": testProvisionerFuncFixed(pr),
+		},
+		Variables: map[string]string{
+			"value": "1",
+			"pass":  "test",
+		},
+	})
+
+	if _, err := ctx.Plan(nil); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	state, err := ctx.Apply()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	actual := strings.TrimSpace(state.String())
+	expected := strings.TrimSpace(testTerraformApplyProvisionerStr)
+	if actual != expected {
+		t.Fatalf("bad: \n%s", actual)
+	}
+
+	// Verify apply was invoked
+	if !pr.ApplyCalled {
+		t.Fatalf("provisioner not invoked")
+	}
+}
+
 func TestContextApply_destroy(t *testing.T) {
 	c := testConfig(t, "apply-destroy")
 	h := new(HookRecordApplyOrder)

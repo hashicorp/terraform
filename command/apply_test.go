@@ -383,8 +383,9 @@ func TestApply_state(t *testing.T) {
 	originalState := &terraform.State{
 		Resources: map[string]*terraform.ResourceState{
 			"test_instance.foo": &terraform.ResourceState{
-				ID:   "bar",
-				Type: "test_instance",
+				ID:       "bar",
+				Type:     "test_instance",
+				ConnInfo: make(map[string]string),
 			},
 		},
 	}

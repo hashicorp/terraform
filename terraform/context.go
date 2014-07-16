@@ -3,6 +3,7 @@ package terraform
 import (
 	"fmt"
 	"log"
+	"strconv"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -467,6 +468,11 @@ func (c *Context) applyWalkFn() depgraph.WalkFunc {
 			diff.init()
 		}
 
+		// If we do not have any connection info, initialize
+		if r.State.ConnInfo == nil {
+			r.State.ConnInfo = make(map[string]string)
+		}
+
 		// Remove any output values from the diff
 		for k, ad := range diff.Attributes {
 			if ad.Type == DiffAttrOutput {
@@ -555,12 +561,54 @@ func (c *Context) applyWalkFn() depgraph.WalkFunc {
 // defined after the resource creation has already completed.
 func (c *Context) applyProvisioners(r *Resource, rs *ResourceState) (*ResourceState, error) {
 	var err error
+
+	// Store the original connection info, restore later
+	origConnInfo := rs.ConnInfo
+	defer func() {
+		rs.ConnInfo = origConnInfo
+	}()
+
 	for _, prov := range r.Provisioners {
 		// Interpolate since we may have variables that depend on the
 		// local resource.
 		if err := prov.Config.interpolate(c); err != nil {
 			return rs, err
 		}
+
+		// Interpolate the conn info, since it may contain variables
+		connInfo := NewResourceConfig(prov.ConnInfo)
+		if err := connInfo.interpolate(c); err != nil {
+			return rs, err
+		}
+
+		// Merge the connection information
+		overlay := make(map[string]string)
+		if origConnInfo != nil {
+			for k, v := range origConnInfo {
+				overlay[k] = v
+			}
+		}
+		for k, v := range connInfo.Config {
+			switch vt := v.(type) {
+			case string:
+				overlay[k] = vt
+			case int64:
+				overlay[k] = strconv.FormatInt(vt, 10)
+			case int32:
+				overlay[k] = strconv.FormatInt(int64(vt), 10)
+			case int:
+				overlay[k] = strconv.FormatInt(int64(vt), 10)
+			case float32:
+				overlay[k] = strconv.FormatFloat(float64(vt), 'f', 3, 32)
+			case float64:
+				overlay[k] = strconv.FormatFloat(vt, 'f', 3, 64)
+			case bool:
+				overlay[k] = strconv.FormatBool(vt)
+			default:
+				overlay[k] = fmt.Sprintf("%v", vt)
+			}
+		}
+		rs.ConnInfo = overlay
 
 		// Invoke the Provisioner
 		rs, err = prov.Provisioner.Apply(rs, prov.Config)

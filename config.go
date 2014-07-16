@@ -36,7 +36,8 @@ func init() {
 		"aws": "terraform-provider-aws",
 	}
 	BuiltinConfig.Provisioners = map[string]string{
-		"local-exec": "terraform-provisioner-local-exec",
+		"local-exec":  "terraform-provisioner-local-exec",
+		"remote-exec": "terraform-provisioner-remote-exec",
 	}
 }
 
