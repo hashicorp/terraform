@@ -117,7 +117,7 @@ func resource_aws_security_group_diff(
 	b := &diff.ResourceBuilder{
 		Attrs: map[string]diff.AttrType{
 			"name":        diff.AttrTypeCreate,
-			"description": diff.AttrTypeCreate,
+			"description": diff.AttrTypeUpdate,
 			"vpc_id":      diff.AttrTypeUpdate,
 			"ingress":     diff.AttrTypeUpdate,
 		},
@@ -184,7 +184,9 @@ func resource_aws_security_group_validation() *config.Validator {
 		Required: []string{
 			"name",
 			"ingress.*",
-			"ingress.",
+			"ingress.*.from_port",
+			"ingress.*.to_port",
+			"ingress.*.protocol",
 		},
 		Optional: []string{
 			"description",

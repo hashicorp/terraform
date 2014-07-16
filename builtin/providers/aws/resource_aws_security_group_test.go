@@ -96,5 +96,12 @@ const testAccAWSSecurityGroupConfig = `
 resource "aws_security_group" "web" {
     name = "terraform_acceptance_test_example"
     description = "Used in the terraform acceptance tests"
+
+    ingress {
+        protocol = "tcp"
+        from_port = 80
+        to_port = 8000
+        cidr_blocks = ["10.0.0.0/0"]
+    }
 }
 `
