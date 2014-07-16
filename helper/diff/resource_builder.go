@@ -96,7 +96,7 @@ func (b *ResourceBuilder) Diff(
 
 				// If we have a pre-processor for this, run it.
 				if pp, ok := b.PreProcess[k]; ok {
-					v = pp(k)
+					v = pp(v)
 				}
 			}
 

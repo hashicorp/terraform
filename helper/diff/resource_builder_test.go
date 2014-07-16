@@ -206,8 +206,8 @@ func TestResourceBuilder_preProcess(t *testing.T) {
 		},
 
 		PreProcess: map[string]PreProcessFunc{
-			"foo": func(string) string {
-				return "bar"
+			"foo": func(v string) string {
+				return "bar" + v
 			},
 		},
 	}
@@ -413,7 +413,7 @@ const testRBNewDiff = `UPDATE
 `
 
 const testRBPreProcessDiff = `CREATE
-  IN  foo: "" => "bar" (forces new resource)
+  IN  foo: "" => "barfoo" (forces new resource)
 `
 
 const testRBPreProcessUnknownDiff = `CREATE
