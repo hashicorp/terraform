@@ -1,0 +1,82 @@
+//
+// Jumbotron
+// --------------------------------------------------
+
+#jumbotron-mask{
+  overflow: hidden;
+  width: 100%;
+  height: @jumbotron-total-height;
+  margin-top: @negative-hero-margin;
+}
+
+#jumbotron {
+  position: relative;
+  height: @jumbotron-total-height;
+  padding-top: 0;
+  padding-bottom: 0;
+  margin-top: @negative-hero-margin;
+  color: @jumbotron-color;
+  .consul-gradient-bg();
+
+  &.mobile-hero{
+    background:  transparent url( ../images/node-hero-pattern.jpg ) center center;
+    background-size: 320px 320px;
+    background: -webkit-image-set( url('../images/node-hero-pattern.jpg') 1x, url('../images/node-hero-pattern@2x.jpg') 2x );
+  }
+
+
+  .jumbotron-dots{
+      position: absolute;
+      top: 0;
+      left: 0;
+      height: 632px;
+      width: 100%;
+      margin-top: @negative-hero-margin;
+      background: transparent url('../images/hero-dots.png') center @header-height no-repeat;
+  }
+
+
+  .container{
+      position: relative;
+      height: 100%;
+      margin-top: @header-height;
+
+      .jumbo-logo-wrap{
+        margin-top: 135px;
+
+        .jumbo-logo{
+            width: 318px;
+            height: 316px;
+            background:  transparent url( ../images/consul-hero-logo@2x.png ) 0 0 no-repeat;
+            background-size: 318px 316px;
+            z-index: 20;
+        }
+      }
+
+      h2{
+          margin-top: 175px;
+          font-size: 40px;
+          line-height: 48px;
+          letter-spacing: 1px;
+          margin-left: 40px;
+      }
+  }
+}
+
+@media (max-width: 992px) {
+  #jumbotron .container {
+    h2{
+      text-align: center;
+      margin-left: 0;
+    }
+  }
+}
+
+@media (max-width: 480px) {
+  #jumbotron .container {
+    h2{
+      margin-top: 130px;
+      font-size: 32px;
+    }
+  }
+}

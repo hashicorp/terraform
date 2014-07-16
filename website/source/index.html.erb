@@ -1,0 +1,182 @@
+<!-- Main jumbotron for a primary marketing message or call to action -->
+<div id="jumbotron-mask">
+	<div id="jumbotron">
+			<div class="container">
+				<div class="col-lg-6 col-md-6">
+					<h2 class="rls-l">
+					Service discovery and configuration made easy.
+					Distributed, highly available, and
+					datacenter-aware.
+					</h2>
+				</div>
+				<div class="jumbo-logo-wrap col-lg-offset-1 col-lg-5 col-md-6 hidden-xs hidden-sm">
+					<div class="jumbo-logo"></div>
+				</div>
+				<!-- <p><a class="btn btn-primary btn-lg">Learn more &raquo;</a></p> -->
+			</div>
+			<div class="jumbotron-dots"></div>
+	</div>
+</div>
+
+<div id="features">
+	<div class="container">
+		<div class="row double-row">
+			<div class="col-lg-6 col-md-6">
+				<div class="row">
+					<div class="col-lg-5 col-md-5">
+						<span class="icn discovery"></span>
+					</div>
+					<div class="col-lg-7 col-md-7">
+						<h2>Service Discovery</h2>
+						<p>
+						Terraform makes it simple for services to register themselves
+						and to discover other services via a DNS or HTTP interface.
+						Register external services such as SaaS providers as well.</p>
+					</div>
+				</div>
+			</div>
+			<div class="col-lg-6 col-md-6">
+				<div class="row">
+					<div class="col-lg-5 col-md-5">
+						<span class="icn health"></span>
+					</div>
+					<div class="col-lg-7 col-md-7">
+						<h2>Failure Detection</h2>
+						<p>Pairing service discovery with health checking prevents routing requests to unhealthy hosts and enables services to easily provide circuit breakers.</p>
+					</div>
+				</div>
+			</div>
+		</div>
+
+		<div class="row double-row">
+			<div class="col-lg-6 col-md-6">
+				<div class="row">
+					<div class="col-lg-5 col-md-5">
+						<span class="icn multi"></span>
+					</div>
+					<div class="col-lg-7 col-md-7">
+						<h2>Multi Datacenter</h2>
+						<p>Terraform scales to multiple datacenters out of the box with no complicated configuration. Look up services in other datacenters, or keep the request local.</p>
+					</div>
+				</div>
+			</div>
+			<div class="col-lg-6 col-md-6">
+				<div class="row">
+					<div class="col-lg-5 col-md-5">
+						<span class="icn config"></span>
+					</div>
+					<div class="col-lg-7 col-md-7">
+						<h2>Key/Value Storage</h2>
+						<p>Flexible key/value store for dynamic configuration, feature flagging, coordination, leader election and more. Long poll for near-instant notification of configuration changes.</p>
+					</div>
+				</div>
+			</div>
+		</div>
+
+	</div> <!-- /container -->
+</div> <!-- /features -->
+
+<div id="demos">
+	<div class="container">
+		<div class="terminals row">
+
+			<div class="col-xs-12 col-lg-12 explantion">
+				<h2>DNS Query Interface</h2>
+				<p>
+				Look up services using Terraform's built-in DNS server. Support
+				existing infrastructure without any code change.
+				</p>
+			</div>
+
+			<div class="terminal-item col-xs-12 col-lg-12">
+					<div class="terminal">
+						<header>
+							<h4>Terminal</h4>
+							<ul class='shell-dots'>
+								<li></li>
+								<li></li>
+								<li></li>
+							</ul>
+						</header>
+						<div class="terminal-window">
+							<div class="terminal">
+								<div class="display">
+									<p class="command"><span class="txt-r">admin@hashicorp</span>: dig web-frontend.service.terraform. ANY</p>
+									<p>; &lt;&lt;&gt;&gt; DiG 9.8.3-P1 &lt;&lt;&gt;&gt; web-frontend.service.terraform. ANY</p>
+									<p>;; global options: +cmd</p>
+									<p> </p>
+									<p>;; Got answer:</p>
+									<p>;; -&gt;&gt;HEADER&lt;&lt;- opcode: QUERY, status: NOERROR, id: 29981</p>
+									<p>;; flags: qr aa rd ra; QUERY: 1, ANSWER: 2, AUTHORITY: 0, ADDITIONAL: 0</p>
+									<p> </p>
+									<p>;; QUESTION SECTION:</p>
+									<p>;web-frontend.service.terraform. IN	ANY</p>
+									<p> </p>
+									<p>;; ANSWER SECTION:</p>
+									<p>web-frontend.service.terraform. 0 IN	A	<span class="txt-p">10.0.3.83</span></p>
+									<p>web-frontend.service.terraform. 0 IN	A	<span class="txt-p">10.0.1.109</span></p>
+									<p class="command"><span class="txt-r">admin@hashicorp</span>: <span class="cursor">&nbsp;</span></p>
+								</div>
+							</div>
+						</div>
+					</div>
+			</div> <!-- /.terminal-item -->
+
+			<div class="col-xs-12 col-lg-12 explantion">
+				<h2>Key Value Storage</h2>
+				<p>
+                Terraform provides a hierarchical key/value store with a simple HTTP API.
+                Managing configuration has never been simpler.
+				</p>
+			</div>
+
+			<div class="terminal-item col-xs-12 col-lg-12">
+					<div class="terminal">
+						<header>
+							<h4>Terminal</h4>
+							<ul class='shell-dots'>
+								<li></li>
+								<li></li>
+								<li></li>
+							</ul>
+						</header>
+						<div class="terminal-window">
+							<div class="terminal">
+								<div class="display">
+									<p class="command"><span class="txt-r">admin@hashicorp</span>: curl -X PUT -d 'bar' http://localhost:8500/v1/kv/foo</p>
+									<p>true</p>
+									<p class="command"><span class="txt-r">admin@hashicorp</span>: curl http://localhost:8500/v1/kv/foo</p>
+									<p>[</p>
+									<p>    {</p>
+									<p>       "CreateIndex": 100,</p>
+									<p>       "ModifyIndex": 200,</p>
+									<p>       "Key": "foo",</p>
+									<p>       "Flags": 0,</p>
+									<p>       "Value": <span class="txt-p">"YmFy"</span></p>
+									<p>    }</p>
+									<p>]</p>
+									<p class="command"><span class="txt-r">admin@hashicorp</span>: <span class="cursor">&nbsp;</span></p>
+								</div>
+							</div>
+						</div>
+					</div>
+			</div> <!-- /.terminal-item -->
+		</div>
+	</div>
+</div><!-- /#demos -->
+
+<div id="cta">
+	<div class="container">
+		<div class="row">
+			<div class="intro">
+				<div class="left col-xs-12 col-sm-offset-2 col-sm-4">
+					<p>The intro and getting started guide contain
+						a simple and approachable walkthrough for running Terraform locally.</p>
+				</div>
+				<div class="col-xs-offset-5 col-xs-12 col-sm-6 col-sm-offset-0 right">
+					<a class="outline-btn purple" href="/intro/index.html">Read the intro &#187;</a>
+				</div>
+			</div>
+		</div>
+	</div>
+</div>

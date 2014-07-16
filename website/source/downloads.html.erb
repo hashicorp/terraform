@@ -1,0 +1,46 @@
+---
+layout: "downloads"
+page_title: "Download Terraform"
+sidebar_current: "downloads-terraform"
+---
+
+<h1>Download Terraform</h1>
+
+<section class="downloads">
+	<div class="description row">
+		<div class="col-md-12">
+			<p>
+			Below are all available downloads for the latest version of Terraform
+			(<%= latest_version %>). Please download the proper package for your
+			operating system and architecture. You can find SHA256 checksums
+			for packages <a href="https://dl.bintray.com/mitchellh/terraform/<%= latest_version %>_SHA256SUMS?direct">here</a>.
+			</p>
+		</div>
+	</div>
+	<% $terraform_os.each do |os| %>
+		<div class="row">
+		<div class="col-md-12 download">
+			<div class="icon pull-left"><%= image_tag "/images/icons/icon_#{os}.png" %>
+		</div>
+			<div class="details">
+				<h2 class="os-name"><%= download_os_human(os) %></h2>
+				<ul>
+					<% $terraform_files[os].each do |file| %>
+						<li><a href="<%= download_url(file) %>"><%= download_arch(file) %></a></li>
+				<% end %>
+				</ul>
+				<div class="clearfix">
+				</div>
+			</div>
+		</div>
+	</div>
+<% end %>
+
+	<div class="row">
+		<div class="col-md-12 poweredby">
+			<a href='http://www.bintray.com'>
+				<img src='http://www.bintray.com/docs/images/poweredByBintray_ColorTransparent.png'>
+			</a>
+		</div>
+	</div>
+</section>

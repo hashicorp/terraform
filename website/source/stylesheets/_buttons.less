@@ -1,0 +1,56 @@
+//
+// Button Styles
+// --------------------------------------------------
+
+.outline-btn{
+	background-color: transparent;
+	color: @white;
+	border: 2px solid @white;
+	border-radius: @btn-border-radius;
+	text-decoration: none !important;
+	.transition(background-color .3s ease-in-out);
+
+	&.purple{
+		color: @purple;
+		border: 2px solid @purple;
+	}
+
+	&:hover{
+		color: @white;
+		background-color: rgba(255, 255, 255, .2);
+		.transition(background-color .3s ease-in-out);
+
+		&.purple{
+			background-color: rgba(255, 255, 255, .5);
+		}
+	}
+}
+
+//dot animation on header main nav link hover
+.li-under a::after {
+    position: absolute;
+    top: 68%;
+    left: 50%;
+    margin-left: -4px;
+	width: 8px;
+	height: 8px;
+	background-color: @white;
+	border-radius: 4px;
+    content: '';
+    opacity: 0;
+    text-decoration: none;
+    -webkit-transition: height 0.3s, opacity 0.3s, -webkit-transform 0.3s;
+    -moz-transition: height 0.3s, opacity 0.3s, -moz-transform 0.3s;
+    transition: height 0.3s, opacity 0.3s, transform 0.3s;
+    -webkit-transform: translateY(-10px);
+    -moz-transform: translateY(-10px);
+    transform: translateY(-10px);
+}
+
+.li-under a:hover::after,
+.li-under a:focus::after {
+    opacity: .5;
+    -webkit-transform: translateY(0px);
+    -moz-transform: translateY(0px);
+    transform: translateY(0px);
+}
