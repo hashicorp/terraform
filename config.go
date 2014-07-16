@@ -38,6 +38,7 @@ func init() {
 	BuiltinConfig.Provisioners = map[string]string{
 		"local-exec":  "terraform-provisioner-local-exec",
 		"remote-exec": "terraform-provisioner-remote-exec",
+		"file":        "terraform-provisioner-file",
 	}
 }
 
