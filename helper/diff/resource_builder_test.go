@@ -199,6 +199,80 @@ func TestResourceBuilder_new(t *testing.T) {
 	}
 }
 
+func TestResourceBuilder_preProcess(t *testing.T) {
+	rb := &ResourceBuilder{
+		Attrs: map[string]AttrType{
+			"foo": AttrTypeCreate,
+		},
+
+		PreProcess: map[string]PreProcessFunc{
+			"foo": func(string) string {
+				return "bar"
+			},
+		},
+	}
+
+	state := &terraform.ResourceState{}
+	c := testConfig(t, map[string]interface{}{
+		"foo": "foo",
+	}, nil)
+
+	diff, err := rb.Diff(state, c)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if diff == nil {
+		t.Fatal("diff shold not be nil")
+	}
+
+	actual := testResourceDiffStr(diff)
+	expected := testRBPreProcessDiff
+	if actual != expected {
+		t.Fatalf("bad: %s", actual)
+	}
+
+	actual = diff.Attributes["foo"].NewExtra.(string)
+	expected = "foo"
+	if actual != expected {
+		t.Fatalf("bad: %#v", actual)
+	}
+}
+
+func TestResourceBuilder_preProcessUnknown(t *testing.T) {
+	rb := &ResourceBuilder{
+		Attrs: map[string]AttrType{
+			"foo": AttrTypeCreate,
+		},
+
+		PreProcess: map[string]PreProcessFunc{
+			"foo": func(string) string {
+				return "bar"
+			},
+		},
+	}
+
+	state := &terraform.ResourceState{}
+	c := testConfig(t, map[string]interface{}{
+		"foo": "${var.unknown}",
+	}, map[string]string{
+		"var.unknown": config.UnknownVariableValue,
+	})
+
+	diff, err := rb.Diff(state, c)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if diff == nil {
+		t.Fatal("diff shold not be nil")
+	}
+
+	actual := testResourceDiffStr(diff)
+	expected := testRBPreProcessUnknownDiff
+	if actual != expected {
+		t.Fatalf("bad: %s", actual)
+	}
+}
+
 func TestResourceBuilder_requiresNew(t *testing.T) {
 	rb := &ResourceBuilder{
 		ComputedAttrs: []string{"private_ip"},
@@ -336,6 +410,14 @@ const testRBComplexReplaceDiff = `UPDATE
 const testRBNewDiff = `UPDATE
   IN  foo:        "" => "bar"
   OUT private_ip: "" => "<computed>"
+`
+
+const testRBPreProcessDiff = `CREATE
+  IN  foo: "" => "bar" (forces new resource)
+`
+
+const testRBPreProcessUnknownDiff = `CREATE
+  IN  foo: "" => "${var.unknown}" (forces new resource)
 `
 
 const testRBRequiresNewDiff = `CREATE

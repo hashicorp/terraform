@@ -44,7 +44,15 @@ type ResourceBuilder struct {
 	// ComputedAttrs are the attributes that are computed at
 	// resource creation time.
 	ComputedAttrs []string
+
+	// PreProcess is a mapping of exact keys that are sent through
+	// a pre-processor before comparing values. The original value will
+	// be put in the "NewExtra" field of the diff.
+	PreProcess map[string]PreProcessFunc
 }
+
+// PreProcessFunc is used with the PreProcess field in a ResourceBuilder
+type PreProcessFunc func(string) string
 
 // Diff returns the ResourceDiff for a resource given its state and
 // configuration.
@@ -76,10 +84,20 @@ func (b *ResourceBuilder) Diff(
 			// Track that we saw this key
 			seenKeys = append(seenKeys, k)
 
+			// We keep track of this in case we have a pre-processor
+			// so that we can store the original value still.
+			originalV := v
+
 			// If this key is in the cleaned config, then use that value
 			// because it'll have its variables properly interpolated
 			if cleanV, ok := flatConfig[k]; ok {
 				v = cleanV
+				originalV = v
+
+				// If we have a pre-processor for this, run it.
+				if pp, ok := b.PreProcess[k]; ok {
+					v = pp(k)
+				}
 			}
 
 			oldV, ok := s.Attributes[k]
@@ -91,9 +109,10 @@ func (b *ResourceBuilder) Diff(
 
 			// Record the change
 			attrs[k] = &terraform.ResourceAttrDiff{
-				Old:  oldV,
-				New:  v,
-				Type: terraform.DiffAttrInput,
+				Old:      oldV,
+				New:      v,
+				NewExtra: originalV,
+				Type:     terraform.DiffAttrInput,
 			}
 
 			// If this requires a new resource, record that and flag our
