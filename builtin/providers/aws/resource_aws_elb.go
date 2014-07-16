@@ -199,7 +199,7 @@ func resource_aws_elb_validation() *config.Validator {
 			"listener.*.lb_protocol",
 		},
 		Optional: []string{
-			"instances",
+			"instances.*",
 		},
 	}
 }

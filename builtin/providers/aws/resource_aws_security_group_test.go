@@ -3,13 +3,16 @@ package aws
 import (
 	"fmt"
 	"testing"
+	"reflect"
 
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
 	"github.com/mitchellh/goamz/ec2"
 )
 
-func TestAccAwsSecurityGroup(t *testing.T) {
+func TestAccAWSSecurityGroup(t *testing.T) {
+	var group ec2.SecurityGroupInfo
+
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
@@ -17,7 +20,24 @@ func TestAccAwsSecurityGroup(t *testing.T) {
 		Steps: []resource.TestStep{
 			resource.TestStep{
 				Config: testAccAWSSecurityGroupConfig,
-				Check:  testAccCheckAWSSecurityGroupExists("aws_security_group.web"),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSSecurityGroupExists("aws_security_group.web", &group),
+					testAccCheckAWSSecurityGroupAttributes(&group),
+					resource.TestCheckResourceAttr(
+						"aws_security_group.web", "name", "terraform_acceptance_test_example"),
+					resource.TestCheckResourceAttr(
+						"aws_security_group.web", "description", "Used in the terraform acceptance tests"),
+					resource.TestCheckResourceAttr(
+						"aws_security_group.web", "ingress.0.protocol", "tcp"),
+					resource.TestCheckResourceAttr(
+						"aws_security_group.web", "ingress.0.from_port", "80"),
+					resource.TestCheckResourceAttr(
+						"aws_security_group.web", "ingress.0.to_port", "8000"),
+					resource.TestCheckResourceAttr(
+						"aws_security_group.web", "ingress.0.cidr_blocks.#", "1"),
+					resource.TestCheckResourceAttr(
+						"aws_security_group.web", "ingress.0.cidr_blocks.0", "10.0.0.0/0"),
+				),
 			},
 		},
 	})
@@ -60,7 +80,8 @@ func testAccCheckAWSSecurityGroupDestroy(s *terraform.State) error {
 	return nil
 }
 
-func testAccCheckAWSSecurityGroupExists(n string) resource.TestCheckFunc {
+
+func testAccCheckAWSSecurityGroupExists(n string, group *ec2.SecurityGroupInfo) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		rs, ok := s.Resources[n]
 		if !ok {
@@ -83,9 +104,41 @@ func testAccCheckAWSSecurityGroupExists(n string) resource.TestCheckFunc {
 		}
 
 		if len(resp.Groups) > 0 && resp.Groups[0].Id == rs.ID {
+
+			*group = resp.Groups[0]
+
 			return nil
 		} else {
 			return fmt.Errorf("Security Group not found")
+		}
+
+		return nil
+	}
+}
+
+func testAccCheckAWSSecurityGroupAttributes(group *ec2.SecurityGroupInfo) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		p := ec2.IPPerm{
+			FromPort: 80,
+			ToPort: 8000,
+			Protocol: "tcp",
+			SourceIPs: []string{"10.0.0.0/0"},
+		}
+
+		if group.Name != "terraform_acceptance_test_example" {
+			return fmt.Errorf("Bad name: %s", group.Name)
+		}
+
+		if group.Description != "Used in the terraform acceptance tests" {
+			return fmt.Errorf("Bad description: %s", group.Description)
+		}
+
+		// Compare our ingress
+		if !reflect.DeepEqual(group.IPPerms[0], p) {
+			return fmt.Errorf(
+				"Got:\n\n%#v\n\nExpected:\n\n%#v\n",
+				group.IPPerms[0],
+				p)
 		}
 
 		return nil
