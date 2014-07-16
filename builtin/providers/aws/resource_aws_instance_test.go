@@ -34,6 +34,10 @@ func TestAccAWSInstance_normal(t *testing.T) {
 					testAccCheckInstanceExists(
 						"aws_instance.foo", &v),
 					testCheck,
+					resource.TestCheckResourceAttr(
+						"aws_instance.foo",
+						"user_data_hash",
+						"0beec7b5ea3f0fdbc95d0dd47f3c5bc275da8a33"),
 				),
 			},
 		},
@@ -161,6 +165,13 @@ const testAccInstanceConfig = `
 resource "aws_security_group" "tf_test_foo" {
 	name = "tf_test_foo"
 	description = "foo"
+
+	ingress {
+		protocol = "icmp"
+		from_port = -1
+		to_port = -1
+		cidr_blocks = ["0.0.0.0/0"]
+	}
 }
 
 resource "aws_instance" "foo" {
@@ -168,6 +179,7 @@ resource "aws_instance" "foo" {
 	ami = "ami-4fccb37f"
 	instance_type = "m1.small"
 	security_groups = ["${aws_security_group.tf_test_foo.name}"]
+	user_data = "foo"
 }
 `
 

@@ -1,6 +1,8 @@
 package aws
 
 import (
+	"crypto/sha1"
+	"encoding/hex"
 	"fmt"
 	"log"
 	"strconv"
@@ -25,12 +27,27 @@ func resource_aws_instance_create(
 	rs := s.MergeDiff(d)
 	delete(rs.Attributes, "source_dest_check")
 
+	// Figure out user data
+	userData := ""
+	if v, ok := rs.Attributes["user_data"]; ok {
+		userData = v
+		delete(rs.Attributes, "user_data")
+	}
+
+	if userData != "" {
+		// Set the SHA1 hash of the data as an attribute so we can
+		// compare for diffs.
+		hash := sha1.Sum([]byte(userData))
+		rs.Attributes["user_data_hash"] = hex.EncodeToString(hash[:])
+	}
+
 	// Build the creation struct
 	runOpts := &ec2.RunInstances{
 		ImageId:      rs.Attributes["ami"],
 		InstanceType: rs.Attributes["instance_type"],
 		KeyName:      rs.Attributes["key_name"],
 		SubnetId:     rs.Attributes["subnet_id"],
+		UserData:     []byte(userData),
 	}
 	if raw := flatmap.Expand(rs.Attributes, "security_groups"); raw != nil {
 		if sgs, ok := raw.([]interface{}); ok {
@@ -180,6 +197,7 @@ func resource_aws_instance_diff(
 			"security_groups":   diff.AttrTypeCreate,
 			"subnet_id":         diff.AttrTypeCreate,
 			"source_dest_check": diff.AttrTypeUpdate,
+			"user_data":         diff.AttrTypeCreate,
 		},
 
 		ComputedAttrs: []string{

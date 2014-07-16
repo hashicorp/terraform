@@ -2,8 +2,8 @@ package aws
 
 import (
 	"fmt"
-	"testing"
 	"reflect"
+	"testing"
 
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
@@ -80,7 +80,6 @@ func testAccCheckAWSSecurityGroupDestroy(s *terraform.State) error {
 	return nil
 }
 
-
 func testAccCheckAWSSecurityGroupExists(n string, group *ec2.SecurityGroupInfo) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		rs, ok := s.Resources[n]
@@ -119,9 +118,9 @@ func testAccCheckAWSSecurityGroupExists(n string, group *ec2.SecurityGroupInfo) 
 func testAccCheckAWSSecurityGroupAttributes(group *ec2.SecurityGroupInfo) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		p := ec2.IPPerm{
-			FromPort: 80,
-			ToPort: 8000,
-			Protocol: "tcp",
+			FromPort:  80,
+			ToPort:    8000,
+			Protocol:  "tcp",
 			SourceIPs: []string{"10.0.0.0/0"},
 		}
 
