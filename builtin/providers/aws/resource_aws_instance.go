@@ -202,12 +202,17 @@ func resource_aws_instance_diff(
 
 		ComputedAttrs: []string{
 			"availability_zone",
+			"key_name",
 			"public_dns",
 			"public_ip",
 			"private_dns",
 			"private_ip",
+			"security_groups",
+			"subnet_id",
 		},
 	}
+
+	// TODO(mitchellh): figure out way to diff user_data_hash
 
 	return b.Diff(s, c)
 }

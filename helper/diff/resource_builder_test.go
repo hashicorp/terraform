@@ -37,6 +37,34 @@ func TestResourceBuilder_attrSetComputed(t *testing.T) {
 	}
 }
 
+func TestResourceBuilder_attrSetComputedComplex(t *testing.T) {
+	rb := &ResourceBuilder{
+		Attrs: map[string]AttrType{
+			"foo": AttrTypeCreate,
+		},
+		ComputedAttrs: []string{
+			"foo",
+		},
+	}
+
+	state := &terraform.ResourceState{
+		ID: "foo",
+		Attributes: map[string]string{
+			"foo.#": "0",
+		},
+	}
+
+	c := testConfig(t, map[string]interface{}{}, nil)
+
+	diff, err := rb.Diff(state, c)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if diff != nil {
+		t.Fatalf("diff shold be nil: %s", diff)
+	}
+}
+
 func TestResourceBuilder_replaceComputed(t *testing.T) {
 	rb := &ResourceBuilder{
 		Attrs: map[string]AttrType{

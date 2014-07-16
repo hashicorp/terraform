@@ -120,6 +120,13 @@ func (b *ResourceBuilder) Diff(
 					comp = true
 					break
 				}
+
+				// If the key is prefixed with the computed key, don't
+				// mark it for delete, ever.
+				if strings.HasPrefix(k, ck+".") {
+					comp = true
+					break
+				}
 			}
 			if comp {
 				continue
