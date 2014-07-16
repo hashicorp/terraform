@@ -105,7 +105,5 @@ func testAccCheckAWSEIPExists(n string, res *ec2.Address) resource.TestCheckFunc
 
 const testAccAWSEIPConfig = `
 resource "aws_eip" "bar" {
-  image_id = "ami-fb8e9292"
-  instance_type = "t1.micro"
 }
 `
