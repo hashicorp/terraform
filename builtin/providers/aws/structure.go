@@ -122,6 +122,15 @@ func flattenLoadBalancers(list []autoscaling.LoadBalancerName) []string {
 	return result
 }
 
+// Flattens an array of Instances into a []string
+func flattenInstances(list []elb.Instance) []string {
+	result := make([]string, 0, len(list))
+	for _, i := range list {
+		result = append(result, i.InstanceId)
+	}
+	return result
+}
+
 // Takes the result of flatmap.Expand for an array of strings
 // and returns a []string
 func expandStringList(configured []interface{}) []string {

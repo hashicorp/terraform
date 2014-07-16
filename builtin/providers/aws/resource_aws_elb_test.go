@@ -10,7 +10,7 @@ import (
 	"github.com/mitchellh/goamz/elb"
 )
 
-func TestAccAWSELB(t *testing.T) {
+func TestAccAWSELB_basic(t *testing.T) {
 	var conf elb.LoadBalancer
 
 	resource.Test(t, resource.TestCase{
@@ -23,6 +23,58 @@ func TestAccAWSELB(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSELBExists("aws_elb.bar", &conf),
 					testAccCheckAWSELBAttributes(&conf),
+					resource.TestCheckResourceAttr(
+						"aws_elb.bar", "name", "foobar-terraform-test"),
+					resource.TestCheckResourceAttr(
+						"aws_elb.bar", "availability_zones.0", "us-west-2a"),
+					resource.TestCheckResourceAttr(
+						"aws_elb.bar", "availability_zones.1", "us-west-2b"),
+					resource.TestCheckResourceAttr(
+						"aws_elb.bar", "availability_zones.2", "us-west-2c"),
+					resource.TestCheckResourceAttr(
+						"aws_elb.bar", "listener.0.instance_port", "8000"),
+					resource.TestCheckResourceAttr(
+						"aws_elb.bar", "listener.0.instance_protocol", "http"),
+					resource.TestCheckResourceAttr(
+						"aws_elb.bar", "listener.0.lb_port", "80"),
+					resource.TestCheckResourceAttr(
+						"aws_elb.bar", "listener.0.lb_protocol", "http"),
+				),
+			},
+		},
+	})
+}
+
+func TestAccAWSELB_InstanceAttaching(t *testing.T) {
+	var conf elb.LoadBalancer
+
+	testCheckInstanceAttached := func(count int) resource.TestCheckFunc {
+		return func(*terraform.State) error {
+			if len(conf.Instances) != count {
+				return fmt.Errorf("instance count does not match")
+			}
+			return nil
+		}
+	}
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSELBDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccAWSELBConfig,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSELBExists("aws_elb.bar", &conf),
+					testAccCheckAWSELBAttributes(&conf),
+				),
+			},
+
+			resource.TestStep{
+				Config: testAccAWSELBConfigNewInstance,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSELBExists("aws_elb.bar", &conf),
+					testCheckInstanceAttached(1),
 				),
 			},
 		},
@@ -64,7 +116,7 @@ func testAccCheckAWSELBDestroy(s *terraform.State) error {
 
 func testAccCheckAWSELBAttributes(conf *elb.LoadBalancer) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
-		if conf.AvailabilityZones[0].AvailabilityZone != "us-east-1a" {
+		if conf.AvailabilityZones[0].AvailabilityZone != "us-west-2a" {
 			return fmt.Errorf("bad availability_zones")
 		}
 
@@ -129,7 +181,7 @@ func testAccCheckAWSELBExists(n string, res *elb.LoadBalancer) resource.TestChec
 const testAccAWSELBConfig = `
 resource "aws_elb" "bar" {
   name = "foobar-terraform-test"
-  availability_zones = ["us-east-1a"]
+  availability_zones = ["us-west-2a", "us-west-2b", "us-west-2c"]
 
   listener {
     instance_port = 8000
@@ -139,5 +191,27 @@ resource "aws_elb" "bar" {
   }
 
   instances = []
+}
+`
+
+const testAccAWSELBConfigNewInstance = `
+resource "aws_elb" "bar" {
+  name = "foobar-terraform-test"
+  availability_zones = ["us-west-2a", "us-west-2b", "us-west-2c"]
+
+  listener {
+    instance_port = 8000
+    instance_protocol = "http"
+    lb_port = 80
+    lb_protocol = "http"
+  }
+
+  instances = ["${aws_instance.foo.id}"]
+}
+
+resource "aws_instance" "foo" {
+	# us-west-2
+	ami = "ami-043a5034"
+	instance_type = "t1.micro"
 }
 `

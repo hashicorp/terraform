@@ -81,21 +81,90 @@ func resource_aws_elb_update(
 	s *terraform.ResourceState,
 	d *terraform.ResourceDiff,
 	meta interface{}) (*terraform.ResourceState, error) {
-	// p := meta.(*ResourceProvider)
-	// elbconn := p.elbconn
+	p := meta.(*ResourceProvider)
+	elbconn := p.elbconn
 
 	rs := s.MergeDiff(d)
-	log.Printf("ResourceDiff: %s", d)
-	log.Printf("ResourceState: %s", s)
-	log.Printf("Merged: %s", rs)
 
-	// If we have any instances, we need to register them
-	v := flatmap.Expand(rs.Attributes, "instances").([]interface{})
-	instances := expandStringList(v)
+	// If we currently have instances, or did have instances,
+	// we want to figure out what to add and remove from the load
+	// balancer
+	if attr, ok := d.Attributes["instances.#"]; ok && attr.Old != "" {
+		// The new state of instances merged with the diff
+		mergedInstances := expandStringList(flatmap.Expand(
+			rs.Attributes, "instances").([]interface{}))
 
-	log.Println(instances)
+		// The state before the diff merge
+		previousInstances := expandStringList(flatmap.Expand(
+			s.Attributes, "instances").([]interface{}))
 
-	return nil, fmt.Errorf("Did not update")
+		// keep track of what instances we are removing, and which
+		// we are adding
+		var toRemove []string
+		var toAdd []string
+
+		for _, instanceId := range mergedInstances {
+		   for _, prevId := range previousInstances {
+				// If the merged instance ID existed
+				// previously, we don't have to do anything
+				if instanceId == prevId {
+					continue
+				// Otherwise, we need to add it to the load balancer
+				} else {
+					toAdd = append(toAdd, instanceId)
+				}
+			}
+		}
+
+		for i, instanceId := range toAdd {
+		   for _, prevId := range previousInstances {
+				// If the instance ID we are adding existed
+				// previously, we want to not add it, but rather remove
+				// it
+				if instanceId == prevId {
+					toRemove = append(toRemove, instanceId)
+					toAdd = append(toAdd[:i], toAdd[i+1:]...)
+				// Otherwise, we continue adding it to the ELB
+				} else {
+					continue
+				}
+			}
+		}
+
+		if len(toAdd) > 0 {
+			registerInstancesOpts := elb.RegisterInstancesWithLoadBalancer{
+				LoadBalancerName: rs.ID,
+				Instances:        toAdd,
+			}
+
+			_, err := elbconn.RegisterInstancesWithLoadBalancer(&registerInstancesOpts)
+
+			if err != nil {
+				return s, fmt.Errorf("Failure registering instances: %s", err)
+			}
+		}
+
+		if len(toRemove) > 0 {
+			deRegisterInstancesOpts := elb.DeregisterInstancesFromLoadBalancer{
+				LoadBalancerName: rs.ID,
+				Instances:        toRemove,
+			}
+
+			_, err := elbconn.DeregisterInstancesFromLoadBalancer(&deRegisterInstancesOpts)
+
+			if err != nil {
+				return s, fmt.Errorf("Failure deregistering instances: %s", err)
+			}
+		}
+	}
+
+	loadBalancer, err := resource_aws_elb_retrieve_balancer(rs.ID, elbconn)
+
+	if err != nil {
+		return s, err
+	}
+
+	return resource_aws_elb_update_state(rs, loadBalancer)
 }
 
 func resource_aws_elb_destroy(
@@ -157,8 +226,20 @@ func resource_aws_elb_diff(
 func resource_aws_elb_update_state(
 	s *terraform.ResourceState,
 	balancer *elb.LoadBalancer) (*terraform.ResourceState, error) {
+
 	s.Attributes["name"] = balancer.LoadBalancerName
 	s.Attributes["dns_name"] = balancer.DNSName
+
+	// Flatten our group values
+	toFlatten := make(map[string]interface{})
+
+	if len(balancer.Instances) > 0 && balancer.Instances[0].InstanceId != "" {
+		toFlatten["instances"] = flattenInstances(balancer.Instances)
+		for k, v := range flatmap.Flatten(toFlatten) {
+			s.Attributes[k] = v
+		}
+	}
+
 	return s, nil
 }
 
