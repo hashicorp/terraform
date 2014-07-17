@@ -20,19 +20,19 @@ func testConf() map[string]string {
 		"availability_zones.#":         "2",
 		"availability_zones.0":         "us-east-1a",
 		"availability_zones.1":         "us-east-1b",
-		"egress.#":                     "1",
-		"egress.0.protocol":            "icmp",
-		"egress.0.from_port":           "1",
-		"egress.0.to_port":             "-1",
-		"egress.0.cidr_blocks.#":       "1",
-		"egress.0.cidr_blocks.0":       "0.0.0.0/0",
-		"egress.0.security_groups.#":   "1",
-		"egress.0.security_groups.0":   "sg-11111",
+		"ingress.#":                    "1",
+		"ingress.0.protocol":           "icmp",
+		"ingress.0.from_port":          "1",
+		"ingress.0.to_port":            "-1",
+		"ingress.0.cidr_blocks.#":      "1",
+		"ingress.0.cidr_blocks.0":      "0.0.0.0/0",
+		"ingress.0.security_groups.#":  "1",
+		"ingress.0.security_groups.0":  "sg-11111",
 	}
 }
 
 func Test_expandIPPerms(t *testing.T) {
-	expanded := flatmap.Expand(testConf(), "egress").([]interface{})
+	expanded := flatmap.Expand(testConf(), "ingress").([]interface{})
 	perms := expandIPPerms(expanded)
 	expected := ec2.IPPerm{
 		Protocol:  "icmp",
@@ -53,6 +53,35 @@ func Test_expandIPPerms(t *testing.T) {
 			expected)
 	}
 
+}
+
+func Test_flattenIPPerms(t *testing.T) {
+	rawIp := []ec2.IPPerm{
+		ec2.IPPerm{
+			Protocol:  "icmp",
+			FromPort:  1,
+			ToPort:    -1,
+			SourceIPs: []string{"0.0.0.0/0"},
+			SourceGroups: []ec2.UserSecurityGroup{
+				ec2.UserSecurityGroup{
+					Id: "sg-11111",
+				},
+			},
+		},
+	}
+
+	toFlatten := make(map[string]interface{})
+	toFlatten["ingress"] = flattenIPPerms(rawIp)
+
+	perms := flatmap.Flatten(toFlatten)
+
+	if perms["ingress.0.protocol"] != "icmp" {
+		t.Fatalf("bad protocol")
+	}
+
+	if perms["ingress.0.security_groups.0"] != "sg-11111" {
+		t.Fatalf("bad security group")
+	}
 }
 
 func Test_expandListeners(t *testing.T) {

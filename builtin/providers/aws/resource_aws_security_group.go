@@ -23,9 +23,15 @@ func resource_aws_security_group_create(
 	rs := s.MergeDiff(d)
 
 	securityGroupOpts := ec2.SecurityGroup{
-		Name:        rs.Attributes["name"],
-		Description: rs.Attributes["description"],
-		VpcId:       rs.Attributes["vpc_id"],
+		Name: rs.Attributes["name"],
+	}
+
+	if rs.Attributes["vpc_id"] != "" {
+		securityGroupOpts.VpcId = rs.Attributes["vpc_id"]
+	}
+
+	if rs.Attributes["description"] != "" {
+		securityGroupOpts.Description = rs.Attributes["description"]
 	}
 
 	log.Printf("[DEBUG] Security Group create configuration: %#v", securityGroupOpts)
@@ -118,12 +124,12 @@ func resource_aws_security_group_diff(
 		Attrs: map[string]diff.AttrType{
 			"name":        diff.AttrTypeCreate,
 			"description": diff.AttrTypeUpdate,
-			"vpc_id":      diff.AttrTypeUpdate,
 			"ingress":     diff.AttrTypeUpdate,
 		},
 
 		ComputedAttrs: []string{
 			"owner_id",
+			"vpc_id",
 		},
 	}
 
@@ -139,7 +145,7 @@ func resource_aws_security_group_update_state(
 	s.Attributes["vpc_id"] = sg.VpcId
 	s.Attributes["owner_id"] = sg.OwnerId
 
-	// Flatten our sg values
+	// Flatten our ingress values
 	toFlatten := make(map[string]interface{})
 	toFlatten["ingress"] = flattenIPPerms(sg.IPPerms)
 
@@ -192,6 +198,8 @@ func resource_aws_security_group_validation() *config.Validator {
 			"description",
 			"vpc_id",
 			"owner_id",
+			"ingress.*.cidr_blocks.*",
+			"ingress.*.security_groups.*",
 		},
 	}
 }

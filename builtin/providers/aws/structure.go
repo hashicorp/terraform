@@ -81,6 +81,7 @@ func flattenIPPerms(list []ec2.IPPerm) []map[string]interface{} {
 		n["to_port"] = perm.ToPort
 		n["cidr_blocks"] = perm.SourceIPs
 		n["security_groups"] = flattenSecurityGroups(perm.SourceGroups)
+		result = append(result, n)
 	}
 
 	return result
