@@ -4,6 +4,7 @@ import (
 	"os"
 	"os/signal"
 
+	"code.google.com/p/go.crypto/ssh/terminal"
 	"github.com/hashicorp/terraform/command"
 	"github.com/mitchellh/cli"
 )
@@ -27,6 +28,7 @@ func init() {
 	}
 
 	meta := command.Meta{
+		Color:       terminal.IsTerminal(int(os.Stdout.Fd())),
 		ContextOpts: &ContextOpts,
 		Ui:          Ui,
 	}
