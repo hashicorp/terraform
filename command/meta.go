@@ -16,6 +16,9 @@ type Meta struct {
 	ContextOpts *terraform.ContextOpts
 	Ui          cli.Ui
 
+	// This can be set by the command itself to provide extra hooks.
+	extraHooks []terraform.Hook
+
 	color bool
 	oldUi cli.Ui
 }
@@ -99,9 +102,13 @@ func (m *Meta) Context(path, statePath string, doPlan bool) (*terraform.Context,
 // context with the settings from this Meta.
 func (m *Meta) contextOpts() *terraform.ContextOpts {
 	var opts terraform.ContextOpts = *m.ContextOpts
-	opts.Hooks = make([]terraform.Hook, len(m.ContextOpts.Hooks)+1)
+	opts.Hooks = make(
+		[]terraform.Hook,
+		len(m.ContextOpts.Hooks)+len(m.extraHooks)+1)
 	opts.Hooks[0] = m.uiHook()
 	copy(opts.Hooks[1:], m.ContextOpts.Hooks)
+	copy(opts.Hooks[len(m.ContextOpts.Hooks)+1:], m.extraHooks)
+	println(fmt.Sprintf("%#v", opts.Hooks))
 	return &opts
 }
 

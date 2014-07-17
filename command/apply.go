@@ -50,6 +50,10 @@ func (c *ApplyCommand) Run(args []string) int {
 		}
 	}
 
+	// Prepare the extra hooks to count resources
+	countHook := new(CountHook)
+	c.Meta.extraHooks = []terraform.Hook{countHook}
+
 	// If we don't specify an output path, default to out normal state
 	// path.
 	if stateOutPath == "" {
@@ -124,13 +128,21 @@ func (c *ApplyCommand) Run(args []string) int {
 
 	c.Ui.Output(c.Colorize().Color(fmt.Sprintf(
 		"[reset][bold][green]\n"+
-			"Apply succeeded! Infrastructure created and/or updated.\n"+
-			"The state of your infrastructure has been saved to the path\n"+
-			"below. This state is required to modify and destroy your\n"+
-			"infrastructure, so keep it safe. To inspect the complete state\n"+
-			"use the `terraform show` command.\n\n"+
-			"State path: %s",
-		stateOutPath)))
+			"Apply complete! Resources: %d added, %d changed, %d destroyed.",
+		countHook.Added,
+		countHook.Changed,
+		countHook.Removed)))
+
+	if countHook.Added > 0 || countHook.Changed > 0 {
+		c.Ui.Output(c.Colorize().Color(fmt.Sprintf(
+			"[reset]\n"+
+				"The state of your infrastructure has been saved to the path\n"+
+				"below. This state is required to modify and destroy your\n"+
+				"infrastructure, so keep it safe. To inspect the complete state\n"+
+				"use the `terraform show` command.\n\n"+
+				"State path: %s",
+			stateOutPath)))
+	}
 
 	// If we have outputs, then output those at the end.
 	if len(state.Outputs) > 0 {
