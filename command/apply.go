@@ -122,7 +122,14 @@ func (c *ApplyCommand) Run(args []string) int {
 	}
 
 	if applyErr != nil {
-		c.Ui.Error(fmt.Sprintf("Error applying plan: %s", applyErr))
+		c.Ui.Error(fmt.Sprintf(
+			"Error applying plan:\n\n"+
+				"%s\n\n"+
+				"Terraform does not automatically rollback in the face of errors.\n"+
+				"Instead, your Terraform state file has been partially updated with\n"+
+				"any resources that successfully completed. Please address the error\n"+
+				"above and apply again to incrementally change your infrastructure.",
+			applyErr))
 		return 1
 	}
 
