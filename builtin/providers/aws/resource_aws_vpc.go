@@ -81,7 +81,7 @@ func resource_aws_vpc_destroy(
 			return nil
 		}
 
-		return fmt.Errorf("Error deleting ELB: %s", err)
+		return fmt.Errorf("Error deleting VPC: %s", err)
 	}
 
 	return nil
