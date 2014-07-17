@@ -22,33 +22,40 @@ type StateRefreshFunc func() (result interface{}, state string, err error)
 
 // StateChangeConf is the configuration struct used for `WaitForState`.
 type StateChangeConf struct {
-	Pending []string         // States that are "allowed" and will continue trying
-	Refresh StateRefreshFunc // Refreshes the current state
-	Target  string           // Target state
-	Timeout time.Duration    // The amount of time to wait before timeout
-}
-
-type waitResult struct {
-	obj interface{}
-	err error
+	Delay      time.Duration    // Wait this time before starting checks
+	Pending    []string         // States that are "allowed" and will continue trying
+	Refresh    StateRefreshFunc // Refreshes the current state
+	Target     string           // Target state
+	Timeout    time.Duration    // The amount of time to wait before timeout
+	MinTimeout time.Duration    // Smallest time to wait before refreshes
 }
 
 // WaitForState watches an object and waits for it to achieve the state
 // specified in the configuration using the specified Refresh() func,
 // waiting the number of seconds specified in the timeout configuration.
-func (conf *StateChangeConf) WaitForState() (i interface{}, err error) {
+func (conf *StateChangeConf) WaitForState() (interface{}, error) {
 	log.Printf("[DEBUG] Waiting for state to become: %s", conf.Target)
 
 	notfoundTick := 0
 
-	result := make(chan waitResult, 1)
+	var result interface{}
+	var resulterr error
 
+	doneCh := make(chan struct{})
 	go func() {
+		defer close(doneCh)
+
+		// Wait for the delay
+		time.Sleep(conf.Delay)
+
+		var err error
 		for tries := 0; ; tries++ {
-			// Wait between refreshes
+			// Wait between refreshes using an exponential backoff
 			wait := time.Duration(math.Pow(2, float64(tries))) *
 				100 * time.Millisecond
-			if wait > 10*time.Second {
+			if wait < conf.MinTimeout {
+				wait = conf.MinTimeout
+			} else if wait > 10*time.Second {
 				wait = 10 * time.Second
 			}
 
@@ -56,24 +63,23 @@ func (conf *StateChangeConf) WaitForState() (i interface{}, err error) {
 			time.Sleep(wait)
 
 			var currentState string
-			i, currentState, err = conf.Refresh()
+			result, currentState, err = conf.Refresh()
 			if err != nil {
-				result <- waitResult{nil, err}
+				resulterr = err
 				return
 			}
 
 			// If we're waiting for the absense of a thing, then return
-			if i == nil && conf.Target == "" {
-				result <- waitResult{nil, nil}
+			if result == nil && conf.Target == "" {
 				return
 			}
 
-			if i == nil {
+			if result == nil {
 				// If we didn't find the resource, check if we have been
 				// not finding it for awhile, and if so, report an error.
 				notfoundTick += 1
 				if notfoundTick > 20 {
-					result <- waitResult{nil, errors.New("couldn't find resource")}
+					resulterr = errors.New("couldn't find resource")
 					return
 				}
 			} else {
@@ -81,7 +87,6 @@ func (conf *StateChangeConf) WaitForState() (i interface{}, err error) {
 				notfoundTick = 0
 
 				if currentState == conf.Target {
-					result <- waitResult{i, nil}
 					return
 				}
 
@@ -94,7 +99,10 @@ func (conf *StateChangeConf) WaitForState() (i interface{}, err error) {
 				}
 
 				if !found {
-					result <- waitResult{nil, fmt.Errorf("unexpected state '%s', wanted target '%s'", currentState, conf.Target)}
+					resulterr = fmt.Errorf(
+						"unexpected state '%s', wanted target '%s'",
+						currentState,
+						conf.Target)
 					return
 				}
 			}
@@ -102,13 +110,11 @@ func (conf *StateChangeConf) WaitForState() (i interface{}, err error) {
 	}()
 
 	select {
-	case waitResult := <-result:
-		err := waitResult.err
-		i = waitResult.obj
-		return i, err
+	case <-doneCh:
+		return result, resulterr
 	case <-time.After(conf.Timeout):
-		err := fmt.Errorf("timeout while waiting for state to become '%s'", conf.Target)
-		i = nil
-		return i, err
+		return nil, fmt.Errorf(
+			"timeout while waiting for state to become '%s'",
+			conf.Target)
 	}
 }
