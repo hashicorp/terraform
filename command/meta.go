@@ -16,6 +16,7 @@ type Meta struct {
 	ContextOpts *terraform.ContextOpts
 	Ui          cli.Ui
 
+	color bool
 	oldUi cli.Ui
 }
 
@@ -23,7 +24,7 @@ type Meta struct {
 func (m *Meta) Colorize() *colorstring.Colorize {
 	return &colorstring.Colorize{
 		Colors:  colorstring.DefaultColors,
-		Disable: !m.Color,
+		Disable: !m.color,
 		Reset:   true,
 	}
 }
@@ -115,7 +116,7 @@ func (m *Meta) process(args []string) []string {
 	}
 
 	// Set colorization
-	m.Color = true
+	m.color = m.Color
 	for i, v := range args {
 		if v == "-no-color" {
 			m.Color = false
