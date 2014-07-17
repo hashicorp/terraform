@@ -3,10 +3,12 @@ package aws
 import (
 	"fmt"
 	"log"
+	"time"
 
 	"github.com/hashicorp/terraform/flatmap"
 	"github.com/hashicorp/terraform/helper/config"
 	"github.com/hashicorp/terraform/helper/diff"
+	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
 	"github.com/mitchellh/goamz/ec2"
 )
@@ -44,9 +46,25 @@ func resource_aws_security_group_create(
 	group := createResp.SecurityGroup
 
 	log.Printf("[INFO] Security Group ID: %s", rs.ID)
-	ingressRules := []ec2.IPPerm{}
+
+	// Wait for the security group to truly exist
+	log.Printf(
+		"[DEBUG] Waiting for SG (%s) to exist",
+		s.ID)
+	stateConf := &resource.StateChangeConf{
+		Pending: []string{""},
+		Target:  "exists",
+		Refresh: SGStateRefreshFunc(ec2conn, rs.ID),
+		Timeout: 1 * time.Minute,
+	}
+	if _, err := stateConf.WaitForState(); err != nil {
+		return s, fmt.Errorf(
+			"Error waiting for SG (%s) to become available: %s",
+			rs.ID, err)
+	}
 
 	// Expand the "ingress" array to goamz compat []ec2.IPPerm
+	ingressRules := []ec2.IPPerm{}
 	v, ok := flatmap.Expand(rs.Attributes, "ingress").([]interface{})
 	if ok {
 		ingressRules = expandIPPerms(v)
@@ -59,12 +77,7 @@ func resource_aws_security_group_create(
 		}
 	}
 
-	sg, err := resource_aws_security_group_retrieve(rs.ID, ec2conn)
-	if err != nil {
-		return rs, err
-	}
-
-	return resource_aws_security_group_update_state(rs, sg)
+	return resource_aws_security_group_refresh(rs, meta)
 }
 
 func resource_aws_security_group_update(
@@ -89,7 +102,6 @@ func resource_aws_security_group_destroy(
 	log.Printf("[DEBUG] Security Group destroy: %v", s.ID)
 
 	_, err := ec2conn.DeleteSecurityGroup(ec2.SecurityGroup{Id: s.ID})
-
 	if err != nil {
 		ec2err, ok := err.(*ec2.Error)
 		if ok && ec2err.Code == "InvalidGroup.NotFound" {
@@ -106,13 +118,16 @@ func resource_aws_security_group_refresh(
 	p := meta.(*ResourceProvider)
 	ec2conn := p.ec2conn
 
-	sg, err := resource_aws_security_group_retrieve(s.ID, ec2conn)
-
+	sgRaw, _, err := SGStateRefreshFunc(ec2conn, s.ID)()
 	if err != nil {
 		return s, err
 	}
+	if sgRaw == nil {
+		return nil, nil
+	}
 
-	return resource_aws_security_group_update_state(s, sg)
+	return resource_aws_security_group_update_state(
+		s, sgRaw.(*ec2.SecurityGroupInfo))
 }
 
 func resource_aws_security_group_diff(
@@ -164,35 +179,6 @@ func resource_aws_security_group_update_state(
 	return s, nil
 }
 
-// Returns a single sg by it's ID
-func resource_aws_security_group_retrieve(id string, ec2conn *ec2.EC2) (*ec2.SecurityGroupInfo, error) {
-	sgs := []ec2.SecurityGroup{
-		ec2.SecurityGroup{
-			Id: id,
-		},
-	}
-
-	log.Printf("[DEBUG] Security Group describe configuration: %#v", sgs)
-
-	describeGroups, err := ec2conn.SecurityGroups(sgs, nil)
-
-	if err != nil {
-		return nil, fmt.Errorf("Error retrieving security groups: %s", err)
-	}
-
-	// Verify AWS returned our sg
-	if len(describeGroups.Groups) != 1 ||
-		describeGroups.Groups[0].Id != id {
-		if err != nil {
-			return nil, fmt.Errorf("Unable to find security group: %#v", describeGroups.Groups)
-		}
-	}
-
-	sg := describeGroups.Groups[0]
-
-	return &sg, nil
-}
-
 func resource_aws_security_group_validation() *config.Validator {
 	return &config.Validator{
 		Required: []string{
@@ -209,5 +195,30 @@ func resource_aws_security_group_validation() *config.Validator {
 			"ingress.*.cidr_blocks.*",
 			"ingress.*.security_groups.*",
 		},
+	}
+}
+
+// SGStateRefreshFunc returns a resource.StateRefreshFunc that is used to watch
+// a security group.
+func SGStateRefreshFunc(conn *ec2.EC2, id string) resource.StateRefreshFunc {
+	return func() (interface{}, string, error) {
+		sgs := []ec2.SecurityGroup{ec2.SecurityGroup{Id: id}}
+		resp, err := conn.SecurityGroups(sgs, nil)
+		if err != nil {
+			if ec2err, ok := err.(*ec2.Error); ok &&
+				ec2err.Code == "InvalidSecurityGroupID.NotFound" {
+				resp = nil
+			} else {
+				log.Printf("Error on SGStateRefresh: %s", err)
+				return nil, "", err
+			}
+		}
+
+		if resp == nil {
+			return nil, "", nil
+		}
+
+		group := &resp.Groups[0]
+		return group, "exists", nil
 	}
 }
