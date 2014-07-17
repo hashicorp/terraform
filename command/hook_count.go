@@ -62,19 +62,24 @@ func (h *CountHook) PreApply(
 
 func (h *CountHook) PostApply(
 	id string,
-	s *terraform.ResourceState) (terraform.HookAction, error) {
+	s *terraform.ResourceState,
+	e error) (terraform.HookAction, error) {
 	h.Lock()
 	defer h.Unlock()
 
 	if h.pending != nil {
 		if a, ok := h.pending[id]; ok {
-			switch a {
-			case countHookActionAdd:
-				h.Added += 1
-			case countHookActionChange:
-				h.Changed += 1
-			case countHookActionRemove:
-				h.Removed += 1
+			delete(h.pending, id)
+
+			if e == nil {
+				switch a {
+				case countHookActionAdd:
+					h.Added += 1
+				case countHookActionChange:
+					h.Changed += 1
+				case countHookActionRemove:
+					h.Removed += 1
+				}
 			}
 		}
 	}

@@ -14,7 +14,7 @@ func (h *stopHook) PreApply(string, *ResourceState, *ResourceDiff) (HookAction, 
 	return h.hook()
 }
 
-func (h *stopHook) PostApply(string, *ResourceState) (HookAction, error) {
+func (h *stopHook) PostApply(string, *ResourceState, error) (HookAction, error) {
 	return h.hook()
 }
 

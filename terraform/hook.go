@@ -22,9 +22,10 @@ const (
 // nothing. Then, override only the functions you want to implement.
 type Hook interface {
 	// PreApply and PostApply are called before and after a single
-	// resource is applied.
+	// resource is applied. The error argument in PostApply is the
+	// error, if any, that was returned from the provider Apply call itself.
 	PreApply(string, *ResourceState, *ResourceDiff) (HookAction, error)
-	PostApply(string, *ResourceState) (HookAction, error)
+	PostApply(string, *ResourceState, error) (HookAction, error)
 
 	// PreDiff and PostDiff are called before and after a single resource
 	// resource is diffed.
@@ -46,7 +47,7 @@ func (*NilHook) PreApply(string, *ResourceState, *ResourceDiff) (HookAction, err
 	return HookActionContinue, nil
 }
 
-func (*NilHook) PostApply(string, *ResourceState) (HookAction, error) {
+func (*NilHook) PostApply(string, *ResourceState, error) (HookAction, error) {
 	return HookActionContinue, nil
 }
 

@@ -10,11 +10,12 @@ type MockHook struct {
 	PreApplyReturn HookAction
 	PreApplyError  error
 
-	PostApplyCalled bool
-	PostApplyId     string
-	PostApplyState  *ResourceState
-	PostApplyReturn HookAction
-	PostApplyError  error
+	PostApplyCalled      bool
+	PostApplyId          string
+	PostApplyState       *ResourceState
+	PostApplyError       error
+	PostApplyReturn      HookAction
+	PostApplyReturnError error
 
 	PreDiffCalled bool
 	PreDiffId     string
@@ -49,11 +50,12 @@ func (h *MockHook) PreApply(n string, s *ResourceState, d *ResourceDiff) (HookAc
 	return h.PreApplyReturn, h.PreApplyError
 }
 
-func (h *MockHook) PostApply(n string, s *ResourceState) (HookAction, error) {
+func (h *MockHook) PostApply(n string, s *ResourceState, e error) (HookAction, error) {
 	h.PostApplyCalled = true
 	h.PostApplyId = n
 	h.PostApplyState = s
-	return h.PostApplyReturn, h.PostApplyError
+	h.PostApplyError = e
+	return h.PostApplyReturn, h.PostApplyReturnError
 }
 
 func (h *MockHook) PreDiff(n string, s *ResourceState) (HookAction, error) {

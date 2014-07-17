@@ -547,7 +547,7 @@ func (c *Context) applyWalkFn() depgraph.WalkFunc {
 		r.State = rs
 
 		for _, h := range c.hooks {
-			handleHook(h.PostApply(r.Id, r.State))
+			handleHook(h.PostApply(r.Id, r.State, applyerr))
 		}
 
 		// Determine the new state and update variables
