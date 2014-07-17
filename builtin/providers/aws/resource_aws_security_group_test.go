@@ -10,7 +10,7 @@ import (
 	"github.com/mitchellh/goamz/ec2"
 )
 
-func TestAccAWSSecurityGroup(t *testing.T) {
+func TestAccAWSSecurityGroup_normal(t *testing.T) {
 	var group ec2.SecurityGroupInfo
 
 	resource.Test(t, resource.TestCase{
@@ -37,6 +37,48 @@ func TestAccAWSSecurityGroup(t *testing.T) {
 						"aws_security_group.web", "ingress.0.cidr_blocks.#", "1"),
 					resource.TestCheckResourceAttr(
 						"aws_security_group.web", "ingress.0.cidr_blocks.0", "10.0.0.0/0"),
+				),
+			},
+		},
+	})
+}
+
+func TestAccAWSSecurityGroup_vpc(t *testing.T) {
+	var group ec2.SecurityGroupInfo
+
+	testCheck := func(*terraform.State) error {
+		if group.VpcId == "" {
+			return fmt.Errorf("should have vpc ID")
+		}
+
+		return nil
+	}
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSSecurityGroupDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccAWSSecurityGroupConfigVpc,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSSecurityGroupExists("aws_security_group.web", &group),
+					testAccCheckAWSSecurityGroupAttributes(&group),
+					resource.TestCheckResourceAttr(
+						"aws_security_group.web", "name", "terraform_acceptance_test_example"),
+					resource.TestCheckResourceAttr(
+						"aws_security_group.web", "description", "Used in the terraform acceptance tests"),
+					resource.TestCheckResourceAttr(
+						"aws_security_group.web", "ingress.0.protocol", "tcp"),
+					resource.TestCheckResourceAttr(
+						"aws_security_group.web", "ingress.0.from_port", "80"),
+					resource.TestCheckResourceAttr(
+						"aws_security_group.web", "ingress.0.to_port", "8000"),
+					resource.TestCheckResourceAttr(
+						"aws_security_group.web", "ingress.0.cidr_blocks.#", "1"),
+					resource.TestCheckResourceAttr(
+						"aws_security_group.web", "ingress.0.cidr_blocks.0", "10.0.0.0/0"),
+					testCheck,
 				),
 			},
 		},
@@ -148,6 +190,25 @@ const testAccAWSSecurityGroupConfig = `
 resource "aws_security_group" "web" {
     name = "terraform_acceptance_test_example"
     description = "Used in the terraform acceptance tests"
+
+    ingress {
+        protocol = "tcp"
+        from_port = 80
+        to_port = 8000
+        cidr_blocks = ["10.0.0.0/0"]
+    }
+}
+`
+
+const testAccAWSSecurityGroupConfigVpc = `
+resource "aws_vpc" "foo" {
+	cidr_block = "10.1.0.0/16"
+}
+
+resource "aws_security_group" "web" {
+    name = "terraform_acceptance_test_example"
+    description = "Used in the terraform acceptance tests"
+	vpc_id = "${aws_vpc.foo.id}"
 
     ingress {
         protocol = "tcp"

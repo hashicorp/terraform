@@ -125,6 +125,7 @@ func resource_aws_security_group_diff(
 			"name":        diff.AttrTypeCreate,
 			"description": diff.AttrTypeUpdate,
 			"ingress":     diff.AttrTypeUpdate,
+			"vpc_id":      diff.AttrTypeCreate,
 		},
 
 		ComputedAttrs: []string{
@@ -151,6 +152,13 @@ func resource_aws_security_group_update_state(
 
 	for k, v := range flatmap.Flatten(toFlatten) {
 		s.Attributes[k] = v
+	}
+
+	s.Dependencies = nil
+	if s.Attributes["vpc_id"] != "" {
+		s.Dependencies = append(s.Dependencies,
+			terraform.ResourceDependency{ID: s.Attributes["vpc_id"]},
+		)
 	}
 
 	return s, nil
