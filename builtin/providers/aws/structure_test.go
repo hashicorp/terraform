@@ -56,31 +56,63 @@ func Test_expandIPPerms(t *testing.T) {
 }
 
 func Test_flattenIPPerms(t *testing.T) {
-	rawIp := []ec2.IPPerm{
-		ec2.IPPerm{
-			Protocol:  "icmp",
-			FromPort:  1,
-			ToPort:    -1,
-			SourceIPs: []string{"0.0.0.0/0"},
-			SourceGroups: []ec2.UserSecurityGroup{
-				ec2.UserSecurityGroup{
-					Id: "sg-11111",
+	cases := []struct {
+		Input  []ec2.IPPerm
+		Output []map[string]interface{}
+	}{
+		{
+			Input: []ec2.IPPerm{
+				ec2.IPPerm{
+					Protocol:  "icmp",
+					FromPort:  1,
+					ToPort:    -1,
+					SourceIPs: []string{"0.0.0.0/0"},
+					SourceGroups: []ec2.UserSecurityGroup{
+						ec2.UserSecurityGroup{
+							Id: "sg-11111",
+						},
+					},
+				},
+			},
+
+			Output: []map[string]interface{}{
+				map[string]interface{}{
+					"protocol":        "icmp",
+					"from_port":       1,
+					"to_port":         -1,
+					"cidr_blocks":     []string{"0.0.0.0/0"},
+					"security_groups": []string{"sg-11111"},
+				},
+			},
+		},
+
+		{
+			Input: []ec2.IPPerm{
+				ec2.IPPerm{
+					Protocol:     "icmp",
+					FromPort:     1,
+					ToPort:       -1,
+					SourceIPs:    []string{"0.0.0.0/0"},
+					SourceGroups: nil,
+				},
+			},
+
+			Output: []map[string]interface{}{
+				map[string]interface{}{
+					"protocol":    "icmp",
+					"from_port":   1,
+					"to_port":     -1,
+					"cidr_blocks": []string{"0.0.0.0/0"},
 				},
 			},
 		},
 	}
 
-	toFlatten := make(map[string]interface{})
-	toFlatten["ingress"] = flattenIPPerms(rawIp)
-
-	perms := flatmap.Flatten(toFlatten)
-
-	if perms["ingress.0.protocol"] != "icmp" {
-		t.Fatalf("bad protocol")
-	}
-
-	if perms["ingress.0.security_groups.0"] != "sg-11111" {
-		t.Fatalf("bad security group")
+	for _, tc := range cases {
+		output := flattenIPPerms(tc.Input)
+		if !reflect.DeepEqual(output, tc.Output) {
+			t.Fatalf("Input:\n\n%#v\n\nOutput:\n\n%#v", tc.Input, output)
+		}
 	}
 }
 
