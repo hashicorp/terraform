@@ -135,6 +135,8 @@ const testTerraformApplyDestroyStr = `
 `
 
 const testTerraformApplyErrorStr = `
+aws_instance.bar:
+  ID = bar
 aws_instance.foo:
   ID = foo
   num = 2

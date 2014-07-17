@@ -738,7 +738,10 @@ func TestContextApply_error(t *testing.T) {
 
 	p.ApplyFn = func(*ResourceState, *ResourceDiff) (*ResourceState, error) {
 		if errored {
-			return nil, fmt.Errorf("error")
+			state := &ResourceState{
+				ID: "bar",
+			}
+			return state, fmt.Errorf("error")
 		}
 		errored = true
 
@@ -766,10 +769,6 @@ func TestContextApply_error(t *testing.T) {
 	state, err := ctx.Apply()
 	if err == nil {
 		t.Fatal("should have error")
-	}
-
-	if len(state.Resources) != 1 {
-		t.Fatalf("bad: %#v", state.Resources)
 	}
 
 	actual := strings.TrimSpace(state.String())
@@ -800,9 +799,9 @@ func TestContextApply_errorPartial(t *testing.T) {
 		State: s,
 	})
 
-	p.ApplyFn = func(*ResourceState, *ResourceDiff) (*ResourceState, error) {
+	p.ApplyFn = func(s *ResourceState, d *ResourceDiff) (*ResourceState, error) {
 		if errored {
-			return nil, fmt.Errorf("error")
+			return s, fmt.Errorf("error")
 		}
 		errored = true
 

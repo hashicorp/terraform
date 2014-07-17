@@ -440,6 +440,8 @@ func (c *Context) releaseRun(ch chan<- struct{}) {
 
 func (c *Context) applyWalkFn() depgraph.WalkFunc {
 	cb := func(r *Resource) error {
+		var err error
+
 		diff := r.Diff
 		if diff.Empty() {
 			log.Printf("[DEBUG] %s: Diff is empty. Will not apply.", r.Id)
@@ -452,7 +454,6 @@ func (c *Context) applyWalkFn() depgraph.WalkFunc {
 				return err
 			}
 
-			var err error
 			diff, err = r.Provider.Diff(r.State, r.Config)
 			if err != nil {
 				return err
@@ -486,9 +487,11 @@ func (c *Context) applyWalkFn() depgraph.WalkFunc {
 
 		// With the completed diff, apply!
 		log.Printf("[DEBUG] %s: Executing Apply", r.Id)
-		rs, err := r.Provider.Apply(r.State, diff)
-		if err != nil {
-			return err
+		rs, applyerr := r.Provider.Apply(r.State, diff)
+
+		var errs []error
+		if applyerr != nil {
+			errs = append(errs, applyerr)
 		}
 
 		// Make sure the result is instantiated
@@ -508,7 +511,6 @@ func (c *Context) applyWalkFn() depgraph.WalkFunc {
 			rs.Attributes["id"] = rs.ID
 		}
 
-		var errs []error
 		for ak, av := range rs.Attributes {
 			// If the value is the unknown variable value, then it is an error.
 			// In this case we record the error and remove it from the state
@@ -522,7 +524,10 @@ func (c *Context) applyWalkFn() depgraph.WalkFunc {
 		// Invoke any provisioners we have defined. This is only done
 		// if the resource was created, as updates or deletes do not
 		// invoke provisioners.
-		if r.State.ID == "" && len(r.Provisioners) > 0 {
+		//
+		// Additionally, we need to be careful to not run this if there
+		// was an error during the provider apply.
+		if applyerr == nil && r.State.ID == "" && len(r.Provisioners) > 0 {
 			rs, err = c.applyProvisioners(r, rs)
 			if err != nil {
 				errs = append(errs, err)
