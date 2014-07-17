@@ -3,6 +3,7 @@ package main
 import (
 	"os"
 	"os/signal"
+	"runtime"
 
 	"code.google.com/p/go.crypto/ssh/terminal"
 	"github.com/hashicorp/terraform/command"
@@ -28,7 +29,8 @@ func init() {
 	}
 
 	meta := command.Meta{
-		Color:       terminal.IsTerminal(int(os.Stdout.Fd())),
+		Color: runtime.GOOS == "windows" ||
+			terminal.IsTerminal(int(os.Stdout.Fd())),
 		ContextOpts: &ContextOpts,
 		Ui:          Ui,
 	}
