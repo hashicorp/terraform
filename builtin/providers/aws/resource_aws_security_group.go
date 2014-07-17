@@ -205,10 +205,15 @@ func SGStateRefreshFunc(conn *ec2.EC2, id string) resource.StateRefreshFunc {
 		sgs := []ec2.SecurityGroup{ec2.SecurityGroup{Id: id}}
 		resp, err := conn.SecurityGroups(sgs, nil)
 		if err != nil {
-			if ec2err, ok := err.(*ec2.Error); ok &&
-				ec2err.Code == "InvalidSecurityGroupID.NotFound" {
-				resp = nil
-			} else {
+			if ec2err, ok := err.(*ec2.Error); ok {
+				if ec2err.Code == "InvalidSecurityGroupID.NotFound" ||
+					ec2err.Code == "InvalidGroup.NotFound" {
+					resp = nil
+					err = nil
+				}
+			}
+
+			if err != nil {
 				log.Printf("Error on SGStateRefresh: %s", err)
 				return nil, "", err
 			}
