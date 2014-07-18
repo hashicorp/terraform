@@ -72,6 +72,37 @@ func TestLoadBasic_import(t *testing.T) {
 	}
 }
 
+func TestLoadBasic_json(t *testing.T) {
+	c, err := Load(filepath.Join(fixtureDir, "basic.tf.json"))
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	if c == nil {
+		t.Fatal("config should not be nil")
+	}
+
+	actual := variablesStr(c.Variables)
+	if actual != strings.TrimSpace(basicVariablesStr) {
+		t.Fatalf("bad:\n%s", actual)
+	}
+
+	actual = providerConfigsStr(c.ProviderConfigs)
+	if actual != strings.TrimSpace(basicProvidersStr) {
+		t.Fatalf("bad:\n%s", actual)
+	}
+
+	actual = resourcesStr(c.Resources)
+	if actual != strings.TrimSpace(basicResourcesStr) {
+		t.Fatalf("bad:\n%s", actual)
+	}
+
+	actual = outputsStr(c.Outputs)
+	if actual != strings.TrimSpace(basicOutputsStr) {
+		t.Fatalf("bad:\n%s", actual)
+	}
+}
+
 func TestLoad_variables(t *testing.T) {
 	c, err := Load(filepath.Join(fixtureDir, "variables.tf"))
 	if err != nil {
