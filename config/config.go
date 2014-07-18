@@ -159,6 +159,8 @@ func (c *Config) Validate() error {
 
 		resources[r.Id()] = r
 	}
+	dupped = nil
+
 	for source, vs := range vars {
 		for _, v := range vs {
 			rv, ok := v.(*ResourceVariable)
