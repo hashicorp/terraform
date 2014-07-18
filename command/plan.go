@@ -1,7 +1,6 @@
 package command
 
 import (
-	"flag"
 	"fmt"
 	"log"
 	"os"
@@ -22,7 +21,7 @@ func (c *PlanCommand) Run(args []string) int {
 
 	args = c.Meta.process(args)
 
-	cmdFlags := flag.NewFlagSet("plan", flag.ContinueOnError)
+	cmdFlags := c.Meta.flagSet("plan")
 	cmdFlags.BoolVar(&destroy, "destroy", false, "destroy")
 	cmdFlags.BoolVar(&refresh, "refresh", true, "refresh")
 	cmdFlags.StringVar(&outPath, "out", "", "path")
@@ -144,6 +143,13 @@ Options:
   -state=statefile    Path to a Terraform state file to use to look
                       up Terraform-managed resources. By default it will
                       use the state "terraform.tfstate" if it exists.
+
+  -var 'foo=bar'      Set a variable in the Terraform configuration. This
+                      flag can be set multiple times.
+
+  -var-file=foo       Set variables in the Terraform configuration from
+                      a file. If "terraform.tfvars" is present, it will be
+                      automatically loaded if this flag is not specified.
 
 `
 	return strings.TrimSpace(helpText)

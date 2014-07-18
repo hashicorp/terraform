@@ -2,7 +2,6 @@ package command
 
 import (
 	"bytes"
-	"flag"
 	"fmt"
 	"os"
 	"sort"
@@ -25,7 +24,7 @@ func (c *ApplyCommand) Run(args []string) int {
 
 	args = c.Meta.process(args)
 
-	cmdFlags := flag.NewFlagSet("apply", flag.ContinueOnError)
+	cmdFlags := c.Meta.flagSet("apply")
 	cmdFlags.BoolVar(&init, "init", false, "init")
 	cmdFlags.StringVar(&statePath, "state", DefaultStateFilename, "path")
 	cmdFlags.StringVar(&stateOutPath, "state-out", "", "path")
@@ -206,6 +205,14 @@ Options:
   -state-out=path        Path to write state to that is different than
                          "-state". This can be used to preserve the old
                          state.
+
+  -var 'foo=bar'         Set a variable in the Terraform configuration. This
+                         flag can be set multiple times.
+
+  -var-file=foo          Set variables in the Terraform configuration from
+                         a file. If "terraform.tfvars" is present, it will be
+                         automatically loaded if this flag is not specified.
+
 
 `
 	return strings.TrimSpace(helpText)

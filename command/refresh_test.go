@@ -296,3 +296,40 @@ func TestRefresh_outPath(t *testing.T) {
 		t.Fatalf("bad: %#v", actual)
 	}
 }
+
+func TestRefresh_var(t *testing.T) {
+	state := &terraform.State{
+		Resources: map[string]*terraform.ResourceState{
+			"test_instance.foo": &terraform.ResourceState{
+				ID:   "bar",
+				Type: "test_instance",
+			},
+		},
+	}
+	statePath := testStateFile(t, state)
+
+	p := testProvider()
+	ui := new(cli.MockUi)
+	c := &RefreshCommand{
+		Meta: Meta{
+			ContextOpts: testCtxConfig(p),
+			Ui:          ui,
+		},
+	}
+
+	args := []string{
+		"-var", "foo=bar",
+		"-state", statePath,
+		testFixturePath("refresh-var"),
+	}
+	if code := c.Run(args); code != 0 {
+		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
+	}
+
+	if !p.ConfigureCalled {
+		t.Fatal("configure should be called")
+	}
+	if p.ConfigureConfig.Config["value"].(string) != "bar" {
+		t.Fatalf("bad: %#v", p.ConfigureConfig.Config)
+	}
+}

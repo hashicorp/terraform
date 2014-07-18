@@ -1,6 +1,7 @@
 package command
 
 import (
+	"flag"
 	"fmt"
 	"os"
 
@@ -18,6 +19,9 @@ type Meta struct {
 
 	// This can be set by the command itself to provide extra hooks.
 	extraHooks []terraform.Hook
+
+	// Variables for the context (private)
+	variables map[string]string
 
 	color bool
 	oldUi cli.Ui
@@ -109,7 +113,27 @@ func (m *Meta) contextOpts() *terraform.ContextOpts {
 	copy(opts.Hooks[1:], m.ContextOpts.Hooks)
 	copy(opts.Hooks[len(m.ContextOpts.Hooks)+1:], m.extraHooks)
 	println(fmt.Sprintf("%#v", opts.Hooks))
+
+	if len(m.variables) > 0 {
+		vs := make(map[string]string)
+		for k, v := range opts.Variables {
+			vs[k] = v
+		}
+		for k, v := range m.variables {
+			vs[k] = v
+		}
+		opts.Variables = vs
+	}
+
 	return &opts
+}
+
+// flags adds the meta flags to the given FlagSet.
+func (m *Meta) flagSet(n string) *flag.FlagSet {
+	f := flag.NewFlagSet(n, flag.ContinueOnError)
+	f.Var((*FlagVar)(&m.variables), "var", "variables")
+	f.Var((*FlagVarFile)(&m.variables), "var-file", "variable file")
+	return f
 }
 
 // process will process the meta-parameters out of the arguments. This

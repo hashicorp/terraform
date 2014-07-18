@@ -1,7 +1,6 @@
 package command
 
 import (
-	"flag"
 	"fmt"
 	"log"
 	"os"
@@ -21,7 +20,7 @@ func (c *RefreshCommand) Run(args []string) int {
 
 	args = c.Meta.process(args)
 
-	cmdFlags := flag.NewFlagSet("refresh", flag.ContinueOnError)
+	cmdFlags := c.Meta.flagSet("refresh")
 	cmdFlags.StringVar(&statePath, "state", DefaultStateFilename, "path")
 	cmdFlags.StringVar(&stateOutPath, "state-out", "", "path")
 	cmdFlags.Usage = func() { c.Ui.Error(c.Help()) }
@@ -127,6 +126,13 @@ Options:
 
   -state-out=path     Path to write updated state file. By default, the
                       "-state" path will be used.
+
+  -var 'foo=bar'      Set a variable in the Terraform configuration. This
+                      flag can be set multiple times.
+
+  -var-file=foo       Set variables in the Terraform configuration from
+                      a file. If "terraform.tfvars" is present, it will be
+                      automatically loaded if this flag is not specified.
 
 `
 	return strings.TrimSpace(helpText)

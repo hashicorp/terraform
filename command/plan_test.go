@@ -281,3 +281,37 @@ func TestPlan_stateDefault(t *testing.T) {
 		t.Fatalf("bad: %#v", p.DiffState)
 	}
 }
+
+func TestPlan_vars(t *testing.T) {
+	p := testProvider()
+	ui := new(cli.MockUi)
+	c := &PlanCommand{
+		Meta: Meta{
+			ContextOpts: testCtxConfig(p),
+			Ui:          ui,
+		},
+	}
+
+	actual := ""
+	p.DiffFn = func(
+		s *terraform.ResourceState,
+		c *terraform.ResourceConfig) (*terraform.ResourceDiff, error) {
+		if v, ok := c.Config["value"]; ok {
+			actual = v.(string)
+		}
+
+		return nil, nil
+	}
+
+	args := []string{
+		"-var", "foo=bar",
+		testFixturePath("plan-vars"),
+	}
+	if code := c.Run(args); code != 0 {
+		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
+	}
+
+	if actual != "bar" {
+		t.Fatal("didn't work")
+	}
+}

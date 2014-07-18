@@ -466,3 +466,41 @@ func TestApply_stateNoExist(t *testing.T) {
 		t.Fatalf("bad: \n%s", ui.OutputWriter.String())
 	}
 }
+
+func TestApply_vars(t *testing.T) {
+	statePath := testTempFile(t)
+
+	p := testProvider()
+	ui := new(cli.MockUi)
+	c := &ApplyCommand{
+		Meta: Meta{
+			ContextOpts: testCtxConfig(p),
+			Ui:          ui,
+		},
+	}
+
+	actual := ""
+	p.DiffFn = func(
+		s *terraform.ResourceState,
+		c *terraform.ResourceConfig) (*terraform.ResourceDiff, error) {
+		if v, ok := c.Config["value"]; ok {
+			actual = v.(string)
+		}
+
+		return nil, nil
+	}
+
+	args := []string{
+		"-init",
+		"-var", "foo=bar",
+		"-state", statePath,
+		testFixturePath("apply-vars"),
+	}
+	if code := c.Run(args); code != 0 {
+		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
+	}
+
+	if actual != "bar" {
+		t.Fatal("didn't work")
+	}
+}
