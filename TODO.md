@@ -1,6 +1,5 @@
 This is just to keep track of what we need to do in the short term.
 
-  * `terraform apply/plan/refresh/destroy` need to be able to take variables as input
   * Mappings
   * Configuration schemas for providers and provisioners
   * Helper improvements around complex types perhaps
