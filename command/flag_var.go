@@ -3,6 +3,8 @@ package command
 import (
 	"fmt"
 	"strings"
+
+	"github.com/mitchellh/go-libucl"
 )
 
 // FlagVar is a flag.Value implementation for parsing user variables
@@ -37,6 +39,43 @@ func (v *FlagVarFile) String() string {
 }
 
 func (v *FlagVarFile) Set(raw string) error {
-	// TODO
+	vs, err := loadVarFile(raw)
+	if err != nil {
+		return err
+	}
+
+	if *v == nil {
+		*v = make(map[string]string)
+	}
+
+	for key, value := range vs {
+		(*v)[key] = value
+	}
+
 	return nil
+}
+
+const libuclParseFlags = libucl.ParserKeyLowercase
+
+func loadVarFile(path string) (map[string]string, error) {
+	var obj *libucl.Object
+
+	parser := libucl.NewParser(libuclParseFlags)
+	err := parser.AddFile(path)
+	if err == nil {
+		obj = parser.Object()
+		defer obj.Close()
+	}
+	defer parser.Close()
+
+	if err != nil {
+		return nil, err
+	}
+
+	var result map[string]string
+	if err := obj.Decode(&result); err != nil {
+		return nil, err
+	}
+
+	return result, nil
 }

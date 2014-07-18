@@ -504,3 +504,50 @@ func TestApply_vars(t *testing.T) {
 		t.Fatal("didn't work")
 	}
 }
+
+func TestApply_varFile(t *testing.T) {
+	varFilePath := testTempFile(t)
+	if err := ioutil.WriteFile(varFilePath, []byte(applyVarFile), 0644); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	statePath := testTempFile(t)
+
+	p := testProvider()
+	ui := new(cli.MockUi)
+	c := &ApplyCommand{
+		Meta: Meta{
+			ContextOpts: testCtxConfig(p),
+			Ui:          ui,
+		},
+	}
+
+	actual := ""
+	p.DiffFn = func(
+		s *terraform.ResourceState,
+		c *terraform.ResourceConfig) (*terraform.ResourceDiff, error) {
+		if v, ok := c.Config["value"]; ok {
+			actual = v.(string)
+		}
+
+		return nil, nil
+	}
+
+	args := []string{
+		"-init",
+		"-var-file", varFilePath,
+		"-state", statePath,
+		testFixturePath("apply-vars"),
+	}
+	if code := c.Run(args); code != 0 {
+		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
+	}
+
+	if actual != "bar" {
+		t.Fatal("didn't work")
+	}
+}
+
+const applyVarFile = `
+foo = "bar"
+`

@@ -2,6 +2,7 @@ package command
 
 import (
 	"flag"
+	"io/ioutil"
 	"reflect"
 	"testing"
 )
@@ -44,6 +45,56 @@ func TestFlagVar(t *testing.T) {
 	for _, tc := range cases {
 		f := new(FlagVar)
 		err := f.Set(tc.Input)
+		if (err != nil) != tc.Error {
+			t.Fatalf("bad error. Input: %#v", tc.Input)
+		}
+
+		actual := map[string]string(*f)
+		if !reflect.DeepEqual(actual, tc.Output) {
+			t.Fatalf("bad: %#v", actual)
+		}
+	}
+}
+
+func TestFlagVarFile_impl(t *testing.T) {
+	var _ flag.Value = new(FlagVarFile)
+}
+
+func TestFlagVarFile(t *testing.T) {
+	inputLibucl := `
+foo = "bar"
+`
+
+	inputJson := `{
+		"foo": "bar"}`
+
+	cases := []struct {
+		Input  string
+		Output map[string]string
+		Error  bool
+	}{
+		{
+			inputLibucl,
+			map[string]string{"foo": "bar"},
+			false,
+		},
+
+		{
+			inputJson,
+			map[string]string{"foo": "bar"},
+			false,
+		},
+	}
+
+	path := testTempFile(t)
+
+	for _, tc := range cases {
+		if err := ioutil.WriteFile(path, []byte(tc.Input), 0644); err != nil {
+			t.Fatalf("err: %s", err)
+		}
+
+		f := new(FlagVarFile)
+		err := f.Set(path)
 		if (err != nil) != tc.Error {
 			t.Fatalf("bad error. Input: %#v", tc.Input)
 		}
