@@ -29,6 +29,13 @@ func TestConfigValidate_outputBadField(t *testing.T) {
 	}
 }
 
+func TestConfigValidate_unknownThing(t *testing.T) {
+	c := testConfig(t, "validate-unknownthing")
+	if err := c.Validate(); err == nil {
+		t.Fatal("should not be valid")
+	}
+}
+
 func TestConfigValidate_unknownResourceVar(t *testing.T) {
 	c := testConfig(t, "validate-unknown-resource-var")
 	if err := c.Validate(); err == nil {

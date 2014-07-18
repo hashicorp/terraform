@@ -22,6 +22,13 @@ func (t *libuclConfigurable) Close() error {
 }
 
 func (t *libuclConfigurable) Config() (*Config, error) {
+	validKeys := map[string]struct{}{
+		"output":   struct{}{},
+		"provider": struct{}{},
+		"resource": struct{}{},
+		"variable": struct{}{},
+	}
+
 	type LibuclVariable struct {
 		Default     string
 		Description string
@@ -86,6 +93,20 @@ func (t *libuclConfigurable) Config() (*Config, error) {
 		if err != nil {
 			return nil, err
 		}
+	}
+
+	// Check for invalid keys
+	iter := t.Object.Iterate(true)
+	defer iter.Close()
+	for o := iter.Next(); o != nil; o = iter.Next() {
+		k := o.Key()
+		o.Close()
+
+		if _, ok := validKeys[k]; ok {
+			continue
+		}
+
+		config.unknownKeys = append(config.unknownKeys, k)
 	}
 
 	return config, nil

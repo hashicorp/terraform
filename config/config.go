@@ -17,6 +17,10 @@ type Config struct {
 	Resources       []*Resource
 	Variables       map[string]*Variable
 	Outputs         map[string]*Output
+
+	// The fields below can be filled in by loaders for validation
+	// purposes.
+	unknownKeys []string
 }
 
 // ProviderConfig is the configuration for a resource provider.
@@ -113,6 +117,11 @@ func (r *Resource) Id() string {
 // Validate does some basic semantic checking of the configuration.
 func (c *Config) Validate() error {
 	var errs []error
+
+	for _, k := range c.unknownKeys {
+		errs = append(errs, fmt.Errorf(
+			"Unknown root level key: %s", k))
+	}
 
 	vars := c.allVariables()
 
