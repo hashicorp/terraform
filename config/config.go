@@ -145,7 +145,18 @@ func (c *Config) Validate() error {
 
 	// Check that all references to resources are valid
 	resources := make(map[string]*Resource)
+	dupped := make(map[string]struct{})
 	for _, r := range c.Resources {
+		if _, ok := resources[r.Id()]; ok {
+			if _, ok := dupped[r.Id()]; !ok {
+				dupped[r.Id()] = struct{}{}
+
+				errs = append(errs, fmt.Errorf(
+					"%s: resource repeated multiple times",
+					r.Id()))
+			}
+		}
+
 		resources[r.Id()] = r
 	}
 	for source, vs := range vars {

@@ -22,6 +22,13 @@ func TestConfigValidate_badMultiResource(t *testing.T) {
 	}
 }
 
+func TestConfigValidate_dupResource(t *testing.T) {
+	c := testConfig(t, "validate-dup-resource")
+	if err := c.Validate(); err == nil {
+		t.Fatal("should not be valid")
+	}
+}
+
 func TestConfigValidate_outputBadField(t *testing.T) {
 	c := testConfig(t, "validate-output-bad-field")
 	if err := c.Validate(); err == nil {
