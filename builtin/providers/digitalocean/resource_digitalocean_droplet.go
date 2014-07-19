@@ -27,13 +27,13 @@ func resource_digitalocean_droplet_create(
 
 	// Build up our creation options
 	opts := digitalocean.CreateDroplet{
-		Name:              rs.Attributes["name"],
-		Region:            rs.Attributes["region"],
-		Image:             rs.Attributes["image"],
-		Size:              rs.Attributes["size"],
 		Backups:           rs.Attributes["backups"],
+		Image:             rs.Attributes["image"],
 		IPV6:              rs.Attributes["ipv6"],
+		Name:              rs.Attributes["name"],
 		PrivateNetworking: rs.Attributes["private_networking"],
+		Region:            rs.Attributes["region"],
+		Size:              rs.Attributes["size"],
 	}
 
 	// Only expand ssh_keys if we have them
@@ -146,24 +146,24 @@ func resource_digitalocean_droplet_diff(
 
 	b := &diff.ResourceBuilder{
 		Attrs: map[string]diff.AttrType{
-			"name":               diff.AttrTypeUpdate,
 			"backups":            diff.AttrTypeUpdate,
+			"image":              diff.AttrTypeCreate,
 			"ipv6":               diff.AttrTypeUpdate,
+			"name":               diff.AttrTypeUpdate,
 			"private_networking": diff.AttrTypeUpdate,
 			"region":             diff.AttrTypeCreate,
-			"image":              diff.AttrTypeCreate,
 			"size":               diff.AttrTypeCreate,
 			"ssh_keys":           diff.AttrTypeCreate,
 		},
 
 		ComputedAttrs: []string{
+			"backups",
 			"ipv4_address",
+			"ipv6",
 			"ipv6_address",
-			"status",
 			"locked",
 			"private_networking",
-			"ipv6",
-			"backups",
+			"status",
 		},
 	}
 
@@ -183,12 +183,12 @@ func resource_digitalocean_droplet_update_state(
 		s.Attributes["image"] = droplet.ImageSlug()
 	}
 
-	s.Attributes["size"] = droplet.SizeSlug()
-	s.Attributes["private_networking"] = droplet.NetworkingType()
-	s.Attributes["locked"] = droplet.IsLocked()
-	s.Attributes["status"] = droplet.Status
 	s.Attributes["ipv4_address"] = droplet.IPV4Address()
 	s.Attributes["ipv6_address"] = droplet.IPV6Address()
+	s.Attributes["locked"] = droplet.IsLocked()
+	s.Attributes["private_networking"] = droplet.NetworkingType()
+	s.Attributes["size"] = droplet.SizeSlug()
+	s.Attributes["status"] = droplet.Status
 
 	return s, nil
 }
@@ -208,16 +208,16 @@ func resource_digitalocean_droplet_retrieve(id string, client *digitalocean.Clie
 func resource_digitalocean_droplet_validation() *config.Validator {
 	return &config.Validator{
 		Required: []string{
+			"image",
 			"name",
 			"region",
 			"size",
-			"image",
 		},
 		Optional: []string{
-			"ssh_keys.*",
 			"backups",
 			"ipv6",
 			"private_networking",
+			"ssh_keys.*",
 		},
 	}
 }
