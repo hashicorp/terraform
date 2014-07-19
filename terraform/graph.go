@@ -478,6 +478,9 @@ func graphAddProviderConfigs(g *depgraph.Graph, c *config.Config) {
 					break
 				}
 			}
+			if pc == nil {
+				panic("pc not found")
+			}
 
 			pcNoun = &depgraph.Noun{
 				Name: fmt.Sprintf("provider.%s", pcName),
