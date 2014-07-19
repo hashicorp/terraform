@@ -46,7 +46,7 @@ type GraphOpts struct {
 }
 
 // GraphRootNode is the name of the root node in the Terraform resource
-// graph. This node is just a placemarker and has no associated functionality.
+// graph. This node ispjust a placemarker and has no associated functionality.
 const GraphRootNode = "root"
 
 // GraphNodeResource is a node type in the graph that represents a resource
