@@ -50,7 +50,7 @@ func LoadDir(path string) (*Config, error) {
 		}
 
 		if result != nil {
-			result, err = mergeConfig(result, c)
+			result, err = Merge(result, c)
 			if err != nil {
 				return nil, err
 			}
