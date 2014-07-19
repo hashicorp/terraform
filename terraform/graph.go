@@ -462,7 +462,8 @@ func graphAddProviderConfigs(g *depgraph.Graph, c *config.Config) {
 		}
 
 		// Look up the provider config for this resource
-		pcName := config.ProviderConfigName(resourceNode.Type, c.ProviderConfigs)
+		pcName := config.ProviderConfigName(
+			resourceNode.Type, c.ProviderConfigs)
 		if pcName == "" {
 			continue
 		}
@@ -470,11 +471,19 @@ func graphAddProviderConfigs(g *depgraph.Graph, c *config.Config) {
 		// We have one, so build the noun if it hasn't already been made
 		pcNoun, ok := pcNouns[pcName]
 		if !ok {
+			var pc *config.ProviderConfig
+			for _, v := range c.ProviderConfigs {
+				if v.Name == pcName {
+					pc = v
+					break
+				}
+			}
+
 			pcNoun = &depgraph.Noun{
 				Name: fmt.Sprintf("provider.%s", pcName),
 				Meta: &GraphNodeResourceProvider{
 					ID:     pcName,
-					Config: c.ProviderConfigs[pcName],
+					Config: pc,
 				},
 			}
 			pcNouns[pcName] = pcNoun

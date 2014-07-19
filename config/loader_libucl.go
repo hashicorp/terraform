@@ -234,7 +234,7 @@ func loadOutputsLibucl(o *libucl.Object) ([]*Output, error) {
 
 // LoadProvidersLibucl recurses into the given libucl object and turns
 // it into a mapping of provider configs.
-func loadProvidersLibucl(o *libucl.Object) (map[string]*ProviderConfig, error) {
+func loadProvidersLibucl(o *libucl.Object) ([]*ProviderConfig, error) {
 	objects := make(map[string]*libucl.Object)
 
 	// Iterate over all the "provider" blocks and get the keys along with
@@ -252,8 +252,12 @@ func loadProvidersLibucl(o *libucl.Object) (map[string]*ProviderConfig, error) {
 	}
 	iter.Close()
 
+	if len(objects) == 0 {
+		return nil, nil
+	}
+
 	// Go through each object and turn it into an actual result.
-	result := make(map[string]*ProviderConfig)
+	result := make([]*ProviderConfig, 0, len(objects))
 	for n, o := range objects {
 		var config map[string]interface{}
 
@@ -269,9 +273,10 @@ func loadProvidersLibucl(o *libucl.Object) (map[string]*ProviderConfig, error) {
 				err)
 		}
 
-		result[n] = &ProviderConfig{
+		result = append(result, &ProviderConfig{
+			Name:      n,
 			RawConfig: rawConfig,
-		}
+		})
 	}
 
 	return result, nil

@@ -13,7 +13,7 @@ import (
 // Config is the configuration that comes from loading a collection
 // of Terraform templates.
 type Config struct {
-	ProviderConfigs map[string]*ProviderConfig
+	ProviderConfigs []*ProviderConfig
 	Resources       []*Resource
 	Variables       []*Variable
 	Outputs         []*Output
@@ -28,6 +28,7 @@ type Config struct {
 // For example, Terraform needs to set the AWS access keys for the AWS
 // resource provider.
 type ProviderConfig struct {
+	Name      string
 	RawConfig *RawConfig
 }
 
@@ -99,9 +100,10 @@ type UserVariable struct {
 // ProviderConfigName returns the name of the provider configuration in
 // the given mapping that maps to the proper provider configuration
 // for this resource.
-func ProviderConfigName(t string, pcs map[string]*ProviderConfig) string {
+func ProviderConfigName(t string, pcs []*ProviderConfig) string {
 	lk := ""
-	for k, _ := range pcs {
+	for _, v := range pcs {
+		k := v.Name
 		if strings.HasPrefix(t, k) && len(k) > len(lk) {
 			lk = k
 		}

@@ -248,17 +248,19 @@ func TestLoad_connections(t *testing.T) {
 
 // This helper turns a provider configs field into a deterministic
 // string value for comparison in tests.
-func providerConfigsStr(pcs map[string]*ProviderConfig) string {
+func providerConfigsStr(pcs []*ProviderConfig) string {
 	result := ""
 
 	ns := make([]string, 0, len(pcs))
-	for n, _ := range pcs {
-		ns = append(ns, n)
+	m := make(map[string]*ProviderConfig)
+	for _, n := range pcs {
+		ns = append(ns, n.Name)
+		m[n.Name] = n
 	}
 	sort.Strings(ns)
 
 	for _, n := range ns {
-		pc := pcs[n]
+		pc := m[n]
 
 		result += fmt.Sprintf("%s\n", n)
 
