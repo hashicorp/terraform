@@ -52,12 +52,18 @@ func Merge(c1, c2 *Config) (*Config, error) {
 
 	// Merge outputs: If they collide, just take the latest one for now. In
 	// the future, we might provide smarter merge functionality.
-	c.Outputs = make(map[string]*Output)
-	for k, v := range c1.Outputs {
-		c.Outputs[k] = v
-	}
-	for k, v := range c2.Outputs {
-		c.Outputs[k] = v
+	if len(c1.Outputs) > 0 || len(c2.Outputs) > 0 {
+		c.Outputs = make([]*Output, 0, len(c1.Outputs)+len(c2.Outputs))
+		m := make(map[string]*Output)
+		for _, v := range c1.Outputs {
+			m[v.Name] = v
+		}
+		for _, v := range c2.Outputs {
+			m[v.Name] = v
+		}
+		for _, v := range m {
+			c.Outputs = append(c.Outputs, v)
+		}
 	}
 
 	// Merge provider configs: If they collide, we just take the latest one

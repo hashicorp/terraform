@@ -183,7 +183,7 @@ func loadFileLibucl(root string) (configurable, []string, error) {
 
 // LoadOutputsLibucl recurses into the given libucl object and turns
 // it into a mapping of outputs.
-func loadOutputsLibucl(o *libucl.Object) (map[string]*Output, error) {
+func loadOutputsLibucl(o *libucl.Object) ([]*Output, error) {
 	objects := make(map[string]*libucl.Object)
 
 	// Iterate over all the "output" blocks and get the keys along with
@@ -201,8 +201,13 @@ func loadOutputsLibucl(o *libucl.Object) (map[string]*Output, error) {
 	}
 	iter.Close()
 
+	// If we have none, just return nil
+	if len(objects) == 0 {
+		return nil, nil
+	}
+
 	// Go through each object and turn it into an actual result.
-	result := make(map[string]*Output)
+	result := make([]*Output, 0, len(objects))
 	for n, o := range objects {
 		var config map[string]interface{}
 
@@ -218,10 +223,10 @@ func loadOutputsLibucl(o *libucl.Object) (map[string]*Output, error) {
 				err)
 		}
 
-		result[n] = &Output{
+		result = append(result, &Output{
 			Name:      n,
 			RawConfig: rawConfig,
-		}
+		})
 	}
 
 	return result, nil

@@ -156,16 +156,18 @@ func TestLoadDir_noConfigs(t *testing.T) {
 	}
 }
 
-func outputsStr(os map[string]*Output) string {
+func outputsStr(os []*Output) string {
 	ns := make([]string, 0, len(os))
-	for n, _ := range os {
-		ns = append(ns, n)
+	m := make(map[string]*Output)
+	for _, o := range os {
+		ns = append(ns, o.Name)
+		m[o.Name] = o
 	}
 	sort.Strings(ns)
 
 	result := ""
 	for _, n := range ns {
-		o := os[n]
+		o := m[n]
 
 		result += fmt.Sprintf("%s\n", n)
 

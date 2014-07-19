@@ -16,7 +16,7 @@ type Config struct {
 	ProviderConfigs map[string]*ProviderConfig
 	Resources       []*Resource
 	Variables       []*Variable
-	Outputs         map[string]*Output
+	Outputs         []*Output
 
 	// The fields below can be filled in by loaders for validation
 	// purposes.
