@@ -4,8 +4,25 @@ import (
 	"fmt"
 )
 
+// Merge merges two configurations into a single configuration.
+//
+// Merge allows for the two configurations to have duplicate resources,
+// because the resources will be merged. This differs from a single
+// Config which must only have unique resources.
 func Merge(c1, c2 *Config) (*Config, error) {
 	c := new(Config)
+
+	// Merge unknown keys
+	unknowns := make(map[string]struct{})
+	for _, k := range c1.unknownKeys {
+		unknowns[k] = struct{}{}
+	}
+	for _, k := range c2.unknownKeys {
+		unknowns[k] = struct{}{}
+	}
+	for k, _ := range unknowns {
+		c.unknownKeys = append(c.unknownKeys, k)
+	}
 
 	// Merge variables: Variable merging is quite simple. Set fields in
 	// later set variables override those earlier.
