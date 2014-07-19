@@ -33,7 +33,8 @@ const libuclParseFlags = libucl.ParserKeyLowercase
 
 func init() {
 	BuiltinConfig.Providers = map[string]string{
-		"aws": "terraform-provider-aws",
+		"aws":          "terraform-provider-aws",
+		"digitalocean": "terraform-provider-digitalocean",
 	}
 	BuiltinConfig.Provisioners = map[string]string{
 		"local-exec":  "terraform-provisioner-local-exec",
