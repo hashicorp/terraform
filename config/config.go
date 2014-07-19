@@ -15,7 +15,7 @@ import (
 type Config struct {
 	ProviderConfigs map[string]*ProviderConfig
 	Resources       []*Resource
-	Variables       map[string]*Variable
+	Variables       []*Variable
 	Outputs         map[string]*Output
 
 	// The fields below can be filled in by loaders for validation
@@ -51,6 +51,7 @@ type Provisioner struct {
 
 // Variable is a variable defined within the configuration.
 type Variable struct {
+	Name        string
 	Default     string
 	Description string
 	defaultSet  bool
@@ -124,6 +125,10 @@ func (c *Config) Validate() error {
 	}
 
 	vars := c.allVariables()
+	varMap := make(map[string]*Variable)
+	for _, v := range c.Variables {
+		varMap[v.Name] = v
+	}
 
 	// Check for references to user variables that do not actually
 	// exist and record those errors.
@@ -134,7 +139,7 @@ func (c *Config) Validate() error {
 				continue
 			}
 
-			if _, ok := c.Variables[uv.Name]; !ok {
+			if _, ok := varMap[uv.Name]; !ok {
 				errs = append(errs, fmt.Errorf(
 					"%s: unknown variable referenced: %s",
 					source,

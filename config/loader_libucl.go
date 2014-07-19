@@ -45,8 +45,10 @@ func (t *libuclConfigurable) Config() (*Config, error) {
 
 	// Start building up the actual configuration. We start with
 	// variables.
+	// TODO(mitchellh): Make function like loadVariablesLibucl so that
+	// duplicates aren't overriden
 	config := new(Config)
-	config.Variables = make(map[string]*Variable)
+	config.Variables = make([]*Variable, 0, len(rawConfig.Variable))
 	for k, v := range rawConfig.Variable {
 		defaultSet := false
 		for _, f := range v.Fields {
@@ -56,11 +58,12 @@ func (t *libuclConfigurable) Config() (*Config, error) {
 			}
 		}
 
-		config.Variables[k] = &Variable{
+		config.Variables = append(config.Variables, &Variable{
+			Name:        k,
 			Default:     v.Default,
 			Description: v.Description,
 			defaultSet:  defaultSet,
-		}
+		})
 	}
 
 	// Build the provider configs

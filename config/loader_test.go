@@ -116,16 +116,6 @@ func TestLoad_variables(t *testing.T) {
 	if actual != strings.TrimSpace(variablesVariablesStr) {
 		t.Fatalf("bad:\n%s", actual)
 	}
-
-	if !c.Variables["foo"].Required() {
-		t.Fatal("foo should be required")
-	}
-	if c.Variables["bar"].Required() {
-		t.Fatal("bar should not be required")
-	}
-	if c.Variables["baz"].Required() {
-		t.Fatal("baz should not be required")
-	}
 }
 
 func TestLoadDir_basic(t *testing.T) {
@@ -384,16 +374,18 @@ func resourcesStr(rs []*Resource) string {
 
 // This helper turns a variables field into a deterministic
 // string value for comparison in tests.
-func variablesStr(vs map[string]*Variable) string {
+func variablesStr(vs []*Variable) string {
 	result := ""
 	ks := make([]string, 0, len(vs))
-	for k, _ := range vs {
-		ks = append(ks, k)
+	m := make(map[string]*Variable)
+	for _, v := range vs {
+		ks = append(ks, v.Name)
+		m[v.Name] = v
 	}
 	sort.Strings(ks)
 
 	for _, k := range ks {
-		v := vs[k]
+		v := m[k]
 
 		if v.Default == "" {
 			v.Default = "<>"
@@ -402,9 +394,15 @@ func variablesStr(vs map[string]*Variable) string {
 			v.Description = "<>"
 		}
 
+		required := ""
+		if v.Required() {
+			required = " (required)"
+		}
+
 		result += fmt.Sprintf(
-			"%s\n  %s\n  %s\n",
+			"%s%s\n  %s\n  %s\n",
 			k,
+			required,
 			v.Default,
 			v.Description)
 	}
@@ -497,7 +495,7 @@ aws_security_group[web] (x1)
 `
 
 const importVariablesStr = `
-bar
+bar (required)
   <>
   <>
 foo
@@ -538,7 +536,7 @@ bar
 baz
   foo
   <>
-foo
+foo (required)
   <>
   <>
 `
