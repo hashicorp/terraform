@@ -48,22 +48,24 @@ func (t *libuclConfigurable) Config() (*Config, error) {
 	// TODO(mitchellh): Make function like loadVariablesLibucl so that
 	// duplicates aren't overriden
 	config := new(Config)
-	config.Variables = make([]*Variable, 0, len(rawConfig.Variable))
-	for k, v := range rawConfig.Variable {
-		defaultSet := false
-		for _, f := range v.Fields {
-			if f == "Default" {
-				defaultSet = true
-				break
+	if len(rawConfig.Variable) > 0 {
+		config.Variables = make([]*Variable, 0, len(rawConfig.Variable))
+		for k, v := range rawConfig.Variable {
+			defaultSet := false
+			for _, f := range v.Fields {
+				if f == "Default" {
+					defaultSet = true
+					break
+				}
 			}
-		}
 
-		config.Variables = append(config.Variables, &Variable{
-			Name:        k,
-			Default:     v.Default,
-			Description: v.Description,
-			defaultSet:  defaultSet,
-		})
+			config.Variables = append(config.Variables, &Variable{
+				Name:        k,
+				Default:     v.Default,
+				Description: v.Description,
+				defaultSet:  defaultSet,
+			})
+		}
 	}
 
 	// Build the provider configs

@@ -26,26 +26,28 @@ func Merge(c1, c2 *Config) (*Config, error) {
 
 	// Merge variables: Variable merging is quite simple. Set fields in
 	// later set variables override those earlier.
-	c.Variables = make([]*Variable, 0, len(c1.Variables)+len(c2.Variables))
-	varMap := make(map[string]*Variable)
-	for _, v := range c1.Variables {
-		varMap[v.Name] = v
-	}
-	for _, v2 := range c2.Variables {
-		v1, ok := varMap[v2.Name]
-		if ok {
-			if v2.Default == "" {
-				v2.Default = v1.Default
-			}
-			if v2.Description == "" {
-				v2.Description = v1.Description
-			}
+	if len(c1.Variables) > 0 || len(c2.Variables) > 0 {
+		c.Variables = make([]*Variable, 0, len(c1.Variables)+len(c2.Variables))
+		varMap := make(map[string]*Variable)
+		for _, v := range c1.Variables {
+			varMap[v.Name] = v
 		}
+		for _, v2 := range c2.Variables {
+			v1, ok := varMap[v2.Name]
+			if ok {
+				if v2.Default == "" {
+					v2.Default = v1.Default
+				}
+				if v2.Description == "" {
+					v2.Description = v1.Description
+				}
+			}
 
-		varMap[v2.Name] = v2
-	}
-	for _, v := range varMap {
-		c.Variables = append(c.Variables, v)
+			varMap[v2.Name] = v2
+		}
+		for _, v := range varMap {
+			c.Variables = append(c.Variables, v)
+		}
 	}
 
 	// Merge outputs: If they collide, just take the latest one for now. In
