@@ -156,6 +156,21 @@ func TestLoadDir_noConfigs(t *testing.T) {
 	}
 }
 
+func TestLoadDir_noMerge(t *testing.T) {
+	c, err := LoadDir(filepath.Join(fixtureDir, "dir-merge"))
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	if c == nil {
+		t.Fatal("config should not be nil")
+	}
+
+	if err := c.Validate(); err == nil {
+		t.Fatal("should not be valid")
+	}
+}
+
 func outputsStr(os []*Output) string {
 	ns := make([]string, 0, len(os))
 	m := make(map[string]*Output)
