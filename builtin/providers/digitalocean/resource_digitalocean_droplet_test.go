@@ -10,7 +10,7 @@ import (
 	"github.com/pearkes/digitalocean"
 )
 
-func TestAccDigitalOceanDroplet(t *testing.T) {
+func TestAccDigitalOceanDroplet_Basic(t *testing.T) {
 	var droplet digitalocean.Droplet
 
 	resource.Test(t, resource.TestCase{
@@ -31,6 +31,37 @@ func TestAccDigitalOceanDroplet(t *testing.T) {
 						"digitalocean_droplet.foobar", "image", "centos-5-8-x32"),
 					resource.TestCheckResourceAttr(
 						"digitalocean_droplet.foobar", "region", "nyc2"),
+				),
+			},
+		},
+	})
+}
+
+func TestAccDigitalOceanDroplet_Update(t *testing.T) {
+	var droplet digitalocean.Droplet
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckDigitalOceanDropletDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccCheckDigitalOceanDropletConfig_basic,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckDigitalOceanDropletExists("digitalocean_droplet.foobar", &droplet),
+					testAccCheckDigitalOceanDropletAttributes(&droplet),
+				),
+			},
+
+			resource.TestStep{
+				Config: testAccCheckDigitalOceanDropletConfig_RenameAndResize,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckDigitalOceanDropletExists("digitalocean_droplet.foobar", &droplet),
+					testAccCheckDigitalOceanDropletRenamedAndResized(&droplet),
+					resource.TestCheckResourceAttr(
+						"digitalocean_droplet.foobar", "name", "foo"),
+					resource.TestCheckResourceAttr(
+						"digitalocean_droplet.foobar", "size", "1gb"),
 				),
 			},
 		},
@@ -63,7 +94,6 @@ func testAccCheckDigitalOceanDropletDestroy(s *terraform.State) error {
 func testAccCheckDigitalOceanDropletAttributes(droplet *digitalocean.Droplet) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 
-		fmt.Println("droplet: %v", droplet)
 		if droplet.ImageSlug() != "centos-5-8-x32" {
 			return fmt.Errorf("Bad image_slug: %s", droplet.ImageSlug())
 		}
@@ -83,6 +113,20 @@ func testAccCheckDigitalOceanDropletAttributes(droplet *digitalocean.Droplet) re
 	}
 }
 
+func testAccCheckDigitalOceanDropletRenamedAndResized(droplet *digitalocean.Droplet) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+
+		if droplet.SizeSlug() != "1gb" {
+			return fmt.Errorf("Bad size_slug: %s", droplet.SizeSlug())
+		}
+
+		if droplet.Name != "baz" {
+			return fmt.Errorf("Bad name: %s", droplet.Name)
+		}
+
+		return nil
+	}
+}
 func testAccCheckDigitalOceanDropletExists(n string, droplet *digitalocean.Droplet) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		rs, ok := s.Resources[n]
@@ -130,6 +174,15 @@ const testAccCheckDigitalOceanDropletConfig_basic = `
 resource "digitalocean_droplet" "foobar" {
     name = "foo"
     size = "512mb"
+    image = "centos-5-8-x32"
+    region = "nyc2"
+}
+`
+
+const testAccCheckDigitalOceanDropletConfig_RenameAndResize = `
+resource "digitalocean_droplet" "foobar" {
+    name = "baz"
+    size = "1gb"
     image = "centos-5-8-x32"
     region = "nyc2"
 }

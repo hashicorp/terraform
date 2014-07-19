@@ -88,17 +88,95 @@ func resource_digitalocean_droplet_update(
 	s *terraform.ResourceState,
 	d *terraform.ResourceDiff,
 	meta interface{}) (*terraform.ResourceState, error) {
-	// p := meta.(*ResourceProvider)
-	// client := p.client
-	// rs := s.MergeDiff(d)
+	p := meta.(*ResourceProvider)
+	client := p.client
+	rs := s.MergeDiff(d)
 
-	// var err error
+	var err error
 
-	// if _, ok := d.Attributes["size"]; ok {
+	if attr, ok := d.Attributes["size"]; ok {
+		err = client.PowerOff(rs.ID)
 
-	// }
+		if err != nil && !strings.Contains(err.Error(), "Droplet is already powered off") {
+			return s, err
+		}
 
-	return nil, nil
+		// Wait for power off
+		_, err = WaitForDropletAttribute(
+			rs.ID, "off", []string{"active"}, "status", client)
+
+		err = client.Resize(rs.ID, attr.New)
+
+		if err != nil {
+			return rs, err
+		}
+
+		// Wait for the size to change
+		_, err = WaitForDropletAttribute(
+			rs.ID, attr.New, []string{"", attr.Old}, "size", client)
+
+		if err != nil {
+			return s, err
+		}
+
+		err = client.PowerOn(rs.ID)
+
+		if err != nil {
+			return s, err
+		}
+
+		// Wait for power off
+		_, err = WaitForDropletAttribute(
+			rs.ID, "active", []string{"off"}, "status", client)
+
+		if err != nil {
+			return s, err
+		}
+	}
+
+	if attr, ok := d.Attributes["name"]; ok {
+		err = client.Rename(rs.ID, attr.New)
+
+		if err != nil {
+			return s, err
+		}
+
+		// Wait for the name to change
+		_, err = WaitForDropletAttribute(
+			rs.ID, attr.New, []string{"", attr.Old}, "name", client)
+	}
+
+	if attr, ok := d.Attributes["private_networking"]; ok {
+		err = client.Rename(rs.ID, attr.New)
+
+		if err != nil {
+			return s, err
+		}
+
+		// Wait for the private_networking to turn on/off
+		_, err = WaitForDropletAttribute(
+			rs.ID, attr.New, []string{"", attr.Old}, "private_networking", client)
+	}
+
+	if attr, ok := d.Attributes["ipv6"]; ok {
+		err = client.Rename(rs.ID, attr.New)
+
+		if err != nil {
+			return s, err
+		}
+
+		// Wait for ipv6 to turn on/off
+		_, err = WaitForDropletAttribute(
+			rs.ID, attr.New, []string{"", attr.Old}, "ipv6", client)
+	}
+
+	droplet, err := resource_digitalocean_droplet_retrieve(rs.ID, client)
+
+	if err != nil {
+		return s, err
+	}
+
+	return resource_digitalocean_droplet_update_state(rs, droplet)
 }
 
 func resource_digitalocean_droplet_destroy(
@@ -146,7 +224,7 @@ func resource_digitalocean_droplet_diff(
 			"name":               diff.AttrTypeUpdate,
 			"private_networking": diff.AttrTypeUpdate,
 			"region":             diff.AttrTypeCreate,
-			"size":               diff.AttrTypeCreate,
+			"size":               diff.AttrTypeUpdate,
 			"ssh_keys":           diff.AttrTypeCreate,
 		},
 
@@ -177,8 +255,12 @@ func resource_digitalocean_droplet_update_state(
 		s.Attributes["image"] = droplet.ImageSlug()
 	}
 
+	if droplet.IPV6Address() != "" {
+		s.Attributes["ipv6"] = "true"
+		s.Attributes["ipv6_address"] = droplet.IPV6Address()
+	}
+
 	s.Attributes["ipv4_address"] = droplet.IPV4Address()
-	s.Attributes["ipv6_address"] = droplet.IPV6Address()
 	s.Attributes["locked"] = droplet.IsLocked()
 	s.Attributes["private_networking"] = droplet.NetworkingType()
 	s.Attributes["size"] = droplet.SizeSlug()
@@ -220,7 +302,7 @@ func WaitForDropletAttribute(id string, target string, pending []string, attribu
 	// Wait for the droplet so we can get the networking attributes
 	// that show up after a while
 	log.Printf(
-		"[DEBUG] Waiting for Droplet (%s) to have %s of %s",
+		"[INFO] Waiting for Droplet (%s) to have %s of %s",
 		id, attribute, target)
 
 	stateConf := &resource.StateChangeConf{
