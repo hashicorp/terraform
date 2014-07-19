@@ -71,20 +71,7 @@ func resource_digitalocean_droplet_create(
 
 	log.Printf("[INFO] Droplet ID: %s", id)
 
-	// Wait for the droplet so we can get the networking attributes
-	// that show up after a while
-	log.Printf(
-		"[DEBUG] Waiting for Droplet (%s) to become running",
-		id)
-
-	stateConf := &resource.StateChangeConf{
-		Pending: []string{"new"},
-		Target:  "active",
-		Refresh: DropletStateRefreshFunc(client, id),
-		Timeout: 10 * time.Minute,
-	}
-
-	dropletRaw, err := stateConf.WaitForState()
+	dropletRaw, err := WaitForDropletAttribute(id, "active", []string{"new"}, "status", client)
 
 	if err != nil {
 		return rs, fmt.Errorf(
@@ -101,8 +88,15 @@ func resource_digitalocean_droplet_update(
 	s *terraform.ResourceState,
 	d *terraform.ResourceDiff,
 	meta interface{}) (*terraform.ResourceState, error) {
+	// p := meta.(*ResourceProvider)
+	// client := p.client
+	// rs := s.MergeDiff(d)
 
-	panic("No update")
+	// var err error
+
+	// if _, ok := d.Attributes["size"]; ok {
+
+	// }
 
 	return nil, nil
 }
@@ -222,23 +216,48 @@ func resource_digitalocean_droplet_validation() *config.Validator {
 	}
 }
 
-// DropletStateRefreshFunc returns a resource.StateRefreshFunc that is used to watch
-// a droplet.
-func DropletStateRefreshFunc(client *digitalocean.Client, id string) resource.StateRefreshFunc {
-	return func() (interface{}, string, error) {
-		droplet, err := resource_digitalocean_droplet_retrieve(id, client)
+func WaitForDropletAttribute(id string, target string, pending []string, attribute string, client *digitalocean.Client) (interface{}, error) {
+	// Wait for the droplet so we can get the networking attributes
+	// that show up after a while
+	log.Printf(
+		"[DEBUG] Waiting for Droplet (%s) to have %s of %s",
+		id, attribute, target)
 
-		// It's not actually "active"
-		// until we can see the image slug
-		if droplet.ImageSlug() == "" {
-			return nil, "", nil
-		}
+	stateConf := &resource.StateChangeConf{
+		Pending: pending,
+		Target:  target,
+		Refresh: new_droplet_state_refresh_func(id, attribute, client),
+		Timeout: 10 * time.Minute,
+	}
+
+	return stateConf.WaitForState()
+}
+
+func new_droplet_state_refresh_func(id string, attribute string, client *digitalocean.Client) resource.StateRefreshFunc {
+	return func() (interface{}, string, error) {
+		// Retrieve the ELB properties for updating the state
+		droplet, err := client.RetrieveDroplet(id)
 
 		if err != nil {
-			log.Printf("Error on DropletStateRefresh: %s", err)
+			log.Printf("Error on retrieving droplet when waiting: %s", err)
 			return nil, "", err
 		}
 
-		return droplet, droplet.Status, nil
+		// Use our mapping to get back a map of the
+		// droplet properties
+		resourceMap, err := resource_digitalocean_droplet_update_state(
+			&terraform.ResourceState{Attributes: map[string]string{}}, &droplet)
+
+		if err != nil {
+			log.Printf("Error creating map from droplet: %s", err)
+			return nil, "", err
+		}
+
+		// See if we can access our attribute
+		if attr, ok := resourceMap.Attributes[attribute]; ok {
+			return &droplet, attr, nil
+		}
+
+		return nil, "", nil
 	}
 }

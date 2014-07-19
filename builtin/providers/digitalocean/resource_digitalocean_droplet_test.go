@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"strings"
 	"testing"
-	"time"
 
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
@@ -49,14 +48,7 @@ func testAccCheckDigitalOceanDropletDestroy(s *terraform.State) error {
 		// Try to find the Droplet
 		_, err := client.RetrieveDroplet(rs.ID)
 
-		stateConf := &resource.StateChangeConf{
-			Pending: []string{"new"},
-			Target:  "off",
-			Refresh: DropletStateRefreshFunc(client, rs.ID),
-			Timeout: 10 * time.Minute,
-		}
-
-		_, err = stateConf.WaitForState()
+		// Wait
 
 		if err != nil && !strings.Contains(err.Error(), "404") {
 			return fmt.Errorf(
@@ -118,6 +110,20 @@ func testAccCheckDigitalOceanDropletExists(n string, droplet *digitalocean.Dropl
 
 		return nil
 	}
+}
+
+func Test_new_droplet_state_refresh_func(t *testing.T) {
+	droplet := digitalocean.Droplet{
+		Name: "foobar",
+	}
+	resourceMap, _ := resource_digitalocean_droplet_update_state(
+		&terraform.ResourceState{Attributes: map[string]string{}}, &droplet)
+
+	// See if we can access our attribute
+	if _, ok := resourceMap.Attributes["name"]; !ok {
+		t.Fatalf("bad name: %s", resourceMap.Attributes)
+	}
+
 }
 
 const testAccCheckDigitalOceanDropletConfig_basic = `
