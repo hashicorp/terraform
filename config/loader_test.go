@@ -556,6 +556,7 @@ aws_instance[db] (x1)
   security_groups
 aws_instance[web] (x1)
   ami
+  foo
   network_interface
   security_groups
   vars
