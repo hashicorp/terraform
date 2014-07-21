@@ -33,7 +33,14 @@ func Load(path string) (*Config, error) {
 }
 
 // LoadDir loads all the Terraform configuration files in a single
-// directory and merges them together.
+// directory and appends them together.
+//
+// Special files known as "override files" can also be present, which
+// are merged into the loaded configuration. That is, the non-override
+// files are loaded first to create the configuration. Then, the overrides
+// are merged into the configuration to create the final configuration.
+//
+// Files are loaded in lexical order.
 func LoadDir(root string) (*Config, error) {
 	var files, overrides []string
 
