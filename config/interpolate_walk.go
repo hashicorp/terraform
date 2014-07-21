@@ -19,10 +19,11 @@ type interpolationWalker struct {
 	F       interpolationWalkerFunc
 	Replace bool
 
-	key    []string
-	loc    reflectwalk.Location
-	cs     []reflect.Value
-	csData interface{}
+	key         []string
+	loc         reflectwalk.Location
+	cs          []reflect.Value
+	csData      interface{}
+	unknownKeys []string
 }
 
 // interpolationWalkerFunc is the callback called by interpolationWalk.
@@ -105,6 +106,13 @@ func (w *interpolationWalker) Primitive(v reflect.Value) error {
 		}
 
 		if w.Replace {
+			// If this is an unknown variable, then we remove it from
+			// the configuration.
+			if replaceVal == UnknownVariableValue {
+				w.removeCurrent()
+				return nil
+			}
+
 			result = strings.Replace(result, match[0], replaceVal, -1)
 		}
 	}
@@ -124,4 +132,20 @@ func (w *interpolationWalker) Primitive(v reflect.Value) error {
 	}
 
 	return nil
+}
+
+func (w *interpolationWalker) removeCurrent() {
+	c := w.cs[len(w.cs)-1]
+	switch c.Kind() {
+	case reflect.Map:
+		// Zero value so that we delete the map key
+		var val reflect.Value
+
+		// Get the key and delete it
+		k := w.csData.(reflect.Value)
+		c.SetMapIndex(k, val)
+	}
+
+	// Append the key to the unknown keys
+	w.unknownKeys = append(w.unknownKeys, strings.Join(w.key, "."))
 }

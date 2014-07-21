@@ -70,10 +70,10 @@ func TestInterpolationWalker_replace(t *testing.T) {
 
 		{
 			Input: map[string]interface{}{
-				"foo": "${var.foo}",
+				"foo": "hello, ${var.foo}",
 			},
 			Output: map[string]interface{}{
-				"foo": "bar",
+				"foo": "hello, bar",
 			},
 		},
 	}
