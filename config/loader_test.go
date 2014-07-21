@@ -171,6 +171,37 @@ func TestLoadDir_noMerge(t *testing.T) {
 	}
 }
 
+func TestLoadDir_override(t *testing.T) {
+	c, err := LoadDir(filepath.Join(fixtureDir, "dir-override"))
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	if c == nil {
+		t.Fatal("config should not be nil")
+	}
+
+	actual := variablesStr(c.Variables)
+	if actual != strings.TrimSpace(dirOverrideVariablesStr) {
+		t.Fatalf("bad:\n%s", actual)
+	}
+
+	actual = providerConfigsStr(c.ProviderConfigs)
+	if actual != strings.TrimSpace(dirOverrideProvidersStr) {
+		t.Fatalf("bad:\n%s", actual)
+	}
+
+	actual = resourcesStr(c.Resources)
+	if actual != strings.TrimSpace(dirOverrideResourcesStr) {
+		t.Fatalf("bad:\n%s", actual)
+	}
+
+	actual = outputsStr(c.Outputs)
+	if actual != strings.TrimSpace(dirOverrideOutputsStr) {
+		t.Fatalf("bad:\n%s", actual)
+	}
+}
+
 func outputsStr(os []*Output) string {
 	ns := make([]string, 0, len(os))
 	m := make(map[string]*Output)
@@ -498,6 +529,42 @@ aws_security_group[firewall] (x5)
 `
 
 const dirBasicVariablesStr = `
+foo
+  bar
+  bar
+`
+
+const dirOverrideOutputsStr = `
+web_ip
+  vars
+    resource: aws_instance.web.private_ip
+`
+
+const dirOverrideProvidersStr = `
+aws
+  access_key
+  secret_key
+do
+  api_key
+  vars
+    user: var.foo
+`
+
+const dirOverrideResourcesStr = `
+aws_instance[db] (x1)
+  ami
+  security_groups
+aws_instance[web] (x1)
+  ami
+  network_interface
+  security_groups
+  vars
+    resource: aws_security_group.firewall.foo
+    user: var.foo
+aws_security_group[firewall] (x5)
+`
+
+const dirOverrideVariablesStr = `
 foo
   bar
   bar

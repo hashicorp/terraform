@@ -2,7 +2,11 @@ package config
 
 import (
 	"fmt"
+	"io"
+	"os"
 	"path/filepath"
+	"sort"
+	"strings"
 )
 
 // Load loads the Terraform configuration from a given file.
@@ -30,20 +34,67 @@ func Load(path string) (*Config, error) {
 
 // LoadDir loads all the Terraform configuration files in a single
 // directory and merges them together.
-func LoadDir(path string) (*Config, error) {
-	matches, err := filepath.Glob(filepath.Join(path, "*.tf"))
+func LoadDir(root string) (*Config, error) {
+	var files, overrides []string
+
+	f, err := os.Open(root)
 	if err != nil {
 		return nil, err
 	}
 
-	if len(matches) == 0 {
+	err = nil
+	for err != io.EOF {
+		var fis []os.FileInfo
+		fis, err = f.Readdir(128)
+		if err != nil && err != io.EOF {
+			f.Close()
+			return nil, err
+		}
+
+		for _, fi := range fis {
+			// Ignore directories
+			if fi.IsDir() {
+				continue
+			}
+
+			// Only care about files that are valid to load
+			name := fi.Name()
+			extValue := ext(name)
+			if extValue == "" {
+				continue
+			}
+
+			// Determine if we're dealing with an override
+			nameNoExt := name[:len(name)-len(extValue)]
+			override := nameNoExt == "override" ||
+				strings.HasSuffix(nameNoExt, "_override")
+
+			path := filepath.Join(root, name)
+			if override {
+				overrides = append(overrides, path)
+			} else {
+				files = append(files, path)
+			}
+		}
+	}
+
+	// Close the directory, we're done with it
+	f.Close()
+
+	if len(files) == 0 {
 		return nil, fmt.Errorf(
 			"No Terraform configuration files found in directory: %s",
-			path)
+			root)
 	}
 
 	var result *Config
-	for _, f := range matches {
+
+	// Sort the files and overrides so we have a deterministic order
+	sort.Strings(files)
+	sort.Strings(overrides)
+
+	// Load all the regular files, append them to each other.
+	for _, f := range files {
 		c, err := Load(f)
 		if err != nil {
 			return nil, err
@@ -59,5 +110,30 @@ func LoadDir(path string) (*Config, error) {
 		}
 	}
 
+	// Load all the overrides, and merge them into the config
+	for _, f := range overrides {
+		c, err := Load(f)
+		if err != nil {
+			return nil, err
+		}
+
+		result, err = Merge(result, c)
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	return result, nil
+}
+
+// Ext returns the Terraform configuration extension of the given
+// path, or a blank string if it is an invalid function.
+func ext(path string) string {
+	if strings.HasSuffix(path, ".tf") {
+		return ".tf"
+	} else if strings.HasSuffix(path, ".tf.json") {
+		return ".tf.json"
+	} else {
+		return ""
+	}
 }

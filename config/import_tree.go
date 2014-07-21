@@ -3,7 +3,6 @@ package config
 import (
 	"fmt"
 	"io"
-	"strings"
 )
 
 // configurable is an interface that must be implemented by any configuration
@@ -33,11 +32,15 @@ type fileLoaderFunc func(path string) (configurable, []string, error)
 // executes the proper fileLoaderFunc.
 func loadTree(root string) (*importTree, error) {
 	var f fileLoaderFunc
-	if strings.HasSuffix(root, ".tf") {
+	switch ext(root) {
+	case ".tf":
+		fallthrough
+	case ".tf.json":
 		f = loadFileLibucl
-	} else if strings.HasSuffix(root, ".tf.json") {
-		f = loadFileLibucl
-	} else {
+	default:
+	}
+
+	if f == nil {
 		return nil, fmt.Errorf(
 			"%s: unknown configuration format. Use '.tf' or '.tf.json' extension",
 			root)
