@@ -36,6 +36,44 @@ func BenchmarkVariableReplaceWalker(b *testing.B) {
 	}
 }
 
+func TestNewResourceVariable(t *testing.T) {
+	v, err := NewResourceVariable("foo.bar.baz")
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	if v.Type != "foo" {
+		t.Fatalf("bad: %#v", v)
+	}
+	if v.Name != "bar" {
+		t.Fatalf("bad: %#v", v)
+	}
+	if v.Field != "baz" {
+		t.Fatalf("bad: %#v", v)
+	}
+	if v.Multi {
+		t.Fatal("should not be multi")
+	}
+
+	if v.FullKey() != "foo.bar.baz" {
+		t.Fatalf("bad: %#v", v)
+	}
+}
+
+func TestNewUserVariable(t *testing.T) {
+	v, err := NewUserVariable("var.bar")
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	if v.Name != "bar" {
+		t.Fatalf("bad: %#v", v.Name)
+	}
+	if v.FullKey() != "var.bar" {
+		t.Fatalf("bad: %#v", v)
+	}
+}
+
 func TestReplaceVariables(t *testing.T) {
 	input := "foo-${var.bar}"
 	expected := "foo-bar"
@@ -53,6 +91,66 @@ func TestReplaceVariables(t *testing.T) {
 	if input != expected {
 		t.Fatalf("bad: %#v", input)
 	}
+}
+
+func TestResourceVariable_impl(t *testing.T) {
+	var _ InterpolatedVariable = new(ResourceVariable)
+}
+
+func TestResourceVariable_Multi(t *testing.T) {
+	v, err := NewResourceVariable("foo.bar.*.baz")
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	if v.Type != "foo" {
+		t.Fatalf("bad: %#v", v)
+	}
+	if v.Name != "bar" {
+		t.Fatalf("bad: %#v", v)
+	}
+	if v.Field != "baz" {
+		t.Fatalf("bad: %#v", v)
+	}
+	if !v.Multi {
+		t.Fatal("should be multi")
+	}
+}
+
+func TestResourceVariable_MultiIndex(t *testing.T) {
+	cases := []struct {
+		Input string
+		Index int
+		Field string
+	}{
+		{"foo.bar.*.baz", -1, "baz"},
+		{"foo.bar.0.baz", 0, "baz"},
+		{"foo.bar.5.baz", 5, "baz"},
+	}
+
+	for _, tc := range cases {
+		v, err := NewResourceVariable(tc.Input)
+		if err != nil {
+			t.Fatalf("err: %s", err)
+		}
+		if !v.Multi {
+			t.Fatalf("should be multi: %s", tc.Input)
+		}
+		if v.Index != tc.Index {
+			t.Fatalf("bad: %d\n\n%s", v.Index, tc.Input)
+		}
+		if v.Field != tc.Field {
+			t.Fatalf("bad: %s\n\n%s", v.Field, tc.Input)
+		}
+	}
+}
+
+func TestUserVariable_impl(t *testing.T) {
+	var _ InterpolatedVariable = new(UserVariable)
+}
+
+func TestUserMapVariable_impl(t *testing.T) {
+	var _ InterpolatedVariable = new(UserMapVariable)
 }
 
 func TestVariableDetectWalker(t *testing.T) {
@@ -134,6 +232,30 @@ func TestVariableDetectWalker_empty(t *testing.T) {
 	}
 
 	if len(w.Variables) > 0 {
+		t.Fatalf("bad: %#v", w.Variables)
+	}
+}
+
+func TestVariableDetectWalker_userMap(t *testing.T) {
+	w := new(variableDetectWalker)
+
+	str := `foo ${var.foo.bar}`
+	if err := w.Primitive(reflect.ValueOf(str)); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	if len(w.Variables) != 1 {
+		t.Fatalf("bad: %#v", w.Variables)
+	}
+
+	v := w.Variables["var.foo.bar"].(*UserMapVariable)
+	if v.FullKey() != "var.foo.bar" {
+		t.Fatalf("bad: %#v", w.Variables)
+	}
+	if v.Name != "foo" {
+		t.Fatalf("bad: %#v", w.Variables)
+	}
+	if v.Elem != "bar" {
 		t.Fatalf("bad: %#v", w.Variables)
 	}
 }

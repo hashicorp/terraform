@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"reflect"
 	"regexp"
+	"strconv"
 	"strings"
 
 	"github.com/mitchellh/reflectwalk"
@@ -14,6 +15,126 @@ var varRegexp *regexp.Regexp
 
 func init() {
 	varRegexp = regexp.MustCompile(`(?i)(\$+)\{([*-.a-z0-9_]+)\}`)
+}
+
+// An InterpolatedVariable is a variable that is embedded within a string
+// in the configuration, such as "hello ${world}" (world in this case is
+// an interpolated variable).
+//
+// These variables can come from a variety of sources, represented by
+// implementations of this interface.
+type InterpolatedVariable interface {
+	FullKey() string
+}
+
+// A ResourceVariable is a variable that is referencing the field
+// of a resource, such as "${aws_instance.foo.ami}"
+type ResourceVariable struct {
+	Type  string // Resource type, i.e. "aws_instance"
+	Name  string // Resource name
+	Field string // Resource field
+
+	Multi bool // True if multi-variable: aws_instance.foo.*.id
+	Index int  // Index for multi-variable: aws_instance.foo.1.id == 1
+
+	key string
+}
+
+func (v *ResourceVariable) ResourceId() string {
+	return fmt.Sprintf("%s.%s", v.Type, v.Name)
+}
+
+func (v *ResourceVariable) FullKey() string {
+	return v.key
+}
+
+// A UserVariable is a variable that is referencing a user variable
+// that is inputted from outside the configuration. This looks like
+// "${var.foo}"
+type UserVariable struct {
+	Name string
+
+	key string
+}
+
+func (v *UserVariable) FullKey() string {
+	return v.key
+}
+
+// A UserMapVariable is a variable that is referencing a user
+// variable that is a map. This looks like "${var.amis.us-east-1}"
+type UserMapVariable struct {
+	Name string
+	Elem string
+
+	key string
+}
+
+func NewUserMapVariable(key string) (*UserMapVariable, error) {
+	name := key[len("var."):]
+	idx := strings.Index(name, ".")
+	if idx == -1 {
+		return nil, fmt.Errorf("not a user map variable: %s", key)
+	}
+
+	elem := name[idx+1:]
+	name = name[:idx]
+	return &UserMapVariable{
+		Name: name,
+		Elem: elem,
+
+		key: key,
+	}, nil
+}
+
+func (v *UserMapVariable) FullKey() string {
+	return v.key
+}
+
+func (v *UserMapVariable) GoString() string {
+	return fmt.Sprintf("%#v", *v)
+}
+
+func NewResourceVariable(key string) (*ResourceVariable, error) {
+	parts := strings.SplitN(key, ".", 3)
+	field := parts[2]
+	multi := false
+	var index int
+
+	if idx := strings.Index(field, "."); idx != -1 {
+		indexStr := field[:idx]
+		multi = indexStr == "*"
+		index = -1
+
+		if !multi {
+			indexInt, err := strconv.ParseInt(indexStr, 0, 0)
+			if err == nil {
+				multi = true
+				index = int(indexInt)
+			}
+		}
+
+		if multi {
+			field = field[idx+1:]
+		}
+	}
+
+	return &ResourceVariable{
+		Type:  parts[0],
+		Name:  parts[1],
+		Field: field,
+		Multi: multi,
+		Index: index,
+		key:   key,
+	}, nil
+}
+
+func NewUserVariable(key string) (*UserVariable, error) {
+	name := key[len("var."):]
+	return &UserVariable{
+		key:  key,
+		Name: name,
+	}, nil
 }
 
 // ReplaceVariables takes a configuration and a mapping of variables
@@ -80,10 +201,15 @@ func (w *variableDetectWalker) Primitive(v reflect.Value) error {
 				key, key)
 		}
 
-		if strings.HasPrefix(key, "var.") {
-			iv, err = NewUserVariable(key)
-		} else {
+		if !strings.HasPrefix(key, "var.") {
 			iv, err = NewResourceVariable(key)
+		} else {
+			varKey := key[len("var."):]
+			if strings.Index(varKey, ".") == -1 {
+				iv, err = NewUserVariable(key)
+			} else {
+				iv, err = NewUserMapVariable(key)
+			}
 		}
 
 		if err != nil {
