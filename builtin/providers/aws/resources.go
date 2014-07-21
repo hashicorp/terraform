@@ -94,6 +94,14 @@ func init() {
 				Update:  resource_aws_route_table_association_update,
 			},
 
+			"aws_s3_bucket": resource.Resource{
+				ConfigValidator: resource_aws_s3_bucket_validation(),
+				Create:          resource_aws_s3_bucket_create,
+				Destroy:         resource_aws_s3_bucket_destroy,
+				Diff:            resource_aws_s3_bucket_diff,
+				Refresh:         resource_aws_s3_bucket_refresh,
+			},
+
 			"aws_security_group": resource.Resource{
 				ConfigValidator: resource_aws_security_group_validation(),
 				Create:          resource_aws_security_group_create,
