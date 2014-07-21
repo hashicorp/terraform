@@ -103,7 +103,7 @@ func TestMerge(t *testing.T) {
 					&Resource{Name: "bar"},
 				},
 				Variables: []*Variable{
-					&Variable{Name: "foo", Default: "bar", defaultSet: true},
+					&Variable{Name: "foo", Default: "bar"},
 					&Variable{Name: "bar"},
 				},
 
@@ -124,7 +124,7 @@ func TestMerge(t *testing.T) {
 					&Resource{Name: "bar"},
 				},
 				Variables: []*Variable{
-					&Variable{Name: "foo", Default: "bar", defaultSet: true},
+					&Variable{Name: "foo", Default: "bar"},
 					&Variable{Name: "foo"},
 					&Variable{Name: "bar"},
 				},

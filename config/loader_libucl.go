@@ -30,7 +30,7 @@ func (t *libuclConfigurable) Config() (*Config, error) {
 	}
 
 	type LibuclVariable struct {
-		Default     string
+		Default     interface{}
 		Description string
 		Fields      []string `libucl:",decodedFields"`
 	}
@@ -51,19 +51,10 @@ func (t *libuclConfigurable) Config() (*Config, error) {
 	if len(rawConfig.Variable) > 0 {
 		config.Variables = make([]*Variable, 0, len(rawConfig.Variable))
 		for k, v := range rawConfig.Variable {
-			defaultSet := false
-			for _, f := range v.Fields {
-				if f == "Default" {
-					defaultSet = true
-					break
-				}
-			}
-
 			config.Variables = append(config.Variables, &Variable{
 				Name:        k,
 				Default:     v.Default,
 				Description: v.Description,
-				defaultSet:  defaultSet,
 			})
 		}
 	}

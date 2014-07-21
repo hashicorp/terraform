@@ -53,9 +53,8 @@ type Provisioner struct {
 // Variable is a variable defined within the configuration.
 type Variable struct {
 	Name        string
-	Default     string
+	Default     interface{}
 	Description string
-	defaultSet  bool
 }
 
 // Output is an output defined within the configuration. An output is
@@ -310,9 +309,8 @@ func (v *Variable) Merge(v2 *Variable) *Variable {
 	// The names should be the same, but the second name always wins.
 	result.Name = v2.Name
 
-	if v2.defaultSet {
+	if v2.Default != nil {
 		result.Default = v2.Default
-		result.defaultSet = true
 	}
 	if v2.Description != "" {
 		result.Description = v2.Description
@@ -331,7 +329,7 @@ func (v *Variable) mergerMerge(m merger) merger {
 
 // Required tests whether a variable is required or not.
 func (v *Variable) Required() bool {
-	return !v.defaultSet
+	return v.Default == nil
 }
 
 func NewResourceVariable(key string) (*ResourceVariable, error) {
