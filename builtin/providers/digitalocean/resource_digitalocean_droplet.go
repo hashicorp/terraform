@@ -325,6 +325,14 @@ func new_droplet_state_refresh_func(id string, attribute string, client *digital
 			return nil, "", err
 		}
 
+		// If the droplet is locked, continue waiting. We can
+		// only perform actions on unlocked droplets, so it's
+		// pointless to look at that status
+		if droplet.IsLocked() == "true" {
+			log.Println("[DEBUG] Droplet is locked, skipping status check and retrying")
+			return nil, "", nil
+		}
+
 		// Use our mapping to get back a map of the
 		// droplet properties
 		resourceMap, err := resource_digitalocean_droplet_update_state(
