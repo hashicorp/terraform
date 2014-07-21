@@ -2,9 +2,14 @@ package config
 
 import (
 	"fmt"
+	"regexp"
 	"strconv"
 	"strings"
 )
+
+// We really need to replace this with a real parser.
+var funcRegexp *regexp.Regexp = regexp.MustCompile(
+	`(?i)([a-z0-9_]+)\(\s*(?:([.a-z0-9_]+)\s*,\s*)*([.a-z0-9_]+)\s*\)`)
 
 // Interpolation is something that can be contained in a "${}" in a
 // configuration value.
@@ -17,12 +22,25 @@ type Interpolation interface {
 	Variables() map[string]InterpolatedVariable
 }
 
+// InterpolationFunc is the function signature for implementing
+// callable functions in Terraform configurations.
+type InterpolationFunc func(map[string]string, ...string) (string, error)
+
 // An InterpolatedVariable is a variable reference within an interpolation.
 //
 // Implementations of this interface represents various sources where
 // variables can come from: user variables, resources, etc.
 type InterpolatedVariable interface {
 	FullKey() string
+}
+
+// FunctionInterpolation is an Interpolation that executes a function
+// with some variable number of arguments to generate a value.
+type FunctionInterpolation struct {
+	Func InterpolationFunc
+	Args []InterpolatedVariable
+
+	key string
 }
 
 // VariableInterpolation implements Interpolation for simple variable
@@ -69,6 +87,33 @@ type UserMapVariable struct {
 // interpolation could not be found or the interpolation itself
 // is invalid.
 func NewInterpolation(v string) (Interpolation, error) {
+	match := funcRegexp.FindStringSubmatch(v)
+	if match != nil {
+		fn, ok := Funcs[match[1]]
+		if !ok {
+			return nil, fmt.Errorf(
+				"%s: Unknown function '%s'",
+				v, match[1])
+		}
+
+		args := make([]InterpolatedVariable, 0, len(match)-2)
+		for i := 2; i < len(match); i++ {
+			v, err := NewInterpolatedVariable(match[i])
+			if err != nil {
+				return nil, err
+			}
+
+			args = append(args, v)
+		}
+
+		return &FunctionInterpolation{
+			Func: fn,
+			Args: args,
+
+			key: v,
+		}, nil
+	}
+
 	if idx := strings.Index(v, "."); idx >= 0 {
 		v, err := NewInterpolatedVariable(v)
 		if err != nil {
@@ -97,6 +142,43 @@ func NewInterpolatedVariable(v string) (InterpolatedVariable, error) {
 	} else {
 		return NewUserMapVariable(v)
 	}
+}
+
+func (i *FunctionInterpolation) FullString() string {
+	return i.key
+}
+
+func (i *FunctionInterpolation) Interpolate(
+	vs map[string]string) (string, error) {
+	args := make([]string, len(i.Args))
+	for idx, a := range i.Args {
+		k := a.FullKey()
+		v, ok := vs[k]
+		if !ok {
+			return "", fmt.Errorf(
+				"%s: variable argument value unknown: %s",
+				i.FullString(),
+				k)
+		}
+
+		args[idx] = v
+	}
+
+	return i.Func(vs, args...)
+}
+
+func (i *FunctionInterpolation) Variables() map[string]InterpolatedVariable {
+	result := make(map[string]InterpolatedVariable)
+	for _, a := range i.Args {
+		k := a.FullKey()
+		if _, ok := result[k]; ok {
+			continue
+		}
+
+		result[k] = a
+	}
+
+	return result
 }
 
 func (i *VariableInterpolation) FullString() string {
@@ -164,6 +246,10 @@ func NewUserVariable(key string) (*UserVariable, error) {
 
 func (v *UserVariable) FullKey() string {
 	return v.key
+}
+
+func (v *UserVariable) GoString() string {
+	return fmt.Sprintf("*%#v", *v)
 }
 
 func NewUserMapVariable(key string) (*UserMapVariable, error) {

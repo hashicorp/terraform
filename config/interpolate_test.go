@@ -2,6 +2,7 @@ package config
 
 import (
 	"reflect"
+	"strings"
 	"testing"
 )
 
@@ -28,6 +29,25 @@ func TestNewInterpolation(t *testing.T) {
 			},
 			false,
 		},
+
+		{
+			"lookup(var.foo, var.bar)",
+			&FunctionInterpolation{
+				Func: nil, // Funcs["lookup"]
+				Args: []InterpolatedVariable{
+					&UserVariable{
+						Name: "foo",
+						key:  "var.foo",
+					},
+					&UserVariable{
+						Name: "bar",
+						key:  "var.bar",
+					},
+				},
+				key: "lookup(var.foo, var.bar)",
+			},
+			false,
+		},
 	}
 
 	for i, tc := range cases {
@@ -35,6 +55,13 @@ func TestNewInterpolation(t *testing.T) {
 		if (err != nil) != tc.Error {
 			t.Fatalf("%d. Error: %s", i, err)
 		}
+
+		// This is jank, but reflect.DeepEqual never has functions
+		// being the same.
+		if f, ok := actual.(*FunctionInterpolation); ok {
+			f.Func = nil
+		}
+
 		if !reflect.DeepEqual(actual, tc.Result) {
 			t.Fatalf("%d bad: %#v", i, actual)
 		}
@@ -103,6 +130,55 @@ func TestNewUserVariable(t *testing.T) {
 	}
 	if v.FullKey() != "var.bar" {
 		t.Fatalf("bad: %#v", v)
+	}
+}
+
+func TestFunctionInterpolation_impl(t *testing.T) {
+	var _ Interpolation = new(FunctionInterpolation)
+}
+
+func TestFunctionInterpolation(t *testing.T) {
+	v1, err := NewInterpolatedVariable("var.foo")
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	v2, err := NewInterpolatedVariable("var.bar")
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	fn := func(vs map[string]string, args ...string) (string, error) {
+		return strings.Join(args, " "), nil
+	}
+
+	i := &FunctionInterpolation{
+		Func: fn,
+		Args: []InterpolatedVariable{v1, v2},
+		key:  "foo",
+	}
+	if i.FullString() != "foo" {
+		t.Fatalf("err: %#v", i)
+	}
+
+	expected := map[string]InterpolatedVariable{
+		"var.foo": v1,
+		"var.bar": v2,
+	}
+	if !reflect.DeepEqual(i.Variables(), expected) {
+		t.Fatalf("bad: %#v", i.Variables())
+	}
+
+	actual, err := i.Interpolate(map[string]string{
+		"var.foo": "bar",
+		"var.bar": "baz",
+	})
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	if actual != "bar baz" {
+		t.Fatalf("bad: %#v", actual)
 	}
 }
 
