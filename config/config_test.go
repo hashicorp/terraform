@@ -64,6 +64,24 @@ func TestConfigValidate_unknownVar(t *testing.T) {
 	}
 }
 
+func TestConfigValidate_varDefault(t *testing.T) {
+	c := testConfig(t, "validate-var-default")
+	if err := c.Validate(); err != nil {
+		t.Fatalf("should be valid: %s", err)
+	}
+}
+
+func TestConfigValidate_varDefaultBadType(t *testing.T) {
+	t.Skip()
+
+	// TODO(mitchellh): FIX
+
+	c := testConfig(t, "validate-var-default-bad-type")
+	if err := c.Validate(); err == nil {
+		t.Fatal("should not be valid")
+	}
+}
+
 func TestNewResourceVariable(t *testing.T) {
 	v, err := NewResourceVariable("foo.bar.baz")
 	if err != nil {

@@ -131,6 +131,9 @@ func (c *Config) Validate() error {
 		varMap[v.Name] = v
 	}
 
+	// TODO(mitchellh): Validate that variable defaults are only a string
+	// or mapping of strings.
+
 	// Check for references to user variables that do not actually
 	// exist and record those errors.
 	for source, vs := range vars {

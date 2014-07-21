@@ -51,11 +51,13 @@ func (t *libuclConfigurable) Config() (*Config, error) {
 	if len(rawConfig.Variable) > 0 {
 		config.Variables = make([]*Variable, 0, len(rawConfig.Variable))
 		for k, v := range rawConfig.Variable {
-			config.Variables = append(config.Variables, &Variable{
+			newVar := &Variable{
 				Name:        k,
 				Default:     v.Default,
 				Description: v.Description,
-			})
+			}
+
+			config.Variables = append(config.Variables, newVar)
 		}
 	}
 
