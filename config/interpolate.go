@@ -33,19 +33,6 @@ type VariableInterpolation struct {
 	key string
 }
 
-func (i *VariableInterpolation) FullString() string {
-	return i.key
-}
-
-func (i *VariableInterpolation) Interpolate(
-	vs map[string]string) (string, error) {
-	return vs[i.key], nil
-}
-
-func (i *VariableInterpolation) Variables() map[string]InterpolatedVariable {
-	return map[string]InterpolatedVariable{i.key: i.Variable}
-}
-
 // A ResourceVariable is a variable that is referencing the field
 // of a resource, such as "${aws_instance.foo.ami}"
 type ResourceVariable struct {
@@ -57,6 +44,72 @@ type ResourceVariable struct {
 	Index int  // Index for multi-variable: aws_instance.foo.1.id == 1
 
 	key string
+}
+
+// A UserVariable is a variable that is referencing a user variable
+// that is inputted from outside the configuration. This looks like
+// "${var.foo}"
+type UserVariable struct {
+	Name string
+
+	key string
+}
+
+// A UserMapVariable is a variable that is referencing a user
+// variable that is a map. This looks like "${var.amis.us-east-1}"
+type UserMapVariable struct {
+	Name string
+	Elem string
+
+	key string
+}
+
+// NewInterpolation takes some string and returns the valid
+// Interpolation associated with it, or error if a valid
+// interpolation could not be found or the interpolation itself
+// is invalid.
+func NewInterpolation(v string) (Interpolation, error) {
+	if idx := strings.Index(v, "."); idx >= 0 {
+		v, err := NewInterpolatedVariable(v)
+		if err != nil {
+			return nil, err
+		}
+
+		return &VariableInterpolation{
+			Variable: v,
+			key:      v.FullKey(),
+		}, nil
+	}
+
+	return nil, fmt.Errorf(
+		"Interpolation '%s' is not a valid interpolation. " +
+			"Please check your syntax and try again.")
+}
+
+func NewInterpolatedVariable(v string) (InterpolatedVariable, error) {
+	if !strings.HasPrefix(v, "var.") {
+		return NewResourceVariable(v)
+	}
+
+	varKey := v[len("var."):]
+	if strings.Index(varKey, ".") == -1 {
+		return NewUserVariable(v)
+	} else {
+		return NewUserMapVariable(v)
+	}
+}
+
+func (i *VariableInterpolation) FullString() string {
+	return i.key
+}
+
+func (i *VariableInterpolation) Interpolate(
+	vs map[string]string) (string, error) {
+	return vs[i.key], nil
+}
+
+func (i *VariableInterpolation) Variables() map[string]InterpolatedVariable {
+	return map[string]InterpolatedVariable{i.key: i.Variable}
 }
 
 func NewResourceVariable(key string) (*ResourceVariable, error) {
@@ -101,15 +154,6 @@ func (v *ResourceVariable) FullKey() string {
 	return v.key
 }
 
-// A UserVariable is a variable that is referencing a user variable
-// that is inputted from outside the configuration. This looks like
-// "${var.foo}"
-type UserVariable struct {
-	Name string
-
-	key string
-}
-
 func NewUserVariable(key string) (*UserVariable, error) {
 	name := key[len("var."):]
 	return &UserVariable{
@@ -120,15 +164,6 @@ func NewUserVariable(key string) (*UserVariable, error) {
 
 func (v *UserVariable) FullKey() string {
 	return v.key
-}
-
-// A UserMapVariable is a variable that is referencing a user
-// variable that is a map. This looks like "${var.amis.us-east-1}"
-type UserMapVariable struct {
-	Name string
-	Elem string
-
-	key string
 }
 
 func NewUserMapVariable(key string) (*UserMapVariable, error) {
