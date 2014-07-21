@@ -53,3 +53,43 @@ func TestInterpolationWalker_detect(t *testing.T) {
 		}
 	}
 }
+
+func TestInterpolationWalker_replace(t *testing.T) {
+	cases := []struct {
+		Input  interface{}
+		Output interface{}
+	}{
+		{
+			Input: map[string]interface{}{
+				"foo": "$${var.foo}",
+			},
+			Output: map[string]interface{}{
+				"foo": "$${var.foo}",
+			},
+		},
+
+		{
+			Input: map[string]interface{}{
+				"foo": "${var.foo}",
+			},
+			Output: map[string]interface{}{
+				"foo": "bar",
+			},
+		},
+	}
+
+	for i, tc := range cases {
+		fn := func(i Interpolation) (string, error) {
+			return "bar", nil
+		}
+
+		w := &interpolationWalker{F: fn, Replace: true}
+		if err := reflectwalk.Walk(tc.Input, w); err != nil {
+			t.Fatalf("err: %s", err)
+		}
+
+		if !reflect.DeepEqual(tc.Input, tc.Output) {
+			t.Fatalf("%d: bad:\n\n%#v", i, tc.Input)
+		}
+	}
+}

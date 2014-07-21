@@ -3,6 +3,7 @@ package config
 import (
 	"reflect"
 	"regexp"
+	"strings"
 
 	"github.com/mitchellh/reflectwalk"
 )
@@ -15,8 +16,6 @@ var interpRegexp *regexp.Regexp = regexp.MustCompile(
 // (github.com/mitchellh/reflectwalk) that can be used to automatically
 // execute a callback for an interpolation.
 type interpolationWalker struct {
-	// F must be one of interpolationWalkerFunc or
-	// interpolationReplaceWalkerFunc.
 	F       interpolationWalkerFunc
 	Replace bool
 
@@ -26,6 +25,12 @@ type interpolationWalker struct {
 	csData interface{}
 }
 
+// interpolationWalkerFunc is the callback called by interpolationWalk.
+// It is called with any interpolation found. It should return a value
+// to replace the interpolation with, along with any errors.
+//
+// If Replace is set to false in interpolationWalker, then the replace
+// value can be anything as it will have no effect.
 type interpolationWalkerFunc func(Interpolation) (string, error)
 
 func (w *interpolationWalker) Enter(loc reflectwalk.Location) error {
@@ -58,8 +63,11 @@ func (w *interpolationWalker) MapElem(m, k, v reflect.Value) error {
 }
 
 func (w *interpolationWalker) Primitive(v reflect.Value) error {
+	setV := v
+
 	// We only care about strings
 	if v.Kind() == reflect.Interface {
+		setV = v
 		v = v.Elem()
 	}
 	if v.Kind() != reflect.String {
@@ -74,6 +82,7 @@ func (w *interpolationWalker) Primitive(v reflect.Value) error {
 		return nil
 	}
 
+	result := v.String()
 	for _, match := range matches {
 		dollars := len(match[1])
 
@@ -96,11 +105,22 @@ func (w *interpolationWalker) Primitive(v reflect.Value) error {
 		}
 
 		if w.Replace {
-			// TODO(mitchellh): replace
-			println(replaceVal)
+			result = strings.Replace(result, match[0], replaceVal, -1)
 		}
+	}
 
-		return nil
+	if w.Replace {
+		resultVal := reflect.ValueOf(result)
+		if w.loc == reflectwalk.MapValue {
+			// If we're in a map, then the only way to set a map value is
+			// to set it directly.
+			m := w.cs[len(w.cs)-1]
+			mk := w.csData.(reflect.Value)
+			m.SetMapIndex(mk, resultVal)
+		} else {
+			// Otherwise, we should be addressable
+			setV.Set(resultVal)
+		}
 	}
 
 	return nil
