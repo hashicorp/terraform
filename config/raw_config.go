@@ -92,6 +92,25 @@ func (r *RawConfig) init() error {
 	return nil
 }
 
+func (r *RawConfig) merge(r2 *RawConfig) *RawConfig {
+	rawRaw, err := copystructure.Copy(r.Raw)
+	if err != nil {
+		panic(err)
+	}
+
+	raw := rawRaw.(map[string]interface{})
+	for k, v := range r2.Raw {
+		raw[k] = v
+	}
+
+	result, err := NewRawConfig(raw)
+	if err != nil {
+		panic(err)
+	}
+
+	return result
+}
+
 // UnknownKeys returns the keys of the configuration that are unknown
 // because they had interpolated variables that must be computed.
 func (r *RawConfig) UnknownKeys() []string {

@@ -505,6 +505,7 @@ foo
 
 const importProvidersStr = `
 aws
+  bar
   foo
 `
 

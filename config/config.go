@@ -251,6 +251,84 @@ func (c *Config) allVariables() map[string][]InterpolatedVariable {
 	return result
 }
 
+func (o *Output) mergerName() string {
+	return o.Name
+}
+
+func (o *Output) mergerMerge(m merger) merger {
+	o2 := m.(*Output)
+
+	result := *o
+	result.Name = o2.Name
+	result.RawConfig = result.RawConfig.merge(o2.RawConfig)
+
+	return &result
+}
+
+func (c *ProviderConfig) mergerName() string {
+	return c.Name
+}
+
+func (c *ProviderConfig) mergerMerge(m merger) merger {
+	c2 := m.(*ProviderConfig)
+
+	result := *c
+	result.Name = c2.Name
+	result.RawConfig = result.RawConfig.merge(c2.RawConfig)
+
+	return &result
+}
+
+func (r *Resource) mergerName() string {
+	return fmt.Sprintf("%s.%s", r.Type, r.Name)
+}
+
+func (r *Resource) mergerMerge(m merger) merger {
+	r2 := m.(*Resource)
+
+	result := *r
+	result.Name = r2.Name
+	result.Type = r2.Type
+	result.RawConfig = result.RawConfig.merge(r2.RawConfig)
+
+	if r2.Count > 0 {
+		result.Count = r2.Count
+	}
+
+	if len(r2.Provisioners) > 0 {
+		result.Provisioners = r2.Provisioners
+	}
+
+	return &result
+}
+
+// Merge merges two variables to create a new third variable.
+func (v *Variable) Merge(v2 *Variable) *Variable {
+	// Shallow copy the variable
+	result := *v
+
+	// The names should be the same, but the second name always wins.
+	result.Name = v2.Name
+
+	if v2.defaultSet {
+		result.Default = v2.Default
+		result.defaultSet = true
+	}
+	if v2.Description != "" {
+		result.Description = v2.Description
+	}
+
+	return &result
+}
+
+func (v *Variable) mergerName() string {
+	return v.Name
+}
+
+func (v *Variable) mergerMerge(m merger) merger {
+	return v.Merge(m.(*Variable))
+}
+
 // Required tests whether a variable is required or not.
 func (v *Variable) Required() bool {
 	return !v.defaultSet

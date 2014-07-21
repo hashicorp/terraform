@@ -1,9 +1,5 @@
 package config
 
-import (
-	"fmt"
-)
-
 // Merge merges two configurations into a single configuration.
 //
 // Merge allows for the two configurations to have duplicate resources,
@@ -24,81 +20,135 @@ func Merge(c1, c2 *Config) (*Config, error) {
 		c.unknownKeys = append(c.unknownKeys, k)
 	}
 
-	// Merge variables: Variable merging is quite simple. Set fields in
-	// later set variables override those earlier.
-	if len(c1.Variables) > 0 || len(c2.Variables) > 0 {
-		c.Variables = make([]*Variable, 0, len(c1.Variables)+len(c2.Variables))
-		varMap := make(map[string]*Variable)
-		for _, v := range c1.Variables {
-			varMap[v.Name] = v
-		}
-		for _, v2 := range c2.Variables {
-			v1, ok := varMap[v2.Name]
-			if ok {
-				if v2.Default == "" {
-					v2.Default = v1.Default
-				}
-				if v2.Description == "" {
-					v2.Description = v1.Description
-				}
-			}
+	// NOTE: Everything below is pretty gross. Due to the lack of generics
+	// in Go, there is some hoop-jumping involved to make this merging a
+	// little more test-friendly and less repetitive. Ironically, making it
+	// less repetitive involves being a little repetitive, but I prefer to
+	// be repetitive with things that are less error prone than things that
+	// are more error prone (more logic). Type conversions to an interface
+	// are pretty low-error.
 
-			varMap[v2.Name] = v2
-		}
-		for _, v := range varMap {
-			c.Variables = append(c.Variables, v)
+	var m1, m2, mresult []merger
+
+	// Outputs
+	m1 = make([]merger, 0, len(c1.Outputs))
+	m2 = make([]merger, 0, len(c2.Outputs))
+	for _, v := range c1.Outputs {
+		m1 = append(m1, v)
+	}
+	for _, v := range c2.Outputs {
+		m2 = append(m2, v)
+	}
+	mresult = mergeSlice(m1, m2)
+	if len(mresult) > 0 {
+		c.Outputs = make([]*Output, len(mresult))
+		for i, v := range mresult {
+			c.Outputs[i] = v.(*Output)
 		}
 	}
 
-	// Merge outputs: If they collide, just take the latest one for now. In
-	// the future, we might provide smarter merge functionality.
-	if len(c1.Outputs) > 0 || len(c2.Outputs) > 0 {
-		c.Outputs = make([]*Output, 0, len(c1.Outputs)+len(c2.Outputs))
-		m := make(map[string]*Output)
-		for _, v := range c1.Outputs {
-			m[v.Name] = v
-		}
-		for _, v := range c2.Outputs {
-			m[v.Name] = v
-		}
-		for _, v := range m {
-			c.Outputs = append(c.Outputs, v)
+	// Provider Configs
+	m1 = make([]merger, 0, len(c1.ProviderConfigs))
+	m2 = make([]merger, 0, len(c2.ProviderConfigs))
+	for _, v := range c1.ProviderConfigs {
+		m1 = append(m1, v)
+	}
+	for _, v := range c2.ProviderConfigs {
+		m2 = append(m2, v)
+	}
+	mresult = mergeSlice(m1, m2)
+	if len(mresult) > 0 {
+		c.ProviderConfigs = make([]*ProviderConfig, len(mresult))
+		for i, v := range mresult {
+			c.ProviderConfigs[i] = v.(*ProviderConfig)
 		}
 	}
 
-	// Merge provider configs: If they collide, we just take the latest one
-	// for now. In the future, we might provide smarter merge functionality.
-	if len(c1.ProviderConfigs) > 0 || len(c2.ProviderConfigs) > 0 {
-		m := make(map[string]*ProviderConfig)
-		for _, v := range c1.ProviderConfigs {
-			m[v.Name] = v
-		}
-		for _, v := range c2.ProviderConfigs {
-			m[v.Name] = v
-		}
-
-		c.ProviderConfigs = make([]*ProviderConfig, 0, len(m))
-		for _, v := range m {
-			c.ProviderConfigs = append(c.ProviderConfigs, v)
+	// Resources
+	m1 = make([]merger, 0, len(c1.Resources))
+	m2 = make([]merger, 0, len(c2.Resources))
+	for _, v := range c1.Resources {
+		m1 = append(m1, v)
+	}
+	for _, v := range c2.Resources {
+		m2 = append(m2, v)
+	}
+	mresult = mergeSlice(m1, m2)
+	if len(mresult) > 0 {
+		c.Resources = make([]*Resource, len(mresult))
+		for i, v := range mresult {
+			c.Resources[i] = v.(*Resource)
 		}
 	}
 
-	// Merge resources: If they collide, we just take the latest one
-	// for now. In the future, we might provide smarter merge functionality.
-	resources := make(map[string]*Resource)
-	for _, r := range c1.Resources {
-		id := fmt.Sprintf("%s[%s]", r.Type, r.Name)
-		resources[id] = r
+	// Variables
+	m1 = make([]merger, 0, len(c1.Variables))
+	m2 = make([]merger, 0, len(c2.Variables))
+	for _, v := range c1.Variables {
+		m1 = append(m1, v)
 	}
-	for _, r := range c2.Resources {
-		id := fmt.Sprintf("%s[%s]", r.Type, r.Name)
-		resources[id] = r
+	for _, v := range c2.Variables {
+		m2 = append(m2, v)
 	}
-
-	c.Resources = make([]*Resource, 0, len(resources))
-	for _, r := range resources {
-		c.Resources = append(c.Resources, r)
+	mresult = mergeSlice(m1, m2)
+	if len(mresult) > 0 {
+		c.Variables = make([]*Variable, len(mresult))
+		for i, v := range mresult {
+			c.Variables[i] = v.(*Variable)
+		}
 	}
 
 	return c, nil
+}
+
+// merger is an interface that must be implemented by types that are
+// merge-able. This simplifies the implementation of Merge for the various
+// components of a Config.
+type merger interface {
+	mergerName() string
+	mergerMerge(merger) merger
+}
+
+// mergeSlice merges a slice of mergers.
+func mergeSlice(m1, m2 []merger) []merger {
+	r := make([]merger, len(m1), len(m1)+len(m2))
+	copy(r, m1)
+
+	m := map[string]struct{}{}
+	for _, v2 := range m2 {
+		// If we already saw it, just append it because its a
+		// duplicate and invalid...
+		name := v2.mergerName()
+		if _, ok := m[name]; ok {
+			r = append(r, v2)
+			continue
+		}
+		m[name] = struct{}{}
+
+		// Find an original to override
+		var original merger
+		originalIndex := -1
+		for i, v := range m1 {
+			if v.mergerName() == name {
+				originalIndex = i
+				original = v
+				break
+			}
+		}
+
+		var v merger
+		if original == nil {
+			v = v2
+		} else {
+			v = original.mergerMerge(v2)
+		}
+
+		if originalIndex == -1 {
+			r = append(r, v)
+		} else {
+			r[originalIndex] = v
+		}
+	}
+
+	return r
 }
