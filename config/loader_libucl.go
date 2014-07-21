@@ -45,21 +45,26 @@ func (t *libuclConfigurable) Config() (*Config, error) {
 
 	// Start building up the actual configuration. We start with
 	// variables.
+	// TODO(mitchellh): Make function like loadVariablesLibucl so that
+	// duplicates aren't overriden
 	config := new(Config)
-	config.Variables = make(map[string]*Variable)
-	for k, v := range rawConfig.Variable {
-		defaultSet := false
-		for _, f := range v.Fields {
-			if f == "Default" {
-				defaultSet = true
-				break
+	if len(rawConfig.Variable) > 0 {
+		config.Variables = make([]*Variable, 0, len(rawConfig.Variable))
+		for k, v := range rawConfig.Variable {
+			defaultSet := false
+			for _, f := range v.Fields {
+				if f == "Default" {
+					defaultSet = true
+					break
+				}
 			}
-		}
 
-		config.Variables[k] = &Variable{
-			Default:     v.Default,
-			Description: v.Description,
-			defaultSet:  defaultSet,
+			config.Variables = append(config.Variables, &Variable{
+				Name:        k,
+				Default:     v.Default,
+				Description: v.Description,
+				defaultSet:  defaultSet,
+			})
 		}
 	}
 
@@ -178,7 +183,7 @@ func loadFileLibucl(root string) (configurable, []string, error) {
 
 // LoadOutputsLibucl recurses into the given libucl object and turns
 // it into a mapping of outputs.
-func loadOutputsLibucl(o *libucl.Object) (map[string]*Output, error) {
+func loadOutputsLibucl(o *libucl.Object) ([]*Output, error) {
 	objects := make(map[string]*libucl.Object)
 
 	// Iterate over all the "output" blocks and get the keys along with
@@ -196,8 +201,13 @@ func loadOutputsLibucl(o *libucl.Object) (map[string]*Output, error) {
 	}
 	iter.Close()
 
+	// If we have none, just return nil
+	if len(objects) == 0 {
+		return nil, nil
+	}
+
 	// Go through each object and turn it into an actual result.
-	result := make(map[string]*Output)
+	result := make([]*Output, 0, len(objects))
 	for n, o := range objects {
 		var config map[string]interface{}
 
@@ -213,10 +223,10 @@ func loadOutputsLibucl(o *libucl.Object) (map[string]*Output, error) {
 				err)
 		}
 
-		result[n] = &Output{
+		result = append(result, &Output{
 			Name:      n,
 			RawConfig: rawConfig,
-		}
+		})
 	}
 
 	return result, nil
@@ -224,7 +234,7 @@ func loadOutputsLibucl(o *libucl.Object) (map[string]*Output, error) {
 
 // LoadProvidersLibucl recurses into the given libucl object and turns
 // it into a mapping of provider configs.
-func loadProvidersLibucl(o *libucl.Object) (map[string]*ProviderConfig, error) {
+func loadProvidersLibucl(o *libucl.Object) ([]*ProviderConfig, error) {
 	objects := make(map[string]*libucl.Object)
 
 	// Iterate over all the "provider" blocks and get the keys along with
@@ -242,8 +252,12 @@ func loadProvidersLibucl(o *libucl.Object) (map[string]*ProviderConfig, error) {
 	}
 	iter.Close()
 
+	if len(objects) == 0 {
+		return nil, nil
+	}
+
 	// Go through each object and turn it into an actual result.
-	result := make(map[string]*ProviderConfig)
+	result := make([]*ProviderConfig, 0, len(objects))
 	for n, o := range objects {
 		var config map[string]interface{}
 
@@ -259,9 +273,10 @@ func loadProvidersLibucl(o *libucl.Object) (map[string]*ProviderConfig, error) {
 				err)
 		}
 
-		result[n] = &ProviderConfig{
+		result = append(result, &ProviderConfig{
+			Name:      n,
 			RawConfig: rawConfig,
-		}
+		})
 	}
 
 	return result, nil

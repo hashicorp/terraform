@@ -1,0 +1,10 @@
+{
+    "resource": {
+        "aws_instance": {
+            "db": {
+                "ami": "foo",
+                "security_groups": ""
+            }
+        }
+    }
+}

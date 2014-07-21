@@ -116,16 +116,6 @@ func TestLoad_variables(t *testing.T) {
 	if actual != strings.TrimSpace(variablesVariablesStr) {
 		t.Fatalf("bad:\n%s", actual)
 	}
-
-	if !c.Variables["foo"].Required() {
-		t.Fatal("foo should be required")
-	}
-	if c.Variables["bar"].Required() {
-		t.Fatal("bar should not be required")
-	}
-	if c.Variables["baz"].Required() {
-		t.Fatal("baz should not be required")
-	}
 }
 
 func TestLoadDir_basic(t *testing.T) {
@@ -166,16 +156,64 @@ func TestLoadDir_noConfigs(t *testing.T) {
 	}
 }
 
-func outputsStr(os map[string]*Output) string {
+func TestLoadDir_noMerge(t *testing.T) {
+	c, err := LoadDir(filepath.Join(fixtureDir, "dir-merge"))
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	if c == nil {
+		t.Fatal("config should not be nil")
+	}
+
+	if err := c.Validate(); err == nil {
+		t.Fatal("should not be valid")
+	}
+}
+
+func TestLoadDir_override(t *testing.T) {
+	c, err := LoadDir(filepath.Join(fixtureDir, "dir-override"))
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	if c == nil {
+		t.Fatal("config should not be nil")
+	}
+
+	actual := variablesStr(c.Variables)
+	if actual != strings.TrimSpace(dirOverrideVariablesStr) {
+		t.Fatalf("bad:\n%s", actual)
+	}
+
+	actual = providerConfigsStr(c.ProviderConfigs)
+	if actual != strings.TrimSpace(dirOverrideProvidersStr) {
+		t.Fatalf("bad:\n%s", actual)
+	}
+
+	actual = resourcesStr(c.Resources)
+	if actual != strings.TrimSpace(dirOverrideResourcesStr) {
+		t.Fatalf("bad:\n%s", actual)
+	}
+
+	actual = outputsStr(c.Outputs)
+	if actual != strings.TrimSpace(dirOverrideOutputsStr) {
+		t.Fatalf("bad:\n%s", actual)
+	}
+}
+
+func outputsStr(os []*Output) string {
 	ns := make([]string, 0, len(os))
-	for n, _ := range os {
-		ns = append(ns, n)
+	m := make(map[string]*Output)
+	for _, o := range os {
+		ns = append(ns, o.Name)
+		m[o.Name] = o
 	}
 	sort.Strings(ns)
 
 	result := ""
 	for _, n := range ns {
-		o := os[n]
+		o := m[n]
 
 		result += fmt.Sprintf("%s\n", n)
 
@@ -256,17 +294,19 @@ func TestLoad_connections(t *testing.T) {
 
 // This helper turns a provider configs field into a deterministic
 // string value for comparison in tests.
-func providerConfigsStr(pcs map[string]*ProviderConfig) string {
+func providerConfigsStr(pcs []*ProviderConfig) string {
 	result := ""
 
 	ns := make([]string, 0, len(pcs))
-	for n, _ := range pcs {
-		ns = append(ns, n)
+	m := make(map[string]*ProviderConfig)
+	for _, n := range pcs {
+		ns = append(ns, n.Name)
+		m[n.Name] = n
 	}
 	sort.Strings(ns)
 
 	for _, n := range ns {
-		pc := pcs[n]
+		pc := m[n]
 
 		result += fmt.Sprintf("%s\n", n)
 
@@ -384,16 +424,18 @@ func resourcesStr(rs []*Resource) string {
 
 // This helper turns a variables field into a deterministic
 // string value for comparison in tests.
-func variablesStr(vs map[string]*Variable) string {
+func variablesStr(vs []*Variable) string {
 	result := ""
 	ks := make([]string, 0, len(vs))
-	for k, _ := range vs {
-		ks = append(ks, k)
+	m := make(map[string]*Variable)
+	for _, v := range vs {
+		ks = append(ks, v.Name)
+		m[v.Name] = v
 	}
 	sort.Strings(ks)
 
 	for _, k := range ks {
-		v := vs[k]
+		v := m[k]
 
 		if v.Default == "" {
 			v.Default = "<>"
@@ -402,9 +444,15 @@ func variablesStr(vs map[string]*Variable) string {
 			v.Description = "<>"
 		}
 
+		required := ""
+		if v.Required() {
+			required = " (required)"
+		}
+
 		result += fmt.Sprintf(
-			"%s\n  %s\n  %s\n",
+			"%s%s\n  %s\n  %s\n",
 			k,
+			required,
 			v.Default,
 			v.Description)
 	}
@@ -486,8 +534,46 @@ foo
   bar
 `
 
+const dirOverrideOutputsStr = `
+web_ip
+  vars
+    resource: aws_instance.web.private_ip
+`
+
+const dirOverrideProvidersStr = `
+aws
+  access_key
+  secret_key
+do
+  api_key
+  vars
+    user: var.foo
+`
+
+const dirOverrideResourcesStr = `
+aws_instance[db] (x1)
+  ami
+  security_groups
+aws_instance[web] (x1)
+  ami
+  foo
+  network_interface
+  security_groups
+  vars
+    resource: aws_security_group.firewall.foo
+    user: var.foo
+aws_security_group[firewall] (x5)
+`
+
+const dirOverrideVariablesStr = `
+foo
+  bar
+  bar
+`
+
 const importProvidersStr = `
 aws
+  bar
   foo
 `
 
@@ -497,7 +583,7 @@ aws_security_group[web] (x1)
 `
 
 const importVariablesStr = `
-bar
+bar (required)
   <>
   <>
 foo
@@ -538,7 +624,7 @@ bar
 baz
   foo
   <>
-foo
+foo (required)
   <>
   <>
 `

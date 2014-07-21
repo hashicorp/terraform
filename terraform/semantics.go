@@ -13,9 +13,9 @@ func smcUserVariables(c *config.Config, vs map[string]string) []error {
 
 	// Check that all required variables are present
 	required := make(map[string]struct{})
-	for k, v := range c.Variables {
+	for _, v := range c.Variables {
 		if v.Required() {
-			required[k] = struct{}{}
+			required[v.Name] = struct{}{}
 		}
 	}
 	for k, _ := range vs {

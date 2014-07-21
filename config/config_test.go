@@ -151,11 +151,11 @@ func TestNewUserVariable(t *testing.T) {
 }
 
 func TestProviderConfigName(t *testing.T) {
-	pcs := map[string]*ProviderConfig{
-		"aw":   new(ProviderConfig),
-		"aws":  new(ProviderConfig),
-		"a":    new(ProviderConfig),
-		"gce_": new(ProviderConfig),
+	pcs := []*ProviderConfig{
+		&ProviderConfig{Name: "aw"},
+		&ProviderConfig{Name: "aws"},
+		&ProviderConfig{Name: "a"},
+		&ProviderConfig{Name: "gce_"},
 	}
 
 	n := ProviderConfigName("aws_instance", pcs)

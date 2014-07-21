@@ -13,10 +13,10 @@ import (
 // Config is the configuration that comes from loading a collection
 // of Terraform templates.
 type Config struct {
-	ProviderConfigs map[string]*ProviderConfig
+	ProviderConfigs []*ProviderConfig
 	Resources       []*Resource
-	Variables       map[string]*Variable
-	Outputs         map[string]*Output
+	Variables       []*Variable
+	Outputs         []*Output
 
 	// The fields below can be filled in by loaders for validation
 	// purposes.
@@ -28,6 +28,7 @@ type Config struct {
 // For example, Terraform needs to set the AWS access keys for the AWS
 // resource provider.
 type ProviderConfig struct {
+	Name      string
 	RawConfig *RawConfig
 }
 
@@ -51,6 +52,7 @@ type Provisioner struct {
 
 // Variable is a variable defined within the configuration.
 type Variable struct {
+	Name        string
 	Default     string
 	Description string
 	defaultSet  bool
@@ -98,9 +100,10 @@ type UserVariable struct {
 // ProviderConfigName returns the name of the provider configuration in
 // the given mapping that maps to the proper provider configuration
 // for this resource.
-func ProviderConfigName(t string, pcs map[string]*ProviderConfig) string {
+func ProviderConfigName(t string, pcs []*ProviderConfig) string {
 	lk := ""
-	for k, _ := range pcs {
+	for _, v := range pcs {
+		k := v.Name
 		if strings.HasPrefix(t, k) && len(k) > len(lk) {
 			lk = k
 		}
@@ -124,6 +127,10 @@ func (c *Config) Validate() error {
 	}
 
 	vars := c.allVariables()
+	varMap := make(map[string]*Variable)
+	for _, v := range c.Variables {
+		varMap[v.Name] = v
+	}
 
 	// Check for references to user variables that do not actually
 	// exist and record those errors.
@@ -134,7 +141,7 @@ func (c *Config) Validate() error {
 				continue
 			}
 
-			if _, ok := c.Variables[uv.Name]; !ok {
+			if _, ok := varMap[uv.Name]; !ok {
 				errs = append(errs, fmt.Errorf(
 					"%s: unknown variable referenced: %s",
 					source,
@@ -242,6 +249,84 @@ func (c *Config) allVariables() map[string][]InterpolatedVariable {
 	}
 
 	return result
+}
+
+func (o *Output) mergerName() string {
+	return o.Name
+}
+
+func (o *Output) mergerMerge(m merger) merger {
+	o2 := m.(*Output)
+
+	result := *o
+	result.Name = o2.Name
+	result.RawConfig = result.RawConfig.merge(o2.RawConfig)
+
+	return &result
+}
+
+func (c *ProviderConfig) mergerName() string {
+	return c.Name
+}
+
+func (c *ProviderConfig) mergerMerge(m merger) merger {
+	c2 := m.(*ProviderConfig)
+
+	result := *c
+	result.Name = c2.Name
+	result.RawConfig = result.RawConfig.merge(c2.RawConfig)
+
+	return &result
+}
+
+func (r *Resource) mergerName() string {
+	return fmt.Sprintf("%s.%s", r.Type, r.Name)
+}
+
+func (r *Resource) mergerMerge(m merger) merger {
+	r2 := m.(*Resource)
+
+	result := *r
+	result.Name = r2.Name
+	result.Type = r2.Type
+	result.RawConfig = result.RawConfig.merge(r2.RawConfig)
+
+	if r2.Count > 0 {
+		result.Count = r2.Count
+	}
+
+	if len(r2.Provisioners) > 0 {
+		result.Provisioners = r2.Provisioners
+	}
+
+	return &result
+}
+
+// Merge merges two variables to create a new third variable.
+func (v *Variable) Merge(v2 *Variable) *Variable {
+	// Shallow copy the variable
+	result := *v
+
+	// The names should be the same, but the second name always wins.
+	result.Name = v2.Name
+
+	if v2.defaultSet {
+		result.Default = v2.Default
+		result.defaultSet = true
+	}
+	if v2.Description != "" {
+		result.Description = v2.Description
+	}
+
+	return &result
+}
+
+func (v *Variable) mergerName() string {
+	return v.Name
+}
+
+func (v *Variable) mergerMerge(m merger) merger {
+	return v.Merge(m.(*Variable))
 }
 
 // Required tests whether a variable is required or not.

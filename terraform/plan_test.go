@@ -53,6 +53,8 @@ func TestReadWritePlan(t *testing.T) {
 		t.Fatalf("err: %s", err)
 	}
 
+	println(reflect.DeepEqual(actual.Config.Variables, plan.Config.Variables))
+
 	if !reflect.DeepEqual(actual, plan) {
 		t.Fatalf("bad: %#v", actual)
 	}
