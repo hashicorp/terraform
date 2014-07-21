@@ -5,6 +5,69 @@ import (
 	"testing"
 )
 
+func TestNewInterpolation(t *testing.T) {
+	cases := []struct {
+		Input  string
+		Result Interpolation
+		Error  bool
+	}{
+		{
+			"foo",
+			nil,
+			true,
+		},
+
+		{
+			"var.foo",
+			&VariableInterpolation{
+				Variable: &UserVariable{
+					Name: "foo",
+					key:  "var.foo",
+				},
+				key: "var.foo",
+			},
+			false,
+		},
+	}
+
+	for i, tc := range cases {
+		actual, err := NewInterpolation(tc.Input)
+		if (err != nil) != tc.Error {
+			t.Fatalf("%d. Error: %s", i, err)
+		}
+		if !reflect.DeepEqual(actual, tc.Result) {
+			t.Fatalf("%d bad: %#v", i, actual)
+		}
+	}
+}
+
+func TestNewInterpolatedVariable(t *testing.T) {
+	cases := []struct {
+		Input  string
+		Result InterpolatedVariable
+		Error  bool
+	}{
+		{
+			"var.foo",
+			&UserVariable{
+				Name: "foo",
+				key:  "var.foo",
+			},
+			false,
+		},
+	}
+
+	for i, tc := range cases {
+		actual, err := NewInterpolatedVariable(tc.Input)
+		if (err != nil) != tc.Error {
+			t.Fatalf("%d. Error: %s", i, err)
+		}
+		if !reflect.DeepEqual(actual, tc.Result) {
+			t.Fatalf("%d bad: %#v", i, actual)
+		}
+	}
+}
+
 func TestNewResourceVariable(t *testing.T) {
 	v, err := NewResourceVariable("foo.bar.baz")
 	if err != nil {
