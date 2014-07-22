@@ -18,6 +18,12 @@ func TestExprParse(t *testing.T) {
 		},
 
 		{
+			`"foo"`,
+			&LiteralInterpolation{Literal: "foo"},
+			false,
+		},
+
+		{
 			"var.foo",
 			&VariableInterpolation{
 				Variable: &UserVariable{
