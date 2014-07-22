@@ -196,7 +196,8 @@ func (i *VariableInterpolation) Interpolate(
 	v, ok := vs[i.key]
 	if !ok {
 		return "", fmt.Errorf(
-			"%s: value for variable '%s' not found", v)
+			"%s: value for variable not found",
+			i.key)
 	}
 
 	return v, nil

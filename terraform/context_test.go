@@ -1168,10 +1168,6 @@ func TestContextPlan_computed(t *testing.T) {
 		t.Fatalf("err: %s", err)
 	}
 
-	if len(plan.Diff.Resources) < 2 {
-		t.Fatalf("bad: %#v", plan.Diff.Resources)
-	}
-
 	actual := strings.TrimSpace(plan.String())
 	expected := strings.TrimSpace(testTerraformPlanComputedStr)
 	if actual != expected {
