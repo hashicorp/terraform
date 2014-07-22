@@ -179,7 +179,10 @@ func graphAddConfigResources(
 			}
 
 			// Determine if this resource is tainted
-			_, tainted := s.Tainted[r.Id()]
+			tainted := false
+			if s != nil && s.Tainted != nil {
+				_, tainted = s.Tainted[r.Id()]
+			}
 
 			var state *ResourceState
 			if s != nil {
