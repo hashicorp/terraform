@@ -83,7 +83,8 @@ variable:
 		var err error
 		$$, err = NewInterpolatedVariable($1)
 		if err != nil {
-			panic(err)
+			exprErrors = append(exprErrors, fmt.Errorf(
+				"Error parsing variable '%s': %s", $1, err))
 		}
 	}
 
