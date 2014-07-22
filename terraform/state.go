@@ -18,13 +18,20 @@ import (
 type State struct {
 	Outputs   map[string]string
 	Resources map[string]*ResourceState
+	Tainted   map[string]struct{}
 
 	once sync.Once
 }
 
 func (s *State) init() {
 	s.once.Do(func() {
-		s.Resources = make(map[string]*ResourceState)
+		if s.Resources == nil {
+			s.Resources = make(map[string]*ResourceState)
+		}
+
+		if s.Tainted == nil {
+			s.Tainted = make(map[string]struct{})
+		}
 	})
 }
 
@@ -97,7 +104,12 @@ func (s *State) String() string {
 			id = "<not created>"
 		}
 
-		buf.WriteString(fmt.Sprintf("%s:\n", k))
+		taintStr := ""
+		if _, ok := s.Tainted[k]; ok {
+			taintStr = " (tainted)"
+		}
+
+		buf.WriteString(fmt.Sprintf("%s:%s\n", k, taintStr))
 		buf.WriteString(fmt.Sprintf("  ID = %s\n", id))
 
 		attrKeys := make([]string, 0, len(rs.Attributes))

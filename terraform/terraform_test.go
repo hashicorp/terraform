@@ -131,11 +131,10 @@ aws_instance.foo:
 `
 
 const testTerraformApplyProvisionerFailStr = `
-aws_instance.bar:
+aws_instance.bar: (tainted)
   ID = foo
 aws_instance.foo:
   ID = foo
-  dynamical = computed_dynamical
   num = 2
   type = aws_instance
 `

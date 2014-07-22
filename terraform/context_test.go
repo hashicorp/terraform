@@ -457,13 +457,15 @@ func TestContextApply_Provisioner_compute(t *testing.T) {
 }
 
 func TestContextApply_provisionerFail(t *testing.T) {
-	t.Skip()
-
 	c := testConfig(t, "apply-provisioner-fail")
 	p := testProvider("aws")
 	pr := testProvisioner()
 	p.ApplyFn = testApplyFn
 	p.DiffFn = testDiffFn
+
+	pr.ApplyFn = func(*ResourceState, *ResourceConfig) error {
+		return fmt.Errorf("EXPLOSION")
+	}
 
 	ctx := testContext(t, &ContextOpts{
 		Config: c,
@@ -483,8 +485,8 @@ func TestContextApply_provisionerFail(t *testing.T) {
 	}
 
 	state, err := ctx.Apply()
-	if err != nil {
-		t.Fatalf("err: %s", err)
+	if err == nil {
+		t.Fatal("should error")
 	}
 
 	actual := strings.TrimSpace(state.String())

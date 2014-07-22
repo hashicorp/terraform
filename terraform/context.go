@@ -554,9 +554,11 @@ func (c *Context) applyWalkFn() depgraph.WalkFunc {
 		//
 		// Additionally, we need to be careful to not run this if there
 		// was an error during the provider apply.
+		tainted := false
 		if applyerr == nil && r.State.ID == "" && len(r.Provisioners) > 0 {
 			if err := c.applyProvisioners(r, rs); err != nil {
 				errs = append(errs, err)
+				tainted = true
 			}
 		}
 
@@ -566,6 +568,10 @@ func (c *Context) applyWalkFn() depgraph.WalkFunc {
 			delete(c.state.Resources, r.Id)
 		} else {
 			c.state.Resources[r.Id] = rs
+
+			if tainted {
+				c.state.Tainted[r.Id] = struct{}{}
+			}
 		}
 		c.sl.Unlock()
 
