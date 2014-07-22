@@ -34,7 +34,7 @@ testacc: config/y.go libucl
 testrace: config/y.go libucl
 	TF_ACC= go test -race $(TEST) $(TESTARGS)
 
-updatedeps:
+updatedeps: config/y.go
 	go get -u -v ./...
 
 config/y.go: config/expr.y
