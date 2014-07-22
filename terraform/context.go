@@ -335,6 +335,8 @@ func (c *Context) computeVars(raw *config.RawConfig) error {
 				continue
 			}
 
+			// Look up if we have any variables with this prefix because
+			// those are map overrides. Include those.
 			for k, val := range c.variables {
 				if strings.HasPrefix(k, v.Name+".") {
 					vs["var."+k] = val
