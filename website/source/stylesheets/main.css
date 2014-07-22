@@ -532,8 +532,6 @@ body.page-sub #header {
   padding: 240px 0;
   font-family: 'Lato', "Helvetica Neue", Helvetica, Arial, sans-serif;
   font-weight: 100;
-  text-rendering: optimizeLegibility;
-  -webkit-font-smoothing: antialiased;
 }
 .feature h2 {
   text-align: right;
@@ -561,6 +559,7 @@ body.page-sub #header {
   background-repeat: no-repeat;
 }
 #feature-auto {
+  padding: 240px 0 300px;
   margin-top: -36px;
   background: #ffffff url(../images/white-wireframe.png) center top no-repeat;
   background-size: cover;
@@ -610,7 +609,7 @@ body.page-sub #header {
 }
 #feature-clone {
   margin-top: -80px;
-  padding: 240px 0;
+  padding: 240px 0 300px;
   color: white;
   background-color: #822ff7;
   -webkit-transform: skewY(2deg);
@@ -711,15 +710,27 @@ body.page-sub #header {
 }
 #demos {
   padding: 30px 0 60px;
-  background-color: #f7f3f9;
-  background: #f7f3f9 url('../images/sidebar-dots.jpg') left 62px no-repeat;
+  background-color: #000;
+  margin-top: -80px;
+  -webkit-transform: skewY(-2deg);
+  -moz-transform: skewY(-2deg);
+  -ms-transform: skewY(-2deg);
+  -o-transform: skewY(-2deg);
+  transform: skewY(-2deg);
+}
+#demos > .container {
+  -webkit-transform: skewY(2deg);
+  -moz-transform: skewY(2deg);
+  -ms-transform: skewY(2deg);
+  -o-transform: skewY(2deg);
+  transform: skewY(2deg);
 }
 #demos .explantion {
   margin: 40px 0 40px 0;
 }
 #demos .explantion h2 {
   font-size: 22px;
-  color: #b9b9b9;
+  color: white;
   text-transform: uppercase;
   font-family: 'Lato', "Helvetica Neue", Helvetica, Arial, sans-serif;
   font-weight: 700;
@@ -728,7 +739,7 @@ body.page-sub #header {
   font-size: 16px;
   letter-spacing: 1px;
   line-height: 1.5em;
-  color: #909090;
+  color: white;
   font-family: 'Lato', "Helvetica Neue", Helvetica, Arial, sans-serif;
   font-weight: 500;
 }

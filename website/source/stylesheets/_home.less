@@ -8,7 +8,7 @@
 .feature{
 	padding: 240px 0;
 	.lato-light();
-	.anti-alias();
+	//.anti-alias();
 
 	h2{
 		text-align: right;
@@ -39,6 +39,7 @@
 }
 
 #feature-auto{
+	padding: 240px 0 300px;
 	margin-top: -36px;
 	background: #fff url(../images/white-wireframe.png) center top no-repeat;
 	background-size: cover;
@@ -78,7 +79,7 @@
 
 #feature-clone{
 	margin-top: -80px;
-	padding: 240px 0;
+	padding: 240px 0 300px;
 	color: white;
 	background-color: @purple;
 	.skewY(2deg);
@@ -191,15 +192,20 @@
 
 #demos{
 	padding: 30px 0 60px;
-	background-color: @light-purple;
-	background: @light-purple url('../images/sidebar-dots.jpg') left 62px no-repeat;
+	background-color: #000;
+	margin-top: -80px;
+	.skewY(-2deg);
+
+	>.container{
+		.skewY(2deg);
+	}
 
 	.explantion {
 		margin: 40px 0 40px 0;
 
 		h2 {
 			font-size: 22px;
-			color: lighten(@gray-light, 15%);
+			color: white;
 			text-transform: uppercase;
 			font-family: @font-family-lato;
 			font-weight: @font-weight-lato-xb;
@@ -208,8 +214,8 @@
 		p{
 			font-size: 16px;
 			letter-spacing: 1px;
-	        line-height: 1.5em;
-			color: @consul-gray;
+	    line-height: 1.5em;
+			color: white;
 			font-family: @font-family-lato;
 			font-weight: @font-weight-lato-sb;
 		}
