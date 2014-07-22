@@ -273,3 +273,18 @@ func TestVariableInterpolation(t *testing.T) {
 		t.Fatalf("bad: %#v", actual)
 	}
 }
+
+func TestVariableInterpolation_missing(t *testing.T) {
+	uv, err := NewUserVariable("var.foo")
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	i := &VariableInterpolation{Variable: uv, key: "var.foo"}
+	_, err = i.Interpolate(map[string]string{
+		"var.bar": "bar",
+	})
+	if err == nil {
+		t.Fatal("should error")
+	}
+}

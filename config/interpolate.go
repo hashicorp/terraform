@@ -193,7 +193,13 @@ func (i *VariableInterpolation) FullString() string {
 
 func (i *VariableInterpolation) Interpolate(
 	vs map[string]string) (string, error) {
-	return vs[i.key], nil
+	v, ok := vs[i.key]
+	if !ok {
+		return "", fmt.Errorf(
+			"%s: value for variable '%s' not found", v)
+	}
+
+	return v, nil
 }
 
 func (i *VariableInterpolation) Variables() map[string]InterpolatedVariable {
