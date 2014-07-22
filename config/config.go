@@ -213,8 +213,8 @@ func (c *Config) Validate() error {
 // are valid in the Validate step.
 func (c *Config) allVariables() map[string][]InterpolatedVariable {
 	result := make(map[string][]InterpolatedVariable)
-	for n, pc := range c.ProviderConfigs {
-		source := fmt.Sprintf("provider config '%s'", n)
+	for _, pc := range c.ProviderConfigs {
+		source := fmt.Sprintf("provider config '%s'", pc.Name)
 		for _, v := range pc.RawConfig.Variables {
 			result[source] = append(result[source], v)
 		}
