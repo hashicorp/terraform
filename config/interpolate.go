@@ -37,8 +37,8 @@ type InterpolatedVariable interface {
 // FunctionInterpolation is an Interpolation that executes a function
 // with some variable number of arguments to generate a value.
 type FunctionInterpolation struct {
-	Func InterpolationFunc
-	Args []InterpolatedVariable
+	Func string
+	Args []Interpolation
 
 	key string
 }
