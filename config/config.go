@@ -6,7 +6,9 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/hashicorp/terraform/flatmap"
 	"github.com/hashicorp/terraform/helper/multierror"
+	"github.com/mitchellh/mapstructure"
 )
 
 // Config is the configuration that comes from loading a collection
@@ -62,6 +64,14 @@ type Output struct {
 	Name      string
 	RawConfig *RawConfig
 }
+
+type VariableType byte
+
+const (
+	VariableTypeUnknown VariableType = iota
+	VariableTypeString
+	VariableTypeMap
+)
 
 // ProviderConfigName returns the name of the provider configuration in
 // the given mapping that maps to the proper provider configuration
@@ -271,6 +281,20 @@ func (r *Resource) mergerMerge(m merger) merger {
 	return &result
 }
 
+// DefaultsMap returns a map of default values for this variable.
+func (v *Variable) DefaultsMap() map[string]string {
+	switch v.Type() {
+	case VariableTypeString:
+		return map[string]string{v.Name: v.Default.(string)}
+	case VariableTypeMap:
+		return flatmap.Flatten(map[string]interface{}{
+			v.Name: v.Default.(map[string]string),
+		})
+	default:
+		return nil
+	}
+}
+
 // Merge merges two variables to create a new third variable.
 func (v *Variable) Merge(v2 *Variable) *Variable {
 	// Shallow copy the variable
@@ -287,6 +311,27 @@ func (v *Variable) Merge(v2 *Variable) *Variable {
 	}
 
 	return &result
+}
+
+// Type returns the type of varialbe this is.
+func (v *Variable) Type() VariableType {
+	if v.Default == nil {
+		return VariableTypeString
+	}
+
+	var strVal string
+	if err := mapstructure.WeakDecode(v.Default, &strVal); err == nil {
+		v.Default = strVal
+		return VariableTypeString
+	}
+
+	var m map[string]string
+	if err := mapstructure.WeakDecode(v.Default, &m); err == nil {
+		v.Default = m
+		return VariableTypeMap
+	}
+
+	return VariableTypeUnknown
 }
 
 func (v *Variable) mergerName() string {
