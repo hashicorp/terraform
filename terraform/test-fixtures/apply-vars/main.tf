@@ -5,8 +5,13 @@ variable "amis" {
     }
 }
 
+variable "bar" {
+    default = "baz"
+}
+
 resource "aws_instance" "foo" {
     num = "2"
+    bar = "${var.bar}"
 }
 
 resource "aws_instance" "bar" {

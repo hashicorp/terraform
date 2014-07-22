@@ -226,6 +226,7 @@ aws_instance.bar:
   type = aws_instance
 aws_instance.foo:
   ID = foo
+  bar = baz
   num = 2
   type = aws_instance
 `
