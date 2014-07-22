@@ -103,6 +103,11 @@ func TestVariableDefaultsMap(t *testing.T) {
 		Output  map[string]string
 	}{
 		{
+			nil,
+			nil,
+		},
+
+		{
 			"foo",
 			map[string]string{"var.foo": "foo"},
 		},

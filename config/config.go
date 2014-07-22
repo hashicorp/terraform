@@ -283,8 +283,11 @@ func (r *Resource) mergerMerge(m merger) merger {
 
 // DefaultsMap returns a map of default values for this variable.
 func (v *Variable) DefaultsMap() map[string]string {
-	n := fmt.Sprintf("var.%s", v.Name)
+	if v.Default == nil {
+		return nil
+	}
 
+	n := fmt.Sprintf("var.%s", v.Name)
 	switch v.Type() {
 	case VariableTypeString:
 		return map[string]string{n: v.Default.(string)}
