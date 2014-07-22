@@ -39,16 +39,17 @@ body.page-sub{
 
     .navbar-brand {
         &.logo{
-            padding: 13px 15px;
-            line-height: 0;
-
-            span{
-                display: inline-block;
-                width: 179px;
-                height: 59px;
-                background: url(../images/consul-header-logo.png) 0 0 no-repeat;
-                .img-retina("../images/consul-header-logo.png", "../images/consul-header-logo@2x.png", 179px, 59px);
-            }
+            margin-top: 15px;
+            padding: 5px 0 0 68px;
+            height: 56px;
+            line-height: 56px;
+            font-size: 24px;
+            .lato-light();
+            text-rendering: optimizeLegibility;
+            -webkit-font-smoothing: antialiased;
+            text-transform: uppercase;
+            background: url(../images/consul-header-logo.png) 0 0 no-repeat;
+            .img-retina("../images/header-logo.png", "../images/header-logo@2x.png", 50px, 56px);            
         }
     }
 

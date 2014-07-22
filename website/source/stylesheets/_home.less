@@ -8,8 +8,35 @@ body.page-home{
 #features{
 	.anti-alias();
 	padding: 130px 0 0 0;
-	background: #f8f8f8 url(../images/hero-dots-below@2x.png) center top no-repeat;
+	//background: #f8f8f8 url(../images/hero-dots-below@2x.png) center top no-repeat;
+	background: #f8f8f8;
 	background-size: 1280px 49px;
+
+  -webkit-transform: skewY(-5deg);
+  -moz-transform: skewY(-5deg);
+  -ms-transform: skewY(-5deg);
+  -o-transform: skewY(-5deg);
+  transform: skewY(-5deg);
+
+	/*transform:  rotate(358deg) scale(1) skew(-2deg) translate(0px);
+	-webkit-transform:  rotate(358deg) scale(1) skew(-2deg) translate(0px);
+	-moz-transform: rotate(358deg) scale(1) skew(-2deg) translate(0px);
+	-o-transform:  rotate(358deg) scale(1) skew(-2deg) translate(0px);
+	-ms-transform:  rotate(358deg) scale(1) skew(-2deg) translate(0px);*/
+
+	>.container{
+		-webkit-transform: skewY(5deg);
+    -moz-transform: skewY(5deg);
+    -ms-transform: skewY(5deg);
+    -o-transform: skewY(5deg);
+    transform: skewY(5deg);
+    
+		/*transform:  rotate(2deg) scale(1) skew(3deg) translate(0px);
+		-webkit-transform:  rotate(2deg) scale(1) skew(3deg) translate(0px);
+		-moz-transform: rotate(2deg) scale(1) skew(3deg) translate(0px);
+		-o-transform:  rotate(2deg) scale(1) skew(3deg) translate(0px);
+		-ms-transform:  rotate(2deg) scale(1) skew(3deg) translate(0px);*/
+	}
 
 	.double-row{
 		padding: 0 0 50px 0;
@@ -19,16 +46,16 @@ body.page-home{
 		font-size: 24px;
 		letter-spacing: 2px;
 		color: @purple;
-		font-family: @font-family-museo;
-		font-weight: @font-weight-museo-xb;
+		font-family: @font-family-lato;
+		font-weight: @font-weight-lato-xb;
 	}
 	p{
 		font-size: 16px;
 		letter-spacing: 1px;
         line-height: 1.5em;
 		color: @consul-gray;
-		font-family: @font-family-museo;
-		font-weight: @font-weight-museo-sb;
+		font-family: @font-family-lato;
+		font-weight: @font-weight-lato-sb;
 	}
 
 	.icn{
@@ -141,7 +168,7 @@ body.page-home{
     	margin-bottom: 30px;
 
     	a{
-    		font-weight: @font-weight-museo-xb;
+    		font-weight: @font-weight-lato-xb;
     	}
 
 	    span{
@@ -196,8 +223,8 @@ body.page-home{
 		letter-spacing: 1px;
         line-height: 1.5em;
 		color: @consul-gray;
-		font-family: @font-family-museo;
-		font-weight: @font-weight-museo-sb;
+		font-family: @font-family-lato;
+		font-weight: @font-weight-lato-sb;
 	}
 
 
@@ -235,8 +262,8 @@ body.page-home{
 			font-size: 22px;
 			color: lighten(@gray-light, 15%);
 			text-transform: uppercase;
-			font-family: @font-family-museo;
-			font-weight: @font-weight-museo-xb;
+			font-family: @font-family-lato;
+			font-weight: @font-weight-lato-xb;
 		}
 
 		p{
@@ -244,8 +271,8 @@ body.page-home{
 			letter-spacing: 1px;
 	        line-height: 1.5em;
 			color: @consul-gray;
-			font-family: @font-family-museo;
-			font-weight: @font-weight-museo-sb;
+			font-family: @font-family-lato;
+			font-weight: @font-weight-lato-sb;
 		}
 	}
 
@@ -298,8 +325,8 @@ body.page-home{
 						font-size: 14px;
 						letter-spacing: 1px;
 						color: @gray-darker;
-						font-family: @font-family-museo;
-						font-weight: @font-weight-museo-xb;
+						font-family: @font-family-lato;
+						font-weight: @font-weight-lato-xb;
 					}
 
 					ul.shell-dots{
