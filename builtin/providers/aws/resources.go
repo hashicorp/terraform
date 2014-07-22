@@ -103,6 +103,14 @@ func init() {
 				Update:  resource_aws_route_table_association_update,
 			},
 
+			"aws_route53_zone": resource.Resource{
+				ConfigValidator: resource_aws_r53_zone_validation(),
+				Create:          resource_aws_r53_zone_create,
+				Destroy:         resource_aws_r53_zone_destroy,
+				Diff:            resource_aws_r53_zone_diff,
+				Refresh:         resource_aws_r53_zone_refresh,
+			},
+
 			"aws_s3_bucket": resource.Resource{
 				ConfigValidator: resource_aws_s3_bucket_validation(),
 				Create:          resource_aws_s3_bucket_create,
