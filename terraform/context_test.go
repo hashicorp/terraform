@@ -414,12 +414,13 @@ func TestContextApply_Provisioner_compute(t *testing.T) {
 	pr := testProvisioner()
 	p.ApplyFn = testApplyFn
 	p.DiffFn = testDiffFn
-	pr.ApplyFn = func(rs *ResourceState, c *ResourceConfig) (*ResourceState, error) {
+	pr.ApplyFn = func(rs *ResourceState, c *ResourceConfig) error {
 		val, ok := c.Config["foo"]
 		if !ok || val != "computed_dynamical" {
 			t.Fatalf("bad value for foo: %v %#v", val, c)
 		}
-		return rs, nil
+
+		return nil
 	}
 	ctx := testContext(t, &ContextOpts{
 		Config: c,
@@ -452,6 +453,44 @@ func TestContextApply_Provisioner_compute(t *testing.T) {
 	// Verify apply was invoked
 	if !pr.ApplyCalled {
 		t.Fatalf("provisioner not invoked")
+	}
+}
+
+func TestContextApply_provisionerFail(t *testing.T) {
+	t.Skip()
+
+	c := testConfig(t, "apply-provisioner-fail")
+	p := testProvider("aws")
+	pr := testProvisioner()
+	p.ApplyFn = testApplyFn
+	p.DiffFn = testDiffFn
+
+	ctx := testContext(t, &ContextOpts{
+		Config: c,
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+		Provisioners: map[string]ResourceProvisionerFactory{
+			"shell": testProvisionerFuncFixed(pr),
+		},
+		Variables: map[string]string{
+			"value": "1",
+		},
+	})
+
+	if _, err := ctx.Plan(nil); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	state, err := ctx.Apply()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	actual := strings.TrimSpace(state.String())
+	expected := strings.TrimSpace(testTerraformApplyProvisionerFailStr)
+	if actual != expected {
+		t.Fatalf("bad: \n%s", actual)
 	}
 }
 
@@ -527,7 +566,7 @@ func TestContextApply_Provisioner_ConnInfo(t *testing.T) {
 	}
 	p.DiffFn = testDiffFn
 
-	pr.ApplyFn = func(rs *ResourceState, c *ResourceConfig) (*ResourceState, error) {
+	pr.ApplyFn = func(rs *ResourceState, c *ResourceConfig) error {
 		conn := rs.ConnInfo
 		if conn["type"] != "telnet" {
 			t.Fatalf("Bad: %#v", conn)
@@ -544,7 +583,8 @@ func TestContextApply_Provisioner_ConnInfo(t *testing.T) {
 		if conn["pass"] != "test" {
 			t.Fatalf("Bad: %#v", conn)
 		}
-		return rs, nil
+
+		return nil
 	}
 
 	ctx := testContext(t, &ContextOpts{

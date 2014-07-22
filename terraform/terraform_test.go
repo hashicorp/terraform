@@ -130,6 +130,16 @@ aws_instance.foo:
   type = aws_instance
 `
 
+const testTerraformApplyProvisionerFailStr = `
+aws_instance.bar:
+  ID = foo
+aws_instance.foo:
+  ID = foo
+  dynamical = computed_dynamical
+  num = 2
+  type = aws_instance
+`
+
 const testTerraformApplyDestroyStr = `
 <no state>
 `

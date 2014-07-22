@@ -555,8 +555,7 @@ func (c *Context) applyWalkFn() depgraph.WalkFunc {
 		// Additionally, we need to be careful to not run this if there
 		// was an error during the provider apply.
 		if applyerr == nil && r.State.ID == "" && len(r.Provisioners) > 0 {
-			rs, err = c.applyProvisioners(r, rs)
-			if err != nil {
+			if err := c.applyProvisioners(r, rs); err != nil {
 				errs = append(errs, err)
 			}
 		}
@@ -591,9 +590,7 @@ func (c *Context) applyWalkFn() depgraph.WalkFunc {
 
 // applyProvisioners is used to run any provisioners a resource has
 // defined after the resource creation has already completed.
-func (c *Context) applyProvisioners(r *Resource, rs *ResourceState) (*ResourceState, error) {
-	var err error
-
+func (c *Context) applyProvisioners(r *Resource, rs *ResourceState) error {
 	// Store the original connection info, restore later
 	origConnInfo := rs.ConnInfo
 	defer func() {
@@ -604,13 +601,13 @@ func (c *Context) applyProvisioners(r *Resource, rs *ResourceState) (*ResourceSt
 		// Interpolate since we may have variables that depend on the
 		// local resource.
 		if err := prov.Config.interpolate(c); err != nil {
-			return rs, err
+			return err
 		}
 
 		// Interpolate the conn info, since it may contain variables
 		connInfo := NewResourceConfig(prov.ConnInfo)
 		if err := connInfo.interpolate(c); err != nil {
-			return rs, err
+			return err
 		}
 
 		// Merge the connection information
@@ -643,12 +640,12 @@ func (c *Context) applyProvisioners(r *Resource, rs *ResourceState) (*ResourceSt
 		rs.ConnInfo = overlay
 
 		// Invoke the Provisioner
-		rs, err = prov.Provisioner.Apply(rs, prov.Config)
-		if err != nil {
-			return rs, err
+		if err := prov.Provisioner.Apply(rs, prov.Config); err != nil {
+			return err
 		}
 	}
-	return rs, nil
+
+	return nil
 }
 
 func (c *Context) planWalkFn(result *Plan) depgraph.WalkFunc {
