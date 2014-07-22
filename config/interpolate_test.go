@@ -6,68 +6,6 @@ import (
 	"testing"
 )
 
-func TestNewInterpolation(t *testing.T) {
-	cases := []struct {
-		Input  string
-		Result Interpolation
-		Error  bool
-	}{
-		{
-			"foo",
-			nil,
-			true,
-		},
-
-		{
-			"var.foo",
-			&VariableInterpolation{
-				Variable: &UserVariable{
-					Name: "foo",
-					key:  "var.foo",
-				},
-				key: "var.foo",
-			},
-			false,
-		},
-
-		{
-			"lookup(var.foo, var.bar)",
-			&FunctionInterpolation{
-				Func: nil, // Funcs["lookup"]
-				Args: []InterpolatedVariable{
-					&UserVariable{
-						Name: "foo",
-						key:  "var.foo",
-					},
-					&UserVariable{
-						Name: "bar",
-						key:  "var.bar",
-					},
-				},
-				key: "lookup(var.foo, var.bar)",
-			},
-			false,
-		},
-	}
-
-	for i, tc := range cases {
-		actual, err := NewInterpolation(tc.Input)
-		if (err != nil) != tc.Error {
-			t.Fatalf("%d. Error: %s", i, err)
-		}
-
-		// This is jank, but reflect.DeepEqual never has functions
-		// being the same.
-		if f, ok := actual.(*FunctionInterpolation); ok {
-			f.Func = nil
-		}
-
-		if !reflect.DeepEqual(actual, tc.Result) {
-			t.Fatalf("%d bad: %#v", i, actual)
-		}
-	}
-}
-
 func TestNewInterpolatedVariable(t *testing.T) {
 	cases := []struct {
 		Input  string
@@ -171,11 +109,10 @@ func TestFunctionInterpolation(t *testing.T) {
 
 	i := &FunctionInterpolation{
 		Func: fn,
-		Args: []InterpolatedVariable{v1, v2},
-		key:  "foo",
-	}
-	if i.FullString() != "foo" {
-		t.Fatalf("err: %#v", i)
+		Args: []Interpolation{
+			&VariableInterpolation{Variable: v1},
+			&VariableInterpolation{Variable: v2},
+		},
 	}
 
 	expected := map[string]InterpolatedVariable{
@@ -195,6 +132,29 @@ func TestFunctionInterpolation(t *testing.T) {
 	}
 
 	if actual != "bar baz" {
+		t.Fatalf("bad: %#v", actual)
+	}
+}
+
+func TestLiteralInterpolation_impl(t *testing.T) {
+	var _ Interpolation = new(LiteralInterpolation)
+}
+
+func TestLiteralInterpolation(t *testing.T) {
+	i := &LiteralInterpolation{
+		Literal: "bar",
+	}
+
+	if i.Variables() != nil {
+		t.Fatalf("bad: %#v", i.Variables())
+	}
+
+	actual, err := i.Interpolate(nil)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	if actual != "bar" {
 		t.Fatalf("bad: %#v", actual)
 	}
 }
@@ -265,10 +225,7 @@ func TestVariableInterpolation(t *testing.T) {
 		t.Fatalf("err: %s", err)
 	}
 
-	i := &VariableInterpolation{Variable: uv, key: "var.foo"}
-	if i.FullString() != "var.foo" {
-		t.Fatalf("err: %#v", i)
-	}
+	i := &VariableInterpolation{Variable: uv}
 
 	expected := map[string]InterpolatedVariable{"var.foo": uv}
 	if !reflect.DeepEqual(i.Variables(), expected) {
@@ -293,7 +250,7 @@ func TestVariableInterpolation_missing(t *testing.T) {
 		t.Fatalf("err: %s", err)
 	}
 
-	i := &VariableInterpolation{Variable: uv, key: "var.foo"}
+	i := &VariableInterpolation{Variable: uv}
 	_, err = i.Interpolate(map[string]string{
 		"var.bar": "bar",
 	})

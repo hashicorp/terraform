@@ -29,7 +29,6 @@ func TestInterpolationWalker_detect(t *testing.T) {
 						Name: "foo",
 						key:  "var.foo",
 					},
-					key: "var.foo",
 				},
 			},
 		},
@@ -41,13 +40,14 @@ func TestInterpolationWalker_detect(t *testing.T) {
 			Result: []Interpolation{
 				&FunctionInterpolation{
 					Func: nil,
-					Args: []InterpolatedVariable{
-						&UserVariable{
-							Name: "foo",
-							key:  "var.foo",
+					Args: []Interpolation{
+						&VariableInterpolation{
+							Variable: &UserVariable{
+								Name: "foo",
+								key:  "var.foo",
+							},
 						},
 					},
-					key: "lookup(var.foo)",
 				},
 			},
 		},

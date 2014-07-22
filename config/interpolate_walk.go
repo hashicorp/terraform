@@ -95,7 +95,7 @@ func (w *interpolationWalker) Primitive(v reflect.Value) error {
 		// Interpolation found, instantiate it
 		key := match[2]
 
-		i, err := NewInterpolation(key)
+		i, err := ExprParse(key)
 		if err != nil {
 			return err
 		}
