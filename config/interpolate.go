@@ -43,6 +43,14 @@ type FunctionInterpolation struct {
 	key string
 }
 
+// LiteralInterpolation implements Interpolation for literals. Ex:
+// ${"foo"} will equal "foo".
+type LiteralInterpolation struct {
+	Literal string
+
+	key string
+}
+
 // VariableInterpolation implements Interpolation for simple variable
 // interpolation. Ex: "${var.foo}" or "${aws_instance.foo.bar}"
 type VariableInterpolation struct {
@@ -172,6 +180,19 @@ func (i *FunctionInterpolation) Variables() map[string]InterpolatedVariable {
 	}
 
 	return result
+}
+
+func (i *LiteralInterpolation) FullString() string {
+	return i.key
+}
+
+func (i *LiteralInterpolation) Interpolate(
+	map[string]string) (string, error) {
+	return i.Literal, nil
+}
+
+func (i *LiteralInterpolation) Variables() map[string]InterpolatedVariable {
+	return nil
 }
 
 func (i *VariableInterpolation) FullString() string {

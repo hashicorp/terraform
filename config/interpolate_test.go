@@ -199,6 +199,33 @@ func TestFunctionInterpolation(t *testing.T) {
 	}
 }
 
+func TestLiteralInterpolation_impl(t *testing.T) {
+	var _ Interpolation = new(LiteralInterpolation)
+}
+
+func TestLiteralInterpolation(t *testing.T) {
+	i := &LiteralInterpolation{
+		Literal: "bar",
+		key:     "foo",
+	}
+	if i.FullString() != "foo" {
+		t.Fatalf("err: %#v", i)
+	}
+
+	if i.Variables() != nil {
+		t.Fatalf("bad: %#v", i.Variables())
+	}
+
+	actual, err := i.Interpolate(nil)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	if actual != "bar" {
+		t.Fatalf("bad: %#v", actual)
+	}
+}
+
 func TestResourceVariable_impl(t *testing.T) {
 	var _ InterpolatedVariable = new(ResourceVariable)
 }
