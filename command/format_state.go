@@ -39,7 +39,14 @@ func FormatState(s *terraform.State, c *colorstring.Colorize) string {
 			id = "<not created>"
 		}
 
-		buf.WriteString(fmt.Sprintf("%s:\n", k))
+		taintStr := ""
+		if s.Tainted != nil {
+			if _, ok := s.Tainted[id]; ok {
+				taintStr = " (tainted)"
+			}
+		}
+
+		buf.WriteString(fmt.Sprintf("%s:%s\n", k, taintStr))
 		buf.WriteString(fmt.Sprintf("  id = %s\n", id))
 
 		// Sort the attributes
