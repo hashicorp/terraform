@@ -30,6 +30,7 @@ type Context struct {
 	providers    map[string]ResourceProviderFactory
 	provisioners map[string]ResourceProvisionerFactory
 	variables    map[string]string
+	defaultVars  map[string]string
 
 	l     sync.Mutex    // Lock acquired during any task
 	parCh chan struct{} // Semaphore used to limit parallelism
@@ -72,6 +73,14 @@ func NewContext(opts *ContextOpts) *Context {
 	}
 	parCh := make(chan struct{}, par)
 
+	// Calculate all the default variables
+	defaultVars := make(map[string]string)
+	for _, v := range opts.Config.Variables {
+		for k, val := range v.DefaultsMap() {
+			defaultVars[k] = val
+		}
+	}
+
 	return &Context{
 		config:       opts.Config,
 		diff:         opts.Diff,
@@ -80,6 +89,7 @@ func NewContext(opts *ContextOpts) *Context {
 		providers:    opts.Providers,
 		provisioners: opts.Provisioners,
 		variables:    opts.Variables,
+		defaultVars:  defaultVars,
 
 		parCh: parCh,
 		sh:    sh,
@@ -296,8 +306,13 @@ func (c *Context) computeVars(raw *config.RawConfig) error {
 		return nil
 	}
 
-	// Go through each variable and find it
+	// Start building up the variables. First, defaults
 	vs := make(map[string]string)
+	for k, v := range c.defaultVars {
+		vs[k] = v
+	}
+
+	// Next, the actual computed variables
 	for n, rawV := range raw.Variables {
 		switch v := rawV.(type) {
 		case *config.ResourceVariable:
@@ -314,7 +329,19 @@ func (c *Context) computeVars(raw *config.RawConfig) error {
 
 			vs[n] = attr
 		case *config.UserVariable:
-			vs[n] = c.variables[v.Name]
+			val, ok := c.variables[v.Name]
+			if ok {
+				vs[n] = val
+				continue
+			}
+
+			// Look up if we have any variables with this prefix because
+			// those are map overrides. Include those.
+			for k, val := range c.variables {
+				if strings.HasPrefix(k, v.Name+".") {
+					vs["var."+k] = val
+				}
+			}
 		}
 	}
 

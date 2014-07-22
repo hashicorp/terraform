@@ -1045,9 +1045,18 @@ func TestContextApply_vars(t *testing.T) {
 			"aws": testProviderFuncFixed(p),
 		},
 		Variables: map[string]string{
-			"foo": "bar",
+			"foo":            "us-west-2",
+			"amis.us-east-1": "override",
 		},
 	})
+
+	w, e := ctx.Validate()
+	if len(w) > 0 {
+		t.Fatalf("bad: %#v", w)
+	}
+	if len(e) > 0 {
+		t.Fatalf("bad: %s", e)
+	}
 
 	if _, err := ctx.Plan(nil); err != nil {
 		t.Fatalf("err: %s", err)
@@ -1157,10 +1166,6 @@ func TestContextPlan_computed(t *testing.T) {
 	plan, err := ctx.Plan(nil)
 	if err != nil {
 		t.Fatalf("err: %s", err)
-	}
-
-	if len(plan.Diff.Resources) < 2 {
-		t.Fatalf("bad: %#v", plan.Diff.Resources)
 	}
 
 	actual := strings.TrimSpace(plan.String())

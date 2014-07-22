@@ -437,20 +437,20 @@ func variablesStr(vs []*Variable) string {
 	for _, k := range ks {
 		v := m[k]
 
-		if v.Default == "" {
+		required := ""
+		if v.Required() {
+			required = " (required)"
+		}
+
+		if v.Default == nil || v.Default == "" {
 			v.Default = "<>"
 		}
 		if v.Description == "" {
 			v.Description = "<>"
 		}
 
-		required := ""
-		if v.Required() {
-			required = " (required)"
-		}
-
 		result += fmt.Sprintf(
-			"%s%s\n  %s\n  %s\n",
+			"%s%s\n  %v\n  %s\n",
 			k,
 			required,
 			v.Default,

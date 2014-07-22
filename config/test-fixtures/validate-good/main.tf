@@ -3,6 +3,12 @@ variable "foo" {
     description = "bar";
 }
 
+variable "amis" {
+    default = {
+        "east": "foo",
+    }
+}
+
 provider "aws" {
   access_key = "foo";
   secret_key = "bar";
@@ -16,7 +22,7 @@ resource "aws_security_group" "firewall" {
 }
 
 resource aws_instance "web" {
-    ami = "${var.foo}"
+    ami = "${var.amis.east}"
     security_groups = [
         "foo",
         "${aws_security_group.firewall.foo}"

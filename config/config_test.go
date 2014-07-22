@@ -2,6 +2,7 @@ package config
 
 import (
 	"path/filepath"
+	"reflect"
 	"testing"
 )
 
@@ -64,89 +65,17 @@ func TestConfigValidate_unknownVar(t *testing.T) {
 	}
 }
 
-func TestNewResourceVariable(t *testing.T) {
-	v, err := NewResourceVariable("foo.bar.baz")
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-
-	if v.Type != "foo" {
-		t.Fatalf("bad: %#v", v)
-	}
-	if v.Name != "bar" {
-		t.Fatalf("bad: %#v", v)
-	}
-	if v.Field != "baz" {
-		t.Fatalf("bad: %#v", v)
-	}
-	if v.Multi {
-		t.Fatal("should not be multi")
-	}
-
-	if v.FullKey() != "foo.bar.baz" {
-		t.Fatalf("bad: %#v", v)
+func TestConfigValidate_varDefault(t *testing.T) {
+	c := testConfig(t, "validate-var-default")
+	if err := c.Validate(); err != nil {
+		t.Fatalf("should be valid: %s", err)
 	}
 }
 
-func TestResourceVariable_Multi(t *testing.T) {
-	v, err := NewResourceVariable("foo.bar.*.baz")
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-
-	if v.Type != "foo" {
-		t.Fatalf("bad: %#v", v)
-	}
-	if v.Name != "bar" {
-		t.Fatalf("bad: %#v", v)
-	}
-	if v.Field != "baz" {
-		t.Fatalf("bad: %#v", v)
-	}
-	if !v.Multi {
-		t.Fatal("should be multi")
-	}
-}
-
-func TestResourceVariable_MultiIndex(t *testing.T) {
-	cases := []struct {
-		Input string
-		Index int
-		Field string
-	}{
-		{"foo.bar.*.baz", -1, "baz"},
-		{"foo.bar.0.baz", 0, "baz"},
-		{"foo.bar.5.baz", 5, "baz"},
-	}
-
-	for _, tc := range cases {
-		v, err := NewResourceVariable(tc.Input)
-		if err != nil {
-			t.Fatalf("err: %s", err)
-		}
-		if !v.Multi {
-			t.Fatalf("should be multi: %s", tc.Input)
-		}
-		if v.Index != tc.Index {
-			t.Fatalf("bad: %d\n\n%s", v.Index, tc.Input)
-		}
-		if v.Field != tc.Field {
-			t.Fatalf("bad: %s\n\n%s", v.Field, tc.Input)
-		}
-	}
-}
-
-func TestNewUserVariable(t *testing.T) {
-	v, err := NewUserVariable("var.bar")
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-
-	if v.Name != "bar" {
-		t.Fatalf("bad: %#v", v.Name)
-	}
-	if v.FullKey() != "var.bar" {
-		t.Fatalf("bad: %#v", v)
+func TestConfigValidate_varDefaultBadType(t *testing.T) {
+	c := testConfig(t, "validate-var-default-bad-type")
+	if err := c.Validate(); err == nil {
+		t.Fatal("should not be valid")
 	}
 }
 
@@ -161,6 +90,43 @@ func TestProviderConfigName(t *testing.T) {
 	n := ProviderConfigName("aws_instance", pcs)
 	if n != "aws" {
 		t.Fatalf("bad: %s", n)
+	}
+}
+
+func TestVariableDefaultsMap(t *testing.T) {
+	cases := []struct {
+		Default interface{}
+		Output  map[string]string
+	}{
+		{
+			nil,
+			nil,
+		},
+
+		{
+			"foo",
+			map[string]string{"var.foo": "foo"},
+		},
+
+		{
+			map[interface{}]interface{}{
+				"foo": "bar",
+				"bar": "baz",
+			},
+			map[string]string{
+				"var.foo":     "foo",
+				"var.foo.foo": "bar",
+				"var.foo.bar": "baz",
+			},
+		},
+	}
+
+	for i, tc := range cases {
+		v := &Variable{Name: "foo", Default: tc.Default}
+		actual := v.DefaultsMap()
+		if !reflect.DeepEqual(actual, tc.Output) {
+			t.Fatalf("%d: bad: %#v", i, actual)
+		}
 	}
 }
 
