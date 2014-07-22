@@ -107,10 +107,12 @@ func resource_aws_db_instance_create(
 		"[INFO] Waiting for DB Instance to be available")
 
 	stateConf := &resource.StateChangeConf{
-		Pending: []string{"creating", "backing-up"},
-		Target:  "available",
-		Refresh: DBInstanceStateRefreshFunc(rs.ID, conn),
-		Timeout: 10 * time.Minute,
+		Pending:    []string{"creating", "backing-up"},
+		Target:     "available",
+		Refresh:    DBInstanceStateRefreshFunc(rs.ID, conn),
+		Timeout:    10 * time.Minute,
+		MinTimeout: 10 * time.Second,
+		Delay:      30 * time.Second, // Wait 30 secs before starting
 	}
 
 	// Wait, catching any errors
