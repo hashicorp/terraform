@@ -19,8 +19,10 @@
   -webkit-font-smoothing: antialiased;
 }*/
 body {
-  font-size: 15px;
   color: #242424;
+  background-color: #242424;
+  font-size: 15px;
+  font-family: 'Lato', "Helvetica Neue", Helvetica, Arial, sans-serif;
   font-weight: 300;
 }
 h1 {
@@ -132,8 +134,6 @@ body.page-sub #header {
   font-size: 24px;
   font-family: 'Lato', "Helvetica Neue", Helvetica, Arial, sans-serif;
   font-weight: 100;
-  text-rendering: optimizeLegibility;
-  -webkit-font-smoothing: antialiased;
   text-transform: uppercase;
   background: url(../images/consul-header-logo.png) 0 0 no-repeat;
   background-image: url("../images/header-logo.png");
@@ -247,7 +247,7 @@ body.page-sub #header {
 #footer {
   height: 650px;
   text-align: center;
-  color: #69499a;
+  color: #822ff7;
 }
 #footer .main-links.navbar-nav {
   float: none;
@@ -255,13 +255,13 @@ body.page-sub #header {
   padding-top: 155px;
 }
 #footer .main-links.navbar-nav .li-under a::after {
-  background-color: #69499a;
+  background-color: #822ff7;
 }
 #footer .footer-hashi {
   padding-top: 110px;
 }
 #footer a {
-  color: #69499a;
+  color: #822ff7;
 }
 #footer .buttons.navbar-nav {
   float: none;
@@ -423,6 +423,7 @@ body.page-sub #header {
   width: 100%;
   height: 804px;
   margin-top: -90px;
+  background-color: black;
 }
 #jumbotron {
   position: relative;
@@ -443,6 +444,9 @@ body.page-sub #header {
   position: relative;
   height: 100%;
   margin-top: 90px;
+}
+#jumbotron .container > div {
+  display: none;
 }
 #jumbotron .container .jumbo-logo-wrap {
   margin-top: 135px;
@@ -483,8 +487,8 @@ body.page-sub #header {
   transition: background-color 0.3s ease-in-out;
 }
 .outline-btn.purple {
-  color: #69499a;
-  border: 2px solid #69499a;
+  color: #822ff7;
+  border: 2px solid #822ff7;
 }
 .outline-btn:hover {
   color: #ffffff;
@@ -521,49 +525,19 @@ body.page-sub #header {
   -moz-transform: translateY(0px);
   transform: translateY(0px);
 }
-body.page-home {
-  background-color: #f8f8f8;
-}
-#features {
-  text-rendering: optimizeLegibility;
-  -webkit-font-smoothing: antialiased;
-  padding: 130px 0 0 0;
-  background: #f8f8f8;
-  background-size: 1280px 49px;
-  -webkit-transform: skewY(-5deg);
-  -moz-transform: skewY(-5deg);
-  -ms-transform: skewY(-5deg);
-  -o-transform: skewY(-5deg);
-  transform: skewY(-5deg);
-  /*transform:  rotate(358deg) scale(1) skew(-2deg) translate(0px);
-	-webkit-transform:  rotate(358deg) scale(1) skew(-2deg) translate(0px);
-	-moz-transform: rotate(358deg) scale(1) skew(-2deg) translate(0px);
-	-o-transform:  rotate(358deg) scale(1) skew(-2deg) translate(0px);
-	-ms-transform:  rotate(358deg) scale(1) skew(-2deg) translate(0px);*/
-}
-#features > .container {
-  -webkit-transform: skewY(5deg);
-  -moz-transform: skewY(5deg);
-  -ms-transform: skewY(5deg);
-  -o-transform: skewY(5deg);
-  transform: skewY(5deg);
-  /*transform:  rotate(2deg) scale(1) skew(3deg) translate(0px);
-		-webkit-transform:  rotate(2deg) scale(1) skew(3deg) translate(0px);
-		-moz-transform: rotate(2deg) scale(1) skew(3deg) translate(0px);
-		-o-transform:  rotate(2deg) scale(1) skew(3deg) translate(0px);
-		-ms-transform:  rotate(2deg) scale(1) skew(3deg) translate(0px);*/
-}
-#features .double-row {
-  padding: 0 0 50px 0;
-}
-#features h2 {
-  font-size: 24px;
+/*body.page-home{
+	background-color: #f8f8f8;
+}*/
+.feature h2 {
+  text-align: right;
+  font-size: 44px;
+  line-height: 54px;
   letter-spacing: 2px;
-  color: #69499a;
+  color: #822ff7;
   font-family: 'Lato', "Helvetica Neue", Helvetica, Arial, sans-serif;
-  font-weight: 700;
+  font-weight: 100;
 }
-#features p {
+.feature p {
   font-size: 16px;
   letter-spacing: 1px;
   line-height: 1.5em;
@@ -571,7 +545,7 @@ body.page-home {
   font-family: 'Lato', "Helvetica Neue", Helvetica, Arial, sans-serif;
   font-weight: 500;
 }
-#features .icn {
+.feature .icn {
   display: block;
   width: 186px;
   height: 272px;
@@ -579,83 +553,34 @@ body.page-home {
   background-position: center 0;
   background-repeat: no-repeat;
 }
-#features .discovery {
-  background-image: url(../images/feature-discovery@2x.png);
-  background-size: 181px 181px;
+#feature-auto {
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  margin-top: -36px;
+  padding: 200px 0;
+  background: #f8f8f8 url(../images/white-wireframe.png) center top no-repeat;
+  background-size: cover;
+  -webkit-transform: skewY(-2deg);
+  -moz-transform: skewY(-2deg);
+  -ms-transform: skewY(-2deg);
+  -o-transform: skewY(-2deg);
+  transform: skewY(-2deg);
 }
-#features .health {
-  background-image: url(../images/feature-health@2x.png);
-  background-size: 125px 179px;
+#feature-auto > .container {
+  -webkit-transform: skewY(2deg);
+  -moz-transform: skewY(2deg);
+  -ms-transform: skewY(2deg);
+  -o-transform: skewY(2deg);
+  transform: skewY(2deg);
 }
-#features .multi {
-  background-image: url(../images/feature-multi@2x.png);
-  background-size: 182px 184px;
-}
-#features .config {
-  background-image: url(../images/feature-config@2x.png);
-  background-size: 157px 179px;
-}
-#trusted {
-  background-color: #242424;
-  padding: 140px 0;
-}
-#trusted h3 {
-  margin-bottom: 60px;
-  color: #ffffff;
-  text-transform: uppercase;
-  font-size: 18px;
+#feature-auto .terminal-text {
+  color: black;
+  line-height: 88px;
   text-align: center;
-}
-#trusted .trusted-items {
-  width: 800px;
-  margin: 0 auto;
-}
-#trusted .trusted-items ul {
-  padding: 0;
-}
-#trusted .trusted-items ul > li {
-  display: inline-block;
-  float: left;
-  width: 25%;
-  height: 80px;
-  margin: 12px 0;
-  background: url(../images/trusted-sprite.png ) 0 0 no-repeat;
-}
-#trusted .trusted-items ul > li#i0 {
-  background-position: 0 0;
-}
-#trusted .trusted-items ul > li#i1 {
-  background-position: 0 -80px;
-}
-#trusted .trusted-items ul > li#i2 {
-  background-position: 0 -160px;
-}
-#trusted .trusted-items ul > li#i3 {
-  background-position: 0 -240px;
-}
-#trusted .trusted-items ul > li#i4 {
-  background-position: 0 -320px;
-}
-#trusted .trusted-items ul > li#i5 {
-  background-position: 0 -400px;
-}
-#trusted .trusted-items ul > li#i6 {
-  background-position: 0 -480px;
-}
-#trusted .trusted-items ul > li#i7 {
-  background-position: 0 -560px;
-}
-#trusted .trusted-items ul > li#i8 {
-  background-position: 0 -640px;
-}
-#trusted .trusted-items ul > li#i9 {
-  background-position: 0 -720px;
-}
-#trusted .trusted-items ul > li#i10 {
-  background-position: 0 -800px;
-}
-#trusted .trusted-items ul > li#i11 {
-  background-position: 0 -880px;
+  font-size: 35px;
+  font-family: "Courier New", Monaco, Menlo, Consolas, monospace;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
 }
 #footer {
   background-color: #d7d4d7;
@@ -732,7 +657,7 @@ body.page-home {
   font-size: 16px;
   text-transform: uppercase;
   letter-spacing: 3px;
-  color: #69499a;
+  color: #822ff7;
 }
 #cta a:hover {
   text-decoration: none;
@@ -831,7 +756,7 @@ body.page-home {
 }
 #demos .terminals .terminal-item .terminal .terminal-window .txt-p {
   font-weight: bold;
-  color: #9073bd;
+  color: #ae79fa;
 }
 #demos .terminals .terminal-item .terminal .terminal-window p {
   margin-bottom: 2px;
@@ -912,7 +837,7 @@ body.layout-intro > .container .col-md-8[role=main] > div {
   border-radius: 6px;
 }
 .docs-sidebar a {
-  color: #69499a;
+  color: #822ff7;
 }
 .docs-sidebar .docs-sidenav {
   padding-top: 15px;
@@ -925,7 +850,7 @@ body.layout-intro > .container .col-md-8[role=main] > div {
   position: relative;
 }
 .docs-sidebar .docs-sidenav li > a {
-  color: #69499a;
+  color: #822ff7;
   -webkit-transition: color 0.5s ease;
   transition: color 0.5s ease;
 }
@@ -955,7 +880,7 @@ body.layout-intro > .container .col-md-8[role=main] > div {
   position: absolute;
   width: 8px;
   height: 8px;
-  background-color: #69499a;
+  background-color: #822ff7;
   border-radius: 4px;
   top: 26px;
   left: -10px;
@@ -1012,7 +937,7 @@ body.layout-intro > .container .col-md-8[role=main] > div {
   margin: 0 0 18px;
 }
 .bs-docs-section a {
-  color: #69499a;
+  color: #822ff7;
 }
 .bs-docs-section a:hover {
   text-decoration: underline;
@@ -1023,7 +948,7 @@ body.layout-intro > .container .col-md-8[role=main] > div {
   margin-bottom: 25px;
 }
 .bs-docs-section h1 {
-  color: #69499a;
+  color: #822ff7;
   text-transform: uppercase;
   padding-bottom: 24px;
   margin-top: 40px;

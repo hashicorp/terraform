@@ -1,58 +1,24 @@
 //
 // Home
 // --------------------------------------------------
-body.page-home{
+/*body.page-home{
 	background-color: #f8f8f8;
-}
+}*/
 
-#features{
-	.anti-alias();
-	padding: 130px 0 0 0;
-	//background: #f8f8f8 url(../images/hero-dots-below@2x.png) center top no-repeat;
-	background: #f8f8f8;
-	background-size: 1280px 49px;
-
-  -webkit-transform: skewY(-5deg);
-  -moz-transform: skewY(-5deg);
-  -ms-transform: skewY(-5deg);
-  -o-transform: skewY(-5deg);
-  transform: skewY(-5deg);
-
-	/*transform:  rotate(358deg) scale(1) skew(-2deg) translate(0px);
-	-webkit-transform:  rotate(358deg) scale(1) skew(-2deg) translate(0px);
-	-moz-transform: rotate(358deg) scale(1) skew(-2deg) translate(0px);
-	-o-transform:  rotate(358deg) scale(1) skew(-2deg) translate(0px);
-	-ms-transform:  rotate(358deg) scale(1) skew(-2deg) translate(0px);*/
-
-	>.container{
-		-webkit-transform: skewY(5deg);
-    -moz-transform: skewY(5deg);
-    -ms-transform: skewY(5deg);
-    -o-transform: skewY(5deg);
-    transform: skewY(5deg);
-    
-		/*transform:  rotate(2deg) scale(1) skew(3deg) translate(0px);
-		-webkit-transform:  rotate(2deg) scale(1) skew(3deg) translate(0px);
-		-moz-transform: rotate(2deg) scale(1) skew(3deg) translate(0px);
-		-o-transform:  rotate(2deg) scale(1) skew(3deg) translate(0px);
-		-ms-transform:  rotate(2deg) scale(1) skew(3deg) translate(0px);*/
-	}
-
-	.double-row{
-		padding: 0 0 50px 0;
-	}
-
-	h2{
-		font-size: 24px;
+.feature{
+		h2{
+		text-align: right;
+		font-size: 44px;
+		line-height: 54px;
 		letter-spacing: 2px;
 		color: @purple;
-		font-family: @font-family-lato;
-		font-weight: @font-weight-lato-xb;
+		.lato-light()
 	}
+
 	p{
 		font-size: 16px;
 		letter-spacing: 1px;
-        line-height: 1.5em;
+    line-height: 1.5em;
 		color: @consul-gray;
 		font-family: @font-family-lato;
 		font-weight: @font-weight-lato-sb;
@@ -66,92 +32,42 @@ body.page-home{
 		background-position: center 0;
 		background-repeat: no-repeat;
 	}
-
-	.discovery{
-		background-image: url( ../images/feature-discovery@2x.png);
-		background-size: 181px 181px;
-	}
-	.health{
-		background-image: url( ../images/feature-health@2x.png);
-		background-size: 125px 179px;
-	}
-	.multi{
-		background-image: url( ../images/feature-multi@2x.png);
-		background-size: 182px 184px;
-	}
-	.config{
-		background-image: url( ../images/feature-config@2x.png);
-		background-size: 157px 179px;
-	}
 }
 
-#trusted{
-	background-color: @black;
-	padding: 140px 0;
+#feature-auto{
+	.anti-alias();
+	margin-top: -36px;
+	padding: 200px 0;
+	background: #f8f8f8 url(../images/white-wireframe.png) center top no-repeat;
+	background-size: cover;
 
-	h3{
-		margin-bottom: 60px;
-		color: @white;
-		text-transform: uppercase;
-		font-size: 18px;
+  -webkit-transform: skewY(-2deg);
+  -moz-transform: skewY(-2deg);
+  -ms-transform: skewY(-2deg);
+  -o-transform: skewY(-2deg);
+  transform: skewY(-2deg);
+
+	>.container{
+		-webkit-transform: skewY(2deg);
+    -moz-transform: skewY(2deg);
+    -ms-transform: skewY(2deg);
+    -o-transform: skewY(2deg);
+    transform: skewY(2deg);
+	}
+
+	.terminal-text{
+		color: black;
+		line-height: 88px;
 		text-align: center;
-	}
-
-	.trusted-items{
-		width: 800px;
-		margin: 0 auto;
-
-		ul {
-			padding: 0;
-			> li{
-				display: inline-block;
-				float: left;
-				width: 25%;
-				height: 80px;
-				margin: 12px 0;
-				background: url( ../images/trusted-sprite.png ) 0 0 no-repeat;
-
-				&#i0{
-					background-position: 0 0;
-				}
-				&#i1{
-					background-position: 0 -80px;
-				}
-				&#i2{
-					background-position: 0 -160px;
-				}
-				&#i3{
-					background-position: 0 -240px;
-				}
-				&#i4{
-					background-position: 0 -320px;
-				}
-				&#i5{
-					background-position: 0 -400px;
-				}
-				&#i6{
-					background-position: 0 -480px;
-				}
-				&#i7{
-					background-position: 0 -560px;
-				}
-				&#i8{
-					background-position: 0 -640px;
-				}
-				&#i9{
-					background-position: 0 -720px;
-				}
-				&#i10{
-					background-position: 0 -800px;
-				}
-				&#i11{
-					background-position: 0 -880px;
-				}
-			}
-		}
+		font-size: 35px;
+		font-family: "Courier New", Monaco, Menlo, Consolas, monospace;
+		.opt-text();
 	}
 }
 
+#feature-iterate{
+
+}
 
 
 #footer{
