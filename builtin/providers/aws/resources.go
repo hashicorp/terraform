@@ -21,6 +21,15 @@ func init() {
 				Update:          resource_aws_autoscaling_group_update,
 			},
 
+			"aws_db_instance": resource.Resource{
+				ConfigValidator: resource_aws_db_instance_validation(),
+				Create:          resource_aws_db_instance_create,
+				Destroy:         resource_aws_db_instance_destroy,
+				Diff:            resource_aws_db_instance_diff,
+				Refresh:         resource_aws_db_instance_refresh,
+				Update:          resource_aws_db_instance_update,
+			},
+
 			"aws_elb": resource.Resource{
 				ConfigValidator: resource_aws_elb_validation(),
 				Create:          resource_aws_elb_create,

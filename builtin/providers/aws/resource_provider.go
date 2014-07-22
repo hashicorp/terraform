@@ -9,6 +9,7 @@ import (
 	"github.com/mitchellh/goamz/autoscaling"
 	"github.com/mitchellh/goamz/ec2"
 	"github.com/mitchellh/goamz/elb"
+	"github.com/mitchellh/goamz/rds"
 	"github.com/mitchellh/goamz/s3"
 )
 
@@ -19,6 +20,7 @@ type ResourceProvider struct {
 	elbconn         *elb.ELB
 	autoscalingconn *autoscaling.AutoScaling
 	s3conn          *s3.S3
+	rdsconn         *rds.Rds
 }
 
 func (p *ResourceProvider) Validate(c *terraform.ResourceConfig) ([]string, []error) {
@@ -67,6 +69,8 @@ func (p *ResourceProvider) Configure(c *terraform.ResourceConfig) error {
 		p.autoscalingconn = autoscaling.New(auth, region)
 		log.Println("[INFO] Initializing S3 connection")
 		p.s3conn = s3.New(auth, region)
+		log.Println("[INFO] Initializing RDS connection")
+		p.rdsconn = rds.New(auth, region)
 	}
 
 	if len(errs) > 0 {
