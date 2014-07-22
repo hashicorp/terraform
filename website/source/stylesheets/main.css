@@ -530,6 +530,8 @@ body.page-sub #header {
 }*/
 .feature {
   padding: 240px 0;
+  font-family: 'Lato', "Helvetica Neue", Helvetica, Arial, sans-serif;
+  font-weight: 100;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
 }
@@ -584,7 +586,8 @@ body.page-sub #header {
 }
 #feature-iterate {
   margin-top: -80px;
-  padding: 240px 0;
+  padding: 280px 0;
+  color: white;
   background: #ffffff url(../images/feature-iterate-bg.png) center top no-repeat;
   border-top: 2px solid white;
   border-bottom: 2px solid #822ff7;
@@ -602,9 +605,13 @@ body.page-sub #header {
   -o-transform: skewY(-2deg);
   transform: skewY(-2deg);
 }
+#feature-iterate h2 {
+  color: white;
+}
 #feature-clone {
   margin-top: -80px;
   padding: 240px 0;
+  color: white;
   background-color: #822ff7;
   -webkit-transform: skewY(2deg);
   -moz-transform: skewY(2deg);
@@ -618,6 +625,9 @@ body.page-sub #header {
   -ms-transform: skewY(-2deg);
   -o-transform: skewY(-2deg);
   transform: skewY(-2deg);
+}
+#feature-clone h2 {
+  color: white;
 }
 #footer {
   background-color: #d7d4d7;

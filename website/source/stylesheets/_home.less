@@ -7,6 +7,7 @@
 
 .feature{
 	padding: 240px 0;
+	.lato-light();
 	.anti-alias();
 
 	h2{
@@ -15,7 +16,7 @@
 		line-height: 54px;
 		letter-spacing: 2px;
 		color: @purple;
-		.lato-light()
+		.lato-light();
 	}
 
 	p{
@@ -58,7 +59,8 @@
 
 #feature-iterate{
 	margin-top: -80px;
-	padding: 240px 0;
+	padding: 280px 0;
+	color: white;
 	background: #fff url(../images/feature-iterate-bg.png) center top no-repeat;
 	border-top: 2px solid white;
 	border-bottom: 2px solid @purple;
@@ -68,17 +70,26 @@
 	>.container{
 		.skewY(-2deg);
 	}
+
+	h2{
+		color: white;
+	}	
 }
 
 #feature-clone{
 	margin-top: -80px;
 	padding: 240px 0;
+	color: white;
 	background-color: @purple;
 	.skewY(2deg);
 
 	>.container{
 		.skewY(-2deg);
 	}
+
+	h2{
+		color: white;
+	}	
 }
 
 
