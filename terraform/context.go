@@ -681,7 +681,13 @@ func (c *Context) planWalkFn(result *Plan) depgraph.WalkFunc {
 			// Get a diff from the newest state
 			log.Printf("[DEBUG] %s: Executing diff", r.Id)
 			var err error
-			diff, err = r.Provider.Diff(r.State, r.Config)
+			state := r.State
+			if r.Tainted {
+				// If we're tainted, we pretend to create a new thing.
+				state = new(ResourceState)
+				state.Type = r.State.Type
+			}
+			diff, err = r.Provider.Diff(state, r.Config)
 			if err != nil {
 				return err
 			}
@@ -689,6 +695,11 @@ func (c *Context) planWalkFn(result *Plan) depgraph.WalkFunc {
 
 		if diff == nil {
 			diff = new(ResourceDiff)
+		}
+
+		if r.Tainted {
+			// Tainted resources must also be destroyed
+			diff.Destroy = true
 		}
 
 		if diff.RequiresNew() && r.State.ID != "" {

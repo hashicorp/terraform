@@ -1457,6 +1457,44 @@ func TestContextPlan_state(t *testing.T) {
 	}
 }
 
+func TestContextPlan_taint(t *testing.T) {
+	c := testConfig(t, "plan-taint")
+	p := testProvider("aws")
+	p.DiffFn = testDiffFn
+	s := &State{
+		Resources: map[string]*ResourceState{
+			"aws_instance.foo": &ResourceState{
+				ID:         "bar",
+				Type:       "aws_instance",
+				Attributes: map[string]string{"num": "2"},
+			},
+			"aws_instance.bar": &ResourceState{
+				ID:   "baz",
+				Type: "aws_instance",
+			},
+		},
+		Tainted: map[string]struct{}{"aws_instance.bar": struct{}{}},
+	}
+	ctx := testContext(t, &ContextOpts{
+		Config: c,
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+		State: s,
+	})
+
+	plan, err := ctx.Plan(nil)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	actual := strings.TrimSpace(plan.String())
+	expected := strings.TrimSpace(testTerraformPlanTaintStr)
+	if actual != expected {
+		t.Fatalf("bad:\n%s", actual)
+	}
+}
+
 func TestContextRefresh(t *testing.T) {
 	p := testProvider("aws")
 	c := testConfig(t, "refresh-basic")
