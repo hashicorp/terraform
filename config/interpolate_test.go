@@ -238,10 +238,6 @@ func TestUserVariable_impl(t *testing.T) {
 	var _ InterpolatedVariable = new(UserVariable)
 }
 
-func TestUserMapVariable_impl(t *testing.T) {
-	var _ InterpolatedVariable = new(UserMapVariable)
-}
-
 func TestVariableInterpolation_impl(t *testing.T) {
 	var _ Interpolation = new(VariableInterpolation)
 }

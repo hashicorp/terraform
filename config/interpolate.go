@@ -69,14 +69,6 @@ type ResourceVariable struct {
 // "${var.foo}"
 type UserVariable struct {
 	Name string
-
-	key string
-}
-
-// A UserMapVariable is a variable that is referencing a user
-// variable that is a map. This looks like "${var.amis.us-east-1}"
-type UserMapVariable struct {
-	Name string
 	Elem string
 
 	key string
@@ -142,12 +134,7 @@ func NewInterpolatedVariable(v string) (InterpolatedVariable, error) {
 		return NewResourceVariable(v)
 	}
 
-	varKey := v[len("var."):]
-	if strings.Index(varKey, ".") == -1 {
-		return NewUserVariable(v)
-	} else {
-		return NewUserMapVariable(v)
-	}
+	return NewUserVariable(v)
 }
 
 func (i *FunctionInterpolation) FullString() string {
@@ -257,9 +244,17 @@ func (v *ResourceVariable) FullKey() string {
 
 func NewUserVariable(key string) (*UserVariable, error) {
 	name := key[len("var."):]
+	elem := ""
+	if idx := strings.Index(name, "."); idx > -1 {
+		elem = name[idx+1:]
+		name = name[:idx]
+	}
+
 	return &UserVariable{
-		key:  key,
+		key: key,
+
 		Name: name,
+		Elem: elem,
 	}, nil
 }
 
@@ -269,29 +264,4 @@ func (v *UserVariable) FullKey() string {
 
 func (v *UserVariable) GoString() string {
 	return fmt.Sprintf("*%#v", *v)
-}
-
-func NewUserMapVariable(key string) (*UserMapVariable, error) {
-	name := key[len("var."):]
-	idx := strings.Index(name, ".")
-	if idx == -1 {
-		return nil, fmt.Errorf("not a user map variable: %s", key)
-	}
-
-	elem := name[idx+1:]
-	name = name[:idx]
-	return &UserMapVariable{
-		Name: name,
-		Elem: elem,
-
-		key: key,
-	}, nil
-}
-
-func (v *UserMapVariable) FullKey() string {
-	return v.key
-}
-
-func (v *UserMapVariable) GoString() string {
-	return fmt.Sprintf("%#v", *v)
 }
