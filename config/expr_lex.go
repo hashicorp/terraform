@@ -58,6 +58,7 @@ func (x *exprLex) lexId(yylval *exprSymType) int {
 		// If this isn't a character we want in an ID, return out.
 		// One day we should make this a regexp.
 		if c != '_' &&
+			c != '-' &&
 			c != '.' &&
 			c != '*' &&
 			!unicode.IsLetter(c) &&

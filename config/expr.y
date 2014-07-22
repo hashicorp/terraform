@@ -35,7 +35,7 @@ import (
 top:
 	expr
 	{
-		fmt.Printf("%#v", $1)
+		exprResult = $1
 	}
 
 expr:
@@ -49,7 +49,13 @@ expr:
 	}
 |	IDENTIFIER LEFTPAREN args RIGHTPAREN
 	{
-		$$ = &FunctionInterpolation{Func: $1, Args: $3}
+		f, ok := Funcs[$1]
+		if !ok {
+			exprErrors = append(exprErrors, fmt.Errorf(
+				"Unknown function: %s", $1))
+		}
+
+		$$ = &FunctionInterpolation{Func: f, Args: $3}
 	}
 
 args:

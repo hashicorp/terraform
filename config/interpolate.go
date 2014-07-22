@@ -17,7 +17,6 @@ var funcRegexp *regexp.Regexp = regexp.MustCompile(
 // Interpolations might be simple variable references, or it might be
 // function calls, or even nested function calls.
 type Interpolation interface {
-	FullString() string
 	Interpolate(map[string]string) (string, error)
 	Variables() map[string]InterpolatedVariable
 }
@@ -37,26 +36,20 @@ type InterpolatedVariable interface {
 // FunctionInterpolation is an Interpolation that executes a function
 // with some variable number of arguments to generate a value.
 type FunctionInterpolation struct {
-	Func string
+	Func InterpolationFunc
 	Args []Interpolation
-
-	key string
 }
 
 // LiteralInterpolation implements Interpolation for literals. Ex:
 // ${"foo"} will equal "foo".
 type LiteralInterpolation struct {
 	Literal string
-
-	key string
 }
 
 // VariableInterpolation implements Interpolation for simple variable
 // interpolation. Ex: "${var.foo}" or "${aws_instance.foo.bar}"
 type VariableInterpolation struct {
 	Variable InterpolatedVariable
-
-	key string
 }
 
 // A ResourceVariable is a variable that is referencing the field
@@ -82,61 +75,6 @@ type UserVariable struct {
 	key string
 }
 
-// NewInterpolation takes some string and returns the valid
-// Interpolation associated with it, or error if a valid
-// interpolation could not be found or the interpolation itself
-// is invalid.
-func NewInterpolation(v string) (Interpolation, error) {
-	match := funcRegexp.FindStringSubmatch(v)
-	if match != nil {
-		fn, ok := Funcs[match[1]]
-		if !ok {
-			return nil, fmt.Errorf(
-				"%s: Unknown function '%s'",
-				v, match[1])
-		}
-
-		args := make([]InterpolatedVariable, 0, len(match)-2)
-		for i := 2; i < len(match); i++ {
-			// This can be empty if we have a single argument
-			// due to the format of the regexp.
-			if match[i] == "" {
-				continue
-			}
-
-			v, err := NewInterpolatedVariable(match[i])
-			if err != nil {
-				return nil, err
-			}
-
-			args = append(args, v)
-		}
-
-		return &FunctionInterpolation{
-			Func: fn,
-			Args: args,
-
-			key: v,
-		}, nil
-	}
-
-	if idx := strings.Index(v, "."); idx >= 0 {
-		v, err := NewInterpolatedVariable(v)
-		if err != nil {
-			return nil, err
-		}
-
-		return &VariableInterpolation{
-			Variable: v,
-			key:      v.FullKey(),
-		}, nil
-	}
-
-	return nil, fmt.Errorf(
-		"Interpolation '%s' is not a valid interpolation. " +
-			"Please check your syntax and try again.")
-}
-
 func NewInterpolatedVariable(v string) (InterpolatedVariable, error) {
 	if !strings.HasPrefix(v, "var.") {
 		return NewResourceVariable(v)
@@ -145,21 +83,13 @@ func NewInterpolatedVariable(v string) (InterpolatedVariable, error) {
 	return NewUserVariable(v)
 }
 
-func (i *FunctionInterpolation) FullString() string {
-	return i.key
-}
-
 func (i *FunctionInterpolation) Interpolate(
 	vs map[string]string) (string, error) {
 	args := make([]string, len(i.Args))
 	for idx, a := range i.Args {
-		k := a.FullKey()
-		v, ok := vs[k]
-		if !ok {
-			return "", fmt.Errorf(
-				"%s: variable argument value unknown: %s",
-				i.FullString(),
-				k)
+		v, err := a.Interpolate(vs)
+		if err != nil {
+			return "", err
 		}
 
 		args[idx] = v
@@ -171,19 +101,12 @@ func (i *FunctionInterpolation) Interpolate(
 func (i *FunctionInterpolation) Variables() map[string]InterpolatedVariable {
 	result := make(map[string]InterpolatedVariable)
 	for _, a := range i.Args {
-		k := a.FullKey()
-		if _, ok := result[k]; ok {
-			continue
+		for k, v := range a.Variables() {
+			result[k] = v
 		}
-
-		result[k] = a
 	}
 
 	return result
-}
-
-func (i *LiteralInterpolation) FullString() string {
-	return i.key
 }
 
 func (i *LiteralInterpolation) Interpolate(
@@ -195,24 +118,20 @@ func (i *LiteralInterpolation) Variables() map[string]InterpolatedVariable {
 	return nil
 }
 
-func (i *VariableInterpolation) FullString() string {
-	return i.key
-}
-
 func (i *VariableInterpolation) Interpolate(
 	vs map[string]string) (string, error) {
-	v, ok := vs[i.key]
+	v, ok := vs[i.Variable.FullKey()]
 	if !ok {
 		return "", fmt.Errorf(
 			"%s: value for variable not found",
-			i.key)
+			i.Variable.FullKey())
 	}
 
 	return v, nil
 }
 
 func (i *VariableInterpolation) Variables() map[string]InterpolatedVariable {
-	return map[string]InterpolatedVariable{i.key: i.Variable}
+	return map[string]InterpolatedVariable{i.Variable.FullKey(): i.Variable}
 }
 
 func NewResourceVariable(key string) (*ResourceVariable, error) {
