@@ -21,8 +21,7 @@ func TestResourceProvider_Apply(t *testing.T) {
 	})
 
 	p := new(ResourceProvisioner)
-	_, err := p.Apply(nil, c)
-	if err != nil {
+	if err := p.Apply(nil, c); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
