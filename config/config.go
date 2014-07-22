@@ -108,8 +108,13 @@ func (c *Config) Validate() error {
 		varMap[v.Name] = v
 	}
 
-	// TODO(mitchellh): Validate that variable defaults are only a string
-	// or mapping of strings.
+	for _, v := range c.Variables {
+		if v.Type() == VariableTypeUnknown {
+			errs = append(errs, fmt.Errorf(
+				"Variable '%s': must be string or mapping",
+				v.Name))
+		}
+	}
 
 	// Check for references to user variables that do not actually
 	// exist and record those errors.
