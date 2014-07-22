@@ -769,21 +769,18 @@ body.page-sub #header {
   font-size: 16px;
 }
 #demos .terminals .terminal-item .terminal {
-  background-color: #2f2f2f;
   border-radius: 4px;
 }
 #demos .terminals .terminal-item .terminal header {
   position: relative;
-  background-color: #909090;
   text-align: center;
   padding: 3px;
-  border-top-left-radius: 4px;
-  border-top-right-radius: 4px;
+  border-bottom: 2px solid #1e1e1e;
 }
 #demos .terminals .terminal-item .terminal header h4 {
   font-size: 14px;
   letter-spacing: 1px;
-  color: #555555;
+  color: white;
   font-family: 'Lato', "Helvetica Neue", Helvetica, Arial, sans-serif;
   font-weight: 700;
 }
@@ -798,8 +795,16 @@ body.page-sub #header {
   width: 12px;
   height: 12px;
   border-radius: 6px;
-  background-color: #555555;
   margin-left: 6px;
+}
+#demos .terminals .terminal-item .terminal header ul.shell-dots li.d1 {
+  background-color: #4a08a7;
+}
+#demos .terminals .terminal-item .terminal header ul.shell-dots li.d2 {
+  background-color: #6517cf;
+}
+#demos .terminals .terminal-item .terminal header ul.shell-dots li.d3 {
+  background-color: #7b29ee;
 }
 #demos .terminals .terminal-item .terminal .terminal-window {
   min-height: 140px;
@@ -808,6 +813,7 @@ body.page-sub #header {
   font-weight: normal;
   font-family: "Courier New", Monaco, Menlo, Consolas, monospace;
   color: #ffffff;
+  background-color: transparent;
 }
 #demos .terminals .terminal-item .terminal .terminal-window .txt-r {
   color: #e47078;

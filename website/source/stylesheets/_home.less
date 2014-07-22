@@ -255,21 +255,18 @@
 			}
 
 			.terminal{
-				background-color: darken(@gray-darker, 15%);
 				border-radius: 4px;
 
 				header{
 					position: relative;
-					background-color: @consul-gray;
 					text-align: center;
 					padding: 3px;
-					border-top-left-radius: 4px;
-					border-top-right-radius: 4px;
+					border-bottom: 2px solid #1e1e1e;
 
 					h4{
 						font-size: 14px;
 						letter-spacing: 1px;
-						color: @gray-darker;
+						color: white;
 						font-family: @font-family-lato;
 						font-weight: @font-weight-lato-xb;
 					}
@@ -281,11 +278,20 @@
 						padding-left: 0;
 
 						li{
+							&.d1{
+								background-color: #4a08a7;
+							}
+							&.d2{
+								background-color: #6517cf;
+							}
+							&.d3{
+								background-color: #7b29ee;
+							}
+
 							display: inline-block;
 							width: 12px;
 							height: 12px;
 							border-radius: 6px;
-							background-color: @gray-darker;
 							margin-left: 6px;
 						}
 					}
@@ -298,6 +304,7 @@
 					font-weight: normal;
 					font-family: "Courier New", Monaco, Menlo, Consolas, monospace;
 					color: @white;
+					background-color: transparent;
 
 					.txt-r {
 						color: lighten(@red, 8%);;
