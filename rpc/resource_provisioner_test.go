@@ -21,14 +21,10 @@ func TestResourceProvisioner_apply(t *testing.T) {
 	}
 	provisioner := &ResourceProvisioner{Client: client, Name: name}
 
-	p.ApplyReturn = &terraform.ResourceState{
-		ID: "bob",
-	}
-
 	// Apply
 	state := &terraform.ResourceState{}
 	conf := &terraform.ResourceConfig{}
-	newState, err := provisioner.Apply(state, conf)
+	err = provisioner.Apply(state, conf)
 	if !p.ApplyCalled {
 		t.Fatal("apply should be called")
 	}
@@ -37,9 +33,6 @@ func TestResourceProvisioner_apply(t *testing.T) {
 	}
 	if err != nil {
 		t.Fatalf("bad: %#v", err)
-	}
-	if !reflect.DeepEqual(p.ApplyReturn, newState) {
-		t.Fatalf("bad: %#v", newState)
 	}
 }
 

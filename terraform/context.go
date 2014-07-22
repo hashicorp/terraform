@@ -554,10 +554,11 @@ func (c *Context) applyWalkFn() depgraph.WalkFunc {
 		//
 		// Additionally, we need to be careful to not run this if there
 		// was an error during the provider apply.
+		tainted := false
 		if applyerr == nil && r.State.ID == "" && len(r.Provisioners) > 0 {
-			rs, err = c.applyProvisioners(r, rs)
-			if err != nil {
+			if err := c.applyProvisioners(r, rs); err != nil {
 				errs = append(errs, err)
+				tainted = true
 			}
 		}
 
@@ -567,6 +568,10 @@ func (c *Context) applyWalkFn() depgraph.WalkFunc {
 			delete(c.state.Resources, r.Id)
 		} else {
 			c.state.Resources[r.Id] = rs
+
+			if tainted {
+				c.state.Tainted[r.Id] = struct{}{}
+			}
 		}
 		c.sl.Unlock()
 
@@ -591,9 +596,7 @@ func (c *Context) applyWalkFn() depgraph.WalkFunc {
 
 // applyProvisioners is used to run any provisioners a resource has
 // defined after the resource creation has already completed.
-func (c *Context) applyProvisioners(r *Resource, rs *ResourceState) (*ResourceState, error) {
-	var err error
-
+func (c *Context) applyProvisioners(r *Resource, rs *ResourceState) error {
 	// Store the original connection info, restore later
 	origConnInfo := rs.ConnInfo
 	defer func() {
@@ -604,13 +607,13 @@ func (c *Context) applyProvisioners(r *Resource, rs *ResourceState) (*ResourceSt
 		// Interpolate since we may have variables that depend on the
 		// local resource.
 		if err := prov.Config.interpolate(c); err != nil {
-			return rs, err
+			return err
 		}
 
 		// Interpolate the conn info, since it may contain variables
 		connInfo := NewResourceConfig(prov.ConnInfo)
 		if err := connInfo.interpolate(c); err != nil {
-			return rs, err
+			return err
 		}
 
 		// Merge the connection information
@@ -643,12 +646,12 @@ func (c *Context) applyProvisioners(r *Resource, rs *ResourceState) (*ResourceSt
 		rs.ConnInfo = overlay
 
 		// Invoke the Provisioner
-		rs, err = prov.Provisioner.Apply(rs, prov.Config)
-		if err != nil {
-			return rs, err
+		if err := prov.Provisioner.Apply(rs, prov.Config); err != nil {
+			return err
 		}
 	}
-	return rs, nil
+
+	return nil
 }
 
 func (c *Context) planWalkFn(result *Plan) depgraph.WalkFunc {
@@ -678,7 +681,13 @@ func (c *Context) planWalkFn(result *Plan) depgraph.WalkFunc {
 			// Get a diff from the newest state
 			log.Printf("[DEBUG] %s: Executing diff", r.Id)
 			var err error
-			diff, err = r.Provider.Diff(r.State, r.Config)
+			state := r.State
+			if r.Tainted {
+				// If we're tainted, we pretend to create a new thing.
+				state = new(ResourceState)
+				state.Type = r.State.Type
+			}
+			diff, err = r.Provider.Diff(state, r.Config)
 			if err != nil {
 				return err
 			}
@@ -686,6 +695,11 @@ func (c *Context) planWalkFn(result *Plan) depgraph.WalkFunc {
 
 		if diff == nil {
 			diff = new(ResourceDiff)
+		}
+
+		if r.Tainted {
+			// Tainted resources must also be destroyed
+			diff.Destroy = true
 		}
 
 		if diff.RequiresNew() && r.State.ID != "" {

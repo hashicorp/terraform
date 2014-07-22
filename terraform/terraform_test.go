@@ -130,6 +130,15 @@ aws_instance.foo:
   type = aws_instance
 `
 
+const testTerraformApplyProvisionerFailStr = `
+aws_instance.bar: (tainted)
+  ID = foo
+aws_instance.foo:
+  ID = foo
+  num = 2
+  type = aws_instance
+`
+
 const testTerraformApplyDestroyStr = `
 <no state>
 `
@@ -401,4 +410,20 @@ STATE:
 
 aws_instance.foo:
   ID = bar
+`
+
+const testTerraformPlanTaintStr = `
+DIFF:
+
+DESTROY: aws_instance.bar
+  foo:  "" => "2"
+  type: "" => "aws_instance"
+
+STATE:
+
+aws_instance.bar: (tainted)
+  ID = baz
+aws_instance.foo:
+  ID = bar
+  num = 2
 `
