@@ -98,6 +98,12 @@ func NewInterpolation(v string) (Interpolation, error) {
 
 		args := make([]InterpolatedVariable, 0, len(match)-2)
 		for i := 2; i < len(match); i++ {
+			// This can be empty if we have a single argument
+			// due to the format of the regexp.
+			if match[i] == "" {
+				continue
+			}
+
 			v, err := NewInterpolatedVariable(match[i])
 			if err != nil {
 				return nil, err
@@ -196,6 +202,12 @@ func (i *VariableInterpolation) Variables() map[string]InterpolatedVariable {
 
 func NewResourceVariable(key string) (*ResourceVariable, error) {
 	parts := strings.SplitN(key, ".", 3)
+	if len(parts) < 3 {
+		return nil, fmt.Errorf(
+			"%s: resource variables must be three parts: type.name.attr",
+			key)
+	}
+
 	field := parts[2]
 	multi := false
 	var index int

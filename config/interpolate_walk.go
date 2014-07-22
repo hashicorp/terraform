@@ -10,7 +10,7 @@ import (
 
 // interpRegexp is a regexp that matches interpolations such as ${foo.bar}
 var interpRegexp *regexp.Regexp = regexp.MustCompile(
-	`(?i)(\$+)\{([*-.a-z0-9_]+)\}`)
+	`(?i)(\$+)\{([\s*-.,\(\)a-z0-9_]+)\}`)
 
 // interpolationWalker implements interfaces for the reflectwalk package
 // (github.com/mitchellh/reflectwalk) that can be used to automatically

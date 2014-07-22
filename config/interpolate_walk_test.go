@@ -33,6 +33,24 @@ func TestInterpolationWalker_detect(t *testing.T) {
 				},
 			},
 		},
+
+		{
+			Input: map[string]interface{}{
+				"foo": "${lookup(var.foo)}",
+			},
+			Result: []Interpolation{
+				&FunctionInterpolation{
+					Func: nil,
+					Args: []InterpolatedVariable{
+						&UserVariable{
+							Name: "foo",
+							key:  "var.foo",
+						},
+					},
+					key: "lookup(var.foo)",
+				},
+			},
+		},
 	}
 
 	for i, tc := range cases {
@@ -46,6 +64,14 @@ func TestInterpolationWalker_detect(t *testing.T) {
 		w := &interpolationWalker{F: detectFn}
 		if err := reflectwalk.Walk(tc.Input, w); err != nil {
 			t.Fatalf("err: %s", err)
+		}
+
+		for _, a := range actual {
+			// This is jank, but reflect.DeepEqual never has functions
+			// being the same.
+			if f, ok := a.(*FunctionInterpolation); ok {
+				f.Func = nil
+			}
 		}
 
 		if !reflect.DeepEqual(actual, tc.Result) {
