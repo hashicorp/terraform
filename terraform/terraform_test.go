@@ -222,6 +222,7 @@ const testTerraformApplyVarsStr = `
 aws_instance.bar:
   ID = foo
   bar = foo
+  baz = override
   foo = us-west-2
   type = aws_instance
 aws_instance.foo:

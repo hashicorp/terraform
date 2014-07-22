@@ -332,6 +332,13 @@ func (c *Context) computeVars(raw *config.RawConfig) error {
 			val, ok := c.variables[v.Name]
 			if ok {
 				vs[n] = val
+				continue
+			}
+
+			for k, val := range c.variables {
+				if strings.HasPrefix(k, v.Name+".") {
+					vs["var."+k] = val
+				}
 			}
 		}
 	}
