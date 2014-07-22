@@ -65,6 +65,8 @@ type Output struct {
 	RawConfig *RawConfig
 }
 
+// VariableType is the type of value a variable is holding, and returned
+// by the Type() function on variables.
 type VariableType byte
 
 const (
