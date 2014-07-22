@@ -133,6 +133,23 @@ func TestNewUserVariable(t *testing.T) {
 	}
 }
 
+func TestNewUserVariable_map(t *testing.T) {
+	v, err := NewUserVariable("var.bar.baz")
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	if v.Name != "bar" {
+		t.Fatalf("bad: %#v", v.Name)
+	}
+	if v.Elem != "baz" {
+		t.Fatalf("bad: %#v", v.Elem)
+	}
+	if v.FullKey() != "var.bar.baz" {
+		t.Fatalf("bad: %#v", v)
+	}
+}
+
 func TestFunctionInterpolation_impl(t *testing.T) {
 	var _ Interpolation = new(FunctionInterpolation)
 }
