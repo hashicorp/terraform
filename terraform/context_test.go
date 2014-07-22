@@ -1045,7 +1045,7 @@ func TestContextApply_vars(t *testing.T) {
 			"aws": testProviderFuncFixed(p),
 		},
 		Variables: map[string]string{
-			"foo": "bar",
+			"foo": "us-west-2",
 		},
 	})
 

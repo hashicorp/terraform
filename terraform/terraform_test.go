@@ -221,7 +221,8 @@ aws_instance.foo:
 const testTerraformApplyVarsStr = `
 aws_instance.bar:
   ID = foo
-  foo = bar
+  bar = foo
+  foo = us-west-2
   type = aws_instance
 aws_instance.foo:
   ID = foo

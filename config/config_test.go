@@ -104,7 +104,7 @@ func TestVariableDefaultsMap(t *testing.T) {
 	}{
 		{
 			"foo",
-			map[string]string{"foo": "foo"},
+			map[string]string{"var.foo": "foo"},
 		},
 
 		{
@@ -113,8 +113,9 @@ func TestVariableDefaultsMap(t *testing.T) {
 				"bar": "baz",
 			},
 			map[string]string{
-				"foo.foo": "bar",
-				"foo.bar": "baz",
+				"var.foo":     "foo",
+				"var.foo.foo": "bar",
+				"var.foo.bar": "baz",
 			},
 		},
 	}

@@ -51,6 +51,20 @@ func (t *libuclConfigurable) Config() (*Config, error) {
 	if len(rawConfig.Variable) > 0 {
 		config.Variables = make([]*Variable, 0, len(rawConfig.Variable))
 		for k, v := range rawConfig.Variable {
+			// Defaults turn into a slice of map[string]interface{} and
+			// we need to make sure to convert that down into the
+			// proper type for Config.
+			if ms, ok := v.Default.([]map[string]interface{}); ok {
+				def := make(map[string]interface{})
+				for _, m := range ms {
+					for k, v := range m {
+						def[k] = v
+					}
+				}
+
+				v.Default = def
+			}
+
 			newVar := &Variable{
 				Name:        k,
 				Default:     v.Default,
