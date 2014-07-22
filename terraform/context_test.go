@@ -1050,6 +1050,14 @@ func TestContextApply_vars(t *testing.T) {
 		},
 	})
 
+	w, e := ctx.Validate()
+	if len(w) > 0 {
+		t.Fatalf("bad: %#v", w)
+	}
+	if len(e) > 0 {
+		t.Fatalf("bad: %s", e)
+	}
+
 	if _, err := ctx.Plan(nil); err != nil {
 		t.Fatalf("err: %s", err)
 	}

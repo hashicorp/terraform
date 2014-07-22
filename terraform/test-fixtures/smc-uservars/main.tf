@@ -6,3 +6,10 @@ variable "foo" {
 variable "bar" {
     default = "baz"
 }
+
+# Mapping
+variable "map" {
+    default = {
+        "foo" = "bar";
+    }
+}

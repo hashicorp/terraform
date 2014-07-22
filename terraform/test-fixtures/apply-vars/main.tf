@@ -9,6 +9,8 @@ variable "bar" {
     default = "baz"
 }
 
+variable "foo" {}
+
 resource "aws_instance" "foo" {
     num = "2"
     bar = "${var.bar}"
