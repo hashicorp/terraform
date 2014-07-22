@@ -98,6 +98,10 @@ func (i *FunctionInterpolation) Interpolate(
 	return i.Func(vs, args...)
 }
 
+func (i *FunctionInterpolation) GoString() string {
+	return fmt.Sprintf("*%#v", *i)
+}
+
 func (i *FunctionInterpolation) Variables() map[string]InterpolatedVariable {
 	result := make(map[string]InterpolatedVariable)
 	for _, a := range i.Args {
@@ -128,6 +132,10 @@ func (i *VariableInterpolation) Interpolate(
 	}
 
 	return v, nil
+}
+
+func (i *VariableInterpolation) GoString() string {
+	return fmt.Sprintf("*%#v", *i)
 }
 
 func (i *VariableInterpolation) Variables() map[string]InterpolatedVariable {

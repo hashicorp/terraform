@@ -49,6 +49,39 @@ func TestExprParse(t *testing.T) {
 			},
 			false,
 		},
+
+		{
+			"lookup(var.foo, lookup(var.baz, var.bar))",
+			&FunctionInterpolation{
+				Func: nil, // Funcs["lookup"]
+				Args: []Interpolation{
+					&VariableInterpolation{
+						Variable: &UserVariable{
+							Name: "foo",
+							key:  "var.foo",
+						},
+					},
+					&FunctionInterpolation{
+						Func: nil, // Funcs["lookup"]
+						Args: []Interpolation{
+							&VariableInterpolation{
+								Variable: &UserVariable{
+									Name: "baz",
+									key:  "var.baz",
+								},
+							},
+							&VariableInterpolation{
+								Variable: &UserVariable{
+									Name: "bar",
+									key:  "var.bar",
+								},
+							},
+						},
+					},
+				},
+			},
+			false,
+		},
 	}
 
 	for i, tc := range cases {
@@ -59,8 +92,22 @@ func TestExprParse(t *testing.T) {
 
 		// This is jank, but reflect.DeepEqual never has functions
 		// being the same.
-		if f, ok := actual.(*FunctionInterpolation); ok {
-			f.Func = nil
+		f, ok := actual.(*FunctionInterpolation)
+		if ok {
+			fs := make([]*FunctionInterpolation, 1)
+			fs[0] = f
+			for len(fs) > 0 {
+				f := fs[0]
+				fs = fs[1:]
+
+				f.Func = nil
+				for _, a := range f.Args {
+					f, ok := a.(*FunctionInterpolation)
+					if ok {
+						fs = append(fs, f)
+					}
+				}
+			}
 		}
 
 		if !reflect.DeepEqual(actual, tc.Result) {
