@@ -995,15 +995,18 @@ body.page-sub {
   background-color: #242424;
 }
 body.layout-docs,
+body.layout-inner,
 body.layout-intro {
   background: #242424 url('../images/sidebar-wire.png') left 62px no-repeat;
 }
 body.layout-docs > .container .col-md-8[role=main],
+body.layout-inner > .container .col-md-8[role=main],
 body.layout-intro > .container .col-md-8[role=main] {
   min-height: 800px;
   background-color: white;
 }
 body.layout-docs > .container .col-md-8[role=main] > div,
+body.layout-inner > .container .col-md-8[role=main] > div,
 body.layout-intro > .container .col-md-8[role=main] > div {
   position: relative;
   z-index: 10;
