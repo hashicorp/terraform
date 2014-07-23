@@ -250,6 +250,13 @@ body.page-sub #header {
   float: none;
   display: inline-block;
 }
+#footer .footer-links .li-under a:hover::after,
+#footer .footer-links .li-under a:focus::after {
+  opacity: 1;
+  -webkit-transform: skewY(15deg) translateY(8px);
+  -moz-transform: skewY(15deg) translateY(8px);
+  transform: skewY(15deg) translateY(8px);
+}
 #footer .footer-links .li-under a::after {
   background-color: #822ff7;
 }
@@ -519,9 +526,9 @@ body.page-sub #header {
 .li-under a:hover::after,
 .li-under a:focus::after {
   opacity: 1;
-  -webkit-transform: skewY(15deg) translateY(15px);
-  -moz-transform: skewY(15deg) translateY(15px);
-  transform: skewY(15deg) translateY(15px);
+  -webkit-transform: skewY(15deg) translateY(18px);
+  -moz-transform: skewY(15deg) translateY(18px);
+  transform: skewY(15deg) translateY(18px);
 }
 /*body.page-home{
 	background-color: #f8f8f8;

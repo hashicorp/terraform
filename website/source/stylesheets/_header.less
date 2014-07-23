@@ -151,6 +151,14 @@ body.page-sub{
         float: none;
         display: inline-block;
 
+        .li-under a:hover::after,
+        .li-under a:focus::after {
+            opacity: 1;
+            -webkit-transform: skewY(15deg) translateY(8px);
+            -moz-transform: skewY(15deg) translateY(8px);
+            transform: skewY(15deg) translateY(8px);
+        }
+
         .li-under a::after {
             background-color: @purple;
         }
