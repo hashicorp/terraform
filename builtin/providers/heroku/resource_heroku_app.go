@@ -8,8 +8,40 @@ import (
 	"github.com/hashicorp/terraform/flatmap"
 	"github.com/hashicorp/terraform/helper/config"
 	"github.com/hashicorp/terraform/helper/diff"
+	"github.com/hashicorp/terraform/helper/multierror"
 	"github.com/hashicorp/terraform/terraform"
 )
+
+// type application is used to store all the details of a heroku app
+type application struct {
+	Id string // Id of the resource
+
+	App    *heroku.App       // The heroku application
+	Client *heroku.Client    // Client to interact with the heroku API
+	Vars   map[string]string // The vars on the application
+}
+
+// Updates the application to have the latest from remote
+func (a *application) Update() error {
+	var errs []error
+	var err error
+
+	a.App, err = a.Client.AppInfo(a.Id)
+	if err != nil {
+		errs = append(errs, err)
+	}
+
+	a.Vars, err = retrieve_config_vars(a.Id, a.Client)
+	if err != nil {
+		errs = append(errs, err)
+	}
+
+	if len(errs) > 0 {
+		return &multierror.Error{Errors: errs}
+	}
+
+	return nil
+}
 
 func resource_heroku_app_create(
 	s *terraform.ResourceState,
@@ -39,12 +71,12 @@ func resource_heroku_app_create(
 
 	log.Printf("[DEBUG] App create configuration: %#v", opts)
 
-	app, err := client.AppCreate(&opts)
+	a, err := client.AppCreate(&opts)
 	if err != nil {
 		return s, err
 	}
 
-	rs.ID = app.Name
+	rs.ID = a.Name
 	log.Printf("[INFO] App ID: %s", rs.ID)
 
 	if attr, ok := rs.Attributes["config_vars.#"]; ok && attr == "1" {
@@ -57,7 +89,7 @@ func resource_heroku_app_create(
 		}
 	}
 
-	app, err = resource_heroku_app_retrieve(rs.ID, client)
+	app, err := resource_heroku_app_retrieve(rs.ID, client)
 	if err != nil {
 		return rs, err
 	}
@@ -136,26 +168,38 @@ func resource_heroku_app_diff(
 
 func resource_heroku_app_update_state(
 	s *terraform.ResourceState,
-	app *heroku.App) (*terraform.ResourceState, error) {
+	app *application) (*terraform.ResourceState, error) {
 
-	s.Attributes["name"] = app.Name
-	s.Attributes["stack"] = app.Stack.Name
-	s.Attributes["region"] = app.Region.Name
-	s.Attributes["git_url"] = app.GitURL
-	s.Attributes["web_url"] = app.WebURL
-	s.Attributes["id"] = app.Id
+	s.Attributes["name"] = app.App.Name
+	s.Attributes["stack"] = app.App.Stack.Name
+	s.Attributes["region"] = app.App.Region.Name
+	s.Attributes["git_url"] = app.App.GitURL
+	s.Attributes["web_url"] = app.App.WebURL
+	s.Attributes["id"] = app.App.Id
+
+	toFlatten := make(map[string]interface{})
+
+	if len(app.Vars) > 0 {
+		toFlatten["config_vars"] = app.Vars
+	}
+
+	for k, v := range flatmap.Flatten(toFlatten) {
+		s.Attributes[k] = v
+	}
 
 	return s, nil
 }
 
-func resource_heroku_app_retrieve(id string, client *heroku.Client) (*heroku.App, error) {
-	app, err := client.AppInfo(id)
+func resource_heroku_app_retrieve(id string, client *heroku.Client) (*application, error) {
+	app := application{Id: id, Client: client}
+
+	err := app.Update()
 
 	if err != nil {
 		return nil, fmt.Errorf("Error retrieving app: %s", err)
 	}
 
-	return app, nil
+	return &app, nil
 }
 
 func resource_heroku_app_validation() *config.Validator {
@@ -168,6 +212,16 @@ func resource_heroku_app_validation() *config.Validator {
 			"config_vars.*",
 		},
 	}
+}
+
+func retrieve_config_vars(id string, client *heroku.Client) (map[string]string, error) {
+	vars, err := client.ConfigVarInfo(id)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return vars, nil
 }
 
 // Updates the config vars for from an expanded (prior to assertion)
