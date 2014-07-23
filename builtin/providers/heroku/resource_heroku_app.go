@@ -120,11 +120,22 @@ func resource_heroku_app_update(
 		rs.ID = renamedApp.Name
 	}
 
-	if attr, ok := d.Attributes["config_vars.#"]; ok && attr.New == "1" {
+	attr, ok := s.Attributes["config_vars.#"]
+
+	// If the config var block was removed, nuke all config vars
+	if ok && attr == "1" {
 		vs := flatmap.Expand(
 			rs.Attributes, "config_vars").([]interface{})
 
 		err := update_config_vars(rs.ID, vs, client)
+		if err != nil {
+			return rs, err
+		}
+	} else if ok && attr == "0" {
+		log.Println("[INFO] Config vars removed, removing all vars")
+
+		err := update_config_vars(rs.ID, make([]interface{}, 0), client)
+
 		if err != nil {
 			return rs, err
 		}
@@ -264,6 +275,8 @@ func update_config_vars(id string, vs []interface{}, client *heroku.Client) erro
 		val := v.(string)
 		vars[k] = &val
 	}
+
+	log.Printf("[INFO] Updating config vars: *%#v", vars)
 
 	_, err := client.ConfigVarUpdate(id, vars)
 
