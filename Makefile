@@ -55,7 +55,9 @@ vendor/libucl/libucl.dll: vendor/libucl
 vendor/libucl:
 	rm -rf vendor/libucl
 	mkdir -p vendor/libucl
-	git clone https://github.com/vstakhov/libucl.git vendor/libucl
+	git clone https://github.com/hashicorp/libucl.git vendor/libucl
+	cd vendor/libucl && \
+		git checkout fix-win32-compile
 
 clean:
 	rm -rf vendor
