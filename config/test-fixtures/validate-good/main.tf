@@ -32,4 +32,6 @@ resource aws_instance "web" {
         device_index = 0
         description = "Main network interface"
     }
+
+    depends_on = ["aws_security_group.firewall"]
 }
