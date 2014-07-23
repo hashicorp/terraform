@@ -101,10 +101,29 @@ func resource_heroku_app_update(
 	s *terraform.ResourceState,
 	d *terraform.ResourceDiff,
 	meta interface{}) (*terraform.ResourceState, error) {
+	p := meta.(*ResourceProvider)
+	client := p.client
+	rs := s.MergeDiff(d)
 
-	panic("does not update")
+	if attr, ok := d.Attributes["name"]; ok {
+		opts := heroku.AppUpdateOpts{
+			Name: &attr.New,
+		}
 
-	return nil, nil
+		_, err := client.AppUpdate(rs.ID, &opts)
+
+		if err != nil {
+			return s, err
+		}
+
+	}
+
+	app, err := resource_heroku_app_retrieve(rs.ID, client)
+	if err != nil {
+		return rs, err
+	}
+
+	return resource_heroku_app_update_state(rs, app)
 }
 
 func resource_heroku_app_destroy(
