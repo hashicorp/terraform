@@ -11,6 +11,15 @@ var resourceMap *resource.Map
 func init() {
 	resourceMap = &resource.Map{
 		Mapping: map[string]resource.Resource{
+			"heroku_addon": resource.Resource{
+				ConfigValidator: resource_heroku_addon_validation(),
+				Create:          resource_heroku_addon_create,
+				Destroy:         resource_heroku_addon_destroy,
+				Diff:            resource_heroku_addon_diff,
+				Refresh:         resource_heroku_addon_refresh,
+				Update:          resource_heroku_addon_update,
+			},
+
 			"heroku_app": resource.Resource{
 				ConfigValidator: resource_heroku_app_validation(),
 				Create:          resource_heroku_app_create,
