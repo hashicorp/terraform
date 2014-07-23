@@ -37,29 +37,32 @@
 <body class="page-<%= current_page.data.page_title ? "#{current_page.data.page_title} layout-#{current_page.data.layout} page-sub" : "home layout-#{current_page.data.layout}" %>">
 <div id="header" class="<%= current_page.data.page_title == "home" ? "" : "navbar-static-top" %>">
 	<div class="container">
-		<div class="navbar-header">
-		    <button class="navbar-toggle" type="button" data-toggle="collapse" data-target=".bs-navbar-collapse">
-	          <span class="sr-only">Toggle navigation</span>
-	          <span class="icon-bar"></span>
-	          <span class="icon-bar"></span>
-	          <span class="icon-bar"></span>
-	        </button>
-			<a class="navbar-brand logo" href="/">Terraform</a>
-		</div>
+    <div class="col-xs-12 col-md-4">
+		  <div class="navbar-header">
+  		    <button class="navbar-toggle" type="button" data-toggle="collapse" data-target=".bs-navbar-collapse">
+  	          <span class="sr-only">Toggle navigation</span>
+  	          <span class="icon-bar"></span>
+  	          <span class="icon-bar"></span>
+  	          <span class="icon-bar"></span>
+  	        </button>
+  			<a class="navbar-brand logo" href="/">Terraform</a>
+  		</div>
+    </div>
 
-		<nav class="collapse navbar-collapse bs-navbar-collapse" role="navigation">
-			<ul class="buttons nav navbar-nav navbar-right rls-sb">
-				<li class="first download terra-btn"><a href="/downloads.html">Download</a></li>
-				<li class="github terra-btn"><a href="https://github.com/hashicorp/terraform">Github</a></li>
-			</ul>
+    <div class="col-xs-12 col-md-8 nav-white">
+  		<nav class="collapse navbar-collapse bs-navbar-collapse" role="navigation">
+  			<ul class="buttons nav navbar-nav navbar-right rls-sb">
+  				<li class="first download terra-btn"><a href="/downloads.html">Download</a></li>
+  				<li class="github terra-btn"><a href="https://github.com/hashicorp/terraform">Github</a></li>
+  			</ul>
 
-			<ul class="main-links nav navbar-nav navbar-right rls-sb">
-				<li class="first li-under"><a href="/intro/index.html">Intro</a></li>
-				<li class="li-under"><a href="/docs/index.html">Docs</a></li>
-        <li class="li-under"><a href="/community.html">Community</a></li>
-				<li class="li-under"><a href="http://demo.terraform.io/">Demo</a></li>
-			</ul>
-		</nav>
-
-	</div>
+  			<ul class="main-links nav navbar-nav navbar-right rls-sb">
+  				<li class="first li-under"><a href="/intro/index.html">Intro</a></li>
+  				<li class="li-under"><a href="/docs/index.html">Docs</a></li>
+          <li class="li-under"><a href="/community.html">Community</a></li>
+  				<li class="li-under"><a href="http://demo.terraform.io/">Demo</a></li>
+  			</ul>
+  		</nav>
+    </div>
+  </div>
 </div>
