@@ -45,21 +45,13 @@ func resource_heroku_app_create(
 	}
 
 	rs.ID = app.Name
-
 	log.Printf("[INFO] App ID: %s", rs.ID)
 
 	if attr, ok := rs.Attributes["config_vars.#"]; ok && attr == "1" {
 		vs := flatmap.Expand(
 			rs.Attributes, "config_vars").([]interface{})
-		vars := make(map[string]*string)
 
-		for k, v := range vs[0].(map[string]interface{}) {
-			val := v.(string)
-			vars[k] = &val
-		}
-
-		_, err = client.ConfigVarUpdate(rs.ID, vars)
-
+		err = update_config_vars(rs.ID, vs, client)
 		if err != nil {
 			return rs, err
 		}
@@ -176,4 +168,23 @@ func resource_heroku_app_validation() *config.Validator {
 			"config_vars.*",
 		},
 	}
+}
+
+// Updates the config vars for from an expanded (prior to assertion)
+// []map[string]string config
+func update_config_vars(id string, vs []interface{}, client *heroku.Client) error {
+	vars := make(map[string]*string)
+
+	for k, v := range vs[0].(map[string]interface{}) {
+		val := v.(string)
+		vars[k] = &val
+	}
+
+	_, err := client.ConfigVarUpdate(id, vars)
+
+	if err != nil {
+		return fmt.Errorf("Error updating config vars: %s", err)
+	}
+
+	return nil
 }
