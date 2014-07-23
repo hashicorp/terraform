@@ -13,8 +13,9 @@
 	h2{
 		text-align: right;
 		font-size: 44px;
-		line-height: 54px;
+		line-height: 44px;
 		letter-spacing: 2px;
+		text-transform: uppercase;
 		color: @purple;
 		.lato-light();
 	}
@@ -38,7 +39,7 @@
 }
 
 #feature-auto{
-	padding: 240px 0 300px;
+	padding: 200px 0 300px;
 	margin-top: -36px;
 	background: #fff url(../images/white-wireframe.png) center top no-repeat;
 	background-size: cover;
@@ -48,10 +49,21 @@
 		.skewY(2deg);
 	}
 
+	h2{
+		font-size: 41px
+	}
+
+	p{
+		text-align: right;
+		padding-left: 100px;
+	}
+
 	.terminal-text{
-		color: black;
+		background: black;
+		color: white;
 		line-height: 88px;
 		text-align: center;
+		margin: 60px 20px 0;
 		font-size: 35px;
 		font-family: "Courier New", Monaco, Menlo, Consolas, monospace;
 	}
@@ -59,7 +71,7 @@
 
 #feature-iterate{
 	margin-top: -80px;
-	padding: 280px 0;
+	padding: 280px 0 360px;
 	color: white;
 	background: #fff url(../images/feature-iterate-bg.png) center top no-repeat;
 	border-top: 2px solid white;
@@ -69,6 +81,16 @@
 
 	>.container{
 		.skewY(-2deg);
+	}
+
+	p{
+		text-align: right;
+		padding-left: 120px;
+		font-weight: 100;
+	}
+
+	.it-icon{
+		margin-top: 40px;
 	}
 
 	.t-block{

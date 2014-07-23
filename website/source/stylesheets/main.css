@@ -597,8 +597,9 @@ body.page-sub #header .main-links.navbar-nav li + li::before {
 .feature h2 {
   text-align: right;
   font-size: 44px;
-  line-height: 54px;
+  line-height: 44px;
   letter-spacing: 2px;
+  text-transform: uppercase;
   color: #822ff7;
   font-family: 'Lato', "Helvetica Neue", Helvetica, Arial, sans-serif;
   font-weight: 100;
@@ -619,7 +620,7 @@ body.page-sub #header .main-links.navbar-nav li + li::before {
   background-repeat: no-repeat;
 }
 #feature-auto {
-  padding: 240px 0 300px;
+  padding: 200px 0 300px;
   margin-top: -36px;
   background: #ffffff url(../images/white-wireframe.png) center top no-repeat;
   background-size: cover;
@@ -636,16 +637,25 @@ body.page-sub #header .main-links.navbar-nav li + li::before {
   -o-transform: skewY(2deg);
   transform: skewY(2deg);
 }
+#feature-auto h2 {
+  font-size: 41px;
+}
+#feature-auto p {
+  text-align: right;
+  padding-left: 100px;
+}
 #feature-auto .terminal-text {
-  color: black;
+  background: black;
+  color: white;
   line-height: 88px;
   text-align: center;
+  margin: 60px 20px 0;
   font-size: 35px;
   font-family: "Courier New", Monaco, Menlo, Consolas, monospace;
 }
 #feature-iterate {
   margin-top: -80px;
-  padding: 280px 0;
+  padding: 280px 0 360px;
   color: white;
   background: #ffffff url(../images/feature-iterate-bg.png) center top no-repeat;
   border-top: 2px solid white;
@@ -663,6 +673,14 @@ body.page-sub #header .main-links.navbar-nav li + li::before {
   -ms-transform: skewY(-2deg);
   -o-transform: skewY(-2deg);
   transform: skewY(-2deg);
+}
+#feature-iterate p {
+  text-align: right;
+  padding-left: 120px;
+  font-weight: 100;
+}
+#feature-iterate .it-icon {
+  margin-top: 40px;
 }
 #feature-iterate .t-block {
   background-color: #ffffff;
