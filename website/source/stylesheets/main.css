@@ -194,8 +194,8 @@ body.page-sub #header {
 #header .main-links.navbar-nav li > a {
   border-bottom: 1px solid #fff;
   line-height: 26px;
-  margin: 0 15px;
-  padding: 0;
+  margin: 0 12px;
+  padding: 0 0 0 4px;
 }
 #footer .buttons.navbar-nav,
 #header .buttons.navbar-nav {
@@ -262,20 +262,18 @@ body.page-sub #header {
             }*/
 }
 #footer {
-  height: 650px;
-  text-align: center;
+  padding: 140px 0 40px;
   color: #822ff7;
 }
-#footer .main-links.navbar-nav {
+#footer .footer-links {
   float: none;
   display: inline-block;
-  padding-top: 155px;
 }
-#footer .main-links.navbar-nav .li-under a::after {
+#footer .footer-links .li-under a::after {
   background-color: #822ff7;
 }
 #footer .footer-hashi {
-  padding-top: 110px;
+  float: right;
 }
 #footer a {
   color: #822ff7;
