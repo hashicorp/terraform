@@ -222,6 +222,12 @@ func (d *ResourceDiff) RequiresNew() bool {
 // just checking that the same attributes are changing, a destroy
 // isn't suddenly happening, etc.
 func (d *ResourceDiff) Same(d2 *ResourceDiff) bool {
+	if d == nil && d2 == nil {
+		return true
+	} else if d == nil || d2 == nil {
+		return false
+	}
+
 	if d.Destroy != d2.Destroy {
 		return false
 	}
