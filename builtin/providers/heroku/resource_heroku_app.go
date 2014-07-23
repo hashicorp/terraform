@@ -110,12 +110,14 @@ func resource_heroku_app_update(
 			Name: &attr.New,
 		}
 
-		_, err := client.AppUpdate(rs.ID, &opts)
+		renamedApp, err := client.AppUpdate(rs.ID, &opts)
 
 		if err != nil {
 			return s, err
 		}
 
+		// Store the new ID
+		rs.ID = renamedApp.Name
 	}
 
 	if attr, ok := d.Attributes["config_vars.#"]; ok && attr.New == "1" {
@@ -175,7 +177,7 @@ func resource_heroku_app_diff(
 
 	b := &diff.ResourceBuilder{
 		Attrs: map[string]diff.AttrType{
-			"name":        diff.AttrTypeCreate,
+			"name":        diff.AttrTypeUpdate,
 			"region":      diff.AttrTypeUpdate,
 			"stack":       diff.AttrTypeCreate,
 			"config_vars": diff.AttrTypeUpdate,
