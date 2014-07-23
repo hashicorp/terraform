@@ -281,8 +281,6 @@ func resource_aws_db_instance_retrieve(id string, conn *rds.Rds) (*rds.DBInstanc
 		return nil, fmt.Errorf("Error retrieving DB Instances: %s", err)
 	}
 
-	log.Printf("resp: %#v", resp.DBInstances)
-
 	if len(resp.DBInstances) != 1 ||
 		resp.DBInstances[0].DBInstanceIdentifier != id {
 		if err != nil {

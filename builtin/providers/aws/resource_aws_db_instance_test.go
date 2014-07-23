@@ -23,7 +23,25 @@ func TestAccAWSDBInstance(t *testing.T) {
 					testAccCheckAWSDBInstanceExists("aws_db_instance.bar", &v),
 					testAccCheckAWSDBInstanceAttributes(&v),
 					resource.TestCheckResourceAttr(
-						"aws_db_instance.bar", "instance_identifier", "some_name"),
+						"aws_db_instance.bar", "instance_identifier", "foobarbaz-test-terraform"),
+					resource.TestCheckResourceAttr(
+						"aws_db_instance.bar", "allocated_storage", "foobarbaz-test-terraform"),
+					resource.TestCheckResourceAttr(
+						"aws_db_instance.bar", "engine", "mysql"),
+					resource.TestCheckResourceAttr(
+						"aws_db_instance.bar", "engine_version", "5.6.17"),
+					resource.TestCheckResourceAttr(
+						"aws_db_instance.bar", "instance_class", "db.t1.micro"),
+					resource.TestCheckResourceAttr(
+						"aws_db_instance.bar", "name", "baz"),
+					resource.TestCheckResourceAttr(
+						"aws_db_instance.bar", "password", "barbarbarbar"),
+					resource.TestCheckResourceAttr(
+						"aws_db_instance.bar", "username", "foo"),
+					resource.TestCheckResourceAttr(
+						"aws_db_instance.bar", "skip_final_snapshot", "true"),
+					resource.TestCheckResourceAttr(
+						"aws_db_instance.bar", "security_group_names.0", "secfoobarbaz-test-terraform"),
 				),
 			},
 		},
@@ -64,10 +82,20 @@ func testAccCheckAWSDBInstanceDestroy(s *terraform.State) error {
 	return nil
 }
 
-func testAccCheckAWSDBInstanceAttributes(group *rds.DBInstance) resource.TestCheckFunc {
+func testAccCheckAWSDBInstanceAttributes(v *rds.DBInstance) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 
-		// check attrs
+		if len(v.DBSecurityGroupNames) == 0 {
+			return fmt.Errorf("no sec names: %#v", v.DBSecurityGroupNames)
+		}
+
+		if v.Engine != "mysql" {
+			return fmt.Errorf("bad engine: %#v", v.Engine)
+		}
+
+		if v.Engine != "5.6.17" {
+			return fmt.Errorf("bad engine_version: %#v", v.Engine)
+		}
 
 		return nil
 	}
@@ -108,9 +136,8 @@ func testAccCheckAWSDBInstanceExists(n string, v *rds.DBInstance) resource.TestC
 }
 
 const testAccAWSDBInstanceConfig = `
-
 resource "aws_db_security_group" "bar" {
-	name = "secgrouplol"
+	name = "secfoobarbaz-test-terraform"
 	description = "just cuz"
 
 	ingress {
@@ -119,11 +146,11 @@ resource "aws_db_security_group" "bar" {
 }
 
 resource "aws_db_instance" "bar" {
-	identifier = "foobarbaz-test-terraform-2"
+	identifier = "foobarbaz-test-terraform"
 
 	allocated_storage = 10
 	engine = "mysql"
-	engine_version = "5.6.13"
+	engine_version = "5.6.17"
 	instance_class = "db.t1.micro"
 	name = "baz"
 	password = "barbarbarbar"

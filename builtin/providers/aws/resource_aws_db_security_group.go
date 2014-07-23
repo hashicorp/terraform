@@ -193,8 +193,6 @@ func resource_aws_db_security_group_retrieve(id string, conn *rds.Rds) (*rds.DBS
 		return nil, fmt.Errorf("Error retrieving DB Security Groups: %s", err)
 	}
 
-	log.Printf("resp: %#v", resp.DBSecurityGroups)
-
 	if len(resp.DBSecurityGroups) != 1 ||
 		resp.DBSecurityGroups[0].Name != id {
 		if err != nil {
