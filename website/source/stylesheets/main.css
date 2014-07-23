@@ -1103,6 +1103,9 @@ body.layout-intro > .container .col-md-8[role=main] > div {
   -webkit-font-smoothing: antialiased;
   padding: 6px 15px;
 }
+.docs-sidebar .docs-sidenav .nav-visible {
+  display: block;
+}
 .bs-docs-section {
   padding-top: 10px;
   padding-left: 3%;

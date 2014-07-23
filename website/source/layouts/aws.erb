@@ -3,7 +3,7 @@
 		<div class="docs-sidebar hidden-print affix-top" role="complementary">
 			<ul class="nav docs-sidenav">
 				<li<%= sidebar_current("docs-home") %>>
-				<a href="/docs/index.html">Documentation Home</a>
+				<a href="/docs/index.html">&laquo; Documentation Home</a>
                 </li>
 
 				<li<%= sidebar_current("docs-aws-index") %>>
@@ -11,10 +11,10 @@
                 </li>
 
 				<li<%= sidebar_current("docs-aws-resource") %>>
-				<a href="/docs/providers/aws/resources.html">Resources</a>
-				<ul class="nav">
-					<li<%= sidebar_current("docs-commands-agent") %>>
-					<a href="/docs/commands/agent.html">agent</a>
+				<a href="#">Resources</a>
+				<ul class="nav nav-visible">
+					<li<%= sidebar_current("docs-aws-resource-route53-zone") %>>
+					<a href="/docs/providers/aws/r/route53_zone.html">aws_route53_zone</a>
 					</li>
 
 				</ul>
