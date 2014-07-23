@@ -93,8 +93,8 @@ func testAccCheckAWSDBInstanceAttributes(v *rds.DBInstance) resource.TestCheckFu
 			return fmt.Errorf("bad engine: %#v", v.Engine)
 		}
 
-		if v.Engine != "5.6.17" {
-			return fmt.Errorf("bad engine_version: %#v", v.Engine)
+		if v.EngineVersion != "5.6.17" {
+			return fmt.Errorf("bad engine_version: %#v", v.EngineVersion)
 		}
 
 		return nil
