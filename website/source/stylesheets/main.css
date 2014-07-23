@@ -405,8 +405,8 @@ body.page-sub #header .main-links.navbar-nav li + li::before {
 }
 #footer .footer-hashi {
   float: right;
+  padding-top: 8px;
   letter-spacing: 2px;
-  margin-bottom: 30px;
 }
 #footer .footer-hashi a {
   color: black;
@@ -415,10 +415,30 @@ body.page-sub #header .main-links.navbar-nav li + li::before {
 #footer .footer-hashi span {
   margin-right: 10px;
 }
-#footer .footer-hashi img {
+#footer .footer-hashi .hashi-logo {
+  display: inline-block;
+  vertical-align: middle;
+}
+#footer .footer-hashi .hashi-logo i {
   display: inline-block;
   width: 37px;
   height: 40px;
+  background: url(../images/footer-hashicorp-logo.png) 0 0 no-repeat;
+  background-image: url("../images/footer-hashicorp-logo.png");
+  background-size: 37px 40px;
+}
+@media only screen and (-webkit-min-device-pixel-ratio: 2), only screen and (min--moz-device-pixel-ratio: 2), only screen and (-o-min-device-pixel-ratio: 2/1), only screen and (min-device-pixel-ratio: 2), only screen and (min-resolution: 192dpi), only screen and (min-resolution: 2dppx) {
+  #footer .footer-hashi .hashi-logo i {
+    background-image: url("../images/footer-hashicorp-logo@2x.png");
+    background-size: 37px 40px;
+  }
+}
+.page-sub #footer-wrap {
+  padding: 0;
+}
+.page-sub #footer {
+  background-color: #000000;
+  transform: none;
 }
 @media (max-width: 768px) {
   #footer .footer-hashi span {
