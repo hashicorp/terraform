@@ -1,6 +1,7 @@
 package config
 
 import (
+	"fmt"
 	"reflect"
 	"regexp"
 	"strings"
@@ -102,7 +103,10 @@ func (w *interpolationWalker) Primitive(v reflect.Value) error {
 
 		replaceVal, err := w.F(i)
 		if err != nil {
-			return err
+			return fmt.Errorf(
+				"%s: %s",
+				key,
+				err)
 		}
 
 		if w.Replace {
