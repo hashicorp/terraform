@@ -1,0 +1,27 @@
+<% wrap_layout :inner do %>
+	<% content_for :sidebar do %>
+		<div class="docs-sidebar hidden-print affix-top" role="complementary">
+			<ul class="nav docs-sidenav">
+				<li<%= sidebar_current("docs-home") %>>
+				<a href="/docs/index.html">Documentation Home</a>
+                </li>
+
+				<li<%= sidebar_current("docs-aws-index") %>>
+				<a href="/docs/providers/aws/index.html">AWS Provider</a>
+                </li>
+
+				<li<%= sidebar_current("docs-aws-resource") %>>
+				<a href="/docs/providers/aws/resources.html">Resources</a>
+				<ul class="nav">
+					<li<%= sidebar_current("docs-commands-agent") %>>
+					<a href="/docs/commands/agent.html">agent</a>
+					</li>
+
+				</ul>
+				</li>
+			</ul>
+		</div>
+	<% end %>
+
+	<%= yield %>
+	<% end %>
