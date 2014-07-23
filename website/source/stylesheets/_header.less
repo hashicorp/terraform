@@ -12,7 +12,8 @@ body.page-sub{
         height: 90px;
         background-color: @purple;
 
-        .navbar-brand {
+        .nav-logo{
+            height: 90px;
         }
 
         .nav-white{
@@ -50,7 +51,7 @@ body.page-sub{
     }
 
     .navbar-toggle{
-        margin-top: 14px;
+        margin-top: 26px;
         margin-bottom: 14px;
         border: 2px solid @white;
         .icon-bar{
@@ -109,18 +110,18 @@ body.page-sub{
             content: "";
             position: absolute;
             left: 0;
-            top: 9px;
-            width: 6px;
-            height: 8px;
+            top: 7px;
+            width: 1px;
+            height: 12px;
             background-color: @purple;
             .skewY(24deg);
-            padding-right: 8px;
+            padding-right: 0;
         } 
 
         li > a {
             //border-bottom: 2px solid rgba(255, 255, 255, .2);
             line-height: 26px;
-            margin: 0 12px;
+            margin: 0 8px;
             padding: 0 0 0 4px;
         }
 
@@ -132,7 +133,7 @@ body.page-sub{
 
         li{
             &.first{
-                margin-right: 16px;
+                margin-right: 13px;
             }
 
             &.download{
@@ -157,11 +158,47 @@ body.page-sub{
             padding-bottom: 4px;
             padding-left: 32px;
             padding-right: 12px;
-            letter-spacing: 0.05em;           
+            letter-spacing: 0.05em;         
         }
     }
 }
 
+//at minimum 1200px
+@media (min-width: 1200px) {
+    body.page-sub{
+        #header{
+            .main-links.navbar-nav{
+                margin-top: 28px;
+
+                li + li{
+                    padding-left: 6px;
+                }
+
+                li + li::before {
+                    content: "";
+                    position: absolute;
+                    left: 0;
+                    top: 9px;
+                    width: 6px;
+                    height: 8px;
+                    background-color: @purple;
+                    .skewY(24deg);
+                    padding-right: 8px;
+                }
+
+                li > a {
+                    //border-bottom: 2px solid rgba(255, 255, 255, .2);
+                    line-height: 26px;
+                    margin: 0 12px;
+                    padding: 0 0 0 4px;
+                }
+
+            }        
+        }        
+    }
+}
+
+//at greatest width 992px
 @media (max-width: 992px) {
     #header {
         .navbar-brand {
@@ -174,19 +211,18 @@ body.page-sub{
                 }
             }
         }
-
-        .buttons.navbar-nav{
-            li{
-                a{
-                    background: none !important;
-                    padding-left: 15px;
-                }
-            }
-        }
     }
 }
 
 @media (max-width: 768px) {
+
+    body.page-sub{
+        #header{
+            .nav-white{
+                background-color: transparent;
+            }
+        }
+    }
 
     //#footer,
     #header{
@@ -214,55 +250,6 @@ body.page-sub{
                 padding: 0;
                 padding-left: 0;
                 line-height: 22px;
-            }
-        }
-    }
-
-    #header{
-        .consul-gradient-bg();
-
-        .navbar-right{
-            float: none !important;
-        }
-
-        .navbar-brand {
-            &.logo{
-                span{
-                    margin-top: 0;
-                }
-            }
-        }
-
-        .navbar-nav > li{
-            float: none;
-        }
-
-        .buttons.navbar-nav{
-            margin-top: 15px;
-            margin-left: 0px;
-
-            li{
-                a{
-                    padding-left: 40px;
-                }
-                &.first{
-                    margin-right: 0;
-                    margin-bottom: 10px;
-                }
-
-                &.download{
-                    a{
-                        background: url(../images/icon-download.png)  8px 6px no-repeat !important;;
-                        .img-retina("../images/icon-download.png", "../images/icon-download@2x.png", 20px, 20px);
-                    }
-                }
-
-                &.github{
-                    a{
-                        background: url(../images/icon-github.png)  8px 6px no-repeat !important;;
-                        .img-retina("../images/icon-github.png", "../images/icon-github@2x.png", 20px, 20px);
-                    }
-                }
             }
         }
     }

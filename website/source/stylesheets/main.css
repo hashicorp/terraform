@@ -84,6 +84,9 @@ body.page-sub #header {
   height: 90px;
   background-color: #822ff7;
 }
+body.page-sub #header .nav-logo {
+  height: 90px;
+}
 body.page-sub #header .nav-white {
   height: 90px;
   background-color: white;
@@ -112,7 +115,7 @@ body.page-sub #header .main-links.navbar-nav li > a {
   color: #ffffff;
 }
 #header .navbar-toggle {
-  margin-top: 14px;
+  margin-top: 26px;
   margin-bottom: 14px;
   border: 2px solid #ffffff;
 }
@@ -169,20 +172,20 @@ body.page-sub #header .main-links.navbar-nav li > a {
   content: "";
   position: absolute;
   left: 0;
-  top: 9px;
-  width: 6px;
-  height: 8px;
+  top: 7px;
+  width: 1px;
+  height: 12px;
   background-color: #822ff7;
   -webkit-transform: skewY(24deg);
   -moz-transform: skewY(24deg);
   -ms-transform: skewY(24deg);
   -o-transform: skewY(24deg);
   transform: skewY(24deg);
-  padding-right: 8px;
+  padding-right: 0;
 }
 #header .main-links.navbar-nav li > a {
   line-height: 26px;
-  margin: 0 12px;
+  margin: 0 8px;
   padding: 0 0 0 4px;
 }
 #header .buttons.navbar-nav {
@@ -190,7 +193,7 @@ body.page-sub #header .main-links.navbar-nav li > a {
   margin-left: 30px;
 }
 #header .buttons.navbar-nav li.first {
-  margin-right: 16px;
+  margin-right: 13px;
 }
 #header .buttons.navbar-nav li.download a {
   padding-left: 30px;
@@ -223,6 +226,34 @@ body.page-sub #header .main-links.navbar-nav li > a {
   padding-right: 12px;
   letter-spacing: 0.05em;
 }
+@media (min-width: 1200px) {
+  body.page-sub #header .main-links.navbar-nav {
+    margin-top: 28px;
+  }
+  body.page-sub #header .main-links.navbar-nav li + li {
+    padding-left: 6px;
+  }
+  body.page-sub #header .main-links.navbar-nav li + li::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 9px;
+    width: 6px;
+    height: 8px;
+    background-color: #822ff7;
+    -webkit-transform: skewY(24deg);
+    -moz-transform: skewY(24deg);
+    -ms-transform: skewY(24deg);
+    -o-transform: skewY(24deg);
+    transform: skewY(24deg);
+    padding-right: 8px;
+  }
+  body.page-sub #header .main-links.navbar-nav li > a {
+    line-height: 26px;
+    margin: 0 12px;
+    padding: 0 0 0 4px;
+  }
+}
 @media (max-width: 992px) {
   #header .navbar-brand.logo span {
     width: 120px;
@@ -230,12 +261,11 @@ body.page-sub #header .main-links.navbar-nav li > a {
     margin-top: 12px;
     background-size: 120px 39px;
   }
-  #header .buttons.navbar-nav li a {
-    background: none !important;
-    padding-left: 15px;
-  }
 }
 @media (max-width: 768px) {
+  body.page-sub #header .nav-white {
+    background-color: transparent;
+  }
   #header .buttons.navbar-nav,
   #header .main-links.navbar-nav {
     display: block;
@@ -257,66 +287,6 @@ body.page-sub #header .main-links.navbar-nav li > a {
     padding: 0;
     padding-left: 0;
     line-height: 22px;
-  }
-  #header {
-    background: #694a9c;
-    /* Old browsers */
-    background: -moz-linear-gradient(left, #694a9c 0%, #cd2028 100%);
-    /* FF3.6+ */
-    background: -webkit-gradient(linear, left top, right top, color-stop(0%, #694a9c), color-stop(100%, #cd2028));
-    /* Chrome,Safari4+ */
-    background: -webkit-linear-gradient(left, #694a9c 0%, #cd2028 100%);
-    /* Chrome10+,Safari5.1+ */
-    background: -o-linear-gradient(left, #694a9c 0%, #cd2028 100%);
-    /* Opera 11.10+ */
-    background: -ms-linear-gradient(left, #694a9c 0%, #cd2028 100%);
-    /* IE10+ */
-    background: linear-gradient(to right, #694a9c 0%, #cd2028 100%);
-    /* W3C */
-    filter: progid:DXImageTransform.Microsoft.gradient(startColorstr='#694a9c', endColorstr='#cd2028', GradientType=1);
-    /* IE6-9 */
-  }
-  #header .navbar-right {
-    float: none !important;
-  }
-  #header .navbar-brand.logo span {
-    margin-top: 0;
-  }
-  #header .navbar-nav > li {
-    float: none;
-  }
-  #header .buttons.navbar-nav {
-    margin-top: 15px;
-    margin-left: 0px;
-  }
-  #header .buttons.navbar-nav li a {
-    padding-left: 40px;
-  }
-  #header .buttons.navbar-nav li.first {
-    margin-right: 0;
-    margin-bottom: 10px;
-  }
-  #header .buttons.navbar-nav li.download a {
-    background: url(../images/icon-download.png) 8px 6px no-repeat !important;
-    background-image: url("../images/icon-download.png");
-    background-size: 20px 20px;
-  }
-  #header .buttons.navbar-nav li.github a {
-    background: url(../images/icon-github.png) 8px 6px no-repeat !important;
-    background-image: url("../images/icon-github.png");
-    background-size: 20px 20px;
-  }
-}
-@media (max-width: 768px) and only screen and (-webkit-min-device-pixel-ratio: 2), (max-width: 768px) and only screen and (min--moz-device-pixel-ratio: 2), (max-width: 768px) and only screen and (-o-min-device-pixel-ratio: 2/1), (max-width: 768px) and only screen and (min-device-pixel-ratio: 2), (max-width: 768px) and only screen and (min-resolution: 192dpi), (max-width: 768px) and only screen and (min-resolution: 2dppx) {
-  #header .buttons.navbar-nav li.download a {
-    background-image: url("../images/icon-download@2x.png");
-    background-size: 20px 20px;
-  }
-}
-@media (max-width: 768px) and only screen and (-webkit-min-device-pixel-ratio: 2), (max-width: 768px) and only screen and (min--moz-device-pixel-ratio: 2), (max-width: 768px) and only screen and (-o-min-device-pixel-ratio: 2/1), (max-width: 768px) and only screen and (min-device-pixel-ratio: 2), (max-width: 768px) and only screen and (min-resolution: 192dpi), (max-width: 768px) and only screen and (min-resolution: 2dppx) {
-  #header .buttons.navbar-nav li.github a {
-    background-image: url("../images/icon-github@2x.png");
-    background-size: 20px 20px;
   }
 }
 #footer-wrap {
@@ -1167,6 +1137,37 @@ body.layout-intro > .container .col-md-8[role=main] > div {
   body.layout-inner > .container .col-md-8[role=main]::before,
   body.layout-intro > .container .col-md-8[role=main]::before {
     border-left: 9999px solid white;
+  }
+  body.page-sub > .container {
+    background-color: white;
+  }
+  .docs-sidebar {
+    margin-top: 0px;
+    margin-bottom: 0px;
+  }
+  .docs-sidebar .docs-sidenav {
+    padding-bottom: 0;
+  }
+  .docs-sidebar .docs-sidenav li > a {
+    color: black;
+    -webkit-transition: color 0.5s ease;
+    transition: color 0.5s ease;
+  }
+  .docs-sidebar .docs-sidenav li > a:hover,
+  .docs-sidebar .docs-sidenav li > a:focus {
+    color: #822ff7;
+    -webkit-transition: color 0.5s ease;
+    transition: color 0.5s ease;
+  }
+  .docs-sidebar .docs-sidenav > li > .nav li a {
+    color: black;
+  }
+  .docs-sidebar .docs-sidenav > li > .nav li a:hover {
+    color: #822ff7;
+  }
+  .bs-docs-section h1 {
+    padding-top: 24px;
+    border-top: 1px solid #eeeeee;
   }
 }
 @media (max-width: 480px) {

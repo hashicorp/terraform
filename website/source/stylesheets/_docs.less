@@ -209,6 +209,57 @@ body.layout-intro{
 			}
 		}
 	}
+
+  body.page-sub{
+    >.container{
+      background-color: white;
+    }
+  }
+
+  .docs-sidebar{
+    margin-top: 0px;
+    margin-bottom: 0px;
+
+    .docs-sidenav{
+      padding-bottom: 0;
+
+      //all li > a
+      li{
+        > a{
+          color: black;
+          .transition( color 0.5s ease );
+        }
+
+        > a:hover,
+        > a:focus {
+          color: @purple;
+          .transition( color 0.5s ease );
+        }
+      }
+
+
+      > li {
+        >.nav{
+          li{
+            a{
+              color: black;
+
+              &:hover{
+                color: @purple;
+              }
+            }
+          }
+        }
+      }
+    }
+  }  
+
+  .bs-docs-section{
+    h1{
+      padding-top: 24px;
+      border-top: 1px solid #eeeeee;
+    }
+  }
 }
 
 @media (max-width: 480px) {
