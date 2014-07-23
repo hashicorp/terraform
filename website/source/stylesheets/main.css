@@ -729,6 +729,10 @@ body.page-home #footer {
 }
 #feature-clone h2 {
   color: white;
+  font-size: 37px;
+}
+#feature-clone p {
+  text-align: right;
 }
 #feature-clone .clone-icon {
   padding-left: 80px;
