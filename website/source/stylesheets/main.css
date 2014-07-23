@@ -440,6 +440,23 @@ body.page-sub #header .main-links.navbar-nav li + li::before {
   background-color: #000000;
   transform: none;
 }
+.page-sub #footer a {
+  color: white;
+}
+.page-sub #footer .footer-hashi {
+  color: white;
+}
+.page-sub #footer .footer-hashi .hashi-logo i {
+  background: url(../images/footer-hashicorp-white-logo.png) 0 0 no-repeat;
+  background-image: url("../images/footer-hashicorp-white-logo.png");
+  background-size: 37px 40px;
+}
+@media only screen and (-webkit-min-device-pixel-ratio: 2), only screen and (min--moz-device-pixel-ratio: 2), only screen and (-o-min-device-pixel-ratio: 2/1), only screen and (min-device-pixel-ratio: 2), only screen and (min-resolution: 192dpi), only screen and (min-resolution: 2dppx) {
+  .page-sub #footer .footer-hashi .hashi-logo i {
+    background-image: url("../images/footer-hashicorp-white-logo@2x.png");
+    background-size: 37px 40px;
+  }
+}
 @media (max-width: 768px) {
   #footer .footer-hashi span {
     margin-right: 0;
