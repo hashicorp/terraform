@@ -1,6 +1,6 @@
 ---
 layout: "aws"
-page_title: "Provider: AWS"
+page_title: "AWS: aws_route53_zone"
 sidebar_current: "docs-aws-resource-route53-zone"
 ---
 
