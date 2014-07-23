@@ -229,24 +229,24 @@ func testAccCheckHerokuAppExists(n string, app *heroku.App) resource.TestCheckFu
 
 const testAccCheckHerokuAppConfig_basic = `
 resource "heroku_app" "foobar" {
-    name = "terraform-test-app"
+	name = "terraform-test-app"
 
-    config_vars {
-    	FOO = bar
-    }
+	config_vars {
+		FOO = "bar"
+	}
 }`
 
 const testAccCheckHerokuAppConfig_updated = `
 resource "heroku_app" "foobar" {
-    name = "terraform-test-renamed"
+	name = "terraform-test-renamed"
 
-    config_vars {
-    	FOO = bing
-    	BAZ = bar
-    }
+	config_vars {
+		FOO = "bing"
+		BAZ = "bar"
+	}
 }`
 
 const testAccCheckHerokuAppConfig_no_vars = `
 resource "heroku_app" "foobar" {
-    name = "terraform-test-app"
+	name = "terraform-test-app"
 }`
