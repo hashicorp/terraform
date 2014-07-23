@@ -25,7 +25,7 @@ func TestAccHerokuApp_Basic(t *testing.T) {
 					resource.TestCheckResourceAttr(
 						"heroku_app.foobar", "name", "terraform-test-app"),
 					resource.TestCheckResourceAttr(
-						"heroku_app.foobar", "config_vars.0.foo", "bar"),
+						"heroku_app.foobar", "config_vars.0.FOO", "bar"),
 				),
 			},
 		},
@@ -71,7 +71,7 @@ func testAccCheckHerokuAppAttributes(app *heroku.App) resource.TestCheckFunc {
 			return err
 		}
 
-		if vars["foo"] != "bar" {
+		if vars["FOO"] != "bar" {
 			return fmt.Errorf("Bad config vars: %v", vars)
 		}
 
