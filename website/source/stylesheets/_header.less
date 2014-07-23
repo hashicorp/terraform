@@ -83,6 +83,7 @@ body.page-sub{
 
     .main-links.navbar-nav{
         margin-top: 26px;
+
         li + li::before {
             content: "";
             position: absolute;
@@ -90,8 +91,6 @@ body.page-sub{
             top: 35px;
             width: 4px;
             height: 23px;
-            background: url(../images/nav-dotpipes.png) 0 0 no-repeat;
-            .img-retina("../images/nav-dotpipes.png", "../images/nav-dotpipes@2x.png", 4px, 23px);
             padding-right: 15px;
         }
 
@@ -100,8 +99,10 @@ body.page-sub{
         }*/
 
         li > a {
-            line-height: 30px;
-            padding: 0 15px;
+            border-bottom: 1px solid #fff;
+            line-height: 26px;
+            margin: 0 15px;
+            padding: 0;
         }
 
     }
@@ -118,28 +119,28 @@ body.page-sub{
             &.download{
                 a{
                     padding-left: 28px;
-                    background: url(../images/header-download-icon.png)  8px 6px no-repeat;
-                    .img-retina("../images/header-download-icon.png", "../images/header-download-icon@2x.png", 12px, 16px);
+                    background: url(../images/header-download-icon.png)  10px 7px no-repeat;
+                    .img-retina("../images/header-download-icon.png", "../images/header-download-icon@2x.png", 12px, 13px);
                 }
             }
 
             &.github{
                 a{
-                  background: url(../images/header-github-icon.png)  8px 5px no-repeat;
-                  .img-retina("../images/header-github-icon.png", "../images/header-github-icon@2x.png", 16px, 17px);
+                  background: url(../images/header-github-icon.png)  10px 6px no-repeat;
+                  .img-retina("../images/header-github-icon.png", "../images/header-github-icon@2x.png", 12px, 13px);
                 }
             }
         }
 
         li > a {
             color: black;
-            padding-top: 4px;
-            padding-bottom: 4px;
+            padding-top: 3px;
+            padding-bottom: 3px;
             padding-left: 30px;
-            padding-right: 6px;
+            padding-right: 10px;
             letter-spacing: 0.09em;
             
-            &::before{
+            /*&::before{
               content: "";
               position: absolute;
               top: 0;
@@ -157,7 +158,7 @@ body.page-sub{
               width: 8px;
               height: 100%;        
               background: linear-gradient(to right bottom, white 50%,transparent 50%) !important;
-            }            
+            }*/            
         }
     }
 }

@@ -188,22 +188,14 @@ body.page-sub #header {
   top: 35px;
   width: 4px;
   height: 23px;
-  background: url(../images/nav-dotpipes.png) 0 0 no-repeat;
-  background-image: url("../images/nav-dotpipes.png");
-  background-size: 4px 23px;
   padding-right: 15px;
-}
-@media only screen and (-webkit-min-device-pixel-ratio: 2), only screen and (min--moz-device-pixel-ratio: 2), only screen and (-o-min-device-pixel-ratio: 2/1), only screen and (min-device-pixel-ratio: 2), only screen and (min-resolution: 192dpi), only screen and (min-resolution: 2dppx) {
-  #footer .main-links.navbar-nav li + li::before,
-  #header .main-links.navbar-nav li + li::before {
-    background-image: url("../images/nav-dotpipes@2x.png");
-    background-size: 4px 23px;
-  }
 }
 #footer .main-links.navbar-nav li > a,
 #header .main-links.navbar-nav li > a {
-  line-height: 30px;
-  padding: 0 15px;
+  border-bottom: 1px solid #fff;
+  line-height: 26px;
+  margin: 0 15px;
+  padding: 0;
 }
 #footer .buttons.navbar-nav,
 #header .buttons.navbar-nav {
@@ -217,58 +209,57 @@ body.page-sub #header {
 #footer .buttons.navbar-nav li.download a,
 #header .buttons.navbar-nav li.download a {
   padding-left: 28px;
-  background: url(../images/header-download-icon.png) 8px 6px no-repeat;
+  background: url(../images/header-download-icon.png) 10px 7px no-repeat;
   background-image: url("../images/header-download-icon.png");
-  background-size: 12px 16px;
+  background-size: 12px 13px;
 }
 @media only screen and (-webkit-min-device-pixel-ratio: 2), only screen and (min--moz-device-pixel-ratio: 2), only screen and (-o-min-device-pixel-ratio: 2/1), only screen and (min-device-pixel-ratio: 2), only screen and (min-resolution: 192dpi), only screen and (min-resolution: 2dppx) {
   #footer .buttons.navbar-nav li.download a,
   #header .buttons.navbar-nav li.download a {
     background-image: url("../images/header-download-icon@2x.png");
-    background-size: 12px 16px;
+    background-size: 12px 13px;
   }
 }
 #footer .buttons.navbar-nav li.github a,
 #header .buttons.navbar-nav li.github a {
-  background: url(../images/header-github-icon.png) 8px 5px no-repeat;
+  background: url(../images/header-github-icon.png) 10px 6px no-repeat;
   background-image: url("../images/header-github-icon.png");
-  background-size: 16px 17px;
+  background-size: 12px 13px;
 }
 @media only screen and (-webkit-min-device-pixel-ratio: 2), only screen and (min--moz-device-pixel-ratio: 2), only screen and (-o-min-device-pixel-ratio: 2/1), only screen and (min-device-pixel-ratio: 2), only screen and (min-resolution: 192dpi), only screen and (min-resolution: 2dppx) {
   #footer .buttons.navbar-nav li.github a,
   #header .buttons.navbar-nav li.github a {
     background-image: url("../images/header-github-icon@2x.png");
-    background-size: 16px 17px;
+    background-size: 12px 13px;
   }
 }
 #footer .buttons.navbar-nav li > a,
 #header .buttons.navbar-nav li > a {
   color: black;
-  padding-top: 4px;
-  padding-bottom: 4px;
+  padding-top: 3px;
+  padding-bottom: 3px;
   padding-left: 30px;
-  padding-right: 6px;
+  padding-right: 10px;
   letter-spacing: 0.09em;
-}
-#footer .buttons.navbar-nav li > a::before,
-#header .buttons.navbar-nav li > a::before {
-  content: "";
-  position: absolute;
-  top: 0;
-  left: -8px;
-  width: 8px;
-  height: 100%;
-  background: linear-gradient(to right bottom, transparent 50%, #ffffff 50%) !important;
-}
-#footer .buttons.navbar-nav li > a::after,
-#header .buttons.navbar-nav li > a::after {
-  content: "";
-  position: absolute;
-  top: 0;
-  right: -8px;
-  width: 8px;
-  height: 100%;
-  background: linear-gradient(to right bottom, #ffffff 50%, transparent 50%) !important;
+  /*&::before{
+              content: "";
+              position: absolute;
+              top: 0;
+              left: -8px;
+              width: 8px;
+              height: 100%;        
+              background: linear-gradient(to right bottom, transparent 50%, white 50%) !important;
+            }    
+
+            &::after{
+              content: "";
+              position: absolute;
+              top: 0;
+              right: -8px;
+              width: 8px;
+              height: 100%;        
+              background: linear-gradient(to right bottom, white 50%,transparent 50%) !important;
+            }*/
 }
 #footer {
   height: 650px;
@@ -549,9 +540,9 @@ body.page-sub #header {
 .li-under a:hover::after,
 .li-under a:focus::after {
   opacity: 1;
-  -webkit-transform: skewY(15deg) translateY(10px);
-  -moz-transform: skewY(15deg) translateY(10px);
-  transform: skewY(15deg) translateY(10px);
+  -webkit-transform: skewY(15deg) translateY(15px);
+  -moz-transform: skewY(15deg) translateY(15px);
+  transform: skewY(15deg) translateY(15px);
 }
 /*body.page-home{
 	background-color: #f8f8f8;
