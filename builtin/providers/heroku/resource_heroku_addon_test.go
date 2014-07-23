@@ -38,7 +38,7 @@ func testAccCheckHerokuAddonDestroy(s *terraform.State) error {
 	client := testAccProvider.client
 
 	for _, rs := range s.Resources {
-		if rs.Type != "heroku_app" {
+		if rs.Type != "heroku_addon" {
 			continue
 		}
 

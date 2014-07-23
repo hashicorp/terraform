@@ -28,6 +28,14 @@ func init() {
 				Refresh:         resource_heroku_app_refresh,
 				Update:          resource_heroku_app_update,
 			},
+
+			"heroku_domain": resource.Resource{
+				ConfigValidator: resource_heroku_domain_validation(),
+				Create:          resource_heroku_domain_create,
+				Destroy:         resource_heroku_domain_destroy,
+				Diff:            resource_heroku_domain_diff,
+				Refresh:         resource_heroku_domain_refresh,
+			},
 		},
 	}
 }

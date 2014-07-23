@@ -218,6 +218,10 @@ func resource_heroku_app_update_state(
 	s.Attributes["git_url"] = app.App.GitURL
 	s.Attributes["web_url"] = app.App.WebURL
 
+	// We know that the hostname on heroku will be the name+herokuapp.com
+	// You need this to do things like create DNS CNAME records
+	s.Attributes["heroku_hostname"] = fmt.Sprintf("%s.herokuapp.com", app.App.Name)
+
 	toFlatten := make(map[string]interface{})
 
 	if len(app.Vars) > 0 {
