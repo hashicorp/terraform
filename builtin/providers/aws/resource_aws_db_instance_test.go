@@ -108,6 +108,16 @@ func testAccCheckAWSDBInstanceExists(n string, v *rds.DBInstance) resource.TestC
 }
 
 const testAccAWSDBInstanceConfig = `
+
+resource "aws_db_security_group" "bar" {
+	name = "secgrouplol"
+	description = "just cuz"
+
+	ingress {
+		cidr = "10.0.0.1/24"
+	}
+}
+
 resource "aws_db_instance" "bar" {
 	identifier = "foobarbaz-test-terraform-2"
 
@@ -120,5 +130,7 @@ resource "aws_db_instance" "bar" {
 	username = "foo"
 
 	skip_final_snapshot = true
+
+	security_group_names = [${aws_db_security_group.bar.name}]
 }
 `

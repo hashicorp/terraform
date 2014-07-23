@@ -83,6 +83,11 @@ func resource_aws_db_instance_create(
 			rs.Attributes, "vpc_security_group_ids").([]interface{}))
 	}
 
+	if _, ok := rs.Attributes["security_group_names.#"]; ok {
+		opts.DBSecurityGroupNames = expandStringList(flatmap.Expand(
+			rs.Attributes, "security_group_names").([]interface{}))
+	}
+
 	opts.DBInstanceIdentifier = rs.Attributes["identifier"]
 	opts.DBName = rs.Attributes["name"]
 	opts.MasterUsername = rs.Attributes["username"]
@@ -206,6 +211,7 @@ func resource_aws_db_instance_diff(
 			"publicly_accessible":     diff.AttrTypeCreate,
 			"username":                diff.AttrTypeCreate,
 			"vpc_security_group_ids":  diff.AttrTypeCreate,
+			"security_group_names":    diff.AttrTypeCreate,
 		},
 
 		ComputedAttrs: []string{
@@ -249,6 +255,9 @@ func resource_aws_db_instance_update_state(
 	// Flatten our group values
 	toFlatten := make(map[string]interface{})
 
+	if len(v.DBSecurityGroupNames) > 0 && v.DBSecurityGroupNames[0] != "" {
+		toFlatten["security_group_names"] = v.DBSecurityGroupNames
+	}
 	if len(v.VpcSecurityGroupIds) > 0 && v.VpcSecurityGroupIds[0] != "" {
 		toFlatten["vpc_security_group_ids"] = v.VpcSecurityGroupIds
 	}
@@ -307,8 +316,9 @@ func resource_aws_db_instance_validation() *config.Validator {
 			"multi_az",
 			"port",
 			"publicly_accessible",
-			"vpc_security_group_ids",
+			"vpc_security_group_ids.*",
 			"skip_final_snapshot",
+			"security_group_names.*",
 		},
 	}
 }
