@@ -542,7 +542,6 @@ body.page-home #footer {
   background-color: transparent;
   color: #ffffff;
   border: 2px solid #ffffff;
-  border-radius: 4px;
   text-decoration: none !important;
   -webkit-transition: background-color 0.3s ease-in-out;
   transition: background-color 0.3s ease-in-out;
