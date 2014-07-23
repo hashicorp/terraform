@@ -487,13 +487,12 @@ func (c *Context) applyWalkFn() depgraph.WalkFunc {
 			}
 		}
 
-		// TODO(mitchellh): we need to verify the diff doesn't change
-		// anything and that the diff has no computed values (pre-computed)
-
-		// If we don't have a diff, just make an empty one
+		// This should never happen because we check if Diff.Empty above.
+		// If this happened, then the diff above returned a bad diff.
 		if diff == nil {
-			diff = new(ResourceDiff)
-			diff.init()
+			return fmt.Errorf(
+				"%s: diff became nil during Apply. This is a bug with " +
+					"the resource provider. Please report a bug.")
 		}
 
 		// If we do not have any connection info, initialize

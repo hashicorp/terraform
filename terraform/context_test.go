@@ -408,6 +408,31 @@ func TestContextApply_compute(t *testing.T) {
 	}
 }
 
+func TestContextApply_nilDiff(t *testing.T) {
+	c := testConfig(t, "apply-good")
+	p := testProvider("aws")
+	p.ApplyFn = testApplyFn
+	p.DiffFn = testDiffFn
+	ctx := testContext(t, &ContextOpts{
+		Config: c,
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+	})
+
+	if _, err := ctx.Plan(nil); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	p.DiffFn = func(*ResourceState, *ResourceConfig) (*ResourceDiff, error) {
+		return nil, nil
+	}
+
+	if _, err := ctx.Apply(); err == nil {
+		t.Fatal("should error")
+	}
+}
+
 func TestContextApply_Provisioner_compute(t *testing.T) {
 	c := testConfig(t, "apply-provisioner-compute")
 	p := testProvider("aws")
