@@ -217,7 +217,6 @@ func resource_heroku_app_update_state(
 	s.Attributes["region"] = app.App.Region.Name
 	s.Attributes["git_url"] = app.App.GitURL
 	s.Attributes["web_url"] = app.App.WebURL
-	s.Attributes["id"] = app.App.Id
 
 	toFlatten := make(map[string]interface{})
 
