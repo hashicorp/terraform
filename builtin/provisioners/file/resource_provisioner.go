@@ -14,31 +14,31 @@ import (
 type ResourceProvisioner struct{}
 
 func (p *ResourceProvisioner) Apply(s *terraform.ResourceState,
-	c *terraform.ResourceConfig) (*terraform.ResourceState, error) {
+	c *terraform.ResourceConfig) error {
 	// Ensure the connection type is SSH
 	if err := helper.VerifySSH(s); err != nil {
-		return s, err
+		return err
 	}
 
 	// Get the SSH configuration
 	conf, err := helper.ParseSSHConfig(s)
 	if err != nil {
-		return s, err
+		return err
 	}
 
 	// Get the source and destination
 	sRaw := c.Config["source"]
 	src, ok := sRaw.(string)
 	if !ok {
-		return s, fmt.Errorf("Unsupported 'source' type! Must be string.")
+		return fmt.Errorf("Unsupported 'source' type! Must be string.")
 	}
 
 	dRaw := c.Config["destination"]
 	dst, ok := dRaw.(string)
 	if !ok {
-		return s, fmt.Errorf("Unsupported 'destination' type! Must be string.")
+		return fmt.Errorf("Unsupported 'destination' type! Must be string.")
 	}
-	return s, p.copyFiles(conf, src, dst)
+	return p.copyFiles(conf, src, dst)
 }
 
 func (p *ResourceProvisioner) Validate(c *terraform.ResourceConfig) (ws []string, es []error) {

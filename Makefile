@@ -16,26 +16,30 @@ export CGO_CFLAGS CGO_LDFLAGS PATH
 
 default: test
 
-dev: libucl
+dev: config/y.go libucl
 	@sh -c "$(CURDIR)/scripts/build.sh"
 
 libucl: vendor/libucl/$(LIBUCL_NAME)
 
-test: libucl
+test: config/y.go libucl
 	TF_ACC= go test $(TEST) $(TESTARGS) -timeout=10s
 
-testacc: libucl
+testacc: config/y.go libucl
 	@if [ "$(TEST)" = "./..." ]; then \
 		echo "ERROR: Set TEST to a specific package"; \
 		exit 1; \
 	fi
 	TF_ACC=1 go test $(TEST) -v $(TESTARGS)
 
-testrace: libucl
+testrace: config/y.go libucl
 	TF_ACC= go test -race $(TEST) $(TESTARGS)
 
-updatedeps:
+updatedeps: config/y.go
 	go get -u -v ./...
+
+config/y.go: config/expr.y
+	cd config/ && \
+		go tool yacc -p "expr" expr.y
 
 vendor/libucl/libucl.a: vendor/libucl
 	cd vendor/libucl && \
@@ -51,7 +55,9 @@ vendor/libucl/libucl.dll: vendor/libucl
 vendor/libucl:
 	rm -rf vendor/libucl
 	mkdir -p vendor/libucl
-	git clone https://github.com/vstakhov/libucl.git vendor/libucl
+	git clone https://github.com/hashicorp/libucl.git vendor/libucl
+	cd vendor/libucl && \
+		git checkout fix-win32-compile
 
 clean:
 	rm -rf vendor

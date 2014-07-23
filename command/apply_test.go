@@ -487,7 +487,7 @@ func TestApply_vars(t *testing.T) {
 			actual = v.(string)
 		}
 
-		return nil, nil
+		return &terraform.ResourceDiff{}, nil
 	}
 
 	args := []string{
@@ -530,7 +530,7 @@ func TestApply_varFile(t *testing.T) {
 			actual = v.(string)
 		}
 
-		return nil, nil
+		return &terraform.ResourceDiff{}, nil
 	}
 
 	args := []string{

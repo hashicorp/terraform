@@ -59,7 +59,7 @@ func TestAccDigitalOceanDroplet_Update(t *testing.T) {
 					testAccCheckDigitalOceanDropletExists("digitalocean_droplet.foobar", &droplet),
 					testAccCheckDigitalOceanDropletRenamedAndResized(&droplet),
 					resource.TestCheckResourceAttr(
-						"digitalocean_droplet.foobar", "name", "foo"),
+						"digitalocean_droplet.foobar", "name", "baz"),
 					resource.TestCheckResourceAttr(
 						"digitalocean_droplet.foobar", "size", "1gb"),
 				),

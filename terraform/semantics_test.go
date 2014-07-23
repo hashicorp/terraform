@@ -18,4 +18,23 @@ func TestSMCUserVariables(t *testing.T) {
 	if len(errs) != 0 {
 		t.Fatalf("err: %#v", errs)
 	}
+
+	// Mapping element override
+	errs = smcUserVariables(c, map[string]string{
+		"foo":     "bar",
+		"map.foo": "baz",
+	})
+	if len(errs) != 0 {
+		t.Fatalf("err: %#v", errs)
+	}
+
+	// Mapping complete override
+	errs = smcUserVariables(c, map[string]string{
+		"foo": "bar",
+		"map": "baz",
+	})
+	if len(errs) == 0 {
+		t.Fatal("should have errors")
+	}
+
 }

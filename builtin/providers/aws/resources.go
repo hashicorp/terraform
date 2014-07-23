@@ -21,6 +21,24 @@ func init() {
 				Update:          resource_aws_autoscaling_group_update,
 			},
 
+			"aws_db_instance": resource.Resource{
+				ConfigValidator: resource_aws_db_instance_validation(),
+				Create:          resource_aws_db_instance_create,
+				Destroy:         resource_aws_db_instance_destroy,
+				Diff:            resource_aws_db_instance_diff,
+				Refresh:         resource_aws_db_instance_refresh,
+				Update:          resource_aws_db_instance_update,
+			},
+
+			"aws_db_security_group": resource.Resource{
+				ConfigValidator: resource_aws_db_security_group_validation(),
+				Create:          resource_aws_db_security_group_create,
+				Destroy:         resource_aws_db_security_group_destroy,
+				Diff:            resource_aws_db_security_group_diff,
+				Refresh:         resource_aws_db_security_group_refresh,
+				Update:          resource_aws_db_security_group_update,
+			},
+
 			"aws_elb": resource.Resource{
 				ConfigValidator: resource_aws_elb_validation(),
 				Create:          resource_aws_elb_create,
@@ -92,6 +110,31 @@ func init() {
 				Diff:    resource_aws_route_table_association_diff,
 				Refresh: resource_aws_route_table_association_refresh,
 				Update:  resource_aws_route_table_association_update,
+			},
+
+			"aws_route53_zone": resource.Resource{
+				ConfigValidator: resource_aws_r53_zone_validation(),
+				Create:          resource_aws_r53_zone_create,
+				Destroy:         resource_aws_r53_zone_destroy,
+				Diff:            resource_aws_r53_zone_diff,
+				Refresh:         resource_aws_r53_zone_refresh,
+			},
+
+			"aws_route53_record": resource.Resource{
+				ConfigValidator: resource_aws_r53_record_validation(),
+				Create:          resource_aws_r53_record_create,
+				Destroy:         resource_aws_r53_record_destroy,
+				Diff:            resource_aws_r53_record_diff,
+				Refresh:         resource_aws_r53_record_refresh,
+				Update:          resource_aws_r53_record_create,
+			},
+
+			"aws_s3_bucket": resource.Resource{
+				ConfigValidator: resource_aws_s3_bucket_validation(),
+				Create:          resource_aws_s3_bucket_create,
+				Destroy:         resource_aws_s3_bucket_destroy,
+				Diff:            resource_aws_s3_bucket_diff,
+				Refresh:         resource_aws_s3_bucket_refresh,
 			},
 
 			"aws_security_group": resource.Resource{

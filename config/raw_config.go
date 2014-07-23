@@ -69,27 +69,63 @@ func (r *RawConfig) Interpolate(vs map[string]string) error {
 	if err != nil {
 		return err
 	}
-
-	w := &variableReplaceWalker{Values: vs}
 	r.config = config.(map[string]interface{})
+
+	fn := func(i Interpolation) (string, error) {
+		return i.Interpolate(vs)
+	}
+
+	w := &interpolationWalker{F: fn, Replace: true}
 	err = reflectwalk.Walk(r.config, w)
 	if err != nil {
 		return err
 	}
 
-	r.unknownKeys = w.UnknownKeys
+	r.unknownKeys = w.unknownKeys
 	return nil
 }
 
 func (r *RawConfig) init() error {
-	walker := new(variableDetectWalker)
+	r.config = r.Raw
+	r.Variables = nil
+
+	fn := func(i Interpolation) (string, error) {
+		for k, v := range i.Variables() {
+			if r.Variables == nil {
+				r.Variables = make(map[string]InterpolatedVariable)
+			}
+
+			r.Variables[k] = v
+		}
+
+		return "", nil
+	}
+
+	walker := &interpolationWalker{F: fn}
 	if err := reflectwalk.Walk(r.Raw, walker); err != nil {
 		return err
 	}
 
-	r.Variables = walker.Variables
-	r.config = r.Raw
 	return nil
+}
+
+func (r *RawConfig) merge(r2 *RawConfig) *RawConfig {
+	rawRaw, err := copystructure.Copy(r.Raw)
+	if err != nil {
+		panic(err)
+	}
+
+	raw := rawRaw.(map[string]interface{})
+	for k, v := range r2.Raw {
+		raw[k] = v
+	}
+
+	result, err := NewRawConfig(raw)
+	if err != nil {
+		panic(err)
+	}
+
+	return result
 }
 
 // UnknownKeys returns the keys of the configuration that are unknown

@@ -37,7 +37,7 @@ func (p *ResourceProvisioner) Validate(c *terraform.ResourceConfig) ([]string, [
 
 func (p *ResourceProvisioner) Apply(
 	s *terraform.ResourceState,
-	c *terraform.ResourceConfig) (*terraform.ResourceState, error) {
+	c *terraform.ResourceConfig) error {
 	var resp ResourceProvisionerApplyResponse
 	args := &ResourceProvisionerApplyArgs{
 		State:  s,
@@ -46,13 +46,13 @@ func (p *ResourceProvisioner) Apply(
 
 	err := p.Client.Call(p.Name+".Apply", args, &resp)
 	if err != nil {
-		return nil, err
+		return err
 	}
 	if resp.Error != nil {
 		err = resp.Error
 	}
 
-	return resp.State, err
+	return err
 }
 
 type ResourceProvisionerValidateArgs struct {
@@ -70,7 +70,6 @@ type ResourceProvisionerApplyArgs struct {
 }
 
 type ResourceProvisionerApplyResponse struct {
-	State *terraform.ResourceState
 	Error *BasicError
 }
 
@@ -83,9 +82,8 @@ type ResourceProvisionerServer struct {
 func (s *ResourceProvisionerServer) Apply(
 	args *ResourceProvisionerApplyArgs,
 	result *ResourceProvisionerApplyResponse) error {
-	state, err := s.Provisioner.Apply(args.State, args.Config)
+	err := s.Provisioner.Apply(args.State, args.Config)
 	*result = ResourceProvisionerApplyResponse{
-		State: state,
 		Error: NewBasicError(err),
 	}
 	return nil

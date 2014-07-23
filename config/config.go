@@ -4,19 +4,20 @@ package config
 
 import (
 	"fmt"
-	"strconv"
 	"strings"
 
+	"github.com/hashicorp/terraform/flatmap"
 	"github.com/hashicorp/terraform/helper/multierror"
+	"github.com/mitchellh/mapstructure"
 )
 
 // Config is the configuration that comes from loading a collection
 // of Terraform templates.
 type Config struct {
-	ProviderConfigs map[string]*ProviderConfig
+	ProviderConfigs []*ProviderConfig
 	Resources       []*Resource
-	Variables       map[string]*Variable
-	Outputs         map[string]*Output
+	Variables       []*Variable
+	Outputs         []*Output
 
 	// The fields below can be filled in by loaders for validation
 	// purposes.
@@ -28,6 +29,7 @@ type Config struct {
 // For example, Terraform needs to set the AWS access keys for the AWS
 // resource provider.
 type ProviderConfig struct {
+	Name      string
 	RawConfig *RawConfig
 }
 
@@ -40,6 +42,7 @@ type Resource struct {
 	Count        int
 	RawConfig    *RawConfig
 	Provisioners []*Provisioner
+	DependsOn    []string
 }
 
 // Provisioner is a configured provisioner step on a resource.
@@ -51,9 +54,9 @@ type Provisioner struct {
 
 // Variable is a variable defined within the configuration.
 type Variable struct {
-	Default     string
+	Name        string
+	Default     interface{}
 	Description string
-	defaultSet  bool
 }
 
 // Output is an output defined within the configuration. An output is
@@ -63,44 +66,23 @@ type Output struct {
 	RawConfig *RawConfig
 }
 
-// An InterpolatedVariable is a variable that is embedded within a string
-// in the configuration, such as "hello ${world}" (world in this case is
-// an interpolated variable).
-//
-// These variables can come from a variety of sources, represented by
-// implementations of this interface.
-type InterpolatedVariable interface {
-	FullKey() string
-}
+// VariableType is the type of value a variable is holding, and returned
+// by the Type() function on variables.
+type VariableType byte
 
-// A ResourceVariable is a variable that is referencing the field
-// of a resource, such as "${aws_instance.foo.ami}"
-type ResourceVariable struct {
-	Type  string // Resource type, i.e. "aws_instance"
-	Name  string // Resource name
-	Field string // Resource field
-
-	Multi bool // True if multi-variable: aws_instance.foo.*.id
-	Index int  // Index for multi-variable: aws_instance.foo.1.id == 1
-
-	key string
-}
-
-// A UserVariable is a variable that is referencing a user variable
-// that is inputted from outside the configuration. This looks like
-// "${var.foo}"
-type UserVariable struct {
-	Name string
-
-	key string
-}
+const (
+	VariableTypeUnknown VariableType = iota
+	VariableTypeString
+	VariableTypeMap
+)
 
 // ProviderConfigName returns the name of the provider configuration in
 // the given mapping that maps to the proper provider configuration
 // for this resource.
-func ProviderConfigName(t string, pcs map[string]*ProviderConfig) string {
+func ProviderConfigName(t string, pcs []*ProviderConfig) string {
 	lk := ""
-	for k, _ := range pcs {
+	for _, v := range pcs {
+		k := v.Name
 		if strings.HasPrefix(t, k) && len(k) > len(lk) {
 			lk = k
 		}
@@ -124,6 +106,18 @@ func (c *Config) Validate() error {
 	}
 
 	vars := c.allVariables()
+	varMap := make(map[string]*Variable)
+	for _, v := range c.Variables {
+		varMap[v.Name] = v
+	}
+
+	for _, v := range c.Variables {
+		if v.Type() == VariableTypeUnknown {
+			errs = append(errs, fmt.Errorf(
+				"Variable '%s': must be string or mapping",
+				v.Name))
+		}
+	}
 
 	// Check for references to user variables that do not actually
 	// exist and record those errors.
@@ -134,7 +128,7 @@ func (c *Config) Validate() error {
 				continue
 			}
 
-			if _, ok := c.Variables[uv.Name]; !ok {
+			if _, ok := varMap[uv.Name]; !ok {
 				errs = append(errs, fmt.Errorf(
 					"%s: unknown variable referenced: %s",
 					source,
@@ -160,6 +154,17 @@ func (c *Config) Validate() error {
 		resources[r.Id()] = r
 	}
 	dupped = nil
+
+	// Make sure all dependsOn are valid in resources
+	for n, r := range resources {
+		for _, d := range r.DependsOn {
+			if _, ok := resources[d]; !ok {
+				errs = append(errs, fmt.Errorf(
+					"%s: resource depends on non-existent resource '%s'",
+					n, d))
+			}
+		}
+	}
 
 	for source, vs := range vars {
 		for _, v := range vs {
@@ -220,8 +225,8 @@ func (c *Config) Validate() error {
 // are valid in the Validate step.
 func (c *Config) allVariables() map[string][]InterpolatedVariable {
 	result := make(map[string][]InterpolatedVariable)
-	for n, pc := range c.ProviderConfigs {
-		source := fmt.Sprintf("provider config '%s'", n)
+	for _, pc := range c.ProviderConfigs {
+		source := fmt.Sprintf("provider config '%s'", pc.Name)
 		for _, v := range pc.RawConfig.Variables {
 			result[source] = append(result[source], v)
 		}
@@ -244,61 +249,127 @@ func (c *Config) allVariables() map[string][]InterpolatedVariable {
 	return result
 }
 
-// Required tests whether a variable is required or not.
-func (v *Variable) Required() bool {
-	return !v.defaultSet
+func (o *Output) mergerName() string {
+	return o.Name
 }
 
-func NewResourceVariable(key string) (*ResourceVariable, error) {
-	parts := strings.SplitN(key, ".", 3)
-	field := parts[2]
-	multi := false
-	var index int
+func (o *Output) mergerMerge(m merger) merger {
+	o2 := m.(*Output)
 
-	if idx := strings.Index(field, "."); idx != -1 {
-		indexStr := field[:idx]
-		multi = indexStr == "*"
-		index = -1
+	result := *o
+	result.Name = o2.Name
+	result.RawConfig = result.RawConfig.merge(o2.RawConfig)
 
-		if !multi {
-			indexInt, err := strconv.ParseInt(indexStr, 0, 0)
-			if err == nil {
-				multi = true
-				index = int(indexInt)
-			}
-		}
+	return &result
+}
 
-		if multi {
-			field = field[idx+1:]
-		}
+func (c *ProviderConfig) mergerName() string {
+	return c.Name
+}
+
+func (c *ProviderConfig) mergerMerge(m merger) merger {
+	c2 := m.(*ProviderConfig)
+
+	result := *c
+	result.Name = c2.Name
+	result.RawConfig = result.RawConfig.merge(c2.RawConfig)
+
+	return &result
+}
+
+func (r *Resource) mergerName() string {
+	return fmt.Sprintf("%s.%s", r.Type, r.Name)
+}
+
+func (r *Resource) mergerMerge(m merger) merger {
+	r2 := m.(*Resource)
+
+	result := *r
+	result.Name = r2.Name
+	result.Type = r2.Type
+	result.RawConfig = result.RawConfig.merge(r2.RawConfig)
+
+	if r2.Count > 0 {
+		result.Count = r2.Count
 	}
 
-	return &ResourceVariable{
-		Type:  parts[0],
-		Name:  parts[1],
-		Field: field,
-		Multi: multi,
-		Index: index,
-		key:   key,
-	}, nil
+	if len(r2.Provisioners) > 0 {
+		result.Provisioners = r2.Provisioners
+	}
+
+	return &result
 }
 
-func (v *ResourceVariable) ResourceId() string {
-	return fmt.Sprintf("%s.%s", v.Type, v.Name)
+// DefaultsMap returns a map of default values for this variable.
+func (v *Variable) DefaultsMap() map[string]string {
+	if v.Default == nil {
+		return nil
+	}
+
+	n := fmt.Sprintf("var.%s", v.Name)
+	switch v.Type() {
+	case VariableTypeString:
+		return map[string]string{n: v.Default.(string)}
+	case VariableTypeMap:
+		result := flatmap.Flatten(map[string]interface{}{
+			n: v.Default.(map[string]string),
+		})
+		result[n] = v.Name
+
+		return result
+	default:
+		return nil
+	}
 }
 
-func (v *ResourceVariable) FullKey() string {
-	return v.key
+// Merge merges two variables to create a new third variable.
+func (v *Variable) Merge(v2 *Variable) *Variable {
+	// Shallow copy the variable
+	result := *v
+
+	// The names should be the same, but the second name always wins.
+	result.Name = v2.Name
+
+	if v2.Default != nil {
+		result.Default = v2.Default
+	}
+	if v2.Description != "" {
+		result.Description = v2.Description
+	}
+
+	return &result
 }
 
-func NewUserVariable(key string) (*UserVariable, error) {
-	name := key[len("var."):]
-	return &UserVariable{
-		key:  key,
-		Name: name,
-	}, nil
+// Type returns the type of varialbe this is.
+func (v *Variable) Type() VariableType {
+	if v.Default == nil {
+		return VariableTypeString
+	}
+
+	var strVal string
+	if err := mapstructure.WeakDecode(v.Default, &strVal); err == nil {
+		v.Default = strVal
+		return VariableTypeString
+	}
+
+	var m map[string]string
+	if err := mapstructure.WeakDecode(v.Default, &m); err == nil {
+		v.Default = m
+		return VariableTypeMap
+	}
+
+	return VariableTypeUnknown
 }
 
-func (v *UserVariable) FullKey() string {
-	return v.key
+func (v *Variable) mergerName() string {
+	return v.Name
+}
+
+func (v *Variable) mergerMerge(m merger) merger {
+	return v.Merge(m.(*Variable))
+}
+
+// Required tests whether a variable is required or not.
+func (v *Variable) Required() bool {
+	return v.Default == nil
 }

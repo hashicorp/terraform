@@ -209,10 +209,46 @@ func (d *ResourceDiff) RequiresNew() bool {
 	}
 
 	for _, rd := range d.Attributes {
-		if rd.RequiresNew {
+		if rd != nil && rd.RequiresNew {
 			return true
 		}
 	}
 
 	return false
+}
+
+// Same checks whether or not to ResourceDiffs are the "same." When
+// we say "same", it is not necessarily exactly equal. Instead, it is
+// just checking that the same attributes are changing, a destroy
+// isn't suddenly happening, etc.
+func (d *ResourceDiff) Same(d2 *ResourceDiff) bool {
+	if d == nil && d2 == nil {
+		return true
+	} else if d == nil || d2 == nil {
+		return false
+	}
+
+	if d.Destroy != d2.Destroy {
+		return false
+	}
+	if d.RequiresNew() != d2.RequiresNew() {
+		return false
+	}
+	if len(d.Attributes) != len(d2.Attributes) {
+		return false
+	}
+
+	ks := make(map[string]struct{})
+	for k, _ := range d.Attributes {
+		ks[k] = struct{}{}
+	}
+	for k, _ := range d2.Attributes {
+		delete(ks, k)
+	}
+
+	if len(ks) > 0 {
+		return false
+	}
+
+	return true
 }

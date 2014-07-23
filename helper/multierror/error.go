@@ -23,6 +23,10 @@ func (e *Error) Error() string {
 		len(e.Errors), strings.Join(points, "\n"))
 }
 
+func (e *Error) GoString() string {
+	return fmt.Sprintf("*%#v", *e)
+}
+
 // ErrorAppend is a helper function that will append more errors
 // onto a Error in order to create a larger multi-error. If the
 // original error is not a Error, it will be turned into one.

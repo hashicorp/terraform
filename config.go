@@ -35,6 +35,7 @@ func init() {
 	BuiltinConfig.Providers = map[string]string{
 		"aws":          "terraform-provider-aws",
 		"digitalocean": "terraform-provider-digitalocean",
+		"heroku":       "terraform-provider-heroku",
 	}
 	BuiltinConfig.Provisioners = map[string]string{
 		"local-exec":  "terraform-provisioner-local-exec",

@@ -9,8 +9,7 @@ type MockResourceProvisioner struct {
 	ApplyCalled      bool
 	ApplyState       *ResourceState
 	ApplyConfig      *ResourceConfig
-	ApplyFn          func(*ResourceState, *ResourceConfig) (*ResourceState, error)
-	ApplyReturn      *ResourceState
+	ApplyFn          func(*ResourceState, *ResourceConfig) error
 	ApplyReturnError error
 
 	ValidateCalled       bool
@@ -29,12 +28,12 @@ func (p *MockResourceProvisioner) Validate(c *ResourceConfig) ([]string, []error
 	return p.ValidateReturnWarns, p.ValidateReturnErrors
 }
 
-func (p *MockResourceProvisioner) Apply(state *ResourceState, c *ResourceConfig) (*ResourceState, error) {
+func (p *MockResourceProvisioner) Apply(state *ResourceState, c *ResourceConfig) error {
 	p.ApplyCalled = true
 	p.ApplyState = state
 	p.ApplyConfig = c
 	if p.ApplyFn != nil {
 		return p.ApplyFn(state, c)
 	}
-	return p.ApplyReturn, p.ApplyReturnError
+	return p.ApplyReturnError
 }

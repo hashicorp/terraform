@@ -128,6 +128,86 @@ func TestResourceDiff_RequiresNew_nil(t *testing.T) {
 	}
 }
 
+func TestResourceDiffSame(t *testing.T) {
+	cases := []struct {
+		One, Two *ResourceDiff
+		Same     bool
+	}{
+		{
+			&ResourceDiff{},
+			&ResourceDiff{},
+			true,
+		},
+
+		{
+			nil,
+			nil,
+			true,
+		},
+
+		{
+			&ResourceDiff{Destroy: false},
+			&ResourceDiff{Destroy: true},
+			false,
+		},
+
+		{
+			&ResourceDiff{Destroy: true},
+			&ResourceDiff{Destroy: true},
+			true,
+		},
+
+		{
+			&ResourceDiff{
+				Attributes: map[string]*ResourceAttrDiff{
+					"foo": &ResourceAttrDiff{},
+				},
+			},
+			&ResourceDiff{
+				Attributes: map[string]*ResourceAttrDiff{
+					"foo": &ResourceAttrDiff{},
+				},
+			},
+			true,
+		},
+
+		{
+			&ResourceDiff{
+				Attributes: map[string]*ResourceAttrDiff{
+					"bar": &ResourceAttrDiff{},
+				},
+			},
+			&ResourceDiff{
+				Attributes: map[string]*ResourceAttrDiff{
+					"foo": &ResourceAttrDiff{},
+				},
+			},
+			false,
+		},
+
+		{
+			&ResourceDiff{
+				Attributes: map[string]*ResourceAttrDiff{
+					"foo": &ResourceAttrDiff{RequiresNew: true},
+				},
+			},
+			&ResourceDiff{
+				Attributes: map[string]*ResourceAttrDiff{
+					"foo": &ResourceAttrDiff{RequiresNew: false},
+				},
+			},
+			false,
+		},
+	}
+
+	for i, tc := range cases {
+		actual := tc.One.Same(tc.Two)
+		if actual != tc.Same {
+			t.Fatalf("Fail %d", i)
+		}
+	}
+}
+
 func TestReadWriteDiff(t *testing.T) {
 	diff := &Diff{
 		Resources: map[string]*ResourceDiff{

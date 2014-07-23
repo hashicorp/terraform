@@ -51,6 +51,21 @@ func TestGraph_cycle(t *testing.T) {
 	}
 }
 
+func TestGraph_dependsOn(t *testing.T) {
+	config := testConfig(t, "graph-depends-on")
+
+	g, err := Graph(&GraphOpts{Config: config})
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	actual := strings.TrimSpace(g.String())
+	expected := strings.TrimSpace(testTerraformGraphDependsStr)
+	if actual != expected {
+		t.Fatalf("bad:\n\n%s", actual)
+	}
+}
+
 func TestGraph_state(t *testing.T) {
 	config := testConfig(t, "graph-basic")
 	state := &State{
@@ -345,6 +360,16 @@ aws_load_balancer.weblb
 root
   root -> aws_instance.web
   root -> aws_load_balancer.weblb
+`
+
+const testTerraformGraphDependsStr = `
+root: root
+aws_instance.db
+  aws_instance.db -> aws_instance.web
+aws_instance.web
+root
+  root -> aws_instance.db
+  root -> aws_instance.web
 `
 
 const testTerraformGraphDiffStr = `

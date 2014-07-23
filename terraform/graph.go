@@ -106,6 +106,9 @@ func Graph(opts *GraphOpts) (*depgraph.Graph, error) {
 	// and no dependencies.
 	graphAddConfigResources(g, opts.Config, opts.State)
 
+	// Add explicit dependsOn dependencies to the graph
+	graphAddExplicitDeps(g)
+
 	// Next, add the state orphans if we have any
 	if opts.State != nil {
 		graphAddOrphans(g, opts.Config, opts.State)
@@ -178,6 +181,12 @@ func graphAddConfigResources(
 				index = i
 			}
 
+			// Determine if this resource is tainted
+			tainted := false
+			if s != nil && s.Tainted != nil {
+				_, tainted = s.Tainted[r.Id()]
+			}
+
 			var state *ResourceState
 			if s != nil {
 				state = s.Resources[name]
@@ -209,9 +218,10 @@ func graphAddConfigResources(
 					Type:   r.Type,
 					Config: r,
 					Resource: &Resource{
-						Id:     name,
-						State:  state,
-						Config: NewResourceConfig(r.RawConfig),
+						Id:      name,
+						State:   state,
+						Config:  NewResourceConfig(r.RawConfig),
+						Tainted: tainted,
 					},
 				},
 			}
@@ -370,6 +380,48 @@ func graphAddDiff(g *depgraph.Graph, d *Diff) error {
 	return nil
 }
 
+// graphAddExplicitDeps adds the dependencies to the graph for the explicit
+// dependsOn configurations.
+func graphAddExplicitDeps(g *depgraph.Graph) {
+	depends := false
+
+	rs := make(map[string]*depgraph.Noun)
+	for _, n := range g.Nouns {
+		rn, ok := n.Meta.(*GraphNodeResource)
+		if !ok {
+			continue
+		}
+
+		rs[rn.Config.Id()] = n
+		if len(rn.Config.DependsOn) > 0 {
+			depends = true
+		}
+	}
+
+	// If we didn't have any dependsOn, just return
+	if !depends {
+		return
+	}
+
+	for _, n1 := range rs {
+		rn1 := n1.Meta.(*GraphNodeResource)
+		for _, d := range rn1.Config.DependsOn {
+			for _, n2 := range rs {
+				rn2 := n2.Meta.(*GraphNodeResource)
+				if rn2.Config.Id() != d {
+					continue
+				}
+
+				n1.Deps = append(n1.Deps, &depgraph.Dependency{
+					Name:   d,
+					Source: n1,
+					Target: n2,
+				})
+			}
+		}
+	}
+}
+
 // graphAddMissingResourceProviders adds GraphNodeResourceProvider nodes for
 // the resources that do not have an explicit resource provider specified
 // because no provider configuration was given.
@@ -462,7 +514,8 @@ func graphAddProviderConfigs(g *depgraph.Graph, c *config.Config) {
 		}
 
 		// Look up the provider config for this resource
-		pcName := config.ProviderConfigName(resourceNode.Type, c.ProviderConfigs)
+		pcName := config.ProviderConfigName(
+			resourceNode.Type, c.ProviderConfigs)
 		if pcName == "" {
 			continue
 		}
@@ -470,11 +523,22 @@ func graphAddProviderConfigs(g *depgraph.Graph, c *config.Config) {
 		// We have one, so build the noun if it hasn't already been made
 		pcNoun, ok := pcNouns[pcName]
 		if !ok {
+			var pc *config.ProviderConfig
+			for _, v := range c.ProviderConfigs {
+				if v.Name == pcName {
+					pc = v
+					break
+				}
+			}
+			if pc == nil {
+				panic("pc not found")
+			}
+
 			pcNoun = &depgraph.Noun{
 				Name: fmt.Sprintf("provider.%s", pcName),
 				Meta: &GraphNodeResourceProvider{
 					ID:     pcName,
-					Config: c.ProviderConfigs[pcName],
+					Config: pc,
 				},
 			}
 			pcNouns[pcName] = pcNoun

@@ -1,0 +1,47 @@
+{
+	"ImportPath": "github.com/hashicorp/terraform",
+	"GoVersion": "go1.3",
+	"Deps": [
+		{
+			"ImportPath": "code.google.com/p/go.crypto/ssh/terminal",
+			"Comment": "null-213",
+			"Rev": "aa2644fe4aa50e3b38d75187b4799b1f0c9ddcef"
+		},
+		{
+			"ImportPath": "github.com/mitchellh/cli",
+			"Rev": "eaf0e415fc517a431dca53c7b2e7559d42238ebe"
+		},
+		{
+			"ImportPath": "github.com/mitchellh/colorstring",
+			"Rev": "9797cb57e314a5a2c4d735ff060d5c6dcba57749"
+		},
+		{
+			"ImportPath": "github.com/mitchellh/copystructure",
+			"Rev": "d8968bce41ab42f33aeb143afa95e331cb1ba886"
+		},
+		{
+			"ImportPath": "github.com/mitchellh/go-libucl",
+			"Rev": "8da0f346ecb82446ebceafd6e8e9d9be4d549745"
+		},
+		{
+			"ImportPath": "github.com/mitchellh/mapstructure",
+			"Rev": "740c764bc6149d3f1806231418adb9f52c11bcbf"
+		},
+		{
+			"ImportPath": "github.com/mitchellh/osext",
+			"Rev": "0dd3f918b21bec95ace9dc86c7e70266cfc5c702"
+		},
+		{
+			"ImportPath": "github.com/mitchellh/panicwrap",
+			"Rev": "45cbfd3bae250c7676c077fb275be1a2968e066a"
+		},
+		{
+			"ImportPath": "github.com/mitchellh/prefixedio",
+			"Rev": "64119910ab902e336f308a1ed751a3721ba24c23"
+		},
+		{
+			"ImportPath": "github.com/mitchellh/reflectwalk",
+			"Rev": "e311b7bc81996c7e4cb570b2cbfd6448eba094b2"
+		}
+	]
+}

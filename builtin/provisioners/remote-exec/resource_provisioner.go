@@ -23,22 +23,22 @@ const (
 type ResourceProvisioner struct{}
 
 func (p *ResourceProvisioner) Apply(s *terraform.ResourceState,
-	c *terraform.ResourceConfig) (*terraform.ResourceState, error) {
+	c *terraform.ResourceConfig) error {
 	// Ensure the connection type is SSH
 	if err := helper.VerifySSH(s); err != nil {
-		return s, err
+		return err
 	}
 
 	// Get the SSH configuration
 	conf, err := helper.ParseSSHConfig(s)
 	if err != nil {
-		return s, err
+		return err
 	}
 
 	// Collect the scripts
 	scripts, err := p.collectScripts(c)
 	if err != nil {
-		return s, err
+		return err
 	}
 	for _, s := range scripts {
 		defer s.Close()
@@ -46,9 +46,9 @@ func (p *ResourceProvisioner) Apply(s *terraform.ResourceState,
 
 	// Copy and execute each script
 	if err := p.runScripts(conf, scripts); err != nil {
-		return s, err
+		return err
 	}
-	return s, nil
+	return nil
 }
 
 func (p *ResourceProvisioner) Validate(c *terraform.ResourceConfig) (ws []string, es []error) {

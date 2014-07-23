@@ -21,16 +21,16 @@ type ResourceProvisioner struct{}
 
 func (p *ResourceProvisioner) Apply(
 	s *terraform.ResourceState,
-	c *terraform.ResourceConfig) (*terraform.ResourceState, error) {
+	c *terraform.ResourceConfig) error {
 
 	// Get the command
 	commandRaw, ok := c.Config["command"]
 	if !ok {
-		return s, fmt.Errorf("local-exec provisioner missing 'command'")
+		return fmt.Errorf("local-exec provisioner missing 'command'")
 	}
 	command, ok := commandRaw.(string)
 	if !ok {
-		return s, fmt.Errorf("local-exec provisioner command must be a string")
+		return fmt.Errorf("local-exec provisioner command must be a string")
 	}
 
 	// Execute the command using a shell
@@ -51,10 +51,10 @@ func (p *ResourceProvisioner) Apply(
 
 	// Run the command to completion
 	if err := cmd.Run(); err != nil {
-		return s, fmt.Errorf("Error running command '%s': %v. Output: %s",
+		return fmt.Errorf("Error running command '%s': %v. Output: %s",
 			command, err, output.Bytes())
 	}
-	return s, nil
+	return nil
 }
 
 func (p *ResourceProvisioner) Validate(c *terraform.ResourceConfig) ([]string, []error) {

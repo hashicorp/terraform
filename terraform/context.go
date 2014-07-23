@@ -30,6 +30,7 @@ type Context struct {
 	providers    map[string]ResourceProviderFactory
 	provisioners map[string]ResourceProvisionerFactory
 	variables    map[string]string
+	defaultVars  map[string]string
 
 	l     sync.Mutex    // Lock acquired during any task
 	parCh chan struct{} // Semaphore used to limit parallelism
@@ -72,6 +73,14 @@ func NewContext(opts *ContextOpts) *Context {
 	}
 	parCh := make(chan struct{}, par)
 
+	// Calculate all the default variables
+	defaultVars := make(map[string]string)
+	for _, v := range opts.Config.Variables {
+		for k, val := range v.DefaultsMap() {
+			defaultVars[k] = val
+		}
+	}
+
 	return &Context{
 		config:       opts.Config,
 		diff:         opts.Diff,
@@ -80,6 +89,7 @@ func NewContext(opts *ContextOpts) *Context {
 		providers:    opts.Providers,
 		provisioners: opts.Provisioners,
 		variables:    opts.Variables,
+		defaultVars:  defaultVars,
 
 		parCh: parCh,
 		sh:    sh,
@@ -296,8 +306,13 @@ func (c *Context) computeVars(raw *config.RawConfig) error {
 		return nil
 	}
 
-	// Go through each variable and find it
+	// Start building up the variables. First, defaults
 	vs := make(map[string]string)
+	for k, v := range c.defaultVars {
+		vs[k] = v
+	}
+
+	// Next, the actual computed variables
 	for n, rawV := range raw.Variables {
 		switch v := rawV.(type) {
 		case *config.ResourceVariable:
@@ -314,7 +329,19 @@ func (c *Context) computeVars(raw *config.RawConfig) error {
 
 			vs[n] = attr
 		case *config.UserVariable:
-			vs[n] = c.variables[v.Name]
+			val, ok := c.variables[v.Name]
+			if ok {
+				vs[n] = val
+				continue
+			}
+
+			// Look up if we have any variables with this prefix because
+			// those are map overrides. Include those.
+			for k, val := range c.variables {
+				if strings.HasPrefix(k, v.Name+".") {
+					vs["var."+k] = val
+				}
+			}
 		}
 	}
 
@@ -458,15 +485,32 @@ func (c *Context) applyWalkFn() depgraph.WalkFunc {
 			if err != nil {
 				return err
 			}
-		}
 
-		// TODO(mitchellh): we need to verify the diff doesn't change
-		// anything and that the diff has no computed values (pre-computed)
+			// This should never happen because we check if Diff.Empty above.
+			// If this happened, then the diff above returned a bad diff.
+			if diff == nil {
+				return fmt.Errorf(
+					"%s: diff became nil during Apply. This is a bug with "+
+						"the resource provider. Please report a bug.",
+					r.Id)
+			}
 
-		// If we don't have a diff, just make an empty one
-		if diff == nil {
-			diff = new(ResourceDiff)
-			diff.init()
+			// Delete id from the diff because it is dependent on
+			// our internal plan function.
+			delete(r.Diff.Attributes, "id")
+			delete(diff.Attributes, "id")
+
+			// Verify the diffs are the same
+			if !r.Diff.Same(diff) {
+				log.Printf(
+					"[ERROR] Diffs don't match.\n\nDiff 1: %#v"+
+						"\n\nDiff 2: %#v",
+					r.Diff, diff)
+				return fmt.Errorf(
+					"%s: diffs didn't match during apply. This is a "+
+						"bug with the resource provider, please report a bug.",
+					r.Id)
+			}
 		}
 
 		// If we do not have any connection info, initialize
@@ -527,10 +571,11 @@ func (c *Context) applyWalkFn() depgraph.WalkFunc {
 		//
 		// Additionally, we need to be careful to not run this if there
 		// was an error during the provider apply.
+		tainted := false
 		if applyerr == nil && r.State.ID == "" && len(r.Provisioners) > 0 {
-			rs, err = c.applyProvisioners(r, rs)
-			if err != nil {
+			if err := c.applyProvisioners(r, rs); err != nil {
 				errs = append(errs, err)
+				tainted = true
 			}
 		}
 
@@ -540,6 +585,10 @@ func (c *Context) applyWalkFn() depgraph.WalkFunc {
 			delete(c.state.Resources, r.Id)
 		} else {
 			c.state.Resources[r.Id] = rs
+
+			if tainted {
+				c.state.Tainted[r.Id] = struct{}{}
+			}
 		}
 		c.sl.Unlock()
 
@@ -564,9 +613,7 @@ func (c *Context) applyWalkFn() depgraph.WalkFunc {
 
 // applyProvisioners is used to run any provisioners a resource has
 // defined after the resource creation has already completed.
-func (c *Context) applyProvisioners(r *Resource, rs *ResourceState) (*ResourceState, error) {
-	var err error
-
+func (c *Context) applyProvisioners(r *Resource, rs *ResourceState) error {
 	// Store the original connection info, restore later
 	origConnInfo := rs.ConnInfo
 	defer func() {
@@ -577,13 +624,13 @@ func (c *Context) applyProvisioners(r *Resource, rs *ResourceState) (*ResourceSt
 		// Interpolate since we may have variables that depend on the
 		// local resource.
 		if err := prov.Config.interpolate(c); err != nil {
-			return rs, err
+			return err
 		}
 
 		// Interpolate the conn info, since it may contain variables
 		connInfo := NewResourceConfig(prov.ConnInfo)
 		if err := connInfo.interpolate(c); err != nil {
-			return rs, err
+			return err
 		}
 
 		// Merge the connection information
@@ -616,12 +663,12 @@ func (c *Context) applyProvisioners(r *Resource, rs *ResourceState) (*ResourceSt
 		rs.ConnInfo = overlay
 
 		// Invoke the Provisioner
-		rs, err = prov.Provisioner.Apply(rs, prov.Config)
-		if err != nil {
-			return rs, err
+		if err := prov.Provisioner.Apply(rs, prov.Config); err != nil {
+			return err
 		}
 	}
-	return rs, nil
+
+	return nil
 }
 
 func (c *Context) planWalkFn(result *Plan) depgraph.WalkFunc {
@@ -651,7 +698,13 @@ func (c *Context) planWalkFn(result *Plan) depgraph.WalkFunc {
 			// Get a diff from the newest state
 			log.Printf("[DEBUG] %s: Executing diff", r.Id)
 			var err error
-			diff, err = r.Provider.Diff(r.State, r.Config)
+			state := r.State
+			if r.Tainted {
+				// If we're tainted, we pretend to create a new thing.
+				state = new(ResourceState)
+				state.Type = r.State.Type
+			}
+			diff, err = r.Provider.Diff(state, r.Config)
 			if err != nil {
 				return err
 			}
@@ -659,6 +712,11 @@ func (c *Context) planWalkFn(result *Plan) depgraph.WalkFunc {
 
 		if diff == nil {
 			diff = new(ResourceDiff)
+		}
+
+		if r.Tainted {
+			// Tainted resources must also be destroyed
+			diff.Destroy = true
 		}
 
 		if diff.RequiresNew() && r.State.ID != "" {

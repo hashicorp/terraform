@@ -4,4 +4,6 @@ example.tf
 terraform.tfplan
 terraform.tfstate
 bin/
+config/y.go
+config/y.output
 vendor/
