@@ -16,6 +16,13 @@ func TestConfigValidate(t *testing.T) {
 	}
 }
 
+func TestConfigValidate_badDependsOn(t *testing.T) {
+	c := testConfig(t, "validate-bad-depends-on")
+	if err := c.Validate(); err == nil {
+		t.Fatal("should not be valid")
+	}
+}
+
 func TestConfigValidate_badMultiResource(t *testing.T) {
 	c := testConfig(t, "validate-bad-multi-resource")
 	if err := c.Validate(); err == nil {

@@ -42,6 +42,7 @@ type Resource struct {
 	Count        int
 	RawConfig    *RawConfig
 	Provisioners []*Provisioner
+	DependsOn    []string
 }
 
 // Provisioner is a configured provisioner step on a resource.
@@ -153,6 +154,17 @@ func (c *Config) Validate() error {
 		resources[r.Id()] = r
 	}
 	dupped = nil
+
+	// Make sure all dependsOn are valid in resources
+	for n, r := range resources {
+		for _, d := range r.DependsOn {
+			if _, ok := resources[d]; !ok {
+				errs = append(errs, fmt.Errorf(
+					"%s: resource depends on non-existent resource '%s'",
+					n, d))
+			}
+		}
+	}
 
 	for source, vs := range vars {
 		for _, v := range vs {
