@@ -47,11 +47,11 @@ func resource_aws_r53_zone_create(
 
 	// Wait until we are done initializing
 	wait := resource.StateChangeConf{
-		Delay:      15 * time.Second,
+		Delay:      30 * time.Second,
 		Pending:    []string{"PENDING"},
 		Target:     "INSYNC",
 		Timeout:    10 * time.Minute,
-		MinTimeout: 3 * time.Second,
+		MinTimeout: 5 * time.Second,
 		Refresh: func() (result interface{}, state string, err error) {
 			return resource_aws_r53_wait(r53, resp.ChangeInfo.ID)
 		},

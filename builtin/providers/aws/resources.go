@@ -120,6 +120,15 @@ func init() {
 				Refresh:         resource_aws_r53_zone_refresh,
 			},
 
+			"aws_route53_record": resource.Resource{
+				ConfigValidator: resource_aws_r53_record_validation(),
+				Create:          resource_aws_r53_record_create,
+				Destroy:         resource_aws_r53_record_destroy,
+				Diff:            resource_aws_r53_record_diff,
+				Refresh:         resource_aws_r53_record_refresh,
+				Update:          resource_aws_r53_record_create,
+			},
+
 			"aws_s3_bucket": resource.Resource{
 				ConfigValidator: resource_aws_s3_bucket_validation(),
 				Create:          resource_aws_s3_bucket_create,
