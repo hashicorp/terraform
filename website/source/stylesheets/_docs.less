@@ -47,14 +47,14 @@ body.layout-intro{
 			position: relative;
 
 			> a{
-				color: @purple;
+				color: white;
 				.transition( color 0.5s ease );
 			}
 
 			> a:hover,
 			> a:focus {
 				background-color: transparent !important;
-				color: @black;
+				color: white;
 				.transition( color 0.5s ease );
 			}
 		}
@@ -63,29 +63,34 @@ body.layout-intro{
 		> li {
 			padding: 10px 0;
 			margin: 0 30px;
-			//border-bottom: 2px solid #fff;
 
 			>.nav{
 				li{
 					a{
-						color: @black;
+						color: white;
 					}
 				}
 			}
 
 			&.active {
+				>a{
+					color: @purple;
+					font-weight: 500;
+				}
+
 				&:before{
 					content: '';
 					position: absolute;
-					width: 8px;
-					height: 8px;
-					background-color: @purple;
-					border-radius: 4px;
+          width: 6px;
+          height: 8px;
+          background-color: @purple;
+          font-weight: 500;
+          .skewY(24deg);
 					top: 26px;
 					left: -10px;
 				}
 				> a{
-                    -webkit-font-smoothing: antialiased;
+          -webkit-font-smoothing: antialiased;
 				}
 
 				/*> a:hover,
@@ -96,17 +101,16 @@ body.layout-intro{
 				.nav {
 					display: block;
 
-                    li.active a {
-						font-weight: @font-weight-lato-xb;
-                    }
+          li.active a {
+          	color: @purple;
+						font-weight: 500;
+          }
 				}
 			}
 
 			> a {
 				text-transform: uppercase;
-				font-family: @font-family-lato;
-				font-weight: @font-weight-lato-sb;
-                -webkit-font-smoothing: antialiased;
+        -webkit-font-smoothing: antialiased;
 			}
 		}
 
@@ -118,8 +122,7 @@ body.layout-intro{
 				margin-left: 20px;
 
 				> a{
-                    -webkit-font-smoothing: antialiased;
-					font-family: @font-family-open-sans;
+          -webkit-font-smoothing: antialiased;
 					padding: 6px 15px;
 				}
 			}
