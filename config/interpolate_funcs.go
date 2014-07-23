@@ -2,6 +2,7 @@ package config
 
 import (
 	"fmt"
+	"io/ioutil"
 	"strings"
 )
 
@@ -10,8 +11,26 @@ var Funcs map[string]InterpolationFunc
 
 func init() {
 	Funcs = map[string]InterpolationFunc{
+		"file":   interpolationFuncFile,
 		"lookup": interpolationFuncLookup,
 	}
+}
+
+// interpolationFuncFile implements the "file" function that allows
+// loading contents from a file.
+func interpolationFuncFile(
+	vs map[string]string, args ...string) (string, error) {
+	if len(args) != 1 {
+		return "", fmt.Errorf(
+			"file expects 1 arguments, got %d", len(args))
+	}
+
+	data, err := ioutil.ReadFile(args[0])
+	if err != nil {
+		return "", err
+	}
+
+	return string(data), nil
 }
 
 // interpolationFuncLookup implements the "lookup" function that allows
