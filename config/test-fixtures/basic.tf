@@ -31,6 +31,7 @@ resource aws_instance "web" {
 
 resource "aws_instance" "db" {
     security_groups = "${aws_security_group.firewall.*.id}"
+    VPC = "foo"
 
     depends_on = ["aws_instance.web"]
 }

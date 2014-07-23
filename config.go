@@ -29,7 +29,7 @@ var ContextOpts terraform.ContextOpts
 
 // Put the parse flags we use for libucl in a constant so we can get
 // equally behaving parsing everywhere.
-const libuclParseFlags = libucl.ParserKeyLowercase
+const libuclParseFlags = libucl.ParserNoTime
 
 func init() {
 	BuiltinConfig.Providers = map[string]string{

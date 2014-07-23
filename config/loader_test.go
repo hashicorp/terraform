@@ -485,6 +485,7 @@ do
 
 const basicResourcesStr = `
 aws_instance[db] (x1)
+  VPC
   security_groups
   dependsOn
     aws_instance.web
