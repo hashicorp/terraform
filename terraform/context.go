@@ -485,14 +485,30 @@ func (c *Context) applyWalkFn() depgraph.WalkFunc {
 			if err != nil {
 				return err
 			}
-		}
 
-		// This should never happen because we check if Diff.Empty above.
-		// If this happened, then the diff above returned a bad diff.
-		if diff == nil {
-			return fmt.Errorf(
-				"%s: diff became nil during Apply. This is a bug with " +
-					"the resource provider. Please report a bug.")
+			// This should never happen because we check if Diff.Empty above.
+			// If this happened, then the diff above returned a bad diff.
+			if diff == nil {
+				return fmt.Errorf(
+					"%s: diff became nil during Apply. This is a bug with " +
+						"the resource provider. Please report a bug.")
+			}
+
+			// Delete id from the diff because it is dependent on
+			// our internal plan function.
+			delete(r.Diff.Attributes, "id")
+			delete(diff.Attributes, "id")
+
+			// Verify the diffs are the same
+			if !r.Diff.Same(diff) {
+				log.Printf(
+					"[ERROR] Diffs don't match.\n\nDiff 1: %#v"+
+						"\n\nDiff 2: %#v",
+					r.Diff, diff)
+				return fmt.Errorf(
+					"%s: diffs didn't match during apply. This is a " +
+						"bug with the resource provider, please report a bug.")
+			}
 		}
 
 		// If we do not have any connection info, initialize

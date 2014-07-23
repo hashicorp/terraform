@@ -309,6 +309,35 @@ func TestContextApply_Minimal(t *testing.T) {
 	}
 }
 
+func TestContextApply_badDiff(t *testing.T) {
+	c := testConfig(t, "apply-good")
+	p := testProvider("aws")
+	p.ApplyFn = testApplyFn
+	p.DiffFn = testDiffFn
+	ctx := testContext(t, &ContextOpts{
+		Config: c,
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+	})
+
+	if _, err := ctx.Plan(nil); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	p.DiffFn = func(*ResourceState, *ResourceConfig) (*ResourceDiff, error) {
+		return &ResourceDiff{
+			Attributes: map[string]*ResourceAttrDiff{
+				"newp": nil,
+			},
+		}, nil
+	}
+
+	if _, err := ctx.Apply(); err == nil {
+		t.Fatal("should error")
+	}
+}
+
 func TestContextApply_cancel(t *testing.T) {
 	stopped := false
 
