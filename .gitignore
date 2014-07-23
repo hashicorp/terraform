@@ -7,3 +7,4 @@ bin/
 config/y.go
 config/y.output
 vendor/
+website/.vagrant
