@@ -6,36 +6,25 @@ sidebar_current: "gettingstarted-install"
 
 # Install Terraform
 
-Terraform must first be installed on every node that will be a member of a
-Terraform cluster. To make installation easy, Terraform is distributed as a
-[binary package](/downloads.html) for all supported platforms and
-architectures. This page will not cover how to compile Terraform from
+Terraform must first be installed on your machine. Terraform is distributed
+as a [binary package](/downloads.html) for all supported platforms and
+architecture. This page will not cover how to compile Terraform from
 source.
 
 ## Installing Terraform
 
 To install Terraform, find the [appropriate package](/downloads.html) for
-your system and download it. Terraform is packaged as a "zip" archive.
+your system and download it. Terraform is packaged as a zip archive.
 
-After downloading Terraform, unzip the package. Copy the `terraform` binary to
-somewhere on the PATH so that it can be executed. On Unix systems,
-`~/bin` and `/usr/local/bin` are common installation directories,
-depending on if you want to restrict the install to a single user or
-expose it to the entire system. On Windows systems, you can put it wherever
-you would like.
-
-### OS X
-
-If you are using [homebrew](http://brew.sh/#install) as a package manager,
-than you can install terraform as simple as:
-```
-brew cask install terraform
-```
-
-if you are missing the [cask plugin](http://caskroom.io/) you can install it with:
-```
-brew install caskroom/cask/brew-cask
-```
+After downloading Terraform, unzip the package into a directory where
+Terraform will be installed. The directory will contain a set of binary
+programs, such as `terraform`, `terraform-provider-aws`, etc. The final
+step is to make sure the directory you installed Terraform to is on the
+PATH. See
+[this page](http://stackoverflow.com/questions/14637979/how-to-permanently-set-path-on-linux)
+for instructions on setting the PATH on Linux and Mac.
+[This page](http://stackoverflow.com/questions/1618280/where-can-i-set-path-to-make-exe-on-windows)
+contains instructions for setting the PATH on Windows.
 
 ## Verifying the Installation
 
@@ -48,15 +37,13 @@ $ terraform
 usage: terraform [--version] [--help] <command> [<args>]
 
 Available commands are:
-    agent          Runs a Terraform agent
-    force-leave    Forces a member of the cluster to enter the "left" state
-    info           Provides debugging information for operators
-    join           Tell Terraform agent to join cluster
-    keygen         Generates a new encryption key
-    leave          Gracefully leaves the Terraform cluster and shuts down
-    members        Lists the members of a Terraform cluster
-    monitor        Stream logs from a Terraform agent
-    version        Prints the Terraform version
+    apply      Builds or changes infrastructure
+    graph      Create a visual graph of Terraform resources
+    output     Read an output from a state file
+    plan       Generate and show an execution plan
+    refresh    Update local state file against real resources
+    show       Inspect Terraform state or plan
+    version    Prints the Terraform version
 ```
 
 If you get an error that `terraform` could not be found, then your PATH
