@@ -175,6 +175,7 @@ body.page-sub #header {
 }
 #footer .main-links.navbar-nav,
 #header .main-links.navbar-nav {
+  margin-top: 26px;
   /*li + li.li-under a::after{
             left: 15px;
         }*/
@@ -201,7 +202,8 @@ body.page-sub #header {
 }
 #footer .main-links.navbar-nav li > a,
 #header .main-links.navbar-nav li > a {
-  line-height: 62px;
+  line-height: 30px;
+  padding: 0 15px;
 }
 #footer .buttons.navbar-nav,
 #header .buttons.navbar-nav {
@@ -210,39 +212,63 @@ body.page-sub #header {
 }
 #footer .buttons.navbar-nav li.first,
 #header .buttons.navbar-nav li.first {
-  margin-right: 12px;
+  margin-right: 16px;
 }
 #footer .buttons.navbar-nav li.download a,
 #header .buttons.navbar-nav li.download a {
-  background: url(../images/icon-download.png) 8px 6px no-repeat;
-  background-image: url("../images/icon-download.png");
-  background-size: 20px 20px;
+  padding-left: 28px;
+  background: url(../images/header-download-icon.png) 8px 6px no-repeat;
+  background-image: url("../images/header-download-icon.png");
+  background-size: 12px 16px;
 }
 @media only screen and (-webkit-min-device-pixel-ratio: 2), only screen and (min--moz-device-pixel-ratio: 2), only screen and (-o-min-device-pixel-ratio: 2/1), only screen and (min-device-pixel-ratio: 2), only screen and (min-resolution: 192dpi), only screen and (min-resolution: 2dppx) {
   #footer .buttons.navbar-nav li.download a,
   #header .buttons.navbar-nav li.download a {
-    background-image: url("../images/icon-download@2x.png");
-    background-size: 20px 20px;
+    background-image: url("../images/header-download-icon@2x.png");
+    background-size: 12px 16px;
   }
 }
 #footer .buttons.navbar-nav li.github a,
 #header .buttons.navbar-nav li.github a {
-  background: url(../images/icon-github.png) 8px 6px no-repeat;
-  background-image: url("../images/icon-github.png");
-  background-size: 20px 20px;
+  background: url(../images/header-github-icon.png) 8px 5px no-repeat;
+  background-image: url("../images/header-github-icon.png");
+  background-size: 16px 17px;
 }
 @media only screen and (-webkit-min-device-pixel-ratio: 2), only screen and (min--moz-device-pixel-ratio: 2), only screen and (-o-min-device-pixel-ratio: 2/1), only screen and (min-device-pixel-ratio: 2), only screen and (min-resolution: 192dpi), only screen and (min-resolution: 2dppx) {
   #footer .buttons.navbar-nav li.github a,
   #header .buttons.navbar-nav li.github a {
-    background-image: url("../images/icon-github@2x.png");
-    background-size: 20px 20px;
+    background-image: url("../images/header-github-icon@2x.png");
+    background-size: 16px 17px;
   }
 }
 #footer .buttons.navbar-nav li > a,
 #header .buttons.navbar-nav li > a {
-  padding-top: 6px;
-  padding-bottom: 6px;
-  padding-left: 40px;
+  color: black;
+  padding-top: 4px;
+  padding-bottom: 4px;
+  padding-left: 30px;
+  padding-right: 6px;
+  letter-spacing: 0.09em;
+}
+#footer .buttons.navbar-nav li > a::before,
+#header .buttons.navbar-nav li > a::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: -8px;
+  width: 8px;
+  height: 100%;
+  background: linear-gradient(to right bottom, transparent 50%, #ffffff 50%) !important;
+}
+#footer .buttons.navbar-nav li > a::after,
+#header .buttons.navbar-nav li > a::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  right: -8px;
+  width: 8px;
+  height: 100%;
+  background: linear-gradient(to right bottom, #ffffff 50%, transparent 50%) !important;
 }
 #footer {
   height: 650px;
@@ -499,15 +525,17 @@ body.page-sub #header {
 .outline-btn:hover.purple {
   background-color: rgba(255, 255, 255, 0.5);
 }
+.terra-btn {
+  background-color: white;
+}
 .li-under a::after {
   position: absolute;
   top: 68%;
   left: 50%;
   margin-left: -4px;
-  width: 8px;
-  height: 8px;
-  background-color: #ffffff;
-  border-radius: 4px;
+  width: 6px;
+  height: 6px;
+  background-color: white;
   content: '';
   opacity: 0;
   text-decoration: none;
@@ -520,10 +548,10 @@ body.page-sub #header {
 }
 .li-under a:hover::after,
 .li-under a:focus::after {
-  opacity: .5;
-  -webkit-transform: translateY(0px);
-  -moz-transform: translateY(0px);
-  transform: translateY(0px);
+  opacity: 1;
+  -webkit-transform: skewY(15deg) translateY(10px);
+  -moz-transform: skewY(15deg) translateY(10px);
+  transform: skewY(15deg) translateY(10px);
 }
 /*body.page-home{
 	background-color: #f8f8f8;

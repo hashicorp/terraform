@@ -82,6 +82,7 @@ body.page-sub{
     }
 
     .main-links.navbar-nav{
+        margin-top: 26px;
         li + li::before {
             content: "";
             position: absolute;
@@ -99,7 +100,8 @@ body.page-sub{
         }*/
 
         li > a {
-            line-height: 62px;
+            line-height: 30px;
+            padding: 0 15px;
         }
 
     }
@@ -110,28 +112,52 @@ body.page-sub{
 
         li{
             &.first{
-                margin-right: 12px;
+                margin-right: 16px;
             }
 
             &.download{
                 a{
-                  background: url(../images/icon-download.png)  8px 6px no-repeat;
-                  .img-retina("../images/icon-download.png", "../images/icon-download@2x.png", 20px, 20px);
+                    padding-left: 28px;
+                    background: url(../images/header-download-icon.png)  8px 6px no-repeat;
+                    .img-retina("../images/header-download-icon.png", "../images/header-download-icon@2x.png", 12px, 16px);
                 }
             }
 
             &.github{
                 a{
-                  background: url(../images/icon-github.png)  8px 6px no-repeat;
-                  .img-retina("../images/icon-github.png", "../images/icon-github@2x.png", 20px, 20px);
+                  background: url(../images/header-github-icon.png)  8px 5px no-repeat;
+                  .img-retina("../images/header-github-icon.png", "../images/header-github-icon@2x.png", 16px, 17px);
                 }
             }
         }
 
         li > a {
-            padding-top: 6px;
-            padding-bottom: 6px;
-            padding-left: 40px;
+            color: black;
+            padding-top: 4px;
+            padding-bottom: 4px;
+            padding-left: 30px;
+            padding-right: 6px;
+            letter-spacing: 0.09em;
+            
+            &::before{
+              content: "";
+              position: absolute;
+              top: 0;
+              left: -8px;
+              width: 8px;
+              height: 100%;        
+              background: linear-gradient(to right bottom, transparent 50%, white 50%) !important;
+            }    
+
+            &::after{
+              content: "";
+              position: absolute;
+              top: 0;
+              right: -8px;
+              width: 8px;
+              height: 100%;        
+              background: linear-gradient(to right bottom, white 50%,transparent 50%) !important;
+            }            
         }
     }
 }
