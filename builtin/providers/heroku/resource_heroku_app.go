@@ -118,6 +118,16 @@ func resource_heroku_app_update(
 
 	}
 
+	if attr, ok := d.Attributes["config_vars.#"]; ok && attr.New == "1" {
+		vs := flatmap.Expand(
+			rs.Attributes, "config_vars").([]interface{})
+
+		err := update_config_vars(rs.ID, vs, client)
+		if err != nil {
+			return rs, err
+		}
+	}
+
 	app, err := resource_heroku_app_retrieve(rs.ID, client)
 	if err != nil {
 		return rs, err
@@ -199,7 +209,7 @@ func resource_heroku_app_update_state(
 	toFlatten := make(map[string]interface{})
 
 	if len(app.Vars) > 0 {
-		toFlatten["config_vars"] = app.Vars
+		toFlatten["config_vars"] = []map[string]string{app.Vars}
 	}
 
 	for k, v := range flatmap.Flatten(toFlatten) {
