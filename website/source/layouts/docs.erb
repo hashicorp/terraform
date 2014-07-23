@@ -4,52 +4,16 @@
 			<ul class="nav docs-sidenav">
 				<li<%= sidebar_current("docs-home") %>>
 				<a href="/docs/index.html">Documentation Home</a>
-				</li>
+                </li>
 
-				<li<%= sidebar_current("docs-upgrading") %>>
-				<a href="/docs/upgrading.html">Upgrading and Compatibility</a>
-				<ul class="nav">
-					<li<%= sidebar_current("docs-upgrading-upgrading") %>>
-					<a href="/docs/upgrading.html">Upgrading Terraform</a>
-					</li>
-
-					<li<%= sidebar_current("docs-upgrading-compat") %>>
-					<a href="/docs/compatibility.html">Compatibility Promise</a>
-					</li>
-				</ul>
-				</li>
-
-				<li<%= sidebar_current("docs-internals") %>>
-				<a href="/docs/internals/index.html">Terraform Internals</a>
+				<li<%= sidebar_current("docs-providers") %>>
+				<a href="/docs/configuration/index.html">Configuration</a>
                 <ul class="nav">
-					<li<%= sidebar_current("docs-internals-architecture") %>>
-					<a href="/docs/internals/architecture.html">Architecture</a>
-                    </li>
-
-					<li<%= sidebar_current("docs-internals-consensus") %>>
-					<a href="/docs/internals/consensus.html">Consensus Protocol</a>
-                    </li>
-
-					<li<%= sidebar_current("docs-internals-gossip") %>>
-					<a href="/docs/internals/gossip.html">Gossip Protocol</a>
-                    </li>
-
-					<li<%= sidebar_current("docs-internals-sessions") %>>
-					<a href="/docs/internals/sessions.html">Sessions</a>
-                    </li>
-
-					<li<%= sidebar_current("docs-internals-security") %>>
-					<a href="/docs/internals/security.html">Security Model</a>
-                    </li>
-
-					<li<%= sidebar_current("docs-internals-jepsen") %>>
-					<a href="/docs/internals/jepsen.html">Jepsen Testing</a>
-					</li>
-				</ul>
-				</li>
+                </ul>
+                </li>
 
 				<li<%= sidebar_current("docs-commands") %>>
-				<a href="/docs/commands/index.html">Terraform Commands (CLI)</a>
+				<a href="/docs/commands/index.html">Commands (CLI)</a>
 				<ul class="nav">
 					<li<%= sidebar_current("docs-commands-agent") %>>
 					<a href="/docs/commands/agent.html">agent</a>
@@ -85,45 +49,32 @@
 				</ul>
 				</li>
 
-				<li<%= sidebar_current("docs-agent") %>>
-				<a href="/docs/agent/basics.html">Terraform Agent</a>
-				<ul class="nav">
-					<li<%= sidebar_current("docs-agent-running") %>>
-					<a href="/docs/agent/basics.html">Running and Stopping</a>
-                    </li>
-
-					<li<%= sidebar_current("docs-agent-dns") %>>
-					<a href="/docs/agent/dns.html">DNS Interface</a>
-                    </li>
-
-					<li<%= sidebar_current("docs-agent-http") %>>
-					<a href="/docs/agent/http.html">HTTP API</a>
-					</li>
-
-					<li<%= sidebar_current("docs-agent-config") %>>
-					<a href="/docs/agent/options.html">Configuration</a>
-                    </li>
-
-					<li<%= sidebar_current("docs-agent-services") %>>
-					<a href="/docs/agent/services.html">Service Definitions</a>
-                    </li>
-
-					<li<%= sidebar_current("docs-agent-checks") %>>
-					<a href="/docs/agent/checks.html">Check Definitions</a>
-					</li>
-
-					<li<%= sidebar_current("docs-agent-encryption") %>>
-					<a href="/docs/agent/encryption.html">Encryption</a>
-                    </li>
-
-					<li<%= sidebar_current("docs-agent-rpc") %>>
-					<a href="/docs/agent/rpc.html">RPC Protocol</a>
-					</li>
-
-					<li<%= sidebar_current("docs-agent-telemetry") %>>
-					<a href="/docs/agent/telemetry.html">Telemetry</a>
-					</li>
+				<li<%= sidebar_current("docs-providers") %>>
+				<a href="/docs/providers/index.html">Providers</a>
+                <ul class="nav">
                 </ul>
+                </li>
+
+				<li<%= sidebar_current("docs-provisioners") %>>
+				<a href="/docs/provisioners/index.html">Provisioners</a>
+                <ul class="nav">
+					<li<%= sidebar_current("docs-provisioners-connection") %>>
+					<a href="/docs/provisioners/connection.html">connection</a>
+                    </li>
+
+					<li<%= sidebar_current("docs-provisioners-file") %>>
+					<a href="/docs/provisioners/file.html">file</a>
+                    </li>
+
+					<li<%= sidebar_current("docs-provisioners-local") %>>
+					<a href="/docs/provisioners/local-exec.html">local-exec</a>
+                    </li>
+
+					<li<%= sidebar_current("docs-provisioners-remote") %>>
+					<a href="/docs/provisioners/remote-exec.html">remote-exec</a>
+                    </li>
+                </ul>
+                </li>
 
 				<li<%= sidebar_current("docs-guides") %>>
 				<a href="/docs/guides/index.html">Guides</a>
@@ -161,6 +112,34 @@
                     </li>
                 </ul>
 
+				<li<%= sidebar_current("docs-internals") %>>
+				<a href="/docs/internals/index.html">Internals</a>
+                <ul class="nav">
+					<li<%= sidebar_current("docs-internals-architecture") %>>
+					<a href="/docs/internals/architecture.html">Architecture</a>
+                    </li>
+
+					<li<%= sidebar_current("docs-internals-consensus") %>>
+					<a href="/docs/internals/consensus.html">Consensus Protocol</a>
+                    </li>
+
+					<li<%= sidebar_current("docs-internals-gossip") %>>
+					<a href="/docs/internals/gossip.html">Gossip Protocol</a>
+                    </li>
+
+					<li<%= sidebar_current("docs-internals-sessions") %>>
+					<a href="/docs/internals/sessions.html">Sessions</a>
+                    </li>
+
+					<li<%= sidebar_current("docs-internals-security") %>>
+					<a href="/docs/internals/security.html">Security Model</a>
+                    </li>
+
+					<li<%= sidebar_current("docs-internals-jepsen") %>>
+					<a href="/docs/internals/jepsen.html">Jepsen Testing</a>
+					</li>
+				</ul>
+				</li>
 			</ul>
 		</div>
 	<% end %>
