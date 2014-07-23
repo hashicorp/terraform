@@ -244,7 +244,7 @@ body.page-sub #header {
 }
 #footer {
   padding: 140px 0 40px;
-  color: #822ff7;
+  color: black;
 }
 #footer .footer-links {
   float: none;
@@ -264,7 +264,7 @@ body.page-sub #header {
   float: right;
 }
 #footer a {
-  color: #822ff7;
+  color: black;
 }
 #footer .buttons.navbar-nav {
   float: none;
@@ -717,7 +717,7 @@ body.page-sub #header {
   font-weight: 700;
 }
 #footer .footer-hashi span {
-  margin-right: 20px;
+  margin-right: 10px;
 }
 #footer .footer-hashi img {
   display: inline-block;
