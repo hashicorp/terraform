@@ -546,7 +546,6 @@ body.page-sub #header {
   font-size: 16px;
   letter-spacing: 1px;
   line-height: 1.5em;
-  color: #909090;
   font-family: 'Lato', "Helvetica Neue", Helvetica, Arial, sans-serif;
   font-weight: 500;
 }
@@ -628,17 +627,24 @@ body.page-sub #header {
 #feature-clone h2 {
   color: white;
 }
-#footer {
-  background-color: #d7d4d7;
-  background: #d7d4d7 url(../images/consul-footer-logo.png) center center no-repeat;
-  background-image: url("../images/consul-footer-logo.png");
-  background-size: 446px 443px;
+#footer-wrap {
+  background-color: white;
+  padding: 0 0 50px 0;
 }
-@media only screen and (-webkit-min-device-pixel-ratio: 2), only screen and (min--moz-device-pixel-ratio: 2), only screen and (-o-min-device-pixel-ratio: 2/1), only screen and (min-device-pixel-ratio: 2), only screen and (min-resolution: 192dpi), only screen and (min-resolution: 2dppx) {
-  #footer {
-    background-image: url("../images/consul-footer-logo@2x.png");
-    background-size: 446px 443px;
-  }
+#footer {
+  background-color: white;
+  -webkit-transform: skewY(-2deg);
+  -moz-transform: skewY(-2deg);
+  -ms-transform: skewY(-2deg);
+  -o-transform: skewY(-2deg);
+  transform: skewY(-2deg);
+}
+#footer > .container {
+  -webkit-transform: skewY(2deg);
+  -moz-transform: skewY(2deg);
+  -ms-transform: skewY(2deg);
+  -o-transform: skewY(2deg);
+  transform: skewY(2deg);
 }
 #footer .footer-links {
   margin-bottom: 20px;
@@ -675,24 +681,34 @@ body.page-sub #header {
   }
 }
 #cta {
-  padding: 130px 0 130px;
+  padding: 180px 0;
+  background-color: #822ff7;
+  -webkit-transform: skewY(-2deg);
+  -moz-transform: skewY(-2deg);
+  -ms-transform: skewY(-2deg);
+  -o-transform: skewY(-2deg);
+  transform: skewY(-2deg);
+}
+#cta > .container {
+  -webkit-transform: skewY(2deg);
+  -moz-transform: skewY(2deg);
+  -ms-transform: skewY(2deg);
+  -o-transform: skewY(2deg);
+  transform: skewY(2deg);
 }
 #cta .intro .left {
   text-align: right;
 }
-#cta .intro .right {
-  margin-top: 12px;
-}
 #cta p {
+  color: white;
   font-size: 14px;
   letter-spacing: 1px;
   line-height: 1.5em;
-  color: #909090;
   font-family: 'Lato', "Helvetica Neue", Helvetica, Arial, sans-serif;
   font-weight: 500;
 }
 #cta .outline-btn {
-  padding: 8px;
+  padding: 16px 40px;
   display: inline-block;
 }
 #cta .outline-btn:focus {
@@ -700,16 +716,18 @@ body.page-sub #header {
 }
 #cta a {
   font-weight: 500;
-  font-size: 16px;
+  font-size: 24px;
   text-transform: uppercase;
   letter-spacing: 3px;
-  color: #822ff7;
+  color: white;
+  font-family: 'Lato', "Helvetica Neue", Helvetica, Arial, sans-serif;
+  font-weight: 100;
 }
 #cta a:hover {
   text-decoration: none;
 }
 #demos {
-  padding: 30px 0 60px;
+  padding: 180px 0 60px;
   background-color: #000;
   margin-top: -80px;
   -webkit-transform: skewY(-2deg);
@@ -726,28 +744,29 @@ body.page-sub #header {
   transform: skewY(2deg);
 }
 #demos .explantion {
-  margin: 40px 0 40px 0;
+  margin: 40px 0 60px 15px;
+  border-left: 8px solid #1e1e1e;
 }
 #demos .explantion h2 {
-  font-size: 22px;
-  color: white;
-  text-transform: uppercase;
+  margin-top: 0;
+  font-size: 28px;
+  color: #9148f8;
   font-family: 'Lato', "Helvetica Neue", Helvetica, Arial, sans-serif;
-  font-weight: 700;
+  font-weight: 100;
 }
 #demos .explantion p {
+  margin-bottom: 0;
   font-size: 16px;
   letter-spacing: 1px;
   line-height: 1.5em;
-  color: white;
-  font-family: 'Lato', "Helvetica Neue", Helvetica, Arial, sans-serif;
-  font-weight: 500;
+  color: #939393;
+  font-weight: 400;
 }
 #demos .terminals {
   margin-bottom: 80px;
 }
 #demos .terminals .terminal-item {
-  border-bottom: 1px solid #eaeae;
+  margin-bottom: 120px;
 }
 #demos .terminals .terminal-item.last {
   border-bottom: none;
@@ -775,6 +794,7 @@ body.page-sub #header {
   position: relative;
   text-align: center;
   padding: 3px;
+  background-color: #1e1e1e;
   border-bottom: 2px solid #1e1e1e;
 }
 #demos .terminals .terminal-item .terminal header h4 {
@@ -820,14 +840,14 @@ body.page-sub #header {
 }
 #demos .terminals .terminal-item .terminal .terminal-window .txt-p {
   font-weight: bold;
-  color: #ae79fa;
+  color: #87ee8e;
 }
 #demos .terminals .terminal-item .terminal .terminal-window p {
   margin-bottom: 2px;
   white-space: pre-wrap;
 }
 #demos .terminals .terminal-item .terminal .terminal-window .cursor {
-  background-color: #f7f3f9;
+  background-color: #NaNNaNNaN;
 }
 #demos .terminals .terminal-item .feature-bullets {
   list-style-type: none;
