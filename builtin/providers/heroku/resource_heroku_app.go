@@ -4,10 +4,11 @@ import (
 	"fmt"
 	"log"
 
+	"github.com/bgentry/heroku-go"
+	"github.com/hashicorp/terraform/flatmap"
 	"github.com/hashicorp/terraform/helper/config"
 	"github.com/hashicorp/terraform/helper/diff"
 	"github.com/hashicorp/terraform/terraform"
-	"github.com/bgentry/heroku-go"
 )
 
 func resource_heroku_app_create(
@@ -46,6 +47,28 @@ func resource_heroku_app_create(
 	rs.ID = app.Name
 
 	log.Printf("[INFO] App ID: %s", rs.ID)
+
+	if attr, ok := rs.Attributes["config_vars.#"]; ok && attr == "1" {
+		vs := flatmap.Expand(
+			rs.Attributes, "config_vars").([]interface{})
+		vars := make(map[string]*string)
+
+		for k, v := range vs[0].(map[string]interface{}) {
+			val := v.(string)
+			vars[k] = &val
+		}
+
+		_, err = client.ConfigVarUpdate(rs.ID, vars)
+
+		if err != nil {
+			return rs, err
+		}
+	}
+
+	app, err = resource_heroku_app_retrieve(rs.ID, client)
+	if err != nil {
+		return rs, err
+	}
 
 	return resource_heroku_app_update_state(rs, app)
 }
@@ -99,9 +122,10 @@ func resource_heroku_app_diff(
 
 	b := &diff.ResourceBuilder{
 		Attrs: map[string]diff.AttrType{
-			"name":              diff.AttrTypeCreate,
-			"region":            diff.AttrTypeUpdate,
-			"stack":              diff.AttrTypeCreate,
+			"name":        diff.AttrTypeCreate,
+			"region":      diff.AttrTypeUpdate,
+			"stack":       diff.AttrTypeCreate,
+			"config_vars": diff.AttrTypeUpdate,
 		},
 
 		ComputedAttrs: []string{
@@ -111,6 +135,7 @@ func resource_heroku_app_diff(
 			"git_url",
 			"web_url",
 			"id",
+			"config_vars",
 		},
 	}
 
@@ -148,6 +173,7 @@ func resource_heroku_app_validation() *config.Validator {
 			"name",
 			"region",
 			"stack",
+			"config_vars.*",
 		},
 	}
 }

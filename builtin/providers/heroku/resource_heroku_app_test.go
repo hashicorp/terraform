@@ -24,6 +24,8 @@ func TestAccHerokuApp_Basic(t *testing.T) {
 					testAccCheckHerokuAppAttributes(&app),
 					resource.TestCheckResourceAttr(
 						"heroku_app.foobar", "name", "terraform-test-app"),
+					resource.TestCheckResourceAttr(
+						"heroku_app.foobar", "config_vars.0.foo", "bar"),
 				),
 			},
 		},
@@ -50,8 +52,28 @@ func testAccCheckHerokuAppDestroy(s *terraform.State) error {
 
 func testAccCheckHerokuAppAttributes(app *heroku.App) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
+		client := testAccProvider.client
 
-		// check attrs
+		if app.Region.Name != "us" {
+			return fmt.Errorf("Bad region: %s", app.Region.Name)
+		}
+
+		if app.Stack.Name != "cedar" {
+			return fmt.Errorf("Bad stack: %s", app.Stack.Name)
+		}
+
+		if app.Name != "terraform-test-app" {
+			return fmt.Errorf("Bad name: %s", app.Name)
+		}
+
+		vars, err := client.ConfigVarInfo(app.Name)
+		if err != nil {
+			return err
+		}
+
+		if vars["foo"] != "bar" {
+			return fmt.Errorf("Bad config vars: %v", vars)
+		}
 
 		return nil
 	}
@@ -81,7 +103,7 @@ func testAccCheckHerokuAppExists(n string, app *heroku.App) resource.TestCheckFu
 			return fmt.Errorf("App not found")
 		}
 
-		app = foundApp
+		*app = *foundApp
 
 		return nil
 	}
@@ -90,4 +112,8 @@ func testAccCheckHerokuAppExists(n string, app *heroku.App) resource.TestCheckFu
 const testAccCheckHerokuAppConfig_basic = `
 resource "heroku_app" "foobar" {
     name = "terraform-test-app"
+
+    config_vars = {
+    	FOO = bar
+    }
 }`
