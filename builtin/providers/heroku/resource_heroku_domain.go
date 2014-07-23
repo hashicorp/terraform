@@ -34,6 +34,7 @@ func resource_heroku_domain_create(
 
 	rs.ID = do.Id
 	rs.Attributes["hostname"] = do.Hostname
+	rs.Attributes["cname"] = fmt.Sprintf("%s.herokuapp.com", app)
 
 	log.Printf("[INFO] Domain ID: %s", rs.ID)
 
@@ -80,6 +81,7 @@ func resource_heroku_domain_refresh(
 	}
 
 	s.Attributes["hostname"] = domain.Hostname
+	s.Attributes["cname"] = fmt.Sprintf("%s.herokuapp.com", s.Attributes["app"])
 
 	return s, nil
 }

@@ -26,6 +26,8 @@ func TestAccHerokuDomain_Basic(t *testing.T) {
 						"heroku_domain.foobar", "hostname", "terraform.example.com"),
 					resource.TestCheckResourceAttr(
 						"heroku_domain.foobar", "app", "terraform-test-app"),
+					resource.TestCheckResourceAttr(
+						"heroku_domain.foobar", "cname", "terraform-test-app.herokuapp.com"),
 				),
 			},
 		},
