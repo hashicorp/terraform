@@ -97,7 +97,9 @@ func resource_heroku_domain_diff(
 			"app":      diff.AttrTypeCreate,
 		},
 
-		ComputedAttrs: []string{},
+		ComputedAttrs: []string{
+			"cname",
+		},
 	}
 
 	return b.Diff(s, c)
