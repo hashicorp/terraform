@@ -993,16 +993,22 @@ body.page-home #footer {
 body.page-sub {
   background-color: #242424;
 }
+body.layout-aws,
 body.layout-docs,
+body.layout-inner,
 body.layout-intro {
   background: #242424 url('../images/sidebar-wire.png') left 62px no-repeat;
 }
+body.layout-aws > .container .col-md-8[role=main],
 body.layout-docs > .container .col-md-8[role=main],
+body.layout-inner > .container .col-md-8[role=main],
 body.layout-intro > .container .col-md-8[role=main] {
   min-height: 800px;
   background-color: white;
 }
+body.layout-aws > .container .col-md-8[role=main] > div,
 body.layout-docs > .container .col-md-8[role=main] > div,
+body.layout-inner > .container .col-md-8[role=main] > div,
 body.layout-intro > .container .col-md-8[role=main] > div {
   position: relative;
   z-index: 10;
@@ -1096,6 +1102,9 @@ body.layout-intro > .container .col-md-8[role=main] > div {
   -webkit-font-smoothing: antialiased;
   padding: 6px 15px;
 }
+.docs-sidebar .docs-sidenav .nav-visible {
+  display: block;
+}
 .bs-docs-section {
   padding-top: 10px;
   padding-left: 3%;
@@ -1151,10 +1160,12 @@ body.layout-intro > .container .col-md-8[role=main] > div {
 }
 @media (max-width: 992px) {
   body.layout-docs > .container .col-md-8[role=main],
+  body.layout-inner > .container .col-md-8[role=main],
   body.layout-intro > .container .col-md-8[role=main] {
     min-height: 0;
   }
   body.layout-docs > .container .col-md-8[role=main]::before,
+  body.layout-inner > .container .col-md-8[role=main]::before,
   body.layout-intro > .container .col-md-8[role=main]::before {
     border-left: 9999px solid white;
   }

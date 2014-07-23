@@ -29,13 +29,14 @@ var ContextOpts terraform.ContextOpts
 
 // Put the parse flags we use for libucl in a constant so we can get
 // equally behaving parsing everywhere.
-const libuclParseFlags = libucl.ParserKeyLowercase
+const libuclParseFlags = libucl.ParserNoTime
 
 func init() {
 	BuiltinConfig.Providers = map[string]string{
 		"aws":          "terraform-provider-aws",
 		"digitalocean": "terraform-provider-digitalocean",
 		"heroku":       "terraform-provider-heroku",
+		"dnsimple":     "terraform-provider-dnsimple",
 	}
 	BuiltinConfig.Provisioners = map[string]string{
 		"local-exec":  "terraform-provisioner-local-exec",

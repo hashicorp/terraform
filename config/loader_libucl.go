@@ -9,7 +9,7 @@ import (
 
 // Put the parse flags we use for libucl in a constant so we can get
 // equally behaving parsing everywhere.
-const libuclParseFlags = libucl.ParserKeyLowercase
+const libuclParseFlags = libucl.ParserNoTime
 
 // libuclConfigurable is an implementation of configurable that knows
 // how to turn libucl configuration into a *Config object.

@@ -47,7 +47,6 @@ func resource_aws_db_security_group_create(
 	if err != nil {
 		return rs, err
 	}
-	log.Printf("%#v", rs.Attributes)
 
 	if _, ok := rs.Attributes["ingress.#"]; ok {
 		ingresses := flatmap.Expand(

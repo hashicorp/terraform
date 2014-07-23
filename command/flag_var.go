@@ -55,7 +55,7 @@ func (v *FlagVarFile) Set(raw string) error {
 	return nil
 }
 
-const libuclParseFlags = libucl.ParserKeyLowercase
+const libuclParseFlags = libucl.ParserNoTime
 
 func loadVarFile(path string) (map[string]string, error) {
 	var obj *libucl.Object

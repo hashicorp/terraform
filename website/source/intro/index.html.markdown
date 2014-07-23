@@ -6,70 +6,66 @@ sidebar_current: "what"
 
 # Introduction to Terraform
 
-Welcome to the intro guide to Terraform! This guide is the best place to start
-with Terraform. We cover what Terraform is, what problems it can solve, how it compares
-to existing software, and a quick start for using Terraform. If you are already familiar
-with the basics of Terraform, the [documentation](/docs/index.html) provides more
-of a reference for all available features.
+Welcome to the intro guide to Terraform! This guide is the best
+place to start with Terraform. We cover what Terraform is, what
+problems it can solve, how it compares to existing software,
+and contains a quick start for using Terraform.
+
+If you are already familiar with the basics of Terraform, the
+[documentation](/docs/index.html) provides a better reference
+guide for all available features as well as internals.
 
 ## What is Terraform?
 
-Terraform has multiple components, but as a whole, it is a tool for discovering
-and configuring services in your infrastructure. It provides several
-key features:
+Terraform is a tool for building, changing, and versioning infrastructure
+safely and efficiently. Terraform can manage existing and popular service
+providers as well as custom in-house solutions.
 
-* **Service Discovery**: Clients of Terraform can _provide_ a service, such as
-  `api` or `mysql`, and other clients can use Terraform to _discover_ providers
-  of a given service. Using either DNS or HTTP, applications can easily find
-  the services they depend upon.
+Configuration files describe to Terraform the components needed to
+run a single application or your entire datacenter.
+Terraform generates an execution plan describing
+what it will do to reach the desired state, and then executes it to build the
+described infrastructure. As the configuration changes, Terraform is able
+to determine what changed and create incremental execution plans which
+can be applied.
 
-* **Health Checking**: Terraform clients can provide any number of health checks,
-  either associated with a given service ("is the webserver returning 200 OK"), or
-  with the local node ("is memory utilization below 90%"). This information can be
-  used by an operator to monitor cluster health, and it is used by the service
-  discovery components to route traffic away from unhealthy hosts.
+The infrastructure Terraform can manage includes
+low-level components such as
+compute instances, storage, and networking, as well as high-level
+components such as DNS entries, SaaS features, etc.
 
-* **Key/Value Store**: Applications can make use of Terraform's hierarchical key/value
-  store for any number of purposes including: dynamic configuration, feature flagging,
-  coordination, leader election, etc. The simple HTTP API makes it easy to use.
+Examples work best to showcase Terraform. Please see the
+[use cases](/intro/use-cases.html).
 
-* **Multi Datacenter**: Terraform supports multiple datacenters out of the box. This
-  means users of Terraform do not have to worry about building additional layers of
-  abstraction to grow to multiple regions.
+The key features of Terraform are:
 
-Terraform is designed to be friendly to both the DevOps community and
-application developers, making it perfect for modern, elastic infrastructures.
+* **Infrastructure as Code**: Infrastructure is described using a high-level
+  configuration syntax. This allows a blueprint of your datacenter to be
+  versioned and treated as you would any other code. Additionally,
+  infrastructure can be shared and re-used.
 
-## Basic Architecture of Terraform
+* **Execution Plans**: Terraform has a "planning" step where it generates
+  an _execution plan_. The execution plan shows what Terraform will do when
+  you call apply. This lets you avoid any surprises when Terraform
+  manipulates infrastructure.
 
-Terraform is a distributed, highly available system. There is an
-[in-depth architecture overview](/docs/internals/architecture.html) available,
-but this section will cover the basics so you can get an understanding
-of how Terraform works. This section will purposely omit details to quickly
-provide an overview of the architecture.
+* **Resource Graph**: Terraform builds a graph of all your resources,
+  and parallelizes the creation and modification of any non-dependent
+  resources. Because of this, Terraform builds infrastructure as efficiently
+  as possible, and operators get insight into dependencies in their
+  infrastructure.
 
-Every node that provides services to Terraform runs a _Terraform agent_. Running
-an agent is not required for discovering other services or getting/setting
-key/value data. The agent is responsible for health checking the services
-on the node as well as the node itself.
-
-The agents talk to one or more _Terraform servers_. The Terraform servers are
-where data is stored and replicated. The servers themselves elect a leader.
-While Terraform can function with one server, 3 to 5 is recommended to avoid
-data loss scenarios. A cluster of Terraform servers is recommended for each
-datacenter.
-
-Components of your infrastructure that need to discover other services
-or nodes can query any of the Terraform servers _or_ any of the Terraform agents.
-The agents forward queries to the servers automatically.
-
-Each datacenter runs a cluster of Terraform servers. When a cross-datacenter
-service discovery or configuration request is made, the local Terraform servers
-forward the request to the remote datacenter and return the result.
+* **Change Automation**: Potentially complex changesets are applied to
+  your infrastructure with minimal human interaction.
+  With the previously mentioned execution
+  plan and resource graph, you know exactly what Terraform will change
+  and in what order, avoiding many possible human errors.
 
 ## Next Steps
 
-See the page on [how Terraform compares to other software](/intro/vs/index.html)
-to see how it fits into your existing infrastructure. Or continue onwards with
+See the page on [Terraform use cases](/intro/use-cases.html) to see the
+multiple ways Terraform can be used. Then see
+[how Terraform compares to other software](/intro/vs/index.html)
+to see how it fits into your existing infrastructure. Finally, continue onwards with
 the [getting started guide](/intro/getting-started/install.html) to get
-Terraform up and running and see how it works.
+Terraform managing some real infrastructure and to see how it works.

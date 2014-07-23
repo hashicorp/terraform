@@ -1,0 +1,70 @@
+<% wrap_layout :inner do %>
+	<% content_for :sidebar do %>
+		<div class="docs-sidebar hidden-print affix-top" role="complementary">
+			<ul class="nav docs-sidenav">
+				<li<%= sidebar_current("docs-home") %>>
+				<a href="/docs/index.html">&laquo; Documentation Home</a>
+                </li>
+
+				<li<%= sidebar_current("docs-aws-index") %>>
+				<a href="/docs/providers/aws/index.html">AWS Provider</a>
+                </li>
+
+				<li<%= sidebar_current("docs-aws-resource") %>>
+				<a href="#">Resources</a>
+                <ul class="nav nav-visible">
+                    <li<%= sidebar_current("docs-aws-resource-eip") %>>
+					<a href="/docs/providers/aws/r/eip.html">aws_eip</a>
+                    </li>
+
+                    <li<%= sidebar_current("docs-aws-resource-instance") %>>
+					<a href="/docs/providers/aws/r/instance.html">aws_instance</a>
+					</li>
+
+                    <li<%= sidebar_current("docs-aws-resource-internet-gateway") %>>
+					<a href="/docs/providers/aws/r/internet_gateway.html">aws_internet_gateway</a>
+					</li>
+
+                    <li<%= sidebar_current("docs-aws-resource-launch-config") %>>
+					<a href="/docs/providers/aws/r/launch_config.html">aws_launch_configuration</a>
+					</li>
+
+                    <li<%= sidebar_current("docs-aws-resource-route-table|") %>>
+					<a href="/docs/providers/aws/r/route_table.html">aws_route_table</a>
+					</li>
+
+                    <li<%= sidebar_current("docs-aws-resource-route-table-assoc") %>>
+					<a href="/docs/providers/aws/r/route_table_assoc.html">aws_route_table_association</a>
+					</li>
+
+                    <li<%= sidebar_current("docs-aws-resource-route53-record") %>>
+					<a href="/docs/providers/aws/r/route53_record.html">aws_route53_record</a>
+					</li>
+
+					<li<%= sidebar_current("docs-aws-resource-route53-zone") %>>
+					<a href="/docs/providers/aws/r/route53_zone.html">aws_route53_zone</a>
+                    </li>
+
+                    <li<%= sidebar_current("docs-aws-resource-s3-bucket") %>>
+					<a href="/docs/providers/aws/r/s3_bucket.html">aws_s3_bucket</a>
+                    </li>
+
+                    <li<%= sidebar_current("docs-aws-resource-security-group") %>>
+					<a href="/docs/providers/aws/r/security_group.html">aws_security_group</a>
+                    </li>
+
+                    <li<%= sidebar_current("docs-aws-resource-subnet") %>>
+					<a href="/docs/providers/aws/r/subnet.html">aws_subnet</a>
+                    </li>
+
+                    <li<%= sidebar_current("docs-aws-resource-vpc") %>>
+					<a href="/docs/providers/aws/r/vpc.html">aws_vpc</a>
+                    </li>
+				</ul>
+				</li>
+			</ul>
+		</div>
+	<% end %>
+
+	<%= yield %>
+	<% end %>
