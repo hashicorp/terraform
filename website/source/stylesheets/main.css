@@ -653,6 +653,9 @@ body.page-sub #header {
 #feature-clone h2 {
   color: white;
 }
+#feature-clone .clone-icon {
+  padding-left: 80px;
+}
 #feature-clone .c-group {
   display: inline-block;
   margin-right: 20px;
