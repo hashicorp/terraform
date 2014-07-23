@@ -30,7 +30,7 @@ resource "aws_instance" "web" {
 
 ## Argument Reference
 
-The following arugments are supported:
+The following arguments are supported:
 
 * `inline` - This is a list of command strings. They are executed in the order
   they are provided. This cannot be provided with `script` or `scripts`.
