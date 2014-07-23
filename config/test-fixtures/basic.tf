@@ -31,6 +31,8 @@ resource aws_instance "web" {
 
 resource "aws_instance" "db" {
     security_groups = "${aws_security_group.firewall.*.id}"
+
+    depends_on = ["aws_instance.web"]
 }
 
 output "web_ip" {

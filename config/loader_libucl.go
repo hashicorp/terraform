@@ -352,16 +352,11 @@ func loadResourcesLibucl(o *libucl.Object) ([]*Resource, error) {
 					err)
 			}
 
-			// Remove the "count" from the config, since we treat that special
-			delete(config, "count")
-
-			// Delete the "provisioner" section from the config since
-			// that is treated specially.
-			delete(config, "provisioner")
-
-			// Delete the "connection" section since we handle that
-			// seperately
+			// Remove the fields we handle specially
 			delete(config, "connection")
+			delete(config, "count")
+			delete(config, "depends_on")
+			delete(config, "provisioner")
 
 			rawConfig, err := NewRawConfig(config)
 			if err != nil {
@@ -401,6 +396,20 @@ func loadResourcesLibucl(o *libucl.Object) ([]*Resource, error) {
 				}
 			}
 
+			// If we have depends fields, then add those in
+			var dependsOn []string
+			if deps := r.Get("depends_on"); deps != nil {
+				err := deps.Decode(&dependsOn)
+				deps.Close()
+				if err != nil {
+					return nil, fmt.Errorf(
+						"Error reading depends_on for %s[%s]: %s",
+						t.Key(),
+						r.Key(),
+						err)
+				}
+			}
+
 			// If we have provisioners, then parse those out
 			var provisioners []*Provisioner
 			if po := r.Get("provisioner"); po != nil {
@@ -422,6 +431,7 @@ func loadResourcesLibucl(o *libucl.Object) ([]*Resource, error) {
 				Count:        count,
 				RawConfig:    rawConfig,
 				Provisioners: provisioners,
+				DependsOn:    dependsOn,
 			})
 		}
 	}

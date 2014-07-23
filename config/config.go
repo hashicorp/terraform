@@ -42,6 +42,7 @@ type Resource struct {
 	Count        int
 	RawConfig    *RawConfig
 	Provisioners []*Provisioner
+	DependsOn    []string
 }
 
 // Provisioner is a configured provisioner step on a resource.

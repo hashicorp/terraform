@@ -393,6 +393,13 @@ func resourcesStr(rs []*Resource) string {
 			}
 		}
 
+		if len(r.DependsOn) > 0 {
+			result += fmt.Sprintf("  dependsOn\n")
+			for _, d := range r.DependsOn {
+				result += fmt.Sprintf("    %s\n", d)
+			}
+		}
+
 		if len(r.RawConfig.Variables) > 0 {
 			result += fmt.Sprintf("  vars\n")
 
@@ -479,6 +486,8 @@ do
 const basicResourcesStr = `
 aws_instance[db] (x1)
   security_groups
+  dependsOn
+    aws_instance.web
   vars
     resource: aws_security_group.firewall.*.id
 aws_instance[web] (x1)
