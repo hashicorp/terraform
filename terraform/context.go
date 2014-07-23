@@ -490,8 +490,9 @@ func (c *Context) applyWalkFn() depgraph.WalkFunc {
 			// If this happened, then the diff above returned a bad diff.
 			if diff == nil {
 				return fmt.Errorf(
-					"%s: diff became nil during Apply. This is a bug with " +
-						"the resource provider. Please report a bug.")
+					"%s: diff became nil during Apply. This is a bug with "+
+						"the resource provider. Please report a bug.",
+					r.Id)
 			}
 
 			// Delete id from the diff because it is dependent on
@@ -506,8 +507,9 @@ func (c *Context) applyWalkFn() depgraph.WalkFunc {
 						"\n\nDiff 2: %#v",
 					r.Diff, diff)
 				return fmt.Errorf(
-					"%s: diffs didn't match during apply. This is a " +
-						"bug with the resource provider, please report a bug.")
+					"%s: diffs didn't match during apply. This is a "+
+						"bug with the resource provider, please report a bug.",
+					r.Id)
 			}
 		}
 
