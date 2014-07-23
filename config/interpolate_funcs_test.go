@@ -53,6 +53,7 @@ func TestInterpolateFuncFile(t *testing.T) {
 		}
 	}
 }
+
 func TestInterpolateFuncLookup(t *testing.T) {
 	cases := []struct {
 		M      map[string]string
