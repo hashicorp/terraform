@@ -797,12 +797,13 @@ body.page-sub #header .main-links.navbar-nav li + li::before {
   text-align: right;
 }
 #cta p {
+  padding-top: 4px;
   color: white;
   font-size: 14px;
   letter-spacing: 1px;
   line-height: 1.5em;
   font-family: 'Lato', "Helvetica Neue", Helvetica, Arial, sans-serif;
-  font-weight: 500;
+  font-weight: 100;
 }
 #cta .outline-btn {
   padding: 16px 40px;
