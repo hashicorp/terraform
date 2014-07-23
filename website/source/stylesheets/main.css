@@ -603,6 +603,27 @@ body.page-sub #header {
   -o-transform: skewY(-2deg);
   transform: skewY(-2deg);
 }
+#feature-iterate .t-block {
+  background-color: #ffffff;
+  width: 80px;
+  height: 80px;
+  -webkit-transform: skewY(26deg);
+  -moz-transform: skewY(26deg);
+  -ms-transform: skewY(26deg);
+  -o-transform: skewY(26deg);
+  transform: skewY(26deg);
+  float: left;
+  margin-right: 25px;
+}
+#feature-iterate .t-block.t2 {
+  background-color: rgba(255, 255, 255, 0.8);
+}
+#feature-iterate .t-block.t3 {
+  background-color: rgba(255, 255, 255, 0.6);
+}
+#feature-iterate .t-block.t4 {
+  background-color: rgba(255, 255, 255, 0.4);
+}
 #feature-iterate h2 {
   color: white;
 }
