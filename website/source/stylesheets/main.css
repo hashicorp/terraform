@@ -19,8 +19,8 @@
   -webkit-font-smoothing: antialiased;
 }*/
 body {
-  color: #242424;
-  background-color: #242424;
+  color: #000000;
+  background-color: #000000;
   font-size: 15px;
   font-family: 'Lato', "Helvetica Neue", Helvetica, Arial, sans-serif;
   font-weight: 300;
@@ -47,7 +47,7 @@ h3 {
   margin-bottom: 18px;
 }
 pre {
-  background-color: #242424;
+  background-color: #000000;
   color: #ffffff;
   font-size: 14px;
   font-weight: normal;
@@ -938,22 +938,12 @@ body.page-sub #header .main-links.navbar-nav li + li::before {
 }
 body.layout-docs,
 body.layout-intro {
-  background: #f7f3f9 url('../images/sidebar-dots.jpg') left 62px no-repeat;
+  background: #242424 url('../images/sidebar-wire.png') left 62px no-repeat;
 }
 body.layout-docs > .container .col-md-8[role=main],
 body.layout-intro > .container .col-md-8[role=main] {
   min-height: 800px;
   background-color: white;
-  /*			&::before {
-				content: "";
-				position: absolute;
-				top: 0;
-				bottom: 0;
-				left: -9999px;
-				right: 0;
-				border-left: none;
-				box-shadow: 9999px 0 0 white;
-			}*/
 }
 body.layout-docs > .container .col-md-8[role=main] > div,
 body.layout-intro > .container .col-md-8[role=main] > div {
@@ -966,8 +956,6 @@ body.layout-intro > .container .col-md-8[role=main] > div {
   margin-bottom: 30px;
   margin-top: 50px;
   margin-right: 4%;
-  background-color: #f7f3f9;
-  border-radius: 6px;
 }
 .docs-sidebar a {
   color: #822ff7;
@@ -990,17 +978,16 @@ body.layout-intro > .container .col-md-8[role=main] > div {
 .docs-sidebar .docs-sidenav li > a:hover,
 .docs-sidebar .docs-sidenav li > a:focus {
   background-color: transparent !important;
-  color: #242424;
+  color: #000000;
   -webkit-transition: color 0.5s ease;
   transition: color 0.5s ease;
 }
 .docs-sidebar .docs-sidenav > li {
   padding: 10px 0;
   margin: 0 30px;
-  border-bottom: 2px solid #fff;
 }
 .docs-sidebar .docs-sidenav > li > .nav li a {
-  color: #242424;
+  color: #000000;
 }
 .docs-sidebar .docs-sidenav > li.active {
   /*> a:hover,
@@ -1087,6 +1074,8 @@ body.layout-intro > .container .col-md-8[role=main] > div {
   margin-top: 40px;
   margin-bottom: 24px;
   border-bottom: 1px solid #eeeeee;
+  font-family: 'Lato', "Helvetica Neue", Helvetica, Arial, sans-serif;
+  font-weight: 100;
 }
 .bs-docs-section h2,
 .bs-docs-section h3,

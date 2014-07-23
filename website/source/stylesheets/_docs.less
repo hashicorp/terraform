@@ -4,23 +4,12 @@
 
 body.layout-docs,
 body.layout-intro{
-	background: @light-purple url('../images/sidebar-dots.jpg') left 62px no-repeat;
+	background: @light-black url('../images/sidebar-wire.png') left 62px no-repeat;
 
 	>.container{
 		.col-md-8[role=main]{
 			min-height: 800px;
 			background-color: white;
-
-/*			&::before {
-				content: "";
-				position: absolute;
-				top: 0;
-				bottom: 0;
-				left: -9999px;
-				right: 0;
-				border-left: none;
-				box-shadow: 9999px 0 0 white;
-			}*/
 
 			>div{
 				position: relative;
@@ -31,13 +20,11 @@ body.layout-intro{
 }
 
 .docs-sidebar{
-    position: relative;
-    z-index: 20;
-    margin-bottom: 30px;
+  position: relative;
+  z-index: 20;
+  margin-bottom: 30px;
 	margin-top: 50px;
 	margin-right: 4%;
-	background-color: @light-purple;
-	border-radius: @el-border-radius;
 
 	a{
 			color: @purple;
@@ -72,7 +59,7 @@ body.layout-intro{
 		> li {
 			padding: 10px 0;
 			margin: 0 30px;
-			border-bottom: 2px solid #fff;
+			//border-bottom: 2px solid #fff;
 
 			>.nav{
 				li{
@@ -154,9 +141,9 @@ body.layout-intro{
 		font-size: 20px;
 		font-family: @font-family-open-sans;
 		font-weight: @font-weight-open;
-        line-height: 1.5em;
+    line-height: 1.5em;
 		margin: 0 0 18px;
-        -webkit-font-smoothing: antialiased;
+    -webkit-font-smoothing: antialiased;
 	}
 
     pre{
@@ -180,9 +167,10 @@ body.layout-intro{
 		color: @purple;
 		text-transform: uppercase;
 		padding-bottom: 24px;
-        margin-top: 40px;
+    margin-top: 40px;
 		margin-bottom: 24px;
-        border-bottom: 1px solid #eeeeee;
+    border-bottom: 1px solid #eeeeee;
+    .lato-light();
 	}
 
 	h2, h3, h4{
