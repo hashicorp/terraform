@@ -162,70 +162,6 @@ body.page-sub{
     }
 }
 
-#footer{
-    padding: 140px 0 40px;
-    color: black;
-
-    .footer-links{
-        float: none;
-        display: inline-block;
-
-        .li-under a:hover::after,
-        .li-under a:focus::after {
-            opacity: 1;
-            -webkit-transform: skewY(15deg) translateY(8px);
-            -moz-transform: skewY(15deg) translateY(8px);
-            transform: skewY(15deg) translateY(8px);
-        }
-
-        .li-under a::after {
-            background-color: @purple;
-        }
-    }
-
-    .footer-hashi{
-        float: right;
-    }
-
-    a{
-        color: black;
-    }
-
-    .buttons.navbar-nav{
-        float: none;
-        display: inline-block;
-        margin-bottom: 30px;
-        margin-top: 0px;
-
-        li{
-            &.first{
-                margin-right: 12px;
-            }
-
-            &.download{
-                a{
-                  background: url(../images/icon-download-purple.png)  8px 6px no-repeat;
-                  .img-retina("../images/icon-download-purple.png", "../images/icon-download-purple@2x.png", 20px, 20px);
-                }
-            }
-
-            &.github{
-                a{
-                  background: url(../images/icon-github-purple.png)  8px 6px no-repeat;
-                  .img-retina("../images/icon-github-purple.png", "../images/icon-github-purple@2x.png", 20px, 20px);
-                }
-            }
-        }
-
-        li > a {
-            padding-top: 6px;
-            padding-bottom: 6px;
-            padding-left: 40px;
-        }
-    }
-}
-
-
 @media (max-width: 992px) {
     #header {
         .navbar-brand {
@@ -252,7 +188,7 @@ body.page-sub{
 
 @media (max-width: 768px) {
 
-    #footer,
+    //#footer,
     #header{
         .buttons.navbar-nav,
         .main-links.navbar-nav{
@@ -271,35 +207,13 @@ body.page-sub{
         }
     }
 
-    #header,
-    #footer{
+    //#footer,
+    #header{
         .main-links.navbar-nav{
             li > a {
                 padding: 0;
                 padding-left: 0;
                 line-height: 22px;
-            }
-        }
-    }
-
-    #footer{
-        .footer-hashi {
-            span{
-                margin-right: 0;
-            }
-
-            .hashi-logo{
-                display: block;
-                margin-top: 15px;
-                margin-bottom: 20px;
-            }
-        }
-
-        .buttons.navbar-nav{
-            margin-left: 0;
-
-            li.first {
-                margin-right: 0 !important;
             }
         }
     }

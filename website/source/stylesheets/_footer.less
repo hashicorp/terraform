@@ -1,0 +1,132 @@
+
+#footer-wrap{
+    background-color: white;
+    padding: 0 0 50px 0;
+}
+
+#footer{
+    padding: 140px 0 40px;
+    color: black;
+    background-color: white;
+    .skewY(-2deg);
+
+    >.container{
+        .skewY(2deg);
+    }
+
+    a{
+        color: black;
+    }
+
+
+    .footer-links{
+        float: none;
+        display: inline-block;
+        margin-bottom: 20px;
+
+        .li-under a:hover::after,
+        .li-under a:focus::after {
+            opacity: 1;
+            -webkit-transform: skewY(15deg) translateY(8px);
+            -moz-transform: skewY(15deg) translateY(8px);
+            transform: skewY(15deg) translateY(8px);
+        }
+
+        .li-under a::after {
+            background-color: @purple;
+        }
+
+        li{
+            a{
+                text-transform: uppercase;
+                font-size: 12px;
+                letter-spacing: 3px;
+
+                &:hover{
+                    background-color: transparent;
+                }
+            }
+        }
+    }
+
+    .buttons.navbar-nav{
+        float: none;
+        display: inline-block;
+        margin-bottom: 30px;
+        margin-top: 0px;
+
+        li{
+            &.first{
+                margin-right: 12px;
+            }
+
+            &.download{
+                a{
+                  background: url(../images/icon-download-purple.png)  8px 6px no-repeat;
+                  .img-retina("../images/icon-download-purple.png", "../images/icon-download-purple@2x.png", 20px, 20px);
+                }
+            }
+
+            &.github{
+                a{
+                  background: url(../images/icon-github-purple.png)  8px 6px no-repeat;
+                  .img-retina("../images/icon-github-purple.png", "../images/icon-github-purple@2x.png", 20px, 20px);
+                }
+            }
+        }
+
+        li > a {
+            padding-top: 6px;
+            padding-bottom: 6px;
+            padding-left: 40px;
+        }
+    }  
+
+    .footer-hashi{
+        float: right;
+        letter-spacing: 2px;
+        margin-bottom: 30px;
+
+        a{
+            color: black;
+            font-weight: @font-weight-lato-xb;
+        }
+
+        span{
+            margin-right: 10px;
+        }
+        
+        img{
+            display: inline-block;
+            width: 37px;
+            height: 40px;
+        }
+    }
+}
+
+
+@media (max-width: 768px) {
+
+    #footer{
+        .footer-hashi {
+            span{
+                margin-right: 0;
+            }
+
+            .hashi-logo{
+                display: block;
+                margin-top: 15px;
+                margin-bottom: 20px;
+            }
+        }
+
+        .buttons.navbar-nav{
+            margin-left: 0;
+
+            li.first {
+                margin-right: 0 !important;
+            }
+        }
+    }
+}
+

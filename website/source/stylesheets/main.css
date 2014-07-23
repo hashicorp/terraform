@@ -224,66 +224,6 @@ body.page-sub #header .main-links.navbar-nav li + li::before {
   padding-right: 10px;
   letter-spacing: 0.05em;
 }
-#footer {
-  padding: 140px 0 40px;
-  color: black;
-}
-#footer .footer-links {
-  float: none;
-  display: inline-block;
-}
-#footer .footer-links .li-under a:hover::after,
-#footer .footer-links .li-under a:focus::after {
-  opacity: 1;
-  -webkit-transform: skewY(15deg) translateY(8px);
-  -moz-transform: skewY(15deg) translateY(8px);
-  transform: skewY(15deg) translateY(8px);
-}
-#footer .footer-links .li-under a::after {
-  background-color: #822ff7;
-}
-#footer .footer-hashi {
-  float: right;
-}
-#footer a {
-  color: black;
-}
-#footer .buttons.navbar-nav {
-  float: none;
-  display: inline-block;
-  margin-bottom: 30px;
-  margin-top: 0px;
-}
-#footer .buttons.navbar-nav li.first {
-  margin-right: 12px;
-}
-#footer .buttons.navbar-nav li.download a {
-  background: url(../images/icon-download-purple.png) 8px 6px no-repeat;
-  background-image: url("../images/icon-download-purple.png");
-  background-size: 20px 20px;
-}
-@media only screen and (-webkit-min-device-pixel-ratio: 2), only screen and (min--moz-device-pixel-ratio: 2), only screen and (-o-min-device-pixel-ratio: 2/1), only screen and (min-device-pixel-ratio: 2), only screen and (min-resolution: 192dpi), only screen and (min-resolution: 2dppx) {
-  #footer .buttons.navbar-nav li.download a {
-    background-image: url("../images/icon-download-purple@2x.png");
-    background-size: 20px 20px;
-  }
-}
-#footer .buttons.navbar-nav li.github a {
-  background: url(../images/icon-github-purple.png) 8px 6px no-repeat;
-  background-image: url("../images/icon-github-purple.png");
-  background-size: 20px 20px;
-}
-@media only screen and (-webkit-min-device-pixel-ratio: 2), only screen and (min--moz-device-pixel-ratio: 2), only screen and (-o-min-device-pixel-ratio: 2/1), only screen and (min-device-pixel-ratio: 2), only screen and (min-resolution: 192dpi), only screen and (min-resolution: 2dppx) {
-  #footer .buttons.navbar-nav li.github a {
-    background-image: url("../images/icon-github-purple@2x.png");
-    background-size: 20px 20px;
-  }
-}
-#footer .buttons.navbar-nav li > a {
-  padding-top: 6px;
-  padding-bottom: 6px;
-  padding-left: 40px;
-}
 @media (max-width: 992px) {
   #header .navbar-brand.logo span {
     width: 120px;
@@ -297,50 +237,27 @@ body.page-sub #header .main-links.navbar-nav li + li::before {
   }
 }
 @media (max-width: 768px) {
-  #footer .buttons.navbar-nav,
   #header .buttons.navbar-nav,
-  #footer .main-links.navbar-nav,
   #header .main-links.navbar-nav {
     display: block;
     padding-bottom: 15px;
   }
-  #footer .buttons.navbar-nav li,
   #header .buttons.navbar-nav li,
-  #footer .main-links.navbar-nav li,
   #header .main-links.navbar-nav li {
     display: block;
     float: none;
     margin-top: 15px;
   }
-  #footer .buttons.navbar-nav .li-under a::after,
   #header .buttons.navbar-nav .li-under a::after,
-  #footer .main-links.navbar-nav .li-under a::after,
   #header .main-links.navbar-nav .li-under a::after,
-  #footer .buttons.navbar-nav li + li::before,
   #header .buttons.navbar-nav li + li::before,
-  #footer .main-links.navbar-nav li + li::before,
   #header .main-links.navbar-nav li + li::before {
     display: none;
   }
-  #header .main-links.navbar-nav li > a,
-  #footer .main-links.navbar-nav li > a {
+  #header .main-links.navbar-nav li > a {
     padding: 0;
     padding-left: 0;
     line-height: 22px;
-  }
-  #footer .footer-hashi span {
-    margin-right: 0;
-  }
-  #footer .footer-hashi .hashi-logo {
-    display: block;
-    margin-top: 15px;
-    margin-bottom: 20px;
-  }
-  #footer .buttons.navbar-nav {
-    margin-left: 0;
-  }
-  #footer .buttons.navbar-nav li.first {
-    margin-right: 0 !important;
   }
   #header {
     background: #694a9c;
@@ -401,6 +318,122 @@ body.page-sub #header .main-links.navbar-nav li + li::before {
   #header .buttons.navbar-nav li.github a {
     background-image: url("../images/icon-github@2x.png");
     background-size: 20px 20px;
+  }
+}
+#footer-wrap {
+  background-color: white;
+  padding: 0 0 50px 0;
+}
+#footer {
+  padding: 140px 0 40px;
+  color: black;
+  background-color: white;
+  -webkit-transform: skewY(-2deg);
+  -moz-transform: skewY(-2deg);
+  -ms-transform: skewY(-2deg);
+  -o-transform: skewY(-2deg);
+  transform: skewY(-2deg);
+}
+#footer > .container {
+  -webkit-transform: skewY(2deg);
+  -moz-transform: skewY(2deg);
+  -ms-transform: skewY(2deg);
+  -o-transform: skewY(2deg);
+  transform: skewY(2deg);
+}
+#footer a {
+  color: black;
+}
+#footer .footer-links {
+  float: none;
+  display: inline-block;
+  margin-bottom: 20px;
+}
+#footer .footer-links .li-under a:hover::after,
+#footer .footer-links .li-under a:focus::after {
+  opacity: 1;
+  -webkit-transform: skewY(15deg) translateY(8px);
+  -moz-transform: skewY(15deg) translateY(8px);
+  transform: skewY(15deg) translateY(8px);
+}
+#footer .footer-links .li-under a::after {
+  background-color: #822ff7;
+}
+#footer .footer-links li a {
+  text-transform: uppercase;
+  font-size: 12px;
+  letter-spacing: 3px;
+}
+#footer .footer-links li a:hover {
+  background-color: transparent;
+}
+#footer .buttons.navbar-nav {
+  float: none;
+  display: inline-block;
+  margin-bottom: 30px;
+  margin-top: 0px;
+}
+#footer .buttons.navbar-nav li.first {
+  margin-right: 12px;
+}
+#footer .buttons.navbar-nav li.download a {
+  background: url(../images/icon-download-purple.png) 8px 6px no-repeat;
+  background-image: url("../images/icon-download-purple.png");
+  background-size: 20px 20px;
+}
+@media only screen and (-webkit-min-device-pixel-ratio: 2), only screen and (min--moz-device-pixel-ratio: 2), only screen and (-o-min-device-pixel-ratio: 2/1), only screen and (min-device-pixel-ratio: 2), only screen and (min-resolution: 192dpi), only screen and (min-resolution: 2dppx) {
+  #footer .buttons.navbar-nav li.download a {
+    background-image: url("../images/icon-download-purple@2x.png");
+    background-size: 20px 20px;
+  }
+}
+#footer .buttons.navbar-nav li.github a {
+  background: url(../images/icon-github-purple.png) 8px 6px no-repeat;
+  background-image: url("../images/icon-github-purple.png");
+  background-size: 20px 20px;
+}
+@media only screen and (-webkit-min-device-pixel-ratio: 2), only screen and (min--moz-device-pixel-ratio: 2), only screen and (-o-min-device-pixel-ratio: 2/1), only screen and (min-device-pixel-ratio: 2), only screen and (min-resolution: 192dpi), only screen and (min-resolution: 2dppx) {
+  #footer .buttons.navbar-nav li.github a {
+    background-image: url("../images/icon-github-purple@2x.png");
+    background-size: 20px 20px;
+  }
+}
+#footer .buttons.navbar-nav li > a {
+  padding-top: 6px;
+  padding-bottom: 6px;
+  padding-left: 40px;
+}
+#footer .footer-hashi {
+  float: right;
+  letter-spacing: 2px;
+  margin-bottom: 30px;
+}
+#footer .footer-hashi a {
+  color: black;
+  font-weight: 700;
+}
+#footer .footer-hashi span {
+  margin-right: 10px;
+}
+#footer .footer-hashi img {
+  display: inline-block;
+  width: 37px;
+  height: 40px;
+}
+@media (max-width: 768px) {
+  #footer .footer-hashi span {
+    margin-right: 0;
+  }
+  #footer .footer-hashi .hashi-logo {
+    display: block;
+    margin-top: 15px;
+    margin-bottom: 20px;
+  }
+  #footer .buttons.navbar-nav {
+    margin-left: 0;
+  }
+  #footer .buttons.navbar-nav li.first {
+    margin-right: 0 !important;
   }
 }
 #jumbotron-mask {
@@ -669,51 +702,6 @@ body.page-sub #header .main-links.navbar-nav li + li::before {
   transform: skewY(30deg);
   margin: 5px 5px 0 0;
 }
-#footer-wrap {
-  background-color: white;
-  padding: 0 0 50px 0;
-}
-#footer {
-  background-color: white;
-  -webkit-transform: skewY(-2deg);
-  -moz-transform: skewY(-2deg);
-  -ms-transform: skewY(-2deg);
-  -o-transform: skewY(-2deg);
-  transform: skewY(-2deg);
-}
-#footer > .container {
-  -webkit-transform: skewY(2deg);
-  -moz-transform: skewY(2deg);
-  -ms-transform: skewY(2deg);
-  -o-transform: skewY(2deg);
-  transform: skewY(2deg);
-}
-#footer .footer-links {
-  margin-bottom: 20px;
-}
-#footer .footer-links li a {
-  text-transform: uppercase;
-  font-size: 12px;
-  letter-spacing: 3px;
-}
-#footer .footer-links li a:hover {
-  background-color: transparent;
-}
-#footer .footer-hashi {
-  letter-spacing: 2px;
-  margin-bottom: 30px;
-}
-#footer .footer-hashi a {
-  font-weight: 700;
-}
-#footer .footer-hashi span {
-  margin-right: 10px;
-}
-#footer .footer-hashi img {
-  display: inline-block;
-  width: 37px;
-  height: 40px;
-}
 @media (max-width: 992px) {
   #features .double-row {
     padding: 0 0 0 0;
@@ -935,6 +923,9 @@ body.page-sub #header .main-links.navbar-nav li + li::before {
 }
 .people .person .bio {
   padding-left: 150px;
+}
+body.page-sub {
+  background-color: #242424;
 }
 body.layout-docs,
 body.layout-intro {
