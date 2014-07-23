@@ -648,6 +648,37 @@ body.page-sub #header {
 #feature-clone h2 {
   color: white;
 }
+#feature-clone .c-group {
+  display: inline-block;
+  margin-right: 20px;
+}
+#feature-clone .c-group.cg2 {
+  opacity: .8;
+}
+#feature-clone .c-group.cg3 {
+  opacity: .6;
+}
+#feature-clone .c-group .c-col {
+  display: inline-block;
+  float: left;
+}
+#feature-clone .c-group .c-col.c1 {
+  padding-top: 16px;
+}
+#feature-clone .c-group .c-col.c3 {
+  padding-top: 55px;
+}
+#feature-clone .c-group .c-col .c-block {
+  background-color: white;
+  width: 30px;
+  height: 30px;
+  -webkit-transform: skewY(30deg);
+  -moz-transform: skewY(30deg);
+  -ms-transform: skewY(30deg);
+  -o-transform: skewY(30deg);
+  transform: skewY(30deg);
+  margin: 5px 5px 0 0;
+}
 #footer-wrap {
   background-color: white;
   padding: 0 0 50px 0;

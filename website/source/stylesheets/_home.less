@@ -110,7 +110,41 @@
 
 	h2{
 		color: white;
-	}	
+	}
+
+	.c-group{
+		display: inline-block;
+		margin-right: 20px;
+
+		&.cg2{
+			opacity: .8;
+		}
+
+		&.cg3{
+			opacity: .6;
+		}
+
+		.c-col{
+			display: inline-block;
+			float: left;
+
+			&.c1{
+				padding-top: 16px;
+			}
+
+			&.c3{
+				padding-top: 55px;
+			}		
+			
+			.c-block{
+				background-color: white;
+				width: 30px;
+				height: 30px;
+				.skewY(30deg);
+				margin: 5px 5px 0 0;
+			}
+		}
+	}
 }
 
 #footer-wrap{
