@@ -228,13 +228,13 @@ body.page-sub #header .main-links.navbar-nav li > a {
   letter-spacing: 0.05em;
 }
 @media (min-width: 1200px) {
-  body.page-sub #header .main-links.navbar-nav {
+  #header .main-links.navbar-nav {
     margin-top: 28px;
   }
-  body.page-sub #header .main-links.navbar-nav li + li {
+  #header .main-links.navbar-nav li + li {
     padding-left: 6px;
   }
-  body.page-sub #header .main-links.navbar-nav li + li::before {
+  #header .main-links.navbar-nav li + li::before {
     content: "";
     position: absolute;
     left: 0;
@@ -249,10 +249,47 @@ body.page-sub #header .main-links.navbar-nav li > a {
     transform: skewY(24deg);
     padding-right: 8px;
   }
-  body.page-sub #header .main-links.navbar-nav li > a {
+  #header .main-links.navbar-nav li > a {
     line-height: 26px;
     margin: 0 12px;
     padding: 0 0 0 4px;
+  }
+}
+@media (min-width: 992px) {
+  .collapse {
+    margin-top: 8px;
+  }
+  .page-home #header .main-links.navbar-nav li + li {
+    padding-left: 6px;
+  }
+  .page-home #header .main-links.navbar-nav li + li::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 9px;
+    width: 6px;
+    height: 8px;
+    background-color: #822ff7;
+    -webkit-transform: skewY(24deg);
+    -moz-transform: skewY(24deg);
+    -ms-transform: skewY(24deg);
+    -o-transform: skewY(24deg);
+    transform: skewY(24deg);
+    padding-right: 8px;
+  }
+}
+@media (min-width: 768px) and (max-width: 992px) {
+  body.page-home .nav-logo {
+    width: 30%;
+  }
+  body.page-home .nav-white {
+    margin-top: 8px;
+    width: 70%;
+  }
+  body.page-home .buttons.navbar-nav li > a {
+    padding-right: 4px !important;
+    text-indent: -9999px;
+    white-space: nowrap;
   }
 }
 @media (max-width: 992px) {

@@ -166,11 +166,48 @@ body.page-sub{
 
 //at minimum 1200px
 @media (min-width: 1200px) {
-    body.page-sub{
+
+    #header{
+        .main-links.navbar-nav{
+            margin-top: 28px;
+
+            li + li{
+                padding-left: 6px;
+            }
+
+            li + li::before {
+                content: "";
+                position: absolute;
+                left: 0;
+                top: 9px;
+                width: 6px;
+                height: 8px;
+                background-color: @purple;
+                .skewY(24deg);
+                padding-right: 8px;
+            }
+
+            li > a {
+                //border-bottom: 2px solid rgba(255, 255, 255, .2);
+                line-height: 26px;
+                margin: 0 12px;
+                padding: 0 0 0 4px;
+            }
+
+        }        
+    }
+} 
+
+@media (min-width: 992px) {
+
+    .collapse{
+        margin-top: 8px;
+    }
+
+    //homepage has more space at this width to accomodate chevrons
+    .page-home{
         #header{
             .main-links.navbar-nav{
-                margin-top: 28px;
-
                 li + li{
                     padding-left: 6px;
                 }
@@ -185,22 +222,40 @@ body.page-sub{
                     background-color: @purple;
                     .skewY(24deg);
                     padding-right: 8px;
-                }
-
-                li > a {
-                    //border-bottom: 2px solid rgba(255, 255, 255, .2);
-                    line-height: 26px;
-                    margin: 0 12px;
-                    padding: 0 0 0 4px;
-                }
-
-            }        
-        }        
+                }  
+            }
+        }
     }
 }
 
+
+
+@media (min-width: 768px) and (max-width: 992px) {
+
+    body.page-home{
+        .nav-logo{
+            width: 30%;
+        }        
+        .nav-white{
+            margin-top: 8px;
+            width: 70%;
+        }
+        .buttons.navbar-nav{
+            li{
+               > a{
+                    padding-right: 4px !important;
+                    text-indent: -9999px;
+                    white-space: nowrap;  
+                }               
+            }
+        }
+    }
+}
+
+
 //at greatest width 992px
 @media (max-width: 992px) {
+
     #header {
         .navbar-brand {
             &.logo{
