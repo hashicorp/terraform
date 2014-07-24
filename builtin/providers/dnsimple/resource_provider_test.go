@@ -75,6 +75,6 @@ func testAccPreCheck(t *testing.T) {
 	}
 
 	if v := os.Getenv("DNSIMPLE_DOMAIN"); v == "" {
-		t.Fatal("DNSIMPLE_DOMAIN must be set for acceptance tests. The domain is used to create and destroy record against.")
+		t.Fatal("DNSIMPLE_DOMAIN must be set for acceptance tests. The domain is used to ` and destroy record against.")
 	}
 }

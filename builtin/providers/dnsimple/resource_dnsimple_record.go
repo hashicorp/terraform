@@ -3,12 +3,11 @@ package dnsimple
 import (
 	"fmt"
 	"log"
-	"strconv"
 
 	"github.com/hashicorp/terraform/helper/config"
 	"github.com/hashicorp/terraform/helper/diff"
 	"github.com/hashicorp/terraform/terraform"
-	"github.com/rubyist/go-dnsimple"
+	"github.com/pearkes/dnsimple"
 )
 
 func resource_dnsimple_record_create(
@@ -24,42 +23,79 @@ func resource_dnsimple_record_create(
 
 	var err error
 
-	newRecord := dnsimple.Record{
-		Name:       rs.Attributes["name"],
-		Content:    rs.Attributes["value"],
-		RecordType: rs.Attributes["type"],
+	newRecord := dnsimple.ChangeRecord{
+		Name:  rs.Attributes["name"],
+		Value: rs.Attributes["value"],
+		Type:  rs.Attributes["type"],
 	}
 
 	if attr, ok := rs.Attributes["ttl"]; ok {
-		newRecord.TTL, err = strconv.Atoi(attr)
-		if err != nil {
-			return nil, err
-		}
+		newRecord.Ttl = attr
 	}
 
 	log.Printf("[DEBUG] record create configuration: %#v", newRecord)
 
-	rec, err := client.CreateRecord(rs.Attributes["domain"], newRecord)
+	recId, err := client.CreateRecord(rs.Attributes["domain"], &newRecord)
 
 	if err != nil {
 		return nil, fmt.Errorf("Failed to create record: %s", err)
 	}
 
-	rs.ID = strconv.Itoa(rec.Id)
-
+	rs.ID = recId
 	log.Printf("[INFO] record ID: %s", rs.ID)
 
-	return resource_dnsimple_record_update_state(rs, &rec)
+	record, err := resource_dnsimple_record_retrieve(s.Attributes["domain"], s.ID, client)
+	if err != nil {
+		return nil, fmt.Errorf("Couldn't find record: %s", err)
+	}
+
+	return resource_dnsimple_record_update_state(rs, record)
 }
 
 func resource_dnsimple_record_update(
 	s *terraform.ResourceState,
 	d *terraform.ResourceDiff,
 	meta interface{}) (*terraform.ResourceState, error) {
+	p := meta.(*ResourceProvider)
+	client := p.client
+	rs := s.MergeDiff(d)
 
-	panic("Cannot update record")
+	updateRecord := dnsimple.ChangeRecord{}
 
-	return nil, nil
+	record, err := resource_dnsimple_record_retrieve(s.Attributes["domain"], s.ID, client)
+	if err != nil {
+		return nil, fmt.Errorf("Couldn't find record: %s", err)
+	}
+
+	if attr, ok := d.Attributes["name"]; ok {
+		updateRecord.Name = attr.New
+	}
+
+	if attr, ok := d.Attributes["value"]; ok {
+		updateRecord.Value = attr.New
+	}
+
+	if attr, ok := d.Attributes["type"]; ok {
+		updateRecord.Type = attr.New
+	}
+
+	if attr, ok := d.Attributes["ttl"]; ok {
+		updateRecord.Ttl = attr.New
+	}
+
+	log.Printf("[DEBUG] record update configuration: %#v", updateRecord)
+
+	_, err = client.UpdateRecord(rs.Attributes["domain"], rs.ID, &updateRecord)
+	if err != nil {
+		return nil, fmt.Errorf("Failed to update record: %s", err)
+	}
+
+	record, err = resource_dnsimple_record_retrieve(s.Attributes["domain"], s.ID, client)
+	if err != nil {
+		return nil, fmt.Errorf("Couldn't find record: %s", err)
+	}
+
+	return resource_dnsimple_record_update_state(rs, record)
 }
 
 func resource_dnsimple_record_destroy(
@@ -70,12 +106,8 @@ func resource_dnsimple_record_destroy(
 
 	log.Printf("[INFO] Deleting record: %s", s.ID)
 
-	rec, err := resource_dnsimple_record_retrieve(s.Attributes["domain"], s.ID, client)
-	if err != nil {
-		return err
-	}
+	err := client.DestroyRecord(s.ID)
 
-	err = rec.Delete(client)
 	if err != nil {
 		return fmt.Errorf("Error deleting record: %s", err)
 	}
@@ -105,9 +137,9 @@ func resource_dnsimple_record_diff(
 	b := &diff.ResourceBuilder{
 		Attrs: map[string]diff.AttrType{
 			"domain": diff.AttrTypeCreate,
-			"name":   diff.AttrTypeCreate,
+			"name":   diff.AttrTypeUpdate,
 			"value":  diff.AttrTypeUpdate,
-			"ttl":    diff.AttrTypeCreate,
+			"ttl":    diff.AttrTypeUpdate,
 			"type":   diff.AttrTypeUpdate,
 		},
 
@@ -127,20 +159,15 @@ func resource_dnsimple_record_update_state(
 	s.Attributes["name"] = rec.Name
 	s.Attributes["value"] = rec.Content
 	s.Attributes["type"] = rec.RecordType
-	s.Attributes["ttl"] = strconv.Itoa(rec.TTL)
-	s.Attributes["priority"] = strconv.Itoa(rec.Priority)
-	s.Attributes["domain_id"] = strconv.Itoa(rec.DomainId)
+	s.Attributes["ttl"] = rec.StringTtl()
+	s.Attributes["priority"] = rec.StringPrio()
+	s.Attributes["domain_id"] = rec.StringDomainId()
 
 	return s, nil
 }
 
-func resource_dnsimple_record_retrieve(domain string, id string, client *dnsimple.DNSimpleClient) (*dnsimple.Record, error) {
-	intId, err := strconv.Atoi(id)
-	if err != nil {
-		return nil, err
-	}
-
-	record, err := client.RetrieveRecord(domain, intId)
+func resource_dnsimple_record_retrieve(domain string, id string, client *dnsimple.Client) (*dnsimple.Record, error) {
+	record, err := client.RetrieveRecord(domain, id)
 	if err != nil {
 		return nil, fmt.Errorf("Error retrieving record: %s", err)
 	}

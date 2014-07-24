@@ -5,13 +5,13 @@ import (
 
 	"github.com/hashicorp/terraform/helper/config"
 	"github.com/hashicorp/terraform/terraform"
-	"github.com/rubyist/go-dnsimple"
+	"github.com/pearkes/dnsimple"
 )
 
 type ResourceProvider struct {
 	Config Config
 
-	client *dnsimple.DNSimpleClient
+	client *dnsimple.Client
 }
 
 func (p *ResourceProvider) Validate(c *terraform.ResourceConfig) ([]string, []error) {
