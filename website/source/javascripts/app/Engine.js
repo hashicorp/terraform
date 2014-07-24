@@ -66,7 +66,6 @@ Engine = Base.extend({
 		image.style.webkitTransform = 'translate3d(0,0,0) scale(1)';
 		image.style.opacity = 1;
 
-
 		el = document.body;
 
 		setTimeout(function() {
@@ -119,20 +118,23 @@ Engine = Base.extend({
 	render: function(){
 		var tick;
 
-		this.context.clearRect(
-			0,
-			0,
-			this.width  * this.scale,
-			this.height * this.scale
-		);
+		if (window.scrollY > 700) {
+			window.requestAnimationFrame(this.render);
+			return;
+		}
+
+		// this.context.clearRect(
+		//     0,
+		//     0,
+		//     this.width  * this.scale,
+		//     this.height * this.scale
+		// );
+
+		// Potentially more performant than clearRect
+		this.canvas.width = this.width * this.scale;
+		this.canvas.height = 700 * this.scale;
 
 		this.now = Date.now() / 1000;
-
-		// if (this.slow) {
-		//     this.speed = Math.max(0.1, this.speed - this.accel);
-		// } else {
-		//     this.speed = Math.min(1, this.speed + this.accel);
-		// }
 
 		tick = Math.min(this.now - this.last, 0.017);
 		this.tick = this.speed * tick;
@@ -141,7 +143,6 @@ Engine = Base.extend({
 		this.tick = tick;
 
 		if (this.now - this.start > 3) {
-			// this.slow = true;
 			this.renderTessellation(this.now);
 		}
 
@@ -183,8 +184,6 @@ Engine = Base.extend({
 
 		this.canvas.width  = this.width  * this.scale;
 		this.canvas.height = this.height * this.scale;
-
-		window.scrollTo(0, 0);
 	},
 
 	renderStarfield: function(){
