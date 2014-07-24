@@ -161,5 +161,5 @@ In this page you were introduced to both multiple resources
 as well as basic resource dependencies and resource attribute
 interpolation.
 
-Moving on, we'll parameterize our configuration for better
-shareability and maintainability.
+Moving on, we'll use provisioners to do some basic bootstrapping
+of our launched instance.
