@@ -232,6 +232,15 @@ CHECK_CYCLES:
 		}
 	}
 
+	// Check for loops to yourself
+	for _, n := range g.Nouns {
+		for _, d := range n.Deps {
+			if d.Source == d.Target {
+				vErr.Cycles = append(vErr.Cycles, []*Noun{n})
+			}
+		}
+	}
+
 	// Return the detailed error
 	if vErr.MissingRoot || vErr.Unreachable != nil || vErr.Cycles != nil {
 		return vErr
