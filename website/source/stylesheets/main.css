@@ -387,8 +387,6 @@ body.page-home #footer {
   color: black;
 }
 #footer .footer-links {
-  float: none;
-  display: inline-block;
   margin-bottom: 20px;
 }
 #footer .footer-links .li-under a:hover::after,
@@ -447,7 +445,7 @@ body.page-home #footer {
 }
 #footer .footer-hashi {
   float: right;
-  padding-top: 8px;
+  padding-top: 5px;
   letter-spacing: 2px;
 }
 #footer .footer-hashi a {
@@ -503,20 +501,42 @@ body.page-home #footer {
     background-size: 37px 40px;
   }
 }
-@media (max-width: 768px) {
+@media (max-width: 992px) {
+  #footer .footer-hashi {
+    padding-top: 14px;
+  }
   #footer .footer-hashi span {
-    margin-right: 0;
+    margin-right: 6px;
   }
-  #footer .footer-hashi .hashi-logo {
-    display: block;
-    margin-top: 15px;
-    margin-bottom: 20px;
+  #footer .footer-hashi .hashi-logo i {
+    width: 20px;
+    height: 22px;
+    background-size: 20px 22px;
   }
-  #footer .buttons.navbar-nav {
-    margin-left: 0;
+}
+@media (max-width: 768px) {
+  #footer {
+    padding: 100px 0 40px;
+    text-align: center;
   }
-  #footer .buttons.navbar-nav li.first {
-    margin-right: 0 !important;
+  #footer .footer-links {
+    float: none;
+    display: inline-block;
+  }
+  #footer .footer-hashi {
+    float: none;
+    display: inline-block;
+  }
+  #footer .footer-hashi .pull-right {
+    float: none !important;
+  }
+}
+@media (max-width: 320px) {
+  #footer {
+    text-align: center;
+  }
+  #footer .footer-links .li-under {
+    float: none !important;
   }
 }
 #jumbotron-mask {
