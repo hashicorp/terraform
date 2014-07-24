@@ -121,7 +121,9 @@ func (c *Context) Apply() (*State, error) {
 	c.state = c.state.deepcopy()
 
 	// Walk
+	log.Printf("[INFO] Apply walk starting")
 	err = g.Walk(c.applyWalkFn())
+	log.Printf("[INFO] Apply walk complete")
 
 	// Prune the state so that we have as clean a state as possible
 	c.state.prune()

@@ -3,6 +3,7 @@ package terraform
 import (
 	"errors"
 	"fmt"
+	"log"
 	"sort"
 	"strings"
 
@@ -100,6 +101,8 @@ func Graph(opts *GraphOpts) (*depgraph.Graph, error) {
 		return nil, errors.New("Config is required for Graph")
 	}
 
+	log.Printf("[DEBUG] Creating graph...")
+
 	g := new(depgraph.Graph)
 
 	// First, build the initial resource graph. This only has the resources
@@ -159,6 +162,10 @@ func Graph(opts *GraphOpts) (*depgraph.Graph, error) {
 	if err := g.Validate(); err != nil {
 		return nil, err
 	}
+
+	log.Printf(
+		"[DEBUG] Graph created and valid. %d nouns.",
+		len(g.Nouns))
 
 	return g, nil
 }
