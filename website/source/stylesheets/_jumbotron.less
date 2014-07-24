@@ -16,12 +16,30 @@
   padding-bottom: 0;
   color: @jumbotron-color;
 
+  .container {
+    position:relative;
+    height:700px;
+  }
+
   .terraform-canvas {
     position:absolute;
     top:0;
     left:0;
     width:100%;
     height:100%;
+    opacity:0;
+
+    -webkit-transition:opacity 2s ease-out;
+       -moz-transition:opacity 2s ease-out;
+        -ms-transition:opacity 2s ease-out;
+         -o-transition:opacity 2s ease-out;
+            transition:opacity 2s ease-out;
+
+    -webkit-transform:translate3d(0,0,0);
+       -moz-transform:translate3d(0,0,0);
+        -ms-transform:translate3d(0,0,0);
+         -o-transform:translate3d(0,0,0);
+            transform:translate3d(0,0,0);
   }
 
   .logo-container {
@@ -33,6 +51,41 @@
     bottom:0;
 
     -webkit-transform:translate3d(0,0,0);
+  }
+
+  #image {
+    position:absolute;
+    width:100%;
+    height:100%;
+    top:0;
+    left:0;
+
+    background-image:url(../images/bg-galaxy.jpg);
+    background-size:cover;
+    background-position:50% 50%;
+    opacity:0;
+
+    -webkit-transition:
+      opacity 6s ease-out,
+      -webkit-transform 20s ease-out;
+    -moz-transition:
+      opacity 6s ease-out,
+      -moz-transform 20s ease-out;
+    -ms-transition:
+      opacity 6s ease-out,
+      -ms-transform 20s ease-out;
+    -o-transition:
+      opacity 6s ease-out,
+      -o-transform 20s ease-out;
+    transition:
+      opacity 6s ease-out,
+      transform 20s ease-out;
+
+    -webkit-transform:translate3d(0,0,0) scale(0.7);
+       -moz-transform:translate3d(0,0,0) scale(0.7);
+        -ms-transform:translate3d(0,0,0) scale(0.7);
+         -o-transform:translate3d(0,0,0) scale(0.7);
+            transform:translate3d(0,0,0) scale(0.7);
   }
 }
 
@@ -53,7 +106,7 @@
 }
 
 .state-one.state-two.state-three.state-four .animated-logo {
-  -webkit-transform:translate3d(0,0,0) rotateY(-45deg) skewY(22deg) scaleX(1.26);
+  -webkit-transform:translate3d(0,10px,0) rotateY(-45deg) skewY(22deg) scaleX(1.26);
 }
 
 .white-block {

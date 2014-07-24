@@ -61,11 +61,11 @@ Engine = Base.extend({
 		this.render();
 
 		this.canvas.style.opacity = 1;
-		/*
+
 		image = document.getElementById(bg);
 		image.style.webkitTransform = 'translate3d(0,0,0) scale(1)';
 		image.style.opacity = 1;
-		*/
+
 
 		el = document.body;
 
@@ -205,7 +205,7 @@ Engine = Base.extend({
 			}
 		}
 
-		this.generateParticles(600 * this.tick >> 0);
+		this.generateParticles(200 * this.tick >> 0);
 	}
 
 });
