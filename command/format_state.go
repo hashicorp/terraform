@@ -41,7 +41,7 @@ func FormatState(s *terraform.State, c *colorstring.Colorize) string {
 
 		taintStr := ""
 		if s.Tainted != nil {
-			if _, ok := s.Tainted[id]; ok {
+			if _, ok := s.Tainted[k]; ok {
 				taintStr = " (tainted)"
 			}
 		}
