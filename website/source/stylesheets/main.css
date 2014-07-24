@@ -161,8 +161,9 @@ body.page-sub #header .main-links.navbar-nav li > a {
 #header .nav > li > a:hover,
 #header .nav > li > a:focus {
   background-color: transparent;
-  /*color: @p;
-        .transition( color 0.3s ease );*/
+  color: #ae79fa;
+  -webkit-transition: color 0.3s ease;
+  transition: color 0.3s ease;
 }
 #header .main-links.navbar-nav {
   margin-top: 28px;
@@ -621,8 +622,15 @@ body.page-home #footer {
 }
 .terra-btn {
   background-color: rgba(130, 47, 247, 0.36);
+  -webkit-transition: background-color 0.3s ease;
+  transition: background-color 0.3s ease;
 }
-.li-under a::after {
+.terra-btn:hover {
+  background-color: rgba(130, 47, 247, 0.8);
+  -webkit-transition: background-color 0.3s ease;
+  transition: background-color 0.3s ease;
+}
+/*.li-under a::after {
   position: absolute;
   top: 68%;
   left: 50%;
@@ -640,13 +648,14 @@ body.page-home #footer {
   -moz-transform: translateY(-10px);
   transform: translateY(-10px);
 }
+
 .li-under a:hover::after,
 .li-under a:focus::after {
-  opacity: 1;
-  -webkit-transform: skewY(15deg) translateY(10px);
-  -moz-transform: skewY(15deg) translateY(10px);
-  transform: skewY(15deg) translateY(10px);
-}
+    opacity: 1;
+    -webkit-transform: skewY(15deg) translateY(10px);
+    -moz-transform: skewY(15deg) translateY(10px);
+    transform: skewY(15deg) translateY(10px);
+}*/
 /*body.page-home{
 	background-color: #f8f8f8;
 }*/

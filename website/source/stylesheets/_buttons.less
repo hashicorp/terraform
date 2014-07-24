@@ -28,10 +28,16 @@
 
 .terra-btn{
   background-color: rgba(130, 47, 247, 0.36);
+  .transition( background-color 0.3s ease );
+
+  &:hover{
+    background-color: rgba(130, 47, 247, 0.8);
+    .transition( background-color 0.3s ease );
+  }
 }
 
-//dot animation on header main nav link hover
-.li-under a::after {
+//animation on header main nav link hover
+/*.li-under a::after {
   position: absolute;
   top: 68%;
   left: 50%;
@@ -56,4 +62,4 @@
     -webkit-transform: skewY(15deg) translateY(10px);
     -moz-transform: skewY(15deg) translateY(10px);
     transform: skewY(15deg) translateY(10px);
-}
+}*/
