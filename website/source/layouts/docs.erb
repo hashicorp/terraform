@@ -8,87 +8,98 @@
 
 				<li<%= sidebar_current("docs-config") %>>
 				<a href="/docs/configuration/index.html">Configuration</a>
-                <ul class="nav">
-                </ul>
-                </li>
+				<ul class="nav">
+					<li<%= sidebar_current("docs-config-load") %>>
+					<a href="/docs/configuration/load.html">Load Order and Semantics</a>
+					</li>
+
+					<li<%= sidebar_current("docs-config-syntax") %>>
+					<a href="/docs/configuration/syntax.html">Configuration Syntax</a>
+					</li>
+
+					<li<%= sidebar_current("docs-config-override") %>>
+					<a href="/docs/configuration/override.html">Overrides</a>
+					</li>
+				</ul>
+				</li>
 
 				<li<%= sidebar_current("docs-commands") %>>
 				<a href="/docs/commands/index.html">Commands (CLI)</a>
 				<ul class="nav">
 					<li<%= sidebar_current("docs-commands-apply") %>>
 					<a href="/docs/commands/apply.html">apply</a>
-                    </li>
+					</li>
 
 					<li<%= sidebar_current("docs-commands-graph") %>>
 					<a href="/docs/commands/graph.html">graph</a>
-                    </li>
+					</li>
 
 					<li<%= sidebar_current("docs-commands-output") %>>
 					<a href="/docs/commands/output.html">output</a>
-                    </li>
+					</li>
 
 					<li<%= sidebar_current("docs-commands-plan") %>>
 					<a href="/docs/commands/plan.html">plan</a>
-                    </li>
+					</li>
 
 					<li<%= sidebar_current("docs-commands-refresh") %>>
 					<a href="/docs/commands/refresh.html">refresh</a>
 					</li>
 
-                    <li<%= sidebar_current("docs-commands-show") %>>
+					<li<%= sidebar_current("docs-commands-show") %>>
 					<a href="/docs/commands/show.html">show</a>
-                    </li>
+					</li>
 				</ul>
 				</li>
 
 				<li<%= sidebar_current("docs-providers") %>>
 				<a href="/docs/providers/index.html">Providers</a>
-                <ul class="nav">
+				<ul class="nav">
 					<li<%= sidebar_current("docs-providers-aws") %>>
 					<a href="/docs/providers/aws/index.html">AWS</a>
-                    </li>
+					</li>
 
 					<li<%= sidebar_current("docs-providers-do") %>>
 					<a href="/docs/providers/do/index.html">DigitalOcean</a>
-                    </li>
+					</li>
 
 					<li<%= sidebar_current("docs-providers-heroku") %>>
 					<a href="/docs/providers/heroku/index.html">Heroku</a>
-                    </li>
-                </ul>
-                </li>
+					</li>
+				</ul>
+				</li>
 
 				<li<%= sidebar_current("docs-provisioners") %>>
 				<a href="/docs/provisioners/index.html">Provisioners</a>
-                <ul class="nav">
+				<ul class="nav">
 					<li<%= sidebar_current("docs-provisioners-connection") %>>
 					<a href="/docs/provisioners/connection.html">connection</a>
-                    </li>
+					</li>
 
 					<li<%= sidebar_current("docs-provisioners-file") %>>
 					<a href="/docs/provisioners/file.html">file</a>
-                    </li>
+					</li>
 
 					<li<%= sidebar_current("docs-provisioners-local") %>>
 					<a href="/docs/provisioners/local-exec.html">local-exec</a>
-                    </li>
+					</li>
 
 					<li<%= sidebar_current("docs-provisioners-remote") %>>
 					<a href="/docs/provisioners/remote-exec.html">remote-exec</a>
-                    </li>
-                </ul>
-                </li>
+					</li>
+				</ul>
+				</li>
 
 				<li<%= sidebar_current("docs-guides") %>>
 				<a href="/docs/guides/index.html">Guides</a>
-                <ul class="nav">
+				<ul class="nav">
 					<li<%= sidebar_current("docs-guides-servers") %>>
 					<a href="/docs/guides/servers.html">Adding/Removing Servers</a>
-                    </li>
+					</li>
 
 					<li<%= sidebar_current("docs-guides-bootstrapping") %>>
 					<a href="/docs/guides/bootstrapping.html">Bootstrapping</a>
-                    </li>
+					</li>
 
 					<li<%= sidebar_current("docs-guides-dns-cache") %>>
 					<a href="/docs/guides/dns-cache.html">DNS Caching</a>
@@ -100,43 +111,43 @@
 
 					<li<%= sidebar_current("docs-guides-external") %>>
 					<a href="/docs/guides/external.html">External Services</a>
-                    </li>
+					</li>
 
-                    <li<%= sidebar_current("docs-guides-leader") %>>
+					<li<%= sidebar_current("docs-guides-leader") %>>
 					<a href="/docs/guides/leader-election.html">Leader Election</a>
-                    </li>
+					</li>
 
-                    <li<%= sidebar_current("docs-guides-datacenters") %>>
+					<li<%= sidebar_current("docs-guides-datacenters") %>>
 					<a href="/docs/guides/datacenters.html">Multiple Datacenters</a>
-                    </li>
+					</li>
 
-                    <li<%= sidebar_current("docs-guides-outage") %>>
+					<li<%= sidebar_current("docs-guides-outage") %>>
 					<a href="/docs/guides/outage.html">Outage Recovery</a>
-                    </li>
-                </ul>
+					</li>
+				</ul>
 
 				<li<%= sidebar_current("docs-internals") %>>
 				<a href="/docs/internals/index.html">Internals</a>
-                <ul class="nav">
+				<ul class="nav">
 					<li<%= sidebar_current("docs-internals-architecture") %>>
 					<a href="/docs/internals/architecture.html">Architecture</a>
-                    </li>
+					</li>
 
 					<li<%= sidebar_current("docs-internals-consensus") %>>
 					<a href="/docs/internals/consensus.html">Consensus Protocol</a>
-                    </li>
+					</li>
 
 					<li<%= sidebar_current("docs-internals-gossip") %>>
 					<a href="/docs/internals/gossip.html">Gossip Protocol</a>
-                    </li>
+					</li>
 
 					<li<%= sidebar_current("docs-internals-sessions") %>>
 					<a href="/docs/internals/sessions.html">Sessions</a>
-                    </li>
+					</li>
 
 					<li<%= sidebar_current("docs-internals-security") %>>
 					<a href="/docs/internals/security.html">Security Model</a>
-                    </li>
+					</li>
 
 					<li<%= sidebar_current("docs-internals-jepsen") %>>
 					<a href="/docs/internals/jepsen.html">Jepsen Testing</a>
@@ -147,5 +158,5 @@
 		</div>
 	<% end %>
 
-	<%= yield %>
+		<%= yield %>
 	<% end %>
