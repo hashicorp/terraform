@@ -503,13 +503,17 @@ body.page-home #footer {
   }
 }
 @media (max-width: 992px) {
+  .page-sub #footer .footer-hashi,
   #footer .footer-hashi {
     padding-top: 14px;
   }
+  .page-sub #footer .footer-hashi span,
   #footer .footer-hashi span {
     margin-right: 6px;
   }
+  .page-sub #footer .footer-hashi .hashi-logo i,
   #footer .footer-hashi .hashi-logo i {
+    margin-top: -6px;
     width: 20px;
     height: 22px;
     background-size: 20px 22px;
