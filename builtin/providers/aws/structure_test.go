@@ -33,7 +33,11 @@ func testConf() map[string]string {
 
 func Test_expandIPPerms(t *testing.T) {
 	expanded := flatmap.Expand(testConf(), "ingress").([]interface{})
-	perms := expandIPPerms(expanded)
+	perms, err := expandIPPerms(expanded)
+
+	if err != nil {
+		t.Fatalf("bad: %#v", err)
+	}
 	expected := ec2.IPPerm{
 		Protocol:  "icmp",
 		FromPort:  1,
@@ -118,7 +122,11 @@ func Test_flattenIPPerms(t *testing.T) {
 
 func Test_expandListeners(t *testing.T) {
 	expanded := flatmap.Expand(testConf(), "listener").([]interface{})
-	listeners := expandListeners(expanded)
+	listeners, err := expandListeners(expanded)
+	if err != nil {
+		t.Fatalf("bad: %#v", err)
+	}
+
 	expected := elb.Listener{
 		InstancePort:     8000,
 		LoadBalancerPort: 80,

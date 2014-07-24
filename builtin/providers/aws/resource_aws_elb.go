@@ -29,7 +29,10 @@ func resource_aws_elb_create(
 
 	// Expand the "listener" array to goamz compat []elb.Listener
 	v := flatmap.Expand(rs.Attributes, "listener").([]interface{})
-	listeners := expandListeners(v)
+	listeners, err := expandListeners(v)
+	if err != nil {
+		return nil, err
+	}
 
 	v = flatmap.Expand(rs.Attributes, "availability_zones").([]interface{})
 	zones := expandStringList(v)
@@ -43,7 +46,7 @@ func resource_aws_elb_create(
 
 	log.Printf("[DEBUG] ELB create configuration: %#v", elbOpts)
 
-	_, err := elbconn.CreateLoadBalancer(elbOpts)
+	_, err = elbconn.CreateLoadBalancer(elbOpts)
 	if err != nil {
 		return nil, fmt.Errorf("Error creating ELB: %s", err)
 	}
