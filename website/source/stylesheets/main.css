@@ -84,6 +84,9 @@ body.page-sub #header {
   height: 90px;
   background-color: #822ff7;
 }
+body.page-sub #header .navbar-collapse {
+  background-color: rgba(255, 255, 255, 0.98);
+}
 body.page-sub #header .nav-logo {
   height: 90px;
 }
@@ -104,10 +107,6 @@ body.page-sub #header .main-links.navbar-nav li > a {
   text-rendering: optimizeLegibility;
   margin-bottom: 0;
 }
-#header .navbar-collapse {
-  box-shadow: none;
-  margin-top: 10px;
-}
 #header.navbar-static-top {
   z-index: 1000;
 }
@@ -118,9 +117,11 @@ body.page-sub #header .main-links.navbar-nav li > a {
   margin-top: 26px;
   margin-bottom: 14px;
   border: 2px solid #ffffff;
+  border-radius: 0;
 }
 #header .navbar-toggle .icon-bar {
   border: 1px solid #ffffff;
+  border-radius: 0;
 }
 #header .navbar-brand.logo {
   margin-top: 15px;
@@ -266,6 +267,14 @@ body.page-sub #header .main-links.navbar-nav li > a {
   body.page-sub #header .nav-white {
     background-color: transparent;
   }
+  #header .buttons.navbar-nav {
+    float: none !important;
+    margin: 0;
+    padding-bottom: 0 !important;
+  }
+  #header .buttons.navbar-nav li.first {
+    margin-right: 0;
+  }
   #header .buttons.navbar-nav,
   #header .main-links.navbar-nav {
     display: block;
@@ -282,6 +291,9 @@ body.page-sub #header .main-links.navbar-nav li > a {
   #header .buttons.navbar-nav li + li::before,
   #header .main-links.navbar-nav li + li::before {
     display: none;
+  }
+  #header .main-links.navbar-nav {
+    float: left !important;
   }
   #header .main-links.navbar-nav li > a {
     padding: 0;

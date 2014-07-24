@@ -12,6 +12,10 @@ body.page-sub{
         height: 90px;
         background-color: @purple;
 
+        .navbar-collapse{
+            background-color: rgba(255, 255, 255, 0.98);
+        }        
+
         .nav-logo{
             height: 90px;
         }
@@ -37,11 +41,6 @@ body.page-sub{
     text-rendering: optimizeLegibility;
     margin-bottom: 0;
 
-    .navbar-collapse{
-        box-shadow: none;
-        margin-top: 10px;
-    }
-
     &.navbar-static-top{
         z-index: 1000;
     }
@@ -54,8 +53,10 @@ body.page-sub{
         margin-top: 26px;
         margin-bottom: 14px;
         border: 2px solid @white;
+        border-radius: 0;
         .icon-bar{
             border: 1px solid @white;
+            border-radius: 0;
         }
     }
 
@@ -223,6 +224,20 @@ body.page-sub{
             }
         }
     }
+    
+    #header{
+        .buttons.navbar-nav{
+            float: none !important;
+            margin: 0;
+            padding-bottom: 0 !important;
+
+            li{
+                &.first{
+                    margin-right: 0;
+                }
+            }
+        }
+    }
 
     //#footer,
     #header{
@@ -246,6 +261,7 @@ body.page-sub{
     //#footer,
     #header{
         .main-links.navbar-nav{
+            float: left !important;
             li > a {
                 padding: 0;
                 padding-left: 0;
