@@ -194,6 +194,19 @@ a lot more metadata about it. This metadata can actually be referenced
 for other resources or outputs, which will be covered later in
 the getting started guide.
 
+## Provisioning
+
+The EC2 instance we launched at this point is based on the AMI
+given, but has no additional software installed. If you're running
+an image-based infrastructure (perhaps creating images with
+[Packer](http://www.packer.io)), then this is all you need.
+
+However, many infrastructures still require some sort of initialization
+or software provisioning step. Terraform supports
+provisioners,
+which we'll cover a little bit later in the getting started guide,
+in order to do this.
+
 ## Next
 
 Congratulations! You've built your first infrastructure with Terraform.
