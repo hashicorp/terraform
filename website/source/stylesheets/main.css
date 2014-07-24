@@ -343,16 +343,16 @@ body.page-sub #header .main-links.navbar-nav li > a {
   #header .navbar-brand.logo {
     padding: 0 0 0 54px !important;
     font-size: 20px !important;
-    line-height: 40px !important;
-    margin-top: 26px !important ;
+    line-height: 42px !important;
+    margin-top: 23px !important ;
     background-image: url("../images/header-logo.png");
-    background-size: 44px 40px;
+    background-size: 39px 44px;
   }
 }
 @media (max-width: 320px) and only screen and (-webkit-min-device-pixel-ratio: 2), (max-width: 320px) and only screen and (min--moz-device-pixel-ratio: 2), (max-width: 320px) and only screen and (-o-min-device-pixel-ratio: 2/1), (max-width: 320px) and only screen and (min-device-pixel-ratio: 2), (max-width: 320px) and only screen and (min-resolution: 192dpi), (max-width: 320px) and only screen and (min-resolution: 2dppx) {
   #header .navbar-brand.logo {
     background-image: url("../images/header-logo@2x.png");
-    background-size: 44px 40px;
+    background-size: 39px 44px;
   }
 }
 #footer-wrap {
