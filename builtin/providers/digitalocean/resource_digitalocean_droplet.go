@@ -195,7 +195,7 @@ func resource_digitalocean_droplet_destroy(
 	err := client.DestroyDroplet(s.ID)
 
 	// Handle remotely destroyed droplets
-	if strings.Contains(err.Error(), "404 Not Found") {
+	if err != nil && strings.Contains(err.Error(), "404 Not Found") {
 		return nil
 	}
 
