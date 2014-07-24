@@ -1052,6 +1052,48 @@ body.page-home #footer {
     text-align: center !important;
     padding: 0 !important;
   }
+  #feature-iterate {
+    margin-top: -80px;
+    padding: 280px 0 360px;
+    color: white;
+    background: #ffffff url(../images/feature-iterate-bg.png) center top no-repeat;
+    border-top: 2px solid white;
+    border-bottom: 2px solid #822ff7;
+    background-size: cover;
+    -webkit-transform: skewY(3deg);
+    -moz-transform: skewY(3deg);
+    -ms-transform: skewY(3deg);
+    -o-transform: skewY(3deg);
+    transform: skewY(3deg);
+  }
+  #feature-iterate > .container {
+    -webkit-transform: skewY(-3deg);
+    -moz-transform: skewY(-3deg);
+    -ms-transform: skewY(-3deg);
+    -o-transform: skewY(-3deg);
+    transform: skewY(-3deg);
+  }
+  #feature-iterate p {
+    text-align: right;
+    padding-left: 120px;
+    font-weight: 100;
+  }
+  #feature-iterate .it-icon {
+    margin-left: 45px;
+    margin-bottom: 40px;
+  }
+  #feature-iterate .t-block {
+    background-color: #ffffff;
+    width: 40px;
+    height: 40px;
+    -webkit-transform: skewY(26deg);
+    -moz-transform: skewY(26deg);
+    -ms-transform: skewY(26deg);
+    -o-transform: skewY(26deg);
+    transform: skewY(26deg);
+    float: left;
+    margin-right: 15px;
+  }
 }
 .people {
   margin-top: 30px;
