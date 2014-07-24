@@ -44,7 +44,7 @@ func resource_dnsimple_record_create(
 	rs.ID = recId
 	log.Printf("[INFO] record ID: %s", rs.ID)
 
-	record, err := resource_dnsimple_record_retrieve(s.Attributes["domain"], s.ID, client)
+	record, err := resource_dnsimple_record_retrieve(rs.Attributes["domain"], rs.ID, client)
 	if err != nil {
 		return nil, fmt.Errorf("Couldn't find record: %s", err)
 	}
@@ -61,11 +61,6 @@ func resource_dnsimple_record_update(
 	rs := s.MergeDiff(d)
 
 	updateRecord := dnsimple.ChangeRecord{}
-
-	record, err := resource_dnsimple_record_retrieve(s.Attributes["domain"], s.ID, client)
-	if err != nil {
-		return nil, fmt.Errorf("Couldn't find record: %s", err)
-	}
 
 	if attr, ok := d.Attributes["name"]; ok {
 		updateRecord.Name = attr.New
@@ -85,14 +80,14 @@ func resource_dnsimple_record_update(
 
 	log.Printf("[DEBUG] record update configuration: %#v", updateRecord)
 
-	_, err = client.UpdateRecord(rs.Attributes["domain"], rs.ID, &updateRecord)
+	_, err := client.UpdateRecord(rs.Attributes["domain"], rs.ID, &updateRecord)
 	if err != nil {
-		return nil, fmt.Errorf("Failed to update record: %s", err)
+		return rs, fmt.Errorf("Failed to update record: %s", err)
 	}
 
-	record, err = resource_dnsimple_record_retrieve(s.Attributes["domain"], s.ID, client)
+	record, err := resource_dnsimple_record_retrieve(rs.Attributes["domain"], rs.ID, client)
 	if err != nil {
-		return nil, fmt.Errorf("Couldn't find record: %s", err)
+		return rs, fmt.Errorf("Couldn't find record: %s", err)
 	}
 
 	return resource_dnsimple_record_update_state(rs, record)
@@ -104,9 +99,9 @@ func resource_dnsimple_record_destroy(
 	p := meta.(*ResourceProvider)
 	client := p.client
 
-	log.Printf("[INFO] Deleting record: %s", s.ID)
+	log.Printf("[INFO] Deleting record: %s, %s", s.Attributes["domain"], s.ID)
 
-	err := client.DestroyRecord(s.ID)
+	err := client.DestroyRecord(s.Attributes["domain"], s.ID)
 
 	if err != nil {
 		return fmt.Errorf("Error deleting record: %s", err)
@@ -121,7 +116,7 @@ func resource_dnsimple_record_refresh(
 	p := meta.(*ResourceProvider)
 	client := p.client
 
-	rec, err := resource_dnsimple_record_retrieve(s.Attributes["app"], s.ID, client)
+	rec, err := resource_dnsimple_record_retrieve(s.Attributes["domain"], s.ID, client)
 	if err != nil {
 		return nil, err
 	}
@@ -146,6 +141,7 @@ func resource_dnsimple_record_diff(
 		ComputedAttrs: []string{
 			"priority",
 			"domain_id",
+			"ttl",
 		},
 	}
 
@@ -169,10 +165,10 @@ func resource_dnsimple_record_update_state(
 func resource_dnsimple_record_retrieve(domain string, id string, client *dnsimple.Client) (*dnsimple.Record, error) {
 	record, err := client.RetrieveRecord(domain, id)
 	if err != nil {
-		return nil, fmt.Errorf("Error retrieving record: %s", err)
+		return nil, err
 	}
 
-	return &record, nil
+	return record, nil
 }
 
 func resource_dnsimple_record_validation() *config.Validator {

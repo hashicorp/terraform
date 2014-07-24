@@ -139,7 +139,7 @@ func testAccCheckDNSimpleRecordExists(n string, record *dnsimple.Record) resourc
 			return fmt.Errorf("Record not found")
 		}
 
-		*record = foundRecord
+		*record = *foundRecord
 
 		return nil
 	}
