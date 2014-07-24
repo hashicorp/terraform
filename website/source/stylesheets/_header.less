@@ -30,7 +30,21 @@ body.page-sub{
             li > a {
                 color: black;
             }
-        }         
+        }
+        
+        .buttons.nav > li > a, .buttons.nav > li > a {
+            .transition( background-color 0.3s ease );
+        }
+
+        .buttons.nav > li > a:hover, .buttons.nav > li > a:focus {
+            background-color: black;
+            .transition( background-color 0.3s ease );
+        } 
+
+        .main-links.nav > li > a:hover, .main-links.nav > li > a:focus {
+            color: @purple;
+            .transition( color 0.3s ease );
+        }              
     }
 }
 

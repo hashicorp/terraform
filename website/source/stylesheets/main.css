@@ -100,6 +100,23 @@ body.page-sub #header .main-links.navbar-nav {
 body.page-sub #header .main-links.navbar-nav li > a {
   color: black;
 }
+body.page-sub #header .buttons.nav > li > a,
+body.page-sub #header .buttons.nav > li > a {
+  -webkit-transition: background-color 0.3s ease;
+  transition: background-color 0.3s ease;
+}
+body.page-sub #header .buttons.nav > li > a:hover,
+body.page-sub #header .buttons.nav > li > a:focus {
+  background-color: black;
+  -webkit-transition: background-color 0.3s ease;
+  transition: background-color 0.3s ease;
+}
+body.page-sub #header .main-links.nav > li > a:hover,
+body.page-sub #header .main-links.nav > li > a:focus {
+  color: #822ff7;
+  -webkit-transition: color 0.3s ease;
+  transition: color 0.3s ease;
+}
 #header {
   -webkit-font-smoothing: antialiased;
   position: relative;
