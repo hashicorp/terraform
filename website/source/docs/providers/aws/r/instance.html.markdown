@@ -27,7 +27,9 @@ The following arguments are supported:
 * `availability_zone` - (Optional) The AZ to start the instance in.
 * `instance_type` - (Required) The type of instance to start
 * `key_name` - (Optional) The key name to use for the instance.
-* `security_groups` - (Optional) A list of security group IDs to associate with.
+* `security_groups` - (Optional) A list of security group IDs or names to associate with.
+   If you are within a VPC, you'll need to use the security group ID. Otherwise,
+   for EC2, use the security group name.
 * `subnet_id` - (Optional) The VPC Subnet ID to launch in.
 * `source_dest_check` - (Optional) Controls if traffic is routed to the instance when
   the destination address does not match the instance. Used for NAT or VPNs. Defaults false.
