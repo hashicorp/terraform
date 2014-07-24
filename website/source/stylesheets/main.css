@@ -1102,6 +1102,9 @@ body.page-home #footer {
   .feature p {
     text-align: center;
   }
+  #demos .explantion {
+    margin: 40px 0 60px 0;
+  }
   #demos .terminals .terminal-item > header .left span.icn {
     padding-bottom: 15px;
   }
@@ -1138,11 +1141,6 @@ body.page-home #footer {
   }
 }
 @media (max-width: 320px) {
-  #feature-clone .clone-icon {
-    width: 320px;
-    margin: 40px auto 0;
-    padding-left: 0 !important;
-  }
   #feature-iterate {
     margin-top: -80px;
     padding: 280px 0 360px;
@@ -1170,8 +1168,8 @@ body.page-home #footer {
     font-weight: 100;
   }
   #feature-iterate .it-icon {
-    width: 320px;
-    margin: 0 auto 40px;
+    width: 245px;
+    margin: 0 auto 40px 45px;
     padding-left: 0 !important;
   }
   #feature-iterate .t-block {
@@ -1185,6 +1183,38 @@ body.page-home #footer {
     transform: skewY(26deg);
     float: left;
     margin-right: 15px;
+  }
+  #feature-clone .clone-icon {
+    width: 290px;
+    margin: 40px auto 0;
+    padding-left: 45px !important;
+  }
+  #feature-clone .c-group.cg2 {
+    opacity: .7;
+  }
+  #feature-clone .c-group.cg3 {
+    opacity: .5;
+  }
+  #feature-clone .c-group .c-col.c1 {
+    padding-top: 8px;
+  }
+  #feature-clone .c-group .c-col.c3 {
+    padding-top: 28px;
+  }
+  #feature-clone .c-group .c-col .c-block {
+    background-color: white;
+    width: 15px;
+    height: 15px;
+    -webkit-transform: skewY(30deg);
+    -moz-transform: skewY(30deg);
+    -ms-transform: skewY(30deg);
+    -o-transform: skewY(30deg);
+    transform: skewY(30deg);
+    margin: 3px 3px 0 0;
+  }
+  #cta a {
+    font-size: 14px;
+    font-weight: 400;
   }
 }
 .people {

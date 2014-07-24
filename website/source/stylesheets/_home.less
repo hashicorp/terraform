@@ -539,6 +539,10 @@
 	}
 
 	#demos{
+		.explantion {
+			margin: 40px 0 60px 0;
+		}
+
 		.terminals{
 			.terminal-item{
 				>header{
@@ -600,11 +604,6 @@
 @media (max-width: 320px) {
 
 	#feature-clone{
-		.clone-icon{
-			width: 320px;
-			margin: 40px auto 0;
-			padding-left: 0 !important;
-		}
 	}
 
 	#feature-iterate{
@@ -628,8 +627,8 @@
 		}
 
 		.it-icon{
-			width: 320px;
-			margin: 0 auto 40px;
+			width: 245px;
+			margin: 0 auto 40px 45px;
 			padding-left: 0 !important;
 		}
 
@@ -643,10 +642,46 @@
 		}
 	}
 
-	#demos{
+	#feature-clone{
+		.clone-icon{
+			width: 290px;
+			margin: 40px auto 0;
+			padding-left: 45px !important;
+		}		
+
+		.c-group{
+			&.cg2{
+				opacity: .7;
+			}
+
+			&.cg3{
+				opacity: .5;
+			}
+
+			.c-col{
+			
+				&.c1{
+					padding-top: 8px;
+				}
+
+				&.c3{
+					padding-top: 28px;
+				}		
+				
+				.c-block{
+					background-color: white;
+					width: 15px;
+					height: 15px;
+					.skewY(30deg);
+					margin: 3px 3px 0 0;
+				}
+			}
+		}
 	}
 
-	#cta{
+	#cta a {
+		font-size: 14px;
+		font-weight: 400;
 	}
 }
 
