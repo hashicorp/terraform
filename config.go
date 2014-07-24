@@ -108,31 +108,10 @@ func (c *Config) ProviderFactories() map[string]terraform.ResourceProviderFactor
 }
 
 func (c *Config) providerFactory(path string) terraform.ResourceProviderFactory {
-	originalPath := path
-
 	return func() (terraform.ResourceProvider, error) {
-		// First look for the provider on the PATH.
-		path, err := exec.LookPath(path)
-		if err != nil {
-			// If that doesn't work, look for it in the same directory
-			// as the executable that is running.
-			exePath, err := osext.Executable()
-			if err == nil {
-				path = filepath.Join(
-					filepath.Dir(exePath),
-					filepath.Base(originalPath))
-			}
-		}
-
-		// If we still don't have a path set, then set it to the
-		// original path and let any errors that happen bubble out.
-		if path == "" {
-			path = originalPath
-		}
-
 		// Build the plugin client configuration and init the plugin
 		var config plugin.ClientConfig
-		config.Cmd = exec.Command(path)
+		config.Cmd = pluginCmd(path)
 		config.Managed = true
 		client := plugin.NewClient(&config)
 
@@ -168,31 +147,10 @@ func (c *Config) ProvisionerFactories() map[string]terraform.ResourceProvisioner
 }
 
 func (c *Config) provisionerFactory(path string) terraform.ResourceProvisionerFactory {
-	originalPath := path
-
 	return func() (terraform.ResourceProvisioner, error) {
-		// First look for the provider on the PATH.
-		path, err := exec.LookPath(path)
-		if err != nil {
-			// If that doesn't work, look for it in the same directory
-			// as the executable that is running.
-			exePath, err := osext.Executable()
-			if err == nil {
-				path = filepath.Join(
-					filepath.Dir(exePath),
-					filepath.Base(originalPath))
-			}
-		}
-
-		// If we still don't have a path set, then set it to the
-		// original path and let any errors that happen bubble out.
-		if path == "" {
-			path = originalPath
-		}
-
 		// Build the plugin client configuration and init the plugin
 		var config plugin.ClientConfig
-		config.Cmd = exec.Command(path)
+		config.Cmd = pluginCmd(path)
 		config.Managed = true
 		client := plugin.NewClient(&config)
 
@@ -213,4 +171,30 @@ func (c *Config) provisionerFactory(path string) terraform.ResourceProvisionerFa
 			Name:   service,
 		}, nil
 	}
+}
+
+func pluginCmd(path string) *exec.Cmd {
+	originalPath := path
+
+	// First look for the provider on the PATH.
+	path, err := exec.LookPath(path)
+	if err != nil {
+		// If that doesn't work, look for it in the same directory
+		// as the executable that is running.
+		exePath, err := osext.Executable()
+		if err == nil {
+			path = filepath.Join(
+				filepath.Dir(exePath),
+				filepath.Base(originalPath))
+		}
+	}
+
+	// If we still don't have a path set, then set it to the
+	// original path and let any errors that happen bubble out.
+	if path == "" {
+		path = originalPath
+	}
+
+	// Build the command to execute the plugin
+	return exec.Command(path)
 }
