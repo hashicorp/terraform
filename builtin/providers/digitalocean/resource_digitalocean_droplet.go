@@ -81,6 +81,10 @@ func resource_digitalocean_droplet_create(
 
 	droplet := dropletRaw.(*digitalocean.Droplet)
 
+	// Initialize the connection info
+	rs.ConnInfo["type"] = "ssh"
+	rs.ConnInfo["host"] = droplet.IPV4Address()
+
 	return resource_digitalocean_droplet_update_state(rs, droplet)
 }
 
