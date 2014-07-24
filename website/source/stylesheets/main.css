@@ -1212,6 +1212,9 @@ body.page-home #footer {
     transform: skewY(30deg);
     margin: 3px 3px 0 0;
   }
+  #demos .explantion {
+    border-left: 8px solid transparent;
+  }
   #cta a {
     font-size: 14px;
     font-weight: 400;
