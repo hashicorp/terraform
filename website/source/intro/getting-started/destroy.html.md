@@ -18,35 +18,37 @@ destroying is a useful action.
 
 ## Plan
 
-While our infrastructure is simple, viewing the execution plan
-of a destroy can be useful to make sure that it is destroying
-only the resources you expect.
-
-To ask Terraform to create an execution plan to destroy all
-infrastructure, run the plan command with the `-destroy` flag.
+For Terraform to destroy our infrastructure, we need to ask
+Terraform to generate a destroy execution plan. This is a special
+kind of execution plan that only destroys all Terraform-managed
+infrastructure, and doesn't create or update any components.
 
 ```
-$ terraform plan -destroy
+$ terraform plan -destroy -out=terraform.tfplan
 ...
 
 - aws_instance.example
 ```
 
-The output says that "aws\_instance.example" will be deleted.
+The plan command is given two new flags.
 
-The `-destroy` flag lets you destroy infrastructure without
-modifying the configuration. You can also destroy infrastructure
-by simply commenting out or deleting the contents of your
-configuration, but usually you just want to destroy an instance
-of your infrastructure rather than permanently deleting your
-configuration as well. The `-destroy` flag is for this case.
+The first flag, `-destroy` tells Terraform to create an execution
+plan to destroy the infrastructure. You can see in the output that
+our one EC2 instance will be destroyed.
+
+The second flag, `-out` tells Terraform to save the execution plan
+to a file. We haven't seen this before, but it isn't limited to
+only destroys. Any plan can be saved to a file. Terraform can then
+apply a plan, ensuring that only exactly the plan you saw is executed.
+For destroys, you must save into a plan, since there is no way to
+tell `apply` to destroy otherwise.
 
 ## Apply
 
 Let's apply the destroy:
 
 ```
-$ terraform apply -destroy
+$ terraform apply terraform.tfplan
 aws_instance.example: Destroying...
 
 Apply complete! Resources: 0 added, 0 changed, 1 destroyed.
@@ -56,6 +58,9 @@ Apply complete! Resources: 0 added, 0 changed, 1 destroyed.
 
 Done. Terraform destroyed our one instance, and if you run a
 `terraform show`, you'll see that the state file is now empty.
+
+For this command, we gave an argument to `apply` for the first
+time. You can give apply a specific plan to execute.
 
 ## Next
 
