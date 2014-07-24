@@ -679,7 +679,7 @@ body.page-home #footer {
   transform: skewY(3deg);
 }
 #feature-auto h2 {
-  font-size: 41px;
+  font-size: 43px;
 }
 #feature-auto p {
   text-align: right;
@@ -690,8 +690,8 @@ body.page-home #footer {
   color: white;
   line-height: 88px;
   text-align: center;
-  margin: 60px 20px 0;
-  font-size: 35px;
+  margin: 81px 20px 0;
+  font-size: 30px;
   font-family: "Courier New", Monaco, Menlo, Consolas, monospace;
 }
 #feature-iterate {
@@ -983,6 +983,11 @@ body.page-home #footer {
 #demos .terminals .terminal-item .feature-bullets li {
   padding: 5px 0 5px 45px;
 }
+@media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
+  #demos .terminals .terminal-item .feature-bullets li {
+    background-size: 12px 12px;
+  }
+}
 @media (min-width: 1500px) {
   #feature-auto {
     padding: 270px 0 400px;
@@ -1000,15 +1005,17 @@ body.page-home #footer {
     padding-top: 240px;
   }
 }
-@media (max-width: 992px) {
-  #features .double-row {
-    padding: 0 0 0 0;
+@media (min-width: 1200px) {
+  #feature-auto h2 {
+    font-size: 41px;
   }
-  #features .double-row .row {
-    padding-bottom: 90px;
-  }
-  #features .icn {
-    height: 200px;
+  #feature-auto .terminal-text {
+    background: black;
+    color: white;
+    line-height: 88px;
+    text-align: center;
+    margin: 60px 20px 0;
+    font-size: 32px;
   }
 }
 @media (max-width: 480px) {
@@ -1016,16 +1023,31 @@ body.page-home #footer {
     text-align: center;
   }
 }
-@media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
-  #demos .terminals .terminal-item .feature-bullets li {
-    background-size: 12px 12px;
-  }
-}
 @media (max-width: 992px) {
   .feature h2,
   .feature p {
     text-align: center !important;
     padding-left: 0 !important;
+  }
+  #feature-clone .clone-icon {
+    width: 382px;
+    margin: 40px auto 0;
+    padding-left: 0 !important;
+  }
+  #feature-auto h2 {
+    font-size: 43px;
+  }
+  #feature-auto p {
+    text-align: right;
+    padding-left: 100px;
+  }
+  #feature-auto .terminal-text {
+    background: black;
+    color: white;
+    line-height: 88px;
+    text-align: center;
+    margin: 60px 20px 0;
+    font-size: 32px;
   }
   #demos .terminals .terminal-item > header .right {
     padding-left: 54px;
