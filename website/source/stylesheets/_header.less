@@ -52,6 +52,7 @@ body.page-sub{
     .navbar-toggle{
         margin-top: 26px;
         margin-bottom: 14px;
+        margin-right: 0;
         border: 2px solid @white;
         border-radius: 0;
         .icon-bar{
@@ -324,6 +325,18 @@ body.page-sub{
     }
 }
 
-@media (max-width: 480px) {
+@media (max-width: 320px) {
+
+    #header{
+        .navbar-brand {
+            &.logo{
+                padding:0 0 0 54px !important;
+                font-size: 20px !important;
+                line-height:40px !important;
+                margin-top: 26px !important ;
+                .img-retina("../images/header-logo.png", "../images/header-logo@2x.png", 44px, 40px);
+            }
+        }
+    }
 
 }

@@ -116,6 +116,7 @@ body.page-sub #header .main-links.navbar-nav li > a {
 #header .navbar-toggle {
   margin-top: 26px;
   margin-bottom: 14px;
+  margin-right: 0;
   border: 2px solid #ffffff;
   border-radius: 0;
 }
@@ -336,6 +337,22 @@ body.page-sub #header .main-links.navbar-nav li > a {
     padding: 0;
     padding-left: 0;
     line-height: 22px;
+  }
+}
+@media (max-width: 320px) {
+  #header .navbar-brand.logo {
+    padding: 0 0 0 54px !important;
+    font-size: 20px !important;
+    line-height: 40px !important;
+    margin-top: 26px !important ;
+    background-image: url("../images/header-logo.png");
+    background-size: 44px 40px;
+  }
+}
+@media (max-width: 320px) and only screen and (-webkit-min-device-pixel-ratio: 2), (max-width: 320px) and only screen and (min--moz-device-pixel-ratio: 2), (max-width: 320px) and only screen and (-o-min-device-pixel-ratio: 2/1), (max-width: 320px) and only screen and (min-device-pixel-ratio: 2), (max-width: 320px) and only screen and (min-resolution: 192dpi), (max-width: 320px) and only screen and (min-resolution: 2dppx) {
+  #header .navbar-brand.logo {
+    background-image: url("../images/header-logo@2x.png");
+    background-size: 44px 40px;
   }
 }
 #footer-wrap {
