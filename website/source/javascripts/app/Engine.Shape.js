@@ -40,6 +40,11 @@ Engine.Shape = function(x, y, width, height, points, polygons){
 
 Engine.Shape.prototype = {
 
+	selfDestruct: function(time){
+		this.destruct = time;
+		return this;
+	},
+
 	update: function(engine){
 		var p;
 
@@ -52,6 +57,8 @@ Engine.Shape.prototype = {
 			this.polygons[p].update(engine);
 			// this.polygons[p].draw(this.context, scale);
 		}
+
+		return this;
 	},
 
 	draw: function(ctx, scale){
@@ -63,6 +70,7 @@ Engine.Shape.prototype = {
 			this.polygons[p].draw(ctx, scale);
 		}
 		ctx.restore();
+		return this;
 	}
 
 };

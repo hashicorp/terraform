@@ -162,7 +162,7 @@ Engine.Particle.prototype = {
 	},
 
 	kill: function(engine){
-		engine._deferred.push(this);
+		engine._deferredParticles.push(this);
 		return this;
 	},
 

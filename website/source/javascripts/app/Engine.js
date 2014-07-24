@@ -1,6 +1,6 @@
 /* jshint unused: false */
 /* global console */
-(function(Base, Vector, Circle){
+(function(Base, Vector, Logo){
 
 var sqrt, pow, Engine;
 
@@ -23,15 +23,11 @@ Engine = Base.extend({
 	scale: window.devicePixelRatio || 1,
 	// scale:1,
 
+	shapes    : [],
 	particles : [],
-	_deferred : [],
 
-	// points   : [],
-	// polygons : [],
-	shapes: [],
-
-	speed: 1,
-	accel: 0.08,
+	_deferredParticles: [],
+	_deferredShapes: [],
 
 	constructor: function(canvas, bg){
 		var image, el;
@@ -96,8 +92,8 @@ Engine = Base.extend({
 			(this.height / 2 - 180),
 			360,
 			360,
-			Circle.Points,
-			Circle.Polygons
+			Logo.Points,
+			Logo.Polygons
 		);
 	},
 
@@ -123,7 +119,6 @@ Engine = Base.extend({
 		this.now = Date.now() / 1000;
 
 		tick = Math.min(this.now - this.last, 0.017);
-		this.tick = this.speed * tick;
 
 		this.renderStarfield(this.now);
 		this.tick = tick;
@@ -139,7 +134,7 @@ Engine = Base.extend({
 
 	renderTessellation: function(){
 		var scale = this.scale,
-			p;
+			p, index;
 
 		for (p = 0; p < this.shapes.length; p++)  {
 			this.shapes[p].update(this);
@@ -148,6 +143,14 @@ Engine = Base.extend({
 
 		this.logo.update(this);
 		this.logo.draw(this.context, scale);
+
+		// Remove destroyed shapes
+		for (p = 0; p < this._deferredShapes.length; p++) {
+			index = this.shapes.indexOf(this._deferredShapes.pop());
+			if (index >= 0) {
+				this.shapes.splice(index, 1);
+			}
+		}
 	},
 
 	generateParticles: function(num, fixed){
@@ -180,9 +183,9 @@ Engine = Base.extend({
 				.draw(this.context, scale);
 		}
 
-		// Remove destroyed entities
-		for (p = 0; p < this._deferred.length; p++) {
-			index = this.particles.indexOf(this._deferred.pop());
+		// Remove destroyed particles
+		for (p = 0; p < this._deferredParticles.length; p++) {
+			index = this.particles.indexOf(this._deferredParticles.pop());
 			if (index >= 0) {
 				this.particles.splice(index, 1);
 			}
@@ -215,4 +218,4 @@ Engine.clone = function(ref) {
 
 window.Engine = Engine;
 
-})(window.Base, window.Vector, window.Circle);
+})(window.Base, window.Vector, window.Logo);

@@ -1,5 +1,5 @@
 // jshint unused:false
-var Circle = {
+var Logo = {
 	"Points": [
 		{
 			"id": "point-0",
