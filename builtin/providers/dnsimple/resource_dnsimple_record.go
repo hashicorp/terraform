@@ -159,6 +159,12 @@ func resource_dnsimple_record_update_state(
 	s.Attributes["priority"] = rec.StringPrio()
 	s.Attributes["domain_id"] = rec.StringDomainId()
 
+	if rec.Name == "" {
+		s.Attributes["hostname"] = s.Attributes["domain"]
+	} else {
+		s.Attributes["hostname"] = fmt.Sprintf("%s.%s", rec.Name, s.Attributes["domain"])
+	}
+
 	return s, nil
 }
 

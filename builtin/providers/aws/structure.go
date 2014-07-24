@@ -1,6 +1,7 @@
 package aws
 
 import (
+	"strconv"
 	"strings"
 
 	"github.com/mitchellh/goamz/autoscaling"
@@ -10,7 +11,7 @@ import (
 
 // Takes the result of flatmap.Expand for an array of listeners and
 // returns ELB API compatible objects
-func expandListeners(configured []interface{}) []elb.Listener {
+func expandListeners(configured []interface{}) ([]elb.Listener, error) {
 	listeners := make([]elb.Listener, 0, len(configured))
 
 	// Loop over our configured listeners and create
@@ -18,22 +19,29 @@ func expandListeners(configured []interface{}) []elb.Listener {
 	for _, listener := range configured {
 		newL := listener.(map[string]interface{})
 
+		instancePort, err := strconv.ParseInt(newL["instance_port"].(string), 0, 0)
+		lbPort, err := strconv.ParseInt(newL["lb_port"].(string), 0, 0)
+
+		if err != nil {
+			return nil, err
+		}
+
 		l := elb.Listener{
-			InstancePort:     int64(newL["instance_port"].(int)),
+			InstancePort:     instancePort,
 			InstanceProtocol: newL["instance_protocol"].(string),
-			LoadBalancerPort: int64(newL["lb_port"].(int)),
+			LoadBalancerPort: lbPort,
 			Protocol:         newL["lb_protocol"].(string),
 		}
 
 		listeners = append(listeners, l)
 	}
 
-	return listeners
+	return listeners, nil
 }
 
 // Takes the result of flatmap.Expand for an array of ingress/egress
 // security group rules and returns EC2 API compatible objects
-func expandIPPerms(configured []interface{}) []ec2.IPPerm {
+func expandIPPerms(configured []interface{}) ([]ec2.IPPerm, error) {
 	perms := make([]ec2.IPPerm, 0, len(configured))
 
 	// Loop over our configured permissions and create
@@ -54,11 +62,17 @@ func expandIPPerms(configured []interface{}) []ec2.IPPerm {
 			}
 		}
 
+		fromPort, err := strconv.Atoi(newP["from_port"].(string))
+		toPort, err := strconv.Atoi(newP["to_port"].(string))
+		if err != nil {
+			return nil, err
+		}
+
 		// Create the permission objet
 		p := ec2.IPPerm{
 			Protocol:     newP["protocol"].(string),
-			FromPort:     newP["from_port"].(int),
-			ToPort:       newP["to_port"].(int),
+			FromPort:     fromPort,
+			ToPort:       toPort,
 			SourceIPs:    expandStringList(newP["cidr_blocks"].([]interface{})),
 			SourceGroups: expandedGroups,
 		}
@@ -66,7 +80,7 @@ func expandIPPerms(configured []interface{}) []ec2.IPPerm {
 		perms = append(perms, p)
 	}
 
-	return perms
+	return perms, nil
 }
 
 // Flattens an array of ipPerms into a list of primitives that

@@ -67,7 +67,10 @@ func resource_aws_security_group_create(
 	ingressRules := []ec2.IPPerm{}
 	v, ok := flatmap.Expand(rs.Attributes, "ingress").([]interface{})
 	if ok {
-		ingressRules = expandIPPerms(v)
+		ingressRules, err = expandIPPerms(v)
+		if err != nil {
+			return rs, err
+		}
 	}
 
 	if len(ingressRules) > 0 {
