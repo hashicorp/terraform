@@ -592,6 +592,8 @@ func (c *Context) applyWalkFn() depgraph.WalkFunc {
 		}
 
 		if tainted {
+			log.Printf("[DEBUG] %s: Marking as tainted", r.Id)
+
 			c.sl.Lock()
 			c.state.Tainted[r.Id] = struct{}{}
 			c.sl.Unlock()
@@ -599,6 +601,7 @@ func (c *Context) applyWalkFn() depgraph.WalkFunc {
 
 		// Update the state for the resource itself
 		r.State = rs
+		r.Tainted = tainted
 
 		for _, h := range c.hooks {
 			handleHook(h.PostApply(r.Id, r.State, applyerr))
@@ -721,6 +724,7 @@ func (c *Context) planWalkFn(result *Plan) depgraph.WalkFunc {
 
 		if r.Tainted {
 			// Tainted resources must also be destroyed
+			log.Printf("[DEBUG] %s: Tainted, marking for destroy", r.Id)
 			diff.Destroy = true
 		}
 
