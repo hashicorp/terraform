@@ -1265,6 +1265,7 @@ body.page-home #footer {
 body.page-sub {
   background-color: #242424;
 }
+body.layout-dnsimple,
 body.layout-heroku,
 body.layout-digitalocean,
 body.layout-aws,
@@ -1273,6 +1274,7 @@ body.layout-inner,
 body.layout-intro {
   background: #242424 url('../images/sidebar-wire.png') left 62px no-repeat;
 }
+body.layout-dnsimple > .container .col-md-8[role=main],
 body.layout-heroku > .container .col-md-8[role=main],
 body.layout-digitalocean > .container .col-md-8[role=main],
 body.layout-aws > .container .col-md-8[role=main],
@@ -1282,6 +1284,7 @@ body.layout-intro > .container .col-md-8[role=main] {
   min-height: 800px;
   background-color: white;
 }
+body.layout-dnsimple > .container .col-md-8[role=main] > div,
 body.layout-heroku > .container .col-md-8[role=main] > div,
 body.layout-digitalocean > .container .col-md-8[role=main] > div,
 body.layout-aws > .container .col-md-8[role=main] > div,
