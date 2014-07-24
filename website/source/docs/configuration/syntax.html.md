@@ -47,6 +47,11 @@ Basic bullet point reference:
 
   * Strings are in double-quotes.
 
+  * Strings can interpolate other values using syntax wrapped
+    in `${}`, such as `${var.foo}`. The full syntax for interpolation
+    is
+    [documented here](/docs/configuration/interpolation.html).
+
   * Numbers are assumed to be base 10. If you prefix a number with
     `0x`, it is treated as a hexadecimal number.
 
