@@ -11,6 +11,14 @@ var resourceMap *resource.Map
 func init() {
 	resourceMap = &resource.Map{
 		Mapping: map[string]resource.Resource{
+			"digitalocean_domain": resource.Resource{
+				ConfigValidator: resource_digitalocean_domain_validation(),
+				Create:          resource_digitalocean_domain_create,
+				Destroy:         resource_digitalocean_domain_destroy,
+				Diff:            resource_digitalocean_domain_diff,
+				Refresh:         resource_digitalocean_domain_refresh,
+			},
+
 			"digitalocean_droplet": resource.Resource{
 				ConfigValidator: resource_digitalocean_droplet_validation(),
 				Create:          resource_digitalocean_droplet_create,
