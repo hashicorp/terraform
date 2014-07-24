@@ -1022,11 +1022,20 @@ body.page-home #footer {
   }
 }
 @media (max-width: 992px) {
+  .feature h2,
+  .feature p {
+    text-align: center !important;
+    padding-left: 0 !important;
+  }
   #demos .terminals .terminal-item > header .right {
     padding-left: 54px;
   }
 }
 @media (max-width: 768px) {
+  .feature h2,
+  .feature p {
+    text-align: center;
+  }
   #demos .terminals .terminal-item > header .left span.icn {
     padding-bottom: 15px;
   }
