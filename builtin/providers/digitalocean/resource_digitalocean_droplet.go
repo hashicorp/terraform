@@ -194,6 +194,11 @@ func resource_digitalocean_droplet_destroy(
 	// Destroy the droplet
 	err := client.DestroyDroplet(s.ID)
 
+	// Handle remotely destroyed droplets
+	if strings.Contains(err.Error(), "404 Not Found") {
+		return nil
+	}
+
 	if err != nil {
 		return fmt.Errorf("Error deleting Droplet: %s", err)
 	}
@@ -208,6 +213,12 @@ func resource_digitalocean_droplet_refresh(
 	client := p.client
 
 	droplet, err := resource_digitalocean_droplet_retrieve(s.ID, client)
+
+	// Handle remotely destroyed droplets
+	if err != nil && strings.Contains(err.Error(), "404 Not Found") {
+		return nil, nil
+	}
+
 	if err != nil {
 		return nil, err
 	}
