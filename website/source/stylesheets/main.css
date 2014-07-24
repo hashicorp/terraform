@@ -1018,15 +1018,28 @@ body.page-home #footer {
     font-size: 32px;
   }
 }
-@media (max-width: 480px) {
-  #features {
-    text-align: center;
+@media (max-width: 1200px) {
+  #feature-iterate h2 {
+    font-size: 40px;
+  }
+  #feature-iterate .it-icon {
+    margin-top: 52px;
+  }
+  #feature-iterate .t-block {
+    width: 73px;
+    height: 73px;
+    margin-right: 20px;
   }
 }
 @media (max-width: 992px) {
   .feature h2,
   .feature p {
     text-align: center !important;
+    padding-left: 0 !important;
+  }
+  #feature-iterate .it-icon {
+    width: 372px;
+    margin: 0 auto 40px;
     padding-left: 0 !important;
   }
   #feature-clone .clone-icon {
@@ -1072,7 +1085,13 @@ body.page-home #footer {
     margin-bottom: 15px;
   }
 }
-@media (max-width: 320px) {
+@media (max-width: 480px) {
+  #demos .explantion {
+    margin: 40px 0 60px 0;
+  }
+  #feature-auto .terminal-text {
+    font-size: 24px;
+  }
   .feature h2 {
     text-align: center;
     font-size: 28px !important;
@@ -1082,6 +1101,16 @@ body.page-home #footer {
   .feature p {
     text-align: center !important;
     padding: 0 !important;
+  }
+  #features {
+    text-align: center;
+  }
+}
+@media (max-width: 320px) {
+  #feature-clone .clone-icon {
+    width: 320px;
+    margin: 40px auto 0;
+    padding-left: 0 !important;
   }
   #feature-iterate {
     margin-top: -80px;
@@ -1110,8 +1139,9 @@ body.page-home #footer {
     font-weight: 100;
   }
   #feature-iterate .it-icon {
-    margin-left: 45px;
-    margin-bottom: 40px;
+    width: 320px;
+    margin: 0 auto 40px;
+    padding-left: 0 !important;
   }
   #feature-iterate .t-block {
     background-color: #ffffff;
