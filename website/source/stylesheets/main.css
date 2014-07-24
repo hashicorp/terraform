@@ -962,6 +962,23 @@ body.page-home #footer {
 #demos .terminals .terminal-item .feature-bullets li {
   padding: 5px 0 5px 45px;
 }
+@media (min-width: 1500px) {
+  #feature-auto {
+    padding: 270px 0 400px;
+  }
+  #feature-iterate {
+    margin-top: -180px;
+    padding: 300px 0 410px;
+  }
+  #feature-clone {
+    margin-top: -180px;
+    padding: 270px 0 430px;
+  }
+  #demos {
+    margin-top: -180px;
+    padding-top: 240px;
+  }
+}
 @media (max-width: 992px) {
   #features .double-row {
     padding: 0 0 0 0;
