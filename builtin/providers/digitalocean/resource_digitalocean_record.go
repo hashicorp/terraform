@@ -149,11 +149,10 @@ func resource_digitalocean_record_update_state(
 	s.Attributes["priority"] = rec.StringPriority()
 	s.Attributes["port"] = rec.StringPort()
 
-
-    // We belong to a Domain
-    s.Dependencies = []terraform.ResourceDependency{
-        terraform.ResourceDependency{ID: s.Attributes["domain"]},
-    }
+	// We belong to a Domain
+	s.Dependencies = []terraform.ResourceDependency{
+		terraform.ResourceDependency{ID: s.Attributes["domain"]},
+	}
 
 	return s, nil
 }

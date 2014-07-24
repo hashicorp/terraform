@@ -1639,6 +1639,37 @@ func TestContextRefresh(t *testing.T) {
 	}
 }
 
+func TestContextRefresh_delete(t *testing.T) {
+	p := testProvider("aws")
+	c := testConfig(t, "refresh-basic")
+	ctx := testContext(t, &ContextOpts{
+		Config: c,
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+		State: &State{
+			Resources: map[string]*ResourceState{
+				"aws_instance.web": &ResourceState{
+					ID:   "foo",
+					Type: "aws_instance",
+				},
+			},
+		},
+	})
+
+	p.RefreshFn = nil
+	p.RefreshReturn = nil
+
+	s, err := ctx.Refresh()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	if len(s.Resources) > 0 {
+		t.Fatal("resources should be empty")
+	}
+}
+
 func TestContextRefresh_ignoreUncreated(t *testing.T) {
 	p := testProvider("aws")
 	c := testConfig(t, "refresh-basic")
