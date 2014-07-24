@@ -42,6 +42,9 @@ func (s *State) deepcopy() *State {
 		for k, v := range s.Resources {
 			result.Resources[k] = v
 		}
+		for k, v := range s.Tainted {
+			result.Tainted[k] = v
+		}
 	}
 
 	return result

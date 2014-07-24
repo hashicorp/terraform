@@ -3,6 +3,7 @@ package terraform
 import (
 	"errors"
 	"fmt"
+	"log"
 	"sort"
 	"strings"
 
@@ -100,6 +101,8 @@ func Graph(opts *GraphOpts) (*depgraph.Graph, error) {
 		return nil, errors.New("Config is required for Graph")
 	}
 
+	log.Printf("[DEBUG] Creating graph...")
+
 	g := new(depgraph.Graph)
 
 	// First, build the initial resource graph. This only has the resources
@@ -159,6 +162,10 @@ func Graph(opts *GraphOpts) (*depgraph.Graph, error) {
 	if err := g.Validate(); err != nil {
 		return nil, err
 	}
+
+	log.Printf(
+		"[DEBUG] Graph created and valid. %d nouns.",
+		len(g.Nouns))
 
 	return g, nil
 }
@@ -604,20 +611,20 @@ func graphAddVariableDeps(g *depgraph.Graph) {
 
 			// Handle the resource variables
 			vars = m.Config.RawConfig.Variables
-			nounAddVariableDeps(g, n, vars)
+			nounAddVariableDeps(g, n, vars, false)
 
 			// Handle the variables of the resource provisioners
 			for _, p := range m.Resource.Provisioners {
 				vars = p.RawConfig.Variables
-				nounAddVariableDeps(g, n, vars)
+				nounAddVariableDeps(g, n, vars, true)
 
 				vars = p.ConnInfo.Variables
-				nounAddVariableDeps(g, n, vars)
+				nounAddVariableDeps(g, n, vars, true)
 			}
 
 		case *GraphNodeResourceProvider:
 			vars = m.Config.RawConfig.Variables
-			nounAddVariableDeps(g, n, vars)
+			nounAddVariableDeps(g, n, vars, false)
 
 		default:
 			continue
@@ -627,7 +634,11 @@ func graphAddVariableDeps(g *depgraph.Graph) {
 
 // nounAddVariableDeps updates the dependencies of a noun given
 // a set of associated variable values
-func nounAddVariableDeps(g *depgraph.Graph, n *depgraph.Noun, vars map[string]config.InterpolatedVariable) {
+func nounAddVariableDeps(
+	g *depgraph.Graph,
+	n *depgraph.Noun,
+	vars map[string]config.InterpolatedVariable,
+	removeSelf bool) {
 	for _, v := range vars {
 		// Only resource variables impose dependencies
 		rv, ok := v.(*config.ResourceVariable)
@@ -638,6 +649,12 @@ func nounAddVariableDeps(g *depgraph.Graph, n *depgraph.Noun, vars map[string]co
 		// Find the target
 		target := g.Noun(rv.ResourceId())
 		if target == nil {
+			continue
+		}
+
+		// If we're ignoring self-references, then don't add that
+		// dependency.
+		if removeSelf && n == target {
 			continue
 		}
 

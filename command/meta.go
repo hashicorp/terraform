@@ -112,7 +112,6 @@ func (m *Meta) contextOpts() *terraform.ContextOpts {
 	opts.Hooks[0] = m.uiHook()
 	copy(opts.Hooks[1:], m.ContextOpts.Hooks)
 	copy(opts.Hooks[len(m.ContextOpts.Hooks)+1:], m.extraHooks)
-	println(fmt.Sprintf("%#v", opts.Hooks))
 
 	if len(m.variables) > 0 {
 		vs := make(map[string]string)

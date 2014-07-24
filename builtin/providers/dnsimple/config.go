@@ -1,10 +1,11 @@
 package dnsimple
 
 import (
+	"fmt"
 	"log"
 	"os"
 
-	"github.com/rubyist/go-dnsimple"
+	"github.com/pearkes/dnsimple"
 )
 
 type Config struct {
@@ -14,7 +15,7 @@ type Config struct {
 
 // Client() returns a new client for accessing heroku.
 //
-func (c *Config) Client() (*dnsimple.DNSimpleClient, error) {
+func (c *Config) Client() (*dnsimple.Client, error) {
 
 	// If we have env vars set (like in the acc) tests,
 	// we need to override the values passed in here.
@@ -25,7 +26,11 @@ func (c *Config) Client() (*dnsimple.DNSimpleClient, error) {
 		c.Token = v
 	}
 
-	client := dnsimple.NewClient(c.Token, c.Email)
+	client, err := dnsimple.NewClient(c.Email, c.Token)
+
+	if err != nil {
+		return nil, fmt.Errorf("Error setting up client: %s", err)
+	}
 
 	log.Printf("[INFO] DNSimple Client configured for user: %s", client.Email)
 

@@ -11,6 +11,7 @@ import (
 	"net/rpc"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"strings"
 	"sync"
 	"time"
@@ -217,7 +218,7 @@ func (c *Client) Start() (addr net.Addr, err error) {
 	cmd.Stderr = stderr_w
 	cmd.Stdout = stdout_w
 
-	log.Printf("Starting plugin: %s %#v", cmd.Path, cmd.Args)
+	log.Printf("[DEBUG] Starting plugin: %s %#v", cmd.Path, cmd.Args)
 	err = cmd.Start()
 	if err != nil {
 		return
@@ -248,7 +249,7 @@ func (c *Client) Start() (addr net.Addr, err error) {
 		cmd.Wait()
 
 		// Log and make sure to flush the logs write away
-		log.Printf("%s: plugin process exited\n", cmd.Path)
+		log.Printf("[DEBUG] %s: plugin process exited\n", cmd.Path)
 		os.Stderr.Sync()
 
 		// Mark that we exited
@@ -295,7 +296,7 @@ func (c *Client) Start() (addr net.Addr, err error) {
 	timeout := time.After(c.config.StartTimeout)
 
 	// Start looking for the address
-	log.Printf("Waiting for RPC address for: %s", cmd.Path)
+	log.Printf("[DEBUG] Waiting for RPC address for: %s", cmd.Path)
 	select {
 	case <-timeout:
 		err = errors.New("timeout while waiting for plugin to start")
@@ -343,7 +344,7 @@ func (c *Client) logStderr(r io.Reader) {
 			c.config.Stderr.Write([]byte(line))
 
 			line = strings.TrimRightFunc(line, unicode.IsSpace)
-			log.Printf("%s: %s", c.config.Cmd.Path, line)
+			log.Printf("%s: %s", filepath.Base(c.config.Cmd.Path), line)
 		}
 
 		if err == io.EOF {

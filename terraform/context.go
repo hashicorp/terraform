@@ -121,7 +121,9 @@ func (c *Context) Apply() (*State, error) {
 	c.state = c.state.deepcopy()
 
 	// Walk
+	log.Printf("[INFO] Apply walk starting")
 	err = g.Walk(c.applyWalkFn())
+	log.Printf("[INFO] Apply walk complete")
 
 	// Prune the state so that we have as clean a state as possible
 	c.state.prune()
@@ -565,6 +567,16 @@ func (c *Context) applyWalkFn() depgraph.WalkFunc {
 			}
 		}
 
+		// Update the resulting diff
+		c.sl.Lock()
+		if rs.ID == "" {
+			delete(c.state.Resources, r.Id)
+			delete(c.state.Tainted, r.Id)
+		} else {
+			c.state.Resources[r.Id] = rs
+		}
+		c.sl.Unlock()
+
 		// Invoke any provisioners we have defined. This is only done
 		// if the resource was created, as updates or deletes do not
 		// invoke provisioners.
@@ -579,21 +591,17 @@ func (c *Context) applyWalkFn() depgraph.WalkFunc {
 			}
 		}
 
-		// Update the resulting diff
-		c.sl.Lock()
-		if rs.ID == "" {
-			delete(c.state.Resources, r.Id)
-		} else {
-			c.state.Resources[r.Id] = rs
+		if tainted {
+			log.Printf("[DEBUG] %s: Marking as tainted", r.Id)
 
-			if tainted {
-				c.state.Tainted[r.Id] = struct{}{}
-			}
+			c.sl.Lock()
+			c.state.Tainted[r.Id] = struct{}{}
+			c.sl.Unlock()
 		}
-		c.sl.Unlock()
 
 		// Update the state for the resource itself
 		r.State = rs
+		r.Tainted = tainted
 
 		for _, h := range c.hooks {
 			handleHook(h.PostApply(r.Id, r.State, applyerr))
@@ -716,6 +724,7 @@ func (c *Context) planWalkFn(result *Plan) depgraph.WalkFunc {
 
 		if r.Tainted {
 			// Tainted resources must also be destroyed
+			log.Printf("[DEBUG] %s: Tainted, marking for destroy", r.Id)
 			diff.Destroy = true
 		}
 

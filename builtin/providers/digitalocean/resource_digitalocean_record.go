@@ -1,4 +1,4 @@
-package dnsimple
+package digitalocean
 
 import (
 	"fmt"
@@ -7,10 +7,10 @@ import (
 	"github.com/hashicorp/terraform/helper/config"
 	"github.com/hashicorp/terraform/helper/diff"
 	"github.com/hashicorp/terraform/terraform"
-	"github.com/pearkes/dnsimple"
+	"github.com/pearkes/digitalocean"
 )
 
-func resource_dnsimple_record_create(
+func resource_digitalocean_record_create(
 	s *terraform.ResourceState,
 	d *terraform.ResourceDiff,
 	meta interface{}) (*terraform.ResourceState, error) {
@@ -23,14 +23,13 @@ func resource_dnsimple_record_create(
 
 	var err error
 
-	newRecord := dnsimple.ChangeRecord{
-		Name:  rs.Attributes["name"],
-		Value: rs.Attributes["value"],
-		Type:  rs.Attributes["type"],
-	}
-
-	if attr, ok := rs.Attributes["ttl"]; ok {
-		newRecord.Ttl = attr
+	newRecord := digitalocean.CreateRecord{
+		Type:     rs.Attributes["type"],
+		Name:     rs.Attributes["name"],
+		Data:     rs.Attributes["value"],
+		Priority: rs.Attributes["priority"],
+		Port:     rs.Attributes["port"],
+		Weight:   rs.Attributes["weight"],
 	}
 
 	log.Printf("[DEBUG] record create configuration: %#v", newRecord)
@@ -42,17 +41,17 @@ func resource_dnsimple_record_create(
 	}
 
 	rs.ID = recId
-	log.Printf("[INFO] record ID: %s", rs.ID)
+	log.Printf("[INFO] Record ID: %s", rs.ID)
 
-	record, err := resource_dnsimple_record_retrieve(rs.Attributes["domain"], rs.ID, client)
+	record, err := resource_digitalocean_record_retrieve(rs.Attributes["domain"], rs.ID, client)
 	if err != nil {
 		return nil, fmt.Errorf("Couldn't find record: %s", err)
 	}
 
-	return resource_dnsimple_record_update_state(rs, record)
+	return resource_digitalocean_record_update_state(rs, record)
 }
 
-func resource_dnsimple_record_update(
+func resource_digitalocean_record_update(
 	s *terraform.ResourceState,
 	d *terraform.ResourceDiff,
 	meta interface{}) (*terraform.ResourceState, error) {
@@ -60,40 +59,28 @@ func resource_dnsimple_record_update(
 	client := p.client
 	rs := s.MergeDiff(d)
 
-	updateRecord := dnsimple.ChangeRecord{}
+	updateRecord := digitalocean.UpdateRecord{}
 
 	if attr, ok := d.Attributes["name"]; ok {
 		updateRecord.Name = attr.New
 	}
 
-	if attr, ok := d.Attributes["value"]; ok {
-		updateRecord.Value = attr.New
-	}
-
-	if attr, ok := d.Attributes["type"]; ok {
-		updateRecord.Type = attr.New
-	}
-
-	if attr, ok := d.Attributes["ttl"]; ok {
-		updateRecord.Ttl = attr.New
-	}
-
 	log.Printf("[DEBUG] record update configuration: %#v", updateRecord)
 
-	_, err := client.UpdateRecord(rs.Attributes["domain"], rs.ID, &updateRecord)
+	err := client.UpdateRecord(rs.Attributes["domain"], rs.ID, &updateRecord)
 	if err != nil {
 		return rs, fmt.Errorf("Failed to update record: %s", err)
 	}
 
-	record, err := resource_dnsimple_record_retrieve(rs.Attributes["domain"], rs.ID, client)
+	record, err := resource_digitalocean_record_retrieve(rs.Attributes["domain"], rs.ID, client)
 	if err != nil {
 		return rs, fmt.Errorf("Couldn't find record: %s", err)
 	}
 
-	return resource_dnsimple_record_update_state(rs, record)
+	return resource_digitalocean_record_update_state(rs, record)
 }
 
-func resource_dnsimple_record_destroy(
+func resource_digitalocean_record_destroy(
 	s *terraform.ResourceState,
 	meta interface{}) error {
 	p := meta.(*ResourceProvider)
@@ -110,77 +97,88 @@ func resource_dnsimple_record_destroy(
 	return nil
 }
 
-func resource_dnsimple_record_refresh(
+func resource_digitalocean_record_refresh(
 	s *terraform.ResourceState,
 	meta interface{}) (*terraform.ResourceState, error) {
 	p := meta.(*ResourceProvider)
 	client := p.client
 
-	rec, err := resource_dnsimple_record_retrieve(s.Attributes["domain"], s.ID, client)
+	rec, err := resource_digitalocean_record_retrieve(s.Attributes["domain"], s.ID, client)
 	if err != nil {
 		return nil, err
 	}
 
-	return resource_dnsimple_record_update_state(s, rec)
+	return resource_digitalocean_record_update_state(s, rec)
 }
 
-func resource_dnsimple_record_diff(
+func resource_digitalocean_record_diff(
 	s *terraform.ResourceState,
 	c *terraform.ResourceConfig,
 	meta interface{}) (*terraform.ResourceDiff, error) {
 
 	b := &diff.ResourceBuilder{
 		Attrs: map[string]diff.AttrType{
-			"domain": diff.AttrTypeCreate,
-			"name":   diff.AttrTypeUpdate,
-			"value":  diff.AttrTypeUpdate,
-			"ttl":    diff.AttrTypeUpdate,
-			"type":   diff.AttrTypeUpdate,
+			"domain":   diff.AttrTypeCreate,
+			"name":     diff.AttrTypeUpdate,
+			"type":     diff.AttrTypeCreate,
+			"value":    diff.AttrTypeCreate,
+			"priority": diff.AttrTypeCreate,
+			"port":     diff.AttrTypeCreate,
+			"weight":   diff.AttrTypeCreate,
 		},
 
 		ComputedAttrs: []string{
+			"value",
 			"priority",
-			"domain_id",
-			"ttl",
+			"weight",
+			"port",
 		},
 	}
 
 	return b.Diff(s, c)
 }
 
-func resource_dnsimple_record_update_state(
+func resource_digitalocean_record_update_state(
 	s *terraform.ResourceState,
-	rec *dnsimple.Record) (*terraform.ResourceState, error) {
+	rec *digitalocean.Record) (*terraform.ResourceState, error) {
 
 	s.Attributes["name"] = rec.Name
-	s.Attributes["value"] = rec.Content
-	s.Attributes["type"] = rec.RecordType
-	s.Attributes["ttl"] = rec.StringTtl()
-	s.Attributes["priority"] = rec.StringPrio()
-	s.Attributes["domain_id"] = rec.StringDomainId()
+	s.Attributes["type"] = rec.Type
+	s.Attributes["value"] = rec.Data
+	s.Attributes["weight"] = rec.StringWeight()
+	s.Attributes["priority"] = rec.StringPriority()
+	s.Attributes["port"] = rec.StringPort()
+
+
+    // We belong to a Domain
+    s.Dependencies = []terraform.ResourceDependency{
+        terraform.ResourceDependency{ID: s.Attributes["domain"]},
+    }
 
 	return s, nil
 }
 
-func resource_dnsimple_record_retrieve(domain string, id string, client *dnsimple.Client) (*dnsimple.Record, error) {
+func resource_digitalocean_record_retrieve(domain string, id string, client *digitalocean.Client) (*digitalocean.Record, error) {
 	record, err := client.RetrieveRecord(domain, id)
 	if err != nil {
 		return nil, err
 	}
 
-	return record, nil
+	return &record, nil
 }
 
-func resource_dnsimple_record_validation() *config.Validator {
+func resource_digitalocean_record_validation() *config.Validator {
 	return &config.Validator{
 		Required: []string{
-			"domain",
-			"name",
-			"value",
 			"type",
+			"domain",
 		},
 		Optional: []string{
-			"ttl",
+			"value",
+			"name",
+			"weight",
+			"port",
+			"priority",
 		},
 	}
 }
