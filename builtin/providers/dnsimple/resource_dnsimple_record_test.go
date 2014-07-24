@@ -2,6 +2,7 @@ package dnsimple
 
 import (
 	"fmt"
+	"os"
 	"strconv"
 	"testing"
 
@@ -12,6 +13,7 @@ import (
 
 func TestAccDNSimpleRecord_Basic(t *testing.T) {
 	var record dnsimple.Record
+	domain := os.Getenv("DNSIMPLE_DOMAIN")
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -19,14 +21,14 @@ func TestAccDNSimpleRecord_Basic(t *testing.T) {
 		CheckDestroy: testAccCheckDNSimpleRecordDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccCheckDNSimpleRecordConfig_basic,
+				Config: fmt.Sprintf(testAccCheckDNSimpleRecordConfig_basic, domain),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckDNSimpleRecordExists("dnsimple_record.foobar", &record),
 					testAccCheckDNSimpleRecordAttributes(&record),
 					resource.TestCheckResourceAttr(
 						"dnsimple_record.foobar", "name", "terraform"),
 					resource.TestCheckResourceAttr(
-						"dnsimple_record.foobar", "domain", "jack.ly"),
+						"dnsimple_record.foobar", "domain", domain),
 					resource.TestCheckResourceAttr(
 						"dnsimple_record.foobar", "value", "192.168.0.10"),
 				),
@@ -106,7 +108,7 @@ func testAccCheckDNSimpleRecordExists(n string, record *dnsimple.Record) resourc
 
 const testAccCheckDNSimpleRecordConfig_basic = `
 resource "dnsimple_record" "foobar" {
-	domain = "jack.ly"
+	domain = "%s"
 
 	name = "terraform"
 	value = "192.168.0.10"
