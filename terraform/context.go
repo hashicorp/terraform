@@ -820,7 +820,11 @@ func (c *Context) refreshWalkFn() depgraph.WalkFunc {
 		rs.Type = r.State.Type
 
 		c.sl.Lock()
-		c.state.Resources[r.Id] = rs
+		if rs.ID == "" {
+			delete(c.state.Resources, r.Id)
+		} else {
+			c.state.Resources[r.Id] = rs
+		}
 		c.sl.Unlock()
 
 		for _, h := range c.hooks {
