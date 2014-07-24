@@ -348,6 +348,10 @@ body.page-sub #header .main-links.navbar-nav li > a {
     background-image: url("../images/header-logo.png");
     background-size: 39px 44px;
   }
+  #feature-auto .terminal-text {
+    line-height: 48px !important;
+    font-size: 20px !important;
+  }
 }
 @media (max-width: 320px) and only screen and (-webkit-min-device-pixel-ratio: 2), (max-width: 320px) and only screen and (min--moz-device-pixel-ratio: 2), (max-width: 320px) and only screen and (-o-min-device-pixel-ratio: 2/1), (max-width: 320px) and only screen and (min-device-pixel-ratio: 2), (max-width: 320px) and only screen and (min-resolution: 192dpi), (max-width: 320px) and only screen and (min-resolution: 2dppx) {
   #header .navbar-brand.logo {
