@@ -958,6 +958,13 @@ body.page-home #footer {
   #demos .terminals .terminal-item > header .right {
     padding-left: 15px;
   }
+  #cta .intro {
+    text-align: center;
+  }
+  #cta .intro p {
+    text-align: center;
+    margin-bottom: 15px;
+  }
 }
 .people {
   margin-top: 30px;
