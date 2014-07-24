@@ -12,10 +12,10 @@ Engine.Point = function(id, x, y, width, height){
 	this.accel = Vector.coerce(this.accel);
 	this.vel = Vector.coerce(this.vel);
 
-	this.pos.add({
-		x: (Engine.getRandomFloat(0, 6) - 3),
-		y: (Engine.getRandomFloat(0, 6) - 3)
-	});
+	// this.pos.add({
+	//     x: (Engine.getRandomFloat(0, 6) - 3),
+	//     y: (Engine.getRandomFloat(0, 6) - 3)
+	// });
 
 	// Physics randomness
 	// this.stiffness = Engine.getRandomFloat(2, 5);

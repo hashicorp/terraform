@@ -8,7 +8,7 @@ Engine.Polygon = function(a, b, c, color){
 	this.b = b;
 	this.c = c;
 
-	this.color = color;
+	this.color = Engine.clone(color);
 	this.maxL = this.color.l;
 	this.strokeColor = {
 		h: this.color.h,
@@ -17,19 +17,10 @@ Engine.Polygon = function(a, b, c, color){
 		a: 1
 	};
 
-	// this.color.s = 0;
 	this.color.l = 0;
 
 	this.fillStyle = this.hslaTemplate.substitute(this.color);
-	this.strokeStyle = this.hslaTemplate.substitute({
-
-	});
-
-	// this.up = !!Engine.getRandomInt(0,1);
-	// this.hueShiftSpeed = 15;
-	// this.toColor = {
-	//     a: 1
-	// };
+	this.strokeStyle = this.hslaTemplate.substitute(this.strokeColor);
 };
 
 Engine.Polygon.prototype = {

@@ -26,8 +26,9 @@ Engine = Base.extend({
 	particles : [],
 	_deferred : [],
 
-	points   : [],
-	polygons : [],
+	// points   : [],
+	// polygons : [],
+	shapes: [],
 
 	speed: 1,
 	accel: 0.08,
@@ -89,30 +90,15 @@ Engine = Base.extend({
 	},
 
 	setupTessellation: function(canvas){
-		var row, col, rows, cols, rowMod, colMod, i, p, ref, point, poly;
-
-		ref = {};
-		for (i = 0; i < Circle.Points.length; i++) {
-			point = new Engine.Point(
-				Circle.Points[i].id,
-				Circle.Points[i].x + (this.width  / 2 - 180),
-				Circle.Points[i].y + (this.height / 2 - 180),
-				this.width,
-				this.height
-			);
-			ref[point.id] = point;
-			this.points.push(point);
-		}
-
-		for (i = 0; i < Circle.Polygons.length; i++) {
-			poly = Circle.Polygons[i];
-			this.polygons.push(new Engine.Polygon(
-				ref[poly.points[0]],
-				ref[poly.points[1]],
-				ref[poly.points[2]],
-				poly.color
-			));
-		}
+		this.shapes = [];
+		this.logo = new Engine.Shape(
+			(this.width  / 2 - 180),
+			(this.height / 2 - 180),
+			360,
+			360,
+			Circle.Points,
+			Circle.Polygons
+		);
 	},
 
 	render: function(){
@@ -155,15 +141,13 @@ Engine = Base.extend({
 		var scale = this.scale,
 			p;
 
-		for (p = 0; p < this.points.length; p++)  {
-			this.points[p].update(this);
-			// this.points[p].draw(this.context, scale);
+		for (p = 0; p < this.shapes.length; p++)  {
+			this.shapes[p].update(this);
+			this.shapes[p].draw(this.context, scale);
 		}
 
-		for (p = 0; p < this.polygons.length; p++) {
-			this.polygons[p].update(this);
-			this.polygons[p].draw(this.context, scale);
-		}
+		this.logo.update(this);
+		this.logo.draw(this.context, scale);
 	},
 
 	generateParticles: function(num, fixed){
@@ -219,6 +203,14 @@ Engine.getRandomFloat = function(min, max) {
 
 Engine.getRandomInt = function(min, max) {
 	return Math.floor(Math.random() * (max - min + 1) + min);
+};
+
+Engine.clone = function(ref) {
+	var clone = {}, key;
+	for (key in ref) {
+		clone[key] = ref[key];
+	}
+	return clone;
 };
 
 window.Engine = Engine;
