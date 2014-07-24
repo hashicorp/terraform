@@ -12,9 +12,14 @@ services to a Heroku app.
 ## Example Usage
 
 ```
+# Create a new heroku app
+resource "heroku_app" "default" {
+    name = "test-app"
+}
+
 # Add a web-hook addon for the app
 resource "heroku_addon" "webhook" {
-    app = "${heroku_app.foobar.name}"
+    app = "${heroku_app.default.name}"
     plan = "deployhooks:http"
     config {
         url = "http://google.com"
@@ -27,7 +32,7 @@ resource "heroku_addon" "webhook" {
 The following arguments are supported:
 
 * `app` - (Required) The Heroku app to add to.
-* `plan` - (Requried) The addon to add.
+* `plan` - (Required) The addon to add.
 * `config` - (Optional) Optional plan configuration.
 
 ## Attributes Reference
