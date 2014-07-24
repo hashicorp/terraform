@@ -44,7 +44,7 @@ func TestExpand(t *testing.T) {
 			Output: []interface{}{
 				map[string]interface{}{
 					"name":    "bar",
-					"port":    3000,
+					"port":    "3000",
 					"enabled": true,
 				},
 			},
@@ -63,8 +63,8 @@ func TestExpand(t *testing.T) {
 				map[string]interface{}{
 					"name": "bar",
 					"ports": []interface{}{
-						1,
-						2,
+						"1",
+						"2",
 					},
 				},
 			},

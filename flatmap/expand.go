@@ -11,9 +11,7 @@ import (
 func Expand(m map[string]string, key string) interface{} {
 	// If the key is exactly a key in the map, just return it
 	if v, ok := m[key]; ok {
-		if num, err := strconv.ParseInt(v, 0, 0); err == nil {
-			return int(num)
-		} else if v == "true" {
+		if v == "true" {
 			return true
 		} else if v == "false" {
 			return false
