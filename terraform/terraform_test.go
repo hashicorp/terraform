@@ -139,6 +139,13 @@ aws_instance.foo:
   type = aws_instance
 `
 
+const testTerraformApplyProvisionerResourceRefStr = `
+aws_instance.bar:
+  ID = foo
+  num = 2
+  type = aws_instance
+`
+
 const testTerraformApplyDestroyStr = `
 <no state>
 `

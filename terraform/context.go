@@ -567,6 +567,16 @@ func (c *Context) applyWalkFn() depgraph.WalkFunc {
 			}
 		}
 
+		// Update the resulting diff
+		c.sl.Lock()
+		if rs.ID == "" {
+			delete(c.state.Resources, r.Id)
+			delete(c.state.Tainted, r.Id)
+		} else {
+			c.state.Resources[r.Id] = rs
+		}
+		c.sl.Unlock()
+
 		// Invoke any provisioners we have defined. This is only done
 		// if the resource was created, as updates or deletes do not
 		// invoke provisioners.
@@ -581,18 +591,11 @@ func (c *Context) applyWalkFn() depgraph.WalkFunc {
 			}
 		}
 
-		// Update the resulting diff
-		c.sl.Lock()
-		if rs.ID == "" {
-			delete(c.state.Resources, r.Id)
-		} else {
-			c.state.Resources[r.Id] = rs
-
-			if tainted {
-				c.state.Tainted[r.Id] = struct{}{}
-			}
+		if tainted {
+			c.sl.Lock()
+			c.state.Tainted[r.Id] = struct{}{}
+			c.sl.Unlock()
 		}
-		c.sl.Unlock()
 
 		// Update the state for the resource itself
 		r.State = rs

@@ -550,6 +550,52 @@ func TestContextApply_provisionerFail(t *testing.T) {
 	}
 }
 
+func TestContextApply_provisionerResourceRef(t *testing.T) {
+	c := testConfig(t, "apply-provisioner-resource-ref")
+	p := testProvider("aws")
+	pr := testProvisioner()
+	p.ApplyFn = testApplyFn
+	p.DiffFn = testDiffFn
+	pr.ApplyFn = func(rs *ResourceState, c *ResourceConfig) error {
+		val, ok := c.Config["foo"]
+		if !ok || val != "2" {
+			t.Fatalf("bad value for foo: %v %#v", val, c)
+		}
+
+		return nil
+	}
+
+	ctx := testContext(t, &ContextOpts{
+		Config: c,
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+		Provisioners: map[string]ResourceProvisionerFactory{
+			"shell": testProvisionerFuncFixed(pr),
+		},
+	})
+
+	if _, err := ctx.Plan(nil); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	state, err := ctx.Apply()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	actual := strings.TrimSpace(state.String())
+	expected := strings.TrimSpace(testTerraformApplyProvisionerResourceRefStr)
+	if actual != expected {
+		t.Fatalf("bad: \n%s", actual)
+	}
+
+	// Verify apply was invoked
+	if !pr.ApplyCalled {
+		t.Fatalf("provisioner not invoked")
+	}
+}
+
 func TestContextApply_outputDiffVars(t *testing.T) {
 	c := testConfig(t, "apply-good")
 	p := testProvider("aws")
