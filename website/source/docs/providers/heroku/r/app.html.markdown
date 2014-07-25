@@ -15,6 +15,10 @@ create and manage applications on Heroku.
 # Create a new heroku app
 resource "heroku_app" "default" {
     name = "my-cool-app"
+
+    config_vars {
+        FOOBAR = "baz"
+    }
 }
 ```
 
@@ -22,20 +26,29 @@ resource "heroku_app" "default" {
 
 The following arguments are supported:
 
-* `name` - (Optional) The name of the Heroku app
-* `region` - (Optional) The region of the Heroku app
-* `stack` - (Optional) The stack for the Heroku app
-* `config_vars` - (Optional) Configuration variables for the app
+* `name` - (Optional) The name of the application. In Heroku, this is also the
+   unique ID.
+* `region` - (Optional) The region that the app should be deployed in.
+* `stack` - (Optional) The application stack is what platform to run the application
+   in.
+* `config_vars` - (Optional) Configuration variables for the application.
+   This is a map that can set keys against the application.
+
 
 ## Attributes Reference
 
 The following attributes are exported:
 
-* `id` - The ID of the app
-* `name` - The name of the app
-* `stack` - The stack of the app
-* `region` - The region of the app
-* `git_url` - The Git URL for the app
-* `web_url` - The Web URL for the app
-* `heroku_hostname` - The Heroku URL for the app
+* `id` - The ID of the app. This is also the name of the application.
+* `name` - The name of the application. In Heroku, this is also the
+   unique ID.
+* `stack` - The application stack is what platform to run the application
+   in.
+* `region` - The region that the app should be deployed in.
+* `git_url` - The Git URL for the appplication. This is used for
+   deploying new versions of the app.
+* `web_url` - The web (HTTP) URL that the application can be accessed
+   at by default.
+* `heroku_hostname` - A hostname for the the Heroku application, suitable
+   for pointing DNS records.
 
