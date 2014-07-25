@@ -170,6 +170,38 @@ func TestResourceBuilder_complexReplace(t *testing.T) {
 	}
 }
 
+func TestResourceBuilder_computedAttrsUpdate(t *testing.T) {
+	rb := &ResourceBuilder{
+		Attrs: map[string]AttrType{
+			"foo": AttrTypeUpdate,
+		},
+		ComputedAttrsUpdate: []string{
+			"bar",
+		},
+	}
+
+	state := &terraform.ResourceState{
+		Attributes: map[string]string{"foo": "foo"},
+	}
+	c := testConfig(t, map[string]interface{}{
+		"foo": "bar",
+	}, nil)
+
+	diff, err := rb.Diff(state, c)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if diff == nil {
+		t.Fatal("diff shold not be nil")
+	}
+
+	actual := testResourceDiffStr(diff)
+	expected := testRBComputedAttrUpdate
+	if actual != expected {
+		t.Fatalf("bad: %s", actual)
+	}
+}
+
 func TestResourceBuilder_new(t *testing.T) {
 	rb := &ResourceBuilder{
 		Attrs: map[string]AttrType{
@@ -405,6 +437,11 @@ const testRBComplexDiff = `UPDATE
 const testRBComplexReplaceDiff = `UPDATE
   IN  listener.0.port:  "80" => "<removed>"
   IN  listener.0.value: "" => "50"
+`
+
+const testRBComputedAttrUpdate = `UPDATE
+  OUT bar: "" => "<computed>"
+  IN  foo: "foo" => "bar"
 `
 
 const testRBNewDiff = `UPDATE
