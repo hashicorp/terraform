@@ -6,20 +6,33 @@ sidebar_current: "vs-other-custom"
 
 # Terraform vs. Custom Solutions
 
-As a code base grows, a monolithic app usually evolves into a Service Oriented Architecture (SOA).
-A universal pain point for SOA is service discovery and configuration. In many
-cases, this leads to organizations building home grown solutions.
-It is an undisputed fact that distributed systems are hard; building one is error prone and time consuming.
-Most systems cut corners by introducing single points of failure such
-as a single Redis or RDBMS to maintain cluster state. These solutions may work in the short term,
-but they are rarely fault tolerant or scalable. Besides these limitations,
-they require time and resources to build and maintain.
+Most organizations start by manually managing infrastructure though
+simple scripts or web based interfaces. As the infrastructure grows,
+any manual approach to management becomes both error prone and tedious.
+As a result, many organizations begin to home-roll tooling to help
+automate the mechanical processes involved.
 
-Terraform provides the core set of features needed by a SOA out of the box. By using Terraform,
-organizations can leverage open source work to reduce their time and resource commitment to
-re-inventing the wheel and focus on their business applications.
+These tools require time and resources to build and maintain.
+As tools of necessity, they represent the minimum viable
+features needed by an organization, being built to handling only
+the immediate needs. As a result they are often hard
+to extend and difficult to maintain. Because the  tooling must be
+updated in lock step with any new features or infrastructure,
+it becomes the limiting factor for how fast infrastructure
+can evolve.
 
-Terraform is built on well-cited research, and is designed with the constraints of
-distributed systems in mind. At every step, Terraform takes efforts to provide a robust
-and scalable solution for organizations of any size.
+Terraform is designed to tackle these challenges. It provides a simple
+unified syntax, allowing almost any resource to be managed without
+learning new tooling. By capturing all the resources required, the
+dependencies between them can be resolved automatically so that operators
+do not need to remember and reason about them. Removing the burden
+of building the tool allows operators to focus on their infrastructure
+and not the tooling.
+
+Additionally, Terraform is an open source tool. In addition to
+HashiCorp, the community around it helps to extend it's features,
+fix bugs and document new use cases. Terraform helps solve a problem
+that exists in every organization and provides a standard that can
+be adopted to avoid re-inventing the wheel between and within organizations.
+It's open source nature ensures it will be around in the long term.
 
