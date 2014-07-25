@@ -166,9 +166,9 @@ Engine = Base.extend({
 		}
 
 		// 1 Per second? Maybe?
-		if (Engine.getRandomFloat(0,100) < 1.6666) {
-			this.generateRandomShape();
-		}
+		// if (Engine.getRandomFloat(0,100) < 1.6666) {
+		//     this.generateRandomShape();
+		// }
 	},
 
 	generateRandomShape: function(){
