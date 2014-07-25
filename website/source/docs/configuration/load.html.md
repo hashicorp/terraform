@@ -8,9 +8,13 @@ sidebar_current: "docs-config-load"
 
 When invoking any command that loads the Terraform configuration,
 Terraform loads all configuration files within the directory
-specified in alphabetical order. The flies loaded must end in
+specified in alphabetical order.
+
+The files loaded must end in
 either `.tf` or `.tf.json` to specify the format that is in use.
-Otherwise, the files are ignored.
+Otherwise, the files are ignored. Multiple file formats can
+be present in the same directory; it is okay to have one Terraform
+configuration file be Terraform syntax and another be JSON.
 
 [Override](/docs/configuration/override.html)
 files are the exception, as they're loaded after all non-override
