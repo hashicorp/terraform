@@ -88,8 +88,8 @@ Engine = Base.extend({
 	setupTessellation: function(canvas){
 		this.shapes = [];
 		this.logo = new Engine.Shape(
-			(this.width  / 2 - 180),
-			(this.height / 2 - 180),
+			-(180),
+			-(180),
 			360,
 			360,
 			Logo.Points,
@@ -98,23 +98,20 @@ Engine = Base.extend({
 	},
 
 	render: function(){
-		var tick;
+		var scale = this.scale,
+			tick;
 
 		if (window.scrollY > 700) {
 			window.requestAnimationFrame(this.render);
 			return;
 		}
 
-		// this.context.clearRect(
-		//     0,
-		//     0,
-		//     this.width  * this.scale,
-		//     this.height * this.scale
-		// );
-
-		// Potentially more performant than clearRect
-		this.canvas.width = this.width * this.scale;
-		this.canvas.height = 700 * this.scale;
+		this.context.clearRect(
+			-(this.width  / 2) * scale,
+			-(this.height / 2) * scale,
+			this.width * scale,
+			this.height * scale
+		);
 
 		this.now = Date.now() / 1000;
 
@@ -166,28 +163,29 @@ Engine = Base.extend({
 	},
 
 	resize: function(){
+		var scale = this.scale;
+
 		this.width  = window.innerWidth;
 		this.height = 700;
 
-		this.canvas.width  = this.width  * this.scale;
-		this.canvas.height = this.height * this.scale;
+		this.canvas.width  = this.width  * scale;
+		this.canvas.height = this.height * scale;
+
+		this.context.translate(
+			this.width  / 2 * scale >> 0,
+			this.height / 2 * scale >> 0
+		);
 	},
 
 	renderStarfield: function(){
 		var scale = this.scale, p, index;
 
 		// Update all particles... may need to be optimized
-		this.context.save();
-		this.context.translate(
-			this.width  / 2 * scale >> 0,
-			this.height / 2 * scale >> 0
-		);
 		for (p = 0; p < this.particles.length; p++) {
 			this.particles[p]
 				.update(this)
 				.draw(this.context, scale);
 		}
-		this.context.restore();
 
 		// Remove destroyed particles
 		for (p = 0; p < this._deferredParticles.length; p++) {
