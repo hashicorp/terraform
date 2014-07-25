@@ -42,20 +42,23 @@ Engine.Shape.prototype = {
 
 	selfDestruct: function(time){
 		this.destruct = time;
+		this.elapsed = 0;
 		return this;
 	},
 
 	update: function(engine){
 		var p;
 
+		// if (this.destruct) {
+		//     this.elapsed += engine.tick;
+		// }
+
 		for (p = 0; p < this.points.length; p++)  {
 			this.points[p].update(engine);
-			// this.points[p].draw(this.context, scale);
 		}
 
 		for (p = 0; p < this.polygons.length; p++) {
 			this.polygons[p].update(engine);
-			// this.polygons[p].draw(this.context, scale);
 		}
 
 		return this;
@@ -65,7 +68,10 @@ Engine.Shape.prototype = {
 		var p;
 
 		ctx.save();
-		ctx.translate(this.pos.x * scale, this.pos.y * scale);
+		ctx.translate(
+			this.pos.x * scale >> 0,
+			this.pos.y * scale >> 0
+		);
 		for (p = 0; p < this.polygons.length; p++) {
 			this.polygons[p].draw(ctx, scale);
 		}

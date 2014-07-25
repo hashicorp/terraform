@@ -135,8 +135,8 @@ Engine.Particle.prototype = {
 
 		// Draw a square - very performant
 		ctx.fillRect(
-			this.pos.x * scale,
-			this.pos.y * scale,
+			this.pos.x * scale >> 0,
+			this.pos.y * scale >> 0,
 			this.radius * scale,
 			this.radius * scale
 		);

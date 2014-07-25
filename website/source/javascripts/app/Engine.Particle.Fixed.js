@@ -55,8 +55,8 @@ Engine.Particle.Fixed.prototype = {
 		// Draw a circle - far less performant
 		ctx.beginPath();
 		ctx.arc(
-			this.pos.x * scale,
-			this.pos.y * scale,
+			this.pos.x * scale >> 0,
+			this.pos.y * scale >> 0,
 			this.radius * scale,
 			0,
 			Math.PI * 2,

@@ -63,16 +63,16 @@ Engine.Polygon.prototype = {
 	draw: function(ctx, scale){
 		ctx.beginPath();
 		ctx.moveTo(
-			this.a.pos.x * scale,
-			this.a.pos.y * scale
+			this.a.pos.x * scale >> 0,
+			this.a.pos.y * scale >> 0
 		);
 		ctx.lineTo(
-			this.b.pos.x * scale,
-			this.b.pos.y * scale
+			this.b.pos.x * scale >> 0,
+			this.b.pos.y * scale >> 0
 		);
 		ctx.lineTo(
-			this.c.pos.x * scale,
-			this.c.pos.y * scale
+			this.c.pos.x * scale >> 0,
+			this.c.pos.y * scale >> 0
 		);
 		ctx.closePath();
 		ctx.fillStyle   = this.fillStyle;
