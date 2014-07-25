@@ -123,7 +123,7 @@ Engine = Base.extend({
 		this.renderStarfield(this.now);
 		this.tick = tick;
 
-		if (this.now - this.start > 3) {
+		if (this.now - this.start > 5) {
 			this.renderTessellation(this.now);
 		}
 
@@ -177,11 +177,17 @@ Engine = Base.extend({
 		var scale = this.scale, p, index;
 
 		// Update all particles... may need to be optimized
+		this.context.save();
+		this.context.translate(
+			this.width  / 2 * scale >> 0,
+			this.height / 2 * scale >> 0
+		);
 		for (p = 0; p < this.particles.length; p++) {
 			this.particles[p]
 				.update(this)
 				.draw(this.context, scale);
 		}
+		this.context.restore();
 
 		// Remove destroyed particles
 		for (p = 0; p < this._deferredParticles.length; p++) {

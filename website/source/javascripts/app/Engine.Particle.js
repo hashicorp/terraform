@@ -7,35 +7,24 @@ Engine.Particle = function(width, height){
 	var side, targetX, targetY;
 	this.accel = Vector.coerce(this.accel);
 	this.vel   = Vector.coerce(this.vel);
-	this.pos   = new Vector(
-		width  / 2,
-		height / 2
-	);
+	this.pos   = new Vector(0, 0);
 
 	this.maxRadius = Engine.getRandomFloat(0.1, 2.5);
 	this.maxSpeed = Engine.getRandomFloat(0.01, 1000);
 
-	this.max = {
-		x: width  + this.maxRadius,
-		y: height + this.maxRadius
-	};
-
-	this.min = {
-		x: 0 - this.maxRadius,
-		y: 0 - this.maxRadius
-	};
-
 	// Pick a random target
 	side = Engine.getRandomInt(0, 3);
 	if (side === 0 || side === 2) {
-		targetY = (side === 0) ? (0 - this.maxRadius) : (height + this.maxRadius);
-		targetX = Engine.getRandomInt(0 - this.maxRadius, width + this.maxRadius);
+		targetY = (side === 0) ? -(height / 2) : (height / 2);
+		targetX = Engine.getRandomInt(-(width / 2), width / 2);
 	} else {
-		targetY = Engine.getRandomInt(0 - this.maxRadius, height + this.maxRadius);
-		targetX = (side === 3) ? (0 - this.maxRadius) : (width + this.maxRadius);
+		targetY = Engine.getRandomInt(-(height / 2), height / 2);
+		targetX = (side === 3) ? -(width / 2) : (width / 2);
 	}
 
 	this.target = new Vector(targetX, targetY);
+	this.getAccelVector();
+
 	this.maxDistance = this.distanceTo(this.target);
 
 	// this.fillA = 'rgba(136,67,237,' + Engine.getRandomFloat(0.7, 0.8) + ')';
@@ -75,11 +64,14 @@ Engine.Particle.prototype = {
 	maxSpeed: 1500,
 	maxForce: 1500,
 
-	update: function(engine){
-		var distancePercent;
+	getAccelVector: function(){
+		this.accel = Vector.sub(this.target, this.pos)
+			.normalize()
+			.mult(this.maxSpeed);
+	},
 
-		this.accel.mult(0);
-		this.seek();
+	update: function(engine){
+		var distancePercent, halfWidth, halfHeight;
 
 		this.vel
 			.add(this.accel)
@@ -87,11 +79,14 @@ Engine.Particle.prototype = {
 
 		this.pos.add(Vector.mult(this.vel, engine.tick));
 
+		halfWidth  = engine.width  / 2 + this.maxRadius;
+		halfHeight = engine.height / 2 + this.maxRadius;
+
 		if (
-			this.pos.x < this.min.x ||
-			this.pos.x > this.max.x ||
-			this.pos.y < this.min.y ||
-			this.pos.y > this.max.y
+			this.pos.x < -(halfWidth) ||
+			this.pos.x > halfWidth ||
+			this.pos.y < -(halfHeight) ||
+			this.pos.y > halfHeight
 		) {
 			this.kill(engine);
 		}
@@ -106,20 +101,6 @@ Engine.Particle.prototype = {
 		}
 
 		return this;
-	},
-
-	seek: function(){
-		var desired, steer;
-
-		desired = Vector.sub(this.target, this.pos)
-			.normalize()
-			.mult(this.maxSpeed);
-
-		steer = Vector
-			.sub(desired, this.vel)
-			.limit(this.maxForce);
-
-		this.applyForce(steer);
 	},
 
 	draw: function(ctx, scale){
@@ -153,11 +134,6 @@ Engine.Particle.prototype = {
 		// );
 		// ctx.fill();
 
-		return this;
-	},
-
-	applyForce: function(force){
-		this.accel.add(force);
 		return this;
 	},
 
