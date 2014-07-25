@@ -421,8 +421,14 @@ body.page-home #footer {
   text-transform: uppercase;
   font-size: 12px;
   letter-spacing: 3px;
+  -webkit-transition: color 0.3s ease;
+  transition: color 0.3s ease;
+  font-weight: 400;
 }
 #footer .footer-links li a:hover {
+  color: #822ff7;
+  -webkit-transition: color 0.3s ease;
+  transition: color 0.3s ease;
   background-color: transparent;
 }
 #footer .buttons.navbar-nav {

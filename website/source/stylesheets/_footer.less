@@ -46,8 +46,12 @@ body.page-home{
                 text-transform: uppercase;
                 font-size: 12px;
                 letter-spacing: 3px;
+                .transition( color 0.3s ease );
+                font-weight: 400;
 
                 &:hover{
+                    color: @purple;
+                    .transition( color 0.3s ease );
                     background-color: transparent;
                 }
             }
