@@ -975,13 +975,12 @@ body.page-home #footer {
   font-size: 16px;
 }
 #demos .terminals .terminal-item .terminal {
-  border-radius: 4px;
+  border: 2px solid #1e1e1e;
 }
 #demos .terminals .terminal-item .terminal header {
   position: relative;
   text-align: center;
   padding: 3px;
-  background-color: #1e1e1e;
   border-bottom: 2px solid #1e1e1e;
 }
 #demos .terminals .terminal-item .terminal header h4 {
