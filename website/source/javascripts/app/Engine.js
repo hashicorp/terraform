@@ -1,6 +1,11 @@
 /* jshint unused: false */
 /* global console */
-(function(Base, Vector, Logo){
+(function(
+	Base,
+	Vector,
+	Logo,
+	Chainable
+){
 
 var sqrt, pow, Engine;
 
@@ -29,8 +34,7 @@ Engine = Base.extend({
 	_deferredParticles: [],
 	_deferredShapes: [],
 
-	constructor: function(canvas, bg){
-		var image, el;
+	constructor: function(canvas, image){
 		if (typeof canvas === 'string') {
 			this.canvas = document.getElementById(canvas);
 		} else {
@@ -47,7 +51,7 @@ Engine = Base.extend({
 		this.resize();
 		window.addEventListener('resize', this.resize, false);
 
-		this.setupStarfield(bg);
+		this.setupStarfield();
 		this.setupTessellation();
 
 		this.last = Date.now() / 1000;
@@ -59,24 +63,38 @@ Engine = Base.extend({
 
 		this.canvas.style.opacity = 1;
 
-		image = document.getElementById(bg);
+		this.cssAnimations(
+			document.getElementById(image)
+		);
+	},
+
+	cssAnimations: function(image){
+		var parent = this.canvas.parentNode;
+
 		image.style.webkitTransform = 'translate3d(0,0,0) scale(1)';
 		image.style.opacity = 1;
 
-		el = document.body;
-
-		setTimeout(function() {
-			el.className += ' state-one';
-			setTimeout(function() {
-				el.className += ' state-two';
-				setTimeout(function() {
-					el.className += ' state-three';
-					setTimeout(function() {
-						el.className += ' state-four';
-					}, 550);
-				}, 200);
-			}, 200);
-		}, 4000);
+		new Chainable()
+			.wait(3000)
+			.then(function(){
+				parent.className += ' state-one';
+			})
+			.wait(150)
+			.then(function(){
+				parent.className += ' state-two';
+			})
+			.wait(150)
+			.then(function(){
+				parent.className += ' state-three';
+			})
+			.wait(500)
+			.then(function(){
+				parent.className += ' state-four';
+			})
+			.wait(100)
+			.then(function(){
+				this.showShapes = true;
+			}, this);
 	},
 
 	setupStarfield: function(){
@@ -98,8 +116,7 @@ Engine = Base.extend({
 	},
 
 	render: function(){
-		var scale = this.scale,
-			tick;
+		var scale = this.scale;
 
 		if (window.scrollY > 700) {
 			window.requestAnimationFrame(this.render);
@@ -115,12 +132,11 @@ Engine = Base.extend({
 
 		this.now = Date.now() / 1000;
 
-		tick = Math.min(this.now - this.last, 0.017);
+		this.tick = Math.min(this.now - this.last, 0.017);
 
 		this.renderStarfield(this.now);
-		this.tick = tick;
 
-		if (this.now - this.start > 5) {
+		if (this.showShapes) {
 			this.renderTessellation(this.now);
 		}
 
@@ -222,4 +238,9 @@ Engine.clone = function(ref) {
 
 window.Engine = Engine;
 
-})(window.Base, window.Vector, window.Logo);
+})(
+	window.Base,
+	window.Vector,
+	window.Logo,
+	window.Chainable
+);

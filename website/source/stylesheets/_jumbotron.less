@@ -101,13 +101,19 @@
   opacity:1;
 
   -webkit-transition:-webkit-transform 300ms ease-in-out;
-  -webkit-transform-origin:100% 0;
+
+  -webkit-transform-origin:50% 50%;
   -webkit-transform-style:preserve-3d;
-  -webkit-transform:translate3d(0,0,0) rotateY(0deg) skewY(0deg) scaleX(1);
+  -webkit-transform:translate3d(0,0,0) rotateY(0deg) skewY(0deg) scale(1,1);
+}
+
+.state-one .animated-logo {
+  -webkit-transform:translate3d(0,0,0) rotateY(0deg) skewY(0deg) scale(1,1);
 }
 
 .state-one.state-two.state-three.state-four .animated-logo {
-  -webkit-transform:translate3d(0,10px,0) rotateY(-45deg) skewY(22deg) scaleX(1.26);
+  -webkit-transform-origin:100% 0;
+  -webkit-transform:translate3d(0,10px,0) rotateY(-45deg) skewY(22deg) scale(1.26,1);
 }
 
 .state-one.state-two.state-three.state-four .white-block {
@@ -128,10 +134,9 @@
   background-color:rgba(255,255,255,0);
 
   border:1px solid #fff;
-}
 
-.state-one .white-block {
   -webkit-transition:
+    opacity           300ms ease-out,
     -webkit-transform 300ms ease-out,
     background-color  300ms ease-out;
 }
@@ -149,19 +154,21 @@
 
 .block-one {
   opacity:0;
+  -webkit-transform:translate3d(0,0,0) scale(0,0);
 }
 
 .block-two {
   opacity:0;
   top:0;
   left:0;
-  -webkit-transform:translate3d(0,0,0) scaleX(1);
+  -webkit-transform:translate3d(0,0,0) scale(0,0);
 }
 
 .block-three {
   opacity:0;
   top:72px;
-  -webkit-transform:translate3d(0,0,0) scaleY(1);
+  /* -webkit-transform:translate3d(0,-100px,0) scaleY(1); */
+  -webkit-transform:translate3d(0,0,0) scale(0,0);
 }
 
 .block-four {
@@ -169,22 +176,25 @@
   -webkit-transform:translate3d(72px,-2px,0) rotateY(90deg) skewY(-22deg) scaleX(1.25);
 }
 
-.state-one .block-one {
+.state-one.state-two .block-one {
   opacity:1;
-  -webkit-animation:PopIn 300ms 1 ease-in;
-  animation:PopIn 300ms 1 ease-in;
+  -webkit-transform:translate3d(0,0,0) scale(1,1);
+  /* -webkit-animation:PopIn 300ms 1 ease-in; */
+  /* animation:PopIn 300ms 1 ease-in; */
 }
 
-.state-one.state-two .block-two {
+.state-one .block-two {
   opacity:1;
-  -webkit-animation:PopIn 300ms 1 ease-in;
-  animation:PopIn 300ms 1 ease-in;
+  -webkit-transform:translate3d(0,0,0) scale(1,1);
+  /* -webkit-animation:PopIn 300ms 1 ease-in; */
+  /* animation:PopIn 300ms 1 ease-in; */
 }
 
 .state-one.state-two.state-three .block-three {
   opacity:1;
-  -webkit-animation:PopIn 300ms 1 ease-in;
-  animation:PopIn 300ms 1 ease-in;
+  -webkit-transform:translate3d(0,0,0) scale(1,1);
+  /* -webkit-animation:PopIn 300ms 1 ease-in; */
+  /* animation:PopIn 300ms 1 ease-in; */
 }
 
 @-webkit-keyframes PopIn {
