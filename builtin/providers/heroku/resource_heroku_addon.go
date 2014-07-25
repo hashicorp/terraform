@@ -3,6 +3,7 @@ package heroku
 import (
 	"fmt"
 	"log"
+	"sync"
 
 	"github.com/bgentry/heroku-go"
 	"github.com/hashicorp/terraform/flatmap"
@@ -11,10 +12,18 @@ import (
 	"github.com/hashicorp/terraform/terraform"
 )
 
+// Global lock to prevent parallelism for heroku_addon since
+// the Heroku API cannot handle a single application requesting
+// multiple addons simultaneously.
+var addonLock sync.Mutex
+
 func resource_heroku_addon_create(
 	s *terraform.ResourceState,
 	d *terraform.ResourceDiff,
 	meta interface{}) (*terraform.ResourceState, error) {
+	addonLock.Lock()
+	defer addonLock.Unlock()
+
 	p := meta.(*ResourceProvider)
 	client := p.client
 
@@ -158,6 +167,10 @@ func resource_heroku_addon_update_state(
 
 	for k, v := range flatmap.Flatten(toFlatten) {
 		s.Attributes[k] = v
+	}
+
+	s.Dependencies = []terraform.ResourceDependency{
+		terraform.ResourceDependency{ID: s.Attributes["app"]},
 	}
 
 	return s, nil
