@@ -13,7 +13,7 @@ type Config struct {
 	Email string `mapstructure:"email"`
 }
 
-// Client() returns a new client for accessing heroku.
+// Client() returns a new client for accessing dnsimple.
 //
 func (c *Config) Client() (*dnsimple.Client, error) {
 
