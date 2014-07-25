@@ -1,4 +1,4 @@
-/* jshint unused: false */
+/* jshint unused:false */
 /* global console */
 (function(
 	Base,
@@ -147,8 +147,7 @@ Engine = Base.extend({
 	},
 
 	renderTessellation: function(){
-		var scale = this.scale,
-			p, index, rando, halfWidth, halfHeight, shape, shapeTemplate;
+		var scale = this.scale, p, index;
 
 		for (p = 0; p < this.shapes.length; p++)  {
 			this.shapes[p].update(this);
@@ -168,23 +167,42 @@ Engine = Base.extend({
 
 		// 1 Per second? Maybe?
 		if (Engine.getRandomFloat(0,100) < 1.6666) {
-			halfWidth  = this.width  / 2;
-			halfHeight = this.height / 2;
-			shapeTemplate = Shapes[Engine.getRandomInt(0, Shapes.length - 1)];
-			shape = new Engine.Shape(
-				Engine.getRandomInt(-halfWidth,  halfWidth),
-				Engine.getRandomInt(-halfHeight, halfHeight),
-				50,
-				50,
-				shapeTemplate.points,
-				shapeTemplate.polygons,
-				true
-			);
-			shape.selfDestruct(10);
-			// shape.noStroke = true;
-			// shape.noHueShift = true;
-			this.shapes.push(shape);
+			this.generateRandomShape();
 		}
+	},
+
+	generateRandomShape: function(){
+		var p, index, rando, halfWidth, halfHeight, iter,
+			shape, shapeTemplate, columns, rows, modWidth, row, column,
+			xOffset, yOffset;
+
+		iter = 140;
+
+		rows = this.height / iter - 1;
+		modWidth = this.width % iter;
+		columns  = (this.width - modWidth) / iter - 1;
+
+		row    = Engine.getRandomInt(0, rows);
+		column = Engine.getRandomInt(0, columns);
+
+		halfWidth  = this.width  / 2;
+		halfHeight = this.height / 2;
+		shapeTemplate = Shapes[Engine.getRandomInt(0, Shapes.length - 1)];
+
+		xOffset = Engine.getRandomInt(-50, 50);
+		yOffset = Engine.getRandomInt(-50, 50);
+
+		shape = new Engine.Shape(
+			(iter / 2) + (column * iter) - (modWidth / 2) - halfWidth + xOffset - 25,
+			(iter / 2) + (row * iter) - halfHeight + yOffset - 25,
+			50,
+			50,
+			shapeTemplate.points,
+			shapeTemplate.polygons,
+			true
+		);
+		shape.selfDestruct(10);
+		this.shapes.push(shape);
 	},
 
 	generateParticles: function(num, fixed){
