@@ -142,6 +142,9 @@ func resource_dnsimple_record_diff(
 			"priority",
 			"domain_id",
 			"ttl",
+		},
+
+		ComputedAttrsUpdate: []string{
 			"hostname",
 		},
 	}

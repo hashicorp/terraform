@@ -203,6 +203,10 @@ func resource_heroku_app_diff(
 			"id",
 			"config_vars",
 		},
+
+		ComputedAttrsUpdate: []string{
+			"heroku_hostname",
+		},
 	}
 
 	return b.Diff(s, c)
