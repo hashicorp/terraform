@@ -4,6 +4,7 @@
 	Base,
 	Vector,
 	Logo,
+	Shapes,
 	Chainable
 ){
 
@@ -147,7 +148,7 @@ Engine = Base.extend({
 
 	renderTessellation: function(){
 		var scale = this.scale,
-			p, index;
+			p, index, rando, halfWidth, halfHeight, shape, shapeTemplate;
 
 		for (p = 0; p < this.shapes.length; p++)  {
 			this.shapes[p].update(this);
@@ -163,6 +164,26 @@ Engine = Base.extend({
 			if (index >= 0) {
 				this.shapes.splice(index, 1);
 			}
+		}
+
+		// 1 Per second? Maybe?
+		if (Engine.getRandomFloat(0,100) < 1.6666) {
+			halfWidth  = this.width  / 2;
+			halfHeight = this.height / 2;
+			shapeTemplate = Shapes[Engine.getRandomInt(0, Shapes.length - 1)];
+			shape = new Engine.Shape(
+				Engine.getRandomInt(-halfWidth,  halfWidth),
+				Engine.getRandomInt(-halfHeight, halfHeight),
+				50,
+				50,
+				shapeTemplate.points,
+				shapeTemplate.polygons,
+				true
+			);
+			shape.selfDestruct(10);
+			// shape.noStroke = true;
+			// shape.noHueShift = true;
+			this.shapes.push(shape);
 		}
 	},
 
@@ -242,5 +263,6 @@ window.Engine = Engine;
 	window.Base,
 	window.Vector,
 	window.Logo,
+	window.Shapes,
 	window.Chainable
 );

@@ -5,7 +5,7 @@
 	Vector
 ){
 
-Engine.Shape = function(x, y, width, height, points, polygons){
+Engine.Shape = function(x, y, width, height, points, polygons, simple){
 	var i, ref, point, poly;
 
 	this.pos = new Vector(x, y);
@@ -33,7 +33,8 @@ Engine.Shape = function(x, y, width, height, points, polygons){
 			ref[poly.points[0]],
 			ref[poly.points[1]],
 			ref[poly.points[2]],
-			poly.color
+			poly.color,
+			simple
 		));
 	}
 };
@@ -49,16 +50,19 @@ Engine.Shape.prototype = {
 	update: function(engine){
 		var p;
 
-		// if (this.destruct) {
-		//     this.elapsed += engine.tick;
-		// }
+		if (this.destruct) {
+			this.elapsed += engine.tick;
+			if (this.elapsed > this.destruct) {
+				engine._deferredShapes.push(this);
+			}
+		}
 
 		for (p = 0; p < this.points.length; p++)  {
 			this.points[p].update(engine);
 		}
 
 		for (p = 0; p < this.polygons.length; p++) {
-			this.polygons[p].update(engine);
+			this.polygons[p].update(engine, this.noHueShift);
 		}
 
 		return this;
@@ -73,7 +77,7 @@ Engine.Shape.prototype = {
 			this.pos.y * scale >> 0
 		);
 		for (p = 0; p < this.polygons.length; p++) {
-			this.polygons[p].draw(ctx, scale);
+			this.polygons[p].draw(ctx, scale, this.noStroke);
 		}
 		ctx.restore();
 		return this;

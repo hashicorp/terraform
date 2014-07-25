@@ -1,41 +1,46 @@
 // jshint unused:false
 var Shapes = [
 	{
-		"Points": [
+		"data": {
+			"width": 100,
+			"height": 100,
+			"ar": 1
+		},
+		"points": [
 			{
-				"id": "mpoint-0",
+				"id": "point-0",
 				"x": 0.848,
 				"y": -0.002
 			},
 			{
-				"id": "mpoint-1",
+				"id": "point-1",
 				"x": 0.11800000000000001,
 				"y": 0.015
 			},
 			{
-				"id": "mpoint-2",
+				"id": "point-2",
 				"x": 0.46,
 				"y": 0.602
 			},
 			{
-				"id": "mpoint-5",
+				"id": "point-6",
 				"x": 0.9,
 				"y": 0.685
 			},
 			{
-				"id": "mpoint-6",
+				"id": "point-8",
 				"x": 0.359,
 				"y": 0.7979999999999999
 			},
 			{
-				"id": "mpoint-10",
+				"id": "point-13",
 				"x": 0,
 				"y": 0.48200000000000004
 			}
 		],
-		"Polygons": [
+		"polygons": [
 			{
-				"id": "mpoly-0",
+				"id": "poly-0",
 				"color": {
 					"h": 242.6086956521739,
 					"s": 47.58620689655173,
@@ -43,13 +48,13 @@ var Shapes = [
 					"a": 1
 				},
 				"points": [
-					"mpoint-0",
-					"mpoint-1",
-					"mpoint-2"
+					"point-0",
+					"point-1",
+					"point-2"
 				]
 			},
 			{
-				"id": "mpoly-1",
+				"id": "poly-1",
 				"color": {
 					"h": 253.33333333333334,
 					"s": 30.508474576271187,
@@ -57,13 +62,13 @@ var Shapes = [
 					"a": 1
 				},
 				"points": [
-					"mpoint-0",
-					"mpoint-2",
-					"mpoint-5"
+					"point-0",
+					"point-2",
+					"point-6"
 				]
 			},
 			{
-				"id": "mpoly-2",
+				"id": "poly-2",
 				"color": {
 					"h": 246.31578947368416,
 					"s": 28.934010152284262,
@@ -71,13 +76,13 @@ var Shapes = [
 					"a": 1
 				},
 				"points": [
-					"mpoint-6",
-					"mpoint-5",
-					"mpoint-2"
+					"point-8",
+					"point-6",
+					"point-2"
 				]
 			},
 			{
-				"id": "mpoly-3",
+				"id": "poly-3",
 				"color": {
 					"h": 244.99999999999997,
 					"s": 51.724137931034484,
@@ -85,13 +90,13 @@ var Shapes = [
 					"a": 1
 				},
 				"points": [
-					"mpoint-1",
-					"mpoint-10",
-					"mpoint-2"
+					"point-1",
+					"point-13",
+					"point-2"
 				]
 			},
 			{
-				"id": "mpoly-4",
+				"id": "poly-4",
 				"color": {
 					"h": 240.84507042253526,
 					"s": 48.29931972789116,
@@ -99,54 +104,59 @@ var Shapes = [
 					"a": 1
 				},
 				"points": [
-					"mpoint-10",
-					"mpoint-6",
-					"mpoint-2"
+					"point-13",
+					"point-8",
+					"point-2"
 				]
 			}
 		]
 	},
 	{
-		"Points": [
+		"data": {
+			"width": 100,
+			"height": 100,
+			"ar": 1
+		},
+		"points": [
 			{
-				"id": "mpoint-15",
+				"id": "point-20",
 				"x": 0.6990000000000001,
 				"y": 0
 			},
 			{
-				"id": "mpoint-16",
+				"id": "point-21",
 				"x": 0.10800000000000001,
 				"y": 0.095
 			},
 			{
-				"id": "mpoint-17",
+				"id": "point-22",
 				"x": 0.515,
 				"y": 0.46
 			},
 			{
-				"id": "mpoint-18",
+				"id": "point-24",
 				"x": 0.915,
 				"y": 0.245
 			},
 			{
-				"id": "mpoint-20",
+				"id": "point-26",
 				"x": 0.89,
 				"y": 0.765
 			},
 			{
-				"id": "mpoint-21",
+				"id": "point-28",
 				"x": 0.349,
 				"y": 0.878
 			},
 			{
-				"id": "mpoint-25",
+				"id": "point-33",
 				"x": 0.002,
 				"y": 0.475
 			}
 		],
-		"Polygons": [
+		"polygons": [
 			{
-				"id": "mpoly-5",
+				"id": "poly-5",
 				"color": {
 					"h": 242.6086956521739,
 					"s": 47.58620689655173,
@@ -154,13 +164,13 @@ var Shapes = [
 					"a": 1
 				},
 				"points": [
-					"mpoint-15",
-					"mpoint-16",
-					"mpoint-17"
+					"point-20",
+					"point-21",
+					"point-22"
 				]
 			},
 			{
-				"id": "mpoly-6",
+				"id": "poly-6",
 				"color": {
 					"h": 253.33333333333334,
 					"s": 30.508474576271187,
@@ -168,13 +178,13 @@ var Shapes = [
 					"a": 1
 				},
 				"points": [
-					"mpoint-18",
-					"mpoint-17",
-					"mpoint-20"
+					"point-24",
+					"point-22",
+					"point-26"
 				]
 			},
 			{
-				"id": "mpoly-7",
+				"id": "poly-7",
 				"color": {
 					"h": 246.31578947368416,
 					"s": 28.934010152284262,
@@ -182,13 +192,13 @@ var Shapes = [
 					"a": 1
 				},
 				"points": [
-					"mpoint-21",
-					"mpoint-20",
-					"mpoint-17"
+					"point-28",
+					"point-26",
+					"point-22"
 				]
 			},
 			{
-				"id": "mpoly-8",
+				"id": "poly-8",
 				"color": {
 					"h": 244.99999999999997,
 					"s": 51.724137931034484,
@@ -196,13 +206,13 @@ var Shapes = [
 					"a": 1
 				},
 				"points": [
-					"mpoint-16",
-					"mpoint-25",
-					"mpoint-17"
+					"point-21",
+					"point-33",
+					"point-22"
 				]
 			},
 			{
-				"id": "mpoly-9",
+				"id": "poly-9",
 				"color": {
 					"h": 240.84507042253526,
 					"s": 48.29931972789116,
@@ -210,13 +220,13 @@ var Shapes = [
 					"a": 1
 				},
 				"points": [
-					"mpoint-25",
-					"mpoint-21",
-					"mpoint-17"
+					"point-33",
+					"point-28",
+					"point-22"
 				]
 			},
 			{
-				"id": "mpoly-10",
+				"id": "poly-10",
 				"color": {
 					"h": 256.74418604651163,
 					"s": 37.719298245614034,
@@ -224,54 +234,59 @@ var Shapes = [
 					"a": 1
 				},
 				"points": [
-					"mpoint-15",
-					"mpoint-18",
-					"mpoint-17"
+					"point-20",
+					"point-24",
+					"point-22"
 				]
 			}
 		]
 	},
 	{
-		"Points": [
+		"data": {
+			"width": 100,
+			"height": 100,
+			"ar": 1
+		},
+		"points": [
 			{
-				"id": "mpoint-33",
+				"id": "point-44",
 				"x": 0.675,
 				"y": 0.003
 			},
 			{
-				"id": "mpoint-34",
+				"id": "point-45",
 				"x": 0.162,
 				"y": 0.18
 			},
 			{
-				"id": "mpoint-35",
+				"id": "point-46",
 				"x": 0.56,
 				"y": 0.325
 			},
 			{
-				"id": "mpoint-36",
+				"id": "point-48",
 				"x": 0.895,
 				"y": 0.215
 			},
 			{
-				"id": "mpoint-38",
+				"id": "point-50",
 				"x": 0.79,
 				"y": 0.748
 			},
 			{
-				"id": "mpoint-39",
+				"id": "point-52",
 				"x": 0.244,
 				"y": 0.82
 			},
 			{
-				"id": "mpoint-43",
+				"id": "point-57",
 				"x": 0.002,
 				"y": 0.682
 			}
 		],
-		"Polygons": [
+		"polygons": [
 			{
-				"id": "mpoly-11",
+				"id": "poly-11",
 				"color": {
 					"h": 242.6086956521739,
 					"s": 47.58620689655173,
@@ -279,13 +294,13 @@ var Shapes = [
 					"a": 1
 				},
 				"points": [
-					"mpoint-33",
-					"mpoint-34",
-					"mpoint-35"
+					"point-44",
+					"point-45",
+					"point-46"
 				]
 			},
 			{
-				"id": "mpoly-12",
+				"id": "poly-12",
 				"color": {
 					"h": 253.33333333333334,
 					"s": 30.508474576271187,
@@ -293,13 +308,13 @@ var Shapes = [
 					"a": 1
 				},
 				"points": [
-					"mpoint-36",
-					"mpoint-35",
-					"mpoint-38"
+					"point-48",
+					"point-46",
+					"point-50"
 				]
 			},
 			{
-				"id": "mpoly-13",
+				"id": "poly-13",
 				"color": {
 					"h": 246.31578947368416,
 					"s": 28.934010152284262,
@@ -307,13 +322,13 @@ var Shapes = [
 					"a": 1
 				},
 				"points": [
-					"mpoint-39",
-					"mpoint-38",
-					"mpoint-35"
+					"point-52",
+					"point-50",
+					"point-46"
 				]
 			},
 			{
-				"id": "mpoly-14",
+				"id": "poly-14",
 				"color": {
 					"h": 244.99999999999997,
 					"s": 51.724137931034484,
@@ -321,13 +336,13 @@ var Shapes = [
 					"a": 1
 				},
 				"points": [
-					"mpoint-34",
-					"mpoint-43",
-					"mpoint-35"
+					"point-45",
+					"point-57",
+					"point-46"
 				]
 			},
 			{
-				"id": "mpoly-15",
+				"id": "poly-15",
 				"color": {
 					"h": 240.84507042253526,
 					"s": 48.29931972789116,
@@ -335,13 +350,13 @@ var Shapes = [
 					"a": 1
 				},
 				"points": [
-					"mpoint-43",
-					"mpoint-39",
-					"mpoint-35"
+					"point-57",
+					"point-52",
+					"point-46"
 				]
 			},
 			{
-				"id": "mpoly-16",
+				"id": "poly-16",
 				"color": {
 					"h": 256.74418604651163,
 					"s": 37.719298245614034,
@@ -349,69 +364,74 @@ var Shapes = [
 					"a": 1
 				},
 				"points": [
-					"mpoint-33",
-					"mpoint-36",
-					"mpoint-35"
+					"point-44",
+					"point-48",
+					"point-46"
 				]
 			}
 		]
 	},
 	{
-		"Points": [
+		"data": {
+			"width": 100,
+			"height": 100,
+			"ar": 1
+		},
+		"points": [
 			{
-				"id": "mpoint-51",
+				"id": "point-68",
 				"x": 0.379,
 				"y": 0.08800000000000001
 			},
 			{
-				"id": "mpoint-52",
+				"id": "point-69",
 				"x": 0,
 				"y": 0.345
 			},
 			{
-				"id": "mpoint-53",
+				"id": "point-70",
 				"x": 0.568,
 				"y": 0.56
 			},
 			{
-				"id": "mpoint-56",
+				"id": "point-74",
 				"x": 0.715,
 				"y": 0.003
 			},
 			{
-				"id": "mpoint-57",
+				"id": "point-76",
 				"x": 0.935,
 				"y": 0.215
 			},
 			{
-				"id": "mpoint-59",
+				"id": "point-78",
 				"x": 0.95,
 				"y": 0.525
 			},
 			{
-				"id": "mpoint-60",
+				"id": "point-80",
 				"x": 0.87,
 				"y": 0.785
 			},
 			{
-				"id": "mpoint-63",
+				"id": "point-84",
 				"x": 0.499,
 				"y": 0.883
 			},
 			{
-				"id": "mpoint-66",
+				"id": "point-88",
 				"x": 0.284,
 				"y": 0.82
 			},
 			{
-				"id": "mpoint-70",
+				"id": "point-93",
 				"x": 0.042,
 				"y": 0.682
 			}
 		],
-		"Polygons": [
+		"polygons": [
 			{
-				"id": "mpoly-17",
+				"id": "poly-17",
 				"color": {
 					"h": 242.6086956521739,
 					"s": 47.58620689655173,
@@ -419,13 +439,13 @@ var Shapes = [
 					"a": 1
 				},
 				"points": [
-					"mpoint-51",
-					"mpoint-52",
-					"mpoint-53"
+					"point-68",
+					"point-69",
+					"point-70"
 				]
 			},
 			{
-				"id": "mpoly-18",
+				"id": "poly-18",
 				"color": {
 					"h": 239.17808219178082,
 					"s": 44.78527607361962,
@@ -433,13 +453,13 @@ var Shapes = [
 					"a": 1
 				},
 				"points": [
-					"mpoint-51",
-					"mpoint-53",
-					"mpoint-56"
+					"point-68",
+					"point-70",
+					"point-74"
 				]
 			},
 			{
-				"id": "mpoly-19",
+				"id": "poly-19",
 				"color": {
 					"h": 253.33333333333334,
 					"s": 30.508474576271187,
@@ -447,13 +467,13 @@ var Shapes = [
 					"a": 1
 				},
 				"points": [
-					"mpoint-57",
-					"mpoint-53",
-					"mpoint-59"
+					"point-76",
+					"point-70",
+					"point-78"
 				]
 			},
 			{
-				"id": "mpoly-20",
+				"id": "poly-20",
 				"color": {
 					"h": 252.8571428571429,
 					"s": 30.701754385964914,
@@ -461,13 +481,13 @@ var Shapes = [
 					"a": 1
 				},
 				"points": [
-					"mpoint-60",
-					"mpoint-59",
-					"mpoint-53"
+					"point-80",
+					"point-78",
+					"point-70"
 				]
 			},
 			{
-				"id": "mpoly-21",
+				"id": "poly-21",
 				"color": {
 					"h": 255.1898734177215,
 					"s": 31.726907630522096,
@@ -475,13 +495,13 @@ var Shapes = [
 					"a": 1
 				},
 				"points": [
-					"mpoint-63",
-					"mpoint-60",
-					"mpoint-53"
+					"point-84",
+					"point-80",
+					"point-70"
 				]
 			},
 			{
-				"id": "mpoly-22",
+				"id": "poly-22",
 				"color": {
 					"h": 246.31578947368416,
 					"s": 28.934010152284262,
@@ -489,13 +509,13 @@ var Shapes = [
 					"a": 1
 				},
 				"points": [
-					"mpoint-66",
-					"mpoint-63",
-					"mpoint-53"
+					"point-88",
+					"point-84",
+					"point-70"
 				]
 			},
 			{
-				"id": "mpoly-23",
+				"id": "poly-23",
 				"color": {
 					"h": 244.99999999999997,
 					"s": 51.724137931034484,
@@ -503,13 +523,13 @@ var Shapes = [
 					"a": 1
 				},
 				"points": [
-					"mpoint-52",
-					"mpoint-70",
-					"mpoint-53"
+					"point-69",
+					"point-93",
+					"point-70"
 				]
 			},
 			{
-				"id": "mpoly-24",
+				"id": "poly-24",
 				"color": {
 					"h": 240.84507042253526,
 					"s": 48.29931972789116,
@@ -517,13 +537,13 @@ var Shapes = [
 					"a": 1
 				},
 				"points": [
-					"mpoint-70",
-					"mpoint-66",
-					"mpoint-53"
+					"point-93",
+					"point-88",
+					"point-70"
 				]
 			},
 			{
-				"id": "mpoly-25",
+				"id": "poly-25",
 				"color": {
 					"h": 256.74418604651163,
 					"s": 37.719298245614034,
@@ -531,69 +551,74 @@ var Shapes = [
 					"a": 1
 				},
 				"points": [
-					"mpoint-56",
-					"mpoint-57",
-					"mpoint-53"
+					"point-74",
+					"point-76",
+					"point-70"
 				]
 			}
 		]
 	},
 	{
-		"Points": [
+		"data": {
+			"width": 100,
+			"height": 100,
+			"ar": 1
+		},
+		"points": [
 			{
-				"id": "mpoint-78",
+				"id": "point-104",
 				"x": 0.33899999999999997,
 				"y": -0.004
 			},
 			{
-				"id": "mpoint-79",
+				"id": "point-105",
 				"x": 0.042,
 				"y": 0.209
 			},
 			{
-				"id": "mpoint-80",
+				"id": "point-106",
 				"x": 0.46799999999999997,
 				"y": 0.361
 			},
 			{
-				"id": "mpoint-83",
+				"id": "point-110",
 				"x": 0.675,
 				"y": 0.063
 			},
 			{
-				"id": "mpoint-84",
+				"id": "point-112",
 				"x": 0.83,
 				"y": 0.212
 			},
 			{
-				"id": "mpoint-86",
+				"id": "point-114",
 				"x": 0.91,
 				"y": 0.444
 			},
 			{
-				"id": "mpoint-87",
+				"id": "point-116",
 				"x": 0.78,
 				"y": 0.778
 			},
 			{
-				"id": "mpoint-90",
+				"id": "point-120",
 				"x": 0.45899999999999996,
 				"y": 0.943
 			},
 			{
-				"id": "mpoint-93",
+				"id": "point-124",
 				"x": 0.08900000000000001,
 				"y": 0.787
 			},
 			{
-				"id": "mpoint-97",
+				"id": "point-129",
 				"x": 0.002,
 				"y": 0.62
 			}
 		],
-		"Polygons": [
+		"polygons": [
 			{
-				"id": "mpoly-26",
+				"id": "poly-26",
 				"color": {
 					"h": 242.6086956521739,
 					"s": 47.58620689655173,
@@ -601,13 +626,13 @@ var Shapes = [
 					"a": 1
 				},
 				"points": [
-					"mpoint-78",
-					"mpoint-79",
-					"mpoint-80"
+					"point-104",
+					"point-105",
+					"point-106"
 				]
 			},
 			{
-				"id": "mpoly-27",
+				"id": "poly-27",
 				"color": {
 					"h": 239.17808219178082,
 					"s": 44.78527607361962,
@@ -615,13 +640,13 @@ var Shapes = [
 					"a": 1
 				},
 				"points": [
-					"mpoint-78",
-					"mpoint-80",
-					"mpoint-83"
+					"point-104",
+					"point-106",
+					"point-110"
 				]
 			},
 			{
-				"id": "mpoly-28",
+				"id": "poly-28",
 				"color": {
 					"h": 253.33333333333334,
 					"s": 30.508474576271187,
@@ -629,13 +654,13 @@ var Shapes = [
 					"a": 1
 				},
 				"points": [
-					"mpoint-84",
-					"mpoint-80",
-					"mpoint-86"
+					"point-112",
+					"point-106",
+					"point-114"
 				]
 			},
 			{
-				"id": "mpoly-29",
+				"id": "poly-29",
 				"color": {
 					"h": 252.8571428571429,
 					"s": 30.701754385964914,
@@ -643,13 +668,13 @@ var Shapes = [
 					"a": 1
 				},
 				"points": [
-					"mpoint-87",
-					"mpoint-86",
-					"mpoint-80"
+					"point-116",
+					"point-114",
+					"point-106"
 				]
 			},
 			{
-				"id": "mpoly-30",
+				"id": "poly-30",
 				"color": {
 					"h": 255.1898734177215,
 					"s": 31.726907630522096,
@@ -657,13 +682,13 @@ var Shapes = [
 					"a": 1
 				},
 				"points": [
-					"mpoint-90",
-					"mpoint-87",
-					"mpoint-80"
+					"point-120",
+					"point-116",
+					"point-106"
 				]
 			},
 			{
-				"id": "mpoly-31",
+				"id": "poly-31",
 				"color": {
 					"h": 246.31578947368416,
 					"s": 28.934010152284262,
@@ -671,13 +696,13 @@ var Shapes = [
 					"a": 1
 				},
 				"points": [
-					"mpoint-93",
-					"mpoint-90",
-					"mpoint-80"
+					"point-124",
+					"point-120",
+					"point-106"
 				]
 			},
 			{
-				"id": "mpoly-32",
+				"id": "poly-32",
 				"color": {
 					"h": 244.99999999999997,
 					"s": 51.724137931034484,
@@ -685,13 +710,13 @@ var Shapes = [
 					"a": 1
 				},
 				"points": [
-					"mpoint-79",
-					"mpoint-97",
-					"mpoint-80"
+					"point-105",
+					"point-129",
+					"point-106"
 				]
 			},
 			{
-				"id": "mpoly-33",
+				"id": "poly-33",
 				"color": {
 					"h": 240.84507042253526,
 					"s": 48.29931972789116,
@@ -699,13 +724,13 @@ var Shapes = [
 					"a": 1
 				},
 				"points": [
-					"mpoint-97",
-					"mpoint-93",
-					"mpoint-80"
+					"point-129",
+					"point-124",
+					"point-106"
 				]
 			},
 			{
-				"id": "mpoly-34",
+				"id": "poly-34",
 				"color": {
 					"h": 256.74418604651163,
 					"s": 37.719298245614034,
@@ -713,9 +738,9 @@ var Shapes = [
 					"a": 1
 				},
 				"points": [
-					"mpoint-83",
-					"mpoint-84",
-					"mpoint-80"
+					"point-110",
+					"point-112",
+					"point-106"
 				]
 			}
 		]
