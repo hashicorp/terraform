@@ -99,6 +99,8 @@ body.page-sub #header .main-links.navbar-nav {
 }
 body.page-sub #header .main-links.navbar-nav li > a {
   color: black;
+  -webkit-transition: color 0.3s ease;
+  transition: color 0.3s ease;
 }
 body.page-sub #header .buttons.nav > li > a,
 body.page-sub #header .buttons.nav > li > a {
@@ -171,6 +173,8 @@ body.page-sub #header .main-links.nav > li > a:focus {
   text-transform: uppercase;
   letter-spacing: 3px;
   padding-left: 22px;
+  -webkit-transition: color 0.3s ease;
+  transition: color 0.3s ease;
 }
 #header .navbar-nav li.first > a {
   padding-left: 15px;
