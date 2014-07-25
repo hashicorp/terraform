@@ -23,7 +23,9 @@ resource "digitalocean_domain" "default" {
 The following arguments are supported:
 
 * `name` - (Required) The name of the domain
-* `ip_address` - (Required) The IP address of the domain
+* `ip_address` - (Required) The IP address of the domain. This IP
+   is used to created an initial A record for the domain. It is required
+   upstream by the DigitalOcean API.
 
 ## Attributes Reference
 
