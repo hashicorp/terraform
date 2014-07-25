@@ -248,9 +248,7 @@ func resource_digitalocean_droplet_diff(
 			"ipv4_address",
 			"ipv6",
 			"ipv6_address",
-			"locked",
 			"private_networking",
-			"status",
 		},
 	}
 
@@ -276,10 +274,8 @@ func resource_digitalocean_droplet_update_state(
 	}
 
 	s.Attributes["ipv4_address"] = droplet.IPV4Address()
-	s.Attributes["locked"] = droplet.IsLocked()
 	s.Attributes["private_networking"] = droplet.NetworkingType()
 	s.Attributes["size"] = droplet.SizeSlug()
-	s.Attributes["status"] = droplet.Status
 
 	return s, nil
 }
