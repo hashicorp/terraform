@@ -135,7 +135,6 @@ func resource_cloudflare_record_diff(
 			"priority",
 			"ttl",
 			"hostname",
-			"ttl",
 		},
 
 		ComputedAttrsUpdate: []string{},
