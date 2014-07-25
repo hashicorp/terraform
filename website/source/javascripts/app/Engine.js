@@ -89,7 +89,7 @@ Engine = Base.extend({
 		new Chainable()
 			.wait(2000)
 			.then(function(){
-				this.starGeneratorRate = 100;
+				this.starGeneratorRate = 200;
 			}, this)
 			.wait(2000)
 			.then(function(){
