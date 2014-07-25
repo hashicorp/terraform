@@ -378,6 +378,22 @@ aws_instance.two:
   ID = baz
 `
 
+const testTerraformPlanDiffVarStr = `
+DIFF:
+
+CREATE: aws_instance.bar
+  num:  "" => "3"
+  type: "" => "aws_instance"
+UPDATE: aws_instance.foo
+  num: "2" => "3"
+
+STATE:
+
+aws_instance.foo:
+  ID = bar
+  num = 2
+`
+
 const testTerraformPlanEmptyStr = `
 DIFF:
 

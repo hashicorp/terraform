@@ -1464,6 +1464,55 @@ func TestContextPlan_destroy(t *testing.T) {
 	}
 }
 
+func TestContextPlan_diffVar(t *testing.T) {
+	c := testConfig(t, "plan-diffvar")
+	p := testProvider("aws")
+	s := &State{
+		Resources: map[string]*ResourceState{
+			"aws_instance.foo": &ResourceState{
+				ID: "bar",
+				Attributes: map[string]string{
+					"num": "2",
+				},
+			},
+		},
+	}
+	ctx := testContext(t, &ContextOpts{
+		Config: c,
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+		State: s,
+	})
+
+	p.DiffFn = func(
+		s *ResourceState, c *ResourceConfig) (*ResourceDiff, error) {
+		if s.ID != "bar" {
+			return testDiffFn(s, c)
+		}
+
+		return &ResourceDiff{
+			Attributes: map[string]*ResourceAttrDiff{
+				"num": &ResourceAttrDiff{
+					Old: "2",
+					New: "3",
+				},
+			},
+		}, nil
+	}
+
+	plan, err := ctx.Plan(nil)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	actual := strings.TrimSpace(plan.String())
+	expected := strings.TrimSpace(testTerraformPlanDiffVarStr)
+	if actual != expected {
+		t.Fatalf("bad:\n%s", actual)
+	}
+}
+
 func TestContextPlan_hook(t *testing.T) {
 	c := testConfig(t, "plan-good")
 	h := new(MockHook)
