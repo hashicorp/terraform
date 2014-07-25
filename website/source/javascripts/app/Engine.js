@@ -5,6 +5,7 @@
 	Vector,
 	Logo,
 	Shapes,
+	Grid,
 	Chainable
 ){
 
@@ -35,6 +36,13 @@ Engine = Base.extend({
 	_deferredParticles: [],
 	_deferredShapes: [],
 
+	starGeneratorRate: 600,
+
+	mouse: {
+		x: -9999,
+		y: -9999
+	},
+
 	constructor: function(canvas, image){
 		if (typeof canvas === 'string') {
 			this.canvas = document.getElementById(canvas);
@@ -59,6 +67,9 @@ Engine = Base.extend({
 
 		this.start = this.last;
 
+		this._handleMouseCoords = this._handleMouseCoords.bind(this);
+		window.addEventListener('mousemove', this._handleMouseCoords, false);
+
 		this.render = this.render.bind(this);
 		this.render();
 
@@ -76,7 +87,15 @@ Engine = Base.extend({
 		image.style.opacity = 1;
 
 		new Chainable()
-			.wait(3000)
+			.wait(2000)
+			.then(function(){
+				this.starGeneratorRate = 100;
+			}, this)
+			.wait(2000)
+			.then(function(){
+				this.showGrid = true;
+			}, this)
+			.wait(2000)
 			.then(function(){
 				parent.className += ' state-one';
 			})
@@ -95,13 +114,16 @@ Engine = Base.extend({
 			.wait(100)
 			.then(function(){
 				this.showShapes = true;
+			}, this)
+			.wait(1000)
+			.then(function(){
 			}, this);
 	},
 
 	setupStarfield: function(){
 		this.particles = [];
-		this.generateParticles(50, true);
-		this.generateParticles(200);
+		// this.generateParticles(50, true);
+		this.generateParticles(1000);
 	},
 
 	setupTessellation: function(canvas){
@@ -113,6 +135,15 @@ Engine = Base.extend({
 			360,
 			Logo.Points,
 			Logo.Polygons
+		);
+
+		this.grid = new Engine.Shape.Puller(
+			-(this.width  / 2),
+			-(this.height / 2),
+			this.width,
+			this.height * 1.5,
+			Grid.points,
+			Grid.polygons
 		);
 	},
 
@@ -136,6 +167,11 @@ Engine = Base.extend({
 		this.tick = Math.min(this.now - this.last, 0.017);
 
 		this.renderStarfield(this.now);
+
+		if (this.showGrid) {
+			this.grid.update(this);
+			this.grid.draw(this.context, scale);
+		}
 
 		if (this.showShapes) {
 			this.renderTessellation(this.now);
@@ -250,7 +286,12 @@ Engine = Base.extend({
 			}
 		}
 
-		this.generateParticles(200 * this.tick >> 0);
+		this.generateParticles(this.starGeneratorRate * this.tick >> 0);
+	},
+
+	_handleMouseCoords: function(event){
+		this.mouse.x = event.pageX;
+		this.mouse.y = event.pageY;
 	}
 
 });
@@ -282,5 +323,6 @@ window.Engine = Engine;
 	window.Vector,
 	window.Logo,
 	window.Shapes,
+	window.Grid,
 	window.Chainable
 );

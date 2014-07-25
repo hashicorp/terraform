@@ -10,7 +10,8 @@ Engine.Particle = function(width, height){
 	this.pos   = new Vector(0, 0);
 
 	this.maxRadius = Engine.getRandomFloat(0.1, 2.5);
-	this.maxSpeed = Engine.getRandomFloat(0.01, 1000);
+	// this.maxSpeed = Engine.getRandomFloat(0.01, 1000);
+	this.maxSpeed = Engine.getRandomFloat(20, 1000);
 
 	// Pick a random target
 	side = Engine.getRandomInt(0, 3);

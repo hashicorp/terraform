@@ -84,8 +84,10 @@ Engine.Polygon.prototype = {
 			this.c.pos.y * scale >> 0
 		);
 		ctx.closePath();
-		ctx.fillStyle   = this.fillStyle;
-		ctx.fill();
+		if (!this.noFill) {
+			ctx.fillStyle   = this.fillStyle;
+			ctx.fill();
+		}
 		if (!this.simple) {
 			ctx.lineWidth = 0.25 * scale;
 			ctx.strokeStyle = this.strokeStyle;

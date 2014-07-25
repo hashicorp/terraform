@@ -126,6 +126,7 @@ body.page-sub #header .main-links.nav > li > a:focus {
   margin-bottom: 0;
 }
 #header.navbar-static-top {
+  height: 70px;
   -webkit-transform: translate3d(0, 0, 0);
   -moz-transform: translate3d(0, 0, 0);
   -ms-transform: translate3d(0, 0, 0);
@@ -579,9 +580,9 @@ body.page-home #footer {
   }
 }
 #jumbotron-mask {
-  overflow: hidden;
+  position: relative;
   height: 700px;
-  margin-top: -90px;
+  margin-top: -70px;
   background-color: black;
 }
 #jumbotron {
