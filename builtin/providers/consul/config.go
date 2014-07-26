@@ -24,7 +24,8 @@ func (c *Config) Client() (*consulapi.Client, error) {
 	}
 	client, err := consulapi.NewClient(config)
 
-	log.Printf("[INFO] Consul Client configured with: %#v", config)
+	log.Printf("[INFO] Consul Client configured with address: '%s', datacenter: '%s'",
+		config.Address, config.Datacenter)
 	if err != nil {
 		return nil, err
 	}
