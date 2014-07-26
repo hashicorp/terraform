@@ -249,6 +249,63 @@ func TestContextValidate_provisionerConfig_good(t *testing.T) {
 	}
 }
 
+func TestContextValidate_selfRef(t *testing.T) {
+	p := testProvider("aws")
+	config := testConfig(t, "validate-self-ref")
+	c := testContext(t, &ContextOpts{
+		Config: config,
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+	})
+
+	w, e := c.Validate()
+	if len(w) > 0 {
+		t.Fatalf("bad: %#v", w)
+	}
+	if len(e) == 0 {
+		t.Fatalf("bad: %#v", e)
+	}
+}
+
+func TestContextValidate_selfRefMulti(t *testing.T) {
+	p := testProvider("aws")
+	config := testConfig(t, "validate-self-ref-multi")
+	c := testContext(t, &ContextOpts{
+		Config: config,
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+	})
+
+	w, e := c.Validate()
+	if len(w) > 0 {
+		t.Fatalf("bad: %#v", w)
+	}
+	if len(e) == 0 {
+		t.Fatalf("bad: %#v", e)
+	}
+}
+
+func TestContextValidate_selfRefMultiAll(t *testing.T) {
+	p := testProvider("aws")
+	config := testConfig(t, "validate-self-ref-multi-all")
+	c := testContext(t, &ContextOpts{
+		Config: config,
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+	})
+
+	w, e := c.Validate()
+	if len(w) > 0 {
+		t.Fatalf("bad: %#v", w)
+	}
+	if len(e) == 0 {
+		t.Fatalf("bad: %#v", e)
+	}
+}
+
 func TestContextApply(t *testing.T) {
 	c := testConfig(t, "apply-good")
 	p := testProvider("aws")
