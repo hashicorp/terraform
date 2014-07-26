@@ -603,7 +603,6 @@ body.page-home #footer {
   left: 0;
   width: 100%;
   height: 100%;
-  /* background-color:#000; */
   opacity: 0;
   -webkit-transition: opacity 2s ease-out;
   -moz-transition: opacity 2s ease-out;
@@ -616,7 +615,7 @@ body.page-home #footer {
   -o-transform: translate3d(0, 0, 0);
   transform: translate3d(0, 0, 0);
 }
-#jumbotron .logo-container {
+#jumbotron .jumbotron-content {
   position: absolute;
   z-index: 999;
   top: 0;
@@ -624,8 +623,12 @@ body.page-home #footer {
   right: 0;
   bottom: 0;
   -webkit-transform: translate3d(0, 0, 0);
+  -moz-transform: translate3d(0, 0, 0);
+  -ms-transform: translate3d(0, 0, 0);
+  -o-transform: translate3d(0, 0, 0);
+  transform: translate3d(0, 0, 0);
 }
-#jumbotron #image {
+#jumbotron .galaxy-image {
   position: absolute;
   width: 100%;
   height: 100%;
@@ -646,6 +649,19 @@ body.page-home #footer {
   -o-transform: translate3d(0, 0, 0) scale(0.7);
   transform: translate3d(0, 0, 0) scale(0.7);
 }
+.tag-line {
+  position: absolute;
+  width: 100%;
+  top: 540px;
+  color: #fff;
+  text-align: center;
+  font-family: "Courier New", Monaco, Menlo, Consolas, monospace;
+  -webkit-transform: translate3d(0, 0, 0);
+  -moz-transform: translate3d(0, 0, 0);
+  -ms-transform: translate3d(0, 0, 0);
+  -o-transform: translate3d(0, 0, 0);
+  transform: translate3d(0, 0, 0);
+}
 .animated-logo {
   position: absolute;
   z-index: 200;
@@ -653,19 +669,47 @@ body.page-home #footer {
   left: 50%;
   width: 140px;
   height: 140px;
-  margin: -28px 0 0 -115px;
+  margin: -60px 0 0 -115px;
   opacity: 1;
   -webkit-transition: -webkit-transform 300ms ease-in-out;
+  -moz-transition: -moz-transform 300ms ease-in-out;
+  -ms-transition: -ms-transform 300ms ease-in-out;
+  -o-transition: -o-transform 300ms ease-in-out;
+  transition: transform 300ms ease-in-out;
   -webkit-transform-origin: 50% 50%;
+  -moz-transform-origin: 50% 50%;
+  -ms-transform-origin: 50% 50%;
+  -o-transform-origin: 50% 50%;
+  transform-origin: 50% 50%;
   -webkit-transform-style: preserve-3d;
+  -moz-transform-style: preserve-3d;
+  -ms-transform-style: preserve-3d;
+  -o-transform-style: preserve-3d;
+  transform-style: preserve-3d;
   -webkit-transform: translate3d(0, 0, 0) rotateY(0deg) skewY(0deg) scale(1, 1);
+  -moz-transform: translate3d(0, 0, 0) rotateY(0deg) skewY(0deg) scale(1, 1);
+  -ms-transform: translate3d(0, 0, 0) rotateY(0deg) skewY(0deg) scale(1, 1);
+  -o-transform: translate3d(0, 0, 0) rotateY(0deg) skewY(0deg) scale(1, 1);
+  transform: translate3d(0, 0, 0) rotateY(0deg) skewY(0deg) scale(1, 1);
 }
 .state-one .animated-logo {
   -webkit-transform: translate3d(0, 0, 0) rotateY(0deg) skewY(0deg) scale(1, 1);
+  -moz-transform: translate3d(0, 0, 0) rotateY(0deg) skewY(0deg) scale(1, 1);
+  -ms-transform: translate3d(0, 0, 0) rotateY(0deg) skewY(0deg) scale(1, 1);
+  -o-transform: translate3d(0, 0, 0) rotateY(0deg) skewY(0deg) scale(1, 1);
+  transform: translate3d(0, 0, 0) rotateY(0deg) skewY(0deg) scale(1, 1);
 }
 .state-one.state-two.state-three.state-four .animated-logo {
   -webkit-transform-origin: 100% 0;
+  -moz-transform-origin: 100% 0;
+  -ms-transform-origin: 100% 0;
+  -o-transform-origin: 100% 0;
+  transform-origin: 100% 0;
   -webkit-transform: translate3d(0, 10px, 0) rotateY(-45deg) skewY(22deg) scale(1.26, 1);
+  -moz-transform: translate3d(0, 10px, 0) rotateY(-45deg) skewY(22deg) scale(1.26, 1);
+  -ms-transform: translate3d(0, 10px, 0) rotateY(-45deg) skewY(22deg) scale(1.26, 1);
+  -o-transform: translate3d(0, 10px, 0) rotateY(-45deg) skewY(22deg) scale(1.26, 1);
+  transform: translate3d(0, 10px, 0) rotateY(-45deg) skewY(22deg) scale(1.26, 1);
 }
 .state-one.state-two.state-three.state-four .white-block {
   background-color: #ffffff;
@@ -682,77 +726,90 @@ body.page-home #footer {
   background-color: rgba(255, 255, 255, 0);
   border: 1px solid #fff;
   -webkit-transition: opacity 300ms ease-out, -webkit-transform 300ms ease-out, background-color 300ms ease-out;
+  -moz-transition: opacity 300ms ease-out, -moz-transform 300ms ease-out, background-color 300ms ease-out;
+  -ms-transition: opacity 300ms ease-out, -ms-transform 300ms ease-out, background-color 300ms ease-out;
+  -o-transition: opacity 300ms ease-out, -o-transform 300ms ease-out, background-color 300ms ease-out;
+  transition: opacity 300ms ease-out, transform 300ms ease-out, background-color 300ms ease-out;
 }
-.block-one,
-.block-two,
-.block-three,
-.block-four {
+.block-1,
+.block-2,
+.block-3,
+.block-4 {
   top: 0;
   left: 72px;
   -webkit-transform-origin: 50% 50%;
+  -moz-transform-origin: 50% 50%;
+  -ms-transform-origin: 50% 50%;
+  -o-transform-origin: 50% 50%;
+  transform-origin: 50% 50%;
   -webkit-transform: translate3d(0, 0, 0);
+  -moz-transform: translate3d(0, 0, 0);
+  -ms-transform: translate3d(0, 0, 0);
+  -o-transform: translate3d(0, 0, 0);
+  transform: translate3d(0, 0, 0);
 }
-.block-one {
+.block-1 {
   opacity: 0;
   -webkit-transform: translate3d(0, 0, 0) scale(0, 0);
+  -moz-transform: translate3d(0, 0, 0) scale(0, 0);
+  -ms-transform: translate3d(0, 0, 0) scale(0, 0);
+  -o-transform: translate3d(0, 0, 0) scale(0, 0);
+  transform: translate3d(0, 0, 0) scale(0, 0);
 }
-.block-two {
+.block-2 {
   opacity: 0;
   top: 0;
   left: 0;
   -webkit-transform: translate3d(0, 0, 0) scale(0, 0);
+  -moz-transform: translate3d(0, 0, 0) scale(0, 0);
+  -ms-transform: translate3d(0, 0, 0) scale(0, 0);
+  -o-transform: translate3d(0, 0, 0) scale(0, 0);
+  transform: translate3d(0, 0, 0) scale(0, 0);
 }
-.block-three {
+.block-3 {
   opacity: 0;
   top: 72px;
-  /* -webkit-transform:translate3d(0,-100px,0) scaleY(1); */
   -webkit-transform: translate3d(0, 0, 0) scale(0, 0);
+  -moz-transform: translate3d(0, 0, 0) scale(0, 0);
+  -ms-transform: translate3d(0, 0, 0) scale(0, 0);
+  -o-transform: translate3d(0, 0, 0) scale(0, 0);
+  transform: translate3d(0, 0, 0) scale(0, 0);
 }
-.block-four {
+.block-4 {
   -webkit-transform-origin: 0 0;
+  -moz-transform-origin: 0 0;
+  -ms-transform-origin: 0 0;
+  -o-transform-origin: 0 0;
+  transform-origin: 0 0;
   -webkit-transform: translate3d(72px, -2px, 0) rotateY(90deg) skewY(-22deg) scaleX(1.25);
+  -moz-transform: translate3d(72px, -2px, 0) rotateY(90deg) skewY(-22deg) scaleX(1.25);
+  -ms-transform: translate3d(72px, -2px, 0) rotateY(90deg) skewY(-22deg) scaleX(1.25);
+  -o-transform: translate3d(72px, -2px, 0) rotateY(90deg) skewY(-22deg) scaleX(1.25);
+  transform: translate3d(72px, -2px, 0) rotateY(90deg) skewY(-22deg) scaleX(1.25);
 }
-.state-one.state-two .block-one {
+.state-one.state-two .block-1 {
   opacity: 1;
   -webkit-transform: translate3d(0, 0, 0) scale(1, 1);
-  /* -webkit-animation:PopIn 300ms 1 ease-in; */
-  /* animation:PopIn 300ms 1 ease-in; */
+  -moz-transform: translate3d(0, 0, 0) scale(1, 1);
+  -ms-transform: translate3d(0, 0, 0) scale(1, 1);
+  -o-transform: translate3d(0, 0, 0) scale(1, 1);
+  transform: translate3d(0, 0, 0) scale(1, 1);
 }
-.state-one .block-two {
+.state-one .block-2 {
   opacity: 1;
   -webkit-transform: translate3d(0, 0, 0) scale(1, 1);
-  /* -webkit-animation:PopIn 300ms 1 ease-in; */
-  /* animation:PopIn 300ms 1 ease-in; */
+  -moz-transform: translate3d(0, 0, 0) scale(1, 1);
+  -ms-transform: translate3d(0, 0, 0) scale(1, 1);
+  -o-transform: translate3d(0, 0, 0) scale(1, 1);
+  transform: translate3d(0, 0, 0) scale(1, 1);
 }
-.state-one.state-two.state-three .block-three {
+.state-one.state-two.state-three .block-3 {
   opacity: 1;
   -webkit-transform: translate3d(0, 0, 0) scale(1, 1);
-  /* -webkit-animation:PopIn 300ms 1 ease-in; */
-  /* animation:PopIn 300ms 1 ease-in; */
-}
-@-webkit-keyframes PopIn {
-  0% {
-    opacity: 0;
-    -webkit-transform: translate3d(0, 0, 0) scale(0);
-    -webkit-animation-timing-function: ease-out;
-    animation-timing-function: ease-out;
-  }
-  40% {
-    opacity: 1;
-    -webkit-transform: translate3d(0, 0, 0) scale(1.2);
-    -webkit-animation-timing-function: ease-out;
-    animation-timing-function: ease-out;
-  }
-  70% {
-    opacity: 1;
-    -webkit-transform: translate3d(0, 0, 0) scale(0.9);
-    -webkit-animation-timing-function: ease-out;
-    animation-timing-function: ease-out;
-  }
-  100% {
-    opacity: 1;
-    -webkit-transform: translate3d(0, 0, 0) scale(1);
-  }
+  -moz-transform: translate3d(0, 0, 0) scale(1, 1);
+  -ms-transform: translate3d(0, 0, 0) scale(1, 1);
+  -o-transform: translate3d(0, 0, 0) scale(1, 1);
+  transform: translate3d(0, 0, 0) scale(1, 1);
 }
 .outline-btn {
   background-color: transparent;

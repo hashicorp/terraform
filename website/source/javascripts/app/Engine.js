@@ -44,19 +44,28 @@ Engine = Base.extend({
 		y: -9999
 	},
 
-	constructor: function(canvas, image){
-		if (typeof canvas === 'string') {
-			this.canvas = document.getElementById(canvas);
-		} else {
-			this.canvas = canvas;
-		}
+	constructor: function(canvas, background, tagLine){
+		this.canvas     = canvas;
+		this.background = background;
+		this.tagLine    = tagLine;
 
 		if (!this.canvas.getContext) {
-			return;
+			return null;
 		}
 
 		this.context = this.canvas.getContext('2d');
 
+		this.setupEvents();
+		this.setupStarfield();
+		this.setupTessellation();
+
+		this.last = Date.now() / 1000;
+		this.render = this.render.bind(this);
+
+		this.start();
+	},
+
+	setupEvents: function(){
 		this.resize = this.resize.bind(this);
 		this.resize();
 		window.addEventListener('resize', this.resize, false);
@@ -65,31 +74,22 @@ Engine = Base.extend({
 		this._handleScroll();
 		window.addEventListener('scroll', this._handleScroll, false);
 
-		this.setupStarfield();
-		this.setupTessellation();
-
-		this.last = Date.now() / 1000;
-
-		this.start = this.last;
-
 		this._handleMouseCoords = this._handleMouseCoords.bind(this);
 		window.addEventListener('mousemove', this._handleMouseCoords, false);
-
-		this.render = this.render.bind(this);
-		this.render();
-
-		this.canvas.style.opacity = 1;
-
-		this.cssAnimations(
-			document.getElementById(image)
-		);
 	},
 
-	cssAnimations: function(image){
+	start: function(){
 		var parent = this.canvas.parentNode;
 
-		image.style.webkitTransform = 'translate3d(0,0,0) scale(1)';
-		image.style.opacity = 1;
+		this.background.style.opacity = 1;
+
+		this.background.style.webkitTransform = 'translate3d(0,0,0) scale(1)';
+		this.background.style.mozTransform    = 'translate3d(0,0,0) scale(1)';
+		this.background.style.msTransform     = 'translate3d(0,0,0) scale(1)';
+		this.background.style.oTransform      = 'translate3d(0,0,0) scale(1)';
+		this.background.style.transform       = 'translate3d(0,0,0) scale(1)';
+
+		this.canvas.style.opacity = 1;
 
 		new Chainable()
 			.wait(1000)
@@ -123,6 +123,8 @@ Engine = Base.extend({
 			.wait(1000)
 			.then(function(){
 			}, this);
+
+		this.render();
 	},
 
 	setupStarfield: function(){
@@ -135,7 +137,7 @@ Engine = Base.extend({
 		this.shapes = [];
 		this.logo = new Engine.Shape(
 			-(180),
-			-(180),
+			-(220),
 			360,
 			360,
 			Logo.Points,
