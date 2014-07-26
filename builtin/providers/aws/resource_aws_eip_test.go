@@ -9,7 +9,7 @@ import (
 	"github.com/mitchellh/goamz/ec2"
 )
 
-func TestAccAWSEIP(t *testing.T) {
+func TestAccAWSEIP_normal(t *testing.T) {
 	var conf ec2.Address
 
 	resource.Test(t, resource.TestCase{
@@ -19,6 +19,33 @@ func TestAccAWSEIP(t *testing.T) {
 		Steps: []resource.TestStep{
 			resource.TestStep{
 				Config: testAccAWSEIPConfig,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSEIPExists("aws_eip.bar", &conf),
+					testAccCheckAWSEIPAttributes(&conf),
+				),
+			},
+		},
+	})
+}
+
+func TestAccAWSEIP_instance(t *testing.T) {
+	var conf ec2.Address
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSEIPDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccAWSEIPInstanceConfig,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSEIPExists("aws_eip.bar", &conf),
+					testAccCheckAWSEIPAttributes(&conf),
+				),
+			},
+
+			resource.TestStep{
+				Config: testAccAWSEIPInstanceConfig2,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSEIPExists("aws_eip.bar", &conf),
 					testAccCheckAWSEIPAttributes(&conf),
@@ -105,5 +132,29 @@ func testAccCheckAWSEIPExists(n string, res *ec2.Address) resource.TestCheckFunc
 
 const testAccAWSEIPConfig = `
 resource "aws_eip" "bar" {
+}
+`
+
+const testAccAWSEIPInstanceConfig = `
+resource "aws_instance" "foo" {
+	# us-west-2
+	ami = "ami-4fccb37f"
+	instance_type = "m1.small"
+}
+
+resource "aws_eip" "bar" {
+	instance = "${aws_instance.foo.id}"
+}
+`
+
+const testAccAWSEIPInstanceConfig2 = `
+resource "aws_instance" "bar" {
+	# us-west-2
+	ami = "ami-4fccb37f"
+	instance_type = "m1.small"
+}
+
+resource "aws_eip" "bar" {
+	instance = "${aws_instance.bar.id}"
 }
 `

@@ -51,6 +51,22 @@ func resource_aws_eip_create(
 
 	log.Printf("[INFO] EIP ID: %s (vpc: %v)", rs.ID, vpc)
 
+	return resource_aws_eip_update(rs, d, meta)
+}
+
+func resource_aws_eip_update(
+	s *terraform.ResourceState,
+	d *terraform.ResourceDiff,
+	meta interface{}) (*terraform.ResourceState, error) {
+	p := meta.(*ResourceProvider)
+	ec2conn := p.ec2conn
+
+	// Merge the diff into the state so that we have all the attributes
+	// properly.
+	rs := s.MergeDiff(d)
+
+	vpc := rs.Attributes["vpc"] == "true"
+
 	// If we have an instance to register, do it
 	instanceId := rs.Attributes["instance"]
 
@@ -60,6 +76,7 @@ func resource_aws_eip_create(
 			InstanceId: instanceId,
 			PublicIp:   rs.ID,
 		}
+
 		// more unique ID conditionals
 		if vpc {
 			assocOpts = ec2.AssociateAddress{
@@ -70,7 +87,6 @@ func resource_aws_eip_create(
 
 		log.Printf("[DEBUG] EIP associate configuration: %#v (vpc: %v)", assocOpts, vpc)
 		_, err := ec2conn.AssociateAddress(&assocOpts)
-
 		if err != nil {
 			return rs, fmt.Errorf("Failure associating instances: %s", err)
 		}
@@ -82,19 +98,6 @@ func resource_aws_eip_create(
 	}
 
 	return resource_aws_eip_update_state(rs, address)
-}
-
-func resource_aws_eip_update(
-	s *terraform.ResourceState,
-	d *terraform.ResourceDiff,
-	meta interface{}) (*terraform.ResourceState, error) {
-
-	rs := s.MergeDiff(d)
-	log.Printf("ResourceDiff: %s", d)
-	log.Printf("ResourceState: %s", s)
-	log.Printf("Merged: %s", rs)
-
-	return nil, fmt.Errorf("Did not update")
 }
 
 func resource_aws_eip_destroy(
