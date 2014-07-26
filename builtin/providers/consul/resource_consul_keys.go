@@ -36,6 +36,7 @@ func resource_consul_keys_create(
 	// Merge the diff into the state so that we have all the attributes
 	// properly.
 	rs := s.MergeDiff(d)
+	rs.ID = "consul"
 
 	// Check if the datacenter should be computed
 	dc := rs.Attributes["datacenter"]
@@ -51,30 +52,19 @@ func resource_consul_keys_create(
 	// Get the keys
 	keys, ok := flatmap.Expand(rs.Attributes, "key").([]interface{})
 	if !ok {
-		return s, fmt.Errorf("Failed to unroll keys")
+		return rs, fmt.Errorf("Failed to unroll keys")
 	}
 
 	kv := p.client.KV()
 	qOpts := consulapi.QueryOptions{Datacenter: dc}
 	wOpts := consulapi.WriteOptions{Datacenter: dc}
-	for _, raw := range keys {
-		sub := raw.(map[string]interface{})
-		if !ok {
-			return s, fmt.Errorf("Failed to unroll: %#v", raw)
+	for idx, raw := range keys {
+		key, path, sub, err := parse_key(raw)
+		if err != nil {
+			return rs, err
 		}
 
-		key, ok := sub["name"].(string)
-		if !ok {
-			return s, fmt.Errorf("Failed to expand key '%#v'", sub)
-		}
-
-		path, ok := sub["path"].(string)
-		if !ok {
-			return s, fmt.Errorf("Failed to get path for key '%s'", key)
-		}
-
-		valueRaw, shouldSet := sub["value"]
-		if shouldSet {
+		if valueRaw, shouldSet := sub["value"]; shouldSet {
 			value, ok := valueRaw.(string)
 			if !ok {
 				return rs, fmt.Errorf("Failed to get value for key '%s'", key)
@@ -86,39 +76,17 @@ func resource_consul_keys_create(
 				return rs, fmt.Errorf("Failed to set Consul key '%s': %v", path, err)
 			}
 			rs.Attributes[fmt.Sprintf("var.%s", key)] = value
+			rs.Attributes[fmt.Sprintf("key.%d.value", idx)] = value
+
 		} else {
 			log.Printf("[DEBUG] Getting key '%s' in %s", path, dc)
 			pair, _, err := kv.Get(path, &qOpts)
 			if err != nil {
 				return rs, fmt.Errorf("Failed to get Consul key '%s': %v", path, err)
 			}
-
-			// Check for a default value
-			var defaultVal string
-			setDefault := false
-			if raw, ok := sub["default"]; ok {
-				switch def := raw.(type) {
-				case string:
-					setDefault = true
-					defaultVal = def
-				case bool:
-					setDefault = true
-					defaultVal = strconv.FormatBool(def)
-				}
-			}
-
-			if pair == nil && setDefault {
-				rs.Attributes[fmt.Sprintf("var.%s", key)] = defaultVal
-			} else if pair == nil {
-				rs.Attributes[fmt.Sprintf("var.%s", key)] = ""
-			} else {
-				rs.Attributes[fmt.Sprintf("var.%s", key)] = string(pair.Value)
-			}
+			rs.Attributes[fmt.Sprintf("var.%s", key)] = attribute_value(sub, key, pair)
 		}
 	}
-
-	// Set an ID
-	rs.ID = "consul"
 	return rs, nil
 }
 
@@ -138,9 +106,9 @@ func resource_consul_keys_destroy(
 	dc := s.Attributes["datacenter"]
 	wOpts := consulapi.WriteOptions{Datacenter: dc}
 	for _, raw := range keys {
-		sub := raw.(map[string]interface{})
-		if !ok {
-			return fmt.Errorf("Failed to unroll: %#v", raw)
+		_, path, sub, err := parse_key(raw)
+		if err != nil {
+			return err
 		}
 
 		// Ignore if the key is non-managed
@@ -149,19 +117,8 @@ func resource_consul_keys_destroy(
 			continue
 		}
 
-		key, ok := sub["name"].(string)
-		if !ok {
-			return fmt.Errorf("Failed to expand key '%#v'", sub)
-		}
-
-		path, ok := sub["path"].(string)
-		if !ok {
-			return fmt.Errorf("Failed to get path for key '%s'", key)
-		}
-
 		log.Printf("[DEBUG] Deleting key '%s' in %s", path, dc)
-		_, err := kv.Delete(path, &wOpts)
-		if err != nil {
+		if _, err := kv.Delete(path, &wOpts); err != nil {
 			return fmt.Errorf("Failed to delete Consul key '%s': %v", path, err)
 		}
 	}
@@ -181,26 +138,18 @@ func resource_consul_keys_diff(
 	c *terraform.ResourceConfig,
 	meta interface{}) (*terraform.ResourceDiff, error) {
 
-	// Get the list of keys
+	// Determine the list of computed variables
 	var computed []string
 	keys, ok := flatmap.Expand(flatmap.Flatten(c.Config), "key").([]interface{})
 	if !ok {
 		goto AFTER
 	}
 	for _, sub := range keys {
-		subMap, ok := sub.(map[string]interface{})
-		if !ok {
+		key, _, _, err := parse_key(sub)
+		if err != nil {
 			continue
 		}
-		nameRaw, ok := subMap["name"]
-		if !ok {
-			continue
-		}
-		name, ok := nameRaw.(string)
-		if !ok {
-			continue
-		}
-		computed = append(computed, "var."+name)
+		computed = append(computed, "var."+key)
 	}
 
 AFTER:
@@ -230,20 +179,10 @@ func resource_consul_keys_refresh(
 	// Update each key
 	dc := s.Attributes["datacenter"]
 	opts := consulapi.QueryOptions{Datacenter: dc}
-	for _, raw := range keys {
-		sub := raw.(map[string]interface{})
-		if !ok {
-			return s, fmt.Errorf("Failed to unroll: %#v", raw)
-		}
-
-		key, ok := sub["name"].(string)
-		if !ok {
-			return s, fmt.Errorf("Failed to expand key '%#v'", sub)
-		}
-
-		path, ok := sub["path"].(string)
-		if !ok {
-			return s, fmt.Errorf("Failed to get path for key '%s'", key)
+	for idx, raw := range keys {
+		key, path, sub, err := parse_key(raw)
+		if err != nil {
+			return s, err
 		}
 
 		log.Printf("[DEBUG] Refreshing value of key '%s' in %s", path, dc)
@@ -252,29 +191,53 @@ func resource_consul_keys_refresh(
 			return s, fmt.Errorf("Failed to get value for path '%s' from Consul: %v", path, err)
 		}
 
-		// Check for a default value
-		var defaultVal string
-		setDefault := false
-		if raw, ok := sub["default"]; ok {
-			switch def := raw.(type) {
-			case string:
-				setDefault = true
-				defaultVal = def
-			case bool:
-				setDefault = true
-				defaultVal = strconv.FormatBool(def)
-			}
-		}
-
-		if pair == nil && setDefault {
-			s.Attributes[fmt.Sprintf("var.%s", key)] = defaultVal
-		} else if pair == nil {
-			s.Attributes[fmt.Sprintf("var.%s", key)] = ""
-		} else {
-			s.Attributes[fmt.Sprintf("var.%s", key)] = string(pair.Value)
+		setVal := attribute_value(sub, key, pair)
+		s.Attributes[fmt.Sprintf("var.%s", key)] = setVal
+		if _, ok := sub["value"]; ok {
+			s.Attributes[fmt.Sprintf("key.%d.value", idx)] = setVal
 		}
 	}
 	return s, nil
+}
+
+// parse_key is used to parse a key into a name, path, config or error
+func parse_key(raw interface{}) (string, string, map[string]interface{}, error) {
+	sub, ok := raw.(map[string]interface{})
+	if !ok {
+		return "", "", nil, fmt.Errorf("Failed to unroll: %#v", raw)
+	}
+
+	key, ok := sub["name"].(string)
+	if !ok {
+		return "", "", nil, fmt.Errorf("Failed to expand key '%#v'", sub)
+	}
+
+	path, ok := sub["path"].(string)
+	if !ok {
+		return "", "", nil, fmt.Errorf("Failed to get path for key '%s'", key)
+	}
+	return key, path, sub, nil
+}
+
+// attribute_value determienes the value for a key
+func attribute_value(sub map[string]interface{}, key string, pair *consulapi.KVPair) string {
+	// Use the value if given
+	if pair != nil {
+		return string(pair.Value)
+	}
+
+	// Use a default if given
+	if raw, ok := sub["default"]; ok {
+		switch def := raw.(type) {
+		case string:
+			return def
+		case bool:
+			return strconv.FormatBool(def)
+		}
+	}
+
+	// No value
+	return ""
 }
 
 // get_dc is used to get the datacenter of the local agent
