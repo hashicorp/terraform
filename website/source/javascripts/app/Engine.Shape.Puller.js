@@ -87,29 +87,37 @@ Engine.Shape.Puller.prototype = {
 			this.polygons[p].update(engine, this);
 		}
 
-		if (this.alpha < 0.2) {
-			this.alpha += 1 * engine.tick;
+		if (this.alpha < 1) {
+			this.alpha = Math.min(this.alpha + 2 * engine.tick, 1);
 		}
 
 		return this;
 	},
 
-	draw: function(ctx, scale){
+	draw: function(ctx, scale, engine){
 		var p;
 
-		ctx.save();
 		ctx.translate(
 			this.pos.x * scale >> 0,
 			this.pos.y * scale >> 0
 		);
+
+		if (this.alpha < 1) {
+			ctx.globalAlpha = this.alpha;
+		}
+
 		ctx.beginPath();
 		for (p = 0; p < this.polygons.length; p++) {
 			this.polygons[p].draw(ctx, scale);
 		}
 		ctx.closePath();
 		ctx.lineWidth = 1 * scale;
-		ctx.strokeStyle = 'rgba(108,0,243,' + this.alpha + ')';
+		ctx.strokeStyle = 'rgba(108,0,243,0.2)';
 		ctx.stroke();
+
+		if (this.alpha < 1) {
+			ctx.globalAlpha = 1;
+		}
 
 		for (p = 0; p < this.points.length; p++) {
 			this.points[p].draw(ctx, scale);
@@ -125,7 +133,11 @@ Engine.Shape.Puller.prototype = {
 		ctx.fillStyle = 'rgba(108,0,243,0.1)';
 		ctx.fill();
 
-		ctx.restore();
+		ctx.setTransform(1, 0, 0, 1, 0, 0);
+		ctx.translate(
+			engine.width  / 2 * engine.scale >> 0,
+			engine.height / 2 * engine.scale >> 0
+		);
 		return this;
 	}
 

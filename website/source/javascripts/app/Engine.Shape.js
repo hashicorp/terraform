@@ -68,10 +68,9 @@ Engine.Shape.prototype = {
 		return this;
 	},
 
-	draw: function(ctx, scale){
+	draw: function(ctx, scale, engine){
 		var p;
 
-		ctx.save();
 		ctx.translate(
 			this.pos.x * scale >> 0,
 			this.pos.y * scale >> 0
@@ -79,7 +78,11 @@ Engine.Shape.prototype = {
 		for (p = 0; p < this.polygons.length; p++) {
 			this.polygons[p].draw(ctx, scale, this.noStroke);
 		}
-		ctx.restore();
+		ctx.setTransform(1, 0, 0, 1, 0, 0);
+		ctx.translate(
+			engine.width  / 2 * engine.scale >> 0,
+			engine.height / 2 * engine.scale >> 0
+		);
 		return this;
 	}
 

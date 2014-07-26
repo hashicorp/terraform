@@ -164,7 +164,7 @@ Engine = Base.extend({
 		if (this.showGrid) {
 			this.grid
 				.update(this)
-				.draw(this.context, scale);
+				.draw(this.context, scale, this);
 		}
 
 		if (this.showShapes) {
@@ -182,12 +182,12 @@ Engine = Base.extend({
 		for (p = 0; p < this.shapes.length; p++)  {
 			this.shapes[p]
 				.update(this)
-				.draw(this.context, scale);
+				.draw(this.context, scale, this);
 		}
 
 		this.logo
 			.update(this)
-			.draw(this.context, scale);
+			.draw(this.context, scale, this);
 
 		// Remove destroyed shapes
 		for (p = 0; p < this._deferredShapes.length; p++) {
@@ -275,7 +275,7 @@ Engine = Base.extend({
 		for (p = 0; p < this.particles.length; p++) {
 			this.particles[p]
 				.update(this)
-				.draw(this.context, scale);
+				.draw(this.context, scale, this);
 		}
 
 		// Remove destroyed particles
