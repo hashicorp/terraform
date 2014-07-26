@@ -131,16 +131,6 @@ func resource_consul_keys_create(
 	return s, nil
 }
 
-// get_dc is used to get the datacenter of the local agent
-func get_dc(client *consulapi.Client) (string, error) {
-	info, err := client.Agent().Self()
-	if err != nil {
-		return "", fmt.Errorf("Failed to get datacenter from Consul agent: %v", err)
-	}
-	dc := info["Config"]["Datacenter"].(string)
-	return dc, nil
-}
-
 func resource_consul_keys_destroy(
 	s *terraform.ResourceState,
 	meta interface{}) error {
@@ -176,8 +166,64 @@ func resource_consul_keys_update(
 	s *terraform.ResourceState,
 	d *terraform.ResourceDiff,
 	meta interface{}) (*terraform.ResourceState, error) {
-	// TODO
-	panic("update not supported")
+	p := meta.(*ResourceProvider)
+
+	// Load the configuration
+	var config map[string]interface{}
+	for _, attr := range d.Attributes {
+		if attr.NewExtra != nil {
+			config = attr.NewExtra.(map[string]interface{})
+			break
+		}
+	}
+	if config == nil {
+		return s, fmt.Errorf("Missing configuration state")
+	}
+	dc, keys, err := partsFromConfig(config)
+	if err != nil {
+		return s, err
+	}
+
+	// Check if we are missing a datacenter
+	if dc == "" {
+		dc, err = get_dc(p.client)
+	}
+	s.Attributes["datacenter"] = dc
+
+	// Handle each of the updated keys
+	kv := p.client.KV()
+	qOpts := consulapi.QueryOptions{Datacenter: dc}
+	wOpts := consulapi.WriteOptions{Datacenter: dc}
+	for name := range d.Attributes {
+		if name == "datacenter" {
+			continue
+		}
+		conf := keys[name]
+		if conf.SetValue {
+			log.Printf("[DEBUG] Setting key '%s' to '%v' in %s", conf.Key, conf.Value, dc)
+			pair := consulapi.KVPair{Key: conf.Key, Value: []byte(conf.Value)}
+			if _, err := kv.Put(&pair, &wOpts); err != nil {
+				return s, fmt.Errorf("Failed to set Consul key '%s': %v", conf.Key, err)
+			}
+			s.Attributes[name] = conf.Value
+		} else {
+			log.Printf("[DEBUG] Getting key '%s' in %s", conf.Key, dc)
+			pair, _, err := kv.Get(conf.Key, &qOpts)
+			if err != nil {
+				return s, fmt.Errorf("Failed to get Consul key '%s': %v", conf.Key, err)
+			}
+			if pair == nil && conf.SetDefault {
+				s.Attributes[name] = conf.Default
+			} else if pair == nil {
+				s.Attributes[name] = ""
+			} else {
+				s.Attributes[name] = string(pair.Value)
+			}
+		}
+	}
+
+	// Update the config
+	s.Extra = config
 	return s, nil
 }
 
@@ -261,7 +307,6 @@ func resource_consul_keys_refresh(
 	meta interface{}) (*terraform.ResourceState, error) {
 	p := meta.(*ResourceProvider)
 	client := p.client
-	agent := client.Agent()
 	kv := client.KV()
 
 	// Restore our configuration
@@ -272,11 +317,10 @@ func resource_consul_keys_refresh(
 
 	// Check if we are missing a datacenter
 	if dc == "" {
-		info, err := agent.Self()
+		dc, err = get_dc(p.client)
 		if err != nil {
-			return s, fmt.Errorf("Failed to get datacenter from Consul agent: %v", err)
+			return s, err
 		}
-		dc = info["Config"]["Datacenter"].(string)
 	}
 
 	// Update the attributes
@@ -337,4 +381,14 @@ func partsFromConfig(raw map[string]interface{}) (string, consulKeys, error) {
 		keys[k] = key
 	}
 	return dc, keys, nil
+}
+
+// get_dc is used to get the datacenter of the local agent
+func get_dc(client *consulapi.Client) (string, error) {
+	info, err := client.Agent().Self()
+	if err != nil {
+		return "", fmt.Errorf("Failed to get datacenter from Consul agent: %v", err)
+	}
+	dc := info["Config"]["Datacenter"].(string)
+	return dc, nil
 }
