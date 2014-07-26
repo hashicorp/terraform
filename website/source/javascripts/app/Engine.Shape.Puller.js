@@ -83,10 +83,6 @@ Engine.Shape.Puller.prototype = {
 			this.points[p].update(engine);
 		}
 
-		for (p = 0; p < this.polygons.length; p++) {
-			this.polygons[p].update(engine, this);
-		}
-
 		if (this.alpha < 1) {
 			this.alpha = Math.min(this.alpha + 2 * engine.tick, 1);
 		}
@@ -95,7 +91,7 @@ Engine.Shape.Puller.prototype = {
 	},
 
 	draw: function(ctx, scale, engine){
-		var p;
+		var p, poly;
 
 		ctx.translate(
 			this.pos.x * scale >> 0,
@@ -108,10 +104,26 @@ Engine.Shape.Puller.prototype = {
 
 		ctx.beginPath();
 		for (p = 0; p < this.polygons.length; p++) {
-			this.polygons[p].draw(ctx, scale);
+			poly = this.polygons[p];
+			ctx.moveTo(
+				poly.a.pos.x * scale >> 0,
+				poly.a.pos.y * scale >> 0
+			);
+			ctx.lineTo(
+				poly.b.pos.x * scale >> 0,
+				poly.b.pos.y * scale >> 0
+			);
+			ctx.lineTo(
+				poly.c.pos.x * scale >> 0,
+				poly.c.pos.y * scale >> 0
+			);
+			ctx.lineTo(
+				poly.a.pos.x * scale >> 0,
+				poly.a.pos.y * scale >> 0
+			);
 		}
 		ctx.closePath();
-		ctx.lineWidth = 1 * scale;
+		ctx.lineWidth = 0.4 * scale;
 		ctx.strokeStyle = 'rgba(108,0,243,0.3)';
 		ctx.stroke();
 
@@ -126,7 +138,23 @@ Engine.Shape.Puller.prototype = {
 		ctx.beginPath();
 		for (p = 0; p < this.polygons.length; p++) {
 			if (this.polygons[p].checkChasing()) {
-				this.polygons[p].draw(ctx, scale);
+				poly = this.polygons[p];
+				ctx.moveTo(
+					poly.a.pos.x * scale >> 0,
+					poly.a.pos.y * scale >> 0
+				);
+				ctx.lineTo(
+					poly.b.pos.x * scale >> 0,
+					poly.b.pos.y * scale >> 0
+				);
+				ctx.lineTo(
+					poly.c.pos.x * scale >> 0,
+					poly.c.pos.y * scale >> 0
+				);
+				ctx.lineTo(
+					poly.a.pos.x * scale >> 0,
+					poly.a.pos.y * scale >> 0
+				);
 			}
 		}
 		ctx.closePath();

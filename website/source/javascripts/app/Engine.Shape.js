@@ -56,14 +56,33 @@ Engine.Shape.prototype = {
 	},
 
 	draw: function(ctx, scale, engine){
-		var p;
+		var p, poly;
 
 		ctx.translate(
 			this.pos.x * scale >> 0,
 			this.pos.y * scale >> 0
 		);
 		for (p = 0; p < this.polygons.length; p++) {
-			this.polygons[p].draw(ctx, scale, this.noStroke);
+			poly = this.polygons[p];
+			ctx.beginPath();
+			ctx.moveTo(
+				poly.a.pos.x * scale >> 0,
+				poly.a.pos.y * scale >> 0
+			);
+			ctx.lineTo(
+				poly.b.pos.x * scale >> 0,
+				poly.b.pos.y * scale >> 0
+			);
+			ctx.lineTo(
+				poly.c.pos.x * scale >> 0,
+				poly.c.pos.y * scale >> 0
+			);
+			ctx.closePath();
+			ctx.fillStyle   = poly.fillStyle;
+			ctx.fill();
+			ctx.lineWidth = 0.25 * scale;
+			ctx.strokeStyle = poly.strokeStyle;
+			ctx.stroke();
 		}
 		ctx.setTransform(1, 0, 0, 1, 0, 0);
 		ctx.translate(

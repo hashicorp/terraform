@@ -1,5 +1,3 @@
-/* jshint unused:false */
-/* global console */
 (function(
 	Base,
 	Vector,
@@ -62,6 +60,10 @@ Engine = Base.extend({
 		this.resize = this.resize.bind(this);
 		this.resize();
 		window.addEventListener('resize', this.resize, false);
+
+		this._handleScroll = this._handleScroll.bind(this);
+		this._handleScroll();
+		window.addEventListener('scroll', this._handleScroll, false);
 
 		this.setupStarfield();
 		this.setupTessellation();
@@ -151,7 +153,7 @@ Engine = Base.extend({
 			sum += this.ticks[s];
 		}
 
-		console.log('Average Tick Time:', sum / this.ticks.length);
+		window.console.log('Average Tick Time:', sum / this.ticks.length);
 	},
 
 	getLongestTick: function(){
@@ -164,18 +166,16 @@ Engine = Base.extend({
 			}
 		}
 
-		console.log('Max tick was:', max, 'at index:', index);
+		window.console.log('Max tick was:', max, 'at index:', index);
 	},
 
 	render: function(){
-		var scale = this.scale, tickStart;
+		var scale = this.scale;
 
-		if (window.scrollY > 700) {
+		if (this.scrollY > 700) {
 			window.requestAnimationFrame(this.render);
 			return;
 		}
-
-		tickStart = window.performance.now();
 
 		this.context.clearRect(
 			-(this.width  / 2) * scale,
@@ -204,8 +204,6 @@ Engine = Base.extend({
 		}
 
 		this.last = this.now;
-
-		this.ticks.push(window.performance.now() - tickStart);
 
 		window.requestAnimationFrame(this.render);
 	},
@@ -238,7 +236,7 @@ Engine = Base.extend({
 	},
 
 	generateRandomShape: function(){
-		var p, index, rando, halfWidth, halfHeight, iter,
+		var halfWidth, halfHeight, iter,
 			shape, shapeTemplate, columns, rows, modWidth, row, column,
 			xOffset, yOffset;
 
@@ -359,6 +357,10 @@ Engine = Base.extend({
 	_handleMouseCoords: function(event){
 		this.mouse.x = event.pageX;
 		this.mouse.y = event.pageY;
+	},
+
+	_handleScroll: function(){
+		this.scrollY = window.scrollY;
 	}
 
 });

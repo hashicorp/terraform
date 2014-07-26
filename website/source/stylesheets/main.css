@@ -592,10 +592,6 @@ body.page-home #footer {
   padding-bottom: 0;
   color: #ffffff;
 }
-#jumbotron .container {
-  position: relative;
-  height: 700px;
-}
 #jumbotron .terraform-canvas {
   position: absolute;
   top: 0;

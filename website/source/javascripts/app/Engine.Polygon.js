@@ -67,32 +67,6 @@ Engine.Polygon.prototype = {
 			this.strokeStyle = this.hslaTemplate.substitute(this.strokeColor);
 			this.fillStyle = this.hslaTemplate.substitute(this.color);
 		}
-	},
-
-	draw: function(ctx, scale){
-		ctx.beginPath();
-		ctx.moveTo(
-			this.a.pos.x * scale >> 0,
-			this.a.pos.y * scale >> 0
-		);
-		ctx.lineTo(
-			this.b.pos.x * scale >> 0,
-			this.b.pos.y * scale >> 0
-		);
-		ctx.lineTo(
-			this.c.pos.x * scale >> 0,
-			this.c.pos.y * scale >> 0
-		);
-		ctx.closePath();
-		if (!this.noFill) {
-			ctx.fillStyle   = this.fillStyle;
-			ctx.fill();
-		}
-		if (!this.simple) {
-			ctx.lineWidth = 0.25 * scale;
-			ctx.strokeStyle = this.strokeStyle;
-			ctx.stroke();
-		}
 	}
 
 };

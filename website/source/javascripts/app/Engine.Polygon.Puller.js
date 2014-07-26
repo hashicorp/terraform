@@ -22,28 +22,6 @@ Engine.Polygon.Puller.prototype = {
 			return true;
 		}
 		return false;
-	},
-
-	// Determine color fill?
-	update: function(engine){},
-
-	draw: function(ctx, scale){
-		ctx.moveTo(
-			this.a.pos.x * scale >> 0,
-			this.a.pos.y * scale >> 0
-		);
-		ctx.lineTo(
-			this.b.pos.x * scale >> 0,
-			this.b.pos.y * scale >> 0
-		);
-		ctx.lineTo(
-			this.c.pos.x * scale >> 0,
-			this.c.pos.y * scale >> 0
-		);
-		ctx.lineTo(
-			this.a.pos.x * scale >> 0,
-			this.a.pos.y * scale >> 0
-		);
 	}
 
 };
