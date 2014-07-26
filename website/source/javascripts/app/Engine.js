@@ -58,27 +58,12 @@ Engine = Base.extend({
 		this.setupEvents();
 		this.setupStarfield();
 		this.setupTessellation();
+		this.setupMisc();
 
-		this.last = Date.now() / 1000;
-		this.render = this.render.bind(this);
-
-		this.start();
+		this.startEngine();
 	},
 
-	setupEvents: function(){
-		this.resize = this.resize.bind(this);
-		this.resize();
-		window.addEventListener('resize', this.resize, false);
-
-		this._handleScroll = this._handleScroll.bind(this);
-		this._handleScroll();
-		window.addEventListener('scroll', this._handleScroll, false);
-
-		this._handleMouseCoords = this._handleMouseCoords.bind(this);
-		window.addEventListener('mousemove', this._handleMouseCoords, false);
-	},
-
-	start: function(){
+	startEngine: function(){
 		var parent = this.canvas.parentNode;
 
 		this.background.className += ' show';
@@ -88,10 +73,6 @@ Engine = Base.extend({
 			.wait(1000)
 			.then(function(){
 				this.starGeneratorRate = 200;
-			}, this)
-			.wait(1000)
-			.then(function(){
-				this.showGrid = true;
 			}, this)
 			.wait(2000)
 			.then(function(){
@@ -115,9 +96,35 @@ Engine = Base.extend({
 			}, this)
 			.wait(1000)
 			.then(function(){
+				this.showGrid = true;
+			}, this)
+			.wait(1000)
+			.then(function(){
+				this.typewriter.start();
 			}, this);
 
 		this.render();
+	},
+
+
+	setupMisc: function(){
+		this.last = Date.now() / 1000;
+		this.render = this.render.bind(this);
+
+		this.typewriter = new Engine.Typewriter(this.tagLine);
+	},
+
+	setupEvents: function(){
+		this.resize = this.resize.bind(this);
+		this.resize();
+		window.addEventListener('resize', this.resize, false);
+
+		this._handleScroll = this._handleScroll.bind(this);
+		this._handleScroll();
+		window.addEventListener('scroll', this._handleScroll, false);
+
+		this._handleMouseCoords = this._handleMouseCoords.bind(this);
+		window.addEventListener('mousemove', this._handleMouseCoords, false);
 	},
 
 	setupStarfield: function(){
@@ -242,6 +249,8 @@ Engine = Base.extend({
 				.update(this)
 				.draw(this.context, scale, this);
 		}
+
+		this.typewriter.update(this);
 
 		this.last = this.now;
 
