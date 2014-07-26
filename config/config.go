@@ -155,8 +155,14 @@ func (c *Config) Validate() error {
 	}
 	dupped = nil
 
-	// Make sure all dependsOn are valid in resources
+	// Validate resources
 	for n, r := range resources {
+		if r.Count < 1 {
+			errs = append(errs, fmt.Errorf(
+				"%s: count must be greater than or equal to 1",
+				n))
+		}
+
 		for _, d := range r.DependsOn {
 			if _, ok := resources[d]; !ok {
 				errs = append(errs, fmt.Errorf(
