@@ -22,12 +22,12 @@
 	<div class="container">
 		<div class="row">
 			<div class="col-lg-7 col-md-7 col-sm-12">
-				<h2 class="feature-t">Automatically build  infrastructure from code</h2>
+				<h2 class="feature-t">Automatically build infrastructure from code</h2>
 				<p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nam vestibulum nibh vitae quam dapibus, nec sodales dolor sodales. Class aptent taciti sociosqu ad litora.</p>
 			</div>
 			<div class="col-lg-5 col-md-5 col-sm-12">
-				<h3 class="terminal-text">$ terraform apply</h3>
-			</div>			
+				<h3 class="terminal-text">$ terraform plan</h3>
+			</div>
 		</div>
 	</div> <!-- /container -->
 </div> <!-- /feature -->
@@ -46,7 +46,7 @@
 			<div class="col-lg-7 col-md-7 col-sm-12">
 				<h2 class="feature-t">Iterate on infrastructure safely</h2>
 				<p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nam vestibulum nibh vitae quam dapibus, nec sodales dolor sodales. Class aptent taciti sociosqu ad litora.</p>
-			</div>			
+			</div>
 		</div>
 	</div> <!-- /container -->
 </div> <!-- /feature -->
@@ -57,7 +57,7 @@
 			<div class="col-lg-5 col-md-5 col-sm-12">
 				<h2 class="feature-t">Clone complete environments easily</h2>
 				<p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nam vestibulum nibh vitae quam dapibus, nec sodales dolor sodales. Class aptent taciti sociosqu ad litora.</p>
-			</div>		
+			</div>
 			<div class="col-md-push-1 col-lg-6 col-md-6 col-sm-12">
 				<div class="clone-icon f-icon">
 					<div class="c-group clearfix">
@@ -76,7 +76,7 @@
 						<div class="c-col c3">
 							<div class="c-block"></div>
 							<div class="c-block"></div>
-						</div>										
+						</div>
 					</div>
 
 					<div class="c-group cg2">
@@ -95,7 +95,7 @@
 						<div class="c-col c3">
 							<div class="c-block"></div>
 							<div class="c-block"></div>
-						</div>										
+						</div>
 					</div>
 
 					<div class="c-group cg3 clearfix">
@@ -114,10 +114,10 @@
 						<div class="c-col c3">
 							<div class="c-block"></div>
 							<div class="c-block"></div>
-						</div>										
-					</div>				
+						</div>
+					</div>
 				</div>
-			</div>				
+			</div>
 		</div>
 	</div> <!-- /container -->
 </div> <!-- /feature -->
@@ -137,31 +137,24 @@
 			<div class="terminal-item col-xs-12 col-lg-12">
 					<div class="terminal">
 						<header>
-							<h4>Terminal</h4>
-							<ul class='shell-dots'>
-								<li class="d1"></li>
-								<li class="d2"></li>
-								<li class="d3"></li>
-							</ul>
+							<h4>Example Configuration</h4>
 						</header>
 						<div class="terminal-window">
 							<div class="">
 								<div class="display">
-									<p class="command"><span class="txt-r">admin@hashicorp</span>: dig web-frontend.service.terraform. ANY</p>
-									<p>; &lt;&lt;&gt;&gt; DiG 9.8.3-P1 &lt;&lt;&gt;&gt; web-frontend.service.terraform. ANY</p>
-									<p>;; global options: +cmd</p>
-									<p> </p>
-									<p>;; Got answer:</p>
-									<p>;; -&gt;&gt;HEADER&lt;&lt;- opcode: QUERY, status: NOERROR, id: 29981</p>
-									<p>;; flags: qr aa rd ra; QUERY: 1, ANSWER: 2, AUTHORITY: 0, ADDITIONAL: 0</p>
-									<p> </p>
-									<p>;; QUESTION SECTION:</p>
-									<p>;web-frontend.service.terraform. IN	ANY</p>
-									<p> </p>
-									<p>;; ANSWER SECTION:</p>
-									<p>web-frontend.service.terraform. 0 IN	A	<span class="txt-p">10.0.3.83</span></p>
-									<p>web-frontend.service.terraform. 0 IN	A	<span class="txt-p">10.0.1.109</span></p>
-									<p class="command"><span class="txt-r">admin@hashicorp</span>: <span class="cursor">&nbsp;</span></p>
+								<p>resource "digitalocean_droplet" "web" {</p>
+								<p>    name = "baz"</p>
+								<p>    size = "512mb"</p>
+								<p>    image = "centos-5-8-x32"</p>
+								<p>    region = "sfo1"</p>
+								<p>}</p>
+								<p> </p>
+								<p>resource "dnsimple_record" "hello" {</p>
+								<p>    domain = "jack.ly"</p>
+								<p>    name = "hello"</p>
+								<p>    value = "${digitalocean_droplet.foobar.ipv4_address}"</p>
+								<p>    type = "A"</p>
+								<p>}</p>
 								</div>
 							</div>
 						</div>
@@ -179,29 +172,24 @@
 			<div class="terminal-item col-xs-12 col-lg-12">
 					<div class="terminal">
 						<header>
-							<h4>Terminal</h4>
-							<ul class='shell-dots'>
-								<li class="d1"></li>
-								<li class="d2"></li>
-								<li class="d3"></li>
-							</ul>
+							<h4>Example Configuration</h4>
 						</header>
 						<div class="terminal-window">
 							<div class="">
 								<div class="display">
-									<p class="command"><span class="txt-r">admin@hashicorp</span>: curl -X PUT -d 'bar' http://localhost:8500/v1/kv/foo</p>
-									<p>true</p>
-									<p class="command"><span class="txt-r">admin@hashicorp</span>: curl http://localhost:8500/v1/kv/foo</p>
-									<p>[</p>
-									<p>    {</p>
-									<p>       "CreateIndex": 100,</p>
-									<p>       "ModifyIndex": 200,</p>
-									<p>       "Key": "foo",</p>
-									<p>       "Flags": 0,</p>
-									<p>       "Value": <span class="txt-p">"YmFy"</span></p>
-									<p>    }</p>
-									<p>]</p>
-									<p class="command"><span class="txt-r">admin@hashicorp</span>: <span class="cursor">&nbsp;</span></p>
+								<p>resource "digitalocean_droplet" "web" {</p>
+								<p>    name = "baz"</p>
+								<p>    size = "512mb"</p>
+								<p>    image = "centos-5-8-x32"</p>
+								<p>    region = "sfo1"</p>
+								<p>}</p>
+								<p> </p>
+								<p>resource "dnsimple_record" "hello" {</p>
+								<p>    domain = "jack.ly"</p>
+								<p>    name = "hello"</p>
+								<p>    value = "${digitalocean_droplet.foobar.ipv4_address}"</p>
+								<p>    type = "A"</p>
+								<p>}</p>
 								</div>
 							</div>
 						</div>
