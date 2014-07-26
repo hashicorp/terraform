@@ -81,14 +81,7 @@ Engine = Base.extend({
 	start: function(){
 		var parent = this.canvas.parentNode;
 
-		this.background.style.opacity = 1;
-
-		this.background.style.webkitTransform = 'translate3d(0,0,0) scale(1)';
-		this.background.style.mozTransform    = 'translate3d(0,0,0) scale(1)';
-		this.background.style.msTransform     = 'translate3d(0,0,0) scale(1)';
-		this.background.style.oTransform      = 'translate3d(0,0,0) scale(1)';
-		this.background.style.transform       = 'translate3d(0,0,0) scale(1)';
-
+		this.background.className += ' show';
 		this.canvas.style.opacity = 1;
 
 		new Chainable()
