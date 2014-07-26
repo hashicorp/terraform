@@ -288,6 +288,31 @@ func TestApply_plan(t *testing.T) {
 	}
 }
 
+func TestApply_planVars(t *testing.T) {
+	planPath := testPlanFile(t, &terraform.Plan{
+		Config: new(config.Config),
+	})
+	statePath := testTempFile(t)
+
+	p := testProvider()
+	ui := new(cli.MockUi)
+	c := &ApplyCommand{
+		Meta: Meta{
+			ContextOpts: testCtxConfig(p),
+			Ui:          ui,
+		},
+	}
+
+	args := []string{
+		"-state", statePath,
+		"-var", "foo=bar",
+		planPath,
+	}
+	if code := c.Run(args); code == 0 {
+		t.Fatal("should've failed")
+	}
+}
+
 func TestApply_shutdown(t *testing.T) {
 	stopped := false
 	stopCh := make(chan struct{})

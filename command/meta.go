@@ -47,6 +47,14 @@ func (m *Meta) Context(path, statePath string, doPlan bool) (*terraform.Context,
 		plan, err := terraform.ReadPlan(f)
 		f.Close()
 		if err == nil {
+			if len(m.variables) > 0 {
+				return nil, fmt.Errorf(
+					"You can't set variables with the '-var' or '-var-file' flag\n" +
+						"when you're applying a plan file. The variables used when\n" +
+						"the plan was created will be used. If you wish to use different\n" +
+						"variable values, create a new plan file.")
+			}
+
 			return plan.Context(opts), nil
 		}
 	}
