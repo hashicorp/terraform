@@ -62,7 +62,7 @@ func testAccCheckConsulKeysValue(n, attr, val string) resource.TestCheckFunc {
 		if !ok {
 			return fmt.Errorf("Resource not found")
 		}
-		out, ok := rn.Attributes[attr]
+		out, ok := rn.Attributes["var."+attr]
 		if !ok {
 			return fmt.Errorf("Attribute '%s' not found: %#v", attr, rn.Attributes)
 		}
@@ -79,15 +79,18 @@ func testAccCheckConsulKeysValue(n, attr, val string) resource.TestCheckFunc {
 const testAccConsulKeysConfig = `
 resource "consul_keys" "app" {
 	datacenter = "nyc1"
-	time {
-		key = "global/time"
+	key {
+		name = "time"
+		path = "global/time"
 	}
-	enabled {
-		key = "test/enabled"
+	key {
+		name = "enabled"
+		path = "test/enabled"
 		default = "true"
 	}
-	set {
-		key = "test/set"
+	key {
+		name = "set"
+		path = "test/set"
 		value = "acceptance"
 		delete = true
 	}

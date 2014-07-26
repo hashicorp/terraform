@@ -25,12 +25,7 @@ func (p *ResourceProvider) Validate(c *terraform.ResourceConfig) ([]string, []er
 
 func (p *ResourceProvider) ValidateResource(
 	t string, c *terraform.ResourceConfig) ([]string, []error) {
-	switch t {
-	case "consul_keys":
-		return resource_consul_keys_validate(c)
-	default:
-		return resourceMap.Validate(t, c)
-	}
+	return resourceMap.Validate(t, c)
 }
 
 func (p *ResourceProvider) Configure(c *terraform.ResourceConfig) error {

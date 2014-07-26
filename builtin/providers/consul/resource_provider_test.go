@@ -13,7 +13,7 @@ var testAccProvider *ResourceProvider
 
 func init() {
 	testAccProvider = new(ResourceProvider)
-	testAccProvider.Config.Address = "demo.consul.io:80"
+	//testAccProvider.Config.Address = "demo.consul.io:80"
 	testAccProviders = map[string]terraform.ResourceProvider{
 		"consul": testAccProvider,
 	}
