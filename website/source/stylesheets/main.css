@@ -367,6 +367,11 @@ body.page-sub #header .main-links.nav > li > a:focus {
     line-height: 22px;
   }
 }
+@media (max-width: 763px) {
+  .navbar-static-top .nav-white {
+    background-color: rgba(0, 0, 0, 0.5);
+  }
+}
 @media (max-width: 320px) {
   #header .navbar-brand.logo {
     padding: 0 0 0 54px !important;
