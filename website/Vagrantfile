@@ -6,14 +6,28 @@ VAGRANTFILE_API_VERSION = "2"
 
 $script = <<SCRIPT
 sudo apt-get -y update
+
+# RVM/Ruby
 sudo apt-get -y install curl
 curl -sSL https://get.rvm.io | bash -s stable
 . ~/.bashrc
 . ~/.bash_profile
 rvm install 2.0.0
 rvm --default use 2.0.0
+
+# Middleman deps
 cd /vagrant
 bundle
+
+# JS stuff
+sudo apt-get install -y python-software-properties
+sudo add-apt-repository -y ppa:chris-lea/node.js
+sudo apt-get update -y
+sudo apt-get install -y nodejs
+
+# Get JS deps
+cd /vagrant/source
+npm install
 SCRIPT
 
 Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
