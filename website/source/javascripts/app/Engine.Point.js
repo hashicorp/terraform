@@ -1,7 +1,7 @@
 (function(
 	Engine,
 	Vector
-){
+){ 'use strict';
 
 Engine.Point = function(id, x, y, width, height){
 	this.id = id;
@@ -12,14 +12,6 @@ Engine.Point = function(id, x, y, width, height){
 	this.accel = Vector.coerce(this.accel);
 	this.vel = Vector.coerce(this.vel);
 
-	// this.pos.add({
-	//     x: (Engine.getRandomFloat(0, 6) - 3),
-	//     y: (Engine.getRandomFloat(0, 6) - 3)
-	// });
-
-	// Physics randomness
-	// this.stiffness = Engine.getRandomFloat(2, 5);
-	// this.stiffness = Engine.getRandomFloat(0.4, 0.8);
 	this.stiffness = Engine.getRandomFloat(3, 6);
 	this.friction  = Engine.getRandomFloat(0.15, 0.3);
 };
@@ -68,14 +60,16 @@ Engine.Point.prototype = {
 			Vector.mult(this.vel, engine.tick)
 		);
 
+		newAccel = null;
+
 		return this;
 	},
 
 	draw: function(ctx, scale){
 		ctx.beginPath();
 		ctx.arc(
-			this.pos.x * scale,
-			this.pos.y * scale,
+			this.pos.x  * scale,
+			this.pos.y  * scale,
 			this.radius * scale,
 			0,
 			Math.PI * 2,

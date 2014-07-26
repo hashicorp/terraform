@@ -112,7 +112,7 @@ Engine.Shape.Puller.prototype = {
 		}
 		ctx.closePath();
 		ctx.lineWidth = 1 * scale;
-		ctx.strokeStyle = 'rgba(108,0,243,0.2)';
+		ctx.strokeStyle = 'rgba(108,0,243,0.3)';
 		ctx.stroke();
 
 		if (this.alpha < 1) {

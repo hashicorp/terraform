@@ -96,7 +96,7 @@ Vector.div = function(vec, div){
 	return vec.clone().div(div);
 };
 
-	// Ripped from processing
+// Ripped from processing
 Vector.random2D = function(){
 	var angle = Math.random(0, 1) * Math.PI * 2;
 	return new Vector(Math.cos(angle), Math.sin(angle));

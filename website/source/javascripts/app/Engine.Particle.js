@@ -28,13 +28,8 @@ Engine.Particle = function(width, height){
 
 	this.maxDistance = this.distanceTo(this.target);
 
-	// this.fillA = 'rgba(136,67,237,' + Engine.getRandomFloat(0.7, 0.8) + ')';
-	// this.fillB = 'rgba(136,67,237,1)';
-	// this.fillA = '#651bb3';
-	// this.fillB = '#9027ff';
 	this.fillA = '#8750c2';
 	this.fillB = '#b976ff';
-	// b976ff
 	this.frameMax = Engine.getRandomInt(1, 5);
 };
 
@@ -99,6 +94,12 @@ Engine.Particle.prototype = {
 		if (this.frame > this.frameMax) {
 			this.frame = 0;
 			this.showA = !this.showA;
+		}
+
+		if (this.showA) {
+			engine.particlesA[engine.particlesA.length] = this;
+		} else {
+			engine.particlesB[engine.particlesB.length] = this;
 		}
 
 		return this;

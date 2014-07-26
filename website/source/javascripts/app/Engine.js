@@ -30,11 +30,14 @@ Engine = Base.extend({
 	scale: window.devicePixelRatio || 1,
 	// scale:1,
 
-	shapes    : [],
-	particles : [],
+	shapes     : [],
+	particles  : [],
+	particlesA : [],
+	particlesB : [],
 
 	_deferredParticles: [],
-	_deferredShapes: [],
+
+	ticks: [],
 
 	starGeneratorRate: 600,
 
@@ -140,18 +143,44 @@ Engine = Base.extend({
 		this.grid = new Engine.Shape.Puller(this.width, this.height, Grid);
 	},
 
+
+	getAverageTickTime: function(){
+		var sum = 0, s;
+
+		for (s = 0; s < this.ticks.length; s++) {
+			sum += this.ticks[s];
+		}
+
+		console.log('Average Tick Time:', sum / this.ticks.length);
+	},
+
+	getLongestTick: function(){
+		var max = 0, index, s;
+
+		for (s = 0; s < this.ticks.length; s++) {
+			if (this.ticks[s] > max) {
+				max = this.ticks[s];
+				index = s;
+			}
+		}
+
+		console.log('Max tick was:', max, 'at index:', index);
+	},
+
 	render: function(){
-		var scale = this.scale;
+		var scale = this.scale, tickStart;
 
 		if (window.scrollY > 700) {
 			window.requestAnimationFrame(this.render);
 			return;
 		}
 
+		tickStart = window.performance.now();
+
 		this.context.clearRect(
 			-(this.width  / 2) * scale,
 			-(this.height / 2) * scale,
-			this.width * scale,
+			this.width  * scale,
 			this.height * scale
 		);
 
@@ -168,10 +197,15 @@ Engine = Base.extend({
 		}
 
 		if (this.showShapes) {
-			this.renderTessellation(this.now);
+			// this.renderTessellation(this.now);
+			this.logo
+				.update(this)
+				.draw(this.context, scale, this);
 		}
 
 		this.last = this.now;
+
+		this.ticks.push(window.performance.now() - tickStart);
 
 		window.requestAnimationFrame(this.render);
 	},
@@ -269,14 +303,47 @@ Engine = Base.extend({
 	},
 
 	renderStarfield: function(){
-		var scale = this.scale, p, index;
+		var scale = this.scale, p, index, particle;
 
 		// Update all particles... may need to be optimized
 		for (p = 0; p < this.particles.length; p++) {
-			this.particles[p]
-				.update(this)
-				.draw(this.context, scale, this);
+			this.particles[p].update(this);
 		}
+
+		// Batch render particles based on color
+		// to prevent unneeded context state change
+		this.context.fillStyle = '#8750c2';
+		for (p = 0; p < this.particlesA.length; p++) {
+			particle = this.particlesA[p];
+
+			if (particle.radius < 0.25) {
+				continue;
+			}
+			this.context.fillRect(
+				particle.pos.x * scale >> 0,
+				particle.pos.y * scale >> 0,
+				particle.radius * scale,
+				particle.radius * scale
+			);
+		}
+
+		this.context.fillStyle = '#b976ff';
+		for (p = 0; p < this.particlesB.length; p++) {
+			particle = this.particlesB[p];
+
+			if (particle.radius < 0.25) {
+				continue;
+			}
+			this.context.fillRect(
+				particle.pos.x * scale >> 0,
+				particle.pos.y * scale >> 0,
+				particle.radius * scale,
+				particle.radius * scale
+			);
+		}
+
+		this.particlesA.length = 0;
+		this.particlesB.length = 0;
 
 		// Remove destroyed particles
 		for (p = 0; p < this._deferredParticles.length; p++) {

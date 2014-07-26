@@ -95,6 +95,8 @@ Engine.Point.Puller.prototype = {
 			this.pos = Vector.sub(this.home, toHome);
 		}
 
+		target = null;
+		toHome = null;
 		return this;
 	},
 
@@ -123,6 +125,10 @@ Engine.Point.Puller.prototype = {
 		steer = Vector.sub(desired, this.vel);
 		steer.limit(maxForce);
 		this.accel.add(steer);
+
+		target = null;
+		desired = null;
+		steer = null;
 	},
 
 	draw: function(ctx, scale){
