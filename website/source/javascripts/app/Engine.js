@@ -2,7 +2,6 @@
 	Base,
 	Vector,
 	Logo,
-	Shapes,
 	Grid,
 	Chainable
 ){
@@ -272,40 +271,6 @@ Engine = Base.extend({
 		}
 	},
 
-	generateRandomShape: function(){
-		var halfWidth, halfHeight, iter,
-			shape, shapeTemplate, columns, rows, modWidth, row, column,
-			xOffset, yOffset;
-
-		iter = 140;
-
-		rows = this.height / iter - 1;
-		modWidth = this.width % iter;
-		columns  = (this.width - modWidth) / iter - 1;
-
-		row    = Engine.getRandomInt(0, rows);
-		column = Engine.getRandomInt(0, columns);
-
-		halfWidth  = this.width  / 2;
-		halfHeight = this.height / 2;
-		shapeTemplate = Shapes[Engine.getRandomInt(0, Shapes.length - 1)];
-
-		xOffset = Engine.getRandomInt(-50, 50);
-		yOffset = Engine.getRandomInt(-50, 50);
-
-		shape = new Engine.Shape(
-			(iter / 2) + (column * iter) - (modWidth / 2) - halfWidth + xOffset - 25,
-			(iter / 2) + (row * iter) - halfHeight + yOffset - 25,
-			50,
-			50,
-			shapeTemplate.points,
-			shapeTemplate.polygons,
-			true
-		);
-		shape.selfDestruct(10);
-		this.shapes.push(shape);
-	},
-
 	resize: function(){
 		var scale = this.scale;
 
@@ -362,7 +327,6 @@ window.Engine = Engine;
 	window.Base,
 	window.Vector,
 	window.Logo,
-	window.Shapes,
 	window.Grid,
 	window.Chainable
 );
