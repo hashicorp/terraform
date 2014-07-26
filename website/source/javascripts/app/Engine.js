@@ -137,14 +137,7 @@ Engine = Base.extend({
 			Logo.Polygons
 		);
 
-		this.grid = new Engine.Shape.Puller(
-			-(this.width  / 2),
-			-(this.height / 2),
-			this.width,
-			this.height,
-			Grid.points,
-			Grid.polygons
-		);
+		this.grid = new Engine.Shape.Puller(this.width, this.height, Grid);
 	},
 
 	render: function(){

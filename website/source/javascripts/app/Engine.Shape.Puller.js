@@ -5,11 +5,13 @@
 	Vector
 ){
 
-Engine.Shape.Puller = function(x, y, width, height, points, polygons){
+Engine.Shape.Puller = function(width, height, json){
 	var i, ref, point, poly;
 
-	this.pos  = new Vector(x, y);
+	this.pos  = new Vector(0, 0);
 	this.size = new Vector(width, height);
+	this.heightRatio = json.data.width / json.data.height;
+	this.widthRatio  = json.data.ar;
 
 	this.resize(width, height, true);
 
@@ -17,19 +19,19 @@ Engine.Shape.Puller = function(x, y, width, height, points, polygons){
 	this.points = [];
 	this.polygons = [];
 
-	for (i = 0; i < points.length; i++) {
+	for (i = 0; i < json.points.length; i++) {
 		point = new Point(
-			points[i].id,
-			points[i].x,
-			points[i].y,
+			json.points[i].id,
+			json.points[i].x,
+			json.points[i].y,
 			this.size
 		);
 		ref[point.id] = point;
 		this.points.push(point);
 	}
 
-	for (i = 0; i < polygons.length; i++) {
-		poly = polygons[i];
+	for (i = 0; i < json.polygons.length; i++) {
+		poly = json.polygons[i];
 		this.polygons.push(new Polygon(
 			ref[poly.points[0]],
 			ref[poly.points[1]],
@@ -49,14 +51,21 @@ Engine.Shape.Puller.prototype = {
 	sizeOffset: 100,
 
 	resize: function(width, height, sizeOnly){
-		var halfOffset = this.sizeOffset / 2,
-			len, p;
+		var len, p, newWidth, newHeight;
 
-		this.size.x = width  + this.sizeOffset;
-		this.size.y = height + this.sizeOffset;
+		newHeight = height + this.sizeOffset;
+		newWidth  = this.size.y * this.heightRatio;
 
-		this.pos.x = -(width  / 2 + halfOffset);
-		this.pos.y = -(height / 2 + halfOffset);
+		if (newWidth < width) {
+			newWidth  = width    + this.sizeOffset;
+			newHeight = newWidth * this.widthRatio;
+		}
+
+		this.size.y = newHeight;
+		this.size.x = newWidth;
+
+		this.pos.x = -(newWidth  / 2);
+		this.pos.y = -(newHeight / 2);
 
 		if (sizeOnly) {
 			return this;
