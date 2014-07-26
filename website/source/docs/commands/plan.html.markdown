@@ -25,7 +25,10 @@ The command-line flags are all optional. The list of available flags are:
 
 * `-no-color` - Disables output with coloring.
 
-* `-out=path` - The path to save the generated execution plan.
+* `-out=path` - The path to save the generated execution plan. This plan
+  can then be used with `terraform apply` to be certain that only the
+  changes shown in this plan are applied. Read the warning on saved
+  plans below.
 
 * `-refresh=true` - Update the state prior to checking for differences.
 
@@ -38,3 +41,15 @@ The command-line flags are all optional. The list of available flags are:
    a file. If "terraform.tfvars" is present, it will be automatically
    loaded if this flag is not specified.
 
+## Security Warning
+
+Saved plan files (with the `-out` flag) encode the configuration,
+state, diff, and _variables_. Variables are often used to store secrets.
+Therefore, the plan file can potentially store secrets.
+
+Terraform itself does not encrypt the plan file. It is highly
+recommended to encrypt the plan file if you intend to transfer it
+or keep it at rest for an extended priod of time.
+
+Future versions of Terraform will make plan files more
+secure.
