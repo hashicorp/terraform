@@ -170,7 +170,7 @@ Engine = Base.extend({
 	},
 
 	render: function(){
-		var scale = this.scale;
+		var scale = this.scale, p, particle, index;
 
 		if (this.scrollY > 700) {
 			window.requestAnimationFrame(this.render);
@@ -187,121 +187,6 @@ Engine = Base.extend({
 		this.now = Date.now() / 1000;
 
 		this.tick = Math.min(this.now - this.last, 0.017);
-
-		this.renderStarfield(this.now);
-
-		if (this.showGrid) {
-			this.grid
-				.update(this)
-				.draw(this.context, scale, this);
-		}
-
-		if (this.showShapes) {
-			// this.renderTessellation(this.now);
-			this.logo
-				.update(this)
-				.draw(this.context, scale, this);
-		}
-
-		this.last = this.now;
-
-		window.requestAnimationFrame(this.render);
-	},
-
-	renderTessellation: function(){
-		var scale = this.scale, p, index;
-
-		for (p = 0; p < this.shapes.length; p++)  {
-			this.shapes[p]
-				.update(this)
-				.draw(this.context, scale, this);
-		}
-
-		this.logo
-			.update(this)
-			.draw(this.context, scale, this);
-
-		// Remove destroyed shapes
-		for (p = 0; p < this._deferredShapes.length; p++) {
-			index = this.shapes.indexOf(this._deferredShapes.pop());
-			if (index >= 0) {
-				this.shapes.splice(index, 1);
-			}
-		}
-
-		// 1 Per second? Maybe?
-		// if (Engine.getRandomFloat(0,100) < 1.6666) {
-		//     this.generateRandomShape();
-		// }
-	},
-
-	generateRandomShape: function(){
-		var halfWidth, halfHeight, iter,
-			shape, shapeTemplate, columns, rows, modWidth, row, column,
-			xOffset, yOffset;
-
-		iter = 140;
-
-		rows = this.height / iter - 1;
-		modWidth = this.width % iter;
-		columns  = (this.width - modWidth) / iter - 1;
-
-		row    = Engine.getRandomInt(0, rows);
-		column = Engine.getRandomInt(0, columns);
-
-		halfWidth  = this.width  / 2;
-		halfHeight = this.height / 2;
-		shapeTemplate = Shapes[Engine.getRandomInt(0, Shapes.length - 1)];
-
-		xOffset = Engine.getRandomInt(-50, 50);
-		yOffset = Engine.getRandomInt(-50, 50);
-
-		shape = new Engine.Shape(
-			(iter / 2) + (column * iter) - (modWidth / 2) - halfWidth + xOffset - 25,
-			(iter / 2) + (row * iter) - halfHeight + yOffset - 25,
-			50,
-			50,
-			shapeTemplate.points,
-			shapeTemplate.polygons,
-			true
-		);
-		shape.selfDestruct(10);
-		this.shapes.push(shape);
-	},
-
-	generateParticles: function(num, fixed){
-		var p;
-
-		for (p = 0; p < num; p++) {
-			if (fixed) {
-				this.particles.push(new Engine.Particle.Fixed(this.width, this.height));
-			} else {
-				this.particles.push(new Engine.Particle(this.width, this.height));
-			}
-		}
-	},
-
-	resize: function(){
-		var scale = this.scale;
-
-		this.width  = window.innerWidth;
-		this.height = 700;
-
-		this.canvas.width  = this.width  * scale;
-		this.canvas.height = this.height * scale;
-
-		this.context.translate(
-			this.width  / 2 * scale >> 0,
-			this.height / 2 * scale >> 0
-		);
-
-		if (this.grid) {
-			this.grid.resize(this.width, this.height);
-		}
-	},
-
-	renderStarfield: function(){
-		var scale = this.scale, p, index, particle;
 
 		// Update all particles... may need to be optimized
 		for (p = 0; p < this.particles.length; p++) {
@@ -351,7 +236,88 @@ Engine = Base.extend({
 			}
 		}
 
+		if (this.showGrid) {
+			this.grid
+				.update(this)
+				.draw(this.context, scale, this);
+		}
+
+		if (this.showShapes) {
+			this.logo
+				.update(this)
+				.draw(this.context, scale, this);
+		}
+
+		this.last = this.now;
+
 		this.generateParticles(this.starGeneratorRate * this.tick >> 0);
+
+		window.requestAnimationFrame(this.render);
+	},
+
+	generateParticles: function(num, fixed){
+		var p;
+
+		for (p = 0; p < num; p++) {
+			if (fixed) {
+				this.particles.push(new Engine.Particle.Fixed(this.width, this.height));
+			} else {
+				this.particles.push(new Engine.Particle(this.width, this.height));
+			}
+		}
+	},
+
+	generateRandomShape: function(){
+		var halfWidth, halfHeight, iter,
+			shape, shapeTemplate, columns, rows, modWidth, row, column,
+			xOffset, yOffset;
+
+		iter = 140;
+
+		rows = this.height / iter - 1;
+		modWidth = this.width % iter;
+		columns  = (this.width - modWidth) / iter - 1;
+
+		row    = Engine.getRandomInt(0, rows);
+		column = Engine.getRandomInt(0, columns);
+
+		halfWidth  = this.width  / 2;
+		halfHeight = this.height / 2;
+		shapeTemplate = Shapes[Engine.getRandomInt(0, Shapes.length - 1)];
+
+		xOffset = Engine.getRandomInt(-50, 50);
+		yOffset = Engine.getRandomInt(-50, 50);
+
+		shape = new Engine.Shape(
+			(iter / 2) + (column * iter) - (modWidth / 2) - halfWidth + xOffset - 25,
+			(iter / 2) + (row * iter) - halfHeight + yOffset - 25,
+			50,
+			50,
+			shapeTemplate.points,
+			shapeTemplate.polygons,
+			true
+		);
+		shape.selfDestruct(10);
+		this.shapes.push(shape);
+	},
+
+	resize: function(){
+		var scale = this.scale;
+
+		this.width  = window.innerWidth;
+		this.height = 700;
+
+		this.canvas.width  = this.width  * scale;
+		this.canvas.height = this.height * scale;
+
+		this.context.translate(
+			this.width  / 2 * scale >> 0,
+			this.height / 2 * scale >> 0
+		);
+
+		if (this.grid) {
+			this.grid.resize(this.width, this.height);
+		}
 	},
 
 	_handleMouseCoords: function(event){
