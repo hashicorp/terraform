@@ -28,7 +28,6 @@ func TestApply(t *testing.T) {
 	}
 
 	args := []string{
-		"-init",
 		"-state", statePath,
 		testFixturePath("apply"),
 	}
@@ -66,7 +65,6 @@ func TestApply_configInvalid(t *testing.T) {
 	}
 
 	args := []string{
-		"-init",
 		"-state", testTempFile(t),
 		testFixturePath("apply-config-invalid"),
 	}
@@ -102,7 +100,6 @@ func TestApply_defaultState(t *testing.T) {
 	}
 
 	args := []string{
-		"-init",
 		testFixturePath("apply"),
 	}
 	if code := c.Run(args); code != 0 {
@@ -168,7 +165,6 @@ func TestApply_error(t *testing.T) {
 	}
 
 	args := []string{
-		"-init",
 		"-state", statePath,
 		testFixturePath("apply-error"),
 	}
@@ -220,7 +216,6 @@ func TestApply_noArgs(t *testing.T) {
 	}
 
 	args := []string{
-		"-init",
 		"-state", statePath,
 	}
 	if code := c.Run(args); code != 0 {
@@ -373,7 +368,6 @@ func TestApply_shutdown(t *testing.T) {
 	}()
 
 	args := []string{
-		"-init",
 		"-state", statePath,
 		testFixturePath("apply-shutdown"),
 	}
@@ -516,7 +510,6 @@ func TestApply_vars(t *testing.T) {
 	}
 
 	args := []string{
-		"-init",
 		"-var", "foo=bar",
 		"-state", statePath,
 		testFixturePath("apply-vars"),
@@ -559,7 +552,6 @@ func TestApply_varFile(t *testing.T) {
 	}
 
 	args := []string{
-		"-init",
 		"-var-file", varFilePath,
 		"-state", statePath,
 		testFixturePath("apply-vars"),

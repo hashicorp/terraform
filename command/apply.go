@@ -19,13 +19,11 @@ type ApplyCommand struct {
 }
 
 func (c *ApplyCommand) Run(args []string) int {
-	var init bool
 	var statePath, stateOutPath string
 
 	args = c.Meta.process(args)
 
 	cmdFlags := c.Meta.flagSet("apply")
-	cmdFlags.BoolVar(&init, "init", false, "init")
 	cmdFlags.StringVar(&statePath, "state", DefaultStateFilename, "path")
 	cmdFlags.StringVar(&stateOutPath, "state-out", "", "path")
 	cmdFlags.Usage = func() { c.Ui.Error(c.Help()) }
@@ -59,15 +57,8 @@ func (c *ApplyCommand) Run(args []string) int {
 		stateOutPath = statePath
 	}
 
-	// The state path to use to generate a plan. If we're initializing
-	// a new infrastructure, then we don't use a state path.
-	planStatePath := statePath
-	if init {
-		planStatePath = ""
-	}
-
 	// Build the context based on the arguments given
-	ctx, err := c.Context(configPath, planStatePath, true)
+	ctx, err := c.Context(configPath, statePath, true)
 	if err != nil {
 		c.Ui.Error(err.Error())
 		return 1
@@ -191,11 +182,6 @@ Usage: terraform apply [options] [dir]
   files .
 
 Options:
-
-  -init                  If specified, new infrastructure can be built (no
-                         previous state). This is just a safety switch
-                         to prevent accidentally spinning up a new
-                         infrastructure.
 
   -no-color              If specified, output won't contain any color.
 

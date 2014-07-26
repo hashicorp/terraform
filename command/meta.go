@@ -59,26 +59,15 @@ func (m *Meta) Context(path, statePath string, doPlan bool) (*terraform.Context,
 		}
 	}
 
-	if statePath != "" {
-		if _, err := os.Stat(statePath); err != nil {
-			return nil, fmt.Errorf(
-				"There was an error reading the state file. The path\n"+
-					"and error are shown below. If you're trying to build a\n"+
-					"brand new infrastructure, explicitly pass the '-init'\n"+
-					"flag to Terraform to tell it it is okay to build new\n"+
-					"state.\n\n"+
-					"Path: %s\n"+
-					"Error: %s",
-				statePath,
-				err)
-		}
-	}
-
 	// Load up the state
 	var state *terraform.State
 	if statePath != "" {
 		f, err := os.Open(statePath)
-		if err == nil {
+		if err != nil && os.IsNotExist(err) {
+			// If the state file doesn't exist, it is okay, since it
+			// is probably a new infrastructure.
+			err = nil
+		} else if err == nil {
 			state, err = terraform.ReadState(f)
 			f.Close()
 		}
