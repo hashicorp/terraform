@@ -1388,7 +1388,7 @@ func TestContextPlan_countDecreaseToOne(t *testing.T) {
 	}
 }
 
-func TestContextPlan_countIncreaseFromOne(t *testing.T) {
+func TestContextPlan_countIncreaseFromNotSet(t *testing.T) {
 	c := testConfig(t, "plan-count-inc")
 	p := testProvider("aws")
 	p.DiffFn = testDiffFn
@@ -1419,6 +1419,42 @@ func TestContextPlan_countIncreaseFromOne(t *testing.T) {
 
 	actual := strings.TrimSpace(plan.String())
 	expected := strings.TrimSpace(testTerraformPlanCountIncreaseStr)
+	if actual != expected {
+		t.Fatalf("bad:\n%s", actual)
+	}
+}
+
+func TestContextPlan_countIncreaseFromOne(t *testing.T) {
+	c := testConfig(t, "plan-count-inc")
+	p := testProvider("aws")
+	p.DiffFn = testDiffFn
+	s := &State{
+		Resources: map[string]*ResourceState{
+			"aws_instance.foo.0": &ResourceState{
+				ID:   "bar",
+				Type: "aws_instance",
+				Attributes: map[string]string{
+					"foo":  "foo",
+					"type": "aws_instance",
+				},
+			},
+		},
+	}
+	ctx := testContext(t, &ContextOpts{
+		Config: c,
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+		State: s,
+	})
+
+	plan, err := ctx.Plan(nil)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	actual := strings.TrimSpace(plan.String())
+	expected := strings.TrimSpace(testTerraformPlanCountIncreaseFromOneStr)
 	if actual != expected {
 		t.Fatalf("bad:\n%s", actual)
 	}

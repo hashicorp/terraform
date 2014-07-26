@@ -364,6 +364,27 @@ aws_instance.foo:
   type = aws_instance
 `
 
+const testTerraformPlanCountIncreaseFromOneStr = `
+DIFF:
+
+CREATE: aws_instance.bar
+  foo:  "" => "bar"
+  type: "" => "aws_instance"
+CREATE: aws_instance.foo.1
+  foo:  "" => "foo"
+  type: "" => "aws_instance"
+CREATE: aws_instance.foo.2
+  foo:  "" => "foo"
+  type: "" => "aws_instance"
+
+STATE:
+
+aws_instance.foo.0:
+  ID = bar
+  foo = foo
+  type = aws_instance
+`
+
 const testTerraformPlanDestroyStr = `
 DIFF:
 
