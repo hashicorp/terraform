@@ -11,6 +11,8 @@ Engine.Shape.Puller = function(x, y, width, height, points, polygons){
 	this.pos  = new Vector(x, y);
 	this.size = new Vector(width, height);
 
+	this.resize(width, height, true);
+
 	ref = {};
 	this.points = [];
 	this.polygons = [];
@@ -18,8 +20,9 @@ Engine.Shape.Puller = function(x, y, width, height, points, polygons){
 	for (i = 0; i < points.length; i++) {
 		point = new Point(
 			points[i].id,
-			points[i].x * this.size.x,
-			points[i].y * this.size.y
+			points[i].x,
+			points[i].y,
+			this.size
 		);
 		ref[point.id] = point;
 		this.points.push(point);
@@ -43,6 +46,27 @@ Engine.Shape.Puller.prototype = {
 
 	alpha: 0,
 
+	sizeOffset: 100,
+
+	resize: function(width, height, sizeOnly){
+		var halfOffset = this.sizeOffset / 2,
+			len, p;
+
+		this.size.x = width  + this.sizeOffset;
+		this.size.y = height + this.sizeOffset;
+
+		this.pos.x = -(width  / 2 + halfOffset);
+		this.pos.y = -(height / 2 + halfOffset);
+
+		if (sizeOnly) {
+			return this;
+		}
+
+		for (p = 0, len = this.points.length; p < len; p++) {
+			this.points[p].resize();
+		}
+	},
+
 	update: function(engine){
 		var p;
 
@@ -51,7 +75,7 @@ Engine.Shape.Puller.prototype = {
 		}
 
 		for (p = 0; p < this.polygons.length; p++) {
-			this.polygons[p].update(engine);
+			this.polygons[p].update(engine, this);
 		}
 
 		if (this.alpha < 0.2) {

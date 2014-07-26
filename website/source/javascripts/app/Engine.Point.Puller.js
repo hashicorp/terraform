@@ -3,15 +3,23 @@
 	Vector
 ){
 
-Engine.Point.Puller = function(id, x, y){
+Engine.Point.Puller = function(id, x, y, shapeSize){
 	this.id = id;
-	this.pos.x = x;
-	this.pos.y = y;
 
-	this.pos = Vector.coerce(this.pos);
-	this.home = this.pos.clone();
+	this.shapeSize = shapeSize;
+
+	this.ref = {
+		x: x,
+		y: y
+	};
+
+	this.pos.x = x * shapeSize.x;
+	this.pos.y = y * shapeSize.y;
+
+	this.pos   = Vector.coerce(this.pos);
+	this.home  = this.pos.clone();
 	this.accel = Vector.coerce(this.accel);
-	this.vel = Vector.coerce(this.vel);
+	this.vel   = Vector.coerce(this.vel);
 };
 
 Engine.Point.Puller.prototype = {
@@ -44,11 +52,21 @@ Engine.Point.Puller.prototype = {
 
 	safety: 0.25,
 
+	resize: function(){
+		this.home.x = this.pos.x = this.ref.x * this.shapeSize.x;
+		this.home.y = this.pos.y = this.ref.y * this.shapeSize.y;
+
+		return this;
+	},
+
 	update: function(engine){
 		var target = Vector.coerce(engine.mouse),
-			distanceToMouse = this.distanceTo(target),
-			toHome, mag, safety;
-			// distanceToHome = this.distanceTo(this.home);
+			distanceToMouse, toHome, mag, safety;
+
+		target.x += (this.shapeSize.x - engine.width)  / 2;
+		target.y += (this.shapeSize.y - engine.height) / 2;
+
+		distanceToMouse = this.distanceTo(target);
 
 		this.accel.mult(0);
 
@@ -76,6 +94,8 @@ Engine.Point.Puller.prototype = {
 			toHome.mult(this.aRad - safety);
 			this.pos = Vector.sub(this.home, toHome);
 		}
+
+		return this;
 	},
 
 	toChase: function(target, maxForce){
@@ -113,6 +133,8 @@ Engine.Point.Puller.prototype = {
 			this.radius * scale,
 			this.radius * scale
 		);
+
+		return this;
 	},
 
 	distanceTo: function(target) {

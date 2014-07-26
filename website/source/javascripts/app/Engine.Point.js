@@ -67,6 +67,8 @@ Engine.Point.prototype = {
 		this.pos.add(
 			Vector.mult(this.vel, engine.tick)
 		);
+
+		return this;
 	},
 
 	draw: function(ctx, scale){
@@ -81,6 +83,7 @@ Engine.Point.prototype = {
 		);
 		ctx.fillStyle = '#ffffff';
 		ctx.fill();
+		return this;
 	}
 
 };

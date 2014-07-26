@@ -87,11 +87,11 @@ Engine = Base.extend({
 		image.style.opacity = 1;
 
 		new Chainable()
-			.wait(2000)
+			.wait(1000)
 			.then(function(){
 				this.starGeneratorRate = 200;
 			}, this)
-			.wait(2000)
+			.wait(1000)
 			.then(function(){
 				this.showGrid = true;
 			}, this)
@@ -123,7 +123,7 @@ Engine = Base.extend({
 	setupStarfield: function(){
 		this.particles = [];
 		// this.generateParticles(50, true);
-		this.generateParticles(1000);
+		this.generateParticles(400);
 	},
 
 	setupTessellation: function(canvas){
@@ -141,7 +141,7 @@ Engine = Base.extend({
 			-(this.width  / 2),
 			-(this.height / 2),
 			this.width,
-			this.height * 1.5,
+			this.height,
 			Grid.points,
 			Grid.polygons
 		);
@@ -169,8 +169,9 @@ Engine = Base.extend({
 		this.renderStarfield(this.now);
 
 		if (this.showGrid) {
-			this.grid.update(this);
-			this.grid.draw(this.context, scale);
+			this.grid
+				.update(this)
+				.draw(this.context, scale);
 		}
 
 		if (this.showShapes) {
@@ -186,12 +187,14 @@ Engine = Base.extend({
 		var scale = this.scale, p, index;
 
 		for (p = 0; p < this.shapes.length; p++)  {
-			this.shapes[p].update(this);
-			this.shapes[p].draw(this.context, scale);
+			this.shapes[p]
+				.update(this)
+				.draw(this.context, scale);
 		}
 
-		this.logo.update(this);
-		this.logo.draw(this.context, scale);
+		this.logo
+			.update(this)
+			.draw(this.context, scale);
 
 		// Remove destroyed shapes
 		for (p = 0; p < this._deferredShapes.length; p++) {
@@ -266,6 +269,10 @@ Engine = Base.extend({
 			this.width  / 2 * scale >> 0,
 			this.height / 2 * scale >> 0
 		);
+
+		if (this.grid) {
+			this.grid.resize(this.width, this.height);
+		}
 	},
 
 	renderStarfield: function(){
