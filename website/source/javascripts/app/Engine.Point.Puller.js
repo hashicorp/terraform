@@ -7,16 +7,13 @@ Engine.Point.Puller = function(id, x, y, shapeSize){
 	this.id = id;
 
 	this.shapeSize = shapeSize;
+	this.ref = new Vector(x, y);
 
-	this.ref = {
-		x: x,
-		y: y
-	};
+	this.pos = new Vector(
+		x * shapeSize.x,
+		y * shapeSize.y
+	);
 
-	this.pos.x = x * shapeSize.x;
-	this.pos.y = y * shapeSize.y;
-
-	this.pos   = Vector.coerce(this.pos);
 	this.home  = this.pos.clone();
 	this.accel = Vector.coerce(this.accel);
 	this.vel   = Vector.coerce(this.vel);

@@ -97,6 +97,7 @@ Engine = Base.extend({
 			.wait(1000)
 			.then(function(){
 				this.showGrid = true;
+				this.logo.startBreathing();
 			}, this)
 			.wait(1000)
 			.then(function(){
