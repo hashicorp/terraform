@@ -174,6 +174,10 @@ Engine = Base.extend({
 	render: function(){
 		var scale = this.scale, p, particle, index;
 
+		if (this.paused) {
+			return;
+		}
+
 		if (this.scrollY > 700) {
 			window.requestAnimationFrame(this.render);
 			return;
@@ -187,7 +191,6 @@ Engine = Base.extend({
 		);
 
 		this.now = Date.now() / 1000;
-
 		this.tick = Math.min(this.now - this.last, 0.017);
 
 		// Update all particles... may need to be optimized
@@ -297,6 +300,22 @@ Engine = Base.extend({
 
 	_handleScroll: function(){
 		this.scrollY = window.scrollY;
+	},
+
+	pause: function(){
+		this.paused = true;
+	},
+
+	resume: function(){
+		if (!this.paused) {
+			return;
+		}
+		this.paused = false;
+		this.render();
+	},
+
+	getSnapshot: function(){
+		window.open(this.canvas.toDataURL('image/png'));
 	}
 
 });

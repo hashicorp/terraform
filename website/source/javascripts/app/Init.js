@@ -2,6 +2,24 @@
 	Engine
 ){
 
+var isIE = (function(){
+
+	var undef,
+	v = 3,
+	div = document.createElement('div'),
+	all = div.getElementsByTagName('i');
+
+	while (
+		div.innerHTML = '<!--[if gt IE ' + (++v) + ']><i></i><![endif]-->',
+			all[0]
+	);
+
+	return v > 4 ? v : undef;
+
+}());
+
+// isIE = true;
+
 var Init = {
 
 	start: function(){
@@ -27,27 +45,42 @@ var Init = {
 		return container;
 	},
 
+	initializeEngine: function(){
+		var jumbotron = document.getElementById('jumbotron'),
+			content   = document.getElementById('jumbotron-content'),
+			tagLine   = document.getElementById('tag-line'),
+			canvas, galaxy;
+
+		if (!jumbotron) {
+			return;
+		}
+
+		galaxy = document.createElement('div');
+		galaxy.id = 'galaxy-bg';
+		galaxy.className = 'galaxy-bg';
+		jumbotron.appendChild(galaxy);
+
+		content.appendChild(
+			Init.generateAnimatedLogo()
+		);
+
+		canvas = document.createElement('canvas');
+		canvas.className = 'terraform-canvas';
+
+		jumbotron.appendChild(canvas);
+		window.engine = new Engine(canvas, galaxy, tagLine);
+	},
+
 	Pages: {
 		'page-home': function(){
-			var jumbotron = document.getElementById('jumbotron'),
-				content   = document.getElementById('jumbotron-content'),
-				galaxy    = document.getElementById('galaxy-bg'),
-				tagLine   = document.getElementById('tag-line'),
-				canvas;
-
-			if (!jumbotron) {
+			var jumbotron;
+			if (isIE) {
+				jumbotron = document.getElementById('jumbotron');
+				jumbotron.className += ' static';
 				return;
 			}
 
-			content.appendChild(
-				Init.generateAnimatedLogo()
-			);
-
-			canvas = document.createElement('canvas');
-			canvas.className = 'terraform-canvas';
-
-			jumbotron.appendChild(canvas);
-			window.engine = new Engine(canvas, galaxy, tagLine);
+			Init.initializeEngine();
 		}
 	}
 
