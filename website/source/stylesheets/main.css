@@ -149,7 +149,7 @@ body.page-sub #header .main-links.nav > li > a:focus {
   line-height: 56px;
   font-size: 24px;
   font-family: 'Lato', "Helvetica Neue", Helvetica, Arial, sans-serif;
-  font-weight: 100;
+  font-weight: 200;
   text-transform: uppercase;
   background: url(../images/consul-header-logo.png) 0 0 no-repeat;
   background-image: url("../images/header-logo.png");
@@ -695,7 +695,7 @@ body.page-home #footer {
 .feature {
   padding: 240px 0;
   font-family: 'Lato', "Helvetica Neue", Helvetica, Arial, sans-serif;
-  font-weight: 100;
+  font-weight: 200;
 }
 .feature h2 {
   text-align: right;
@@ -705,7 +705,7 @@ body.page-home #footer {
   text-transform: uppercase;
   color: #822ff7;
   font-family: 'Lato', "Helvetica Neue", Helvetica, Arial, sans-serif;
-  font-weight: 100;
+  font-weight: 200;
 }
 .feature p {
   font-size: 16px;
@@ -910,7 +910,7 @@ body.page-home #footer {
   letter-spacing: 3px;
   color: white;
   font-family: 'Lato', "Helvetica Neue", Helvetica, Arial, sans-serif;
-  font-weight: 100;
+  font-weight: 200;
 }
 #cta a:hover {
   text-decoration: none;
@@ -941,7 +941,7 @@ body.page-home #footer {
   font-size: 28px;
   color: #9148f8;
   font-family: 'Lato', "Helvetica Neue", Helvetica, Arial, sans-serif;
-  font-weight: 100;
+  font-weight: 200;
 }
 #demos .explantion p {
   margin-bottom: 0;
@@ -1453,7 +1453,7 @@ body.layout-intro > .container .col-md-8[role=main] > div {
   margin-bottom: 24px;
   border-bottom: 1px solid #eeeeee;
   font-family: 'Lato', "Helvetica Neue", Helvetica, Arial, sans-serif;
-  font-weight: 100;
+  font-weight: 200;
 }
 .bs-docs-section h2,
 .bs-docs-section h3,
