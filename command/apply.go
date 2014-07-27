@@ -160,7 +160,7 @@ func (c *ApplyCommand) Run(args []string) int {
 	}
 
 	// If we have outputs, then output those at the end.
-	if len(state.Outputs) > 0 {
+	if state != nil && len(state.Outputs) > 0 {
 		outputBuf := new(bytes.Buffer)
 		outputBuf.WriteString("[reset][bold][green]\nOutputs:\n\n")
 
