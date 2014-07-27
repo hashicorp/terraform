@@ -156,7 +156,7 @@ AFTER:
 			"datacenter": diff.AttrTypeCreate,
 			"key":        diff.AttrTypeUpdate,
 		},
-		ComputedAttrs: computed,
+		ComputedAttrsUpdate: computed,
 	}
 	return b.Diff(s, c)
 }
