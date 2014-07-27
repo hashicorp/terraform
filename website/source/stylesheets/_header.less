@@ -14,7 +14,7 @@ body.page-sub{
 
         .navbar-collapse{
             background-color: rgba(255, 255, 255, 0.98);
-        }        
+        }
 
         .nav-logo{
             height: 90px;
@@ -32,7 +32,7 @@ body.page-sub{
                 .transition( color 0.3s ease );
             }
         }
-        
+
         .buttons.nav > li > a, .buttons.nav > li > a {
             .transition( background-color 0.3s ease );
         }
@@ -40,17 +40,16 @@ body.page-sub{
         .buttons.nav > li > a:hover, .buttons.nav > li > a:focus {
             background-color: black;
             .transition( background-color 0.3s ease );
-        } 
+        }
 
         .main-links.nav > li > a:hover, .main-links.nav > li > a:focus {
             color: @purple;
             .transition( color 0.3s ease );
-        }              
+        }
     }
 }
 
 #header {
-    .anti-alias();
     position: relative;
     color: @white;
     text-rendering: optimizeLegibility;
@@ -86,7 +85,8 @@ body.page-sub{
             .lato-light();
             text-transform: uppercase;
             background: url(../images/consul-header-logo.png) 0 0 no-repeat;
-            .img-retina("../images/header-logo.png", "../images/header-logo@2x.png", 50px, 56px);            
+            .img-retina("../images/header-logo.png", "../images/header-logo@2x.png", 50px, 56px);
+            -webkit-font-smoothing: default;
         }
     }
 
@@ -134,7 +134,7 @@ body.page-sub{
             background-color: @purple;
             .skewY(24deg);
             padding-right: 0;
-        } 
+        }
 
         li > a {
             //border-bottom: 2px solid rgba(255, 255, 255, .2);
@@ -176,7 +176,7 @@ body.page-sub{
             padding-bottom: 4px;
             padding-left: 32px;
             padding-right: 12px;
-            letter-spacing: 0.05em;         
+            letter-spacing: 0.05em;
         }
     }
 }
@@ -210,9 +210,9 @@ body.page-sub{
                 padding: 0 0 0 4px;
             }
 
-        }        
+        }
     }
-} 
+}
 
 @media (min-width: 992px) {
 
@@ -238,7 +238,7 @@ body.page-sub{
                     background-color: @purple;
                     .skewY(24deg);
                     padding-right: 8px;
-                }  
+                }
             }
         }
     }
@@ -251,7 +251,7 @@ body.page-sub{
     body.page-home{
         .nav-logo{
             width: 30%;
-        }        
+        }
         .nav-white{
             margin-top: 8px;
             width: 70%;
@@ -261,8 +261,8 @@ body.page-sub{
                > a{
                     padding-right: 4px !important;
                     text-indent: -9999px;
-                    white-space: nowrap;  
-                }               
+                    white-space: nowrap;
+                }
             }
         }
     }
@@ -294,7 +294,7 @@ body.page-sub{
             }
         }
     }
-    
+
     #header{
         .buttons.navbar-nav{
             float: none !important;

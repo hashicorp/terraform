@@ -120,7 +120,6 @@ body.page-sub #header .main-links.nav > li > a:focus {
   transition: color 0.3s ease;
 }
 #header {
-  -webkit-font-smoothing: antialiased;
   position: relative;
   color: #ffffff;
   text-rendering: optimizeLegibility;
@@ -155,6 +154,7 @@ body.page-sub #header .main-links.nav > li > a:focus {
   background: url(../images/consul-header-logo.png) 0 0 no-repeat;
   background-image: url("../images/header-logo.png");
   background-size: 50px 56px;
+  -webkit-font-smoothing: default;
 }
 @media only screen and (-webkit-min-device-pixel-ratio: 2), only screen and (min--moz-device-pixel-ratio: 2), only screen and (-o-min-device-pixel-ratio: 2/1), only screen and (min-device-pixel-ratio: 2), only screen and (min-resolution: 192dpi), only screen and (min-resolution: 2dppx) {
   #header .navbar-brand.logo {
@@ -392,13 +392,15 @@ body.page-home #footer {
   padding: 140px 0 40px;
   color: black;
   background-color: white;
+}
+#footer .skew {
   -webkit-transform: skewY(-2deg);
   -moz-transform: skewY(-2deg);
   -ms-transform: skewY(-2deg);
   -o-transform: skewY(-2deg);
   transform: skewY(-2deg);
 }
-#footer > .container {
+#footer > .container.skew {
   -webkit-transform: skewY(2deg);
   -moz-transform: skewY(2deg);
   -ms-transform: skewY(2deg);

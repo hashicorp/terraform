@@ -10,14 +10,15 @@ body.page-home{
     }
 }
 
-
 #footer{
     padding: 140px 0 40px;
     color: black;
     background-color: white;
-    .skewY(-2deg);
+    .skew {
+        .skewY(-2deg);
+    }
 
-    >.container{
+    >.container.skew{
         .skewY(2deg);
     }
 
@@ -89,7 +90,7 @@ body.page-home{
             padding-bottom: 6px;
             padding-left: 40px;
         }
-    }  
+    }
 
     .footer-hashi{
         float: right;
@@ -111,9 +112,9 @@ body.page-home{
             i{
                 display: inline-block;
                 width: 37px;
-                height: 40px;   
+                height: 40px;
                 background: url(../images/footer-hashicorp-logo.png) 0 0 no-repeat;
-                .img-retina("../images/footer-hashicorp-logo.png", "../images/footer-hashicorp-logo@2x.png", 37px, 40px);              
+                .img-retina("../images/footer-hashicorp-logo.png", "../images/footer-hashicorp-logo@2x.png", 37px, 40px);
             }
         }
     }
@@ -143,10 +144,10 @@ body.page-home{
             .hashi-logo{
                 i{
                     background: url(../images/footer-hashicorp-white-logo.png) 0 0 no-repeat;
-                    .img-retina("../images/footer-hashicorp-white-logo.png", "../images/footer-hashicorp-white-logo@2x.png", 37px, 40px);                     
-                }            
+                    .img-retina("../images/footer-hashicorp-white-logo.png", "../images/footer-hashicorp-white-logo@2x.png", 37px, 40px);
+                }
             }
-        }        
+        }
     }
 }
 
@@ -162,13 +163,13 @@ body.page-home{
                     margin-top: -6px;
                     width: 20px;
                     height: 22px;
-                    background-size: 20px 22px;              
-                }                
+                    background-size: 20px 22px;
+                }
             }
         }
     }
 
-  
+
 }
 
 @media (max-width: 768px) {
