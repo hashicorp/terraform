@@ -2,6 +2,7 @@ package aws
 
 import (
 	"log"
+	"strings"
 	"time"
 
 	"github.com/hashicorp/terraform/helper/config"
@@ -95,6 +96,11 @@ func resource_aws_r53_zone_refresh(
 
 	_, err := r53.GetHostedZone(s.Attributes["zone_id"])
 	if err != nil {
+		// Handle a deleted zone
+		if strings.Contains(err.Error(), "404") {
+			s.ID = ""
+			return s, nil
+		}
 		return s, err
 	}
 	return s, nil
