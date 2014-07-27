@@ -18,7 +18,7 @@ to run commands on the resource.
 resource "aws_instance" "web" {
     ...
     provisioner "local-exec" {
-        command = "consul join ${aws_instance.web.private_ip}"
+        command = "cat ${aws_instance.web.private_ip} >> private_ips.txt"
     }
 }
 ```
