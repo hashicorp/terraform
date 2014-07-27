@@ -38,7 +38,7 @@ func (m *Meta) Colorize() *colorstring.Colorize {
 
 // Context returns a Terraform Context taking into account the context
 // options used to initialize this meta configuration.
-func (m *Meta) Context(path, statePath string, doPlan bool) (*terraform.Context, error) {
+func (m *Meta) Context(path, statePath string) (*terraform.Context, bool, error) {
 	opts := m.contextOpts()
 
 	// First try to just read the plan directly from the path given.
@@ -48,14 +48,14 @@ func (m *Meta) Context(path, statePath string, doPlan bool) (*terraform.Context,
 		f.Close()
 		if err == nil {
 			if len(m.variables) > 0 {
-				return nil, fmt.Errorf(
+				return nil, false, fmt.Errorf(
 					"You can't set variables with the '-var' or '-var-file' flag\n" +
 						"when you're applying a plan file. The variables used when\n" +
 						"the plan was created will be used. If you wish to use different\n" +
 						"variable values, create a new plan file.")
 			}
 
-			return plan.Context(opts), nil
+			return plan.Context(opts), true, nil
 		}
 	}
 
@@ -73,29 +73,22 @@ func (m *Meta) Context(path, statePath string, doPlan bool) (*terraform.Context,
 		}
 
 		if err != nil {
-			return nil, fmt.Errorf("Error loading state: %s", err)
+			return nil, false, fmt.Errorf("Error loading state: %s", err)
 		}
 	}
 
 	config, err := config.LoadDir(path)
 	if err != nil {
-		return nil, fmt.Errorf("Error loading config: %s", err)
+		return nil, false, fmt.Errorf("Error loading config: %s", err)
 	}
 	if err := config.Validate(); err != nil {
-		return nil, fmt.Errorf("Error validating config: %s", err)
+		return nil, false, fmt.Errorf("Error validating config: %s", err)
 	}
 
 	opts.Config = config
 	opts.State = state
 	ctx := terraform.NewContext(opts)
-
-	if doPlan {
-		if _, err := ctx.Plan(nil); err != nil {
-			return nil, fmt.Errorf("Error running plan: %s", err)
-		}
-	}
-
-	return ctx, nil
+	return ctx, false, nil
 
 }
 

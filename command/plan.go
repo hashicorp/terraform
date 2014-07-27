@@ -58,7 +58,7 @@ func (c *PlanCommand) Run(args []string) int {
 		}
 	}
 
-	ctx, err := c.Context(path, statePath, false)
+	ctx, _, err := c.Context(path, statePath)
 	if err != nil {
 		c.Ui.Error(err.Error())
 		return 1

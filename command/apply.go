@@ -58,13 +58,22 @@ func (c *ApplyCommand) Run(args []string) int {
 	}
 
 	// Build the context based on the arguments given
-	ctx, err := c.Context(configPath, statePath, true)
+	ctx, planned, err := c.Context(configPath, statePath)
 	if err != nil {
 		c.Ui.Error(err.Error())
 		return 1
 	}
 	if !validateContext(ctx, c.Ui) {
 		return 1
+	}
+
+	// Plan if we haven't already
+	if !planned {
+		if _, err := ctx.Plan(nil); err != nil {
+			c.Ui.Error(fmt.Sprintf(
+				"Error creating plan: %s", err))
+			return 1
+		}
 	}
 
 	// Start the apply in a goroutine so that we can be interrupted.
