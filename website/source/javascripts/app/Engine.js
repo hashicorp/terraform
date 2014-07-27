@@ -140,8 +140,8 @@ Engine = Base.extend({
 			-(220),
 			360,
 			360,
-			Logo.Points,
-			Logo.Polygons
+			Logo.points,
+			Logo.polygons
 		);
 
 		this.grid = new Engine.Shape.Puller(this.width, this.height, Grid);
