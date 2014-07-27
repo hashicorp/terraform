@@ -42,7 +42,10 @@ func FormatPlan(p *terraform.Plan, c *colorstring.Colorize) string {
 		// resource header.
 		color := "yellow"
 		symbol := "~"
-		if rdiff.RequiresNew() {
+		if rdiff.RequiresNew() && rdiff.Destroy {
+			color = "green"
+			symbol = "-/+"
+		} else if rdiff.RequiresNew() {
 			color = "green"
 			symbol = "+"
 		} else if rdiff.Destroy {
