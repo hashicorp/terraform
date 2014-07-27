@@ -308,6 +308,58 @@ func TestApply_planVars(t *testing.T) {
 	}
 }
 
+func TestApply_refresh(t *testing.T) {
+	originalState := &terraform.State{
+		Resources: map[string]*terraform.ResourceState{
+			"test_instance.foo": &terraform.ResourceState{
+				ID:   "bar",
+				Type: "test_instance",
+			},
+		},
+	}
+
+	statePath := testStateFile(t, originalState)
+
+	p := testProvider()
+	ui := new(cli.MockUi)
+	c := &ApplyCommand{
+		Meta: Meta{
+			ContextOpts: testCtxConfig(p),
+			Ui:          ui,
+		},
+	}
+
+	args := []string{
+		"-state", statePath,
+		testFixturePath("apply"),
+	}
+	if code := c.Run(args); code != 0 {
+		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
+	}
+
+	if !p.RefreshCalled {
+		t.Fatal("should call refresh")
+	}
+
+	if _, err := os.Stat(statePath); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	f, err := os.Open(statePath)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	defer f.Close()
+
+	state, err := terraform.ReadState(f)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if state == nil {
+		t.Fatal("state should not be nil")
+	}
+}
+
 func TestApply_shutdown(t *testing.T) {
 	stopped := false
 	stopCh := make(chan struct{})

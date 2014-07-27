@@ -19,11 +19,13 @@ type ApplyCommand struct {
 }
 
 func (c *ApplyCommand) Run(args []string) int {
+	var refresh bool
 	var statePath, stateOutPath string
 
 	args = c.Meta.process(args)
 
 	cmdFlags := c.Meta.flagSet("apply")
+	cmdFlags.BoolVar(&refresh, "refresh", true, "refresh")
 	cmdFlags.StringVar(&statePath, "state", DefaultStateFilename, "path")
 	cmdFlags.StringVar(&stateOutPath, "state-out", "", "path")
 	cmdFlags.Usage = func() { c.Ui.Error(c.Help()) }
@@ -69,6 +71,15 @@ func (c *ApplyCommand) Run(args []string) int {
 
 	// Plan if we haven't already
 	if !planned {
+		if refresh {
+			c.Ui.Output("Refreshing Terraform state prior to plan...\n")
+			if _, err := ctx.Refresh(); err != nil {
+				c.Ui.Error(fmt.Sprintf("Error refreshing state: %s", err))
+				return 1
+			}
+			c.Ui.Output("")
+		}
+
 		if _, err := ctx.Plan(nil); err != nil {
 			c.Ui.Error(fmt.Sprintf(
 				"Error creating plan: %s", err))
@@ -193,6 +204,9 @@ Usage: terraform apply [options] [dir]
 Options:
 
   -no-color              If specified, output won't contain any color.
+
+  -refresh=true          Update state prior to checking for differences. This
+                         has no effect if a plan file is given to apply.
 
   -state=path            Path to read and save state (unless state-out
                          is specified). Defaults to "terraform.tfstate".
