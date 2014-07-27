@@ -20,24 +20,24 @@ non-trivial applications quickly need many add-ons and external services.
 
 Terraform can be used to codify the setup required for a Heroku application, ensuring
 that all the required add-ons are available but it can go even further, configuring
-DNSimple to use an update CNAME, or setting up CloudFlare to act as a CDN for the
+DNSimple to set a CNAME, or setting up CloudFlare as a CDN for the
 app. Best of all, Terraform can do all of this without using a web interface in
 under 30 seconds.
 
 #### Multi-Tier Applications
 
 A very common pattern is the N-tier architecture. The most common 2-tier architecture is
-a pool of web servers that interface with a database tier. Extending this, additional
-tiers get added for API servers, caching servers, routing meshes, etc. This pattern is used
-because the tiers can be scaled indepedently and provide a seperation of concerns.
+a pool of web servers that use a database tier. Additional tiers get added for API servers,
+caching servers, routing meshes, etc. This pattern is used because the tiers can be scaled
+indepedently and provide a seperation of concerns.
 
 Terraform is an ideal tool for building and managing these infrastructures. Each tier can
 be described as a collection of resources, and the depedencies between each tier is handled
 automatically; Terraform will ensure the database tier is available before the web servers
 are started and that the load balancers are aware of the web nodes. Each tier can then be
 scaled easily using Terraform by modifying a single `count` configuration value. Because
-the creation and provisioning of a resource is codified and automated, it becomes trivial
-to build autoscaling systems to elastically scale with load.
+the creation and provisioning of a resource is codified and automated, elastically scaling
+with load becomes trivial.
 
 #### Self-Service Clusters
 
@@ -55,8 +55,8 @@ a tool to manage their services.
 
 Modern software is increasing networked and distributed. Although there exists
 tools like [Vagrant](http://www.vagrantup.com/) to build virtualized environments
-for demos, it is still very challenging to demo software on infrastructure providers
-which more closely match production environments or require a large number of nodes.
+for demos, it is still very challenging to demo software on real infrastructure
+which more closely match production environments.
 
 Sofware writers can provide a Terraform configuration to create, provision and
 bootstrap a demo on cloud providers like AWS. This allows end users to easily demo
@@ -88,7 +88,7 @@ Terraform can be used to codify the configuration for software defined networks.
 This configuration can then be used by Terraform to to automatically setup and modify
 settings by interfacing with the control layer. This allows configuration to be
 versioned and changes to be automated. As an example, [AWS VPC](http://aws.amazon.com/vpc/)
-is the largest deployments and commonly used SDN implementations, and [can be configured by
+is one of the most commonly used SDN implementations, and [can be configured by
 Terraform](/docs/providers/aws/r/vpc.html).
 
 #### Resource Schedulers

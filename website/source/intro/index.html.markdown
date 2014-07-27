@@ -55,7 +55,7 @@ The key features of Terraform are:
   as possible, and operators get insight into dependencies in their
   infrastructure.
 
-* **Change Automation**: Potentially complex changesets are applied to
+* **Change Automation**: Complex changesets can be applied to
   your infrastructure with minimal human interaction.
   With the previously mentioned execution
   plan and resource graph, you know exactly what Terraform will change
@@ -67,5 +67,5 @@ See the page on [Terraform use cases](/intro/use-cases.html) to see the
 multiple ways Terraform can be used. Then see
 [how Terraform compares to other software](/intro/vs/index.html)
 to see how it fits into your existing infrastructure. Finally, continue onwards with
-the [getting started guide](/intro/getting-started/install.html) to get
-Terraform managing some real infrastructure and to see how it works.
+the [getting started guide](/intro/getting-started/install.html) to use
+Terraform to manage real infrastructure and to see how it works.
