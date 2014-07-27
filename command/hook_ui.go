@@ -18,9 +18,20 @@ type UiHook struct {
 	Colorize *colorstring.Colorize
 	Ui       cli.Ui
 
-	once sync.Once
-	ui   cli.Ui
+	l         sync.Mutex
+	once      sync.Once
+	resources map[string]uiResourceOp
+	ui        cli.Ui
 }
+
+type uiResourceOp byte
+
+const (
+	uiResourceUnknown uiResourceOp = iota
+	uiResourceCreate
+	uiResourceModify
+	uiResourceDestroy
+)
 
 func (h *UiHook) PreApply(
 	id string,
@@ -28,11 +39,27 @@ func (h *UiHook) PreApply(
 	d *terraform.ResourceDiff) (terraform.HookAction, error) {
 	h.once.Do(h.init)
 
-	operation := "Modifying..."
+	op := uiResourceModify
 	if d.Destroy {
-		operation = "Destroying..."
+		op = uiResourceDestroy
 	} else if s.ID == "" {
+		op = uiResourceCreate
+	}
+
+	h.l.Lock()
+	h.resources[id] = op
+	h.l.Unlock()
+
+	var operation string
+	switch op {
+	case uiResourceModify:
+		operation = "Modifying..."
+	case uiResourceDestroy:
+		operation = "Destroying..."
+	case uiResourceCreate:
 		operation = "Creating..."
+	case uiResourceUnknown:
+		return terraform.HookActionContinue, nil
 	}
 
 	attrBuf := new(bytes.Buffer)
@@ -85,6 +112,38 @@ func (h *UiHook) PreApply(
 	return terraform.HookActionContinue, nil
 }
 
+func (h *UiHook) PostApply(
+	id string,
+	s *terraform.ResourceState,
+	applyerr error) (terraform.HookAction, error) {
+	h.l.Lock()
+	op := h.resources[id]
+	delete(h.resources, id)
+	h.l.Unlock()
+
+	var msg string
+	switch op {
+	case uiResourceModify:
+		msg = "Modifications complete"
+	case uiResourceDestroy:
+		msg = "Destruction complete"
+	case uiResourceCreate:
+		msg = "Creation complete"
+	case uiResourceUnknown:
+		return terraform.HookActionContinue, nil
+	}
+
+	if applyerr != nil {
+		msg = fmt.Sprintf("Error: %s", applyerr)
+	}
+
+	h.ui.Output(h.Colorize.Color(fmt.Sprintf(
+		"[reset][bold]%s: %s[reset_bold]",
+		id, msg)))
+
+	return terraform.HookActionContinue, nil
+}
+
 func (h *UiHook) PreDiff(
 	id string, s *terraform.ResourceState) (terraform.HookAction, error) {
 	return terraform.HookActionContinue, nil
@@ -95,7 +154,7 @@ func (h *UiHook) PreRefresh(
 	h.once.Do(h.init)
 
 	h.ui.Output(h.Colorize.Color(fmt.Sprintf(
-		"[reset][bold]%s: Refreshing (ID: %s)",
+		"[reset][bold]%s: Refreshing state... (ID: %s)",
 		id, s.ID)))
 	return terraform.HookActionContinue, nil
 }
@@ -104,6 +163,8 @@ func (h *UiHook) init() {
 	if h.Colorize == nil {
 		panic("colorize not given")
 	}
+
+	h.resources = make(map[string]uiResourceOp)
 
 	// Wrap the ui so that it is safe for concurrency regardless of the
 	// underlying reader/writer that is in place.
