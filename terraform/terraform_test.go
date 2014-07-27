@@ -166,6 +166,13 @@ aws_instance.foo:
   num = 2
 `
 
+const testTerraformApplyTaintStr = `
+aws_instance.bar:
+  ID = foo
+  num = 2
+  type = aws_instance
+`
+
 const testTerraformApplyOutputStr = `
 aws_instance.bar:
   ID = foo

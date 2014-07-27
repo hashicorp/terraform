@@ -171,6 +171,10 @@ type ResourceAttrDiff struct {
 	Type        DiffAttrType
 }
 
+func (d *ResourceAttrDiff) GoString() string {
+	return fmt.Sprintf("*%#v", *d)
+}
+
 // DiffAttrType is an enum type that says whether a resource attribute
 // diff is an input attribute (comes from the configuration) or an
 // output attribute (comes as a result of applying the configuration). An

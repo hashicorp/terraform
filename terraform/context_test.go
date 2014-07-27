@@ -1205,6 +1205,50 @@ func TestContextApply_outputMultiIndex(t *testing.T) {
 	}
 }
 
+func TestContextApply_taint(t *testing.T) {
+	c := testConfig(t, "apply-taint")
+	p := testProvider("aws")
+	p.ApplyFn = testApplyFn
+	p.DiffFn = testDiffFn
+	s := &State{
+		Resources: map[string]*ResourceState{
+			"aws_instance.bar": &ResourceState{
+				ID:   "baz",
+				Type: "aws_instance",
+				Attributes: map[string]string{
+					"num":  "2",
+					"type": "aws_instance",
+				},
+			},
+		},
+		Tainted: map[string]struct{}{
+			"aws_instance.bar": struct{}{},
+		},
+	}
+	ctx := testContext(t, &ContextOpts{
+		Config: c,
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+		State: s,
+	})
+
+	if _, err := ctx.Plan(nil); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	state, err := ctx.Apply()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	actual := strings.TrimSpace(state.String())
+	expected := strings.TrimSpace(testTerraformApplyTaintStr)
+	if actual != expected {
+		t.Fatalf("bad:\n%s", actual)
+	}
+}
+
 func TestContextApply_unknownAttribute(t *testing.T) {
 	c := testConfig(t, "apply-unknown")
 	p := testProvider("aws")

@@ -347,6 +347,15 @@ func graphAddDiff(g *depgraph.Graph, d *Diff) error {
 				Source: n,
 				Target: newN,
 			})
+
+			// If the resource is tainted, mark the state as nil so
+			// that a fresh create is done.
+			if rn.Resource.Tainted {
+				rn.Resource.State = &ResourceState{
+					Type: rn.Resource.State.Type,
+				}
+				rn.Resource.Tainted = false
+			}
 		}
 
 		rn.Resource.Diff = rd
