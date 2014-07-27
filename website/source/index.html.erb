@@ -22,11 +22,14 @@
 	<div class="container">
 		<div class="row">
 			<div class="col-lg-7 col-md-7 col-sm-12">
-				<h2 class="feature-t">Automatically build infrastructure from code</h2>
-				<p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nam vestibulum nibh vitae quam dapibus, nec sodales dolor sodales. Class aptent taciti sociosqu ad litora.</p>
+				<h2 class="feature-t">Build Infrastructure from code, automatically</h2>
+				<p>Terraform provides a common configuration to launch infrastructure &mdash;
+					from hosted database providers to VPS services and AWS.</p>
+				<p>Simple file based configuration gives you a single view
+					of your entire infrastructure.</p>
 			</div>
 			<div class="col-lg-5 col-md-5 col-sm-12">
-				<h3 class="terminal-text">$ terraform plan</h3>
+				<h3 class="terminal-text">$ terraform apply</h3>
 			</div>
 		</div>
 	</div> <!-- /container -->
@@ -44,8 +47,10 @@
 				</div>
 			</div>
 			<div class="col-lg-7 col-md-7 col-sm-12">
-				<h2 class="feature-t">Iterate on infrastructure safely</h2>
-				<p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nam vestibulum nibh vitae quam dapibus, nec sodales dolor sodales. Class aptent taciti sociosqu ad litora.</p>
+				<h2 class="feature-t">Combine Mulitple Providers</h2>
+				<p>Terraform allows you to effortlessly combine high level system
+					providers with your own or with each other. Built-in dependency resolution means
+					things happen in the right order &mdash; and it's all implied. </p>
 			</div>
 		</div>
 	</div> <!-- /container -->
@@ -55,8 +60,10 @@
 	<div class="container">
 		<div class="row">
 			<div class="col-lg-5 col-md-5 col-sm-12">
-				<h2 class="feature-t">Clone complete environments easily</h2>
-				<p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nam vestibulum nibh vitae quam dapibus, nec sodales dolor sodales. Class aptent taciti sociosqu ad litora.</p>
+				<h2 class="feature-t">Diff your Infrastructure</h2>
+				<p>Your common configuration can be stored in version control, shared
+					and distributed among your team. Updates, scaling and modifications
+					will be diffed first, so you can change with confidence.</p>
 			</div>
 			<div class="col-md-push-1 col-lg-6 col-md-6 col-sm-12">
 				<div class="clone-icon f-icon">
@@ -127,10 +134,11 @@
 		<div class="terminals row">
 
 			<div class="col-xs-12 col-lg-12 explantion">
-				<h2>DNS Query Interface</h2>
+				<h2>Combining Multiple Resources with Variables</h2>
 				<p>
-				Look up services using Terraform's built-in DNS server. Support
-				existing infrastructure without any code change.
+					Access attributes on other resources, even if they
+					are only available after the resource is created. Dependency
+					resolution knows what you need.
 				</p>
 			</div>
 
@@ -152,7 +160,7 @@
 								<p>resource "dnsimple_record" "hello" {</p>
 								<p>    domain = "jack.ly"</p>
 								<p>    name = "hello"</p>
-								<p>    value = "${digitalocean_droplet.foobar.ipv4_address}"</p>
+								<p>    value = "<span class="txt-r">${digitalocean_droplet.foobar.ipv4_address}</span>"</p>
 								<p>    type = "A"</p>
 								<p>}</p>
 								</div>
@@ -162,10 +170,11 @@
 			</div> <!-- /.terminal-item -->
 
 			<div class="col-xs-12 col-lg-12 explantion">
-				<h2>Key Value Storage</h2>
+				<h2>Fast, Simplified Interaction</h2>
 				<p>
-                Terraform provides a hierarchical key/value store with a simple HTTP API.
-                Managing configuration has never been simpler.
+					Say goodbye to complicated web consoles, loading bars, command line
+					clients and confusing documentation. Simple and intuitive configuration
+					makes even the most complicated services approachable.
 				</p>
 			</div>
 
@@ -177,18 +186,23 @@
 						<div class="terminal-window">
 							<div class="">
 								<div class="display">
-								<p>resource "digitalocean_droplet" "web" {</p>
-								<p>    name = "baz"</p>
-								<p>    size = "512mb"</p>
-								<p>    image = "centos-5-8-x32"</p>
-								<p>    region = "sfo1"</p>
+								<p>resource "aws_elb" "frontend" {</p>
+								<p>    name = "frontend-load-balancer"</p>
+								<p>    listener {</p>
+								<p>        instance_port = 8000</p>
+								<p>        instance_protocol = "http"</p>
+								<p>        lb_port = 80</p>
+								<p>        lb_protocol = "http"</p>
+								<p>    }</p>
+								<p> </p>
+								<p>    instances = ["${aws_instance.app.*.id}"]</p>
 								<p>}</p>
 								<p> </p>
-								<p>resource "dnsimple_record" "hello" {</p>
-								<p>    domain = "jack.ly"</p>
-								<p>    name = "hello"</p>
-								<p>    value = "${digitalocean_droplet.foobar.ipv4_address}"</p>
-								<p>    type = "A"</p>
+								<p>resource "aws_instance" "app" {</p>
+								<p>    count = 5</p>
+								<p> </p>
+								<p>    ami = "ami-043a5034"</p>
+								<p>    instance_type = "m1.small"</p>
 								<p>}</p>
 								</div>
 							</div>
