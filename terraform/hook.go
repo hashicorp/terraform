@@ -32,6 +32,12 @@ type Hook interface {
 	PreDiff(string, *ResourceState) (HookAction, error)
 	PostDiff(string, *ResourceDiff) (HookAction, error)
 
+	// Provisioning hooks
+	PreProvisionResource(string, *ResourceState) (HookAction, error)
+	PostProvisionResource(string, *ResourceState) (HookAction, error)
+	PreProvision(string, string) (HookAction, error)
+	PostProvision(string, string) (HookAction, error)
+
 	// PreRefresh and PostRefresh are called before and after a single
 	// resource state is refreshed, respectively.
 	PreRefresh(string, *ResourceState) (HookAction, error)
@@ -56,6 +62,22 @@ func (*NilHook) PreDiff(string, *ResourceState) (HookAction, error) {
 }
 
 func (*NilHook) PostDiff(string, *ResourceDiff) (HookAction, error) {
+	return HookActionContinue, nil
+}
+
+func (*NilHook) PreProvisionResource(string, *ResourceState) (HookAction, error) {
+	return HookActionContinue, nil
+}
+
+func (*NilHook) PostProvisionResource(string, *ResourceState) (HookAction, error) {
+	return HookActionContinue, nil
+}
+
+func (*NilHook) PreProvision(string, string) (HookAction, error) {
+	return HookActionContinue, nil
+}
+
+func (*NilHook) PostProvision(string, string) (HookAction, error) {
 	return HookActionContinue, nil
 }
 

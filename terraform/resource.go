@@ -15,6 +15,7 @@ import (
 // configuration instead of instantiating a new Provisioner for each
 // resource.
 type ResourceProvisionerConfig struct {
+	Type        string
 	Provisioner ResourceProvisioner
 	Config      *ResourceConfig
 	RawConfig   *config.RawConfig

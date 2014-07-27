@@ -29,6 +29,30 @@ type MockHook struct {
 	PostDiffReturn HookAction
 	PostDiffError  error
 
+	PreProvisionResourceCalled bool
+	PreProvisionResourceId     string
+	PreProvisionResourceState  *ResourceState
+	PreProvisionResourceReturn HookAction
+	PreProvisionResourceError  error
+
+	PostProvisionResourceCalled bool
+	PostProvisionResourceId     string
+	PostProvisionResourceState  *ResourceState
+	PostProvisionResourceReturn HookAction
+	PostProvisionResourceError  error
+
+	PreProvisionCalled        bool
+	PreProvisionId            string
+	PreProvisionProvisionerId string
+	PreProvisionReturn        HookAction
+	PreProvisionError         error
+
+	PostProvisionCalled        bool
+	PostProvisionId            string
+	PostProvisionProvisionerId string
+	PostProvisionReturn        HookAction
+	PostProvisionError         error
+
 	PostRefreshCalled bool
 	PostRefreshId     string
 	PostRefreshState  *ResourceState
@@ -70,6 +94,34 @@ func (h *MockHook) PostDiff(n string, d *ResourceDiff) (HookAction, error) {
 	h.PostDiffId = n
 	h.PostDiffDiff = d
 	return h.PostDiffReturn, h.PostDiffError
+}
+
+func (h *MockHook) PreProvisionResource(id string, s *ResourceState) (HookAction, error) {
+	h.PreProvisionResourceCalled = true
+	h.PreProvisionResourceId = id
+	h.PreProvisionResourceState = s
+	return h.PreProvisionResourceReturn, h.PreProvisionResourceError
+}
+
+func (h *MockHook) PostProvisionResource(id string, s *ResourceState) (HookAction, error) {
+	h.PostProvisionResourceCalled = true
+	h.PostProvisionResourceId = id
+	h.PostProvisionResourceState = s
+	return h.PostProvisionResourceReturn, h.PostProvisionResourceError
+}
+
+func (h *MockHook) PreProvision(id, provId string) (HookAction, error) {
+	h.PreProvisionCalled = true
+	h.PreProvisionId = id
+	h.PreProvisionProvisionerId = provId
+	return h.PreProvisionReturn, h.PreProvisionError
+}
+
+func (h *MockHook) PostProvision(id, provId string) (HookAction, error) {
+	h.PostProvisionCalled = true
+	h.PostProvisionId = id
+	h.PostProvisionProvisionerId = provId
+	return h.PostProvisionReturn, h.PostProvisionError
 }
 
 func (h *MockHook) PreRefresh(n string, s *ResourceState) (HookAction, error) {

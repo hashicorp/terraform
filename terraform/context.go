@@ -574,6 +574,11 @@ func (c *Context) applyWalkFn() depgraph.WalkFunc {
 			delete(c.state.Tainted, r.Id)
 		} else {
 			c.state.Resources[r.Id] = rs
+
+			// We always mark the resource as tainted here in case a
+			// hook below during provisioning does HookActionStop. This
+			// way, we keep the resource tainted.
+			c.state.Tainted[r.Id] = struct{}{}
 		}
 		c.sl.Unlock()
 
@@ -585,19 +590,28 @@ func (c *Context) applyWalkFn() depgraph.WalkFunc {
 		// was an error during the provider apply.
 		tainted := false
 		if applyerr == nil && r.State.ID == "" && len(r.Provisioners) > 0 {
+			for _, h := range c.hooks {
+				handleHook(h.PreProvisionResource(r.Id, r.State))
+			}
+
 			if err := c.applyProvisioners(r, rs); err != nil {
 				errs = append(errs, err)
 				tainted = true
 			}
+
+			for _, h := range c.hooks {
+				handleHook(h.PostProvisionResource(r.Id, r.State))
+			}
 		}
 
+		c.sl.Lock()
 		if tainted {
 			log.Printf("[DEBUG] %s: Marking as tainted", r.Id)
-
-			c.sl.Lock()
 			c.state.Tainted[r.Id] = struct{}{}
-			c.sl.Unlock()
+		} else {
+			delete(c.state.Tainted, r.Id)
 		}
+		c.sl.Unlock()
 
 		// Update the state for the resource itself
 		r.State = rs
@@ -671,8 +685,16 @@ func (c *Context) applyProvisioners(r *Resource, rs *ResourceState) error {
 		rs.ConnInfo = overlay
 
 		// Invoke the Provisioner
+		for _, h := range c.hooks {
+			handleHook(h.PreProvision(r.Id, prov.Type))
+		}
+
 		if err := prov.Provisioner.Apply(rs, prov.Config); err != nil {
 			return err
+		}
+
+		for _, h := range c.hooks {
+			handleHook(h.PostProvision(r.Id, prov.Type))
 		}
 	}
 

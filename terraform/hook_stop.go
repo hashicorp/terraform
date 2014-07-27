@@ -26,6 +26,22 @@ func (h *stopHook) PostDiff(string, *ResourceDiff) (HookAction, error) {
 	return h.hook()
 }
 
+func (h *stopHook) PreProvisionResource(string, *ResourceState) (HookAction, error) {
+	return h.hook()
+}
+
+func (h *stopHook) PostProvisionResource(string, *ResourceState) (HookAction, error) {
+	return h.hook()
+}
+
+func (h *stopHook) PreProvision(string, string) (HookAction, error) {
+	return h.hook()
+}
+
+func (h *stopHook) PostProvision(string, string) (HookAction, error) {
+	return h.hook()
+}
+
 func (h *stopHook) PreRefresh(string, *ResourceState) (HookAction, error) {
 	return h.hook()
 }
