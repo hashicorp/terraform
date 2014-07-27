@@ -149,6 +149,13 @@ func (h *UiHook) PreDiff(
 	return terraform.HookActionContinue, nil
 }
 
+func (h *UiHook) PreProvision(id, provId string) (terraform.HookAction, error) {
+	h.ui.Output(h.Colorize.Color(fmt.Sprintf(
+		"[reset][bold]%s: Provisioning with '%s'...[reset_bold]",
+		id, provId)))
+	return terraform.HookActionContinue, nil
+}
+
 func (h *UiHook) PreRefresh(
 	id string, s *terraform.ResourceState) (terraform.HookAction, error) {
 	h.once.Do(h.init)
