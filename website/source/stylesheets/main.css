@@ -887,6 +887,9 @@ body.page-home #footer {
 #cta .intro .left {
   text-align: right;
 }
+#cta .intro .right {
+  margin-top: 2px;
+}
 #cta p {
   padding-top: 4px;
   color: white;
