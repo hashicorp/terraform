@@ -259,6 +259,10 @@ func (g *Graph) Walk(fn WalkFunc) error {
 	seenMap := make(map[*Noun]chan struct{})
 	seenMap[g.Root] = make(chan struct{})
 
+	// Keep track of what nodes errored.
+	var errMapL sync.RWMutex
+	errMap := make(map[*Noun]struct{})
+
 	// Build the list of things to visit
 	tovisit := make([]*Noun, 1, len(g.Nouns))
 	tovisit[0] = g.Root
@@ -302,10 +306,23 @@ func (g *Graph) Walk(fn WalkFunc) error {
 				case <-quitCh:
 					return
 				}
+
+				// Check if any dependencies errored. If so,
+				// then return right away, we won't walk it.
+				errMapL.RLock()
+				_, errOk := errMap[dep.Target]
+				errMapL.RUnlock()
+				if errOk {
+					return
+				}
 			}
 
 			// Call our callback!
 			if err := fn(current); err != nil {
+				errMapL.Lock()
+				errMap[current] = struct{}{}
+				errMapL.Unlock()
+
 				errCh <- err
 			}
 		}(current)

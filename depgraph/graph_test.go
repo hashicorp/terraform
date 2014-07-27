@@ -388,21 +388,40 @@ c -> e`)
 
 func TestGraphWalk_error(t *testing.T) {
 	nodes := ParseNouns(`a -> b
-a -> c
-b -> d
-b -> e
-c -> d
-c -> e`)
+b -> c
+a -> d`)
 	list := NounMapToList(nodes)
 	g := &Graph{Name: "Test", Nouns: list}
 	if err := g.Validate(); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 
-	err := g.Walk(func(n *Noun) error {
-		return fmt.Errorf("foo")
-	})
-	if err == nil {
-		t.Fatal("should error")
+	// We repeat this a lot because sometimes timing causes
+	// a false positive.
+	for i := 0; i < 100; i++ {
+		var lock sync.Mutex
+		var walked []string
+		err := g.Walk(func(n *Noun) error {
+			lock.Lock()
+			defer lock.Unlock()
+
+			walked = append(walked, n.Name)
+
+			if n.Name == "b" {
+				return fmt.Errorf("foo")
+			}
+
+			return nil
+		})
+		if err == nil {
+			t.Fatal("should error")
+		}
+
+		sort.Strings(walked)
+
+		expected := []string{"b", "c", "d"}
+		if !reflect.DeepEqual(walked, expected) {
+			t.Fatalf("bad: %#v", walked)
+		}
 	}
 }
