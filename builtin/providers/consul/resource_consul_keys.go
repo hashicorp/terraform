@@ -26,6 +26,12 @@ func resource_consul_keys_validation() *config.Validator {
 		},
 	}
 }
+func resource_consul_keys_update(
+	s *terraform.ResourceState,
+	d *terraform.ResourceDiff,
+	meta interface{}) (*terraform.ResourceState, error) {
+	return resource_consul_keys_create(s, d, meta)
+}
 
 func resource_consul_keys_create(
 	s *terraform.ResourceState,
@@ -64,7 +70,7 @@ func resource_consul_keys_create(
 			return rs, err
 		}
 
-		if valueRaw, shouldSet := sub["value"]; shouldSet {
+		if valueRaw, ok := sub["value"]; ok {
 			value, ok := valueRaw.(string)
 			if !ok {
 				return rs, fmt.Errorf("Failed to get value for key '%s'", key)
@@ -123,14 +129,6 @@ func resource_consul_keys_destroy(
 		}
 	}
 	return nil
-}
-
-func resource_consul_keys_update(
-	s *terraform.ResourceState,
-	d *terraform.ResourceDiff,
-	meta interface{}) (*terraform.ResourceState, error) {
-	panic("cannot update")
-	return s, nil
 }
 
 func resource_consul_keys_diff(
