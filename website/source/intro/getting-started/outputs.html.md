@@ -36,7 +36,7 @@ output "ip" {
 This defines an output variables named "ip". The `value` field
 specifies what the value will be, and almost always contains
 one or more interpolations, since the output data is typically
-dynamic in some form. In this case, we're outputting the
+dynamic. In this case, we're outputting the
 `public_ip` attribute of the elastic IP address.
 
 Multiple `output` blocks can be defined to specify multiple
@@ -72,7 +72,9 @@ This command is useful for scripts to extract outputs.
 ## Next
 
 You now know how to parameterize configurations with input
-variables, and extract important data using output variables.
+variables, extract important data using output variables,
+and bootstrap resources using provisioners.
 
-Next, we're going to use provisioners to install some software
-on the instances created on top of the base AMI used.
+We've now concluded the getting started guide, however
+there are a number of [next steps](/intro/getting-started/next-steps.html)
+to get started with Terraform.

@@ -14,7 +14,7 @@ automate the mechanical processes involved.
 
 These tools require time and resources to build and maintain.
 As tools of necessity, they represent the minimum viable
-features needed by an organization, being built to handling only
+features needed by an organization, being built to handle only
 the immediate needs. As a result they are often hard
 to extend and difficult to maintain. Because the  tooling must be
 updated in lock step with any new features or infrastructure,

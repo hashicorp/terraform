@@ -49,7 +49,7 @@ Provisioners are run only when a resource is _created_. They
 are not a replacement for configuration management and changing
 the software of an already-running server, and are instead just
 meant as a way to bootstrap a server. For configuration management,
-you should use Terraform provisioning to bootstrap a real configuration
+you should use Terraform provisioning to invoke a real configuration
 management solution.
 
 Make sure that your infrastructure is
@@ -76,7 +76,7 @@ $ cat file.txt
 54.192.26.128
 ```
 
-It contains the IP, just ask we asked!
+It contains the IP, just as we asked!
 
 ## Failed Provisioners and Tainted Resources
 
@@ -106,5 +106,5 @@ management. It is meant to simply bootstrap machines. If you use
 configuration management, you should use the provisioning as a way
 to bootstrap the configuration management utility.
 
-In the next section, we start looking at variables as a way to
-better parameterize our configurations.
+In the next section, we start looking at [variables as a way to
+parameterize our configurations](/intro/getting-started/variables.html).

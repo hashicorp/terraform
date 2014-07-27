@@ -92,4 +92,4 @@ again to see the new properties associated with this instance.
 
 You've now seen how easy it is to modify infrastructure with
 Terraform. Feel free to play around with this more before continuing.
-In the next section we're going to destroy our infrastructure.
+In the next section we're going to [destroy our infrastructure](/intro/getting-started/destroy.html).

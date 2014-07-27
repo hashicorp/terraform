@@ -69,5 +69,5 @@ With these building blocks, you can effectively experiment with
 any part of Terraform.
 
 Next, we move on to features that make Terraform configurations
-slightly more useful: variables, resource dependencies, provisioning,
-and more.
+slightly more useful: [variables, resource dependencies, provisioning,
+and more](/intro/getting-started/dependencies.html).

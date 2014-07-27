@@ -136,6 +136,6 @@ Terraform provides variables for parameterizing your configurations.
 Mappings let you build lookup tables in cases where that make sense.
 Setting and using variables is uniform throughout your configurations.
 
-In the next section, we'll take a look at output variables as a
-mechanism to expose certain values more prominently to the Terraform
-operator.
+In the next section, we'll take a look at
+[output variables](/intro/getting-started/outputs.html) as a mechanism
+to expose certain values more prominently to the Terraform operator.

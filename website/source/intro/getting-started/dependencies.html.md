@@ -129,7 +129,7 @@ resource "aws_eip" "ip" {
 ```
 
 If you're ever unsure about the dependency chain that Terraform
-is creating, you can use the `terraform graph` command to view
+is creating, you can use the [`terraform graph` command](/docs/commands/graph.html) to view
 the graph. This command outputs a dot-formatted graph which can be
 viewed with
 [Graphviz](http://www.graphviz.org/).
@@ -161,5 +161,5 @@ In this page you were introduced to both multiple resources
 as well as basic resource dependencies and resource attribute
 interpolation.
 
-Moving on, we'll use provisioners to do some basic bootstrapping
-of our launched instance.
+Moving on, [we'll use provisioners](/intro/getting-started/provision.html)
+to do some basic bootstrapping of our launched instance.
