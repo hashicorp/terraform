@@ -1271,6 +1271,10 @@ body.page-home #footer {
 .people .person h3 {
   text-transform: none;
 }
+.people .person img {
+  width: 125px;
+  margin: auto auto;
+}
 .people .person .bio {
   padding-left: 150px;
 }
