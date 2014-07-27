@@ -19,3 +19,7 @@ As a next step, the following resources are available:
   reference guide to all the features of Terraform, including
   technical details about the internals of how Terraform operates.
 
+* [Examples](/intro/examples/index.html) - The examples have more full
+  featured configuration files, showing some of the possibilities
+  with Terraform.
+
