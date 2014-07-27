@@ -16,6 +16,7 @@ type Meta struct {
 	Color       bool
 	ContextOpts *terraform.ContextOpts
 	Ui          cli.Ui
+	State       *terraform.State
 
 	// This can be set by the command itself to provide extra hooks.
 	extraHooks []terraform.Hook
@@ -76,6 +77,9 @@ func (m *Meta) Context(path, statePath string) (*terraform.Context, bool, error)
 			return nil, false, fmt.Errorf("Error loading state: %s", err)
 		}
 	}
+
+	// Store the loaded state
+	m.State = state
 
 	config, err := config.LoadDir(path)
 	if err != nil {

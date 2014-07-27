@@ -17,7 +17,7 @@ type PlanCommand struct {
 
 func (c *PlanCommand) Run(args []string) int {
 	var destroy, refresh bool
-	var outPath, statePath string
+	var outPath, statePath, backupPath string
 
 	args = c.Meta.process(args)
 
@@ -26,6 +26,7 @@ func (c *PlanCommand) Run(args []string) int {
 	cmdFlags.BoolVar(&refresh, "refresh", true, "refresh")
 	cmdFlags.StringVar(&outPath, "out", "", "path")
 	cmdFlags.StringVar(&statePath, "state", DefaultStateFilename, "path")
+	cmdFlags.StringVar(&backupPath, "backup", "", "path")
 	cmdFlags.Usage = func() { c.Ui.Error(c.Help()) }
 	if err := cmdFlags.Parse(args); err != nil {
 		return 1
@@ -58,6 +59,12 @@ func (c *PlanCommand) Run(args []string) int {
 		}
 	}
 
+	// If we don't specify a backup path, default to state out with
+	// the extention
+	if backupPath == "" {
+		backupPath = statePath + DefaultBackupExtention
+	}
+
 	ctx, _, err := c.Context(path, statePath)
 	if err != nil {
 		c.Ui.Error(err.Error())
@@ -68,6 +75,20 @@ func (c *PlanCommand) Run(args []string) int {
 	}
 
 	if refresh {
+		// Create a backup of the state before updating
+		if backupPath != "-" {
+			log.Printf("[INFO] Writing backup state to: %s", backupPath)
+			f, err := os.Create(backupPath)
+			if err == nil {
+				defer f.Close()
+				err = terraform.WriteState(c.State, f)
+			}
+			if err != nil {
+				c.Ui.Error(fmt.Sprintf("Error writing backup state file: %s", err))
+				return 1
+			}
+		}
+
 		c.Ui.Output("Refreshing Terraform state prior to plan...\n")
 		if _, err := ctx.Refresh(); err != nil {
 			c.Ui.Error(fmt.Sprintf("Error refreshing state: %s", err))
@@ -129,6 +150,10 @@ Usage: terraform plan [options] [dir]
   this plan exactly.
 
 Options:
+
+  -backup=path        Path to backup the existing state file before
+                      modifying. Defaults to the "-state-out" path with
+                      ".backup" extention. Set to "-" to disable backup.
 
   -destroy            If set, a plan will be generated to destroy all resources
                       managed by the given configuration and state.
