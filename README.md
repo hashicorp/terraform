@@ -1,8 +1,8 @@
 # Terraform
 
 * Website: http://www.terraform.io
-* IRC: `#terraform` on Freenode
-* Mailing list: [Google Groups](http://groups.google.com/group/terraform)
+* IRC: `#terraform-tool` on Freenode
+* Mailing list: [Google Groups](http://groups.google.com/group/terraform-tool)
 
 Terraform is a tool for building and changing infrastructure
 safely and efficiently.
@@ -48,15 +48,15 @@ package by specifying the `TEST` variable. For example below, only
 
 ### Acceptance Tests
 
-Terraform also has a comprehensive 
-[acceptance test](http://en.wikipedia.org/wiki/Acceptance_testing) 
+Terraform also has a comprehensive
+[acceptance test](http://en.wikipedia.org/wiki/Acceptance_testing)
 suite covering most of the major features of the built-in providers.
 
 If you're working on a feature of a provider and want to verify it
 is functioning (and hasn't broken anything else), we recommend running
 the acceptance tests. Note that we _do not require_ that you run or
 write acceptance tests to have a PR accepted. The acceptance tests
-are just here for your convenience. 
+are just here for your convenience.
 
 **Warning:** The acceptance tests create/destroy/modify _real resources_,
 which may incur real costs. In the presence of a bug, it is technically
@@ -69,7 +69,7 @@ To run the acceptance tests, invoke `make testacc`:
 
     $ make testacc TEST=./builtin/providers/aws TESTARGS='-run=VPC'
     ...
-    
+
 The `TEST` variable is required, and you should specify the folder where
 the provider is. The `TESTARGS` variable is recommended to filter down
 to a specific resource to test, since testing all of them at once can
@@ -77,4 +77,4 @@ take a very long time.
 
 Acceptance tests typically require other environment variables to be
 set for things such as access keys. The provider itself should error
-early and tell you what to set, so it is not documented here. 
+early and tell you what to set, so it is not documented here.
