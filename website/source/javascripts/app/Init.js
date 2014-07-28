@@ -66,10 +66,9 @@ var Init = {
 
 	Pages: {
 		'page-home': function(){
-			var jumbotron;
 			if (isIE) {
-				jumbotron = document.getElementById('jumbotron');
-				jumbotron.className += ' static';
+				document.getElementById('jumbotron').className += ' static';
+				document.getElementById('tag-line').style.visibility = 'visible';
 				return;
 			}
 
