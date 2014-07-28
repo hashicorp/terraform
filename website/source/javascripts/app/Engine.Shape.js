@@ -81,13 +81,7 @@ Engine.Shape.prototype = {
 			return;
 		}
 
-		if (this.breatheIn) {
-			scale = 1;
-		} else {
-			scale = 1.05;
-		}
-
-		this.breatheIn = !this.breatheIn;
+		scale = 1;
 
 		newSize = Vector.mult(this.sizeRef, scale);
 
@@ -127,16 +121,16 @@ Engine.Shape.prototype = {
 			poly = this.polygons[p];
 			ctx.beginPath();
 			ctx.moveTo(
-				poly.a.pos.x * scale >> 0,
-				poly.a.pos.y * scale >> 0
+				poly.a.pos.x * scale,
+				poly.a.pos.y * scale
 			);
 			ctx.lineTo(
-				poly.b.pos.x * scale >> 0,
-				poly.b.pos.y * scale >> 0
+				poly.b.pos.x * scale,
+				poly.b.pos.y * scale
 			);
 			ctx.lineTo(
-				poly.c.pos.x * scale >> 0,
-				poly.c.pos.y * scale >> 0
+				poly.c.pos.x * scale,
+				poly.c.pos.y * scale
 			);
 			ctx.closePath();
 			ctx.fillStyle   = poly.fillStyle;

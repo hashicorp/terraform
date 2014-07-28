@@ -73,7 +73,7 @@ Engine = Base.extend({
 			.then(function(){
 				this.starGeneratorRate = 200;
 			}, this)
-			.wait(2000)
+			.wait(500)
 			.then(function(){
 				parent.className += ' state-one';
 			})
@@ -93,10 +93,13 @@ Engine = Base.extend({
 			.then(function(){
 				this.showShapes = true;
 			}, this)
-			.wait(1000)
+			.wait(800)
+			.then(function(){
+				this.logo.startBreathing();
+			}, this)
+			.wait(200)
 			.then(function(){
 				this.showGrid = true;
-				// this.logo.startBreathing();
 			}, this)
 			.wait(1000)
 			.then(function(){

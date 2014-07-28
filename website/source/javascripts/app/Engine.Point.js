@@ -20,17 +20,16 @@ Engine.Point = function(id, x, y, shapeSize){
 	this.accel  = Vector.coerce(this.accel);
 	this.vel    = Vector.coerce(this.vel);
 
-	this.stiffness = Engine.getRandomFloat(3, 6);
-	this.friction  = Engine.getRandomFloat(0.15, 0.3);
+	this.stiffness = Engine.getRandomFloat(150, 600);
+	this.friction = Engine.getRandomFloat(12, 18);
 };
 
 Engine.Point.prototype = {
 
 	radius: 1,
 
-	stiffness : 0.5,
-	// friction  : 0.00001,
-	friction  : 0.01,
+	stiffness : 200,
+	friction  : 13,
 	threshold : 0.03,
 
 	pos: {
@@ -59,8 +58,8 @@ Engine.Point.prototype = {
 	},
 
 	updateBreathingPhysics: function(){
-		this.stiffness = 0.1;
-		this.friction  = 0.05;
+		this.stiffness = Engine.getRandomFloat(2, 4);
+		this.friction  = Engine.getRandomFloat(1, 2);
 	},
 
 	updateTarget: function(newSize){
@@ -74,8 +73,8 @@ Engine.Point.prototype = {
 		this.target.sub(diff);
 
 		this.target.add({
-			x: Engine.getRandomFloat(-8, 8),
-			y: Engine.getRandomFloat(-8, 8)
+			x: Engine.getRandomFloat(-3, 3),
+			y: Engine.getRandomFloat(-3, 3)
 		});
 	},
 
@@ -88,7 +87,7 @@ Engine.Point.prototype = {
 
 		this.accel.set(newAccel);
 
-		this.vel.add(this.accel);
+		this.vel.add(Vector.mult(this.accel, engine.tick));
 
 		this.pos.add(
 			Vector.mult(this.vel, engine.tick)
