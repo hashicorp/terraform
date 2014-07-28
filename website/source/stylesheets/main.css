@@ -1,6 +1,6 @@
 .rls-l {
   font-family: 'Lato', "Helvetica Neue", Helvetica, Arial, sans-serif;
-  font-weight: 200;
+  font-weight: 300;
 }
 .rls-sb {
   font-family: 'Lato', "Helvetica Neue", Helvetica, Arial, sans-serif;
@@ -155,7 +155,7 @@ body.page-sub #header .main-links.nav > li > a:focus {
   line-height: 56px;
   font-size: 24px;
   font-family: 'Lato', "Helvetica Neue", Helvetica, Arial, sans-serif;
-  font-weight: 200;
+  font-weight: 300;
   text-transform: uppercase;
   background: url(../images/consul-header-logo.png) 0 0 no-repeat;
   background-image: url("../images/header-logo.png");
@@ -688,7 +688,7 @@ body.page-home #footer {
   text-align: center;
   visibility: hidden;
   font-family: 'Lato', "Helvetica Neue", Helvetica, Arial, sans-serif;
-  font-weight: 200;
+  font-weight: 300;
   -webkit-transform: translate3d(0, 0, 0);
   -moz-transform: translate3d(0, 0, 0);
   -ms-transform: translate3d(0, 0, 0);
@@ -1004,7 +1004,7 @@ body.page-home #footer {
 .feature {
   padding: 240px 0;
   font-family: 'Lato', "Helvetica Neue", Helvetica, Arial, sans-serif;
-  font-weight: 200;
+  font-weight: 300;
 }
 .feature h2 {
   text-align: right;
@@ -1014,7 +1014,7 @@ body.page-home #footer {
   text-transform: uppercase;
   color: #822ff7;
   font-family: 'Lato', "Helvetica Neue", Helvetica, Arial, sans-serif;
-  font-weight: 200;
+  font-weight: 300;
 }
 .feature p {
   font-size: 16px;
@@ -1204,9 +1204,8 @@ body.page-home #footer {
   color: white;
   font-size: 14px;
   letter-spacing: 1px;
-  line-height: 1.5em;
+  line-height: 1.5esm;
   font-family: 'Lato', "Helvetica Neue", Helvetica, Arial, sans-serif;
-  font-weight: 100;
 }
 #cta .outline-btn {
   padding: 16px 40px;
@@ -1216,13 +1215,13 @@ body.page-home #footer {
   outline: 0;
 }
 #cta a {
-  font-weight: 500;
   font-size: 24px;
   text-transform: uppercase;
   letter-spacing: 3px;
   color: white;
   font-family: 'Lato', "Helvetica Neue", Helvetica, Arial, sans-serif;
-  font-weight: 200;
+  font-weight: 300;
+  font-weight: 500;
 }
 #cta a:hover {
   text-decoration: none;
@@ -1253,7 +1252,7 @@ body.page-home #footer {
   font-size: 28px;
   color: #9a56f9;
   font-family: 'Lato', "Helvetica Neue", Helvetica, Arial, sans-serif;
-  font-weight: 200;
+  font-weight: 300;
 }
 #demos .explantion p {
   margin-bottom: 0;
@@ -1522,7 +1521,7 @@ body.page-home #footer {
   #feature-iterate p {
     text-align: right;
     padding-left: 120px;
-    font-weight: 100;
+    font-weight: 300;
   }
   #feature-iterate .it-icon {
     width: 245px;
@@ -1769,7 +1768,7 @@ body.layout-intro > .container .col-md-8[role=main] > div {
   margin-bottom: 24px;
   border-bottom: 1px solid #eeeeee;
   font-family: 'Lato', "Helvetica Neue", Helvetica, Arial, sans-serif;
-  font-weight: 200;
+  font-weight: 300;
 }
 .bs-docs-section h2,
 .bs-docs-section h3,
