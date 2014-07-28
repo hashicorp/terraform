@@ -61,7 +61,7 @@ var Init = {
 		canvas.className = 'terraform-canvas';
 
 		jumbotron.appendChild(canvas);
-		window.engine = new Engine(canvas, galaxy, tagLine);
+		new Engine(canvas, galaxy, tagLine);
 	},
 
 	Pages: {
