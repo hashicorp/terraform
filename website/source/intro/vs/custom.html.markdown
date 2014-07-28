@@ -30,7 +30,7 @@ of building the tool allows operators to focus on their infrastructure
 and not the tooling.
 
 Additionally, Terraform is an open source tool. In addition to
-HashiCorp, the community around it helps to extend it's features,
+HashiCorp, the community around it helps to extend its features,
 fix bugs and document new use cases. Terraform helps solve a problem
 that exists in every organization and provides a standard that can
 be adopted to avoid re-inventing the wheel between and within organizations.

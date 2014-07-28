@@ -7,7 +7,7 @@ sidebar_current: "docs-commands-refresh"
 # Command: refresh
 
 The `terraform refresh` command is used to reconcile the state Terraform
-knows about (via it's state file) with the real-world infrastructure.
+knows about (via its state file) with the real-world infrastructure.
 The can be used to detect any drift from the last-known state, and to
 update the state file.
 

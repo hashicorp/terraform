@@ -8,7 +8,7 @@ sidebar_current: "use-cases"
 
 Before understanding use cases, it's useful to know [what Terraform is](/intro/index.html).
 This page lists some concrete use cases for Terraform, but the possible use cases are
-much broader than what we cover. Due to it's extensible nature, providers and provisioners
+much broader than what we cover. Due to its extensible nature, providers and provisioners
 can be added to further extend Terraform's ability to manipulate resources.
 
 #### Heroku App Setup
