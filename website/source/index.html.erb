@@ -143,14 +143,14 @@
 						<div class="terminal-window">
 							<div class="">
 								<div class="display">
-								<p>resource <span class="txt-spe">"digitalocean_droplet"</span> <span class="txt-spe">"web"</span> {</p>
+								<p>resource <span class="txt-spe">"digitalocean_droplet"</span> <span class="txt-str">"web"</span> {</p>
 								<p>    name = <span class="txt-str">"tf-web"</span></p>
 								<p>    size = <span class="txt-str">"512mb"</span></p>
 								<p>    image = <span class="txt-str">"centos-5-8-x32"</span></p>
 								<p>    region = <span class="txt-str">"sfo1"</span></p>
 								<p>}</p>
 								<p> </p>
-								<p>resource <span class="txt-spe">"dnsimple_record"</span> <span class="txt-spe">"hello"</span> {</p>
+								<p>resource <span class="txt-spe">"dnsimple_record"</span> <span class="txt-str">"hello"</span> {</p>
 								<p>    domain = <span class="txt-str">"example.com"</span></p>
 								<p>    name = <span class="txt-str">"test"</span></p>
 								<p>    value = <span class="txt-str">"<span class="txt-var">${digitalocean_droplet.web.ipv4_address}</span>"</span></p>
@@ -178,7 +178,7 @@
 						<div class="terminal-window">
 							<div class="">
 								<div class="display">
-								<p>resource <span class="txt-spe">"aws_elb"</span> <span class="txt-spe">"frontend"</span> {</p>
+								<p>resource <span class="txt-spe">"aws_elb"</span> <span class="txt-str">"frontend"</span> {</p>
 								<p>    name = <span class="txt-str">"frontend-load-balancer"</span></p>
 								<p>    listener {</p>
 								<p>        instance_port = <span class="txt-int">8000</span></p>
@@ -190,7 +190,7 @@
 								<p>    instances = [<span class="txt-str">"<span class="txt-var">${aws_instance.app.*.id}</span>"</span>]</p>
 								<p>}</p>
 								<p> </p>
-								<p>resource <span class="txt-spe">"aws_instance"</span> <span class="txt-spe">"app"</span> {</p>
+								<p>resource <span class="txt-spe">"aws_instance"</span> <span class="txt-str">"app"</span> {</p>
 								<p>    count = <span class="txt-int">5</span></p>
 								<p> </p>
 								<p>    ami = <span class="txt-str">"ami-043a5034"</span></p>
