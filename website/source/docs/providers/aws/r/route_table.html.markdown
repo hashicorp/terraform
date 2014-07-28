@@ -24,7 +24,7 @@ resource "aws_route_table" "r" {
 The following arguments are supported:
 
 * `vpc_id` - (Required) The ID of the routing table.
-* `route` - (Optional) A list of route objects. Their keys are documented below.
+* `route` - (Required) A list of route objects. Their keys are documented below.
 
 Each route supports the following:
 
