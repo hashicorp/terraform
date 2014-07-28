@@ -607,6 +607,22 @@ body.page-home #footer {
   background-size: cover;
   background-position: 50% 50%;
 }
+#jumbotron.static .jumbotron-content:after {
+  content: '';
+  display: block;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  background: url(../images/logo-static.png);
+  -webkit-background-size: 100% 100%;
+  -moz-background-size: 100% 100%;
+  -ms-background-size: 100% 100%;
+  -o-background-size: 100% 100%;
+  background-size: 100% 100%;
+  width: 360px;
+  height: 360px;
+  margin: -204px 0 0 -180px;
+}
 #jumbotron .terraform-canvas {
   position: absolute;
   top: 0;

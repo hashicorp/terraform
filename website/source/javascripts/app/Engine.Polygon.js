@@ -13,12 +13,12 @@ Engine.Polygon = function(a, b, c, color, strokeColor){
 
 	if (strokeColor) {
 		this.strokeColor = Engine.clone(strokeColor);
-		this.strokeWidth = 1.5;
 	} else {
 		this.strokeColor = Engine.clone(color);
-		this.strokeWidth = 0.25;
 	}
 
+	this.strokeWidth = 0.25;
+	this.maxStrokeS = this.strokeColor.s;
 	this.maxStrokeL = this.strokeColor.l;
 	this.maxColorL  = this.color.l;
 
@@ -59,12 +59,15 @@ Engine.Polygon.prototype = {
 		) {
 			this.color.l = this.maxColorL * (delta - this.delay) / this.duration;
 
-			this.strokeColor.s = this.color.s * (delta - this.delay) / this.duration;
+			this.strokeColor.s = this.maxStrokeS * (delta - this.delay) / this.duration;
 			this.strokeColor.l = (this.maxStrokeL - 100) * (delta - this.delay) / this.duration + 100;
+
+			this.strokeWidth = 1.5 * (delta - this.delay) / this.duration + 0.25;
 
 			if (this.color.l > this.maxColorL) {
 				this.color.l = this.maxColorL;
 				this.strokeColor.l = this.maxStrokeL;
+				this.strokeWidth = 1.5;
 			}
 
 			this.strokeStyle = this.hslaTemplate.substitute(this.strokeColor);
