@@ -64,6 +64,7 @@ Engine = Base.extend({
 
 	startEngine: function(){
 		var parent = this.canvas.parentNode;
+		document.getElementById('tag-line').style.display = 'inline-block';
 
 		this.background.className += ' show';
 		this.canvas.style.opacity = 1;
