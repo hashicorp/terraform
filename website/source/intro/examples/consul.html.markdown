@@ -53,6 +53,15 @@ configuration directly by setting the ELB address into Consul. Any resource
 attribute can be stored in Consul, allowing an operator to capture anything
 useful.
 
+
+## Command
+
+```
+terraform apply \
+    -var 'aws_access_key=YOUR_KEY' \
+    -var 'aws_secret_key=YOUR_KEY'
+```
+
 ## Configuration
 
 ```
