@@ -52,6 +52,8 @@ Engine.Shape.prototype = {
 
 		this.size.x = newSize;
 		this.size.y = newSize;
+		this.sizeRef.x = newSize;
+		this.sizeRef.y = newSize;
 
 		this.pos.x = -(newSize / 2);
 		this.pos.y = -(newSize / 2 + offset);
