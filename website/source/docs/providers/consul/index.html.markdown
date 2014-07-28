@@ -6,8 +6,9 @@ sidebar_current: "docs-consul-index"
 
 # Consul Provider
 
-The Consul provider exposes resources used to interact with
-the Consul catalog. The provider optionally must can be configured with
+[Consul](http://www.consul.io) is a tool for service discovery, configuration
+and orchestration The Consul provider exposes resources used to interact with a
+Consul cluster. The provider optionally must can be configured with
 to change default behavior.
 
 Use the navigation to the left to read about the available resources.

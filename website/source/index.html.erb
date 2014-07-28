@@ -144,7 +144,7 @@
 							<div class="">
 								<div class="display">
 								<p>resource "digitalocean_droplet" "web" {</p>
-								<p>    name = "baz"</p>
+								<p>    name = "tf-web"</p>
 								<p>    size = "512mb"</p>
 								<p>    image = "centos-5-8-x32"</p>
 								<p>    region = "sfo1"</p>
@@ -153,7 +153,7 @@
 								<p>resource "dnsimple_record" "hello" {</p>
 								<p>    domain = "jack.ly"</p>
 								<p>    name = "hello"</p>
-								<p>    value = "<span class="txt-r">${digitalocean_droplet.foobar.ipv4_address}</span>"</p>
+								<p>    value = "<span class="txt-r">${digitalocean_droplet.web.ipv4_address}</span>"</p>
 								<p>    type = "A"</p>
 								<p>}</p>
 								</div>
