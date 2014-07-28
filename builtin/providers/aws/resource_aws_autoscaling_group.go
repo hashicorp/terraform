@@ -81,6 +81,9 @@ func resource_aws_autoscaling_group_create(
 	}
 
 	rs.ID = rs.Attributes["name"]
+	rs.Dependencies = []terraform.ResourceDependency{
+		terraform.ResourceDependency{ID: rs.Attributes["launch_configuration"]},
+	}
 
 	log.Printf("[INFO] AutoScaling Group ID: %s", rs.ID)
 
