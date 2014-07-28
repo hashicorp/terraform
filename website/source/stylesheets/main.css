@@ -933,7 +933,11 @@ body.page-home #footer {
     transform: translate3d(0, 0, 0) scale(0.8);
   }
   .animated-logo {
-    margin-top: -72px;
+    margin: -15px 0 0 -113px;
+  }
+  #jumbotron-mask,
+  #jumbotron {
+    height: 560px;
   }
 }
 .outline-btn {
@@ -1329,6 +1333,7 @@ body.page-home #footer {
   font-family: "Courier New", Monaco, Menlo, Consolas, monospace;
   color: #ffffff;
   background-color: transparent;
+  overflow: auto;
 }
 #demos .terminals .terminal-item .terminal .terminal-window .txt-r {
   color: #e47078;

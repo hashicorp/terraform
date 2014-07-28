@@ -115,6 +115,12 @@ Engine = Base.extend({
 	},
 
 	setupEvents: function(){
+		if (window.innerWidth < 570) {
+			this.height = 560;
+		} else {
+			this.height = 700;
+		}
+
 		this.resize = this.resize.bind(this);
 		this.resize();
 		window.addEventListener('resize', this.resize, false);
@@ -134,16 +140,19 @@ Engine = Base.extend({
 	},
 
 	setupTessellation: function(canvas){
-		var size;
+		var size, offset;
 		this.shapes = [];
 		if (window.innerWidth < 570) {
 			size = 300;
+			offset = 0;
 		} else {
 			size = 360;
+			offset = 40;
 		}
+
 		this.logo = new Engine.Shape(
 			-(size / 2),
-			-(size / 2 + 40),
+			-(size / 2 + offset),
 			size,
 			size,
 			Logo.points,
@@ -184,7 +193,7 @@ Engine = Base.extend({
 			return;
 		}
 
-		if (this.scrollY > 700) {
+		if (this.scrollY > this.height) {
 			window.requestAnimationFrame(this.render);
 			return;
 		}
@@ -284,7 +293,6 @@ Engine = Base.extend({
 		var scale = this.scale;
 
 		this.width  = window.innerWidth;
-		this.height = 700;
 
 		this.canvas.width  = this.width  * scale;
 		this.canvas.height = this.height * scale;
