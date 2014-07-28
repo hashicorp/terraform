@@ -10,8 +10,7 @@ This provides a template for running a simple two-tier architecture on Amazon
 Web services.
 
 The basic premise is you have stateless app servers running behind
-an ELB serving traffic. State for your application is stored in an RDS
-database.
+an ELB serving traffic.
 
 To simplify the example, this intentionally ignores deploying and
 getting your application onto the servers. However, you could do so either via
