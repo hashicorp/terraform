@@ -6,7 +6,7 @@ sidebar_current: "vs-other-custom"
 
 # Terraform vs. Custom Solutions
 
-Most organizations start by manually managing infrastructure though
+Most organizations start by manually managing infrastructure through
 simple scripts or web based interfaces. As the infrastructure grows,
 any manual approach to management becomes both error prone and tedious.
 As a result, many organizations begin to home-roll tooling to help
