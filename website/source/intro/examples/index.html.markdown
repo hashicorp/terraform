@@ -14,13 +14,12 @@ the examples are ready to run as-is.
 
 
 <div class="alert alert-block alert-warning">
-<p>
+<div>
 <strong>Note:</strong> The examples use real providers that launch
 <strong>real</strong> resources. That means they can cost money to
 experiment with. To avoid unexpected charges, be sure to understand the price
 of resources before launching them, and verify any unneeded resources
-are cleaned up afterwards.
-</p>
+are cleaned up afterwards.</div>
 </div>
 
 Experimenting in this way can help you learn how the Terraform lifecycle
