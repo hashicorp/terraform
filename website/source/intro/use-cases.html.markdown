@@ -29,10 +29,10 @@ under 30 seconds.
 A very common pattern is the N-tier architecture. The most common 2-tier architecture is
 a pool of web servers that use a database tier. Additional tiers get added for API servers,
 caching servers, routing meshes, etc. This pattern is used because the tiers can be scaled
-indepedently and provide a seperation of concerns.
+independently and provide a separation of concerns.
 
 Terraform is an ideal tool for building and managing these infrastructures. Each tier can
-be described as a collection of resources, and the depedencies between each tier is handled
+be described as a collection of resources, and the dependencies between each tier is handled
 automatically; Terraform will ensure the database tier is available before the web servers
 are started and that the load balancers are aware of the web nodes. Each tier can then be
 scaled easily using Terraform by modifying a single `count` configuration value. Because
