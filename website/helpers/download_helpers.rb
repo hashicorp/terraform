@@ -3,7 +3,7 @@ require "net/http"
 $terraform_files = {}
 $terraform_os = []
 
-if ENV["CONSUL_VERSION"]
+if ENV["TERRAFORM_VERSION"]
   raise "BINTRAY_API_KEY must be set." if !ENV["BINTRAY_API_KEY"]
   http = Net::HTTP.new("dl.bintray.com", 80)
   req = Net::HTTP::Get.new("/mitchellh/terraform/")
@@ -11,7 +11,7 @@ if ENV["CONSUL_VERSION"]
   response = http.request(req)
 
   response.body.split("\n").each do |line|
-    next if line !~ /\/mitchellh\/terraform\/(#{Regexp.quote(ENV["CONSUL_VERSION"])}.+?)'/
+    next if line !~ /\/mitchellh\/terraform\/(#{Regexp.quote(ENV["TERRAFORM_VERSION"])}.+?)'/
     filename = $1.to_s
     os = filename.split("_")[1]
     next if os == "SHA256SUMS"
@@ -62,6 +62,6 @@ module DownloadHelpers
   end
 
   def latest_version
-    ENV["CONSUL_VERSION"]
+    ENV["TERRAFORM_VERSION"]
   end
 end
