@@ -1250,7 +1250,7 @@ body.page-home #footer {
 #demos .explantion h2 {
   margin-top: 0;
   font-size: 28px;
-  color: #9148f8;
+  color: #9a56f9;
   font-family: 'Lato', "Helvetica Neue", Helvetica, Arial, sans-serif;
   font-weight: 200;
 }
@@ -1679,7 +1679,7 @@ body.layout-intro > .container .col-md-8[role=main] > div {
 				}*/
 }
 .docs-sidebar .docs-sidenav > li.active > a {
-  color: #822ff7;
+  color: #8e43f8;
   font-weight: 500;
 }
 .docs-sidebar .docs-sidenav > li.active:before {
@@ -1704,7 +1704,7 @@ body.layout-intro > .container .col-md-8[role=main] > div {
   display: block;
 }
 .docs-sidebar .docs-sidenav > li.active .nav li.active a {
-  color: #822ff7;
+  color: #8e43f8;
   font-weight: 500;
 }
 .docs-sidebar .docs-sidenav > li > a {

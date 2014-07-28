@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="">
+
+<link rel="shortcut icon" href="/images/favicon.png">
+
+<title><%= current_page.data.page_title ? "#{current_page.data.page_title} - " : "" %>Terraform</title>
+
+<!-- Bootstrap core CSS -->
+<%= stylesheet_link_tag "bootstrap.min" %>
+<%= stylesheet_link_tag "main" %>
+
+<!-- google fonts -->
+<link href='http://fonts.googleapis.com/css?family=Lato:300,400,700' rel='stylesheet' type='text/css'>
+
+<!-- HTML5 shim and Respond.js IE8 support of HTML5 elements and media queries -->
+<!--[if lt IE 9]>
+  <%= javascript_include_tag "html5shiv", "respond.min" %>
+<![endif]-->
+
+<%= yield_content :head %>
+
+<script>
+  (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+  (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+  m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+  })(window,document,'script','//www.google-analytics.com/analytics.js','ga');
+
+  ga('create', 'UA-53231375-1', 'auto');
+  ga('send', 'pageview');
+</script>
+</head>
+<body id="page-<%= current_page.data.page_title ? "#{current_page.data.page_title}" : "home" %>" class="page-<%= current_page.data.page_title ? "#{current_page.data.page_title} layout-#{current_page.data.layout} page-sub" : "home layout-#{current_page.data.layout}" %>">
