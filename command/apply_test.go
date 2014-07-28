@@ -358,6 +358,22 @@ func TestApply_refresh(t *testing.T) {
 	if state == nil {
 		t.Fatal("state should not be nil")
 	}
+
+	// Should have a backup file
+	f, err = os.Open(statePath + DefaultBackupExtention)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	backupState, err := terraform.ReadState(f)
+	f.Close()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	if !reflect.DeepEqual(backupState, originalState) {
+		t.Fatalf("bad: %#v", backupState)
+	}
 }
 
 func TestApply_shutdown(t *testing.T) {
@@ -517,6 +533,25 @@ func TestApply_state(t *testing.T) {
 	if state == nil {
 		t.Fatal("state should not be nil")
 	}
+
+	// Should have a backup file
+	f, err = os.Open(statePath + DefaultBackupExtention)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	backupState, err := terraform.ReadState(f)
+	f.Close()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	// nil out the ConnInfo since that should not be restored
+	originalState.Resources["test_instance.foo"].ConnInfo = nil
+
+	if !reflect.DeepEqual(backupState, originalState) {
+		t.Fatalf("bad: %#v", backupState)
+	}
 }
 
 func TestApply_stateNoExist(t *testing.T) {
@@ -614,6 +649,160 @@ func TestApply_varFile(t *testing.T) {
 
 	if actual != "bar" {
 		t.Fatal("didn't work")
+	}
+}
+
+func TestApply_backup(t *testing.T) {
+	originalState := &terraform.State{
+		Resources: map[string]*terraform.ResourceState{
+			"test_instance.foo": &terraform.ResourceState{
+				ID:   "bar",
+				Type: "test_instance",
+			},
+		},
+	}
+
+	statePath := testStateFile(t, originalState)
+	backupPath := testTempFile(t)
+
+	p := testProvider()
+	p.DiffReturn = &terraform.ResourceDiff{
+		Attributes: map[string]*terraform.ResourceAttrDiff{
+			"ami": &terraform.ResourceAttrDiff{
+				New: "bar",
+			},
+		},
+	}
+
+	ui := new(cli.MockUi)
+	c := &ApplyCommand{
+		Meta: Meta{
+			ContextOpts: testCtxConfig(p),
+			Ui:          ui,
+		},
+	}
+
+	// Run the apply command pointing to our existing state
+	args := []string{
+		"-state", statePath,
+		"-backup", backupPath,
+		testFixturePath("apply"),
+	}
+	if code := c.Run(args); code != 0 {
+		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
+	}
+
+	// Verify a new state exists
+	if _, err := os.Stat(statePath); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	f, err := os.Open(statePath)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	defer f.Close()
+
+	state, err := terraform.ReadState(f)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if state == nil {
+		t.Fatal("state should not be nil")
+	}
+
+	// Should have a backup file
+	f, err = os.Open(backupPath)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	backupState, err := terraform.ReadState(f)
+	f.Close()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	actual := backupState.Resources["test_instance.foo"]
+	expected := originalState.Resources["test_instance.foo"]
+	if !reflect.DeepEqual(actual, expected) {
+		t.Fatalf("bad: %#v %#v", actual, expected)
+	}
+}
+
+func TestApply_disableBackup(t *testing.T) {
+	originalState := &terraform.State{
+		Resources: map[string]*terraform.ResourceState{
+			"test_instance.foo": &terraform.ResourceState{
+				ID:       "bar",
+				Type:     "test_instance",
+				ConnInfo: make(map[string]string),
+			},
+		},
+	}
+
+	statePath := testStateFile(t, originalState)
+
+	p := testProvider()
+	p.DiffReturn = &terraform.ResourceDiff{
+		Attributes: map[string]*terraform.ResourceAttrDiff{
+			"ami": &terraform.ResourceAttrDiff{
+				New: "bar",
+			},
+		},
+	}
+
+	ui := new(cli.MockUi)
+	c := &ApplyCommand{
+		Meta: Meta{
+			ContextOpts: testCtxConfig(p),
+			Ui:          ui,
+		},
+	}
+
+	// Run the apply command pointing to our existing state
+	args := []string{
+		"-state", statePath,
+		"-backup", "-",
+		testFixturePath("apply"),
+	}
+	if code := c.Run(args); code != 0 {
+		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
+	}
+
+	// Verify that the provider was called with the existing state
+	expectedState := originalState.Resources["test_instance.foo"]
+	if !reflect.DeepEqual(p.DiffState, expectedState) {
+		t.Fatalf("bad: %#v", p.DiffState)
+	}
+
+	if !reflect.DeepEqual(p.ApplyState, expectedState) {
+		t.Fatalf("bad: %#v", p.ApplyState)
+	}
+
+	// Verify a new state exists
+	if _, err := os.Stat(statePath); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	f, err := os.Open(statePath)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	defer f.Close()
+
+	state, err := terraform.ReadState(f)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if state == nil {
+		t.Fatal("state should not be nil")
+	}
+
+	// Ensure there is no backup
+	_, err = os.Stat(statePath + DefaultBackupExtention)
+	if err == nil || !os.IsNotExist(err) {
+		t.Fatalf("backup should not exist")
 	}
 }
 
