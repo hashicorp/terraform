@@ -27,6 +27,7 @@ func init() {
 	}
 
 	meta := command.Meta{
+		Color:       true,
 		ContextOpts: &ContextOpts,
 		Ui:          Ui,
 	}
