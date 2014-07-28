@@ -43,7 +43,7 @@ Terraform both to enable dynamic inputs, but to also store outputs.
 
 Inputs like AMI name, security groups, puppet roles, bootstrap scripts,
 etc can all be loaded from Consul. This allows the specifics of an
-infrastructure to be decoupled from it's overall architecture. This enables
+infrastructure to be decoupled from its overall architecture. This enables
 details to be changed without updating the Terraform configuration.
 
 Outputs from Terraform can also be easily stored in Consul. One powerful
