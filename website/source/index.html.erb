@@ -2,7 +2,7 @@
 <div id="jumbotron-mask">
 	<div id="jumbotron">
 		<div class="jumbotron-content" id="jumbotron-content">
-			<h2 class="tag-line" id="tag-line" style="display: none;">Build, Combine, and Launch Infrastucture</h2>
+			<h2 class="tag-line" id="tag-line" style="visibility: hidden;">Build, Combine, and Launch Infrastucture</h2>
 		</div>
 	</div>
 </div>
@@ -143,18 +143,18 @@
 						<div class="terminal-window">
 							<div class="">
 								<div class="display">
-								<p>resource "digitalocean_droplet" "web" {</p>
-								<p>    name = "tf-web"</p>
-								<p>    size = "512mb"</p>
-								<p>    image = "centos-5-8-x32"</p>
-								<p>    region = "sfo1"</p>
+								<p>resource <span class="txt-spe">"digitalocean_droplet"</span> <span class="txt-spe">"web"</span> {</p>
+								<p>    name = <span class="txt-str">"tf-web"</span></p>
+								<p>    size = <span class="txt-str">"512mb"</span></p>
+								<p>    image = <span class="txt-str">"centos-5-8-x32"</span></p>
+								<p>    region = <span class="txt-str">"sfo1"</span></p>
 								<p>}</p>
 								<p> </p>
-								<p>resource "dnsimple_record" "hello" {</p>
-								<p>    domain = "example.com"</p>
-								<p>    name = "test"</p>
-								<p>    value = "<span class="txt-r">${digitalocean_droplet.web.ipv4_address}</span>"</p>
-								<p>    type = "A"</p>
+								<p>resource <span class="txt-spe">"dnsimple_record"</span> <span class="txt-spe">"hello"</span> {</p>
+								<p>    domain = <span class="txt-str">"example.com"</span></p>
+								<p>    name = <span class="txt-str">"test"</span></p>
+								<p>    value = <span class="txt-str">"<span class="txt-var">${digitalocean_droplet.web.ipv4_address}</span>"</span></p>
+								<p>    type = "<span class="txt-str">"A"</span></p>
 								<p>}</p>
 								</div>
 							</div>

@@ -68,7 +68,7 @@ var Init = {
 		'page-home': function(){
 			if (isIE) {
 				document.getElementById('jumbotron').className += ' static';
-				document.getElementById('tag-line').style.display = 'inline-block';
+				document.getElementById('tag-line').style.visibility = 'visible';
 				return;
 			}
 

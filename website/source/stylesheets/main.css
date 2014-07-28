@@ -1345,10 +1345,13 @@ body.page-home #footer {
   font-weight: 500;
   -webkit-font-smoothing: subpixel-antialiased;
 }
-#demos .terminals .terminal-item .terminal .terminal-window .txt-r {
-  color: #eb979d;
+#demos .terminals .terminal-item .terminal .terminal-window .txt-spe {
+  color: #7190ea;
 }
-#demos .terminals .terminal-item .terminal .terminal-window .txt-p {
+#demos .terminals .terminal-item .terminal .terminal-window .txt-var {
+  color: #9a56f9;
+}
+#demos .terminals .terminal-item .terminal .terminal-window .txt-str {
   color: #64e86c;
 }
 #demos .terminals .terminal-item .terminal .terminal-window p {
