@@ -94,11 +94,11 @@ func (c *RefreshCommand) Run(args []string) int {
 	}
 
 	// Create a backup of the state before updating
-	if backupPath != "-" && c.State != nil {
+	if backupPath != "-" && c.state != nil {
 		log.Printf("[INFO] Writing backup state to: %s", backupPath)
 		f, err := os.Create(backupPath)
 		if err == nil {
-			err = terraform.WriteState(c.State, f)
+			err = terraform.WriteState(c.state, f)
 			f.Close()
 		}
 		if err != nil {

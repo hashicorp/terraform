@@ -16,7 +16,10 @@ type Meta struct {
 	Color       bool
 	ContextOpts *terraform.ContextOpts
 	Ui          cli.Ui
-	State       *terraform.State
+
+	// State read when calling `Context`. This is available after calling
+	// `Context`.
+	state *terraform.State
 
 	// This can be set by the command itself to provide extra hooks.
 	extraHooks []terraform.Hook
@@ -79,7 +82,7 @@ func (m *Meta) Context(path, statePath string) (*terraform.Context, bool, error)
 	}
 
 	// Store the loaded state
-	m.State = state
+	m.state = state
 
 	config, err := config.LoadDir(path)
 	if err != nil {
@@ -93,7 +96,6 @@ func (m *Meta) Context(path, statePath string) (*terraform.Context, bool, error)
 	opts.State = state
 	ctx := terraform.NewContext(opts)
 	return ctx, false, nil
-
 }
 
 // contextOpts returns the options to use to initialize a Terraform
