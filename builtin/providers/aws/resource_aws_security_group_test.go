@@ -36,7 +36,7 @@ func TestAccAWSSecurityGroup_normal(t *testing.T) {
 					resource.TestCheckResourceAttr(
 						"aws_security_group.web", "ingress.0.cidr_blocks.#", "1"),
 					resource.TestCheckResourceAttr(
-						"aws_security_group.web", "ingress.0.cidr_blocks.0", "10.0.0.0/0"),
+						"aws_security_group.web", "ingress.0.cidr_blocks.0", "10.0.0.0/8"),
 				),
 			},
 		},
@@ -77,7 +77,7 @@ func TestAccAWSSecurityGroup_vpc(t *testing.T) {
 					resource.TestCheckResourceAttr(
 						"aws_security_group.web", "ingress.0.cidr_blocks.#", "1"),
 					resource.TestCheckResourceAttr(
-						"aws_security_group.web", "ingress.0.cidr_blocks.0", "10.0.0.0/0"),
+						"aws_security_group.web", "ingress.0.cidr_blocks.0", "10.0.0.0/8"),
 					testCheck,
 				),
 			},
@@ -163,7 +163,7 @@ func testAccCheckAWSSecurityGroupAttributes(group *ec2.SecurityGroupInfo) resour
 			FromPort:  80,
 			ToPort:    8000,
 			Protocol:  "tcp",
-			SourceIPs: []string{"10.0.0.0/0"},
+			SourceIPs: []string{"10.0.0.0/8"},
 		}
 
 		if group.Name != "terraform_acceptance_test_example" {
@@ -195,7 +195,7 @@ resource "aws_security_group" "web" {
         protocol = "tcp"
         from_port = 80
         to_port = 8000
-        cidr_blocks = ["10.0.0.0/0"]
+        cidr_blocks = ["10.0.0.0/8"]
     }
 }
 `
@@ -214,7 +214,7 @@ resource "aws_security_group" "web" {
         protocol = "tcp"
         from_port = 80
         to_port = 8000
-        cidr_blocks = ["10.0.0.0/0"]
+        cidr_blocks = ["10.0.0.0/8"]
     }
 }
 `
