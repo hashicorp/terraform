@@ -65,4 +65,4 @@ vendor/libucl:
 clean:
 	rm -rf vendor
 
-.PHONY: clean default libucl test updatedeps
+.PHONY: clean updatedeps default libucl test 
