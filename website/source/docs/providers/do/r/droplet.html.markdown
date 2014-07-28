@@ -46,6 +46,8 @@ The following attributes are exported:
 * `ipv6` - Is IPv6 enabled
 * `ipv6_address` - The IPv6 address
 * `ipv4_address` - The IPv4 address
+* `locked` - Is the Droplet locked
 * `private_networking` - Is private networking enabled
 * `size` - The instance size
+* `status` - The status of the droplet
 
