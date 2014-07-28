@@ -24,6 +24,9 @@ for the configuration and state file to refresh.
 
 The command-line flags are all optional. The list of available flags are:
 
+* `-backup=path` - Path to the backup file. Defaults to `-state-out` with
+  the ".backup" extention. Disabled by setting to "-".
+
 * `-no-color` - Disables output with coloring
 
 * `-state=path` - Path to read and write the state file to. Defaults to "terraform.tfstate".

@@ -3,6 +3,7 @@ package command
 import (
 	"bytes"
 	"fmt"
+	"log"
 	"os"
 	"sort"
 	"strings"
@@ -20,7 +21,7 @@ type ApplyCommand struct {
 
 func (c *ApplyCommand) Run(args []string) int {
 	var refresh bool
-	var statePath, stateOutPath string
+	var statePath, stateOutPath, backupPath string
 
 	args = c.Meta.process(args)
 
@@ -28,6 +29,7 @@ func (c *ApplyCommand) Run(args []string) int {
 	cmdFlags.BoolVar(&refresh, "refresh", true, "refresh")
 	cmdFlags.StringVar(&statePath, "state", DefaultStateFilename, "path")
 	cmdFlags.StringVar(&stateOutPath, "state-out", "", "path")
+	cmdFlags.StringVar(&backupPath, "backup", "", "path")
 	cmdFlags.Usage = func() { c.Ui.Error(c.Help()) }
 	if err := cmdFlags.Parse(args); err != nil {
 		return 1
@@ -59,6 +61,12 @@ func (c *ApplyCommand) Run(args []string) int {
 		stateOutPath = statePath
 	}
 
+	// If we don't specify a backup path, default to state out with
+	// the extention
+	if backupPath == "" {
+		backupPath = stateOutPath + DefaultBackupExtention
+	}
+
 	// Build the context based on the arguments given
 	ctx, planned, err := c.Context(configPath, statePath)
 	if err != nil {
@@ -67,6 +75,20 @@ func (c *ApplyCommand) Run(args []string) int {
 	}
 	if !validateContext(ctx, c.Ui) {
 		return 1
+	}
+
+	// Create a backup of the state before updating
+	if backupPath != "-" && c.State != nil {
+		log.Printf("[INFO] Writing backup state to: %s", backupPath)
+		f, err := os.Create(backupPath)
+		if err == nil {
+			defer f.Close()
+			err = terraform.WriteState(c.State, f)
+		}
+		if err != nil {
+			c.Ui.Error(fmt.Sprintf("Error writing backup state file: %s", err))
+			return 1
+		}
 	}
 
 	// Plan if we haven't already
@@ -200,6 +222,10 @@ Usage: terraform apply [options] [dir]
   files .
 
 Options:
+
+  -backup=path           Path to backup the existing state file before
+                         modifying. Defaults to the "-state-out" path with
+                         ".backup" extention. Set to "-" to disable backup.
 
   -no-color              If specified, output won't contain any color.
 
