@@ -94,7 +94,7 @@ func (c *RefreshCommand) Run(args []string) int {
 	}
 
 	// Create a backup of the state before updating
-	if backupPath != "-" {
+	if backupPath != "-" && c.State != nil {
 		log.Printf("[INFO] Writing backup state to: %s", backupPath)
 		f, err := os.Create(backupPath)
 		if err == nil {
