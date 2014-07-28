@@ -149,6 +149,13 @@ func TestLoadDir_basic(t *testing.T) {
 	}
 }
 
+func TestLoadDir_file(t *testing.T) {
+	_, err := LoadDir(filepath.Join(fixtureDir, "variables.tf"))
+	if err == nil {
+		t.Fatal("should error")
+	}
+}
+
 func TestLoadDir_noConfigs(t *testing.T) {
 	_, err := LoadDir(filepath.Join(fixtureDir, "dir-empty"))
 	if err == nil {

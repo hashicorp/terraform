@@ -49,6 +49,16 @@ func LoadDir(root string) (*Config, error) {
 		return nil, err
 	}
 
+	fi, err := f.Stat()
+	if err != nil {
+		return nil, err
+	}
+	if !fi.IsDir() {
+		return nil, fmt.Errorf(
+			"configuration path must be a directory: %s",
+			root)
+	}
+
 	err = nil
 	for err != io.EOF {
 		var fis []os.FileInfo
