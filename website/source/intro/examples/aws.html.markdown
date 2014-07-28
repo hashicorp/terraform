@@ -22,11 +22,25 @@ After you run `terraform apply` on this configuration, it will
 automatically output the DNS address of the ELB. After your instance
 registers, this should respond with the default nginx web page.
 
+The configuration file contains comments describing each
+resource.
+
+## Command
+
+```
+ terraform apply \
+    -var 'aws_access_key=YOUR_ACCESS_KEY' \
+    -var 'aws_secret_key=YOUR_SECRET_KEY' \
+    -var 'key_path=/path/to/key/pair.pem' \
+    -var 'key_name=keypair-name'
+```
+
 ## Configuration
 
 ```
 variable "aws_access_key" {}
 variable "aws_secret_key" {}
+variable "key_path" {}
 variable "aws_region" {
     default = "us-west-2"
 }
@@ -98,7 +112,7 @@ resource "aws_instance" "web" {
     user = "ubuntu"
 
     # The path to your keyfile
-    key_file = "/Users/pearkes/Desktop/hashicorp-demo.pem"
+    key_file = "${var.key_path}"
   }
 
   instance_type = "m1.small"
@@ -112,7 +126,7 @@ resource "aws_instance" "web" {
   #
   # https://console.aws.amazon.com/ec2/v2/home?region=us-west-2#KeyPairs:
   #
-  key_name = "hashicorp-demo"
+  key_name = "${var.key_name}"
 
   # Our Security group to allow HTTP and SSH access
   security_groups = ["${aws_security_group.default.name}"]
