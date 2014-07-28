@@ -83,19 +83,6 @@ func resource_aws_security_group_create(
 	return resource_aws_security_group_refresh(rs, meta)
 }
 
-func resource_aws_security_group_update(
-	s *terraform.ResourceState,
-	d *terraform.ResourceDiff,
-	meta interface{}) (*terraform.ResourceState, error) {
-
-	rs := s.MergeDiff(d)
-	log.Printf("ResourceDiff: %s", d)
-	log.Printf("ResourceState: %s", s)
-	log.Printf("Merged: %s", rs)
-
-	return nil, fmt.Errorf("Did not update")
-}
-
 func resource_aws_security_group_destroy(
 	s *terraform.ResourceState,
 	meta interface{}) error {
