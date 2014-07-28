@@ -111,8 +111,16 @@ resource "aws_subnet" "foo" {
 	cidr_block = "10.1.1.0/24"
 }
 
+resource "aws_internet_gateway" "foo" {
+	vpc_id = "${aws_vpc.foo.id}"
+}
+
 resource "aws_route_table" "foo" {
 	vpc_id = "${aws_vpc.foo.id}"
+	route {
+		cidr_block = "10.0.0.0/8"
+		gateway_id = "${aws_internet_gateway.foo.id}"
+	}
 }
 
 resource "aws_route_table_association" "foo" {
@@ -131,8 +139,16 @@ resource "aws_subnet" "foo" {
 	cidr_block = "10.1.1.0/24"
 }
 
+resource "aws_internet_gateway" "foo" {
+	vpc_id = "${aws_vpc.foo.id}"
+}
+
 resource "aws_route_table" "bar" {
 	vpc_id = "${aws_vpc.foo.id}"
+	route {
+		cidr_block = "10.0.0.0/8"
+		gateway_id = "${aws_internet_gateway.foo.id}"
+	}
 }
 
 resource "aws_route_table_association" "foo" {
