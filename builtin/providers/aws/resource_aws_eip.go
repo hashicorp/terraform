@@ -3,6 +3,7 @@ package aws
 import (
 	"fmt"
 	"log"
+	"strings"
 
 	"github.com/hashicorp/terraform/helper/config"
 	"github.com/hashicorp/terraform/helper/diff"
@@ -43,8 +44,11 @@ func resource_aws_eip_create(
 	// the EIP api has a conditional unique ID (really), so
 	// if we're in a VPC we need to save the ID as such, otherwise
 	// it defaults to using the public IP
-	if vpc {
+	log.Printf("[DEBUG] EIP Allocate: %#v", allocResp)
+	if allocResp.AllocationId != "" {
 		rs.ID = allocResp.AllocationId
+		rs.Attributes["vpc"] = "true"
+
 	} else {
 		rs.ID = allocResp.PublicIp
 	}
@@ -65,7 +69,7 @@ func resource_aws_eip_update(
 	// properly.
 	rs := s.MergeDiff(d)
 
-	vpc := rs.Attributes["vpc"] == "true"
+	vpc := strings.Contains(rs.ID, "eipalloc")
 
 	// If we have an instance to register, do it
 	instanceId := rs.Attributes["instance"]
@@ -82,6 +86,7 @@ func resource_aws_eip_update(
 			assocOpts = ec2.AssociateAddress{
 				InstanceId:   instanceId,
 				AllocationId: rs.ID,
+				PublicIp:     "",
 			}
 		}
 
@@ -107,7 +112,7 @@ func resource_aws_eip_destroy(
 	ec2conn := p.ec2conn
 
 	var err error
-	if s.Attributes["vpc"] == "true" {
+	if strings.Contains(s.ID, "eipalloc") {
 		log.Printf("[DEBUG] EIP release (destroy) address allocation: %v", s.ID)
 		_, err = ec2conn.ReleaseAddress(s.ID)
 		return err

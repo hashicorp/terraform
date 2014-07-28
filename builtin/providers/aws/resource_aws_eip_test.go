@@ -2,6 +2,7 @@ package aws
 
 import (
 	"fmt"
+	"strings"
 	"testing"
 
 	"github.com/hashicorp/terraform/helper/resource"
@@ -113,18 +114,30 @@ func testAccCheckAWSEIPExists(n string, res *ec2.Address) resource.TestCheckFunc
 
 		conn := testAccProvider.ec2conn
 
-		describe, err := conn.Addresses([]string{rs.ID}, []string{}, nil)
+		if strings.Contains(rs.ID, "eipalloc") {
+			describe, err := conn.Addresses([]string{}, []string{rs.ID}, nil)
+			if err != nil {
+				return err
+			}
 
-		if err != nil {
-			return err
+			if len(describe.Addresses) != 1 ||
+				describe.Addresses[0].AllocationId != rs.ID {
+				return fmt.Errorf("EIP not found")
+			}
+			*res = describe.Addresses[0]
+
+		} else {
+			describe, err := conn.Addresses([]string{rs.ID}, []string{}, nil)
+			if err != nil {
+				return err
+			}
+
+			if len(describe.Addresses) != 1 ||
+				describe.Addresses[0].PublicIp != rs.ID {
+				return fmt.Errorf("EIP not found")
+			}
+			*res = describe.Addresses[0]
 		}
-
-		if len(describe.Addresses) != 1 ||
-			describe.Addresses[0].PublicIp != rs.ID {
-			return fmt.Errorf("EIP not found")
-		}
-
-		*res = describe.Addresses[0]
 
 		return nil
 	}
