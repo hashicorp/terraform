@@ -25,6 +25,29 @@ registers, this should respond with the default nginx web page.
 ## Configuration
 
 ```
+variable "aws_access_key" {}
+variable "aws_secret_key" {}
+variable "aws_region" {
+    default = "us-west-2"
+}
+
+# Ubuntu Precise 12.04 LTS (x64)
+variable "aws_amis" {
+    default = {
+        "eu-west-1": "ami-b1cf19c6",
+        "us-east-1": "ami-de7ab6b6",
+        "us-west-1": "ami-3f75767a",
+        "us-west-2": "ami-21f78e11"
+    }
+}
+
+# Specify the provider and access details
+provider "aws" {
+    access_key = "${var.aws_access_key}"
+    secret_key = "${var.aws_secret_key}"
+    region = "${var.aws_region}"
+}
+
 # Our default security group to access
 # the instances over SSH and HTTP
 resource "aws_security_group" "default" {
@@ -80,8 +103,9 @@ resource "aws_instance" "web" {
 
   instance_type = "m1.small"
 
-  # ubuntu-precise-12.04-amd64-server
-  ami = "ami-4fccb37f"
+  # Loookup the correct AMI based on the region
+  # we specified
+  ami = "${lookup(var.aws_amis, var.aws_region)}"
 
   # The name of our SSH keypair you've created and downloaded
   # from the AWS console.
