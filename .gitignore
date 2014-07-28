@@ -8,3 +8,5 @@ config/y.go
 config/y.output
 vendor/
 website/.vagrant
+website/build
+website/node_modules

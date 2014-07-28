@@ -18,3 +18,7 @@ configure :build do
   activate :minify_html
   activate :minify_javascript
 end
+
+configure :development do
+  set :debug_assets, true
+end
