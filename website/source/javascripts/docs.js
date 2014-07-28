@@ -23,7 +23,6 @@ var Init = {
   },
 
   resizeImage: function(){
-    console.log('resizeImage')
 
     var header = document.getElementById('header'),
         footer = document.getElementById('footer-wrap'),
