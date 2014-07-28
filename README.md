@@ -59,10 +59,13 @@ as a compilation tool on top of Go:
 
     $ go get -u github.com/mitchellh/gox
 
-Next, clone this repository into `$GOPATH/src/github.com/hashicorp/terraform`
-and then just type `make`. This will compile some dependencies and then
-run the tests. If this exits with exit status 0, then everything is working!
+Next, clone this repository into `$GOPATH/src/github.com/hashicorp/terraform`.
+Install the necessary dependencies by running `make updatedeps` and then just 
+type `make`. This will compile some more dependencies and thenrun the tests. If 
+this exits with exit status 0, then everything is working!
 
+    $ make updatedeps
+    ...
     $ make
     ...
 
