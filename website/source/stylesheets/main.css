@@ -1045,18 +1045,6 @@ body.page-home #footer {
   margin-top: -36px;
   background: #ffffff url(../images/white-wireframe.png) center top no-repeat;
   background-size: cover;
-  -webkit-transform: skewY(-3deg);
-  -moz-transform: skewY(-3deg);
-  -ms-transform: skewY(-3deg);
-  -o-transform: skewY(-3deg);
-  transform: skewY(-3deg);
-}
-#feature-auto > .container {
-  -webkit-transform: skewY(3deg);
-  -moz-transform: skewY(3deg);
-  -ms-transform: skewY(3deg);
-  -o-transform: skewY(3deg);
-  transform: skewY(3deg);
 }
 #feature-auto h2 {
   font-size: 43px;
@@ -1345,17 +1333,11 @@ body.page-home #footer {
   font-weight: 500;
   -webkit-font-smoothing: subpixel-antialiased;
 }
-#demos .terminals .terminal-item .terminal .terminal-window .txt-spe {
-  color: #7190ea;
+#demos .terminals .terminal-item .terminal .terminal-window .txt-r {
+  color: #eb979d;
 }
-#demos .terminals .terminal-item .terminal .terminal-window .txt-var {
-  color: #9a56f9;
-}
-#demos .terminals .terminal-item .terminal .terminal-window .txt-str {
+#demos .terminals .terminal-item .terminal .terminal-window .txt-p {
   color: #64e86c;
-}
-#demos .terminals .terminal-item .terminal .terminal-window .txt-int {
-  color: #e89264;
 }
 #demos .terminals .terminal-item .terminal .terminal-window p {
   margin-bottom: 2px;
