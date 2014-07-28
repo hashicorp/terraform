@@ -34,14 +34,16 @@ func resource_aws_elb_create(
 		return nil, err
 	}
 
-	v = flatmap.Expand(rs.Attributes, "availability_zones").([]interface{})
-	zones := expandStringList(v)
-
 	// Provision the elb
 	elbOpts := &elb.CreateLoadBalancer{
 		LoadBalancerName: elbName,
 		Listeners:        listeners,
-		AvailZone:        zones,
+	}
+
+	if _, ok := rs.Attributes["availability_zones.#"]; ok {
+		v = flatmap.Expand(rs.Attributes, "availability_zones").([]interface{})
+		zones := expandStringList(v)
+		elbOpts.AvailZone = zones
 	}
 
 	log.Printf("[DEBUG] ELB create configuration: %#v", elbOpts)
@@ -55,20 +57,22 @@ func resource_aws_elb_create(
 	rs.ID = elbName
 	log.Printf("[INFO] ELB ID: %s", elbName)
 
-	// If we have any instances, we need to register them
-	v = flatmap.Expand(rs.Attributes, "instances").([]interface{})
-	instances := expandStringList(v)
+	if _, ok := rs.Attributes["instances.#"]; ok {
+		// If we have any instances, we need to register them
+		v = flatmap.Expand(rs.Attributes, "instances").([]interface{})
+		instances := expandStringList(v)
 
-	if len(instances) > 0 {
-		registerInstancesOpts := elb.RegisterInstancesWithLoadBalancer{
-			LoadBalancerName: elbName,
-			Instances:        instances,
-		}
+		if len(instances) > 0 {
+			registerInstancesOpts := elb.RegisterInstancesWithLoadBalancer{
+				LoadBalancerName: elbName,
+				Instances:        instances,
+			}
 
-		_, err := elbconn.RegisterInstancesWithLoadBalancer(&registerInstancesOpts)
+			_, err := elbconn.RegisterInstancesWithLoadBalancer(&registerInstancesOpts)
 
-		if err != nil {
-			return rs, fmt.Errorf("Failure registering instances: %s", err)
+			if err != nil {
+				return rs, fmt.Errorf("Failure registering instances: %s", err)
+			}
 		}
 	}
 
@@ -275,7 +279,6 @@ func resource_aws_elb_validation() *config.Validator {
 	return &config.Validator{
 		Required: []string{
 			"name",
-			"availability_zones.*",
 			"listener.*",
 			"listener.*.instance_port",
 			"listener.*.instance_protocol",
@@ -284,6 +287,7 @@ func resource_aws_elb_validation() *config.Validator {
 		},
 		Optional: []string{
 			"instances.*",
+			"availability_zones.*",
 		},
 	}
 }
