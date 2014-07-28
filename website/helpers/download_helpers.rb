@@ -21,8 +21,8 @@ if ENV["TERRAFORM_VERSION"]
     $terraform_files[os] << filename
   end
 
-  $terraform_os = ["darwin", "linux", "windows"] & $consul_files.keys
-  $terraform_os += $consul_files.keys
+  $terraform_os = ["darwin", "linux", "windows"] & $terraform_files.keys
+  $terraform_os += $terraform_files.keys
   $terraform_os.uniq!
 
   $terraform_files.each do |key, value|
