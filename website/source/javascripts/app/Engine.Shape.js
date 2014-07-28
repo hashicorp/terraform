@@ -47,6 +47,20 @@ Engine.Shape.prototype = {
 	breathLength: 1,
 	breatheIn: false,
 
+	resize: function(newSize, offset){
+		var len, p;
+
+		this.size.x = newSize;
+		this.size.y = newSize;
+
+		this.pos.x = -(newSize / 2);
+		this.pos.y = -(newSize / 2 + offset);
+
+		for (p = 0, len = this.points.length; p < len; p++) {
+			this.points[p].resize();
+		}
+	},
+
 	startBreathing: function(){
 		var p;
 

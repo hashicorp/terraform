@@ -115,12 +115,6 @@ Engine = Base.extend({
 	},
 
 	setupEvents: function(){
-		if (window.innerWidth < 570) {
-			this.height = 560;
-		} else {
-			this.height = 700;
-		}
-
 		this.resize = this.resize.bind(this);
 		this.resize();
 		window.addEventListener('resize', this.resize, false);
@@ -290,7 +284,14 @@ Engine = Base.extend({
 	},
 
 	resize: function(){
-		var scale = this.scale;
+		var scale = this.scale,
+			size, offset;
+
+		if (window.innerWidth < 570) {
+			this.height = 560;
+		} else {
+			this.height = 700;
+		}
 
 		this.width  = window.innerWidth;
 
@@ -305,6 +306,17 @@ Engine = Base.extend({
 
 		if (this.grid) {
 			this.grid.resize(this.width, this.height);
+		}
+
+		if (this.logo) {
+			if (this.height === 560) {
+				size = 300;
+				offset = 0;
+			} else {
+				size = 360;
+				offset = 40;
+			}
+			this.logo.resize(size, offset);
 		}
 	},
 

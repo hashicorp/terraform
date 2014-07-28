@@ -53,6 +53,11 @@ Engine.Point.prototype = {
 		y: 0
 	},
 
+	resize: function(){
+		this.target.x = this.pos.x = this.ref.x * this.shapeSize.x;
+		this.target.y = this.pos.y = this.ref.y * this.shapeSize.y;
+	},
+
 	updateBreathingPhysics: function(){
 		this.stiffness = 0.1;
 		this.friction  = 0.05;
