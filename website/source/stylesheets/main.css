@@ -1354,6 +1354,9 @@ body.page-home #footer {
 #demos .terminals .terminal-item .terminal .terminal-window .txt-str {
   color: #64e86c;
 }
+#demos .terminals .terminal-item .terminal .terminal-window .txt-int {
+  color: #e89264;
+}
 #demos .terminals .terminal-item .terminal .terminal-window p {
   margin-bottom: 2px;
   white-space: pre-wrap;
