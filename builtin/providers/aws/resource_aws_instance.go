@@ -274,7 +274,7 @@ func resource_aws_instance_update_state(
 					continue
 				}
 
-				if strings.Contains(str, "sg-") {
+				if strings.HasPrefix(str, "sg-") {
 					useID = true
 					break
 				}
