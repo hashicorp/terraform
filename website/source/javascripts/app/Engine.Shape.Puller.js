@@ -124,7 +124,7 @@ Engine.Shape.Puller.prototype = {
 		}
 		ctx.closePath();
 		ctx.lineWidth = 0.4 * scale;
-		ctx.strokeStyle = 'rgba(108,0,243,0.3)';
+		ctx.strokeStyle = 'rgba(108,0,243,0.1)';
 		ctx.stroke();
 
 		if (this.alpha < 1) {
@@ -158,7 +158,7 @@ Engine.Shape.Puller.prototype = {
 			}
 		}
 		ctx.closePath();
-		ctx.fillStyle = 'rgba(108,0,243,0.1)';
+		ctx.fillStyle = 'rgba(108,0,243,0.05)';
 		ctx.fill();
 
 		ctx.setTransform(1, 0, 0, 1, 0, 0);
