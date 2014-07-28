@@ -16,8 +16,11 @@ export CGO_CFLAGS CGO_LDFLAGS PATH
 
 default: test
 
-dev: config/y.go libucl
+bin: config/y.go libucl
 	@sh -c "$(CURDIR)/scripts/build.sh"
+
+dev: config/y.go libucl
+	@TF_DEV=1 sh -c "$(CURDIR)/scripts/build.sh"
 
 libucl: vendor/libucl/$(LIBUCL_NAME)
 

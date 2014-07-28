@@ -30,6 +30,10 @@ fi
 echo "--> Getting dependencies..."
 go get ./...
 
+# Delete the old dir
+echo "--> Removing old directory..."
+rm -f bin/*
+
 # Build!
 echo "--> Building..."
 gox \
@@ -40,6 +44,20 @@ gox \
     ./...
 mv bin/terraform-terraform${EXTENSION} bin/terraform${EXTENSION}
 cp bin/terraform* ${GOPATHSINGLE}/bin
+
+# If we're on Windows, get the DLL in there
+if [ "$(go env GOOS)" = "windows" ]; then
+    cp libucl.dll bin/
+fi
+
+if [ "${TF_DEV}x" = "x" ]; then
+    # Zip and copy to the dist dir
+    echo "--> Packaging..."
+    mkdir -p pkg
+    cd bin/
+    zip ../pkg/$(go env GOOS)_$(go env GOARCH).zip ./*
+    cd $DIR
+fi
 
 # Done!
 echo
