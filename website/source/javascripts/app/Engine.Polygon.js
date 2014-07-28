@@ -3,26 +3,28 @@
 	Vector
 ){
 
-Engine.Polygon = function(a, b, c, color, simple){
+Engine.Polygon = function(a, b, c, color, strokeColor){
 	this.a = a;
 	this.b = b;
 	this.c = c;
 
 	this.color = Engine.clone(color);
-	this.simple = simple;
+	this.strokeColor = strokeColor ? Engine.clone(strokeColor) : Engine.clone(color);
 
-	if (this.simple) {
-		this.strokeColor = this.color;
+	if (strokeColor) {
+		this.strokeColor = Engine.clone(strokeColor);
+		this.strokeWidth = 1.5;
 	} else {
-		this.maxL = this.color.l;
-		this.strokeColor = {
-			h: this.color.h,
-			s: 0,
-			l: 100,
-			a: 1
-		};
-		this.color.l = 0;
+		this.strokeColor = Engine.clone(color);
+		this.strokeWidth = 0.25;
 	}
+
+	this.maxStrokeL = this.strokeColor.l;
+	this.maxColorL  = this.color.l;
+
+	this.strokeColor.s = 0;
+	this.strokeColor.l = 100;
+	this.color.l = 0;
 
 	this.fillStyle = this.hslaTemplate.substitute(this.color);
 	this.strokeStyle = this.hslaTemplate.substitute(this.strokeColor);
@@ -53,15 +55,16 @@ Engine.Polygon.prototype = {
 		if (
 			delta > this.delay &&
 			delta < this.delay + this.duration + 1 &&
-			this.color.l < this.maxL
+			this.color.l < this.maxColorL
 		) {
-			this.color.l = this.maxL * (delta - this.delay) / this.duration;
+			this.color.l = this.maxColorL * (delta - this.delay) / this.duration;
 
 			this.strokeColor.s = this.color.s * (delta - this.delay) / this.duration;
-			this.strokeColor.l = (this.maxL - 100) * (delta - this.delay) / this.duration + 100;
+			this.strokeColor.l = (this.maxStrokeL - 100) * (delta - this.delay) / this.duration + 100;
 
-			if (this.color.l > this.maxL) {
-				this.color.l = this.maxL;
+			if (this.color.l > this.maxColorL) {
+				this.color.l = this.maxColorL;
+				this.strokeColor.l = this.maxStrokeL;
 			}
 
 			this.strokeStyle = this.hslaTemplate.substitute(this.strokeColor);

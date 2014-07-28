@@ -96,7 +96,7 @@ Engine = Base.extend({
 			.wait(1000)
 			.then(function(){
 				this.showGrid = true;
-				this.logo.startBreathing();
+				// this.logo.startBreathing();
 			}, this)
 			.wait(1000)
 			.then(function(){
@@ -287,6 +287,7 @@ Engine = Base.extend({
 			this.width  / 2 * scale >> 0,
 			this.height / 2 * scale >> 0
 		);
+		this.context.lineJoin = 'bevel';
 
 		if (this.grid) {
 			this.grid.resize(this.width, this.height);

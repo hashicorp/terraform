@@ -33,7 +33,8 @@ Engine.Shape = function(x, y, width, height, points, polygons){
 			ref[poly.points[0]],
 			ref[poly.points[1]],
 			ref[poly.points[2]],
-			poly.color
+			poly.color,
+			poly.stroke
 		));
 	}
 };
@@ -126,7 +127,7 @@ Engine.Shape.prototype = {
 			ctx.closePath();
 			ctx.fillStyle   = poly.fillStyle;
 			ctx.fill();
-			ctx.lineWidth = 0.25 * scale;
+			ctx.lineWidth = poly.strokeWidth * scale;
 			ctx.strokeStyle = poly.strokeStyle;
 			ctx.stroke();
 		}
