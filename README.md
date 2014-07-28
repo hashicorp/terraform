@@ -4,6 +4,8 @@
 * IRC: `#terraform-tool` on Freenode
 * Mailing list: [Google Groups](http://groups.google.com/group/terraform-tool)
 
+![Terraform](https://raw.githubusercontent.com/hashicorp/terraform/master/website/source/images/readme.png)
+
 Terraform is a tool for building, changing, and versioning infrastructure
 safely and efficiently. Terraform can manage existing and popular service
 providers as well as custom in-house solutions.
