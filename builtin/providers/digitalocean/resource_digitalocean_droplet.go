@@ -317,10 +317,12 @@ func WaitForDropletAttribute(id string, target string, pending []string, attribu
 		id, attribute, target)
 
 	stateConf := &resource.StateChangeConf{
-		Pending: pending,
-		Target:  target,
-		Refresh: new_droplet_state_refresh_func(id, attribute, client),
-		Timeout: 10 * time.Minute,
+		Pending:    pending,
+		Target:     target,
+		Refresh:    new_droplet_state_refresh_func(id, attribute, client),
+		Timeout:    10 * time.Minute,
+		Delay:      10 * time.Second,
+		MinTimeout: 3 * time.Second,
 	}
 
 	return stateConf.WaitForState()
