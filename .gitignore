@@ -13,6 +13,5 @@ website/node_modules
 .vagrant/
 *.backup
 *.tfstate
-*.png
 *.log
 *.bak
