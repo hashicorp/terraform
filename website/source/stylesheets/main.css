@@ -19,12 +19,19 @@
   -webkit-font-smoothing: antialiased;
 }*/
 body {
-  -webkit-font-smoothing: antialiased;
+  -webkit-font-smoothing: subpixel-antialiased;
   color: #000000;
   background-color: #000000;
   font-size: 15px;
   font-family: 'Lato', "Helvetica Neue", Helvetica, Arial, sans-serif;
   font-weight: 500;
+}
+h1,
+h2,
+h3,
+h4,
+h5 {
+  -webkit-font-smoothing: antialiased;
 }
 h1 {
   font-size: 42px;
@@ -1331,18 +1338,18 @@ body.page-home #footer {
   min-height: 140px;
   padding: 20px;
   font-size: 15px;
-  font-weight: normal;
   font-family: "Courier New", Monaco, Menlo, Consolas, monospace;
   color: #ffffff;
   background-color: transparent;
   overflow: auto;
+  font-weight: 500;
+  -webkit-font-smoothing: subpixel-antialiased;
 }
 #demos .terminals .terminal-item .terminal .terminal-window .txt-r {
-  color: #e47078;
+  color: #eb979d;
 }
 #demos .terminals .terminal-item .terminal .terminal-window .txt-p {
-  font-weight: bold;
-  color: #87ee8e;
+  color: #64e86c;
 }
 #demos .terminals .terminal-item .terminal .terminal-window p {
   margin-bottom: 2px;
