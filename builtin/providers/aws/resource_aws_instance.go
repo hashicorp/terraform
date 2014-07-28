@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/hashicorp/terraform/flatmap"
@@ -263,10 +264,28 @@ func resource_aws_instance_update_state(
 	s.Attributes["subnet_id"] = instance.SubnetId
 	s.Dependencies = nil
 
+	// Extract the existing security groups
+	useID := false
+	if raw := flatmap.Expand(s.Attributes, "security_groups"); raw != nil {
+		if sgs, ok := raw.([]interface{}); ok {
+			for _, sg := range sgs {
+				str, ok := sg.(string)
+				if !ok {
+					continue
+				}
+
+				if strings.Contains(str, "sg-") {
+					useID = true
+					break
+				}
+			}
+		}
+	}
+
 	// Build up the security groups
 	sgs := make([]string, len(instance.SecurityGroups))
 	for i, sg := range instance.SecurityGroups {
-		if instance.SubnetId != "" {
+		if instance.SubnetId != "" && useID {
 			sgs[i] = sg.Id
 		} else {
 			sgs[i] = sg.Name
