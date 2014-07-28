@@ -117,7 +117,7 @@ This introduces a new type of interpolation: a function call. The
 key is `var.region`, which specifies that the value of the region
 variables is the key.
 
-While we don't use it in our example, it is worth nothing that you
+While we don't use it in our example, it is worth noting that you
 can also do a static lookup of a mapping directly with
 `${var.amis.us-east-1}`.
 
