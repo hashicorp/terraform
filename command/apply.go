@@ -82,8 +82,8 @@ func (c *ApplyCommand) Run(args []string) int {
 		log.Printf("[INFO] Writing backup state to: %s", backupPath)
 		f, err := os.Create(backupPath)
 		if err == nil {
-			defer f.Close()
 			err = terraform.WriteState(c.State, f)
+			f.Close()
 		}
 		if err != nil {
 			c.Ui.Error(fmt.Sprintf("Error writing backup state file: %s", err))
