@@ -6,6 +6,7 @@ Engine.Typewriter = function(element){
 	this.element = element;
 	this.content = this.element.textContent.split('');
 	this.element.innerHTML = '';
+	this.element.style.visibility = 'visible';
 };
 
 Engine.Typewriter.prototype = {

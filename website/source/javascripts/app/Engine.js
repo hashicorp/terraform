@@ -93,12 +93,9 @@ Engine = Base.extend({
 			.then(function(){
 				this.showShapes = true;
 			}, this)
-			.wait(800)
+			.wait(1000)
 			.then(function(){
 				this.logo.startBreathing();
-			}, this)
-			.wait(200)
-			.then(function(){
 				this.showGrid = true;
 			}, this)
 			.wait(1000)

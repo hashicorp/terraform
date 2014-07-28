@@ -10,6 +10,9 @@ import (
 // DefaultStateFilename is the default filename used for the state file.
 const DefaultStateFilename = "terraform.tfstate"
 
+// DefaultBackupExtention is added to the state file to form the path
+const DefaultBackupExtention = ".backup"
+
 func validateContext(ctx *terraform.Context, ui cli.Ui) bool {
 	if ws, es := ctx.Validate(); len(ws) > 0 || len(es) > 0 {
 		ui.Output(

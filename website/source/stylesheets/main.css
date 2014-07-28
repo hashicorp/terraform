@@ -686,6 +686,7 @@ body.page-home #footer {
   top: 540px;
   color: #fff;
   text-align: center;
+  visibility: hidden;
   font-family: 'Lato', "Helvetica Neue", Helvetica, Arial, sans-serif;
   font-weight: 200;
   -webkit-transform: translate3d(0, 0, 0);

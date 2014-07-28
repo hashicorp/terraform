@@ -16,13 +16,14 @@ type RefreshCommand struct {
 }
 
 func (c *RefreshCommand) Run(args []string) int {
-	var statePath, stateOutPath string
+	var statePath, stateOutPath, backupPath string
 
 	args = c.Meta.process(args)
 
 	cmdFlags := c.Meta.flagSet("refresh")
 	cmdFlags.StringVar(&statePath, "state", DefaultStateFilename, "path")
 	cmdFlags.StringVar(&stateOutPath, "state-out", "", "path")
+	cmdFlags.StringVar(&backupPath, "backup", "", "path")
 	cmdFlags.Usage = func() { c.Ui.Error(c.Help()) }
 	if err := cmdFlags.Parse(args); err != nil {
 		return 1
@@ -48,6 +49,12 @@ func (c *RefreshCommand) Run(args []string) int {
 	// path.
 	if stateOutPath == "" {
 		stateOutPath = statePath
+	}
+
+	// If we don't specify a backup path, default to state out with
+	// the extention
+	if backupPath == "" {
+		backupPath = stateOutPath + DefaultBackupExtention
 	}
 
 	// Verify that the state path exists. The "ContextArg" function below
@@ -86,6 +93,20 @@ func (c *RefreshCommand) Run(args []string) int {
 		return 1
 	}
 
+	// Create a backup of the state before updating
+	if backupPath != "-" && c.state != nil {
+		log.Printf("[INFO] Writing backup state to: %s", backupPath)
+		f, err := os.Create(backupPath)
+		if err == nil {
+			err = terraform.WriteState(c.state, f)
+			f.Close()
+		}
+		if err != nil {
+			c.Ui.Error(fmt.Sprintf("Error writing backup state file: %s", err))
+			return 1
+		}
+	}
+
 	state, err := ctx.Refresh()
 	if err != nil {
 		c.Ui.Error(fmt.Sprintf("Error refreshing state: %s", err))
@@ -118,6 +139,10 @@ Usage: terraform refresh [options] [dir]
   to occur when you generate a plan or call apply next.
 
 Options:
+
+  -backup=path        Path to backup the existing state file before
+                      modifying. Defaults to the "-state-out" path with
+                      ".backup" extention. Set to "-" to disable backup.
 
   -no-color           If specified, output won't contain any color.
 
