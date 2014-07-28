@@ -134,12 +134,18 @@ Engine = Base.extend({
 	},
 
 	setupTessellation: function(canvas){
+		var size;
 		this.shapes = [];
+		if (window.innerWidth < 570) {
+			size = 300;
+		} else {
+			size = 360;
+		}
 		this.logo = new Engine.Shape(
-			-(180),
-			-(220),
-			360,
-			360,
+			-(size / 2),
+			-(size / 2 + 40),
+			size,
+			size,
 			Logo.points,
 			Logo.polygons
 		);

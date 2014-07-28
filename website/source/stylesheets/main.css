@@ -921,6 +921,21 @@ body.page-home #footer {
     opacity: 0;
   }
 }
+@media (max-width: 570px) {
+  .tag-line {
+    display: none;
+  }
+  #jumbotron .jumbotron-content {
+    -webkit-transform: translate3d(0, 0, 0) scale(0.8);
+    -moz-transform: translate3d(0, 0, 0) scale(0.8);
+    -ms-transform: translate3d(0, 0, 0) scale(0.8);
+    -o-transform: translate3d(0, 0, 0) scale(0.8);
+    transform: translate3d(0, 0, 0) scale(0.8);
+  }
+  .animated-logo {
+    margin-top: -72px;
+  }
+}
 .outline-btn {
   background-color: transparent;
   color: #ffffff;
