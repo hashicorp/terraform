@@ -19,11 +19,12 @@
   -webkit-font-smoothing: antialiased;
 }*/
 body {
+  -webkit-font-smoothing: antialiased;
   color: #000000;
   background-color: #000000;
   font-size: 15px;
   font-family: 'Lato', "Helvetica Neue", Helvetica, Arial, sans-serif;
-  font-weight: 300;
+  font-weight: 500;
 }
 h1 {
   font-size: 42px;
@@ -688,7 +689,7 @@ body.page-home #footer {
   text-align: center;
   visibility: hidden;
   font-family: 'Lato', "Helvetica Neue", Helvetica, Arial, sans-serif;
-  font-weight: 100;
+  font-weight: 300;
   -webkit-transform: translate3d(0, 0, 0);
   -moz-transform: translate3d(0, 0, 0);
   -ms-transform: translate3d(0, 0, 0);
