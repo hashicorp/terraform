@@ -81,10 +81,12 @@ func resource_aws_instance_create(
 		instance.InstanceId)
 
 	stateConf := &resource.StateChangeConf{
-		Pending: []string{"pending"},
-		Target:  "running",
-		Refresh: InstanceStateRefreshFunc(ec2conn, instance.InstanceId),
-		Timeout: 10 * time.Minute,
+		Pending:    []string{"pending"},
+		Target:     "running",
+		Refresh:    InstanceStateRefreshFunc(ec2conn, instance.InstanceId),
+		Timeout:    10 * time.Minute,
+		Delay:      10 * time.Second,
+		MinTimeout: 3 * time.Second,
 	}
 
 	instanceRaw, err := stateConf.WaitForState()
@@ -159,10 +161,12 @@ func resource_aws_instance_destroy(
 		s.ID)
 
 	stateConf := &resource.StateChangeConf{
-		Pending: []string{"pending", "running", "shutting-down", "stopped", "stopping"},
-		Target:  "terminated",
-		Refresh: InstanceStateRefreshFunc(ec2conn, s.ID),
-		Timeout: 10 * time.Minute,
+		Pending:    []string{"pending", "running", "shutting-down", "stopped", "stopping"},
+		Target:     "terminated",
+		Refresh:    InstanceStateRefreshFunc(ec2conn, s.ID),
+		Timeout:    10 * time.Minute,
+		Delay:      10 * time.Second,
+		MinTimeout: 3 * time.Second,
 	}
 
 	_, err := stateConf.WaitForState()
