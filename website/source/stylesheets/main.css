@@ -1861,7 +1861,7 @@ body.layout-intro > .container .col-md-8[role=main] > div {
   padding-left: 95px;
 }
 .downloads .download .details h2 {
-  margin-top: 0px;
+  margin-top: 30ppx;
 }
 .downloads .download .details ul {
   padding-left: 0px;
