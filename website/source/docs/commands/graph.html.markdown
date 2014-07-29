@@ -31,7 +31,7 @@ by GraphViz:
 $ terraform graph | dot -Tpng > graph.png
 ```
 
-Alternatively, the webbased [GraphViz Workspace](http://graphviz-dev.appspot.com)
+Alternatively, the web-based [GraphViz Workspace](http://graphviz-dev.appspot.com)
 can be used to quickly render DOT file inputs as well.
 
 Here is an example graph output:

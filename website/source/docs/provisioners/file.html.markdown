@@ -32,7 +32,7 @@ resource "aws_instance" "web" {
 
 ## Argument Reference
 
-The following arugments are supported:
+The following arguments are supported:
 
 * `source` - (Required) This is the source file or folder. It can be specified as relative
   to the current working directory or as an absolute path.

@@ -25,7 +25,7 @@ resource "aws_instance" "web" {
 
 ## Argument Reference
 
-The following arugments are supported:
+The following arguments are supported:
 
 * `command` - (Required) This is the command to execute. It can be provided
   as a relative path to the current working directory or as an absolute path.

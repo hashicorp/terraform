@@ -21,7 +21,7 @@ provider "heroku" {
 	api_key = "${var.heroku_api_key}"
 }
 
-# Create a new applicaiton
+# Create a new application
 resource "heroku_app" "default" {
     ...
 }

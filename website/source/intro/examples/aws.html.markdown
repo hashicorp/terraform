@@ -118,7 +118,7 @@ resource "aws_instance" "web" {
 
   instance_type = "m1.small"
 
-  # Loookup the correct AMI based on the region
+  # Lookup the correct AMI based on the region
   # we specified
   ami = "${lookup(var.aws_amis, var.aws_region)}"
 

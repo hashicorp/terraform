@@ -65,7 +65,7 @@ The `key` block supports the following:
   This allows a key to be written to.
 
 * `delete` - (Optional) If true, then the key will be deleted when
-  the resource is destroyed. Otherwsie, it will be left in Consul.
+  the resource is destroyed. Otherwise, it will be left in Consul.
   Defaults to false.
 
 ## Attributes Reference

@@ -16,7 +16,7 @@ can be used to interface with Consul from inside a Terraform configuration.
 
 For our example, we use the [Consul demo cluster](http://demo.consul.io)
 to both read configuration and store information about a newly created EC2 instance.
-The size of the EC2 instance will be determind by the "tf\_test/size" key in Consul,
+The size of the EC2 instance will be determined by the "tf\_test/size" key in Consul,
 and will default to "m1.small" if that key does not exist. Once the instance is created
 the "tf\_test/id" and "tf\_test/public\_dns" keys will be set with the computed
 values for the instance.

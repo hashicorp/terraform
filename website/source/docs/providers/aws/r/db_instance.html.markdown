@@ -40,10 +40,10 @@ The following arguments are supported:
 * `backup_retention_period` - (Optional) The days to retain backups for.
 * `backup_window` - (Optional) The backup window.
 * `iops` - (Optional) The amount of provisioned IOPS
-* `maintenance_window` - (Optional) The window to perform maintanence in.
+* `maintenance_window` - (Optional) The window to perform maintenance in.
 * `multi_az` - (Optional) Specifies if the RDS instance is multi-AZ
-* `port` - (Optional) The port on which the DB accepts connetions.
-* `publicly_accessible` - (Optional) Bool to control if instance is publically accessible.
+* `port` - (Optional) The port on which the DB accepts connections.
+* `publicly_accessible` - (Optional) Bool to control if instance is publicly accessible.
 * `vpc_security_group_ids` - (Optional) List of VPC security groups to associate.
 * `skip_final_snapshot` - (Optional) Enables skipping the final snapshot on deletion.
 * `security_group_names` - (Optional) List of DB Security Groups to associate.
