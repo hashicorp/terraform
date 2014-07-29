@@ -535,6 +535,12 @@ body.page-home #footer {
     background-size: 37px 40px;
   }
 }
+@media (min-width: 1500px) {
+  body.page-home #footer {
+    margin-top: -60px;
+    padding: 190px 0 40px;
+  }
+}
 @media (max-width: 992px) {
   .page-sub #footer .footer-hashi,
   #footer .footer-hashi {
