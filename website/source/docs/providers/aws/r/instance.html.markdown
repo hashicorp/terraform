@@ -31,6 +31,7 @@ The following arguments are supported:
    If you are within a VPC, you'll need to use the security group ID. Otherwise,
    for EC2, use the security group name.
 * `subnet_id` - (Optional) The VPC Subnet ID to launch in.
+* `associate_public_ip_address` - (Optional) Associate a public ip address with an instance in a VPC.
 * `source_dest_check` - (Optional) Controls if traffic is routed to the instance when
   the destination address does not match the instance. Used for NAT or VPNs. Defaults false.
 * `user_data` - (Optional) The user data to provide when launching the instance.
@@ -48,4 +49,3 @@ The following attributes are exported:
 * `public_ip` - The public IP address.
 * `security_groups` - The associated security groups.
 * `subnet_id` - The VPC subnet ID.
-

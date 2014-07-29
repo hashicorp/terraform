@@ -252,5 +252,6 @@ resource "aws_instance" "foo" {
 	ami = "ami-4fccb37f"
 	instance_type = "m1.small"
 	subnet_id = "${aws_subnet.foo.id}"
+	associate_public_ip_address = true
 }
 `

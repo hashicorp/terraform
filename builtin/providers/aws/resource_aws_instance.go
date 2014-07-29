@@ -34,13 +34,19 @@ func resource_aws_instance_create(
 		userData = attr.NewExtra.(string)
 	}
 
+	associatePublicIPAddress := false
+	if attr, ok := d.Attributes["associate_public_ip_address"]; ok {
+		associatePublicIPAddress = attr.New != "" && attr.New != "false"
+	}
+
 	// Build the creation struct
 	runOpts := &ec2.RunInstances{
-		ImageId:      rs.Attributes["ami"],
-		InstanceType: rs.Attributes["instance_type"],
-		KeyName:      rs.Attributes["key_name"],
-		SubnetId:     rs.Attributes["subnet_id"],
-		UserData:     []byte(userData),
+		ImageId:                  rs.Attributes["ami"],
+		InstanceType:             rs.Attributes["instance_type"],
+		KeyName:                  rs.Attributes["key_name"],
+		SubnetId:                 rs.Attributes["subnet_id"],
+		AssociatePublicIpAddress: associatePublicIPAddress,
+		UserData:                 []byte(userData),
 	}
 	if raw := flatmap.Expand(rs.Attributes, "security_groups"); raw != nil {
 		if sgs, ok := raw.([]interface{}); ok {
@@ -187,14 +193,15 @@ func resource_aws_instance_diff(
 	meta interface{}) (*terraform.ResourceDiff, error) {
 	b := &diff.ResourceBuilder{
 		Attrs: map[string]diff.AttrType{
-			"ami":               diff.AttrTypeCreate,
-			"availability_zone": diff.AttrTypeCreate,
-			"instance_type":     diff.AttrTypeCreate,
-			"key_name":          diff.AttrTypeCreate,
-			"security_groups":   diff.AttrTypeCreate,
-			"subnet_id":         diff.AttrTypeCreate,
-			"source_dest_check": diff.AttrTypeUpdate,
-			"user_data":         diff.AttrTypeCreate,
+			"ami":                         diff.AttrTypeCreate,
+			"availability_zone":           diff.AttrTypeCreate,
+			"instance_type":               diff.AttrTypeCreate,
+			"key_name":                    diff.AttrTypeCreate,
+			"security_groups":             diff.AttrTypeCreate,
+			"subnet_id":                   diff.AttrTypeCreate,
+			"source_dest_check":           diff.AttrTypeUpdate,
+			"user_data":                   diff.AttrTypeCreate,
+			"associate_public_ip_address": diff.AttrTypeCreate,
 		},
 
 		ComputedAttrs: []string{
