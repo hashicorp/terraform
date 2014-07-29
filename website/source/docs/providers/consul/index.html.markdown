@@ -41,6 +41,6 @@ resource "aws_instance" "app" {
 
 The following arguments are supported:
 
-* `address` - (Optional) The HTP API address of the agent to use. Defaults to "127.0.0.1:8500".
+* `address` - (Optional) The HTTP API address of the agent to use. Defaults to "127.0.0.1:8500".
 * `datacenter` - (Optional) The datacenter to use. Defaults to that of the agent.
 
