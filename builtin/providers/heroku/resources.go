@@ -36,6 +36,14 @@ func init() {
 				Diff:            resource_heroku_domain_diff,
 				Refresh:         resource_heroku_domain_refresh,
 			},
+
+			"heroku_drain": resource.Resource{
+				ConfigValidator: resource_heroku_drain_validation(),
+				Create:          resource_heroku_drain_create,
+				Destroy:         resource_heroku_drain_destroy,
+				Diff:            resource_heroku_drain_diff,
+				Refresh:         resource_heroku_drain_refresh,
+			},
 		},
 	}
 }
