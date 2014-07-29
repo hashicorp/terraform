@@ -269,6 +269,13 @@ resource "aws_security_group" "web" {
 
     ingress {
         protocol = "tcp"
+        from_port = 800
+        to_port = 800
+        cidr_blocks = ["10.0.0.0/8"]
+    }
+
+    ingress {
+        protocol = "tcp"
         from_port = 80
         to_port = 8000
         security_groups = ["${aws_security_group.worker.id}"]
