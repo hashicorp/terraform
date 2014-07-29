@@ -59,6 +59,51 @@ func Test_expandIPPerms(t *testing.T) {
 
 }
 
+func Test_expandIPPerms_bad(t *testing.T) {
+	badConf := map[string]string{
+		"ingress.#":           "1",
+		"ingress.0.from_port": "not number",
+	}
+
+	expanded := flatmap.Expand(badConf, "ingress").([]interface{})
+	perms, err := expandIPPerms(expanded)
+
+	if err == nil {
+		t.Fatalf("should have err: %#v", perms)
+	}
+}
+
+func Test_expandIPPerms_NoCidr(t *testing.T) {
+	conf := testConf()
+	delete(conf, "ingress.0.cidr_blocks.#")
+	delete(conf, "ingress.0.cidr_blocks.0")
+
+	expanded := flatmap.Expand(conf, "ingress").([]interface{})
+	perms, err := expandIPPerms(expanded)
+
+	if err != nil {
+		t.Fatalf("bad: %#v", err)
+	}
+	expected := ec2.IPPerm{
+		Protocol: "icmp",
+		FromPort: 1,
+		ToPort:   -1,
+		SourceGroups: []ec2.UserSecurityGroup{
+			ec2.UserSecurityGroup{
+				Id: "sg-11111",
+			},
+		},
+	}
+
+	if !reflect.DeepEqual(perms[0], expected) {
+		t.Fatalf(
+			"Got:\n\n%#v\n\nExpected:\n\n%#v\n",
+			perms[0],
+			expected)
+	}
+
+}
+
 func Test_flattenIPPerms(t *testing.T) {
 	cases := []struct {
 		Input  []ec2.IPPerm

@@ -47,34 +47,52 @@ func expandIPPerms(configured []interface{}) ([]ec2.IPPerm, error) {
 	// Loop over our configured permissions and create
 	// an array of goamz/ec2 compatabile objects
 	for _, perm := range configured {
+		// Our permission object
 		newP := perm.(map[string]interface{})
+
+		// Our new returned goamz compatible permission
+		p := ec2.IPPerm{}
+
+		// Ports
+		if attr, ok := newP["from_port"].(string); ok {
+			fromPort, err := strconv.Atoi(attr)
+			if err != nil {
+				return nil, err
+			}
+			p.FromPort = fromPort
+		}
+
+		if attr, ok := newP["to_port"].(string); ok {
+			toPort, err := strconv.Atoi(attr)
+			if err != nil {
+				return nil, err
+			}
+			p.ToPort = toPort
+		}
+
+		if attr, ok := newP["protocol"].(string); ok {
+			p.Protocol = attr
+		}
+
 		// Loop over the array of sg ids and built
 		// compatibile goamz objects
-		expandedGroups := []ec2.UserSecurityGroup{}
-		configGroups, ok := newP["security_groups"].([]interface{})
-		if ok {
-			gs := expandStringList(configGroups)
+		if secGroups, ok := newP["security_groups"].([]interface{}); ok {
+			expandedGroups := []ec2.UserSecurityGroup{}
+			gs := expandStringList(secGroups)
+
 			for _, g := range gs {
 				newG := ec2.UserSecurityGroup{
 					Id: g,
 				}
 				expandedGroups = append(expandedGroups, newG)
 			}
+
+			p.SourceGroups = expandedGroups
 		}
 
-		fromPort, err := strconv.Atoi(newP["from_port"].(string))
-		toPort, err := strconv.Atoi(newP["to_port"].(string))
-		if err != nil {
-			return nil, err
-		}
-
-		// Create the permission objet
-		p := ec2.IPPerm{
-			Protocol:     newP["protocol"].(string),
-			FromPort:     fromPort,
-			ToPort:       toPort,
-			SourceIPs:    expandStringList(newP["cidr_blocks"].([]interface{})),
-			SourceGroups: expandedGroups,
+		// Expand CIDR blocks
+		if cidrBlocks, ok := newP["cidr_blocks"].([]interface{}); ok {
+			p.SourceIPs = expandStringList(cidrBlocks)
 		}
 
 		perms = append(perms, p)
