@@ -58,7 +58,7 @@ tools like [Vagrant](http://www.vagrantup.com/) to build virtualized environment
 for demos, it is still very challenging to demo software on real infrastructure
 which more closely match production environments.
 
-Sofware writers can provide a Terraform configuration to create, provision and
+Software writers can provide a Terraform configuration to create, provision and
 bootstrap a demo on cloud providers like AWS. This allows end users to easily demo
 the software on their own infrastructure, and even enables tweaking parameters like
 cluster size to more rigorously test tools at any scale.
