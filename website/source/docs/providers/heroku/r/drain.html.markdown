@@ -12,12 +12,11 @@ create and manage Log Drains on Heroku.
 ## Example Usage
 
 ```
-# Create a new heroku drain
-
 resource "heroku_drain" "default" {
     app = "test-app"
     url = "syslog://terraform.example.com:1234"
 }
+```
 
 ## Argument Reference
 
