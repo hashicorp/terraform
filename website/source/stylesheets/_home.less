@@ -35,15 +35,27 @@
 		background-position: center 0;
 		background-repeat: no-repeat;
 	}
+
+	.feature-skew{
+		position: absolute;
+		top: 0px; 
+		bottom: 0px;
+		left: 0px;
+		width: 100%;
+		height: 100%;
+	}
 }
 
 #feature-auto{
+	position: relative;
 	padding: 200px 0 300px;
 	margin-top: -36px;
-	background: #fff url(../images/white-wireframe.png) center top no-repeat;
-	background-size: cover;
-
-	>.container{
+	
+	#feature-auto-bg{
+		background: #fff url(../images/white-wireframe.png) center top no-repeat;
+		background-size: cover;
+		.skewY(-3deg);
+		z-index:-1;
 	}
 
 	h2{

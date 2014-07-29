@@ -594,7 +594,7 @@ body.page-home #footer {
 }
 #jumbotron-mask {
   position: relative;
-  z-index: 0;
+  z-index: -2;
   height: 700px;
   margin-top: -70px;
   background-color: black;
@@ -1040,11 +1040,28 @@ body.page-home #footer {
   background-position: center 0;
   background-repeat: no-repeat;
 }
+.feature .feature-skew {
+  position: absolute;
+  top: 0px;
+  bottom: 0px;
+  left: 0px;
+  width: 100%;
+  height: 100%;
+}
 #feature-auto {
+  position: relative;
   padding: 200px 0 300px;
   margin-top: -36px;
+}
+#feature-auto #feature-auto-bg {
   background: #ffffff url(../images/white-wireframe.png) center top no-repeat;
   background-size: cover;
+  -webkit-transform: skewY(-3deg);
+  -moz-transform: skewY(-3deg);
+  -ms-transform: skewY(-3deg);
+  -o-transform: skewY(-3deg);
+  transform: skewY(-3deg);
+  z-index: -1;
 }
 #feature-auto h2 {
   font-size: 43px;
