@@ -16,7 +16,7 @@ developers to build their own tooling to build and manage their infrastructure.
 Terraform is not intended to give low-level programmatic access to
 providers, but instead provides a high level syntax for describing
 how cloud resources and services should be created, provisioned, and
-combined. Terraform is very flexible, using a a plugin-based model to
+combined. Terraform is very flexible, using a plugin-based model to
 support providers and provisioners, giving it the ability to support
 almost any service that exposes APIs.
 
