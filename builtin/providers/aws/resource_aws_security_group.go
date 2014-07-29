@@ -49,8 +49,8 @@ func resource_aws_security_group_create(
 
 	// Wait for the security group to truly exist
 	log.Printf(
-		"[DEBUG] Waiting for SG (%s) to exist",
-		s.ID)
+		"[DEBUG] Waiting for Security Group (%s) to exist",
+		rs.ID)
 	stateConf := &resource.StateChangeConf{
 		Pending: []string{""},
 		Target:  "exists",
@@ -59,7 +59,7 @@ func resource_aws_security_group_create(
 	}
 	if _, err := stateConf.WaitForState(); err != nil {
 		return s, fmt.Errorf(
-			"Error waiting for SG (%s) to become available: %s",
+			"Error waiting for Security Group (%s) to become available: %s",
 			rs.ID, err)
 	}
 
@@ -175,7 +175,9 @@ func resource_aws_security_group_update_state(
 			n["security_groups"] = flattenSecurityGroups(perm.SourceGroups)
 		}
 
-		ingressRules = append(ingressRules, n)
+		// Reverse the order, as Amazon sorts it the reverse of how we created
+		// it.
+		ingressRules = append([]map[string]interface{}{n}, ingressRules...)
 	}
 
 	toFlatten["ingress"] = ingressRules
