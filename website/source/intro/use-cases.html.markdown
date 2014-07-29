@@ -114,6 +114,6 @@ allows for more graceful recovery of the loss of a region or entire provider.
 Realizing multi-cloud deployments can be very challenging as many existing tools
 for infrastructure management are cloud-specific. Terraform is cloud agnostic,
 and allows a single configuration to be used to manage multiple providers, and
-to even handle cross-cloud dependcies. This simplifies management and orchestration,
+to even handle cross-cloud dependencies. This simplifies management and orchestration,
 helping operators build large scale multi-cloud infrastructures.
 
