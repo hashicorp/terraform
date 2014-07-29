@@ -144,7 +144,7 @@ until the resource is created.
 
 ## Apply
 
-The plan looks good, our configuration appears valid, so its time to
+The plan looks good, our configuration appears valid, so it's time to
 create real resources. Run `terraform apply` in the same directory
 as your `example.tf`, and watch it go! It will take a few minutes
 since Terraform waits for the EC2 instance to become available.
