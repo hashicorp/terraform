@@ -410,21 +410,6 @@ body.page-home #footer {
 #footer {
   padding: 140px 0 40px;
   color: black;
-  background-color: white;
-}
-#footer .skew {
-  -webkit-transform: skewY(-2deg);
-  -moz-transform: skewY(-2deg);
-  -ms-transform: skewY(-2deg);
-  -o-transform: skewY(-2deg);
-  transform: skewY(-2deg);
-}
-#footer > .container.skew {
-  -webkit-transform: skewY(2deg);
-  -moz-transform: skewY(2deg);
-  -ms-transform: skewY(2deg);
-  -o-transform: skewY(2deg);
-  transform: skewY(2deg);
 }
 #footer a {
   color: black;
@@ -548,6 +533,12 @@ body.page-home #footer {
   .page-sub #footer .footer-hashi .hashi-logo i {
     background-image: url("../images/footer-hashicorp-white-logo@2x.png");
     background-size: 37px 40px;
+  }
+}
+@media (min-width: 1500px) {
+  body.page-home #footer {
+    margin-top: -60px;
+    padding: 190px 0 40px;
   }
 }
 @media (max-width: 992px) {
@@ -1040,11 +1031,33 @@ body.page-home #footer {
   background-position: center 0;
   background-repeat: no-repeat;
 }
+.skew-item > .container {
+  position: relative;
+  top: 0;
+  z-index: 11;
+}
+.skew-item .feature-skew {
+  position: absolute;
+  top: 0px;
+  bottom: 0px;
+  left: 0px;
+  width: 100%;
+  height: 100%;
+}
 #feature-auto {
+  position: relative;
   padding: 200px 0 300px;
   margin-top: -36px;
+}
+#feature-auto #feature-auto-bg {
   background: #ffffff url(../images/white-wireframe.png) center top no-repeat;
   background-size: cover;
+  -webkit-transform: skewY(-3deg);
+  -moz-transform: skewY(-3deg);
+  -ms-transform: skewY(-3deg);
+  -o-transform: skewY(-3deg);
+  transform: skewY(-3deg);
+  z-index: 10;
 }
 #feature-auto h2 {
   font-size: 43px;
@@ -1063,9 +1076,15 @@ body.page-home #footer {
   font-family: "Courier New", Monaco, Menlo, Consolas, monospace;
 }
 #feature-iterate {
+  position: relative;
   margin-top: -80px;
   padding: 280px 0 360px;
   color: white;
+}
+#feature-iterate > .container {
+  z-index: 21;
+}
+#feature-iterate #feature-iterate-bg {
   background: #ffffff url(../images/feature-iterate-bg.png) center top no-repeat;
   border-top: 2px solid white;
   border-bottom: 2px solid #822ff7;
@@ -1075,13 +1094,7 @@ body.page-home #footer {
   -ms-transform: skewY(3deg);
   -o-transform: skewY(3deg);
   transform: skewY(3deg);
-}
-#feature-iterate > .container {
-  -webkit-transform: skewY(-3deg);
-  -moz-transform: skewY(-3deg);
-  -ms-transform: skewY(-3deg);
-  -o-transform: skewY(-3deg);
-  transform: skewY(-3deg);
+  z-index: 20;
 }
 #feature-iterate p {
   text-align: right;
@@ -1116,22 +1129,22 @@ body.page-home #footer {
   color: white;
 }
 #feature-clone {
+  position: relative;
   margin-top: -80px;
   padding: 240px 0 300px;
   color: white;
+}
+#feature-clone > .container {
+  z-index: 21;
+}
+#feature-clone #feature-clone-bg {
   background-color: #822ff7;
   -webkit-transform: skewY(3deg);
   -moz-transform: skewY(3deg);
   -ms-transform: skewY(3deg);
   -o-transform: skewY(3deg);
   transform: skewY(3deg);
-}
-#feature-clone > .container {
-  -webkit-transform: skewY(-3deg);
-  -moz-transform: skewY(-3deg);
-  -ms-transform: skewY(-3deg);
-  -o-transform: skewY(-3deg);
-  transform: skewY(-3deg);
+  z-index: 20;
 }
 #feature-clone h2 {
   color: white;
@@ -1175,20 +1188,20 @@ body.page-home #footer {
   margin: 5px 5px 0 0;
 }
 #cta {
+  position: relative;
   padding: 180px 0 220px;
+}
+#cta > .container {
+  z-index: 21;
+}
+#cta #cta-bg {
   background-color: #822ff7;
   -webkit-transform: skewY(-3deg);
   -moz-transform: skewY(-3deg);
   -ms-transform: skewY(-3deg);
   -o-transform: skewY(-3deg);
   transform: skewY(-3deg);
-}
-#cta > .container {
-  -webkit-transform: skewY(3deg);
-  -moz-transform: skewY(3deg);
-  -ms-transform: skewY(3deg);
-  -o-transform: skewY(3deg);
-  transform: skewY(3deg);
+  z-index: 20;
 }
 #cta .intro .left {
   text-align: right;
@@ -1224,21 +1237,21 @@ body.page-home #footer {
   text-decoration: none;
 }
 #demos {
+  position: relative;
   padding: 180px 0 60px;
-  background-color: #000;
   margin-top: -80px;
+}
+#demos > .container {
+  z-index: 31;
+}
+#demos #demo-bg {
+  background-color: #000;
   -webkit-transform: skewY(-3deg);
   -moz-transform: skewY(-3deg);
   -ms-transform: skewY(-3deg);
   -o-transform: skewY(-3deg);
   transform: skewY(-3deg);
-}
-#demos > .container {
-  -webkit-transform: skewY(3deg);
-  -moz-transform: skewY(3deg);
-  -ms-transform: skewY(3deg);
-  -o-transform: skewY(3deg);
-  transform: skewY(3deg);
+  z-index: 30;
 }
 #demos .explantion {
   margin: 40px 0 60px 15px;

@@ -35,15 +35,36 @@
 		background-position: center 0;
 		background-repeat: no-repeat;
 	}
+
+}
+
+.skew-item{
+	>.container{
+		position: relative;
+		top: 0;
+		z-index: 11;
+	}
+
+	.feature-skew{
+		position: absolute;
+		top: 0px; 
+		bottom: 0px;
+		left: 0px;
+		width: 100%;
+		height: 100%;
+	}	
 }
 
 #feature-auto{
+	position: relative;
 	padding: 200px 0 300px;
 	margin-top: -36px;
-	background: #fff url(../images/white-wireframe.png) center top no-repeat;
-	background-size: cover;
 
-	>.container{
+	#feature-auto-bg{
+		background: #fff url(../images/white-wireframe.png) center top no-repeat;
+		background-size: cover;
+		.skewY(-3deg);
+		z-index: 10;
 	}
 
 	h2{
@@ -67,18 +88,23 @@
 }
 
 #feature-iterate{
+	position: relative;
 	margin-top: -80px;
 	padding: 280px 0 360px;
 	color: white;
-	background: #fff url(../images/feature-iterate-bg.png) center top no-repeat;
-	border-top: 2px solid white;
-	border-bottom: 2px solid @purple;
-	background-size: cover;
-	.skewY(3deg);
 
 	>.container{
-		.skewY(-3deg);
+		z-index: 21;
 	}
+
+	#feature-iterate-bg{
+		background: #fff url(../images/feature-iterate-bg.png) center top no-repeat;
+		border-top: 2px solid white;
+		border-bottom: 2px solid @purple;
+		background-size: cover;
+		.skewY(3deg);
+		z-index: 20;
+	}	
 
 	p{
 		text-align: right;
@@ -117,15 +143,20 @@
 }
 
 #feature-clone{
+	position: relative;
 	margin-top: -80px;
 	padding: 240px 0 300px;
 	color: white;
-	background-color: @purple;
-	.skewY(3deg);
 
 	>.container{
-		.skewY(-3deg);
+		z-index: 21;
 	}
+
+	#feature-clone-bg{
+		background-color: @purple;
+		.skewY(3deg);
+		z-index: 20;
+	}		
 
 	h2{
 		color: white;
@@ -177,13 +208,18 @@
 
 
 #cta {
+	position: relative;
 	padding: 180px 0 220px;
-	background-color: @purple;
-	.skewY(-3deg);
 
 	>.container{
-		.skewY(3deg);
+		z-index: 21;
 	}
+
+	#cta-bg{
+		background-color: @purple;
+		.skewY(-3deg);
+		z-index: 20;
+	}	
 
 	.intro {
 		.left {
@@ -230,13 +266,18 @@
 }
 
 #demos{
+	position: relative;
 	padding: 180px 0 60px;
-	background-color: #000;
 	margin-top: -80px;
-	.skewY(-3deg);
 
 	>.container{
-		.skewY(3deg);
+		z-index: 31;
+	}
+
+	#demo-bg{
+		background-color: #000;
+		.skewY(-3deg);
+		z-index: 30;
 	}
 
 	.explantion {
