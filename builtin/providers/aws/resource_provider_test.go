@@ -30,7 +30,7 @@ func TestResourceProvider_Configure(t *testing.T) {
 	raw := map[string]interface{}{
 		"access_key": "foo",
 		"secret_key": "bar",
-		"region":     "us-east",
+		"region":     "us-east-1",
 	}
 
 	rawConfig, err := config.NewRawConfig(raw)
@@ -46,7 +46,7 @@ func TestResourceProvider_Configure(t *testing.T) {
 	expected := Config{
 		AccessKey: "foo",
 		SecretKey: "bar",
-		Region:    "us-east",
+		Region:    "us-east-1",
 	}
 
 	if !reflect.DeepEqual(rp.Config, expected) {
