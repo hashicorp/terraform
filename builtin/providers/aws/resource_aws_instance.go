@@ -35,8 +35,8 @@ func resource_aws_instance_create(
 	}
 
 	associatePublicIPAddress := false
-	if attr, ok := d.Attributes["associate_public_ip_address"]; ok {
-		associatePublicIPAddress = attr.New != "" && attr.New != "false"
+	if rs.Attributes["associate_public_ip_address"] == "true" {
+		associatePublicIPAddress = true
 	}
 
 	// Build the creation struct
