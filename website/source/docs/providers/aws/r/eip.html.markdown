@@ -12,7 +12,8 @@ Provides an Elastic IP resource.
 
 ```
 resource "aws_eip" "lb" {
-    instance = "${aws_instance.web.instance_id}"
+    instance = "${aws_instance.web.id}"
+    vpc = true
 }
 ```
 
@@ -20,7 +21,7 @@ resource "aws_eip" "lb" {
 
 The following arguments are supported:
 
-* `vpc` - (Optional) VPC ID
+* `vpc` - (Optional) Boolean if the EIP is in a VPC or not.
 * `instance` - (Optional) EC2 instance ID.
 
 ## Attributes Reference
