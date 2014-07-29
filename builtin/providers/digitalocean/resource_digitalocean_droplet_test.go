@@ -68,6 +68,29 @@ func TestAccDigitalOceanDroplet_Update(t *testing.T) {
 	})
 }
 
+func TestAccDigitalOceanDroplet_PrivateNetworkingIpv6(t *testing.T) {
+	var droplet digitalocean.Droplet
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckDigitalOceanDropletDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccCheckDigitalOceanDropletConfig_PrivateNetworkingIpv6,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckDigitalOceanDropletExists("digitalocean_droplet.foobar", &droplet),
+					testAccCheckDigitalOceanDropletAttributes_PrivateNetworkingIpv6(&droplet),
+					resource.TestCheckResourceAttr(
+						"digitalocean_droplet.foobar", "private_networking", "true"),
+					resource.TestCheckResourceAttr(
+						"digitalocean_droplet.foobar", "ipv6", "true"),
+				),
+			},
+		},
+	})
+}
+
 func testAccCheckDigitalOceanDropletDestroy(s *terraform.State) error {
 	client := testAccProvider.client
 
@@ -127,6 +150,50 @@ func testAccCheckDigitalOceanDropletRenamedAndResized(droplet *digitalocean.Drop
 		return nil
 	}
 }
+
+func testAccCheckDigitalOceanDropletAttributes_PrivateNetworkingIpv6(droplet *digitalocean.Droplet) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+
+		if droplet.ImageSlug() != "centos-5-8-x32" {
+			return fmt.Errorf("Bad image_slug: %s", droplet.ImageSlug())
+		}
+
+		if droplet.SizeSlug() != "1gb" {
+			return fmt.Errorf("Bad size_slug: %s", droplet.SizeSlug())
+		}
+
+		if droplet.RegionSlug() != "sgp1" {
+			return fmt.Errorf("Bad region_slug: %s", droplet.RegionSlug())
+		}
+
+		if droplet.Name != "baz" {
+			return fmt.Errorf("Bad name: %s", droplet.Name)
+		}
+
+		if droplet.IPV4Address("private") == "" {
+			return fmt.Errorf("No ipv4 private: %s", droplet.IPV4Address("private"))
+		}
+
+		// if droplet.IPV6Address("private") == "" {
+		// 	return fmt.Errorf("No ipv6 private: %s", droplet.IPV6Address("private"))
+		// }
+
+		if droplet.NetworkingType() != "private" {
+			return fmt.Errorf("Bad networking type: %s", droplet.NetworkingType())
+		}
+
+		if droplet.IPV4Address("public") == "" {
+			return fmt.Errorf("No ipv4 public: %s", droplet.IPV4Address("public"))
+		}
+
+		if droplet.IPV6Address("public") == "" {
+			return fmt.Errorf("No ipv6 public: %s", droplet.IPV6Address("public"))
+		}
+
+		return nil
+	}
+}
+
 func testAccCheckDigitalOceanDropletExists(n string, droplet *digitalocean.Droplet) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		rs, ok := s.Resources[n]
@@ -185,5 +252,17 @@ resource "digitalocean_droplet" "foobar" {
     size = "1gb"
     image = "centos-5-8-x32"
     region = "nyc2"
+}
+`
+
+// IPV6 only in singapore
+const testAccCheckDigitalOceanDropletConfig_PrivateNetworkingIpv6 = `
+resource "digitalocean_droplet" "foobar" {
+    name = "baz"
+    size = "1gb"
+    image = "centos-5-8-x32"
+    region = "sgp1"
+    ipv6 = true
+    private_networking = true
 }
 `

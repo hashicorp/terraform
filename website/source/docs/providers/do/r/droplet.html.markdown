@@ -45,7 +45,9 @@ The following attributes are exported:
 * `image` - The image of the droplet
 * `ipv6` - Is IPv6 enabled
 * `ipv6_address` - The IPv6 address
+* `ipv6_address_private` - The private networking IPv6 address
 * `ipv4_address` - The IPv4 address
+* `ipv4_address_private` - The private networking IPv4 address
 * `locked` - Is the Droplet locked
 * `private_networking` - Is private networking enabled
 * `size` - The instance size

@@ -83,7 +83,7 @@ func resource_digitalocean_droplet_create(
 
 	// Initialize the connection info
 	rs.ConnInfo["type"] = "ssh"
-	rs.ConnInfo["host"] = droplet.IPV4Address()
+	rs.ConnInfo["host"] = droplet.IPV4Address("public")
 
 	return resource_digitalocean_droplet_update_state(rs, droplet)
 }
@@ -246,8 +246,10 @@ func resource_digitalocean_droplet_diff(
 		ComputedAttrs: []string{
 			"backups",
 			"ipv4_address",
+			"ipv4_address_private",
 			"ipv6",
 			"ipv6_address",
+			"ipv6_address_private",
 			"locked",
 			"private_networking",
 			"status",
@@ -270,14 +272,20 @@ func resource_digitalocean_droplet_update_state(
 		s.Attributes["image"] = droplet.ImageSlug()
 	}
 
-	if droplet.IPV6Address() != "" {
+	if droplet.IPV6Address("public") != "" {
 		s.Attributes["ipv6"] = "true"
-		s.Attributes["ipv6_address"] = droplet.IPV6Address()
+		s.Attributes["ipv6_address"] = droplet.IPV6Address("public")
+		s.Attributes["ipv6_address_private"] = droplet.IPV6Address("private")
 	}
 
-	s.Attributes["ipv4_address"] = droplet.IPV4Address()
+	s.Attributes["ipv4_address"] = droplet.IPV4Address("public")
+	s.Attributes["ipv4_address_private"] = droplet.IPV4Address("private")
 	s.Attributes["locked"] = droplet.IsLocked()
-	s.Attributes["private_networking"] = droplet.NetworkingType()
+
+	if droplet.NetworkingType() == "private" {
+		s.Attributes["private_networking"] = "true"
+	}
+
 	s.Attributes["size"] = droplet.SizeSlug()
 	s.Attributes["status"] = droplet.Status
 
