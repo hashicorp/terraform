@@ -1,6 +1,7 @@
 package aws
 
 import (
+	"fmt"
 	"os"
 	"strings"
 	"unicode"
@@ -29,12 +30,30 @@ func (c *Config) AWSAuth() (aws.Auth, error) {
 	return auth, err
 }
 
+// IsValidRegion returns true if the configured region is a valid AWS
+// region and false if it's not
+func (c *Config) IsValidRegion() bool {
+	var regions = [8]string{"us-east-1", "us-west-2", "us-west-1", "eu-west-1",
+		"ap-southeast-1", "ap-southeast-2", "ap-northeast-1", "sa-east-1"}
+
+	for _, valid := range regions {
+		if c.Region == valid {
+			return true
+		}
+	}
+	return false
+}
+
 // AWSRegion returns the configured region.
 //
 // TODO(mitchellh): Test in some way.
 func (c *Config) AWSRegion() (aws.Region, error) {
 	if c.Region != "" {
-		return aws.Regions[c.Region], nil
+		if c.IsValidRegion() {
+			return aws.Regions[c.Region], nil
+		} else {
+			return aws.Region{}, fmt.Errorf("Not a valid region: %s", c.Region)
+		}
 	}
 
 	if v := os.Getenv("AWS_REGION"); v != "" {
