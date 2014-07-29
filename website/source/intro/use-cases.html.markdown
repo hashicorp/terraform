@@ -14,7 +14,7 @@ can be added to further extend Terraform's ability to manipulate resources.
 #### Heroku App Setup
 
 Heroku is a popular PaaS for hosting web apps. Developers create an app, and then
-attach add-ons, such as a database, or email provider. One of the best features it
+attach add-ons, such as a database, or email provider. One of the best features is
 the ability to elastically scale the number of dynos or workers. However, most
 non-trivial applications quickly need many add-ons and external services.
 
