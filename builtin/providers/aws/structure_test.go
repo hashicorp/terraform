@@ -155,6 +155,24 @@ func Test_flattenIPPerms(t *testing.T) {
 				},
 			},
 		},
+		{
+			Input: []ec2.IPPerm{
+				ec2.IPPerm{
+					Protocol:  "icmp",
+					FromPort:  1,
+					ToPort:    -1,
+					SourceIPs: nil,
+				},
+			},
+
+			Output: []map[string]interface{}{
+				map[string]interface{}{
+					"protocol":  "icmp",
+					"from_port": 1,
+					"to_port":   -1,
+				},
+			},
+		},
 	}
 
 	for _, tc := range cases {
