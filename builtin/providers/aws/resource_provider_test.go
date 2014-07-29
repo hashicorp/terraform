@@ -54,6 +54,26 @@ func TestResourceProvider_Configure(t *testing.T) {
 	}
 }
 
+func TestResourceProvider_ConfigureBadRegion(t *testing.T) {
+	rp := new(ResourceProvider)
+
+	raw := map[string]interface{}{
+		"access_key": "foo",
+		"secret_key": "bar",
+		"region":     "blah",
+	}
+
+	rawConfig, err := config.NewRawConfig(raw)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	err = rp.Configure(terraform.NewResourceConfig(rawConfig))
+	if err == nil {
+		t.Fatalf("should have err: bad region")
+	}
+}
+
 func testAccPreCheck(t *testing.T) {
 	if v := os.Getenv("AWS_ACCESS_KEY"); v == "" {
 		t.Fatal("AWS_ACCESS_KEY must be set for acceptance tests")
