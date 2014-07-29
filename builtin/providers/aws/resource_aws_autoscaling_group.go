@@ -41,8 +41,8 @@ func resource_aws_autoscaling_group_create(
 		autoScalingGroupOpts.SetDefaultCooldown = true
 	}
 
-	if rs.Attributes["desired_capicity"] != "" {
-		autoScalingGroupOpts.DesiredCapacity, err = strconv.Atoi(rs.Attributes["desired_capicity"])
+	if rs.Attributes["desired_capacity"] != "" {
+		autoScalingGroupOpts.DesiredCapacity, err = strconv.Atoi(rs.Attributes["desired_capacity"])
 		autoScalingGroupOpts.SetDesiredCapacity = true
 	}
 
@@ -196,7 +196,7 @@ func resource_aws_autoscaling_group_diff(
 		Attrs: map[string]diff.AttrType{
 			"availability_zone":         diff.AttrTypeCreate,
 			"default_cooldown":          diff.AttrTypeCreate,
-			"desired_capicity":          diff.AttrTypeCreate,
+			"desired_capacity":          diff.AttrTypeCreate,
 			"force_delete":              diff.AttrTypeCreate,
 			"health_check_grace_period": diff.AttrTypeCreate,
 			"health_check_type":         diff.AttrTypeCreate,
@@ -214,7 +214,7 @@ func resource_aws_autoscaling_group_diff(
 			"health_check_type",
 			"default_cooldown",
 			"vpc_zone_identifier",
-			"desired_capicity",
+			"desired_capacity",
 			"force_delete",
 		},
 	}
@@ -293,7 +293,7 @@ func resource_aws_autoscaling_group_validation() *config.Validator {
 		Optional: []string{
 			"health_check_grace_period",
 			"health_check_type",
-			"desired_capicity",
+			"desired_capacity",
 			"force_delete",
 		},
 	}

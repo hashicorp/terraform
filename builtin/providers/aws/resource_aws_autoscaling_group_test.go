@@ -35,7 +35,7 @@ func TestAccAWSAutoScalingGroup(t *testing.T) {
 					resource.TestCheckResourceAttr(
 						"aws_autoscaling_group.bar", "health_check_type", "ELB"),
 					resource.TestCheckResourceAttr(
-						"aws_autoscaling_group.bar", "desired_capicity", "4"),
+						"aws_autoscaling_group.bar", "desired_capacity", "4"),
 					resource.TestCheckResourceAttr(
 						"aws_autoscaling_group.bar", "force_delete", "true"),
 				),
@@ -105,11 +105,11 @@ func testAccCheckAWSAutoScalingGroupAttributes(group *autoscaling.AutoScalingGro
 		}
 
 		if group.DesiredCapacity != 4 {
-			return fmt.Errorf("Bad desired_capicity: %s", group.DesiredCapacity)
+			return fmt.Errorf("Bad desired_capacity: %s", group.DesiredCapacity)
 		}
 
 		if group.LaunchConfigurationName != "" {
-			return fmt.Errorf("Bad desired_capicity: %s", group.DesiredCapacity)
+			return fmt.Errorf("Bad desired_capacity: %s", group.DesiredCapacity)
 		}
 
 		return nil
