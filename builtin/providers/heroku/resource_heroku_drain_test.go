@@ -26,8 +26,6 @@ func TestAccHerokuDrain_Basic(t *testing.T) {
 						"heroku_drain.foobar", "url", "syslog://terraform.example.com:1234"),
 					resource.TestCheckResourceAttr(
 						"heroku_drain.foobar", "app", "terraform-test-app"),
-					resource.TestCheckResourceAttr(
-						"heroku_drain.foobar", "token", "foo-bar-baz-qux"),
 				),
 			},
 		},
@@ -57,6 +55,10 @@ func testAccCheckHerokuDrainAttributes(Drain *heroku.LogDrain) resource.TestChec
 
 		if Drain.URL != "syslog://terraform.example.com:1234" {
 			return fmt.Errorf("Bad URL: %s", Drain.URL)
+		}
+
+		if Drain.Token == "" {
+			return fmt.Errorf("No token: %#v", Drain)
 		}
 
 		return nil
