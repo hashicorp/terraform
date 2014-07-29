@@ -85,7 +85,7 @@ allows the network to better support the applications running on top. Most SDN
 implementations have a control layer and infrastructure layer.
 
 Terraform can be used to codify the configuration for software defined networks.
-This configuration can then be used by Terraform to to automatically setup and modify
+This configuration can then be used by Terraform to automatically setup and modify
 settings by interfacing with the control layer. This allows configuration to be
 versioned and changes to be automated. As an example, [AWS VPC](http://aws.amazon.com/vpc/)
 is one of the most commonly used SDN implementations, and [can be configured by
