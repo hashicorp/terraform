@@ -8,8 +8,8 @@ sidebar_current: "docs-consul-index"
 
 [Consul](http://www.consul.io) is a tool for service discovery, configuration
 and orchestration. The Consul provider exposes resources used to interact with a
-Consul cluster. The provider optionally must can be configured with
-to change default behavior.
+Consul cluster. Configuration of the provider is optional, as it provides
+defaults for all arguments.
 
 Use the navigation to the left to read about the available resources.
 
