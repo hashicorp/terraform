@@ -153,13 +153,37 @@ func resource_aws_security_group_update_state(
 
 	// Flatten our ingress values
 	toFlatten := make(map[string]interface{})
-	toFlatten["ingress"] = flattenIPPerms(sg.IPPerms)
+
+	ingressRules := make([]map[string]interface{}, 0, len(sg.IPPerms))
+	for _, perm := range sg.IPPerms {
+		n := make(map[string]interface{})
+		n["from_port"] = perm.FromPort
+		n["protocol"] = perm.Protocol
+		n["to_port"] = perm.ToPort
+
+		if len(perm.SourceIPs) > 0 {
+			n["cidr_blocks"] = perm.SourceIPs
+		}
+
+		if len(perm.SourceGroups) > 0 {
+			// We depend on other security groups
+			for _, v := range perm.SourceGroups {
+				s.Dependencies = append(s.Dependencies,
+					terraform.ResourceDependency{ID: v.Id},
+				)
+			}
+			n["security_groups"] = flattenSecurityGroups(perm.SourceGroups)
+		}
+
+		ingressRules = append(ingressRules, n)
+	}
+
+	toFlatten["ingress"] = ingressRules
 
 	for k, v := range flatmap.Flatten(toFlatten) {
 		s.Attributes[k] = v
 	}
 
-	s.Dependencies = nil
 	if s.Attributes["vpc_id"] != "" {
 		s.Dependencies = append(s.Dependencies,
 			terraform.ResourceDependency{ID: s.Attributes["vpc_id"]},

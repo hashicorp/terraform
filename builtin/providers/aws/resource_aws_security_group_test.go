@@ -85,6 +85,30 @@ func TestAccAWSSecurityGroup_vpc(t *testing.T) {
 	})
 }
 
+func TestAccAWSSecurityGroup_MultiIngress(t *testing.T) {
+	var group ec2.SecurityGroupInfo
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSSecurityGroupDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccAWSSecurityGroupConfigMultiIngress,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSSecurityGroupExists("aws_security_group.web", &group),
+				),
+			},
+			resource.TestStep{
+				Config: testAccAWSSecurityGroupConfigMultiIngress,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSSecurityGroupExists("aws_security_group.web", &group),
+				),
+			},
+		},
+	})
+}
+
 func testAccCheckAWSSecurityGroupDestroy(s *terraform.State) error {
 	conn := testAccProvider.ec2conn
 
@@ -215,6 +239,39 @@ resource "aws_security_group" "web" {
         from_port = 80
         to_port = 8000
         cidr_blocks = ["10.0.0.0/8"]
+    }
+}
+`
+
+const testAccAWSSecurityGroupConfigMultiIngress = `
+resource "aws_security_group" "worker" {
+    name = "terraform_acceptance_test_example_1"
+    description = "Used in the terraform acceptance tests"
+
+    ingress {
+        protocol = "tcp"
+        from_port = 80
+        to_port = 8000
+        cidr_blocks = ["10.0.0.0/8"]
+    }
+}
+
+resource "aws_security_group" "web" {
+    name = "terraform_acceptance_test_example_2"
+    description = "Used in the terraform acceptance tests"
+
+    ingress {
+        protocol = "tcp"
+        from_port = 80
+        to_port = 8000
+        cidr_blocks = ["10.0.0.0/8"]
+    }
+
+    ingress {
+        protocol = "tcp"
+        from_port = 80
+        to_port = 8000
+        security_groups = ["${aws_security_group.worker.id}"]
     }
 }
 `
