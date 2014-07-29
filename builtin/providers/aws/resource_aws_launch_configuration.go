@@ -50,6 +50,10 @@ func resource_aws_launch_configuration_create(
 			rs.Attributes, "security_groups").([]interface{}))
 	}
 
+	if rs.Attributes["user_data"] != "" {
+		createLaunchConfigurationOpts.UserData = rs.Attributes["user_data"]
+	}
+
 	createLaunchConfigurationOpts.Name = rs.Attributes["name"]
 
 	log.Printf("[DEBUG] autoscaling create launch configuration: %#v", createLaunchConfigurationOpts)
@@ -128,6 +132,7 @@ func resource_aws_launch_configuration_diff(
 			"key_name":        diff.AttrTypeCreate,
 			"name":            diff.AttrTypeCreate,
 			"security_groups": diff.AttrTypeCreate,
+			"user_data":       diff.AttrTypeCreate,
 		},
 
 		ComputedAttrs: []string{
@@ -198,6 +203,7 @@ func resource_aws_launch_configuration_validation() *config.Validator {
 		Optional: []string{
 			"key_name",
 			"security_groups.*",
+			"user_data",
 		},
 	}
 }

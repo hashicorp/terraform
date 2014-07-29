@@ -3,6 +3,7 @@ package aws
 import (
 	"fmt"
 	"testing"
+	"bytes"
 
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
@@ -28,6 +29,8 @@ func TestAccAWSLaunchConfiguration(t *testing.T) {
 						"aws_launch_configuration.bar", "name", "foobar-terraform-test"),
 					resource.TestCheckResourceAttr(
 						"aws_launch_configuration.bar", "instance_type", "t1.micro"),
+					resource.TestCheckResourceAttr(
+						"aws_launch_configuration.bar", "user_data", "foobar-user-data"),
 				),
 			},
 		},
@@ -81,6 +84,10 @@ func testAccCheckAWSLaunchConfigurationAttributes(conf *autoscaling.LaunchConfig
 			return fmt.Errorf("Bad instance_type: %s", conf.InstanceType)
 		}
 
+		if ! bytes.Equal(conf.UserData, []byte("foobar-user-data")) {
+			return fmt.Errorf("Bad user_data: %s", conf.UserData)
+		}
+
 		return nil
 	}
 }
@@ -123,5 +130,6 @@ resource "aws_launch_configuration" "bar" {
   name = "foobar-terraform-test"
   image_id = "ami-fb8e9292"
   instance_type = "t1.micro"
+  user_data = "foobar-user-data"
 }
 `

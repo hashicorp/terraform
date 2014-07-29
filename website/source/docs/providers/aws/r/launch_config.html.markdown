@@ -27,10 +27,10 @@ The following arguments are supported:
 * `instance_type` - (Required) The size of instance to launch.
 * `key_name` - (Optional) The key name that should be used for the instance.
 * `security_groups` - (Optional) A list of associated security group IDS.
+* `user_data` - (Optional) The user data to provide when launching the instance.
 
 ## Attributes Reference
 
 The following attributes are exported:
 
 * `id` - The ID of the launch configuration.
-
