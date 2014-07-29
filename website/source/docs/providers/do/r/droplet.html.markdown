@@ -30,9 +30,9 @@ The following arguments are supported:
 * `name` - (Required) The droplet name
 * `region` - (Required) The region to start in
 * `size` - (Required) The instance size to start
-* `backups` - (Optional) Boolean controling if backups are made.
-* `ipv6` - (Optional) Boolean controling if IPv6 is enabled.
-* `private_networking` - (Optional) Boolean controling if private networks are enabled.
+* `backups` - (Optional) Boolean controlling if backups are made.
+* `ipv6` - (Optional) Boolean controlling if IPv6 is enabled.
+* `private_networking` - (Optional) Boolean controlling if private networks are enabled.
 * `ssh_keys` - (Optional) A list of SSH IDs or fingerprints to enable.
 
 ## Attributes Reference

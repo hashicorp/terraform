@@ -18,7 +18,7 @@ resource "aws_autoscaling_group" "bar" {
   min_size = 2
   health_check_grace_period = 300
   health_check_type = "ELB"
-  desired_capicity = 4
+  desired_capacity = 4
   force_delete = true
   launch_configuration = "${aws_launch_configuration.foobar.name}"
 }
@@ -35,7 +35,7 @@ The following arguments are supported:
 * `launch_configuration` - (Required) The ID of the launch configuration to use.
 * `health_check_grace_period` - (Optional) Time after instance comes into service before checking health.
 * `health_check_type` - (Optional) "EC2" or "ELB". Controls how health checking is done.
-* `desired_capicity` - (Optional) The number of Amazon EC2 instances that should be running in the group.
+* `desired_capacity` - (Optional) The number of Amazon EC2 instances that should be running in the group.
 * `force_delete` - (Optional) Allows deleting the autoscaling group without waiting
    for all instances in the pool to terminate.
 
@@ -51,7 +51,7 @@ The following attributes are exported:
 * `name` - The name of the autoscale group
 * `health_check_grace_period` - Time after instance comes into service before checking health.
 * `health_check_type` - "EC2" or "ELB". Controls how health checking is done.
-* `desired_capicity` -The number of Amazon EC2 instances that should be running in the group.
+* `desired_capacity` -The number of Amazon EC2 instances that should be running in the group.
 * `launch_configuration` - The launch configuration of the autoscale group
 * `vpc_zone_identifier` - The VPC zone identifier
 

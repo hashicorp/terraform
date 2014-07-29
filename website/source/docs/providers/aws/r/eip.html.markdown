@@ -27,7 +27,7 @@ The following arguments are supported:
 
 The following attributes are exported:
 
-* `private_ip` - Contrains the private IP address (if in VPC).
+* `private_ip` - Contains the private IP address (if in VPC).
 * `public_ip` - Contains the public IP address.
-* `instance` - Contains the ID of the instance attached ot.
+* `instance` - Contains the ID of the attached instance.
 

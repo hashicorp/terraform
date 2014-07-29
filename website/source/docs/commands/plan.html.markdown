@@ -52,7 +52,7 @@ Therefore, the plan file can potentially store secrets.
 
 Terraform itself does not encrypt the plan file. It is highly
 recommended to encrypt the plan file if you intend to transfer it
-or keep it at rest for an extended priod of time.
+or keep it at rest for an extended period of time.
 
 Future versions of Terraform will make plan files more
 secure.

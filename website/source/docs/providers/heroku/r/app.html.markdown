@@ -45,7 +45,7 @@ The following attributes are exported:
 * `stack` - The application stack is what platform to run the application
    in.
 * `region` - The region that the app should be deployed in.
-* `git_url` - The Git URL for the appplication. This is used for
+* `git_url` - The Git URL for the application. This is used for
    deploying new versions of the app.
 * `web_url` - The web (HTTP) URL that the application can be accessed
    at by default.

@@ -22,7 +22,7 @@ only the subset that exists within a single provider. It provides a single
 unified syntax, instead of requiring operators to use independent and
 non-interoperable tools for each platform and service.
 
-Terraform also seperates the planning phase from the execution phase,
+Terraform also separates the planning phase from the execution phase,
 by using the concept of an execution plan. By running `terraform plan`,
 the current state is refreshed and the configuration is consulted to
 generate an action plan. The plan includes all actions to be taken:
