@@ -1,9 +1,9 @@
 package aws
 
 import (
+	"bytes"
 	"fmt"
 	"testing"
-	"bytes"
 
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
@@ -84,7 +84,7 @@ func testAccCheckAWSLaunchConfigurationAttributes(conf *autoscaling.LaunchConfig
 			return fmt.Errorf("Bad instance_type: %s", conf.InstanceType)
 		}
 
-		if ! bytes.Equal(conf.UserData, []byte("foobar-user-data")) {
+		if !bytes.Equal(conf.UserData, []byte("foobar-user-data")) {
 			return fmt.Errorf("Bad user_data: %s", conf.UserData)
 		}
 
