@@ -71,7 +71,7 @@ used to test new applications before releasing in production. As the production
 environment grows larger and more complex, it becomes increasingly onerous to
 maintain an up-to-date staging environment.
 
-Using Terraform, the production environment can codified and then shared with
+Using Terraform, the production environment can be codified and then shared with
 staging, QA or dev. These configurations can be used to rapidly spin up new
 environments to test in, and then easily disposed of. Terraform can help tame
 the difficulty of maintaining parallel environments, and makes it practical
