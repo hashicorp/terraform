@@ -3,6 +3,7 @@ package aws
 import (
 	"fmt"
 	"log"
+	"strconv"
 
 	"github.com/hashicorp/terraform/flatmap"
 	"github.com/hashicorp/terraform/helper/config"
@@ -73,6 +74,35 @@ func resource_aws_elb_create(
 			if err != nil {
 				return rs, fmt.Errorf("Failure registering instances: %s", err)
 			}
+		}
+	}
+	
+	if _, ok := rs.Attributes["health_check.#"]; ok {
+		v := flatmap.Expand(rs.Attributes, "health_check").([]interface{})
+		health_check := v[0].(map[string]interface{})
+		healthyThreshold, err := strconv.ParseInt(health_check["healthy_threshold"].(string), 0, 0)
+		unhealthyThreshold, err := strconv.ParseInt(health_check["unhealthy_threshold"].(string), 0, 0)
+		interval, err := strconv.ParseInt(health_check["interval"].(string), 0, 0)
+		timeout, err := strconv.ParseInt(health_check["timeout"].(string), 0, 0)
+
+		if err != nil {
+			return nil, err
+		}
+
+		configureHealthCheckOpts := elb.ConfigureHealthCheck{
+			LoadBalancerName: elbName,
+			Check: elb.HealthCheck{
+				HealthyThreshold: healthyThreshold,
+				UnhealthyThreshold: unhealthyThreshold,
+				Interval: interval,
+				Target: health_check["target"].(string),
+				Timeout: timeout,
+			},
+		}
+
+		_, err = elbconn.ConfigureHealthCheck(&configureHealthCheckOpts)
+		if err != nil {
+			return rs, fmt.Errorf("Failure configuring health check: %s", err)
 		}
 	}
 
@@ -220,6 +250,7 @@ func resource_aws_elb_diff(
 			"availability_zone": diff.AttrTypeCreate,
 			"listener":          diff.AttrTypeCreate,
 			"instances":         diff.AttrTypeUpdate,
+			"health_check":      diff.AttrTypeCreate,
 		},
 
 		ComputedAttrs: []string{
@@ -288,6 +319,12 @@ func resource_aws_elb_validation() *config.Validator {
 		Optional: []string{
 			"instances.*",
 			"availability_zones.*",
+			"health_check.#",
+			"health_check.0.healthy_threshold",
+			"health_check.0.unhealthy_threshold",
+			"health_check.0.interval",
+			"health_check.0.target",
+			"health_check.0.timeout",
 		},
 	}
 }
