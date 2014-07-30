@@ -61,6 +61,8 @@ func TestAccAWSELB_VPC(t *testing.T) {
 					resource.TestCheckResourceAttr(
 						"aws_elb.bar", "name", "foobar-terraform-vpc-test"),
 					resource.TestCheckResourceAttr(
+						"aws_elb.bar", "internal", "true"),
+					resource.TestCheckResourceAttr(
 						"aws_elb.bar", "subnets.0", "subnet-123456"),
 					resource.TestCheckResourceAttr(
 						"aws_elb.bar", "subnets.1", "subnet-654321"),
@@ -223,6 +225,8 @@ const testAccAWSELBConfigVPC = `
 resource "aws_elb" "bar" {
 	name = "foobar-terraform-vpc-test"
 	subnets = ["subnet-123456", "subnet-654321"]
+
+	internal = true
 
 	listener {
 		instance_port = 8000

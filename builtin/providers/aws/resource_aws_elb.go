@@ -41,6 +41,10 @@ func resource_aws_elb_create(
 		Listeners:        listeners,
 	}
 
+	if rs.Attributes["internal"] == "true" {
+		elbOpts.Internal = true
+	}
+
 	if _, ok := rs.Attributes["availability_zones.#"]; ok {
 		v = flatmap.Expand(rs.Attributes, "availability_zones").([]interface{})
 		zones := expandStringList(v)
@@ -258,6 +262,7 @@ func resource_aws_elb_diff(
 			"instances":         diff.AttrTypeUpdate,
 			"health_check":      diff.AttrTypeCreate,
 			"subnets":           diff.AttrTypeCreate,
+			"internal":           diff.AttrTypeCreate,
 		},
 
 		ComputedAttrs: []string{
@@ -333,6 +338,7 @@ func resource_aws_elb_validation() *config.Validator {
 			"health_check.0.target",
 			"health_check.0.timeout",
 			"subnets.*",
+			"internal",
 		},
 	}
 }
