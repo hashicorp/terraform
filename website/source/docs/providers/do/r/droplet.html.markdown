@@ -33,7 +33,8 @@ The following arguments are supported:
 * `backups` - (Optional) Boolean controlling if backups are made.
 * `ipv6` - (Optional) Boolean controlling if IPv6 is enabled.
 * `private_networking` - (Optional) Boolean controlling if private networks are enabled.
-* `ssh_keys` - (Optional) A list of SSH IDs or fingerprints to enable.
+* `ssh_keys` - (Optional) A list of SSH IDs or fingerprints to enable in
+   the format `[12345, 123456]`
 
 ## Attributes Reference
 
