@@ -93,7 +93,7 @@ func resource_aws_db_instance_create(
 	opts.MasterUsername = rs.Attributes["username"]
 	opts.MasterUserPassword = rs.Attributes["password"]
 	opts.EngineVersion = rs.Attributes["engine_version"]
-	opts.EngineVersion = rs.Attributes["engine"]
+	opts.Engine = rs.Attributes["engine"]
 
 	// Don't keep the password around in the state
 	delete(rs.Attributes, "password")
