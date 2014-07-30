@@ -27,7 +27,7 @@ rm -rf ./pkg/dist
 mkdir -p ./pkg/dist
 for FILENAME in $(find ./pkg -mindepth 1 -maxdepth 1 -type f); do
     FILENAME=$(basename $FILENAME)
-    cp ./pkg/${FILENAME} ./pkg/dist/${VERSION}_${FILENAME}
+    cp ./pkg/${FILENAME} ./pkg/dist/terraform-${VERSION}_${FILENAME}
 done
 
 # Make the checksums
