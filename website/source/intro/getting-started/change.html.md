@@ -21,7 +21,7 @@ can see how the infrastructure evolved over time.
 
 ## Configuration
 
-Let's modify the `ami` of our instance. Edit the "aws\_instance.web"
+Let's modify the `ami` of our instance. Edit the "aws\_instance.example"
 resource in your configuration and change it to the following:
 
 ```
