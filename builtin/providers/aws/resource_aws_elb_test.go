@@ -81,6 +81,34 @@ func TestAccAWSELB_InstanceAttaching(t *testing.T) {
 	})
 }
 
+func TestAccAWSELB_HealthCheck(t *testing.T) {
+	var conf elb.LoadBalancer
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSELBDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccAWSELBConfigHealthCheck,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSELBExists("aws_elb.bar", &conf),
+					testAccCheckAWSELBAttributesHealthCheck(&conf),
+					resource.TestCheckResourceAttr(
+						"aws_elb.bar", "health_check.0.healthy_threshold", "5"),
+					resource.TestCheckResourceAttr(
+						"aws_elb.bar", "health_check.0.unhealthy_threshold", "5"),
+					resource.TestCheckResourceAttr(
+						"aws_elb.bar", "health_check.0.target", "HTTP:8000/"),
+					resource.TestCheckResourceAttr(
+						"aws_elb.bar", "health_check.0.timeout", "30"),
+					resource.TestCheckResourceAttr(
+						"aws_elb.bar", "health_check.0.interval", "60"),
+				),
+			},
+		},
+	})
+}
 func testAccCheckAWSELBDestroy(s *terraform.State) error {
 	conn := testAccProvider.elbconn
 
@@ -136,6 +164,39 @@ func testAccCheckAWSELBAttributes(conf *elb.LoadBalancer) resource.TestCheckFunc
 				"Got:\n\n%#v\n\nExpected:\n\n%#v\n",
 				conf.Listeners[0],
 				l)
+		}
+
+		if conf.DNSName == "" {
+			return fmt.Errorf("empty dns_name")
+		}
+
+		return nil
+	}
+}
+
+func testAccCheckAWSELBAttributesHealthCheck(conf *elb.LoadBalancer) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		if conf.AvailabilityZones[0].AvailabilityZone != "us-west-2a" {
+			return fmt.Errorf("bad availability_zones")
+		}
+
+		if conf.LoadBalancerName != "foobar-terraform-test" {
+			return fmt.Errorf("bad name")
+		}
+
+		check := elb.HealthCheck{
+			Timeout:            30,
+			UnhealthyThreshold: 5,
+			HealthyThreshold:   5,
+			Interval:           60,
+			Target:             "HTTP:8000/",
+		}
+
+		if !reflect.DeepEqual(conf.HealthCheck, check) {
+			return fmt.Errorf(
+				"Got:\n\n%#v\n\nExpected:\n\n%#v\n",
+				conf.HealthCheck,
+				check)
 		}
 
 		if conf.DNSName == "" {
@@ -213,5 +274,27 @@ resource "aws_instance" "foo" {
 	# us-west-2
 	ami = "ami-043a5034"
 	instance_type = "t1.micro"
+}
+`
+
+const testAccAWSELBConfigHealthCheck = `
+resource "aws_elb" "bar" {
+  name = "foobar-terraform-test"
+  availability_zones = ["us-west-2a"]
+
+  listener {
+    instance_port = 8000
+    instance_protocol = "http"
+    lb_port = 80
+    lb_protocol = "http"
+  }
+
+  health_check {
+    healthy_threshold = 5
+    unhealthy_threshold = 5
+    target = "HTTP:8000/"
+    interval = 60
+    timeout = 30
+  }
 }
 `

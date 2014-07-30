@@ -126,6 +126,23 @@ func flattenIPPerms(list []ec2.IPPerm) []map[string]interface{} {
 	return result
 }
 
+// Flattens a health check into something that flatmap.Flatten()
+// can handle
+func flattenHealthCheck(check elb.HealthCheck) []map[string]interface{} {
+	result := make([]map[string]interface{}, 0, 1)
+
+	chk := make(map[string]interface{})
+	chk["unhealthy_threshold"] = int(check.UnhealthyThreshold)
+	chk["healthy_threshold"] = int(check.HealthyThreshold)
+	chk["target"] = check.Target
+	chk["timeout"] = int(check.Timeout)
+	chk["interval"] = int(check.Interval)
+
+	result = append(result, chk)
+
+	return result
+}
+
 // Flattens an array of UserSecurityGroups into a []string
 func flattenSecurityGroups(list []ec2.UserSecurityGroup) []string {
 	result := make([]string, 0, len(list))

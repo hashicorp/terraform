@@ -76,7 +76,7 @@ func resource_aws_elb_create(
 			}
 		}
 	}
-	
+
 	if _, ok := rs.Attributes["health_check.#"]; ok {
 		v := flatmap.Expand(rs.Attributes, "health_check").([]interface{})
 		health_check := v[0].(map[string]interface{})
@@ -92,11 +92,11 @@ func resource_aws_elb_create(
 		configureHealthCheckOpts := elb.ConfigureHealthCheck{
 			LoadBalancerName: elbName,
 			Check: elb.HealthCheck{
-				HealthyThreshold: healthyThreshold,
+				HealthyThreshold:   healthyThreshold,
 				UnhealthyThreshold: unhealthyThreshold,
-				Interval: interval,
-				Target: health_check["target"].(string),
-				Timeout: timeout,
+				Interval:           interval,
+				Target:             health_check["target"].(string),
+				Timeout:            timeout,
 			},
 		}
 
@@ -273,9 +273,16 @@ func resource_aws_elb_update_state(
 
 	if len(balancer.Instances) > 0 && balancer.Instances[0].InstanceId != "" {
 		toFlatten["instances"] = flattenInstances(balancer.Instances)
-		for k, v := range flatmap.Flatten(toFlatten) {
-			s.Attributes[k] = v
-		}
+	}
+
+	// There's only one health check, so save that to state as we
+	// currently can
+	if balancer.HealthCheck.Target != "" {
+		toFlatten["health_check"] = flattenHealthCheck(balancer.HealthCheck)
+	}
+
+	for k, v := range flatmap.Flatten(toFlatten) {
+		s.Attributes[k] = v
 	}
 
 	return s, nil

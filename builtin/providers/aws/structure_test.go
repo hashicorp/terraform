@@ -206,6 +206,39 @@ func Test_expandListeners(t *testing.T) {
 
 }
 
+func Test_flattenHealthCheck(t *testing.T) {
+	cases := []struct {
+		Input  elb.HealthCheck
+		Output []map[string]interface{}
+	}{
+		{
+			Input: elb.HealthCheck{
+				UnhealthyThreshold: 10,
+				HealthyThreshold:   10,
+				Target:             "HTTP:80/",
+				Timeout:            30,
+				Interval:           30,
+			},
+			Output: []map[string]interface{}{
+				map[string]interface{}{
+					"unhealthy_threshold": 10,
+					"healthy_threshold":   10,
+					"target":              "HTTP:80/",
+					"timeout":             30,
+					"interval":            30,
+				},
+			},
+		},
+	}
+
+	for _, tc := range cases {
+		output := flattenHealthCheck(tc.Input)
+		if !reflect.DeepEqual(output, tc.Output) {
+			t.Fatalf("Got:\n\n%#v\n\nExpected:\n\n%#v", output, tc.Output)
+		}
+	}
+}
+
 func Test_expandStringList(t *testing.T) {
 	expanded := flatmap.Expand(testConf(), "availability_zones").([]interface{})
 	stringList := expandStringList(expanded)
