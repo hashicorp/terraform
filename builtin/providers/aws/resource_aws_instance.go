@@ -42,6 +42,7 @@ func resource_aws_instance_create(
 	// Build the creation struct
 	runOpts := &ec2.RunInstances{
 		ImageId:                  rs.Attributes["ami"],
+		AvailZone:                rs.Attributes["availability_zone"],
 		InstanceType:             rs.Attributes["instance_type"],
 		KeyName:                  rs.Attributes["key_name"],
 		SubnetId:                 rs.Attributes["subnet_id"],
