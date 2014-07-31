@@ -3,8 +3,7 @@ package openstack
 import (
 	"log"
 
-	"github.com/hashicorp/terraform/helper/config"
-	//"github.com/hashicorp/terraform/helper/diff"
+	"github.com/hashicorp/terraform/helper/diff"
 	"github.com/hashicorp/terraform/terraform"
 )
 
@@ -51,12 +50,23 @@ func resource_openstack_compute_diff(
 	c *terraform.ResourceConfig,
 	meta interface{}) (*terraform.ResourceDiff, error) {
 
+  log.Printf("[INFO] diff")
+
+  b := &diff.ResourceBuilder{
+    Attrs: map[string]diff.AttrType{
+
+    },
+
+    ComputedAttrs: []string{
+
+    },
+
+    ComputedAttrsUpdate: []string{
+
+    },
+  }
+
+  return b.Diff(s, c)
+
 	return nil, nil
-}
-
-func resource_openstack_compute_validation() *config.Validator {
-
-	log.Printf("[INFO] validation")
-
-	return nil
 }
