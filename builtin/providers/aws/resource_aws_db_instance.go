@@ -265,6 +265,13 @@ func resource_aws_db_instance_update_state(
 		s.Attributes[k] = v
 	}
 
+	// We depend on any security groups attached
+	for _, g := range v.DBSecurityGroupNames {
+		s.Dependencies = []terraform.ResourceDependency{
+			terraform.ResourceDependency{ID: g},
+		}
+	}
+
 	return s, nil
 }
 
