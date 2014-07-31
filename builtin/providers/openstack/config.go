@@ -10,10 +10,10 @@ import (
 )
 
 type Config struct {
-	ApiUrl   string `mapstructure:"url"`
-	User     string `mapstructure:"user"`
-	Password string `mapstructure:"password"`
-	TenantId string `mapstructure:"tenantId"`
+	ApiUrl     string `mapstructure:"url"`
+	User       string `mapstructure:"user"`
+	Password   string `mapstructure:"password"`
+	TenantName string `mapstructure:"tenantName"`
 }
 
 type OpenstackClient struct {
@@ -60,15 +60,15 @@ func (c *Config) Client() (*OpenstackClient, error) {
 	if v := os.Getenv("OPENSTACK_PASSWORD"); v != "" {
 		c.Password = v
 	}
-	if v := os.Getenv("OPENSTACK_TENANT_ID"); v != "" {
-		c.TenantId = v
+	if v := os.Getenv("OPENSTACK_TENANT_NAME"); v != "" {
+		c.TenantName = v
 	}
 
 	url := c.ApiUrl + "/tokens"
 
 	// FIXME
 	passwordCredentials := passwordCredentials{c.User, c.Password}
-	auth := auth{c.TenantId, passwordCredentials}
+	auth := auth{c.TenantName, passwordCredentials}
 	authentication := authentication{auth}
 
 	body, err := json.Marshal(authentication)

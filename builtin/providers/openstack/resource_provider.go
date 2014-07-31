@@ -19,7 +19,7 @@ func (p *ResourceProvider) Validate(c *terraform.ResourceConfig) ([]string, []er
 			"url",
 			"user",
 			"password",
-			"tenantId",
+			"tenantName",
 		},
 	}
 
