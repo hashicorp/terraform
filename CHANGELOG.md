@@ -16,7 +16,8 @@ BUG FIXES:
     provider is compiled
   * providers/aws: Engine version for RDS now properly set [GH-118]
   * providers/aws: Security groups now depend on each other and
-    use the proper destroy order
+  * providers/aws: DB instances now wait for destroys, have proper
+    dependencies and allow passing skip_final_snapshot
   * providers/aws: Add associate_public_ip_address as an attribute on
     the aws_instance resource [GH-85]
   * providers/aws: Fix cidr blocks being updated [GH-65, GH-85]
