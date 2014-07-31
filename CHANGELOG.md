@@ -12,6 +12,8 @@ IMPROVEMENTS:
 
 BUG FIXES:
 
+  * providers/cloudflare: Include the proper bins so the cloudflare
+    provider is compiled
   * providers/aws: Engine version for RDS now properly set [GH-118]
   * providers/aws: Security groups now depend on each other and
     use the proper destroy order
