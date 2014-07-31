@@ -14,7 +14,10 @@ func resource_openstack_compute_create(
 
 	log.Printf("[INFO] create")
 
-	return nil, nil
+	rs := s.MergeDiff(d)
+	rs.Attributes["id"] = "1234"
+
+	return rs, nil
 }
 
 func resource_openstack_compute_update(
@@ -24,7 +27,7 @@ func resource_openstack_compute_update(
 
 	log.Printf("[INFO] update")
 
-	return nil, nil
+	return s, nil
 }
 
 func resource_openstack_compute_destroy(
@@ -42,7 +45,7 @@ func resource_openstack_compute_refresh(
 
 	log.Printf("[INFO] refresh")
 
-	return nil, nil
+	return s, nil
 }
 
 func resource_openstack_compute_diff(
@@ -50,23 +53,21 @@ func resource_openstack_compute_diff(
 	c *terraform.ResourceConfig,
 	meta interface{}) (*terraform.ResourceDiff, error) {
 
-  log.Printf("[INFO] diff")
+	log.Printf("[INFO] diff")
 
-  b := &diff.ResourceBuilder{
-    Attrs: map[string]diff.AttrType{
+	b := &diff.ResourceBuilder{
+		Attrs: map[string]diff.AttrType{
+			"imageRef":  diff.AttrTypeCreate,
+			"flavorRef": diff.AttrTypeCreate,
+		},
 
-    },
+		ComputedAttrs: []string{
+			"id",
+			"name",
+		},
 
-    ComputedAttrs: []string{
+		ComputedAttrsUpdate: []string{},
+	}
 
-    },
-
-    ComputedAttrsUpdate: []string{
-
-    },
-  }
-
-  return b.Diff(s, c)
-
-	return nil, nil
+	return b.Diff(s, c)
 }
