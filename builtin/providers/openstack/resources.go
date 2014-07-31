@@ -1,8 +1,8 @@
 package openstack
 
 import (
-	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/config"
+	"github.com/hashicorp/terraform/helper/resource"
 )
 
 // resourceMap is the mapping of resources we support to their basic
@@ -15,19 +15,18 @@ func init() {
 			"openstack_compute": resource.Resource{
 				ConfigValidator: &config.Validator{
 					Required: []string{
-						"name",
 						"imageRef",
 						"flavorRef",
 					},
 					Optional: []string{
-
+						"name",
 					},
 				},
-				Create:          resource_openstack_compute_create,
-				Destroy:         resource_openstack_compute_destroy,
-				Diff:            resource_openstack_compute_diff,
-				Update:          resource_openstack_compute_update,
-				Refresh:         resource_openstack_compute_refresh,
+				Create:  resource_openstack_compute_create,
+				Destroy: resource_openstack_compute_destroy,
+				Diff:    resource_openstack_compute_diff,
+				Update:  resource_openstack_compute_update,
+				Refresh: resource_openstack_compute_refresh,
 			},
 		},
 	}

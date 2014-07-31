@@ -3,12 +3,9 @@ package openstack
 import (
 	"log"
 
-	"bytes"
-	"encoding/json"
-	"errors"
 	"github.com/hashicorp/terraform/helper/diff"
 	"github.com/hashicorp/terraform/terraform"
-	"net/http"
+	"github.com/rackspace/gophercloud"
 )
 
 type server struct {
@@ -33,39 +30,26 @@ func resource_openstack_compute_create(
 	// properly.
 	rs := s.MergeDiff(d)
 
-	serverContainer := serverContainer{rs.Attributes["name"], rs.Attributes["imageRef"], rs.Attributes["flavorRef"]}
-	server := server{serverContainer}
-
-	body, err := json.Marshal(server)
+	serversApi, err := gophercloud.ServersApi(client.AccessProvider, gophercloud.ApiCriteria{
+		Name:      "nova",
+		UrlChoice: gophercloud.PublicURL,
+	})
 	if err != nil {
 		return nil, err
 	}
 
-	req, err := http.NewRequest("POST", client.Config.ComputeEndpoint, bytes.NewReader(body))
-	if err != nil {
-		return nil, err
-	}
-
-	req.Header = http.Header{
-		"Accept":       {"application/json"},
-		"Content-Type": {"application/json"},
-		"X-Auth-Token": {client.Token},
-	}
-
-	httpClient := &http.Client{}
-	res, err := httpClient.Do(req)
+	newServer, err := serversApi.CreateServer(gophercloud.NewServer{
+		Name:      "12345",
+		ImageRef:  rs.Attributes["imageRef"],
+		FlavorRef: rs.Attributes["flavorRef"],
+	})
 
 	if err != nil {
 		return nil, err
 	}
 
-	defer res.Body.Close()
-
-	if res.StatusCode != 202 {
-		return nil, errors.New("Creation failed: " + res.Status)
-	}
-
-	rs.Attributes["id"] = "1234"
+	rs.Attributes["id"] = newServer.Id
+	rs.Attributes["name"] = newServer.Name
 
 	return rs, nil
 }
@@ -114,6 +98,7 @@ func resource_openstack_compute_diff(
 
 		ComputedAttrs: []string{
 			"id",
+			"name",
 		},
 
 		ComputedAttrsUpdate: []string{},

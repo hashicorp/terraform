@@ -1,11 +1,8 @@
 package openstack
 
 import (
-	"bytes"
-	"encoding/json"
-	"errors"
+	"github.com/rackspace/gophercloud"
 	"log"
-	"net/http"
 	"os"
 )
 
@@ -18,34 +15,8 @@ type Config struct {
 }
 
 type OpenstackClient struct {
-	Config *Config
-	Token  string
-}
-
-type identityObject struct {
-	Access accessObject `json:"access"`
-}
-
-type accessObject struct {
-	Token tokenObject `json:"token"`
-}
-
-type tokenObject struct {
-	Id string `json:"id"`
-}
-
-type authentication struct {
-	Auth auth `json:"auth"`
-}
-
-type auth struct {
-	TenantName          string              `json:"tenantName"`
-	PasswordCredentials passwordCredentials `json:"passwordCredentials"`
-}
-
-type passwordCredentials struct {
-	Username string `json:"username"`
-	Password string `json:"password"`
+	Config         *Config
+	AccessProvider gophercloud.AccessProvider
 }
 
 // Client() returns a new client for accessing openstack.
@@ -65,51 +36,20 @@ func (c *Config) Client() (*OpenstackClient, error) {
 		c.TenantName = v
 	}
 
-	url := c.ApiUrl + "/tokens"
-
-	// FIXME
-	passwordCredentials := passwordCredentials{c.User, c.Password}
-	auth := auth{c.TenantName, passwordCredentials}
-	authentication := authentication{auth}
-
-	body, err := json.Marshal(authentication)
-	if err != nil {
-		return nil, err
-	}
-
-	req, err := http.NewRequest("POST", url, bytes.NewReader(body))
-	if err != nil {
-		return nil, err
-	}
-
-	req.Header = http.Header{
-		"Accept":       {"application/json"},
-		"Content-Type": {"application/json"},
-	}
-
-	httpClient := &http.Client{}
-	res, err := httpClient.Do(req)
+	accessProvider, err := gophercloud.Authenticate(
+		c.ApiUrl,
+		gophercloud.AuthOptions{
+			Username:   c.User,
+			Password:   c.Password,
+			TenantName: c.TenantName,
+		},
+	)
 
 	if err != nil {
 		return nil, err
 	}
 
-	defer res.Body.Close()
-
-	if res.StatusCode != 200 {
-		return nil, errors.New("Authentication failed: " + res.Status)
-	}
-
-	identity := identityObject{}
-	err = json.NewDecoder(res.Body).Decode(&identity)
-
-	if err != nil {
-		return nil, err
-	}
-
-	// TODO retrieve endpoint
-
-	client := &OpenstackClient{c, identity.Access.Token.Id}
+	client := &OpenstackClient{c, accessProvider}
 
 	log.Printf("[INFO] Openstack Client configured for user %s", client.Config.User)
 
