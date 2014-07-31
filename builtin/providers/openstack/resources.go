@@ -15,12 +15,10 @@ func init() {
 			"openstack_compute": resource.Resource{
 				ConfigValidator: &config.Validator{
 					Required: []string{
-						"vpc_id",
-						"route.*.cidr_block",
+
 					},
 					Optional: []string{
-						"route.*.gateway_id",
-						"route.*.instance_id",
+
 					},
 				},
 				Create:          resource_openstack_compute_create,
