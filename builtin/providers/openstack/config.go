@@ -1,7 +1,11 @@
 package openstack
 
 import (
+	"bytes"
+	"encoding/json"
+	"errors"
 	"log"
+	"net/http"
 	"os"
 )
 
@@ -9,6 +13,7 @@ type Config struct {
 	ApiUrl   string `mapstructure:"url"`
 	User     string `mapstructure:"user"`
 	Password string `mapstructure:"password"`
+	TenantId string `mapstructure:"tenantId"`
 }
 
 type OpenstackClient struct {
@@ -16,7 +21,30 @@ type OpenstackClient struct {
 	Token  string
 }
 
-type Client struct {
+type identityObject struct {
+	Access accessObject `json:"access"`
+}
+
+type accessObject struct {
+	Token tokenObject `json:"token"`
+}
+
+type tokenObject struct {
+	Id string `json:"id"`
+}
+
+type authentication struct {
+	Auth auth `json:"auth"`
+}
+
+type auth struct {
+	TenantName          string              `json:"tenantName"`
+	PasswordCredentials passwordCredentials `json:"passwordCredentials"`
+}
+
+type passwordCredentials struct {
+	Username string `json:"username"`
+	Password string `json:"password"`
 }
 
 // Client() returns a new client for accessing openstack.
@@ -32,15 +60,57 @@ func (c *Config) Client() (*OpenstackClient, error) {
 	if v := os.Getenv("OPENSTACK_PASSWORD"); v != "" {
 		c.Password = v
 	}
+	if v := os.Getenv("OPENSTACK_TENANT_ID"); v != "" {
+		c.TenantId = v
+	}
 
-	//client, err := dnsimple.NewClient(c.Email, c.Token)
-	client := &OpenstackClient{c, "abcd"}
+	url := c.ApiUrl + "/tokens"
 
-	/*if err != nil {
-		return nil, fmt.Errorf("Error setting up client: %s", err)
-	}*/
+	// FIXME
+	passwordCredentials := passwordCredentials{c.User, c.Password}
+	auth := auth{c.TenantId, passwordCredentials}
+	authentication := authentication{auth}
 
-	log.Printf("[INFO] Openstack Client configured for user: %s", client.Config.User)
+	body, err := json.Marshal(authentication)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("POST", url, bytes.NewReader(body))
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header = http.Header{
+		"Accept":       {"application/json"},
+		"Content-Type": {"application/json"},
+	}
+
+	httpClient := &http.Client{}
+	res, err := httpClient.Do(req)
+
+	if err != nil {
+		return nil, err
+	}
+
+	defer res.Body.Close()
+
+	if res.StatusCode != 200 {
+		return nil, errors.New("Authentication failed: " + res.Status)
+	}
+
+	identity := identityObject{}
+	err = json.NewDecoder(res.Body).Decode(&identity)
+
+	if err != nil {
+		return nil, err
+	}
+
+	// TODO retrieve endpoint
+
+	client := &OpenstackClient{c, identity.Access.Token.Id}
+
+	log.Printf("[INFO] Openstack Client configured for user %s", client.Config.User)
 
 	return client, nil
 }

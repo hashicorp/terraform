@@ -19,6 +19,7 @@ func (p *ResourceProvider) Validate(c *terraform.ResourceConfig) ([]string, []er
 			"url",
 			"user",
 			"password",
+			"tenantId",
 		},
 	}
 
@@ -34,14 +35,16 @@ func (p *ResourceProvider) Configure(c *terraform.ResourceConfig) error {
 	if _, err := config.Decode(&p.Config, c.Config); err != nil {
 		return err
 	}
-
 	log.Println("[INFO] Initializing OpenStack client")
+
 	var err error
 	p.client, err = p.Config.Client()
 
 	if err != nil {
 		return err
 	}
+
+	log.Println("[INFO] OpenStack client connected")
 
 	return nil
 }
