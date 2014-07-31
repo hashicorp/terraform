@@ -206,7 +206,7 @@ func resource_aws_db_instance_diff(
 			"maintenance_window":      diff.AttrTypeCreate,
 			"multi_az":                diff.AttrTypeCreate,
 			"name":                    diff.AttrTypeCreate,
-			"password":                diff.AttrTypeCreate,
+			"password":                diff.AttrTypeUpdate,
 			"port":                    diff.AttrTypeCreate,
 			"publicly_accessible":     diff.AttrTypeCreate,
 			"username":                diff.AttrTypeCreate,
@@ -226,10 +226,21 @@ func resource_aws_db_instance_diff(
 			"multi_az",
 			"port",
 			"address",
+			"password",
 		},
 	}
 
-	return b.Diff(s, c)
+	rd, err := b.Diff(s, c)
+	if err != nil {
+		return rd, err
+	}
+
+	// Remove the password from the resource diff, so Terraform
+	// doesn't think it will change (we don't store the password)
+	// in state for security reasons, so it will always be "" otherwise
+	delete(rd.Attributes, "password")
+
+	return rd, nil
 }
 
 func resource_aws_db_instance_update_state(
