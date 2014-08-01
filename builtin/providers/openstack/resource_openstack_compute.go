@@ -2,7 +2,9 @@ package openstack
 
 import (
 	"crypto/rand"
+	"errors"
 	"log"
+	"time"
 
 	"github.com/hashicorp/terraform/helper/diff"
 	"github.com/hashicorp/terraform/terraform"
@@ -94,6 +96,28 @@ func resource_openstack_compute_update(
 		rs.Attributes["name"] = attr.New
 	}
 
+	if attr, ok := d.Attributes["flavorRef"]; ok {
+		err := serversApi.ResizeServer(rs.Attributes["id"], rs.Attributes["name"], attr.New, "")
+
+		log.Printf("[INFO] update flavorRef %s %s %s", attr.New, rs.Attributes["id"], rs.Attributes["name"])
+		if err != nil {
+			return nil, err
+		}
+
+		c := make(chan error, 1)
+		go func() { c <- waitForServerState(serversApi, rs.ID, "VERIFY_RESIZE") }()
+		select {
+		case err := <-c:
+			if err != nil {
+				return nil, err
+			}
+		case <-time.After(30 * 1000 * 1000 * 1000): // 30s timeout
+			return nil, errors.New("[openstack-compute] Resizing timeout for " + rs.Attributes["id"])
+		}
+
+		err = serversApi.ConfirmResize(rs.Attributes["id"])
+	}
+
 	return rs, nil
 }
 
@@ -148,4 +172,18 @@ func randomString(n int) string {
 		bytes[i] = alphanum[b%byte(len(alphanum))]
 	}
 	return string(bytes)
+}
+
+func waitForServerState(api gophercloud.CloudServersProvider, id, state string) error {
+	for {
+		log.Printf("[INFO] wait %s for %s", id, state)
+		s, err := api.ServerById(id)
+		if err != nil {
+			return err
+		}
+		if s.Status == state {
+			return nil
+		}
+		time.Sleep(5 * time.Second)
+	}
 }
