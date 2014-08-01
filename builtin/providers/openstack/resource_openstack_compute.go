@@ -67,7 +67,34 @@ func resource_openstack_compute_update(
 
 	log.Printf("[INFO] update")
 
-	return s, nil
+	p := meta.(*ResourceProvider)
+	client := p.client
+
+	// Merge the diff into the state so that we have all the attributes
+	// properly.
+	rs := s.MergeDiff(d)
+
+	serversApi, err := gophercloud.ServersApi(client.AccessProvider, gophercloud.ApiCriteria{
+		Name:      "nova",
+		UrlChoice: gophercloud.PublicURL,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	if attr, ok := d.Attributes["name"]; ok {
+		_, err := serversApi.UpdateServer(rs.ID, gophercloud.NewServerSettings{
+			Name: attr.New,
+		})
+
+		if err != nil {
+			return nil, err
+		}
+
+		rs.Attributes["name"] = attr.New
+	}
+
+	return rs, nil
 }
 
 func resource_openstack_compute_destroy(
