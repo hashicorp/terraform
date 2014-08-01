@@ -287,11 +287,11 @@ func resource_digitalocean_droplet_update_state(
 	}
 
 	s.Attributes["ipv4_address"] = droplet.IPV4Address("public")
-	s.Attributes["ipv4_address_private"] = droplet.IPV4Address("private")
 	s.Attributes["locked"] = droplet.IsLocked()
 
 	if droplet.NetworkingType() == "private" {
 		s.Attributes["private_networking"] = "true"
+		s.Attributes["ipv4_address_private"] = droplet.IPV4Address("private")
 	}
 
 	s.Attributes["size"] = droplet.SizeSlug()
