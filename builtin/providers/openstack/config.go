@@ -7,11 +7,10 @@ import (
 )
 
 type Config struct {
-	ApiUrl          string `mapstructure:"url"`
-	User            string `mapstructure:"user"`
-	Password        string `mapstructure:"password"`
-	TenantName      string `mapstructure:"tenantName"`
-	ComputeEndpoint string `mapstructure:"computeEndpoint"`
+	ApiUrl     string `mapstructure:"url"`
+	User       string `mapstructure:"user"`
+	Password   string `mapstructure:"password"`
+	TenantName string `mapstructure:"tenantName"`
 }
 
 type OpenstackClient struct {

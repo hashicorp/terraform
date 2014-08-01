@@ -50,6 +50,8 @@ func resource_openstack_compute_create(
 
 	rs.Attributes["id"] = newServer.Id
 	rs.Attributes["name"] = newServer.Name
+	rs.Attributes["imageRef"] = newServer.ImageRef
+	rs.Attributes["flavorRef"] = newServer.FlavorRef
 
 	return rs, nil
 }
@@ -92,13 +94,13 @@ func resource_openstack_compute_diff(
 	b := &diff.ResourceBuilder{
 		Attrs: map[string]diff.AttrType{
 			"imageRef":  diff.AttrTypeCreate,
-			"flavorRef": diff.AttrTypeCreate,
-			"name":      diff.AttrTypeCreate,
+			"flavorRef": diff.AttrTypeUpdate,
+			"name":      diff.AttrTypeUpdate,
 		},
 
 		ComputedAttrs: []string{
-			"id",
 			"name",
+			"id",
 		},
 
 		ComputedAttrsUpdate: []string{},
