@@ -33,6 +33,7 @@ The following arguments are supported:
 * `engine_version` - (Required) The engine version to use.
 * `identifier` - (Required) The name of the RDS instance
 * `instance_class` - (Required) The instance type of the RDS instance.
+* `final_snapshot_identifier` - (Optional) The name of your final DB snapshot.
 * `name` - (Required) The DB name to create.
 * `password` - (Required) Password for the master DB user.
 * `username` - (Required) Username for the master DB user.
