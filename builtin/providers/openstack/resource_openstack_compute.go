@@ -1,6 +1,7 @@
 package openstack
 
 import (
+	"crypto/rand"
 	"log"
 
 	"github.com/hashicorp/terraform/helper/diff"
@@ -38,8 +39,12 @@ func resource_openstack_compute_create(
 		return nil, err
 	}
 
+	name := rs.Attributes["name"]
+	if len(name) == 0 {
+		name = randomString(16)
+	}
 	newServer, err := serversApi.CreateServer(gophercloud.NewServer{
-		Name:      "12345",
+		Name:      name,
 		ImageRef:  rs.Attributes["imageRef"],
 		FlavorRef: rs.Attributes["flavorRef"],
 	})
@@ -48,10 +53,9 @@ func resource_openstack_compute_create(
 		return nil, err
 	}
 
+	rs.ID = newServer.Id
 	rs.Attributes["id"] = newServer.Id
-	rs.Attributes["name"] = newServer.Name
-	rs.Attributes["imageRef"] = newServer.ImageRef
-	rs.Attributes["flavorRef"] = newServer.FlavorRef
+	rs.Attributes["name"] = name
 
 	return rs, nil
 }
@@ -89,8 +93,6 @@ func resource_openstack_compute_diff(
 	c *terraform.ResourceConfig,
 	meta interface{}) (*terraform.ResourceDiff, error) {
 
-	log.Printf("[INFO] diff")
-
 	b := &diff.ResourceBuilder{
 		Attrs: map[string]diff.AttrType{
 			"imageRef":  diff.AttrTypeCreate,
@@ -102,9 +104,21 @@ func resource_openstack_compute_diff(
 			"name",
 			"id",
 		},
-
-		ComputedAttrsUpdate: []string{},
 	}
 
 	return b.Diff(s, c)
+}
+
+// randomString generates a string of given length, but random content.
+// All content will be within the ASCII graphic character set.
+// (Implementation from Even Shaw's contribution on
+// http://stackoverflow.com/questions/12771930/what-is-the-fastest-way-to-generate-a-long-random-string-in-go).
+func randomString(n int) string {
+	const alphanum = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
+	var bytes = make([]byte, n)
+	rand.Read(bytes)
+	for i, b := range bytes {
+		bytes[i] = alphanum[b%byte(len(alphanum))]
+	}
+	return string(bytes)
 }
