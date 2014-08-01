@@ -393,7 +393,7 @@ func power_on_and_wait(id string, client *digitalocean.Client) error {
 		return err
 	}
 
-	// Wait for power off
+	// Wait for power on
 	_, err = WaitForDropletAttribute(
 		id, "active", []string{"off"}, "status", client)
 
