@@ -8,6 +8,7 @@ import (
 
 	"github.com/hashicorp/terraform/helper/diff"
 	"github.com/hashicorp/terraform/terraform"
+	"github.com/racker/perigee"
 	"github.com/rackspace/gophercloud"
 )
 
@@ -97,7 +98,6 @@ func resource_openstack_compute_update(
 	if attr, ok := d.Attributes["flavorRef"]; ok {
 		err := serversApi.ResizeServer(rs.Attributes["id"], rs.Attributes["name"], attr.New, "")
 
-		log.Printf("[INFO] update flavorRef %s %s %s", attr.New, rs.Attributes["id"], rs.Attributes["name"])
 		if err != nil {
 			return nil, err
 		}
@@ -143,7 +143,33 @@ func resource_openstack_compute_refresh(
 	s *terraform.ResourceState,
 	meta interface{}) (*terraform.ResourceState, error) {
 
-	log.Printf("[INFO] refresh")
+	p := meta.(*ResourceProvider)
+	client := p.client
+
+	serversApi, err := gophercloud.ServersApi(client.AccessProvider, gophercloud.ApiCriteria{
+		Name:      "nova",
+		UrlChoice: gophercloud.PublicURL,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	server, err := serversApi.ServerById(s.ID)
+	if err != nil {
+		httpError, ok := err.(*perigee.UnexpectedResponseCodeError)
+		if !ok {
+			return nil, err
+		}
+
+		if httpError.Actual == 404 {
+			return nil, nil
+		}
+
+		return nil, err
+	}
+
+	s.Attributes["name"] = server.Name
+	s.Attributes["flavorRef"] = server.Flavor.Id
 
 	return s, nil
 }
@@ -185,7 +211,7 @@ func randomString(n int) string {
 
 func waitForServerState(api gophercloud.CloudServersProvider, id, state string) error {
 	for {
-		log.Printf("[INFO] wait %s for %s", id, state)
+		log.Printf("[INFO] wait response of %s for %s", id, state)
 		s, err := api.ServerById(id)
 		if err != nil {
 			return err
