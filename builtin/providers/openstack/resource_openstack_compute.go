@@ -67,8 +67,6 @@ func resource_openstack_compute_update(
 	d *terraform.ResourceDiff,
 	meta interface{}) (*terraform.ResourceState, error) {
 
-	log.Printf("[INFO] update")
-
 	p := meta.(*ResourceProvider)
 	client := p.client
 
@@ -125,9 +123,20 @@ func resource_openstack_compute_destroy(
 	s *terraform.ResourceState,
 	meta interface{}) error {
 
-	log.Printf("[INFO] destroy")
+	p := meta.(*ResourceProvider)
+	client := p.client
 
-	return nil
+	serversApi, err := gophercloud.ServersApi(client.AccessProvider, gophercloud.ApiCriteria{
+		Name:      "nova",
+		UrlChoice: gophercloud.PublicURL,
+	})
+	if err != nil {
+		return err
+	}
+
+	err = serversApi.DeleteServerById(s.ID)
+
+	return err
 }
 
 func resource_openstack_compute_refresh(
