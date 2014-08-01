@@ -258,7 +258,7 @@ func resource_aws_db_instance_update_state(
 	s.Attributes["availability_zone"] = v.AvailabilityZone
 	s.Attributes["backup_retention_period"] = strconv.Itoa(v.BackupRetentionPeriod)
 	s.Attributes["backup_window"] = v.PreferredBackupWindow
-	s.Attributes["endpoint"] = fmt.Sprintf("%s:%s", s.Attributes["address"], s.Attributes["port"])
+	s.Attributes["endpoint"] = fmt.Sprintf("%s:%s", s.Attributes["address"], strconv.Itoa(v.Port))
 	s.Attributes["engine"] = v.Engine
 	s.Attributes["engine_version"] = v.EngineVersion
 	s.Attributes["instance_class"] = v.DBInstanceClass
