@@ -18,9 +18,9 @@ func (p *ResourceProvider) Validate(c *terraform.ResourceConfig) ([]string, []er
 		Required: []string{
 			"authUrl",
 			"user",
+			"password",
 		},
 		Optional: []string{
-			"password",
 			"tenantName",
 			"tenantId",
 			"apiKey",
