@@ -16,14 +16,14 @@ type ResourceProvider struct {
 func (p *ResourceProvider) Validate(c *terraform.ResourceConfig) ([]string, []error) {
 	v := &config.Validator{
 		Required: []string{
-			"authUrl",
-			"user",
+			"auth_url",
+			"username",
 			"password",
 		},
 		Optional: []string{
-			"tenantName",
-			"tenantId",
-			"apiKey",
+			"tenant_name",
+			"tenant_id",
+			"api_key",
 		},
 	}
 

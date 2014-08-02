@@ -12,16 +12,6 @@ import (
 	"github.com/rackspace/gophercloud"
 )
 
-type server struct {
-	Server serverContainer `json:"server"`
-}
-
-type serverContainer struct {
-	Name      string `json:"name"`
-	ImageRef  string `json:"imageRef"`
-	FlavorRef string `json:"flavorRef"`
-}
-
 func resource_openstack_compute_create(
 	s *terraform.ResourceState,
 	d *terraform.ResourceDiff,
@@ -65,8 +55,8 @@ func resource_openstack_compute_create(
 
 	newServer, err := serversApi.CreateServer(gophercloud.NewServer{
 		Name:      name,
-		ImageRef:  rs.Attributes["imageRef"],
-		FlavorRef: rs.Attributes["flavorRef"],
+		ImageRef:  rs.Attributes["image_ref"],
+		FlavorRef: rs.Attributes["flavor_ref"],
 		Networks:  osNetworks,
 	})
 
@@ -113,7 +103,7 @@ func resource_openstack_compute_update(
 		rs.Attributes["name"] = attr.New
 	}
 
-	if attr, ok := d.Attributes["flavorRef"]; ok {
+	if attr, ok := d.Attributes["flavor_ref"]; ok {
 		err := serversApi.ResizeServer(rs.Attributes["id"], rs.Attributes["name"], attr.New, "")
 
 		if err != nil {
@@ -191,7 +181,7 @@ func resource_openstack_compute_refresh(
 	}
 
 	s.Attributes["name"] = server.Name
-	s.Attributes["flavorRef"] = server.Flavor.Id
+	s.Attributes["flavor_ref"] = server.Flavor.Id
 
 	return s, nil
 }
@@ -203,10 +193,10 @@ func resource_openstack_compute_diff(
 
 	b := &diff.ResourceBuilder{
 		Attrs: map[string]diff.AttrType{
-			"imageRef":  diff.AttrTypeCreate,
-			"flavorRef": diff.AttrTypeUpdate,
-			"name":      diff.AttrTypeUpdate,
-			"networks":  diff.AttrTypeCreate,
+			"image_ref":  diff.AttrTypeCreate,
+			"flavor_ref": diff.AttrTypeUpdate,
+			"name":       diff.AttrTypeUpdate,
+			"networks":   diff.AttrTypeCreate,
 		},
 
 		ComputedAttrs: []string{

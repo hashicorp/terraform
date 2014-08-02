@@ -8,12 +8,12 @@ import (
 )
 
 type Config struct {
-	Auth       string `mapstructure:"authUrl"`
-	User       string `mapstructure:"user"`
+	Auth       string `mapstructure:"auth_url"`
+	User       string `mapstructure:"username"`
 	Password   string `mapstructure:"password"`
-	ApiKey     string `mapstructure:"apiKey"`
-	TenantId   string `mapstructure:"tenantId"`
-	TenantName string `mapstructure:"tenantName"`
+	ApiKey     string `mapstructure:"api_key"`
+	TenantId   string `mapstructure:"tenant_id"`
+	TenantName string `mapstructure:"tenant_name"`
 }
 
 type OpenstackClient struct {

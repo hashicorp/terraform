@@ -15,8 +15,8 @@ func init() {
 			"openstack_compute": resource.Resource{
 				ConfigValidator: &config.Validator{
 					Required: []string{
-						"imageRef",
-						"flavorRef",
+						"image_ref",
+						"flavor_ref",
 					},
 					Optional: []string{
 						"name",
