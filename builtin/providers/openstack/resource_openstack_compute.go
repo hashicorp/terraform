@@ -4,6 +4,7 @@ import (
 	"crypto/rand"
 	"time"
 
+	"github.com/hashicorp/terraform/flatmap"
 	"github.com/hashicorp/terraform/helper/diff"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
@@ -45,10 +46,28 @@ func resource_openstack_compute_create(
 	if len(name) == 0 {
 		name = randomString(16)
 	}
+
+	osNetworks := make([]gophercloud.NetworkConfig, 0)
+
+	if raw := flatmap.Expand(rs.Attributes, "networks"); raw != nil {
+		if entries, ok := raw.([]interface{}); ok {
+			for _, entry := range entries {
+				value, ok := entry.(string)
+				if !ok {
+					continue
+				}
+
+				osNetwork := gophercloud.NetworkConfig{value}
+				osNetworks = append(osNetworks, osNetwork)
+			}
+		}
+	}
+
 	newServer, err := serversApi.CreateServer(gophercloud.NewServer{
 		Name:      name,
 		ImageRef:  rs.Attributes["imageRef"],
 		FlavorRef: rs.Attributes["flavorRef"],
+		Networks:  osNetworks,
 	})
 
 	if err != nil {
@@ -187,6 +206,7 @@ func resource_openstack_compute_diff(
 			"imageRef":  diff.AttrTypeCreate,
 			"flavorRef": diff.AttrTypeUpdate,
 			"name":      diff.AttrTypeUpdate,
+			"networks":  diff.AttrTypeCreate,
 		},
 
 		ComputedAttrs: []string{

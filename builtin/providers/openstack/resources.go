@@ -20,6 +20,7 @@ func init() {
 					},
 					Optional: []string{
 						"name",
+						"networks.*",
 					},
 				},
 				Create:  resource_openstack_compute_create,
