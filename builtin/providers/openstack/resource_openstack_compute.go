@@ -37,7 +37,7 @@ func resource_openstack_compute_create(
 		name = randomString(16)
 	}
 
-	osNetworks := make([]gophercloud.NetworkConfig, 0)
+	var osNetworks []gophercloud.NetworkConfig
 
 	if raw := flatmap.Expand(rs.Attributes, "networks"); raw != nil {
 		if entries, ok := raw.([]interface{}); ok {
@@ -53,11 +53,27 @@ func resource_openstack_compute_create(
 		}
 	}
 
+	var securityGroup []map[string]interface{}
+
+	if raw := flatmap.Expand(rs.Attributes, "security_groups"); raw != nil {
+		if entries, ok := raw.([]interface{}); ok {
+			for _, entry := range entries {
+				value, ok := entry.(string)
+				if !ok {
+					continue
+				}
+
+				securityGroup = append(securityGroup, map[string]interface{}{"name": value})
+			}
+		}
+	}
+
 	newServer, err := serversApi.CreateServer(gophercloud.NewServer{
-		Name:      name,
-		ImageRef:  rs.Attributes["image_ref"],
-		FlavorRef: rs.Attributes["flavor_ref"],
-		Networks:  osNetworks,
+		Name:          name,
+		ImageRef:      rs.Attributes["image_ref"],
+		FlavorRef:     rs.Attributes["flavor_ref"],
+		Networks:      osNetworks,
+		SecurityGroup: securityGroup,
 	})
 
 	if err != nil {
@@ -193,10 +209,11 @@ func resource_openstack_compute_diff(
 
 	b := &diff.ResourceBuilder{
 		Attrs: map[string]diff.AttrType{
-			"image_ref":  diff.AttrTypeCreate,
-			"flavor_ref": diff.AttrTypeUpdate,
-			"name":       diff.AttrTypeUpdate,
-			"networks":   diff.AttrTypeCreate,
+			"image_ref":       diff.AttrTypeCreate,
+			"flavor_ref":      diff.AttrTypeUpdate,
+			"name":            diff.AttrTypeUpdate,
+			"networks":        diff.AttrTypeCreate,
+			"security_groups": diff.AttrTypeCreate,
 		},
 
 		ComputedAttrs: []string{

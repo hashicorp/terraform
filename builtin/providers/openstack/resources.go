@@ -21,6 +21,7 @@ func init() {
 					Optional: []string{
 						"name",
 						"networks.*",
+						"security_groups.*",
 					},
 				},
 				Create:  resource_openstack_compute_create,
