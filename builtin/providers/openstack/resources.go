@@ -48,6 +48,21 @@ func init() {
 				Diff:    resource_openstack_network_diff,
 				Refresh: resource_openstack_network_refresh,
 			},
+
+			"openstack_security_group": resource.Resource{
+				ConfigValidator: &config.Validator{
+					Required: []string{
+						"name",
+					},
+					Optional: []string{
+						"description",
+					},
+				},
+				Create:  resource_openstack_security_group_create,
+				Destroy: resource_openstack_security_group_destroy,
+				Diff:    resource_openstack_security_group_diff,
+				Refresh: resource_openstack_security_group_refresh,
+			},
 		},
 	}
 }
