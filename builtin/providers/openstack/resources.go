@@ -30,6 +30,19 @@ func init() {
 				Update:  resource_openstack_compute_update,
 				Refresh: resource_openstack_compute_refresh,
 			},
+
+			"openstack_network": resource.Resource{
+				ConfigValidator: &config.Validator{
+					Required: []string{
+						"name",
+					},
+					Optional: []string{},
+				},
+				Create:  resource_openstack_network_create,
+				Destroy: resource_openstack_network_destroy,
+				Diff:    resource_openstack_network_diff,
+				Refresh: resource_openstack_network_refresh,
+			},
 		},
 	}
 }
