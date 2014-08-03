@@ -35,8 +35,13 @@ func init() {
 				ConfigValidator: &config.Validator{
 					Required: []string{
 						"name",
+						"subnet.*.cidr",
+						"subnet.*.ip_version",
 					},
-					Optional: []string{},
+					Optional: []string{
+						"subnet.*.name",
+						"subnet.*.enable_dhcp",
+					},
 				},
 				Create:  resource_openstack_network_create,
 				Destroy: resource_openstack_network_destroy,
