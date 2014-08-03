@@ -7,6 +7,7 @@ import (
 	"github.com/hashicorp/terraform/terraform"
 	"github.com/racker/perigee"
 	"github.com/rackspace/gophercloud"
+	"log"
 	"strconv"
 )
 
@@ -23,10 +24,7 @@ func resource_openstack_network_create(
 	// properly.
 	rs := s.MergeDiff(d)
 
-	networksApi, err := network.NetworksApi(client.AccessProvider, gophercloud.ApiCriteria{
-		Name:      "neutron",
-		UrlChoice: gophercloud.PublicURL,
-	})
+	networksApi, err := getNetworkApi(client.AccessProvider)
 	if err != nil {
 		return nil, err
 	}
@@ -43,6 +41,8 @@ func resource_openstack_network_create(
 	rs.ID = newNetwork.Id
 	rs.Attributes["id"] = newNetwork.Id
 
+	log.Printf("[DEBUG] Network create configuration: %#v", newNetwork)
+
 	subnets := []network.Subnet{}
 	v, ok := flatmap.Expand(rs.Attributes, "subnet").([]interface{})
 	if ok {
@@ -56,10 +56,12 @@ func resource_openstack_network_create(
 			subnet.TenantId = access.Token.Tenant.Id
 
 			// TODO store subnet id for allowed updates
-			_, err := networksApi.CreateSubnet(subnet)
+			newSubnet, err := networksApi.CreateSubnet(subnet)
 			if err != nil {
 				return nil, err
 			}
+
+			log.Printf("[DEBUG] Subnet create configuration: %#v", newSubnet)
 		}
 
 	}
@@ -71,13 +73,12 @@ func resource_openstack_network_destroy(
 	s *terraform.ResourceState,
 	meta interface{}) error {
 
+	log.Printf("[DEBUG] Destroy network: %s", s.ID)
+
 	p := meta.(*ResourceProvider)
 	client := p.client
 
-	networksApi, err := network.NetworksApi(client.AccessProvider, gophercloud.ApiCriteria{
-		Name:      "neutron",
-		UrlChoice: gophercloud.PublicURL,
-	})
+	networksApi, err := getNetworkApi(client.AccessProvider)
 	if err != nil {
 		return err
 	}
@@ -91,13 +92,12 @@ func resource_openstack_network_refresh(
 	s *terraform.ResourceState,
 	meta interface{}) (*terraform.ResourceState, error) {
 
+	log.Printf("[DEBUG] Retrieve information about network: %s", s.ID)
+
 	p := meta.(*ResourceProvider)
 	client := p.client
 
-	networksApi, err := network.NetworksApi(client.AccessProvider, gophercloud.ApiCriteria{
-		Name:      "neutron",
-		UrlChoice: gophercloud.PublicURL,
-	})
+	networksApi, err := getNetworkApi(client.AccessProvider)
 	if err != nil {
 		return nil, err
 	}
@@ -172,4 +172,13 @@ func expandSubnets(configured []interface{}) ([]network.Subnet, error) {
 	}
 
 	return subnets, nil
+}
+
+func getNetworkApi(accessProvider gophercloud.AccessProvider) (network.NetworkProvider, error) {
+	api, err := network.NetworksApi(accessProvider, gophercloud.ApiCriteria{
+		Name:      "neutron",
+		UrlChoice: gophercloud.PublicURL,
+	})
+
+	return api, err
 }
