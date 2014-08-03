@@ -53,9 +53,14 @@ func init() {
 				ConfigValidator: &config.Validator{
 					Required: []string{
 						"name",
+						"rule.*.direction",
+						"rule.*.remote_ip_prefix",
 					},
 					Optional: []string{
 						"description",
+						"rule.*.port_range_min",
+						"rule.*.port_range_max",
+						"rule.*.protocol",
 					},
 				},
 				Create:  resource_openstack_security_group_create,
