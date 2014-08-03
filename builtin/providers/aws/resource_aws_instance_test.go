@@ -13,6 +13,10 @@ func TestAccAWSInstance_normal(t *testing.T) {
 	var v ec2.Instance
 
 	testCheck := func(*terraform.State) error {
+		if v.AvailZone != "us-west-2a" {
+			return fmt.Errorf("bad availability zone: %#v", v.AvailZone)
+		}
+
 		if len(v.SecurityGroups) == 0 {
 			return fmt.Errorf("no security groups: %#v", v.SecurityGroups)
 		}
@@ -193,6 +197,8 @@ resource "aws_security_group" "tf_test_foo" {
 resource "aws_instance" "foo" {
 	# us-west-2
 	ami = "ami-4fccb37f"
+	availability_zone = "us-west-2a"
+
 	instance_type = "m1.small"
 	security_groups = ["${aws_security_group.tf_test_foo.name}"]
 	user_data = "foo"

@@ -32,7 +32,7 @@ testacc: config/y.go libucl
 		echo "ERROR: Set TEST to a specific package"; \
 		exit 1; \
 	fi
-	TF_ACC=1 go test $(TEST) -v $(TESTARGS)
+	TF_ACC=1 go test $(TEST) -v $(TESTARGS) -timeout 30m
 
 testrace: config/y.go libucl
 	TF_ACC= go test -race $(TEST) $(TESTARGS)

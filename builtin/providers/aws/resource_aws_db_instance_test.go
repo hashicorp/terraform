@@ -23,9 +23,9 @@ func TestAccAWSDBInstance(t *testing.T) {
 					testAccCheckAWSDBInstanceExists("aws_db_instance.bar", &v),
 					testAccCheckAWSDBInstanceAttributes(&v),
 					resource.TestCheckResourceAttr(
-						"aws_db_instance.bar", "instance_identifier", "foobarbaz-test-terraform"),
+						"aws_db_instance.bar", "identifier", "foobarbaz-test-terraform"),
 					resource.TestCheckResourceAttr(
-						"aws_db_instance.bar", "allocated_storage", "foobarbaz-test-terraform"),
+						"aws_db_instance.bar", "allocated_storage", "10"),
 					resource.TestCheckResourceAttr(
 						"aws_db_instance.bar", "engine", "mysql"),
 					resource.TestCheckResourceAttr(
@@ -35,7 +35,8 @@ func TestAccAWSDBInstance(t *testing.T) {
 					resource.TestCheckResourceAttr(
 						"aws_db_instance.bar", "name", "baz"),
 					resource.TestCheckResourceAttr(
-						"aws_db_instance.bar", "password", "barbarbarbar"),
+						// Shouldn't save password to state
+						"aws_db_instance.bar", "password", ""),
 					resource.TestCheckResourceAttr(
 						"aws_db_instance.bar", "username", "foo"),
 					resource.TestCheckResourceAttr(

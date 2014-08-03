@@ -112,6 +112,10 @@ func resource_digitalocean_droplet_update(
 		err = client.Resize(rs.ID, attr.New)
 
 		if err != nil {
+			newErr := power_on_and_wait(rs.ID, client)
+			if newErr != nil {
+				return rs, newErr
+			}
 			return rs, err
 		}
 
@@ -120,6 +124,10 @@ func resource_digitalocean_droplet_update(
 			rs.ID, attr.New, []string{"", attr.Old}, "size", client)
 
 		if err != nil {
+			newErr := power_on_and_wait(rs.ID, client)
+			if newErr != nil {
+				return rs, newErr
+			}
 			return s, err
 		}
 
@@ -279,11 +287,11 @@ func resource_digitalocean_droplet_update_state(
 	}
 
 	s.Attributes["ipv4_address"] = droplet.IPV4Address("public")
-	s.Attributes["ipv4_address_private"] = droplet.IPV4Address("private")
 	s.Attributes["locked"] = droplet.IsLocked()
 
 	if droplet.NetworkingType() == "private" {
 		s.Attributes["private_networking"] = "true"
+		s.Attributes["ipv4_address_private"] = droplet.IPV4Address("private")
 	}
 
 	s.Attributes["size"] = droplet.SizeSlug()
@@ -375,4 +383,23 @@ func new_droplet_state_refresh_func(id string, attribute string, client *digital
 
 		return nil, "", nil
 	}
+}
+
+// Powers on the droplet and waits for it to be active
+func power_on_and_wait(id string, client *digitalocean.Client) error {
+	err := client.PowerOn(id)
+
+	if err != nil {
+		return err
+	}
+
+	// Wait for power on
+	_, err = WaitForDropletAttribute(
+		id, "active", []string{"off"}, "status", client)
+
+	if err != nil {
+		return err
+	}
+
+	return nil
 }

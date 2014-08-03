@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/hashicorp/terraform/flatmap"
@@ -156,16 +157,29 @@ func resource_aws_db_instance_destroy(
 
 	if s.Attributes["skip_final_snapshot"] == "true" {
 		opts.SkipFinalSnapshot = true
+	} else {
+		opts.FinalDBSnapshotIdentifier = s.Attributes["final_snapshot_identifier"]
 	}
 
 	log.Printf("[DEBUG] DB Instance destroy configuration: %v", opts)
 	_, err := conn.DeleteDBInstance(&opts)
 
+	log.Println(
+		"[INFO] Waiting for DB Instance to be destroyed")
+
+	stateConf := &resource.StateChangeConf{
+		Pending: []string{"creating", "backing-up",
+			"modifying", "deleting", "available"},
+		Target:     "",
+		Refresh:    DBInstanceStateRefreshFunc(s.ID, conn),
+		Timeout:    10 * time.Minute,
+		MinTimeout: 10 * time.Second,
+		Delay:      30 * time.Second, // Wait 30 secs before starting
+	}
+
+	// Wait, catching any errors
+	_, err = stateConf.WaitForState()
 	if err != nil {
-		newerr, ok := err.(*rds.Error)
-		if ok && newerr.Code == "InvalidDBInstance.NotFound" {
-			return nil
-		}
 		return err
 	}
 
@@ -194,24 +208,26 @@ func resource_aws_db_instance_diff(
 
 	b := &diff.ResourceBuilder{
 		Attrs: map[string]diff.AttrType{
-			"allocated_storage":       diff.AttrTypeCreate,
-			"availability_zone":       diff.AttrTypeCreate,
-			"backup_retention_period": diff.AttrTypeCreate,
-			"backup_window":           diff.AttrTypeCreate,
-			"engine":                  diff.AttrTypeCreate,
-			"engine_version":          diff.AttrTypeCreate,
-			"identifier":              diff.AttrTypeCreate,
-			"instance_class":          diff.AttrTypeCreate,
-			"iops":                    diff.AttrTypeCreate,
-			"maintenance_window":      diff.AttrTypeCreate,
-			"multi_az":                diff.AttrTypeCreate,
-			"name":                    diff.AttrTypeCreate,
-			"password":                diff.AttrTypeUpdate,
-			"port":                    diff.AttrTypeCreate,
-			"publicly_accessible":     diff.AttrTypeCreate,
-			"username":                diff.AttrTypeCreate,
-			"vpc_security_group_ids":  diff.AttrTypeCreate,
-			"security_group_names":    diff.AttrTypeCreate,
+			"allocated_storage":         diff.AttrTypeCreate,
+			"availability_zone":         diff.AttrTypeCreate,
+			"backup_retention_period":   diff.AttrTypeCreate,
+			"backup_window":             diff.AttrTypeCreate,
+			"engine":                    diff.AttrTypeCreate,
+			"engine_version":            diff.AttrTypeCreate,
+			"identifier":                diff.AttrTypeCreate,
+			"instance_class":            diff.AttrTypeCreate,
+			"iops":                      diff.AttrTypeCreate,
+			"maintenance_window":        diff.AttrTypeCreate,
+			"multi_az":                  diff.AttrTypeCreate,
+			"name":                      diff.AttrTypeCreate,
+			"password":                  diff.AttrTypeUpdate,
+			"port":                      diff.AttrTypeCreate,
+			"publicly_accessible":       diff.AttrTypeCreate,
+			"username":                  diff.AttrTypeCreate,
+			"vpc_security_group_ids":    diff.AttrTypeCreate,
+			"security_group_names":      diff.AttrTypeCreate,
+			"skip_final_snapshot":       diff.AttrTypeUpdate,
+			"final_snapshot_identifier": diff.AttrTypeUpdate,
 		},
 
 		ComputedAttrs: []string{
@@ -230,17 +246,7 @@ func resource_aws_db_instance_diff(
 		},
 	}
 
-	rd, err := b.Diff(s, c)
-	if err != nil {
-		return rd, err
-	}
-
-	// Remove the password from the resource diff, so Terraform
-	// doesn't think it will change (we don't store the password)
-	// in state for security reasons, so it will always be "" otherwise
-	delete(rd.Attributes, "password")
-
-	return rd, nil
+	return b.Diff(s, c)
 }
 
 func resource_aws_db_instance_update_state(
@@ -252,7 +258,7 @@ func resource_aws_db_instance_update_state(
 	s.Attributes["availability_zone"] = v.AvailabilityZone
 	s.Attributes["backup_retention_period"] = strconv.Itoa(v.BackupRetentionPeriod)
 	s.Attributes["backup_window"] = v.PreferredBackupWindow
-	s.Attributes["endpoint"] = fmt.Sprintf("%s:%s", s.Attributes["address"], s.Attributes["port"])
+	s.Attributes["endpoint"] = fmt.Sprintf("%s:%s", s.Attributes["address"], strconv.Itoa(v.Port))
 	s.Attributes["engine"] = v.Engine
 	s.Attributes["engine_version"] = v.EngineVersion
 	s.Attributes["instance_class"] = v.DBInstanceClass
@@ -344,6 +350,12 @@ func DBInstanceStateRefreshFunc(id string, conn *rds.Rds) resource.StateRefreshF
 		v, err := resource_aws_db_instance_retrieve(id, conn)
 
 		if err != nil {
+			// We want to special-case "not found" instances because
+			// it could be waiting for it to be gone.
+			if strings.Contains(err.Error(), "DBInstanceNotFound") {
+				return nil, "", nil
+			}
+
 			log.Printf("Error on retrieving DB Instance when waiting: %s", err)
 			return nil, "", err
 		}
