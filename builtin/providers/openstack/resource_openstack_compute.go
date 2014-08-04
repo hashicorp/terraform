@@ -127,7 +127,7 @@ func resource_openstack_compute_update(
 		}
 
 		stateConf := &resource.StateChangeConf{
-			Pending:    []string{"ACTIVE"},
+			Pending:    []string{"ACTIVE", "RESIZE"},
 			Target:     "VERIFY_RESIZE",
 			Refresh:    WaitForServerState(serversApi, rs.Attributes["id"]),
 			Timeout:    10 * time.Minute,
@@ -247,7 +247,7 @@ func WaitForServerState(api gophercloud.CloudServersProvider, id string) resourc
 			return nil, "", err
 		}
 
-		return nil, s.Status, nil
+		return s, s.Status, nil
 
 	}
 }
