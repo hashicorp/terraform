@@ -54,7 +54,7 @@ func testAccCheckOpenstackSecurityGroupDestroy(s *terraform.State) error {
 	client := testAccProvider.client
 
 	for _, rs := range s.Resources {
-		if rs.Type != "openstack_network" {
+		if rs.Type != "openstack_security_group" {
 			continue
 		}
 
@@ -93,7 +93,7 @@ func testAccCheckOpenstackSecurityGroupExists(n string, securityGroup *network.S
 		}
 
 		if rs.ID == "" {
-			return fmt.Errorf("No network is set")
+			return fmt.Errorf("No security group is set")
 		}
 
 		networksApi, err := getNetworkApi(client.AccessProvider)
