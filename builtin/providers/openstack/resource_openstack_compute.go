@@ -84,6 +84,37 @@ func resource_openstack_compute_create(
 	rs.Attributes["id"] = newServer.Id
 	rs.Attributes["name"] = name
 
+	stateConf := &resource.StateChangeConf{
+		Pending:    []string{"BUILD", "BUILDING"},
+		Target:     "ACTIVE",
+		Refresh:    WaitForServerState(serversApi, rs.Attributes["id"]),
+		Timeout:    15 * time.Minute,
+		Delay:      10 * time.Second,
+		MinTimeout: 3 * time.Second,
+	}
+
+	_, err = stateConf.WaitForState()
+
+	if err != nil {
+		return nil, err
+	}
+
+	if pool, ok := rs.Attributes["floating_ip_pool"]; ok {
+		newIp, err := serversApi.CreateFloatingIp(pool)
+		if err != nil {
+			return nil, err
+		}
+
+		err = serversApi.AssociateFloatingIp(newServer.Id, newIp)
+		if err != nil {
+			return nil, err
+		}
+
+		rs.Attributes["floating_ip"] = newIp.Ip
+	}
+
+	// TODO fill rs.Conn
+
 	return rs, nil
 }
 
@@ -196,6 +227,8 @@ func resource_openstack_compute_refresh(
 		return nil, err
 	}
 
+	// TODO check networks, seucrity groups and floating ip
+
 	s.Attributes["name"] = server.Name
 	s.Attributes["flavor_ref"] = server.Flavor.Id
 
@@ -209,16 +242,18 @@ func resource_openstack_compute_diff(
 
 	b := &diff.ResourceBuilder{
 		Attrs: map[string]diff.AttrType{
-			"image_ref":       diff.AttrTypeCreate,
-			"flavor_ref":      diff.AttrTypeUpdate,
-			"name":            diff.AttrTypeUpdate,
-			"networks":        diff.AttrTypeCreate,
-			"security_groups": diff.AttrTypeCreate,
+			"image_ref":        diff.AttrTypeCreate,
+			"flavor_ref":       diff.AttrTypeUpdate,
+			"name":             diff.AttrTypeUpdate,
+			"networks":         diff.AttrTypeCreate,
+			"security_groups":  diff.AttrTypeCreate,
+			"floating_ip_pool": diff.AttrTypeUpdate,
 		},
 
 		ComputedAttrs: []string{
 			"name",
 			"id",
+			"floating_ip",
 		},
 	}
 

@@ -19,6 +19,7 @@ func init() {
 						"flavor_ref",
 					},
 					Optional: []string{
+						"floating_ip_pool",
 						"name",
 						"networks.*",
 						"security_groups.*",
