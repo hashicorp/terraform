@@ -18,7 +18,7 @@ if ENV["TERRAFORM_VERSION"]
     next if os == "web"
 
     $terraform_files[os] ||= []
-    $terraform_files[os] << filename
+    $terraform_files[os] << "terraform_#{filename}"
   end
 
   $terraform_os = ["darwin", "linux", "windows"] & $terraform_files.keys
