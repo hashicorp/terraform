@@ -14,6 +14,7 @@ import (
 func init() {
 	gob.Register(make([]interface{}, 0))
 	gob.Register(make([]map[string]interface{}, 0))
+	gob.Register(make(map[string]interface{}))
 	gob.Register(make(map[string]string))
 }
 
