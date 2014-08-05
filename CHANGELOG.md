@@ -14,6 +14,7 @@ BUG FIXES:
 
   * core: Default variable file "terraform.tfvars" is auto-loaded. [GH-59]
   * core: Multi-variables (`foo.*.bar`) work even when `count = 1`. [GH-115]
+  * core: `file()` function can have string literal arg [GH-145]
   * providers/cloudflare: Include the proper bins so the cloudflare
       provider is compiled
   * providers/aws: Engine version for RDS now properly set [GH-118]
