@@ -10,6 +10,6 @@ variable "bar" {
 # Mapping
 variable "map" {
     default = {
-        "foo" = "bar";
+        foo = "bar"
     }
 }

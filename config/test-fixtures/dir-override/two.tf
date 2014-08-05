@@ -1,5 +1,5 @@
 provider "do" {
-  api_key = "${var.foo}";
+  api_key = "${var.foo}"
 }
 
 resource "aws_security_group" "firewall" {

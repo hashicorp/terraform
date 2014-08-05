@@ -1,7 +1,7 @@
 variable "amis" {
     default = {
-        "us-east-1": "foo",
-        "us-west-2": "foo",
+        us-east-1 = "foo"
+        us-west-2 = "foo"
     }
 }
 

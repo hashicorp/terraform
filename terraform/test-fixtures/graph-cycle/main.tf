@@ -1,6 +1,6 @@
 variable "foo" {
-    default = "bar";
-    description = "bar";
+    default = "bar"
+    description = "bar"
 }
 
 provider "aws" {
