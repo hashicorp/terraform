@@ -11,13 +11,18 @@ func Merge(c1, c2 *Config) (*Config, error) {
 	// Merge unknown keys
 	unknowns := make(map[string]struct{})
 	for _, k := range c1.unknownKeys {
-		unknowns[k] = struct{}{}
+		_, present := unknowns[k]
+		if !present {
+			unknowns[k] = struct{}{}
+			c.unknownKeys = append(c.unknownKeys, k)
+		}
 	}
 	for _, k := range c2.unknownKeys {
-		unknowns[k] = struct{}{}
-	}
-	for k, _ := range unknowns {
-		c.unknownKeys = append(c.unknownKeys, k)
+		_, present := unknowns[k]
+		if !present {
+			unknowns[k] = struct{}{}
+			c.unknownKeys = append(c.unknownKeys, k)
+		}
 	}
 
 	// NOTE: Everything below is pretty gross. Due to the lack of generics
