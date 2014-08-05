@@ -13,7 +13,7 @@ if ENV["TERRAFORM_VERSION"]
   response.body.split("\n").each do |line|
     next if line !~ /\/mitchellh\/terraform\/terraform_(#{Regexp.quote(ENV["TERRAFORM_VERSION"])}.+?)'/
     filename = $1.to_s
-    os = filename.split("_")[2]
+    os = filename.split("_")[1]
     next if os == "SHA256SUMS"
     next if os == "web"
 
