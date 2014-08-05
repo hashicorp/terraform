@@ -1,6 +1,7 @@
 package ssh
 
 import (
+	"encoding/pem"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -105,10 +106,25 @@ func PrepareConfig(conf *SSHConfig) (*Config, error) {
 		if err != nil {
 			return nil, fmt.Errorf("Failed to read key file '%s': %v", conf.KeyFile, err)
 		}
+
+		// We parse the private key on our own first so that we can
+		// show a nicer error if the private key has a password.
+		block, _ := pem.Decode(key)
+		if block == nil {
+			return nil, fmt.Errorf(
+				"Failed to read key '%s': no key found", conf.KeyFile)
+		}
+		if block.Headers["Proc-Type"] == "4,ENCRYPTED" {
+			return nil, fmt.Errorf(
+				"Failed to read key '%s': password protected keys are\n"+
+					"not supported. Please decrypt the key prior to use.", conf.KeyFile)
+		}
+
 		signer, err := ssh.ParsePrivateKey(key)
 		if err != nil {
 			return nil, fmt.Errorf("Failed to parse key file '%s': %v", conf.KeyFile, err)
 		}
+
 		sshConf.Auth = append(sshConf.Auth, ssh.PublicKeys(signer))
 	}
 	if conf.Password != "" {
