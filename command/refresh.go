@@ -18,7 +18,7 @@ type RefreshCommand struct {
 func (c *RefreshCommand) Run(args []string) int {
 	var statePath, stateOutPath, backupPath string
 
-	args = c.Meta.process(args)
+	args = c.Meta.process(args, true)
 
 	cmdFlags := c.Meta.flagSet("refresh")
 	cmdFlags.StringVar(&statePath, "state", DefaultStateFilename, "path")

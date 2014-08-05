@@ -23,7 +23,7 @@ func (c *ApplyCommand) Run(args []string) int {
 	var refresh bool
 	var statePath, stateOutPath, backupPath string
 
-	args = c.Meta.process(args)
+	args = c.Meta.process(args, true)
 
 	cmdFlags := c.Meta.flagSet("apply")
 	cmdFlags.BoolVar(&refresh, "refresh", true, "refresh")

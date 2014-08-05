@@ -16,7 +16,7 @@ type ShowCommand struct {
 }
 
 func (c *ShowCommand) Run(args []string) int {
-	args = c.Meta.process(args)
+	args = c.Meta.process(args, false)
 
 	cmdFlags := flag.NewFlagSet("show", flag.ContinueOnError)
 	cmdFlags.Usage = func() { c.Ui.Error(c.Help()) }

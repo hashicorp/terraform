@@ -12,6 +12,7 @@ IMPROVEMENTS:
 
 BUG FIXES:
 
+  * core: Default variable file "terraform.tfvars" is auto-loaded. [GH-59]
   * providers/cloudflare: Include the proper bins so the cloudflare
     provider is compiled
   * providers/aws: Engine version for RDS now properly set [GH-118]

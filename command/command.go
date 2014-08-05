@@ -10,6 +10,9 @@ import (
 // DefaultStateFilename is the default filename used for the state file.
 const DefaultStateFilename = "terraform.tfstate"
 
+// DefaultVarsFilename is the default filename used for vars
+const DefaultVarsFilename = "terraform.tfvars"
+
 // DefaultBackupExtention is added to the state file to form the path
 const DefaultBackupExtention = ".backup"
 

@@ -16,7 +16,7 @@ type GraphCommand struct {
 }
 
 func (c *GraphCommand) Run(args []string) int {
-	args = c.Meta.process(args)
+	args = c.Meta.process(args, false)
 
 	cmdFlags := flag.NewFlagSet("graph", flag.ContinueOnError)
 	cmdFlags.Usage = func() { c.Ui.Error(c.Help()) }

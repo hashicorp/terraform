@@ -370,6 +370,54 @@ func TestPlan_varFile(t *testing.T) {
 	}
 }
 
+func TestPlan_varFileDefault(t *testing.T) {
+	varFileDir := testTempDir(t)
+	varFilePath := filepath.Join(varFileDir, "terraform.tfvars")
+	if err := ioutil.WriteFile(varFilePath, []byte(planVarFile), 0644); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	cwd, err := os.Getwd()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if err := os.Chdir(varFileDir); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	defer os.Chdir(cwd)
+
+	p := testProvider()
+	ui := new(cli.MockUi)
+	c := &PlanCommand{
+		Meta: Meta{
+			ContextOpts: testCtxConfig(p),
+			Ui:          ui,
+		},
+	}
+
+	actual := ""
+	p.DiffFn = func(
+		s *terraform.ResourceState,
+		c *terraform.ResourceConfig) (*terraform.ResourceDiff, error) {
+		if v, ok := c.Config["value"]; ok {
+			actual = v.(string)
+		}
+
+		return nil, nil
+	}
+
+	args := []string{
+		testFixturePath("plan-vars"),
+	}
+	if code := c.Run(args); code != 0 {
+		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
+	}
+
+	if actual != "bar" {
+		t.Fatal("didn't work")
+	}
+}
+
 func TestPlan_backup(t *testing.T) {
 	// Write out some prior state
 	tf, err := ioutil.TempFile("", "tf")

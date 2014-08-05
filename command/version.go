@@ -21,7 +21,7 @@ func (c *VersionCommand) Help() string {
 func (c *VersionCommand) Run(args []string) int {
 	var versionString bytes.Buffer
 
-	args = c.Meta.process(args)
+	args = c.Meta.process(args, false)
 
 	fmt.Fprintf(&versionString, "Terraform v%s", c.Version)
 	if c.VersionPrerelease != "" {
