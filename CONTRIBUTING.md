@@ -18,9 +18,9 @@ it raises the chances we can quickly merge or address your contributions.
 * Make sure you test against the latest released version. It is possible
   we already fixed the bug you're experiencing.
 
-* Provide your your `.tf` files, with secrets removed, so we can
-  try to reproduce it. Without this, it makes it much harder to fix
-  the issue.
+* Provide steps to reproduce the issue, along with your `.tf` files,
+  with secrets removed, so we can try to reproduce it. Without this,
+  it makes it much harder to fix the issue.
 
 * If you experienced a panic, please create a [gist](https://gist.github.com)
   of the *entire* generated crash log for us to look at. Double check
@@ -43,7 +43,7 @@ it raises the chances we can quickly merge or address your contributions.
    referenced in the commit message so that the code that fixes it is clearly
    linked.
 
-5. The issue is closed. Somtimes, valid issues will be closed to keep
+5. The issue is closed. Sometimes, valid issues will be closed to keep
    the issue tracker clean. The issue is still indexed and available for
    future viewers, or can be re-opened if necessary.
 
