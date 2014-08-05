@@ -68,6 +68,23 @@ func init() {
 				Diff:    resource_openstack_security_group_diff,
 				Refresh: resource_openstack_security_group_refresh,
 			},
+
+			"openstack_router": resource.Resource{
+				ConfigValidator: &config.Validator{
+					Required: []string{
+						"name",
+					},
+					Optional: []string{
+						"external_gateway",
+						"external_id",
+						"subnets.*",
+					},
+				},
+				Create:  resource_openstack_router_create,
+				Destroy: resource_openstack_router_destroy,
+				Diff:    resource_openstack_router_diff,
+				Refresh: resource_openstack_router_refresh,
+			},
 		},
 	}
 }
