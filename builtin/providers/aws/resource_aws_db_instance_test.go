@@ -159,6 +159,6 @@ resource "aws_db_instance" "bar" {
 
 	skip_final_snapshot = true
 
-	security_group_names = [${aws_db_security_group.bar.name}]
+	security_group_names = ["${aws_db_security_group.bar.name}"]
 }
 `
