@@ -1781,6 +1781,29 @@ func TestContextPlan_taint(t *testing.T) {
 	}
 }
 
+func TestContextPlan_varMultiCountOne(t *testing.T) {
+	c := testConfig(t, "plan-var-multi-count-one")
+	p := testProvider("aws")
+	p.DiffFn = testDiffFn
+	ctx := testContext(t, &ContextOpts{
+		Config: c,
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+	})
+
+	plan, err := ctx.Plan(nil)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	actual := strings.TrimSpace(plan.String())
+	expected := strings.TrimSpace(testTerraformPlanVarMultiCountOneStr)
+	if actual != expected {
+		t.Fatalf("bad:\n%s", actual)
+	}
+}
+
 func TestContextRefresh(t *testing.T) {
 	p := testProvider("aws")
 	c := testConfig(t, "refresh-basic")

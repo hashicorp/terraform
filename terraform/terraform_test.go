@@ -478,3 +478,19 @@ aws_instance.foo:
   ID = bar
   num = 2
 `
+
+const testTerraformPlanVarMultiCountOneStr = `
+DIFF:
+
+CREATE: aws_instance.bar
+  foo:  "" => "2"
+  type: "" => "aws_instance"
+CREATE: aws_instance.foo
+  num:  "" => "2"
+  type: "" => "aws_instance"
+
+STATE:
+
+<no state>
+`
+
