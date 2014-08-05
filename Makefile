@@ -63,6 +63,7 @@ vendor/libucl:
 		git checkout fix-win32-compile
 
 clean:
+	rm config/y.go
 	rm -rf vendor
 
 .PHONY: clean default libucl test updatedeps
