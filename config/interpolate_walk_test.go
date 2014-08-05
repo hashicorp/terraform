@@ -35,6 +35,26 @@ func TestInterpolationWalker_detect(t *testing.T) {
 
 		{
 			Input: map[string]interface{}{
+				"foo": "${aws_instance.foo.*.num}",
+			},
+			Result: []Interpolation{
+				&VariableInterpolation{
+					Variable: &ResourceVariable{
+						Type:  "aws_instance",
+						Name:  "foo",
+						Field: "num",
+
+						Multi: true,
+						Index: -1,
+
+						key: "aws_instance.foo.*.num",
+					},
+				},
+			},
+		},
+
+		{
+			Input: map[string]interface{}{
 				"foo": "${lookup(var.foo)}",
 			},
 			Result: []Interpolation{
