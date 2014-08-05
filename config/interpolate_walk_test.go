@@ -71,6 +71,22 @@ func TestInterpolationWalker_detect(t *testing.T) {
 				},
 			},
 		},
+
+		{
+			Input: map[string]interface{}{
+				"foo": `${file("test.txt")}`,
+			},
+			Result: []Interpolation{
+				&FunctionInterpolation{
+					Func: nil,
+					Args: []Interpolation{
+						&LiteralInterpolation{
+							Literal: "test.txt",
+						},
+					},
+				},
+			},
+		},
 	}
 
 	for i, tc := range cases {
