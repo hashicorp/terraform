@@ -83,6 +83,7 @@ func resource_openstack_compute_create(
 	rs.ID = newServer.Id
 	rs.Attributes["id"] = newServer.Id
 	rs.Attributes["name"] = name
+	rs.Attributes["admin_pass"] = newServer.AdminPass
 
 	stateConf := &resource.StateChangeConf{
 		Pending:    []string{"BUILD", "BUILDING"},
@@ -254,6 +255,7 @@ func resource_openstack_compute_diff(
 			"name",
 			"id",
 			"floating_ip",
+			"admin_pass",
 		},
 	}
 
