@@ -32,7 +32,7 @@ done
 
 # Make the checksums
 pushd ./pkg/dist
-shasum -a256 * > ./${VERSION}_SHA256SUMS
+shasum -a256 * > ./terraform_${VERSION}_SHA256SUMS
 popd
 
 # Upload
