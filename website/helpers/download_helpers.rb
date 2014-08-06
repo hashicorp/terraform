@@ -33,8 +33,8 @@ end
 module DownloadHelpers
   def download_arch(file)
     parts = file.split("_")
-    return "" if parts.length != 3
-    parts[2].split(".")[0]
+    return "" if parts.length != 4
+    parts[3].split(".")[0]
   end
 
   def download_os_human(os)
