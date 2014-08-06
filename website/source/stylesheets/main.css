@@ -1348,15 +1348,18 @@ body.page-home #footer {
 }
 #demos .terminals .terminal-item .terminal .terminal-window .txt-spe {
   color: #7190ea;
+  font-weight: 600;
 }
 #demos .terminals .terminal-item .terminal .terminal-window .txt-var {
   color: #9a56f9;
+  font-weight: 600;
 }
 #demos .terminals .terminal-item .terminal .terminal-window .txt-str {
   color: #64e86c;
 }
 #demos .terminals .terminal-item .terminal .terminal-window .txt-int {
   color: #e89264;
+  font-weight: 600;
 }
 #demos .terminals .terminal-item .terminal .terminal-window p {
   margin-bottom: 2px;
@@ -1861,7 +1864,7 @@ body.layout-intro > .container .col-md-8[role=main] > div {
   padding-left: 95px;
 }
 .downloads .download .details h2 {
-  margin-top: 30ppx;
+  margin-top: 30px;
 }
 .downloads .download .details ul {
   padding-left: 0px;
