@@ -5,18 +5,17 @@ import (
 	"github.com/hashicorp/terraform/helper/diff"
 	"github.com/hashicorp/terraform/terraform"
 	"github.com/racker/perigee"
-	"github.com/rackspace/gophercloud"
 	"log"
+	"strconv"
 )
 
-func resource_openstack_network_create(
+func resource_openstack_subnet_create(
 	s *terraform.ResourceState,
 	d *terraform.ResourceDiff,
 	meta interface{}) (*terraform.ResourceState, error) {
 
 	p := meta.(*ResourceProvider)
 	client := p.client
-	access := p.client.AccessProvider.(*gophercloud.Access)
 
 	// Merge the diff into the state so that we have all the attributes
 	// properly.
@@ -27,26 +26,31 @@ func resource_openstack_network_create(
 		return nil, err
 	}
 
-	newNetwork, err := networksApi.CreateNetwork(network.NewNetwork{
-		Name:         rs.Attributes["name"],
-		AdminStateUp: true,
-		TenantId:     access.Token.Tenant.Id,
-	})
-	if err != nil {
-		return nil, err
+	newSubnet := network.NewSubnet{
+		NetworkId: rs.Attributes["network_id"],
+		Name:      rs.Attributes["name"],
+		Cidr:      rs.Attributes["cidr"],
 	}
 
-	rs.ID = newNetwork.Id
-	rs.Attributes["id"] = newNetwork.Id
+	enableDhcp, err := strconv.ParseBool(rs.Attributes["enable_dhcp"])
+	newSubnet.EnableDhcp = enableDhcp
+
+	ipVersion, err := strconv.Atoi(rs.Attributes["ip_version"])
+	newSubnet.IPVersion = ipVersion
+
+	createdSubnet, err := networksApi.CreateSubnet(newSubnet)
+
+	log.Printf("[DEBUG] Create subnet: %s", createdSubnet.Id)
+
+	rs.ID = createdSubnet.Id
+	rs.Attributes["id"] = createdSubnet.Id
 
 	return rs, err
 }
 
-func resource_openstack_network_destroy(
+func resource_openstack_subnet_destroy(
 	s *terraform.ResourceState,
 	meta interface{}) error {
-
-	log.Printf("[DEBUG] Destroy network: %s", s.ID)
 
 	p := meta.(*ResourceProvider)
 	client := p.client
@@ -56,16 +60,18 @@ func resource_openstack_network_destroy(
 		return err
 	}
 
-	err = networksApi.DeleteNetwork(s.ID)
+	err = networksApi.DeleteSubnet(s.ID)
+
+	log.Printf("[DEBUG] Destroy subnet: %s", s.ID)
 
 	return err
 }
 
-func resource_openstack_network_refresh(
+func resource_openstack_subnet_refresh(
 	s *terraform.ResourceState,
 	meta interface{}) (*terraform.ResourceState, error) {
 
-	log.Printf("[DEBUG] Retrieve information about network: %s", s.ID)
+	log.Printf("[DEBUG] Retrieve information about subnet: %s", s.ID)
 
 	p := meta.(*ResourceProvider)
 	client := p.client
@@ -75,7 +81,7 @@ func resource_openstack_network_refresh(
 		return nil, err
 	}
 
-	_, err = networksApi.GetNetwork(s.ID)
+	_, err = networksApi.GetSubnet(s.ID)
 	if err != nil {
 		httpError, ok := err.(*perigee.UnexpectedResponseCodeError)
 		if !ok {
@@ -92,14 +98,18 @@ func resource_openstack_network_refresh(
 	return s, nil
 }
 
-func resource_openstack_network_diff(
+func resource_openstack_subnet_diff(
 	s *terraform.ResourceState,
 	c *terraform.ResourceConfig,
 	meta interface{}) (*terraform.ResourceDiff, error) {
 
 	b := &diff.ResourceBuilder{
 		Attrs: map[string]diff.AttrType{
-			"name": diff.AttrTypeCreate,
+			"name":        diff.AttrTypeCreate,
+			"cidr":        diff.AttrTypeCreate,
+			"ip_version":  diff.AttrTypeCreate,
+			"enable_dhcp": diff.AttrTypeCreate,
+			"network_id":  diff.AttrTypeCreate,
 		},
 
 		ComputedAttrs: []string{
@@ -108,13 +118,4 @@ func resource_openstack_network_diff(
 	}
 
 	return b.Diff(s, c)
-}
-
-func getNetworkApi(accessProvider gophercloud.AccessProvider) (network.NetworkProvider, error) {
-	api, err := network.NetworksApi(accessProvider, gophercloud.ApiCriteria{
-		Name:      "neutron",
-		UrlChoice: gophercloud.PublicURL,
-	})
-
-	return api, err
 }

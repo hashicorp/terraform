@@ -24,14 +24,6 @@ func TestAccOpenstackNetwork(t *testing.T) {
 					testAccCheckOpenstackNetworkExists("openstack_network.accept_test", &network),
 					resource.TestCheckResourceAttr(
 						"openstack_network.accept_test", "name", "accept_test Network"),
-					resource.TestCheckResourceAttr(
-						"openstack_network.accept_test", "subnet.0.name", "accept_test_1"),
-					resource.TestCheckResourceAttr(
-						"openstack_network.accept_test", "subnet.0.cidr", "10.0.50.0/24"),
-					resource.TestCheckResourceAttr(
-						"openstack_network.accept_test", "subnet.1.name", "accept_test_2"),
-					resource.TestCheckResourceAttr(
-						"openstack_network.accept_test", "subnet.1.cidr", "10.0.51.0/24"),
 				),
 			},
 		},
@@ -105,17 +97,5 @@ func testAccCheckOpenstackNetworkExists(n string, network *network.Network) reso
 const testNetworkConfig = `
 resource "openstack_network" "accept_test" {
     name = "accept_test Network"
-    subnet {
-      name = "accept_test_1"
-      enable_dhcp = true
-      cidr = "10.0.50.0/24"
-      ip_version = 4
-    }
-    subnet {
-      name = "accept_test_2"
-      enable_dhcp = true
-      cidr = "10.0.51.0/24"
-      ip_version = 4
-    }
 }
 `

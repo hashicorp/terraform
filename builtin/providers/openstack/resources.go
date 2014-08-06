@@ -51,6 +51,24 @@ func init() {
 				Refresh: resource_openstack_network_refresh,
 			},
 
+			"openstack_subnet": resource.Resource{
+				ConfigValidator: &config.Validator{
+					Required: []string{
+						"cidr",
+						"ip_version",
+						"network_id",
+					},
+					Optional: []string{
+						"name",
+						"enable_dhcp",
+					},
+				},
+				Create:  resource_openstack_subnet_create,
+				Destroy: resource_openstack_subnet_destroy,
+				Diff:    resource_openstack_subnet_diff,
+				Refresh: resource_openstack_subnet_refresh,
+			},
+
 			"openstack_security_group": resource.Resource{
 				ConfigValidator: &config.Validator{
 					Required: []string{
