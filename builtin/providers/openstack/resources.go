@@ -21,6 +21,7 @@ func init() {
 					Optional: []string{
 						"floating_ip_pool",
 						"name",
+						"key_pair_name",
 						"networks.*",
 						"security_groups.*",
 					},

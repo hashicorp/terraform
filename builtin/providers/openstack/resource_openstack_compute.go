@@ -72,6 +72,7 @@ func resource_openstack_compute_create(
 		Name:          name,
 		ImageRef:      rs.Attributes["image_ref"],
 		FlavorRef:     rs.Attributes["flavor_ref"],
+		KeyPairName:   rs.Attributes["key_pair_name"],
 		Networks:      osNetworks,
 		SecurityGroup: securityGroup,
 	})
@@ -112,9 +113,10 @@ func resource_openstack_compute_create(
 		}
 
 		rs.Attributes["floating_ip"] = newIp.Ip
-	}
 
-	// TODO fill rs.Conn
+		rs.ConnInfo["type"] = "ssh"
+		rs.ConnInfo["host"] = newIp.Ip
+	}
 
 	return rs, nil
 }
@@ -244,6 +246,7 @@ func resource_openstack_compute_diff(
 	b := &diff.ResourceBuilder{
 		Attrs: map[string]diff.AttrType{
 			"image_ref":        diff.AttrTypeCreate,
+			"key_pair_name":    diff.AttrTypeCreate,
 			"flavor_ref":       diff.AttrTypeUpdate,
 			"name":             diff.AttrTypeUpdate,
 			"networks":         diff.AttrTypeCreate,
