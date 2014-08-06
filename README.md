@@ -52,7 +52,11 @@ a [GOPATH](http://golang.org/doc/code.html#GOPATH). Make sure Go is compiled
 with cgo support. You can verify this by running `go env` and checking that
 `CGOENABLED` is set to "1".
 
-Next, install [Git](http://git-scm.com/), which is needed for some dependencies.
+Next, install the following software packages, which are needed for some dependencies:
+
+- [Git](http://git-scm.com/)
+- [Mercurial](http://mercurial.selenic.com/)
+- [CMake](http://www.cmake.org/)
 
 Then, install [Gox](https://github.com/mitchellh/gox), which is used
 as a compilation tool on top of Go:
