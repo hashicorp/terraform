@@ -22,7 +22,7 @@ execute a pre-determined set of actions.
 The command-line flags are all optional. The list of available flags are:
 
 * `-backup=path` - Path to the backup file. Defaults to `-state-out` with
-  the ".backup" extention. Disabled by setting to "-".
+  the ".backup" extension. Disabled by setting to "-".
 
 * `-no-color` - Disables output with coloring.
 

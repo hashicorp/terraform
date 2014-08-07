@@ -30,7 +30,7 @@ grunt.initConfig({
 
 });
 
-// CSS Compliation task
+// CSS Compilation task
 grunt.registerTask('default', ['watch']);
 
 };

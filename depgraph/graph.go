@@ -287,7 +287,7 @@ func (g *Graph) Walk(fn WalkFunc) error {
 		}
 
 		// Spawn off a goroutine to execute our callback once
-		// all our dependencies are satisified.
+		// all our dependencies are satisfied.
 		go func(current *Noun) {
 			seenMapL.RLock()
 			closeCh := seenMap[current]

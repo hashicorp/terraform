@@ -300,7 +300,7 @@ func resource_digitalocean_droplet_update_state(
 	return s, nil
 }
 
-// retrieves an ELB by it's ID
+// retrieves an ELB by its ID
 func resource_digitalocean_droplet_retrieve(id string, client *digitalocean.Client) (*digitalocean.Droplet, error) {
 	// Retrieve the ELB properties for updating the state
 	droplet, err := client.RetrieveDroplet(id)

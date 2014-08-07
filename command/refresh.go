@@ -52,7 +52,7 @@ func (c *RefreshCommand) Run(args []string) int {
 	}
 
 	// If we don't specify a backup path, default to state out with
-	// the extention
+	// the extension
 	if backupPath == "" {
 		backupPath = stateOutPath + DefaultBackupExtention
 	}
@@ -142,7 +142,7 @@ Options:
 
   -backup=path        Path to backup the existing state file before
                       modifying. Defaults to the "-state-out" path with
-                      ".backup" extention. Set to "-" to disable backup.
+                      ".backup" extension. Set to "-" to disable backup.
 
   -no-color           If specified, output won't contain any color.
 

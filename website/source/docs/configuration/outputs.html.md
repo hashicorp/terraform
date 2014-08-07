@@ -32,7 +32,7 @@ output "address" {
 }
 ```
 
-## Decription
+## Description
 
 The `output` block configures a single output variable. Multiple
 output variables can be configured with multiple output blocks.

@@ -166,7 +166,7 @@ func resource_aws_launch_configuration_update_state(
 	return s, nil
 }
 
-// Returns a single group by it's ID
+// Returns a single group by its ID
 func resource_aws_launch_configuration_retrieve(id string, autoscalingconn *autoscaling.AutoScaling) (*autoscaling.LaunchConfiguration, error) {
 	describeOpts := autoscaling.DescribeLaunchConfigurations{
 		Names: []string{id},

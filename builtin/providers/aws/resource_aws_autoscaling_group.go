@@ -254,7 +254,7 @@ func resource_aws_autoscaling_group_update_state(
 	return s, nil
 }
 
-// Returns a single group by it's ID
+// Returns a single group by its ID
 func resource_aws_autoscaling_group_retrieve(id string, autoscalingconn *autoscaling.AutoScaling) (*autoscaling.AutoScalingGroup, error) {
 	describeOpts := autoscaling.DescribeAutoScalingGroups{
 		Names: []string{id},

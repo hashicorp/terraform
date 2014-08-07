@@ -31,7 +31,7 @@ variable "images" {
 }
 ```
 
-## Decription
+## Description
 
 The `variable`  block configures a single input variable for
 a Terraform configuration. Multiple variables blocks can be used to

@@ -100,7 +100,7 @@ func (p *ResourceProvisioner) generateScript(c *terraform.ResourceConfig) (strin
 }
 
 // collectScripts is used to collect all the scripts we need
-// to execute in preperation for copying them.
+// to execute in preparation for copying them.
 func (p *ResourceProvisioner) collectScripts(c *terraform.ResourceConfig) ([]io.ReadCloser, error) {
 	// Check if inline
 	_, ok := c.Config["inline"]

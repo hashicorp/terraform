@@ -60,7 +60,7 @@ func (c *PlanCommand) Run(args []string) int {
 	}
 
 	// If we don't specify a backup path, default to state out with
-	// the extention
+	// the extension
 	if backupPath == "" {
 		backupPath = statePath + DefaultBackupExtention
 	}
@@ -153,7 +153,7 @@ Options:
 
   -backup=path        Path to backup the existing state file before
                       modifying. Defaults to the "-state-out" path with
-                      ".backup" extention. Set to "-" to disable backup.
+                      ".backup" extension. Set to "-" to disable backup.
 
   -destroy            If set, a plan will be generated to destroy all resources
                       managed by the given configuration and state.
