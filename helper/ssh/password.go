@@ -18,7 +18,7 @@ func PasswordKeyboardInteractive(password string) ssh.KeyboardInteractiveChallen
 
 		// Just send the password back for all questions
 		answers := make([]string, len(questions))
-		for i, _ := range answers {
+		for i := range answers {
 			answers[i] = string(password)
 		}
 
