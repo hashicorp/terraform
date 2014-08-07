@@ -182,19 +182,19 @@ func (c *SSHCommunicator) Start(cmd *RemoteCmd) (err error) {
 
 func (c *SSHCommunicator) Upload(path string, input io.Reader) error {
 	// The target directory and file for talking the SCP protocol
-	targeDir := filepath.Dir(path)
+	targetDir := filepath.Dir(path)
 	targetFile := filepath.Base(path)
 
 	// On windows, filepath.Dir uses backslash separators (ie. "\tmp").
 	// This does not work when the target host is unix.  Switch to forward slash
 	// which works for unix and windows
-	targeDir = filepath.ToSlash(targeDir)
+	targetDir = filepath.ToSlash(targetDir)
 
 	scpFunc := func(w io.Writer, stdoutR *bufio.Reader) error {
 		return scpUploadFile(targetFile, input, w, stdoutR)
 	}
 
-	return c.scpSession("scp -vt "+targeDir, scpFunc)
+	return c.scpSession("scp -vt "+targetDir, scpFunc)
 }
 
 func (c *SSHCommunicator) UploadDir(dst string, src string, excl []string) error {
