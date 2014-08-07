@@ -62,6 +62,7 @@ func init() {
 				Create:  resource_openstack_subnet_create,
 				Destroy: resource_openstack_subnet_destroy,
 				Diff:    resource_openstack_subnet_diff,
+				Update:  resource_openstack_subnet_update,
 				Refresh: resource_openstack_subnet_refresh,
 			},
 

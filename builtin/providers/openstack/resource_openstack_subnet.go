@@ -33,9 +33,15 @@ func resource_openstack_subnet_create(
 	}
 
 	enableDhcp, err := strconv.ParseBool(rs.Attributes["enable_dhcp"])
+	if err != nil {
+		return nil, err
+	}
 	newSubnet.EnableDhcp = enableDhcp
 
 	ipVersion, err := strconv.Atoi(rs.Attributes["ip_version"])
+	if err != nil {
+		return nil, err
+	}
 	newSubnet.IPVersion = ipVersion
 
 	createdSubnet, err := networksApi.CreateSubnet(newSubnet)
@@ -81,7 +87,7 @@ func resource_openstack_subnet_refresh(
 		return nil, err
 	}
 
-	_, err = networksApi.GetSubnet(s.ID)
+	subnet, err := networksApi.GetSubnet(s.ID)
 	if err != nil {
 		httpError, ok := err.(*perigee.UnexpectedResponseCodeError)
 		if !ok {
@@ -95,7 +101,49 @@ func resource_openstack_subnet_refresh(
 		return nil, err
 	}
 
+	s.Attributes["name"] = subnet.Name
+	s.Attributes["enable_dhcp"] = strconv.FormatBool(subnet.EnableDhcp)
+
 	return s, nil
+}
+
+func resource_openstack_subnet_update(
+	s *terraform.ResourceState,
+	d *terraform.ResourceDiff,
+	meta interface{}) (*terraform.ResourceState, error) {
+
+	p := meta.(*ResourceProvider)
+	client := p.client
+
+	networksApi, err := getNetworkApi(client.AccessProvider)
+	if err != nil {
+		return nil, err
+	}
+
+	rs := s.MergeDiff(d)
+
+	desiredSubnet := network.UpdatedSubnet{}
+
+	if attr, ok := d.Attributes["name"]; ok {
+		desiredSubnet.Name = attr.New
+	}
+
+	if attr, ok := d.Attributes["enable_dhcp"]; ok {
+		desiredSubnet.EnableDhcp, err = strconv.ParseBool(attr.New)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	newSubnet, err := networksApi.UpdateSubnet(rs.ID, desiredSubnet)
+	if err != nil {
+		return nil, err
+	}
+
+	rs.Attributes["name"] = newSubnet.Name
+	rs.Attributes["enable_dhcp"] = strconv.FormatBool(newSubnet.EnableDhcp)
+
+	return rs, nil
 }
 
 func resource_openstack_subnet_diff(
@@ -105,10 +153,10 @@ func resource_openstack_subnet_diff(
 
 	b := &diff.ResourceBuilder{
 		Attrs: map[string]diff.AttrType{
-			"name":        diff.AttrTypeCreate,
+			"name":        diff.AttrTypeUpdate,
 			"cidr":        diff.AttrTypeCreate,
 			"ip_version":  diff.AttrTypeCreate,
-			"enable_dhcp": diff.AttrTypeCreate,
+			"enable_dhcp": diff.AttrTypeUpdate,
 			"network_id":  diff.AttrTypeCreate,
 		},
 
