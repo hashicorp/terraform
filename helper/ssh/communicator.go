@@ -98,7 +98,7 @@ type Config struct {
 	NoPty bool
 }
 
-// Creates a new packer.Communicator implementation over SSH. This takes
+// New creates a new packer.Communicator implementation over SSH. This takes
 // an already existing TCP connection and SSH configuration.
 func New(address string, config *Config) (result *SSHCommunicator, err error) {
 	// Establish an initial connection and connect
@@ -182,19 +182,19 @@ func (c *SSHCommunicator) Start(cmd *RemoteCmd) (err error) {
 
 func (c *SSHCommunicator) Upload(path string, input io.Reader) error {
 	// The target directory and file for talking the SCP protocol
-	target_dir := filepath.Dir(path)
-	target_file := filepath.Base(path)
+	targeDir := filepath.Dir(path)
+	targetFile := filepath.Base(path)
 
 	// On windows, filepath.Dir uses backslash separators (ie. "\tmp").
 	// This does not work when the target host is unix.  Switch to forward slash
 	// which works for unix and windows
-	target_dir = filepath.ToSlash(target_dir)
+	targeDir = filepath.ToSlash(targeDir)
 
 	scpFunc := func(w io.Writer, stdoutR *bufio.Reader) error {
-		return scpUploadFile(target_file, input, w, stdoutR)
+		return scpUploadFile(targetFile, input, w, stdoutR)
 	}
 
-	return c.scpSession("scp -vt "+target_dir, scpFunc)
+	return c.scpSession("scp -vt "+targeDir, scpFunc)
 }
 
 func (c *SSHCommunicator) UploadDir(dst string, src string, excl []string) error {
