@@ -29,6 +29,7 @@ resource "aws_db_instance" "default" {
 The following arguments are supported:
 
 * `allocated_storage` - (Required) The allocated storage in gigabytes.
+* `db_subnet_group_name` - (Optional) The name of the DB subnet group.
 * `engine` - (Required) The database engine to use.
 * `engine_version` - (Required) The engine version to use.
 * `identifier` - (Required) The name of the RDS instance
@@ -59,6 +60,7 @@ The following attributes are exported:
 * `availability_zone` - The availability zone of the instance
 * `backup_retention_period` - The backup retention period
 * `backup_window` - The backup window
+* `db_subnet_group_name` - The name of the DB subnet group
 * `endpoint` - The connection endpoint
 * `engine` - The database engine
 * `engine_version` - The database engine version
