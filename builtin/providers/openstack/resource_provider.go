@@ -3,8 +3,10 @@ package openstack
 import (
 	"log"
 
+	"github.com/haklop/gophercloud-extensions/network"
 	"github.com/hashicorp/terraform/helper/config"
 	"github.com/hashicorp/terraform/terraform"
+	"github.com/rackspace/gophercloud"
 )
 
 type ResourceProvider struct {
@@ -72,4 +74,21 @@ func (p *ResourceProvider) Refresh(
 
 func (p *ResourceProvider) Resources() []terraform.ResourceType {
 	return resourceMap.Resources()
+}
+
+func (p *ResourceProvider) getServersApi() (gophercloud.CloudServersProvider, error) {
+	return gophercloud.ServersApi(p.client.AccessProvider, gophercloud.ApiCriteria{
+		Name:      "nova",
+		UrlChoice: gophercloud.PublicURL,
+	})
+}
+
+func (p *ResourceProvider) getNetworkApi() (network.NetworkProvider, error) {
+
+	access := p.client.AccessProvider.(*gophercloud.Access)
+
+	return network.NetworksApi(access, gophercloud.ApiCriteria{
+		Name:      "neutron",
+		UrlChoice: gophercloud.PublicURL,
+	})
 }

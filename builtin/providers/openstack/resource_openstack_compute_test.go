@@ -98,7 +98,7 @@ func testAccCheckOpenstackComputeExists(n string, server *gophercloud.NewServer)
 
 const testComputeConfig = `
 resource "openstack_compute" "accept_test" {
-    name = "compute_instance"
+    name = "accept_test_compute"
     image_ref = "a1e03b6d-2532-4f35-b6dc-761a087cf43e"
     flavor_ref = "1"
     count = 1

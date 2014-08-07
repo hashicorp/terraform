@@ -8,11 +8,10 @@ import (
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
 	"github.com/racker/perigee"
+	"github.com/rackspace/gophercloud"
 )
 
 func TestAccOpenstackNetwork(t *testing.T) {
-	var network network.Network
-
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
@@ -21,7 +20,7 @@ func TestAccOpenstackNetwork(t *testing.T) {
 			resource.TestStep{
 				Config: testNetworkConfig,
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckOpenstackNetworkExists("openstack_network.accept_test", &network),
+					testAccCheckOpenstackNetworkExists("openstack_network.accept_test"),
 					resource.TestCheckResourceAttr(
 						"openstack_network.accept_test", "name", "accept_test Network"),
 				),
@@ -38,7 +37,10 @@ func testAccCheckOpenstackNetworkDestroy(s *terraform.State) error {
 			continue
 		}
 
-		networksApi, err := getNetworkApi(client.AccessProvider)
+		networksApi, err := network.NetworksApi(client.AccessProvider, gophercloud.ApiCriteria{
+			Name:      "neutron",
+			UrlChoice: gophercloud.PublicURL,
+		})
 		if err != nil {
 			return err
 		}
@@ -63,7 +65,7 @@ func testAccCheckOpenstackNetworkDestroy(s *terraform.State) error {
 	return nil
 }
 
-func testAccCheckOpenstackNetworkExists(n string, network *network.Network) resource.TestCheckFunc {
+func testAccCheckOpenstackNetworkExists(n string) resource.TestCheckFunc {
 
 	return func(s *terraform.State) error {
 		client := testAccProvider.client
@@ -76,21 +78,16 @@ func testAccCheckOpenstackNetworkExists(n string, network *network.Network) reso
 			return fmt.Errorf("No network is set")
 		}
 
-		networksApi, err := getNetworkApi(client.AccessProvider)
+		networksApi, err := network.NetworksApi(client.AccessProvider, gophercloud.ApiCriteria{
+			Name:      "neutron",
+			UrlChoice: gophercloud.PublicURL,
+		})
 		if err != nil {
 			return err
 		}
 
-		network, err = networksApi.GetNetwork(rs.ID)
-		if err != nil {
-			return err
-		}
-
-		if len(network.Subnets) == 2 {
-			return nil
-		} else {
-			return fmt.Errorf("Subnets not found")
-		}
+		_, err = networksApi.GetNetwork(rs.ID)
+		return err
 	}
 }
 

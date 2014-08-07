@@ -15,17 +15,16 @@ func resource_openstack_network_create(
 	meta interface{}) (*terraform.ResourceState, error) {
 
 	p := meta.(*ResourceProvider)
-	client := p.client
-	access := p.client.AccessProvider.(*gophercloud.Access)
+	networksApi, err := p.getNetworkApi()
+	if err != nil {
+		return nil, err
+	}
 
 	// Merge the diff into the state so that we have all the attributes
 	// properly.
 	rs := s.MergeDiff(d)
 
-	networksApi, err := getNetworkApi(client.AccessProvider)
-	if err != nil {
-		return nil, err
-	}
+	access := p.client.AccessProvider.(*gophercloud.Access)
 
 	newNetwork, err := networksApi.CreateNetwork(network.NewNetwork{
 		Name:         rs.Attributes["name"],
@@ -49,9 +48,7 @@ func resource_openstack_network_destroy(
 	log.Printf("[DEBUG] Destroy network: %s", s.ID)
 
 	p := meta.(*ResourceProvider)
-	client := p.client
-
-	networksApi, err := getNetworkApi(client.AccessProvider)
+	networksApi, err := p.getNetworkApi()
 	if err != nil {
 		return err
 	}
@@ -68,9 +65,7 @@ func resource_openstack_network_refresh(
 	log.Printf("[DEBUG] Retrieve information about network: %s", s.ID)
 
 	p := meta.(*ResourceProvider)
-	client := p.client
-
-	networksApi, err := getNetworkApi(client.AccessProvider)
+	networksApi, err := p.getNetworkApi()
 	if err != nil {
 		return nil, err
 	}
@@ -118,13 +113,13 @@ func resource_openstack_network_update(
 	meta interface{}) (*terraform.ResourceState, error) {
 
 	p := meta.(*ResourceProvider)
-	client := p.client
-
-	networksApi, err := getNetworkApi(client.AccessProvider)
+	networksApi, err := p.getNetworkApi()
 	if err != nil {
 		return nil, err
 	}
 
+	// Merge the diff into the state so that we have all the attributes
+	// properly.
 	rs := s.MergeDiff(d)
 
 	if attr, ok := d.Attributes["name"]; ok {
@@ -140,13 +135,4 @@ func resource_openstack_network_update(
 	}
 
 	return rs, nil
-}
-
-func getNetworkApi(accessProvider gophercloud.AccessProvider) (network.NetworkProvider, error) {
-	api, err := network.NetworksApi(accessProvider, gophercloud.ApiCriteria{
-		Name:      "neutron",
-		UrlChoice: gophercloud.PublicURL,
-	})
-
-	return api, err
 }

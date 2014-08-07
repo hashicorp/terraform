@@ -16,20 +16,16 @@ func resource_openstack_security_group_create(
 	meta interface{}) (*terraform.ResourceState, error) {
 
 	p := meta.(*ResourceProvider)
-	client := p.client
-	access := p.client.AccessProvider.(*gophercloud.Access)
+	networksApi, err := p.getNetworkApi()
+	if err != nil {
+		return nil, err
+	}
 
 	// Merge the diff into the state so that we have all the attributes
 	// properly.
 	rs := s.MergeDiff(d)
 
-	networksApi, err := network.NetworksApi(client.AccessProvider, gophercloud.ApiCriteria{
-		Name:      "neutron",
-		UrlChoice: gophercloud.PublicURL,
-	})
-	if err != nil {
-		return nil, err
-	}
+	access := p.client.AccessProvider.(*gophercloud.Access)
 
 	newSecurityGroup, err := networksApi.CreateSecurityGroup(network.NewSecurityGroup{
 		Name:        rs.Attributes["name"],
@@ -72,12 +68,7 @@ func resource_openstack_security_group_destroy(
 	meta interface{}) error {
 
 	p := meta.(*ResourceProvider)
-	client := p.client
-
-	networksApi, err := network.NetworksApi(client.AccessProvider, gophercloud.ApiCriteria{
-		Name:      "neutron",
-		UrlChoice: gophercloud.PublicURL,
-	})
+	networksApi, err := p.getNetworkApi()
 	if err != nil {
 		return err
 	}
@@ -92,12 +83,7 @@ func resource_openstack_security_group_refresh(
 	meta interface{}) (*terraform.ResourceState, error) {
 
 	p := meta.(*ResourceProvider)
-	client := p.client
-
-	networksApi, err := network.NetworksApi(client.AccessProvider, gophercloud.ApiCriteria{
-		Name:      "neutron",
-		UrlChoice: gophercloud.PublicURL,
-	})
+	networksApi, err := p.getNetworkApi()
 	if err != nil {
 		return nil, err
 	}

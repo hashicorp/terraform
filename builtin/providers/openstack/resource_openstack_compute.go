@@ -18,19 +18,14 @@ func resource_openstack_compute_create(
 	meta interface{}) (*terraform.ResourceState, error) {
 
 	p := meta.(*ResourceProvider)
-	client := p.client
+	serversApi, err := p.getServersApi()
+	if err != nil {
+		return nil, err
+	}
 
 	// Merge the diff into the state so that we have all the attributes
 	// properly.
 	rs := s.MergeDiff(d)
-
-	serversApi, err := gophercloud.ServersApi(client.AccessProvider, gophercloud.ApiCriteria{
-		Name:      "nova",
-		UrlChoice: gophercloud.PublicURL,
-	})
-	if err != nil {
-		return nil, err
-	}
 
 	name := rs.Attributes["name"]
 	if len(name) == 0 {
@@ -87,7 +82,7 @@ func resource_openstack_compute_create(
 	rs.Attributes["admin_pass"] = newServer.AdminPass
 
 	stateConf := &resource.StateChangeConf{
-		Pending:    []string{"BUILD", "BUILDING"},
+		Pending:    []string{"BUILD"},
 		Target:     "ACTIVE",
 		Refresh:    WaitForServerState(serversApi, rs.Attributes["id"]),
 		Timeout:    15 * time.Minute,
@@ -127,19 +122,14 @@ func resource_openstack_compute_update(
 	meta interface{}) (*terraform.ResourceState, error) {
 
 	p := meta.(*ResourceProvider)
-	client := p.client
+	serversApi, err := p.getServersApi()
+	if err != nil {
+		return nil, err
+	}
 
 	// Merge the diff into the state so that we have all the attributes
 	// properly.
 	rs := s.MergeDiff(d)
-
-	serversApi, err := gophercloud.ServersApi(client.AccessProvider, gophercloud.ApiCriteria{
-		Name:      "nova",
-		UrlChoice: gophercloud.PublicURL,
-	})
-	if err != nil {
-		return nil, err
-	}
 
 	if attr, ok := d.Attributes["name"]; ok {
 		_, err := serversApi.UpdateServer(rs.ID, gophercloud.NewServerSettings{
@@ -186,12 +176,7 @@ func resource_openstack_compute_destroy(
 	meta interface{}) error {
 
 	p := meta.(*ResourceProvider)
-	client := p.client
-
-	serversApi, err := gophercloud.ServersApi(client.AccessProvider, gophercloud.ApiCriteria{
-		Name:      "nova",
-		UrlChoice: gophercloud.PublicURL,
-	})
+	serversApi, err := p.getServersApi()
 	if err != nil {
 		return err
 	}
@@ -206,12 +191,7 @@ func resource_openstack_compute_refresh(
 	meta interface{}) (*terraform.ResourceState, error) {
 
 	p := meta.(*ResourceProvider)
-	client := p.client
-
-	serversApi, err := gophercloud.ServersApi(client.AccessProvider, gophercloud.ApiCriteria{
-		Name:      "nova",
-		UrlChoice: gophercloud.PublicURL,
-	})
+	serversApi, err := p.getServersApi()
 	if err != nil {
 		return nil, err
 	}
@@ -251,7 +231,7 @@ func resource_openstack_compute_diff(
 			"name":             diff.AttrTypeUpdate,
 			"networks":         diff.AttrTypeCreate,
 			"security_groups":  diff.AttrTypeCreate,
-			"floating_ip_pool": diff.AttrTypeUpdate,
+			"floating_ip_pool": diff.AttrTypeCreate,
 		},
 
 		ComputedAttrs: []string{

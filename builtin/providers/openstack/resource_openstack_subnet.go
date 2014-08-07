@@ -15,16 +15,14 @@ func resource_openstack_subnet_create(
 	meta interface{}) (*terraform.ResourceState, error) {
 
 	p := meta.(*ResourceProvider)
-	client := p.client
+	networksApi, err := p.getNetworkApi()
+	if err != nil {
+		return nil, err
+	}
 
 	// Merge the diff into the state so that we have all the attributes
 	// properly.
 	rs := s.MergeDiff(d)
-
-	networksApi, err := getNetworkApi(client.AccessProvider)
-	if err != nil {
-		return nil, err
-	}
 
 	newSubnet := network.NewSubnet{
 		NetworkId: rs.Attributes["network_id"],
@@ -59,9 +57,7 @@ func resource_openstack_subnet_destroy(
 	meta interface{}) error {
 
 	p := meta.(*ResourceProvider)
-	client := p.client
-
-	networksApi, err := getNetworkApi(client.AccessProvider)
+	networksApi, err := p.getNetworkApi()
 	if err != nil {
 		return err
 	}
@@ -80,9 +76,7 @@ func resource_openstack_subnet_refresh(
 	log.Printf("[DEBUG] Retrieve information about subnet: %s", s.ID)
 
 	p := meta.(*ResourceProvider)
-	client := p.client
-
-	networksApi, err := getNetworkApi(client.AccessProvider)
+	networksApi, err := p.getNetworkApi()
 	if err != nil {
 		return nil, err
 	}
@@ -113,9 +107,7 @@ func resource_openstack_subnet_update(
 	meta interface{}) (*terraform.ResourceState, error) {
 
 	p := meta.(*ResourceProvider)
-	client := p.client
-
-	networksApi, err := getNetworkApi(client.AccessProvider)
+	networksApi, err := p.getNetworkApi()
 	if err != nil {
 		return nil, err
 	}

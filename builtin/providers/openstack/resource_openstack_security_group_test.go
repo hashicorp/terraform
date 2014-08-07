@@ -8,6 +8,7 @@ import (
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
 	"github.com/racker/perigee"
+	"github.com/rackspace/gophercloud"
 )
 
 func TestAccOpenstackSecurityGroup(t *testing.T) {
@@ -58,7 +59,10 @@ func testAccCheckOpenstackSecurityGroupDestroy(s *terraform.State) error {
 			continue
 		}
 
-		networksApi, err := getNetworkApi(client.AccessProvider)
+		networksApi, err := network.NetworksApi(client.AccessProvider, gophercloud.ApiCriteria{
+			Name:      "neutron",
+			UrlChoice: gophercloud.PublicURL,
+		})
 		if err != nil {
 			return err
 		}
@@ -96,7 +100,10 @@ func testAccCheckOpenstackSecurityGroupExists(n string, securityGroup *network.S
 			return fmt.Errorf("No security group is set")
 		}
 
-		networksApi, err := getNetworkApi(client.AccessProvider)
+		networksApi, err := network.NetworksApi(client.AccessProvider, gophercloud.ApiCriteria{
+			Name:      "neutron",
+			UrlChoice: gophercloud.PublicURL,
+		})
 		if err != nil {
 			return err
 		}

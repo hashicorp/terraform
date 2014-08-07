@@ -4,10 +4,8 @@ import (
 	"github.com/haklop/gophercloud-extensions/network"
 	"github.com/hashicorp/terraform/flatmap"
 	"github.com/hashicorp/terraform/helper/diff"
-	//"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
 	"github.com/racker/perigee"
-	//"github.com/rackspace/gophercloud"
 	"log"
 )
 
@@ -17,16 +15,14 @@ func resource_openstack_router_create(
 	meta interface{}) (*terraform.ResourceState, error) {
 
 	p := meta.(*ResourceProvider)
-	client := p.client
+	networksApi, err := p.getNetworkApi()
+	if err != nil {
+		return nil, err
+	}
 
 	// Merge the diff into the state so that we have all the attributes
 	// properly.
 	rs := s.MergeDiff(d)
-
-	networksApi, err := getNetworkApi(client.AccessProvider)
-	if err != nil {
-		return nil, err
-	}
 
 	newRouter := network.NewRouter{
 		Name:         rs.Attributes["name"],
@@ -88,16 +84,14 @@ func resource_openstack_router_update(
 	meta interface{}) (*terraform.ResourceState, error) {
 
 	p := meta.(*ResourceProvider)
-	client := p.client
+	networksApi, err := p.getNetworkApi()
+	if err != nil {
+		return nil, err
+	}
 
 	// Merge the diff into the state so that we have all the attributes
 	// properly.
 	rs := s.MergeDiff(d)
-
-	networksApi, err := getNetworkApi(client.AccessProvider)
-	if err != nil {
-		return nil, err
-	}
 
 	log.Printf("[DEBUG] Updating router: %#v", s.ID)
 
@@ -122,9 +116,7 @@ func resource_openstack_router_destroy(
 	meta interface{}) error {
 
 	p := meta.(*ResourceProvider)
-	client := p.client
-
-	networksApi, err := getNetworkApi(client.AccessProvider)
+	networksApi, err := p.getNetworkApi()
 	if err != nil {
 		return err
 	}
@@ -159,9 +151,7 @@ func resource_openstack_router_refresh(
 	meta interface{}) (*terraform.ResourceState, error) {
 
 	p := meta.(*ResourceProvider)
-	client := p.client
-
-	networksApi, err := getNetworkApi(client.AccessProvider)
+	networksApi, err := p.getNetworkApi()
 	if err != nil {
 		return nil, err
 	}
