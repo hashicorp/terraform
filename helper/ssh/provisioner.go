@@ -41,7 +41,7 @@ type SSHConfig struct {
 	TimeoutVal time.Duration `mapstructure:"-"`
 }
 
-// verifySSH is used to verify the ConnInfo is usable by remote-exec
+// VerifySSH is used to verify the ConnInfo is usable by remote-exec
 func VerifySSH(s *terraform.ResourceState) error {
 	connType := s.ConnInfo["type"]
 	switch connType {
