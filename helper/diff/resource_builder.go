@@ -37,7 +37,7 @@ type ResourceBuilder struct {
 	// Sometimes attributes in here are also computed. For example, an
 	// "availability_zone" might be optional, but will be chosen for you
 	// by AWS. In that case, specify it both here and in ComputedAttrs.
-	// This will make sure that the absense of the configuration won't
+	// This will make sure that the absence of the configuration won't
 	// cause a diff by setting it to the empty string.
 	Attrs map[string]AttrType
 

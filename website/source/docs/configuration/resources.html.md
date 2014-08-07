@@ -28,7 +28,7 @@ resource "aws_instance" "web" {
 }
 ```
 
-## Decription
+## Description
 
 The `resource` block creates a resource of the given `TYPE` (first
 parameter) and `NAME` (second parameter). The combination of the type

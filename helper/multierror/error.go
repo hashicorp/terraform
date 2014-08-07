@@ -28,8 +28,8 @@ func (e *Error) GoString() string {
 }
 
 // ErrorAppend is a helper function that will append more errors
-// onto a Error in order to create a larger multi-error. If the
-// original error is not a Error, it will be turned into one.
+// onto an Error in order to create a larger multi-error. If the
+// original error is not an Error, it will be turned into one.
 func ErrorAppend(err error, errs ...error) *Error {
 	if err == nil {
 		err = new(Error)

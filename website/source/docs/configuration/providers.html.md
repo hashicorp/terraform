@@ -35,7 +35,7 @@ provider "aws" {
 }
 ```
 
-## Decription
+## Description
 
 The `provider` block configures the provider of the given `NAME`.
 Multiple provider blocks can be used to configure multiple providers.

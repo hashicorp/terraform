@@ -176,7 +176,7 @@ func resource_aws_eip_update_state(
 	return s, nil
 }
 
-// Returns a single address by it's ID
+// Returns a single address by its ID
 func resource_aws_eip_retrieve_address(id string, vpc bool, ec2conn *ec2.EC2) (*ec2.Address, error) {
 	// Get the full address description for saving to state for
 	// use in other resources

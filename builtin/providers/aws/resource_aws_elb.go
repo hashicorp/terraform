@@ -24,7 +24,7 @@ func resource_aws_elb_create(
 	rs := s.MergeDiff(d)
 
 	// The name specified for the ELB. This is also our unique ID
-	// we save to state if the creation is succesful (amazon verifies
+	// we save to state if the creation is successful (amazon verifies
 	// it is unique)
 	elbName := rs.Attributes["name"]
 
@@ -54,7 +54,7 @@ func resource_aws_elb_create(
 		return nil, fmt.Errorf("Error creating ELB: %s", err)
 	}
 
-	// Assign the elb's unique identifer for use later
+	// Assign the elb's unique identifier for use later
 	rs.ID = elbName
 	log.Printf("[INFO] ELB ID: %s", elbName)
 
@@ -288,7 +288,7 @@ func resource_aws_elb_update_state(
 	return s, nil
 }
 
-// retrieves an ELB by it's ID
+// retrieves an ELB by its ID
 func resource_aws_elb_retrieve_balancer(id string, elbconn *elb.ELB) (*elb.LoadBalancer, error) {
 	describeElbOpts := &elb.DescribeLoadBalancer{
 		Names: []string{id},

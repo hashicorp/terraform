@@ -10,7 +10,7 @@ import (
 )
 
 // ResourceProvisionerConfig is used to pair a provisioner
-// with it's provided configuration. This allows us to use singleton
+// with its provided configuration. This allows us to use singleton
 // instances of each ResourceProvisioner and to keep the relevant
 // configuration instead of instantiating a new Provisioner for each
 // resource.

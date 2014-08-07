@@ -49,6 +49,6 @@ The following attributes are exported:
    deploying new versions of the app.
 * `web_url` - The web (HTTP) URL that the application can be accessed
    at by default.
-* `heroku_hostname` - A hostname for the the Heroku application, suitable
+* `heroku_hostname` - A hostname for the Heroku application, suitable
    for pointing DNS records.
 
