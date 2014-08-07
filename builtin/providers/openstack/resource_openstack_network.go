@@ -75,7 +75,7 @@ func resource_openstack_network_refresh(
 		return nil, err
 	}
 
-	_, err = networksApi.GetNetwork(s.ID)
+	n, err := networksApi.GetNetwork(s.ID)
 	if err != nil {
 		httpError, ok := err.(*perigee.UnexpectedResponseCodeError)
 		if !ok {
@@ -89,6 +89,8 @@ func resource_openstack_network_refresh(
 		return nil, err
 	}
 
+	s.Attributes["name"] = n.Name
+
 	return s, nil
 }
 
@@ -99,7 +101,7 @@ func resource_openstack_network_diff(
 
 	b := &diff.ResourceBuilder{
 		Attrs: map[string]diff.AttrType{
-			"name": diff.AttrTypeCreate,
+			"name": diff.AttrTypeUpdate,
 		},
 
 		ComputedAttrs: []string{
@@ -108,6 +110,36 @@ func resource_openstack_network_diff(
 	}
 
 	return b.Diff(s, c)
+}
+
+func resource_openstack_network_update(
+	s *terraform.ResourceState,
+	d *terraform.ResourceDiff,
+	meta interface{}) (*terraform.ResourceState, error) {
+
+	p := meta.(*ResourceProvider)
+	client := p.client
+
+	networksApi, err := getNetworkApi(client.AccessProvider)
+	if err != nil {
+		return nil, err
+	}
+
+	rs := s.MergeDiff(d)
+
+	if attr, ok := d.Attributes["name"]; ok {
+		_, err := networksApi.UpdateNetwork(rs.ID, network.UpdatedNetwork{
+			Name: attr.New,
+		})
+
+		if err != nil {
+			return nil, err
+		}
+
+		rs.Attributes["name"] = attr.New
+	}
+
+	return rs, nil
 }
 
 func getNetworkApi(accessProvider gophercloud.AccessProvider) (network.NetworkProvider, error) {

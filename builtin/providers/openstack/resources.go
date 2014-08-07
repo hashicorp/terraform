@@ -43,6 +43,7 @@ func init() {
 				Create:  resource_openstack_network_create,
 				Destroy: resource_openstack_network_destroy,
 				Diff:    resource_openstack_network_diff,
+				Update:  resource_openstack_network_update,
 				Refresh: resource_openstack_network_refresh,
 			},
 
