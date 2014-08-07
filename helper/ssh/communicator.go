@@ -218,10 +218,9 @@ func (c *SSHCommunicator) UploadDir(dst string, src string, excl []string) error
 		if src[len(src)-1] != '/' {
 			log.Printf("No trailing slash, creating the source directory name")
 			return scpUploadDirProtocol(filepath.Base(src), w, r, uploadEntries)
-		} else {
-			// Trailing slash, so only upload the contents
-			return uploadEntries()
-		}
+		} 
+		// Trailing slash, so only upload the contents
+		return uploadEntries()
 	}
 
 	return c.scpSession("scp -rvt "+dst, scpFunc)
