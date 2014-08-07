@@ -46,7 +46,7 @@ func (t *libuclConfigurable) Config() (*Config, error) {
 	// Start building up the actual configuration. We start with
 	// variables.
 	// TODO(mitchellh): Make function like loadVariablesLibucl so that
-	// duplicates aren't overriden
+	// duplicates aren't overridden
 	config := new(Config)
 	if len(rawConfig.Variable) > 0 {
 		config.Variables = make([]*Variable, 0, len(rawConfig.Variable))
@@ -481,7 +481,7 @@ func loadProvisionersLibucl(o *libucl.Object, connInfo map[string]interface{}) (
 			return nil, err
 		}
 
-		// Delete the "connection" section, handle seperately
+		// Delete the "connection" section, handle separately
 		delete(config, "connection")
 
 		rawConfig, err := NewRawConfig(config)
@@ -502,7 +502,7 @@ func loadProvisionersLibucl(o *libucl.Object, connInfo map[string]interface{}) (
 		}
 
 		// Inherit from the resource connInfo any keys
-		// that are not explicitly overriden.
+		// that are not explicitly overridden.
 		if connInfo != nil && subConnInfo != nil {
 			for k, v := range connInfo {
 				if _, ok := subConnInfo[k]; !ok {

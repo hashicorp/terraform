@@ -134,7 +134,7 @@ func (m *Meta) flagSet(n string) *flag.FlagSet {
 // process will process the meta-parameters out of the arguments. This
 // will potentially modify the args in-place. It will return the resulting
 // slice.
-func (m *Meta) process(args []string) []string {
+func (m *Meta) process(args []string, vars bool) []string {
 	// We do this so that we retain the ability to technically call
 	// process multiple times, even if we have no plans to do so
 	if m.oldUi != nil {
@@ -157,6 +157,17 @@ func (m *Meta) process(args []string) []string {
 		Colorize:   m.Colorize(),
 		ErrorColor: "[red]",
 		Ui:         m.oldUi,
+	}
+
+	// If we support vars and the default var file exists, add it to
+	// the args...
+	if vars {
+		if _, err := os.Stat(DefaultVarsFilename); err == nil {
+			args = append(args, "", "")
+			copy(args[2:], args[0:])
+			args[0] = "-var-file"
+			args[1] = DefaultVarsFilename
+		}
 	}
 
 	return args

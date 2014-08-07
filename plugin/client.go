@@ -284,7 +284,7 @@ func (c *Client) Start() (addr net.Addr, err error) {
 	}()
 
 	// Make sure after we exit we read the lines from stdout forever
-	// so they dont' block since it is an io.Pipe
+	// so they don't block since it is an io.Pipe
 	defer func() {
 		go func() {
 			for _ = range linesCh {

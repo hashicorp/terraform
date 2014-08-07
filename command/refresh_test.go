@@ -408,6 +408,57 @@ func TestRefresh_varFile(t *testing.T) {
 	}
 }
 
+func TestRefresh_varFileDefault(t *testing.T) {
+	state := &terraform.State{
+		Resources: map[string]*terraform.ResourceState{
+			"test_instance.foo": &terraform.ResourceState{
+				ID:   "bar",
+				Type: "test_instance",
+			},
+		},
+	}
+	statePath := testStateFile(t, state)
+
+	p := testProvider()
+	ui := new(cli.MockUi)
+	c := &RefreshCommand{
+		Meta: Meta{
+			ContextOpts: testCtxConfig(p),
+			Ui:          ui,
+		},
+	}
+
+	varFileDir := testTempDir(t)
+	varFilePath := filepath.Join(varFileDir, "terraform.tfvars")
+	if err := ioutil.WriteFile(varFilePath, []byte(refreshVarFile), 0644); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	cwd, err := os.Getwd()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if err := os.Chdir(varFileDir); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	defer os.Chdir(cwd)
+
+	args := []string{
+		"-state", statePath,
+		testFixturePath("refresh-var"),
+	}
+	if code := c.Run(args); code != 0 {
+		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
+	}
+
+	if !p.ConfigureCalled {
+		t.Fatal("configure should be called")
+	}
+	if p.ConfigureConfig.Config["value"].(string) != "bar" {
+		t.Fatalf("bad: %#v", p.ConfigureConfig.Config)
+	}
+}
+
 func TestRefresh_backup(t *testing.T) {
 	state := &terraform.State{
 		Resources: map[string]*terraform.ResourceState{

@@ -406,6 +406,13 @@ func (c *Context) computeResourceMultiVariable(
 	var values []string
 	for i := 0; i < cr.Count; i++ {
 		id := fmt.Sprintf("%s.%d", v.ResourceId(), i)
+
+		// If we're dealing with only a single resource, then the
+		// ID doesn't have a trailing index.
+		if cr.Count == 1 {
+			id = v.ResourceId()
+		}
+
 		r, ok := c.state.Resources[id]
 		if !ok {
 			continue

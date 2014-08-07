@@ -69,7 +69,7 @@ func (conf *StateChangeConf) WaitForState() (interface{}, error) {
 				return
 			}
 
-			// If we're waiting for the absense of a thing, then return
+			// If we're waiting for the absence of a thing, then return
 			if result == nil && conf.Target == "" {
 				return
 			}

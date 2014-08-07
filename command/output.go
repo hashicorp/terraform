@@ -18,7 +18,7 @@ type OutputCommand struct {
 func (c *OutputCommand) Run(args []string) int {
 	var statePath string
 
-	args = c.Meta.process(args)
+	args = c.Meta.process(args, false)
 
 	cmdFlags := flag.NewFlagSet("output", flag.ContinueOnError)
 	cmdFlags.StringVar(&statePath, "state", DefaultStateFilename, "path")

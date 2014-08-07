@@ -20,5 +20,5 @@ $ bundle
 $ bundle exec middleman server
 ```
 
-Then open up `localhost:4567`. Note that some URLs you may need to append
-".html" to make them work (in the navigation and such).
+Then open up `http://localhost:4567`. Note that some URLs you may need to append
+".html" to make them work (in the navigation).

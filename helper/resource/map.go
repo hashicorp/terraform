@@ -81,7 +81,7 @@ func (m *Map) Apply(
 	return result, err
 }
 
-// Diff peforms a diff on the proper resource type.
+// Diff performs a diff on the proper resource type.
 func (m *Map) Diff(
 	s *terraform.ResourceState,
 	c *terraform.ResourceConfig,

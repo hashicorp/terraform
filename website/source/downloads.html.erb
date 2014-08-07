@@ -13,7 +13,7 @@ sidebar_current: "downloads-terraform"
 			Below are all available downloads for the latest version of Terraform
 			(<%= latest_version %>). Please download the proper package for your
 			operating system and architecture. You can find SHA256 checksums
-			for packages <a href="https://dl.bintray.com/mitchellh/terraform/<%= latest_version %>_SHA256SUMS?direct">here</a>.
+			for packages <a href="https://dl.bintray.com/mitchellh/terraform/terraform_<%= latest_version %>_SHA256SUMS?direct">here</a>.
 			</p>
 		</div>
 	</div>
@@ -27,7 +27,7 @@ sidebar_current: "downloads-terraform"
 				<ul>
 					<% $terraform_files[os].each do |file| %>
 						<li><a href="<%= download_url(file) %>"><%= download_arch(file) %></a></li>
-				<% end %>
+					<% end %>
 				</ul>
 				<div class="clearfix">
 				</div>

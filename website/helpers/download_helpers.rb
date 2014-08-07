@@ -11,14 +11,14 @@ if ENV["TERRAFORM_VERSION"]
   response = http.request(req)
 
   response.body.split("\n").each do |line|
-    next if line !~ /\/mitchellh\/terraform\/(#{Regexp.quote(ENV["TERRAFORM_VERSION"])}.+?)'/
+    next if line !~ /\/mitchellh\/terraform\/terraform_(#{Regexp.quote(ENV["TERRAFORM_VERSION"])}.+?)'/
     filename = $1.to_s
     os = filename.split("_")[1]
     next if os == "SHA256SUMS"
     next if os == "web"
 
     $terraform_files[os] ||= []
-    $terraform_files[os] << filename
+    $terraform_files[os] << "terraform_#{filename}"
   end
 
   $terraform_os = ["darwin", "linux", "windows"] & $terraform_files.keys
@@ -33,8 +33,8 @@ end
 module DownloadHelpers
   def download_arch(file)
     parts = file.split("_")
-    return "" if parts.length != 3
-    parts[2].split(".")[0]
+    return "" if parts.length != 4
+    parts[3].split(".")[0]
   end
 
   def download_os_human(os)

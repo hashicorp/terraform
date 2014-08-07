@@ -27,12 +27,12 @@ rm -rf ./pkg/dist
 mkdir -p ./pkg/dist
 for FILENAME in $(find ./pkg -mindepth 1 -maxdepth 1 -type f); do
     FILENAME=$(basename $FILENAME)
-    cp ./pkg/${FILENAME} ./pkg/dist/${VERSION}_${FILENAME}
+    cp ./pkg/${FILENAME} ./pkg/dist/terraform_${VERSION}_${FILENAME}
 done
 
 # Make the checksums
 pushd ./pkg/dist
-shasum -a256 * > ./${VERSION}_SHA256SUMS
+shasum -a256 * > ./terraform_${VERSION}_SHA256SUMS
 popd
 
 # Upload

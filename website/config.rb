@@ -15,7 +15,7 @@ set :markdown,
 # Build-specific configuration
 configure :build do
   activate :asset_hash
-  activate :minify_html
+  activate :minify_html, remove_multi_spaces: false
   activate :minify_javascript
 end
 
