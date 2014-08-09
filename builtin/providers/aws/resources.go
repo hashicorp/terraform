@@ -157,6 +157,7 @@ func init() {
 				Destroy: resource_aws_vpc_destroy,
 				Diff:    resource_aws_vpc_diff,
 				Refresh: resource_aws_vpc_refresh,
+				Update:  resource_aws_vpc_update,
 			},
 		},
 	}

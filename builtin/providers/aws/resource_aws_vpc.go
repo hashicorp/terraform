@@ -3,6 +3,7 @@ package aws
 import (
 	"fmt"
 	"log"
+	"strconv"
 	"time"
 
 	"github.com/hashicorp/terraform/helper/diff"
@@ -53,6 +54,36 @@ func resource_aws_vpc_create(
 			s.ID, err)
 	}
 
+	if attr, ok := d.Attributes["enable_dns_support"]; ok {
+		options := new(ec2.ModifyVpcAttribute)
+
+		options.EnableDnsSupport = attr.New != "" && attr.New != "false"
+		options.SetEnableDnsSupport = true
+
+		s.Attributes["enable_dns_support"] = strconv.FormatBool(options.EnableDnsSupport)
+
+		log.Printf("[INFO] Modifying vpc attributes for %s: %#v", s.ID, options)
+
+		if _, err := ec2conn.ModifyVpcAttribute(s.ID, options); err != nil {
+			return s, err
+		}
+	}
+
+	if attr, ok := d.Attributes["enable_dns_hostnames"]; ok {
+		options := new(ec2.ModifyVpcAttribute)
+
+		options.EnableDnsHostnames = attr.New != "" && attr.New != "false"
+		options.SetEnableDnsHostnames = true
+
+		s.Attributes["enable_dns_hostnames"] = strconv.FormatBool(options.EnableDnsHostnames)
+
+		log.Printf("[INFO] Modifying enable_dns_hostnames vpc attribute for %s: %#v", s.ID, options)
+
+		if _, err := ec2conn.ModifyVpcAttribute(s.ID, options); err != nil {
+			return s, err
+		}
+	}
+
 	// Update our attributes and return
 	return resource_aws_vpc_update_state(s, vpcRaw.(*ec2.VPC))
 }
@@ -61,11 +92,43 @@ func resource_aws_vpc_update(
 	s *terraform.ResourceState,
 	d *terraform.ResourceDiff,
 	meta interface{}) (*terraform.ResourceState, error) {
-	// This should never be called because we have no update-able
-	// attributes
-	panic("Update for VPC is not supported")
+	p := meta.(*ResourceProvider)
+	ec2conn := p.ec2conn
+	rs := s.MergeDiff(d)
 
-	return nil, nil
+	log.Printf("[DEBUG] attributes: %#v", d.Attributes)
+
+	if attr, ok := d.Attributes["enable_dns_support"]; ok {
+		options := new(ec2.ModifyVpcAttribute)
+
+		options.EnableDnsSupport = attr.New != "" && attr.New != "false"
+		options.SetEnableDnsSupport = true
+
+		rs.Attributes["enable_dns_support"] = strconv.FormatBool(options.EnableDnsSupport)
+
+		log.Printf("[INFO] Modifying enable_dns_support vpc attribute for %s: %#v", s.ID, options)
+
+		if _, err := ec2conn.ModifyVpcAttribute(s.ID, options); err != nil {
+			return s, err
+		}
+	}
+
+	if attr, ok := d.Attributes["enable_dns_hostnames"]; ok {
+		options := new(ec2.ModifyVpcAttribute)
+
+		options.EnableDnsHostnames = attr.New != "" && attr.New != "false"
+		options.SetEnableDnsHostnames = true
+
+		rs.Attributes["enable_dns_hostnames"] = strconv.FormatBool(options.EnableDnsHostnames)
+
+		log.Printf("[INFO] Modifying enable_dns_hostnames vpc attribute for %s: %#v", s.ID, options)
+
+		if _, err := ec2conn.ModifyVpcAttribute(s.ID, options); err != nil {
+			return s, err
+		}
+	}
+
+	return rs, nil
 }
 
 func resource_aws_vpc_destroy(
@@ -101,8 +164,19 @@ func resource_aws_vpc_refresh(
 		return nil, nil
 	}
 
-	vpc := vpcRaw.(*ec2.VPC)
-	return resource_aws_vpc_update_state(s, vpc)
+	if dnsSupportResp, err := ec2conn.VpcAttribute(s.ID, "enableDnsSupport"); err != nil {
+		return s, err
+	} else {
+		s.Attributes["enable_dns_support"] = strconv.FormatBool(dnsSupportResp.EnableDnsSupport)
+	}
+
+	if dnsHostnamesResp, err := ec2conn.VpcAttribute(s.ID, "enableDnsHostnames"); err != nil {
+		return s, err
+	} else {
+		s.Attributes["enable_dns_hostnames"] = strconv.FormatBool(dnsHostnamesResp.EnableDnsHostnames)
+	}
+
+	return resource_aws_vpc_update_state(s, vpcRaw.(*ec2.VPC))
 }
 
 func resource_aws_vpc_diff(
@@ -111,7 +185,14 @@ func resource_aws_vpc_diff(
 	meta interface{}) (*terraform.ResourceDiff, error) {
 	b := &diff.ResourceBuilder{
 		Attrs: map[string]diff.AttrType{
-			"cidr_block": diff.AttrTypeCreate,
+			"cidr_block":           diff.AttrTypeCreate,
+			"enable_dns_support":   diff.AttrTypeUpdate,
+			"enable_dns_hostnames": diff.AttrTypeUpdate,
+		},
+
+		ComputedAttrs: []string{
+			"enable_dns_support",
+			"enable_dns_hostnames",
 		},
 	}
 
