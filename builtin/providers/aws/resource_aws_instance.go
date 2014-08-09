@@ -5,6 +5,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"log"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -69,6 +70,8 @@ func resource_aws_instance_create(
 		}
 	}
 
+	tags := resource_aws_build_tags(rs.Attributes, "tag")
+
 	// Create the instance
 	log.Printf("[DEBUG] Run configuration: %#v", runOpts)
 	runResp, err := ec2conn.RunInstances(runOpts)
@@ -81,6 +84,12 @@ func resource_aws_instance_create(
 
 	// Store the resulting ID so we can look this up later
 	rs.ID = instance.InstanceId
+
+	if len(tags) > 0 {
+		if _, err := ec2conn.CreateTags([]string{rs.ID}, tags); err != nil {
+			return nil, err
+		}
+	}
 
 	// Wait for the instance to become running so we can get some attributes
 	// that aren't available until later.
@@ -112,7 +121,7 @@ func resource_aws_instance_create(
 	rs.ConnInfo["host"] = instance.PublicIpAddress
 
 	// Set our attributes
-	rs, err = resource_aws_instance_update_state(rs, instance)
+	rs, err = resource_aws_instance_update_state(rs, instance, tags)
 	if err != nil {
 		return rs, err
 	}
@@ -148,6 +157,13 @@ func resource_aws_instance_update(
 
 		// TODO(mitchellh): wait for the attributes we modified to
 		// persist the change...
+	}
+
+	oldTags := resource_aws_build_tags(s.Attributes, "tag")
+	newTags := resource_aws_build_tags(rs.Attributes, "tag")
+
+	if err := resource_aws_sync_tags(ec2conn, s.ID, oldTags, newTags); err != nil {
+		return nil, err
 	}
 
 	return rs, nil
@@ -201,6 +217,7 @@ func resource_aws_instance_diff(
 			"security_groups":             diff.AttrTypeCreate,
 			"subnet_id":                   diff.AttrTypeCreate,
 			"source_dest_check":           diff.AttrTypeUpdate,
+			"tag":                         diff.AttrTypeUpdate,
 			"user_data":                   diff.AttrTypeCreate,
 			"associate_public_ip_address": diff.AttrTypeCreate,
 		},
@@ -257,12 +274,27 @@ func resource_aws_instance_refresh(
 		return nil, nil
 	}
 
-	return resource_aws_instance_update_state(s, instance)
+	filter := ec2.NewFilter()
+	filter.Add("resource-id", s.ID)
+	tagsResp, err := ec2conn.Tags(filter)
+	if err != nil {
+		return nil, err
+	}
+
+	tags := make([]ec2.Tag, len(tagsResp.Tags))
+	for i, v := range tagsResp.Tags {
+		tags[i] = v.Tag
+	}
+
+	sort.Stable(sortableTags(tags))
+
+	return resource_aws_instance_update_state(s, instance, tags)
 }
 
 func resource_aws_instance_update_state(
 	s *terraform.ResourceState,
-	instance *ec2.Instance) (*terraform.ResourceState, error) {
+	instance *ec2.Instance,
+	tags []ec2.Tag) (*terraform.ResourceState, error) {
 	s.Attributes["availability_zone"] = instance.AvailZone
 	s.Attributes["key_name"] = instance.KeyName
 	s.Attributes["public_dns"] = instance.DNSName
@@ -312,6 +344,17 @@ func resource_aws_instance_update_state(
 			terraform.ResourceDependency{ID: instance.SubnetId},
 		)
 	}
+
+	toFlatten := make([]map[string]string, 0)
+	for _, tag := range tags {
+		toFlatten = append(toFlatten, map[string]string{
+			"key":   tag.Key,
+			"value": tag.Value,
+		})
+	}
+	flatmap.Map(s.Attributes).Merge(flatmap.Flatten(map[string]interface{}{
+		"tag": toFlatten,
+	}))
 
 	return s, nil
 }

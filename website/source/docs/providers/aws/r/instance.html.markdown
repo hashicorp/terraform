@@ -16,6 +16,16 @@ and deleted. Instances also support [provisioning](/docs/provisioners/index.html
 resource "aws_instance" "web" {
     ami = "ami-1234"
     instance_type = "m1.small"
+
+    # optional tags (carefully note the ordering)
+    tag {
+        key = Customer
+        value = "widgets inc."
+    }
+    tag {
+        key = Name
+        value = "web server"
+    }
 }
 ```
 
@@ -35,6 +45,7 @@ The following arguments are supported:
 * `source_dest_check` - (Optional) Controls if traffic is routed to the instance when
   the destination address does not match the instance. Used for NAT or VPNs. Defaults false.
 * `user_data` - (Optional) The user data to provide when launching the instance.
+* `tag` - (Optional) Tags for the instance. NOTE: tags should be specified in alphabetical order of their keys, as keys are returned by Amazon in an arbitrary order and terraform sorts them in order to have a canonical representation.
 
 ## Attributes Reference
 
