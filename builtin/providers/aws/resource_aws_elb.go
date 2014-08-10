@@ -325,6 +325,7 @@ func resource_aws_elb_validation() *config.Validator {
 		},
 		Optional: []string{
 			"instances.*",
+			"listener.*.ssl_certificate_id",
 			"availability_zones.*",
 			"health_check.#",
 			"health_check.0.healthy_threshold",

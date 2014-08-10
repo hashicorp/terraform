@@ -23,6 +23,14 @@ resource "aws_elb" "bar" {
     lb_protocol = "http"
   }
 
+  listener {
+    instance_port = 8000
+    instance_protocol = "http"
+    lb_port = 443
+    lb_protocol = "https"
+    ssl_certificate_id = "arn:aws:iam::123456789012:server-certificate/certName" 
+  }
+
   health_check {
     healthy_threshold = 2
     unhealthy_threshold = 2
@@ -51,6 +59,7 @@ Listeners support the following:
 * `instance_protocol` - (Required) The the protocol to use to the instance.
 * `lb_port` - (Required) The port to listen on for the load balancer
 * `lb_protocol` - (Required) The protocol to listen on.
+* `ssl_certificate_id` - (Optional) The id of an SSL certificate you have uploaded to AWS IAM.
 
 Health Check supports the following:
 

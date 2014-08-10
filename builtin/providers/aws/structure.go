@@ -33,6 +33,11 @@ func expandListeners(configured []interface{}) ([]elb.Listener, error) {
 			Protocol:         newL["lb_protocol"].(string),
 		}
 
+		if attr, ok := newL["ssl_certificate_id"].(string); ok {
+			l.SSLCertificateId = attr
+		}
+
+
 		listeners = append(listeners, l)
 	}
 

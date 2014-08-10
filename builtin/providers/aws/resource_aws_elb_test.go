@@ -36,6 +36,8 @@ func TestAccAWSELB_basic(t *testing.T) {
 					resource.TestCheckResourceAttr(
 						"aws_elb.bar", "listener.0.instance_protocol", "http"),
 					resource.TestCheckResourceAttr(
+						"aws_elb.bar", "listener.0.ssl_certificate_id", "arn:aws:iam::123456789012:server-certificate/certName"),
+					resource.TestCheckResourceAttr(
 						"aws_elb.bar", "listener.0.lb_port", "80"),
 					resource.TestCheckResourceAttr(
 						"aws_elb.bar", "listener.0.lb_protocol", "http"),
@@ -274,6 +276,22 @@ resource "aws_instance" "foo" {
 	# us-west-2
 	ami = "ami-043a5034"
 	instance_type = "t1.micro"
+}
+`
+
+
+const testAccAWSELBConfigListenerSSLCertificateId = `
+resource "aws_elb" "bar" {
+  name = "foobar-terraform-test"
+  availability_zones = ["us-west-2a"]
+
+  listener {
+    instance_port = 8000
+    instance_protocol = "http"
+    ssl_certificate_id = "arn:aws:iam::123456789012:server-certificate/certName"
+    lb_port = 443
+    lb_protocol = "https"
+  }
 }
 `
 
