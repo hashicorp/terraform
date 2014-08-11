@@ -21,6 +21,14 @@ func Test_expandUserPath(t *testing.T) {
 	if path != expected {
 		t.Fatalf("bad: %v", path)
 	}
+
+	path, err = expandUserPath("~" + u.Username + "/path.pem")
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if path != expected {
+		t.Fatalf("bad: %v, %v", path)
+	}
 }
 
 func TestResourceProvider_verifySSH(t *testing.T) {
