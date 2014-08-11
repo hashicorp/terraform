@@ -97,9 +97,28 @@ func resource_openstack_compute_create(
 	}
 
 	if pool, ok := rs.Attributes["floating_ip_pool"]; ok {
-		newIp, err := serversApi.CreateFloatingIp(pool)
+		var newIp gophercloud.FloatingIp
+		hasFloatingIps := false
+
+		floaingIps, err := serversApi.ListFloatingIps()
 		if err != nil {
 			return nil, err
+		}
+
+		for _, element := range floaingIps {
+			// use first floating ip available on the pool
+			if element.Pool == pool && element.InstanceId == "" {
+				newIp = element
+				hasFloatingIps = true
+			}
+		}
+
+		// if there is no available floating ips, try to create a new one
+		if !hasFloatingIps {
+			newIp, err = serversApi.CreateFloatingIp(pool)
+			if err != nil {
+				return nil, err
+			}
 		}
 
 		err = serversApi.AssociateFloatingIp(newServer.Id, newIp)
