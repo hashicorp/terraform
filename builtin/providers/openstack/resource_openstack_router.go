@@ -1,6 +1,7 @@
 package openstack
 
 import (
+	"fmt"
 	"github.com/haklop/gophercloud-extensions/network"
 	"github.com/hashicorp/terraform/flatmap"
 	"github.com/hashicorp/terraform/helper/diff"
@@ -32,8 +33,21 @@ func resource_openstack_router_create(
 	if _, ok := rs.Attributes["external_gateway"]; ok {
 		if _, ok := rs.Attributes["external_id"]; !ok {
 
-			// TODO find first public network available by requesting GET /networks on Neutron API
-			externalId := "first public network available"
+			networks, err := networksApi.GetNetworks()
+			if err != nil {
+				return nil, err
+			}
+
+			var externalId string
+			for _, element := range networks {
+				if element.IsExternal {
+					externalId = element.Id
+				}
+			}
+			if externalId == "" {
+				return nil, fmt.Errorf("Cannot find external network while creating an external gateway")
+			}
+
 			rs.Attributes["external_id"] = externalId
 		}
 
