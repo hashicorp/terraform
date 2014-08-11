@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"strconv"
+	"math/rand"
 
 	"github.com/hashicorp/terraform/flatmap"
 	"github.com/hashicorp/terraform/helper/config"
@@ -26,7 +27,11 @@ func resource_aws_elb_create(
 	// The name specified for the ELB. This is also our unique ID
 	// we save to state if the creation is successful (amazon verifies
 	// it is unique)
-	elbName := rs.Attributes["name"]
+	// AWS requires a name for ELB, so supply a random one if needed
+	elbName := string(rs.Attributes["name"])
+	if elbName == "" {
+		elbName = strconv.Itoa(rand.Int())
+	}
 
 	// Expand the "listener" array to goamz compat []elb.Listener
 	v := flatmap.Expand(rs.Attributes, "listener").([]interface{})
@@ -316,7 +321,6 @@ func resource_aws_elb_retrieve_balancer(id string, elbconn *elb.ELB) (*elb.LoadB
 func resource_aws_elb_validation() *config.Validator {
 	return &config.Validator{
 		Required: []string{
-			"name",
 			"listener.*",
 			"listener.*.instance_port",
 			"listener.*.instance_protocol",
@@ -324,6 +328,7 @@ func resource_aws_elb_validation() *config.Validator {
 			"listener.*.lb_protocol",
 		},
 		Optional: []string{
+			"name",
 			"instances.*",
 			"availability_zones.*",
 			"health_check.#",

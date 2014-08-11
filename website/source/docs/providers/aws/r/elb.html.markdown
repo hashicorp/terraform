@@ -39,7 +39,7 @@ resource "aws_elb" "bar" {
 
 The following arguments are supported:
 
-* `name` - (Required) The name of the ELB
+* `name` - (Optional) The name of the ELB. If left blank, a random string will be used.
 * `availability_zones` - (Optional) The AZ's to serve traffic in.
 * `instances` - (Optional) A list of instance ids to place in the ELB pool.
 * `listener` - (Required) A list of listener blocks. Listeners documented below.
