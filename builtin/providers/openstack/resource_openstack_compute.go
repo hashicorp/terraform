@@ -85,7 +85,7 @@ func resource_openstack_compute_create(
 		Pending:    []string{"BUILD"},
 		Target:     "ACTIVE",
 		Refresh:    WaitForServerState(serversApi, rs.Attributes["id"]),
-		Timeout:    15 * time.Minute,
+		Timeout:    30 * time.Minute,
 		Delay:      10 * time.Second,
 		MinTimeout: 3 * time.Second,
 	}
