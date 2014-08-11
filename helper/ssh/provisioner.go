@@ -123,7 +123,7 @@ func expandUserPath(path string) (string, error) {
 		}
 		userhome = u.HomeDir
 	}
-	userhome = strings.TrimSuffix(path, "/")
+	userhome = strings.TrimSuffix(userhome, "/")
 	return userhome + path[i:], nil
 }
 

@@ -1,10 +1,27 @@
 package ssh
 
 import (
+	"os/user"
+	"strings"
 	"testing"
 
 	"github.com/hashicorp/terraform/terraform"
 )
+
+func Test_expandUserPath(t *testing.T) {
+	path, err := expandUserPath("~/path.pem")
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	u, err := user.Current()
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	expected := strings.TrimSuffix(u.HomeDir, "/") + "/path.pem"
+	if path != expected {
+		t.Fatalf("bad: %v", path)
+	}
+}
 
 func TestResourceProvider_verifySSH(t *testing.T) {
 	r := &terraform.ResourceState{
