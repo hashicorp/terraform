@@ -1,6 +1,8 @@
 ## 0.2.0 (unreleased)
 
+BUG FIXES:
 
+  * core: Variables are validated to not contain interpolations. [GH-180]
 
 ## 0.1.1 (August 5, 2014)
 

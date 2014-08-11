@@ -9,6 +9,7 @@ import (
 	"github.com/hashicorp/terraform/flatmap"
 	"github.com/hashicorp/terraform/helper/multierror"
 	"github.com/mitchellh/mapstructure"
+	"github.com/mitchellh/reflectwalk"
 )
 
 // Config is the configuration that comes from loading a collection
@@ -116,6 +117,22 @@ func (c *Config) Validate() error {
 			errs = append(errs, fmt.Errorf(
 				"Variable '%s': must be string or mapping",
 				v.Name))
+			continue
+		}
+
+		interp := false
+		fn := func(i Interpolation) (string, error) {
+			interp = true
+			return "", nil
+		}
+
+		w := &interpolationWalker{F: fn}
+		if err := reflectwalk.Walk(v.Default, w); err == nil {
+			if interp {
+				errs = append(errs, fmt.Errorf(
+					"Variable '%s': cannot contain interpolations",
+					v.Name))
+			}
 		}
 	}
 
