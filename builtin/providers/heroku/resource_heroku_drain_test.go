@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/bgentry/heroku-go"
+	"github.com/cyberdelia/heroku-go/v3"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
 )
@@ -85,7 +85,7 @@ func testAccCheckHerokuDrainExists(n string, Drain *heroku.LogDrain) resource.Te
 			return err
 		}
 
-		if foundDrain.Id != rs.ID {
+		if foundDrain.ID != rs.ID {
 			return fmt.Errorf("Drain not found")
 		}
 

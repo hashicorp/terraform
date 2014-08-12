@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/bgentry/heroku-go"
+	"github.com/cyberdelia/heroku-go/v3"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
 )
@@ -83,7 +83,7 @@ func testAccCheckHerokuAddonExists(n string, addon *heroku.Addon) resource.TestC
 			return err
 		}
 
-		if foundAddon.Id != rs.ID {
+		if foundAddon.ID != rs.ID {
 			return fmt.Errorf("Addon not found")
 		}
 

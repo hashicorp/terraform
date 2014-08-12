@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/bgentry/heroku-go"
+	"github.com/cyberdelia/heroku-go/v3"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
 )
@@ -83,7 +83,7 @@ func testAccCheckHerokuDomainExists(n string, Domain *heroku.Domain) resource.Te
 			return err
 		}
 
-		if foundDomain.Id != rs.ID {
+		if foundDomain.ID != rs.ID {
 			return fmt.Errorf("Domain not found")
 		}
 

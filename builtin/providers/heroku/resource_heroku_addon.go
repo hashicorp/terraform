@@ -5,7 +5,7 @@ import (
 	"log"
 	"sync"
 
-	"github.com/bgentry/heroku-go"
+	"github.com/cyberdelia/heroku-go/v3"
 	"github.com/hashicorp/terraform/flatmap"
 	"github.com/hashicorp/terraform/helper/config"
 	"github.com/hashicorp/terraform/helper/diff"
@@ -47,15 +47,17 @@ func resource_heroku_addon_create(
 		opts.Config = &config
 	}
 
+	opts.Plan = plan
+
 	log.Printf("[DEBUG] Addon create configuration: %#v, %#v, %#v", app, plan, opts)
 
-	a, err := client.AddonCreate(app, plan, &opts)
+	a, err := client.AddonCreate(app, opts)
 
 	if err != nil {
 		return s, err
 	}
 
-	rs.ID = a.Id
+	rs.ID = a.ID
 	log.Printf("[INFO] Addon ID: %s", rs.ID)
 
 	addon, err := resource_heroku_addon_retrieve(app, rs.ID, client)
@@ -79,14 +81,14 @@ func resource_heroku_addon_update(
 	if attr, ok := d.Attributes["plan"]; ok {
 		ad, err := client.AddonUpdate(
 			app, rs.ID,
-			attr.New)
+			heroku.AddonUpdateOpts{attr.New})
 
 		if err != nil {
 			return s, err
 		}
 
 		// Store the new ID
-		rs.ID = ad.Id
+		rs.ID = ad.ID
 	}
 
 	addon, err := resource_heroku_addon_retrieve(app, rs.ID, client)
@@ -157,7 +159,7 @@ func resource_heroku_addon_update_state(
 
 	s.Attributes["name"] = addon.Name
 	s.Attributes["plan"] = addon.Plan.Name
-	s.Attributes["provider_id"] = addon.ProviderId
+	s.Attributes["provider_id"] = addon.ProviderID
 
 	toFlatten := make(map[string]interface{})
 
@@ -176,7 +178,7 @@ func resource_heroku_addon_update_state(
 	return s, nil
 }
 
-func resource_heroku_addon_retrieve(app string, id string, client *heroku.Client) (*heroku.Addon, error) {
+func resource_heroku_addon_retrieve(app string, id string, client *heroku.Service) (*heroku.Addon, error) {
 	addon, err := client.AddonInfo(app, id)
 
 	if err != nil {

@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/bgentry/heroku-go"
+	"github.com/cyberdelia/heroku-go/v3"
 	"github.com/hashicorp/terraform/helper/config"
 	"github.com/hashicorp/terraform/helper/diff"
 	"github.com/hashicorp/terraform/terraform"
@@ -26,13 +26,13 @@ func resource_heroku_domain_create(
 
 	log.Printf("[DEBUG] Domain create configuration: %#v, %#v", app, hostname)
 
-	do, err := client.DomainCreate(app, hostname)
+	do, err := client.DomainCreate(app, heroku.DomainCreateOpts{hostname})
 
 	if err != nil {
 		return s, err
 	}
 
-	rs.ID = do.Id
+	rs.ID = do.ID
 	rs.Attributes["hostname"] = do.Hostname
 	rs.Attributes["cname"] = fmt.Sprintf("%s.herokuapp.com", app)
 
@@ -105,7 +105,7 @@ func resource_heroku_domain_diff(
 	return b.Diff(s, c)
 }
 
-func resource_heroku_domain_retrieve(app string, id string, client *heroku.Client) (*heroku.Domain, error) {
+func resource_heroku_domain_retrieve(app string, id string, client *heroku.Service) (*heroku.Domain, error) {
 	domain, err := client.DomainInfo(app, id)
 
 	if err != nil {
