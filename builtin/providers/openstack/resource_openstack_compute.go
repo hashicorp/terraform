@@ -173,7 +173,7 @@ func resource_openstack_compute_update(
 			Pending:    []string{"ACTIVE", "RESIZE"},
 			Target:     "VERIFY_RESIZE",
 			Refresh:    WaitForServerState(serversApi, rs.Attributes["id"]),
-			Timeout:    10 * time.Minute,
+			Timeout:    30 * time.Minute,
 			Delay:      10 * time.Second,
 			MinTimeout: 3 * time.Second,
 		}
@@ -201,6 +201,20 @@ func resource_openstack_compute_destroy(
 	}
 
 	err = serversApi.DeleteServerById(s.ID)
+	if err != nil {
+		return err
+	}
+
+	stateConf := &resource.StateChangeConf{
+		Pending:    []string{"ACTIVE", "ERROR"},
+		Target:     "DELETED",
+		Refresh:    WaitForServerState(serversApi, s.ID),
+		Timeout:    30 * time.Minute,
+		Delay:      10 * time.Second,
+		MinTimeout: 3 * time.Second,
+	}
+
+	_, err = stateConf.WaitForState()
 
 	return err
 }
@@ -283,6 +297,15 @@ func WaitForServerState(api gophercloud.CloudServersProvider, id string) resourc
 	return func() (interface{}, string, error) {
 		s, err := api.ServerById(id)
 		if err != nil {
+			httpError, ok := err.(*perigee.UnexpectedResponseCodeError)
+			if !ok {
+				return nil, "", err
+			}
+
+			if httpError.Actual == 404 {
+				return s, "DELETED", err
+			}
+
 			return nil, "", err
 		}
 
