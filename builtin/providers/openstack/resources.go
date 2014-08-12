@@ -102,6 +102,25 @@ func init() {
 				Diff:    resource_openstack_router_diff,
 				Refresh: resource_openstack_router_refresh,
 			},
+
+			"openstack_lbaas": resource.Resource{
+				ConfigValidator: &config.Validator{
+					Required: []string{
+						"name",
+						"subnet_id",
+						"protocol",
+						"lb_method",
+					},
+					Optional: []string{
+						"description",
+					},
+				},
+				Create:  resource_openstack_lbaas_create,
+				Destroy: resource_openstack_lbaas_destroy,
+				Diff:    resource_openstack_lbaas_diff,
+				Update:  resource_openstack_lbaas_update,
+				Refresh: resource_openstack_lbaas_refresh,
+			},
 		},
 	}
 }
