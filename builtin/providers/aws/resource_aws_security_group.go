@@ -125,6 +125,31 @@ func resource_aws_security_group_diff(
 	c *terraform.ResourceConfig,
 	meta interface{}) (*terraform.ResourceDiff, error) {
 
+	targets := []struct {
+		M map[string]interface{}
+		K string
+	}{{c.Raw, "ingress"}, {c.Config, "ingress"}}
+
+	for _, t := range targets {
+		ingressRules := []ec2.IPPerm{}
+		if v, ok := t.M[t.K]; ok {
+			if v, ok := v.([]map[string]interface{}); ok {
+				a := make([]interface{}, len(v))
+				for i, v := range v {
+					a[i] = v
+				}
+
+				if v, err := expandIPPerms(a); err != nil {
+					return nil, err
+				} else {
+					ingressRules = v
+				}
+			}
+		}
+
+		t.M[t.K] = flattenIPPerms(canonicaliseIPPerms(ingressRules))
+	}
+
 	b := &diff.ResourceBuilder{
 		Attrs: map[string]diff.AttrType{
 			"name":        diff.AttrTypeCreate,
@@ -175,9 +200,7 @@ func resource_aws_security_group_update_state(
 			n["security_groups"] = flattenSecurityGroups(perm.SourceGroups)
 		}
 
-		// Reverse the order, as Amazon sorts it the reverse of how we created
-		// it.
-		ingressRules = append([]map[string]interface{}{n}, ingressRules...)
+		ingressRules = append(ingressRules, n)
 	}
 
 	toFlatten["ingress"] = ingressRules
@@ -240,6 +263,9 @@ func SGStateRefreshFunc(conn *ec2.EC2, id string) resource.StateRefreshFunc {
 		}
 
 		group := &resp.Groups[0]
+
+		group.IPPerms = canonicaliseIPPerms(group.IPPerms)
+
 		return group, "exists", nil
 	}
 }
