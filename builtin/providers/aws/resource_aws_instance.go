@@ -303,6 +303,26 @@ func resource_aws_instance_update_state(
 			terraform.ResourceDependency{ID: sg.Id},
 		)
 	}
+
+	// Ensure original pairs of key and value if # of security groups is not changed
+	if len(instance.SecurityGroups) == len(flatmap.Expand(s.Attributes, "security_groups").([]interface{})) {
+		tsgs := make([]string, len(sgs))
+		for k, v := range s.Attributes {
+			for _, e := range sgs {
+				if v == e {
+					l := len("security_groups.")
+					idx, err := strconv.Atoi(k[l:])
+					if err != nil {
+						log.Fatal("Failed to parse %v as int", k[l:])
+					}
+					tsgs[idx] = v
+					break
+				}
+			}
+		}
+		sgs = tsgs
+	}
+
 	flatmap.Map(s.Attributes).Merge(flatmap.Flatten(map[string]interface{}{
 		"security_groups": sgs,
 	}))

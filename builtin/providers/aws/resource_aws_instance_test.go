@@ -261,3 +261,63 @@ resource "aws_instance" "foo" {
 	associate_public_ip_address = true
 }
 `
+
+//
+// keys of state.Attributes of security groups is not changed when # of security groups is not changed.
+//
+func Test_resource_aws_instance_update_state(t *testing.T) {
+	var state terraform.ResourceState
+	var instance ec2.Instance
+	instance.SubnetId = "a subnet-id"
+
+	assert := func(key, expect string) {
+		if state.Attributes[key] != expect {
+			t.Errorf("%v: expect '%v', but '%v'", key, expect, state.Attributes[key])
+		}
+	}
+
+	// single security group
+	state.Attributes = make(map[string]string)
+	state.Attributes["security_groups.#"] = "1"
+	state.Attributes["security_groups.0"] = "sg-d6cf37b3"
+	instance.SecurityGroups = []ec2.SecurityGroup{
+		ec2.SecurityGroup{"sg-d6cf37b3", "allow_all", "desc", "vpc-id"},
+	}
+
+	resource_aws_instance_update_state(&state, &instance)
+	assert("security_groups.#", "1")
+	assert("security_groups.0", "sg-d6cf37b3")
+
+	// two security groups
+	state.Attributes = make(map[string]string)
+	state.Attributes["security_groups.#"] = "2"
+	state.Attributes["security_groups.0"] = "sg-d6cf37b3"
+	state.Attributes["security_groups.1"] = "sg-d7cf37b2"
+	instance.SecurityGroups = []ec2.SecurityGroup{
+		ec2.SecurityGroup{"sg-d7cf37b2", "fluentd", "desc", "vpc-id"},
+		ec2.SecurityGroup{"sg-d6cf37b3", "allow_all", "desc", "vpc-id"},
+	}
+
+	resource_aws_instance_update_state(&state, &instance)
+	assert("security_groups.#", "2")
+	assert("security_groups.0", "sg-d6cf37b3")
+	assert("security_groups.1", "sg-d7cf37b2")
+
+	// three security groups
+	state.Attributes = make(map[string]string)
+	state.Attributes["security_groups.#"] = "3"
+	state.Attributes["security_groups.0"] = "sg-d6cf37b3"
+	state.Attributes["security_groups.1"] = "sg-d7cf37b2"
+	state.Attributes["security_groups.2"] = "sg-d8cf37b1"
+	instance.SecurityGroups = []ec2.SecurityGroup{
+		ec2.SecurityGroup{"sg-d8cf37b1", "http", "desc", "vpc-id"},
+		ec2.SecurityGroup{"sg-d7cf37b2", "fluentd", "desc", "vpc-id"},
+		ec2.SecurityGroup{"sg-d6cf37b3", "allow_all", "desc", "vpc-id"},
+	}
+
+	resource_aws_instance_update_state(&state, &instance)
+	assert("security_groups.#", "3")
+	assert("security_groups.0", "sg-d6cf37b3")
+	assert("security_groups.1", "sg-d7cf37b2")
+	assert("security_groups.2", "sg-d8cf37b1")
+}
