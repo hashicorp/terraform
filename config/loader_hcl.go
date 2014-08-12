@@ -5,14 +5,14 @@ import (
 	"io/ioutil"
 
 	"github.com/hashicorp/hcl"
-	"github.com/hashicorp/hcl/ast"
+	hclobj "github.com/hashicorp/hcl/hcl"
 )
 
 // hclConfigurable is an implementation of configurable that knows
 // how to turn HCL configuration into a *Config object.
 type hclConfigurable struct {
 	File   string
-	Object *ast.ObjectNode
+	Object *hclobj.Object
 }
 
 func (t *hclConfigurable) Config() (*Config, error) {
@@ -33,7 +33,7 @@ func (t *hclConfigurable) Config() (*Config, error) {
 		Variable map[string]*hclVariable
 	}
 
-	if err := hcl.DecodeAST(&rawConfig, t.Object); err != nil {
+	if err := hcl.DecodeObject(&rawConfig, t.Object); err != nil {
 		return nil, err
 	}
 
@@ -97,8 +97,8 @@ func (t *hclConfigurable) Config() (*Config, error) {
 	}
 
 	// Check for invalid keys
-	for _, elem := range t.Object.Elem {
-		k := elem.Key()
+	for _, elem := range t.Object.Elem(true) {
+		k := elem.Key
 		if _, ok := validKeys[k]; ok {
 			continue
 		}
@@ -112,7 +112,7 @@ func (t *hclConfigurable) Config() (*Config, error) {
 // loadFileHcl is a fileLoaderFunc that knows how to read HCL
 // files and turn them into hclConfigurables.
 func loadFileHcl(root string) (configurable, []string, error) {
-	var obj *ast.ObjectNode = nil
+	var obj *hclobj.Object = nil
 
 	// Read the HCL file and prepare for parsing
 	d, err := ioutil.ReadFile(root)
@@ -179,8 +179,17 @@ func loadFileHcl(root string) (configurable, []string, error) {
 
 // LoadOutputsHcl recurses into the given HCL object and turns
 // it into a mapping of outputs.
-func loadOutputsHcl(ns []ast.Node) ([]*Output, error) {
-	objects := hclObjectMap(ns)
+func loadOutputsHcl(os *hclobj.Object) ([]*Output, error) {
+	objects := make(map[string]*hclobj.Object)
+
+	// Iterate over all the "output" blocks and get the keys along with
+	// their raw configuration objects. We'll parse those later.
+	for _, o1 := range os.Elem(false) {
+		for _, o2 := range o1.Elem(true) {
+			objects[o2.Key] = o2
+		}
+	}
+
 	if len(objects) == 0 {
 		return nil, nil
 	}
@@ -190,7 +199,7 @@ func loadOutputsHcl(ns []ast.Node) ([]*Output, error) {
 	for n, o := range objects {
 		var config map[string]interface{}
 
-		if err := hcl.DecodeAST(&config, o); err != nil {
+		if err := hcl.DecodeObject(&config, o); err != nil {
 			return nil, err
 		}
 
@@ -213,8 +222,17 @@ func loadOutputsHcl(ns []ast.Node) ([]*Output, error) {
 
 // LoadProvidersHcl recurses into the given HCL object and turns
 // it into a mapping of provider configs.
-func loadProvidersHcl(ns []ast.Node) ([]*ProviderConfig, error) {
-	objects := hclObjectMap(ns)
+func loadProvidersHcl(os *hclobj.Object) ([]*ProviderConfig, error) {
+	objects := make(map[string]*hclobj.Object)
+
+	// Iterate over all the "provider" blocks and get the keys along with
+	// their raw configuration objects. We'll parse those later.
+	for _, o1 := range os.Elem(false) {
+		for _, o2 := range o1.Elem(true) {
+			objects[o2.Key] = o2
+		}
+	}
+
 	if len(objects) == 0 {
 		return nil, nil
 	}
@@ -224,7 +242,7 @@ func loadProvidersHcl(ns []ast.Node) ([]*ProviderConfig, error) {
 	for n, o := range objects {
 		var config map[string]interface{}
 
-		if err := hcl.DecodeAST(&config, o); err != nil {
+		if err := hcl.DecodeObject(&config, o); err != nil {
 			return nil, err
 		}
 
@@ -251,123 +269,131 @@ func loadProvidersHcl(ns []ast.Node) ([]*ProviderConfig, error) {
 // The resulting resources may not be unique, but each resource
 // represents exactly one resource definition in the HCL configuration.
 // We leave it up to another pass to merge them together.
-func loadResourcesHcl(ns []ast.Node) ([]*Resource, error) {
-	typeMap := hclObjectMap(ns)
+func loadResourcesHcl(os *hclobj.Object) ([]*Resource, error) {
+	var allTypes []*hclobj.Object
+
+	// HCL object iteration is really nasty. Below is likely to make
+	// no sense to anyone approaching this code. Luckily, it is very heavily
+	// tested. If working on a bug fix or feature, we recommend writing a
+	// test first then doing whatever you want to the code below. If you
+	// break it, the tests will catch it. Likewise, if you change this,
+	// MAKE SURE you write a test for your change, because its fairly impossible
+	// to reason about this mess.
+	//
+	// Functionally, what the code does below is get the libucl.Objects
+	// for all the TYPES, such as "aws_security_group".
+	for _, o1 := range os.Elem(false) {
+		// Iterate the inner to get the list of types
+		for _, o2 := range o1.Elem(true) {
+			// Iterate all of this type to get _all_ the types
+			for _, o3 := range o2.Elem(false) {
+				allTypes = append(allTypes, o3)
+			}
+		}
+	}
 
 	// Where all the results will go
 	var result []*Resource
 
 	// Now go over all the types and their children in order to get
 	// all of the actual resources.
-	for t, rs := range typeMap {
-		resourceMap := hclObjectMap([]ast.Node{rs})
-		for k, o := range resourceMap {
-			for _, o := range o.Elem {
-				obj, ok := o.(ast.ObjectNode)
-				if !ok {
-					continue
-				}
+	for _, t := range allTypes {
+		for _, obj := range t.Elem(true) {
+			k := obj.Key
 
-				var config map[string]interface{}
-				if err := hcl.DecodeAST(&config, o); err != nil {
-					return nil, fmt.Errorf(
-						"Error reading config for %s[%s]: %s",
-						t,
-						k,
-						err)
-				}
+			var config map[string]interface{}
+			if err := hcl.DecodeObject(&config, obj); err != nil {
+				return nil, fmt.Errorf(
+					"Error reading config for %s[%s]: %s",
+					t,
+					k,
+					err)
+			}
 
-				// Remove the fields we handle specially
-				delete(config, "connection")
-				delete(config, "count")
-				delete(config, "depends_on")
-				delete(config, "provisioner")
+			// Remove the fields we handle specially
+			delete(config, "connection")
+			delete(config, "count")
+			delete(config, "depends_on")
+			delete(config, "provisioner")
 
-				rawConfig, err := NewRawConfig(config)
+			rawConfig, err := NewRawConfig(config)
+			if err != nil {
+				return nil, fmt.Errorf(
+					"Error reading config for %s[%s]: %s",
+					t,
+					k,
+					err)
+			}
+
+			// If we have a count, then figure it out
+			var count int = 1
+			if o := obj.Get("count", false); o != nil {
+				err = hcl.DecodeObject(&count, o)
 				if err != nil {
 					return nil, fmt.Errorf(
-						"Error reading config for %s[%s]: %s",
+						"Error parsing count for %s[%s]: %s",
 						t,
 						k,
 						err)
 				}
-
-				// If we have a count, then figure it out
-				var count int = 1
-				if os := obj.Get("count", false); os != nil {
-					for _, o := range os {
-						err = hcl.DecodeAST(&count, o)
-						if err != nil {
-							return nil, fmt.Errorf(
-								"Error parsing count for %s[%s]: %s",
-								t,
-								k,
-								err)
-						}
-					}
-				}
-
-				// If we have depends fields, then add those in
-				var dependsOn []string
-				if os := obj.Get("depends_on", false); os != nil {
-					for _, o := range os {
-						err := hcl.DecodeAST(&dependsOn, o)
-						if err != nil {
-							return nil, fmt.Errorf(
-								"Error reading depends_on for %s[%s]: %s",
-								t,
-								k,
-								err)
-						}
-					}
-				}
-
-				// If we have connection info, then parse those out
-				var connInfo map[string]interface{}
-				if os := obj.Get("connection", false); os != nil {
-					for _, o := range os {
-						err := hcl.DecodeAST(&connInfo, o)
-						if err != nil {
-							return nil, fmt.Errorf(
-								"Error reading connection info for %s[%s]: %s",
-								t,
-								k,
-								err)
-						}
-					}
-				}
-
-				// If we have provisioners, then parse those out
-				var provisioners []*Provisioner
-				if os := obj.Get("provisioner", false); os != nil {
-					var err error
-					provisioners, err = loadProvisionersHcl(os, connInfo)
-					if err != nil {
-						return nil, fmt.Errorf(
-							"Error reading provisioners for %s[%s]: %s",
-							t,
-							k,
-							err)
-					}
-				}
-
-				result = append(result, &Resource{
-					Name:         k,
-					Type:         t,
-					Count:        count,
-					RawConfig:    rawConfig,
-					Provisioners: provisioners,
-					DependsOn:    dependsOn,
-				})
 			}
+
+			// If we have depends fields, then add those in
+			var dependsOn []string
+			if o := obj.Get("depends_on", false); o != nil {
+				err := hcl.DecodeObject(&dependsOn, o)
+				if err != nil {
+					return nil, fmt.Errorf(
+						"Error reading depends_on for %s[%s]: %s",
+						t,
+						k,
+						err)
+				}
+			}
+
+			// If we have connection info, then parse those out
+			var connInfo map[string]interface{}
+			if o := obj.Get("connection", false); o != nil {
+				err := hcl.DecodeObject(&connInfo, o)
+				if err != nil {
+					return nil, fmt.Errorf(
+						"Error reading connection info for %s[%s]: %s",
+						t,
+						k,
+						err)
+				}
+			}
+
+			// If we have provisioners, then parse those out
+			var provisioners []*Provisioner
+			if os := obj.Get("provisioner", false); os != nil {
+				var err error
+				provisioners, err = loadProvisionersHcl(os, connInfo)
+				if err != nil {
+					return nil, fmt.Errorf(
+						"Error reading provisioners for %s[%s]: %s",
+						t,
+						k,
+						err)
+				}
+			}
+
+			result = append(result, &Resource{
+				Name:         k,
+				Type:         t.Key,
+				Count:        count,
+				RawConfig:    rawConfig,
+				Provisioners: provisioners,
+				DependsOn:    dependsOn,
+			})
 		}
 	}
 
 	return result, nil
 }
 
-func loadProvisionersHcl(ns []ast.Node, connInfo map[string]interface{}) ([]*Provisioner, error) {
-	pos := make([]ast.AssignmentNode, 0, len(ns))
+func loadProvisionersHcl(os *hclobj.Object, connInfo map[string]interface{}) ([]*Provisioner, error) {
+	pos := make([]*hclobj.Object, 0, int(os.Len()))
 
 	// Accumulate all the actual provisioner configuration objects. We
 	// have to iterate twice here:
@@ -387,14 +413,9 @@ func loadProvisionersHcl(ns []ast.Node, connInfo map[string]interface{}) ([]*Pro
 	//     }
 	//   ]
 	//
-	for _, n := range ns {
-		obj, ok := n.(ast.ObjectNode)
-		if !ok {
-			continue
-		}
-
-		for _, elem := range obj.Elem {
-			pos = append(pos, elem)
+	for _, o1 := range os.Elem(false) {
+		for _, o2 := range o1.Elem(true) {
+			pos = append(pos, o2)
 		}
 	}
 
@@ -405,13 +426,8 @@ func loadProvisionersHcl(ns []ast.Node, connInfo map[string]interface{}) ([]*Pro
 
 	result := make([]*Provisioner, 0, len(pos))
 	for _, po := range pos {
-		obj, ok := po.Value.(ast.ObjectNode)
-		if !ok {
-			continue
-		}
-
 		var config map[string]interface{}
-		if err := hcl.DecodeAST(&config, obj); err != nil {
+		if err := hcl.DecodeObject(&config, po); err != nil {
 			return nil, err
 		}
 
@@ -426,12 +442,10 @@ func loadProvisionersHcl(ns []ast.Node, connInfo map[string]interface{}) ([]*Pro
 		// Check if we have a provisioner-level connection
 		// block that overrides the resource-level
 		var subConnInfo map[string]interface{}
-		if os := obj.Get("connection", false); os != nil {
-			for _, o := range os {
-				err := hcl.DecodeAST(&subConnInfo, o)
-				if err != nil {
-					return nil, err
-				}
+		if o := po.Get("connection", false); o != nil {
+			err := hcl.DecodeObject(&subConnInfo, o)
+			if err != nil {
+				return nil, err
 			}
 		}
 
@@ -454,7 +468,7 @@ func loadProvisionersHcl(ns []ast.Node, connInfo map[string]interface{}) ([]*Pro
 		}
 
 		result = append(result, &Provisioner{
-			Type:      po.Key(),
+			Type:      po.Key,
 			RawConfig: rawConfig,
 			ConnInfo:  connRaw,
 		})
@@ -463,32 +477,22 @@ func loadProvisionersHcl(ns []ast.Node, connInfo map[string]interface{}) ([]*Pro
 	return result, nil
 }
 
-func hclObjectMap(ns []ast.Node) map[string]ast.ListNode {
-	objects := make(map[string]ast.ListNode)
+/*
+func hclObjectMap(os *hclobj.Object) map[string]ast.ListNode {
+	objects := make(map[string][]*hclobj.Object)
 
-	for _, n := range ns {
-		ns := []ast.Node{n}
-		if ln, ok := n.(ast.ListNode); ok {
-			ns = ln.Elem
-		}
-
-		for _, n := range ns {
-			obj, ok := n.(ast.ObjectNode)
+	for _, o := range os.Elem(false) {
+		for _, elem := range o.Elem(true) {
+			val, ok := objects[elem.Key]
 			if !ok {
-				continue
+				val = make([]*hclobj.Object, 0, 1)
 			}
 
-			for _, elem := range obj.Elem {
-				val, ok := objects[elem.Key()]
-				if !ok {
-					val = ast.ListNode{}
-				}
-
-				val.Elem = append(val.Elem, elem.Value)
-				objects[elem.Key()] = val
-			}
+			val = append(val, elem)
+			objects[elem.Key] = val
 		}
 	}
 
 	return objects
 }
+*/
