@@ -43,7 +43,7 @@ The following arguments are supported:
 * `availability_zones` - (Optional) The AZ's to serve traffic in.
 * `instances` - (Optional) A list of instance ids to place in the ELB pool.
 * `listener` - (Required) A list of listener blocks. Listeners documented below.
-* `health_check` - (Required) A health_check block. Health Check documented below.
+* `health_check` - (Optional) A health_check block. Health Check documented below.
 
 Listeners support the following:
 
