@@ -1,6 +1,8 @@
 package depgraph
 
 import (
+	"fmt"
+
 	"github.com/hashicorp/terraform/digraph"
 )
 
@@ -20,6 +22,10 @@ func (n *Noun) Edges() []digraph.Edge {
 		edges[idx] = dep
 	}
 	return edges
+}
+
+func (n *Noun) GoString() string {
+	return fmt.Sprintf("*%#v", *n)
 }
 
 func (n *Noun) String() string {
