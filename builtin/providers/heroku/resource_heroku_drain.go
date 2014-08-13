@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/bgentry/heroku-go"
+	"github.com/cyberdelia/heroku-go/v3"
 	"github.com/hashicorp/terraform/helper/config"
 	"github.com/hashicorp/terraform/helper/diff"
 	"github.com/hashicorp/terraform/terraform"
@@ -26,13 +26,13 @@ func resource_heroku_drain_create(
 
 	log.Printf("[DEBUG] Drain create configuration: %#v, %#v", app, url)
 
-	dr, err := client.LogDrainCreate(app, url)
+	dr, err := client.LogDrainCreate(app, heroku.LogDrainCreateOpts{url})
 
 	if err != nil {
 		return s, err
 	}
 
-	rs.ID = dr.Id
+	rs.ID = dr.ID
 	rs.Attributes["url"] = dr.URL
 	rs.Attributes["token"] = dr.Token
 
@@ -105,7 +105,7 @@ func resource_heroku_drain_diff(
 	return b.Diff(s, c)
 }
 
-func resource_heroku_drain_retrieve(app string, id string, client *heroku.Client) (*heroku.LogDrain, error) {
+func resource_heroku_drain_retrieve(app string, id string, client *heroku.Service) (*heroku.LogDrain, error) {
 	drain, err := client.LogDrainInfo(app, id)
 
 	if err != nil {

@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/bgentry/heroku-go"
+	"github.com/cyberdelia/heroku-go/v3"
 	"github.com/hashicorp/terraform/flatmap"
 	"github.com/hashicorp/terraform/helper/config"
 	"github.com/hashicorp/terraform/helper/diff"
@@ -17,7 +17,7 @@ type application struct {
 	Id string // Id of the resource
 
 	App    *heroku.App       // The heroku application
-	Client *heroku.Client    // Client to interact with the heroku API
+	Client *heroku.Service   // Client to interact with the heroku API
 	Vars   map[string]string // The vars on the application
 }
 
@@ -71,7 +71,7 @@ func resource_heroku_app_create(
 
 	log.Printf("[DEBUG] App create configuration: %#v", opts)
 
-	a, err := client.AppCreate(&opts)
+	a, err := client.AppCreate(opts)
 	if err != nil {
 		return s, err
 	}
@@ -110,7 +110,7 @@ func resource_heroku_app_update(
 			Name: &attr.New,
 		}
 
-		renamedApp, err := client.AppUpdate(rs.ID, &opts)
+		renamedApp, err := client.AppUpdate(rs.ID, opts)
 
 		if err != nil {
 			return s, err
@@ -239,7 +239,7 @@ func resource_heroku_app_update_state(
 	return s, nil
 }
 
-func resource_heroku_app_retrieve(id string, client *heroku.Client) (*application, error) {
+func resource_heroku_app_retrieve(id string, client *heroku.Service) (*application, error) {
 	app := application{Id: id, Client: client}
 
 	err := app.Update()
@@ -263,7 +263,7 @@ func resource_heroku_app_validation() *config.Validator {
 	}
 }
 
-func retrieve_config_vars(id string, client *heroku.Client) (map[string]string, error) {
+func retrieve_config_vars(id string, client *heroku.Service) (map[string]string, error) {
 	vars, err := client.ConfigVarInfo(id)
 
 	if err != nil {
@@ -275,7 +275,7 @@ func retrieve_config_vars(id string, client *heroku.Client) (map[string]string, 
 
 // Updates the config vars for from an expanded (prior to assertion)
 // []map[string]string config
-func update_config_vars(id string, vs []interface{}, client *heroku.Client) error {
+func update_config_vars(id string, vs []interface{}, client *heroku.Service) error {
 	vars := make(map[string]*string)
 
 	for k, v := range vs[0].(map[string]interface{}) {

@@ -3,7 +3,7 @@ package heroku
 import (
 	"log"
 
-	"github.com/bgentry/heroku-go"
+	"github.com/cyberdelia/heroku-go/v3"
 	"github.com/hashicorp/terraform/helper/config"
 	"github.com/hashicorp/terraform/terraform"
 )
@@ -11,7 +11,7 @@ import (
 type ResourceProvider struct {
 	Config Config
 
-	client *heroku.Client
+	client *heroku.Service
 }
 
 func (p *ResourceProvider) Validate(c *terraform.ResourceConfig) ([]string, []error) {
