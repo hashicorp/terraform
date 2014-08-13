@@ -1,8 +1,11 @@
 package main
 
 import (
+	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
+	"log"
 
 	"github.com/hashicorp/terraform/plugin"
 	"github.com/hashicorp/terraform/rpc"
@@ -44,6 +47,43 @@ func init() {
 		"local-exec":  "terraform-provisioner-local-exec",
 		"remote-exec": "terraform-provisioner-remote-exec",
 		"file":        "terraform-provisioner-file",
+	}
+
+	if len(os.Getenv("TF_CUSTOM")) == 0 {
+		return
+	}
+
+	exePath, err := osext.Executable()
+	if err != nil {
+		return
+	}
+	path := filepath.Dir(exePath)
+
+	GetCustom(path + "/terraform-provider-*", BuiltinConfig.Providers)
+	GetCustom(path + "/terraform-provisioner-*", BuiltinConfig.Provisioners)
+
+//	log.Printf("[DEBUG] Provisioners: %v\n", BuiltinConfig.Provisioners )
+//	log.Printf("[DEBUG] Providers: %v\n", BuiltinConfig.Providers )
+}
+
+func GetCustom(glob_pattern string, builtin_items map[string]string) {
+
+	matches, err := filepath.Glob(glob_pattern)
+	if err != nil {
+		return
+	}
+
+	for _, match := range(matches) {
+		path_toks := strings.Split(match, "/")
+		provider_file := path_toks[len(path_toks) - 1]
+		provider_name_toks := strings.SplitN(provider_file, "-", 3)
+		provider_name := provider_name_toks[len(provider_name_toks)-1]
+		_, found := builtin_items[provider_name]
+		if !found {
+			log.Printf("[DEBUG] Found %s %s with filename %s.\n",
+				provider_name_toks[1], provider_name, provider_file)
+			builtin_items[provider_name] = provider_file
+		}
 	}
 }
 
