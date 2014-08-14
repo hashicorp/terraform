@@ -107,6 +107,24 @@ func wrappedMain() int {
 		HelpWriter: os.Stdout,
 	}
 
+	clicfgFile, err := cliConfigFile()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error loading user configuration: \n\n%s\n", err)
+		return 1
+	}
+
+	usrcfg, err := LoadConfig(clicfgFile)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error loading user configuration: \n\n%s\n", err)
+		return 1
+	}
+
+	config = *config.Merge(usrcfg)
+
+	// Initialize the TFConfig settings for the commands...
+	ContextOpts.Providers = config.ProviderFactories()
+	ContextOpts.Provisioners = config.ProvisionerFactories()
+
 	exitCode, err := cli.Run()
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error executing CLI: %s\n", err.Error())
@@ -114,6 +132,38 @@ func wrappedMain() int {
 	}
 
 	return exitCode
+}
+
+func cliConfigFile() (string, error) {
+	mustExist := true
+	configFilePath := os.Getenv("TERRAFORM_CONFIG")
+	if configFilePath == "" {
+		var err error
+		configFilePath, err = configFile()
+		mustExist = false
+
+		if err != nil {
+			log.Printf("Error detecting default CLI config file path: %s", err)
+		}
+	}
+
+	log.Printf("Attempting to open CLI config file: %s", configFilePath)
+	f, err := os.Open(configFilePath)
+	if err != nil {
+		if !os.IsNotExist(err) {
+			return "", err
+		}
+
+		if mustExist {
+			return "", err
+		}
+
+		log.Println("File doesn't exist, but doesn't need to. Ignoring.")
+		return "", nil
+	}
+	defer f.Close()
+
+	return configFilePath, nil
 }
 
 // copyOutput uses output prefixes to determine whether data on stdout
