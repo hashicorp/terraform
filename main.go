@@ -109,13 +109,13 @@ func wrappedMain() int {
 
 	clicfgFile, err := cliConfigFile()
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error loading user configuration: \n\n%s\n", err)
+		fmt.Fprintf(os.Stderr, "Error loading CLI configuration: \n\n%s\n", err)
 		return 1
 	}
 
 	usrcfg, err := LoadConfig(clicfgFile)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error loading user configuration: \n\n%s\n", err)
+		fmt.Fprintf(os.Stderr, "Error loading CLI configuration: \n\n%s\n", err)
 		return 1
 	}
 
