@@ -16,6 +16,10 @@ func TestSchemaMap_Diff(t *testing.T) {
 		Diff   *terraform.ResourceDiff
 		Err    bool
 	}{
+		/*
+		 * String decode
+		 */
+
 		{
 			Schema: map[string]*Schema{
 				"availability_zone": &Schema{
@@ -87,6 +91,72 @@ func TestSchemaMap_Diff(t *testing.T) {
 			Diff: nil,
 
 			Err: true,
+		},
+
+		/*
+		 * Int decode
+		 */
+
+		{
+			Schema: map[string]*Schema{
+				"port": &Schema{
+					Type:     TypeInt,
+					Optional: true,
+					Computed: true,
+					ForceNew: true,
+				},
+			},
+
+			State: nil,
+
+			Config: map[string]interface{}{
+				"port": 27,
+			},
+
+			Diff: &terraform.ResourceDiff{
+				Attributes: map[string]*terraform.ResourceAttrDiff{
+					"port": &terraform.ResourceAttrDiff{
+						Old:         "",
+						New:         "27",
+						RequiresNew: true,
+					},
+				},
+			},
+
+			Err: false,
+		},
+
+		/*
+		 * Bool decode
+		 */
+
+		{
+			Schema: map[string]*Schema{
+				"port": &Schema{
+					Type:     TypeBool,
+					Optional: true,
+					Computed: true,
+					ForceNew: true,
+				},
+			},
+
+			State: nil,
+
+			Config: map[string]interface{}{
+				"port": false,
+			},
+
+			Diff: &terraform.ResourceDiff{
+				Attributes: map[string]*terraform.ResourceAttrDiff{
+					"port": &terraform.ResourceAttrDiff{
+						Old:         "",
+						New:         "0",
+						RequiresNew: true,
+					},
+				},
+			},
+
+			Err: false,
 		},
 	}
 

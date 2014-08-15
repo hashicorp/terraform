@@ -12,7 +12,7 @@ type ValueType int
 
 const (
 	TypeInvalid ValueType = iota
-	TypeBoolean
+	TypeBool
 	TypeInt
 	TypeString
 	TypeList
@@ -67,8 +67,14 @@ func (m schemaMap) Diff(
 		var err error
 
 		switch schema.Type {
+		case TypeBool:
+			fallthrough
+		case TypeInt:
+			fallthrough
 		case TypeString:
 			attrD, err = m.diffString(k, schema, s, c)
+		default:
+			err = fmt.Errorf("%s: unknown type %s", k, schema.Type)
 		}
 
 		if err != nil {
