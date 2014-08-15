@@ -143,6 +143,11 @@ func (m schemaMap) diffList(
 		return fmt.Errorf("%s: must be a list", k)
 	}
 
+	// If this field is required, then it must also be non-empty
+	if len(vs) == 0 && schema.Required {
+		return fmt.Errorf("%s: required field is not set", k)
+	}
+
 	// Diff the count no matter what
 	countSchema := &Schema{
 		Type:     TypeInt,

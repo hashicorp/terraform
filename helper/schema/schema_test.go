@@ -355,6 +355,87 @@ func TestSchemaMap_Diff(t *testing.T) {
 
 			Err: false,
 		},
+
+		{
+			Schema: map[string]*Schema{
+				"ingress": &Schema{
+					Type:     TypeList,
+					Required: true,
+					Elem: &Resource{
+						Schema: map[string]*Schema{
+							"from": &Schema{
+								Type:     TypeInt,
+								Required: true,
+							},
+						},
+					},
+				},
+			},
+
+			State: nil,
+
+			Config: map[string]interface{}{},
+
+			Diff: nil,
+
+			Err: true,
+		},
+
+		{
+			Schema: map[string]*Schema{
+				"ingress": &Schema{
+					Type:     TypeList,
+					Required: true,
+					Elem: &Resource{
+						Schema: map[string]*Schema{
+							"from": &Schema{
+								Type:     TypeInt,
+								Required: true,
+							},
+						},
+					},
+				},
+			},
+
+			State: nil,
+
+			Config: map[string]interface{}{
+				"ingress": []interface{}{},
+			},
+
+			Diff: nil,
+
+			Err: true,
+		},
+
+		{
+			Schema: map[string]*Schema{
+				"ingress": &Schema{
+					Type:     TypeList,
+					Required: true,
+					Elem: &Resource{
+						Schema: map[string]*Schema{
+							"from": &Schema{
+								Type:     TypeInt,
+								Required: true,
+							},
+						},
+					},
+				},
+			},
+
+			State: nil,
+
+			Config: map[string]interface{}{
+				"ingress": []interface{}{
+					map[string]interface{}{},
+				},
+			},
+
+			Diff: nil,
+
+			Err: true,
+		},
 	}
 
 	for i, tc := range cases {
