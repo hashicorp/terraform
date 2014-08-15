@@ -3,6 +3,8 @@ package schema
 import (
 	"errors"
 	"fmt"
+
+	"github.com/hashicorp/terraform/terraform"
 )
 
 // The functions below are the CRUD function types for a Resource.
@@ -25,6 +27,14 @@ type Resource struct {
 	Read   ReadFunc
 	Update UpdateFunc
 	Delete DeleteFunc
+}
+
+// Diff returns a diff of this resource and is API compatible with the
+// ResourceProvider interface.
+func (r *Resource) Diff(
+	s *terraform.ResourceState,
+	c *terraform.ResourceConfig) (*terraform.ResourceDiff, error) {
+	return schemaMap(r.Schema).Diff(s, c)
 }
 
 // InternalValidate should be called to validate the structure

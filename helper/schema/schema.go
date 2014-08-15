@@ -35,6 +35,8 @@ type Schema struct {
 	Computed bool
 	ForceNew bool
 
+	// The following fields are only set for a TypeList Type.
+	//
 	// Elem must be either a *Schema or a *Resource only if the Type is
 	// TypeList, and represents what the element type is. If it is *Schema,
 	// the element type is just a simple value. If it is *Resource, the
@@ -70,7 +72,11 @@ type schemaMap map[string]*Schema
 func (m schemaMap) Data(
 	s *terraform.ResourceState,
 	d *terraform.ResourceDiff) (*ResourceData, error) {
-	return nil, nil
+	return &ResourceData{
+		schema: m,
+		state:  s,
+		diff:   d,
+	}, nil
 }
 
 // Diff returns the diff for a resource given the schema map,
