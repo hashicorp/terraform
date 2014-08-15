@@ -106,11 +106,15 @@ func (c *ResourceConfig) Get(k string) (interface{}, bool) {
 			}
 			current = v.Interface()
 		case reflect.Slice:
-			i, err := strconv.ParseInt(part, 0, 0)
-			if err != nil {
-				return nil, false
+			if part == "#" {
+				current = cv.Len()
+			} else {
+				i, err := strconv.ParseInt(part, 0, 0)
+				if err != nil {
+					return nil, false
+				}
+				current = cv.Index(int(i)).Interface()
 			}
-			current = cv.Index(int(i)).Interface()
 		default:
 			panic(fmt.Sprintf("Unknown kind: %s", cv.Kind()))
 		}

@@ -158,6 +158,113 @@ func TestSchemaMap_Diff(t *testing.T) {
 
 			Err: false,
 		},
+
+		/*
+		 * List decode
+		 */
+
+		{
+			Schema: map[string]*Schema{
+				"ports": &Schema{
+					Type:     TypeList,
+					Required: true,
+					Elem:     &Schema{Type: TypeInt},
+				},
+			},
+
+			State: nil,
+
+			Config: map[string]interface{}{
+				"ports": []interface{}{1, 2, 5},
+			},
+
+			Diff: &terraform.ResourceDiff{
+				Attributes: map[string]*terraform.ResourceAttrDiff{
+					"ports.#": &terraform.ResourceAttrDiff{
+						Old: "",
+						New: "3",
+					},
+					"ports.0": &terraform.ResourceAttrDiff{
+						Old: "",
+						New: "1",
+					},
+					"ports.1": &terraform.ResourceAttrDiff{
+						Old: "",
+						New: "2",
+					},
+					"ports.2": &terraform.ResourceAttrDiff{
+						Old: "",
+						New: "5",
+					},
+				},
+			},
+
+			Err: false,
+		},
+
+		{
+			Schema: map[string]*Schema{
+				"ports": &Schema{
+					Type:     TypeList,
+					Required: true,
+					Elem:     &Schema{Type: TypeInt},
+				},
+			},
+
+			State: &terraform.ResourceState{
+				Attributes: map[string]string{
+					"ports.#": "3",
+					"ports.0": "1",
+					"ports.1": "2",
+					"ports.2": "5",
+				},
+			},
+
+			Config: map[string]interface{}{
+				"ports": []interface{}{1, 2, 5},
+			},
+
+			Diff: nil,
+
+			Err: false,
+		},
+
+		{
+			Schema: map[string]*Schema{
+				"ports": &Schema{
+					Type:     TypeList,
+					Required: true,
+					Elem:     &Schema{Type: TypeInt},
+				},
+			},
+
+			State: &terraform.ResourceState{
+				Attributes: map[string]string{
+					"ports.#": "2",
+					"ports.0": "1",
+					"ports.1": "2",
+				},
+			},
+
+			Config: map[string]interface{}{
+				"ports": []interface{}{1, 2, 5},
+			},
+
+			Diff: &terraform.ResourceDiff{
+				Attributes: map[string]*terraform.ResourceAttrDiff{
+					"ports.#": &terraform.ResourceAttrDiff{
+						Old: "2",
+						New: "3",
+					},
+					"ports.2": &terraform.ResourceAttrDiff{
+						Old: "",
+						New: "5",
+					},
+				},
+			},
+
+			Err: false,
+		},
 	}
 
 	for i, tc := range cases {

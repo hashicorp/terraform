@@ -42,6 +42,25 @@ type Schema struct {
 	Elem interface{}
 }
 
+func (s *Schema) finalizeDiff(
+	d *terraform.ResourceAttrDiff) *terraform.ResourceAttrDiff {
+	if d == nil {
+		return d
+	}
+
+	if s.Computed && d.New == "" {
+		// Computed attribute without a new value set
+		d.NewComputed = true
+	}
+
+	if s.ForceNew {
+		// Force new, set it to true in the diff
+		d.RequiresNew = true
+	}
+
+	return d
+}
+
 // schemaMap is a wrapper that adds nice functions on top of schemas.
 type schemaMap map[string]*Schema
 
@@ -63,79 +82,155 @@ func (m schemaMap) Diff(
 	result.Attributes = make(map[string]*terraform.ResourceAttrDiff)
 
 	for k, schema := range m {
-		var attrD *terraform.ResourceAttrDiff
-		var err error
-
-		switch schema.Type {
-		case TypeBool:
-			fallthrough
-		case TypeInt:
-			fallthrough
-		case TypeString:
-			attrD, err = m.diffString(k, schema, s, c)
-		default:
-			err = fmt.Errorf("%s: unknown type %s", k, schema.Type)
-		}
-
+		err := m.diff(k, schema, result, s, c)
 		if err != nil {
 			return nil, err
 		}
+	}
 
-		if attrD == nil {
-			// There is no diff for this attribute so just carry on.
-			continue
-		}
-
-		if schema.ForceNew {
-			// We require a new one if we have a diff, which we do, so
-			// set the flag to true.
-			attrD.RequiresNew = true
-		}
-
-		result.Attributes[k] = attrD
+	if result.Empty() {
+		// If we don't have any diff elements, just return nil
+		return nil, nil
 	}
 
 	return result, nil
 }
 
+func (m schemaMap) diff(
+	k string,
+	schema *Schema,
+	diff *terraform.ResourceDiff,
+	s *terraform.ResourceState,
+	c *terraform.ResourceConfig) error {
+	var err error
+	switch schema.Type {
+	case TypeBool:
+		fallthrough
+	case TypeInt:
+		fallthrough
+	case TypeString:
+		err = m.diffString(k, schema, diff, s, c)
+	case TypeList:
+		err = m.diffList(k, schema, diff, s, c)
+	default:
+		err = fmt.Errorf("%s: unknown type %s", k, schema.Type)
+	}
+
+	return err
+}
+
+func (m schemaMap) diffList(
+	k string,
+	schema *Schema,
+	diff *terraform.ResourceDiff,
+	s *terraform.ResourceState,
+	c *terraform.ResourceConfig) error {
+	v, ok := c.Get(k)
+	if !ok {
+		// We don't have a value, if it is required then it is an error
+		if schema.Required {
+			return fmt.Errorf("%s: required field not set", k)
+		}
+
+		// We don't have a configuration value.
+		if !schema.Computed {
+			return nil
+		}
+	}
+
+	vs, ok := v.([]interface{})
+	if !ok {
+		return fmt.Errorf("%s: must be a list", k)
+	}
+
+	// Diff the count no matter what
+	m.diffString(k+".#", &Schema{Type: TypeInt}, diff, s, c)
+
+	switch t := schema.Elem.(type) {
+	case *Schema:
+		// This is just a primitive element, so go through each and
+		// just diff each.
+		for i, _ := range vs {
+			subK := fmt.Sprintf("%s.%d", k, i)
+			err := m.diff(subK, t, diff, s, c)
+			if err != nil {
+				return err
+			}
+		}
+	case *Resource:
+		// This is a complex resource
+	default:
+		return fmt.Errorf("%s: unknown element type (internal)", k)
+	}
+
+	return nil
+}
+
 func (m schemaMap) diffString(
 	k string,
 	schema *Schema,
+	diff *terraform.ResourceDiff,
 	s *terraform.ResourceState,
-	c *terraform.ResourceConfig) (*terraform.ResourceAttrDiff, error) {
+	c *terraform.ResourceConfig) error {
 	var old, n string
 	if s != nil {
 		old = s.Attributes[k]
 	}
 
-	computed := false
 	v, ok := c.Get(k)
 	if !ok {
 		// We don't have a value, if it is required then it is an error
 		if schema.Required {
-			return nil, fmt.Errorf("%s: required field not set", k)
+			return fmt.Errorf("%s: required field not set", k)
 		}
 
 		// We don't have a configuration value.
-		if schema.Computed {
-			computed = true
-		} else {
-			return nil, nil
+		if !schema.Computed {
+			return nil
 		}
 	} else {
 		if err := mapstructure.WeakDecode(v, &n); err != nil {
-			return nil, fmt.Errorf("%s: %s", k, err)
+			return fmt.Errorf("%s: %s", k, err)
 		}
 
 		if old == n {
 			// They're the same value
-			return nil, nil
+			return nil
 		}
 	}
 
-	return &terraform.ResourceAttrDiff{
-		Old:         old,
-		New:         n,
-		NewComputed: computed,
-	}, nil
+	diff.Attributes[k] = schema.finalizeDiff(&terraform.ResourceAttrDiff{
+		Old: old,
+		New: n,
+	})
+
+	return nil
+}
+
+func (m schemaMap) diffPrimitive(
+	k string,
+	nraw interface{},
+	schema *Schema,
+	diff *terraform.ResourceDiff,
+	s *terraform.ResourceState) error {
+	var old, n string
+	if s != nil {
+		old = s.Attributes[k]
+	}
+
+	if err := mapstructure.WeakDecode(nraw, &n); err != nil {
+		return fmt.Errorf("%s: %s", k, err)
+	}
+
+	if old == n {
+		// They're the same value
+		return nil
+	}
+
+	diff.Attributes[k] = schema.finalizeDiff(&terraform.ResourceAttrDiff{
+		Old: old,
+		New: n,
+	})
+
+	return nil
 }
