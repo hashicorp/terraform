@@ -169,6 +169,15 @@ func (m schemaMap) diffList(
 		}
 	case *Resource:
 		// This is a complex resource
+		for i, _ := range vs {
+			for k2, schema := range t.Schema {
+				subK := fmt.Sprintf("%s.%d.%s", k, i, k2)
+				err := m.diff(subK, schema, diff, s, c)
+				if err != nil {
+					return err
+				}
+			}
+		}
 	default:
 		return fmt.Errorf("%s: unknown element type (internal)", k)
 	}
