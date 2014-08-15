@@ -50,6 +50,21 @@ func (r *Resource) InternalValidate() error {
 		if v.Required && v.Computed {
 			return fmt.Errorf("%s: Cannot be both Required and Computed", k)
 		}
+
+		if v.Type == TypeList {
+			if v.Elem == nil {
+				return fmt.Errorf("%s: Elem must be set for lists", k)
+			}
+
+			switch t := v.Elem.(type) {
+			case *Schema:
+				bad := t.Computed || t.Optional || t.Required
+				if bad {
+					return fmt.Errorf(
+						"%s: Elem must have only Type set", k)
+				}
+			}
+		}
 	}
 
 	return nil

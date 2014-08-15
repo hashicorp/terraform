@@ -144,15 +144,23 @@ func (m schemaMap) diffList(
 	}
 
 	// Diff the count no matter what
-	m.diffString(k+".#", &Schema{Type: TypeInt}, diff, s, c)
+	countSchema := &Schema{
+		Type:     TypeInt,
+		ForceNew: schema.ForceNew,
+	}
+	m.diffString(k+".#", countSchema, diff, s, c)
 
 	switch t := schema.Elem.(type) {
 	case *Schema:
+		t2 := *t
+		t2.Computed = schema.Computed
+		t2.ForceNew = schema.ForceNew
+
 		// This is just a primitive element, so go through each and
 		// just diff each.
 		for i, _ := range vs {
 			subK := fmt.Sprintf("%s.%d", k, i)
-			err := m.diff(subK, t, diff, s, c)
+			err := m.diff(subK, &t2, diff, s, c)
 			if err != nil {
 				return err
 			}

@@ -66,6 +66,34 @@ func TestResourceInternalValidate(t *testing.T) {
 			},
 			false,
 		},
+
+		// List element not set
+		{
+			&Resource{
+				Schema: map[string]*Schema{
+					"foo": &Schema{
+						Type: TypeList,
+					},
+				},
+			},
+			true,
+		},
+
+		// List element computed
+		{
+			&Resource{
+				Schema: map[string]*Schema{
+					"foo": &Schema{
+						Type: TypeList,
+						Elem: &Schema{
+							Type:     TypeInt,
+							Computed: true,
+						},
+					},
+				},
+			},
+			true,
+		},
 	}
 
 	for i, tc := range cases {

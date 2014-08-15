@@ -265,6 +265,50 @@ func TestSchemaMap_Diff(t *testing.T) {
 
 			Err: false,
 		},
+
+		{
+			Schema: map[string]*Schema{
+				"ports": &Schema{
+					Type:     TypeList,
+					Required: true,
+					Elem:     &Schema{Type: TypeInt},
+					ForceNew: true,
+				},
+			},
+
+			State: nil,
+
+			Config: map[string]interface{}{
+				"ports": []interface{}{1, 2, 5},
+			},
+
+			Diff: &terraform.ResourceDiff{
+				Attributes: map[string]*terraform.ResourceAttrDiff{
+					"ports.#": &terraform.ResourceAttrDiff{
+						Old:         "",
+						New:         "3",
+						RequiresNew: true,
+					},
+					"ports.0": &terraform.ResourceAttrDiff{
+						Old:         "",
+						New:         "1",
+						RequiresNew: true,
+					},
+					"ports.1": &terraform.ResourceAttrDiff{
+						Old:         "",
+						New:         "2",
+						RequiresNew: true,
+					},
+					"ports.2": &terraform.ResourceAttrDiff{
+						Old:         "",
+						New:         "5",
+						RequiresNew: true,
+					},
+				},
+			},
+
+			Err: false,
+		},
 	}
 
 	for i, tc := range cases {
