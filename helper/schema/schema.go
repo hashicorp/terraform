@@ -152,6 +152,8 @@ func (m schemaMap) diffList(
 
 	switch t := schema.Elem.(type) {
 	case *Schema:
+		// Copy the schema so that we can set Computed/ForceNew from
+		// the parent schema (the TypeList).
 		t2 := *t
 		t2.Computed = schema.Computed
 		t2.ForceNew = schema.ForceNew
