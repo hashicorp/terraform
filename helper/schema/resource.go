@@ -37,6 +37,11 @@ func (r *Resource) Diff(
 	return schemaMap(r.Schema).Diff(s, c)
 }
 
+// Validate validates the resource configuration against the schema.
+func (r *Resource) Validate(c *terraform.ResourceConfig) ([]string, []error) {
+	return schemaMap(r.Schema).Validate(c)
+}
+
 // InternalValidate should be called to validate the structure
 // of the resource.
 //

@@ -102,6 +102,24 @@ func (m schemaMap) Diff(
 	return result, nil
 }
 
+// Validate validates the configuration against this schema mapping.
+func (m schemaMap) Validate(c *terraform.ResourceConfig) ([]string, []error) {
+	var ws []string
+	var es []error
+
+	for k, schema := range m {
+		ws2, es2 := m.validate(k, schema, c)
+		if len(ws2) > 0 {
+			ws = append(ws, ws2...)
+		}
+		if len(es2) > 0 {
+			es = append(es, es2...)
+		}
+	}
+
+	return ws, es
+}
+
 func (m schemaMap) diff(
 	k string,
 	schema *Schema,
@@ -263,4 +281,99 @@ func (m schemaMap) diffPrimitive(
 	})
 
 	return nil
+}
+
+func (m schemaMap) validate(
+	k string,
+	schema *Schema,
+	c *terraform.ResourceConfig) ([]string, []error) {
+	raw, ok := c.Get(k)
+	if !ok {
+		if schema.Required {
+			return nil, []error{fmt.Errorf(
+				"%s: required field is not set")}
+		}
+
+		return nil, nil
+	}
+
+	return m.validatePrimitive(k, raw, schema, c)
+}
+
+func (m schemaMap) validateList(
+	k string,
+	raw interface{},
+	schema *Schema,
+	c *terraform.ResourceConfig) ([]string, []error) {
+	raws, ok := raw.([]interface{})
+	if !ok {
+		return nil, []error{fmt.Errorf(
+			"%s: should be list", k)}
+	}
+
+	var ws []string
+	var es []error
+	for i, raw := range raws {
+		key := fmt.Sprintf("%s.%d", k, i)
+
+		var ws2 []string
+		var es2 []error
+		switch t := schema.Elem.(type) {
+		case *Resource:
+			// This is a sub-resource
+			ws2, es2 = m.validateObject(key, t.Schema, c)
+		case *Schema:
+			// This is some sort of primitive
+			ws2, es2 = m.validatePrimitive(key, raw, t, c)
+		}
+
+		if len(ws2) > 0 {
+			ws = append(ws, ws2...)
+		}
+		if len(es2) > 0 {
+			es = append(es, es2...)
+		}
+	}
+
+	return ws, es
+}
+
+func (m schemaMap) validateObject(
+	k string,
+	schema map[string]*Schema,
+	c *terraform.ResourceConfig) ([]string, []error) {
+	var ws []string
+	var es []error
+	for subK, s := range schema {
+		key := fmt.Sprintf("%s.%s", k, subK)
+		ws2, es2 := m.validate(key, s, c)
+
+		if len(ws2) > 0 {
+			ws = append(ws, ws2...)
+		}
+		if len(es2) > 0 {
+			es = append(es, es2...)
+		}
+	}
+
+	return ws, es
+}
+
+func (m schemaMap) validatePrimitive(
+	k string,
+	raw interface{},
+	schema *Schema,
+	c *terraform.ResourceConfig) ([]string, []error) {
+	switch schema.Type {
+	case TypeList:
+		return m.validateList(k, raw, schema, c)
+	case TypeInt:
+		// Verify that we can parse this as an int
+		var n int
+		if err := mapstructure.WeakDecode(raw, &n); err != nil {
+			return nil, []error{err}
+		}
+	}
+
+	return nil, nil
 }
