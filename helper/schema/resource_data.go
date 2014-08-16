@@ -21,7 +21,11 @@ type ResourceData struct {
 // Primitives will be their respective types in Go, lists will always be
 // []interface{}, and sub-resources will be map[string]interface{}.
 func (d *ResourceData) Get(key string) interface{} {
-	parts := strings.Split(key, ".")
+	var parts []string
+	if key != "" {
+		parts = strings.Split(key, ".")
+	}
+
 	return d.getObject("", parts, d.schema)
 }
 

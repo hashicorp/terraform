@@ -270,6 +270,36 @@ func TestResourceDataGet(t *testing.T) {
 
 			Value: "foo",
 		},
+
+		// Full object
+		{
+			Schema: map[string]*Schema{
+				"availability_zone": &Schema{
+					Type:     TypeString,
+					Optional: true,
+					Computed: true,
+					ForceNew: true,
+				},
+			},
+
+			State: nil,
+
+			Diff: &terraform.ResourceDiff{
+				Attributes: map[string]*terraform.ResourceAttrDiff{
+					"availability_zone": &terraform.ResourceAttrDiff{
+						Old:         "",
+						New:         "foo",
+						RequiresNew: true,
+					},
+				},
+			},
+
+			Key: "",
+
+			Value: map[string]interface{}{
+				"availability_zone": "foo",
+			},
+		},
 	}
 
 	for i, tc := range cases {
