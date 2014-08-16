@@ -505,6 +505,49 @@ func TestSchemaMap_Diff(t *testing.T) {
 
 			Err: false,
 		},
+
+		/* TODO
+		{
+			Schema: map[string]*Schema{
+				"availability_zone": &Schema{
+					Type:         TypeString,
+					Computed:     true,
+					ComputedWhen: []string{"port"},
+				},
+
+				"port": &Schema{
+					Type:     TypeInt,
+					Optional: true,
+				},
+			},
+
+			State: &terraform.ResourceState{
+				Attributes: map[string]string{
+					"availability_zone": "foo",
+					"port":              "80",
+				},
+			},
+
+			Config: map[string]interface{}{
+				"port": 8080,
+			},
+
+			Diff: &terraform.ResourceDiff{
+				Attributes: map[string]*terraform.ResourceAttrDiff{
+					"availability_zone": &terraform.ResourceAttrDiff{
+						Old:         "foo",
+						NewComputed: true,
+					},
+					"port": &terraform.ResourceAttrDiff{
+						Old: "80",
+						New: "8080",
+					},
+				},
+			},
+
+			Err: false,
+		},
+		*/
 	}
 
 	for i, tc := range cases {

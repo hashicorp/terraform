@@ -250,6 +250,26 @@ func TestResourceDataGet(t *testing.T) {
 				},
 			},
 		},
+
+		// Computed get
+		{
+			Schema: map[string]*Schema{
+				"availability_zone": &Schema{
+					Type:     TypeString,
+					Computed: true,
+				},
+			},
+
+			State: &terraform.ResourceState{
+				Attributes: map[string]string{
+					"availability_zone": "foo",
+				},
+			},
+
+			Key: "availability_zone",
+
+			Value: "foo",
+		},
 	}
 
 	for i, tc := range cases {

@@ -112,11 +112,16 @@ func (m schemaMap) Diff(
 		}
 	}
 
+	// Remove any nil diffs just to keep things clean
 	for k, v := range result.Attributes {
 		if v == nil {
 			delete(result.Attributes, k)
 		}
 	}
+
+	// Go through and detect all of the ComputedWhens now that we've
+	// finished the diff.
+	// TODO
 
 	if result.Empty() {
 		// If we don't have any diff elements, just return nil
