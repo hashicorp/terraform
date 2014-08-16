@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/hashicorp/terraform/terraform"
+	"github.com/mitchellh/mapstructure"
 )
 
 // ResourceData is used to query and set the attributes of a resource.
@@ -13,6 +14,7 @@ type ResourceData struct {
 	schema map[string]*Schema
 	state  *terraform.ResourceState
 	diff   *terraform.ResourceDiff
+	set    map[string]string
 }
 
 // Get returns the data for the given key, or nil if the key doesn't exist.
@@ -27,6 +29,19 @@ func (d *ResourceData) Get(key string) interface{} {
 	}
 
 	return d.getObject("", parts, d.schema)
+}
+
+// Set sets the value for the given key.
+//
+// If the key is invalid or the value is not a correct type, an error
+// will be returned.
+func (d *ResourceData) Set(key string, value interface{}) error {
+	if d.set == nil {
+		d.set = make(map[string]string)
+	}
+
+	parts := strings.Split(key, ".")
+	return d.setObject("", parts, d.schema, value)
 }
 
 func (d *ResourceData) get(
@@ -85,7 +100,12 @@ func (d *ResourceData) getList(
 		// Special case if we're accessing the count of the list
 		if idx == "#" {
 			schema := &Schema{Type: TypeInt}
-			return d.get(k+".#", parts, schema)
+			result := d.get(k+".#", parts, schema)
+			if result == nil {
+				result = 0
+			}
+
+			return result
 		}
 
 		key := fmt.Sprintf("%s.%s", k, idx)
@@ -112,15 +132,28 @@ func (d *ResourceData) getPrimitive(
 	parts []string,
 	schema *Schema) interface{} {
 	var result string
+	var resultSet bool
 	if d.state != nil {
-		result = d.state.Attributes[k]
+		result, resultSet = d.state.Attributes[k]
 	}
 
 	if d.diff != nil {
 		attrD, ok := d.diff.Attributes[k]
 		if ok {
 			result = attrD.New
+			resultSet = true
 		}
+	}
+
+	if d.set != nil {
+		if v, ok := d.set[k]; ok {
+			result = v
+			resultSet = true
+		}
+	}
+
+	if !resultSet {
+		return nil
 	}
 
 	switch schema.Type {
@@ -141,4 +174,56 @@ func (d *ResourceData) getPrimitive(
 	default:
 		panic(fmt.Sprintf("Unknown type: %s", schema.Type))
 	}
+}
+
+func (d *ResourceData) setObject(
+	k string,
+	parts []string,
+	schema map[string]*Schema,
+	value interface{}) error {
+	if len(parts) > 0 {
+		// We're setting a specific key in an object
+		key := parts[0]
+		parts = parts[1:]
+
+		s, ok := schema[key]
+		if !ok {
+			return fmt.Errorf("%s (internal): unknown key to set: %s", k, key)
+		}
+
+		if k != "" {
+			// If we're not at the root, then we need to append
+			// the key to get the full key path.
+			key = fmt.Sprintf("%s.%s", k, key)
+		}
+
+		return d.setPrimitive(key, s, value)
+	}
+
+	panic("can't set full object yet")
+}
+
+func (d *ResourceData) setPrimitive(
+	k string,
+	schema *Schema,
+	v interface{}) error {
+	var set string
+	switch schema.Type {
+	case TypeString:
+		if err := mapstructure.Decode(v, &set); err != nil {
+			return fmt.Errorf("%s: %s", k, err)
+		}
+	case TypeInt:
+		var n int
+		if err := mapstructure.Decode(v, &n); err != nil {
+			return fmt.Errorf("%s: %s", k, err)
+		}
+
+		set = strconv.FormatInt(int64(n), 10)
+	default:
+		return fmt.Errorf("Unknown type: %s", schema.Type)
+	}
+
+	d.set[k] = set
+	return nil
 }

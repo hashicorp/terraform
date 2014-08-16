@@ -314,3 +314,100 @@ func TestResourceDataGet(t *testing.T) {
 		}
 	}
 }
+
+func TestResourceDataSet(t *testing.T) {
+	cases := []struct {
+		Schema   map[string]*Schema
+		State    *terraform.ResourceState
+		Diff     *terraform.ResourceDiff
+		Key      string
+		Value    interface{}
+		Err      bool
+		GetKey   string
+		GetValue interface{}
+	}{
+		// Basic good
+		{
+			Schema: map[string]*Schema{
+				"availability_zone": &Schema{
+					Type:     TypeString,
+					Optional: true,
+					Computed: true,
+					ForceNew: true,
+				},
+			},
+
+			State: nil,
+
+			Diff: nil,
+
+			Key:   "availability_zone",
+			Value: "foo",
+
+			GetKey:   "availability_zone",
+			GetValue: "foo",
+		},
+
+		// Basic int
+		{
+			Schema: map[string]*Schema{
+				"port": &Schema{
+					Type:     TypeInt,
+					Optional: true,
+					Computed: true,
+					ForceNew: true,
+				},
+			},
+
+			State: nil,
+
+			Diff: nil,
+
+			Key:   "port",
+			Value: 80,
+
+			GetKey:   "port",
+			GetValue: 80,
+		},
+
+		// Invalid type
+		{
+			Schema: map[string]*Schema{
+				"availability_zone": &Schema{
+					Type:     TypeString,
+					Optional: true,
+					Computed: true,
+					ForceNew: true,
+				},
+			},
+
+			State: nil,
+
+			Diff: nil,
+
+			Key:   "availability_zone",
+			Value: 80,
+			Err:   true,
+
+			GetKey:   "availability_zone",
+			GetValue: nil,
+		},
+	}
+
+	for i, tc := range cases {
+		d, err := schemaMap(tc.Schema).Data(tc.State, tc.Diff)
+		if err != nil {
+			t.Fatalf("err: %s", err)
+		}
+
+		err = d.Set(tc.Key, tc.Value)
+		if (err != nil) != tc.Err {
+			t.Fatalf("%d err: %s", i, err)
+		}
+
+		v := d.Get(tc.GetKey)
+		if !reflect.DeepEqual(v, tc.GetValue) {
+			t.Fatalf("Get Bad: %d\n\n%#v", i, v)
+		}
+	}
+}
