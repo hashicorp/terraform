@@ -604,6 +604,24 @@ func TestSchemaMap_Validate(t *testing.T) {
 
 			Err: false,
 		},
+
+		// Invalid/unknown field
+		{
+			Schema: map[string]*Schema{
+				"availability_zone": &Schema{
+					Type:     TypeString,
+					Optional: true,
+					Computed: true,
+					ForceNew: true,
+				},
+			},
+
+			Config: map[string]interface{}{
+				"foo": "bar",
+			},
+
+			Err: true,
+		},
 	}
 
 	for i, tc := range cases {

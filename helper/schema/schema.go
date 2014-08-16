@@ -2,6 +2,7 @@ package schema
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/hashicorp/terraform/terraform"
 	"github.com/mitchellh/mapstructure"
@@ -104,20 +105,7 @@ func (m schemaMap) Diff(
 
 // Validate validates the configuration against this schema mapping.
 func (m schemaMap) Validate(c *terraform.ResourceConfig) ([]string, []error) {
-	var ws []string
-	var es []error
-
-	for k, schema := range m {
-		ws2, es2 := m.validate(k, schema, c)
-		if len(ws2) > 0 {
-			ws = append(ws, ws2...)
-		}
-		if len(es2) > 0 {
-			es = append(es, es2...)
-		}
-	}
-
-	return ws, es
+	return m.validateObject("", m, c)
 }
 
 func (m schemaMap) diff(
@@ -345,14 +333,34 @@ func (m schemaMap) validateObject(
 	var ws []string
 	var es []error
 	for subK, s := range schema {
-		key := fmt.Sprintf("%s.%s", k, subK)
-		ws2, es2 := m.validate(key, s, c)
+		key := subK
+		if k != "" {
+			key = fmt.Sprintf("%s.%s", k, subK)
+		}
 
+		ws2, es2 := m.validate(key, s, c)
 		if len(ws2) > 0 {
 			ws = append(ws, ws2...)
 		}
 		if len(es2) > 0 {
 			es = append(es, es2...)
+		}
+	}
+
+	// Detect any extra/unknown keys and report those as errors.
+	prefix := k + "."
+	for configK, _ := range c.Raw {
+		if k != "" {
+			if !strings.HasPrefix(configK, prefix) {
+				continue
+			}
+
+			configK = configK[len(prefix):]
+		}
+
+		if _, ok := schema[configK]; !ok {
+			es = append(es, fmt.Errorf(
+				"%s: invalid or unknown key: %s", k, configK))
 		}
 	}
 
