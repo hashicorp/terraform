@@ -279,10 +279,16 @@ func (m schemaMap) validate(
 	if !ok {
 		if schema.Required {
 			return nil, []error{fmt.Errorf(
-				"%s: required field is not set")}
+				"%s: required field is not set", k)}
 		}
 
 		return nil, nil
+	}
+
+	if !schema.Required && !schema.Optional {
+		// This is a computed-only field
+		return nil, []error{fmt.Errorf(
+			"%s: this field cannot be set", k)}
 	}
 
 	return m.validatePrimitive(k, raw, schema, c)

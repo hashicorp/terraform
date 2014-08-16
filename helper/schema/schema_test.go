@@ -582,7 +582,8 @@ func TestSchemaMap_Validate(t *testing.T) {
 		{
 			Schema: map[string]*Schema{
 				"ingress": &Schema{
-					Type: TypeList,
+					Type:     TypeList,
+					Optional: true,
 					Elem: &Resource{
 						Schema: map[string]*Schema{
 							"from": &Schema{
@@ -618,6 +619,22 @@ func TestSchemaMap_Validate(t *testing.T) {
 
 			Config: map[string]interface{}{
 				"foo": "bar",
+			},
+
+			Err: true,
+		},
+
+		// Computed field set
+		{
+			Schema: map[string]*Schema{
+				"availability_zone": &Schema{
+					Type:     TypeString,
+					Computed: true,
+				},
+			},
+
+			Config: map[string]interface{}{
+				"availability_zone": "bar",
 			},
 
 			Err: true,
