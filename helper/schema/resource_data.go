@@ -16,6 +16,10 @@ type ResourceData struct {
 }
 
 // Get returns the data for the given key, or nil if the key doesn't exist.
+//
+// The type of the data returned will be according to the schema specified.
+// Primitives will be their respective types in Go, lists will always be
+// []interface{}, and sub-resources will be map[string]interface{}.
 func (d *ResourceData) Get(key string) interface{} {
 	parts := strings.Split(key, ".")
 	return d.getObject("", parts, d.schema)
