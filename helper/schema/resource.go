@@ -66,6 +66,10 @@ func (r *Resource) InternalValidate() error {
 			return fmt.Errorf("%s: Cannot be both Required and Computed", k)
 		}
 
+		if len(v.ComputedWhen) > 0 && !v.Computed {
+			return fmt.Errorf("%s: ComputedWhen can only be set with Computed", k)
+		}
+
 		if v.Type == TypeList {
 			if v.Elem == nil {
 				return fmt.Errorf("%s: Elem must be set for lists", k)

@@ -94,6 +94,20 @@ func TestResourceInternalValidate(t *testing.T) {
 			},
 			true,
 		},
+
+		// Required but computed
+		{
+			&Resource{
+				Schema: map[string]*Schema{
+					"foo": &Schema{
+						Type:         TypeInt,
+						Required:     true,
+						ComputedWhen: []string{"foo"},
+					},
+				},
+			},
+			true,
+		},
 	}
 
 	for i, tc := range cases {

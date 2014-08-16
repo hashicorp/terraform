@@ -30,9 +30,13 @@ type Schema struct {
 	Optional bool
 	Required bool
 
-	// The fields below relate to diffs: if Computed is true, then the
-	// result of this value is computed (unless specified by config).
-	// If ForceNew is true
+	// The fields below relate to diffs.
+	//
+	// If Computed is true, then the result of this value is computed
+	// (unless specified by config) on creation.
+	//
+	// If ForceNew is true, then a change in this resource necessitates
+	// the creation of a new resource.
 	Computed bool
 	ForceNew bool
 
@@ -43,6 +47,11 @@ type Schema struct {
 	// the element type is just a simple value. If it is *Resource, the
 	// element type is a complex structure, potentially with its own lifecycle.
 	Elem interface{}
+
+	// ComputedWhen is a set of queries on the configuration. Whenever any
+	// of these things is changed, it will require a recompute (this requires
+	// that Computed is set to true).
+	ComputedWhen []string
 }
 
 func (s *Schema) finalizeDiff(
@@ -51,9 +60,17 @@ func (s *Schema) finalizeDiff(
 		return d
 	}
 
-	if s.Computed && d.New == "" {
-		// Computed attribute without a new value set
-		d.NewComputed = true
+	if s.Computed {
+		if d.Old != "" && d.New == "" {
+			// This is a computed value with an old value set already,
+			// just let it go.
+			return nil
+		}
+
+		if d.New == "" {
+			// Computed attribute without a new value set
+			d.NewComputed = true
+		}
 	}
 
 	if s.ForceNew {
@@ -92,6 +109,12 @@ func (m schemaMap) Diff(
 		err := m.diff(k, schema, result, s, c)
 		if err != nil {
 			return nil, err
+		}
+	}
+
+	for k, v := range result.Attributes {
+		if v == nil {
+			delete(result.Attributes, k)
 		}
 	}
 
