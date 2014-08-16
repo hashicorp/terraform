@@ -37,14 +37,31 @@ func (d *ResourceData) getObject(
 	k string,
 	parts []string,
 	schema map[string]*Schema) interface{} {
-	key := parts[0]
-	parts = parts[1:]
-	s, ok := schema[key]
-	if !ok {
-		return nil
+	if len(parts) > 0 {
+		// We're requesting a specific key in an object
+		key := parts[0]
+		parts = parts[1:]
+		s, ok := schema[key]
+		if !ok {
+			return nil
+		}
+
+		if k != "" {
+			// If we're not at the root, then we need to append
+			// the key to get the full key path.
+			key = fmt.Sprintf("%s.%s", k, key)
+		}
+
+		return d.get(key, parts, s)
 	}
 
-	return d.get(key, parts, s)
+	// Get the entire object
+	result := make(map[string]interface{})
+	for field, _ := range schema {
+		result[field] = d.getObject(k, []string{field}, schema)
+	}
+
+	return result
 }
 
 func (d *ResourceData) getList(

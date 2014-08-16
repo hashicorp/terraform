@@ -172,6 +172,84 @@ func TestResourceDataGet(t *testing.T) {
 
 			Value: []interface{}{1, 2, 5},
 		},
+
+		{
+			Schema: map[string]*Schema{
+				"ingress": &Schema{
+					Type:     TypeList,
+					Required: true,
+					Elem: &Resource{
+						Schema: map[string]*Schema{
+							"from": &Schema{
+								Type:     TypeInt,
+								Required: true,
+							},
+						},
+					},
+				},
+			},
+
+			State: nil,
+
+			Diff: &terraform.ResourceDiff{
+				Attributes: map[string]*terraform.ResourceAttrDiff{
+					"ingress.#": &terraform.ResourceAttrDiff{
+						Old: "",
+						New: "1",
+					},
+					"ingress.0.from": &terraform.ResourceAttrDiff{
+						Old: "",
+						New: "8080",
+					},
+				},
+			},
+
+			Key: "ingress.0",
+
+			Value: map[string]interface{}{
+				"from": 8080,
+			},
+		},
+
+		{
+			Schema: map[string]*Schema{
+				"ingress": &Schema{
+					Type:     TypeList,
+					Required: true,
+					Elem: &Resource{
+						Schema: map[string]*Schema{
+							"from": &Schema{
+								Type:     TypeInt,
+								Required: true,
+							},
+						},
+					},
+				},
+			},
+
+			State: nil,
+
+			Diff: &terraform.ResourceDiff{
+				Attributes: map[string]*terraform.ResourceAttrDiff{
+					"ingress.#": &terraform.ResourceAttrDiff{
+						Old: "",
+						New: "1",
+					},
+					"ingress.0.from": &terraform.ResourceAttrDiff{
+						Old: "",
+						New: "8080",
+					},
+				},
+			},
+
+			Key: "ingress",
+
+			Value: []interface{}{
+				map[string]interface{}{
+					"from": 8080,
+				},
+			},
+		},
 	}
 
 	for i, tc := range cases {
