@@ -76,6 +76,10 @@ func (r *Resource) InternalValidate() error {
 			}
 
 			switch t := v.Elem.(type) {
+			case *Resource:
+				if err := t.InternalValidate(); err != nil {
+					return err
+				}
 			case *Schema:
 				bad := t.Computed || t.Optional || t.Required
 				if bad {

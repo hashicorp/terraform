@@ -108,6 +108,42 @@ func TestResourceInternalValidate(t *testing.T) {
 			},
 			true,
 		},
+
+		// Sub-resource invalid
+		{
+			&Resource{
+				Schema: map[string]*Schema{
+					"foo": &Schema{
+						Type: TypeList,
+						Elem: &Resource{
+							Schema: map[string]*Schema{
+								"foo": new(Schema),
+							},
+						},
+					},
+				},
+			},
+			true,
+		},
+
+		// Sub-resource valid
+		{
+			&Resource{
+				Schema: map[string]*Schema{
+					"foo": &Schema{
+						Type: TypeList,
+						Elem: &Resource{
+							Schema: map[string]*Schema{
+								"foo": &Schema{
+									Type: TypeInt,
+								},
+							},
+						},
+					},
+				},
+			},
+			false,
+		},
 	}
 
 	for i, tc := range cases {
