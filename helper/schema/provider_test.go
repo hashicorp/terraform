@@ -2,6 +2,7 @@ package schema
 
 import (
 	"fmt"
+	"reflect"
 	"testing"
 
 	"github.com/hashicorp/terraform/config"
@@ -80,6 +81,38 @@ func TestProviderConfigure(t *testing.T) {
 	}
 }
 
+func TestProviderResources(t *testing.T) {
+	cases := []struct {
+		P      *Provider
+		Result []terraform.ResourceType
+	}{
+		{
+			P:      &Provider{},
+			Result: []terraform.ResourceType{},
+		},
+
+		{
+			P: &Provider{
+				ResourcesMap: map[string]*Resource{
+					"foo": nil,
+					"bar": nil,
+				},
+			},
+			Result: []terraform.ResourceType{
+				terraform.ResourceType{Name: "foo"},
+				terraform.ResourceType{Name: "bar"},
+			},
+		},
+	}
+
+	for i, tc := range cases {
+		actual := tc.P.Resources()
+		if !reflect.DeepEqual(actual, tc.Result) {
+			t.Fatalf("%d: %#v", i, actual)
+		}
+	}
+}
+
 func TestProviderValidateResource(t *testing.T) {
 	cases := []struct {
 		P      *Provider
@@ -96,7 +129,7 @@ func TestProviderValidateResource(t *testing.T) {
 
 		{
 			P: &Provider{
-				Resources: map[string]*Resource{
+				ResourcesMap: map[string]*Resource{
 					"foo": &Resource{},
 				},
 			},

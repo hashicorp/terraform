@@ -12,8 +12,8 @@ import (
 // This is a friendlier API than the core Terraform ResourceProvider API,
 // and is recommended to be used over that.
 type Provider struct {
-	Schema    map[string]*Schema
-	Resources map[string]*Resource
+	Schema       map[string]*Schema
+	ResourcesMap map[string]*Resource
 
 	ConfigureFunc ConfigureFunc
 }
@@ -30,7 +30,7 @@ func (p *Provider) Validate(c *terraform.ResourceConfig) ([]string, []error) {
 // proper schema.
 func (p *Provider) ValidateResource(
 	t string, c *terraform.ResourceConfig) ([]string, []error) {
-	r, ok := p.Resources[t]
+	r, ok := p.ResourcesMap[t]
 	if !ok {
 		return nil, []error{fmt.Errorf(
 			"Provider doesn't support resource: %s", t)}
@@ -61,4 +61,16 @@ func (p *Provider) Configure(c *terraform.ResourceConfig) error {
 	}
 
 	return p.ConfigureFunc(data)
+}
+
+// Resources implementation of terraform.ResourceProvider interface.
+func (p *Provider) Resources() []terraform.ResourceType {
+	result := make([]terraform.ResourceType, 0, len(p.ResourcesMap))
+	for k, _ := range p.ResourcesMap {
+		result = append(result, terraform.ResourceType{
+			Name: k,
+		})
+	}
+
+	return result
 }
