@@ -44,6 +44,14 @@ func (d *ResourceData) Set(key string, value interface{}) error {
 	return d.setObject("", parts, d.schema, value)
 }
 
+// State returns the new ResourceState after the diff and any Set
+// calls.
+func (d *ResourceData) State() *terraform.ResourceState {
+	var result terraform.ResourceState
+	result.Attributes = d.stateObject("", d.schema)
+	return &result
+}
+
 func (d *ResourceData) get(
 	k string,
 	parts []string,
@@ -315,4 +323,86 @@ func (d *ResourceData) setPrimitive(
 
 	d.setMap[k] = set
 	return nil
+}
+
+func (d *ResourceData) stateList(
+	prefix string,
+	schema *Schema) map[string]string {
+	countRaw := d.get(prefix, []string{"#"}, schema)
+	if countRaw == nil {
+		return nil
+	}
+	count := countRaw.(int)
+
+	result := make(map[string]string)
+	result[prefix + ".#"] = strconv.FormatInt(int64(count), 10)
+	for i := 0; i < count; i++ {
+		key := fmt.Sprintf("%s.%d", prefix, i)
+
+		var m map[string]string
+		switch t := schema.Elem.(type) {
+		case *Resource:
+			m = d.stateObject(key, t.Schema)
+		case *Schema:
+			m = d.stateSingle(key, t)
+		}
+
+		for k, v := range m {
+			result[k] = v
+		}
+	}
+
+	return result
+}
+
+func (d *ResourceData) stateObject(
+	prefix string,
+	schema map[string]*Schema) map[string]string {
+	result := make(map[string]string)
+	for k, v := range schema {
+		key := k
+		if prefix != "" {
+			key = prefix + "." + key
+		}
+
+		for k1, v1 := range d.stateSingle(key, v) {
+			result[k1] = v1
+		}
+	}
+
+	return result
+}
+
+func (d *ResourceData) statePrimitive(
+	prefix string,
+	schema *Schema) map[string]string {
+	v := d.getPrimitive(prefix, nil, schema)
+	if v == nil {
+		return nil
+	}
+
+	var vs string
+	switch schema.Type {
+	case TypeString:
+		vs = v.(string)
+	case TypeInt:
+		vs = strconv.FormatInt(int64(v.(int)), 10)
+	default:
+		panic(fmt.Sprintf("Unknown type: %s", schema.Type))
+	}
+
+	return map[string]string{
+		prefix: vs,
+	}
+}
+
+func (d *ResourceData) stateSingle(
+	prefix string,
+	schema *Schema) map[string]string {
+	switch schema.Type {
+	case TypeList:
+		return d.stateList(prefix, schema)
+	default:
+		return d.statePrimitive(prefix, schema)
+	}
 }
