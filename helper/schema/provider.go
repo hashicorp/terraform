@@ -15,7 +15,7 @@ type Provider struct {
 	Schema    map[string]*Schema
 	Resources map[string]*Resource
 
-	Configure ConfigureFunc
+	ConfigureFunc ConfigureFunc
 }
 
 // ConfigureFunc is the function used to configure a Provider.
@@ -37,4 +37,28 @@ func (p *Provider) ValidateResource(
 	}
 
 	return r.Validate(c)
+}
+
+// Configure implementation of terraform.ResourceProvider interface.
+func (p *Provider) Configure(c *terraform.ResourceConfig) error {
+	// No configuration
+	if p.ConfigureFunc == nil {
+		return nil
+	}
+
+	sm := schemaMap(p.Schema)
+
+	// Get a ResourceData for this configuration. To do this, we actually
+	// generate an intermediary "diff" although that is never exposed.
+	diff, err := sm.Diff(nil, c)
+	if err != nil {
+		return err
+	}
+
+	data, err := sm.Data(nil, diff)
+	if err != nil {
+		return err
+	}
+
+	return p.ConfigureFunc(data)
 }
