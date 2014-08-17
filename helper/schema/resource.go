@@ -2,7 +2,6 @@ package schema
 
 import (
 	"errors"
-	"fmt"
 
 	"github.com/hashicorp/terraform/terraform"
 )
@@ -53,42 +52,5 @@ func (r *Resource) InternalValidate() error {
 		return errors.New("resource is nil")
 	}
 
-	for k, v := range r.Schema {
-		if v.Type == TypeInvalid {
-			return fmt.Errorf("%s: Type must be specified", k)
-		}
-
-		if v.Optional && v.Required {
-			return fmt.Errorf("%s: Optional or Required must be set, not both", k)
-		}
-
-		if v.Required && v.Computed {
-			return fmt.Errorf("%s: Cannot be both Required and Computed", k)
-		}
-
-		if len(v.ComputedWhen) > 0 && !v.Computed {
-			return fmt.Errorf("%s: ComputedWhen can only be set with Computed", k)
-		}
-
-		if v.Type == TypeList {
-			if v.Elem == nil {
-				return fmt.Errorf("%s: Elem must be set for lists", k)
-			}
-
-			switch t := v.Elem.(type) {
-			case *Resource:
-				if err := t.InternalValidate(); err != nil {
-					return err
-				}
-			case *Schema:
-				bad := t.Computed || t.Optional || t.Required
-				if bad {
-					return fmt.Errorf(
-						"%s: Elem must have only Type set", k)
-				}
-			}
-		}
-	}
-
-	return nil
+	return schemaMap(r.Schema).InternalValidate()
 }

@@ -136,6 +136,50 @@ func (m schemaMap) Validate(c *terraform.ResourceConfig) ([]string, []error) {
 	return m.validateObject("", m, c)
 }
 
+// InternalValidate validates the format of this schema. This should be called
+// from a unit test (and not in user-path code) to verify that a schema
+// is properly built.
+func (m schemaMap) InternalValidate() error {
+	for k, v := range m {
+		if v.Type == TypeInvalid {
+			return fmt.Errorf("%s: Type must be specified", k)
+		}
+
+		if v.Optional && v.Required {
+			return fmt.Errorf("%s: Optional or Required must be set, not both", k)
+		}
+
+		if v.Required && v.Computed {
+			return fmt.Errorf("%s: Cannot be both Required and Computed", k)
+		}
+
+		if len(v.ComputedWhen) > 0 && !v.Computed {
+			return fmt.Errorf("%s: ComputedWhen can only be set with Computed", k)
+		}
+
+		if v.Type == TypeList {
+			if v.Elem == nil {
+				return fmt.Errorf("%s: Elem must be set for lists", k)
+			}
+
+			switch t := v.Elem.(type) {
+			case *Resource:
+				if err := t.InternalValidate(); err != nil {
+					return err
+				}
+			case *Schema:
+				bad := t.Computed || t.Optional || t.Required
+				if bad {
+					return fmt.Errorf(
+						"%s: Elem must have only Type set", k)
+				}
+			}
+		}
+	}
+
+	return nil
+}
+
 func (m schemaMap) diff(
 	k string,
 	schema *Schema,

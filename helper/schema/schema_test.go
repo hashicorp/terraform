@@ -568,6 +568,139 @@ func TestSchemaMap_Diff(t *testing.T) {
 	}
 }
 
+func TestSchemaMap_InternalValidate(t *testing.T) {
+	cases := []struct {
+		In  map[string]*Schema
+		Err bool
+	}{
+		{
+			nil,
+			false,
+		},
+
+		// No optional and no required
+		{
+			map[string]*Schema{
+				"foo": &Schema{
+					Type:     TypeInt,
+					Optional: true,
+					Required: true,
+				},
+			},
+			true,
+		},
+
+		// Missing Type
+		{
+			map[string]*Schema{
+				"foo": &Schema{
+					Required: true,
+				},
+			},
+			true,
+		},
+
+		// Required but computed
+		{
+			map[string]*Schema{
+				"foo": &Schema{
+					Type:     TypeInt,
+					Required: true,
+					Computed: true,
+				},
+			},
+			true,
+		},
+
+		// Looks good
+		{
+			map[string]*Schema{
+				"foo": &Schema{
+					Type:     TypeString,
+					Required: true,
+				},
+			},
+			false,
+		},
+
+		// List element not set
+		{
+			map[string]*Schema{
+				"foo": &Schema{
+					Type: TypeList,
+				},
+			},
+			true,
+		},
+
+		// List element computed
+		{
+			map[string]*Schema{
+				"foo": &Schema{
+					Type: TypeList,
+					Elem: &Schema{
+						Type:     TypeInt,
+						Computed: true,
+					},
+				},
+			},
+			true,
+		},
+
+		// Required but computed
+		{
+			map[string]*Schema{
+				"foo": &Schema{
+					Type:         TypeInt,
+					Required:     true,
+					ComputedWhen: []string{"foo"},
+				},
+			},
+			true,
+		},
+
+		// Sub-resource invalid
+		{
+			map[string]*Schema{
+				"foo": &Schema{
+					Type: TypeList,
+					Elem: &Resource{
+						Schema: map[string]*Schema{
+							"foo": new(Schema),
+						},
+					},
+				},
+			},
+			true,
+		},
+
+		// Sub-resource valid
+		{
+			map[string]*Schema{
+				"foo": &Schema{
+					Type: TypeList,
+					Elem: &Resource{
+						Schema: map[string]*Schema{
+							"foo": &Schema{
+								Type: TypeInt,
+							},
+						},
+					},
+				},
+			},
+			false,
+		},
+	}
+
+	for i, tc := range cases {
+		err := schemaMap(tc.In).InternalValidate()
+		if (err != nil) != tc.Err {
+			t.Fatalf("%d: bad: %s", i, err)
+		}
+	}
+
+}
+
 func TestSchemaMap_Validate(t *testing.T) {
 	cases := []struct {
 		Schema map[string]*Schema
