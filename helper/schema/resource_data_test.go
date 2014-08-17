@@ -392,6 +392,210 @@ func TestResourceDataSet(t *testing.T) {
 			GetKey:   "availability_zone",
 			GetValue: nil,
 		},
+
+		// List of primitives, set element
+		{
+			Schema: map[string]*Schema{
+				"ports": &Schema{
+					Type:     TypeList,
+					Computed: true,
+					Elem:     &Schema{Type: TypeInt},
+				},
+			},
+
+			State: &terraform.ResourceState{
+				Attributes: map[string]string{
+					"ports.#": "3",
+					"ports.0": "1",
+					"ports.1": "2",
+					"ports.2": "5",
+				},
+			},
+
+			Diff: nil,
+
+			Key:   "ports.1",
+			Value: 3,
+
+			GetKey:   "ports",
+			GetValue: []interface{}{1, 3, 5},
+		},
+
+		// List of primitives, set list
+		{
+			Schema: map[string]*Schema{
+				"ports": &Schema{
+					Type:     TypeList,
+					Computed: true,
+					Elem:     &Schema{Type: TypeInt},
+				},
+			},
+
+			State: nil,
+
+			Diff: nil,
+
+			Key:   "ports",
+			Value: []int{1, 2, 5},
+
+			GetKey:   "ports",
+			GetValue: []interface{}{1, 2, 5},
+		},
+
+		// List of primitives, set list with error
+		{
+			Schema: map[string]*Schema{
+				"ports": &Schema{
+					Type:     TypeList,
+					Computed: true,
+					Elem:     &Schema{Type: TypeInt},
+				},
+			},
+
+			State: nil,
+
+			Diff: nil,
+
+			Key:   "ports",
+			Value: []interface{}{1, "NOPE", 5},
+			Err:   true,
+
+			GetKey:   "ports",
+			GetValue: []interface{}{},
+		},
+
+		// List of resource, set element
+		{
+			Schema: map[string]*Schema{
+				"ingress": &Schema{
+					Type:     TypeList,
+					Computed: true,
+					Elem: &Resource{
+						Schema: map[string]*Schema{
+							"from": &Schema{
+								Type: TypeInt,
+							},
+						},
+					},
+				},
+			},
+
+			State: &terraform.ResourceState{
+				Attributes: map[string]string{
+					"ingress.#":      "2",
+					"ingress.0.from": "80",
+					"ingress.1.from": "8080",
+				},
+			},
+
+			Diff: nil,
+
+			Key:   "ingress.1.from",
+			Value: 9000,
+
+			GetKey: "ingress",
+			GetValue: []interface{}{
+				map[string]interface{}{
+					"from": 80,
+				},
+				map[string]interface{}{
+					"from": 9000,
+				},
+			},
+		},
+
+		// List of resource, set full resource element
+		{
+			Schema: map[string]*Schema{
+				"ingress": &Schema{
+					Type:     TypeList,
+					Computed: true,
+					Elem: &Resource{
+						Schema: map[string]*Schema{
+							"from": &Schema{
+								Type: TypeInt,
+							},
+						},
+					},
+				},
+			},
+
+			State: &terraform.ResourceState{
+				Attributes: map[string]string{
+					"ingress.#":      "2",
+					"ingress.0.from": "80",
+					"ingress.1.from": "8080",
+				},
+			},
+
+			Diff: nil,
+
+			Key: "ingress.1",
+			Value: map[string]interface{}{
+				"from": 9000,
+			},
+
+			GetKey: "ingress",
+			GetValue: []interface{}{
+				map[string]interface{}{
+					"from": 80,
+				},
+				map[string]interface{}{
+					"from": 9000,
+				},
+			},
+		},
+
+		// List of resource, set full resource element, with error
+		{
+			Schema: map[string]*Schema{
+				"ingress": &Schema{
+					Type:     TypeList,
+					Computed: true,
+					Elem: &Resource{
+						Schema: map[string]*Schema{
+							"from": &Schema{
+								Type: TypeInt,
+							},
+							"to": &Schema{
+								Type: TypeInt,
+							},
+						},
+					},
+				},
+			},
+
+			State: &terraform.ResourceState{
+				Attributes: map[string]string{
+					"ingress.#":      "2",
+					"ingress.0.from": "80",
+					"ingress.0.to":   "10",
+					"ingress.1.from": "8080",
+					"ingress.1.to":   "8080",
+				},
+			},
+
+			Diff: nil,
+
+			Key: "ingress.1",
+			Value: map[string]interface{}{
+				"from": 9000,
+				"to":   "bar",
+			},
+			Err: true,
+
+			GetKey: "ingress",
+			GetValue: []interface{}{
+				map[string]interface{}{
+					"from": 80,
+					"to":   10,
+				},
+				map[string]interface{}{
+					"from": 8080,
+					"to":   8080,
+				},
+			},
+		},
 	}
 
 	for i, tc := range cases {

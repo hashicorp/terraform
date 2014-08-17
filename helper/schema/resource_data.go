@@ -14,7 +14,7 @@ type ResourceData struct {
 	schema map[string]*Schema
 	state  *terraform.ResourceState
 	diff   *terraform.ResourceDiff
-	set    map[string]string
+	setMap map[string]string
 }
 
 // Get returns the data for the given key, or nil if the key doesn't exist.
@@ -36,8 +36,8 @@ func (d *ResourceData) Get(key string) interface{} {
 // If the key is invalid or the value is not a correct type, an error
 // will be returned.
 func (d *ResourceData) Set(key string, value interface{}) error {
-	if d.set == nil {
-		d.set = make(map[string]string)
+	if d.setMap == nil {
+		d.setMap = make(map[string]string)
 	}
 
 	parts := strings.Split(key, ".")
@@ -145,8 +145,8 @@ func (d *ResourceData) getPrimitive(
 		}
 	}
 
-	if d.set != nil {
-		if v, ok := d.set[k]; ok {
+	if d.setMap != nil {
+		if v, ok := d.setMap[k]; ok {
 			result = v
 			resultSet = true
 		}
@@ -176,6 +176,70 @@ func (d *ResourceData) getPrimitive(
 	}
 }
 
+func (d *ResourceData) set(
+	k string,
+	parts []string,
+	schema *Schema,
+	value interface{}) error {
+	switch schema.Type {
+	case TypeList:
+		return d.setList(k, parts, schema, value)
+	default:
+		return d.setPrimitive(k, schema, value)
+	}
+}
+
+func (d *ResourceData) setList(
+	k string,
+	parts []string,
+	schema *Schema,
+	value interface{}) error {
+	if len(parts) > 0 {
+		// We're setting a specific element
+		idx := parts[0]
+		parts = parts[1:]
+
+		// Special case if we're accessing the count of the list
+		if idx == "#" {
+			return fmt.Errorf("%s: can't set count of list", k)
+		}
+
+		key := fmt.Sprintf("%s.%s", k, idx)
+		switch t := schema.Elem.(type) {
+		case *Resource:
+			return d.setObject(key, parts, t.Schema, value)
+		case *Schema:
+			return d.set(key, parts, t, value)
+		}
+	}
+
+	var vs []interface{}
+	if err := mapstructure.Decode(value, &vs); err != nil {
+		return fmt.Errorf("%s: %s", k, err)
+	}
+
+	// Set the entire list.
+	var err error
+	for i, elem := range vs {
+		is := strconv.FormatInt(int64(i), 10)
+		err = d.setList(k, []string{is}, schema, elem)
+		if err != nil {
+			break
+		}
+	}
+	if err != nil {
+		for i, _ := range vs {
+			is := strconv.FormatInt(int64(i), 10)
+			d.setList(k, []string{is}, schema, nil)
+		}
+
+		return err
+	}
+
+	d.setMap[k+".#"] = strconv.FormatInt(int64(len(vs)), 10)
+	return nil
+}
+
 func (d *ResourceData) setObject(
 	k string,
 	parts []string,
@@ -197,16 +261,41 @@ func (d *ResourceData) setObject(
 			key = fmt.Sprintf("%s.%s", k, key)
 		}
 
-		return d.setPrimitive(key, s, value)
+		return d.set(key, parts, s, value)
 	}
 
-	panic("can't set full object yet")
+	// Set the entire object. First decode into a proper structure
+	var v map[string]interface{}
+	if err := mapstructure.Decode(value, &v); err != nil {
+		return fmt.Errorf("%s: %s", k, err)
+	}
+
+	// Set each element in turn
+	var err error
+	for k1, v1 := range v {
+		err = d.setObject(k, []string{k1}, schema, v1)
+		if err != nil {
+			break
+		}
+	}
+	if err != nil {
+		for k1, _ := range v {
+			d.setObject(k, []string{k1}, schema, nil)
+		}
+	}
+
+	return err
 }
 
 func (d *ResourceData) setPrimitive(
 	k string,
 	schema *Schema,
 	v interface{}) error {
+	if v == nil {
+		delete(d.setMap, k)
+		return nil
+	}
+
 	var set string
 	switch schema.Type {
 	case TypeString:
@@ -224,6 +313,6 @@ func (d *ResourceData) setPrimitive(
 		return fmt.Errorf("Unknown type: %s", schema.Type)
 	}
 
-	d.set[k] = set
+	d.setMap[k] = set
 	return nil
 }
