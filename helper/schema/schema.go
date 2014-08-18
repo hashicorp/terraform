@@ -224,6 +224,8 @@ func (m schemaMap) diffList(
 		if !schema.Computed {
 			return nil
 		}
+
+		return nil
 	}
 
 	// We have to use reflection to build the []interface{} list
