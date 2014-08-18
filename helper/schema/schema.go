@@ -198,6 +198,8 @@ func (m schemaMap) diff(
 		err = m.diffString(k, schema, diff, s, c)
 	case TypeList:
 		err = m.diffList(k, schema, diff, s, c)
+	case TypeMap:
+		err = m.diffMap(k, schema, diff, s, c)
 	default:
 		err = fmt.Errorf("%s: unknown type %s", k, schema.Type)
 	}
@@ -276,6 +278,61 @@ func (m schemaMap) diffList(
 		}
 	default:
 		return fmt.Errorf("%s: unknown element type (internal)", k)
+	}
+
+	return nil
+}
+
+func (m schemaMap) diffMap(
+	k string,
+	schema *Schema,
+	diff *terraform.ResourceDiff,
+	s *terraform.ResourceState,
+	c *terraform.ResourceConfig) error {
+	//elemSchema := &Schema{Type: TypeString}
+	prefix := k + "."
+
+	// First get all the values from the state
+	stateMap := make(map[string]string)
+	if s != nil {
+		for sk, sv := range s.Attributes {
+			if !strings.HasPrefix(sk, prefix) {
+				continue
+			}
+
+			stateMap[sk[len(prefix):]] = sv
+		}
+	}
+
+	// Then get all the values from the configuration
+	configMap := make(map[string]string)
+	if c != nil {
+		if raw, ok := c.Get(k); ok {
+			for k, v := range raw.(map[string]interface{}) {
+				configMap[k] = v.(string)
+			}
+		}
+	}
+
+	// Now we compare, preferring values from the config map
+	for k, v := range configMap {
+		old := stateMap[k]
+		delete(stateMap, k)
+
+		if old == v {
+			continue
+		}
+
+		diff.Attributes[prefix+k] = schema.finalizeDiff(&terraform.ResourceAttrDiff{
+			Old: old,
+			New: v,
+		})
+	}
+	for k, v := range stateMap {
+		diff.Attributes[prefix+k] = schema.finalizeDiff(&terraform.ResourceAttrDiff{
+			Old:        v,
+			NewRemoved: true,
+		})
 	}
 
 	return nil

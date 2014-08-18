@@ -1078,7 +1078,16 @@ func TestResourceDataState(t *testing.T) {
 				Attributes: map[string]string{
 					"config_vars.#":     "2",
 					"config_vars.0.foo": "bar",
+					"config_vars.0.bar": "bar",
 					"config_vars.1.bar": "baz",
+				},
+			},
+
+			Diff: &terraform.ResourceDiff{
+				Attributes: map[string]*terraform.ResourceAttrDiff{
+					"config_vars.0.bar": &terraform.ResourceAttrDiff{
+						NewRemoved: true,
+					},
 				},
 			},
 

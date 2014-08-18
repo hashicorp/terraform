@@ -548,6 +548,49 @@ func TestSchemaMap_Diff(t *testing.T) {
 			Err: false,
 		},
 		*/
+
+		/*
+		 * Maps
+		 */
+
+		{
+			Schema: map[string]*Schema{
+				"config_vars": &Schema{
+					Type: TypeList,
+					Elem: &Schema{Type: TypeMap},
+				},
+			},
+
+			State: &terraform.ResourceState{
+				Attributes: map[string]string{
+					"config_vars.#":     "1",
+					"config_vars.0.foo": "bar",
+				},
+			},
+
+			Config: map[string]interface{}{
+				"config_vars": []interface{}{
+					map[string]interface{}{
+						"bar": "baz",
+					},
+				},
+			},
+
+			Diff: &terraform.ResourceDiff{
+				Attributes: map[string]*terraform.ResourceAttrDiff{
+					"config_vars.0.foo": &terraform.ResourceAttrDiff{
+						Old:        "bar",
+						NewRemoved: true,
+					},
+					"config_vars.0.bar": &terraform.ResourceAttrDiff{
+						Old: "",
+						New: "baz",
+					},
+				},
+			},
+
+			Err: false,
+		},
 	}
 
 	for i, tc := range cases {

@@ -135,53 +135,49 @@ func (d *ResourceData) getMap(
 	source getSource) interface{} {
 	elemSchema := &Schema{Type: TypeString}
 
-	// Get the full map
-	var result map[string]interface{}
-
+	result := make(map[string]interface{})
 	prefix := k + "."
 
-	// Try set first
-	if d.setMap != nil && source >= getSourceSet {
-		for k, _ := range d.setMap {
-			if !strings.HasPrefix(k, prefix) {
-				continue
-			}
-
-			single := k[len(prefix):]
-			if result == nil {
-				result = make(map[string]interface{})
-			}
-
-			result[single] = d.getPrimitive(k, nil, elemSchema, source)
-		}
-	}
-
-	if result == nil && d.diff != nil && source >= getSourceDiff {
-		for k, _ := range d.diff.Attributes {
-			if !strings.HasPrefix(k, prefix) {
-				continue
-			}
-
-			single := k[len(prefix):]
-			if result == nil {
-				result = make(map[string]interface{})
-			}
-
-			result[single] = d.getPrimitive(k, nil, elemSchema, source)
-		}
-	}
-
-	if result == nil && d.state != nil && source >= getSourceState {
+	if d.state != nil && source >= getSourceState {
 		for k, _ := range d.state.Attributes {
 			if !strings.HasPrefix(k, prefix) {
 				continue
 			}
 
 			single := k[len(prefix):]
-			if result == nil {
-				result = make(map[string]interface{})
+			result[single] = d.getPrimitive(k, nil, elemSchema, source)
+		}
+	}
+
+	if d.diff != nil && source >= getSourceDiff {
+		for k, v := range d.diff.Attributes {
+			if !strings.HasPrefix(k, prefix) {
+				continue
 			}
 
+			single := k[len(prefix):]
+
+			if v.NewRemoved {
+				delete(result, single)
+			} else {
+				result[single] = d.getPrimitive(k, nil, elemSchema, source)
+			}
+		}
+	}
+
+	if d.setMap != nil && source >= getSourceSet {
+		cleared := false
+		for k, _ := range d.setMap {
+			if !strings.HasPrefix(k, prefix) {
+				continue
+			}
+			if !cleared {
+				// We clear the results if they are in the set map
+				result = make(map[string]interface{})
+				cleared = true
+			}
+
+			single := k[len(prefix):]
 			result[single] = d.getPrimitive(k, nil, elemSchema, source)
 		}
 	}
@@ -389,6 +385,14 @@ func (d *ResourceData) setMapValue(
 	if len(parts) > 0 {
 		return fmt.Errorf("%s: full map must be set, no a single element", k)
 	}
+
+	// Delete any prior map set
+	/*
+		v := d.getMap(k, nil, schema, getSourceSet)
+		for subKey, _ := range v.(map[string]interface{}) {
+			delete(d.setMap, fmt.Sprintf("%s.%s", k, subKey))
+		}
+	*/
 
 	vs := value.(map[string]interface{})
 	for subKey, v := range vs {
