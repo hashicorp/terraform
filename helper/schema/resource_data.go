@@ -5,6 +5,7 @@ import (
 	"reflect"
 	"strconv"
 	"strings"
+	"sync"
 
 	"github.com/hashicorp/terraform/terraform"
 	"github.com/mitchellh/mapstructure"
@@ -29,6 +30,7 @@ type ResourceData struct {
 
 	setMap   map[string]string
 	newState *terraform.ResourceState
+	once     sync.Once
 }
 
 // Get returns the data for the given key, or nil if the key doesn't exist.
@@ -93,14 +95,30 @@ func (d *ResourceData) Id() string {
 	return result
 }
 
+// Dependencies returns the dependencies in this state.
+func (d *ResourceData) Dependencies() []terraform.ResourceDependency {
+	if d.newState != nil {
+		return d.newState.Dependencies
+	}
+
+	if d.state != nil {
+		return d.state.Dependencies
+	}
+
+	return nil
+}
+
 // SetId sets the ID of the resource. If the value is blank, then the
 // resource is destroyed.
 func (d *ResourceData) SetId(v string) {
-	if d.newState == nil {
-		d.newState = new(terraform.ResourceState)
-	}
-
+	d.once.Do(d.init)
 	d.newState.ID = v
+}
+
+// SetDependencies sets the dependencies of a resource.
+func (d *ResourceData) SetDependencies(ds []terraform.ResourceDependency) {
+	d.once.Do(d.init)
+	d.newState.Dependencies = ds
 }
 
 // State returns the new ResourceState after the diff and any Set
@@ -109,8 +127,18 @@ func (d *ResourceData) State() *terraform.ResourceState {
 	var result terraform.ResourceState
 	result.ID = d.Id()
 	result.Attributes = d.stateObject("", d.schema)
+	result.Dependencies = d.Dependencies()
 
 	return &result
+}
+
+func (d *ResourceData) init() {
+	var copyState terraform.ResourceState
+	if d.state != nil {
+		copyState = *d.state
+	}
+
+	d.newState = &copyState
 }
 
 func (d *ResourceData) get(

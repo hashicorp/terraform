@@ -1192,6 +1192,22 @@ func TestResourceDataState(t *testing.T) {
 	}
 }
 
+func TestResourceDataSetDependencies(t *testing.T) {
+	d := &ResourceData{}
+	d.SetDependencies([]terraform.ResourceDependency{
+		terraform.ResourceDependency{ID: "foo"},
+	})
+
+	expected := []terraform.ResourceDependency{
+		terraform.ResourceDependency{ID: "foo"},
+	}
+
+	actual := d.State()
+	if !reflect.DeepEqual(actual.Dependencies, expected) {
+		t.Fatalf("bad: %#v", actual)
+	}
+}
+
 func TestResourceDataSetId(t *testing.T) {
 	d := &ResourceData{}
 	d.SetId("foo")
