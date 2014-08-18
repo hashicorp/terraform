@@ -224,9 +224,14 @@ func (m schemaMap) diffList(
 		}
 	}
 
-	vs, ok := v.([]interface{})
-	if !ok {
+	// We have to use reflection to build the []interface{} list
+	rawV := reflect.ValueOf(v)
+	if rawV.Kind() != reflect.Slice {
 		return fmt.Errorf("%s: must be a list", k)
+	}
+	vs := make([]interface{}, rawV.Len())
+	for i, _ := range vs {
+		vs[i] = rawV.Index(i).Interface()
 	}
 
 	// If this field is required, then it must also be non-empty
