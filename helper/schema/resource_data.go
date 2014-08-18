@@ -14,7 +14,9 @@ type ResourceData struct {
 	schema map[string]*Schema
 	state  *terraform.ResourceState
 	diff   *terraform.ResourceDiff
-	setMap map[string]string
+
+	setMap   map[string]string
+	newState *terraform.ResourceState
 }
 
 // Get returns the data for the given key, or nil if the key doesn't exist.
@@ -49,6 +51,15 @@ func (d *ResourceData) Set(key string, value interface{}) error {
 func (d *ResourceData) State() *terraform.ResourceState {
 	var result terraform.ResourceState
 	result.Attributes = d.stateObject("", d.schema)
+
+	if d.state != nil {
+		result.ID = d.state.ID
+	}
+
+	if d.newState != nil {
+		result.ID = d.newState.ID
+	}
+
 	return &result
 }
 
@@ -335,7 +346,7 @@ func (d *ResourceData) stateList(
 	count := countRaw.(int)
 
 	result := make(map[string]string)
-	result[prefix + ".#"] = strconv.FormatInt(int64(count), 10)
+	result[prefix+".#"] = strconv.FormatInt(int64(count), 10)
 	for i := 0; i < count; i++ {
 		key := fmt.Sprintf("%s.%d", prefix, i)
 

@@ -17,10 +17,15 @@ type Provider struct {
 	ResourcesMap map[string]*Resource
 
 	ConfigureFunc ConfigureFunc
+
+	meta interface{}
 }
 
 // ConfigureFunc is the function used to configure a Provider.
-type ConfigureFunc func(*ResourceData) error
+//
+// The interface{} value returned by this function is stored and passed into
+// the subsequent resources as the meta parameter.
+type ConfigureFunc func(*ResourceData) (interface{}, error)
 
 // Validate validates the provider configuration against the schema.
 func (p *Provider) Validate(c *terraform.ResourceConfig) ([]string, []error) {
@@ -61,7 +66,13 @@ func (p *Provider) Configure(c *terraform.ResourceConfig) error {
 		return err
 	}
 
-	return p.ConfigureFunc(data)
+	meta, err := p.ConfigureFunc(data)
+	if err != nil {
+		return err
+	}
+
+	p.meta = meta
+	return nil
 }
 
 // Resources implementation of terraform.ResourceProvider interface.

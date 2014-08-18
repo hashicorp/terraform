@@ -7,10 +7,13 @@ import (
 )
 
 // The functions below are the CRUD function types for a Resource.
-type CreateFunc func(*ResourceData) error
-type ReadFunc func(*ResourceData) error
-type UpdateFunc func(*ResourceData) error
-type DeleteFunc func(*ResourceData) error
+//
+// The second parameter is the meta value sent to the resource when
+// different operations are called.
+type CreateFunc func(*ResourceData, interface{}) error
+type ReadFunc func(*ResourceData, interface{}) error
+type UpdateFunc func(*ResourceData, interface{}) error
+type DeleteFunc func(*ResourceData, interface{}) error
 
 // Resource represents a thing in Terraform that has a set of configurable
 // attributes and generally also has a lifecycle (create, read, update,
@@ -39,6 +42,19 @@ func (r *Resource) Diff(
 // Validate validates the resource configuration against the schema.
 func (r *Resource) Validate(c *terraform.ResourceConfig) ([]string, []error) {
 	return schemaMap(r.Schema).Validate(c)
+}
+
+// Refresh refreshes the state of the resource.
+func (r *Resource) Refresh(
+	s *terraform.ResourceState,
+	meta interface{}) (*terraform.ResourceState, error) {
+	data, err := schemaMap(r.Schema).Data(s, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	err = r.Read(data, meta)
+	return data.State(), err
 }
 
 // InternalValidate should be called to validate the structure

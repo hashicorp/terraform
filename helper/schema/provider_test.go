@@ -30,12 +30,12 @@ func TestProviderConfigure(t *testing.T) {
 					},
 				},
 
-				ConfigureFunc: func(d *ResourceData) error {
+				ConfigureFunc: func(d *ResourceData) (interface{}, error) {
 					if d.Get("foo").(int) == 42 {
-						return nil
+						return nil, nil
 					}
 
-					return fmt.Errorf("nope")
+					return nil, fmt.Errorf("nope")
 				},
 			},
 			Config: map[string]interface{}{
@@ -53,12 +53,12 @@ func TestProviderConfigure(t *testing.T) {
 					},
 				},
 
-				ConfigureFunc: func(d *ResourceData) error {
+				ConfigureFunc: func(d *ResourceData) (interface{}, error) {
 					if d.Get("foo").(int) == 42 {
-						return nil
+						return nil, nil
 					}
 
-					return fmt.Errorf("nope")
+					return nil, fmt.Errorf("nope")
 				},
 			},
 			Config: map[string]interface{}{
