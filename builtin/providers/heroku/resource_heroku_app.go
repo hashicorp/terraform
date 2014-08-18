@@ -5,12 +5,8 @@ import (
 	"log"
 
 	"github.com/bgentry/heroku-go"
-	"github.com/hashicorp/terraform/flatmap"
-	"github.com/hashicorp/terraform/helper/config"
-	"github.com/hashicorp/terraform/helper/diff"
 	"github.com/hashicorp/terraform/helper/multierror"
 	"github.com/hashicorp/terraform/helper/schema"
-	"github.com/hashicorp/terraform/terraform"
 )
 
 // type application is used to store all the details of a heroku app
@@ -68,11 +64,13 @@ func resourceHerokuApp() *schema.Resource {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
+				ForceNew: true,
 			},
 
 			"config_vars": &schema.Schema{
 				Type:     schema.TypeList,
 				Optional: true,
+				Computed: true,
 				Elem: &schema.Schema{
 					// TODO: make map
 					Type: schema.TypeString,
@@ -205,64 +203,6 @@ func resourceHerokuAppDelete(d *schema.ResourceData, meta interface{}) error {
 	return nil
 }
 
-func resource_heroku_app_diff(
-	s *terraform.ResourceState,
-	c *terraform.ResourceConfig,
-	meta interface{}) (*terraform.ResourceDiff, error) {
-
-	b := &diff.ResourceBuilder{
-		Attrs: map[string]diff.AttrType{
-			"name":        diff.AttrTypeUpdate,
-			"region":      diff.AttrTypeUpdate,
-			"stack":       diff.AttrTypeCreate,
-			"config_vars": diff.AttrTypeUpdate,
-		},
-
-		ComputedAttrs: []string{
-			"name",
-			"region",
-			"stack",
-			"git_url",
-			"web_url",
-			"id",
-			"config_vars",
-		},
-
-		ComputedAttrsUpdate: []string{
-			"heroku_hostname",
-		},
-	}
-
-	return b.Diff(s, c)
-}
-
-func resource_heroku_app_update_state(
-	s *terraform.ResourceState,
-	app *application) (*terraform.ResourceState, error) {
-
-	s.Attributes["name"] = app.App.Name
-	s.Attributes["stack"] = app.App.Stack.Name
-	s.Attributes["region"] = app.App.Region.Name
-	s.Attributes["git_url"] = app.App.GitURL
-	s.Attributes["web_url"] = app.App.WebURL
-
-	// We know that the hostname on heroku will be the name+herokuapp.com
-	// You need this to do things like create DNS CNAME records
-	s.Attributes["heroku_hostname"] = fmt.Sprintf("%s.herokuapp.com", app.App.Name)
-
-	toFlatten := make(map[string]interface{})
-
-	if len(app.Vars) > 0 {
-		toFlatten["config_vars"] = []map[string]string{app.Vars}
-	}
-
-	for k, v := range flatmap.Flatten(toFlatten) {
-		s.Attributes[k] = v
-	}
-
-	return s, nil
-}
-
 func resource_heroku_app_retrieve(id string, client *heroku.Client) (*application, error) {
 	app := application{Id: id, Client: client}
 
@@ -273,18 +213,6 @@ func resource_heroku_app_retrieve(id string, client *heroku.Client) (*applicatio
 	}
 
 	return &app, nil
-}
-
-func resource_heroku_app_validation() *config.Validator {
-	return &config.Validator{
-		Required: []string{},
-		Optional: []string{
-			"name",
-			"region",
-			"stack",
-			"config_vars.*",
-		},
-	}
 }
 
 func retrieve_config_vars(id string, client *heroku.Client) (map[string]string, error) {
