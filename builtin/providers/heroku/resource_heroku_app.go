@@ -72,8 +72,7 @@ func resourceHerokuApp() *schema.Resource {
 				Optional: true,
 				Computed: true,
 				Elem: &schema.Schema{
-					// TODO: make map
-					Type: schema.TypeString,
+					Type: schema.TypeMap,
 				},
 			},
 
@@ -103,19 +102,21 @@ func resourceHerokuAppCreate(d *schema.ResourceData, meta interface{}) error {
 
 	if v := d.Get("name"); v != nil {
 		vs := v.(string)
+		log.Printf("[DEBUG] App name: %s", vs)
 		opts.Name = &vs
 	}
 	if v := d.Get("region"); v != nil {
 		vs := v.(string)
+		log.Printf("[DEBUG] App region: %s", vs)
 		opts.Region = &vs
 	}
 	if v := d.Get("stack"); v != nil {
 		vs := v.(string)
+		log.Printf("[DEBUG] App stack: %s", vs)
 		opts.Stack = &vs
 	}
 
-	log.Printf("[DEBUG] App create configuration: %#v", opts)
-
+	log.Printf("[DEBUG] Creating Heroku app...")
 	a, err := client.AppCreate(&opts)
 	if err != nil {
 		return err
@@ -158,25 +159,24 @@ func resourceHerokuAppRead(d *schema.ResourceData, meta interface{}) error {
 func resourceHerokuAppUpdate(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*heroku.Client)
 
-	// If name changed
-	// TODO
-	/*
-		if attr, ok := d.Attributes["name"]; ok {
-			opts := heroku.AppUpdateOpts{
-				Name: &attr.New,
-			}
-
-			renamedApp, err := client.AppUpdate(rs.ID, &opts)
-
-			if err != nil {
-				return s, err
-			}
-
-			// Store the new ID
-			rs.ID = renamedApp.Name
+	// If name changed, update it
+	if d.HasChange("name") {
+		v := d.Get("name").(string)
+		opts := heroku.AppUpdateOpts{
+			Name: &v,
 		}
-	*/
 
+		renamedApp, err := client.AppUpdate(d.Id(), &opts)
+		if err != nil {
+			return err
+		}
+
+		// Store the new ID
+		d.SetId(renamedApp.Name)
+	}
+
+	// Get the config vars. If we have none, then set it to the empty
+	// list so that they're properly removed.
 	v := d.Get("config_vars")
 	if v == nil {
 		v = []interface{}{}
