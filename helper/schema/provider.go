@@ -2,6 +2,7 @@ package schema
 
 import (
 	"fmt"
+	"sort"
 
 	"github.com/hashicorp/terraform/terraform"
 )
@@ -65,8 +66,14 @@ func (p *Provider) Configure(c *terraform.ResourceConfig) error {
 
 // Resources implementation of terraform.ResourceProvider interface.
 func (p *Provider) Resources() []terraform.ResourceType {
-	result := make([]terraform.ResourceType, 0, len(p.ResourcesMap))
+	keys := make([]string, 0, len(p.ResourcesMap))
 	for k, _ := range p.ResourcesMap {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+
+	result := make([]terraform.ResourceType, 0, len(keys))
+	for _, k := range keys {
 		result = append(result, terraform.ResourceType{
 			Name: k,
 		})

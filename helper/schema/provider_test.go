@@ -99,8 +99,8 @@ func TestProviderResources(t *testing.T) {
 				},
 			},
 			Result: []terraform.ResourceType{
-				terraform.ResourceType{Name: "foo"},
 				terraform.ResourceType{Name: "bar"},
+				terraform.ResourceType{Name: "foo"},
 			},
 		},
 	}
