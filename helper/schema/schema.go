@@ -3,6 +3,7 @@ package schema
 import (
 	"fmt"
 	"reflect"
+	"strconv"
 	"strings"
 
 	"github.com/hashicorp/terraform/terraform"
@@ -213,29 +214,19 @@ func (m schemaMap) diffList(
 	diff *terraform.ResourceDiff,
 	s *terraform.ResourceState,
 	c *terraform.ResourceConfig) error {
+	var vs []interface{}
+
 	v, ok := c.Get(k)
-	if !ok {
-		// We don't have a value, if it is required then it is an error
-		if schema.Required {
-			return fmt.Errorf("%s: required field not set", k)
+	if ok {
+		// We have to use reflection to build the []interface{} list
+		rawV := reflect.ValueOf(v)
+		if rawV.Kind() != reflect.Slice {
+			return fmt.Errorf("%s: must be a list", k)
 		}
-
-		// We don't have a configuration value.
-		if !schema.Computed {
-			return nil
+		vs = make([]interface{}, rawV.Len())
+		for i, _ := range vs {
+			vs[i] = rawV.Index(i).Interface()
 		}
-
-		return nil
-	}
-
-	// We have to use reflection to build the []interface{} list
-	rawV := reflect.ValueOf(v)
-	if rawV.Kind() != reflect.Slice {
-		return fmt.Errorf("%s: must be a list", k)
-	}
-	vs := make([]interface{}, rawV.Len())
-	for i, _ := range vs {
-		vs[i] = rawV.Index(i).Interface()
 	}
 
 	// If this field is required, then it must also be non-empty
@@ -243,12 +234,37 @@ func (m schemaMap) diffList(
 		return fmt.Errorf("%s: required field is not set", k)
 	}
 
-	// Diff the count no matter what
-	countSchema := &Schema{
-		Type:     TypeInt,
-		ForceNew: schema.ForceNew,
+	// Get the counts
+	var oldLen, newLen int
+	if s != nil {
+		if v, ok := s.Attributes[k+".#"]; ok {
+			old64, err := strconv.ParseInt(v, 0, 0)
+			if err != nil {
+				return err
+			}
+			oldLen = int(old64)
+		}
 	}
-	m.diffString(k+".#", countSchema, diff, s, c)
+	newLen = len(vs)
+
+	// If the counts are not the same, then record that diff
+	if oldLen != newLen {
+		countSchema := &Schema{
+			Type:     TypeInt,
+			ForceNew: schema.ForceNew,
+		}
+
+		diff.Attributes[k+".#"] = countSchema.finalizeDiff(&terraform.ResourceAttrDiff{
+			Old: strconv.FormatInt(int64(oldLen), 10),
+			New: strconv.FormatInt(int64(newLen), 10),
+		})
+	}
+
+	// Figure out the maximum
+	maxLen := oldLen
+	if newLen > maxLen {
+		maxLen = newLen
+	}
 
 	switch t := schema.Elem.(type) {
 	case *Schema:
@@ -260,7 +276,7 @@ func (m schemaMap) diffList(
 
 		// This is just a primitive element, so go through each and
 		// just diff each.
-		for i, _ := range vs {
+		for i := 0; i < maxLen; i++ {
 			subK := fmt.Sprintf("%s.%d", k, i)
 			err := m.diff(subK, &t2, diff, s, c)
 			if err != nil {
@@ -269,7 +285,7 @@ func (m schemaMap) diffList(
 		}
 	case *Resource:
 		// This is a complex resource
-		for i, _ := range vs {
+		for i := 0; i < maxLen; i++ {
 			for k2, schema := range t.Schema {
 				subK := fmt.Sprintf("%s.%d.%s", k, i, k2)
 				err := m.diff(subK, schema, diff, s, c)
@@ -358,8 +374,8 @@ func (m schemaMap) diffString(
 			return fmt.Errorf("%s: required field not set", k)
 		}
 
-		// We don't have a configuration value.
-		if !schema.Computed {
+		// If we don't have an old value, just return
+		if old == "" && !schema.Computed {
 			return nil
 		}
 	} else {
