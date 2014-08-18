@@ -2,29 +2,35 @@ package heroku
 
 import (
 	"os"
-	"reflect"
 	"testing"
 
+	"github.com/bgentry/heroku-go"
 	"github.com/hashicorp/terraform/config"
+	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/terraform"
 )
 
 var testAccProviders map[string]terraform.ResourceProvider
-var testAccProvider *ResourceProvider
+var testAccProvider *schema.Provider
 
 func init() {
-	testAccProvider = new(ResourceProvider)
+	testAccProvider = Provider()
 	testAccProviders = map[string]terraform.ResourceProvider{
 		"heroku": testAccProvider,
 	}
 }
 
-func TestResourceProvider_impl(t *testing.T) {
-	var _ terraform.ResourceProvider = new(ResourceProvider)
+func TestProvider(t *testing.T) {
+	if err := Provider().InternalValidate(); err != nil {
+		t.Fatalf("err: %s", err)
+	}
 }
 
-func TestResourceProvider_Configure(t *testing.T) {
-	rp := new(ResourceProvider)
+func TestProvider_impl(t *testing.T) {
+	var _ terraform.ResourceProvider = Provider()
+}
+
+func TestProviderConfigure(t *testing.T) {
 	var expectedKey string
 	var expectedEmail string
 
@@ -50,18 +56,18 @@ func TestResourceProvider_Configure(t *testing.T) {
 		t.Fatalf("err: %s", err)
 	}
 
+	rp := Provider()
 	err = rp.Configure(terraform.NewResourceConfig(rawConfig))
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
 
-	expected := Config{
-		APIKey: expectedKey,
-		Email:  expectedEmail,
+	config := rp.Meta().(*heroku.Client)
+	if config.Username != expectedEmail {
+		t.Fatalf("bad: %#v", config)
 	}
-
-	if !reflect.DeepEqual(rp.Config, expected) {
-		t.Fatalf("bad: %#v", rp.Config)
+	if config.Password != expectedKey {
+		t.Fatalf("bad: %#v", config)
 	}
 }
 

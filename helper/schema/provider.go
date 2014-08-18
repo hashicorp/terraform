@@ -1,6 +1,7 @@
 package schema
 
 import (
+	"errors"
 	"fmt"
 	"sort"
 
@@ -26,6 +27,36 @@ type Provider struct {
 // The interface{} value returned by this function is stored and passed into
 // the subsequent resources as the meta parameter.
 type ConfigureFunc func(*ResourceData) (interface{}, error)
+
+// InternalValidate should be called to validate the structure
+// of the provider.
+//
+// This should be called in a unit test for any provider to verify
+// before release that a provider is properly configured for use with
+// this library.
+func (p *Provider) InternalValidate() error {
+	if p == nil {
+		return errors.New("provider is nil")
+	}
+
+	if err := schemaMap(p.Schema).InternalValidate(); err != nil {
+		return err
+	}
+
+	for k, r := range p.ResourcesMap {
+		if err := r.InternalValidate(); err != nil {
+			return fmt.Errorf("%s: %s", k, err)
+		}
+	}
+
+	return nil
+}
+
+// Meta returns the metadata associated with this provider that was
+// returned by the Configure call. It will be nil until Configure is called.
+func (p *Provider) Meta() interface{} {
+	return p.meta
+}
 
 // Validate validates the provider configuration against the schema.
 func (p *Provider) Validate(c *terraform.ResourceConfig) ([]string, []error) {

@@ -9,6 +9,7 @@ import (
 	"github.com/hashicorp/terraform/helper/config"
 	"github.com/hashicorp/terraform/helper/diff"
 	"github.com/hashicorp/terraform/helper/multierror"
+	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/terraform"
 )
 
@@ -43,142 +44,165 @@ func (a *application) Update() error {
 	return nil
 }
 
-func resource_heroku_app_create(
-	s *terraform.ResourceState,
-	d *terraform.ResourceDiff,
-	meta interface{}) (*terraform.ResourceState, error) {
-	p := meta.(*ResourceProvider)
-	client := p.client
+func resourceHerokuApp() *schema.Resource {
+	return &schema.Resource{
+		Create: resourceHerokuAppCreate,
+		Read:   resourceHerokuAppRead,
+		Update: resourceHerokuAppUpdate,
+		Delete: resourceHerokuAppDelete,
 
-	// Merge the diff into the state so that we have all the attributes
-	// properly.
-	rs := s.MergeDiff(d)
+		Schema: map[string]*schema.Schema{
+			"name": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				Computed: true,
+			},
+
+			"region": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				Computed: true,
+			},
+
+			"stack": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				Computed: true,
+			},
+
+			"config_vars": &schema.Schema{
+				Type:     schema.TypeList,
+				Optional: true,
+				Elem: &schema.Schema{
+					// TODO: make map
+					Type: schema.TypeString,
+				},
+			},
+
+			"git_url": &schema.Schema{
+				Type:     schema.TypeString,
+				Computed: true,
+			},
+
+			"web_url": &schema.Schema{
+				Type:     schema.TypeString,
+				Computed: true,
+			},
+
+			"heroku_hostname": &schema.Schema{
+				Type:     schema.TypeString,
+				Computed: true,
+			},
+		},
+	}
+}
+
+func resourceHerokuAppCreate(d *schema.ResourceData, meta interface{}) error {
+	client := meta.(*heroku.Client)
 
 	// Build up our creation options
 	opts := heroku.AppCreateOpts{}
 
-	if attr := rs.Attributes["name"]; attr != "" {
-		opts.Name = &attr
+	if v := d.Get("name"); v != nil {
+		vs := v.(string)
+		opts.Name = &vs
 	}
-
-	if attr := rs.Attributes["region"]; attr != "" {
-		opts.Region = &attr
+	if v := d.Get("region"); v != nil {
+		vs := v.(string)
+		opts.Region = &vs
 	}
-
-	if attr := rs.Attributes["stack"]; attr != "" {
-		opts.Stack = &attr
+	if v := d.Get("stack"); v != nil {
+		vs := v.(string)
+		opts.Stack = &vs
 	}
 
 	log.Printf("[DEBUG] App create configuration: %#v", opts)
 
 	a, err := client.AppCreate(&opts)
 	if err != nil {
-		return s, err
+		return err
 	}
 
-	rs.ID = a.Name
-	log.Printf("[INFO] App ID: %s", rs.ID)
+	d.SetId(a.Name)
+	log.Printf("[INFO] App ID: %s", d.Id())
 
-	if attr, ok := rs.Attributes["config_vars.#"]; ok && attr == "1" {
-		vs := flatmap.Expand(
-			rs.Attributes, "config_vars").([]interface{})
-
-		err = update_config_vars(rs.ID, vs, client)
+	if v := d.Get("config_vars"); v != nil {
+		err = update_config_vars(d.Id(), v.([]interface{}), client)
 		if err != nil {
-			return rs, err
+			return err
 		}
 	}
 
-	app, err := resource_heroku_app_retrieve(rs.ID, client)
-	if err != nil {
-		return rs, err
-	}
-
-	return resource_heroku_app_update_state(rs, app)
+	return resourceHerokuAppRead(d, meta)
 }
 
-func resource_heroku_app_update(
-	s *terraform.ResourceState,
-	d *terraform.ResourceDiff,
-	meta interface{}) (*terraform.ResourceState, error) {
-	p := meta.(*ResourceProvider)
-	client := p.client
-	rs := s.MergeDiff(d)
-
-	if attr, ok := d.Attributes["name"]; ok {
-		opts := heroku.AppUpdateOpts{
-			Name: &attr.New,
-		}
-
-		renamedApp, err := client.AppUpdate(rs.ID, &opts)
-
-		if err != nil {
-			return s, err
-		}
-
-		// Store the new ID
-		rs.ID = renamedApp.Name
-	}
-
-	attr, ok := s.Attributes["config_vars.#"]
-
-	// If the config var block was removed, nuke all config vars
-	if ok && attr == "1" {
-		vs := flatmap.Expand(
-			rs.Attributes, "config_vars").([]interface{})
-
-		err := update_config_vars(rs.ID, vs, client)
-		if err != nil {
-			return rs, err
-		}
-	} else if ok && attr == "0" {
-		log.Println("[INFO] Config vars removed, removing all vars")
-
-		err := update_config_vars(rs.ID, make([]interface{}, 0), client)
-
-		if err != nil {
-			return rs, err
-		}
-	}
-
-	app, err := resource_heroku_app_retrieve(rs.ID, client)
+func resourceHerokuAppRead(d *schema.ResourceData, meta interface{}) error {
+	client := meta.(*heroku.Client)
+	app, err := resource_heroku_app_retrieve(d.Id(), client)
 	if err != nil {
-		return rs, err
+		return err
 	}
 
-	return resource_heroku_app_update_state(rs, app)
-}
+	d.Set("name", app.App.Name)
+	d.Set("stack", app.App.Stack.Name)
+	d.Set("region", app.App.Region.Name)
+	d.Set("git_url", app.App.GitURL)
+	d.Set("web_url", app.App.WebURL)
+	d.Set("config_vars", []map[string]string{app.Vars})
 
-func resource_heroku_app_destroy(
-	s *terraform.ResourceState,
-	meta interface{}) error {
-	p := meta.(*ResourceProvider)
-	client := p.client
-
-	log.Printf("[INFO] Deleting App: %s", s.ID)
-
-	// Destroy the app
-	err := client.AppDelete(s.ID)
-
-	if err != nil {
-		return fmt.Errorf("Error deleting App: %s", err)
-	}
+	// We know that the hostname on heroku will be the name+herokuapp.com
+	// You need this to do things like create DNS CNAME records
+	d.Set("heroku_hostname", fmt.Sprintf("%s.herokuapp.com", app.App.Name))
 
 	return nil
 }
 
-func resource_heroku_app_refresh(
-	s *terraform.ResourceState,
-	meta interface{}) (*terraform.ResourceState, error) {
-	p := meta.(*ResourceProvider)
-	client := p.client
+func resourceHerokuAppUpdate(d *schema.ResourceData, meta interface{}) error {
+	client := meta.(*heroku.Client)
 
-	app, err := resource_heroku_app_retrieve(s.ID, client)
-	if err != nil {
-		return nil, err
+	// If name changed
+	// TODO
+	/*
+		if attr, ok := d.Attributes["name"]; ok {
+			opts := heroku.AppUpdateOpts{
+				Name: &attr.New,
+			}
+
+			renamedApp, err := client.AppUpdate(rs.ID, &opts)
+
+			if err != nil {
+				return s, err
+			}
+
+			// Store the new ID
+			rs.ID = renamedApp.Name
+		}
+	*/
+
+	v := d.Get("config_vars")
+	if v == nil {
+		v = []interface{}{}
 	}
 
-	return resource_heroku_app_update_state(s, app)
+	err := update_config_vars(d.Id(), v.([]interface{}), client)
+	if err != nil {
+		return err
+	}
+
+	return resourceHerokuAppRead(d, meta)
+}
+
+func resourceHerokuAppDelete(d *schema.ResourceData, meta interface{}) error {
+	client := meta.(*heroku.Client)
+
+	log.Printf("[INFO] Deleting App: %s", d.Id())
+	err := client.AppDelete(d.Id())
+	if err != nil {
+		return fmt.Errorf("Error deleting App: %s", err)
+	}
+
+	d.SetId("")
+	return nil
 }
 
 func resource_heroku_app_diff(
@@ -273,21 +297,19 @@ func retrieve_config_vars(id string, client *heroku.Client) (map[string]string, 
 	return vars, nil
 }
 
-// Updates the config vars for from an expanded (prior to assertion)
-// []map[string]string config
+// Updates the config vars for from an expanded configuration.
 func update_config_vars(id string, vs []interface{}, client *heroku.Client) error {
 	vars := make(map[string]*string)
 
-	for k, v := range vs[0].(map[string]interface{}) {
-		val := v.(string)
-		vars[k] = &val
+	for _, v := range vs {
+		for k, v := range v.(map[string]interface{}) {
+			val := v.(string)
+			vars[k] = &val
+		}
 	}
 
 	log.Printf("[INFO] Updating config vars: *%#v", vars)
-
-	_, err := client.ConfigVarUpdate(id, vars)
-
-	if err != nil {
+	if _, err := client.ConfigVarUpdate(id, vars); err != nil {
 		return fmt.Errorf("Error updating config vars: %s", err)
 	}
 
