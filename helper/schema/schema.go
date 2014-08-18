@@ -2,6 +2,7 @@ package schema
 
 import (
 	"fmt"
+	"reflect"
 	"strings"
 
 	"github.com/hashicorp/terraform/terraform"
@@ -372,10 +373,18 @@ func (m schemaMap) validateList(
 	raw interface{},
 	schema *Schema,
 	c *terraform.ResourceConfig) ([]string, []error) {
-	raws, ok := raw.([]interface{})
-	if !ok {
+	// We use reflection to verify the slice because you can't
+	// case to []interface{} unless the slice is exactly that type.
+	rawV := reflect.ValueOf(raw)
+	if rawV.Kind() != reflect.Slice {
 		return nil, []error{fmt.Errorf(
-			"%s: should be list", k)}
+			"%s: should be a list", k)}
+	}
+
+	// Now build the []interface{}
+	raws := make([]interface{}, rawV.Len())
+	for i, _ := range raws {
+		raws[i] = rawV.Index(i).Interface()
 	}
 
 	var ws []string
