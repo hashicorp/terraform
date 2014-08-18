@@ -31,6 +31,64 @@ type Resource struct {
 	Delete DeleteFunc
 }
 
+// Apply creates, updates, and/or deletes a resource.
+func (r *Resource) Apply(
+	s *terraform.ResourceState,
+	d *terraform.ResourceDiff,
+	meta interface{}) (*terraform.ResourceState, error) {
+	data, err := schemaMap(r.Schema).Data(s, d)
+	if err != nil {
+		return s, err
+	}
+
+	if s == nil {
+		// The Terraform API dictates that this should never happen, but
+		// it doesn't hurt to be safe in this case.
+		s = new(terraform.ResourceState)
+	}
+
+	if d.Destroy || d.RequiresNew() {
+		if s.ID != "" {
+			// Destroy the resource since it is created
+			if err := r.Delete(data, meta); err != nil {
+				return data.State(), err
+			}
+
+			// Reset the data to be empty
+			data, err = schemaMap(r.Schema).Data(nil, d)
+			if err != nil {
+				return nil, err
+			}
+		}
+
+		// If we're only destroying, and not creating, then return
+		// now since we're done!
+		if !d.RequiresNew() {
+			return nil, nil
+		}
+	}
+
+	err = nil
+	if s.ID == "" {
+		// We're creating, it is a new resource.
+		err = r.Create(data, meta)
+	} else {
+		err = r.Update(data, meta)
+	}
+
+	// Always set the ID attribute if it is set. We also always collapse
+	// the state since even partial states need to be returned.
+	state := data.State()
+	if state.ID != "" {
+		if state.Attributes == nil {
+			state.Attributes = make(map[string]string)
+		}
+		state.Attributes["id"] = state.ID
+	}
+
+	return state, err
+}
+
 // Diff returns a diff of this resource and is API compatible with the
 // ResourceProvider interface.
 func (r *Resource) Diff(

@@ -46,6 +46,16 @@ func (d *ResourceData) Set(key string, value interface{}) error {
 	return d.setObject("", parts, d.schema, value)
 }
 
+// SetId sets the ID of the resource. If the value is blank, then the
+// resource is destroyed.
+func (d *ResourceData) SetId(v string) {
+	if d.newState == nil {
+		d.newState = new(terraform.ResourceState)
+	}
+
+	d.newState.ID = v
+}
+
 // State returns the new ResourceState after the diff and any Set
 // calls.
 func (d *ResourceData) State() *terraform.ResourceState {
