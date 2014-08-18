@@ -273,7 +273,7 @@ func (d *ResourceData) getPrimitive(
 
 	if d.diff != nil && source >= getSourceDiff {
 		attrD, ok := d.diff.Attributes[k]
-		if ok {
+		if ok && !attrD.NewComputed {
 			result = attrD.New
 			resultSet = true
 		}
