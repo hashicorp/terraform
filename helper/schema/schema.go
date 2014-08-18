@@ -17,6 +17,7 @@ const (
 	TypeInt
 	TypeString
 	TypeList
+	TypeMap
 )
 
 // Schema is used to describe the structure of a value.

@@ -121,9 +121,72 @@ func (d *ResourceData) get(
 	switch schema.Type {
 	case TypeList:
 		return d.getList(k, parts, schema, source)
+	case TypeMap:
+		return d.getMap(k, parts, schema, source)
 	default:
 		return d.getPrimitive(k, parts, schema, source)
 	}
+}
+
+func (d *ResourceData) getMap(
+	k string,
+	parts []string,
+	schema *Schema,
+	source getSource) interface{} {
+	elemSchema := &Schema{Type: TypeString}
+
+	// Get the full map
+	var result map[string]interface{}
+
+	prefix := k + "."
+
+	// Try set first
+	if d.setMap != nil && source >= getSourceSet {
+		for k, _ := range d.setMap {
+			if !strings.HasPrefix(k, prefix) {
+				continue
+			}
+
+			single := k[len(prefix):]
+			if result == nil {
+				result = make(map[string]interface{})
+			}
+
+			result[single] = d.getPrimitive(k, nil, elemSchema, source)
+		}
+	}
+
+	if result == nil && d.diff != nil && source >= getSourceDiff {
+		for k, _ := range d.diff.Attributes {
+			if !strings.HasPrefix(k, prefix) {
+				continue
+			}
+
+			single := k[len(prefix):]
+			if result == nil {
+				result = make(map[string]interface{})
+			}
+
+			result[single] = d.getPrimitive(k, nil, elemSchema, source)
+		}
+	}
+
+	if result == nil && d.state != nil && source >= getSourceState {
+		for k, _ := range d.state.Attributes {
+			if !strings.HasPrefix(k, prefix) {
+				continue
+			}
+
+			single := k[len(prefix):]
+			if result == nil {
+				result = make(map[string]interface{})
+			}
+
+			result[single] = d.getPrimitive(k, nil, elemSchema, source)
+		}
+	}
+
+	return result
 }
 
 func (d *ResourceData) getObject(
@@ -259,6 +322,8 @@ func (d *ResourceData) set(
 	switch schema.Type {
 	case TypeList:
 		return d.setList(k, parts, schema, value)
+	case TypeMap:
+		return d.setMapValue(k, parts, schema, value)
 	default:
 		return d.setPrimitive(k, schema, value)
 	}
@@ -312,6 +377,27 @@ func (d *ResourceData) setList(
 	}
 
 	d.setMap[k+".#"] = strconv.FormatInt(int64(len(vs)), 10)
+	return nil
+}
+
+func (d *ResourceData) setMapValue(
+	k string,
+	parts []string,
+	schema *Schema,
+	value interface{}) error {
+	elemSchema := &Schema{Type: TypeString}
+	if len(parts) > 0 {
+		return fmt.Errorf("%s: full map must be set, no a single element", k)
+	}
+
+	vs := value.(map[string]interface{})
+	for subKey, v := range vs {
+		err := d.set(fmt.Sprintf("%s.%s", k, subKey), nil, elemSchema, v)
+		if err != nil {
+			return err
+		}
+	}
+
 	return nil
 }
 
@@ -422,6 +508,26 @@ func (d *ResourceData) stateList(
 	return result
 }
 
+func (d *ResourceData) stateMap(
+	prefix string,
+	schema *Schema) map[string]string {
+	v := d.getMap(prefix, nil, schema, getSourceSet)
+	if v == nil {
+		return nil
+	}
+
+	elemSchema := &Schema{Type: TypeString}
+	result := make(map[string]string)
+	for mk, _ := range v.(map[string]interface{}) {
+		mp := fmt.Sprintf("%s.%s", prefix, mk)
+		for k, v := range d.stateSingle(mp, elemSchema) {
+			result[k] = v
+		}
+	}
+
+	return result
+}
+
 func (d *ResourceData) stateObject(
 	prefix string,
 	schema map[string]*Schema) map[string]string {
@@ -469,6 +575,8 @@ func (d *ResourceData) stateSingle(
 	switch schema.Type {
 	case TypeList:
 		return d.stateList(prefix, schema)
+	case TypeMap:
+		return d.stateMap(prefix, schema)
 	default:
 		return d.statePrimitive(prefix, schema)
 	}

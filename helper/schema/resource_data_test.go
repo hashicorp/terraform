@@ -300,6 +300,85 @@ func TestResourceDataGet(t *testing.T) {
 				"availability_zone": "foo",
 			},
 		},
+
+		// List of maps
+		{
+			Schema: map[string]*Schema{
+				"config_vars": &Schema{
+					Type:     TypeList,
+					Optional: true,
+					Computed: true,
+					Elem: &Schema{
+						Type: TypeMap,
+					},
+				},
+			},
+
+			State: nil,
+
+			Diff: &terraform.ResourceDiff{
+				Attributes: map[string]*terraform.ResourceAttrDiff{
+					"config_vars.#": &terraform.ResourceAttrDiff{
+						Old: "0",
+						New: "2",
+					},
+					"config_vars.0.foo": &terraform.ResourceAttrDiff{
+						Old: "",
+						New: "bar",
+					},
+					"config_vars.1.bar": &terraform.ResourceAttrDiff{
+						Old: "",
+						New: "baz",
+					},
+				},
+			},
+
+			Key: "config_vars",
+
+			Value: []interface{}{
+				map[string]interface{}{
+					"foo": "bar",
+				},
+				map[string]interface{}{
+					"bar": "baz",
+				},
+			},
+		},
+
+		// List of maps in state
+		{
+			Schema: map[string]*Schema{
+				"config_vars": &Schema{
+					Type:     TypeList,
+					Optional: true,
+					Computed: true,
+					Elem: &Schema{
+						Type: TypeMap,
+					},
+				},
+			},
+
+			State: &terraform.ResourceState{
+				Attributes: map[string]string{
+					"config_vars.#":     "2",
+					"config_vars.0.foo": "baz",
+					"config_vars.1.bar": "bar",
+				},
+			},
+
+			Diff: nil,
+
+			Key: "config_vars",
+
+			Value: []interface{}{
+				map[string]interface{}{
+					"foo": "baz",
+				},
+				map[string]interface{}{
+					"bar": "bar",
+				},
+			},
+		},
 	}
 
 	for i, tc := range cases {
@@ -762,6 +841,45 @@ func TestResourceDataSet(t *testing.T) {
 				},
 			},
 		},
+
+		// Set a list of maps
+		{
+			Schema: map[string]*Schema{
+				"config_vars": &Schema{
+					Type:     TypeList,
+					Optional: true,
+					Computed: true,
+					Elem: &Schema{
+						Type: TypeMap,
+					},
+				},
+			},
+
+			State: nil,
+
+			Diff: nil,
+
+			Key: "config_vars",
+			Value: []interface{}{
+				map[string]interface{}{
+					"foo": "bar",
+				},
+				map[string]interface{}{
+					"bar": "baz",
+				},
+			},
+			Err: false,
+
+			GetKey: "config_vars",
+			GetValue: []interface{}{
+				map[string]interface{}{
+					"foo": "bar",
+				},
+				map[string]interface{}{
+					"bar": "baz",
+				},
+			},
+		},
 	}
 
 	for i, tc := range cases {
@@ -939,6 +1057,42 @@ func TestResourceDataState(t *testing.T) {
 					"ingress.#":      "2",
 					"ingress.0.from": "150",
 					"ingress.1.from": "100",
+				},
+			},
+		},
+
+		// List of maps
+		{
+			Schema: map[string]*Schema{
+				"config_vars": &Schema{
+					Type:     TypeList,
+					Optional: true,
+					Computed: true,
+					Elem: &Schema{
+						Type: TypeMap,
+					},
+				},
+			},
+
+			State: &terraform.ResourceState{
+				Attributes: map[string]string{
+					"config_vars.#":     "2",
+					"config_vars.0.foo": "bar",
+					"config_vars.1.bar": "baz",
+				},
+			},
+
+			Set: map[string]interface{}{
+				"config_vars.1": map[string]interface{}{
+					"baz": "bang",
+				},
+			},
+
+			Result: &terraform.ResourceState{
+				Attributes: map[string]string{
+					"config_vars.#":     "2",
+					"config_vars.0.foo": "bar",
+					"config_vars.1.baz": "bang",
 				},
 			},
 		},
