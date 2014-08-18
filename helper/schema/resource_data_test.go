@@ -907,6 +907,45 @@ func TestResourceDataSet(t *testing.T) {
 				},
 			},
 		},
+
+		// Set a list of maps
+		{
+			Schema: map[string]*Schema{
+				"config_vars": &Schema{
+					Type:     TypeList,
+					Optional: true,
+					Computed: true,
+					Elem: &Schema{
+						Type: TypeMap,
+					},
+				},
+			},
+
+			State: nil,
+
+			Diff: nil,
+
+			Key: "config_vars",
+			Value: []interface{}{
+				map[string]string{
+					"foo": "bar",
+				},
+				map[string]string{
+					"bar": "baz",
+				},
+			},
+			Err: false,
+
+			GetKey: "config_vars",
+			GetValue: []interface{}{
+				map[string]interface{}{
+					"foo": "bar",
+				},
+				map[string]interface{}{
+					"bar": "baz",
+				},
+			},
+		},
 	}
 
 	for i, tc := range cases {

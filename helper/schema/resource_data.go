@@ -394,7 +394,19 @@ func (d *ResourceData) setMapValue(
 		}
 	*/
 
-	vs := value.(map[string]interface{})
+	v := reflect.ValueOf(value)
+	if v.Kind() != reflect.Map {
+		return fmt.Errorf("%s: must be a map", k)
+	}
+	if v.Type().Key().Kind() != reflect.String {
+		return fmt.Errorf("%s: keys must strings", k)
+	}
+	vs := make(map[string]interface{})
+	for _, mk := range v.MapKeys() {
+		mv := v.MapIndex(mk)
+		vs[mk.String()] = mv.Interface()
+	}
+
 	for subKey, v := range vs {
 		err := d.set(fmt.Sprintf("%s.%s", k, subKey), nil, elemSchema, v)
 		if err != nil {
