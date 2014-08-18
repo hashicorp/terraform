@@ -9,6 +9,17 @@ import (
 	"github.com/mitchellh/mapstructure"
 )
 
+// getSource represents the level we want to get for a value (internally).
+// Any source less than or equal to the level will be loaded (whichever
+// has a value first).
+type getSource byte
+
+const (
+	getSourceState getSource = iota
+	getSourceDiff
+	getSourceSet
+)
+
 // ResourceData is used to query and set the attributes of a resource.
 type ResourceData struct {
 	schema map[string]*Schema
@@ -30,7 +41,21 @@ func (d *ResourceData) Get(key string) interface{} {
 		parts = strings.Split(key, ".")
 	}
 
-	return d.getObject("", parts, d.schema)
+	return d.getObject("", parts, d.schema, getSourceSet)
+}
+
+// GetChange returns the old and new value for a given key.
+//
+// If there is no change, then old and new will simply be the same.
+func (d *ResourceData) GetChange(key string) (interface{}, interface{}) {
+	var parts []string
+	if key != "" {
+		parts = strings.Split(key, ".")
+	}
+
+	o := d.getObject("", parts, d.schema, getSourceState)
+	n := d.getObject("", parts, d.schema, getSourceDiff)
+	return o, n
 }
 
 // Set sets the value for the given key.
@@ -84,19 +109,21 @@ func (d *ResourceData) State() *terraform.ResourceState {
 func (d *ResourceData) get(
 	k string,
 	parts []string,
-	schema *Schema) interface{} {
+	schema *Schema,
+	source getSource) interface{} {
 	switch schema.Type {
 	case TypeList:
-		return d.getList(k, parts, schema)
+		return d.getList(k, parts, schema, source)
 	default:
-		return d.getPrimitive(k, parts, schema)
+		return d.getPrimitive(k, parts, schema, source)
 	}
 }
 
 func (d *ResourceData) getObject(
 	k string,
 	parts []string,
-	schema map[string]*Schema) interface{} {
+	schema map[string]*Schema,
+	source getSource) interface{} {
 	if len(parts) > 0 {
 		// We're requesting a specific key in an object
 		key := parts[0]
@@ -112,13 +139,13 @@ func (d *ResourceData) getObject(
 			key = fmt.Sprintf("%s.%s", k, key)
 		}
 
-		return d.get(key, parts, s)
+		return d.get(key, parts, s, source)
 	}
 
 	// Get the entire object
 	result := make(map[string]interface{})
 	for field, _ := range schema {
-		result[field] = d.getObject(k, []string{field}, schema)
+		result[field] = d.getObject(k, []string{field}, schema, source)
 	}
 
 	return result
@@ -127,7 +154,8 @@ func (d *ResourceData) getObject(
 func (d *ResourceData) getList(
 	k string,
 	parts []string,
-	schema *Schema) interface{} {
+	schema *Schema,
+	source getSource) interface{} {
 	if len(parts) > 0 {
 		// We still have parts left over meaning we're accessing an
 		// element of this list.
@@ -137,7 +165,7 @@ func (d *ResourceData) getList(
 		// Special case if we're accessing the count of the list
 		if idx == "#" {
 			schema := &Schema{Type: TypeInt}
-			result := d.get(k+".#", parts, schema)
+			result := d.get(k+".#", parts, schema, source)
 			if result == nil {
 				result = 0
 			}
@@ -148,17 +176,19 @@ func (d *ResourceData) getList(
 		key := fmt.Sprintf("%s.%s", k, idx)
 		switch t := schema.Elem.(type) {
 		case *Resource:
-			return d.getObject(key, parts, t.Schema)
+			return d.getObject(key, parts, t.Schema, source)
 		case *Schema:
-			return d.get(key, parts, t)
+			return d.get(key, parts, t, source)
 		}
 	}
 
 	// Get the entire list.
-	result := make([]interface{}, d.getList(k, []string{"#"}, schema).(int))
+	result := make(
+		[]interface{},
+		d.getList(k, []string{"#"}, schema, source).(int))
 	for i, _ := range result {
 		is := strconv.FormatInt(int64(i), 10)
-		result[i] = d.getList(k, []string{is}, schema)
+		result[i] = d.getList(k, []string{is}, schema, source)
 	}
 
 	return result
@@ -167,14 +197,15 @@ func (d *ResourceData) getList(
 func (d *ResourceData) getPrimitive(
 	k string,
 	parts []string,
-	schema *Schema) interface{} {
+	schema *Schema,
+	source getSource) interface{} {
 	var result string
 	var resultSet bool
-	if d.state != nil {
+	if d.state != nil && source >= getSourceState {
 		result, resultSet = d.state.Attributes[k]
 	}
 
-	if d.diff != nil {
+	if d.diff != nil && source >= getSourceDiff {
 		attrD, ok := d.diff.Attributes[k]
 		if ok {
 			result = attrD.New
@@ -182,7 +213,7 @@ func (d *ResourceData) getPrimitive(
 		}
 	}
 
-	if d.setMap != nil {
+	if d.setMap != nil && source >= getSourceSet {
 		if v, ok := d.setMap[k]; ok {
 			result = v
 			resultSet = true
@@ -357,7 +388,7 @@ func (d *ResourceData) setPrimitive(
 func (d *ResourceData) stateList(
 	prefix string,
 	schema *Schema) map[string]string {
-	countRaw := d.get(prefix, []string{"#"}, schema)
+	countRaw := d.get(prefix, []string{"#"}, schema, getSourceSet)
 	if countRaw == nil {
 		return nil
 	}
@@ -405,7 +436,7 @@ func (d *ResourceData) stateObject(
 func (d *ResourceData) statePrimitive(
 	prefix string,
 	schema *Schema) map[string]string {
-	v := d.getPrimitive(prefix, nil, schema)
+	v := d.getPrimitive(prefix, nil, schema, getSourceSet)
 	if v == nil {
 		return nil
 	}
