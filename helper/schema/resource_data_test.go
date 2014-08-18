@@ -796,3 +796,37 @@ func TestResourceDataState(t *testing.T) {
 		}
 	}
 }
+
+func TestResourceDataSetId(t *testing.T) {
+	d := &ResourceData{}
+	d.SetId("foo")
+
+	actual := d.State()
+	if actual.ID != "foo" {
+		t.Fatalf("bad: %#v", actual)
+	}
+}
+
+func TestResourceDataSetId_clear(t *testing.T) {
+	d := &ResourceData{
+		state: &terraform.ResourceState{ID: "bar"},
+	}
+	d.SetId("")
+
+	actual := d.State()
+	if actual.ID != "" {
+		t.Fatalf("bad: %#v", actual)
+	}
+}
+
+func TestResourceDataSetId_override(t *testing.T) {
+	d := &ResourceData{
+		state: &terraform.ResourceState{ID: "bar"},
+	}
+	d.SetId("foo")
+
+	actual := d.State()
+	if actual.ID != "foo" {
+		t.Fatalf("bad: %#v", actual)
+	}
+}
