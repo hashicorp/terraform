@@ -9,6 +9,10 @@ import (
 	"github.com/hashicorp/terraform/terraform"
 )
 
+func TestProvider_impl(t *testing.T) {
+	var _ terraform.ResourceProvider = new(Provider)
+}
+
 func TestProviderConfigure(t *testing.T) {
 	cases := []struct {
 		P      *Provider

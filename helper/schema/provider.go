@@ -75,6 +75,41 @@ func (p *Provider) Configure(c *terraform.ResourceConfig) error {
 	return nil
 }
 
+// Apply implementation of terraform.ResourceProvider interface.
+func (p *Provider) Apply(
+	s *terraform.ResourceState,
+	d *terraform.ResourceDiff) (*terraform.ResourceState, error) {
+	r, ok := p.ResourcesMap[s.Type]
+	if !ok {
+		return nil, fmt.Errorf("unknown resource type: %s", s.Type)
+	}
+
+	return r.Apply(s, d, p.meta)
+}
+
+// Diff implementation of terraform.ResourceProvider interface.
+func (p *Provider) Diff(
+	s *terraform.ResourceState,
+	c *terraform.ResourceConfig) (*terraform.ResourceDiff, error) {
+	r, ok := p.ResourcesMap[s.Type]
+	if !ok {
+		return nil, fmt.Errorf("unknown resource type: %s", s.Type)
+	}
+
+	return r.Diff(s, c)
+}
+
+// Refresh implementation of terraform.ResourceProvider interface.
+func (p *Provider) Refresh(
+	s *terraform.ResourceState) (*terraform.ResourceState, error) {
+	r, ok := p.ResourcesMap[s.Type]
+	if !ok {
+		return nil, fmt.Errorf("unknown resource type: %s", s.Type)
+	}
+
+	return r.Refresh(s, p.meta)
+}
+
 // Resources implementation of terraform.ResourceProvider interface.
 func (p *Provider) Resources() []terraform.ResourceType {
 	keys := make([]string, 0, len(p.ResourcesMap))
