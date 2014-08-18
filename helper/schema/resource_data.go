@@ -2,6 +2,7 @@ package schema
 
 import (
 	"fmt"
+	"reflect"
 	"strconv"
 	"strings"
 
@@ -56,6 +57,12 @@ func (d *ResourceData) GetChange(key string) (interface{}, interface{}) {
 	o := d.getObject("", parts, d.schema, getSourceState)
 	n := d.getObject("", parts, d.schema, getSourceDiff)
 	return o, n
+}
+
+// HasChange returns whether or not the given key has been changed.
+func (d *ResourceData) HasChange(key string) bool {
+	o, n := d.GetChange(key)
+	return !reflect.DeepEqual(o, n)
 }
 
 // Set sets the value for the given key.

@@ -401,6 +401,86 @@ func TestResourceDataGetChange(t *testing.T) {
 	}
 }
 
+func TestResourceDataHasChange(t *testing.T) {
+	cases := []struct {
+		Schema map[string]*Schema
+		State  *terraform.ResourceState
+		Diff   *terraform.ResourceDiff
+		Key    string
+		Change bool
+	}{
+		{
+			Schema: map[string]*Schema{
+				"availability_zone": &Schema{
+					Type:     TypeString,
+					Optional: true,
+					Computed: true,
+					ForceNew: true,
+				},
+			},
+
+			State: nil,
+
+			Diff: &terraform.ResourceDiff{
+				Attributes: map[string]*terraform.ResourceAttrDiff{
+					"availability_zone": &terraform.ResourceAttrDiff{
+						Old:         "",
+						New:         "foo",
+						RequiresNew: true,
+					},
+				},
+			},
+
+			Key: "availability_zone",
+
+			Change: true,
+		},
+
+		{
+			Schema: map[string]*Schema{
+				"availability_zone": &Schema{
+					Type:     TypeString,
+					Optional: true,
+					Computed: true,
+					ForceNew: true,
+				},
+			},
+
+			State: &terraform.ResourceState{
+				Attributes: map[string]string{
+					"availability_zone": "foo",
+				},
+			},
+
+			Diff: &terraform.ResourceDiff{
+				Attributes: map[string]*terraform.ResourceAttrDiff{
+					"availability_zone": &terraform.ResourceAttrDiff{
+						Old:         "",
+						New:         "foo",
+						RequiresNew: true,
+					},
+				},
+			},
+
+			Key: "availability_zone",
+
+			Change: false,
+		},
+	}
+
+	for i, tc := range cases {
+		d, err := schemaMap(tc.Schema).Data(tc.State, tc.Diff)
+		if err != nil {
+			t.Fatalf("err: %s", err)
+		}
+
+		actual := d.HasChange(tc.Key)
+		if actual != tc.Change {
+			t.Fatalf("Bad: %d %#v", i, actual)
+		}
+	}
+}
+
 func TestResourceDataSet(t *testing.T) {
 	cases := []struct {
 		Schema   map[string]*Schema
