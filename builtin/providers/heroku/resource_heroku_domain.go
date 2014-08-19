@@ -6,6 +6,7 @@ import (
 
 	"github.com/bgentry/heroku-go"
 	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/hashicorp/terraform/terraform"
 )
 
 func resourceHerokuDomain() *schema.Resource {
@@ -51,6 +52,9 @@ func resourceHerokuDomainCreate(d *schema.ResourceData, meta interface{}) error 
 	d.SetId(do.Id)
 	d.Set("hostname", do.Hostname)
 	d.Set("cname", fmt.Sprintf("%s.herokuapp.com", app))
+	d.SetDependencies([]terraform.ResourceDependency{
+		terraform.ResourceDependency{ID: app},
+	})
 
 	log.Printf("[INFO] Domain ID: %s", d.Id())
 	return nil

@@ -14,6 +14,7 @@ BUG FIXES:
   * core: Variables are validated to not contain interpolations. [GH-180]
   * providers/heroku: If you delete the `config_vars` block, config vars
       are properly nuked.
+  * providers/heroku: Domains and drains are deleted before the app.
 
 PLUGIN CHANGES:
 
