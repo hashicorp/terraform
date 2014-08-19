@@ -8,6 +8,9 @@ BACKWARDS INCOMPATIBILITIES:
     * Semicolons are no longer valid at the end of lines
     * Keys cannot be double-quoted strings: `"foo" = "bar"` is no longer
       valid.
+    * JSON style maps `{ "foo": "bar" }` are no longer valid outside of JSON.
+      Maps must be in the format of `{ foo = "bar" }` (like other objects
+      in the config)
 
 FEATURES:
 
