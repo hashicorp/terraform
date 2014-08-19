@@ -248,15 +248,25 @@ func (m schemaMap) diffList(
 	newLen = len(vs)
 
 	// If the counts are not the same, then record that diff
-	if oldLen != newLen {
+	changed := oldLen != newLen
+	computed := oldLen == 0 && newLen == 0 && schema.Computed
+	if changed || computed {
 		countSchema := &Schema{
 			Type:     TypeInt,
+			Computed: schema.Computed,
 			ForceNew: schema.ForceNew,
 		}
 
+		oldStr := ""
+		newStr := ""
+		if !computed {
+			oldStr = strconv.FormatInt(int64(oldLen), 10)
+			newStr = strconv.FormatInt(int64(newLen), 10)
+		}
+
 		diff.Attributes[k+".#"] = countSchema.finalizeDiff(&terraform.ResourceAttrDiff{
-			Old: strconv.FormatInt(int64(oldLen), 10),
-			New: strconv.FormatInt(int64(newLen), 10),
+			Old: oldStr,
+			New: newStr,
 		})
 	}
 

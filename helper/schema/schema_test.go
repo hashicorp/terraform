@@ -181,7 +181,7 @@ func TestSchemaMap_Diff(t *testing.T) {
 			Diff: &terraform.ResourceDiff{
 				Attributes: map[string]*terraform.ResourceAttrDiff{
 					"ports.#": &terraform.ResourceAttrDiff{
-						Old: "",
+						Old: "0",
 						New: "3",
 					},
 					"ports.0": &terraform.ResourceAttrDiff{
@@ -285,7 +285,7 @@ func TestSchemaMap_Diff(t *testing.T) {
 			Diff: &terraform.ResourceDiff{
 				Attributes: map[string]*terraform.ResourceAttrDiff{
 					"ports.#": &terraform.ResourceAttrDiff{
-						Old:         "",
+						Old:         "0",
 						New:         "3",
 						RequiresNew: true,
 					},
@@ -303,6 +303,32 @@ func TestSchemaMap_Diff(t *testing.T) {
 						Old:         "",
 						New:         "5",
 						RequiresNew: true,
+					},
+				},
+			},
+
+			Err: false,
+		},
+
+		{
+			Schema: map[string]*Schema{
+				"ports": &Schema{
+					Type:     TypeList,
+					Optional: true,
+					Computed: true,
+					Elem:     &Schema{Type: TypeInt},
+				},
+			},
+
+			State: nil,
+
+			Config: map[string]interface{}{},
+
+			Diff: &terraform.ResourceDiff{
+				Attributes: map[string]*terraform.ResourceAttrDiff{
+					"ports.#": &terraform.ResourceAttrDiff{
+						Old: "",
+						NewComputed: true,
 					},
 				},
 			},
@@ -343,7 +369,7 @@ func TestSchemaMap_Diff(t *testing.T) {
 			Diff: &terraform.ResourceDiff{
 				Attributes: map[string]*terraform.ResourceAttrDiff{
 					"ingress.#": &terraform.ResourceAttrDiff{
-						Old: "",
+						Old: "0",
 						New: "1",
 					},
 					"ingress.0.from": &terraform.ResourceAttrDiff{
@@ -632,7 +658,6 @@ func TestSchemaMap_Diff(t *testing.T) {
 	}
 
 	for i, tc := range cases {
-		if i != 1 { continue }
 		c, err := config.NewRawConfig(tc.Config)
 		if err != nil {
 			t.Fatalf("err: %s", err)
