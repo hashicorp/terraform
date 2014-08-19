@@ -89,9 +89,43 @@ func (c *ResourceConfig) CheckSet(keys []string) []error {
 // The second return value is true if the get was successful. Get will
 // not succeed if the value is being computed.
 func (c *ResourceConfig) Get(k string) (interface{}, bool) {
+	result, ok := c.get(k, c.Config)
+	if ok {
+		return result, ok
+	}
+
+	return c.get(k, c.Raw)
+}
+
+// IsSet checks if the key in the configuration is set. A key is set if
+// it has a value or the value is being computed (is unknown currently).
+//
+// This function should be used rather than checking the keys of the
+// raw configuration itself, since a key may be omitted from the raw
+// configuration if it is being computed.
+func (c *ResourceConfig) IsSet(k string) bool {
+	if c == nil {
+		return false
+	}
+
+	for _, ck := range c.ComputedKeys {
+		if ck == k {
+			return true
+		}
+	}
+
+	if _, ok := c.Get(k); ok {
+		return true
+	}
+
+	return false
+}
+
+func (c *ResourceConfig) get(
+	k string, raw map[string]interface{}) (interface{}, bool) {
 	parts := strings.Split(k, ".")
 
-	var current interface{} = c.Raw
+	var current interface{} = raw
 	for _, part := range parts {
 		if current == nil {
 			return nil, false
@@ -121,30 +155,6 @@ func (c *ResourceConfig) Get(k string) (interface{}, bool) {
 	}
 
 	return current, true
-}
-
-// IsSet checks if the key in the configuration is set. A key is set if
-// it has a value or the value is being computed (is unknown currently).
-//
-// This function should be used rather than checking the keys of the
-// raw configuration itself, since a key may be omitted from the raw
-// configuration if it is being computed.
-func (c *ResourceConfig) IsSet(k string) bool {
-	if c == nil {
-		return false
-	}
-
-	for _, ck := range c.ComputedKeys {
-		if ck == k {
-			return true
-		}
-	}
-
-	if _, ok := c.Get(k); ok {
-		return true
-	}
-
-	return false
 }
 
 func (c *ResourceConfig) interpolate(ctx *Context) error {
