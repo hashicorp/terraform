@@ -153,10 +153,12 @@ func (m *Meta) process(args []string, vars bool) []string {
 
 	// Set the UI
 	m.oldUi = m.Ui
-	m.Ui = &ColorizeUi{
-		Colorize:   m.Colorize(),
-		ErrorColor: "[red]",
-		Ui:         m.oldUi,
+	m.Ui = &cli.ConcurrentUi{
+		Ui: &ColorizeUi{
+			Colorize:   m.Colorize(),
+			ErrorColor: "[red]",
+			Ui:         m.oldUi,
+		},
 	}
 
 	// If we support vars and the default var file exists, add it to
