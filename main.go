@@ -107,19 +107,23 @@ func wrappedMain() int {
 		HelpWriter: os.Stdout,
 	}
 
+	// Load the configuration file if we have one, that can be used to
+	// define extra providers and provisioners.
 	clicfgFile, err := cliConfigFile()
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error loading CLI configuration: \n\n%s\n", err)
 		return 1
 	}
 
-	usrcfg, err := LoadConfig(clicfgFile)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error loading CLI configuration: \n\n%s\n", err)
-		return 1
-	}
+	if clicfgFile != "" {
+		usrcfg, err := LoadConfig(clicfgFile)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Error loading CLI configuration: \n\n%s\n", err)
+			return 1
+		}
 
-	config = *config.Merge(usrcfg)
+		config = *config.Merge(usrcfg)
+	}
 
 	// Initialize the TFConfig settings for the commands...
 	ContextOpts.Providers = config.ProviderFactories()
@@ -143,27 +147,25 @@ func cliConfigFile() (string, error) {
 		mustExist = false
 
 		if err != nil {
-			log.Printf("Error detecting default CLI config file path: %s", err)
+			log.Printf(
+				"[ERROR] Error detecting default CLI config file path: %s",
+				err)
 		}
 	}
 
-	log.Printf("Attempting to open CLI config file: %s", configFilePath)
+	log.Printf("[DEBUG] Attempting to open CLI config file: %s", configFilePath)
 	f, err := os.Open(configFilePath)
-	if err != nil {
-		if !os.IsNotExist(err) {
-			return "", err
-		}
-
-		if mustExist {
-			return "", err
-		}
-
-		log.Println("File doesn't exist, but doesn't need to. Ignoring.")
-		return "", nil
+	if err == nil {
+		f.Close()
+		return configFilePath, nil
 	}
-	defer f.Close()
 
-	return configFilePath, nil
+	if mustExist || !os.IsNotExist(err) {
+		return "", err
+	}
+
+	log.Println("[DEBUG] File doesn't exist, but doesn't need to. Ignoring.")
+	return "", nil
 }
 
 // copyOutput uses output prefixes to determine whether data on stdout
