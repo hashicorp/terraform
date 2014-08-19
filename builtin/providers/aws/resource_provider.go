@@ -6,6 +6,7 @@ import (
 
 	"github.com/hashicorp/terraform/helper/config"
 	"github.com/hashicorp/terraform/helper/multierror"
+	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/terraform"
 	"github.com/mitchellh/goamz/autoscaling"
 	"github.com/mitchellh/goamz/ec2"
@@ -24,6 +25,10 @@ type ResourceProvider struct {
 	s3conn          *s3.S3
 	rdsconn         *rds.Rds
 	route53         *route53.Route53
+
+	// This is the schema.Provider. Eventually this will replace much
+	// of this structure. For now it is an element of it for compatiblity.
+	p *schema.Provider
 }
 
 func (p *ResourceProvider) Validate(c *terraform.ResourceConfig) ([]string, []error) {
@@ -98,26 +103,44 @@ func (p *ResourceProvider) Configure(c *terraform.ResourceConfig) error {
 		return &multierror.Error{Errors: errs}
 	}
 
+	// Create the provider, set the meta
+	p.p = Provider()
+	p.p.SetMeta(p)
+
 	return nil
 }
 
 func (p *ResourceProvider) Apply(
 	s *terraform.ResourceState,
 	d *terraform.ResourceDiff) (*terraform.ResourceState, error) {
+	if _, ok := p.p.ResourcesMap[s.Type]; ok {
+		return p.p.Apply(s, d)
+	}
+
 	return resourceMap.Apply(s, d, p)
 }
 
 func (p *ResourceProvider) Diff(
 	s *terraform.ResourceState,
 	c *terraform.ResourceConfig) (*terraform.ResourceDiff, error) {
+	if _, ok := p.p.ResourcesMap[s.Type]; ok {
+		return p.p.Diff(s, c)
+	}
+
 	return resourceMap.Diff(s, c, p)
 }
 
 func (p *ResourceProvider) Refresh(
 	s *terraform.ResourceState) (*terraform.ResourceState, error) {
+	if _, ok := p.p.ResourcesMap[s.Type]; ok {
+		return p.p.Refresh(s)
+	}
+
 	return resourceMap.Refresh(s, p)
 }
 
 func (p *ResourceProvider) Resources() []terraform.ResourceType {
-	return resourceMap.Resources()
+	result := resourceMap.Resources()
+	result = append(result, p.p.Resources()...)
+	return result
 }
