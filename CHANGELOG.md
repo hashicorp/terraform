@@ -9,6 +9,11 @@ BACKWARDS INCOMPATIBILITIES:
     * Keys cannot be double-quoted strings: `"foo" = "bar"` is no longer
       valid.
 
+IMPROVEMENTS:
+
+  * core: "~/.terraformrc" (Unix) or "%APPDATA%/terraform.rc" (Windows)
+    can be used to configure custom providers and provisioners. [GH-192]
+
 BUG FIXES:
 
   * core: Variables are validated to not contain interpolations. [GH-180]
