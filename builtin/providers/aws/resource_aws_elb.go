@@ -43,8 +43,17 @@ func resource_aws_elb_create(
 
 	if _, ok := rs.Attributes["availability_zones.#"]; ok {
 		v = flatmap.Expand(rs.Attributes, "availability_zones").([]interface{})
-		zones := expandStringList(v)
-		elbOpts.AvailZone = zones
+		elbOpts.AvailZone = expandStringList(v)
+	}
+
+	if _, ok := rs.Attributes["security_groups.#"]; ok {
+		v = flatmap.Expand(rs.Attributes, "security_groups").([]interface{})
+		elbOpts.SecurityGroups = expandStringList(v)
+	}
+
+	if _, ok := rs.Attributes["subnets.#"]; ok {
+		v = flatmap.Expand(rs.Attributes, "subnets").([]interface{})
+		elbOpts.Subnets = expandStringList(v)
 	}
 
 	log.Printf("[DEBUG] ELB create configuration: %#v", elbOpts)
@@ -248,6 +257,8 @@ func resource_aws_elb_diff(
 		Attrs: map[string]diff.AttrType{
 			"name":              diff.AttrTypeCreate,
 			"availability_zone": diff.AttrTypeCreate,
+			"security_groups":   diff.AttrTypeCreate, // TODO could be AttrTypeUpdate
+			"subnets":           diff.AttrTypeCreate, // TODO could be AttrTypeUpdate
 			"listener":          diff.AttrTypeCreate,
 			"instances":         diff.AttrTypeUpdate,
 			"health_check":      diff.AttrTypeCreate,
@@ -273,6 +284,14 @@ func resource_aws_elb_update_state(
 
 	if len(balancer.Instances) > 0 && balancer.Instances[0].InstanceId != "" {
 		toFlatten["instances"] = flattenInstances(balancer.Instances)
+	}
+
+	if len(balancer.SecurityGroups) > 0 && balancer.SecurityGroups[0] != "" {
+		toFlatten["security_groups"] = balancer.SecurityGroups
+	}
+
+	if len(balancer.Subnets) > 0 && balancer.Subnets[0] != "" {
+		toFlatten["subnets"] = balancer.Subnets
 	}
 
 	// There's only one health check, so save that to state as we
@@ -326,6 +345,8 @@ func resource_aws_elb_validation() *config.Validator {
 		Optional: []string{
 			"instances.*",
 			"availability_zones.*",
+			"security_groups.*",
+			"subnets.*",
 			"health_check.#",
 			"health_check.0.healthy_threshold",
 			"health_check.0.unhealthy_threshold",
