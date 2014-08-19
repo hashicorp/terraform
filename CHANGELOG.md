@@ -9,6 +9,11 @@ BACKWARDS INCOMPATIBILITIES:
     * Keys cannot be double-quoted strings: `"foo" = "bar"` is no longer
       valid.
 
+FEATURES:
+
+  * **New Function: `concat`**: Concatenate multiple strings together.
+    Example: `concat(var.region, "-", var.channel)`.
+
 IMPROVEMENTS:
 
   * core: "~/.terraformrc" (Unix) or "%APPDATA%/terraform.rc" (Windows)

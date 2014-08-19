@@ -1,6 +1,7 @@
 package config
 
 import (
+	"bytes"
 	"fmt"
 	"io/ioutil"
 	"strings"
@@ -11,9 +12,25 @@ var Funcs map[string]InterpolationFunc
 
 func init() {
 	Funcs = map[string]InterpolationFunc{
+		"concat": interpolationFuncConcat,
 		"file":   interpolationFuncFile,
 		"lookup": interpolationFuncLookup,
 	}
+}
+
+// interpolationFuncConcat implements the "concat" function that allows
+// strings to be joined together.
+func interpolationFuncConcat(
+	vs map[string]string, args ...string) (string, error) {
+	var buf bytes.Buffer
+
+	for _, a := range args {
+		if _, err := buf.WriteString(a); err != nil {
+			return "", err
+		}
+	}
+
+	return buf.String(), nil
 }
 
 // interpolationFuncFile implements the "file" function that allows
