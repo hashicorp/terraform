@@ -47,6 +47,9 @@ func TestLoadBasic(t *testing.T) {
 }
 
 func TestLoadBasic_import(t *testing.T) {
+	// Skip because we disabled importing
+	t.Skip()
+
 	c, err := Load(filepath.Join(fixtureDir, "import.tf"))
 	if err != nil {
 		t.Fatalf("err: %s", err)
