@@ -1,0 +1,564 @@
+package schema
+
+import (
+	"fmt"
+	"reflect"
+	"strconv"
+	"strings"
+
+	"github.com/hashicorp/terraform/terraform"
+	"github.com/mitchellh/mapstructure"
+)
+
+// ValueType is an enum of the type that can be represented by a schema.
+type ValueType int
+
+const (
+	TypeInvalid ValueType = iota
+	TypeBool
+	TypeInt
+	TypeString
+	TypeList
+	TypeMap
+)
+
+// Schema is used to describe the structure of a value.
+type Schema struct {
+	// Type is the type of the value and must be one of the ValueType values.
+	Type ValueType
+
+	// If one of these is set, then this item can come from the configuration.
+	// Both cannot be set. If Optional is set, the value is optional. If
+	// Required is set, the value is required.
+	Optional bool
+	Required bool
+
+	// The fields below relate to diffs.
+	//
+	// If Computed is true, then the result of this value is computed
+	// (unless specified by config) on creation.
+	//
+	// If ForceNew is true, then a change in this resource necessitates
+	// the creation of a new resource.
+	Computed bool
+	ForceNew bool
+
+	// The following fields are only set for a TypeList Type.
+	//
+	// Elem must be either a *Schema or a *Resource only if the Type is
+	// TypeList, and represents what the element type is. If it is *Schema,
+	// the element type is just a simple value. If it is *Resource, the
+	// element type is a complex structure, potentially with its own lifecycle.
+	Elem interface{}
+
+	// ComputedWhen is a set of queries on the configuration. Whenever any
+	// of these things is changed, it will require a recompute (this requires
+	// that Computed is set to true).
+	ComputedWhen []string
+}
+
+func (s *Schema) finalizeDiff(
+	d *terraform.ResourceAttrDiff) *terraform.ResourceAttrDiff {
+	if d == nil {
+		return d
+	}
+
+	if s.Computed {
+		if d.Old != "" && d.New == "" {
+			// This is a computed value with an old value set already,
+			// just let it go.
+			return nil
+		}
+
+		if d.New == "" {
+			// Computed attribute without a new value set
+			d.NewComputed = true
+		}
+	}
+
+	if s.ForceNew {
+		// Force new, set it to true in the diff
+		d.RequiresNew = true
+	}
+
+	return d
+}
+
+// schemaMap is a wrapper that adds nice functions on top of schemas.
+type schemaMap map[string]*Schema
+
+// Data returns a ResourceData for the given schema, state, and diff.
+//
+// The diff is optional.
+func (m schemaMap) Data(
+	s *terraform.ResourceState,
+	d *terraform.ResourceDiff) (*ResourceData, error) {
+	return &ResourceData{
+		schema: m,
+		state:  s,
+		diff:   d,
+	}, nil
+}
+
+// Diff returns the diff for a resource given the schema map,
+// state, and configuration.
+func (m schemaMap) Diff(
+	s *terraform.ResourceState,
+	c *terraform.ResourceConfig) (*terraform.ResourceDiff, error) {
+	result := new(terraform.ResourceDiff)
+	result.Attributes = make(map[string]*terraform.ResourceAttrDiff)
+
+	for k, schema := range m {
+		err := m.diff(k, schema, result, s, c)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	// Remove any nil diffs just to keep things clean
+	for k, v := range result.Attributes {
+		if v == nil {
+			delete(result.Attributes, k)
+		}
+	}
+
+	// Go through and detect all of the ComputedWhens now that we've
+	// finished the diff.
+	// TODO
+
+	if result.Empty() {
+		// If we don't have any diff elements, just return nil
+		return nil, nil
+	}
+
+	return result, nil
+}
+
+// Validate validates the configuration against this schema mapping.
+func (m schemaMap) Validate(c *terraform.ResourceConfig) ([]string, []error) {
+	return m.validateObject("", m, c)
+}
+
+// InternalValidate validates the format of this schema. This should be called
+// from a unit test (and not in user-path code) to verify that a schema
+// is properly built.
+func (m schemaMap) InternalValidate() error {
+	for k, v := range m {
+		if v.Type == TypeInvalid {
+			return fmt.Errorf("%s: Type must be specified", k)
+		}
+
+		if v.Optional && v.Required {
+			return fmt.Errorf("%s: Optional or Required must be set, not both", k)
+		}
+
+		if v.Required && v.Computed {
+			return fmt.Errorf("%s: Cannot be both Required and Computed", k)
+		}
+
+		if len(v.ComputedWhen) > 0 && !v.Computed {
+			return fmt.Errorf("%s: ComputedWhen can only be set with Computed", k)
+		}
+
+		if v.Type == TypeList {
+			if v.Elem == nil {
+				return fmt.Errorf("%s: Elem must be set for lists", k)
+			}
+
+			switch t := v.Elem.(type) {
+			case *Resource:
+				if err := t.InternalValidate(); err != nil {
+					return err
+				}
+			case *Schema:
+				bad := t.Computed || t.Optional || t.Required
+				if bad {
+					return fmt.Errorf(
+						"%s: Elem must have only Type set", k)
+				}
+			}
+		}
+	}
+
+	return nil
+}
+
+func (m schemaMap) diff(
+	k string,
+	schema *Schema,
+	diff *terraform.ResourceDiff,
+	s *terraform.ResourceState,
+	c *terraform.ResourceConfig) error {
+	var err error
+	switch schema.Type {
+	case TypeBool:
+		fallthrough
+	case TypeInt:
+		fallthrough
+	case TypeString:
+		err = m.diffString(k, schema, diff, s, c)
+	case TypeList:
+		err = m.diffList(k, schema, diff, s, c)
+	case TypeMap:
+		err = m.diffMap(k, schema, diff, s, c)
+	default:
+		err = fmt.Errorf("%s: unknown type %s", k, schema.Type)
+	}
+
+	return err
+}
+
+func (m schemaMap) diffList(
+	k string,
+	schema *Schema,
+	diff *terraform.ResourceDiff,
+	s *terraform.ResourceState,
+	c *terraform.ResourceConfig) error {
+	var vs []interface{}
+
+	v, ok := c.Get(k)
+	if ok {
+		// We have to use reflection to build the []interface{} list
+		rawV := reflect.ValueOf(v)
+		if rawV.Kind() != reflect.Slice {
+			return fmt.Errorf("%s: must be a list", k)
+		}
+		vs = make([]interface{}, rawV.Len())
+		for i, _ := range vs {
+			vs[i] = rawV.Index(i).Interface()
+		}
+	}
+
+	// If this field is required, then it must also be non-empty
+	if len(vs) == 0 && schema.Required {
+		return fmt.Errorf("%s: required field is not set", k)
+	}
+
+	// Get the counts
+	var oldLen, newLen int
+	if s != nil {
+		if v, ok := s.Attributes[k+".#"]; ok {
+			old64, err := strconv.ParseInt(v, 0, 0)
+			if err != nil {
+				return err
+			}
+			oldLen = int(old64)
+		}
+	}
+	newLen = len(vs)
+
+	// If the counts are not the same, then record that diff
+	changed := oldLen != newLen
+	computed := oldLen == 0 && newLen == 0 && schema.Computed
+	if changed || computed {
+		countSchema := &Schema{
+			Type:     TypeInt,
+			Computed: schema.Computed,
+			ForceNew: schema.ForceNew,
+		}
+
+		oldStr := ""
+		newStr := ""
+		if !computed {
+			oldStr = strconv.FormatInt(int64(oldLen), 10)
+			newStr = strconv.FormatInt(int64(newLen), 10)
+		}
+
+		diff.Attributes[k+".#"] = countSchema.finalizeDiff(&terraform.ResourceAttrDiff{
+			Old: oldStr,
+			New: newStr,
+		})
+	}
+
+	// Figure out the maximum
+	maxLen := oldLen
+	if newLen > maxLen {
+		maxLen = newLen
+	}
+
+	switch t := schema.Elem.(type) {
+	case *Schema:
+		// Copy the schema so that we can set Computed/ForceNew from
+		// the parent schema (the TypeList).
+		t2 := *t
+		t2.ForceNew = schema.ForceNew
+
+		// This is just a primitive element, so go through each and
+		// just diff each.
+		for i := 0; i < maxLen; i++ {
+			subK := fmt.Sprintf("%s.%d", k, i)
+			err := m.diff(subK, &t2, diff, s, c)
+			if err != nil {
+				return err
+			}
+		}
+	case *Resource:
+		// This is a complex resource
+		for i := 0; i < maxLen; i++ {
+			for k2, schema := range t.Schema {
+				subK := fmt.Sprintf("%s.%d.%s", k, i, k2)
+				err := m.diff(subK, schema, diff, s, c)
+				if err != nil {
+					return err
+				}
+			}
+		}
+	default:
+		return fmt.Errorf("%s: unknown element type (internal)", k)
+	}
+
+	return nil
+}
+
+func (m schemaMap) diffMap(
+	k string,
+	schema *Schema,
+	diff *terraform.ResourceDiff,
+	s *terraform.ResourceState,
+	c *terraform.ResourceConfig) error {
+	//elemSchema := &Schema{Type: TypeString}
+	prefix := k + "."
+
+	// First get all the values from the state
+	stateMap := make(map[string]string)
+	if s != nil {
+		for sk, sv := range s.Attributes {
+			if !strings.HasPrefix(sk, prefix) {
+				continue
+			}
+
+			stateMap[sk[len(prefix):]] = sv
+		}
+	}
+
+	// Then get all the values from the configuration
+	configMap := make(map[string]string)
+	if c != nil {
+		if raw, ok := c.Get(k); ok {
+			for k, v := range raw.(map[string]interface{}) {
+				configMap[k] = v.(string)
+			}
+		}
+	}
+
+	// Now we compare, preferring values from the config map
+	for k, v := range configMap {
+		old := stateMap[k]
+		delete(stateMap, k)
+
+		if old == v {
+			continue
+		}
+
+		diff.Attributes[prefix+k] = schema.finalizeDiff(&terraform.ResourceAttrDiff{
+			Old: old,
+			New: v,
+		})
+	}
+	for k, v := range stateMap {
+		diff.Attributes[prefix+k] = schema.finalizeDiff(&terraform.ResourceAttrDiff{
+			Old:        v,
+			NewRemoved: true,
+		})
+	}
+
+	return nil
+}
+
+func (m schemaMap) diffString(
+	k string,
+	schema *Schema,
+	diff *terraform.ResourceDiff,
+	s *terraform.ResourceState,
+	c *terraform.ResourceConfig) error {
+	var old, n string
+	if s != nil {
+		old = s.Attributes[k]
+	}
+
+	v, ok := c.Get(k)
+	if !ok {
+		// We don't have a value, if it is required then it is an error
+		if schema.Required {
+			return fmt.Errorf("%s: required field not set", k)
+		}
+
+		// If we don't have an old value, just return
+		if old == "" && !schema.Computed {
+			return nil
+		}
+	} else {
+		if err := mapstructure.WeakDecode(v, &n); err != nil {
+			return fmt.Errorf("%s: %s", k, err)
+		}
+
+		if old == n {
+			// They're the same value
+			return nil
+		}
+	}
+
+	diff.Attributes[k] = schema.finalizeDiff(&terraform.ResourceAttrDiff{
+		Old: old,
+		New: n,
+	})
+
+	return nil
+}
+
+func (m schemaMap) diffPrimitive(
+	k string,
+	nraw interface{},
+	schema *Schema,
+	diff *terraform.ResourceDiff,
+	s *terraform.ResourceState) error {
+	var old, n string
+	if s != nil {
+		old = s.Attributes[k]
+	}
+
+	if err := mapstructure.WeakDecode(nraw, &n); err != nil {
+		return fmt.Errorf("%s: %s", k, err)
+	}
+
+	if old == n {
+		// They're the same value
+		return nil
+	}
+
+	diff.Attributes[k] = schema.finalizeDiff(&terraform.ResourceAttrDiff{
+		Old: old,
+		New: n,
+	})
+
+	return nil
+}
+
+func (m schemaMap) validate(
+	k string,
+	schema *Schema,
+	c *terraform.ResourceConfig) ([]string, []error) {
+	raw, ok := c.Get(k)
+	if !ok {
+		if schema.Required {
+			return nil, []error{fmt.Errorf(
+				"%s: required field is not set", k)}
+		}
+
+		return nil, nil
+	}
+
+	if !schema.Required && !schema.Optional {
+		// This is a computed-only field
+		return nil, []error{fmt.Errorf(
+			"%s: this field cannot be set", k)}
+	}
+
+	return m.validatePrimitive(k, raw, schema, c)
+}
+
+func (m schemaMap) validateList(
+	k string,
+	raw interface{},
+	schema *Schema,
+	c *terraform.ResourceConfig) ([]string, []error) {
+	// We use reflection to verify the slice because you can't
+	// case to []interface{} unless the slice is exactly that type.
+	rawV := reflect.ValueOf(raw)
+	if rawV.Kind() != reflect.Slice {
+		return nil, []error{fmt.Errorf(
+			"%s: should be a list", k)}
+	}
+
+	// Now build the []interface{}
+	raws := make([]interface{}, rawV.Len())
+	for i, _ := range raws {
+		raws[i] = rawV.Index(i).Interface()
+	}
+
+	var ws []string
+	var es []error
+	for i, raw := range raws {
+		key := fmt.Sprintf("%s.%d", k, i)
+
+		var ws2 []string
+		var es2 []error
+		switch t := schema.Elem.(type) {
+		case *Resource:
+			// This is a sub-resource
+			ws2, es2 = m.validateObject(key, t.Schema, c)
+		case *Schema:
+			// This is some sort of primitive
+			ws2, es2 = m.validatePrimitive(key, raw, t, c)
+		}
+
+		if len(ws2) > 0 {
+			ws = append(ws, ws2...)
+		}
+		if len(es2) > 0 {
+			es = append(es, es2...)
+		}
+	}
+
+	return ws, es
+}
+
+func (m schemaMap) validateObject(
+	k string,
+	schema map[string]*Schema,
+	c *terraform.ResourceConfig) ([]string, []error) {
+	var ws []string
+	var es []error
+	for subK, s := range schema {
+		key := subK
+		if k != "" {
+			key = fmt.Sprintf("%s.%s", k, subK)
+		}
+
+		ws2, es2 := m.validate(key, s, c)
+		if len(ws2) > 0 {
+			ws = append(ws, ws2...)
+		}
+		if len(es2) > 0 {
+			es = append(es, es2...)
+		}
+	}
+
+	// Detect any extra/unknown keys and report those as errors.
+	prefix := k + "."
+	for configK, _ := range c.Raw {
+		if k != "" {
+			if !strings.HasPrefix(configK, prefix) {
+				continue
+			}
+
+			configK = configK[len(prefix):]
+		}
+
+		if _, ok := schema[configK]; !ok {
+			es = append(es, fmt.Errorf(
+				"%s: invalid or unknown key: %s", k, configK))
+		}
+	}
+
+	return ws, es
+}
+
+func (m schemaMap) validatePrimitive(
+	k string,
+	raw interface{},
+	schema *Schema,
+	c *terraform.ResourceConfig) ([]string, []error) {
+	switch schema.Type {
+	case TypeList:
+		return m.validateList(k, raw, schema, c)
+	case TypeInt:
+		// Verify that we can parse this as an int
+		var n int
+		if err := mapstructure.WeakDecode(raw, &n); err != nil {
+			return nil, []error{err}
+		}
+	}
+
+	return nil, nil
+}

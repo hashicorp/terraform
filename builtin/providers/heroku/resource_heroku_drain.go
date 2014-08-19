@@ -5,63 +5,64 @@ import (
 	"log"
 
 	"github.com/bgentry/heroku-go"
-	"github.com/hashicorp/terraform/helper/config"
-	"github.com/hashicorp/terraform/helper/diff"
-	"github.com/hashicorp/terraform/terraform"
+	"github.com/hashicorp/terraform/helper/schema"
 )
 
-func resource_heroku_drain_create(
-	s *terraform.ResourceState,
-	d *terraform.ResourceDiff,
-	meta interface{}) (*terraform.ResourceState, error) {
-	p := meta.(*ResourceProvider)
-	client := p.client
+func resourceHerokuDrain() *schema.Resource {
+	return &schema.Resource{
+		Create: resourceHerokuDrainCreate,
+		Read:   resourceHerokuDrainRead,
+		Delete: resourceHerokuDrainDelete,
 
-	// Merge the diff into the state so that we have all the attributes
-	// properly.
-	rs := s.MergeDiff(d)
+		Schema: map[string]*schema.Schema{
+			"url": &schema.Schema{
+				Type:     schema.TypeString,
+				Required: true,
+				ForceNew: true,
+			},
 
-	app := rs.Attributes["app"]
-	url := rs.Attributes["url"]
+			"app": &schema.Schema{
+				Type:     schema.TypeString,
+				Required: true,
+				ForceNew: true,
+			},
+
+			"token": &schema.Schema{
+				Type:     schema.TypeString,
+				Computed: true,
+			},
+		},
+	}
+}
+
+func resourceHerokuDrainCreate(d *schema.ResourceData, meta interface{}) error {
+	client := meta.(*heroku.Client)
+
+	app := d.Get("app").(string)
+	url := d.Get("url").(string)
 
 	log.Printf("[DEBUG] Drain create configuration: %#v, %#v", app, url)
 
 	dr, err := client.LogDrainCreate(app, url)
-
 	if err != nil {
-		return s, err
+		return err
 	}
 
-	rs.ID = dr.Id
-	rs.Attributes["url"] = dr.URL
-	rs.Attributes["token"] = dr.Token
+	d.SetId(dr.Id)
+	d.Set("url", dr.URL)
+	d.Set("token", dr.Token)
 
-	log.Printf("[INFO] Drain ID: %s", rs.ID)
-
-	return rs, nil
+	log.Printf("[INFO] Drain ID: %s", d.Id())
+	return nil
 }
 
-func resource_heroku_drain_update(
-	s *terraform.ResourceState,
-	d *terraform.ResourceDiff,
-	meta interface{}) (*terraform.ResourceState, error) {
+func resourceHerokuDrainDelete(d *schema.ResourceData, meta interface{}) error {
+	client := meta.(*heroku.Client)
 
-	panic("Cannot update drain")
+	log.Printf("[INFO] Deleting drain: %s", d.Id())
 
-	return nil, nil
-}
-
-func resource_heroku_drain_destroy(
-	s *terraform.ResourceState,
-	meta interface{}) error {
-	p := meta.(*ResourceProvider)
-	client := p.client
-
-	log.Printf("[INFO] Deleting drain: %s", s.ID)
-
-	// Destroy the app
-	err := client.LogDrainDelete(s.Attributes["app"], s.ID)
-
+	// Destroy the drain
+	err := client.LogDrainDelete(d.Get("app").(string), d.Id())
 	if err != nil {
 		return fmt.Errorf("Error deleting drain: %s", err)
 	}
@@ -69,58 +70,16 @@ func resource_heroku_drain_destroy(
 	return nil
 }
 
-func resource_heroku_drain_refresh(
-	s *terraform.ResourceState,
-	meta interface{}) (*terraform.ResourceState, error) {
-	p := meta.(*ResourceProvider)
-	client := p.client
+func resourceHerokuDrainRead(d *schema.ResourceData, meta interface{}) error {
+	client := meta.(*heroku.Client)
 
-	drain, err := resource_heroku_drain_retrieve(s.Attributes["app"], s.ID, client)
+	dr, err := client.LogDrainInfo(d.Get("app").(string), d.Id())
 	if err != nil {
-		return nil, err
+		return fmt.Errorf("Error retrieving drain: %s", err)
 	}
 
-	s.Attributes["url"] = drain.URL
-	s.Attributes["token"] = drain.Token
+	d.Set("url", dr.URL)
+	d.Set("token", dr.Token)
 
-	return s, nil
-}
-
-func resource_heroku_drain_diff(
-	s *terraform.ResourceState,
-	c *terraform.ResourceConfig,
-	meta interface{}) (*terraform.ResourceDiff, error) {
-
-	b := &diff.ResourceBuilder{
-		Attrs: map[string]diff.AttrType{
-			"url": diff.AttrTypeCreate,
-			"app": diff.AttrTypeCreate,
-		},
-
-		ComputedAttrs: []string{
-			"token",
-		},
-	}
-
-	return b.Diff(s, c)
-}
-
-func resource_heroku_drain_retrieve(app string, id string, client *heroku.Client) (*heroku.LogDrain, error) {
-	drain, err := client.LogDrainInfo(app, id)
-
-	if err != nil {
-		return nil, fmt.Errorf("Error retrieving drain: %s", err)
-	}
-
-	return drain, nil
-}
-
-func resource_heroku_drain_validation() *config.Validator {
-	return &config.Validator{
-		Required: []string{
-			"url",
-			"app",
-		},
-		Optional: []string{},
-	}
+	return nil
 }
