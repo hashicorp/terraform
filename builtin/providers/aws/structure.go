@@ -81,8 +81,13 @@ func expandIPPerms(configured []interface{}) ([]ec2.IPPerm, error) {
 			gs := expandStringList(secGroups)
 
 			for _, g := range gs {
+				ownerId, id := "", g
+				if items := strings.Split(g, "/"); len(items) > 1 {
+					ownerId, id = items[0], items[1]
+				}
 				newG := ec2.UserSecurityGroup{
-					Id: g,
+					Id: id,
+					OwnerId: ownerId,
 				}
 				expandedGroups = append(expandedGroups, newG)
 			}

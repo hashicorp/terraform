@@ -26,8 +26,9 @@ func testConf() map[string]string {
 		"ingress.0.to_port":            "-1",
 		"ingress.0.cidr_blocks.#":      "1",
 		"ingress.0.cidr_blocks.0":      "0.0.0.0/0",
-		"ingress.0.security_groups.#":  "1",
+		"ingress.0.security_groups.#":  "2",
 		"ingress.0.security_groups.0":  "sg-11111",
+		"ingress.0.security_groups.1":  "foo/sg-22222",
 	}
 }
 
@@ -46,6 +47,10 @@ func Test_expandIPPerms(t *testing.T) {
 		SourceGroups: []ec2.UserSecurityGroup{
 			ec2.UserSecurityGroup{
 				Id: "sg-11111",
+			},
+			ec2.UserSecurityGroup{
+				OwnerId: "foo",
+				Id: "sg-22222",
 			},
 		},
 	}
@@ -91,6 +96,10 @@ func Test_expandIPPerms_NoCidr(t *testing.T) {
 		SourceGroups: []ec2.UserSecurityGroup{
 			ec2.UserSecurityGroup{
 				Id: "sg-11111",
+			},
+			ec2.UserSecurityGroup{
+				OwnerId: "foo",
+				Id: "sg-22222",
 			},
 		},
 	}
