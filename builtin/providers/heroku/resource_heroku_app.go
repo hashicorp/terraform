@@ -126,7 +126,7 @@ func resourceHerokuAppCreate(d *schema.ResourceData, meta interface{}) error {
 	log.Printf("[INFO] App ID: %s", d.Id())
 
 	if v := d.Get("config_vars"); v != nil {
-		err = update_config_vars(d.Id(), v.([]interface{}), client)
+		err = update_config_vars(d.Id(), client, nil, v.([]interface{}))
 		if err != nil {
 			return err
 		}
@@ -175,16 +175,21 @@ func resourceHerokuAppUpdate(d *schema.ResourceData, meta interface{}) error {
 		d.SetId(renamedApp.Name)
 	}
 
-	// Get the config vars. If we have none, then set it to the empty
-	// list so that they're properly removed.
-	v := d.Get("config_vars")
-	if v == nil {
-		v = []interface{}{}
-	}
+	// If the config vars changed, then recalculate those
+	if d.HasChange("config_vars") {
+		o, n := d.GetChange("config_vars")
+		if o == nil {
+			o = []interface{}{}
+		}
+		if n == nil {
+			n = []interface{}{}
+		}
 
-	err := update_config_vars(d.Id(), v.([]interface{}), client)
-	if err != nil {
-		return err
+		err := update_config_vars(
+			d.Id(), client, o.([]interface{}), n.([]interface{}))
+		if err != nil {
+			return err
+		}
 	}
 
 	return resourceHerokuAppRead(d, meta)
@@ -226,10 +231,19 @@ func retrieve_config_vars(id string, client *heroku.Client) (map[string]string, 
 }
 
 // Updates the config vars for from an expanded configuration.
-func update_config_vars(id string, vs []interface{}, client *heroku.Client) error {
+func update_config_vars(
+	id string,
+	client *heroku.Client,
+	o []interface{},
+	n []interface{}) error {
 	vars := make(map[string]*string)
 
-	for _, v := range vs {
+	for _, v := range o {
+		for k, _ := range v.(map[string]interface{}) {
+			vars[k] = nil
+		}
+	}
+	for _, v := range n {
 		for k, v := range v.(map[string]interface{}) {
 			val := v.(string)
 			vars[k] = &val
