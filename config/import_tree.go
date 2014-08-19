@@ -36,7 +36,7 @@ func loadTree(root string) (*importTree, error) {
 	case ".tf":
 		fallthrough
 	case ".tf.json":
-		f = loadFileLibucl
+		f = loadFileHcl
 	default:
 	}
 

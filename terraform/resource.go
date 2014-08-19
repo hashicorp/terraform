@@ -89,34 +89,14 @@ func (c *ResourceConfig) CheckSet(keys []string) []error {
 // The second return value is true if the get was successful. Get will
 // not succeed if the value is being computed.
 func (c *ResourceConfig) Get(k string) (interface{}, bool) {
-	parts := strings.Split(k, ".")
-
-	var current interface{} = c.Raw
-	for _, part := range parts {
-		if current == nil {
-			return nil, false
-		}
-
-		cv := reflect.ValueOf(current)
-		switch cv.Kind() {
-		case reflect.Map:
-			v := cv.MapIndex(reflect.ValueOf(part))
-			if !v.IsValid() {
-				return nil, false
-			}
-			current = v.Interface()
-		case reflect.Slice:
-			i, err := strconv.ParseInt(part, 0, 0)
-			if err != nil {
-				return nil, false
-			}
-			current = cv.Index(int(i)).Interface()
-		default:
-			panic(fmt.Sprintf("Unknown kind: %s", cv.Kind()))
-		}
+	// First try to get it from c.Config since that has interpolated values
+	result, ok := c.get(k, c.Config)
+	if ok {
+		return result, ok
 	}
 
-	return current, true
+	// Otherwise, just get it from the raw config
+	return c.get(k, c.Raw)
 }
 
 // IsSet checks if the key in the configuration is set. A key is set if
@@ -141,6 +121,42 @@ func (c *ResourceConfig) IsSet(k string) bool {
 	}
 
 	return false
+}
+
+func (c *ResourceConfig) get(
+	k string, raw map[string]interface{}) (interface{}, bool) {
+	parts := strings.Split(k, ".")
+
+	var current interface{} = raw
+	for _, part := range parts {
+		if current == nil {
+			return nil, false
+		}
+
+		cv := reflect.ValueOf(current)
+		switch cv.Kind() {
+		case reflect.Map:
+			v := cv.MapIndex(reflect.ValueOf(part))
+			if !v.IsValid() {
+				return nil, false
+			}
+			current = v.Interface()
+		case reflect.Slice:
+			if part == "#" {
+				current = cv.Len()
+			} else {
+				i, err := strconv.ParseInt(part, 0, 0)
+				if err != nil {
+					return nil, false
+				}
+				current = cv.Index(int(i)).Interface()
+			}
+		default:
+			panic(fmt.Sprintf("Unknown kind: %s", cv.Kind()))
+		}
+	}
+
+	return current, true
 }
 
 func (c *ResourceConfig) interpolate(ctx *Context) error {

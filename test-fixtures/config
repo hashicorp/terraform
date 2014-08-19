@@ -1,4 +1,4 @@
 providers {
-  "aws" = "foo"
-  "do" = "bar"
+  aws = "foo"
+  do = "bar"
 }

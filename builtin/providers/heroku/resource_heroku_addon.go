@@ -6,9 +6,7 @@ import (
 	"sync"
 
 	"github.com/bgentry/heroku-go"
-	"github.com/hashicorp/terraform/flatmap"
-	"github.com/hashicorp/terraform/helper/config"
-	"github.com/hashicorp/terraform/helper/diff"
+	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/terraform"
 )
 
@@ -17,163 +15,133 @@ import (
 // multiple addons simultaneously.
 var addonLock sync.Mutex
 
-func resource_heroku_addon_create(
-	s *terraform.ResourceState,
-	d *terraform.ResourceDiff,
-	meta interface{}) (*terraform.ResourceState, error) {
+func resourceHerokuAddon() *schema.Resource {
+	return &schema.Resource{
+		Create: resourceHerokuAddonCreate,
+		Read:   resourceHerokuAddonRead,
+		Update: resourceHerokuAddonUpdate,
+		Delete: resourceHerokuAddonDelete,
+
+		Schema: map[string]*schema.Schema{
+			"app": &schema.Schema{
+				Type:     schema.TypeString,
+				Required: true,
+				ForceNew: true,
+			},
+
+			"plan": &schema.Schema{
+				Type:     schema.TypeString,
+				Required: true,
+			},
+
+			"config": &schema.Schema{
+				Type:     schema.TypeList,
+				Optional: true,
+				ForceNew: true,
+				Elem: &schema.Schema{
+					Type: schema.TypeMap,
+				},
+			},
+
+			"provider_id": &schema.Schema{
+				Type:     schema.TypeString,
+				Computed: true,
+			},
+
+			"config_vars": &schema.Schema{
+				Type:     schema.TypeList,
+				Computed: true,
+				Elem:     &schema.Schema{Type: schema.TypeMap},
+			},
+		},
+	}
+}
+
+func resourceHerokuAddonCreate(d *schema.ResourceData, meta interface{}) error {
 	addonLock.Lock()
 	defer addonLock.Unlock()
 
-	p := meta.(*ResourceProvider)
-	client := p.client
+	client := meta.(*heroku.Client)
 
-	// Merge the diff into the state so that we have all the attributes
-	// properly.
-	rs := s.MergeDiff(d)
-
-	app := rs.Attributes["app"]
-	plan := rs.Attributes["plan"]
+	app := d.Get("app").(string)
+	plan := d.Get("plan").(string)
 	opts := heroku.AddonCreateOpts{}
 
-	if attr, ok := rs.Attributes["config.#"]; ok && attr == "1" {
-		vs := flatmap.Expand(
-			rs.Attributes, "config").([]interface{})
-
+	if v := d.Get("config"); v != nil {
 		config := make(map[string]string)
-		for k, v := range vs[0].(map[string]interface{}) {
-			config[k] = v.(string)
+		for _, v := range v.([]interface{}) {
+			for k, v := range v.(map[string]interface{}) {
+				config[k] = v.(string)
+			}
 		}
 
 		opts.Config = &config
 	}
 
 	log.Printf("[DEBUG] Addon create configuration: %#v, %#v, %#v", app, plan, opts)
-
 	a, err := client.AddonCreate(app, plan, &opts)
-
 	if err != nil {
-		return s, err
+		return err
 	}
 
-	rs.ID = a.Id
-	log.Printf("[INFO] Addon ID: %s", rs.ID)
+	d.SetId(a.Id)
+	log.Printf("[INFO] Addon ID: %s", d.Id())
 
-	addon, err := resource_heroku_addon_retrieve(app, rs.ID, client)
-	if err != nil {
-		return rs, err
-	}
-
-	return resource_heroku_addon_update_state(rs, addon)
+	return resourceHerokuAddonRead(d, meta)
 }
 
-func resource_heroku_addon_update(
-	s *terraform.ResourceState,
-	d *terraform.ResourceDiff,
-	meta interface{}) (*terraform.ResourceState, error) {
-	p := meta.(*ResourceProvider)
-	client := p.client
-	rs := s.MergeDiff(d)
+func resourceHerokuAddonRead(d *schema.ResourceData, meta interface{}) error {
+	client := meta.(*heroku.Client)
 
-	app := rs.Attributes["app"]
-
-	if attr, ok := d.Attributes["plan"]; ok {
-		ad, err := client.AddonUpdate(
-			app, rs.ID,
-			attr.New)
-
-		if err != nil {
-			return s, err
-		}
-
-		// Store the new ID
-		rs.ID = ad.Id
-	}
-
-	addon, err := resource_heroku_addon_retrieve(app, rs.ID, client)
-
+	addon, err := resource_heroku_addon_retrieve(
+		d.Get("app").(string), d.Id(), client)
 	if err != nil {
-		return rs, err
+		return err
 	}
 
-	return resource_heroku_addon_update_state(rs, addon)
-}
-
-func resource_heroku_addon_destroy(
-	s *terraform.ResourceState,
-	meta interface{}) error {
-	p := meta.(*ResourceProvider)
-	client := p.client
-
-	log.Printf("[INFO] Deleting Addon: %s", s.ID)
-
-	// Destroy the app
-	err := client.AddonDelete(s.Attributes["app"], s.ID)
-
-	if err != nil {
-		return fmt.Errorf("Error deleting addon: %s", err)
-	}
+	d.Set("name", addon.Name)
+	d.Set("plan", addon.Plan.Name)
+	d.Set("provider_id", addon.ProviderId)
+	d.Set("config_vars", []interface{}{addon.ConfigVars})
+	d.SetDependencies([]terraform.ResourceDependency{
+		terraform.ResourceDependency{ID: d.Get("app").(string)},
+	})
 
 	return nil
 }
 
-func resource_heroku_addon_refresh(
-	s *terraform.ResourceState,
-	meta interface{}) (*terraform.ResourceState, error) {
-	p := meta.(*ResourceProvider)
-	client := p.client
+func resourceHerokuAddonUpdate(d *schema.ResourceData, meta interface{}) error {
+	client := meta.(*heroku.Client)
 
-	app, err := resource_heroku_addon_retrieve(s.Attributes["app"], s.ID, client)
+	app := d.Get("app").(string)
+
+	if d.HasChange("plan") {
+		ad, err := client.AddonUpdate(
+			app, d.Id(), d.Get("plan").(string))
+		if err != nil {
+			return err
+		}
+
+		// Store the new ID
+		d.SetId(ad.Id)
+	}
+
+	return resourceHerokuAddonRead(d, meta)
+}
+
+func resourceHerokuAddonDelete(d *schema.ResourceData, meta interface{}) error {
+	client := meta.(*heroku.Client)
+
+	log.Printf("[INFO] Deleting Addon: %s", d.Id())
+
+	// Destroy the app
+	err := client.AddonDelete(d.Get("app").(string), d.Id())
 	if err != nil {
-		return nil, err
+		return fmt.Errorf("Error deleting addon: %s", err)
 	}
 
-	return resource_heroku_addon_update_state(s, app)
-}
-
-func resource_heroku_addon_diff(
-	s *terraform.ResourceState,
-	c *terraform.ResourceConfig,
-	meta interface{}) (*terraform.ResourceDiff, error) {
-
-	b := &diff.ResourceBuilder{
-		Attrs: map[string]diff.AttrType{
-			"app":    diff.AttrTypeCreate,
-			"plan":   diff.AttrTypeUpdate,
-			"config": diff.AttrTypeCreate,
-		},
-
-		ComputedAttrs: []string{
-			"provider_id",
-			"config_vars",
-		},
-	}
-
-	return b.Diff(s, c)
-}
-
-func resource_heroku_addon_update_state(
-	s *terraform.ResourceState,
-	addon *heroku.Addon) (*terraform.ResourceState, error) {
-
-	s.Attributes["name"] = addon.Name
-	s.Attributes["plan"] = addon.Plan.Name
-	s.Attributes["provider_id"] = addon.ProviderId
-
-	toFlatten := make(map[string]interface{})
-
-	if len(addon.ConfigVars) > 0 {
-		toFlatten["config_vars"] = addon.ConfigVars
-	}
-
-	for k, v := range flatmap.Flatten(toFlatten) {
-		s.Attributes[k] = v
-	}
-
-	s.Dependencies = []terraform.ResourceDependency{
-		terraform.ResourceDependency{ID: s.Attributes["app"]},
-	}
-
-	return s, nil
+	d.SetId("")
+	return nil
 }
 
 func resource_heroku_addon_retrieve(app string, id string, client *heroku.Client) (*heroku.Addon, error) {
@@ -184,16 +152,4 @@ func resource_heroku_addon_retrieve(app string, id string, client *heroku.Client
 	}
 
 	return addon, nil
-}
-
-func resource_heroku_addon_validation() *config.Validator {
-	return &config.Validator{
-		Required: []string{
-			"app",
-			"plan",
-		},
-		Optional: []string{
-			"config.*",
-		},
-	}
 }

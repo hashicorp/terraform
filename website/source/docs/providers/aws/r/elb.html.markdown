@@ -41,6 +41,8 @@ The following arguments are supported:
 
 * `name` - (Required) The name of the ELB
 * `availability_zones` - (Optional) The AZ's to serve traffic in.
+* `security_groups` - (Optional) A list of security group IDs to assign to the ELB.
+* `subnets` - (Optional) A list of subnets to attach to the ELB.
 * `instances` - (Optional) A list of instance ids to place in the ELB pool.
 * `listener` - (Required) A list of listener blocks. Listeners documented below.
 * `health_check` - (Required) A health_check block. Health Check documented below.

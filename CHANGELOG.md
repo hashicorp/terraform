@@ -1,8 +1,31 @@
 ## 0.2.0 (unreleased)
 
+BACKWARDS INCOMPATIBILITIES:
+
+  * We've replaced the configuration language in use from a C library to
+    a pure-Go reimplementation. In the process, we removed some features
+    of the language since it was too flexible:
+    * Semicolons are no longer valid at the end of lines
+    * Keys cannot be double-quoted strings: `"foo" = "bar"` is no longer
+      valid.
+
+IMPROVEMENTS:
+
+  * core: "~/.terraformrc" (Unix) or "%APPDATA%/terraform.rc" (Windows)
+    can be used to configure custom providers and provisioners. [GH-192]
+
 BUG FIXES:
 
   * core: Variables are validated to not contain interpolations. [GH-180]
+  * providers/heroku: If you delete the `config_vars` block, config vars
+      are properly nuked.
+  * providers/heroku: Domains and drains are deleted before the app.
+
+PLUGIN CHANGES:
+
+  * **New Package:** `helper/schema`. This introduces a high-level framework
+    for easily writing new providers and resources. The Heroku provider has
+    been converted to this as an example.
 
 ## 0.1.1 (August 5, 2014)
 

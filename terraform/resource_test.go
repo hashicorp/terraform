@@ -3,6 +3,8 @@ package terraform
 import (
 	"reflect"
 	"testing"
+
+	"github.com/hashicorp/terraform/config"
 )
 
 func TestResource_Vars(t *testing.T) {
@@ -27,5 +29,51 @@ func TestResource_Vars(t *testing.T) {
 	actual := r.Vars()
 	if !reflect.DeepEqual(actual, expected) {
 		t.Fatalf("bad: %#v", actual)
+	}
+}
+
+func TestResourceConfigGet(t *testing.T) {
+	cases := []struct {
+		Config map[string]interface{}
+		Vars   map[string]string
+		Key    string
+		Value  interface{}
+	}{
+		{
+			Config: map[string]interface{}{
+				"foo": "${var.foo}",
+			},
+			Key:   "foo",
+			Value: "${var.foo}",
+		},
+
+		{
+			Config: map[string]interface{}{
+				"foo": "${var.foo}",
+			},
+			Vars:  map[string]string{"foo": "bar"},
+			Key:   "foo",
+			Value: "bar",
+		},
+	}
+
+	for i, tc := range cases {
+		rawC, err := config.NewRawConfig(tc.Config)
+		if err != nil {
+			t.Fatalf("err: %s", err)
+		}
+		rc := NewResourceConfig(rawC)
+
+		if tc.Vars != nil {
+			ctx := NewContext(&ContextOpts{Variables: tc.Vars})
+			if err := rc.interpolate(ctx); err != nil {
+				t.Fatalf("err: %s", err)
+			}
+		}
+
+		v, _ := rc.Get(tc.Key)
+		if !reflect.DeepEqual(v, tc.Value) {
+			t.Fatalf("%d bad: %#v", i, v)
+		}
 	}
 }

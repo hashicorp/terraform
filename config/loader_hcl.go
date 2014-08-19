@@ -2,26 +2,20 @@ package config
 
 import (
 	"fmt"
-	"path/filepath"
+	"io/ioutil"
 
-	"github.com/mitchellh/go-libucl"
+	"github.com/hashicorp/hcl"
+	hclobj "github.com/hashicorp/hcl/hcl"
 )
 
-// Put the parse flags we use for libucl in a constant so we can get
-// equally behaving parsing everywhere.
-const libuclParseFlags = libucl.ParserNoTime
-
-// libuclConfigurable is an implementation of configurable that knows
-// how to turn libucl configuration into a *Config object.
-type libuclConfigurable struct {
-	Object *libucl.Object
+// hclConfigurable is an implementation of configurable that knows
+// how to turn HCL configuration into a *Config object.
+type hclConfigurable struct {
+	File   string
+	Object *hclobj.Object
 }
 
-func (t *libuclConfigurable) Close() error {
-	return t.Object.Close()
-}
-
-func (t *libuclConfigurable) Config() (*Config, error) {
+func (t *hclConfigurable) Config() (*Config, error) {
 	validKeys := map[string]struct{}{
 		"output":   struct{}{},
 		"provider": struct{}{},
@@ -29,24 +23,24 @@ func (t *libuclConfigurable) Config() (*Config, error) {
 		"variable": struct{}{},
 	}
 
-	type LibuclVariable struct {
+	type hclVariable struct {
 		Default     interface{}
 		Description string
-		Fields      []string `libucl:",decodedFields"`
+		Fields      []string `hcl:",decodedFields"`
 	}
 
 	var rawConfig struct {
-		Variable map[string]*LibuclVariable
+		Variable map[string]*hclVariable
 	}
 
-	if err := t.Object.Decode(&rawConfig); err != nil {
+	if err := hcl.DecodeObject(&rawConfig, t.Object); err != nil {
 		return nil, err
 	}
 
 	// Start building up the actual configuration. We start with
 	// variables.
-	// TODO(mitchellh): Make function like loadVariablesLibucl so that
-	// duplicates aren't overridden
+	// TODO(mitchellh): Make function like loadVariablesHcl so that
+	// duplicates aren't overriden
 	config := new(Config)
 	if len(rawConfig.Variable) > 0 {
 		config.Variables = make([]*Variable, 0, len(rawConfig.Variable))
@@ -76,44 +70,35 @@ func (t *libuclConfigurable) Config() (*Config, error) {
 	}
 
 	// Build the provider configs
-	providers := t.Object.Get("provider")
-	if providers != nil {
+	if providers := t.Object.Get("provider", false); providers != nil {
 		var err error
-		config.ProviderConfigs, err = loadProvidersLibucl(providers)
-		providers.Close()
+		config.ProviderConfigs, err = loadProvidersHcl(providers)
 		if err != nil {
 			return nil, err
 		}
 	}
 
 	// Build the resources
-	resources := t.Object.Get("resource")
-	if resources != nil {
+	if resources := t.Object.Get("resource", false); resources != nil {
 		var err error
-		config.Resources, err = loadResourcesLibucl(resources)
-		resources.Close()
+		config.Resources, err = loadResourcesHcl(resources)
 		if err != nil {
 			return nil, err
 		}
 	}
 
 	// Build the outputs
-	if outputs := t.Object.Get("output"); outputs != nil {
+	if outputs := t.Object.Get("output", false); outputs != nil {
 		var err error
-		config.Outputs, err = loadOutputsLibucl(outputs)
-		outputs.Close()
+		config.Outputs, err = loadOutputsHcl(outputs)
 		if err != nil {
 			return nil, err
 		}
 	}
 
 	// Check for invalid keys
-	iter := t.Object.Iterate(true)
-	defer iter.Close()
-	for o := iter.Next(); o != nil; o = iter.Next() {
-		k := o.Key()
-		o.Close()
-
+	for _, elem := range t.Object.Elem(true) {
+		k := elem.Key
 		if _, ok := validKeys[k]; ok {
 			continue
 		}
@@ -124,91 +109,87 @@ func (t *libuclConfigurable) Config() (*Config, error) {
 	return config, nil
 }
 
-// loadFileLibucl is a fileLoaderFunc that knows how to read libucl
-// files and turn them into libuclConfigurables.
-func loadFileLibucl(root string) (configurable, []string, error) {
-	var obj *libucl.Object = nil
+// loadFileHcl is a fileLoaderFunc that knows how to read HCL
+// files and turn them into hclConfigurables.
+func loadFileHcl(root string) (configurable, []string, error) {
+	var obj *hclobj.Object = nil
 
-	// Parse and store the object. We don't use a defer here so that
-	// we clear resources right away rather than stack them up all the
-	// way through our recursive calls.
-	parser := libucl.NewParser(libuclParseFlags)
-	err := parser.AddFile(root)
-	if err == nil {
-		obj = parser.Object()
-		defer obj.Close()
-	}
-	parser.Close()
-
-	// If there was an error, return early
+	// Read the HCL file and prepare for parsing
+	d, err := ioutil.ReadFile(root)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, fmt.Errorf(
+			"Error reading %s: %s", root, err)
+	}
+
+	// Parse it
+	obj, err = hcl.Parse(string(d))
+	if err != nil {
+		return nil, nil, fmt.Errorf(
+			"Error parsing %s: %s", root, err)
 	}
 
 	// Start building the result
-	result := &libuclConfigurable{
+	result := &hclConfigurable{
+		File:   root,
 		Object: obj,
 	}
 
-	// Otherwise, dive in, find the imports.
-	imports := obj.Get("import")
-	if imports == nil {
-		result.Object.Ref()
-		return result, nil, nil
-	}
-
-	if imports.Type() != libucl.ObjectTypeString {
-		imports.Close()
-
-		return nil, nil, fmt.Errorf(
-			"Error in %s: all 'import' declarations should be in the format\n"+
-				"`import \"foo\"` (Got type %s)",
-			root,
-			imports.Type())
-	}
-
-	// Gather all the import paths
-	importPaths := make([]string, 0, imports.Len())
-	iter := imports.Iterate(false)
-	for imp := iter.Next(); imp != nil; imp = iter.Next() {
-		path := imp.ToString()
-		if !filepath.IsAbs(path) {
-			// Relative paths are relative to the Terraform file itself
-			dir := filepath.Dir(root)
-			path = filepath.Join(dir, path)
+	// Dive in, find the imports. This is disabled for now since
+	// imports were removed prior to Terraform 0.1. The code is
+	// remaining here commented for historical purposes.
+	/*
+		imports := obj.Get("import")
+		if imports == nil {
+			result.Object.Ref()
+			return result, nil, nil
 		}
 
-		importPaths = append(importPaths, path)
-		imp.Close()
-	}
-	iter.Close()
-	imports.Close()
+		if imports.Type() != libucl.ObjectTypeString {
+			imports.Close()
 
-	result.Object.Ref()
-	return result, importPaths, nil
+			return nil, nil, fmt.Errorf(
+				"Error in %s: all 'import' declarations should be in the format\n"+
+					"`import \"foo\"` (Got type %s)",
+				root,
+				imports.Type())
+		}
+
+		// Gather all the import paths
+		importPaths := make([]string, 0, imports.Len())
+		iter := imports.Iterate(false)
+		for imp := iter.Next(); imp != nil; imp = iter.Next() {
+			path := imp.ToString()
+			if !filepath.IsAbs(path) {
+				// Relative paths are relative to the Terraform file itself
+				dir := filepath.Dir(root)
+				path = filepath.Join(dir, path)
+			}
+
+			importPaths = append(importPaths, path)
+			imp.Close()
+		}
+		iter.Close()
+		imports.Close()
+
+		result.Object.Ref()
+	*/
+
+	return result, nil, nil
 }
 
-// LoadOutputsLibucl recurses into the given libucl object and turns
+// LoadOutputsHcl recurses into the given HCL object and turns
 // it into a mapping of outputs.
-func loadOutputsLibucl(o *libucl.Object) ([]*Output, error) {
-	objects := make(map[string]*libucl.Object)
+func loadOutputsHcl(os *hclobj.Object) ([]*Output, error) {
+	objects := make(map[string]*hclobj.Object)
 
 	// Iterate over all the "output" blocks and get the keys along with
 	// their raw configuration objects. We'll parse those later.
-	iter := o.Iterate(false)
-	for o1 := iter.Next(); o1 != nil; o1 = iter.Next() {
-		iter2 := o1.Iterate(true)
-		for o2 := iter2.Next(); o2 != nil; o2 = iter2.Next() {
-			objects[o2.Key()] = o2
-			defer o2.Close()
+	for _, o1 := range os.Elem(false) {
+		for _, o2 := range o1.Elem(true) {
+			objects[o2.Key] = o2
 		}
-
-		o1.Close()
-		iter2.Close()
 	}
-	iter.Close()
 
-	// If we have none, just return nil
 	if len(objects) == 0 {
 		return nil, nil
 	}
@@ -218,7 +199,7 @@ func loadOutputsLibucl(o *libucl.Object) ([]*Output, error) {
 	for n, o := range objects {
 		var config map[string]interface{}
 
-		if err := o.Decode(&config); err != nil {
+		if err := hcl.DecodeObject(&config, o); err != nil {
 			return nil, err
 		}
 
@@ -239,25 +220,18 @@ func loadOutputsLibucl(o *libucl.Object) ([]*Output, error) {
 	return result, nil
 }
 
-// LoadProvidersLibucl recurses into the given libucl object and turns
+// LoadProvidersHcl recurses into the given HCL object and turns
 // it into a mapping of provider configs.
-func loadProvidersLibucl(o *libucl.Object) ([]*ProviderConfig, error) {
-	objects := make(map[string]*libucl.Object)
+func loadProvidersHcl(os *hclobj.Object) ([]*ProviderConfig, error) {
+	objects := make(map[string]*hclobj.Object)
 
 	// Iterate over all the "provider" blocks and get the keys along with
 	// their raw configuration objects. We'll parse those later.
-	iter := o.Iterate(false)
-	for o1 := iter.Next(); o1 != nil; o1 = iter.Next() {
-		iter2 := o1.Iterate(true)
-		for o2 := iter2.Next(); o2 != nil; o2 = iter2.Next() {
-			objects[o2.Key()] = o2
-			defer o2.Close()
+	for _, o1 := range os.Elem(false) {
+		for _, o2 := range o1.Elem(true) {
+			objects[o2.Key] = o2
 		}
-
-		o1.Close()
-		iter2.Close()
 	}
-	iter.Close()
 
 	if len(objects) == 0 {
 		return nil, nil
@@ -268,7 +242,7 @@ func loadProvidersLibucl(o *libucl.Object) ([]*ProviderConfig, error) {
 	for n, o := range objects {
 		var config map[string]interface{}
 
-		if err := o.Decode(&config); err != nil {
+		if err := hcl.DecodeObject(&config, o); err != nil {
 			return nil, err
 		}
 
@@ -289,16 +263,16 @@ func loadProvidersLibucl(o *libucl.Object) ([]*ProviderConfig, error) {
 	return result, nil
 }
 
-// Given a handle to a libucl object, this recurses into the structure
+// Given a handle to a HCL object, this recurses into the structure
 // and pulls out a list of resources.
 //
 // The resulting resources may not be unique, but each resource
-// represents exactly one resource definition in the libucl configuration.
+// represents exactly one resource definition in the HCL configuration.
 // We leave it up to another pass to merge them together.
-func loadResourcesLibucl(o *libucl.Object) ([]*Resource, error) {
-	var allTypes []*libucl.Object
+func loadResourcesHcl(os *hclobj.Object) ([]*Resource, error) {
+	var allTypes []*hclobj.Object
 
-	// Libucl object iteration is really nasty. Below is likely to make
+	// HCL object iteration is really nasty. Below is likely to make
 	// no sense to anyone approaching this code. Luckily, it is very heavily
 	// tested. If working on a bug fix or feature, we recommend writing a
 	// test first then doing whatever you want to the code below. If you
@@ -308,25 +282,15 @@ func loadResourcesLibucl(o *libucl.Object) ([]*Resource, error) {
 	//
 	// Functionally, what the code does below is get the libucl.Objects
 	// for all the TYPES, such as "aws_security_group".
-	iter := o.Iterate(false)
-	for o1 := iter.Next(); o1 != nil; o1 = iter.Next() {
+	for _, o1 := range os.Elem(false) {
 		// Iterate the inner to get the list of types
-		iter2 := o1.Iterate(true)
-		for o2 := iter2.Next(); o2 != nil; o2 = iter2.Next() {
+		for _, o2 := range o1.Elem(true) {
 			// Iterate all of this type to get _all_ the types
-			iter3 := o2.Iterate(false)
-			for o3 := iter3.Next(); o3 != nil; o3 = iter3.Next() {
+			for _, o3 := range o2.Elem(false) {
 				allTypes = append(allTypes, o3)
 			}
-
-			o2.Close()
-			iter3.Close()
 		}
-
-		o1.Close()
-		iter2.Close()
 	}
-	iter.Close()
 
 	// Where all the results will go
 	var result []*Resource
@@ -334,21 +298,15 @@ func loadResourcesLibucl(o *libucl.Object) ([]*Resource, error) {
 	// Now go over all the types and their children in order to get
 	// all of the actual resources.
 	for _, t := range allTypes {
-		// Release the resources for this raw type since we don't need it.
-		// Note that this makes it unsafe now to use allTypes again.
-		defer t.Close()
-
-		iter := t.Iterate(true)
-		defer iter.Close()
-		for r := iter.Next(); r != nil; r = iter.Next() {
-			defer r.Close()
+		for _, obj := range t.Elem(true) {
+			k := obj.Key
 
 			var config map[string]interface{}
-			if err := r.Decode(&config); err != nil {
+			if err := hcl.DecodeObject(&config, obj); err != nil {
 				return nil, fmt.Errorf(
 					"Error reading config for %s[%s]: %s",
-					t.Key(),
-					r.Key(),
+					t,
+					k,
 					err)
 			}
 
@@ -362,72 +320,67 @@ func loadResourcesLibucl(o *libucl.Object) ([]*Resource, error) {
 			if err != nil {
 				return nil, fmt.Errorf(
 					"Error reading config for %s[%s]: %s",
-					t.Key(),
-					r.Key(),
+					t,
+					k,
 					err)
 			}
 
 			// If we have a count, then figure it out
 			var count int = 1
-			if o := r.Get("count"); o != nil {
-				err = o.Decode(&count)
-				o.Close()
+			if o := obj.Get("count", false); o != nil {
+				err = hcl.DecodeObject(&count, o)
 				if err != nil {
 					return nil, fmt.Errorf(
 						"Error parsing count for %s[%s]: %s",
-						t.Key(),
-						r.Key(),
-						err)
-				}
-			}
-
-			// If we have connection info, then parse those out
-			var connInfo map[string]interface{}
-			if conn := r.Get("connection"); conn != nil {
-				var err error
-				connInfo, err = loadConnInfoLibucl(conn)
-				conn.Close()
-				if err != nil {
-					return nil, fmt.Errorf(
-						"Error reading connection info for %s[%s]: %s",
-						t.Key(),
-						r.Key(),
+						t,
+						k,
 						err)
 				}
 			}
 
 			// If we have depends fields, then add those in
 			var dependsOn []string
-			if deps := r.Get("depends_on"); deps != nil {
-				err := deps.Decode(&dependsOn)
-				deps.Close()
+			if o := obj.Get("depends_on", false); o != nil {
+				err := hcl.DecodeObject(&dependsOn, o)
 				if err != nil {
 					return nil, fmt.Errorf(
 						"Error reading depends_on for %s[%s]: %s",
-						t.Key(),
-						r.Key(),
+						t,
+						k,
+						err)
+				}
+			}
+
+			// If we have connection info, then parse those out
+			var connInfo map[string]interface{}
+			if o := obj.Get("connection", false); o != nil {
+				err := hcl.DecodeObject(&connInfo, o)
+				if err != nil {
+					return nil, fmt.Errorf(
+						"Error reading connection info for %s[%s]: %s",
+						t,
+						k,
 						err)
 				}
 			}
 
 			// If we have provisioners, then parse those out
 			var provisioners []*Provisioner
-			if po := r.Get("provisioner"); po != nil {
+			if os := obj.Get("provisioner", false); os != nil {
 				var err error
-				provisioners, err = loadProvisionersLibucl(po, connInfo)
-				po.Close()
+				provisioners, err = loadProvisionersHcl(os, connInfo)
 				if err != nil {
 					return nil, fmt.Errorf(
 						"Error reading provisioners for %s[%s]: %s",
-						t.Key(),
-						r.Key(),
+						t,
+						k,
 						err)
 				}
 			}
 
 			result = append(result, &Resource{
-				Name:         r.Key(),
-				Type:         t.Key(),
+				Name:         k,
+				Type:         t.Key,
 				Count:        count,
 				RawConfig:    rawConfig,
 				Provisioners: provisioners,
@@ -439,8 +392,8 @@ func loadResourcesLibucl(o *libucl.Object) ([]*Resource, error) {
 	return result, nil
 }
 
-func loadProvisionersLibucl(o *libucl.Object, connInfo map[string]interface{}) ([]*Provisioner, error) {
-	pos := make([]*libucl.Object, 0, int(o.Len()))
+func loadProvisionersHcl(os *hclobj.Object, connInfo map[string]interface{}) ([]*Provisioner, error) {
+	pos := make([]*hclobj.Object, 0, int(os.Len()))
 
 	// Accumulate all the actual provisioner configuration objects. We
 	// have to iterate twice here:
@@ -460,28 +413,25 @@ func loadProvisionersLibucl(o *libucl.Object, connInfo map[string]interface{}) (
 	//     }
 	//   ]
 	//
-	iter := o.Iterate(false)
-	for o1 := iter.Next(); o1 != nil; o1 = iter.Next() {
-		iter2 := o1.Iterate(true)
-		for o2 := iter2.Next(); o2 != nil; o2 = iter2.Next() {
+	for _, o1 := range os.Elem(false) {
+		for _, o2 := range o1.Elem(true) {
 			pos = append(pos, o2)
 		}
-
-		o1.Close()
-		iter2.Close()
 	}
-	iter.Close()
+
+	// Short-circuit if there are no items
+	if len(pos) == 0 {
+		return nil, nil
+	}
 
 	result := make([]*Provisioner, 0, len(pos))
 	for _, po := range pos {
-		defer po.Close()
-
 		var config map[string]interface{}
-		if err := po.Decode(&config); err != nil {
+		if err := hcl.DecodeObject(&config, po); err != nil {
 			return nil, err
 		}
 
-		// Delete the "connection" section, handle separately
+		// Delete the "connection" section, handle seperately
 		delete(config, "connection")
 
 		rawConfig, err := NewRawConfig(config)
@@ -492,17 +442,15 @@ func loadProvisionersLibucl(o *libucl.Object, connInfo map[string]interface{}) (
 		// Check if we have a provisioner-level connection
 		// block that overrides the resource-level
 		var subConnInfo map[string]interface{}
-		if conn := po.Get("connection"); conn != nil {
-			var err error
-			subConnInfo, err = loadConnInfoLibucl(conn)
-			conn.Close()
+		if o := po.Get("connection", false); o != nil {
+			err := hcl.DecodeObject(&subConnInfo, o)
 			if err != nil {
 				return nil, err
 			}
 		}
 
 		// Inherit from the resource connInfo any keys
-		// that are not explicitly overridden.
+		// that are not explicitly overriden.
 		if connInfo != nil && subConnInfo != nil {
 			for k, v := range connInfo {
 				if _, ok := subConnInfo[k]; !ok {
@@ -520,7 +468,7 @@ func loadProvisionersLibucl(o *libucl.Object, connInfo map[string]interface{}) (
 		}
 
 		result = append(result, &Provisioner{
-			Type:      po.Key(),
+			Type:      po.Key,
 			RawConfig: rawConfig,
 			ConnInfo:  connRaw,
 		})
@@ -529,10 +477,22 @@ func loadProvisionersLibucl(o *libucl.Object, connInfo map[string]interface{}) (
 	return result, nil
 }
 
-func loadConnInfoLibucl(o *libucl.Object) (map[string]interface{}, error) {
-	var config map[string]interface{}
-	if err := o.Decode(&config); err != nil {
-		return nil, err
+/*
+func hclObjectMap(os *hclobj.Object) map[string]ast.ListNode {
+	objects := make(map[string][]*hclobj.Object)
+
+	for _, o := range os.Elem(false) {
+		for _, elem := range o.Elem(true) {
+			val, ok := objects[elem.Key]
+			if !ok {
+				val = make([]*hclobj.Object, 0, 1)
+			}
+
+			val = append(val, elem)
+			objects[elem.Key] = val
+		}
 	}
-	return config, nil
+
+	return objects
 }
+*/

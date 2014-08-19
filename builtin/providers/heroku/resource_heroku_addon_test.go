@@ -35,7 +35,7 @@ func TestAccHerokuAddon_Basic(t *testing.T) {
 }
 
 func testAccCheckHerokuAddonDestroy(s *terraform.State) error {
-	client := testAccProvider.client
+	client := testAccProvider.Meta().(*heroku.Client)
 
 	for _, rs := range s.Resources {
 		if rs.Type != "heroku_addon" {
@@ -75,7 +75,7 @@ func testAccCheckHerokuAddonExists(n string, addon *heroku.Addon) resource.TestC
 			return fmt.Errorf("No Addon ID is set")
 		}
 
-		client := testAccProvider.client
+		client := testAccProvider.Meta().(*heroku.Client)
 
 		foundAddon, err := client.AddonInfo(rs.Attributes["app"], rs.ID)
 

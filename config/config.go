@@ -127,11 +127,13 @@ func (c *Config) Validate() error {
 		}
 
 		w := &interpolationWalker{F: fn}
-		if err := reflectwalk.Walk(v.Default, w); err == nil {
-			if interp {
-				errs = append(errs, fmt.Errorf(
-					"Variable '%s': cannot contain interpolations",
-					v.Name))
+		if v.Default != nil {
+			if err := reflectwalk.Walk(v.Default, w); err == nil {
+				if interp {
+					errs = append(errs, fmt.Errorf(
+						"Variable '%s': cannot contain interpolations",
+						v.Name))
+				}
 			}
 		}
 	}

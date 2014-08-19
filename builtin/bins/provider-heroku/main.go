@@ -6,5 +6,5 @@ import (
 )
 
 func main() {
-	plugin.Serve(new(heroku.ResourceProvider))
+	plugin.Serve(heroku.Provider())
 }

@@ -5,63 +5,68 @@ import (
 	"log"
 
 	"github.com/bgentry/heroku-go"
-	"github.com/hashicorp/terraform/helper/config"
-	"github.com/hashicorp/terraform/helper/diff"
+	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/terraform"
 )
 
-func resource_heroku_domain_create(
-	s *terraform.ResourceState,
-	d *terraform.ResourceDiff,
-	meta interface{}) (*terraform.ResourceState, error) {
-	p := meta.(*ResourceProvider)
-	client := p.client
+func resourceHerokuDomain() *schema.Resource {
+	return &schema.Resource{
+		Create: resourceHerokuDomainCreate,
+		Read:   resourceHerokuDomainRead,
+		Delete: resourceHerokuDomainDelete,
 
-	// Merge the diff into the state so that we have all the attributes
-	// properly.
-	rs := s.MergeDiff(d)
+		Schema: map[string]*schema.Schema{
+			"hostname": &schema.Schema{
+				Type:     schema.TypeString,
+				Required: true,
+				ForceNew: true,
+			},
 
-	app := rs.Attributes["app"]
-	hostname := rs.Attributes["hostname"]
+			"app": &schema.Schema{
+				Type:     schema.TypeString,
+				Required: true,
+				ForceNew: true,
+			},
+
+			"cname": &schema.Schema{
+				Type:     schema.TypeString,
+				Computed: true,
+			},
+		},
+	}
+}
+
+func resourceHerokuDomainCreate(d *schema.ResourceData, meta interface{}) error {
+	client := meta.(*heroku.Client)
+
+	app := d.Get("app").(string)
+	hostname := d.Get("hostname").(string)
 
 	log.Printf("[DEBUG] Domain create configuration: %#v, %#v", app, hostname)
 
 	do, err := client.DomainCreate(app, hostname)
-
 	if err != nil {
-		return s, err
+		return err
 	}
 
-	rs.ID = do.Id
-	rs.Attributes["hostname"] = do.Hostname
-	rs.Attributes["cname"] = fmt.Sprintf("%s.herokuapp.com", app)
+	d.SetId(do.Id)
+	d.Set("hostname", do.Hostname)
+	d.Set("cname", fmt.Sprintf("%s.herokuapp.com", app))
+	d.SetDependencies([]terraform.ResourceDependency{
+		terraform.ResourceDependency{ID: app},
+	})
 
-	log.Printf("[INFO] Domain ID: %s", rs.ID)
-
-	return rs, nil
+	log.Printf("[INFO] Domain ID: %s", d.Id())
+	return nil
 }
 
-func resource_heroku_domain_update(
-	s *terraform.ResourceState,
-	d *terraform.ResourceDiff,
-	meta interface{}) (*terraform.ResourceState, error) {
+func resourceHerokuDomainDelete(d *schema.ResourceData, meta interface{}) error {
+	client := meta.(*heroku.Client)
 
-	panic("Cannot update domain")
+	log.Printf("[INFO] Deleting Domain: %s", d.Id())
 
-	return nil, nil
-}
-
-func resource_heroku_domain_destroy(
-	s *terraform.ResourceState,
-	meta interface{}) error {
-	p := meta.(*ResourceProvider)
-	client := p.client
-
-	log.Printf("[INFO] Deleting Domain: %s", s.ID)
-
-	// Destroy the app
-	err := client.DomainDelete(s.Attributes["app"], s.ID)
-
+	// Destroy the domain
+	err := client.DomainDelete(d.Get("app").(string), d.Id())
 	if err != nil {
 		return fmt.Errorf("Error deleting domain: %s", err)
 	}
@@ -69,58 +74,17 @@ func resource_heroku_domain_destroy(
 	return nil
 }
 
-func resource_heroku_domain_refresh(
-	s *terraform.ResourceState,
-	meta interface{}) (*terraform.ResourceState, error) {
-	p := meta.(*ResourceProvider)
-	client := p.client
+func resourceHerokuDomainRead(d *schema.ResourceData, meta interface{}) error {
+	client := meta.(*heroku.Client)
 
-	domain, err := resource_heroku_domain_retrieve(s.Attributes["app"], s.ID, client)
+	app := d.Get("app").(string)
+	do, err := client.DomainInfo(app, d.Id())
 	if err != nil {
-		return nil, err
+		return fmt.Errorf("Error retrieving domain: %s", err)
 	}
 
-	s.Attributes["hostname"] = domain.Hostname
-	s.Attributes["cname"] = fmt.Sprintf("%s.herokuapp.com", s.Attributes["app"])
+	d.Set("hostname", do.Hostname)
+	d.Set("cname", fmt.Sprintf("%s.herokuapp.com", app))
 
-	return s, nil
-}
-
-func resource_heroku_domain_diff(
-	s *terraform.ResourceState,
-	c *terraform.ResourceConfig,
-	meta interface{}) (*terraform.ResourceDiff, error) {
-
-	b := &diff.ResourceBuilder{
-		Attrs: map[string]diff.AttrType{
-			"hostname": diff.AttrTypeCreate,
-			"app":      diff.AttrTypeCreate,
-		},
-
-		ComputedAttrs: []string{
-			"cname",
-		},
-	}
-
-	return b.Diff(s, c)
-}
-
-func resource_heroku_domain_retrieve(app string, id string, client *heroku.Client) (*heroku.Domain, error) {
-	domain, err := client.DomainInfo(app, id)
-
-	if err != nil {
-		return nil, fmt.Errorf("Error retrieving domain: %s", err)
-	}
-
-	return domain, nil
-}
-
-func resource_heroku_domain_validation() *config.Validator {
-	return &config.Validator{
-		Required: []string{
-			"hostname",
-			"app",
-		},
-		Optional: []string{},
-	}
+	return nil
 }

@@ -1,11 +1,11 @@
 variable "foo" {
-    default = "bar";
-    description = "bar";
+    default = "bar"
+    description = "bar"
 }
 
 provider "aws" {
-  access_key = "foo";
-  secret_key = "bar";
+  access_key = "foo"
+  secret_key = "bar"
 }
 
 resource "aws_instance" "db" {

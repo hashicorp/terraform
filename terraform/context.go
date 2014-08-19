@@ -75,9 +75,11 @@ func NewContext(opts *ContextOpts) *Context {
 
 	// Calculate all the default variables
 	defaultVars := make(map[string]string)
-	for _, v := range opts.Config.Variables {
-		for k, val := range v.DefaultsMap() {
-			defaultVars[k] = val
+	if opts.Config != nil {
+		for _, v := range opts.Config.Variables {
+			for k, val := range v.DefaultsMap() {
+				defaultVars[k] = val
+			}
 		}
 	}
 

@@ -1,13 +1,15 @@
 package main
 
 import (
+	"fmt"
+	"io/ioutil"
 	"os/exec"
 	"path/filepath"
 
+	"github.com/hashicorp/hcl"
 	"github.com/hashicorp/terraform/plugin"
 	"github.com/hashicorp/terraform/rpc"
 	"github.com/hashicorp/terraform/terraform"
-	"github.com/mitchellh/go-libucl"
 	"github.com/mitchellh/osext"
 )
 
@@ -27,10 +29,6 @@ var BuiltinConfig Config
 // ContextOpts are the global ContextOpts we use to initialize the CLI.
 var ContextOpts terraform.ContextOpts
 
-// Put the parse flags we use for libucl in a constant so we can get
-// equally behaving parsing everywhere.
-const libuclParseFlags = libucl.ParserNoTime
-
 func init() {
 	BuiltinConfig.Providers = map[string]string{
 		"aws":          "terraform-provider-aws",
@@ -47,28 +45,34 @@ func init() {
 	}
 }
 
+// ConfigFile returns the default path to the configuration file.
+//
+// On Unix-like systems this is the ".terraformrc" file in the home directory.
+// On Windows, this is the "terraform.rc" file in the application data
+// directory.
+func ConfigFile() (string, error) {
+    return configFile()
+}
+
 // LoadConfig loads the CLI configuration from ".terraformrc" files.
 func LoadConfig(path string) (*Config, error) {
-	var obj *libucl.Object
-
-	// Parse the file and get the root object.
-	parser := libucl.NewParser(libuclParseFlags)
-	err := parser.AddFile(path)
-	if err == nil {
-		obj = parser.Object()
-		defer obj.Close()
-	}
-	defer parser.Close()
-
-	// If there was an error parsing, return now.
+	// Read the HCL file and prepare for parsing
+	d, err := ioutil.ReadFile(path)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf(
+			"Error reading %s: %s", path, err)
+	}
+
+	// Parse it
+	obj, err := hcl.Parse(string(d))
+	if err != nil {
+		return nil, fmt.Errorf(
+			"Error parsing %s: %s", path, err)
 	}
 
 	// Build up the result
 	var result Config
-
-	if err := obj.Decode(&result); err != nil {
+	if err := hcl.DecodeObject(&result, obj); err != nil {
 		return nil, err
 	}
 

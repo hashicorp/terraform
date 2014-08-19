@@ -4,6 +4,6 @@ variable "foo" {
 
 variable "foo" {
   default = {
-    "foo" = "bar"
+    foo = "bar"
   }
 }

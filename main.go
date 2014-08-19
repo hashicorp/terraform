@@ -107,6 +107,28 @@ func wrappedMain() int {
 		HelpWriter: os.Stdout,
 	}
 
+	// Load the configuration file if we have one, that can be used to
+	// define extra providers and provisioners.
+	clicfgFile, err := cliConfigFile()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error loading CLI configuration: \n\n%s\n", err)
+		return 1
+	}
+
+	if clicfgFile != "" {
+		usrcfg, err := LoadConfig(clicfgFile)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Error loading CLI configuration: \n\n%s\n", err)
+			return 1
+		}
+
+		config = *config.Merge(usrcfg)
+	}
+
+	// Initialize the TFConfig settings for the commands...
+	ContextOpts.Providers = config.ProviderFactories()
+	ContextOpts.Provisioners = config.ProvisionerFactories()
+
 	exitCode, err := cli.Run()
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error executing CLI: %s\n", err.Error())
@@ -114,6 +136,36 @@ func wrappedMain() int {
 	}
 
 	return exitCode
+}
+
+func cliConfigFile() (string, error) {
+	mustExist := true
+	configFilePath := os.Getenv("TERRAFORM_CONFIG")
+	if configFilePath == "" {
+		var err error
+		configFilePath, err = configFile()
+		mustExist = false
+
+		if err != nil {
+			log.Printf(
+				"[ERROR] Error detecting default CLI config file path: %s",
+				err)
+		}
+	}
+
+	log.Printf("[DEBUG] Attempting to open CLI config file: %s", configFilePath)
+	f, err := os.Open(configFilePath)
+	if err == nil {
+		f.Close()
+		return configFilePath, nil
+	}
+
+	if mustExist || !os.IsNotExist(err) {
+		return "", err
+	}
+
+	log.Println("[DEBUG] File doesn't exist, but doesn't need to. Ignoring.")
+	return "", nil
 }
 
 // copyOutput uses output prefixes to determine whether data on stdout

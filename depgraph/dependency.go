@@ -1,6 +1,8 @@
 package depgraph
 
 import (
+	"fmt"
+
 	"github.com/hashicorp/terraform/digraph"
 )
 
@@ -29,6 +31,14 @@ func (d *Dependency) Head() digraph.Node {
 // Tail returns the target, or depended upon noun
 func (d *Dependency) Tail() digraph.Node {
 	return d.Target
+}
+
+func (d *Dependency) GoString() string {
+	return fmt.Sprintf(
+		"*Dependency{Name: %s, Source: %s, Target: %s}",
+		d.Name,
+		d.Source.Name,
+		d.Target.Name)
 }
 
 func (d *Dependency) String() string {
