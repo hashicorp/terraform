@@ -41,10 +41,20 @@ func resource_aws_elb_create(
 		Listeners:        listeners,
 	}
 
+	if rs.Attributes["internal"] == "true" {
+		elbOpts.Internal = true
+	}
+
 	if _, ok := rs.Attributes["availability_zones.#"]; ok {
 		v = flatmap.Expand(rs.Attributes, "availability_zones").([]interface{})
 		zones := expandStringList(v)
 		elbOpts.AvailZone = zones
+	}
+
+	if _, ok := rs.Attributes["subnets.#"]; ok {
+		v = flatmap.Expand(rs.Attributes, "subnets").([]interface{})
+		subnets := expandStringList(v)
+		elbOpts.Subnets = subnets
 	}
 
 	log.Printf("[DEBUG] ELB create configuration: %#v", elbOpts)
@@ -251,6 +261,8 @@ func resource_aws_elb_diff(
 			"listener":          diff.AttrTypeCreate,
 			"instances":         diff.AttrTypeUpdate,
 			"health_check":      diff.AttrTypeCreate,
+			"subnets":           diff.AttrTypeCreate,
+			"internal":           diff.AttrTypeCreate,
 		},
 
 		ComputedAttrs: []string{
@@ -332,6 +344,8 @@ func resource_aws_elb_validation() *config.Validator {
 			"health_check.0.interval",
 			"health_check.0.target",
 			"health_check.0.timeout",
+			"subnets.*",
+			"internal",
 		},
 	}
 }

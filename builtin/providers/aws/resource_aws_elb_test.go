@@ -45,6 +45,33 @@ func TestAccAWSELB_basic(t *testing.T) {
 	})
 }
 
+func TestAccAWSELB_VPC(t *testing.T) {
+	var conf elb.LoadBalancer
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSELBDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccAWSELBConfigVPC,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSELBExists("aws_elb.bar", &conf),
+					testAccCheckAWSELBAttributes(&conf),
+					resource.TestCheckResourceAttr(
+						"aws_elb.bar", "name", "foobar-terraform-vpc-test"),
+					resource.TestCheckResourceAttr(
+						"aws_elb.bar", "internal", "true"),
+					resource.TestCheckResourceAttr(
+						"aws_elb.bar", "subnets.0", "subnet-123456"),
+					resource.TestCheckResourceAttr(
+						"aws_elb.bar", "subnets.1", "subnet-654321"),
+				),
+			},
+		},
+	})
+}
+
 func TestAccAWSELB_InstanceAttaching(t *testing.T) {
 	var conf elb.LoadBalancer
 
@@ -252,6 +279,24 @@ resource "aws_elb" "bar" {
   }
 
   instances = []
+}
+`
+
+const testAccAWSELBConfigVPC = `
+resource "aws_elb" "bar" {
+	name = "foobar-terraform-vpc-test"
+	subnets = ["subnet-123456", "subnet-654321"]
+
+	internal = true
+
+	listener {
+		instance_port = 8000
+		instance_protocol = "http"
+		lb_port = 80
+		lb_protocol = "http"
+	}
+
+	instances = []
 }
 `
 

@@ -41,7 +41,9 @@ The following arguments are supported:
 
 * `name` - (Required) The name of the ELB
 * `availability_zones` - (Optional) The AZ's to serve traffic in.
+* `subnets` - (Optional) The subnets to serve traffic in.
 * `instances` - (Optional) A list of instance ids to place in the ELB pool.
+* `internal` - (Optional) By default ELBs are public, this argument makes the ELB internal.
 * `listener` - (Required) A list of listener blocks. Listeners documented below.
 * `health_check` - (Required) A health_check block. Health Check documented below.
 
