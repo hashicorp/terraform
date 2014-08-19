@@ -532,7 +532,9 @@ func (d *ResourceData) stateList(
 	count := countRaw.(int)
 
 	result := make(map[string]string)
-	result[prefix+".#"] = strconv.FormatInt(int64(count), 10)
+	if count > 0 {
+		result[prefix+".#"] = strconv.FormatInt(int64(count), 10)
+	}
 	for i := 0; i < count; i++ {
 		key := fmt.Sprintf("%s.%d", prefix, i)
 

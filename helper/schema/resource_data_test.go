@@ -406,6 +406,44 @@ func TestResourceDataGet(t *testing.T) {
 				},
 			},
 		},
+
+		// List of maps with removal in diff
+		{
+			Schema: map[string]*Schema{
+				"config_vars": &Schema{
+					Type:     TypeList,
+					Optional: true,
+					Computed: true,
+					Elem: &Schema{
+						Type: TypeMap,
+					},
+				},
+			},
+
+			State: &terraform.ResourceState{
+				Attributes: map[string]string{
+					"config_vars.#":     "1",
+					"config_vars.0.FOO": "bar",
+				},
+			},
+
+			Diff: &terraform.ResourceDiff{
+				Attributes: map[string]*terraform.ResourceAttrDiff{
+					"config_vars.#": &terraform.ResourceAttrDiff{
+						Old: "1",
+						New: "0",
+					},
+					"config_vars.0.FOO": &terraform.ResourceAttrDiff{
+						Old:        "bar",
+						NewRemoved: true,
+					},
+				},
+			},
+
+			Key: "config_vars",
+
+			Value: []interface{}{},
+		},
 	}
 
 	for i, tc := range cases {
@@ -1169,6 +1207,44 @@ func TestResourceDataState(t *testing.T) {
 					"config_vars.0.foo": "bar",
 					"config_vars.1.baz": "bang",
 				},
+			},
+		},
+
+		// List of maps with removal in diff
+		{
+			Schema: map[string]*Schema{
+				"config_vars": &Schema{
+					Type:     TypeList,
+					Optional: true,
+					Computed: true,
+					Elem: &Schema{
+						Type: TypeMap,
+					},
+				},
+			},
+
+			State: &terraform.ResourceState{
+				Attributes: map[string]string{
+					"config_vars.#":     "1",
+					"config_vars.0.FOO": "bar",
+				},
+			},
+
+			Diff: &terraform.ResourceDiff{
+				Attributes: map[string]*terraform.ResourceAttrDiff{
+					"config_vars.#": &terraform.ResourceAttrDiff{
+						Old: "1",
+						New: "0",
+					},
+					"config_vars.0.FOO": &terraform.ResourceAttrDiff{
+						Old:        "bar",
+						NewRemoved: true,
+					},
+				},
+			},
+
+			Result: &terraform.ResourceState{
+				Attributes: map[string]string{},
 			},
 		},
 	}
