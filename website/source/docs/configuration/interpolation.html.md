@@ -36,7 +36,12 @@ are documented below.
 
 The supported built-in functions are:
 
-  * `file(path)` - Reads the contents of a file into the string.
+  * `concat(args...)` - Concatenates the values of multiple arguments into
+      a single string.
+
+  * `file(path)` - Reads the contents of a file into the string. Variables
+      in this file are _not_ interpolated. The contents of the file are
+      read as-is.
 
   * `lookup(map, key)` - Performs a dynamic lookup into a mapping
       variable.
