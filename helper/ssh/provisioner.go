@@ -9,6 +9,7 @@ import (
 
 	"code.google.com/p/go.crypto/ssh"
 	"github.com/hashicorp/terraform/terraform"
+	"github.com/mitchellh/go-homedir"
 	"github.com/mitchellh/mapstructure"
 )
 
@@ -102,7 +103,11 @@ func PrepareConfig(conf *SSHConfig) (*Config, error) {
 		User: conf.User,
 	}
 	if conf.KeyFile != "" {
-		key, err := ioutil.ReadFile(conf.KeyFile)
+		fullPath, err := homedir.Expand(conf.KeyFile)
+		if err != nil {
+			return nil, fmt.Errorf("Failed to expand home directory: %v", err)
+		}
+		key, err := ioutil.ReadFile(fullPath)
 		if err != nil {
 			return nil, fmt.Errorf("Failed to read key file '%s': %v", conf.KeyFile, err)
 		}
