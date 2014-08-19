@@ -5,12 +5,11 @@ import (
 	"fmt"
 	"io/ioutil"
 	"log"
-	"os/user"
-	"strings"
 	"time"
 
 	"code.google.com/p/go.crypto/ssh"
 	"github.com/hashicorp/terraform/terraform"
+	"github.com/mitchellh/go-homedir/homedir"
 	"github.com/mitchellh/mapstructure"
 )
 
@@ -97,36 +96,6 @@ func safeDuration(dur string, defaultDur time.Duration) time.Duration {
 	return d
 }
 
-// expandUserPath replaces a leading ~ in a filepath with the path to a HOME
-// directory.
-// TODO: Does this work on Windows?
-func expandUserPath(path string) (string, error) {
-	if !strings.HasPrefix(path, "~") {
-		return path, nil
-	}
-	i := strings.IndexByte(path, '/')
-	if i < 0 {
-		i = len(path)
-	}
-	userhome := ""
-	if i == 1 {
-		u, err := user.Current()
-		if err != nil {
-			return "", err
-		}
-
-		userhome = u.HomeDir
-	} else {
-		u, err := user.Lookup(path[1:i])
-		if err != nil {
-			return path, nil
-		}
-		userhome = u.HomeDir
-	}
-	userhome = strings.TrimSuffix(userhome, "/")
-	return userhome + path[i:], nil
-}
-
 // PrepareConfig is used to turn the *SSHConfig provided into a
 // usable *Config for client initialization.
 func PrepareConfig(conf *SSHConfig) (*Config, error) {
@@ -134,7 +103,7 @@ func PrepareConfig(conf *SSHConfig) (*Config, error) {
 		User: conf.User,
 	}
 	if conf.KeyFile != "" {
-		fullPath, err := expandUserPath(conf.KeyFile)
+		fullPath, err := homedir.Expand(conf.KeyFile)
 		if err != nil {
 			return nil, fmt.Errorf("Failed to expand home directory: %v", err)
 		}
