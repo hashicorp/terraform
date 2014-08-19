@@ -89,11 +89,13 @@ func (c *ResourceConfig) CheckSet(keys []string) []error {
 // The second return value is true if the get was successful. Get will
 // not succeed if the value is being computed.
 func (c *ResourceConfig) Get(k string) (interface{}, bool) {
+	// First try to get it from c.Config since that has interpolated values
 	result, ok := c.get(k, c.Config)
 	if ok {
 		return result, ok
 	}
 
+	// Otherwise, just get it from the raw config
 	return c.get(k, c.Raw)
 }
 
