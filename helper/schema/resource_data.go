@@ -319,6 +319,17 @@ func (d *ResourceData) getPrimitive(
 	}
 
 	switch schema.Type {
+	case TypeBool:
+		if result == "" {
+			return false
+		}
+
+		v, err := strconv.ParseBool(result)
+		if err != nil {
+			panic(err)
+		}
+
+		return v
 	case TypeString:
 		// Use the value as-is. We just put this case here to be explicit.
 		return result
@@ -503,6 +514,13 @@ func (d *ResourceData) setPrimitive(
 
 	var set string
 	switch schema.Type {
+	case TypeBool:
+		var b bool
+		if err := mapstructure.Decode(v, &b); err != nil {
+			return fmt.Errorf("%s: %s", k, err)
+		}
+
+		set = strconv.FormatBool(b)
 	case TypeString:
 		if err := mapstructure.Decode(v, &set); err != nil {
 			return fmt.Errorf("%s: %s", k, err)
@@ -602,6 +620,8 @@ func (d *ResourceData) statePrimitive(
 
 	var vs string
 	switch schema.Type {
+	case TypeBool:
+		vs = strconv.FormatBool(v.(bool))
 	case TypeString:
 		vs = v.(string)
 	case TypeInt:
