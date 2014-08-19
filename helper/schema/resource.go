@@ -2,6 +2,7 @@ package schema
 
 import (
 	"errors"
+	"fmt"
 
 	"github.com/hashicorp/terraform/terraform"
 )
@@ -73,6 +74,10 @@ func (r *Resource) Apply(
 		// We're creating, it is a new resource.
 		err = r.Create(data, meta)
 	} else {
+		if r.Update == nil {
+			return s, fmt.Errorf("%s doesn't support update", s.Type)
+		}
+
 		err = r.Update(data, meta)
 	}
 

@@ -186,6 +186,50 @@ func TestResourceApply_update(t *testing.T) {
 	}
 }
 
+func TestResourceApply_updateNoCallback(t *testing.T) {
+	r := &Resource{
+		Schema: map[string]*Schema{
+			"foo": &Schema{
+				Type:     TypeInt,
+				Optional: true,
+			},
+		},
+	}
+
+	r.Update = nil
+
+	s := &terraform.ResourceState{
+		ID: "foo",
+		Attributes: map[string]string{
+			"foo": "12",
+		},
+	}
+
+	d := &terraform.ResourceDiff{
+		Attributes: map[string]*terraform.ResourceAttrDiff{
+			"foo": &terraform.ResourceAttrDiff{
+				New: "13",
+			},
+		},
+	}
+
+	actual, err := r.Apply(s, d, nil)
+	if err == nil {
+		t.Fatal("should error")
+	}
+
+	expected := &terraform.ResourceState{
+		ID: "foo",
+		Attributes: map[string]string{
+			"foo": "12",
+		},
+	}
+
+	if !reflect.DeepEqual(actual, expected) {
+		t.Fatalf("bad: %#v", actual)
+	}
+}
+
 func TestResourceInternalValidate(t *testing.T) {
 	cases := []struct {
 		In  *Resource
