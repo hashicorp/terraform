@@ -45,11 +45,6 @@ gox \
 mv bin/terraform-terraform${EXTENSION} bin/terraform${EXTENSION}
 cp bin/terraform* ${GOPATHSINGLE}/bin
 
-# If we're on Windows, get the DLL in there
-if [ "$(go env GOOS)" = "windows" ]; then
-    cp libucl.dll bin/
-fi
-
 if [ "${TF_DEV}x" = "x" ]; then
     # Zip and copy to the dist dir
     echo "--> Packaging..."
