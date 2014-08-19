@@ -39,7 +39,7 @@ resource "aws_elb" "bar" {
 
 The following arguments are supported:
 
-* `name` - (Required) The name of the ELB
+* `name` - (Optional) The name of the ELB. If left blank, a random string will be used.
 * `availability_zones` - (Optional) The AZ's to serve traffic in.
 * `security_groups` - (Optional) A list of security group IDs to assign to the ELB.
 * `subnets` - (Optional) A list of subnets to attach to the ELB.
