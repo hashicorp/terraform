@@ -23,8 +23,9 @@ func Provider() *schema.Provider {
 		},
 
 		ResourcesMap: map[string]*schema.Resource{
-			"heroku_app":   resourceHerokuApp(),
-			"heroku_addon": resourceHerokuAddon(),
+			"heroku_app":    resourceHerokuApp(),
+			"heroku_addon":  resourceHerokuAddon(),
+			"heroku_domain": resourceHerokuDomain(),
 		},
 
 		ConfigureFunc: providerConfigure,
