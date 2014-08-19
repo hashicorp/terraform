@@ -72,9 +72,11 @@ access_key = "foo"
 secret_key = "bar"
 ```
 
-If a "terraform.tfvars" file is present, Terraform automatically loads
-it to populate variables. If the file is named something else, you can
-use the `-var-file` flag directly to specify a file.
+If a "terraform.tfvars" file is present in the current directory,
+Terraform automatically loads it to populate variables. If the file is
+named something else, you can use the `-var-file` flag directly to
+specify a file. Like configuration files, variable files can also be
+JSON.
 
 We recommend using the "terraform.tfvars" file, and ignoring it from
 version control.
