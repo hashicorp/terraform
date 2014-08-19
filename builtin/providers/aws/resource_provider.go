@@ -61,6 +61,11 @@ func (p *ResourceProvider) Validate(c *terraform.ResourceConfig) ([]string, []er
 
 func (p *ResourceProvider) ValidateResource(
 	t string, c *terraform.ResourceConfig) ([]string, []error) {
+	prov := Provider()
+	if _, ok := prov.ResourcesMap[t]; ok {
+		return prov.ValidateResource(t, c)
+	}
+
 	return resourceMap.Validate(t, c)
 }
 
@@ -141,6 +146,6 @@ func (p *ResourceProvider) Refresh(
 
 func (p *ResourceProvider) Resources() []terraform.ResourceType {
 	result := resourceMap.Resources()
-	result = append(result, p.p.Resources()...)
+	result = append(result, Provider().Resources()...)
 	return result
 }

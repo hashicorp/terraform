@@ -15,6 +15,8 @@ func Provider() *schema.Provider {
 	// TODO: Move the configuration to this, requires validation
 
 	return &schema.Provider{
-		ResourcesMap: map[string]*schema.Resource{},
+		ResourcesMap: map[string]*schema.Resource{
+			"aws_eip": resourceAwsEip(),
+		},
 	}
 }

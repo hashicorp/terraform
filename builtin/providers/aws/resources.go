@@ -38,15 +38,6 @@ func init() {
 				Refresh:         resource_aws_db_security_group_refresh,
 			},
 
-			"aws_eip": resource.Resource{
-				ConfigValidator: resource_aws_eip_validation(),
-				Create:          resource_aws_eip_create,
-				Destroy:         resource_aws_eip_destroy,
-				Diff:            resource_aws_eip_diff,
-				Refresh:         resource_aws_eip_refresh,
-				Update:          resource_aws_eip_update,
-			},
-
 			"aws_elb": resource.Resource{
 				ConfigValidator: resource_aws_elb_validation(),
 				Create:          resource_aws_elb_create,
