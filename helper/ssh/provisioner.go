@@ -9,7 +9,7 @@ import (
 
 	"code.google.com/p/go.crypto/ssh"
 	"github.com/hashicorp/terraform/terraform"
-	"github.com/mitchellh/go-homedir/homedir"
+	"github.com/mitchellh/go-homedir"
 	"github.com/mitchellh/mapstructure"
 )
 
