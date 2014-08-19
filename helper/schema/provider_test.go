@@ -155,3 +155,16 @@ func TestProviderValidateResource(t *testing.T) {
 		}
 	}
 }
+
+func TestProviderMeta(t *testing.T) {
+	p := new(Provider)
+	if v := p.Meta(); v != nil {
+		t.Fatalf("bad: %#v", v)
+	}
+
+	expected := 42
+	p.SetMeta(42)
+	if v := p.Meta(); !reflect.DeepEqual(v, expected) {
+		t.Fatalf("bad: %#v")
+	}
+}

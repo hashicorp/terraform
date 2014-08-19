@@ -58,6 +58,13 @@ func (p *Provider) Meta() interface{} {
 	return p.meta
 }
 
+// SetMeta can be used to forcefully set the Meta object of the provider.
+// Note that if Configure is called the return value will override anything
+// set here.
+func (p *Provider) SetMeta(v interface{}) {
+	p.meta = v
+}
+
 // Validate validates the provider configuration against the schema.
 func (p *Provider) Validate(c *terraform.ResourceConfig) ([]string, []error) {
 	return schemaMap(p.Schema).Validate(c)
