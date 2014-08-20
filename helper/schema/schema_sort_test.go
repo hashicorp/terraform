@@ -26,15 +26,4 @@ func TestListSort(t *testing.T) {
 	if !reflect.DeepEqual(s.List, expected) {
 		t.Fatalf("bad: %#v", s.List)
 	}
-
-	expectedMap := map[int]int{
-		0: 2,
-		1: 1,
-		2: 3,
-		3: 4,
-		4: 0,
-	}
-	if !reflect.DeepEqual(s.Map, expectedMap) {
-		t.Fatalf("bad: %#v", s.Map)
-	}
 }
