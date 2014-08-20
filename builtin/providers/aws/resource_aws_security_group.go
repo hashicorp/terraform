@@ -165,13 +165,15 @@ func resourceAwsSecurityGroupUpdate(d *schema.ResourceData, meta interface{}) er
 		}
 
 		oldRules := expandIPPerms(o.([]interface{}))
+		unrolledOldRules := unrollIPPerms(oldRules)
 		newRules := expandIPPerms(n.([]interface{}))
+		unrolledNewRules := unrollIPPerms(newRules)
 
 		var add, remove []ec2.IPPerm
-		for _, p := range newRules {
+		for _, p := range unrolledNewRules {
 			// Check if we have had this rule before
 			exists := false
-			for _, old := range oldRules {
+			for _, old := range unrolledOldRules {
 				if reflect.DeepEqual(old, p) {
 					exists = true
 					break
@@ -182,10 +184,10 @@ func resourceAwsSecurityGroupUpdate(d *schema.ResourceData, meta interface{}) er
 			}
 			add = append(add, p)
 		}
-		for _, p := range oldRules {
+		for _, p := range unrolledOldRules {
 			// Check if we have this rule to add
 			exists := false
-			for _, n := range newRules {
+			for _, n := range unrolledNewRules {
 				if reflect.DeepEqual(n, p) {
 					exists = true
 					break
