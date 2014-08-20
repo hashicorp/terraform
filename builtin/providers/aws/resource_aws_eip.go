@@ -29,6 +29,16 @@ func resourceAwsEip() *schema.Resource {
 				Optional: true,
 			},
 
+			"allocation_id": &schema.Schema{
+				Type:     schema.TypeString,
+				Computed: true,
+			},
+
+			"domain": &schema.Schema{
+				Type:     schema.TypeString,
+				Computed: true,
+			},
+
 			"public_ip": &schema.Schema{
 				Type:     schema.TypeString,
 				Computed: true,
@@ -47,10 +57,8 @@ func resourceAwsEipCreate(d *schema.ResourceData, meta interface{}) error {
 	ec2conn := p.ec2conn
 
 	// By default, we're not in a VPC
-	vpc := false
 	domainOpt := ""
 	if v := d.Get("vpc"); v != nil && v.(bool) {
-		vpc = true
 		domainOpt = "vpc"
 	}
 
@@ -64,28 +72,29 @@ func resourceAwsEipCreate(d *schema.ResourceData, meta interface{}) error {
 		return fmt.Errorf("Error creating EIP: %s", err)
 	}
 
+	// The domain tells us if we're in a VPC or not
+	d.Set("domain", allocResp.Domain)
+
 	// Assign the eips (unique) allocation id for use later
 	// the EIP api has a conditional unique ID (really), so
 	// if we're in a VPC we need to save the ID as such, otherwise
 	// it defaults to using the public IP
 	log.Printf("[DEBUG] EIP Allocate: %#v", allocResp)
-	if allocResp.AllocationId != "" {
+	if d.Get("domain").(string) == "vpc" {
 		d.SetId(allocResp.AllocationId)
-		d.Set("vpc", true)
 	} else {
 		d.SetId(allocResp.PublicIp)
-		d.Set("vpc", false)
 	}
 
-	log.Printf("[INFO] EIP ID: %s (vpc: %v)", d.Id(), vpc)
-	return resourceAwsEipRead(d, meta)
+	log.Printf("[INFO] EIP ID: %s (domain: %v)", d.Id(), allocResp.Domain)
+	return resourceAwsEipUpdate(d, meta)
 }
 
 func resourceAwsEipUpdate(d *schema.ResourceData, meta interface{}) error {
 	p := meta.(*ResourceProvider)
 	ec2conn := p.ec2conn
 
-	vpc := strings.Contains(d.Id(), "eipalloc")
+	domain := resourceAwsEipDomain(d)
 
 	// Only register with an instance if we have one
 	if v := d.Get("instance"); v != nil {
@@ -97,7 +106,7 @@ func resourceAwsEipUpdate(d *schema.ResourceData, meta interface{}) error {
 		}
 
 		// more unique ID conditionals
-		if vpc {
+		if domain == "vpc" {
 			assocOpts = ec2.AssociateAddress{
 				InstanceId:   instanceId,
 				AllocationId: d.Id(),
@@ -105,7 +114,7 @@ func resourceAwsEipUpdate(d *schema.ResourceData, meta interface{}) error {
 			}
 		}
 
-		log.Printf("[DEBUG] EIP associate configuration: %#v (vpc: %v)", assocOpts, vpc)
+		log.Printf("[DEBUG] EIP associate configuration: %#v (domain: %v)", assocOpts, domain)
 		_, err := ec2conn.AssociateAddress(&assocOpts)
 		if err != nil {
 			return fmt.Errorf("Failure associating instances: %s", err)
@@ -119,8 +128,10 @@ func resourceAwsEipDelete(d *schema.ResourceData, meta interface{}) error {
 	p := meta.(*ResourceProvider)
 	ec2conn := p.ec2conn
 
+	domain := resourceAwsEipDomain(d)
+
 	var err error
-	if strings.Contains(d.Id(), "eipalloc") {
+	if domain == "vpc" {
 		log.Printf("[DEBUG] EIP release (destroy) address allocation: %v", d.Id())
 		_, err = ec2conn.ReleaseAddress(d.Id())
 		return err
@@ -137,24 +148,20 @@ func resourceAwsEipRead(d *schema.ResourceData, meta interface{}) error {
 	p := meta.(*ResourceProvider)
 	ec2conn := p.ec2conn
 
-	vpc := false
-	if d.Get("vpc").(bool) {
-		vpc = true
-	}
-
+	domain := resourceAwsEipDomain(d)
 	id := d.Id()
 
 	assocIds := []string{}
 	publicIps := []string{}
-	if vpc {
+	if domain == "vpc" {
 		assocIds = []string{id}
 	} else {
 		publicIps = []string{id}
 	}
 
 	log.Printf(
-		"[DEBUG] EIP describe configuration: %#v, %#v (vpc: %v)",
-		assocIds, publicIps, vpc)
+		"[DEBUG] EIP describe configuration: %#v, %#v (domain: %s)",
+		assocIds, publicIps, domain)
 
 	describeAddresses, err := ec2conn.Addresses(publicIps, assocIds, nil)
 	if err != nil {
@@ -177,4 +184,16 @@ func resourceAwsEipRead(d *schema.ResourceData, meta interface{}) error {
 	d.Set("private_ip", address.PrivateIpAddress)
 
 	return nil
+}
+
+func resourceAwsEipDomain(d *schema.ResourceData) string {
+	if v := d.Get("domain"); v != nil {
+		return v.(string)
+	} else if strings.Contains(d.Id(), "eipalloc") {
+		// We have to do this for backwards compatibility since TF 0.1
+		// didn't have the "domain" computed attribute.
+		return "vpc"
+	}
+
+	return "standard"
 }

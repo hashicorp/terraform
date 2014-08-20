@@ -21,12 +21,15 @@ IMPROVEMENTS:
 
   * core: "~/.terraformrc" (Unix) or "%APPDATA%/terraform.rc" (Windows)
     can be used to configure custom providers and provisioners. [GH-192]
+  * providers/aws: EIPs now expose `allocation_id` and `public_ip`
+      attributes.
 
 BUG FIXES:
 
   * core: Variables are validated to not contain interpolations. [GH-180]
   * core: Key files for provisioning can now contain `~` and will be expanded
       to the user's home directory. [GH-179]
+  * providers/aws: Fix issues around failing to read EIPs. [GH-122]
   * providers/heroku: If you delete the `config_vars` block, config vars
       are properly nuked.
   * providers/heroku: Domains and drains are deleted before the app.
