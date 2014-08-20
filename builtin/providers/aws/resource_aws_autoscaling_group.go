@@ -295,6 +295,7 @@ func resource_aws_autoscaling_group_validation() *config.Validator {
 			"health_check_type",
 			"desired_capacity",
 			"force_delete",
+			"load_balancers.*",
 		},
 	}
 }
