@@ -30,6 +30,8 @@ BUG FIXES:
   * core: Key files for provisioning can now contain `~` and will be expanded
       to the user's home directory. [GH-179]
   * providers/aws: Fix issues around failing to read EIPs. [GH-122]
+  * providers/aws: Autoscaling groups now register and export load
+    balancers. [GH-207]
   * providers/heroku: If you delete the `config_vars` block, config vars
       are properly nuked.
   * providers/heroku: Domains and drains are deleted before the app.

@@ -44,6 +44,24 @@ func TestAccAWSAutoScalingGroup(t *testing.T) {
 	})
 }
 
+func TestAccAWSAutoScalingGroupWithLoadBalancer(t *testing.T) {
+	var group autoscaling.AutoScalingGroup
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSAutoScalingGroupDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccAWSAutoScalingGroupConfigWithLoadBalancer,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSAutoScalingGroupExists("aws_autoscaling_group.bar", &group),
+					testAccCheckAWSAutoScalingGroupAttributesLoadBalancer(&group),
+				),
+			},
+		},
+	})
+}
 func testAccCheckAWSAutoScalingGroupDestroy(s *terraform.State) error {
 	conn := testAccProvider.autoscalingconn
 
@@ -116,6 +134,16 @@ func testAccCheckAWSAutoScalingGroupAttributes(group *autoscaling.AutoScalingGro
 	}
 }
 
+func testAccCheckAWSAutoScalingGroupAttributesLoadBalancer(group *autoscaling.AutoScalingGroup) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		if group.LoadBalancerNames[0].LoadBalancerName != "foobar-terraform-test" {
+			return fmt.Errorf("Bad load_balancers: %s", group.LoadBalancerNames[0].LoadBalancerName)
+		}
+
+		return nil
+	}
+}
+
 func testAccCheckAWSAutoScalingGroupExists(n string, group *autoscaling.AutoScalingGroup) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		rs, ok := s.Resources[n]
@@ -167,5 +195,39 @@ resource "aws_autoscaling_group" "bar" {
   force_delete = true
 
   launch_configuration = "${aws_launch_configuration.foobar.name}"
+}
+`
+
+const testAccAWSAutoScalingGroupConfigWithLoadBalancer = `
+resource "aws_elb" "bar" {
+  name = "foobar-terraform-test"
+  availability_zones = ["us-west-2a"]
+
+  listener {
+    instance_port = 8000
+    instance_protocol = "http"
+    lb_port = 80
+    lb_protocol = "http"
+  }
+}
+
+resource "aws_launch_configuration" "foobar" {
+  name = "foobarautoscaling-terraform-test"
+  image_id = "ami-21f78e11"
+  instance_type = "t1.micro"
+}
+
+resource "aws_autoscaling_group" "bar" {
+  availability_zones = ["us-west-2a"]
+  name = "foobar3-terraform-test"
+  max_size = 5
+  min_size = 2
+  health_check_grace_period = 300
+  health_check_type = "ELB"
+  desired_capacity = 4
+  force_delete = true
+
+  launch_configuration = "${aws_launch_configuration.foobar.name}"
+  load_balancers = ["${aws_elb.bar.name}"]
 }
 `

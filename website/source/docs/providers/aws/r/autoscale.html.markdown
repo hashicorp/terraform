@@ -38,6 +38,8 @@ The following arguments are supported:
 * `desired_capacity` - (Optional) The number of Amazon EC2 instances that should be running in the group.
 * `force_delete` - (Optional) Allows deleting the autoscaling group without waiting
    for all instances in the pool to terminate.
+* `load_balancers` (Optional) A list of load balancer names to add to the autoscaling
+   group names.
 
 ## Attributes Reference
 
@@ -54,4 +56,5 @@ The following attributes are exported:
 * `desired_capacity` -The number of Amazon EC2 instances that should be running in the group.
 * `launch_configuration` - The launch configuration of the autoscale group
 * `vpc_zone_identifier` - The VPC zone identifier
-
+* `load_balancers` (Optional) The load balancer names associated with the
+   autoscaling group.
