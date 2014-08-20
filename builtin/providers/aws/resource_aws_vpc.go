@@ -3,8 +3,10 @@ package aws
 import (
 	"fmt"
 	"log"
+	"sort"
 	"time"
 
+	"github.com/hashicorp/terraform/flatmap"
 	"github.com/hashicorp/terraform/helper/diff"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
@@ -53,19 +55,31 @@ func resource_aws_vpc_create(
 			s.ID, err)
 	}
 
+	tags := resource_aws_build_tags(s.Attributes, "tag")
+	if err := resource_aws_sync_tags(ec2conn, s.ID, []ec2.Tag{}, tags); err != nil {
+		return nil, err
+	}
+
 	// Update our attributes and return
-	return resource_aws_vpc_update_state(s, vpcRaw.(*ec2.VPC))
+	return resource_aws_vpc_update_state(s, vpcRaw.(*ec2.VPC), tags)
 }
 
 func resource_aws_vpc_update(
 	s *terraform.ResourceState,
 	d *terraform.ResourceDiff,
 	meta interface{}) (*terraform.ResourceState, error) {
-	// This should never be called because we have no update-able
-	// attributes
-	panic("Update for VPC is not supported")
+	p := meta.(*ResourceProvider)
+	ec2conn := p.ec2conn
+	rs := s.MergeDiff(d)
 
-	return nil, nil
+	oldTags := resource_aws_build_tags(s.Attributes, "tag")
+	newTags := resource_aws_build_tags(rs.Attributes, "tag")
+
+	if err := resource_aws_sync_tags(ec2conn, s.ID, oldTags, newTags); err != nil {
+		return nil, err
+	}
+
+	return rs, nil
 }
 
 func resource_aws_vpc_destroy(
@@ -101,8 +115,21 @@ func resource_aws_vpc_refresh(
 		return nil, nil
 	}
 
-	vpc := vpcRaw.(*ec2.VPC)
-	return resource_aws_vpc_update_state(s, vpc)
+	filter := ec2.NewFilter()
+	filter.Add("resource-id", s.ID)
+	tagsResp, err := ec2conn.Tags(filter)
+	if err != nil {
+		return nil, err
+	}
+
+	tags := make([]ec2.Tag, len(tagsResp.Tags))
+	for i, v := range tagsResp.Tags {
+		tags[i] = v.Tag
+	}
+
+	sort.Stable(sortableTags(tags))
+
+	return resource_aws_vpc_update_state(s, vpcRaw.(*ec2.VPC), tags)
 }
 
 func resource_aws_vpc_diff(
@@ -112,6 +139,7 @@ func resource_aws_vpc_diff(
 	b := &diff.ResourceBuilder{
 		Attrs: map[string]diff.AttrType{
 			"cidr_block": diff.AttrTypeCreate,
+			"tag":        diff.AttrTypeUpdate,
 		},
 	}
 
@@ -120,8 +148,21 @@ func resource_aws_vpc_diff(
 
 func resource_aws_vpc_update_state(
 	s *terraform.ResourceState,
-	vpc *ec2.VPC) (*terraform.ResourceState, error) {
+	vpc *ec2.VPC,
+	tags []ec2.Tag) (*terraform.ResourceState, error) {
 	s.Attributes["cidr_block"] = vpc.CidrBlock
+
+	toFlatten := make([]map[string]string, 0)
+	for _, tag := range tags {
+		toFlatten = append(toFlatten, map[string]string{
+			"key":   tag.Key,
+			"value": tag.Value,
+		})
+	}
+	flatmap.Map(s.Attributes).Merge(flatmap.Flatten(map[string]interface{}{
+		"tag": toFlatten,
+	}))
+
 	return s, nil
 }
 
