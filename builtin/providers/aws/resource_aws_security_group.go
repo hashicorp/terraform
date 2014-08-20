@@ -3,7 +3,6 @@ package aws
 import (
 	"fmt"
 	"log"
-	"strings"
 	"time"
 
 	"github.com/hashicorp/terraform/helper/resource"
@@ -16,6 +15,7 @@ func resourceAwsSecurityGroup() *schema.Resource {
 	return &schema.Resource{
 		Create: resourceAwsSecurityGroupCreate,
 		Read:   resourceAwsSecurityGroupRead,
+		Update: resourceAwsSecurityGroupUpdate,
 		Delete: resourceAwsSecurityGroupDelete,
 
 		Schema: map[string]*schema.Schema{
@@ -130,43 +130,7 @@ func resourceAwsSecurityGroupCreate(d *schema.ResourceData, meta interface{}) er
 	}
 	ingressList := ingressRaw.([]interface{})
 	if len(ingressList) > 0 {
-		ingressRules := make([]ec2.IPPerm, len(ingressList))
-		for i, mRaw := range ingressList {
-			var perm ec2.IPPerm
-			m := mRaw.(map[string]interface{})
-
-			perm.FromPort = m["from_port"].(int)
-			perm.ToPort = m["to_port"].(int)
-			perm.Protocol = m["protocol"].(string)
-
-			if raw, ok := m["security_groups"]; ok {
-				list := raw.([]interface{})
-				perm.SourceGroups = make([]ec2.UserSecurityGroup, len(list))
-				for i, v := range list {
-					name := v.(string)
-					ownerId, id := "", name
-					if items := strings.Split(id, "/"); len(items) > 1 {
-						ownerId, id = items[0], items[1]
-					}
-
-					perm.SourceGroups[i] = ec2.UserSecurityGroup{
-						Id:      id,
-						OwnerId: ownerId,
-					}
-				}
-			}
-
-			if raw, ok := m["cidr_blocks"]; ok {
-				list := raw.([]interface{})
-				perm.SourceIPs = make([]string, len(list))
-				for i, v := range list {
-					perm.SourceIPs[i] = v.(string)
-				}
-			}
-
-			ingressRules[i] = perm
-		}
-
+		ingressRules := expandIPPerms(ingressList)
 		_, err = ec2conn.AuthorizeSecurityGroup(group, ingressRules)
 		if err != nil {
 			return fmt.Errorf("Error authorizing security group ingress rules: %s", err)
@@ -174,6 +138,10 @@ func resourceAwsSecurityGroupCreate(d *schema.ResourceData, meta interface{}) er
 	}
 
 	return resourceAwsSecurityGroupRead(d, meta)
+}
+
+func resourceAwsSecurityGroupUpdate(d *schema.ResourceData, meta interface{}) error {
+	return nil
 }
 
 func resourceAwsSecurityGroupDelete(d *schema.ResourceData, meta interface{}) error {
