@@ -18,15 +18,18 @@ type getSource byte
 
 const (
 	getSourceState getSource = iota
+	getSourceConfig
 	getSourceDiff
 	getSourceSet
 )
 
 // ResourceData is used to query and set the attributes of a resource.
 type ResourceData struct {
-	schema map[string]*Schema
-	state  *terraform.ResourceState
-	diff   *terraform.ResourceDiff
+	schema  map[string]*Schema
+	config  *terraform.ResourceConfig
+	state   *terraform.ResourceState
+	diff    *terraform.ResourceDiff
+	diffing bool
 
 	setMap   map[string]string
 	newState *terraform.ResourceState
@@ -51,14 +54,7 @@ func (d *ResourceData) Get(key string) interface{} {
 //
 // If there is no change, then old and new will simply be the same.
 func (d *ResourceData) GetChange(key string) (interface{}, interface{}) {
-	var parts []string
-	if key != "" {
-		parts = strings.Split(key, ".")
-	}
-
-	o := d.getObject("", parts, d.schema, getSourceState)
-	n := d.getObject("", parts, d.schema, getSourceDiff)
-	return o, n
+	return d.getChange(key, getSourceConfig, getSourceDiff)
 }
 
 // HasChange returns whether or not the given key has been changed.
@@ -145,6 +141,28 @@ func (d *ResourceData) init() {
 	d.newState = &copyState
 }
 
+func (d *ResourceData) diffChange(k string) (interface{}, interface{}, bool) {
+	// Get the change between the state and the config.
+	o, n := d.getChange(k, getSourceState, getSourceConfig)
+
+	// Return the old, new, and whether there is a change
+	return o, n, !reflect.DeepEqual(o, n)
+}
+
+func (d *ResourceData) getChange(
+	key string,
+	oldLevel getSource,
+	newLevel getSource) (interface{}, interface{}) {
+	var parts []string
+	if key != "" {
+		parts = strings.Split(key, ".")
+	}
+
+	o := d.getObject("", parts, d.schema, oldLevel)
+	n := d.getObject("", parts, d.schema, newLevel)
+	return o, n
+}
+
 func (d *ResourceData) get(
 	k string,
 	parts []string,
@@ -178,6 +196,15 @@ func (d *ResourceData) getMap(
 
 			single := k[len(prefix):]
 			result[single] = d.getPrimitive(k, nil, elemSchema, source)
+		}
+	}
+
+	if d.config != nil && source == getSourceConfig {
+		// For config, we always set the result to exactly what was requested
+		if m, ok := d.config.Get(k); ok {
+			result = m.(map[string]interface{})
+		} else {
+			result = nil
 		}
 	}
 
@@ -301,6 +328,19 @@ func (d *ResourceData) getPrimitive(
 	var resultSet bool
 	if d.state != nil && source >= getSourceState {
 		result, resultSet = d.state.Attributes[k]
+	}
+
+	if d.config != nil && source == getSourceConfig {
+		// For config, we always return the exact value
+		if v, ok := d.config.Get(k); ok {
+			if err := mapstructure.WeakDecode(v, &result); err != nil {
+				panic(err)
+			}
+		} else {
+			result = ""
+		}
+
+		resultSet = true
 	}
 
 	if d.diff != nil && source >= getSourceDiff {

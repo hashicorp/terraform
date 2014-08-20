@@ -76,23 +76,6 @@ func TestSchemaMap_Diff(t *testing.T) {
 			Err: false,
 		},
 
-		{
-			Schema: map[string]*Schema{
-				"availability_zone": &Schema{
-					Type:     TypeString,
-					Required: true,
-				},
-			},
-
-			State: nil,
-
-			Config: map[string]interface{}{},
-
-			Diff: nil,
-
-			Err: true,
-		},
-
 		/*
 		 * Int decode
 		 */
@@ -337,6 +320,50 @@ func TestSchemaMap_Diff(t *testing.T) {
 		},
 
 		/*
+		{
+			Schema: map[string]*Schema{
+				"ports": &Schema{
+					Type:     TypeList,
+					Required: true,
+					Elem:     &Schema{Type: TypeInt},
+					Order: func(a, b interface{}) bool {
+						return a.(int) < b.(int)
+					},
+				},
+			},
+
+			State: nil,
+
+			Config: map[string]interface{}{
+				"ports": []interface{}{5, 2, 1},
+			},
+
+			Diff: &terraform.ResourceDiff{
+				Attributes: map[string]*terraform.ResourceAttrDiff{
+					"ports.#": &terraform.ResourceAttrDiff{
+						Old: "0",
+						New: "3",
+					},
+					"ports.0": &terraform.ResourceAttrDiff{
+						Old: "",
+						New: "1",
+					},
+					"ports.1": &terraform.ResourceAttrDiff{
+						Old: "",
+						New: "2",
+					},
+					"ports.2": &terraform.ResourceAttrDiff{
+						Old: "",
+						New: "5",
+					},
+				},
+			},
+
+			Err: false,
+		},
+		*/
+
+		/*
 		 * List of structure decode
 		 */
 
@@ -380,87 +407,6 @@ func TestSchemaMap_Diff(t *testing.T) {
 			},
 
 			Err: false,
-		},
-
-		{
-			Schema: map[string]*Schema{
-				"ingress": &Schema{
-					Type:     TypeList,
-					Required: true,
-					Elem: &Resource{
-						Schema: map[string]*Schema{
-							"from": &Schema{
-								Type:     TypeInt,
-								Required: true,
-							},
-						},
-					},
-				},
-			},
-
-			State: nil,
-
-			Config: map[string]interface{}{},
-
-			Diff: nil,
-
-			Err: true,
-		},
-
-		{
-			Schema: map[string]*Schema{
-				"ingress": &Schema{
-					Type:     TypeList,
-					Required: true,
-					Elem: &Resource{
-						Schema: map[string]*Schema{
-							"from": &Schema{
-								Type:     TypeInt,
-								Required: true,
-							},
-						},
-					},
-				},
-			},
-
-			State: nil,
-
-			Config: map[string]interface{}{
-				"ingress": []interface{}{},
-			},
-
-			Diff: nil,
-
-			Err: true,
-		},
-
-		{
-			Schema: map[string]*Schema{
-				"ingress": &Schema{
-					Type:     TypeList,
-					Required: true,
-					Elem: &Resource{
-						Schema: map[string]*Schema{
-							"from": &Schema{
-								Type:     TypeInt,
-								Required: true,
-							},
-						},
-					},
-				},
-			},
-
-			State: nil,
-
-			Config: map[string]interface{}{
-				"ingress": []interface{}{
-					map[string]interface{}{},
-				},
-			},
-
-			Diff: nil,
-
-			Err: true,
 		},
 
 		/*
@@ -666,7 +612,7 @@ func TestSchemaMap_Diff(t *testing.T) {
 		d, err := schemaMap(tc.Schema).Diff(
 			tc.State, terraform.NewResourceConfig(c))
 		if (err != nil) != tc.Err {
-			t.Fatalf("err: %s", err)
+			t.Fatalf("#%d err: %s", i, err)
 		}
 
 		if !reflect.DeepEqual(tc.Diff, d) {
