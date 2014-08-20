@@ -680,6 +680,45 @@ func TestResourceDataSet(t *testing.T) {
 			GetValue: 80,
 		},
 
+		// Basic bool
+		{
+			Schema: map[string]*Schema{
+				"vpc": &Schema{
+					Type:     TypeBool,
+					Optional: true,
+				},
+			},
+
+			State: nil,
+
+			Diff: nil,
+
+			Key:   "vpc",
+			Value: true,
+
+			GetKey:   "vpc",
+			GetValue: true,
+		},
+
+		{
+			Schema: map[string]*Schema{
+				"vpc": &Schema{
+					Type:     TypeBool,
+					Optional: true,
+				},
+			},
+
+			State: nil,
+
+			Diff: nil,
+
+			Key:   "vpc",
+			Value: false,
+
+			GetKey:   "vpc",
+			GetValue: false,
+		},
+
 		// Invalid type
 		{
 			Schema: map[string]*Schema{
@@ -1072,6 +1111,29 @@ func TestResourceDataState(t *testing.T) {
 			Result: &terraform.ResourceState{
 				Attributes: map[string]string{
 					"availability_zone": "bar",
+				},
+			},
+		},
+
+		{
+			Schema: map[string]*Schema{
+				"vpc": &Schema{
+					Type:     TypeBool,
+					Optional: true,
+				},
+			},
+
+			State: nil,
+
+			Diff: nil,
+
+			Set: map[string]interface{}{
+				"vpc": true,
+			},
+
+			Result: &terraform.ResourceState{
+				Attributes: map[string]string{
+					"vpc": "true",
 				},
 			},
 		},

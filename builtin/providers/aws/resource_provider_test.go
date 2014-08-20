@@ -52,6 +52,13 @@ func TestResourceProvider_Configure(t *testing.T) {
 	if !reflect.DeepEqual(rp.Config, expected) {
 		t.Fatalf("bad: %#v", rp.Config)
 	}
+
+	if rp.p == nil {
+		t.Fatal("provider should be set")
+	}
+	if !reflect.DeepEqual(rp, rp.p.Meta()) {
+		t.Fatalf("meta should be set")
+	}
 }
 
 func TestResourceProvider_ConfigureBadRegion(t *testing.T) {
