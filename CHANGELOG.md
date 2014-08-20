@@ -25,6 +25,8 @@ IMPROVEMENTS:
       attributes.
   * providers/aws: Security group rules can be updated without a
       destroy/create.
+  * providers/aws: You can enable and disable dns settings for VPCs
+    [GH-172]
 
 BUG FIXES:
 
