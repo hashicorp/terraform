@@ -16,7 +16,8 @@ func Provider() *schema.Provider {
 
 	return &schema.Provider{
 		ResourcesMap: map[string]*schema.Resource{
-			"aws_eip": resourceAwsEip(),
+			"aws_eip":            resourceAwsEip(),
+			"aws_security_group": resourceAwsSecurityGroup(),
 		},
 	}
 }

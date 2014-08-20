@@ -128,14 +128,6 @@ func init() {
 				Refresh:         resource_aws_s3_bucket_refresh,
 			},
 
-			"aws_security_group": resource.Resource{
-				ConfigValidator: resource_aws_security_group_validation(),
-				Create:          resource_aws_security_group_create,
-				Destroy:         resource_aws_security_group_destroy,
-				Diff:            resource_aws_security_group_diff,
-				Refresh:         resource_aws_security_group_refresh,
-			},
-
 			"aws_subnet": resource.Resource{
 				Create:  resource_aws_subnet_create,
 				Destroy: resource_aws_subnet_destroy,

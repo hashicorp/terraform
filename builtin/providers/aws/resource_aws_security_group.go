@@ -3,95 +3,186 @@ package aws
 import (
 	"fmt"
 	"log"
+	"strings"
 	"time"
 
-	"github.com/hashicorp/terraform/flatmap"
-	"github.com/hashicorp/terraform/helper/config"
-	"github.com/hashicorp/terraform/helper/diff"
 	"github.com/hashicorp/terraform/helper/resource"
+	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/terraform"
 	"github.com/mitchellh/goamz/ec2"
 )
 
-func resource_aws_security_group_create(
-	s *terraform.ResourceState,
-	d *terraform.ResourceDiff,
-	meta interface{}) (*terraform.ResourceState, error) {
+func resourceAwsSecurityGroup() *schema.Resource {
+	return &schema.Resource{
+		Create: resourceAwsSecurityGroupCreate,
+		Read:   resourceAwsSecurityGroupRead,
+		Delete: resourceAwsSecurityGroupDelete,
+
+		Schema: map[string]*schema.Schema{
+			"name": &schema.Schema{
+				Type:     schema.TypeString,
+				Required: true,
+				ForceNew: true,
+			},
+
+			"description": &schema.Schema{
+				Type:     schema.TypeString,
+				Required: true,
+			},
+
+			"vpc_id": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				ForceNew: true,
+			},
+
+			"ingress": &schema.Schema{
+				Type:     schema.TypeList,
+				Required: true,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"from_port": &schema.Schema{
+							Type:     schema.TypeInt,
+							Required: true,
+						},
+
+						"to_port": &schema.Schema{
+							Type:     schema.TypeInt,
+							Required: true,
+						},
+
+						"protocol": &schema.Schema{
+							Type:     schema.TypeString,
+							Required: true,
+						},
+
+						"cidr_blocks": &schema.Schema{
+							Type:     schema.TypeList,
+							Optional: true,
+							Elem:     &schema.Schema{Type: schema.TypeString},
+						},
+
+						"security_groups": &schema.Schema{
+							Type:     schema.TypeList,
+							Optional: true,
+							Elem:     &schema.Schema{Type: schema.TypeString},
+						},
+					},
+				},
+			},
+
+			"owner_id": &schema.Schema{
+				Type:     schema.TypeString,
+				Computed: true,
+			},
+		},
+	}
+}
+
+func resourceAwsSecurityGroupCreate(d *schema.ResourceData, meta interface{}) error {
 	p := meta.(*ResourceProvider)
 	ec2conn := p.ec2conn
 
-	// Merge the diff into the state so that we have all the attributes
-	// properly.
-	rs := s.MergeDiff(d)
-
 	securityGroupOpts := ec2.SecurityGroup{
-		Name: rs.Attributes["name"],
+		Name: d.Get("name").(string),
 	}
 
-	if rs.Attributes["vpc_id"] != "" {
-		securityGroupOpts.VpcId = rs.Attributes["vpc_id"]
+	if v := d.Get("vpc_id"); v != nil {
+		securityGroupOpts.VpcId = v.(string)
 	}
 
-	if rs.Attributes["description"] != "" {
-		securityGroupOpts.Description = rs.Attributes["description"]
+	if v := d.Get("description"); v != nil {
+		securityGroupOpts.Description = v.(string)
 	}
 
-	log.Printf("[DEBUG] Security Group create configuration: %#v", securityGroupOpts)
+	log.Printf(
+		"[DEBUG] Security Group create configuration: %#v", securityGroupOpts)
 	createResp, err := ec2conn.CreateSecurityGroup(securityGroupOpts)
 	if err != nil {
-		return nil, fmt.Errorf("Error creating Security Group: %s", err)
+		return fmt.Errorf("Error creating Security Group: %s", err)
 	}
 
-	rs.ID = createResp.Id
+	d.SetId(createResp.Id)
 	group := createResp.SecurityGroup
 
-	log.Printf("[INFO] Security Group ID: %s", rs.ID)
+	log.Printf("[INFO] Security Group ID: %s", d.Id())
 
 	// Wait for the security group to truly exist
 	log.Printf(
 		"[DEBUG] Waiting for Security Group (%s) to exist",
-		rs.ID)
+		d.Id())
 	stateConf := &resource.StateChangeConf{
 		Pending: []string{""},
 		Target:  "exists",
-		Refresh: SGStateRefreshFunc(ec2conn, rs.ID),
+		Refresh: SGStateRefreshFunc(ec2conn, d.Id()),
 		Timeout: 1 * time.Minute,
 	}
 	if _, err := stateConf.WaitForState(); err != nil {
-		return s, fmt.Errorf(
+		return fmt.Errorf(
 			"Error waiting for Security Group (%s) to become available: %s",
-			rs.ID, err)
+			d.Id(), err)
 	}
 
 	// Expand the "ingress" array to goamz compat []ec2.IPPerm
-	ingressRules := []ec2.IPPerm{}
-	v, ok := flatmap.Expand(rs.Attributes, "ingress").([]interface{})
-	if ok {
-		ingressRules, err = expandIPPerms(v)
-		if err != nil {
-			return rs, err
-		}
+	ingressRaw := d.Get("ingress")
+	if ingressRaw == nil {
+		ingressRaw = []interface{}{}
 	}
+	ingressList := ingressRaw.([]interface{})
+	if len(ingressList) > 0 {
+		ingressRules := make([]ec2.IPPerm, len(ingressList))
+		for i, mRaw := range ingressList {
+			var perm ec2.IPPerm
+			m := mRaw.(map[string]interface{})
 
-	if len(ingressRules) > 0 {
+			perm.FromPort = m["from_port"].(int)
+			perm.ToPort = m["to_port"].(int)
+			perm.Protocol = m["protocol"].(string)
+
+			if raw, ok := m["security_groups"]; ok {
+				list := raw.([]interface{})
+				perm.SourceGroups = make([]ec2.UserSecurityGroup, len(list))
+				for i, v := range list {
+					name := v.(string)
+					ownerId, id := "", name
+					if items := strings.Split(id, "/"); len(items) > 1 {
+						ownerId, id = items[0], items[1]
+					}
+
+					perm.SourceGroups[i] = ec2.UserSecurityGroup{
+						Id:      id,
+						OwnerId: ownerId,
+					}
+				}
+			}
+
+			if raw, ok := m["cidr_blocks"]; ok {
+				list := raw.([]interface{})
+				perm.SourceIPs = make([]string, len(list))
+				for i, v := range list {
+					perm.SourceIPs[i] = v.(string)
+				}
+			}
+
+			ingressRules[i] = perm
+		}
+
 		_, err = ec2conn.AuthorizeSecurityGroup(group, ingressRules)
 		if err != nil {
-			return rs, fmt.Errorf("Error authorizing security group ingress rules: %s", err)
+			return fmt.Errorf("Error authorizing security group ingress rules: %s", err)
 		}
 	}
 
-	return resource_aws_security_group_refresh(rs, meta)
+	return resourceAwsSecurityGroupRead(d, meta)
 }
 
-func resource_aws_security_group_destroy(
-	s *terraform.ResourceState,
-	meta interface{}) error {
+func resourceAwsSecurityGroupDelete(d *schema.ResourceData, meta interface{}) error {
 	p := meta.(*ResourceProvider)
 	ec2conn := p.ec2conn
 
-	log.Printf("[DEBUG] Security Group destroy: %v", s.ID)
+	log.Printf("[DEBUG] Security Group destroy: %v", d.Id())
 
-	_, err := ec2conn.DeleteSecurityGroup(ec2.SecurityGroup{Id: s.ID})
+	_, err := ec2conn.DeleteSecurityGroup(ec2.SecurityGroup{Id: d.Id()})
 	if err != nil {
 		ec2err, ok := err.(*ec2.Error)
 		if ok && ec2err.Code == "InvalidGroup.NotFound" {
@@ -102,60 +193,26 @@ func resource_aws_security_group_destroy(
 	return err
 }
 
-func resource_aws_security_group_refresh(
-	s *terraform.ResourceState,
-	meta interface{}) (*terraform.ResourceState, error) {
+func resourceAwsSecurityGroupRead(d *schema.ResourceData, meta interface{}) error {
 	p := meta.(*ResourceProvider)
 	ec2conn := p.ec2conn
 
-	sgRaw, _, err := SGStateRefreshFunc(ec2conn, s.ID)()
+	sgRaw, _, err := SGStateRefreshFunc(ec2conn, d.Id())()
 	if err != nil {
-		return s, err
+		return err
 	}
 	if sgRaw == nil {
-		return nil, nil
+		d.SetId("")
+		return nil
 	}
 
-	return resource_aws_security_group_update_state(
-		s, sgRaw.(*ec2.SecurityGroupInfo))
-}
+	sg := sgRaw.(*ec2.SecurityGroupInfo)
 
-func resource_aws_security_group_diff(
-	s *terraform.ResourceState,
-	c *terraform.ResourceConfig,
-	meta interface{}) (*terraform.ResourceDiff, error) {
+	var deps []terraform.ResourceDependency
 
-	b := &diff.ResourceBuilder{
-		Attrs: map[string]diff.AttrType{
-			"name":        diff.AttrTypeCreate,
-			"description": diff.AttrTypeUpdate,
-			"ingress":     diff.AttrTypeUpdate,
-			"vpc_id":      diff.AttrTypeCreate,
-		},
-
-		ComputedAttrs: []string{
-			"owner_id",
-			"vpc_id",
-		},
-	}
-
-	return b.Diff(s, c)
-}
-
-func resource_aws_security_group_update_state(
-	s *terraform.ResourceState,
-	sg *ec2.SecurityGroupInfo) (*terraform.ResourceState, error) {
-
-	s.Attributes["description"] = sg.Description
-	s.Attributes["name"] = sg.Name
-	s.Attributes["vpc_id"] = sg.VpcId
-	s.Attributes["owner_id"] = sg.OwnerId
-
-	// Flatten our ingress values
-	toFlatten := make(map[string]interface{})
-
-	ingressRules := make([]map[string]interface{}, 0, len(sg.IPPerms))
-	for _, perm := range sg.IPPerms {
+	// Gather our ingress rules
+	ingressRules := make([]map[string]interface{}, len(sg.IPPerms))
+	for i, perm := range sg.IPPerms {
 		n := make(map[string]interface{})
 		n["from_port"] = perm.FromPort
 		n["protocol"] = perm.Protocol
@@ -168,50 +225,31 @@ func resource_aws_security_group_update_state(
 		if len(perm.SourceGroups) > 0 {
 			// We depend on other security groups
 			for _, v := range perm.SourceGroups {
-				s.Dependencies = append(s.Dependencies,
+				deps = append(deps,
 					terraform.ResourceDependency{ID: v.Id},
 				)
 			}
+
 			n["security_groups"] = flattenSecurityGroups(perm.SourceGroups)
 		}
 
-		// Reverse the order, as Amazon sorts it the reverse of how we created
-		// it.
-		ingressRules = append([]map[string]interface{}{n}, ingressRules...)
+		ingressRules[i] = n
 	}
 
-	toFlatten["ingress"] = ingressRules
-
-	for k, v := range flatmap.Flatten(toFlatten) {
-		s.Attributes[k] = v
-	}
-
-	if s.Attributes["vpc_id"] != "" {
-		s.Dependencies = append(s.Dependencies,
-			terraform.ResourceDependency{ID: s.Attributes["vpc_id"]},
+	if v := d.Get("vpc_id"); v != nil && v.(string) != "" {
+		deps = append(deps,
+			terraform.ResourceDependency{ID: v.(string)},
 		)
 	}
 
-	return s, nil
-}
+	d.Set("description", sg.Description)
+	d.Set("name", sg.Name)
+	d.Set("vpc_id", sg.VpcId)
+	d.Set("owner_id", sg.OwnerId)
+	d.Set("ingress", ingressRules)
+	d.SetDependencies(deps)
 
-func resource_aws_security_group_validation() *config.Validator {
-	return &config.Validator{
-		Required: []string{
-			"name",
-			"description",
-			"ingress.*",
-			"ingress.*.from_port",
-			"ingress.*.to_port",
-			"ingress.*.protocol",
-		},
-		Optional: []string{
-			"vpc_id",
-			"owner_id",
-			"ingress.*.cidr_blocks.*",
-			"ingress.*.security_groups.*",
-		},
-	}
+	return nil
 }
 
 // SGStateRefreshFunc returns a resource.StateRefreshFunc that is used to watch
