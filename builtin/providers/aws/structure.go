@@ -1,6 +1,7 @@
 package aws
 
 import (
+	"sort"
 	"strconv"
 	"strings"
 
@@ -39,6 +40,70 @@ func expandListeners(configured []interface{}) ([]elb.Listener, error) {
 	return listeners, nil
 }
 
+type ipPermKey struct {
+	Protocol string
+	FromPort int
+	ToPort   int
+}
+
+type sortableGroups []ec2.UserSecurityGroup
+
+func (g sortableGroups) Len() int           { return len(g) }
+func (g sortableGroups) Swap(i, j int)      { g[i], g[j] = g[j], g[i] }
+func (g sortableGroups) Less(i, j int) bool { return g[i].Id < g[j].Id }
+
+type sortableHosts []string
+
+func (g sortableHosts) Len() int           { return len(g) }
+func (g sortableHosts) Swap(i, j int)      { g[i], g[j] = g[j], g[i] }
+func (g sortableHosts) Less(i, j int) bool { return g[i] < g[j] }
+
+type sortableRules []ec2.IPPerm
+
+func (s sortableRules) Len() int      { return len(s) }
+func (s sortableRules) Swap(i, j int) { s[i], s[j] = s[j], s[i] }
+func (s sortableRules) Less(i, j int) bool {
+	return s[i].Protocol < s[j].Protocol || s[i].FromPort < s[j].FromPort || s[i].ToPort < s[j].ToPort
+}
+
+func canonicaliseIPPerms(input []ec2.IPPerm) []ec2.IPPerm {
+	rules := map[ipPermKey]*ec2.IPPerm{}
+	for _, p := range input {
+		key := ipPermKey{p.Protocol, p.FromPort, p.ToPort}
+		rule, ok := rules[key]
+		if !ok {
+			rule = &ec2.IPPerm{
+				Protocol: p.Protocol,
+				FromPort: p.FromPort,
+				ToPort:   p.ToPort,
+			}
+
+			rules[key] = rule
+		}
+
+		if len(p.SourceGroups) > 0 {
+			rule.SourceGroups = append(rule.SourceGroups, p.SourceGroups...)
+		}
+
+		if len(p.SourceIPs) > 0 {
+			rule.SourceIPs = append(rule.SourceIPs, p.SourceIPs...)
+		}
+	}
+
+	res := make([]ec2.IPPerm, 0, len(rules))
+
+	for _, r := range rules {
+		sort.Sort(sortableHosts(r.SourceIPs))
+		sort.Sort(sortableGroups(r.SourceGroups))
+
+		res = append(res, *r)
+	}
+
+	sort.Sort(sortableRules(res))
+
+	return res
+}
+
 // Takes the result of flatmap.Expand for an array of ingress/egress
 // security group rules and returns EC2 API compatible objects
 func expandIPPerms(configured []interface{}) ([]ec2.IPPerm, error) {
@@ -60,6 +125,8 @@ func expandIPPerms(configured []interface{}) ([]ec2.IPPerm, error) {
 				return nil, err
 			}
 			p.FromPort = fromPort
+		} else if attr, ok := newP["from_port"].(int); ok {
+			p.FromPort = attr
 		}
 
 		if attr, ok := newP["to_port"].(string); ok {
@@ -68,6 +135,8 @@ func expandIPPerms(configured []interface{}) ([]ec2.IPPerm, error) {
 				return nil, err
 			}
 			p.ToPort = toPort
+		} else if attr, ok := newP["to_port"].(int); ok {
+			p.ToPort = attr
 		}
 
 		if attr, ok := newP["protocol"].(string); ok {
