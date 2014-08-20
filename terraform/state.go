@@ -352,6 +352,10 @@ func (s *ResourceState) MergeDiff(d *ResourceDiff) *ResourceState {
 	return &result
 }
 
+func (s *ResourceState) GoString() string {
+	return fmt.Sprintf("*%#v", *s)
+}
+
 // ResourceDependency maps a resource to another resource that it
 // depends on to remain intact and uncorrupted.
 type ResourceDependency struct {
