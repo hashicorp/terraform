@@ -146,7 +146,7 @@ func (c *ResourceConfig) get(
 				current = cv.Len()
 			} else {
 				i, err := strconv.ParseInt(part, 0, 0)
-				if err != nil {
+				if err != nil || i > int64(cv.Len()-1) {
 					return nil, false
 				}
 				current = cv.Index(int(i)).Interface()
