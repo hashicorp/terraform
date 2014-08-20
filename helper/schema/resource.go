@@ -117,7 +117,12 @@ func (r *Resource) Refresh(
 	}
 
 	err = r.Read(data, meta)
-	return data.State(), err
+	state := data.State()
+	if state.ID == "" {
+		state = nil
+	}
+
+	return state, err
 }
 
 // InternalValidate should be called to validate the structure
