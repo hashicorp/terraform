@@ -129,6 +129,7 @@ func TestResourceApply_destroyPartial(t *testing.T) {
 	expected := &terraform.ResourceState{
 		ID: "bar",
 		Attributes: map[string]string{
+			"id":  "bar",
 			"foo": "42",
 		},
 	}
@@ -291,6 +292,7 @@ func TestResourceRefresh(t *testing.T) {
 	expected := &terraform.ResourceState{
 		ID: "bar",
 		Attributes: map[string]string{
+			"id":  "bar",
 			"foo": "13",
 		},
 	}

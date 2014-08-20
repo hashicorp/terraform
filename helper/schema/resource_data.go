@@ -129,6 +129,10 @@ func (d *ResourceData) State() *terraform.ResourceState {
 	result.Attributes = d.stateObject("", d.schema)
 	result.Dependencies = d.Dependencies()
 
+	if v := d.Id(); v != "" {
+		result.Attributes["id"] = d.Id()
+	}
+
 	return &result
 }
 

@@ -81,17 +81,7 @@ func (r *Resource) Apply(
 		err = r.Update(data, meta)
 	}
 
-	// Always set the ID attribute if it is set. We also always collapse
-	// the state since even partial states need to be returned.
-	state := data.State()
-	if state.ID != "" {
-		if state.Attributes == nil {
-			state.Attributes = make(map[string]string)
-		}
-		state.Attributes["id"] = state.ID
-	}
-
-	return state, err
+	return data.State(), err
 }
 
 // Diff returns a diff of this resource and is API compatible with the
