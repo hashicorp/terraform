@@ -3,6 +3,7 @@ package aws
 import (
 	"fmt"
 	"log"
+	"reflect"
 	"time"
 
 	"github.com/hashicorp/terraform/helper/resource"
@@ -141,6 +142,77 @@ func resourceAwsSecurityGroupCreate(d *schema.ResourceData, meta interface{}) er
 }
 
 func resourceAwsSecurityGroupUpdate(d *schema.ResourceData, meta interface{}) error {
+	p := meta.(*ResourceProvider)
+	ec2conn := p.ec2conn
+
+	sgRaw, _, err := SGStateRefreshFunc(ec2conn, d.Id())()
+	if err != nil {
+		return err
+	}
+	if sgRaw == nil {
+		d.SetId("")
+		return nil
+	}
+	group := sgRaw.(*ec2.SecurityGroupInfo).SecurityGroup
+
+	if d.HasChange("ingress") {
+		o, n := d.GetChange("ingress")
+		if o == nil {
+			o = []interface{}{}
+		}
+		if n == nil {
+			n = []interface{}{}
+		}
+
+		oldRules := expandIPPerms(o.([]interface{}))
+		newRules := expandIPPerms(n.([]interface{}))
+
+		var add, remove []ec2.IPPerm
+		for _, p := range newRules {
+			// Check if we have had this rule before
+			exists := false
+			for _, old := range oldRules {
+				if reflect.DeepEqual(old, p) {
+					exists = true
+					break
+				}
+			}
+			if exists {
+				continue
+			}
+			add = append(add, p)
+		}
+		for _, p := range oldRules {
+			// Check if we have this rule to add
+			exists := false
+			for _, n := range newRules {
+				if reflect.DeepEqual(n, p) {
+					exists = true
+					break
+				}
+			}
+			if exists {
+				continue
+			}
+			remove = append(remove, p)
+		}
+
+		// TODO: We need to handle partial state better in the in-between
+		// in this update.
+
+		// Authorize the new rules
+		_, err := ec2conn.AuthorizeSecurityGroup(group, add)
+		if err != nil {
+			return fmt.Errorf("Error authorizing security group ingress rules: %s", err)
+		}
+
+		// Revoke the old rules
+		_, err = ec2conn.RevokeSecurityGroup(group, remove)
+		if err != nil {
+			return fmt.Errorf("Error authorizing security group ingress rules: %s", err)
+		}
+	}
+
 	return nil
 }
 

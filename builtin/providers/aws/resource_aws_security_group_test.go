@@ -99,10 +99,29 @@ func TestAccAWSSecurityGroup_MultiIngress(t *testing.T) {
 					testAccCheckAWSSecurityGroupExists("aws_security_group.web", &group),
 				),
 			},
+		},
+	})
+}
+
+func TestAccAWSSecurityGroup_Change(t *testing.T) {
+	var group ec2.SecurityGroupInfo
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSSecurityGroupDestroy,
+		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccAWSSecurityGroupConfigMultiIngress,
+				Config: testAccAWSSecurityGroupConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSSecurityGroupExists("aws_security_group.web", &group),
+				),
+			},
+			resource.TestStep{
+				Config: testAccAWSSecurityGroupConfigChange,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSSecurityGroupExists("aws_security_group.web", &group),
+					testAccCheckAWSSecurityGroupAttributesChanged(&group),
 				),
 			},
 		},
@@ -210,6 +229,55 @@ func testAccCheckAWSSecurityGroupAttributes(group *ec2.SecurityGroupInfo) resour
 	}
 }
 
+func testAccCheckAWSSecurityGroupAttributesChanged(group *ec2.SecurityGroupInfo) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		p := []ec2.IPPerm{
+			ec2.IPPerm{
+				FromPort:  80,
+				ToPort:    9000,
+				Protocol:  "tcp",
+				SourceIPs: []string{"10.0.0.0/8"},
+			},
+			ec2.IPPerm{
+				FromPort:  80,
+				ToPort:    1234,
+				Protocol:  "tcp",
+				SourceIPs: []string{"10.0.0.0/8"},
+			},
+		}
+
+		if group.Name != "terraform_acceptance_test_example" {
+			return fmt.Errorf("Bad name: %s", group.Name)
+		}
+
+		if group.Description != "Used in the terraform acceptance tests" {
+			return fmt.Errorf("Bad description: %s", group.Description)
+		}
+
+		// Compare our ingress
+		if len(group.IPPerms) != 2 {
+			return fmt.Errorf(
+				"Got:\n\n%#v\n\nExpected:\n\n%#v\n",
+				group.IPPerms,
+				p)
+		}
+
+		if group.IPPerms[0].ToPort == 1234 {
+			group.IPPerms[1], group.IPPerms[0] =
+				group.IPPerms[0], group.IPPerms[1]
+		}
+
+		if !reflect.DeepEqual(group.IPPerms, p) {
+			return fmt.Errorf(
+				"Got:\n\n%#v\n\nExpected:\n\n%#v\n",
+				group.IPPerms,
+				p)
+		}
+
+		return nil
+	}
+}
+
 const testAccAWSSecurityGroupConfig = `
 resource "aws_security_group" "web" {
     name = "terraform_acceptance_test_example"
@@ -219,6 +287,27 @@ resource "aws_security_group" "web" {
         protocol = "tcp"
         from_port = 80
         to_port = 8000
+        cidr_blocks = ["10.0.0.0/8"]
+    }
+}
+`
+
+const testAccAWSSecurityGroupConfigChange = `
+resource "aws_security_group" "web" {
+    name = "terraform_acceptance_test_example"
+    description = "Used in the terraform acceptance tests"
+
+    ingress {
+        protocol = "tcp"
+        from_port = 80
+        to_port = 9000
+        cidr_blocks = ["10.0.0.0/8"]
+    }
+
+    ingress {
+        protocol = "tcp"
+        from_port = 80
+        to_port = 1234
         cidr_blocks = ["10.0.0.0/8"]
     }
 }

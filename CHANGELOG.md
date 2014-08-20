@@ -23,6 +23,8 @@ IMPROVEMENTS:
     can be used to configure custom providers and provisioners. [GH-192]
   * providers/aws: EIPs now expose `allocation_id` and `public_ip`
       attributes.
+  * providers/aws: Security group rules can be updated without a
+      destroy/create.
 
 BUG FIXES:
 
