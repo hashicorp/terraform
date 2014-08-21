@@ -149,6 +149,9 @@ func (c *ResourceConfig) get(
 				if err != nil {
 					return nil, false
 				}
+				if i >= int64(cv.Len()) {
+					return nil, false
+				}
 				current = cv.Index(int(i)).Interface()
 			}
 		default:

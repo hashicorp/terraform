@@ -55,6 +55,22 @@ func TestResourceConfigGet(t *testing.T) {
 			Key:   "foo",
 			Value: "bar",
 		},
+
+		{
+			Config: map[string]interface{}{
+				"foo": []interface{}{1, 2, 5},
+			},
+			Key:   "foo.0",
+			Value: 1,
+		},
+
+		{
+			Config: map[string]interface{}{
+				"foo": []interface{}{1, 2, 5},
+			},
+			Key:   "foo.5",
+			Value: nil,
+		},
 	}
 
 	for i, tc := range cases {
