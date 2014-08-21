@@ -1395,9 +1395,10 @@ func TestResourceDataState(t *testing.T) {
 
 			State: &terraform.ResourceState{
 				Attributes: map[string]string{
-					"ports.#": "2",
+					"ports.#": "3",
 					"ports.0": "100",
 					"ports.1": "80",
+					"ports.2": "80",
 				},
 			},
 
