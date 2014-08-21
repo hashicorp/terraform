@@ -240,9 +240,9 @@ func testAccCheckAWSSecurityGroupAttributesChanged(group *ec2.SecurityGroupInfo)
 			},
 			ec2.IPPerm{
 				FromPort:  80,
-				ToPort:    1234,
+				ToPort:    8000,
 				Protocol:  "tcp",
-				SourceIPs: []string{"10.0.0.0/8"},
+				SourceIPs: []string{"0.0.0.0/0", "10.0.0.0/8"},
 			},
 		}
 
@@ -262,7 +262,7 @@ func testAccCheckAWSSecurityGroupAttributesChanged(group *ec2.SecurityGroupInfo)
 				p)
 		}
 
-		if group.IPPerms[0].ToPort == 1234 {
+		if group.IPPerms[0].ToPort == 8000 {
 			group.IPPerms[1], group.IPPerms[0] =
 				group.IPPerms[0], group.IPPerms[1]
 		}
@@ -307,8 +307,8 @@ resource "aws_security_group" "web" {
     ingress {
         protocol = "tcp"
         from_port = 80
-        to_port = 1234
-        cidr_blocks = ["10.0.0.0/8"]
+        to_port = 8000
+        cidr_blocks = ["10.0.0.0/8", "0.0.0.0/0"]
     }
 }
 `

@@ -195,17 +195,17 @@ func resourceAwsSecurityGroupUpdate(d *schema.ResourceData, meta interface{}) er
 
 		// TODO: We need to handle partial state better in the in-between
 		// in this update.
-		if len(add) > 0 {
-			// Authorize the new rules
-			_, err := ec2conn.AuthorizeSecurityGroup(group, add)
+		if len(remove) > 0 {
+			// Revoke the old rules
+			_, err = ec2conn.RevokeSecurityGroup(group, remove)
 			if err != nil {
 				return fmt.Errorf("Error authorizing security group ingress rules: %s", err)
 			}
 		}
 
-		if len(remove) > 0 {
-			// Revoke the old rules
-			_, err = ec2conn.RevokeSecurityGroup(group, remove)
+		if len(add) > 0 {
+			// Authorize the new rules
+			_, err := ec2conn.AuthorizeSecurityGroup(group, add)
 			if err != nil {
 				return fmt.Errorf("Error authorizing security group ingress rules: %s", err)
 			}
