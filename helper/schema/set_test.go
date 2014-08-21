@@ -32,7 +32,7 @@ func TestSetContains(t *testing.T) {
 
 func TestSetDifference(t *testing.T) {
 	s1 := &Set{F: testSetInt}
-	s2:= &Set{F: testSetInt}
+	s2 := &Set{F: testSetInt}
 
 	s1.Add(1)
 	s1.Add(5)
@@ -49,7 +49,7 @@ func TestSetDifference(t *testing.T) {
 
 func TestSetIntersection(t *testing.T) {
 	s1 := &Set{F: testSetInt}
-	s2:= &Set{F: testSetInt}
+	s2 := &Set{F: testSetInt}
 
 	s1.Add(1)
 	s1.Add(5)
@@ -66,7 +66,7 @@ func TestSetIntersection(t *testing.T) {
 
 func TestSetUnion(t *testing.T) {
 	s1 := &Set{F: testSetInt}
-	s2:= &Set{F: testSetInt}
+	s2 := &Set{F: testSetInt}
 
 	s1.Add(1)
 	s1.Add(5)

@@ -51,7 +51,7 @@ func init() {
 // On Windows, this is the "terraform.rc" file in the application data
 // directory.
 func ConfigFile() (string, error) {
-    return configFile()
+	return configFile()
 }
 
 // LoadConfig loads the CLI configuration from ".terraformrc" files.
