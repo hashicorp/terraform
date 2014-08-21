@@ -310,7 +310,7 @@ func TestSchemaMap_Diff(t *testing.T) {
 			Diff: &terraform.ResourceDiff{
 				Attributes: map[string]*terraform.ResourceAttrDiff{
 					"ports.#": &terraform.ResourceAttrDiff{
-						Old: "",
+						Old:         "",
 						NewComputed: true,
 					},
 				},
@@ -323,11 +323,11 @@ func TestSchemaMap_Diff(t *testing.T) {
 		{
 			Schema: map[string]*Schema{
 				"ports": &Schema{
-					Type:     TypeList,
+					Type:     TypeSet,
 					Required: true,
 					Elem:     &Schema{Type: TypeInt},
-					Order: func(a, b interface{}) bool {
-						return a.(int) < b.(int)
+					Set: func(a interface{}) int {
+						return a.(int)
 					},
 				},
 			},

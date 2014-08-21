@@ -20,6 +20,7 @@ const (
 	TypeString
 	TypeList
 	TypeMap
+	TypeSet
 )
 
 // Schema is used to describe the structure of a value.
@@ -43,18 +44,19 @@ type Schema struct {
 	Computed bool
 	ForceNew bool
 
-	// The following fields are only set for a TypeList Type.
+	// The following fields are only set for a TypeList or TypeSet Type.
 	//
 	// Elem must be either a *Schema or a *Resource only if the Type is
 	// TypeList, and represents what the element type is. If it is *Schema,
 	// the element type is just a simple value. If it is *Resource, the
 	// element type is a complex structure, potentially with its own lifecycle.
+	Elem interface{}
+
+	// The follow fields are only valid for a TypeSet type.
 	//
-	// Order defines a function to be called to order the elements in the
-	// list. See SchemaOrderFunc for more info. If Order is set, then any
-	// access of this list will result in the ordered list.
-	Elem  interface{}
-	Order SchemaOrderFunc
+	// Set defines a function to determine the unique ID of an item so that
+	// a proper set can be built.
+	Set SchemaSetFunc
 
 	// ComputedWhen is a set of queries on the configuration. Whenever any
 	// of these things is changed, it will require a recompute (this requires
@@ -62,9 +64,9 @@ type Schema struct {
 	ComputedWhen []string
 }
 
-// SchemaOrderFunc is the function used to compare two elements in a list
-// for ordering. It should return a boolean true if a is less than b.
-type SchemaOrderFunc func(a, b interface{}) bool
+// SchemaSetFunc is a function that must return a unique ID for the given
+// element. This unique ID is used to store the element in a hash.
+type SchemaSetFunc func(a interface{}) int
 
 func (s *Schema) finalizeDiff(
 	d *terraform.ResourceAttrDiff) *terraform.ResourceAttrDiff {
@@ -179,6 +181,11 @@ func (m schemaMap) InternalValidate() error {
 		if v.Type == TypeList {
 			if v.Elem == nil {
 				return fmt.Errorf("%s: Elem must be set for lists", k)
+			}
+
+			// TODO: test
+			if v.Set != nil {
+				return fmt.Errorf("%s: Set can only be set for TypeSet", k)
 			}
 
 			switch t := v.Elem.(type) {
