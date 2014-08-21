@@ -195,6 +195,13 @@ func resourceAwsSecurityGroupUpdate(d *schema.ResourceData, meta interface{}) er
 
 		// TODO: We need to handle partial state better in the in-between
 		// in this update.
+
+		// TODO: It'd be nicer to authorize before removing, but then we have
+		// to deal with complicated unrolling to get individual CIDR blocks
+		// to avoid authorizing already authorized sources. Removing before
+		// adding is easier here, and Terraform should be fast enough to
+		// not have service issues.
+
 		if len(remove) > 0 {
 			// Revoke the old rules
 			_, err = ec2conn.RevokeSecurityGroup(group, remove)
