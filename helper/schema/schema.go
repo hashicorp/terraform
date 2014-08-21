@@ -223,6 +223,8 @@ func (m schemaMap) diff(
 		err = m.diffList(k, schema, diff, d)
 	case TypeMap:
 		err = m.diffMap(k, schema, diff, d)
+	case TypeSet:
+		err = m.diffSet(k, schema, diff, d)
 	default:
 		err = fmt.Errorf("%s: unknown type %s", k, schema.Type)
 	}
@@ -345,6 +347,14 @@ func (m schemaMap) diffMap(
 		})
 	}
 
+	return nil
+}
+
+func (m schemaMap) diffSet(
+	k string,
+	schema *Schema,
+	diff *terraform.ResourceDiff,
+	d *ResourceData) error {
 	return nil
 }
 

@@ -8,9 +8,9 @@ import (
 // Set is a set data structure that is returned for elements of type
 // TypeSet.
 type Set struct {
-	F   SchemaSetFunc
+	F SchemaSetFunc
 
-	m map[int]interface{}
+	m    map[int]interface{}
 	once sync.Once
 }
 
@@ -23,10 +23,56 @@ func (s *Set) Add(item interface{}) {
 //
 // The order of the returned elements is deterministic. Given the same
 // set, the order of this will always be the same.
-func (s *Set) List() []interface{}{
+func (s *Set) List() []interface{} {
 	result := make([]interface{}, len(s.m))
 	for i, k := range s.listCode() {
 		result[i] = s.m[k]
+	}
+
+	return result
+}
+
+// Differences performs a set difference of the two sets, returning
+// a new third set that has only the elements unique to this set.
+func (s *Set) Difference(other *Set) *Set {
+	result := &Set{F: s.F}
+	result.init()
+
+	for k, v := range s.m {
+		if _, ok := other.m[k]; !ok {
+			result.m[k] = v
+		}
+	}
+
+	return result
+}
+
+// Intersection performs the set intersection of the two sets
+// and returns a new third set.
+func (s *Set) Intersection(other *Set) *Set {
+	result := &Set{F: s.F}
+	result.init()
+
+	for k, v := range s.m {
+		if _, ok := other.m[k]; ok {
+			result.m[k] = v
+		}
+	}
+
+	return result
+}
+
+// Union performs the set union of the two sets and returns a new third
+// set.
+func (s *Set) Union(other *Set) *Set {
+	result := &Set{F: s.F}
+	result.init()
+
+	for k, v := range s.m {
+		result.m[k] = v
+	}
+	for k, v := range other.m {
+		result.m[k] = v
 	}
 
 	return result
@@ -47,7 +93,7 @@ func (s *Set) add(item interface{}) int {
 	return code
 }
 
-func (s *Set) listCode() []int{
+func (s *Set) listCode() []int {
 	// Sort the hash codes so the order of the list is deterministic
 	keys := make([]int, 0, len(s.m))
 	for k, _ := range s.m {

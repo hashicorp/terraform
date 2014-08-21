@@ -320,6 +320,9 @@ func TestSchemaMap_Diff(t *testing.T) {
 		},
 
 		/*
+		 * Set
+		 */
+
 		{
 			Schema: map[string]*Schema{
 				"ports": &Schema{
@@ -361,7 +364,6 @@ func TestSchemaMap_Diff(t *testing.T) {
 
 			Err: false,
 		},
-		*/
 
 		/*
 		 * List of structure decode
