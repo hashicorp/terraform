@@ -9,6 +9,7 @@ import (
 func TestNewRawConfig(t *testing.T) {
 	raw := map[string]interface{}{
 		"foo": "${var.bar}",
+		"bar": `${file("boom.txt")}`,
 	}
 
 	rc, err := NewRawConfig(raw)
@@ -16,6 +17,9 @@ func TestNewRawConfig(t *testing.T) {
 		t.Fatalf("err: %s", err)
 	}
 
+	if len(rc.Interpolations) != 2 {
+		t.Fatalf("bad: %#v", rc.Interpolations)
+	}
 	if len(rc.Variables) != 1 {
 		t.Fatalf("bad: %#v", rc.Variables)
 	}

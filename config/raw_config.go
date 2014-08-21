@@ -25,6 +25,7 @@ const UnknownVariableValue = "74D93920-ED26-11E3-AC10-0800200C9A66"
 // information from deep within the structure.
 type RawConfig struct {
 	Raw       map[string]interface{}
+	Interpolations []Interpolation
 	Variables map[string]InterpolatedVariable
 
 	config      map[string]interface{}
@@ -87,9 +88,12 @@ func (r *RawConfig) Interpolate(vs map[string]string) error {
 
 func (r *RawConfig) init() error {
 	r.config = r.Raw
+	r.Interpolations = nil
 	r.Variables = nil
 
 	fn := func(i Interpolation) (string, error) {
+		r.Interpolations = append(r.Interpolations, i)
+
 		for k, v := range i.Variables() {
 			if r.Variables == nil {
 				r.Variables = make(map[string]InterpolatedVariable)

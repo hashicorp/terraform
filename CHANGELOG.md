@@ -35,6 +35,7 @@ BUG FIXES:
   * core: The `file()` function can load files in sub-directories. [GH-213]
   * core: Fix issue where some JSON structures didn't map properly into
      Terraform structures. [GH-177]
+  * core: Resources with only `file()` calls will interpolate. [GH-159]
   * providers/aws: Fix issues around failing to read EIPs. [GH-122]
   * providers/aws: Autoscaling groups now register and export load
     balancers. [GH-207]

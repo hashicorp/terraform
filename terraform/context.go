@@ -305,11 +305,6 @@ func (c *Context) computeVars(raw *config.RawConfig) error {
 		return nil
 	}
 
-	// If there are on variables, then we're done
-	if len(raw.Variables) == 0 {
-		return nil
-	}
-
 	// Start building up the variables. First, defaults
 	vs := make(map[string]string)
 	for k, v := range c.defaultVars {
