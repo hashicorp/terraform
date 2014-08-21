@@ -39,6 +39,30 @@ func expandListeners(configured []interface{}) ([]elb.Listener, error) {
 	return listeners, nil
 }
 
+// Create individual EC2 permission objects from a list of permission objects
+// where security groups and CIDR blocks have been compounded.
+func unrollIPPerms(perms []ec2.IPPerm) []ec2.IPPerm {
+	var newPerms []ec2.IPPerm
+	for _, perm := range perms {
+		basePerm := ec2.IPPerm{
+			FromPort: perm.FromPort,
+			ToPort:   perm.ToPort,
+			Protocol: perm.Protocol,
+		}
+		for _, sourceGroup := range perm.SourceGroups {
+			newPerm := basePerm
+			newPerm.SourceGroups = []ec2.UserSecurityGroup{sourceGroup}
+			newPerms = append(newPerms, newPerm)
+		}
+		for _, sourceIP := range perm.SourceIPs {
+			newPerm := basePerm
+			newPerm.SourceIPs = []string{sourceIP}
+			newPerms = append(newPerms, newPerm)
+		}
+	}
+	return newPerms
+}
+
 // Takes the result of flatmap.Expand for an array of ingress/egress
 // security group rules and returns EC2 API compatible objects
 func expandIPPerms(configured []interface{}) []ec2.IPPerm {
