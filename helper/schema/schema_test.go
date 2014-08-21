@@ -784,6 +784,29 @@ func TestSchemaMap_InternalValidate(t *testing.T) {
 			true,
 		},
 
+		// List element with Set set
+		{
+			map[string]*Schema{
+				"foo": &Schema{
+					Type: TypeList,
+					Elem: &Schema{Type: TypeInt},
+					Set:  func(interface{}) int { return 0 },
+				},
+			},
+			true,
+		},
+
+		// Set element with no Set set
+		{
+			map[string]*Schema{
+				"foo": &Schema{
+					Type: TypeSet,
+					Elem: &Schema{Type: TypeInt},
+				},
+			},
+			true,
+		},
+
 		// Required but computed
 		{
 			map[string]*Schema{

@@ -178,14 +178,15 @@ func (m schemaMap) InternalValidate() error {
 			return fmt.Errorf("%s: ComputedWhen can only be set with Computed", k)
 		}
 
-		if v.Type == TypeList {
+		if v.Type == TypeList || v.Type == TypeSet {
 			if v.Elem == nil {
 				return fmt.Errorf("%s: Elem must be set for lists", k)
 			}
 
-			// TODO: test
-			if v.Set != nil {
+			if v.Type == TypeList && v.Set != nil {
 				return fmt.Errorf("%s: Set can only be set for TypeSet", k)
+			} else if v.Type == TypeSet && v.Set == nil {
+				return fmt.Errorf("%s: Set must be set", k)
 			}
 
 			switch t := v.Elem.(type) {
