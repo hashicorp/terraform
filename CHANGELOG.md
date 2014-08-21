@@ -25,8 +25,7 @@ IMPROVEMENTS:
       attributes.
   * providers/aws: Security group rules can be updated without a
       destroy/create.
-  * providers/aws: You can enable and disable dns settings for VPCs
-    [GH-172]
+  * providers/aws: You can enable and disable dns settings for VPCs. [GH-172]
 
 BUG FIXES:
 
@@ -36,6 +35,8 @@ BUG FIXES:
   * providers/aws: Fix issues around failing to read EIPs. [GH-122]
   * providers/aws: Autoscaling groups now register and export load
     balancers. [GH-207]
+  * providers/aws: Ingress results are treated as a set, so order doesn't
+      matter anymore. [GH-87]
   * providers/heroku: If you delete the `config_vars` block, config vars
       are properly nuked.
   * providers/heroku: Domains and drains are deleted before the app.

@@ -1,11 +1,12 @@
 package aws
 
 import (
+	"bytes"
 	"fmt"
 	"log"
-	"reflect"
 	"time"
 
+	"github.com/hashicorp/terraform/helper/hashcode"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/terraform"
@@ -38,7 +39,7 @@ func resourceAwsSecurityGroup() *schema.Resource {
 			},
 
 			"ingress": &schema.Schema{
-				Type:     schema.TypeList,
+				Type:     schema.TypeSet,
 				Required: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
@@ -70,6 +71,7 @@ func resourceAwsSecurityGroup() *schema.Resource {
 						},
 					},
 				},
+				Set: resourceAwsSecurityGroupIngressHash,
 			},
 
 			"owner_id": &schema.Schema{
@@ -78,6 +80,27 @@ func resourceAwsSecurityGroup() *schema.Resource {
 			},
 		},
 	}
+}
+
+func resourceAwsSecurityGroupIngressHash(v interface{}) int {
+	var buf bytes.Buffer
+	m := v.(map[string]interface{})
+	buf.WriteString(fmt.Sprintf("%d-", m["from_port"].(int)))
+	buf.WriteString(fmt.Sprintf("%d-", m["to_port"].(int)))
+	buf.WriteString(fmt.Sprintf("%d-", m["protocol"].(string)))
+
+	if v, ok := m["cidr_blocks"]; ok {
+		for _, raw := range v.([]interface{}) {
+			buf.WriteString(fmt.Sprintf("%s-", raw.(string)))
+		}
+	}
+	if v, ok := m["security_groups"]; ok {
+		for _, raw := range v.([]interface{}) {
+			buf.WriteString(fmt.Sprintf("%s-", raw.(string)))
+		}
+	}
+
+	return hashcode.String(buf.String())
 }
 
 func resourceAwsSecurityGroupCreate(d *schema.ResourceData, meta interface{}) error {
@@ -127,9 +150,9 @@ func resourceAwsSecurityGroupCreate(d *schema.ResourceData, meta interface{}) er
 	// Expand the "ingress" array to goamz compat []ec2.IPPerm
 	ingressRaw := d.Get("ingress")
 	if ingressRaw == nil {
-		ingressRaw = []interface{}{}
+		ingressRaw = new(schema.Set)
 	}
-	ingressList := ingressRaw.([]interface{})
+	ingressList := ingressRaw.(*schema.Set).List()
 	if len(ingressList) > 0 {
 		ingressRules := expandIPPerms(ingressList)
 		_, err = ec2conn.AuthorizeSecurityGroup(group, ingressRules)
@@ -158,58 +181,34 @@ func resourceAwsSecurityGroupUpdate(d *schema.ResourceData, meta interface{}) er
 	if d.HasChange("ingress") {
 		o, n := d.GetChange("ingress")
 		if o == nil {
-			o = []interface{}{}
+			o = new(schema.Set)
 		}
 		if n == nil {
-			n = []interface{}{}
+			n = new(schema.Set)
 		}
 
-		oldRules := expandIPPerms(o.([]interface{}))
-		newRules := expandIPPerms(n.([]interface{}))
+		os := o.(*schema.Set)
+		ns := n.(*schema.Set)
 
-		var add, remove []ec2.IPPerm
-		for _, p := range newRules {
-			// Check if we have had this rule before
-			exists := false
-			for _, old := range oldRules {
-				if reflect.DeepEqual(old, p) {
-					exists = true
-					break
-				}
-			}
-			if exists {
-				continue
-			}
-			add = append(add, p)
-		}
-		for _, p := range oldRules {
-			// Check if we have this rule to add
-			exists := false
-			for _, n := range newRules {
-				if reflect.DeepEqual(n, p) {
-					exists = true
-					break
-				}
-			}
-			if exists {
-				continue
-			}
-			remove = append(remove, p)
-		}
+		remove := expandIPPerms(os.Difference(ns).List())
+		add := expandIPPerms(ns.Difference(os).List())
 
 		// TODO: We need to handle partial state better in the in-between
 		// in this update.
-
-		// Authorize the new rules
-		_, err := ec2conn.AuthorizeSecurityGroup(group, add)
-		if err != nil {
-			return fmt.Errorf("Error authorizing security group ingress rules: %s", err)
+		if len(add) > 0 {
+			// Authorize the new rules
+			_, err := ec2conn.AuthorizeSecurityGroup(group, add)
+			if err != nil {
+				return fmt.Errorf("Error authorizing security group ingress rules: %s", err)
+			}
 		}
 
-		// Revoke the old rules
-		_, err = ec2conn.RevokeSecurityGroup(group, remove)
-		if err != nil {
-			return fmt.Errorf("Error authorizing security group ingress rules: %s", err)
+		if len(remove) > 0 {
+			// Revoke the old rules
+			_, err = ec2conn.RevokeSecurityGroup(group, remove)
+			if err != nil {
+				return fmt.Errorf("Error authorizing security group ingress rules: %s", err)
+			}
 		}
 	}
 

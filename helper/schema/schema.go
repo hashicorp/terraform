@@ -239,6 +239,12 @@ func (m schemaMap) diffList(
 	diff *terraform.ResourceDiff,
 	d *ResourceData) error {
 	o, n, _ := d.diffChange(k)
+	if o == nil {
+		o = []interface{}{}
+	}
+	if n == nil {
+		n = []interface{}{}
+	}
 	if s, ok := o.(*Set); ok {
 		o = s.List()
 	}
