@@ -238,6 +238,12 @@ func (m schemaMap) diffList(
 	diff *terraform.ResourceDiff,
 	d *ResourceData) error {
 	o, n, _ := d.diffChange(k)
+	if s, ok := o.(*Set); ok {
+		o = s.List()
+	}
+	if s, ok := n.(*Set); ok {
+		n = s.List()
+	}
 	os := o.([]interface{})
 	vs := n.([]interface{})
 
@@ -355,7 +361,7 @@ func (m schemaMap) diffSet(
 	schema *Schema,
 	diff *terraform.ResourceDiff,
 	d *ResourceData) error {
-	return nil
+	return m.diffList(k, schema, diff, d)
 }
 
 func (m schemaMap) diffString(
@@ -380,9 +386,15 @@ func (m schemaMap) diffString(
 		}
 	}
 
+	removed := false
+	if o != nil && n == nil {
+		removed = true
+	}
+
 	diff.Attributes[k] = schema.finalizeDiff(&terraform.ResourceAttrDiff{
-		Old: os,
-		New: ns,
+		Old:        os,
+		New:        ns,
+		NewRemoved: removed,
 	})
 
 	return nil

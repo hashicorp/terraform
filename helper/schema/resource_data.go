@@ -153,13 +153,14 @@ func (d *ResourceData) getChange(
 	key string,
 	oldLevel getSource,
 	newLevel getSource) (interface{}, interface{}) {
-	var parts []string
+	var parts, parts2 []string
 	if key != "" {
 		parts = strings.Split(key, ".")
+		parts2 = strings.Split(key, ".")
 	}
 
 	o := d.getObject("", parts, d.schema, oldLevel)
-	n := d.getObject("", parts, d.schema, newLevel)
+	n := d.getObject("", parts2, d.schema, newLevel)
 	return o, n
 }
 
@@ -191,14 +192,23 @@ func (d *ResourceData) getSet(
 	parts []string,
 	schema *Schema,
 	source getSource) interface{} {
+	s := &Set{F: schema.Set}
 	raw := d.getList(k, nil, schema, source)
 	if raw == nil {
-		return nil
+		if len(parts) > 0 {
+			return d.getList(k, parts, schema, source)
+		}
+
+		return s
 	}
 
 	list := raw.([]interface{})
 	if len(list) == 0 {
-		return nil
+		if len(parts) > 0 {
+			return d.getList(k, parts, schema, source)
+		}
+
+		return s
 	}
 
 	// This is a reverse map of hash code => index in config used to
@@ -219,7 +229,6 @@ func (d *ResourceData) getSet(
 	}
 
 	// Build the set from all the items using the given hash code
-	s := &Set{F: schema.Set}
 	for i, v := range list {
 		code := s.add(v)
 		if indexMap != nil {
@@ -413,11 +422,13 @@ func (d *ResourceData) getPrimitive(
 			if err := mapstructure.WeakDecode(v, &result); err != nil {
 				panic(err)
 			}
+
+			resultSet = true
 		} else {
 			result = ""
+			resultSet = false
 		}
 
-		resultSet = true
 	}
 
 	if d.diff != nil && source >= getSourceDiff {

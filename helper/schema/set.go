@@ -19,6 +19,17 @@ func (s *Set) Add(item interface{}) {
 	s.add(item)
 }
 
+// Contains checks if the set has the given item.
+func (s *Set) Contains(item interface{}) bool {
+	_, ok := s.m[s.F(item)]
+	return ok
+}
+
+// Len returns the amount of items in the set.
+func (s *Set) Len() int {
+	return len(s.m)
+}
+
 // List returns the elements of this set in slice format.
 //
 // The order of the returned elements is deterministic. Given the same
@@ -91,6 +102,10 @@ func (s *Set) add(item interface{}) int {
 	}
 
 	return code
+}
+
+func (s *Set) index(item interface{}) int {
+	return sort.SearchInts(s.listCode(), s.F(item))
 }
 
 func (s *Set) listCode() []int {
