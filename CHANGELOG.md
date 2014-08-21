@@ -33,6 +33,8 @@ BUG FIXES:
   * core: Key files for provisioning can now contain `~` and will be expanded
       to the user's home directory. [GH-179]
   * core: The `file()` function can load files in sub-directories. [GH-213]
+  * core: Fix issue where some JSON structures didn't map properly into
+     Terraform structures. [GH-177]
   * providers/aws: Fix issues around failing to read EIPs. [GH-122]
   * providers/aws: Autoscaling groups now register and export load
     balancers. [GH-207]
