@@ -480,8 +480,16 @@ func (d *ResourceData) set(
 		return d.setList(k, parts, schema, value)
 	case TypeMap:
 		return d.setMapValue(k, parts, schema, value)
-	default:
+	case TypeSet:
+		return d.setSet(k, parts, schema, value)
+	case TypeBool:
+		fallthrough
+	case TypeInt:
+		fallthrough
+	case TypeString:
 		return d.setPrimitive(k, schema, value)
+	default:
+		panic(fmt.Sprintf("%s: unknown type %s", k, schema.Type))
 	}
 }
 
@@ -659,6 +667,22 @@ func (d *ResourceData) setPrimitive(
 
 	d.setMap[k] = set
 	return nil
+}
+
+func (d *ResourceData) setSet(
+	k string,
+	parts []string,
+	schema *Schema,
+	value interface{}) error {
+	if len(parts) > 0 {
+		return fmt.Errorf("%s: can only set the full set, not elements", k)
+	}
+
+	if s, ok := value.(*Set); ok {
+		value = s.List()
+	}
+
+	return d.setList(k, nil, schema, value)
 }
 
 func (d *ResourceData) stateList(
