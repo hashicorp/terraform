@@ -153,13 +153,14 @@ func (d *ResourceData) getChange(
 	key string,
 	oldLevel getSource,
 	newLevel getSource) (interface{}, interface{}) {
-	var parts []string
+	var parts, parts2 []string
 	if key != "" {
 		parts = strings.Split(key, ".")
+		parts2 = strings.Split(key, ".")
 	}
 
 	o := d.getObject("", parts, d.schema, oldLevel)
-	n := d.getObject("", parts, d.schema, newLevel)
+	n := d.getObject("", parts2, d.schema, newLevel)
 	return o, n
 }
 
@@ -173,9 +174,89 @@ func (d *ResourceData) get(
 		return d.getList(k, parts, schema, source)
 	case TypeMap:
 		return d.getMap(k, parts, schema, source)
-	default:
+	case TypeSet:
+		return d.getSet(k, parts, schema, source)
+	case TypeBool:
+		fallthrough
+	case TypeInt:
+		fallthrough
+	case TypeString:
 		return d.getPrimitive(k, parts, schema, source)
+	default:
+		panic(fmt.Sprintf("%s: unknown type %s", k, schema.Type))
 	}
+}
+
+func (d *ResourceData) getSet(
+	k string,
+	parts []string,
+	schema *Schema,
+	source getSource) interface{} {
+	s := &Set{F: schema.Set}
+	raw := d.getList(k, nil, schema, source)
+	if raw == nil {
+		if len(parts) > 0 {
+			return d.getList(k, parts, schema, source)
+		}
+
+		return s
+	}
+
+	list := raw.([]interface{})
+	if len(list) == 0 {
+		if len(parts) > 0 {
+			return d.getList(k, parts, schema, source)
+		}
+
+		return s
+	}
+
+	// This is a reverse map of hash code => index in config used to
+	// resolve direct set item lookup for turning into state. Confused?
+	// Read on...
+	//
+	// To create the state (the state* functions), a Get call is done
+	// with a full key such as "ports.0". The index of a set ("0") doesn't
+	// make a lot of sense, but we need to deterministically list out
+	// elements of the set like this. Luckily, same sets have a deterministic
+	// List() output, so we can use that to look things up.
+	//
+	// This mapping makes it so that we can look up the hash code of an
+	// object back to its index in the REAL config.
+	var indexMap map[int]int
+	if len(parts) > 0 {
+		indexMap = make(map[int]int)
+	}
+
+	// Build the set from all the items using the given hash code
+	for i, v := range list {
+		code := s.add(v)
+		if indexMap != nil {
+			indexMap[code] = i
+		}
+	}
+
+	// If we're trying to get a specific element, then rewrite the
+	// index to be just that, then jump direct to getList.
+	if len(parts) > 0 {
+		index := parts[0]
+		indexInt, err := strconv.ParseInt(index, 0, 0)
+		if err != nil {
+			return nil
+		}
+
+		codes := s.listCode()
+		if int(indexInt) >= len(codes) {
+			return nil
+		}
+		code := codes[indexInt]
+		realIndex := indexMap[code]
+
+		parts[0] = strconv.FormatInt(int64(realIndex), 10)
+		return d.getList(k, parts, schema, source)
+	}
+
+	return s
 }
 
 func (d *ResourceData) getMap(
@@ -239,6 +320,11 @@ func (d *ResourceData) getMap(
 			single := k[len(prefix):]
 			result[single] = d.getPrimitive(k, nil, elemSchema, source)
 		}
+	}
+
+	// If we're requesting a specific element, return that
+	if len(parts) > 0 {
+		return result[parts[0]]
 	}
 
 	return result
@@ -336,11 +422,13 @@ func (d *ResourceData) getPrimitive(
 			if err := mapstructure.WeakDecode(v, &result); err != nil {
 				panic(err)
 			}
+
+			resultSet = true
 		} else {
 			result = ""
+			resultSet = false
 		}
 
-		resultSet = true
 	}
 
 	if d.diff != nil && source >= getSourceDiff {
@@ -403,8 +491,16 @@ func (d *ResourceData) set(
 		return d.setList(k, parts, schema, value)
 	case TypeMap:
 		return d.setMapValue(k, parts, schema, value)
-	default:
+	case TypeSet:
+		return d.setSet(k, parts, schema, value)
+	case TypeBool:
+		fallthrough
+	case TypeInt:
+		fallthrough
+	case TypeString:
 		return d.setPrimitive(k, schema, value)
+	default:
+		panic(fmt.Sprintf("%s: unknown type %s", k, schema.Type))
 	}
 }
 
@@ -584,6 +680,22 @@ func (d *ResourceData) setPrimitive(
 	return nil
 }
 
+func (d *ResourceData) setSet(
+	k string,
+	parts []string,
+	schema *Schema,
+	value interface{}) error {
+	if len(parts) > 0 {
+		return fmt.Errorf("%s: can only set the full set, not elements", k)
+	}
+
+	if s, ok := value.(*Set); ok {
+		value = s.List()
+	}
+
+	return d.setList(k, nil, schema, value)
+}
+
 func (d *ResourceData) stateList(
 	prefix string,
 	schema *Schema) map[string]string {
@@ -657,7 +769,7 @@ func (d *ResourceData) stateObject(
 func (d *ResourceData) statePrimitive(
 	prefix string,
 	schema *Schema) map[string]string {
-	v := d.getPrimitive(prefix, nil, schema, getSourceSet)
+	v := d.Get(prefix)
 	if v == nil {
 		return nil
 	}
@@ -679,6 +791,37 @@ func (d *ResourceData) statePrimitive(
 	}
 }
 
+func (d *ResourceData) stateSet(
+	prefix string,
+	schema *Schema) map[string]string {
+	raw := d.get(prefix, nil, schema, getSourceSet)
+	if raw == nil {
+		return nil
+	}
+
+	set := raw.(*Set)
+	list := set.List()
+	result := make(map[string]string)
+	result[prefix+".#"] = strconv.FormatInt(int64(len(list)), 10)
+	for i := 0; i < len(list); i++ {
+		key := fmt.Sprintf("%s.%d", prefix, i)
+
+		var m map[string]string
+		switch t := schema.Elem.(type) {
+		case *Resource:
+			m = d.stateObject(key, t.Schema)
+		case *Schema:
+			m = d.stateSingle(key, t)
+		}
+
+		for k, v := range m {
+			result[k] = v
+		}
+	}
+
+	return result
+}
+
 func (d *ResourceData) stateSingle(
 	prefix string,
 	schema *Schema) map[string]string {
@@ -687,7 +830,15 @@ func (d *ResourceData) stateSingle(
 		return d.stateList(prefix, schema)
 	case TypeMap:
 		return d.stateMap(prefix, schema)
-	default:
+	case TypeSet:
+		return d.stateSet(prefix, schema)
+	case TypeBool:
+		fallthrough
+	case TypeInt:
+		fallthrough
+	case TypeString:
 		return d.statePrimitive(prefix, schema)
+	default:
+		panic(fmt.Sprintf("%s: unknown type %s", prefix, schema.Type))
 	}
 }

@@ -310,7 +310,7 @@ func TestSchemaMap_Diff(t *testing.T) {
 			Diff: &terraform.ResourceDiff{
 				Attributes: map[string]*terraform.ResourceAttrDiff{
 					"ports.#": &terraform.ResourceAttrDiff{
-						Old: "",
+						Old:         "",
 						NewComputed: true,
 					},
 				},
@@ -320,14 +320,17 @@ func TestSchemaMap_Diff(t *testing.T) {
 		},
 
 		/*
+		 * Set
+		 */
+
 		{
 			Schema: map[string]*Schema{
 				"ports": &Schema{
-					Type:     TypeList,
+					Type:     TypeSet,
 					Required: true,
 					Elem:     &Schema{Type: TypeInt},
-					Order: func(a, b interface{}) bool {
-						return a.(int) < b.(int)
+					Set: func(a interface{}) int {
+						return a.(int)
 					},
 				},
 			},
@@ -361,7 +364,88 @@ func TestSchemaMap_Diff(t *testing.T) {
 
 			Err: false,
 		},
-		*/
+
+		{
+			Schema: map[string]*Schema{
+				"ports": &Schema{
+					Type:     TypeSet,
+					Required: true,
+					Elem:     &Schema{Type: TypeInt},
+					Set: func(a interface{}) int {
+						return a.(int)
+					},
+				},
+			},
+
+			State: &terraform.ResourceState{
+				Attributes: map[string]string{
+					"ports.#": "2",
+					"ports.0": "2",
+					"ports.1": "1",
+				},
+			},
+
+			Config: map[string]interface{}{
+				"ports": []interface{}{5, 2, 1},
+			},
+
+			Diff: &terraform.ResourceDiff{
+				Attributes: map[string]*terraform.ResourceAttrDiff{
+					"ports.#": &terraform.ResourceAttrDiff{
+						Old: "2",
+						New: "3",
+					},
+					"ports.2": &terraform.ResourceAttrDiff{
+						Old: "",
+						New: "5",
+					},
+				},
+			},
+
+			Err: false,
+		},
+
+		{
+			Schema: map[string]*Schema{
+				"ports": &Schema{
+					Type:     TypeSet,
+					Required: true,
+					Elem:     &Schema{Type: TypeInt},
+					Set: func(a interface{}) int {
+						return a.(int)
+					},
+				},
+			},
+
+			State: &terraform.ResourceState{
+				Attributes: map[string]string{
+					"ports.#": "2",
+					"ports.0": "2",
+					"ports.1": "1",
+				},
+			},
+
+			Config: map[string]interface{}{},
+
+			Diff: &terraform.ResourceDiff{
+				Attributes: map[string]*terraform.ResourceAttrDiff{
+					"ports.#": &terraform.ResourceAttrDiff{
+						Old: "2",
+						New: "0",
+					},
+					"ports.0": &terraform.ResourceAttrDiff{
+						Old:        "1",
+						NewRemoved: true,
+					},
+					"ports.1": &terraform.ResourceAttrDiff{
+						Old:        "2",
+						NewRemoved: true,
+					},
+				},
+			},
+
+			Err: false,
+		},
 
 		/*
 		 * List of structure decode
@@ -695,6 +779,29 @@ func TestSchemaMap_InternalValidate(t *testing.T) {
 						Type:     TypeInt,
 						Computed: true,
 					},
+				},
+			},
+			true,
+		},
+
+		// List element with Set set
+		{
+			map[string]*Schema{
+				"foo": &Schema{
+					Type: TypeList,
+					Elem: &Schema{Type: TypeInt},
+					Set:  func(interface{}) int { return 0 },
+				},
+			},
+			true,
+		},
+
+		// Set element with no Set set
+		{
+			map[string]*Schema{
+				"foo": &Schema{
+					Type: TypeSet,
+					Elem: &Schema{Type: TypeInt},
 				},
 			},
 			true,

@@ -444,6 +444,34 @@ func TestResourceDataGet(t *testing.T) {
 
 			Value: []interface{}{},
 		},
+
+		// Sets
+		{
+			Schema: map[string]*Schema{
+				"ports": &Schema{
+					Type:     TypeSet,
+					Optional: true,
+					Computed: true,
+					Elem:     &Schema{Type: TypeInt},
+					Set: func(a interface{}) int {
+						return a.(int)
+					},
+				},
+			},
+
+			State: &terraform.ResourceState{
+				Attributes: map[string]string{
+					"ports.#": "1",
+					"ports.0": "80",
+				},
+			},
+
+			Diff: nil,
+
+			Key: "ports",
+
+			Value: []interface{}{80},
+		},
 	}
 
 	for i, tc := range cases {
@@ -453,6 +481,10 @@ func TestResourceDataGet(t *testing.T) {
 		}
 
 		v := d.Get(tc.Key)
+		if s, ok := v.(*Set); ok {
+			v = s.List()
+		}
+
 		if !reflect.DeepEqual(v, tc.Value) {
 			t.Fatalf("Bad: %d\n\n%#v", i, v)
 		}
@@ -1023,6 +1055,101 @@ func TestResourceDataSet(t *testing.T) {
 				},
 			},
 		},
+
+		// Set, with list
+		{
+			Schema: map[string]*Schema{
+				"ports": &Schema{
+					Type:     TypeSet,
+					Optional: true,
+					Computed: true,
+					Elem:     &Schema{Type: TypeInt},
+					Set: func(a interface{}) int {
+						return a.(int)
+					},
+				},
+			},
+
+			State: &terraform.ResourceState{
+				Attributes: map[string]string{
+					"ports.#": "3",
+					"ports.0": "100",
+					"ports.1": "80",
+					"ports.2": "80",
+				},
+			},
+
+			Key:   "ports",
+			Value: []interface{}{100, 125, 125},
+
+			GetKey:   "ports",
+			GetValue: []interface{}{100, 125},
+		},
+
+		// Set, with Set
+		{
+			Schema: map[string]*Schema{
+				"ports": &Schema{
+					Type:     TypeSet,
+					Optional: true,
+					Computed: true,
+					Elem:     &Schema{Type: TypeInt},
+					Set: func(a interface{}) int {
+						return a.(int)
+					},
+				},
+			},
+
+			State: &terraform.ResourceState{
+				Attributes: map[string]string{
+					"ports.#": "3",
+					"ports.0": "100",
+					"ports.1": "80",
+					"ports.2": "80",
+				},
+			},
+
+			Key: "ports",
+			Value: &Set{
+				m: map[int]interface{}{
+					1: 1,
+					2: 2,
+				},
+			},
+
+			GetKey:   "ports",
+			GetValue: []interface{}{1, 2},
+		},
+
+		// Set single item
+		{
+			Schema: map[string]*Schema{
+				"ports": &Schema{
+					Type:     TypeSet,
+					Optional: true,
+					Computed: true,
+					Elem:     &Schema{Type: TypeInt},
+					Set: func(a interface{}) int {
+						return a.(int)
+					},
+				},
+			},
+
+			State: &terraform.ResourceState{
+				Attributes: map[string]string{
+					"ports.#": "2",
+					"ports.0": "100",
+					"ports.1": "80",
+				},
+			},
+
+			Key:   "ports.0",
+			Value: 256,
+			Err:   true,
+
+			GetKey:   "ports",
+			GetValue: []interface{}{80, 100},
+		},
 	}
 
 	for i, tc := range cases {
@@ -1037,6 +1164,9 @@ func TestResourceDataSet(t *testing.T) {
 		}
 
 		v := d.Get(tc.GetKey)
+		if s, ok := v.(*Set); ok {
+			v = s.List()
+		}
 		if !reflect.DeepEqual(v, tc.GetValue) {
 			t.Fatalf("Get Bad: %d\n\n%#v", i, v)
 		}
@@ -1343,6 +1473,40 @@ func TestResourceDataState(t *testing.T) {
 				Attributes: map[string]string{
 					"id":                "bar",
 					"availability_zone": "foo",
+				},
+			},
+		},
+
+		// Sets
+		{
+			Schema: map[string]*Schema{
+				"ports": &Schema{
+					Type:     TypeSet,
+					Optional: true,
+					Computed: true,
+					Elem:     &Schema{Type: TypeInt},
+					Set: func(a interface{}) int {
+						return a.(int)
+					},
+				},
+			},
+
+			State: &terraform.ResourceState{
+				Attributes: map[string]string{
+					"ports.#": "3",
+					"ports.0": "100",
+					"ports.1": "80",
+					"ports.2": "80",
+				},
+			},
+
+			Diff: nil,
+
+			Result: &terraform.ResourceState{
+				Attributes: map[string]string{
+					"ports.#": "2",
+					"ports.0": "80",
+					"ports.1": "100",
 				},
 			},
 		},
