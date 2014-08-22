@@ -60,8 +60,9 @@ func resourceAwsInstance() *schema.Resource {
 
 			"key_name": &schema.Schema{
 				Type:     schema.TypeString,
-				Required: true,
+				Optional: true,
 				ForceNew: true,
+				Computed: true,
 			},
 
 			"subnet_id": &schema.Schema{
@@ -147,7 +148,7 @@ func resourceAwsInstanceCreate(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	if v := d.Get("security_groups"); v != nil {
-		for _, v := range v.([]interface{}) {
+		for _, v := range v.(*schema.Set).List() {
 			str := v.(string)
 
 			var g ec2.SecurityGroup
@@ -320,7 +321,7 @@ func resourceAwsInstanceRead(d *schema.ResourceData, meta interface{}) error {
 	useID := instance.SubnetId != ""
 	if v := d.Get("security_groups"); v != nil {
 		match := false
-		for _, v := range v.([]interface{}) {
+		for _, v := range v.(*schema.Set).List() {
 			if strings.HasPrefix(v.(string), "sg-") {
 				match = true
 				break
