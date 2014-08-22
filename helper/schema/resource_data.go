@@ -26,9 +26,10 @@ const (
 // getResult is the internal structure that is generated when a Get
 // is called that contains some extra data that might be used.
 type getResult struct {
-	Value  interface{}
-	Exists bool
-	Schema *Schema
+	Value          interface{}
+	ValueProcessed interface{}
+	Exists         bool
+	Schema         *Schema
 }
 
 var getResultEmpty getResult
@@ -71,13 +72,17 @@ func (d *ResourceData) GetChange(key string) (interface{}, interface{}) {
 // existed or not in the configuration. The second boolean result will also
 // be false if a key is given that isn't in the schema at all.
 func (d *ResourceData) GetOk(key string) (interface{}, bool) {
+	r := d.getRaw(key)
+	return r.Value, r.Exists
+}
+
+func (d *ResourceData) getRaw(key string) getResult {
 	var parts []string
 	if key != "" {
 		parts = strings.Split(key, ".")
 	}
 
-	r := d.getObject("", parts, d.schema, getSourceSet)
-	return r.Value, r.Exists
+	return d.getObject("", parts, d.schema, getSourceSet)
 }
 
 // HasChange returns whether or not the given key has been changed.
@@ -484,6 +489,7 @@ func (d *ResourceData) getPrimitive(
 	schema *Schema,
 	source getSource) getResult {
 	var result string
+	var resultProcessed interface{}
 	var resultSet bool
 	if d.state != nil && source >= getSourceState {
 		result, resultSet = d.state.Attributes[k]
@@ -509,6 +515,10 @@ func (d *ResourceData) getPrimitive(
 		if ok && !attrD.NewComputed {
 			result = attrD.New
 			if attrD.NewExtra != nil {
+				// If NewExtra != nil, then we have processed data as the New,
+				// so we store that but decode the unprocessed data into result
+				resultProcessed = result
+
 				err := mapstructure.WeakDecode(attrD.NewExtra, &result)
 				if err != nil {
 					panic(err)
@@ -564,9 +574,10 @@ func (d *ResourceData) getPrimitive(
 	}
 
 	return getResult{
-		Value:  resultValue,
-		Exists: resultSet,
-		Schema: schema,
+		Value:          resultValue,
+		ValueProcessed: resultProcessed,
+		Exists:         resultSet,
+		Schema:         schema,
 	}
 }
 
@@ -858,9 +869,14 @@ func (d *ResourceData) stateObject(
 func (d *ResourceData) statePrimitive(
 	prefix string,
 	schema *Schema) map[string]string {
-	v := d.Get(prefix)
-	if v == nil {
+	raw := d.getRaw(prefix)
+	if !raw.Exists {
 		return nil
+	}
+
+	v := raw.Value
+	if raw.ValueProcessed != nil {
+		v = raw.ValueProcessed
 	}
 
 	var vs string
