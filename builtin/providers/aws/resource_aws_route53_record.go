@@ -44,7 +44,9 @@ func resource_aws_r53_record_create(
 		return rs, err
 	}
 
-	// Create the new records
+	// Create the new records. We abuse StateChangeConf for this to
+	// retry for us since Route53 sometimes returns errors about another
+	// operation happening at the same time.
 	req := &route53.ChangeResourceRecordSetsRequest{
 		Comment: "Managed by Terraform",
 		Changes: []route53.Change{
@@ -57,10 +59,31 @@ func resource_aws_r53_record_create(
 	zone := rs.Attributes["zone_id"]
 	log.Printf("[DEBUG] Creating resource records for zone: %s, name: %s",
 		zone, rs.Attributes["name"])
-	resp, err := conn.ChangeResourceRecordSets(zone, req)
+	wait := resource.StateChangeConf{
+		Pending:    []string{"rejected"},
+		Target:     "accepted",
+		Timeout:    5 * time.Minute,
+		MinTimeout: 1 * time.Second,
+		Refresh: func() (interface{}, string, error) {
+			resp, err := conn.ChangeResourceRecordSets(zone, req)
+			if err != nil {
+				if strings.Contains(err.Error(), "PriorRequestNotComplete") {
+					// There is some pending operation, so just retry
+					// in a bit.
+					return nil, "rejected", nil
+				}
+
+				return nil, "failure", err
+			}
+
+			return resp.ChangeInfo, "accepted", nil
+		},
+	}
+	respRaw, err := wait.WaitForState()
 	if err != nil {
 		return rs, err
 	}
+	changeInfo := respRaw.(route53.ChangeInfo)
 
 	// Generate an ID
 	rs.ID = fmt.Sprintf("%s_%s_%s", zone, rs.Attributes["name"], rs.Attributes["type"])
@@ -69,14 +92,14 @@ func resource_aws_r53_record_create(
 	}
 
 	// Wait until we are done
-	wait := resource.StateChangeConf{
+	wait = resource.StateChangeConf{
 		Delay:      30 * time.Second,
 		Pending:    []string{"PENDING"},
 		Target:     "INSYNC",
 		Timeout:    10 * time.Minute,
 		MinTimeout: 5 * time.Second,
 		Refresh: func() (result interface{}, state string, err error) {
-			return resource_aws_r53_wait(conn, resp.ChangeInfo.ID)
+			return resource_aws_r53_wait(conn, changeInfo.ID)
 		},
 	}
 	_, err = wait.WaitForState()
