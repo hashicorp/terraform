@@ -42,6 +42,7 @@ BUG FIXES:
     balancers. [GH-207]
   * providers/aws: Ingress results are treated as a set, so order doesn't
       matter anymore. [GH-87]
+  * providers/aws: Instance security groups treated as a set [GH-194]
   * providers/heroku: If you delete the `config_vars` block, config vars
       are properly nuked.
   * providers/heroku: Domains and drains are deleted before the app.
