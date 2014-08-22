@@ -24,9 +24,9 @@ const UnknownVariableValue = "74D93920-ED26-11E3-AC10-0800200C9A66"
 // RawConfig supports a query-like interface to request
 // information from deep within the structure.
 type RawConfig struct {
-	Raw       map[string]interface{}
+	Raw            map[string]interface{}
 	Interpolations []Interpolation
-	Variables map[string]InterpolatedVariable
+	Variables      map[string]InterpolatedVariable
 
 	config      map[string]interface{}
 	unknownKeys []string
