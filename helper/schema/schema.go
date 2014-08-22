@@ -41,8 +41,14 @@ type Schema struct {
 	//
 	// If ForceNew is true, then a change in this resource necessitates
 	// the creation of a new resource.
-	Computed bool
-	ForceNew bool
+	//
+	// StateFunc is a function called to change the value of this before
+	// storing it in the state (and likewise before comparing for diffs).
+	// The use for this is for example with large strings, you may want
+	// to simply store the hash of it.
+	Computed  bool
+	ForceNew  bool
+	StateFunc SchemaStateFunc
 
 	// The following fields are only set for a TypeList or TypeSet Type.
 	//
@@ -66,7 +72,11 @@ type Schema struct {
 
 // SchemaSetFunc is a function that must return a unique ID for the given
 // element. This unique ID is used to store the element in a hash.
-type SchemaSetFunc func(a interface{}) int
+type SchemaSetFunc func(interface{}) int
+
+// SchemaStateFunc is a function used to convert some type to a string
+// to be stored in the state.
+type SchemaStateFunc func(interface{}) string
 
 func (s *Schema) finalizeDiff(
 	d *terraform.ResourceAttrDiff) *terraform.ResourceAttrDiff {
@@ -376,8 +386,13 @@ func (m schemaMap) diffString(
 	schema *Schema,
 	diff *terraform.ResourceDiff,
 	d *ResourceData) error {
+	var originalN interface{}
 	var os, ns string
 	o, n, _ := d.diffChange(k)
+	if schema.StateFunc != nil {
+		originalN = n
+		n = schema.StateFunc(n)
+	}
 	if err := mapstructure.WeakDecode(o, &os); err != nil {
 		return fmt.Errorf("%s: %s", k, err)
 	}
@@ -386,9 +401,14 @@ func (m schemaMap) diffString(
 	}
 
 	if os == ns {
-		// They're the same value, return no diff as long as we're not
-		// computing a new value.
-		if os != "" || !schema.Computed {
+		// They're the same value. If there old value is not blank or we
+		// have an ID, then return right away since we're already setup.
+		if os != "" || d.Id() != "" {
+			return nil
+		}
+
+		// Otherwise, only continue if we're computed
+		if !schema.Computed {
 			return nil
 		}
 	}
@@ -401,6 +421,7 @@ func (m schemaMap) diffString(
 	diff.Attributes[k] = schema.finalizeDiff(&terraform.ResourceAttrDiff{
 		Old:        os,
 		New:        ns,
+		NewExtra:   originalN,
 		NewRemoved: removed,
 	})
 

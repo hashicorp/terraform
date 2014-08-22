@@ -23,6 +23,17 @@ const (
 	getSourceSet
 )
 
+// getResult is the internal structure that is generated when a Get
+// is called that contains some extra data that might be used.
+type getResult struct {
+	Value          interface{}
+	ValueProcessed interface{}
+	Exists         bool
+	Schema         *Schema
+}
+
+var getResultEmpty getResult
+
 // ResourceData is used to query and set the attributes of a resource.
 type ResourceData struct {
 	schema  map[string]*Schema
@@ -36,25 +47,42 @@ type ResourceData struct {
 	once     sync.Once
 }
 
-// Get returns the data for the given key, or nil if the key doesn't exist.
+// Get returns the data for the given key, or nil if the key doesn't exist
+// in the schema.
 //
-// The type of the data returned will be according to the schema specified.
-// Primitives will be their respective types in Go, lists will always be
-// []interface{}, and sub-resources will be map[string]interface{}.
+// If the key does exist in the schema but doesn't exist in the configuration,
+// then the default value for that type will be returned. For strings, this is
+// "", for numbers it is 0, etc.
+//
+// If you also want to test if something is set at all, use GetOk.
 func (d *ResourceData) Get(key string) interface{} {
-	var parts []string
-	if key != "" {
-		parts = strings.Split(key, ".")
-	}
-
-	return d.getObject("", parts, d.schema, getSourceSet)
+	v, _ := d.GetOk(key)
+	return v
 }
 
 // GetChange returns the old and new value for a given key.
 //
 // If there is no change, then old and new will simply be the same.
 func (d *ResourceData) GetChange(key string) (interface{}, interface{}) {
-	return d.getChange(key, getSourceConfig, getSourceDiff)
+	o, n := d.getChange(key, getSourceConfig, getSourceDiff)
+	return o.Value, n.Value
+}
+
+// GetOk returns the data for the given key and whether or not the key
+// existed or not in the configuration. The second boolean result will also
+// be false if a key is given that isn't in the schema at all.
+func (d *ResourceData) GetOk(key string) (interface{}, bool) {
+	r := d.getRaw(key)
+	return r.Value, r.Exists
+}
+
+func (d *ResourceData) getRaw(key string) getResult {
+	var parts []string
+	if key != "" {
+		parts = strings.Split(key, ".")
+	}
+
+	return d.getObject("", parts, d.schema, getSourceSet)
 }
 
 // HasChange returns whether or not the given key has been changed.
@@ -91,6 +119,19 @@ func (d *ResourceData) Id() string {
 	return result
 }
 
+// ConnInfo returns the connection info for this resource.
+func (d *ResourceData) ConnInfo() map[string]string {
+	if d.newState != nil {
+		return d.newState.ConnInfo
+	}
+
+	if d.state != nil {
+		return d.state.ConnInfo
+	}
+
+	return nil
+}
+
 // Dependencies returns the dependencies in this state.
 func (d *ResourceData) Dependencies() []terraform.ResourceDependency {
 	if d.newState != nil {
@@ -111,6 +152,12 @@ func (d *ResourceData) SetId(v string) {
 	d.newState.ID = v
 }
 
+// SetConnInfo sets the connection info for a resource.
+func (d *ResourceData) SetConnInfo(v map[string]string) {
+	d.once.Do(d.init)
+	d.newState.ConnInfo = v
+}
+
 // SetDependencies sets the dependencies of a resource.
 func (d *ResourceData) SetDependencies(ds []terraform.ResourceDependency) {
 	d.once.Do(d.init)
@@ -122,7 +169,15 @@ func (d *ResourceData) SetDependencies(ds []terraform.ResourceDependency) {
 func (d *ResourceData) State() *terraform.ResourceState {
 	var result terraform.ResourceState
 	result.ID = d.Id()
+
+	// If we have no ID, then this resource doesn't exist and we just
+	// return nil.
+	if result.ID == "" {
+		return nil
+	}
+
 	result.Attributes = d.stateObject("", d.schema)
+	result.ConnInfo = d.ConnInfo()
 	result.Dependencies = d.Dependencies()
 
 	if v := d.Id(); v != "" {
@@ -144,15 +199,21 @@ func (d *ResourceData) init() {
 func (d *ResourceData) diffChange(k string) (interface{}, interface{}, bool) {
 	// Get the change between the state and the config.
 	o, n := d.getChange(k, getSourceState, getSourceConfig)
+	if !o.Exists {
+		o.Value = nil
+	}
+	if !n.Exists {
+		n.Value = nil
+	}
 
 	// Return the old, new, and whether there is a change
-	return o, n, !reflect.DeepEqual(o, n)
+	return o.Value, n.Value, !reflect.DeepEqual(o.Value, n.Value)
 }
 
 func (d *ResourceData) getChange(
 	key string,
 	oldLevel getSource,
-	newLevel getSource) (interface{}, interface{}) {
+	newLevel getSource) (getResult, getResult) {
 	var parts, parts2 []string
 	if key != "" {
 		parts = strings.Split(key, ".")
@@ -168,7 +229,7 @@ func (d *ResourceData) get(
 	k string,
 	parts []string,
 	schema *Schema,
-	source getSource) interface{} {
+	source getSource) getResult {
 	switch schema.Type {
 	case TypeList:
 		return d.getList(k, parts, schema, source)
@@ -191,24 +252,25 @@ func (d *ResourceData) getSet(
 	k string,
 	parts []string,
 	schema *Schema,
-	source getSource) interface{} {
+	source getSource) getResult {
 	s := &Set{F: schema.Set}
+	result := getResult{Schema: schema, Value: s}
 	raw := d.getList(k, nil, schema, source)
-	if raw == nil {
+	if !raw.Exists {
 		if len(parts) > 0 {
 			return d.getList(k, parts, schema, source)
 		}
 
-		return s
+		return result
 	}
 
-	list := raw.([]interface{})
+	list := raw.Value.([]interface{})
 	if len(list) == 0 {
 		if len(parts) > 0 {
 			return d.getList(k, parts, schema, source)
 		}
 
-		return s
+		return result
 	}
 
 	// This is a reverse map of hash code => index in config used to
@@ -242,12 +304,12 @@ func (d *ResourceData) getSet(
 		index := parts[0]
 		indexInt, err := strconv.ParseInt(index, 0, 0)
 		if err != nil {
-			return nil
+			return getResultEmpty
 		}
 
 		codes := s.listCode()
 		if int(indexInt) >= len(codes) {
-			return nil
+			return getResultEmpty
 		}
 		code := codes[indexInt]
 		realIndex := indexMap[code]
@@ -256,17 +318,19 @@ func (d *ResourceData) getSet(
 		return d.getList(k, parts, schema, source)
 	}
 
-	return s
+	result.Exists = true
+	return result
 }
 
 func (d *ResourceData) getMap(
 	k string,
 	parts []string,
 	schema *Schema,
-	source getSource) interface{} {
+	source getSource) getResult {
 	elemSchema := &Schema{Type: TypeString}
 
 	result := make(map[string]interface{})
+	resultSet := false
 	prefix := k + "."
 
 	if d.state != nil && source >= getSourceState {
@@ -276,7 +340,8 @@ func (d *ResourceData) getMap(
 			}
 
 			single := k[len(prefix):]
-			result[single] = d.getPrimitive(k, nil, elemSchema, source)
+			result[single] = d.getPrimitive(k, nil, elemSchema, source).Value
+			resultSet = true
 		}
 	}
 
@@ -284,6 +349,7 @@ func (d *ResourceData) getMap(
 		// For config, we always set the result to exactly what was requested
 		if m, ok := d.config.Get(k); ok {
 			result = m.(map[string]interface{})
+			resultSet = true
 		} else {
 			result = nil
 		}
@@ -294,13 +360,14 @@ func (d *ResourceData) getMap(
 			if !strings.HasPrefix(k, prefix) {
 				continue
 			}
+			resultSet = true
 
 			single := k[len(prefix):]
 
 			if v.NewRemoved {
 				delete(result, single)
 			} else {
-				result[single] = d.getPrimitive(k, nil, elemSchema, source)
+				result[single] = d.getPrimitive(k, nil, elemSchema, source).Value
 			}
 		}
 	}
@@ -311,6 +378,8 @@ func (d *ResourceData) getMap(
 			if !strings.HasPrefix(k, prefix) {
 				continue
 			}
+			resultSet = true
+
 			if !cleared {
 				// We clear the results if they are in the set map
 				result = make(map[string]interface{})
@@ -318,30 +387,35 @@ func (d *ResourceData) getMap(
 			}
 
 			single := k[len(prefix):]
-			result[single] = d.getPrimitive(k, nil, elemSchema, source)
+			result[single] = d.getPrimitive(k, nil, elemSchema, source).Value
 		}
 	}
 
 	// If we're requesting a specific element, return that
+	var resultValue interface{} = result
 	if len(parts) > 0 {
-		return result[parts[0]]
+		resultValue = result[parts[0]]
 	}
 
-	return result
+	return getResult{
+		Value:  resultValue,
+		Exists: resultSet,
+		Schema: schema,
+	}
 }
 
 func (d *ResourceData) getObject(
 	k string,
 	parts []string,
 	schema map[string]*Schema,
-	source getSource) interface{} {
+	source getSource) getResult {
 	if len(parts) > 0 {
 		// We're requesting a specific key in an object
 		key := parts[0]
 		parts = parts[1:]
 		s, ok := schema[key]
 		if !ok {
-			return nil
+			return getResultEmpty
 		}
 
 		if k != "" {
@@ -356,17 +430,23 @@ func (d *ResourceData) getObject(
 	// Get the entire object
 	result := make(map[string]interface{})
 	for field, _ := range schema {
-		result[field] = d.getObject(k, []string{field}, schema, source)
+		result[field] = d.getObject(k, []string{field}, schema, source).Value
 	}
 
-	return result
+	return getResult{
+		Value:  result,
+		Exists: true,
+		Schema: &Schema{
+			Elem: schema,
+		},
+	}
 }
 
 func (d *ResourceData) getList(
 	k string,
 	parts []string,
 	schema *Schema,
-	source getSource) interface{} {
+	source getSource) getResult {
 	if len(parts) > 0 {
 		// We still have parts left over meaning we're accessing an
 		// element of this list.
@@ -376,12 +456,7 @@ func (d *ResourceData) getList(
 		// Special case if we're accessing the count of the list
 		if idx == "#" {
 			schema := &Schema{Type: TypeInt}
-			result := d.get(k+".#", parts, schema, source)
-			if result == nil {
-				result = 0
-			}
-
-			return result
+			return d.get(k+".#", parts, schema, source)
 		}
 
 		key := fmt.Sprintf("%s.%s", k, idx)
@@ -394,23 +469,27 @@ func (d *ResourceData) getList(
 	}
 
 	// Get the entire list.
-	result := make(
-		[]interface{},
-		d.getList(k, []string{"#"}, schema, source).(int))
+	count := d.getList(k, []string{"#"}, schema, source)
+	result := make([]interface{}, count.Value.(int))
 	for i, _ := range result {
 		is := strconv.FormatInt(int64(i), 10)
-		result[i] = d.getList(k, []string{is}, schema, source)
+		result[i] = d.getList(k, []string{is}, schema, source).Value
 	}
 
-	return result
+	return getResult{
+		Value:  result,
+		Exists: count.Exists,
+		Schema: schema,
+	}
 }
 
 func (d *ResourceData) getPrimitive(
 	k string,
 	parts []string,
 	schema *Schema,
-	source getSource) interface{} {
+	source getSource) getResult {
 	var result string
+	var resultProcessed interface{}
 	var resultSet bool
 	if d.state != nil && source >= getSourceState {
 		result, resultSet = d.state.Attributes[k]
@@ -435,6 +514,17 @@ func (d *ResourceData) getPrimitive(
 		attrD, ok := d.diff.Attributes[k]
 		if ok && !attrD.NewComputed {
 			result = attrD.New
+			if attrD.NewExtra != nil {
+				// If NewExtra != nil, then we have processed data as the New,
+				// so we store that but decode the unprocessed data into result
+				resultProcessed = result
+
+				err := mapstructure.WeakDecode(attrD.NewExtra, &result)
+				if err != nil {
+					panic(err)
+				}
+			}
+
 			resultSet = true
 		}
 	}
@@ -447,13 +537,15 @@ func (d *ResourceData) getPrimitive(
 	}
 
 	if !resultSet {
-		return nil
+		result = ""
 	}
 
+	var resultValue interface{}
 	switch schema.Type {
 	case TypeBool:
 		if result == "" {
-			return false
+			resultValue = false
+			break
 		}
 
 		v, err := strconv.ParseBool(result)
@@ -461,13 +553,14 @@ func (d *ResourceData) getPrimitive(
 			panic(err)
 		}
 
-		return v
+		resultValue = v
 	case TypeString:
 		// Use the value as-is. We just put this case here to be explicit.
-		return result
+		resultValue = result
 	case TypeInt:
 		if result == "" {
-			return 0
+			resultValue = 0
+			break
 		}
 
 		v, err := strconv.ParseInt(result, 0, 0)
@@ -475,9 +568,16 @@ func (d *ResourceData) getPrimitive(
 			panic(err)
 		}
 
-		return int(v)
+		resultValue = int(v)
 	default:
 		panic(fmt.Sprintf("Unknown type: %s", schema.Type))
+	}
+
+	return getResult{
+		Value:          resultValue,
+		ValueProcessed: resultProcessed,
+		Exists:         resultSet,
+		Schema:         schema,
 	}
 }
 
@@ -700,10 +800,10 @@ func (d *ResourceData) stateList(
 	prefix string,
 	schema *Schema) map[string]string {
 	countRaw := d.get(prefix, []string{"#"}, schema, getSourceSet)
-	if countRaw == nil {
+	if !countRaw.Exists {
 		return nil
 	}
-	count := countRaw.(int)
+	count := countRaw.Value.(int)
 
 	result := make(map[string]string)
 	if count > 0 {
@@ -732,13 +832,13 @@ func (d *ResourceData) stateMap(
 	prefix string,
 	schema *Schema) map[string]string {
 	v := d.getMap(prefix, nil, schema, getSourceSet)
-	if v == nil {
+	if !v.Exists {
 		return nil
 	}
 
 	elemSchema := &Schema{Type: TypeString}
 	result := make(map[string]string)
-	for mk, _ := range v.(map[string]interface{}) {
+	for mk, _ := range v.Value.(map[string]interface{}) {
 		mp := fmt.Sprintf("%s.%s", prefix, mk)
 		for k, v := range d.stateSingle(mp, elemSchema) {
 			result[k] = v
@@ -769,9 +869,14 @@ func (d *ResourceData) stateObject(
 func (d *ResourceData) statePrimitive(
 	prefix string,
 	schema *Schema) map[string]string {
-	v := d.Get(prefix)
-	if v == nil {
+	raw := d.getRaw(prefix)
+	if !raw.Exists {
 		return nil
+	}
+
+	v := raw.Value
+	if raw.ValueProcessed != nil {
+		v = raw.ValueProcessed
 	}
 
 	var vs string
@@ -795,11 +900,11 @@ func (d *ResourceData) stateSet(
 	prefix string,
 	schema *Schema) map[string]string {
 	raw := d.get(prefix, nil, schema, getSourceSet)
-	if raw == nil {
+	if !raw.Exists {
 		return nil
 	}
 
-	set := raw.(*Set)
+	set := raw.Value.(*Set)
 	list := set.List()
 	result := make(map[string]string)
 	result[prefix+".#"] = strconv.FormatInt(int64(len(list)), 10)

@@ -108,7 +108,7 @@ func (r *Resource) Refresh(
 
 	err = r.Read(data, meta)
 	state := data.State()
-	if state.ID == "" {
+	if state != nil && state.ID == "" {
 		state = nil
 	}
 

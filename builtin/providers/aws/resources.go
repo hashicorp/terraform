@@ -47,14 +47,6 @@ func init() {
 				Refresh:         resource_aws_elb_refresh,
 			},
 
-			"aws_instance": resource.Resource{
-				Create:  resource_aws_instance_create,
-				Destroy: resource_aws_instance_destroy,
-				Diff:    resource_aws_instance_diff,
-				Refresh: resource_aws_instance_refresh,
-				Update:  resource_aws_instance_update,
-			},
-
 			"aws_internet_gateway": resource.Resource{
 				Create:  resource_aws_internet_gateway_create,
 				Destroy: resource_aws_internet_gateway_destroy,

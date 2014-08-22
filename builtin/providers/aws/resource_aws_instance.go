@@ -5,68 +5,160 @@ import (
 	"encoding/hex"
 	"fmt"
 	"log"
-	"strconv"
 	"strings"
 	"time"
 
-	"github.com/hashicorp/terraform/flatmap"
-	"github.com/hashicorp/terraform/helper/diff"
+	"github.com/hashicorp/terraform/helper/hashcode"
 	"github.com/hashicorp/terraform/helper/resource"
+	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/terraform"
 	"github.com/mitchellh/goamz/ec2"
 )
 
-func resource_aws_instance_create(
-	s *terraform.ResourceState,
-	d *terraform.ResourceDiff,
-	meta interface{}) (*terraform.ResourceState, error) {
+/*
+		PreProcess: map[string]diff.PreProcessFunc{
+			"user_data": func(v string) string {
+				hash := sha1.Sum([]byte(v))
+				return hex.EncodeToString(hash[:])
+			},
+		},
+	}
+*/
+
+func resourceAwsInstance() *schema.Resource {
+	return &schema.Resource{
+		Create: resourceAwsInstanceCreate,
+		Read:   resourceAwsInstanceRead,
+		Update: resourceAwsInstanceUpdate,
+		Delete: resourceAwsInstanceDelete,
+
+		Schema: map[string]*schema.Schema{
+			"ami": &schema.Schema{
+				Type:     schema.TypeString,
+				Required: true,
+				ForceNew: true,
+			},
+
+			"associate_public_ip_address": &schema.Schema{
+				Type:     schema.TypeBool,
+				Optional: true,
+				ForceNew: true,
+			},
+
+			"availability_zone": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				Computed: true,
+				ForceNew: true,
+			},
+
+			"instance_type": &schema.Schema{
+				Type:     schema.TypeString,
+				Required: true,
+				ForceNew: true,
+			},
+
+			"key_name": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				ForceNew: true,
+				Computed: true,
+			},
+
+			"subnet_id": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				Computed: true,
+				ForceNew: true,
+			},
+
+			"private_ip": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				Computed: true,
+			},
+
+			"source_dest_check": &schema.Schema{
+				Type:     schema.TypeBool,
+				Optional: true,
+			},
+
+			"user_data": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				ForceNew: true,
+				StateFunc: func(v interface{}) string {
+					hash := sha1.Sum([]byte(v.(string)))
+					return hex.EncodeToString(hash[:])
+				},
+			},
+
+			"security_groups": &schema.Schema{
+				Type:     schema.TypeSet,
+				Optional: true,
+				Elem:     &schema.Schema{Type: schema.TypeString},
+				Set: func(v interface{}) int {
+					return hashcode.String(v.(string))
+				},
+			},
+
+			"public_dns": &schema.Schema{
+				Type:     schema.TypeString,
+				Computed: true,
+			},
+
+			"public_ip": &schema.Schema{
+				Type:     schema.TypeString,
+				Computed: true,
+			},
+
+			"private_dns": &schema.Schema{
+				Type:     schema.TypeString,
+				Computed: true,
+			},
+		},
+	}
+}
+
+func resourceAwsInstanceCreate(d *schema.ResourceData, meta interface{}) error {
 	p := meta.(*ResourceProvider)
 	ec2conn := p.ec2conn
 
-	// Merge the diff into the state so that we have all the attributes
-	// properly.
-	rs := s.MergeDiff(d)
-	delete(rs.Attributes, "source_dest_check")
-
 	// Figure out user data
 	userData := ""
-	if attr, ok := d.Attributes["user_data"]; ok {
-		userData = attr.NewExtra.(string)
+	if v := d.Get("user_data"); v != nil {
+		userData = v.(string)
 	}
 
 	associatePublicIPAddress := false
-	if rs.Attributes["associate_public_ip_address"] == "true" {
-		associatePublicIPAddress = true
+	if v := d.Get("associate_public_ip_addresss"); v != nil {
+		associatePublicIPAddress = v.(bool)
 	}
 
 	// Build the creation struct
 	runOpts := &ec2.RunInstances{
-		ImageId:                  rs.Attributes["ami"],
-		AvailZone:                rs.Attributes["availability_zone"],
-		InstanceType:             rs.Attributes["instance_type"],
-		KeyName:                  rs.Attributes["key_name"],
-		SubnetId:                 rs.Attributes["subnet_id"],
-		PrivateIPAddress:         rs.Attributes["private_ip"],
+		ImageId:                  d.Get("ami").(string),
+		AvailZone:                d.Get("availability_zone").(string),
+		InstanceType:             d.Get("instance_type").(string),
+		KeyName:                  d.Get("key_name").(string),
+		SubnetId:                 d.Get("subnet_id").(string),
+		PrivateIPAddress:         d.Get("private_ip").(string),
 		AssociatePublicIpAddress: associatePublicIPAddress,
 		UserData:                 []byte(userData),
 	}
-	if raw := flatmap.Expand(rs.Attributes, "security_groups"); raw != nil {
-		if sgs, ok := raw.([]interface{}); ok {
-			for _, sg := range sgs {
-				str, ok := sg.(string)
-				if !ok {
-					continue
-				}
 
-				var g ec2.SecurityGroup
-				if runOpts.SubnetId != "" {
-					g.Id = str
-				} else {
-					g.Name = str
-				}
+	if v := d.Get("security_groups"); v != nil {
+		for _, v := range v.(*schema.Set).List() {
+			str := v.(string)
 
-				runOpts.SecurityGroups = append(runOpts.SecurityGroups, g)
+			var g ec2.SecurityGroup
+			if runOpts.SubnetId != "" {
+				g.Id = str
+			} else {
+				g.Name = str
 			}
+
+			runOpts.SecurityGroups = append(runOpts.SecurityGroups, g)
 		}
 	}
 
@@ -74,14 +166,14 @@ func resource_aws_instance_create(
 	log.Printf("[DEBUG] Run configuration: %#v", runOpts)
 	runResp, err := ec2conn.RunInstances(runOpts)
 	if err != nil {
-		return nil, fmt.Errorf("Error launching source instance: %s", err)
+		return fmt.Errorf("Error launching source instance: %s", err)
 	}
 
 	instance := &runResp.Instances[0]
 	log.Printf("[INFO] Instance ID: %s", instance.InstanceId)
 
 	// Store the resulting ID so we can look this up later
-	rs.ID = instance.InstanceId
+	d.SetId(instance.InstanceId)
 
 	// Wait for the instance to become running so we can get some attributes
 	// that aren't available until later.
@@ -99,9 +191,8 @@ func resource_aws_instance_create(
 	}
 
 	instanceRaw, err := stateConf.WaitForState()
-
 	if err != nil {
-		return rs, fmt.Errorf(
+		return fmt.Errorf(
 			"Error waiting for instance (%s) to become ready: %s",
 			instance.InstanceId, err)
 	}
@@ -109,213 +200,157 @@ func resource_aws_instance_create(
 	instance = instanceRaw.(*ec2.Instance)
 
 	// Initialize the connection info
-	rs.ConnInfo["type"] = "ssh"
-	rs.ConnInfo["host"] = instance.PublicIpAddress
+	d.SetConnInfo(map[string]string{
+		"type": "ssh",
+		"host": instance.PublicIpAddress,
+	})
 
 	// Set our attributes
-	rs, err = resource_aws_instance_update_state(rs, instance)
-	if err != nil {
-		return rs, err
+	if err := resourceAwsInstanceRead(d, meta); err != nil {
+		return err
 	}
 
 	// Update if we need to
-	return resource_aws_instance_update(rs, d, meta)
+	return resourceAwsInstanceUpdate(d, meta)
 }
 
-func resource_aws_instance_update(
-	s *terraform.ResourceState,
-	d *terraform.ResourceDiff,
-	meta interface{}) (*terraform.ResourceState, error) {
+func resourceAwsInstanceUpdate(d *schema.ResourceData, meta interface{}) error {
 	p := meta.(*ResourceProvider)
 	ec2conn := p.ec2conn
-	rs := s.MergeDiff(d)
 
 	modify := false
 	opts := new(ec2.ModifyInstance)
 
-	if attr, ok := d.Attributes["source_dest_check"]; ok {
-		modify = true
-		opts.SourceDestCheck = attr.New != "" && attr.New != "false"
+	if d.HasChange("source_dest_check") {
+		opts.SourceDestCheck = d.Get("source_dest_check").(bool)
 		opts.SetSourceDestCheck = true
-		rs.Attributes["source_dest_check"] = strconv.FormatBool(
-			opts.SourceDestCheck)
 	}
 
 	if modify {
-		log.Printf("[INFO] Modifing instance %s: %#v", s.ID, opts)
-		if _, err := ec2conn.ModifyInstance(s.ID, opts); err != nil {
-			return s, err
+		log.Printf("[INFO] Modifing instance %s: %#v", d.Id(), opts)
+		if _, err := ec2conn.ModifyInstance(d.Id(), opts); err != nil {
+			return err
 		}
 
 		// TODO(mitchellh): wait for the attributes we modified to
 		// persist the change...
 	}
 
-	return rs, nil
+	return nil
 }
 
-func resource_aws_instance_destroy(
-	s *terraform.ResourceState,
-	meta interface{}) error {
+func resourceAwsInstanceDelete(d *schema.ResourceData, meta interface{}) error {
 	p := meta.(*ResourceProvider)
 	ec2conn := p.ec2conn
 
-	log.Printf("[INFO] Terminating instance: %s", s.ID)
-	if _, err := ec2conn.TerminateInstances([]string{s.ID}); err != nil {
+	log.Printf("[INFO] Terminating instance: %s", d.Id())
+	if _, err := ec2conn.TerminateInstances([]string{d.Id()}); err != nil {
 		return fmt.Errorf("Error terminating instance: %s", err)
 	}
 
 	log.Printf(
 		"[DEBUG] Waiting for instance (%s) to become terminated",
-		s.ID)
+		d.Id())
 
 	stateConf := &resource.StateChangeConf{
 		Pending:    []string{"pending", "running", "shutting-down", "stopped", "stopping"},
 		Target:     "terminated",
-		Refresh:    InstanceStateRefreshFunc(ec2conn, s.ID),
+		Refresh:    InstanceStateRefreshFunc(ec2conn, d.Id()),
 		Timeout:    10 * time.Minute,
 		Delay:      10 * time.Second,
 		MinTimeout: 3 * time.Second,
 	}
 
 	_, err := stateConf.WaitForState()
-
 	if err != nil {
 		return fmt.Errorf(
 			"Error waiting for instance (%s) to terminate: %s",
-			s.ID, err)
+			d.Id(), err)
 	}
 
+	d.SetId("")
 	return nil
 }
 
-func resource_aws_instance_diff(
-	s *terraform.ResourceState,
-	c *terraform.ResourceConfig,
-	meta interface{}) (*terraform.ResourceDiff, error) {
-	b := &diff.ResourceBuilder{
-		Attrs: map[string]diff.AttrType{
-			"ami":                         diff.AttrTypeCreate,
-			"availability_zone":           diff.AttrTypeCreate,
-			"instance_type":               diff.AttrTypeCreate,
-			"key_name":                    diff.AttrTypeCreate,
-			"private_ip":                  diff.AttrTypeCreate,
-			"security_groups":             diff.AttrTypeCreate,
-			"subnet_id":                   diff.AttrTypeCreate,
-			"source_dest_check":           diff.AttrTypeUpdate,
-			"user_data":                   diff.AttrTypeCreate,
-			"associate_public_ip_address": diff.AttrTypeCreate,
-		},
-
-		ComputedAttrs: []string{
-			"availability_zone",
-			"key_name",
-			"public_dns",
-			"public_ip",
-			"private_dns",
-			"private_ip",
-			"security_groups",
-			"subnet_id",
-		},
-
-		PreProcess: map[string]diff.PreProcessFunc{
-			"user_data": func(v string) string {
-				hash := sha1.Sum([]byte(v))
-				return hex.EncodeToString(hash[:])
-			},
-		},
-	}
-
-	return b.Diff(s, c)
-}
-
-func resource_aws_instance_refresh(
-	s *terraform.ResourceState,
-	meta interface{}) (*terraform.ResourceState, error) {
+func resourceAwsInstanceRead(d *schema.ResourceData, meta interface{}) error {
 	p := meta.(*ResourceProvider)
 	ec2conn := p.ec2conn
 
-	resp, err := ec2conn.Instances([]string{s.ID}, ec2.NewFilter())
+	resp, err := ec2conn.Instances([]string{d.Id()}, ec2.NewFilter())
 	if err != nil {
 		// If the instance was not found, return nil so that we can show
 		// that the instance is gone.
 		if ec2err, ok := err.(*ec2.Error); ok && ec2err.Code == "InvalidInstanceID.NotFound" {
-			return nil, nil
+			d.SetId("")
+			return nil
 		}
 
 		// Some other error, report it
-		return s, err
+		return err
 	}
 
 	// If nothing was found, then return no state
 	if len(resp.Reservations) == 0 {
-		return nil, nil
+		d.SetId("")
+		return nil
 	}
 
 	instance := &resp.Reservations[0].Instances[0]
 
 	// If the instance is terminated, then it is gone
 	if instance.State.Name == "terminated" {
-		return nil, nil
+		d.SetId("")
+		return nil
 	}
 
-	return resource_aws_instance_update_state(s, instance)
-}
+	d.Set("availability_zone", instance.AvailZone)
+	d.Set("key_name", instance.KeyName)
+	d.Set("public_dns", instance.DNSName)
+	d.Set("public_ip", instance.PublicIpAddress)
+	d.Set("private_dns", instance.PrivateDNSName)
+	d.Set("private_ip", instance.PrivateIpAddress)
+	d.Set("subnet_id", instance.SubnetId)
 
-func resource_aws_instance_update_state(
-	s *terraform.ResourceState,
-	instance *ec2.Instance) (*terraform.ResourceState, error) {
-	s.Attributes["availability_zone"] = instance.AvailZone
-	s.Attributes["key_name"] = instance.KeyName
-	s.Attributes["public_dns"] = instance.DNSName
-	s.Attributes["public_ip"] = instance.PublicIpAddress
-	s.Attributes["private_dns"] = instance.PrivateDNSName
-	s.Attributes["private_ip"] = instance.PrivateIpAddress
-	s.Attributes["subnet_id"] = instance.SubnetId
-	s.Dependencies = nil
+	var deps []terraform.ResourceDependency
 
-	// Extract the existing security groups
-	useID := false
-	if raw := flatmap.Expand(s.Attributes, "security_groups"); raw != nil {
-		if sgs, ok := raw.([]interface{}); ok {
-			for _, sg := range sgs {
-				str, ok := sg.(string)
-				if !ok {
-					continue
-				}
-
-				if strings.HasPrefix(str, "sg-") {
-					useID = true
-					break
-				}
+	// Determine whether we're referring to security groups with
+	// IDs or names. We use a heuristic to figure this out. By default,
+	// we use IDs if we're in a VPC. However, if we previously had an
+	// all-name list of security groups, we use names. Or, if we had any
+	// IDs, we use IDs.
+	useID := instance.SubnetId != ""
+	if v := d.Get("security_groups"); v != nil {
+		match := false
+		for _, v := range v.(*schema.Set).List() {
+			if strings.HasPrefix(v.(string), "sg-") {
+				match = true
+				break
 			}
 		}
+
+		useID = match
 	}
 
 	// Build up the security groups
 	sgs := make([]string, len(instance.SecurityGroups))
 	for i, sg := range instance.SecurityGroups {
-		if instance.SubnetId != "" && useID {
+		if useID {
 			sgs[i] = sg.Id
 		} else {
 			sgs[i] = sg.Name
 		}
 
-		s.Dependencies = append(s.Dependencies,
-			terraform.ResourceDependency{ID: sg.Id},
-		)
+		deps = append(deps, terraform.ResourceDependency{ID: sg.Id})
 	}
-	flatmap.Map(s.Attributes).Merge(flatmap.Flatten(map[string]interface{}{
-		"security_groups": sgs,
-	}))
+	d.Set("security_groups", sgs)
 
+	// If we're in a VPC, we depend on the subnet
 	if instance.SubnetId != "" {
-		s.Dependencies = append(s.Dependencies,
-			terraform.ResourceDependency{ID: instance.SubnetId},
-		)
+		deps = append(deps, terraform.ResourceDependency{ID: instance.SubnetId})
 	}
 
-	return s, nil
+	d.SetDependencies(deps)
+	return nil
 }
 
 // InstanceStateRefreshFunc returns a resource.StateRefreshFunc that is used to watch

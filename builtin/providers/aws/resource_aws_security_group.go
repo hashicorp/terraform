@@ -3,8 +3,8 @@ package aws
 import (
 	"bytes"
 	"fmt"
-	"sort"
 	"log"
+	"sort"
 	"time"
 
 	"github.com/hashicorp/terraform/helper/hashcode"

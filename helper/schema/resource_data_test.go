@@ -37,9 +37,8 @@ func TestResourceDataGet(t *testing.T) {
 				},
 			},
 
-			Key: "availability_zone",
-
-			Value: nil,
+			Key:   "availability_zone",
+			Value: "",
 		},
 
 		{
@@ -66,6 +65,32 @@ func TestResourceDataGet(t *testing.T) {
 
 			Key: "availability_zone",
 
+			Value: "foo",
+		},
+
+		{
+			Schema: map[string]*Schema{
+				"availability_zone": &Schema{
+					Type:     TypeString,
+					Optional: true,
+					Computed: true,
+					ForceNew: true,
+				},
+			},
+
+			State: nil,
+
+			Diff: &terraform.ResourceDiff{
+				Attributes: map[string]*terraform.ResourceAttrDiff{
+					"availability_zone": &terraform.ResourceAttrDiff{
+						Old:      "",
+						New:      "foo!",
+						NewExtra: "foo",
+					},
+				},
+			},
+
+			Key:   "availability_zone",
 			Value: "foo",
 		},
 
@@ -524,7 +549,7 @@ func TestResourceDataGetChange(t *testing.T) {
 
 			Key: "availability_zone",
 
-			OldValue: nil,
+			OldValue: "",
 			NewValue: "foo",
 		},
 
@@ -573,6 +598,169 @@ func TestResourceDataGetChange(t *testing.T) {
 		}
 		if !reflect.DeepEqual(n, tc.NewValue) {
 			t.Fatalf("New Bad: %d\n\n%#v", i, n)
+		}
+	}
+}
+
+func TestResourceDataGetOk(t *testing.T) {
+	cases := []struct {
+		Schema map[string]*Schema
+		State  *terraform.ResourceState
+		Diff   *terraform.ResourceDiff
+		Key    string
+		Value  interface{}
+		Ok     bool
+	}{
+		/*
+		 * Primitives
+		 */
+		{
+			Schema: map[string]*Schema{
+				"availability_zone": &Schema{
+					Type:     TypeString,
+					Optional: true,
+					Computed: true,
+					ForceNew: true,
+				},
+			},
+
+			State: nil,
+
+			Diff: &terraform.ResourceDiff{
+				Attributes: map[string]*terraform.ResourceAttrDiff{
+					"availability_zone": &terraform.ResourceAttrDiff{
+						Old: "",
+						New: "",
+					},
+				},
+			},
+
+			Key:   "availability_zone",
+			Value: "",
+			Ok:    true,
+		},
+
+		{
+			Schema: map[string]*Schema{
+				"availability_zone": &Schema{
+					Type:     TypeString,
+					Optional: true,
+					Computed: true,
+					ForceNew: true,
+				},
+			},
+
+			State: nil,
+
+			Diff: nil,
+
+			Key:   "availability_zone",
+			Value: "",
+			Ok:    false,
+		},
+
+		/*
+		 * Lists
+		 */
+
+		{
+			Schema: map[string]*Schema{
+				"ports": &Schema{
+					Type:     TypeList,
+					Optional: true,
+					Elem:     &Schema{Type: TypeInt},
+				},
+			},
+
+			State: nil,
+
+			Diff: nil,
+
+			Key:   "ports",
+			Value: []interface{}{},
+			Ok:    false,
+		},
+
+		/*
+		 * Map
+		 */
+
+		{
+			Schema: map[string]*Schema{
+				"ports": &Schema{
+					Type:     TypeMap,
+					Optional: true,
+				},
+			},
+
+			State: nil,
+
+			Diff: nil,
+
+			Key:   "ports",
+			Value: map[string]interface{}{},
+			Ok:    false,
+		},
+
+		/*
+		 * Set
+		 */
+
+		{
+			Schema: map[string]*Schema{
+				"ports": &Schema{
+					Type:     TypeSet,
+					Optional: true,
+					Elem:     &Schema{Type: TypeInt},
+					Set:      func(a interface{}) int { return a.(int) },
+				},
+			},
+
+			State: nil,
+
+			Diff: nil,
+
+			Key:   "ports",
+			Value: []interface{}{},
+			Ok:    false,
+		},
+
+		{
+			Schema: map[string]*Schema{
+				"ports": &Schema{
+					Type:     TypeSet,
+					Optional: true,
+					Elem:     &Schema{Type: TypeInt},
+					Set:      func(a interface{}) int { return a.(int) },
+				},
+			},
+
+			State: nil,
+
+			Diff: nil,
+
+			Key:   "ports.0",
+			Value: 0,
+			Ok:    false,
+		},
+	}
+
+	for i, tc := range cases {
+		d, err := schemaMap(tc.Schema).Data(tc.State, tc.Diff)
+		if err != nil {
+			t.Fatalf("err: %s", err)
+		}
+
+		v, ok := d.GetOk(tc.Key)
+		if s, ok := v.(*Set); ok {
+			v = s.List()
+		}
+
+		if !reflect.DeepEqual(v, tc.Value) {
+			t.Fatalf("Bad: %d\n\n%#v", i, v)
+		}
+		if ok != tc.Ok {
+			t.Fatalf("Bad: %d\n\n%#v", i, ok)
 		}
 	}
 }
@@ -771,7 +959,7 @@ func TestResourceDataSet(t *testing.T) {
 			Err:   true,
 
 			GetKey:   "availability_zone",
-			GetValue: nil,
+			GetValue: "",
 		},
 
 		// List of primitives, set element
@@ -1268,6 +1456,36 @@ func TestResourceDataState(t *testing.T) {
 			},
 		},
 
+		// Basic primitive with StateFunc set
+		{
+			Schema: map[string]*Schema{
+				"availability_zone": &Schema{
+					Type:      TypeString,
+					Optional:  true,
+					Computed:  true,
+					StateFunc: func(interface{}) string { return "" },
+				},
+			},
+
+			State: nil,
+
+			Diff: &terraform.ResourceDiff{
+				Attributes: map[string]*terraform.ResourceAttrDiff{
+					"availability_zone": &terraform.ResourceAttrDiff{
+						Old:      "",
+						New:      "foo",
+						NewExtra: "foo!",
+					},
+				},
+			},
+
+			Result: &terraform.ResourceState{
+				Attributes: map[string]string{
+					"availability_zone": "foo",
+				},
+			},
+		},
+
 		// List
 		{
 			Schema: map[string]*Schema{
@@ -1524,15 +1742,47 @@ func TestResourceDataState(t *testing.T) {
 			}
 		}
 
+		// Set an ID so that the state returned is not nil
+		idSet := false
+		if d.Id() == "" {
+			idSet = true
+			d.SetId("foo")
+		}
+
 		actual := d.State()
+
+		// If we set an ID, then undo what we did so the comparison works
+		if actual != nil && idSet {
+			actual.ID = ""
+			delete(actual.Attributes, "id")
+		}
+
 		if !reflect.DeepEqual(actual, tc.Result) {
 			t.Fatalf("Bad: %d\n\n%#v", i, actual)
 		}
 	}
 }
 
+func TestResourceDataSetConnInfo(t *testing.T) {
+	d := &ResourceData{}
+	d.SetId("foo")
+	d.SetConnInfo(map[string]string{
+		"foo": "bar",
+	})
+
+	expected := map[string]string{
+		"foo": "bar",
+	}
+
+	actual := d.State()
+	if !reflect.DeepEqual(actual.ConnInfo, expected) {
+		t.Fatalf("bad: %#v", actual)
+	}
+}
+
 func TestResourceDataSetDependencies(t *testing.T) {
 	d := &ResourceData{}
+	d.SetId("foo")
 	d.SetDependencies([]terraform.ResourceDependency{
 		terraform.ResourceDependency{ID: "foo"},
 	})
@@ -1564,7 +1814,7 @@ func TestResourceDataSetId_clear(t *testing.T) {
 	d.SetId("")
 
 	actual := d.State()
-	if actual.ID != "" {
+	if actual != nil {
 		t.Fatalf("bad: %#v", actual)
 	}
 }
