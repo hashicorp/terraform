@@ -26,6 +26,7 @@ IMPROVEMENTS:
   * providers/aws: Security group rules can be updated without a
       destroy/create.
   * providers/aws: You can enable and disable dns settings for VPCs. [GH-172]
+  * providers/aws: Can specify a private IP address for `aws_instance` [GH-217]
 
 BUG FIXES:
 
