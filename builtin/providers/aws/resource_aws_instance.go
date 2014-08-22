@@ -78,7 +78,6 @@ func resourceAwsInstance() *schema.Resource {
 			"source_dest_check": &schema.Schema{
 				Type:     schema.TypeBool,
 				Optional: true,
-				// TODO: Hidden
 			},
 
 			"user_data": &schema.Schema{
@@ -195,11 +194,10 @@ func resourceAwsInstanceCreate(d *schema.ResourceData, meta interface{}) error {
 	instance = instanceRaw.(*ec2.Instance)
 
 	// Initialize the connection info
-	/*
-		TODO: conninfo
-		rs.ConnInfo["type"] = "ssh"
-		rs.ConnInfo["host"] = instance.PublicIpAddress
-	*/
+	d.SetConnInfo(map[string]string{
+		"type": "ssh",
+		"host": instance.PublicIpAddress,
+	})
 
 	// Set our attributes
 	if err := resourceAwsInstanceRead(d, meta); err != nil {
