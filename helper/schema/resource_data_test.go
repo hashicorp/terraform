@@ -1430,6 +1430,35 @@ func TestResourceDataState(t *testing.T) {
 			},
 		},
 
+		// Basic primitive with StateFunc set
+		{
+			Schema: map[string]*Schema{
+				"availability_zone": &Schema{
+					Type:      TypeString,
+					Optional:  true,
+					Computed:  true,
+					StateFunc: func(interface{}) string { return "" },
+				},
+			},
+
+			State: nil,
+
+			Diff: &terraform.ResourceDiff{
+				Attributes: map[string]*terraform.ResourceAttrDiff{
+					"availability_zone": &terraform.ResourceAttrDiff{
+						Old: "",
+						New: "foo",
+					},
+				},
+			},
+
+			Result: &terraform.ResourceState{
+				Attributes: map[string]string{
+					"availability_zone": "foo",
+				},
+			},
+		},
+
 		// List
 		{
 			Schema: map[string]*Schema{

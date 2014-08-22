@@ -41,8 +41,14 @@ type Schema struct {
 	//
 	// If ForceNew is true, then a change in this resource necessitates
 	// the creation of a new resource.
-	Computed bool
-	ForceNew bool
+	//
+	// StateFunc is a function called to change the value of this before
+	// storing it in the state (and likewise before comparing for diffs).
+	// The use for this is for example with large strings, you may want
+	// to simply store the hash of it.
+	Computed  bool
+	ForceNew  bool
+	StateFunc SchemaStateFunc
 
 	// The following fields are only set for a TypeList or TypeSet Type.
 	//
@@ -66,7 +72,11 @@ type Schema struct {
 
 // SchemaSetFunc is a function that must return a unique ID for the given
 // element. This unique ID is used to store the element in a hash.
-type SchemaSetFunc func(a interface{}) int
+type SchemaSetFunc func(interface{}) int
+
+// SchemaStateFunc is a function used to convert some type to a string
+// to be stored in the state.
+type SchemaStateFunc func(interface{}) string
 
 func (s *Schema) finalizeDiff(
 	d *terraform.ResourceAttrDiff) *terraform.ResourceAttrDiff {

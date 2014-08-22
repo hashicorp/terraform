@@ -28,6 +28,7 @@ const (
 type getResult struct {
 	Value  interface{}
 	Exists bool
+	Schema *Schema
 }
 
 var getResultEmpty getResult
@@ -200,6 +201,10 @@ func (d *ResourceData) diffChange(k string) (interface{}, interface{}, bool) {
 		n.Value = nil
 	}
 
+	if n.Exists && n.Schema.StateFunc != nil {
+		n.Value = n.Schema.StateFunc(n.Value)
+	}
+
 	// Return the old, new, and whether there is a change
 	return o.Value, n.Value, !reflect.DeepEqual(o.Value, n.Value)
 }
@@ -248,7 +253,7 @@ func (d *ResourceData) getSet(
 	schema *Schema,
 	source getSource) getResult {
 	s := &Set{F: schema.Set}
-	result := getResult{Value: s}
+	result := getResult{Schema: schema, Value: s}
 	raw := d.getList(k, nil, schema, source)
 	if !raw.Exists {
 		if len(parts) > 0 {
@@ -394,6 +399,7 @@ func (d *ResourceData) getMap(
 	return getResult{
 		Value:  resultValue,
 		Exists: resultSet,
+		Schema: schema,
 	}
 }
 
@@ -429,6 +435,9 @@ func (d *ResourceData) getObject(
 	return getResult{
 		Value:  result,
 		Exists: true,
+		Schema: &Schema{
+			Elem: schema,
+		},
 	}
 }
 
@@ -469,6 +478,7 @@ func (d *ResourceData) getList(
 	return getResult{
 		Value:  result,
 		Exists: count.Exists,
+		Schema: schema,
 	}
 }
 
@@ -553,6 +563,7 @@ func (d *ResourceData) getPrimitive(
 	return getResult{
 		Value:  resultValue,
 		Exists: resultSet,
+		Schema: schema,
 	}
 }
 

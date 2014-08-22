@@ -76,6 +76,37 @@ func TestSchemaMap_Diff(t *testing.T) {
 			Err: false,
 		},
 
+		// String with StateFunc
+		{
+			Schema: map[string]*Schema{
+				"availability_zone": &Schema{
+					Type:     TypeString,
+					Optional: true,
+					Computed: true,
+					StateFunc: func(a interface{}) string {
+						return a.(string) + "!"
+					},
+				},
+			},
+
+			State: nil,
+
+			Config: map[string]interface{}{
+				"availability_zone": "foo",
+			},
+
+			Diff: &terraform.ResourceDiff{
+				Attributes: map[string]*terraform.ResourceAttrDiff{
+					"availability_zone": &terraform.ResourceAttrDiff{
+						Old: "",
+						New: "foo!",
+					},
+				},
+			},
+
+			Err: false,
+		},
+
 		/*
 		 * Int decode
 		 */
