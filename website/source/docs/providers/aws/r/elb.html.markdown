@@ -45,7 +45,7 @@ The following arguments are supported:
 * `subnets` - (Optional) A list of subnets to attach to the ELB.
 * `instances` - (Optional) A list of instance ids to place in the ELB pool.
 * `listener` - (Required) A list of listener blocks. Listeners documented below.
-* `health_check` - (Required) A health_check block. Health Check documented below.
+* `health_check` - (Optional) A health_check block. Health Check documented below.
 
 Listeners support the following:
 
@@ -61,7 +61,6 @@ Health Check supports the following:
 * `target` - (Required) The target of the check.
 * `interval` - (Required) The interval between checks.
 * `timeout` - (Required) The length of time before the check times out.
-
 
 ## Attributes Reference
 

@@ -15,6 +15,7 @@ resource "aws_route_table" "r" {
     vpc_id = "${aws_vpc.default.id}"
     route {
         cidr_block = "10.0.1.0/24"
+        gateway_id = "${aws_internet_gateway.main.id}"
     }
 }
 ```
@@ -24,7 +25,7 @@ resource "aws_route_table" "r" {
 The following arguments are supported:
 
 * `vpc_id` - (Required) The ID of the routing table.
-* `route` - (Required) A list of route objects. Their keys are documented below.
+* `route` - (Optional) A list of route objects. Their keys are documented below.
 
 Each route supports the following:
 
@@ -32,9 +33,12 @@ Each route supports the following:
 * `gateway_id` - (Optional) The Internet Gateway ID.
 * `instance_id` - (Optional) The EC2 instance ID.
 
+Each route must contain either a `gateway_id` or an `instance_id`. Note that the
+default route, mapping the VPC's CIDR block to "local", is created implicitly and
+cannot be specified.
+
 ## Attributes Reference
 
 The following attributes are exported:
 
 * `id` - The ID of the routing table
-
