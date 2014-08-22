@@ -1524,7 +1524,21 @@ func TestResourceDataState(t *testing.T) {
 			}
 		}
 
+		// Set an ID so that the state returned is not nil
+		idSet := false
+		if d.Id() == "" {
+			idSet = true
+			d.SetId("foo")
+		}
+
 		actual := d.State()
+
+		// If we set an ID, then undo what we did so the comparison works
+		if actual != nil && idSet {
+			actual.ID = ""
+			delete(actual.Attributes, "id")
+		}
+
 		if !reflect.DeepEqual(actual, tc.Result) {
 			t.Fatalf("Bad: %d\n\n%#v", i, actual)
 		}
@@ -1533,6 +1547,7 @@ func TestResourceDataState(t *testing.T) {
 
 func TestResourceDataSetConnInfo(t *testing.T) {
 	d := &ResourceData{}
+	d.SetId("foo")
 	d.SetConnInfo(map[string]string{
 		"foo": "bar",
 	})
@@ -1549,6 +1564,7 @@ func TestResourceDataSetConnInfo(t *testing.T) {
 
 func TestResourceDataSetDependencies(t *testing.T) {
 	d := &ResourceData{}
+	d.SetId("foo")
 	d.SetDependencies([]terraform.ResourceDependency{
 		terraform.ResourceDependency{ID: "foo"},
 	})
@@ -1580,7 +1596,7 @@ func TestResourceDataSetId_clear(t *testing.T) {
 	d.SetId("")
 
 	actual := d.State()
-	if actual.ID != "" {
+	if actual != nil {
 		t.Fatalf("bad: %#v", actual)
 	}
 }

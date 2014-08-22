@@ -141,6 +141,13 @@ func (d *ResourceData) SetDependencies(ds []terraform.ResourceDependency) {
 func (d *ResourceData) State() *terraform.ResourceState {
 	var result terraform.ResourceState
 	result.ID = d.Id()
+
+	// If we have no ID, then this resource doesn't exist and we just
+	// return nil.
+	if result.ID == "" {
+		return nil
+	}
+
 	result.Attributes = d.stateObject("", d.schema)
 	result.ConnInfo = d.ConnInfo()
 	result.Dependencies = d.Dependencies()
