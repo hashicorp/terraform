@@ -386,8 +386,13 @@ func (m schemaMap) diffString(
 	schema *Schema,
 	diff *terraform.ResourceDiff,
 	d *ResourceData) error {
+	var originalN interface{}
 	var os, ns string
 	o, n, _ := d.diffChange(k)
+	if schema.StateFunc != nil {
+		originalN = n
+		n = schema.StateFunc(n)
+	}
 	if err := mapstructure.WeakDecode(o, &os); err != nil {
 		return fmt.Errorf("%s: %s", k, err)
 	}
@@ -411,6 +416,7 @@ func (m schemaMap) diffString(
 	diff.Attributes[k] = schema.finalizeDiff(&terraform.ResourceAttrDiff{
 		Old:        os,
 		New:        ns,
+		NewExtra:   originalN,
 		NewRemoved: removed,
 	})
 

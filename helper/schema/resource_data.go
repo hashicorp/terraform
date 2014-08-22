@@ -201,10 +201,6 @@ func (d *ResourceData) diffChange(k string) (interface{}, interface{}, bool) {
 		n.Value = nil
 	}
 
-	if n.Exists && n.Schema.StateFunc != nil {
-		n.Value = n.Schema.StateFunc(n.Value)
-	}
-
 	// Return the old, new, and whether there is a change
 	return o.Value, n.Value, !reflect.DeepEqual(o.Value, n.Value)
 }
@@ -512,6 +508,13 @@ func (d *ResourceData) getPrimitive(
 		attrD, ok := d.diff.Attributes[k]
 		if ok && !attrD.NewComputed {
 			result = attrD.New
+			if attrD.NewExtra != nil {
+				err := mapstructure.WeakDecode(attrD.NewExtra, &result)
+				if err != nil {
+					panic(err)
+				}
+			}
+
 			resultSet = true
 		}
 	}

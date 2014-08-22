@@ -98,8 +98,9 @@ func TestSchemaMap_Diff(t *testing.T) {
 			Diff: &terraform.ResourceDiff{
 				Attributes: map[string]*terraform.ResourceAttrDiff{
 					"availability_zone": &terraform.ResourceAttrDiff{
-						Old: "",
-						New: "foo!",
+						Old:      "",
+						New:      "foo!",
+						NewExtra: "foo",
 					},
 				},
 			},
