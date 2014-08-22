@@ -91,6 +91,19 @@ func (d *ResourceData) Id() string {
 	return result
 }
 
+// ConnInfo returns the connection info for this resource.
+func (d *ResourceData) ConnInfo() map[string]string {
+	if d.newState != nil {
+		return d.newState.ConnInfo
+	}
+
+	if d.state != nil {
+		return d.state.ConnInfo
+	}
+
+	return nil
+}
+
 // Dependencies returns the dependencies in this state.
 func (d *ResourceData) Dependencies() []terraform.ResourceDependency {
 	if d.newState != nil {
@@ -111,6 +124,12 @@ func (d *ResourceData) SetId(v string) {
 	d.newState.ID = v
 }
 
+// SetConnInfo sets the connection info for a resource.
+func (d *ResourceData) SetConnInfo(v map[string]string) {
+	d.once.Do(d.init)
+	d.newState.ConnInfo = v
+}
+
 // SetDependencies sets the dependencies of a resource.
 func (d *ResourceData) SetDependencies(ds []terraform.ResourceDependency) {
 	d.once.Do(d.init)
@@ -123,6 +142,7 @@ func (d *ResourceData) State() *terraform.ResourceState {
 	var result terraform.ResourceState
 	result.ID = d.Id()
 	result.Attributes = d.stateObject("", d.schema)
+	result.ConnInfo = d.ConnInfo()
 	result.Dependencies = d.Dependencies()
 
 	if v := d.Id(); v != "" {

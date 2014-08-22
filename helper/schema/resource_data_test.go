@@ -1531,6 +1531,22 @@ func TestResourceDataState(t *testing.T) {
 	}
 }
 
+func TestResourceDataSetConnInfo(t *testing.T) {
+	d := &ResourceData{}
+	d.SetConnInfo(map[string]string{
+		"foo": "bar",
+	})
+
+	expected := map[string]string{
+		"foo": "bar",
+	}
+
+	actual := d.State()
+	if !reflect.DeepEqual(actual.ConnInfo, expected) {
+		t.Fatalf("bad: %#v", actual)
+	}
+}
+
 func TestResourceDataSetDependencies(t *testing.T) {
 	d := &ResourceData{}
 	d.SetDependencies([]terraform.ResourceDependency{
