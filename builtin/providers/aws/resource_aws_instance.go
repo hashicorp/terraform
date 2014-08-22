@@ -1,6 +1,8 @@
 package aws
 
 import (
+	"crypto/sha1"
+	"encoding/hex"
 	"fmt"
 	"log"
 	"strings"
@@ -84,7 +86,10 @@ func resourceAwsInstance() *schema.Resource {
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: true,
-				// TODO: Process
+				StateFunc: func(v interface{}) string {
+					hash := sha1.Sum([]byte(v.(string)))
+					return hex.EncodeToString(hash[:])
+				},
 			},
 
 			"security_groups": &schema.Schema{
