@@ -401,9 +401,14 @@ func (m schemaMap) diffString(
 	}
 
 	if os == ns {
-		// They're the same value, return no diff as long as we're not
-		// computing a new value.
-		if os != "" || !schema.Computed {
+		// They're the same value. If there old value is not blank or we
+		// have an ID, then return right away since we're already setup.
+		if os != "" || d.Id() != "" {
+			return nil
+		}
+
+		// Otherwise, only continue if we're computed
+		if !schema.Computed {
 			return nil
 		}
 	}
