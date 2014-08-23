@@ -89,14 +89,14 @@ func testAccCheckRoute53RecordExists(n string) resource.TestCheckFunc {
 
 const testAccRoute53RecordConfig = `
 resource "aws_route53_zone" "main" {
-	name = "example.com"
+	name = "notexample.com"
 }
 
 resource "aws_route53_record" "default" {
 	zone_id = "${aws_route53_zone.main.zone_id}"
-	name = "www.example.com"
+	name = "www.notexample.com"
 	type = "A"
 	ttl = "30"
-	records = ["127.0.0.1"]
+	records = ["127.0.0.1", "127.0.0.27"]
 }
 `
