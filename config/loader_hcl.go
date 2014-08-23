@@ -17,10 +17,11 @@ type hclConfigurable struct {
 
 func (t *hclConfigurable) Config() (*Config, error) {
 	validKeys := map[string]struct{}{
-		"output":   struct{}{},
-		"provider": struct{}{},
-		"resource": struct{}{},
-		"variable": struct{}{},
+		"output":            struct{}{},
+		"provider":          struct{}{},
+		"resource":          struct{}{},
+		"resource_template": struct{}{},
+		"variable":          struct{}{},
 	}
 
 	type hclVariable struct {
@@ -76,6 +77,20 @@ func (t *hclConfigurable) Config() (*Config, error) {
 		if err != nil {
 			return nil, err
 		}
+	}
+
+	// Build the resource templates
+	if resource_templates := t.Object.Get(
+		"resource_template",
+		false); resource_templates != nil {
+		/*
+			var err error
+			config.ResourceTemplates, err = loadResourceTemplatesHcl(
+				resource_templates)
+			if err != nil {
+				return nil, err
+			}
+		*/
 	}
 
 	// Build the resources
@@ -315,6 +330,7 @@ func loadResourcesHcl(os *hclobj.Object) ([]*Resource, error) {
 			delete(config, "count")
 			delete(config, "depends_on")
 			delete(config, "provisioner")
+			delete(config, "template")
 
 			rawConfig, err := NewRawConfig(config)
 			if err != nil {
@@ -377,6 +393,8 @@ func loadResourcesHcl(os *hclobj.Object) ([]*Resource, error) {
 						err)
 				}
 			}
+
+			// Need to parse resource templates here
 
 			result = append(result, &Resource{
 				Name:         k,

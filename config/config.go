@@ -15,10 +15,11 @@ import (
 // Config is the configuration that comes from loading a collection
 // of Terraform templates.
 type Config struct {
-	ProviderConfigs []*ProviderConfig
-	Resources       []*Resource
-	Variables       []*Variable
-	Outputs         []*Output
+	ProviderConfigs   []*ProviderConfig
+	Resources         []*Resource
+	ResourceTemplates []*ResourceTemplate
+	Variables         []*Variable
+	Outputs           []*Output
 
 	// The fields below can be filled in by loaders for validation
 	// purposes.
@@ -44,6 +45,12 @@ type Resource struct {
 	RawConfig    *RawConfig
 	Provisioners []*Provisioner
 	DependsOn    []string
+}
+
+type ResourceTemplate struct {
+	Name      string
+	Type      string
+	RawConfig *RawConfig
 }
 
 // Provisioner is a configured provisioner step on a resource.
