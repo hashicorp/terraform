@@ -66,7 +66,7 @@ func testAccCheckMailgunDomainAttributes(Domain *mailgun.Domain) resource.TestCh
 		}
 
 		if Domain.Wildcard != true {
-			return fmt.Errorf("Bad wildcard: %s", Domain.SpamAction)
+			return fmt.Errorf("Bad wildcard: %s", Domain.Wildcard)
 		}
 
 		if Domain.SmtpPassword != "foobar" {
