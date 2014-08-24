@@ -15,12 +15,6 @@ create and manage applications on Mailgun.
 # Create a new mailgun domain
 resource "mailgun_domain" "default" {
     name = "test.example.com"
-    smtp_password = "foobar"
-}
-
-# Create SMTP Credentials
-resource "mailgun_domain" "default" {
-    name = "test.example.com"
     spam_action = "disabled"
     smtp_password = "foobar"
 }
