@@ -78,6 +78,10 @@ type SchemaSetFunc func(interface{}) int
 // to be stored in the state.
 type SchemaStateFunc func(interface{}) string
 
+func (s *Schema) GoString() string {
+	return fmt.Sprintf("*%#v", *s)
+}
+
 func (s *Schema) finalizeDiff(
 	d *terraform.ResourceAttrDiff) *terraform.ResourceAttrDiff {
 	if d == nil {
@@ -182,6 +186,10 @@ func (m schemaMap) InternalValidate() error {
 
 		if v.Required && v.Computed {
 			return fmt.Errorf("%s: Cannot be both Required and Computed", k)
+		}
+
+		if !v.Required && !v.Optional && !v.Computed {
+			return fmt.Errorf("%s: One of optional, required, or computed must be set", k)
 		}
 
 		if len(v.ComputedWhen) > 0 && !v.Computed {

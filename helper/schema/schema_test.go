@@ -780,6 +780,16 @@ func TestSchemaMap_InternalValidate(t *testing.T) {
 			true,
 		},
 
+		// No optional and no required
+		{
+			map[string]*Schema{
+				"foo": &Schema{
+					Type: TypeInt,
+				},
+			},
+			true,
+		},
+
 		// Missing Type
 		{
 			map[string]*Schema{
@@ -827,7 +837,8 @@ func TestSchemaMap_InternalValidate(t *testing.T) {
 		{
 			map[string]*Schema{
 				"foo": &Schema{
-					Type: TypeList,
+					Type:     TypeList,
+					Optional: true,
 					Elem: &Schema{
 						Type:     TypeInt,
 						Computed: true,
@@ -841,9 +852,10 @@ func TestSchemaMap_InternalValidate(t *testing.T) {
 		{
 			map[string]*Schema{
 				"foo": &Schema{
-					Type: TypeList,
-					Elem: &Schema{Type: TypeInt},
-					Set:  func(interface{}) int { return 0 },
+					Type:     TypeList,
+					Elem:     &Schema{Type: TypeInt},
+					Set:      func(interface{}) int { return 0 },
+					Optional: true,
 				},
 			},
 			true,
@@ -853,8 +865,9 @@ func TestSchemaMap_InternalValidate(t *testing.T) {
 		{
 			map[string]*Schema{
 				"foo": &Schema{
-					Type: TypeSet,
-					Elem: &Schema{Type: TypeInt},
+					Type:     TypeSet,
+					Elem:     &Schema{Type: TypeInt},
+					Optional: true,
 				},
 			},
 			true,
@@ -876,7 +889,8 @@ func TestSchemaMap_InternalValidate(t *testing.T) {
 		{
 			map[string]*Schema{
 				"foo": &Schema{
-					Type: TypeList,
+					Type:     TypeList,
+					Optional: true,
 					Elem: &Resource{
 						Schema: map[string]*Schema{
 							"foo": new(Schema),
@@ -891,11 +905,13 @@ func TestSchemaMap_InternalValidate(t *testing.T) {
 		{
 			map[string]*Schema{
 				"foo": &Schema{
-					Type: TypeList,
+					Type:     TypeList,
+					Optional: true,
 					Elem: &Resource{
 						Schema: map[string]*Schema{
 							"foo": &Schema{
-								Type: TypeInt,
+								Type:     TypeInt,
+								Optional: true,
 							},
 						},
 					},
@@ -908,7 +924,7 @@ func TestSchemaMap_InternalValidate(t *testing.T) {
 	for i, tc := range cases {
 		err := schemaMap(tc.In).InternalValidate()
 		if (err != nil) != tc.Err {
-			t.Fatalf("%d: bad: %s", i, err)
+			t.Fatalf("%d: bad: %s\n\n%#v", i, err, tc.In)
 		}
 	}
 
