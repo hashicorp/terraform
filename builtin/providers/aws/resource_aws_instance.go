@@ -88,8 +88,13 @@ func resourceAwsInstance() *schema.Resource {
 				Optional: true,
 				ForceNew: true,
 				StateFunc: func(v interface{}) string {
-					hash := sha1.Sum([]byte(v.(string)))
-					return hex.EncodeToString(hash[:])
+					switch v.(type) {
+					case string:
+						hash := sha1.Sum([]byte(v.(string)))
+						return hex.EncodeToString(hash[:])
+					default:
+						return ""
+					}
 				},
 			},
 
