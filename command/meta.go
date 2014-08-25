@@ -3,6 +3,7 @@ package command
 import (
 	"flag"
 	"fmt"
+	"math/rand"
 	"os"
 
 	"github.com/hashicorp/terraform/config"
@@ -25,7 +26,9 @@ type Meta struct {
 	extraHooks []terraform.Hook
 
 	// Variables for the context (private)
-	variables map[string]string
+	autoKey       string
+	autoVariables map[string]string
+	variables     map[string]string
 
 	color bool
 	oldUi cli.Ui
@@ -109,16 +112,17 @@ func (m *Meta) contextOpts() *terraform.ContextOpts {
 	copy(opts.Hooks[1:], m.ContextOpts.Hooks)
 	copy(opts.Hooks[len(m.ContextOpts.Hooks)+1:], m.extraHooks)
 
-	if len(m.variables) > 0 {
-		vs := make(map[string]string)
-		for k, v := range opts.Variables {
-			vs[k] = v
-		}
-		for k, v := range m.variables {
-			vs[k] = v
-		}
-		opts.Variables = vs
+	vs := make(map[string]string)
+	for k, v := range opts.Variables {
+		vs[k] = v
 	}
+	for k, v := range m.autoVariables {
+		vs[k] = v
+	}
+	for k, v := range m.variables {
+		vs[k] = v
+	}
+	opts.Variables = vs
 
 	return &opts
 }
@@ -128,6 +132,11 @@ func (m *Meta) flagSet(n string) *flag.FlagSet {
 	f := flag.NewFlagSet(n, flag.ContinueOnError)
 	f.Var((*FlagVar)(&m.variables), "var", "variables")
 	f.Var((*FlagVarFile)(&m.variables), "var-file", "variable file")
+
+	if m.autoKey != "" {
+		f.Var((*FlagVarFile)(&m.autoVariables), m.autoKey, "variable file")
+	}
+
 	return f
 }
 
@@ -163,11 +172,13 @@ func (m *Meta) process(args []string, vars bool) []string {
 
 	// If we support vars and the default var file exists, add it to
 	// the args...
+	m.autoKey = ""
 	if vars {
 		if _, err := os.Stat(DefaultVarsFilename); err == nil {
+			m.autoKey = fmt.Sprintf("var-file-%d", rand.Int())
 			args = append(args, "", "")
 			copy(args[2:], args[0:])
-			args[0] = "-var-file"
+			args[0] = "-" + m.autoKey
 			args[1] = DefaultVarsFilename
 		}
 	}
