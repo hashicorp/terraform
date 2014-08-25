@@ -17,9 +17,20 @@ func Provider() *schema.Provider {
 				Type:     schema.TypeString,
 				Required: true,
 			},
+
+			"project": &schema.Schema{
+				Type:     schema.TypeString,
+				Required: true,
+			},
+
+			"region": &schema.Schema{
+				Type:     schema.TypeString,
+				Required: true,
+			},
 		},
 
 		ResourcesMap: map[string]*schema.Resource{
+			"google_compute_address":  resourceComputeAddress(),
 			"google_compute_instance": resourceComputeInstance(),
 		},
 
@@ -31,11 +42,13 @@ func providerConfigure(d *schema.ResourceData) (interface{}, error) {
 	config := Config{
 		AccountFile:       d.Get("account_file").(string),
 		ClientSecretsFile: d.Get("client_secrets_file").(string),
+		Project:           d.Get("project").(string),
+		Region:            d.Get("region").(string),
 	}
 
 	if err := config.loadAndValidate(); err != nil {
 		return nil, err
 	}
 
-	return nil, nil
+	return &config, nil
 }

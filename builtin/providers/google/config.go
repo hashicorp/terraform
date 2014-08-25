@@ -19,6 +19,8 @@ const clientScopes string = "https://www.googleapis.com/auth/compute"
 type Config struct {
 	AccountFile       string
 	ClientSecretsFile string
+	Project           string
+	Region            string
 
 	clientCompute *compute.Service
 }
@@ -33,6 +35,12 @@ func (c *Config) loadAndValidate() error {
 	}
 	if c.ClientSecretsFile == "" {
 		c.ClientSecretsFile = os.Getenv("GOOGLE_CLIENT_FILE")
+	}
+	if c.Project == "" {
+		c.Project = os.Getenv("GOOGLE_PROJECT")
+	}
+	if c.Region == "" {
+		c.Region = os.Getenv("GOOGLE_REGION")
 	}
 
 	if err := loadJSON(&account, c.AccountFile); err != nil {

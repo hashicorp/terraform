@@ -6,14 +6,14 @@ import (
 	"github.com/hashicorp/terraform/helper/resource"
 )
 
-func TestAccComputeInstance_basic(t *testing.T) {
+func TestAccComputeAddress_basic(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
 		//CheckDestroy: testAccCheckHerokuAppDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccComputeInstance_basic,
+				Config: testAccComputeAddress_basic,
 				/*
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckHerokuAppExists("heroku_app.foobar", &app),
@@ -156,6 +156,7 @@ func testAccCheckHerokuAppExists(n string, app *heroku.App) resource.TestCheckFu
 }
 */
 
-const testAccComputeInstance_basic = `
-resource "google_compute_instance" "foobar" {
+const testAccComputeAddress_basic = `
+resource "google_compute_address" "foobar" {
+	name = "terraform-test"
 }`
