@@ -31,6 +31,7 @@ func Provider() *schema.Provider {
 
 		ResourcesMap: map[string]*schema.Resource{
 			"google_compute_address":  resourceComputeAddress(),
+			"google_compute_disk":     resourceComputeDisk(),
 			"google_compute_instance": resourceComputeInstance(),
 		},
 

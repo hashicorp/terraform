@@ -70,6 +70,16 @@ func resourceComputeInstance() *schema.Resource {
 							Type:     schema.TypeString,
 							Optional: true,
 						},
+
+						"name": &schema.Schema{
+							Type:     schema.TypeString,
+							Computed: true,
+						},
+
+						"internal_address": &schema.Schema{
+							Type:     schema.TypeString,
+							Computed: true,
+						},
 					},
 				},
 			},
@@ -253,10 +263,17 @@ func resourceComputeInstanceCreate(d *schema.ResourceData, meta interface{}) err
 func resourceComputeInstanceRead(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
 
-	_, err := config.clientCompute.Instances.Get(
+	instance, err := config.clientCompute.Instances.Get(
 		config.Project, d.Get("zone").(string), d.Id()).Do()
 	if err != nil {
 		return fmt.Errorf("Error reading instance: %s", err)
+	}
+
+	// Set the networks
+	for i, iface := range instance.NetworkInterfaces {
+		prefix := fmt.Sprintf("network.%d", i)
+		d.Set(prefix+".name", iface.Name)
+		d.Set(prefix+".internal_address", iface.NetworkIP)
 	}
 
 	return nil
