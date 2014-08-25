@@ -423,10 +423,8 @@ func loadResourceTemplatesHcl(rt *hclobj.Object) ([]*ResourceTemplate, error) {
 	var objects []*hclobj.Object
 
 	for _, o1 := range rt.Elem(false) {
-		for _, o2 := range o1.Elem(true) {
-			for _, o3 := range o2.Elem(false) {
-				objects = append(objects, o3)
-			}
+		for _, o2 := range o1.Elem(false) {
+			objects = append(objects, o2)
 		}
 	}
 

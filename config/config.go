@@ -104,6 +104,14 @@ func (r *Resource) Id() string {
 	return fmt.Sprintf("%s.%s", r.Type, r.Name)
 }
 
+// ApplyTemplate will apply a resource template onto an existing RawConfig. This
+// is done by checking if the keys were explicitly set within the resource, and
+// if they were not, copying the values from the template.
+//
+// Since resource templates are a generic construct and may be applied to _any_
+// resource, this method does not itself need to perform validation of the keys.
+// Rather, we allow any keys to be passed into a resource template, and defer to
+// the provider's config validator to catch any errors.
 func (r *Resource) ApplyTemplate(t *ResourceTemplate) {
 	for k, v := range t.RawConfig.Raw {
 		if _, ok := r.RawConfig.Raw[k]; !ok {
