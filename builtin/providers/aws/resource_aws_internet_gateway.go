@@ -100,7 +100,7 @@ func resource_aws_internet_gateway_destroy(
 	}
 	if _, err := stateConf.WaitForState(); err != nil {
 		return fmt.Errorf(
-			"Error waiting for internet gateway (%s) to destroy",
+			"Error waiting for internet gateway (%s) to destroy: %s",
 			s.ID, err)
 	}
 

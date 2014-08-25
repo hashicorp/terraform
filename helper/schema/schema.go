@@ -248,7 +248,7 @@ func (m schemaMap) diff(
 	case TypeSet:
 		err = m.diffSet(k, schema, diff, d)
 	default:
-		err = fmt.Errorf("%s: unknown type %s", k, schema.Type)
+		err = fmt.Errorf("%s: unknown type %#v", k, schema.Type)
 	}
 
 	return err

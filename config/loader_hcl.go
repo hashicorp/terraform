@@ -305,7 +305,7 @@ func loadResourcesHcl(os *hclobj.Object) ([]*Resource, error) {
 			if err := hcl.DecodeObject(&config, obj); err != nil {
 				return nil, fmt.Errorf(
 					"Error reading config for %s[%s]: %s",
-					t,
+					t.Key,
 					k,
 					err)
 			}
@@ -320,7 +320,7 @@ func loadResourcesHcl(os *hclobj.Object) ([]*Resource, error) {
 			if err != nil {
 				return nil, fmt.Errorf(
 					"Error reading config for %s[%s]: %s",
-					t,
+					t.Key,
 					k,
 					err)
 			}
@@ -332,7 +332,7 @@ func loadResourcesHcl(os *hclobj.Object) ([]*Resource, error) {
 				if err != nil {
 					return nil, fmt.Errorf(
 						"Error parsing count for %s[%s]: %s",
-						t,
+						t.Key,
 						k,
 						err)
 				}
@@ -345,7 +345,7 @@ func loadResourcesHcl(os *hclobj.Object) ([]*Resource, error) {
 				if err != nil {
 					return nil, fmt.Errorf(
 						"Error reading depends_on for %s[%s]: %s",
-						t,
+						t.Key,
 						k,
 						err)
 				}
@@ -358,7 +358,7 @@ func loadResourcesHcl(os *hclobj.Object) ([]*Resource, error) {
 				if err != nil {
 					return nil, fmt.Errorf(
 						"Error reading connection info for %s[%s]: %s",
-						t,
+						t.Key,
 						k,
 						err)
 				}
@@ -372,7 +372,7 @@ func loadResourcesHcl(os *hclobj.Object) ([]*Resource, error) {
 				if err != nil {
 					return nil, fmt.Errorf(
 						"Error reading provisioners for %s[%s]: %s",
-						t,
+						t.Key,
 						k,
 						err)
 				}

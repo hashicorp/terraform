@@ -66,8 +66,6 @@ func resource_aws_subnet_update(
 	// This should never be called because we have no update-able
 	// attributes
 	panic("Update for subnet is not supported")
-
-	return nil, nil
 }
 
 func resource_aws_subnet_destroy(
@@ -96,7 +94,7 @@ func resource_aws_subnet_destroy(
 	}
 	if _, err := stateConf.WaitForState(); err != nil {
 		return fmt.Errorf(
-			"Error waiting for subnet (%s) to destroy",
+			"Error waiting for subnet (%s) to destroy: %s",
 			s.ID, err)
 	}
 

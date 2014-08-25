@@ -88,7 +88,7 @@ func resourceAwsSecurityGroupIngressHash(v interface{}) int {
 	m := v.(map[string]interface{})
 	buf.WriteString(fmt.Sprintf("%d-", m["from_port"].(int)))
 	buf.WriteString(fmt.Sprintf("%d-", m["to_port"].(int)))
-	buf.WriteString(fmt.Sprintf("%d-", m["protocol"].(string)))
+	buf.WriteString(fmt.Sprintf("%s-", m["protocol"].(string)))
 
 	// We need to make sure to sort the strings below so that we always
 	// generate the same hash code no matter what is in the set.

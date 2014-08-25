@@ -165,6 +165,6 @@ func TestProviderMeta(t *testing.T) {
 	expected := 42
 	p.SetMeta(42)
 	if v := p.Meta(); !reflect.DeepEqual(v, expected) {
-		t.Fatalf("bad: %#v")
+		t.Fatalf("bad: %#v", v)
 	}
 }

@@ -244,7 +244,7 @@ func (d *ResourceData) get(
 	case TypeString:
 		return d.getPrimitive(k, parts, schema, source)
 	default:
-		panic(fmt.Sprintf("%s: unknown type %s", k, schema.Type))
+		panic(fmt.Sprintf("%s: unknown type %#v", k, schema.Type))
 	}
 }
 
@@ -570,7 +570,7 @@ func (d *ResourceData) getPrimitive(
 
 		resultValue = int(v)
 	default:
-		panic(fmt.Sprintf("Unknown type: %s", schema.Type))
+		panic(fmt.Sprintf("Unknown type: %#v", schema.Type))
 	}
 
 	return getResult{
@@ -600,7 +600,7 @@ func (d *ResourceData) set(
 	case TypeString:
 		return d.setPrimitive(k, schema, value)
 	default:
-		panic(fmt.Sprintf("%s: unknown type %s", k, schema.Type))
+		panic(fmt.Sprintf("%s: unknown type %#v", k, schema.Type))
 	}
 }
 
@@ -773,7 +773,7 @@ func (d *ResourceData) setPrimitive(
 
 		set = strconv.FormatInt(int64(n), 10)
 	default:
-		return fmt.Errorf("Unknown type: %s", schema.Type)
+		return fmt.Errorf("Unknown type: %#v", schema.Type)
 	}
 
 	d.setMap[k] = set
@@ -888,7 +888,7 @@ func (d *ResourceData) statePrimitive(
 	case TypeInt:
 		vs = strconv.FormatInt(int64(v.(int)), 10)
 	default:
-		panic(fmt.Sprintf("Unknown type: %s", schema.Type))
+		panic(fmt.Sprintf("Unknown type: %#v", schema.Type))
 	}
 
 	return map[string]string{
@@ -944,6 +944,6 @@ func (d *ResourceData) stateSingle(
 	case TypeString:
 		return d.statePrimitive(prefix, schema)
 	default:
-		panic(fmt.Sprintf("%s: unknown type %s", prefix, schema.Type))
+		panic(fmt.Sprintf("%s: unknown type %#v", prefix, schema.Type))
 	}
 }

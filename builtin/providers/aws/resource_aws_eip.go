@@ -135,13 +135,11 @@ func resourceAwsEipDelete(d *schema.ResourceData, meta interface{}) error {
 		log.Printf("[DEBUG] EIP release (destroy) address allocation: %v", d.Id())
 		_, err = ec2conn.ReleaseAddress(d.Id())
 		return err
-	} else {
-		log.Printf("[DEBUG] EIP release (destroy) address: %v", d.Id())
-		_, err = ec2conn.ReleasePublicAddress(d.Id())
-		return err
 	}
 
-	return nil
+	log.Printf("[DEBUG] EIP release (destroy) address: %v", d.Id())
+	_, err = ec2conn.ReleasePublicAddress(d.Id())
+	return err
 }
 
 func resourceAwsEipRead(d *schema.ResourceData, meta interface{}) error {

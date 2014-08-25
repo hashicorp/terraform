@@ -107,11 +107,11 @@ func testAccCheckAWSAutoScalingGroupAttributes(group *autoscaling.AutoScalingGro
 		}
 
 		if group.MaxSize != 5 {
-			return fmt.Errorf("Bad max_size: %s", group.MaxSize)
+			return fmt.Errorf("Bad max_size: %d", group.MaxSize)
 		}
 
 		if group.MinSize != 2 {
-			return fmt.Errorf("Bad max_size: %s", group.MinSize)
+			return fmt.Errorf("Bad max_size: %d", group.MinSize)
 		}
 
 		if group.HealthCheckType != "ELB" {
@@ -119,15 +119,15 @@ func testAccCheckAWSAutoScalingGroupAttributes(group *autoscaling.AutoScalingGro
 		}
 
 		if group.HealthCheckGracePeriod != 300 {
-			return fmt.Errorf("Bad health_check_grace_period: %s", group.HealthCheckGracePeriod)
+			return fmt.Errorf("Bad health_check_grace_period: %d", group.HealthCheckGracePeriod)
 		}
 
 		if group.DesiredCapacity != 4 {
-			return fmt.Errorf("Bad desired_capacity: %s", group.DesiredCapacity)
+			return fmt.Errorf("Bad desired_capacity: %d", group.DesiredCapacity)
 		}
 
 		if group.LaunchConfigurationName != "" {
-			return fmt.Errorf("Bad desired_capacity: %s", group.DesiredCapacity)
+			return fmt.Errorf("Bad desired_capacity: %d", group.DesiredCapacity)
 		}
 
 		return nil

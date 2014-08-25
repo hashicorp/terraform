@@ -88,10 +88,7 @@ func resource_aws_db_security_group_update(
 	s *terraform.ResourceState,
 	d *terraform.ResourceDiff,
 	meta interface{}) (*terraform.ResourceState, error) {
-
-	panic("Cannot update DB")
-
-	return nil, nil
+	panic("Cannot update DB security group")
 }
 
 func resource_aws_db_security_group_destroy(

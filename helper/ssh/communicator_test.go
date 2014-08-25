@@ -82,10 +82,10 @@ func newMockLineServer(t *testing.T) string {
 			}
 			t.Log("Accepted channel")
 
-			go func() {
+			go func(newChannel ssh.NewChannel) {
 				defer channel.Close()
 				conn.OpenChannel(newChannel.ChannelType(), nil)
-			}()
+			}(newChannel)
 		}
 		conn.Close()
 	}()

@@ -61,7 +61,7 @@ func TestResourceBuilder_attrSetComputedComplex(t *testing.T) {
 		t.Fatalf("err: %s", err)
 	}
 	if diff != nil {
-		t.Fatalf("diff shold be nil: %s", diff)
+		t.Fatalf("diff shold be nil: %#v", diff)
 	}
 }
 
@@ -361,7 +361,7 @@ func TestResourceBuilder_same(t *testing.T) {
 		t.Fatalf("err: %s", err)
 	}
 	if diff != nil {
-		t.Fatal("should not diff: %s", diff)
+		t.Fatalf("should not diff: %#v", diff)
 	}
 }
 

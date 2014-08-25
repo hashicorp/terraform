@@ -192,11 +192,9 @@ func testAccCheckAWSSecurityGroupExists(n string, group *ec2.SecurityGroupInfo) 
 			*group = resp.Groups[0]
 
 			return nil
-		} else {
-			return fmt.Errorf("Security Group not found")
 		}
 
-		return nil
+		return fmt.Errorf("Security Group not found")
 	}
 }
 
