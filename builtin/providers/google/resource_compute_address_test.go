@@ -1,160 +1,79 @@
 package google
 
 import (
+	"fmt"
 	"testing"
 
+	"code.google.com/p/google-api-go-client/compute/v1"
 	"github.com/hashicorp/terraform/helper/resource"
+	"github.com/hashicorp/terraform/terraform"
 )
 
 func TestAccComputeAddress_basic(t *testing.T) {
+	var addr compute.Address
+
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
-		//CheckDestroy: testAccCheckHerokuAppDestroy,
+		CheckDestroy: testAccCheckComputeAddressDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
 				Config: testAccComputeAddress_basic,
-				/*
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckHerokuAppExists("heroku_app.foobar", &app),
-					testAccCheckHerokuAppAttributes(&app),
-					resource.TestCheckResourceAttr(
-						"heroku_app.foobar", "name", "terraform-test-app"),
-					resource.TestCheckResourceAttr(
-						"heroku_app.foobar", "config_vars.0.FOO", "bar"),
+					testAccCheckComputeAddressExists(
+						"google_compute_address.foobar", &addr),
 				),
-				*/
 			},
 		},
 	})
 }
 
-/*
-func testAccCheckHerokuAppDestroy(s *terraform.State) error {
-	client := testAccProvider.Meta().(*heroku.Client)
+func testAccCheckComputeAddressDestroy(s *terraform.State) error {
+	config := testAccProvider.Meta().(*Config)
 
 	for _, rs := range s.Resources {
-		if rs.Type != "heroku_app" {
+		if rs.Type != "google_compute_address" {
 			continue
 		}
 
-		_, err := client.AppInfo(rs.ID)
-
+		_, err := config.clientCompute.Addresses.Get(
+			config.Project, config.Region, rs.ID).Do()
 		if err == nil {
-			return fmt.Errorf("App still exists")
+			return fmt.Errorf("Address still exists")
 		}
 	}
 
 	return nil
 }
 
-func testAccCheckHerokuAppAttributes(app *heroku.App) resource.TestCheckFunc {
-	return func(s *terraform.State) error {
-		client := testAccProvider.Meta().(*heroku.Client)
-
-		if app.Region.Name != "us" {
-			return fmt.Errorf("Bad region: %s", app.Region.Name)
-		}
-
-		if app.Stack.Name != "cedar" {
-			return fmt.Errorf("Bad stack: %s", app.Stack.Name)
-		}
-
-		if app.Name != "terraform-test-app" {
-			return fmt.Errorf("Bad name: %s", app.Name)
-		}
-
-		vars, err := client.ConfigVarInfo(app.Name)
-		if err != nil {
-			return err
-		}
-
-		if vars["FOO"] != "bar" {
-			return fmt.Errorf("Bad config vars: %v", vars)
-		}
-
-		return nil
-	}
-}
-
-func testAccCheckHerokuAppAttributesUpdated(app *heroku.App) resource.TestCheckFunc {
-	return func(s *terraform.State) error {
-		client := testAccProvider.Meta().(*heroku.Client)
-
-		if app.Name != "terraform-test-renamed" {
-			return fmt.Errorf("Bad name: %s", app.Name)
-		}
-
-		vars, err := client.ConfigVarInfo(app.Name)
-		if err != nil {
-			return err
-		}
-
-		// Make sure we kept the old one
-		if vars["FOO"] != "bing" {
-			return fmt.Errorf("Bad config vars: %v", vars)
-		}
-
-		if vars["BAZ"] != "bar" {
-			return fmt.Errorf("Bad config vars: %v", vars)
-		}
-
-		return nil
-
-	}
-}
-
-func testAccCheckHerokuAppAttributesNoVars(app *heroku.App) resource.TestCheckFunc {
-	return func(s *terraform.State) error {
-		client := testAccProvider.Meta().(*heroku.Client)
-
-		if app.Name != "terraform-test-app" {
-			return fmt.Errorf("Bad name: %s", app.Name)
-		}
-
-		vars, err := client.ConfigVarInfo(app.Name)
-		if err != nil {
-			return err
-		}
-
-		if len(vars) != 0 {
-			return fmt.Errorf("vars exist: %v", vars)
-		}
-
-		return nil
-	}
-}
-
-func testAccCheckHerokuAppExists(n string, app *heroku.App) resource.TestCheckFunc {
+func testAccCheckComputeAddressExists(n string, addr *compute.Address) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		rs, ok := s.Resources[n]
-
 		if !ok {
 			return fmt.Errorf("Not found: %s", n)
 		}
 
 		if rs.ID == "" {
-			return fmt.Errorf("No App Name is set")
+			return fmt.Errorf("No ID is set")
 		}
 
-		client := testAccProvider.Meta().(*heroku.Client)
+		config := testAccProvider.Meta().(*Config)
 
-		foundApp, err := client.AppInfo(rs.ID)
-
+		found, err := config.clientCompute.Addresses.Get(
+			config.Project, config.Region, rs.ID).Do()
 		if err != nil {
 			return err
 		}
 
-		if foundApp.Name != rs.ID {
-			return fmt.Errorf("App not found")
+		if found.Name != rs.ID {
+			return fmt.Errorf("Addr not found")
 		}
 
-		*app = *foundApp
+		*addr = *found
 
 		return nil
 	}
 }
-*/
 
 const testAccComputeAddress_basic = `
 resource "google_compute_address" "foobar" {
