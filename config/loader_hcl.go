@@ -406,7 +406,6 @@ func loadResourcesHcl(os *hclobj.Object, rts []*ResourceTemplate) ([]*Resource, 
 			if rt := obj.Get("resource_template", false); rt != nil {
 				for _, template := range rts {
 					if template.Name == rt.Value {
-						fmt.Println("Applying template")
 						resource.ApplyTemplate(template)
 					}
 				}
