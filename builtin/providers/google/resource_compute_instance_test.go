@@ -22,7 +22,8 @@ func TestAccComputeInstance_basic(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckComputeInstanceExists(
 						"google_compute_instance.foobar", &instance),
-					testAccCheckComputeInstanceTag(instance, "foo"),
+					testAccCheckComputeInstanceTag(&instance, "foo"),
+					testAccCheckComputeInstanceMetadata(&instance, "foo", "bar"),
 				),
 			},
 		},
@@ -76,7 +77,31 @@ func testAccCheckComputeInstanceExists(n string, instance *compute.Instance) res
 	}
 }
 
-func testAccCheckComputeInstanceExists(instance *compute.Instance, n string) resource.TestCheckFunc {
+func testAccCheckComputeInstanceMetadata(
+	instance *compute.Instance,
+	k string, v string) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		if instance.Metadata == nil {
+			return fmt.Errorf("no metadata")
+		}
+
+		for _, item := range instance.Metadata.Items {
+			if k != item.Key {
+				continue
+			}
+
+			if v == item.Value {
+				return nil
+			}
+
+			return fmt.Errorf("bad value for %s: %s", k, item.Value)
+		}
+
+		return fmt.Errorf("metadata not found: %s", k)
+	}
+}
+
+func testAccCheckComputeInstanceTag(instance *compute.Instance, n string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		if instance.Tags == nil {
 			return fmt.Errorf("no tags")
@@ -105,5 +130,9 @@ resource "google_compute_instance" "foobar" {
 
 	network {
 		source = "default"
+	}
+
+	metadata {
+		foo = "bar"
 	}
 }`

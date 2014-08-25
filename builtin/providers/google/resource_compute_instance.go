@@ -69,6 +69,14 @@ func resourceComputeInstance() *schema.Resource {
 				},
 			},
 
+			"metadata": &schema.Schema{
+				Type:     schema.TypeList,
+				Optional: true,
+				Elem: &schema.Schema{
+					Type: schema.TypeMap,
+				},
+			},
+
 			"tags": &schema.Schema{
 				Type:     schema.TypeSet,
 				Optional: true,
@@ -155,6 +163,23 @@ func resourceComputeInstanceCreate(d *schema.ResourceData, meta interface{}) err
 		networks = append(networks, &iface)
 	}
 
+	// Calculate the metadata
+	var metadata *compute.Metadata
+	if v := d.Get("metadata").([]interface{}); len(v) > 0 {
+		m := new(compute.Metadata)
+		m.Items = make([]*compute.MetadataItems, 0, len(v))
+		for _, v := range v {
+			for k, v := range v.(map[string]interface{}) {
+				m.Items = append(m.Items, &compute.MetadataItems{
+					Key:   k,
+					Value: v.(string),
+				})
+			}
+		}
+
+		metadata = m
+	}
+
 	// Calculate the tags
 	var tags *compute.Tags
 	if v := d.Get("tags"); v != nil {
@@ -168,14 +193,10 @@ func resourceComputeInstanceCreate(d *schema.ResourceData, meta interface{}) err
 
 	// Create the instance information
 	instance := compute.Instance{
-		Description: d.Get("description").(string),
-		Disks:       disks,
-		MachineType: machineType.SelfLink,
-		/*
-			Metadata: &compute.Metadata{
-				Items: metadata,
-			},
-		*/
+		Description:       d.Get("description").(string),
+		Disks:             disks,
+		MachineType:       machineType.SelfLink,
+		Metadata:          metadata,
 		Name:              d.Get("name").(string),
 		NetworkInterfaces: networks,
 		Tags:              tags,
