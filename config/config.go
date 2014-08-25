@@ -104,6 +104,14 @@ func (r *Resource) Id() string {
 	return fmt.Sprintf("%s.%s", r.Type, r.Name)
 }
 
+func (r *Resource) ApplyTemplate(t *ResourceTemplate) {
+	for k, v := range t.RawConfig.Raw {
+		if _, ok := r.RawConfig.Raw[k]; !ok {
+			r.RawConfig.Raw[k] = v
+		}
+	}
+}
+
 // Validate does some basic semantic checking of the configuration.
 func (c *Config) Validate() error {
 	var errs []error

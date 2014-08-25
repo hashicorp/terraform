@@ -329,7 +329,7 @@ func loadResourcesHcl(os *hclobj.Object, rts []*ResourceTemplate) ([]*Resource, 
 			delete(config, "count")
 			delete(config, "depends_on")
 			delete(config, "provisioner")
-			delete(config, "template")
+			delete(config, "resource_template")
 
 			rawConfig, err := NewRawConfig(config)
 			if err != nil {
@@ -393,23 +393,26 @@ func loadResourcesHcl(os *hclobj.Object, rts []*ResourceTemplate) ([]*Resource, 
 				}
 			}
 
-			// Need to parse resource templates here
-			if rt := obj.Get("resource_template", false); rt != nil {
-				for _, template := range rts {
-					if template.Name == rt.Value {
-						fmt.Println(template)
-					}
-				}
-			}
-
-			result = append(result, &Resource{
+			resource := &Resource{
 				Name:         k,
 				Type:         t.Key,
 				Count:        count,
 				RawConfig:    rawConfig,
 				Provisioners: provisioners,
 				DependsOn:    dependsOn,
-			})
+			}
+
+			// Need to parse resource templates here
+			if rt := obj.Get("resource_template", false); rt != nil {
+				for _, template := range rts {
+					if template.Name == rt.Value {
+						fmt.Println("Applying template")
+						resource.ApplyTemplate(template)
+					}
+				}
+			}
+
+			result = append(result, resource)
 		}
 	}
 
