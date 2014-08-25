@@ -22,6 +22,7 @@ func TestAccComputeInstance_basic(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckComputeInstanceExists(
 						"google_compute_instance.foobar", &instance),
+					testAccCheckComputeInstanceTag(instance, "foo"),
 				),
 			},
 		},
@@ -75,11 +76,28 @@ func testAccCheckComputeInstanceExists(n string, instance *compute.Instance) res
 	}
 }
 
+func testAccCheckComputeInstanceExists(instance *compute.Instance, n string) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		if instance.Tags == nil {
+			return fmt.Errorf("no tags")
+		}
+
+		for _, k := range instance.Tags.Items {
+			if k == n {
+				return nil
+			}
+		}
+
+		return fmt.Errorf("tag not found: %s", n)
+	}
+}
+
 const testAccComputeInstance_basic = `
 resource "google_compute_instance" "foobar" {
 	name = "terraform-test"
 	machine_type = "n1-standard-1"
 	zone = "us-central1-a"
+	tags = ["foo", "bar"]
 
 	disk {
 		source = "debian-7-wheezy-v20140814"

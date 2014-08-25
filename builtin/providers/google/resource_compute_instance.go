@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"code.google.com/p/google-api-go-client/compute/v1"
+	"github.com/hashicorp/terraform/helper/hashcode"
 	"github.com/hashicorp/terraform/helper/schema"
 )
 
@@ -65,6 +66,15 @@ func resourceComputeInstance() *schema.Resource {
 							Required: true,
 						},
 					},
+				},
+			},
+
+			"tags": &schema.Schema{
+				Type:     schema.TypeSet,
+				Optional: true,
+				Elem:     &schema.Schema{Type: schema.TypeString},
+				Set: func(v interface{}) int {
+					return hashcode.String(v.(string))
 				},
 			},
 		},
@@ -145,6 +155,17 @@ func resourceComputeInstanceCreate(d *schema.ResourceData, meta interface{}) err
 		networks = append(networks, &iface)
 	}
 
+	// Calculate the tags
+	var tags *compute.Tags
+	if v := d.Get("tags"); v != nil {
+		vs := v.(*schema.Set).List()
+		tags = new(compute.Tags)
+		tags.Items = make([]string, len(vs))
+		for i, v := range v.(*schema.Set).List() {
+			tags.Items[i] = v.(string)
+		}
+	}
+
 	// Create the instance information
 	instance := compute.Instance{
 		Description: d.Get("description").(string),
@@ -157,6 +178,7 @@ func resourceComputeInstanceCreate(d *schema.ResourceData, meta interface{}) err
 		*/
 		Name:              d.Get("name").(string),
 		NetworkInterfaces: networks,
+		Tags:              tags,
 		/*
 			ServiceAccounts: []*compute.ServiceAccount{
 				&compute.ServiceAccount{
@@ -167,9 +189,6 @@ func resourceComputeInstanceCreate(d *schema.ResourceData, meta interface{}) err
 						"https://www.googleapis.com/auth/devstorage.full_control",
 					},
 				},
-			},
-			Tags: &compute.Tags{
-				Items: c.Tags,
 			},
 		*/
 	}
