@@ -29,7 +29,7 @@ func TestConfigLoadJSON_client(t *testing.T) {
 		t.Fatalf("err: %s", err)
 	}
 
-	var expected  clientSecretsFile
+	var expected clientSecretsFile
 	expected.Web.AuthURI = "https://accounts.google.com/o/oauth2/auth"
 	expected.Web.ClientEmail = "foo@developer.gserviceaccount.com"
 	expected.Web.ClientId = "foo.apps.googleusercontent.com"
