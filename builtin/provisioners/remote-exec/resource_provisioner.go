@@ -245,12 +245,11 @@ func retryFunc(timeout time.Duration, f func() error) error {
 // of a remote command to log output for users.
 func streamLogs(r io.ReadCloser, name string) {
 	defer r.Close()
-	bufR := bufio.NewReader(r)
-	for {
-		line, err := bufR.ReadString('\n')
-		if err != nil {
-			return
-		}
-		log.Printf("remote-exec: %s: %s", name, line)
+	scanner := bufio.NewScanner(r)
+	for scanner.Scan() {
+		log.Printf("remote-exec: %s: %s", name, scanner.Text())
+	}
+	if err := scanner.Err(); err != nil {
+		return
 	}
 }
