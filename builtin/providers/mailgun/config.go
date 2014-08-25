@@ -8,7 +8,7 @@ import (
 )
 
 type Config struct {
-	APIKey       string `mapstructure:"api_key"`
+	APIKey string `mapstructure:"api_key"`
 }
 
 // Client() returns a new client for accessing mailgun.

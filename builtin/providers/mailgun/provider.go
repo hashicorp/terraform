@@ -13,12 +13,7 @@ func Provider() *schema.Provider {
 		Schema: map[string]*schema.Schema{
 			"api_key": &schema.Schema{
 				Type:     schema.TypeString,
-				Optional: false,
-			},
-
-			"public_api_key": &schema.Schema{
-				Type:     schema.TypeString,
-				Optional: false,
+				Required: true,
 			},
 		},
 
