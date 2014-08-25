@@ -80,23 +80,22 @@ func (t *hclConfigurable) Config() (*Config, error) {
 	}
 
 	// Build the resource templates
-	if resource_templates := t.Object.Get(
+	if resourceTemplates := t.Object.Get(
 		"resource_template",
-		false); resource_templates != nil {
-		/*
-			var err error
-			config.ResourceTemplates, err = loadResourceTemplatesHcl(
-				resource_templates)
-			if err != nil {
-				return nil, err
-			}
-		*/
+		false); resourceTemplates != nil {
+
+		var err error
+		config.ResourceTemplates, err = loadResourceTemplatesHcl(
+			resourceTemplates)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	// Build the resources
 	if resources := t.Object.Get("resource", false); resources != nil {
 		var err error
-		config.Resources, err = loadResourcesHcl(resources)
+		config.Resources, err = loadResourcesHcl(resources, config.ResourceTemplates)
 		if err != nil {
 			return nil, err
 		}
@@ -284,7 +283,7 @@ func loadProvidersHcl(os *hclobj.Object) ([]*ProviderConfig, error) {
 // The resulting resources may not be unique, but each resource
 // represents exactly one resource definition in the HCL configuration.
 // We leave it up to another pass to merge them together.
-func loadResourcesHcl(os *hclobj.Object) ([]*Resource, error) {
+func loadResourcesHcl(os *hclobj.Object, rts []*ResourceTemplate) ([]*Resource, error) {
 	var allTypes []*hclobj.Object
 
 	// HCL object iteration is really nasty. Below is likely to make
@@ -395,6 +394,13 @@ func loadResourcesHcl(os *hclobj.Object) ([]*Resource, error) {
 			}
 
 			// Need to parse resource templates here
+			if rt := obj.Get("resource_template", false); rt != nil {
+				for _, template := range rts {
+					if template.Name == rt.Value {
+						fmt.Println(template)
+					}
+				}
+			}
 
 			result = append(result, &Resource{
 				Name:         k,
@@ -403,6 +409,58 @@ func loadResourcesHcl(os *hclobj.Object) ([]*Resource, error) {
 				RawConfig:    rawConfig,
 				Provisioners: provisioners,
 				DependsOn:    dependsOn,
+			})
+		}
+	}
+
+	return result, nil
+}
+
+func loadResourceTemplatesHcl(rt *hclobj.Object) ([]*ResourceTemplate, error) {
+	var objects []*hclobj.Object
+
+	for _, o1 := range rt.Elem(false) {
+		for _, o2 := range o1.Elem(true) {
+			for _, o3 := range o2.Elem(false) {
+				objects = append(objects, o3)
+			}
+		}
+	}
+
+	if len(objects) == 0 {
+		return nil, nil
+	}
+
+	// Where all the results will go
+	var result []*ResourceTemplate
+
+	// Now go over all the types and their children in order to get
+	// all of the actual resources.
+	for _, t := range objects {
+		for _, obj := range t.Elem(true) {
+			k := obj.Key
+
+			var config map[string]interface{}
+			if err := hcl.DecodeObject(&config, obj); err != nil {
+				return nil, fmt.Errorf(
+					"Error reading config for %s[%s]: %s",
+					t,
+					k,
+					err)
+			}
+
+			rawConfig, err := NewRawConfig(config)
+			if err != nil {
+				return nil, fmt.Errorf(
+					"Error reading config for resource template %s: %s",
+					k,
+					err)
+			}
+
+			result = append(result, &ResourceTemplate{
+				Name:      k,
+				Type:      "",
+				RawConfig: rawConfig,
 			})
 		}
 	}
