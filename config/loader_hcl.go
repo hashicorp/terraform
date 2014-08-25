@@ -419,6 +419,10 @@ func loadResourcesHcl(os *hclobj.Object, rts []*ResourceTemplate) ([]*Resource, 
 	return result, nil
 }
 
+// loadResourceTemplatesHcl will read any resource_template objects from the
+// configuration and return them as a set. Resource templates are a generic
+// construct that is completely independent of any provider, so there is not
+// a lot of "magic" here.
 func loadResourceTemplatesHcl(rt *hclobj.Object) ([]*ResourceTemplate, error) {
 	var objects []*hclobj.Object
 
