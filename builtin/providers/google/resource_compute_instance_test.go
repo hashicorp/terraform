@@ -30,6 +30,26 @@ func TestAccComputeInstance_basic(t *testing.T) {
 	})
 }
 
+func TestAccComputeInstance_IP(t *testing.T) {
+	var instance compute.Instance
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckComputeInstanceDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccComputeInstance_ip,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckComputeInstanceExists(
+						"google_compute_instance.foobar", &instance),
+					testAccCheckComputeInstanceNetwork(&instance),
+				),
+			},
+		},
+	})
+}
+
 func testAccCheckComputeInstanceDestroy(s *terraform.State) error {
 	config := testAccProvider.Meta().(*Config)
 
@@ -101,6 +121,20 @@ func testAccCheckComputeInstanceMetadata(
 	}
 }
 
+func testAccCheckComputeInstanceNetwork(instance *compute.Instance) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		for _, i := range instance.NetworkInterfaces {
+			for _, c := range i.AccessConfigs {
+				if c.NatIP == "" {
+					return fmt.Errorf("no NAT IP")
+				}
+			}
+		}
+
+		return nil
+	}
+}
+
 func testAccCheckComputeInstanceTag(instance *compute.Instance, n string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		if instance.Tags == nil {
@@ -130,6 +164,31 @@ resource "google_compute_instance" "foobar" {
 
 	network {
 		source = "default"
+	}
+
+	metadata {
+		foo = "bar"
+	}
+}`
+
+const testAccComputeInstance_ip = `
+resource "google_compute_address" "foo" {
+	name = "foo"
+}
+
+resource "google_compute_instance" "foobar" {
+	name = "terraform-test"
+	machine_type = "n1-standard-1"
+	zone = "us-central1-a"
+	tags = ["foo", "bar"]
+
+	disk {
+		source = "debian-7-wheezy-v20140814"
+	}
+
+	network {
+		source = "default"
+		address = "${google_compute_address.foo.address}"
 	}
 
 	metadata {

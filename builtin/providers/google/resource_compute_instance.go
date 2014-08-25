@@ -65,6 +65,11 @@ func resourceComputeInstance() *schema.Resource {
 							Type:     schema.TypeString,
 							Required: true,
 						},
+
+						"address": &schema.Schema{
+							Type:     schema.TypeString,
+							Optional: true,
+						},
 					},
 				},
 			},
@@ -141,8 +146,9 @@ func resourceComputeInstanceCreate(d *schema.ResourceData, meta interface{}) err
 	networksCount := d.Get("network.#").(int)
 	networks := make([]*compute.NetworkInterface, 0, networksCount)
 	for i := 0; i < networksCount; i++ {
+		prefix := fmt.Sprintf("network.%d", i)
 		// Load up the name of this network
-		networkName := d.Get(fmt.Sprintf("network.%d.source", i)).(string)
+		networkName := d.Get(prefix + ".source").(string)
 		network, err := config.clientCompute.Networks.Get(
 			config.Project, networkName).Do()
 		if err != nil {
@@ -155,7 +161,8 @@ func resourceComputeInstanceCreate(d *schema.ResourceData, meta interface{}) err
 		var iface compute.NetworkInterface
 		iface.AccessConfigs = []*compute.AccessConfig{
 			&compute.AccessConfig{
-				Type: "ONE_TO_ONE_NAT",
+				Type:  "ONE_TO_ONE_NAT",
+				NatIP: d.Get(prefix + ".address").(string),
 			},
 		}
 		iface.Network = network.SelfLink
