@@ -195,15 +195,15 @@ func (p *ResourceProvisioner) runScripts(conf *helper.SSHConfig, scripts []io.Re
 			}
 			cmd.Wait()
 
-			rStdOut, wStdOut := io.Pipe()
-			rStdErr, wStdErr := io.Pipe()
-			go streamLogs(rStdOut, "stdout")
-			go streamLogs(rStdErr, "stderr")
+			stdOutReader, stdOutWriter := io.Pipe()
+			stdErrReader, stdErrWriter := io.Pipe()
+			go streamLogs(stdOutReader, "stdout")
+			go streamLogs(stdErrReader, "stderr")
 
 			cmd = &helper.RemoteCmd{
 				Command: conf.ScriptPath,
-				Stdout:  wPipe1,
-				Stderr:  wPipe2,
+				Stdout:  stdOutWriter,
+				Stderr:  stdErrWriter,
 			}
 			if err := comm.Start(cmd); err != nil {
 				return fmt.Errorf("Error starting script: %v", err)
