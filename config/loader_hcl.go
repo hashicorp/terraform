@@ -95,7 +95,7 @@ func (t *hclConfigurable) Config() (*Config, error) {
 	// Build the resources
 	if resources := t.Object.Get("resource", false); resources != nil {
 		var err error
-		config.Resources, err = loadResourcesHcl(resources, config.ResourceTemplates)
+		config.Resources, err = loadResourcesHcl(resources)
 		if err != nil {
 			return nil, err
 		}
@@ -283,7 +283,7 @@ func loadProvidersHcl(os *hclobj.Object) ([]*ProviderConfig, error) {
 // The resulting resources may not be unique, but each resource
 // represents exactly one resource definition in the HCL configuration.
 // We leave it up to another pass to merge them together.
-func loadResourcesHcl(os *hclobj.Object, rts []*ResourceTemplate) ([]*Resource, error) {
+func loadResourcesHcl(os *hclobj.Object) ([]*Resource, error) {
 	var allTypes []*hclobj.Object
 
 	// HCL object iteration is really nasty. Below is likely to make
