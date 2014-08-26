@@ -33,6 +33,7 @@ func Provider() *schema.Provider {
 			"google_compute_address":  resourceComputeAddress(),
 			"google_compute_disk":     resourceComputeDisk(),
 			"google_compute_instance": resourceComputeInstance(),
+			"google_compute_network":  resourceComputeNetwork(),
 		},
 
 		ConfigureFunc: providerConfigure,
