@@ -77,7 +77,7 @@ func resourceComputeNetworkRead(d *schema.ResourceData, meta interface{}) error 
 	network, err := config.clientCompute.Networks.Get(
 		config.Project, d.Id()).Do()
 	if err != nil {
-		return fmt.Errorf("Error reading address: %s", err)
+		return fmt.Errorf("Error reading network: %s", err)
 	}
 
 	d.Set("gateway_ipv4", network.GatewayIPv4)
