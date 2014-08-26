@@ -65,7 +65,7 @@ func resourceComputeNetworkCreate(d *schema.ResourceData, meta interface{}) erro
 	state.Timeout = 2 * time.Minute
 	state.MinTimeout = 1 * time.Second
 	if _, err := state.WaitForState(); err != nil {
-		return fmt.Errorf("Error waiting for address to create: %s", err)
+		return fmt.Errorf("Error waiting for network to create: %s", err)
 	}
 
 	return resourceComputeNetworkRead(d, meta)
@@ -88,7 +88,7 @@ func resourceComputeNetworkRead(d *schema.ResourceData, meta interface{}) error 
 func resourceComputeNetworkDelete(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
 
-	// Delete the address
+	// Delete the network
 	op, err := config.clientCompute.Networks.Delete(
 		config.Project, d.Id()).Do()
 	if err != nil {
@@ -106,7 +106,7 @@ func resourceComputeNetworkDelete(d *schema.ResourceData, meta interface{}) erro
 	state.Timeout = 2 * time.Minute
 	state.MinTimeout = 1 * time.Second
 	if _, err := state.WaitForState(); err != nil {
-		return fmt.Errorf("Error waiting for address to delete: %s", err)
+		return fmt.Errorf("Error waiting for network to delete: %s", err)
 	}
 
 	d.SetId("")
