@@ -468,7 +468,6 @@ func loadResourceTemplatesHcl(rt *hclobj.Object) ([]*ResourceTemplate, error) {
 
 			result = append(result, &ResourceTemplate{
 				Name:      k,
-				Type:      "",
 				RawConfig: rawConfig,
 			})
 		}

@@ -50,7 +50,6 @@ type Resource struct {
 
 type ResourceTemplate struct {
 	Name      string
-	Type      string
 	RawConfig *RawConfig
 }
 
