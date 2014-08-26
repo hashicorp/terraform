@@ -171,8 +171,17 @@ func resourceComputeFirewallCreate(d *schema.ResourceData, meta interface{}) err
 	state := w.Conf()
 	state.Timeout = 2 * time.Minute
 	state.MinTimeout = 1 * time.Second
-	if _, err := state.WaitForState(); err != nil {
+	opRaw, err := state.WaitForState()
+	if err != nil {
 		return fmt.Errorf("Error waiting for firewall to create: %s", err)
+	}
+	op = opRaw.(*compute.Operation)
+	if op.Error != nil {
+		// The resource didn't actually create
+		d.SetId("")
+
+		// Return the error
+		return OperationError(*op.Error)
 	}
 
 	return resourceComputeFirewallRead(d, meta)
@@ -210,8 +219,14 @@ func resourceComputeFirewallDelete(d *schema.ResourceData, meta interface{}) err
 	state := w.Conf()
 	state.Timeout = 2 * time.Minute
 	state.MinTimeout = 1 * time.Second
-	if _, err := state.WaitForState(); err != nil {
+	opRaw, err := state.WaitForState()
+	if err != nil {
 		return fmt.Errorf("Error waiting for firewall to delete: %s", err)
+	}
+	op = opRaw.(*compute.Operation)
+	if op.Error != nil {
+		// Return the error
+		return OperationError(*op.Error)
 	}
 
 	d.SetId("")

@@ -282,8 +282,17 @@ func resourceComputeInstanceCreate(d *schema.ResourceData, meta interface{}) err
 	state.Delay = 10 * time.Second
 	state.Timeout = 10 * time.Minute
 	state.MinTimeout = 2 * time.Second
-	if _, err := state.WaitForState(); err != nil {
+	opRaw, err := state.WaitForState()
+	if err != nil {
 		return fmt.Errorf("Error waiting for instance to create: %s", err)
+	}
+	op = opRaw.(*compute.Operation)
+	if op.Error != nil {
+		// The resource didn't actually create
+		d.SetId("")
+
+		// Return the error
+		return OperationError(*op.Error)
 	}
 
 	return resourceComputeInstanceRead(d, meta)
@@ -329,8 +338,14 @@ func resourceComputeInstanceDelete(d *schema.ResourceData, meta interface{}) err
 	state.Delay = 5 * time.Second
 	state.Timeout = 5 * time.Minute
 	state.MinTimeout = 2 * time.Second
-	if _, err := state.WaitForState(); err != nil {
-		return fmt.Errorf("Error waiting for instance to create: %s", err)
+	opRaw, err := state.WaitForState()
+	if err != nil {
+		return fmt.Errorf("Error waiting for instance to delete: %s", err)
+	}
+	op = opRaw.(*compute.Operation)
+	if op.Error != nil {
+		// Return the error
+		return OperationError(*op.Error)
 	}
 
 	d.SetId("")

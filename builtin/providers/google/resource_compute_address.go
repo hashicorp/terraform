@@ -56,8 +56,17 @@ func resourceComputeAddressCreate(d *schema.ResourceData, meta interface{}) erro
 	state := w.Conf()
 	state.Timeout = 2 * time.Minute
 	state.MinTimeout = 1 * time.Second
-	if _, err := state.WaitForState(); err != nil {
+	opRaw, err := state.WaitForState()
+	if err != nil {
 		return fmt.Errorf("Error waiting for address to create: %s", err)
+	}
+	op = opRaw.(*compute.Operation)
+	if op.Error != nil {
+		// The resource didn't actually create
+		d.SetId("")
+
+		// Return the error
+		return OperationError(*op.Error)
 	}
 
 	return resourceComputeAddressRead(d, meta)
@@ -98,8 +107,14 @@ func resourceComputeAddressDelete(d *schema.ResourceData, meta interface{}) erro
 	state := w.Conf()
 	state.Timeout = 2 * time.Minute
 	state.MinTimeout = 1 * time.Second
-	if _, err := state.WaitForState(); err != nil {
+	opRaw, err := state.WaitForState()
+	if err != nil {
 		return fmt.Errorf("Error waiting for address to delete: %s", err)
+	}
+	op = opRaw.(*compute.Operation)
+	if op.Error != nil {
+		// Return the error
+		return OperationError(*op.Error)
 	}
 
 	d.SetId("")
