@@ -159,7 +159,7 @@ resource "google_compute_instance" "foobar" {
 	tags = ["foo", "bar"]
 
 	disk {
-		source = "debian-7-wheezy-v20140814"
+		image = "debian-7-wheezy-v20140814"
 	}
 
 	network {
@@ -183,7 +183,7 @@ resource "google_compute_instance" "foobar" {
 	tags = ["foo", "bar"]
 
 	disk {
-		source = "debian-7-wheezy-v20140814"
+		image = "debian-7-wheezy-v20140814"
 	}
 
 	network {

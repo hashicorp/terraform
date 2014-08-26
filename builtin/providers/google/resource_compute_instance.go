@@ -47,9 +47,16 @@ func resourceComputeInstance() *schema.Resource {
 				ForceNew: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
-						"source": &schema.Schema{
+						// TODO(mitchellh): one of image or disk is required
+
+						"disk": &schema.Schema{
 							Type:     schema.TypeString,
-							Required: true,
+							Optional: true,
+						},
+
+						"image": &schema.Schema{
+							Type:     schema.TypeString,
+							Optional: true,
 						},
 					},
 				},
@@ -130,13 +137,35 @@ func resourceComputeInstanceCreate(d *schema.ResourceData, meta interface{}) err
 	disksCount := d.Get("disk.#").(int)
 	disks := make([]*compute.AttachedDisk, 0, disksCount)
 	for i := 0; i < disksCount; i++ {
-		// Load up the image for this disk
-		imageName := d.Get(fmt.Sprintf("disk.%d.source", i)).(string)
-		image, err := readImage(config, imageName)
-		if err != nil {
-			return fmt.Errorf(
-				"Error loading image '%s': %s",
-				imageName, err)
+		prefix := fmt.Sprintf("disk.%d", i)
+
+		var sourceLink string
+
+		// Load up the disk for this disk if specified
+		if v, ok := d.GetOk(prefix + ".disk"); ok {
+			diskName := v.(string)
+			disk, err := config.clientCompute.Disks.Get(
+				config.Project, zone.Name, diskName).Do()
+			if err != nil {
+				return fmt.Errorf(
+					"Error loading disk '%s': %s",
+					diskName, err)
+			}
+
+			sourceLink = disk.SelfLink
+		}
+
+		// Load up the image for this disk if specified
+		if v, ok := d.GetOk(prefix + ".image"); ok {
+			imageName := v.(string)
+			image, err := readImage(config, imageName)
+			if err != nil {
+				return fmt.Errorf(
+					"Error loading image '%s': %s",
+					imageName, err)
+			}
+
+			sourceLink = image.SelfLink
 		}
 
 		// Build the disk
@@ -146,7 +175,7 @@ func resourceComputeInstanceCreate(d *schema.ResourceData, meta interface{}) err
 		disk.Boot = i == 0
 		disk.AutoDelete = true
 		disk.InitializeParams = &compute.AttachedDiskInitializeParams{
-			SourceImage: image.SelfLink,
+			SourceImage: sourceLink,
 		}
 
 		disks = append(disks, &disk)
