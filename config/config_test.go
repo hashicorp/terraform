@@ -158,6 +158,47 @@ func TestVariableDefaultsMap(t *testing.T) {
 	}
 }
 
+func TestResourceTemplate_Apply(t *testing.T) {
+	resourceTemplate := &ResourceTemplate{
+		Name: "test-template",
+		RawConfig: &RawConfig{
+			Raw: map[string]interface{}{
+				"keyA": "bad",
+				"keyC": []string{
+					"valC",
+					"valD",
+				},
+			},
+		},
+	}
+
+	resource := &Resource{
+		RawConfig: &RawConfig{
+			Raw: map[string]interface{}{
+				"keyA": "good",
+				"keyB": "valB",
+			},
+		},
+	}
+
+	resource.ApplyTemplate(resourceTemplate)
+
+	cases := map[string]interface{}{
+		"keyA": "good",
+		"keyB": "valB",
+		"keyC": []string{
+			"valC",
+			"valD",
+		},
+	}
+
+	for k, v := range cases {
+		if !reflect.DeepEqual(resource.RawConfig.Raw[k], v) {
+			t.Fatalf("bad: %#v", resource.RawConfig.Raw[k])
+		}
+	}
+}
+
 func testConfig(t *testing.T, name string) *Config {
 	c, err := Load(filepath.Join(fixtureDir, name, "main.tf"))
 	if err != nil {
