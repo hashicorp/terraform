@@ -14,6 +14,9 @@ BACKWARDS INCOMPATIBILITIES:
 
 FEATURES:
 
+  * **New Provider: `google`**: Manage Google Compute instances, disks,
+      firewalls, and more.
+  * **New Provider: `mailgun`**: Manage mailgun domains.
   * **New Function: `concat`**: Concatenate multiple strings together.
     Example: `concat(var.region, "-", var.channel)`.
 
