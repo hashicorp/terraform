@@ -14,7 +14,9 @@ are:
 * Reduce repetitive, constant configuration values
 * Easily change common configuration across many resources
 
-A basic resource template looks like this:
+A resource template takes a single argument defining its unique name, and can
+contain any number of configuration items to be applied to resources. A basic
+resource template looks like this:
 
 ```
 resource_template "aws-web" {
@@ -26,8 +28,8 @@ resource_template "aws-web" {
 }
 ```
 
-As you can see, the resource template named "web" holds many common
-configuration items for a set of servers.
+As you can see, the resource template named "aws-web" holds many common
+configuration items for a set of resources.
 
 ## Template Application
 
@@ -35,12 +37,12 @@ Applying a resource template to a resource is done using the `resource_template`
 option within any resource. For example:
 
 ```
-resource "aws_instance" "web01" {
+resource "aws_instance" "web" {
     resource_template = "aws-web"
 }
 ```
 
-By including the `aws-web` resource template, the per-machine configuration
+By including the `aws-web` resource template, the per-resource configuration
 becomes much more simple. The above example is the most basic usage of resource
 templates.
 
@@ -49,12 +51,12 @@ This is done by simply adding the configuration value you want to overwrite into
 the resource itself, like so:
 
 ```
-resource "aws_instance" "web01" {
+resource "aws_instance" "web" {
     resource_template = "aws-web"
     instance_type = "m1.small"
 }
 ```
 
-Now with the above configuration, the `web01` instance will be deployed exactly
+Now with the above configuration, the `web` instance will be deployed exactly
 like the template says, except that it will use an instance_type of `m1.small`
 instead of `t1.micro`.

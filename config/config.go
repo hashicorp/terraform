@@ -48,6 +48,9 @@ type Resource struct {
 	Template     string
 }
 
+// ResourceTemplate is the configuration of a given resource template. The
+// attached RawConfig carries values which will be used to apply templated
+// values to other resources.
 type ResourceTemplate struct {
 	Name      string
 	RawConfig *RawConfig
