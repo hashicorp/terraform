@@ -340,9 +340,15 @@ func loadResourcesHcl(os *hclobj.Object) ([]*Resource, error) {
 					err)
 			}
 
+			// countSet indicates whether or not a resource count was explicitly
+			// defined. We need this to know whether we should take the value
+			// from a resource template later on.
+			countSet := false
+
 			// If we have a count, then figure it out
 			var count int = 1
 			if o := obj.Get("count", false); o != nil {
+				countSet = true
 				err = hcl.DecodeObject(&count, o)
 				if err != nil {
 					return nil, fmt.Errorf(
@@ -410,6 +416,7 @@ func loadResourcesHcl(os *hclobj.Object) ([]*Resource, error) {
 				Name:         k,
 				Type:         t.Key,
 				Count:        count,
+				CountSet:     countSet,
 				RawConfig:    rawConfig,
 				Provisioners: provisioners,
 				DependsOn:    dependsOn,
@@ -427,6 +434,8 @@ func loadResourcesHcl(os *hclobj.Object) ([]*Resource, error) {
 // configuration and return them as a set. Resource templates are a generic
 // construct that is completely independent of any provider, so there is not
 // a lot of "magic" here.
+//
+// This could be more DRY, since it is very similar to loadResourcesHcl.
 func loadResourceTemplatesHcl(rt *hclobj.Object) ([]*ResourceTemplate, error) {
 	var objects []*hclobj.Object
 
@@ -458,6 +467,13 @@ func loadResourceTemplatesHcl(rt *hclobj.Object) ([]*ResourceTemplate, error) {
 					err)
 			}
 
+			// Remove the fields we handle specially
+			delete(config, "connection")
+			delete(config, "count")
+			delete(config, "depends_on")
+			delete(config, "provisioner")
+			delete(config, "resource_template")
+
 			rawConfig, err := NewRawConfig(config)
 			if err != nil {
 				return nil, fmt.Errorf(
@@ -466,9 +482,65 @@ func loadResourceTemplatesHcl(rt *hclobj.Object) ([]*ResourceTemplate, error) {
 					err)
 			}
 
+			// If we have a count, then figure it out
+			var count int = 1
+			if o := obj.Get("count", false); o != nil {
+				err = hcl.DecodeObject(&count, o)
+				if err != nil {
+					return nil, fmt.Errorf(
+						"Error parsing count for %s[%s]: %s",
+						t.Key,
+						k,
+						err)
+				}
+			}
+
+			// If we have depends fields, then add those in
+			var dependsOn []string
+			if o := obj.Get("depends_on", false); o != nil {
+				err := hcl.DecodeObject(&dependsOn, o)
+				if err != nil {
+					return nil, fmt.Errorf(
+						"Error reading depends_on for %s[%s]: %s",
+						t.Key,
+						k,
+						err)
+				}
+			}
+
+			// If we have connection info, then parse those out
+			var connInfo map[string]interface{}
+			if o := obj.Get("connection", false); o != nil {
+				err := hcl.DecodeObject(&connInfo, o)
+				if err != nil {
+					return nil, fmt.Errorf(
+						"Error reading connection info for %s[%s]: %s",
+						t.Key,
+						k,
+						err)
+				}
+			}
+
+			// If we have provisioners, then parse those out
+			var provisioners []*Provisioner
+			if os := obj.Get("provisioner", false); os != nil {
+				var err error
+				provisioners, err = loadProvisionersHcl(os, connInfo)
+				if err != nil {
+					return nil, fmt.Errorf(
+						"Error reading provisioners for %s[%s]: %s",
+						t.Key,
+						k,
+						err)
+				}
+			}
+
 			result = append(result, &ResourceTemplate{
-				Name:      k,
-				RawConfig: rawConfig,
+				Name:         k,
+				Count:        count,
+				RawConfig:    rawConfig,
+				Provisioners: provisioners,
+				DependsOn:    dependsOn,
 			})
 		}
 	}

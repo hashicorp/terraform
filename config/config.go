@@ -42,6 +42,7 @@ type Resource struct {
 	Name         string
 	Type         string
 	Count        int
+	CountSet     bool
 	RawConfig    *RawConfig
 	Provisioners []*Provisioner
 	DependsOn    []string
@@ -52,8 +53,11 @@ type Resource struct {
 // attached RawConfig carries values which will be used to apply templated
 // values to other resources.
 type ResourceTemplate struct {
-	Name      string
-	RawConfig *RawConfig
+	Name         string
+	Count        int
+	RawConfig    *RawConfig
+	Provisioners []*Provisioner
+	DependsOn    []string
 }
 
 // Provisioner is a configured provisioner step on a resource.
@@ -116,6 +120,19 @@ func (r *Resource) Id() string {
 // Rather, we allow any keys to be passed into a resource template, and defer to
 // the provider's config validator to catch any errors.
 func (r *Resource) ApplyTemplate(t *ResourceTemplate) {
+	if r.Name == "" {
+		r.Name = t.Name
+	}
+	if !r.CountSet && t.Count > 0 {
+		r.Count = t.Count
+	}
+	if len(r.DependsOn) == 0 {
+		r.DependsOn = t.DependsOn
+	}
+	if len(r.Provisioners) == 0 {
+		r.Provisioners = t.Provisioners
+	}
+
 	for k, v := range t.RawConfig.Raw {
 		if _, ok := r.RawConfig.Raw[k]; !ok {
 			r.RawConfig.Raw[k] = v

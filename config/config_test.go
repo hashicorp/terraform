@@ -159,42 +159,69 @@ func TestVariableDefaultsMap(t *testing.T) {
 }
 
 func TestResourceTemplate_Apply(t *testing.T) {
-	resourceTemplate := &ResourceTemplate{
-		Name: "test-template",
-		RawConfig: &RawConfig{
-			Raw: map[string]interface{}{
-				"keyA": "bad",
-				"keyC": []string{
-					"valC",
-					"valD",
+	provisioners := []*Provisioner{
+		&Provisioner{
+			Type: "ssh",
+			ConnInfo: &RawConfig{
+				Raw: map[string]interface{}{
+					"user": "test",
 				},
 			},
 		},
 	}
 
-	resource := &Resource{
+	resourceTemplate := &ResourceTemplate{
+		Name:         "test-template",
+		Count:        3,
+		Provisioners: provisioners,
+		DependsOn:    []string{"aws_instance.web"},
 		RawConfig: &RawConfig{
 			Raw: map[string]interface{}{
-				"keyA": "good",
-				"keyB": "valB",
+				"keyA": "bad",
+				"keyC": []string{"good"},
 			},
 		},
 	}
 
-	resource.ApplyTemplate(resourceTemplate)
-
-	cases := map[string]interface{}{
-		"keyA": "good",
-		"keyB": "valB",
-		"keyC": []string{
-			"valC",
-			"valD",
+	resource1 := &Resource{
+		RawConfig: &RawConfig{
+			Raw: map[string]interface{}{
+				"keyA": "good",
+				"keyB": "good",
+			},
 		},
 	}
 
-	for k, v := range cases {
-		if !reflect.DeepEqual(resource.RawConfig.Raw[k], v) {
-			t.Fatalf("bad: %#v", resource.RawConfig.Raw[k])
+	resource2 := &Resource{
+		Count:        2,
+		Provisioners: []*Provisioner{&Provisioner{}},
+		DependsOn:    []string{"aws_instance.db"},
+		RawConfig: &RawConfig{
+			Raw: map[string]interface{}{},
+		},
+	}
+
+	resource1.ApplyTemplate(resourceTemplate)
+	resource2.ApplyTemplate(resourceTemplate)
+
+	cases := [][]interface{}{
+		// Config items should be properly merged where appropriate
+		[]interface{}{resource1.RawConfig.Raw["keyA"], "good"},
+		[]interface{}{resource1.RawConfig.Raw["keyB"], "good"},
+		[]interface{}{resource1.RawConfig.Raw["keyC"], []string{"good"}},
+		[]interface{}{resource1.Count, resourceTemplate.Count},
+		[]interface{}{resource1.Provisioners, resourceTemplate.Provisioners},
+		[]interface{}{resource1.DependsOn, resourceTemplate.DependsOn},
+
+		// Config items which are present within the resource definition should
+		// preserved after template application
+		[]interface{}{resource2.Count, 2},
+		[]interface{}{resource2.Provisioners, []*Provisioner{&Provisioner{}}},
+		[]interface{}{resource2.DependsOn, []string{"aws_instance.db"}},
+	}
+	for _, c := range cases {
+		if !reflect.DeepEqual(c[0], c[1]) {
+			t.Fatalf("bad:\n%#v", c[0])
 		}
 	}
 }
