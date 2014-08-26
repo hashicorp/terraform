@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"code.google.com/p/google-api-go-client/compute/v1"
+	"code.google.com/p/google-api-go-client/googleapi"
 	"github.com/hashicorp/terraform/helper/hashcode"
 	"github.com/hashicorp/terraform/helper/schema"
 )
@@ -193,6 +194,13 @@ func resourceComputeFirewallRead(d *schema.ResourceData, meta interface{}) error
 	_, err := config.clientCompute.Firewalls.Get(
 		config.Project, d.Id()).Do()
 	if err != nil {
+		if gerr, ok := err.(*googleapi.Error); ok && gerr.Code == 404 {
+			// The resource doesn't exist anymore
+			d.SetId("")
+
+			return nil
+		}
+
 		return fmt.Errorf("Error reading firewall: %s", err)
 	}
 

@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"code.google.com/p/google-api-go-client/compute/v1"
+	"code.google.com/p/google-api-go-client/googleapi"
 	"github.com/hashicorp/terraform/helper/schema"
 )
 
@@ -86,6 +87,13 @@ func resourceComputeNetworkRead(d *schema.ResourceData, meta interface{}) error 
 	network, err := config.clientCompute.Networks.Get(
 		config.Project, d.Id()).Do()
 	if err != nil {
+		if gerr, ok := err.(*googleapi.Error); ok && gerr.Code == 404 {
+			// The resource doesn't exist anymore
+			d.SetId("")
+
+			return nil
+		}
+
 		return fmt.Errorf("Error reading network: %s", err)
 	}
 
