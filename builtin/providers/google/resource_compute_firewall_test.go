@@ -28,6 +28,34 @@ func TestAccComputeFirewall_basic(t *testing.T) {
 	})
 }
 
+func TestAccComputeFirewall_update(t *testing.T) {
+	var firewall compute.Firewall
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckComputeFirewallDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccComputeFirewall_basic,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckComputeFirewallExists(
+						"google_compute_firewall.foobar", &firewall),
+				),
+			},
+			resource.TestStep{
+				Config: testAccComputeFirewall_update,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckComputeFirewallExists(
+						"google_compute_firewall.foobar", &firewall),
+					testAccCheckComputeFirewallPorts(
+						&firewall, "80-255"),
+				),
+			},
+		},
+	})
+}
+
 func testAccCheckComputeFirewallDestroy(s *terraform.State) error {
 	config := testAccProvider.Meta().(*Config)
 
@@ -75,6 +103,21 @@ func testAccCheckComputeFirewallExists(n string, firewall *compute.Firewall) res
 	}
 }
 
+func testAccCheckComputeFirewallPorts(
+	firewall *compute.Firewall, ports string) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		if len(firewall.Allowed) == 0 {
+			return fmt.Errorf("no allowed rules")
+		}
+
+		if firewall.Allowed[0].Ports[0] != ports {
+			return fmt.Errorf("bad: %#v", firewall.Allowed[0].Ports)
+		}
+
+		return nil
+	}
+}
+
 const testAccComputeFirewall_basic = `
 resource "google_compute_network" "foobar" {
 	name = "terraform-test"
@@ -88,5 +131,22 @@ resource "google_compute_firewall" "foobar" {
 
 	allow {
 		protocol = "icmp"
+	}
+}`
+
+const testAccComputeFirewall_update = `
+resource "google_compute_network" "foobar" {
+	name = "terraform-test"
+	ipv4_range = "10.0.0.0/16"
+}
+
+resource "google_compute_firewall" "foobar" {
+	name = "terraform-test"
+	network = "${google_compute_network.foobar.name}"
+	source_tags = ["foo"]
+
+	allow {
+		protocol = "tcp"
+		ports = ["80-255"]
 	}
 }`
