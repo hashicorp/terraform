@@ -15,6 +15,7 @@ func resourceComputeInstance() *schema.Resource {
 	return &schema.Resource{
 		Create: resourceComputeInstanceCreate,
 		Read:   resourceComputeInstanceRead,
+		Update: resourceComputeInstanceUpdate,
 		Delete: resourceComputeInstanceDelete,
 
 		Schema: map[string]*schema.Schema{
@@ -107,6 +108,11 @@ func resourceComputeInstance() *schema.Resource {
 				Set: func(v interface{}) int {
 					return hashcode.String(v.(string))
 				},
+			},
+
+			"metadata_fingerprint": &schema.Schema{
+				Type:     schema.TypeString,
+				Computed: true,
 			},
 		},
 	}
@@ -210,23 +216,6 @@ func resourceComputeInstanceCreate(d *schema.ResourceData, meta interface{}) err
 		networks = append(networks, &iface)
 	}
 
-	// Calculate the metadata
-	var metadata *compute.Metadata
-	if v := d.Get("metadata").([]interface{}); len(v) > 0 {
-		m := new(compute.Metadata)
-		m.Items = make([]*compute.MetadataItems, 0, len(v))
-		for _, v := range v {
-			for k, v := range v.(map[string]interface{}) {
-				m.Items = append(m.Items, &compute.MetadataItems{
-					Key:   k,
-					Value: v.(string),
-				})
-			}
-		}
-
-		metadata = m
-	}
-
 	// Calculate the tags
 	var tags *compute.Tags
 	if v := d.Get("tags"); v != nil {
@@ -243,7 +232,7 @@ func resourceComputeInstanceCreate(d *schema.ResourceData, meta interface{}) err
 		Description:       d.Get("description").(string),
 		Disks:             disks,
 		MachineType:       machineType.SelfLink,
-		Metadata:          metadata,
+		Metadata:          resourceInstanceMetadata(d),
 		Name:              d.Get("name").(string),
 		NetworkInterfaces: networks,
 		Tags:              tags,
@@ -322,7 +311,50 @@ func resourceComputeInstanceRead(d *schema.ResourceData, meta interface{}) error
 		d.Set(prefix+".internal_address", iface.NetworkIP)
 	}
 
+	// Set the metadata fingerprint if there is one.
+	if instance.Metadata != nil {
+		d.Set("metadata_fingerprint", instance.Metadata.Fingerprint)
+	}
+
 	return nil
+}
+
+func resourceComputeInstanceUpdate(d *schema.ResourceData, meta interface{}) error {
+	config := meta.(*Config)
+
+	// If the Metadata has changed, then update that.
+	if d.HasChange("metadata") {
+		metadata := resourceInstanceMetadata(d)
+		op, err := config.clientCompute.Instances.SetMetadata(
+			config.Project, d.Get("zone").(string), d.Id(), metadata).Do()
+		if err != nil {
+			return fmt.Errorf("Error updating metadata: %s", err)
+		}
+
+		w := &OperationWaiter{
+			Service: config.clientCompute,
+			Op:      op,
+			Project: config.Project,
+			Zone:    d.Get("zone").(string),
+			Type:    OperationWaitZone,
+		}
+		state := w.Conf()
+		state.Delay = 1 * time.Second
+		state.Timeout = 5 * time.Minute
+		state.MinTimeout = 2 * time.Second
+		opRaw, err := state.WaitForState()
+		if err != nil {
+			return fmt.Errorf("Error waiting for metadata to update: %s", err)
+		}
+		op = opRaw.(*compute.Operation)
+		if op.Error != nil {
+			// Return the error
+			return OperationError(*op.Error)
+		}
+
+	}
+
+	return resourceComputeInstanceRead(d, meta)
 }
 
 func resourceComputeInstanceDelete(d *schema.ResourceData, meta interface{}) error {
@@ -358,4 +390,28 @@ func resourceComputeInstanceDelete(d *schema.ResourceData, meta interface{}) err
 
 	d.SetId("")
 	return nil
+}
+
+func resourceInstanceMetadata(d *schema.ResourceData) *compute.Metadata {
+	var metadata *compute.Metadata
+	if v := d.Get("metadata").([]interface{}); len(v) > 0 {
+		m := new(compute.Metadata)
+		m.Items = make([]*compute.MetadataItems, 0, len(v))
+		for _, v := range v {
+			for k, v := range v.(map[string]interface{}) {
+				m.Items = append(m.Items, &compute.MetadataItems{
+					Key:   k,
+					Value: v.(string),
+				})
+			}
+		}
+
+		// Set the fingerprint. If the metadata has never been set before
+		// then this will just be blank.
+		m.Fingerprint = d.Get("metadata_fingerprint").(string)
+
+		metadata = m
+	}
+
+	return metadata
 }

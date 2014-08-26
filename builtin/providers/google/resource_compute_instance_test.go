@@ -50,6 +50,34 @@ func TestAccComputeInstance_IP(t *testing.T) {
 	})
 }
 
+func TestAccComputeInstance_update(t *testing.T) {
+	var instance compute.Instance
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckComputeInstanceDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccComputeInstance_basic,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckComputeInstanceExists(
+						"google_compute_instance.foobar", &instance),
+				),
+			},
+			resource.TestStep{
+				Config: testAccComputeInstance_update,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckComputeInstanceExists(
+						"google_compute_instance.foobar", &instance),
+					testAccCheckComputeInstanceMetadata(
+						&instance, "bar", "baz"),
+				),
+			},
+		},
+	})
+}
+
 func testAccCheckComputeInstanceDestroy(s *terraform.State) error {
 	config := testAccProvider.Meta().(*Config)
 
@@ -168,6 +196,26 @@ resource "google_compute_instance" "foobar" {
 
 	metadata {
 		foo = "bar"
+	}
+}`
+
+const testAccComputeInstance_update = `
+resource "google_compute_instance" "foobar" {
+	name = "terraform-test"
+	machine_type = "n1-standard-1"
+	zone = "us-central1-a"
+	tags = ["foo", "bar"]
+
+	disk {
+		image = "debian-7-wheezy-v20140814"
+	}
+
+	network {
+		source = "default"
+	}
+
+	metadata {
+		bar = "baz"
 	}
 }`
 
