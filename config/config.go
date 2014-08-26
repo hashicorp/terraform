@@ -213,6 +213,21 @@ func (c *Config) Validate() error {
 					n, d))
 			}
 		}
+
+		if r.Template != "" {
+			for i, rt := range c.ResourceTemplates {
+				if rt.Name == r.Template {
+					break
+				}
+				if i == len(c.ResourceTemplates)-1 {
+					errs = append(errs, fmt.Errorf(
+						"%s: unknown resource template: %s",
+						n,
+						r.Template))
+					break
+				}
+			}
+		}
 	}
 
 	for source, vs := range vars {
@@ -298,6 +313,8 @@ func (c *Config) allVariables() map[string][]InterpolatedVariable {
 	return result
 }
 
+// ApplyTemplates steps through all resources in the configuration
+// and applies resource templates where they are configured.
 func (c *Config) ApplyTemplates() {
 	for _, resource := range c.Resources {
 		if resource.Template != "" {
