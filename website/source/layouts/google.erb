@@ -1,0 +1,46 @@
+<% wrap_layout :inner do %>
+	<% content_for :sidebar do %>
+	<div class="docs-sidebar hidden-print affix-top" role="complementary">
+	<ul class="nav docs-sidenav">
+		<li<%= sidebar_current("docs-home") %>>
+		<a href="/docs/index.html">&laquo; Documentation Home</a>
+		</li>
+
+		<li<%= sidebar_current("docs-google-index") %>>
+		<a href="/docs/providers/google/index.html">google Provider</a>
+		</li>
+
+		<li<%= sidebar_current("docs-google-resource") %>>
+		<a href="#">Resources</a>
+		<ul class="nav nav-visible">
+			<li<%= sidebar_current("docs-google-resource-address") %>>
+			<a href="/docs/providers/google/r/compute_address.html">google_compute_address</a>
+			</li>
+
+			<li<%= sidebar_current("docs-google-resource-disk") %>>
+			<a href="/docs/providers/google/r/compute_disk.html">google_compute_disk</a>
+			</li>
+
+			<li<%= sidebar_current("docs-google-resource-firewall") %>>
+			<a href="/docs/providers/google/r/compute_firewall.html">google_compute_firewall</a>
+			</li>
+
+			<li<%= sidebar_current("docs-google-resource-instance") %>>
+			<a href="/docs/providers/google/r/compute_instance.html">google_compute_instance</a>
+			</li>
+
+			<li<%= sidebar_current("docs-google-resource-network") %>>
+			<a href="/docs/providers/google/r/compute_network.html">google_compute_network</a>
+			</li>
+
+			<li<%= sidebar_current("docs-google-resource-route") %>>
+			<a href="/docs/providers/google/r/compute_route.html">google_compute_route</a>
+			</li>
+		</ul>
+		</li>
+	</ul>
+</div>
+	<% end %>
+
+<%= yield %>
+	<% end %>
