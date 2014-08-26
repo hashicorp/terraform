@@ -15,16 +15,6 @@ import (
 	"github.com/mitchellh/goamz/ec2"
 )
 
-/*
-		PreProcess: map[string]diff.PreProcessFunc{
-			"user_data": func(v string) string {
-				hash := sha1.Sum([]byte(v))
-				return hex.EncodeToString(hash[:])
-			},
-		},
-	}
-*/
-
 func resourceAwsInstance() *schema.Resource {
 	return &schema.Resource{
 		Create: resourceAwsInstanceCreate,
@@ -226,9 +216,10 @@ func resourceAwsInstanceUpdate(d *schema.ResourceData, meta interface{}) error {
 	modify := false
 	opts := new(ec2.ModifyInstance)
 
-	if d.HasChange("source_dest_check") {
-		opts.SourceDestCheck = d.Get("source_dest_check").(bool)
+	if v, ok := d.GetOk("source_dest_check"); ok {
+		opts.SourceDestCheck = v.(bool)
 		opts.SetSourceDestCheck = true
+		modify = true
 	}
 
 	if modify {
