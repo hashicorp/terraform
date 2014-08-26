@@ -35,6 +35,7 @@ func Provider() *schema.Provider {
 			"google_compute_firewall": resourceComputeFirewall(),
 			"google_compute_instance": resourceComputeInstance(),
 			"google_compute_network":  resourceComputeNetwork(),
+			"google_compute_route":    resourceComputeRoute(),
 		},
 
 		ConfigureFunc: providerConfigure,

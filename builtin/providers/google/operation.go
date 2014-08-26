@@ -1,6 +1,7 @@
 package google
 
 import (
+	"bytes"
 	"fmt"
 
 	"code.google.com/p/google-api-go-client/compute/v1"
@@ -61,4 +62,18 @@ func (w *OperationWaiter) Conf() *resource.StateChangeConf {
 		Target:  "DONE",
 		Refresh: w.RefreshFunc(),
 	}
+}
+
+// OperationError wraps compute.OperationError and implements the
+// error interface so it can be returned.
+type OperationError compute.OperationError
+
+func (e OperationError) Error() string {
+	var buf bytes.Buffer
+
+	for _, err := range e.Errors {
+		buf.WriteString(err.Message + "\n")
+	}
+
+	return buf.String()
 }
