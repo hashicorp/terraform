@@ -103,7 +103,7 @@ func (r *Resource) Refresh(
 	meta interface{}) (*terraform.ResourceState, error) {
 	data, err := schemaMap(r.Schema).Data(s, nil)
 	if err != nil {
-		return nil, err
+		return s, err
 	}
 
 	err = r.Read(data, meta)
