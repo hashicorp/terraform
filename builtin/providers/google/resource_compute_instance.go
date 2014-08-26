@@ -114,6 +114,11 @@ func resourceComputeInstance() *schema.Resource {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
+
+			"tags_fingerprint": &schema.Schema{
+				Type:     schema.TypeString,
+				Computed: true,
+			},
 		},
 	}
 }
@@ -216,17 +221,6 @@ func resourceComputeInstanceCreate(d *schema.ResourceData, meta interface{}) err
 		networks = append(networks, &iface)
 	}
 
-	// Calculate the tags
-	var tags *compute.Tags
-	if v := d.Get("tags"); v != nil {
-		vs := v.(*schema.Set).List()
-		tags = new(compute.Tags)
-		tags.Items = make([]string, len(vs))
-		for i, v := range v.(*schema.Set).List() {
-			tags.Items[i] = v.(string)
-		}
-	}
-
 	// Create the instance information
 	instance := compute.Instance{
 		Description:       d.Get("description").(string),
@@ -235,7 +229,7 @@ func resourceComputeInstanceCreate(d *schema.ResourceData, meta interface{}) err
 		Metadata:          resourceInstanceMetadata(d),
 		Name:              d.Get("name").(string),
 		NetworkInterfaces: networks,
-		Tags:              tags,
+		Tags:              resourceInstanceTags(d),
 		/*
 			ServiceAccounts: []*compute.ServiceAccount{
 				&compute.ServiceAccount{
@@ -316,6 +310,11 @@ func resourceComputeInstanceRead(d *schema.ResourceData, meta interface{}) error
 		d.Set("metadata_fingerprint", instance.Metadata.Fingerprint)
 	}
 
+	// Set the tags fingerprint if there is one.
+	if instance.Tags != nil {
+		d.Set("tags_fingerprint", instance.Tags.Fingerprint)
+	}
+
 	return nil
 }
 
@@ -351,7 +350,36 @@ func resourceComputeInstanceUpdate(d *schema.ResourceData, meta interface{}) err
 			// Return the error
 			return OperationError(*op.Error)
 		}
+	}
 
+	if d.HasChange("tags") {
+		tags := resourceInstanceTags(d)
+		op, err := config.clientCompute.Instances.SetTags(
+			config.Project, d.Get("zone").(string), d.Id(), tags).Do()
+		if err != nil {
+			return fmt.Errorf("Error updating tags: %s", err)
+		}
+
+		w := &OperationWaiter{
+			Service: config.clientCompute,
+			Op:      op,
+			Project: config.Project,
+			Zone:    d.Get("zone").(string),
+			Type:    OperationWaitZone,
+		}
+		state := w.Conf()
+		state.Delay = 1 * time.Second
+		state.Timeout = 5 * time.Minute
+		state.MinTimeout = 2 * time.Second
+		opRaw, err := state.WaitForState()
+		if err != nil {
+			return fmt.Errorf("Error waiting for tags to update: %s", err)
+		}
+		op = opRaw.(*compute.Operation)
+		if op.Error != nil {
+			// Return the error
+			return OperationError(*op.Error)
+		}
 	}
 
 	return resourceComputeInstanceRead(d, meta)
@@ -414,4 +442,21 @@ func resourceInstanceMetadata(d *schema.ResourceData) *compute.Metadata {
 	}
 
 	return metadata
+}
+
+func resourceInstanceTags(d *schema.ResourceData) *compute.Tags {
+	// Calculate the tags
+	var tags *compute.Tags
+	if v := d.Get("tags"); v != nil {
+		vs := v.(*schema.Set).List()
+		tags = new(compute.Tags)
+		tags.Items = make([]string, len(vs))
+		for i, v := range v.(*schema.Set).List() {
+			tags.Items[i] = v.(string)
+		}
+
+		tags.Fingerprint = d.Get("tags_fingerprint").(string)
+	}
+
+	return tags
 }

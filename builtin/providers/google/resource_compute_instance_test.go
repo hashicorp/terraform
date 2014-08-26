@@ -72,6 +72,7 @@ func TestAccComputeInstance_update(t *testing.T) {
 						"google_compute_instance.foobar", &instance),
 					testAccCheckComputeInstanceMetadata(
 						&instance, "bar", "baz"),
+					testAccCheckComputeInstanceTag(&instance, "baz"),
 				),
 			},
 		},
@@ -204,7 +205,7 @@ resource "google_compute_instance" "foobar" {
 	name = "terraform-test"
 	machine_type = "n1-standard-1"
 	zone = "us-central1-a"
-	tags = ["foo", "bar"]
+	tags = ["baz"]
 
 	disk {
 		image = "debian-7-wheezy-v20140814"
