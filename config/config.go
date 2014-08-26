@@ -45,6 +45,7 @@ type Resource struct {
 	RawConfig    *RawConfig
 	Provisioners []*Provisioner
 	DependsOn    []string
+	Template     string
 }
 
 type ResourceTemplate struct {
@@ -295,6 +296,18 @@ func (c *Config) allVariables() map[string][]InterpolatedVariable {
 	}
 
 	return result
+}
+
+func (c *Config) ApplyTemplates() {
+	for _, resource := range c.Resources {
+		if resource.Template != "" {
+			for _, template := range c.ResourceTemplates {
+				if template.Name == resource.Template {
+					resource.ApplyTemplate(template)
+				}
+			}
+		}
+	}
 }
 
 func (o *Output) mergerName() string {

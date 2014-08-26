@@ -393,6 +393,19 @@ func loadResourcesHcl(os *hclobj.Object, rts []*ResourceTemplate) ([]*Resource, 
 				}
 			}
 
+			// If we have a resource template, then save it for later evaluation
+			var resourceTemplate string
+			if o := obj.Get("resource_template", false); o != nil {
+				err = hcl.DecodeObject(&resourceTemplate, o)
+				if err != nil {
+					return nil, fmt.Errorf(
+						"Error parsing resource_template for %s[%s]: %s",
+						t.Key,
+						k,
+						err)
+				}
+			}
+
 			resource := &Resource{
 				Name:         k,
 				Type:         t.Key,
@@ -400,15 +413,7 @@ func loadResourcesHcl(os *hclobj.Object, rts []*ResourceTemplate) ([]*Resource, 
 				RawConfig:    rawConfig,
 				Provisioners: provisioners,
 				DependsOn:    dependsOn,
-			}
-
-			// Need to parse resource templates here
-			if rt := obj.Get("resource_template", false); rt != nil {
-				for _, template := range rts {
-					if template.Name == rt.Value {
-						resource.ApplyTemplate(template)
-					}
-				}
+				Template:     resourceTemplate,
 			}
 
 			result = append(result, resource)
