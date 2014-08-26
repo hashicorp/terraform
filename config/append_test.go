@@ -24,6 +24,9 @@ func TestAppend(t *testing.T) {
 				Variables: []*Variable{
 					&Variable{Name: "foo"},
 				},
+				ResourceTemplates: []*ResourceTemplate{
+					&ResourceTemplate{Name: "foo"},
+				},
 
 				unknownKeys: []string{"foo"},
 			},
@@ -40,6 +43,9 @@ func TestAppend(t *testing.T) {
 				},
 				Variables: []*Variable{
 					&Variable{Name: "bar"},
+				},
+				ResourceTemplates: []*ResourceTemplate{
+					&ResourceTemplate{Name: "bar"},
 				},
 
 				unknownKeys: []string{"bar"},
@@ -61,6 +67,10 @@ func TestAppend(t *testing.T) {
 				Variables: []*Variable{
 					&Variable{Name: "foo"},
 					&Variable{Name: "bar"},
+				},
+				ResourceTemplates: []*ResourceTemplate{
+					&ResourceTemplate{Name: "foo"},
+					&ResourceTemplate{Name: "bar"},
 				},
 
 				unknownKeys: []string{"foo", "bar"},
