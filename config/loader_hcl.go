@@ -416,7 +416,7 @@ func loadResourcesHcl(os *hclobj.Object) ([]*Resource, error) {
 				Name:         k,
 				Type:         t.Key,
 				Count:        count,
-				CountSet:     countSet,
+				countSet:     countSet,
 				RawConfig:    rawConfig,
 				Provisioners: provisioners,
 				DependsOn:    dependsOn,

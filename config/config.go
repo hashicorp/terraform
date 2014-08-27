@@ -42,7 +42,7 @@ type Resource struct {
 	Name         string
 	Type         string
 	Count        int
-	CountSet     bool
+	countSet     bool
 	RawConfig    *RawConfig
 	Provisioners []*Provisioner
 	DependsOn    []string
@@ -123,7 +123,7 @@ func (r *Resource) ApplyTemplate(t *ResourceTemplate) {
 	if r.Name == "" {
 		r.Name = t.Name
 	}
-	if !r.CountSet && t.Count > 0 {
+	if !r.countSet && t.Count > 0 {
 		r.Count = t.Count
 	}
 	if len(r.DependsOn) == 0 {
@@ -234,18 +234,16 @@ func (c *Config) Validate() error {
 		}
 
 		if r.Template != "" {
-			for i, rt := range c.ResourceTemplates {
+			for _, rt := range c.ResourceTemplates {
 				if rt.Name == r.Template {
-					break
-				}
-				if i == len(c.ResourceTemplates)-1 {
-					errs = append(errs, fmt.Errorf(
-						"%s: unknown resource template: %s",
-						n,
-						r.Template))
-					break
+					goto VALID_TEMPLATE
 				}
 			}
+			errs = append(errs, fmt.Errorf(
+				"%s: unknown resource template: %s",
+				n,
+				r.Template))
+		VALID_TEMPLATE:
 		}
 	}
 

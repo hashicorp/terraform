@@ -107,6 +107,20 @@ func TestConfigValidate_varDefaultInterpolate(t *testing.T) {
 	}
 }
 
+func TestConfigValidate_resourceTemplate(t *testing.T) {
+	c := testConfig(t, "validate-resource-template")
+	if err := c.Validate(); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+}
+
+func TestConfigValidate_resourceTemplateBadName(t *testing.T) {
+	c := testConfig(t, "validate-resource-template-bad-name")
+	if err := c.Validate(); err == nil {
+		t.Fatalf("should not be valid")
+	}
+}
+
 func TestProviderConfigName(t *testing.T) {
 	pcs := []*ProviderConfig{
 		&ProviderConfig{Name: "aw"},
@@ -194,6 +208,7 @@ func TestResourceTemplate_Apply(t *testing.T) {
 
 	resource2 := &Resource{
 		Count:        2,
+		countSet:     true,
 		Provisioners: []*Provisioner{&Provisioner{}},
 		DependsOn:    []string{"aws_instance.db"},
 		RawConfig: &RawConfig{
