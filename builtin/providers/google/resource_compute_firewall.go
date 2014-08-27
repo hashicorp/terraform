@@ -164,6 +164,8 @@ func resourceComputeFirewallRead(d *schema.ResourceData, meta interface{}) error
 func resourceComputeFirewallUpdate(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
 
+	d.Partial(true)
+
 	firewall, err := resourceFirewall(d, meta)
 	if err != nil {
 		return err
@@ -194,6 +196,8 @@ func resourceComputeFirewallUpdate(d *schema.ResourceData, meta interface{}) err
 		// Return the error
 		return OperationError(*op.Error)
 	}
+
+	d.Partial(false)
 
 	return resourceComputeFirewallRead(d, meta)
 }
