@@ -1363,11 +1363,12 @@ func TestResourceDataSet(t *testing.T) {
 
 func TestResourceDataState(t *testing.T) {
 	cases := []struct {
-		Schema map[string]*Schema
-		State  *terraform.ResourceState
-		Diff   *terraform.ResourceDiff
-		Set    map[string]interface{}
-		Result *terraform.ResourceState
+		Schema  map[string]*Schema
+		State   *terraform.ResourceState
+		Diff    *terraform.ResourceDiff
+		Set     map[string]interface{}
+		Result  *terraform.ResourceState
+		Partial []string
 	}{
 		// Basic primitive in diff
 		{
@@ -1728,6 +1729,221 @@ func TestResourceDataState(t *testing.T) {
 				},
 			},
 		},
+
+		/*
+		 * PARTIAL STATES
+		 */
+
+		// Basic primitive
+		{
+			Schema: map[string]*Schema{
+				"availability_zone": &Schema{
+					Type:     TypeString,
+					Optional: true,
+					Computed: true,
+					ForceNew: true,
+				},
+			},
+
+			State: nil,
+
+			Diff: &terraform.ResourceDiff{
+				Attributes: map[string]*terraform.ResourceAttrDiff{
+					"availability_zone": &terraform.ResourceAttrDiff{
+						Old:         "",
+						New:         "foo",
+						RequiresNew: true,
+					},
+				},
+			},
+
+			Partial: []string{},
+
+			Result: &terraform.ResourceState{
+				Attributes: map[string]string{},
+			},
+		},
+
+		// List
+		{
+			Schema: map[string]*Schema{
+				"ports": &Schema{
+					Type:     TypeList,
+					Required: true,
+					Elem:     &Schema{Type: TypeInt},
+				},
+			},
+
+			State: &terraform.ResourceState{
+				Attributes: map[string]string{
+					"ports.#": "1",
+					"ports.0": "80",
+				},
+			},
+
+			Diff: &terraform.ResourceDiff{
+				Attributes: map[string]*terraform.ResourceAttrDiff{
+					"ports.#": &terraform.ResourceAttrDiff{
+						Old: "1",
+						New: "2",
+					},
+					"ports.1": &terraform.ResourceAttrDiff{
+						Old: "",
+						New: "100",
+					},
+				},
+			},
+
+			Partial: []string{},
+
+			Result: &terraform.ResourceState{
+				Attributes: map[string]string{
+					"ports.#": "1",
+					"ports.0": "80",
+				},
+			},
+		},
+
+		// List of resources
+		{
+			Schema: map[string]*Schema{
+				"ingress": &Schema{
+					Type:     TypeList,
+					Required: true,
+					Elem: &Resource{
+						Schema: map[string]*Schema{
+							"from": &Schema{
+								Type:     TypeInt,
+								Required: true,
+							},
+						},
+					},
+				},
+			},
+
+			State: &terraform.ResourceState{
+				Attributes: map[string]string{
+					"ingress.#":      "1",
+					"ingress.0.from": "80",
+				},
+			},
+
+			Diff: &terraform.ResourceDiff{
+				Attributes: map[string]*terraform.ResourceAttrDiff{
+					"ingress.#": &terraform.ResourceAttrDiff{
+						Old: "1",
+						New: "2",
+					},
+					"ingress.0.from": &terraform.ResourceAttrDiff{
+						Old: "80",
+						New: "150",
+					},
+					"ingress.1.from": &terraform.ResourceAttrDiff{
+						Old: "",
+						New: "100",
+					},
+				},
+			},
+
+			Partial: []string{},
+
+			Result: &terraform.ResourceState{
+				Attributes: map[string]string{
+					"ingress.#":      "1",
+					"ingress.0.from": "80",
+				},
+			},
+		},
+
+		// List of maps
+		{
+			Schema: map[string]*Schema{
+				"config_vars": &Schema{
+					Type:     TypeList,
+					Optional: true,
+					Computed: true,
+					Elem: &Schema{
+						Type: TypeMap,
+					},
+				},
+			},
+
+			State: &terraform.ResourceState{
+				Attributes: map[string]string{
+					"config_vars.#":     "2",
+					"config_vars.0.foo": "bar",
+					"config_vars.0.bar": "bar",
+					"config_vars.1.bar": "baz",
+				},
+			},
+
+			Diff: &terraform.ResourceDiff{
+				Attributes: map[string]*terraform.ResourceAttrDiff{
+					"config_vars.0.bar": &terraform.ResourceAttrDiff{
+						NewRemoved: true,
+					},
+				},
+			},
+
+			Set: map[string]interface{}{
+				"config_vars.1": map[string]interface{}{
+					"baz": "bang",
+				},
+			},
+
+			Partial: []string{},
+
+			Result: &terraform.ResourceState{
+				Attributes: map[string]string{
+					"config_vars.#":     "2",
+					"config_vars.0.foo": "bar",
+					"config_vars.0.bar": "bar",
+					"config_vars.1.bar": "baz",
+				},
+			},
+		},
+
+		// Sets
+		{
+			Schema: map[string]*Schema{
+				"ports": &Schema{
+					Type:     TypeSet,
+					Optional: true,
+					Computed: true,
+					Elem:     &Schema{Type: TypeInt},
+					Set: func(a interface{}) int {
+						return a.(int)
+					},
+				},
+			},
+
+			State: &terraform.ResourceState{
+				Attributes: map[string]string{
+					"ports.#": "3",
+					"ports.0": "100",
+					"ports.1": "80",
+					"ports.2": "80",
+				},
+			},
+
+			Diff: &terraform.ResourceDiff{
+				Attributes: map[string]*terraform.ResourceAttrDiff{
+					"ports.1": &terraform.ResourceAttrDiff{
+						New: "120",
+					},
+				},
+			},
+
+			Partial: []string{},
+
+			Result: &terraform.ResourceState{
+				Attributes: map[string]string{
+					"ports.#": "2",
+					"ports.0": "80",
+					"ports.1": "100",
+				},
+			},
+		},
 	}
 
 	for i, tc := range cases {
@@ -1749,6 +1965,14 @@ func TestResourceDataState(t *testing.T) {
 			d.SetId("foo")
 		}
 
+		// If we have partial, then enable partial state mode.
+		if tc.Partial != nil {
+			d.Partial(true)
+			for _, k := range tc.Partial {
+				d.SetPartial(k)
+			}
+		}
+
 		actual := d.State()
 
 		// If we set an ID, then undo what we did so the comparison works
@@ -1758,7 +1982,7 @@ func TestResourceDataState(t *testing.T) {
 		}
 
 		if !reflect.DeepEqual(actual, tc.Result) {
-			t.Fatalf("Bad: %d\n\n%#v", i, actual)
+			t.Fatalf("Bad: %d\n\n%#v\n\nExpected:\n\n%#v", i, actual, tc.Result)
 		}
 	}
 }

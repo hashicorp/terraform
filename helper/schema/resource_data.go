@@ -42,9 +42,11 @@ type ResourceData struct {
 	diff    *terraform.ResourceDiff
 	diffing bool
 
-	setMap   map[string]string
-	newState *terraform.ResourceState
-	once     sync.Once
+	setMap     map[string]string
+	newState   *terraform.ResourceState
+	partial    bool
+	partialMap map[string]struct{}
+	once       sync.Once
 }
 
 // Get returns the data for the given key, or nil if the key doesn't exist
@@ -72,23 +74,37 @@ func (d *ResourceData) GetChange(key string) (interface{}, interface{}) {
 // existed or not in the configuration. The second boolean result will also
 // be false if a key is given that isn't in the schema at all.
 func (d *ResourceData) GetOk(key string) (interface{}, bool) {
-	r := d.getRaw(key)
+	r := d.getRaw(key, getSourceSet)
 	return r.Value, r.Exists
 }
 
-func (d *ResourceData) getRaw(key string) getResult {
+func (d *ResourceData) getRaw(key string, level getSource) getResult {
 	var parts []string
 	if key != "" {
 		parts = strings.Split(key, ".")
 	}
 
-	return d.getObject("", parts, d.schema, getSourceSet)
+	return d.getObject("", parts, d.schema, level)
 }
 
 // HasChange returns whether or not the given key has been changed.
 func (d *ResourceData) HasChange(key string) bool {
 	o, n := d.GetChange(key)
 	return !reflect.DeepEqual(o, n)
+}
+
+// Partial turns partial state mode on/off.
+//
+// When partial state mode is enabled, then only key prefixes specified
+// by SetPartial will be in the final state. This allows providers to return
+// partial states for partially applied resources (when errors occur).
+func (d *ResourceData) Partial(on bool) {
+	d.partial = on
+	if on {
+		d.partialMap = make(map[string]struct{})
+	} else {
+		d.partialMap = nil
+	}
 }
 
 // Set sets the value for the given key.
@@ -102,6 +118,17 @@ func (d *ResourceData) Set(key string, value interface{}) error {
 
 	parts := strings.Split(key, ".")
 	return d.setObject("", parts, d.schema, value)
+}
+
+// SetPartial adds the key prefix to the final state output while
+// in partial state mode.
+//
+// If partial state mode is disabled, then this has no effect. Additionally,
+// whenever partial state mode is toggled, the partial data is cleared.
+func (d *ResourceData) SetPartial(k string) {
+	if d.partial {
+		d.partialMap[k] = struct{}{}
+	}
 }
 
 // Id returns the ID of the resource.
@@ -799,7 +826,7 @@ func (d *ResourceData) setSet(
 func (d *ResourceData) stateList(
 	prefix string,
 	schema *Schema) map[string]string {
-	countRaw := d.get(prefix, []string{"#"}, schema, getSourceSet)
+	countRaw := d.get(prefix, []string{"#"}, schema, d.stateSource(prefix))
 	if !countRaw.Exists {
 		return nil
 	}
@@ -831,7 +858,7 @@ func (d *ResourceData) stateList(
 func (d *ResourceData) stateMap(
 	prefix string,
 	schema *Schema) map[string]string {
-	v := d.getMap(prefix, nil, schema, getSourceSet)
+	v := d.getMap(prefix, nil, schema, d.stateSource(prefix))
 	if !v.Exists {
 		return nil
 	}
@@ -869,7 +896,7 @@ func (d *ResourceData) stateObject(
 func (d *ResourceData) statePrimitive(
 	prefix string,
 	schema *Schema) map[string]string {
-	raw := d.getRaw(prefix)
+	raw := d.getRaw(prefix, d.stateSource(prefix))
 	if !raw.Exists {
 		return nil
 	}
@@ -899,7 +926,7 @@ func (d *ResourceData) statePrimitive(
 func (d *ResourceData) stateSet(
 	prefix string,
 	schema *Schema) map[string]string {
-	raw := d.get(prefix, nil, schema, getSourceSet)
+	raw := d.get(prefix, nil, schema, d.stateSource(prefix))
 	if !raw.Exists {
 		return nil
 	}
@@ -946,4 +973,21 @@ func (d *ResourceData) stateSingle(
 	default:
 		panic(fmt.Sprintf("%s: unknown type %#v", prefix, schema.Type))
 	}
+}
+
+func (d *ResourceData) stateSource(prefix string) getSource {
+	// If we're not doing a partial apply, then get the set level
+	if !d.partial {
+		return getSourceSet
+	}
+
+	// Otherwise, only return getSourceSet if its in the partial map.
+	// Otherwise we use state level only.
+	for k, _ := range d.partialMap {
+		if strings.HasPrefix(prefix, k) {
+			return getSourceSet
+		}
+	}
+
+	return getSourceState
 }
