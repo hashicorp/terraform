@@ -287,6 +287,13 @@ func (m schemaMap) diffList(
 	diff *terraform.ResourceDiff,
 	d *ResourceData) error {
 	o, n, _ := d.diffChange(k)
+
+	// If we have an old value, but no new value set but we're computed,
+	// then nothing has changed.
+	if o != nil && n == nil && schema.Computed {
+		return nil
+	}
+
 	if o == nil {
 		o = []interface{}{}
 	}

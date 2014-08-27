@@ -500,6 +500,32 @@ func TestSchemaMap_Diff(t *testing.T) {
 			Err: false,
 		},
 
+		{
+			Schema: map[string]*Schema{
+				"ports": &Schema{
+					Type:     TypeSet,
+					Optional: true,
+					Computed: true,
+					Elem:     &Schema{Type: TypeInt},
+					Set:      func(v interface{}) int { return v.(int) },
+				},
+			},
+
+			State: &terraform.ResourceState{
+				Attributes: map[string]string{
+					"availability_zone": "bar",
+					"ports.#":           "1",
+					"ports.0":           "80",
+				},
+			},
+
+			Config: map[string]interface{}{},
+
+			Diff: nil,
+
+			Err: false,
+		},
+
 		/*
 		 * List of structure decode
 		 */
