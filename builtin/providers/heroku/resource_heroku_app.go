@@ -74,6 +74,11 @@ func resourceHerokuApp() *schema.Resource {
 				},
 			},
 
+			"all_config_vars": &schema.Schema{
+				Type:     schema.TypeMap,
+				Computed: true,
+			},
+
 			"git_url": &schema.Schema{
 				Type:     schema.TypeString,
 				Computed: true,
@@ -140,16 +145,18 @@ func resourceHerokuAppRead(d *schema.ResourceData, meta interface{}) error {
 		return err
 	}
 
-	// Only get the config vars that we care about
+	// Only set the config_vars that we have set in the configuration.
+	// The "all_config_vars" field has all of them.
+	configVars := make(map[string]string)
 	care := make(map[string]struct{})
 	for _, v := range d.Get("config_vars").([]interface{}) {
 		for k, _ := range v.(map[string]interface{}) {
 			care[k] = struct{}{}
 		}
 	}
-	for k, _ := range app.Vars {
+	for k, v := range app.Vars {
 		if _, ok := care[k]; !ok {
-			delete(app.Vars, k)
+			configVars[k] = v
 		}
 	}
 
@@ -158,7 +165,8 @@ func resourceHerokuAppRead(d *schema.ResourceData, meta interface{}) error {
 	d.Set("region", app.App.Region.Name)
 	d.Set("git_url", app.App.GitURL)
 	d.Set("web_url", app.App.WebURL)
-	d.Set("config_vars", []map[string]string{app.Vars})
+	d.Set("config_vars", []map[string]string{configVars})
+	d.Set("all_config_vars", app.Vars)
 
 	// We know that the hostname on heroku will be the name+herokuapp.com
 	// You need this to do things like create DNS CNAME records

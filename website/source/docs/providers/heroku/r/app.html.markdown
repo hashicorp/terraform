@@ -53,4 +53,6 @@ The following attributes are exported:
    at by default.
 * `heroku_hostname` - A hostname for the Heroku application, suitable
    for pointing DNS records.
-
+* `all_config_vars` - A map of all of the configuration variables that
+    exist for the app, containing both those set by Terraform and those
+    set externally.
