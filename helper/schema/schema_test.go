@@ -764,6 +764,104 @@ func TestSchemaMap_Diff(t *testing.T) {
 
 			Err: false,
 		},
+
+		/*
+		 * ForceNews
+		 */
+
+		{
+			Schema: map[string]*Schema{
+				"availability_zone": &Schema{
+					Type:     TypeString,
+					Optional: true,
+					ForceNew: true,
+				},
+
+				"address": &Schema{
+					Type:     TypeString,
+					Optional: true,
+					Computed: true,
+				},
+			},
+
+			State: &terraform.ResourceState{
+				Attributes: map[string]string{
+					"availability_zone": "bar",
+					"address":           "foo",
+				},
+			},
+
+			Config: map[string]interface{}{
+				"availability_zone": "foo",
+			},
+
+			Diff: &terraform.ResourceDiff{
+				Attributes: map[string]*terraform.ResourceAttrDiff{
+					"availability_zone": &terraform.ResourceAttrDiff{
+						Old:         "bar",
+						New:         "foo",
+						RequiresNew: true,
+					},
+
+					"address": &terraform.ResourceAttrDiff{
+						Old:         "foo",
+						New:         "",
+						NewComputed: true,
+					},
+				},
+			},
+
+			Err: false,
+		},
+
+		// Set
+		{
+			Schema: map[string]*Schema{
+				"availability_zone": &Schema{
+					Type:     TypeString,
+					Optional: true,
+					ForceNew: true,
+				},
+
+				"ports": &Schema{
+					Type:     TypeSet,
+					Optional: true,
+					Computed: true,
+					Elem:     &Schema{Type: TypeInt},
+					Set:      func(v interface{}) int { return v.(int) },
+				},
+			},
+
+			State: &terraform.ResourceState{
+				Attributes: map[string]string{
+					"availability_zone": "bar",
+					"ports.#":           "1",
+					"ports.0":           "80",
+				},
+			},
+
+			Config: map[string]interface{}{
+				"availability_zone": "foo",
+			},
+
+			Diff: &terraform.ResourceDiff{
+				Attributes: map[string]*terraform.ResourceAttrDiff{
+					"availability_zone": &terraform.ResourceAttrDiff{
+						Old:         "bar",
+						New:         "foo",
+						RequiresNew: true,
+					},
+
+					"ports.#": &terraform.ResourceAttrDiff{
+						Old:         "1",
+						New:         "",
+						NewComputed: true,
+					},
+				},
+			},
+
+			Err: false,
+		},
 	}
 
 	for i, tc := range cases {

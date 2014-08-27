@@ -82,11 +82,8 @@ func (r *Resource) Apply(
 				return data.State(), err
 			}
 
-			// Reset the data to be empty
-			data, err = schemaMap(r.Schema).Data(nil, d)
-			if err != nil {
-				return nil, err
-			}
+			// Make sure the ID is gone.
+			data.SetId("")
 		}
 
 		// If we're only destroying, and not creating, then return
@@ -97,7 +94,7 @@ func (r *Resource) Apply(
 	}
 
 	err = nil
-	if s.ID == "" {
+	if data.Id() == "" {
 		// We're creating, it is a new resource.
 		err = r.Create(data, meta)
 	} else {
