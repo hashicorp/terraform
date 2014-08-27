@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/bgentry/heroku-go"
+	"github.com/cyberdelia/heroku-go/v3"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
 )
@@ -103,7 +103,7 @@ func TestAccHerokuApp_NukeVars(t *testing.T) {
 }
 
 func testAccCheckHerokuAppDestroy(s *terraform.State) error {
-	client := testAccProvider.Meta().(*heroku.Client)
+	client := testAccProvider.Meta().(*heroku.Service)
 
 	for _, rs := range s.Resources {
 		if rs.Type != "heroku_app" {
@@ -122,7 +122,7 @@ func testAccCheckHerokuAppDestroy(s *terraform.State) error {
 
 func testAccCheckHerokuAppAttributes(app *heroku.App) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
-		client := testAccProvider.Meta().(*heroku.Client)
+		client := testAccProvider.Meta().(*heroku.Service)
 
 		if app.Region.Name != "us" {
 			return fmt.Errorf("Bad region: %s", app.Region.Name)
@@ -151,7 +151,7 @@ func testAccCheckHerokuAppAttributes(app *heroku.App) resource.TestCheckFunc {
 
 func testAccCheckHerokuAppAttributesUpdated(app *heroku.App) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
-		client := testAccProvider.Meta().(*heroku.Client)
+		client := testAccProvider.Meta().(*heroku.Service)
 
 		if app.Name != "terraform-test-renamed" {
 			return fmt.Errorf("Bad name: %s", app.Name)
@@ -178,7 +178,7 @@ func testAccCheckHerokuAppAttributesUpdated(app *heroku.App) resource.TestCheckF
 
 func testAccCheckHerokuAppAttributesNoVars(app *heroku.App) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
-		client := testAccProvider.Meta().(*heroku.Client)
+		client := testAccProvider.Meta().(*heroku.Service)
 
 		if app.Name != "terraform-test-app" {
 			return fmt.Errorf("Bad name: %s", app.Name)
@@ -209,7 +209,7 @@ func testAccCheckHerokuAppExists(n string, app *heroku.App) resource.TestCheckFu
 			return fmt.Errorf("No App Name is set")
 		}
 
-		client := testAccProvider.Meta().(*heroku.Client)
+		client := testAccProvider.Meta().(*heroku.Service)
 
 		foundApp, err := client.AppInfo(rs.ID)
 

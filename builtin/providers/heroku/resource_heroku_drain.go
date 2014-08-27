@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/bgentry/heroku-go"
+	"github.com/cyberdelia/heroku-go/v3"
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/terraform"
 )
@@ -37,19 +37,19 @@ func resourceHerokuDrain() *schema.Resource {
 }
 
 func resourceHerokuDrainCreate(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*heroku.Client)
+	client := meta.(*heroku.Service)
 
 	app := d.Get("app").(string)
 	url := d.Get("url").(string)
 
 	log.Printf("[DEBUG] Drain create configuration: %#v, %#v", app, url)
 
-	dr, err := client.LogDrainCreate(app, url)
+	dr, err := client.LogDrainCreate(app, heroku.LogDrainCreateOpts{url})
 	if err != nil {
 		return err
 	}
 
-	d.SetId(dr.Id)
+	d.SetId(dr.ID)
 	d.Set("url", dr.URL)
 	d.Set("token", dr.Token)
 	d.SetDependencies([]terraform.ResourceDependency{
@@ -61,7 +61,7 @@ func resourceHerokuDrainCreate(d *schema.ResourceData, meta interface{}) error {
 }
 
 func resourceHerokuDrainDelete(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*heroku.Client)
+	client := meta.(*heroku.Service)
 
 	log.Printf("[INFO] Deleting drain: %s", d.Id())
 
@@ -75,7 +75,7 @@ func resourceHerokuDrainDelete(d *schema.ResourceData, meta interface{}) error {
 }
 
 func resourceHerokuDrainRead(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*heroku.Client)
+	client := meta.(*heroku.Service)
 
 	dr, err := client.LogDrainInfo(d.Get("app").(string), d.Id())
 	if err != nil {

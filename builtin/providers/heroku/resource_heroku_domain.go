@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/bgentry/heroku-go"
+	"github.com/cyberdelia/heroku-go/v3"
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/terraform"
 )
@@ -37,19 +37,19 @@ func resourceHerokuDomain() *schema.Resource {
 }
 
 func resourceHerokuDomainCreate(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*heroku.Client)
+	client := meta.(*heroku.Service)
 
 	app := d.Get("app").(string)
 	hostname := d.Get("hostname").(string)
 
 	log.Printf("[DEBUG] Domain create configuration: %#v, %#v", app, hostname)
 
-	do, err := client.DomainCreate(app, hostname)
+	do, err := client.DomainCreate(app, heroku.DomainCreateOpts{hostname})
 	if err != nil {
 		return err
 	}
 
-	d.SetId(do.Id)
+	d.SetId(do.ID)
 	d.Set("hostname", do.Hostname)
 	d.Set("cname", fmt.Sprintf("%s.herokuapp.com", app))
 	d.SetDependencies([]terraform.ResourceDependency{
@@ -61,7 +61,7 @@ func resourceHerokuDomainCreate(d *schema.ResourceData, meta interface{}) error 
 }
 
 func resourceHerokuDomainDelete(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*heroku.Client)
+	client := meta.(*heroku.Service)
 
 	log.Printf("[INFO] Deleting Domain: %s", d.Id())
 
@@ -75,7 +75,7 @@ func resourceHerokuDomainDelete(d *schema.ResourceData, meta interface{}) error 
 }
 
 func resourceHerokuDomainRead(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*heroku.Client)
+	client := meta.(*heroku.Service)
 
 	app := d.Get("app").(string)
 	do, err := client.DomainInfo(app, d.Id())

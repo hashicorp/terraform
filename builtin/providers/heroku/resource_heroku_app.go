@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/bgentry/heroku-go"
+	"github.com/cyberdelia/heroku-go/v3"
 	"github.com/hashicorp/terraform/helper/multierror"
 	"github.com/hashicorp/terraform/helper/schema"
 )
@@ -14,7 +14,7 @@ type application struct {
 	Id string // Id of the resource
 
 	App    *heroku.App       // The heroku application
-	Client *heroku.Client    // Client to interact with the heroku API
+	Client *heroku.Service   // Client to interact with the heroku API
 	Vars   map[string]string // The vars on the application
 }
 
@@ -95,7 +95,7 @@ func resourceHerokuApp() *schema.Resource {
 }
 
 func resourceHerokuAppCreate(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*heroku.Client)
+	client := meta.(*heroku.Service)
 
 	// Build up our creation options
 	opts := heroku.AppCreateOpts{}
@@ -117,7 +117,7 @@ func resourceHerokuAppCreate(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	log.Printf("[DEBUG] Creating Heroku app...")
-	a, err := client.AppCreate(&opts)
+	a, err := client.AppCreate(opts)
 	if err != nil {
 		return err
 	}
@@ -136,7 +136,7 @@ func resourceHerokuAppCreate(d *schema.ResourceData, meta interface{}) error {
 }
 
 func resourceHerokuAppRead(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*heroku.Client)
+	client := meta.(*heroku.Service)
 	app, err := resource_heroku_app_retrieve(d.Id(), client)
 	if err != nil {
 		return err
@@ -157,7 +157,7 @@ func resourceHerokuAppRead(d *schema.ResourceData, meta interface{}) error {
 }
 
 func resourceHerokuAppUpdate(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*heroku.Client)
+	client := meta.(*heroku.Service)
 
 	// If name changed, update it
 	if d.HasChange("name") {
@@ -166,7 +166,7 @@ func resourceHerokuAppUpdate(d *schema.ResourceData, meta interface{}) error {
 			Name: &v,
 		}
 
-		renamedApp, err := client.AppUpdate(d.Id(), &opts)
+		renamedApp, err := client.AppUpdate(d.Id(), opts)
 		if err != nil {
 			return err
 		}
@@ -196,7 +196,7 @@ func resourceHerokuAppUpdate(d *schema.ResourceData, meta interface{}) error {
 }
 
 func resourceHerokuAppDelete(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*heroku.Client)
+	client := meta.(*heroku.Service)
 
 	log.Printf("[INFO] Deleting App: %s", d.Id())
 	err := client.AppDelete(d.Id())
@@ -208,7 +208,7 @@ func resourceHerokuAppDelete(d *schema.ResourceData, meta interface{}) error {
 	return nil
 }
 
-func resource_heroku_app_retrieve(id string, client *heroku.Client) (*application, error) {
+func resource_heroku_app_retrieve(id string, client *heroku.Service) (*application, error) {
 	app := application{Id: id, Client: client}
 
 	err := app.Update()
@@ -220,7 +220,7 @@ func resource_heroku_app_retrieve(id string, client *heroku.Client) (*applicatio
 	return &app, nil
 }
 
-func retrieve_config_vars(id string, client *heroku.Client) (map[string]string, error) {
+func retrieve_config_vars(id string, client *heroku.Service) (map[string]string, error) {
 	vars, err := client.ConfigVarInfo(id)
 
 	if err != nil {
@@ -233,7 +233,7 @@ func retrieve_config_vars(id string, client *heroku.Client) (map[string]string, 
 // Updates the config vars for from an expanded configuration.
 func update_config_vars(
 	id string,
-	client *heroku.Client,
+	client *heroku.Service,
 	o []interface{},
 	n []interface{}) error {
 	vars := make(map[string]*string)
