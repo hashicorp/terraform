@@ -7,30 +7,57 @@ import (
 	"github.com/hashicorp/terraform/terraform"
 )
 
-// The functions below are the CRUD function types for a Resource.
-//
-// The second parameter is the meta value sent to the resource when
-// different operations are called.
-type CreateFunc func(*ResourceData, interface{}) error
-type ReadFunc func(*ResourceData, interface{}) error
-type UpdateFunc func(*ResourceData, interface{}) error
-type DeleteFunc func(*ResourceData, interface{}) error
-
 // Resource represents a thing in Terraform that has a set of configurable
-// attributes and generally also has a lifecycle (create, read, update,
-// delete).
+// attributes and a lifecycle (create, read, update, delete).
 //
 // The Resource schema is an abstraction that allows provider writers to
 // worry only about CRUD operations while off-loading validation, diff
 // generation, etc. to this higher level library.
 type Resource struct {
+	// Schema is the schema for the configuration of this resource.
+	//
+	// The keys of this map are the configuration keys, and the values
+	// describe the schema of the configuration value.
+	//
+	// The schema is used to represent both configurable data as well
+	// as data that might be computed in the process of creating this
+	// resource.
 	Schema map[string]*Schema
 
+	// The functions below are the CRUD operations for this resource.
+	//
+	// The only optional operation is Update. If Update is not implemented,
+	// then updates will not be supported for this resource.
+	//
+	// The ResourceData parameter in the functions below are used to
+	// query configuration and changes for the resource as well as to set
+	// the ID, computed data, etc.
+	//
+	// The interface{} parameter is the result of the ConfigureFunc in
+	// the provider for this resource. If the provider does not define
+	// a ConfigureFunc, this will be nil. This parameter should be used
+	// to store API clients, configuration structures, etc.
+	//
+	// If any errors occur during each of the operation, an error should be
+	// returned. If a resource was partially updated, be careful to enable
+	// partial state mode for ResourceData and use it accordingly.
 	Create CreateFunc
 	Read   ReadFunc
 	Update UpdateFunc
 	Delete DeleteFunc
 }
+
+// See Resource documentation.
+type CreateFunc func(*ResourceData, interface{}) error
+
+// See Resource documentation.
+type ReadFunc func(*ResourceData, interface{}) error
+
+// See Resource documentation.
+type UpdateFunc func(*ResourceData, interface{}) error
+
+// See Resource documentation.
+type DeleteFunc func(*ResourceData, interface{}) error
 
 // Apply creates, updates, and/or deletes a resource.
 func (r *Resource) Apply(
@@ -121,6 +148,10 @@ func (r *Resource) Refresh(
 // This should be called in a unit test for any resource to verify
 // before release that a resource is properly configured for use with
 // this library.
+//
+// Provider.InternalValidate() will automatically call this for all of
+// the resources it manages, so you don't need to call this manually if it
+// is part of a Provider.
 func (r *Resource) InternalValidate() error {
 	if r == nil {
 		return errors.New("resource is nil")

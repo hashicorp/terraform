@@ -1,3 +1,14 @@
+// schema is a high-level framework for easily writing new providers
+// for Terraform. Usage of schema is recommended over attempting to write
+// to the low-level plugin interfaces manually.
+//
+// schema breaks down provider creation into simple CRUD operations for
+// resources. The logic of diffing, destroying before creating, updating
+// or creating, etc. is all handled by the framework. The plugin author
+// only needs to implement a configuration schema and the CRUD operations and
+// everything else is meant to just work.
+//
+// A good starting point is to view the Provider structure.
 package schema
 
 import (
@@ -24,8 +35,22 @@ const (
 )
 
 // Schema is used to describe the structure of a value.
+//
+// Read the documentation of the struct elements for important details.
 type Schema struct {
 	// Type is the type of the value and must be one of the ValueType values.
+	//
+	// This type not only determines what type is expected/valid in configuring
+	// this value, but also what type is returned when ResourceData.Get is
+	// called. The types returned by Get are:
+	//
+	//   TypeBool - bool
+	//   TypeInt - int
+	//   TypeString - string
+	//   TypeList - []interface{}
+	//   TypeMap - map[string]interface{}
+	//   TypeSet - *schema.Set
+	//
 	Type ValueType
 
 	// If one of these is set, then this item can come from the configuration.
@@ -70,6 +95,8 @@ type Schema struct {
 	// ComputedWhen is a set of queries on the configuration. Whenever any
 	// of these things is changed, it will require a recompute (this requires
 	// that Computed is set to true).
+	//
+	// NOTE: This currently does not work.
 	ComputedWhen []string
 }
 

@@ -8,15 +8,35 @@ import (
 	"github.com/hashicorp/terraform/terraform"
 )
 
-// Provider represents a Resource provider in Terraform, and properly
+// Provider represents a resource provider in Terraform, and properly
 // implements all of the ResourceProvider API.
 //
-// This is a friendlier API than the core Terraform ResourceProvider API,
-// and is recommended to be used over that.
+// By defining a schema for the configuration of the provider, the
+// map of supporting resources, and a configuration function, the schema
+// framework takes over and handles all the provider operations for you.
+//
+// After defining the provider structure, it is unlikely that you'll require any
+// of the methods on Provider itself.
 type Provider struct {
+	// Schema is the schema for the configuration of this provider. If this
+	// provider has no configuration, this can be omitted.
+	//
+	// The keys of this map are the configuration keys, and the value is
+	// the schema describing the value of the configuration.
 	Schema       map[string]*Schema
+
+	// ResourcesMap is the list of available resources that this provider
+	// can manage, along with their Resource structure defining their
+	// own schemas and CRUD operations.
+	//
+	// Provider automatically handles routing operations such as Apply,
+	// Diff, etc. to the proper resource.
 	ResourcesMap map[string]*Resource
 
+	// ConfigureFunc is a function for configuring the provider. If the
+	// provider doesn't need to be configured, this can be omitted.
+	//
+	// See the ConfigureFunc documentation for more information.
 	ConfigureFunc ConfigureFunc
 
 	meta interface{}
@@ -25,7 +45,9 @@ type Provider struct {
 // ConfigureFunc is the function used to configure a Provider.
 //
 // The interface{} value returned by this function is stored and passed into
-// the subsequent resources as the meta parameter.
+// the subsequent resources as the meta parameter. This return value is
+// usually used to pass along a configured API client, a configuration
+// structure, etc.
 type ConfigureFunc func(*ResourceData) (interface{}, error)
 
 // InternalValidate should be called to validate the structure
@@ -65,13 +87,12 @@ func (p *Provider) SetMeta(v interface{}) {
 	p.meta = v
 }
 
-// Validate validates the provider configuration against the schema.
+// Validate implementation of terraform.ResourceProvider interface.
 func (p *Provider) Validate(c *terraform.ResourceConfig) ([]string, []error) {
 	return schemaMap(p.Schema).Validate(c)
 }
 
-// ValidateResource validates the resource configuration against the
-// proper schema.
+// ValidateResource implementation of terraform.ResourceProvider interface.
 func (p *Provider) ValidateResource(
 	t string, c *terraform.ResourceConfig) ([]string, []error) {
 	r, ok := p.ResourcesMap[t]

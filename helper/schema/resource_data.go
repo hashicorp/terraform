@@ -11,6 +11,30 @@ import (
 	"github.com/mitchellh/mapstructure"
 )
 
+// ResourceData is used to query and set the attributes of a resource.
+//
+// ResourceData is the primary argument received for CRUD operations on
+// a resource as well as configuration of a provider. It is a powerful
+// structure that can be used to not only query data, but check for changes,
+// define partial state updates, etc.
+//
+// The most relevant methods to take a look at are Get, Set, and Partial.
+type ResourceData struct {
+	// Settable (internally)
+	schema  map[string]*Schema
+	config  *terraform.ResourceConfig
+	state   *terraform.ResourceState
+	diff    *terraform.ResourceDiff
+	diffing bool
+
+	// Don't set
+	setMap     map[string]string
+	newState   *terraform.ResourceState
+	partial    bool
+	partialMap map[string]struct{}
+	once       sync.Once
+}
+
 // getSource represents the level we want to get for a value (internally).
 // Any source less than or equal to the level will be loaded (whichever
 // has a value first).
@@ -34,21 +58,6 @@ type getResult struct {
 
 var getResultEmpty getResult
 
-// ResourceData is used to query and set the attributes of a resource.
-type ResourceData struct {
-	schema  map[string]*Schema
-	config  *terraform.ResourceConfig
-	state   *terraform.ResourceState
-	diff    *terraform.ResourceDiff
-	diffing bool
-
-	setMap     map[string]string
-	newState   *terraform.ResourceState
-	partial    bool
-	partialMap map[string]struct{}
-	once       sync.Once
-}
-
 // Get returns the data for the given key, or nil if the key doesn't exist
 // in the schema.
 //
@@ -56,7 +65,8 @@ type ResourceData struct {
 // then the default value for that type will be returned. For strings, this is
 // "", for numbers it is 0, etc.
 //
-// If you also want to test if something is set at all, use GetOk.
+// If you want to test if something is set at all in the configuration,
+// use GetOk.
 func (d *ResourceData) Get(key string) interface{} {
 	v, _ := d.GetOk(key)
 	return v
@@ -64,7 +74,10 @@ func (d *ResourceData) Get(key string) interface{} {
 
 // GetChange returns the old and new value for a given key.
 //
-// If there is no change, then old and new will simply be the same.
+// HasChange should be used to check if a change exists. It is possible
+// that both the old and new value are the same if the old value was not
+// set and the new value is. This is common, for example, for boolean
+// fields which have a zero value of false.
 func (d *ResourceData) GetChange(key string) (interface{}, interface{}) {
 	o, n := d.getChange(key, getSourceConfig, getSourceDiff)
 	return o.Value, n.Value
@@ -73,6 +86,9 @@ func (d *ResourceData) GetChange(key string) (interface{}, interface{}) {
 // GetOk returns the data for the given key and whether or not the key
 // existed or not in the configuration. The second boolean result will also
 // be false if a key is given that isn't in the schema at all.
+//
+// The first result will not necessarilly be nil if the value doesn't exist.
+// The second result should be checked to determine this information.
 func (d *ResourceData) GetOk(key string) (interface{}, bool) {
 	r := d.getRaw(key, getSourceSet)
 	return r.Value, r.Exists
@@ -98,6 +114,9 @@ func (d *ResourceData) HasChange(key string) bool {
 // When partial state mode is enabled, then only key prefixes specified
 // by SetPartial will be in the final state. This allows providers to return
 // partial states for partially applied resources (when errors occur).
+//
+// When partial state mode is toggled, the map of enabled partial states
+// (by SetPartial) is reset.
 func (d *ResourceData) Partial(on bool) {
 	d.partial = on
 	if on {
