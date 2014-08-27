@@ -216,8 +216,8 @@ func TestResourceTemplate_Apply(t *testing.T) {
 		},
 	}
 
-	resource1.ApplyTemplate(resourceTemplate)
-	resource2.ApplyTemplate(resourceTemplate)
+	resource1.applyTemplate(resourceTemplate)
+	resource2.applyTemplate(resourceTemplate)
 
 	cases := [][]interface{}{
 		// Config items should be properly merged where appropriate

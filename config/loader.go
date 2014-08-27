@@ -35,7 +35,7 @@ func Load(path string) (*Config, error) {
 	}
 
 	// Apply all resource templates (if any)
-	config.ApplyTemplates()
+	config.applyTemplates()
 
 	return config, nil
 }
@@ -149,7 +149,7 @@ func LoadDir(root string) (*Config, error) {
 	}
 
 	// Apply all resource templates (if any)
-	result.ApplyTemplates()
+	result.applyTemplates()
 
 	return result, nil
 }

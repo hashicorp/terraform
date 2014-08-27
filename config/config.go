@@ -111,7 +111,7 @@ func (r *Resource) Id() string {
 	return fmt.Sprintf("%s.%s", r.Type, r.Name)
 }
 
-// ApplyTemplate will apply a resource template onto an existing RawConfig. This
+// applyTemplate will apply a resource template onto an existing RawConfig. This
 // is done by checking if the keys were explicitly set within the resource, and
 // if they were not, copying the values from the template.
 //
@@ -119,7 +119,7 @@ func (r *Resource) Id() string {
 // resource, this method does not itself need to perform validation of the keys.
 // Rather, we allow any keys to be passed into a resource template, and defer to
 // the provider's config validator to catch any errors.
-func (r *Resource) ApplyTemplate(t *ResourceTemplate) {
+func (r *Resource) applyTemplate(t *ResourceTemplate) {
 	if r.Name == "" {
 		r.Name = t.Name
 	}
@@ -131,6 +131,20 @@ func (r *Resource) ApplyTemplate(t *ResourceTemplate) {
 	}
 	if len(r.Provisioners) == 0 {
 		r.Provisioners = t.Provisioners
+	}
+
+	for _, interp := range t.RawConfig.Interpolations {
+		r.RawConfig.Interpolations = append(r.RawConfig.Interpolations, interp)
+	}
+
+	if r.RawConfig.Variables == nil {
+		r.RawConfig.Variables = make(map[string]InterpolatedVariable)
+	}
+
+	for k, v := range t.RawConfig.Variables {
+		if _, ok := r.RawConfig.Variables[k]; !ok {
+			r.RawConfig.Variables[k] = v
+		}
 	}
 
 	for k, v := range t.RawConfig.Raw {
@@ -330,14 +344,14 @@ func (c *Config) allVariables() map[string][]InterpolatedVariable {
 	return result
 }
 
-// ApplyTemplates steps through all resources in the configuration
+// applyTemplates steps through all resources in the configuration
 // and applies resource templates where they are configured.
-func (c *Config) ApplyTemplates() {
+func (c *Config) applyTemplates() {
 	for _, resource := range c.Resources {
 		if resource.Template != "" {
 			for _, template := range c.ResourceTemplates {
 				if template.Name == resource.Template {
-					resource.ApplyTemplate(template)
+					resource.applyTemplate(template)
 				}
 			}
 		}
