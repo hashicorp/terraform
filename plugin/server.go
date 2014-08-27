@@ -30,9 +30,11 @@ const MagicCookieValue = "d602bf8f470bc67ca7faa0386276bbdd4330efaf76d1a219cb4d69
 func Serve(svc interface{}) error {
 	// First check the cookie
 	if os.Getenv(MagicCookieKey) != MagicCookieValue {
-		return errors.New(
-			"Please do not execute plugins directly. " +
-				"Terraform will execute these for you.")
+		fmt.Fprintf(os.Stderr,
+			"This binary is a Terraform plugin. These are not meant to be\n" +
+			"executed directly. Please execute `terraform`, which will load\n" +
+			"any plugins automatically.\n")
+		os.Exit(1)
 	}
 
 	// Create the server to serve our interface
