@@ -4,7 +4,7 @@ import (
 	"log"
 	"os"
 
-	"github.com/bgentry/heroku-go"
+	"github.com/cyberdelia/heroku-go/v3"
 )
 
 type Config struct {
@@ -12,9 +12,9 @@ type Config struct {
 	Email  string `mapstructure:"email"`
 }
 
-// Client() returns a new client for accessing heroku.
+// Client() returns a new Service for accessing Heroku.
 //
-func (c *Config) Client() (*heroku.Client, error) {
+func (c *Config) Client() (*heroku.Service, error) {
 
 	// If we have env vars set (like in the acc) tests,
 	// we need to override the values passed in here.
@@ -25,9 +25,12 @@ func (c *Config) Client() (*heroku.Client, error) {
 		c.APIKey = v
 	}
 
-	client := heroku.Client{Username: c.Email, Password: c.APIKey}
+	heroku.DefaultTransport.Username = c.Email
+	heroku.DefaultTransport.Password = c.APIKey
+
+	client := heroku.NewService(heroku.DefaultClient)
 
 	log.Printf("[INFO] Heroku Client configured for user: %s", c.Email)
 
-	return &client, nil
+	return client, nil
 }

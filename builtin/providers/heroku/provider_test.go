@@ -4,7 +4,7 @@ import (
 	"os"
 	"testing"
 
-	"github.com/bgentry/heroku-go"
+	"github.com/cyberdelia/heroku-go/v3"
 	"github.com/hashicorp/terraform/config"
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/terraform"
@@ -62,12 +62,11 @@ func TestProviderConfigure(t *testing.T) {
 		t.Fatalf("err: %s", err)
 	}
 
-	config := rp.Meta().(*heroku.Client)
-	if config.Username != expectedEmail {
-		t.Fatalf("bad: %#v", config)
+	if heroku.DefaultTransport.Username != expectedEmail {
+		t.Fatalf("bad: %#v", heroku.DefaultTransport)
 	}
-	if config.Password != expectedKey {
-		t.Fatalf("bad: %#v", config)
+	if heroku.DefaultTransport.Password != expectedKey {
+		t.Fatalf("bad: %#v", heroku.DefaultTransport)
 	}
 }
 

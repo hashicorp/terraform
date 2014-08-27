@@ -5,7 +5,7 @@ import (
 	"log"
 	"sync"
 
-	"github.com/bgentry/heroku-go"
+	"github.com/cyberdelia/heroku-go/v3"
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/terraform"
 )
@@ -61,11 +61,10 @@ func resourceHerokuAddonCreate(d *schema.ResourceData, meta interface{}) error {
 	addonLock.Lock()
 	defer addonLock.Unlock()
 
-	client := meta.(*heroku.Client)
+	client := meta.(*heroku.Service)
 
 	app := d.Get("app").(string)
-	plan := d.Get("plan").(string)
-	opts := heroku.AddonCreateOpts{}
+	opts := heroku.AddonCreateOpts{Plan: d.Get("plan").(string)}
 
 	if v := d.Get("config"); v != nil {
 		config := make(map[string]string)
@@ -78,20 +77,20 @@ func resourceHerokuAddonCreate(d *schema.ResourceData, meta interface{}) error {
 		opts.Config = &config
 	}
 
-	log.Printf("[DEBUG] Addon create configuration: %#v, %#v, %#v", app, plan, opts)
-	a, err := client.AddonCreate(app, plan, &opts)
+	log.Printf("[DEBUG] Addon create configuration: %#v, %#v", app, opts)
+	a, err := client.AddonCreate(app, opts)
 	if err != nil {
 		return err
 	}
 
-	d.SetId(a.Id)
+	d.SetId(a.ID)
 	log.Printf("[INFO] Addon ID: %s", d.Id())
 
 	return resourceHerokuAddonRead(d, meta)
 }
 
 func resourceHerokuAddonRead(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*heroku.Client)
+	client := meta.(*heroku.Service)
 
 	addon, err := resource_heroku_addon_retrieve(
 		d.Get("app").(string), d.Id(), client)
@@ -101,7 +100,7 @@ func resourceHerokuAddonRead(d *schema.ResourceData, meta interface{}) error {
 
 	d.Set("name", addon.Name)
 	d.Set("plan", addon.Plan.Name)
-	d.Set("provider_id", addon.ProviderId)
+	d.Set("provider_id", addon.ProviderID)
 	d.Set("config_vars", []interface{}{addon.ConfigVars})
 	d.SetDependencies([]terraform.ResourceDependency{
 		terraform.ResourceDependency{ID: d.Get("app").(string)},
@@ -111,26 +110,26 @@ func resourceHerokuAddonRead(d *schema.ResourceData, meta interface{}) error {
 }
 
 func resourceHerokuAddonUpdate(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*heroku.Client)
+	client := meta.(*heroku.Service)
 
 	app := d.Get("app").(string)
 
 	if d.HasChange("plan") {
 		ad, err := client.AddonUpdate(
-			app, d.Id(), d.Get("plan").(string))
+			app, d.Id(), heroku.AddonUpdateOpts{Plan: d.Get("plan").(string)})
 		if err != nil {
 			return err
 		}
 
 		// Store the new ID
-		d.SetId(ad.Id)
+		d.SetId(ad.ID)
 	}
 
 	return resourceHerokuAddonRead(d, meta)
 }
 
 func resourceHerokuAddonDelete(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*heroku.Client)
+	client := meta.(*heroku.Service)
 
 	log.Printf("[INFO] Deleting Addon: %s", d.Id())
 
@@ -144,7 +143,7 @@ func resourceHerokuAddonDelete(d *schema.ResourceData, meta interface{}) error {
 	return nil
 }
 
-func resource_heroku_addon_retrieve(app string, id string, client *heroku.Client) (*heroku.Addon, error) {
+func resource_heroku_addon_retrieve(app string, id string, client *heroku.Service) (*heroku.Addon, error) {
 	addon, err := client.AddonInfo(app, id)
 
 	if err != nil {
