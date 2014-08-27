@@ -30,8 +30,8 @@ func TestResourceDataGet(t *testing.T) {
 			Diff: &terraform.ResourceDiff{
 				Attributes: map[string]*terraform.ResourceAttrDiff{
 					"availability_zone": &terraform.ResourceAttrDiff{
-						Old:         "",
-						New:         "",
+						Old:         "foo",
+						New:         "bar",
 						NewComputed: true,
 					},
 				},
@@ -115,6 +115,36 @@ func TestResourceDataGet(t *testing.T) {
 			Key: "availability_zone",
 
 			Value: "bar",
+		},
+
+		{
+			Schema: map[string]*Schema{
+				"availability_zone": &Schema{
+					Type:     TypeString,
+					Optional: true,
+					Computed: true,
+					ForceNew: true,
+				},
+			},
+
+			State: &terraform.ResourceState{
+				Attributes: map[string]string{
+					"availability_zone": "foo",
+				},
+			},
+
+			Diff: &terraform.ResourceDiff{
+				Attributes: map[string]*terraform.ResourceAttrDiff{
+					"availability_zone": &terraform.ResourceAttrDiff{
+						Old:         "foo",
+						New:         "bar",
+						NewComputed: true,
+					},
+				},
+			},
+
+			Key:   "availability_zone",
+			Value: "",
 		},
 
 		{

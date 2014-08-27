@@ -558,20 +558,25 @@ func (d *ResourceData) getPrimitive(
 
 	if d.diff != nil && source >= getSourceDiff {
 		attrD, ok := d.diff.Attributes[k]
-		if ok && !attrD.NewComputed {
-			result = attrD.New
-			if attrD.NewExtra != nil {
-				// If NewExtra != nil, then we have processed data as the New,
-				// so we store that but decode the unprocessed data into result
-				resultProcessed = result
+		if ok {
+			if !attrD.NewComputed {
+				result = attrD.New
+				if attrD.NewExtra != nil {
+					// If NewExtra != nil, then we have processed data as the New,
+					// so we store that but decode the unprocessed data into result
+					resultProcessed = result
 
-				err := mapstructure.WeakDecode(attrD.NewExtra, &result)
-				if err != nil {
-					panic(err)
+					err := mapstructure.WeakDecode(attrD.NewExtra, &result)
+					if err != nil {
+						panic(err)
+					}
 				}
-			}
 
-			resultSet = true
+				resultSet = true
+			} else {
+				result = ""
+				resultSet = false
+			}
 		}
 	}
 
