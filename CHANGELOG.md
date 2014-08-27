@@ -11,6 +11,8 @@ BACKWARDS INCOMPATIBILITIES:
     * JSON style maps `{ "foo": "bar" }` are no longer valid outside of JSON.
       Maps must be in the format of `{ foo = "bar" }` (like other objects
       in the config)
+  * Heroku apps now require (will not validate without) `region` and
+    `name` due to an upstream API change. [GH-239]
 
 FEATURES:
 
@@ -54,6 +56,8 @@ BUG FIXES:
   * providers/heroku: If you delete the `config_vars` block, config vars
       are properly nuked.
   * providers/heroku: Domains and drains are deleted before the app.
+  * providers/heroku: Moved from the client library bgentry/heroku-go to
+      cyberdelia/heroku-go [GH-239].
 
 PLUGIN CHANGES:
 
