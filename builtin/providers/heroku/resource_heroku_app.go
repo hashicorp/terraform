@@ -69,7 +69,6 @@ func resourceHerokuApp() *schema.Resource {
 			"config_vars": &schema.Schema{
 				Type:     schema.TypeList,
 				Optional: true,
-				Computed: true,
 				Elem: &schema.Schema{
 					Type: schema.TypeMap,
 				},
@@ -139,6 +138,19 @@ func resourceHerokuAppRead(d *schema.ResourceData, meta interface{}) error {
 	app, err := resource_heroku_app_retrieve(d.Id(), client)
 	if err != nil {
 		return err
+	}
+
+	// Only get the config vars that we care about
+	care := make(map[string]struct{})
+	for _, v := range d.Get("config_vars").([]interface{}) {
+		for k, _ := range v.(map[string]interface{}) {
+			care[k] = struct{}{}
+		}
+	}
+	for k, _ := range app.Vars {
+		if _, ok := care[k]; !ok {
+			delete(app.Vars, k)
+		}
 	}
 
 	d.Set("name", app.App.Name)

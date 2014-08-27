@@ -32,8 +32,10 @@ The following arguments are supported:
 * `stack` - (Optional) The application stack is what platform to run the application
    in.
 * `config_vars` - (Optional) Configuration variables for the application.
-   This is a map that can set keys against the application.
-
+     The config variables in this map are not the final set of configuration
+     variables, but rather variables you want present. That is, other
+     configuration variables set externally won't be removed by Terraform
+     if they aren't present in this list.
 
 ## Attributes Reference
 
