@@ -96,6 +96,7 @@ func testAccCheckHerokuDomainExists(n string, Domain *heroku.Domain) resource.Te
 const testAccCheckHerokuDomainConfig_basic = `
 resource "heroku_app" "foobar" {
     name = "terraform-test-app"
+    region = "us"
 }
 
 resource "heroku_domain" "foobar" {

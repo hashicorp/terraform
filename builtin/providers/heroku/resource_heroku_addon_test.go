@@ -96,6 +96,7 @@ func testAccCheckHerokuAddonExists(n string, addon *heroku.Addon) resource.TestC
 const testAccCheckHerokuAddonConfig_basic = `
 resource "heroku_app" "foobar" {
     name = "terraform-test-app"
+    region = "us"
 }
 
 resource "heroku_addon" "foobar" {

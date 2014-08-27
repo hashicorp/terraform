@@ -26,9 +26,9 @@ resource "heroku_app" "default" {
 
 The following arguments are supported:
 
-* `name` - (Optional) The name of the application. In Heroku, this is also the
-   unique ID.
-* `region` - (Optional) The region that the app should be deployed in.
+* `name` - (Required) The name of the application. In Heroku, this is also the
+   unique ID, so it must be unique and have a minimum of 3 characters.
+* `region` - (Required) The region that the app should be deployed in.
 * `stack` - (Optional) The application stack is what platform to run the application
    in.
 * `config_vars` - (Optional) Configuration variables for the application.

@@ -2,6 +2,7 @@ package heroku
 
 import (
 	"log"
+	"net/http"
 	"os"
 
 	"github.com/cyberdelia/heroku-go/v3"
@@ -25,12 +26,15 @@ func (c *Config) Client() (*heroku.Service, error) {
 		c.APIKey = v
 	}
 
-	heroku.DefaultTransport.Username = c.Email
-	heroku.DefaultTransport.Password = c.APIKey
-
-	client := heroku.NewService(heroku.DefaultClient)
+	service := heroku.NewService(&http.Client{
+		Transport: &heroku.Transport{
+			Username:  c.Email,
+			Password:  c.APIKey,
+			UserAgent: heroku.DefaultUserAgent,
+		},
+	})
 
 	log.Printf("[INFO] Heroku Client configured for user: %s", c.Email)
 
-	return client, nil
+	return service, nil
 }

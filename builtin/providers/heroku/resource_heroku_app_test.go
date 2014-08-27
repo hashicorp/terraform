@@ -230,6 +230,7 @@ func testAccCheckHerokuAppExists(n string, app *heroku.App) resource.TestCheckFu
 const testAccCheckHerokuAppConfig_basic = `
 resource "heroku_app" "foobar" {
 	name = "terraform-test-app"
+	region = "us"
 
 	config_vars {
 		FOO = "bar"
@@ -239,6 +240,7 @@ resource "heroku_app" "foobar" {
 const testAccCheckHerokuAppConfig_updated = `
 resource "heroku_app" "foobar" {
 	name = "terraform-test-renamed"
+	region = "us"
 
 	config_vars {
 		FOO = "bing"
@@ -249,4 +251,5 @@ resource "heroku_app" "foobar" {
 const testAccCheckHerokuAppConfig_no_vars = `
 resource "heroku_app" "foobar" {
 	name = "terraform-test-app"
+	region = "us"
 }`

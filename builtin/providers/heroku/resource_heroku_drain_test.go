@@ -98,6 +98,7 @@ func testAccCheckHerokuDrainExists(n string, Drain *heroku.LogDrain) resource.Te
 const testAccCheckHerokuDrainConfig_basic = `
 resource "heroku_app" "foobar" {
     name = "terraform-test-app"
+    region = "us"
 }
 
 resource "heroku_drain" "foobar" {
