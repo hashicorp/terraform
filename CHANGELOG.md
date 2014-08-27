@@ -40,6 +40,7 @@ BUG FIXES:
   * core: Fix issue where some JSON structures didn't map properly into
      Terraform structures. [GH-177]
   * core: Resources with only `file()` calls will interpolate. [GH-159]
+  * core: Variables work in block names. [GH-234]
   * command/apply: "tfvars" file no longer interferes with plan apply. [GH-153]
   * providers/aws: Fix issues around failing to read EIPs. [GH-122]
   * providers/aws: Autoscaling groups now register and export load

@@ -154,6 +154,19 @@ func TestInterpolationWalker_replace(t *testing.T) {
 				"foo": "hello, bar",
 			},
 		},
+
+		{
+			Input: map[string]interface{}{
+				"foo": map[string]interface{}{
+					"${var.foo}": "bar",
+				},
+			},
+			Output: map[string]interface{}{
+				"foo": map[string]interface{}{
+					"bar": "bar",
+				},
+			},
+		},
 	}
 
 	for i, tc := range cases {

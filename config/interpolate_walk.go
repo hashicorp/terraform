@@ -21,6 +21,7 @@ type interpolationWalker struct {
 	Replace bool
 
 	key         []string
+	lastValue   reflect.Value
 	loc         reflectwalk.Location
 	cs          []reflect.Value
 	csData      interface{}
@@ -61,6 +62,7 @@ func (w *interpolationWalker) Map(m reflect.Value) error {
 func (w *interpolationWalker) MapElem(m, k, v reflect.Value) error {
 	w.csData = k
 	w.key = append(w.key, k.String())
+	w.lastValue = v
 	return nil
 }
 
@@ -123,13 +125,26 @@ func (w *interpolationWalker) Primitive(v reflect.Value) error {
 
 	if w.Replace {
 		resultVal := reflect.ValueOf(result)
-		if w.loc == reflectwalk.MapValue {
+		switch w.loc {
+		case reflectwalk.MapKey:
+			m := w.cs[len(w.cs)-1]
+
+			// Delete the old value
+			var zero reflect.Value
+			m.SetMapIndex(w.csData.(reflect.Value), zero)
+
+			// Set the new key with the existing value
+			m.SetMapIndex(resultVal, w.lastValue)
+
+			// Set the key to be the new key
+			w.csData = resultVal
+		case reflectwalk.MapValue:
 			// If we're in a map, then the only way to set a map value is
 			// to set it directly.
 			m := w.cs[len(w.cs)-1]
 			mk := w.csData.(reflect.Value)
 			m.SetMapIndex(mk, resultVal)
-		} else {
+		default:
 			// Otherwise, we should be addressable
 			setV.Set(resultVal)
 		}
