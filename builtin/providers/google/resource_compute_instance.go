@@ -321,6 +321,9 @@ func resourceComputeInstanceRead(d *schema.ResourceData, meta interface{}) error
 func resourceComputeInstanceUpdate(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
 
+	// Enable partial mode for the resource since it is possible
+	d.Partial(true)
+
 	// If the Metadata has changed, then update that.
 	if d.HasChange("metadata") {
 		metadata := resourceInstanceMetadata(d)
@@ -350,6 +353,8 @@ func resourceComputeInstanceUpdate(d *schema.ResourceData, meta interface{}) err
 			// Return the error
 			return OperationError(*op.Error)
 		}
+
+		d.SetPartial("metadata")
 	}
 
 	if d.HasChange("tags") {
@@ -380,7 +385,12 @@ func resourceComputeInstanceUpdate(d *schema.ResourceData, meta interface{}) err
 			// Return the error
 			return OperationError(*op.Error)
 		}
+
+		d.SetPartial("tags")
 	}
+
+	// We made it, disable partial mode
+	d.Partial(false)
 
 	return resourceComputeInstanceRead(d, meta)
 }
