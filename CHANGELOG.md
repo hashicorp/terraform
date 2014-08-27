@@ -53,6 +53,7 @@ BUG FIXES:
   * providers/aws: Retry Route53 requests if operation failed because another
       operation is in progress [GH-183]
   * providers/aws: Route53 records with multiple record values work. [GH-221]
+  * providers/aws: Changing AMI doesn't result in errors anymore. [GH-196]
   * providers/heroku: If you delete the `config_vars` block, config vars
       are properly nuked.
   * providers/heroku: Domains and drains are deleted before the app.
