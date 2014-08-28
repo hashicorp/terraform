@@ -28,6 +28,12 @@ echo "==> Removing old directory..."
 rm -f bin/*
 rm -rf pkg/*
 
+# If its dev mode, only build for ourself
+if [ "${TF_DEV}x" != "x" ]; then
+    XC_OS=$(go env GOOS)
+    XC_ARCH=$(go env GOARCH)
+fi
+
 # Build!
 echo "==> Building..."
 gox \
