@@ -3,8 +3,10 @@ package main
 import (
 	"fmt"
 	"io/ioutil"
+	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 
 	"github.com/hashicorp/hcl"
 	"github.com/hashicorp/terraform/plugin"
@@ -180,27 +182,35 @@ func (c *Config) provisionerFactory(path string) terraform.ResourceProvisionerFa
 }
 
 func pluginCmd(path string) *exec.Cmd {
-	originalPath := path
+	cmdPath := ""
 
-	// First look for the provider on the PATH.
-	path, err := exec.LookPath(path)
-	if err != nil {
-		// If that doesn't work, look for it in the same directory
-		// as the executable that is running.
+	// If the path doesn't contain a separator, look in the same
+	// directory as the Terraform executable first.
+	if !strings.ContainsRune(path, os.PathSeparator) {
 		exePath, err := osext.Executable()
 		if err == nil {
-			path = filepath.Join(
+			temp := filepath.Join(
 				filepath.Dir(exePath),
-				filepath.Base(originalPath))
+				filepath.Base(path))
+
+			if _, err := os.Stat(temp); err == nil {
+				cmdPath = temp
+			}
+		}
+
+		// If we still haven't found the executable, look for it
+		// in the PATH.
+		if v, err := exec.LookPath(path); err == nil {
+			cmdPath = v
 		}
 	}
 
-	// If we still don't have a path set, then set it to the
-	// original path and let any errors that happen bubble out.
-	if path == "" {
-		path = originalPath
+	// If we still don't have a path, then just set it to the original
+	// given path.
+	if cmdPath == "" {
+		cmdPath = path
 	}
 
 	// Build the command to execute the plugin
-	return exec.Command(path)
+	return exec.Command(cmdPath)
 }
