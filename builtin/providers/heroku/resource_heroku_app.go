@@ -155,9 +155,13 @@ func resourceHerokuAppRead(d *schema.ResourceData, meta interface{}) error {
 		}
 	}
 	for k, v := range app.Vars {
-		if _, ok := care[k]; !ok {
+		if _, ok := care[k]; ok {
 			configVars[k] = v
 		}
+	}
+	var configVarsValue []map[string]string
+	if len(configVars) > 0 {
+		configVarsValue = []map[string]string{configVars}
 	}
 
 	d.Set("name", app.App.Name)
@@ -165,7 +169,7 @@ func resourceHerokuAppRead(d *schema.ResourceData, meta interface{}) error {
 	d.Set("region", app.App.Region.Name)
 	d.Set("git_url", app.App.GitURL)
 	d.Set("web_url", app.App.WebURL)
-	d.Set("config_vars", []map[string]string{configVars})
+	d.Set("config_vars", configVarsValue)
 	d.Set("all_config_vars", app.Vars)
 
 	// We know that the hostname on heroku will be the name+herokuapp.com
