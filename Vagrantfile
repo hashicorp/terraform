@@ -23,7 +23,7 @@ EOF
 sudo mv /tmp/gopath.sh /etc/profile.d/gopath.sh
 sudo chmod 0755 /etc/profile.d/gopath.sh
 
-# Make sure the gopath is usable by bamboo
+# Make sure the gopath is usable by vagrant
 sudo chown -R vagrant:vagrant $SRCROOT
 sudo chown -R vagrant:vagrant /opt/gopath
 
@@ -32,6 +32,8 @@ sudo apt-get install -y git-core
 SCRIPT
 
 Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
+  config.vm.box = "chef/ubuntu-10.04"
+
   config.vm.provision "shell", inline: $script
 
   ["vmware_fusion", "vmware_workstation"].each do |p|
@@ -40,12 +42,5 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
       v.vmx["numvcpus"] = "2"
       v.vmx["cpuid.coresPerSocket"] = "1"
     end
-  end
-
-  config.vm.define "64bit" do |n1|
-      n1.vm.box = "chef/ubuntu-10.04"
-  end
-  config.vm.define "32bit" do |n2|
-      n2.vm.box = "chef/ubuntu-10.04-i386"
   end
 end
