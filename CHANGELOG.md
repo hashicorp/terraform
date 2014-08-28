@@ -1,6 +1,8 @@
 ## 0.2.1 (unreleased)
 
+BUG FIXES:
 
+  * core: Configuration parses when identifier and '=' have no space. [GH-243]
 
 ## 0.2.0 (August 28, 2014)
 
