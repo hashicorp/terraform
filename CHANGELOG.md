@@ -61,6 +61,8 @@ BUG FIXES:
   * providers/heroku: Domains and drains are deleted before the app.
   * providers/heroku: Moved from the client library bgentry/heroku-go to
       cyberdelia/heroku-go [GH-239].
+  * providers/heroku: Plans without a specific plan name for
+      heroku\_addon work. [GH-198]
 
 PLUGIN CHANGES:
 

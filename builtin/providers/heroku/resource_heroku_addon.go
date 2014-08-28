@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"sync"
+	"strings"
 
 	"github.com/cyberdelia/heroku-go/v3"
 	"github.com/hashicorp/terraform/helper/schema"
@@ -98,8 +99,21 @@ func resourceHerokuAddonRead(d *schema.ResourceData, meta interface{}) error {
 		return err
 	}
 
+	// Determine the plan. If we were configured without a specific plan,
+	// then just avoid the plan altogether (accepting anything that
+	// Heroku sends down).
+	plan := addon.Plan.Name
+	if v := d.Get("plan").(string); v != "" {
+		if idx := strings.IndexRune(v, ':'); idx == -1 {
+			idx = strings.IndexRune(plan, ':')
+			if idx > -1 {
+				plan = plan[:idx]
+			}
+		}
+	}
+
 	d.Set("name", addon.Name)
-	d.Set("plan", addon.Plan.Name)
+	d.Set("plan", plan)
 	d.Set("provider_id", addon.ProviderID)
 	d.Set("config_vars", []interface{}{addon.ConfigVars})
 	d.SetDependencies([]terraform.ResourceDependency{

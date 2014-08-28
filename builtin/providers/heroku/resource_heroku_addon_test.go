@@ -21,13 +21,48 @@ func TestAccHerokuAddon_Basic(t *testing.T) {
 				Config: testAccCheckHerokuAddonConfig_basic,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckHerokuAddonExists("heroku_addon.foobar", &addon),
-					testAccCheckHerokuAddonAttributes(&addon),
+					testAccCheckHerokuAddonAttributes(&addon, "deployhooks:http"),
 					resource.TestCheckResourceAttr(
 						"heroku_addon.foobar", "config.0.url", "http://google.com"),
 					resource.TestCheckResourceAttr(
 						"heroku_addon.foobar", "app", "terraform-test-app"),
 					resource.TestCheckResourceAttr(
 						"heroku_addon.foobar", "plan", "deployhooks:http"),
+				),
+			},
+		},
+	})
+}
+
+// GH-198
+func TestAccHerokuAddon_noPlan(t *testing.T) {
+	var addon heroku.Addon
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckHerokuAddonDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccCheckHerokuAddonConfig_no_plan,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckHerokuAddonExists("heroku_addon.foobar", &addon),
+					testAccCheckHerokuAddonAttributes(&addon, "memcachier:dev"),
+					resource.TestCheckResourceAttr(
+						"heroku_addon.foobar", "app", "terraform-test-app"),
+					resource.TestCheckResourceAttr(
+						"heroku_addon.foobar", "plan", "memcachier"),
+				),
+			},
+			resource.TestStep{
+				Config: testAccCheckHerokuAddonConfig_no_plan,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckHerokuAddonExists("heroku_addon.foobar", &addon),
+					testAccCheckHerokuAddonAttributes(&addon, "memcachier:dev"),
+					resource.TestCheckResourceAttr(
+						"heroku_addon.foobar", "app", "terraform-test-app"),
+					resource.TestCheckResourceAttr(
+						"heroku_addon.foobar", "plan", "memcachier"),
 				),
 			},
 		},
@@ -52,11 +87,11 @@ func testAccCheckHerokuAddonDestroy(s *terraform.State) error {
 	return nil
 }
 
-func testAccCheckHerokuAddonAttributes(addon *heroku.Addon) resource.TestCheckFunc {
+func testAccCheckHerokuAddonAttributes(addon *heroku.Addon, n string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 
-		if addon.Plan.Name != "deployhooks:http" {
-			return fmt.Errorf("Bad plan: %s", addon.Plan)
+		if addon.Plan.Name != n {
+			return fmt.Errorf("Bad plan: %s", addon.Plan.Name)
 		}
 
 		return nil
@@ -105,4 +140,15 @@ resource "heroku_addon" "foobar" {
     config {
         url = "http://google.com"
     }
+}`
+
+const testAccCheckHerokuAddonConfig_no_plan = `
+resource "heroku_app" "foobar" {
+    name = "terraform-test-app"
+    region = "us"
+}
+
+resource "heroku_addon" "foobar" {
+    app = "${heroku_app.foobar.name}"
+    plan = "memcachier"
 }`
