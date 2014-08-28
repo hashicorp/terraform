@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# This script builds the application from source for only this platform.
+# This script builds the application from source for multiple platforms.
 set -e
 
 # Get the parent directory of where this script is.
@@ -15,6 +15,10 @@ cd $DIR
 GIT_COMMIT=$(git rev-parse HEAD)
 GIT_DIRTY=$(test -n "`git status --porcelain`" && echo "+CHANGES" || true)
 
+# Determine the arch/os combos we're building for
+XC_ARCH=${XC_ARCH:-"386 amd64 arm"}
+XC_OS=${XC_OS:-linux darwin windows freebsd openbsd}
+
 # If we're building on Windows, specify an extension
 EXTENSION=""
 if [ "$(go env GOOS)" = "windows" ]; then
@@ -27,34 +31,48 @@ if [ "$(go env GOOS)" = "windows" ]; then
 fi
 
 # Install dependencies
-echo "--> Getting dependencies..."
+echo "==> Getting dependencies..."
 go get ./...
 
 # Delete the old dir
-echo "--> Removing old directory..."
+echo "==> Removing old directory..."
 rm -f bin/*
+rm -rf pkg/*
 
 # Build!
-echo "--> Building..."
+echo "==> Building..."
 gox \
-    -os="$(go env GOOS)" \
-    -arch="$(go env GOARCH)" \
+    -os="${XC_OS}" \
+    -arch="${XC_ARCH}" \
     -ldflags "-X main.GitCommit ${GIT_COMMIT}${GIT_DIRTY}" \
-    -output "bin/terraform-{{.Dir}}" \
+    -output "pkg/{{.OS}}_{{.Arch}}/terraform-{{.Dir}}" \
     ./...
-mv bin/terraform-terraform${EXTENSION} bin/terraform${EXTENSION}
-cp bin/terraform* ${GOPATHSINGLE}/bin
+
+# Make sure "terraform-terraform" is renamed properly
+for PLATFORM in $(find ./pkg -mindepth 1 -maxdepth 1 -type d); do
+    mv ${PLATFORM}/terraform-terraform${EXTENSION} ${PLATFORM}/terraform${EXTENSION}
+done
+
+# Copy our OS/Arch to the bin/ directory
+DEV_PLATFORM="./pkg/$(go env GOOS)_$(go env GOARCH)"
+for F in $(find ${DEV_PLATFORM} -mindepth 1 -maxdepth 1 -type f); do
+    cp ${F} bin/
+done
 
 if [ "${TF_DEV}x" = "x" ]; then
     # Zip and copy to the dist dir
-    echo "--> Packaging..."
-    mkdir -p pkg
-    cd bin/
-    zip ../pkg/$(go env GOOS)_$(go env GOARCH).zip ./*
-    cd $DIR
+    echo "==> Packaging..."
+    for PLATFORM in $(find ./pkg -mindepth 1 -maxdepth 1 -type d); do
+        OSARCH=$(basename ${PLATFORM})
+        echo "--> ${OSARCH}"
+
+        pushd $PLATFORM >/dev/null 2>&1
+        zip ../${OSARCH}.zip ./*
+        popd >/dev/null 2>&1
+    done
 fi
 
 # Done!
 echo
-echo "--> Results:"
+echo "==> Results:"
 ls -hl bin/
