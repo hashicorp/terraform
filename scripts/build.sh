@@ -19,17 +19,6 @@ GIT_DIRTY=$(test -n "`git status --porcelain`" && echo "+CHANGES" || true)
 XC_ARCH=${XC_ARCH:-"386 amd64 arm"}
 XC_OS=${XC_OS:-linux darwin windows freebsd openbsd}
 
-# If we're building on Windows, specify an extension
-EXTENSION=""
-if [ "$(go env GOOS)" = "windows" ]; then
-    EXTENSION=".exe"
-fi
-
-GOPATHSINGLE=${GOPATH%%:*}
-if [ "$(go env GOOS)" = "windows" ]; then
-    GOPATHSINGLE=${GOPATH%%;*}
-fi
-
 # Install dependencies
 echo "==> Getting dependencies..."
 go get ./...
@@ -50,7 +39,10 @@ gox \
 
 # Make sure "terraform-terraform" is renamed properly
 for PLATFORM in $(find ./pkg -mindepth 1 -maxdepth 1 -type d); do
-    mv ${PLATFORM}/terraform-terraform${EXTENSION} ${PLATFORM}/terraform${EXTENSION}
+    set +e
+    mv ${PLATFORM}/terraform-terraform.exe ${PLATFORM}/terraform.exe
+    mv ${PLATFORM}/terraform-terraform ${PLATFORM}/terraform
+    set -e
 done
 
 # Copy our OS/Arch to the bin/ directory
