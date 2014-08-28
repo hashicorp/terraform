@@ -31,4 +31,4 @@ config/y.go: config/expr.y
 clean:
 	rm config/y.go
 
-.PHONY: clean default test updatedeps
+.PHONY: bin clean default test updatedeps
