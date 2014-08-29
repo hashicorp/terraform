@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"io/ioutil"
+	"log"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -30,22 +31,6 @@ var BuiltinConfig Config
 
 // ContextOpts are the global ContextOpts we use to initialize the CLI.
 var ContextOpts terraform.ContextOpts
-
-func init() {
-	BuiltinConfig.Providers = map[string]string{
-		"aws":          "terraform-provider-aws",
-		"digitalocean": "terraform-provider-digitalocean",
-		"heroku":       "terraform-provider-heroku",
-		"dnsimple":     "terraform-provider-dnsimple",
-		"consul":       "terraform-provider-consul",
-		"cloudflare":   "terraform-provider-cloudflare",
-	}
-	BuiltinConfig.Provisioners = map[string]string{
-		"local-exec":  "terraform-provisioner-local-exec",
-		"remote-exec": "terraform-provisioner-remote-exec",
-		"file":        "terraform-provisioner-file",
-	}
-}
 
 // ConfigFile returns the default path to the configuration file.
 //
@@ -81,6 +66,30 @@ func LoadConfig(path string) (*Config, error) {
 	return &result, nil
 }
 
+// Discover discovers plugins.
+//
+// This looks in the directory of the executable and the CWD, in that
+// order for priority.
+func (c *Config) Discover() error {
+	// Look in the cwd.
+	if err := c.discover("."); err != nil {
+		return err
+	}
+
+	// Next, look in the same directory as the executable. Any conflicts
+	// will overwrite those found in our current directory.
+	exePath, err := osext.Executable()
+	if err != nil {
+		log.Printf("[ERR] Error loading exe directory: %s", err)
+	} else {
+		if err := c.discover(filepath.Dir(exePath)); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
 // Merge merges two configurations and returns a third entirely
 // new configuration with the two merged.
 func (c1 *Config) Merge(c2 *Config) *Config {
@@ -101,6 +110,54 @@ func (c1 *Config) Merge(c2 *Config) *Config {
 	}
 
 	return &result
+}
+
+func (c *Config) discover(path string) error {
+	var err error
+	err = c.discoverSingle(
+		filepath.Join(path, "terraform-provider-*"), &c.Providers)
+	if err != nil {
+		return err
+	}
+
+	err = c.discoverSingle(
+		filepath.Join(path, "terraform-provisioner-*"), &c.Provisioners)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (c *Config) discoverSingle(glob string, m *map[string]string) error {
+	matches, err := filepath.Glob(glob)
+	if err != nil {
+		return err
+	}
+
+	if *m == nil {
+		*m = make(map[string]string)
+	}
+
+	for _, match := range matches {
+		file := filepath.Base(match)
+
+		// If the filename has a ".", trim up to there
+		if idx := strings.Index(file, "."); idx >= 0 {
+			file = file[:idx]
+		}
+
+		// Look for foo-bar-baz. The plugin name is "baz"
+		parts := strings.SplitN(file, "-", 3)
+		if len(parts) != 3 {
+			continue
+		}
+
+		log.Printf("[DEBUG] Discoverd plugin: %s = %s", parts[2], match)
+		(*m)[parts[2]] = match
+	}
+
+	return nil
 }
 
 // ProviderFactories returns the mapping of prefixes to

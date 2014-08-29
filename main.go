@@ -79,6 +79,10 @@ func wrappedMain() int {
 
 	// Load the configuration
 	config := BuiltinConfig
+	if err := config.Discover(); err != nil {
+		fmt.Fprintf(os.Stderr, "Error discovering plugins: %s", err)
+		return 1
+	}
 
 	// Make sure we clean up any managed plugins at the end of this
 	defer plugin.CleanupClients()
