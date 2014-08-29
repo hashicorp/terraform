@@ -4,6 +4,7 @@ IMPROVEMENTS:
 
   * core: Plugins are automatically discovered in the executable directory
       or pwd if named properly. [GH-190]
+  * providers/mailgun: domain records are now saved to state
 
 BUG FIXES:
 
