@@ -171,8 +171,6 @@ func resource_mailgin_domain_retrieve(id string, client *mailgun.Client, d *sche
 	d.Set("wildcard", resp.Domain.Wildcard)
 	d.Set("spam_action", resp.Domain.SpamAction)
 
-	log.Println(resp.ReceivingRecords)
-
 	d.Set("receiving_records", make([]interface{}, len(resp.ReceivingRecords)))
 	for i, r := range resp.ReceivingRecords {
 		prefix := fmt.Sprintf("receiving_records.%d", i)
