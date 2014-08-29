@@ -46,6 +46,56 @@ func resourceMailgunDomain() *schema.Resource {
 				ForceNew: true,
 				Optional: true,
 			},
+
+			"receiving_records": &schema.Schema{
+				Type:     schema.TypeList,
+				Computed: true,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"priority": &schema.Schema{
+							Type:     schema.TypeString,
+							Computed: true,
+						},
+						"record_type": &schema.Schema{
+							Type:     schema.TypeString,
+							Computed: true,
+						},
+						"valid": &schema.Schema{
+							Type:     schema.TypeString,
+							Computed: true,
+						},
+						"value": &schema.Schema{
+							Type:     schema.TypeString,
+							Computed: true,
+						},
+					},
+				},
+			},
+
+			"sending_records": &schema.Schema{
+				Type:     schema.TypeList,
+				Computed: true,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"name": &schema.Schema{
+							Type:     schema.TypeString,
+							Computed: true,
+						},
+						"record_type": &schema.Schema{
+							Type:     schema.TypeString,
+							Computed: true,
+						},
+						"valid": &schema.Schema{
+							Type:     schema.TypeString,
+							Computed: true,
+						},
+						"value": &schema.Schema{
+							Type:     schema.TypeString,
+							Computed: true,
+						},
+					},
+				},
+			},
 		},
 	}
 }
@@ -120,6 +170,26 @@ func resource_mailgin_domain_retrieve(id string, client *mailgun.Client, d *sche
 	d.Set("smtp_login", resp.Domain.SmtpLogin)
 	d.Set("wildcard", resp.Domain.Wildcard)
 	d.Set("spam_action", resp.Domain.SpamAction)
+
+	log.Println(resp.ReceivingRecords)
+
+	d.Set("receiving_records", make([]interface{}, len(resp.ReceivingRecords)))
+	for i, r := range resp.ReceivingRecords {
+		prefix := fmt.Sprintf("receiving_records.%d", i)
+		d.Set(prefix+".priority", r.Priority)
+		d.Set(prefix+".valid", r.Valid)
+		d.Set(prefix+".value", r.Value)
+		d.Set(prefix+".record_type", r.RecordType)
+	}
+
+	d.Set("sending_records", make([]interface{}, len(resp.SendingRecords)))
+	for i, r := range resp.SendingRecords {
+		prefix := fmt.Sprintf("sending_records.%d", i)
+		d.Set(prefix+".name", r.Name)
+		d.Set(prefix+".valid", r.Valid)
+		d.Set(prefix+".value", r.Value)
+		d.Set(prefix+".record_type", r.RecordType)
+	}
 
 	return &resp, nil
 }

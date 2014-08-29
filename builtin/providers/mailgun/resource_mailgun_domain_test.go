@@ -30,6 +30,10 @@ func TestAccMailgunDomain_Basic(t *testing.T) {
 						"mailgun_domain.foobar", "smtp_password", "foobar"),
 					resource.TestCheckResourceAttr(
 						"mailgun_domain.foobar", "wildcard", "true"),
+					resource.TestCheckResourceAttr(
+						"mailgun_domain.foobar", "receiving_records.0.priority", "10"),
+					resource.TestCheckResourceAttr(
+						"mailgun_domain.foobar", "sending_records.0.name", "terraform.example.com"),
 				),
 			},
 		},
@@ -71,6 +75,14 @@ func testAccCheckMailgunDomainAttributes(DomainResp *mailgun.DomainResponse) res
 
 		if DomainResp.Domain.SmtpPassword != "foobar" {
 			return fmt.Errorf("Bad smtp_password: %s", DomainResp.Domain.SmtpPassword)
+		}
+
+		if DomainResp.ReceivingRecords[0].Priority == "" {
+			return fmt.Errorf("Bad receiving_records: %s", DomainResp.ReceivingRecords)
+		}
+
+		if DomainResp.SendingRecords[0].Name == "" {
+			return fmt.Errorf("Bad sending_records: %s", DomainResp.SendingRecords)
 		}
 
 		return nil
