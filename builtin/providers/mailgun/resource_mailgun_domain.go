@@ -108,18 +108,18 @@ func resourceMailgunDomainRead(d *schema.ResourceData, meta interface{}) error {
 	return nil
 }
 
-func resource_mailgin_domain_retrieve(id string, client *mailgun.Client, d *schema.ResourceData) (*mailgun.Domain, error) {
-	domain, err := client.RetrieveDomain(id)
+func resource_mailgin_domain_retrieve(id string, client *mailgun.Client, d *schema.ResourceData) (*mailgun.DomainResponse, error) {
+	resp, err := client.RetrieveDomain(id)
 
 	if err != nil {
 		return nil, fmt.Errorf("Error retrieving domain: %s", err)
 	}
 
-	d.Set("name", domain.Name)
-	d.Set("smtp_password", domain.SmtpPassword)
-	d.Set("smtp_login", domain.SmtpLogin)
-	d.Set("wildcard", domain.Wildcard)
-	d.Set("spam_action", domain.SpamAction)
+	d.Set("name", resp.Domain.Name)
+	d.Set("smtp_password", resp.Domain.SmtpPassword)
+	d.Set("smtp_login", resp.Domain.SmtpLogin)
+	d.Set("wildcard", resp.Domain.Wildcard)
+	d.Set("spam_action", resp.Domain.SpamAction)
 
-	return &domain, nil
+	return &resp, nil
 }

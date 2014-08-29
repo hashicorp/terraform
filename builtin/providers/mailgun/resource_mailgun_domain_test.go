@@ -10,7 +10,7 @@ import (
 )
 
 func TestAccMailgunDomain_Basic(t *testing.T) {
-	var domain mailgun.Domain
+	var resp mailgun.DomainResponse
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -20,8 +20,8 @@ func TestAccMailgunDomain_Basic(t *testing.T) {
 			resource.TestStep{
 				Config: testAccCheckMailgunDomainConfig_basic,
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckMailgunDomainExists("mailgun_domain.foobar", &domain),
-					testAccCheckMailgunDomainAttributes(&domain),
+					testAccCheckMailgunDomainExists("mailgun_domain.foobar", &resp),
+					testAccCheckMailgunDomainAttributes(&resp),
 					resource.TestCheckResourceAttr(
 						"mailgun_domain.foobar", "name", "terraform.example.com"),
 					resource.TestCheckResourceAttr(
@@ -54,30 +54,30 @@ func testAccCheckMailgunDomainDestroy(s *terraform.State) error {
 	return nil
 }
 
-func testAccCheckMailgunDomainAttributes(Domain *mailgun.Domain) resource.TestCheckFunc {
+func testAccCheckMailgunDomainAttributes(DomainResp *mailgun.DomainResponse) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 
-		if Domain.Name != "terraform.example.com" {
-			return fmt.Errorf("Bad name: %s", Domain.Name)
+		if DomainResp.Domain.Name != "terraform.example.com" {
+			return fmt.Errorf("Bad name: %s", DomainResp.Domain.Name)
 		}
 
-		if Domain.SpamAction != "disabled" {
-			return fmt.Errorf("Bad spam_action: %s", Domain.SpamAction)
+		if DomainResp.Domain.SpamAction != "disabled" {
+			return fmt.Errorf("Bad spam_action: %s", DomainResp.Domain.SpamAction)
 		}
 
-		if Domain.Wildcard != true {
-			return fmt.Errorf("Bad wildcard: %s", Domain.Wildcard)
+		if DomainResp.Domain.Wildcard != true {
+			return fmt.Errorf("Bad wildcard: %s", DomainResp.Domain.Wildcard)
 		}
 
-		if Domain.SmtpPassword != "foobar" {
-			return fmt.Errorf("Bad smtp_password: %s", Domain.SmtpPassword)
+		if DomainResp.Domain.SmtpPassword != "foobar" {
+			return fmt.Errorf("Bad smtp_password: %s", DomainResp.Domain.SmtpPassword)
 		}
 
 		return nil
 	}
 }
 
-func testAccCheckMailgunDomainExists(n string, Domain *mailgun.Domain) resource.TestCheckFunc {
+func testAccCheckMailgunDomainExists(n string, DomainResp *mailgun.DomainResponse) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		rs, ok := s.Resources[n]
 
@@ -91,17 +91,17 @@ func testAccCheckMailgunDomainExists(n string, Domain *mailgun.Domain) resource.
 
 		client := testAccProvider.Meta().(*mailgun.Client)
 
-		foundDomain, err := client.RetrieveDomain(rs.ID)
+		resp, err := client.RetrieveDomain(rs.ID)
 
 		if err != nil {
 			return err
 		}
 
-		if foundDomain.Name != rs.ID {
+		if resp.Domain.Name != rs.ID {
 			return fmt.Errorf("Domain not found")
 		}
 
-		*Domain = foundDomain
+		*DomainResp = resp
 
 		return nil
 	}
