@@ -66,6 +66,21 @@ func TestGraph_dependsOn(t *testing.T) {
 	}
 }
 
+func TestGraph_dependsOnCount(t *testing.T) {
+	config := testConfig(t, "graph-depends-on-count")
+
+	g, err := Graph(&GraphOpts{Config: config})
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	actual := strings.TrimSpace(g.String())
+	expected := strings.TrimSpace(testTerraformGraphDependsCountStr)
+	if actual != expected {
+		t.Fatalf("bad:\n\n%s", actual)
+	}
+}
+
 func TestGraph_state(t *testing.T) {
 	config := testConfig(t, "graph-basic")
 	state := &State{
@@ -366,6 +381,21 @@ const testTerraformGraphDependsStr = `
 root: root
 aws_instance.db
   aws_instance.db -> aws_instance.web
+aws_instance.web
+root
+  root -> aws_instance.db
+  root -> aws_instance.web
+`
+
+const testTerraformGraphDependsCountStr = `
+root: root
+aws_instance.db
+  aws_instance.db -> aws_instance.db.0
+  aws_instance.db -> aws_instance.db.1
+aws_instance.db.0
+  aws_instance.db.0 -> aws_instance.web
+aws_instance.db.1
+  aws_instance.db.1 -> aws_instance.web
 aws_instance.web
 root
   root -> aws_instance.db

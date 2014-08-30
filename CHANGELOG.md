@@ -9,6 +9,7 @@ IMPROVEMENTS:
 BUG FIXES:
 
   * core: Configuration parses when identifier and '=' have no space. [GH-243]
+  * core: `depends_on` with `count` generates the proper graph. [GH-244]
 
 ## 0.2.0 (August 28, 2014)
 

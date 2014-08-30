@@ -413,7 +413,7 @@ func graphAddExplicitDeps(g *depgraph.Graph) {
 			continue
 		}
 
-		rs[rn.Config.Id()] = n
+		rs[rn.Resource.Id] = n
 		if len(rn.Config.DependsOn) > 0 {
 			depends = true
 		}
