@@ -78,8 +78,8 @@ An example:
 ```
 variable "images" {
 	default = {
-		"us-east-1": "image-1234",
-		"us-west-2": "image-4567",
+		us-east-1 = "image-1234"
+		us-west-2 = "image-4567"
 	}
 }
 ```
@@ -105,7 +105,7 @@ where `DEFAULT` is:
 VALUE
 
 {
-	KEY: VALUE,
+	KEY = VALUE
 	...
 }
 ```
