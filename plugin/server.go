@@ -31,9 +31,9 @@ func Serve(svc interface{}) error {
 	// First check the cookie
 	if os.Getenv(MagicCookieKey) != MagicCookieValue {
 		fmt.Fprintf(os.Stderr,
-			"This binary is a Terraform plugin. These are not meant to be\n" +
-			"executed directly. Please execute `terraform`, which will load\n" +
-			"any plugins automatically.\n")
+			"This binary is a Terraform plugin. These are not meant to be\n"+
+				"executed directly. Please execute `terraform`, which will load\n"+
+				"any plugins automatically.\n")
 		os.Exit(1)
 	}
 

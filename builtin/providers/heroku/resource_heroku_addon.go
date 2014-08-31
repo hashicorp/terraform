@@ -3,8 +3,8 @@ package heroku
 import (
 	"fmt"
 	"log"
-	"sync"
 	"strings"
+	"sync"
 
 	"github.com/cyberdelia/heroku-go/v3"
 	"github.com/hashicorp/terraform/helper/schema"
