@@ -23,7 +23,7 @@ type Provider struct {
 	//
 	// The keys of this map are the configuration keys, and the value is
 	// the schema describing the value of the configuration.
-	Schema       map[string]*Schema
+	Schema map[string]*Schema
 
 	// ResourcesMap is the list of available resources that this provider
 	// can manage, along with their Resource structure defining their

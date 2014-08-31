@@ -10,11 +10,12 @@ import (
 
 func TestSchemaMap_Diff(t *testing.T) {
 	cases := []struct {
-		Schema map[string]*Schema
-		State  *terraform.ResourceState
-		Config map[string]interface{}
-		Diff   *terraform.ResourceDiff
-		Err    bool
+		Schema          map[string]*Schema
+		State           *terraform.ResourceState
+		Config          map[string]interface{}
+		ConfigVariables map[string]string
+		Diff            *terraform.ResourceDiff
+		Err             bool
 	}{
 		/*
 		 * String decode
@@ -122,6 +123,68 @@ func TestSchemaMap_Diff(t *testing.T) {
 						Old:      "",
 						New:      "foo!",
 						NewExtra: "foo",
+					},
+				},
+			},
+
+			Err: false,
+		},
+
+		// Variable (just checking)
+		{
+			Schema: map[string]*Schema{
+				"availability_zone": &Schema{
+					Type:     TypeString,
+					Optional: true,
+				},
+			},
+
+			State: nil,
+
+			Config: map[string]interface{}{
+				"availability_zone": "${var.foo}",
+			},
+
+			ConfigVariables: map[string]string{
+				"var.foo": "bar",
+			},
+
+			Diff: &terraform.ResourceDiff{
+				Attributes: map[string]*terraform.ResourceAttrDiff{
+					"availability_zone": &terraform.ResourceAttrDiff{
+						Old: "",
+						New: "bar",
+					},
+				},
+			},
+
+			Err: false,
+		},
+
+		// Variable computed
+		{
+			Schema: map[string]*Schema{
+				"availability_zone": &Schema{
+					Type:     TypeString,
+					Optional: true,
+				},
+			},
+
+			State: nil,
+
+			Config: map[string]interface{}{
+				"availability_zone": "${var.foo}",
+			},
+
+			ConfigVariables: map[string]string{
+				"var.foo": config.UnknownVariableValue,
+			},
+
+			Diff: &terraform.ResourceDiff{
+				Attributes: map[string]*terraform.ResourceAttrDiff{
+					"availability_zone": &terraform.ResourceAttrDiff{
+						Old: "",
+						New: "${var.foo}",
 					},
 				},
 			},
@@ -868,6 +931,12 @@ func TestSchemaMap_Diff(t *testing.T) {
 		c, err := config.NewRawConfig(tc.Config)
 		if err != nil {
 			t.Fatalf("err: %s", err)
+		}
+
+		if len(tc.ConfigVariables) > 0 {
+			if err := c.Interpolate(tc.ConfigVariables); err != nil {
+				t.Fatalf("err: %s", err)
+			}
 		}
 
 		d, err := schemaMap(tc.Schema).Diff(
