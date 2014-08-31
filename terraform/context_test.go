@@ -1418,6 +1418,29 @@ func TestContextPlan_computed(t *testing.T) {
 	}
 }
 
+func TestContextPlan_computedList(t *testing.T) {
+	c := testConfig(t, "plan-computed-list")
+	p := testProvider("aws")
+	p.DiffFn = testDiffFn
+	ctx := testContext(t, &ContextOpts{
+		Config: c,
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+	})
+
+	plan, err := ctx.Plan(nil)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	actual := strings.TrimSpace(plan.String())
+	expected := strings.TrimSpace(testTerraformPlanComputedListStr)
+	if actual != expected {
+		t.Fatalf("bad:\n%s", actual)
+	}
+}
+
 func TestContextPlan_count(t *testing.T) {
 	c := testConfig(t, "plan-count")
 	p := testProvider("aws")

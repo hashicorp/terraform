@@ -10,6 +10,9 @@ BUG FIXES:
 
   * core: Configuration parses when identifier and '=' have no space. [GH-243]
   * core: `depends_on` with `count` generates the proper graph. [GH-244]
+  * core: Depending on a computed variable of a list type generates a
+      plan without failure. i.e. `${type.name.foos.0.bar}` where `foos`
+      is computed. [GH-247]
 
 ## 0.2.0 (August 28, 2014)
 

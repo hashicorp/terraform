@@ -367,16 +367,30 @@ func (c *Context) computeResourceVariable(
 	}
 
 	attr, ok := r.Attributes[v.Field]
-	if !ok {
-		return "", fmt.Errorf(
-			"Resource '%s' does not have attribute '%s' "+
-				"for variable '%s'",
-			id,
-			v.Field,
-			v.FullKey())
+	if ok {
+		return attr, nil
 	}
 
-	return attr, nil
+	// We didn't find the exact field, so lets separate the dots
+	// and see if anything along the way is a computed set. i.e. if
+	// we have "foo.0.bar" as the field, check to see if "foo" is
+	// a computed list. If so, then the whole thing is computed.
+	parts := strings.Split(v.Field, ".")
+	if len(parts) > 1 {
+		for i := 1; i < len(parts); i++ {
+			key := fmt.Sprintf("%s.#", strings.Join(parts[:i], "."))
+			if attr, ok := r.Attributes[key]; ok {
+				return attr, nil
+			}
+		}
+	}
+
+	return "", fmt.Errorf(
+		"Resource '%s' does not have attribute '%s' "+
+			"for variable '%s'",
+		id,
+		v.Field,
+		v.FullKey())
 }
 
 func (c *Context) computeResourceMultiVariable(

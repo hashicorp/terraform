@@ -302,6 +302,22 @@ STATE:
 <no state>
 `
 
+const testTerraformPlanComputedListStr = `
+DIFF:
+
+CREATE: aws_instance.bar
+  foo:  "" => "<computed>"
+  type: "" => "aws_instance"
+CREATE: aws_instance.foo
+  list.#: "" => "<computed>"
+  num:    "" => "2"
+  type:   "" => "aws_instance"
+
+STATE:
+
+<no state>
+`
+
 const testTerraformPlanCountStr = `
 DIFF:
 
