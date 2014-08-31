@@ -27,6 +27,7 @@ go get ./...
 echo "==> Removing old directory..."
 rm -f bin/*
 rm -rf pkg/*
+mkdir -p bin/
 
 # If its dev mode, only build for ourself
 if [ "${TF_DEV}x" != "x" ]; then
