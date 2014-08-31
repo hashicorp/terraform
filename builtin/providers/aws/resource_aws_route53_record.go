@@ -157,10 +157,30 @@ func resource_aws_r53_record_destroy(
 	zone := s.Attributes["zone_id"]
 	log.Printf("[DEBUG] Deleting resource records for zone: %s, name: %s",
 		zone, s.Attributes["name"])
-	_, err = conn.ChangeResourceRecordSets(zone, req)
-	if err != nil {
+	wait := resource.StateChangeConf{
+		Pending:    []string{"rejected"},
+		Target:     "accepted",
+		Timeout:    5 * time.Minute,
+		MinTimeout: 1 * time.Second,
+		Refresh: func() (interface{}, string, error) {
+			_, err := conn.ChangeResourceRecordSets(zone, req)
+			if err != nil {
+				if strings.Contains(err.Error(), "PriorRequestNotComplete") {
+					// There is some pending operation, so just retry
+					// in a bit.
+					return nil, "rejected", nil
+				}
+
+				return nil, "failure", err
+			}
+
+			return nil, "accepted", nil
+		},
+	}
+	if _, err := wait.WaitForState(); err != nil {
 		return err
 	}
+
 	return nil
 }
 

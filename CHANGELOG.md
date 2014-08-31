@@ -13,6 +13,7 @@ BUG FIXES:
   * core: Depending on a computed variable of a list type generates a
       plan without failure. i.e. `${type.name.foos.0.bar}` where `foos`
       is computed. [GH-247]
+  * providers/aws: Route53 destroys in parallel work properly. [GH-183]
 
 ## 0.2.0 (August 28, 2014)
 
