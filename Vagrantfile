@@ -27,8 +27,8 @@ sudo chmod 0755 /etc/profile.d/gopath.sh
 sudo chown -R vagrant:vagrant $SRCROOT
 sudo chown -R vagrant:vagrant /opt/gopath
 
-# Install git
-sudo apt-get install -y git-core
+# Install some other stuff we need
+sudo apt-get install -y curl git-core zip
 SCRIPT
 
 Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
