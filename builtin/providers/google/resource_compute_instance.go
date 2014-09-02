@@ -60,6 +60,10 @@ func resourceComputeInstance() *schema.Resource {
 							Type:     schema.TypeString,
 							Optional: true,
 						},
+						"auto_delete": &schema.Schema{
+							Type: schema.TypeBool,
+							Optional: true,
+						},
 					},
 				},
 			},
@@ -159,6 +163,10 @@ func resourceComputeInstanceCreate(d *schema.ResourceData, meta interface{}) err
 		disk.Mode = "READ_WRITE"
 		disk.Boot = i == 0
 		disk.AutoDelete = true
+
+		if v, ok := d.GetOk(prefix + ".auto_delete"); ok {
+			disk.AutoDelete = v.(bool)
+		}
 
 		// Load up the disk for this disk if specified
 		if v, ok := d.GetOk(prefix + ".disk"); ok {

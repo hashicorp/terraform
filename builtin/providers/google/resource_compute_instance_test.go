@@ -3,6 +3,7 @@ package google
 import (
 	"fmt"
 	"testing"
+	"strings"
 
 	"code.google.com/p/google-api-go-client/compute/v1"
 	"github.com/hashicorp/terraform/helper/resource"
@@ -24,6 +25,7 @@ func TestAccComputeInstance_basic(t *testing.T) {
 						"google_compute_instance.foobar", &instance),
 					testAccCheckComputeInstanceTag(&instance, "foo"),
 					testAccCheckComputeInstanceMetadata(&instance, "foo", "bar"),
+					testAccCheckComputeInstanceDisk(&instance, "terraform-test", true, true),
 				),
 			},
 		},
@@ -44,6 +46,28 @@ func TestAccComputeInstance_IP(t *testing.T) {
 					testAccCheckComputeInstanceExists(
 						"google_compute_instance.foobar", &instance),
 					testAccCheckComputeInstanceNetwork(&instance),
+				),
+			},
+		},
+	})
+}
+
+//!NB requires that disk with name terraform-test-disk is present in gce,
+//if created as dependency then it tries to remove it while it is still attached
+//to instance and that fails with an error
+func TestAccComputeInstance_disks(t *testing.T) {
+	var instance compute.Instance
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckComputeInstanceDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccComputeInstance_disks,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckComputeInstanceDisk(&instance, "terraform-test", true, true),
+					testAccCheckComputeInstanceDisk(&instance, "terraform-test-disk", false, false),
 				),
 			},
 		},
@@ -164,6 +188,22 @@ func testAccCheckComputeInstanceNetwork(instance *compute.Instance) resource.Tes
 	}
 }
 
+func testAccCheckComputeInstanceDisk(instance *compute.Instance, source string, delete bool, boot bool) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		if instance.Disks == nil {
+			return fmt.Errorf("no disks")
+		}
+
+		for _, disk := range instance.Disks {
+			if strings.LastIndex(disk.Source, "/"+source) == (len(disk.Source) - len(source) - 1) && disk.AutoDelete == delete && disk.Boot == boot{
+				return nil
+			}
+		}
+
+		return fmt.Errorf("Disk not found: %s", source)
+	}
+}
+
 func testAccCheckComputeInstanceTag(instance *compute.Instance, n string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		if instance.Tags == nil {
@@ -238,6 +278,30 @@ resource "google_compute_instance" "foobar" {
 	network {
 		source = "default"
 		address = "${google_compute_address.foo.address}"
+	}
+
+	metadata {
+		foo = "bar"
+	}
+}`
+
+const testAccComputeInstance_disks = `
+resource "google_compute_instance" "foobar" {
+	name = "terraform-test"
+	machine_type = "n1-standard-1"
+	zone = "us-central1-a"
+
+	disk {
+		image = "debian-7-wheezy-v20140814"
+	}
+
+	disk {
+		disk = "terraform-test-disk"
+		auto_delete = false
+	}
+
+	network {
+		source = "default"
 	}
 
 	metadata {
