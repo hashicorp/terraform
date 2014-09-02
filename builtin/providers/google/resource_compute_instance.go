@@ -151,12 +151,19 @@ func resourceComputeInstanceCreate(d *schema.ResourceData, meta interface{}) err
 	for i := 0; i < disksCount; i++ {
 		prefix := fmt.Sprintf("disk.%d", i)
 
-		var sourceLink string
+		// var sourceLink string
+
+		// Build the disk
+		var disk compute.AttachedDisk
+		disk.Type = "PERSISTENT"
+		disk.Mode = "READ_WRITE"
+		disk.Boot = i == 0
+		disk.AutoDelete = true
 
 		// Load up the disk for this disk if specified
 		if v, ok := d.GetOk(prefix + ".disk"); ok {
 			diskName := v.(string)
-			disk, err := config.clientCompute.Disks.Get(
+			diskData, err := config.clientCompute.Disks.Get(
 				config.Project, zone.Name, diskName).Do()
 			if err != nil {
 				return fmt.Errorf(
@@ -164,7 +171,7 @@ func resourceComputeInstanceCreate(d *schema.ResourceData, meta interface{}) err
 					diskName, err)
 			}
 
-			sourceLink = disk.SelfLink
+			disk.Source = diskData.SelfLink
 		}
 
 		// Load up the image for this disk if specified
@@ -177,17 +184,9 @@ func resourceComputeInstanceCreate(d *schema.ResourceData, meta interface{}) err
 					imageName, err)
 			}
 
-			sourceLink = image.SelfLink
-		}
-
-		// Build the disk
-		var disk compute.AttachedDisk
-		disk.Type = "PERSISTENT"
-		disk.Mode = "READ_WRITE"
-		disk.Boot = i == 0
-		disk.AutoDelete = true
-		disk.InitializeParams = &compute.AttachedDiskInitializeParams{
-			SourceImage: sourceLink,
+			disk.InitializeParams = &compute.AttachedDiskInitializeParams{
+				SourceImage: image.SelfLink,
+			}
 		}
 
 		disks = append(disks, &disk)
