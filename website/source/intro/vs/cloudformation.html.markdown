@@ -6,16 +6,16 @@ sidebar_current: "vs-other-cloudformation"
 
 # Terraform vs. CloudFormation, Heat, etc.
 
-Tools like CloudFormation, Heat, etc allow the details of an infrastructure
+Tools like CloudFormation, Heat, etc. allow the details of an infrastructure
 to be codified into a configuration file. The configuration files allow
 the infrastructure to be elastically created, modified and destroyed. Terraform
 is inspired by the problems they solve.
 
 Terraform similarly uses configuration files to detail the infrastructure
-setup, but it goes further, by being both cloud agnostic and enabling
+setup, but it goes further by being both cloud-agnostic and enabling
 multiple providers and services to be combined and composed. For example,
 Terraform can be used to orchestrate an AWS and OpenStack cluster simultaneously,
-while enabling 3rd party services like CloudFlare and DNSimple to be integrated
+while enabling 3rd-party providers like CloudFlare and DNSimple to be integrated
 to provide CDN and DNS services. This enables Terraform to represent and
 manage the entire infrastructure with its supporting services, instead of
 only the subset that exists within a single provider. It provides a single
@@ -34,5 +34,5 @@ the actions in the plan. Other tools combine the planning and execution
 phases, meaning operators are forced to mentally reason about the effects
 of a change, which quickly becomes intractable in large infrastructures.
 Terraform lets operators apply changes with confidence, as they know exactly
-what will happen before running.
+what will happen beforehand.
 
