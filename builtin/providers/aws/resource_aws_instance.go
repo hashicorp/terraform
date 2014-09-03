@@ -127,7 +127,7 @@ func resourceAwsInstanceCreate(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	associatePublicIPAddress := false
-	if v := d.Get("associate_public_ip_addresss"); v != nil {
+	if v := d.Get("associate_public_ip_address"); v != nil {
 		associatePublicIPAddress = v.(bool)
 	}
 
