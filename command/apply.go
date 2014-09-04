@@ -38,7 +38,7 @@ func (c *ApplyCommand) Run(args []string) int {
 	var configPath string
 	args = cmdFlags.Args()
 	if len(args) > 1 {
-		c.Ui.Error("The apply command expacts at most one argument.")
+		c.Ui.Error("The apply command expects at most one argument.")
 		cmdFlags.Usage()
 		return 1
 	} else if len(args) == 1 {
