@@ -1,6 +1,9 @@
 ## 0.2.2 (unreleased)
 
+IMPROVEMENTS:
 
+  * providers/digitalocean: Handle 404 on delete
+  * providers/digitalocean: Add user_data argument for creating droplets
 
 ## 0.2.1 (August 31, 2014)
 

@@ -34,6 +34,7 @@ func resource_digitalocean_droplet_create(
 		PrivateNetworking: rs.Attributes["private_networking"],
 		Region:            rs.Attributes["region"],
 		Size:              rs.Attributes["size"],
+		UserData:          rs.Attributes["user_data"],
 	}
 
 	// Only expand ssh_keys if we have them
@@ -249,6 +250,7 @@ func resource_digitalocean_droplet_diff(
 			"region":             diff.AttrTypeCreate,
 			"size":               diff.AttrTypeUpdate,
 			"ssh_keys":           diff.AttrTypeCreate,
+			"user_data":          diff.AttrTypeCreate,
 		},
 
 		ComputedAttrs: []string{
@@ -322,6 +324,7 @@ func resource_digitalocean_droplet_validation() *config.Validator {
 		},
 		Optional: []string{
 			"backups",
+			"user_data",
 			"ipv6",
 			"private_networking",
 			"ssh_keys.*",

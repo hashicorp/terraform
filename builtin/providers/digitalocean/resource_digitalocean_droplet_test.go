@@ -30,7 +30,9 @@ func TestAccDigitalOceanDroplet_Basic(t *testing.T) {
 					resource.TestCheckResourceAttr(
 						"digitalocean_droplet.foobar", "image", "centos-5-8-x32"),
 					resource.TestCheckResourceAttr(
-						"digitalocean_droplet.foobar", "region", "nyc2"),
+						"digitalocean_droplet.foobar", "region", "nyc3"),
+					resource.TestCheckResourceAttr(
+						"digitalocean_droplet.foobar", "user_data", "foobar"),
 				),
 			},
 		},
@@ -242,7 +244,8 @@ resource "digitalocean_droplet" "foobar" {
     name = "foo"
     size = "512mb"
     image = "centos-5-8-x32"
-    region = "nyc2"
+    region = "nyc3"
+    user_data  = "foobar"
 }
 `
 
