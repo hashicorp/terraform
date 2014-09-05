@@ -3,6 +3,7 @@ package digitalocean
 import (
 	"fmt"
 	"log"
+	"strings"
 
 	"github.com/hashicorp/terraform/helper/config"
 	"github.com/hashicorp/terraform/helper/diff"
@@ -91,6 +92,13 @@ func resource_digitalocean_record_destroy(
 	err := client.DestroyRecord(s.Attributes["domain"], s.ID)
 
 	if err != nil {
+
+		// If the record is somehow already destroyed, mark as
+		// succesfully gone
+		if strings.Contains(err.Error(), "404 Not Found") {
+			return nil
+		}
+
 		return fmt.Errorf("Error deleting record: %s", err)
 	}
 
