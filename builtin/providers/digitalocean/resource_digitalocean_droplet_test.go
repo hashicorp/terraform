@@ -127,7 +127,7 @@ func testAccCheckDigitalOceanDropletAttributes(droplet *digitalocean.Droplet) re
 			return fmt.Errorf("Bad size_slug: %s", droplet.SizeSlug())
 		}
 
-		if droplet.RegionSlug() != "nyc2" {
+		if droplet.RegionSlug() != "nyc3" {
 			return fmt.Errorf("Bad region_slug: %s", droplet.RegionSlug())
 		}
 
@@ -254,7 +254,7 @@ resource "digitalocean_droplet" "foobar" {
     name = "baz"
     size = "1gb"
     image = "centos-5-8-x32"
-    region = "nyc2"
+    region = "nyc3"
 }
 `
 
