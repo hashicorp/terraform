@@ -112,6 +112,12 @@ func resourceAwsInstance() *schema.Resource {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
+
+			"ebs_optimized": &schema.Schema{
+				Type:     schema.TypeBool,
+				Optional: true,
+			},
+
 		},
 	}
 }
@@ -141,6 +147,7 @@ func resourceAwsInstanceCreate(d *schema.ResourceData, meta interface{}) error {
 		PrivateIPAddress:         d.Get("private_ip").(string),
 		AssociatePublicIpAddress: associatePublicIPAddress,
 		UserData:                 []byte(userData),
+		EbsOptimized:             d.Get("ebs_optimized").(bool),
 	}
 
 	if v := d.Get("security_groups"); v != nil {
@@ -307,6 +314,7 @@ func resourceAwsInstanceRead(d *schema.ResourceData, meta interface{}) error {
 	d.Set("private_dns", instance.PrivateDNSName)
 	d.Set("private_ip", instance.PrivateIpAddress)
 	d.Set("subnet_id", instance.SubnetId)
+	d.Set("ebs_optimized", instance.EbsOptimized)
 
 	var deps []terraform.ResourceDependency
 
