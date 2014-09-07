@@ -9,6 +9,7 @@ IMPROVEMENTS:
 
 BUG FIXES:
 
+  * core: Fix certain syntax of configuration that could cause hang. [GH-261]
   * providers/google: Attaching a disk source (not an image) works
       properly. [GH-254]
 
