@@ -2,6 +2,7 @@
 
 IMPROVEMENTS:
 
+  * providers/amazon: Add `ebs_optimized` flag. [GH-260]
   * providers/digitalocean: Handle 404 on delete
   * providers/digitalocean: Add user_data argument for creating droplets
 
