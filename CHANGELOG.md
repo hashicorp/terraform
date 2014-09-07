@@ -4,7 +4,13 @@ IMPROVEMENTS:
 
   * providers/amazon: Add `ebs_optimized` flag. [GH-260]
   * providers/digitalocean: Handle 404 on delete
-  * providers/digitalocean: Add user_data argument for creating droplets
+  * providers/digitalocean: Add `user_data` argument for creating droplets
+  * providers/google: Disks can be marked `auto_delete`. [GH-254]
+
+BUG FIXES:
+
+  * providers/google: Attaching a disk source (not an image) works
+      properly. [GH-254]
 
 ## 0.2.1 (August 31, 2014)
 

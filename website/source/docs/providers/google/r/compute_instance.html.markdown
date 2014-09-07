@@ -64,6 +64,9 @@ The `disk` block supports:
 * `image` - (Required if disk not set) The name of the image to base
     this disk off of.
 
+* `auto_delete` - (Optional) Whether or not the disk should be auto-deleted.
+    This defaults to true.
+
 The `network` block supports:
 
 * `source` - (Required) The name of the network to attach this interface to.
