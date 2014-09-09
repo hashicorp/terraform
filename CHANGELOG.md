@@ -16,6 +16,8 @@ BUG FIXES:
   * providers/aws: Refreshing EIP from pre-0.2 state file won't error. [GH-258]
   * providers/digitalocean: Handle situations when resource was destroyed
       manually. [GH-279]
+  * providers/digitalocean: Fix a couple scenarios where the diff was
+      incorrect (and therefore the execution as well).
   * providers/google: Attaching a disk source (not an image) works
       properly. [GH-254]
 
