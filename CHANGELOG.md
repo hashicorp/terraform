@@ -14,6 +14,8 @@ BUG FIXES:
   * core: "~" is expanded in `-var-file` flags. [GH-273]
   * core: Errors with tfvars are shown in console. [GH-269]
   * providers/aws: Refreshing EIP from pre-0.2 state file won't error. [GH-258]
+  * providers/digitalocean: Handle situations when resource was destroyed
+      manually. [GH-279]
   * providers/google: Attaching a disk source (not an image) works
       properly. [GH-254]
 

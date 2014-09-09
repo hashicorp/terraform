@@ -3,6 +3,7 @@ package digitalocean
 import (
 	"fmt"
 	"log"
+	"strings"
 
 	"github.com/hashicorp/terraform/helper/config"
 	"github.com/hashicorp/terraform/helper/diff"
@@ -63,8 +64,13 @@ func resource_digitalocean_domain_refresh(
 	client := p.client
 
 	domain, err := client.RetrieveDomain(s.ID)
-
 	if err != nil {
+		// If the domain is somehow already destroyed, mark as
+		// succesfully gone
+		if strings.Contains(err.Error(), "404 Not Found") {
+			return nil, nil
+		}
+
 		return s, fmt.Errorf("Error retrieving domain: %s", err)
 	}
 

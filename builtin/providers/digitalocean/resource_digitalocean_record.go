@@ -135,6 +135,13 @@ func resourceRecordRead(d *schema.ResourceData, meta interface{}) error {
 
 	rec, err := client.RetrieveRecord(d.Get("domain").(string), d.Id())
 	if err != nil {
+		// If the record is somehow already destroyed, mark as
+		// succesfully gone
+		if strings.Contains(err.Error(), "404 Not Found") {
+			d.SetId("")
+			return nil
+		}
+
 		return err
 	}
 
