@@ -15,6 +15,7 @@ BUG FIXES:
   * core: Errors with tfvars are shown in console. [GH-269]
   * providers/aws: Refreshing EIP from pre-0.2 state file won't error. [GH-258]
   * providers/aws: Creating EIP without an instance/network won't fail.
+  * providers/aws: Refreshing EIP manually deleted works.
   * providers/digitalocean: Handle situations when resource was destroyed
       manually. [GH-279]
   * providers/digitalocean: Fix a couple scenarios where the diff was
