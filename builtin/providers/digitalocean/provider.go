@@ -11,7 +11,7 @@ import (
 // yet. This is a WIP. To assist with the migration, make sure any resources
 // you migrate are acceptance tested, then perform the migration.
 func Provider() *schema.Provider {
-	// TODO: Move the configuration to this, requires validation
+	// TODO: Move the configuration to this
 
 	return &schema.Provider{
 		Schema: map[string]*schema.Schema{
@@ -21,6 +21,8 @@ func Provider() *schema.Provider {
 			},
 		},
 
-		ResourcesMap: map[string]*schema.Resource{},
+		ResourcesMap: map[string]*schema.Resource{
+			"digitalocean_record": resourceRecord(),
+		},
 	}
 }

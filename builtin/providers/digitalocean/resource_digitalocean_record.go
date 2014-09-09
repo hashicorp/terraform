@@ -5,94 +5,118 @@ import (
 	"log"
 	"strings"
 
-	"github.com/hashicorp/terraform/helper/config"
-	"github.com/hashicorp/terraform/helper/diff"
+	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/terraform"
 	"github.com/pearkes/digitalocean"
 )
 
-func resource_digitalocean_record_create(
-	s *terraform.ResourceState,
-	d *terraform.ResourceDiff,
-	meta interface{}) (*terraform.ResourceState, error) {
+func resourceRecord() *schema.Resource {
+	return &schema.Resource{
+		Create: resourceRecordCreate,
+		Read:   resourceRecordRead,
+		Update: resourceRecordUpdate,
+		Delete: resourceRecordDelete,
+
+		Schema: map[string]*schema.Schema{
+			"type": &schema.Schema{
+				Type:     schema.TypeString,
+				Required: true,
+				ForceNew: true,
+			},
+
+			"domain": &schema.Schema{
+				Type:     schema.TypeString,
+				Required: true,
+				ForceNew: true,
+			},
+
+			"name": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+			},
+
+			"port": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				Computed: true,
+				ForceNew: true,
+			},
+
+			"priority": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				Computed: true,
+				ForceNew: true,
+			},
+
+			"weight": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				Computed: true,
+				ForceNew: true,
+			},
+
+			"value": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				Computed: true,
+				ForceNew: true,
+			},
+		},
+	}
+}
+
+func resourceRecordCreate(d *schema.ResourceData, meta interface{}) error {
 	p := meta.(*ResourceProvider)
 	client := p.client
 
-	// Merge the diff into the state so that we have all the attributes
-	// properly.
-	rs := s.MergeDiff(d)
-
-	var err error
-
 	newRecord := digitalocean.CreateRecord{
-		Type:     rs.Attributes["type"],
-		Name:     rs.Attributes["name"],
-		Data:     rs.Attributes["value"],
-		Priority: rs.Attributes["priority"],
-		Port:     rs.Attributes["port"],
-		Weight:   rs.Attributes["weight"],
+		Type:     d.Get("type").(string),
+		Name:     d.Get("name").(string),
+		Data:     d.Get("value").(string),
+		Priority: d.Get("priority").(string),
+		Port:     d.Get("port").(string),
+		Weight:   d.Get("weight").(string),
 	}
 
 	log.Printf("[DEBUG] record create configuration: %#v", newRecord)
-
-	recId, err := client.CreateRecord(rs.Attributes["domain"], &newRecord)
-
+	recId, err := client.CreateRecord(d.Get("domain").(string), &newRecord)
 	if err != nil {
-		return nil, fmt.Errorf("Failed to create record: %s", err)
+		return fmt.Errorf("Failed to create record: %s", err)
 	}
 
-	rs.ID = recId
-	log.Printf("[INFO] Record ID: %s", rs.ID)
+	d.SetId(recId)
+	log.Printf("[INFO] Record ID: %s", d.Id())
 
-	record, err := resource_digitalocean_record_retrieve(rs.Attributes["domain"], rs.ID, client)
-	if err != nil {
-		return nil, fmt.Errorf("Couldn't find record: %s", err)
-	}
-
-	return resource_digitalocean_record_update_state(rs, record)
+	return resourceRecordRead(d, meta)
 }
 
-func resource_digitalocean_record_update(
-	s *terraform.ResourceState,
-	d *terraform.ResourceDiff,
-	meta interface{}) (*terraform.ResourceState, error) {
+func resourceRecordUpdate(d *schema.ResourceData, meta interface{}) error {
 	p := meta.(*ResourceProvider)
 	client := p.client
-	rs := s.MergeDiff(d)
 
-	updateRecord := digitalocean.UpdateRecord{}
-
-	if attr, ok := d.Attributes["name"]; ok {
-		updateRecord.Name = attr.New
+	var updateRecord digitalocean.UpdateRecord
+	if v, ok := d.GetOk("name"); ok {
+		updateRecord.Name = v.(string)
 	}
 
 	log.Printf("[DEBUG] record update configuration: %#v", updateRecord)
-
-	err := client.UpdateRecord(rs.Attributes["domain"], rs.ID, &updateRecord)
+	err := client.UpdateRecord(d.Get("domain").(string), d.Id(), &updateRecord)
 	if err != nil {
-		return rs, fmt.Errorf("Failed to update record: %s", err)
+		return fmt.Errorf("Failed to update record: %s", err)
 	}
 
-	record, err := resource_digitalocean_record_retrieve(rs.Attributes["domain"], rs.ID, client)
-	if err != nil {
-		return rs, fmt.Errorf("Couldn't find record: %s", err)
-	}
-
-	return resource_digitalocean_record_update_state(rs, record)
+	return resourceRecordRead(d, meta)
 }
 
-func resource_digitalocean_record_destroy(
-	s *terraform.ResourceState,
-	meta interface{}) error {
+func resourceRecordDelete(d *schema.ResourceData, meta interface{}) error {
 	p := meta.(*ResourceProvider)
 	client := p.client
 
-	log.Printf("[INFO] Deleting record: %s, %s", s.Attributes["domain"], s.ID)
-
-	err := client.DestroyRecord(s.Attributes["domain"], s.ID)
-
+	log.Printf(
+		"[INFO] Deleting record: %s, %s", d.Get("domain").(string), d.Id())
+	err := client.DestroyRecord(d.Get("domain").(string), d.Id())
 	if err != nil {
-
 		// If the record is somehow already destroyed, mark as
 		// succesfully gone
 		if strings.Contains(err.Error(), "404 Not Found") {
@@ -105,87 +129,26 @@ func resource_digitalocean_record_destroy(
 	return nil
 }
 
-func resource_digitalocean_record_refresh(
-	s *terraform.ResourceState,
-	meta interface{}) (*terraform.ResourceState, error) {
+func resourceRecordRead(d *schema.ResourceData, meta interface{}) error {
 	p := meta.(*ResourceProvider)
 	client := p.client
 
-	rec, err := resource_digitalocean_record_retrieve(s.Attributes["domain"], s.ID, client)
+	rec, err := client.RetrieveRecord(d.Get("domain").(string), d.Id())
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	return resource_digitalocean_record_update_state(s, rec)
-}
-
-func resource_digitalocean_record_diff(
-	s *terraform.ResourceState,
-	c *terraform.ResourceConfig,
-	meta interface{}) (*terraform.ResourceDiff, error) {
-
-	b := &diff.ResourceBuilder{
-		Attrs: map[string]diff.AttrType{
-			"domain":   diff.AttrTypeCreate,
-			"name":     diff.AttrTypeUpdate,
-			"type":     diff.AttrTypeCreate,
-			"value":    diff.AttrTypeCreate,
-			"priority": diff.AttrTypeCreate,
-			"port":     diff.AttrTypeCreate,
-			"weight":   diff.AttrTypeCreate,
-		},
-
-		ComputedAttrs: []string{
-			"value",
-			"priority",
-			"weight",
-			"port",
-		},
-	}
-
-	return b.Diff(s, c)
-}
-
-func resource_digitalocean_record_update_state(
-	s *terraform.ResourceState,
-	rec *digitalocean.Record) (*terraform.ResourceState, error) {
-
-	s.Attributes["name"] = rec.Name
-	s.Attributes["type"] = rec.Type
-	s.Attributes["value"] = rec.Data
-	s.Attributes["weight"] = rec.StringWeight()
-	s.Attributes["priority"] = rec.StringPriority()
-	s.Attributes["port"] = rec.StringPort()
+	d.Set("name", rec.Name)
+	d.Set("type", rec.Type)
+	d.Set("value", rec.Data)
+	d.Set("weight", rec.StringWeight())
+	d.Set("priority", rec.StringPriority())
+	d.Set("port", rec.StringPort())
 
 	// We belong to a Domain
-	s.Dependencies = []terraform.ResourceDependency{
-		terraform.ResourceDependency{ID: s.Attributes["domain"]},
-	}
+	d.SetDependencies([]terraform.ResourceDependency{
+		terraform.ResourceDependency{ID: d.Get("domain").(string)},
+	})
 
-	return s, nil
-}
-
-func resource_digitalocean_record_retrieve(domain string, id string, client *digitalocean.Client) (*digitalocean.Record, error) {
-	record, err := client.RetrieveRecord(domain, id)
-	if err != nil {
-		return nil, err
-	}
-
-	return &record, nil
-}
-
-func resource_digitalocean_record_validation() *config.Validator {
-	return &config.Validator{
-		Required: []string{
-			"type",
-			"domain",
-		},
-		Optional: []string{
-			"value",
-			"name",
-			"weight",
-			"port",
-			"priority",
-		},
-	}
+	return nil
 }
