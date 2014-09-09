@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/hashicorp/hcl"
+	"github.com/mitchellh/go-homedir"
 )
 
 // FlagVar is a flag.Value implementation for parsing user variables
@@ -56,7 +57,13 @@ func (v *FlagVarFile) Set(raw string) error {
 	return nil
 }
 
-func loadVarFile(path string) (map[string]string, error) {
+func loadVarFile(rawPath string) (map[string]string, error) {
+	path, err := homedir.Expand(rawPath)
+	if err != nil {
+		return nil, fmt.Errorf(
+			"Error expanding path: %s", err)
+	}
+
 	// Read the HCL file and prepare for parsing
 	d, err := ioutil.ReadFile(path)
 	if err != nil {
