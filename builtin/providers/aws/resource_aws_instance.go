@@ -117,7 +117,6 @@ func resourceAwsInstance() *schema.Resource {
 				Type:     schema.TypeBool,
 				Optional: true,
 			},
-
 		},
 	}
 }

@@ -2,8 +2,8 @@ package google
 
 import (
 	"fmt"
-	"testing"
 	"strings"
+	"testing"
 
 	"code.google.com/p/google-api-go-client/compute/v1"
 	"github.com/hashicorp/terraform/helper/resource"
@@ -195,7 +195,7 @@ func testAccCheckComputeInstanceDisk(instance *compute.Instance, source string, 
 		}
 
 		for _, disk := range instance.Disks {
-			if strings.LastIndex(disk.Source, "/"+source) == (len(disk.Source) - len(source) - 1) && disk.AutoDelete == delete && disk.Boot == boot{
+			if strings.LastIndex(disk.Source, "/"+source) == (len(disk.Source)-len(source)-1) && disk.AutoDelete == delete && disk.Boot == boot {
 				return nil
 			}
 		}

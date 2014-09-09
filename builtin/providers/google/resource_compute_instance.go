@@ -61,7 +61,7 @@ func resourceComputeInstance() *schema.Resource {
 							Optional: true,
 						},
 						"auto_delete": &schema.Schema{
-							Type: schema.TypeBool,
+							Type:     schema.TypeBool,
 							Optional: true,
 						},
 					},
