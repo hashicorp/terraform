@@ -97,7 +97,7 @@ func resourceAwsEipUpdate(d *schema.ResourceData, meta interface{}) error {
 	domain := resourceAwsEipDomain(d)
 
 	// Only register with an instance if we have one
-	if v := d.Get("instance"); v != nil {
+	if v, ok := d.GetOk("instance"); ok {
 		instanceId := v.(string)
 
 		assocOpts := ec2.AssociateAddress{
