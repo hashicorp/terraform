@@ -22,6 +22,7 @@ func Provider() *schema.Provider {
 		},
 
 		ResourcesMap: map[string]*schema.Resource{
+			"digitalocean_domain": resourceDomain(),
 			"digitalocean_record": resourceRecord(),
 		},
 	}
