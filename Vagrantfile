@@ -32,7 +32,7 @@ sudo apt-get install -y curl git-core zip
 SCRIPT
 
 Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
-  config.vm.box = "chef/ubuntu-10.04"
+  config.vm.box = "chef/ubuntu-12.04"
 
   config.vm.provision "shell", inline: $script
 
