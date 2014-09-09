@@ -14,9 +14,9 @@ const lexEOF = 0
 // The parser uses the type <prefix>Lex as a lexer.  It must provide
 // the methods Lex(*<prefix>SymType) int and Error(string).
 type exprLex struct {
-	Err error
+	Err   error
+	Input string
 
-	input string
 	pos   int
 	width int
 }
@@ -105,12 +105,12 @@ func (x *exprLex) lexString(yylval *exprSymType) int {
 
 // Return the next rune for the lexer.
 func (x *exprLex) next() rune {
-	if int(x.pos) >= len(x.input) {
+	if int(x.pos) >= len(x.Input) {
 		x.width = 0
 		return lexEOF
 	}
 
-	r, w := utf8.DecodeRuneInString(x.input[x.pos:])
+	r, w := utf8.DecodeRuneInString(x.Input[x.pos:])
 	x.width = w
 	x.pos += x.width
 	return r

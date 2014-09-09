@@ -21,7 +21,7 @@ func ExprParse(v string) (Interpolation, error) {
 	exprResult = nil
 
 	// Parse
-	lex := &exprLex{input: v}
+	lex := &exprLex{Input: v}
 	exprParse(lex)
 
 	// Build up the errors
