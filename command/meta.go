@@ -5,7 +5,6 @@ import (
 	"flag"
 	"fmt"
 	"io"
-	"math/rand"
 	"os"
 
 	"github.com/hashicorp/terraform/config"
@@ -190,7 +189,7 @@ func (m *Meta) process(args []string, vars bool) []string {
 	m.autoKey = ""
 	if vars {
 		if _, err := os.Stat(DefaultVarsFilename); err == nil {
-			m.autoKey = fmt.Sprintf("var-file-%d", rand.Int())
+			m.autoKey = "var-file-default"
 			args = append(args, "", "")
 			copy(args[2:], args[0:])
 			args[0] = "-" + m.autoKey
