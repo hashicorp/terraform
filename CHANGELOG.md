@@ -16,6 +16,8 @@ BUG FIXES:
   * providers/aws: Refreshing EIP from pre-0.2 state file won't error. [GH-258]
   * providers/aws: Creating EIP without an instance/network won't fail.
   * providers/aws: Refreshing EIP manually deleted works.
+  * providers/aws: Retry EIP delete to allow AWS eventual consistency to
+      detect it isn't attached. [GH-276]
   * providers/digitalocean: Handle situations when resource was destroyed
       manually. [GH-279]
   * providers/digitalocean: Fix a couple scenarios where the diff was
