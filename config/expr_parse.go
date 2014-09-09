@@ -21,12 +21,18 @@ func ExprParse(v string) (Interpolation, error) {
 	exprResult = nil
 
 	// Parse
-	exprParse(&exprLex{input: v})
+	lex := &exprLex{input: v}
+	exprParse(lex)
 
 	// Build up the errors
 	var err error
+	if lex.Err != nil {
+		err = multierror.ErrorAppend(err, lex.Err)
+	}
 	if len(exprErrors) > 0 {
-		err = &multierror.Error{Errors: exprErrors}
+		err = multierror.ErrorAppend(err, exprErrors...)
+	}
+	if err != nil {
 		exprResult = nil
 	}
 
