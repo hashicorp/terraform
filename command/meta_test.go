@@ -36,6 +36,7 @@ func TestMetaColorize(t *testing.T) {
 
 	// Test disable #1
 	m = new(Meta)
+	m.Color = true
 	args = []string{"foo", "-no-color", "bar"}
 	args2 = []string{"foo", "bar"}
 	args = m.process(args, false)

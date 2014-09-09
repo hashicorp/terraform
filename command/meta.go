@@ -154,7 +154,7 @@ func (m *Meta) process(args []string, vars bool) []string {
 	m.color = m.Color
 	for i, v := range args {
 		if v == "-no-color" {
-			m.Color = false
+			m.color = false
 			args = append(args[:i], args[i+1:]...)
 			break
 		}
