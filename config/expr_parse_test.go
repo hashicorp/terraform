@@ -88,6 +88,19 @@ func TestExprParse(t *testing.T) {
 			},
 			false,
 		},
+
+		{
+			`concat("foo","-","0.0/16")`,
+			&FunctionInterpolation{
+				Func: nil, // Funcs["lookup"]
+				Args: []Interpolation{
+					&LiteralInterpolation{Literal: "foo"},
+					&LiteralInterpolation{Literal: "-"},
+					&LiteralInterpolation{Literal: "0.0/16"},
+				},
+			},
+			false,
+		},
 	}
 
 	for i, tc := range cases {

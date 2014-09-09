@@ -13,6 +13,7 @@ BUG FIXES:
   * core: `-no-color` flag properly disables color. [GH-250]
   * core: "~" is expanded in `-var-file` flags. [GH-273]
   * core: Errors with tfvars are shown in console. [GH-269]
+  * core: Interpolation function calls with more than two args parse. [GH-282]
   * providers/aws: Refreshing EIP from pre-0.2 state file won't error. [GH-258]
   * providers/aws: Creating EIP without an instance/network won't fail.
   * providers/aws: Refreshing EIP manually deleted works.

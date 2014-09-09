@@ -62,9 +62,9 @@ args:
 	{
 		$$ = nil
 	}
-|	expr COMMA expr
+|	args COMMA expr
 	{
-		$$ = append($$, $1, $3)
+		$$ = append($1, $3)
 	}
 |	expr
 	{
