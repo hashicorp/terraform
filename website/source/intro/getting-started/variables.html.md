@@ -135,7 +135,7 @@ $ terraform plan -var 'amis.us-east-1=foo'
 ## Next
 
 Terraform provides variables for parameterizing your configurations.
-Mappings let you build lookup tables in cases where that make sense.
+Mappings let you build lookup tables in cases where that makes sense.
 Setting and using variables is uniform throughout your configurations.
 
 In the next section, we'll take a look at
