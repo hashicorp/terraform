@@ -55,7 +55,7 @@ Basic bullet point reference:
   * Numbers are assumed to be base 10. If you prefix a number with
     `0x`, it is treated as a hexadecimal number.
 
-  * Numbers can be suffxed with `kKmMgG` for some multiple of 10.
+  * Numbers can be suffixed with `kKmMgG` for some multiple of 10.
     For example: `1k` is equal to `1000`.
 
   * Numbers can be suffxed with `[kKmMgG]b` for power of 2 multiples,
