@@ -185,7 +185,7 @@ func resourceAwsEipRead(d *schema.ResourceData, meta interface{}) error {
 }
 
 func resourceAwsEipDomain(d *schema.ResourceData) string {
-	if v := d.Get("domain"); v != nil {
+	if v, ok := d.GetOk("domain"); ok {
 		return v.(string)
 	} else if strings.Contains(d.Id(), "eipalloc") {
 		// We have to do this for backwards compatibility since TF 0.1

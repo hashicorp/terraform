@@ -10,6 +10,7 @@ IMPROVEMENTS:
 BUG FIXES:
 
   * core: Fix certain syntax of configuration that could cause hang. [GH-261]
+  * providers/aws: Refreshing EIP from pre-0.2 state file won't error. [GH-258]
   * providers/google: Attaching a disk source (not an image) works
       properly. [GH-254]
 
