@@ -98,6 +98,32 @@ func TestSchemaMap_Diff(t *testing.T) {
 			Err: false,
 		},
 
+		// Default
+		{
+			Schema: map[string]*Schema{
+				"availability_zone": &Schema{
+					Type:     TypeString,
+					Optional: true,
+					Default:  "foo",
+				},
+			},
+
+			State: nil,
+
+			Config: nil,
+
+			Diff: &terraform.ResourceDiff{
+				Attributes: map[string]*terraform.ResourceAttrDiff{
+					"availability_zone": &terraform.ResourceAttrDiff{
+						Old: "",
+						New: "foo",
+					},
+				},
+			},
+
+			Err: false,
+		},
+
 		// String with StateFunc
 		{
 			Schema: map[string]*Schema{
@@ -1016,11 +1042,36 @@ func TestSchemaMap_InternalValidate(t *testing.T) {
 			false,
 		},
 
+		// Computed but has default
+		{
+			map[string]*Schema{
+				"foo": &Schema{
+					Type:     TypeInt,
+					Optional: true,
+					Computed: true,
+					Default:  "foo",
+				},
+			},
+			true,
+		},
+
 		// List element not set
 		{
 			map[string]*Schema{
 				"foo": &Schema{
 					Type: TypeList,
+				},
+			},
+			true,
+		},
+
+		// List default
+		{
+			map[string]*Schema{
+				"foo": &Schema{
+					Type:    TypeList,
+					Elem:    &Schema{Type: TypeInt},
+					Default: "foo",
 				},
 			},
 			true,

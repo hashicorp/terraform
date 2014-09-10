@@ -62,6 +62,10 @@ type Schema struct {
 	Optional bool
 	Required bool
 
+	// If this is non-nil, then this will be a default value that is used
+	// when this item is not set in the configuration/state.
+	Default interface{}
+
 	// The fields below relate to diffs.
 	//
 	// If Computed is true, then the result of this value is computed
@@ -280,6 +284,10 @@ func (m schemaMap) InternalValidate() error {
 			return fmt.Errorf("%s: One of optional, required, or computed must be set", k)
 		}
 
+		if v.Computed && v.Default != nil {
+			return fmt.Errorf("%s: Default must be nil if computed", k)
+		}
+
 		if len(v.ComputedWhen) > 0 && !v.Computed {
 			return fmt.Errorf("%s: ComputedWhen can only be set with Computed", k)
 		}
@@ -287,6 +295,10 @@ func (m schemaMap) InternalValidate() error {
 		if v.Type == TypeList || v.Type == TypeSet {
 			if v.Elem == nil {
 				return fmt.Errorf("%s: Elem must be set for lists", k)
+			}
+
+			if v.Default != nil {
+				return fmt.Errorf("%s: Default is not valid for lists or sets", k)
 			}
 
 			if v.Type == TypeList && v.Set != nil {
@@ -492,6 +504,9 @@ func (m schemaMap) diffString(
 	var originalN interface{}
 	var os, ns string
 	o, n, _ := d.diffChange(k)
+	if n == nil {
+		n = schema.Default
+	}
 	if schema.StateFunc != nil {
 		originalN = n
 		n = schema.StateFunc(n)
