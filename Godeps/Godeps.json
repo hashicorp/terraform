@@ -3,9 +3,8 @@
 	"GoVersion": "go1.3",
 	"Deps": [
 		{
-			"ImportPath": "code.google.com/p/go.crypto/ssh/terminal",
-			"Comment": "null-213",
-			"Rev": "aa2644fe4aa50e3b38d75187b4799b1f0c9ddcef"
+			"ImportPath": "github.com/hashicorp/hcl",
+			"Rev": "26239b8eab901433e15c3c6d27e1f8065b0fbe83"
 		},
 		{
 			"ImportPath": "github.com/mitchellh/cli",
@@ -20,8 +19,8 @@
 			"Rev": "d8968bce41ab42f33aeb143afa95e331cb1ba886"
 		},
 		{
-			"ImportPath": "github.com/mitchellh/go-libucl",
-			"Rev": "8da0f346ecb82446ebceafd6e8e9d9be4d549745"
+			"ImportPath": "github.com/mitchellh/go-homedir",
+			"Rev": "0af1630672c20c57b4f10c2afba2264516562918"
 		},
 		{
 			"ImportPath": "github.com/mitchellh/mapstructure",
