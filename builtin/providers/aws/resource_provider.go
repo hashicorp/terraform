@@ -2,7 +2,6 @@ package aws
 
 import (
 	"log"
-	"os"
 
 	"github.com/hashicorp/terraform/helper/config"
 	"github.com/hashicorp/terraform/helper/multierror"
@@ -32,31 +31,7 @@ type ResourceProvider struct {
 }
 
 func (p *ResourceProvider) Validate(c *terraform.ResourceConfig) ([]string, []error) {
-	type param struct {
-		env string
-		key string
-	}
-	params := []param{
-		{"AWS_REGION", "region"},
-		{"AWS_ACCESS_KEY", "access_key"},
-		{"AWS_SECRET_KEY", "secret_key"},
-	}
-
-	var optional []string
-	var required []string
-	for _, p := range params {
-		if v := os.Getenv(p.env); v != "" {
-			optional = append(optional, p.key)
-		} else {
-			required = append(required, p.key)
-		}
-	}
-
-	v := &config.Validator{
-		Required: required,
-		Optional: optional,
-	}
-	return v.Validate(c)
+	return Provider().Validate(c)
 }
 
 func (p *ResourceProvider) ValidateResource(

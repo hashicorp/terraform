@@ -1,6 +1,8 @@
 package aws
 
 import (
+	"os"
+
 	"github.com/hashicorp/terraform/helper/schema"
 )
 
@@ -15,6 +17,32 @@ func Provider() *schema.Provider {
 	// TODO: Move the configuration to this, requires validation
 
 	return &schema.Provider{
+		Schema: map[string]*schema.Schema{
+			"region": &schema.Schema{
+				Type:     schema.TypeString,
+				Required: true,
+				DefaultFunc: func() (interface{}, error) {
+					return os.Getenv("AWS_REGION"), nil
+				},
+			},
+
+			"access_key": &schema.Schema{
+				Type:     schema.TypeString,
+				Required: true,
+				DefaultFunc: func() (interface{}, error) {
+					return os.Getenv("AWS_ACCESS_KEY"), nil
+				},
+			},
+
+			"secret_key": &schema.Schema{
+				Type:     schema.TypeString,
+				Required: true,
+				DefaultFunc: func() (interface{}, error) {
+					return os.Getenv("AWS_SECRET_KEY"), nil
+				},
+			},
+		},
+
 		ResourcesMap: map[string]*schema.Resource{
 			"aws_eip":            resourceAwsEip(),
 			"aws_instance":       resourceAwsInstance(),
