@@ -124,6 +124,64 @@ func TestSchemaMap_Diff(t *testing.T) {
 			Err: false,
 		},
 
+		// DefaultFunc, value
+		{
+			Schema: map[string]*Schema{
+				"availability_zone": &Schema{
+					Type:     TypeString,
+					Optional: true,
+					DefaultFunc: func() (interface{}, error) {
+						return "foo", nil
+					},
+				},
+			},
+
+			State: nil,
+
+			Config: nil,
+
+			Diff: &terraform.ResourceDiff{
+				Attributes: map[string]*terraform.ResourceAttrDiff{
+					"availability_zone": &terraform.ResourceAttrDiff{
+						Old: "",
+						New: "foo",
+					},
+				},
+			},
+
+			Err: false,
+		},
+
+		// DefaultFunc, configuration set
+		{
+			Schema: map[string]*Schema{
+				"availability_zone": &Schema{
+					Type:     TypeString,
+					Optional: true,
+					DefaultFunc: func() (interface{}, error) {
+						return "foo", nil
+					},
+				},
+			},
+
+			State: nil,
+
+			Config: map[string]interface{}{
+				"availability_zone": "bar",
+			},
+
+			Diff: &terraform.ResourceDiff{
+				Attributes: map[string]*terraform.ResourceAttrDiff{
+					"availability_zone": &terraform.ResourceAttrDiff{
+						Old: "",
+						New: "bar",
+					},
+				},
+			},
+
+			Err: false,
+		},
+
 		// String with StateFunc
 		{
 			Schema: map[string]*Schema{
@@ -1055,6 +1113,19 @@ func TestSchemaMap_InternalValidate(t *testing.T) {
 			true,
 		},
 
+		// Required but has default
+		{
+			map[string]*Schema{
+				"foo": &Schema{
+					Type:     TypeInt,
+					Optional: true,
+					Required: true,
+					Default:  "foo",
+				},
+			},
+			true,
+		},
+
 		// List element not set
 		{
 			map[string]*Schema{
@@ -1223,6 +1294,38 @@ func TestSchemaMap_Validate(t *testing.T) {
 			Config: map[string]interface{}{
 				"port": "I am invalid",
 			},
+
+			Err: true,
+		},
+
+		// Required but has DefaultFunc
+		{
+			Schema: map[string]*Schema{
+				"availability_zone": &Schema{
+					Type:     TypeString,
+					Required: true,
+					DefaultFunc: func() (interface{}, error) {
+						return "foo", nil
+					},
+				},
+			},
+
+			Config: nil,
+		},
+
+		// Required but has DefaultFunc return nil
+		{
+			Schema: map[string]*Schema{
+				"availability_zone": &Schema{
+					Type:     TypeString,
+					Required: true,
+					DefaultFunc: func() (interface{}, error) {
+						return nil, nil
+					},
+				},
+			},
+
+			Config: nil,
 
 			Err: true,
 		},

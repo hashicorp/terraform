@@ -64,7 +64,15 @@ type Schema struct {
 
 	// If this is non-nil, then this will be a default value that is used
 	// when this item is not set in the configuration/state.
-	Default interface{}
+	//
+	// DefaultFunc can be specified if you want a dynamic default value.
+	// Only one of Default or DefaultFunc can be set.
+	//
+	// If Required is true above, then Default cannot be set. DefaultFunc
+	// can be set with Required. If the DefaultFunc returns nil, then there
+	// will no default and the user will be asked to fill it in.
+	Default     interface{}
+	DefaultFunc SchemaDefaultFunc
 
 	// The fields below relate to diffs.
 	//
@@ -103,6 +111,10 @@ type Schema struct {
 	// NOTE: This currently does not work.
 	ComputedWhen []string
 }
+
+// SchemaDefaultFunc is a function called to return a default value for
+// a field.
+type SchemaDefaultFunc func() (interface{}, error)
 
 // SchemaSetFunc is a function that must return a unique ID for the given
 // element. This unique ID is used to store the element in a hash.
@@ -286,6 +298,10 @@ func (m schemaMap) InternalValidate() error {
 
 		if v.Computed && v.Default != nil {
 			return fmt.Errorf("%s: Default must be nil if computed", k)
+		}
+
+		if v.Required && v.Default != nil {
+			return fmt.Errorf("%s: Default cannot be set with Required", k)
 		}
 
 		if len(v.ComputedWhen) > 0 && !v.Computed {
@@ -506,6 +522,13 @@ func (m schemaMap) diffString(
 	o, n, _ := d.diffChange(k)
 	if n == nil {
 		n = schema.Default
+		if schema.DefaultFunc != nil {
+			var err error
+			n, err = schema.DefaultFunc()
+			if err != nil {
+				return fmt.Errorf("%s, error loading default: %s", err)
+			}
+		}
 	}
 	if schema.StateFunc != nil {
 		originalN = n
@@ -551,6 +574,18 @@ func (m schemaMap) validate(
 	schema *Schema,
 	c *terraform.ResourceConfig) ([]string, []error) {
 	raw, ok := c.Get(k)
+	if !ok && schema.DefaultFunc != nil {
+		// We have a dynamic default. Check if we have a value.
+		var err error
+		raw, err = schema.DefaultFunc()
+		if err != nil {
+			return nil, []error{fmt.Errorf(
+				"%s, error loading default: %s", k, err)}
+		}
+
+		// We're okay as long as we had a value set
+		ok = raw != nil
+	}
 	if !ok {
 		if schema.Required {
 			return nil, []error{fmt.Errorf(
