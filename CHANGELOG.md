@@ -1,5 +1,9 @@
 ## 0.2.3 (unreleased)
 
+IMPROVEMENTS:
+
+  * helper/schema: Can now have default values. [GH-245]
+
 BUG FIXES:
 
   * core: Providers are validated even without a `provider` block. [GH-284]
