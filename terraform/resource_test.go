@@ -41,8 +41,8 @@ func TestResourceConfigGet(t *testing.T) {
 	}{
 		{
 			Config: nil,
-			Key:   "foo",
-			Value: nil,
+			Key:    "foo",
+			Value:  nil,
 		},
 
 		{
