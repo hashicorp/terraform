@@ -19,27 +19,21 @@ func Provider() *schema.Provider {
 	return &schema.Provider{
 		Schema: map[string]*schema.Schema{
 			"region": &schema.Schema{
-				Type:     schema.TypeString,
-				Required: true,
-				DefaultFunc: func() (interface{}, error) {
-					return os.Getenv("AWS_REGION"), nil
-				},
+				Type:        schema.TypeString,
+				Required:    true,
+				DefaultFunc: envDefaultFunc("AWS_REGION"),
 			},
 
 			"access_key": &schema.Schema{
-				Type:     schema.TypeString,
-				Required: true,
-				DefaultFunc: func() (interface{}, error) {
-					return os.Getenv("AWS_ACCESS_KEY"), nil
-				},
+				Type:        schema.TypeString,
+				Required:    true,
+				DefaultFunc: envDefaultFunc("AWS_ACCESS_KEY"),
 			},
 
 			"secret_key": &schema.Schema{
-				Type:     schema.TypeString,
-				Required: true,
-				DefaultFunc: func() (interface{}, error) {
-					return os.Getenv("AWS_SECRET_KEY"), nil
-				},
+				Type:        schema.TypeString,
+				Required:    true,
+				DefaultFunc: envDefaultFunc("AWS_SECRET_KEY"),
 			},
 		},
 
@@ -48,5 +42,15 @@ func Provider() *schema.Provider {
 			"aws_instance":       resourceAwsInstance(),
 			"aws_security_group": resourceAwsSecurityGroup(),
 		},
+	}
+}
+
+func envDefaultFunc(k string) schema.SchemaDefaultFunc {
+	return func() (interface{}, error) {
+		if v := os.Getenv(k); v != "" {
+			return v, nil
+		}
+
+		return nil, nil
 	}
 }
