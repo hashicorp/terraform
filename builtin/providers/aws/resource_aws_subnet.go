@@ -55,6 +55,21 @@ func resource_aws_subnet_create(
 			s.ID, err)
 	}
 
+	var attr string
+
+	// Map public ip on launch must be set in another API call
+	if attr = s.Attributes["map_public_ip_on_launch"]; attr == "true" {
+		modifyOpts := &ec2.ModifySubnetAttribute{
+			SubnetId: s.ID,
+			MapPublicIpOnLaunch: true,
+		}
+		log.Printf("[DEBUG] Subnet modify attributes: %#v", modifyOpts)
+		_, err := ec2conn.ModifySubnetAttribute(modifyOpts)
+		if err != nil {
+			return nil, fmt.Errorf("Error modify subnet attributes: %s", err)
+		}
+	}
+
 	// Update our attributes and return
 	return resource_aws_subnet_update_state(s, subnetRaw.(*ec2.Subnet))
 }
@@ -125,9 +140,10 @@ func resource_aws_subnet_diff(
 	meta interface{}) (*terraform.ResourceDiff, error) {
 	b := &diff.ResourceBuilder{
 		Attrs: map[string]diff.AttrType{
-			"availability_zone": diff.AttrTypeCreate,
-			"cidr_block":        diff.AttrTypeCreate,
-			"vpc_id":            diff.AttrTypeCreate,
+			"availability_zone":       diff.AttrTypeCreate,
+			"cidr_block":              diff.AttrTypeCreate,
+			"vpc_id":                  diff.AttrTypeCreate,
+			"map_public_ip_on_launch": diff.AttrTypeCreate,
 		},
 
 		ComputedAttrs: []string{
@@ -144,6 +160,10 @@ func resource_aws_subnet_update_state(
 	s.Attributes["availability_zone"] = subnet.AvailabilityZone
 	s.Attributes["cidr_block"] = subnet.CidrBlock
 	s.Attributes["vpc_id"] = subnet.VpcId
+
+	if subnet.MapPublicIpOnLaunch {
+		s.Attributes["map_public_ip_on_launch"] = "true"
+	}
 
 	// We belong to a VPC
 	s.Dependencies = []terraform.ResourceDependency{

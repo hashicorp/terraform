@@ -17,6 +17,10 @@ func TestAccAWSSubnet(t *testing.T) {
 			return fmt.Errorf("bad cidr: %s", v.CidrBlock)
 		}
 
+		if v.MapPublicIpOnLaunch != true {
+			return fmt.Errorf("bad MapPublicIpOnLaunch: %s", v.MapPublicIpOnLaunch)
+		}
+		return fmt.Errorf("bad MapPublicIpOnLaunch: %s", v.MapPublicIpOnLaunch)
 		return nil
 	}
 
@@ -104,5 +108,6 @@ resource "aws_vpc" "foo" {
 resource "aws_subnet" "foo" {
 	cidr_block = "10.1.1.0/24"
 	vpc_id = "${aws_vpc.foo.id}"
+	map_public_ip_on_launch = true
 }
 `
