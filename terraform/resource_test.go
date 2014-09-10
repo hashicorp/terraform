@@ -40,6 +40,12 @@ func TestResourceConfigGet(t *testing.T) {
 		Value  interface{}
 	}{
 		{
+			Config: nil,
+			Key:   "foo",
+			Value: nil,
+		},
+
+		{
 			Config: map[string]interface{}{
 				"foo": "${var.foo}",
 			},
@@ -74,12 +80,16 @@ func TestResourceConfigGet(t *testing.T) {
 	}
 
 	for i, tc := range cases {
-		rawC, err := config.NewRawConfig(tc.Config)
-		if err != nil {
-			t.Fatalf("err: %s", err)
+		var rawC *config.RawConfig
+		if tc.Config != nil {
+			var err error
+			rawC, err = config.NewRawConfig(tc.Config)
+			if err != nil {
+				t.Fatalf("err: %s", err)
+			}
 		}
-		rc := NewResourceConfig(rawC)
 
+		rc := NewResourceConfig(rawC)
 		if tc.Vars != nil {
 			ctx := NewContext(&ContextOpts{Variables: tc.Vars})
 			if err := rc.interpolate(ctx); err != nil {
