@@ -389,7 +389,11 @@ c -> e`)
 func TestGraphWalk_error(t *testing.T) {
 	nodes := ParseNouns(`a -> b
 b -> c
-a -> d`)
+a -> d
+a -> e
+e -> f
+f -> g
+g -> h`)
 	list := NounMapToList(nodes)
 	g := &Graph{Name: "Test", Nouns: list}
 	if err := g.Validate(); err != nil {
@@ -419,7 +423,7 @@ a -> d`)
 
 		sort.Strings(walked)
 
-		expected := []string{"b", "c", "d"}
+		expected := []string{"b", "c", "d", "e", "f", "g", "h"}
 		if !reflect.DeepEqual(walked, expected) {
 			t.Fatalf("bad: %#v", walked)
 		}

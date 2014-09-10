@@ -3,6 +3,7 @@
 BUG FIXES:
 
   * core: Providers are validated even without a `provider` block. [GH-284]
+  * core: In the case of error, walk all non-dependent trees.
 
 ## 0.2.2 (September 9, 2014)
 

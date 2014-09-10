@@ -269,7 +269,6 @@ func (g *Graph) Walk(fn WalkFunc) error {
 
 	// Spawn off all our goroutines to walk the tree
 	errCh := make(chan error)
-	quitCh := make(chan struct{})
 	for len(tovisit) > 0 {
 		// Grab the current thing to use
 		n := len(tovisit)
@@ -301,11 +300,8 @@ func (g *Graph) Walk(fn WalkFunc) error {
 				ch := seenMap[dep.Target]
 				seenMapL.RUnlock()
 
-				select {
-				case <-ch:
-				case <-quitCh:
-					return
-				}
+				// Wait for the dep to be run
+				<-ch
 
 				// Check if any dependencies errored. If so,
 				// then return right away, we won't walk it.
@@ -343,9 +339,6 @@ func (g *Graph) Walk(fn WalkFunc) error {
 	case <-doneCh:
 		return nil
 	case err := <-errCh:
-		// Close the quit channel so all our goroutines will end now
-		close(quitCh)
-
 		// Drain the error channel
 		go func() {
 			for _ = range errCh {
