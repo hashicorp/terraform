@@ -933,11 +933,12 @@ func (c *Context) validateWalkFn(rws *[]string, res *[]error) depgraph.WalkFunc 
 			}
 
 		case *GraphNodeResourceProvider:
-			if rn.Config == nil {
-				return nil
+			var raw *config.RawConfig
+			if rn.Config != nil {
+				raw = rn.Config.RawConfig
 			}
 
-			rc := NewResourceConfig(rn.Config.RawConfig)
+			rc := NewResourceConfig(raw)
 
 			for k, p := range rn.Providers {
 				log.Printf("[INFO] Validating provider: %s", k)

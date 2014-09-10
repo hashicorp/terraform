@@ -1,6 +1,8 @@
 ## 0.2.3 (unreleased)
 
+BUG FIXES:
 
+  * core: Providers are validated even without a `provider` block. [GH-284]
 
 ## 0.2.2 (September 9, 2014)
 

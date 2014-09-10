@@ -121,6 +121,27 @@ func TestContextValidate_providerConfig_bad(t *testing.T) {
 	}
 }
 
+func TestContextValidate_providerConfig_badEmpty(t *testing.T) {
+	config := testConfig(t, "validate-bad-pc-empty")
+	p := testProvider("aws")
+	c := testContext(t, &ContextOpts{
+		Config: config,
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+	})
+
+	p.ValidateReturnErrors = []error{fmt.Errorf("bad")}
+
+	w, e := c.Validate()
+	if len(w) > 0 {
+		t.Fatalf("bad: %#v", w)
+	}
+	if len(e) == 0 {
+		t.Fatalf("bad: %#v", e)
+	}
+}
+
 func TestContextValidate_providerConfig_good(t *testing.T) {
 	config := testConfig(t, "validate-bad-pc")
 	p := testProvider("aws")
