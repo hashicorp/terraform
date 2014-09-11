@@ -106,6 +106,22 @@ func TestLoadBasic_json(t *testing.T) {
 	}
 }
 
+func TestLoadBasic_modules(t *testing.T) {
+	c, err := Load(filepath.Join(fixtureDir, "modules.tf"))
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	if c == nil {
+		t.Fatal("config should not be nil")
+	}
+
+	actual := modulesStr(c.Modules)
+	if actual != strings.TrimSpace(modulesModulesStr) {
+		t.Fatalf("bad:\n%s", actual)
+	}
+}
+
 func TestLoad_variables(t *testing.T) {
 	c, err := Load(filepath.Join(fixtureDir, "variables.tf"))
 	if err != nil {
@@ -300,6 +316,41 @@ func TestLoad_connections(t *testing.T) {
 	if p2.ConnInfo.Raw["user"] != "root" {
 		t.Fatalf("Bad: %#v", p2.ConnInfo)
 	}
+}
+
+func modulesStr(ms []*Module) string {
+	result := ""
+	order := make([]int, 0, len(ms))
+	ks := make([]string, 0, len(ms))
+	mapping := make(map[string]int)
+	for i, m := range ms {
+		k := m.Id()
+		ks = append(ks, k)
+		mapping[k] = i
+	}
+	sort.Strings(ks)
+	for _, k := range ks {
+		order = append(order, mapping[k])
+	}
+
+	for _, i := range order {
+		m := ms[i]
+		result += fmt.Sprintf("%s\n", m.Id())
+
+		ks := make([]string, 0, len(m.RawConfig.Raw))
+		for k, _ := range m.RawConfig.Raw {
+			ks = append(ks, k)
+		}
+		sort.Strings(ks)
+
+		result += fmt.Sprintf("  source = %s\n", m.Source)
+
+		for _, k := range ks {
+			result += fmt.Sprintf("  %s\n", k)
+		}
+	}
+
+	return strings.TrimSpace(result)
 }
 
 // This helper turns a provider configs field into a deterministic
@@ -609,6 +660,12 @@ bar (required)
 foo
   bar
   bar
+`
+
+const modulesModulesStr = `
+foo.bar
+  source = baz
+  memory
 `
 
 const provisionerResourcesStr = `

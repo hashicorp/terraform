@@ -15,6 +15,7 @@ import (
 // Config is the configuration that comes from loading a collection
 // of Terraform templates.
 type Config struct {
+	Modules         []*Module
 	ProviderConfigs []*ProviderConfig
 	Resources       []*Resource
 	Variables       []*Variable
@@ -23,6 +24,17 @@ type Config struct {
 	// The fields below can be filled in by loaders for validation
 	// purposes.
 	unknownKeys []string
+}
+
+// Module is a module used within a configuration.
+//
+// This does not represent a module itself, this represents a module
+// call-site within an existing configuration.
+type Module struct {
+	Name      string
+	Type      string
+	Source    string
+	RawConfig *RawConfig
 }
 
 // ProviderConfig is the configuration for a resource provider.
@@ -90,6 +102,11 @@ func ProviderConfigName(t string, pcs []*ProviderConfig) string {
 	}
 
 	return lk
+}
+
+// A unique identifier for this module.
+func (r *Module) Id() string {
+	return fmt.Sprintf("%s.%s", r.Type, r.Name)
 }
 
 // A unique identifier for this resource.
