@@ -292,7 +292,11 @@ func resource_aws_elb_update_state(
 
 	s.Attributes["name"] = balancer.LoadBalancerName
 	s.Attributes["dns_name"] = balancer.DNSName
-	s.Attributes["scheme"] = balancer.Scheme
+
+	// todo - this is a temporary workaround to account for the fact that there's no way to represent a default value
+	if s.Attributes["scheme"] != "" {
+		s.Attributes["scheme"] = balancer.Scheme
+	}
 
 	// Flatten our group values
 	toFlatten := make(map[string]interface{})
