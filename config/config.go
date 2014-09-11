@@ -173,9 +173,27 @@ func (c *Config) Validate() error {
 		}
 	}
 
+	// Check that all references to modules are valid
+	modules := make(map[string]*Module)
+	dupped := make(map[string]struct{})
+	for _, m := range c.Modules {
+		if _, ok := modules[m.Id()]; ok {
+			if _, ok := dupped[m.Id()]; !ok {
+				dupped[m.Id()] = struct{}{}
+
+				errs = append(errs, fmt.Errorf(
+					"%s: module repeated multiple times",
+					m.Id()))
+			}
+		}
+
+		modules[m.Id()] = m
+	}
+	dupped = nil
+
 	// Check that all references to resources are valid
 	resources := make(map[string]*Resource)
-	dupped := make(map[string]struct{})
+	dupped = make(map[string]struct{})
 	for _, r := range c.Resources {
 		if _, ok := resources[r.Id()]; ok {
 			if _, ok := dupped[r.Id()]; !ok {
