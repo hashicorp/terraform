@@ -46,6 +46,7 @@ The following arguments are supported:
 * `instances` - (Optional) A list of instance ids to place in the ELB pool.
 * `listener` - (Required) A list of listener blocks. Listeners documented below.
 * `health_check` - (Optional) A health_check block. Health Check documented below.
+* `scheme` - (Optional) The scheme to use: internal or internet-facing.  The default is internet-facing.  If scheme is internal, subnets must also be specified.
 
 Listeners support the following:
 
