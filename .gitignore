@@ -16,3 +16,14 @@ website/node_modules
 *.tfstate
 *.log
 *.bak
+
+# ignore intellij files
+/.idea
+/.idea_modules
+/*.ipr
+/*.iml
+/*.iws
+
+# ignore temporary environment files
+coverage.out
+*.env
