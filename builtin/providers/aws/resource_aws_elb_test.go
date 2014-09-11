@@ -23,6 +23,7 @@ func TestAccAWSELB_basic(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSELBExists("aws_elb.bar", &conf),
 					testAccCheckAWSELBAttributes(&conf),
+					testAccCheckAWSELBScheme(&conf, "internet-facing"),
 					resource.TestCheckResourceAttr(
 						"aws_elb.bar", "name", "foobar-terraform-test"),
 					resource.TestCheckResourceAttr(
@@ -58,6 +59,7 @@ func TestAccAWSELB_internal(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSELBExists("aws_elb.bar", &conf),
 					testAccCheckAWSELBAttributes(&conf),
+					testAccCheckAWSELBScheme(&conf, "internal"),
 					resource.TestCheckResourceAttr(
 						"aws_elb.bar", "scheme", "internal"),
 				),
@@ -191,6 +193,15 @@ func testAccCheckAWSELBAttributes(conf *elb.LoadBalancer) resource.TestCheckFunc
 			return fmt.Errorf("empty dns_name")
 		}
 
+		return nil
+	}
+}
+
+func testAccCheckAWSELBScheme(conf *elb.LoadBalancer, expected string) resource.TestCheckFunc {
+	return func(*terraform.State) error {
+		if conf.Scheme != expected {
+			return fmt.Errorf("expected scheme = '%s'; actual = %s", expected, conf.Scheme)
+		}
 		return nil
 	}
 }
