@@ -309,6 +309,25 @@ func (c *Config) allVariables() map[string][]InterpolatedVariable {
 	return result
 }
 
+func (m *Module) mergerName() string {
+	return m.Id()
+}
+
+func (m *Module) mergerMerge(other merger) merger {
+	m2 := other.(*Module)
+
+	result := *m
+	result.Name = m2.Name
+	result.Type = m2.Type
+	result.RawConfig = result.RawConfig.merge(m2.RawConfig)
+
+	if m2.Source != "" {
+		result.Source = m2.Source
+	}
+
+	return &result
+}
+
 func (o *Output) mergerName() string {
 	return o.Name
 }

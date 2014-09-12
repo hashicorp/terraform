@@ -35,6 +35,23 @@ func Merge(c1, c2 *Config) (*Config, error) {
 
 	var m1, m2, mresult []merger
 
+	// Modules
+	m1 = make([]merger, 0, len(c1.Modules))
+	m2 = make([]merger, 0, len(c2.Modules))
+	for _, v := range c1.Modules {
+		m1 = append(m1, v)
+	}
+	for _, v := range c2.Modules {
+		m2 = append(m2, v)
+	}
+	mresult = mergeSlice(m1, m2)
+	if len(mresult) > 0 {
+		c.Modules = make([]*Module, len(mresult))
+		for i, v := range mresult {
+			c.Modules[i] = v.(*Module)
+		}
+	}
+
 	// Outputs
 	m1 = make([]merger, 0, len(c1.Outputs))
 	m2 = make([]merger, 0, len(c2.Outputs))
