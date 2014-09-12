@@ -52,10 +52,10 @@ for PLATFORM in $(find ./pkg -mindepth 1 -maxdepth 1 -type d); do
     set -e
 done
 
-# Copy our OS/Arch to the bin/ directory
+# Copy our OS/Arch to the ${GOPATH}/bin/ directory
 DEV_PLATFORM="./pkg/$(go env GOOS)_$(go env GOARCH)"
 for F in $(find ${DEV_PLATFORM} -mindepth 1 -maxdepth 1 -type f); do
-    cp ${F} bin/
+    cp ${F} ${GOPATH}/bin/
 done
 
 if [ "${TF_DEV}x" = "x" ]; then
