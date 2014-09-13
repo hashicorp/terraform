@@ -9,7 +9,7 @@ SRCROOT="/opt/go"
 
 # Install Go
 apt-get update
-apt-get install -y build-essential mercurial
+apt-get install -y build-essential curl git-core mercurial zip
 hg clone -u release https://code.google.com/p/go ${SRCROOT}
 cd ${SRCROOT}/src
 ./all.bash
@@ -27,8 +27,6 @@ chmod 0755 /etc/profile.d/gopath.sh
 chown -R vagrant:vagrant $SRCROOT
 chown -R vagrant:vagrant /opt/gopath
 
-# Install some other stuff we need
-apt-get install -y curl git-core zip
 SCRIPT
 
 Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
