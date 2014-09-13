@@ -5,13 +5,11 @@
 VAGRANTFILE_API_VERSION = "2"
 
 $script = <<SCRIPT
-SRCROOT="/opt/go"
-
 # Install Go and prerequisites
 apt-get -qq update
 apt-get install -qq build-essential curl git-core libpcre3-dev mercurial pkg-config zip
-hg clone -u release https://code.google.com/p/go ${SRCROOT}
-cd ${SRCROOT}/src && ./all.bash
+hg clone -u release https://code.google.com/p/go /opt/go
+cd /opt/go/src && ./all.bash
 
 # Setup the GOPATH
 mkdir -p /opt/gopath
@@ -21,7 +19,7 @@ export PATH="/opt/go/bin:\$GOPATH/bin:\$PATH"
 EOF
 
 # Make sure the GOPATH is usable by vagrant
-chown -R vagrant:vagrant $SRCROOT
+chown -R vagrant:vagrant /opt/go
 chown -R vagrant:vagrant /opt/gopath
 SCRIPT
 
