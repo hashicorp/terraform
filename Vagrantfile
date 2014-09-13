@@ -16,11 +16,10 @@ cd ${SRCROOT}/src
 
 # Setup the GOPATH
 mkdir -p /opt/gopath
-cat <<EOF >/tmp/gopath.sh
+cat <<EOF >/etc/profile.d/gopath.sh
 export GOPATH="/opt/gopath"
 export PATH="/opt/go/bin:\$GOPATH/bin:\$PATH"
 EOF
-mv /tmp/gopath.sh /etc/profile.d/gopath.sh
 chmod 0755 /etc/profile.d/gopath.sh
 
 # Make sure the gopath is usable by vagrant
