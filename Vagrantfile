@@ -9,7 +9,7 @@ SRCROOT="/opt/go"
 
 # Install Go
 apt-get update
-apt-get install -y build-essential curl git-core mercurial zip
+apt-get install -y build-essential curl git-core libpcre3-dev mercurial pkg-config zip
 hg clone -u release https://code.google.com/p/go ${SRCROOT}
 cd ${SRCROOT}/src
 ./all.bash
