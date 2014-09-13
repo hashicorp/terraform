@@ -7,7 +7,7 @@ VAGRANTFILE_API_VERSION = "2"
 $script = <<SCRIPT
 # Install Go and prerequisites
 apt-get -qq update
-apt-get install -qq build-essential curl git-core libpcre3-dev mercurial pkg-config zip
+apt-get -qq install build-essential curl git-core libpcre3-dev mercurial pkg-config zip
 hg clone -u release https://code.google.com/p/go /opt/go
 cd /opt/go/src && ./all.bash
 
