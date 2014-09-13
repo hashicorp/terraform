@@ -21,10 +21,9 @@ export GOPATH="/opt/gopath"
 export PATH="/opt/go/bin:\$GOPATH/bin:\$PATH"
 EOF
 
-# Make sure the gopath is usable by vagrant
+# Make sure the GOPATH is usable by vagrant
 chown -R vagrant:vagrant $SRCROOT
 chown -R vagrant:vagrant /opt/gopath
-
 SCRIPT
 
 Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
