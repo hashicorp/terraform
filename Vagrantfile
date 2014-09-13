@@ -7,12 +7,11 @@ VAGRANTFILE_API_VERSION = "2"
 $script = <<SCRIPT
 SRCROOT="/opt/go"
 
-# Install Go
+# Install Go and prerequisites
 apt-get -qq update
 apt-get install -qq build-essential curl git-core libpcre3-dev mercurial pkg-config zip
 hg clone -u release https://code.google.com/p/go ${SRCROOT}
-cd ${SRCROOT}/src
-./all.bash
+cd ${SRCROOT}/src && ./all.bash
 
 # Setup the GOPATH
 mkdir -p /opt/gopath
