@@ -4,4 +4,5 @@ package module
 type Module struct {
 	Name   string
 	Source string
+	Dir    string
 }

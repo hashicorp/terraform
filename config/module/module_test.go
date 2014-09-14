@@ -45,3 +45,7 @@ func testModule(n string) string {
 	url.Path = p
 	return url.String()
 }
+
+func testStorage(t *testing.T) Storage {
+	return &FolderStorage{StorageDir: tempDir(t)}
+}
