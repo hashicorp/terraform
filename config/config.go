@@ -32,7 +32,6 @@ type Config struct {
 // call-site within an existing configuration.
 type Module struct {
 	Name      string
-	Type      string
 	Source    string
 	RawConfig *RawConfig
 }
@@ -106,7 +105,7 @@ func ProviderConfigName(t string, pcs []*ProviderConfig) string {
 
 // A unique identifier for this module.
 func (r *Module) Id() string {
-	return fmt.Sprintf("%s.%s", r.Type, r.Name)
+	return fmt.Sprintf("module.%s", r.Name)
 }
 
 // A unique identifier for this resource.
@@ -318,7 +317,6 @@ func (m *Module) mergerMerge(other merger) merger {
 
 	result := *m
 	result.Name = m2.Name
-	result.Type = m2.Type
 	result.RawConfig = result.RawConfig.merge(m2.RawConfig)
 
 	if m2.Source != "" {

@@ -194,7 +194,7 @@ func loadFileHcl(root string) (configurable, []string, error) {
 // represents exactly one module definition in the HCL configuration.
 // We leave it up to another pass to merge them together.
 func loadModulesHcl(os *hclobj.Object) ([]*Module, error) {
-	var allTypes []*hclobj.Object
+	var allNames []*hclobj.Object
 
 	// See loadResourcesHcl for why this exists. Don't touch this.
 	for _, o1 := range os.Elem(false) {
@@ -202,7 +202,7 @@ func loadModulesHcl(os *hclobj.Object) ([]*Module, error) {
 		for _, o2 := range o1.Elem(true) {
 			// Iterate all of this type to get _all_ the types
 			for _, o3 := range o2.Elem(false) {
-				allTypes = append(allTypes, o3)
+				allNames = append(allNames, o3)
 			}
 		}
 	}
@@ -212,51 +212,45 @@ func loadModulesHcl(os *hclobj.Object) ([]*Module, error) {
 
 	// Now go over all the types and their children in order to get
 	// all of the actual resources.
-	for _, t := range allTypes {
-		for _, obj := range t.Elem(true) {
-			k := obj.Key
+	for _, obj := range allNames {
+		k := obj.Key
 
-			var config map[string]interface{}
-			if err := hcl.DecodeObject(&config, obj); err != nil {
-				return nil, fmt.Errorf(
-					"Error reading config for %s[%s]: %s",
-					t.Key,
-					k,
-					err)
-			}
+		var config map[string]interface{}
+		if err := hcl.DecodeObject(&config, obj); err != nil {
+			return nil, fmt.Errorf(
+				"Error reading config for %s: %s",
+				k,
+				err)
+		}
 
-			// Remove the fields we handle specially
-			delete(config, "source")
+		// Remove the fields we handle specially
+		delete(config, "source")
 
-			rawConfig, err := NewRawConfig(config)
+		rawConfig, err := NewRawConfig(config)
+		if err != nil {
+			return nil, fmt.Errorf(
+				"Error reading config for %s: %s",
+				k,
+				err)
+		}
+
+		// If we have a count, then figure it out
+		var source string
+		if o := obj.Get("source", false); o != nil {
+			err = hcl.DecodeObject(&source, o)
 			if err != nil {
 				return nil, fmt.Errorf(
-					"Error reading config for %s[%s]: %s",
-					t.Key,
+					"Error parsing source for %s: %s",
 					k,
 					err)
 			}
-
-			// If we have a count, then figure it out
-			var source string
-			if o := obj.Get("source", false); o != nil {
-				err = hcl.DecodeObject(&source, o)
-				if err != nil {
-					return nil, fmt.Errorf(
-						"Error parsing source for %s[%s]: %s",
-						t.Key,
-						k,
-						err)
-				}
-			}
-
-			result = append(result, &Module{
-				Name:      k,
-				Type:      t.Key,
-				Source:    source,
-				RawConfig: rawConfig,
-			})
 		}
+
+		result = append(result, &Module{
+			Name:      k,
+			Source:    source,
+			RawConfig: rawConfig,
+		})
 	}
 
 	return result, nil
