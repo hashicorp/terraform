@@ -89,6 +89,10 @@ func resource_aws_db_instance_create(
 			rs.Attributes, "security_group_names").([]interface{}))
 	}
 
+	if attr = rs.Attributes["db_subnet_group_name"]; attr != "" {
+		opts.DBSubnetGroupName = attr
+	}
+
 	opts.DBInstanceIdentifier = rs.Attributes["identifier"]
 	opts.DBName = rs.Attributes["name"]
 	opts.MasterUsername = rs.Attributes["username"]
@@ -224,6 +228,7 @@ func resource_aws_db_instance_diff(
 			"vpc_security_group_ids":    diff.AttrTypeCreate,
 			"security_group_names":      diff.AttrTypeCreate,
 			"skip_final_snapshot":       diff.AttrTypeUpdate,
+			"db_subnet_group_name":      diff.AttrTypeCreate,
 			"final_snapshot_identifier": diff.AttrTypeUpdate,
 		},
 
@@ -255,6 +260,7 @@ func resource_aws_db_instance_update_state(
 	s.Attributes["availability_zone"] = v.AvailabilityZone
 	s.Attributes["backup_retention_period"] = strconv.Itoa(v.BackupRetentionPeriod)
 	s.Attributes["backup_window"] = v.PreferredBackupWindow
+	s.Attributes["db_subnet_group_name"] = v.DBSubnetGroup.Name
 	s.Attributes["endpoint"] = fmt.Sprintf("%s:%s", s.Attributes["address"], strconv.Itoa(v.Port))
 	s.Attributes["engine"] = v.Engine
 	s.Attributes["engine_version"] = v.EngineVersion
@@ -338,6 +344,7 @@ func resource_aws_db_instance_validation() *config.Validator {
 			"vpc_security_group_ids.*",
 			"skip_final_snapshot",
 			"security_group_names.*",
+			"db_subnet_group_name",
 		},
 	}
 }
