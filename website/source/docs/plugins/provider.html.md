@@ -213,7 +213,7 @@ func resourceUpdate(d *schema.ResourceData, meta interface{}) error {
 		d.SetPartial("tags")
 	}
 
-	if d.HashChange("name") {
+	if d.HasChange("name") {
 		if err := updateName(d, meta); err != nil {
 			return err
 		}
