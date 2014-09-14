@@ -33,6 +33,11 @@ const (
 	GetModeUpdate
 )
 
+// NewTree returns a new Tree for the given config structure.
+func NewTree(c *config.Config) *Tree {
+	return &Tree{Config: c}
+}
+
 // Flatten takes the entire module tree and flattens it into a single
 // namespace in *config.Config with no module imports.
 //
@@ -45,8 +50,19 @@ func (t *Tree) Flatten() (*config.Config, error) {
 }
 
 // Modules returns the list of modules that this tree imports.
+//
+// This is only the imports of _this_ level of the tree. To retrieve the
+// full nested imports, you'll have to traverse the tree.
 func (t *Tree) Modules() []*Module {
-	return nil
+	result := make([]*Module, len(t.Config.Modules))
+	for i, m := range t.Config.Modules {
+		result[i] = &Module{
+			Name:   m.Name,
+			Source: m.Source,
+		}
+	}
+
+	return result
 }
 
 // Load loads the configuration of the entire tree.

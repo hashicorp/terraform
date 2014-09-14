@@ -6,6 +6,8 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+
+	"github.com/hashicorp/terraform/config"
 )
 
 const fixtureDir = "./test-fixtures"
@@ -20,6 +22,15 @@ func tempDir(t *testing.T) string {
 	}
 
 	return dir
+}
+
+func testConfig(t *testing.T, n string) *config.Config {
+	c, err := config.LoadDir(filepath.Join(fixtureDir, n))
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	return c
 }
 
 func testModule(n string) string {
