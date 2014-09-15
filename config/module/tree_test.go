@@ -8,7 +8,7 @@ import (
 
 func TestTreeLoad(t *testing.T) {
 	storage := testStorage(t)
-	tree := NewTree(testConfig(t, "basic"))
+	tree := NewTree("", testConfig(t, "basic"))
 
 	if tree.Loaded() {
 		t.Fatal("should not be loaded")
@@ -46,7 +46,7 @@ func TestTreeLoad(t *testing.T) {
 
 func TestTreeLoad_duplicate(t *testing.T) {
 	storage := testStorage(t)
-	tree := NewTree(testConfig(t, "dup"))
+	tree := NewTree("", testConfig(t, "dup"))
 
 	if tree.Loaded() {
 		t.Fatal("should not be loaded")
@@ -59,7 +59,7 @@ func TestTreeLoad_duplicate(t *testing.T) {
 }
 
 func TestTreeModules(t *testing.T) {
-	tree := NewTree(testConfig(t, "basic"))
+	tree := NewTree("", testConfig(t, "basic"))
 	actual := tree.Modules()
 
 	expected := []*Module{
@@ -72,7 +72,7 @@ func TestTreeModules(t *testing.T) {
 }
 
 func TestTreeName(t *testing.T) {
-	tree := NewTree(testConfig(t, "basic"))
+	tree := NewTree("", testConfig(t, "basic"))
 	actual := tree.Name()
 
 	if actual != "<root>" {
@@ -81,7 +81,7 @@ func TestTreeName(t *testing.T) {
 }
 
 func TestTreeValidate_badChild(t *testing.T) {
-	tree := NewTree(testConfig(t, "validate-child-bad"))
+	tree := NewTree("", testConfig(t, "validate-child-bad"))
 
 	if err := tree.Load(testStorage(t), GetModeGet); err != nil {
 		t.Fatalf("err: %s", err)
@@ -93,7 +93,7 @@ func TestTreeValidate_badChild(t *testing.T) {
 }
 
 func TestTreeValidate_badChildOutput(t *testing.T) {
-	tree := NewTree(testConfig(t, "validate-bad-output"))
+	tree := NewTree("", testConfig(t, "validate-bad-output"))
 
 	if err := tree.Load(testStorage(t), GetModeGet); err != nil {
 		t.Fatalf("err: %s", err)
@@ -105,7 +105,7 @@ func TestTreeValidate_badChildOutput(t *testing.T) {
 }
 
 func TestTreeValidate_badChildVar(t *testing.T) {
-	tree := NewTree(testConfig(t, "validate-bad-var"))
+	tree := NewTree("", testConfig(t, "validate-bad-var"))
 
 	if err := tree.Load(testStorage(t), GetModeGet); err != nil {
 		t.Fatalf("err: %s", err)
@@ -117,7 +117,7 @@ func TestTreeValidate_badChildVar(t *testing.T) {
 }
 
 func TestTreeValidate_badRoot(t *testing.T) {
-	tree := NewTree(testConfig(t, "validate-root-bad"))
+	tree := NewTree("", testConfig(t, "validate-root-bad"))
 
 	if err := tree.Load(testStorage(t), GetModeGet); err != nil {
 		t.Fatalf("err: %s", err)
@@ -129,7 +129,7 @@ func TestTreeValidate_badRoot(t *testing.T) {
 }
 
 func TestTreeValidate_good(t *testing.T) {
-	tree := NewTree(testConfig(t, "validate-child-good"))
+	tree := NewTree("", testConfig(t, "validate-child-good"))
 
 	if err := tree.Load(testStorage(t), GetModeGet); err != nil {
 		t.Fatalf("err: %s", err)
@@ -141,12 +141,13 @@ func TestTreeValidate_good(t *testing.T) {
 }
 
 func TestTreeValidate_notLoaded(t *testing.T) {
-	tree := NewTree(testConfig(t, "basic"))
+	tree := NewTree("", testConfig(t, "basic"))
 
 	if err := tree.Validate(); err == nil {
 		t.Fatal("should error")
 	}
 }
+
 
 const treeLoadStr = `
 <root>

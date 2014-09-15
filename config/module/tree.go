@@ -42,8 +42,20 @@ const (
 )
 
 // NewTree returns a new Tree for the given config structure.
-func NewTree(c *config.Config) *Tree {
-	return &Tree{config: c}
+func NewTree(name string, c *config.Config) *Tree {
+	return &Tree{config: c, name: name}
+}
+
+// NewTreeModule is like NewTree except it parses the configuration in
+// the directory and gives it a specific name. Use a blank name "" to specify
+// the root module.
+func NewTreeModule(name, dir string) (*Tree, error) {
+	c, err := config.LoadDir(dir)
+	if err != nil {
+		return nil, err
+	}
+
+	return NewTree(name, c), nil
 }
 
 // Children returns the children of this tree (the modules that are
@@ -141,14 +153,11 @@ func (t *Tree) Load(s Storage, mode GetMode) error {
 		}
 
 		// Load the configuration
-		c, err := config.LoadDir(dir)
+		children[m.Name], err = NewTreeModule(m.Name, dir)
 		if err != nil {
 			return fmt.Errorf(
 				"module %s: %s", m.Name, err)
 		}
-
-		children[m.Name] = NewTree(c)
-		children[m.Name].name = m.Name
 	}
 
 	// Go through all the children and load them.
