@@ -2,11 +2,22 @@ package terraform
 
 import (
 	"bytes"
+	"encoding/gob"
+	"errors"
 	"fmt"
+	"io"
 	"sort"
 	"sync"
 
 	"github.com/hashicorp/terraform/config"
+)
+
+// The format byte is prefixed into the state file format so that we have
+// the ability in the future to change the file format if we want for any
+// reason.
+const (
+	stateFormatMagic        = "tfstate"
+	stateFormatVersion byte = 1
 )
 
 // StateV1 is used to represent the state of Terraform files before
@@ -20,7 +31,7 @@ type StateV1 struct {
 	once sync.Once
 }
 
-func (s *State) init() {
+func (s *StateV1) init() {
 	s.once.Do(func() {
 		if s.Resources == nil {
 			s.Resources = make(map[string]*ResourceState)
@@ -32,7 +43,7 @@ func (s *State) init() {
 	})
 }
 
-func (s *State) deepcopy() *State {
+func (s *StateV1) deepcopy() *State {
 	result := new(State)
 	result.init()
 	if s != nil {
@@ -49,7 +60,7 @@ func (s *State) deepcopy() *State {
 
 // prune is a helper that removes any empty IDs from the state
 // and cleans it up in general.
-func (s *State) prune() {
+func (s *StateV1) prune() {
 	for k, v := range s.Resources {
 		if v.ID == "" {
 			delete(s.Resources, k)
@@ -60,7 +71,7 @@ func (s *State) prune() {
 // Orphans returns a list of keys of resources that are in the State
 // but aren't present in the configuration itself. Hence, these keys
 // represent the state of resources that are orphans.
-func (s *State) Orphans(c *config.Config) []string {
+func (s *StateV1) Orphans(c *config.Config) []string {
 	keys := make(map[string]struct{})
 	for k, _ := range s.Resources {
 		keys[k] = struct{}{}
@@ -83,7 +94,7 @@ func (s *State) Orphans(c *config.Config) []string {
 	return result
 }
 
-func (s *State) String() string {
+func (s *StateV1) String() string {
 	if len(s.Resources) == 0 {
 		return "<no state>"
 	}
@@ -152,27 +163,6 @@ func (s *State) String() string {
 	return buf.String()
 }
 
-// sensitiveState is used to store sensitive state information
-// that should not be serialized. This is only used temporarily
-// and is restored into the state.
-type sensitiveState struct {
-	ConnInfo map[string]map[string]string
-
-	once sync.Once
-}
-
-func (s *sensitiveState) init() {
-	s.once.Do(func() {
-		s.ConnInfo = make(map[string]map[string]string)
-	})
-}
-
-// The format byte is prefixed into the state file format so that we have
-// the ability in the future to change the file format if we want for any
-// reason.
-const stateFormatMagic = "tfstate"
-const stateFormatVersion byte = 1
-
 /// ResourceState holds the state of a resource that is used so that
 // a provider can find and manage an existing resource as well as for
 // storing attributes that are uesd to populate variables of child
@@ -236,8 +226,8 @@ type ResourceStateV1 struct {
 // If the diff attribute requires computing the value, and hence
 // won't be available until apply, the value is replaced with the
 // computeID.
-func (s *ResourceState) MergeDiff(d *ResourceDiff) *ResourceState {
-	var result ResourceState
+func (s *ResourceStateV1) MergeDiff(d *ResourceDiff) *ResourceStateV1 {
+	var result ResourceStateV1
 	if s != nil {
 		result = *s
 	}
@@ -266,7 +256,7 @@ func (s *ResourceState) MergeDiff(d *ResourceDiff) *ResourceState {
 	return &result
 }
 
-func (s *ResourceState) GoString() string {
+func (s *ResourceStateV1) GoString() string {
 	return fmt.Sprintf("*%#v", *s)
 }
 
@@ -276,4 +266,46 @@ type ResourceDependency struct {
 	// ID of the resource that we depend on. This ID should map
 	// directly to another ResourceState's ID.
 	ID string
+}
+
+// ReadStateV1 reads a state structure out of a reader in the format that
+// was written by WriteState.
+func ReadStateV1(src io.Reader) (*StateV1, error) {
+	var result *StateV1
+	var err error
+	n := 0
+
+	// Verify the magic bytes
+	magic := make([]byte, len(stateFormatMagic))
+	for n < len(magic) {
+		n, err = src.Read(magic[n:])
+		if err != nil {
+			return nil, fmt.Errorf("error while reading magic bytes: %s", err)
+		}
+	}
+	if string(magic) != stateFormatMagic {
+		return nil, fmt.Errorf("not a valid state file")
+	}
+
+	// Verify the version is something we can read
+	var formatByte [1]byte
+	n, err = src.Read(formatByte[:])
+	if err != nil {
+		return nil, err
+	}
+	if n != len(formatByte) {
+		return nil, errors.New("failed to read state version byte")
+	}
+
+	if formatByte[0] != stateFormatVersion {
+		return nil, fmt.Errorf("unknown state file version: %d", formatByte[0])
+	}
+
+	// Decode
+	dec := gob.NewDecoder(src)
+	if err := dec.Decode(&result); err != nil {
+		return nil, err
+	}
+
+	return result, nil
 }
