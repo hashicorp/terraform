@@ -56,17 +56,6 @@ func (t *Tree) Children() map[string]*Tree {
 	return t.children
 }
 
-// Flatten takes the entire module tree and flattens it into a single
-// namespace in *config.Config with no module imports.
-//
-// Validate is called here implicitly, since it is important that semantic
-// checks pass before flattening the configuration. Otherwise, encapsulation
-// breaks in horrible ways and the errors that come out the other side
-// will be surprising.
-func (t *Tree) Flatten() (*config.Config, error) {
-	return nil, nil
-}
-
 // Loaded says whether or not this tree has been loaded or not yet.
 func (t *Tree) Loaded() bool {
 	t.lock.RLock()
@@ -212,7 +201,7 @@ func (t *Tree) Validate() error {
 	}
 
 	// If something goes wrong, here is our error template
-	newErr := &ValidateError{Name: []string{t.Name()}}
+	newErr := &TreeError{Name: []string{t.Name()}}
 
 	// Validate our configuration first.
 	if err := t.config.Validate(); err != nil {
@@ -230,7 +219,7 @@ func (t *Tree) Validate() error {
 			continue
 		}
 
-		verr, ok := err.(*ValidateError)
+		verr, ok := err.(*TreeError)
 		if !ok {
 			// Unknown error, just return...
 			return err
@@ -301,14 +290,14 @@ func (t *Tree) Validate() error {
 	return nil
 }
 
-// ValidateError is an error returned by Tree.Validate if an error occurs
+// TreeError is an error returned by Tree.Validate if an error occurs
 // with validation.
-type ValidateError struct {
+type TreeError struct {
 	Name []string
 	Err  error
 }
 
-func (e *ValidateError) Error() string {
+func (e *TreeError) Error() string {
 	// Build up the name
 	var buf bytes.Buffer
 	for _, n := range e.Name {
