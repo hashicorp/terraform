@@ -1,7 +1,10 @@
 package module
 
 import (
+	"bufio"
+	"bytes"
 	"fmt"
+	"strings"
 	"sync"
 
 	"github.com/hashicorp/terraform/config"
@@ -13,9 +16,10 @@ import (
 // all the modules without getting, flatten the tree into something
 // Terraform can use, etc.
 type Tree struct {
+	name     string
 	config   *config.Config
 	children []*Tree
-	lock     sync.Mutex
+	lock     sync.RWMutex
 }
 
 // GetMode is an enum that describes how modules are loaded.
@@ -47,7 +51,9 @@ func NewTree(c *config.Config) *Tree {
 //
 // This will only return a non-nil value after Load is called.
 func (t *Tree) Children() []*Tree {
-	return nil
+	t.lock.RLock()
+	defer t.lock.RUnlock()
+	return t.children
 }
 
 // Flatten takes the entire module tree and flattens it into a single
@@ -75,6 +81,16 @@ func (t *Tree) Modules() []*Module {
 	}
 
 	return result
+}
+
+// Name returns the name of the tree. This will be "<root>" for the root
+// tree and then the module name given for any children.
+func (t *Tree) Name() string {
+	if t.name == "" {
+		return "<root>"
+	}
+
+	return t.name
 }
 
 // Load loads the configuration of the entire tree.
@@ -130,6 +146,7 @@ func (t *Tree) Load(s Storage, mode GetMode) error {
 				"module %s: %s", m.Name, err)
 		}
 		children[i] = NewTree(c)
+		children[i].name = m.Name
 	}
 
 	// Go through all the children and load them.
@@ -143,6 +160,31 @@ func (t *Tree) Load(s Storage, mode GetMode) error {
 	t.children = children
 
 	return nil
+}
+
+// String gives a nice output to describe the tree.
+func (t *Tree) String() string {
+	var result bytes.Buffer
+	result.WriteString(t.Name() + "\n")
+
+	cs := t.Children()
+	if cs == nil {
+		result.WriteString("  not loaded")
+	} else {
+		// Go through each child and get its string value, then indent it
+		// by two.
+		for _, c := range cs {
+			r := strings.NewReader(c.String())
+			scanner := bufio.NewScanner(r)
+			for scanner.Scan() {
+				result.WriteString("  ")
+				result.WriteString(scanner.Text())
+				result.WriteString("\n")
+			}
+		}
+	}
+
+	return result.String()
 }
 
 // Validate does semantic checks on the entire tree of configurations.
