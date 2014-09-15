@@ -699,7 +699,7 @@ foo
 `
 
 const modulesModulesStr = `
-module.bar
+bar
   source = baz
   memory
 `

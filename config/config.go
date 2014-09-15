@@ -110,7 +110,7 @@ func ProviderConfigName(t string, pcs []*ProviderConfig) string {
 
 // A unique identifier for this module.
 func (r *Module) Id() string {
-	return fmt.Sprintf("module.%s", r.Name)
+	return fmt.Sprintf("%s", r.Name)
 }
 
 // A unique identifier for this resource.
@@ -194,6 +194,24 @@ func (c *Config) Validate() error {
 		modules[m.Id()] = m
 	}
 	dupped = nil
+
+	// Check that all variables for modules reference modules that
+	// exist.
+	for source, vs := range vars {
+		for _, v := range vs {
+			mv, ok := v.(*ModuleVariable)
+			if !ok {
+				continue
+			}
+
+			if _, ok := modules[mv.Name]; !ok {
+				errs = append(errs, fmt.Errorf(
+					"%s: unknown module referenced: %s",
+					source,
+					mv.Name))
+			}
+		}
+	}
 
 	// Check that all references to resources are valid
 	resources := make(map[string]*Resource)

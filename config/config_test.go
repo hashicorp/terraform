@@ -114,6 +114,20 @@ func TestConfigValidate_varDefaultInterpolate(t *testing.T) {
 	}
 }
 
+func TestConfigValidate_varModule(t *testing.T) {
+	c := testConfig(t, "validate-var-module")
+	if err := c.Validate(); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+}
+
+func TestConfigValidate_varModuleInvalid(t *testing.T) {
+	c := testConfig(t, "validate-var-module-invalid")
+	if err := c.Validate(); err == nil {
+		t.Fatal("should not be valid")
+	}
+}
+
 func TestProviderConfigName(t *testing.T) {
 	pcs := []*ProviderConfig{
 		&ProviderConfig{Name: "aw"},
