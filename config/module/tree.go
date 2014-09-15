@@ -267,6 +267,37 @@ func (t *Tree) Validate() error {
 		}
 	}
 
+	// Go over all the variables used and make sure that any module
+	// variables represent outputs properly.
+	for source, vs := range t.config.InterpolatedVariables() {
+		for _, v := range vs {
+			mv, ok := v.(*config.ModuleVariable)
+			if !ok {
+				continue
+			}
+
+			tree, ok := children[mv.Name]
+			if !ok {
+				// This should never happen because Load watches us
+				panic("module not found in children: " + mv.Name)
+			}
+
+			found := false
+			for _, o := range tree.config.Outputs {
+				if o.Name == mv.Field {
+					found = true
+					break
+				}
+			}
+			if !found {
+				newErr.Err = fmt.Errorf(
+					"%s: %s is not a valid output for module %s",
+					source, mv.Field, mv.Name)
+				return newErr
+			}
+		}
+	}
+
 	return nil
 }
 

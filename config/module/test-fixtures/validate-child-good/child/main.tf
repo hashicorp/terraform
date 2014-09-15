@@ -1,1 +1,3 @@
 variable "memory" {}
+
+output "result" {}

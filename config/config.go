@@ -127,7 +127,7 @@ func (c *Config) Validate() error {
 			"Unknown root level key: %s", k))
 	}
 
-	vars := c.allVariables()
+	vars := c.InterpolatedVariables()
 	varMap := make(map[string]*Variable)
 	for _, v := range c.Variables {
 		varMap[v.Name] = v
@@ -302,10 +302,10 @@ func (c *Config) Validate() error {
 	return nil
 }
 
-// allVariables is a helper that returns a mapping of all the interpolated
+// InterpolatedVariables is a helper that returns a mapping of all the interpolated
 // variables within the configuration. This is used to verify references
 // are valid in the Validate step.
-func (c *Config) allVariables() map[string][]InterpolatedVariable {
+func (c *Config) InterpolatedVariables() map[string][]InterpolatedVariable {
 	result := make(map[string][]InterpolatedVariable)
 	for _, pc := range c.ProviderConfigs {
 		source := fmt.Sprintf("provider config '%s'", pc.Name)

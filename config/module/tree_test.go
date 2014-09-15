@@ -92,6 +92,18 @@ func TestTreeValidate_badChild(t *testing.T) {
 	}
 }
 
+func TestTreeValidate_badChildOutput(t *testing.T) {
+	tree := NewTree(testConfig(t, "validate-bad-output"))
+
+	if err := tree.Load(testStorage(t), GetModeGet); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	if err := tree.Validate(); err == nil {
+		t.Fatal("should error")
+	}
+}
+
 func TestTreeValidate_badChildVar(t *testing.T) {
 	tree := NewTree(testConfig(t, "validate-bad-var"))
 
