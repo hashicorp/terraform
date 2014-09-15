@@ -69,7 +69,7 @@ func (t *Tree) Modules() []*Module {
 	result := make([]*Module, len(t.config.Modules))
 	for i, m := range t.config.Modules {
 		result[i] = &Module{
-			Name:      m.Name,
+			Name:   m.Name,
 			Source: m.Source,
 		}
 	}
@@ -101,7 +101,7 @@ func (t *Tree) Load(s Storage, mode GetMode) error {
 	// Go through all the modules and get the directory for them.
 	update := mode == GetModeUpdate
 	for i, m := range modules {
-		source, err := Detect(m.Source, m.Dir)
+		source, err := Detect(m.Source, t.config.Dir)
 		if err != nil {
 			return fmt.Errorf("module %s: %s", m.Name, err)
 		}
