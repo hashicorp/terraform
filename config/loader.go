@@ -104,6 +104,12 @@ func LoadDir(root string) (*Config, error) {
 			root)
 	}
 
+	// Determine the absolute path to the directory.
+	rootAbs, err := filepath.Abs(root)
+	if err != nil {
+		return nil, err
+	}
+
 	var result *Config
 
 	// Sort the files and overrides so we have a deterministic order
@@ -141,7 +147,7 @@ func LoadDir(root string) (*Config, error) {
 	}
 
 	// Mark the directory
-	result.Dir = root
+	result.Dir = rootAbs
 
 	return result, nil
 }

@@ -164,7 +164,11 @@ func TestLoadDir_basic(t *testing.T) {
 		t.Fatal("config should not be nil")
 	}
 
-	if c.Dir != dir {
+	dirAbs, err := filepath.Abs(dir)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if c.Dir != dirAbs {
 		t.Fatalf("bad: %#v", c.Dir)
 	}
 
