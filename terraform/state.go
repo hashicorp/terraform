@@ -23,6 +23,18 @@ type State struct {
 	Modules []*ModuleState `json:"modules"`
 }
 
+func (s *State) deepcopy() *State {
+	n := &State{
+		Version: n.Version,
+		Serial:  n.Serial,
+		Modules: make([]*ModuleState, 0, len(s.Modules)),
+	}
+	for _, mod := range s.Modules {
+		n.Modules = append(n.Modules, mod.deepcopy())
+	}
+	return n
+}
+
 // ModuleState is used to track all the state relevant to a single
 // module. Previous to Terraform 0.3, all state belonged to the "root"
 // module.
@@ -41,6 +53,22 @@ type ModuleState struct {
 	// N instances underneath, although a user only needs to think
 	// about the 1:1 case.
 	Resources map[string]*ResourceState `json:"resources"`
+}
+
+func (m *ModuleState) deepcopy() *ModuleState {
+	n := &ModuleState{
+		Path:      make([]string, len(m.Path)),
+		Outputs:   make(map[string]string, len(m.Outputs)),
+		Resources: make(map[string]*ResourceState, len(m.Resources)),
+	}
+	copy(n.Path, m.Path)
+	for k, v := range m.Outputs {
+		n.Outputs[k] = v
+	}
+	for k, v := range m.Resources {
+		n.Resources[k] = v.deepcopy()
+	}
+	return n
 }
 
 // ResourceState holds the state of a resource that is used so that
@@ -85,6 +113,19 @@ type ResourceState struct {
 	Instances []*InstanceState `json:"instances"`
 }
 
+func (r *ResourceState) deepcopy() *ResourceState {
+	n := &ResourceState{
+		Type:         r.Type,
+		Dependencies: make([]string, len(r.Dependencies)),
+		Instances:    make([]*Instances, 0, len(r.Instances)),
+	}
+	copy(n.Dependencies, r.Dependencies)
+	for _, inst := range r.Instances {
+		n.Instances = append(n.Instances, inst.deepcopy())
+	}
+	return n
+}
+
 // InstanceState is used to track the unique state information belonging
 // to a given instance.
 type InstanceState struct {
@@ -108,12 +149,35 @@ type InstanceState struct {
 	Ephemeral EphemeralState `json:"-"`
 }
 
+func (i *InstanceState) deepcopy() *InstanceState {
+	n := &InstanceState{
+		ID:         i.ID,
+		Tainted:    i.Tainted,
+		Attributes: make(map[string]string, len(i.Attributes)),
+		Ephemeral:  *i.EphemeralState.deepcopy(),
+	}
+	for k, v := range i.Attributes {
+		n.Attributes[k] = v
+	}
+	return n
+}
+
 // EphemeralState is used for transient state that is only kept in-memory
 type EphemeralState struct {
 	// ConnInfo is used for the providers to export information which is
 	// used to connect to the resource for provisioning. For example,
 	// this could contain SSH or WinRM credentials.
 	ConnInfo map[string]string `json:"-"`
+}
+
+func (e *EphemeralState) deepcopy() *EphemeralState {
+	n := &EphemeralState{
+		ConnInfo: make(map[string]string, len(n.ConnInfo)),
+	}
+	for k, v := range e.ConnInfo {
+		n.ConnInfo[k] = v
+	}
+	return n
 }
 
 // ReadState reads a state structure out of a reader in the format that
