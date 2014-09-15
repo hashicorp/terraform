@@ -16,6 +16,11 @@ func (d *FileDetector) Detect(src, pwd string) (string, bool, error) {
 	// Make sure we're using "/" even on Windows. URLs are "/"-based.
 	src = filepath.ToSlash(src)
 	if !filepath.IsAbs(src) {
+		if pwd == "" {
+			return "", true, fmt.Errorf(
+				"relative paths require a module with a pwd")
+		}
+
 		src = filepath.Join(pwd, src)
 	}
 
