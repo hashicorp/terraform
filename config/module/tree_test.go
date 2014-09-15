@@ -44,6 +44,20 @@ func TestTreeLoad(t *testing.T) {
 	}
 }
 
+func TestTreeLoad_duplicate(t *testing.T) {
+	storage := testStorage(t)
+	tree := NewTree(testConfig(t, "dup"))
+
+	if tree.Loaded() {
+		t.Fatal("should not be loaded")
+	}
+
+	// This should get things
+	if err := tree.Load(storage, GetModeGet); err == nil {
+		t.Fatalf("should error")
+	}
+}
+
 func TestTreeModules(t *testing.T) {
 	tree := NewTree(testConfig(t, "basic"))
 	actual := tree.Modules()

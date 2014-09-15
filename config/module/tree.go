@@ -18,7 +18,7 @@ import (
 type Tree struct {
 	name     string
 	config   *config.Config
-	children []*Tree
+	children map[string]*Tree
 	lock     sync.RWMutex
 }
 
@@ -50,7 +50,7 @@ func NewTree(c *config.Config) *Tree {
 // imported by this root).
 //
 // This will only return a non-nil value after Load is called.
-func (t *Tree) Children() []*Tree {
+func (t *Tree) Children() map[string]*Tree {
 	t.lock.RLock()
 	defer t.lock.RUnlock()
 	return t.children
@@ -119,11 +119,16 @@ func (t *Tree) Load(s Storage, mode GetMode) error {
 	t.children = nil
 
 	modules := t.Modules()
-	children := make([]*Tree, len(modules))
+	children := make(map[string]*Tree)
 
 	// Go through all the modules and get the directory for them.
 	update := mode == GetModeUpdate
-	for i, m := range modules {
+	for _, m := range modules {
+		if _, ok := children[m.Name]; ok {
+			return fmt.Errorf(
+				"module %s: duplicated. module names must be unique", m.Name)
+		}
+
 		source, err := Detect(m.Source, t.config.Dir)
 		if err != nil {
 			return fmt.Errorf("module %s: %s", m.Name, err)
@@ -152,8 +157,9 @@ func (t *Tree) Load(s Storage, mode GetMode) error {
 			return fmt.Errorf(
 				"module %s: %s", m.Name, err)
 		}
-		children[i] = NewTree(c)
-		children[i].name = m.Name
+
+		children[m.Name] = NewTree(c)
+		children[m.Name].name = m.Name
 	}
 
 	// Go through all the children and load them.
@@ -248,7 +254,7 @@ func (e *ValidateError) Error() string {
 		buf.WriteString(n)
 		buf.WriteString(".")
 	}
-	buf.Truncate(buf.Len()-1)
+	buf.Truncate(buf.Len() - 1)
 
 	// Format the value
 	return fmt.Sprintf("module %s: %s", buf.String(), e.Err)
