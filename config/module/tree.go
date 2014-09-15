@@ -67,6 +67,13 @@ func (t *Tree) Flatten() (*config.Config, error) {
 	return nil, nil
 }
 
+// Loaded says whether or not this tree has been loaded or not yet.
+func (t *Tree) Loaded() bool {
+	t.lock.RLock()
+	defer t.lock.RUnlock()
+	return t.children != nil
+}
+
 // Modules returns the list of modules that this tree imports.
 //
 // This is only the imports of _this_ level of the tree. To retrieve the
@@ -191,6 +198,58 @@ func (t *Tree) String() string {
 //
 // This will call the respective config.Config.Validate() functions as well
 // as verifying things such as parameters/outputs between the various modules.
+//
+// Load must be called prior to calling Validate or an error will be returned.
 func (t *Tree) Validate() error {
+	if !t.Loaded() {
+		return fmt.Errorf("tree must be loaded before calling Validate")
+	}
+
+	// Validate our configuration first.
+	if err := t.config.Validate(); err != nil {
+		return &ValidateError{
+			Name: []string{t.Name()},
+			Err:  err,
+		}
+	}
+
+	// Validate all our children
+	for _, c := range t.Children() {
+		err := c.Validate()
+		if err == nil {
+			continue
+		}
+
+		verr, ok := err.(*ValidateError)
+		if !ok {
+			// Unknown error, just return...
+			return err
+		}
+
+		// Append ourselves to the error and then return
+		verr.Name = append(verr.Name, t.Name())
+		return verr
+	}
+
 	return nil
+}
+
+// ValidateError is an error returned by Tree.Validate if an error occurs
+// with validation.
+type ValidateError struct {
+	Name []string
+	Err  error
+}
+
+func (e *ValidateError) Error() string {
+	// Build up the name
+	var buf bytes.Buffer
+	for _, n := range e.Name {
+		buf.WriteString(n)
+		buf.WriteString(".")
+	}
+	buf.Truncate(buf.Len()-1)
+
+	// Format the value
+	return fmt.Sprintf("module %s: %s", buf.String(), e.Err)
 }

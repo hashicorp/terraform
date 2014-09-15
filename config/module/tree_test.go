@@ -6,18 +6,30 @@ import (
 	"testing"
 )
 
-func TestTree_Load(t *testing.T) {
+func TestTreeLoad(t *testing.T) {
 	storage := testStorage(t)
 	tree := NewTree(testConfig(t, "basic"))
+
+	if tree.Loaded() {
+		t.Fatal("should not be loaded")
+	}
 
 	// This should error because we haven't gotten things yet
 	if err := tree.Load(storage, GetModeNone); err == nil {
 		t.Fatal("should error")
 	}
 
+	if tree.Loaded() {
+		t.Fatal("should not be loaded")
+	}
+
 	// This should get things
 	if err := tree.Load(storage, GetModeGet); err != nil {
 		t.Fatalf("err: %s", err)
+	}
+
+	if !tree.Loaded() {
+		t.Fatal("should be loaded")
 	}
 
 	// This should no longer error
@@ -32,7 +44,7 @@ func TestTree_Load(t *testing.T) {
 	}
 }
 
-func TestTree_Modules(t *testing.T) {
+func TestTreeModules(t *testing.T) {
 	tree := NewTree(testConfig(t, "basic"))
 	actual := tree.Modules()
 
@@ -45,12 +57,56 @@ func TestTree_Modules(t *testing.T) {
 	}
 }
 
-func TestTree_Name(t *testing.T) {
+func TestTreeName(t *testing.T) {
 	tree := NewTree(testConfig(t, "basic"))
 	actual := tree.Name()
 
 	if actual != "<root>" {
 		t.Fatalf("bad: %#v", actual)
+	}
+}
+
+func TestTreeValidate_badChild(t *testing.T) {
+	tree := NewTree(testConfig(t, "validate-child-bad"))
+
+	if err := tree.Load(testStorage(t), GetModeGet); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	if err := tree.Validate(); err == nil {
+		t.Fatal("should error")
+	}
+}
+
+func TestTreeValidate_badRoot(t *testing.T) {
+	tree := NewTree(testConfig(t, "validate-root-bad"))
+
+	if err := tree.Load(testStorage(t), GetModeGet); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	if err := tree.Validate(); err == nil {
+		t.Fatal("should error")
+	}
+}
+
+func TestTreeValidate_good(t *testing.T) {
+	tree := NewTree(testConfig(t, "validate-child-good"))
+
+	if err := tree.Load(testStorage(t), GetModeGet); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	if err := tree.Validate(); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+}
+
+func TestTreeValidate_notLoaded(t *testing.T) {
+	tree := NewTree(testConfig(t, "basic"))
+
+	if err := tree.Validate(); err == nil {
+		t.Fatal("should error")
 	}
 }
 
