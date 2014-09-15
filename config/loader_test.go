@@ -50,6 +50,17 @@ func TestLoadBasic(t *testing.T) {
 	}
 }
 
+func TestLoadBasic_empty(t *testing.T) {
+	c, err := Load(filepath.Join(fixtureDir, "empty.tf"))
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	if c == nil {
+		t.Fatal("config should not be nil")
+	}
+}
+
 func TestLoadBasic_import(t *testing.T) {
 	// Skip because we disabled importing
 	t.Skip()
