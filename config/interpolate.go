@@ -52,6 +52,14 @@ type VariableInterpolation struct {
 	Variable InterpolatedVariable
 }
 
+// A ModuleVariable is a variable that is referencing the output
+// of a module, such as "${module.foo.bar}"
+type ModuleVariable struct {
+	Name  string
+	Field string
+	key   string
+}
+
 // A ResourceVariable is a variable that is referencing the field
 // of a resource, such as "${aws_instance.foo.ami}"
 type ResourceVariable struct {
@@ -76,11 +84,13 @@ type UserVariable struct {
 }
 
 func NewInterpolatedVariable(v string) (InterpolatedVariable, error) {
-	if !strings.HasPrefix(v, "var.") {
+	if strings.HasPrefix(v, "var.") {
+		return NewUserVariable(v)
+	} else if strings.HasPrefix(v, "module.") {
+		return NewModuleVariable(v)
+	} else {
 		return NewResourceVariable(v)
 	}
-
-	return NewUserVariable(v)
 }
 
 func (i *FunctionInterpolation) Interpolate(
@@ -140,6 +150,25 @@ func (i *VariableInterpolation) GoString() string {
 
 func (i *VariableInterpolation) Variables() map[string]InterpolatedVariable {
 	return map[string]InterpolatedVariable{i.Variable.FullKey(): i.Variable}
+}
+
+func NewModuleVariable(key string) (*ModuleVariable, error) {
+	parts := strings.SplitN(key, ".", 3)
+	if len(parts) < 3 {
+		return nil, fmt.Errorf(
+			"%s: module variables must be three parts: module.name.attr",
+			key)
+	}
+
+	return &ModuleVariable{
+		Name:  parts[1],
+		Field: parts[2],
+		key:   key,
+	}, nil
+}
+
+func (v *ModuleVariable) FullKey() string {
+	return v.key
 }
 
 func NewResourceVariable(key string) (*ResourceVariable, error) {

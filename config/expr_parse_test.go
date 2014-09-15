@@ -35,6 +35,18 @@ func TestExprParse(t *testing.T) {
 		},
 
 		{
+			"module.foo.bar",
+			&VariableInterpolation{
+				Variable: &ModuleVariable{
+					Name:  "foo",
+					Field: "bar",
+					key:   "module.foo.bar",
+				},
+			},
+			false,
+		},
+
+		{
 			"lookup(var.foo, var.bar)",
 			&FunctionInterpolation{
 				Func: nil, // Funcs["lookup"]
