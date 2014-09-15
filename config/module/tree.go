@@ -211,16 +211,20 @@ func (t *Tree) Validate() error {
 		return fmt.Errorf("tree must be loaded before calling Validate")
 	}
 
+	// If something goes wrong, here is our error template
+	newErr := &ValidateError{Name: []string{t.Name()}}
+
 	// Validate our configuration first.
 	if err := t.config.Validate(); err != nil {
-		return &ValidateError{
-			Name: []string{t.Name()},
-			Err:  err,
-		}
+		newErr.Err = err
+		return newErr
 	}
 
+	// Get the child trees
+	children := t.Children()
+
 	// Validate all our children
-	for _, c := range t.Children() {
+	for _, c := range children {
 		err := c.Validate()
 		if err == nil {
 			continue
@@ -235,6 +239,32 @@ func (t *Tree) Validate() error {
 		// Append ourselves to the error and then return
 		verr.Name = append(verr.Name, t.Name())
 		return verr
+	}
+
+	// Go over all the modules and verify that any parameters are valid
+	// variables into the module in question.
+	for _, m := range t.config.Modules {
+		tree, ok := children[m.Name]
+		if !ok {
+			// This should never happen because Load watches us
+			panic("module not found in children: " + m.Name)
+		}
+
+		// Build the variables that the module defines
+		varMap := make(map[string]struct{})
+		for _, v := range tree.config.Variables {
+			varMap[v.Name] = struct{}{}
+		}
+
+		// Compare to the keys in our raw config for the module
+		for k, _ := range m.RawConfig.Raw {
+			if _, ok := varMap[k]; !ok {
+				newErr.Err = fmt.Errorf(
+					"module %s: %s is not a valid parameter",
+					m.Name, k)
+				return newErr
+			}
+		}
 	}
 
 	return nil

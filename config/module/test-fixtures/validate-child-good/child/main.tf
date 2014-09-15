@@ -1,1 +1,1 @@
-# Good
+variable "memory" {}
