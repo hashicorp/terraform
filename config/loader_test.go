@@ -25,6 +25,10 @@ func TestLoadBasic(t *testing.T) {
 		t.Fatal("config should not be nil")
 	}
 
+	if c.Dir != "" {
+		t.Fatalf("bad: %#v", c.Dir)
+	}
+
 	actual := variablesStr(c.Variables)
 	if actual != strings.TrimSpace(basicVariablesStr) {
 		t.Fatalf("bad:\n%s", actual)
@@ -85,6 +89,10 @@ func TestLoadBasic_json(t *testing.T) {
 		t.Fatal("config should not be nil")
 	}
 
+	if c.Dir != "" {
+		t.Fatalf("bad: %#v", c.Dir)
+	}
+
 	actual := variablesStr(c.Variables)
 	if actual != strings.TrimSpace(basicVariablesStr) {
 		t.Fatalf("bad:\n%s", actual)
@@ -116,6 +124,10 @@ func TestLoadBasic_modules(t *testing.T) {
 		t.Fatal("config should not be nil")
 	}
 
+	if c.Dir != "" {
+		t.Fatalf("bad: %#v", c.Dir)
+	}
+
 	actual := modulesStr(c.Modules)
 	if actual != strings.TrimSpace(modulesModulesStr) {
 		t.Fatalf("bad:\n%s", actual)
@@ -131,6 +143,10 @@ func TestLoad_variables(t *testing.T) {
 		t.Fatal("config should not be nil")
 	}
 
+	if c.Dir != "" {
+		t.Fatalf("bad: %#v", c.Dir)
+	}
+
 	actual := variablesStr(c.Variables)
 	if actual != strings.TrimSpace(variablesVariablesStr) {
 		t.Fatalf("bad:\n%s", actual)
@@ -138,13 +154,18 @@ func TestLoad_variables(t *testing.T) {
 }
 
 func TestLoadDir_basic(t *testing.T) {
-	c, err := LoadDir(filepath.Join(fixtureDir, "dir-basic"))
+	dir := filepath.Join(fixtureDir, "dir-basic")
+	c, err := LoadDir(dir)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
 
 	if c == nil {
 		t.Fatal("config should not be nil")
+	}
+
+	if c.Dir != dir {
+		t.Fatalf("bad: %#v", c.Dir)
 	}
 
 	actual := variablesStr(c.Variables)

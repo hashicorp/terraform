@@ -15,6 +15,11 @@ import (
 // Config is the configuration that comes from loading a collection
 // of Terraform templates.
 type Config struct {
+	// Dir is the path to the directory where this configuration was
+	// loaded from. If it is blank, this configuration wasn't loaded from
+	// any meaningful directory.
+	Dir string
+
 	Modules         []*Module
 	ProviderConfigs []*ProviderConfig
 	Resources       []*Resource

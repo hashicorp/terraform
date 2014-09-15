@@ -140,6 +140,9 @@ func LoadDir(root string) (*Config, error) {
 		}
 	}
 
+	// Mark the directory
+	result.Dir = root
+
 	return result, nil
 }
 
