@@ -33,6 +33,7 @@ func init() {
 	Getters = map[string]Getter{
 		"file": new(FileGetter),
 		"git":  new(GitGetter),
+		"hg":   new(HgGetter),
 	}
 }
 
