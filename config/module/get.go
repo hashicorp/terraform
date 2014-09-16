@@ -30,10 +30,14 @@ var Getters map[string]Getter
 var forcedRegexp = regexp.MustCompile(`^([A-Za-z]+)::(.+)$`)
 
 func init() {
+	httpGetter := new(HttpGetter)
+
 	Getters = map[string]Getter{
-		"file": new(FileGetter),
-		"git":  new(GitGetter),
-		"hg":   new(HgGetter),
+		"file":  new(FileGetter),
+		"git":   new(GitGetter),
+		"hg":    new(HgGetter),
+		"http":  httpGetter,
+		"https": httpGetter,
 	}
 }
 
