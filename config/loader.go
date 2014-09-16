@@ -29,7 +29,15 @@ func Load(path string) (*Config, error) {
 		return nil, err
 	}
 
-	return configTree.Flatten()
+	config, err := configTree.Flatten()
+	if err != nil {
+		return nil, err
+	}
+
+	// Apply all resource templates (if any)
+	config.applyTemplates()
+
+	return config, nil
 }
 
 // LoadDir loads all the Terraform configuration files in a single
@@ -139,6 +147,9 @@ func LoadDir(root string) (*Config, error) {
 			return nil, err
 		}
 	}
+
+	// Apply all resource templates (if any)
+	result.applyTemplates()
 
 	return result, nil
 }

@@ -121,6 +121,21 @@ func TestLoad_variables(t *testing.T) {
 	}
 }
 
+func TestLoad_resourceTemplates(t *testing.T) {
+	c, err := Load(filepath.Join(fixtureDir, "resource_templates.tf"))
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if c == nil {
+		t.Fatal("config should not be nil")
+	}
+
+	actual := resourcesStr(c.Resources)
+	if actual != strings.TrimSpace(resourceTemplatesStr) {
+		t.Fatalf("bad:\n%s", actual)
+	}
+}
+
 func TestLoadDir_basic(t *testing.T) {
 	c, err := LoadDir(filepath.Join(fixtureDir, "dir-basic"))
 	if err != nil {
@@ -509,6 +524,21 @@ aws_instance[web] (x1)
     resource: aws_security_group.firewall.foo
     user: var.foo
 aws_security_group[firewall] (x5)
+`
+
+const resourceTemplatesStr = `
+aws_instance[web1] (x1)
+  ami
+  availability_zone
+  instance_type
+  key_name
+  subnet_id
+aws_instance[web2] (x1)
+  ami
+  availability_zone
+  instance_type
+  key_name
+  subnet_id
 `
 
 const basicVariablesStr = `
