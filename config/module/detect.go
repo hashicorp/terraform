@@ -48,9 +48,16 @@ func Detect(src string, pwd string) (string, error) {
 			continue
 		}
 
-		// Preserve the forced getter if it exists
+		var detectForce string
+		detectForce, result = getForcedGetter(result)
+
+		// Preserve the forced getter if it exists. We try to use the
+		// original set force first, followed by any force set by the
+		// detector.
 		if getForce != "" {
 			result = fmt.Sprintf("%s::%s", getForce, result)
+		} else if detectForce != "" {
+			result = fmt.Sprintf("%s::%s", detectForce, result)
 		}
 
 		return result, nil
