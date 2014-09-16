@@ -1,10 +1,9 @@
 package terraform
 
 import (
-	"encoding/gob"
-	"errors"
 	"fmt"
 	"io"
+	"reflect"
 
 	"github.com/hashicorp/terraform/config"
 )
@@ -33,7 +32,7 @@ type State struct {
 // lookup optimizations.
 func (s *State) ModuleByPath(path []string) *ModuleState {
 	for _, mod := range s.Modules {
-		if reflect.Equal(mod.Path, path) {
+		if reflect.DeepEqual(mod.Path, path) {
 			return mod
 		}
 	}
@@ -46,9 +45,12 @@ func (s *State) RootModule() *ModuleState {
 }
 
 func (s *State) deepcopy() *State {
+	if s == nil {
+		return nil
+	}
 	n := &State{
-		Version: n.Version,
-		Serial:  n.Serial,
+		Version: s.Version,
+		Serial:  s.Serial,
 		Modules: make([]*ModuleState, 0, len(s.Modules)),
 	}
 	for _, mod := range s.Modules {
@@ -59,9 +61,13 @@ func (s *State) deepcopy() *State {
 
 // prune is used to remove any resources that are no longer required
 func (s *State) prune() {
-	for _, mod := range m.Modules {
+	for _, mod := range s.Modules {
 		mod.prune()
 	}
+}
+
+func (s *State) GoString() string {
+	return fmt.Sprintf("*%#v", *s)
 }
 
 // ModuleState is used to track all the state relevant to a single
@@ -84,9 +90,35 @@ type ModuleState struct {
 	Resources map[string]*ResourceState `json:"resources"`
 }
 
+// Orphans returns a list of keys of resources that are in the State
+// but aren't present in the configuration itself. Hence, these keys
+// represent the state of resources that are orphans.
+func (m *ModuleState) Orphans(c *config.Config) []string {
+	keys := make(map[string]struct{})
+	for k, _ := range m.Resources {
+		keys[k] = struct{}{}
+	}
+
+	for _, r := range c.Resources {
+		delete(keys, r.Id())
+
+		// Mark all the counts as not orphans.
+		for i := 0; i < r.Count; i++ {
+			delete(keys, fmt.Sprintf("%s.%d", r.Id(), i))
+		}
+	}
+
+	result := make([]string, 0, len(keys))
+	for k, _ := range keys {
+		result = append(result, k)
+	}
+
+	return result
+}
+
 func (m *ModuleState) init() {
 	if m.Outputs == nil {
-		m.Outputs = make(map[string]stirng)
+		m.Outputs = make(map[string]string)
 	}
 	if m.Resources == nil {
 		m.Resources = make(map[string]*ResourceState)
@@ -94,6 +126,9 @@ func (m *ModuleState) init() {
 }
 
 func (m *ModuleState) deepcopy() *ModuleState {
+	if m == nil {
+		return nil
+	}
 	n := &ModuleState{
 		Path:      make([]string, len(m.Path)),
 		Outputs:   make(map[string]string, len(m.Outputs)),
@@ -113,10 +148,14 @@ func (m *ModuleState) deepcopy() *ModuleState {
 func (m *ModuleState) prune() {
 	for k, v := range m.Resources {
 		v.prune()
-		if len(v.instances) == 0 {
+		if (v.Primary == nil || v.Primary.ID == "") && len(v.Tainted) == 0 {
 			delete(m.Resources, k)
 		}
 	}
+}
+
+func (m *ModuleState) GoString() string {
+	return fmt.Sprintf("*%#v", *m)
 }
 
 // ResourceState holds the state of a resource that is used so that
@@ -166,37 +205,45 @@ type ResourceState struct {
 }
 
 func (r *ResourceState) init() {
-	if i.Primary == nil {
-		i.Primary = &InstanceState{}
-		i.Primary.init()
+	if r.Primary == nil {
+		r.Primary = &InstanceState{}
+		r.Primary.init()
 	}
 }
 
 func (r *ResourceState) deepcopy() *ResourceState {
+	if r == nil {
+		return nil
+	}
 	n := &ResourceState{
 		Type:         r.Type,
 		Dependencies: make([]string, len(r.Dependencies)),
-		Instances:    make([]*Instances, 0, len(r.Instances)),
+		Primary:      r.Primary.deepcopy(),
+		Tainted:      make([]*InstanceState, 0, len(r.Tainted)),
 	}
 	copy(n.Dependencies, r.Dependencies)
-	for _, inst := range r.Instances {
-		n.Instances = append(n.Instances, inst.deepcopy())
+	for _, inst := range r.Tainted {
+		n.Tainted = append(n.Tainted, inst.deepcopy())
 	}
 	return n
 }
 
 // prune is used to remove any instances that are no longer required
 func (r *ResourceState) prune() {
-	n := len(r.Instances)
+	n := len(r.Tainted)
 	for i := 0; i < n; i++ {
-		inst := r.Instances[i]
+		inst := r.Tainted[i]
 		if inst.ID == "" {
-			copy(r.Instances[i:], r.Instances[i+1:])
-			r.Instances[n-1] = nil
+			copy(r.Tainted[i:], r.Tainted[i+1:])
+			r.Tainted[n-1] = nil
 			n--
 		}
 	}
-	r.Instances = r.Instances[:n]
+	r.Tainted = r.Tainted[:n]
+}
+
+func (s *ResourceState) GoString() string {
+	return fmt.Sprintf("*%#v", *s)
 }
 
 // MergeDiff takes a ResourceDiff and merges the attributes into
@@ -268,16 +315,23 @@ func (i *InstanceState) init() {
 }
 
 func (i *InstanceState) deepcopy() *InstanceState {
+	if i == nil {
+		return nil
+	}
 	n := &InstanceState{
 		ID:         i.ID,
 		Tainted:    i.Tainted,
 		Attributes: make(map[string]string, len(i.Attributes)),
-		Ephemeral:  *i.EphemeralState.deepcopy(),
+		Ephemeral:  *i.Ephemeral.deepcopy(),
 	}
 	for k, v := range i.Attributes {
 		n.Attributes[k] = v
 	}
 	return n
+}
+
+func (i *InstanceState) GoString() string {
+	return fmt.Sprintf("*%#v", *i)
 }
 
 // EphemeralState is used for transient state that is only kept in-memory
@@ -295,8 +349,11 @@ func (e *EphemeralState) init() {
 }
 
 func (e *EphemeralState) deepcopy() *EphemeralState {
+	if e == nil {
+		return nil
+	}
 	n := &EphemeralState{
-		ConnInfo: make(map[string]string, len(n.ConnInfo)),
+		ConnInfo: make(map[string]string, len(e.ConnInfo)),
 	}
 	for k, v := range e.ConnInfo {
 		n.ConnInfo[k] = v
@@ -307,82 +364,12 @@ func (e *EphemeralState) deepcopy() *EphemeralState {
 // ReadState reads a state structure out of a reader in the format that
 // was written by WriteState.
 func ReadState(src io.Reader) (*State, error) {
-	var result *State
-	var err error
-	n := 0
-
-	// Verify the magic bytes
-	magic := make([]byte, len(stateFormatMagic))
-	for n < len(magic) {
-		n, err = src.Read(magic[n:])
-		if err != nil {
-			return nil, fmt.Errorf("error while reading magic bytes: %s", err)
-		}
-	}
-	if string(magic) != stateFormatMagic {
-		return nil, fmt.Errorf("not a valid state file")
-	}
-
-	// Verify the version is something we can read
-	var formatByte [1]byte
-	n, err = src.Read(formatByte[:])
-	if err != nil {
-		return nil, err
-	}
-	if n != len(formatByte) {
-		return nil, errors.New("failed to read state version byte")
-	}
-
-	if formatByte[0] != stateFormatVersion {
-		return nil, fmt.Errorf("unknown state file version: %d", formatByte[0])
-	}
-
-	// Decode
-	dec := gob.NewDecoder(src)
-	if err := dec.Decode(&result); err != nil {
-		return nil, err
-	}
-
-	return result, nil
+	// TODO
+	return nil, nil
 }
 
 // WriteState writes a state somewhere in a binary format.
 func WriteState(d *State, dst io.Writer) error {
-	// Write the magic bytes so we can determine the file format later
-	n, err := dst.Write([]byte(stateFormatMagic))
-	if err != nil {
-		return err
-	}
-	if n != len(stateFormatMagic) {
-		return errors.New("failed to write state format magic bytes")
-	}
-
-	// Write a version byte so we can iterate on version at some point
-	n, err = dst.Write([]byte{stateFormatVersion})
-	if err != nil {
-		return err
-	}
-	if n != 1 {
-		return errors.New("failed to write state version byte")
-	}
-
-	// Prevent sensitive information from being serialized
-	sensitive := &sensitiveState{}
-	sensitive.init()
-	for name, r := range d.Resources {
-		if r.ConnInfo != nil {
-			sensitive.ConnInfo[name] = r.ConnInfo
-			r.ConnInfo = nil
-		}
-	}
-
-	// Serialize the state
-	err = gob.NewEncoder(dst).Encode(d)
-
-	// Restore the state
-	for name, info := range sensitive.ConnInfo {
-		d.Resources[name].ConnInfo = info
-	}
-
-	return err
+	// TODO
+	return nil
 }
