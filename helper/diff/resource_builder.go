@@ -61,7 +61,7 @@ type PreProcessFunc func(string) string
 // Diff returns the ResourceDiff for a resource given its state and
 // configuration.
 func (b *ResourceBuilder) Diff(
-	s *terraform.ResourceState,
+	s *terraform.InstanceState,
 	c *terraform.ResourceConfig) (*terraform.ResourceDiff, error) {
 	attrs := make(map[string]*terraform.ResourceAttrDiff)
 
