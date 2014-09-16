@@ -35,6 +35,13 @@ func (s *State) deepcopy() *State {
 	return n
 }
 
+// prune is used to remove any resources that are no longer required
+func (s *State) prune() {
+	for _, mod := range m.Modules {
+		mod.prune()
+	}
+}
+
 // ModuleState is used to track all the state relevant to a single
 // module. Previous to Terraform 0.3, all state belonged to the "root"
 // module.
@@ -69,6 +76,16 @@ func (m *ModuleState) deepcopy() *ModuleState {
 		n.Resources[k] = v.deepcopy()
 	}
 	return n
+}
+
+// prune is used to remove any resources that are no longer required
+func (m *ModuleState) prune() {
+	for k, v := range m.Resources {
+		v.prune()
+		if len(v.instances) == 0 {
+			delete(m.Resources, k)
+		}
+	}
 }
 
 // ResourceState holds the state of a resource that is used so that
@@ -124,6 +141,20 @@ func (r *ResourceState) deepcopy() *ResourceState {
 		n.Instances = append(n.Instances, inst.deepcopy())
 	}
 	return n
+}
+
+// prune is used to remove any instances that are no longer required
+func (r *ResourceState) prune() {
+	n := len(r.Instances)
+	for i := 0; i < n; i++ {
+		inst := r.Instances[i]
+		if inst.ID == "" {
+			copy(r.Instances[i:], r.Instances[i+1:])
+			r.Instances[n-1] = nil
+			n--
+		}
+	}
+	r.Instances = r.Instances[:n]
 }
 
 // InstanceState is used to track the unique state information belonging
