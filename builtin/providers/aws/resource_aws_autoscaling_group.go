@@ -65,9 +65,9 @@ func resource_aws_autoscaling_group_create(
 			rs.Attributes, "load_balancers").([]interface{}))
 	}
 
-	if _, ok := rs.Attributes["vpc_identifier.#"]; ok {
+	if _, ok := rs.Attributes["vpc_zone_identifier.#"]; ok {
 		autoScalingGroupOpts.VPCZoneIdentifier = expandStringList(flatmap.Expand(
-			rs.Attributes, "vpc_identifier").([]interface{}))
+			rs.Attributes, "vpc_zone_identifier").([]interface{}))
 	}
 
 	autoScalingGroupOpts.Name = rs.Attributes["name"]
@@ -296,6 +296,7 @@ func resource_aws_autoscaling_group_validation() *config.Validator {
 			"desired_capacity",
 			"force_delete",
 			"load_balancers.*",
+			"vpc_zone_identifier.*",
 		},
 	}
 }
