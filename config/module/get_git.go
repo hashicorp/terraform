@@ -16,15 +16,38 @@ func (g *GitGetter) Get(dst string, u *url.URL) error {
 		return fmt.Errorf("git must be available and on the PATH")
 	}
 
+	// Extract some query parameters we use
+	q := u.Query()
+	tag := q.Get("tag")
+	q.Del("tag")
+	u.RawQuery = q.Encode()
+
+	// First: clone or update the repository
 	_, err := os.Stat(dst)
 	if err != nil && !os.IsNotExist(err) {
 		return err
 	}
 	if err == nil {
-		return g.update(dst, u)
+		err = g.update(dst, u)
+	} else {
+		err = g.clone(dst, u)
+	}
+	if err != nil {
+		return err
 	}
 
-	return g.clone(dst, u)
+	// Next: check out the proper tag/branch if it is specified, and checkout
+	if tag == "" {
+		return nil
+	}
+
+	return g.checkout(dst, tag)
+}
+
+func (g *GitGetter) checkout(dst string, ref string) error {
+	cmd := exec.Command("git", "checkout", ref)
+	cmd.Dir = dst
+	return getRunCommand(cmd)
 }
 
 func (g *GitGetter) clone(dst string, u *url.URL) error {

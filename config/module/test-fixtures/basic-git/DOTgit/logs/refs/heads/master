@@ -1,1 +1,3 @@
 0000000000000000000000000000000000000000 497bc37401eb3c9b11865b1768725b64066eccee Mitchell Hashimoto <mitchell.hashimoto@gmail.com> 1410850637 -0700	commit (initial): A commit
+497bc37401eb3c9b11865b1768725b64066eccee 243f0fc5c4e586d1a3daa54c981b6f34e9ab1085 Mitchell Hashimoto <mitchell.hashimoto@gmail.com> 1410886526 -0700	commit: tag1
+243f0fc5c4e586d1a3daa54c981b6f34e9ab1085 1f31e97f053caeb5d6b7bffa3faf82941c99efa2 Mitchell Hashimoto <mitchell.hashimoto@gmail.com> 1410886536 -0700	commit: remove tag1
