@@ -17,10 +17,17 @@ func (g *GitGetter) Get(dst string, u *url.URL) error {
 	}
 
 	// Extract some query parameters we use
+	var tag string
 	q := u.Query()
-	tag := q.Get("tag")
-	q.Del("tag")
-	u.RawQuery = q.Encode()
+	if len(q) > 0 {
+		tag = q.Get("tag")
+		q.Del("tag")
+
+		// Copy the URL
+		var newU url.URL = *u
+		u = &newU
+		u.RawQuery = q.Encode()
+	}
 
 	// First: clone or update the repository
 	_, err := os.Stat(dst)
@@ -56,6 +63,11 @@ func (g *GitGetter) clone(dst string, u *url.URL) error {
 }
 
 func (g *GitGetter) update(dst string, u *url.URL) error {
+	// We have to be on a branch to pull
+	if err := g.checkout(dst, "master"); err != nil {
+		return err
+	}
+
 	cmd := exec.Command("git", "pull", "--ff-only")
 	cmd.Dir = dst
 	return getRunCommand(cmd)

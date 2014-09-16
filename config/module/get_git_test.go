@@ -83,4 +83,15 @@ func TestGitGetter_tag(t *testing.T) {
 	if _, err := os.Stat(mainPath); err != nil {
 		t.Fatalf("err: %s", err)
 	}
+
+	// Get again should work
+	if err := g.Get(dst, url); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	// Verify the main file exists
+	mainPath = filepath.Join(dst, "main_tag1.tf")
+	if _, err := os.Stat(mainPath); err != nil {
+		t.Fatalf("err: %s", err)
+	}
 }
