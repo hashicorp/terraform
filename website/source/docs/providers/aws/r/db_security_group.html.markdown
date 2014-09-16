@@ -16,7 +16,7 @@ resource "aws_db_security_group" "default" {
     description = "RDS default security group"
 
     ingress {
-        cidr = "10.0.0.1/24"
+        cidr = "10.0.0.0/24"
     }
 }
 ```
