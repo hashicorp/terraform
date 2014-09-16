@@ -37,7 +37,7 @@ The following arguments are supported:
 * `private_ip` - (Optional) Private IP address to associate with the
      instance in a VPC.
 * `source_dest_check` - (Optional) Controls if traffic is routed to the instance when
-  the destination address does not match the instance. Used for NAT or VPNs. Defaults false.
+  the destination address does not match the instance. Used for NAT or VPNs. Defaults true.
 * `user_data` - (Optional) The user data to provide when launching the instance.
 
 ## Attributes Reference
