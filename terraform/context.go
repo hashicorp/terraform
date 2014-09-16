@@ -121,6 +121,10 @@ func (c *Context) Apply() (*State, error) {
 	// Set our state right away. No matter what, this IS our new state,
 	// even if there is an error below.
 	c.state = c.state.deepcopy()
+	if c.state == nil {
+		c.state = &State{}
+	}
+	c.state.init()
 
 	// Walk
 	log.Printf("[INFO] Apply walk starting")
@@ -190,7 +194,12 @@ func (c *Context) Plan(opts *PlanOpts) (*Plan, error) {
 		// the plan can update a fake state so that variables work, then
 		// we replace it back with our old state.
 		old := c.state
-		c.state = old.deepcopy()
+		if old == nil {
+			c.state = &State{}
+			c.state.init()
+		} else {
+			c.state = old.deepcopy()
+		}
 		defer func() {
 			c.state = old
 		}()
@@ -780,16 +789,21 @@ func (c *Context) planWalkFn(result *Plan) depgraph.WalkFunc {
 			diff.Destroy = true
 		}
 
-		if diff.RequiresNew() && r.State.Primary.ID != "" {
+		if diff.RequiresNew() && r.State.Primary != nil && r.State.Primary.ID != "" {
 			// This will also require a destroy
 			diff.Destroy = true
 		}
 
-		if diff.RequiresNew() || r.State.Primary.ID == "" {
+		if diff.RequiresNew() || r.State.Primary == nil || r.State.Primary.ID == "" {
+			var oldID string
+			if r.State.Primary != nil {
+				oldID = r.State.Primary.Attributes["id"]
+			}
+
 			// Add diff to compute new ID
 			diff.init()
 			diff.Attributes["id"] = &ResourceAttrDiff{
-				Old:         r.State.Primary.Attributes["id"],
+				Old:         oldID,
 				NewComputed: true,
 				RequiresNew: true,
 				Type:        DiffAttrOutput,

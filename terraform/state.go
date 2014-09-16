@@ -38,6 +38,9 @@ type State struct {
 // This should be the prefered lookup mechanism as it allows for future
 // lookup optimizations.
 func (s *State) ModuleByPath(path []string) *ModuleState {
+	if s == nil {
+		return nil
+	}
 	for _, mod := range s.Modules {
 		if reflect.DeepEqual(mod.Path, path) {
 			return mod
@@ -111,7 +114,10 @@ func (s *State) String() string {
 
 	for _, k := range names {
 		rs := mod.Resources[k]
-		id := rs.Primary.ID
+		var id string
+		if rs.Primary != nil {
+			id = rs.Primary.ID
+		}
 		if id == "" {
 			id = "<not created>"
 		}
@@ -124,8 +130,12 @@ func (s *State) String() string {
 		buf.WriteString(fmt.Sprintf("%s:%s\n", k, taintStr))
 		buf.WriteString(fmt.Sprintf("  ID = %s\n", id))
 
-		attrKeys := make([]string, 0, len(rs.Primary.Attributes))
-		for ak, _ := range rs.Primary.Attributes {
+		var attributes map[string]string
+		if rs.Primary != nil {
+			attributes = rs.Primary.Attributes
+		}
+		attrKeys := make([]string, 0, len(attributes))
+		for ak, _ := range attributes {
 			if ak == "id" {
 				continue
 			}
@@ -135,7 +145,7 @@ func (s *State) String() string {
 		sort.Strings(attrKeys)
 
 		for _, ak := range attrKeys {
-			av := rs.Primary.Attributes[ak]
+			av := attributes[ak]
 			buf.WriteString(fmt.Sprintf("  %s = %s\n", ak, av))
 		}
 
@@ -302,8 +312,8 @@ type ResourceState struct {
 func (r *ResourceState) init() {
 	if r.Primary == nil {
 		r.Primary = &InstanceState{}
-		r.Primary.init()
 	}
+	r.Primary.init()
 }
 
 func (r *ResourceState) deepcopy() *ResourceState {
