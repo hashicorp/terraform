@@ -19,7 +19,7 @@ import (
 // The APIVersion is outputted along with the RPC address. The plugin
 // client validates this API version and will show an error if it doesn't
 // know how to speak it.
-const APIVersion = "1"
+const APIVersion = "2"
 
 // The "magic cookie" is used to verify that the user intended to
 // actually run this binary. If this cookie isn't present as an
