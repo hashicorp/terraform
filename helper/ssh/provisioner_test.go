@@ -7,30 +7,34 @@ import (
 )
 
 func TestResourceProvider_verifySSH(t *testing.T) {
-	r := &terraform.ResourceState{
-		ConnInfo: map[string]string{
-			"type": "telnet",
+	r := &terraform.InstanceState{
+		Ephemeral: terraform.EphemeralState{
+			ConnInfo: map[string]string{
+				"type": "telnet",
+			},
 		},
 	}
 	if err := VerifySSH(r); err == nil {
 		t.Fatalf("expected error with telnet")
 	}
-	r.ConnInfo["type"] = "ssh"
+	r.Ephemeral.ConnInfo["type"] = "ssh"
 	if err := VerifySSH(r); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 }
 
 func TestResourceProvider_sshConfig(t *testing.T) {
-	r := &terraform.ResourceState{
-		ConnInfo: map[string]string{
-			"type":     "ssh",
-			"user":     "root",
-			"password": "supersecret",
-			"key_file": "/my/key/file.pem",
-			"host":     "127.0.0.1",
-			"port":     "22",
-			"timeout":  "30s",
+	r := &terraform.InstanceState{
+		Ephemeral: terraform.EphemeralState{
+			ConnInfo: map[string]string{
+				"type":     "ssh",
+				"user":     "root",
+				"password": "supersecret",
+				"key_file": "/my/key/file.pem",
+				"host":     "127.0.0.1",
+				"port":     "22",
+				"timeout":  "30s",
+			},
 		},
 	}
 
