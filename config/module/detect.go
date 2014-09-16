@@ -30,20 +30,29 @@ func init() {
 // This is safe to be called with an already valid source string: Detect
 // will just return it.
 func Detect(src string, pwd string) (string, error) {
-	u, err := url.Parse(src)
+	getForce, getSrc := getForcedGetter(src)
+
+	u, err := url.Parse(getSrc)
 	if err == nil && u.Scheme != "" {
 		// Valid URL
 		return src, nil
 	}
 
 	for _, d := range Detectors {
-		result, ok, err := d.Detect(src, pwd)
+		result, ok, err := d.Detect(getSrc, pwd)
 		if err != nil {
 			return "", err
 		}
-		if ok {
-			return result, nil
+		if !ok {
+			continue
 		}
+
+		// Preserve the forced getter if it exists
+		if getForce != "" {
+			result = fmt.Sprintf("%s::%s", getForce, result)
+		}
+
+		return result, nil
 	}
 
 	return "", fmt.Errorf("invalid source string: %s", src)

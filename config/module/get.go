@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/url"
 	"os/exec"
+	"regexp"
 	"syscall"
 )
 
@@ -24,6 +25,10 @@ type Getter interface {
 // be used to get a dependency.
 var Getters map[string]Getter
 
+// forcedRegexp is the regular expression that finds forced getters. This
+// syntax is schema::url, example: git::https://foo.com
+var forcedRegexp = regexp.MustCompile(`^([A-Za-z]+)::(.+)$`)
+
 func init() {
 	Getters = map[string]Getter{
 		"file": new(FileGetter),
@@ -37,15 +42,21 @@ func init() {
 // src is a URL, whereas dst is always just a file path to a folder. This
 // folder doesn't need to exist. It will be created if it doesn't exist.
 func Get(dst, src string) error {
+	var force string
+	force, src = getForcedGetter(src)
+
 	u, err := url.Parse(src)
 	if err != nil {
 		return err
 	}
+	if force == "" {
+		force = u.Scheme
+	}
 
-	g, ok := Getters[u.Scheme]
+	g, ok := Getters[force]
 	if !ok {
 		return fmt.Errorf(
-			"module download not supported for scheme '%s'", u.Scheme)
+			"module download not supported for scheme '%s'", force)
 	}
 
 	err = g.Get(dst, u)
@@ -78,4 +89,16 @@ func getRunCommand(cmd *exec.Cmd) error {
 	}
 
 	return fmt.Errorf("error running %s: %s", cmd.Path, buf.String())
+}
+
+// getForcedGetter takes a source and returns the tuple of the forced
+// getter and the raw URL (without the force syntax).
+func getForcedGetter(src string) (string, string) {
+	var forced string
+	if ms := forcedRegexp.FindStringSubmatch(src); ms != nil {
+		forced = ms[1]
+		src = ms[2]
+	}
+
+	return forced, src
 }

@@ -30,3 +30,18 @@ func TestGet_file(t *testing.T) {
 		t.Fatalf("err: %s", err)
 	}
 }
+
+func TestGet_fileForced(t *testing.T) {
+	dst := tempDir(t)
+	u := testModule("basic")
+	u = "file::"+u
+
+	if err := Get(dst, u); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	mainPath := filepath.Join(dst, "main.tf")
+	if _, err := os.Stat(mainPath); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+}
