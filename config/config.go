@@ -15,6 +15,12 @@ import (
 // Config is the configuration that comes from loading a collection
 // of Terraform templates.
 type Config struct {
+	// Dir is the path to the directory where this configuration was
+	// loaded from. If it is blank, this configuration wasn't loaded from
+	// any meaningful directory.
+	Dir string
+
+	Modules         []*Module
 	ProviderConfigs []*ProviderConfig
 	Resources       []*Resource
 	Variables       []*Variable
@@ -23,6 +29,16 @@ type Config struct {
 	// The fields below can be filled in by loaders for validation
 	// purposes.
 	unknownKeys []string
+}
+
+// Module is a module used within a configuration.
+//
+// This does not represent a module itself, this represents a module
+// call-site within an existing configuration.
+type Module struct {
+	Name      string
+	Source    string
+	RawConfig *RawConfig
 }
 
 // ProviderConfig is the configuration for a resource provider.
@@ -92,6 +108,11 @@ func ProviderConfigName(t string, pcs []*ProviderConfig) string {
 	return lk
 }
 
+// A unique identifier for this module.
+func (r *Module) Id() string {
+	return fmt.Sprintf("%s", r.Name)
+}
+
 // A unique identifier for this resource.
 func (r *Resource) Id() string {
 	return fmt.Sprintf("%s.%s", r.Type, r.Name)
@@ -106,7 +127,7 @@ func (c *Config) Validate() error {
 			"Unknown root level key: %s", k))
 	}
 
-	vars := c.allVariables()
+	vars := c.InterpolatedVariables()
 	varMap := make(map[string]*Variable)
 	for _, v := range c.Variables {
 		varMap[v.Name] = v
@@ -156,9 +177,45 @@ func (c *Config) Validate() error {
 		}
 	}
 
+	// Check that all references to modules are valid
+	modules := make(map[string]*Module)
+	dupped := make(map[string]struct{})
+	for _, m := range c.Modules {
+		if _, ok := modules[m.Id()]; ok {
+			if _, ok := dupped[m.Id()]; !ok {
+				dupped[m.Id()] = struct{}{}
+
+				errs = append(errs, fmt.Errorf(
+					"%s: module repeated multiple times",
+					m.Id()))
+			}
+		}
+
+		modules[m.Id()] = m
+	}
+	dupped = nil
+
+	// Check that all variables for modules reference modules that
+	// exist.
+	for source, vs := range vars {
+		for _, v := range vs {
+			mv, ok := v.(*ModuleVariable)
+			if !ok {
+				continue
+			}
+
+			if _, ok := modules[mv.Name]; !ok {
+				errs = append(errs, fmt.Errorf(
+					"%s: unknown module referenced: %s",
+					source,
+					mv.Name))
+			}
+		}
+	}
+
 	// Check that all references to resources are valid
 	resources := make(map[string]*Resource)
-	dupped := make(map[string]struct{})
+	dupped = make(map[string]struct{})
 	for _, r := range c.Resources {
 		if _, ok := resources[r.Id()]; ok {
 			if _, ok := dupped[r.Id()]; !ok {
@@ -245,10 +302,10 @@ func (c *Config) Validate() error {
 	return nil
 }
 
-// allVariables is a helper that returns a mapping of all the interpolated
+// InterpolatedVariables is a helper that returns a mapping of all the interpolated
 // variables within the configuration. This is used to verify references
 // are valid in the Validate step.
-func (c *Config) allVariables() map[string][]InterpolatedVariable {
+func (c *Config) InterpolatedVariables() map[string][]InterpolatedVariable {
 	result := make(map[string][]InterpolatedVariable)
 	for _, pc := range c.ProviderConfigs {
 		source := fmt.Sprintf("provider config '%s'", pc.Name)
@@ -272,6 +329,24 @@ func (c *Config) allVariables() map[string][]InterpolatedVariable {
 	}
 
 	return result
+}
+
+func (m *Module) mergerName() string {
+	return m.Id()
+}
+
+func (m *Module) mergerMerge(other merger) merger {
+	m2 := other.(*Module)
+
+	result := *m
+	result.Name = m2.Name
+	result.RawConfig = result.RawConfig.merge(m2.RawConfig)
+
+	if m2.Source != "" {
+		result.Source = m2.Source
+	}
+
+	return &result
 }
 
 func (o *Output) mergerName() string {

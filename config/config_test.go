@@ -44,6 +44,13 @@ func TestConfigValidate_countZero(t *testing.T) {
 	}
 }
 
+func TestConfigValidate_dupModule(t *testing.T) {
+	c := testConfig(t, "validate-dup-module")
+	if err := c.Validate(); err == nil {
+		t.Fatal("should not be valid")
+	}
+}
+
 func TestConfigValidate_dupResource(t *testing.T) {
 	c := testConfig(t, "validate-dup-resource")
 	if err := c.Validate(); err == nil {
@@ -102,6 +109,20 @@ func TestConfigValidate_varDefaultBadType(t *testing.T) {
 
 func TestConfigValidate_varDefaultInterpolate(t *testing.T) {
 	c := testConfig(t, "validate-var-default-interpolate")
+	if err := c.Validate(); err == nil {
+		t.Fatal("should not be valid")
+	}
+}
+
+func TestConfigValidate_varModule(t *testing.T) {
+	c := testConfig(t, "validate-var-module")
+	if err := c.Validate(); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+}
+
+func TestConfigValidate_varModuleInvalid(t *testing.T) {
+	c := testConfig(t, "validate-var-module-invalid")
 	if err := c.Validate(); err == nil {
 		t.Fatal("should not be valid")
 	}

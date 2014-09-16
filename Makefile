@@ -9,7 +9,7 @@ dev: config/y.go
 	@TF_DEV=1 sh -c "$(CURDIR)/scripts/build.sh"
 
 test: config/y.go
-	TF_ACC= go test $(TEST) $(TESTARGS) -timeout=10s
+	TF_ACC= go test $(TEST) $(TESTARGS) -timeout=10s -parallel=4
 
 testacc: config/y.go
 	@if [ "$(TEST)" = "./..." ]; then \

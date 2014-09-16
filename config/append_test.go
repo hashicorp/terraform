@@ -12,6 +12,9 @@ func TestAppend(t *testing.T) {
 	}{
 		{
 			&Config{
+				Modules: []*Module{
+					&Module{Name: "foo"},
+				},
 				Outputs: []*Output{
 					&Output{Name: "foo"},
 				},
@@ -29,6 +32,9 @@ func TestAppend(t *testing.T) {
 			},
 
 			&Config{
+				Modules: []*Module{
+					&Module{Name: "bar"},
+				},
 				Outputs: []*Output{
 					&Output{Name: "bar"},
 				},
@@ -46,6 +52,10 @@ func TestAppend(t *testing.T) {
 			},
 
 			&Config{
+				Modules: []*Module{
+					&Module{Name: "foo"},
+					&Module{Name: "bar"},
+				},
 				Outputs: []*Output{
 					&Output{Name: "foo"},
 					&Output{Name: "bar"},

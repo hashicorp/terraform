@@ -29,6 +29,13 @@ func Append(c1, c2 *Config) (*Config, error) {
 		}
 	}
 
+	if len(c1.Modules) > 0 || len(c2.Modules) > 0 {
+		c.Modules = make(
+			[]*Module, 0, len(c1.Modules)+len(c2.Modules))
+		c.Modules = append(c.Modules, c1.Modules...)
+		c.Modules = append(c.Modules, c2.Modules...)
+	}
+
 	if len(c1.Outputs) > 0 || len(c2.Outputs) > 0 {
 		c.Outputs = make(
 			[]*Output, 0, len(c1.Outputs)+len(c2.Outputs))

@@ -1,9 +1,7 @@
 package config
 
 import (
-	"fmt"
 	"path/filepath"
-	"sort"
 	"strings"
 	"testing"
 )
@@ -25,6 +23,10 @@ func TestLoadBasic(t *testing.T) {
 		t.Fatal("config should not be nil")
 	}
 
+	if c.Dir != "" {
+		t.Fatalf("bad: %#v", c.Dir)
+	}
+
 	actual := variablesStr(c.Variables)
 	if actual != strings.TrimSpace(basicVariablesStr) {
 		t.Fatalf("bad:\n%s", actual)
@@ -43,6 +45,17 @@ func TestLoadBasic(t *testing.T) {
 	actual = outputsStr(c.Outputs)
 	if actual != strings.TrimSpace(basicOutputsStr) {
 		t.Fatalf("bad:\n%s", actual)
+	}
+}
+
+func TestLoadBasic_empty(t *testing.T) {
+	c, err := Load(filepath.Join(fixtureDir, "empty.tf"))
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	if c == nil {
+		t.Fatal("config should not be nil")
 	}
 }
 
@@ -85,6 +98,10 @@ func TestLoadBasic_json(t *testing.T) {
 		t.Fatal("config should not be nil")
 	}
 
+	if c.Dir != "" {
+		t.Fatalf("bad: %#v", c.Dir)
+	}
+
 	actual := variablesStr(c.Variables)
 	if actual != strings.TrimSpace(basicVariablesStr) {
 		t.Fatalf("bad:\n%s", actual)
@@ -106,6 +123,26 @@ func TestLoadBasic_json(t *testing.T) {
 	}
 }
 
+func TestLoadBasic_modules(t *testing.T) {
+	c, err := Load(filepath.Join(fixtureDir, "modules.tf"))
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	if c == nil {
+		t.Fatal("config should not be nil")
+	}
+
+	if c.Dir != "" {
+		t.Fatalf("bad: %#v", c.Dir)
+	}
+
+	actual := modulesStr(c.Modules)
+	if actual != strings.TrimSpace(modulesModulesStr) {
+		t.Fatalf("bad:\n%s", actual)
+	}
+}
+
 func TestLoad_variables(t *testing.T) {
 	c, err := Load(filepath.Join(fixtureDir, "variables.tf"))
 	if err != nil {
@@ -115,6 +152,10 @@ func TestLoad_variables(t *testing.T) {
 		t.Fatal("config should not be nil")
 	}
 
+	if c.Dir != "" {
+		t.Fatalf("bad: %#v", c.Dir)
+	}
+
 	actual := variablesStr(c.Variables)
 	if actual != strings.TrimSpace(variablesVariablesStr) {
 		t.Fatalf("bad:\n%s", actual)
@@ -122,13 +163,22 @@ func TestLoad_variables(t *testing.T) {
 }
 
 func TestLoadDir_basic(t *testing.T) {
-	c, err := LoadDir(filepath.Join(fixtureDir, "dir-basic"))
+	dir := filepath.Join(fixtureDir, "dir-basic")
+	c, err := LoadDir(dir)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
 
 	if c == nil {
 		t.Fatal("config should not be nil")
+	}
+
+	dirAbs, err := filepath.Abs(dir)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if c.Dir != dirAbs {
+		t.Fatalf("bad: %#v", c.Dir)
 	}
 
 	actual := variablesStr(c.Variables)
@@ -212,42 +262,6 @@ func TestLoadDir_override(t *testing.T) {
 	}
 }
 
-func outputsStr(os []*Output) string {
-	ns := make([]string, 0, len(os))
-	m := make(map[string]*Output)
-	for _, o := range os {
-		ns = append(ns, o.Name)
-		m[o.Name] = o
-	}
-	sort.Strings(ns)
-
-	result := ""
-	for _, n := range ns {
-		o := m[n]
-
-		result += fmt.Sprintf("%s\n", n)
-
-		if len(o.RawConfig.Variables) > 0 {
-			result += fmt.Sprintf("  vars\n")
-			for _, rawV := range o.RawConfig.Variables {
-				kind := "unknown"
-				str := rawV.FullKey()
-
-				switch rawV.(type) {
-				case *ResourceVariable:
-					kind = "resource"
-				case *UserVariable:
-					kind = "user"
-				}
-
-				result += fmt.Sprintf("    %s: %s\n", kind, str)
-			}
-		}
-	}
-
-	return strings.TrimSpace(result)
-}
-
 func TestLoad_provisioners(t *testing.T) {
 	c, err := Load(filepath.Join(fixtureDir, "provisioners.tf"))
 	if err != nil {
@@ -300,181 +314,6 @@ func TestLoad_connections(t *testing.T) {
 	if p2.ConnInfo.Raw["user"] != "root" {
 		t.Fatalf("Bad: %#v", p2.ConnInfo)
 	}
-}
-
-// This helper turns a provider configs field into a deterministic
-// string value for comparison in tests.
-func providerConfigsStr(pcs []*ProviderConfig) string {
-	result := ""
-
-	ns := make([]string, 0, len(pcs))
-	m := make(map[string]*ProviderConfig)
-	for _, n := range pcs {
-		ns = append(ns, n.Name)
-		m[n.Name] = n
-	}
-	sort.Strings(ns)
-
-	for _, n := range ns {
-		pc := m[n]
-
-		result += fmt.Sprintf("%s\n", n)
-
-		keys := make([]string, 0, len(pc.RawConfig.Raw))
-		for k, _ := range pc.RawConfig.Raw {
-			keys = append(keys, k)
-		}
-		sort.Strings(keys)
-
-		for _, k := range keys {
-			result += fmt.Sprintf("  %s\n", k)
-		}
-
-		if len(pc.RawConfig.Variables) > 0 {
-			result += fmt.Sprintf("  vars\n")
-			for _, rawV := range pc.RawConfig.Variables {
-				kind := "unknown"
-				str := rawV.FullKey()
-
-				switch rawV.(type) {
-				case *ResourceVariable:
-					kind = "resource"
-				case *UserVariable:
-					kind = "user"
-				}
-
-				result += fmt.Sprintf("    %s: %s\n", kind, str)
-			}
-		}
-	}
-
-	return strings.TrimSpace(result)
-}
-
-// This helper turns a resources field into a deterministic
-// string value for comparison in tests.
-func resourcesStr(rs []*Resource) string {
-	result := ""
-	order := make([]int, 0, len(rs))
-	ks := make([]string, 0, len(rs))
-	mapping := make(map[string]int)
-	for i, r := range rs {
-		k := fmt.Sprintf("%s[%s]", r.Type, r.Name)
-		ks = append(ks, k)
-		mapping[k] = i
-	}
-	sort.Strings(ks)
-	for _, k := range ks {
-		order = append(order, mapping[k])
-	}
-
-	for _, i := range order {
-		r := rs[i]
-		result += fmt.Sprintf(
-			"%s[%s] (x%d)\n",
-			r.Type,
-			r.Name,
-			r.Count)
-
-		ks := make([]string, 0, len(r.RawConfig.Raw))
-		for k, _ := range r.RawConfig.Raw {
-			ks = append(ks, k)
-		}
-		sort.Strings(ks)
-
-		for _, k := range ks {
-			result += fmt.Sprintf("  %s\n", k)
-		}
-
-		if len(r.Provisioners) > 0 {
-			result += fmt.Sprintf("  provisioners\n")
-			for _, p := range r.Provisioners {
-				result += fmt.Sprintf("    %s\n", p.Type)
-
-				ks := make([]string, 0, len(p.RawConfig.Raw))
-				for k, _ := range p.RawConfig.Raw {
-					ks = append(ks, k)
-				}
-				sort.Strings(ks)
-
-				for _, k := range ks {
-					result += fmt.Sprintf("      %s\n", k)
-				}
-			}
-		}
-
-		if len(r.DependsOn) > 0 {
-			result += fmt.Sprintf("  dependsOn\n")
-			for _, d := range r.DependsOn {
-				result += fmt.Sprintf("    %s\n", d)
-			}
-		}
-
-		if len(r.RawConfig.Variables) > 0 {
-			result += fmt.Sprintf("  vars\n")
-
-			ks := make([]string, 0, len(r.RawConfig.Variables))
-			for k, _ := range r.RawConfig.Variables {
-				ks = append(ks, k)
-			}
-			sort.Strings(ks)
-
-			for _, k := range ks {
-				rawV := r.RawConfig.Variables[k]
-				kind := "unknown"
-				str := rawV.FullKey()
-
-				switch rawV.(type) {
-				case *ResourceVariable:
-					kind = "resource"
-				case *UserVariable:
-					kind = "user"
-				}
-
-				result += fmt.Sprintf("    %s: %s\n", kind, str)
-			}
-		}
-	}
-
-	return strings.TrimSpace(result)
-}
-
-// This helper turns a variables field into a deterministic
-// string value for comparison in tests.
-func variablesStr(vs []*Variable) string {
-	result := ""
-	ks := make([]string, 0, len(vs))
-	m := make(map[string]*Variable)
-	for _, v := range vs {
-		ks = append(ks, v.Name)
-		m[v.Name] = v
-	}
-	sort.Strings(ks)
-
-	for _, k := range ks {
-		v := m[k]
-
-		required := ""
-		if v.Required() {
-			required = " (required)"
-		}
-
-		if v.Default == nil || v.Default == "" {
-			v.Default = "<>"
-		}
-		if v.Description == "" {
-			v.Description = "<>"
-		}
-
-		result += fmt.Sprintf(
-			"%s%s\n  %v\n  %s\n",
-			k,
-			required,
-			v.Default,
-			v.Description)
-	}
-
-	return strings.TrimSpace(result)
 }
 
 const basicOutputsStr = `
@@ -609,6 +448,12 @@ bar (required)
 foo
   bar
   bar
+`
+
+const modulesModulesStr = `
+bar
+  source = baz
+  memory
 `
 
 const provisionerResourcesStr = `

@@ -17,6 +17,7 @@ type hclConfigurable struct {
 
 func (t *hclConfigurable) Config() (*Config, error) {
 	validKeys := map[string]struct{}{
+		"module":   struct{}{},
 		"output":   struct{}{},
 		"provider": struct{}{},
 		"resource": struct{}{},
@@ -66,6 +67,15 @@ func (t *hclConfigurable) Config() (*Config, error) {
 			}
 
 			config.Variables = append(config.Variables, newVar)
+		}
+	}
+
+	// Build the modules
+	if modules := t.Object.Get("module", false); modules != nil {
+		var err error
+		config.Modules, err = loadModulesHcl(modules)
+		if err != nil {
+			return nil, err
 		}
 	}
 
@@ -175,6 +185,75 @@ func loadFileHcl(root string) (configurable, []string, error) {
 	*/
 
 	return result, nil, nil
+}
+
+// Given a handle to a HCL object, this recurses into the structure
+// and pulls out a list of modules.
+//
+// The resulting modules may not be unique, but each module
+// represents exactly one module definition in the HCL configuration.
+// We leave it up to another pass to merge them together.
+func loadModulesHcl(os *hclobj.Object) ([]*Module, error) {
+	var allNames []*hclobj.Object
+
+	// See loadResourcesHcl for why this exists. Don't touch this.
+	for _, o1 := range os.Elem(false) {
+		// Iterate the inner to get the list of types
+		for _, o2 := range o1.Elem(true) {
+			// Iterate all of this type to get _all_ the types
+			for _, o3 := range o2.Elem(false) {
+				allNames = append(allNames, o3)
+			}
+		}
+	}
+
+	// Where all the results will go
+	var result []*Module
+
+	// Now go over all the types and their children in order to get
+	// all of the actual resources.
+	for _, obj := range allNames {
+		k := obj.Key
+
+		var config map[string]interface{}
+		if err := hcl.DecodeObject(&config, obj); err != nil {
+			return nil, fmt.Errorf(
+				"Error reading config for %s: %s",
+				k,
+				err)
+		}
+
+		// Remove the fields we handle specially
+		delete(config, "source")
+
+		rawConfig, err := NewRawConfig(config)
+		if err != nil {
+			return nil, fmt.Errorf(
+				"Error reading config for %s: %s",
+				k,
+				err)
+		}
+
+		// If we have a count, then figure it out
+		var source string
+		if o := obj.Get("source", false); o != nil {
+			err = hcl.DecodeObject(&source, o)
+			if err != nil {
+				return nil, fmt.Errorf(
+					"Error parsing source for %s: %s",
+					k,
+					err)
+			}
+		}
+
+		result = append(result, &Module{
+			Name:      k,
+			Source:    source,
+			RawConfig: rawConfig,
+		})
+	}
+
+	return result, nil
 }
 
 // LoadOutputsHcl recurses into the given HCL object and turns
