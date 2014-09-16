@@ -39,3 +39,39 @@ func TestHgGetter(t *testing.T) {
 		t.Fatalf("err: %s", err)
 	}
 }
+
+func TestHgGetter_branch(t *testing.T) {
+	if !testHasHg {
+		t.Log("hg not found, skipping")
+		t.Skip()
+	}
+
+	g := new(HgGetter)
+	dst := tempDir(t)
+
+	url := testModuleURL("basic-hg")
+	q := url.Query()
+	q.Add("rev", "test-branch")
+	url.RawQuery = q.Encode()
+
+	if err := g.Get(dst, url); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	// Verify the main file exists
+	mainPath := filepath.Join(dst, "main_branch.tf")
+	if _, err := os.Stat(mainPath); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	// Get again should work
+	if err := g.Get(dst, url); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	// Verify the main file exists
+	mainPath = filepath.Join(dst, "main_branch.tf")
+	if _, err := os.Stat(mainPath); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+}

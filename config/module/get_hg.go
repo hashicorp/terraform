@@ -16,6 +16,19 @@ func (g *HgGetter) Get(dst string, u *url.URL) error {
 		return fmt.Errorf("hg must be available and on the PATH")
 	}
 
+	// Extract some query parameters we use
+	var rev string
+	q := u.Query()
+	if len(q) > 0 {
+		rev = q.Get("rev")
+		q.Del("rev")
+
+		// Copy the URL
+		var newU url.URL = *u
+		u = &newU
+		u.RawQuery = q.Encode()
+	}
+
 	_, err := os.Stat(dst)
 	if err != nil && !os.IsNotExist(err) {
 		return err
@@ -30,7 +43,7 @@ func (g *HgGetter) Get(dst string, u *url.URL) error {
 		return err
 	}
 
-	return g.update(dst, u)
+	return g.update(dst, u, rev)
 }
 
 func (g *HgGetter) clone(dst string, u *url.URL) error {
@@ -44,8 +57,13 @@ func (g *HgGetter) pull(dst string, u *url.URL) error {
 	return getRunCommand(cmd)
 }
 
-func (g *HgGetter) update(dst string, u *url.URL) error {
-	cmd := exec.Command("hg", "update")
+func (g *HgGetter) update(dst string, u *url.URL, rev string) error {
+	args := []string{"update"}
+	if rev != "" {
+		args = append(args, rev)
+	}
+
+	cmd := exec.Command("hg", args...)
 	cmd.Dir = dst
 	return getRunCommand(cmd)
 }
