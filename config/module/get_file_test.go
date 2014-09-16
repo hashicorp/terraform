@@ -1,7 +1,6 @@
 package module
 
 import (
-	"net/url"
 	"os"
 	"path/filepath"
 	"testing"
@@ -102,13 +101,4 @@ func TestFileGetter_dirSymlink(t *testing.T) {
 	if _, err := os.Stat(mainPath); err != nil {
 		t.Fatalf("err: %s", err)
 	}
-}
-
-func testModuleURL(n string) *url.URL {
-	u, err := url.Parse(testModule(n))
-	if err != nil {
-		panic(err)
-	}
-
-	return u
 }
