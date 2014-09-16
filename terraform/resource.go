@@ -43,7 +43,7 @@ func (r *Resource) Vars() map[string]string {
 	}
 
 	vars := make(map[string]string)
-	for ak, av := range r.State.Attributes {
+	for ak, av := range r.State.Primary.Attributes {
 		vars[fmt.Sprintf("%s.%s", r.Id, ak)] = av
 	}
 

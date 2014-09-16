@@ -1,11 +1,18 @@
 package terraform
 
 import (
+	"bytes"
 	"fmt"
 	"io"
 	"reflect"
+	"sort"
 
 	"github.com/hashicorp/terraform/config"
+)
+
+const (
+	// textStateVersion is the current version for our state file
+	textStateVersion = 1
 )
 
 // rootModulePath is the path of the root module
@@ -44,6 +51,17 @@ func (s *State) RootModule() *ModuleState {
 	return s.ModuleByPath(rootModulePath)
 }
 
+func (s *State) init() {
+	if s.Version == 0 {
+		s.Version = textStateVersion
+	}
+	if len(s.Modules) == 0 {
+		root := &ModuleState{}
+		root.init()
+		s.Modules = []*ModuleState{root}
+	}
+}
+
 func (s *State) deepcopy() *State {
 	if s == nil {
 		return nil
@@ -68,6 +86,77 @@ func (s *State) prune() {
 
 func (s *State) GoString() string {
 	return fmt.Sprintf("*%#v", *s)
+}
+
+func (s *State) String() string {
+	// TODO: Handle other moduels
+	mod := s.RootModule()
+	if len(mod.Resources) == 0 {
+		return "<no state>"
+	}
+
+	var buf bytes.Buffer
+
+	names := make([]string, 0, len(mod.Resources))
+	for name, _ := range mod.Resources {
+		names = append(names, name)
+	}
+	sort.Strings(names)
+
+	for _, k := range names {
+		rs := mod.Resources[k]
+		id := rs.Primary.ID
+		if id == "" {
+			id = "<not created>"
+		}
+
+		taintStr := ""
+		if len(rs.Tainted) > 0 {
+			taintStr = " (tainted)"
+		}
+
+		buf.WriteString(fmt.Sprintf("%s:%s\n", k, taintStr))
+		buf.WriteString(fmt.Sprintf("  ID = %s\n", id))
+
+		attrKeys := make([]string, 0, len(rs.Primary.Attributes))
+		for ak, _ := range rs.Primary.Attributes {
+			if ak == "id" {
+				continue
+			}
+
+			attrKeys = append(attrKeys, ak)
+		}
+		sort.Strings(attrKeys)
+
+		for _, ak := range attrKeys {
+			av := rs.Primary.Attributes[ak]
+			buf.WriteString(fmt.Sprintf("  %s = %s\n", ak, av))
+		}
+
+		if len(rs.Dependencies) > 0 {
+			buf.WriteString(fmt.Sprintf("\n  Dependencies:\n"))
+			for _, dep := range rs.Dependencies {
+				buf.WriteString(fmt.Sprintf("    %s\n", dep))
+			}
+		}
+	}
+
+	if len(mod.Outputs) > 0 {
+		buf.WriteString("\nOutputs:\n\n")
+
+		ks := make([]string, 0, len(mod.Outputs))
+		for k, _ := range mod.Outputs {
+			ks = append(ks, k)
+		}
+		sort.Strings(ks)
+
+		for _, k := range ks {
+			v := mod.Outputs[k]
+			buf.WriteString(fmt.Sprintf("%s = %s\n", k, v))
+		}
+	}
+
+	return buf.String()
 }
 
 // ModuleState is used to track all the state relevant to a single
