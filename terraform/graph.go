@@ -188,30 +188,36 @@ func graphAddConfigResources(
 				index = i
 			}
 
-			// Determine if this resource is tainted
 			tainted := false
-			if s != nil && s.Tainted != nil {
-				_, tainted = s.Tainted[r.Id()]
-			}
-
+			var mod *ModuleState
 			var state *ResourceState
-			if s != nil {
-				state = s.Resources[name]
 
+			if s != nil {
+				// TODO: Handle non-root modules
+				mod = s.RootModule()
+
+				// Lookup the resource state
+				state = mod.Resources[name]
 				if state == nil {
 					if r.Count == 1 {
 						// If the count is one, check the state for ".0"
 						// appended, which might exist if we go from
 						// count > 1 to count == 1.
-						state = s.Resources[r.Id()+".0"]
+						state = mod.Resources[r.Id()+".0"]
 					} else if i == 0 {
 						// If count is greater than one, check for state
 						// with just the ID, which might exist if we go
 						// from count == 1 to count > 1
-						state = s.Resources[r.Id()]
+						state = mod.Resources[r.Id()]
 					}
 				}
+
+				// Determine if this resource is tainted
+				if state != nil && len(state.Tainted) > 0 {
+					tainted = true
+				}
 			}
+
 			if state == nil {
 				state = &ResourceState{
 					Type: r.Type,
@@ -382,7 +388,7 @@ func graphAddDiff(g *depgraph.Graph, d *Diff) error {
 				}
 
 				rn2 := n2.Meta.(*GraphNodeResource)
-				if rn2.Resource.State.ID == dep.ID {
+				if rn2.Resource.Id == dep {
 					n2.Deps = append(n2.Deps, &depgraph.Dependency{
 						Name:   n.Name,
 						Source: n2,
@@ -504,8 +510,10 @@ func graphAddMissingResourceProviders(
 
 // graphAddOrphans adds the orphans to the graph.
 func graphAddOrphans(g *depgraph.Graph, c *config.Config, s *State) {
-	for _, k := range s.Orphans(c) {
-		rs := s.Resources[k]
+	// TODO: Handle other modules
+	mod := s.RootModule()
+	for _, k := range mod.Orphans(c) {
+		rs := mod.Resources[k]
 		noun := &depgraph.Noun{
 			Name: k,
 			Meta: &GraphNodeResource{

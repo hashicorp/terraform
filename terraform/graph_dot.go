@@ -79,7 +79,7 @@ func graphDotAddResources(buf *bytes.Buffer, g *depgraph.Graph) {
 		// green = create. Destroy is in the next section.
 		var color, fillColor string
 		if rn.Resource.Diff != nil && !rn.Resource.Diff.Empty() {
-			if rn.Resource.State != nil && rn.Resource.State.ID != "" {
+			if rn.Resource.State != nil && rn.Resource.State.Primary.ID != "" {
 				color = "#FFFF00"
 				fillColor = "#FFFF94"
 			} else {
