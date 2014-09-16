@@ -10,8 +10,10 @@ func TestFileDetector(t *testing.T) {
 		Output string
 	}{
 		{"./foo", "file:///pwd/foo"},
+		{"./foo?foo=bar", "file:///pwd/foo?foo=bar"},
 		{"foo", "file:///pwd/foo"},
 		{"/foo", "file:///foo"},
+		{"/foo?bar=baz", "file:///foo?bar=baz"},
 	}
 
 	pwd := "/pwd"
