@@ -3,6 +3,7 @@
 IMPROVEMENTS:
 
   * helper/schema: Can now have default values. [GH-245]
+  * providers/aws: New resource db_subnet_group. [GH-295]
 
 BUG FIXES:
 
