@@ -372,8 +372,7 @@ func (c *Context) computeResourceVariable(
 			v.FullKey())
 	}
 
-	primary := r.Primary()
-	attr, ok := primary.Attributes[v.Field]
+	attr, ok := r.Primary.Attributes[v.Field]
 	if ok {
 		return attr, nil
 	}
@@ -386,7 +385,7 @@ func (c *Context) computeResourceVariable(
 	if len(parts) > 1 {
 		for i := 1; i < len(parts); i++ {
 			key := fmt.Sprintf("%s.#", strings.Join(parts[:i], "."))
-			if attr, ok := primary.Attributes[key]; ok {
+			if attr, ok := r.Primary.Attributes[key]; ok {
 				return attr, nil
 			}
 		}
@@ -440,8 +439,7 @@ func (c *Context) computeResourceMultiVariable(
 			continue
 		}
 
-		primary := r.Primary()
-		attr, ok := primary.Attributes[v.Field]
+		attr, ok := r.Primary.Attributes[v.Field]
 		if !ok {
 			continue
 		}
@@ -546,8 +544,8 @@ func (c *Context) applyWalkFn() depgraph.WalkFunc {
 		}
 
 		// If we do not have any connection info, initialize
-		if r.State.ConnInfo == nil {
-			r.State.ConnInfo = make(map[string]string)
+		if r.State.Primary.Ephemeral.ConnInfo == nil {
+			r.State.Primary.Ephemeral.init()
 		}
 
 		// Remove any output values from the diff

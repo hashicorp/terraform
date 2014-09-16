@@ -140,20 +140,18 @@ type ResourceState struct {
 	// worry about it.
 	Dependencies []string `json:"depends_on,omitempty"`
 
-	// Instances is used to track all of the underlying instances
-	// have been created as part of this logical resource. In the
-	// standard case, there is only a single underlying instance.
-	// However, in pathological cases, it is possible for the number
-	// of instances to accumulate. The first instance in the list is
-	// the "primary" and the others should be removed on subsequent
-	// apply operations.
-	Instances []*InstanceState `json:"instances"`
-}
+	// Primary is the current active instance for this resource.
+	// It can be replaced but only after a successful creation.
+	// This is the instances on which providers will act.
+	Primary *InstanceState `json:"primary"`
 
-// Primary is used to return the primary instance. This is the
-// active instance that should be used for attribute interpolation
-func (r *ResourceState) Primary() *InstanceState {
-	return r.Instances[0]
+	// Tainted is used to track any underlying instances that
+	// have been created but are in a bad or unknown state and
+	// need to be cleaned up subsequently.  In the
+	// standard case, there is only at most a single instance.
+	// However, in pathological cases, it is possible for the number
+	// of instances to accumulate.
+	Tainted []*InstanceState `json:"tainted,omitempty"`
 }
 
 func (r *ResourceState) deepcopy() *ResourceState {
@@ -225,6 +223,12 @@ type EphemeralState struct {
 	// used to connect to the resource for provisioning. For example,
 	// this could contain SSH or WinRM credentials.
 	ConnInfo map[string]string `json:"-"`
+}
+
+func (e *EphemeralState) init() {
+	if e.ConnInfo == nil {
+		e.ConnInfo = make(map[string]string)
+	}
 }
 
 func (e *EphemeralState) deepcopy() *EphemeralState {
