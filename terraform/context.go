@@ -381,8 +381,11 @@ func (c *Context) computeResourceVariable(
 			v.FullKey())
 	}
 
-	attr, ok := r.Primary.Attributes[v.Field]
-	if ok {
+	if r.Primary == nil {
+		goto MISSING
+	}
+
+	if attr, ok := r.Primary.Attributes[v.Field]; ok {
 		return attr, nil
 	}
 
@@ -390,8 +393,7 @@ func (c *Context) computeResourceVariable(
 	// and see if anything along the way is a computed set. i.e. if
 	// we have "foo.0.bar" as the field, check to see if "foo" is
 	// a computed list. If so, then the whole thing is computed.
-	parts := strings.Split(v.Field, ".")
-	if len(parts) > 1 {
+	if parts := strings.Split(v.Field, "."); len(parts) > 1 {
 		for i := 1; i < len(parts); i++ {
 			key := fmt.Sprintf("%s.#", strings.Join(parts[:i], "."))
 			if attr, ok := r.Primary.Attributes[key]; ok {
@@ -400,6 +402,7 @@ func (c *Context) computeResourceVariable(
 		}
 	}
 
+MISSING:
 	return "", fmt.Errorf(
 		"Resource '%s' does not have attribute '%s' "+
 			"for variable '%s'",
@@ -445,6 +448,10 @@ func (c *Context) computeResourceMultiVariable(
 
 		r, ok := module.Resources[id]
 		if !ok {
+			continue
+		}
+
+		if r.Primary == nil {
 			continue
 		}
 
@@ -854,7 +861,7 @@ func (c *Context) planDestroyWalkFn(result *Plan) depgraph.WalkFunc {
 		}
 
 		r := rn.Resource
-		if r.State.Primary.ID != "" {
+		if r.State.Primary != nil && r.State.Primary.ID != "" {
 			log.Printf("[DEBUG] %s: Making for destroy", r.Id)
 
 			l.Lock()
@@ -870,7 +877,7 @@ func (c *Context) planDestroyWalkFn(result *Plan) depgraph.WalkFunc {
 
 func (c *Context) refreshWalkFn() depgraph.WalkFunc {
 	cb := func(r *Resource) error {
-		if r.State.Primary.ID == "" {
+		if r.State.Primary == nil || r.State.Primary.ID == "" {
 			log.Printf("[DEBUG] %s: Not refreshing, ID is empty", r.Id)
 			return nil
 		}
@@ -899,7 +906,7 @@ func (c *Context) refreshWalkFn() depgraph.WalkFunc {
 
 		// TODO: Handle other moduels
 		mod := c.state.RootModule()
-		if rs.Primary.ID == "" {
+		if len(rs.Tainted) == 0 && (rs.Primary == nil || rs.Primary.ID == "") {
 			delete(mod.Resources, r.Id)
 		} else {
 			mod.Resources[r.Id] = rs

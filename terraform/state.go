@@ -42,6 +42,9 @@ func (s *State) ModuleByPath(path []string) *ModuleState {
 		return nil
 	}
 	for _, mod := range s.Modules {
+		if mod.Path == nil {
+			panic("missing module path")
+		}
 		if reflect.DeepEqual(mod.Path, path) {
 			return mod
 		}

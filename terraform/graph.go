@@ -189,13 +189,12 @@ func graphAddConfigResources(
 			}
 
 			tainted := false
-			var mod *ModuleState
 			var state *ResourceState
 
-			if s != nil {
-				// TODO: Handle non-root modules
-				mod = s.RootModule()
+			// TODO: Handle non-root modules
+			mod := s.ModuleByPath(rootModulePath)
 
+			if s != nil && mod != nil {
 				// Lookup the resource state
 				state = mod.Resources[name]
 				if state == nil {
@@ -511,7 +510,10 @@ func graphAddMissingResourceProviders(
 // graphAddOrphans adds the orphans to the graph.
 func graphAddOrphans(g *depgraph.Graph, c *config.Config, s *State) {
 	// TODO: Handle other modules
-	mod := s.RootModule()
+	mod := s.ModuleByPath(rootModulePath)
+	if mod == nil {
+		return
+	}
 	for _, k := range mod.Orphans(c) {
 		rs := mod.Resources[k]
 		noun := &depgraph.Noun{

@@ -1543,6 +1543,7 @@ func TestContextPlan_countDecreaseToOne(t *testing.T) {
 	s := &State{
 		Modules: []*ModuleState{
 			&ModuleState{
+				Path: rootModulePath,
 				Resources: map[string]*ResourceState{
 					"aws_instance.foo.0": &ResourceState{
 						Type: "aws_instance",
