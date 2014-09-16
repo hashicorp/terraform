@@ -20,6 +20,7 @@ var Detectors []Detector
 
 func init() {
 	Detectors = []Detector{
+		new(GitHubDetector),
 		new(FileDetector),
 	}
 }
