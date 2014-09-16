@@ -12,7 +12,9 @@ Provides an RDS security group resource.
 
 ```
 resource "aws_db_security_group" "default" {
-    name = "RDS default security group"
+    name = "rds_sg"
+    description = "RDS default security group"
+
     ingress {
         cidr = "10.0.0.1/24"
     }
