@@ -107,6 +107,7 @@ resource "aws_subnet" "bar" {
 
 resource "aws_db_subnet_group" "foo" {
 	name = "foo"
+	description = "foo description"
 	subnet_ids = ["${aws_subnet.foo.id}", "${aws_subnet.bar.id}"]
 }
 `
