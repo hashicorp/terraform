@@ -25,7 +25,7 @@ const (
 // on start.
 type StateV1 struct {
 	Outputs   map[string]string
-	Resources map[string]*ResourceState
+	Resources map[string]*ResourceStateV1
 	Tainted   map[string]struct{}
 
 	once sync.Once
@@ -34,7 +34,7 @@ type StateV1 struct {
 func (s *StateV1) init() {
 	s.once.Do(func() {
 		if s.Resources == nil {
-			s.Resources = make(map[string]*ResourceState)
+			s.Resources = make(map[string]*ResourceStateV1)
 		}
 
 		if s.Tainted == nil {
@@ -43,8 +43,8 @@ func (s *StateV1) init() {
 	})
 }
 
-func (s *StateV1) deepcopy() *State {
-	result := new(State)
+func (s *StateV1) deepcopy() *StateV1 {
+	result := new(StateV1)
 	result.init()
 	if s != nil {
 		for k, v := range s.Resources {
