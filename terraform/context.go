@@ -505,6 +505,9 @@ func (c *Context) applyWalkFn() depgraph.WalkFunc {
 			return nil
 		}
 
+		// Ensure the state is initialized
+		r.State.init()
+
 		if !diff.Destroy {
 			// Since we need the configuration, interpolate the variables
 			if err := r.Config.interpolate(c); err != nil {
@@ -543,11 +546,6 @@ func (c *Context) applyWalkFn() depgraph.WalkFunc {
 			}
 		}
 
-		// If we do not have any connection info, initialize
-		if r.State.Primary.Ephemeral.ConnInfo == nil {
-			r.State.Primary.Ephemeral.init()
-		}
-
 		// Remove any output values from the diff
 		for k, ad := range diff.Attributes {
 			if ad.Type == DiffAttrOutput {
@@ -571,42 +569,36 @@ func (c *Context) applyWalkFn() depgraph.WalkFunc {
 		// Make sure the result is instantiated
 		if rs == nil {
 			rs = new(ResourceState)
+			rs.init()
 		}
 
 		// Force the resource state type to be our type
 		rs.Type = r.State.Type
 
 		// Force the "id" attribute to be our ID
-		if rs.ID != "" {
-			if rs.Attributes == nil {
-				rs.Attributes = make(map[string]string)
-			}
-
-			rs.Attributes["id"] = rs.ID
+		if rs.Primary.ID != "" {
+			rs.Primary.Attributes["id"] = rs.Primary.ID
 		}
 
-		for ak, av := range rs.Attributes {
+		for ak, av := range rs.Primary.Attributes {
 			// If the value is the unknown variable value, then it is an error.
 			// In this case we record the error and remove it from the state
 			if av == config.UnknownVariableValue {
 				errs = append(errs, fmt.Errorf(
 					"Attribute with unknown value: %s", ak))
-				delete(rs.Attributes, ak)
+				delete(rs.Primary.Attributes, ak)
 			}
 		}
 
 		// Update the resulting diff
 		c.sl.Lock()
-		if rs.ID == "" {
-			delete(c.state.Resources, r.Id)
-			delete(c.state.Tainted, r.Id)
-		} else {
-			c.state.Resources[r.Id] = rs
 
-			// We always mark the resource as tainted here in case a
-			// hook below during provisioning does HookActionStop. This
-			// way, we keep the resource tainted.
-			c.state.Tainted[r.Id] = struct{}{}
+		// TODO: Get other modules
+		mod := c.state.RootModule()
+		if rs.Primary.ID == "" && len(rs.Tainted) == 0 {
+			delete(mod.Resources, r.Id)
+		} else {
+			mod.Resources[r.Id] = rs
 		}
 		c.sl.Unlock()
 
@@ -617,7 +609,7 @@ func (c *Context) applyWalkFn() depgraph.WalkFunc {
 		// Additionally, we need to be careful to not run this if there
 		// was an error during the provider apply.
 		tainted := false
-		if applyerr == nil && r.State.ID == "" && len(r.Provisioners) > 0 {
+		if applyerr == nil && r.State.Primary.ID == "" && len(r.Provisioners) > 0 {
 			for _, h := range c.hooks {
 				handleHook(h.PreProvisionResource(r.Id, r.State))
 			}
@@ -635,9 +627,8 @@ func (c *Context) applyWalkFn() depgraph.WalkFunc {
 		c.sl.Lock()
 		if tainted {
 			log.Printf("[DEBUG] %s: Marking as tainted", r.Id)
-			c.state.Tainted[r.Id] = struct{}{}
-		} else {
-			delete(c.state.Tainted, r.Id)
+			rs.Tainted = append(rs.Tainted, rs.Primary)
+			rs.Primary = nil
 		}
 		c.sl.Unlock()
 
@@ -665,9 +656,9 @@ func (c *Context) applyWalkFn() depgraph.WalkFunc {
 // defined after the resource creation has already completed.
 func (c *Context) applyProvisioners(r *Resource, rs *ResourceState) error {
 	// Store the original connection info, restore later
-	origConnInfo := rs.ConnInfo
+	origConnInfo := rs.Primary.Ephemeral.ConnInfo
 	defer func() {
-		rs.ConnInfo = origConnInfo
+		rs.Primary.Ephemeral.ConnInfo = origConnInfo
 	}()
 
 	for _, prov := range r.Provisioners {
@@ -710,7 +701,7 @@ func (c *Context) applyProvisioners(r *Resource, rs *ResourceState) error {
 				overlay[k] = fmt.Sprintf("%v", vt)
 			}
 		}
-		rs.ConnInfo = overlay
+		rs.Primary.Ephemeral.ConnInfo = overlay
 
 		// Invoke the Provisioner
 		for _, h := range c.hooks {
@@ -778,16 +769,16 @@ func (c *Context) planWalkFn(result *Plan) depgraph.WalkFunc {
 			diff.Destroy = true
 		}
 
-		if diff.RequiresNew() && r.State.ID != "" {
+		if diff.RequiresNew() && r.State.Primary.ID != "" {
 			// This will also require a destroy
 			diff.Destroy = true
 		}
 
-		if diff.RequiresNew() || r.State.ID == "" {
+		if diff.RequiresNew() || r.State.Primary.ID == "" {
 			// Add diff to compute new ID
 			diff.init()
 			diff.Attributes["id"] = &ResourceAttrDiff{
-				Old:         r.State.Attributes["id"],
+				Old:         r.State.Primary.Attributes["id"],
 				NewComputed: true,
 				RequiresNew: true,
 				Type:        DiffAttrOutput,
@@ -812,7 +803,10 @@ func (c *Context) planWalkFn(result *Plan) depgraph.WalkFunc {
 		// Update our internal state so that variable computation works
 		c.sl.Lock()
 		defer c.sl.Unlock()
-		c.state.Resources[r.Id] = r.State
+
+		// TODO: Handle other modules
+		mod := c.state.RootModule()
+		mod.Resources[r.Id] = r.State
 
 		return nil
 	}
@@ -833,7 +827,7 @@ func (c *Context) planDestroyWalkFn(result *Plan) depgraph.WalkFunc {
 		}
 
 		r := rn.Resource
-		if r.State.ID != "" {
+		if r.State.Primary.ID != "" {
 			log.Printf("[DEBUG] %s: Making for destroy", r.Id)
 
 			l.Lock()
@@ -849,7 +843,7 @@ func (c *Context) planDestroyWalkFn(result *Plan) depgraph.WalkFunc {
 
 func (c *Context) refreshWalkFn() depgraph.WalkFunc {
 	cb := func(r *Resource) error {
-		if r.State.ID == "" {
+		if r.State.Primary.ID == "" {
 			log.Printf("[DEBUG] %s: Not refreshing, ID is empty", r.Id)
 			return nil
 		}
@@ -870,10 +864,13 @@ func (c *Context) refreshWalkFn() depgraph.WalkFunc {
 		rs.Type = r.State.Type
 
 		c.sl.Lock()
-		if rs.ID == "" {
-			delete(c.state.Resources, r.Id)
+
+		// TODO: Handle other moduels
+		mod := c.state.RootModule()
+		if rs.Primary.ID == "" {
+			delete(mod.Resources, r.Id)
 		} else {
-			c.state.Resources[r.Id] = rs
+			mod.Resources[r.Id] = rs
 		}
 		c.sl.Unlock()
 

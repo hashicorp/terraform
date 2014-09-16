@@ -5,6 +5,8 @@ import (
 	"errors"
 	"fmt"
 	"io"
+
+	"github.com/hashicorp/terraform/config"
 )
 
 // rootModulePath is the path of the root module
@@ -82,6 +84,15 @@ type ModuleState struct {
 	Resources map[string]*ResourceState `json:"resources"`
 }
 
+func (m *ModuleState) init() {
+	if m.Outputs == nil {
+		m.Outputs = make(map[string]stirng)
+	}
+	if m.Resources == nil {
+		m.Resources = make(map[string]*ResourceState)
+	}
+}
+
 func (m *ModuleState) deepcopy() *ModuleState {
 	n := &ModuleState{
 		Path:      make([]string, len(m.Path)),
@@ -154,6 +165,13 @@ type ResourceState struct {
 	Tainted []*InstanceState `json:"tainted,omitempty"`
 }
 
+func (r *ResourceState) init() {
+	if i.Primary == nil {
+		i.Primary = &InstanceState{}
+		i.Primary.init()
+	}
+}
+
 func (r *ResourceState) deepcopy() *ResourceState {
 	n := &ResourceState{
 		Type:         r.Type,
@@ -181,6 +199,44 @@ func (r *ResourceState) prune() {
 	r.Instances = r.Instances[:n]
 }
 
+// MergeDiff takes a ResourceDiff and merges the attributes into
+// this resource state in order to generate a new state. This new
+// state can be used to provide updated attribute lookups for
+// variable interpolation.
+//
+// If the diff attribute requires computing the value, and hence
+// won't be available until apply, the value is replaced with the
+// computeID.
+func (s *ResourceState) MergeDiff(d *ResourceDiff) *ResourceState {
+	var result ResourceState
+	if s != nil {
+		result = *s
+	}
+	result.init()
+
+	if s != nil {
+		for k, v := range s.Primary.Attributes {
+			result.Primary.Attributes[k] = v
+		}
+	}
+	if d != nil {
+		for k, diff := range d.Attributes {
+			if diff.NewRemoved {
+				delete(result.Primary.Attributes, k)
+				continue
+			}
+			if diff.NewComputed {
+				result.Primary.Attributes[k] = config.UnknownVariableValue
+				continue
+			}
+
+			result.Primary.Attributes[k] = diff.New
+		}
+	}
+
+	return &result
+}
+
 // InstanceState is used to track the unique state information belonging
 // to a given instance.
 type InstanceState struct {
@@ -202,6 +258,13 @@ type InstanceState struct {
 	// that is necessary for the Terraform run to complete, but is not
 	// persisted to a state file.
 	Ephemeral EphemeralState `json:"-"`
+}
+
+func (i *InstanceState) init() {
+	if i.Attributes == nil {
+		i.Attributes = make(map[string]string)
+	}
+	i.Ephemeral.init()
 }
 
 func (i *InstanceState) deepcopy() *InstanceState {
