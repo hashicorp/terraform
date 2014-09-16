@@ -360,7 +360,11 @@ func (c *Context) computeResourceVariable(
 	c.sl.RLock()
 	defer c.sl.RUnlock()
 
-	r, ok := c.state.Resources[id]
+	// Get the relevant module
+	// TODO: Not use only root module
+	module := c.state.RootModule()
+
+	r, ok := module.Resources[id]
 	if !ok {
 		return "", fmt.Errorf(
 			"Resource '%s' not found for variable '%s'",
@@ -368,7 +372,8 @@ func (c *Context) computeResourceVariable(
 			v.FullKey())
 	}
 
-	attr, ok := r.Attributes[v.Field]
+	primary := r.Primary()
+	attr, ok := primary.Attributes[v.Field]
 	if ok {
 		return attr, nil
 	}
@@ -381,7 +386,7 @@ func (c *Context) computeResourceVariable(
 	if len(parts) > 1 {
 		for i := 1; i < len(parts); i++ {
 			key := fmt.Sprintf("%s.#", strings.Join(parts[:i], "."))
-			if attr, ok := r.Attributes[key]; ok {
+			if attr, ok := primary.Attributes[key]; ok {
 				return attr, nil
 			}
 		}
@@ -416,6 +421,10 @@ func (c *Context) computeResourceMultiVariable(
 			v.FullKey())
 	}
 
+	// Get the relevant module
+	// TODO: Not use only root module
+	module := c.state.RootModule()
+
 	var values []string
 	for i := 0; i < cr.Count; i++ {
 		id := fmt.Sprintf("%s.%d", v.ResourceId(), i)
@@ -426,12 +435,13 @@ func (c *Context) computeResourceMultiVariable(
 			id = v.ResourceId()
 		}
 
-		r, ok := c.state.Resources[id]
+		r, ok := module.Resources[id]
 		if !ok {
 			continue
 		}
 
-		attr, ok := r.Attributes[v.Field]
+		primary := r.Primary()
+		attr, ok := primary.Attributes[v.Field]
 		if !ok {
 			continue
 		}

@@ -150,6 +150,12 @@ type ResourceState struct {
 	Instances []*InstanceState `json:"instances"`
 }
 
+// Primary is used to return the primary instance. This is the
+// active instance that should be used for attribute interpolation
+func (r *ResourceState) Primary() *InstanceState {
+	return r.Instances[0]
+}
+
 func (r *ResourceState) deepcopy() *ResourceState {
 	n := &ResourceState{
 		Type:         r.Type,
