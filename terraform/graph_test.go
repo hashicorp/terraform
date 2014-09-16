@@ -84,10 +84,18 @@ func TestGraph_dependsOnCount(t *testing.T) {
 func TestGraph_state(t *testing.T) {
 	config := testConfig(t, "graph-basic")
 	state := &State{
-		Resources: map[string]*ResourceState{
-			"aws_instance.old": &ResourceState{
-				ID:   "foo",
-				Type: "aws_instance",
+		Modules: []*ModuleState{
+			&ModuleState{
+				Path: rootModulePath,
+
+				Resources: map[string]*ResourceState{
+					"aws_instance.old": &ResourceState{
+						Type: "aws_instance",
+						Primary: &InstanceState{
+							ID: "foo",
+						},
+					},
+				},
 			},
 		},
 	}
@@ -289,18 +297,23 @@ func TestGraphAddDiff_destroy(t *testing.T) {
 		},
 	}
 	state := &State{
-		Resources: map[string]*ResourceState{
-			"aws_instance.foo": &ResourceState{
-				ID:   "foo",
-				Type: "aws_instance",
-			},
+		Modules: []*ModuleState{
+			&ModuleState{
+				Path: rootModulePath,
+				Resources: map[string]*ResourceState{
+					"aws_instance.foo": &ResourceState{
+						Type: "aws_instance",
+						Primary: &InstanceState{
+							ID: "foo",
+						},
+					},
 
-			"aws_instance.bar": &ResourceState{
-				ID:   "bar",
-				Type: "aws_instance",
-				Dependencies: []ResourceDependency{
-					ResourceDependency{
-						ID: "foo",
+					"aws_instance.bar": &ResourceState{
+						Type:         "aws_instance",
+						Dependencies: []string{"foo"},
+						Primary: &InstanceState{
+							ID: "bar",
+						},
 					},
 				},
 			},

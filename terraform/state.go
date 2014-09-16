@@ -48,7 +48,11 @@ func (s *State) ModuleByPath(path []string) *ModuleState {
 
 // RootModule returns the ModuleState for the root module
 func (s *State) RootModule() *ModuleState {
-	return s.ModuleByPath(rootModulePath)
+	root := s.ModuleByPath(rootModulePath)
+	if root == nil {
+		panic("missing root module")
+	}
+	return root
 }
 
 func (s *State) init() {
@@ -56,7 +60,9 @@ func (s *State) init() {
 		s.Version = textStateVersion
 	}
 	if len(s.Modules) == 0 {
-		root := &ModuleState{}
+		root := &ModuleState{
+			Path: rootModulePath,
+		}
 		root.init()
 		s.Modules = []*ModuleState{root}
 	}

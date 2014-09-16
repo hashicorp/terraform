@@ -32,9 +32,16 @@ func TestReadWritePlan(t *testing.T) {
 			},
 		},
 		State: &State{
-			Resources: map[string]*ResourceState{
-				"foo": &ResourceState{
-					ID: "bar",
+			Modules: []*ModuleState{
+				&ModuleState{
+					Path: rootModulePath,
+					Resources: map[string]*ResourceState{
+						"foo": &ResourceState{
+							Primary: &InstanceState{
+								ID: "bar",
+							},
+						},
+					},
 				},
 			},
 		},
