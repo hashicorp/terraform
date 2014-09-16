@@ -55,12 +55,10 @@ func resource_aws_subnet_create(
 			s.ID, err)
 	}
 
-	var attr string
-
 	// Map public ip on launch must be set in another API call
-	if attr = s.Attributes["map_public_ip_on_launch"]; attr == "true" {
+	if attr := s.Attributes["map_public_ip_on_launch"]; attr == "true" {
 		modifyOpts := &ec2.ModifySubnetAttribute{
-			SubnetId: s.ID,
+			SubnetId:            s.ID,
 			MapPublicIpOnLaunch: true,
 		}
 		log.Printf("[DEBUG] Subnet modify attributes: %#v", modifyOpts)

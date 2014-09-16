@@ -23,6 +23,9 @@ The following arguments are supported:
 
 * `availability_zone`- (Optional) The AZ for the subnet.
 * `cidr_block` - (Required) The CIDR block for the subnet.
+* `map_public_ip_on_launch` -  (Optional) Specify true to indicate
+    that instances launched into the subnet should be assigned
+    a public IP address.
 * `vpc_id` - (Required) The VPC ID.
 
 ## Attributes Reference

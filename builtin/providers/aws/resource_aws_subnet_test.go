@@ -20,7 +20,7 @@ func TestAccAWSSubnet(t *testing.T) {
 		if v.MapPublicIpOnLaunch != true {
 			return fmt.Errorf("bad MapPublicIpOnLaunch: %s", v.MapPublicIpOnLaunch)
 		}
-		return fmt.Errorf("bad MapPublicIpOnLaunch: %s", v.MapPublicIpOnLaunch)
+
 		return nil
 	}
 
