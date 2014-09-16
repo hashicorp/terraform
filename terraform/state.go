@@ -7,6 +7,9 @@ import (
 	"io"
 )
 
+// rootModulePath is the path of the root module
+var rootModulePath = []string{"root"}
+
 // State keeps track of a snapshot state-of-the-world that Terraform
 // can use to keep track of what real world resources it is actually
 // managing. This is the latest format as of Terraform 0.3
@@ -21,6 +24,23 @@ type State struct {
 
 	// Modules contains all the modules in a breadth-first order
 	Modules []*ModuleState `json:"modules"`
+}
+
+// ModuleByPath is used to lookup the module state for the given path.
+// This should be the prefered lookup mechanism as it allows for future
+// lookup optimizations.
+func (s *State) ModuleByPath(path []string) *ModuleState {
+	for _, mod := range s.Modules {
+		if reflect.Equal(mod.Path, path) {
+			return mod
+		}
+	}
+	return nil
+}
+
+// RootModule returns the ModuleState for the root module
+func (s *State) RootModule() *ModuleState {
+	return s.ModuleByPath(rootModulePath)
 }
 
 func (s *State) deepcopy() *State {

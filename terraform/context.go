@@ -131,15 +131,17 @@ func (c *Context) Apply() (*State, error) {
 	c.state.prune()
 
 	// If we have no errors, then calculate the outputs if we have any
-	if err == nil && len(c.config.Outputs) > 0 && len(c.state.Resources) > 0 {
-		c.state.Outputs = make(map[string]string)
+	if err == nil && len(c.config.Outputs) > 0 {
+		outputs := make(map[string]string)
 		for _, o := range c.config.Outputs {
 			if err = c.computeVars(o.RawConfig); err != nil {
 				break
 			}
-
-			c.state.Outputs[o.Name] = o.RawConfig.Config()["value"].(string)
+			outputs[o.Name] = o.RawConfig.Config()["value"].(string)
 		}
+
+		// Assign the outputs to the root module
+		c.state.RootModule().Outputs = outputs
 	}
 
 	return c.state, err
