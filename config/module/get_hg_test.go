@@ -20,6 +20,8 @@ func TestHgGetter_impl(t *testing.T) {
 }
 
 func TestHgGetter(t *testing.T) {
+	t.Parallel()
+
 	if !testHasHg {
 		t.Log("hg not found, skipping")
 		t.Skip()
@@ -41,6 +43,8 @@ func TestHgGetter(t *testing.T) {
 }
 
 func TestHgGetter_branch(t *testing.T) {
+	t.Parallel()
+
 	if !testHasHg {
 		t.Log("hg not found, skipping")
 		t.Skip()

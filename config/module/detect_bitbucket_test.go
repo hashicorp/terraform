@@ -8,6 +8,8 @@ import (
 const testBBUrl = "https://bitbucket.org/hashicorp/tf-test-git"
 
 func TestBitBucketDetector(t *testing.T) {
+	t.Parallel()
+
 	if _, err := http.Get(testBBUrl); err != nil {
 		t.Log("internet may not be working, skipping BB tests")
 		t.Skip()
