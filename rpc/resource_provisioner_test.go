@@ -22,7 +22,7 @@ func TestResourceProvisioner_apply(t *testing.T) {
 	provisioner := &ResourceProvisioner{Client: client, Name: name}
 
 	// Apply
-	state := &terraform.ResourceState{}
+	state := &terraform.InstanceState{}
 	conf := &terraform.ResourceConfig{}
 	err = provisioner.Apply(state, conf)
 	if !p.ApplyCalled {
