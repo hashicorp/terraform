@@ -13,24 +13,27 @@ type MockResourceProvider struct {
 	Meta interface{}
 
 	ApplyCalled                  bool
-	ApplyState                   *ResourceState
+	ApplyInfo                    *InstanceInfo
+	ApplyState                   *InstanceState
 	ApplyDiff                    *ResourceDiff
-	ApplyFn                      func(*ResourceState, *ResourceDiff) (*ResourceState, error)
-	ApplyReturn                  *ResourceState
+	ApplyFn                      func(*InstanceInfo, *InstanceState, *ResourceDiff) (*InstanceState, error)
+	ApplyReturn                  *InstanceState
 	ApplyReturnError             error
 	ConfigureCalled              bool
 	ConfigureConfig              *ResourceConfig
 	ConfigureReturnError         error
 	DiffCalled                   bool
-	DiffState                    *ResourceState
+	DiffInfo                     *InstanceInfo
+	DiffState                    *InstanceState
 	DiffDesired                  *ResourceConfig
-	DiffFn                       func(*ResourceState, *ResourceConfig) (*ResourceDiff, error)
+	DiffFn                       func(*InstanceInfo, *InstanceState, *ResourceConfig) (*ResourceDiff, error)
 	DiffReturn                   *ResourceDiff
 	DiffReturnError              error
 	RefreshCalled                bool
-	RefreshState                 *ResourceState
-	RefreshFn                    func(*ResourceState) (*ResourceState, error)
-	RefreshReturn                *ResourceState
+	RefreshInfo                  *InstanceInfo
+	RefreshState                 *InstanceState
+	RefreshFn                    func(*InstanceInfo, *InstanceState) (*InstanceState, error)
+	RefreshReturn                *InstanceState
 	RefreshReturnError           error
 	ResourcesCalled              bool
 	ResourcesReturn              []ResourceType
@@ -80,47 +83,53 @@ func (p *MockResourceProvider) Configure(c *ResourceConfig) error {
 }
 
 func (p *MockResourceProvider) Apply(
-	state *ResourceState,
-	diff *ResourceDiff) (*ResourceState, error) {
+	info *InstanceInfo,
+	state *InstanceState,
+	diff *ResourceDiff) (*InstanceState, error) {
 	p.Lock()
 	defer p.Unlock()
 
 	p.ApplyCalled = true
+	p.ApplyInfo = info
 	p.ApplyState = state
 	p.ApplyDiff = diff
 	if p.ApplyFn != nil {
-		return p.ApplyFn(state, diff)
+		return p.ApplyFn(info, state, diff)
 	}
 
 	return p.ApplyReturn, p.ApplyReturnError
 }
 
 func (p *MockResourceProvider) Diff(
-	state *ResourceState,
+	info *InstanceInfo,
+	state *InstanceState,
 	desired *ResourceConfig) (*ResourceDiff, error) {
 	p.Lock()
 	defer p.Unlock()
 
 	p.DiffCalled = true
+	p.DiffInfo = info
 	p.DiffState = state
 	p.DiffDesired = desired
 	if p.DiffFn != nil {
-		return p.DiffFn(state, desired)
+		return p.DiffFn(info, state, desired)
 	}
 
 	return p.DiffReturn, p.DiffReturnError
 }
 
 func (p *MockResourceProvider) Refresh(
-	s *ResourceState) (*ResourceState, error) {
+	info *InstanceInfo,
+	s *InstanceState) (*InstanceState, error) {
 	p.Lock()
 	defer p.Unlock()
 
 	p.RefreshCalled = true
+	p.RefreshInfo = info
 	p.RefreshState = s
 
 	if p.RefreshFn != nil {
-		return p.RefreshFn(s)
+		return p.RefreshFn(info, s)
 	}
 
 	return p.RefreshReturn, p.RefreshReturnError

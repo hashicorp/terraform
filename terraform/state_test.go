@@ -12,14 +12,12 @@ import (
 	"github.com/hashicorp/terraform/config"
 )
 
-func TestResourceState_MergeDiff(t *testing.T) {
-	rs := ResourceState{
-		Primary: &InstanceState{
-			ID: "foo",
-			Attributes: map[string]string{
-				"foo":  "bar",
-				"port": "8000",
-			},
+func TestInstanceState_MergeDiff(t *testing.T) {
+	is := InstanceState{
+		ID: "foo",
+		Attributes: map[string]string{
+			"foo":  "bar",
+			"port": "8000",
 		},
 	}
 
@@ -44,7 +42,7 @@ func TestResourceState_MergeDiff(t *testing.T) {
 		},
 	}
 
-	rs2 := rs.MergeDiff(diff)
+	is2 := is.MergeDiff(diff)
 
 	expected := map[string]string{
 		"foo": "baz",
@@ -52,13 +50,13 @@ func TestResourceState_MergeDiff(t *testing.T) {
 		"baz": config.UnknownVariableValue,
 	}
 
-	if !reflect.DeepEqual(expected, rs2.Primary.Attributes) {
-		t.Fatalf("bad: %#v", rs2.Primary.Attributes)
+	if !reflect.DeepEqual(expected, is2.Attributes) {
+		t.Fatalf("bad: %#v", is2.Attributes)
 	}
 }
 
-func TestResourceState_MergeDiff_nil(t *testing.T) {
-	var rs *ResourceState = nil
+func TestInstanceState_MergeDiff_nil(t *testing.T) {
+	var is *InstanceState = nil
 
 	diff := &ResourceDiff{
 		Attributes: map[string]*ResourceAttrDiff{
@@ -69,35 +67,33 @@ func TestResourceState_MergeDiff_nil(t *testing.T) {
 		},
 	}
 
-	rs2 := rs.MergeDiff(diff)
+	is2 := is.MergeDiff(diff)
 
 	expected := map[string]string{
 		"foo": "baz",
 	}
 
-	if !reflect.DeepEqual(expected, rs2.Primary.Attributes) {
-		t.Fatalf("bad: %#v", rs2.Primary.Attributes)
+	if !reflect.DeepEqual(expected, is2.Attributes) {
+		t.Fatalf("bad: %#v", is2.Attributes)
 	}
 }
 
-func TestResourceState_MergeDiff_nilDiff(t *testing.T) {
-	rs := ResourceState{
-		Primary: &InstanceState{
-			ID: "foo",
-			Attributes: map[string]string{
-				"foo": "bar",
-			},
+func TestInstanceState_MergeDiff_nilDiff(t *testing.T) {
+	is := InstanceState{
+		ID: "foo",
+		Attributes: map[string]string{
+			"foo": "bar",
 		},
 	}
 
-	rs2 := rs.MergeDiff(nil)
+	is2 := is.MergeDiff(nil)
 
 	expected := map[string]string{
 		"foo": "bar",
 	}
 
-	if !reflect.DeepEqual(expected, rs2.Primary.Attributes) {
-		t.Fatalf("bad: %#v", rs2.Primary.Attributes)
+	if !reflect.DeepEqual(expected, is2.Attributes) {
+		t.Fatalf("bad: %#v", is2.Attributes)
 	}
 }
 

@@ -514,7 +514,9 @@ func (c *Context) applyWalkFn() depgraph.WalkFunc {
 				return err
 			}
 
-			diff, err = r.Provider.Diff(r.State, r.Config)
+			is := new(InstanceState) // TODO(armon): completely broken
+			info := new(InstanceInfo)
+			diff, err = r.Provider.Diff(info, is, r.Config)
 			if err != nil {
 				return err
 			}
@@ -557,9 +559,14 @@ func (c *Context) applyWalkFn() depgraph.WalkFunc {
 			handleHook(h.PreApply(r.Id, r.State, diff))
 		}
 
+		// TODO(armon): completely broken, added to compile
+		var rs *ResourceState
+		is := new(InstanceState)
+		info := new(InstanceInfo)
+
 		// With the completed diff, apply!
 		log.Printf("[DEBUG] %s: Executing Apply", r.Id)
-		rs, applyerr := r.Provider.Apply(r.State, diff)
+		is, applyerr := r.Provider.Apply(info, is, diff)
 
 		var errs []error
 		if applyerr != nil {
@@ -614,7 +621,9 @@ func (c *Context) applyWalkFn() depgraph.WalkFunc {
 				handleHook(h.PreProvisionResource(r.Id, r.State))
 			}
 
-			if err := c.applyProvisioners(r, rs); err != nil {
+			// TODO(armon): I renamed "rs" to "is" to get things to
+			// compile.
+			if err := c.applyProvisioners(r, is); err != nil {
 				errs = append(errs, err)
 				tainted = true
 			}
@@ -654,11 +663,11 @@ func (c *Context) applyWalkFn() depgraph.WalkFunc {
 
 // applyProvisioners is used to run any provisioners a resource has
 // defined after the resource creation has already completed.
-func (c *Context) applyProvisioners(r *Resource, rs *ResourceState) error {
+func (c *Context) applyProvisioners(r *Resource, is *InstanceState) error {
 	// Store the original connection info, restore later
-	origConnInfo := rs.Primary.Ephemeral.ConnInfo
+	origConnInfo := is.Ephemeral.ConnInfo
 	defer func() {
-		rs.Primary.Ephemeral.ConnInfo = origConnInfo
+		is.Ephemeral.ConnInfo = origConnInfo
 	}()
 
 	for _, prov := range r.Provisioners {
@@ -701,14 +710,14 @@ func (c *Context) applyProvisioners(r *Resource, rs *ResourceState) error {
 				overlay[k] = fmt.Sprintf("%v", vt)
 			}
 		}
-		rs.Primary.Ephemeral.ConnInfo = overlay
+		is.Ephemeral.ConnInfo = overlay
 
 		// Invoke the Provisioner
 		for _, h := range c.hooks {
 			handleHook(h.PreProvision(r.Id, prov.Type))
 		}
 
-		if err := prov.Provisioner.Apply(rs, prov.Config); err != nil {
+		if err := prov.Provisioner.Apply(is, prov.Config); err != nil {
 			return err
 		}
 
@@ -753,7 +762,9 @@ func (c *Context) planWalkFn(result *Plan) depgraph.WalkFunc {
 				state = new(ResourceState)
 				state.Type = r.State.Type
 			}
-			diff, err = r.Provider.Diff(state, r.Config)
+			is := new(InstanceState)  // TODO(armon): completely broken
+			info := new(InstanceInfo) // TODO(armon): completely broken
+			diff, err = r.Provider.Diff(info, is, r.Config)
 			if err != nil {
 				return err
 			}
@@ -797,7 +808,9 @@ func (c *Context) planWalkFn(result *Plan) depgraph.WalkFunc {
 
 		// Determine the new state and update variables
 		if !diff.Empty() {
-			r.State = r.State.MergeDiff(diff)
+			// TODO(armon): commented to compile, this is important
+			// but needs to be fixed to work with InstanceState
+			//r.State = r.State.MergeDiff(diff)
 		}
 
 		// Update our internal state so that variable computation works
@@ -852,7 +865,12 @@ func (c *Context) refreshWalkFn() depgraph.WalkFunc {
 			handleHook(h.PreRefresh(r.Id, r.State))
 		}
 
-		rs, err := r.Provider.Refresh(r.State)
+		// TODO(armon): completely broken
+		var rs *ResourceState
+		is := new(InstanceState)
+		info := new(InstanceInfo)
+
+		is, err := r.Provider.Refresh(info, is)
 		if err != nil {
 			return err
 		}

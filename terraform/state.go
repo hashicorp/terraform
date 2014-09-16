@@ -341,44 +341,6 @@ func (s *ResourceState) GoString() string {
 	return fmt.Sprintf("*%#v", *s)
 }
 
-// MergeDiff takes a ResourceDiff and merges the attributes into
-// this resource state in order to generate a new state. This new
-// state can be used to provide updated attribute lookups for
-// variable interpolation.
-//
-// If the diff attribute requires computing the value, and hence
-// won't be available until apply, the value is replaced with the
-// computeID.
-func (s *ResourceState) MergeDiff(d *ResourceDiff) *ResourceState {
-	var result ResourceState
-	if s != nil {
-		result = *s
-	}
-	result.init()
-
-	if s != nil {
-		for k, v := range s.Primary.Attributes {
-			result.Primary.Attributes[k] = v
-		}
-	}
-	if d != nil {
-		for k, diff := range d.Attributes {
-			if diff.NewRemoved {
-				delete(result.Primary.Attributes, k)
-				continue
-			}
-			if diff.NewComputed {
-				result.Primary.Attributes[k] = config.UnknownVariableValue
-				continue
-			}
-
-			result.Primary.Attributes[k] = diff.New
-		}
-	}
-
-	return &result
-}
-
 // InstanceState is used to track the unique state information belonging
 // to a given instance.
 type InstanceState struct {
@@ -423,6 +385,44 @@ func (i *InstanceState) deepcopy() *InstanceState {
 		n.Attributes[k] = v
 	}
 	return n
+}
+
+// MergeDiff takes a ResourceDiff and merges the attributes into
+// this resource state in order to generate a new state. This new
+// state can be used to provide updated attribute lookups for
+// variable interpolation.
+//
+// If the diff attribute requires computing the value, and hence
+// won't be available until apply, the value is replaced with the
+// computeID.
+func (s *InstanceState) MergeDiff(d *ResourceDiff) *InstanceState {
+	var result InstanceState
+	if s != nil {
+		result = *s
+	}
+	result.init()
+
+	if s != nil {
+		for k, v := range s.Attributes {
+			result.Attributes[k] = v
+		}
+	}
+	if d != nil {
+		for k, diff := range d.Attributes {
+			if diff.NewRemoved {
+				delete(result.Attributes, k)
+				continue
+			}
+			if diff.NewComputed {
+				result.Attributes[k] = config.UnknownVariableValue
+				continue
+			}
+
+			result.Attributes[k] = diff.New
+		}
+	}
+
+	return &result
 }
 
 func (i *InstanceState) GoString() string {

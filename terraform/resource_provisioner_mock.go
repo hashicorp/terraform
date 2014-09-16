@@ -7,9 +7,9 @@ type MockResourceProvisioner struct {
 	Meta interface{}
 
 	ApplyCalled      bool
-	ApplyState       *ResourceState
+	ApplyState       *InstanceState
 	ApplyConfig      *ResourceConfig
-	ApplyFn          func(*ResourceState, *ResourceConfig) error
+	ApplyFn          func(*InstanceState, *ResourceConfig) error
 	ApplyReturnError error
 
 	ValidateCalled       bool
@@ -28,7 +28,7 @@ func (p *MockResourceProvisioner) Validate(c *ResourceConfig) ([]string, []error
 	return p.ValidateReturnWarns, p.ValidateReturnErrors
 }
 
-func (p *MockResourceProvisioner) Apply(state *ResourceState, c *ResourceConfig) error {
+func (p *MockResourceProvisioner) Apply(state *InstanceState, c *ResourceConfig) error {
 	p.ApplyCalled = true
 	p.ApplyState = state
 	p.ApplyConfig = c
