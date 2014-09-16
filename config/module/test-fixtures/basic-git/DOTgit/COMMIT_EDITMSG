@@ -1,7 +1,7 @@
-remove tag1
+Branch
 # Please enter the commit message for your changes. Lines starting
 # with '#' will be ignored, and an empty message aborts the commit.
-# On branch master
+# On branch test-branch
 # Changes to be committed:
-#	deleted:    main_tag1.tf
+#	new file:   main_branch.tf
 #

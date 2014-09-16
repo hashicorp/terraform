@@ -17,11 +17,11 @@ func (g *GitGetter) Get(dst string, u *url.URL) error {
 	}
 
 	// Extract some query parameters we use
-	var tag string
+	var ref string
 	q := u.Query()
 	if len(q) > 0 {
-		tag = q.Get("tag")
-		q.Del("tag")
+		ref = q.Get("ref")
+		q.Del("ref")
 
 		// Copy the URL
 		var newU url.URL = *u
@@ -44,11 +44,11 @@ func (g *GitGetter) Get(dst string, u *url.URL) error {
 	}
 
 	// Next: check out the proper tag/branch if it is specified, and checkout
-	if tag == "" {
+	if ref == "" {
 		return nil
 	}
 
-	return g.checkout(dst, tag)
+	return g.checkout(dst, ref)
 }
 
 func (g *GitGetter) checkout(dst string, ref string) error {
