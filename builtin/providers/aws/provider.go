@@ -38,9 +38,10 @@ func Provider() *schema.Provider {
 		},
 
 		ResourcesMap: map[string]*schema.Resource{
-			"aws_eip":            resourceAwsEip(),
-			"aws_instance":       resourceAwsInstance(),
-			"aws_security_group": resourceAwsSecurityGroup(),
+			"aws_eip":             resourceAwsEip(),
+			"aws_instance":        resourceAwsInstance(),
+			"aws_security_group":  resourceAwsSecurityGroup(),
+			"aws_db_subnet_group": resourceAwsDbSubnetGroup(),
 		},
 	}
 }
