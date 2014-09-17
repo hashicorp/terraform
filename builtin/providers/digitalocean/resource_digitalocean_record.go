@@ -6,7 +6,6 @@ import (
 	"strings"
 
 	"github.com/hashicorp/terraform/helper/schema"
-	"github.com/hashicorp/terraform/terraform"
 	"github.com/pearkes/digitalocean"
 )
 
@@ -151,11 +150,6 @@ func resourceRecordRead(d *schema.ResourceData, meta interface{}) error {
 	d.Set("weight", rec.StringWeight())
 	d.Set("priority", rec.StringPriority())
 	d.Set("port", rec.StringPort())
-
-	// We belong to a Domain
-	d.SetDependencies([]terraform.ResourceDependency{
-		terraform.ResourceDependency{ID: d.Get("domain").(string)},
-	})
 
 	return nil
 }

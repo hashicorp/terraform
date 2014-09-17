@@ -55,32 +55,35 @@ func (p *ResourceProvider) Configure(c *terraform.ResourceConfig) error {
 }
 
 func (p *ResourceProvider) Apply(
-	s *terraform.ResourceState,
-	d *terraform.ResourceDiff) (*terraform.ResourceState, error) {
-	if _, ok := p.p.ResourcesMap[s.Type]; ok {
-		return p.p.Apply(s, d)
+	info *terraform.InstanceInfo,
+	s *terraform.InstanceState,
+	d *terraform.ResourceDiff) (*terraform.InstanceState, error) {
+	if _, ok := p.p.ResourcesMap[info.Type]; ok {
+		return p.p.Apply(info, s, d)
 	}
 
-	return resourceMap.Apply(s, d, p)
+	return resourceMap.Apply(info, s, d, p)
 }
 
 func (p *ResourceProvider) Diff(
-	s *terraform.ResourceState,
+	info *terraform.InstanceInfo,
+	s *terraform.InstanceState,
 	c *terraform.ResourceConfig) (*terraform.ResourceDiff, error) {
-	if _, ok := p.p.ResourcesMap[s.Type]; ok {
-		return p.p.Diff(s, c)
+	if _, ok := p.p.ResourcesMap[info.Type]; ok {
+		return p.p.Diff(info, s, c)
 	}
 
-	return resourceMap.Diff(s, c, p)
+	return resourceMap.Diff(info, s, c, p)
 }
 
 func (p *ResourceProvider) Refresh(
-	s *terraform.ResourceState) (*terraform.ResourceState, error) {
-	if _, ok := p.p.ResourcesMap[s.Type]; ok {
-		return p.p.Refresh(s)
+	info *terraform.InstanceInfo,
+	s *terraform.InstanceState) (*terraform.InstanceState, error) {
+	if _, ok := p.p.ResourcesMap[info.Type]; ok {
+		return p.p.Refresh(info, s)
 	}
 
-	return resourceMap.Refresh(s, p)
+	return resourceMap.Refresh(info, s, p)
 }
 
 func (p *ResourceProvider) Resources() []terraform.ResourceType {

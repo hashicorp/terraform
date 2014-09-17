@@ -15,9 +15,9 @@ import (
 )
 
 func resource_digitalocean_droplet_create(
-	s *terraform.ResourceState,
+	s *terraform.InstanceState,
 	d *terraform.ResourceDiff,
-	meta interface{}) (*terraform.ResourceState, error) {
+	meta interface{}) (*terraform.InstanceState, error) {
 	p := meta.(*ResourceProvider)
 	client := p.client
 
@@ -83,16 +83,16 @@ func resource_digitalocean_droplet_create(
 	droplet := dropletRaw.(*digitalocean.Droplet)
 
 	// Initialize the connection info
-	rs.ConnInfo["type"] = "ssh"
-	rs.ConnInfo["host"] = droplet.IPV4Address("public")
+	rs.Ephemeral.ConnInfo["type"] = "ssh"
+	rs.Ephemeral.ConnInfo["host"] = droplet.IPV4Address("public")
 
 	return resource_digitalocean_droplet_update_state(rs, droplet)
 }
 
 func resource_digitalocean_droplet_update(
-	s *terraform.ResourceState,
+	s *terraform.InstanceState,
 	d *terraform.ResourceDiff,
-	meta interface{}) (*terraform.ResourceState, error) {
+	meta interface{}) (*terraform.InstanceState, error) {
 	p := meta.(*ResourceProvider)
 	client := p.client
 	rs := s.MergeDiff(d)
@@ -193,7 +193,7 @@ func resource_digitalocean_droplet_update(
 }
 
 func resource_digitalocean_droplet_destroy(
-	s *terraform.ResourceState,
+	s *terraform.InstanceState,
 	meta interface{}) error {
 	p := meta.(*ResourceProvider)
 	client := p.client
@@ -216,8 +216,8 @@ func resource_digitalocean_droplet_destroy(
 }
 
 func resource_digitalocean_droplet_refresh(
-	s *terraform.ResourceState,
-	meta interface{}) (*terraform.ResourceState, error) {
+	s *terraform.InstanceState,
+	meta interface{}) (*terraform.InstanceState, error) {
 	p := meta.(*ResourceProvider)
 	client := p.client
 
@@ -236,7 +236,7 @@ func resource_digitalocean_droplet_refresh(
 }
 
 func resource_digitalocean_droplet_diff(
-	s *terraform.ResourceState,
+	s *terraform.InstanceState,
 	c *terraform.ResourceConfig,
 	meta interface{}) (*terraform.ResourceDiff, error) {
 
@@ -270,8 +270,8 @@ func resource_digitalocean_droplet_diff(
 }
 
 func resource_digitalocean_droplet_update_state(
-	s *terraform.ResourceState,
-	droplet *digitalocean.Droplet) (*terraform.ResourceState, error) {
+	s *terraform.InstanceState,
+	droplet *digitalocean.Droplet) (*terraform.InstanceState, error) {
 
 	s.Attributes["name"] = droplet.Name
 	s.Attributes["region"] = droplet.RegionSlug()
@@ -372,7 +372,7 @@ func new_droplet_state_refresh_func(id string, attribute string, client *digital
 		// Use our mapping to get back a map of the
 		// droplet properties
 		resourceMap, err := resource_digitalocean_droplet_update_state(
-			&terraform.ResourceState{Attributes: map[string]string{}}, &droplet)
+			&terraform.InstanceState{Attributes: map[string]string{}}, &droplet)
 
 		if err != nil {
 			log.Printf("Error creating map from droplet: %s", err)
