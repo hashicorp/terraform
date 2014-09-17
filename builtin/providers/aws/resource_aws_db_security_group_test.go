@@ -39,7 +39,7 @@ func TestAccAWSDBSecurityGroup(t *testing.T) {
 func testAccCheckAWSDBSecurityGroupDestroy(s *terraform.State) error {
 	conn := testAccProvider.rdsconn
 
-	for _, rs := range s.Resources {
+	for _, rs := range s.RootModule().Resources {
 		if rs.Type != "aws_db_security_group" {
 			continue
 		}
@@ -47,12 +47,12 @@ func testAccCheckAWSDBSecurityGroupDestroy(s *terraform.State) error {
 		// Try to find the Group
 		resp, err := conn.DescribeDBSecurityGroups(
 			&rds.DescribeDBSecurityGroups{
-				DBSecurityGroupName: rs.ID,
+				DBSecurityGroupName: rs.Primary.ID,
 			})
 
 		if err == nil {
 			if len(resp.DBSecurityGroups) != 0 &&
-				resp.DBSecurityGroups[0].Name == rs.ID {
+				resp.DBSecurityGroups[0].Name == rs.Primary.ID {
 				return fmt.Errorf("DB Security Group still exists")
 			}
 		}
@@ -98,19 +98,19 @@ func testAccCheckAWSDBSecurityGroupAttributes(group *rds.DBSecurityGroup) resour
 
 func testAccCheckAWSDBSecurityGroupExists(n string, v *rds.DBSecurityGroup) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
-		rs, ok := s.Resources[n]
+		rs, ok := s.RootModule().Resources[n]
 		if !ok {
 			return fmt.Errorf("Not found: %s", n)
 		}
 
-		if rs.ID == "" {
+		if rs.Primary.ID == "" {
 			return fmt.Errorf("No DB Security Group ID is set")
 		}
 
 		conn := testAccProvider.rdsconn
 
 		opts := rds.DescribeDBSecurityGroups{
-			DBSecurityGroupName: rs.ID,
+			DBSecurityGroupName: rs.Primary.ID,
 		}
 
 		resp, err := conn.DescribeDBSecurityGroups(&opts)
@@ -120,7 +120,7 @@ func testAccCheckAWSDBSecurityGroupExists(n string, v *rds.DBSecurityGroup) reso
 		}
 
 		if len(resp.DBSecurityGroups) != 1 ||
-			resp.DBSecurityGroups[0].Name != rs.ID {
+			resp.DBSecurityGroups[0].Name != rs.Primary.ID {
 			return fmt.Errorf("DB Security Group not found")
 		}
 

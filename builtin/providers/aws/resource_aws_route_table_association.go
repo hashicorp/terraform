@@ -10,9 +10,9 @@ import (
 )
 
 func resource_aws_route_table_association_create(
-	s *terraform.ResourceState,
+	s *terraform.InstanceState,
 	d *terraform.ResourceDiff,
-	meta interface{}) (*terraform.ResourceState, error) {
+	meta interface{}) (*terraform.InstanceState, error) {
 	p := meta.(*ResourceProvider)
 	ec2conn := p.ec2conn
 	rs := s.MergeDiff(d)
@@ -32,17 +32,13 @@ func resource_aws_route_table_association_create(
 	rs.ID = resp.AssociationId
 	log.Printf("[INFO] Association ID: %s", rs.ID)
 
-	rs.Dependencies = []terraform.ResourceDependency{
-		terraform.ResourceDependency{ID: rs.Attributes["route_table_id"]},
-	}
-
 	return rs, nil
 }
 
 func resource_aws_route_table_association_update(
-	s *terraform.ResourceState,
+	s *terraform.InstanceState,
 	d *terraform.ResourceDiff,
-	meta interface{}) (*terraform.ResourceState, error) {
+	meta interface{}) (*terraform.InstanceState, error) {
 	p := meta.(*ResourceProvider)
 	ec2conn := p.ec2conn
 
@@ -68,15 +64,11 @@ func resource_aws_route_table_association_update(
 	rs.ID = resp.AssociationId
 	log.Printf("[INFO] Association ID: %s", rs.ID)
 
-	rs.Dependencies = []terraform.ResourceDependency{
-		terraform.ResourceDependency{ID: rs.Attributes["route_table_id"]},
-	}
-
 	return rs, nil
 }
 
 func resource_aws_route_table_association_destroy(
-	s *terraform.ResourceState,
+	s *terraform.InstanceState,
 	meta interface{}) error {
 	p := meta.(*ResourceProvider)
 	ec2conn := p.ec2conn
@@ -95,8 +87,8 @@ func resource_aws_route_table_association_destroy(
 }
 
 func resource_aws_route_table_association_refresh(
-	s *terraform.ResourceState,
-	meta interface{}) (*terraform.ResourceState, error) {
+	s *terraform.InstanceState,
+	meta interface{}) (*terraform.InstanceState, error) {
 	p := meta.(*ResourceProvider)
 	ec2conn := p.ec2conn
 
@@ -128,7 +120,7 @@ func resource_aws_route_table_association_refresh(
 }
 
 func resource_aws_route_table_association_diff(
-	s *terraform.ResourceState,
+	s *terraform.InstanceState,
 	c *terraform.ResourceConfig,
 	meta interface{}) (*terraform.ResourceDiff, error) {
 	b := &diff.ResourceBuilder{

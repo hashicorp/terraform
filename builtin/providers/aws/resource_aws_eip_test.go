@@ -59,16 +59,16 @@ func TestAccAWSEIP_instance(t *testing.T) {
 func testAccCheckAWSEIPDestroy(s *terraform.State) error {
 	conn := testAccProvider.ec2conn
 
-	for _, rs := range s.Resources {
+	for _, rs := range s.RootModule().Resources {
 		if rs.Type != "aws_eip" {
 			continue
 		}
 
-		describe, err := conn.Addresses([]string{rs.ID}, []string{}, nil)
+		describe, err := conn.Addresses([]string{rs.Primary.ID}, []string{}, nil)
 
 		if err == nil {
 			if len(describe.Addresses) != 0 &&
-				describe.Addresses[0].PublicIp == rs.ID {
+				describe.Addresses[0].PublicIp == rs.Primary.ID {
 				return fmt.Errorf("EIP still exists")
 			}
 		}
@@ -103,37 +103,37 @@ func testAccCheckAWSEIPAttributes(conf *ec2.Address) resource.TestCheckFunc {
 
 func testAccCheckAWSEIPExists(n string, res *ec2.Address) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
-		rs, ok := s.Resources[n]
+		rs, ok := s.RootModule().Resources[n]
 		if !ok {
 			return fmt.Errorf("Not found: %s", n)
 		}
 
-		if rs.ID == "" {
+		if rs.Primary.ID == "" {
 			return fmt.Errorf("No EIP ID is set")
 		}
 
 		conn := testAccProvider.ec2conn
 
-		if strings.Contains(rs.ID, "eipalloc") {
-			describe, err := conn.Addresses([]string{}, []string{rs.ID}, nil)
+		if strings.Contains(rs.Primary.ID, "eipalloc") {
+			describe, err := conn.Addresses([]string{}, []string{rs.Primary.ID}, nil)
 			if err != nil {
 				return err
 			}
 
 			if len(describe.Addresses) != 1 ||
-				describe.Addresses[0].AllocationId != rs.ID {
+				describe.Addresses[0].AllocationId != rs.Primary.ID {
 				return fmt.Errorf("EIP not found")
 			}
 			*res = describe.Addresses[0]
 
 		} else {
-			describe, err := conn.Addresses([]string{rs.ID}, []string{}, nil)
+			describe, err := conn.Addresses([]string{rs.Primary.ID}, []string{}, nil)
 			if err != nil {
 				return err
 			}
 
 			if len(describe.Addresses) != 1 ||
-				describe.Addresses[0].PublicIp != rs.ID {
+				describe.Addresses[0].PublicIp != rs.Primary.ID {
 				return fmt.Errorf("EIP not found")
 			}
 			*res = describe.Addresses[0]

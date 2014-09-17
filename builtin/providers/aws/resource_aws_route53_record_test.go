@@ -28,12 +28,12 @@ func TestAccRoute53Record(t *testing.T) {
 
 func testAccCheckRoute53RecordDestroy(s *terraform.State) error {
 	conn := testAccProvider.route53
-	for _, rs := range s.Resources {
+	for _, rs := range s.RootModule().Resources {
 		if rs.Type != "aws_route53_record" {
 			continue
 		}
 
-		parts := strings.Split(rs.ID, "_")
+		parts := strings.Split(rs.Primary.ID, "_")
 		zone := parts[0]
 		name := parts[1]
 		rType := parts[2]
@@ -57,16 +57,16 @@ func testAccCheckRoute53RecordDestroy(s *terraform.State) error {
 func testAccCheckRoute53RecordExists(n string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		conn := testAccProvider.route53
-		rs, ok := s.Resources[n]
+		rs, ok := s.RootModule().Resources[n]
 		if !ok {
 			return fmt.Errorf("Not found: %s", n)
 		}
 
-		if rs.ID == "" {
+		if rs.Primary.ID == "" {
 			return fmt.Errorf("No hosted zone ID is set")
 		}
 
-		parts := strings.Split(rs.ID, "_")
+		parts := strings.Split(rs.Primary.ID, "_")
 		zone := parts[0]
 		name := parts[1]
 		rType := parts[2]

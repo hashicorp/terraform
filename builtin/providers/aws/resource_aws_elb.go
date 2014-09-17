@@ -13,9 +13,9 @@ import (
 )
 
 func resource_aws_elb_create(
-	s *terraform.ResourceState,
+	s *terraform.InstanceState,
 	d *terraform.ResourceDiff,
-	meta interface{}) (*terraform.ResourceState, error) {
+	meta interface{}) (*terraform.InstanceState, error) {
 	p := meta.(*ResourceProvider)
 	elbconn := p.elbconn
 
@@ -124,9 +124,9 @@ func resource_aws_elb_create(
 }
 
 func resource_aws_elb_update(
-	s *terraform.ResourceState,
+	s *terraform.InstanceState,
 	d *terraform.ResourceDiff,
-	meta interface{}) (*terraform.ResourceState, error) {
+	meta interface{}) (*terraform.InstanceState, error) {
 	p := meta.(*ResourceProvider)
 	elbconn := p.elbconn
 
@@ -214,7 +214,7 @@ func resource_aws_elb_update(
 }
 
 func resource_aws_elb_destroy(
-	s *terraform.ResourceState,
+	s *terraform.InstanceState,
 	meta interface{}) error {
 	p := meta.(*ResourceProvider)
 	elbconn := p.elbconn
@@ -235,8 +235,8 @@ func resource_aws_elb_destroy(
 }
 
 func resource_aws_elb_refresh(
-	s *terraform.ResourceState,
-	meta interface{}) (*terraform.ResourceState, error) {
+	s *terraform.InstanceState,
+	meta interface{}) (*terraform.InstanceState, error) {
 	p := meta.(*ResourceProvider)
 	elbconn := p.elbconn
 
@@ -249,7 +249,7 @@ func resource_aws_elb_refresh(
 }
 
 func resource_aws_elb_diff(
-	s *terraform.ResourceState,
+	s *terraform.InstanceState,
 	c *terraform.ResourceConfig,
 	meta interface{}) (*terraform.ResourceDiff, error) {
 
@@ -273,8 +273,8 @@ func resource_aws_elb_diff(
 }
 
 func resource_aws_elb_update_state(
-	s *terraform.ResourceState,
-	balancer *elb.LoadBalancer) (*terraform.ResourceState, error) {
+	s *terraform.InstanceState,
+	balancer *elb.LoadBalancer) (*terraform.InstanceState, error) {
 
 	s.Attributes["name"] = balancer.LoadBalancerName
 	s.Attributes["dns_name"] = balancer.DNSName

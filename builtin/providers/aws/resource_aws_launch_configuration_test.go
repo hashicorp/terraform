@@ -40,19 +40,19 @@ func TestAccAWSLaunchConfiguration(t *testing.T) {
 func testAccCheckAWSLaunchConfigurationDestroy(s *terraform.State) error {
 	conn := testAccProvider.autoscalingconn
 
-	for _, rs := range s.Resources {
+	for _, rs := range s.RootModule().Resources {
 		if rs.Type != "aws_launch_configuration" {
 			continue
 		}
 
 		describe, err := conn.DescribeLaunchConfigurations(
 			&autoscaling.DescribeLaunchConfigurations{
-				Names: []string{rs.ID},
+				Names: []string{rs.Primary.ID},
 			})
 
 		if err == nil {
 			if len(describe.LaunchConfigurations) != 0 &&
-				describe.LaunchConfigurations[0].Name == rs.ID {
+				describe.LaunchConfigurations[0].Name == rs.Primary.ID {
 				return fmt.Errorf("Launch Configuration still exists")
 			}
 		}
@@ -94,19 +94,19 @@ func testAccCheckAWSLaunchConfigurationAttributes(conf *autoscaling.LaunchConfig
 
 func testAccCheckAWSLaunchConfigurationExists(n string, res *autoscaling.LaunchConfiguration) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
-		rs, ok := s.Resources[n]
+		rs, ok := s.RootModule().Resources[n]
 		if !ok {
 			return fmt.Errorf("Not found: %s", n)
 		}
 
-		if rs.ID == "" {
+		if rs.Primary.ID == "" {
 			return fmt.Errorf("No Launch Configuration ID is set")
 		}
 
 		conn := testAccProvider.autoscalingconn
 
 		describeOpts := autoscaling.DescribeLaunchConfigurations{
-			Names: []string{rs.ID},
+			Names: []string{rs.Primary.ID},
 		}
 		describe, err := conn.DescribeLaunchConfigurations(&describeOpts)
 
@@ -115,7 +115,7 @@ func testAccCheckAWSLaunchConfigurationExists(n string, res *autoscaling.LaunchC
 		}
 
 		if len(describe.LaunchConfigurations) != 1 ||
-			describe.LaunchConfigurations[0].Name != rs.ID {
+			describe.LaunchConfigurations[0].Name != rs.Primary.ID {
 			return fmt.Errorf("Launch Configuration Group not found")
 		}
 

@@ -57,14 +57,14 @@ func TestAccAWSInternetGateway(t *testing.T) {
 func testAccCheckInternetGatewayDestroy(s *terraform.State) error {
 	conn := testAccProvider.ec2conn
 
-	for _, rs := range s.Resources {
+	for _, rs := range s.RootModule().Resources {
 		if rs.Type != "aws_internet_gateway" {
 			continue
 		}
 
 		// Try to find the resource
 		resp, err := conn.DescribeInternetGateways(
-			[]string{rs.ID}, ec2.NewFilter())
+			[]string{rs.Primary.ID}, ec2.NewFilter())
 		if err == nil {
 			if len(resp.InternetGateways) > 0 {
 				return fmt.Errorf("still exist.")
@@ -88,18 +88,18 @@ func testAccCheckInternetGatewayDestroy(s *terraform.State) error {
 
 func testAccCheckInternetGatewayExists(n string, ig *ec2.InternetGateway) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
-		rs, ok := s.Resources[n]
+		rs, ok := s.RootModule().Resources[n]
 		if !ok {
 			return fmt.Errorf("Not found: %s", n)
 		}
 
-		if rs.ID == "" {
+		if rs.Primary.ID == "" {
 			return fmt.Errorf("No ID is set")
 		}
 
 		conn := testAccProvider.ec2conn
 		resp, err := conn.DescribeInternetGateways(
-			[]string{rs.ID}, ec2.NewFilter())
+			[]string{rs.Primary.ID}, ec2.NewFilter())
 		if err != nil {
 			return err
 		}

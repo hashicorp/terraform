@@ -10,7 +10,6 @@ import (
 	"github.com/hashicorp/terraform/helper/hashcode"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
-	"github.com/hashicorp/terraform/terraform"
 	"github.com/mitchellh/goamz/ec2"
 )
 
@@ -271,8 +270,6 @@ func resourceAwsSecurityGroupRead(d *schema.ResourceData, meta interface{}) erro
 
 	sg := sgRaw.(*ec2.SecurityGroupInfo)
 
-	var deps []terraform.ResourceDependency
-
 	// Gather our ingress rules
 	ingressRules := make([]map[string]interface{}, len(sg.IPPerms))
 	for i, perm := range sg.IPPerms {
@@ -286,23 +283,10 @@ func resourceAwsSecurityGroupRead(d *schema.ResourceData, meta interface{}) erro
 		}
 
 		if len(perm.SourceGroups) > 0 {
-			// We depend on other security groups
-			for _, v := range perm.SourceGroups {
-				deps = append(deps,
-					terraform.ResourceDependency{ID: v.Id},
-				)
-			}
-
 			n["security_groups"] = flattenSecurityGroups(perm.SourceGroups)
 		}
 
 		ingressRules[i] = n
-	}
-
-	if v := d.Get("vpc_id"); v != nil && v.(string) != "" {
-		deps = append(deps,
-			terraform.ResourceDependency{ID: v.(string)},
-		)
 	}
 
 	d.Set("description", sg.Description)
@@ -310,7 +294,6 @@ func resourceAwsSecurityGroupRead(d *schema.ResourceData, meta interface{}) erro
 	d.Set("vpc_id", sg.VpcId)
 	d.Set("owner_id", sg.OwnerId)
 	d.Set("ingress", ingressRules)
-	d.SetDependencies(deps)
 
 	return nil
 }

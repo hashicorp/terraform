@@ -12,9 +12,9 @@ import (
 )
 
 func resource_aws_internet_gateway_create(
-	s *terraform.ResourceState,
+	s *terraform.InstanceState,
 	d *terraform.ResourceDiff,
-	meta interface{}) (*terraform.ResourceState, error) {
+	meta interface{}) (*terraform.InstanceState, error) {
 	p := meta.(*ResourceProvider)
 	ec2conn := p.ec2conn
 
@@ -35,9 +35,9 @@ func resource_aws_internet_gateway_create(
 }
 
 func resource_aws_internet_gateway_update(
-	s *terraform.ResourceState,
+	s *terraform.InstanceState,
 	d *terraform.ResourceDiff,
-	meta interface{}) (*terraform.ResourceState, error) {
+	meta interface{}) (*terraform.InstanceState, error) {
 	p := meta.(*ResourceProvider)
 	ec2conn := p.ec2conn
 
@@ -70,7 +70,7 @@ func resource_aws_internet_gateway_update(
 }
 
 func resource_aws_internet_gateway_destroy(
-	s *terraform.ResourceState,
+	s *terraform.InstanceState,
 	meta interface{}) error {
 	p := meta.(*ResourceProvider)
 	ec2conn := p.ec2conn
@@ -108,8 +108,8 @@ func resource_aws_internet_gateway_destroy(
 }
 
 func resource_aws_internet_gateway_refresh(
-	s *terraform.ResourceState,
-	meta interface{}) (*terraform.ResourceState, error) {
+	s *terraform.InstanceState,
+	meta interface{}) (*terraform.InstanceState, error) {
 	p := meta.(*ResourceProvider)
 	ec2conn := p.ec2conn
 
@@ -126,7 +126,7 @@ func resource_aws_internet_gateway_refresh(
 }
 
 func resource_aws_internet_gateway_diff(
-	s *terraform.ResourceState,
+	s *terraform.InstanceState,
 	c *terraform.ResourceConfig,
 	meta interface{}) (*terraform.ResourceDiff, error) {
 	b := &diff.ResourceBuilder{
@@ -140,7 +140,7 @@ func resource_aws_internet_gateway_diff(
 
 func resource_aws_internet_gateway_attach(
 	ec2conn *ec2.EC2,
-	s *terraform.ResourceState,
+	s *terraform.InstanceState,
 	vpcId string) error {
 	log.Printf(
 		"[INFO] Attaching Internet Gateway '%s' to VPC '%s'",
@@ -170,7 +170,7 @@ func resource_aws_internet_gateway_attach(
 
 func resource_aws_internet_gateway_detach(
 	ec2conn *ec2.EC2,
-	s *terraform.ResourceState) error {
+	s *terraform.InstanceState) error {
 	if s.Attributes["vpc_id"] == "" {
 		return nil
 	}
@@ -222,15 +222,8 @@ func resource_aws_internet_gateway_detach(
 }
 
 func resource_aws_internet_gateway_update_state(
-	s *terraform.ResourceState,
-	ig *ec2.InternetGateway) (*terraform.ResourceState, error) {
-	if s.Attributes["vpc_id"] != "" {
-		// We belong to a VPC
-		s.Dependencies = []terraform.ResourceDependency{
-			terraform.ResourceDependency{ID: s.Attributes["vpc_id"]},
-		}
-	}
-
+	s *terraform.InstanceState,
+	ig *ec2.InternetGateway) (*terraform.InstanceState, error) {
 	return s, nil
 }
 

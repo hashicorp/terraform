@@ -131,22 +131,22 @@ func TestAccAWSSecurityGroup_Change(t *testing.T) {
 func testAccCheckAWSSecurityGroupDestroy(s *terraform.State) error {
 	conn := testAccProvider.ec2conn
 
-	for _, rs := range s.Resources {
+	for _, rs := range s.RootModule().Resources {
 		if rs.Type != "aws_security_group" {
 			continue
 		}
 
 		sgs := []ec2.SecurityGroup{
 			ec2.SecurityGroup{
-				Id: rs.ID,
+				Id: rs.Primary.ID,
 			},
 		}
 
 		// Retrieve our group
 		resp, err := conn.SecurityGroups(sgs, nil)
 		if err == nil {
-			if len(resp.Groups) > 0 && resp.Groups[0].Id == rs.ID {
-				return fmt.Errorf("Security Group (%s) still exists.", rs.ID)
+			if len(resp.Groups) > 0 && resp.Groups[0].Id == rs.Primary.ID {
+				return fmt.Errorf("Security Group (%s) still exists.", rs.Primary.ID)
 			}
 
 			return nil
@@ -167,19 +167,19 @@ func testAccCheckAWSSecurityGroupDestroy(s *terraform.State) error {
 
 func testAccCheckAWSSecurityGroupExists(n string, group *ec2.SecurityGroupInfo) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
-		rs, ok := s.Resources[n]
+		rs, ok := s.RootModule().Resources[n]
 		if !ok {
 			return fmt.Errorf("Not found: %s", n)
 		}
 
-		if rs.ID == "" {
+		if rs.Primary.ID == "" {
 			return fmt.Errorf("No Security Group is set")
 		}
 
 		conn := testAccProvider.ec2conn
 		sgs := []ec2.SecurityGroup{
 			ec2.SecurityGroup{
-				Id: rs.ID,
+				Id: rs.Primary.ID,
 			},
 		}
 		resp, err := conn.SecurityGroups(sgs, nil)
@@ -187,7 +187,7 @@ func testAccCheckAWSSecurityGroupExists(n string, group *ec2.SecurityGroupInfo) 
 			return err
 		}
 
-		if len(resp.Groups) > 0 && resp.Groups[0].Id == rs.ID {
+		if len(resp.Groups) > 0 && resp.Groups[0].Id == rs.Primary.ID {
 
 			*group = resp.Groups[0]
 

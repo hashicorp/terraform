@@ -40,14 +40,14 @@ func TestAccAWSSubnet(t *testing.T) {
 func testAccCheckSubnetDestroy(s *terraform.State) error {
 	conn := testAccProvider.ec2conn
 
-	for _, rs := range s.Resources {
+	for _, rs := range s.RootModule().Resources {
 		if rs.Type != "aws_subnet" {
 			continue
 		}
 
 		// Try to find the resource
 		resp, err := conn.DescribeSubnets(
-			[]string{rs.ID}, ec2.NewFilter())
+			[]string{rs.Primary.ID}, ec2.NewFilter())
 		if err == nil {
 			if len(resp.Subnets) > 0 {
 				return fmt.Errorf("still exist.")
@@ -71,18 +71,18 @@ func testAccCheckSubnetDestroy(s *terraform.State) error {
 
 func testAccCheckSubnetExists(n string, v *ec2.Subnet) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
-		rs, ok := s.Resources[n]
+		rs, ok := s.RootModule().Resources[n]
 		if !ok {
 			return fmt.Errorf("Not found: %s", n)
 		}
 
-		if rs.ID == "" {
+		if rs.Primary.ID == "" {
 			return fmt.Errorf("No ID is set")
 		}
 
 		conn := testAccProvider.ec2conn
 		resp, err := conn.DescribeSubnets(
-			[]string{rs.ID}, ec2.NewFilter())
+			[]string{rs.Primary.ID}, ec2.NewFilter())
 		if err != nil {
 			return err
 		}

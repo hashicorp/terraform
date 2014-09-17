@@ -52,7 +52,7 @@ func TestAccAWSDBInstance(t *testing.T) {
 func testAccCheckAWSDBInstanceDestroy(s *terraform.State) error {
 	conn := testAccProvider.rdsconn
 
-	for _, rs := range s.Resources {
+	for _, rs := range s.RootModule().Resources {
 		if rs.Type != "aws_db_instance" {
 			continue
 		}
@@ -60,12 +60,12 @@ func testAccCheckAWSDBInstanceDestroy(s *terraform.State) error {
 		// Try to find the Group
 		resp, err := conn.DescribeDBInstances(
 			&rds.DescribeDBInstances{
-				DBInstanceIdentifier: rs.ID,
+				DBInstanceIdentifier: rs.Primary.ID,
 			})
 
 		if err == nil {
 			if len(resp.DBInstances) != 0 &&
-				resp.DBInstances[0].DBInstanceIdentifier == rs.ID {
+				resp.DBInstances[0].DBInstanceIdentifier == rs.Primary.ID {
 				return fmt.Errorf("DB Instance still exists")
 			}
 		}
@@ -104,19 +104,19 @@ func testAccCheckAWSDBInstanceAttributes(v *rds.DBInstance) resource.TestCheckFu
 
 func testAccCheckAWSDBInstanceExists(n string, v *rds.DBInstance) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
-		rs, ok := s.Resources[n]
+		rs, ok := s.RootModule().Resources[n]
 		if !ok {
 			return fmt.Errorf("Not found: %s", n)
 		}
 
-		if rs.ID == "" {
+		if rs.Primary.ID == "" {
 			return fmt.Errorf("No DB Instance ID is set")
 		}
 
 		conn := testAccProvider.rdsconn
 
 		opts := rds.DescribeDBInstances{
-			DBInstanceIdentifier: rs.ID,
+			DBInstanceIdentifier: rs.Primary.ID,
 		}
 
 		resp, err := conn.DescribeDBInstances(&opts)
@@ -126,7 +126,7 @@ func testAccCheckAWSDBInstanceExists(n string, v *rds.DBInstance) resource.TestC
 		}
 
 		if len(resp.DBInstances) != 1 ||
-			resp.DBInstances[0].DBInstanceIdentifier != rs.ID {
+			resp.DBInstances[0].DBInstanceIdentifier != rs.Primary.ID {
 			return fmt.Errorf("DB Instance not found")
 		}
 
