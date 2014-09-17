@@ -11,9 +11,9 @@ import (
 )
 
 func resource_cloudflare_record_create(
-	s *terraform.ResourceState,
+	s *terraform.InstanceState,
 	d *terraform.ResourceDiff,
-	meta interface{}) (*terraform.ResourceState, error) {
+	meta interface{}) (*terraform.InstanceState, error) {
 	p := meta.(*ResourceProvider)
 	client := p.client
 
@@ -51,9 +51,9 @@ func resource_cloudflare_record_create(
 }
 
 func resource_cloudflare_record_update(
-	s *terraform.ResourceState,
+	s *terraform.InstanceState,
 	d *terraform.ResourceDiff,
-	meta interface{}) (*terraform.ResourceState, error) {
+	meta interface{}) (*terraform.InstanceState, error) {
 	p := meta.(*ResourceProvider)
 	client := p.client
 	rs := s.MergeDiff(d)
@@ -86,7 +86,7 @@ func resource_cloudflare_record_update(
 }
 
 func resource_cloudflare_record_destroy(
-	s *terraform.ResourceState,
+	s *terraform.InstanceState,
 	meta interface{}) error {
 	p := meta.(*ResourceProvider)
 	client := p.client
@@ -103,8 +103,8 @@ func resource_cloudflare_record_destroy(
 }
 
 func resource_cloudflare_record_refresh(
-	s *terraform.ResourceState,
-	meta interface{}) (*terraform.ResourceState, error) {
+	s *terraform.InstanceState,
+	meta interface{}) (*terraform.InstanceState, error) {
 	p := meta.(*ResourceProvider)
 	client := p.client
 
@@ -117,7 +117,7 @@ func resource_cloudflare_record_refresh(
 }
 
 func resource_cloudflare_record_diff(
-	s *terraform.ResourceState,
+	s *terraform.InstanceState,
 	c *terraform.ResourceConfig,
 	meta interface{}) (*terraform.ResourceDiff, error) {
 
@@ -144,8 +144,8 @@ func resource_cloudflare_record_diff(
 }
 
 func resource_cloudflare_record_update_state(
-	s *terraform.ResourceState,
-	rec *cloudflare.Record) (*terraform.ResourceState, error) {
+	s *terraform.InstanceState,
+	rec *cloudflare.Record) (*terraform.InstanceState, error) {
 
 	s.Attributes["name"] = rec.Name
 	s.Attributes["value"] = rec.Value
