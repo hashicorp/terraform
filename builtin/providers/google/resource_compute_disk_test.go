@@ -31,13 +31,13 @@ func TestAccComputeDisk_basic(t *testing.T) {
 func testAccCheckComputeDiskDestroy(s *terraform.State) error {
 	config := testAccProvider.Meta().(*Config)
 
-	for _, rs := range s.Resources {
+	for _, rs := range s.RootModule().Resources {
 		if rs.Type != "google_compute_disk" {
 			continue
 		}
 
 		_, err := config.clientCompute.Disks.Get(
-			config.Project, rs.Attributes["zone"], rs.ID).Do()
+			config.Project, rs.Primary.Attributes["zone"], rs.Primary.ID).Do()
 		if err == nil {
 			return fmt.Errorf("Disk still exists")
 		}
@@ -48,24 +48,24 @@ func testAccCheckComputeDiskDestroy(s *terraform.State) error {
 
 func testAccCheckComputeDiskExists(n string, disk *compute.Disk) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
-		rs, ok := s.Resources[n]
+		rs, ok := s.RootModule().Resources[n]
 		if !ok {
 			return fmt.Errorf("Not found: %s", n)
 		}
 
-		if rs.ID == "" {
+		if rs.Primary.ID == "" {
 			return fmt.Errorf("No ID is set")
 		}
 
 		config := testAccProvider.Meta().(*Config)
 
 		found, err := config.clientCompute.Disks.Get(
-			config.Project, rs.Attributes["zone"], rs.ID).Do()
+			config.Project, rs.Primary.Attributes["zone"], rs.Primary.ID).Do()
 		if err != nil {
 			return err
 		}
 
-		if found.Name != rs.ID {
+		if found.Name != rs.Primary.ID {
 			return fmt.Errorf("Disk not found")
 		}
 

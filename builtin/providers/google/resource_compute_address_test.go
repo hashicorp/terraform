@@ -31,13 +31,13 @@ func TestAccComputeAddress_basic(t *testing.T) {
 func testAccCheckComputeAddressDestroy(s *terraform.State) error {
 	config := testAccProvider.Meta().(*Config)
 
-	for _, rs := range s.Resources {
+	for _, rs := range s.RootModule().Resources {
 		if rs.Type != "google_compute_address" {
 			continue
 		}
 
 		_, err := config.clientCompute.Addresses.Get(
-			config.Project, config.Region, rs.ID).Do()
+			config.Project, config.Region, rs.Primary.ID).Do()
 		if err == nil {
 			return fmt.Errorf("Address still exists")
 		}
@@ -48,24 +48,24 @@ func testAccCheckComputeAddressDestroy(s *terraform.State) error {
 
 func testAccCheckComputeAddressExists(n string, addr *compute.Address) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
-		rs, ok := s.Resources[n]
+		rs, ok := s.RootModule().Resources[n]
 		if !ok {
 			return fmt.Errorf("Not found: %s", n)
 		}
 
-		if rs.ID == "" {
+		if rs.Primary.ID == "" {
 			return fmt.Errorf("No ID is set")
 		}
 
 		config := testAccProvider.Meta().(*Config)
 
 		found, err := config.clientCompute.Addresses.Get(
-			config.Project, config.Region, rs.ID).Do()
+			config.Project, config.Region, rs.Primary.ID).Do()
 		if err != nil {
 			return err
 		}
 
-		if found.Name != rs.ID {
+		if found.Name != rs.Primary.ID {
 			return fmt.Errorf("Addr not found")
 		}
 

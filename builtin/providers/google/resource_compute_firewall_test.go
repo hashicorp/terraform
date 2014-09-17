@@ -59,13 +59,13 @@ func TestAccComputeFirewall_update(t *testing.T) {
 func testAccCheckComputeFirewallDestroy(s *terraform.State) error {
 	config := testAccProvider.Meta().(*Config)
 
-	for _, rs := range s.Resources {
+	for _, rs := range s.RootModule().Resources {
 		if rs.Type != "google_compute_firewall" {
 			continue
 		}
 
 		_, err := config.clientCompute.Firewalls.Get(
-			config.Project, rs.ID).Do()
+			config.Project, rs.Primary.ID).Do()
 		if err == nil {
 			return fmt.Errorf("Firewall still exists")
 		}
@@ -76,24 +76,24 @@ func testAccCheckComputeFirewallDestroy(s *terraform.State) error {
 
 func testAccCheckComputeFirewallExists(n string, firewall *compute.Firewall) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
-		rs, ok := s.Resources[n]
+		rs, ok := s.RootModule().Resources[n]
 		if !ok {
 			return fmt.Errorf("Not found: %s", n)
 		}
 
-		if rs.ID == "" {
+		if rs.Primary.ID == "" {
 			return fmt.Errorf("No ID is set")
 		}
 
 		config := testAccProvider.Meta().(*Config)
 
 		found, err := config.clientCompute.Firewalls.Get(
-			config.Project, rs.ID).Do()
+			config.Project, rs.Primary.ID).Do()
 		if err != nil {
 			return err
 		}
 
-		if found.Name != rs.ID {
+		if found.Name != rs.Primary.ID {
 			return fmt.Errorf("Firewall not found")
 		}
 
