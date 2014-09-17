@@ -889,13 +889,12 @@ func (c *Context) refreshWalkFn() depgraph.WalkFunc {
 		}
 
 		c.sl.Lock()
-
-		// TODO: Handle other moduels
+		// TODO: Handle other modules
 		mod := c.state.RootModule()
 		if len(r.State.Tainted) == 0 && (is == nil || is.ID == "") {
 			delete(mod.Resources, r.Id)
 		} else {
-			mod.Resources[r.Id] = r.State
+			mod.Resources[r.Id].Primary = is
 		}
 		c.sl.Unlock()
 
