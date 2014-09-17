@@ -589,8 +589,8 @@ func (c *Context) applyWalkFn() depgraph.WalkFunc {
 		// Make sure the result is instantiated
 		if is == nil {
 			is = new(InstanceState)
-			is.init()
 		}
+		is.init()
 
 		// Force the "id" attribute to be our ID
 		if is.ID != "" {
@@ -634,8 +634,6 @@ func (c *Context) applyWalkFn() depgraph.WalkFunc {
 				handleHook(h.PreProvisionResource(r.Id, r.State))
 			}
 
-			// TODO(armon): I renamed "rs" to "is" to get things to
-			// compile.
 			if err := c.applyProvisioners(r, is); err != nil {
 				errs = append(errs, err)
 				tainted = true
@@ -774,9 +772,9 @@ func (c *Context) planWalkFn(result *Plan) depgraph.WalkFunc {
 				state = new(ResourceState)
 				state.Type = r.State.Type
 			}
-			is := new(InstanceState)  // TODO(armon): completely broken
-			info := new(InstanceInfo) // TODO(armon): completely broken
-			diff, err = r.Provider.Diff(info, is, r.Config)
+			state.init()
+			info := &InstanceInfo{Type: state.Type}
+			diff, err = r.Provider.Diff(info, state.Primary, r.Config)
 			if err != nil {
 				return err
 			}
@@ -825,9 +823,7 @@ func (c *Context) planWalkFn(result *Plan) depgraph.WalkFunc {
 
 		// Determine the new state and update variables
 		if !diff.Empty() {
-			// TODO(armon): commented to compile, this is important
-			// but needs to be fixed to work with InstanceState
-			//r.State = r.State.MergeDiff(diff)
+			r.State.Primary = r.State.Primary.MergeDiff(diff)
 		}
 
 		// Update our internal state so that variable computation works
@@ -882,35 +878,29 @@ func (c *Context) refreshWalkFn() depgraph.WalkFunc {
 			handleHook(h.PreRefresh(r.Id, r.State))
 		}
 
-		// TODO(armon): completely broken
-		var rs *ResourceState
-		is := new(InstanceState)
-		info := new(InstanceInfo)
-
-		is, err := r.Provider.Refresh(info, is)
+		info := &InstanceInfo{Type: r.State.Type}
+		is, err := r.Provider.Refresh(info, r.State.Primary)
 		if err != nil {
 			return err
 		}
-		if rs == nil {
-			rs = new(ResourceState)
+		if is == nil {
+			is = new(InstanceState)
+			is.init()
 		}
-
-		// Fix the type to be the type we have
-		rs.Type = r.State.Type
 
 		c.sl.Lock()
 
 		// TODO: Handle other moduels
 		mod := c.state.RootModule()
-		if len(rs.Tainted) == 0 && (rs.Primary == nil || rs.Primary.ID == "") {
+		if len(r.State.Tainted) == 0 && (r.State.Primary == nil || r.State.Primary.ID == "") {
 			delete(mod.Resources, r.Id)
 		} else {
-			mod.Resources[r.Id] = rs
+			mod.Resources[r.Id] = r.State
 		}
 		c.sl.Unlock()
 
 		for _, h := range c.hooks {
-			handleHook(h.PostRefresh(r.Id, rs))
+			handleHook(h.PostRefresh(r.Id, r.State))
 		}
 
 		return nil
