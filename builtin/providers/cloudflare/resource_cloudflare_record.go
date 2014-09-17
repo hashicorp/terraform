@@ -12,7 +12,7 @@ import (
 
 func resource_cloudflare_record_create(
 	s *terraform.InstanceState,
-	d *terraform.ResourceDiff,
+	d *terraform.InstanceDiff,
 	meta interface{}) (*terraform.InstanceState, error) {
 	p := meta.(*ResourceProvider)
 	client := p.client
@@ -52,7 +52,7 @@ func resource_cloudflare_record_create(
 
 func resource_cloudflare_record_update(
 	s *terraform.InstanceState,
-	d *terraform.ResourceDiff,
+	d *terraform.InstanceDiff,
 	meta interface{}) (*terraform.InstanceState, error) {
 	p := meta.(*ResourceProvider)
 	client := p.client
@@ -119,7 +119,7 @@ func resource_cloudflare_record_refresh(
 func resource_cloudflare_record_diff(
 	s *terraform.InstanceState,
 	c *terraform.ResourceConfig,
-	meta interface{}) (*terraform.ResourceDiff, error) {
+	meta interface{}) (*terraform.InstanceDiff, error) {
 
 	b := &diff.ResourceBuilder{
 		Attrs: map[string]diff.AttrType{

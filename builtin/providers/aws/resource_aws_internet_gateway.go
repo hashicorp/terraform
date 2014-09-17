@@ -13,7 +13,7 @@ import (
 
 func resource_aws_internet_gateway_create(
 	s *terraform.InstanceState,
-	d *terraform.ResourceDiff,
+	d *terraform.InstanceDiff,
 	meta interface{}) (*terraform.InstanceState, error) {
 	p := meta.(*ResourceProvider)
 	ec2conn := p.ec2conn
@@ -36,7 +36,7 @@ func resource_aws_internet_gateway_create(
 
 func resource_aws_internet_gateway_update(
 	s *terraform.InstanceState,
-	d *terraform.ResourceDiff,
+	d *terraform.InstanceDiff,
 	meta interface{}) (*terraform.InstanceState, error) {
 	p := meta.(*ResourceProvider)
 	ec2conn := p.ec2conn
@@ -128,7 +128,7 @@ func resource_aws_internet_gateway_refresh(
 func resource_aws_internet_gateway_diff(
 	s *terraform.InstanceState,
 	c *terraform.ResourceConfig,
-	meta interface{}) (*terraform.ResourceDiff, error) {
+	meta interface{}) (*terraform.InstanceDiff, error) {
 	b := &diff.ResourceBuilder{
 		Attrs: map[string]diff.AttrType{
 			"vpc_id": diff.AttrTypeUpdate,

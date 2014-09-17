@@ -13,8 +13,8 @@ func TestDiff_Empty(t *testing.T) {
 		t.Fatal("should be empty")
 	}
 
-	diff.Resources = map[string]*ResourceDiff{
-		"nodeA": &ResourceDiff{},
+	diff.Resources = map[string]*InstanceDiff{
+		"nodeA": &InstanceDiff{},
 	}
 
 	if !diff.Empty() {
@@ -42,8 +42,8 @@ func TestDiff_Empty(t *testing.T) {
 
 func TestDiff_String(t *testing.T) {
 	diff := &Diff{
-		Resources: map[string]*ResourceDiff{
-			"nodeA": &ResourceDiff{
+		Resources: map[string]*InstanceDiff{
+			"nodeA": &InstanceDiff{
 				Attributes: map[string]*ResourceAttrDiff{
 					"foo": &ResourceAttrDiff{
 						Old: "foo",
@@ -71,25 +71,25 @@ func TestDiff_String(t *testing.T) {
 }
 
 func TestResourceDiff_Empty(t *testing.T) {
-	var rd *ResourceDiff
+	var rd *InstanceDiff
 
 	if !rd.Empty() {
 		t.Fatal("should be empty")
 	}
 
-	rd = new(ResourceDiff)
+	rd = new(InstanceDiff)
 
 	if !rd.Empty() {
 		t.Fatal("should be empty")
 	}
 
-	rd = &ResourceDiff{Destroy: true}
+	rd = &InstanceDiff{Destroy: true}
 
 	if rd.Empty() {
 		t.Fatal("should not be empty")
 	}
 
-	rd = &ResourceDiff{
+	rd = &InstanceDiff{
 		Attributes: map[string]*ResourceAttrDiff{
 			"foo": &ResourceAttrDiff{
 				New: "bar",
@@ -103,7 +103,7 @@ func TestResourceDiff_Empty(t *testing.T) {
 }
 
 func TestResourceDiff_RequiresNew(t *testing.T) {
-	rd := &ResourceDiff{
+	rd := &InstanceDiff{
 		Attributes: map[string]*ResourceAttrDiff{
 			"foo": &ResourceAttrDiff{},
 		},
@@ -121,7 +121,7 @@ func TestResourceDiff_RequiresNew(t *testing.T) {
 }
 
 func TestResourceDiff_RequiresNew_nil(t *testing.T) {
-	var rd *ResourceDiff
+	var rd *InstanceDiff
 
 	if rd.RequiresNew() {
 		t.Fatal("should not require new")
@@ -130,12 +130,12 @@ func TestResourceDiff_RequiresNew_nil(t *testing.T) {
 
 func TestResourceDiffSame(t *testing.T) {
 	cases := []struct {
-		One, Two *ResourceDiff
+		One, Two *InstanceDiff
 		Same     bool
 	}{
 		{
-			&ResourceDiff{},
-			&ResourceDiff{},
+			&InstanceDiff{},
+			&InstanceDiff{},
 			true,
 		},
 
@@ -146,24 +146,24 @@ func TestResourceDiffSame(t *testing.T) {
 		},
 
 		{
-			&ResourceDiff{Destroy: false},
-			&ResourceDiff{Destroy: true},
+			&InstanceDiff{Destroy: false},
+			&InstanceDiff{Destroy: true},
 			false,
 		},
 
 		{
-			&ResourceDiff{Destroy: true},
-			&ResourceDiff{Destroy: true},
+			&InstanceDiff{Destroy: true},
+			&InstanceDiff{Destroy: true},
 			true,
 		},
 
 		{
-			&ResourceDiff{
+			&InstanceDiff{
 				Attributes: map[string]*ResourceAttrDiff{
 					"foo": &ResourceAttrDiff{},
 				},
 			},
-			&ResourceDiff{
+			&InstanceDiff{
 				Attributes: map[string]*ResourceAttrDiff{
 					"foo": &ResourceAttrDiff{},
 				},
@@ -172,12 +172,12 @@ func TestResourceDiffSame(t *testing.T) {
 		},
 
 		{
-			&ResourceDiff{
+			&InstanceDiff{
 				Attributes: map[string]*ResourceAttrDiff{
 					"bar": &ResourceAttrDiff{},
 				},
 			},
-			&ResourceDiff{
+			&InstanceDiff{
 				Attributes: map[string]*ResourceAttrDiff{
 					"foo": &ResourceAttrDiff{},
 				},
@@ -186,12 +186,12 @@ func TestResourceDiffSame(t *testing.T) {
 		},
 
 		{
-			&ResourceDiff{
+			&InstanceDiff{
 				Attributes: map[string]*ResourceAttrDiff{
 					"foo": &ResourceAttrDiff{RequiresNew: true},
 				},
 			},
-			&ResourceDiff{
+			&InstanceDiff{
 				Attributes: map[string]*ResourceAttrDiff{
 					"foo": &ResourceAttrDiff{RequiresNew: false},
 				},
@@ -210,8 +210,8 @@ func TestResourceDiffSame(t *testing.T) {
 
 func TestReadWriteDiff(t *testing.T) {
 	diff := &Diff{
-		Resources: map[string]*ResourceDiff{
-			"nodeA": &ResourceDiff{
+		Resources: map[string]*InstanceDiff{
+			"nodeA": &InstanceDiff{
 				Attributes: map[string]*ResourceAttrDiff{
 					"foo": &ResourceAttrDiff{
 						Old: "foo",

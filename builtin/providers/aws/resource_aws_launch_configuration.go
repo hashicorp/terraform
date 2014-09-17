@@ -13,7 +13,7 @@ import (
 
 func resource_aws_launch_configuration_create(
 	s *terraform.InstanceState,
-	d *terraform.ResourceDiff,
+	d *terraform.InstanceDiff,
 	meta interface{}) (*terraform.InstanceState, error) {
 	p := meta.(*ResourceProvider)
 	autoscalingconn := p.autoscalingconn
@@ -76,7 +76,7 @@ func resource_aws_launch_configuration_create(
 
 func resource_aws_launch_configuration_update(
 	s *terraform.InstanceState,
-	d *terraform.ResourceDiff,
+	d *terraform.InstanceDiff,
 	meta interface{}) (*terraform.InstanceState, error) {
 	panic("Update for AWS Launch Configuration is not supported")
 }
@@ -120,7 +120,7 @@ func resource_aws_launch_configuration_refresh(
 func resource_aws_launch_configuration_diff(
 	s *terraform.InstanceState,
 	c *terraform.ResourceConfig,
-	meta interface{}) (*terraform.ResourceDiff, error) {
+	meta interface{}) (*terraform.InstanceDiff, error) {
 
 	b := &diff.ResourceBuilder{
 		Attrs: map[string]diff.AttrType{

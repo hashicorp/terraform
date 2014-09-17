@@ -18,7 +18,7 @@ type Resource struct {
 // exist.
 type CreateFunc func(
 	*terraform.InstanceState,
-	*terraform.ResourceDiff,
+	*terraform.InstanceDiff,
 	interface{}) (*terraform.InstanceState, error)
 
 // DestroyFunc is a function that destroys a resource that previously
@@ -31,7 +31,7 @@ type DestroyFunc func(
 type DiffFunc func(
 	*terraform.InstanceState,
 	*terraform.ResourceConfig,
-	interface{}) (*terraform.ResourceDiff, error)
+	interface{}) (*terraform.InstanceDiff, error)
 
 // RefreshFunc is a function that performs a refresh of a specific type
 // of resource.
@@ -45,5 +45,5 @@ type RefreshFunc func(
 // a new resource.
 type UpdateFunc func(
 	*terraform.InstanceState,
-	*terraform.ResourceDiff,
+	*terraform.InstanceDiff,
 	interface{}) (*terraform.InstanceState, error)

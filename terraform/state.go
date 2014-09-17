@@ -412,7 +412,7 @@ func (i *InstanceState) deepcopy() *InstanceState {
 // If the diff attribute requires computing the value, and hence
 // won't be available until apply, the value is replaced with the
 // computeID.
-func (s *InstanceState) MergeDiff(d *ResourceDiff) *InstanceState {
+func (s *InstanceState) MergeDiff(d *InstanceDiff) *InstanceState {
 	var result InstanceState
 	if s != nil {
 		result = *s

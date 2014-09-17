@@ -18,7 +18,7 @@ const diffFormatByte byte = 1
 
 // Diff tracks the differences between resources to apply.
 type Diff struct {
-	Resources map[string]*ResourceDiff
+	Resources map[string]*InstanceDiff
 	once      sync.Once
 }
 
@@ -64,7 +64,7 @@ func WriteDiff(d *Diff, dst io.Writer) error {
 func (d *Diff) init() {
 	d.once.Do(func() {
 		if d.Resources == nil {
-			d.Resources = make(map[string]*ResourceDiff)
+			d.Resources = make(map[string]*InstanceDiff)
 		}
 	})
 }
@@ -152,8 +152,8 @@ func (d *Diff) String() string {
 	return buf.String()
 }
 
-// ResourceDiff is the diff of a resource from some state to another.
-type ResourceDiff struct {
+// InstanceDiff is the diff of a resource from some state to another.
+type InstanceDiff struct {
 	Attributes map[string]*ResourceAttrDiff
 	Destroy    bool
 
@@ -188,7 +188,7 @@ const (
 	DiffAttrOutput
 )
 
-func (d *ResourceDiff) init() {
+func (d *InstanceDiff) init() {
 	d.once.Do(func() {
 		if d.Attributes == nil {
 			d.Attributes = make(map[string]*ResourceAttrDiff)
@@ -197,7 +197,7 @@ func (d *ResourceDiff) init() {
 }
 
 // Empty returns true if this diff encapsulates no changes.
-func (d *ResourceDiff) Empty() bool {
+func (d *InstanceDiff) Empty() bool {
 	if d == nil {
 		return true
 	}
@@ -207,7 +207,7 @@ func (d *ResourceDiff) Empty() bool {
 
 // RequiresNew returns true if the diff requires the creation of a new
 // resource (implying the destruction of the old).
-func (d *ResourceDiff) RequiresNew() bool {
+func (d *InstanceDiff) RequiresNew() bool {
 	if d == nil {
 		return false
 	}
@@ -221,11 +221,11 @@ func (d *ResourceDiff) RequiresNew() bool {
 	return false
 }
 
-// Same checks whether or not to ResourceDiffs are the "same." When
+// Same checks whether or not to InstanceDiff are the "same." When
 // we say "same", it is not necessarily exactly equal. Instead, it is
 // just checking that the same attributes are changing, a destroy
 // isn't suddenly happening, etc.
-func (d *ResourceDiff) Same(d2 *ResourceDiff) bool {
+func (d *InstanceDiff) Same(d2 *InstanceDiff) bool {
 	if d == nil && d2 == nil {
 		return true
 	} else if d == nil || d2 == nil {

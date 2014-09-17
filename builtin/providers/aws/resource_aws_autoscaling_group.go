@@ -14,7 +14,7 @@ import (
 
 func resource_aws_autoscaling_group_create(
 	s *terraform.InstanceState,
-	d *terraform.ResourceDiff,
+	d *terraform.InstanceDiff,
 	meta interface{}) (*terraform.InstanceState, error) {
 	p := meta.(*ResourceProvider)
 	autoscalingconn := p.autoscalingconn
@@ -94,7 +94,7 @@ func resource_aws_autoscaling_group_create(
 
 func resource_aws_autoscaling_group_update(
 	s *terraform.InstanceState,
-	d *terraform.ResourceDiff,
+	d *terraform.InstanceDiff,
 	meta interface{}) (*terraform.InstanceState, error) {
 	p := meta.(*ResourceProvider)
 	autoscalingconn := p.autoscalingconn
@@ -187,7 +187,7 @@ func resource_aws_autoscaling_group_refresh(
 func resource_aws_autoscaling_group_diff(
 	s *terraform.InstanceState,
 	c *terraform.ResourceConfig,
-	meta interface{}) (*terraform.ResourceDiff, error) {
+	meta interface{}) (*terraform.InstanceDiff, error) {
 
 	b := &diff.ResourceBuilder{
 		Attrs: map[string]diff.AttrType{

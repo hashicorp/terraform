@@ -10,7 +10,7 @@ type stopHook struct {
 	stop uint32
 }
 
-func (h *stopHook) PreApply(string, *InstanceState, *ResourceDiff) (HookAction, error) {
+func (h *stopHook) PreApply(string, *InstanceState, *InstanceDiff) (HookAction, error) {
 	return h.hook()
 }
 
@@ -22,7 +22,7 @@ func (h *stopHook) PreDiff(string, *InstanceState) (HookAction, error) {
 	return h.hook()
 }
 
-func (h *stopHook) PostDiff(string, *ResourceDiff) (HookAction, error) {
+func (h *stopHook) PostDiff(string, *InstanceDiff) (HookAction, error) {
 	return h.hook()
 }
 

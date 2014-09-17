@@ -12,7 +12,7 @@ import (
 
 func resource_dnsimple_record_create(
 	s *terraform.InstanceState,
-	d *terraform.ResourceDiff,
+	d *terraform.InstanceDiff,
 	meta interface{}) (*terraform.InstanceState, error) {
 	p := meta.(*ResourceProvider)
 	client := p.client
@@ -54,7 +54,7 @@ func resource_dnsimple_record_create(
 
 func resource_dnsimple_record_update(
 	s *terraform.InstanceState,
-	d *terraform.ResourceDiff,
+	d *terraform.InstanceDiff,
 	meta interface{}) (*terraform.InstanceState, error) {
 	p := meta.(*ResourceProvider)
 	client := p.client
@@ -127,7 +127,7 @@ func resource_dnsimple_record_refresh(
 func resource_dnsimple_record_diff(
 	s *terraform.InstanceState,
 	c *terraform.ResourceConfig,
-	meta interface{}) (*terraform.ResourceDiff, error) {
+	meta interface{}) (*terraform.InstanceDiff, error) {
 
 	b := &diff.ResourceBuilder{
 		Attrs: map[string]diff.AttrType{

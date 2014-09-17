@@ -104,7 +104,7 @@ func testStateFile(t *testing.T, s *terraform.State) string {
 
 func testProvider() *terraform.MockResourceProvider {
 	p := new(terraform.MockResourceProvider)
-	p.DiffReturn = &terraform.ResourceDiff{}
+	p.DiffReturn = &terraform.InstanceDiff{}
 	p.RefreshFn = func(
 		info *terraform.InstanceInfo,
 		s *terraform.InstanceState) (*terraform.InstanceState, error) {

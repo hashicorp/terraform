@@ -24,7 +24,7 @@ type ResourceData struct {
 	schema  map[string]*Schema
 	config  *terraform.ResourceConfig
 	state   *terraform.InstanceState
-	diff    *terraform.ResourceDiff
+	diff    *terraform.InstanceDiff
 	diffing bool
 
 	// Don't set

@@ -57,7 +57,7 @@ func (p *ResourceProvider) Configure(c *terraform.ResourceConfig) error {
 func (p *ResourceProvider) Apply(
 	info *terraform.InstanceInfo,
 	s *terraform.InstanceState,
-	d *terraform.ResourceDiff) (*terraform.InstanceState, error) {
+	d *terraform.InstanceDiff) (*terraform.InstanceState, error) {
 	if _, ok := p.p.ResourcesMap[info.Type]; ok {
 		return p.p.Apply(info, s, d)
 	}
@@ -68,7 +68,7 @@ func (p *ResourceProvider) Apply(
 func (p *ResourceProvider) Diff(
 	info *terraform.InstanceInfo,
 	s *terraform.InstanceState,
-	c *terraform.ResourceConfig) (*terraform.ResourceDiff, error) {
+	c *terraform.ResourceConfig) (*terraform.InstanceDiff, error) {
 	if _, ok := p.p.ResourcesMap[info.Type]; ok {
 		return p.p.Diff(info, s, c)
 	}

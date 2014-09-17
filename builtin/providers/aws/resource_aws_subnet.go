@@ -13,7 +13,7 @@ import (
 
 func resource_aws_subnet_create(
 	s *terraform.InstanceState,
-	d *terraform.ResourceDiff,
+	d *terraform.InstanceDiff,
 	meta interface{}) (*terraform.InstanceState, error) {
 	p := meta.(*ResourceProvider)
 	ec2conn := p.ec2conn
@@ -61,7 +61,7 @@ func resource_aws_subnet_create(
 
 func resource_aws_subnet_update(
 	s *terraform.InstanceState,
-	d *terraform.ResourceDiff,
+	d *terraform.InstanceDiff,
 	meta interface{}) (*terraform.InstanceState, error) {
 	// This should never be called because we have no update-able
 	// attributes
@@ -122,7 +122,7 @@ func resource_aws_subnet_refresh(
 func resource_aws_subnet_diff(
 	s *terraform.InstanceState,
 	c *terraform.ResourceConfig,
-	meta interface{}) (*terraform.ResourceDiff, error) {
+	meta interface{}) (*terraform.InstanceDiff, error) {
 	b := &diff.ResourceBuilder{
 		Attrs: map[string]diff.AttrType{
 			"availability_zone": diff.AttrTypeCreate,

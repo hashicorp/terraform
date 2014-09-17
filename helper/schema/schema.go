@@ -163,7 +163,7 @@ type schemaMap map[string]*Schema
 // The diff is optional.
 func (m schemaMap) Data(
 	s *terraform.InstanceState,
-	d *terraform.ResourceDiff) (*ResourceData, error) {
+	d *terraform.InstanceDiff) (*ResourceData, error) {
 	return &ResourceData{
 		schema: m,
 		state:  s,
@@ -175,8 +175,8 @@ func (m schemaMap) Data(
 // state, and configuration.
 func (m schemaMap) Diff(
 	s *terraform.InstanceState,
-	c *terraform.ResourceConfig) (*terraform.ResourceDiff, error) {
-	result := new(terraform.ResourceDiff)
+	c *terraform.ResourceConfig) (*terraform.InstanceDiff, error) {
+	result := new(terraform.InstanceDiff)
 	result.Attributes = make(map[string]*terraform.ResourceAttrDiff)
 
 	d := &ResourceData{
@@ -199,7 +199,7 @@ func (m schemaMap) Diff(
 	// caused that.
 	if result.RequiresNew() {
 		// Create the new diff
-		result2 := new(terraform.ResourceDiff)
+		result2 := new(terraform.InstanceDiff)
 		result2.Attributes = make(map[string]*terraform.ResourceAttrDiff)
 
 		// Reset the data to not contain state
@@ -344,7 +344,7 @@ func (m schemaMap) InternalValidate() error {
 func (m schemaMap) diff(
 	k string,
 	schema *Schema,
-	diff *terraform.ResourceDiff,
+	diff *terraform.InstanceDiff,
 	d *ResourceData) error {
 	var err error
 	switch schema.Type {
@@ -370,7 +370,7 @@ func (m schemaMap) diff(
 func (m schemaMap) diffList(
 	k string,
 	schema *Schema,
-	diff *terraform.ResourceDiff,
+	diff *terraform.InstanceDiff,
 	d *ResourceData) error {
 	o, n, _ := d.diffChange(k)
 
@@ -465,7 +465,7 @@ func (m schemaMap) diffList(
 func (m schemaMap) diffMap(
 	k string,
 	schema *Schema,
-	diff *terraform.ResourceDiff,
+	diff *terraform.InstanceDiff,
 	d *ResourceData) error {
 	//elemSchema := &Schema{Type: TypeString}
 	prefix := k + "."
@@ -507,7 +507,7 @@ func (m schemaMap) diffMap(
 func (m schemaMap) diffSet(
 	k string,
 	schema *Schema,
-	diff *terraform.ResourceDiff,
+	diff *terraform.InstanceDiff,
 	d *ResourceData) error {
 	return m.diffList(k, schema, diff, d)
 }
@@ -515,7 +515,7 @@ func (m schemaMap) diffSet(
 func (m schemaMap) diffString(
 	k string,
 	schema *Schema,
-	diff *terraform.ResourceDiff,
+	diff *terraform.InstanceDiff,
 	d *ResourceData) error {
 	var originalN interface{}
 	var os, ns string

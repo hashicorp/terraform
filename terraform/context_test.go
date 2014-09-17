@@ -411,8 +411,8 @@ func TestContextApply_badDiff(t *testing.T) {
 		t.Fatalf("err: %s", err)
 	}
 
-	p.DiffFn = func(*InstanceInfo, *InstanceState, *ResourceConfig) (*ResourceDiff, error) {
-		return &ResourceDiff{
+	p.DiffFn = func(*InstanceInfo, *InstanceState, *ResourceConfig) (*InstanceDiff, error) {
+		return &InstanceDiff{
 			Attributes: map[string]*ResourceAttrDiff{
 				"newp": nil,
 			},
@@ -436,7 +436,7 @@ func TestContextApply_cancel(t *testing.T) {
 		},
 	})
 
-	p.ApplyFn = func(*InstanceInfo, *InstanceState, *ResourceDiff) (*InstanceState, error) {
+	p.ApplyFn = func(*InstanceInfo, *InstanceState, *InstanceDiff) (*InstanceState, error) {
 		if !stopped {
 			stopped = true
 			go ctx.Stop()
@@ -455,8 +455,8 @@ func TestContextApply_cancel(t *testing.T) {
 			},
 		}, nil
 	}
-	p.DiffFn = func(*InstanceInfo, *InstanceState, *ResourceConfig) (*ResourceDiff, error) {
-		return &ResourceDiff{
+	p.DiffFn = func(*InstanceInfo, *InstanceState, *ResourceConfig) (*InstanceDiff, error) {
+		return &InstanceDiff{
 			Attributes: map[string]*ResourceAttrDiff{
 				"num": &ResourceAttrDiff{
 					New: "bar",
@@ -540,7 +540,7 @@ func TestContextApply_nilDiff(t *testing.T) {
 		t.Fatalf("err: %s", err)
 	}
 
-	p.DiffFn = func(*InstanceInfo, *InstanceState, *ResourceConfig) (*ResourceDiff, error) {
+	p.DiffFn = func(*InstanceInfo, *InstanceState, *ResourceConfig) (*InstanceDiff, error) {
 		return nil, nil
 	}
 
@@ -709,7 +709,7 @@ func TestContextApply_outputDiffVars(t *testing.T) {
 		State: s,
 	})
 
-	p.ApplyFn = func(info *InstanceInfo, s *InstanceState, d *ResourceDiff) (*InstanceState, error) {
+	p.ApplyFn = func(info *InstanceInfo, s *InstanceState, d *InstanceDiff) (*InstanceState, error) {
 		for k, ad := range d.Attributes {
 			if ad.NewComputed {
 				return nil, fmt.Errorf("%s: computed", k)
@@ -720,8 +720,8 @@ func TestContextApply_outputDiffVars(t *testing.T) {
 		result.ID = "foo"
 		return result, nil
 	}
-	p.DiffFn = func(*InstanceInfo, *InstanceState, *ResourceConfig) (*ResourceDiff, error) {
-		return &ResourceDiff{
+	p.DiffFn = func(*InstanceInfo, *InstanceState, *ResourceConfig) (*InstanceDiff, error) {
+		return &InstanceDiff{
 			Attributes: map[string]*ResourceAttrDiff{
 				"foo": &ResourceAttrDiff{
 					NewComputed: true,
@@ -747,7 +747,7 @@ func TestContextApply_Provisioner_ConnInfo(t *testing.T) {
 	p := testProvider("aws")
 	pr := testProvisioner()
 
-	p.ApplyFn = func(info *InstanceInfo, s *InstanceState, d *ResourceDiff) (*InstanceState, error) {
+	p.ApplyFn = func(info *InstanceInfo, s *InstanceState, d *InstanceDiff) (*InstanceState, error) {
 		if s.Ephemeral.ConnInfo == nil {
 			t.Fatalf("ConnInfo not initialized")
 		}
@@ -935,7 +935,7 @@ func TestContextApply_destroyOrphan(t *testing.T) {
 		State: s,
 	})
 
-	p.ApplyFn = func(info *InstanceInfo, s *InstanceState, d *ResourceDiff) (*InstanceState, error) {
+	p.ApplyFn = func(info *InstanceInfo, s *InstanceState, d *InstanceDiff) (*InstanceState, error) {
 		if d.Destroy {
 			return nil, nil
 		}
@@ -944,8 +944,8 @@ func TestContextApply_destroyOrphan(t *testing.T) {
 		result.ID = "foo"
 		return result, nil
 	}
-	p.DiffFn = func(*InstanceInfo, *InstanceState, *ResourceConfig) (*ResourceDiff, error) {
-		return &ResourceDiff{
+	p.DiffFn = func(*InstanceInfo, *InstanceState, *ResourceConfig) (*InstanceDiff, error) {
+		return &InstanceDiff{
 			Attributes: map[string]*ResourceAttrDiff{
 				"num": &ResourceAttrDiff{
 					New: "bar",
@@ -981,7 +981,7 @@ func TestContextApply_error(t *testing.T) {
 		},
 	})
 
-	p.ApplyFn = func(*InstanceInfo, *InstanceState, *ResourceDiff) (*InstanceState, error) {
+	p.ApplyFn = func(*InstanceInfo, *InstanceState, *InstanceDiff) (*InstanceState, error) {
 		if errored {
 			state := &InstanceState{
 				ID: "bar",
@@ -997,8 +997,8 @@ func TestContextApply_error(t *testing.T) {
 			},
 		}, nil
 	}
-	p.DiffFn = func(*InstanceInfo, *InstanceState, *ResourceConfig) (*ResourceDiff, error) {
-		return &ResourceDiff{
+	p.DiffFn = func(*InstanceInfo, *InstanceState, *ResourceConfig) (*InstanceDiff, error) {
+		return &InstanceDiff{
 			Attributes: map[string]*ResourceAttrDiff{
 				"num": &ResourceAttrDiff{
 					New: "bar",
@@ -1051,7 +1051,7 @@ func TestContextApply_errorPartial(t *testing.T) {
 		State: s,
 	})
 
-	p.ApplyFn = func(info *InstanceInfo, s *InstanceState, d *ResourceDiff) (*InstanceState, error) {
+	p.ApplyFn = func(info *InstanceInfo, s *InstanceState, d *InstanceDiff) (*InstanceState, error) {
 		if errored {
 			return s, fmt.Errorf("error")
 		}
@@ -1064,8 +1064,8 @@ func TestContextApply_errorPartial(t *testing.T) {
 			},
 		}, nil
 	}
-	p.DiffFn = func(*InstanceInfo, *InstanceState, *ResourceConfig) (*ResourceDiff, error) {
-		return &ResourceDiff{
+	p.DiffFn = func(*InstanceInfo, *InstanceState, *ResourceConfig) (*InstanceDiff, error) {
+		return &InstanceDiff{
 			Attributes: map[string]*ResourceAttrDiff{
 				"num": &ResourceAttrDiff{
 					New: "bar",
@@ -1135,7 +1135,7 @@ func TestContextApply_idAttr(t *testing.T) {
 		},
 	})
 
-	p.ApplyFn = func(info *InstanceInfo, s *InstanceState, d *ResourceDiff) (*InstanceState, error) {
+	p.ApplyFn = func(info *InstanceInfo, s *InstanceState, d *InstanceDiff) (*InstanceState, error) {
 		result := s.MergeDiff(d)
 		result.ID = "foo"
 		result.Attributes = map[string]string{
@@ -1144,8 +1144,8 @@ func TestContextApply_idAttr(t *testing.T) {
 
 		return result, nil
 	}
-	p.DiffFn = func(*InstanceInfo, *InstanceState, *ResourceConfig) (*ResourceDiff, error) {
-		return &ResourceDiff{
+	p.DiffFn = func(*InstanceInfo, *InstanceState, *ResourceConfig) (*InstanceDiff, error) {
+		return &InstanceDiff{
 			Attributes: map[string]*ResourceAttrDiff{
 				"num": &ResourceAttrDiff{
 					New: "bar",
@@ -1757,12 +1757,12 @@ func TestContextPlan_diffVar(t *testing.T) {
 	p.DiffFn = func(
 		info *InstanceInfo,
 		s *InstanceState,
-		c *ResourceConfig) (*ResourceDiff, error) {
+		c *ResourceConfig) (*InstanceDiff, error) {
 		if s.ID != "bar" {
 			return testDiffFn(info, s, c)
 		}
 
-		return &ResourceDiff{
+		return &InstanceDiff{
 			Attributes: map[string]*ResourceAttrDiff{
 				"num": &ResourceAttrDiff{
 					Old: "2",
@@ -2112,19 +2112,19 @@ func TestContextRefresh_hook(t *testing.T) {
 		t.Fatal("should be called")
 	}
 	/*
-	TODO(mitchcellh): remove when we add InstanceInfo param
-	if h.PreRefreshState.Type != "aws_instance" {
-		t.Fatalf("bad: %#v", h.PreRefreshState)
-	}
+		TODO(mitchcellh): remove when we add InstanceInfo param
+		if h.PreRefreshState.Type != "aws_instance" {
+			t.Fatalf("bad: %#v", h.PreRefreshState)
+		}
 	*/
 	if !h.PostRefreshCalled {
 		t.Fatal("should be called")
 	}
 	/*
-	TODO(mitchcellh): remove when we add InstanceInfo param
-	if h.PostRefreshState.Type != "aws_instance" {
-		t.Fatalf("bad: %#v", h.PostRefreshState)
-	}
+		TODO(mitchcellh): remove when we add InstanceInfo param
+		if h.PostRefreshState.Type != "aws_instance" {
+			t.Fatalf("bad: %#v", h.PostRefreshState)
+		}
 	*/
 }
 
@@ -2234,7 +2234,7 @@ func testContext(t *testing.T, opts *ContextOpts) *Context {
 func testApplyFn(
 	info *InstanceInfo,
 	s *InstanceState,
-	d *ResourceDiff) (*InstanceState, error) {
+	d *InstanceDiff) (*InstanceState, error) {
 	if d.Destroy {
 		return nil, nil
 	}
@@ -2266,8 +2266,8 @@ func testApplyFn(
 func testDiffFn(
 	info *InstanceInfo,
 	s *InstanceState,
-	c *ResourceConfig) (*ResourceDiff, error) {
-	var diff ResourceDiff
+	c *ResourceConfig) (*InstanceDiff, error) {
+	var diff InstanceDiff
 	diff.Attributes = make(map[string]*ResourceAttrDiff)
 
 	for k, v := range c.Raw {

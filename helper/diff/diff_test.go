@@ -29,7 +29,7 @@ func testConfig(
 	return terraform.NewResourceConfig(rc)
 }
 
-func testResourceDiffStr(rd *terraform.ResourceDiff) string {
+func testResourceDiffStr(rd *terraform.InstanceDiff) string {
 	var buf bytes.Buffer
 
 	crud := "UPDATE"

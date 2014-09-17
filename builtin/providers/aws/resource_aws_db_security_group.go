@@ -16,7 +16,7 @@ import (
 
 func resource_aws_db_security_group_create(
 	s *terraform.InstanceState,
-	d *terraform.ResourceDiff,
+	d *terraform.InstanceDiff,
 	meta interface{}) (*terraform.InstanceState, error) {
 	p := meta.(*ResourceProvider)
 	conn := p.rdsconn
@@ -86,7 +86,7 @@ func resource_aws_db_security_group_create(
 
 func resource_aws_db_security_group_update(
 	s *terraform.InstanceState,
-	d *terraform.ResourceDiff,
+	d *terraform.InstanceDiff,
 	meta interface{}) (*terraform.InstanceState, error) {
 	panic("Cannot update DB security group")
 }
@@ -133,7 +133,7 @@ func resource_aws_db_security_group_refresh(
 func resource_aws_db_security_group_diff(
 	s *terraform.InstanceState,
 	c *terraform.ResourceConfig,
-	meta interface{}) (*terraform.ResourceDiff, error) {
+	meta interface{}) (*terraform.InstanceDiff, error) {
 
 	b := &diff.ResourceBuilder{
 		Attrs: map[string]diff.AttrType{

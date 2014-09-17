@@ -142,7 +142,7 @@ func TestApply_error(t *testing.T) {
 	p.ApplyFn = func(
 		info *terraform.InstanceInfo,
 		s *terraform.InstanceState,
-		d *terraform.ResourceDiff) (*terraform.InstanceState, error) {
+		d *terraform.InstanceDiff) (*terraform.InstanceState, error) {
 		lock.Lock()
 		defer lock.Unlock()
 
@@ -156,8 +156,8 @@ func TestApply_error(t *testing.T) {
 	p.DiffFn = func(
 		*terraform.InstanceInfo,
 		*terraform.InstanceState,
-		*terraform.ResourceConfig) (*terraform.ResourceDiff, error) {
-		return &terraform.ResourceDiff{
+		*terraform.ResourceConfig) (*terraform.InstanceDiff, error) {
+		return &terraform.InstanceDiff{
 			Attributes: map[string]*terraform.ResourceAttrDiff{
 				"ami": &terraform.ResourceAttrDiff{
 					New: "bar",
@@ -464,8 +464,8 @@ func TestApply_shutdown(t *testing.T) {
 	p.DiffFn = func(
 		*terraform.InstanceInfo,
 		*terraform.InstanceState,
-		*terraform.ResourceConfig) (*terraform.ResourceDiff, error) {
-		return &terraform.ResourceDiff{
+		*terraform.ResourceConfig) (*terraform.InstanceDiff, error) {
+		return &terraform.InstanceDiff{
 			Attributes: map[string]*terraform.ResourceAttrDiff{
 				"ami": &terraform.ResourceAttrDiff{
 					New: "bar",
@@ -476,7 +476,7 @@ func TestApply_shutdown(t *testing.T) {
 	p.ApplyFn = func(
 		*terraform.InstanceInfo,
 		*terraform.InstanceState,
-		*terraform.ResourceDiff) (*terraform.InstanceState, error) {
+		*terraform.InstanceDiff) (*terraform.InstanceState, error) {
 		if !stopped {
 			stopped = true
 			close(stopCh)
@@ -554,7 +554,7 @@ func TestApply_state(t *testing.T) {
 	statePath := testStateFile(t, originalState)
 
 	p := testProvider()
-	p.DiffReturn = &terraform.ResourceDiff{
+	p.DiffReturn = &terraform.InstanceDiff{
 		Attributes: map[string]*terraform.ResourceAttrDiff{
 			"ami": &terraform.ResourceAttrDiff{
 				New: "bar",
@@ -663,12 +663,12 @@ func TestApply_vars(t *testing.T) {
 	p.DiffFn = func(
 		info *terraform.InstanceInfo,
 		s *terraform.InstanceState,
-		c *terraform.ResourceConfig) (*terraform.ResourceDiff, error) {
+		c *terraform.ResourceConfig) (*terraform.InstanceDiff, error) {
 		if v, ok := c.Config["value"]; ok {
 			actual = v.(string)
 		}
 
-		return &terraform.ResourceDiff{}, nil
+		return &terraform.InstanceDiff{}, nil
 	}
 
 	args := []string{
@@ -706,12 +706,12 @@ func TestApply_varFile(t *testing.T) {
 	p.DiffFn = func(
 		info *terraform.InstanceInfo,
 		s *terraform.InstanceState,
-		c *terraform.ResourceConfig) (*terraform.ResourceDiff, error) {
+		c *terraform.ResourceConfig) (*terraform.InstanceDiff, error) {
 		if v, ok := c.Config["value"]; ok {
 			actual = v.(string)
 		}
 
-		return &terraform.ResourceDiff{}, nil
+		return &terraform.InstanceDiff{}, nil
 	}
 
 	args := []string{
@@ -759,12 +759,12 @@ func TestApply_varFileDefault(t *testing.T) {
 	p.DiffFn = func(
 		info *terraform.InstanceInfo,
 		s *terraform.InstanceState,
-		c *terraform.ResourceConfig) (*terraform.ResourceDiff, error) {
+		c *terraform.ResourceConfig) (*terraform.InstanceDiff, error) {
 		if v, ok := c.Config["value"]; ok {
 			actual = v.(string)
 		}
 
-		return &terraform.ResourceDiff{}, nil
+		return &terraform.InstanceDiff{}, nil
 	}
 
 	args := []string{
@@ -801,7 +801,7 @@ func TestApply_backup(t *testing.T) {
 	backupPath := testTempFile(t)
 
 	p := testProvider()
-	p.DiffReturn = &terraform.ResourceDiff{
+	p.DiffReturn = &terraform.InstanceDiff{
 		Attributes: map[string]*terraform.ResourceAttrDiff{
 			"ami": &terraform.ResourceAttrDiff{
 				New: "bar",
@@ -885,7 +885,7 @@ func TestApply_disableBackup(t *testing.T) {
 	statePath := testStateFile(t, originalState)
 
 	p := testProvider()
-	p.DiffReturn = &terraform.ResourceDiff{
+	p.DiffReturn = &terraform.InstanceDiff{
 		Attributes: map[string]*terraform.ResourceAttrDiff{
 			"ami": &terraform.ResourceAttrDiff{
 				New: "bar",

@@ -251,8 +251,8 @@ func TestGraphProvisioners(t *testing.T) {
 func TestGraphAddDiff(t *testing.T) {
 	config := testConfig(t, "graph-diff")
 	diff := &Diff{
-		Resources: map[string]*ResourceDiff{
-			"aws_instance.foo": &ResourceDiff{
+		Resources: map[string]*InstanceDiff{
+			"aws_instance.foo": &InstanceDiff{
 				Attributes: map[string]*ResourceAttrDiff{
 					"foo": &ResourceAttrDiff{
 						New: "bar",
@@ -287,11 +287,11 @@ func TestGraphAddDiff(t *testing.T) {
 func TestGraphAddDiff_destroy(t *testing.T) {
 	config := testConfig(t, "graph-diff-destroy")
 	diff := &Diff{
-		Resources: map[string]*ResourceDiff{
-			"aws_instance.foo": &ResourceDiff{
+		Resources: map[string]*InstanceDiff{
+			"aws_instance.foo": &InstanceDiff{
 				Destroy: true,
 			},
-			"aws_instance.bar": &ResourceDiff{
+			"aws_instance.bar": &InstanceDiff{
 				Destroy: true,
 			},
 		},
@@ -341,7 +341,7 @@ func TestGraphAddDiff_destroy(t *testing.T) {
 	n := g.Noun("aws_instance.foo (destroy)")
 	rn := n.Meta.(*GraphNodeResource)
 
-	expected2 := &ResourceDiff{Destroy: true}
+	expected2 := &InstanceDiff{Destroy: true}
 	actual2 := rn.Resource.Diff
 	if !reflect.DeepEqual(actual2, expected2) {
 		t.Fatalf("bad: %#v", actual2)

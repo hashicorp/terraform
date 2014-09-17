@@ -33,7 +33,7 @@ func (m *Map) Validate(
 func (m *Map) Apply(
 	info *terraform.InstanceInfo,
 	s *terraform.InstanceState,
-	d *terraform.ResourceDiff,
+	d *terraform.InstanceDiff,
 	meta interface{}) (*terraform.InstanceState, error) {
 	r, ok := m.Mapping[info.Type]
 	if !ok {
@@ -87,7 +87,7 @@ func (m *Map) Diff(
 	info *terraform.InstanceInfo,
 	s *terraform.InstanceState,
 	c *terraform.ResourceConfig,
-	meta interface{}) (*terraform.ResourceDiff, error) {
+	meta interface{}) (*terraform.InstanceDiff, error) {
 	r, ok := m.Mapping[info.Type]
 	if !ok {
 		return nil, fmt.Errorf("Unknown resource type: %s", info.Type)

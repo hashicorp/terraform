@@ -36,7 +36,7 @@ const (
 func (h *UiHook) PreApply(
 	id string,
 	s *terraform.InstanceState,
-	d *terraform.ResourceDiff) (terraform.HookAction, error) {
+	d *terraform.InstanceDiff) (terraform.HookAction, error) {
 	h.once.Do(h.init)
 
 	op := uiResourceModify

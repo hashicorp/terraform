@@ -15,8 +15,8 @@ type MockResourceProvider struct {
 	ApplyCalled                  bool
 	ApplyInfo                    *InstanceInfo
 	ApplyState                   *InstanceState
-	ApplyDiff                    *ResourceDiff
-	ApplyFn                      func(*InstanceInfo, *InstanceState, *ResourceDiff) (*InstanceState, error)
+	ApplyDiff                    *InstanceDiff
+	ApplyFn                      func(*InstanceInfo, *InstanceState, *InstanceDiff) (*InstanceState, error)
 	ApplyReturn                  *InstanceState
 	ApplyReturnError             error
 	ConfigureCalled              bool
@@ -26,8 +26,8 @@ type MockResourceProvider struct {
 	DiffInfo                     *InstanceInfo
 	DiffState                    *InstanceState
 	DiffDesired                  *ResourceConfig
-	DiffFn                       func(*InstanceInfo, *InstanceState, *ResourceConfig) (*ResourceDiff, error)
-	DiffReturn                   *ResourceDiff
+	DiffFn                       func(*InstanceInfo, *InstanceState, *ResourceConfig) (*InstanceDiff, error)
+	DiffReturn                   *InstanceDiff
 	DiffReturnError              error
 	RefreshCalled                bool
 	RefreshInfo                  *InstanceInfo
@@ -85,7 +85,7 @@ func (p *MockResourceProvider) Configure(c *ResourceConfig) error {
 func (p *MockResourceProvider) Apply(
 	info *InstanceInfo,
 	state *InstanceState,
-	diff *ResourceDiff) (*InstanceState, error) {
+	diff *InstanceDiff) (*InstanceState, error) {
 	p.Lock()
 	defer p.Unlock()
 
@@ -103,7 +103,7 @@ func (p *MockResourceProvider) Apply(
 func (p *MockResourceProvider) Diff(
 	info *InstanceInfo,
 	state *InstanceState,
-	desired *ResourceConfig) (*ResourceDiff, error) {
+	desired *ResourceConfig) (*InstanceDiff, error) {
 	p.Lock()
 	defer p.Unlock()
 

@@ -5,7 +5,7 @@ package terraform
 type MockHook struct {
 	PreApplyCalled bool
 	PreApplyId     string
-	PreApplyDiff   *ResourceDiff
+	PreApplyDiff   *InstanceDiff
 	PreApplyState  *InstanceState
 	PreApplyReturn HookAction
 	PreApplyError  error
@@ -25,7 +25,7 @@ type MockHook struct {
 
 	PostDiffCalled bool
 	PostDiffId     string
-	PostDiffDiff   *ResourceDiff
+	PostDiffDiff   *InstanceDiff
 	PostDiffReturn HookAction
 	PostDiffError  error
 
@@ -66,7 +66,7 @@ type MockHook struct {
 	PreRefreshError  error
 }
 
-func (h *MockHook) PreApply(n string, s *InstanceState, d *ResourceDiff) (HookAction, error) {
+func (h *MockHook) PreApply(n string, s *InstanceState, d *InstanceDiff) (HookAction, error) {
 	h.PreApplyCalled = true
 	h.PreApplyId = n
 	h.PreApplyDiff = d
@@ -89,7 +89,7 @@ func (h *MockHook) PreDiff(n string, s *InstanceState) (HookAction, error) {
 	return h.PreDiffReturn, h.PreDiffError
 }
 
-func (h *MockHook) PostDiff(n string, d *ResourceDiff) (HookAction, error) {
+func (h *MockHook) PostDiff(n string, d *InstanceDiff) (HookAction, error) {
 	h.PostDiffCalled = true
 	h.PostDiffId = n
 	h.PostDiffDiff = d

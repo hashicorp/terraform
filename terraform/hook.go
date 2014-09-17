@@ -24,13 +24,13 @@ type Hook interface {
 	// PreApply and PostApply are called before and after a single
 	// resource is applied. The error argument in PostApply is the
 	// error, if any, that was returned from the provider Apply call itself.
-	PreApply(string, *InstanceState, *ResourceDiff) (HookAction, error)
+	PreApply(string, *InstanceState, *InstanceDiff) (HookAction, error)
 	PostApply(string, *InstanceState, error) (HookAction, error)
 
 	// PreDiff and PostDiff are called before and after a single resource
 	// resource is diffed.
 	PreDiff(string, *InstanceState) (HookAction, error)
-	PostDiff(string, *ResourceDiff) (HookAction, error)
+	PostDiff(string, *InstanceDiff) (HookAction, error)
 
 	// Provisioning hooks
 	PreProvisionResource(string, *InstanceState) (HookAction, error)
@@ -49,7 +49,7 @@ type Hook interface {
 // and only implement the functions you are interested in.
 type NilHook struct{}
 
-func (*NilHook) PreApply(string, *InstanceState, *ResourceDiff) (HookAction, error) {
+func (*NilHook) PreApply(string, *InstanceState, *InstanceDiff) (HookAction, error) {
 	return HookActionContinue, nil
 }
 
@@ -61,7 +61,7 @@ func (*NilHook) PreDiff(string, *InstanceState) (HookAction, error) {
 	return HookActionContinue, nil
 }
 
-func (*NilHook) PostDiff(string, *ResourceDiff) (HookAction, error) {
+func (*NilHook) PostDiff(string, *InstanceDiff) (HookAction, error) {
 	return HookActionContinue, nil
 }
 

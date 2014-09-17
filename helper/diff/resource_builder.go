@@ -62,7 +62,7 @@ type PreProcessFunc func(string) string
 // configuration.
 func (b *ResourceBuilder) Diff(
 	s *terraform.InstanceState,
-	c *terraform.ResourceConfig) (*terraform.ResourceDiff, error) {
+	c *terraform.ResourceConfig) (*terraform.InstanceDiff, error) {
 	attrs := make(map[string]*terraform.ResourceAttrDiff)
 
 	// We require a new resource if the ID is empty. Or, later, we set
@@ -207,9 +207,9 @@ func (b *ResourceBuilder) Diff(
 	}
 
 	// Build our resulting diff if we had attributes change
-	var result *terraform.ResourceDiff
+	var result *terraform.InstanceDiff
 	if len(attrs) > 0 {
-		result = &terraform.ResourceDiff{
+		result = &terraform.InstanceDiff{
 			Attributes: attrs,
 		}
 	}

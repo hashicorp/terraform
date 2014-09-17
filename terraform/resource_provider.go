@@ -48,14 +48,14 @@ type ResourceProvider interface {
 	Apply(
 		*InstanceInfo,
 		*InstanceState,
-		*ResourceDiff) (*InstanceState, error)
+		*InstanceDiff) (*InstanceState, error)
 
 	// Diff diffs a resource versus a desired state and returns
 	// a diff.
 	Diff(
 		*InstanceInfo,
 		*InstanceState,
-		*ResourceConfig) (*ResourceDiff, error)
+		*ResourceConfig) (*InstanceDiff, error)
 
 	// Refresh refreshes a resource and updates all of its attributes
 	// with the latest information.

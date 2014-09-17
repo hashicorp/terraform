@@ -314,7 +314,7 @@ func graphAddDiff(g *depgraph.Graph, d *Diff) error {
 			*newNode.Resource = *rn.Resource
 
 			// Make the diff _just_ the destroy.
-			newNode.Resource.Diff = &ResourceDiff{Destroy: true}
+			newNode.Resource.Diff = &InstanceDiff{Destroy: true}
 
 			// Create the new node
 			newN := &depgraph.Noun{
@@ -340,7 +340,7 @@ func graphAddDiff(g *depgraph.Graph, d *Diff) error {
 
 			// Mark the old diff to not destroy since we handle that in
 			// the dedicated node.
-			newDiff := new(ResourceDiff)
+			newDiff := new(InstanceDiff)
 			*newDiff = *rd
 			newDiff.Destroy = false
 			rd = newDiff

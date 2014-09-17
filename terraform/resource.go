@@ -28,7 +28,7 @@ type ResourceProvisionerConfig struct {
 type Resource struct {
 	Id           string
 	Config       *ResourceConfig
-	Diff         *ResourceDiff
+	Diff         *InstanceDiff
 	Provider     ResourceProvider
 	State        *ResourceState
 	Provisioners []*ResourceProvisionerConfig

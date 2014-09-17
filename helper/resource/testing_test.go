@@ -261,7 +261,7 @@ func (t *mockT) failMessage() string {
 
 func testProvider() *terraform.MockResourceProvider {
 	mp := new(terraform.MockResourceProvider)
-	mp.DiffReturn = &terraform.ResourceDiff{
+	mp.DiffReturn = &terraform.InstanceDiff{
 		Attributes: map[string]*terraform.ResourceAttrDiff{
 			"foo": &terraform.ResourceAttrDiff{
 				New: "bar",

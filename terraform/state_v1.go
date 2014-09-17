@@ -226,7 +226,7 @@ type ResourceStateV1 struct {
 // If the diff attribute requires computing the value, and hence
 // won't be available until apply, the value is replaced with the
 // computeID.
-func (s *ResourceStateV1) MergeDiff(d *ResourceDiff) *ResourceStateV1 {
+func (s *ResourceStateV1) MergeDiff(d *InstanceDiff) *ResourceStateV1 {
 	var result ResourceStateV1
 	if s != nil {
 		result = *s

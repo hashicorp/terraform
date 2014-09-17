@@ -108,7 +108,7 @@ func TestResourceProvider_apply(t *testing.T) {
 	// Apply
 	info := &terraform.InstanceInfo{}
 	state := &terraform.InstanceState{}
-	diff := &terraform.ResourceDiff{}
+	diff := &terraform.InstanceDiff{}
 	newState, err := provider.Apply(info, state, diff)
 	if !p.ApplyCalled {
 		t.Fatal("apply should be called")
@@ -133,7 +133,7 @@ func TestResourceProvider_diff(t *testing.T) {
 	}
 	provider := &ResourceProvider{Client: client, Name: name}
 
-	p.DiffReturn = &terraform.ResourceDiff{
+	p.DiffReturn = &terraform.InstanceDiff{
 		Attributes: map[string]*terraform.ResourceAttrDiff{
 			"foo": &terraform.ResourceAttrDiff{
 				Old: "",

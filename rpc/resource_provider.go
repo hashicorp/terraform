@@ -75,7 +75,7 @@ func (p *ResourceProvider) Configure(c *terraform.ResourceConfig) error {
 func (p *ResourceProvider) Apply(
 	info *terraform.InstanceInfo,
 	s *terraform.InstanceState,
-	d *terraform.ResourceDiff) (*terraform.InstanceState, error) {
+	d *terraform.InstanceDiff) (*terraform.InstanceState, error) {
 	var resp ResourceProviderApplyResponse
 	args := &ResourceProviderApplyArgs{
 		Info:  info,
@@ -97,7 +97,7 @@ func (p *ResourceProvider) Apply(
 func (p *ResourceProvider) Diff(
 	info *terraform.InstanceInfo,
 	s *terraform.InstanceState,
-	c *terraform.ResourceConfig) (*terraform.ResourceDiff, error) {
+	c *terraform.ResourceConfig) (*terraform.InstanceDiff, error) {
 	var resp ResourceProviderDiffResponse
 	args := &ResourceProviderDiffArgs{
 		Info:   info,
@@ -158,9 +158,9 @@ type ResourceProviderConfigureResponse struct {
 }
 
 type ResourceProviderApplyArgs struct {
-	Info *terraform.InstanceInfo
+	Info  *terraform.InstanceInfo
 	State *terraform.InstanceState
-	Diff  *terraform.ResourceDiff
+	Diff  *terraform.InstanceDiff
 }
 
 type ResourceProviderApplyResponse struct {
@@ -169,19 +169,19 @@ type ResourceProviderApplyResponse struct {
 }
 
 type ResourceProviderDiffArgs struct {
-	Info *terraform.InstanceInfo
+	Info   *terraform.InstanceInfo
 	State  *terraform.InstanceState
 	Config *terraform.ResourceConfig
 }
 
 type ResourceProviderDiffResponse struct {
-	Diff  *terraform.ResourceDiff
+	Diff  *terraform.InstanceDiff
 	Error *BasicError
 }
 
 type ResourceProviderRefreshArgs struct {
-	Info *terraform.InstanceInfo
-	State  *terraform.InstanceState
+	Info  *terraform.InstanceInfo
+	State *terraform.InstanceState
 }
 
 type ResourceProviderRefreshResponse struct {

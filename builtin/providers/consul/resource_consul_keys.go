@@ -28,14 +28,14 @@ func resource_consul_keys_validation() *config.Validator {
 }
 func resource_consul_keys_update(
 	s *terraform.InstanceState,
-	d *terraform.ResourceDiff,
+	d *terraform.InstanceDiff,
 	meta interface{}) (*terraform.InstanceState, error) {
 	return resource_consul_keys_create(s, d, meta)
 }
 
 func resource_consul_keys_create(
 	s *terraform.InstanceState,
-	d *terraform.ResourceDiff,
+	d *terraform.InstanceDiff,
 	meta interface{}) (*terraform.InstanceState, error) {
 	p := meta.(*ResourceProvider)
 
@@ -134,7 +134,7 @@ func resource_consul_keys_destroy(
 func resource_consul_keys_diff(
 	s *terraform.InstanceState,
 	c *terraform.ResourceConfig,
-	meta interface{}) (*terraform.ResourceDiff, error) {
+	meta interface{}) (*terraform.InstanceDiff, error) {
 
 	// Determine the list of computed variables
 	var computed []string

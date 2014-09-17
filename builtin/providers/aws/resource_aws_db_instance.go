@@ -17,7 +17,7 @@ import (
 
 func resource_aws_db_instance_create(
 	s *terraform.InstanceState,
-	d *terraform.ResourceDiff,
+	d *terraform.InstanceDiff,
 	meta interface{}) (*terraform.InstanceState, error) {
 	p := meta.(*ResourceProvider)
 	conn := p.rdsconn
@@ -137,7 +137,7 @@ func resource_aws_db_instance_create(
 
 func resource_aws_db_instance_update(
 	s *terraform.InstanceState,
-	d *terraform.ResourceDiff,
+	d *terraform.InstanceDiff,
 	meta interface{}) (*terraform.InstanceState, error) {
 	panic("Cannot update DB")
 }
@@ -201,7 +201,7 @@ func resource_aws_db_instance_refresh(
 func resource_aws_db_instance_diff(
 	s *terraform.InstanceState,
 	c *terraform.ResourceConfig,
-	meta interface{}) (*terraform.ResourceDiff, error) {
+	meta interface{}) (*terraform.InstanceDiff, error) {
 
 	b := &diff.ResourceBuilder{
 		Attrs: map[string]diff.AttrType{

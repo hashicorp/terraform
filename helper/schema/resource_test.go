@@ -27,7 +27,7 @@ func TestResourceApply_create(t *testing.T) {
 
 	var s *terraform.InstanceState = nil
 
-	d := &terraform.ResourceDiff{
+	d := &terraform.InstanceDiff{
 		Attributes: map[string]*terraform.ResourceAttrDiff{
 			"foo": &terraform.ResourceAttrDiff{
 				New: "42",
@@ -77,7 +77,7 @@ func TestResourceApply_destroy(t *testing.T) {
 		ID: "bar",
 	}
 
-	d := &terraform.ResourceDiff{
+	d := &terraform.InstanceDiff{
 		Destroy: true,
 	}
 
@@ -117,7 +117,7 @@ func TestResourceApply_destroyPartial(t *testing.T) {
 		},
 	}
 
-	d := &terraform.ResourceDiff{
+	d := &terraform.InstanceDiff{
 		Destroy: true,
 	}
 
@@ -161,7 +161,7 @@ func TestResourceApply_update(t *testing.T) {
 		},
 	}
 
-	d := &terraform.ResourceDiff{
+	d := &terraform.InstanceDiff{
 		Attributes: map[string]*terraform.ResourceAttrDiff{
 			"foo": &terraform.ResourceAttrDiff{
 				New: "13",
@@ -206,7 +206,7 @@ func TestResourceApply_updateNoCallback(t *testing.T) {
 		},
 	}
 
-	d := &terraform.ResourceDiff{
+	d := &terraform.InstanceDiff{
 		Attributes: map[string]*terraform.ResourceAttrDiff{
 			"foo": &terraform.ResourceAttrDiff{
 				New: "13",

@@ -49,14 +49,14 @@ func (p *ResourceProvider) Configure(c *terraform.ResourceConfig) error {
 func (p *ResourceProvider) Apply(
 	info *terraform.InstanceInfo,
 	s *terraform.InstanceState,
-	d *terraform.ResourceDiff) (*terraform.InstanceState, error) {
+	d *terraform.InstanceDiff) (*terraform.InstanceState, error) {
 	return resourceMap.Apply(info, s, d, p)
 }
 
 func (p *ResourceProvider) Diff(
 	info *terraform.InstanceInfo,
 	s *terraform.InstanceState,
-	c *terraform.ResourceConfig) (*terraform.ResourceDiff, error) {
+	c *terraform.ResourceConfig) (*terraform.InstanceDiff, error) {
 	return resourceMap.Diff(info, s, c, p)
 }
 

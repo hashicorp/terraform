@@ -146,7 +146,7 @@ func TestOutput_noVars(t *testing.T) {
 	originalState := &terraform.State{
 		Modules: []*terraform.ModuleState{
 			&terraform.ModuleState{
-				Path: []string{"root"},
+				Path:    []string{"root"},
 				Outputs: map[string]string{},
 			},
 		},

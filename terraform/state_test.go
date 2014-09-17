@@ -21,7 +21,7 @@ func TestInstanceState_MergeDiff(t *testing.T) {
 		},
 	}
 
-	diff := &ResourceDiff{
+	diff := &InstanceDiff{
 		Attributes: map[string]*ResourceAttrDiff{
 			"foo": &ResourceAttrDiff{
 				Old: "bar",
@@ -58,7 +58,7 @@ func TestInstanceState_MergeDiff(t *testing.T) {
 func TestInstanceState_MergeDiff_nil(t *testing.T) {
 	var is *InstanceState = nil
 
-	diff := &ResourceDiff{
+	diff := &InstanceDiff{
 		Attributes: map[string]*ResourceAttrDiff{
 			"foo": &ResourceAttrDiff{
 				Old: "",

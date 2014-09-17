@@ -40,7 +40,7 @@ func (h *CountHook) Reset() {
 func (h *CountHook) PreApply(
 	id string,
 	s *terraform.InstanceState,
-	d *terraform.ResourceDiff) (terraform.HookAction, error) {
+	d *terraform.InstanceDiff) (terraform.HookAction, error) {
 	h.Lock()
 	defer h.Unlock()
 

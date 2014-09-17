@@ -746,7 +746,7 @@ func (c *Context) planWalkFn(result *Plan) depgraph.WalkFunc {
 	result.init()
 
 	cb := func(r *Resource) error {
-		var diff *ResourceDiff
+		var diff *InstanceDiff
 
 		for _, h := range c.hooks {
 			handleHook(h.PreDiff(r.Id, r.State.Primary))
@@ -756,7 +756,7 @@ func (c *Context) planWalkFn(result *Plan) depgraph.WalkFunc {
 			log.Printf("[DEBUG] %s: Orphan, marking for destroy", r.Id)
 
 			// This is an orphan (no config), so we mark it to be destroyed
-			diff = &ResourceDiff{Destroy: true}
+			diff = &InstanceDiff{Destroy: true}
 		} else {
 			// Make sure the configuration is interpolated
 			if err := r.Config.interpolate(c); err != nil {
@@ -781,7 +781,7 @@ func (c *Context) planWalkFn(result *Plan) depgraph.WalkFunc {
 		}
 
 		if diff == nil {
-			diff = new(ResourceDiff)
+			diff = new(InstanceDiff)
 		}
 
 		if r.Tainted {
@@ -858,7 +858,7 @@ func (c *Context) planDestroyWalkFn(result *Plan) depgraph.WalkFunc {
 
 			l.Lock()
 			defer l.Unlock()
-			result.Diff.Resources[r.Id] = &ResourceDiff{Destroy: true}
+			result.Diff.Resources[r.Id] = &InstanceDiff{Destroy: true}
 		} else {
 			log.Printf("[DEBUG] %s: Not marking for destroy, no ID", r.Id)
 		}

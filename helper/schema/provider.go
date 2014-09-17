@@ -138,7 +138,7 @@ func (p *Provider) Configure(c *terraform.ResourceConfig) error {
 func (p *Provider) Apply(
 	info *terraform.InstanceInfo,
 	s *terraform.InstanceState,
-	d *terraform.ResourceDiff) (*terraform.InstanceState, error) {
+	d *terraform.InstanceDiff) (*terraform.InstanceState, error) {
 	r, ok := p.ResourcesMap[info.Type]
 	if !ok {
 		return nil, fmt.Errorf("unknown resource type: %s", info.Type)
@@ -151,7 +151,7 @@ func (p *Provider) Apply(
 func (p *Provider) Diff(
 	info *terraform.InstanceInfo,
 	s *terraform.InstanceState,
-	c *terraform.ResourceConfig) (*terraform.ResourceDiff, error) {
+	c *terraform.ResourceConfig) (*terraform.InstanceDiff, error) {
 	r, ok := p.ResourcesMap[info.Type]
 	if !ok {
 		return nil, fmt.Errorf("unknown resource type: %s", info.Type)

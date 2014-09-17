@@ -149,7 +149,7 @@ func TestPlan_outPath(t *testing.T) {
 		},
 	}
 
-	p.DiffReturn = &terraform.ResourceDiff{
+	p.DiffReturn = &terraform.InstanceDiff{
 		Destroy: true,
 	}
 
@@ -332,7 +332,7 @@ func TestPlan_vars(t *testing.T) {
 	p.DiffFn = func(
 		info *terraform.InstanceInfo,
 		s *terraform.InstanceState,
-		c *terraform.ResourceConfig) (*terraform.ResourceDiff, error) {
+		c *terraform.ResourceConfig) (*terraform.InstanceDiff, error) {
 		if v, ok := c.Config["value"]; ok {
 			actual = v.(string)
 		}
@@ -372,7 +372,7 @@ func TestPlan_varFile(t *testing.T) {
 	p.DiffFn = func(
 		info *terraform.InstanceInfo,
 		s *terraform.InstanceState,
-		c *terraform.ResourceConfig) (*terraform.ResourceDiff, error) {
+		c *terraform.ResourceConfig) (*terraform.InstanceDiff, error) {
 		if v, ok := c.Config["value"]; ok {
 			actual = v.(string)
 		}
@@ -422,7 +422,7 @@ func TestPlan_varFileDefault(t *testing.T) {
 	p.DiffFn = func(
 		info *terraform.InstanceInfo,
 		s *terraform.InstanceState,
-		c *terraform.ResourceConfig) (*terraform.ResourceDiff, error) {
+		c *terraform.ResourceConfig) (*terraform.InstanceDiff, error) {
 		if v, ok := c.Config["value"]; ok {
 			actual = v.(string)
 		}

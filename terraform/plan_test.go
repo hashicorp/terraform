@@ -11,8 +11,8 @@ func TestReadWritePlan(t *testing.T) {
 	plan := &Plan{
 		Config: testConfig(t, "new-good"),
 		Diff: &Diff{
-			Resources: map[string]*ResourceDiff{
-				"nodeA": &ResourceDiff{
+			Resources: map[string]*InstanceDiff{
+				"nodeA": &InstanceDiff{
 					Attributes: map[string]*ResourceAttrDiff{
 						"foo": &ResourceAttrDiff{
 							Old: "foo",

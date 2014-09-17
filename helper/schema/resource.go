@@ -62,7 +62,7 @@ type DeleteFunc func(*ResourceData, interface{}) error
 // Apply creates, updates, and/or deletes a resource.
 func (r *Resource) Apply(
 	s *terraform.InstanceState,
-	d *terraform.ResourceDiff,
+	d *terraform.InstanceDiff,
 	meta interface{}) (*terraform.InstanceState, error) {
 	data, err := schemaMap(r.Schema).Data(s, d)
 	if err != nil {
@@ -112,7 +112,7 @@ func (r *Resource) Apply(
 // ResourceProvider interface.
 func (r *Resource) Diff(
 	s *terraform.InstanceState,
-	c *terraform.ResourceConfig) (*terraform.ResourceDiff, error) {
+	c *terraform.ResourceConfig) (*terraform.InstanceDiff, error) {
 	return schemaMap(r.Schema).Diff(s, c)
 }
 
