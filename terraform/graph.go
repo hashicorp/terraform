@@ -327,6 +327,7 @@ func graphAddDiff(g *depgraph.Graph, d *Diff) error {
 				if _, ok := d.Target.Meta.(*GraphNodeResource); ok {
 					continue
 				}
+				// TODO: Maybe GraphNodeResourceMeta should be omitted?
 
 				newN.Deps = append(newN.Deps, &depgraph.Dependency{
 					Name:   d.Name,
@@ -379,13 +380,13 @@ func graphAddDiff(g *depgraph.Graph, d *Diff) error {
 
 		// We have dependencies. We must be destroyed BEFORE those
 		// dependencies. Look to see if they're managed.
-		for _, dep := range deps {
-			for _, n2 := range nlist {
-				// Don't ever depend on ourselves
-				if n2.Name == n.Name {
-					continue
-				}
+		for _, n2 := range nlist {
+			// Don't ever depend on ourselves
+			if n2.Name == n.Name {
+				continue
+			}
 
+			for _, dep := range deps {
 				rn2 := n2.Meta.(*GraphNodeResource)
 				if rn2.Resource.Id == dep {
 					n2.Deps = append(n2.Deps, &depgraph.Dependency{
@@ -393,8 +394,6 @@ func graphAddDiff(g *depgraph.Graph, d *Diff) error {
 						Source: n2,
 						Target: n,
 					})
-
-					break
 				}
 			}
 		}
