@@ -6,20 +6,20 @@ type MockHook struct {
 	PreApplyCalled bool
 	PreApplyId     string
 	PreApplyDiff   *ResourceDiff
-	PreApplyState  *ResourceState
+	PreApplyState  *InstanceState
 	PreApplyReturn HookAction
 	PreApplyError  error
 
 	PostApplyCalled      bool
 	PostApplyId          string
-	PostApplyState       *ResourceState
+	PostApplyState       *InstanceState
 	PostApplyError       error
 	PostApplyReturn      HookAction
 	PostApplyReturnError error
 
 	PreDiffCalled bool
 	PreDiffId     string
-	PreDiffState  *ResourceState
+	PreDiffState  *InstanceState
 	PreDiffReturn HookAction
 	PreDiffError  error
 
@@ -31,13 +31,13 @@ type MockHook struct {
 
 	PreProvisionResourceCalled bool
 	PreProvisionResourceId     string
-	PreProvisionResourceState  *ResourceState
+	PreProvisionInstanceState  *InstanceState
 	PreProvisionResourceReturn HookAction
 	PreProvisionResourceError  error
 
 	PostProvisionResourceCalled bool
 	PostProvisionResourceId     string
-	PostProvisionResourceState  *ResourceState
+	PostProvisionInstanceState  *InstanceState
 	PostProvisionResourceReturn HookAction
 	PostProvisionResourceError  error
 
@@ -55,18 +55,18 @@ type MockHook struct {
 
 	PostRefreshCalled bool
 	PostRefreshId     string
-	PostRefreshState  *ResourceState
+	PostRefreshState  *InstanceState
 	PostRefreshReturn HookAction
 	PostRefreshError  error
 
 	PreRefreshCalled bool
 	PreRefreshId     string
-	PreRefreshState  *ResourceState
+	PreRefreshState  *InstanceState
 	PreRefreshReturn HookAction
 	PreRefreshError  error
 }
 
-func (h *MockHook) PreApply(n string, s *ResourceState, d *ResourceDiff) (HookAction, error) {
+func (h *MockHook) PreApply(n string, s *InstanceState, d *ResourceDiff) (HookAction, error) {
 	h.PreApplyCalled = true
 	h.PreApplyId = n
 	h.PreApplyDiff = d
@@ -74,7 +74,7 @@ func (h *MockHook) PreApply(n string, s *ResourceState, d *ResourceDiff) (HookAc
 	return h.PreApplyReturn, h.PreApplyError
 }
 
-func (h *MockHook) PostApply(n string, s *ResourceState, e error) (HookAction, error) {
+func (h *MockHook) PostApply(n string, s *InstanceState, e error) (HookAction, error) {
 	h.PostApplyCalled = true
 	h.PostApplyId = n
 	h.PostApplyState = s
@@ -82,7 +82,7 @@ func (h *MockHook) PostApply(n string, s *ResourceState, e error) (HookAction, e
 	return h.PostApplyReturn, h.PostApplyReturnError
 }
 
-func (h *MockHook) PreDiff(n string, s *ResourceState) (HookAction, error) {
+func (h *MockHook) PreDiff(n string, s *InstanceState) (HookAction, error) {
 	h.PreDiffCalled = true
 	h.PreDiffId = n
 	h.PreDiffState = s
@@ -96,17 +96,17 @@ func (h *MockHook) PostDiff(n string, d *ResourceDiff) (HookAction, error) {
 	return h.PostDiffReturn, h.PostDiffError
 }
 
-func (h *MockHook) PreProvisionResource(id string, s *ResourceState) (HookAction, error) {
+func (h *MockHook) PreProvisionResource(id string, s *InstanceState) (HookAction, error) {
 	h.PreProvisionResourceCalled = true
 	h.PreProvisionResourceId = id
-	h.PreProvisionResourceState = s
+	h.PreProvisionInstanceState = s
 	return h.PreProvisionResourceReturn, h.PreProvisionResourceError
 }
 
-func (h *MockHook) PostProvisionResource(id string, s *ResourceState) (HookAction, error) {
+func (h *MockHook) PostProvisionResource(id string, s *InstanceState) (HookAction, error) {
 	h.PostProvisionResourceCalled = true
 	h.PostProvisionResourceId = id
-	h.PostProvisionResourceState = s
+	h.PostProvisionInstanceState = s
 	return h.PostProvisionResourceReturn, h.PostProvisionResourceError
 }
 
@@ -124,14 +124,14 @@ func (h *MockHook) PostProvision(id, provId string) (HookAction, error) {
 	return h.PostProvisionReturn, h.PostProvisionError
 }
 
-func (h *MockHook) PreRefresh(n string, s *ResourceState) (HookAction, error) {
+func (h *MockHook) PreRefresh(n string, s *InstanceState) (HookAction, error) {
 	h.PreRefreshCalled = true
 	h.PreRefreshId = n
 	h.PreRefreshState = s
 	return h.PreRefreshReturn, h.PreRefreshError
 }
 
-func (h *MockHook) PostRefresh(n string, s *ResourceState) (HookAction, error) {
+func (h *MockHook) PostRefresh(n string, s *InstanceState) (HookAction, error) {
 	h.PostRefreshCalled = true
 	h.PostRefreshId = n
 	h.PostRefreshState = s

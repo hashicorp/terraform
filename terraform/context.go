@@ -573,7 +573,7 @@ func (c *Context) applyWalkFn() depgraph.WalkFunc {
 		}
 
 		for _, h := range c.hooks {
-			handleHook(h.PreApply(r.Id, r.State, diff))
+			handleHook(h.PreApply(r.Id, r.State.Primary, diff))
 		}
 
 		// With the completed diff, apply!
@@ -631,7 +631,7 @@ func (c *Context) applyWalkFn() depgraph.WalkFunc {
 		tainted := false
 		if applyerr == nil && r.State.Primary.ID != "" && len(r.Provisioners) > 0 {
 			for _, h := range c.hooks {
-				handleHook(h.PreProvisionResource(r.Id, r.State))
+				handleHook(h.PreProvisionResource(r.Id, r.State.Primary))
 			}
 
 			if err := c.applyProvisioners(r, is); err != nil {
@@ -640,7 +640,7 @@ func (c *Context) applyWalkFn() depgraph.WalkFunc {
 			}
 
 			for _, h := range c.hooks {
-				handleHook(h.PostProvisionResource(r.Id, r.State))
+				handleHook(h.PostProvisionResource(r.Id, r.State.Primary))
 			}
 		}
 
@@ -656,7 +656,7 @@ func (c *Context) applyWalkFn() depgraph.WalkFunc {
 		r.Tainted = tainted
 
 		for _, h := range c.hooks {
-			handleHook(h.PostApply(r.Id, r.State, applyerr))
+			handleHook(h.PostApply(r.Id, r.State.Primary, applyerr))
 		}
 
 		// Determine the new state and update variables
@@ -749,7 +749,7 @@ func (c *Context) planWalkFn(result *Plan) depgraph.WalkFunc {
 		var diff *ResourceDiff
 
 		for _, h := range c.hooks {
-			handleHook(h.PreDiff(r.Id, r.State))
+			handleHook(h.PreDiff(r.Id, r.State.Primary))
 		}
 
 		if r.Config == nil {
@@ -875,7 +875,7 @@ func (c *Context) refreshWalkFn() depgraph.WalkFunc {
 		}
 
 		for _, h := range c.hooks {
-			handleHook(h.PreRefresh(r.Id, r.State))
+			handleHook(h.PreRefresh(r.Id, r.State.Primary))
 		}
 
 		info := &InstanceInfo{Type: r.State.Type}
@@ -900,7 +900,7 @@ func (c *Context) refreshWalkFn() depgraph.WalkFunc {
 		c.sl.Unlock()
 
 		for _, h := range c.hooks {
-			handleHook(h.PostRefresh(r.Id, r.State))
+			handleHook(h.PostRefresh(r.Id, r.State.Primary))
 		}
 
 		return nil

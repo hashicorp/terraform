@@ -59,7 +59,7 @@ type HookRecordApplyOrder struct {
 	Active bool
 
 	IDs    []string
-	States []*ResourceState
+	States []*InstanceState
 	Diffs  []*ResourceDiff
 
 	l sync.Mutex
@@ -67,7 +67,7 @@ type HookRecordApplyOrder struct {
 
 func (h *HookRecordApplyOrder) PreApply(
 	id string,
-	s *ResourceState,
+	s *InstanceState,
 	d *ResourceDiff) (HookAction, error) {
 	if h.Active {
 		h.l.Lock()
