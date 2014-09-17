@@ -18,7 +18,7 @@ func init() {
 
 func TestTest(t *testing.T) {
 	mp := testProvider()
-	mp.ApplyReturn = &terraform.ResourceState{
+	mp.ApplyReturn = &terraform.InstanceState{
 		ID: "foo",
 	}
 
@@ -33,13 +33,14 @@ func TestTest(t *testing.T) {
 	checkStepFn := func(s *terraform.State) error {
 		checkStep = true
 
-		rs, ok := s.Resources["test_instance.foo"]
+		rs, ok := s.RootModule().Resources["test_instance.foo"]
 		if !ok {
 			t.Error("test_instance.foo is not present")
 			return nil
 		}
-		if rs.ID != "foo" {
-			t.Errorf("bad check ID: %s", rs.ID)
+		is := rs.Primary
+		if is.ID != "foo" {
+			t.Errorf("bad check ID: %s", is.ID)
 		}
 
 		return nil
@@ -120,7 +121,7 @@ func TestTest_preCheck(t *testing.T) {
 
 func TestTest_stepError(t *testing.T) {
 	mp := testProvider()
-	mp.ApplyReturn = &terraform.ResourceState{
+	mp.ApplyReturn = &terraform.InstanceState{
 		ID: "foo",
 	}
 
