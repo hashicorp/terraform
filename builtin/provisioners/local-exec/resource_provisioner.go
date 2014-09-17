@@ -20,7 +20,7 @@ const (
 type ResourceProvisioner struct{}
 
 func (p *ResourceProvisioner) Apply(
-	s *terraform.ResourceState,
+	s *terraform.InstanceState,
 	c *terraform.ResourceConfig) error {
 
 	// Get the command
