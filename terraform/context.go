@@ -530,9 +530,10 @@ func (c *Context) applyWalkFn() depgraph.WalkFunc {
 				return err
 			}
 
-			is := new(InstanceState) // TODO(armon): completely broken
-			info := new(InstanceInfo)
-			diff, err = r.Provider.Diff(info, is, r.Config)
+			info := &InstanceInfo{
+				Type: r.State.Type,
+			}
+			diff, err = r.Provider.Diff(info, r.State.Primary, r.Config)
 			if err != nil {
 				return err
 			}
@@ -575,14 +576,10 @@ func (c *Context) applyWalkFn() depgraph.WalkFunc {
 			handleHook(h.PreApply(r.Id, r.State, diff))
 		}
 
-		// TODO(armon): completely broken, added to compile
-		var rs *ResourceState
-		is := new(InstanceState)
-		info := new(InstanceInfo)
-
 		// With the completed diff, apply!
 		log.Printf("[DEBUG] %s: Executing Apply", r.Id)
-		is, applyerr := r.Provider.Apply(info, is, diff)
+		info := &InstanceInfo{Type: r.State.Type}
+		is, applyerr := r.Provider.Apply(info, r.State.Primary, diff)
 
 		var errs []error
 		if applyerr != nil {
@@ -590,38 +587,38 @@ func (c *Context) applyWalkFn() depgraph.WalkFunc {
 		}
 
 		// Make sure the result is instantiated
-		if rs == nil {
-			rs = new(ResourceState)
-			rs.init()
+		if is == nil {
+			is = new(InstanceState)
+			is.init()
 		}
-
-		// Force the resource state type to be our type
-		rs.Type = r.State.Type
 
 		// Force the "id" attribute to be our ID
-		if rs.Primary.ID != "" {
-			rs.Primary.Attributes["id"] = rs.Primary.ID
+		if is.ID != "" {
+			is.Attributes["id"] = is.ID
 		}
 
-		for ak, av := range rs.Primary.Attributes {
+		for ak, av := range is.Attributes {
 			// If the value is the unknown variable value, then it is an error.
 			// In this case we record the error and remove it from the state
 			if av == config.UnknownVariableValue {
 				errs = append(errs, fmt.Errorf(
 					"Attribute with unknown value: %s", ak))
-				delete(rs.Primary.Attributes, ak)
+				delete(is.Attributes, ak)
 			}
 		}
+
+		// Update the primary instance
+		r.State.Primary = is
 
 		// Update the resulting diff
 		c.sl.Lock()
 
 		// TODO: Get other modules
 		mod := c.state.RootModule()
-		if rs.Primary.ID == "" && len(rs.Tainted) == 0 {
+		if is.ID == "" && len(r.State.Tainted) == 0 {
 			delete(mod.Resources, r.Id)
 		} else {
-			mod.Resources[r.Id] = rs
+			mod.Resources[r.Id] = r.State
 		}
 		c.sl.Unlock()
 
@@ -652,13 +649,12 @@ func (c *Context) applyWalkFn() depgraph.WalkFunc {
 		c.sl.Lock()
 		if tainted {
 			log.Printf("[DEBUG] %s: Marking as tainted", r.Id)
-			rs.Tainted = append(rs.Tainted, rs.Primary)
-			rs.Primary = nil
+			r.State.Tainted = append(r.State.Tainted, r.State.Primary)
+			r.State.Primary = nil
 		}
 		c.sl.Unlock()
 
 		// Update the state for the resource itself
-		r.State = rs
 		r.Tainted = tainted
 
 		for _, h := range c.hooks {
