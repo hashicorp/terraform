@@ -67,6 +67,25 @@ func testReadPlan(t *testing.T, path string) *terraform.Plan {
 	return p
 }
 
+// testState returns a test State structure that we use for a lot of tests.
+func testState() *terraform.State {
+	return &terraform.State{
+		Modules: []*terraform.ModuleState{
+			&terraform.ModuleState{
+				Path: []string{"root"},
+				Resources: map[string]*terraform.ResourceState{
+					"test_instance.foo": &terraform.ResourceState{
+						Type: "test_instance",
+						Primary: &terraform.InstanceState{
+							ID: "bar",
+						},
+					},
+				},
+			},
+		},
+	}
+}
+
 func testStateFile(t *testing.T, s *terraform.State) string {
 	path := testTempFile(t)
 
@@ -87,7 +106,8 @@ func testProvider() *terraform.MockResourceProvider {
 	p := new(terraform.MockResourceProvider)
 	p.DiffReturn = &terraform.ResourceDiff{}
 	p.RefreshFn = func(
-		s *terraform.ResourceState) (*terraform.ResourceState, error) {
+		info *terraform.InstanceInfo,
+		s *terraform.InstanceState) (*terraform.InstanceState, error) {
 		return s, nil
 	}
 	p.ResourcesReturn = []terraform.ResourceType{

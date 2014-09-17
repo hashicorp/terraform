@@ -63,15 +63,7 @@ func TestShow_plan(t *testing.T) {
 }
 
 func TestShow_state(t *testing.T) {
-	originalState := &terraform.State{
-		Resources: map[string]*terraform.ResourceState{
-			"test_instance.foo": &terraform.ResourceState{
-				ID:   "bar",
-				Type: "test_instance",
-			},
-		},
-	}
-
+	originalState := testState()
 	statePath := testStateFile(t, originalState)
 
 	ui := new(cli.MockUi)

@@ -182,14 +182,18 @@ func (c *ApplyCommand) Run(args []string) int {
 	}
 
 	// If we have outputs, then output those at the end.
-	if state != nil && len(state.Outputs) > 0 {
+	var outputs map[string]string
+	if state != nil {
+		outputs = state.RootModule().Outputs
+	}
+	if len(outputs) > 0 {
 		outputBuf := new(bytes.Buffer)
 		outputBuf.WriteString("[reset][bold][green]\nOutputs:\n\n")
 
 		// Output the outputs in alphabetical order
 		keyLen := 0
-		keys := make([]string, 0, len(state.Outputs))
-		for key, _ := range state.Outputs {
+		keys := make([]string, 0, len(outputs))
+		for key, _ := range outputs {
 			keys = append(keys, key)
 			if len(key) > keyLen {
 				keyLen = len(key)
@@ -198,7 +202,7 @@ func (c *ApplyCommand) Run(args []string) int {
 		sort.Strings(keys)
 
 		for _, k := range keys {
-			v := state.Outputs[k]
+			v := outputs[k]
 
 			outputBuf.WriteString(fmt.Sprintf(
 				"  %s%s = %s\n",

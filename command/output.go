@@ -50,14 +50,14 @@ func (c *OutputCommand) Run(args []string) int {
 		return 1
 	}
 
-	if len(state.Outputs) == 0 {
+	if len(state.RootModule().Outputs) == 0 {
 		c.Ui.Error(fmt.Sprintf(
 			"The state file has no outputs defined. Define an output\n" +
 				"in your configuration with the `output` directive and re-run\n" +
 				"`terraform apply` for it to become available."))
 		return 1
 	}
-	v, ok := state.Outputs[name]
+	v, ok := state.RootModule().Outputs[name]
 	if !ok {
 		c.Ui.Error(fmt.Sprintf(
 			"The output variable requested could not be found in the state\n" +

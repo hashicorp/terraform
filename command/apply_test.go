@@ -140,8 +140,9 @@ func TestApply_error(t *testing.T) {
 	var lock sync.Mutex
 	errored := false
 	p.ApplyFn = func(
-		s *terraform.ResourceState,
-		d *terraform.ResourceDiff) (*terraform.ResourceState, error) {
+		info *terraform.InstanceInfo,
+		s *terraform.InstanceState,
+		d *terraform.ResourceDiff) (*terraform.InstanceState, error) {
 		lock.Lock()
 		defer lock.Unlock()
 
@@ -150,10 +151,11 @@ func TestApply_error(t *testing.T) {
 			return nil, fmt.Errorf("error")
 		}
 
-		return &terraform.ResourceState{ID: "foo"}, nil
+		return &terraform.InstanceState{ID: "foo"}, nil
 	}
 	p.DiffFn = func(
-		*terraform.ResourceState,
+		*terraform.InstanceInfo,
+		*terraform.InstanceState,
 		*terraform.ResourceConfig) (*terraform.ResourceDiff, error) {
 		return &terraform.ResourceDiff{
 			Attributes: map[string]*terraform.ResourceAttrDiff{
@@ -189,7 +191,7 @@ func TestApply_error(t *testing.T) {
 	if state == nil {
 		t.Fatal("state should not be nil")
 	}
-	if len(state.Resources) == 0 {
+	if len(state.RootModule().Resources) == 0 {
 		t.Fatal("no resources in state")
 	}
 }
@@ -367,10 +369,17 @@ func TestApply_planVars(t *testing.T) {
 
 func TestApply_refresh(t *testing.T) {
 	originalState := &terraform.State{
-		Resources: map[string]*terraform.ResourceState{
-			"test_instance.foo": &terraform.ResourceState{
-				ID:   "bar",
-				Type: "test_instance",
+		Modules: []*terraform.ModuleState{
+			&terraform.ModuleState{
+				Path: []string{"root"},
+				Resources: map[string]*terraform.ResourceState{
+					"test_instance.foo": &terraform.ResourceState{
+						Type: "test_instance",
+						Primary: &terraform.InstanceState{
+							ID: "bar",
+						},
+					},
+				},
 			},
 		},
 	}
@@ -453,7 +462,8 @@ func TestApply_shutdown(t *testing.T) {
 	}
 
 	p.DiffFn = func(
-		*terraform.ResourceState,
+		*terraform.InstanceInfo,
+		*terraform.InstanceState,
 		*terraform.ResourceConfig) (*terraform.ResourceDiff, error) {
 		return &terraform.ResourceDiff{
 			Attributes: map[string]*terraform.ResourceAttrDiff{
@@ -464,15 +474,16 @@ func TestApply_shutdown(t *testing.T) {
 		}, nil
 	}
 	p.ApplyFn = func(
-		*terraform.ResourceState,
-		*terraform.ResourceDiff) (*terraform.ResourceState, error) {
+		*terraform.InstanceInfo,
+		*terraform.InstanceState,
+		*terraform.ResourceDiff) (*terraform.InstanceState, error) {
 		if !stopped {
 			stopped = true
 			close(stopCh)
 			<-stopReplyCh
 		}
 
-		return &terraform.ResourceState{
+		return &terraform.InstanceState{
 			ID: "foo",
 			Attributes: map[string]string{
 				"ami": "2",
@@ -518,18 +529,24 @@ func TestApply_shutdown(t *testing.T) {
 		t.Fatal("state should not be nil")
 	}
 
-	if len(state.Resources) != 1 {
-		t.Fatalf("bad: %d", len(state.Resources))
+	if len(state.RootModule().Resources) != 1 {
+		t.Fatalf("bad: %d", len(state.RootModule().Resources))
 	}
 }
 
 func TestApply_state(t *testing.T) {
 	originalState := &terraform.State{
-		Resources: map[string]*terraform.ResourceState{
-			"test_instance.foo": &terraform.ResourceState{
-				ID:       "bar",
-				Type:     "test_instance",
-				ConnInfo: make(map[string]string),
+		Modules: []*terraform.ModuleState{
+			&terraform.ModuleState{
+				Path: []string{"root"},
+				Resources: map[string]*terraform.ResourceState{
+					"test_instance.foo": &terraform.ResourceState{
+						Type: "test_instance",
+						Primary: &terraform.InstanceState{
+							ID: "bar",
+						},
+					},
+				},
 			},
 		},
 	}
@@ -563,7 +580,7 @@ func TestApply_state(t *testing.T) {
 	}
 
 	// Verify that the provider was called with the existing state
-	expectedState := originalState.Resources["test_instance.foo"]
+	expectedState := originalState.RootModule().Resources["test_instance.foo"]
 	if !reflect.DeepEqual(p.DiffState, expectedState) {
 		t.Fatalf("bad: %#v", p.DiffState)
 	}
@@ -604,7 +621,7 @@ func TestApply_state(t *testing.T) {
 	}
 
 	// nil out the ConnInfo since that should not be restored
-	originalState.Resources["test_instance.foo"].ConnInfo = nil
+	originalState.RootModule().Resources["test_instance.foo"].Primary.Ephemeral.ConnInfo = nil
 
 	if !reflect.DeepEqual(backupState, originalState) {
 		t.Fatalf("bad: %#v", backupState)
@@ -644,7 +661,8 @@ func TestApply_vars(t *testing.T) {
 
 	actual := ""
 	p.DiffFn = func(
-		s *terraform.ResourceState,
+		info *terraform.InstanceInfo,
+		s *terraform.InstanceState,
 		c *terraform.ResourceConfig) (*terraform.ResourceDiff, error) {
 		if v, ok := c.Config["value"]; ok {
 			actual = v.(string)
@@ -686,7 +704,8 @@ func TestApply_varFile(t *testing.T) {
 
 	actual := ""
 	p.DiffFn = func(
-		s *terraform.ResourceState,
+		info *terraform.InstanceInfo,
+		s *terraform.InstanceState,
 		c *terraform.ResourceConfig) (*terraform.ResourceDiff, error) {
 		if v, ok := c.Config["value"]; ok {
 			actual = v.(string)
@@ -738,7 +757,8 @@ func TestApply_varFileDefault(t *testing.T) {
 
 	actual := ""
 	p.DiffFn = func(
-		s *terraform.ResourceState,
+		info *terraform.InstanceInfo,
+		s *terraform.InstanceState,
 		c *terraform.ResourceConfig) (*terraform.ResourceDiff, error) {
 		if v, ok := c.Config["value"]; ok {
 			actual = v.(string)
@@ -762,10 +782,17 @@ func TestApply_varFileDefault(t *testing.T) {
 
 func TestApply_backup(t *testing.T) {
 	originalState := &terraform.State{
-		Resources: map[string]*terraform.ResourceState{
-			"test_instance.foo": &terraform.ResourceState{
-				ID:   "bar",
-				Type: "test_instance",
+		Modules: []*terraform.ModuleState{
+			&terraform.ModuleState{
+				Path: []string{"root"},
+				Resources: map[string]*terraform.ResourceState{
+					"test_instance.foo": &terraform.ResourceState{
+						Type: "test_instance",
+						Primary: &terraform.InstanceState{
+							ID: "bar",
+						},
+					},
+				},
 			},
 		},
 	}
@@ -831,8 +858,8 @@ func TestApply_backup(t *testing.T) {
 		t.Fatalf("err: %s", err)
 	}
 
-	actual := backupState.Resources["test_instance.foo"]
-	expected := originalState.Resources["test_instance.foo"]
+	actual := backupState.RootModule().Resources["test_instance.foo"]
+	expected := originalState.RootModule().Resources["test_instance.foo"]
 	if !reflect.DeepEqual(actual, expected) {
 		t.Fatalf("bad: %#v %#v", actual, expected)
 	}
@@ -840,11 +867,17 @@ func TestApply_backup(t *testing.T) {
 
 func TestApply_disableBackup(t *testing.T) {
 	originalState := &terraform.State{
-		Resources: map[string]*terraform.ResourceState{
-			"test_instance.foo": &terraform.ResourceState{
-				ID:       "bar",
-				Type:     "test_instance",
-				ConnInfo: make(map[string]string),
+		Modules: []*terraform.ModuleState{
+			&terraform.ModuleState{
+				Path: []string{"root"},
+				Resources: map[string]*terraform.ResourceState{
+					"test_instance.foo": &terraform.ResourceState{
+						Type: "test_instance",
+						Primary: &terraform.InstanceState{
+							ID: "bar",
+						},
+					},
+				},
 			},
 		},
 	}
@@ -879,7 +912,7 @@ func TestApply_disableBackup(t *testing.T) {
 	}
 
 	// Verify that the provider was called with the existing state
-	expectedState := originalState.Resources["test_instance.foo"]
+	expectedState := originalState.RootModule().Resources["test_instance.foo"]
 	if !reflect.DeepEqual(p.DiffState, expectedState) {
 		t.Fatalf("bad: %#v", p.DiffState)
 	}
