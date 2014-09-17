@@ -892,7 +892,7 @@ func (c *Context) refreshWalkFn() depgraph.WalkFunc {
 
 		// TODO: Handle other moduels
 		mod := c.state.RootModule()
-		if len(r.State.Tainted) == 0 && (r.State.Primary == nil || r.State.Primary.ID == "") {
+		if len(r.State.Tainted) == 0 && (is == nil || is.ID == "") {
 			delete(mod.Resources, r.Id)
 		} else {
 			mod.Resources[r.Id] = r.State

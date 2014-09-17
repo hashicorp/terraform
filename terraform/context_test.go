@@ -2003,7 +2003,7 @@ func TestContextRefresh(t *testing.T) {
 	if p.RefreshState.ID != "foo" {
 		t.Fatalf("bad: %#v", p.RefreshState)
 	}
-	if !reflect.DeepEqual(mod.Resources["aws_instance.web"], p.RefreshReturn) {
+	if !reflect.DeepEqual(mod.Resources["aws_instance.web"].Primary, p.RefreshReturn) {
 		t.Fatalf("bad: %#v", mod.Resources["aws_instance.web"])
 	}
 
