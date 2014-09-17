@@ -629,7 +629,7 @@ func (c *Context) applyWalkFn() depgraph.WalkFunc {
 		// Additionally, we need to be careful to not run this if there
 		// was an error during the provider apply.
 		tainted := false
-		if applyerr == nil && r.State.Primary.ID == "" && len(r.Provisioners) > 0 {
+		if applyerr == nil && r.State.Primary.ID != "" && len(r.Provisioners) > 0 {
 			for _, h := range c.hooks {
 				handleHook(h.PreProvisionResource(r.Id, r.State))
 			}
