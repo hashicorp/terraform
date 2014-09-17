@@ -23,13 +23,13 @@ type ResourceData struct {
 	// Settable (internally)
 	schema  map[string]*Schema
 	config  *terraform.ResourceConfig
-	state   *terraform.ResourceState
+	state   *terraform.InstanceState
 	diff    *terraform.ResourceDiff
 	diffing bool
 
 	// Don't set
 	setMap     map[string]string
-	newState   *terraform.ResourceState
+	newState   *terraform.InstanceState
 	partial    bool
 	partialMap map[string]struct{}
 	once       sync.Once
@@ -168,24 +168,11 @@ func (d *ResourceData) Id() string {
 // ConnInfo returns the connection info for this resource.
 func (d *ResourceData) ConnInfo() map[string]string {
 	if d.newState != nil {
-		return d.newState.ConnInfo
+		return d.newState.Ephemeral.ConnInfo
 	}
 
 	if d.state != nil {
-		return d.state.ConnInfo
-	}
-
-	return nil
-}
-
-// Dependencies returns the dependencies in this state.
-func (d *ResourceData) Dependencies() []terraform.ResourceDependency {
-	if d.newState != nil {
-		return d.newState.Dependencies
-	}
-
-	if d.state != nil {
-		return d.state.Dependencies
+		return d.state.Ephemeral.ConnInfo
 	}
 
 	return nil
@@ -201,19 +188,13 @@ func (d *ResourceData) SetId(v string) {
 // SetConnInfo sets the connection info for a resource.
 func (d *ResourceData) SetConnInfo(v map[string]string) {
 	d.once.Do(d.init)
-	d.newState.ConnInfo = v
+	d.newState.Ephemeral.ConnInfo = v
 }
 
-// SetDependencies sets the dependencies of a resource.
-func (d *ResourceData) SetDependencies(ds []terraform.ResourceDependency) {
-	d.once.Do(d.init)
-	d.newState.Dependencies = ds
-}
-
-// State returns the new ResourceState after the diff and any Set
+// State returns the new InstanceState after the diff and any Set
 // calls.
-func (d *ResourceData) State() *terraform.ResourceState {
-	var result terraform.ResourceState
+func (d *ResourceData) State() *terraform.InstanceState {
+	var result terraform.InstanceState
 	result.ID = d.Id()
 
 	// If we have no ID, then this resource doesn't exist and we just
@@ -223,8 +204,7 @@ func (d *ResourceData) State() *terraform.ResourceState {
 	}
 
 	result.Attributes = d.stateObject("", d.schema)
-	result.ConnInfo = d.ConnInfo()
-	result.Dependencies = d.Dependencies()
+	result.Ephemeral.ConnInfo = d.ConnInfo()
 
 	if v := d.Id(); v != "" {
 		result.Attributes["id"] = d.Id()
@@ -234,7 +214,7 @@ func (d *ResourceData) State() *terraform.ResourceState {
 }
 
 func (d *ResourceData) init() {
-	var copyState terraform.ResourceState
+	var copyState terraform.InstanceState
 	if d.state != nil {
 		copyState = *d.state
 	}

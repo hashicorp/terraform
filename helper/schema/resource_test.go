@@ -25,7 +25,7 @@ func TestResourceApply_create(t *testing.T) {
 		return nil
 	}
 
-	var s *terraform.ResourceState = nil
+	var s *terraform.InstanceState = nil
 
 	d := &terraform.ResourceDiff{
 		Attributes: map[string]*terraform.ResourceAttrDiff{
@@ -44,7 +44,7 @@ func TestResourceApply_create(t *testing.T) {
 		t.Fatal("not called")
 	}
 
-	expected := &terraform.ResourceState{
+	expected := &terraform.InstanceState{
 		ID: "foo",
 		Attributes: map[string]string{
 			"id":  "foo",
@@ -73,7 +73,7 @@ func TestResourceApply_destroy(t *testing.T) {
 		return nil
 	}
 
-	s := &terraform.ResourceState{
+	s := &terraform.InstanceState{
 		ID: "bar",
 	}
 
@@ -110,7 +110,7 @@ func TestResourceApply_destroyPartial(t *testing.T) {
 		return fmt.Errorf("some error")
 	}
 
-	s := &terraform.ResourceState{
+	s := &terraform.InstanceState{
 		ID: "bar",
 		Attributes: map[string]string{
 			"foo": "12",
@@ -126,7 +126,7 @@ func TestResourceApply_destroyPartial(t *testing.T) {
 		t.Fatal("should error")
 	}
 
-	expected := &terraform.ResourceState{
+	expected := &terraform.InstanceState{
 		ID: "bar",
 		Attributes: map[string]string{
 			"id":  "bar",
@@ -154,7 +154,7 @@ func TestResourceApply_update(t *testing.T) {
 		return nil
 	}
 
-	s := &terraform.ResourceState{
+	s := &terraform.InstanceState{
 		ID: "foo",
 		Attributes: map[string]string{
 			"foo": "12",
@@ -174,7 +174,7 @@ func TestResourceApply_update(t *testing.T) {
 		t.Fatalf("err: %s", err)
 	}
 
-	expected := &terraform.ResourceState{
+	expected := &terraform.InstanceState{
 		ID: "foo",
 		Attributes: map[string]string{
 			"id":  "foo",
@@ -199,7 +199,7 @@ func TestResourceApply_updateNoCallback(t *testing.T) {
 
 	r.Update = nil
 
-	s := &terraform.ResourceState{
+	s := &terraform.InstanceState{
 		ID: "foo",
 		Attributes: map[string]string{
 			"foo": "12",
@@ -219,7 +219,7 @@ func TestResourceApply_updateNoCallback(t *testing.T) {
 		t.Fatal("should error")
 	}
 
-	expected := &terraform.ResourceState{
+	expected := &terraform.InstanceState{
 		ID: "foo",
 		Attributes: map[string]string{
 			"foo": "12",
@@ -282,14 +282,14 @@ func TestResourceRefresh(t *testing.T) {
 		return d.Set("foo", d.Get("foo").(int)+1)
 	}
 
-	s := &terraform.ResourceState{
+	s := &terraform.InstanceState{
 		ID: "bar",
 		Attributes: map[string]string{
 			"foo": "12",
 		},
 	}
 
-	expected := &terraform.ResourceState{
+	expected := &terraform.InstanceState{
 		ID: "bar",
 		Attributes: map[string]string{
 			"id":  "bar",
@@ -322,7 +322,7 @@ func TestResourceRefresh_delete(t *testing.T) {
 		return nil
 	}
 
-	s := &terraform.ResourceState{
+	s := &terraform.InstanceState{
 		ID: "bar",
 		Attributes: map[string]string{
 			"foo": "12",

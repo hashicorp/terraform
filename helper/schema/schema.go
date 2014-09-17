@@ -162,7 +162,7 @@ type schemaMap map[string]*Schema
 //
 // The diff is optional.
 func (m schemaMap) Data(
-	s *terraform.ResourceState,
+	s *terraform.InstanceState,
 	d *terraform.ResourceDiff) (*ResourceData, error) {
 	return &ResourceData{
 		schema: m,
@@ -174,7 +174,7 @@ func (m schemaMap) Data(
 // Diff returns the diff for a resource given the schema map,
 // state, and configuration.
 func (m schemaMap) Diff(
-	s *terraform.ResourceState,
+	s *terraform.InstanceState,
 	c *terraform.ResourceConfig) (*terraform.ResourceDiff, error) {
 	result := new(terraform.ResourceDiff)
 	result.Attributes = make(map[string]*terraform.ResourceAttrDiff)

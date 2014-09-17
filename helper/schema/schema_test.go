@@ -11,7 +11,7 @@ import (
 func TestSchemaMap_Diff(t *testing.T) {
 	cases := []struct {
 		Schema          map[string]*Schema
-		State           *terraform.ResourceState
+		State           *terraform.InstanceState
 		Config          map[string]interface{}
 		ConfigVariables map[string]string
 		Diff            *terraform.ResourceDiff
@@ -87,7 +87,7 @@ func TestSchemaMap_Diff(t *testing.T) {
 				},
 			},
 
-			State: &terraform.ResourceState{
+			State: &terraform.InstanceState{
 				ID: "foo",
 			},
 
@@ -394,7 +394,7 @@ func TestSchemaMap_Diff(t *testing.T) {
 				},
 			},
 
-			State: &terraform.ResourceState{
+			State: &terraform.InstanceState{
 				Attributes: map[string]string{
 					"ports.#": "3",
 					"ports.0": "1",
@@ -421,7 +421,7 @@ func TestSchemaMap_Diff(t *testing.T) {
 				},
 			},
 
-			State: &terraform.ResourceState{
+			State: &terraform.InstanceState{
 				Attributes: map[string]string{
 					"ports.#": "2",
 					"ports.0": "1",
@@ -577,7 +577,7 @@ func TestSchemaMap_Diff(t *testing.T) {
 				},
 			},
 
-			State: &terraform.ResourceState{
+			State: &terraform.InstanceState{
 				Attributes: map[string]string{
 					"ports.#": "2",
 					"ports.0": "2",
@@ -617,7 +617,7 @@ func TestSchemaMap_Diff(t *testing.T) {
 				},
 			},
 
-			State: &terraform.ResourceState{
+			State: &terraform.InstanceState{
 				Attributes: map[string]string{
 					"ports.#": "2",
 					"ports.0": "2",
@@ -658,7 +658,7 @@ func TestSchemaMap_Diff(t *testing.T) {
 				},
 			},
 
-			State: &terraform.ResourceState{
+			State: &terraform.InstanceState{
 				Attributes: map[string]string{
 					"availability_zone": "bar",
 					"ports.#":           "1",
@@ -737,7 +737,7 @@ func TestSchemaMap_Diff(t *testing.T) {
 				},
 			},
 
-			State: &terraform.ResourceState{
+			State: &terraform.InstanceState{
 				Attributes: map[string]string{
 					"availability_zone": "foo",
 					"port":              "80",
@@ -767,7 +767,7 @@ func TestSchemaMap_Diff(t *testing.T) {
 				},
 			},
 
-			State: &terraform.ResourceState{
+			State: &terraform.InstanceState{
 				Attributes: map[string]string{
 					"port": "80",
 				},
@@ -803,7 +803,7 @@ func TestSchemaMap_Diff(t *testing.T) {
 				},
 			},
 
-			State: &terraform.ResourceState{
+			State: &terraform.InstanceState{
 				Attributes: map[string]string{
 					"availability_zone": "foo",
 					"port":              "80",
@@ -843,7 +843,7 @@ func TestSchemaMap_Diff(t *testing.T) {
 				},
 			},
 
-			State: &terraform.ResourceState{
+			State: &terraform.InstanceState{
 				Attributes: map[string]string{
 					"config_vars.#":     "1",
 					"config_vars.0.foo": "bar",
@@ -882,7 +882,7 @@ func TestSchemaMap_Diff(t *testing.T) {
 				},
 			},
 
-			State: &terraform.ResourceState{
+			State: &terraform.InstanceState{
 				Attributes: map[string]string{
 					"config_vars.#":     "1",
 					"config_vars.0.foo": "bar",
@@ -931,7 +931,7 @@ func TestSchemaMap_Diff(t *testing.T) {
 				},
 			},
 
-			State: &terraform.ResourceState{
+			State: &terraform.InstanceState{
 				Attributes: map[string]string{
 					"availability_zone": "bar",
 					"address":           "foo",
@@ -979,7 +979,7 @@ func TestSchemaMap_Diff(t *testing.T) {
 				},
 			},
 
-			State: &terraform.ResourceState{
+			State: &terraform.InstanceState{
 				Attributes: map[string]string{
 					"availability_zone": "bar",
 					"ports.#":           "1",
