@@ -47,20 +47,23 @@ func (p *ResourceProvider) Configure(c *terraform.ResourceConfig) error {
 }
 
 func (p *ResourceProvider) Apply(
-	s *terraform.ResourceState,
-	d *terraform.ResourceDiff) (*terraform.ResourceState, error) {
-	return resourceMap.Apply(s, d, p)
+	info *terraform.InstanceInfo,
+	s *terraform.InstanceState,
+	d *terraform.ResourceDiff) (*terraform.InstanceState, error) {
+	return resourceMap.Apply(info, s, d, p)
 }
 
 func (p *ResourceProvider) Diff(
-	s *terraform.ResourceState,
+	info *terraform.InstanceInfo,
+	s *terraform.InstanceState,
 	c *terraform.ResourceConfig) (*terraform.ResourceDiff, error) {
-	return resourceMap.Diff(s, c, p)
+	return resourceMap.Diff(info, s, c, p)
 }
 
 func (p *ResourceProvider) Refresh(
-	s *terraform.ResourceState) (*terraform.ResourceState, error) {
-	return resourceMap.Refresh(s, p)
+	info *terraform.InstanceInfo,
+	s *terraform.InstanceState) (*terraform.InstanceState, error) {
+	return resourceMap.Refresh(info, s, p)
 }
 
 func (p *ResourceProvider) Resources() []terraform.ResourceType {
