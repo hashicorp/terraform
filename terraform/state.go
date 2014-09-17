@@ -122,7 +122,11 @@ func (s *State) String() string {
 			id = rs.Primary.ID
 		}
 		if id == "" {
-			id = "<not created>"
+			if len(rs.Tainted) > 0 {
+				id = rs.Tainted[0].ID
+			} else {
+				id = "<not created>"
+			}
 		}
 
 		taintStr := ""
