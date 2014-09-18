@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log"
 	"reflect"
 	"sort"
 
@@ -487,13 +488,11 @@ func ReadState(src io.Reader) (*State, error) {
 	}
 	if string(start) == stateFormatMagic {
 		// Read the old state
-		_, err := ReadStateV1(buf)
+		old, err := ReadStateV1(buf)
 		if err != nil {
 			return nil, err
 		}
-
-		// TODO: Handle V1 upgade
-		panic("Old state file upgrade not supported")
+		return upgradeV1State(old)
 	}
 
 	// Otherwise, must be V2
@@ -513,4 +512,46 @@ func WriteState(d *State, dst io.Writer) error {
 		return fmt.Errorf("Failed to write state: %v", err)
 	}
 	return nil
+}
+
+// upgradeV1State is used to upgrade a V1 state representation
+// into a proper State representation.
+func upgradeV1State(old *StateV1) (*State, error) {
+	s := &State{}
+	s.init()
+
+	// Old format had no modules, so we migrate everything
+	// directly into the root module.
+	root := s.RootModule()
+
+	// Copy the outputs
+	root.Outputs = old.Outputs
+
+	// Upgrade the resources
+	for id, rs := range old.Resources {
+		newRs := &ResourceState{
+			Type: rs.Type,
+		}
+		root.Resources[id] = newRs
+
+		// Migrate to an instance state
+		instance := &InstanceState{
+			ID:         rs.ID,
+			Attributes: rs.Attributes,
+		}
+
+		// Check if this is the primary or tainted instance
+		if _, ok := old.Tainted[id]; ok {
+			newRs.Tainted = append(newRs.Tainted, instance)
+		} else {
+			newRs.Primary = instance
+		}
+
+		// Warn if the resource uses Extra, as there is
+		// no upgrade path for this! Now totally deprecated.
+		if len(rs.Extra) > 0 {
+			log.Printf("[WARN] Resource %s uses deprecated attribute storage, state file upgrade may be incomplete.")
+		}
+	}
+	return s, nil
 }
