@@ -159,6 +159,9 @@ const testTerraformApplyDestroyStr = `
 const testTerraformApplyErrorStr = `
 aws_instance.bar:
   ID = bar
+
+  Dependencies:
+    aws_instance.foo
 aws_instance.foo:
   ID = foo
   num = 2
@@ -167,6 +170,9 @@ aws_instance.foo:
 const testTerraformApplyErrorPartialStr = `
 aws_instance.bar:
   ID = bar
+
+  Dependencies:
+    aws_instance.foo
 aws_instance.foo:
   ID = foo
   num = 2
