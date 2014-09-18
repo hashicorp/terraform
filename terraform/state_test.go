@@ -125,6 +125,7 @@ func TestReadUpgradeState(t *testing.T) {
 
 func TestReadWriteState(t *testing.T) {
 	state := &State{
+		Serial: 9,
 		Modules: []*ModuleState{
 			&ModuleState{
 				Path: rootModulePath,
@@ -154,6 +155,20 @@ func TestReadWriteState(t *testing.T) {
 		t.Fatalf("err: %s", err)
 	}
 
+	// Verify that the version and serial are set
+	if state.Version != textStateVersion {
+		t.Fatalf("bad version number: %d", state.Version)
+	}
+
+	// Verify the serial number is incremented
+	if state.Serial != 10 {
+		t.Fatalf("bad serial: %d", state.Serial)
+	}
+
+	// Remove the changes or the checksum will fail
+	state.Version = 0
+	state.Serial = 9
+
 	// Checksum after the write
 	chksumAfter := checksumStruct(t, state)
 	if chksumAfter != chksum {
@@ -164,6 +179,10 @@ func TestReadWriteState(t *testing.T) {
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
+
+	// Verify the changes came through
+	state.Version = textStateVersion
+	state.Serial = 10
 
 	// ReadState should not restore sensitive information!
 	mod := state.RootModule()

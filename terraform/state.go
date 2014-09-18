@@ -538,6 +538,12 @@ func ReadState(src io.Reader) (*State, error) {
 
 // WriteState writes a state somewhere in a binary format.
 func WriteState(d *State, dst io.Writer) error {
+	// Ensure the version is set
+	d.Version = textStateVersion
+
+	// Always increment the serial number
+	d.Serial++
+
 	enc := json.NewEncoder(dst)
 	if err := enc.Encode(d); err != nil {
 		return fmt.Errorf("Failed to write state: %v", err)
