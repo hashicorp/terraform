@@ -139,7 +139,8 @@ func (c *Context) Apply() (*State, error) {
 	c.state.prune()
 
 	// If we have no errors, then calculate the outputs if we have any
-	if err == nil && len(c.config.Outputs) > 0 {
+	root := c.state.RootModule()
+	if err == nil && len(c.config.Outputs) > 0 && len(root.Resources) > 0 {
 		outputs := make(map[string]string)
 		for _, o := range c.config.Outputs {
 			if err = c.computeVars(o.RawConfig); err != nil {
@@ -149,7 +150,7 @@ func (c *Context) Apply() (*State, error) {
 		}
 
 		// Assign the outputs to the root module
-		c.state.RootModule().Outputs = outputs
+		root.Outputs = outputs
 	}
 
 	return c.state, err
