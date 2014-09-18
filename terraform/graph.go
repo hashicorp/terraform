@@ -360,20 +360,10 @@ func graphAddDiff(g *depgraph.Graph, d *Diff) error {
 				Name: fmt.Sprintf("%s (destroy)", newNode.Resource.Id),
 				Meta: newNode,
 			}
-			newN.Deps = make([]*depgraph.Dependency, 0, len(n.Deps))
-			for _, d := range n.Deps {
-				// We don't want to copy any resource dependencies
-				if _, ok := d.Target.Meta.(*GraphNodeResource); ok {
-					continue
-				}
-				// TODO: Maybe GraphNodeResourceMeta should be omitted?
+			newN.Deps = make([]*depgraph.Dependency, len(n.Deps))
 
-				newN.Deps = append(newN.Deps, &depgraph.Dependency{
-					Name:   d.Name,
-					Source: newN,
-					Target: d.Target,
-				})
-			}
+			// Copy all the dependencies and do a fixup later
+			copy(newN.Deps, n.Deps)
 
 			// Append it to the list so we handle it later
 			nlist = append(nlist, newN)
@@ -409,33 +399,53 @@ func graphAddDiff(g *depgraph.Graph, d *Diff) error {
 	// Go through each noun and make sure we calculate all the dependencies
 	// properly.
 	for _, n := range nlist {
-		rn := n.Meta.(*GraphNodeResource)
-
-		// If we have no dependencies, then just continue
-		deps := rn.Resource.State.Dependencies
-		if len(deps) == 0 {
-			continue
-		}
-
-		// We have dependencies. We must be destroyed BEFORE those
-		// dependencies. Look to see if they're managed.
-		for _, n2 := range nlist {
-			// Don't ever depend on ourselves
-			if n2.Name == n.Name {
-				continue
-			}
-
-			for _, dep := range deps {
-				rn2 := n2.Meta.(*GraphNodeResource)
-				if rn2.Resource.Id == dep {
-					n2.Deps = append(n2.Deps, &depgraph.Dependency{
-						Name:   n.Name,
-						Source: n2,
-						Target: n,
-					})
+		deps := n.Deps
+		num := len(deps)
+		for i := 0; i < num; i++ {
+			dep := deps[i]
+			switch target := dep.Target.Meta.(type) {
+			case *GraphNodeResource:
+				// If the other node is also being deleted,
+				// we must be deleted first. E.g. if A -> B,
+				// then when we create, B is created first then A.
+				// On teardown, A is destroyed first, then B.
+				// Thus we must flip our depedency and instead inject
+				// it on B.
+				for _, n2 := range nlist {
+					rn2 := n2.Meta.(*GraphNodeResource)
+					if target.Resource.Id == rn2.Resource.Id {
+						n2.Deps = append(n2.Deps, &depgraph.Dependency{
+							Name:   n.Name,
+							Source: n2,
+							Target: n,
+						})
+						break
+					}
 				}
+
+				// Drop the dependency. We may have created
+				// an inverse depedency if the dependent resource
+				// is also being deleted, but this dependence is
+				// no longer required.
+				deps[i], deps[num-1] = deps[num-1], nil
+				num--
+				i--
+
+			case *GraphNodeResourceMeta:
+				// Drop the dependency, since there is
+				// nothing that needs to be done for a meta
+				// resource on destroy.
+				deps[i], deps[num-1] = deps[num-1], nil
+				num--
+				i--
+
+			case *GraphNodeResourceProvider:
+				// Keep these around
+			default:
+				panic(fmt.Errorf("Unhandled depedency type: %#v", dep.Meta))
 			}
 		}
+		n.Deps = deps[:num]
 	}
 
 	// Add the nouns to the graph
