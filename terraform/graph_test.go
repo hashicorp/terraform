@@ -398,6 +398,50 @@ func TestEncodeDependencies(t *testing.T) {
 	}
 }
 
+func TestEncodeDependencies_Count(t *testing.T) {
+	config := testConfig(t, "graph-count")
+	state := &State{
+		Modules: []*ModuleState{
+			&ModuleState{
+				Path: rootModulePath,
+				Resources: map[string]*ResourceState{
+					"aws_instance.web.0": &ResourceState{
+						Type: "aws_instance",
+						Primary: &InstanceState{
+							ID: "foo",
+						},
+					},
+					"aws_load_balancer.weblb": &ResourceState{
+						Type: "aws_load_balancer",
+						Primary: &InstanceState{
+							ID: "foo",
+						},
+					},
+				},
+			},
+		},
+	}
+
+	g, err := Graph(&GraphOpts{Config: config, State: state})
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	// This should encode the dependency information into the state
+	EncodeDependencies(g)
+
+	root := state.RootModule()
+	web := root.Resources["aws_instance.web.0"]
+	if len(web.Dependencies) != 0 {
+		t.Fatalf("bad: %#v", web)
+	}
+
+	weblb := root.Resources["aws_load_balancer.weblb"]
+	if len(weblb.Dependencies) != 3 {
+		t.Fatalf("bad: %#v", weblb)
+	}
+}
+
 const testTerraformGraphStr = `
 root: root
 aws_instance.web

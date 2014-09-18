@@ -199,7 +199,13 @@ func EncodeDependencies(g *depgraph.Graph) {
 					continue
 				}
 				inject = append(inject, target.Resource.Id)
-				// TODO: case *GraphNodeResourceMeta?
+
+			case *GraphNodeResourceMeta:
+				// Inject each sub-resource as a depedency
+				for i := 0; i < target.Count; i++ {
+					id := fmt.Sprintf("%s.%d", target.ID, i)
+					inject = append(inject, id)
+				}
 			}
 		}
 
