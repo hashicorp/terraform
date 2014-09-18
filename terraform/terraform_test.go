@@ -494,7 +494,7 @@ aws_instance.foo:
 const testTerraformPlanTaintStr = `
 DIFF:
 
-DESTROY: aws_instance.bar
+DESTROY/CREATE: aws_instance.bar
   foo:  "" => "2"
   type: "" => "aws_instance"
 
