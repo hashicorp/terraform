@@ -2,7 +2,9 @@ package terraform
 
 import (
 	"bytes"
+	"encoding/json"
 	"reflect"
+	"strings"
 	"testing"
 
 	"github.com/hashicorp/terraform/config"
@@ -190,6 +192,25 @@ func TestReadWriteState(t *testing.T) {
 
 	if !reflect.DeepEqual(actual, state) {
 		t.Fatalf("bad: %#v", actual)
+	}
+}
+
+func TestReadStateNewVersion(t *testing.T) {
+	type out struct {
+		Version int
+	}
+
+	buf, err := json.Marshal(&out{textStateVersion + 1})
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	s, err := ReadState(bytes.NewReader(buf))
+	if s != nil {
+		t.Fatalf("unexpected: %#v", s)
+	}
+	if !strings.Contains(err.Error(), "not supported") {
+		t.Fatalf("err: %v", err)
 	}
 }
 

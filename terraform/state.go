@@ -533,6 +533,12 @@ func ReadState(src io.Reader) (*State, error) {
 		return nil, fmt.Errorf("Decoding state file failed: %v", err)
 	}
 
+	// Check the version, this to ensure we don't read a future
+	// version that we don't understand
+	if state.Version > textStateVersion {
+		return nil, fmt.Errorf("State version %d not supported, please update.",
+			state.Version)
+	}
 	return state, nil
 }
 
