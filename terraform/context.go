@@ -131,6 +131,10 @@ func (c *Context) Apply() (*State, error) {
 	err = g.Walk(c.applyWalkFn())
 	log.Printf("[INFO] Apply walk complete")
 
+	// Encode the dependencies, this pushes the logical dependencies
+	// into the state so that we can recover it later.
+	EncodeDependencies(g)
+
 	// Prune the state so that we have as clean a state as possible
 	c.state.prune()
 

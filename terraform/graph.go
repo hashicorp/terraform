@@ -170,6 +170,45 @@ func Graph(opts *GraphOpts) (*depgraph.Graph, error) {
 	return g, nil
 }
 
+// EncodeDependencies is used to walk the graph and encode the
+// logical dependency information into the resource state. This
+// allows the dependency tree to be recovered from the state file
+// such that orphaned resources will still be destroyed in the
+// proper order.
+func EncodeDependencies(g *depgraph.Graph) {
+	for _, n := range g.Nouns {
+		// Ignore any non-resource nodes
+		rn, ok := n.Meta.(*GraphNodeResource)
+		if !ok {
+			continue
+		}
+
+		// Skip only if the resource has state
+		rs := rn.Resource
+		state := rs.State
+		if state == nil {
+			continue
+		}
+
+		// Update the dependencies
+		var inject []string
+		for _, dep := range n.Deps {
+			switch target := dep.Target.Meta.(type) {
+			case *GraphNodeResource:
+				inject = append(inject, target.Resource.Id)
+				// TODO: case *GraphNodeResourceMeta?
+			}
+		}
+
+		// Inject any of the missing depedencies
+		for _, dep := range inject {
+			if !strSliceContains(state.Dependencies, dep) {
+				state.Dependencies = append(state.Dependencies, dep)
+			}
+		}
+	}
+}
+
 // configGraph turns a configuration structure into a dependency graph.
 func graphAddConfigResources(
 	g *depgraph.Graph, c *config.Config, s *State) {
@@ -513,6 +552,7 @@ func graphAddOrphans(g *depgraph.Graph, c *config.Config, s *State) {
 	if mod == nil {
 		return
 	}
+	var nlist []*depgraph.Noun
 	for _, k := range mod.Orphans(c) {
 		rs := mod.Resources[k]
 		noun := &depgraph.Noun{
@@ -528,7 +568,45 @@ func graphAddOrphans(g *depgraph.Graph, c *config.Config, s *State) {
 				},
 			},
 		}
-		g.Nouns = append(g.Nouns, noun)
+
+		// Append it to the list so we handle it later
+		nlist = append(nlist, noun)
+	}
+
+	// Add the nouns to the graph
+	g.Nouns = append(g.Nouns, nlist...)
+
+	// Handle the orphan dependencies after adding them
+	// to the graph because there may be depedencies between the
+	// orphans that otherwise cannot be handled
+	for _, n := range nlist {
+		rn := n.Meta.(*GraphNodeResource)
+
+		// If we have no dependencies, then just continue
+		deps := rn.Resource.State.Dependencies
+		if len(deps) == 0 {
+			continue
+		}
+
+		for _, n2 := range nlist {
+			rn2 := n2.Meta.(*GraphNodeResource)
+			// Don't ever depend on ourselves
+			if rn2 == rn {
+				continue
+			}
+
+			for _, depName := range rn.Resource.State.Dependencies {
+				if rn2.Resource.Id != depName {
+					continue
+				}
+				dep := &depgraph.Dependency{
+					Name:   depName,
+					Source: n,
+					Target: n2,
+				}
+				n.Deps = append(n.Deps, dep)
+			}
+		}
 	}
 }
 
