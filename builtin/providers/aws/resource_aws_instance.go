@@ -65,6 +65,7 @@ func resourceAwsInstance() *schema.Resource {
 			"private_ip": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
+				ForceNew: true,
 				Computed: true,
 			},
 
