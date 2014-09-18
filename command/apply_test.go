@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
+	"strings"
 	"sync"
 	"testing"
 	"time"
@@ -580,13 +581,16 @@ func TestApply_state(t *testing.T) {
 	}
 
 	// Verify that the provider was called with the existing state
-	expectedState := originalState.RootModule().Resources["test_instance.foo"]
-	if !reflect.DeepEqual(p.DiffState, expectedState) {
-		t.Fatalf("bad: %#v", p.DiffState)
+	actual := strings.TrimSpace(p.DiffState.String())
+	expected := strings.TrimSpace(testApplyStateDiffStr)
+	if actual != expected {
+		t.Fatalf("bad:\n\n%s", actual)
 	}
 
-	if !reflect.DeepEqual(p.ApplyState, expectedState) {
-		t.Fatalf("bad: %#v", p.ApplyState)
+	actual = strings.TrimSpace(p.ApplyState.String())
+	expected = strings.TrimSpace(testApplyStateStr)
+	if actual != expected {
+		t.Fatalf("bad:\n\n%s", actual)
 	}
 
 	// Verify a new state exists
@@ -866,22 +870,7 @@ func TestApply_backup(t *testing.T) {
 }
 
 func TestApply_disableBackup(t *testing.T) {
-	originalState := &terraform.State{
-		Modules: []*terraform.ModuleState{
-			&terraform.ModuleState{
-				Path: []string{"root"},
-				Resources: map[string]*terraform.ResourceState{
-					"test_instance.foo": &terraform.ResourceState{
-						Type: "test_instance",
-						Primary: &terraform.InstanceState{
-							ID: "bar",
-						},
-					},
-				},
-			},
-		},
-	}
-
+	originalState := testState()
 	statePath := testStateFile(t, originalState)
 
 	p := testProvider()
@@ -912,13 +901,16 @@ func TestApply_disableBackup(t *testing.T) {
 	}
 
 	// Verify that the provider was called with the existing state
-	expectedState := originalState.RootModule().Resources["test_instance.foo"]
-	if !reflect.DeepEqual(p.DiffState, expectedState) {
-		t.Fatalf("bad: %#v", p.DiffState)
+	actual := strings.TrimSpace(p.DiffState.String())
+	expected := strings.TrimSpace(testApplyDisableBackupStr)
+	if actual != expected {
+		t.Fatalf("bad:\n\n%s", actual)
 	}
 
-	if !reflect.DeepEqual(p.ApplyState, expectedState) {
-		t.Fatalf("bad: %#v", p.ApplyState)
+	actual = strings.TrimSpace(p.ApplyState.String())
+	expected = strings.TrimSpace(testApplyDisableBackupStateStr)
+	if actual != expected {
+		t.Fatalf("bad:\n\n%s", actual)
 	}
 
 	// Verify a new state exists
@@ -949,4 +941,20 @@ func TestApply_disableBackup(t *testing.T) {
 
 const applyVarFile = `
 foo = "bar"
+`
+
+const testApplyDisableBackupStr = `
+ID = bar
+`
+
+const testApplyDisableBackupStateStr = `
+ID = bar
+`
+
+const testApplyStateStr = `
+ID = bar
+`
+
+const testApplyStateDiffStr = `
+ID = bar
 `

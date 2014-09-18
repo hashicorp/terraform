@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	"reflect"
 	"testing"
+	"strings"
 
 	"github.com/hashicorp/terraform/terraform"
 	"github.com/mitchellh/cli"
@@ -50,10 +51,10 @@ func TestRefresh(t *testing.T) {
 		t.Fatalf("err: %s", err)
 	}
 
-	actual := newState.RootModule().Resources["test_instance.foo"]
-	expected := p.RefreshReturn
-	if !reflect.DeepEqual(actual, expected) {
-		t.Fatalf("bad: %#v", actual)
+	actual := strings.TrimSpace(newState.String())
+	expected := strings.TrimSpace(testRefreshStr)
+	if actual != expected {
+		t.Fatalf("bad:\n\n%s", actual)
 	}
 }
 
@@ -123,10 +124,10 @@ func TestRefresh_cwd(t *testing.T) {
 		t.Fatalf("err: %s", err)
 	}
 
-	actual := newState.RootModule().Resources["test_instance.foo"]
-	expected := p.RefreshReturn
-	if !reflect.DeepEqual(actual, expected) {
-		t.Fatalf("bad: %#v", actual)
+	actual := strings.TrimSpace(newState.String())
+	expected := strings.TrimSpace(testRefreshCwdStr)
+	if actual != expected {
+		t.Fatalf("bad:\n\n%s", actual)
 	}
 }
 
@@ -578,4 +579,13 @@ func TestRefresh_disableBackup(t *testing.T) {
 
 const refreshVarFile = `
 foo = "bar"
+`
+
+const testRefreshStr = `
+test_instance.foo:
+  ID = yes
+`
+const testRefreshCwdStr = `
+test_instance.foo:
+  ID = yes
 `

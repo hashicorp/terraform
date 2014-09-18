@@ -449,6 +449,37 @@ func (i *InstanceState) GoString() string {
 	return fmt.Sprintf("*%#v", *i)
 }
 
+func (i *InstanceState) String() string {
+	var buf bytes.Buffer
+
+	if i.ID == "" {
+		return "<not created>"
+	}
+
+	buf.WriteString(fmt.Sprintf("ID = %s\n", i.ID))
+	if i.Tainted {
+		buf.WriteString(fmt.Sprintf("Tainted = true"))
+	}
+
+	attributes := i.Attributes
+	attrKeys := make([]string, 0, len(attributes))
+	for ak, _ := range attributes {
+		if ak == "id" {
+			continue
+		}
+
+		attrKeys = append(attrKeys, ak)
+	}
+	sort.Strings(attrKeys)
+
+	for _, ak := range attrKeys {
+		av := attributes[ak]
+		buf.WriteString(fmt.Sprintf("%s = %s\n", ak, av))
+	}
+
+	return buf.String()
+}
+
 // EphemeralState is used for transient state that is only kept in-memory
 type EphemeralState struct {
 	// ConnInfo is used for the providers to export information which is
