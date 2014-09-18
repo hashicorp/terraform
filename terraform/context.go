@@ -752,8 +752,10 @@ func (c *Context) planWalkFn(result *Plan) depgraph.WalkFunc {
 	cb := func(r *Resource) error {
 		var diff *InstanceDiff
 
+		is := r.State.Primary
+
 		for _, h := range c.hooks {
-			handleHook(h.PreDiff(r.Id, r.State.Primary))
+			handleHook(h.PreDiff(r.Id, is))
 		}
 
 		if r.Config == nil {
@@ -794,15 +796,15 @@ func (c *Context) planWalkFn(result *Plan) depgraph.WalkFunc {
 			diff.Destroy = true
 		}
 
-		if diff.RequiresNew() && r.State.Primary != nil && r.State.Primary.ID != "" {
+		if diff.RequiresNew() && is != nil && is.ID != "" {
 			// This will also require a destroy
 			diff.Destroy = true
 		}
 
-		if diff.RequiresNew() || r.State.Primary == nil || r.State.Primary.ID == "" {
+		if diff.RequiresNew() || is == nil || is.ID == "" {
 			var oldID string
-			if r.State.Primary != nil {
-				oldID = r.State.Primary.Attributes["id"]
+			if is != nil {
+				oldID = is.Attributes["id"]
 			}
 
 			// Add diff to compute new ID
@@ -827,8 +829,12 @@ func (c *Context) planWalkFn(result *Plan) depgraph.WalkFunc {
 
 		// Determine the new state and update variables
 		if !diff.Empty() {
-			r.State.Primary = r.State.Primary.MergeDiff(diff)
+			is = is.MergeDiff(diff)
 		}
+
+		// TODO(mitchellh): do we really need this?
+		state := r.State.deepcopy()
+		state.Primary = is
 
 		// Update our internal state so that variable computation works
 		c.sl.Lock()
@@ -836,7 +842,7 @@ func (c *Context) planWalkFn(result *Plan) depgraph.WalkFunc {
 
 		// TODO: Handle other modules
 		mod := c.state.RootModule()
-		mod.Resources[r.Id] = r.State
+		mod.Resources[r.Id] = state
 
 		return nil
 	}

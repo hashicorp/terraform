@@ -1780,7 +1780,7 @@ func TestContextPlan_diffVar(t *testing.T) {
 	actual := strings.TrimSpace(plan.String())
 	expected := strings.TrimSpace(testTerraformPlanDiffVarStr)
 	if actual != expected {
-		t.Fatalf("bad:\n%s", actual)
+		t.Fatalf("actual:\n%s\n\nexpected:\n%s", actual, expected)
 	}
 }
 

@@ -413,11 +413,11 @@ func (i *InstanceState) deepcopy() *InstanceState {
 // won't be available until apply, the value is replaced with the
 // computeID.
 func (s *InstanceState) MergeDiff(d *InstanceDiff) *InstanceState {
-	var result InstanceState
-	if s != nil {
-		result = *s
+	result := s.deepcopy()
+	if result == nil {
+		result = new(InstanceState)
+		result.init()
 	}
-	result.init()
 
 	if s != nil {
 		for k, v := range s.Attributes {
@@ -439,7 +439,7 @@ func (s *InstanceState) MergeDiff(d *InstanceDiff) *InstanceState {
 		}
 	}
 
-	return &result
+	return result
 }
 
 func (i *InstanceState) GoString() string {
