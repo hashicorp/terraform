@@ -529,6 +529,54 @@ func TestEncodeDependencies_Count(t *testing.T) {
 	}
 }
 
+func TestGraph_orphan_dependencies(t *testing.T) {
+	config := testConfig(t, "graph-count")
+	state := &State{
+		Modules: []*ModuleState{
+			&ModuleState{
+				Path: rootModulePath,
+
+				Resources: map[string]*ResourceState{
+					"aws_instance.web.0": &ResourceState{
+						Type: "aws_instance",
+						Primary: &InstanceState{
+							ID: "foo",
+						},
+					},
+					"aws_instance.web.1": &ResourceState{
+						Type: "aws_instance",
+						Primary: &InstanceState{
+							ID: "foo",
+						},
+					},
+					"aws_load_balancer.old": &ResourceState{
+						Type: "aws_load_balancer",
+						Primary: &InstanceState{
+							ID: "foo",
+						},
+						Dependencies: []string{
+							"aws_instance.web.0",
+							"aws_instance.web.1",
+							"aws_instance.web.2",
+						},
+					},
+				},
+			},
+		},
+	}
+
+	g, err := Graph(&GraphOpts{Config: config, State: state})
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	actual := strings.TrimSpace(g.String())
+	expected := strings.TrimSpace(testTerraformGraphCountOrphanStr)
+	if actual != expected {
+		t.Fatalf("bad:\n\nactual:\n%s\n\nexpected:\n%s", actual, expected)
+	}
+}
+
 const testTerraformGraphStr = `
 root: root
 aws_instance.web
@@ -665,4 +713,25 @@ root
   root -> aws_load_balancer.weblb
   root -> aws_security_group.firewall
   root -> openstack_floating_ip.random
+`
+
+const testTerraformGraphCountOrphanStr = `
+root: root
+aws_instance.web
+  aws_instance.web -> aws_instance.web.0
+  aws_instance.web -> aws_instance.web.1
+  aws_instance.web -> aws_instance.web.2
+aws_instance.web.0
+aws_instance.web.1
+aws_instance.web.2
+aws_load_balancer.old
+  aws_load_balancer.old -> aws_instance.web.0
+  aws_load_balancer.old -> aws_instance.web.1
+  aws_load_balancer.old -> aws_instance.web.2
+aws_load_balancer.weblb
+  aws_load_balancer.weblb -> aws_instance.web
+root
+  root -> aws_instance.web
+  root -> aws_load_balancer.old
+  root -> aws_load_balancer.weblb
 `

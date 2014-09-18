@@ -636,8 +636,12 @@ func graphAddOrphans(g *depgraph.Graph, c *config.Config, s *State) {
 			continue
 		}
 
-		for _, n2 := range nlist {
-			rn2 := n2.Meta.(*GraphNodeResource)
+		for _, n2 := range g.Nouns {
+			rn2, ok := n2.Meta.(*GraphNodeResource)
+			if !ok {
+				continue
+			}
+
 			// Don't ever depend on ourselves
 			if rn2 == rn {
 				continue
