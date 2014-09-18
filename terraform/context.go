@@ -832,7 +832,13 @@ func (c *Context) planWalkFn(result *Plan) depgraph.WalkFunc {
 			is = is.MergeDiff(diff)
 		}
 
-		// TODO(mitchellh): do we really need this?
+		// TODO(mitchellh): do we really need this? I had to do this because
+		// the pointer of r.State is shared with the original c.state
+		// which is now result.State, so modifying this was actually
+		// modifying the plan state, which is not what we want. I *think*
+		// this will be solved if we move to having InstanceState on
+		// type Resource rather than ResourceState, so I'm just going to
+		// keep this in here for now to get tests to work.
 		state := r.State.deepcopy()
 		state.Primary = is
 
