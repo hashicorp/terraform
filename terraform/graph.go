@@ -401,11 +401,19 @@ func graphAddDiff(g *depgraph.Graph, d *Diff) error {
 
 	// Go through each noun and make sure we calculate all the dependencies
 	// properly.
+	injected := make(map[*depgraph.Dependency]struct{})
 	for _, n := range nlist {
 		deps := n.Deps
 		num := len(deps)
 		for i := 0; i < num; i++ {
 			dep := deps[i]
+
+			// Check if this dependency was just injected, otherwise
+			// we will incorrectly flip the depedency twice.
+			if _, ok := injected[dep]; ok {
+				continue
+			}
+
 			switch target := dep.Target.Meta.(type) {
 			case *GraphNodeResource:
 				// If the other node is also being deleted,
@@ -417,11 +425,13 @@ func graphAddDiff(g *depgraph.Graph, d *Diff) error {
 				for _, n2 := range nlist {
 					rn2 := n2.Meta.(*GraphNodeResource)
 					if target.Resource.Id == rn2.Resource.Id {
-						n2.Deps = append(n2.Deps, &depgraph.Dependency{
+						newDep := &depgraph.Dependency{
 							Name:   n.Name,
 							Source: n2,
 							Target: n,
-						})
+						}
+						injected[newDep] = struct{}{}
+						n2.Deps = append(n2.Deps, newDep)
 						break
 					}
 				}
