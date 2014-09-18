@@ -354,6 +354,50 @@ func TestGraphAddDiff_destroy(t *testing.T) {
 	}
 }
 
+func TestEncodeDependencies(t *testing.T) {
+	config := testConfig(t, "graph-basic")
+	state := &State{
+		Modules: []*ModuleState{
+			&ModuleState{
+				Path: rootModulePath,
+				Resources: map[string]*ResourceState{
+					"aws_instance.web": &ResourceState{
+						Type: "aws_instance",
+						Primary: &InstanceState{
+							ID: "foo",
+						},
+					},
+					"aws_load_balancer.weblb": &ResourceState{
+						Type: "aws_load_balancer",
+						Primary: &InstanceState{
+							ID: "foo",
+						},
+					},
+				},
+			},
+		},
+	}
+
+	g, err := Graph(&GraphOpts{Config: config, State: state})
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	// This should encode the dependency information into the state
+	EncodeDependencies(g)
+
+	root := state.RootModule()
+	web := root.Resources["aws_instance.web"]
+	if len(web.Dependencies) != 1 || web.Dependencies[0] != "aws_security_group.firewall" {
+		t.Fatalf("bad: %#v", web)
+	}
+
+	weblb := root.Resources["aws_load_balancer.weblb"]
+	if len(weblb.Dependencies) != 1 || weblb.Dependencies[0] != "aws_instance.web" {
+		t.Fatalf("bad: %#v", weblb)
+	}
+}
+
 const testTerraformGraphStr = `
 root: root
 aws_instance.web
