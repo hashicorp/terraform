@@ -126,6 +126,9 @@ aws_instance.foo:
 const testTerraformApplyProvisionerStr = `
 aws_instance.bar:
   ID = foo
+
+  Dependencies:
+    aws_instance.foo
 aws_instance.foo:
   ID = foo
   dynamical = computed_dynamical
