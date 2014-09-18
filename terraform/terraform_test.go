@@ -106,6 +106,9 @@ aws_instance.bar:
   ID = foo
   foo = computed_dynamical
   type = aws_instance
+
+  Dependencies:
+    aws_instance.foo
 aws_instance.foo:
   ID = foo
   dynamical = computed_dynamical
