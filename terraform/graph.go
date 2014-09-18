@@ -447,6 +447,25 @@ func graphAddDiff(g *depgraph.Graph, d *Diff) error {
 				i--
 
 			case *GraphNodeResourceMeta:
+				// Check if any of the resources part of the meta node
+				// are being destroyed, because we must be destroyed first.
+				for i := 0; i < target.Count; i++ {
+					id := fmt.Sprintf("%s.%d", target.ID, i)
+					for _, n2 := range nlist {
+						rn2 := n2.Meta.(*GraphNodeResource)
+						if id == rn2.Resource.Id {
+							newDep := &depgraph.Dependency{
+								Name:   n.Name,
+								Source: n2,
+								Target: n,
+							}
+							injected[newDep] = struct{}{}
+							n2.Deps = append(n2.Deps, newDep)
+							break
+						}
+					}
+				}
+
 				// Drop the dependency, since there is
 				// nothing that needs to be done for a meta
 				// resource on destroy.

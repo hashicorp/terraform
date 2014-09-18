@@ -354,6 +354,93 @@ func TestGraphAddDiff_destroy(t *testing.T) {
 	}
 }
 
+func TestGraphAddDiff_destroy_counts(t *testing.T) {
+	config := testConfig(t, "graph-count")
+	diff := &Diff{
+		Resources: map[string]*InstanceDiff{
+			"aws_instance.web.0": &InstanceDiff{
+				Destroy: true,
+			},
+			"aws_instance.web.1": &InstanceDiff{
+				Destroy: true,
+			},
+			"aws_instance.web.2": &InstanceDiff{
+				Destroy: true,
+			},
+			"aws_load_balancer.weblb": &InstanceDiff{
+				Destroy: true,
+			},
+		},
+	}
+	state := &State{
+		Modules: []*ModuleState{
+			&ModuleState{
+				Path: rootModulePath,
+				Resources: map[string]*ResourceState{
+					"aws_instance.web.0": &ResourceState{
+						Type: "aws_instance",
+						Primary: &InstanceState{
+							ID: "foo",
+						},
+					},
+					"aws_instance.web.1": &ResourceState{
+						Type: "aws_instance",
+						Primary: &InstanceState{
+							ID: "foo",
+						},
+					},
+					"aws_instance.web.2": &ResourceState{
+						Type: "aws_instance",
+						Primary: &InstanceState{
+							ID: "foo",
+						},
+					},
+					"aws_load_balancer.weblb": &ResourceState{
+						Type:         "aws_load_balancer",
+						Dependencies: []string{"aws_instance.web.0", "aws_instance.web.1", "aws_instance.web.2"},
+						Primary: &InstanceState{
+							ID: "bar",
+						},
+					},
+				},
+			},
+		},
+	}
+
+	diffHash := checksumStruct(t, diff)
+
+	g, err := Graph(&GraphOpts{
+		Config: config,
+		Diff:   diff,
+		State:  state,
+	})
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	actual := strings.TrimSpace(g.String())
+	expected := strings.TrimSpace(testTerraformGraphDiffDestroyCountsStr)
+	if actual != expected {
+		t.Fatalf("bad:\n\n%s\n\nexpected:\n\n%s", actual, expected)
+	}
+
+	// Verify that the state has been added
+	n := g.Noun("aws_instance.web.0 (destroy)")
+	rn := n.Meta.(*GraphNodeResource)
+
+	expected2 := &InstanceDiff{Destroy: true}
+	actual2 := rn.Resource.Diff
+	if !reflect.DeepEqual(actual2, expected2) {
+		t.Fatalf("bad: %#v", actual2)
+	}
+
+	// Verify that our original structure has not been modified
+	diffHash2 := checksumStruct(t, diff)
+	if diffHash != diffHash2 {
+		t.Fatal("diff has been modified")
+	}
+}
+
 func TestEncodeDependencies(t *testing.T) {
 	config := testConfig(t, "graph-basic")
 	state := &State{
@@ -528,6 +615,33 @@ provider.aws
 root
   root -> aws_instance.bar
   root -> aws_instance.foo
+`
+
+const testTerraformGraphDiffDestroyCountsStr = `
+root: root
+aws_instance.web
+  aws_instance.web -> aws_instance.web.0
+  aws_instance.web -> aws_instance.web.1
+  aws_instance.web -> aws_instance.web.2
+aws_instance.web.0
+  aws_instance.web.0 -> aws_instance.web.0 (destroy)
+aws_instance.web.0 (destroy)
+  aws_instance.web.0 (destroy) -> aws_load_balancer.weblb (destroy)
+aws_instance.web.1
+  aws_instance.web.1 -> aws_instance.web.1 (destroy)
+aws_instance.web.1 (destroy)
+  aws_instance.web.1 (destroy) -> aws_load_balancer.weblb (destroy)
+aws_instance.web.2
+  aws_instance.web.2 -> aws_instance.web.2 (destroy)
+aws_instance.web.2 (destroy)
+  aws_instance.web.2 (destroy) -> aws_load_balancer.weblb (destroy)
+aws_load_balancer.weblb
+  aws_load_balancer.weblb -> aws_instance.web
+  aws_load_balancer.weblb -> aws_load_balancer.weblb (destroy)
+aws_load_balancer.weblb (destroy)
+root
+  root -> aws_instance.web
+  root -> aws_load_balancer.weblb
 `
 
 const testTerraformGraphStateStr = `
