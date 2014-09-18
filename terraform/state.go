@@ -1,7 +1,9 @@
 package terraform
 
 import (
+	"bufio"
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"io"
 	"reflect"
@@ -476,12 +478,39 @@ func (e *EphemeralState) deepcopy() *EphemeralState {
 // ReadState reads a state structure out of a reader in the format that
 // was written by WriteState.
 func ReadState(src io.Reader) (*State, error) {
-	// TODO
-	return nil, nil
+	buf := bufio.NewReader(src)
+
+	// Check if this is a V1 format
+	start, err := buf.Peek(len(stateFormatMagic))
+	if err != nil {
+		return nil, fmt.Errorf("Failed to check for magic bytes: %v", err)
+	}
+	if string(start) == stateFormatMagic {
+		// Read the old state
+		_, err := ReadStateV1(buf)
+		if err != nil {
+			return nil, err
+		}
+
+		// TODO: Handle V1 upgade
+		panic("Old state file upgrade not supported")
+	}
+
+	// Otherwise, must be V2
+	dec := json.NewDecoder(buf)
+	state := &State{}
+	if err := dec.Decode(state); err != nil {
+		return nil, fmt.Errorf("Decoding state file failed: %v", err)
+	}
+
+	return state, nil
 }
 
 // WriteState writes a state somewhere in a binary format.
 func WriteState(d *State, dst io.Writer) error {
-	// TODO
+	enc := json.NewEncoder(dst)
+	if err := enc.Encode(d); err != nil {
+		return fmt.Errorf("Failed to write state: %v", err)
+	}
 	return nil
 }
