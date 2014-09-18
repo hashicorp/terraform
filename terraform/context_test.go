@@ -2252,15 +2252,6 @@ func testApplyFn(
 	if d != nil {
 		result = result.MergeDiff(d)
 	}
-
-	// TODO(armon): commenting this out to compile, but you're in the
-	// process of removing this, too anyways. Remove when safe.
-	/*
-		if depAttr, ok := d.Attributes["dep"]; ok {
-			result.Dependencies = []string{depAttr.New}
-		}
-	*/
-
 	return result, nil
 }
 

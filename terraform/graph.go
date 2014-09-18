@@ -209,12 +209,8 @@ func EncodeDependencies(g *depgraph.Graph) {
 			}
 		}
 
-		// Inject any of the missing depedencies
-		for _, dep := range inject {
-			if !strSliceContains(state.Dependencies, dep) {
-				state.Dependencies = append(state.Dependencies, dep)
-			}
-		}
+		// Update the dependencies
+		state.Dependencies = inject
 	}
 }
 
