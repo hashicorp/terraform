@@ -334,7 +334,7 @@ func TestGraphAddDiff_destroy(t *testing.T) {
 	actual := strings.TrimSpace(g.String())
 	expected := strings.TrimSpace(testTerraformGraphDiffDestroyStr)
 	if actual != expected {
-		t.Fatalf("bad:\n\n%s", actual)
+		t.Fatalf("bad:\n\n%s\n\nexpected:\n\n%s", actual, expected)
 	}
 
 	// Verify that the state has been added

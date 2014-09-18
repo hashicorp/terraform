@@ -440,7 +440,11 @@ func graphAddDiff(g *depgraph.Graph, d *Diff) error {
 				i--
 
 			case *GraphNodeResourceProvider:
-				// Keep these around
+				// Keep these around, but fix up the source to be ourselves
+				// rather than the old node.
+				newDep := *dep
+				newDep.Source = n
+				deps[i] = &newDep
 			default:
 				panic(fmt.Errorf("Unhandled depedency type: %#v", dep.Meta))
 			}
