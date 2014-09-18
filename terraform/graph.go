@@ -195,6 +195,9 @@ func EncodeDependencies(g *depgraph.Graph) {
 		for _, dep := range n.Deps {
 			switch target := dep.Target.Meta.(type) {
 			case *GraphNodeResource:
+				if target.Resource.Id == rs.Id {
+					continue
+				}
 				inject = append(inject, target.Resource.Id)
 				// TODO: case *GraphNodeResourceMeta?
 			}
