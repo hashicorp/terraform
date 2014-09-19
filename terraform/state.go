@@ -134,7 +134,7 @@ func (s *State) String() string {
 
 		taintStr := ""
 		if len(rs.Tainted) > 0 {
-			taintStr = " (tainted)"
+			taintStr = fmt.Sprintf(" (%d tainted)", len(rs.Tainted))
 		}
 
 		buf.WriteString(fmt.Sprintf("%s:%s\n", k, taintStr))

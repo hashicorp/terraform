@@ -137,7 +137,7 @@ aws_instance.foo:
 `
 
 const testTerraformApplyProvisionerFailStr = `
-aws_instance.bar: (tainted)
+aws_instance.bar: (1 tainted)
   ID = foo
 aws_instance.foo:
   ID = foo
@@ -500,7 +500,7 @@ DESTROY/CREATE: aws_instance.bar
 
 STATE:
 
-aws_instance.bar: (tainted)
+aws_instance.bar: (1 tainted)
   ID = baz
 aws_instance.foo:
   ID = bar
