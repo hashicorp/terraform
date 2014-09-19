@@ -125,11 +125,7 @@ func (s *State) String() string {
 			id = rs.Primary.ID
 		}
 		if id == "" {
-			if len(rs.Tainted) > 0 {
-				id = rs.Tainted[0].ID
-			} else {
-				id = "<not created>"
-			}
+			id = "<not created>"
 		}
 
 		taintStr := ""
@@ -157,6 +153,10 @@ func (s *State) String() string {
 		for _, ak := range attrKeys {
 			av := attributes[ak]
 			buf.WriteString(fmt.Sprintf("  %s = %s\n", ak, av))
+		}
+
+		for idx, t := range rs.Tainted {
+			buf.WriteString(fmt.Sprintf("  Tainted ID %d = %s\n", idx+1, t.ID))
 		}
 
 		if len(rs.Dependencies) > 0 {

@@ -138,7 +138,8 @@ aws_instance.foo:
 
 const testTerraformApplyProvisionerFailStr = `
 aws_instance.bar: (1 tainted)
-  ID = foo
+  ID = <not created>
+  Tainted ID 1 = foo
 aws_instance.foo:
   ID = foo
   num = 2
@@ -501,7 +502,26 @@ DESTROY/CREATE: aws_instance.bar
 STATE:
 
 aws_instance.bar: (1 tainted)
-  ID = baz
+  ID = <not created>
+  Tainted ID 1 = baz
+aws_instance.foo:
+  ID = bar
+  num = 2
+`
+
+const testTerraformPlanMultipleTaintStr = `
+DIFF:
+
+DESTROY/CREATE: aws_instance.bar
+  foo:  "" => "2"
+  type: "" => "aws_instance"
+
+STATE:
+
+aws_instance.bar: (2 tainted)
+  ID = <not created>
+  Tainted ID 1 = baz
+  Tainted ID 2 = zip
 aws_instance.foo:
   ID = bar
   num = 2
