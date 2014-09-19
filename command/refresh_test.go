@@ -297,8 +297,10 @@ func TestRefresh_outPath(t *testing.T) {
 		t.Fatalf("err: %s", err)
 	}
 
-	if !reflect.DeepEqual(backupState, state) {
-		t.Fatalf("bad: %#v", backupState)
+	actualStr := strings.TrimSpace(backupState.String())
+	expectedStr := strings.TrimSpace(state.String())
+	if actualStr != expectedStr {
+		t.Fatalf("bad:\n\n%s\n\n%s", actualStr, expectedStr)
 	}
 }
 
@@ -498,8 +500,10 @@ func TestRefresh_backup(t *testing.T) {
 		t.Fatalf("err: %s", err)
 	}
 
-	if !reflect.DeepEqual(backupState, state) {
-		t.Fatalf("bad: %#v", backupState)
+	actualStr := strings.TrimSpace(backupState.String())
+	expectedStr := strings.TrimSpace(state.String())
+	if actualStr != expectedStr {
+		t.Fatalf("bad:\n\n%s\n\n%s", actualStr, expectedStr)
 	}
 }
 

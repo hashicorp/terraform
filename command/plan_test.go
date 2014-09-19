@@ -4,7 +4,6 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
-	"reflect"
 	"strings"
 	"testing"
 
@@ -98,10 +97,13 @@ func TestPlan_destroy(t *testing.T) {
 		t.Fatalf("err: %s", err)
 	}
 
-	if !reflect.DeepEqual(backupState, originalState) {
-		t.Fatalf("bad: %#v", backupState)
+	actualStr := strings.TrimSpace(backupState.String())
+	expectedStr := strings.TrimSpace(originalState.String())
+	if actualStr != expectedStr {
+		t.Fatalf("bad:\n\n%s\n\n%s", actualStr, expectedStr)
 	}
 }
+
 func TestPlan_noState(t *testing.T) {
 	p := testProvider()
 	ui := new(cli.MockUi)
@@ -493,8 +495,10 @@ func TestPlan_backup(t *testing.T) {
 		t.Fatalf("err: %s", err)
 	}
 
-	if !reflect.DeepEqual(backupState, originalState) {
-		t.Fatalf("bad: %#v", backupState)
+	actualStr := strings.TrimSpace(backupState.String())
+	expectedStr := strings.TrimSpace(originalState.String())
+	if actualStr != expectedStr {
+		t.Fatalf("bad:\n\n%s\n\n%s", actualStr, expectedStr)
 	}
 }
 

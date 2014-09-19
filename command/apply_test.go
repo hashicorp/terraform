@@ -438,8 +438,10 @@ func TestApply_refresh(t *testing.T) {
 		t.Fatalf("err: %s", err)
 	}
 
-	if !reflect.DeepEqual(backupState, originalState) {
-		t.Fatalf("bad: %#v", backupState)
+	actualStr := strings.TrimSpace(backupState.String())
+	expectedStr := strings.TrimSpace(originalState.String())
+	if actualStr != expectedStr {
+		t.Fatalf("bad:\n\n%s\n\n%s", actualStr, expectedStr)
 	}
 }
 
@@ -627,8 +629,10 @@ func TestApply_state(t *testing.T) {
 	// nil out the ConnInfo since that should not be restored
 	originalState.RootModule().Resources["test_instance.foo"].Primary.Ephemeral.ConnInfo = nil
 
-	if !reflect.DeepEqual(backupState, originalState) {
-		t.Fatalf("bad: %#v", backupState)
+	actualStr := strings.TrimSpace(backupState.String())
+	expectedStr := strings.TrimSpace(originalState.String())
+	if actualStr != expectedStr {
+		t.Fatalf("bad:\n\n%s\n\n%s", actualStr, expectedStr)
 	}
 }
 
