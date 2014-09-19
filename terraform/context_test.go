@@ -2055,7 +2055,7 @@ func TestContextRefresh(t *testing.T) {
 		t.Fatalf("bad: %#v", p.RefreshState)
 	}
 	if !reflect.DeepEqual(mod.Resources["aws_instance.web"].Primary, p.RefreshReturn) {
-		t.Fatalf("bad: %#v", mod.Resources["aws_instance.web"])
+		t.Fatalf("bad: %#v %#v", mod.Resources["aws_instance.web"], p.RefreshReturn)
 	}
 
 	for _, r := range mod.Resources {
@@ -2219,9 +2219,58 @@ func TestContextRefresh_state(t *testing.T) {
 		t.Fatal("refresh should be called")
 	}
 	if !reflect.DeepEqual(p.RefreshState, originalMod.Resources["aws_instance.web"].Primary) {
-		t.Fatalf("bad: %#v", p.RefreshState)
+		t.Fatalf("bad: %#v %#v", p.RefreshState, originalMod.Resources["aws_instance.web"].Primary)
 	}
 	if !reflect.DeepEqual(mod.Resources["aws_instance.web"].Primary, p.RefreshReturn) {
+		t.Fatalf("bad: %#v", mod.Resources)
+	}
+}
+
+func TestContextRefresh_tainted(t *testing.T) {
+	p := testProvider("aws")
+	c := testConfig(t, "refresh-basic")
+	state := &State{
+		Modules: []*ModuleState{
+			&ModuleState{
+				Path: rootModulePath,
+				Resources: map[string]*ResourceState{
+					"aws_instance.web": &ResourceState{
+						Tainted: []*InstanceState{
+							&InstanceState{
+								ID: "bar",
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+	ctx := testContext(t, &ContextOpts{
+		Config: c,
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+		State: state,
+	})
+
+	p.RefreshFn = nil
+	p.RefreshReturn = &InstanceState{
+		ID: "foo",
+	}
+
+	s, err := ctx.Refresh()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	originalMod := state.RootModule()
+	mod := s.RootModule()
+	if !p.RefreshCalled {
+		t.Fatal("refresh should be called")
+	}
+	if !reflect.DeepEqual(p.RefreshState, originalMod.Resources["aws_instance.web"].Tainted[0]) {
+		t.Fatalf("bad: %#v %#v", p.RefreshState, originalMod.Resources["aws_instance.web"].Tainted[0])
+	}
+	if !reflect.DeepEqual(mod.Resources["aws_instance.web"].Tainted[0], p.RefreshReturn) {
 		t.Fatalf("bad: %#v", mod.Resources)
 	}
 }

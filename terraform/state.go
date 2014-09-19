@@ -418,8 +418,8 @@ func (s *InstanceState) MergeDiff(d *InstanceDiff) *InstanceState {
 	result := s.deepcopy()
 	if result == nil {
 		result = new(InstanceState)
-		result.init()
 	}
+	result.init()
 
 	if s != nil {
 		for k, v := range s.Attributes {

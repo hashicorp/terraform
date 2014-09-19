@@ -17,6 +17,11 @@ import (
 // tree internally on the Terraform structure.
 type genericWalkFunc func(*Resource) error
 
+// This function is used to implement a walked for a resource that
+// visits each instance, handling tainted resources first, then the
+// primary.
+type instanceWalkFunc func(*Resource, bool, **InstanceState) error
+
 // Context represents all the context that Terraform needs in order to
 // perform operations on infrastructure. This structure is built using
 // ContextOpts and NewContext. See the documentation for those.
@@ -231,6 +236,9 @@ func (c *Context) Refresh() (*State, error) {
 	v := c.acquireRun()
 	defer c.releaseRun(v)
 
+	// Update our state
+	c.state = c.state.deepcopy()
+
 	g, err := Graph(&GraphOpts{
 		Config:       c.config,
 		Providers:    c.providers,
@@ -241,10 +249,10 @@ func (c *Context) Refresh() (*State, error) {
 		return c.state, err
 	}
 
-	// Update our state
-	c.state = c.state.deepcopy()
-
 	err = g.Walk(c.refreshWalkFn())
+
+	// Prune the state
+	c.state.prune()
 	return c.state, err
 }
 
@@ -885,18 +893,19 @@ func (c *Context) planDestroyWalkFn(result *Plan) depgraph.WalkFunc {
 }
 
 func (c *Context) refreshWalkFn() depgraph.WalkFunc {
-	cb := func(r *Resource) error {
-		if r.State.Primary == nil || r.State.Primary.ID == "" {
+	cb := func(r *Resource, tainted bool, inst **InstanceState) error {
+		if *inst == nil || (*inst).ID == "" {
 			log.Printf("[DEBUG] %s: Not refreshing, ID is empty", r.Id)
 			return nil
 		}
+		state := *inst
 
 		for _, h := range c.hooks {
-			handleHook(h.PreRefresh(r.Id, r.State.Primary))
+			handleHook(h.PreRefresh(r.Id, state))
 		}
 
 		info := &InstanceInfo{Type: r.State.Type}
-		is, err := r.Provider.Refresh(info, r.State.Primary)
+		is, err := r.Provider.Refresh(info, state)
 		if err != nil {
 			return err
 		}
@@ -905,24 +914,23 @@ func (c *Context) refreshWalkFn() depgraph.WalkFunc {
 			is.init()
 		}
 
-		c.sl.Lock()
+		// Update the state
+		*inst = is
+
 		// TODO: Handle other modules
+		c.sl.Lock()
 		mod := c.state.RootModule()
-		if len(r.State.Tainted) == 0 && (is == nil || is.ID == "") {
-			delete(mod.Resources, r.Id)
-		} else {
-			mod.Resources[r.Id].Primary = is
-		}
+		mod.Resources[r.Id] = r.State
 		c.sl.Unlock()
 
 		for _, h := range c.hooks {
-			handleHook(h.PostRefresh(r.Id, r.State.Primary))
+			handleHook(h.PostRefresh(r.Id, is))
 		}
 
 		return nil
 	}
 
-	return c.genericWalkFn(cb)
+	return c.genericWalkFn(instanceWalk(cb))
 }
 
 func (c *Context) validateWalkFn(rws *[]string, res *[]error) depgraph.WalkFunc {
@@ -1006,6 +1014,24 @@ func (c *Context) validateWalkFn(rws *[]string, res *[]error) depgraph.WalkFunc 
 		}
 
 		return nil
+	}
+}
+
+//type instanceWalkFunc func(*Resource, bool, **InstanceState) error
+func instanceWalk(cb instanceWalkFunc) genericWalkFunc {
+	return func(r *Resource) error {
+		// Handle the tainted resources first
+		for idx := range r.State.Tainted {
+			if err := cb(r, true, &r.State.Tainted[idx]); err != nil {
+				return err
+			}
+		}
+
+		// Handle the primary resource
+		if r.State.Primary == nil {
+			r.State.init()
+		}
+		return cb(r, false, &r.State.Primary)
 	}
 }
 
