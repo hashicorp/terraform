@@ -217,6 +217,9 @@ func EncodeDependencies(g *depgraph.Graph) {
 // configGraph turns a configuration structure into a dependency graph.
 func graphAddConfigResources(
 	g *depgraph.Graph, c *config.Config, s *State) {
+	// TODO: Handle non-root modules
+	mod := s.ModuleByPath(rootModulePath)
+
 	// This tracks all the resource nouns
 	nouns := make(map[string]*depgraph.Noun)
 	for _, r := range c.Resources {
@@ -232,12 +235,7 @@ func graphAddConfigResources(
 				index = i
 			}
 
-			tainted := false
 			var state *ResourceState
-
-			// TODO: Handle non-root modules
-			mod := s.ModuleByPath(rootModulePath)
-
 			if s != nil && mod != nil {
 				// Lookup the resource state
 				state = mod.Resources[name]
@@ -253,11 +251,6 @@ func graphAddConfigResources(
 						// from count == 1 to count > 1
 						state = mod.Resources[r.Id()]
 					}
-				}
-
-				// Determine if this resource is tainted
-				if state != nil && len(state.Tainted) > 0 {
-					tainted = true
 				}
 			}
 
@@ -277,7 +270,7 @@ func graphAddConfigResources(
 						Id:      name,
 						State:   state,
 						Config:  NewResourceConfig(r.RawConfig),
-						Tainted: tainted,
+						Tainted: len(state.Tainted) > 0,
 					},
 				},
 			}
