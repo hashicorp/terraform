@@ -368,11 +368,6 @@ type InstanceState struct {
 	// and is only meant as a lookup mechanism for the providers.
 	ID string `json:"id"`
 
-	// Tainted is used to mark a resource as existing but being in
-	// an unknown or errored state. Hence, it is 'tainted' and should
-	// be destroyed and replaced on the next fun.
-	Tainted bool `json:"tainted,omitempty"`
-
 	// Attributes are basic information about the resource. Any keys here
 	// are accessible in variable format within Terraform configurations:
 	// ${resourcetype.name.attribute}.
@@ -397,7 +392,6 @@ func (i *InstanceState) deepcopy() *InstanceState {
 	}
 	n := &InstanceState{
 		ID:         i.ID,
-		Tainted:    i.Tainted,
 		Attributes: make(map[string]string, len(i.Attributes)),
 		Ephemeral:  *i.Ephemeral.deepcopy(),
 	}
@@ -457,9 +451,6 @@ func (i *InstanceState) String() string {
 	}
 
 	buf.WriteString(fmt.Sprintf("ID = %s\n", i.ID))
-	if i.Tainted {
-		buf.WriteString(fmt.Sprintf("Tainted = true"))
-	}
 
 	attributes := i.Attributes
 	attrKeys := make([]string, 0, len(attributes))
