@@ -94,6 +94,9 @@ func (s *State) deepcopy() *State {
 
 // prune is used to remove any resources that are no longer required
 func (s *State) prune() {
+	if s == nil {
+		return
+	}
 	for _, mod := range s.Modules {
 		mod.prune()
 	}
@@ -391,12 +394,14 @@ func (i *InstanceState) deepcopy() *InstanceState {
 		return nil
 	}
 	n := &InstanceState{
-		ID:         i.ID,
-		Attributes: make(map[string]string, len(i.Attributes)),
-		Ephemeral:  *i.Ephemeral.deepcopy(),
+		ID:        i.ID,
+		Ephemeral: *i.Ephemeral.deepcopy(),
 	}
-	for k, v := range i.Attributes {
-		n.Attributes[k] = v
+	if i.Attributes != nil {
+		n.Attributes = make(map[string]string, len(i.Attributes))
+		for k, v := range i.Attributes {
+			n.Attributes[k] = v
+		}
 	}
 	return n
 }
@@ -489,11 +494,12 @@ func (e *EphemeralState) deepcopy() *EphemeralState {
 	if e == nil {
 		return nil
 	}
-	n := &EphemeralState{
-		ConnInfo: make(map[string]string, len(e.ConnInfo)),
-	}
-	for k, v := range e.ConnInfo {
-		n.ConnInfo[k] = v
+	n := &EphemeralState{}
+	if e.ConnInfo != nil {
+		n.ConnInfo = make(map[string]string, len(e.ConnInfo))
+		for k, v := range e.ConnInfo {
+			n.ConnInfo[k] = v
+		}
 	}
 	return n
 }
