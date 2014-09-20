@@ -33,6 +33,7 @@ type Resource struct {
 	State        *ResourceState
 	Provisioners []*ResourceProvisionerConfig
 	Tainted      bool
+	TaintedIndex int
 }
 
 // Vars returns the mapping of variables that should be replaced in

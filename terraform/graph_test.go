@@ -112,6 +112,81 @@ func TestGraph_state(t *testing.T) {
 	}
 }
 
+func TestGraph_tainted(t *testing.T) {
+	config := testConfig(t, "graph-tainted")
+	state := &State{
+		Modules: []*ModuleState{
+			&ModuleState{
+				Path: rootModulePath,
+
+				Resources: map[string]*ResourceState{
+					"aws_instance.web": &ResourceState{
+						Type: "aws_instance",
+						Primary: &InstanceState{
+							ID: "foo",
+						},
+						Tainted: []*InstanceState{
+							&InstanceState{
+								ID: "bar",
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	g, err := Graph(&GraphOpts{Config: config, State: state})
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	actual := strings.TrimSpace(g.String())
+	expected := strings.TrimSpace(testTerraformGraphTaintedStr)
+	if actual != expected {
+		t.Fatalf("bad:\n\n%s", actual)
+	}
+}
+
+func TestGraph_taintedMulti(t *testing.T) {
+	config := testConfig(t, "graph-tainted")
+	state := &State{
+		Modules: []*ModuleState{
+			&ModuleState{
+				Path: rootModulePath,
+
+				Resources: map[string]*ResourceState{
+					"aws_instance.web": &ResourceState{
+						Type: "aws_instance",
+						Primary: &InstanceState{
+							ID: "foo",
+						},
+						Tainted: []*InstanceState{
+							&InstanceState{
+								ID: "bar",
+							},
+							&InstanceState{
+								ID: "baz",
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	g, err := Graph(&GraphOpts{Config: config, State: state})
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	actual := strings.TrimSpace(g.String())
+	expected := strings.TrimSpace(testTerraformGraphTaintedMultiStr)
+	if actual != expected {
+		t.Fatalf("bad:\n\n%s", actual)
+	}
+}
+
 func TestGraphFull(t *testing.T) {
 	rpAws := new(MockResourceProvider)
 	rpOS := new(MockResourceProvider)
@@ -713,6 +788,44 @@ root
   root -> aws_load_balancer.weblb
   root -> aws_security_group.firewall
   root -> openstack_floating_ip.random
+`
+
+const testTerraformGraphTaintedStr = `
+root: root
+aws_instance.web
+  aws_instance.web -> aws_instance.web (tainted #1)
+  aws_instance.web -> aws_security_group.firewall
+  aws_instance.web -> provider.aws
+aws_instance.web (tainted #1)
+  aws_instance.web (tainted #1) -> provider.aws
+aws_security_group.firewall
+  aws_security_group.firewall -> provider.aws
+provider.aws
+root
+  root -> aws_instance.web
+  root -> aws_instance.web (tainted #1)
+  root -> aws_security_group.firewall
+`
+
+const testTerraformGraphTaintedMultiStr = `
+root: root
+aws_instance.web
+  aws_instance.web -> aws_instance.web (tainted #1)
+  aws_instance.web -> aws_instance.web (tainted #2)
+  aws_instance.web -> aws_security_group.firewall
+  aws_instance.web -> provider.aws
+aws_instance.web (tainted #1)
+  aws_instance.web (tainted #1) -> provider.aws
+aws_instance.web (tainted #2)
+  aws_instance.web (tainted #2) -> provider.aws
+aws_security_group.firewall
+  aws_security_group.firewall -> provider.aws
+provider.aws
+root
+  root -> aws_instance.web
+  root -> aws_instance.web (tainted #1)
+  root -> aws_instance.web (tainted #2)
+  root -> aws_security_group.firewall
 `
 
 const testTerraformGraphCountOrphanStr = `

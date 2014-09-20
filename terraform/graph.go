@@ -106,15 +106,19 @@ func Graph(opts *GraphOpts) (*depgraph.Graph, error) {
 	g := new(depgraph.Graph)
 
 	// First, build the initial resource graph. This only has the resources
-	// and no dependencies.
+	// and no dependencies. This only adds resources that are in the config
+	// and not "orphans" (that are in the state, but not in the config).
 	graphAddConfigResources(g, opts.Config, opts.State)
 
 	// Add explicit dependsOn dependencies to the graph
 	graphAddExplicitDeps(g)
 
-	// Next, add the state orphans if we have any
 	if opts.State != nil {
+		// Next, add the state orphans if we have any
 		graphAddOrphans(g, opts.Config, opts.State)
+
+		// Add tainted resources if we have any.
+		graphAddTainted(g, opts.State)
 	}
 
 	// Map the provider configurations to all of the resources
@@ -750,14 +754,11 @@ func graphAddVariableDeps(g *depgraph.Graph) {
 		var vars map[string]config.InterpolatedVariable
 		switch m := n.Meta.(type) {
 		case *GraphNodeResource:
-			// Ignore orphan nodes
-			if m.Orphan {
-				continue
+			if m.Config != nil {
+				// Handle the resource variables
+				vars = m.Config.RawConfig.Variables
+				nounAddVariableDeps(g, n, vars, false)
 			}
-
-			// Handle the resource variables
-			vars = m.Config.RawConfig.Variables
-			nounAddVariableDeps(g, n, vars, false)
 
 			// Handle the variables of the resource provisioners
 			for _, p := range m.Resource.Provisioners {
@@ -776,6 +777,73 @@ func graphAddVariableDeps(g *depgraph.Graph) {
 			continue
 		}
 	}
+}
+
+// graphAddTainted adds the tainted instances to the graph.
+func graphAddTainted(g *depgraph.Graph, s *State) {
+	// TODO: Handle other modules
+	mod := s.ModuleByPath(rootModulePath)
+	if mod == nil {
+		return
+	}
+
+	var nlist []*depgraph.Noun
+	for k, rs := range mod.Resources {
+		// If we have no tainted resources, continue on
+		if len(rs.Tainted) == 0 {
+			continue
+		}
+
+		// Find the untainted resource of this in the noun list
+		var untainted *depgraph.Noun
+		for _, n := range g.Nouns {
+			if n.Name == k {
+				untainted = n
+				break
+			}
+		}
+
+		for i, _ := range rs.Tainted {
+			name := fmt.Sprintf("%s (tainted #%d)", k, i+1)
+
+			// Add each of the tainted resources to the graph, and encode
+			// a dependency from the non-tainted resource to this so that
+			// tainted resources are always destroyed first.
+			noun := &depgraph.Noun{
+				Name: name,
+				Meta: &GraphNodeResource{
+					Index: -1,
+					Type:  rs.Type,
+					Resource: &Resource{
+						Id:           k,
+						State:        rs,
+						Config:       NewResourceConfig(nil),
+						Diff:         &InstanceDiff{Destroy: true},
+						Tainted:      true,
+						TaintedIndex: i,
+					},
+				},
+			}
+
+			// Append it to the list so we handle it later
+			nlist = append(nlist, noun)
+
+			// If we have an untainted version, then make sure to add
+			// the dependency.
+			if untainted != nil {
+				dep := &depgraph.Dependency{
+					Name:   name,
+					Source: untainted,
+					Target: noun,
+				}
+
+				untainted.Deps = append(untainted.Deps, dep)
+			}
+		}
+	}
+
+	// Add the nouns to the graph
+	g.Nouns = append(g.Nouns, nlist...)
 }
 
 // nounAddVariableDeps updates the dependencies of a noun given
