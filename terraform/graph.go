@@ -271,10 +271,11 @@ func graphAddConfigResources(
 					Type:   r.Type,
 					Config: r,
 					Resource: &Resource{
-						Id:      name,
-						State:   state,
-						Config:  NewResourceConfig(r.RawConfig),
-						Tainted: len(state.Tainted) > 0,
+						Id:           name,
+						State:        state,
+						Config:       NewResourceConfig(r.RawConfig),
+						Tainted:      len(state.Tainted) > 0,
+						TaintedIndex: -1,
 					},
 				},
 			}

@@ -759,6 +759,11 @@ func (c *Context) planWalkFn(result *Plan) depgraph.WalkFunc {
 	result.init()
 
 	cb := func(r *Resource) error {
+		if r.Tainted && r.TaintedIndex > -1 {
+			// No-op this. We somewhat magically diff this later.
+			return nil
+		}
+
 		var diff *InstanceDiff
 
 		is := r.State.Primary
@@ -895,7 +900,7 @@ func (c *Context) planDestroyWalkFn(result *Plan) depgraph.WalkFunc {
 func (c *Context) refreshWalkFn() depgraph.WalkFunc {
 	cb := func(r *Resource) error {
 		is := r.State.Primary
-		if r.Tainted {
+		if r.Tainted && r.TaintedIndex > -1 {
 			is = r.State.Tainted[r.TaintedIndex]
 		}
 
