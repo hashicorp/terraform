@@ -338,6 +338,9 @@ func graphAddDiff(g *depgraph.Graph, d *Diff) error {
 		if !ok {
 			continue
 		}
+		if rn.Resource.Tainted && rn.Resource.TaintedIndex > -1 {
+			continue
+		}
 
 		rd, ok := d.Resources[rn.Resource.Id]
 		if !ok {

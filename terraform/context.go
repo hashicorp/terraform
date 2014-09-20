@@ -620,8 +620,13 @@ func (c *Context) applyWalkFn() depgraph.WalkFunc {
 			}
 		}
 
-		// Update the primary instance
-		r.State.Primary = is
+		if r.Tainted && r.TaintedIndex > -1 {
+			// Update the tainted resource.
+			r.State.Tainted[r.TaintedIndex] = is
+		} else {
+			// Update the primary resource
+			r.State.Primary = is
+		}
 
 		// Update the resulting diff
 		c.sl.Lock()
@@ -760,7 +765,7 @@ func (c *Context) planWalkFn(result *Plan) depgraph.WalkFunc {
 
 	cb := func(r *Resource) error {
 		if r.Tainted && r.TaintedIndex > -1 {
-			// No-op this. We somewhat magically diff this later.
+			// We don't diff tainted resources.
 			return nil
 		}
 
@@ -807,7 +812,7 @@ func (c *Context) planWalkFn(result *Plan) depgraph.WalkFunc {
 		if r.Tainted {
 			// Tainted resources must also be destroyed
 			log.Printf("[DEBUG] %s: Tainted, marking for destroy", r.Id)
-			diff.Destroy = true
+			diff.DestroyTainted = true
 		}
 
 		if diff.RequiresNew() && is != nil && is.ID != "" {

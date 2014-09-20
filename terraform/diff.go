@@ -99,7 +99,7 @@ func (d *Diff) String() string {
 		rdiff := d.Resources[name]
 
 		crud := "UPDATE"
-		if rdiff.RequiresNew() && rdiff.Destroy {
+		if rdiff.RequiresNew() && (rdiff.Destroy || rdiff.DestroyTainted) {
 			crud = "DESTROY/CREATE"
 		} else if rdiff.Destroy {
 			crud = "DESTROY"
@@ -154,8 +154,9 @@ func (d *Diff) String() string {
 
 // InstanceDiff is the diff of a resource from some state to another.
 type InstanceDiff struct {
-	Attributes map[string]*ResourceAttrDiff
-	Destroy    bool
+	Attributes     map[string]*ResourceAttrDiff
+	Destroy        bool
+	DestroyTainted bool
 
 	once sync.Once
 }
