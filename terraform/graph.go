@@ -56,7 +56,6 @@ const GraphRootNode = "root"
 // or a component of a resource.
 type GraphNodeResource struct {
 	Index              int
-	Type               string
 	Config             *config.Resource
 	Orphan             bool
 	Resource           *Resource
@@ -268,10 +267,10 @@ func graphAddConfigResources(
 				Name: name,
 				Meta: &GraphNodeResource{
 					Index:  index,
-					Type:   r.Type,
 					Config: r,
 					Resource: &Resource{
 						Id:           name,
+						Info:         &InstanceInfo{Type: r.Type},
 						State:        state,
 						Config:       NewResourceConfig(r.RawConfig),
 						Tainted:      len(state.Tainted) > 0,
@@ -552,11 +551,11 @@ func graphAddMissingResourceProviders(
 			continue
 		}
 
-		prefixes := matchingPrefixes(rn.Type, ps)
+		prefixes := matchingPrefixes(rn.Resource.Info.Type, ps)
 		if len(prefixes) == 0 {
 			errs = append(errs, fmt.Errorf(
 				"No matching provider for type: %s",
-				rn.Type))
+				rn.Resource.Info.Type))
 			continue
 		}
 
@@ -608,10 +607,10 @@ func graphAddOrphans(g *depgraph.Graph, c *config.Config, s *State) {
 			Name: k,
 			Meta: &GraphNodeResource{
 				Index:  -1,
-				Type:   rs.Type,
 				Orphan: true,
 				Resource: &Resource{
 					Id:     k,
+					Info:   &InstanceInfo{Type: rs.Type},
 					State:  rs,
 					Config: NewResourceConfig(nil),
 				},
@@ -676,7 +675,7 @@ func graphAddProviderConfigs(g *depgraph.Graph, c *config.Config) {
 
 		// Look up the provider config for this resource
 		pcName := config.ProviderConfigName(
-			resourceNode.Type, c.ProviderConfigs)
+			resourceNode.Resource.Info.Type, c.ProviderConfigs)
 		if pcName == "" {
 			continue
 		}
@@ -817,9 +816,9 @@ func graphAddTainted(g *depgraph.Graph, s *State) {
 				Name: name,
 				Meta: &GraphNodeResource{
 					Index: -1,
-					Type:  rs.Type,
 					Resource: &Resource{
 						Id:           k,
+						Info:         &InstanceInfo{Type: rs.Type},
 						State:        rs,
 						Config:       NewResourceConfig(nil),
 						Diff:         &InstanceDiff{Destroy: true},
@@ -987,18 +986,18 @@ func graphMapResourceProviders(g *depgraph.Graph) error {
 			panic(fmt.Sprintf(
 				"Resource provider ID not found: %s (type: %s)",
 				rn.ResourceProviderID,
-				rn.Type))
+				rn.Resource.Info.Type))
 		}
 
 		var provider ResourceProvider
 		for _, k := range rpn.ProviderKeys {
 			// Only try this provider if it has the right prefix
-			if !strings.HasPrefix(rn.Type, k) {
+			if !strings.HasPrefix(rn.Resource.Info.Type, k) {
 				continue
 			}
 
 			rp := rpn.Providers[k]
-			if ProviderSatisfies(rp, rn.Type) {
+			if ProviderSatisfies(rp, rn.Resource.Info.Type) {
 				provider = rp
 				break
 			}
@@ -1007,7 +1006,7 @@ func graphMapResourceProviders(g *depgraph.Graph) error {
 		if provider == nil {
 			errs = append(errs, fmt.Errorf(
 				"Resource provider not found for resource type '%s'",
-				rn.Type))
+				rn.Resource.Info.Type))
 			continue
 		}
 

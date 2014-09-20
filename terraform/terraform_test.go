@@ -484,7 +484,7 @@ CREATE: aws_instance.bar
   type: "" => "aws_instance"
 UPDATE: aws_instance.foo
   num:  "" => "2"
-  type: "" => ""
+  type: "" => "aws_instance"
 
 STATE:
 

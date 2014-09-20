@@ -543,10 +543,7 @@ func (c *Context) applyWalkFn() depgraph.WalkFunc {
 				return err
 			}
 
-			info := &InstanceInfo{
-				Type: r.State.Type,
-			}
-			diff, err = r.Provider.Diff(info, r.State.Primary, r.Config)
+			diff, err = r.Provider.Diff(r.Info, r.State.Primary, r.Config)
 			if err != nil {
 				return err
 			}
@@ -591,8 +588,7 @@ func (c *Context) applyWalkFn() depgraph.WalkFunc {
 
 		// With the completed diff, apply!
 		log.Printf("[DEBUG] %s: Executing Apply", r.Id)
-		info := &InstanceInfo{Type: r.State.Type}
-		is, applyerr := r.Provider.Apply(info, r.State.Primary, diff)
+		is, applyerr := r.Provider.Apply(r.Info, r.State.Primary, diff)
 
 		var errs []error
 		if applyerr != nil {
@@ -798,8 +794,7 @@ func (c *Context) planWalkFn(result *Plan) depgraph.WalkFunc {
 				state.Type = r.State.Type
 			}
 			state.init()
-			info := &InstanceInfo{Type: state.Type}
-			diff, err = r.Provider.Diff(info, state.Primary, r.Config)
+			diff, err = r.Provider.Diff(r.Info, state.Primary, r.Config)
 			if err != nil {
 				return err
 			}
@@ -918,8 +913,7 @@ func (c *Context) refreshWalkFn() depgraph.WalkFunc {
 			handleHook(h.PreRefresh(r.Id, is))
 		}
 
-		info := &InstanceInfo{Type: r.State.Type}
-		is, err := r.Provider.Refresh(info, is)
+		is, err := r.Provider.Refresh(r.Info, is)
 		if err != nil {
 			return err
 		}
@@ -977,7 +971,7 @@ func (c *Context) validateWalkFn(rws *[]string, res *[]error) depgraph.WalkFunc 
 
 			log.Printf("[INFO] Validating resource: %s", rn.Resource.Id)
 			ws, es := rn.Resource.Provider.ValidateResource(
-				rn.Type, rn.Resource.Config)
+				rn.Resource.Info.Type, rn.Resource.Config)
 			for i, w := range ws {
 				ws[i] = fmt.Sprintf("'%s' warning: %s", rn.Resource.Id, w)
 			}

@@ -27,6 +27,7 @@ type ResourceProvisionerConfig struct {
 // wants to reach.
 type Resource struct {
 	Id           string
+	Info         *InstanceInfo
 	Config       *ResourceConfig
 	Diff         *InstanceDiff
 	Provider     ResourceProvider
