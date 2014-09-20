@@ -2235,6 +2235,7 @@ func TestContextRefresh_tainted(t *testing.T) {
 				Path: rootModulePath,
 				Resources: map[string]*ResourceState{
 					"aws_instance.web": &ResourceState{
+						Type: "aws_instance",
 						Tainted: []*InstanceState{
 							&InstanceState{
 								ID: "bar",
@@ -2262,16 +2263,14 @@ func TestContextRefresh_tainted(t *testing.T) {
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
-	originalMod := state.RootModule()
-	mod := s.RootModule()
 	if !p.RefreshCalled {
 		t.Fatal("refresh should be called")
 	}
-	if !reflect.DeepEqual(p.RefreshState, originalMod.Resources["aws_instance.web"].Tainted[0]) {
-		t.Fatalf("bad: %#v %#v", p.RefreshState, originalMod.Resources["aws_instance.web"].Tainted[0])
-	}
-	if !reflect.DeepEqual(mod.Resources["aws_instance.web"].Tainted[0], p.RefreshReturn) {
-		t.Fatalf("bad: %#v", mod.Resources)
+
+	actual := strings.TrimSpace(s.String())
+	expected := strings.TrimSpace(testContextRefreshTaintedStr)
+	if actual != expected {
+		t.Fatalf("bad:\n\n%s\n\n%s", actual, expected)
 	}
 }
 
@@ -2475,4 +2474,10 @@ provider.aws
 root
   root -> aws_instance.bar
   root -> aws_instance.foo
+`
+
+const testContextRefreshTaintedStr = `
+aws_instance.web: (1 tainted)
+  ID = <not created>
+  Tainted ID 1 = foo
 `

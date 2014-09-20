@@ -893,19 +893,23 @@ func (c *Context) planDestroyWalkFn(result *Plan) depgraph.WalkFunc {
 }
 
 func (c *Context) refreshWalkFn() depgraph.WalkFunc {
-	cb := func(r *Resource, tainted bool, inst **InstanceState) error {
-		if *inst == nil || (*inst).ID == "" {
+	cb := func(r *Resource) error {
+		is := r.State.Primary
+		if r.Tainted {
+			is = r.State.Tainted[r.TaintedIndex]
+		}
+
+		if is == nil || is.ID == "" {
 			log.Printf("[DEBUG] %s: Not refreshing, ID is empty", r.Id)
 			return nil
 		}
-		state := *inst
 
 		for _, h := range c.hooks {
-			handleHook(h.PreRefresh(r.Id, state))
+			handleHook(h.PreRefresh(r.Id, is))
 		}
 
 		info := &InstanceInfo{Type: r.State.Type}
-		is, err := r.Provider.Refresh(info, state)
+		is, err := r.Provider.Refresh(info, is)
 		if err != nil {
 			return err
 		}
@@ -914,8 +918,11 @@ func (c *Context) refreshWalkFn() depgraph.WalkFunc {
 			is.init()
 		}
 
-		// Update the state
-		*inst = is
+		if r.Tainted {
+			r.State.Tainted[r.TaintedIndex] = is
+		} else {
+			r.State.Primary = is
+		}
 
 		// TODO: Handle other modules
 		c.sl.Lock()
@@ -930,7 +937,7 @@ func (c *Context) refreshWalkFn() depgraph.WalkFunc {
 		return nil
 	}
 
-	return c.genericWalkFn(instanceWalk(cb))
+	return c.genericWalkFn(cb)
 }
 
 func (c *Context) validateWalkFn(rws *[]string, res *[]error) depgraph.WalkFunc {

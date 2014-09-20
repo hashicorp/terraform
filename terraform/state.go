@@ -364,6 +364,12 @@ func (s *ResourceState) GoString() string {
 	return fmt.Sprintf("*%#v", *s)
 }
 
+func (s *ResourceState) String() string {
+	var buf bytes.Buffer
+	buf.WriteString(fmt.Sprintf("Type = %s", s.Type))
+	return buf.String()
+}
+
 // InstanceState is used to track the unique state information belonging
 // to a given instance.
 type InstanceState struct {
@@ -451,7 +457,7 @@ func (i *InstanceState) GoString() string {
 func (i *InstanceState) String() string {
 	var buf bytes.Buffer
 
-	if i.ID == "" {
+	if i == nil || i.ID == "" {
 		return "<not created>"
 	}
 
