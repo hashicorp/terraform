@@ -17,11 +17,6 @@ import (
 // tree internally on the Terraform structure.
 type genericWalkFunc func(*Resource) error
 
-// This function is used to implement a walked for a resource that
-// visits each instance, handling tainted resources first, then the
-// primary.
-type instanceWalkFunc func(*Resource, bool, **InstanceState) error
-
 // Context represents all the context that Terraform needs in order to
 // perform operations on infrastructure. This structure is built using
 // ContextOpts and NewContext. See the documentation for those.
