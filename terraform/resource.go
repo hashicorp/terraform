@@ -33,9 +33,20 @@ type Resource struct {
 	Provider     ResourceProvider
 	State        *ResourceState
 	Provisioners []*ResourceProvisionerConfig
-	Tainted      bool
+	Flags        ResourceFlag
 	TaintedIndex int
 }
+
+// ResourceKind specifies what kind of instance we're working with, whether
+// its a primary instance, a tainted instance, or an orphan.
+type ResourceFlag byte
+
+const (
+	FlagPrimary ResourceFlag = 1 << iota
+	FlagTainted
+	FlagOrphan
+	FlagHasTainted
+)
 
 // Vars returns the mapping of variables that should be replaced in
 // configuration based on the attributes of this resource.

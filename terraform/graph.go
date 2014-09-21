@@ -57,7 +57,6 @@ const GraphRootNode = "root"
 type GraphNodeResource struct {
 	Index              int
 	Config             *config.Resource
-	Orphan             bool
 	Resource           *Resource
 	ResourceProviderID string
 }
@@ -263,18 +262,22 @@ func graphAddConfigResources(
 				}
 			}
 
+			flags := FlagPrimary
+			if len(state.Tainted) > 0 {
+				flags |= FlagHasTainted
+			}
+
 			resourceNouns[i] = &depgraph.Noun{
 				Name: name,
 				Meta: &GraphNodeResource{
 					Index:  index,
 					Config: r,
 					Resource: &Resource{
-						Id:           name,
-						Info:         &InstanceInfo{Type: r.Type},
-						State:        state,
-						Config:       NewResourceConfig(r.RawConfig),
-						Tainted:      len(state.Tainted) > 0,
-						TaintedIndex: -1,
+						Id:     name,
+						Info:   &InstanceInfo{Type: r.Type},
+						State:  state,
+						Config: NewResourceConfig(r.RawConfig),
+						Flags:  flags,
 					},
 				},
 			}
@@ -337,7 +340,7 @@ func graphAddDiff(g *depgraph.Graph, d *Diff) error {
 		if !ok {
 			continue
 		}
-		if rn.Resource.Tainted && rn.Resource.TaintedIndex > -1 {
+		if rn.Resource.Flags&FlagTainted != 0 {
 			continue
 		}
 
@@ -387,15 +390,6 @@ func graphAddDiff(g *depgraph.Graph, d *Diff) error {
 				Source: n,
 				Target: newN,
 			})
-
-			// If the resource is tainted, mark the state as nil so
-			// that a fresh create is done.
-			if rn.Resource.Tainted {
-				rn.Resource.State = &ResourceState{
-					Type: rn.Resource.State.Type,
-				}
-				rn.Resource.Tainted = false
-			}
 		}
 
 		rn.Resource.Diff = rd
@@ -606,13 +600,13 @@ func graphAddOrphans(g *depgraph.Graph, c *config.Config, s *State) {
 		noun := &depgraph.Noun{
 			Name: k,
 			Meta: &GraphNodeResource{
-				Index:  -1,
-				Orphan: true,
+				Index: -1,
 				Resource: &Resource{
 					Id:     k,
 					Info:   &InstanceInfo{Type: rs.Type},
 					State:  rs,
 					Config: NewResourceConfig(nil),
+					Flags:  FlagOrphan,
 				},
 			},
 		}
@@ -822,7 +816,7 @@ func graphAddTainted(g *depgraph.Graph, s *State) {
 						State:        rs,
 						Config:       NewResourceConfig(nil),
 						Diff:         &InstanceDiff{Destroy: true},
-						Tainted:      true,
+						Flags:        FlagTainted,
 						TaintedIndex: i,
 					},
 				},

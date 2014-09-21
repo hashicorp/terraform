@@ -616,7 +616,7 @@ func (c *Context) applyWalkFn() depgraph.WalkFunc {
 			}
 		}
 
-		if r.Tainted && r.TaintedIndex > -1 {
+		if r.Flags&FlagTainted != 0 {
 			// Update the tainted resource.
 			r.State.Tainted[r.TaintedIndex] = is
 		} else {
@@ -667,7 +667,11 @@ func (c *Context) applyWalkFn() depgraph.WalkFunc {
 		c.sl.Unlock()
 
 		// Update the state for the resource itself
-		r.Tainted = tainted
+		if tainted {
+			r.Flags &^= FlagPrimary
+			r.Flags &^= FlagHasTainted
+			r.Flags |= FlagTainted
+		}
 
 		for _, h := range c.hooks {
 			handleHook(h.PostApply(r.Id, r.State.Primary, applyerr))
@@ -760,7 +764,7 @@ func (c *Context) planWalkFn(result *Plan) depgraph.WalkFunc {
 	result.init()
 
 	cb := func(r *Resource) error {
-		if r.Tainted && r.TaintedIndex > -1 {
+		if r.Flags&FlagTainted != 0 {
 			// We don't diff tainted resources.
 			return nil
 		}
@@ -773,7 +777,7 @@ func (c *Context) planWalkFn(result *Plan) depgraph.WalkFunc {
 			handleHook(h.PreDiff(r.Id, is))
 		}
 
-		if r.Config == nil {
+		if r.Flags&FlagOrphan != 0 {
 			log.Printf("[DEBUG] %s: Orphan, marking for destroy", r.Id)
 
 			// This is an orphan (no config), so we mark it to be destroyed
@@ -788,7 +792,7 @@ func (c *Context) planWalkFn(result *Plan) depgraph.WalkFunc {
 			log.Printf("[DEBUG] %s: Executing diff", r.Id)
 			var err error
 			state := r.State
-			if r.Tainted {
+			if r.Flags&FlagHasTainted != 0 {
 				// If we're tainted, we pretend to create a new thing.
 				state = new(ResourceState)
 				state.Type = r.State.Type
@@ -804,9 +808,10 @@ func (c *Context) planWalkFn(result *Plan) depgraph.WalkFunc {
 			diff = new(InstanceDiff)
 		}
 
-		if r.Tainted {
-			// Tainted resources must also be destroyed
-			log.Printf("[DEBUG] %s: Tainted, marking for destroy", r.Id)
+		if r.Flags&FlagHasTainted != 0 {
+			// This primary has a tainted resource, so just mark for
+			// destroy...
+			log.Printf("[DEBUG] %s: Tainted children, marking for destroy", r.Id)
 			diff.DestroyTainted = true
 		}
 
@@ -900,7 +905,7 @@ func (c *Context) planDestroyWalkFn(result *Plan) depgraph.WalkFunc {
 func (c *Context) refreshWalkFn() depgraph.WalkFunc {
 	cb := func(r *Resource) error {
 		is := r.State.Primary
-		if r.Tainted && r.TaintedIndex > -1 {
+		if r.Flags&FlagTainted != 0 {
 			is = r.State.Tainted[r.TaintedIndex]
 		}
 
@@ -922,7 +927,7 @@ func (c *Context) refreshWalkFn() depgraph.WalkFunc {
 			is.init()
 		}
 
-		if r.Tainted {
+		if r.Flags&FlagTainted != 0 {
 			r.State.Tainted[r.TaintedIndex] = is
 		} else {
 			r.State.Primary = is
@@ -965,7 +970,7 @@ func (c *Context) validateWalkFn(rws *[]string, res *[]error) depgraph.WalkFunc 
 			}
 
 			// Don't validate orphans since they never have a config
-			if rn.Orphan {
+			if rn.Resource.Flags&FlagOrphan != 0 {
 				return nil
 			}
 
@@ -1028,24 +1033,6 @@ func (c *Context) validateWalkFn(rws *[]string, res *[]error) depgraph.WalkFunc 
 	}
 }
 
-//type instanceWalkFunc func(*Resource, bool, **InstanceState) error
-func instanceWalk(cb instanceWalkFunc) genericWalkFunc {
-	return func(r *Resource) error {
-		// Handle the tainted resources first
-		for idx := range r.State.Tainted {
-			if err := cb(r, true, &r.State.Tainted[idx]); err != nil {
-				return err
-			}
-		}
-
-		// Handle the primary resource
-		if r.State.Primary == nil {
-			r.State.init()
-		}
-		return cb(r, false, &r.State.Primary)
-	}
-}
-
 func (c *Context) genericWalkFn(cb genericWalkFunc) depgraph.WalkFunc {
 	// This will keep track of whether we're stopped or not
 	var stop uint32 = 0
@@ -1099,14 +1086,10 @@ func (c *Context) genericWalkFn(cb genericWalkFunc) depgraph.WalkFunc {
 		rn := n.Meta.(*GraphNodeResource)
 
 		// Make sure that at least some resource configuration is set
-		if !rn.Orphan {
-			if rn.Config == nil {
-				rn.Resource.Config = new(ResourceConfig)
-			} else {
-				rn.Resource.Config = NewResourceConfig(rn.Config.RawConfig)
-			}
+		if rn.Config == nil {
+			rn.Resource.Config = new(ResourceConfig)
 		} else {
-			rn.Resource.Config = nil
+			rn.Resource.Config = NewResourceConfig(rn.Config.RawConfig)
 		}
 
 		// Handle recovery of special panic scenarios
