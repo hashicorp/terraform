@@ -5,8 +5,8 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
-	"testing"
 	"strings"
+	"testing"
 
 	"github.com/hashicorp/terraform/terraform"
 	"github.com/mitchellh/cli"
