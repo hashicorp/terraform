@@ -59,10 +59,11 @@ the process more straightforwarded, it is documented here.
 
 2. Under the "APIs & Auth" section, click "Credentials."
 
-3. Click the "Download JSON" button under the "Compute Engine and App Engine"
-   account in the OAuth section. The file should start with "client\_secrets".
-   This is your _client secrets file_.
+3. Create a new OAuth client ID and select "Installed application" as the
+   type of account. Once created, click the "Download JSON" button underneath
+   the account. The file should start with "client\_secret". This is your _client
+   secrets file_.
 
-4. Create a new OAuth client ID and select "Service Account" as the type
+4. Create a new OAuth client ID and select "Service account" as the type
    of account. Once created, a JSON file should be downloaded. This is your
    _account file_.
