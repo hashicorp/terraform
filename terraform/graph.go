@@ -482,6 +482,7 @@ func graphAddConfigResources(
 // these nodes for you.
 func graphAddDiff(g *depgraph.Graph, d *ModuleDiff) error {
 	var nlist []*depgraph.Noun
+	injected := make(map[*depgraph.Dependency]struct{})
 	for _, n := range g.Nouns {
 		rn, ok := n.Meta.(*GraphNodeResource)
 		if !ok {
@@ -530,13 +531,43 @@ func graphAddDiff(g *depgraph.Graph, d *ModuleDiff) error {
 			newDiff.Destroy = false
 			rd = newDiff
 
-			// Add to the new noun to our dependencies so that the destroy
-			// happens before the apply.
-			n.Deps = append(n.Deps, &depgraph.Dependency{
-				Name:   newN.Name,
-				Source: n,
-				Target: newN,
-			})
+			// The dependency ordering depends on if the CreateBeforeDestroy
+			// flag is enabled. If so, we must create the replacement first,
+			// and then destroy the old instance.
+			if rn.Config != nil && rn.Config.CreateBeforeDestroy && !rd.Empty() {
+				dep := &depgraph.Dependency{
+					Name:   n.Name,
+					Source: newN,
+					Target: n,
+				}
+
+				// Add the old noun to the new noun dependencies so that
+				// the create happens before the destroy.
+				newN.Deps = append(newN.Deps, dep)
+
+				// Mark that this dependency has been injected so that
+				// we do not invert the direction below.
+				injected[dep] = struct{}{}
+
+				// Add a depedency from the root, since the create node
+				// does not depend on us
+				g.Root.Deps = append(g.Root.Deps, &depgraph.Dependency{
+					Name:   newN.Name,
+					Source: g.Root,
+					Target: newN,
+				})
+
+			} else {
+				dep := &depgraph.Dependency{
+					Name:   newN.Name,
+					Source: n,
+					Target: newN,
+				}
+
+				// Add the new noun to our dependencies so that
+				// the destroy happens before the apply.
+				n.Deps = append(n.Deps, dep)
+			}
 		}
 
 		rn.Resource.Diff = rd
@@ -544,7 +575,6 @@ func graphAddDiff(g *depgraph.Graph, d *ModuleDiff) error {
 
 	// Go through each noun and make sure we calculate all the dependencies
 	// properly.
-	injected := make(map[*depgraph.Dependency]struct{})
 	for _, n := range nlist {
 		deps := n.Deps
 		num := len(deps)
@@ -948,6 +978,7 @@ func graphAddRoot(g *depgraph.Graph) {
 		})
 	}
 	g.Nouns = append(g.Nouns, root)
+	g.Root = root
 }
 
 // graphAddVariableDeps inspects all the nouns and adds any dependencies
