@@ -24,8 +24,13 @@ type GraphOpts struct {
 	//Config *config.Config
 
 	// Module is the relative root of a module tree for this graph. This
-	// is the only required item.
-	Module *module.Tree
+	// is the only required item. This should always be the absolute root
+	// of the tree. ModulePath below should be used to constrain the depth.
+	//
+	// ModulePath specifies the place in the tree where Module exists.
+	// This is used for State lookups.
+	Module     *module.Tree
+	ModulePath []string
 
 	// Diff of changes that will be applied to the given state. This will
 	// associate a ResourceDiff with applicable resources. Additionally,
@@ -59,6 +64,8 @@ const GraphRootNode = "root"
 // that will be created/managed.
 type GraphNodeModule struct {
 	Config *config.Module
+	Path   []string
+	Graph  *depgraph.Graph
 }
 
 // GraphNodeResource is a node type in the graph that represents a resource
@@ -109,8 +116,27 @@ func Graph(opts *GraphOpts) (*depgraph.Graph, error) {
 	if opts.Module == nil {
 		return nil, errors.New("Module is required for Graph")
 	}
+	if opts.ModulePath == nil {
+		opts.ModulePath = rootModulePath
+	}
+	if !opts.Module.Loaded() {
+		return nil, errors.New("Module must be loaded")
+	}
 
-	config := opts.Module.Config()
+	// Get the correct module in the tree that we're looking for.
+	currentModule := opts.Module
+	for _, n := range opts.ModulePath[1:] {
+		children := currentModule.Children()
+		currentModule = children[n]
+	}
+
+	config := currentModule.Config()
+
+	// Get the state of the module that we're working with.
+	var mod *ModuleState
+	if opts.State != nil {
+		mod = opts.State.ModuleByPath(opts.ModulePath)
+	}
 
 	log.Printf("[DEBUG] Creating graph...")
 
@@ -119,7 +145,7 @@ func Graph(opts *GraphOpts) (*depgraph.Graph, error) {
 	// First, build the initial resource graph. This only has the resources
 	// and no dependencies. This only adds resources that are in the config
 	// and not "orphans" (that are in the state, but not in the config).
-	graphAddConfigResources(g, config, opts.State)
+	graphAddConfigResources(g, config, mod)
 
 	// Add the modules that are in the configuration.
 	graphAddConfigModules(g, config, opts)
@@ -127,12 +153,12 @@ func Graph(opts *GraphOpts) (*depgraph.Graph, error) {
 	// Add explicit dependsOn dependencies to the graph
 	graphAddExplicitDeps(g)
 
-	if opts.State != nil {
+	if mod != nil {
 		// Next, add the state orphans if we have any
-		graphAddOrphans(g, config, opts.State)
+		graphAddOrphans(g, config, mod)
 
 		// Add tainted resources if we have any.
-		graphAddTainted(g, opts.State)
+		graphAddTainted(g, mod)
 	}
 
 	// Map the provider configurations to all of the resources
@@ -238,20 +264,39 @@ func graphInitState(s *State, g *depgraph.Graph) {
 
 // graphAddConfigModules adds the modules from a configuration structure
 // into the graph, expanding each to their own sub-graph.
-func graphAddConfigModules(g *depgraph.Graph, c *config.Config, opts *GraphOpts) {
+func graphAddConfigModules(
+	g *depgraph.Graph,
+	c *config.Config,
+	opts *GraphOpts) error {
 	// Just short-circuit the whole thing if we don't have modules
 	if len(c.Modules) == 0 {
-		return
+		return nil
 	}
 
 	// Build the list of nouns to add to the graph
 	nounsList := make([]*depgraph.Noun, 0, len(c.Modules))
 	for _, m := range c.Modules {
 		name := fmt.Sprintf("module.%s", m.Name)
+		path := make([]string, len(opts.ModulePath)+1)
+		copy(path, opts.ModulePath)
+		path[len(opts.ModulePath)] = m.Name
+
+		// Build the opts we'll use to make the next graph
+		subOpts := *opts
+		subOpts.ModulePath = path
+		subGraph, err := Graph(&subOpts)
+		if err != nil {
+			return fmt.Errorf(
+				"Error building module graph '%s': %s",
+				m.Name, err)
+		}
+
 		n := &depgraph.Noun{
 			Name: name,
 			Meta: &GraphNodeModule{
 				Config: m,
+				Path:   path,
+				Graph:  subGraph,
 			},
 		}
 
@@ -259,14 +304,12 @@ func graphAddConfigModules(g *depgraph.Graph, c *config.Config, opts *GraphOpts)
 	}
 
 	g.Nouns = append(g.Nouns, nounsList...)
+	return nil
 }
 
 // configGraph turns a configuration structure into a dependency graph.
 func graphAddConfigResources(
-	g *depgraph.Graph, c *config.Config, s *State) {
-	// TODO: Handle non-root modules
-	mod := s.ModuleByPath(rootModulePath)
-
+	g *depgraph.Graph, c *config.Config, mod *ModuleState) {
 	// This tracks all the resource nouns
 	nouns := make(map[string]*depgraph.Noun)
 	for _, r := range c.Resources {
@@ -283,7 +326,7 @@ func graphAddConfigResources(
 			}
 
 			var state *ResourceState
-			if s != nil && mod != nil {
+			if mod != nil {
 				// Lookup the resource state
 				state = mod.Resources[name]
 				if state == nil {
@@ -633,12 +676,7 @@ func graphAddMissingResourceProviders(
 }
 
 // graphAddOrphans adds the orphans to the graph.
-func graphAddOrphans(g *depgraph.Graph, c *config.Config, s *State) {
-	// TODO: Handle other modules
-	mod := s.ModuleByPath(rootModulePath)
-	if mod == nil {
-		return
-	}
+func graphAddOrphans(g *depgraph.Graph, c *config.Config, mod *ModuleState) {
 	var nlist []*depgraph.Noun
 	for _, k := range mod.Orphans(c) {
 		rs := mod.Resources[k]
@@ -826,13 +864,7 @@ func graphAddVariableDeps(g *depgraph.Graph) {
 }
 
 // graphAddTainted adds the tainted instances to the graph.
-func graphAddTainted(g *depgraph.Graph, s *State) {
-	// TODO: Handle other modules
-	mod := s.ModuleByPath(rootModulePath)
-	if mod == nil {
-		return
-	}
-
+func graphAddTainted(g *depgraph.Graph, mod *ModuleState) {
 	var nlist []*depgraph.Noun
 	for k, rs := range mod.Resources {
 		// If we have no tainted resources, continue on

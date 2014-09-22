@@ -1023,6 +1023,9 @@ func (c *Context) genericWalkFn(cb genericWalkFunc) depgraph.WalkFunc {
 		}()
 
 		switch m := n.Meta.(type) {
+		case *GraphNodeModule:
+			// TODO
+			return nil
 		case *GraphNodeResource:
 			// Continue, we care about this the most
 		case *GraphNodeResourceMeta:

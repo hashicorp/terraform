@@ -5,6 +5,8 @@ import (
 	"crypto/sha1"
 	"encoding/gob"
 	"encoding/hex"
+	"io/ioutil"
+	"os"
 	"path/filepath"
 	"sync"
 	"testing"
@@ -31,6 +33,18 @@ func checksumStruct(t *testing.T, i interface{}) string {
 	return hex.EncodeToString(sum[:])
 }
 
+func tempDir(t *testing.T) string {
+	dir, err := ioutil.TempDir("", "tf")
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if err := os.RemoveAll(dir); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	return dir
+}
+
 func testConfig(t *testing.T, name string) *config.Config {
 	c, err := config.Load(filepath.Join(fixtureDir, name, "main.tf"))
 	if err != nil {
@@ -43,6 +57,11 @@ func testConfig(t *testing.T, name string) *config.Config {
 func testModule(t *testing.T, name string) *module.Tree {
 	mod, err := module.NewTreeModule("", filepath.Join(fixtureDir, name))
 	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	s := &module.FolderStorage{StorageDir: tempDir(t)}
+	if err := mod.Load(s, module.GetModeGet); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 

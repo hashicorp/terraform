@@ -1,5 +1,6 @@
 module "consul" {
     foo = "${aws_security_group.firewall.foo}"
+    source = "./consul"
 }
 
 provider "aws" {}

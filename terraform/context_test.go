@@ -2179,6 +2179,67 @@ func TestContextRefresh_hook(t *testing.T) {
 	*/
 }
 
+func TestContextRefresh_modules(t *testing.T) {
+	p := testProvider("aws")
+	m := testModule(t, "refresh-modules")
+	state := &State{
+		Modules: []*ModuleState{
+			&ModuleState{
+				Path: rootModulePath,
+				Resources: map[string]*ResourceState{
+					"aws_instance.web": &ResourceState{
+						Type: "aws_instance",
+						Tainted: []*InstanceState{
+							&InstanceState{
+								ID: "bar",
+							},
+						},
+					},
+				},
+			},
+
+			&ModuleState{
+				Path: []string{"root", "child"},
+				Resources: map[string]*ResourceState{
+					"aws_instance.web": &ResourceState{
+						Type: "aws_instance",
+						Primary: &InstanceState{
+							ID: "baz",
+						},
+					},
+				},
+			},
+		},
+	}
+	ctx := testContext(t, &ContextOpts{
+		Module: m,
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+		State: state,
+	})
+
+	p.RefreshFn = func(info *InstanceInfo, s *InstanceState) (*InstanceState, error) {
+		if s.ID != "baz" {
+			return s, nil
+		}
+
+		s.ID = "new"
+		return s, nil
+	}
+
+	s, err := ctx.Refresh()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	actual := strings.TrimSpace(s.String())
+	expected := strings.TrimSpace(testContextRefreshModuleStr)
+	if actual != expected {
+		t.Fatalf("bad:\n\n%s\n\n%s", actual, expected)
+	}
+}
+
 func TestContextRefresh_state(t *testing.T) {
 	p := testProvider("aws")
 	m := testModule(t, "refresh-basic")
@@ -2474,6 +2535,16 @@ provider.aws
 root
   root -> aws_instance.bar
   root -> aws_instance.foo
+`
+
+const testContextRefreshModuleStr = `
+aws_instance.web: (1 tainted)
+  ID = <not created>
+  Tainted ID 1 = foo
+
+module.child:
+  aws_instance.web:
+    ID = new
 `
 
 const testContextRefreshTaintedStr = `

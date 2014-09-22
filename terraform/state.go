@@ -114,11 +114,11 @@ func (s *State) String() string {
 
 		// If we're the root module, we just write the output directly.
 		if reflect.DeepEqual(m.Path, rootModulePath) {
-			buf.WriteString(mStr)
+			buf.WriteString(mStr+"\n")
 			continue
 		}
 
-		buf.WriteString(fmt.Sprintf("%s:\n", strings.Join(m.Path, ".")))
+		buf.WriteString(fmt.Sprintf("module.%s:\n", strings.Join(m.Path[1:], ".")))
 
 		s := bufio.NewScanner(strings.NewReader(mStr))
 		for s.Scan() {

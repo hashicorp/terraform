@@ -94,6 +94,22 @@ func TestGraph_modules(t *testing.T) {
 	if actual != expected {
 		t.Fatalf("bad:\n\n%s", actual)
 	}
+
+	n := g.Noun("module.consul")
+	if n == nil {
+		t.Fatal("can't find noun")
+	}
+	mn := n.Meta.(*GraphNodeModule)
+
+	if !reflect.DeepEqual(mn.Path, []string{"root", "consul"}) {
+		t.Fatalf("bad: %#v", mn.Path)
+	}
+
+	actual = strings.TrimSpace(mn.Graph.String())
+	expected = strings.TrimSpace(testTerraformGraphModulesConsulStr)
+	if actual != expected {
+		t.Fatalf("bad:\n\n%s", actual)
+	}
 }
 
 func TestGraph_state(t *testing.T) {
@@ -797,6 +813,13 @@ root
   root -> aws_instance.web
   root -> aws_security_group.firewall
   root -> module.consul
+`
+
+const testTerraformGraphModulesConsulStr = `
+root: root
+aws_instance.server
+root
+  root -> aws_instance.server
 `
 
 const testTerraformGraphStateStr = `
