@@ -84,7 +84,10 @@ func (c *RefreshCommand) Run(args []string) int {
 	}
 
 	// Build the context based on the arguments given
-	ctx, _, err := c.Context(configPath, statePath)
+	ctx, _, err := c.Context(contextOpts{
+		Path:      configPath,
+		StatePath: statePath,
+	})
 	if err != nil {
 		c.Ui.Error(err.Error())
 		return 1

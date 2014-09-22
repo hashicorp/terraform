@@ -58,6 +58,11 @@ func NewTreeModule(name, dir string) (*Tree, error) {
 	return NewTree(name, c), nil
 }
 
+// Config returns the configuration for this module.
+func (t *Tree) Config() *config.Config {
+	return t.config
+}
+
 // Children returns the children of this tree (the modules that are
 // imported by this root).
 //

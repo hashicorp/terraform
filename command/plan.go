@@ -65,7 +65,10 @@ func (c *PlanCommand) Run(args []string) int {
 		backupPath = statePath + DefaultBackupExtention
 	}
 
-	ctx, _, err := c.Context(path, statePath)
+	ctx, _, err := c.Context(contextOpts{
+		Path:      path,
+		StatePath: statePath,
+	})
 	if err != nil {
 		c.Ui.Error(err.Error())
 		return 1

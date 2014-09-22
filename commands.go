@@ -40,6 +40,12 @@ func init() {
 			}, nil
 		},
 
+		"get": func() (cli.Command, error) {
+			return &command.GetCommand{
+				Meta: meta,
+			}, nil
+		},
+
 		"graph": func() (cli.Command, error) {
 			return &command.GraphCommand{
 				Meta: meta,
