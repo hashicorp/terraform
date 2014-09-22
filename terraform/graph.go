@@ -50,6 +50,12 @@ type GraphOpts struct {
 // graph. This node is just a placemarker and has no associated functionality.
 const GraphRootNode = "root"
 
+// GraphNodeModule is a node type in the graph that represents a module
+// that will be created/managed.
+type GraphNodeModule struct {
+	Config *config.Module
+}
+
 // GraphNodeResource is a node type in the graph that represents a resource
 // that will be created or managed. Unlike the GraphNodeResourceMeta node,
 // this represents a _single_, _resource_ to be managed, not a set of resources
@@ -107,6 +113,9 @@ func Graph(opts *GraphOpts) (*depgraph.Graph, error) {
 	// and no dependencies. This only adds resources that are in the config
 	// and not "orphans" (that are in the state, but not in the config).
 	graphAddConfigResources(g, opts.Config, opts.State)
+
+	// Add the modules that are in the configuration.
+	graphAddConfigModules(g, opts)
 
 	// Add explicit dependsOn dependencies to the graph
 	graphAddExplicitDeps(g)
@@ -218,6 +227,33 @@ func graphInitState(s *State, g *depgraph.Graph) {
 		// Update the dependencies
 		rs.Dependencies = inject
 	}
+}
+
+// graphAddConfigModules adds the modules from a configuration structure
+// into the graph, expanding each to their own sub-graph.
+func graphAddConfigModules(g *depgraph.Graph, opts *GraphOpts) {
+	c := opts.Config
+
+	// Just short-circuit the whole thing if we don't have modules
+	if len(c.Modules) == 0 {
+		return
+	}
+
+	// Build the list of nouns to add to the graph
+	nounsList := make([]*depgraph.Noun, 0, len(c.Modules))
+	for _, m := range c.Modules {
+		name := fmt.Sprintf("module.%s", m.Name)
+		n := &depgraph.Noun{
+			Name: name,
+			Meta: &GraphNodeModule{
+				Config: m,
+			},
+		}
+
+		nounsList = append(nounsList, n)
+	}
+
+	g.Nouns = append(g.Nouns, nounsList...)
 }
 
 // configGraph turns a configuration structure into a dependency graph.
@@ -752,18 +788,21 @@ func graphAddRoot(g *depgraph.Graph) {
 // based on variable values.
 func graphAddVariableDeps(g *depgraph.Graph) {
 	for _, n := range g.Nouns {
-		var vars map[string]config.InterpolatedVariable
 		switch m := n.Meta.(type) {
+		case *GraphNodeModule:
+			vars := m.Config.RawConfig.Variables
+			nounAddVariableDeps(g, n, vars, false)
+
 		case *GraphNodeResource:
 			if m.Config != nil {
 				// Handle the resource variables
-				vars = m.Config.RawConfig.Variables
+				vars := m.Config.RawConfig.Variables
 				nounAddVariableDeps(g, n, vars, false)
 			}
 
 			// Handle the variables of the resource provisioners
 			for _, p := range m.Resource.Provisioners {
-				vars = p.RawConfig.Variables
+				vars := p.RawConfig.Variables
 				nounAddVariableDeps(g, n, vars, true)
 
 				vars = p.ConnInfo.Variables
@@ -771,10 +810,11 @@ func graphAddVariableDeps(g *depgraph.Graph) {
 			}
 
 		case *GraphNodeResourceProvider:
-			vars = m.Config.RawConfig.Variables
+			vars := m.Config.RawConfig.Variables
 			nounAddVariableDeps(g, n, vars, false)
 
 		default:
+			// Other node types don't have dependencies or we don't support it
 			continue
 		}
 	}
@@ -854,15 +894,20 @@ func nounAddVariableDeps(
 	n *depgraph.Noun,
 	vars map[string]config.InterpolatedVariable,
 	removeSelf bool) {
-	for _, v := range vars {
-		// Only resource variables impose dependencies
-		rv, ok := v.(*config.ResourceVariable)
-		if !ok {
-			continue
+	for _, rawV := range vars {
+		var name string
+		var target *depgraph.Noun
+
+		switch v := rawV.(type) {
+		case *config.ModuleVariable:
+			name = fmt.Sprintf("module.%s", v.Name)
+			target = g.Noun(name)
+		case *config.ResourceVariable:
+			name = v.ResourceId()
+			target = g.Noun(v.ResourceId())
+		default:
 		}
 
-		// Find the target
-		target := g.Noun(rv.ResourceId())
 		if target == nil {
 			continue
 		}
@@ -875,7 +920,7 @@ func nounAddVariableDeps(
 
 		// Build the dependency
 		dep := &depgraph.Dependency{
-			Name:   rv.ResourceId(),
+			Name:   name,
 			Source: n,
 			Target: target,
 		}

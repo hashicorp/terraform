@@ -81,6 +81,21 @@ func TestGraph_dependsOnCount(t *testing.T) {
 	}
 }
 
+func TestGraph_modules(t *testing.T) {
+	config := testConfig(t, "graph-modules")
+
+	g, err := Graph(&GraphOpts{Config: config})
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	actual := strings.TrimSpace(g.String())
+	expected := strings.TrimSpace(testTerraformGraphModulesStr)
+	if actual != expected {
+		t.Fatalf("bad:\n\n%s", actual)
+	}
+}
+
 func TestGraph_state(t *testing.T) {
 	config := testConfig(t, "graph-basic")
 	state := &State{
@@ -765,6 +780,23 @@ aws_load_balancer.weblb (destroy)
 root
   root -> aws_instance.web
   root -> aws_load_balancer.weblb
+`
+
+const testTerraformGraphModulesStr = `
+root: root
+aws_instance.web
+  aws_instance.web -> aws_security_group.firewall
+  aws_instance.web -> module.consul
+  aws_instance.web -> provider.aws
+aws_security_group.firewall
+  aws_security_group.firewall -> provider.aws
+module.consul
+  module.consul -> aws_security_group.firewall
+provider.aws
+root
+  root -> aws_instance.web
+  root -> aws_security_group.firewall
+  root -> module.consul
 `
 
 const testTerraformGraphStateStr = `
