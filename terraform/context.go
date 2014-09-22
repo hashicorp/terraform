@@ -592,6 +592,11 @@ func (c *Context) applyWalkFn() depgraph.WalkFunc {
 			handleHook(h.PreApply(r.Id, is, diff))
 		}
 
+		// We create a new instance if there was no ID
+		// previously or the diff requires re-creating the
+		// underlying instance
+		createNew := is.ID == "" || diff.RequiresNew()
+
 		// With the completed diff, apply!
 		log.Printf("[DEBUG] %s: Executing Apply", r.Id)
 		is, applyerr := r.Provider.Apply(r.Info, is, diff)
@@ -633,7 +638,7 @@ func (c *Context) applyWalkFn() depgraph.WalkFunc {
 		// Additionally, we need to be careful to not run this if there
 		// was an error during the provider apply.
 		tainted := false
-		if applyerr == nil && is.ID != "" && len(r.Provisioners) > 0 {
+		if applyerr == nil && createNew && len(r.Provisioners) > 0 {
 			for _, h := range c.hooks {
 				handleHook(h.PreProvisionResource(r.Id, is))
 			}

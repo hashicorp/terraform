@@ -683,6 +683,83 @@ func TestContextApply_provisionerResourceRef(t *testing.T) {
 	}
 }
 
+// Provisioner should NOT run on a diff, only create
+func TestContextApply_Provisioner_Diff(t *testing.T) {
+	c := testConfig(t, "apply-provisioner-diff")
+	p := testProvider("aws")
+	pr := testProvisioner()
+	p.ApplyFn = testApplyFn
+	p.DiffFn = testDiffFn
+	pr.ApplyFn = func(rs *InstanceState, c *ResourceConfig) error {
+		return nil
+	}
+	ctx := testContext(t, &ContextOpts{
+		Config: c,
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+		Provisioners: map[string]ResourceProvisionerFactory{
+			"shell": testProvisionerFuncFixed(pr),
+		},
+	})
+
+	if _, err := ctx.Plan(nil); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	state, err := ctx.Apply()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	actual := strings.TrimSpace(state.String())
+	expected := strings.TrimSpace(testTerraformApplyProvisionerDiffStr)
+	if actual != expected {
+		t.Fatalf("bad: \n%s", actual)
+	}
+
+	// Verify apply was invoked
+	if !pr.ApplyCalled {
+		t.Fatalf("provisioner not invoked")
+	}
+	pr.ApplyCalled = false
+
+	// Change the state to force a diff
+	mod := state.RootModule()
+	mod.Resources["aws_instance.bar"].Primary.Attributes["foo"] = "baz"
+
+	// Re-create context with state
+	ctx = testContext(t, &ContextOpts{
+		Config: c,
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+		Provisioners: map[string]ResourceProvisionerFactory{
+			"shell": testProvisionerFuncFixed(pr),
+		},
+		State: state,
+	})
+
+	if _, err := ctx.Plan(nil); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	state2, err := ctx.Apply()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	actual = strings.TrimSpace(state2.String())
+	if actual != expected {
+		t.Fatalf("bad: \n%s", actual)
+	}
+
+	// Verify apply was NOT invoked
+	if pr.ApplyCalled {
+		t.Fatalf("provisioner invoked")
+	}
+}
+
 func TestContextApply_outputDiffVars(t *testing.T) {
 	c := testConfig(t, "apply-good")
 	p := testProvider("aws")

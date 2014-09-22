@@ -153,6 +153,13 @@ aws_instance.bar:
   type = aws_instance
 `
 
+const testTerraformApplyProvisionerDiffStr = `
+aws_instance.bar:
+  ID = foo
+  foo = bar
+  type = aws_instance
+`
+
 const testTerraformApplyDestroyStr = `
 <no state>
 `
