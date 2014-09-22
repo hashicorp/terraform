@@ -9,9 +9,9 @@ import (
 
 func TestContextGraph(t *testing.T) {
 	p := testProvider("aws")
-	config := testConfig(t, "validate-good")
+	m := testModule(t, "validate-good")
 	c := testContext(t, &ContextOpts{
-		Config: config,
+		Module: m,
 		Providers: map[string]ResourceProviderFactory{
 			"aws": testProviderFuncFixed(p),
 		},
@@ -31,9 +31,9 @@ func TestContextGraph(t *testing.T) {
 
 func TestContextValidate(t *testing.T) {
 	p := testProvider("aws")
-	config := testConfig(t, "validate-good")
+	m := testModule(t, "validate-good")
 	c := testContext(t, &ContextOpts{
-		Config: config,
+		Module: m,
 		Providers: map[string]ResourceProviderFactory{
 			"aws": testProviderFuncFixed(p),
 		},
@@ -50,9 +50,9 @@ func TestContextValidate(t *testing.T) {
 
 func TestContextValidate_badVar(t *testing.T) {
 	p := testProvider("aws")
-	config := testConfig(t, "validate-bad-var")
+	m := testModule(t, "validate-bad-var")
 	c := testContext(t, &ContextOpts{
-		Config: config,
+		Module: m,
 		Providers: map[string]ResourceProviderFactory{
 			"aws": testProviderFuncFixed(p),
 		},
@@ -69,7 +69,7 @@ func TestContextValidate_badVar(t *testing.T) {
 
 func TestContextValidate_orphans(t *testing.T) {
 	p := testProvider("aws")
-	config := testConfig(t, "validate-good")
+	m := testModule(t, "validate-good")
 	state := &State{
 		Modules: []*ModuleState{
 			&ModuleState{
@@ -86,7 +86,7 @@ func TestContextValidate_orphans(t *testing.T) {
 		},
 	}
 	c := testContext(t, &ContextOpts{
-		Config: config,
+		Module: m,
 		Providers: map[string]ResourceProviderFactory{
 			"aws": testProviderFuncFixed(p),
 		},
@@ -108,10 +108,10 @@ func TestContextValidate_orphans(t *testing.T) {
 }
 
 func TestContextValidate_providerConfig_bad(t *testing.T) {
-	config := testConfig(t, "validate-bad-pc")
+	m := testModule(t, "validate-bad-pc")
 	p := testProvider("aws")
 	c := testContext(t, &ContextOpts{
-		Config: config,
+		Module: m,
 		Providers: map[string]ResourceProviderFactory{
 			"aws": testProviderFuncFixed(p),
 		},
@@ -129,10 +129,10 @@ func TestContextValidate_providerConfig_bad(t *testing.T) {
 }
 
 func TestContextValidate_providerConfig_badEmpty(t *testing.T) {
-	config := testConfig(t, "validate-bad-pc-empty")
+	m := testModule(t, "validate-bad-pc-empty")
 	p := testProvider("aws")
 	c := testContext(t, &ContextOpts{
-		Config: config,
+		Module: m,
 		Providers: map[string]ResourceProviderFactory{
 			"aws": testProviderFuncFixed(p),
 		},
@@ -150,10 +150,10 @@ func TestContextValidate_providerConfig_badEmpty(t *testing.T) {
 }
 
 func TestContextValidate_providerConfig_good(t *testing.T) {
-	config := testConfig(t, "validate-bad-pc")
+	m := testModule(t, "validate-bad-pc")
 	p := testProvider("aws")
 	c := testContext(t, &ContextOpts{
-		Config: config,
+		Module: m,
 		Providers: map[string]ResourceProviderFactory{
 			"aws": testProviderFuncFixed(p),
 		},
@@ -169,10 +169,10 @@ func TestContextValidate_providerConfig_good(t *testing.T) {
 }
 
 func TestContextValidate_resourceConfig_bad(t *testing.T) {
-	config := testConfig(t, "validate-bad-rc")
+	m := testModule(t, "validate-bad-rc")
 	p := testProvider("aws")
 	c := testContext(t, &ContextOpts{
-		Config: config,
+		Module: m,
 		Providers: map[string]ResourceProviderFactory{
 			"aws": testProviderFuncFixed(p),
 		},
@@ -190,10 +190,10 @@ func TestContextValidate_resourceConfig_bad(t *testing.T) {
 }
 
 func TestContextValidate_resourceConfig_good(t *testing.T) {
-	config := testConfig(t, "validate-bad-rc")
+	m := testModule(t, "validate-bad-rc")
 	p := testProvider("aws")
 	c := testContext(t, &ContextOpts{
-		Config: config,
+		Module: m,
 		Providers: map[string]ResourceProviderFactory{
 			"aws": testProviderFuncFixed(p),
 		},
@@ -209,9 +209,9 @@ func TestContextValidate_resourceConfig_good(t *testing.T) {
 }
 
 func TestContextValidate_requiredVar(t *testing.T) {
-	config := testConfig(t, "validate-required-var")
+	m := testModule(t, "validate-required-var")
 	c := testContext(t, &ContextOpts{
-		Config: config,
+		Module: m,
 	})
 
 	w, e := c.Validate()
@@ -224,11 +224,11 @@ func TestContextValidate_requiredVar(t *testing.T) {
 }
 
 func TestContextValidate_provisionerConfig_bad(t *testing.T) {
-	config := testConfig(t, "validate-bad-prov-conf")
+	m := testModule(t, "validate-bad-prov-conf")
 	p := testProvider("aws")
 	pr := testProvisioner()
 	c := testContext(t, &ContextOpts{
-		Config: config,
+		Module: m,
 		Providers: map[string]ResourceProviderFactory{
 			"aws": testProviderFuncFixed(p),
 		},
@@ -249,7 +249,7 @@ func TestContextValidate_provisionerConfig_bad(t *testing.T) {
 }
 
 func TestContextValidate_provisionerConfig_good(t *testing.T) {
-	config := testConfig(t, "validate-bad-prov-conf")
+	m := testModule(t, "validate-bad-prov-conf")
 	p := testProvider("aws")
 	pr := testProvisioner()
 	pr.ValidateFn = func(c *ResourceConfig) ([]string, []error) {
@@ -259,7 +259,7 @@ func TestContextValidate_provisionerConfig_good(t *testing.T) {
 		return nil, nil
 	}
 	c := testContext(t, &ContextOpts{
-		Config: config,
+		Module: m,
 		Providers: map[string]ResourceProviderFactory{
 			"aws": testProviderFuncFixed(p),
 		},
@@ -279,9 +279,9 @@ func TestContextValidate_provisionerConfig_good(t *testing.T) {
 
 func TestContextValidate_selfRef(t *testing.T) {
 	p := testProvider("aws")
-	config := testConfig(t, "validate-self-ref")
+	m := testModule(t, "validate-self-ref")
 	c := testContext(t, &ContextOpts{
-		Config: config,
+		Module: m,
 		Providers: map[string]ResourceProviderFactory{
 			"aws": testProviderFuncFixed(p),
 		},
@@ -298,9 +298,9 @@ func TestContextValidate_selfRef(t *testing.T) {
 
 func TestContextValidate_selfRefMulti(t *testing.T) {
 	p := testProvider("aws")
-	config := testConfig(t, "validate-self-ref-multi")
+	m := testModule(t, "validate-self-ref-multi")
 	c := testContext(t, &ContextOpts{
-		Config: config,
+		Module: m,
 		Providers: map[string]ResourceProviderFactory{
 			"aws": testProviderFuncFixed(p),
 		},
@@ -317,9 +317,9 @@ func TestContextValidate_selfRefMulti(t *testing.T) {
 
 func TestContextValidate_selfRefMultiAll(t *testing.T) {
 	p := testProvider("aws")
-	config := testConfig(t, "validate-self-ref-multi-all")
+	m := testModule(t, "validate-self-ref-multi-all")
 	c := testContext(t, &ContextOpts{
-		Config: config,
+		Module: m,
 		Providers: map[string]ResourceProviderFactory{
 			"aws": testProviderFuncFixed(p),
 		},
@@ -335,12 +335,12 @@ func TestContextValidate_selfRefMultiAll(t *testing.T) {
 }
 
 func TestContextApply(t *testing.T) {
-	c := testConfig(t, "apply-good")
+	m := testModule(t, "apply-good")
 	p := testProvider("aws")
 	p.ApplyFn = testApplyFn
 	p.DiffFn = testDiffFn
 	ctx := testContext(t, &ContextOpts{
-		Config: c,
+		Module: m,
 		Providers: map[string]ResourceProviderFactory{
 			"aws": testProviderFuncFixed(p),
 		},
@@ -368,12 +368,12 @@ func TestContextApply(t *testing.T) {
 }
 
 func TestContextApply_Minimal(t *testing.T) {
-	c := testConfig(t, "apply-minimal")
+	m := testModule(t, "apply-minimal")
 	p := testProvider("aws")
 	p.ApplyFn = testApplyFn
 	p.DiffFn = testDiffFn
 	ctx := testContext(t, &ContextOpts{
-		Config: c,
+		Module: m,
 		Providers: map[string]ResourceProviderFactory{
 			"aws": testProviderFuncFixed(p),
 		},
@@ -396,12 +396,12 @@ func TestContextApply_Minimal(t *testing.T) {
 }
 
 func TestContextApply_badDiff(t *testing.T) {
-	c := testConfig(t, "apply-good")
+	m := testModule(t, "apply-good")
 	p := testProvider("aws")
 	p.ApplyFn = testApplyFn
 	p.DiffFn = testDiffFn
 	ctx := testContext(t, &ContextOpts{
-		Config: c,
+		Module: m,
 		Providers: map[string]ResourceProviderFactory{
 			"aws": testProviderFuncFixed(p),
 		},
@@ -427,10 +427,10 @@ func TestContextApply_badDiff(t *testing.T) {
 func TestContextApply_cancel(t *testing.T) {
 	stopped := false
 
-	c := testConfig(t, "apply-cancel")
+	m := testModule(t, "apply-cancel")
 	p := testProvider("aws")
 	ctx := testContext(t, &ContextOpts{
-		Config: c,
+		Module: m,
 		Providers: map[string]ResourceProviderFactory{
 			"aws": testProviderFuncFixed(p),
 		},
@@ -495,12 +495,12 @@ func TestContextApply_cancel(t *testing.T) {
 }
 
 func TestContextApply_compute(t *testing.T) {
-	c := testConfig(t, "apply-compute")
+	m := testModule(t, "apply-compute")
 	p := testProvider("aws")
 	p.ApplyFn = testApplyFn
 	p.DiffFn = testDiffFn
 	ctx := testContext(t, &ContextOpts{
-		Config: c,
+		Module: m,
 		Providers: map[string]ResourceProviderFactory{
 			"aws": testProviderFuncFixed(p),
 		},
@@ -525,12 +525,12 @@ func TestContextApply_compute(t *testing.T) {
 }
 
 func TestContextApply_nilDiff(t *testing.T) {
-	c := testConfig(t, "apply-good")
+	m := testModule(t, "apply-good")
 	p := testProvider("aws")
 	p.ApplyFn = testApplyFn
 	p.DiffFn = testDiffFn
 	ctx := testContext(t, &ContextOpts{
-		Config: c,
+		Module: m,
 		Providers: map[string]ResourceProviderFactory{
 			"aws": testProviderFuncFixed(p),
 		},
@@ -550,7 +550,7 @@ func TestContextApply_nilDiff(t *testing.T) {
 }
 
 func TestContextApply_Provisioner_compute(t *testing.T) {
-	c := testConfig(t, "apply-provisioner-compute")
+	m := testModule(t, "apply-provisioner-compute")
 	p := testProvider("aws")
 	pr := testProvisioner()
 	p.ApplyFn = testApplyFn
@@ -564,7 +564,7 @@ func TestContextApply_Provisioner_compute(t *testing.T) {
 		return nil
 	}
 	ctx := testContext(t, &ContextOpts{
-		Config: c,
+		Module: m,
 		Providers: map[string]ResourceProviderFactory{
 			"aws": testProviderFuncFixed(p),
 		},
@@ -598,7 +598,7 @@ func TestContextApply_Provisioner_compute(t *testing.T) {
 }
 
 func TestContextApply_provisionerFail(t *testing.T) {
-	c := testConfig(t, "apply-provisioner-fail")
+	m := testModule(t, "apply-provisioner-fail")
 	p := testProvider("aws")
 	pr := testProvisioner()
 	p.ApplyFn = testApplyFn
@@ -609,7 +609,7 @@ func TestContextApply_provisionerFail(t *testing.T) {
 	}
 
 	ctx := testContext(t, &ContextOpts{
-		Config: c,
+		Module: m,
 		Providers: map[string]ResourceProviderFactory{
 			"aws": testProviderFuncFixed(p),
 		},
@@ -638,7 +638,7 @@ func TestContextApply_provisionerFail(t *testing.T) {
 }
 
 func TestContextApply_provisionerResourceRef(t *testing.T) {
-	c := testConfig(t, "apply-provisioner-resource-ref")
+	m := testModule(t, "apply-provisioner-resource-ref")
 	p := testProvider("aws")
 	pr := testProvisioner()
 	p.ApplyFn = testApplyFn
@@ -653,7 +653,7 @@ func TestContextApply_provisionerResourceRef(t *testing.T) {
 	}
 
 	ctx := testContext(t, &ContextOpts{
-		Config: c,
+		Module: m,
 		Providers: map[string]ResourceProviderFactory{
 			"aws": testProviderFuncFixed(p),
 		},
@@ -684,7 +684,7 @@ func TestContextApply_provisionerResourceRef(t *testing.T) {
 }
 
 func TestContextApply_outputDiffVars(t *testing.T) {
-	c := testConfig(t, "apply-good")
+	m := testModule(t, "apply-good")
 	p := testProvider("aws")
 	s := &State{
 		Modules: []*ModuleState{
@@ -702,7 +702,7 @@ func TestContextApply_outputDiffVars(t *testing.T) {
 		},
 	}
 	ctx := testContext(t, &ContextOpts{
-		Config: c,
+		Module: m,
 		Providers: map[string]ResourceProviderFactory{
 			"aws": testProviderFuncFixed(p),
 		},
@@ -743,7 +743,7 @@ func TestContextApply_outputDiffVars(t *testing.T) {
 }
 
 func TestContextApply_Provisioner_ConnInfo(t *testing.T) {
-	c := testConfig(t, "apply-provisioner-conninfo")
+	m := testModule(t, "apply-provisioner-conninfo")
 	p := testProvider("aws")
 	pr := testProvisioner()
 
@@ -784,7 +784,7 @@ func TestContextApply_Provisioner_ConnInfo(t *testing.T) {
 	}
 
 	ctx := testContext(t, &ContextOpts{
-		Config: c,
+		Module: m,
 		Providers: map[string]ResourceProviderFactory{
 			"aws": testProviderFuncFixed(p),
 		},
@@ -819,13 +819,13 @@ func TestContextApply_Provisioner_ConnInfo(t *testing.T) {
 }
 
 func TestContextApply_destroy(t *testing.T) {
-	c := testConfig(t, "apply-destroy")
+	m := testModule(t, "apply-destroy")
 	h := new(HookRecordApplyOrder)
 	p := testProvider("aws")
 	p.ApplyFn = testApplyFn
 	p.DiffFn = testDiffFn
 	ctx := testContext(t, &ContextOpts{
-		Config: c,
+		Module: m,
 		Hooks:  []Hook{h},
 		Providers: map[string]ResourceProviderFactory{
 			"aws": testProviderFuncFixed(p),
@@ -869,13 +869,13 @@ func TestContextApply_destroy(t *testing.T) {
 }
 
 func TestContextApply_destroyOutputs(t *testing.T) {
-	c := testConfig(t, "apply-destroy-outputs")
+	m := testModule(t, "apply-destroy-outputs")
 	h := new(HookRecordApplyOrder)
 	p := testProvider("aws")
 	p.ApplyFn = testApplyFn
 	p.DiffFn = testDiffFn
 	ctx := testContext(t, &ContextOpts{
-		Config: c,
+		Module: m,
 		Hooks:  []Hook{h},
 		Providers: map[string]ResourceProviderFactory{
 			"aws": testProviderFuncFixed(p),
@@ -910,7 +910,7 @@ func TestContextApply_destroyOutputs(t *testing.T) {
 }
 
 func TestContextApply_destroyOrphan(t *testing.T) {
-	c := testConfig(t, "apply-error")
+	m := testModule(t, "apply-error")
 	p := testProvider("aws")
 	s := &State{
 		Modules: []*ModuleState{
@@ -928,7 +928,7 @@ func TestContextApply_destroyOrphan(t *testing.T) {
 		},
 	}
 	ctx := testContext(t, &ContextOpts{
-		Config: c,
+		Module: m,
 		Providers: map[string]ResourceProviderFactory{
 			"aws": testProviderFuncFixed(p),
 		},
@@ -972,10 +972,10 @@ func TestContextApply_destroyOrphan(t *testing.T) {
 func TestContextApply_error(t *testing.T) {
 	errored := false
 
-	c := testConfig(t, "apply-error")
+	m := testModule(t, "apply-error")
 	p := testProvider("aws")
 	ctx := testContext(t, &ContextOpts{
-		Config: c,
+		Module: m,
 		Providers: map[string]ResourceProviderFactory{
 			"aws": testProviderFuncFixed(p),
 		},
@@ -1026,7 +1026,7 @@ func TestContextApply_error(t *testing.T) {
 func TestContextApply_errorPartial(t *testing.T) {
 	errored := false
 
-	c := testConfig(t, "apply-error")
+	m := testModule(t, "apply-error")
 	p := testProvider("aws")
 	s := &State{
 		Modules: []*ModuleState{
@@ -1044,7 +1044,7 @@ func TestContextApply_errorPartial(t *testing.T) {
 		},
 	}
 	ctx := testContext(t, &ContextOpts{
-		Config: c,
+		Module: m,
 		Providers: map[string]ResourceProviderFactory{
 			"aws": testProviderFuncFixed(p),
 		},
@@ -1096,13 +1096,13 @@ func TestContextApply_errorPartial(t *testing.T) {
 }
 
 func TestContextApply_hook(t *testing.T) {
-	c := testConfig(t, "apply-good")
+	m := testModule(t, "apply-good")
 	h := new(MockHook)
 	p := testProvider("aws")
 	p.ApplyFn = testApplyFn
 	p.DiffFn = testDiffFn
 	ctx := testContext(t, &ContextOpts{
-		Config: c,
+		Module: m,
 		Hooks:  []Hook{h},
 		Providers: map[string]ResourceProviderFactory{
 			"aws": testProviderFuncFixed(p),
@@ -1126,10 +1126,10 @@ func TestContextApply_hook(t *testing.T) {
 }
 
 func TestContextApply_idAttr(t *testing.T) {
-	c := testConfig(t, "apply-idattr")
+	m := testModule(t, "apply-idattr")
 	p := testProvider("aws")
 	ctx := testContext(t, &ContextOpts{
-		Config: c,
+		Module: m,
 		Providers: map[string]ResourceProviderFactory{
 			"aws": testProviderFuncFixed(p),
 		},
@@ -1177,12 +1177,12 @@ func TestContextApply_idAttr(t *testing.T) {
 }
 
 func TestContextApply_output(t *testing.T) {
-	c := testConfig(t, "apply-output")
+	m := testModule(t, "apply-output")
 	p := testProvider("aws")
 	p.ApplyFn = testApplyFn
 	p.DiffFn = testDiffFn
 	ctx := testContext(t, &ContextOpts{
-		Config: c,
+		Module: m,
 		Providers: map[string]ResourceProviderFactory{
 			"aws": testProviderFuncFixed(p),
 		},
@@ -1205,12 +1205,12 @@ func TestContextApply_output(t *testing.T) {
 }
 
 func TestContextApply_outputMulti(t *testing.T) {
-	c := testConfig(t, "apply-output-multi")
+	m := testModule(t, "apply-output-multi")
 	p := testProvider("aws")
 	p.ApplyFn = testApplyFn
 	p.DiffFn = testDiffFn
 	ctx := testContext(t, &ContextOpts{
-		Config: c,
+		Module: m,
 		Providers: map[string]ResourceProviderFactory{
 			"aws": testProviderFuncFixed(p),
 		},
@@ -1233,12 +1233,12 @@ func TestContextApply_outputMulti(t *testing.T) {
 }
 
 func TestContextApply_outputMultiIndex(t *testing.T) {
-	c := testConfig(t, "apply-output-multi-index")
+	m := testModule(t, "apply-output-multi-index")
 	p := testProvider("aws")
 	p.ApplyFn = testApplyFn
 	p.DiffFn = testDiffFn
 	ctx := testContext(t, &ContextOpts{
-		Config: c,
+		Module: m,
 		Providers: map[string]ResourceProviderFactory{
 			"aws": testProviderFuncFixed(p),
 		},
@@ -1261,7 +1261,7 @@ func TestContextApply_outputMultiIndex(t *testing.T) {
 }
 
 func TestContextApply_taint(t *testing.T) {
-	c := testConfig(t, "apply-taint")
+	m := testModule(t, "apply-taint")
 	p := testProvider("aws")
 	p.ApplyFn = testApplyFn
 	p.DiffFn = testDiffFn
@@ -1287,7 +1287,7 @@ func TestContextApply_taint(t *testing.T) {
 		},
 	}
 	ctx := testContext(t, &ContextOpts{
-		Config: c,
+		Module: m,
 		Providers: map[string]ResourceProviderFactory{
 			"aws": testProviderFuncFixed(p),
 		},
@@ -1311,12 +1311,12 @@ func TestContextApply_taint(t *testing.T) {
 }
 
 func TestContextApply_unknownAttribute(t *testing.T) {
-	c := testConfig(t, "apply-unknown")
+	m := testModule(t, "apply-unknown")
 	p := testProvider("aws")
 	p.ApplyFn = testApplyFn
 	p.DiffFn = testDiffFn
 	ctx := testContext(t, &ContextOpts{
-		Config: c,
+		Module: m,
 		Providers: map[string]ResourceProviderFactory{
 			"aws": testProviderFuncFixed(p),
 		},
@@ -1339,12 +1339,12 @@ func TestContextApply_unknownAttribute(t *testing.T) {
 }
 
 func TestContextApply_vars(t *testing.T) {
-	c := testConfig(t, "apply-vars")
+	m := testModule(t, "apply-vars")
 	p := testProvider("aws")
 	p.ApplyFn = testApplyFn
 	p.DiffFn = testDiffFn
 	ctx := testContext(t, &ContextOpts{
-		Config: c,
+		Module: m,
 		Providers: map[string]ResourceProviderFactory{
 			"aws": testProviderFuncFixed(p),
 		},
@@ -1379,11 +1379,11 @@ func TestContextApply_vars(t *testing.T) {
 }
 
 func TestContextPlan(t *testing.T) {
-	c := testConfig(t, "plan-good")
+	m := testModule(t, "plan-good")
 	p := testProvider("aws")
 	p.DiffFn = testDiffFn
 	ctx := testContext(t, &ContextOpts{
-		Config: c,
+		Module: m,
 		Providers: map[string]ResourceProviderFactory{
 			"aws": testProviderFuncFixed(p),
 		},
@@ -1406,11 +1406,11 @@ func TestContextPlan(t *testing.T) {
 }
 
 func TestContextPlan_minimal(t *testing.T) {
-	c := testConfig(t, "plan-empty")
+	m := testModule(t, "plan-empty")
 	p := testProvider("aws")
 	p.DiffFn = testDiffFn
 	ctx := testContext(t, &ContextOpts{
-		Config: c,
+		Module: m,
 		Providers: map[string]ResourceProviderFactory{
 			"aws": testProviderFuncFixed(p),
 		},
@@ -1429,11 +1429,11 @@ func TestContextPlan_minimal(t *testing.T) {
 }
 
 func TestContextPlan_nil(t *testing.T) {
-	c := testConfig(t, "plan-nil")
+	m := testModule(t, "plan-nil")
 	p := testProvider("aws")
 	p.DiffFn = testDiffFn
 	ctx := testContext(t, &ContextOpts{
-		Config: c,
+		Module: m,
 		Providers: map[string]ResourceProviderFactory{
 			"aws": testProviderFuncFixed(p),
 		},
@@ -1464,11 +1464,11 @@ func TestContextPlan_nil(t *testing.T) {
 }
 
 func TestContextPlan_computed(t *testing.T) {
-	c := testConfig(t, "plan-computed")
+	m := testModule(t, "plan-computed")
 	p := testProvider("aws")
 	p.DiffFn = testDiffFn
 	ctx := testContext(t, &ContextOpts{
-		Config: c,
+		Module: m,
 		Providers: map[string]ResourceProviderFactory{
 			"aws": testProviderFuncFixed(p),
 		},
@@ -1487,11 +1487,11 @@ func TestContextPlan_computed(t *testing.T) {
 }
 
 func TestContextPlan_computedList(t *testing.T) {
-	c := testConfig(t, "plan-computed-list")
+	m := testModule(t, "plan-computed-list")
 	p := testProvider("aws")
 	p.DiffFn = testDiffFn
 	ctx := testContext(t, &ContextOpts{
-		Config: c,
+		Module: m,
 		Providers: map[string]ResourceProviderFactory{
 			"aws": testProviderFuncFixed(p),
 		},
@@ -1510,11 +1510,11 @@ func TestContextPlan_computedList(t *testing.T) {
 }
 
 func TestContextPlan_count(t *testing.T) {
-	c := testConfig(t, "plan-count")
+	m := testModule(t, "plan-count")
 	p := testProvider("aws")
 	p.DiffFn = testDiffFn
 	ctx := testContext(t, &ContextOpts{
-		Config: c,
+		Module: m,
 		Providers: map[string]ResourceProviderFactory{
 			"aws": testProviderFuncFixed(p),
 		},
@@ -1537,7 +1537,7 @@ func TestContextPlan_count(t *testing.T) {
 }
 
 func TestContextPlan_countDecreaseToOne(t *testing.T) {
-	c := testConfig(t, "plan-count-dec")
+	m := testModule(t, "plan-count-dec")
 	p := testProvider("aws")
 	p.DiffFn = testDiffFn
 	s := &State{
@@ -1572,7 +1572,7 @@ func TestContextPlan_countDecreaseToOne(t *testing.T) {
 		},
 	}
 	ctx := testContext(t, &ContextOpts{
-		Config: c,
+		Module: m,
 		Providers: map[string]ResourceProviderFactory{
 			"aws": testProviderFuncFixed(p),
 		},
@@ -1592,7 +1592,7 @@ func TestContextPlan_countDecreaseToOne(t *testing.T) {
 }
 
 func TestContextPlan_countIncreaseFromNotSet(t *testing.T) {
-	c := testConfig(t, "plan-count-inc")
+	m := testModule(t, "plan-count-inc")
 	p := testProvider("aws")
 	p.DiffFn = testDiffFn
 	s := &State{
@@ -1615,7 +1615,7 @@ func TestContextPlan_countIncreaseFromNotSet(t *testing.T) {
 		},
 	}
 	ctx := testContext(t, &ContextOpts{
-		Config: c,
+		Module: m,
 		Providers: map[string]ResourceProviderFactory{
 			"aws": testProviderFuncFixed(p),
 		},
@@ -1635,7 +1635,7 @@ func TestContextPlan_countIncreaseFromNotSet(t *testing.T) {
 }
 
 func TestContextPlan_countIncreaseFromOne(t *testing.T) {
-	c := testConfig(t, "plan-count-inc")
+	m := testModule(t, "plan-count-inc")
 	p := testProvider("aws")
 	p.DiffFn = testDiffFn
 	s := &State{
@@ -1658,7 +1658,7 @@ func TestContextPlan_countIncreaseFromOne(t *testing.T) {
 		},
 	}
 	ctx := testContext(t, &ContextOpts{
-		Config: c,
+		Module: m,
 		Providers: map[string]ResourceProviderFactory{
 			"aws": testProviderFuncFixed(p),
 		},
@@ -1678,7 +1678,7 @@ func TestContextPlan_countIncreaseFromOne(t *testing.T) {
 }
 
 func TestContextPlan_destroy(t *testing.T) {
-	c := testConfig(t, "plan-destroy")
+	m := testModule(t, "plan-destroy")
 	p := testProvider("aws")
 	p.DiffFn = testDiffFn
 	s := &State{
@@ -1703,7 +1703,7 @@ func TestContextPlan_destroy(t *testing.T) {
 		},
 	}
 	ctx := testContext(t, &ContextOpts{
-		Config: c,
+		Module: m,
 		Providers: map[string]ResourceProviderFactory{
 			"aws": testProviderFuncFixed(p),
 		},
@@ -1727,7 +1727,7 @@ func TestContextPlan_destroy(t *testing.T) {
 }
 
 func TestContextPlan_diffVar(t *testing.T) {
-	c := testConfig(t, "plan-diffvar")
+	m := testModule(t, "plan-diffvar")
 	p := testProvider("aws")
 	s := &State{
 		Modules: []*ModuleState{
@@ -1747,7 +1747,7 @@ func TestContextPlan_diffVar(t *testing.T) {
 		},
 	}
 	ctx := testContext(t, &ContextOpts{
-		Config: c,
+		Module: m,
 		Providers: map[string]ResourceProviderFactory{
 			"aws": testProviderFuncFixed(p),
 		},
@@ -1785,12 +1785,12 @@ func TestContextPlan_diffVar(t *testing.T) {
 }
 
 func TestContextPlan_hook(t *testing.T) {
-	c := testConfig(t, "plan-good")
+	m := testModule(t, "plan-good")
 	h := new(MockHook)
 	p := testProvider("aws")
 	p.DiffFn = testDiffFn
 	ctx := testContext(t, &ContextOpts{
-		Config: c,
+		Module: m,
 		Hooks:  []Hook{h},
 		Providers: map[string]ResourceProviderFactory{
 			"aws": testProviderFuncFixed(p),
@@ -1811,7 +1811,7 @@ func TestContextPlan_hook(t *testing.T) {
 }
 
 func TestContextPlan_orphan(t *testing.T) {
-	c := testConfig(t, "plan-orphan")
+	m := testModule(t, "plan-orphan")
 	p := testProvider("aws")
 	p.DiffFn = testDiffFn
 	s := &State{
@@ -1830,7 +1830,7 @@ func TestContextPlan_orphan(t *testing.T) {
 		},
 	}
 	ctx := testContext(t, &ContextOpts{
-		Config: c,
+		Module: m,
 		Providers: map[string]ResourceProviderFactory{
 			"aws": testProviderFuncFixed(p),
 		},
@@ -1850,7 +1850,7 @@ func TestContextPlan_orphan(t *testing.T) {
 }
 
 func TestContextPlan_state(t *testing.T) {
-	c := testConfig(t, "plan-good")
+	m := testModule(t, "plan-good")
 	p := testProvider("aws")
 	p.DiffFn = testDiffFn
 	s := &State{
@@ -1868,7 +1868,7 @@ func TestContextPlan_state(t *testing.T) {
 		},
 	}
 	ctx := testContext(t, &ContextOpts{
-		Config: c,
+		Module: m,
 		Providers: map[string]ResourceProviderFactory{
 			"aws": testProviderFuncFixed(p),
 		},
@@ -1892,7 +1892,7 @@ func TestContextPlan_state(t *testing.T) {
 }
 
 func TestContextPlan_taint(t *testing.T) {
-	c := testConfig(t, "plan-taint")
+	m := testModule(t, "plan-taint")
 	p := testProvider("aws")
 	p.DiffFn = testDiffFn
 	s := &State{
@@ -1920,7 +1920,7 @@ func TestContextPlan_taint(t *testing.T) {
 		},
 	}
 	ctx := testContext(t, &ContextOpts{
-		Config: c,
+		Module: m,
 		Providers: map[string]ResourceProviderFactory{
 			"aws": testProviderFuncFixed(p),
 		},
@@ -1940,7 +1940,7 @@ func TestContextPlan_taint(t *testing.T) {
 }
 
 func TestContextPlan_multiple_taint(t *testing.T) {
-	c := testConfig(t, "plan-taint")
+	m := testModule(t, "plan-taint")
 	p := testProvider("aws")
 	p.DiffFn = testDiffFn
 	s := &State{
@@ -1971,7 +1971,7 @@ func TestContextPlan_multiple_taint(t *testing.T) {
 		},
 	}
 	ctx := testContext(t, &ContextOpts{
-		Config: c,
+		Module: m,
 		Providers: map[string]ResourceProviderFactory{
 			"aws": testProviderFuncFixed(p),
 		},
@@ -1991,11 +1991,11 @@ func TestContextPlan_multiple_taint(t *testing.T) {
 }
 
 func TestContextPlan_varMultiCountOne(t *testing.T) {
-	c := testConfig(t, "plan-var-multi-count-one")
+	m := testModule(t, "plan-var-multi-count-one")
 	p := testProvider("aws")
 	p.DiffFn = testDiffFn
 	ctx := testContext(t, &ContextOpts{
-		Config: c,
+		Module: m,
 		Providers: map[string]ResourceProviderFactory{
 			"aws": testProviderFuncFixed(p),
 		},
@@ -2015,9 +2015,9 @@ func TestContextPlan_varMultiCountOne(t *testing.T) {
 
 func TestContextRefresh(t *testing.T) {
 	p := testProvider("aws")
-	c := testConfig(t, "refresh-basic")
+	m := testModule(t, "refresh-basic")
 	ctx := testContext(t, &ContextOpts{
-		Config: c,
+		Module: m,
 		Providers: map[string]ResourceProviderFactory{
 			"aws": testProviderFuncFixed(p),
 		},
@@ -2067,9 +2067,9 @@ func TestContextRefresh(t *testing.T) {
 
 func TestContextRefresh_delete(t *testing.T) {
 	p := testProvider("aws")
-	c := testConfig(t, "refresh-basic")
+	m := testModule(t, "refresh-basic")
 	ctx := testContext(t, &ContextOpts{
-		Config: c,
+		Module: m,
 		Providers: map[string]ResourceProviderFactory{
 			"aws": testProviderFuncFixed(p),
 		},
@@ -2106,9 +2106,9 @@ func TestContextRefresh_delete(t *testing.T) {
 
 func TestContextRefresh_ignoreUncreated(t *testing.T) {
 	p := testProvider("aws")
-	c := testConfig(t, "refresh-basic")
+	m := testModule(t, "refresh-basic")
 	ctx := testContext(t, &ContextOpts{
-		Config: c,
+		Module: m,
 		Providers: map[string]ResourceProviderFactory{
 			"aws": testProviderFuncFixed(p),
 		},
@@ -2132,9 +2132,9 @@ func TestContextRefresh_ignoreUncreated(t *testing.T) {
 func TestContextRefresh_hook(t *testing.T) {
 	h := new(MockHook)
 	p := testProvider("aws")
-	c := testConfig(t, "refresh-basic")
+	m := testModule(t, "refresh-basic")
 	ctx := testContext(t, &ContextOpts{
-		Config: c,
+		Module: m,
 		Hooks:  []Hook{h},
 		Providers: map[string]ResourceProviderFactory{
 			"aws": testProviderFuncFixed(p),
@@ -2181,7 +2181,7 @@ func TestContextRefresh_hook(t *testing.T) {
 
 func TestContextRefresh_state(t *testing.T) {
 	p := testProvider("aws")
-	c := testConfig(t, "refresh-basic")
+	m := testModule(t, "refresh-basic")
 	state := &State{
 		Modules: []*ModuleState{
 			&ModuleState{
@@ -2197,7 +2197,7 @@ func TestContextRefresh_state(t *testing.T) {
 		},
 	}
 	ctx := testContext(t, &ContextOpts{
-		Config: c,
+		Module: m,
 		Providers: map[string]ResourceProviderFactory{
 			"aws": testProviderFuncFixed(p),
 		},
@@ -2228,7 +2228,7 @@ func TestContextRefresh_state(t *testing.T) {
 
 func TestContextRefresh_tainted(t *testing.T) {
 	p := testProvider("aws")
-	c := testConfig(t, "refresh-basic")
+	m := testModule(t, "refresh-basic")
 	state := &State{
 		Modules: []*ModuleState{
 			&ModuleState{
@@ -2247,7 +2247,7 @@ func TestContextRefresh_tainted(t *testing.T) {
 		},
 	}
 	ctx := testContext(t, &ContextOpts{
-		Config: c,
+		Module: m,
 		Providers: map[string]ResourceProviderFactory{
 			"aws": testProviderFuncFixed(p),
 		},
@@ -2276,9 +2276,9 @@ func TestContextRefresh_tainted(t *testing.T) {
 
 func TestContextRefresh_vars(t *testing.T) {
 	p := testProvider("aws")
-	c := testConfig(t, "refresh-vars")
+	m := testModule(t, "refresh-vars")
 	ctx := testContext(t, &ContextOpts{
-		Config: c,
+		Module: m,
 		Providers: map[string]ResourceProviderFactory{
 			"aws": testProviderFuncFixed(p),
 		},

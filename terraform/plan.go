@@ -9,6 +9,7 @@ import (
 	"sync"
 
 	"github.com/hashicorp/terraform/config"
+	"github.com/hashicorp/terraform/config/module"
 )
 
 func init() {
@@ -43,8 +44,8 @@ type Plan struct {
 // The following fields in opts are overridden by the plan: Config,
 // Diff, State, Variables.
 func (p *Plan) Context(opts *ContextOpts) *Context {
-	opts.Config = p.Config
 	opts.Diff = p.Diff
+	opts.Module = module.NewTree("", p.Config) // TODO: compat
 	opts.State = p.State
 	opts.Variables = p.Vars
 	return NewContext(opts)

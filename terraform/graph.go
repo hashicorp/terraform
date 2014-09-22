@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/hashicorp/terraform/config"
+	"github.com/hashicorp/terraform/config/module"
 	"github.com/hashicorp/terraform/depgraph"
 	"github.com/hashicorp/terraform/helper/multierror"
 )
@@ -20,7 +21,11 @@ import (
 type GraphOpts struct {
 	// Config is the configuration from which to build the basic graph.
 	// This is the only required item.
-	Config *config.Config
+	//Config *config.Config
+
+	// Module is the relative root of a module tree for this graph. This
+	// is the only required item.
+	Module *module.Tree
 
 	// Diff of changes that will be applied to the given state. This will
 	// associate a ResourceDiff with applicable resources. Additionally,
@@ -101,9 +106,11 @@ type GraphNodeResourceProvider struct {
 //     configured at this point.
 //
 func Graph(opts *GraphOpts) (*depgraph.Graph, error) {
-	if opts.Config == nil {
-		return nil, errors.New("Config is required for Graph")
+	if opts.Module == nil {
+		return nil, errors.New("Module is required for Graph")
 	}
+
+	config := opts.Module.Config()
 
 	log.Printf("[DEBUG] Creating graph...")
 
@@ -112,24 +119,24 @@ func Graph(opts *GraphOpts) (*depgraph.Graph, error) {
 	// First, build the initial resource graph. This only has the resources
 	// and no dependencies. This only adds resources that are in the config
 	// and not "orphans" (that are in the state, but not in the config).
-	graphAddConfigResources(g, opts.Config, opts.State)
+	graphAddConfigResources(g, config, opts.State)
 
 	// Add the modules that are in the configuration.
-	graphAddConfigModules(g, opts)
+	graphAddConfigModules(g, config, opts)
 
 	// Add explicit dependsOn dependencies to the graph
 	graphAddExplicitDeps(g)
 
 	if opts.State != nil {
 		// Next, add the state orphans if we have any
-		graphAddOrphans(g, opts.Config, opts.State)
+		graphAddOrphans(g, config, opts.State)
 
 		// Add tainted resources if we have any.
 		graphAddTainted(g, opts.State)
 	}
 
 	// Map the provider configurations to all of the resources
-	graphAddProviderConfigs(g, opts.Config)
+	graphAddProviderConfigs(g, config)
 
 	// Setup the provisioners. These may have variable dependencies,
 	// and must be done before dependency setup
@@ -231,9 +238,7 @@ func graphInitState(s *State, g *depgraph.Graph) {
 
 // graphAddConfigModules adds the modules from a configuration structure
 // into the graph, expanding each to their own sub-graph.
-func graphAddConfigModules(g *depgraph.Graph, opts *GraphOpts) {
-	c := opts.Config
-
+func graphAddConfigModules(g *depgraph.Graph, c *config.Config, opts *GraphOpts) {
 	// Just short-circuit the whole thing if we don't have modules
 	if len(c.Modules) == 0 {
 		return

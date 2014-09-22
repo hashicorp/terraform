@@ -10,6 +10,7 @@ import (
 	"testing"
 
 	"github.com/hashicorp/terraform/config"
+	"github.com/hashicorp/terraform/config/module"
 )
 
 // This is the directory where our test fixtures are.
@@ -37,6 +38,15 @@ func testConfig(t *testing.T, name string) *config.Config {
 	}
 
 	return c
+}
+
+func testModule(t *testing.T, name string) *module.Tree {
+	mod, err := module.NewTreeModule("", filepath.Join(fixtureDir, name))
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	return mod
 }
 
 func testProviderFuncFixed(rp ResourceProvider) ResourceProviderFactory {

@@ -9,6 +9,7 @@ import (
 	"sync/atomic"
 
 	"github.com/hashicorp/terraform/config"
+	"github.com/hashicorp/terraform/config/module"
 	"github.com/hashicorp/terraform/depgraph"
 	"github.com/hashicorp/terraform/helper/multierror"
 )
@@ -24,6 +25,7 @@ type genericWalkFunc func(*Resource) error
 // Additionally, a context can be created from a Plan using Plan.Context.
 type Context struct {
 	config       *config.Config
+	module       *module.Tree
 	diff         *Diff
 	hooks        []Hook
 	state        *State
@@ -42,9 +44,9 @@ type Context struct {
 // ContextOpts are the user-creatable configuration structure to create
 // a context with NewContext.
 type ContextOpts struct {
-	Config       *config.Config
 	Diff         *Diff
 	Hooks        []Hook
+	Module       *module.Tree
 	Parallelism  int
 	State        *State
 	Providers    map[string]ResourceProviderFactory
@@ -73,10 +75,15 @@ func NewContext(opts *ContextOpts) *Context {
 	}
 	parCh := make(chan struct{}, par)
 
+	var config *config.Config
+	if opts.Module != nil {
+		config = opts.Module.Config()
+	}
+
 	// Calculate all the default variables
 	defaultVars := make(map[string]string)
-	if opts.Config != nil {
-		for _, v := range opts.Config.Variables {
+	if config != nil {
+		for _, v := range config.Variables {
 			for k, val := range v.DefaultsMap() {
 				defaultVars[k] = val
 			}
@@ -84,9 +91,10 @@ func NewContext(opts *ContextOpts) *Context {
 	}
 
 	return &Context{
-		config:       opts.Config,
+		config:       config,
 		diff:         opts.Diff,
 		hooks:        hooks,
+		module:       opts.Module,
 		state:        opts.State,
 		providers:    opts.Providers,
 		provisioners: opts.Provisioners,
@@ -108,8 +116,8 @@ func (c *Context) Apply() (*State, error) {
 	defer c.releaseRun(v)
 
 	g, err := Graph(&GraphOpts{
-		Config:       c.config,
 		Diff:         c.diff,
+		Module:       c.module,
 		Providers:    c.providers,
 		Provisioners: c.provisioners,
 		State:        c.state,
@@ -172,7 +180,7 @@ func (c *Context) Plan(opts *PlanOpts) (*Plan, error) {
 	defer c.releaseRun(v)
 
 	g, err := Graph(&GraphOpts{
-		Config:       c.config,
+		Module:       c.module,
 		Providers:    c.providers,
 		Provisioners: c.provisioners,
 		State:        c.state,
@@ -237,7 +245,7 @@ func (c *Context) Refresh() (*State, error) {
 	c.state = c.state.deepcopy()
 
 	g, err := Graph(&GraphOpts{
-		Config:       c.config,
+		Module:       c.module,
 		Providers:    c.providers,
 		Provisioners: c.provisioners,
 		State:        c.state,
@@ -493,8 +501,8 @@ func (c *Context) computeResourceMultiVariable(
 
 func (c *Context) graph() (*depgraph.Graph, error) {
 	return Graph(&GraphOpts{
-		Config:       c.config,
 		Diff:         c.diff,
+		Module:       c.module,
 		Providers:    c.providers,
 		Provisioners: c.provisioners,
 		State:        c.state,
