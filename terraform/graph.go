@@ -557,8 +557,11 @@ func graphAddDiff(g *depgraph.Graph, d *ModuleDiff) error {
 					Target: newN,
 				})
 
-				// Set the CreateBeforeDestroy flag on the old noun
-				rn.Resource.Flags |= FlagCreateBeforeDestroy
+				// Set the ReplacePrimary flag on the new instance so that
+				// it will become the new primary, and Diposed flag on the
+				// existing instance so that it will step down
+				rn.Resource.Flags |= FlagReplacePrimary
+				newNode.Resource.Flags |= FlagDeposed
 
 			} else {
 				dep := &depgraph.Dependency{

@@ -1264,17 +1264,46 @@ func (c *walkContext) persistState(r *Resource) {
 	rs.Dependencies = r.Dependencies
 
 	// Assign the instance state to the proper location
-	if r.Flags&FlagTainted != 0 {
+	if r.Flags&FlagDeposed != 0 {
+		// We were previously the primary and have been deposed, so
+		// now we are the final tainted resource
+		r.TaintedIndex = len(rs.Tainted) - 1
+		rs.Tainted[r.TaintedIndex] = r.State
+
+	} else if r.Flags&FlagTainted != 0 {
 		if r.TaintedIndex >= 0 {
 			// Tainted with a pre-existing index, just update that spot
 			rs.Tainted[r.TaintedIndex] = r.State
+
+		} else if r.Flags&FlagReplacePrimary != 0 {
+			// We just replaced the primary, so restore the primary
+			rs.Primary = rs.Tainted[len(rs.Tainted)-1]
+
+			// Set ourselves as tainted
+			rs.Tainted[len(rs.Tainted)-1] = r.State
+
 		} else {
 			// Newly tainted, so append it to the list, update the
 			// index, and remove the primary.
 			rs.Tainted = append(rs.Tainted, r.State)
-			rs.Primary = nil
 			r.TaintedIndex = len(rs.Tainted) - 1
+			rs.Primary = nil
 		}
+
+	} else if r.Flags&FlagReplacePrimary != 0 {
+		// If the ID is blank (there was an error), then we leave
+		// the primary that exists, and do not store this as a tainted
+		// instance
+		if r.State.ID == "" {
+			return
+		}
+
+		// Push the old primary into the tainted state
+		rs.Tainted = append(rs.Tainted, rs.Primary)
+
+		// Set this as the new primary
+		rs.Primary = r.State
+
 	} else {
 		// The primary instance, so just set it directly
 		rs.Primary = r.State

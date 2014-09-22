@@ -704,10 +704,15 @@ func TestGraphAddDiff_createBeforeDestroy(t *testing.T) {
 		t.Fatalf("bad:\n\n%s\n\nexpected:\n\n%s", actual, expected)
 	}
 
-	// Verify the flag is set
+	// Verify the flags are set
 	r := g.Noun("aws_instance.bar")
-	if r.Meta.(*GraphNodeResource).Resource.Flags&FlagCreateBeforeDestroy == 0 {
-		t.Fatalf("missing FlagCreateBeforeDestroy")
+	if r.Meta.(*GraphNodeResource).Resource.Flags&FlagReplacePrimary == 0 {
+		t.Fatalf("missing FlagReplacePrimary")
+	}
+
+	r = g.Noun("aws_instance.bar (destroy)")
+	if r.Meta.(*GraphNodeResource).Resource.Flags&FlagDeposed == 0 {
+		t.Fatalf("missing FlagDeposed")
 	}
 
 	// Verify that our original structure has not been modified
