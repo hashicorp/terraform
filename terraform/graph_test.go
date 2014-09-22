@@ -704,6 +704,12 @@ func TestGraphAddDiff_createBeforeDestroy(t *testing.T) {
 		t.Fatalf("bad:\n\n%s\n\nexpected:\n\n%s", actual, expected)
 	}
 
+	// Verify the flag is set
+	r := g.Noun("aws_instance.bar")
+	if r.Meta.(*GraphNodeResource).Resource.Flags&FlagCreateBeforeDestroy == 0 {
+		t.Fatalf("missing FlagCreateBeforeDestroy")
+	}
+
 	// Verify that our original structure has not been modified
 	diffHash2 := checksumStruct(t, diff)
 	if diffHash != diffHash2 {

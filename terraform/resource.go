@@ -47,6 +47,7 @@ const (
 	FlagTainted
 	FlagOrphan
 	FlagHasTainted
+	FlagCreateBeforeDestroy
 )
 
 // InstanceInfo is used to hold information about the instance and/or
