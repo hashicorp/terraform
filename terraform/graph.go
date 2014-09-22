@@ -534,7 +534,7 @@ func graphAddDiff(g *depgraph.Graph, d *ModuleDiff) error {
 			// The dependency ordering depends on if the CreateBeforeDestroy
 			// flag is enabled. If so, we must create the replacement first,
 			// and then destroy the old instance.
-			if rn.Config != nil && rn.Config.CreateBeforeDestroy && !rd.Empty() {
+			if rn.Config != nil && rn.Config.Lifecycle.CreateBeforeDestroy && !rd.Empty() {
 				dep := &depgraph.Dependency{
 					Name:   n.Name,
 					Source: newN,

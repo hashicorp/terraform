@@ -394,7 +394,7 @@ func loadResourcesHcl(os *hclobj.Object) ([]*Resource, error) {
 			delete(config, "count")
 			delete(config, "depends_on")
 			delete(config, "provisioner")
-			delete(config, "create_before_destroy")
+			delete(config, "lifecycle")
 
 			rawConfig, err := NewRawConfig(config)
 			if err != nil {
@@ -460,12 +460,12 @@ func loadResourcesHcl(os *hclobj.Object) ([]*Resource, error) {
 
 			// Check if the resource should be re-created before
 			// destroying the existing instance
-			var createBeforeDestroy bool
-			if o := obj.Get("create_before_destroy", false); o != nil {
-				err = hcl.DecodeObject(&createBeforeDestroy, o)
+			var lifecycle ResourceLifecycle
+			if o := obj.Get("lifecycle", false); o != nil {
+				err = hcl.DecodeObject(&lifecycle, o)
 				if err != nil {
 					return nil, fmt.Errorf(
-						"Error parsing create_before_destroy for %s[%s]: %s",
+						"Error parsing lifecycle for %s[%s]: %s",
 						t.Key,
 						k,
 						err)
@@ -473,13 +473,13 @@ func loadResourcesHcl(os *hclobj.Object) ([]*Resource, error) {
 			}
 
 			result = append(result, &Resource{
-				Name:                k,
-				Type:                t.Key,
-				Count:               count,
-				RawConfig:           rawConfig,
-				Provisioners:        provisioners,
-				DependsOn:           dependsOn,
-				CreateBeforeDestroy: createBeforeDestroy,
+				Name:         k,
+				Type:         t.Key,
+				Count:        count,
+				RawConfig:    rawConfig,
+				Provisioners: provisioners,
+				DependsOn:    dependsOn,
+				Lifecycle:    lifecycle,
 			})
 		}
 	}

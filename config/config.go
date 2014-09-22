@@ -54,13 +54,19 @@ type ProviderConfig struct {
 // A Terraform resource is something that represents some component that
 // can be created and managed, and has some properties associated with it.
 type Resource struct {
-	Name                string
-	Type                string
-	Count               int
-	RawConfig           *RawConfig
-	Provisioners        []*Provisioner
-	DependsOn           []string
-	CreateBeforeDestroy bool
+	Name         string
+	Type         string
+	Count        int
+	RawConfig    *RawConfig
+	Provisioners []*Provisioner
+	DependsOn    []string
+	Lifecycle    ResourceLifecycle
+}
+
+// ResourceLifecycle is used to store the lifecycle tuning parameters
+// to allow customized behavior
+type ResourceLifecycle struct {
+	CreateBeforeDestroy bool `hcl:"create_before_destroy"`
 }
 
 // Provisioner is a configured provisioner step on a resource.
