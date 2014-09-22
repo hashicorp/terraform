@@ -2,6 +2,7 @@ package command
 
 import (
 	"os"
+	"strings"
 	"testing"
 
 	"github.com/mitchellh/cli"
@@ -17,10 +18,15 @@ func TestGet(t *testing.T) {
 	}
 
 	args := []string{
-		testFixturePath("graph"),
+		testFixturePath("get"),
 	}
 	if code := c.Run(args); code != 0 {
 		t.Fatalf("bad: \n%s", ui.ErrorWriter.String())
+	}
+
+	output := ui.OutputWriter.String()
+	if !strings.Contains(output, "Get: file://") {
+		t.Fatalf("doesn't look like get: %s", output)
 	}
 }
 
@@ -47,13 +53,13 @@ func TestGet_noArgs(t *testing.T) {
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
-	if err := os.Chdir(testFixturePath("graph")); err != nil {
+	if err := os.Chdir(testFixturePath("get")); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 	defer os.Chdir(cwd)
 
 	ui := new(cli.MockUi)
-	c := &GraphCommand{
+	c := &GetCommand{
 		Meta: Meta{
 			ContextOpts: testCtxConfig(testProvider()),
 			Ui:          ui,
@@ -63,5 +69,10 @@ func TestGet_noArgs(t *testing.T) {
 	args := []string{}
 	if code := c.Run(args); code != 0 {
 		t.Fatalf("bad: \n%s", ui.ErrorWriter.String())
+	}
+
+	output := ui.OutputWriter.String()
+	if !strings.Contains(output, "Get: file://") {
+		t.Fatalf("doesn't look like get: %s", output)
 	}
 }

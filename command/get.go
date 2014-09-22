@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"os"
 	"strings"
+
+	"github.com/hashicorp/terraform/config/module"
 )
 
 // GetCommand is a Command implementation that takes a Terraform
@@ -39,7 +41,8 @@ func (c *GetCommand) Run(args []string) int {
 	}
 
 	_, _, err := c.Context(contextOpts{
-		Path: path,
+		Path:    path,
+		GetMode: module.GetModeGet,
 	})
 	if err != nil {
 		c.Ui.Error(fmt.Sprintf("Error loading Terraform: %s", err))

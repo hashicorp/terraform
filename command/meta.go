@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"path/filepath"
 
 	"github.com/hashicorp/terraform/config/module"
 	"github.com/hashicorp/terraform/terraform"
@@ -93,6 +94,10 @@ func (m *Meta) Context(copts contextOpts) (*terraform.Context, bool, error) {
 	if err != nil {
 		return nil, false, fmt.Errorf("Error loading config: %s", err)
 	}
+	err = mod.Load(m.moduleStorage(copts.Path), copts.GetMode)
+	if err != nil {
+		return nil, false, fmt.Errorf("Error downloading modules: %s", err)
+	}
 
 	opts.Config = mod.Config()
 	opts.State = state
@@ -150,6 +155,17 @@ func (m *Meta) flagSet(n string) *flag.FlagSet {
 	f.SetOutput(errW)
 
 	return f
+}
+
+// moduleStorage returns the module.Storage implementation used to store
+// modules for commands.
+func (m *Meta) moduleStorage(root string) module.Storage {
+	return &uiModuleStorage{
+		Storage: &module.FolderStorage{
+			StorageDir: filepath.Join(root, "modules"),
+		},
+		Ui: m.Ui,
+	}
 }
 
 // process will process the meta-parameters out of the arguments. This
