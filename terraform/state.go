@@ -596,7 +596,11 @@ func upgradeV1State(old *StateV1) (*State, error) {
 		// Warn if the resource uses Extra, as there is
 		// no upgrade path for this! Now totally deprecated.
 		if len(rs.Extra) > 0 {
-			log.Printf("[WARN] Resource %s uses deprecated attribute storage, state file upgrade may be incomplete.")
+			log.Printf(
+				"[WARN] Resource %s uses deprecated attribute "+
+					"storage, state file upgrade may be incomplete.",
+				rs.ID,
+			)
 		}
 	}
 	return s, nil
