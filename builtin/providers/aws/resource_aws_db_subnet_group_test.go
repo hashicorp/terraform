@@ -36,13 +36,13 @@ func TestAccAWSDbSubnetGroup(t *testing.T) {
 func testAccCheckDbSubnetGroupDestroy(s *terraform.State) error {
 	conn := testAccProvider.rdsconn
 
-	for _, rs := range s.Resources {
+	for _, rs := range s.RootModule().Resources {
 		if rs.Type != "aws_db_subnet_group" {
 			continue
 		}
 
 		// Try to find the resource
-		resp, err := conn.DescribeDBSubnetGroups(&rds.DescribeDBSubnetGroups{rs.ID})
+		resp, err := conn.DescribeDBSubnetGroups(&rds.DescribeDBSubnetGroups{rs.Primary.ID})
 		if err == nil {
 			if len(resp.DBSubnetGroups) > 0 {
 				return fmt.Errorf("still exist.")
@@ -66,17 +66,17 @@ func testAccCheckDbSubnetGroupDestroy(s *terraform.State) error {
 
 func testAccCheckDbSubnetGroupExists(n string, v *rds.DBSubnetGroup) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
-		rs, ok := s.Resources[n]
+		rs, ok := s.RootModule().Resources[n]
 		if !ok {
 			return fmt.Errorf("Not found: %s", n)
 		}
 
-		if rs.ID == "" {
+		if rs.Primary.ID == "" {
 			return fmt.Errorf("No ID is set")
 		}
 
 		conn := testAccProvider.rdsconn
-		resp, err := conn.DescribeDBSubnetGroups(&rds.DescribeDBSubnetGroups{rs.ID})
+		resp, err := conn.DescribeDBSubnetGroups(&rds.DescribeDBSubnetGroups{rs.Primary.ID})
 		if err != nil {
 			return err
 		}
