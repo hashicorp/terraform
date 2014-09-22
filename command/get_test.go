@@ -28,6 +28,9 @@ func TestGet(t *testing.T) {
 	if !strings.Contains(output, "Get: file://") {
 		t.Fatalf("doesn't look like get: %s", output)
 	}
+	if strings.Contains(output, "(update)") {
+		t.Fatalf("doesn't look like get: %s", output)
+	}
 }
 
 func TestGet_multipleArgs(t *testing.T) {
@@ -75,4 +78,34 @@ func TestGet_noArgs(t *testing.T) {
 	if !strings.Contains(output, "Get: file://") {
 		t.Fatalf("doesn't look like get: %s", output)
 	}
+	if strings.Contains(output, "(update)") {
+		t.Fatalf("doesn't look like get: %s", output)
+	}
 }
+
+func TestGet_update(t *testing.T) {
+	ui := new(cli.MockUi)
+	c := &GetCommand{
+		Meta: Meta{
+			ContextOpts: testCtxConfig(testProvider()),
+			Ui:          ui,
+		},
+	}
+
+	args := []string{
+		"-update",
+		testFixturePath("get"),
+	}
+	if code := c.Run(args); code != 0 {
+		t.Fatalf("bad: \n%s", ui.ErrorWriter.String())
+	}
+
+	output := ui.OutputWriter.String()
+	if !strings.Contains(output, "Get: file://") {
+		t.Fatalf("doesn't look like get: %s", output)
+	}
+	if !strings.Contains(output, "(update)") {
+		t.Fatalf("doesn't look like get: %s", output)
+	}
+}
+

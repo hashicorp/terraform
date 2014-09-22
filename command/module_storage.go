@@ -19,6 +19,11 @@ func (s *uiModuleStorage) Dir(source string) (string, bool, error) {
 }
 
 func (s *uiModuleStorage) Get(source string, update bool) error {
-	s.Ui.Output(fmt.Sprintf("Get: %s", source))
+	updateStr := ""
+	if update {
+		updateStr = " (update)"
+	}
+
+	s.Ui.Output(fmt.Sprintf("Get: %s%s", source, updateStr))
 	return s.Storage.Get(source, update)
 }

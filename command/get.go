@@ -16,9 +16,12 @@ type GetCommand struct {
 }
 
 func (c *GetCommand) Run(args []string) int {
+	var update bool
+
 	args = c.Meta.process(args, false)
 
 	cmdFlags := flag.NewFlagSet("get", flag.ContinueOnError)
+	cmdFlags.BoolVar(&update, "update", false, "update")
 	cmdFlags.Usage = func() { c.Ui.Error(c.Help()) }
 	if err := cmdFlags.Parse(args); err != nil {
 		return 1
@@ -40,9 +43,14 @@ func (c *GetCommand) Run(args []string) int {
 		}
 	}
 
+	mode := module.GetModeGet
+	if update {
+		mode = module.GetModeUpdate
+	}
+
 	_, _, err := c.Context(contextOpts{
 		Path:    path,
-		GetMode: module.GetModeGet,
+		GetMode: mode,
 	})
 	if err != nil {
 		c.Ui.Error(fmt.Sprintf("Error loading Terraform: %s", err))
