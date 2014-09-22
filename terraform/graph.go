@@ -172,24 +172,28 @@ func Graph(opts *GraphOpts) (*depgraph.Graph, error) {
 	return g, nil
 }
 
-// EncodeDependencies is used to walk the graph and encode the
-// logical dependency information into the resource state. This
-// allows the dependency tree to be recovered from the state file
-// such that orphaned resources will still be destroyed in the
-// proper order.
-func EncodeDependencies(g *depgraph.Graph) {
+// graphInitState is used to initialize a State with a ResourceState
+// for every resource.
+//
+// This method is very important to call because it will properly setup
+// the ResourceState dependency information with data from the graph. This
+// allows orphaned resources to be destroyed in the proper order.
+func graphInitState(s *State, g *depgraph.Graph) {
+	// TODO: other modules
+	mod := s.RootModule()
+
 	for _, n := range g.Nouns {
 		// Ignore any non-resource nodes
 		rn, ok := n.Meta.(*GraphNodeResource)
 		if !ok {
 			continue
 		}
-
-		// Skip only if the resource has state
-		rs := rn.Resource
-		state := rs.State
-		if state == nil {
-			continue
+		r := rn.Resource
+		rs := mod.Resources[r.Id]
+		if rs == nil {
+			rs = new(ResourceState)
+			rs.init()
+			mod.Resources[r.Id] = rs
 		}
 
 		// Update the dependencies
@@ -197,7 +201,7 @@ func EncodeDependencies(g *depgraph.Graph) {
 		for _, dep := range n.Deps {
 			switch target := dep.Target.Meta.(type) {
 			case *GraphNodeResource:
-				if target.Resource.Id == rs.Id {
+				if target.Resource.Id == r.Id {
 					continue
 				}
 				inject = append(inject, target.Resource.Id)
@@ -212,7 +216,7 @@ func EncodeDependencies(g *depgraph.Graph) {
 		}
 
 		// Update the dependencies
-		state.Dependencies = inject
+		rs.Dependencies = inject
 	}
 }
 
@@ -275,7 +279,7 @@ func graphAddConfigResources(
 					Resource: &Resource{
 						Id:     name,
 						Info:   &InstanceInfo{Type: r.Type},
-						State:  state,
+						State:  state.Primary,
 						Config: NewResourceConfig(r.RawConfig),
 						Flags:  flags,
 					},
@@ -604,7 +608,7 @@ func graphAddOrphans(g *depgraph.Graph, c *config.Config, s *State) {
 				Resource: &Resource{
 					Id:     k,
 					Info:   &InstanceInfo{Type: rs.Type},
-					State:  rs,
+					State:  rs.Primary,
 					Config: NewResourceConfig(nil),
 					Flags:  FlagOrphan,
 				},
@@ -625,8 +629,8 @@ func graphAddOrphans(g *depgraph.Graph, c *config.Config, s *State) {
 		rn := n.Meta.(*GraphNodeResource)
 
 		// If we have no dependencies, then just continue
-		deps := rn.Resource.State.Dependencies
-		if len(deps) == 0 {
+		rs := mod.Resources[n.Name]
+		if len(rs.Dependencies) == 0 {
 			continue
 		}
 
@@ -641,7 +645,7 @@ func graphAddOrphans(g *depgraph.Graph, c *config.Config, s *State) {
 				continue
 			}
 
-			for _, depName := range rn.Resource.State.Dependencies {
+			for _, depName := range rs.Dependencies {
 				if rn2.Resource.Id != depName {
 					continue
 				}
@@ -800,7 +804,7 @@ func graphAddTainted(g *depgraph.Graph, s *State) {
 			}
 		}
 
-		for i, _ := range rs.Tainted {
+		for i, is := range rs.Tainted {
 			name := fmt.Sprintf("%s (tainted #%d)", k, i+1)
 
 			// Add each of the tainted resources to the graph, and encode
@@ -813,7 +817,7 @@ func graphAddTainted(g *depgraph.Graph, s *State) {
 					Resource: &Resource{
 						Id:           k,
 						Info:         &InstanceInfo{Type: rs.Type},
-						State:        rs,
+						State:        is,
 						Config:       NewResourceConfig(nil),
 						Diff:         &InstanceDiff{Destroy: true},
 						Flags:        FlagTainted,

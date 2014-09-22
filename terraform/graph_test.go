@@ -516,7 +516,7 @@ func TestGraphAddDiff_destroy_counts(t *testing.T) {
 	}
 }
 
-func TestEncodeDependencies(t *testing.T) {
+func TestGraphInitState(t *testing.T) {
 	config := testConfig(t, "graph-basic")
 	state := &State{
 		Modules: []*ModuleState{
@@ -546,7 +546,7 @@ func TestEncodeDependencies(t *testing.T) {
 	}
 
 	// This should encode the dependency information into the state
-	EncodeDependencies(g)
+	graphInitState(state, g)
 
 	root := state.RootModule()
 	web := root.Resources["aws_instance.web"]
@@ -560,7 +560,7 @@ func TestEncodeDependencies(t *testing.T) {
 	}
 }
 
-func TestEncodeDependencies_Count(t *testing.T) {
+func TestGraphInitState_Count(t *testing.T) {
 	config := testConfig(t, "graph-count")
 	state := &State{
 		Modules: []*ModuleState{
@@ -590,7 +590,7 @@ func TestEncodeDependencies_Count(t *testing.T) {
 	}
 
 	// This should encode the dependency information into the state
-	EncodeDependencies(g)
+	graphInitState(state, g)
 
 	root := state.RootModule()
 	web := root.Resources["aws_instance.web.0"]

@@ -31,7 +31,7 @@ type Resource struct {
 	Config       *ResourceConfig
 	Diff         *InstanceDiff
 	Provider     ResourceProvider
-	State        *ResourceState
+	State        *InstanceState
 	Provisioners []*ResourceProvisionerConfig
 	Flags        ResourceFlag
 	TaintedIndex int
@@ -56,7 +56,7 @@ func (r *Resource) Vars() map[string]string {
 	}
 
 	vars := make(map[string]string)
-	for ak, av := range r.State.Primary.Attributes {
+	for ak, av := range r.State.Attributes {
 		vars[fmt.Sprintf("%s.%s", r.Id, ak)] = av
 	}
 

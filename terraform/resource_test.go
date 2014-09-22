@@ -16,11 +16,9 @@ func TestResource_Vars(t *testing.T) {
 
 	r = &Resource{
 		Id: "key",
-		State: &ResourceState{
-			Primary: &InstanceState{
-				Attributes: map[string]string{
-					"foo": "bar",
-				},
+		State: &InstanceState{
+			Attributes: map[string]string{
+				"foo": "bar",
 			},
 		},
 	}
