@@ -17,7 +17,7 @@ func TestResourceBuilder_attrSetComputed(t *testing.T) {
 		},
 	}
 
-	state := &terraform.ResourceState{}
+	state := &terraform.InstanceState{}
 	c := testConfig(t, map[string]interface{}{
 		"foo": "bar",
 	}, nil)
@@ -47,7 +47,7 @@ func TestResourceBuilder_attrSetComputedComplex(t *testing.T) {
 		},
 	}
 
-	state := &terraform.ResourceState{
+	state := &terraform.InstanceState{
 		ID: "foo",
 		Attributes: map[string]string{
 			"foo.#": "0",
@@ -75,7 +75,7 @@ func TestResourceBuilder_replaceComputed(t *testing.T) {
 		},
 	}
 
-	state := &terraform.ResourceState{
+	state := &terraform.InstanceState{
 		ID: "foo",
 		Attributes: map[string]string{
 			"foo": "bar",
@@ -99,7 +99,7 @@ func TestResourceBuilder_complex(t *testing.T) {
 		},
 	}
 
-	state := &terraform.ResourceState{
+	state := &terraform.InstanceState{
 		ID: "foo",
 		Attributes: map[string]string{
 			"ignore":          "1",
@@ -138,7 +138,7 @@ func TestResourceBuilder_complexReplace(t *testing.T) {
 		},
 	}
 
-	state := &terraform.ResourceState{
+	state := &terraform.InstanceState{
 		ID: "foo",
 		Attributes: map[string]string{
 			"ignore":          "1",
@@ -180,7 +180,7 @@ func TestResourceBuilder_computedAttrsUpdate(t *testing.T) {
 		},
 	}
 
-	state := &terraform.ResourceState{
+	state := &terraform.InstanceState{
 		Attributes: map[string]string{"foo": "foo"},
 	}
 	c := testConfig(t, map[string]interface{}{
@@ -210,7 +210,7 @@ func TestResourceBuilder_new(t *testing.T) {
 		ComputedAttrs: []string{"private_ip"},
 	}
 
-	state := &terraform.ResourceState{}
+	state := &terraform.InstanceState{}
 
 	c := testConfig(t, map[string]interface{}{
 		"foo": "bar",
@@ -244,7 +244,7 @@ func TestResourceBuilder_preProcess(t *testing.T) {
 		},
 	}
 
-	state := &terraform.ResourceState{}
+	state := &terraform.InstanceState{}
 	c := testConfig(t, map[string]interface{}{
 		"foo": "foo",
 	}, nil)
@@ -283,7 +283,7 @@ func TestResourceBuilder_preProcessUnknown(t *testing.T) {
 		},
 	}
 
-	state := &terraform.ResourceState{}
+	state := &terraform.InstanceState{}
 	c := testConfig(t, map[string]interface{}{
 		"foo": "${var.unknown}",
 	}, map[string]string{
@@ -313,7 +313,7 @@ func TestResourceBuilder_requiresNew(t *testing.T) {
 		},
 	}
 
-	state := &terraform.ResourceState{
+	state := &terraform.InstanceState{
 		ID: "1",
 		Attributes: map[string]string{
 			"ami":        "foo",
@@ -345,7 +345,7 @@ func TestResourceBuilder_same(t *testing.T) {
 		ComputedAttrs: []string{"private_ip"},
 	}
 
-	state := &terraform.ResourceState{
+	state := &terraform.InstanceState{
 		ID: "1",
 		Attributes: map[string]string{
 			"foo": "bar",
@@ -372,7 +372,7 @@ func TestResourceBuilder_unknown(t *testing.T) {
 		},
 	}
 
-	state := &terraform.ResourceState{}
+	state := &terraform.InstanceState{}
 
 	c := testConfig(t, map[string]interface{}{
 		"foo": "${var.unknown}",
@@ -403,7 +403,7 @@ func TestResourceBuilder_vars(t *testing.T) {
 		},
 	}
 
-	state := &terraform.ResourceState{}
+	state := &terraform.InstanceState{}
 
 	c := testConfig(t, map[string]interface{}{
 		"foo": "${var.foo}",

@@ -13,8 +13,13 @@ import (
 
 func TestOutput(t *testing.T) {
 	originalState := &terraform.State{
-		Outputs: map[string]string{
-			"foo": "bar",
+		Modules: []*terraform.ModuleState{
+			&terraform.ModuleState{
+				Path: []string{"root"},
+				Outputs: map[string]string{
+					"foo": "bar",
+				},
+			},
 		},
 	}
 
@@ -44,8 +49,13 @@ func TestOutput(t *testing.T) {
 
 func TestOutput_badVar(t *testing.T) {
 	originalState := &terraform.State{
-		Outputs: map[string]string{
-			"foo": "bar",
+		Modules: []*terraform.ModuleState{
+			&terraform.ModuleState{
+				Path: []string{"root"},
+				Outputs: map[string]string{
+					"foo": "bar",
+				},
+			},
 		},
 	}
 
@@ -70,8 +80,13 @@ func TestOutput_badVar(t *testing.T) {
 
 func TestOutput_blank(t *testing.T) {
 	originalState := &terraform.State{
-		Outputs: map[string]string{
-			"foo": "bar",
+		Modules: []*terraform.ModuleState{
+			&terraform.ModuleState{
+				Path: []string{"root"},
+				Outputs: map[string]string{
+					"foo": "bar",
+				},
+			},
 		},
 	}
 
@@ -129,7 +144,12 @@ func TestOutput_noArgs(t *testing.T) {
 
 func TestOutput_noVars(t *testing.T) {
 	originalState := &terraform.State{
-		Outputs: map[string]string{},
+		Modules: []*terraform.ModuleState{
+			&terraform.ModuleState{
+				Path:    []string{"root"},
+				Outputs: map[string]string{},
+			},
+		},
 	}
 
 	statePath := testStateFile(t, originalState)
@@ -153,8 +173,13 @@ func TestOutput_noVars(t *testing.T) {
 
 func TestOutput_stateDefault(t *testing.T) {
 	originalState := &terraform.State{
-		Outputs: map[string]string{
-			"foo": "bar",
+		Modules: []*terraform.ModuleState{
+			&terraform.ModuleState{
+				Path: []string{"root"},
+				Outputs: map[string]string{
+					"foo": "bar",
+				},
+			},
 		},
 	}
 

@@ -121,6 +121,13 @@ func (c *Context) Apply() (*State, error) {
 	// Set our state right away. No matter what, this IS our new state,
 	// even if there is an error below.
 	c.state = c.state.deepcopy()
+	if c.state == nil {
+		c.state = &State{}
+	}
+	c.state.init()
+
+	// Initialize the state with all the resources
+	graphInitState(c.state, g)
 
 	// Walk
 	log.Printf("[INFO] Apply walk starting")
@@ -131,15 +138,18 @@ func (c *Context) Apply() (*State, error) {
 	c.state.prune()
 
 	// If we have no errors, then calculate the outputs if we have any
-	if err == nil && len(c.config.Outputs) > 0 && len(c.state.Resources) > 0 {
-		c.state.Outputs = make(map[string]string)
+	root := c.state.RootModule()
+	if err == nil && len(c.config.Outputs) > 0 && len(root.Resources) > 0 {
+		outputs := make(map[string]string)
 		for _, o := range c.config.Outputs {
 			if err = c.computeVars(o.RawConfig); err != nil {
 				break
 			}
-
-			c.state.Outputs[o.Name] = o.RawConfig.Config()["value"].(string)
+			outputs[o.Name] = o.RawConfig.Config()["value"].(string)
 		}
+
+		// Assign the outputs to the root module
+		root.Outputs = outputs
 	}
 
 	return c.state, err
@@ -188,10 +198,18 @@ func (c *Context) Plan(opts *PlanOpts) (*Plan, error) {
 		// the plan can update a fake state so that variables work, then
 		// we replace it back with our old state.
 		old := c.state
-		c.state = old.deepcopy()
+		if old == nil {
+			c.state = &State{}
+			c.state.init()
+		} else {
+			c.state = old.deepcopy()
+		}
 		defer func() {
 			c.state = old
 		}()
+
+		// Initialize the state with all the resources
+		graphInitState(c.state, g)
 
 		walkFn = c.planWalkFn(p)
 	}
@@ -215,6 +233,9 @@ func (c *Context) Refresh() (*State, error) {
 	v := c.acquireRun()
 	defer c.releaseRun(v)
 
+	// Update our state
+	c.state = c.state.deepcopy()
+
 	g, err := Graph(&GraphOpts{
 		Config:       c.config,
 		Providers:    c.providers,
@@ -225,10 +246,16 @@ func (c *Context) Refresh() (*State, error) {
 		return c.state, err
 	}
 
-	// Update our state
-	c.state = c.state.deepcopy()
+	if c.state != nil {
+		// Initialize the state with all the resources
+		graphInitState(c.state, g)
+	}
 
+	// Walk the graph
 	err = g.Walk(c.refreshWalkFn())
+
+	// Prune the state
+	c.state.prune()
 	return c.state, err
 }
 
@@ -358,7 +385,11 @@ func (c *Context) computeResourceVariable(
 	c.sl.RLock()
 	defer c.sl.RUnlock()
 
-	r, ok := c.state.Resources[id]
+	// Get the relevant module
+	// TODO: Not use only root module
+	module := c.state.RootModule()
+
+	r, ok := module.Resources[id]
 	if !ok {
 		return "", fmt.Errorf(
 			"Resource '%s' not found for variable '%s'",
@@ -366,8 +397,11 @@ func (c *Context) computeResourceVariable(
 			v.FullKey())
 	}
 
-	attr, ok := r.Attributes[v.Field]
-	if ok {
+	if r.Primary == nil {
+		goto MISSING
+	}
+
+	if attr, ok := r.Primary.Attributes[v.Field]; ok {
 		return attr, nil
 	}
 
@@ -375,16 +409,16 @@ func (c *Context) computeResourceVariable(
 	// and see if anything along the way is a computed set. i.e. if
 	// we have "foo.0.bar" as the field, check to see if "foo" is
 	// a computed list. If so, then the whole thing is computed.
-	parts := strings.Split(v.Field, ".")
-	if len(parts) > 1 {
+	if parts := strings.Split(v.Field, "."); len(parts) > 1 {
 		for i := 1; i < len(parts); i++ {
 			key := fmt.Sprintf("%s.#", strings.Join(parts[:i], "."))
-			if attr, ok := r.Attributes[key]; ok {
+			if attr, ok := r.Primary.Attributes[key]; ok {
 				return attr, nil
 			}
 		}
 	}
 
+MISSING:
 	return "", fmt.Errorf(
 		"Resource '%s' does not have attribute '%s' "+
 			"for variable '%s'",
@@ -414,6 +448,10 @@ func (c *Context) computeResourceMultiVariable(
 			v.FullKey())
 	}
 
+	// Get the relevant module
+	// TODO: Not use only root module
+	module := c.state.RootModule()
+
 	var values []string
 	for i := 0; i < cr.Count; i++ {
 		id := fmt.Sprintf("%s.%d", v.ResourceId(), i)
@@ -424,12 +462,16 @@ func (c *Context) computeResourceMultiVariable(
 			id = v.ResourceId()
 		}
 
-		r, ok := c.state.Resources[id]
+		r, ok := module.Resources[id]
 		if !ok {
 			continue
 		}
 
-		attr, ok := r.Attributes[v.Field]
+		if r.Primary == nil {
+			continue
+		}
+
+		attr, ok := r.Primary.Attributes[v.Field]
 		if !ok {
 			continue
 		}
@@ -495,13 +537,19 @@ func (c *Context) applyWalkFn() depgraph.WalkFunc {
 			return nil
 		}
 
+		is := r.State
+		if is == nil {
+			is = new(InstanceState)
+		}
+		is.init()
+
 		if !diff.Destroy {
 			// Since we need the configuration, interpolate the variables
 			if err := r.Config.interpolate(c); err != nil {
 				return err
 			}
 
-			diff, err = r.Provider.Diff(r.State, r.Config)
+			diff, err = r.Provider.Diff(r.Info, is, r.Config)
 			if err != nil {
 				return err
 			}
@@ -533,11 +581,6 @@ func (c *Context) applyWalkFn() depgraph.WalkFunc {
 			}
 		}
 
-		// If we do not have any connection info, initialize
-		if r.State.ConnInfo == nil {
-			r.State.ConnInfo = make(map[string]string)
-		}
-
 		// Remove any output values from the diff
 		for k, ad := range diff.Attributes {
 			if ad.Type == DiffAttrOutput {
@@ -546,12 +589,12 @@ func (c *Context) applyWalkFn() depgraph.WalkFunc {
 		}
 
 		for _, h := range c.hooks {
-			handleHook(h.PreApply(r.Id, r.State, diff))
+			handleHook(h.PreApply(r.Id, is, diff))
 		}
 
 		// With the completed diff, apply!
 		log.Printf("[DEBUG] %s: Executing Apply", r.Id)
-		rs, applyerr := r.Provider.Apply(r.State, diff)
+		is, applyerr := r.Provider.Apply(r.Info, is, diff)
 
 		var errs []error
 		if applyerr != nil {
@@ -559,46 +602,29 @@ func (c *Context) applyWalkFn() depgraph.WalkFunc {
 		}
 
 		// Make sure the result is instantiated
-		if rs == nil {
-			rs = new(ResourceState)
+		if is == nil {
+			is = new(InstanceState)
 		}
-
-		// Force the resource state type to be our type
-		rs.Type = r.State.Type
+		is.init()
 
 		// Force the "id" attribute to be our ID
-		if rs.ID != "" {
-			if rs.Attributes == nil {
-				rs.Attributes = make(map[string]string)
-			}
-
-			rs.Attributes["id"] = rs.ID
+		if is.ID != "" {
+			is.Attributes["id"] = is.ID
 		}
 
-		for ak, av := range rs.Attributes {
+		for ak, av := range is.Attributes {
 			// If the value is the unknown variable value, then it is an error.
 			// In this case we record the error and remove it from the state
 			if av == config.UnknownVariableValue {
 				errs = append(errs, fmt.Errorf(
 					"Attribute with unknown value: %s", ak))
-				delete(rs.Attributes, ak)
+				delete(is.Attributes, ak)
 			}
 		}
 
-		// Update the resulting diff
-		c.sl.Lock()
-		if rs.ID == "" {
-			delete(c.state.Resources, r.Id)
-			delete(c.state.Tainted, r.Id)
-		} else {
-			c.state.Resources[r.Id] = rs
-
-			// We always mark the resource as tainted here in case a
-			// hook below during provisioning does HookActionStop. This
-			// way, we keep the resource tainted.
-			c.state.Tainted[r.Id] = struct{}{}
-		}
-		c.sl.Unlock()
+		// Set the result state
+		r.State = is
+		c.persistState(r)
 
 		// Invoke any provisioners we have defined. This is only done
 		// if the resource was created, as updates or deletes do not
@@ -607,36 +633,32 @@ func (c *Context) applyWalkFn() depgraph.WalkFunc {
 		// Additionally, we need to be careful to not run this if there
 		// was an error during the provider apply.
 		tainted := false
-		if applyerr == nil && r.State.ID == "" && len(r.Provisioners) > 0 {
+		if applyerr == nil && is.ID != "" && len(r.Provisioners) > 0 {
 			for _, h := range c.hooks {
-				handleHook(h.PreProvisionResource(r.Id, r.State))
+				handleHook(h.PreProvisionResource(r.Id, is))
 			}
 
-			if err := c.applyProvisioners(r, rs); err != nil {
+			if err := c.applyProvisioners(r, is); err != nil {
 				errs = append(errs, err)
 				tainted = true
 			}
 
 			for _, h := range c.hooks {
-				handleHook(h.PostProvisionResource(r.Id, r.State))
+				handleHook(h.PostProvisionResource(r.Id, is))
 			}
 		}
 
-		c.sl.Lock()
-		if tainted {
-			log.Printf("[DEBUG] %s: Marking as tainted", r.Id)
-			c.state.Tainted[r.Id] = struct{}{}
-		} else {
-			delete(c.state.Tainted, r.Id)
+		// If we're tainted then we need to update some flags
+		if tainted && r.Flags&FlagTainted == 0 {
+			r.Flags &^= FlagPrimary
+			r.Flags &^= FlagHasTainted
+			r.Flags |= FlagTainted
+			r.TaintedIndex = -1
+			c.persistState(r)
 		}
-		c.sl.Unlock()
-
-		// Update the state for the resource itself
-		r.State = rs
-		r.Tainted = tainted
 
 		for _, h := range c.hooks {
-			handleHook(h.PostApply(r.Id, r.State, applyerr))
+			handleHook(h.PostApply(r.Id, is, applyerr))
 		}
 
 		// Determine the new state and update variables
@@ -653,11 +675,11 @@ func (c *Context) applyWalkFn() depgraph.WalkFunc {
 
 // applyProvisioners is used to run any provisioners a resource has
 // defined after the resource creation has already completed.
-func (c *Context) applyProvisioners(r *Resource, rs *ResourceState) error {
+func (c *Context) applyProvisioners(r *Resource, is *InstanceState) error {
 	// Store the original connection info, restore later
-	origConnInfo := rs.ConnInfo
+	origConnInfo := is.Ephemeral.ConnInfo
 	defer func() {
-		rs.ConnInfo = origConnInfo
+		is.Ephemeral.ConnInfo = origConnInfo
 	}()
 
 	for _, prov := range r.Provisioners {
@@ -700,14 +722,14 @@ func (c *Context) applyProvisioners(r *Resource, rs *ResourceState) error {
 				overlay[k] = fmt.Sprintf("%v", vt)
 			}
 		}
-		rs.ConnInfo = overlay
+		is.Ephemeral.ConnInfo = overlay
 
 		// Invoke the Provisioner
 		for _, h := range c.hooks {
 			handleHook(h.PreProvision(r.Id, prov.Type))
 		}
 
-		if err := prov.Provisioner.Apply(rs, prov.Config); err != nil {
+		if err := prov.Provisioner.Apply(is, prov.Config); err != nil {
 			return err
 		}
 
@@ -726,17 +748,24 @@ func (c *Context) planWalkFn(result *Plan) depgraph.WalkFunc {
 	result.init()
 
 	cb := func(r *Resource) error {
-		var diff *ResourceDiff
-
-		for _, h := range c.hooks {
-			handleHook(h.PreDiff(r.Id, r.State))
+		if r.Flags&FlagTainted != 0 {
+			// We don't diff tainted resources.
+			return nil
 		}
 
-		if r.Config == nil {
+		var diff *InstanceDiff
+
+		is := r.State
+
+		for _, h := range c.hooks {
+			handleHook(h.PreDiff(r.Id, is))
+		}
+
+		if r.Flags&FlagOrphan != 0 {
 			log.Printf("[DEBUG] %s: Orphan, marking for destroy", r.Id)
 
 			// This is an orphan (no config), so we mark it to be destroyed
-			diff = &ResourceDiff{Destroy: true}
+			diff = &InstanceDiff{Destroy: true}
 		} else {
 			// Make sure the configuration is interpolated
 			if err := r.Config.interpolate(c); err != nil {
@@ -746,38 +775,46 @@ func (c *Context) planWalkFn(result *Plan) depgraph.WalkFunc {
 			// Get a diff from the newest state
 			log.Printf("[DEBUG] %s: Executing diff", r.Id)
 			var err error
-			state := r.State
-			if r.Tainted {
+
+			diffIs := is
+			if diffIs == nil || r.Flags&FlagHasTainted != 0 {
 				// If we're tainted, we pretend to create a new thing.
-				state = new(ResourceState)
-				state.Type = r.State.Type
+				diffIs = new(InstanceState)
 			}
-			diff, err = r.Provider.Diff(state, r.Config)
+			diffIs.init()
+
+			diff, err = r.Provider.Diff(r.Info, diffIs, r.Config)
 			if err != nil {
 				return err
 			}
 		}
 
 		if diff == nil {
-			diff = new(ResourceDiff)
+			diff = new(InstanceDiff)
 		}
 
-		if r.Tainted {
-			// Tainted resources must also be destroyed
-			log.Printf("[DEBUG] %s: Tainted, marking for destroy", r.Id)
-			diff.Destroy = true
+		if r.Flags&FlagHasTainted != 0 {
+			// This primary has a tainted resource, so just mark for
+			// destroy...
+			log.Printf("[DEBUG] %s: Tainted children, marking for destroy", r.Id)
+			diff.DestroyTainted = true
 		}
 
-		if diff.RequiresNew() && r.State.ID != "" {
+		if diff.RequiresNew() && is != nil && is.ID != "" {
 			// This will also require a destroy
 			diff.Destroy = true
 		}
 
-		if diff.RequiresNew() || r.State.ID == "" {
+		if diff.RequiresNew() || is == nil || is.ID == "" {
+			var oldID string
+			if is != nil {
+				oldID = is.Attributes["id"]
+			}
+
 			// Add diff to compute new ID
 			diff.init()
 			diff.Attributes["id"] = &ResourceAttrDiff{
-				Old:         r.State.Attributes["id"],
+				Old:         oldID,
 				NewComputed: true,
 				RequiresNew: true,
 				Type:        DiffAttrOutput,
@@ -796,13 +833,12 @@ func (c *Context) planWalkFn(result *Plan) depgraph.WalkFunc {
 
 		// Determine the new state and update variables
 		if !diff.Empty() {
-			r.State = r.State.MergeDiff(diff)
+			is = is.MergeDiff(diff)
 		}
 
-		// Update our internal state so that variable computation works
-		c.sl.Lock()
-		defer c.sl.Unlock()
-		c.state.Resources[r.Id] = r.State
+		// Set it so that it can be updated
+		r.State = is
+		c.persistState(r)
 
 		return nil
 	}
@@ -823,12 +859,12 @@ func (c *Context) planDestroyWalkFn(result *Plan) depgraph.WalkFunc {
 		}
 
 		r := rn.Resource
-		if r.State.ID != "" {
+		if r.State != nil && r.State.ID != "" {
 			log.Printf("[DEBUG] %s: Making for destroy", r.Id)
 
 			l.Lock()
 			defer l.Unlock()
-			result.Diff.Resources[r.Id] = &ResourceDiff{Destroy: true}
+			result.Diff.Resources[r.Id] = &InstanceDiff{Destroy: true}
 		} else {
 			log.Printf("[DEBUG] %s: Not marking for destroy, no ID", r.Id)
 		}
@@ -839,36 +875,32 @@ func (c *Context) planDestroyWalkFn(result *Plan) depgraph.WalkFunc {
 
 func (c *Context) refreshWalkFn() depgraph.WalkFunc {
 	cb := func(r *Resource) error {
-		if r.State.ID == "" {
+		is := r.State
+
+		if is == nil || is.ID == "" {
 			log.Printf("[DEBUG] %s: Not refreshing, ID is empty", r.Id)
 			return nil
 		}
 
 		for _, h := range c.hooks {
-			handleHook(h.PreRefresh(r.Id, r.State))
+			handleHook(h.PreRefresh(r.Id, is))
 		}
 
-		rs, err := r.Provider.Refresh(r.State)
+		is, err := r.Provider.Refresh(r.Info, is)
 		if err != nil {
 			return err
 		}
-		if rs == nil {
-			rs = new(ResourceState)
+		if is == nil {
+			is = new(InstanceState)
+			is.init()
 		}
 
-		// Fix the type to be the type we have
-		rs.Type = r.State.Type
-
-		c.sl.Lock()
-		if rs.ID == "" {
-			delete(c.state.Resources, r.Id)
-		} else {
-			c.state.Resources[r.Id] = rs
-		}
-		c.sl.Unlock()
+		// Set the updated state
+		r.State = is
+		c.persistState(r)
 
 		for _, h := range c.hooks {
-			handleHook(h.PostRefresh(r.Id, rs))
+			handleHook(h.PostRefresh(r.Id, is))
 		}
 
 		return nil
@@ -898,13 +930,13 @@ func (c *Context) validateWalkFn(rws *[]string, res *[]error) depgraph.WalkFunc 
 			}
 
 			// Don't validate orphans since they never have a config
-			if rn.Orphan {
+			if rn.Resource.Flags&FlagOrphan != 0 {
 				return nil
 			}
 
 			log.Printf("[INFO] Validating resource: %s", rn.Resource.Id)
 			ws, es := rn.Resource.Provider.ValidateResource(
-				rn.Type, rn.Resource.Config)
+				rn.Resource.Info.Type, rn.Resource.Config)
 			for i, w := range ws {
 				ws[i] = fmt.Sprintf("'%s' warning: %s", rn.Resource.Id, w)
 			}
@@ -1014,14 +1046,10 @@ func (c *Context) genericWalkFn(cb genericWalkFunc) depgraph.WalkFunc {
 		rn := n.Meta.(*GraphNodeResource)
 
 		// Make sure that at least some resource configuration is set
-		if !rn.Orphan {
-			if rn.Config == nil {
-				rn.Resource.Config = new(ResourceConfig)
-			} else {
-				rn.Resource.Config = NewResourceConfig(rn.Config.RawConfig)
-			}
+		if rn.Config == nil {
+			rn.Resource.Config = new(ResourceConfig)
 		} else {
-			rn.Resource.Config = nil
+			rn.Resource.Config = NewResourceConfig(rn.Config.RawConfig)
 		}
 
 		// Handle recovery of special panic scenarios
@@ -1047,4 +1075,44 @@ func (c *Context) genericWalkFn(cb genericWalkFunc) depgraph.WalkFunc {
 
 		return nil
 	}
+}
+
+func (c *Context) persistState(r *Resource) {
+	// Acquire a state lock around this whole thing since we're updating that
+	c.sl.Lock()
+	defer c.sl.Unlock()
+
+	// If we have no state, then we don't persist.
+	if c.state == nil {
+		return
+	}
+
+	// Get the state for this resource. The resource state should always
+	// exist because we call graphInitState before anything that could
+	// potentially call this.
+	module := c.state.RootModule()
+	rs := module.Resources[r.Id]
+	if rs == nil {
+		panic(fmt.Sprintf("nil ResourceState for ID: %s", r.Id))
+	}
+
+	// Assign the instance state to the proper location
+	if r.Flags&FlagTainted != 0 {
+		if r.TaintedIndex >= 0 {
+			// Tainted with a pre-existing index, just update that spot
+			rs.Tainted[r.TaintedIndex] = r.State
+		} else {
+			// Newly tainted, so append it to the list, update the
+			// index, and remove the primary.
+			rs.Tainted = append(rs.Tainted, r.State)
+			rs.Primary = nil
+			r.TaintedIndex = len(rs.Tainted) - 1
+		}
+	} else {
+		// The primary instance, so just set it directly
+		rs.Primary = r.State
+	}
+
+	// Do a pruning so that empty resources are not saved
+	rs.prune()
 }

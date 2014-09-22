@@ -72,12 +72,12 @@ func TestAccHerokuAddon_noPlan(t *testing.T) {
 func testAccCheckHerokuAddonDestroy(s *terraform.State) error {
 	client := testAccProvider.Meta().(*heroku.Service)
 
-	for _, rs := range s.Resources {
+	for _, rs := range s.RootModule().Resources {
 		if rs.Type != "heroku_addon" {
 			continue
 		}
 
-		_, err := client.AddonInfo(rs.Attributes["app"], rs.ID)
+		_, err := client.AddonInfo(rs.Primary.Attributes["app"], rs.Primary.ID)
 
 		if err == nil {
 			return fmt.Errorf("Addon still exists")
@@ -100,25 +100,25 @@ func testAccCheckHerokuAddonAttributes(addon *heroku.Addon, n string) resource.T
 
 func testAccCheckHerokuAddonExists(n string, addon *heroku.Addon) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
-		rs, ok := s.Resources[n]
+		rs, ok := s.RootModule().Resources[n]
 
 		if !ok {
 			return fmt.Errorf("Not found: %s", n)
 		}
 
-		if rs.ID == "" {
+		if rs.Primary.ID == "" {
 			return fmt.Errorf("No Addon ID is set")
 		}
 
 		client := testAccProvider.Meta().(*heroku.Service)
 
-		foundAddon, err := client.AddonInfo(rs.Attributes["app"], rs.ID)
+		foundAddon, err := client.AddonInfo(rs.Primary.Attributes["app"], rs.Primary.ID)
 
 		if err != nil {
 			return err
 		}
 
-		if foundAddon.ID != rs.ID {
+		if foundAddon.ID != rs.Primary.ID {
 			return fmt.Errorf("Addon not found")
 		}
 

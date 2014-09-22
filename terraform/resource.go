@@ -27,28 +27,26 @@ type ResourceProvisionerConfig struct {
 // wants to reach.
 type Resource struct {
 	Id           string
+	Info         *InstanceInfo
 	Config       *ResourceConfig
-	Diff         *ResourceDiff
+	Diff         *InstanceDiff
 	Provider     ResourceProvider
-	State        *ResourceState
+	State        *InstanceState
 	Provisioners []*ResourceProvisionerConfig
-	Tainted      bool
+	Flags        ResourceFlag
+	TaintedIndex int
 }
 
-// Vars returns the mapping of variables that should be replaced in
-// configuration based on the attributes of this resource.
-func (r *Resource) Vars() map[string]string {
-	if r.State == nil {
-		return nil
-	}
+// ResourceKind specifies what kind of instance we're working with, whether
+// its a primary instance, a tainted instance, or an orphan.
+type ResourceFlag byte
 
-	vars := make(map[string]string)
-	for ak, av := range r.State.Attributes {
-		vars[fmt.Sprintf("%s.%s", r.Id, ak)] = av
-	}
-
-	return vars
-}
+const (
+	FlagPrimary ResourceFlag = 1 << iota
+	FlagTainted
+	FlagOrphan
+	FlagHasTainted
+)
 
 // ResourceConfig holds the configuration given for a resource. This is
 // done instead of a raw `map[string]interface{}` type so that rich

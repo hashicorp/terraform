@@ -96,20 +96,20 @@ func TestAccDigitalOceanDroplet_PrivateNetworkingIpv6(t *testing.T) {
 func testAccCheckDigitalOceanDropletDestroy(s *terraform.State) error {
 	client := testAccProvider.client
 
-	for _, rs := range s.Resources {
+	for _, rs := range s.RootModule().Resources {
 		if rs.Type != "digitalocean_droplet" {
 			continue
 		}
 
 		// Try to find the Droplet
-		_, err := client.RetrieveDroplet(rs.ID)
+		_, err := client.RetrieveDroplet(rs.Primary.ID)
 
 		// Wait
 
 		if err != nil && !strings.Contains(err.Error(), "404") {
 			return fmt.Errorf(
 				"Error waiting for droplet (%s) to be destroyed: %s",
-				rs.ID, err)
+				rs.Primary.ID, err)
 		}
 	}
 
@@ -198,24 +198,24 @@ func testAccCheckDigitalOceanDropletAttributes_PrivateNetworkingIpv6(droplet *di
 
 func testAccCheckDigitalOceanDropletExists(n string, droplet *digitalocean.Droplet) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
-		rs, ok := s.Resources[n]
+		rs, ok := s.RootModule().Resources[n]
 		if !ok {
 			return fmt.Errorf("Not found: %s", n)
 		}
 
-		if rs.ID == "" {
+		if rs.Primary.ID == "" {
 			return fmt.Errorf("No Droplet ID is set")
 		}
 
 		client := testAccProvider.client
 
-		retrieveDroplet, err := client.RetrieveDroplet(rs.ID)
+		retrieveDroplet, err := client.RetrieveDroplet(rs.Primary.ID)
 
 		if err != nil {
 			return err
 		}
 
-		if retrieveDroplet.StringId() != rs.ID {
+		if retrieveDroplet.StringId() != rs.Primary.ID {
 			return fmt.Errorf("Droplet not found")
 		}
 
@@ -230,7 +230,7 @@ func Test_new_droplet_state_refresh_func(t *testing.T) {
 		Name: "foobar",
 	}
 	resourceMap, _ := resource_digitalocean_droplet_update_state(
-		&terraform.ResourceState{Attributes: map[string]string{}}, &droplet)
+		&terraform.InstanceState{Attributes: map[string]string{}}, &droplet)
 
 	// See if we can access our attribute
 	if _, ok := resourceMap.Attributes["name"]; !ok {

@@ -78,12 +78,12 @@ func TestAccCLOudflareRecord_Updated(t *testing.T) {
 func testAccCheckCLOudflareRecordDestroy(s *terraform.State) error {
 	client := testAccProvider.client
 
-	for _, rs := range s.Resources {
+	for _, rs := range s.RootModule().Resources {
 		if rs.Type != "cloudflare_record" {
 			continue
 		}
 
-		_, err := client.RetrieveRecord(rs.Attributes["domain"], rs.ID)
+		_, err := client.RetrieveRecord(rs.Primary.Attributes["domain"], rs.Primary.ID)
 
 		if err == nil {
 			return fmt.Errorf("Record still exists")
@@ -117,25 +117,25 @@ func testAccCheckCLOudflareRecordAttributesUpdated(record *cloudflare.Record) re
 
 func testAccCheckCLOudflareRecordExists(n string, record *cloudflare.Record) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
-		rs, ok := s.Resources[n]
+		rs, ok := s.RootModule().Resources[n]
 
 		if !ok {
 			return fmt.Errorf("Not found: %s", n)
 		}
 
-		if rs.ID == "" {
+		if rs.Primary.ID == "" {
 			return fmt.Errorf("No Record ID is set")
 		}
 
 		client := testAccProvider.client
 
-		foundRecord, err := client.RetrieveRecord(rs.Attributes["domain"], rs.ID)
+		foundRecord, err := client.RetrieveRecord(rs.Primary.Attributes["domain"], rs.Primary.ID)
 
 		if err != nil {
 			return err
 		}
 
-		if foundRecord.Id != rs.ID {
+		if foundRecord.Id != rs.Primary.ID {
 			return fmt.Errorf("Record not found")
 		}
 

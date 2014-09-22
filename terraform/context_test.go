@@ -71,10 +71,17 @@ func TestContextValidate_orphans(t *testing.T) {
 	p := testProvider("aws")
 	config := testConfig(t, "validate-good")
 	state := &State{
-		Resources: map[string]*ResourceState{
-			"aws_instance.web": &ResourceState{
-				ID:   "bar",
-				Type: "aws_instance",
+		Modules: []*ModuleState{
+			&ModuleState{
+				Path: rootModulePath,
+				Resources: map[string]*ResourceState{
+					"aws_instance.web": &ResourceState{
+						Type: "aws_instance",
+						Primary: &InstanceState{
+							ID: "bar",
+						},
+					},
+				},
 			},
 		},
 	}
@@ -348,8 +355,9 @@ func TestContextApply(t *testing.T) {
 		t.Fatalf("err: %s", err)
 	}
 
-	if len(state.Resources) < 2 {
-		t.Fatalf("bad: %#v", state.Resources)
+	mod := state.RootModule()
+	if len(mod.Resources) < 2 {
+		t.Fatalf("bad: %#v", mod.Resources)
 	}
 
 	actual := strings.TrimSpace(state.String())
@@ -403,8 +411,8 @@ func TestContextApply_badDiff(t *testing.T) {
 		t.Fatalf("err: %s", err)
 	}
 
-	p.DiffFn = func(*ResourceState, *ResourceConfig) (*ResourceDiff, error) {
-		return &ResourceDiff{
+	p.DiffFn = func(*InstanceInfo, *InstanceState, *ResourceConfig) (*InstanceDiff, error) {
+		return &InstanceDiff{
 			Attributes: map[string]*ResourceAttrDiff{
 				"newp": nil,
 			},
@@ -428,7 +436,7 @@ func TestContextApply_cancel(t *testing.T) {
 		},
 	})
 
-	p.ApplyFn = func(*ResourceState, *ResourceDiff) (*ResourceState, error) {
+	p.ApplyFn = func(*InstanceInfo, *InstanceState, *InstanceDiff) (*InstanceState, error) {
 		if !stopped {
 			stopped = true
 			go ctx.Stop()
@@ -440,15 +448,15 @@ func TestContextApply_cancel(t *testing.T) {
 			}
 		}
 
-		return &ResourceState{
+		return &InstanceState{
 			ID: "foo",
 			Attributes: map[string]string{
 				"num": "2",
 			},
 		}, nil
 	}
-	p.DiffFn = func(*ResourceState, *ResourceConfig) (*ResourceDiff, error) {
-		return &ResourceDiff{
+	p.DiffFn = func(*InstanceInfo, *InstanceState, *ResourceConfig) (*InstanceDiff, error) {
+		return &InstanceDiff{
 			Attributes: map[string]*ResourceAttrDiff{
 				"num": &ResourceAttrDiff{
 					New: "bar",
@@ -474,8 +482,9 @@ func TestContextApply_cancel(t *testing.T) {
 
 	state := <-stateCh
 
-	if len(state.Resources) != 1 {
-		t.Fatalf("bad: %#v", state.Resources)
+	mod := state.RootModule()
+	if len(mod.Resources) != 1 {
+		t.Fatalf("bad: %#v", mod.Resources)
 	}
 
 	actual := strings.TrimSpace(state.String())
@@ -531,7 +540,7 @@ func TestContextApply_nilDiff(t *testing.T) {
 		t.Fatalf("err: %s", err)
 	}
 
-	p.DiffFn = func(*ResourceState, *ResourceConfig) (*ResourceDiff, error) {
+	p.DiffFn = func(*InstanceInfo, *InstanceState, *ResourceConfig) (*InstanceDiff, error) {
 		return nil, nil
 	}
 
@@ -546,7 +555,7 @@ func TestContextApply_Provisioner_compute(t *testing.T) {
 	pr := testProvisioner()
 	p.ApplyFn = testApplyFn
 	p.DiffFn = testDiffFn
-	pr.ApplyFn = func(rs *ResourceState, c *ResourceConfig) error {
+	pr.ApplyFn = func(rs *InstanceState, c *ResourceConfig) error {
 		val, ok := c.Config["foo"]
 		if !ok || val != "computed_dynamical" {
 			t.Fatalf("bad value for foo: %v %#v", val, c)
@@ -595,7 +604,7 @@ func TestContextApply_provisionerFail(t *testing.T) {
 	p.ApplyFn = testApplyFn
 	p.DiffFn = testDiffFn
 
-	pr.ApplyFn = func(*ResourceState, *ResourceConfig) error {
+	pr.ApplyFn = func(*InstanceState, *ResourceConfig) error {
 		return fmt.Errorf("EXPLOSION")
 	}
 
@@ -634,7 +643,7 @@ func TestContextApply_provisionerResourceRef(t *testing.T) {
 	pr := testProvisioner()
 	p.ApplyFn = testApplyFn
 	p.DiffFn = testDiffFn
-	pr.ApplyFn = func(rs *ResourceState, c *ResourceConfig) error {
+	pr.ApplyFn = func(rs *InstanceState, c *ResourceConfig) error {
 		val, ok := c.Config["foo"]
 		if !ok || val != "2" {
 			t.Fatalf("bad value for foo: %v %#v", val, c)
@@ -678,10 +687,17 @@ func TestContextApply_outputDiffVars(t *testing.T) {
 	c := testConfig(t, "apply-good")
 	p := testProvider("aws")
 	s := &State{
-		Resources: map[string]*ResourceState{
-			"aws_instance.baz": &ResourceState{
-				ID:   "bar",
-				Type: "aws_instance",
+		Modules: []*ModuleState{
+			&ModuleState{
+				Path: rootModulePath,
+				Resources: map[string]*ResourceState{
+					"aws_instance.baz": &ResourceState{
+						Type: "aws_instance",
+						Primary: &InstanceState{
+							ID: "bar",
+						},
+					},
+				},
 			},
 		},
 	}
@@ -693,7 +709,7 @@ func TestContextApply_outputDiffVars(t *testing.T) {
 		State: s,
 	})
 
-	p.ApplyFn = func(s *ResourceState, d *ResourceDiff) (*ResourceState, error) {
+	p.ApplyFn = func(info *InstanceInfo, s *InstanceState, d *InstanceDiff) (*InstanceState, error) {
 		for k, ad := range d.Attributes {
 			if ad.NewComputed {
 				return nil, fmt.Errorf("%s: computed", k)
@@ -704,8 +720,8 @@ func TestContextApply_outputDiffVars(t *testing.T) {
 		result.ID = "foo"
 		return result, nil
 	}
-	p.DiffFn = func(*ResourceState, *ResourceConfig) (*ResourceDiff, error) {
-		return &ResourceDiff{
+	p.DiffFn = func(*InstanceInfo, *InstanceState, *ResourceConfig) (*InstanceDiff, error) {
+		return &InstanceDiff{
 			Attributes: map[string]*ResourceAttrDiff{
 				"foo": &ResourceAttrDiff{
 					NewComputed: true,
@@ -731,13 +747,13 @@ func TestContextApply_Provisioner_ConnInfo(t *testing.T) {
 	p := testProvider("aws")
 	pr := testProvisioner()
 
-	p.ApplyFn = func(s *ResourceState, d *ResourceDiff) (*ResourceState, error) {
-		if s.ConnInfo == nil {
+	p.ApplyFn = func(info *InstanceInfo, s *InstanceState, d *InstanceDiff) (*InstanceState, error) {
+		if s.Ephemeral.ConnInfo == nil {
 			t.Fatalf("ConnInfo not initialized")
 		}
 
-		result, _ := testApplyFn(s, d)
-		result.ConnInfo = map[string]string{
+		result, _ := testApplyFn(info, s, d)
+		result.Ephemeral.ConnInfo = map[string]string{
 			"type": "ssh",
 			"host": "127.0.0.1",
 			"port": "22",
@@ -746,8 +762,8 @@ func TestContextApply_Provisioner_ConnInfo(t *testing.T) {
 	}
 	p.DiffFn = testDiffFn
 
-	pr.ApplyFn = func(rs *ResourceState, c *ResourceConfig) error {
-		conn := rs.ConnInfo
+	pr.ApplyFn = func(rs *InstanceState, c *ResourceConfig) error {
+		conn := rs.Ephemeral.ConnInfo
 		if conn["type"] != "telnet" {
 			t.Fatalf("Bad: %#v", conn)
 		}
@@ -887,8 +903,9 @@ func TestContextApply_destroyOutputs(t *testing.T) {
 		t.Fatalf("err: %s", err)
 	}
 
-	if len(state.Resources) > 0 {
-		t.Fatalf("bad: %#v", state)
+	mod := state.RootModule()
+	if len(mod.Resources) > 0 {
+		t.Fatalf("bad: %#v", mod)
 	}
 }
 
@@ -896,10 +913,17 @@ func TestContextApply_destroyOrphan(t *testing.T) {
 	c := testConfig(t, "apply-error")
 	p := testProvider("aws")
 	s := &State{
-		Resources: map[string]*ResourceState{
-			"aws_instance.baz": &ResourceState{
-				ID:   "bar",
-				Type: "aws_instance",
+		Modules: []*ModuleState{
+			&ModuleState{
+				Path: rootModulePath,
+				Resources: map[string]*ResourceState{
+					"aws_instance.baz": &ResourceState{
+						Type: "aws_instance",
+						Primary: &InstanceState{
+							ID: "bar",
+						},
+					},
+				},
 			},
 		},
 	}
@@ -911,7 +935,7 @@ func TestContextApply_destroyOrphan(t *testing.T) {
 		State: s,
 	})
 
-	p.ApplyFn = func(s *ResourceState, d *ResourceDiff) (*ResourceState, error) {
+	p.ApplyFn = func(info *InstanceInfo, s *InstanceState, d *InstanceDiff) (*InstanceState, error) {
 		if d.Destroy {
 			return nil, nil
 		}
@@ -920,8 +944,8 @@ func TestContextApply_destroyOrphan(t *testing.T) {
 		result.ID = "foo"
 		return result, nil
 	}
-	p.DiffFn = func(*ResourceState, *ResourceConfig) (*ResourceDiff, error) {
-		return &ResourceDiff{
+	p.DiffFn = func(*InstanceInfo, *InstanceState, *ResourceConfig) (*InstanceDiff, error) {
+		return &InstanceDiff{
 			Attributes: map[string]*ResourceAttrDiff{
 				"num": &ResourceAttrDiff{
 					New: "bar",
@@ -939,8 +963,9 @@ func TestContextApply_destroyOrphan(t *testing.T) {
 		t.Fatalf("err: %s", err)
 	}
 
-	if _, ok := state.Resources["aws_instance.baz"]; ok {
-		t.Fatalf("bad: %#v", state.Resources)
+	mod := state.RootModule()
+	if _, ok := mod.Resources["aws_instance.baz"]; ok {
+		t.Fatalf("bad: %#v", mod.Resources)
 	}
 }
 
@@ -956,24 +981,24 @@ func TestContextApply_error(t *testing.T) {
 		},
 	})
 
-	p.ApplyFn = func(*ResourceState, *ResourceDiff) (*ResourceState, error) {
+	p.ApplyFn = func(*InstanceInfo, *InstanceState, *InstanceDiff) (*InstanceState, error) {
 		if errored {
-			state := &ResourceState{
+			state := &InstanceState{
 				ID: "bar",
 			}
 			return state, fmt.Errorf("error")
 		}
 		errored = true
 
-		return &ResourceState{
+		return &InstanceState{
 			ID: "foo",
 			Attributes: map[string]string{
 				"num": "2",
 			},
 		}, nil
 	}
-	p.DiffFn = func(*ResourceState, *ResourceConfig) (*ResourceDiff, error) {
-		return &ResourceDiff{
+	p.DiffFn = func(*InstanceInfo, *InstanceState, *ResourceConfig) (*InstanceDiff, error) {
+		return &InstanceDiff{
 			Attributes: map[string]*ResourceAttrDiff{
 				"num": &ResourceAttrDiff{
 					New: "bar",
@@ -1004,10 +1029,17 @@ func TestContextApply_errorPartial(t *testing.T) {
 	c := testConfig(t, "apply-error")
 	p := testProvider("aws")
 	s := &State{
-		Resources: map[string]*ResourceState{
-			"aws_instance.bar": &ResourceState{
-				ID:   "bar",
-				Type: "aws_instance",
+		Modules: []*ModuleState{
+			&ModuleState{
+				Path: rootModulePath,
+				Resources: map[string]*ResourceState{
+					"aws_instance.bar": &ResourceState{
+						Type: "aws_instance",
+						Primary: &InstanceState{
+							ID: "bar",
+						},
+					},
+				},
 			},
 		},
 	}
@@ -1019,21 +1051,21 @@ func TestContextApply_errorPartial(t *testing.T) {
 		State: s,
 	})
 
-	p.ApplyFn = func(s *ResourceState, d *ResourceDiff) (*ResourceState, error) {
+	p.ApplyFn = func(info *InstanceInfo, s *InstanceState, d *InstanceDiff) (*InstanceState, error) {
 		if errored {
 			return s, fmt.Errorf("error")
 		}
 		errored = true
 
-		return &ResourceState{
+		return &InstanceState{
 			ID: "foo",
 			Attributes: map[string]string{
 				"num": "2",
 			},
 		}, nil
 	}
-	p.DiffFn = func(*ResourceState, *ResourceConfig) (*ResourceDiff, error) {
-		return &ResourceDiff{
+	p.DiffFn = func(*InstanceInfo, *InstanceState, *ResourceConfig) (*InstanceDiff, error) {
+		return &InstanceDiff{
 			Attributes: map[string]*ResourceAttrDiff{
 				"num": &ResourceAttrDiff{
 					New: "bar",
@@ -1051,8 +1083,9 @@ func TestContextApply_errorPartial(t *testing.T) {
 		t.Fatal("should have error")
 	}
 
-	if len(state.Resources) != 2 {
-		t.Fatalf("bad: %#v", state.Resources)
+	mod := state.RootModule()
+	if len(mod.Resources) != 2 {
+		t.Fatalf("bad: %#v", mod.Resources)
 	}
 
 	actual := strings.TrimSpace(state.String())
@@ -1102,7 +1135,7 @@ func TestContextApply_idAttr(t *testing.T) {
 		},
 	})
 
-	p.ApplyFn = func(s *ResourceState, d *ResourceDiff) (*ResourceState, error) {
+	p.ApplyFn = func(info *InstanceInfo, s *InstanceState, d *InstanceDiff) (*InstanceState, error) {
 		result := s.MergeDiff(d)
 		result.ID = "foo"
 		result.Attributes = map[string]string{
@@ -1111,8 +1144,8 @@ func TestContextApply_idAttr(t *testing.T) {
 
 		return result, nil
 	}
-	p.DiffFn = func(*ResourceState, *ResourceConfig) (*ResourceDiff, error) {
-		return &ResourceDiff{
+	p.DiffFn = func(*InstanceInfo, *InstanceState, *ResourceConfig) (*InstanceDiff, error) {
+		return &InstanceDiff{
 			Attributes: map[string]*ResourceAttrDiff{
 				"num": &ResourceAttrDiff{
 					New: "bar",
@@ -1130,15 +1163,16 @@ func TestContextApply_idAttr(t *testing.T) {
 		t.Fatalf("err: %s", err)
 	}
 
-	rs, ok := state.Resources["aws_instance.foo"]
+	mod := state.RootModule()
+	rs, ok := mod.Resources["aws_instance.foo"]
 	if !ok {
 		t.Fatal("not in state")
 	}
-	if rs.ID != "foo" {
-		t.Fatalf("bad: %#v", rs.ID)
+	if rs.Primary.ID != "foo" {
+		t.Fatalf("bad: %#v", rs.Primary.ID)
 	}
-	if rs.Attributes["id"] != "foo" {
-		t.Fatalf("bad: %#v", rs.Attributes)
+	if rs.Primary.Attributes["id"] != "foo" {
+		t.Fatalf("bad: %#v", rs.Primary.Attributes)
 	}
 }
 
@@ -1232,18 +1266,24 @@ func TestContextApply_taint(t *testing.T) {
 	p.ApplyFn = testApplyFn
 	p.DiffFn = testDiffFn
 	s := &State{
-		Resources: map[string]*ResourceState{
-			"aws_instance.bar": &ResourceState{
-				ID:   "baz",
-				Type: "aws_instance",
-				Attributes: map[string]string{
-					"num":  "2",
-					"type": "aws_instance",
+		Modules: []*ModuleState{
+			&ModuleState{
+				Path: rootModulePath,
+				Resources: map[string]*ResourceState{
+					"aws_instance.bar": &ResourceState{
+						Type: "aws_instance",
+						Tainted: []*InstanceState{
+							&InstanceState{
+								ID: "baz",
+								Attributes: map[string]string{
+									"num":  "2",
+									"type": "aws_instance",
+								},
+							},
+						},
+					},
 				},
 			},
-		},
-		Tainted: map[string]struct{}{
-			"aws_instance.bar": struct{}{},
 		},
 	}
 	ctx := testContext(t, &ContextOpts{
@@ -1398,10 +1438,17 @@ func TestContextPlan_nil(t *testing.T) {
 			"aws": testProviderFuncFixed(p),
 		},
 		State: &State{
-			Resources: map[string]*ResourceState{
-				"aws_instance.foo": &ResourceState{
-					ID:   "bar",
-					Type: "aws_instance",
+			Modules: []*ModuleState{
+				&ModuleState{
+					Path: rootModulePath,
+					Resources: map[string]*ResourceState{
+						"aws_instance.foo": &ResourceState{
+							Type: "aws_instance",
+							Primary: &InstanceState{
+								ID: "bar",
+							},
+						},
+					},
 				},
 			},
 		},
@@ -1494,22 +1541,33 @@ func TestContextPlan_countDecreaseToOne(t *testing.T) {
 	p := testProvider("aws")
 	p.DiffFn = testDiffFn
 	s := &State{
-		Resources: map[string]*ResourceState{
-			"aws_instance.foo.0": &ResourceState{
-				ID:   "bar",
-				Type: "aws_instance",
-				Attributes: map[string]string{
-					"foo":  "foo",
-					"type": "aws_instance",
+		Modules: []*ModuleState{
+			&ModuleState{
+				Path: rootModulePath,
+				Resources: map[string]*ResourceState{
+					"aws_instance.foo.0": &ResourceState{
+						Type: "aws_instance",
+						Primary: &InstanceState{
+							ID: "bar",
+							Attributes: map[string]string{
+								"foo":  "foo",
+								"type": "aws_instance",
+							},
+						},
+					},
+					"aws_instance.foo.1": &ResourceState{
+						Type: "aws_instance",
+						Primary: &InstanceState{
+							ID: "bar",
+						},
+					},
+					"aws_instance.foo.2": &ResourceState{
+						Type: "aws_instance",
+						Primary: &InstanceState{
+							ID: "bar",
+						},
+					},
 				},
-			},
-			"aws_instance.foo.1": &ResourceState{
-				ID:   "bar",
-				Type: "aws_instance",
-			},
-			"aws_instance.foo.2": &ResourceState{
-				ID:   "bar",
-				Type: "aws_instance",
 			},
 		},
 	}
@@ -1538,13 +1596,20 @@ func TestContextPlan_countIncreaseFromNotSet(t *testing.T) {
 	p := testProvider("aws")
 	p.DiffFn = testDiffFn
 	s := &State{
-		Resources: map[string]*ResourceState{
-			"aws_instance.foo": &ResourceState{
-				ID:   "bar",
-				Type: "aws_instance",
-				Attributes: map[string]string{
-					"foo":  "foo",
-					"type": "aws_instance",
+		Modules: []*ModuleState{
+			&ModuleState{
+				Path: rootModulePath,
+				Resources: map[string]*ResourceState{
+					"aws_instance.foo": &ResourceState{
+						Type: "aws_instance",
+						Primary: &InstanceState{
+							ID: "bar",
+							Attributes: map[string]string{
+								"foo":  "foo",
+								"type": "aws_instance",
+							},
+						},
+					},
 				},
 			},
 		},
@@ -1574,13 +1639,20 @@ func TestContextPlan_countIncreaseFromOne(t *testing.T) {
 	p := testProvider("aws")
 	p.DiffFn = testDiffFn
 	s := &State{
-		Resources: map[string]*ResourceState{
-			"aws_instance.foo.0": &ResourceState{
-				ID:   "bar",
-				Type: "aws_instance",
-				Attributes: map[string]string{
-					"foo":  "foo",
-					"type": "aws_instance",
+		Modules: []*ModuleState{
+			&ModuleState{
+				Path: rootModulePath,
+				Resources: map[string]*ResourceState{
+					"aws_instance.foo.0": &ResourceState{
+						Type: "aws_instance",
+						Primary: &InstanceState{
+							ID: "bar",
+							Attributes: map[string]string{
+								"foo":  "foo",
+								"type": "aws_instance",
+							},
+						},
+					},
 				},
 			},
 		},
@@ -1610,14 +1682,23 @@ func TestContextPlan_destroy(t *testing.T) {
 	p := testProvider("aws")
 	p.DiffFn = testDiffFn
 	s := &State{
-		Resources: map[string]*ResourceState{
-			"aws_instance.one": &ResourceState{
-				ID:   "bar",
-				Type: "aws_instance",
-			},
-			"aws_instance.two": &ResourceState{
-				ID:   "baz",
-				Type: "aws_instance",
+		Modules: []*ModuleState{
+			&ModuleState{
+				Path: rootModulePath,
+				Resources: map[string]*ResourceState{
+					"aws_instance.one": &ResourceState{
+						Type: "aws_instance",
+						Primary: &InstanceState{
+							ID: "bar",
+						},
+					},
+					"aws_instance.two": &ResourceState{
+						Type: "aws_instance",
+						Primary: &InstanceState{
+							ID: "baz",
+						},
+					},
+				},
 			},
 		},
 	}
@@ -1649,11 +1730,18 @@ func TestContextPlan_diffVar(t *testing.T) {
 	c := testConfig(t, "plan-diffvar")
 	p := testProvider("aws")
 	s := &State{
-		Resources: map[string]*ResourceState{
-			"aws_instance.foo": &ResourceState{
-				ID: "bar",
-				Attributes: map[string]string{
-					"num": "2",
+		Modules: []*ModuleState{
+			&ModuleState{
+				Path: rootModulePath,
+				Resources: map[string]*ResourceState{
+					"aws_instance.foo": &ResourceState{
+						Primary: &InstanceState{
+							ID: "bar",
+							Attributes: map[string]string{
+								"num": "2",
+							},
+						},
+					},
 				},
 			},
 		},
@@ -1667,12 +1755,14 @@ func TestContextPlan_diffVar(t *testing.T) {
 	})
 
 	p.DiffFn = func(
-		s *ResourceState, c *ResourceConfig) (*ResourceDiff, error) {
+		info *InstanceInfo,
+		s *InstanceState,
+		c *ResourceConfig) (*InstanceDiff, error) {
 		if s.ID != "bar" {
-			return testDiffFn(s, c)
+			return testDiffFn(info, s, c)
 		}
 
-		return &ResourceDiff{
+		return &InstanceDiff{
 			Attributes: map[string]*ResourceAttrDiff{
 				"num": &ResourceAttrDiff{
 					Old: "2",
@@ -1690,7 +1780,7 @@ func TestContextPlan_diffVar(t *testing.T) {
 	actual := strings.TrimSpace(plan.String())
 	expected := strings.TrimSpace(testTerraformPlanDiffVarStr)
 	if actual != expected {
-		t.Fatalf("bad:\n%s", actual)
+		t.Fatalf("actual:\n%s\n\nexpected:\n%s", actual, expected)
 	}
 }
 
@@ -1725,10 +1815,17 @@ func TestContextPlan_orphan(t *testing.T) {
 	p := testProvider("aws")
 	p.DiffFn = testDiffFn
 	s := &State{
-		Resources: map[string]*ResourceState{
-			"aws_instance.baz": &ResourceState{
-				ID:   "bar",
-				Type: "aws_instance",
+		Modules: []*ModuleState{
+			&ModuleState{
+				Path: rootModulePath,
+				Resources: map[string]*ResourceState{
+					"aws_instance.baz": &ResourceState{
+						Type: "aws_instance",
+						Primary: &InstanceState{
+							ID: "bar",
+						},
+					},
+				},
 			},
 		},
 	}
@@ -1757,9 +1854,16 @@ func TestContextPlan_state(t *testing.T) {
 	p := testProvider("aws")
 	p.DiffFn = testDiffFn
 	s := &State{
-		Resources: map[string]*ResourceState{
-			"aws_instance.foo": &ResourceState{
-				ID: "bar",
+		Modules: []*ModuleState{
+			&ModuleState{
+				Path: rootModulePath,
+				Resources: map[string]*ResourceState{
+					"aws_instance.foo": &ResourceState{
+						Primary: &InstanceState{
+							ID: "bar",
+						},
+					},
+				},
 			},
 		},
 	}
@@ -1783,7 +1887,7 @@ func TestContextPlan_state(t *testing.T) {
 	actual := strings.TrimSpace(plan.String())
 	expected := strings.TrimSpace(testTerraformPlanStateStr)
 	if actual != expected {
-		t.Fatalf("bad:\n%s", actual)
+		t.Fatalf("bad:\n%s\n\nexpected:\n\n%s", actual, expected)
 	}
 }
 
@@ -1792,18 +1896,28 @@ func TestContextPlan_taint(t *testing.T) {
 	p := testProvider("aws")
 	p.DiffFn = testDiffFn
 	s := &State{
-		Resources: map[string]*ResourceState{
-			"aws_instance.foo": &ResourceState{
-				ID:         "bar",
-				Type:       "aws_instance",
-				Attributes: map[string]string{"num": "2"},
-			},
-			"aws_instance.bar": &ResourceState{
-				ID:   "baz",
-				Type: "aws_instance",
+		Modules: []*ModuleState{
+			&ModuleState{
+				Path: rootModulePath,
+				Resources: map[string]*ResourceState{
+					"aws_instance.foo": &ResourceState{
+						Type: "aws_instance",
+						Primary: &InstanceState{
+							ID:         "bar",
+							Attributes: map[string]string{"num": "2"},
+						},
+					},
+					"aws_instance.bar": &ResourceState{
+						Type: "aws_instance",
+						Tainted: []*InstanceState{
+							&InstanceState{
+								ID: "baz",
+							},
+						},
+					},
+				},
 			},
 		},
-		Tainted: map[string]struct{}{"aws_instance.bar": struct{}{}},
 	}
 	ctx := testContext(t, &ContextOpts{
 		Config: c,
@@ -1820,6 +1934,57 @@ func TestContextPlan_taint(t *testing.T) {
 
 	actual := strings.TrimSpace(plan.String())
 	expected := strings.TrimSpace(testTerraformPlanTaintStr)
+	if actual != expected {
+		t.Fatalf("bad:\n%s", actual)
+	}
+}
+
+func TestContextPlan_multiple_taint(t *testing.T) {
+	c := testConfig(t, "plan-taint")
+	p := testProvider("aws")
+	p.DiffFn = testDiffFn
+	s := &State{
+		Modules: []*ModuleState{
+			&ModuleState{
+				Path: rootModulePath,
+				Resources: map[string]*ResourceState{
+					"aws_instance.foo": &ResourceState{
+						Type: "aws_instance",
+						Primary: &InstanceState{
+							ID:         "bar",
+							Attributes: map[string]string{"num": "2"},
+						},
+					},
+					"aws_instance.bar": &ResourceState{
+						Type: "aws_instance",
+						Tainted: []*InstanceState{
+							&InstanceState{
+								ID: "baz",
+							},
+							&InstanceState{
+								ID: "zip",
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+	ctx := testContext(t, &ContextOpts{
+		Config: c,
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+		State: s,
+	})
+
+	plan, err := ctx.Plan(nil)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	actual := strings.TrimSpace(plan.String())
+	expected := strings.TrimSpace(testTerraformPlanMultipleTaintStr)
 	if actual != expected {
 		t.Fatalf("bad:\n%s", actual)
 	}
@@ -1857,21 +2022,29 @@ func TestContextRefresh(t *testing.T) {
 			"aws": testProviderFuncFixed(p),
 		},
 		State: &State{
-			Resources: map[string]*ResourceState{
-				"aws_instance.web": &ResourceState{
-					ID:   "foo",
-					Type: "aws_instance",
+			Modules: []*ModuleState{
+				&ModuleState{
+					Path: rootModulePath,
+					Resources: map[string]*ResourceState{
+						"aws_instance.web": &ResourceState{
+							Type: "aws_instance",
+							Primary: &InstanceState{
+								ID: "foo",
+							},
+						},
+					},
 				},
 			},
 		},
 	})
 
 	p.RefreshFn = nil
-	p.RefreshReturn = &ResourceState{
+	p.RefreshReturn = &InstanceState{
 		ID: "foo",
 	}
 
 	s, err := ctx.Refresh()
+	mod := s.RootModule()
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -1881,11 +2054,11 @@ func TestContextRefresh(t *testing.T) {
 	if p.RefreshState.ID != "foo" {
 		t.Fatalf("bad: %#v", p.RefreshState)
 	}
-	if !reflect.DeepEqual(s.Resources["aws_instance.web"], p.RefreshReturn) {
-		t.Fatalf("bad: %#v", s.Resources["aws_instance.web"])
+	if !reflect.DeepEqual(mod.Resources["aws_instance.web"].Primary, p.RefreshReturn) {
+		t.Fatalf("bad: %#v %#v", mod.Resources["aws_instance.web"], p.RefreshReturn)
 	}
 
-	for _, r := range s.Resources {
+	for _, r := range mod.Resources {
 		if r.Type == "" {
 			t.Fatalf("no type: %#v", r)
 		}
@@ -1901,10 +2074,17 @@ func TestContextRefresh_delete(t *testing.T) {
 			"aws": testProviderFuncFixed(p),
 		},
 		State: &State{
-			Resources: map[string]*ResourceState{
-				"aws_instance.web": &ResourceState{
-					ID:   "foo",
-					Type: "aws_instance",
+			Modules: []*ModuleState{
+				&ModuleState{
+					Path: rootModulePath,
+					Resources: map[string]*ResourceState{
+						"aws_instance.web": &ResourceState{
+							Type: "aws_instance",
+							Primary: &InstanceState{
+								ID: "foo",
+							},
+						},
+					},
 				},
 			},
 		},
@@ -1918,7 +2098,8 @@ func TestContextRefresh_delete(t *testing.T) {
 		t.Fatalf("err: %s", err)
 	}
 
-	if len(s.Resources) > 0 {
+	mod := s.RootModule()
+	if len(mod.Resources) > 0 {
 		t.Fatal("resources should be empty")
 	}
 }
@@ -1935,7 +2116,7 @@ func TestContextRefresh_ignoreUncreated(t *testing.T) {
 	})
 
 	p.RefreshFn = nil
-	p.RefreshReturn = &ResourceState{
+	p.RefreshReturn = &InstanceState{
 		ID: "foo",
 	}
 
@@ -1959,10 +2140,17 @@ func TestContextRefresh_hook(t *testing.T) {
 			"aws": testProviderFuncFixed(p),
 		},
 		State: &State{
-			Resources: map[string]*ResourceState{
-				"aws_instance.web": &ResourceState{
-					ID:   "foo",
-					Type: "aws_instance",
+			Modules: []*ModuleState{
+				&ModuleState{
+					Path: rootModulePath,
+					Resources: map[string]*ResourceState{
+						"aws_instance.web": &ResourceState{
+							Type: "aws_instance",
+							Primary: &InstanceState{
+								ID: "foo",
+							},
+						},
+					},
 				},
 			},
 		},
@@ -1974,24 +2162,37 @@ func TestContextRefresh_hook(t *testing.T) {
 	if !h.PreRefreshCalled {
 		t.Fatal("should be called")
 	}
-	if h.PreRefreshState.Type != "aws_instance" {
-		t.Fatalf("bad: %#v", h.PreRefreshState)
-	}
+	/*
+		TODO(mitchcellh): remove when we add InstanceInfo param
+		if h.PreRefreshState.Type != "aws_instance" {
+			t.Fatalf("bad: %#v", h.PreRefreshState)
+		}
+	*/
 	if !h.PostRefreshCalled {
 		t.Fatal("should be called")
 	}
-	if h.PostRefreshState.Type != "aws_instance" {
-		t.Fatalf("bad: %#v", h.PostRefreshState)
-	}
+	/*
+		TODO(mitchcellh): remove when we add InstanceInfo param
+		if h.PostRefreshState.Type != "aws_instance" {
+			t.Fatalf("bad: %#v", h.PostRefreshState)
+		}
+	*/
 }
 
 func TestContextRefresh_state(t *testing.T) {
 	p := testProvider("aws")
 	c := testConfig(t, "refresh-basic")
 	state := &State{
-		Resources: map[string]*ResourceState{
-			"aws_instance.web": &ResourceState{
-				ID: "bar",
+		Modules: []*ModuleState{
+			&ModuleState{
+				Path: rootModulePath,
+				Resources: map[string]*ResourceState{
+					"aws_instance.web": &ResourceState{
+						Primary: &InstanceState{
+							ID: "bar",
+						},
+					},
+				},
 			},
 		},
 	}
@@ -2004,7 +2205,57 @@ func TestContextRefresh_state(t *testing.T) {
 	})
 
 	p.RefreshFn = nil
-	p.RefreshReturn = &ResourceState{
+	p.RefreshReturn = &InstanceState{
+		ID: "foo",
+	}
+
+	s, err := ctx.Refresh()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	originalMod := state.RootModule()
+	mod := s.RootModule()
+	if !p.RefreshCalled {
+		t.Fatal("refresh should be called")
+	}
+	if !reflect.DeepEqual(p.RefreshState, originalMod.Resources["aws_instance.web"].Primary) {
+		t.Fatalf("bad: %#v %#v", p.RefreshState, originalMod.Resources["aws_instance.web"].Primary)
+	}
+	if !reflect.DeepEqual(mod.Resources["aws_instance.web"].Primary, p.RefreshReturn) {
+		t.Fatalf("bad: %#v", mod.Resources)
+	}
+}
+
+func TestContextRefresh_tainted(t *testing.T) {
+	p := testProvider("aws")
+	c := testConfig(t, "refresh-basic")
+	state := &State{
+		Modules: []*ModuleState{
+			&ModuleState{
+				Path: rootModulePath,
+				Resources: map[string]*ResourceState{
+					"aws_instance.web": &ResourceState{
+						Type: "aws_instance",
+						Tainted: []*InstanceState{
+							&InstanceState{
+								ID: "bar",
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+	ctx := testContext(t, &ContextOpts{
+		Config: c,
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+		State: state,
+	})
+
+	p.RefreshFn = nil
+	p.RefreshReturn = &InstanceState{
 		ID: "foo",
 	}
 
@@ -2015,11 +2266,11 @@ func TestContextRefresh_state(t *testing.T) {
 	if !p.RefreshCalled {
 		t.Fatal("refresh should be called")
 	}
-	if !reflect.DeepEqual(p.RefreshState, state.Resources["aws_instance.web"]) {
-		t.Fatalf("bad: %#v", p.RefreshState)
-	}
-	if !reflect.DeepEqual(s.Resources["aws_instance.web"], p.RefreshReturn) {
-		t.Fatalf("bad: %#v", s.Resources)
+
+	actual := strings.TrimSpace(s.String())
+	expected := strings.TrimSpace(testContextRefreshTaintedStr)
+	if actual != expected {
+		t.Fatalf("bad:\n\n%s\n\n%s", actual, expected)
 	}
 }
 
@@ -2032,17 +2283,25 @@ func TestContextRefresh_vars(t *testing.T) {
 			"aws": testProviderFuncFixed(p),
 		},
 		State: &State{
-			Resources: map[string]*ResourceState{
-				"aws_instance.web": &ResourceState{
-					ID:   "foo",
-					Type: "aws_instance",
+
+			Modules: []*ModuleState{
+				&ModuleState{
+					Path: rootModulePath,
+					Resources: map[string]*ResourceState{
+						"aws_instance.web": &ResourceState{
+							Type: "aws_instance",
+							Primary: &InstanceState{
+								ID: "foo",
+							},
+						},
+					},
 				},
 			},
 		},
 	})
 
 	p.RefreshFn = nil
-	p.RefreshReturn = &ResourceState{
+	p.RefreshReturn = &InstanceState{
 		ID: "foo",
 	}
 
@@ -2050,17 +2309,18 @@ func TestContextRefresh_vars(t *testing.T) {
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
+	mod := s.RootModule()
 	if !p.RefreshCalled {
 		t.Fatal("refresh should be called")
 	}
 	if p.RefreshState.ID != "foo" {
 		t.Fatalf("bad: %#v", p.RefreshState)
 	}
-	if !reflect.DeepEqual(s.Resources["aws_instance.web"], p.RefreshReturn) {
-		t.Fatalf("bad: %#v", s.Resources["aws_instance.web"])
+	if !reflect.DeepEqual(mod.Resources["aws_instance.web"].Primary, p.RefreshReturn) {
+		t.Fatalf("bad: %#v", mod.Resources["aws_instance.web"])
 	}
 
-	for _, r := range s.Resources {
+	for _, r := range mod.Resources {
 		if r.Type == "" {
 			t.Fatalf("no type: %#v", r)
 		}
@@ -2072,8 +2332,9 @@ func testContext(t *testing.T, opts *ContextOpts) *Context {
 }
 
 func testApplyFn(
-	s *ResourceState,
-	d *ResourceDiff) (*ResourceState, error) {
+	info *InstanceInfo,
+	s *InstanceState,
+	d *InstanceDiff) (*InstanceState, error) {
 	if d.Destroy {
 		return nil, nil
 	}
@@ -2083,29 +2344,21 @@ func testApplyFn(
 		id = idAttr.New
 	}
 
-	result := &ResourceState{
+	result := &InstanceState{
 		ID: id,
 	}
 
 	if d != nil {
 		result = result.MergeDiff(d)
 	}
-
-	if depAttr, ok := d.Attributes["dep"]; ok {
-		result.Dependencies = []ResourceDependency{
-			ResourceDependency{
-				ID: depAttr.New,
-			},
-		}
-	}
-
 	return result, nil
 }
 
 func testDiffFn(
-	s *ResourceState,
-	c *ResourceConfig) (*ResourceDiff, error) {
-	var diff ResourceDiff
+	info *InstanceInfo,
+	s *InstanceState,
+	c *ResourceConfig) (*InstanceDiff, error) {
+	var diff InstanceDiff
 	diff.Attributes = make(map[string]*ResourceAttrDiff)
 
 	for k, v := range c.Raw {
@@ -2185,7 +2438,7 @@ func testDiffFn(
 	if !diff.Empty() {
 		diff.Attributes["type"] = &ResourceAttrDiff{
 			Old: "",
-			New: s.Type,
+			New: info.Type,
 		}
 	}
 
@@ -2194,7 +2447,7 @@ func testDiffFn(
 
 func testProvider(prefix string) *MockResourceProvider {
 	p := new(MockResourceProvider)
-	p.RefreshFn = func(s *ResourceState) (*ResourceState, error) {
+	p.RefreshFn = func(info *InstanceInfo, s *InstanceState) (*InstanceState, error) {
 		return s, nil
 	}
 	p.ResourcesReturn = []ResourceType{
@@ -2221,4 +2474,10 @@ provider.aws
 root
   root -> aws_instance.bar
   root -> aws_instance.foo
+`
+
+const testContextRefreshTaintedStr = `
+aws_instance.web: (1 tainted)
+  ID = <not created>
+  Tainted ID 1 = foo
 `

@@ -22,9 +22,9 @@ func resource_aws_s3_bucket_validation() *config.Validator {
 }
 
 func resource_aws_s3_bucket_create(
-	s *terraform.ResourceState,
-	d *terraform.ResourceDiff,
-	meta interface{}) (*terraform.ResourceState, error) {
+	s *terraform.InstanceState,
+	d *terraform.InstanceDiff,
+	meta interface{}) (*terraform.InstanceState, error) {
 	p := meta.(*ResourceProvider)
 	s3conn := p.s3conn
 
@@ -52,7 +52,7 @@ func resource_aws_s3_bucket_create(
 }
 
 func resource_aws_s3_bucket_destroy(
-	s *terraform.ResourceState,
+	s *terraform.InstanceState,
 	meta interface{}) error {
 	p := meta.(*ResourceProvider)
 	s3conn := p.s3conn
@@ -65,8 +65,8 @@ func resource_aws_s3_bucket_destroy(
 }
 
 func resource_aws_s3_bucket_refresh(
-	s *terraform.ResourceState,
-	meta interface{}) (*terraform.ResourceState, error) {
+	s *terraform.InstanceState,
+	meta interface{}) (*terraform.InstanceState, error) {
 	p := meta.(*ResourceProvider)
 	s3conn := p.s3conn
 
@@ -80,9 +80,9 @@ func resource_aws_s3_bucket_refresh(
 }
 
 func resource_aws_s3_bucket_diff(
-	s *terraform.ResourceState,
+	s *terraform.InstanceState,
 	c *terraform.ResourceConfig,
-	meta interface{}) (*terraform.ResourceDiff, error) {
+	meta interface{}) (*terraform.InstanceDiff, error) {
 
 	b := &diff.ResourceBuilder{
 		Attrs: map[string]diff.AttrType{

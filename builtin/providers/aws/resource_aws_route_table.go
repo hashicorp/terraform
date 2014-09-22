@@ -14,9 +14,9 @@ import (
 )
 
 func resource_aws_route_table_create(
-	s *terraform.ResourceState,
-	d *terraform.ResourceDiff,
-	meta interface{}) (*terraform.ResourceState, error) {
+	s *terraform.InstanceState,
+	d *terraform.InstanceDiff,
+	meta interface{}) (*terraform.InstanceState, error) {
 	p := meta.(*ResourceProvider)
 	ec2conn := p.ec2conn
 
@@ -56,9 +56,9 @@ func resource_aws_route_table_create(
 }
 
 func resource_aws_route_table_update(
-	s *terraform.ResourceState,
-	d *terraform.ResourceDiff,
-	meta interface{}) (*terraform.ResourceState, error) {
+	s *terraform.InstanceState,
+	d *terraform.InstanceDiff,
+	meta interface{}) (*terraform.InstanceState, error) {
 	p := meta.(*ResourceProvider)
 	ec2conn := p.ec2conn
 
@@ -133,7 +133,7 @@ func resource_aws_route_table_update(
 }
 
 func resource_aws_route_table_destroy(
-	s *terraform.ResourceState,
+	s *terraform.InstanceState,
 	meta interface{}) error {
 	p := meta.(*ResourceProvider)
 	ec2conn := p.ec2conn
@@ -188,8 +188,8 @@ func resource_aws_route_table_destroy(
 }
 
 func resource_aws_route_table_refresh(
-	s *terraform.ResourceState,
-	meta interface{}) (*terraform.ResourceState, error) {
+	s *terraform.InstanceState,
+	meta interface{}) (*terraform.InstanceState, error) {
 	p := meta.(*ResourceProvider)
 	ec2conn := p.ec2conn
 
@@ -206,9 +206,9 @@ func resource_aws_route_table_refresh(
 }
 
 func resource_aws_route_table_diff(
-	s *terraform.ResourceState,
+	s *terraform.InstanceState,
 	c *terraform.ResourceConfig,
-	meta interface{}) (*terraform.ResourceDiff, error) {
+	meta interface{}) (*terraform.InstanceDiff, error) {
 	b := &diff.ResourceBuilder{
 		Attrs: map[string]diff.AttrType{
 			"vpc_id": diff.AttrTypeCreate,
@@ -220,14 +220,9 @@ func resource_aws_route_table_diff(
 }
 
 func resource_aws_route_table_update_state(
-	s *terraform.ResourceState,
-	rt *ec2.RouteTable) (*terraform.ResourceState, error) {
+	s *terraform.InstanceState,
+	rt *ec2.RouteTable) (*terraform.InstanceState, error) {
 	s.Attributes["vpc_id"] = rt.VpcId
-
-	// We belong to a VPC
-	s.Dependencies = []terraform.ResourceDependency{
-		terraform.ResourceDependency{ID: rt.VpcId},
-	}
 
 	return s, nil
 }

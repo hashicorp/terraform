@@ -13,9 +13,9 @@ import (
 )
 
 func resource_aws_vpc_create(
-	s *terraform.ResourceState,
-	d *terraform.ResourceDiff,
-	meta interface{}) (*terraform.ResourceState, error) {
+	s *terraform.InstanceState,
+	d *terraform.InstanceDiff,
+	meta interface{}) (*terraform.InstanceState, error) {
 	p := meta.(*ResourceProvider)
 	ec2conn := p.ec2conn
 
@@ -89,9 +89,9 @@ func resource_aws_vpc_create(
 }
 
 func resource_aws_vpc_update(
-	s *terraform.ResourceState,
-	d *terraform.ResourceDiff,
-	meta interface{}) (*terraform.ResourceState, error) {
+	s *terraform.InstanceState,
+	d *terraform.InstanceDiff,
+	meta interface{}) (*terraform.InstanceState, error) {
 	p := meta.(*ResourceProvider)
 	ec2conn := p.ec2conn
 	rs := s.MergeDiff(d)
@@ -132,7 +132,7 @@ func resource_aws_vpc_update(
 }
 
 func resource_aws_vpc_destroy(
-	s *terraform.ResourceState,
+	s *terraform.InstanceState,
 	meta interface{}) error {
 	p := meta.(*ResourceProvider)
 	ec2conn := p.ec2conn
@@ -151,8 +151,8 @@ func resource_aws_vpc_destroy(
 }
 
 func resource_aws_vpc_refresh(
-	s *terraform.ResourceState,
-	meta interface{}) (*terraform.ResourceState, error) {
+	s *terraform.InstanceState,
+	meta interface{}) (*terraform.InstanceState, error) {
 	p := meta.(*ResourceProvider)
 	ec2conn := p.ec2conn
 
@@ -180,9 +180,9 @@ func resource_aws_vpc_refresh(
 }
 
 func resource_aws_vpc_diff(
-	s *terraform.ResourceState,
+	s *terraform.InstanceState,
 	c *terraform.ResourceConfig,
-	meta interface{}) (*terraform.ResourceDiff, error) {
+	meta interface{}) (*terraform.InstanceDiff, error) {
 	b := &diff.ResourceBuilder{
 		Attrs: map[string]diff.AttrType{
 			"cidr_block":           diff.AttrTypeCreate,
@@ -200,8 +200,8 @@ func resource_aws_vpc_diff(
 }
 
 func resource_aws_vpc_update_state(
-	s *terraform.ResourceState,
-	vpc *ec2.VPC) (*terraform.ResourceState, error) {
+	s *terraform.InstanceState,
+	vpc *ec2.VPC) (*terraform.InstanceState, error) {
 	s.Attributes["cidr_block"] = vpc.CidrBlock
 	return s, nil
 }

@@ -28,9 +28,9 @@ func resource_aws_r53_record_validation() *config.Validator {
 }
 
 func resource_aws_r53_record_create(
-	s *terraform.ResourceState,
-	d *terraform.ResourceDiff,
-	meta interface{}) (*terraform.ResourceState, error) {
+	s *terraform.InstanceState,
+	d *terraform.InstanceDiff,
+	meta interface{}) (*terraform.InstanceState, error) {
 	p := meta.(*ResourceProvider)
 	conn := p.route53
 
@@ -87,9 +87,6 @@ func resource_aws_r53_record_create(
 
 	// Generate an ID
 	rs.ID = fmt.Sprintf("%s_%s_%s", zone, rs.Attributes["name"], rs.Attributes["type"])
-	rs.Dependencies = []terraform.ResourceDependency{
-		terraform.ResourceDependency{ID: zone},
-	}
 
 	// Wait until we are done
 	wait = resource.StateChangeConf{
@@ -109,7 +106,7 @@ func resource_aws_r53_record_create(
 	return rs, nil
 }
 
-func resource_aws_r53_build_record_set(s *terraform.ResourceState) (*route53.ResourceRecordSet, error) {
+func resource_aws_r53_build_record_set(s *terraform.InstanceState) (*route53.ResourceRecordSet, error) {
 	// Parse the TTL
 	ttl, err := strconv.ParseInt(s.Attributes["ttl"], 10, 32)
 	if err != nil {
@@ -133,7 +130,7 @@ func resource_aws_r53_build_record_set(s *terraform.ResourceState) (*route53.Res
 }
 
 func resource_aws_r53_record_destroy(
-	s *terraform.ResourceState,
+	s *terraform.InstanceState,
 	meta interface{}) error {
 	p := meta.(*ResourceProvider)
 	conn := p.route53
@@ -185,8 +182,8 @@ func resource_aws_r53_record_destroy(
 }
 
 func resource_aws_r53_record_refresh(
-	s *terraform.ResourceState,
-	meta interface{}) (*terraform.ResourceState, error) {
+	s *terraform.InstanceState,
+	meta interface{}) (*terraform.InstanceState, error) {
 	p := meta.(*ResourceProvider)
 	conn := p.route53
 
@@ -221,7 +218,7 @@ func resource_aws_r53_record_refresh(
 }
 
 func resource_aws_r53_record_update_state(
-	s *terraform.ResourceState,
+	s *terraform.InstanceState,
 	rec *route53.ResourceRecordSet) {
 
 	flatRec := flatmap.Flatten(map[string]interface{}{
@@ -235,9 +232,9 @@ func resource_aws_r53_record_update_state(
 }
 
 func resource_aws_r53_record_diff(
-	s *terraform.ResourceState,
+	s *terraform.InstanceState,
 	c *terraform.ResourceConfig,
-	meta interface{}) (*terraform.ResourceDiff, error) {
+	meta interface{}) (*terraform.InstanceDiff, error) {
 	b := &diff.ResourceBuilder{
 		Attrs: map[string]diff.AttrType{
 			"zone_id": diff.AttrTypeCreate,

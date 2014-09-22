@@ -31,12 +31,13 @@ func (m *Map) Validate(
 // Apply performs a create or update depending on the diff, and calls
 // the proper function on the matching Resource.
 func (m *Map) Apply(
-	s *terraform.ResourceState,
-	d *terraform.ResourceDiff,
-	meta interface{}) (*terraform.ResourceState, error) {
-	r, ok := m.Mapping[s.Type]
+	info *terraform.InstanceInfo,
+	s *terraform.InstanceState,
+	d *terraform.InstanceDiff,
+	meta interface{}) (*terraform.InstanceState, error) {
+	r, ok := m.Mapping[info.Type]
 	if !ok {
-		return nil, fmt.Errorf("Unknown resource type: %s", s.Type)
+		return nil, fmt.Errorf("Unknown resource type: %s", info.Type)
 	}
 
 	if d.Destroy || d.RequiresNew() {
@@ -57,7 +58,7 @@ func (m *Map) Apply(
 		}
 	}
 
-	var result *terraform.ResourceState
+	var result *terraform.InstanceState
 	var err error
 	if s.ID == "" {
 		result, err = r.Create(s, d, meta)
@@ -65,7 +66,7 @@ func (m *Map) Apply(
 		if r.Update == nil {
 			return s, fmt.Errorf(
 				"Resource type '%s' doesn't support update",
-				s.Type)
+				info.Type)
 		}
 
 		result, err = r.Update(s, d, meta)
@@ -83,12 +84,13 @@ func (m *Map) Apply(
 
 // Diff performs a diff on the proper resource type.
 func (m *Map) Diff(
-	s *terraform.ResourceState,
+	info *terraform.InstanceInfo,
+	s *terraform.InstanceState,
 	c *terraform.ResourceConfig,
-	meta interface{}) (*terraform.ResourceDiff, error) {
-	r, ok := m.Mapping[s.Type]
+	meta interface{}) (*terraform.InstanceDiff, error) {
+	r, ok := m.Mapping[info.Type]
 	if !ok {
-		return nil, fmt.Errorf("Unknown resource type: %s", s.Type)
+		return nil, fmt.Errorf("Unknown resource type: %s", info.Type)
 	}
 
 	return r.Diff(s, c, meta)
@@ -101,16 +103,17 @@ func (m *Map) Diff(
 //
 // An error is returned if the resource isn't registered.
 func (m *Map) Refresh(
-	s *terraform.ResourceState,
-	meta interface{}) (*terraform.ResourceState, error) {
+	info *terraform.InstanceInfo,
+	s *terraform.InstanceState,
+	meta interface{}) (*terraform.InstanceState, error) {
 	// If the resource isn't created, don't refresh.
 	if s.ID == "" {
 		return s, nil
 	}
 
-	r, ok := m.Mapping[s.Type]
+	r, ok := m.Mapping[info.Type]
 	if !ok {
-		return nil, fmt.Errorf("Unknown resource type: %s", s.Type)
+		return nil, fmt.Errorf("Unknown resource type: %s", info.Type)
 	}
 
 	return r.Refresh(s, meta)

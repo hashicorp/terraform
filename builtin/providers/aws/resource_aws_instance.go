@@ -11,7 +11,6 @@ import (
 	"github.com/hashicorp/terraform/helper/hashcode"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
-	"github.com/hashicorp/terraform/terraform"
 	"github.com/mitchellh/goamz/ec2"
 )
 
@@ -316,8 +315,6 @@ func resourceAwsInstanceRead(d *schema.ResourceData, meta interface{}) error {
 	d.Set("subnet_id", instance.SubnetId)
 	d.Set("ebs_optimized", instance.EbsOptimized)
 
-	var deps []terraform.ResourceDependency
-
 	// Determine whether we're referring to security groups with
 	// IDs or names. We use a heuristic to figure this out. By default,
 	// we use IDs if we're in a VPC. However, if we previously had an
@@ -344,17 +341,9 @@ func resourceAwsInstanceRead(d *schema.ResourceData, meta interface{}) error {
 		} else {
 			sgs[i] = sg.Name
 		}
-
-		deps = append(deps, terraform.ResourceDependency{ID: sg.Id})
 	}
 	d.Set("security_groups", sgs)
 
-	// If we're in a VPC, we depend on the subnet
-	if instance.SubnetId != "" {
-		deps = append(deps, terraform.ResourceDependency{ID: instance.SubnetId})
-	}
-
-	d.SetDependencies(deps)
 	return nil
 }
 

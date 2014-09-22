@@ -73,10 +73,12 @@ func (p *ResourceProvider) Configure(c *terraform.ResourceConfig) error {
 }
 
 func (p *ResourceProvider) Apply(
-	s *terraform.ResourceState,
-	d *terraform.ResourceDiff) (*terraform.ResourceState, error) {
+	info *terraform.InstanceInfo,
+	s *terraform.InstanceState,
+	d *terraform.InstanceDiff) (*terraform.InstanceState, error) {
 	var resp ResourceProviderApplyResponse
 	args := &ResourceProviderApplyArgs{
+		Info:  info,
 		State: s,
 		Diff:  d,
 	}
@@ -93,10 +95,12 @@ func (p *ResourceProvider) Apply(
 }
 
 func (p *ResourceProvider) Diff(
-	s *terraform.ResourceState,
-	c *terraform.ResourceConfig) (*terraform.ResourceDiff, error) {
+	info *terraform.InstanceInfo,
+	s *terraform.InstanceState,
+	c *terraform.ResourceConfig) (*terraform.InstanceDiff, error) {
 	var resp ResourceProviderDiffResponse
 	args := &ResourceProviderDiffArgs{
+		Info:   info,
 		State:  s,
 		Config: c,
 	}
@@ -112,9 +116,15 @@ func (p *ResourceProvider) Diff(
 }
 
 func (p *ResourceProvider) Refresh(
-	s *terraform.ResourceState) (*terraform.ResourceState, error) {
+	info *terraform.InstanceInfo,
+	s *terraform.InstanceState) (*terraform.InstanceState, error) {
 	var resp ResourceProviderRefreshResponse
-	err := p.Client.Call(p.Name+".Refresh", s, &resp)
+	args := &ResourceProviderRefreshArgs{
+		Info:  info,
+		State: s,
+	}
+
+	err := p.Client.Call(p.Name+".Refresh", args, &resp)
 	if err != nil {
 		return nil, err
 	}
@@ -148,27 +158,34 @@ type ResourceProviderConfigureResponse struct {
 }
 
 type ResourceProviderApplyArgs struct {
-	State *terraform.ResourceState
-	Diff  *terraform.ResourceDiff
+	Info  *terraform.InstanceInfo
+	State *terraform.InstanceState
+	Diff  *terraform.InstanceDiff
 }
 
 type ResourceProviderApplyResponse struct {
-	State *terraform.ResourceState
+	State *terraform.InstanceState
 	Error *BasicError
 }
 
 type ResourceProviderDiffArgs struct {
-	State  *terraform.ResourceState
+	Info   *terraform.InstanceInfo
+	State  *terraform.InstanceState
 	Config *terraform.ResourceConfig
 }
 
 type ResourceProviderDiffResponse struct {
-	Diff  *terraform.ResourceDiff
+	Diff  *terraform.InstanceDiff
 	Error *BasicError
 }
 
+type ResourceProviderRefreshArgs struct {
+	Info  *terraform.InstanceInfo
+	State *terraform.InstanceState
+}
+
 type ResourceProviderRefreshResponse struct {
-	State *terraform.ResourceState
+	State *terraform.InstanceState
 	Error *BasicError
 }
 
@@ -234,7 +251,7 @@ func (s *ResourceProviderServer) Configure(
 func (s *ResourceProviderServer) Apply(
 	args *ResourceProviderApplyArgs,
 	result *ResourceProviderApplyResponse) error {
-	state, err := s.Provider.Apply(args.State, args.Diff)
+	state, err := s.Provider.Apply(args.Info, args.State, args.Diff)
 	*result = ResourceProviderApplyResponse{
 		State: state,
 		Error: NewBasicError(err),
@@ -245,7 +262,7 @@ func (s *ResourceProviderServer) Apply(
 func (s *ResourceProviderServer) Diff(
 	args *ResourceProviderDiffArgs,
 	result *ResourceProviderDiffResponse) error {
-	diff, err := s.Provider.Diff(args.State, args.Config)
+	diff, err := s.Provider.Diff(args.Info, args.State, args.Config)
 	*result = ResourceProviderDiffResponse{
 		Diff:  diff,
 		Error: NewBasicError(err),
@@ -254,9 +271,9 @@ func (s *ResourceProviderServer) Diff(
 }
 
 func (s *ResourceProviderServer) Refresh(
-	state *terraform.ResourceState,
+	args *ResourceProviderRefreshArgs,
 	result *ResourceProviderRefreshResponse) error {
-	newState, err := s.Provider.Refresh(state)
+	newState, err := s.Provider.Refresh(args.Info, args.State)
 	*result = ResourceProviderRefreshResponse{
 		State: newState,
 		Error: NewBasicError(err),

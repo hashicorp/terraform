@@ -46,18 +46,27 @@ type ResourceProvider interface {
 	// If the resource state given has an empty ID, then a new resource
 	// is expected to be created.
 	Apply(
-		*ResourceState,
-		*ResourceDiff) (*ResourceState, error)
+		*InstanceInfo,
+		*InstanceState,
+		*InstanceDiff) (*InstanceState, error)
 
 	// Diff diffs a resource versus a desired state and returns
 	// a diff.
 	Diff(
-		*ResourceState,
-		*ResourceConfig) (*ResourceDiff, error)
+		*InstanceInfo,
+		*InstanceState,
+		*ResourceConfig) (*InstanceDiff, error)
 
 	// Refresh refreshes a resource and updates all of its attributes
 	// with the latest information.
-	Refresh(*ResourceState) (*ResourceState, error)
+	Refresh(*InstanceInfo, *InstanceState) (*InstanceState, error)
+}
+
+// InstanceInfo is used to hold information about the instance and/or
+// resource being modified.
+type InstanceInfo struct {
+	// Type is the resource type of this instance
+	Type string
 }
 
 // ResourceType is a type of resource that a resource provider can manage.

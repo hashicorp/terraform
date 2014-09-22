@@ -12,9 +12,9 @@ import (
 )
 
 func resource_aws_subnet_create(
-	s *terraform.ResourceState,
-	d *terraform.ResourceDiff,
-	meta interface{}) (*terraform.ResourceState, error) {
+	s *terraform.InstanceState,
+	d *terraform.InstanceDiff,
+	meta interface{}) (*terraform.InstanceState, error) {
 	p := meta.(*ResourceProvider)
 	ec2conn := p.ec2conn
 
@@ -73,16 +73,16 @@ func resource_aws_subnet_create(
 }
 
 func resource_aws_subnet_update(
-	s *terraform.ResourceState,
-	d *terraform.ResourceDiff,
-	meta interface{}) (*terraform.ResourceState, error) {
+	s *terraform.InstanceState,
+	d *terraform.InstanceDiff,
+	meta interface{}) (*terraform.InstanceState, error) {
 	// This should never be called because we have no update-able
 	// attributes
 	panic("Update for subnet is not supported")
 }
 
 func resource_aws_subnet_destroy(
-	s *terraform.ResourceState,
+	s *terraform.InstanceState,
 	meta interface{}) error {
 	p := meta.(*ResourceProvider)
 	ec2conn := p.ec2conn
@@ -115,8 +115,8 @@ func resource_aws_subnet_destroy(
 }
 
 func resource_aws_subnet_refresh(
-	s *terraform.ResourceState,
-	meta interface{}) (*terraform.ResourceState, error) {
+	s *terraform.InstanceState,
+	meta interface{}) (*terraform.InstanceState, error) {
 	p := meta.(*ResourceProvider)
 	ec2conn := p.ec2conn
 
@@ -133,9 +133,9 @@ func resource_aws_subnet_refresh(
 }
 
 func resource_aws_subnet_diff(
-	s *terraform.ResourceState,
+	s *terraform.InstanceState,
 	c *terraform.ResourceConfig,
-	meta interface{}) (*terraform.ResourceDiff, error) {
+	meta interface{}) (*terraform.InstanceDiff, error) {
 	b := &diff.ResourceBuilder{
 		Attrs: map[string]diff.AttrType{
 			"availability_zone":       diff.AttrTypeCreate,
@@ -153,19 +153,13 @@ func resource_aws_subnet_diff(
 }
 
 func resource_aws_subnet_update_state(
-	s *terraform.ResourceState,
-	subnet *ec2.Subnet) (*terraform.ResourceState, error) {
+	s *terraform.InstanceState,
+	subnet *ec2.Subnet) (*terraform.InstanceState, error) {
 	s.Attributes["availability_zone"] = subnet.AvailabilityZone
 	s.Attributes["cidr_block"] = subnet.CidrBlock
 	s.Attributes["vpc_id"] = subnet.VpcId
-
 	if subnet.MapPublicIpOnLaunch {
 		s.Attributes["map_public_ip_on_launch"] = "true"
-	}
-
-	// We belong to a VPC
-	s.Dependencies = []terraform.ResourceDependency{
-		terraform.ResourceDependency{ID: subnet.VpcId},
 	}
 
 	return s, nil

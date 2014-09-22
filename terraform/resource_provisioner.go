@@ -20,7 +20,7 @@ type ResourceProvisioner interface {
 	// resource state along with an error. Instead of a diff, the ResourceConfig
 	// is provided since provisioners only run after a resource has been
 	// newly created.
-	Apply(*ResourceState, *ResourceConfig) error
+	Apply(*InstanceState, *ResourceConfig) error
 }
 
 // ResourceProvisionerFactory is a function type that creates a new instance

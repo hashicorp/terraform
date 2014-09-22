@@ -244,18 +244,24 @@ func ComposeTestCheckFunc(fs ...TestCheckFunc) TestCheckFunc {
 
 func TestCheckResourceAttr(name, key, value string) TestCheckFunc {
 	return func(s *terraform.State) error {
-		rs, ok := s.Resources[name]
+		ms := s.RootModule()
+		rs, ok := ms.Resources[name]
 		if !ok {
 			return fmt.Errorf("Not found: %s", name)
 		}
 
-		if rs.Attributes[key] != value {
+		is := rs.Primary
+		if is == nil {
+			return fmt.Errorf("No primary instance: %s", name)
+		}
+
+		if is.Attributes[key] != value {
 			return fmt.Errorf(
 				"%s: Attribute '%s' expected %#v, got %#v",
 				name,
 				key,
 				value,
-				rs.Attributes[key])
+				is.Attributes[key])
 		}
 
 		return nil

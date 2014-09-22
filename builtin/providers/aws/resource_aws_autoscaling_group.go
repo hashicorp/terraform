@@ -13,9 +13,9 @@ import (
 )
 
 func resource_aws_autoscaling_group_create(
-	s *terraform.ResourceState,
-	d *terraform.ResourceDiff,
-	meta interface{}) (*terraform.ResourceState, error) {
+	s *terraform.InstanceState,
+	d *terraform.InstanceDiff,
+	meta interface{}) (*terraform.InstanceState, error) {
 	p := meta.(*ResourceProvider)
 	autoscalingconn := p.autoscalingconn
 
@@ -81,9 +81,6 @@ func resource_aws_autoscaling_group_create(
 	}
 
 	rs.ID = rs.Attributes["name"]
-	rs.Dependencies = []terraform.ResourceDependency{
-		terraform.ResourceDependency{ID: rs.Attributes["launch_configuration"]},
-	}
 
 	log.Printf("[INFO] AutoScaling Group ID: %s", rs.ID)
 
@@ -96,9 +93,9 @@ func resource_aws_autoscaling_group_create(
 }
 
 func resource_aws_autoscaling_group_update(
-	s *terraform.ResourceState,
-	d *terraform.ResourceDiff,
-	meta interface{}) (*terraform.ResourceState, error) {
+	s *terraform.InstanceState,
+	d *terraform.InstanceDiff,
+	meta interface{}) (*terraform.InstanceState, error) {
 	p := meta.(*ResourceProvider)
 	autoscalingconn := p.autoscalingconn
 	rs := s.MergeDiff(d)
@@ -141,7 +138,7 @@ func resource_aws_autoscaling_group_update(
 }
 
 func resource_aws_autoscaling_group_destroy(
-	s *terraform.ResourceState,
+	s *terraform.InstanceState,
 	meta interface{}) error {
 	p := meta.(*ResourceProvider)
 	autoscalingconn := p.autoscalingconn
@@ -173,8 +170,8 @@ func resource_aws_autoscaling_group_destroy(
 }
 
 func resource_aws_autoscaling_group_refresh(
-	s *terraform.ResourceState,
-	meta interface{}) (*terraform.ResourceState, error) {
+	s *terraform.InstanceState,
+	meta interface{}) (*terraform.InstanceState, error) {
 	p := meta.(*ResourceProvider)
 	autoscalingconn := p.autoscalingconn
 
@@ -188,9 +185,9 @@ func resource_aws_autoscaling_group_refresh(
 }
 
 func resource_aws_autoscaling_group_diff(
-	s *terraform.ResourceState,
+	s *terraform.InstanceState,
 	c *terraform.ResourceConfig,
-	meta interface{}) (*terraform.ResourceDiff, error) {
+	meta interface{}) (*terraform.InstanceDiff, error) {
 
 	b := &diff.ResourceBuilder{
 		Attrs: map[string]diff.AttrType{
@@ -223,8 +220,8 @@ func resource_aws_autoscaling_group_diff(
 }
 
 func resource_aws_autoscaling_group_update_state(
-	s *terraform.ResourceState,
-	g *autoscaling.AutoScalingGroup) (*terraform.ResourceState, error) {
+	s *terraform.InstanceState,
+	g *autoscaling.AutoScalingGroup) (*terraform.InstanceState, error) {
 
 	s.Attributes["min_size"] = strconv.Itoa(g.MinSize)
 	s.Attributes["max_size"] = strconv.Itoa(g.MaxSize)

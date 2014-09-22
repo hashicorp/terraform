@@ -78,12 +78,12 @@ func TestAccDNSimpleRecord_Updated(t *testing.T) {
 func testAccCheckDNSimpleRecordDestroy(s *terraform.State) error {
 	client := testAccProvider.client
 
-	for _, rs := range s.Resources {
+	for _, rs := range s.RootModule().Resources {
 		if rs.Type != "dnsimple_record" {
 			continue
 		}
 
-		_, err := client.RetrieveRecord(rs.Attributes["domain"], rs.ID)
+		_, err := client.RetrieveRecord(rs.Primary.Attributes["domain"], rs.Primary.ID)
 
 		if err == nil {
 			return fmt.Errorf("Record still exists")
@@ -117,25 +117,25 @@ func testAccCheckDNSimpleRecordAttributesUpdated(record *dnsimple.Record) resour
 
 func testAccCheckDNSimpleRecordExists(n string, record *dnsimple.Record) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
-		rs, ok := s.Resources[n]
+		rs, ok := s.RootModule().Resources[n]
 
 		if !ok {
 			return fmt.Errorf("Not found: %s", n)
 		}
 
-		if rs.ID == "" {
+		if rs.Primary.ID == "" {
 			return fmt.Errorf("No Record ID is set")
 		}
 
 		client := testAccProvider.client
 
-		foundRecord, err := client.RetrieveRecord(rs.Attributes["domain"], rs.ID)
+		foundRecord, err := client.RetrieveRecord(rs.Primary.Attributes["domain"], rs.Primary.ID)
 
 		if err != nil {
 			return err
 		}
 
-		if foundRecord.StringId() != rs.ID {
+		if foundRecord.StringId() != rs.Primary.ID {
 			return fmt.Errorf("Record not found")
 		}
 

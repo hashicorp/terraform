@@ -16,9 +16,9 @@ import (
 )
 
 func resource_aws_db_instance_create(
-	s *terraform.ResourceState,
-	d *terraform.ResourceDiff,
-	meta interface{}) (*terraform.ResourceState, error) {
+	s *terraform.InstanceState,
+	d *terraform.InstanceDiff,
+	meta interface{}) (*terraform.InstanceState, error) {
 	p := meta.(*ResourceProvider)
 	conn := p.rdsconn
 
@@ -140,14 +140,14 @@ func resource_aws_db_instance_create(
 }
 
 func resource_aws_db_instance_update(
-	s *terraform.ResourceState,
-	d *terraform.ResourceDiff,
-	meta interface{}) (*terraform.ResourceState, error) {
+	s *terraform.InstanceState,
+	d *terraform.InstanceDiff,
+	meta interface{}) (*terraform.InstanceState, error) {
 	panic("Cannot update DB")
 }
 
 func resource_aws_db_instance_destroy(
-	s *terraform.ResourceState,
+	s *terraform.InstanceState,
 	meta interface{}) error {
 	p := meta.(*ResourceProvider)
 	conn := p.rdsconn
@@ -188,8 +188,8 @@ func resource_aws_db_instance_destroy(
 }
 
 func resource_aws_db_instance_refresh(
-	s *terraform.ResourceState,
-	meta interface{}) (*terraform.ResourceState, error) {
+	s *terraform.InstanceState,
+	meta interface{}) (*terraform.InstanceState, error) {
 	p := meta.(*ResourceProvider)
 	conn := p.rdsconn
 
@@ -203,9 +203,9 @@ func resource_aws_db_instance_refresh(
 }
 
 func resource_aws_db_instance_diff(
-	s *terraform.ResourceState,
+	s *terraform.InstanceState,
 	c *terraform.ResourceConfig,
-	meta interface{}) (*terraform.ResourceDiff, error) {
+	meta interface{}) (*terraform.InstanceDiff, error) {
 
 	b := &diff.ResourceBuilder{
 		Attrs: map[string]diff.AttrType{
@@ -252,8 +252,8 @@ func resource_aws_db_instance_diff(
 }
 
 func resource_aws_db_instance_update_state(
-	s *terraform.ResourceState,
-	v *rds.DBInstance) (*terraform.ResourceState, error) {
+	s *terraform.InstanceState,
+	v *rds.DBInstance) (*terraform.InstanceState, error) {
 
 	s.Attributes["address"] = v.Address
 	s.Attributes["allocated_storage"] = strconv.Itoa(v.AllocatedStorage)
@@ -283,13 +283,6 @@ func resource_aws_db_instance_update_state(
 	}
 	for k, v := range flatmap.Flatten(toFlatten) {
 		s.Attributes[k] = v
-	}
-
-	// We depend on any security groups attached
-	for _, g := range v.DBSecurityGroupNames {
-		s.Dependencies = []terraform.ResourceDependency{
-			terraform.ResourceDependency{ID: g},
-		}
 	}
 
 	return s, nil

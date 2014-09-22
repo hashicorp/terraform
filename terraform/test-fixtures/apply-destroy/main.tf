@@ -5,6 +5,5 @@ resource "aws_instance" "foo" {
 
 resource "aws_instance" "bar" {
     id = "bar"
-    foo = "{aws_instance.foo.num}"
-    dep = "foo"
+    foo = "${aws_instance.foo.num}"
 }

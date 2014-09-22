@@ -105,12 +105,12 @@ func TestAccHerokuApp_NukeVars(t *testing.T) {
 func testAccCheckHerokuAppDestroy(s *terraform.State) error {
 	client := testAccProvider.Meta().(*heroku.Service)
 
-	for _, rs := range s.Resources {
+	for _, rs := range s.RootModule().Resources {
 		if rs.Type != "heroku_app" {
 			continue
 		}
 
-		_, err := client.AppInfo(rs.ID)
+		_, err := client.AppInfo(rs.Primary.ID)
 
 		if err == nil {
 			return fmt.Errorf("App still exists")
@@ -199,25 +199,25 @@ func testAccCheckHerokuAppAttributesNoVars(app *heroku.App) resource.TestCheckFu
 
 func testAccCheckHerokuAppExists(n string, app *heroku.App) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
-		rs, ok := s.Resources[n]
+		rs, ok := s.RootModule().Resources[n]
 
 		if !ok {
 			return fmt.Errorf("Not found: %s", n)
 		}
 
-		if rs.ID == "" {
+		if rs.Primary.ID == "" {
 			return fmt.Errorf("No App Name is set")
 		}
 
 		client := testAccProvider.Meta().(*heroku.Service)
 
-		foundApp, err := client.AppInfo(rs.ID)
+		foundApp, err := client.AppInfo(rs.Primary.ID)
 
 		if err != nil {
 			return err
 		}
 
-		if foundApp.Name != rs.ID {
+		if foundApp.Name != rs.Primary.ID {
 			return fmt.Errorf("App not found")
 		}
 

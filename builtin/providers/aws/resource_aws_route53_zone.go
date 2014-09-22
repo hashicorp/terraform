@@ -21,9 +21,9 @@ func resource_aws_r53_zone_validation() *config.Validator {
 }
 
 func resource_aws_r53_zone_create(
-	s *terraform.ResourceState,
-	d *terraform.ResourceDiff,
-	meta interface{}) (*terraform.ResourceState, error) {
+	s *terraform.InstanceState,
+	d *terraform.InstanceDiff,
+	meta interface{}) (*terraform.InstanceState, error) {
 	p := meta.(*ResourceProvider)
 	r53 := p.route53
 
@@ -74,7 +74,7 @@ func resource_aws_r53_wait(r53 *route53.Route53, ref string) (result interface{}
 }
 
 func resource_aws_r53_zone_destroy(
-	s *terraform.ResourceState,
+	s *terraform.InstanceState,
 	meta interface{}) error {
 	p := meta.(*ResourceProvider)
 	r53 := p.route53
@@ -89,8 +89,8 @@ func resource_aws_r53_zone_destroy(
 }
 
 func resource_aws_r53_zone_refresh(
-	s *terraform.ResourceState,
-	meta interface{}) (*terraform.ResourceState, error) {
+	s *terraform.InstanceState,
+	meta interface{}) (*terraform.InstanceState, error) {
 	p := meta.(*ResourceProvider)
 	r53 := p.route53
 
@@ -107,9 +107,9 @@ func resource_aws_r53_zone_refresh(
 }
 
 func resource_aws_r53_zone_diff(
-	s *terraform.ResourceState,
+	s *terraform.InstanceState,
 	c *terraform.ResourceConfig,
-	meta interface{}) (*terraform.ResourceDiff, error) {
+	meta interface{}) (*terraform.InstanceDiff, error) {
 
 	b := &diff.ResourceBuilder{
 		Attrs: map[string]diff.AttrType{

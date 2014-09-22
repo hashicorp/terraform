@@ -36,7 +36,7 @@ func (p *ResourceProvisioner) Validate(c *terraform.ResourceConfig) ([]string, [
 }
 
 func (p *ResourceProvisioner) Apply(
-	s *terraform.ResourceState,
+	s *terraform.InstanceState,
 	c *terraform.ResourceConfig) error {
 	var resp ResourceProvisionerApplyResponse
 	args := &ResourceProvisionerApplyArgs{
@@ -65,7 +65,7 @@ type ResourceProvisionerValidateResponse struct {
 }
 
 type ResourceProvisionerApplyArgs struct {
-	State  *terraform.ResourceState
+	State  *terraform.InstanceState
 	Config *terraform.ResourceConfig
 }
 

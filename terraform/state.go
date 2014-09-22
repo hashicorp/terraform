@@ -1,71 +1,219 @@
 package terraform
 
 import (
+	"bufio"
 	"bytes"
-	"encoding/gob"
-	"errors"
+	"encoding/json"
 	"fmt"
 	"io"
+	"log"
+	"reflect"
 	"sort"
-	"sync"
 
 	"github.com/hashicorp/terraform/config"
 )
 
+const (
+	// textStateVersion is the current version for our state file
+	textStateVersion = 1
+)
+
+// rootModulePath is the path of the root module
+var rootModulePath = []string{"root"}
+
 // State keeps track of a snapshot state-of-the-world that Terraform
 // can use to keep track of what real world resources it is actually
-// managing.
+// managing. This is the latest format as of Terraform 0.3
 type State struct {
-	Outputs   map[string]string
-	Resources map[string]*ResourceState
-	Tainted   map[string]struct{}
+	// Version is the protocol version. Currently only "1".
+	Version int `json:"version"`
 
-	once sync.Once
+	// Serial is incremented on any operation that modifies
+	// the State file. It is used to detect potentially conflicting
+	// updates.
+	Serial int64 `json:"serial"`
+
+	// Modules contains all the modules in a breadth-first order
+	Modules []*ModuleState `json:"modules"`
+}
+
+// ModuleByPath is used to lookup the module state for the given path.
+// This should be the prefered lookup mechanism as it allows for future
+// lookup optimizations.
+func (s *State) ModuleByPath(path []string) *ModuleState {
+	if s == nil {
+		return nil
+	}
+	for _, mod := range s.Modules {
+		if mod.Path == nil {
+			panic("missing module path")
+		}
+		if reflect.DeepEqual(mod.Path, path) {
+			return mod
+		}
+	}
+	return nil
+}
+
+// RootModule returns the ModuleState for the root module
+func (s *State) RootModule() *ModuleState {
+	root := s.ModuleByPath(rootModulePath)
+	if root == nil {
+		panic("missing root module")
+	}
+	return root
 }
 
 func (s *State) init() {
-	s.once.Do(func() {
-		if s.Resources == nil {
-			s.Resources = make(map[string]*ResourceState)
+	if s.Version == 0 {
+		s.Version = textStateVersion
+	}
+	if len(s.Modules) == 0 {
+		root := &ModuleState{
+			Path: rootModulePath,
 		}
-
-		if s.Tainted == nil {
-			s.Tainted = make(map[string]struct{})
-		}
-	})
+		root.init()
+		s.Modules = []*ModuleState{root}
+	}
 }
 
 func (s *State) deepcopy() *State {
-	result := new(State)
-	result.init()
-	if s != nil {
-		for k, v := range s.Resources {
-			result.Resources[k] = v
-		}
-		for k, v := range s.Tainted {
-			result.Tainted[k] = v
-		}
+	if s == nil {
+		return nil
 	}
-
-	return result
+	n := &State{
+		Version: s.Version,
+		Serial:  s.Serial,
+		Modules: make([]*ModuleState, 0, len(s.Modules)),
+	}
+	for _, mod := range s.Modules {
+		n.Modules = append(n.Modules, mod.deepcopy())
+	}
+	return n
 }
 
-// prune is a helper that removes any empty IDs from the state
-// and cleans it up in general.
+// prune is used to remove any resources that are no longer required
 func (s *State) prune() {
-	for k, v := range s.Resources {
-		if v.ID == "" {
-			delete(s.Resources, k)
+	if s == nil {
+		return
+	}
+	for _, mod := range s.Modules {
+		mod.prune()
+	}
+}
+
+func (s *State) GoString() string {
+	return fmt.Sprintf("*%#v", *s)
+}
+
+func (s *State) String() string {
+	// TODO: Handle other moduels
+	mod := s.RootModule()
+	if len(mod.Resources) == 0 {
+		return "<no state>"
+	}
+
+	var buf bytes.Buffer
+
+	names := make([]string, 0, len(mod.Resources))
+	for name, _ := range mod.Resources {
+		names = append(names, name)
+	}
+	sort.Strings(names)
+
+	for _, k := range names {
+		rs := mod.Resources[k]
+		var id string
+		if rs.Primary != nil {
+			id = rs.Primary.ID
+		}
+		if id == "" {
+			id = "<not created>"
+		}
+
+		taintStr := ""
+		if len(rs.Tainted) > 0 {
+			taintStr = fmt.Sprintf(" (%d tainted)", len(rs.Tainted))
+		}
+
+		buf.WriteString(fmt.Sprintf("%s:%s\n", k, taintStr))
+		buf.WriteString(fmt.Sprintf("  ID = %s\n", id))
+
+		var attributes map[string]string
+		if rs.Primary != nil {
+			attributes = rs.Primary.Attributes
+		}
+		attrKeys := make([]string, 0, len(attributes))
+		for ak, _ := range attributes {
+			if ak == "id" {
+				continue
+			}
+
+			attrKeys = append(attrKeys, ak)
+		}
+		sort.Strings(attrKeys)
+
+		for _, ak := range attrKeys {
+			av := attributes[ak]
+			buf.WriteString(fmt.Sprintf("  %s = %s\n", ak, av))
+		}
+
+		for idx, t := range rs.Tainted {
+			buf.WriteString(fmt.Sprintf("  Tainted ID %d = %s\n", idx+1, t.ID))
+		}
+
+		if len(rs.Dependencies) > 0 {
+			buf.WriteString(fmt.Sprintf("\n  Dependencies:\n"))
+			for _, dep := range rs.Dependencies {
+				buf.WriteString(fmt.Sprintf("    %s\n", dep))
+			}
 		}
 	}
+
+	if len(mod.Outputs) > 0 {
+		buf.WriteString("\nOutputs:\n\n")
+
+		ks := make([]string, 0, len(mod.Outputs))
+		for k, _ := range mod.Outputs {
+			ks = append(ks, k)
+		}
+		sort.Strings(ks)
+
+		for _, k := range ks {
+			v := mod.Outputs[k]
+			buf.WriteString(fmt.Sprintf("%s = %s\n", k, v))
+		}
+	}
+
+	return buf.String()
+}
+
+// ModuleState is used to track all the state relevant to a single
+// module. Previous to Terraform 0.3, all state belonged to the "root"
+// module.
+type ModuleState struct {
+	// Path is the import path from the root module. Modules imports are
+	// always disjoint, so the path represents amodule tree
+	Path []string `json:"path"`
+
+	// Outputs declared by the module and maintained for each module
+	// even though only the root module technically needs to be kept.
+	// This allows operators to inspect values at the boundaries.
+	Outputs map[string]string `json:"outputs"`
+
+	// Resources is a mapping of the logically named resource to
+	// the state of the resource. Each resource may actually have
+	// N instances underneath, although a user only needs to think
+	// about the 1:1 case.
+	Resources map[string]*ResourceState `json:"resources"`
 }
 
 // Orphans returns a list of keys of resources that are in the State
 // but aren't present in the configuration itself. Hence, these keys
 // represent the state of resources that are orphans.
-func (s *State) Orphans(c *config.Config) []string {
+func (m *ModuleState) Orphans(c *config.Config) []string {
 	keys := make(map[string]struct{})
-	for k, _ := range s.Resources {
+	for k, _ := range m.Resources {
 		keys[k] = struct{}{}
 	}
 
@@ -86,182 +234,51 @@ func (s *State) Orphans(c *config.Config) []string {
 	return result
 }
 
-func (s *State) String() string {
-	if len(s.Resources) == 0 {
-		return "<no state>"
+func (m *ModuleState) init() {
+	if m.Outputs == nil {
+		m.Outputs = make(map[string]string)
 	}
-
-	var buf bytes.Buffer
-
-	names := make([]string, 0, len(s.Resources))
-	for name, _ := range s.Resources {
-		names = append(names, name)
+	if m.Resources == nil {
+		m.Resources = make(map[string]*ResourceState)
 	}
-	sort.Strings(names)
-
-	for _, k := range names {
-		rs := s.Resources[k]
-		id := rs.ID
-		if id == "" {
-			id = "<not created>"
-		}
-
-		taintStr := ""
-		if _, ok := s.Tainted[k]; ok {
-			taintStr = " (tainted)"
-		}
-
-		buf.WriteString(fmt.Sprintf("%s:%s\n", k, taintStr))
-		buf.WriteString(fmt.Sprintf("  ID = %s\n", id))
-
-		attrKeys := make([]string, 0, len(rs.Attributes))
-		for ak, _ := range rs.Attributes {
-			if ak == "id" {
-				continue
-			}
-
-			attrKeys = append(attrKeys, ak)
-		}
-		sort.Strings(attrKeys)
-
-		for _, ak := range attrKeys {
-			av := rs.Attributes[ak]
-			buf.WriteString(fmt.Sprintf("  %s = %s\n", ak, av))
-		}
-
-		if len(rs.Dependencies) > 0 {
-			buf.WriteString(fmt.Sprintf("\n  Dependencies:\n"))
-			for _, dep := range rs.Dependencies {
-				buf.WriteString(fmt.Sprintf("    %s\n", dep.ID))
-			}
-		}
-	}
-
-	if len(s.Outputs) > 0 {
-		buf.WriteString("\nOutputs:\n\n")
-
-		ks := make([]string, 0, len(s.Outputs))
-		for k, _ := range s.Outputs {
-			ks = append(ks, k)
-		}
-		sort.Strings(ks)
-
-		for _, k := range ks {
-			v := s.Outputs[k]
-			buf.WriteString(fmt.Sprintf("%s = %s\n", k, v))
-		}
-	}
-
-	return buf.String()
 }
 
-// sensitiveState is used to store sensitive state information
-// that should not be serialized. This is only used temporarily
-// and is restored into the state.
-type sensitiveState struct {
-	ConnInfo map[string]map[string]string
-
-	once sync.Once
+func (m *ModuleState) deepcopy() *ModuleState {
+	if m == nil {
+		return nil
+	}
+	n := &ModuleState{
+		Path:      make([]string, len(m.Path)),
+		Outputs:   make(map[string]string, len(m.Outputs)),
+		Resources: make(map[string]*ResourceState, len(m.Resources)),
+	}
+	copy(n.Path, m.Path)
+	for k, v := range m.Outputs {
+		n.Outputs[k] = v
+	}
+	for k, v := range m.Resources {
+		n.Resources[k] = v.deepcopy()
+	}
+	return n
 }
 
-func (s *sensitiveState) init() {
-	s.once.Do(func() {
-		s.ConnInfo = make(map[string]map[string]string)
-	})
-}
-
-// The format byte is prefixed into the state file format so that we have
-// the ability in the future to change the file format if we want for any
-// reason.
-const stateFormatMagic = "tfstate"
-const stateFormatVersion byte = 1
-
-// ReadState reads a state structure out of a reader in the format that
-// was written by WriteState.
-func ReadState(src io.Reader) (*State, error) {
-	var result *State
-	var err error
-	n := 0
-
-	// Verify the magic bytes
-	magic := make([]byte, len(stateFormatMagic))
-	for n < len(magic) {
-		n, err = src.Read(magic[n:])
-		if err != nil {
-			return nil, fmt.Errorf("error while reading magic bytes: %s", err)
+// prune is used to remove any resources that are no longer required
+func (m *ModuleState) prune() {
+	for k, v := range m.Resources {
+		v.prune()
+		if (v.Primary == nil || v.Primary.ID == "") && len(v.Tainted) == 0 {
+			delete(m.Resources, k)
 		}
 	}
-	if string(magic) != stateFormatMagic {
-		return nil, fmt.Errorf("not a valid state file")
-	}
-
-	// Verify the version is something we can read
-	var formatByte [1]byte
-	n, err = src.Read(formatByte[:])
-	if err != nil {
-		return nil, err
-	}
-	if n != len(formatByte) {
-		return nil, errors.New("failed to read state version byte")
-	}
-
-	if formatByte[0] != stateFormatVersion {
-		return nil, fmt.Errorf("unknown state file version: %d", formatByte[0])
-	}
-
-	// Decode
-	dec := gob.NewDecoder(src)
-	if err := dec.Decode(&result); err != nil {
-		return nil, err
-	}
-
-	return result, nil
 }
 
-// WriteState writes a state somewhere in a binary format.
-func WriteState(d *State, dst io.Writer) error {
-	// Write the magic bytes so we can determine the file format later
-	n, err := dst.Write([]byte(stateFormatMagic))
-	if err != nil {
-		return err
-	}
-	if n != len(stateFormatMagic) {
-		return errors.New("failed to write state format magic bytes")
-	}
-
-	// Write a version byte so we can iterate on version at some point
-	n, err = dst.Write([]byte{stateFormatVersion})
-	if err != nil {
-		return err
-	}
-	if n != 1 {
-		return errors.New("failed to write state version byte")
-	}
-
-	// Prevent sensitive information from being serialized
-	sensitive := &sensitiveState{}
-	sensitive.init()
-	for name, r := range d.Resources {
-		if r.ConnInfo != nil {
-			sensitive.ConnInfo[name] = r.ConnInfo
-			r.ConnInfo = nil
-		}
-	}
-
-	// Serialize the state
-	err = gob.NewEncoder(dst).Encode(d)
-
-	// Restore the state
-	for name, info := range sensitive.ConnInfo {
-		d.Resources[name].ConnInfo = info
-	}
-
-	return err
+func (m *ModuleState) GoString() string {
+	return fmt.Sprintf("*%#v", *m)
 }
 
 // ResourceState holds the state of a resource that is used so that
 // a provider can find and manage an existing resource as well as for
-// storing attributes that are uesd to populate variables of child
+// storing attributes that are used to populate variables of child
 // resources.
 //
 // Attributes has attributes about the created resource that are
@@ -269,34 +286,12 @@ func WriteState(d *State, dst io.Writer) error {
 //
 // Extra is just extra data that a provider can return that we store
 // for later, but is not exposed in any way to the user.
+//
 type ResourceState struct {
 	// This is filled in and managed by Terraform, and is the resource
 	// type itself such as "mycloud_instance". If a resource provider sets
 	// this value, it won't be persisted.
-	Type string
-
-	// The attributes below are all meant to be filled in by the
-	// resource providers themselves. Documentation for each are above
-	// each element.
-
-	// A unique ID for this resource. This is opaque to Terraform
-	// and is only meant as a lookup mechanism for the providers.
-	ID string
-
-	// Attributes are basic information about the resource. Any keys here
-	// are accessible in variable format within Terraform configurations:
-	// ${resourcetype.name.attribute}.
-	Attributes map[string]string
-
-	// ConnInfo is used for the providers to export information which is
-	// used to connect to the resource for provisioning. For example,
-	// this could contain SSH or WinRM credentials.
-	ConnInfo map[string]string
-
-	// Extra information that the provider can store about a resource.
-	// This data is opaque, never shown to the user, and is sent back to
-	// the provider as-is for whatever purpose appropriate.
-	Extra map[string]interface{}
+	Type string `json:"type"`
 
 	// Dependencies are a list of things that this resource relies on
 	// existing to remain intact. For example: an AWS instance might
@@ -311,7 +306,110 @@ type ResourceState struct {
 	// Terraform. If Terraform doesn't find a matching ID in the
 	// overall state, then it assumes it isn't managed and doesn't
 	// worry about it.
-	Dependencies []ResourceDependency
+	Dependencies []string `json:"depends_on,omitempty"`
+
+	// Primary is the current active instance for this resource.
+	// It can be replaced but only after a successful creation.
+	// This is the instances on which providers will act.
+	Primary *InstanceState `json:"primary"`
+
+	// Tainted is used to track any underlying instances that
+	// have been created but are in a bad or unknown state and
+	// need to be cleaned up subsequently.  In the
+	// standard case, there is only at most a single instance.
+	// However, in pathological cases, it is possible for the number
+	// of instances to accumulate.
+	Tainted []*InstanceState `json:"tainted,omitempty"`
+}
+
+func (r *ResourceState) init() {
+	if r.Primary == nil {
+		r.Primary = &InstanceState{}
+	}
+	r.Primary.init()
+}
+
+func (r *ResourceState) deepcopy() *ResourceState {
+	if r == nil {
+		return nil
+	}
+	n := &ResourceState{
+		Type:         r.Type,
+		Dependencies: make([]string, len(r.Dependencies)),
+		Primary:      r.Primary.deepcopy(),
+		Tainted:      make([]*InstanceState, 0, len(r.Tainted)),
+	}
+	copy(n.Dependencies, r.Dependencies)
+	for _, inst := range r.Tainted {
+		n.Tainted = append(n.Tainted, inst.deepcopy())
+	}
+	return n
+}
+
+// prune is used to remove any instances that are no longer required
+func (r *ResourceState) prune() {
+	n := len(r.Tainted)
+	for i := 0; i < n; i++ {
+		inst := r.Tainted[i]
+		if inst.ID == "" {
+			copy(r.Tainted[i:], r.Tainted[i+1:])
+			r.Tainted[n-1] = nil
+			n--
+		}
+	}
+	r.Tainted = r.Tainted[:n]
+}
+
+func (s *ResourceState) GoString() string {
+	return fmt.Sprintf("*%#v", *s)
+}
+
+func (s *ResourceState) String() string {
+	var buf bytes.Buffer
+	buf.WriteString(fmt.Sprintf("Type = %s", s.Type))
+	return buf.String()
+}
+
+// InstanceState is used to track the unique state information belonging
+// to a given instance.
+type InstanceState struct {
+	// A unique ID for this resource. This is opaque to Terraform
+	// and is only meant as a lookup mechanism for the providers.
+	ID string `json:"id"`
+
+	// Attributes are basic information about the resource. Any keys here
+	// are accessible in variable format within Terraform configurations:
+	// ${resourcetype.name.attribute}.
+	Attributes map[string]string `json:"attributes,omitempty"`
+
+	// Ephemeral is used to store any state associated with this instance
+	// that is necessary for the Terraform run to complete, but is not
+	// persisted to a state file.
+	Ephemeral EphemeralState `json:"-"`
+}
+
+func (i *InstanceState) init() {
+	if i.Attributes == nil {
+		i.Attributes = make(map[string]string)
+	}
+	i.Ephemeral.init()
+}
+
+func (i *InstanceState) deepcopy() *InstanceState {
+	if i == nil {
+		return nil
+	}
+	n := &InstanceState{
+		ID:        i.ID,
+		Ephemeral: *i.Ephemeral.deepcopy(),
+	}
+	if i.Attributes != nil {
+		n.Attributes = make(map[string]string, len(i.Attributes))
+		for k, v := range i.Attributes {
+			n.Attributes[k] = v
+		}
+	}
+	return n
 }
 
 // MergeDiff takes a ResourceDiff and merges the attributes into
@@ -322,13 +420,13 @@ type ResourceState struct {
 // If the diff attribute requires computing the value, and hence
 // won't be available until apply, the value is replaced with the
 // computeID.
-func (s *ResourceState) MergeDiff(d *ResourceDiff) *ResourceState {
-	var result ResourceState
-	if s != nil {
-		result = *s
+func (s *InstanceState) MergeDiff(d *InstanceDiff) *InstanceState {
+	result := s.deepcopy()
+	if result == nil {
+		result = new(InstanceState)
 	}
+	result.init()
 
-	result.Attributes = make(map[string]string)
 	if s != nil {
 		for k, v := range s.Attributes {
 			result.Attributes[k] = v
@@ -349,17 +447,161 @@ func (s *ResourceState) MergeDiff(d *ResourceDiff) *ResourceState {
 		}
 	}
 
-	return &result
+	return result
 }
 
-func (s *ResourceState) GoString() string {
-	return fmt.Sprintf("*%#v", *s)
+func (i *InstanceState) GoString() string {
+	return fmt.Sprintf("*%#v", *i)
 }
 
-// ResourceDependency maps a resource to another resource that it
-// depends on to remain intact and uncorrupted.
-type ResourceDependency struct {
-	// ID of the resource that we depend on. This ID should map
-	// directly to another ResourceState's ID.
-	ID string
+func (i *InstanceState) String() string {
+	var buf bytes.Buffer
+
+	if i == nil || i.ID == "" {
+		return "<not created>"
+	}
+
+	buf.WriteString(fmt.Sprintf("ID = %s\n", i.ID))
+
+	attributes := i.Attributes
+	attrKeys := make([]string, 0, len(attributes))
+	for ak, _ := range attributes {
+		if ak == "id" {
+			continue
+		}
+
+		attrKeys = append(attrKeys, ak)
+	}
+	sort.Strings(attrKeys)
+
+	for _, ak := range attrKeys {
+		av := attributes[ak]
+		buf.WriteString(fmt.Sprintf("%s = %s\n", ak, av))
+	}
+
+	return buf.String()
+}
+
+// EphemeralState is used for transient state that is only kept in-memory
+type EphemeralState struct {
+	// ConnInfo is used for the providers to export information which is
+	// used to connect to the resource for provisioning. For example,
+	// this could contain SSH or WinRM credentials.
+	ConnInfo map[string]string `json:"-"`
+}
+
+func (e *EphemeralState) init() {
+	if e.ConnInfo == nil {
+		e.ConnInfo = make(map[string]string)
+	}
+}
+
+func (e *EphemeralState) deepcopy() *EphemeralState {
+	if e == nil {
+		return nil
+	}
+	n := &EphemeralState{}
+	if e.ConnInfo != nil {
+		n.ConnInfo = make(map[string]string, len(e.ConnInfo))
+		for k, v := range e.ConnInfo {
+			n.ConnInfo[k] = v
+		}
+	}
+	return n
+}
+
+// ReadState reads a state structure out of a reader in the format that
+// was written by WriteState.
+func ReadState(src io.Reader) (*State, error) {
+	buf := bufio.NewReader(src)
+
+	// Check if this is a V1 format
+	start, err := buf.Peek(len(stateFormatMagic))
+	if err != nil {
+		return nil, fmt.Errorf("Failed to check for magic bytes: %v", err)
+	}
+	if string(start) == stateFormatMagic {
+		// Read the old state
+		old, err := ReadStateV1(buf)
+		if err != nil {
+			return nil, err
+		}
+		return upgradeV1State(old)
+	}
+
+	// Otherwise, must be V2
+	dec := json.NewDecoder(buf)
+	state := &State{}
+	if err := dec.Decode(state); err != nil {
+		return nil, fmt.Errorf("Decoding state file failed: %v", err)
+	}
+
+	// Check the version, this to ensure we don't read a future
+	// version that we don't understand
+	if state.Version > textStateVersion {
+		return nil, fmt.Errorf("State version %d not supported, please update.",
+			state.Version)
+	}
+	return state, nil
+}
+
+// WriteState writes a state somewhere in a binary format.
+func WriteState(d *State, dst io.Writer) error {
+	// Ensure the version is set
+	d.Version = textStateVersion
+
+	// Always increment the serial number
+	d.Serial++
+
+	enc := json.NewEncoder(dst)
+	if err := enc.Encode(d); err != nil {
+		return fmt.Errorf("Failed to write state: %v", err)
+	}
+	return nil
+}
+
+// upgradeV1State is used to upgrade a V1 state representation
+// into a proper State representation.
+func upgradeV1State(old *StateV1) (*State, error) {
+	s := &State{}
+	s.init()
+
+	// Old format had no modules, so we migrate everything
+	// directly into the root module.
+	root := s.RootModule()
+
+	// Copy the outputs
+	root.Outputs = old.Outputs
+
+	// Upgrade the resources
+	for id, rs := range old.Resources {
+		newRs := &ResourceState{
+			Type: rs.Type,
+		}
+		root.Resources[id] = newRs
+
+		// Migrate to an instance state
+		instance := &InstanceState{
+			ID:         rs.ID,
+			Attributes: rs.Attributes,
+		}
+
+		// Check if this is the primary or tainted instance
+		if _, ok := old.Tainted[id]; ok {
+			newRs.Tainted = append(newRs.Tainted, instance)
+		} else {
+			newRs.Primary = instance
+		}
+
+		// Warn if the resource uses Extra, as there is
+		// no upgrade path for this! Now totally deprecated.
+		if len(rs.Extra) > 0 {
+			log.Printf(
+				"[WARN] Resource %s uses deprecated attribute "+
+					"storage, state file upgrade may be incomplete.",
+				rs.ID,
+			)
+		}
+	}
+	return s, nil
 }

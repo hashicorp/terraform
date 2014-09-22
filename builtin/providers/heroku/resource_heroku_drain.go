@@ -6,7 +6,6 @@ import (
 
 	"github.com/cyberdelia/heroku-go/v3"
 	"github.com/hashicorp/terraform/helper/schema"
-	"github.com/hashicorp/terraform/terraform"
 )
 
 func resourceHerokuDrain() *schema.Resource {
@@ -52,9 +51,6 @@ func resourceHerokuDrainCreate(d *schema.ResourceData, meta interface{}) error {
 	d.SetId(dr.ID)
 	d.Set("url", dr.URL)
 	d.Set("token", dr.Token)
-	d.SetDependencies([]terraform.ResourceDependency{
-		terraform.ResourceDependency{ID: app},
-	})
 
 	log.Printf("[INFO] Drain ID: %s", d.Id())
 	return nil

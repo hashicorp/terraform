@@ -56,9 +56,7 @@ const GraphRootNode = "root"
 // or a component of a resource.
 type GraphNodeResource struct {
 	Index              int
-	Type               string
 	Config             *config.Resource
-	Orphan             bool
 	Resource           *Resource
 	ResourceProviderID string
 }
@@ -106,15 +104,19 @@ func Graph(opts *GraphOpts) (*depgraph.Graph, error) {
 	g := new(depgraph.Graph)
 
 	// First, build the initial resource graph. This only has the resources
-	// and no dependencies.
+	// and no dependencies. This only adds resources that are in the config
+	// and not "orphans" (that are in the state, but not in the config).
 	graphAddConfigResources(g, opts.Config, opts.State)
 
 	// Add explicit dependsOn dependencies to the graph
 	graphAddExplicitDeps(g)
 
-	// Next, add the state orphans if we have any
 	if opts.State != nil {
+		// Next, add the state orphans if we have any
 		graphAddOrphans(g, opts.Config, opts.State)
+
+		// Add tainted resources if we have any.
+		graphAddTainted(g, opts.State)
 	}
 
 	// Map the provider configurations to all of the resources
@@ -170,9 +172,60 @@ func Graph(opts *GraphOpts) (*depgraph.Graph, error) {
 	return g, nil
 }
 
+// graphInitState is used to initialize a State with a ResourceState
+// for every resource.
+//
+// This method is very important to call because it will properly setup
+// the ResourceState dependency information with data from the graph. This
+// allows orphaned resources to be destroyed in the proper order.
+func graphInitState(s *State, g *depgraph.Graph) {
+	// TODO: other modules
+	mod := s.RootModule()
+
+	for _, n := range g.Nouns {
+		// Ignore any non-resource nodes
+		rn, ok := n.Meta.(*GraphNodeResource)
+		if !ok {
+			continue
+		}
+		r := rn.Resource
+		rs := mod.Resources[r.Id]
+		if rs == nil {
+			rs = new(ResourceState)
+			rs.init()
+			mod.Resources[r.Id] = rs
+		}
+
+		// Update the dependencies
+		var inject []string
+		for _, dep := range n.Deps {
+			switch target := dep.Target.Meta.(type) {
+			case *GraphNodeResource:
+				if target.Resource.Id == r.Id {
+					continue
+				}
+				inject = append(inject, target.Resource.Id)
+
+			case *GraphNodeResourceMeta:
+				// Inject each sub-resource as a depedency
+				for i := 0; i < target.Count; i++ {
+					id := fmt.Sprintf("%s.%d", target.ID, i)
+					inject = append(inject, id)
+				}
+			}
+		}
+
+		// Update the dependencies
+		rs.Dependencies = inject
+	}
+}
+
 // configGraph turns a configuration structure into a dependency graph.
 func graphAddConfigResources(
 	g *depgraph.Graph, c *config.Config, s *State) {
+	// TODO: Handle non-root modules
+	mod := s.ModuleByPath(rootModulePath)
+
 	// This tracks all the resource nouns
 	nouns := make(map[string]*depgraph.Noun)
 	for _, r := range c.Resources {
@@ -188,47 +241,47 @@ func graphAddConfigResources(
 				index = i
 			}
 
-			// Determine if this resource is tainted
-			tainted := false
-			if s != nil && s.Tainted != nil {
-				_, tainted = s.Tainted[r.Id()]
-			}
-
 			var state *ResourceState
-			if s != nil {
-				state = s.Resources[name]
-
+			if s != nil && mod != nil {
+				// Lookup the resource state
+				state = mod.Resources[name]
 				if state == nil {
 					if r.Count == 1 {
 						// If the count is one, check the state for ".0"
 						// appended, which might exist if we go from
 						// count > 1 to count == 1.
-						state = s.Resources[r.Id()+".0"]
+						state = mod.Resources[r.Id()+".0"]
 					} else if i == 0 {
 						// If count is greater than one, check for state
 						// with just the ID, which might exist if we go
 						// from count == 1 to count > 1
-						state = s.Resources[r.Id()]
+						state = mod.Resources[r.Id()]
 					}
 				}
 			}
+
 			if state == nil {
 				state = &ResourceState{
 					Type: r.Type,
 				}
 			}
 
+			flags := FlagPrimary
+			if len(state.Tainted) > 0 {
+				flags |= FlagHasTainted
+			}
+
 			resourceNouns[i] = &depgraph.Noun{
 				Name: name,
 				Meta: &GraphNodeResource{
 					Index:  index,
-					Type:   r.Type,
 					Config: r,
 					Resource: &Resource{
-						Id:      name,
-						State:   state,
-						Config:  NewResourceConfig(r.RawConfig),
-						Tainted: tainted,
+						Id:     name,
+						Info:   &InstanceInfo{Type: r.Type},
+						State:  state.Primary,
+						Config: NewResourceConfig(r.RawConfig),
+						Flags:  flags,
 					},
 				},
 			}
@@ -291,6 +344,9 @@ func graphAddDiff(g *depgraph.Graph, d *Diff) error {
 		if !ok {
 			continue
 		}
+		if rn.Resource.Flags&FlagTainted != 0 {
+			continue
+		}
 
 		rd, ok := d.Resources[rn.Resource.Id]
 		if !ok {
@@ -309,33 +365,24 @@ func graphAddDiff(g *depgraph.Graph, d *Diff) error {
 			*newNode.Resource = *rn.Resource
 
 			// Make the diff _just_ the destroy.
-			newNode.Resource.Diff = &ResourceDiff{Destroy: true}
+			newNode.Resource.Diff = &InstanceDiff{Destroy: true}
 
 			// Create the new node
 			newN := &depgraph.Noun{
 				Name: fmt.Sprintf("%s (destroy)", newNode.Resource.Id),
 				Meta: newNode,
 			}
-			newN.Deps = make([]*depgraph.Dependency, 0, len(n.Deps))
-			for _, d := range n.Deps {
-				// We don't want to copy any resource dependencies
-				if _, ok := d.Target.Meta.(*GraphNodeResource); ok {
-					continue
-				}
+			newN.Deps = make([]*depgraph.Dependency, len(n.Deps))
 
-				newN.Deps = append(newN.Deps, &depgraph.Dependency{
-					Name:   d.Name,
-					Source: newN,
-					Target: d.Target,
-				})
-			}
+			// Copy all the dependencies and do a fixup later
+			copy(newN.Deps, n.Deps)
 
 			// Append it to the list so we handle it later
 			nlist = append(nlist, newN)
 
 			// Mark the old diff to not destroy since we handle that in
 			// the dedicated node.
-			newDiff := new(ResourceDiff)
+			newDiff := new(InstanceDiff)
 			*newDiff = *rd
 			newDiff.Destroy = false
 			rd = newDiff
@@ -347,15 +394,6 @@ func graphAddDiff(g *depgraph.Graph, d *Diff) error {
 				Source: n,
 				Target: newN,
 			})
-
-			// If the resource is tainted, mark the state as nil so
-			// that a fresh create is done.
-			if rn.Resource.Tainted {
-				rn.Resource.State = &ResourceState{
-					Type: rn.Resource.State.Type,
-				}
-				rn.Resource.Tainted = false
-			}
 		}
 
 		rn.Resource.Diff = rd
@@ -363,36 +401,87 @@ func graphAddDiff(g *depgraph.Graph, d *Diff) error {
 
 	// Go through each noun and make sure we calculate all the dependencies
 	// properly.
+	injected := make(map[*depgraph.Dependency]struct{})
 	for _, n := range nlist {
-		rn := n.Meta.(*GraphNodeResource)
+		deps := n.Deps
+		num := len(deps)
+		for i := 0; i < num; i++ {
+			dep := deps[i]
 
-		// If we have no dependencies, then just continue
-		deps := rn.Resource.State.Dependencies
-		if len(deps) == 0 {
-			continue
-		}
+			// Check if this dependency was just injected, otherwise
+			// we will incorrectly flip the depedency twice.
+			if _, ok := injected[dep]; ok {
+				continue
+			}
 
-		// We have dependencies. We must be destroyed BEFORE those
-		// dependencies. Look to see if they're managed.
-		for _, dep := range deps {
-			for _, n2 := range nlist {
-				// Don't ever depend on ourselves
-				if n2.Name == n.Name {
-					continue
+			switch target := dep.Target.Meta.(type) {
+			case *GraphNodeResource:
+				// If the other node is also being deleted,
+				// we must be deleted first. E.g. if A -> B,
+				// then when we create, B is created first then A.
+				// On teardown, A is destroyed first, then B.
+				// Thus we must flip our depedency and instead inject
+				// it on B.
+				for _, n2 := range nlist {
+					rn2 := n2.Meta.(*GraphNodeResource)
+					if target.Resource.Id == rn2.Resource.Id {
+						newDep := &depgraph.Dependency{
+							Name:   n.Name,
+							Source: n2,
+							Target: n,
+						}
+						injected[newDep] = struct{}{}
+						n2.Deps = append(n2.Deps, newDep)
+						break
+					}
 				}
 
-				rn2 := n2.Meta.(*GraphNodeResource)
-				if rn2.Resource.State.ID == dep.ID {
-					n2.Deps = append(n2.Deps, &depgraph.Dependency{
-						Name:   n.Name,
-						Source: n2,
-						Target: n,
-					})
+				// Drop the dependency. We may have created
+				// an inverse depedency if the dependent resource
+				// is also being deleted, but this dependence is
+				// no longer required.
+				deps[i], deps[num-1] = deps[num-1], nil
+				num--
+				i--
 
-					break
+			case *GraphNodeResourceMeta:
+				// Check if any of the resources part of the meta node
+				// are being destroyed, because we must be destroyed first.
+				for i := 0; i < target.Count; i++ {
+					id := fmt.Sprintf("%s.%d", target.ID, i)
+					for _, n2 := range nlist {
+						rn2 := n2.Meta.(*GraphNodeResource)
+						if id == rn2.Resource.Id {
+							newDep := &depgraph.Dependency{
+								Name:   n.Name,
+								Source: n2,
+								Target: n,
+							}
+							injected[newDep] = struct{}{}
+							n2.Deps = append(n2.Deps, newDep)
+							break
+						}
+					}
 				}
+
+				// Drop the dependency, since there is
+				// nothing that needs to be done for a meta
+				// resource on destroy.
+				deps[i], deps[num-1] = deps[num-1], nil
+				num--
+				i--
+
+			case *GraphNodeResourceProvider:
+				// Keep these around, but fix up the source to be ourselves
+				// rather than the old node.
+				newDep := *dep
+				newDep.Source = n
+				deps[i] = &newDep
+			default:
+				panic(fmt.Errorf("Unhandled depedency type: %#v", dep.Meta))
 			}
 		}
+		n.Deps = deps[:num]
 	}
 
 	// Add the nouns to the graph
@@ -460,11 +549,11 @@ func graphAddMissingResourceProviders(
 			continue
 		}
 
-		prefixes := matchingPrefixes(rn.Type, ps)
+		prefixes := matchingPrefixes(rn.Resource.Info.Type, ps)
 		if len(prefixes) == 0 {
 			errs = append(errs, fmt.Errorf(
 				"No matching provider for type: %s",
-				rn.Type))
+				rn.Resource.Info.Type))
 			continue
 		}
 
@@ -504,22 +593,70 @@ func graphAddMissingResourceProviders(
 
 // graphAddOrphans adds the orphans to the graph.
 func graphAddOrphans(g *depgraph.Graph, c *config.Config, s *State) {
-	for _, k := range s.Orphans(c) {
-		rs := s.Resources[k]
+	// TODO: Handle other modules
+	mod := s.ModuleByPath(rootModulePath)
+	if mod == nil {
+		return
+	}
+	var nlist []*depgraph.Noun
+	for _, k := range mod.Orphans(c) {
+		rs := mod.Resources[k]
 		noun := &depgraph.Noun{
 			Name: k,
 			Meta: &GraphNodeResource{
-				Index:  -1,
-				Type:   rs.Type,
-				Orphan: true,
+				Index: -1,
 				Resource: &Resource{
 					Id:     k,
-					State:  rs,
+					Info:   &InstanceInfo{Type: rs.Type},
+					State:  rs.Primary,
 					Config: NewResourceConfig(nil),
+					Flags:  FlagOrphan,
 				},
 			},
 		}
-		g.Nouns = append(g.Nouns, noun)
+
+		// Append it to the list so we handle it later
+		nlist = append(nlist, noun)
+	}
+
+	// Add the nouns to the graph
+	g.Nouns = append(g.Nouns, nlist...)
+
+	// Handle the orphan dependencies after adding them
+	// to the graph because there may be depedencies between the
+	// orphans that otherwise cannot be handled
+	for _, n := range nlist {
+		rn := n.Meta.(*GraphNodeResource)
+
+		// If we have no dependencies, then just continue
+		rs := mod.Resources[n.Name]
+		if len(rs.Dependencies) == 0 {
+			continue
+		}
+
+		for _, n2 := range g.Nouns {
+			rn2, ok := n2.Meta.(*GraphNodeResource)
+			if !ok {
+				continue
+			}
+
+			// Don't ever depend on ourselves
+			if rn2 == rn {
+				continue
+			}
+
+			for _, depName := range rs.Dependencies {
+				if rn2.Resource.Id != depName {
+					continue
+				}
+				dep := &depgraph.Dependency{
+					Name:   depName,
+					Source: n,
+					Target: n2,
+				}
+				n.Deps = append(n.Deps, dep)
+			}
+		}
 	}
 }
 
@@ -536,7 +673,7 @@ func graphAddProviderConfigs(g *depgraph.Graph, c *config.Config) {
 
 		// Look up the provider config for this resource
 		pcName := config.ProviderConfigName(
-			resourceNode.Type, c.ProviderConfigs)
+			resourceNode.Resource.Info.Type, c.ProviderConfigs)
 		if pcName == "" {
 			continue
 		}
@@ -618,14 +755,11 @@ func graphAddVariableDeps(g *depgraph.Graph) {
 		var vars map[string]config.InterpolatedVariable
 		switch m := n.Meta.(type) {
 		case *GraphNodeResource:
-			// Ignore orphan nodes
-			if m.Orphan {
-				continue
+			if m.Config != nil {
+				// Handle the resource variables
+				vars = m.Config.RawConfig.Variables
+				nounAddVariableDeps(g, n, vars, false)
 			}
-
-			// Handle the resource variables
-			vars = m.Config.RawConfig.Variables
-			nounAddVariableDeps(g, n, vars, false)
 
 			// Handle the variables of the resource provisioners
 			for _, p := range m.Resource.Provisioners {
@@ -644,6 +778,73 @@ func graphAddVariableDeps(g *depgraph.Graph) {
 			continue
 		}
 	}
+}
+
+// graphAddTainted adds the tainted instances to the graph.
+func graphAddTainted(g *depgraph.Graph, s *State) {
+	// TODO: Handle other modules
+	mod := s.ModuleByPath(rootModulePath)
+	if mod == nil {
+		return
+	}
+
+	var nlist []*depgraph.Noun
+	for k, rs := range mod.Resources {
+		// If we have no tainted resources, continue on
+		if len(rs.Tainted) == 0 {
+			continue
+		}
+
+		// Find the untainted resource of this in the noun list
+		var untainted *depgraph.Noun
+		for _, n := range g.Nouns {
+			if n.Name == k {
+				untainted = n
+				break
+			}
+		}
+
+		for i, is := range rs.Tainted {
+			name := fmt.Sprintf("%s (tainted #%d)", k, i+1)
+
+			// Add each of the tainted resources to the graph, and encode
+			// a dependency from the non-tainted resource to this so that
+			// tainted resources are always destroyed first.
+			noun := &depgraph.Noun{
+				Name: name,
+				Meta: &GraphNodeResource{
+					Index: -1,
+					Resource: &Resource{
+						Id:           k,
+						Info:         &InstanceInfo{Type: rs.Type},
+						State:        is,
+						Config:       NewResourceConfig(nil),
+						Diff:         &InstanceDiff{Destroy: true},
+						Flags:        FlagTainted,
+						TaintedIndex: i,
+					},
+				},
+			}
+
+			// Append it to the list so we handle it later
+			nlist = append(nlist, noun)
+
+			// If we have an untainted version, then make sure to add
+			// the dependency.
+			if untainted != nil {
+				dep := &depgraph.Dependency{
+					Name:   name,
+					Source: untainted,
+					Target: noun,
+				}
+
+				untainted.Deps = append(untainted.Deps, dep)
+			}
+		}
+	}
+
+	// Add the nouns to the graph
+	g.Nouns = append(g.Nouns, nlist...)
 }
 
 // nounAddVariableDeps updates the dependencies of a noun given
@@ -783,18 +984,18 @@ func graphMapResourceProviders(g *depgraph.Graph) error {
 			panic(fmt.Sprintf(
 				"Resource provider ID not found: %s (type: %s)",
 				rn.ResourceProviderID,
-				rn.Type))
+				rn.Resource.Info.Type))
 		}
 
 		var provider ResourceProvider
 		for _, k := range rpn.ProviderKeys {
 			// Only try this provider if it has the right prefix
-			if !strings.HasPrefix(rn.Type, k) {
+			if !strings.HasPrefix(rn.Resource.Info.Type, k) {
 				continue
 			}
 
 			rp := rpn.Providers[k]
-			if ProviderSatisfies(rp, rn.Type) {
+			if ProviderSatisfies(rp, rn.Resource.Info.Type) {
 				provider = rp
 				break
 			}
@@ -803,7 +1004,7 @@ func graphMapResourceProviders(g *depgraph.Graph) error {
 		if provider == nil {
 			errs = append(errs, fmt.Errorf(
 				"Resource provider not found for resource type '%s'",
-				rn.Type))
+				rn.Resource.Info.Type))
 			continue
 		}
 

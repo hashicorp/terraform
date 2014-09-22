@@ -35,13 +35,13 @@ func TestAccDigitalOceanDomain_Basic(t *testing.T) {
 func testAccCheckDigitalOceanDomainDestroy(s *terraform.State) error {
 	client := testAccProvider.client
 
-	for _, rs := range s.Resources {
+	for _, rs := range s.RootModule().Resources {
 		if rs.Type != "digitalocean_domain" {
 			continue
 		}
 
 		// Try to find the domain
-		_, err := client.RetrieveDomain(rs.ID)
+		_, err := client.RetrieveDomain(rs.Primary.ID)
 
 		if err == nil {
 			fmt.Errorf("Domain still exists")
@@ -64,25 +64,25 @@ func testAccCheckDigitalOceanDomainAttributes(domain *digitalocean.Domain) resou
 
 func testAccCheckDigitalOceanDomainExists(n string, domain *digitalocean.Domain) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
-		rs, ok := s.Resources[n]
+		rs, ok := s.RootModule().Resources[n]
 
 		if !ok {
 			return fmt.Errorf("Not found: %s", n)
 		}
 
-		if rs.ID == "" {
+		if rs.Primary.ID == "" {
 			return fmt.Errorf("No Record ID is set")
 		}
 
 		client := testAccProvider.client
 
-		foundDomain, err := client.RetrieveDomain(rs.ID)
+		foundDomain, err := client.RetrieveDomain(rs.Primary.ID)
 
 		if err != nil {
 			return err
 		}
 
-		if foundDomain.Name != rs.ID {
+		if foundDomain.Name != rs.Primary.ID {
 			return fmt.Errorf("Record not found")
 		}
 

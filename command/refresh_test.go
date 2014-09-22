@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
+	"strings"
 	"testing"
 
 	"github.com/hashicorp/terraform/terraform"
@@ -12,14 +13,7 @@ import (
 )
 
 func TestRefresh(t *testing.T) {
-	state := &terraform.State{
-		Resources: map[string]*terraform.ResourceState{
-			"test_instance.foo": &terraform.ResourceState{
-				ID:   "bar",
-				Type: "test_instance",
-			},
-		},
-	}
+	state := testState()
 	statePath := testStateFile(t, state)
 
 	p := testProvider()
@@ -32,7 +26,7 @@ func TestRefresh(t *testing.T) {
 	}
 
 	p.RefreshFn = nil
-	p.RefreshReturn = &terraform.ResourceState{ID: "yes"}
+	p.RefreshReturn = &terraform.InstanceState{ID: "yes"}
 
 	args := []string{
 		"-state", statePath,
@@ -57,10 +51,10 @@ func TestRefresh(t *testing.T) {
 		t.Fatalf("err: %s", err)
 	}
 
-	actual := newState.Resources["test_instance.foo"]
-	expected := p.RefreshReturn
-	if !reflect.DeepEqual(actual, expected) {
-		t.Fatalf("bad: %#v", actual)
+	actual := strings.TrimSpace(newState.String())
+	expected := strings.TrimSpace(testRefreshStr)
+	if actual != expected {
+		t.Fatalf("bad:\n\n%s", actual)
 	}
 }
 
@@ -93,14 +87,7 @@ func TestRefresh_cwd(t *testing.T) {
 	}
 	defer os.Chdir(cwd)
 
-	state := &terraform.State{
-		Resources: map[string]*terraform.ResourceState{
-			"test_instance.foo": &terraform.ResourceState{
-				ID:   "bar",
-				Type: "test_instance",
-			},
-		},
-	}
+	state := testState()
 	statePath := testStateFile(t, state)
 
 	p := testProvider()
@@ -113,7 +100,7 @@ func TestRefresh_cwd(t *testing.T) {
 	}
 
 	p.RefreshFn = nil
-	p.RefreshReturn = &terraform.ResourceState{ID: "yes"}
+	p.RefreshReturn = &terraform.InstanceState{ID: "yes"}
 
 	args := []string{
 		"-state", statePath,
@@ -137,22 +124,15 @@ func TestRefresh_cwd(t *testing.T) {
 		t.Fatalf("err: %s", err)
 	}
 
-	actual := newState.Resources["test_instance.foo"]
-	expected := p.RefreshReturn
-	if !reflect.DeepEqual(actual, expected) {
-		t.Fatalf("bad: %#v", actual)
+	actual := strings.TrimSpace(newState.String())
+	expected := strings.TrimSpace(testRefreshCwdStr)
+	if actual != expected {
+		t.Fatalf("bad:\n\n%s", actual)
 	}
 }
 
 func TestRefresh_defaultState(t *testing.T) {
-	originalState := &terraform.State{
-		Resources: map[string]*terraform.ResourceState{
-			"test_instance.foo": &terraform.ResourceState{
-				ID:   "bar",
-				Type: "test_instance",
-			},
-		},
-	}
+	originalState := testState()
 
 	// Write the state file in a temporary directory with the
 	// default filename.
@@ -192,7 +172,7 @@ func TestRefresh_defaultState(t *testing.T) {
 	}
 
 	p.RefreshFn = nil
-	p.RefreshReturn = &terraform.ResourceState{ID: "yes"}
+	p.RefreshReturn = &terraform.InstanceState{ID: "yes"}
 
 	args := []string{
 		testFixturePath("refresh"),
@@ -216,7 +196,7 @@ func TestRefresh_defaultState(t *testing.T) {
 		t.Fatalf("err: %s", err)
 	}
 
-	actual := newState.Resources["test_instance.foo"]
+	actual := newState.RootModule().Resources["test_instance.foo"].Primary
 	expected := p.RefreshReturn
 	if !reflect.DeepEqual(actual, expected) {
 		t.Fatalf("bad: %#v", actual)
@@ -233,22 +213,15 @@ func TestRefresh_defaultState(t *testing.T) {
 		t.Fatalf("err: %s", err)
 	}
 
-	actual = backupState.Resources["test_instance.foo"]
-	expected = originalState.Resources["test_instance.foo"]
+	actual = backupState.RootModule().Resources["test_instance.foo"].Primary
+	expected = originalState.RootModule().Resources["test_instance.foo"].Primary
 	if !reflect.DeepEqual(actual, expected) {
 		t.Fatalf("bad: %#v", actual)
 	}
 }
 
 func TestRefresh_outPath(t *testing.T) {
-	state := &terraform.State{
-		Resources: map[string]*terraform.ResourceState{
-			"test_instance.foo": &terraform.ResourceState{
-				ID:   "bar",
-				Type: "test_instance",
-			},
-		},
-	}
+	state := testState()
 	statePath := testStateFile(t, state)
 
 	// Output path
@@ -270,7 +243,7 @@ func TestRefresh_outPath(t *testing.T) {
 	}
 
 	p.RefreshFn = nil
-	p.RefreshReturn = &terraform.ResourceState{ID: "yes"}
+	p.RefreshReturn = &terraform.InstanceState{ID: "yes"}
 
 	args := []string{
 		"-state", statePath,
@@ -307,7 +280,7 @@ func TestRefresh_outPath(t *testing.T) {
 		t.Fatalf("err: %s", err)
 	}
 
-	actual := newState.Resources["test_instance.foo"]
+	actual := newState.RootModule().Resources["test_instance.foo"].Primary
 	expected := p.RefreshReturn
 	if !reflect.DeepEqual(actual, expected) {
 		t.Fatalf("bad: %#v", actual)
@@ -324,20 +297,15 @@ func TestRefresh_outPath(t *testing.T) {
 		t.Fatalf("err: %s", err)
 	}
 
-	if !reflect.DeepEqual(backupState, state) {
-		t.Fatalf("bad: %#v", backupState)
+	actualStr := strings.TrimSpace(backupState.String())
+	expectedStr := strings.TrimSpace(state.String())
+	if actualStr != expectedStr {
+		t.Fatalf("bad:\n\n%s\n\n%s", actualStr, expectedStr)
 	}
 }
 
 func TestRefresh_var(t *testing.T) {
-	state := &terraform.State{
-		Resources: map[string]*terraform.ResourceState{
-			"test_instance.foo": &terraform.ResourceState{
-				ID:   "bar",
-				Type: "test_instance",
-			},
-		},
-	}
+	state := testState()
 	statePath := testStateFile(t, state)
 
 	p := testProvider()
@@ -367,14 +335,7 @@ func TestRefresh_var(t *testing.T) {
 }
 
 func TestRefresh_varFile(t *testing.T) {
-	state := &terraform.State{
-		Resources: map[string]*terraform.ResourceState{
-			"test_instance.foo": &terraform.ResourceState{
-				ID:   "bar",
-				Type: "test_instance",
-			},
-		},
-	}
+	state := testState()
 	statePath := testStateFile(t, state)
 
 	p := testProvider()
@@ -409,14 +370,7 @@ func TestRefresh_varFile(t *testing.T) {
 }
 
 func TestRefresh_varFileDefault(t *testing.T) {
-	state := &terraform.State{
-		Resources: map[string]*terraform.ResourceState{
-			"test_instance.foo": &terraform.ResourceState{
-				ID:   "bar",
-				Type: "test_instance",
-			},
-		},
-	}
+	state := testState()
 	statePath := testStateFile(t, state)
 
 	p := testProvider()
@@ -460,14 +414,7 @@ func TestRefresh_varFileDefault(t *testing.T) {
 }
 
 func TestRefresh_backup(t *testing.T) {
-	state := &terraform.State{
-		Resources: map[string]*terraform.ResourceState{
-			"test_instance.foo": &terraform.ResourceState{
-				ID:   "bar",
-				Type: "test_instance",
-			},
-		},
-	}
+	state := testState()
 	statePath := testStateFile(t, state)
 
 	// Output path
@@ -498,7 +445,7 @@ func TestRefresh_backup(t *testing.T) {
 	}
 
 	p.RefreshFn = nil
-	p.RefreshReturn = &terraform.ResourceState{ID: "yes"}
+	p.RefreshReturn = &terraform.InstanceState{ID: "yes"}
 
 	args := []string{
 		"-state", statePath,
@@ -536,7 +483,7 @@ func TestRefresh_backup(t *testing.T) {
 		t.Fatalf("err: %s", err)
 	}
 
-	actual := newState.Resources["test_instance.foo"]
+	actual := newState.RootModule().Resources["test_instance.foo"].Primary
 	expected := p.RefreshReturn
 	if !reflect.DeepEqual(actual, expected) {
 		t.Fatalf("bad: %#v", actual)
@@ -553,20 +500,15 @@ func TestRefresh_backup(t *testing.T) {
 		t.Fatalf("err: %s", err)
 	}
 
-	if !reflect.DeepEqual(backupState, state) {
-		t.Fatalf("bad: %#v", backupState)
+	actualStr := strings.TrimSpace(backupState.String())
+	expectedStr := strings.TrimSpace(state.String())
+	if actualStr != expectedStr {
+		t.Fatalf("bad:\n\n%s\n\n%s", actualStr, expectedStr)
 	}
 }
 
 func TestRefresh_disableBackup(t *testing.T) {
-	state := &terraform.State{
-		Resources: map[string]*terraform.ResourceState{
-			"test_instance.foo": &terraform.ResourceState{
-				ID:   "bar",
-				Type: "test_instance",
-			},
-		},
-	}
+	state := testState()
 	statePath := testStateFile(t, state)
 
 	// Output path
@@ -588,7 +530,7 @@ func TestRefresh_disableBackup(t *testing.T) {
 	}
 
 	p.RefreshFn = nil
-	p.RefreshReturn = &terraform.ResourceState{ID: "yes"}
+	p.RefreshReturn = &terraform.InstanceState{ID: "yes"}
 
 	args := []string{
 		"-state", statePath,
@@ -626,7 +568,7 @@ func TestRefresh_disableBackup(t *testing.T) {
 		t.Fatalf("err: %s", err)
 	}
 
-	actual := newState.Resources["test_instance.foo"]
+	actual := newState.RootModule().Resources["test_instance.foo"].Primary
 	expected := p.RefreshReturn
 	if !reflect.DeepEqual(actual, expected) {
 		t.Fatalf("bad: %#v", actual)
@@ -641,4 +583,13 @@ func TestRefresh_disableBackup(t *testing.T) {
 
 const refreshVarFile = `
 foo = "bar"
+`
+
+const testRefreshStr = `
+test_instance.foo:
+  ID = yes
+`
+const testRefreshCwdStr = `
+test_instance.foo:
+  ID = yes
 `

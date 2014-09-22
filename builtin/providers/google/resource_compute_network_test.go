@@ -31,13 +31,13 @@ func TestAccComputeNetwork_basic(t *testing.T) {
 func testAccCheckComputeNetworkDestroy(s *terraform.State) error {
 	config := testAccProvider.Meta().(*Config)
 
-	for _, rs := range s.Resources {
+	for _, rs := range s.RootModule().Resources {
 		if rs.Type != "google_compute_network" {
 			continue
 		}
 
 		_, err := config.clientCompute.Networks.Get(
-			config.Project, rs.ID).Do()
+			config.Project, rs.Primary.ID).Do()
 		if err == nil {
 			return fmt.Errorf("Network still exists")
 		}
@@ -48,24 +48,24 @@ func testAccCheckComputeNetworkDestroy(s *terraform.State) error {
 
 func testAccCheckComputeNetworkExists(n string, network *compute.Network) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
-		rs, ok := s.Resources[n]
+		rs, ok := s.RootModule().Resources[n]
 		if !ok {
 			return fmt.Errorf("Not found: %s", n)
 		}
 
-		if rs.ID == "" {
+		if rs.Primary.ID == "" {
 			return fmt.Errorf("No ID is set")
 		}
 
 		config := testAccProvider.Meta().(*Config)
 
 		found, err := config.clientCompute.Networks.Get(
-			config.Project, rs.ID).Do()
+			config.Project, rs.Primary.ID).Do()
 		if err != nil {
 			return err
 		}
 
-		if found.Name != rs.ID {
+		if found.Name != rs.Primary.ID {
 			return fmt.Errorf("Network not found")
 		}
 

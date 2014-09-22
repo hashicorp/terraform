@@ -2,14 +2,16 @@ package terraform
 
 import (
 	"bytes"
+	"encoding/json"
 	"reflect"
+	"strings"
 	"testing"
 
 	"github.com/hashicorp/terraform/config"
 )
 
-func TestResourceState_MergeDiff(t *testing.T) {
-	rs := ResourceState{
+func TestInstanceState_MergeDiff(t *testing.T) {
+	is := InstanceState{
 		ID: "foo",
 		Attributes: map[string]string{
 			"foo":  "bar",
@@ -17,7 +19,7 @@ func TestResourceState_MergeDiff(t *testing.T) {
 		},
 	}
 
-	diff := &ResourceDiff{
+	diff := &InstanceDiff{
 		Attributes: map[string]*ResourceAttrDiff{
 			"foo": &ResourceAttrDiff{
 				Old: "bar",
@@ -38,7 +40,7 @@ func TestResourceState_MergeDiff(t *testing.T) {
 		},
 	}
 
-	rs2 := rs.MergeDiff(diff)
+	is2 := is.MergeDiff(diff)
 
 	expected := map[string]string{
 		"foo": "baz",
@@ -46,15 +48,15 @@ func TestResourceState_MergeDiff(t *testing.T) {
 		"baz": config.UnknownVariableValue,
 	}
 
-	if !reflect.DeepEqual(expected, rs2.Attributes) {
-		t.Fatalf("bad: %#v", rs2.Attributes)
+	if !reflect.DeepEqual(expected, is2.Attributes) {
+		t.Fatalf("bad: %#v", is2.Attributes)
 	}
 }
 
-func TestResourceState_MergeDiff_nil(t *testing.T) {
-	var rs *ResourceState = nil
+func TestInstanceState_MergeDiff_nil(t *testing.T) {
+	var is *InstanceState = nil
 
-	diff := &ResourceDiff{
+	diff := &InstanceDiff{
 		Attributes: map[string]*ResourceAttrDiff{
 			"foo": &ResourceAttrDiff{
 				Old: "",
@@ -63,45 +65,85 @@ func TestResourceState_MergeDiff_nil(t *testing.T) {
 		},
 	}
 
-	rs2 := rs.MergeDiff(diff)
+	is2 := is.MergeDiff(diff)
 
 	expected := map[string]string{
 		"foo": "baz",
 	}
 
-	if !reflect.DeepEqual(expected, rs2.Attributes) {
-		t.Fatalf("bad: %#v", rs2.Attributes)
+	if !reflect.DeepEqual(expected, is2.Attributes) {
+		t.Fatalf("bad: %#v", is2.Attributes)
 	}
 }
 
-func TestResourceState_MergeDiff_nilDiff(t *testing.T) {
-	rs := ResourceState{
+func TestInstanceState_MergeDiff_nilDiff(t *testing.T) {
+	is := InstanceState{
 		ID: "foo",
 		Attributes: map[string]string{
 			"foo": "bar",
 		},
 	}
 
-	rs2 := rs.MergeDiff(nil)
+	is2 := is.MergeDiff(nil)
 
 	expected := map[string]string{
 		"foo": "bar",
 	}
 
-	if !reflect.DeepEqual(expected, rs2.Attributes) {
-		t.Fatalf("bad: %#v", rs2.Attributes)
+	if !reflect.DeepEqual(expected, is2.Attributes) {
+		t.Fatalf("bad: %#v", is2.Attributes)
+	}
+}
+
+func TestReadUpgradeState(t *testing.T) {
+	state := &StateV1{
+		Resources: map[string]*ResourceStateV1{
+			"foo": &ResourceStateV1{
+				ID: "bar",
+			},
+		},
+	}
+	buf := new(bytes.Buffer)
+	if err := testWriteStateV1(state, buf); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	// ReadState should transparently detect the old
+	// version and upgrade up so the latest.
+	actual, err := ReadState(buf)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	upgraded, err := upgradeV1State(state)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	if !reflect.DeepEqual(actual, upgraded) {
+		t.Fatalf("bad: %#v", actual)
 	}
 }
 
 func TestReadWriteState(t *testing.T) {
 	state := &State{
-		Resources: map[string]*ResourceState{
-			"foo": &ResourceState{
-				ID: "bar",
-				ConnInfo: map[string]string{
-					"type":     "ssh",
-					"user":     "root",
-					"password": "supersecret",
+		Serial: 9,
+		Modules: []*ModuleState{
+			&ModuleState{
+				Path: rootModulePath,
+				Resources: map[string]*ResourceState{
+					"foo": &ResourceState{
+						Primary: &InstanceState{
+							ID: "bar",
+							Ephemeral: EphemeralState{
+								ConnInfo: map[string]string{
+									"type":     "ssh",
+									"user":     "root",
+									"password": "supersecret",
+								},
+							},
+						},
+					},
 				},
 			},
 		},
@@ -115,6 +157,20 @@ func TestReadWriteState(t *testing.T) {
 		t.Fatalf("err: %s", err)
 	}
 
+	// Verify that the version and serial are set
+	if state.Version != textStateVersion {
+		t.Fatalf("bad version number: %d", state.Version)
+	}
+
+	// Verify the serial number is incremented
+	if state.Serial != 10 {
+		t.Fatalf("bad serial: %d", state.Serial)
+	}
+
+	// Remove the changes or the checksum will fail
+	state.Version = 0
+	state.Serial = 9
+
 	// Checksum after the write
 	chksumAfter := checksumStruct(t, state)
 	if chksumAfter != chksum {
@@ -126,10 +182,108 @@ func TestReadWriteState(t *testing.T) {
 		t.Fatalf("err: %s", err)
 	}
 
+	// Verify the changes came through
+	state.Version = textStateVersion
+	state.Serial = 10
+
 	// ReadState should not restore sensitive information!
-	state.Resources["foo"].ConnInfo = nil
+	mod := state.RootModule()
+	mod.Resources["foo"].Primary.Ephemeral = EphemeralState{}
 
 	if !reflect.DeepEqual(actual, state) {
 		t.Fatalf("bad: %#v", actual)
+	}
+}
+
+func TestReadStateNewVersion(t *testing.T) {
+	type out struct {
+		Version int
+	}
+
+	buf, err := json.Marshal(&out{textStateVersion + 1})
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	s, err := ReadState(bytes.NewReader(buf))
+	if s != nil {
+		t.Fatalf("unexpected: %#v", s)
+	}
+	if !strings.Contains(err.Error(), "not supported") {
+		t.Fatalf("err: %v", err)
+	}
+}
+
+func TestUpgradeV1State(t *testing.T) {
+	old := &StateV1{
+		Outputs: map[string]string{
+			"ip": "127.0.0.1",
+		},
+		Resources: map[string]*ResourceStateV1{
+			"foo": &ResourceStateV1{
+				Type: "test_resource",
+				ID:   "bar",
+				Attributes: map[string]string{
+					"key": "val",
+				},
+			},
+			"bar": &ResourceStateV1{
+				Type: "test_resource",
+				ID:   "1234",
+				Attributes: map[string]string{
+					"a": "b",
+				},
+			},
+		},
+		Tainted: map[string]struct{}{
+			"bar": struct{}{},
+		},
+	}
+	state, err := upgradeV1State(old)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	if len(state.Modules) != 1 {
+		t.Fatalf("should only have root module: %#v", state.Modules)
+	}
+	root := state.RootModule()
+
+	if len(root.Outputs) != 1 {
+		t.Fatalf("bad outputs: %v", root.Outputs)
+	}
+	if root.Outputs["ip"] != "127.0.0.1" {
+		t.Fatalf("bad outputs: %v", root.Outputs)
+	}
+
+	if len(root.Resources) != 2 {
+		t.Fatalf("bad resources: %v", root.Resources)
+	}
+
+	foo := root.Resources["foo"]
+	if foo.Type != "test_resource" {
+		t.Fatalf("bad: %#v", foo)
+	}
+	if foo.Primary == nil || foo.Primary.ID != "bar" ||
+		foo.Primary.Attributes["key"] != "val" {
+		t.Fatalf("bad: %#v", foo)
+	}
+	if len(foo.Tainted) > 0 {
+		t.Fatalf("bad: %#v", foo)
+	}
+
+	bar := root.Resources["bar"]
+	if bar.Type != "test_resource" {
+		t.Fatalf("bad: %#v", bar)
+	}
+	if bar.Primary != nil {
+		t.Fatalf("bad: %#v", bar)
+	}
+	if len(bar.Tainted) != 1 {
+		t.Fatalf("bad: %#v", bar)
+	}
+	bt := bar.Tainted[0]
+	if bt.ID != "1234" || bt.Attributes["a"] != "b" {
+		t.Fatalf("bad: %#v", bt)
 	}
 }

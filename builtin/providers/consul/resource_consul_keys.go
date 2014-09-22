@@ -27,16 +27,16 @@ func resource_consul_keys_validation() *config.Validator {
 	}
 }
 func resource_consul_keys_update(
-	s *terraform.ResourceState,
-	d *terraform.ResourceDiff,
-	meta interface{}) (*terraform.ResourceState, error) {
+	s *terraform.InstanceState,
+	d *terraform.InstanceDiff,
+	meta interface{}) (*terraform.InstanceState, error) {
 	return resource_consul_keys_create(s, d, meta)
 }
 
 func resource_consul_keys_create(
-	s *terraform.ResourceState,
-	d *terraform.ResourceDiff,
-	meta interface{}) (*terraform.ResourceState, error) {
+	s *terraform.InstanceState,
+	d *terraform.InstanceDiff,
+	meta interface{}) (*terraform.InstanceState, error) {
 	p := meta.(*ResourceProvider)
 
 	// Merge the diff into the state so that we have all the attributes
@@ -97,7 +97,7 @@ func resource_consul_keys_create(
 }
 
 func resource_consul_keys_destroy(
-	s *terraform.ResourceState,
+	s *terraform.InstanceState,
 	meta interface{}) error {
 	p := meta.(*ResourceProvider)
 	client := p.client
@@ -132,9 +132,9 @@ func resource_consul_keys_destroy(
 }
 
 func resource_consul_keys_diff(
-	s *terraform.ResourceState,
+	s *terraform.InstanceState,
 	c *terraform.ResourceConfig,
-	meta interface{}) (*terraform.ResourceDiff, error) {
+	meta interface{}) (*terraform.InstanceDiff, error) {
 
 	// Determine the list of computed variables
 	var computed []string
@@ -162,8 +162,8 @@ AFTER:
 }
 
 func resource_consul_keys_refresh(
-	s *terraform.ResourceState,
-	meta interface{}) (*terraform.ResourceState, error) {
+	s *terraform.InstanceState,
+	meta interface{}) (*terraform.InstanceState, error) {
 	p := meta.(*ResourceProvider)
 	client := p.client
 	kv := client.KV()

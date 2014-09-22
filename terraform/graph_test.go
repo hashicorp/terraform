@@ -84,10 +84,18 @@ func TestGraph_dependsOnCount(t *testing.T) {
 func TestGraph_state(t *testing.T) {
 	config := testConfig(t, "graph-basic")
 	state := &State{
-		Resources: map[string]*ResourceState{
-			"aws_instance.old": &ResourceState{
-				ID:   "foo",
-				Type: "aws_instance",
+		Modules: []*ModuleState{
+			&ModuleState{
+				Path: rootModulePath,
+
+				Resources: map[string]*ResourceState{
+					"aws_instance.old": &ResourceState{
+						Type: "aws_instance",
+						Primary: &InstanceState{
+							ID: "foo",
+						},
+					},
+				},
 			},
 		},
 	}
@@ -99,6 +107,81 @@ func TestGraph_state(t *testing.T) {
 
 	actual := strings.TrimSpace(g.String())
 	expected := strings.TrimSpace(testTerraformGraphStateStr)
+	if actual != expected {
+		t.Fatalf("bad:\n\n%s", actual)
+	}
+}
+
+func TestGraph_tainted(t *testing.T) {
+	config := testConfig(t, "graph-tainted")
+	state := &State{
+		Modules: []*ModuleState{
+			&ModuleState{
+				Path: rootModulePath,
+
+				Resources: map[string]*ResourceState{
+					"aws_instance.web": &ResourceState{
+						Type: "aws_instance",
+						Primary: &InstanceState{
+							ID: "foo",
+						},
+						Tainted: []*InstanceState{
+							&InstanceState{
+								ID: "bar",
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	g, err := Graph(&GraphOpts{Config: config, State: state})
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	actual := strings.TrimSpace(g.String())
+	expected := strings.TrimSpace(testTerraformGraphTaintedStr)
+	if actual != expected {
+		t.Fatalf("bad:\n\n%s", actual)
+	}
+}
+
+func TestGraph_taintedMulti(t *testing.T) {
+	config := testConfig(t, "graph-tainted")
+	state := &State{
+		Modules: []*ModuleState{
+			&ModuleState{
+				Path: rootModulePath,
+
+				Resources: map[string]*ResourceState{
+					"aws_instance.web": &ResourceState{
+						Type: "aws_instance",
+						Primary: &InstanceState{
+							ID: "foo",
+						},
+						Tainted: []*InstanceState{
+							&InstanceState{
+								ID: "bar",
+							},
+							&InstanceState{
+								ID: "baz",
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	g, err := Graph(&GraphOpts{Config: config, State: state})
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	actual := strings.TrimSpace(g.String())
+	expected := strings.TrimSpace(testTerraformGraphTaintedMultiStr)
 	if actual != expected {
 		t.Fatalf("bad:\n\n%s", actual)
 	}
@@ -243,8 +326,8 @@ func TestGraphProvisioners(t *testing.T) {
 func TestGraphAddDiff(t *testing.T) {
 	config := testConfig(t, "graph-diff")
 	diff := &Diff{
-		Resources: map[string]*ResourceDiff{
-			"aws_instance.foo": &ResourceDiff{
+		Resources: map[string]*InstanceDiff{
+			"aws_instance.foo": &InstanceDiff{
 				Attributes: map[string]*ResourceAttrDiff{
 					"foo": &ResourceAttrDiff{
 						New: "bar",
@@ -279,28 +362,33 @@ func TestGraphAddDiff(t *testing.T) {
 func TestGraphAddDiff_destroy(t *testing.T) {
 	config := testConfig(t, "graph-diff-destroy")
 	diff := &Diff{
-		Resources: map[string]*ResourceDiff{
-			"aws_instance.foo": &ResourceDiff{
+		Resources: map[string]*InstanceDiff{
+			"aws_instance.foo": &InstanceDiff{
 				Destroy: true,
 			},
-			"aws_instance.bar": &ResourceDiff{
+			"aws_instance.bar": &InstanceDiff{
 				Destroy: true,
 			},
 		},
 	}
 	state := &State{
-		Resources: map[string]*ResourceState{
-			"aws_instance.foo": &ResourceState{
-				ID:   "foo",
-				Type: "aws_instance",
-			},
+		Modules: []*ModuleState{
+			&ModuleState{
+				Path: rootModulePath,
+				Resources: map[string]*ResourceState{
+					"aws_instance.foo": &ResourceState{
+						Type: "aws_instance",
+						Primary: &InstanceState{
+							ID: "foo",
+						},
+					},
 
-			"aws_instance.bar": &ResourceState{
-				ID:   "bar",
-				Type: "aws_instance",
-				Dependencies: []ResourceDependency{
-					ResourceDependency{
-						ID: "foo",
+					"aws_instance.bar": &ResourceState{
+						Type:         "aws_instance",
+						Dependencies: []string{"foo"},
+						Primary: &InstanceState{
+							ID: "bar",
+						},
 					},
 				},
 			},
@@ -321,14 +409,14 @@ func TestGraphAddDiff_destroy(t *testing.T) {
 	actual := strings.TrimSpace(g.String())
 	expected := strings.TrimSpace(testTerraformGraphDiffDestroyStr)
 	if actual != expected {
-		t.Fatalf("bad:\n\n%s", actual)
+		t.Fatalf("bad:\n\n%s\n\nexpected:\n\n%s", actual, expected)
 	}
 
 	// Verify that the state has been added
 	n := g.Noun("aws_instance.foo (destroy)")
 	rn := n.Meta.(*GraphNodeResource)
 
-	expected2 := &ResourceDiff{Destroy: true}
+	expected2 := &InstanceDiff{Destroy: true}
 	actual2 := rn.Resource.Diff
 	if !reflect.DeepEqual(actual2, expected2) {
 		t.Fatalf("bad: %#v", actual2)
@@ -338,6 +426,229 @@ func TestGraphAddDiff_destroy(t *testing.T) {
 	diffHash2 := checksumStruct(t, diff)
 	if diffHash != diffHash2 {
 		t.Fatal("diff has been modified")
+	}
+}
+
+func TestGraphAddDiff_destroy_counts(t *testing.T) {
+	config := testConfig(t, "graph-count")
+	diff := &Diff{
+		Resources: map[string]*InstanceDiff{
+			"aws_instance.web.0": &InstanceDiff{
+				Destroy: true,
+			},
+			"aws_instance.web.1": &InstanceDiff{
+				Destroy: true,
+			},
+			"aws_instance.web.2": &InstanceDiff{
+				Destroy: true,
+			},
+			"aws_load_balancer.weblb": &InstanceDiff{
+				Destroy: true,
+			},
+		},
+	}
+	state := &State{
+		Modules: []*ModuleState{
+			&ModuleState{
+				Path: rootModulePath,
+				Resources: map[string]*ResourceState{
+					"aws_instance.web.0": &ResourceState{
+						Type: "aws_instance",
+						Primary: &InstanceState{
+							ID: "foo",
+						},
+					},
+					"aws_instance.web.1": &ResourceState{
+						Type: "aws_instance",
+						Primary: &InstanceState{
+							ID: "foo",
+						},
+					},
+					"aws_instance.web.2": &ResourceState{
+						Type: "aws_instance",
+						Primary: &InstanceState{
+							ID: "foo",
+						},
+					},
+					"aws_load_balancer.weblb": &ResourceState{
+						Type:         "aws_load_balancer",
+						Dependencies: []string{"aws_instance.web.0", "aws_instance.web.1", "aws_instance.web.2"},
+						Primary: &InstanceState{
+							ID: "bar",
+						},
+					},
+				},
+			},
+		},
+	}
+
+	diffHash := checksumStruct(t, diff)
+
+	g, err := Graph(&GraphOpts{
+		Config: config,
+		Diff:   diff,
+		State:  state,
+	})
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	actual := strings.TrimSpace(g.String())
+	expected := strings.TrimSpace(testTerraformGraphDiffDestroyCountsStr)
+	if actual != expected {
+		t.Fatalf("bad:\n\n%s\n\nexpected:\n\n%s", actual, expected)
+	}
+
+	// Verify that the state has been added
+	n := g.Noun("aws_instance.web.0 (destroy)")
+	rn := n.Meta.(*GraphNodeResource)
+
+	expected2 := &InstanceDiff{Destroy: true}
+	actual2 := rn.Resource.Diff
+	if !reflect.DeepEqual(actual2, expected2) {
+		t.Fatalf("bad: %#v", actual2)
+	}
+
+	// Verify that our original structure has not been modified
+	diffHash2 := checksumStruct(t, diff)
+	if diffHash != diffHash2 {
+		t.Fatal("diff has been modified")
+	}
+}
+
+func TestGraphInitState(t *testing.T) {
+	config := testConfig(t, "graph-basic")
+	state := &State{
+		Modules: []*ModuleState{
+			&ModuleState{
+				Path: rootModulePath,
+				Resources: map[string]*ResourceState{
+					"aws_instance.web": &ResourceState{
+						Type: "aws_instance",
+						Primary: &InstanceState{
+							ID: "foo",
+						},
+					},
+					"aws_load_balancer.weblb": &ResourceState{
+						Type: "aws_load_balancer",
+						Primary: &InstanceState{
+							ID: "foo",
+						},
+					},
+				},
+			},
+		},
+	}
+
+	g, err := Graph(&GraphOpts{Config: config, State: state})
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	// This should encode the dependency information into the state
+	graphInitState(state, g)
+
+	root := state.RootModule()
+	web := root.Resources["aws_instance.web"]
+	if len(web.Dependencies) != 1 || web.Dependencies[0] != "aws_security_group.firewall" {
+		t.Fatalf("bad: %#v", web)
+	}
+
+	weblb := root.Resources["aws_load_balancer.weblb"]
+	if len(weblb.Dependencies) != 1 || weblb.Dependencies[0] != "aws_instance.web" {
+		t.Fatalf("bad: %#v", weblb)
+	}
+}
+
+func TestGraphInitState_Count(t *testing.T) {
+	config := testConfig(t, "graph-count")
+	state := &State{
+		Modules: []*ModuleState{
+			&ModuleState{
+				Path: rootModulePath,
+				Resources: map[string]*ResourceState{
+					"aws_instance.web.0": &ResourceState{
+						Type: "aws_instance",
+						Primary: &InstanceState{
+							ID: "foo",
+						},
+					},
+					"aws_load_balancer.weblb": &ResourceState{
+						Type: "aws_load_balancer",
+						Primary: &InstanceState{
+							ID: "foo",
+						},
+					},
+				},
+			},
+		},
+	}
+
+	g, err := Graph(&GraphOpts{Config: config, State: state})
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	// This should encode the dependency information into the state
+	graphInitState(state, g)
+
+	root := state.RootModule()
+	web := root.Resources["aws_instance.web.0"]
+	if len(web.Dependencies) != 0 {
+		t.Fatalf("bad: %#v", web)
+	}
+
+	weblb := root.Resources["aws_load_balancer.weblb"]
+	if len(weblb.Dependencies) != 3 {
+		t.Fatalf("bad: %#v", weblb)
+	}
+}
+
+func TestGraph_orphan_dependencies(t *testing.T) {
+	config := testConfig(t, "graph-count")
+	state := &State{
+		Modules: []*ModuleState{
+			&ModuleState{
+				Path: rootModulePath,
+
+				Resources: map[string]*ResourceState{
+					"aws_instance.web.0": &ResourceState{
+						Type: "aws_instance",
+						Primary: &InstanceState{
+							ID: "foo",
+						},
+					},
+					"aws_instance.web.1": &ResourceState{
+						Type: "aws_instance",
+						Primary: &InstanceState{
+							ID: "foo",
+						},
+					},
+					"aws_load_balancer.old": &ResourceState{
+						Type: "aws_load_balancer",
+						Primary: &InstanceState{
+							ID: "foo",
+						},
+						Dependencies: []string{
+							"aws_instance.web.0",
+							"aws_instance.web.1",
+							"aws_instance.web.2",
+						},
+					},
+				},
+			},
+		},
+	}
+
+	g, err := Graph(&GraphOpts{Config: config, State: state})
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	actual := strings.TrimSpace(g.String())
+	expected := strings.TrimSpace(testTerraformGraphCountOrphanStr)
+	if actual != expected {
+		t.Fatalf("bad:\n\nactual:\n%s\n\nexpected:\n%s", actual, expected)
 	}
 }
 
@@ -429,6 +740,33 @@ root
   root -> aws_instance.foo
 `
 
+const testTerraformGraphDiffDestroyCountsStr = `
+root: root
+aws_instance.web
+  aws_instance.web -> aws_instance.web.0
+  aws_instance.web -> aws_instance.web.1
+  aws_instance.web -> aws_instance.web.2
+aws_instance.web.0
+  aws_instance.web.0 -> aws_instance.web.0 (destroy)
+aws_instance.web.0 (destroy)
+  aws_instance.web.0 (destroy) -> aws_load_balancer.weblb (destroy)
+aws_instance.web.1
+  aws_instance.web.1 -> aws_instance.web.1 (destroy)
+aws_instance.web.1 (destroy)
+  aws_instance.web.1 (destroy) -> aws_load_balancer.weblb (destroy)
+aws_instance.web.2
+  aws_instance.web.2 -> aws_instance.web.2 (destroy)
+aws_instance.web.2 (destroy)
+  aws_instance.web.2 (destroy) -> aws_load_balancer.weblb (destroy)
+aws_load_balancer.weblb
+  aws_load_balancer.weblb -> aws_instance.web
+  aws_load_balancer.weblb -> aws_load_balancer.weblb (destroy)
+aws_load_balancer.weblb (destroy)
+root
+  root -> aws_instance.web
+  root -> aws_load_balancer.weblb
+`
+
 const testTerraformGraphStateStr = `
 root: root
 aws_instance.old
@@ -450,4 +788,63 @@ root
   root -> aws_load_balancer.weblb
   root -> aws_security_group.firewall
   root -> openstack_floating_ip.random
+`
+
+const testTerraformGraphTaintedStr = `
+root: root
+aws_instance.web
+  aws_instance.web -> aws_instance.web (tainted #1)
+  aws_instance.web -> aws_security_group.firewall
+  aws_instance.web -> provider.aws
+aws_instance.web (tainted #1)
+  aws_instance.web (tainted #1) -> provider.aws
+aws_security_group.firewall
+  aws_security_group.firewall -> provider.aws
+provider.aws
+root
+  root -> aws_instance.web
+  root -> aws_instance.web (tainted #1)
+  root -> aws_security_group.firewall
+`
+
+const testTerraformGraphTaintedMultiStr = `
+root: root
+aws_instance.web
+  aws_instance.web -> aws_instance.web (tainted #1)
+  aws_instance.web -> aws_instance.web (tainted #2)
+  aws_instance.web -> aws_security_group.firewall
+  aws_instance.web -> provider.aws
+aws_instance.web (tainted #1)
+  aws_instance.web (tainted #1) -> provider.aws
+aws_instance.web (tainted #2)
+  aws_instance.web (tainted #2) -> provider.aws
+aws_security_group.firewall
+  aws_security_group.firewall -> provider.aws
+provider.aws
+root
+  root -> aws_instance.web
+  root -> aws_instance.web (tainted #1)
+  root -> aws_instance.web (tainted #2)
+  root -> aws_security_group.firewall
+`
+
+const testTerraformGraphCountOrphanStr = `
+root: root
+aws_instance.web
+  aws_instance.web -> aws_instance.web.0
+  aws_instance.web -> aws_instance.web.1
+  aws_instance.web -> aws_instance.web.2
+aws_instance.web.0
+aws_instance.web.1
+aws_instance.web.2
+aws_load_balancer.old
+  aws_load_balancer.old -> aws_instance.web.0
+  aws_load_balancer.old -> aws_instance.web.1
+  aws_load_balancer.old -> aws_instance.web.2
+aws_load_balancer.weblb
+  aws_load_balancer.weblb -> aws_instance.web
+root
+  root -> aws_instance.web
+  root -> aws_load_balancer.old
+  root -> aws_load_balancer.weblb
 `

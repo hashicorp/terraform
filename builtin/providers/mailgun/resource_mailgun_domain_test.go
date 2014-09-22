@@ -43,12 +43,12 @@ func TestAccMailgunDomain_Basic(t *testing.T) {
 func testAccCheckMailgunDomainDestroy(s *terraform.State) error {
 	client := testAccProvider.Meta().(*mailgun.Client)
 
-	for _, rs := range s.Resources {
+	for _, rs := range s.RootModule().Resources {
 		if rs.Type != "mailgun_domain" {
 			continue
 		}
 
-		_, err := client.RetrieveDomain(rs.ID)
+		_, err := client.RetrieveDomain(rs.Primary.ID)
 
 		if err == nil {
 			return fmt.Errorf("Domain still exists")
@@ -91,25 +91,25 @@ func testAccCheckMailgunDomainAttributes(DomainResp *mailgun.DomainResponse) res
 
 func testAccCheckMailgunDomainExists(n string, DomainResp *mailgun.DomainResponse) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
-		rs, ok := s.Resources[n]
+		rs, ok := s.RootModule().Resources[n]
 
 		if !ok {
 			return fmt.Errorf("Not found: %s", n)
 		}
 
-		if rs.ID == "" {
+		if rs.Primary.ID == "" {
 			return fmt.Errorf("No Domain ID is set")
 		}
 
 		client := testAccProvider.Meta().(*mailgun.Client)
 
-		resp, err := client.RetrieveDomain(rs.ID)
+		resp, err := client.RetrieveDomain(rs.Primary.ID)
 
 		if err != nil {
 			return err
 		}
 
-		if resp.Domain.Name != rs.ID {
+		if resp.Domain.Name != rs.Primary.ID {
 			return fmt.Errorf("Domain not found")
 		}
 

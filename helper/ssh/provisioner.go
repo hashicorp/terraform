@@ -43,8 +43,8 @@ type SSHConfig struct {
 }
 
 // VerifySSH is used to verify the ConnInfo is usable by remote-exec
-func VerifySSH(s *terraform.ResourceState) error {
-	connType := s.ConnInfo["type"]
+func VerifySSH(s *terraform.InstanceState) error {
+	connType := s.Ephemeral.ConnInfo["type"]
 	switch connType {
 	case "":
 	case "ssh":
@@ -54,9 +54,9 @@ func VerifySSH(s *terraform.ResourceState) error {
 	return nil
 }
 
-// ParseSSHConfig is used to convert the ConnInfo of the ResourceState into
+// ParseSSHConfig is used to convert the ConnInfo of the InstanceState into
 // a SSHConfig struct
-func ParseSSHConfig(s *terraform.ResourceState) (*SSHConfig, error) {
+func ParseSSHConfig(s *terraform.InstanceState) (*SSHConfig, error) {
 	sshConf := &SSHConfig{}
 	decConf := &mapstructure.DecoderConfig{
 		WeaklyTypedInput: true,
@@ -66,7 +66,7 @@ func ParseSSHConfig(s *terraform.ResourceState) (*SSHConfig, error) {
 	if err != nil {
 		return nil, err
 	}
-	if err := dec.Decode(s.ConnInfo); err != nil {
+	if err := dec.Decode(s.Ephemeral.ConnInfo); err != nil {
 		return nil, err
 	}
 	if sshConf.User == "" {

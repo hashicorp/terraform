@@ -59,16 +59,16 @@ type HookRecordApplyOrder struct {
 	Active bool
 
 	IDs    []string
-	States []*ResourceState
-	Diffs  []*ResourceDiff
+	States []*InstanceState
+	Diffs  []*InstanceDiff
 
 	l sync.Mutex
 }
 
 func (h *HookRecordApplyOrder) PreApply(
 	id string,
-	s *ResourceState,
-	d *ResourceDiff) (HookAction, error) {
+	s *InstanceState,
+	d *InstanceDiff) (HookAction, error) {
 	if h.Active {
 		h.l.Lock()
 		defer h.l.Unlock()
@@ -106,6 +106,9 @@ aws_instance.bar:
   ID = foo
   foo = computed_dynamical
   type = aws_instance
+
+  Dependencies:
+    aws_instance.foo
 aws_instance.foo:
   ID = foo
   dynamical = computed_dynamical
@@ -123,6 +126,9 @@ aws_instance.foo:
 const testTerraformApplyProvisionerStr = `
 aws_instance.bar:
   ID = foo
+
+  Dependencies:
+    aws_instance.foo
 aws_instance.foo:
   ID = foo
   dynamical = computed_dynamical
@@ -131,8 +137,9 @@ aws_instance.foo:
 `
 
 const testTerraformApplyProvisionerFailStr = `
-aws_instance.bar: (tainted)
-  ID = foo
+aws_instance.bar: (1 tainted)
+  ID = <not created>
+  Tainted ID 1 = foo
 aws_instance.foo:
   ID = foo
   num = 2
@@ -153,6 +160,9 @@ const testTerraformApplyDestroyStr = `
 const testTerraformApplyErrorStr = `
 aws_instance.bar:
   ID = bar
+
+  Dependencies:
+    aws_instance.foo
 aws_instance.foo:
   ID = foo
   num = 2
@@ -161,6 +171,9 @@ aws_instance.foo:
 const testTerraformApplyErrorPartialStr = `
 aws_instance.bar:
   ID = bar
+
+  Dependencies:
+    aws_instance.foo
 aws_instance.foo:
   ID = foo
   num = 2
@@ -471,7 +484,7 @@ CREATE: aws_instance.bar
   type: "" => "aws_instance"
 UPDATE: aws_instance.foo
   num:  "" => "2"
-  type: "" => ""
+  type: "" => "aws_instance"
 
 STATE:
 
@@ -482,14 +495,33 @@ aws_instance.foo:
 const testTerraformPlanTaintStr = `
 DIFF:
 
-DESTROY: aws_instance.bar
+DESTROY/CREATE: aws_instance.bar
   foo:  "" => "2"
   type: "" => "aws_instance"
 
 STATE:
 
-aws_instance.bar: (tainted)
-  ID = baz
+aws_instance.bar: (1 tainted)
+  ID = <not created>
+  Tainted ID 1 = baz
+aws_instance.foo:
+  ID = bar
+  num = 2
+`
+
+const testTerraformPlanMultipleTaintStr = `
+DIFF:
+
+DESTROY/CREATE: aws_instance.bar
+  foo:  "" => "2"
+  type: "" => "aws_instance"
+
+STATE:
+
+aws_instance.bar: (2 tainted)
+  ID = <not created>
+  Tainted ID 1 = baz
+  Tainted ID 2 = zip
 aws_instance.foo:
   ID = bar
   num = 2

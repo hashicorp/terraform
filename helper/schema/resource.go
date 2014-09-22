@@ -61,9 +61,9 @@ type DeleteFunc func(*ResourceData, interface{}) error
 
 // Apply creates, updates, and/or deletes a resource.
 func (r *Resource) Apply(
-	s *terraform.ResourceState,
-	d *terraform.ResourceDiff,
-	meta interface{}) (*terraform.ResourceState, error) {
+	s *terraform.InstanceState,
+	d *terraform.InstanceDiff,
+	meta interface{}) (*terraform.InstanceState, error) {
 	data, err := schemaMap(r.Schema).Data(s, d)
 	if err != nil {
 		return s, err
@@ -72,7 +72,7 @@ func (r *Resource) Apply(
 	if s == nil {
 		// The Terraform API dictates that this should never happen, but
 		// it doesn't hurt to be safe in this case.
-		s = new(terraform.ResourceState)
+		s = new(terraform.InstanceState)
 	}
 
 	if d.Destroy || d.RequiresNew() {
@@ -99,7 +99,7 @@ func (r *Resource) Apply(
 		err = r.Create(data, meta)
 	} else {
 		if r.Update == nil {
-			return s, fmt.Errorf("%s doesn't support update", s.Type)
+			return s, fmt.Errorf("doesn't support update")
 		}
 
 		err = r.Update(data, meta)
@@ -111,8 +111,8 @@ func (r *Resource) Apply(
 // Diff returns a diff of this resource and is API compatible with the
 // ResourceProvider interface.
 func (r *Resource) Diff(
-	s *terraform.ResourceState,
-	c *terraform.ResourceConfig) (*terraform.ResourceDiff, error) {
+	s *terraform.InstanceState,
+	c *terraform.ResourceConfig) (*terraform.InstanceDiff, error) {
 	return schemaMap(r.Schema).Diff(s, c)
 }
 
@@ -123,8 +123,8 @@ func (r *Resource) Validate(c *terraform.ResourceConfig) ([]string, []error) {
 
 // Refresh refreshes the state of the resource.
 func (r *Resource) Refresh(
-	s *terraform.ResourceState,
-	meta interface{}) (*terraform.ResourceState, error) {
+	s *terraform.InstanceState,
+	meta interface{}) (*terraform.InstanceState, error) {
 	data, err := schemaMap(r.Schema).Data(s, nil)
 	if err != nil {
 		return s, err

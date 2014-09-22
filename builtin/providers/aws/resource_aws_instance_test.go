@@ -125,14 +125,14 @@ func TestAccAWSInstance_vpc(t *testing.T) {
 func testAccCheckInstanceDestroy(s *terraform.State) error {
 	conn := testAccProvider.ec2conn
 
-	for _, rs := range s.Resources {
+	for _, rs := range s.RootModule().Resources {
 		if rs.Type != "aws_instance" {
 			continue
 		}
 
 		// Try to find the resource
 		resp, err := conn.Instances(
-			[]string{rs.ID}, ec2.NewFilter())
+			[]string{rs.Primary.ID}, ec2.NewFilter())
 		if err == nil {
 			if len(resp.Reservations) > 0 {
 				return fmt.Errorf("still exist.")
@@ -156,18 +156,18 @@ func testAccCheckInstanceDestroy(s *terraform.State) error {
 
 func testAccCheckInstanceExists(n string, i *ec2.Instance) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
-		rs, ok := s.Resources[n]
+		rs, ok := s.RootModule().Resources[n]
 		if !ok {
 			return fmt.Errorf("Not found: %s", n)
 		}
 
-		if rs.ID == "" {
+		if rs.Primary.ID == "" {
 			return fmt.Errorf("No ID is set")
 		}
 
 		conn := testAccProvider.ec2conn
 		resp, err := conn.Instances(
-			[]string{rs.ID}, ec2.NewFilter())
+			[]string{rs.Primary.ID}, ec2.NewFilter())
 		if err != nil {
 			return err
 		}

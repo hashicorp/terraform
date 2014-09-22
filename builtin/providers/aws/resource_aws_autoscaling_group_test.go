@@ -65,7 +65,7 @@ func TestAccAWSAutoScalingGroupWithLoadBalancer(t *testing.T) {
 func testAccCheckAWSAutoScalingGroupDestroy(s *terraform.State) error {
 	conn := testAccProvider.autoscalingconn
 
-	for _, rs := range s.Resources {
+	for _, rs := range s.RootModule().Resources {
 		if rs.Type != "aws_autoscaling_group" {
 			continue
 		}
@@ -73,12 +73,12 @@ func testAccCheckAWSAutoScalingGroupDestroy(s *terraform.State) error {
 		// Try to find the Group
 		describeGroups, err := conn.DescribeAutoScalingGroups(
 			&autoscaling.DescribeAutoScalingGroups{
-				Names: []string{rs.ID},
+				Names: []string{rs.Primary.ID},
 			})
 
 		if err == nil {
 			if len(describeGroups.AutoScalingGroups) != 0 &&
-				describeGroups.AutoScalingGroups[0].Name == rs.ID {
+				describeGroups.AutoScalingGroups[0].Name == rs.Primary.ID {
 				return fmt.Errorf("AutoScaling Group still exists")
 			}
 		}
@@ -146,19 +146,19 @@ func testAccCheckAWSAutoScalingGroupAttributesLoadBalancer(group *autoscaling.Au
 
 func testAccCheckAWSAutoScalingGroupExists(n string, group *autoscaling.AutoScalingGroup) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
-		rs, ok := s.Resources[n]
+		rs, ok := s.RootModule().Resources[n]
 		if !ok {
 			return fmt.Errorf("Not found: %s", n)
 		}
 
-		if rs.ID == "" {
+		if rs.Primary.ID == "" {
 			return fmt.Errorf("No AutoScaling Group ID is set")
 		}
 
 		conn := testAccProvider.autoscalingconn
 
 		describeOpts := autoscaling.DescribeAutoScalingGroups{
-			Names: []string{rs.ID},
+			Names: []string{rs.Primary.ID},
 		}
 		describeGroups, err := conn.DescribeAutoScalingGroups(&describeOpts)
 
@@ -167,7 +167,7 @@ func testAccCheckAWSAutoScalingGroupExists(n string, group *autoscaling.AutoScal
 		}
 
 		if len(describeGroups.AutoScalingGroups) != 1 ||
-			describeGroups.AutoScalingGroups[0].Name != rs.ID {
+			describeGroups.AutoScalingGroups[0].Name != rs.Primary.ID {
 			return fmt.Errorf("AutoScaling Group not found")
 		}
 

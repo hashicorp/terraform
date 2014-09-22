@@ -12,9 +12,9 @@ import (
 )
 
 func resource_aws_launch_configuration_create(
-	s *terraform.ResourceState,
-	d *terraform.ResourceDiff,
-	meta interface{}) (*terraform.ResourceState, error) {
+	s *terraform.InstanceState,
+	d *terraform.InstanceDiff,
+	meta interface{}) (*terraform.InstanceState, error) {
 	p := meta.(*ResourceProvider)
 	autoscalingconn := p.autoscalingconn
 
@@ -75,14 +75,14 @@ func resource_aws_launch_configuration_create(
 }
 
 func resource_aws_launch_configuration_update(
-	s *terraform.ResourceState,
-	d *terraform.ResourceDiff,
-	meta interface{}) (*terraform.ResourceState, error) {
+	s *terraform.InstanceState,
+	d *terraform.InstanceDiff,
+	meta interface{}) (*terraform.InstanceState, error) {
 	panic("Update for AWS Launch Configuration is not supported")
 }
 
 func resource_aws_launch_configuration_destroy(
-	s *terraform.ResourceState,
+	s *terraform.InstanceState,
 	meta interface{}) error {
 	p := meta.(*ResourceProvider)
 	autoscalingconn := p.autoscalingconn
@@ -103,8 +103,8 @@ func resource_aws_launch_configuration_destroy(
 }
 
 func resource_aws_launch_configuration_refresh(
-	s *terraform.ResourceState,
-	meta interface{}) (*terraform.ResourceState, error) {
+	s *terraform.InstanceState,
+	meta interface{}) (*terraform.InstanceState, error) {
 	p := meta.(*ResourceProvider)
 	autoscalingconn := p.autoscalingconn
 
@@ -118,9 +118,9 @@ func resource_aws_launch_configuration_refresh(
 }
 
 func resource_aws_launch_configuration_diff(
-	s *terraform.ResourceState,
+	s *terraform.InstanceState,
 	c *terraform.ResourceConfig,
-	meta interface{}) (*terraform.ResourceDiff, error) {
+	meta interface{}) (*terraform.InstanceDiff, error) {
 
 	b := &diff.ResourceBuilder{
 		Attrs: map[string]diff.AttrType{
@@ -142,8 +142,8 @@ func resource_aws_launch_configuration_diff(
 }
 
 func resource_aws_launch_configuration_update_state(
-	s *terraform.ResourceState,
-	lc *autoscaling.LaunchConfiguration) (*terraform.ResourceState, error) {
+	s *terraform.InstanceState,
+	lc *autoscaling.LaunchConfiguration) (*terraform.InstanceState, error) {
 
 	s.Attributes["image_id"] = lc.ImageId
 	s.Attributes["instance_type"] = lc.InstanceType

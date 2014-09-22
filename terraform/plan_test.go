@@ -11,8 +11,8 @@ func TestReadWritePlan(t *testing.T) {
 	plan := &Plan{
 		Config: testConfig(t, "new-good"),
 		Diff: &Diff{
-			Resources: map[string]*ResourceDiff{
-				"nodeA": &ResourceDiff{
+			Resources: map[string]*InstanceDiff{
+				"nodeA": &InstanceDiff{
 					Attributes: map[string]*ResourceAttrDiff{
 						"foo": &ResourceAttrDiff{
 							Old: "foo",
@@ -32,9 +32,16 @@ func TestReadWritePlan(t *testing.T) {
 			},
 		},
 		State: &State{
-			Resources: map[string]*ResourceState{
-				"foo": &ResourceState{
-					ID: "bar",
+			Modules: []*ModuleState{
+				&ModuleState{
+					Path: rootModulePath,
+					Resources: map[string]*ResourceState{
+						"foo": &ResourceState{
+							Primary: &InstanceState{
+								ID: "bar",
+							},
+						},
+					},
 				},
 			},
 		},

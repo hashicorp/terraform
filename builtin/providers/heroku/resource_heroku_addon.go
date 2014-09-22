@@ -8,7 +8,6 @@ import (
 
 	"github.com/cyberdelia/heroku-go/v3"
 	"github.com/hashicorp/terraform/helper/schema"
-	"github.com/hashicorp/terraform/terraform"
 )
 
 // Global lock to prevent parallelism for heroku_addon since
@@ -116,9 +115,6 @@ func resourceHerokuAddonRead(d *schema.ResourceData, meta interface{}) error {
 	d.Set("plan", plan)
 	d.Set("provider_id", addon.ProviderID)
 	d.Set("config_vars", []interface{}{addon.ConfigVars})
-	d.SetDependencies([]terraform.ResourceDependency{
-		terraform.ResourceDependency{ID: d.Get("app").(string)},
-	})
 
 	return nil
 }

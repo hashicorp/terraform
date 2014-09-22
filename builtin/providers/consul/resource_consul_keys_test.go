@@ -58,13 +58,13 @@ func testAccCheckConsulKeysExists() resource.TestCheckFunc {
 
 func testAccCheckConsulKeysValue(n, attr, val string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
-		rn, ok := s.Resources[n]
+		rn, ok := s.RootModule().Resources[n]
 		if !ok {
 			return fmt.Errorf("Resource not found")
 		}
-		out, ok := rn.Attributes["var."+attr]
+		out, ok := rn.Primary.Attributes["var."+attr]
 		if !ok {
-			return fmt.Errorf("Attribute '%s' not found: %#v", attr, rn.Attributes)
+			return fmt.Errorf("Attribute '%s' not found: %#v", attr, rn.Primary.Attributes)
 		}
 		if val != "<any>" && out != val {
 			return fmt.Errorf("Attribute '%s' value '%s' != '%s'", attr, out, val)

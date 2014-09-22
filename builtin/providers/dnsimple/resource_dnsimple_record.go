@@ -11,9 +11,9 @@ import (
 )
 
 func resource_dnsimple_record_create(
-	s *terraform.ResourceState,
-	d *terraform.ResourceDiff,
-	meta interface{}) (*terraform.ResourceState, error) {
+	s *terraform.InstanceState,
+	d *terraform.InstanceDiff,
+	meta interface{}) (*terraform.InstanceState, error) {
 	p := meta.(*ResourceProvider)
 	client := p.client
 
@@ -53,9 +53,9 @@ func resource_dnsimple_record_create(
 }
 
 func resource_dnsimple_record_update(
-	s *terraform.ResourceState,
-	d *terraform.ResourceDiff,
-	meta interface{}) (*terraform.ResourceState, error) {
+	s *terraform.InstanceState,
+	d *terraform.InstanceDiff,
+	meta interface{}) (*terraform.InstanceState, error) {
 	p := meta.(*ResourceProvider)
 	client := p.client
 	rs := s.MergeDiff(d)
@@ -94,7 +94,7 @@ func resource_dnsimple_record_update(
 }
 
 func resource_dnsimple_record_destroy(
-	s *terraform.ResourceState,
+	s *terraform.InstanceState,
 	meta interface{}) error {
 	p := meta.(*ResourceProvider)
 	client := p.client
@@ -111,8 +111,8 @@ func resource_dnsimple_record_destroy(
 }
 
 func resource_dnsimple_record_refresh(
-	s *terraform.ResourceState,
-	meta interface{}) (*terraform.ResourceState, error) {
+	s *terraform.InstanceState,
+	meta interface{}) (*terraform.InstanceState, error) {
 	p := meta.(*ResourceProvider)
 	client := p.client
 
@@ -125,9 +125,9 @@ func resource_dnsimple_record_refresh(
 }
 
 func resource_dnsimple_record_diff(
-	s *terraform.ResourceState,
+	s *terraform.InstanceState,
 	c *terraform.ResourceConfig,
-	meta interface{}) (*terraform.ResourceDiff, error) {
+	meta interface{}) (*terraform.InstanceDiff, error) {
 
 	b := &diff.ResourceBuilder{
 		Attrs: map[string]diff.AttrType{
@@ -153,8 +153,8 @@ func resource_dnsimple_record_diff(
 }
 
 func resource_dnsimple_record_update_state(
-	s *terraform.ResourceState,
-	rec *dnsimple.Record) (*terraform.ResourceState, error) {
+	s *terraform.InstanceState,
+	rec *dnsimple.Record) (*terraform.InstanceState, error) {
 
 	s.Attributes["name"] = rec.Name
 	s.Attributes["value"] = rec.Content

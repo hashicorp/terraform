@@ -112,18 +112,18 @@ func TestAccAWSELB_HealthCheck(t *testing.T) {
 func testAccCheckAWSELBDestroy(s *terraform.State) error {
 	conn := testAccProvider.elbconn
 
-	for _, rs := range s.Resources {
+	for _, rs := range s.RootModule().Resources {
 		if rs.Type != "aws_elb" {
 			continue
 		}
 
 		describe, err := conn.DescribeLoadBalancers(&elb.DescribeLoadBalancer{
-			Names: []string{rs.ID},
+			Names: []string{rs.Primary.ID},
 		})
 
 		if err == nil {
 			if len(describe.LoadBalancers) != 0 &&
-				describe.LoadBalancers[0].LoadBalancerName == rs.ID {
+				describe.LoadBalancers[0].LoadBalancerName == rs.Primary.ID {
 				return fmt.Errorf("ELB still exists")
 			}
 		}
@@ -209,19 +209,19 @@ func testAccCheckAWSELBAttributesHealthCheck(conf *elb.LoadBalancer) resource.Te
 
 func testAccCheckAWSELBExists(n string, res *elb.LoadBalancer) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
-		rs, ok := s.Resources[n]
+		rs, ok := s.RootModule().Resources[n]
 		if !ok {
 			return fmt.Errorf("Not found: %s", n)
 		}
 
-		if rs.ID == "" {
+		if rs.Primary.ID == "" {
 			return fmt.Errorf("No ELB ID is set")
 		}
 
 		conn := testAccProvider.elbconn
 
 		describe, err := conn.DescribeLoadBalancers(&elb.DescribeLoadBalancer{
-			Names: []string{rs.ID},
+			Names: []string{rs.Primary.ID},
 		})
 
 		if err != nil {
@@ -229,7 +229,7 @@ func testAccCheckAWSELBExists(n string, res *elb.LoadBalancer) resource.TestChec
 		}
 
 		if len(describe.LoadBalancers) != 1 ||
-			describe.LoadBalancers[0].LoadBalancerName != rs.ID {
+			describe.LoadBalancers[0].LoadBalancerName != rs.Primary.ID {
 			return fmt.Errorf("ELB not found")
 		}
 

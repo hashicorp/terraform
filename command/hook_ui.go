@@ -35,8 +35,8 @@ const (
 
 func (h *UiHook) PreApply(
 	id string,
-	s *terraform.ResourceState,
-	d *terraform.ResourceDiff) (terraform.HookAction, error) {
+	s *terraform.InstanceState,
+	d *terraform.InstanceDiff) (terraform.HookAction, error) {
 	h.once.Do(h.init)
 
 	op := uiResourceModify
@@ -114,7 +114,7 @@ func (h *UiHook) PreApply(
 
 func (h *UiHook) PostApply(
 	id string,
-	s *terraform.ResourceState,
+	s *terraform.InstanceState,
 	applyerr error) (terraform.HookAction, error) {
 	h.l.Lock()
 	op := h.resources[id]
@@ -145,7 +145,7 @@ func (h *UiHook) PostApply(
 }
 
 func (h *UiHook) PreDiff(
-	id string, s *terraform.ResourceState) (terraform.HookAction, error) {
+	id string, s *terraform.InstanceState) (terraform.HookAction, error) {
 	return terraform.HookActionContinue, nil
 }
 
@@ -157,7 +157,7 @@ func (h *UiHook) PreProvision(id, provId string) (terraform.HookAction, error) {
 }
 
 func (h *UiHook) PreRefresh(
-	id string, s *terraform.ResourceState) (terraform.HookAction, error) {
+	id string, s *terraform.InstanceState) (terraform.HookAction, error) {
 	h.once.Do(h.init)
 
 	h.ui.Output(h.Colorize.Color(fmt.Sprintf(
