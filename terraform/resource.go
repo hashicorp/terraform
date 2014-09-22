@@ -48,21 +48,6 @@ const (
 	FlagHasTainted
 )
 
-// Vars returns the mapping of variables that should be replaced in
-// configuration based on the attributes of this resource.
-func (r *Resource) Vars() map[string]string {
-	if r.State == nil {
-		return nil
-	}
-
-	vars := make(map[string]string)
-	for ak, av := range r.State.Attributes {
-		vars[fmt.Sprintf("%s.%s", r.Id, ak)] = av
-	}
-
-	return vars
-}
-
 // ResourceConfig holds the configuration given for a resource. This is
 // done instead of a raw `map[string]interface{}` type so that rich
 // methods can be added to it to make dealing with it easier.
