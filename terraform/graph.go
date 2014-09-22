@@ -148,7 +148,9 @@ func Graph(opts *GraphOpts) (*depgraph.Graph, error) {
 	graphAddConfigResources(g, config, mod)
 
 	// Add the modules that are in the configuration.
-	graphAddConfigModules(g, config, opts)
+	if err := graphAddConfigModules(g, config, opts); err != nil {
+		return nil, err
+	}
 
 	// Add explicit dependsOn dependencies to the graph
 	graphAddExplicitDeps(g)
