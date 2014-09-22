@@ -75,7 +75,7 @@ func TestTreeName(t *testing.T) {
 	tree := NewTree("", testConfig(t, "basic"))
 	actual := tree.Name()
 
-	if actual != "<root>" {
+	if actual != RootName {
 		t.Fatalf("bad: %#v", actual)
 	}
 }
@@ -150,6 +150,6 @@ func TestTreeValidate_notLoaded(t *testing.T) {
 
 
 const treeLoadStr = `
-<root>
+root
   foo
 `

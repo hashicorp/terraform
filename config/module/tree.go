@@ -10,6 +10,9 @@ import (
 	"github.com/hashicorp/terraform/config"
 )
 
+// RootName is the name of the root tree.
+const RootName = "root"
+
 // Tree represents the module import tree of configurations.
 //
 // This Tree structure can be used to get (download) new modules, load
@@ -100,7 +103,7 @@ func (t *Tree) Modules() []*Module {
 // tree and then the module name given for any children.
 func (t *Tree) Name() string {
 	if t.name == "" {
-		return "<root>"
+		return RootName
 	}
 
 	return t.name
