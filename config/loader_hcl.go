@@ -394,6 +394,7 @@ func loadResourcesHcl(os *hclobj.Object) ([]*Resource, error) {
 			delete(config, "count")
 			delete(config, "depends_on")
 			delete(config, "provisioner")
+			delete(config, "create_before_destroy")
 
 			rawConfig, err := NewRawConfig(config)
 			if err != nil {
@@ -457,13 +458,28 @@ func loadResourcesHcl(os *hclobj.Object) ([]*Resource, error) {
 				}
 			}
 
+			// Check if the resource should be re-created before
+			// destroying the existing instance
+			var createBeforeDestroy bool
+			if o := obj.Get("create_before_destroy", false); o != nil {
+				err = hcl.DecodeObject(&createBeforeDestroy, o)
+				if err != nil {
+					return nil, fmt.Errorf(
+						"Error parsing create_before_destroy for %s[%s]: %s",
+						t.Key,
+						k,
+						err)
+				}
+			}
+
 			result = append(result, &Resource{
-				Name:         k,
-				Type:         t.Key,
-				Count:        count,
-				RawConfig:    rawConfig,
-				Provisioners: provisioners,
-				DependsOn:    dependsOn,
+				Name:                k,
+				Type:                t.Key,
+				Count:               count,
+				RawConfig:           rawConfig,
+				Provisioners:        provisioners,
+				DependsOn:           dependsOn,
+				CreateBeforeDestroy: createBeforeDestroy,
 			})
 		}
 	}

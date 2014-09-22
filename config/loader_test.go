@@ -346,6 +346,43 @@ func TestLoad_connections(t *testing.T) {
 	}
 }
 
+func TestLoad_createBeforeDestroy(t *testing.T) {
+	c, err := Load(filepath.Join(fixtureDir, "create-before-destroy.tf"))
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	if c == nil {
+		t.Fatal("config should not be nil")
+	}
+
+	actual := resourcesStr(c.Resources)
+	if actual != strings.TrimSpace(createBeforeDestroyResourcesStr) {
+		t.Fatalf("bad:\n%s", actual)
+	}
+
+	// Check for the flag value
+	r := c.Resources[0]
+	if r.Name != "web" && r.Type != "aws_instance" {
+		t.Fatalf("Bad: %#v", r)
+	}
+
+	// Should enable create before destroy
+	if !r.CreateBeforeDestroy {
+		t.Fatalf("Bad: %#v", r)
+	}
+
+	r = c.Resources[1]
+	if r.Name != "bar" && r.Type != "aws_instance" {
+		t.Fatalf("Bad: %#v", r)
+	}
+
+	// Should not enable create before destroy
+	if r.CreateBeforeDestroy {
+		t.Fatalf("Bad: %#v", r)
+	}
+}
+
 const basicOutputsStr = `
 web_ip
   vars
@@ -522,4 +559,11 @@ baz
 foo (required)
   <>
   <>
+`
+
+const createBeforeDestroyResourcesStr = `
+aws_instance[bar] (x1)
+  ami
+aws_instance[web] (x1)
+  ami
 `

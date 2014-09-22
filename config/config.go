@@ -54,12 +54,13 @@ type ProviderConfig struct {
 // A Terraform resource is something that represents some component that
 // can be created and managed, and has some properties associated with it.
 type Resource struct {
-	Name         string
-	Type         string
-	Count        int
-	RawConfig    *RawConfig
-	Provisioners []*Provisioner
-	DependsOn    []string
+	Name                string
+	Type                string
+	Count               int
+	RawConfig           *RawConfig
+	Provisioners        []*Provisioner
+	DependsOn           []string
+	CreateBeforeDestroy bool
 }
 
 // Provisioner is a configured provisioner step on a resource.
