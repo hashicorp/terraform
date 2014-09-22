@@ -49,6 +49,17 @@ There are **meta-parameters** available to all resources:
       resource. The dependencies are in the format of `TYPE.NAME`,
       for example `aws_instance.web`.
 
+  * `lifecycle` (configuration block) - Customizes the lifecycle
+      behavior of the resource. The specific options are documented
+      below.
+
+The `lifecycle` block allows the following keys to be set:
+
+  * `create_before_destroy` (bool) - This flag is used to ensure
+      the replacement of a resource is created before the original
+      instance is destroyed. As an example, this can be used to
+      create an new DNS record before removing an old record.
+
 -------------
 
 Within a resource, you can optionally have a **connection block**.
@@ -87,7 +98,8 @@ The full syntax is:
 resource TYPE NAME {
 	CONFIG ...
 	[count = COUNT]
-	[depends_on = [RESOURCE NAME, ...]]
+    [depends_on = [RESOURCE NAME, ...]]
+    [LIFECYCLE]
 
 	[CONNECTION]
 	[PROVISIONER ...]
@@ -101,6 +113,14 @@ KEY = VALUE
 
 KEY {
 	CONFIG
+}
+```
+
+where `LIFECYCLE` is:
+
+```
+lifecycle {
+    [create_before_destroy = true|false]
 }
 ```
 
