@@ -9,6 +9,7 @@ import (
 	"log"
 	"reflect"
 	"sort"
+	"strings"
 
 	"github.com/hashicorp/terraform/config"
 )
@@ -107,85 +108,25 @@ func (s *State) GoString() string {
 }
 
 func (s *State) String() string {
-	// TODO: Handle other moduels
-	mod := s.RootModule()
-	if len(mod.Resources) == 0 {
-		return "<no state>"
-	}
-
 	var buf bytes.Buffer
+	for _, m := range s.Modules {
+		mStr := m.String()
 
-	names := make([]string, 0, len(mod.Resources))
-	for name, _ := range mod.Resources {
-		names = append(names, name)
-	}
-	sort.Strings(names)
-
-	for _, k := range names {
-		rs := mod.Resources[k]
-		var id string
-		if rs.Primary != nil {
-			id = rs.Primary.ID
-		}
-		if id == "" {
-			id = "<not created>"
+		// If we're the root module, we just write the output directly.
+		if reflect.DeepEqual(m.Path, rootModulePath) {
+			buf.WriteString(mStr)
+			continue
 		}
 
-		taintStr := ""
-		if len(rs.Tainted) > 0 {
-			taintStr = fmt.Sprintf(" (%d tainted)", len(rs.Tainted))
-		}
+		buf.WriteString(fmt.Sprintf("%s:\n", strings.Join(m.Path, ".")))
 
-		buf.WriteString(fmt.Sprintf("%s:%s\n", k, taintStr))
-		buf.WriteString(fmt.Sprintf("  ID = %s\n", id))
-
-		var attributes map[string]string
-		if rs.Primary != nil {
-			attributes = rs.Primary.Attributes
-		}
-		attrKeys := make([]string, 0, len(attributes))
-		for ak, _ := range attributes {
-			if ak == "id" {
-				continue
-			}
-
-			attrKeys = append(attrKeys, ak)
-		}
-		sort.Strings(attrKeys)
-
-		for _, ak := range attrKeys {
-			av := attributes[ak]
-			buf.WriteString(fmt.Sprintf("  %s = %s\n", ak, av))
-		}
-
-		for idx, t := range rs.Tainted {
-			buf.WriteString(fmt.Sprintf("  Tainted ID %d = %s\n", idx+1, t.ID))
-		}
-
-		if len(rs.Dependencies) > 0 {
-			buf.WriteString(fmt.Sprintf("\n  Dependencies:\n"))
-			for _, dep := range rs.Dependencies {
-				buf.WriteString(fmt.Sprintf("    %s\n", dep))
-			}
+		s := bufio.NewScanner(strings.NewReader(mStr))
+		for s.Scan() {
+			buf.WriteString(fmt.Sprintf("  %s\n", s.Text()))
 		}
 	}
 
-	if len(mod.Outputs) > 0 {
-		buf.WriteString("\nOutputs:\n\n")
-
-		ks := make([]string, 0, len(mod.Outputs))
-		for k, _ := range mod.Outputs {
-			ks = append(ks, k)
-		}
-		sort.Strings(ks)
-
-		for _, k := range ks {
-			v := mod.Outputs[k]
-			buf.WriteString(fmt.Sprintf("%s = %s\n", k, v))
-		}
-	}
-
-	return buf.String()
+	return strings.TrimSpace(buf.String())
 }
 
 // ModuleState is used to track all the state relevant to a single
@@ -274,6 +215,86 @@ func (m *ModuleState) prune() {
 
 func (m *ModuleState) GoString() string {
 	return fmt.Sprintf("*%#v", *m)
+}
+
+func (m *ModuleState) String() string {
+	if len(m.Resources) == 0 {
+		return "<no state>"
+	}
+
+	var buf bytes.Buffer
+
+	names := make([]string, 0, len(m.Resources))
+	for name, _ := range m.Resources {
+		names = append(names, name)
+	}
+	sort.Strings(names)
+
+	for _, k := range names {
+		rs := m.Resources[k]
+		var id string
+		if rs.Primary != nil {
+			id = rs.Primary.ID
+		}
+		if id == "" {
+			id = "<not created>"
+		}
+
+		taintStr := ""
+		if len(rs.Tainted) > 0 {
+			taintStr = fmt.Sprintf(" (%d tainted)", len(rs.Tainted))
+		}
+
+		buf.WriteString(fmt.Sprintf("%s:%s\n", k, taintStr))
+		buf.WriteString(fmt.Sprintf("  ID = %s\n", id))
+
+		var attributes map[string]string
+		if rs.Primary != nil {
+			attributes = rs.Primary.Attributes
+		}
+		attrKeys := make([]string, 0, len(attributes))
+		for ak, _ := range attributes {
+			if ak == "id" {
+				continue
+			}
+
+			attrKeys = append(attrKeys, ak)
+		}
+		sort.Strings(attrKeys)
+
+		for _, ak := range attrKeys {
+			av := attributes[ak]
+			buf.WriteString(fmt.Sprintf("  %s = %s\n", ak, av))
+		}
+
+		for idx, t := range rs.Tainted {
+			buf.WriteString(fmt.Sprintf("  Tainted ID %d = %s\n", idx+1, t.ID))
+		}
+
+		if len(rs.Dependencies) > 0 {
+			buf.WriteString(fmt.Sprintf("\n  Dependencies:\n"))
+			for _, dep := range rs.Dependencies {
+				buf.WriteString(fmt.Sprintf("    %s\n", dep))
+			}
+		}
+	}
+
+	if len(m.Outputs) > 0 {
+		buf.WriteString("\nOutputs:\n\n")
+
+		ks := make([]string, 0, len(m.Outputs))
+		for k, _ := range m.Outputs {
+			ks = append(ks, k)
+		}
+		sort.Strings(ks)
+
+		for _, k := range ks {
+			v := m.Outputs[k]
+			buf.WriteString(fmt.Sprintf("%s = %s\n", k, v))
+		}
+	}
+
+	return buf.String()
 }
 
 // ResourceState holds the state of a resource that is used so that
