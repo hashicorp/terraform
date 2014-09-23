@@ -562,7 +562,7 @@ func TestGraphAddDiff_destroy_counts(t *testing.T) {
 	}
 }
 
-func TestGraphInitState(t *testing.T) {
+func TestGraphEncodeDependencies(t *testing.T) {
 	m := testModule(t, "graph-basic")
 	state := &State{
 		Modules: []*ModuleState{
@@ -592,21 +592,20 @@ func TestGraphInitState(t *testing.T) {
 	}
 
 	// This should encode the dependency information into the state
-	graphInitState(state, g)
+	graphEncodeDependencies(g)
 
-	root := state.RootModule()
-	web := root.Resources["aws_instance.web"]
+	web := g.Noun("aws_instance.web").Meta.(*GraphNodeResource)
 	if len(web.Dependencies) != 1 || web.Dependencies[0] != "aws_security_group.firewall" {
 		t.Fatalf("bad: %#v", web)
 	}
 
-	weblb := root.Resources["aws_load_balancer.weblb"]
+	weblb := g.Noun("aws_load_balancer.weblb").Meta.(*GraphNodeResource)
 	if len(weblb.Dependencies) != 1 || weblb.Dependencies[0] != "aws_instance.web" {
 		t.Fatalf("bad: %#v", weblb)
 	}
 }
 
-func TestGraphInitState_Count(t *testing.T) {
+func TestGraphEncodeDependencies_count(t *testing.T) {
 	m := testModule(t, "graph-count")
 	state := &State{
 		Modules: []*ModuleState{
@@ -636,15 +635,14 @@ func TestGraphInitState_Count(t *testing.T) {
 	}
 
 	// This should encode the dependency information into the state
-	graphInitState(state, g)
+	graphEncodeDependencies(g)
 
-	root := state.RootModule()
-	web := root.Resources["aws_instance.web.0"]
+	web := g.Noun("aws_instance.web.0").Meta.(*GraphNodeResource)
 	if len(web.Dependencies) != 0 {
 		t.Fatalf("bad: %#v", web)
 	}
 
-	weblb := root.Resources["aws_load_balancer.weblb"]
+	weblb := g.Noun("aws_load_balancer.weblb").Meta.(*GraphNodeResource)
 	if len(weblb.Dependencies) != 3 {
 		t.Fatalf("bad: %#v", weblb)
 	}

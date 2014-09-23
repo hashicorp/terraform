@@ -41,6 +41,10 @@ type GraphOpts struct {
 	// State, if present, will make the ResourceState available on each
 	// resource node. Additionally, any orphans will be added automatically
 	// to the graph.
+	//
+	// Note: the state will be modified so it is initialized with basic
+	// empty states for all modules/resources in this graph. If you call prune
+	// later, these will be removed, but the graph adds important metadata.
 	State *State
 
 	// Providers is a mapping of prefixes to a resource provider. If given,
@@ -75,6 +79,7 @@ type GraphNodeModule struct {
 type GraphNodeResource struct {
 	Index              int
 	Config             *config.Resource
+	Dependencies       []string
 	Resource           *Resource
 	ResourceProviderID string
 }
@@ -208,6 +213,9 @@ func Graph(opts *GraphOpts) (*depgraph.Graph, error) {
 		}
 	}
 
+	// Encode the dependencies
+	graphEncodeDependencies(g)
+
 	// Validate
 	if err := g.Validate(); err != nil {
 		return nil, err
@@ -221,16 +229,13 @@ func Graph(opts *GraphOpts) (*depgraph.Graph, error) {
 	return g, nil
 }
 
-// graphInitState is used to initialize a State with a ResourceState
+// graphEncodeDependencies is used to initialize a State with a ResourceState
 // for every resource.
 //
 // This method is very important to call because it will properly setup
 // the ResourceState dependency information with data from the graph. This
 // allows orphaned resources to be destroyed in the proper order.
-func graphInitState(s *State, g *depgraph.Graph) {
-	// TODO: other modules
-	mod := s.RootModule()
-
+func graphEncodeDependencies(g *depgraph.Graph) {
 	for _, n := range g.Nouns {
 		// Ignore any non-resource nodes
 		rn, ok := n.Meta.(*GraphNodeResource)
@@ -238,12 +243,6 @@ func graphInitState(s *State, g *depgraph.Graph) {
 			continue
 		}
 		r := rn.Resource
-		rs := mod.Resources[r.Id]
-		if rs == nil {
-			rs = new(ResourceState)
-			rs.init()
-			mod.Resources[r.Id] = rs
-		}
 
 		// Update the dependencies
 		var inject []string
@@ -265,7 +264,7 @@ func graphInitState(s *State, g *depgraph.Graph) {
 		}
 
 		// Update the dependencies
-		rs.Dependencies = inject
+		rn.Dependencies = inject
 	}
 }
 
@@ -348,6 +347,9 @@ func graphAddConfigResources(
 						// from count == 1 to count > 1
 						state = mod.Resources[r.Id()]
 					}
+
+					// TODO(mitchellh): If one of the above works, delete
+					// the old style and just copy it to the new style.
 				}
 			}
 

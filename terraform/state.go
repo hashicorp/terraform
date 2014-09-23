@@ -38,6 +38,17 @@ type State struct {
 	Modules []*ModuleState `json:"modules"`
 }
 
+// AddModule adds the module with the given path to the state.
+//
+// This should be the preferred method to add module states since it
+// allows us to optimize lookups later as well as control sorting.
+func (s *State) AddModule(path []string) *ModuleState{
+	m := &ModuleState{Path: path}
+	m.init()
+	s.Modules = append(s.Modules, m)
+	return m
+}
+
 // ModuleByPath is used to lookup the module state for the given path.
 // This should be the prefered lookup mechanism as it allows for future
 // lookup optimizations.

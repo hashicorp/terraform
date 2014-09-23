@@ -16,6 +16,17 @@ type Diff struct {
 	Modules []*ModuleDiff
 }
 
+// AddModule adds the module with the given path to the diff.
+//
+// This should be the preferred method to add module diffs since it
+// allows us to optimize lookups later as well as control sorting.
+func (d *Diff) AddModule(path []string) *ModuleDiff {
+	m := &ModuleDiff{Path: path}
+	m.init()
+	d.Modules = append(d.Modules, m)
+	return m
+}
+
 // ModuleByPath is used to lookup the module diff for the given path.
 // This should be the prefered lookup mechanism as it allows for future
 // lookup optimizations.

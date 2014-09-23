@@ -134,9 +134,6 @@ func (c *Context) Apply() (*State, error) {
 	}
 	c.state.init()
 
-	// Initialize the state with all the resources
-	graphInitState(c.state, g)
-
 	// Walk
 	log.Printf("[INFO] Apply walk starting")
 	wc := c.walkContext(rootModulePath)
@@ -217,9 +214,6 @@ func (c *Context) Plan(opts *PlanOpts) (*Plan, error) {
 			c.state = old
 		}()
 
-		// Initialize the state with all the resources
-		graphInitState(c.state, g)
-
 		walkFn = c.walkContext(rootModulePath).planWalkFn(p)
 	}
 
@@ -253,11 +247,6 @@ func (c *Context) Refresh() (*State, error) {
 	})
 	if err != nil {
 		return c.state, err
-	}
-
-	if c.state != nil {
-		// Initialize the state with all the resources
-		graphInitState(c.state, g)
 	}
 
 	// Walk the graph
@@ -723,11 +712,15 @@ func (c *walkContext) planWalkFn(result *Plan) depgraph.WalkFunc {
 			}
 		}
 
-		l.Lock()
 		if !diff.Empty() {
-			result.Diff.RootModule().Resources[r.Id] = diff
+			l.Lock()
+			md := result.Diff.ModuleByPath(c.Path)
+			if md == nil {
+				md = result.Diff.AddModule(c.Path)
+			}
+			md.Resources[r.Id] = diff
+			l.Unlock()
 		}
-		l.Unlock()
 
 		for _, h := range c.Context.hooks {
 			handleHook(h.PostDiff(r.Id, diff))
@@ -957,9 +950,14 @@ func (c *walkContext) persistState(r *Resource) {
 	// exist because we call graphInitState before anything that could
 	// potentially call this.
 	module := c.Context.state.ModuleByPath(c.Path)
+	if module == nil {
+		module = c.Context.state.AddModule(c.Path)
+	}
 	rs := module.Resources[r.Id]
 	if rs == nil {
-		panic(fmt.Sprintf("nil ResourceState for ID: %s", r.Id))
+		rs = &ResourceState{Type: r.Info.Type}
+		rs.init()
+		module.Resources[r.Id] = rs
 	}
 
 	// Assign the instance state to the proper location
