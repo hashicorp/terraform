@@ -260,6 +260,12 @@ aws_instance.bar:
   require_new = abc
 `
 
+const testTerraformApplyErrorDestroyCreateBeforeDestroyStr = `
+aws_instance.bar: (1 tainted)
+  ID = foo
+  Tainted ID 1 = bar
+`
+
 const testTerraformApplyErrorPartialStr = `
 aws_instance.bar:
   ID = bar
