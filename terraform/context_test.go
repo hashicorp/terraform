@@ -2180,9 +2180,6 @@ func TestContextRefresh_hook(t *testing.T) {
 }
 
 func TestContextRefresh_modules(t *testing.T) {
-	// TODO: uncomment when we get it going
-	t.Skip()
-
 	p := testProvider("aws")
 	m := testModule(t, "refresh-modules")
 	state := &State{
@@ -2543,7 +2540,7 @@ root
 const testContextRefreshModuleStr = `
 aws_instance.web: (1 tainted)
   ID = <not created>
-  Tainted ID 1 = foo
+  Tainted ID 1 = bar
 
 module.child:
   aws_instance.web:

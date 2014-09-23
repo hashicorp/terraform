@@ -16,7 +16,7 @@ import (
 
 // This is a function type used to implement a walker for the resource
 // tree internally on the Terraform structure.
-type genericWalkFunc func(*Resource) error
+type genericWalkFunc func(*walkContext, *Resource) error
 
 // Context represents all the context that Terraform needs in order to
 // perform operations on infrastructure. This structure is built using
@@ -498,7 +498,7 @@ func (c *walkContext) Refresh() error {
 }
 
 func (c *walkContext) applyWalkFn() depgraph.WalkFunc {
-	cb := func(r *Resource) error {
+	cb := func(c *walkContext, r *Resource) error {
 		var err error
 
 		diff := r.Diff
@@ -649,7 +649,7 @@ func (c *walkContext) planWalkFn(result *Plan) depgraph.WalkFunc {
 	// Initialize the result
 	result.init()
 
-	cb := func(r *Resource) error {
+	cb := func(c *walkContext, r *Resource) error {
 		if r.Flags&FlagTainted != 0 {
 			// We don't diff tainted resources.
 			return nil
@@ -749,7 +749,7 @@ func (c *walkContext) planWalkFn(result *Plan) depgraph.WalkFunc {
 }
 
 func (c *walkContext) refreshWalkFn() depgraph.WalkFunc {
-	cb := func(r *Resource) error {
+	cb := func(c *walkContext, r *Resource) error {
 		is := r.State
 
 		if is == nil || is.ID == "" {
@@ -807,8 +807,9 @@ func (c *walkContext) genericWalkFn(cb genericWalkFunc) depgraph.WalkFunc {
 
 		switch m := n.Meta.(type) {
 		case *GraphNodeModule:
-			// TODO
-			return nil
+			// Build another walkContext for this module and walk it.
+			wc := c.Context.walkContext(m.Path)
+			return m.Graph.Walk(wc.genericWalkFn(cb))
 		case *GraphNodeResource:
 			// Continue, we care about this the most
 		case *GraphNodeResourceMeta:
@@ -859,10 +860,11 @@ func (c *walkContext) genericWalkFn(cb genericWalkFunc) depgraph.WalkFunc {
 
 		// Call the callack
 		log.Printf(
-			"[INFO] Walking: %s (Graph node: %s)",
+			"[INFO] Module %s walking: %s (Graph node: %s)",
+			strings.Join(c.Path, "."),
 			rn.Resource.Id,
 			n.Name)
-		if err := cb(rn.Resource); err != nil {
+		if err := cb(c, rn.Resource); err != nil {
 			log.Printf("[ERROR] Error walking '%s': %s", rn.Resource.Id, err)
 			return err
 		}

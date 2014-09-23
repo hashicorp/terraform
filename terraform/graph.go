@@ -142,7 +142,7 @@ func Graph(opts *GraphOpts) (*depgraph.Graph, error) {
 		modState = opts.State.ModuleByPath(opts.ModulePath)
 	}
 
-	log.Printf("[DEBUG] Creating graph...")
+	log.Printf("[DEBUG] Creating graph for path: %v", opts.ModulePath)
 
 	g := new(depgraph.Graph)
 
@@ -214,7 +214,8 @@ func Graph(opts *GraphOpts) (*depgraph.Graph, error) {
 	}
 
 	log.Printf(
-		"[DEBUG] Graph created and valid. %d nouns.",
+		"[DEBUG] Graph %v created and valid. %d nouns.",
+		opts.ModulePath,
 		len(g.Nouns))
 
 	return g, nil
