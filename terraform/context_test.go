@@ -1491,7 +1491,6 @@ func TestContextPlan_moduleOrphans(t *testing.T) {
 }
 
 func TestContextPlan_moduleVar(t *testing.T) {
-	t.Skip()
 	m := testModule(t, "plan-module-var")
 	p := testProvider("aws")
 	p.DiffFn = testDiffFn
@@ -1508,7 +1507,7 @@ func TestContextPlan_moduleVar(t *testing.T) {
 	}
 
 	actual := strings.TrimSpace(plan.String())
-	expected := strings.TrimSpace(testTerraformPlanModulesStr)
+	expected := strings.TrimSpace(testTerraformPlanModuleVarStr)
 	if actual != expected {
 		t.Fatalf("bad:\n%s", actual)
 	}

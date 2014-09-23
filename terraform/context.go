@@ -463,17 +463,15 @@ func (c *walkContext) Walk() error {
 		return err
 	}
 
-	// If we're not applying, we're done.
-	if c.Operation != walkApply {
-		return nil
-	}
-
 	// We did an apply, so we need to calculate the outputs. If we have no
 	// outputs, then we're done.
 	m := c.Context.module
 	for _, n := range c.Path[1:] {
 		cs := m.Children()
 		m = cs[n]
+	}
+	if m == nil {
+		return nil
 	}
 	config := m.Config()
 	if len(config.Outputs) == 0 {
@@ -483,7 +481,10 @@ func (c *walkContext) Walk() error {
 	// Likewise, if we have no resources in our state, we're done. This
 	// guards against the case that we destroyed.
 	mod := c.Context.state.ModuleByPath(c.Path)
-	mod.prune()
+	if c.Operation == walkApply {
+		// On Apply, we prune so that we don't do outputs if we destroyed
+		mod.prune()
+	}
 	if len(mod.Resources) == 0 {
 		return nil
 	}
@@ -493,7 +494,10 @@ func (c *walkContext) Walk() error {
 		if err := c.computeVars(o.RawConfig); err != nil {
 			return err
 		}
-		outputs[o.Name] = o.RawConfig.Config()["value"].(string)
+		vraw := o.RawConfig.Config()["value"]
+		if vraw != nil {
+			outputs[o.Name] = vraw.(string)
+		}
 	}
 
 	// Assign the outputs to the root module
@@ -1052,6 +1056,13 @@ func (c *walkContext) computeVars(raw *config.RawConfig) error {
 	// Next, the actual computed variables
 	for n, rawV := range raw.Variables {
 		switch v := rawV.(type) {
+		case *config.ModuleVariable:
+			value, err := c.computeModuleVariable(v)
+			if err != nil {
+				return err
+			}
+
+			vs[n] = value
 		case *config.ResourceVariable:
 			var attr string
 			var err error
@@ -1086,6 +1097,37 @@ func (c *walkContext) computeVars(raw *config.RawConfig) error {
 	return raw.Interpolate(vs)
 }
 
+func (c *walkContext) computeModuleVariable(
+	v *config.ModuleVariable) (string, error) {
+	// Build the path to our child
+	path := make([]string, len(c.Path), len(c.Path)+1)
+	copy(path, c.Path)
+	path = append(path, v.Name)
+
+	// Grab some locks
+	c.Context.sl.RLock()
+	defer c.Context.sl.RUnlock()
+
+	// Get that module from our state
+	mod := c.Context.state.ModuleByPath(path)
+	if mod == nil {
+		return "", fmt.Errorf(
+			"Module '%s' not found for variable '%s'",
+			strings.Join(path[1:], "."),
+			v.FullKey())
+	}
+
+	value, ok := mod.Outputs[v.Field]
+	if !ok {
+		return "", fmt.Errorf(
+			"Output field '%s' not found for variable '%s'",
+			v.Field,
+			v.FullKey())
+	}
+
+	return value, nil
+}
+
 func (c *walkContext) computeResourceVariable(
 	v *config.ResourceVariable) (string, error) {
 	id := v.ResourceId()
@@ -1097,8 +1139,7 @@ func (c *walkContext) computeResourceVariable(
 	defer c.Context.sl.RUnlock()
 
 	// Get the relevant module
-	// TODO: Not use only root module
-	module := c.Context.state.RootModule()
+	module := c.Context.state.ModuleByPath(c.Path)
 
 	r, ok := module.Resources[id]
 	if !ok {
