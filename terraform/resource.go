@@ -160,7 +160,7 @@ func (c *ResourceConfig) get(
 	return current, true
 }
 
-func (c *ResourceConfig) interpolate(ctx *Context) error {
+func (c *ResourceConfig) interpolate(ctx *walkContext) error {
 	if c == nil {
 		return nil
 	}
