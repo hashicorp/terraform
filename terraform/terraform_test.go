@@ -150,6 +150,13 @@ aws_instance.foo:
   type = aws_instance
 `
 
+const testTerraformApplyCreateBeforeStr = `
+aws_instance.bar:
+  ID = foo
+  require_new = xyz
+  type = aws_instance
+`
+
 const testTerraformApplyCancelStr = `
 aws_instance.foo:
   ID = foo
