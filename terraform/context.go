@@ -115,17 +115,6 @@ func (c *Context) Apply() (*State, error) {
 	v := c.acquireRun()
 	defer c.releaseRun(v)
 
-	g, err := Graph(&GraphOpts{
-		Diff:         c.diff,
-		Module:       c.module,
-		Providers:    c.providers,
-		Provisioners: c.provisioners,
-		State:        c.state,
-	})
-	if err != nil {
-		return nil, err
-	}
-
 	// Set our state right away. No matter what, this IS our new state,
 	// even if there is an error below.
 	c.state = c.state.deepcopy()
@@ -136,27 +125,11 @@ func (c *Context) Apply() (*State, error) {
 
 	// Walk
 	log.Printf("[INFO] Apply walk starting")
-	wc := c.walkContext(rootModulePath)
-	err = g.Walk(wc.applyWalkFn())
+	err := c.walkContext(walkApply, rootModulePath).Walk()
 	log.Printf("[INFO] Apply walk complete")
 
 	// Prune the state so that we have as clean a state as possible
 	c.state.prune()
-
-	// If we have no errors, then calculate the outputs if we have any
-	root := c.state.RootModule()
-	if err == nil && len(c.config.Outputs) > 0 && len(root.Resources) > 0 {
-		outputs := make(map[string]string)
-		for _, o := range c.config.Outputs {
-			if err = wc.computeVars(o.RawConfig); err != nil {
-				break
-			}
-			outputs[o.Name] = o.RawConfig.Config()["value"].(string)
-		}
-
-		// Assign the outputs to the root module
-		root.Outputs = outputs
-	}
 
 	return c.state, err
 }
@@ -177,28 +150,17 @@ func (c *Context) Plan(opts *PlanOpts) (*Plan, error) {
 	v := c.acquireRun()
 	defer c.releaseRun(v)
 
-	g, err := Graph(&GraphOpts{
-		Module:       c.module,
-		Providers:    c.providers,
-		Provisioners: c.provisioners,
-		State:        c.state,
-	})
-	if err != nil {
-		return nil, err
-	}
-
 	p := &Plan{
 		Config: c.config,
 		Vars:   c.variables,
 		State:  c.state,
 	}
 
-	var walkFn depgraph.WalkFunc
+	wc := c.walkContext(walkInvalid, rootModulePath)
+	wc.Meta = p
 
 	if opts != nil && opts.Destroy {
-		// If we're destroying, we use a different walk function since it
-		// doesn't need as many details.
-		walkFn = c.planDestroyWalkFn(p)
+		wc.Operation = walkPlanDestroy
 	} else {
 		// Set our state to be something temporary. We do this so that
 		// the plan can update a fake state so that variables work, then
@@ -214,11 +176,11 @@ func (c *Context) Plan(opts *PlanOpts) (*Plan, error) {
 			c.state = old
 		}()
 
-		walkFn = c.walkContext(rootModulePath).planWalkFn(p)
+		wc.Operation = walkPlan
 	}
 
 	// Walk and run the plan
-	err = g.Walk(walkFn)
+	err := wc.Walk()
 
 	// Update the diff so that our context is up-to-date
 	c.diff = p.Diff
@@ -239,18 +201,8 @@ func (c *Context) Refresh() (*State, error) {
 	// Update our state
 	c.state = c.state.deepcopy()
 
-	g, err := Graph(&GraphOpts{
-		Module:       c.module,
-		Providers:    c.providers,
-		Provisioners: c.provisioners,
-		State:        c.state,
-	})
-	if err != nil {
-		return c.state, err
-	}
-
 	// Walk the graph
-	err = g.Walk(c.walkContext(rootModulePath).refreshWalkFn())
+	err := c.walkContext(walkRefresh, rootModulePath).Walk()
 
 	// Prune the state
 	c.state.prune()
@@ -357,33 +309,6 @@ func (c *Context) releaseRun(ch chan<- struct{}) {
 	c.sh.Reset()
 }
 
-func (c *Context) planDestroyWalkFn(result *Plan) depgraph.WalkFunc {
-	var l sync.Mutex
-
-	// Initialize the result
-	result.init()
-
-	return func(n *depgraph.Noun) error {
-		rn, ok := n.Meta.(*GraphNodeResource)
-		if !ok {
-			return nil
-		}
-
-		r := rn.Resource
-		if r.State != nil && r.State.ID != "" {
-			log.Printf("[DEBUG] %s: Making for destroy", r.Id)
-
-			l.Lock()
-			defer l.Unlock()
-			result.Diff.RootModule().Resources[r.Id] = &InstanceDiff{Destroy: true}
-		} else {
-			log.Printf("[DEBUG] %s: Not marking for destroy, no ID", r.Id)
-		}
-
-		return nil
-	}
-}
-
 func (c *Context) validateWalkFn(rws *[]string, res *[]error) depgraph.WalkFunc {
 	var l sync.Mutex
 
@@ -468,21 +393,112 @@ func (c *Context) validateWalkFn(rws *[]string, res *[]error) depgraph.WalkFunc 
 	}
 }
 
-func (c *Context) walkContext(path []string) *walkContext {
+func (c *Context) walkContext(op walkOperation, path []string) *walkContext {
 	return &walkContext{
-		Context: c,
-		Path:    path,
+		Context:   c,
+		Operation: op,
+		Path:      path,
 	}
 }
 
 // walkContext is the context in which a graph walk is done. It stores
 // much the same as a Context but works on a specific module.
 type walkContext struct {
-	Context *Context
-	Path    []string
+	Context   *Context
+	Meta      interface{}
+	Operation walkOperation
+	Path      []string
+
+	// This is only set manually by subsequent context creations
+	// in genericWalkFunc.
+	graph *depgraph.Graph
 }
 
-func (c *walkContext) Refresh() error {
+// walkOperation is an enum which tells the walkContext what to do.
+type walkOperation byte
+
+const (
+	walkInvalid walkOperation = iota
+	walkApply
+	walkPlan
+	walkPlanDestroy
+	walkRefresh
+)
+
+func (c *walkContext) Walk() error {
+	g := c.graph
+	if g == nil {
+		gopts := &GraphOpts{
+			Module:       c.Context.module,
+			Providers:    c.Context.providers,
+			Provisioners: c.Context.provisioners,
+			State:        c.Context.state,
+		}
+		if c.Operation == walkApply {
+			gopts.Diff = c.Context.diff
+		}
+
+		var err error
+		g, err = Graph(gopts)
+		if err != nil {
+			return err
+		}
+	}
+
+	var walkFn depgraph.WalkFunc
+	switch c.Operation {
+	case walkApply:
+		walkFn = c.applyWalkFn()
+	case walkPlan:
+		walkFn = c.planWalkFn()
+	case walkPlanDestroy:
+		walkFn = c.planDestroyWalkFn()
+	case walkRefresh:
+		walkFn = c.refreshWalkFn()
+	default:
+		panic(fmt.Sprintf("unknown operation: %s", c.Operation))
+	}
+
+	if err := g.Walk(walkFn); err != nil {
+		return err
+	}
+
+	// If we're not applying, we're done.
+	if c.Operation != walkApply {
+		return nil
+	}
+
+	// We did an apply, so we need to calculate the outputs. If we have no
+	// outputs, then we're done.
+	m := c.Context.module
+	for _, n := range c.Path[1:] {
+		cs := m.Children()
+		m = cs[n]
+	}
+	config := m.Config()
+	if len(config.Outputs) == 0 {
+		return nil
+	}
+
+	// Likewise, if we have no resources in our state, we're done. This
+	// guards against the case that we destroyed.
+	mod := c.Context.state.ModuleByPath(c.Path)
+	mod.prune()
+	if len(mod.Resources) == 0 {
+		return nil
+	}
+
+	outputs := make(map[string]string)
+	for _, o := range config.Outputs {
+		if err := c.computeVars(o.RawConfig); err != nil {
+			return err
+		}
+		outputs[o.Name] = o.RawConfig.Config()["value"].(string)
+	}
+
+	// Assign the outputs to the root module
+	mod.Outputs = outputs
+
 	return nil
 }
 
@@ -632,10 +648,11 @@ func (c *walkContext) applyWalkFn() depgraph.WalkFunc {
 	return c.genericWalkFn(cb)
 }
 
-func (c *walkContext) planWalkFn(result *Plan) depgraph.WalkFunc {
+func (c *walkContext) planWalkFn() depgraph.WalkFunc {
 	var l sync.Mutex
 
 	// Initialize the result
+	result := c.Meta.(*Plan)
 	result.init()
 
 	cb := func(c *walkContext, r *Resource) error {
@@ -741,6 +758,34 @@ func (c *walkContext) planWalkFn(result *Plan) depgraph.WalkFunc {
 	return c.genericWalkFn(cb)
 }
 
+func (c *walkContext) planDestroyWalkFn() depgraph.WalkFunc {
+	var l sync.Mutex
+
+	// Initialize the result
+	result := c.Meta.(*Plan)
+	result.init()
+
+	return func(n *depgraph.Noun) error {
+		rn, ok := n.Meta.(*GraphNodeResource)
+		if !ok {
+			return nil
+		}
+
+		r := rn.Resource
+		if r.State != nil && r.State.ID != "" {
+			log.Printf("[DEBUG] %s: Making for destroy", r.Id)
+
+			l.Lock()
+			defer l.Unlock()
+			result.Diff.RootModule().Resources[r.Id] = &InstanceDiff{Destroy: true}
+		} else {
+			log.Printf("[DEBUG] %s: Not marking for destroy, no ID", r.Id)
+		}
+
+		return nil
+	}
+}
+
 func (c *walkContext) refreshWalkFn() depgraph.WalkFunc {
 	cb := func(c *walkContext, r *Resource) error {
 		is := r.State
@@ -801,8 +846,15 @@ func (c *walkContext) genericWalkFn(cb genericWalkFunc) depgraph.WalkFunc {
 		switch m := n.Meta.(type) {
 		case *GraphNodeModule:
 			// Build another walkContext for this module and walk it.
-			wc := c.Context.walkContext(m.Path)
-			return m.Graph.Walk(wc.genericWalkFn(cb))
+			wc := c.Context.walkContext(c.Operation, m.Path)
+
+			// Set the graph to specifically walk this subgraph
+			wc.graph = m.Graph
+
+			// Preserve the meta
+			wc.Meta = c.Meta
+
+			return wc.Walk()
 		case *GraphNodeResource:
 			// Continue, we care about this the most
 		case *GraphNodeResourceMeta:

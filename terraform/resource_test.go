@@ -67,7 +67,7 @@ func TestResourceConfigGet(t *testing.T) {
 		rc := NewResourceConfig(rawC)
 		if tc.Vars != nil {
 			ctx := NewContext(&ContextOpts{Variables: tc.Vars})
-			if err := rc.interpolate(ctx.walkContext(rootModulePath)); err != nil {
+			if err := rc.interpolate(ctx.walkContext(walkInvalid, rootModulePath)); err != nil {
 				t.Fatalf("err: %s", err)
 			}
 		}
