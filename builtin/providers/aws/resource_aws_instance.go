@@ -117,6 +117,11 @@ func resourceAwsInstance() *schema.Resource {
 				Type:     schema.TypeBool,
 				Optional: true,
 			},
+			"iam_instance_profile": &schema.Schema{
+				Type: schema.TypeString,
+				ForceNew: true,
+				Optional: true,
+			},
 		},
 	}
 }
@@ -147,6 +152,7 @@ func resourceAwsInstanceCreate(d *schema.ResourceData, meta interface{}) error {
 		AssociatePublicIpAddress: associatePublicIPAddress,
 		UserData:                 []byte(userData),
 		EbsOptimized:             d.Get("ebs_optimized").(bool),
+		IamInstanceProfile:       d.Get("iam_instance_profile").(string),
 	}
 
 	if v := d.Get("security_groups"); v != nil {

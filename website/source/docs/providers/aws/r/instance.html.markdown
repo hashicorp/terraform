@@ -39,6 +39,8 @@ The following arguments are supported:
 * `source_dest_check` - (Optional) Controls if traffic is routed to the instance when
   the destination address does not match the instance. Used for NAT or VPNs. Defaults true.
 * `user_data` - (Optional) The user data to provide when launching the instance.
+* `iam_instance_profile` - (Optional) The IAM Instance Profile to
+  launch the instance with.
 
 ## Attributes Reference
 
