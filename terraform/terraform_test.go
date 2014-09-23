@@ -545,6 +545,23 @@ STATE:
 <no state>
 `
 
+const testTerraformPlanModuleVarComputedStr = `
+DIFF:
+
+CREATE: aws_instance.bar
+  foo:  "" => "<computed>"
+  type: "" => "aws_instance"
+
+module.child:
+  CREATE: aws_instance.foo
+    foo:  "" => "<computed>"
+    type: "" => "aws_instance"
+
+STATE:
+
+<no state>
+`
+
 const testTerraformPlanOrphanStr = `
 DIFF:
 

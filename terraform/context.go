@@ -473,8 +473,8 @@ func (c *walkContext) Walk() error {
 	if m == nil {
 		return nil
 	}
-	config := m.Config()
-	if len(config.Outputs) == 0 {
+	conf := m.Config()
+	if len(conf.Outputs) == 0 {
 		return nil
 	}
 
@@ -490,11 +490,18 @@ func (c *walkContext) Walk() error {
 	}
 
 	outputs := make(map[string]string)
-	for _, o := range config.Outputs {
+	for _, o := range conf.Outputs {
 		if err := c.computeVars(o.RawConfig); err != nil {
 			return err
 		}
 		vraw := o.RawConfig.Config()["value"]
+		if vraw == nil {
+			// This likely means that the result of the output is
+			// a computed variable.
+			if o.RawConfig.Raw["value"] != nil {
+				vraw = config.UnknownVariableValue
+			}
+		}
 		if vraw != nil {
 			outputs[o.Name] = vraw.(string)
 		}
