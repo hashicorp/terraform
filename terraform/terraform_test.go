@@ -254,6 +254,12 @@ aws_instance.foo:
   num = 2
 `
 
+const testTerraformApplyErrorCreateBeforeDestroyStr = `
+aws_instance.bar:
+  ID = bar
+  require_new = abc
+`
+
 const testTerraformApplyErrorPartialStr = `
 aws_instance.bar:
   ID = bar
