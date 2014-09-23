@@ -1,8 +1,6 @@
 package terraform
 
 import (
-	"bytes"
-	"reflect"
 	"strings"
 	"testing"
 )
@@ -205,44 +203,6 @@ func TestResourceDiffSame(t *testing.T) {
 		if actual != tc.Same {
 			t.Fatalf("Fail %d", i)
 		}
-	}
-}
-
-func TestReadWriteDiff(t *testing.T) {
-	diff := &Diff{
-		Resources: map[string]*InstanceDiff{
-			"nodeA": &InstanceDiff{
-				Attributes: map[string]*ResourceAttrDiff{
-					"foo": &ResourceAttrDiff{
-						Old: "foo",
-						New: "bar",
-					},
-					"bar": &ResourceAttrDiff{
-						Old:         "foo",
-						NewComputed: true,
-					},
-					"longfoo": &ResourceAttrDiff{
-						Old:         "foo",
-						New:         "bar",
-						RequiresNew: true,
-					},
-				},
-			},
-		},
-	}
-
-	buf := new(bytes.Buffer)
-	if err := WriteDiff(diff, buf); err != nil {
-		t.Fatalf("err: %s", err)
-	}
-
-	actual, err := ReadDiff(buf)
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-
-	if !reflect.DeepEqual(actual, diff) {
-		t.Fatalf("bad: %#v", actual)
 	}
 }
 

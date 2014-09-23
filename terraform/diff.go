@@ -2,63 +2,16 @@ package terraform
 
 import (
 	"bytes"
-	"encoding/gob"
-	"errors"
 	"fmt"
-	"io"
 	"sort"
 	"strings"
 	"sync"
 )
 
-// The format byte is prefixed into the diff file format so that we have
-// the ability in the future to change the file format if we want for any
-// reason.
-const diffFormatByte byte = 1
-
 // Diff tracks the differences between resources to apply.
 type Diff struct {
 	Resources map[string]*InstanceDiff
 	once      sync.Once
-}
-
-// ReadDiff reads a diff structure out of a reader in the format that
-// was written by WriteDiff.
-func ReadDiff(src io.Reader) (*Diff, error) {
-	var result *Diff
-
-	var formatByte [1]byte
-	n, err := src.Read(formatByte[:])
-	if err != nil {
-		return nil, err
-	}
-	if n != len(formatByte) {
-		return nil, errors.New("failed to read diff version byte")
-	}
-
-	if formatByte[0] != diffFormatByte {
-		return nil, fmt.Errorf("unknown diff file version: %d", formatByte[0])
-	}
-
-	dec := gob.NewDecoder(src)
-	if err := dec.Decode(&result); err != nil {
-		return nil, err
-	}
-
-	return result, nil
-}
-
-// WriteDiff writes a diff somewhere in a binary format.
-func WriteDiff(d *Diff, dst io.Writer) error {
-	n, err := dst.Write([]byte{diffFormatByte})
-	if err != nil {
-		return err
-	}
-	if n != 1 {
-		return errors.New("failed to write diff version byte")
-	}
-
-	return gob.NewEncoder(dst).Encode(d)
 }
 
 func (d *Diff) init() {
