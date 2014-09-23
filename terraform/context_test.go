@@ -1474,6 +1474,31 @@ func TestContextPlan_moduleInput(t *testing.T) {
 	}
 }
 
+func TestContextPlan_moduleInputFromVar(t *testing.T) {
+	m := testModule(t, "plan-module-input-var")
+	p := testProvider("aws")
+	p.DiffFn = testDiffFn
+	ctx := testContext(t, &ContextOpts{
+		Module: m,
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+		Variables: map[string]string{
+			"foo": "52",
+		},
+	})
+
+	plan, err := ctx.Plan(nil)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	actual := strings.TrimSpace(plan.String())
+	expected := strings.TrimSpace(testTerraformPlanModuleInputVarStr)
+	if actual != expected {
+		t.Fatalf("bad:\n%s", actual)
+	}
+}
 func TestContextPlan_moduleOrphans(t *testing.T) {
 	m := testModule(t, "plan-modules-remove")
 	p := testProvider("aws")
