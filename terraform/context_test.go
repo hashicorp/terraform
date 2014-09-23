@@ -880,6 +880,61 @@ func TestContextApply_provisionerFail(t *testing.T) {
 	}
 }
 
+func TestContextApply_provisionerFail_createBeforeDestroy(t *testing.T) {
+	c := testConfig(t, "apply-provisioner-fail-create-before")
+	p := testProvider("aws")
+	pr := testProvisioner()
+	p.ApplyFn = testApplyFn
+	p.DiffFn = testDiffFn
+	pr.ApplyFn = func(*InstanceState, *ResourceConfig) error {
+		return fmt.Errorf("EXPLOSION")
+	}
+
+	state := &State{
+		Modules: []*ModuleState{
+			&ModuleState{
+				Path: rootModulePath,
+				Resources: map[string]*ResourceState{
+					"aws_instance.bar": &ResourceState{
+						Type: "aws_instance",
+						Primary: &InstanceState{
+							ID: "bar",
+							Attributes: map[string]string{
+								"require_new": "abc",
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+	ctx := testContext(t, &ContextOpts{
+		Config: c,
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+		Provisioners: map[string]ResourceProvisionerFactory{
+			"shell": testProvisionerFuncFixed(pr),
+		},
+		State: state,
+	})
+
+	if _, err := ctx.Plan(nil); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	state, err := ctx.Apply()
+	if err == nil {
+		t.Fatal("should error")
+	}
+
+	actual := strings.TrimSpace(state.String())
+	expected := strings.TrimSpace(testTerraformApplyProvisionerFailCreateBeforeDestroyStr)
+	if actual != expected {
+		t.Fatalf("bad: \n%s", actual)
+	}
+}
+
 func TestContextApply_provisionerResourceRef(t *testing.T) {
 	m := testModule(t, "apply-provisioner-resource-ref")
 	p := testProvider("aws")
@@ -3121,6 +3176,9 @@ func testDiffFn(
 			New: v.(string),
 		}
 
+		if k == "require_new" {
+			attrDiff.RequiresNew = true
+		}
 		diff.Attributes[k] = attrDiff
 	}
 
