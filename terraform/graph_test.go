@@ -594,12 +594,12 @@ func TestGraphEncodeDependencies(t *testing.T) {
 	// This should encode the dependency information into the state
 	graphEncodeDependencies(g)
 
-	web := g.Noun("aws_instance.web").Meta.(*GraphNodeResource)
+	web := g.Noun("aws_instance.web").Meta.(*GraphNodeResource).Resource
 	if len(web.Dependencies) != 1 || web.Dependencies[0] != "aws_security_group.firewall" {
 		t.Fatalf("bad: %#v", web)
 	}
 
-	weblb := g.Noun("aws_load_balancer.weblb").Meta.(*GraphNodeResource)
+	weblb := g.Noun("aws_load_balancer.weblb").Meta.(*GraphNodeResource).Resource
 	if len(weblb.Dependencies) != 1 || weblb.Dependencies[0] != "aws_instance.web" {
 		t.Fatalf("bad: %#v", weblb)
 	}
@@ -637,12 +637,12 @@ func TestGraphEncodeDependencies_count(t *testing.T) {
 	// This should encode the dependency information into the state
 	graphEncodeDependencies(g)
 
-	web := g.Noun("aws_instance.web.0").Meta.(*GraphNodeResource)
+	web := g.Noun("aws_instance.web.0").Meta.(*GraphNodeResource).Resource
 	if len(web.Dependencies) != 0 {
 		t.Fatalf("bad: %#v", web)
 	}
 
-	weblb := g.Noun("aws_load_balancer.weblb").Meta.(*GraphNodeResource)
+	weblb := g.Noun("aws_load_balancer.weblb").Meta.(*GraphNodeResource).Resource
 	if len(weblb.Dependencies) != 3 {
 		t.Fatalf("bad: %#v", weblb)
 	}

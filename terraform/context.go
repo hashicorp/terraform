@@ -959,6 +959,7 @@ func (c *walkContext) persistState(r *Resource) {
 		rs.init()
 		module.Resources[r.Id] = rs
 	}
+	rs.Dependencies = r.Dependencies
 
 	// Assign the instance state to the proper location
 	if r.Flags&FlagTainted != 0 {
@@ -1148,5 +1149,3 @@ func (c *walkContext) computeResourceMultiVariable(
 
 	return strings.Join(values, ","), nil
 }
-
-

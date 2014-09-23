@@ -29,6 +29,7 @@ type Resource struct {
 	Id           string
 	Info         *InstanceInfo
 	Config       *ResourceConfig
+	Dependencies []string
 	Diff         *InstanceDiff
 	Provider     ResourceProvider
 	State        *InstanceState

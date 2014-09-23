@@ -79,7 +79,6 @@ type GraphNodeModule struct {
 type GraphNodeResource struct {
 	Index              int
 	Config             *config.Resource
-	Dependencies       []string
 	Resource           *Resource
 	ResourceProviderID string
 }
@@ -264,7 +263,7 @@ func graphEncodeDependencies(g *depgraph.Graph) {
 		}
 
 		// Update the dependencies
-		rn.Dependencies = inject
+		r.Dependencies = inject
 	}
 }
 

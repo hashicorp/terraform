@@ -42,7 +42,7 @@ type State struct {
 //
 // This should be the preferred method to add module states since it
 // allows us to optimize lookups later as well as control sorting.
-func (s *State) AddModule(path []string) *ModuleState{
+func (s *State) AddModule(path []string) *ModuleState {
 	m := &ModuleState{Path: path}
 	m.init()
 	s.Modules = append(s.Modules, m)
@@ -125,7 +125,7 @@ func (s *State) String() string {
 
 		// If we're the root module, we just write the output directly.
 		if reflect.DeepEqual(m.Path, rootModulePath) {
-			buf.WriteString(mStr+"\n")
+			buf.WriteString(mStr + "\n")
 			continue
 		}
 
