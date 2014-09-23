@@ -32,7 +32,6 @@ type Context struct {
 	providers    map[string]ResourceProviderFactory
 	provisioners map[string]ResourceProvisionerFactory
 	variables    map[string]string
-	defaultVars  map[string]string
 
 	l     sync.Mutex    // Lock acquired during any task
 	parCh chan struct{} // Semaphore used to limit parallelism
@@ -80,16 +79,6 @@ func NewContext(opts *ContextOpts) *Context {
 		config = opts.Module.Config()
 	}
 
-	// Calculate all the default variables
-	defaultVars := make(map[string]string)
-	if config != nil {
-		for _, v := range config.Variables {
-			for k, val := range v.DefaultsMap() {
-				defaultVars[k] = val
-			}
-		}
-	}
-
 	return &Context{
 		config:       config,
 		diff:         opts.Diff,
@@ -99,7 +88,6 @@ func NewContext(opts *ContextOpts) *Context {
 		providers:    opts.Providers,
 		provisioners: opts.Provisioners,
 		variables:    opts.Variables,
-		defaultVars:  defaultVars,
 
 		parCh: parCh,
 		sh:    sh,
@@ -394,10 +382,34 @@ func (c *Context) validateWalkFn(rws *[]string, res *[]error) depgraph.WalkFunc 
 }
 
 func (c *Context) walkContext(op walkOperation, path []string) *walkContext {
+	// Get the config structure
+	m := c.module
+	for _, n := range path[1:] {
+		cs := m.Children()
+		m = cs[n]
+	}
+	var conf *config.Config
+	if m != nil {
+		conf = m.Config()
+	}
+
+	// Calculate the default variable values
+	defaultVars := make(map[string]string)
+	if conf != nil {
+		for _, v := range conf.Variables {
+			for k, val := range v.DefaultsMap() {
+				defaultVars[k] = val
+			}
+		}
+	}
+
 	return &walkContext{
 		Context:   c,
 		Operation: op,
 		Path:      path,
+		Variables: c.variables,
+
+		defaultVariables: defaultVars,
 	}
 }
 
@@ -408,6 +420,9 @@ type walkContext struct {
 	Meta      interface{}
 	Operation walkOperation
 	Path      []string
+	Variables map[string]string
+
+	defaultVariables map[string]string
 
 	// This is only set manually by subsequent context creations
 	// in genericWalkFunc.
@@ -865,6 +880,17 @@ func (c *walkContext) genericWalkFn(cb genericWalkFunc) depgraph.WalkFunc {
 			// Preserve the meta
 			wc.Meta = c.Meta
 
+			// Set the variables
+			if m.Config != nil {
+				wc.Variables = make(map[string]string)
+
+				rc := NewResourceConfig(m.Config.RawConfig)
+				rc.interpolate(c)
+				for k, v := range rc.Config {
+					wc.Variables[k] = v.(string)
+				}
+			}
+
 			return wc.Walk()
 		case *GraphNodeResource:
 			// Continue, we care about this the most
@@ -1054,9 +1080,9 @@ func (c *walkContext) computeVars(raw *config.RawConfig) error {
 		return nil
 	}
 
-	// Start building up the variables. First, defaults
+	// Copy the default variables
 	vs := make(map[string]string)
-	for k, v := range c.Context.defaultVars {
+	for k, v := range c.defaultVariables {
 		vs[k] = v
 	}
 
@@ -1084,7 +1110,7 @@ func (c *walkContext) computeVars(raw *config.RawConfig) error {
 
 			vs[n] = attr
 		case *config.UserVariable:
-			val, ok := c.Context.variables[v.Name]
+			val, ok := c.Variables[v.Name]
 			if ok {
 				vs[n] = val
 				continue
@@ -1092,7 +1118,7 @@ func (c *walkContext) computeVars(raw *config.RawConfig) error {
 
 			// Look up if we have any variables with this prefix because
 			// those are map overrides. Include those.
-			for k, val := range c.Context.variables {
+			for k, val := range c.Variables {
 				if strings.HasPrefix(k, v.Name+".") {
 					vs["var."+k] = val
 				}

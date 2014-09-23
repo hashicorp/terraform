@@ -511,6 +511,23 @@ STATE:
 <no state>
 `
 
+const testTerraformPlanModuleInputStr = `
+DIFF:
+
+CREATE: aws_instance.bar
+  foo:  "" => "2"
+  type: "" => "aws_instance"
+
+module.child:
+  CREATE: aws_instance.foo
+    foo:  "" => "42"
+    type: "" => "aws_instance"
+
+STATE:
+
+<no state>
+`
+
 const testTerraformPlanModuleOrphansStr = `
 DIFF:
 
