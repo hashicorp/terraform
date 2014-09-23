@@ -1394,8 +1394,8 @@ func TestContextPlan(t *testing.T) {
 		t.Fatalf("err: %s", err)
 	}
 
-	if len(plan.Diff.Resources) < 2 {
-		t.Fatalf("bad: %#v", plan.Diff.Resources)
+	if len(plan.Diff.RootModule().Resources) < 2 {
+		t.Fatalf("bad: %#v", plan.Diff.RootModule().Resources)
 	}
 
 	actual := strings.TrimSpace(plan.String())
@@ -1458,8 +1458,8 @@ func TestContextPlan_nil(t *testing.T) {
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
-	if len(plan.Diff.Resources) != 0 {
-		t.Fatalf("bad: %#v", plan.Diff.Resources)
+	if len(plan.Diff.RootModule().Resources) != 0 {
+		t.Fatalf("bad: %#v", plan.Diff.RootModule().Resources)
 	}
 }
 
@@ -1525,8 +1525,8 @@ func TestContextPlan_count(t *testing.T) {
 		t.Fatalf("err: %s", err)
 	}
 
-	if len(plan.Diff.Resources) < 6 {
-		t.Fatalf("bad: %#v", plan.Diff.Resources)
+	if len(plan.Diff.RootModule().Resources) < 6 {
+		t.Fatalf("bad: %#v", plan.Diff.RootModule().Resources)
 	}
 
 	actual := strings.TrimSpace(plan.String())
@@ -1715,8 +1715,8 @@ func TestContextPlan_destroy(t *testing.T) {
 		t.Fatalf("err: %s", err)
 	}
 
-	if len(plan.Diff.Resources) != 2 {
-		t.Fatalf("bad: %#v", plan.Diff.Resources)
+	if len(plan.Diff.RootModule().Resources) != 2 {
+		t.Fatalf("bad: %#v", plan.Diff.RootModule().Resources)
 	}
 
 	actual := strings.TrimSpace(plan.String())
@@ -1880,8 +1880,8 @@ func TestContextPlan_state(t *testing.T) {
 		t.Fatalf("err: %s", err)
 	}
 
-	if len(plan.Diff.Resources) < 2 {
-		t.Fatalf("bad: %#v", plan.Diff.Resources)
+	if len(plan.Diff.RootModule().Resources) < 2 {
+		t.Fatalf("bad: %#v", plan.Diff.RootModule().Resources)
 	}
 
 	actual := strings.TrimSpace(plan.String())

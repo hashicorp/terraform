@@ -1,29 +1,98 @@
 package terraform
 
 import (
+	"bufio"
 	"bytes"
 	"fmt"
+	"reflect"
 	"sort"
 	"strings"
-	"sync"
 )
 
-// Diff tracks the differences between resources to apply.
+// Diff trackes the changes that are necessary to apply a configuration
+// to an existing infrastructure.
 type Diff struct {
-	Resources map[string]*InstanceDiff
-	once      sync.Once
+	// Modules contains all the modules that have a diff
+	Modules []*ModuleDiff
+}
+
+// ModuleByPath is used to lookup the module diff for the given path.
+// This should be the prefered lookup mechanism as it allows for future
+// lookup optimizations.
+func (d *Diff) ModuleByPath(path []string) *ModuleDiff {
+	if d == nil {
+		return nil
+	}
+	for _, mod := range d.Modules {
+		if mod.Path == nil {
+			panic("missing module path")
+		}
+		if reflect.DeepEqual(mod.Path, path) {
+			return mod
+		}
+	}
+	return nil
+}
+
+// RootModule returns the ModuleState for the root module
+func (d *Diff) RootModule() *ModuleDiff {
+	root := d.ModuleByPath(rootModulePath)
+	if root == nil {
+		panic("missing root module")
+	}
+	return root
+}
+
+func (d *Diff) String() string {
+	var buf bytes.Buffer
+	for _, m := range d.Modules {
+		mStr := m.String()
+
+		// If we're the root module, we just write the output directly.
+		if reflect.DeepEqual(m.Path, rootModulePath) {
+			buf.WriteString(mStr + "\n")
+			continue
+		}
+
+		buf.WriteString(fmt.Sprintf("module.%s:\n", strings.Join(m.Path[1:], ".")))
+
+		s := bufio.NewScanner(strings.NewReader(mStr))
+		for s.Scan() {
+			buf.WriteString(fmt.Sprintf("  %s\n", s.Text()))
+		}
+	}
+
+	return strings.TrimSpace(buf.String())
 }
 
 func (d *Diff) init() {
-	d.once.Do(func() {
-		if d.Resources == nil {
-			d.Resources = make(map[string]*InstanceDiff)
-		}
-	})
+	if d.Modules == nil {
+		rootDiff := &ModuleDiff{Path: rootModulePath}
+		d.Modules = []*ModuleDiff{rootDiff}
+	}
+	for _, m := range d.Modules {
+		m.init()
+	}
 }
 
-// Empty returns true if the diff has no changes.
-func (d *Diff) Empty() bool {
+// ModuleDiff tracks the differences between resources to apply within
+// a single module.
+type ModuleDiff struct {
+	Path      []string
+	Resources map[string]*InstanceDiff
+}
+
+func (d *ModuleDiff) init() {
+	if d.Resources == nil {
+		d.Resources = make(map[string]*InstanceDiff)
+	}
+	for _, r := range d.Resources {
+		r.init()
+	}
+}
+
+// Empty returns true if the diff has no changes within this module.
+func (d *ModuleDiff) Empty() bool {
 	if len(d.Resources) == 0 {
 		return true
 	}
@@ -39,7 +108,7 @@ func (d *Diff) Empty() bool {
 
 // String outputs the diff in a long but command-line friendly output
 // format that users can read to quickly inspect a diff.
-func (d *Diff) String() string {
+func (d *ModuleDiff) String() string {
 	var buf bytes.Buffer
 
 	names := make([]string, 0, len(d.Resources))
@@ -110,8 +179,6 @@ type InstanceDiff struct {
 	Attributes     map[string]*ResourceAttrDiff
 	Destroy        bool
 	DestroyTainted bool
-
-	once sync.Once
 }
 
 // ResourceAttrDiff is the diff of a single attribute of a resource.
@@ -143,11 +210,9 @@ const (
 )
 
 func (d *InstanceDiff) init() {
-	d.once.Do(func() {
-		if d.Attributes == nil {
-			d.Attributes = make(map[string]*ResourceAttrDiff)
-		}
-	})
+	if d.Attributes == nil {
+		d.Attributes = make(map[string]*ResourceAttrDiff)
+	}
 }
 
 // Empty returns true if this diff encapsulates no changes.

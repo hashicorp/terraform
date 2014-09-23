@@ -831,7 +831,7 @@ func (c *Context) planWalkFn(result *Plan) depgraph.WalkFunc {
 
 		l.Lock()
 		if !diff.Empty() {
-			result.Diff.Resources[r.Id] = diff
+			result.Diff.RootModule().Resources[r.Id] = diff
 		}
 		l.Unlock()
 
@@ -872,7 +872,7 @@ func (c *Context) planDestroyWalkFn(result *Plan) depgraph.WalkFunc {
 
 			l.Lock()
 			defer l.Unlock()
-			result.Diff.Resources[r.Id] = &InstanceDiff{Destroy: true}
+			result.Diff.RootModule().Resources[r.Id] = &InstanceDiff{Destroy: true}
 		} else {
 			log.Printf("[DEBUG] %s: Not marking for destroy, no ID", r.Id)
 		}

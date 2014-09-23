@@ -5,8 +5,8 @@ import (
 	"testing"
 )
 
-func TestDiff_Empty(t *testing.T) {
-	diff := new(Diff)
+func TestModuleDiff_Empty(t *testing.T) {
+	diff := new(ModuleDiff)
 	if !diff.Empty() {
 		t.Fatal("should be empty")
 	}
@@ -38,8 +38,8 @@ func TestDiff_Empty(t *testing.T) {
 	}
 }
 
-func TestDiff_String(t *testing.T) {
-	diff := &Diff{
+func TestModuleDiff_String(t *testing.T) {
+	diff := &ModuleDiff{
 		Resources: map[string]*InstanceDiff{
 			"nodeA": &InstanceDiff{
 				Attributes: map[string]*ResourceAttrDiff{
@@ -62,7 +62,7 @@ func TestDiff_String(t *testing.T) {
 	}
 
 	actual := strings.TrimSpace(diff.String())
-	expected := strings.TrimSpace(diffStrBasic)
+	expected := strings.TrimSpace(moduleDiffStrBasic)
 	if actual != expected {
 		t.Fatalf("bad:\n%s", actual)
 	}
@@ -206,7 +206,7 @@ func TestResourceDiffSame(t *testing.T) {
 	}
 }
 
-const diffStrBasic = `
+const moduleDiffStrBasic = `
 CREATE: nodeA
   bar:     "foo" => "<computed>"
   foo:     "foo" => "bar"

@@ -132,10 +132,14 @@ func Graph(opts *GraphOpts) (*depgraph.Graph, error) {
 
 	config := currentModule.Config()
 
-	// Get the state of the module that we're working with.
-	var mod *ModuleState
+	// Get the state and diff of the module that we're working with.
+	var modDiff *ModuleDiff
+	var modState *ModuleState
+	if opts.Diff != nil {
+		modDiff = opts.Diff.ModuleByPath(opts.ModulePath)
+	}
 	if opts.State != nil {
-		mod = opts.State.ModuleByPath(opts.ModulePath)
+		modState = opts.State.ModuleByPath(opts.ModulePath)
 	}
 
 	log.Printf("[DEBUG] Creating graph...")
@@ -145,7 +149,7 @@ func Graph(opts *GraphOpts) (*depgraph.Graph, error) {
 	// First, build the initial resource graph. This only has the resources
 	// and no dependencies. This only adds resources that are in the config
 	// and not "orphans" (that are in the state, but not in the config).
-	graphAddConfigResources(g, config, mod)
+	graphAddConfigResources(g, config, modState)
 
 	// Add the modules that are in the configuration.
 	if err := graphAddConfigModules(g, config, opts); err != nil {
@@ -155,12 +159,12 @@ func Graph(opts *GraphOpts) (*depgraph.Graph, error) {
 	// Add explicit dependsOn dependencies to the graph
 	graphAddExplicitDeps(g)
 
-	if mod != nil {
+	if modState != nil {
 		// Next, add the state orphans if we have any
-		graphAddOrphans(g, config, mod)
+		graphAddOrphans(g, config, modState)
 
 		// Add tainted resources if we have any.
-		graphAddTainted(g, mod)
+		graphAddTainted(g, modState)
 	}
 
 	// Map the provider configurations to all of the resources
@@ -198,8 +202,8 @@ func Graph(opts *GraphOpts) (*depgraph.Graph, error) {
 	}
 
 	// If we have a diff, then make sure to add that in
-	if opts.Diff != nil {
-		if err := graphAddDiff(g, opts.Diff); err != nil {
+	if modDiff != nil {
+		if err := graphAddDiff(g, modDiff); err != nil {
 			return nil, err
 		}
 	}
@@ -423,7 +427,7 @@ func graphAddConfigResources(
 // destroying the VPC's subnets first, whereas creating a VPC requires
 // doing it before the subnets are created. This function handles inserting
 // these nodes for you.
-func graphAddDiff(g *depgraph.Graph, d *Diff) error {
+func graphAddDiff(g *depgraph.Graph, d *ModuleDiff) error {
 	var nlist []*depgraph.Noun
 	for _, n := range g.Nouns {
 		rn, ok := n.Meta.(*GraphNodeResource)

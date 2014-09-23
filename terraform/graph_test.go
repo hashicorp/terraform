@@ -357,11 +357,16 @@ func TestGraphProvisioners(t *testing.T) {
 func TestGraphAddDiff(t *testing.T) {
 	m := testModule(t, "graph-diff")
 	diff := &Diff{
-		Resources: map[string]*InstanceDiff{
-			"aws_instance.foo": &InstanceDiff{
-				Attributes: map[string]*ResourceAttrDiff{
-					"foo": &ResourceAttrDiff{
-						New: "bar",
+		Modules: []*ModuleDiff{
+			&ModuleDiff{
+				Path: rootModulePath,
+				Resources: map[string]*InstanceDiff{
+					"aws_instance.foo": &InstanceDiff{
+						Attributes: map[string]*ResourceAttrDiff{
+							"foo": &ResourceAttrDiff{
+								New: "bar",
+							},
+						},
 					},
 				},
 			},
@@ -383,7 +388,7 @@ func TestGraphAddDiff(t *testing.T) {
 	n := g.Noun("aws_instance.foo")
 	rn := n.Meta.(*GraphNodeResource)
 
-	expected2 := diff.Resources["aws_instance.foo"]
+	expected2 := diff.RootModule().Resources["aws_instance.foo"]
 	actual2 := rn.Resource.Diff
 	if !reflect.DeepEqual(actual2, expected2) {
 		t.Fatalf("bad: %#v", actual2)
@@ -393,12 +398,17 @@ func TestGraphAddDiff(t *testing.T) {
 func TestGraphAddDiff_destroy(t *testing.T) {
 	m := testModule(t, "graph-diff-destroy")
 	diff := &Diff{
-		Resources: map[string]*InstanceDiff{
-			"aws_instance.foo": &InstanceDiff{
-				Destroy: true,
-			},
-			"aws_instance.bar": &InstanceDiff{
-				Destroy: true,
+		Modules: []*ModuleDiff{
+			&ModuleDiff{
+				Path: rootModulePath,
+				Resources: map[string]*InstanceDiff{
+					"aws_instance.foo": &InstanceDiff{
+						Destroy: true,
+					},
+					"aws_instance.bar": &InstanceDiff{
+						Destroy: true,
+					},
+				},
 			},
 		},
 	}
@@ -463,18 +473,23 @@ func TestGraphAddDiff_destroy(t *testing.T) {
 func TestGraphAddDiff_destroy_counts(t *testing.T) {
 	m := testModule(t, "graph-count")
 	diff := &Diff{
-		Resources: map[string]*InstanceDiff{
-			"aws_instance.web.0": &InstanceDiff{
-				Destroy: true,
-			},
-			"aws_instance.web.1": &InstanceDiff{
-				Destroy: true,
-			},
-			"aws_instance.web.2": &InstanceDiff{
-				Destroy: true,
-			},
-			"aws_load_balancer.weblb": &InstanceDiff{
-				Destroy: true,
+		Modules: []*ModuleDiff{
+			&ModuleDiff{
+				Path: rootModulePath,
+				Resources: map[string]*InstanceDiff{
+					"aws_instance.web.0": &InstanceDiff{
+						Destroy: true,
+					},
+					"aws_instance.web.1": &InstanceDiff{
+						Destroy: true,
+					},
+					"aws_instance.web.2": &InstanceDiff{
+						Destroy: true,
+					},
+					"aws_load_balancer.weblb": &InstanceDiff{
+						Destroy: true,
+					},
+				},
 			},
 		},
 	}

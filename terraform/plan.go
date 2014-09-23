@@ -55,7 +55,7 @@ func (p *Plan) String() string {
 	buf := new(bytes.Buffer)
 	buf.WriteString("DIFF:\n\n")
 	buf.WriteString(p.Diff.String())
-	buf.WriteString("\nSTATE:\n\n")
+	buf.WriteString("\n\nSTATE:\n\n")
 	buf.WriteString(p.State.String())
 	return buf.String()
 }

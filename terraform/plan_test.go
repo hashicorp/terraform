@@ -11,21 +11,26 @@ func TestReadWritePlan(t *testing.T) {
 	plan := &Plan{
 		Config: testConfig(t, "new-good"),
 		Diff: &Diff{
-			Resources: map[string]*InstanceDiff{
-				"nodeA": &InstanceDiff{
-					Attributes: map[string]*ResourceAttrDiff{
-						"foo": &ResourceAttrDiff{
-							Old: "foo",
-							New: "bar",
-						},
-						"bar": &ResourceAttrDiff{
-							Old:         "foo",
-							NewComputed: true,
-						},
-						"longfoo": &ResourceAttrDiff{
-							Old:         "foo",
-							New:         "bar",
-							RequiresNew: true,
+			Modules: []*ModuleDiff{
+				&ModuleDiff{
+					Path: rootModulePath,
+					Resources: map[string]*InstanceDiff{
+						"nodeA": &InstanceDiff{
+							Attributes: map[string]*ResourceAttrDiff{
+								"foo": &ResourceAttrDiff{
+									Old: "foo",
+									New: "bar",
+								},
+								"bar": &ResourceAttrDiff{
+									Old:         "foo",
+									NewComputed: true,
+								},
+								"longfoo": &ResourceAttrDiff{
+									Old:         "foo",
+									New:         "bar",
+									RequiresNew: true,
+								},
+							},
 						},
 					},
 				},
