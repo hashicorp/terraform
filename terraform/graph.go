@@ -134,7 +134,12 @@ func Graph(opts *GraphOpts) (*depgraph.Graph, error) {
 		currentModule = children[n]
 	}
 
-	config := currentModule.Config()
+	var conf *config.Config
+	if currentModule != nil {
+		conf = currentModule.Config()
+	} else {
+		conf = new(config.Config)
+	}
 
 	// Get the state and diff of the module that we're working with.
 	var modDiff *ModuleDiff
@@ -153,10 +158,10 @@ func Graph(opts *GraphOpts) (*depgraph.Graph, error) {
 	// First, build the initial resource graph. This only has the resources
 	// and no dependencies. This only adds resources that are in the config
 	// and not "orphans" (that are in the state, but not in the config).
-	graphAddConfigResources(g, config, modState)
+	graphAddConfigResources(g, conf, modState)
 
 	// Add the modules that are in the configuration.
-	if err := graphAddConfigModules(g, config, opts); err != nil {
+	if err := graphAddConfigModules(g, conf, opts); err != nil {
 		return nil, err
 	}
 
@@ -165,14 +170,24 @@ func Graph(opts *GraphOpts) (*depgraph.Graph, error) {
 
 	if modState != nil {
 		// Next, add the state orphans if we have any
-		graphAddOrphans(g, config, modState)
+		graphAddOrphans(g, conf, modState)
 
 		// Add tainted resources if we have any.
 		graphAddTainted(g, modState)
+
+	}
+
+	if opts.State != nil {
+		// Add module orphans if we have any of those
+		if ms := opts.State.Children(opts.ModulePath); len(ms) > 0 {
+			if err := graphAddModuleOrphans(g, conf, ms, opts); err != nil {
+				return nil, err
+			}
+		}
 	}
 
 	// Map the provider configurations to all of the resources
-	graphAddProviderConfigs(g, config)
+	graphAddProviderConfigs(g, conf)
 
 	// Setup the provisioners. These may have variable dependencies,
 	// and must be done before dependency setup
@@ -281,31 +296,11 @@ func graphAddConfigModules(
 	// Build the list of nouns to add to the graph
 	nounsList := make([]*depgraph.Noun, 0, len(c.Modules))
 	for _, m := range c.Modules {
-		name := fmt.Sprintf("module.%s", m.Name)
-		path := make([]string, len(opts.ModulePath)+1)
-		copy(path, opts.ModulePath)
-		path[len(opts.ModulePath)] = m.Name
-
-		// Build the opts we'll use to make the next graph
-		subOpts := *opts
-		subOpts.ModulePath = path
-		subGraph, err := Graph(&subOpts)
-		if err != nil {
-			return fmt.Errorf(
-				"Error building module graph '%s': %s",
-				m.Name, err)
+		if n, err := graphModuleNoun(m.Name, m, opts); err != nil {
+			return err
+		} else {
+			nounsList = append(nounsList, n)
 		}
-
-		n := &depgraph.Noun{
-			Name: name,
-			Meta: &GraphNodeModule{
-				Config: m,
-				Path:   path,
-				Graph:  subGraph,
-			},
-		}
-
-		nounsList = append(nounsList, n)
 	}
 
 	g.Nouns = append(g.Nouns, nounsList...)
@@ -683,6 +678,38 @@ func graphAddMissingResourceProviders(
 	return nil
 }
 
+func graphAddModuleOrphans(
+	g *depgraph.Graph,
+	config *config.Config,
+	ms []*ModuleState,
+	opts *GraphOpts) error {
+	// Build a lookup map for the modules we do have defined
+	childrenKeys := make(map[string]struct{})
+	for _, m := range config.Modules {
+		childrenKeys[m.Name] = struct{}{}
+	}
+
+	// Go through each of the child modules. If we don't have it in our
+	// config, it is an orphan.
+	var nounsList []*depgraph.Noun
+	for _, m := range ms {
+		k := m.Path[len(m.Path)-1]
+		if _, ok := childrenKeys[k]; ok {
+			// We have this module configured
+			continue
+		}
+
+		if n, err := graphModuleNoun(k, nil, opts); err != nil {
+			return err
+		} else {
+			nounsList = append(nounsList, n)
+		}
+	}
+
+	g.Nouns = append(g.Nouns, nounsList...)
+	return nil
+}
+
 // graphAddOrphans adds the orphans to the graph.
 func graphAddOrphans(g *depgraph.Graph, c *config.Config, mod *ModuleState) {
 	var nlist []*depgraph.Noun
@@ -841,8 +868,10 @@ func graphAddVariableDeps(g *depgraph.Graph) {
 	for _, n := range g.Nouns {
 		switch m := n.Meta.(type) {
 		case *GraphNodeModule:
-			vars := m.Config.RawConfig.Variables
-			nounAddVariableDeps(g, n, vars, false)
+			if m.Config != nil {
+				vars := m.Config.RawConfig.Variables
+				nounAddVariableDeps(g, n, vars, false)
+			}
 
 		case *GraphNodeResource:
 			if m.Config != nil {
@@ -930,6 +959,34 @@ func graphAddTainted(g *depgraph.Graph, mod *ModuleState) {
 
 	// Add the nouns to the graph
 	g.Nouns = append(g.Nouns, nlist...)
+}
+
+// graphModuleNoun creates a noun for a module.
+func graphModuleNoun(
+	n string, m *config.Module, opts *GraphOpts) (*depgraph.Noun, error) {
+	name := fmt.Sprintf("module.%s", n)
+	path := make([]string, len(opts.ModulePath)+1)
+	copy(path, opts.ModulePath)
+	path[len(opts.ModulePath)] = n
+
+	// Build the opts we'll use to make the next graph
+	subOpts := *opts
+	subOpts.ModulePath = path
+	subGraph, err := Graph(&subOpts)
+	if err != nil {
+		return nil, fmt.Errorf(
+			"Error building module graph '%s': %s",
+			n, err)
+	}
+
+	return &depgraph.Noun{
+		Name: name,
+		Meta: &GraphNodeModule{
+			Config: m,
+			Path:   path,
+			Graph:  subGraph,
+		},
+	}, nil
 }
 
 // nounAddVariableDeps updates the dependencies of a noun given

@@ -511,6 +511,23 @@ STATE:
 <no state>
 `
 
+const testTerraformPlanModuleOrphansStr = `
+DIFF:
+
+CREATE: aws_instance.foo
+  num:  "" => "2"
+  type: "" => "aws_instance"
+
+module.child:
+  DESTROY: aws_instance.foo
+
+STATE:
+
+module.child:
+  aws_instance.foo:
+    ID = baz
+`
+
 const testTerraformPlanOrphanStr = `
 DIFF:
 

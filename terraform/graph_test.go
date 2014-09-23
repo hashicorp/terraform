@@ -112,6 +112,53 @@ func TestGraph_modules(t *testing.T) {
 	}
 }
 
+func TestGraph_moduleOrphan(t *testing.T) {
+	m := testModule(t, "graph-module-orphan")
+	state := &State{
+		Modules: []*ModuleState{
+			&ModuleState{
+				Path: []string{"root", "consul"},
+
+				Resources: map[string]*ResourceState{
+					"aws_instance.old": &ResourceState{
+						Type: "aws_instance",
+						Primary: &InstanceState{
+							ID: "foo",
+						},
+					},
+				},
+			},
+		},
+	}
+
+	g, err := Graph(&GraphOpts{Module: m, State: state})
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	actual := strings.TrimSpace(g.String())
+	expected := strings.TrimSpace(testTerraformGraphModuleOrphanStr)
+	if actual != expected {
+		t.Fatalf("bad:\n\n%s", actual)
+	}
+
+	n := g.Noun("module.consul")
+	if n == nil {
+		t.Fatal("can't find noun")
+	}
+	mn := n.Meta.(*GraphNodeModule)
+
+	if !reflect.DeepEqual(mn.Path, []string{"root", "consul"}) {
+		t.Fatalf("bad: %#v", mn.Path)
+	}
+
+	actual = strings.TrimSpace(mn.Graph.String())
+	expected = strings.TrimSpace(testTerraformGraphModuleOrphanConsulStr)
+	if actual != expected {
+		t.Fatalf("bad:\n\n%s", actual)
+	}
+}
+
 func TestGraph_state(t *testing.T) {
 	m := testModule(t, "graph-basic")
 	state := &State{
@@ -833,6 +880,28 @@ root: root
 aws_instance.server
 root
   root -> aws_instance.server
+`
+
+const testTerraformGraphModuleOrphanStr = `
+root: root
+aws_instance.web
+  aws_instance.web -> aws_security_group.firewall
+  aws_instance.web -> provider.aws
+aws_security_group.firewall
+  aws_security_group.firewall -> provider.aws
+module.consul
+provider.aws
+root
+  root -> aws_instance.web
+  root -> aws_security_group.firewall
+  root -> module.consul
+`
+
+const testTerraformGraphModuleOrphanConsulStr = `
+root: root
+aws_instance.old
+root
+  root -> aws_instance.old
 `
 
 const testTerraformGraphStateStr = `

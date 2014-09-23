@@ -38,6 +38,28 @@ type State struct {
 	Modules []*ModuleState `json:"modules"`
 }
 
+// Children returns the ModuleStates that are direct children of
+// the given path. If the path is "root", for example, then children
+// returned might be "root.child", but not "root.child.grandchild".
+func (s *State) Children(path []string) []*ModuleState {
+	// TODO: test
+
+	result := make([]*ModuleState, 0)
+	for _, m := range s.Modules {
+		if len(m.Path) != len(path)+1 {
+			continue
+		}
+		if !reflect.DeepEqual(path, m.Path[:len(path)]) {
+			continue
+		}
+
+		result = append(result, m)
+	}
+
+	return result
+}
+
+
 // AddModule adds the module with the given path to the state.
 //
 // This should be the preferred method to add module states since it
