@@ -889,6 +889,11 @@ func (c *walkContext) genericWalkFn(cb genericWalkFunc) depgraph.WalkFunc {
 				for k, v := range rc.Config {
 					wc.Variables[k] = v.(string)
 				}
+				for k, _ := range rc.Raw {
+					if _, ok := wc.Variables[k]; !ok {
+						wc.Variables[k] = config.UnknownVariableValue
+					}
+				}
 			}
 
 			return wc.Walk()
