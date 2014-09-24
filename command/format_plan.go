@@ -27,15 +27,15 @@ func FormatPlan(p *terraform.Plan, c *colorstring.Colorize) string {
 
 	// We want to output the resources in sorted order to make things
 	// easier to scan through, so get all the resource names and sort them.
-	names := make([]string, 0, len(p.Diff.Resources))
-	for name, _ := range p.Diff.Resources {
+	names := make([]string, 0, len(p.Diff.RootModule().Resources))
+	for name, _ := range p.Diff.RootModule().Resources {
 		names = append(names, name)
 	}
 	sort.Strings(names)
 
 	// Go through each sorted name and start building the output
 	for _, name := range names {
-		rdiff := p.Diff.Resources[name]
+		rdiff := p.Diff.RootModule().Resources[name]
 
 		// Determine the color for the text (green for adding, yellow
 		// for change, red for delete), and symbol, and output the

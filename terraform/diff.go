@@ -54,6 +54,17 @@ func (d *Diff) RootModule() *ModuleDiff {
 	return root
 }
 
+// Empty returns true if the diff has no changes.
+func (d *Diff) Empty() bool {
+	for _, m := range d.Modules {
+		if !m.Empty() {
+			return false
+		}
+	}
+
+	return true
+}
+
 func (d *Diff) String() string {
 	var buf bytes.Buffer
 	for _, m := range d.Modules {

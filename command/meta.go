@@ -99,7 +99,7 @@ func (m *Meta) Context(copts contextOpts) (*terraform.Context, bool, error) {
 		return nil, false, fmt.Errorf("Error downloading modules: %s", err)
 	}
 
-	opts.Config = mod.Config()
+	opts.Module = mod
 	opts.State = state
 	ctx := terraform.NewContext(opts)
 	return ctx, false, nil

@@ -5,6 +5,27 @@ import (
 	"testing"
 )
 
+func TestDiffEmpty(t *testing.T) {
+	diff := new(Diff)
+	if !diff.Empty() {
+		t.Fatal("should be empty")
+	}
+
+	mod := diff.AddModule(rootModulePath)
+	mod.Resources["nodeA"] = &InstanceDiff{
+		Attributes: map[string]*ResourceAttrDiff{
+			"foo": &ResourceAttrDiff{
+				Old: "foo",
+				New: "bar",
+			},
+		},
+	}
+
+	if diff.Empty() {
+		t.Fatal("should not be empty")
+	}
+}
+
 func TestModuleDiff_Empty(t *testing.T) {
 	diff := new(ModuleDiff)
 	if !diff.Empty() {

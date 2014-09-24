@@ -80,9 +80,11 @@ func TestPlan_destroy(t *testing.T) {
 	}
 
 	plan := testReadPlan(t, outPath)
-	for _, r := range plan.Diff.Resources {
-		if !r.Destroy {
-			t.Fatalf("bad: %#v", r)
+	for _, m := range plan.Diff.Modules {
+		for _, r := range m.Resources {
+			if !r.Destroy {
+				t.Fatalf("bad: %#v", r)
+			}
 		}
 	}
 
