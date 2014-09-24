@@ -152,6 +152,23 @@ aws_instance.foo:
   ID = foo
 `
 
+const testTerraformApplyModuleStr = `
+aws_instance.bar:
+  ID = foo
+  foo = bar
+  type = aws_instance
+aws_instance.foo:
+  ID = foo
+  num = 2
+  type = aws_instance
+
+module.child:
+  aws_instance.baz:
+    ID = foo
+    foo = bar
+    type = aws_instance
+`
+
 const testTerraformApplyProvisionerStr = `
 aws_instance.bar:
   ID = foo
