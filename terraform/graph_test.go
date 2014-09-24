@@ -310,7 +310,7 @@ func TestGraphFull(t *testing.T) {
 				t.Fatalf("bad: %#v", m)
 			}
 		case *GraphNodeResourceProvider:
-			if len(m.Providers) == 0 {
+			if len(m.Provider.Providers) == 0 {
 				t.Fatalf("bad: %#v", m)
 			}
 		default:

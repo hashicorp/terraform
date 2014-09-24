@@ -21,6 +21,7 @@ type MockResourceProvider struct {
 	ApplyReturnError             error
 	ConfigureCalled              bool
 	ConfigureConfig              *ResourceConfig
+	ConfigureFn                  func(*ResourceConfig) error
 	ConfigureReturnError         error
 	DiffCalled                   bool
 	DiffInfo                     *InstanceInfo
@@ -79,6 +80,11 @@ func (p *MockResourceProvider) Configure(c *ResourceConfig) error {
 
 	p.ConfigureCalled = true
 	p.ConfigureConfig = c
+
+	if p.ConfigureFn != nil {
+		return p.ConfigureFn(c)
+	}
+
 	return p.ConfigureReturnError
 }
 

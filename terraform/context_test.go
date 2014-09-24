@@ -4,7 +4,9 @@ import (
 	"fmt"
 	"reflect"
 	"strings"
+	"sync"
 	"testing"
+	"sort"
 )
 
 func TestContextGraph(t *testing.T) {
@@ -1586,6 +1588,60 @@ func TestContextPlan_moduleOrphans(t *testing.T) {
 	expected := strings.TrimSpace(testTerraformPlanModuleOrphansStr)
 	if actual != expected {
 		t.Fatalf("bad:\n%s", actual)
+	}
+}
+
+func TestContextPlan_moduleProviderInherit(t *testing.T) {
+	t.Skip()
+
+	var l sync.Mutex
+	var ps []*MockResourceProvider
+	var calls []string
+
+	m := testModule(t, "plan-module-provider-inherit")
+	ctx := testContext(t, &ContextOpts{
+		Module: m,
+		Providers: map[string]ResourceProviderFactory{
+			"aws": func() (ResourceProvider, error) {
+				l.Lock()
+				defer l.Unlock()
+
+				p := testProvider("aws")
+				p.ConfigureFn = func(c *ResourceConfig) error {
+					if v, ok := c.Get("from"); !ok || v.(string) != "root" {
+						return fmt.Errorf("bad")
+					}
+
+					return nil
+				}
+				p.DiffFn = func(
+					info *InstanceInfo,
+					state *InstanceState,
+					c *ResourceConfig) (*InstanceDiff, error) {
+					v, _ := c.Get("from")
+					calls = append(calls, v.(string))
+					return testDiffFn(info, state, c)
+				}
+				ps = append(ps, p)
+				return p, nil
+			},
+		},
+	})
+
+	_, err := ctx.Plan(nil)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	if len(ps) != 2 {
+		t.Fatalf("bad: %#v", ps)
+	}
+
+	actual := calls
+	sort.Strings(actual)
+	expected := []string{"child", "root"}
+	if !reflect.DeepEqual(actual, expected) {
+		t.Fatalf("bad: %#v", actual)
 	}
 }
 

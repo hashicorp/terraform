@@ -163,7 +163,11 @@ func (g *Graph) String() string {
 	}
 	sort.Strings(keys)
 
-	buf.WriteString(fmt.Sprintf("root: %s\n", g.Root.Name))
+	if g.Root != nil {
+		buf.WriteString(fmt.Sprintf("root: %s\n", g.Root.Name))
+	} else {
+		buf.WriteString("root: <unknown>\n")
+	}
 	for _, k := range keys {
 		n := mapping[k]
 		buf.WriteString(fmt.Sprintf("%s\n", n.Name))

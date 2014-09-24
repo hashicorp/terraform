@@ -353,14 +353,16 @@ func (c *Context) validateWalkFn(rws *[]string, res *[]error) depgraph.WalkFunc 
 			}
 
 		case *GraphNodeResourceProvider:
+			sharedProvider := rn.Provider
+
 			var raw *config.RawConfig
-			if rn.Config != nil {
-				raw = rn.Config.RawConfig
+			if sharedProvider.Config != nil {
+				raw = sharedProvider.Config.RawConfig
 			}
 
 			rc := NewResourceConfig(raw)
 
-			for k, p := range rn.Providers {
+			for k, p := range sharedProvider.Providers {
 				log.Printf("[INFO] Validating provider: %s", k)
 				ws, es := p.Validate(rc)
 				for i, w := range ws {
@@ -903,16 +905,18 @@ func (c *walkContext) genericWalkFn(cb genericWalkFunc) depgraph.WalkFunc {
 			// Skip it
 			return nil
 		case *GraphNodeResourceProvider:
+			sharedProvider := m.Provider
+
 			// Interpolate in the variables and configure all the providers
 			var raw *config.RawConfig
-			if m.Config != nil {
-				raw = m.Config.RawConfig
+			if sharedProvider.Config != nil {
+				raw = sharedProvider.Config.RawConfig
 			}
 
 			rc := NewResourceConfig(raw)
 			rc.interpolate(c)
 
-			for k, p := range m.Providers {
+			for k, p := range sharedProvider.Providers {
 				log.Printf("[INFO] Configuring provider: %s", k)
 				err := p.Configure(rc)
 				if err != nil {
