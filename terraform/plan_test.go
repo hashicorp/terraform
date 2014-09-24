@@ -2,14 +2,14 @@ package terraform
 
 import (
 	"bytes"
-	"reflect"
+	"strings"
 
 	"testing"
 )
 
 func TestReadWritePlan(t *testing.T) {
 	plan := &Plan{
-		Config: testConfig(t, "new-good"),
+		Module: testModule(t, "new-good"),
 		Diff: &Diff{
 			Modules: []*ModuleDiff{
 				&ModuleDiff{
@@ -65,9 +65,9 @@ func TestReadWritePlan(t *testing.T) {
 		t.Fatalf("err: %s", err)
 	}
 
-	println(reflect.DeepEqual(actual.Config.Resources, plan.Config.Resources))
-
-	if !reflect.DeepEqual(actual, plan) {
-		t.Fatalf("bad: %#v", actual)
+	actualStr := strings.TrimSpace(actual.String())
+	expectedStr := strings.TrimSpace(plan.String())
+	if actualStr != expectedStr {
+		t.Fatalf("bad:\n\n%s\n\nexpected:\n\n%s", actualStr, expectedStr)
 	}
 }

@@ -24,7 +24,6 @@ type genericWalkFunc func(*walkContext, *Resource) error
 //
 // Additionally, a context can be created from a Plan using Plan.Context.
 type Context struct {
-	config       *config.Config
 	module       *module.Tree
 	diff         *Diff
 	hooks        []Hook
@@ -74,13 +73,7 @@ func NewContext(opts *ContextOpts) *Context {
 	}
 	parCh := make(chan struct{}, par)
 
-	var config *config.Config
-	if opts.Module != nil {
-		config = opts.Module.Config()
-	}
-
 	return &Context{
-		config:       config,
 		diff:         opts.Diff,
 		hooks:        hooks,
 		module:       opts.Module,
@@ -139,7 +132,7 @@ func (c *Context) Plan(opts *PlanOpts) (*Plan, error) {
 	defer c.releaseRun(v)
 
 	p := &Plan{
-		Config: c.config,
+		Module: c.module,
 		Vars:   c.variables,
 		State:  c.state,
 	}
@@ -223,12 +216,12 @@ func (c *Context) Validate() ([]string, []error) {
 	var rerr *multierror.Error
 
 	// Validate the configuration itself
-	if err := c.config.Validate(); err != nil {
+	if err := c.module.Config().Validate(); err != nil {
 		rerr = multierror.ErrorAppend(rerr, err)
 	}
 
 	// Validate the user variables
-	if errs := smcUserVariables(c.config, c.variables); len(errs) > 0 {
+	if errs := smcUserVariables(c.module.Config(), c.variables); len(errs) > 0 {
 		rerr = multierror.ErrorAppend(rerr, errs...)
 	}
 
@@ -1260,7 +1253,7 @@ func (c *walkContext) computeResourceMultiVariable(
 	// Get the resource from the configuration so we can know how
 	// many of the resource there is.
 	var cr *config.Resource
-	for _, r := range c.Context.config.Resources {
+	for _, r := range c.Context.module.Config().Resources {
 		if r.Id() == v.ResourceId() {
 			cr = r
 			break
