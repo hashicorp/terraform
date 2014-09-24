@@ -234,6 +234,9 @@ func Graph(opts *GraphOpts) (*depgraph.Graph, error) {
 	// Add the provider dependencies
 	graphAddResourceProviderDeps(g)
 
+	// Now, prune the providers that we aren't using.
+	graphPruneResourceProviders(g)
+
 	// Add explicit dependsOn dependencies to the graph
 	graphAddExplicitDeps(g)
 
@@ -1174,6 +1177,47 @@ func graphAddResourceProviderDeps(g *depgraph.Graph) {
 			}
 			rawN.Deps = append(rawN.Deps, dep)
 		}
+	}
+}
+
+// graphPruneResourceProviders will remove the GraphNodeResourceProvider
+// nodes that aren't used in any way.
+func graphPruneResourceProviders(g *depgraph.Graph) {
+	// First, build a mapping of the providers we have.
+	ps := make(map[string]struct{})
+	for _, n := range g.Nouns {
+		_, ok := n.Meta.(*GraphNodeResourceProvider)
+		if !ok {
+			continue
+		}
+
+		ps[n.Name] = struct{}{}
+	}
+
+	// Now go through all the dependencies throughout and find
+	// if any of these aren't reachable.
+	for _, n := range g.Nouns {
+		for _, dep := range n.Deps {
+			delete(ps, dep.Target.Name)
+		}
+	}
+
+	if len(ps) == 0 {
+		// We used all of them!
+		return
+	}
+
+	// Now go through and remove these nodes that aren't used
+	for i := 0; i < len(g.Nouns); i++ {
+		if _, ok := ps[g.Nouns[i].Name]; !ok {
+			continue
+		}
+
+		// Delete this node
+		copy(g.Nouns[i:], g.Nouns[i+1:])
+		g.Nouns[len(g.Nouns)-1] = nil
+		g.Nouns = g.Nouns[:len(g.Nouns)-1]
+		i--
 	}
 }
 

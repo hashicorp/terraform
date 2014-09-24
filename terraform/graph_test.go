@@ -159,6 +159,21 @@ func TestGraph_moduleOrphan(t *testing.T) {
 	}
 }
 
+func TestGraph_providerPrune(t *testing.T) {
+	m := testModule(t, "graph-provider-prune")
+
+	g, err := Graph(&GraphOpts{Module: m})
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	actual := strings.TrimSpace(g.String())
+	expected := strings.TrimSpace(testTerraformGraphProviderPruneStr)
+	if actual != expected {
+		t.Fatalf("bad:\n\n%s", actual)
+	}
+}
+
 func TestGraph_state(t *testing.T) {
 	m := testModule(t, "graph-basic")
 	state := &State{
@@ -908,6 +923,15 @@ aws_instance.old
 provider.aws
 root
   root -> aws_instance.old
+`
+
+const testTerraformGraphProviderPruneStr = `
+root: root
+aws_load_balancer.weblb
+  aws_load_balancer.weblb -> provider.aws
+provider.aws
+root
+  root -> aws_load_balancer.weblb
 `
 
 const testTerraformGraphStateStr = `
