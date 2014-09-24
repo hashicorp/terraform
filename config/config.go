@@ -120,6 +120,10 @@ func (r *Resource) Id() string {
 
 // Validate does some basic semantic checking of the configuration.
 func (c *Config) Validate() error {
+	if c == nil {
+		return nil
+	}
+
 	var errs []error
 
 	for _, k := range c.unknownKeys {

@@ -215,14 +215,16 @@ func (c *Context) Stop() {
 func (c *Context) Validate() ([]string, []error) {
 	var rerr *multierror.Error
 
-	// Validate the configuration itself
-	if err := c.module.Config().Validate(); err != nil {
-		rerr = multierror.ErrorAppend(rerr, err)
-	}
+	if config := c.module.Config(); config != nil {
+		// Validate the configuration itself
+		if err := config.Validate(); err != nil {
+			rerr = multierror.ErrorAppend(rerr, err)
+		}
 
-	// Validate the user variables
-	if errs := smcUserVariables(c.module.Config(), c.variables); len(errs) > 0 {
-		rerr = multierror.ErrorAppend(rerr, errs...)
+		// Validate the user variables
+		if errs := smcUserVariables(config, c.variables); len(errs) > 0 {
+			rerr = multierror.ErrorAppend(rerr, errs...)
+		}
 	}
 
 	// Validate the graph

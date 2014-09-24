@@ -11,7 +11,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/hashicorp/terraform/config"
 	"github.com/hashicorp/terraform/terraform"
 	"github.com/mitchellh/cli"
 )
@@ -246,7 +245,7 @@ func TestApply_noArgs(t *testing.T) {
 
 func TestApply_plan(t *testing.T) {
 	planPath := testPlanFile(t, &terraform.Plan{
-		Config: new(config.Config),
+		Module: testModule(t, "apply"),
 	})
 	statePath := testTempFile(t)
 
@@ -294,7 +293,7 @@ func TestApply_planWithVarFile(t *testing.T) {
 	}
 
 	planPath := testPlanFile(t, &terraform.Plan{
-		Config: new(config.Config),
+		Module: testModule(t, "apply"),
 	})
 	statePath := testTempFile(t)
 
@@ -345,7 +344,7 @@ func TestApply_planWithVarFile(t *testing.T) {
 
 func TestApply_planVars(t *testing.T) {
 	planPath := testPlanFile(t, &terraform.Plan{
-		Config: new(config.Config),
+		Module: testModule(t, "apply"),
 	})
 	statePath := testTempFile(t)
 
