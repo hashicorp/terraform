@@ -1637,6 +1637,60 @@ func TestContextPlan_moduleProviderInherit(t *testing.T) {
 	}
 }
 
+func TestContextPlan_moduleProviderDefaults(t *testing.T) {
+	var l sync.Mutex
+	var calls []string
+	toCount := 0
+
+	m := testModule(t, "plan-module-provider-defaults")
+	ctx := testContext(t, &ContextOpts{
+		Module: m,
+		Providers: map[string]ResourceProviderFactory{
+			"aws": func() (ResourceProvider, error) {
+				l.Lock()
+				defer l.Unlock()
+
+				p := testProvider("aws")
+				p.ConfigureFn = func(c *ResourceConfig) error {
+					if v, ok := c.Get("from"); !ok || v.(string) != "root" {
+						return fmt.Errorf("bad")
+					}
+					if v, ok := c.Get("to"); ok && v.(string) == "child" {
+						toCount++
+					}
+
+					return nil
+				}
+				p.DiffFn = func(
+					info *InstanceInfo,
+					state *InstanceState,
+					c *ResourceConfig) (*InstanceDiff, error) {
+					v, _ := c.Get("from")
+					calls = append(calls, v.(string))
+					return testDiffFn(info, state, c)
+				}
+				return p, nil
+			},
+		},
+	})
+
+	_, err := ctx.Plan(nil)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	if toCount != 1 {
+		t.Fatal("provider in child didn't set proper config")
+	}
+
+	actual := calls
+	sort.Strings(actual)
+	expected := []string{"child", "root"}
+	if !reflect.DeepEqual(actual, expected) {
+		t.Fatalf("bad: %#v", actual)
+	}
+}
+
 func TestContextPlan_moduleVar(t *testing.T) {
 	m := testModule(t, "plan-module-var")
 	p := testProvider("aws")
