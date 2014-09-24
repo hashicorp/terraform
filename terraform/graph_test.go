@@ -868,6 +868,7 @@ aws_security_group.firewall
   aws_security_group.firewall -> provider.aws
 module.consul
   module.consul -> aws_security_group.firewall
+  module.consul -> provider.aws
 provider.aws
 root
   root -> aws_instance.web
@@ -878,6 +879,8 @@ root
 const testTerraformGraphModulesConsulStr = `
 root: root
 aws_instance.server
+  aws_instance.server -> provider.aws
+provider.aws
 root
   root -> aws_instance.server
 `
@@ -890,6 +893,7 @@ aws_instance.web
 aws_security_group.firewall
   aws_security_group.firewall -> provider.aws
 module.consul
+  module.consul -> provider.aws
 provider.aws
 root
   root -> aws_instance.web
@@ -900,6 +904,8 @@ root
 const testTerraformGraphModuleOrphanConsulStr = `
 root: root
 aws_instance.old
+  aws_instance.old -> provider.aws
+provider.aws
 root
   root -> aws_instance.old
 `

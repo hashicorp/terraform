@@ -68,6 +68,9 @@ type GraphOpts struct {
 // graph. This node is just a placemarker and has no associated functionality.
 const GraphRootNode = "root"
 
+// GraphMeta is the metadata attached to the graph itself.
+type GraphMeta struct{}
+
 // GraphNodeModule is a node type in the graph that represents a module
 // that will be created/managed.
 type GraphNodeModule struct {
@@ -111,6 +114,9 @@ type graphSharedProvider struct {
 	Config       *config.ProviderConfig
 	Providers    map[string]ResourceProvider
 	ProviderKeys []string
+	Parent       *graphSharedProvider
+
+	parentNoun *depgraph.Noun
 }
 
 // Graph builds a dependency graph of all the resources for infrastructure
@@ -165,6 +171,7 @@ func Graph(opts *GraphOpts) (*depgraph.Graph, error) {
 	log.Printf("[DEBUG] Creating graph for path: %v", opts.ModulePath)
 
 	g := new(depgraph.Graph)
+	g.Meta = new(GraphMeta)
 
 	// First, build the initial resource graph. This only has the resources
 	// and no dependencies. This only adds resources that are in the config
@@ -791,6 +798,42 @@ func graphAddOrphans(g *depgraph.Graph, c *config.Config, mod *ModuleState) {
 // graphAddParentProviderConfigs goes through and adds/merges provider
 // configurations from the parent.
 func graphAddParentProviderConfigs(g, parent *depgraph.Graph) {
+	var nounsList []*depgraph.Noun
+	for _, n := range parent.Nouns {
+		pn, ok := n.Meta.(*GraphNodeResourceProvider)
+		if !ok {
+			continue
+		}
+
+		// If we have a provider configuration with the exact same
+		// name, then set specify the parent pointer to their shared
+		// config.
+		ourProviderRaw := g.Noun(n.Name)
+
+		// If we don't have a matching configuration, then create one.
+		if ourProviderRaw == nil {
+			noun := &depgraph.Noun{
+				Name: n.Name,
+				Meta: &GraphNodeResourceProvider{
+					ID: pn.ID,
+					Provider: &graphSharedProvider{
+						Parent:     pn.Provider,
+						parentNoun: n,
+					},
+				},
+			}
+
+			nounsList = append(nounsList, noun)
+			continue
+		}
+
+		// If we have a matching configuration, then set the parent pointer
+		ourProvider := ourProviderRaw.Meta.(*GraphNodeResourceProvider)
+		ourProvider.Provider.Parent = pn.Provider
+		ourProvider.Provider.parentNoun = n
+	}
+
+	g.Nouns = append(g.Nouns, nounsList...)
 }
 
 // graphAddConfigProviderConfigs adds a GraphNodeResourceProvider for every
@@ -1093,6 +1136,26 @@ func graphInitResourceProviders(
 func graphAddResourceProviderDeps(g *depgraph.Graph) {
 	for _, rawN := range g.Nouns {
 		switch n := rawN.Meta.(type) {
+		case *GraphNodeModule:
+			// Check if the module depends on any of our providers
+			// by seeing if there is a parent node back.
+			for _, moduleRaw := range n.Graph.Nouns {
+				pn, ok := moduleRaw.Meta.(*GraphNodeResourceProvider)
+				if !ok {
+					continue
+				}
+				if pn.Provider.parentNoun == nil {
+					continue
+				}
+
+				// Create the dependency to the provider
+				dep := &depgraph.Dependency{
+					Name:   pn.Provider.parentNoun.Name,
+					Source: rawN,
+					Target: pn.Provider.parentNoun,
+				}
+				rawN.Deps = append(rawN.Deps, dep)
+			}
 		case *GraphNodeResource:
 			// Not sure how this would happen, but we might as well
 			// check for it.

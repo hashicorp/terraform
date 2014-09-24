@@ -1592,10 +1592,7 @@ func TestContextPlan_moduleOrphans(t *testing.T) {
 }
 
 func TestContextPlan_moduleProviderInherit(t *testing.T) {
-	t.Skip()
-
 	var l sync.Mutex
-	var ps []*MockResourceProvider
 	var calls []string
 
 	m := testModule(t, "plan-module-provider-inherit")
@@ -1622,7 +1619,6 @@ func TestContextPlan_moduleProviderInherit(t *testing.T) {
 					calls = append(calls, v.(string))
 					return testDiffFn(info, state, c)
 				}
-				ps = append(ps, p)
 				return p, nil
 			},
 		},
@@ -1631,10 +1627,6 @@ func TestContextPlan_moduleProviderInherit(t *testing.T) {
 	_, err := ctx.Plan(nil)
 	if err != nil {
 		t.Fatalf("err: %s", err)
-	}
-
-	if len(ps) != 2 {
-		t.Fatalf("bad: %#v", ps)
 	}
 
 	actual := calls
