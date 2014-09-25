@@ -1,0 +1,3 @@
+output "good" {
+    value = "great"
+}

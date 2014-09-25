@@ -215,45 +215,37 @@ func (c *Context) Stop() {
 func (c *Context) Validate() ([]string, []error) {
 	var rerr *multierror.Error
 
-	if config := c.module.Config(); config != nil {
-		// Validate the configuration itself
-		if err := config.Validate(); err != nil {
-			rerr = multierror.ErrorAppend(rerr, err)
-		}
+	// Validate the configuration itself
+	if err := c.module.Validate(); err != nil {
+		rerr = multierror.ErrorAppend(rerr, err)
+	}
 
+	// TODO: modules
+	if config := c.module.Config(); config != nil {
 		// Validate the user variables
 		if errs := smcUserVariables(config, c.variables); len(errs) > 0 {
 			rerr = multierror.ErrorAppend(rerr, errs...)
 		}
 	}
 
-	// Validate the graph
-	g, err := c.graph()
-	if err != nil {
-		rerr = multierror.ErrorAppend(rerr, fmt.Errorf(
-			"Error creating graph: %s", err))
+	// Validate the entire graph
+	walkMeta := new(walkValidateMeta)
+	wc := c.walkContext(walkValidate, rootModulePath)
+	wc.Meta = walkMeta
+	if err := wc.Walk(); err != nil {
+		rerr = multierror.ErrorAppend(rerr, err)
 	}
 
-	// Walk the graph and validate all the configs
-	var warns []string
+	if len(walkMeta.Errs) > 0 {
+		rerr = multierror.ErrorAppend(rerr, walkMeta.Errs...)
+	}
+
 	var errs []error
-	if g != nil {
-		err = g.Walk(c.validateWalkFn(&warns, &errs))
-		if err != nil {
-			rerr = multierror.ErrorAppend(rerr, fmt.Errorf(
-				"Error validating resources in graph: %s", err))
-		}
-		if len(errs) > 0 {
-			rerr = multierror.ErrorAppend(rerr, errs...)
-		}
-	}
-
-	errs = nil
 	if rerr != nil && len(rerr.Errors) > 0 {
 		errs = rerr.Errors
 	}
 
-	return warns, errs
+	return walkMeta.Warns, errs
 }
 
 func (c *Context) graph() (*depgraph.Graph, error) {
@@ -290,92 +282,6 @@ func (c *Context) releaseRun(ch chan<- struct{}) {
 	close(ch)
 	c.runCh = nil
 	c.sh.Reset()
-}
-
-func (c *Context) validateWalkFn(rws *[]string, res *[]error) depgraph.WalkFunc {
-	var l sync.Mutex
-
-	return func(n *depgraph.Noun) error {
-		// If it is the root node, ignore
-		if n.Name == GraphRootNode {
-			return nil
-		}
-
-		switch rn := n.Meta.(type) {
-		case *GraphNodeResource:
-			if rn.Resource == nil {
-				panic("resource should never be nil")
-			}
-
-			// If it doesn't have a provider, that is a different problem
-			if rn.Resource.Provider == nil {
-				return nil
-			}
-
-			// Don't validate orphans since they never have a config
-			if rn.Resource.Flags&FlagOrphan != 0 {
-				return nil
-			}
-
-			log.Printf("[INFO] Validating resource: %s", rn.Resource.Id)
-			ws, es := rn.Resource.Provider.ValidateResource(
-				rn.Resource.Info.Type, rn.Resource.Config)
-			for i, w := range ws {
-				ws[i] = fmt.Sprintf("'%s' warning: %s", rn.Resource.Id, w)
-			}
-			for i, e := range es {
-				es[i] = fmt.Errorf("'%s' error: %s", rn.Resource.Id, e)
-			}
-
-			l.Lock()
-			*rws = append(*rws, ws...)
-			*res = append(*res, es...)
-			l.Unlock()
-
-			for idx, p := range rn.Resource.Provisioners {
-				ws, es := p.Provisioner.Validate(p.Config)
-				for i, w := range ws {
-					ws[i] = fmt.Sprintf("'%s.provisioner.%d' warning: %s", rn.Resource.Id, idx, w)
-				}
-				for i, e := range es {
-					es[i] = fmt.Errorf("'%s.provisioner.%d' error: %s", rn.Resource.Id, idx, e)
-				}
-
-				l.Lock()
-				*rws = append(*rws, ws...)
-				*res = append(*res, es...)
-				l.Unlock()
-			}
-
-		case *GraphNodeResourceProvider:
-			sharedProvider := rn.Provider
-
-			var raw *config.RawConfig
-			if sharedProvider.Config != nil {
-				raw = sharedProvider.Config.RawConfig
-			}
-
-			rc := NewResourceConfig(raw)
-
-			for k, p := range sharedProvider.Providers {
-				log.Printf("[INFO] Validating provider: %s", k)
-				ws, es := p.Validate(rc)
-				for i, w := range ws {
-					ws[i] = fmt.Sprintf("Provider '%s' warning: %s", k, w)
-				}
-				for i, e := range es {
-					es[i] = fmt.Errorf("Provider '%s' error: %s", k, e)
-				}
-
-				l.Lock()
-				*rws = append(*rws, ws...)
-				*res = append(*res, es...)
-				l.Unlock()
-			}
-		}
-
-		return nil
-	}
 }
 
 func (c *Context) walkContext(op walkOperation, path []string) *walkContext {
@@ -435,7 +341,13 @@ const (
 	walkPlan
 	walkPlanDestroy
 	walkRefresh
+	walkValidate
 )
+
+type walkValidateMeta struct {
+	Errs  []error
+	Warns []string
+}
 
 func (c *walkContext) Walk() error {
 	g := c.graph
@@ -467,6 +379,8 @@ func (c *walkContext) Walk() error {
 		walkFn = c.planDestroyWalkFn()
 	case walkRefresh:
 		walkFn = c.refreshWalkFn()
+	case walkValidate:
+		walkFn = c.validateWalkFn()
 	default:
 		panic(fmt.Sprintf("unknown operation: %s", c.Operation))
 	}
@@ -843,6 +757,105 @@ func (c *walkContext) refreshWalkFn() depgraph.WalkFunc {
 	}
 
 	return c.genericWalkFn(cb)
+}
+
+func (c *walkContext) validateWalkFn() depgraph.WalkFunc {
+	var l sync.Mutex
+
+	meta := c.Meta.(*walkValidateMeta)
+
+	return func(n *depgraph.Noun) error {
+		// If it is the root node, ignore
+		if n.Name == GraphRootNode {
+			return nil
+		}
+
+		switch rn := n.Meta.(type) {
+		case *GraphNodeModule:
+			// Build another walkContext for this module and walk it.
+			wc := c.Context.walkContext(walkValidate, rn.Path)
+
+			// Set the graph to specifically walk this subgraph
+			wc.graph = rn.Graph
+
+			// Preserve the meta
+			wc.Meta = c.Meta
+
+			return wc.Walk()
+		case *GraphNodeResource:
+			if rn.Resource == nil {
+				panic("resource should never be nil")
+			}
+
+			// If it doesn't have a provider, that is a different problem
+			if rn.Resource.Provider == nil {
+				return nil
+			}
+
+			// Don't validate orphans since they never have a config
+			if rn.Resource.Flags&FlagOrphan != 0 {
+				return nil
+			}
+
+			log.Printf("[INFO] Validating resource: %s", rn.Resource.Id)
+			ws, es := rn.Resource.Provider.ValidateResource(
+				rn.Resource.Info.Type, rn.Resource.Config)
+			for i, w := range ws {
+				ws[i] = fmt.Sprintf("'%s' warning: %s", rn.Resource.Id, w)
+			}
+			for i, e := range es {
+				es[i] = fmt.Errorf("'%s' error: %s", rn.Resource.Id, e)
+			}
+
+			l.Lock()
+			meta.Warns = append(meta.Warns, ws...)
+			meta.Errs = append(meta.Errs, es...)
+			l.Unlock()
+
+			for idx, p := range rn.Resource.Provisioners {
+				ws, es := p.Provisioner.Validate(p.Config)
+				for i, w := range ws {
+					ws[i] = fmt.Sprintf("'%s.provisioner.%d' warning: %s", rn.Resource.Id, idx, w)
+				}
+				for i, e := range es {
+					es[i] = fmt.Errorf("'%s.provisioner.%d' error: %s", rn.Resource.Id, idx, e)
+				}
+
+				l.Lock()
+				meta.Warns = append(meta.Warns, ws...)
+				meta.Errs = append(meta.Errs, es...)
+				l.Unlock()
+			}
+
+		case *GraphNodeResourceProvider:
+			sharedProvider := rn.Provider
+
+			var raw *config.RawConfig
+			if sharedProvider.Config != nil {
+				raw = sharedProvider.Config.RawConfig
+			}
+
+			rc := NewResourceConfig(raw)
+
+			for k, p := range sharedProvider.Providers {
+				log.Printf("[INFO] Validating provider: %s", k)
+				ws, es := p.Validate(rc)
+				for i, w := range ws {
+					ws[i] = fmt.Sprintf("Provider '%s' warning: %s", k, w)
+				}
+				for i, e := range es {
+					es[i] = fmt.Errorf("Provider '%s' error: %s", k, e)
+				}
+
+				l.Lock()
+				meta.Warns = append(meta.Warns, ws...)
+				meta.Errs = append(meta.Errs, es...)
+				l.Unlock()
+			}
+		}
+
+		return nil
+	}
 }
 
 func (c *walkContext) genericWalkFn(cb genericWalkFunc) depgraph.WalkFunc {

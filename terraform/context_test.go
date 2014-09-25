@@ -50,6 +50,44 @@ func TestContextValidate(t *testing.T) {
 	}
 }
 
+func TestContextValidate_goodModule(t *testing.T) {
+	p := testProvider("aws")
+	m := testModule(t, "validate-good-module")
+	c := testContext(t, &ContextOpts{
+		Module: m,
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+	})
+
+	w, e := c.Validate()
+	if len(w) > 0 {
+		t.Fatalf("bad: %#v", w)
+	}
+	if len(e) > 0 {
+		t.Fatalf("bad: %#v", e)
+	}
+}
+
+func TestContextValidate_badModuleOutput(t *testing.T) {
+	p := testProvider("aws")
+	m := testModule(t, "validate-bad-module-output")
+	c := testContext(t, &ContextOpts{
+		Module: m,
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+	})
+
+	w, e := c.Validate()
+	if len(w) > 0 {
+		t.Fatalf("bad: %#v", w)
+	}
+	if len(e) == 0 {
+		t.Fatalf("bad: %#v", e)
+	}
+}
+
 func TestContextValidate_badVar(t *testing.T) {
 	p := testProvider("aws")
 	m := testModule(t, "validate-bad-var")
@@ -59,6 +97,27 @@ func TestContextValidate_badVar(t *testing.T) {
 			"aws": testProviderFuncFixed(p),
 		},
 	})
+
+	w, e := c.Validate()
+	if len(w) > 0 {
+		t.Fatalf("bad: %#v", w)
+	}
+	if len(e) == 0 {
+		t.Fatalf("bad: %#v", e)
+	}
+}
+
+func TestContextValidate_moduleBadResource(t *testing.T) {
+	m := testModule(t, "validate-module-bad-rc")
+	p := testProvider("aws")
+	c := testContext(t, &ContextOpts{
+		Module: m,
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+	})
+
+	p.ValidateResourceReturnErrors = []error{fmt.Errorf("bad")}
 
 	w, e := c.Validate()
 	if len(w) > 0 {
