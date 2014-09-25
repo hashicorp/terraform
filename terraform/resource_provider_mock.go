@@ -40,6 +40,7 @@ type MockResourceProvider struct {
 	ResourcesReturn              []ResourceType
 	ValidateCalled               bool
 	ValidateConfig               *ResourceConfig
+	ValidateFn                   func(*ResourceConfig) ([]string, []error)
 	ValidateReturnWarns          []string
 	ValidateReturnErrors         []error
 	ValidateResourceFn           func(string, *ResourceConfig) ([]string, []error)
@@ -56,6 +57,9 @@ func (p *MockResourceProvider) Validate(c *ResourceConfig) ([]string, []error) {
 
 	p.ValidateCalled = true
 	p.ValidateConfig = c
+	if p.ValidateFn != nil {
+		return p.ValidateFn(c)
+	}
 	return p.ValidateReturnWarns, p.ValidateReturnErrors
 }
 

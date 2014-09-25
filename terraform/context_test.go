@@ -128,6 +128,29 @@ func TestContextValidate_moduleBadResource(t *testing.T) {
 	}
 }
 
+func TestContextValidate_moduleProviderInherit(t *testing.T) {
+	m := testModule(t, "validate-module-pc-inherit")
+	p := testProvider("aws")
+	c := testContext(t, &ContextOpts{
+		Module: m,
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+	})
+
+	p.ValidateFn = func(c *ResourceConfig) ([]string, []error) {
+		return nil, c.CheckSet([]string{"set"})
+	}
+
+	w, e := c.Validate()
+	if len(w) > 0 {
+		t.Fatalf("bad: %#v", w)
+	}
+	if len(e) > 0 {
+		t.Fatalf("bad: %#v", e)
+	}
+}
+
 func TestContextValidate_orphans(t *testing.T) {
 	p := testProvider("aws")
 	m := testModule(t, "validate-good")

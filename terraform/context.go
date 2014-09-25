@@ -837,6 +837,37 @@ func (c *walkContext) validateWalkFn() depgraph.WalkFunc {
 				raw = sharedProvider.Config.RawConfig
 			}
 
+			// If we have a parent, then merge in the parent configurations
+			// properly so we "inherit" the configurations.
+			if sharedProvider.Parent != nil {
+				var rawMap map[string]interface{}
+				if raw != nil {
+					rawMap = raw.Raw
+				}
+
+				parent := sharedProvider.Parent
+				for parent != nil {
+					if parent.Config != nil {
+						if rawMap == nil {
+							rawMap = parent.Config.RawConfig.Raw
+						}
+
+						for k, v := range parent.Config.RawConfig.Raw {
+							rawMap[k] = v
+						}
+					}
+
+					parent = parent.Parent
+				}
+
+				// Update our configuration to be the merged result
+				var err error
+				raw, err = config.NewRawConfig(rawMap)
+				if err != nil {
+					return fmt.Errorf("Error merging configurations: %s", err)
+				}
+			}
+
 			rc := NewResourceConfig(raw)
 
 			for k, p := range sharedProvider.Providers {
