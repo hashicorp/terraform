@@ -9,6 +9,18 @@ import (
 	"strings"
 )
 
+// DiffChangeType is an enum with the kind of changes a diff has planned.
+type DiffChangeType byte
+
+const (
+	DiffInvalid DiffChangeType = iota
+	DiffNone
+	DiffCreate
+	DiffUpdate
+	DiffDestroy
+	DiffDestroyCreate
+)
+
 // Diff trackes the changes that are necessary to apply a configuration
 // to an existing infrastructure.
 type Diff struct {
@@ -111,6 +123,33 @@ func (d *ModuleDiff) init() {
 	for _, r := range d.Resources {
 		r.init()
 	}
+}
+
+// ChangeType returns the type of changes that the diff for this
+// module includes.
+//
+// At a module level, this will only be DiffNone, DiffUpdate, DiffDestroy, or
+// DiffCreate. If an instance within the module has a DiffDestroyCreate
+// then this will register as a DiffCreate for a module.
+func (d *ModuleDiff) ChangeType() DiffChangeType {
+	result := DiffNone
+	for _, r := range d.Resources {
+		change := r.ChangeType()
+		switch change {
+		case DiffCreate:
+			fallthrough
+		case DiffDestroy:
+			if result == DiffNone {
+				result = change
+			}
+		case DiffDestroyCreate:
+			fallthrough
+		case DiffUpdate:
+			result = DiffUpdate
+		}
+	}
+
+	return result
 }
 
 // Empty returns true if the diff has no changes within this module.
@@ -235,6 +274,28 @@ func (d *InstanceDiff) init() {
 	if d.Attributes == nil {
 		d.Attributes = make(map[string]*ResourceAttrDiff)
 	}
+}
+
+// ChangeType returns the DiffChangeType represented by the diff
+// for this single instance.
+func (d *InstanceDiff) ChangeType() DiffChangeType {
+	if d.Empty() {
+		return DiffNone
+	}
+
+	if d.RequiresNew() && (d.Destroy || d.DestroyTainted) {
+		return DiffDestroyCreate
+	}
+
+	if d.Destroy {
+		return DiffDestroy
+	}
+
+	if d.RequiresNew() {
+		return DiffCreate
+	}
+
+	return DiffUpdate
 }
 
 // Empty returns true if this diff encapsulates no changes.
