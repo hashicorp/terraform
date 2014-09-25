@@ -72,7 +72,10 @@ func (c *ShowCommand) Run(args []string) int {
 	}
 
 	if plan != nil {
-		c.Ui.Output(FormatPlan(plan, c.Colorize()))
+		c.Ui.Output(FormatPlan(&FormatPlanOpts{
+			Plan:  plan,
+			Color: c.Colorize(),
+		}))
 		return 0
 	}
 

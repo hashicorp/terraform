@@ -167,6 +167,11 @@ func (d *ModuleDiff) Empty() bool {
 	return true
 }
 
+// IsRoot says whether or not this module diff is for the root module.
+func (d *ModuleDiff) IsRoot() bool {
+	return reflect.DeepEqual(d.Path, rootModulePath)
+}
+
 // String outputs the diff in a long but command-line friendly output
 // format that users can read to quickly inspect a diff.
 func (d *ModuleDiff) String() string {
