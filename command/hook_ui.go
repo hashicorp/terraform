@@ -34,10 +34,12 @@ const (
 )
 
 func (h *UiHook) PreApply(
-	id string,
+	n *terraform.InstanceInfo,
 	s *terraform.InstanceState,
 	d *terraform.InstanceDiff) (terraform.HookAction, error) {
 	h.once.Do(h.init)
+
+	id := n.HumanId()
 
 	op := uiResourceModify
 	if d.Destroy {
@@ -113,9 +115,11 @@ func (h *UiHook) PreApply(
 }
 
 func (h *UiHook) PostApply(
-	id string,
+	n *terraform.InstanceInfo,
 	s *terraform.InstanceState,
 	applyerr error) (terraform.HookAction, error) {
+	id := n.HumanId()
+
 	h.l.Lock()
 	op := h.resources[id]
 	delete(h.resources, id)
@@ -145,11 +149,15 @@ func (h *UiHook) PostApply(
 }
 
 func (h *UiHook) PreDiff(
-	id string, s *terraform.InstanceState) (terraform.HookAction, error) {
+	n *terraform.InstanceInfo,
+	s *terraform.InstanceState) (terraform.HookAction, error) {
 	return terraform.HookActionContinue, nil
 }
 
-func (h *UiHook) PreProvision(id, provId string) (terraform.HookAction, error) {
+func (h *UiHook) PreProvision(
+	n *terraform.InstanceInfo,
+	provId string) (terraform.HookAction, error) {
+	id := n.HumanId()
 	h.ui.Output(h.Colorize.Color(fmt.Sprintf(
 		"[reset][bold]%s: Provisioning with '%s'...[reset_bold]",
 		id, provId)))
@@ -157,9 +165,11 @@ func (h *UiHook) PreProvision(id, provId string) (terraform.HookAction, error) {
 }
 
 func (h *UiHook) PreRefresh(
-	id string, s *terraform.InstanceState) (terraform.HookAction, error) {
+	n *terraform.InstanceInfo,
+	s *terraform.InstanceState) (terraform.HookAction, error) {
 	h.once.Do(h.init)
 
+	id := n.HumanId()
 	h.ui.Output(h.Colorize.Color(fmt.Sprintf(
 		"[reset][bold]%s: Refreshing state... (ID: %s)",
 		id, s.ID)))
