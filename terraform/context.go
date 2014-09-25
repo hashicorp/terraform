@@ -226,7 +226,8 @@ func (c *Context) Validate() ([]string, []error) {
 		rerr = multierror.ErrorAppend(rerr, err)
 	}
 
-	// TODO: modules
+	// This only needs to be done for the root module, since inter-module
+	// variables are validated in the module tree.
 	if config := c.module.Config(); config != nil {
 		// Validate the user variables
 		if errs := smcUserVariables(config, c.variables); len(errs) > 0 {
