@@ -148,6 +148,17 @@ func TestTreeValidate_notLoaded(t *testing.T) {
 	}
 }
 
+func TestTreeValidate_requiredChildVar(t *testing.T) {
+	tree := NewTree("", testConfig(t, "validate-required-var"))
+
+	if err := tree.Load(testStorage(t), GetModeGet); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	if err := tree.Validate(); err == nil {
+		t.Fatal("should error")
+	}
+}
 
 const treeLoadStr = `
 root

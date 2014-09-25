@@ -257,9 +257,14 @@ func (t *Tree) Validate() error {
 		}
 
 		// Build the variables that the module defines
+		requiredMap := make(map[string]struct{})
 		varMap := make(map[string]struct{})
 		for _, v := range tree.config.Variables {
 			varMap[v.Name] = struct{}{}
+
+			if v.Required() {
+				requiredMap[v.Name] = struct{}{}
+			}
 		}
 
 		// Compare to the keys in our raw config for the module
@@ -270,6 +275,17 @@ func (t *Tree) Validate() error {
 					m.Name, k)
 				return newErr
 			}
+
+			// Remove the required
+			delete(requiredMap, k)
+		}
+
+		// If we have any required left over, they aren't set.
+		for k, _ := range requiredMap {
+			newErr.Err = fmt.Errorf(
+				"module %s: required variable %s not set",
+				m.Name, k)
+			return newErr
 		}
 	}
 
