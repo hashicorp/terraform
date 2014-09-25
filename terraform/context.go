@@ -501,7 +501,7 @@ func (c *walkContext) applyWalkFn() depgraph.WalkFunc {
 		}
 
 		for _, h := range c.Context.hooks {
-			handleHook(h.PreApply(r.Id, is, diff))
+			handleHook(h.PreApply(r.Info, is, diff))
 		}
 
 		// With the completed diff, apply!
@@ -547,7 +547,7 @@ func (c *walkContext) applyWalkFn() depgraph.WalkFunc {
 		tainted := false
 		if applyerr == nil && is.ID != "" && len(r.Provisioners) > 0 {
 			for _, h := range c.Context.hooks {
-				handleHook(h.PreProvisionResource(r.Id, is))
+				handleHook(h.PreProvisionResource(r.Info, is))
 			}
 
 			if err := c.applyProvisioners(r, is); err != nil {
@@ -556,7 +556,7 @@ func (c *walkContext) applyWalkFn() depgraph.WalkFunc {
 			}
 
 			for _, h := range c.Context.hooks {
-				handleHook(h.PostProvisionResource(r.Id, is))
+				handleHook(h.PostProvisionResource(r.Info, is))
 			}
 		}
 
@@ -570,7 +570,7 @@ func (c *walkContext) applyWalkFn() depgraph.WalkFunc {
 		}
 
 		for _, h := range c.Context.hooks {
-			handleHook(h.PostApply(r.Id, is, applyerr))
+			handleHook(h.PostApply(r.Info, is, applyerr))
 		}
 
 		// Determine the new state and update variables
@@ -603,7 +603,7 @@ func (c *walkContext) planWalkFn() depgraph.WalkFunc {
 		is := r.State
 
 		for _, h := range c.Context.hooks {
-			handleHook(h.PreDiff(r.Id, is))
+			handleHook(h.PreDiff(r.Info, is))
 		}
 
 		if r.Flags&FlagOrphan != 0 {
@@ -677,7 +677,7 @@ func (c *walkContext) planWalkFn() depgraph.WalkFunc {
 		}
 
 		for _, h := range c.Context.hooks {
-			handleHook(h.PostDiff(r.Id, diff))
+			handleHook(h.PostDiff(r.Info, diff))
 		}
 
 		// Determine the new state and update variables
@@ -733,7 +733,7 @@ func (c *walkContext) refreshWalkFn() depgraph.WalkFunc {
 		}
 
 		for _, h := range c.Context.hooks {
-			handleHook(h.PreRefresh(r.Id, is))
+			handleHook(h.PreRefresh(r.Info, is))
 		}
 
 		is, err := r.Provider.Refresh(r.Info, is)
@@ -750,7 +750,7 @@ func (c *walkContext) refreshWalkFn() depgraph.WalkFunc {
 		c.persistState(r)
 
 		for _, h := range c.Context.hooks {
-			handleHook(h.PostRefresh(r.Id, is))
+			handleHook(h.PostRefresh(r.Info, is))
 		}
 
 		return nil
@@ -1099,7 +1099,7 @@ func (c *walkContext) applyProvisioners(r *Resource, is *InstanceState) error {
 
 		// Invoke the Provisioner
 		for _, h := range c.Context.hooks {
-			handleHook(h.PreProvision(r.Id, prov.Type))
+			handleHook(h.PreProvision(r.Info, prov.Type))
 		}
 
 		if err := prov.Provisioner.Apply(is, prov.Config); err != nil {
@@ -1107,7 +1107,7 @@ func (c *walkContext) applyProvisioners(r *Resource, is *InstanceState) error {
 		}
 
 		for _, h := range c.Context.hooks {
-			handleHook(h.PostProvision(r.Id, prov.Type))
+			handleHook(h.PostProvision(r.Info, prov.Type))
 		}
 	}
 

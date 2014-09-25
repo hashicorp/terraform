@@ -10,43 +10,43 @@ type stopHook struct {
 	stop uint32
 }
 
-func (h *stopHook) PreApply(string, *InstanceState, *InstanceDiff) (HookAction, error) {
+func (h *stopHook) PreApply(*InstanceInfo, *InstanceState, *InstanceDiff) (HookAction, error) {
 	return h.hook()
 }
 
-func (h *stopHook) PostApply(string, *InstanceState, error) (HookAction, error) {
+func (h *stopHook) PostApply(*InstanceInfo, *InstanceState, error) (HookAction, error) {
 	return h.hook()
 }
 
-func (h *stopHook) PreDiff(string, *InstanceState) (HookAction, error) {
+func (h *stopHook) PreDiff(*InstanceInfo, *InstanceState) (HookAction, error) {
 	return h.hook()
 }
 
-func (h *stopHook) PostDiff(string, *InstanceDiff) (HookAction, error) {
+func (h *stopHook) PostDiff(*InstanceInfo, *InstanceDiff) (HookAction, error) {
 	return h.hook()
 }
 
-func (h *stopHook) PreProvisionResource(string, *InstanceState) (HookAction, error) {
+func (h *stopHook) PreProvisionResource(*InstanceInfo, *InstanceState) (HookAction, error) {
 	return h.hook()
 }
 
-func (h *stopHook) PostProvisionResource(string, *InstanceState) (HookAction, error) {
+func (h *stopHook) PostProvisionResource(*InstanceInfo, *InstanceState) (HookAction, error) {
 	return h.hook()
 }
 
-func (h *stopHook) PreProvision(string, string) (HookAction, error) {
+func (h *stopHook) PreProvision(*InstanceInfo, string) (HookAction, error) {
 	return h.hook()
 }
 
-func (h *stopHook) PostProvision(string, string) (HookAction, error) {
+func (h *stopHook) PostProvision(*InstanceInfo, string) (HookAction, error) {
 	return h.hook()
 }
 
-func (h *stopHook) PreRefresh(string, *InstanceState) (HookAction, error) {
+func (h *stopHook) PreRefresh(*InstanceInfo, *InstanceState) (HookAction, error) {
 	return h.hook()
 }
 
-func (h *stopHook) PostRefresh(string, *InstanceState) (HookAction, error) {
+func (h *stopHook) PostRefresh(*InstanceInfo, *InstanceState) (HookAction, error) {
 	return h.hook()
 }
 

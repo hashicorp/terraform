@@ -69,7 +69,10 @@ type GraphOpts struct {
 const GraphRootNode = "root"
 
 // GraphMeta is the metadata attached to the graph itself.
-type GraphMeta struct{}
+type GraphMeta struct {
+	// ModulePath is the path of the module that this graph represents.
+	ModulePath []string
+}
 
 // GraphNodeModule is a node type in the graph that represents a module
 // that will be created/managed.
@@ -171,7 +174,9 @@ func Graph(opts *GraphOpts) (*depgraph.Graph, error) {
 	log.Printf("[DEBUG] Creating graph for path: %v", opts.ModulePath)
 
 	g := new(depgraph.Graph)
-	g.Meta = new(GraphMeta)
+	g.Meta = &GraphMeta{
+		ModulePath: opts.ModulePath,
+	}
 
 	// First, build the initial resource graph. This only has the resources
 	// and no dependencies. This only adds resources that are in the config
@@ -342,6 +347,8 @@ func graphAddConfigModules(
 // configGraph turns a configuration structure into a dependency graph.
 func graphAddConfigResources(
 	g *depgraph.Graph, c *config.Config, mod *ModuleState) {
+	meta := g.Meta.(*GraphMeta)
+
 	// This tracks all the resource nouns
 	nouns := make(map[string]*depgraph.Noun)
 	for _, r := range c.Resources {
@@ -396,8 +403,12 @@ func graphAddConfigResources(
 					Index:  index,
 					Config: r,
 					Resource: &Resource{
-						Id:     name,
-						Info:   &InstanceInfo{Type: r.Type},
+						Id: name,
+						Info: &InstanceInfo{
+							Id:         name,
+							ModulePath: meta.ModulePath,
+							Type:       r.Type,
+						},
 						State:  state.Primary,
 						Config: NewResourceConfig(r.RawConfig),
 						Flags:  flags,
@@ -736,6 +747,8 @@ func graphAddModuleOrphans(
 
 // graphAddOrphans adds the orphans to the graph.
 func graphAddOrphans(g *depgraph.Graph, c *config.Config, mod *ModuleState) {
+	meta := g.Meta.(*GraphMeta)
+
 	var nlist []*depgraph.Noun
 	for _, k := range mod.Orphans(c) {
 		rs := mod.Resources[k]
@@ -744,8 +757,12 @@ func graphAddOrphans(g *depgraph.Graph, c *config.Config, mod *ModuleState) {
 			Meta: &GraphNodeResource{
 				Index: -1,
 				Resource: &Resource{
-					Id:     k,
-					Info:   &InstanceInfo{Type: rs.Type},
+					Id: k,
+					Info: &InstanceInfo{
+						Id:         k,
+						ModulePath: meta.ModulePath,
+						Type:       rs.Type,
+					},
 					State:  rs.Primary,
 					Config: NewResourceConfig(nil),
 					Flags:  FlagOrphan,
@@ -932,6 +949,8 @@ func graphAddVariableDeps(g *depgraph.Graph) {
 
 // graphAddTainted adds the tainted instances to the graph.
 func graphAddTainted(g *depgraph.Graph, mod *ModuleState) {
+	meta := g.Meta.(*GraphMeta)
+
 	var nlist []*depgraph.Noun
 	for k, rs := range mod.Resources {
 		// If we have no tainted resources, continue on
@@ -959,8 +978,12 @@ func graphAddTainted(g *depgraph.Graph, mod *ModuleState) {
 				Meta: &GraphNodeResource{
 					Index: -1,
 					Resource: &Resource{
-						Id:           k,
-						Info:         &InstanceInfo{Type: rs.Type},
+						Id: k,
+						Info: &InstanceInfo{
+							Id:         k,
+							ModulePath: meta.ModulePath,
+							Type:       rs.Type,
+						},
 						State:        is,
 						Config:       NewResourceConfig(nil),
 						Diff:         &InstanceDiff{Destroy: true},

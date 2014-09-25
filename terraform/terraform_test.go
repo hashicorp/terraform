@@ -95,14 +95,14 @@ type HookRecordApplyOrder struct {
 }
 
 func (h *HookRecordApplyOrder) PreApply(
-	id string,
+	info *InstanceInfo,
 	s *InstanceState,
 	d *InstanceDiff) (HookAction, error) {
 	if h.Active {
 		h.l.Lock()
 		defer h.l.Unlock()
 
-		h.IDs = append(h.IDs, id)
+		h.IDs = append(h.IDs, info.Id)
 		h.Diffs = append(h.Diffs, d)
 		h.States = append(h.States, s)
 	}
