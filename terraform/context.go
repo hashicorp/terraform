@@ -243,16 +243,19 @@ func (c *Context) Validate() ([]string, []error) {
 		rerr = multierror.ErrorAppend(rerr, err)
 	}
 
-	if len(walkMeta.Errs) > 0 {
-		rerr = multierror.ErrorAppend(rerr, walkMeta.Errs...)
+	// Flatten the warns/errs so that we get all the module errors as well,
+	// then aggregate.
+	warns, errs := walkMeta.Flatten()
+	if len(errs) > 0 {
+		rerr = multierror.ErrorAppend(rerr, errs...)
 	}
 
-	var errs []error
+	errs = nil
 	if rerr != nil && len(rerr.Errors) > 0 {
 		errs = rerr.Errors
 	}
 
-	return walkMeta.Warns, errs
+	return warns, errs
 }
 
 func (c *Context) acquireRun() chan<- struct{} {
@@ -340,11 +343,6 @@ const (
 	walkRefresh
 	walkValidate
 )
-
-type walkValidateMeta struct {
-	Errs  []error
-	Warns []string
-}
 
 func (c *walkContext) Walk() error {
 	g := c.graph
@@ -765,6 +763,9 @@ func (c *walkContext) validateWalkFn() depgraph.WalkFunc {
 	var l sync.Mutex
 
 	meta := c.Meta.(*walkValidateMeta)
+	if meta.Children == nil {
+		meta.Children = make(map[string]*walkValidateMeta)
+	}
 
 	return func(n *depgraph.Noun) error {
 		// If it is the root node, ignore
@@ -780,10 +781,19 @@ func (c *walkContext) validateWalkFn() depgraph.WalkFunc {
 			// Set the graph to specifically walk this subgraph
 			wc.graph = rn.Graph
 
-			// Preserve the meta
-			wc.Meta = c.Meta
+			// Build the meta parameter. Do this by sharing the Children
+			// reference but copying the rest into our own Children list.
+			newMeta := new(walkValidateMeta)
+			newMeta.Children = meta.Children
+			wc.Meta = newMeta
 
-			return wc.Walk()
+			if err := wc.Walk(); err != nil {
+				return err
+			}
+
+			newMeta.Children = nil
+			meta.Children[strings.Join(rn.Path, ".")] = newMeta
+			return nil
 		case *GraphNodeResource:
 			if rn.Resource == nil {
 				panic("resource should never be nil")
@@ -1355,4 +1365,48 @@ func (c *walkContext) computeResourceMultiVariable(
 	}
 
 	return strings.Join(values, ","), nil
+}
+
+type walkValidateMeta struct {
+	Errs     []error
+	Warns    []string
+	Children map[string]*walkValidateMeta
+}
+
+func (m *walkValidateMeta) Flatten() ([]string, []error) {
+	// Prune out the empty children
+	for k, m2 := range m.Children {
+		if len(m2.Errs) == 0 && len(m2.Warns) == 0 {
+			delete(m.Children, k)
+		}
+	}
+
+	// If we have no children, then just return what we have
+	if len(m.Children) == 0 {
+		return m.Warns, m.Errs
+	}
+
+	// Otherwise, copy the errors and warnings
+	errs := make([]error, len(m.Errs))
+	warns := make([]string, len(m.Warns))
+	for i, err := range m.Errs {
+		errs[i] = err
+	}
+	for i, warn := range m.Warns {
+		warns[i] = warn
+	}
+
+	// Now go through each child and copy it in...
+	for k, c := range m.Children {
+		for _, err := range c.Errs {
+			errs = append(errs, fmt.Errorf(
+				"Module %s: %s", k, err))
+		}
+		for _, warn := range c.Warns {
+			warns = append(warns, fmt.Sprintf(
+				"Module %s: %s", k, warn))
+		}
+	}
+
+	return warns, errs
 }
