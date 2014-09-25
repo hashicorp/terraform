@@ -16,9 +16,12 @@ type GraphCommand struct {
 }
 
 func (c *GraphCommand) Run(args []string) int {
+	var moduleDepth int
+
 	args = c.Meta.process(args, false)
 
 	cmdFlags := flag.NewFlagSet("graph", flag.ContinueOnError)
+	cmdFlags.IntVar(&moduleDepth, "module-depth", 0, "module-depth")
 	cmdFlags.Usage = func() { c.Ui.Error(c.Help()) }
 	if err := cmdFlags.Parse(args); err != nil {
 		return 1
@@ -55,7 +58,11 @@ func (c *GraphCommand) Run(args []string) int {
 		return 1
 	}
 
-	c.Ui.Output(terraform.GraphDot(g))
+	opts := &terraform.GraphDotOpts{
+		ModuleDepth: moduleDepth,
+	}
+
+	c.Ui.Output(terraform.GraphDot(g, opts))
 
 	return 0
 }
@@ -72,6 +79,11 @@ Usage: terraform graph [options] PATH
   The graph is outputted in DOT format. The typical program that can
   read this format is GraphViz, but many web services are also available
   to read this format.
+
+Options:
+
+  -module-depth=n      The maximum depth to expand modules. By default this is
+                       zero, which will not expand modules at all.
 
 `
 	return strings.TrimSpace(helpText)
