@@ -117,7 +117,13 @@ func (c *Context) Apply() (*State, error) {
 
 // Graph returns the graph for this context.
 func (c *Context) Graph() (*depgraph.Graph, error) {
-	return c.graph()
+	return Graph(&GraphOpts{
+		Diff:         c.diff,
+		Module:       c.module,
+		Providers:    c.providers,
+		Provisioners: c.provisioners,
+		State:        c.state,
+	})
 }
 
 // Plan generates an execution plan for the given context.
@@ -246,16 +252,6 @@ func (c *Context) Validate() ([]string, []error) {
 	}
 
 	return walkMeta.Warns, errs
-}
-
-func (c *Context) graph() (*depgraph.Graph, error) {
-	return Graph(&GraphOpts{
-		Diff:         c.diff,
-		Module:       c.module,
-		Providers:    c.providers,
-		Provisioners: c.provisioners,
-		State:        c.state,
-	})
 }
 
 func (c *Context) acquireRun() chan<- struct{} {
@@ -387,6 +383,11 @@ func (c *walkContext) Walk() error {
 
 	if err := g.Walk(walkFn); err != nil {
 		return err
+	}
+
+	if c.Operation == walkValidate {
+		// Validation is the only one that doesn't calculate outputs
+		return nil
 	}
 
 	// We did an apply, so we need to calculate the outputs. If we have no
