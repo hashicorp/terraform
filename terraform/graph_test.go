@@ -824,6 +824,40 @@ func TestGraph_orphan_dependencies(t *testing.T) {
 	}
 }
 
+func TestGraph_orphanDependenciesModules(t *testing.T) {
+	m := testModule(t, "graph-modules")
+	state := &State{
+		Modules: []*ModuleState{
+			&ModuleState{
+				Path: rootModulePath,
+
+				Resources: map[string]*ResourceState{
+					"aws_instance.foo": &ResourceState{
+						Type: "aws_instance",
+						Primary: &InstanceState{
+							ID: "foo",
+						},
+						Dependencies: []string{
+							"module.consul",
+						},
+					},
+				},
+			},
+		},
+	}
+
+	g, err := Graph(&GraphOpts{Module: m, State: state})
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	actual := strings.TrimSpace(g.String())
+	expected := strings.TrimSpace(testTerraformGraphOrphanModuleDepsStr)
+	if actual != expected {
+		t.Fatalf("bad:\n\nactual:\n%s\n\nexpected:\n%s", actual, expected)
+	}
+}
+
 const testTerraformGraphStr = `
 root: root
 aws_instance.web
@@ -1093,4 +1127,26 @@ root
   root -> aws_instance.web
   root -> aws_load_balancer.old
   root -> aws_load_balancer.weblb
+`
+
+const testTerraformGraphOrphanModuleDepsStr = `
+root: root
+aws_instance.foo
+  aws_instance.foo -> module.consul
+  aws_instance.foo -> provider.aws
+aws_instance.web
+  aws_instance.web -> aws_security_group.firewall
+  aws_instance.web -> module.consul
+  aws_instance.web -> provider.aws
+aws_security_group.firewall
+  aws_security_group.firewall -> provider.aws
+module.consul
+  module.consul -> aws_security_group.firewall
+  module.consul -> provider.aws
+provider.aws
+root
+  root -> aws_instance.foo
+  root -> aws_instance.web
+  root -> aws_security_group.firewall
+  root -> module.consul
 `

@@ -236,6 +236,9 @@ func Graph(opts *GraphOpts) (*depgraph.Graph, error) {
 		}
 	}
 
+	// Add the orphan dependencies
+	graphAddOrphanDeps(g, modState)
+
 	// Add the provider dependencies
 	graphAddResourceProviderDeps(g)
 
@@ -771,6 +774,56 @@ func graphAddModuleOrphans(
 	return nil
 }
 
+// graphAddOrphanDeps adds the dependencies to the orphans based on their
+// explicit Dependencies state.
+func graphAddOrphanDeps(g *depgraph.Graph, mod *ModuleState) {
+	for _, n := range g.Nouns {
+		rn, ok := n.Meta.(*GraphNodeResource)
+		if !ok {
+			continue
+		}
+		if rn.Resource.Flags&FlagOrphan == 0 {
+			continue
+		}
+
+		// If we have no dependencies, then just continue
+		rs := mod.Resources[n.Name]
+		if len(rs.Dependencies) == 0 {
+			continue
+		}
+
+		for _, n2 := range g.Nouns {
+			// Don't ever depend on ourselves
+			if n2.Meta == n.Meta {
+				continue
+			}
+
+			var compareName string
+			switch rn2 := n2.Meta.(type) {
+			case *GraphNodeModule:
+				compareName = n2.Name
+			case *GraphNodeResource:
+				compareName = rn2.Resource.Id
+			}
+			if compareName == "" {
+				continue
+			}
+
+			for _, depName := range rs.Dependencies {
+				if compareName != depName {
+					continue
+				}
+				dep := &depgraph.Dependency{
+					Name:   depName,
+					Source: n,
+					Target: n2,
+				}
+				n.Deps = append(n.Deps, dep)
+			}
+		}
+	}
+}
+
 // graphAddOrphans adds the orphans to the graph.
 func graphAddOrphans(g *depgraph.Graph, c *config.Config, mod *ModuleState) {
 	meta := g.Meta.(*GraphMeta)
@@ -802,43 +855,6 @@ func graphAddOrphans(g *depgraph.Graph, c *config.Config, mod *ModuleState) {
 
 	// Add the nouns to the graph
 	g.Nouns = append(g.Nouns, nlist...)
-
-	// Handle the orphan dependencies after adding them
-	// to the graph because there may be depedencies between the
-	// orphans that otherwise cannot be handled
-	for _, n := range nlist {
-		rn := n.Meta.(*GraphNodeResource)
-
-		// If we have no dependencies, then just continue
-		rs := mod.Resources[n.Name]
-		if len(rs.Dependencies) == 0 {
-			continue
-		}
-
-		for _, n2 := range g.Nouns {
-			rn2, ok := n2.Meta.(*GraphNodeResource)
-			if !ok {
-				continue
-			}
-
-			// Don't ever depend on ourselves
-			if rn2 == rn {
-				continue
-			}
-
-			for _, depName := range rs.Dependencies {
-				if rn2.Resource.Id != depName {
-					continue
-				}
-				dep := &depgraph.Dependency{
-					Name:   depName,
-					Source: n,
-					Target: n2,
-				}
-				n.Deps = append(n.Deps, dep)
-			}
-		}
-	}
 }
 
 // graphAddParentProviderConfigs goes through and adds/merges provider
