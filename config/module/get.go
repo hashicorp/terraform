@@ -63,6 +63,9 @@ func Get(dst, src string) error {
 		if err != nil {
 			return err
 		}
+		if err := os.RemoveAll(tmpDir); err != nil {
+			return err
+		}
 		defer os.RemoveAll(tmpDir)
 
 		realDst = dst
@@ -102,6 +105,36 @@ func Get(dst, src string) error {
 	}
 
 	return nil
+}
+
+// GetCopy is the same as Get except that it downloads a copy of the
+// module represented by source.
+//
+// This copy will omit and dot-prefixed files (such as .git/, .hg/) and
+// can't be updated on its own.
+func GetCopy(dst, src string) error {
+	// Create the temporary directory to do the real Get to
+	tmpDir, err := ioutil.TempDir("", "tf")
+	if err != nil {
+		return err
+	}
+	if err := os.RemoveAll(tmpDir); err != nil {
+		return err
+	}
+	defer os.RemoveAll(tmpDir)
+
+	// Get to that temporary dir
+	if err := Get(tmpDir, src); err != nil {
+		return err
+	}
+
+	// Make sure the destination exists
+	if err := os.MkdirAll(dst, 0755); err != nil {
+		return err
+	}
+
+	// Copy to the final location
+	return copyDir(dst, tmpDir)
 }
 
 // getRunCommand is a helper that will run a command and capture the output
