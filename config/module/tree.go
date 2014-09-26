@@ -2,6 +2,7 @@ package module
 
 import (
 	"bufio"
+	"path/filepath"
 	"bytes"
 	"fmt"
 	"strings"
@@ -131,27 +132,28 @@ func (t *Tree) Load(s Storage, mode GetMode) error {
 	children := make(map[string]*Tree)
 
 	// Go through all the modules and get the directory for them.
-	update := mode == GetModeUpdate
 	for _, m := range modules {
 		if _, ok := children[m.Name]; ok {
 			return fmt.Errorf(
 				"module %s: duplicated. module names must be unique", m.Name)
 		}
 
-		source, err := Detect(m.Source, t.config.Dir)
+		// Split out the subdir if we have one
+		source, subDir := getDirSubdir(m.Source)
+
+		source, err := Detect(source, t.config.Dir)
 		if err != nil {
 			return fmt.Errorf("module %s: %s", m.Name, err)
 		}
 
-		if mode > GetModeNone {
-			// Get the module since we specified we should
-			if err := s.Get(source, update); err != nil {
-				return err
-			}
+		// Check if the detector introduced something new.
+		source, subDir2 := getDirSubdir(source)
+		if subDir2 != "" {
+			subDir = filepath.Join(subDir2, subDir)
 		}
 
 		// Get the directory where this module is so we can load it
-		dir, ok, err := s.Dir(source)
+		dir, ok, err := getStorage(s, source, mode)
 		if err != nil {
 			return err
 		}
@@ -160,7 +162,12 @@ func (t *Tree) Load(s Storage, mode GetMode) error {
 				"module %s: not found, may need to be downloaded", m.Name)
 		}
 
-		// Load the configuration
+		// If we have a subdirectory, then merge that in
+		if subDir != "" {
+			dir = filepath.Join(dir, subDir)
+		}
+
+		// Load the configurations.Dir(source)
 		children[m.Name], err = NewTreeModule(m.Name, dir)
 		if err != nil {
 			return fmt.Errorf(

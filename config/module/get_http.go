@@ -4,8 +4,11 @@ import (
 	"encoding/xml"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"net/http"
 	"net/url"
+	"os"
+	"path/filepath"
 	"strings"
 )
 
@@ -62,8 +65,50 @@ func (g *HttpGetter) Get(dst string, u *url.URL) error {
 		return fmt.Errorf("no source URL was returned")
 	}
 
-	// Get it!
-	return Get(dst, source)
+	// If there is a subdir component, then we download the root separately
+	// into a temporary directory, then copy over the proper subdir.
+	source, subDir := getDirSubdir(source)
+	if subDir == "" {
+		return Get(dst, source)
+	}
+
+	// We have a subdir, time to jump some hoops
+	return g.getSubdir(dst, source, subDir)
+}
+
+// getSubdir downloads the source into the destination, but with
+// the proper subdir.
+func (g *HttpGetter) getSubdir(dst, source, subDir string) error {
+	// Create a temporary directory to store the full source
+	td, err := ioutil.TempDir("", "tf")
+	if err != nil {
+		return err
+	}
+	defer os.RemoveAll(td)
+
+	// Download that into the given directory
+	if err := Get(td, source); err != nil {
+		return err
+	}
+
+	// Make sure the subdir path actually exists
+	sourcePath := filepath.Join(td, subDir)
+	if _, err := os.Stat(sourcePath); err != nil {
+		return fmt.Errorf(
+			"Error downloading %s: %s", source, err)
+	}
+
+	// Copy the subdirectory into our actual destination.
+	if err := os.RemoveAll(dst); err != nil {
+		return err
+	}
+
+	// Make the final destination
+	if err := os.MkdirAll(dst, 0755); err != nil {
+		return err
+	}
+
+	return copyDir(dst, sourcePath)
 }
 
 // parseMeta looks for the first meta tag in the given reader that
