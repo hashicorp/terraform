@@ -3,8 +3,11 @@ package module
 import (
 	"bytes"
 	"fmt"
+	"io/ioutil"
 	"net/url"
+	"os"
 	"os/exec"
+	"path/filepath"
 	"regexp"
 	"strings"
 	"syscall"
@@ -51,6 +54,21 @@ func Get(dst, src string) error {
 	var force string
 	force, src = getForcedGetter(src)
 
+	// If there is a subdir component, then we download the root separately
+	// and then copy over the proper subdir.
+	var realDst string
+	src, subDir := getDirSubdir(src)
+	if subDir != "" {
+		tmpDir, err := ioutil.TempDir("", "tf")
+		if err != nil {
+			return err
+		}
+		defer os.RemoveAll(tmpDir)
+
+		realDst = dst
+		dst = subDir
+	}
+
 	u, err := url.Parse(src)
 	if err != nil {
 		return err
@@ -68,9 +86,22 @@ func Get(dst, src string) error {
 	err = g.Get(dst, u)
 	if err != nil {
 		err = fmt.Errorf("error downloading module '%s': %s", src, err)
+		return err
 	}
 
-	return err
+	// If we have a subdir, copy that over
+	if subDir != "" {
+		if err := os.RemoveAll(realDst); err != nil {
+			return err
+		}
+		if err := os.MkdirAll(realDst, 0755); err != nil {
+			return err
+		}
+
+		return copyDir(realDst, filepath.Join(dst, subDir))
+	}
+
+	return nil
 }
 
 // getRunCommand is a helper that will run a command and capture the output

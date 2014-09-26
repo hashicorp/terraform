@@ -46,6 +46,20 @@ func TestGet_fileForced(t *testing.T) {
 	}
 }
 
+func TestGet_fileSubdir(t *testing.T) {
+	dst := tempDir(t)
+	u := testModule("basic//subdir")
+
+	if err := Get(dst, u); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	mainPath := filepath.Join(dst, "sub.tf")
+	if _, err := os.Stat(mainPath); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+}
+
 func TestGetDirSubdir(t *testing.T) {
 	cases := []struct {
 		Input string

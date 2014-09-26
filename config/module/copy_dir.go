@@ -4,6 +4,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"strings"
 )
 
 // copyDir copies the src directory contents into dst. Both directories
@@ -14,7 +15,13 @@ func copyDir(dst, src string) error {
 			return err
 		}
 
-		dstPath := filepath.Join(dst, filepath.Base(path))
+		basePath := filepath.Base(path)
+		if strings.HasPrefix(basePath, ".") {
+			// Skip any dot files
+			return nil
+		}
+
+		dstPath := filepath.Join(dst, basePath)
 
 		// If we have a directory, make that subdirectory, then continue
 		// the walk.
