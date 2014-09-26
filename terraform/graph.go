@@ -299,6 +299,9 @@ func graphEncodeDependencies(g *depgraph.Graph) {
 		var inject []string
 		for _, dep := range n.Deps {
 			switch target := dep.Target.Meta.(type) {
+			case *GraphNodeModule:
+				inject = append(inject, dep.Target.Name)
+
 			case *GraphNodeResource:
 				if target.Resource.Id == r.Id {
 					continue
@@ -311,6 +314,12 @@ func graphEncodeDependencies(g *depgraph.Graph) {
 					id := fmt.Sprintf("%s.%d", target.ID, i)
 					inject = append(inject, id)
 				}
+
+			case *GraphNodeResourceProvider:
+				// Do nothing
+
+			default:
+				panic(fmt.Sprintf("Unknown graph node: %#v", dep.Target))
 			}
 		}
 

@@ -2,6 +2,7 @@ package terraform
 
 import (
 	"reflect"
+	"sort"
 	"strings"
 	"testing"
 )
@@ -688,29 +689,8 @@ func TestGraphAddDiff_moduleDestroy(t *testing.T) {
 
 func TestGraphEncodeDependencies(t *testing.T) {
 	m := testModule(t, "graph-basic")
-	state := &State{
-		Modules: []*ModuleState{
-			&ModuleState{
-				Path: rootModulePath,
-				Resources: map[string]*ResourceState{
-					"aws_instance.web": &ResourceState{
-						Type: "aws_instance",
-						Primary: &InstanceState{
-							ID: "foo",
-						},
-					},
-					"aws_load_balancer.weblb": &ResourceState{
-						Type: "aws_load_balancer",
-						Primary: &InstanceState{
-							ID: "foo",
-						},
-					},
-				},
-			},
-		},
-	}
 
-	g, err := Graph(&GraphOpts{Module: m, State: state})
+	g, err := Graph(&GraphOpts{Module: m})
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -769,6 +749,30 @@ func TestGraphEncodeDependencies_count(t *testing.T) {
 	weblb := g.Noun("aws_load_balancer.weblb").Meta.(*GraphNodeResource).Resource
 	if len(weblb.Dependencies) != 3 {
 		t.Fatalf("bad: %#v", weblb)
+	}
+}
+
+func TestGraphEncodeDependencies_module(t *testing.T) {
+	m := testModule(t, "graph-modules")
+
+	g, err := Graph(&GraphOpts{Module: m})
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	// This should encode the dependency information into the state
+	graphEncodeDependencies(g)
+
+	web := g.Noun("aws_instance.web").Meta.(*GraphNodeResource).Resource
+	sort.Strings(web.Dependencies)
+	if len(web.Dependencies) != 2 {
+		t.Fatalf("bad: %#v", web)
+	}
+	if web.Dependencies[0] != "aws_security_group.firewall" {
+		t.Fatalf("bad: %#v", web)
+	}
+	if web.Dependencies[1] != "module.consul" {
+		t.Fatalf("bad: %#v", web)
 	}
 }
 
