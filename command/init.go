@@ -3,7 +3,6 @@ package command
 import (
 	"flag"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"strings"
 
@@ -50,6 +49,14 @@ func (c *InitCommand) Run(args []string) int {
 
 	source := args[0]
 
+	// Get our pwd since we need it
+	pwd, err := os.Getwd()
+	if err != nil {
+		c.Ui.Error(fmt.Sprintf(
+			"Error reading working directory: %s", err))
+		return 1
+	}
+
 	// Verify the directory is empty
 	if empty, err := config.IsEmptyDir(path); err != nil {
 		c.Ui.Error(fmt.Sprintf(
@@ -63,17 +70,16 @@ func (c *InitCommand) Run(args []string) int {
 		return 1
 	}
 
-	// Create a temporary directory to store our module
-	td, err := ioutil.TempDir("", "tf")
+	// Detect
+	source, err = module.Detect(source, pwd)
 	if err != nil {
 		c.Ui.Error(fmt.Sprintf(
-			"Error creating temporary directory: %s", err))
+			"Error with module source: %s", err))
 		return 1
 	}
-	defer os.RemoveAll(td)
 
 	// Get it!
-	if err := module.Get(td, source); err != nil {
+	if err := module.GetCopy(path, source); err != nil {
 		c.Ui.Error(err.Error())
 		return 1
 	}

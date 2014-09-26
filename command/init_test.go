@@ -1,15 +1,18 @@
 package command
 
 import (
+	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/mitchellh/cli"
 )
 
-/*
-func TestGet(t *testing.T) {
+func TestInit(t *testing.T) {
+	dir := tempDir(t)
+
 	ui := new(cli.MockUi)
-	c := &GetCommand{
+	c := &InitCommand{
 		Meta: Meta{
 			ContextOpts: testCtxConfig(testProvider()),
 			Ui:          ui,
@@ -17,21 +20,17 @@ func TestGet(t *testing.T) {
 	}
 
 	args := []string{
-		testFixturePath("get"),
+		testFixturePath("init"),
+		dir,
 	}
 	if code := c.Run(args); code != 0 {
 		t.Fatalf("bad: \n%s", ui.ErrorWriter.String())
 	}
 
-	output := ui.OutputWriter.String()
-	if !strings.Contains(output, "Get: file://") {
-		t.Fatalf("doesn't look like get: %s", output)
-	}
-	if strings.Contains(output, "(update)") {
-		t.Fatalf("doesn't look like get: %s", output)
+	if _, err := os.Stat(filepath.Join(dir, "hello.tf")); err != nil {
+		t.Fatalf("err: %s", err)
 	}
 }
-*/
 
 func TestInit_multipleArgs(t *testing.T) {
 	ui := new(cli.MockUi)
