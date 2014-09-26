@@ -187,14 +187,7 @@ func graphDotAddResources(
 
 		// Build up all the edges in a separate buffer so they're not in the
 		// subgraph.
-		for _, e := range n.Edges() {
-			target := e.Tail()
-			uniqueTarget := fmt.Sprintf("%d_%s", opts.depth, target)
-			edgeBuf.WriteString(fmt.Sprintf(
-				"\t\"%s\" -> \"%s\";\n",
-				uniqueName,
-				uniqueTarget))
-		}
+		graphWriteEdges(&edgeBuf, n, opts)
 	}
 	buf.WriteString("\t}\n\n")
 	if edgeBuf.Len() > 0 {
@@ -219,14 +212,7 @@ func graphDotAddResources(
 		buf.WriteString(fmt.Sprintf(
 			"\t\t\"%s\" [label=\"%s\",shape=box,style=filled,color=\"#FF0000\",fillcolor=\"#FF9494\"];\n", uniqueName, n))
 
-		for _, e := range n.Edges() {
-			target := e.Tail()
-			uniqueTarget := fmt.Sprintf("%d_%s", opts.depth, target)
-			edgeBuf.WriteString(fmt.Sprintf(
-				"\t\"%s\" -> \"%s\";\n",
-				uniqueName,
-				uniqueTarget))
-		}
+		graphWriteEdges(&edgeBuf, n, opts)
 	}
 	buf.WriteString("\t}\n\n")
 	if edgeBuf.Len() > 0 {
@@ -300,14 +286,7 @@ func graphDotAddResourceProviders(
 
 		// Build up all the edges in a separate buffer so they're not in the
 		// subgraph.
-		for _, e := range n.Edges() {
-			target := e.Tail()
-			uniqueTarget := fmt.Sprintf("%d_%s", target)
-			edgeBuf.WriteString(fmt.Sprintf(
-				"\t\"%s\" -> \"%s\";\n",
-				uniqueName,
-				uniqueTarget))
-		}
+		graphWriteEdges(&edgeBuf, n, opts)
 	}
 	buf.WriteString("\t}\n\n")
 	if edgeBuf.Len() > 0 {
