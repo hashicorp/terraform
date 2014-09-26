@@ -182,6 +182,11 @@ type ModuleState struct {
 	Resources map[string]*ResourceState `json:"resources"`
 }
 
+// IsRoot says whether or not this module diff is for the root module.
+func (m *ModuleState) IsRoot() bool {
+	return reflect.DeepEqual(m.Path, rootModulePath)
+}
+
 // Orphans returns a list of keys of resources that are in the State
 // but aren't present in the configuration itself. Hence, these keys
 // represent the state of resources that are orphans.
