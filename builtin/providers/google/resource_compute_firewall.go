@@ -72,6 +72,15 @@ func resourceComputeFirewall() *schema.Resource {
 					return hashcode.String(v.(string))
 				},
 			},
+
+			"target_tags": &schema.Schema{
+				Type:     schema.TypeSet,
+				Optional: true,
+				Elem:	  &schema.Schema{Type: schema.TypeString},
+				Set: func(v interface{}) int {
+					return hashcode.String(v.(string))
+				},
+			},
 		},
 	}
 }
@@ -285,6 +294,15 @@ func resourceFirewall(
 		}
 	}
 
+	// Build up the list of targets
+	var targetTags []string
+	if v := d.Get("target_tags").(*schema.Set); v.Len() > 0 {
+		targetTags = make([]string, v.Len())
+		for i, v:= range v.List() {
+			targetTags[i] = v.(string)
+		}
+	}
+
 	// Build the firewall parameter
 	return &compute.Firewall{
 		Name:         d.Get("name").(string),
@@ -292,5 +310,6 @@ func resourceFirewall(
 		Allowed:      allowed,
 		SourceRanges: sourceRanges,
 		SourceTags:   sourceTags,
+		TargetTags:   targetTags,
 	}, nil
 }
