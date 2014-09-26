@@ -114,6 +114,14 @@ func (c1 *Config) Merge(c2 *Config) *Config {
 
 func (c *Config) discover(path string) error {
 	var err error
+
+	if !filepath.IsAbs(path) {
+		path, err = filepath.Abs(path)
+		if err != nil {
+			return err
+		}
+	}
+
 	err = c.discoverSingle(
 		filepath.Join(path, "terraform-provider-*"), &c.Providers)
 	if err != nil {

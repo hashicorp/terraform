@@ -1,4 +1,4 @@
-## 0.2.3 (unreleased)
+## 0.3.0 (unreleased)
 
 IMPROVEMENTS:
 
@@ -10,6 +10,7 @@ BUG FIXES:
 
   * core: Providers are validated even without a `provider` block. [GH-284]
   * core: In the case of error, walk all non-dependent trees.
+  * core: Plugin loading from CWD works properly.
   * providers/aws: autoscaling_group can be launched into a vpc [GH-259]
 
 ## 0.2.2 (September 9, 2014)
