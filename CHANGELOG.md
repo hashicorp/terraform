@@ -1,10 +1,19 @@
 ## 0.3.0 (unreleased)
 
+FEATURES:
+
+  * **Modules**: Configuration can now be modularized. Modules can live on
+    GitHub, BitBucket, Git/Hg repos, HTTP URLs, and file paths. Terraform
+    automatically downloads/updates modules for you on request.
+  * The state file format is now JSON rather than binary. This allows for
+    easier machine and human read/write. Old binary state files will be
+    automatically upgraded.
+
 IMPROVEMENTS:
 
   * helper/schema: Can now have default values. [GH-245]
-  * providers/aws: New resource db_subnet_group. [GH-295]
-  * providers/aws: Add map_public_ip_on_launch for subnets. [GH-285]
+  * providers/aws: New resource `db_subnet_group`. [GH-295]
+  * providers/aws: Add `map_public_ip_on_launch` for subnets. [GH-285]
 
 BUG FIXES:
 
