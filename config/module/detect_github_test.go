@@ -13,6 +13,10 @@ func TestGitHubDetector(t *testing.T) {
 		{"github.com/hashicorp/foo", "git::https://github.com/hashicorp/foo.git"},
 		{"github.com/hashicorp/foo.git", "git::https://github.com/hashicorp/foo.git"},
 		{
+			"github.com/hashicorp/foo/bar",
+			"git::https://github.com/hashicorp/foo.git//bar",
+		},
+		{
 			"github.com/hashicorp/foo?foo=bar",
 			"git::https://github.com/hashicorp/foo.git?foo=bar",
 		},
@@ -23,6 +27,10 @@ func TestGitHubDetector(t *testing.T) {
 
 		// SSH
 		{"git@github.com:hashicorp/foo.git", "git::ssh://git@github.com/hashicorp/foo.git"},
+		{
+			"git@github.com:hashicorp/foo.git//bar",
+			"git::ssh://git@github.com/hashicorp/foo.git//bar",
+		},
 		{
 			"git@github.com:hashicorp/foo.git?foo=bar",
 			"git::ssh://git@github.com/hashicorp/foo.git?foo=bar",

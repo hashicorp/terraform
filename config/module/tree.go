@@ -146,6 +146,12 @@ func (t *Tree) Load(s Storage, mode GetMode) error {
 			return fmt.Errorf("module %s: %s", m.Name, err)
 		}
 
+		// Check if the detector introduced something new.
+		source, subDir2 := getDirSubdir(source)
+		if subDir2 != "" {
+			subDir = filepath.Join(subDir2, subDir)
+		}
+
 		// Get the directory where this module is so we can load it
 		dir, ok, err := getStorage(s, source, mode)
 		if err != nil {

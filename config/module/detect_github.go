@@ -25,7 +25,13 @@ func (d *GitHubDetector) Detect(src, _ string) (string, bool, error) {
 }
 
 func (d *GitHubDetector) detectHTTP(src string) (string, bool, error) {
-	urlStr := fmt.Sprintf("https://%s", src)
+	parts := strings.Split(src, "/")
+	if len(parts) < 3 {
+		return "", false, fmt.Errorf(
+			"GitHub URLs should be github.com/username/repo")
+	}
+
+	urlStr := fmt.Sprintf("https://%s", strings.Join(parts[:3], "/"))
 	url, err := url.Parse(urlStr)
 	if err != nil {
 		return "", true, fmt.Errorf("error parsing GitHub URL: %s", err)
@@ -33,6 +39,10 @@ func (d *GitHubDetector) detectHTTP(src string) (string, bool, error) {
 
 	if !strings.HasSuffix(url.Path, ".git") {
 		url.Path += ".git"
+	}
+
+	if len(parts) > 3 {
+		url.Path += "//" + strings.Join(parts[3:], "/")
 	}
 
 	return "git::" + url.String(), true, nil
