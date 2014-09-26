@@ -624,6 +624,68 @@ func TestGraphAddDiff_destroy_counts(t *testing.T) {
 	}
 }
 
+func TestGraphAddDiff_module(t *testing.T) {
+	m := testModule(t, "graph-diff-module")
+	diff := &Diff{
+		Modules: []*ModuleDiff{
+			&ModuleDiff{
+				Path: rootModulePath,
+				Resources: map[string]*InstanceDiff{
+					"aws_instance.foo": &InstanceDiff{
+						Destroy: true,
+					},
+				},
+			},
+		},
+	}
+
+	g, err := Graph(&GraphOpts{Module: m, Diff: diff})
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	actual := strings.TrimSpace(g.String())
+	expected := strings.TrimSpace(testTerraformGraphDiffModuleStr)
+	if actual != expected {
+		t.Fatalf("bad:\n\n%s", actual)
+	}
+}
+
+func TestGraphAddDiff_moduleDestroy(t *testing.T) {
+	m := testModule(t, "graph-diff-module")
+	diff := &Diff{
+		Modules: []*ModuleDiff{
+			&ModuleDiff{
+				Path: rootModulePath,
+				Resources: map[string]*InstanceDiff{
+					"aws_instance.foo": &InstanceDiff{
+						Destroy: true,
+					},
+				},
+			},
+			&ModuleDiff{
+				Path: []string{"root", "child"},
+				Resources: map[string]*InstanceDiff{
+					"aws_instance.foo": &InstanceDiff{
+						Destroy: true,
+					},
+				},
+			},
+		},
+	}
+
+	g, err := Graph(&GraphOpts{Module: m, Diff: diff})
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	actual := strings.TrimSpace(g.String())
+	expected := strings.TrimSpace(testTerraformGraphDiffModuleStr)
+	if actual != expected {
+		t.Fatalf("bad:\n\n%s", actual)
+	}
+}
+
 func TestGraphEncodeDependencies(t *testing.T) {
 	m := testModule(t, "graph-basic")
 	state := &State{
@@ -871,6 +933,19 @@ aws_load_balancer.weblb (destroy)
 root
   root -> aws_instance.web
   root -> aws_load_balancer.weblb
+`
+
+const testTerraformGraphDiffModuleStr = `
+root: root
+aws_instance.foo
+  aws_instance.foo -> aws_instance.foo (destroy)
+  aws_instance.foo -> module.child
+aws_instance.foo (destroy)
+module.child
+  module.child -> aws_instance.foo (destroy)
+root
+  root -> aws_instance.foo
+  root -> module.child
 `
 
 const testTerraformGraphModulesStr = `

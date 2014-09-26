@@ -601,6 +601,23 @@ func graphAddDiff(g *depgraph.Graph, d *ModuleDiff) error {
 				num--
 				i--
 
+			case *GraphNodeModule:
+				// We invert any module dependencies so we're destroyed
+				// first, before any modules are applied.
+				newDep := &depgraph.Dependency{
+					Name:   n.Name,
+					Source: dep.Target,
+					Target: n,
+				}
+				dep.Target.Deps = append(dep.Target.Deps, newDep)
+
+				// Drop the dependency. We may have created
+				// an inverse depedency if the dependent resource
+				// is also being deleted, but this dependence is
+				// no longer required.
+				deps[i], deps[num-1] = deps[num-1], nil
+				num--
+				i--
 			case *GraphNodeResourceProvider:
 				// Keep these around, but fix up the source to be ourselves
 				// rather than the old node.
@@ -608,7 +625,7 @@ func graphAddDiff(g *depgraph.Graph, d *ModuleDiff) error {
 				newDep.Source = n
 				deps[i] = &newDep
 			default:
-				panic(fmt.Errorf("Unhandled depedency type: %#v", dep.Meta))
+				panic(fmt.Errorf("Unhandled depedency type: %#v", dep.Target.Meta))
 			}
 		}
 		n.Deps = deps[:num]
