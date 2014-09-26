@@ -528,6 +528,24 @@ STATE:
 <no state>
 `
 
+const testTerraformPlanModuleDestroyStr = `
+DIFF:
+
+DESTROY: aws_instance.foo
+
+module.child:
+  DESTROY: aws_instance.foo
+
+STATE:
+
+aws_instance.foo:
+  ID = bar
+
+module.child:
+  aws_instance.foo:
+    ID = bar
+`
+
 const testTerraformPlanModuleInputStr = `
 DIFF:
 

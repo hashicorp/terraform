@@ -703,20 +703,33 @@ func (c *walkContext) planDestroyWalkFn() depgraph.WalkFunc {
 	result.init()
 
 	return func(n *depgraph.Noun) error {
-		rn, ok := n.Meta.(*GraphNodeResource)
-		if !ok {
-			return nil
-		}
+		switch m := n.Meta.(type) {
+		case *GraphNodeModule:
+			// Build another walkContext for this module and walk it.
+			wc := c.Context.walkContext(c.Operation, m.Path)
 
-		r := rn.Resource
-		if r.State != nil && r.State.ID != "" {
-			log.Printf("[DEBUG] %s: Making for destroy", r.Id)
+			// Set the graph to specifically walk this subgraph
+			wc.graph = m.Graph
 
-			l.Lock()
-			defer l.Unlock()
-			result.Diff.RootModule().Resources[r.Id] = &InstanceDiff{Destroy: true}
-		} else {
-			log.Printf("[DEBUG] %s: Not marking for destroy, no ID", r.Id)
+			// Preserve the meta
+			wc.Meta = c.Meta
+
+			return wc.Walk()
+		case *GraphNodeResource:
+			r := m.Resource
+			if r.State != nil && r.State.ID != "" {
+				log.Printf("[DEBUG] %s: Making for destroy", r.Id)
+
+				l.Lock()
+				defer l.Unlock()
+				md := result.Diff.ModuleByPath(c.Path)
+				if md == nil {
+					md = result.Diff.AddModule(c.Path)
+				}
+				md.Resources[r.Id] = &InstanceDiff{Destroy: true}
+			} else {
+				log.Printf("[DEBUG] %s: Not marking for destroy, no ID", r.Id)
+			}
 		}
 
 		return nil
