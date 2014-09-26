@@ -42,62 +42,10 @@ func Load(path string) (*Config, error) {
 //
 // Files are loaded in lexical order.
 func LoadDir(root string) (*Config, error) {
-	var files, overrides []string
-
-	f, err := os.Open(root)
+	files, overrides, err := dirFiles(root)
 	if err != nil {
 		return nil, err
 	}
-
-	fi, err := f.Stat()
-	if err != nil {
-		return nil, err
-	}
-	if !fi.IsDir() {
-		return nil, fmt.Errorf(
-			"configuration path must be a directory: %s",
-			root)
-	}
-
-	err = nil
-	for err != io.EOF {
-		var fis []os.FileInfo
-		fis, err = f.Readdir(128)
-		if err != nil && err != io.EOF {
-			f.Close()
-			return nil, err
-		}
-
-		for _, fi := range fis {
-			// Ignore directories
-			if fi.IsDir() {
-				continue
-			}
-
-			// Only care about files that are valid to load
-			name := fi.Name()
-			extValue := ext(name)
-			if extValue == "" {
-				continue
-			}
-
-			// Determine if we're dealing with an override
-			nameNoExt := name[:len(name)-len(extValue)]
-			override := nameNoExt == "override" ||
-				strings.HasSuffix(nameNoExt, "_override")
-
-			path := filepath.Join(root, name)
-			if override {
-				overrides = append(overrides, path)
-			} else {
-				files = append(files, path)
-			}
-		}
-	}
-
-	// Close the directory, we're done with it
-	f.Close()
-
 	if len(files) == 0 {
 		return nil, fmt.Errorf(
 			"No Terraform configuration files found in directory: %s",
@@ -152,6 +100,17 @@ func LoadDir(root string) (*Config, error) {
 	return result, nil
 }
 
+// IsEmptyDir returns true if the directory given has no Terraform
+// configuration files.
+func IsEmptyDir(root string) (bool, error) {
+	fs, os, err := dirFiles(root)
+	if err != nil {
+		return false, err
+	}
+
+	return len(fs) == 0 && len(os) == 0, nil
+}
+
 // Ext returns the Terraform configuration extension of the given
 // path, or a blank string if it is an invalid function.
 func ext(path string) string {
@@ -162,4 +121,60 @@ func ext(path string) string {
 	} else {
 		return ""
 	}
+}
+
+func dirFiles(dir string) ([]string, []string, error) {
+	f, err := os.Open(dir)
+	if err != nil {
+		return nil, nil, err
+	}
+	defer f.Close()
+
+	fi, err := f.Stat()
+	if err != nil {
+		return nil, nil, err
+	}
+	if !fi.IsDir() {
+		return nil, nil, fmt.Errorf(
+			"configuration path must be a directory: %s",
+			dir)
+	}
+
+	var files, overrides []string
+	err = nil
+	for err != io.EOF {
+		var fis []os.FileInfo
+		fis, err = f.Readdir(128)
+		if err != nil && err != io.EOF {
+			return nil, nil, err
+		}
+
+		for _, fi := range fis {
+			// Ignore directories
+			if fi.IsDir() {
+				continue
+			}
+
+			// Only care about files that are valid to load
+			name := fi.Name()
+			extValue := ext(name)
+			if extValue == "" {
+				continue
+			}
+
+			// Determine if we're dealing with an override
+			nameNoExt := name[:len(name)-len(extValue)]
+			override := nameNoExt == "override" ||
+				strings.HasSuffix(nameNoExt, "_override")
+
+			path := filepath.Join(dir, name)
+			if override {
+				overrides = append(overrides, path)
+			} else {
+				files = append(files, path)
+			}
+		}
+	}
+
+	return files, overrides, nil
 }

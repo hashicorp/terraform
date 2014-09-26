@@ -6,6 +6,26 @@ import (
 	"testing"
 )
 
+func TestIsEmptyDir(t *testing.T) {
+	val, err := IsEmptyDir(fixtureDir)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if val {
+		t.Fatal("should not be empty")
+	}
+}
+
+func TestIsEmptyDir_noConfigs(t *testing.T) {
+	val, err := IsEmptyDir(filepath.Join(fixtureDir, "dir-empty"))
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if !val {
+		t.Fatal("should be empty")
+	}
+}
+
 func TestLoad_badType(t *testing.T) {
 	_, err := Load(filepath.Join(fixtureDir, "bad_type.tf.nope"))
 	if err == nil {
