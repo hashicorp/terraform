@@ -11,3 +11,15 @@ type Storage interface {
 	// Get will download and optionally update the given module.
 	Get(string, bool) error
 }
+
+func getStorage(s Storage, src string, mode GetMode) (string, bool, error) {
+	// Get the module with the level specified if we were told to.
+	if mode > GetModeNone {
+		if err := s.Get(src, mode == GetModeUpdate); err != nil {
+			return "", false, err
+		}
+	}
+
+	// Get the directory where the module is.
+	return s.Dir(src)
+}
