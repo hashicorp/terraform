@@ -16,6 +16,16 @@ func TestIsEmptyDir(t *testing.T) {
 	}
 }
 
+func TestIsEmptyDir_noExist(t *testing.T) {
+	val, err := IsEmptyDir(filepath.Join(fixtureDir, "nopenopenope"))
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if !val {
+		t.Fatal("should be empty")
+	}
+}
+
 func TestIsEmptyDir_noConfigs(t *testing.T) {
 	val, err := IsEmptyDir(filepath.Join(fixtureDir, "dir-empty"))
 	if err != nil {
