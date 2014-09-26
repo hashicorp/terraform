@@ -64,9 +64,13 @@ Subdirectories within the repository can also be referenced:
 
 ```
 module "consul" {
-	source = "github.com/hashicorp/example/subdir"
+	source = "github.com/hashicorp/example//subdir"
 }
 ```
+
+**Note:** The double-slash is important. It is what tells Terraform that
+that is the separator for a subdirectory, and not part of the repository
+itself.
 
 GitHub source URLs will require that Git is installed on your system
 and that you have the proper access to the repository.
@@ -90,9 +94,13 @@ Subdirectories within the repository can also be referenced:
 
 ```
 module "consul" {
-	source = "bitbucket.org/hashicorp/example/subdir"
+	source = "bitbucket.org/hashicorp/example//subdir"
 }
 ```
+
+**Note:** The double-slash is important. It is what tells Terraform that
+that is the separator for a subdirectory, and not part of the repository
+itself.
 
 BitBucket URLs will require that Git or Mercurial is installed on your
 system, depending on the source URL.
