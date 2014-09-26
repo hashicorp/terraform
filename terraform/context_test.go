@@ -797,7 +797,7 @@ func TestContextApply_provisionerResourceRef(t *testing.T) {
 
 // Provisioner should NOT run on a diff, only create
 func TestContextApply_Provisioner_Diff(t *testing.T) {
-	c := testConfig(t, "apply-provisioner-diff")
+	m := testModule(t, "apply-provisioner-diff")
 	p := testProvider("aws")
 	pr := testProvisioner()
 	p.ApplyFn = testApplyFn
@@ -806,7 +806,7 @@ func TestContextApply_Provisioner_Diff(t *testing.T) {
 		return nil
 	}
 	ctx := testContext(t, &ContextOpts{
-		Config: c,
+		Module: m,
 		Providers: map[string]ResourceProviderFactory{
 			"aws": testProviderFuncFixed(p),
 		},
@@ -842,7 +842,7 @@ func TestContextApply_Provisioner_Diff(t *testing.T) {
 
 	// Re-create context with state
 	ctx = testContext(t, &ContextOpts{
-		Config: c,
+		Module: m,
 		Providers: map[string]ResourceProviderFactory{
 			"aws": testProviderFuncFixed(p),
 		},

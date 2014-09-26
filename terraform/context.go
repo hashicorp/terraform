@@ -551,8 +551,8 @@ func (c *walkContext) applyWalkFn() depgraph.WalkFunc {
 		// was an error during the provider apply.
 		tainted := false
 		if applyerr == nil && createNew && len(r.Provisioners) > 0 {
-			for _, h := range c.hooks {
-				handleHook(h.PreProvisionResource(r.Id, is))
+			for _, h := range c.Context.hooks {
+				handleHook(h.PreProvisionResource(r.Info, is))
 			}
 
 			if err := c.applyProvisioners(r, is); err != nil {
