@@ -64,8 +64,8 @@ func TestGetDirSubdir(t *testing.T) {
 			"hashicorp.com?bar=baz", "foo",
 		},
 		{
-			"hashicorp.com",
-			"hashicorp.com", "",
+			"file://foo//bar",
+			"file://foo", "bar",
 		},
 	}
 

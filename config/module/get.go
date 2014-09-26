@@ -100,12 +100,20 @@ func getRunCommand(cmd *exec.Cmd) error {
 // getDirSubdir takes a source and returns a tuple of the URL without
 // the subdir and the URL with the subdir.
 func getDirSubdir(src string) (string, string) {
+	// Calcaulate an offset to avoid accidentally marking the scheme
+	// as the dir.
+	var offset int
+	if idx := strings.Index(src, "://"); idx > -1 {
+		offset = idx + 3
+	}
+
 	// First see if we even have an explicit subdir
-	idx := strings.Index(src, "//")
+	idx := strings.Index(src[offset:], "//")
 	if idx == -1 {
 		return src, ""
 	}
 
+	idx += offset
 	subdir := src[idx+2:]
 	src = src[:idx]
 
