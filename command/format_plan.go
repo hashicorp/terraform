@@ -10,49 +10,96 @@ import (
 	"github.com/mitchellh/colorstring"
 )
 
+// FormatPlanOpts are the options for formatting a plan.
+type FormatPlanOpts struct {
+	// Plan is the plan to format. This is required.
+	Plan *terraform.Plan
+
+	// Color is the colorizer. This is optional.
+	Color *colorstring.Colorize
+
+	// ModuleDepth is the depth of the modules to expand. By default this
+	// is zero which will not expand modules at all.
+	ModuleDepth int
+}
+
 // FormatPlan takes a plan and returns a
-func FormatPlan(p *terraform.Plan, c *colorstring.Colorize) string {
+func FormatPlan(opts *FormatPlanOpts) string {
+	p := opts.Plan
 	if p.Diff == nil || p.Diff.Empty() {
 		return "This plan does nothing."
 	}
 
-	if c == nil {
-		c = &colorstring.Colorize{
+	if opts.Color == nil {
+		opts.Color = &colorstring.Colorize{
 			Colors: colorstring.DefaultColors,
 			Reset:  false,
 		}
 	}
 
 	buf := new(bytes.Buffer)
+	for _, m := range p.Diff.Modules {
+		if len(m.Path)-1 <= opts.ModuleDepth || opts.ModuleDepth == -1 {
+			formatPlanModuleExpand(buf, m, opts)
+		} else {
+			formatPlanModuleSingle(buf, m, opts)
+		}
+	}
+
+	return strings.TrimSpace(buf.String())
+}
+
+// formatPlanModuleExpand will output the given module and all of its
+// resources.
+func formatPlanModuleExpand(
+	buf *bytes.Buffer, m *terraform.ModuleDiff, opts *FormatPlanOpts) {
+	// Ignore empty diffs
+	if m.Empty() {
+		return
+	}
+
+	var moduleName string
+	if !m.IsRoot() {
+		moduleName = fmt.Sprintf("module.%s", strings.Join(m.Path[1:], "."))
+	}
 
 	// We want to output the resources in sorted order to make things
 	// easier to scan through, so get all the resource names and sort them.
-	names := make([]string, 0, len(p.Diff.Resources))
-	for name, _ := range p.Diff.Resources {
+	names := make([]string, 0, len(m.Resources))
+	for name, _ := range m.Resources {
 		names = append(names, name)
 	}
 	sort.Strings(names)
 
 	// Go through each sorted name and start building the output
 	for _, name := range names {
-		rdiff := p.Diff.Resources[name]
+		rdiff := m.Resources[name]
+		if rdiff.Empty() {
+			continue
+		}
+
+		if moduleName != "" {
+			name = moduleName + "." + name
+		}
 
 		// Determine the color for the text (green for adding, yellow
 		// for change, red for delete), and symbol, and output the
 		// resource header.
 		color := "yellow"
 		symbol := "~"
-		if rdiff.RequiresNew() && rdiff.Destroy {
+		switch rdiff.ChangeType() {
+		case terraform.DiffDestroyCreate:
 			color = "green"
 			symbol = "-/+"
-		} else if rdiff.RequiresNew() {
+		case terraform.DiffCreate:
 			color = "green"
 			symbol = "+"
-		} else if rdiff.Destroy {
+		case terraform.DiffDestroy:
 			color = "red"
 			symbol = "-"
 		}
-		buf.WriteString(c.Color(fmt.Sprintf(
+
+		buf.WriteString(opts.Color.Color(fmt.Sprintf(
 			"[%s]%s %s\n",
 			color, symbol, name)))
 
@@ -97,8 +144,40 @@ func FormatPlan(p *terraform.Plan, c *colorstring.Colorize) string {
 		}
 
 		// Write the reset color so we don't overload the user's terminal
-		buf.WriteString(c.Color("[reset]\n"))
+		buf.WriteString(opts.Color.Color("[reset]\n"))
+	}
+}
+
+// formatPlanModuleSingle will output the given module and all of its
+// resources.
+func formatPlanModuleSingle(
+	buf *bytes.Buffer, m *terraform.ModuleDiff, opts *FormatPlanOpts) {
+	// Ignore empty diffs
+	if m.Empty() {
+		return
 	}
 
-	return strings.TrimSpace(buf.String())
+	moduleName := fmt.Sprintf("module.%s", strings.Join(m.Path[1:], "."))
+
+	// Determine the color for the text (green for adding, yellow
+	// for change, red for delete), and symbol, and output the
+	// resource header.
+	color := "yellow"
+	symbol := "~"
+	switch m.ChangeType() {
+	case terraform.DiffCreate:
+		color = "green"
+		symbol = "+"
+	case terraform.DiffDestroy:
+		color = "red"
+		symbol = "-"
+	}
+
+	buf.WriteString(opts.Color.Color(fmt.Sprintf(
+		"[%s]%s %s\n",
+		color, symbol, moduleName)))
+	buf.WriteString(fmt.Sprintf(
+		"    %d resource(s)",
+		len(m.Resources)))
+	buf.WriteString(opts.Color.Color("[reset]\n"))
 }

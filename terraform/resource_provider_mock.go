@@ -21,6 +21,7 @@ type MockResourceProvider struct {
 	ApplyReturnError             error
 	ConfigureCalled              bool
 	ConfigureConfig              *ResourceConfig
+	ConfigureFn                  func(*ResourceConfig) error
 	ConfigureReturnError         error
 	DiffCalled                   bool
 	DiffInfo                     *InstanceInfo
@@ -39,6 +40,7 @@ type MockResourceProvider struct {
 	ResourcesReturn              []ResourceType
 	ValidateCalled               bool
 	ValidateConfig               *ResourceConfig
+	ValidateFn                   func(*ResourceConfig) ([]string, []error)
 	ValidateReturnWarns          []string
 	ValidateReturnErrors         []error
 	ValidateResourceFn           func(string, *ResourceConfig) ([]string, []error)
@@ -55,6 +57,9 @@ func (p *MockResourceProvider) Validate(c *ResourceConfig) ([]string, []error) {
 
 	p.ValidateCalled = true
 	p.ValidateConfig = c
+	if p.ValidateFn != nil {
+		return p.ValidateFn(c)
+	}
 	return p.ValidateReturnWarns, p.ValidateReturnErrors
 }
 
@@ -79,6 +84,11 @@ func (p *MockResourceProvider) Configure(c *ResourceConfig) error {
 
 	p.ConfigureCalled = true
 	p.ConfigureConfig = c
+
+	if p.ConfigureFn != nil {
+		return p.ConfigureFn(c)
+	}
+
 	return p.ConfigureReturnError
 }
 

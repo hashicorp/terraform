@@ -1,76 +1,159 @@
 package terraform
 
 import (
+	"bufio"
 	"bytes"
-	"encoding/gob"
-	"errors"
 	"fmt"
-	"io"
+	"reflect"
 	"sort"
 	"strings"
-	"sync"
 )
 
-// The format byte is prefixed into the diff file format so that we have
-// the ability in the future to change the file format if we want for any
-// reason.
-const diffFormatByte byte = 1
+// DiffChangeType is an enum with the kind of changes a diff has planned.
+type DiffChangeType byte
 
-// Diff tracks the differences between resources to apply.
+const (
+	DiffInvalid DiffChangeType = iota
+	DiffNone
+	DiffCreate
+	DiffUpdate
+	DiffDestroy
+	DiffDestroyCreate
+)
+
+// Diff trackes the changes that are necessary to apply a configuration
+// to an existing infrastructure.
 type Diff struct {
-	Resources map[string]*InstanceDiff
-	once      sync.Once
+	// Modules contains all the modules that have a diff
+	Modules []*ModuleDiff
 }
 
-// ReadDiff reads a diff structure out of a reader in the format that
-// was written by WriteDiff.
-func ReadDiff(src io.Reader) (*Diff, error) {
-	var result *Diff
-
-	var formatByte [1]byte
-	n, err := src.Read(formatByte[:])
-	if err != nil {
-		return nil, err
-	}
-	if n != len(formatByte) {
-		return nil, errors.New("failed to read diff version byte")
-	}
-
-	if formatByte[0] != diffFormatByte {
-		return nil, fmt.Errorf("unknown diff file version: %d", formatByte[0])
-	}
-
-	dec := gob.NewDecoder(src)
-	if err := dec.Decode(&result); err != nil {
-		return nil, err
-	}
-
-	return result, nil
+// AddModule adds the module with the given path to the diff.
+//
+// This should be the preferred method to add module diffs since it
+// allows us to optimize lookups later as well as control sorting.
+func (d *Diff) AddModule(path []string) *ModuleDiff {
+	m := &ModuleDiff{Path: path}
+	m.init()
+	d.Modules = append(d.Modules, m)
+	return m
 }
 
-// WriteDiff writes a diff somewhere in a binary format.
-func WriteDiff(d *Diff, dst io.Writer) error {
-	n, err := dst.Write([]byte{diffFormatByte})
-	if err != nil {
-		return err
+// ModuleByPath is used to lookup the module diff for the given path.
+// This should be the prefered lookup mechanism as it allows for future
+// lookup optimizations.
+func (d *Diff) ModuleByPath(path []string) *ModuleDiff {
+	if d == nil {
+		return nil
 	}
-	if n != 1 {
-		return errors.New("failed to write diff version byte")
-	}
-
-	return gob.NewEncoder(dst).Encode(d)
-}
-
-func (d *Diff) init() {
-	d.once.Do(func() {
-		if d.Resources == nil {
-			d.Resources = make(map[string]*InstanceDiff)
+	for _, mod := range d.Modules {
+		if mod.Path == nil {
+			panic("missing module path")
 		}
-	})
+		if reflect.DeepEqual(mod.Path, path) {
+			return mod
+		}
+	}
+	return nil
+}
+
+// RootModule returns the ModuleState for the root module
+func (d *Diff) RootModule() *ModuleDiff {
+	root := d.ModuleByPath(rootModulePath)
+	if root == nil {
+		panic("missing root module")
+	}
+	return root
 }
 
 // Empty returns true if the diff has no changes.
 func (d *Diff) Empty() bool {
+	for _, m := range d.Modules {
+		if !m.Empty() {
+			return false
+		}
+	}
+
+	return true
+}
+
+func (d *Diff) String() string {
+	var buf bytes.Buffer
+	for _, m := range d.Modules {
+		mStr := m.String()
+
+		// If we're the root module, we just write the output directly.
+		if reflect.DeepEqual(m.Path, rootModulePath) {
+			buf.WriteString(mStr + "\n")
+			continue
+		}
+
+		buf.WriteString(fmt.Sprintf("module.%s:\n", strings.Join(m.Path[1:], ".")))
+
+		s := bufio.NewScanner(strings.NewReader(mStr))
+		for s.Scan() {
+			buf.WriteString(fmt.Sprintf("  %s\n", s.Text()))
+		}
+	}
+
+	return strings.TrimSpace(buf.String())
+}
+
+func (d *Diff) init() {
+	if d.Modules == nil {
+		rootDiff := &ModuleDiff{Path: rootModulePath}
+		d.Modules = []*ModuleDiff{rootDiff}
+	}
+	for _, m := range d.Modules {
+		m.init()
+	}
+}
+
+// ModuleDiff tracks the differences between resources to apply within
+// a single module.
+type ModuleDiff struct {
+	Path      []string
+	Resources map[string]*InstanceDiff
+}
+
+func (d *ModuleDiff) init() {
+	if d.Resources == nil {
+		d.Resources = make(map[string]*InstanceDiff)
+	}
+	for _, r := range d.Resources {
+		r.init()
+	}
+}
+
+// ChangeType returns the type of changes that the diff for this
+// module includes.
+//
+// At a module level, this will only be DiffNone, DiffUpdate, DiffDestroy, or
+// DiffCreate. If an instance within the module has a DiffDestroyCreate
+// then this will register as a DiffCreate for a module.
+func (d *ModuleDiff) ChangeType() DiffChangeType {
+	result := DiffNone
+	for _, r := range d.Resources {
+		change := r.ChangeType()
+		switch change {
+		case DiffCreate:
+			fallthrough
+		case DiffDestroy:
+			if result == DiffNone {
+				result = change
+			}
+		case DiffDestroyCreate:
+			fallthrough
+		case DiffUpdate:
+			result = DiffUpdate
+		}
+	}
+
+	return result
+}
+
+// Empty returns true if the diff has no changes within this module.
+func (d *ModuleDiff) Empty() bool {
 	if len(d.Resources) == 0 {
 		return true
 	}
@@ -84,9 +167,14 @@ func (d *Diff) Empty() bool {
 	return true
 }
 
+// IsRoot says whether or not this module diff is for the root module.
+func (d *ModuleDiff) IsRoot() bool {
+	return reflect.DeepEqual(d.Path, rootModulePath)
+}
+
 // String outputs the diff in a long but command-line friendly output
 // format that users can read to quickly inspect a diff.
-func (d *Diff) String() string {
+func (d *ModuleDiff) String() string {
 	var buf bytes.Buffer
 
 	names := make([]string, 0, len(d.Resources))
@@ -157,8 +245,6 @@ type InstanceDiff struct {
 	Attributes     map[string]*ResourceAttrDiff
 	Destroy        bool
 	DestroyTainted bool
-
-	once sync.Once
 }
 
 // ResourceAttrDiff is the diff of a single attribute of a resource.
@@ -190,11 +276,31 @@ const (
 )
 
 func (d *InstanceDiff) init() {
-	d.once.Do(func() {
-		if d.Attributes == nil {
-			d.Attributes = make(map[string]*ResourceAttrDiff)
-		}
-	})
+	if d.Attributes == nil {
+		d.Attributes = make(map[string]*ResourceAttrDiff)
+	}
+}
+
+// ChangeType returns the DiffChangeType represented by the diff
+// for this single instance.
+func (d *InstanceDiff) ChangeType() DiffChangeType {
+	if d.Empty() {
+		return DiffNone
+	}
+
+	if d.RequiresNew() && (d.Destroy || d.DestroyTainted) {
+		return DiffDestroyCreate
+	}
+
+	if d.Destroy {
+		return DiffDestroy
+	}
+
+	if d.RequiresNew() {
+		return DiffCreate
+	}
+
+	return DiffUpdate
 }
 
 // Empty returns true if this diff encapsulates no changes.

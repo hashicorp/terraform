@@ -5,11 +5,14 @@ import (
 	"crypto/sha1"
 	"encoding/gob"
 	"encoding/hex"
+	"io/ioutil"
+	"os"
 	"path/filepath"
 	"sync"
 	"testing"
 
 	"github.com/hashicorp/terraform/config"
+	"github.com/hashicorp/terraform/config/module"
 )
 
 // This is the directory where our test fixtures are.
@@ -30,6 +33,18 @@ func checksumStruct(t *testing.T, i interface{}) string {
 	return hex.EncodeToString(sum[:])
 }
 
+func tempDir(t *testing.T) string {
+	dir, err := ioutil.TempDir("", "tf")
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if err := os.RemoveAll(dir); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	return dir
+}
+
 func testConfig(t *testing.T, name string) *config.Config {
 	c, err := config.Load(filepath.Join(fixtureDir, name, "main.tf"))
 	if err != nil {
@@ -37,6 +52,20 @@ func testConfig(t *testing.T, name string) *config.Config {
 	}
 
 	return c
+}
+
+func testModule(t *testing.T, name string) *module.Tree {
+	mod, err := module.NewTreeModule("", filepath.Join(fixtureDir, name))
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	s := &module.FolderStorage{StorageDir: tempDir(t)}
+	if err := mod.Load(s, module.GetModeGet); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	return mod
 }
 
 func testProviderFuncFixed(rp ResourceProvider) ResourceProviderFactory {
@@ -66,14 +95,14 @@ type HookRecordApplyOrder struct {
 }
 
 func (h *HookRecordApplyOrder) PreApply(
-	id string,
+	info *InstanceInfo,
 	s *InstanceState,
 	d *InstanceDiff) (HookAction, error) {
 	if h.Active {
 		h.l.Lock()
 		defer h.l.Unlock()
 
-		h.IDs = append(h.IDs, id)
+		h.IDs = append(h.IDs, info.Id)
 		h.Diffs = append(h.Diffs, d)
 		h.States = append(h.States, s)
 	}
@@ -121,6 +150,23 @@ aws_instance.bar:
   ID = foo
 aws_instance.foo:
   ID = foo
+`
+
+const testTerraformApplyModuleStr = `
+aws_instance.bar:
+  ID = foo
+  foo = bar
+  type = aws_instance
+aws_instance.foo:
+  ID = foo
+  num = 2
+  type = aws_instance
+
+module.child:
+  aws_instance.baz:
+    ID = foo
+    foo = bar
+    type = aws_instance
 `
 
 const testTerraformApplyProvisionerStr = `
@@ -463,6 +509,146 @@ DIFF:
 
 CREATE: aws_instance.bar
 CREATE: aws_instance.foo
+
+STATE:
+
+<no state>
+`
+
+const testTerraformPlanModulesStr = `
+DIFF:
+
+CREATE: aws_instance.bar
+  foo:  "" => "2"
+  type: "" => "aws_instance"
+CREATE: aws_instance.foo
+  num:  "" => "2"
+  type: "" => "aws_instance"
+
+module.child:
+  CREATE: aws_instance.foo
+    num:  "" => "2"
+    type: "" => "aws_instance"
+
+STATE:
+
+<no state>
+`
+
+const testTerraformPlanModuleDestroyStr = `
+DIFF:
+
+DESTROY: aws_instance.foo
+
+module.child:
+  DESTROY: aws_instance.foo
+
+STATE:
+
+aws_instance.foo:
+  ID = bar
+
+module.child:
+  aws_instance.foo:
+    ID = bar
+`
+
+const testTerraformPlanModuleInputStr = `
+DIFF:
+
+CREATE: aws_instance.bar
+  foo:  "" => "2"
+  type: "" => "aws_instance"
+
+module.child:
+  CREATE: aws_instance.foo
+    foo:  "" => "42"
+    type: "" => "aws_instance"
+
+STATE:
+
+<no state>
+`
+
+const testTerraformPlanModuleInputComputedStr = `
+DIFF:
+
+CREATE: aws_instance.bar
+  foo:  "" => "<computed>"
+  type: "" => "aws_instance"
+
+module.child:
+  CREATE: aws_instance.foo
+    foo:  "" => "<computed>"
+    type: "" => "aws_instance"
+
+STATE:
+
+<no state>
+`
+
+const testTerraformPlanModuleInputVarStr = `
+DIFF:
+
+CREATE: aws_instance.bar
+  foo:  "" => "2"
+  type: "" => "aws_instance"
+
+module.child:
+  CREATE: aws_instance.foo
+    foo:  "" => "52"
+    type: "" => "aws_instance"
+
+STATE:
+
+<no state>
+`
+
+const testTerraformPlanModuleOrphansStr = `
+DIFF:
+
+CREATE: aws_instance.foo
+  num:  "" => "2"
+  type: "" => "aws_instance"
+
+module.child:
+  DESTROY: aws_instance.foo
+
+STATE:
+
+module.child:
+  aws_instance.foo:
+    ID = baz
+`
+
+const testTerraformPlanModuleVarStr = `
+DIFF:
+
+CREATE: aws_instance.bar
+  foo:  "" => "2"
+  type: "" => "aws_instance"
+
+module.child:
+  CREATE: aws_instance.foo
+    num:  "" => "2"
+    type: "" => "aws_instance"
+
+STATE:
+
+<no state>
+`
+
+const testTerraformPlanModuleVarComputedStr = `
+DIFF:
+
+CREATE: aws_instance.bar
+  foo:  "" => "<computed>"
+  type: "" => "aws_instance"
+
+module.child:
+  CREATE: aws_instance.foo
+    foo:  "" => "<computed>"
+    type: "" => "aws_instance"
 
 STATE:
 

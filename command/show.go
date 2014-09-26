@@ -16,9 +16,12 @@ type ShowCommand struct {
 }
 
 func (c *ShowCommand) Run(args []string) int {
+	var moduleDepth int
+
 	args = c.Meta.process(args, false)
 
 	cmdFlags := flag.NewFlagSet("show", flag.ContinueOnError)
+	cmdFlags.IntVar(&moduleDepth, "module-depth", 0, "module-depth")
 	cmdFlags.Usage = func() { c.Ui.Error(c.Help()) }
 	if err := cmdFlags.Parse(args); err != nil {
 		return 1
@@ -72,11 +75,19 @@ func (c *ShowCommand) Run(args []string) int {
 	}
 
 	if plan != nil {
-		c.Ui.Output(FormatPlan(plan, c.Colorize()))
+		c.Ui.Output(FormatPlan(&FormatPlanOpts{
+			Plan:        plan,
+			Color:       c.Colorize(),
+			ModuleDepth: moduleDepth,
+		}))
 		return 0
 	}
 
-	c.Ui.Output(FormatState(state, c.Colorize()))
+	c.Ui.Output(FormatState(&FormatStateOpts{
+		State:       state,
+		Color:       c.Colorize(),
+		ModuleDepth: moduleDepth,
+	}))
 	return 0
 }
 
@@ -89,7 +100,10 @@ Usage: terraform show [options] path
 
 Options:
 
-  -no-color     If specified, output won't contain any color.
+  -module-depth=n     Specifies the depth of modules to show in the output.
+                      By default this is zero. -1 will expand all.
+
+  -no-color           If specified, output won't contain any color.
 
 `
 	return strings.TrimSpace(helpText)

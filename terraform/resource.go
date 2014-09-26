@@ -29,6 +29,7 @@ type Resource struct {
 	Id           string
 	Info         *InstanceInfo
 	Config       *ResourceConfig
+	Dependencies []string
 	Diff         *InstanceDiff
 	Provider     ResourceProvider
 	State        *InstanceState
@@ -47,6 +48,33 @@ const (
 	FlagOrphan
 	FlagHasTainted
 )
+
+// InstanceInfo is used to hold information about the instance and/or
+// resource being modified.
+type InstanceInfo struct {
+	// Id is a unique name to represent this instance. This is not related
+	// to InstanceState.ID in any way.
+	Id string
+
+	// ModulePath is the complete path of the module containing this
+	// instance.
+	ModulePath []string
+
+	// Type is the resource type of this instance
+	Type string
+}
+
+// HumanId is a unique Id that is human-friendly and useful for UI elements.
+func (i *InstanceInfo) HumanId() string {
+	if len(i.ModulePath) <= 1 {
+		return i.Id
+	}
+
+	return fmt.Sprintf(
+		"module.%s.%s",
+		strings.Join(i.ModulePath[1:], "."),
+		i.Id)
+}
 
 // ResourceConfig holds the configuration given for a resource. This is
 // done instead of a raw `map[string]interface{}` type so that rich
@@ -160,7 +188,7 @@ func (c *ResourceConfig) get(
 	return current, true
 }
 
-func (c *ResourceConfig) interpolate(ctx *Context) error {
+func (c *ResourceConfig) interpolate(ctx *walkContext) error {
 	if c == nil {
 		return nil
 	}

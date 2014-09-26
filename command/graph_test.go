@@ -5,7 +5,6 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/hashicorp/terraform/config"
 	"github.com/hashicorp/terraform/terraform"
 	"github.com/mitchellh/cli"
 )
@@ -81,7 +80,7 @@ func TestGraph_noArgs(t *testing.T) {
 
 func TestGraph_plan(t *testing.T) {
 	planPath := testPlanFile(t, &terraform.Plan{
-		Config: new(config.Config),
+		Module: testModule(t, "graph"),
 	})
 
 	ui := new(cli.MockUi)

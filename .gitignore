@@ -6,6 +6,7 @@ terraform.tfstate
 bin/
 config/y.go
 config/y.output
+modules-dev/
 pkg/
 vendor/
 website/.vagrant

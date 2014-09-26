@@ -6,8 +6,9 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"path/filepath"
 
-	"github.com/hashicorp/terraform/config"
+	"github.com/hashicorp/terraform/config/module"
 	"github.com/hashicorp/terraform/terraform"
 	"github.com/mitchellh/cli"
 	"github.com/mitchellh/colorstring"
@@ -46,11 +47,11 @@ func (m *Meta) Colorize() *colorstring.Colorize {
 
 // Context returns a Terraform Context taking into account the context
 // options used to initialize this meta configuration.
-func (m *Meta) Context(path, statePath string) (*terraform.Context, bool, error) {
+func (m *Meta) Context(copts contextOpts) (*terraform.Context, bool, error) {
 	opts := m.contextOpts()
 
 	// First try to just read the plan directly from the path given.
-	f, err := os.Open(path)
+	f, err := os.Open(copts.Path)
 	if err == nil {
 		plan, err := terraform.ReadPlan(f)
 		f.Close()
@@ -69,8 +70,8 @@ func (m *Meta) Context(path, statePath string) (*terraform.Context, bool, error)
 
 	// Load up the state
 	var state *terraform.State
-	if statePath != "" {
-		f, err := os.Open(statePath)
+	if copts.StatePath != "" {
+		f, err := os.Open(copts.StatePath)
 		if err != nil && os.IsNotExist(err) {
 			// If the state file doesn't exist, it is okay, since it
 			// is probably a new infrastructure.
@@ -88,15 +89,17 @@ func (m *Meta) Context(path, statePath string) (*terraform.Context, bool, error)
 	// Store the loaded state
 	m.state = state
 
-	config, err := config.LoadDir(path)
+	// Load the root module
+	mod, err := module.NewTreeModule("", copts.Path)
 	if err != nil {
 		return nil, false, fmt.Errorf("Error loading config: %s", err)
 	}
-	if err := config.Validate(); err != nil {
-		return nil, false, fmt.Errorf("Error validating config: %s", err)
+	err = mod.Load(m.moduleStorage(copts.Path), copts.GetMode)
+	if err != nil {
+		return nil, false, fmt.Errorf("Error downloading modules: %s", err)
 	}
 
-	opts.Config = config
+	opts.Module = mod
 	opts.State = state
 	ctx := terraform.NewContext(opts)
 	return ctx, false, nil
@@ -154,6 +157,17 @@ func (m *Meta) flagSet(n string) *flag.FlagSet {
 	return f
 }
 
+// moduleStorage returns the module.Storage implementation used to store
+// modules for commands.
+func (m *Meta) moduleStorage(root string) module.Storage {
+	return &uiModuleStorage{
+		Storage: &module.FolderStorage{
+			StorageDir: filepath.Join(root, "modules"),
+		},
+		Ui: m.Ui,
+	}
+}
+
 // process will process the meta-parameters out of the arguments. This
 // will potentially modify the args in-place. It will return the resulting
 // slice.
@@ -206,4 +220,19 @@ func (m *Meta) uiHook() *UiHook {
 		Colorize: m.Colorize(),
 		Ui:       m.Ui,
 	}
+}
+
+// contextOpts are the options used to load a context from a command.
+type contextOpts struct {
+	// Path to the directory where the root module is.
+	Path string
+
+	// StatePath is the path to the state file. If this is empty, then
+	// no state will be loaded. It is also okay for this to be a path to
+	// a file that doesn't exist; it is assumed that this means that there
+	// is simply no state.
+	StatePath string
+
+	// GetMode is the module.GetMode to use when loading the module tree.
+	GetMode module.GetMode
 }

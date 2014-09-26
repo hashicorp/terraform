@@ -7,6 +7,41 @@ import (
 	"github.com/hashicorp/terraform/config"
 )
 
+func TestInstanceInfo(t *testing.T) {
+	cases := []struct {
+		Info   *InstanceInfo
+		Result string
+	}{
+		{
+			&InstanceInfo{
+				Id: "foo",
+			},
+			"foo",
+		},
+		{
+			&InstanceInfo{
+				Id:         "foo",
+				ModulePath: rootModulePath,
+			},
+			"foo",
+		},
+		{
+			&InstanceInfo{
+				Id:         "foo",
+				ModulePath: []string{"root", "consul"},
+			},
+			"module.consul.foo",
+		},
+	}
+
+	for i, tc := range cases {
+		actual := tc.Info.HumanId()
+		if actual != tc.Result {
+			t.Fatalf("%d: %s", i, actual)
+		}
+	}
+}
+
 func TestResourceConfigGet(t *testing.T) {
 	cases := []struct {
 		Config map[string]interface{}
@@ -67,7 +102,7 @@ func TestResourceConfigGet(t *testing.T) {
 		rc := NewResourceConfig(rawC)
 		if tc.Vars != nil {
 			ctx := NewContext(&ContextOpts{Variables: tc.Vars})
-			if err := rc.interpolate(ctx); err != nil {
+			if err := rc.interpolate(ctx.walkContext(walkInvalid, rootModulePath)); err != nil {
 				t.Fatalf("err: %s", err)
 			}
 		}

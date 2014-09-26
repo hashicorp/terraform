@@ -9,13 +9,14 @@ import (
 	"sync/atomic"
 
 	"github.com/hashicorp/terraform/config"
+	"github.com/hashicorp/terraform/config/module"
 	"github.com/hashicorp/terraform/depgraph"
 	"github.com/hashicorp/terraform/helper/multierror"
 )
 
 // This is a function type used to implement a walker for the resource
 // tree internally on the Terraform structure.
-type genericWalkFunc func(*Resource) error
+type genericWalkFunc func(*walkContext, *Resource) error
 
 // Context represents all the context that Terraform needs in order to
 // perform operations on infrastructure. This structure is built using
@@ -23,14 +24,13 @@ type genericWalkFunc func(*Resource) error
 //
 // Additionally, a context can be created from a Plan using Plan.Context.
 type Context struct {
-	config       *config.Config
+	module       *module.Tree
 	diff         *Diff
 	hooks        []Hook
 	state        *State
 	providers    map[string]ResourceProviderFactory
 	provisioners map[string]ResourceProvisionerFactory
 	variables    map[string]string
-	defaultVars  map[string]string
 
 	l     sync.Mutex    // Lock acquired during any task
 	parCh chan struct{} // Semaphore used to limit parallelism
@@ -42,9 +42,9 @@ type Context struct {
 // ContextOpts are the user-creatable configuration structure to create
 // a context with NewContext.
 type ContextOpts struct {
-	Config       *config.Config
 	Diff         *Diff
 	Hooks        []Hook
+	Module       *module.Tree
 	Parallelism  int
 	State        *State
 	Providers    map[string]ResourceProviderFactory
@@ -73,25 +73,14 @@ func NewContext(opts *ContextOpts) *Context {
 	}
 	parCh := make(chan struct{}, par)
 
-	// Calculate all the default variables
-	defaultVars := make(map[string]string)
-	if opts.Config != nil {
-		for _, v := range opts.Config.Variables {
-			for k, val := range v.DefaultsMap() {
-				defaultVars[k] = val
-			}
-		}
-	}
-
 	return &Context{
-		config:       opts.Config,
 		diff:         opts.Diff,
 		hooks:        hooks,
+		module:       opts.Module,
 		state:        opts.State,
 		providers:    opts.Providers,
 		provisioners: opts.Provisioners,
 		variables:    opts.Variables,
-		defaultVars:  defaultVars,
 
 		parCh: parCh,
 		sh:    sh,
@@ -107,17 +96,6 @@ func (c *Context) Apply() (*State, error) {
 	v := c.acquireRun()
 	defer c.releaseRun(v)
 
-	g, err := Graph(&GraphOpts{
-		Config:       c.config,
-		Diff:         c.diff,
-		Providers:    c.providers,
-		Provisioners: c.provisioners,
-		State:        c.state,
-	})
-	if err != nil {
-		return nil, err
-	}
-
 	// Set our state right away. No matter what, this IS our new state,
 	// even if there is an error below.
 	c.state = c.state.deepcopy()
@@ -126,38 +104,26 @@ func (c *Context) Apply() (*State, error) {
 	}
 	c.state.init()
 
-	// Initialize the state with all the resources
-	graphInitState(c.state, g)
-
 	// Walk
 	log.Printf("[INFO] Apply walk starting")
-	err = g.Walk(c.applyWalkFn())
+	err := c.walkContext(walkApply, rootModulePath).Walk()
 	log.Printf("[INFO] Apply walk complete")
 
 	// Prune the state so that we have as clean a state as possible
 	c.state.prune()
-
-	// If we have no errors, then calculate the outputs if we have any
-	root := c.state.RootModule()
-	if err == nil && len(c.config.Outputs) > 0 && len(root.Resources) > 0 {
-		outputs := make(map[string]string)
-		for _, o := range c.config.Outputs {
-			if err = c.computeVars(o.RawConfig); err != nil {
-				break
-			}
-			outputs[o.Name] = o.RawConfig.Config()["value"].(string)
-		}
-
-		// Assign the outputs to the root module
-		root.Outputs = outputs
-	}
 
 	return c.state, err
 }
 
 // Graph returns the graph for this context.
 func (c *Context) Graph() (*depgraph.Graph, error) {
-	return c.graph()
+	return Graph(&GraphOpts{
+		Diff:         c.diff,
+		Module:       c.module,
+		Providers:    c.providers,
+		Provisioners: c.provisioners,
+		State:        c.state,
+	})
 }
 
 // Plan generates an execution plan for the given context.
@@ -171,28 +137,17 @@ func (c *Context) Plan(opts *PlanOpts) (*Plan, error) {
 	v := c.acquireRun()
 	defer c.releaseRun(v)
 
-	g, err := Graph(&GraphOpts{
-		Config:       c.config,
-		Providers:    c.providers,
-		Provisioners: c.provisioners,
-		State:        c.state,
-	})
-	if err != nil {
-		return nil, err
-	}
-
 	p := &Plan{
-		Config: c.config,
+		Module: c.module,
 		Vars:   c.variables,
 		State:  c.state,
 	}
 
-	var walkFn depgraph.WalkFunc
+	wc := c.walkContext(walkInvalid, rootModulePath)
+	wc.Meta = p
 
 	if opts != nil && opts.Destroy {
-		// If we're destroying, we use a different walk function since it
-		// doesn't need as many details.
-		walkFn = c.planDestroyWalkFn(p)
+		wc.Operation = walkPlanDestroy
 	} else {
 		// Set our state to be something temporary. We do this so that
 		// the plan can update a fake state so that variables work, then
@@ -208,14 +163,11 @@ func (c *Context) Plan(opts *PlanOpts) (*Plan, error) {
 			c.state = old
 		}()
 
-		// Initialize the state with all the resources
-		graphInitState(c.state, g)
-
-		walkFn = c.planWalkFn(p)
+		wc.Operation = walkPlan
 	}
 
 	// Walk and run the plan
-	err = g.Walk(walkFn)
+	err := wc.Walk()
 
 	// Update the diff so that our context is up-to-date
 	c.diff = p.Diff
@@ -236,23 +188,8 @@ func (c *Context) Refresh() (*State, error) {
 	// Update our state
 	c.state = c.state.deepcopy()
 
-	g, err := Graph(&GraphOpts{
-		Config:       c.config,
-		Providers:    c.providers,
-		Provisioners: c.provisioners,
-		State:        c.state,
-	})
-	if err != nil {
-		return c.state, err
-	}
-
-	if c.state != nil {
-		// Initialize the state with all the resources
-		graphInitState(c.state, g)
-	}
-
 	// Walk the graph
-	err = g.Walk(c.refreshWalkFn())
+	err := c.walkContext(walkRefresh, rootModulePath).Walk()
 
 	// Prune the state
 	c.state.prune()
@@ -285,34 +222,32 @@ func (c *Context) Validate() ([]string, []error) {
 	var rerr *multierror.Error
 
 	// Validate the configuration itself
-	if err := c.config.Validate(); err != nil {
+	if err := c.module.Validate(); err != nil {
 		rerr = multierror.ErrorAppend(rerr, err)
 	}
 
-	// Validate the user variables
-	if errs := smcUserVariables(c.config, c.variables); len(errs) > 0 {
-		rerr = multierror.ErrorAppend(rerr, errs...)
-	}
-
-	// Validate the graph
-	g, err := c.graph()
-	if err != nil {
-		rerr = multierror.ErrorAppend(rerr, fmt.Errorf(
-			"Error creating graph: %s", err))
-	}
-
-	// Walk the graph and validate all the configs
-	var warns []string
-	var errs []error
-	if g != nil {
-		err = g.Walk(c.validateWalkFn(&warns, &errs))
-		if err != nil {
-			rerr = multierror.ErrorAppend(rerr, fmt.Errorf(
-				"Error validating resources in graph: %s", err))
-		}
-		if len(errs) > 0 {
+	// This only needs to be done for the root module, since inter-module
+	// variables are validated in the module tree.
+	if config := c.module.Config(); config != nil {
+		// Validate the user variables
+		if errs := smcUserVariables(config, c.variables); len(errs) > 0 {
 			rerr = multierror.ErrorAppend(rerr, errs...)
 		}
+	}
+
+	// Validate the entire graph
+	walkMeta := new(walkValidateMeta)
+	wc := c.walkContext(walkValidate, rootModulePath)
+	wc.Meta = walkMeta
+	if err := wc.Walk(); err != nil {
+		rerr = multierror.ErrorAppend(rerr, err)
+	}
+
+	// Flatten the warns/errs so that we get all the module errors as well,
+	// then aggregate.
+	warns, errs := walkMeta.Flatten()
+	if len(errs) > 0 {
+		rerr = multierror.ErrorAppend(rerr, errs...)
 	}
 
 	errs = nil
@@ -321,184 +256,6 @@ func (c *Context) Validate() ([]string, []error) {
 	}
 
 	return warns, errs
-}
-
-// computeVars takes the State and given RawConfig and processes all
-// the variables. This dynamically discovers the attributes instead of
-// using a static map[string]string that the genericWalkFn uses.
-func (c *Context) computeVars(raw *config.RawConfig) error {
-	// If there isn't a raw configuration, don't do anything
-	if raw == nil {
-		return nil
-	}
-
-	// Start building up the variables. First, defaults
-	vs := make(map[string]string)
-	for k, v := range c.defaultVars {
-		vs[k] = v
-	}
-
-	// Next, the actual computed variables
-	for n, rawV := range raw.Variables {
-		switch v := rawV.(type) {
-		case *config.ResourceVariable:
-			var attr string
-			var err error
-			if v.Multi && v.Index == -1 {
-				attr, err = c.computeResourceMultiVariable(v)
-			} else {
-				attr, err = c.computeResourceVariable(v)
-			}
-			if err != nil {
-				return err
-			}
-
-			vs[n] = attr
-		case *config.UserVariable:
-			val, ok := c.variables[v.Name]
-			if ok {
-				vs[n] = val
-				continue
-			}
-
-			// Look up if we have any variables with this prefix because
-			// those are map overrides. Include those.
-			for k, val := range c.variables {
-				if strings.HasPrefix(k, v.Name+".") {
-					vs["var."+k] = val
-				}
-			}
-		}
-	}
-
-	// Interpolate the variables
-	return raw.Interpolate(vs)
-}
-
-func (c *Context) computeResourceVariable(
-	v *config.ResourceVariable) (string, error) {
-	id := v.ResourceId()
-	if v.Multi {
-		id = fmt.Sprintf("%s.%d", id, v.Index)
-	}
-
-	c.sl.RLock()
-	defer c.sl.RUnlock()
-
-	// Get the relevant module
-	// TODO: Not use only root module
-	module := c.state.RootModule()
-
-	r, ok := module.Resources[id]
-	if !ok {
-		return "", fmt.Errorf(
-			"Resource '%s' not found for variable '%s'",
-			id,
-			v.FullKey())
-	}
-
-	if r.Primary == nil {
-		goto MISSING
-	}
-
-	if attr, ok := r.Primary.Attributes[v.Field]; ok {
-		return attr, nil
-	}
-
-	// We didn't find the exact field, so lets separate the dots
-	// and see if anything along the way is a computed set. i.e. if
-	// we have "foo.0.bar" as the field, check to see if "foo" is
-	// a computed list. If so, then the whole thing is computed.
-	if parts := strings.Split(v.Field, "."); len(parts) > 1 {
-		for i := 1; i < len(parts); i++ {
-			key := fmt.Sprintf("%s.#", strings.Join(parts[:i], "."))
-			if attr, ok := r.Primary.Attributes[key]; ok {
-				return attr, nil
-			}
-		}
-	}
-
-MISSING:
-	return "", fmt.Errorf(
-		"Resource '%s' does not have attribute '%s' "+
-			"for variable '%s'",
-		id,
-		v.Field,
-		v.FullKey())
-}
-
-func (c *Context) computeResourceMultiVariable(
-	v *config.ResourceVariable) (string, error) {
-	c.sl.RLock()
-	defer c.sl.RUnlock()
-
-	// Get the resource from the configuration so we can know how
-	// many of the resource there is.
-	var cr *config.Resource
-	for _, r := range c.config.Resources {
-		if r.Id() == v.ResourceId() {
-			cr = r
-			break
-		}
-	}
-	if cr == nil {
-		return "", fmt.Errorf(
-			"Resource '%s' not found for variable '%s'",
-			v.ResourceId(),
-			v.FullKey())
-	}
-
-	// Get the relevant module
-	// TODO: Not use only root module
-	module := c.state.RootModule()
-
-	var values []string
-	for i := 0; i < cr.Count; i++ {
-		id := fmt.Sprintf("%s.%d", v.ResourceId(), i)
-
-		// If we're dealing with only a single resource, then the
-		// ID doesn't have a trailing index.
-		if cr.Count == 1 {
-			id = v.ResourceId()
-		}
-
-		r, ok := module.Resources[id]
-		if !ok {
-			continue
-		}
-
-		if r.Primary == nil {
-			continue
-		}
-
-		attr, ok := r.Primary.Attributes[v.Field]
-		if !ok {
-			continue
-		}
-
-		values = append(values, attr)
-	}
-
-	if len(values) == 0 {
-		return "", fmt.Errorf(
-			"Resource '%s' does not have attribute '%s' "+
-				"for variable '%s'",
-			v.ResourceId(),
-			v.Field,
-			v.FullKey())
-	}
-
-	return strings.Join(values, ","), nil
-}
-
-func (c *Context) graph() (*depgraph.Graph, error) {
-	return Graph(&GraphOpts{
-		Config:       c.config,
-		Diff:         c.diff,
-		Providers:    c.providers,
-		Provisioners: c.provisioners,
-		State:        c.state,
-	})
 }
 
 func (c *Context) acquireRun() chan<- struct{} {
@@ -527,8 +284,163 @@ func (c *Context) releaseRun(ch chan<- struct{}) {
 	c.sh.Reset()
 }
 
-func (c *Context) applyWalkFn() depgraph.WalkFunc {
-	cb := func(r *Resource) error {
+func (c *Context) walkContext(op walkOperation, path []string) *walkContext {
+	// Get the config structure
+	m := c.module
+	for _, n := range path[1:] {
+		cs := m.Children()
+		m = cs[n]
+	}
+	var conf *config.Config
+	if m != nil {
+		conf = m.Config()
+	}
+
+	// Calculate the default variable values
+	defaultVars := make(map[string]string)
+	if conf != nil {
+		for _, v := range conf.Variables {
+			for k, val := range v.DefaultsMap() {
+				defaultVars[k] = val
+			}
+		}
+	}
+
+	return &walkContext{
+		Context:   c,
+		Operation: op,
+		Path:      path,
+		Variables: c.variables,
+
+		defaultVariables: defaultVars,
+	}
+}
+
+// walkContext is the context in which a graph walk is done. It stores
+// much the same as a Context but works on a specific module.
+type walkContext struct {
+	Context   *Context
+	Meta      interface{}
+	Operation walkOperation
+	Path      []string
+	Variables map[string]string
+
+	defaultVariables map[string]string
+
+	// This is only set manually by subsequent context creations
+	// in genericWalkFunc.
+	graph *depgraph.Graph
+}
+
+// walkOperation is an enum which tells the walkContext what to do.
+type walkOperation byte
+
+const (
+	walkInvalid walkOperation = iota
+	walkApply
+	walkPlan
+	walkPlanDestroy
+	walkRefresh
+	walkValidate
+)
+
+func (c *walkContext) Walk() error {
+	g := c.graph
+	if g == nil {
+		gopts := &GraphOpts{
+			Module:       c.Context.module,
+			Providers:    c.Context.providers,
+			Provisioners: c.Context.provisioners,
+			State:        c.Context.state,
+		}
+		if c.Operation == walkApply {
+			gopts.Diff = c.Context.diff
+		}
+
+		var err error
+		g, err = Graph(gopts)
+		if err != nil {
+			return err
+		}
+	}
+
+	var walkFn depgraph.WalkFunc
+	switch c.Operation {
+	case walkApply:
+		walkFn = c.applyWalkFn()
+	case walkPlan:
+		walkFn = c.planWalkFn()
+	case walkPlanDestroy:
+		walkFn = c.planDestroyWalkFn()
+	case walkRefresh:
+		walkFn = c.refreshWalkFn()
+	case walkValidate:
+		walkFn = c.validateWalkFn()
+	default:
+		panic(fmt.Sprintf("unknown operation: %s", c.Operation))
+	}
+
+	if err := g.Walk(walkFn); err != nil {
+		return err
+	}
+
+	if c.Operation == walkValidate {
+		// Validation is the only one that doesn't calculate outputs
+		return nil
+	}
+
+	// We did an apply, so we need to calculate the outputs. If we have no
+	// outputs, then we're done.
+	m := c.Context.module
+	for _, n := range c.Path[1:] {
+		cs := m.Children()
+		m = cs[n]
+	}
+	if m == nil {
+		return nil
+	}
+	conf := m.Config()
+	if len(conf.Outputs) == 0 {
+		return nil
+	}
+
+	// Likewise, if we have no resources in our state, we're done. This
+	// guards against the case that we destroyed.
+	mod := c.Context.state.ModuleByPath(c.Path)
+	if c.Operation == walkApply {
+		// On Apply, we prune so that we don't do outputs if we destroyed
+		mod.prune()
+	}
+	if len(mod.Resources) == 0 {
+		return nil
+	}
+
+	outputs := make(map[string]string)
+	for _, o := range conf.Outputs {
+		if err := c.computeVars(o.RawConfig); err != nil {
+			return err
+		}
+		vraw := o.RawConfig.Config()["value"]
+		if vraw == nil {
+			// This likely means that the result of the output is
+			// a computed variable.
+			if o.RawConfig.Raw["value"] != nil {
+				vraw = config.UnknownVariableValue
+			}
+		}
+		if vraw != nil {
+			outputs[o.Name] = vraw.(string)
+		}
+	}
+
+	// Assign the outputs to the root module
+	mod.Outputs = outputs
+
+	return nil
+}
+
+func (c *walkContext) applyWalkFn() depgraph.WalkFunc {
+	cb := func(c *walkContext, r *Resource) error {
 		var err error
 
 		diff := r.Diff
@@ -588,8 +500,8 @@ func (c *Context) applyWalkFn() depgraph.WalkFunc {
 			}
 		}
 
-		for _, h := range c.hooks {
-			handleHook(h.PreApply(r.Id, is, diff))
+		for _, h := range c.Context.hooks {
+			handleHook(h.PreApply(r.Info, is, diff))
 		}
 
 		// We create a new instance if there was no ID
@@ -648,8 +560,8 @@ func (c *Context) applyWalkFn() depgraph.WalkFunc {
 				tainted = true
 			}
 
-			for _, h := range c.hooks {
-				handleHook(h.PostProvisionResource(r.Id, is))
+			for _, h := range c.Context.hooks {
+				handleHook(h.PostProvisionResource(r.Info, is))
 			}
 		}
 
@@ -662,8 +574,8 @@ func (c *Context) applyWalkFn() depgraph.WalkFunc {
 			c.persistState(r)
 		}
 
-		for _, h := range c.hooks {
-			handleHook(h.PostApply(r.Id, is, applyerr))
+		for _, h := range c.Context.hooks {
+			handleHook(h.PostApply(r.Info, is, applyerr))
 		}
 
 		// Determine the new state and update variables
@@ -678,81 +590,14 @@ func (c *Context) applyWalkFn() depgraph.WalkFunc {
 	return c.genericWalkFn(cb)
 }
 
-// applyProvisioners is used to run any provisioners a resource has
-// defined after the resource creation has already completed.
-func (c *Context) applyProvisioners(r *Resource, is *InstanceState) error {
-	// Store the original connection info, restore later
-	origConnInfo := is.Ephemeral.ConnInfo
-	defer func() {
-		is.Ephemeral.ConnInfo = origConnInfo
-	}()
-
-	for _, prov := range r.Provisioners {
-		// Interpolate since we may have variables that depend on the
-		// local resource.
-		if err := prov.Config.interpolate(c); err != nil {
-			return err
-		}
-
-		// Interpolate the conn info, since it may contain variables
-		connInfo := NewResourceConfig(prov.ConnInfo)
-		if err := connInfo.interpolate(c); err != nil {
-			return err
-		}
-
-		// Merge the connection information
-		overlay := make(map[string]string)
-		if origConnInfo != nil {
-			for k, v := range origConnInfo {
-				overlay[k] = v
-			}
-		}
-		for k, v := range connInfo.Config {
-			switch vt := v.(type) {
-			case string:
-				overlay[k] = vt
-			case int64:
-				overlay[k] = strconv.FormatInt(vt, 10)
-			case int32:
-				overlay[k] = strconv.FormatInt(int64(vt), 10)
-			case int:
-				overlay[k] = strconv.FormatInt(int64(vt), 10)
-			case float32:
-				overlay[k] = strconv.FormatFloat(float64(vt), 'f', 3, 32)
-			case float64:
-				overlay[k] = strconv.FormatFloat(vt, 'f', 3, 64)
-			case bool:
-				overlay[k] = strconv.FormatBool(vt)
-			default:
-				overlay[k] = fmt.Sprintf("%v", vt)
-			}
-		}
-		is.Ephemeral.ConnInfo = overlay
-
-		// Invoke the Provisioner
-		for _, h := range c.hooks {
-			handleHook(h.PreProvision(r.Id, prov.Type))
-		}
-
-		if err := prov.Provisioner.Apply(is, prov.Config); err != nil {
-			return err
-		}
-
-		for _, h := range c.hooks {
-			handleHook(h.PostProvision(r.Id, prov.Type))
-		}
-	}
-
-	return nil
-}
-
-func (c *Context) planWalkFn(result *Plan) depgraph.WalkFunc {
+func (c *walkContext) planWalkFn() depgraph.WalkFunc {
 	var l sync.Mutex
 
 	// Initialize the result
+	result := c.Meta.(*Plan)
 	result.init()
 
-	cb := func(r *Resource) error {
+	cb := func(c *walkContext, r *Resource) error {
 		if r.Flags&FlagTainted != 0 {
 			// We don't diff tainted resources.
 			return nil
@@ -762,8 +607,8 @@ func (c *Context) planWalkFn(result *Plan) depgraph.WalkFunc {
 
 		is := r.State
 
-		for _, h := range c.hooks {
-			handleHook(h.PreDiff(r.Id, is))
+		for _, h := range c.Context.hooks {
+			handleHook(h.PreDiff(r.Info, is))
 		}
 
 		if r.Flags&FlagOrphan != 0 {
@@ -826,14 +671,18 @@ func (c *Context) planWalkFn(result *Plan) depgraph.WalkFunc {
 			}
 		}
 
-		l.Lock()
 		if !diff.Empty() {
-			result.Diff.Resources[r.Id] = diff
+			l.Lock()
+			md := result.Diff.ModuleByPath(c.Path)
+			if md == nil {
+				md = result.Diff.AddModule(c.Path)
+			}
+			md.Resources[r.Id] = diff
+			l.Unlock()
 		}
-		l.Unlock()
 
-		for _, h := range c.hooks {
-			handleHook(h.PostDiff(r.Id, diff))
+		for _, h := range c.Context.hooks {
+			handleHook(h.PostDiff(r.Info, diff))
 		}
 
 		// Determine the new state and update variables
@@ -851,35 +700,49 @@ func (c *Context) planWalkFn(result *Plan) depgraph.WalkFunc {
 	return c.genericWalkFn(cb)
 }
 
-func (c *Context) planDestroyWalkFn(result *Plan) depgraph.WalkFunc {
+func (c *walkContext) planDestroyWalkFn() depgraph.WalkFunc {
 	var l sync.Mutex
 
 	// Initialize the result
+	result := c.Meta.(*Plan)
 	result.init()
 
 	return func(n *depgraph.Noun) error {
-		rn, ok := n.Meta.(*GraphNodeResource)
-		if !ok {
-			return nil
-		}
+		switch m := n.Meta.(type) {
+		case *GraphNodeModule:
+			// Build another walkContext for this module and walk it.
+			wc := c.Context.walkContext(c.Operation, m.Path)
 
-		r := rn.Resource
-		if r.State != nil && r.State.ID != "" {
-			log.Printf("[DEBUG] %s: Making for destroy", r.Id)
+			// Set the graph to specifically walk this subgraph
+			wc.graph = m.Graph
 
-			l.Lock()
-			defer l.Unlock()
-			result.Diff.Resources[r.Id] = &InstanceDiff{Destroy: true}
-		} else {
-			log.Printf("[DEBUG] %s: Not marking for destroy, no ID", r.Id)
+			// Preserve the meta
+			wc.Meta = c.Meta
+
+			return wc.Walk()
+		case *GraphNodeResource:
+			r := m.Resource
+			if r.State != nil && r.State.ID != "" {
+				log.Printf("[DEBUG] %s: Making for destroy", r.Id)
+
+				l.Lock()
+				defer l.Unlock()
+				md := result.Diff.ModuleByPath(c.Path)
+				if md == nil {
+					md = result.Diff.AddModule(c.Path)
+				}
+				md.Resources[r.Id] = &InstanceDiff{Destroy: true}
+			} else {
+				log.Printf("[DEBUG] %s: Not marking for destroy, no ID", r.Id)
+			}
 		}
 
 		return nil
 	}
 }
 
-func (c *Context) refreshWalkFn() depgraph.WalkFunc {
-	cb := func(r *Resource) error {
+func (c *walkContext) refreshWalkFn() depgraph.WalkFunc {
+	cb := func(c *walkContext, r *Resource) error {
 		is := r.State
 
 		if is == nil || is.ID == "" {
@@ -887,8 +750,8 @@ func (c *Context) refreshWalkFn() depgraph.WalkFunc {
 			return nil
 		}
 
-		for _, h := range c.hooks {
-			handleHook(h.PreRefresh(r.Id, is))
+		for _, h := range c.Context.hooks {
+			handleHook(h.PreRefresh(r.Info, is))
 		}
 
 		is, err := r.Provider.Refresh(r.Info, is)
@@ -904,8 +767,8 @@ func (c *Context) refreshWalkFn() depgraph.WalkFunc {
 		r.State = is
 		c.persistState(r)
 
-		for _, h := range c.hooks {
-			handleHook(h.PostRefresh(r.Id, is))
+		for _, h := range c.Context.hooks {
+			handleHook(h.PostRefresh(r.Info, is))
 		}
 
 		return nil
@@ -914,8 +777,13 @@ func (c *Context) refreshWalkFn() depgraph.WalkFunc {
 	return c.genericWalkFn(cb)
 }
 
-func (c *Context) validateWalkFn(rws *[]string, res *[]error) depgraph.WalkFunc {
+func (c *walkContext) validateWalkFn() depgraph.WalkFunc {
 	var l sync.Mutex
+
+	meta := c.Meta.(*walkValidateMeta)
+	if meta.Children == nil {
+		meta.Children = make(map[string]*walkValidateMeta)
+	}
 
 	return func(n *depgraph.Noun) error {
 		// If it is the root node, ignore
@@ -924,6 +792,26 @@ func (c *Context) validateWalkFn(rws *[]string, res *[]error) depgraph.WalkFunc 
 		}
 
 		switch rn := n.Meta.(type) {
+		case *GraphNodeModule:
+			// Build another walkContext for this module and walk it.
+			wc := c.Context.walkContext(walkValidate, rn.Path)
+
+			// Set the graph to specifically walk this subgraph
+			wc.graph = rn.Graph
+
+			// Build the meta parameter. Do this by sharing the Children
+			// reference but copying the rest into our own Children list.
+			newMeta := new(walkValidateMeta)
+			newMeta.Children = meta.Children
+			wc.Meta = newMeta
+
+			if err := wc.Walk(); err != nil {
+				return err
+			}
+
+			newMeta.Children = nil
+			meta.Children[strings.Join(rn.Path, ".")] = newMeta
+			return nil
 		case *GraphNodeResource:
 			if rn.Resource == nil {
 				panic("resource should never be nil")
@@ -950,8 +838,8 @@ func (c *Context) validateWalkFn(rws *[]string, res *[]error) depgraph.WalkFunc 
 			}
 
 			l.Lock()
-			*rws = append(*rws, ws...)
-			*res = append(*res, es...)
+			meta.Warns = append(meta.Warns, ws...)
+			meta.Errs = append(meta.Errs, es...)
 			l.Unlock()
 
 			for idx, p := range rn.Resource.Provisioners {
@@ -964,20 +852,53 @@ func (c *Context) validateWalkFn(rws *[]string, res *[]error) depgraph.WalkFunc 
 				}
 
 				l.Lock()
-				*rws = append(*rws, ws...)
-				*res = append(*res, es...)
+				meta.Warns = append(meta.Warns, ws...)
+				meta.Errs = append(meta.Errs, es...)
 				l.Unlock()
 			}
 
 		case *GraphNodeResourceProvider:
+			sharedProvider := rn.Provider
+
 			var raw *config.RawConfig
-			if rn.Config != nil {
-				raw = rn.Config.RawConfig
+			if sharedProvider.Config != nil {
+				raw = sharedProvider.Config.RawConfig
+			}
+
+			// If we have a parent, then merge in the parent configurations
+			// properly so we "inherit" the configurations.
+			if sharedProvider.Parent != nil {
+				var rawMap map[string]interface{}
+				if raw != nil {
+					rawMap = raw.Raw
+				}
+
+				parent := sharedProvider.Parent
+				for parent != nil {
+					if parent.Config != nil {
+						if rawMap == nil {
+							rawMap = parent.Config.RawConfig.Raw
+						}
+
+						for k, v := range parent.Config.RawConfig.Raw {
+							rawMap[k] = v
+						}
+					}
+
+					parent = parent.Parent
+				}
+
+				// Update our configuration to be the merged result
+				var err error
+				raw, err = config.NewRawConfig(rawMap)
+				if err != nil {
+					return fmt.Errorf("Error merging configurations: %s", err)
+				}
 			}
 
 			rc := NewResourceConfig(raw)
 
-			for k, p := range rn.Providers {
+			for k, p := range sharedProvider.Providers {
 				log.Printf("[INFO] Validating provider: %s", k)
 				ws, es := p.Validate(rc)
 				for i, w := range ws {
@@ -988,8 +909,8 @@ func (c *Context) validateWalkFn(rws *[]string, res *[]error) depgraph.WalkFunc 
 				}
 
 				l.Lock()
-				*rws = append(*rws, ws...)
-				*res = append(*res, es...)
+				meta.Warns = append(meta.Warns, ws...)
+				meta.Errs = append(meta.Errs, es...)
 				l.Unlock()
 			}
 		}
@@ -998,7 +919,7 @@ func (c *Context) validateWalkFn(rws *[]string, res *[]error) depgraph.WalkFunc 
 	}
 }
 
-func (c *Context) genericWalkFn(cb genericWalkFunc) depgraph.WalkFunc {
+func (c *walkContext) genericWalkFn(cb genericWalkFunc) depgraph.WalkFunc {
 	// This will keep track of whether we're stopped or not
 	var stop uint32 = 0
 
@@ -1014,28 +935,88 @@ func (c *Context) genericWalkFn(cb genericWalkFunc) depgraph.WalkFunc {
 		}
 
 		// Limit parallelism
-		c.parCh <- struct{}{}
+		c.Context.parCh <- struct{}{}
 		defer func() {
-			<-c.parCh
+			<-c.Context.parCh
 		}()
 
 		switch m := n.Meta.(type) {
+		case *GraphNodeModule:
+			// Build another walkContext for this module and walk it.
+			wc := c.Context.walkContext(c.Operation, m.Path)
+
+			// Set the graph to specifically walk this subgraph
+			wc.graph = m.Graph
+
+			// Preserve the meta
+			wc.Meta = c.Meta
+
+			// Set the variables
+			if m.Config != nil {
+				wc.Variables = make(map[string]string)
+
+				rc := NewResourceConfig(m.Config.RawConfig)
+				rc.interpolate(c)
+				for k, v := range rc.Config {
+					wc.Variables[k] = v.(string)
+				}
+				for k, _ := range rc.Raw {
+					if _, ok := wc.Variables[k]; !ok {
+						wc.Variables[k] = config.UnknownVariableValue
+					}
+				}
+			}
+
+			return wc.Walk()
 		case *GraphNodeResource:
 			// Continue, we care about this the most
 		case *GraphNodeResourceMeta:
 			// Skip it
 			return nil
 		case *GraphNodeResourceProvider:
+			sharedProvider := m.Provider
+
 			// Interpolate in the variables and configure all the providers
 			var raw *config.RawConfig
-			if m.Config != nil {
-				raw = m.Config.RawConfig
+			if sharedProvider.Config != nil {
+				raw = sharedProvider.Config.RawConfig
+			}
+
+			// If we have a parent, then merge in the parent configurations
+			// properly so we "inherit" the configurations.
+			if sharedProvider.Parent != nil {
+				var rawMap map[string]interface{}
+				if raw != nil {
+					rawMap = raw.Raw
+				}
+
+				parent := sharedProvider.Parent
+				for parent != nil {
+					if parent.Config != nil {
+						if rawMap == nil {
+							rawMap = parent.Config.RawConfig.Raw
+						}
+
+						for k, v := range parent.Config.RawConfig.Config() {
+							rawMap[k] = v
+						}
+					}
+
+					parent = parent.Parent
+				}
+
+				// Update our configuration to be the merged result
+				var err error
+				raw, err = config.NewRawConfig(rawMap)
+				if err != nil {
+					return fmt.Errorf("Error merging configurations: %s", err)
+				}
 			}
 
 			rc := NewResourceConfig(raw)
 			rc.interpolate(c)
 
-			for k, p := range m.Providers {
+			for k, p := range sharedProvider.Providers {
 				log.Printf("[INFO] Configuring provider: %s", k)
 				err := p.Configure(rc)
 				if err != nil {
@@ -1070,10 +1051,11 @@ func (c *Context) genericWalkFn(cb genericWalkFunc) depgraph.WalkFunc {
 
 		// Call the callack
 		log.Printf(
-			"[INFO] Walking: %s (Graph node: %s)",
+			"[INFO] Module %s walking: %s (Graph node: %s)",
+			strings.Join(c.Path, "."),
 			rn.Resource.Id,
 			n.Name)
-		if err := cb(rn.Resource); err != nil {
+		if err := cb(c, rn.Resource); err != nil {
 			log.Printf("[ERROR] Error walking '%s': %s", rn.Resource.Id, err)
 			return err
 		}
@@ -1082,24 +1064,100 @@ func (c *Context) genericWalkFn(cb genericWalkFunc) depgraph.WalkFunc {
 	}
 }
 
-func (c *Context) persistState(r *Resource) {
+// applyProvisioners is used to run any provisioners a resource has
+// defined after the resource creation has already completed.
+func (c *walkContext) applyProvisioners(r *Resource, is *InstanceState) error {
+	// Store the original connection info, restore later
+	origConnInfo := is.Ephemeral.ConnInfo
+	defer func() {
+		is.Ephemeral.ConnInfo = origConnInfo
+	}()
+
+	for _, prov := range r.Provisioners {
+		// Interpolate since we may have variables that depend on the
+		// local resource.
+		if err := prov.Config.interpolate(c); err != nil {
+			return err
+		}
+
+		// Interpolate the conn info, since it may contain variables
+		connInfo := NewResourceConfig(prov.ConnInfo)
+		if err := connInfo.interpolate(c); err != nil {
+			return err
+		}
+
+		// Merge the connection information
+		overlay := make(map[string]string)
+		if origConnInfo != nil {
+			for k, v := range origConnInfo {
+				overlay[k] = v
+			}
+		}
+		for k, v := range connInfo.Config {
+			switch vt := v.(type) {
+			case string:
+				overlay[k] = vt
+			case int64:
+				overlay[k] = strconv.FormatInt(vt, 10)
+			case int32:
+				overlay[k] = strconv.FormatInt(int64(vt), 10)
+			case int:
+				overlay[k] = strconv.FormatInt(int64(vt), 10)
+			case float32:
+				overlay[k] = strconv.FormatFloat(float64(vt), 'f', 3, 32)
+			case float64:
+				overlay[k] = strconv.FormatFloat(vt, 'f', 3, 64)
+			case bool:
+				overlay[k] = strconv.FormatBool(vt)
+			default:
+				overlay[k] = fmt.Sprintf("%v", vt)
+			}
+		}
+		is.Ephemeral.ConnInfo = overlay
+
+		// Invoke the Provisioner
+		for _, h := range c.Context.hooks {
+			handleHook(h.PreProvision(r.Info, prov.Type))
+		}
+
+		if err := prov.Provisioner.Apply(is, prov.Config); err != nil {
+			return err
+		}
+
+		for _, h := range c.Context.hooks {
+			handleHook(h.PostProvision(r.Info, prov.Type))
+		}
+	}
+
+	return nil
+}
+
+// persistState persists the state in a Resource to the actual final
+// state location.
+func (c *walkContext) persistState(r *Resource) {
 	// Acquire a state lock around this whole thing since we're updating that
-	c.sl.Lock()
-	defer c.sl.Unlock()
+	c.Context.sl.Lock()
+	defer c.Context.sl.Unlock()
 
 	// If we have no state, then we don't persist.
-	if c.state == nil {
+	if c.Context.state == nil {
 		return
 	}
 
 	// Get the state for this resource. The resource state should always
 	// exist because we call graphInitState before anything that could
 	// potentially call this.
-	module := c.state.RootModule()
+	module := c.Context.state.ModuleByPath(c.Path)
+	if module == nil {
+		module = c.Context.state.AddModule(c.Path)
+	}
 	rs := module.Resources[r.Id]
 	if rs == nil {
-		panic(fmt.Sprintf("nil ResourceState for ID: %s", r.Id))
+		rs = &ResourceState{Type: r.Info.Type}
+		rs.init()
+		module.Resources[r.Id] = rs
 	}
+	rs.Dependencies = r.Dependencies
 
 	// Assign the instance state to the proper location
 	if r.Flags&FlagTainted != 0 {
@@ -1120,4 +1178,253 @@ func (c *Context) persistState(r *Resource) {
 
 	// Do a pruning so that empty resources are not saved
 	rs.prune()
+}
+
+// computeVars takes the State and given RawConfig and processes all
+// the variables. This dynamically discovers the attributes instead of
+// using a static map[string]string that the genericWalkFn uses.
+func (c *walkContext) computeVars(raw *config.RawConfig) error {
+	// If there isn't a raw configuration, don't do anything
+	if raw == nil {
+		return nil
+	}
+
+	// Copy the default variables
+	vs := make(map[string]string)
+	for k, v := range c.defaultVariables {
+		vs[k] = v
+	}
+
+	// Next, the actual computed variables
+	for n, rawV := range raw.Variables {
+		switch v := rawV.(type) {
+		case *config.ModuleVariable:
+			value, err := c.computeModuleVariable(v)
+			if err != nil {
+				return err
+			}
+
+			vs[n] = value
+		case *config.ResourceVariable:
+			var attr string
+			var err error
+			if v.Multi && v.Index == -1 {
+				attr, err = c.computeResourceMultiVariable(v)
+			} else {
+				attr, err = c.computeResourceVariable(v)
+			}
+			if err != nil {
+				return err
+			}
+
+			vs[n] = attr
+		case *config.UserVariable:
+			val, ok := c.Variables[v.Name]
+			if ok {
+				vs[n] = val
+				continue
+			}
+
+			// Look up if we have any variables with this prefix because
+			// those are map overrides. Include those.
+			for k, val := range c.Variables {
+				if strings.HasPrefix(k, v.Name+".") {
+					vs["var."+k] = val
+				}
+			}
+		}
+	}
+
+	// Interpolate the variables
+	return raw.Interpolate(vs)
+}
+
+func (c *walkContext) computeModuleVariable(
+	v *config.ModuleVariable) (string, error) {
+	// Build the path to our child
+	path := make([]string, len(c.Path), len(c.Path)+1)
+	copy(path, c.Path)
+	path = append(path, v.Name)
+
+	// Grab some locks
+	c.Context.sl.RLock()
+	defer c.Context.sl.RUnlock()
+
+	// Get that module from our state
+	mod := c.Context.state.ModuleByPath(path)
+	if mod == nil {
+		return "", fmt.Errorf(
+			"Module '%s' not found for variable '%s'",
+			strings.Join(path[1:], "."),
+			v.FullKey())
+	}
+
+	value, ok := mod.Outputs[v.Field]
+	if !ok {
+		return "", fmt.Errorf(
+			"Output field '%s' not found for variable '%s'",
+			v.Field,
+			v.FullKey())
+	}
+
+	return value, nil
+}
+
+func (c *walkContext) computeResourceVariable(
+	v *config.ResourceVariable) (string, error) {
+	id := v.ResourceId()
+	if v.Multi {
+		id = fmt.Sprintf("%s.%d", id, v.Index)
+	}
+
+	c.Context.sl.RLock()
+	defer c.Context.sl.RUnlock()
+
+	// Get the relevant module
+	module := c.Context.state.ModuleByPath(c.Path)
+
+	r, ok := module.Resources[id]
+	if !ok {
+		return "", fmt.Errorf(
+			"Resource '%s' not found for variable '%s'",
+			id,
+			v.FullKey())
+	}
+
+	if r.Primary == nil {
+		goto MISSING
+	}
+
+	if attr, ok := r.Primary.Attributes[v.Field]; ok {
+		return attr, nil
+	}
+
+	// We didn't find the exact field, so lets separate the dots
+	// and see if anything along the way is a computed set. i.e. if
+	// we have "foo.0.bar" as the field, check to see if "foo" is
+	// a computed list. If so, then the whole thing is computed.
+	if parts := strings.Split(v.Field, "."); len(parts) > 1 {
+		for i := 1; i < len(parts); i++ {
+			key := fmt.Sprintf("%s.#", strings.Join(parts[:i], "."))
+			if attr, ok := r.Primary.Attributes[key]; ok {
+				return attr, nil
+			}
+		}
+	}
+
+MISSING:
+	return "", fmt.Errorf(
+		"Resource '%s' does not have attribute '%s' "+
+			"for variable '%s'",
+		id,
+		v.Field,
+		v.FullKey())
+}
+
+func (c *walkContext) computeResourceMultiVariable(
+	v *config.ResourceVariable) (string, error) {
+	c.Context.sl.RLock()
+	defer c.Context.sl.RUnlock()
+
+	// Get the resource from the configuration so we can know how
+	// many of the resource there is.
+	var cr *config.Resource
+	for _, r := range c.Context.module.Config().Resources {
+		if r.Id() == v.ResourceId() {
+			cr = r
+			break
+		}
+	}
+	if cr == nil {
+		return "", fmt.Errorf(
+			"Resource '%s' not found for variable '%s'",
+			v.ResourceId(),
+			v.FullKey())
+	}
+
+	// Get the relevant module
+	// TODO: Not use only root module
+	module := c.Context.state.RootModule()
+
+	var values []string
+	for i := 0; i < cr.Count; i++ {
+		id := fmt.Sprintf("%s.%d", v.ResourceId(), i)
+
+		// If we're dealing with only a single resource, then the
+		// ID doesn't have a trailing index.
+		if cr.Count == 1 {
+			id = v.ResourceId()
+		}
+
+		r, ok := module.Resources[id]
+		if !ok {
+			continue
+		}
+
+		if r.Primary == nil {
+			continue
+		}
+
+		attr, ok := r.Primary.Attributes[v.Field]
+		if !ok {
+			continue
+		}
+
+		values = append(values, attr)
+	}
+
+	if len(values) == 0 {
+		return "", fmt.Errorf(
+			"Resource '%s' does not have attribute '%s' "+
+				"for variable '%s'",
+			v.ResourceId(),
+			v.Field,
+			v.FullKey())
+	}
+
+	return strings.Join(values, ","), nil
+}
+
+type walkValidateMeta struct {
+	Errs     []error
+	Warns    []string
+	Children map[string]*walkValidateMeta
+}
+
+func (m *walkValidateMeta) Flatten() ([]string, []error) {
+	// Prune out the empty children
+	for k, m2 := range m.Children {
+		if len(m2.Errs) == 0 && len(m2.Warns) == 0 {
+			delete(m.Children, k)
+		}
+	}
+
+	// If we have no children, then just return what we have
+	if len(m.Children) == 0 {
+		return m.Warns, m.Errs
+	}
+
+	// Otherwise, copy the errors and warnings
+	errs := make([]error, len(m.Errs))
+	warns := make([]string, len(m.Warns))
+	for i, err := range m.Errs {
+		errs[i] = err
+	}
+	for i, warn := range m.Warns {
+		warns[i] = warn
+	}
+
+	// Now go through each child and copy it in...
+	for k, c := range m.Children {
+		for _, err := range c.Errs {
+			errs = append(errs, fmt.Errorf(
+				"Module %s: %s", k, err))
+		}
+		for _, warn := range c.Warns {
+			warns = append(warns, fmt.Sprintf(
+				"Module %s: %s", k, warn))
+		}
+	}
+
+	return warns, errs
 }

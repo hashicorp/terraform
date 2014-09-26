@@ -8,7 +8,7 @@ import (
 	"io"
 	"sync"
 
-	"github.com/hashicorp/terraform/config"
+	"github.com/hashicorp/terraform/config/module"
 )
 
 func init() {
@@ -30,8 +30,8 @@ type PlanOpts struct {
 // Plan represents a single Terraform execution plan, which contains
 // all the information necessary to make an infrastructure change.
 type Plan struct {
-	Config *config.Config
 	Diff   *Diff
+	Module *module.Tree
 	State  *State
 	Vars   map[string]string
 
@@ -43,8 +43,8 @@ type Plan struct {
 // The following fields in opts are overridden by the plan: Config,
 // Diff, State, Variables.
 func (p *Plan) Context(opts *ContextOpts) *Context {
-	opts.Config = p.Config
 	opts.Diff = p.Diff
+	opts.Module = p.Module
 	opts.State = p.State
 	opts.Variables = p.Vars
 	return NewContext(opts)
@@ -54,17 +54,13 @@ func (p *Plan) String() string {
 	buf := new(bytes.Buffer)
 	buf.WriteString("DIFF:\n\n")
 	buf.WriteString(p.Diff.String())
-	buf.WriteString("\nSTATE:\n\n")
+	buf.WriteString("\n\nSTATE:\n\n")
 	buf.WriteString(p.State.String())
 	return buf.String()
 }
 
 func (p *Plan) init() {
 	p.once.Do(func() {
-		if p.Config == nil {
-			p.Config = new(config.Config)
-		}
-
 		if p.Diff == nil {
 			p.Diff = new(Diff)
 			p.Diff.init()

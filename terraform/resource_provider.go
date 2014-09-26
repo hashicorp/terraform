@@ -62,13 +62,6 @@ type ResourceProvider interface {
 	Refresh(*InstanceInfo, *InstanceState) (*InstanceState, error)
 }
 
-// InstanceInfo is used to hold information about the instance and/or
-// resource being modified.
-type InstanceInfo struct {
-	// Type is the resource type of this instance
-	Type string
-}
-
 // ResourceType is a type of resource that a resource provider can manage.
 type ResourceType struct {
 	Name string

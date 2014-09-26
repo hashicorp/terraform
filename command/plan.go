@@ -18,12 +18,14 @@ type PlanCommand struct {
 func (c *PlanCommand) Run(args []string) int {
 	var destroy, refresh bool
 	var outPath, statePath, backupPath string
+	var moduleDepth int
 
 	args = c.Meta.process(args, true)
 
 	cmdFlags := c.Meta.flagSet("plan")
 	cmdFlags.BoolVar(&destroy, "destroy", false, "destroy")
 	cmdFlags.BoolVar(&refresh, "refresh", true, "refresh")
+	cmdFlags.IntVar(&moduleDepth, "module-depth", 0, "module-depth")
 	cmdFlags.StringVar(&outPath, "out", "", "path")
 	cmdFlags.StringVar(&statePath, "state", DefaultStateFilename, "path")
 	cmdFlags.StringVar(&backupPath, "backup", "", "path")
@@ -65,7 +67,10 @@ func (c *PlanCommand) Run(args []string) int {
 		backupPath = statePath + DefaultBackupExtention
 	}
 
-	ctx, _, err := c.Context(path, statePath)
+	ctx, _, err := c.Context(contextOpts{
+		Path:      path,
+		StatePath: statePath,
+	})
 	if err != nil {
 		c.Ui.Error(err.Error())
 		return 1
@@ -133,7 +138,11 @@ func (c *PlanCommand) Run(args []string) int {
 			outPath))
 	}
 
-	c.Ui.Output(FormatPlan(plan, c.Colorize()))
+	c.Ui.Output(FormatPlan(&FormatPlanOpts{
+		Plan:        plan,
+		Color:       c.Colorize(),
+		ModuleDepth: moduleDepth,
+	}))
 
 	return 0
 }
@@ -157,6 +166,10 @@ Options:
 
   -destroy            If set, a plan will be generated to destroy all resources
                       managed by the given configuration and state.
+
+  -module-depth=n     Specifies the depth of modules to show in the output.
+                      This does not affect the plan itself, only the output
+                      shown. By default, this is zero. -1 will expand all.
 
   -no-color           If specified, output won't contain any color.
 

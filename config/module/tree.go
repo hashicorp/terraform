@@ -10,6 +10,9 @@ import (
 	"github.com/hashicorp/terraform/config"
 )
 
+// RootName is the name of the root tree.
+const RootName = "root"
+
 // Tree represents the module import tree of configurations.
 //
 // This Tree structure can be used to get (download) new modules, load
@@ -58,6 +61,11 @@ func NewTreeModule(name, dir string) (*Tree, error) {
 	return NewTree(name, c), nil
 }
 
+// Config returns the configuration for this module.
+func (t *Tree) Config() *config.Config {
+	return t.config
+}
+
 // Children returns the children of this tree (the modules that are
 // imported by this root).
 //
@@ -95,7 +103,7 @@ func (t *Tree) Modules() []*Module {
 // tree and then the module name given for any children.
 func (t *Tree) Name() string {
 	if t.name == "" {
-		return "<root>"
+		return RootName
 	}
 
 	return t.name
@@ -249,9 +257,14 @@ func (t *Tree) Validate() error {
 		}
 
 		// Build the variables that the module defines
+		requiredMap := make(map[string]struct{})
 		varMap := make(map[string]struct{})
 		for _, v := range tree.config.Variables {
 			varMap[v.Name] = struct{}{}
+
+			if v.Required() {
+				requiredMap[v.Name] = struct{}{}
+			}
 		}
 
 		// Compare to the keys in our raw config for the module
@@ -262,6 +275,17 @@ func (t *Tree) Validate() error {
 					m.Name, k)
 				return newErr
 			}
+
+			// Remove the required
+			delete(requiredMap, k)
+		}
+
+		// If we have any required left over, they aren't set.
+		for k, _ := range requiredMap {
+			newErr.Err = fmt.Errorf(
+				"module %s: required variable %s not set",
+				m.Name, k)
+			return newErr
 		}
 	}
 

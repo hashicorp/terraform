@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/hashicorp/terraform/config/module"
 	"github.com/hashicorp/terraform/terraform"
 )
 
@@ -22,6 +23,18 @@ func init() {
 	}
 }
 
+func tempDir(t *testing.T) string {
+	dir, err := ioutil.TempDir("", "tf")
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if err := os.RemoveAll(dir); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	return dir
+}
+
 func testFixturePath(name string) string {
 	return filepath.Join(fixtureDir, name)
 }
@@ -34,6 +47,20 @@ func testCtxConfig(p terraform.ResourceProvider) *terraform.ContextOpts {
 			},
 		},
 	}
+}
+
+func testModule(t *testing.T, name string) *module.Tree {
+	mod, err := module.NewTreeModule("", filepath.Join(fixtureDir, name))
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	s := &module.FolderStorage{StorageDir: tempDir(t)}
+	if err := mod.Load(s, module.GetModeGet); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	return mod
 }
 
 func testPlanFile(t *testing.T, plan *terraform.Plan) string {
