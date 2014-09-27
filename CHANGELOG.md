@@ -5,6 +5,8 @@ FEATURES:
   * **Modules**: Configuration can now be modularized. Modules can live on
     GitHub, BitBucket, Git/Hg repos, HTTP URLs, and file paths. Terraform
     automatically downloads/updates modules for you on request.
+  * **New Command: `init`**. This command initializes a Terraform configuration
+    from an existing Terraform module (also new in 0.3).
   * The state file format is now JSON rather than binary. This allows for
     easier machine and human read/write. Old binary state files will be
     automatically upgraded.
