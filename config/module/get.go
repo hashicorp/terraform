@@ -3,8 +3,11 @@ package module
 import (
 	"bytes"
 	"fmt"
+	"io/ioutil"
 	"net/url"
+	"os"
 	"os/exec"
+	"path/filepath"
 	"regexp"
 	"strings"
 	"syscall"
@@ -51,6 +54,24 @@ func Get(dst, src string) error {
 	var force string
 	force, src = getForcedGetter(src)
 
+	// If there is a subdir component, then we download the root separately
+	// and then copy over the proper subdir.
+	var realDst string
+	src, subDir := getDirSubdir(src)
+	if subDir != "" {
+		tmpDir, err := ioutil.TempDir("", "tf")
+		if err != nil {
+			return err
+		}
+		if err := os.RemoveAll(tmpDir); err != nil {
+			return err
+		}
+		defer os.RemoveAll(tmpDir)
+
+		realDst = dst
+		dst = subDir
+	}
+
 	u, err := url.Parse(src)
 	if err != nil {
 		return err
@@ -68,9 +89,52 @@ func Get(dst, src string) error {
 	err = g.Get(dst, u)
 	if err != nil {
 		err = fmt.Errorf("error downloading module '%s': %s", src, err)
+		return err
 	}
 
-	return err
+	// If we have a subdir, copy that over
+	if subDir != "" {
+		if err := os.RemoveAll(realDst); err != nil {
+			return err
+		}
+		if err := os.MkdirAll(realDst, 0755); err != nil {
+			return err
+		}
+
+		return copyDir(realDst, filepath.Join(dst, subDir))
+	}
+
+	return nil
+}
+
+// GetCopy is the same as Get except that it downloads a copy of the
+// module represented by source.
+//
+// This copy will omit and dot-prefixed files (such as .git/, .hg/) and
+// can't be updated on its own.
+func GetCopy(dst, src string) error {
+	// Create the temporary directory to do the real Get to
+	tmpDir, err := ioutil.TempDir("", "tf")
+	if err != nil {
+		return err
+	}
+	if err := os.RemoveAll(tmpDir); err != nil {
+		return err
+	}
+	defer os.RemoveAll(tmpDir)
+
+	// Get to that temporary dir
+	if err := Get(tmpDir, src); err != nil {
+		return err
+	}
+
+	// Make sure the destination exists
+	if err := os.MkdirAll(dst, 0755); err != nil {
+		return err
+	}
+
+	// Copy to the final location
+	return copyDir(dst, tmpDir)
 }
 
 // getRunCommand is a helper that will run a command and capture the output

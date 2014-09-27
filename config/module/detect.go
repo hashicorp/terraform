@@ -3,6 +3,7 @@ package module
 import (
 	"fmt"
 	"net/url"
+	"path/filepath"
 )
 
 // Detector defines the interface that an invalid URL or a URL with a blank
@@ -34,6 +35,9 @@ func init() {
 func Detect(src string, pwd string) (string, error) {
 	getForce, getSrc := getForcedGetter(src)
 
+	// Separate out the subdir if there is one, we don't pass that to detect
+	getSrc, subDir := getDirSubdir(getSrc)
+
 	u, err := url.Parse(getSrc)
 	if err == nil && u.Scheme != "" {
 		// Valid URL
@@ -51,6 +55,25 @@ func Detect(src string, pwd string) (string, error) {
 
 		var detectForce string
 		detectForce, result = getForcedGetter(result)
+		result, detectSubdir := getDirSubdir(result)
+
+		// If we have a subdir from the detection, then prepend it to our
+		// requested subdir.
+		if detectSubdir != "" {
+			if subDir != "" {
+				subDir = filepath.Join(detectSubdir, subDir)
+			} else {
+				subDir = detectSubdir
+			}
+		}
+		if subDir != "" {
+			u, err := url.Parse(result)
+			if err != nil {
+				return "", fmt.Errorf("Error parsing URL: %s", err)
+			}
+			u.Path += "//" + subDir
+			result = u.String()
+		}
 
 		// Preserve the forced getter if it exists. We try to use the
 		// original set force first, followed by any force set by the

@@ -4,17 +4,32 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"strings"
 )
 
 // copyDir copies the src directory contents into dst. Both directories
 // should already exist.
 func copyDir(dst, src string) error {
+	src, err := filepath.EvalSymlinks(src)
+	if err != nil {
+		return err
+	}
+
 	walkFn := func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			return err
 		}
+		if path == src {
+			return nil
+		}
 
-		dstPath := filepath.Join(dst, filepath.Base(path))
+		basePath := filepath.Base(path)
+		if strings.HasPrefix(basePath, ".") {
+			// Skip any dot files
+			return nil
+		}
+
+		dstPath := filepath.Join(dst, basePath)
 
 		// If we have a directory, make that subdirectory, then continue
 		// the walk.
