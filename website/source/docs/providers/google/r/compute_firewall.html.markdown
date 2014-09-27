@@ -43,7 +43,9 @@ The following arguments are supported:
 * `source_ranges` - (Optional) A list of source CIDR ranges that this
    firewall applies to.
 
-* `source_tags` - (Optional) A list of tags that this firewall applies to.
+* `source_tags` - (Optional) A list of source tags that this firewall applies to.
+
+* `target_tags` - (Optional) A list of target tags that this firewall applies to.
 
 The `allow` block supports:
 
