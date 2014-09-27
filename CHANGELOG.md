@@ -13,6 +13,8 @@ FEATURES:
 
 IMPROVEMENTS:
 
+  * core: Plugins are loaded from `~/.terraform.d/plugins` (Unix) or
+    `%USERDATA%/terraform.d/plugins` (Windows).
   * helper/schema: Can now have default values. [GH-245]
   * providers/aws: New resource `db_subnet_group`. [GH-295]
   * providers/aws: Add `map_public_ip_on_launch` for subnets. [GH-285]
