@@ -41,6 +41,11 @@ func ConfigFile() (string, error) {
 	return configFile()
 }
 
+// ConfigDir returns the configuration directory for Terraform.
+func ConfigDir() (string, error) {
+	return configDir()
+}
+
 // LoadConfig loads the CLI configuration from ".terraformrc" files.
 func LoadConfig(path string) (*Config, error) {
 	// Read the HCL file and prepare for parsing
@@ -74,6 +79,17 @@ func (c *Config) Discover() error {
 	// Look in the cwd.
 	if err := c.discover("."); err != nil {
 		return err
+	}
+
+	// Look in the plugins directory. This will override any found
+	// in the current directory.
+	dir, err := ConfigDir()
+	if err != nil {
+		log.Printf("[ERR] Error loading config directory: %s", err)
+	} else {
+		if err := c.discover(filepath.Join(dir, "plugins")); err != nil {
+			return err
+		}
 	}
 
 	// Next, look in the same directory as the executable. Any conflicts
