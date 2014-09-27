@@ -13,7 +13,24 @@ func TestDetect(t *testing.T) {
 	}{
 		{"./foo", "/foo", "file:///foo/foo", false},
 		{"git::./foo", "/foo", "git::file:///foo/foo", false},
-		{"git::github.com/hashicorp/foo", "", "git::https://github.com/hashicorp/foo.git", false},
+		{
+			"git::github.com/hashicorp/foo",
+			"",
+			"git::https://github.com/hashicorp/foo.git",
+			false,
+		},
+		{
+			"./foo//bar",
+			"/foo",
+			"file:///foo/foo//bar",
+			false,
+		},
+		{
+			"git::github.com/hashicorp/foo//bar",
+			"",
+			"git::https://github.com/hashicorp/foo.git//bar",
+			false,
+		},
 	}
 
 	for i, tc := range cases {
