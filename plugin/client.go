@@ -8,7 +8,6 @@ import (
 	"io/ioutil"
 	"log"
 	"net"
-	"net/rpc"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -16,6 +15,8 @@ import (
 	"sync"
 	"time"
 	"unicode"
+
+	tfrpc "github.com/hashicorp/terraform/rpc"
 )
 
 // If this is true, then the "unexpected EOF" panic will not be
@@ -35,8 +36,7 @@ type Client struct {
 	doneLogging chan struct{}
 	l           sync.Mutex
 	address     net.Addr
-	service     string
-	client      *rpc.Client
+	client      *tfrpc.Client
 }
 
 // ClientConfig is the configuration used to initialize a new
@@ -124,7 +124,7 @@ func NewClient(config *ClientConfig) (c *Client) {
 // Client returns an RPC client for the plugin.
 //
 // Subsequent calls to this will return the same RPC client.
-func (c *Client) Client() (*rpc.Client, error) {
+func (c *Client) Client() (*tfrpc.Client, error) {
 	addr, err := c.Start()
 	if err != nil {
 		return nil, err
@@ -137,17 +137,11 @@ func (c *Client) Client() (*rpc.Client, error) {
 		return c.client, nil
 	}
 
-	conn, err := net.Dial(addr.Network(), addr.String())
+	c.client, err = tfrpc.Dial(addr.Network(), addr.String())
 	if err != nil {
 		return nil, err
 	}
 
-	if tcpConn, ok := conn.(*net.TCPConn); ok {
-		// Make sure to set keep alive so that the connection doesn't die
-		tcpConn.SetKeepAlive(true)
-	}
-
-	c.client = rpc.NewClient(conn)
 	return c.client, nil
 }
 
@@ -175,15 +169,6 @@ func (c *Client) Kill() {
 
 	// Wait for the client to finish logging so we have a complete log
 	<-c.doneLogging
-}
-
-// Service returns the name of the service to use.
-func (c *Client) Service() (string, error) {
-	if _, err := c.Start(); err != nil {
-		return "", err
-	}
-
-	return c.service, nil
 }
 
 // Starts the underlying subprocess, communicating with it to negotiate
@@ -306,8 +291,8 @@ func (c *Client) Start() (addr net.Addr, err error) {
 		// Trim the line and split by "|" in order to get the parts of
 		// the output.
 		line := strings.TrimSpace(string(lineBytes))
-		parts := strings.SplitN(line, "|", 4)
-		if len(parts) < 4 {
+		parts := strings.SplitN(line, "|", 3)
+		if len(parts) < 3 {
 			err = fmt.Errorf("Unrecognized remote plugin message: %s", line)
 			return
 		}
@@ -327,9 +312,6 @@ func (c *Client) Start() (addr net.Addr, err error) {
 		default:
 			err = fmt.Errorf("Unknown address type: %s", parts[1])
 		}
-
-		// Grab the services
-		c.service = parts[3]
 	}
 
 	c.address = addr

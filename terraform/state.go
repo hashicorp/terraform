@@ -59,7 +59,6 @@ func (s *State) Children(path []string) []*ModuleState {
 	return result
 }
 
-
 // AddModule adds the module with the given path to the state.
 //
 // This should be the preferred method to add module states since it

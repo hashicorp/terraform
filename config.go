@@ -11,7 +11,6 @@ import (
 
 	"github.com/hashicorp/hcl"
 	"github.com/hashicorp/terraform/plugin"
-	"github.com/hashicorp/terraform/rpc"
 	"github.com/hashicorp/terraform/terraform"
 	"github.com/mitchellh/osext"
 )
@@ -197,29 +196,21 @@ func (c *Config) ProviderFactories() map[string]terraform.ResourceProviderFactor
 }
 
 func (c *Config) providerFactory(path string) terraform.ResourceProviderFactory {
-	return func() (terraform.ResourceProvider, error) {
-		// Build the plugin client configuration and init the plugin
-		var config plugin.ClientConfig
-		config.Cmd = pluginCmd(path)
-		config.Managed = true
-		client := plugin.NewClient(&config)
+	// Build the plugin client configuration and init the plugin
+	var config plugin.ClientConfig
+	config.Cmd = pluginCmd(path)
+	config.Managed = true
+	client := plugin.NewClient(&config)
 
-		// Request the RPC client and service name from the client
+	return func() (terraform.ResourceProvider, error) {
+		// Request the RPC client so we can get the provider
 		// so we can build the actual RPC-implemented provider.
 		rpcClient, err := client.Client()
 		if err != nil {
 			return nil, err
 		}
 
-		service, err := client.Service()
-		if err != nil {
-			return nil, err
-		}
-
-		return &rpc.ResourceProvider{
-			Client: rpcClient,
-			Name:   service,
-		}, nil
+		return rpcClient.ResourceProvider()
 	}
 }
 
@@ -236,29 +227,19 @@ func (c *Config) ProvisionerFactories() map[string]terraform.ResourceProvisioner
 }
 
 func (c *Config) provisionerFactory(path string) terraform.ResourceProvisionerFactory {
-	return func() (terraform.ResourceProvisioner, error) {
-		// Build the plugin client configuration and init the plugin
-		var config plugin.ClientConfig
-		config.Cmd = pluginCmd(path)
-		config.Managed = true
-		client := plugin.NewClient(&config)
+	// Build the plugin client configuration and init the plugin
+	var config plugin.ClientConfig
+	config.Cmd = pluginCmd(path)
+	config.Managed = true
+	client := plugin.NewClient(&config)
 
-		// Request the RPC client and service name from the client
-		// so we can build the actual RPC-implemented provider.
+	return func() (terraform.ResourceProvisioner, error) {
 		rpcClient, err := client.Client()
 		if err != nil {
 			return nil, err
 		}
 
-		service, err := client.Service()
-		if err != nil {
-			return nil, err
-		}
-
-		return &rpc.ResourceProvisioner{
-			Client: rpcClient,
-			Name:   service,
-		}, nil
+		return rpcClient.ResourceProvisioner()
 	}
 }
 

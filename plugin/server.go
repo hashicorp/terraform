@@ -6,7 +6,6 @@ import (
 	"io/ioutil"
 	"log"
 	"net"
-	"net/rpc"
 	"os"
 	"os/signal"
 	"runtime"
@@ -27,7 +26,17 @@ const APIVersion = "2"
 const MagicCookieKey = "TF_PLUGIN_MAGIC_COOKIE"
 const MagicCookieValue = "d602bf8f470bc67ca7faa0386276bbdd4330efaf76d1a219cb4d6991ca9872b2"
 
-func Serve(svc interface{}) error {
+// ServeOpts configures what sorts of plugins are served.
+type ServeOpts struct {
+	ProviderFunc    tfrpc.ProviderFunc
+	ProvisionerFunc tfrpc.ProvisionerFunc
+}
+
+// Serve serves the plugins given by ServeOpts.
+//
+// Serve doesn't return until the plugin is done being executed. Any
+// errors will be outputted to the log.
+func Serve(opts *ServeOpts) {
 	// First check the cookie
 	if os.Getenv(MagicCookieKey) != MagicCookieValue {
 		fmt.Fprintf(os.Stderr,
@@ -37,39 +46,29 @@ func Serve(svc interface{}) error {
 		os.Exit(1)
 	}
 
-	// Create the server to serve our interface
-	server := rpc.NewServer()
-
-	// Register the service
-	name, err := tfrpc.Register(server, svc)
-	if err != nil {
-		return err
-	}
-
 	// Register a listener so we can accept a connection
 	listener, err := serverListener()
 	if err != nil {
-		return err
+		log.Printf("[ERR] plugin init: %s", err)
+		return
 	}
 	defer listener.Close()
 
-	// Output the address and service name to stdout
+	// Create the RPC server to dispense
+	server := &tfrpc.Server{
+		ProviderFunc:    opts.ProviderFunc,
+		ProvisionerFunc: opts.ProvisionerFunc,
+	}
+
+	// Output the address and service name to stdout so that Terraform
+	// core can bring it up.
 	log.Printf("Plugin address: %s %s\n",
 		listener.Addr().Network(), listener.Addr().String())
-	fmt.Printf("%s|%s|%s|%s\n",
+	fmt.Printf("%s|%s|%s\n",
 		APIVersion,
 		listener.Addr().Network(),
-		listener.Addr().String(),
-		name)
+		listener.Addr().String())
 	os.Stdout.Sync()
-
-	// Accept a connection
-	log.Println("Waiting for connection...")
-	conn, err := listener.Accept()
-	if err != nil {
-		log.Printf("Error accepting connection: %s\n", err.Error())
-		return err
-	}
 
 	// Eat the interrupts
 	ch := make(chan os.Signal, 1)
@@ -85,10 +84,8 @@ func Serve(svc interface{}) error {
 		}
 	}()
 
-	// Serve a single connection
-	log.Println("Serving a plugin connection...")
-	server.ServeConn(conn)
-	return nil
+	// Serve
+	server.Accept(listener)
 }
 
 func serverListener() (net.Listener, error) {
