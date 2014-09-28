@@ -14,14 +14,14 @@ var testAccProviders map[string]terraform.ResourceProvider
 var testAccProvider *schema.Provider
 
 func init() {
-	testAccProvider = Provider()
+	testAccProvider = Provider().(*schema.Provider)
 	testAccProviders = map[string]terraform.ResourceProvider{
 		"mailgun": testAccProvider,
 	}
 }
 
 func TestProvider(t *testing.T) {
-	if err := Provider().InternalValidate(); err != nil {
+	if err := Provider().(*schema.Provider).InternalValidate(); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 }
@@ -48,7 +48,7 @@ func TestProviderConfigure(t *testing.T) {
 		t.Fatalf("err: %s", err)
 	}
 
-	rp := Provider()
+	rp := Provider().(*schema.Provider)
 	err = rp.Configure(terraform.NewResourceConfig(rawConfig))
 	if err != nil {
 		t.Fatalf("err: %s", err)
