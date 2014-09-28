@@ -6,5 +6,7 @@ import (
 )
 
 func main() {
-	plugin.Serve(mailgun.Provider())
+	plugin.Serve(&plugin.ServeOpts{
+		ProviderFunc: mailgun.Provider,
+	})
 }
