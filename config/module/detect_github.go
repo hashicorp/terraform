@@ -59,7 +59,7 @@ func (d *GitHubDetector) detectSSH(src string) (string, bool, error) {
 	u.Scheme = "ssh"
 	u.User = url.User("git")
 	u.Host = "github.com"
-	u.Path = src[idx+1:qidx]
+	u.Path = src[idx+1 : qidx]
 	if qidx < len(src) {
 		q, err := url.ParseQuery(src[qidx+1:])
 		if err != nil {
@@ -69,5 +69,5 @@ func (d *GitHubDetector) detectSSH(src string) (string, bool, error) {
 		u.RawQuery = q.Encode()
 	}
 
-	return "git::"+u.String(), true, nil
+	return "git::" + u.String(), true, nil
 }

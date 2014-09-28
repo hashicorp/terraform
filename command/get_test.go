@@ -108,4 +108,3 @@ func TestGet_update(t *testing.T) {
 		t.Fatalf("doesn't look like get: %s", output)
 	}
 }
-

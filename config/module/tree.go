@@ -2,9 +2,9 @@ package module
 
 import (
 	"bufio"
-	"path/filepath"
 	"bytes"
 	"fmt"
+	"path/filepath"
 	"strings"
 	"sync"
 

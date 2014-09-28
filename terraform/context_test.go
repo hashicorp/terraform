@@ -3,10 +3,10 @@ package terraform
 import (
 	"fmt"
 	"reflect"
+	"sort"
 	"strings"
 	"sync"
 	"testing"
-	"sort"
 )
 
 func TestContextGraph(t *testing.T) {

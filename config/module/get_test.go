@@ -34,7 +34,7 @@ func TestGet_file(t *testing.T) {
 func TestGet_fileForced(t *testing.T) {
 	dst := tempDir(t)
 	u := testModule("basic")
-	u = "file::"+u
+	u = "file::" + u
 
 	if err := Get(dst, u); err != nil {
 		t.Fatalf("err: %s", err)
@@ -76,7 +76,7 @@ func TestGetCopy_file(t *testing.T) {
 
 func TestGetDirSubdir(t *testing.T) {
 	cases := []struct {
-		Input string
+		Input    string
 		Dir, Sub string
 	}{
 		{

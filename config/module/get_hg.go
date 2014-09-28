@@ -39,7 +39,7 @@ func (g *HgGetter) Get(dst string, u *url.URL) error {
 		}
 	}
 
-	if err:= g.pull(dst, u); err != nil {
+	if err := g.pull(dst, u); err != nil {
 		return err
 	}
 

@@ -41,7 +41,6 @@ func TestClient_ResourceProvider(t *testing.T) {
 	}
 }
 
-
 func TestClient_ResourceProvisioner(t *testing.T) {
 	clientConn, serverConn := testConn(t)
 
