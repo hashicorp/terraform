@@ -23,6 +23,11 @@ func Dial(network, address string) (*Client, error) {
 		return nil, err
 	}
 
+	if tcpConn, ok := conn.(*net.TCPConn); ok {
+		// Make sure to set keep alive so that the connection doesn't die
+		tcpConn.SetKeepAlive(true)
+	}
+
 	return NewClient(conn)
 }
 

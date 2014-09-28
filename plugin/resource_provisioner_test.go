@@ -12,12 +12,4 @@ func TestResourceProvisioner(t *testing.T) {
 	if err != nil {
 		t.Fatalf("should not have error: %s", err)
 	}
-
-	service, err := c.Service()
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-	if service == "" {
-		t.Fatal("service should not be blank")
-	}
 }

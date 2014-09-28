@@ -28,14 +28,6 @@ func TestClient(t *testing.T) {
 		t.Fatalf("bad: %#v", addr)
 	}
 
-	service, err := c.Service()
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-	if service != "foo" {
-		t.Fatalf("bad: %#v", service)
-	}
-
 	// Test that it exits properly if killed
 	c.Kill()
 

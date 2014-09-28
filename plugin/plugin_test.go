@@ -8,6 +8,7 @@ import (
 	"testing"
 	"time"
 
+	tfrpc "github.com/hashicorp/terraform/rpc"
 	"github.com/hashicorp/terraform/terraform"
 )
 
@@ -52,34 +53,31 @@ func TestHelperProcess(*testing.T) {
 	cmd, args := args[0], args[1:]
 	switch cmd {
 	case "bad-version":
-		fmt.Printf("%s1|tcp|:1234|foo\n", APIVersion)
+		fmt.Printf("%s1|tcp|:1234\n", APIVersion)
 		<-make(chan int)
 	case "resource-provider":
-		err := Serve(new(terraform.MockResourceProvider))
-		if err != nil {
-			log.Printf("[ERR] %s", err)
-			os.Exit(1)
-		}
+		Serve(&ServeOpts{
+			ProviderFunc: testProviderFixed(new(terraform.MockResourceProvider)),
+		})
 	case "resource-provisioner":
-		err := Serve(new(terraform.MockResourceProvisioner))
-		if err != nil {
-			log.Printf("[ERR] %s", err)
-			os.Exit(1)
-		}
+		Serve(&ServeOpts{
+			ProvisionerFunc: testProvisionerFixed(
+				new(terraform.MockResourceProvisioner)),
+		})
 	case "invalid-rpc-address":
 		fmt.Println("lolinvalid")
 	case "mock":
-		fmt.Printf("%s|tcp|:1234|foo\n", APIVersion)
+		fmt.Printf("%s|tcp|:1234\n", APIVersion)
 		<-make(chan int)
 	case "start-timeout":
 		time.Sleep(1 * time.Minute)
 		os.Exit(1)
 	case "stderr":
-		fmt.Printf("%s|tcp|:1234|foo\n", APIVersion)
+		fmt.Printf("%s|tcp|:1234\n", APIVersion)
 		log.Println("HELLO")
 		log.Println("WORLD")
 	case "stdin":
-		fmt.Printf("%s|tcp|:1234|foo\n", APIVersion)
+		fmt.Printf("%s|tcp|:1234\n", APIVersion)
 		data := make([]byte, 5)
 		if _, err := os.Stdin.Read(data); err != nil {
 			log.Printf("stdin read error: %s", err)
@@ -94,5 +92,17 @@ func TestHelperProcess(*testing.T) {
 	default:
 		fmt.Fprintf(os.Stderr, "Unknown command: %q\n", cmd)
 		os.Exit(2)
+	}
+}
+
+func testProviderFixed(p terraform.ResourceProvider) tfrpc.ProviderFunc {
+	return func() terraform.ResourceProvider {
+		return p
+	}
+}
+
+func testProvisionerFixed(p terraform.ResourceProvisioner) tfrpc.ProvisionerFunc {
+	return func() terraform.ResourceProvisioner {
+		return p
 	}
 }
