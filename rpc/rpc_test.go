@@ -4,6 +4,8 @@ import (
 	"net"
 	"net/rpc"
 	"testing"
+
+	"github.com/hashicorp/terraform/terraform"
 )
 
 func testConn(t *testing.T) (net.Conn, net.Conn) {
@@ -42,4 +44,10 @@ func testClientServer(t *testing.T) (*rpc.Client, *rpc.Server) {
 	client := rpc.NewClient(clientConn)
 
 	return client, server
+}
+
+func testProviderFixed(p terraform.ResourceProvider) ProviderFunc {
+	return func() terraform.ResourceProvider {
+		return p
+	}
 }
