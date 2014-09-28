@@ -13,12 +13,17 @@ import (
 // Server listens for network connections and then dispenses interface
 // implementations for Terraform over net/rpc.
 type Server struct {
-	ProviderFunc ProviderFunc
+	ProviderFunc    ProviderFunc
+	ProvisionerFunc ProvisionerFunc
 }
 
 // ProviderFunc creates terraform.ResourceProviders when they're requested
 // from the server.
 type ProviderFunc func() terraform.ResourceProvider
+
+// ProvisionerFunc creates terraform.ResourceProvisioners when they're requested
+// from the server.
+type ProvisionerFunc func() terraform.ResourceProvisioner
 
 // Accept accepts connections on a listener and serves requests for
 // each incoming connection. Accept blocks; the caller typically invokes
@@ -63,7 +68,8 @@ func (s *Server) ServeConn(conn io.ReadWriteCloser) {
 	// connection.
 	server := rpc.NewServer()
 	server.RegisterName("Dispenser", &dispenseServer{
-		ProviderFunc: s.ProviderFunc,
+		ProviderFunc:    s.ProviderFunc,
+		ProvisionerFunc: s.ProvisionerFunc,
 
 		broker: broker,
 	})
@@ -72,7 +78,8 @@ func (s *Server) ServeConn(conn io.ReadWriteCloser) {
 
 // dispenseServer dispenses variousinterface implementations for Terraform.
 type dispenseServer struct {
-	ProviderFunc ProviderFunc
+	ProviderFunc    ProviderFunc
+	ProvisionerFunc ProvisionerFunc
 
 	broker *muxBroker
 }
@@ -91,6 +98,26 @@ func (d *dispenseServer) ResourceProvider(
 
 		d.serve(conn, "ResourceProvider", &ResourceProviderServer{
 			Provider: d.ProviderFunc(),
+		})
+	}()
+
+	return nil
+}
+
+func (d *dispenseServer) ResourceProvisioner(
+	args interface{}, response *uint32) error {
+	id := d.broker.NextId()
+	*response = id
+
+	go func() {
+		conn, err := d.broker.Accept(id)
+		if err != nil {
+			log.Printf("[ERR] Plugin dispense: %s", err)
+			return
+		}
+
+		d.serve(conn, "ResourceProvisioner", &ResourceProvisionerServer{
+			Provisioner: d.ProvisionerFunc(),
 		})
 	}()
 

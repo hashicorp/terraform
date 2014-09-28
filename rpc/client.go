@@ -81,3 +81,21 @@ func (c *Client) ResourceProvider() (terraform.ResourceProvider, error) {
 		Name:   "ResourceProvider",
 	}, nil
 }
+
+func (c *Client) ResourceProvisioner() (terraform.ResourceProvisioner, error) {
+	var id uint32
+	if err := c.control.Call(
+		"Dispenser.ResourceProvisioner", new(interface{}), &id); err != nil {
+		return nil, err
+	}
+
+	conn, err := c.broker.Dial(id)
+	if err != nil {
+		return nil, err
+	}
+
+	return &ResourceProvisioner{
+		Client: rpc.NewClient(conn),
+		Name:   "ResourceProvisioner",
+	}, nil
+}
