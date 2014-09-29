@@ -82,6 +82,7 @@ func (c *Client) ResourceProvider() (terraform.ResourceProvider, error) {
 	}
 
 	return &ResourceProvider{
+		Broker: c.broker,
 		Client: rpc.NewClient(conn),
 		Name:   "ResourceProvider",
 	}, nil
