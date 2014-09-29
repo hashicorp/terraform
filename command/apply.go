@@ -76,6 +76,12 @@ func (c *ApplyCommand) Run(args []string) int {
 		c.Ui.Error(err.Error())
 		return 1
 	}
+	if c.Input() {
+		if err := ctx.Input(); err != nil {
+			c.Ui.Error(fmt.Sprintf("Error configuring: %s", err))
+			return 1
+		}
+	}
 	if !validateContext(ctx, c.Ui) {
 		return 1
 	}
@@ -233,6 +239,8 @@ Options:
   -backup=path           Path to backup the existing state file before
                          modifying. Defaults to the "-state-out" path with
                          ".backup" extension. Set to "-" to disable backup.
+
+  -input=true            Ask for input for variables if not directly set.
 
   -no-color              If specified, output won't contain any color.
 
