@@ -569,11 +569,17 @@ func (c *walkContext) inputWalkFn() depgraph.WalkFunc {
 			}
 			rc := NewResourceConfig(raw)
 
+			// Wrap the input into a namespace
+			input := &PrefixUIInput{
+				IdPrefix: fmt.Sprintf("provider.%s", rn.ID),
+				UIInput:  c.Context.uiInput,
+			}
+
 			// Go through each provider and capture the input necessary
 			// to satisfy it.
 			configs := make(map[string]map[string]interface{})
 			for k, p := range sharedProvider.Providers {
-				newc, err := p.Input(c.Context.uiInput, rc)
+				newc, err := p.Input(input, rc)
 				if err != nil {
 					return fmt.Errorf(
 						"Error configuring %s: %s", k, err)
