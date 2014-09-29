@@ -22,6 +22,5 @@ type InputOpts struct {
 	Description string
 
 	// Default will be the value returned if no data is entered.
-	Default       string
-	DefaultHidden bool
+	Default string
 }

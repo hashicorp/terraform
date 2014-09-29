@@ -82,6 +82,7 @@ func (i *UIInput) Input(opts *terraform.InputOpts) (string, error) {
 	if opts.Default != "" {
 		buf.WriteString("  [bold]Default:[reset] ")
 		buf.WriteString(opts.Default)
+		buf.WriteString("\n")
 	}
 	buf.WriteString("  [bold]Enter a value:[reset] ")
 

@@ -19,10 +19,11 @@ func Provider() *schema.Provider {
 	return &schema.Provider{
 		Schema: map[string]*schema.Schema{
 			"region": &schema.Schema{
-				Type:        schema.TypeString,
-				Required:    true,
-				DefaultFunc: envDefaultFunc("AWS_REGION"),
-				Description: descriptions["region"],
+				Type:         schema.TypeString,
+				Required:     true,
+				DefaultFunc:  envDefaultFunc("AWS_REGION"),
+				Description:  descriptions["region"],
+				InputDefault: "us-east-1",
 			},
 
 			"access_key": &schema.Schema{

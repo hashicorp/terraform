@@ -14,6 +14,7 @@ package schema
 import (
 	"fmt"
 	"reflect"
+	"sort"
 	"strconv"
 	"strings"
 
@@ -78,6 +79,9 @@ type Schema struct {
 	// input. It should be relatively short (a few sentences max) and should
 	// be formatted to fit a CLI.
 	Description string
+
+	// InputDefault is the default value to use for when inputs are requested.
+	InputDefault string
 
 	// The fields below relate to diffs.
 	//
@@ -280,7 +284,15 @@ func (m schemaMap) Diff(
 func (m schemaMap) Input(
 	input terraform.UIInput,
 	c *terraform.ResourceConfig) (*terraform.ResourceConfig, error) {
-	for k, v := range m {
+	keys := make([]string, 0, len(m))
+	for k, _ := range m {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+
+	for _, k := range keys {
+		v := m[k]
+
 		// Skip things that don't require config, if that is even valid
 		// for a provider schema.
 		if !v.Required && !v.Optional {
@@ -623,6 +635,7 @@ func (m schemaMap) inputString(
 		Id:          k,
 		Query:       k,
 		Description: schema.Description,
+		Default:     schema.InputDefault,
 	})
 
 	return result, err
