@@ -30,6 +30,7 @@ type Meta struct {
 	// Variables for the context (private)
 	autoKey       string
 	autoVariables map[string]string
+	input         bool
 	variables     map[string]string
 
 	color bool
@@ -105,6 +106,11 @@ func (m *Meta) Context(copts contextOpts) (*terraform.Context, bool, error) {
 	return ctx, false, nil
 }
 
+// Input returns true if we should ask for input for context.
+func (m *Meta) Input() bool {
+	return m.input && len(m.variables) == 0
+}
+
 // contextOpts returns the options to use to initialize a Terraform
 // context with the settings from this Meta.
 func (m *Meta) contextOpts() *terraform.ContextOpts {
@@ -127,6 +133,7 @@ func (m *Meta) contextOpts() *terraform.ContextOpts {
 		vs[k] = v
 	}
 	opts.Variables = vs
+	opts.UIInput = new(UIInput)
 
 	return &opts
 }
@@ -134,6 +141,7 @@ func (m *Meta) contextOpts() *terraform.ContextOpts {
 // flags adds the meta flags to the given FlagSet.
 func (m *Meta) flagSet(n string) *flag.FlagSet {
 	f := flag.NewFlagSet(n, flag.ContinueOnError)
+	f.BoolVar(&m.input, "input", true, "input")
 	f.Var((*FlagVar)(&m.variables), "var", "variables")
 	f.Var((*FlagVarFile)(&m.variables), "var-file", "variable file")
 

@@ -47,3 +47,45 @@ func TestMetaColorize(t *testing.T) {
 		t.Fatal("should be disabled")
 	}
 }
+
+func TestMetaInput(t *testing.T) {
+	m := new(Meta)
+	args := []string{}
+
+	fs := m.flagSet("foo")
+	if err := fs.Parse(args); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	if !m.Input() {
+		t.Fatal("should input")
+	}
+}
+
+func TestMetaInput_disable(t *testing.T) {
+	m := new(Meta)
+	args := []string{"-input=false"}
+
+	fs := m.flagSet("foo")
+	if err := fs.Parse(args); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	if m.Input() {
+		t.Fatal("should not input")
+	}
+}
+
+func TestMetaInput_vars(t *testing.T) {
+	m := new(Meta)
+	args := []string{"-var", "foo=bar"}
+
+	fs := m.flagSet("foo")
+	if err := fs.Parse(args); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	if m.Input() {
+		t.Fatal("should not input")
+	}
+}
