@@ -653,16 +653,21 @@ func TestGraphAddDiff_module(t *testing.T) {
 }
 
 func TestGraphAddDiff_createBeforeDestroy(t *testing.T) {
-	config := testConfig(t, "graph-diff-create-before")
+	m := testModule(t, "graph-diff-create-before")
 	diff := &Diff{
-		Resources: map[string]*InstanceDiff{
-			"aws_instance.bar": &InstanceDiff{
-				Destroy: true,
-				Attributes: map[string]*ResourceAttrDiff{
-					"ami": &ResourceAttrDiff{
-						Old:         "abc",
-						New:         "xyz",
-						RequiresNew: true,
+		Modules: []*ModuleDiff{
+			&ModuleDiff{
+				Path: rootModulePath,
+				Resources: map[string]*InstanceDiff{
+					"aws_instance.bar": &InstanceDiff{
+						Destroy: true,
+						Attributes: map[string]*ResourceAttrDiff{
+							"ami": &ResourceAttrDiff{
+								Old:         "abc",
+								New:         "xyz",
+								RequiresNew: true,
+							},
+						},
 					},
 				},
 			},
@@ -690,7 +695,7 @@ func TestGraphAddDiff_createBeforeDestroy(t *testing.T) {
 	diffHash := checksumStruct(t, diff)
 
 	g, err := Graph(&GraphOpts{
-		Config: config,
+		Module: m,
 		Diff:   diff,
 		State:  state,
 	})
@@ -719,33 +724,6 @@ func TestGraphAddDiff_createBeforeDestroy(t *testing.T) {
 	diffHash2 := checksumStruct(t, diff)
 	if diffHash != diffHash2 {
 		t.Fatal("diff has been modified")
-	}
-}
-
-func TestGraphInitState(t *testing.T) {
-	config := testConfig(t, "graph-basic")
-	state := &State{
-		Modules: []*ModuleState{
-			&ModuleState{
-				Path: rootModulePath,
-				Resources: map[string]*InstanceDiff{
-					"aws_instance.foo": &InstanceDiff{
-						Destroy: true,
-					},
-				},
-			},
-		},
-	}
-
-	g, err := Graph(&GraphOpts{Module: m, Diff: diff})
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-
-	actual := strings.TrimSpace(g.String())
-	expected := strings.TrimSpace(testTerraformGraphDiffModuleStr)
-	if actual != expected {
-		t.Fatalf("bad:\n\n%s", actual)
 	}
 }
 

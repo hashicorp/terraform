@@ -583,7 +583,7 @@ func TestContextApply(t *testing.T) {
 }
 
 func TestContextApply_createBeforeDestroy(t *testing.T) {
-	c := testConfig(t, "apply-good-create-before")
+	m := testModule(t, "apply-good-create-before")
 	p := testProvider("aws")
 	p.ApplyFn = testApplyFn
 	p.DiffFn = testDiffFn
@@ -606,7 +606,7 @@ func TestContextApply_createBeforeDestroy(t *testing.T) {
 		},
 	}
 	ctx := testContext(t, &ContextOpts{
-		Config: c,
+		Module: m,
 		Providers: map[string]ResourceProviderFactory{
 			"aws": testProviderFuncFixed(p),
 		},
@@ -933,7 +933,7 @@ func TestContextApply_provisionerFail(t *testing.T) {
 }
 
 func TestContextApply_provisionerFail_createBeforeDestroy(t *testing.T) {
-	c := testConfig(t, "apply-provisioner-fail-create-before")
+	m := testModule(t, "apply-provisioner-fail-create-before")
 	p := testProvider("aws")
 	pr := testProvisioner()
 	p.ApplyFn = testApplyFn
@@ -961,7 +961,7 @@ func TestContextApply_provisionerFail_createBeforeDestroy(t *testing.T) {
 		},
 	}
 	ctx := testContext(t, &ContextOpts{
-		Config: c,
+		Module: m,
 		Providers: map[string]ResourceProviderFactory{
 			"aws": testProviderFuncFixed(p),
 		},
@@ -988,7 +988,7 @@ func TestContextApply_provisionerFail_createBeforeDestroy(t *testing.T) {
 }
 
 func TestContextApply_error_createBeforeDestroy(t *testing.T) {
-	c := testConfig(t, "apply-error-create-before")
+	m := testModule(t, "apply-error-create-before")
 	p := testProvider("aws")
 	state := &State{
 		Modules: []*ModuleState{
@@ -1009,7 +1009,7 @@ func TestContextApply_error_createBeforeDestroy(t *testing.T) {
 		},
 	}
 	ctx := testContext(t, &ContextOpts{
-		Config: c,
+		Module: m,
 		Providers: map[string]ResourceProviderFactory{
 			"aws": testProviderFuncFixed(p),
 		},
@@ -1037,7 +1037,7 @@ func TestContextApply_error_createBeforeDestroy(t *testing.T) {
 }
 
 func TestContextApply_errorDestroy_createBeforeDestroy(t *testing.T) {
-	c := testConfig(t, "apply-error-create-before")
+	m := testModule(t, "apply-error-create-before")
 	p := testProvider("aws")
 	state := &State{
 		Modules: []*ModuleState{
@@ -1058,7 +1058,7 @@ func TestContextApply_errorDestroy_createBeforeDestroy(t *testing.T) {
 		},
 	}
 	ctx := testContext(t, &ContextOpts{
-		Config: c,
+		Module: m,
 		Providers: map[string]ResourceProviderFactory{
 			"aws": testProviderFuncFixed(p),
 		},
