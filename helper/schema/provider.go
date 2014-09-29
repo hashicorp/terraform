@@ -87,6 +87,13 @@ func (p *Provider) SetMeta(v interface{}) {
 	p.meta = v
 }
 
+// Input implementation of terraform.ResourceProvider interface.
+func (p *Provider) Input(
+	input terraform.UIInput,
+	c *terraform.ResourceConfig) (*terraform.ResourceConfig, error) {
+	return schemaMap(p.Schema).Input(input, c)
+}
+
 // Validate implementation of terraform.ResourceProvider interface.
 func (p *Provider) Validate(c *terraform.ResourceConfig) ([]string, []error) {
 	return schemaMap(p.Schema).Validate(c)

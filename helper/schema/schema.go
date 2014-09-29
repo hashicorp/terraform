@@ -270,6 +270,42 @@ func (m schemaMap) Diff(
 	return result, nil
 }
 
+// Input implements the terraform.ResourceProvider method by asking
+// for input for required configuration keys that don't have a value.
+func (m schemaMap) Input(
+	input terraform.UIInput,
+	c *terraform.ResourceConfig) (*terraform.ResourceConfig, error) {
+	for k, v := range m {
+		// Skip things that don't require config, if that is even valid
+		// for a provider schema.
+		if !v.Required && !v.Optional {
+			continue
+		}
+
+		var value interface{}
+		var err error
+		switch v.Type {
+		case TypeBool:
+			fallthrough
+		case TypeInt:
+			fallthrough
+		case TypeString:
+			value, err = m.inputString(input, k, v)
+		default:
+			panic(fmt.Sprintf("Unknown type for input: %s", v.Type))
+		}
+
+		if err != nil {
+			return nil, fmt.Errorf(
+				"%s: %s", k, err)
+		}
+
+		c.Raw[k] = value
+	}
+
+	return c, nil
+}
+
 // Validate validates the configuration against this schema mapping.
 func (m schemaMap) Validate(c *terraform.ResourceConfig) ([]string, []error) {
 	return m.validateObject("", m, c)
@@ -567,6 +603,18 @@ func (m schemaMap) diffString(
 	})
 
 	return nil
+}
+
+func (m schemaMap) inputString(
+	input terraform.UIInput,
+	k string,
+	schema *Schema) (interface{}, error) {
+	result, err := input.Input(&terraform.InputOpts{
+		Id:    k,
+		Query: fmt.Sprintf("%s: ", k),
+	})
+
+	return result, err
 }
 
 func (m schemaMap) validate(
