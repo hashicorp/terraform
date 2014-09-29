@@ -49,6 +49,9 @@ func TestMetaColorize(t *testing.T) {
 }
 
 func TestMetaInput(t *testing.T) {
+	test = false
+	defer func() { test = true }()
+
 	m := new(Meta)
 	args := []string{}
 
@@ -63,6 +66,9 @@ func TestMetaInput(t *testing.T) {
 }
 
 func TestMetaInput_disable(t *testing.T) {
+	test = false
+	defer func() { test = true }()
+
 	m := new(Meta)
 	args := []string{"-input=false"}
 
@@ -77,6 +83,9 @@ func TestMetaInput_disable(t *testing.T) {
 }
 
 func TestMetaInput_vars(t *testing.T) {
+	test = false
+	defer func() { test = true }()
+
 	m := new(Meta)
 	args := []string{"-var", "foo=bar"}
 

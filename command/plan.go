@@ -75,6 +75,12 @@ func (c *PlanCommand) Run(args []string) int {
 		c.Ui.Error(err.Error())
 		return 1
 	}
+	if c.Input() {
+		if err := ctx.Input(); err != nil {
+			c.Ui.Error(fmt.Sprintf("Error configuring: %s", err))
+			return 1
+		}
+	}
 	if !validateContext(ctx, c.Ui) {
 		return 1
 	}

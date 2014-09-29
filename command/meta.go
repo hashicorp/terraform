@@ -108,7 +108,7 @@ func (m *Meta) Context(copts contextOpts) (*terraform.Context, bool, error) {
 
 // Input returns true if we should ask for input for context.
 func (m *Meta) Input() bool {
-	return m.input && len(m.variables) == 0
+	return !test && m.input && len(m.variables) == 0
 }
 
 // contextOpts returns the options to use to initialize a Terraform

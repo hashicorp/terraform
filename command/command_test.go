@@ -14,6 +14,8 @@ import (
 var fixtureDir = "./test-fixtures"
 
 func init() {
+	test = true
+
 	// Expand the fixture dir on init because we change the working
 	// directory in some tests.
 	var err error

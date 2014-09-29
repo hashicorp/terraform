@@ -12,6 +12,9 @@ import (
 	"github.com/hashicorp/terraform/terraform"
 )
 
+var defaultInputReader io.Reader
+var defaultInputWriter io.Writer
+
 // UIInput is an implementation of terraform.UIInput that asks the CLI
 // for input stdin.
 type UIInput struct {
@@ -27,6 +30,12 @@ type UIInput struct {
 func (i *UIInput) Input(opts *terraform.InputOpts) (string, error) {
 	r := i.Reader
 	w := i.Writer
+	if r == nil {
+		r = defaultInputReader
+	}
+	if w == nil {
+		w = defaultInputWriter
+	}
 	if r == nil {
 		r = os.Stdin
 	}
