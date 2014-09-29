@@ -12,6 +12,11 @@ type MockResourceProvider struct {
 	// Anything you want, in case you need to store extra data with the mock.
 	Meta interface{}
 
+	InputCalled                  bool
+	InputInput                   UIInput
+	InputConfig                  *ResourceConfig
+	InputReturnConfig            *ResourceConfig
+	InputReturnError             error
 	ApplyCalled                  bool
 	ApplyInfo                    *InstanceInfo
 	ApplyState                   *InstanceState
@@ -49,6 +54,14 @@ type MockResourceProvider struct {
 	ValidateResourceConfig       *ResourceConfig
 	ValidateResourceReturnWarns  []string
 	ValidateResourceReturnErrors []error
+}
+
+func (p *MockResourceProvider) Input(
+	input UIInput, c *ResourceConfig) (*ResourceConfig, error) {
+	p.InputCalled = true
+	p.InputInput = input
+	p.InputConfig = c
+	return p.InputReturnConfig, p.InputReturnError
 }
 
 func (p *MockResourceProvider) Validate(c *ResourceConfig) ([]string, []error) {

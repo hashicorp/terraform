@@ -4,6 +4,15 @@ package terraform
 // resource provider: the thing that creates and manages the resources in
 // a Terraform configuration.
 type ResourceProvider interface {
+	// Input is called to ask the provider to ask the user for input
+	// for completing the configuration if necesarry.
+	//
+	// This may or may not be called, so resource provider writers shouldn't
+	// rely on this being available to set some default values for validate
+	// later. Example of a situation where this wouldn't be called is if
+	// the user is not using a TTY.
+	Input(UIInput, *ResourceConfig) (*ResourceConfig, error)
+
 	// Validate is called once at the beginning with the raw configuration
 	// (no interpolation done) and can return a list of warnings and/or
 	// errors.
