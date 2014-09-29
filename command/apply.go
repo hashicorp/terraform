@@ -250,10 +250,16 @@ func (c *ApplyCommand) Run(args []string) int {
 
 func (c *ApplyCommand) Help() string {
 	helpText := `
-Usage: terraform apply [options] [dir]
+Usage: terraform apply [options] [DIR]
 
   Builds or changes infrastructure according to Terraform configuration
-  files .
+  files in DIR.
+
+  DIR can also be a SOURCE as given to the "init" command. In this case,
+  apply behaves as though "init" was called followed by "apply". This only
+  works for sources that aren't files, and only if the current working
+  directory is empty of Terraform files. This is a shortcut for getting
+  started.
 
 Options:
 
