@@ -572,7 +572,7 @@ func (c *walkContext) inputWalkFn() depgraph.WalkFunc {
 			// Wrap the input into a namespace
 			input := &PrefixUIInput{
 				IdPrefix:    fmt.Sprintf("provider.%s", rn.ID),
-				QueryPrefix: fmt.Sprintf("Provider %s", rn.ID),
+				QueryPrefix: fmt.Sprintf("provider.%s.", rn.ID),
 				UIInput:     c.Context.uiInput,
 			}
 

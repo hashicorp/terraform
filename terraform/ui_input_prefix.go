@@ -14,6 +14,6 @@ type PrefixUIInput struct {
 
 func (i *PrefixUIInput) Input(opts *InputOpts) (string, error) {
 	opts.Id = fmt.Sprintf("%s.%s", i.IdPrefix, opts.Id)
-	opts.Query = fmt.Sprintf("%s %s", i.QueryPrefix, opts.Query)
+	opts.Query = fmt.Sprintf("%s%s", i.QueryPrefix, opts.Query)
 	return i.UIInput.Input(opts)
 }
