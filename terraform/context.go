@@ -166,9 +166,8 @@ func (c *Context) Input() error {
 		for {
 			var err error
 			value, err = c.uiInput.Input(&InputOpts{
-				Id: fmt.Sprintf("var.%s", n),
-				Query: fmt.Sprintf(
-					"Variable '%s': ", n),
+				Id:    fmt.Sprintf("var.%s", n),
+				Query: fmt.Sprintf("var.%s", n),
 			})
 			if err != nil {
 				return fmt.Errorf(

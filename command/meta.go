@@ -133,7 +133,9 @@ func (m *Meta) contextOpts() *terraform.ContextOpts {
 		vs[k] = v
 	}
 	opts.Variables = vs
-	opts.UIInput = new(UIInput)
+	opts.UIInput = &UIInput{
+		Colorize: m.Colorize(),
+	}
 
 	return &opts
 }

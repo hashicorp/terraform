@@ -15,4 +15,9 @@ type InputOpts struct {
 
 	// Query is a human-friendly question for inputting this value.
 	Query string
+
+	// Description is a description about what this option is. Be wary
+	// that this will probably be in a terminal so split lines as you see
+	// necessary.
+	Description string
 }

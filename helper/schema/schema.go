@@ -616,7 +616,7 @@ func (m schemaMap) inputString(
 	schema *Schema) (interface{}, error) {
 	result, err := input.Input(&terraform.InputOpts{
 		Id:    k,
-		Query: fmt.Sprintf("%s: ", k),
+		Query: k,
 	})
 
 	return result, err
