@@ -30,6 +30,12 @@ type ResourceProvider struct {
 	p *schema.Provider
 }
 
+func (p *ResourceProvider) Input(
+	input terraform.UIInput,
+	c *terraform.ResourceConfig) (*terraform.ResourceConfig, error) {
+	return Provider().Input(input, c)
+}
+
 func (p *ResourceProvider) Validate(c *terraform.ResourceConfig) ([]string, []error) {
 	return Provider().Validate(c)
 }

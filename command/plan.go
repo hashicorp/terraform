@@ -75,6 +75,12 @@ func (c *PlanCommand) Run(args []string) int {
 		c.Ui.Error(err.Error())
 		return 1
 	}
+	if c.Input() {
+		if err := ctx.Input(); err != nil {
+			c.Ui.Error(fmt.Sprintf("Error configuring: %s", err))
+			return 1
+		}
+	}
 	if !validateContext(ctx, c.Ui) {
 		return 1
 	}
@@ -166,6 +172,8 @@ Options:
 
   -destroy            If set, a plan will be generated to destroy all resources
                       managed by the given configuration and state.
+
+  -input=true         Ask for input for variables if not directly set.
 
   -module-depth=n     Specifies the depth of modules to show in the output.
                       This does not affect the plan itself, only the output

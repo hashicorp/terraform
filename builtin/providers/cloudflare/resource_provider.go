@@ -14,6 +14,12 @@ type ResourceProvider struct {
 	client *cloudflare.Client
 }
 
+func (p *ResourceProvider) Input(
+	input terraform.UIInput,
+	c *terraform.ResourceConfig) (*terraform.ResourceConfig, error) {
+	return c, nil
+}
+
 func (p *ResourceProvider) Validate(c *terraform.ResourceConfig) ([]string, []error) {
 	v := &config.Validator{
 		Required: []string{

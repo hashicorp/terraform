@@ -12,14 +12,54 @@ func TestResourceProvider_impl(t *testing.T) {
 	var _ terraform.ResourceProvider = new(ResourceProvider)
 }
 
-func TestResourceProvider_configure(t *testing.T) {
-	p := new(terraform.MockResourceProvider)
-	client, server := testClientServer(t)
-	name, err := Register(server, p)
+func TestResourceProvider_input(t *testing.T) {
+	client, server := testNewClientServer(t)
+	defer client.Close()
+
+	p := server.ProviderFunc().(*terraform.MockResourceProvider)
+
+	provider, err := client.ResourceProvider()
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
-	provider := &ResourceProvider{Client: client, Name: name}
+
+	input := new(terraform.MockUIInput)
+
+	expected := &terraform.ResourceConfig{
+		Raw: map[string]interface{}{"bar": "baz"},
+	}
+	p.InputReturnConfig = expected
+
+	// Input
+	config := &terraform.ResourceConfig{
+		Raw: map[string]interface{}{"foo": "bar"},
+	}
+	actual, err := provider.Input(input, config)
+	if !p.InputCalled {
+		t.Fatal("input should be called")
+	}
+	if !reflect.DeepEqual(p.InputConfig, config) {
+		t.Fatalf("bad: %#v", p.InputConfig)
+	}
+	if err != nil {
+		t.Fatalf("bad: %#v", err)
+	}
+
+	if !reflect.DeepEqual(actual, expected) {
+		t.Fatalf("bad: %#v", actual)
+	}
+}
+
+func TestResourceProvider_configure(t *testing.T) {
+	client, server := testNewClientServer(t)
+	defer client.Close()
+
+	p := server.ProviderFunc().(*terraform.MockResourceProvider)
+
+	provider, err := client.ResourceProvider()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
 
 	// Configure
 	config := &terraform.ResourceConfig{

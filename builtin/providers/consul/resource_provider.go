@@ -13,6 +13,12 @@ type ResourceProvider struct {
 	client *consulapi.Client
 }
 
+func (p *ResourceProvider) Input(
+	input terraform.UIInput,
+	c *terraform.ResourceConfig) (*terraform.ResourceConfig, error) {
+	return c, nil
+}
+
 func (p *ResourceProvider) Validate(c *terraform.ResourceConfig) ([]string, []error) {
 	v := &config.Validator{
 		Optional: []string{

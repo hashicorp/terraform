@@ -9,8 +9,35 @@ import (
 // ResourceProvider is an implementation of terraform.ResourceProvider
 // that communicates over RPC.
 type ResourceProvider struct {
+	Broker *muxBroker
 	Client *rpc.Client
 	Name   string
+}
+
+func (p *ResourceProvider) Input(
+	input terraform.UIInput,
+	c *terraform.ResourceConfig) (*terraform.ResourceConfig, error) {
+	id := p.Broker.NextId()
+	go acceptAndServe(p.Broker, id, "UIInput", &UIInputServer{
+		UIInput: input,
+	})
+
+	var resp ResourceProviderInputResponse
+	args := ResourceProviderInputArgs{
+		InputId: id,
+		Config:  c,
+	}
+
+	err := p.Client.Call(p.Name+".Input", &args, &resp)
+	if err != nil {
+		return nil, err
+	}
+	if resp.Error != nil {
+		err = resp.Error
+		return nil, err
+	}
+
+	return resp.Config, nil
 }
 
 func (p *ResourceProvider) Validate(c *terraform.ResourceConfig) ([]string, []error) {
@@ -150,11 +177,22 @@ func (p *ResourceProvider) Resources() []terraform.ResourceType {
 // ResourceProviderServer is a net/rpc compatible structure for serving
 // a ResourceProvider. This should not be used directly.
 type ResourceProviderServer struct {
+	Broker   *muxBroker
 	Provider terraform.ResourceProvider
 }
 
 type ResourceProviderConfigureResponse struct {
 	Error *BasicError
+}
+
+type ResourceProviderInputArgs struct {
+	InputId uint32
+	Config  *terraform.ResourceConfig
+}
+
+type ResourceProviderInputResponse struct {
+	Config *terraform.ResourceConfig
+	Error  *BasicError
 }
 
 type ResourceProviderApplyArgs struct {
@@ -206,6 +244,33 @@ type ResourceProviderValidateResourceArgs struct {
 type ResourceProviderValidateResourceResponse struct {
 	Warnings []string
 	Errors   []*BasicError
+}
+
+func (s *ResourceProviderServer) Input(
+	args *ResourceProviderInputArgs,
+	reply *ResourceProviderInputResponse) error {
+	conn, err := s.Broker.Dial(args.InputId)
+	if err != nil {
+		*reply = ResourceProviderInputResponse{
+			Error: NewBasicError(err),
+		}
+		return nil
+	}
+	client := rpc.NewClient(conn)
+	defer client.Close()
+
+	input := &UIInput{
+		Client: client,
+		Name:   "UIInput",
+	}
+
+	config, err := s.Provider.Input(input, args.Config)
+	*reply = ResourceProviderInputResponse{
+		Config: config,
+		Error:  NewBasicError(err),
+	}
+
+	return nil
 }
 
 func (s *ResourceProviderServer) Validate(

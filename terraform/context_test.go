@@ -418,6 +418,137 @@ func TestContextValidate_selfRefMultiAll(t *testing.T) {
 	}
 }
 
+func TestContextInput(t *testing.T) {
+	input := new(MockUIInput)
+	m := testModule(t, "input-vars")
+	p := testProvider("aws")
+	p.ApplyFn = testApplyFn
+	p.DiffFn = testDiffFn
+	ctx := testContext(t, &ContextOpts{
+		Module: m,
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+		Variables: map[string]string{
+			"foo":            "us-west-2",
+			"amis.us-east-1": "override",
+		},
+		UIInput: input,
+	})
+
+	input.InputReturnMap = map[string]string{
+		"var.foo": "us-east-1",
+	}
+
+	if err := ctx.Input(); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	if _, err := ctx.Plan(nil); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	state, err := ctx.Apply()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	actual := strings.TrimSpace(state.String())
+	expected := strings.TrimSpace(testTerraformInputVarsStr)
+	if actual != expected {
+		t.Fatalf("bad: \n%s", actual)
+	}
+}
+
+func TestContextInput_provider(t *testing.T) {
+	m := testModule(t, "input-provider")
+	p := testProvider("aws")
+	p.ApplyFn = testApplyFn
+	p.DiffFn = testDiffFn
+	ctx := testContext(t, &ContextOpts{
+		Module: m,
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+	})
+
+	var actual interface{}
+	p.InputFn = func(i UIInput, c *ResourceConfig) (*ResourceConfig, error) {
+		c.Raw["foo"] = "bar"
+		return c, nil
+	}
+	p.ConfigureFn = func(c *ResourceConfig) error {
+		actual = c.Raw["foo"]
+		return nil
+	}
+
+	if err := ctx.Input(); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	if _, err := ctx.Plan(nil); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	if _, err := ctx.Apply(); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	if !reflect.DeepEqual(actual, "bar") {
+		t.Fatalf("bad: %#v", actual)
+	}
+}
+
+func TestContextInput_providerId(t *testing.T) {
+	input := new(MockUIInput)
+	m := testModule(t, "input-provider")
+	p := testProvider("aws")
+	p.ApplyFn = testApplyFn
+	p.DiffFn = testDiffFn
+	ctx := testContext(t, &ContextOpts{
+		Module: m,
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+		UIInput: input,
+	})
+
+	var actual interface{}
+	p.InputFn = func(i UIInput, c *ResourceConfig) (*ResourceConfig, error) {
+		v, err := i.Input(&InputOpts{Id: "foo"})
+		if err != nil {
+			return nil, err
+		}
+
+		c.Raw["foo"] = v
+		return c, nil
+	}
+	p.ConfigureFn = func(c *ResourceConfig) error {
+		actual = c.Raw["foo"]
+		return nil
+	}
+
+	input.InputReturnMap = map[string]string{
+		"provider.aws.foo": "bar",
+	}
+
+	if err := ctx.Input(); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	if _, err := ctx.Plan(nil); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	if _, err := ctx.Apply(); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	if !reflect.DeepEqual(actual, "bar") {
+		t.Fatalf("bad: %#v", actual)
+	}
+}
+
 func TestContextApply(t *testing.T) {
 	m := testModule(t, "apply-good")
 	p := testProvider("aws")

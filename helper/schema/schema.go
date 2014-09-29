@@ -14,6 +14,7 @@ package schema
 import (
 	"fmt"
 	"reflect"
+	"sort"
 	"strconv"
 	"strings"
 
@@ -73,6 +74,14 @@ type Schema struct {
 	// will no default and the user will be asked to fill it in.
 	Default     interface{}
 	DefaultFunc SchemaDefaultFunc
+
+	// Description is used as the description for docs or asking for user
+	// input. It should be relatively short (a few sentences max) and should
+	// be formatted to fit a CLI.
+	Description string
+
+	// InputDefault is the default value to use for when inputs are requested.
+	InputDefault string
 
 	// The fields below relate to diffs.
 	//
@@ -268,6 +277,55 @@ func (m schemaMap) Diff(
 	}
 
 	return result, nil
+}
+
+// Input implements the terraform.ResourceProvider method by asking
+// for input for required configuration keys that don't have a value.
+func (m schemaMap) Input(
+	input terraform.UIInput,
+	c *terraform.ResourceConfig) (*terraform.ResourceConfig, error) {
+	keys := make([]string, 0, len(m))
+	for k, _ := range m {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+
+	for _, k := range keys {
+		v := m[k]
+
+		// Skip things that don't require config, if that is even valid
+		// for a provider schema.
+		if !v.Required && !v.Optional {
+			continue
+		}
+
+		// Skip things that have a value of some sort already
+		if _, ok := c.Raw[k]; ok {
+			continue
+		}
+
+		var value interface{}
+		var err error
+		switch v.Type {
+		case TypeBool:
+			fallthrough
+		case TypeInt:
+			fallthrough
+		case TypeString:
+			value, err = m.inputString(input, k, v)
+		default:
+			panic(fmt.Sprintf("Unknown type for input: %s", v.Type))
+		}
+
+		if err != nil {
+			return nil, fmt.Errorf(
+				"%s: %s", k, err)
+		}
+
+		c.Raw[k] = value
+	}
+
+	return c, nil
 }
 
 // Validate validates the configuration against this schema mapping.
@@ -567,6 +625,20 @@ func (m schemaMap) diffString(
 	})
 
 	return nil
+}
+
+func (m schemaMap) inputString(
+	input terraform.UIInput,
+	k string,
+	schema *Schema) (interface{}, error) {
+	result, err := input.Input(&terraform.InputOpts{
+		Id:          k,
+		Query:       k,
+		Description: schema.Description,
+		Default:     schema.InputDefault,
+	})
+
+	return result, err
 }
 
 func (m schemaMap) validate(

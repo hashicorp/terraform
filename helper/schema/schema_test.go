@@ -1035,6 +1035,86 @@ func TestSchemaMap_Diff(t *testing.T) {
 	}
 }
 
+func TestSchemaMap_Input(t *testing.T) {
+	cases := []struct {
+		Schema map[string]*Schema
+		Config map[string]interface{}
+		Input  map[string]string
+		Result map[string]interface{}
+		Err    bool
+	}{
+		/*
+		 * String decode
+		 */
+
+		{
+			Schema: map[string]*Schema{
+				"availability_zone": &Schema{
+					Type:     TypeString,
+					Optional: true,
+				},
+			},
+
+			Input: map[string]string{
+				"availability_zone": "foo",
+			},
+
+			Result: map[string]interface{}{
+				"availability_zone": "foo",
+			},
+
+			Err: false,
+		},
+
+		{
+			Schema: map[string]*Schema{
+				"availability_zone": &Schema{
+					Type:     TypeString,
+					Optional: true,
+				},
+			},
+
+			Config: map[string]interface{}{
+				"availability_zone": "bar",
+			},
+
+			Input: map[string]string{
+				"availability_zone": "foo",
+			},
+
+			Result: map[string]interface{}{
+				"availability_zone": "bar",
+			},
+
+			Err: false,
+		},
+	}
+
+	for i, tc := range cases {
+		if tc.Config == nil {
+			tc.Config = make(map[string]interface{})
+		}
+
+		c, err := config.NewRawConfig(tc.Config)
+		if err != nil {
+			t.Fatalf("err: %s", err)
+		}
+
+		input := new(terraform.MockUIInput)
+		input.InputReturnMap = tc.Input
+
+		actual, err := schemaMap(tc.Schema).Input(
+			input, terraform.NewResourceConfig(c))
+		if (err != nil) != tc.Err {
+			t.Fatalf("#%d err: %s", i, err)
+		}
+
+		if !reflect.DeepEqual(tc.Result, actual.Raw) {
+			t.Fatalf("#%d: bad:\n\n%#v", i, actual.Raw)
+		}
+	}
+}
+
 func TestSchemaMap_InternalValidate(t *testing.T) {
 	cases := []struct {
 		In  map[string]*Schema

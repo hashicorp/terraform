@@ -46,6 +46,24 @@ func testClientServer(t *testing.T) (*rpc.Client, *rpc.Server) {
 	return client, server
 }
 
+func testNewClientServer(t *testing.T) (*Client, *Server) {
+	clientConn, serverConn := testConn(t)
+
+	server := &Server{
+		ProviderFunc: testProviderFixed(new(terraform.MockResourceProvider)),
+		ProvisionerFunc: testProvisionerFixed(
+			new(terraform.MockResourceProvisioner)),
+	}
+	go server.ServeConn(serverConn)
+
+	client, err := NewClient(clientConn)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	return client, server
+}
+
 func testProviderFixed(p terraform.ResourceProvider) ProviderFunc {
 	return func() terraform.ResourceProvider {
 		return p

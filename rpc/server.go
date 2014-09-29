@@ -96,7 +96,8 @@ func (d *dispenseServer) ResourceProvider(
 			return
 		}
 
-		d.serve(conn, "ResourceProvider", &ResourceProviderServer{
+		serve(conn, "ResourceProvider", &ResourceProviderServer{
+			Broker:   d.broker,
 			Provider: d.ProviderFunc(),
 		})
 	}()
@@ -116,7 +117,7 @@ func (d *dispenseServer) ResourceProvisioner(
 			return
 		}
 
-		d.serve(conn, "ResourceProvisioner", &ResourceProvisionerServer{
+		serve(conn, "ResourceProvisioner", &ResourceProvisionerServer{
 			Provisioner: d.ProvisionerFunc(),
 		})
 	}()
@@ -124,7 +125,17 @@ func (d *dispenseServer) ResourceProvisioner(
 	return nil
 }
 
-func (d *dispenseServer) serve(conn io.ReadWriteCloser, name string, v interface{}) {
+func acceptAndServe(mux *muxBroker, id uint32, n string, v interface{}) {
+	conn, err := mux.Accept(id)
+	if err != nil {
+		log.Printf("[ERR] Plugin acceptAndServe: %s", err)
+		return
+	}
+
+	serve(conn, n, v)
+}
+
+func serve(conn io.ReadWriteCloser, name string, v interface{}) {
 	server := rpc.NewServer()
 	if err := server.RegisterName(name, v); err != nil {
 		log.Printf("[ERR] Plugin dispense: %s", err)

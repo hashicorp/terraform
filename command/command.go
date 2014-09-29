@@ -7,6 +7,9 @@ import (
 	"github.com/mitchellh/cli"
 )
 
+// Set to true when we're testing
+var test bool = false
+
 // DefaultStateFilename is the default filename used for the state file.
 const DefaultStateFilename = "terraform.tfstate"
 
