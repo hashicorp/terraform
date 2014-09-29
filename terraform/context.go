@@ -168,7 +168,7 @@ func (c *Context) Input() error {
 			value, err = c.uiInput.Input(&InputOpts{
 				Id: fmt.Sprintf("var.%s", n),
 				Query: fmt.Sprintf(
-					"Please enter a value for '%s': ", n),
+					"Variable '%s': ", n),
 			})
 			if err != nil {
 				return fmt.Errorf(
@@ -571,8 +571,9 @@ func (c *walkContext) inputWalkFn() depgraph.WalkFunc {
 
 			// Wrap the input into a namespace
 			input := &PrefixUIInput{
-				IdPrefix: fmt.Sprintf("provider.%s", rn.ID),
-				UIInput:  c.Context.uiInput,
+				IdPrefix:    fmt.Sprintf("provider.%s", rn.ID),
+				QueryPrefix: fmt.Sprintf("Provider %s", rn.ID),
+				UIInput:     c.Context.uiInput,
 			}
 
 			// Go through each provider and capture the input necessary
