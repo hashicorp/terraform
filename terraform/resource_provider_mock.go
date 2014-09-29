@@ -17,6 +17,7 @@ type MockResourceProvider struct {
 	InputConfig                  *ResourceConfig
 	InputReturnConfig            *ResourceConfig
 	InputReturnError             error
+	InputFn                      func(UIInput, *ResourceConfig) (*ResourceConfig, error)
 	ApplyCalled                  bool
 	ApplyInfo                    *InstanceInfo
 	ApplyState                   *InstanceState
@@ -61,6 +62,9 @@ func (p *MockResourceProvider) Input(
 	p.InputCalled = true
 	p.InputInput = input
 	p.InputConfig = c
+	if p.InputFn != nil {
+		return p.InputFn(input, c)
+	}
 	return p.InputReturnConfig, p.InputReturnError
 }
 

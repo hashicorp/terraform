@@ -25,14 +25,15 @@ type genericWalkFunc func(*walkContext, *Resource) error
 //
 // Additionally, a context can be created from a Plan using Plan.Context.
 type Context struct {
-	module       *module.Tree
-	diff         *Diff
-	hooks        []Hook
-	state        *State
-	providers    map[string]ResourceProviderFactory
-	provisioners map[string]ResourceProvisionerFactory
-	variables    map[string]string
-	uiInput      UIInput
+	module         *module.Tree
+	diff           *Diff
+	hooks          []Hook
+	state          *State
+	providerConfig map[string]map[string]map[string]interface{}
+	providers      map[string]ResourceProviderFactory
+	provisioners   map[string]ResourceProvisionerFactory
+	variables      map[string]string
+	uiInput        UIInput
 
 	l     sync.Mutex    // Lock acquired during any task
 	parCh chan struct{} // Semaphore used to limit parallelism
@@ -78,14 +79,15 @@ func NewContext(opts *ContextOpts) *Context {
 	parCh := make(chan struct{}, par)
 
 	return &Context{
-		diff:         opts.Diff,
-		hooks:        hooks,
-		module:       opts.Module,
-		state:        opts.State,
-		providers:    opts.Providers,
-		provisioners: opts.Provisioners,
-		variables:    opts.Variables,
-		uiInput:      opts.UIInput,
+		diff:           opts.Diff,
+		hooks:          hooks,
+		module:         opts.Module,
+		state:          opts.State,
+		providerConfig: make(map[string]map[string]map[string]interface{}),
+		providers:      opts.Providers,
+		provisioners:   opts.Provisioners,
+		variables:      opts.Variables,
+		uiInput:        opts.UIInput,
 
 		parCh: parCh,
 		sh:    sh,
@@ -548,31 +550,44 @@ func (c *walkContext) inputWalkFn() depgraph.WalkFunc {
 			// Resources don't matter for input. Continue.
 			return nil
 		case *GraphNodeResourceProvider:
-			return nil
-			/*
-				// If we already did this provider, then we're done.
-				meta.Lock()
-				_, ok := meta.Done[rn.ID]
-				meta.Unlock()
-				if ok {
-					return nil
-				}
+			// Acquire the lock the whole time so we only ask for input
+			// one at a time.
+			meta.Lock()
+			defer meta.Unlock()
 
-				// Get the raw configuration because this is what we
-				// pass into the API.
-				var raw *config.RawConfig
-				sharedProvider := rn.Provider
-				if sharedProvider.Config != nil {
-					raw = sharedProvider.Config.RawConfig
-				}
-				rc := NewResourceConfig(raw)
+			// If we already did this provider, then we're done.
+			if _, ok := meta.Done[rn.ID]; ok {
+				return nil
+			}
 
-				// Go through each provider and capture the input necessary
-				// to satisfy it.
-				for k, p := range sharedProvider.Providers {
-					ws, es := p.Validate(rc)
+			// Get the raw configuration because this is what we
+			// pass into the API.
+			var raw *config.RawConfig
+			sharedProvider := rn.Provider
+			if sharedProvider.Config != nil {
+				raw = sharedProvider.Config.RawConfig
+			}
+			rc := NewResourceConfig(raw)
+
+			// Go through each provider and capture the input necessary
+			// to satisfy it.
+			configs := make(map[string]map[string]interface{})
+			for k, p := range sharedProvider.Providers {
+				newc, err := p.Input(c.Context.uiInput, rc)
+				if err != nil {
+					return fmt.Errorf(
+						"Error configuring %s: %s", k, err)
 				}
-			*/
+				if newc != nil {
+					configs[k] = newc.Raw
+				}
+			}
+
+			// Mark this provider as done
+			meta.Done[rn.ID] = struct{}{}
+
+			// Set the configuration
+			c.Context.providerConfig[rn.ID] = configs
 		}
 
 		return nil
@@ -1116,47 +1131,17 @@ func (c *walkContext) genericWalkFn(cb genericWalkFunc) depgraph.WalkFunc {
 		case *GraphNodeResourceProvider:
 			sharedProvider := m.Provider
 
-			// Interpolate in the variables and configure all the providers
-			var raw *config.RawConfig
-			if sharedProvider.Config != nil {
-				raw = sharedProvider.Config.RawConfig
+			// Check if we have an override
+			cs, ok := c.Context.providerConfig[m.ID]
+			if !ok {
+				cs = make(map[string]map[string]interface{})
 			}
-
-			// If we have a parent, then merge in the parent configurations
-			// properly so we "inherit" the configurations.
-			if sharedProvider.Parent != nil {
-				var rawMap map[string]interface{}
-				if raw != nil {
-					rawMap = raw.Raw
-				}
-
-				parent := sharedProvider.Parent
-				for parent != nil {
-					if parent.Config != nil {
-						if rawMap == nil {
-							rawMap = parent.Config.RawConfig.Raw
-						}
-
-						for k, v := range parent.Config.RawConfig.Config() {
-							rawMap[k] = v
-						}
-					}
-
-					parent = parent.Parent
-				}
-
-				// Update our configuration to be the merged result
-				var err error
-				raw, err = config.NewRawConfig(rawMap)
-				if err != nil {
-					return fmt.Errorf("Error merging configurations: %s", err)
-				}
-			}
-
-			rc := NewResourceConfig(raw)
-			rc.interpolate(c)
 
 			for k, p := range sharedProvider.Providers {
+				// Merge the configurations to get what we use to configure with
+				rc := sharedProvider.MergeConfig(false, cs[k])
+				rc.interpolate(c)
+
 				log.Printf("[INFO] Configuring provider: %s", k)
 				err := p.Configure(rc)
 				if err != nil {

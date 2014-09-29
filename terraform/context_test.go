@@ -460,6 +460,45 @@ func TestContextInput(t *testing.T) {
 	}
 }
 
+func TestContextInput_provider(t *testing.T) {
+	m := testModule(t, "input-provider")
+	p := testProvider("aws")
+	p.ApplyFn = testApplyFn
+	p.DiffFn = testDiffFn
+	ctx := testContext(t, &ContextOpts{
+		Module: m,
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+	})
+
+	var actual interface{}
+	p.InputFn = func(i UIInput, c *ResourceConfig) (*ResourceConfig, error) {
+		c.Raw["foo"] = "bar"
+		return c, nil
+	}
+	p.ConfigureFn = func(c *ResourceConfig) error {
+		actual = c.Raw["foo"]
+		return nil
+	}
+
+	if err := ctx.Input(); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	if _, err := ctx.Plan(nil); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	if _, err := ctx.Apply(); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	if !reflect.DeepEqual(actual, "bar") {
+		t.Fatalf("bad: %#v", actual)
+	}
+}
+
 func TestContextApply(t *testing.T) {
 	m := testModule(t, "apply-good")
 	p := testProvider("aws")

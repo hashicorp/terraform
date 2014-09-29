@@ -199,11 +199,16 @@ func (c *ResourceConfig) interpolate(ctx *walkContext) error {
 		}
 	}
 
-	if c.raw != nil {
-		c.ComputedKeys = c.raw.UnknownKeys()
-		c.Raw = c.raw.Raw
-		c.Config = c.raw.Config()
+	if c.raw == nil {
+		var err error
+		c.raw, err = config.NewRawConfig(make(map[string]interface{}))
+		if err != nil {
+			return err
+		}
 	}
 
+	c.ComputedKeys = c.raw.UnknownKeys()
+	c.Raw = c.raw.Raw
+	c.Config = c.raw.Config()
 	return nil
 }

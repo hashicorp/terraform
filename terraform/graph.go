@@ -119,7 +119,8 @@ type graphSharedProvider struct {
 	ProviderKeys []string
 	Parent       *graphSharedProvider
 
-	parentNoun *depgraph.Noun
+	overrideConfig map[string]map[string]interface{}
+	parentNoun     *depgraph.Noun
 }
 
 // Graph builds a dependency graph of all the resources for infrastructure
@@ -1459,6 +1460,50 @@ func graphMapResourceProvisioners(g *depgraph.Graph,
 		return &multierror.Error{Errors: errs}
 	}
 	return nil
+}
+
+// MergeConfig merges all the configurations in the proper order
+// to result in the final configuration to use to configure this
+// provider.
+func (p *graphSharedProvider) MergeConfig(
+	raw bool, override map[string]interface{}) *ResourceConfig {
+	var rawMap map[string]interface{}
+	if override != nil {
+		rawMap = override
+	} else if p.Config != nil {
+		rawMap = p.Config.RawConfig.Raw
+	}
+	if rawMap == nil {
+		rawMap = make(map[string]interface{})
+	}
+
+	// Merge in all the parent configurations
+	if p.Parent != nil {
+		parent := p.Parent
+		for parent != nil {
+			if parent.Config != nil {
+				var merge map[string]interface{}
+				if raw {
+					merge = parent.Config.RawConfig.Raw
+				} else {
+					merge = parent.Config.RawConfig.Config()
+				}
+
+				for k, v := range merge {
+					rawMap[k] = v
+				}
+			}
+
+			parent = parent.Parent
+		}
+	}
+
+	rc, err := config.NewRawConfig(rawMap)
+	if err != nil {
+		panic("error building config: " + err.Error())
+	}
+
+	return NewResourceConfig(rc)
 }
 
 // matchingPrefixes takes a resource type and a set of resource
