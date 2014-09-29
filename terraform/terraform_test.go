@@ -113,6 +113,19 @@ func (h *HookRecordApplyOrder) PreApply(
 // Below are all the constant strings that are the expected output for
 // various tests.
 
+const testTerraformInputVarsStr = `
+aws_instance.bar:
+  ID = foo
+  bar = override
+  foo = us-east-1
+  type = aws_instance
+aws_instance.foo:
+  ID = foo
+  bar = baz
+  num = 2
+  type = aws_instance
+`
+
 const testTerraformApplyStr = `
 aws_instance.bar:
   ID = foo

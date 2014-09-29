@@ -3,6 +3,7 @@ package terraform
 import (
 	"fmt"
 	"log"
+	"sort"
 	"strconv"
 	"strings"
 	"sync"
@@ -31,6 +32,7 @@ type Context struct {
 	providers    map[string]ResourceProviderFactory
 	provisioners map[string]ResourceProvisionerFactory
 	variables    map[string]string
+	uiInput      UIInput
 
 	l     sync.Mutex    // Lock acquired during any task
 	parCh chan struct{} // Semaphore used to limit parallelism
@@ -50,6 +52,8 @@ type ContextOpts struct {
 	Providers    map[string]ResourceProviderFactory
 	Provisioners map[string]ResourceProvisionerFactory
 	Variables    map[string]string
+
+	UIInput UIInput
 }
 
 // NewContext creates a new context.
@@ -81,6 +85,7 @@ func NewContext(opts *ContextOpts) *Context {
 		providers:    opts.Providers,
 		provisioners: opts.Provisioners,
 		variables:    opts.Variables,
+		uiInput:      opts.UIInput,
 
 		parCh: parCh,
 		sh:    sh,
@@ -124,6 +129,74 @@ func (c *Context) Graph() (*depgraph.Graph, error) {
 		Provisioners: c.provisioners,
 		State:        c.state,
 	})
+}
+
+// Input asks for input to fill variables and provider configurations.
+// This modifies the configuration in-place, so asking for Input twice
+// may result in different UI output showing different current values.
+func (c *Context) Input() error {
+	v := c.acquireRun()
+	defer c.releaseRun(v)
+
+	// Walk the variables first for the root module. We walk them in
+	// alphabetical order for UX reasons.
+	rootConf := c.module.Config()
+	names := make([]string, len(rootConf.Variables))
+	m := make(map[string]*config.Variable)
+	for i, v := range rootConf.Variables {
+		names[i] = v.Name
+		m[v.Name] = v
+	}
+	sort.Strings(names)
+	for _, n := range names {
+		v := m[n]
+		switch v.Type() {
+		case config.VariableTypeMap:
+			continue
+		case config.VariableTypeString:
+			// Good!
+		default:
+			panic(fmt.Sprintf("Unknown variable type: %s", v.Type()))
+		}
+
+		// Ask the user for a value for this variable
+		var value string
+		for {
+			var err error
+			value, err = c.uiInput.Input(&InputOpts{
+				Id: fmt.Sprintf("var.%s", n),
+				Query: fmt.Sprintf(
+					"Please enter a value for '%s': ", n),
+			})
+			if err != nil {
+				return fmt.Errorf(
+					"Error asking for %s: %s", n, err)
+			}
+
+			if value == "" && v.Required() {
+				// Redo if it is required.
+				continue
+			}
+
+			if value == "" {
+				// No value, just exit the loop. With no value, we just
+				// use whatever is currently set in variables.
+				break
+			}
+
+			break
+		}
+
+		if value != "" {
+			c.variables[n] = value
+		}
+	}
+
+	// Create the walk context and walk the inputs, which will gather the
+	// inputs for any resource providers.
+	wc := c.walkContext(walkInput, rootModulePath)
+	wc.Meta = new(walkInputMeta)
+	return wc.Walk()
 }
 
 // Plan generates an execution plan for the given context.
@@ -337,6 +410,7 @@ type walkOperation byte
 
 const (
 	walkInvalid walkOperation = iota
+	walkInput
 	walkApply
 	walkPlan
 	walkPlanDestroy
@@ -366,6 +440,8 @@ func (c *walkContext) Walk() error {
 
 	var walkFn depgraph.WalkFunc
 	switch c.Operation {
+	case walkInput:
+		walkFn = c.inputWalkFn()
 	case walkApply:
 		walkFn = c.applyWalkFn()
 	case walkPlan:
@@ -384,8 +460,11 @@ func (c *walkContext) Walk() error {
 		return err
 	}
 
-	if c.Operation == walkValidate {
-		// Validation is the only one that doesn't calculate outputs
+	switch c.Operation {
+	case walkInput:
+		fallthrough
+	case walkValidate:
+		// Don't calculate outputs
 		return nil
 	}
 
@@ -437,6 +516,67 @@ func (c *walkContext) Walk() error {
 	mod.Outputs = outputs
 
 	return nil
+}
+
+func (c *walkContext) inputWalkFn() depgraph.WalkFunc {
+	meta := c.Meta.(*walkInputMeta)
+	meta.Lock()
+	if meta.Done == nil {
+		meta.Done = make(map[string]struct{})
+	}
+	meta.Unlock()
+
+	return func(n *depgraph.Noun) error {
+		// If it is the root node, ignore
+		if n.Name == GraphRootNode {
+			return nil
+		}
+
+		switch rn := n.Meta.(type) {
+		case *GraphNodeModule:
+			// Build another walkContext for this module and walk it.
+			wc := c.Context.walkContext(c.Operation, rn.Path)
+
+			// Set the graph to specifically walk this subgraph
+			wc.graph = rn.Graph
+
+			// Preserve the meta
+			wc.Meta = c.Meta
+
+			return wc.Walk()
+		case *GraphNodeResource:
+			// Resources don't matter for input. Continue.
+			return nil
+		case *GraphNodeResourceProvider:
+			return nil
+			/*
+				// If we already did this provider, then we're done.
+				meta.Lock()
+				_, ok := meta.Done[rn.ID]
+				meta.Unlock()
+				if ok {
+					return nil
+				}
+
+				// Get the raw configuration because this is what we
+				// pass into the API.
+				var raw *config.RawConfig
+				sharedProvider := rn.Provider
+				if sharedProvider.Config != nil {
+					raw = sharedProvider.Config.RawConfig
+				}
+				rc := NewResourceConfig(raw)
+
+				// Go through each provider and capture the input necessary
+				// to satisfy it.
+				for k, p := range sharedProvider.Providers {
+					ws, es := p.Validate(rc)
+				}
+			*/
+		}
+
+		return nil
+	}
 }
 
 func (c *walkContext) applyWalkFn() depgraph.WalkFunc {
@@ -1383,6 +1523,12 @@ func (c *walkContext) computeResourceMultiVariable(
 	}
 
 	return strings.Join(values, ","), nil
+}
+
+type walkInputMeta struct {
+	sync.Mutex
+
+	Done map[string]struct{}
 }
 
 type walkValidateMeta struct {
