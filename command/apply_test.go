@@ -3,6 +3,9 @@ package command
 import (
 	"fmt"
 	"io/ioutil"
+	"net"
+	"net/http"
+	"net/url"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -193,6 +196,73 @@ func TestApply_error(t *testing.T) {
 	}
 	if len(state.RootModule().Resources) == 0 {
 		t.Fatal("no resources in state")
+	}
+}
+
+func TestApply_init(t *testing.T) {
+	// Change to the temporary directory
+	cwd, err := os.Getwd()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	dir := tempDir(t)
+	if err := os.MkdirAll(dir, 0755); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if err := os.Chdir(dir); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	defer os.Chdir(cwd)
+
+	// Create the test fixtures
+	statePath := testTempFile(t)
+	ln := testHttpServer(t)
+	defer ln.Close()
+
+	// Initialize the command
+	p := testProvider()
+	ui := new(cli.MockUi)
+	c := &ApplyCommand{
+		Meta: Meta{
+			ContextOpts: testCtxConfig(p),
+			Ui:          ui,
+		},
+	}
+
+	// Build the URL to the init
+	var u url.URL
+	u.Scheme = "http"
+	u.Host = ln.Addr().String()
+	u.Path = "/header"
+
+	args := []string{
+		"-state", statePath,
+		u.String(),
+	}
+	if code := c.Run(args); code != 0 {
+		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
+	}
+
+	if _, err := os.Stat("hello.tf"); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	if _, err := os.Stat(statePath); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	f, err := os.Open(statePath)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	defer f.Close()
+
+	state, err := terraform.ReadState(f)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if state == nil {
+		t.Fatal("state should not be nil")
 	}
 }
 
@@ -940,6 +1010,31 @@ func TestApply_disableBackup(t *testing.T) {
 	if err == nil || !os.IsNotExist(err) {
 		t.Fatalf("backup should not exist")
 	}
+}
+
+func testHttpServer(t *testing.T) net.Listener {
+	ln, err := net.Listen("tcp", ":0")
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	mux := http.NewServeMux()
+	mux.HandleFunc("/header", testHttpHandlerHeader)
+
+	var server http.Server
+	server.Handler = mux
+	go server.Serve(ln)
+
+	return ln
+}
+
+func testHttpHandlerHeader(w http.ResponseWriter, r *http.Request) {
+	var url url.URL
+	url.Scheme = "file"
+	url.Path = testFixturePath("init")
+
+	w.Header().Add("X-Terraform-Get", url.String())
+	w.WriteHeader(200)
 }
 
 const applyVarFile = `

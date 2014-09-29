@@ -19,6 +19,11 @@ and applies the changes appropriately. However, a path to another configuration
 or an execution plan can be provided. Execution plans can be used to only
 execute a pre-determined set of actions.
 
+The `dir` argument can also be a [module source](/docs/modules/index.html).
+In this case, `apply` behaves as though `init` were called with that
+argument followed by an `apply` in the current directory. This is meant
+as a shortcut for getting started.
+
 The command-line flags are all optional. The list of available flags are:
 
 * `-backup=path` - Path to the backup file. Defaults to `-state-out` with
