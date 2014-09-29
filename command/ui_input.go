@@ -79,6 +79,10 @@ func (i *UIInput) Input(opts *terraform.InputOpts) (string, error) {
 		}
 		buf.WriteString("\n")
 	}
+	if opts.Default != "" {
+		buf.WriteString("  [bold]Default:[reset] ")
+		buf.WriteString(opts.Default)
+	}
 	buf.WriteString("  [bold]Enter a value:[reset] ")
 
 	// Ask the user for their input
@@ -101,6 +105,11 @@ func (i *UIInput) Input(opts *terraform.InputOpts) (string, error) {
 	select {
 	case line := <-result:
 		fmt.Fprint(w, "\n")
+
+		if line == "" {
+			line = opts.Default
+		}
+
 		return line, nil
 	case <-sigCh:
 		// Print a newline so that any further output starts properly

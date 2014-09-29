@@ -11,7 +11,7 @@ type UIInput interface {
 type InputOpts struct {
 	// Id is a unique ID for the question being asked that might be
 	// used for logging or to look up a prior answered question.
-	Id    string
+	Id string
 
 	// Query is a human-friendly question for inputting this value.
 	Query string
@@ -20,4 +20,8 @@ type InputOpts struct {
 	// that this will probably be in a terminal so split lines as you see
 	// necessary.
 	Description string
+
+	// Default will be the value returned if no data is entered.
+	Default       string
+	DefaultHidden bool
 }
