@@ -8,6 +8,7 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/hashicorp/terraform/config/module"
 	"github.com/hashicorp/terraform/terraform"
 )
 
@@ -35,6 +36,12 @@ func (c *ApplyCommand) Run(args []string) int {
 		return 1
 	}
 
+	pwd, err := os.Getwd()
+	if err != nil {
+		c.Ui.Error(fmt.Sprintf("Error getting pwd: %s", err))
+		return 1
+	}
+
 	var configPath string
 	args = cmdFlags.Args()
 	if len(args) > 1 {
@@ -44,11 +51,7 @@ func (c *ApplyCommand) Run(args []string) int {
 	} else if len(args) == 1 {
 		configPath = args[0]
 	} else {
-		var err error
-		configPath, err = os.Getwd()
-		if err != nil {
-			c.Ui.Error(fmt.Sprintf("Error getting pwd: %s", err))
-		}
+		configPath = pwd
 	}
 
 	// Prepare the extra hooks to count resources
@@ -65,6 +68,24 @@ func (c *ApplyCommand) Run(args []string) int {
 	// the extension
 	if backupPath == "" {
 		backupPath = stateOutPath + DefaultBackupExtention
+	}
+
+	// Do a detect to determine if we need to do an init + apply.
+	if detected, err := module.Detect(configPath, pwd); err != nil {
+		c.Ui.Error(fmt.Sprintf(
+			"Invalid path: %s", err))
+		return 1
+	} else if !strings.HasPrefix(detected, "file") {
+		// If this isn't a file URL then we're doing an init +
+		// apply.
+		var init InitCommand
+		init.Meta = c.Meta
+		if code := init.Run([]string{detected}); code != 0 {
+			return code
+		}
+
+		// Change the config path to be the cwd
+		configPath = pwd
 	}
 
 	// Build the context based on the arguments given
