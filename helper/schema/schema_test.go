@@ -1055,10 +1055,6 @@ func TestSchemaMap_Input(t *testing.T) {
 				},
 			},
 
-			Config: map[string]interface{}{
-				"availability_zone": "bar",
-			},
-
 			Input: map[string]string{
 				"availability_zone": "foo",
 			},
@@ -1069,9 +1065,36 @@ func TestSchemaMap_Input(t *testing.T) {
 
 			Err: false,
 		},
+
+		{
+			Schema: map[string]*Schema{
+				"availability_zone": &Schema{
+					Type:     TypeString,
+					Optional: true,
+				},
+			},
+
+			Config: map[string]interface{}{
+				"availability_zone": "bar",
+			},
+
+			Input: map[string]string{
+				"availability_zone": "foo",
+			},
+
+			Result: map[string]interface{}{
+				"availability_zone": "bar",
+			},
+
+			Err: false,
+		},
 	}
 
 	for i, tc := range cases {
+		if tc.Config == nil {
+			tc.Config = make(map[string]interface{})
+		}
+
 		c, err := config.NewRawConfig(tc.Config)
 		if err != nil {
 			t.Fatalf("err: %s", err)

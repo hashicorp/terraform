@@ -282,6 +282,11 @@ func (m schemaMap) Input(
 			continue
 		}
 
+		// Skip things that have a value of some sort already
+		if _, ok := c.Raw[k]; ok {
+			continue
+		}
+
 		var value interface{}
 		var err error
 		switch v.Type {
