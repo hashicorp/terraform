@@ -1021,45 +1021,17 @@ func (c *walkContext) validateWalkFn() depgraph.WalkFunc {
 		case *GraphNodeResourceProvider:
 			sharedProvider := rn.Provider
 
-			var raw *config.RawConfig
-			if sharedProvider.Config != nil {
-				raw = sharedProvider.Config.RawConfig
+			// Check if we have an override
+			cs, ok := c.Context.providerConfig[rn.ID]
+			if !ok {
+				cs = make(map[string]map[string]interface{})
 			}
-
-			// If we have a parent, then merge in the parent configurations
-			// properly so we "inherit" the configurations.
-			if sharedProvider.Parent != nil {
-				var rawMap map[string]interface{}
-				if raw != nil {
-					rawMap = raw.Raw
-				}
-
-				parent := sharedProvider.Parent
-				for parent != nil {
-					if parent.Config != nil {
-						if rawMap == nil {
-							rawMap = parent.Config.RawConfig.Raw
-						}
-
-						for k, v := range parent.Config.RawConfig.Raw {
-							rawMap[k] = v
-						}
-					}
-
-					parent = parent.Parent
-				}
-
-				// Update our configuration to be the merged result
-				var err error
-				raw, err = config.NewRawConfig(rawMap)
-				if err != nil {
-					return fmt.Errorf("Error merging configurations: %s", err)
-				}
-			}
-
-			rc := NewResourceConfig(raw)
 
 			for k, p := range sharedProvider.Providers {
+				// Merge the configurations to get what we use to configure with
+				rc := sharedProvider.MergeConfig(false, cs[k])
+				rc.interpolate(c)
+
 				log.Printf("[INFO] Validating provider: %s", k)
 				ws, es := p.Validate(rc)
 				for i, w := range ws {
