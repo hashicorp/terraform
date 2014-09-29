@@ -7,6 +7,8 @@ FEATURES:
     automatically downloads/updates modules for you on request.
   * **New Command: `init`**. This command initializes a Terraform configuration
     from an existing Terraform module (also new in 0.3).
+  * Terraform will ask for user input to fill in required variables and
+    provider configurations if they aren't set.
   * The state file format is now JSON rather than binary. This allows for
     easier machine and human read/write. Old binary state files will be
     automatically upgraded.
