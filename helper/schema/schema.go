@@ -74,6 +74,11 @@ type Schema struct {
 	Default     interface{}
 	DefaultFunc SchemaDefaultFunc
 
+	// Description is used as the description for docs or asking for user
+	// input. It should be relatively short (a few sentences max) and should
+	// be formatted to fit a CLI.
+	Description string
+
 	// The fields below relate to diffs.
 	//
 	// If Computed is true, then the result of this value is computed
@@ -615,8 +620,9 @@ func (m schemaMap) inputString(
 	k string,
 	schema *Schema) (interface{}, error) {
 	result, err := input.Input(&terraform.InputOpts{
-		Id:    k,
-		Query: k,
+		Id:          k,
+		Query:       k,
+		Description: schema.Description,
 	})
 
 	return result, err

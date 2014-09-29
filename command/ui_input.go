@@ -100,6 +100,7 @@ func (i *UIInput) Input(opts *terraform.InputOpts) (string, error) {
 
 	select {
 	case line := <-result:
+		fmt.Fprint(w, "\n")
 		return line, nil
 	case <-sigCh:
 		// Print a newline so that any further output starts properly
