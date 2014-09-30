@@ -42,6 +42,13 @@ type State struct {
 	Modules []*ModuleState `json:"modules"`
 }
 
+// NewState is used to initialize a blank state
+func NewState() *State {
+	s := &State{}
+	s.init()
+	return s
+}
+
 // Children returns the ModuleStates that are direct children of
 // the given path. If the path is "root", for example, then children
 // returned might be "root.child", but not "root.child.grandchild".
@@ -202,6 +209,19 @@ func (r *RemoteState) deepcopy() *RemoteState {
 
 func (r *RemoteState) Empty() bool {
 	return (r.Name == "" && r.Server == "" && r.AuthToken == "")
+}
+
+func (r *RemoteState) Equals(other *RemoteState) bool {
+	if r.Name != other.Name {
+		return false
+	}
+	if r.Server != other.Server {
+		return false
+	}
+	if r.AuthToken != other.AuthToken {
+		return false
+	}
+	return true
 }
 
 // ModuleState is used to track all the state relevant to a single
