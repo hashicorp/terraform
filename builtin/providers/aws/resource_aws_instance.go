@@ -1,13 +1,13 @@
 package aws
 
 import (
+	"bytes"
 	"crypto/sha1"
 	"encoding/hex"
 	"fmt"
 	"log"
-	"strings"
 	"strconv"
-	"bytes"
+	"strings"
 	"time"
 
 	"github.com/hashicorp/terraform/helper/hashcode"
@@ -103,30 +103,30 @@ func resourceAwsInstance() *schema.Resource {
 			"volume": &schema.Schema{
 				Type:     schema.TypeSet,
 				Optional: true,
-				Elem:     &schema.Resource{
+				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"size": &schema.Schema{
-							Type: schema.TypeInt,
+							Type:     schema.TypeInt,
 							Required: true,
 							ForceNew: true,
 						},
 						"device_name": &schema.Schema{
-							Type: schema.TypeString,
+							Type:     schema.TypeString,
 							Required: true,
 							ForceNew: true,
 						},
 						"volume_type": &schema.Schema{
-							Type: schema.TypeString,
+							Type:     schema.TypeString,
 							Optional: true,
 							ForceNew: true,
 						},
 						"iops": &schema.Schema{
-							Type: schema.TypeInt,
+							Type:     schema.TypeInt,
 							Optional: true,
 							ForceNew: true,
 						},
 						"encrypted": &schema.Schema{
-							Type: schema.TypeBool,
+							Type:     schema.TypeBool,
 							Optional: true,
 							ForceNew: true,
 						},
@@ -235,7 +235,6 @@ func resourceAwsInstanceCreate(d *schema.ResourceData, meta interface{}) error {
 		runOpts.BlockDevices = append(runOpts.BlockDevices, b)
 		i++
 	}
-
 
 	// Create the instance
 	log.Printf("[DEBUG] Run configuration: %#v", runOpts)
