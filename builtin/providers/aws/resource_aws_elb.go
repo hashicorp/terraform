@@ -284,6 +284,10 @@ func resource_aws_elb_update_state(
 	s.Attributes["name"] = balancer.LoadBalancerName
 	s.Attributes["dns_name"] = balancer.DNSName
 
+	if balancer.Scheme == "internal" {
+		s.Attributes["internal"] = "true"
+	}
+
 	// Flatten our group values
 	toFlatten := make(map[string]interface{})
 
