@@ -272,8 +272,18 @@ func resourceAwsSecurityGroupRead(d *schema.ResourceData, meta interface{}) erro
 			n["cidr_blocks"] = perm.SourceIPs
 		}
 
+		var groups []string
 		if len(perm.SourceGroups) > 0 {
-			n["security_groups"] = flattenSecurityGroups(perm.SourceGroups)
+			groups = flattenSecurityGroups(perm.SourceGroups)
+		}
+		for i, id := range groups {
+			if id == d.Id() {
+				groups[i], groups = groups[len(groups)-1], groups[:len(groups)-1]
+				n["self"] = true
+			}
+		}
+		if len(groups) > 0 {
+			n["security_groups"] = groups
 		}
 
 		ingressRules[i] = n
