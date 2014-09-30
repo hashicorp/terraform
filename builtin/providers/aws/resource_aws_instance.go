@@ -130,6 +130,10 @@ func resourceAwsInstance() *schema.Resource {
 							Optional: true,
 							ForceNew: true,
 						},
+						"volume_id": &schema.Schema{
+							Type: 	  schema.TypeString,
+							Computed: true,
+						},
 					},
 				},
 				Set: resourceAwsInstanceVolumeHash,
@@ -415,6 +419,14 @@ func resourceAwsInstanceRead(d *schema.ResourceData, meta interface{}) error {
 		}
 	}
 	d.Set("security_groups", sgs)
+
+	// Add Volume Ids
+	vols := make([]string, len(instance.BlockDevices))
+	for i, bd := range instance.BlockDevices{
+		vols[i] = bd.VolumeId
+	}
+	d.Set("volumes", vols)
+
 
 	return nil
 }
