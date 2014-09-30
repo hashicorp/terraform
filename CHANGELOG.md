@@ -14,6 +14,8 @@ FEATURES:
   * The state file format is now JSON rather than binary. This allows for
     easier machine and human read/write. Old binary state files will be
     automatically upgraded.
+  * You can now specify `create_before_destroy` as an option for replacement
+    so that new resources are created before the old ones are destroyed.
 
 IMPROVEMENTS:
 
