@@ -582,6 +582,58 @@ func TestContextApply(t *testing.T) {
 	}
 }
 
+func TestContextApply_createBeforeDestroy(t *testing.T) {
+	m := testModule(t, "apply-good-create-before")
+	p := testProvider("aws")
+	p.ApplyFn = testApplyFn
+	p.DiffFn = testDiffFn
+	state := &State{
+		Modules: []*ModuleState{
+			&ModuleState{
+				Path: rootModulePath,
+				Resources: map[string]*ResourceState{
+					"aws_instance.bar": &ResourceState{
+						Type: "aws_instance",
+						Primary: &InstanceState{
+							ID: "bar",
+							Attributes: map[string]string{
+								"require_new": "abc",
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+	ctx := testContext(t, &ContextOpts{
+		Module: m,
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+		State: state,
+	})
+
+	if _, err := ctx.Plan(nil); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	state, err := ctx.Apply()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	mod := state.RootModule()
+	if len(mod.Resources) != 1 {
+		t.Fatalf("bad: %#v", mod.Resources)
+	}
+
+	actual := strings.TrimSpace(state.String())
+	expected := strings.TrimSpace(testTerraformApplyCreateBeforeStr)
+	if actual != expected {
+		t.Fatalf("bad: \n%s", actual)
+	}
+}
+
 func TestContextApply_Minimal(t *testing.T) {
 	m := testModule(t, "apply-minimal")
 	p := testProvider("aws")
@@ -877,6 +929,168 @@ func TestContextApply_provisionerFail(t *testing.T) {
 	expected := strings.TrimSpace(testTerraformApplyProvisionerFailStr)
 	if actual != expected {
 		t.Fatalf("bad: \n%s", actual)
+	}
+}
+
+func TestContextApply_provisionerFail_createBeforeDestroy(t *testing.T) {
+	m := testModule(t, "apply-provisioner-fail-create-before")
+	p := testProvider("aws")
+	pr := testProvisioner()
+	p.ApplyFn = testApplyFn
+	p.DiffFn = testDiffFn
+	pr.ApplyFn = func(*InstanceState, *ResourceConfig) error {
+		return fmt.Errorf("EXPLOSION")
+	}
+
+	state := &State{
+		Modules: []*ModuleState{
+			&ModuleState{
+				Path: rootModulePath,
+				Resources: map[string]*ResourceState{
+					"aws_instance.bar": &ResourceState{
+						Type: "aws_instance",
+						Primary: &InstanceState{
+							ID: "bar",
+							Attributes: map[string]string{
+								"require_new": "abc",
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+	ctx := testContext(t, &ContextOpts{
+		Module: m,
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+		Provisioners: map[string]ResourceProvisionerFactory{
+			"shell": testProvisionerFuncFixed(pr),
+		},
+		State: state,
+	})
+
+	if _, err := ctx.Plan(nil); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	state, err := ctx.Apply()
+	if err == nil {
+		t.Fatal("should error")
+	}
+
+	actual := strings.TrimSpace(state.String())
+	expected := strings.TrimSpace(testTerraformApplyProvisionerFailCreateBeforeDestroyStr)
+	if actual != expected {
+		t.Fatalf("bad: \n%s", actual)
+	}
+}
+
+func TestContextApply_error_createBeforeDestroy(t *testing.T) {
+	m := testModule(t, "apply-error-create-before")
+	p := testProvider("aws")
+	state := &State{
+		Modules: []*ModuleState{
+			&ModuleState{
+				Path: rootModulePath,
+				Resources: map[string]*ResourceState{
+					"aws_instance.bar": &ResourceState{
+						Type: "aws_instance",
+						Primary: &InstanceState{
+							ID: "bar",
+							Attributes: map[string]string{
+								"require_new": "abc",
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+	ctx := testContext(t, &ContextOpts{
+		Module: m,
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+		State: state,
+	})
+	p.ApplyFn = func(info *InstanceInfo, is *InstanceState, id *InstanceDiff) (*InstanceState, error) {
+		return nil, fmt.Errorf("error")
+	}
+	p.DiffFn = testDiffFn
+
+	if _, err := ctx.Plan(nil); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	state, err := ctx.Apply()
+	if err == nil {
+		t.Fatal("should have error")
+	}
+
+	actual := strings.TrimSpace(state.String())
+	expected := strings.TrimSpace(testTerraformApplyErrorCreateBeforeDestroyStr)
+	if actual != expected {
+		t.Fatalf("bad: \n%s\n\n\n%s", actual, expected)
+	}
+}
+
+func TestContextApply_errorDestroy_createBeforeDestroy(t *testing.T) {
+	m := testModule(t, "apply-error-create-before")
+	p := testProvider("aws")
+	state := &State{
+		Modules: []*ModuleState{
+			&ModuleState{
+				Path: rootModulePath,
+				Resources: map[string]*ResourceState{
+					"aws_instance.bar": &ResourceState{
+						Type: "aws_instance",
+						Primary: &InstanceState{
+							ID: "bar",
+							Attributes: map[string]string{
+								"require_new": "abc",
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+	ctx := testContext(t, &ContextOpts{
+		Module: m,
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+		State: state,
+	})
+	p.ApplyFn = func(info *InstanceInfo, is *InstanceState, id *InstanceDiff) (*InstanceState, error) {
+		// Fail the destroy!
+		if id.Destroy {
+			return is, fmt.Errorf("error")
+		}
+
+		// Create should work
+		is = &InstanceState{
+			ID: "foo",
+		}
+		return is, nil
+	}
+	p.DiffFn = testDiffFn
+
+	if _, err := ctx.Plan(nil); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	state, err := ctx.Apply()
+	if err == nil {
+		t.Fatal("should have error")
+	}
+
+	actual := strings.TrimSpace(state.String())
+	expected := strings.TrimSpace(testTerraformApplyErrorDestroyCreateBeforeDestroyStr)
+	if actual != expected {
+		t.Fatalf("bad: actual:\n%s\n\nexpected:\n%s", actual, expected)
 	}
 }
 
@@ -1695,6 +1909,85 @@ func TestContextApply_vars(t *testing.T) {
 	expected := strings.TrimSpace(testTerraformApplyVarsStr)
 	if actual != expected {
 		t.Fatalf("bad: \n%s", actual)
+	}
+}
+
+func TestContextApply_createBefore_depends(t *testing.T) {
+	m := testModule(t, "apply-depends-create-before")
+	h := new(HookRecordApplyOrder)
+	p := testProvider("aws")
+	p.ApplyFn = testApplyFn
+	p.DiffFn = testDiffFn
+	state := &State{
+		Modules: []*ModuleState{
+			&ModuleState{
+				Path: rootModulePath,
+				Resources: map[string]*ResourceState{
+					"aws_instance.web": &ResourceState{
+						Type: "aws_instance",
+						Primary: &InstanceState{
+							ID: "bar",
+							Attributes: map[string]string{
+								"require_new": "ami-old",
+							},
+						},
+					},
+					"aws_instance.lb": &ResourceState{
+						Type: "aws_instance",
+						Primary: &InstanceState{
+							ID: "baz",
+							Attributes: map[string]string{
+								"instance": "bar",
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+	ctx := testContext(t, &ContextOpts{
+		Module: m,
+		Hooks:  []Hook{h},
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+		State: state,
+	})
+
+	if _, err := ctx.Plan(nil); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	h.Active = true
+	state, err := ctx.Apply()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	mod := state.RootModule()
+	if len(mod.Resources) < 2 {
+		t.Fatalf("bad: %#v", mod.Resources)
+	}
+
+	actual := strings.TrimSpace(state.String())
+	expected := strings.TrimSpace(testTerraformApplyDependsCreateBeforeStr)
+	if actual != expected {
+		t.Fatalf("bad: \n%s\n%s", actual, expected)
+	}
+
+	// Test that things were managed _in the right order_
+	order := h.States
+	diffs := h.Diffs
+	if order[0].ID != "bar" || diffs[0].Destroy {
+		t.Fatalf("should create new instance first: %#v", order)
+	}
+
+	if order[1].ID != "baz" {
+		t.Fatalf("update must happen after create: %#v", order)
+	}
+
+	if order[2].ID != "bar" || !diffs[2].Destroy {
+		t.Fatalf("destroy must happen after update: %#v", order)
 	}
 }
 
@@ -3121,6 +3414,9 @@ func testDiffFn(
 			New: v.(string),
 		}
 
+		if k == "require_new" {
+			attrDiff.RequiresNew = true
+		}
 		diff.Attributes[k] = attrDiff
 	}
 

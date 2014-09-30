@@ -357,3 +357,23 @@ func (g *Graph) Walk(fn WalkFunc) error {
 		return err
 	}
 }
+
+// DependsOn returns the set of nouns that have a
+// dependency on a given noun. This can be used to find
+// the incoming edges to a noun.
+func (g *Graph) DependsOn(n *Noun) []*Noun {
+	var incoming []*Noun
+OUTER:
+	for _, other := range g.Nouns {
+		if other == n {
+			continue
+		}
+		for _, d := range other.Deps {
+			if d.Target == n {
+				incoming = append(incoming, other)
+				continue OUTER
+			}
+		}
+	}
+	return incoming
+}

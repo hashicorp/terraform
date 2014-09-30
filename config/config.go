@@ -60,6 +60,13 @@ type Resource struct {
 	RawConfig    *RawConfig
 	Provisioners []*Provisioner
 	DependsOn    []string
+	Lifecycle    ResourceLifecycle
+}
+
+// ResourceLifecycle is used to store the lifecycle tuning parameters
+// to allow customized behavior
+type ResourceLifecycle struct {
+	CreateBeforeDestroy bool `hcl:"create_before_destroy"`
 }
 
 // Provisioner is a configured provisioner step on a resource.

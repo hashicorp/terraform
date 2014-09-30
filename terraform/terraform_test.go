@@ -150,6 +150,27 @@ aws_instance.foo:
   type = aws_instance
 `
 
+const testTerraformApplyDependsCreateBeforeStr = `
+aws_instance.lb:
+  ID = foo
+  instance = foo
+  type = aws_instance
+
+  Dependencies:
+    aws_instance.web
+aws_instance.web:
+  ID = foo
+  require_new = ami-new
+  type = aws_instance
+`
+
+const testTerraformApplyCreateBeforeStr = `
+aws_instance.bar:
+  ID = foo
+  require_new = xyz
+  type = aws_instance
+`
+
 const testTerraformApplyCancelStr = `
 aws_instance.foo:
   ID = foo
@@ -218,6 +239,13 @@ aws_instance.foo:
   type = aws_instance
 `
 
+const testTerraformApplyProvisionerFailCreateBeforeDestroyStr = `
+aws_instance.bar: (1 tainted)
+  ID = bar
+  require_new = abc
+  Tainted ID 1 = foo
+`
+
 const testTerraformApplyProvisionerResourceRefStr = `
 aws_instance.bar:
   ID = foo
@@ -245,6 +273,18 @@ aws_instance.bar:
 aws_instance.foo:
   ID = foo
   num = 2
+`
+
+const testTerraformApplyErrorCreateBeforeDestroyStr = `
+aws_instance.bar:
+  ID = bar
+  require_new = abc
+`
+
+const testTerraformApplyErrorDestroyCreateBeforeDestroyStr = `
+aws_instance.bar: (1 tainted)
+  ID = foo
+  Tainted ID 1 = bar
 `
 
 const testTerraformApplyErrorPartialStr = `

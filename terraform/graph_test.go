@@ -652,6 +652,81 @@ func TestGraphAddDiff_module(t *testing.T) {
 	}
 }
 
+func TestGraphAddDiff_createBeforeDestroy(t *testing.T) {
+	m := testModule(t, "graph-diff-create-before")
+	diff := &Diff{
+		Modules: []*ModuleDiff{
+			&ModuleDiff{
+				Path: rootModulePath,
+				Resources: map[string]*InstanceDiff{
+					"aws_instance.bar": &InstanceDiff{
+						Destroy: true,
+						Attributes: map[string]*ResourceAttrDiff{
+							"ami": &ResourceAttrDiff{
+								Old:         "abc",
+								New:         "xyz",
+								RequiresNew: true,
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+	state := &State{
+		Modules: []*ModuleState{
+			&ModuleState{
+				Path: rootModulePath,
+				Resources: map[string]*ResourceState{
+					"aws_instance.bar": &ResourceState{
+						Type: "aws_instance",
+						Primary: &InstanceState{
+							ID: "bar",
+							Attributes: map[string]string{
+								"ami": "abc",
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	diffHash := checksumStruct(t, diff)
+
+	g, err := Graph(&GraphOpts{
+		Module: m,
+		Diff:   diff,
+		State:  state,
+	})
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	actual := strings.TrimSpace(g.String())
+	expected := strings.TrimSpace(testTerraformGraphDiffCreateBeforeDestroyStr)
+	if actual != expected {
+		t.Fatalf("bad:\n\n%s\n\nexpected:\n\n%s", actual, expected)
+	}
+
+	// Verify the flags are set
+	r := g.Noun("aws_instance.bar")
+	if r.Meta.(*GraphNodeResource).Resource.Flags&FlagReplacePrimary == 0 {
+		t.Fatalf("missing FlagReplacePrimary")
+	}
+
+	r = g.Noun("aws_instance.bar (destroy)")
+	if r.Meta.(*GraphNodeResource).Resource.Flags&FlagDeposed == 0 {
+		t.Fatalf("missing FlagDeposed")
+	}
+
+	// Verify that our original structure has not been modified
+	diffHash2 := checksumStruct(t, diff)
+	if diffHash != diffHash2 {
+		t.Fatal("diff has been modified")
+	}
+}
+
 func TestGraphAddDiff_moduleDestroy(t *testing.T) {
 	m := testModule(t, "graph-diff-module")
 	diff := &Diff{
@@ -1044,8 +1119,19 @@ aws_load_balancer.weblb
   aws_load_balancer.weblb -> provider.aws
 provider.aws
 root
-  root -> aws_load_balancer.weblb
-`
+  root -> aws_load_balancer.weblb`
+
+const testTerraformGraphDiffCreateBeforeDestroyStr = `
+root: root
+aws_instance.bar
+  aws_instance.bar -> provider.aws
+aws_instance.bar (destroy)
+  aws_instance.bar (destroy) -> aws_instance.bar
+  aws_instance.bar (destroy) -> provider.aws
+provider.aws
+root
+  root -> aws_instance.bar
+  root -> aws_instance.bar (destroy)`
 
 const testTerraformGraphStateStr = `
 root: root

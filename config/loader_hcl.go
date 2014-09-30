@@ -394,6 +394,7 @@ func loadResourcesHcl(os *hclobj.Object) ([]*Resource, error) {
 			delete(config, "count")
 			delete(config, "depends_on")
 			delete(config, "provisioner")
+			delete(config, "lifecycle")
 
 			rawConfig, err := NewRawConfig(config)
 			if err != nil {
@@ -457,6 +458,20 @@ func loadResourcesHcl(os *hclobj.Object) ([]*Resource, error) {
 				}
 			}
 
+			// Check if the resource should be re-created before
+			// destroying the existing instance
+			var lifecycle ResourceLifecycle
+			if o := obj.Get("lifecycle", false); o != nil {
+				err = hcl.DecodeObject(&lifecycle, o)
+				if err != nil {
+					return nil, fmt.Errorf(
+						"Error parsing lifecycle for %s[%s]: %s",
+						t.Key,
+						k,
+						err)
+				}
+			}
+
 			result = append(result, &Resource{
 				Name:         k,
 				Type:         t.Key,
@@ -464,6 +479,7 @@ func loadResourcesHcl(os *hclobj.Object) ([]*Resource, error) {
 				RawConfig:    rawConfig,
 				Provisioners: provisioners,
 				DependsOn:    dependsOn,
+				Lifecycle:    lifecycle,
 			})
 		}
 	}
