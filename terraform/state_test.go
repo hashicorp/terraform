@@ -177,6 +177,11 @@ func TestReadUpgradeState(t *testing.T) {
 func TestReadWriteState(t *testing.T) {
 	state := &State{
 		Serial: 9,
+		Remote: &RemoteState{
+			Name:      "hashicorp-www",
+			Server:    "http://my-cool-server.com/",
+			AuthToken: "foobarbaz",
+		},
 		Modules: []*ModuleState{
 			&ModuleState{
 				Path: rootModulePath,

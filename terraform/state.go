@@ -34,6 +34,10 @@ type State struct {
 	// updates.
 	Serial int64 `json:"serial"`
 
+	// Remote is used to track the metadata required to
+	// pull and push state files from a remote storage endpoint.
+	Remote *RemoteState `json:"remote,omitempty"`
+
 	// Modules contains all the modules in a breadth-first order
 	Modules []*ModuleState `json:"modules"`
 }
@@ -123,6 +127,9 @@ func (s *State) deepcopy() *State {
 	for _, mod := range s.Modules {
 		n.Modules = append(n.Modules, mod.deepcopy())
 	}
+	if s.Remote != nil {
+		n.Remote = s.Remote.deepcopy()
+	}
 	return n
 }
 
@@ -133,6 +140,9 @@ func (s *State) prune() {
 	}
 	for _, mod := range s.Modules {
 		mod.prune()
+	}
+	if s.Remote != nil && s.Remote.Empty() {
+		s.Remote = nil
 	}
 }
 
@@ -165,6 +175,33 @@ func (s *State) String() string {
 	}
 
 	return strings.TrimSpace(buf.String())
+}
+
+// RemoteState is used to track the information about a remote
+// state store that we push/pull state to.
+type RemoteState struct {
+	// Name is the name of the project in the remote state store
+	Name string `json:"name"`
+
+	// Server is the address of the server. Defaults to the public
+	// hosted version if not provided.
+	Server string `json:"server,omitempty"`
+
+	// AuthToken is used for optional authentication with the
+	// server.
+	AuthToken string `json:"auth_token,omitempty"`
+}
+
+func (r *RemoteState) deepcopy() *RemoteState {
+	return &RemoteState{
+		Name:      r.Name,
+		Server:    r.Server,
+		AuthToken: r.AuthToken,
+	}
+}
+
+func (r *RemoteState) Empty() bool {
+	return (r.Name == "" && r.Server == "" && r.AuthToken == "")
 }
 
 // ModuleState is used to track all the state relevant to a single
