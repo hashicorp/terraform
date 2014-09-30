@@ -56,6 +56,19 @@ func resource_aws_elb_create(
 		elbOpts.Subnets = expandStringList(v)
 	}
 
+	if scheme := rs.Attributes["scheme"] ; scheme == "internal" {
+		if len(elbOpts.Subnets) == 0 {
+			return nil, fmt.Errorf("When schema is set to internal, Subnets must be specified.")
+		}
+		elbOpts.Internal = true
+
+	} else if scheme == "" || scheme == "internet-facing" {
+		elbOpts.Internal = false
+
+	} else {
+		return nil, fmt.Errorf("invalid schema, %s.  valid schemas are 'internet-facing' and 'internal'", scheme)
+	}
+
 	log.Printf("[DEBUG] ELB create configuration: %#v", elbOpts)
 
 	_, err = elbconn.CreateLoadBalancer(elbOpts)
@@ -256,6 +269,7 @@ func resource_aws_elb_diff(
 	b := &diff.ResourceBuilder{
 		Attrs: map[string]diff.AttrType{
 			"name":              diff.AttrTypeCreate,
+			"scheme":            diff.AttrTypeCreate,
 			"availability_zone": diff.AttrTypeCreate,
 			"security_groups":   diff.AttrTypeCreate, // TODO could be AttrTypeUpdate
 			"subnets":           diff.AttrTypeCreate, // TODO could be AttrTypeUpdate
@@ -278,6 +292,11 @@ func resource_aws_elb_update_state(
 
 	s.Attributes["name"] = balancer.LoadBalancerName
 	s.Attributes["dns_name"] = balancer.DNSName
+
+	// todo - this is a temporary workaround to account for the fact that there's no way to represent a default value
+	if s.Attributes["scheme"] != "" {
+		s.Attributes["scheme"] = balancer.Scheme
+	}
 
 	// Flatten our group values
 	toFlatten := make(map[string]interface{})
@@ -343,6 +362,7 @@ func resource_aws_elb_validation() *config.Validator {
 			"listener.*.lb_protocol",
 		},
 		Optional: []string{
+			"scheme",
 			"instances.*",
 			"availability_zones.*",
 			"security_groups.*",

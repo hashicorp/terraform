@@ -23,6 +23,7 @@ func TestAccAWSELB_basic(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSELBExists("aws_elb.bar", &conf),
 					testAccCheckAWSELBAttributes(&conf),
+					testAccCheckAWSELBScheme(&conf, "internet-facing"),
 					resource.TestCheckResourceAttr(
 						"aws_elb.bar", "name", "foobar-terraform-test"),
 					resource.TestCheckResourceAttr(
@@ -39,6 +40,28 @@ func TestAccAWSELB_basic(t *testing.T) {
 						"aws_elb.bar", "listener.0.lb_port", "80"),
 					resource.TestCheckResourceAttr(
 						"aws_elb.bar", "listener.0.lb_protocol", "http"),
+				),
+			},
+		},
+	})
+}
+
+func TestAccAWSELB_internal(t *testing.T) {
+	var conf elb.LoadBalancer
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSELBDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccAWSELBConfigInternal,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSELBExists("aws_elb.bar", &conf),
+					testAccCheckAWSELBAttributes(&conf),
+					testAccCheckAWSELBScheme(&conf, "internal"),
+					resource.TestCheckResourceAttr(
+						"aws_elb.bar", "scheme", "internal"),
 				),
 			},
 		},
@@ -174,6 +197,15 @@ func testAccCheckAWSELBAttributes(conf *elb.LoadBalancer) resource.TestCheckFunc
 	}
 }
 
+func testAccCheckAWSELBScheme(conf *elb.LoadBalancer, expected string) resource.TestCheckFunc {
+	return func(*terraform.State) error {
+		if conf.Scheme != expected {
+			return fmt.Errorf("expected scheme = '%s'; actual = %s", expected, conf.Scheme)
+		}
+		return nil
+	}
+}
+
 func testAccCheckAWSELBAttributesHealthCheck(conf *elb.LoadBalancer) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		if conf.AvailabilityZones[0].AvailabilityZone != "us-west-2a" {
@@ -249,6 +281,33 @@ resource "aws_elb" "bar" {
     instance_protocol = "http"
     lb_port = 80
     lb_protocol = "http"
+  }
+
+  instances = []
+}
+`
+
+const testAccAWSELBConfigInternal = `
+resource "aws_vpc" "foo" {
+	cidr_block = "10.1.0.0/16"
+}
+
+resource "aws_subnet" "foo" {
+	cidr_block        = "10.1.1.0/24"
+	availability_zone = "us-west-2a"
+	vpc_id            = "${aws_vpc.foo.id}"
+}
+
+resource "aws_elb" "bar" {
+  name    = "foobar-terraform-test"
+  scheme  = "internal"
+  subnets = ["${aws_subnet.foo.id}"]
+
+  listener {
+    instance_port     = 8000
+    instance_protocol = "http"
+    lb_port           = 80
+    lb_protocol       = "http"
   }
 
   instances = []
