@@ -88,9 +88,9 @@ variable = [{
 }]
 ```
 
-Notice that the top visually looks a lot better? By repeating multiple
-`variable` sections, it adds the `variable` array. When possible, use
-sections since they're visually clearer and more reasily readable.
+Notice how the top stanza visually looks a lot better? By repeating
+multiple `variable` sections, it builds up the `variable` array. When
+possible, use sections since they're visually clearer and more readable.
 
 ## JSON Syntax
 
