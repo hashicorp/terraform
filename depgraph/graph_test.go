@@ -429,3 +429,39 @@ g -> h`)
 		}
 	}
 }
+
+func TestGraph_DependsOn(t *testing.T) {
+	nodes := ParseNouns(`a -> b
+a -> c
+b -> d
+b -> e
+c -> d
+c -> e`)
+
+	g := &Graph{
+		Name:  "Test",
+		Nouns: NounMapToList(nodes),
+	}
+
+	dNoun := g.Noun("d")
+	incoming := g.DependsOn(dNoun)
+
+	if len(incoming) != 2 {
+		t.Fatalf("bad: %#v", incoming)
+	}
+
+	var hasB, hasC bool
+	for _, in := range incoming {
+		switch in.Name {
+		case "b":
+			hasB = true
+		case "c":
+			hasC = true
+		default:
+			t.Fatalf("Bad: %#v", in)
+		}
+	}
+	if !hasB || !hasC {
+		t.Fatalf("missing incoming edge")
+	}
+}
