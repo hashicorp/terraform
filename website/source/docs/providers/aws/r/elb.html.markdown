@@ -44,6 +44,7 @@ The following arguments are supported:
 * `security_groups` - (Optional) A list of security group IDs to assign to the ELB.
 * `subnets` - (Optional) A list of subnets to attach to the ELB.
 * `instances` - (Optional) A list of instance ids to place in the ELB pool.
+* `internal` - (Optional) If true, ELB will be an internal ELB.
 * `listener` - (Required) A list of listener blocks. Listeners documented below.
 * `health_check` - (Optional) A health_check block. Health Check documented below.
 
