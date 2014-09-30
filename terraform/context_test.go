@@ -1982,18 +1982,12 @@ func TestContextApply_createBefore_depends(t *testing.T) {
 		t.Fatalf("should create new instance first: %#v", order)
 	}
 
-	// Order of the next two is not deterministric, just
-	// depends on the scheduling.
-	for i := 1; i <= 2; i++ {
-		switch order[i].ID {
-		case "bar":
-			if !diffs[1].Destroy {
-				t.Fatalf("missing destroy")
-			}
-		case "baz":
-		default:
-			t.Fatalf("bad resource")
-		}
+	if order[1].ID != "baz" {
+		t.Fatalf("update must happen after create: %#v", order)
+	}
+
+	if order[2].ID != "bar" || !diffs[2].Destroy {
+		t.Fatalf("destroy must happen after update: %#v", order)
 	}
 }
 
