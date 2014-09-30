@@ -19,6 +19,7 @@ FEATURES:
 
 IMPROVEMENTS:
 
+  * config: Trailing commas are now allowed for the final elements of lists.
   * core: Plugins are loaded from `~/.terraform.d/plugins` (Unix) or
     `%USERDATA%/terraform.d/plugins` (Windows).
   * helper/schema: Can now have default values. [GH-245]
