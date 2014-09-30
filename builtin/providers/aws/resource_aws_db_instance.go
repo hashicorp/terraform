@@ -198,6 +198,10 @@ func resource_aws_db_instance_refresh(
 	if err != nil {
 		return s, err
 	}
+	if v == nil {
+		s.ID = ""
+		return s, nil
+	}
 
 	return resource_aws_db_instance_update_state(s, v)
 }
@@ -298,13 +302,16 @@ func resource_aws_db_instance_retrieve(id string, conn *rds.Rds) (*rds.DBInstanc
 	resp, err := conn.DescribeDBInstances(&opts)
 
 	if err != nil {
+		if strings.Contains(err.Error(), "DBInstanceNotFound") {
+			return nil, nil
+		}
 		return nil, fmt.Errorf("Error retrieving DB Instances: %s", err)
 	}
 
 	if len(resp.DBInstances) != 1 ||
 		resp.DBInstances[0].DBInstanceIdentifier != id {
 		if err != nil {
-			return nil, fmt.Errorf("Unable to find DB Instance: %#v", resp.DBInstances)
+			return nil, nil
 		}
 	}
 
@@ -347,14 +354,12 @@ func DBInstanceStateRefreshFunc(id string, conn *rds.Rds) resource.StateRefreshF
 		v, err := resource_aws_db_instance_retrieve(id, conn)
 
 		if err != nil {
-			// We want to special-case "not found" instances because
-			// it could be waiting for it to be gone.
-			if strings.Contains(err.Error(), "DBInstanceNotFound") {
-				return nil, "", nil
-			}
-
 			log.Printf("Error on retrieving DB Instance when waiting: %s", err)
 			return nil, "", err
+		}
+
+		if v == nil {
+			return nil, "", nil
 		}
 
 		return v, v.DBInstanceStatus, nil
