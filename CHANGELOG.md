@@ -25,6 +25,9 @@ IMPROVEMENTS:
   * providers/aws: New resource `db_subnet_group`. [GH-295]
   * providers/aws: Add `map_public_ip_on_launch` for subnets. [GH-285]
   * providers/aws: Add `iam_instance_profile` for instances. [GH-319]
+  * providers/aws: add `internal` option for ELBs. [GH-303]
+  * providers/aws: add `self` option for security groups for ingress
+      rules with self as source. [GH-303]
   * providers/google: Support `target_tags` for firewalls. [GH-324]
 
 BUG FIXES:
@@ -34,7 +37,6 @@ BUG FIXES:
   * core: Plugin loading from CWD works properly.
   * providers/aws: autoscaling_group can be launched into a vpc [GH-259]
   * providers/aws: not an error when RDS instance is deleted manually. [GH-307]
-  * providers/aws: add `internal` option for ELBs. [GH-303]
 
 ## 0.2.2 (September 9, 2014)
 

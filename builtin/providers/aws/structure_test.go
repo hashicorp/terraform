@@ -44,26 +44,44 @@ func Test_expandIPPerms(t *testing.T) {
 				"foo/sg-22222",
 			},
 		},
+		map[string]interface{}{
+			"protocol":  "icmp",
+			"from_port": 1,
+			"to_port":   -1,
+			"self":      true,
+		},
 	}
-	perms := expandIPPerms(expanded)
+	perms := expandIPPerms("foo", expanded)
 
-	expected := ec2.IPPerm{
-		Protocol:  "icmp",
-		FromPort:  1,
-		ToPort:    -1,
-		SourceIPs: []string{"0.0.0.0/0"},
-		SourceGroups: []ec2.UserSecurityGroup{
-			ec2.UserSecurityGroup{
-				Id: "sg-11111",
+	expected := []ec2.IPPerm{
+		ec2.IPPerm{
+			Protocol:  "icmp",
+			FromPort:  1,
+			ToPort:    -1,
+			SourceIPs: []string{"0.0.0.0/0"},
+			SourceGroups: []ec2.UserSecurityGroup{
+				ec2.UserSecurityGroup{
+					Id: "sg-11111",
+				},
+				ec2.UserSecurityGroup{
+					OwnerId: "foo",
+					Id:      "sg-22222",
+				},
 			},
-			ec2.UserSecurityGroup{
-				OwnerId: "foo",
-				Id:      "sg-22222",
+		},
+		ec2.IPPerm{
+			Protocol:  "icmp",
+			FromPort:  1,
+			ToPort:    -1,
+			SourceGroups: []ec2.UserSecurityGroup{
+				ec2.UserSecurityGroup{
+					Id: "foo",
+				},
 			},
 		},
 	}
 
-	if !reflect.DeepEqual(perms[0], expected) {
+	if !reflect.DeepEqual(perms, expected) {
 		t.Fatalf(
 			"Got:\n\n%#v\n\nExpected:\n\n%#v\n",
 			perms[0],

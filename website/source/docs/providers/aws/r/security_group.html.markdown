@@ -41,6 +41,8 @@ The `ingress` block supports:
 * `from_port` - (Required) The start port.
 * `protocol` - (Required) The protocol.
 * `security_groups` - (Optional) List of security group IDs. Cannot be used with `cidr_blocks`.
+* `self` - (Optional) If true, the security group itself will be added as
+     a source to this ingress rule.
 * `to_port` - (Required) The end range port.
 
 ## Attributes Reference

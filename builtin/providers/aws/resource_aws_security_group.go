@@ -69,6 +69,11 @@ func resourceAwsSecurityGroup() *schema.Resource {
 							Optional: true,
 							Elem:     &schema.Schema{Type: schema.TypeString},
 						},
+
+						"self": &schema.Schema{
+							Type:     schema.TypeBool,
+							Optional: true,
+						},
 					},
 				},
 				Set: resourceAwsSecurityGroupIngressHash,
@@ -143,7 +148,6 @@ func resourceAwsSecurityGroupCreate(d *schema.ResourceData, meta interface{}) er
 	}
 
 	d.SetId(createResp.Id)
-	group := createResp.SecurityGroup
 
 	log.Printf("[INFO] Security Group ID: %s", d.Id())
 
@@ -163,21 +167,7 @@ func resourceAwsSecurityGroupCreate(d *schema.ResourceData, meta interface{}) er
 			d.Id(), err)
 	}
 
-	// Expand the "ingress" array to goamz compat []ec2.IPPerm
-	ingressRaw := d.Get("ingress")
-	if ingressRaw == nil {
-		ingressRaw = new(schema.Set)
-	}
-	ingressList := ingressRaw.(*schema.Set).List()
-	if len(ingressList) > 0 {
-		ingressRules := expandIPPerms(ingressList)
-		_, err = ec2conn.AuthorizeSecurityGroup(group, ingressRules)
-		if err != nil {
-			return fmt.Errorf("Error authorizing security group ingress rules: %s", err)
-		}
-	}
-
-	return resourceAwsSecurityGroupRead(d, meta)
+	return resourceAwsSecurityGroupUpdate(d, meta)
 }
 
 func resourceAwsSecurityGroupUpdate(d *schema.ResourceData, meta interface{}) error {
@@ -206,8 +196,8 @@ func resourceAwsSecurityGroupUpdate(d *schema.ResourceData, meta interface{}) er
 		os := o.(*schema.Set)
 		ns := n.(*schema.Set)
 
-		remove := expandIPPerms(os.Difference(ns).List())
-		add := expandIPPerms(ns.Difference(os).List())
+		remove := expandIPPerms(d.Id(), os.Difference(ns).List())
+		add := expandIPPerms(d.Id(), ns.Difference(os).List())
 
 		// TODO: We need to handle partial state better in the in-between
 		// in this update.
