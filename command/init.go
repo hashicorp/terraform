@@ -8,6 +8,8 @@ import (
 
 	"github.com/hashicorp/terraform/config"
 	"github.com/hashicorp/terraform/config/module"
+	"github.com/hashicorp/terraform/remote"
+	"github.com/hashicorp/terraform/terraform"
 )
 
 // InitCommand is a Command implementation that takes a Terraform
@@ -17,9 +19,12 @@ type InitCommand struct {
 }
 
 func (c *InitCommand) Run(args []string) int {
+	var remoteConf terraform.RemoteState
 	args = c.Meta.process(args, false)
-
 	cmdFlags := flag.NewFlagSet("init", flag.ContinueOnError)
+	cmdFlags.StringVar(&remoteConf.Name, "remote", "", "")
+	cmdFlags.StringVar(&remoteConf.Server, "remote-server", "", "")
+	cmdFlags.StringVar(&remoteConf.AuthToken, "remote-auth", "", "")
 	cmdFlags.Usage = func() { c.Ui.Error(c.Help()) }
 	if err := cmdFlags.Parse(args); err != nil {
 		return 1
@@ -44,6 +49,14 @@ func (c *InitCommand) Run(args []string) int {
 		path, err = os.Getwd()
 		if err != nil {
 			c.Ui.Error(fmt.Sprintf("Error getting pwd: %s", err))
+		}
+	}
+
+	// Validate the remote configuration
+	if !remoteConf.Empty() {
+		if err := remote.ValidateConfig(&remoteConf); err != nil {
+			c.Ui.Error(fmt.Sprintf("%s", err))
+			return 1
 		}
 	}
 
@@ -84,6 +97,23 @@ func (c *InitCommand) Run(args []string) int {
 		return 1
 	}
 
+	// Handle remote state if configured
+	if !remoteConf.Empty() {
+		// Read the updated state file
+		remoteR, err := remote.ReadState(&remoteConf)
+		if err != nil {
+			c.Ui.Error(fmt.Sprintf(
+				"Failed to read remote state: %v", err))
+			return 1
+		}
+
+		// Persist the remote state
+		if err := remote.Persist(remoteR); err != nil {
+			c.Ui.Error(fmt.Sprintf(
+				"Failed to persist state: %v", err))
+			return 1
+		}
+	}
 	return 0
 }
 
@@ -98,6 +128,16 @@ Usage: terraform init [options] SOURCE [PATH]
   The module downloaded is a copy. If you're downloading a module from
   Git, it will not preserve the Git history, it will only copy the
   latest files.
+
+Options:
+
+  -remote=name           Name of the state file in the state storage server.
+                         Optional, default does not use remote storage.
+
+  -remote-auth=token     Authentication token for state storage server.
+                         Optional, defaults to blank.
+
+  -remote-server=url     URL of the remote storage server.
 
 `
 	return strings.TrimSpace(helpText)
