@@ -1912,6 +1912,91 @@ func TestContextApply_vars(t *testing.T) {
 	}
 }
 
+func TestContextApply_createBefore_depends(t *testing.T) {
+	m := testModule(t, "apply-depends-create-before")
+	h := new(HookRecordApplyOrder)
+	p := testProvider("aws")
+	p.ApplyFn = testApplyFn
+	p.DiffFn = testDiffFn
+	state := &State{
+		Modules: []*ModuleState{
+			&ModuleState{
+				Path: rootModulePath,
+				Resources: map[string]*ResourceState{
+					"aws_instance.web": &ResourceState{
+						Type: "aws_instance",
+						Primary: &InstanceState{
+							ID: "bar",
+							Attributes: map[string]string{
+								"require_new": "ami-old",
+							},
+						},
+					},
+					"aws_instance.lb": &ResourceState{
+						Type: "aws_instance",
+						Primary: &InstanceState{
+							ID: "baz",
+							Attributes: map[string]string{
+								"instance": "bar",
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+	ctx := testContext(t, &ContextOpts{
+		Module: m,
+		Hooks:  []Hook{h},
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+		State: state,
+	})
+
+	if _, err := ctx.Plan(nil); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	h.Active = true
+	state, err := ctx.Apply()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	mod := state.RootModule()
+	if len(mod.Resources) < 2 {
+		t.Fatalf("bad: %#v", mod.Resources)
+	}
+
+	actual := strings.TrimSpace(state.String())
+	expected := strings.TrimSpace(testTerraformApplyDependsCreateBeforeStr)
+	if actual != expected {
+		t.Fatalf("bad: \n%s\n%s", actual, expected)
+	}
+
+	// Test that things were managed _in the right order_
+	order := h.States
+	diffs := h.Diffs
+	if order[0].ID != "bar" || diffs[0].Destroy {
+		t.Fatalf("should create new instance first: %#v", order)
+	}
+
+	// Order of the next two is not deterministric, just
+	// depends on the scheduling.
+	for i := 1; i <= 2; i++ {
+		switch order[i].ID {
+		case "bar":
+			if !diffs[1].Destroy {
+				t.Fatalf("missing destroy")
+			}
+		case "baz":
+		default:
+			t.Fatalf("bad resource")
+		}
+	}
+}
+
 func TestContextPlan(t *testing.T) {
 	m := testModule(t, "plan-good")
 	p := testProvider("aws")

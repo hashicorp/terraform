@@ -150,6 +150,20 @@ aws_instance.foo:
   type = aws_instance
 `
 
+const testTerraformApplyDependsCreateBeforeStr = `
+aws_instance.lb:
+  ID = foo
+  instance = foo
+  type = aws_instance
+
+  Dependencies:
+    aws_instance.web
+aws_instance.web:
+  ID = foo
+  require_new = ami-new
+  type = aws_instance
+`
+
 const testTerraformApplyCreateBeforeStr = `
 aws_instance.bar:
   ID = foo
