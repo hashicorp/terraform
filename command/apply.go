@@ -109,7 +109,7 @@ func (c *ApplyCommand) Run(args []string) int {
 		c.Ui.Error(err.Error())
 		return 1
 	}
-	if planned {
+	if c.Destroy && planned {
 		c.Ui.Error(fmt.Sprintf(
 			"Destroy can't be called with a plan file."))
 		return 1
