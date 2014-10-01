@@ -111,6 +111,13 @@ func (m *Meta) Input() bool {
 	return !test && m.input && len(m.variables) == 0
 }
 
+// UIInput returns a UIInput object to be used for asking for input.
+func (m *Meta) UIInput() terraform.UIInput {
+	return &UIInput{
+		Colorize: m.Colorize(),
+	}
+}
+
 // contextOpts returns the options to use to initialize a Terraform
 // context with the settings from this Meta.
 func (m *Meta) contextOpts() *terraform.ContextOpts {
@@ -133,9 +140,7 @@ func (m *Meta) contextOpts() *terraform.ContextOpts {
 		vs[k] = v
 	}
 	opts.Variables = vs
-	opts.UIInput = &UIInput{
-		Colorize: m.Colorize(),
-	}
+	opts.UIInput = m.UIInput()
 
 	return &opts
 }
