@@ -7,8 +7,8 @@ import (
 
 // These are the environmental variables that determine if we log, and if
 // we log whether or not the log should go to a file.
-const EnvLog = "TF_LOG"
-const EnvLogFile = "TF_LOG_PATH"
+const EnvLog = "TF_LOG" //Set to True
+const EnvLogFile = "TF_LOG_PATH" //Set to a file
 
 // logOutput determines where we should send logs (if anywhere).
 func logOutput() (logOutput io.Writer, err error) {
