@@ -21,6 +21,7 @@ resource "aws_db_instance" "default" {
 	username = "foo"
 	password = "bar"
 	security_group_names = ["${aws_db_security_group.bar.name}"]
+        subnet_group_name = "my_database_subnet_group"
 }
 ```
 
@@ -48,6 +49,7 @@ The following arguments are supported:
 * `vpc_security_group_ids` - (Optional) List of VPC security groups to associate.
 * `skip_final_snapshot` - (Optional) Enables skipping the final snapshot on deletion.
 * `security_group_names` - (Optional) List of DB Security Groups to associate.
+* `subnet_group_name` - (Optional) Name of DB subnet group
 
 ## Attributes Reference
 
