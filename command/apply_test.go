@@ -1,6 +1,7 @@
 package command
 
 import (
+	"bytes"
 	"fmt"
 	"io/ioutil"
 	"net"
@@ -314,6 +315,14 @@ func TestApply_noArgs(t *testing.T) {
 }
 
 func TestApply_plan(t *testing.T) {
+	// Disable test mode so input would be asked
+	test = false
+	defer func() { test = true }()
+
+	// Set some default reader/writers for the inputs
+	defaultInputReader = new(bytes.Buffer)
+	defaultInputWriter = new(bytes.Buffer)
+
 	planPath := testPlanFile(t, &terraform.Plan{
 		Module: testModule(t, "apply"),
 	})
@@ -334,6 +343,10 @@ func TestApply_plan(t *testing.T) {
 	}
 	if code := c.Run(args); code != 0 {
 		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
+	}
+
+	if p.InputCalled {
+		t.Fatalf("input should not be called for plans")
 	}
 
 	if _, err := os.Stat(statePath); err != nil {
