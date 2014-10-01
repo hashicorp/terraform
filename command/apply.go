@@ -17,6 +17,11 @@ import (
 type ApplyCommand struct {
 	Meta
 
+	// If true, then this apply command will become the "destroy"
+	// command. It is just like apply but only processes a destroy.
+	Destroy bool
+
+	// When this channel is closed, the apply will be cancelled.
 	ShutdownCh <-chan struct{}
 }
 
@@ -26,7 +31,12 @@ func (c *ApplyCommand) Run(args []string) int {
 
 	args = c.Meta.process(args, true)
 
-	cmdFlags := c.Meta.flagSet("apply")
+	cmdName := "apply"
+	if c.Destroy {
+		cmdName = "destroy"
+	}
+
+	cmdFlags := c.Meta.flagSet(cmdName)
 	cmdFlags.BoolVar(&refresh, "refresh", true, "refresh")
 	cmdFlags.StringVar(&statePath, "state", DefaultStateFilename, "path")
 	cmdFlags.StringVar(&stateOutPath, "state-out", "", "path")
@@ -70,22 +80,24 @@ func (c *ApplyCommand) Run(args []string) int {
 		backupPath = stateOutPath + DefaultBackupExtention
 	}
 
-	// Do a detect to determine if we need to do an init + apply.
-	if detected, err := module.Detect(configPath, pwd); err != nil {
-		c.Ui.Error(fmt.Sprintf(
-			"Invalid path: %s", err))
-		return 1
-	} else if !strings.HasPrefix(detected, "file") {
-		// If this isn't a file URL then we're doing an init +
-		// apply.
-		var init InitCommand
-		init.Meta = c.Meta
-		if code := init.Run([]string{detected}); code != 0 {
-			return code
-		}
+	if !c.Destroy {
+		// Do a detect to determine if we need to do an init + apply.
+		if detected, err := module.Detect(configPath, pwd); err != nil {
+			c.Ui.Error(fmt.Sprintf(
+				"Invalid path: %s", err))
+			return 1
+		} else if !strings.HasPrefix(detected, "file") {
+			// If this isn't a file URL then we're doing an init +
+			// apply.
+			var init InitCommand
+			init.Meta = c.Meta
+			if code := init.Run([]string{detected}); code != 0 {
+				return code
+			}
 
-		// Change the config path to be the cwd
-		configPath = pwd
+			// Change the config path to be the cwd
+			configPath = pwd
+		}
 	}
 
 	// Build the context based on the arguments given
@@ -95,6 +107,11 @@ func (c *ApplyCommand) Run(args []string) int {
 	})
 	if err != nil {
 		c.Ui.Error(err.Error())
+		return 1
+	}
+	if planned {
+		c.Ui.Error(fmt.Sprintf(
+			"Destroy can't be called with a plan file."))
 		return 1
 	}
 	if c.Input() {
@@ -130,7 +147,12 @@ func (c *ApplyCommand) Run(args []string) int {
 			}
 		}
 
-		if _, err := ctx.Plan(nil); err != nil {
+		var opts terraform.PlanOpts
+		if c.Destroy {
+			opts.Destroy = true
+		}
+
+		if _, err := ctx.Plan(&opts); err != nil {
 			c.Ui.Error(fmt.Sprintf(
 				"Error creating plan: %s", err))
 			return 1
