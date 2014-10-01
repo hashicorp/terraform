@@ -114,7 +114,7 @@ func (c *ApplyCommand) Run(args []string) int {
 			"Destroy can't be called with a plan file."))
 		return 1
 	}
-	if c.Input() {
+	if c.InputEnabled() {
 		if c.Destroy {
 			v, err := c.UIInput().Input(&terraform.InputOpts{
 				Id:    "destroy",
