@@ -115,6 +115,23 @@ func (c *ApplyCommand) Run(args []string) int {
 		return 1
 	}
 	if c.Input() {
+		if c.Destroy {
+			v, err := c.UIInput().Input(&terraform.InputOpts{
+				Id:    "destroy",
+				Query: "Do you really want to destroy?",
+				Description: "Terraform will delete all your manage infrastructure.\n" +
+					"There is no undo. Only 'yes' will be accepted to confirm.",
+			})
+			if err != nil {
+				c.Ui.Error(fmt.Sprintf("Error asking for confirmation: %s", err))
+				return 1
+			}
+			if v != "yes" {
+				c.Ui.Output("Destroy cancelled.")
+				return 1
+			}
+		}
+
 		if err := ctx.Input(); err != nil {
 			c.Ui.Error(fmt.Sprintf("Error configuring: %s", err))
 			return 1
@@ -271,6 +288,22 @@ func (c *ApplyCommand) Run(args []string) int {
 }
 
 func (c *ApplyCommand) Help() string {
+	if c.Destroy {
+		return c.helpDestroy()
+	}
+
+	return c.helpApply()
+}
+
+func (c *ApplyCommand) Synopsis() string {
+	if c.Destroy {
+		return "Destroy Terraform-managed infrastructure"
+	}
+
+	return "Builds or changes infrastructure"
+}
+
+func (c *ApplyCommand) helpApply() string {
 	helpText := `
 Usage: terraform apply [options] [DIR]
 
@@ -315,6 +348,40 @@ Options:
 	return strings.TrimSpace(helpText)
 }
 
-func (c *ApplyCommand) Synopsis() string {
-	return "Builds or changes infrastructure"
+func (c *ApplyCommand) helpDestroy() string {
+	helpText := `
+Usage: terraform destroy [options] [DIR]
+
+  Destroy Terraform-managed infrastructure.
+
+Options:
+
+  -backup=path           Path to backup the existing state file before
+                         modifying. Defaults to the "-state-out" path with
+                         ".backup" extension. Set to "-" to disable backup.
+
+  -input=true            Ask for input for destroy confirmation.
+
+  -no-color              If specified, output won't contain any color.
+
+  -refresh=true          Update state prior to checking for differences. This
+                         has no effect if a plan file is given to apply.
+
+  -state=path            Path to read and save state (unless state-out
+                         is specified). Defaults to "terraform.tfstate".
+
+  -state-out=path        Path to write state to that is different than
+                         "-state". This can be used to preserve the old
+                         state.
+
+  -var 'foo=bar'         Set a variable in the Terraform configuration. This
+                         flag can be set multiple times.
+
+  -var-file=foo          Set variables in the Terraform configuration from
+                         a file. If "terraform.tfvars" is present, it will be
+                         automatically loaded if this flag is not specified.
+
+
+`
+	return strings.TrimSpace(helpText)
 }
