@@ -7,6 +7,8 @@ FEATURES:
     automatically downloads/updates modules for you on request.
   * **New Command: `init`**. This command initializes a Terraform configuration
     from an existing Terraform module (also new in 0.3).
+  * **New Command: `destroy`**. This command destroys infrastructure
+    created with `apply`.
   * Terraform will ask for user input to fill in required variables and
     provider configurations if they aren't set.
   * `terraform apply MODULE` can be used as a shorthand to quickly build
