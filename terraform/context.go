@@ -869,7 +869,8 @@ func (c *walkContext) planDestroyWalkFn() depgraph.WalkFunc {
 	result := c.Meta.(*Plan)
 	result.init()
 
-	return func(n *depgraph.Noun) error {
+	var walkFn depgraph.WalkFunc
+	walkFn = func(n *depgraph.Noun) error {
 		switch m := n.Meta.(type) {
 		case *GraphNodeModule:
 			// Build another walkContext for this module and walk it.
@@ -883,7 +884,13 @@ func (c *walkContext) planDestroyWalkFn() depgraph.WalkFunc {
 
 			return wc.Walk()
 		case *GraphNodeResource:
+			// If we're expanding, then expand the nodes, and then rewalk the graph
+			if m.ExpandMode > ResourceExpandNone {
+				return c.genericWalkResource(m, walkFn)
+			}
+
 			r := m.Resource
+
 			if r.State != nil && r.State.ID != "" {
 				log.Printf("[DEBUG] %s: Making for destroy", r.Id)
 
@@ -901,6 +908,8 @@ func (c *walkContext) planDestroyWalkFn() depgraph.WalkFunc {
 
 		return nil
 	}
+
+	return walkFn
 }
 
 func (c *walkContext) refreshWalkFn() depgraph.WalkFunc {
@@ -1135,43 +1144,7 @@ func (c *walkContext) genericWalkFn(cb genericWalkFunc) depgraph.WalkFunc {
 
 		// If we're expanding, then expand the nodes, and then rewalk the graph
 		if rn.ExpandMode > ResourceExpandNone {
-			// Interpolate the count
-			rc := NewResourceConfig(rn.Config.RawCount)
-			rc.interpolate(c)
-
-			// Expand the node to the actual resources
-			ns, err := rn.Expand()
-			if err != nil {
-				return err
-			}
-
-			// Go through all the nouns and run them in parallel, collecting
-			// any errors.
-			var l sync.Mutex
-			var wg sync.WaitGroup
-			errs := make([]error, 0, len(ns))
-			for _, n := range ns {
-				wg.Add(1)
-
-				go func(n *depgraph.Noun) {
-					defer wg.Done()
-					if err := walkFn(n); err != nil {
-						l.Lock()
-						defer l.Unlock()
-						errs = append(errs, err)
-					}
-				}(n)
-			}
-
-			// Wait for the subgraph
-			wg.Wait()
-
-			// If there are errors, then we should return them
-			if len(errs) > 0 {
-				return &multierror.Error{Errors: errs}
-			}
-
-			return nil
+			return c.genericWalkResource(rn, walkFn)
 		}
 
 		// Make sure that at least some resource configuration is set
@@ -1207,6 +1180,47 @@ func (c *walkContext) genericWalkFn(cb genericWalkFunc) depgraph.WalkFunc {
 	}
 
 	return walkFn
+}
+
+func (c *walkContext) genericWalkResource(
+	rn *GraphNodeResource, fn depgraph.WalkFunc) error {
+	// Interpolate the count
+	rc := NewResourceConfig(rn.Config.RawCount)
+	rc.interpolate(c)
+
+	// Expand the node to the actual resources
+	ns, err := rn.Expand()
+	if err != nil {
+		return err
+	}
+
+	// Go through all the nouns and run them in parallel, collecting
+	// any errors.
+	var l sync.Mutex
+	var wg sync.WaitGroup
+	errs := make([]error, 0, len(ns))
+	for _, n := range ns {
+		wg.Add(1)
+
+		go func(n *depgraph.Noun) {
+			defer wg.Done()
+			if err := fn(n); err != nil {
+				l.Lock()
+				defer l.Unlock()
+				errs = append(errs, err)
+			}
+		}(n)
+	}
+
+	// Wait for the subgraph
+	wg.Wait()
+
+	// If there are errors, then we should return them
+	if len(errs) > 0 {
+		return &multierror.Error{Errors: errs}
+	}
+
+	return nil
 }
 
 // applyProvisioners is used to run any provisioners a resource has
