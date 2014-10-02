@@ -79,24 +79,9 @@ func (r *RawConfig) Config() map[string]interface{} {
 //
 // If a variable key is missing, this will panic.
 func (r *RawConfig) Interpolate(vs map[string]string) error {
-	config, err := copystructure.Copy(r.Raw)
-	if err != nil {
-		return err
-	}
-	r.config = config.(map[string]interface{})
-
-	fn := func(i Interpolation) (string, error) {
+	return r.interpolate(func(i Interpolation) (string, error) {
 		return i.Interpolate(vs)
-	}
-
-	w := &interpolationWalker{F: fn, Replace: true}
-	err = reflectwalk.Walk(r.config, w)
-	if err != nil {
-		return err
-	}
-
-	r.unknownKeys = w.unknownKeys
-	return nil
+	})
 }
 
 func (r *RawConfig) init() error {
@@ -123,6 +108,23 @@ func (r *RawConfig) init() error {
 		return err
 	}
 
+	return nil
+}
+
+func (r *RawConfig) interpolate(fn interpolationWalkerFunc) error {
+	config, err := copystructure.Copy(r.Raw)
+	if err != nil {
+		return err
+	}
+	r.config = config.(map[string]interface{})
+
+	w := &interpolationWalker{F: fn, Replace: true}
+	err = reflectwalk.Walk(r.config, w)
+	if err != nil {
+		return err
+	}
+
+	r.unknownKeys = w.unknownKeys
 	return nil
 }
 

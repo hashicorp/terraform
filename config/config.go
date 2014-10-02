@@ -275,6 +275,18 @@ func (c *Config) Validate() error {
 			}
 		}
 
+		// Interpolate with a fixed number to verify that its a number
+		r.RawCount.interpolate(func(Interpolation) (string, error) {
+			return "5", nil
+		})
+		_, err := strconv.ParseInt(r.RawCount.Value().(string), 0, 0)
+		if err != nil {
+			errs = append(errs, fmt.Errorf(
+				"%s: resource count must be an integer",
+				n))
+		}
+		r.RawCount.init()
+
 		for _, d := range r.DependsOn {
 			if _, ok := resources[d]; !ok {
 				errs = append(errs, fmt.Errorf(
