@@ -1057,7 +1057,8 @@ func (c *walkContext) genericWalkFn(cb genericWalkFunc) depgraph.WalkFunc {
 	// This will keep track of whether we're stopped or not
 	var stop uint32 = 0
 
-	return func(n *depgraph.Noun) error {
+	var walkFn depgraph.WalkFunc
+	walkFn = func(n *depgraph.Noun) error {
 		// If it is the root node, ignore
 		if n.Name == GraphRootNode {
 			return nil
@@ -1132,6 +1133,42 @@ func (c *walkContext) genericWalkFn(cb genericWalkFunc) depgraph.WalkFunc {
 
 		rn := n.Meta.(*GraphNodeResource)
 
+		// If we're expanding, then expand the nodes, and then rewalk the graph
+		if rn.ExpandMode > ResourceExpandNone {
+			ns, err := rn.Expand()
+			if err != nil {
+				return err
+			}
+
+			// Go through all the nouns and run them in parallel, collecting
+			// any errors.
+			var l sync.Mutex
+			var wg sync.WaitGroup
+			errs := make([]error, 0, len(ns))
+			for _, n := range ns {
+				wg.Add(1)
+
+				go func() {
+					defer wg.Done()
+					if err := walkFn(n); err != nil {
+						l.Lock()
+						defer l.Unlock()
+						errs = append(errs, err)
+					}
+				}()
+			}
+
+			// Wait for the subgraph
+			wg.Wait()
+
+			// If there are errors, then we should return them
+			if len(errs) > 0 {
+				return &multierror.Error{Errors: errs}
+			}
+
+			return nil
+		}
+
 		// Make sure that at least some resource configuration is set
 		if rn.Config == nil {
 			rn.Resource.Config = new(ResourceConfig)
@@ -1163,6 +1200,8 @@ func (c *walkContext) genericWalkFn(cb genericWalkFunc) depgraph.WalkFunc {
 
 		return nil
 	}
+
+	return walkFn
 }
 
 // applyProvisioners is used to run any provisioners a resource has

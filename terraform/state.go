@@ -212,6 +212,24 @@ func (m *ModuleState) Orphans(c *config.Config) []string {
 	return result
 }
 
+// View returns a view with the given resource prefix.
+func (m *ModuleState) View(id string) *ModuleState {
+	if m == nil {
+		return m
+	}
+
+	r := m.deepcopy()
+	for k, _ := range r.Resources {
+		if id == k || strings.HasPrefix(k, id+".") {
+			continue
+		}
+
+		delete(r.Resources, k)
+	}
+
+	return r
+}
+
 func (m *ModuleState) init() {
 	if m.Outputs == nil {
 		m.Outputs = make(map[string]string)

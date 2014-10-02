@@ -92,6 +92,9 @@ type GraphNodeResource struct {
 	Resource             *Resource
 	ResourceProviderNode string
 
+	Diff  *ModuleDiff
+	State *ModuleState
+
 	// Expand, if true, indicates that this resource needs to be expanded
 	// at walk-time to multiple resources.
 	ExpandMode ResourceExpandMode
@@ -372,6 +375,8 @@ func graphAddConfigResources(
 	nounsList := make([]*depgraph.Noun, len(c.Resources))
 	for i, r := range c.Resources {
 		name := r.Id()
+
+		// Build the noun
 		nounsList[i] = &depgraph.Noun{
 			Name: name,
 			Meta: &GraphNodeResource{
@@ -385,6 +390,7 @@ func graphAddConfigResources(
 						Type:       r.Type,
 					},
 				},
+				State:      mod.View(name),
 				ExpandMode: ResourceExpandApply,
 			},
 		}
@@ -527,6 +533,11 @@ func graphAddDiff(g *depgraph.Graph, d *ModuleDiff) error {
 			if len(d.Attributes) > 0 {
 				change = true
 			}
+		}
+
+		// If we're expanding, save the diff so we can add it on later
+		if rn.ExpandMode > ResourceExpandNone {
+			rn.Diff = d
 		}
 
 		var rd *InstanceDiff
@@ -1575,6 +1586,160 @@ func (p *graphSharedProvider) MergeConfig(
 	}
 
 	return NewResourceConfig(rc)
+}
+
+// Expand will expand this node into a subgraph if Expand is set.
+func (n *GraphNodeResource) Expand() ([]*depgraph.Noun, error) {
+	count := 1
+
+	g := new(depgraph.Graph)
+
+	// Determine the nodes to create. If we're just looking for the
+	// nodes to create, return that.
+	n.expandCreate(g, count)
+
+	// Add in the diff if we have it
+	if n.Diff != nil {
+		if err := graphAddDiff(g, n.Diff); err != nil {
+			return nil, err
+		}
+	}
+
+	// If we're just expanding the apply, then filter those out and
+	// return them now.
+	if n.ExpandMode == ResourceExpandApply {
+		return n.filterNouns(g, false), nil
+	}
+
+	if n.State != nil {
+		// TODO: orphans
+
+		// Add the tainted resources
+		graphAddTainted(g, n.State)
+	}
+
+	return n.filterNouns(g, true), nil
+}
+
+// expandCreate expands this resource and adds the resources to the graph.
+func (n *GraphNodeResource) expandCreate(g *depgraph.Graph, count int) {
+	// Create the list of nouns that we'd have to create
+	create := make([]*depgraph.Noun, 0, count)
+
+	// First thing, expand the counts that we have defined for our
+	// current config into the full set of resources.
+	r := n.Config
+	for i := 0; i < count; i++ {
+		name := r.Id()
+		index := -1
+
+		// If we have a count that is more than one, then make sure
+		// we suffix with the number of the resource that this is.
+		if count > 1 {
+			name = fmt.Sprintf("%s.%d", name, i)
+			index = i
+		}
+
+		var state *ResourceState
+		if n.State != nil {
+			// Lookup the resource state
+			if s, ok := n.State.Resources[name]; ok {
+				state = s
+			}
+
+			if state == nil {
+				if count == 1 {
+					// If the count is one, check the state for ".0"
+					// appended, which might exist if we go from
+					// count > 1 to count == 1.
+					k := r.Id() + ".0"
+					state = n.State.Resources[k]
+				} else if i == 0 {
+					// If count is greater than one, check for state
+					// with just the ID, which might exist if we go
+					// from count == 1 to count > 1
+					state = n.State.Resources[r.Id()]
+				}
+			}
+		}
+
+		if state == nil {
+			state = &ResourceState{
+				Type: r.Type,
+			}
+		}
+
+		flags := FlagPrimary
+		if len(state.Tainted) > 0 {
+			flags |= FlagHasTainted
+		}
+
+		// Copy the base resource so we can fill it in
+		resource := n.copyResource(name)
+		resource.State = state.Primary
+		resource.Flags = flags
+		// TODO: we need the diff here...
+
+		// Add the result
+		create = append(create, &depgraph.Noun{
+			Name: name,
+			Meta: &GraphNodeResource{
+				Index:    index,
+				Config:   r,
+				Resource: resource,
+			},
+		})
+	}
+
+	g.Nouns = append(g.Nouns, create...)
+}
+
+// copyResource copies the Resource structure to assign to a subgraph.
+func (n *GraphNodeResource) copyResource(id string) *Resource {
+	info := *n.Resource.Info
+	info.Id = id
+	resource := *n.Resource
+	resource.Id = id
+	resource.Info = &info
+	resource.Config = NewResourceConfig(n.Config.RawConfig)
+	return &resource
+}
+
+func (n *GraphNodeResource) filterNouns(
+	g *depgraph.Graph, destroy bool) []*depgraph.Noun {
+	result := make([]*depgraph.Noun, 0, len(g.Nouns))
+	for _, n := range g.Nouns {
+		rn, ok := n.Meta.(*GraphNodeResource)
+		if !ok {
+			continue
+		}
+
+		// If the diff is nil, then we're not destroying, so append only
+		// in that case.
+		if rn.Resource.Diff == nil {
+			if !destroy {
+				result = append(result, n)
+			}
+
+			continue
+		}
+
+		// If we are destroying, append it only if we care about destroys
+		if rn.Resource.Diff.Destroy {
+			if destroy {
+				result = append(result, n)
+			}
+
+			continue
+		}
+
+		// If we're not destroying, then add it only if we don't
+		// care about deploys.
+		if !destroy {
+			result = append(result, n)
+		}
+	}
+	return result
 }
 
 // matchingPrefixes takes a resource type and a set of resource
