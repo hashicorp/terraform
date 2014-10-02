@@ -7,7 +7,7 @@ import (
 	"testing"
 )
 
-func TestGraph(t *testing.T) {
+func TestGraph_basic(t *testing.T) {
 	m := testModule(t, "graph-basic")
 
 	g, err := Graph(&GraphOpts{Module: m})
@@ -447,6 +447,8 @@ func TestGraphAddDiff(t *testing.T) {
 		t.Fatalf("bad:\n\n%s", actual)
 	}
 
+	/*
+	TODO: test this somewhere
 	// Verify that the state has been added
 	n := g.Noun("aws_instance.foo")
 	rn := n.Meta.(*GraphNodeResource)
@@ -456,6 +458,7 @@ func TestGraphAddDiff(t *testing.T) {
 	if !reflect.DeepEqual(actual2, expected2) {
 		t.Fatalf("bad: %#v", actual2)
 	}
+	*/
 }
 
 func TestGraphAddDiff_destroy(t *testing.T) {
@@ -609,13 +612,11 @@ func TestGraphAddDiff_destroy_counts(t *testing.T) {
 	}
 
 	// Verify that the state has been added
-	n := g.Noun("aws_instance.web.0 (destroy)")
+	n := g.Noun("aws_instance.web (destroy)")
 	rn := n.Meta.(*GraphNodeResource)
 
-	expected2 := &InstanceDiff{Destroy: true}
-	actual2 := rn.Resource.Diff
-	if !reflect.DeepEqual(actual2, expected2) {
-		t.Fatalf("bad: %#v", actual2)
+	if rn.ExpandMode != ResourceExpandDestroy {
+		t.Fatalf("bad: %#v", rn)
 	}
 
 	// Verify that our original structure has not been modified
@@ -816,13 +817,13 @@ func TestGraphEncodeDependencies_count(t *testing.T) {
 	// This should encode the dependency information into the state
 	graphEncodeDependencies(g)
 
-	web := g.Noun("aws_instance.web.0").Meta.(*GraphNodeResource).Resource
+	web := g.Noun("aws_instance.web").Meta.(*GraphNodeResource).Resource
 	if len(web.Dependencies) != 0 {
 		t.Fatalf("bad: %#v", web)
 	}
 
 	weblb := g.Noun("aws_load_balancer.weblb").Meta.(*GraphNodeResource).Resource
-	if len(weblb.Dependencies) != 3 {
+	if len(weblb.Dependencies) != 1 {
 		t.Fatalf("bad: %#v", weblb)
 	}
 }
@@ -956,12 +957,6 @@ root
 const testTerraformGraphCountStr = `
 root: root
 aws_instance.web
-  aws_instance.web -> aws_instance.web.0
-  aws_instance.web -> aws_instance.web.1
-  aws_instance.web -> aws_instance.web.2
-aws_instance.web.0
-aws_instance.web.1
-aws_instance.web.2
 aws_load_balancer.weblb
   aws_load_balancer.weblb -> aws_instance.web
 root
@@ -982,12 +977,7 @@ root
 const testTerraformGraphDependsCountStr = `
 root: root
 aws_instance.db
-  aws_instance.db -> aws_instance.db.0
-  aws_instance.db -> aws_instance.db.1
-aws_instance.db.0
-  aws_instance.db.0 -> aws_instance.web
-aws_instance.db.1
-  aws_instance.db.1 -> aws_instance.web
+  aws_instance.db -> aws_instance.web
 aws_instance.web
 root
   root -> aws_instance.db
@@ -1024,21 +1014,9 @@ root
 const testTerraformGraphDiffDestroyCountsStr = `
 root: root
 aws_instance.web
-  aws_instance.web -> aws_instance.web.0
-  aws_instance.web -> aws_instance.web.1
-  aws_instance.web -> aws_instance.web.2
-aws_instance.web.0
-  aws_instance.web.0 -> aws_instance.web.0 (destroy)
-aws_instance.web.0 (destroy)
-  aws_instance.web.0 (destroy) -> aws_load_balancer.weblb (destroy)
-aws_instance.web.1
-  aws_instance.web.1 -> aws_instance.web.1 (destroy)
-aws_instance.web.1 (destroy)
-  aws_instance.web.1 (destroy) -> aws_load_balancer.weblb (destroy)
-aws_instance.web.2
-  aws_instance.web.2 -> aws_instance.web.2 (destroy)
-aws_instance.web.2 (destroy)
-  aws_instance.web.2 (destroy) -> aws_load_balancer.weblb (destroy)
+  aws_instance.web -> aws_instance.web (destroy)
+aws_instance.web (destroy)
+  aws_instance.web (destroy) -> aws_load_balancer.weblb (destroy)
 aws_load_balancer.weblb
   aws_load_balancer.weblb -> aws_instance.web
   aws_load_balancer.weblb -> aws_load_balancer.weblb (destroy)
@@ -1197,16 +1175,8 @@ root
 const testTerraformGraphCountOrphanStr = `
 root: root
 aws_instance.web
-  aws_instance.web -> aws_instance.web.0
-  aws_instance.web -> aws_instance.web.1
-  aws_instance.web -> aws_instance.web.2
-aws_instance.web.0
-aws_instance.web.1
-aws_instance.web.2
 aws_load_balancer.old
-  aws_load_balancer.old -> aws_instance.web.0
-  aws_load_balancer.old -> aws_instance.web.1
-  aws_load_balancer.old -> aws_instance.web.2
+  aws_load_balancer.old -> aws_instance.web
 aws_load_balancer.weblb
   aws_load_balancer.weblb -> aws_instance.web
 root

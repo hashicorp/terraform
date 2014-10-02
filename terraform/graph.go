@@ -91,6 +91,10 @@ type GraphNodeResource struct {
 	Config               *config.Resource
 	Resource             *Resource
 	ResourceProviderNode string
+
+	// Expand, if true, indicates that this resource needs to be expanded
+	// at walk-time to multiple resources.
+	ExpandMode ResourceExpandMode
 }
 
 // GraphNodeResourceMeta is a node type in the graph that represents the
@@ -122,6 +126,16 @@ type graphSharedProvider struct {
 	overrideConfig map[string]map[string]interface{}
 	parentNoun     *depgraph.Noun
 }
+
+// ResourceExpandMode specifies the expand behavior of the GraphNodeResource
+// node.
+type ResourceExpandMode byte
+
+const (
+	ResourceExpandNone ResourceExpandMode = iota
+	ResourceExpandApply
+	ResourceExpandDestroy
+)
 
 // Graph builds a dependency graph of all the resources for infrastructure
 // change.
@@ -372,108 +386,123 @@ func graphAddConfigResources(
 	meta := g.Meta.(*GraphMeta)
 
 	// This tracks all the resource nouns
-	nouns := make(map[string]*depgraph.Noun)
-	for _, r := range c.Resources {
-		resourceNouns := make([]*depgraph.Noun, r.Count)
-		for i := 0; i < r.Count; i++ {
-			name := r.Id()
-			index := -1
-
-			// If we have a count that is more than one, then make sure
-			// we suffix with the number of the resource that this is.
-			if r.Count > 1 {
-				name = fmt.Sprintf("%s.%d", name, i)
-				index = i
-			}
-
-			var state *ResourceState
-			if mod != nil {
-				// Lookup the resource state
-				state = mod.Resources[name]
-				if state == nil {
-					if r.Count == 1 {
-						// If the count is one, check the state for ".0"
-						// appended, which might exist if we go from
-						// count > 1 to count == 1.
-						state = mod.Resources[r.Id()+".0"]
-					} else if i == 0 {
-						// If count is greater than one, check for state
-						// with just the ID, which might exist if we go
-						// from count == 1 to count > 1
-						state = mod.Resources[r.Id()]
-					}
-
-					// TODO(mitchellh): If one of the above works, delete
-					// the old style and just copy it to the new style.
-				}
-			}
-
-			if state == nil {
-				state = &ResourceState{
-					Type: r.Type,
-				}
-			}
-
-			flags := FlagPrimary
-			if len(state.Tainted) > 0 {
-				flags |= FlagHasTainted
-			}
-
-			resourceNouns[i] = &depgraph.Noun{
-				Name: name,
-				Meta: &GraphNodeResource{
-					Index:  index,
-					Config: r,
-					Resource: &Resource{
-						Id: name,
-						Info: &InstanceInfo{
-							Id:         name,
-							ModulePath: meta.ModulePath,
-							Type:       r.Type,
-						},
-						State:  state.Primary,
-						Config: NewResourceConfig(r.RawConfig),
-						Flags:  flags,
+	nounsList := make([]*depgraph.Noun, len(c.Resources))
+	for i, r := range c.Resources {
+		name := r.Id()
+		nounsList[i] = &depgraph.Noun{
+			Name: name,
+			Meta: &GraphNodeResource{
+				Index:  -1,
+				Config: r,
+				Resource: &Resource{
+					Id: name,
+					Info: &InstanceInfo{
+						Id:         name,
+						ModulePath: meta.ModulePath,
+						Type:       r.Type,
 					},
 				},
-			}
+				ExpandMode: ResourceExpandApply,
+			},
 		}
 
-		// If we have more than one, then create a meta node to track
-		// the resources.
-		if r.Count > 1 {
-			metaNoun := &depgraph.Noun{
-				Name: r.Id(),
-				Meta: &GraphNodeResourceMeta{
-					ID:    r.Id(),
-					Name:  r.Name,
-					Type:  r.Type,
-					Count: r.Count,
-				},
+		/*
+			TODO: probably did something important, bring it back somehow
+			resourceNouns := make([]*depgraph.Noun, r.Count)
+			for i := 0; i < r.Count; i++ {
+				name := r.Id()
+				index := -1
+
+				// If we have a count that is more than one, then make sure
+				// we suffix with the number of the resource that this is.
+				if r.Count > 1 {
+					name = fmt.Sprintf("%s.%d", name, i)
+					index = i
+				}
+
+				var state *ResourceState
+				if mod != nil {
+					// Lookup the resource state
+					state = mod.Resources[name]
+					if state == nil {
+						if r.Count == 1 {
+							// If the count is one, check the state for ".0"
+							// appended, which might exist if we go from
+							// count > 1 to count == 1.
+							state = mod.Resources[r.Id()+".0"]
+						} else if i == 0 {
+							// If count is greater than one, check for state
+							// with just the ID, which might exist if we go
+							// from count == 1 to count > 1
+							state = mod.Resources[r.Id()]
+						}
+
+						// TODO(mitchellh): If one of the above works, delete
+						// the old style and just copy it to the new style.
+					}
+				}
+
+				if state == nil {
+					state = &ResourceState{
+						Type: r.Type,
+					}
+				}
+
+				flags := FlagPrimary
+				if len(state.Tainted) > 0 {
+					flags |= FlagHasTainted
+				}
+
+				resourceNouns[i] = &depgraph.Noun{
+					Name: name,
+					Meta: &GraphNodeResource{
+						Index:  index,
+						Config: r,
+						Resource: &Resource{
+							Id: name,
+							Info: &InstanceInfo{
+								Id:         name,
+								ModulePath: meta.ModulePath,
+								Type:       r.Type,
+							},
+							State:  state.Primary,
+							Config: NewResourceConfig(r.RawConfig),
+							Flags:  flags,
+						},
+					},
+				}
 			}
 
-			// Create the dependencies on this noun
+			// If we have more than one, then create a meta node to track
+			// the resources.
+			if r.Count > 1 {
+				metaNoun := &depgraph.Noun{
+					Name: r.Id(),
+					Meta: &GraphNodeResourceMeta{
+						ID:    r.Id(),
+						Name:  r.Name,
+						Type:  r.Type,
+						Count: r.Count,
+					},
+				}
+
+				// Create the dependencies on this noun
+				for _, n := range resourceNouns {
+					metaNoun.Deps = append(metaNoun.Deps, &depgraph.Dependency{
+						Name:   n.Name,
+						Source: metaNoun,
+						Target: n,
+					})
+				}
+
+				// Assign it to the map so that we have it
+				nouns[metaNoun.Name] = metaNoun
+			}
+
 			for _, n := range resourceNouns {
-				metaNoun.Deps = append(metaNoun.Deps, &depgraph.Dependency{
-					Name:   n.Name,
-					Source: metaNoun,
-					Target: n,
-				})
+				nouns[n.Name] = n
 			}
-
-			// Assign it to the map so that we have it
-			nouns[metaNoun.Name] = metaNoun
-		}
-
-		for _, n := range resourceNouns {
-			nouns[n.Name] = n
-		}
-	}
-
-	// Build the list of nouns that we iterate over
-	nounsList := make([]*depgraph.Noun, 0, len(nouns))
-	for _, n := range nouns {
-		nounsList = append(nounsList, n)
+		*/
 	}
 
 	g.Name = "terraform"
@@ -501,15 +530,28 @@ func graphAddDiff(g *depgraph.Graph, d *ModuleDiff) error {
 			continue
 		}
 
-		rd, ok := d.Resources[rn.Resource.Id]
-		if !ok {
+		change := false
+		destroy := false
+		diffs := d.Instances(rn.Resource.Id)
+		if len(diffs) == 0 {
 			continue
 		}
-		if rd.Empty() {
-			continue
+		for _, d := range diffs {
+			if d.Destroy {
+				destroy = true
+			}
+
+			if len(d.Attributes) > 0 {
+				change = true
+			}
 		}
 
-		if rd.Destroy {
+		var rd *InstanceDiff
+		if rn.ExpandMode == ResourceExpandNone {
+			rd = diffs[0]
+		}
+
+		if destroy {
 			// If we're destroying, we create a new destroy node with
 			// the proper dependencies. Perform a dirty copy operation.
 			newNode := new(GraphNodeResource)
@@ -519,6 +561,11 @@ func graphAddDiff(g *depgraph.Graph, d *ModuleDiff) error {
 
 			// Make the diff _just_ the destroy.
 			newNode.Resource.Diff = &InstanceDiff{Destroy: true}
+
+			// Make sure ExpandDestroy is set if Expand
+			if newNode.ExpandMode == ResourceExpandApply {
+				newNode.ExpandMode = ResourceExpandDestroy
+			}
 
 			// Create the new node
 			newN := &depgraph.Noun{
@@ -533,17 +580,19 @@ func graphAddDiff(g *depgraph.Graph, d *ModuleDiff) error {
 			// Append it to the list so we handle it later
 			nlist = append(nlist, newN)
 
-			// Mark the old diff to not destroy since we handle that in
-			// the dedicated node.
-			newDiff := new(InstanceDiff)
-			*newDiff = *rd
-			newDiff.Destroy = false
-			rd = newDiff
+			if rd != nil {
+				// Mark the old diff to not destroy since we handle that in
+				// the dedicated node.
+				newDiff := new(InstanceDiff)
+				*newDiff = *rd
+				newDiff.Destroy = false
+				rd = newDiff
+			}
 
 			// The dependency ordering depends on if the CreateBeforeDestroy
 			// flag is enabled. If so, we must create the replacement first,
 			// and then destroy the old instance.
-			if rn.Config != nil && rn.Config.Lifecycle.CreateBeforeDestroy && !rd.Empty() {
+			if rn.Config != nil && rn.Config.Lifecycle.CreateBeforeDestroy && change {
 				dep := &depgraph.Dependency{
 					Name:   n.Name,
 					Source: newN,
@@ -877,7 +926,7 @@ func graphAddOrphanDeps(g *depgraph.Graph, mod *ModuleState) {
 			}
 
 			for _, depName := range rs.Dependencies {
-				if compareName != depName {
+				if !strings.HasPrefix(depName, compareName) {
 					continue
 				}
 				dep := &depgraph.Dependency{
@@ -886,6 +935,7 @@ func graphAddOrphanDeps(g *depgraph.Graph, mod *ModuleState) {
 					Target: n2,
 				}
 				n.Deps = append(n.Deps, dep)
+				break
 			}
 		}
 	}

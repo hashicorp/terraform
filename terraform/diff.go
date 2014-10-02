@@ -167,6 +167,19 @@ func (d *ModuleDiff) Empty() bool {
 	return true
 }
 
+// Instances returns the instance diffs for the id given. This can return
+// multiple instance diffs if there are counts within the resource.
+func (d *ModuleDiff) Instances(id string) []*InstanceDiff {
+	var result []*InstanceDiff
+	for k, diff := range d.Resources {
+		if strings.HasPrefix(k, id) && !diff.Empty() {
+			result = append(result, diff)
+		}
+	}
+
+	return result
+}
+
 // IsRoot says whether or not this module diff is for the root module.
 func (d *ModuleDiff) IsRoot() bool {
 	return reflect.DeepEqual(d.Path, rootModulePath)
