@@ -1595,14 +1595,6 @@ func (p *graphSharedProvider) MergeConfig(
 
 // Expand will expand this node into a subgraph if Expand is set.
 func (n *GraphNodeResource) Expand() ([]*depgraph.Noun, error) {
-	// If the count configuration is empty then it means that the
-	// count is computed. In this case, we set the count to one
-	// but set a flag telling upstream that we're computing.
-	if len(n.Config.RawConfig.Config()) == 0 {
-		return nil, fmt.Errorf(
-			"%s: computed count attribute not allowed", n.Resource.Id)
-	}
-
 	// Expand the count out, which should be interpolated at this point.
 	count, err := n.Config.Count()
 	if err != nil {
