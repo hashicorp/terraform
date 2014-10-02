@@ -5,6 +5,7 @@ import (
 	"crypto/md5"
 	"io"
 	"net/http"
+	"net/http/httptest"
 	"strings"
 	"testing"
 
@@ -72,5 +73,89 @@ REQ:
 	if !strings.Contains(remote.Server, "?raw") {
 		remote.Server += "?raw"
 		goto REQ
+	}
+}
+
+func TestGetState(t *testing.T) {
+	type tcase struct {
+		Code      int
+		Header    http.Header
+		Body      []byte
+		ExpectMD5 []byte
+		ExpectErr string
+	}
+	inp := []byte("testing")
+	inpMD5 := md5.Sum(inp)
+	hash := inpMD5[:16]
+	cases := []*tcase{
+		&tcase{
+			Code:      http.StatusOK,
+			Body:      inp,
+			ExpectMD5: hash,
+		},
+		&tcase{
+			Code: http.StatusNoContent,
+		},
+		&tcase{
+			Code: http.StatusNotFound,
+		},
+		&tcase{
+			Code:      http.StatusUnauthorized,
+			ExpectErr: "Remote server requires authentication",
+		},
+		&tcase{
+			Code:      http.StatusForbidden,
+			ExpectErr: "Invalid authentication",
+		},
+		&tcase{
+			Code:      http.StatusInternalServerError,
+			ExpectErr: "Remote server reporting internal error",
+		},
+		&tcase{
+			Code:      418,
+			ExpectErr: "Unexpected HTTP response code 418",
+		},
+	}
+
+	for _, tc := range cases {
+		cb := func(resp http.ResponseWriter, req *http.Request) {
+			for k, v := range tc.Header {
+				resp.Header()[k] = v
+			}
+			resp.WriteHeader(tc.Code)
+			if tc.Body != nil {
+				resp.Write(tc.Body)
+			}
+		}
+		s := httptest.NewServer(http.HandlerFunc(cb))
+		defer s.Close()
+
+		remote := &terraform.RemoteState{
+			Name:   "foobar",
+			Server: s.URL,
+		}
+
+		payload, err := GetState(remote)
+		errStr := ""
+		if err != nil {
+			errStr = err.Error()
+		}
+		if errStr != tc.ExpectErr {
+			t.Fatalf("bad err: %v %v", errStr, tc.ExpectErr)
+		}
+
+		if tc.ExpectMD5 != nil {
+			if payload == nil || !bytes.Equal(payload.MD5, tc.ExpectMD5) {
+				t.Fatalf("bad: %#v", payload)
+			}
+		}
+
+		if tc.Body != nil {
+			buf := bytes.NewBuffer(nil)
+			io.Copy(buf, payload.R)
+			if !bytes.Equal(buf.Bytes(), tc.Body) {
+				t.Fatalf("bad: %#v", payload)
+			}
+		}
 	}
 }

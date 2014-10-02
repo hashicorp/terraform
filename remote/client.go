@@ -57,11 +57,11 @@ func GetState(conf *terraform.RemoteState) (*RemoteStatePayload, error) {
 	case http.StatusUnauthorized:
 		return nil, fmt.Errorf("Remote server requires authentication")
 	case http.StatusForbidden:
-		return nil, fmt.Errorf("Invalid authentication token")
+		return nil, fmt.Errorf("Invalid authentication")
 	case http.StatusInternalServerError:
 		return nil, fmt.Errorf("Remote server reporting internal error")
 	default:
-		return nil, fmt.Errorf("Received unexpected HTTP response code %d", resp.StatusCode)
+		return nil, fmt.Errorf("Unexpected HTTP response code %d", resp.StatusCode)
 	}
 
 	// Read in the body
