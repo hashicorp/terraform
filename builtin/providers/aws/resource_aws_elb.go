@@ -353,6 +353,7 @@ func resource_aws_elb_validation() *config.Validator {
 		},
 		Optional: []string{
 			"instances.*",
+			"listener.*.ssl_certificate_id",
 			"internal",
 			"availability_zones.*",
 			"security_groups.*",

@@ -2,6 +2,7 @@ package aws
 
 import (
 	"fmt"
+	"os"
 	"reflect"
 	"testing"
 
@@ -12,6 +13,7 @@ import (
 
 func TestAccAWSELB_basic(t *testing.T) {
 	var conf elb.LoadBalancer
+	ssl_certificate_id := os.Getenv("AWS_SSL_CERTIFICATE_ID")
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -35,6 +37,8 @@ func TestAccAWSELB_basic(t *testing.T) {
 						"aws_elb.bar", "listener.0.instance_port", "8000"),
 					resource.TestCheckResourceAttr(
 						"aws_elb.bar", "listener.0.instance_protocol", "http"),
+					resource.TestCheckResourceAttr(
+						"aws_elb.bar", "listener.0.ssl_certificate_id", ssl_certificate_id),
 					resource.TestCheckResourceAttr(
 						"aws_elb.bar", "listener.0.lb_port", "80"),
 					resource.TestCheckResourceAttr(
@@ -274,6 +278,21 @@ resource "aws_instance" "foo" {
 	# us-west-2
 	ami = "ami-043a5034"
 	instance_type = "t1.micro"
+}
+`
+
+const testAccAWSELBConfigListenerSSLCertificateId = `
+resource "aws_elb" "bar" {
+  name = "foobar-terraform-test"
+  availability_zones = ["us-west-2a"]
+
+  listener {
+    instance_port = 8000
+    instance_protocol = "http"
+    ssl_certificate_id = "%s"
+    lb_port = 443
+    lb_protocol = "https"
+  }
 }
 `
 
