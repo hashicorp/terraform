@@ -92,12 +92,11 @@ type GraphNodeResource struct {
 	Resource             *Resource
 	ResourceProviderNode string
 
-	Diff  *ModuleDiff
-	State *ModuleState
-
-	// Expand, if true, indicates that this resource needs to be expanded
-	// at walk-time to multiple resources.
+	// All the fields below are related to expansion. These are set by
+	// the graph but aren't useful individually.
 	ExpandMode ResourceExpandMode
+	Diff       *ModuleDiff
+	State      *ModuleState
 }
 
 // GraphNodeResourceProvider is a node type in the graph that represents
@@ -1607,7 +1606,7 @@ func (n *GraphNodeResource) Expand() ([]*depgraph.Noun, error) {
 
 	// Determine the nodes to create. If we're just looking for the
 	// nodes to create, return that.
-	n.expandCreate(g, count)
+	n.expand(g, count)
 
 	// Add in the diff if we have it
 	if n.Diff != nil {
@@ -1619,7 +1618,7 @@ func (n *GraphNodeResource) Expand() ([]*depgraph.Noun, error) {
 	// If we're just expanding the apply, then filter those out and
 	// return them now.
 	if n.ExpandMode == ResourceExpandApply {
-		return n.filterNouns(g, false), nil
+		return n.finalizeNouns(g, false), nil
 	}
 
 	if n.State != nil {
@@ -1629,16 +1628,27 @@ func (n *GraphNodeResource) Expand() ([]*depgraph.Noun, error) {
 		graphAddTainted(g, n.State)
 	}
 
-	return n.filterNouns(g, true), nil
+	return n.finalizeNouns(g, true), nil
 }
 
-// expandCreate expands this resource and adds the resources to the graph.
-func (n *GraphNodeResource) expandCreate(g *depgraph.Graph, count int) {
-	// Create the list of nouns that we'd have to create
-	create := make([]*depgraph.Noun, 0, count)
+// expand expands this resource and adds the resources to the graph. It
+// adds both create and destroy resources.
+func (n *GraphNodeResource) expand(g *depgraph.Graph, count int) {
+	// Create the list of nouns
+	result := make([]*depgraph.Noun, 0, count)
+
+	// Build the key set so we know what is removed
+	var keys map[string]struct{}
+	if n.State != nil {
+		keys = make(map[string]struct{})
+		for k, _ := range n.State.Resources {
+			keys[k] = struct{}{}
+		}
+	}
 
 	// First thing, expand the counts that we have defined for our
-	// current config into the full set of resources.
+	// current config into the full set of resources that are being
+	// created.
 	r := n.Config
 	for i := 0; i < count; i++ {
 		name := r.Id()
@@ -1656,6 +1666,7 @@ func (n *GraphNodeResource) expandCreate(g *depgraph.Graph, count int) {
 			// Lookup the resource state
 			if s, ok := n.State.Resources[name]; ok {
 				state = s
+				delete(keys, name)
 			}
 
 			if state == nil {
@@ -1665,11 +1676,13 @@ func (n *GraphNodeResource) expandCreate(g *depgraph.Graph, count int) {
 					// count > 1 to count == 1.
 					k := r.Id() + ".0"
 					state = n.State.Resources[k]
+					delete(keys, k)
 				} else if i == 0 {
 					// If count is greater than one, check for state
 					// with just the ID, which might exist if we go
 					// from count == 1 to count > 1
 					state = n.State.Resources[r.Id()]
+					delete(keys, r.Id())
 				}
 			}
 		}
@@ -1689,10 +1702,9 @@ func (n *GraphNodeResource) expandCreate(g *depgraph.Graph, count int) {
 		resource := n.copyResource(name)
 		resource.State = state.Primary
 		resource.Flags = flags
-		// TODO: we need the diff here...
 
 		// Add the result
-		create = append(create, &depgraph.Noun{
+		result = append(result, &depgraph.Noun{
 			Name: name,
 			Meta: &GraphNodeResource{
 				Index:    index,
@@ -1702,7 +1714,27 @@ func (n *GraphNodeResource) expandCreate(g *depgraph.Graph, count int) {
 		})
 	}
 
-	g.Nouns = append(g.Nouns, create...)
+	// Go over the leftover keys which are orphans (decreasing counts)
+	for k, _ := range keys {
+		rs := n.State.Resources[k]
+
+		resource := n.copyResource(k)
+		resource.Config = NewResourceConfig(nil)
+		resource.State = rs.Primary
+		resource.Flags = FlagOrphan
+
+		noun := &depgraph.Noun{
+			Name: k,
+			Meta: &GraphNodeResource{
+				Index:    -1,
+				Resource: resource,
+			},
+		}
+
+		result = append(result, noun)
+	}
+
+	g.Nouns = append(g.Nouns, result...)
 }
 
 // copyResource copies the Resource structure to assign to a subgraph.
@@ -1716,7 +1748,7 @@ func (n *GraphNodeResource) copyResource(id string) *Resource {
 	return &resource
 }
 
-func (n *GraphNodeResource) filterNouns(
+func (n *GraphNodeResource) finalizeNouns(
 	g *depgraph.Graph, destroy bool) []*depgraph.Noun {
 	result := make([]*depgraph.Noun, 0, len(g.Nouns))
 	for _, n := range g.Nouns {
@@ -1737,6 +1769,15 @@ func (n *GraphNodeResource) filterNouns(
 
 		// If we are destroying, append it only if we care about destroys
 		if rn.Resource.Diff.Destroy {
+			if destroy {
+				result = append(result, n)
+			}
+
+			continue
+		}
+
+		// If this is an oprhan, we only care about it if we're destroying.
+		if rn.Resource.Flags&FlagOrphan != 0 {
 			if destroy {
 				result = append(result, n)
 			}
