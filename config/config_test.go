@@ -9,6 +9,36 @@ import (
 // This is the directory where our test fixtures are.
 const fixtureDir = "./test-fixtures"
 
+func TestConfigCount(t *testing.T) {
+	c := testConfig(t, "count-int")
+	actual, err := c.Resources[0].Count()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if actual != 5 {
+		t.Fatalf("bad: %#v", actual)
+	}
+}
+
+func TestConfigCount_string(t *testing.T) {
+	c := testConfig(t, "count-string")
+	actual, err := c.Resources[0].Count()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if actual != 5 {
+		t.Fatalf("bad: %#v", actual)
+	}
+}
+
+func TestConfigCount_var(t *testing.T) {
+	c := testConfig(t, "count-var")
+	_, err := c.Resources[0].Count()
+	if err == nil {
+		t.Fatalf("should error")
+	}
+}
+
 func TestConfigValidate(t *testing.T) {
 	c := testConfig(t, "validate-good")
 	if err := c.Validate(); err != nil {

@@ -4,6 +4,7 @@ package config
 
 import (
 	"fmt"
+	"strconv"
 	"strings"
 
 	"github.com/hashicorp/terraform/flatmap"
@@ -56,7 +57,7 @@ type ProviderConfig struct {
 type Resource struct {
 	Name         string
 	Type         string
-	Count        *RawConfig
+	RawCount     *RawConfig
 	RawConfig    *RawConfig
 	Provisioners []*Provisioner
 	DependsOn    []string
@@ -118,6 +119,16 @@ func ProviderConfigName(t string, pcs []*ProviderConfig) string {
 // A unique identifier for this module.
 func (r *Module) Id() string {
 	return fmt.Sprintf("%s", r.Name)
+}
+
+// Count returns the count of this resource.
+func (r *Resource) Count() (int, error) {
+	v, err := strconv.ParseInt(r.RawCount.Value().(string), 0, 0)
+	if err != nil {
+		return 0, err
+	}
+
+	return int(v), nil
 }
 
 // A unique identifier for this resource.
@@ -308,7 +319,7 @@ func (c *Config) InterpolatedVariables() map[string][]InterpolatedVariable {
 
 	for _, rc := range c.Resources {
 		source := fmt.Sprintf("resource '%s'", rc.Id())
-		for _, v := range rc.Count.Variables {
+		for _, v := range rc.RawCount.Variables {
 			result[source] = append(result[source], v)
 		}
 		for _, v := range rc.RawConfig.Variables {
@@ -384,8 +395,8 @@ func (r *Resource) mergerMerge(m merger) merger {
 	result.Type = r2.Type
 	result.RawConfig = result.RawConfig.merge(r2.RawConfig)
 
-	if r2.Count.Value() != "1" {
-		result.Count = r2.Count
+	if r2.RawCount.Value() != "1" {
+		result.RawCount = r2.RawCount
 	}
 
 	if len(r2.Provisioners) > 0 {

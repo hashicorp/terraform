@@ -198,9 +198,10 @@ func (m *ModuleState) Orphans(c *config.Config) []string {
 	for _, r := range c.Resources {
 		delete(keys, r.Id())
 
-		// Mark all the counts as not orphans.
-		for i := 0; i < r.Count; i++ {
-			delete(keys, fmt.Sprintf("%s.%d", r.Id(), i))
+		for k, _ := range keys {
+			if strings.HasPrefix(k, r.Id()+".") {
+				delete(keys, k)
+			}
 		}
 	}
 

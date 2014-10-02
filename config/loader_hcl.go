@@ -482,7 +482,7 @@ func loadResourcesHcl(os *hclobj.Object) ([]*Resource, error) {
 			result = append(result, &Resource{
 				Name:         k,
 				Type:         t.Key,
-				Count:        countConfig,
+				RawCount:     countConfig,
 				RawConfig:    rawConfig,
 				Provisioners: provisioners,
 				DependsOn:    dependsOn,

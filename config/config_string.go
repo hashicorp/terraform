@@ -193,7 +193,7 @@ func resourcesStr(rs []*Resource) string {
 			"%s[%s] (x%s)\n",
 			r.Type,
 			r.Name,
-			r.Count.Value())
+			r.RawCount.Value())
 
 		ks := make([]string, 0, len(r.RawConfig.Raw))
 		for k, _ := range r.RawConfig.Raw {
