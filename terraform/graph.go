@@ -603,11 +603,13 @@ func graphAddDiff(g *depgraph.Graph, d *ModuleDiff) error {
 
 				// Add a depedency from the root, since the create node
 				// does not depend on us
-				g.Root.Deps = append(g.Root.Deps, &depgraph.Dependency{
-					Name:   newN.Name,
-					Source: g.Root,
-					Target: newN,
-				})
+				if g.Root != nil {
+					g.Root.Deps = append(g.Root.Deps, &depgraph.Dependency{
+						Name:   newN.Name,
+						Source: g.Root,
+						Target: newN,
+					})
+				}
 
 				// Set the ReplacePrimary flag on the new instance so that
 				// it will become the new primary, and Diposed flag on the
@@ -1590,9 +1592,18 @@ func (p *graphSharedProvider) MergeConfig(
 
 // Expand will expand this node into a subgraph if Expand is set.
 func (n *GraphNodeResource) Expand() ([]*depgraph.Noun, error) {
-	count := 1
+	// Expand the count out, which should be interpolated at this point
+	count, err := n.Config.Count()
+	if err != nil {
+		return nil, err
+	}
+	log.Printf("[DEBUG] %s: expanding to count = %d", n.Resource.Id, count)
 
+	// TODO: can we DRY this up?
 	g := new(depgraph.Graph)
+	g.Meta = &GraphMeta{
+		ModulePath: n.Resource.Info.ModulePath,
+	}
 
 	// Determine the nodes to create. If we're just looking for the
 	// nodes to create, return that.

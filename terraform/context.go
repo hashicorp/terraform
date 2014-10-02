@@ -1135,6 +1135,11 @@ func (c *walkContext) genericWalkFn(cb genericWalkFunc) depgraph.WalkFunc {
 
 		// If we're expanding, then expand the nodes, and then rewalk the graph
 		if rn.ExpandMode > ResourceExpandNone {
+			// Interpolate the count
+			rc := NewResourceConfig(rn.Config.RawCount)
+			rc.interpolate(c)
+
+			// Expand the node to the actual resources
 			ns, err := rn.Expand()
 			if err != nil {
 				return err
@@ -1148,14 +1153,14 @@ func (c *walkContext) genericWalkFn(cb genericWalkFunc) depgraph.WalkFunc {
 			for _, n := range ns {
 				wg.Add(1)
 
-				go func() {
+				go func(n *depgraph.Noun) {
 					defer wg.Done()
 					if err := walkFn(n); err != nil {
 						l.Lock()
 						defer l.Unlock()
 						errs = append(errs, err)
 					}
-				}()
+				}(n)
 			}
 
 			// Wait for the subgraph
@@ -1515,13 +1520,22 @@ func (c *walkContext) computeResourceMultiVariable(
 	// TODO: Not use only root module
 	module := c.Context.state.RootModule()
 
+	// TODO: handle computed here
+	count, err := cr.Count()
+	if err != nil {
+		return "", fmt.Errorf(
+			"Error reading %s count: %s",
+			v.ResourceId(),
+			err)
+	}
+
 	var values []string
-	for i := 0; i < cr.Count; i++ {
+	for i := 0; i < count; i++ {
 		id := fmt.Sprintf("%s.%d", v.ResourceId(), i)
 
 		// If we're dealing with only a single resource, then the
 		// ID doesn't have a trailing index.
-		if cr.Count == 1 {
+		if count == 1 {
 			id = v.ResourceId()
 		}
 
