@@ -956,7 +956,8 @@ func (c *walkContext) validateWalkFn() depgraph.WalkFunc {
 		meta.Children = make(map[string]*walkValidateMeta)
 	}
 
-	return func(n *depgraph.Noun) error {
+	var walkFn depgraph.WalkFunc
+	walkFn = func(n *depgraph.Noun) error {
 		// If it is the root node, ignore
 		if n.Name == GraphRootNode {
 			return nil
@@ -986,6 +987,11 @@ func (c *walkContext) validateWalkFn() depgraph.WalkFunc {
 		case *GraphNodeResource:
 			if rn.Resource == nil {
 				panic("resource should never be nil")
+			}
+
+			// If we're expanding, then expand the nodes, and then rewalk the graph
+			if rn.ExpandMode > ResourceExpandNone {
+				return c.genericWalkResource(rn, walkFn)
 			}
 
 			// If it doesn't have a provider, that is a different problem
@@ -1060,6 +1066,8 @@ func (c *walkContext) validateWalkFn() depgraph.WalkFunc {
 
 		return nil
 	}
+
+	return walkFn
 }
 
 func (c *walkContext) genericWalkFn(cb genericWalkFunc) depgraph.WalkFunc {
