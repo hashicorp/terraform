@@ -15,8 +15,8 @@ import (
 )
 
 const (
-	// textStateVersion is the current version for our state file
-	textStateVersion = 1
+	// StateVersion is the current version for our state file
+	StateVersion = 1
 )
 
 // rootModulePath is the path of the root module
@@ -111,7 +111,7 @@ func (s *State) RootModule() *ModuleState {
 
 func (s *State) init() {
 	if s.Version == 0 {
-		s.Version = textStateVersion
+		s.Version = StateVersion
 	}
 	if len(s.Modules) == 0 {
 		root := &ModuleState{
@@ -692,7 +692,7 @@ func ReadState(src io.Reader) (*State, error) {
 
 	// Check the version, this to ensure we don't read a future
 	// version that we don't understand
-	if state.Version > textStateVersion {
+	if state.Version > StateVersion {
 		return nil, fmt.Errorf("State version %d not supported, please update.",
 			state.Version)
 	}
@@ -709,7 +709,7 @@ func WriteState(d *State, dst io.Writer) error {
 	d.sort()
 
 	// Ensure the version is set
-	d.Version = textStateVersion
+	d.Version = StateVersion
 
 	// Always increment the serial number
 	d.Serial++
