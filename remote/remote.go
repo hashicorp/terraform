@@ -38,6 +38,9 @@ func EnsureDirectory() error {
 	}
 	path := filepath.Join(cwd, LocalDirectory)
 	if err := os.Mkdir(path, 0770); err != nil {
+		if os.IsExist(err) {
+			return nil
+		}
 		return fmt.Errorf("Failed to make directory '%s': %v", path, err)
 	}
 	return nil
