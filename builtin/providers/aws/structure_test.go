@@ -70,9 +70,9 @@ func Test_expandIPPerms(t *testing.T) {
 			},
 		},
 		ec2.IPPerm{
-			Protocol:  "icmp",
-			FromPort:  1,
-			ToPort:    -1,
+			Protocol: "icmp",
+			FromPort: 1,
+			ToPort:   -1,
 			SourceGroups: []ec2.UserSecurityGroup{
 				ec2.UserSecurityGroup{
 					Id: "foo",

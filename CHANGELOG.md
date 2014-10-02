@@ -28,8 +28,9 @@ IMPROVEMENTS:
   * providers/aws: New resource `db_subnet_group`. [GH-295]
   * providers/aws: Add `map_public_ip_on_launch` for subnets. [GH-285]
   * providers/aws: Add `iam_instance_profile` for instances. [GH-319]
-  * providers/aws: add `internal` option for ELBs. [GH-303]
-  * providers/aws: add `self` option for security groups for ingress
+  * providers/aws: Add `internal` option for ELBs. [GH-303]
+  * providers/aws: Add `ssl_certificate_id` for ELB listeners. [GH-350]
+  * providers/aws: Add `self` option for security groups for ingress
       rules with self as source. [GH-303]
   * providers/google: Support `target_tags` for firewalls. [GH-324]
 
