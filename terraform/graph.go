@@ -97,16 +97,6 @@ type GraphNodeResource struct {
 	ExpandMode ResourceExpandMode
 }
 
-// GraphNodeResourceMeta is a node type in the graph that represents the
-// metadata for a resource. There will be one meta node for every resource
-// in the configuration.
-type GraphNodeResourceMeta struct {
-	ID    string
-	Name  string
-	Type  string
-	Count int
-}
-
 // GraphNodeResourceProvider is a node type in the graph that represents
 // the configuration for a resource provider.
 type GraphNodeResourceProvider struct {
@@ -334,13 +324,6 @@ func graphEncodeDependencies(g *depgraph.Graph) {
 					continue
 				}
 				inject = append(inject, target.Resource.Id)
-
-			case *GraphNodeResourceMeta:
-				// Inject each sub-resource as a depedency
-				for i := 0; i < target.Count; i++ {
-					id := fmt.Sprintf("%s.%d", target.ID, i)
-					inject = append(inject, id)
-				}
 
 			case *GraphNodeResourceProvider:
 				// Do nothing
@@ -702,33 +685,6 @@ func graphAddDiff(g *depgraph.Graph, d *ModuleDiff) error {
 				num--
 				i--
 
-			case *GraphNodeResourceMeta:
-				// Check if any of the resources part of the meta node
-				// are being destroyed, because we must be destroyed first.
-				for i := 0; i < target.Count; i++ {
-					id := fmt.Sprintf("%s.%d", target.ID, i)
-					for _, n2 := range nlist {
-						rn2 := n2.Meta.(*GraphNodeResource)
-						if id == rn2.Resource.Id {
-							newDep := &depgraph.Dependency{
-								Name:   n.Name,
-								Source: n2,
-								Target: n,
-							}
-							injected[newDep] = struct{}{}
-							n2.Deps = append(n2.Deps, newDep)
-							break
-						}
-					}
-				}
-
-				// Drop the dependency, since there is
-				// nothing that needs to be done for a meta
-				// resource on destroy.
-				deps[i], deps[num-1] = deps[num-1], nil
-				num--
-				i--
-
 			case *GraphNodeModule:
 				// We invert any module dependencies so we're destroyed
 				// first, before any modules are applied.
@@ -1049,8 +1005,6 @@ func graphAddRoot(g *depgraph.Graph) {
 			if m.Index != -1 {
 				continue
 			}
-		case *GraphNodeResourceMeta:
-			// Always in the graph
 		case *GraphNodeResourceProvider:
 			// ResourceProviders don't need to be in the root deps because
 			// they're always pointed to by some resource.

@@ -1104,9 +1104,6 @@ func (c *walkContext) genericWalkFn(cb genericWalkFunc) depgraph.WalkFunc {
 			return wc.Walk()
 		case *GraphNodeResource:
 			// Continue, we care about this the most
-		case *GraphNodeResourceMeta:
-			// Skip it
-			return nil
 		case *GraphNodeResourceProvider:
 			sharedProvider := m.Provider
 

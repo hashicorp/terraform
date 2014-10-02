@@ -7,7 +7,6 @@ import (
 	"strings"
 
 	"github.com/hashicorp/terraform/depgraph"
-	"github.com/hashicorp/terraform/digraph"
 )
 
 // GraphDotOpts are options for turning a graph into dot format.
@@ -221,6 +220,7 @@ func graphDotAddResources(
 	}
 
 	// Handle the meta resources
+	/*
 	edgeBuf.Reset()
 	for _, n := range g.Nouns {
 		_, ok := n.Meta.(*GraphNodeResourceMeta)
@@ -264,6 +264,7 @@ func graphDotAddResources(
 		buf.WriteString(edgeBuf.String())
 		buf.WriteString("\n")
 	}
+	*/
 }
 
 func graphDotAddResourceProviders(
