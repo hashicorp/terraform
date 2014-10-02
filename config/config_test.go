@@ -79,6 +79,13 @@ func TestConfigValidate_unknownVar(t *testing.T) {
 	}
 }
 
+func TestConfigValidate_unknownVarCount(t *testing.T) {
+	c := testConfig(t, "validate-unknownvar-count")
+	if err := c.Validate(); err == nil {
+		t.Fatal("should not be valid")
+	}
+}
+
 func TestConfigValidate_varDefault(t *testing.T) {
 	c := testConfig(t, "validate-var-default")
 	if err := c.Validate(); err != nil {
