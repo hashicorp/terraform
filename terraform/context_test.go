@@ -2428,6 +2428,23 @@ func TestContextPlan_count(t *testing.T) {
 	}
 }
 
+func TestContextPlan_countComputed(t *testing.T) {
+	m := testModule(t, "plan-count-computed")
+	p := testProvider("aws")
+	p.DiffFn = testDiffFn
+	ctx := testContext(t, &ContextOpts{
+		Module: m,
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+	})
+
+	_, err := ctx.Plan(nil)
+	if err == nil {
+		t.Fatal("should error")
+	}
+}
+
 func TestContextPlan_countVar(t *testing.T) {
 	m := testModule(t, "plan-count-var")
 	p := testProvider("aws")
