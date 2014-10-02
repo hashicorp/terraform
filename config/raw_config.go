@@ -153,10 +153,14 @@ func (r *RawConfig) UnknownKeys() []string {
 
 // See GobEncode
 func (r *RawConfig) GobDecode(b []byte) error {
-	err := gob.NewDecoder(bytes.NewReader(b)).Decode(&r.Raw)
+	var data gobRawConfig
+	err := gob.NewDecoder(bytes.NewReader(b)).Decode(&data)
 	if err != nil {
 		return err
 	}
+
+	r.Key = data.Key
+	r.Raw = data.Raw
 
 	return r.init()
 }
@@ -166,10 +170,20 @@ func (r *RawConfig) GobDecode(b []byte) error {
 // tree of interpolated variables is recomputed on decode, since it is
 // referentially transparent.
 func (r *RawConfig) GobEncode() ([]byte, error) {
+	data := gobRawConfig{
+		Key: r.Key,
+		Raw: r.Raw,
+	}
+
 	var buf bytes.Buffer
-	if err := gob.NewEncoder(&buf).Encode(r.Raw); err != nil {
+	if err := gob.NewEncoder(&buf).Encode(data); err != nil {
 		return nil, err
 	}
 
 	return buf.Bytes(), nil
+}
+
+type gobRawConfig struct {
+	Key string
+	Raw map[string]interface{}
 }
