@@ -56,7 +56,7 @@ type ProviderConfig struct {
 type Resource struct {
 	Name         string
 	Type         string
-	Count        int
+	Count        *RawConfig
 	RawConfig    *RawConfig
 	Provisioners []*Provisioner
 	DependsOn    []string
@@ -244,12 +244,6 @@ func (c *Config) Validate() error {
 
 	// Validate resources
 	for n, r := range resources {
-		if r.Count < 1 {
-			errs = append(errs, fmt.Errorf(
-				"%s: count must be greater than or equal to 1",
-				n))
-		}
-
 		for _, d := range r.DependsOn {
 			if _, ok := resources[d]; !ok {
 				errs = append(errs, fmt.Errorf(
@@ -267,25 +261,12 @@ func (c *Config) Validate() error {
 			}
 
 			id := fmt.Sprintf("%s.%s", rv.Type, rv.Name)
-			r, ok := resources[id]
-			if !ok {
+			if _, ok := resources[id]; !ok {
 				errs = append(errs, fmt.Errorf(
 					"%s: unknown resource '%s' referenced in variable %s",
 					source,
 					id,
 					rv.FullKey()))
-				continue
-			}
-
-			// If it is a multi reference and resource has a single
-			// count, it is an error.
-			if r.Count > 1 && !rv.Multi {
-				errs = append(errs, fmt.Errorf(
-					"%s: variable '%s' must specify index for multi-count "+
-						"resource %s",
-					source,
-					rv.FullKey(),
-					id))
 				continue
 			}
 		}
@@ -327,6 +308,9 @@ func (c *Config) InterpolatedVariables() map[string][]InterpolatedVariable {
 
 	for _, rc := range c.Resources {
 		source := fmt.Sprintf("resource '%s'", rc.Id())
+		for _, v := range rc.Count.Variables {
+			result[source] = append(result[source], v)
+		}
 		for _, v := range rc.RawConfig.Variables {
 			result[source] = append(result[source], v)
 		}
@@ -400,7 +384,7 @@ func (r *Resource) mergerMerge(m merger) merger {
 	result.Type = r2.Type
 	result.RawConfig = result.RawConfig.merge(r2.RawConfig)
 
-	if r2.Count > 0 {
+	if r2.Count.Value() != "1" {
 		result.Count = r2.Count
 	}
 

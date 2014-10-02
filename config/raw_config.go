@@ -24,6 +24,7 @@ const UnknownVariableValue = "74D93920-ED26-11E3-AC10-0800200C9A66"
 // RawConfig supports a query-like interface to request
 // information from deep within the structure.
 type RawConfig struct {
+	Key            string
 	Raw            map[string]interface{}
 	Interpolations []Interpolation
 	Variables      map[string]InterpolatedVariable
@@ -41,6 +42,18 @@ func NewRawConfig(raw map[string]interface{}) (*RawConfig, error) {
 	}
 
 	return result, nil
+}
+
+// Value returns the value of the configuration if this configuration
+// has a Key set. If this does not have a Key set, nil will be returned.
+func (r *RawConfig) Value() interface{} {
+	if c := r.Config(); c != nil {
+		if v, ok := c[r.Key]; ok {
+			return v
+		}
+	}
+
+	return r.Raw[r.Key]
 }
 
 // Config returns the entire configuration with the variables
