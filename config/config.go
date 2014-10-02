@@ -255,6 +255,26 @@ func (c *Config) Validate() error {
 
 	// Validate resources
 	for n, r := range resources {
+		// Verify count variables
+		for _, v := range r.RawCount.Variables {
+			switch v.(type) {
+			case *ModuleVariable:
+				errs = append(errs, fmt.Errorf(
+					"%s: resource count can't reference module variable: %s",
+					n,
+					v.FullKey()))
+			case *ResourceVariable:
+				errs = append(errs, fmt.Errorf(
+					"%s: resource count can't reference resource variable: %s",
+					n,
+					v.FullKey()))
+			case *UserVariable:
+				// Good
+			default:
+				panic("Unknown type in count var: " + n)
+			}
+		}
+
 		for _, d := range r.DependsOn {
 			if _, ok := resources[d]; !ok {
 				errs = append(errs, fmt.Errorf(

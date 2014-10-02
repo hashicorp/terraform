@@ -53,6 +53,27 @@ func TestConfigValidate_badDependsOn(t *testing.T) {
 	}
 }
 
+func TestConfigValidate_countModuleVar(t *testing.T) {
+	c := testConfig(t, "validate-count-module-var")
+	if err := c.Validate(); err == nil {
+		t.Fatal("should not be valid")
+	}
+}
+
+func TestConfigValidate_countResourceVar(t *testing.T) {
+	c := testConfig(t, "validate-count-resource-var")
+	if err := c.Validate(); err == nil {
+		t.Fatal("should not be valid")
+	}
+}
+
+func TestConfigValidate_countUserVar(t *testing.T) {
+	c := testConfig(t, "validate-count-user-var")
+	if err := c.Validate(); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+}
+
 func TestConfigValidate_dupModule(t *testing.T) {
 	c := testConfig(t, "validate-dup-module")
 	if err := c.Validate(); err == nil {
