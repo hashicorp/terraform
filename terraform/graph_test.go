@@ -43,6 +43,21 @@ func TestGraph_count(t *testing.T) {
 	}
 }
 
+func TestGraph_varResource(t *testing.T) {
+	m := testModule(t, "graph-count-var-resource")
+
+	g, err := Graph(&GraphOpts{Module: m})
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	actual := strings.TrimSpace(g.String())
+	expected := strings.TrimSpace(testTerraformGraphCountVarResourceStr)
+	if actual != expected {
+		t.Fatalf("bad:\n\n%s", actual)
+	}
+}
+
 func TestGraph_cycle(t *testing.T) {
 	m := testModule(t, "graph-cycle")
 
@@ -960,6 +975,19 @@ aws_instance.web
 aws_load_balancer.weblb
   aws_load_balancer.weblb -> aws_instance.web
 root
+  root -> aws_instance.web
+  root -> aws_load_balancer.weblb
+`
+
+const testTerraformGraphCountVarResourceStr = `
+root: root
+aws_instance.foo
+aws_instance.web
+  aws_instance.web -> aws_instance.foo
+aws_load_balancer.weblb
+  aws_load_balancer.weblb -> aws_instance.web
+root
+  root -> aws_instance.foo
   root -> aws_instance.web
   root -> aws_load_balancer.weblb
 `

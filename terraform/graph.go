@@ -1046,8 +1046,12 @@ func graphAddVariableDeps(g *depgraph.Graph) {
 
 		case *GraphNodeResource:
 			if m.Config != nil {
+				// Handle the count variables
+				vars := m.Config.RawCount.Variables
+				nounAddVariableDeps(g, n, vars, false)
+
 				// Handle the resource variables
-				vars := m.Config.RawConfig.Variables
+				vars = m.Config.RawConfig.Variables
 				nounAddVariableDeps(g, n, vars, false)
 			}
 
