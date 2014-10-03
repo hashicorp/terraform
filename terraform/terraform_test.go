@@ -477,6 +477,18 @@ STATE:
 <no state>
 `
 
+const testTerraformPlanCountZeroStr = `
+DIFF:
+
+CREATE: aws_instance.bar
+  foo:  "" => ""
+  type: "" => "aws_instance"
+
+STATE:
+
+<no state>
+`
+
 const testTerraformPlanCountVarStr = `
 DIFF:
 

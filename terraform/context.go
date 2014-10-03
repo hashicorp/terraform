@@ -1559,13 +1559,17 @@ func (c *walkContext) computeResourceMultiVariable(
 	// TODO: Not use only root module
 	module := c.Context.state.RootModule()
 
-	// TODO: handle computed here
 	count, err := cr.Count()
 	if err != nil {
 		return "", fmt.Errorf(
 			"Error reading %s count: %s",
 			v.ResourceId(),
 			err)
+	}
+
+	// If we have no count, return empty
+	if count == 0 {
+		return "", nil
 	}
 
 	var values []string
