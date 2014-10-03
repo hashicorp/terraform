@@ -95,6 +95,13 @@ func TestConfigValidate_countUserVar(t *testing.T) {
 	}
 }
 
+func TestConfigValidate_countVar(t *testing.T) {
+	c := testConfig(t, "validate-count-var")
+	if err := c.Validate(); err != nil {
+		t.Fatal("err: %s", err)
+	}
+}
+
 func TestConfigValidate_countVarInvalid(t *testing.T) {
 	c := testConfig(t, "validate-count-var-invalid")
 	if err := c.Validate(); err == nil {
