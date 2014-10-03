@@ -477,6 +477,33 @@ STATE:
 <no state>
 `
 
+const testTerraformPlanCountIndexStr = `
+DIFF:
+
+CREATE: aws_instance.foo.0
+  foo:  "" => "0"
+  type: "" => "aws_instance"
+CREATE: aws_instance.foo.1
+  foo:  "" => "1"
+  type: "" => "aws_instance"
+
+STATE:
+
+<no state>
+`
+
+const testTerraformPlanCountIndexZeroStr = `
+DIFF:
+
+CREATE: aws_instance.foo
+  foo:  "" => "0"
+  type: "" => "aws_instance"
+
+STATE:
+
+<no state>
+`
+
 const testTerraformPlanCountOneIndexStr = `
 DIFF:
 

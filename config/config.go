@@ -199,6 +199,23 @@ func (c *Config) Validate() error {
 		}
 	}
 
+	// Check that all count variables are valid.
+	for source, vs := range vars {
+		for _, v := range vs {
+			cv, ok := v.(*CountVariable)
+			if !ok {
+				continue
+			}
+
+			if cv.Type == CountValueInvalid {
+				errs = append(errs, fmt.Errorf(
+					"%s: invalid count variable: %s",
+					source,
+					cv.FullKey()))
+			}
+		}
+	}
+
 	// Check that all references to modules are valid
 	modules := make(map[string]*Module)
 	dupped := make(map[string]struct{})
@@ -258,6 +275,11 @@ func (c *Config) Validate() error {
 		// Verify count variables
 		for _, v := range r.RawCount.Variables {
 			switch v.(type) {
+			case *CountVariable:
+				errs = append(errs, fmt.Errorf(
+					"%s: resource count can't reference count variable: %s",
+					n,
+					v.FullKey()))
 			case *ModuleVariable:
 				errs = append(errs, fmt.Errorf(
 					"%s: resource count can't reference module variable: %s",

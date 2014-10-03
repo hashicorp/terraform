@@ -29,6 +29,22 @@ func TestNewInterpolatedVariable(t *testing.T) {
 			},
 			false,
 		},
+		{
+			"count.index",
+			&CountVariable{
+				Type: CountValueIndex,
+				key:  "count.index",
+			},
+			false,
+		},
+		{
+			"count.nope",
+			&CountVariable{
+				Type: CountValueInvalid,
+				key:  "count.nope",
+			},
+			false,
+		},
 	}
 
 	for i, tc := range cases {

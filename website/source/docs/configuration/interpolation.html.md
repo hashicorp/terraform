@@ -14,7 +14,9 @@ into strings. These interpolations are wrapped in `${}`, such as
 The interpolation syntax is powerful and allows you to reference
 variables, attributes of resources, call functions, etc.
 
-To reference variables, use the `var.` prefix followed by the
+## Available Variables
+
+**To reference user variables**, use the `var.` prefix followed by the
 variable name. For example, `${var.foo}` will interpolate the
 `foo` variable value. If the variable is a mapping, then you
 can reference static keys in the map with the syntax
@@ -22,17 +24,27 @@ can reference static keys in the map with the syntax
 get the value of the `us-east-1` key within the `amis` variable
 that is a mapping.
 
-To reference attributes of other resources, the syntax is
+**To reference attributes of other resources**, the syntax is
 `TYPE.NAME.ATTRIBUTE`. For example, `${aws_instance.web.id}`
 will interpolate the ID attribute from the "aws\_instance"
 resource named "web".
 
-Finally, Terraform ships with built-in functions. Functions
-are called with the syntax `name(arg, arg2, ...)`. For example,
-to read a file: `${file("path.txt")}`. The built-in functions
-are documented below.
+**To reference outputs from a module**, the syntax is
+`MODULE.NAME.OUTPUT`. For example `${module.foo.bar}` will
+interpolate the "bar" output from the "foo"
+[module](/docs/modules/index.html).
+
+**To reference count information**, the syntax is `count.FIELD`.
+For example, `${count.index}` will interpolate the current index
+in a multi-count resource. For more information on count, see the
+resource configuration page.
 
 ## Built-in Functions
+
+Terraform ships with built-in functions. Functions are called with
+the syntax `name(arg, arg2, ...)`. For example,
+to read a file: `${file("path.txt")}`. The built-in functions
+are documented below.
 
 The supported built-in functions are:
 

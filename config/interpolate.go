@@ -52,6 +52,21 @@ type VariableInterpolation struct {
 	Variable InterpolatedVariable
 }
 
+// CountVariable is a variable for referencing information about
+// the count.
+type CountVariable struct {
+	Type CountValueType
+	key  string
+}
+
+// CountValueType is the type of the count variable that is referenced.
+type CountValueType byte
+
+const (
+	CountValueInvalid CountValueType = iota
+	CountValueIndex
+)
+
 // A ModuleVariable is a variable that is referencing the output
 // of a module, such as "${module.foo.bar}"
 type ModuleVariable struct {
@@ -84,7 +99,9 @@ type UserVariable struct {
 }
 
 func NewInterpolatedVariable(v string) (InterpolatedVariable, error) {
-	if strings.HasPrefix(v, "var.") {
+	if strings.HasPrefix(v, "count.") {
+		return NewCountVariable(v)
+	} else if strings.HasPrefix(v, "var.") {
 		return NewUserVariable(v)
 	} else if strings.HasPrefix(v, "module.") {
 		return NewModuleVariable(v)
@@ -150,6 +167,24 @@ func (i *VariableInterpolation) GoString() string {
 
 func (i *VariableInterpolation) Variables() map[string]InterpolatedVariable {
 	return map[string]InterpolatedVariable{i.Variable.FullKey(): i.Variable}
+}
+
+func NewCountVariable(key string) (*CountVariable, error) {
+	var fieldType CountValueType
+	parts := strings.SplitN(key, ".", 2)
+	switch parts[1] {
+	case "index":
+		fieldType = CountValueIndex
+	}
+
+	return &CountVariable{
+		Type: fieldType,
+		key:  key,
+	}, nil
+}
+
+func (c *CountVariable) FullKey() string {
+	return c.key
 }
 
 func NewModuleVariable(key string) (*ModuleVariable, error) {

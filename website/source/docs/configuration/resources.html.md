@@ -42,7 +42,9 @@ resource type in the
 There are **meta-parameters** available to all resources:
 
   * `count` (int) - The number of identical resources to create.
-      This doesn't apply to all resources.
+      This doesn't apply to all resources. You can use the `${count.index}`
+      [interpolation](/docs/configuration/interpolation.html) to reference
+      the current count index in your resource.
 
   * `depends_on` (list of strings) - Explicit dependencies that this
       resource has. These dependencies will be created before this
