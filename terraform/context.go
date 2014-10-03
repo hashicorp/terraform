@@ -1498,10 +1498,15 @@ func (c *walkContext) computeResourceVariable(
 
 	r, ok := module.Resources[id]
 	if !ok {
-		return "", fmt.Errorf(
-			"Resource '%s' not found for variable '%s'",
-			id,
-			v.FullKey())
+		if v.Multi && v.Index == 0 {
+			r, ok = module.Resources[v.ResourceId()]
+		}
+		if !ok {
+			return "", fmt.Errorf(
+				"Resource '%s' not found for variable '%s'",
+				id,
+				v.FullKey())
+		}
 	}
 
 	if r.Primary == nil {

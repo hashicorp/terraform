@@ -2513,6 +2513,29 @@ func TestContextPlan_countZero(t *testing.T) {
 	}
 }
 
+func TestContextPlan_countOneIndex(t *testing.T) {
+	m := testModule(t, "plan-count-one-index")
+	p := testProvider("aws")
+	p.DiffFn = testDiffFn
+	ctx := testContext(t, &ContextOpts{
+		Module: m,
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+	})
+
+	plan, err := ctx.Plan(nil)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	actual := strings.TrimSpace(plan.String())
+	expected := strings.TrimSpace(testTerraformPlanCountOneIndexStr)
+	if actual != expected {
+		t.Fatalf("bad:\n%s", actual)
+	}
+}
+
 func TestContextPlan_countDecreaseToOne(t *testing.T) {
 	m := testModule(t, "plan-count-dec")
 	p := testProvider("aws")
