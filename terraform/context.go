@@ -161,6 +161,11 @@ func (c *Context) Input() error {
 			panic(fmt.Sprintf("Unknown variable type: %s", v.Type()))
 		}
 
+		var defaultString string
+		if v.Default != nil {
+			defaultString = v.Default.(string)
+		}
+
 		// Ask the user for a value for this variable
 		var value string
 		for {
@@ -168,6 +173,7 @@ func (c *Context) Input() error {
 			value, err = c.uiInput.Input(&InputOpts{
 				Id:          fmt.Sprintf("var.%s", n),
 				Query:       fmt.Sprintf("var.%s", n),
+				Default:     defaultString,
 				Description: v.Description,
 			})
 			if err != nil {
