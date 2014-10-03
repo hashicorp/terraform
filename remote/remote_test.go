@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"crypto/md5"
 	"encoding/base64"
+	"encoding/json"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
@@ -69,7 +70,37 @@ func TestValidConfig(t *testing.T) {
 }
 
 func TestValidateConfig(t *testing.T) {
-	// TODO:
+	defer fixDir(testDir(t))
+	remote, srv := testRemote(t, nil)
+	defer srv.Close()
+
+	// No local state, should validate
+	if err := ValidateConfig(remote); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Local state without remote, error!
+	local := terraform.NewState()
+	testWriteLocal(t, local)
+	if err := ValidateConfig(remote); err == nil {
+		t.Fatalf("local missing remote")
+	}
+
+	// Local with matching remote, should be fine
+	local.Remote = remote
+	testWriteLocal(t, local)
+	if err := ValidateConfig(remote); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Local with conflicting remote, not fine
+	local.Remote = &terraform.RemoteState{
+		Name: "whatchutalkingabout",
+	}
+	testWriteLocal(t, local)
+	if err := ValidateConfig(remote); err == nil {
+		t.Fatalf("conflicting remote")
+	}
 }
 
 func TestRefreshState_Init(t *testing.T) {
@@ -95,20 +126,119 @@ func TestRefreshState_Init(t *testing.T) {
 	}
 }
 
+func TestRefreshState_NewVersion(t *testing.T) {
+	defer fixDir(testDir(t))
+
+	rs := terraform.NewState()
+	rs.Serial = 100
+	rs.Version = terraform.StateVersion + 1
+	remote, srv := testRemote(t, rs)
+	defer srv.Close()
+
+	local := terraform.NewState()
+	local.Serial = 99
+	testWriteLocal(t, local)
+
+	_, err := RefreshState(remote)
+	if err == nil {
+		t.Fatalf("New version should fail!")
+	}
+}
+
 func TestRefreshState_Noop(t *testing.T) {
-	// TODO
+	defer fixDir(testDir(t))
+
+	rs := terraform.NewState()
+	rs.Serial = 100
+	remote, srv := testRemote(t, rs)
+	defer srv.Close()
+
+	local := terraform.NewState()
+	local.Serial = 100
+	testWriteLocal(t, local)
+
+	sc, err := RefreshState(remote)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	if sc != StateChangeNoop {
+		t.Fatalf("bad: %s", sc)
+	}
 }
 
 func TestRefreshState_UpdateLocal(t *testing.T) {
-	// TODO
+	defer fixDir(testDir(t))
+
+	rs := terraform.NewState()
+	rs.Serial = 100
+	remote, srv := testRemote(t, rs)
+	defer srv.Close()
+
+	local := terraform.NewState()
+	local.Serial = 99
+	testWriteLocal(t, local)
+
+	sc, err := RefreshState(remote)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	if sc != StateChangeUpdateLocal {
+		t.Fatalf("bad: %s", sc)
+	}
+
+	// Should update
+	local2 := testReadLocal(t)
+	if local2.Serial != 100 {
+		t.Fatalf("Bad: %#v", local2)
+	}
 }
 
 func TestRefreshState_LocalNewer(t *testing.T) {
-	// TODO
+	defer fixDir(testDir(t))
+
+	rs := terraform.NewState()
+	rs.Serial = 99
+	remote, srv := testRemote(t, rs)
+	defer srv.Close()
+
+	local := terraform.NewState()
+	local.Serial = 100
+	testWriteLocal(t, local)
+
+	sc, err := RefreshState(remote)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	if sc != StateChangeLocalNewer {
+		t.Fatalf("bad: %s", sc)
+	}
 }
 
 func TestRefreshState_Conflict(t *testing.T) {
-	// TODO
+	defer fixDir(testDir(t))
+
+	rs := terraform.NewState()
+	rs.Serial = 50
+	rs.RootModule().Outputs["foo"] = "bar"
+	remote, srv := testRemote(t, rs)
+	defer srv.Close()
+
+	local := terraform.NewState()
+	local.Serial = 50
+	local.RootModule().Outputs["foo"] = "baz"
+	testWriteLocal(t, local)
+
+	sc, err := RefreshState(remote)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	if sc != StateChangeConflict {
+		t.Fatalf("bad: %s", sc)
+	}
 }
 
 func TestBlankState(t *testing.T) {
@@ -183,7 +313,10 @@ func testRemote(t *testing.T, s *terraform.State) (*terraform.RemoteState, *http
 	buf := bytes.NewBuffer(nil)
 
 	if s != nil {
-		terraform.WriteState(s, buf)
+		enc := json.NewEncoder(buf)
+		if err := enc.Encode(s); err != nil {
+			t.Fatalf("err: %v", err)
+		}
 		md5 := md5.Sum(buf.Bytes())
 		b64md5 = base64.StdEncoding.EncodeToString(md5[:16])
 	}
@@ -246,4 +379,21 @@ func testReadLocal(t *testing.T) *terraform.State {
 		t.Fatalf("err: %v", err)
 	}
 	return s
+}
+
+// testWriteLocal is used to write the local state
+func testWriteLocal(t *testing.T, s *terraform.State) {
+	path, err := HiddenStatePath()
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	buf := bytes.NewBuffer(nil)
+	enc := json.NewEncoder(buf)
+	if err := enc.Encode(s); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	err = ioutil.WriteFile(path, buf.Bytes(), 0777)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
 }
