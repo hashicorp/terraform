@@ -190,10 +190,10 @@ func resourcesStr(rs []*Resource) string {
 	for _, i := range order {
 		r := rs[i]
 		result += fmt.Sprintf(
-			"%s[%s] (x%d)\n",
+			"%s[%s] (x%s)\n",
 			r.Type,
 			r.Name,
-			r.Count)
+			r.RawCount.Value())
 
 		ks := make([]string, 0, len(r.RawConfig.Raw))
 		for k, _ := range r.RawConfig.Raw {

@@ -24,6 +24,7 @@ const UnknownVariableValue = "74D93920-ED26-11E3-AC10-0800200C9A66"
 // RawConfig supports a query-like interface to request
 // information from deep within the structure.
 type RawConfig struct {
+	Key            string
 	Raw            map[string]interface{}
 	Interpolations []Interpolation
 	Variables      map[string]InterpolatedVariable
@@ -41,6 +42,18 @@ func NewRawConfig(raw map[string]interface{}) (*RawConfig, error) {
 	}
 
 	return result, nil
+}
+
+// Value returns the value of the configuration if this configuration
+// has a Key set. If this does not have a Key set, nil will be returned.
+func (r *RawConfig) Value() interface{} {
+	if c := r.Config(); c != nil {
+		if v, ok := c[r.Key]; ok {
+			return v
+		}
+	}
+
+	return r.Raw[r.Key]
 }
 
 // Config returns the entire configuration with the variables
@@ -66,24 +79,9 @@ func (r *RawConfig) Config() map[string]interface{} {
 //
 // If a variable key is missing, this will panic.
 func (r *RawConfig) Interpolate(vs map[string]string) error {
-	config, err := copystructure.Copy(r.Raw)
-	if err != nil {
-		return err
-	}
-	r.config = config.(map[string]interface{})
-
-	fn := func(i Interpolation) (string, error) {
+	return r.interpolate(func(i Interpolation) (string, error) {
 		return i.Interpolate(vs)
-	}
-
-	w := &interpolationWalker{F: fn, Replace: true}
-	err = reflectwalk.Walk(r.config, w)
-	if err != nil {
-		return err
-	}
-
-	r.unknownKeys = w.unknownKeys
-	return nil
+	})
 }
 
 func (r *RawConfig) init() error {
@@ -110,6 +108,23 @@ func (r *RawConfig) init() error {
 		return err
 	}
 
+	return nil
+}
+
+func (r *RawConfig) interpolate(fn interpolationWalkerFunc) error {
+	config, err := copystructure.Copy(r.Raw)
+	if err != nil {
+		return err
+	}
+	r.config = config.(map[string]interface{})
+
+	w := &interpolationWalker{F: fn, Replace: true}
+	err = reflectwalk.Walk(r.config, w)
+	if err != nil {
+		return err
+	}
+
+	r.unknownKeys = w.unknownKeys
 	return nil
 }
 
@@ -140,10 +155,14 @@ func (r *RawConfig) UnknownKeys() []string {
 
 // See GobEncode
 func (r *RawConfig) GobDecode(b []byte) error {
-	err := gob.NewDecoder(bytes.NewReader(b)).Decode(&r.Raw)
+	var data gobRawConfig
+	err := gob.NewDecoder(bytes.NewReader(b)).Decode(&data)
 	if err != nil {
 		return err
 	}
+
+	r.Key = data.Key
+	r.Raw = data.Raw
 
 	return r.init()
 }
@@ -153,10 +172,20 @@ func (r *RawConfig) GobDecode(b []byte) error {
 // tree of interpolated variables is recomputed on decode, since it is
 // referentially transparent.
 func (r *RawConfig) GobEncode() ([]byte, error) {
+	data := gobRawConfig{
+		Key: r.Key,
+		Raw: r.Raw,
+	}
+
 	var buf bytes.Buffer
-	if err := gob.NewEncoder(&buf).Encode(r.Raw); err != nil {
+	if err := gob.NewEncoder(&buf).Encode(data); err != nil {
 		return nil, err
 	}
 
 	return buf.Bytes(), nil
+}
+
+type gobRawConfig struct {
+	Key string
+	Raw map[string]interface{}
 }

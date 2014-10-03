@@ -4,6 +4,7 @@ package config
 
 import (
 	"fmt"
+	"strconv"
 	"strings"
 
 	"github.com/hashicorp/terraform/flatmap"
@@ -56,7 +57,7 @@ type ProviderConfig struct {
 type Resource struct {
 	Name         string
 	Type         string
-	Count        int
+	RawCount     *RawConfig
 	RawConfig    *RawConfig
 	Provisioners []*Provisioner
 	DependsOn    []string
@@ -118,6 +119,16 @@ func ProviderConfigName(t string, pcs []*ProviderConfig) string {
 // A unique identifier for this module.
 func (r *Module) Id() string {
 	return fmt.Sprintf("%s", r.Name)
+}
+
+// Count returns the count of this resource.
+func (r *Resource) Count() (int, error) {
+	v, err := strconv.ParseInt(r.RawCount.Value().(string), 0, 0)
+	if err != nil {
+		return 0, err
+	}
+
+	return int(v), nil
 }
 
 // A unique identifier for this resource.
@@ -244,11 +255,37 @@ func (c *Config) Validate() error {
 
 	// Validate resources
 	for n, r := range resources {
-		if r.Count < 1 {
+		// Verify count variables
+		for _, v := range r.RawCount.Variables {
+			switch v.(type) {
+			case *ModuleVariable:
+				errs = append(errs, fmt.Errorf(
+					"%s: resource count can't reference module variable: %s",
+					n,
+					v.FullKey()))
+			case *ResourceVariable:
+				errs = append(errs, fmt.Errorf(
+					"%s: resource count can't reference resource variable: %s",
+					n,
+					v.FullKey()))
+			case *UserVariable:
+				// Good
+			default:
+				panic("Unknown type in count var: " + n)
+			}
+		}
+
+		// Interpolate with a fixed number to verify that its a number
+		r.RawCount.interpolate(func(Interpolation) (string, error) {
+			return "5", nil
+		})
+		_, err := strconv.ParseInt(r.RawCount.Value().(string), 0, 0)
+		if err != nil {
 			errs = append(errs, fmt.Errorf(
-				"%s: count must be greater than or equal to 1",
+				"%s: resource count must be an integer",
 				n))
 		}
+		r.RawCount.init()
 
 		for _, d := range r.DependsOn {
 			if _, ok := resources[d]; !ok {
@@ -267,25 +304,12 @@ func (c *Config) Validate() error {
 			}
 
 			id := fmt.Sprintf("%s.%s", rv.Type, rv.Name)
-			r, ok := resources[id]
-			if !ok {
+			if _, ok := resources[id]; !ok {
 				errs = append(errs, fmt.Errorf(
 					"%s: unknown resource '%s' referenced in variable %s",
 					source,
 					id,
 					rv.FullKey()))
-				continue
-			}
-
-			// If it is a multi reference and resource has a single
-			// count, it is an error.
-			if r.Count > 1 && !rv.Multi {
-				errs = append(errs, fmt.Errorf(
-					"%s: variable '%s' must specify index for multi-count "+
-						"resource %s",
-					source,
-					rv.FullKey(),
-					id))
 				continue
 			}
 		}
@@ -327,6 +351,9 @@ func (c *Config) InterpolatedVariables() map[string][]InterpolatedVariable {
 
 	for _, rc := range c.Resources {
 		source := fmt.Sprintf("resource '%s'", rc.Id())
+		for _, v := range rc.RawCount.Variables {
+			result[source] = append(result[source], v)
+		}
 		for _, v := range rc.RawConfig.Variables {
 			result[source] = append(result[source], v)
 		}
@@ -400,8 +427,8 @@ func (r *Resource) mergerMerge(m merger) merger {
 	result.Type = r2.Type
 	result.RawConfig = result.RawConfig.merge(r2.RawConfig)
 
-	if r2.Count > 0 {
-		result.Count = r2.Count
+	if r2.RawCount.Value() != "1" {
+		result.RawCount = r2.RawCount
 	}
 
 	if len(r2.Provisioners) > 0 {

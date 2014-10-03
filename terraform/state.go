@@ -198,9 +198,10 @@ func (m *ModuleState) Orphans(c *config.Config) []string {
 	for _, r := range c.Resources {
 		delete(keys, r.Id())
 
-		// Mark all the counts as not orphans.
-		for i := 0; i < r.Count; i++ {
-			delete(keys, fmt.Sprintf("%s.%d", r.Id(), i))
+		for k, _ := range keys {
+			if strings.HasPrefix(k, r.Id()+".") {
+				delete(keys, k)
+			}
 		}
 	}
 
@@ -210,6 +211,24 @@ func (m *ModuleState) Orphans(c *config.Config) []string {
 	}
 
 	return result
+}
+
+// View returns a view with the given resource prefix.
+func (m *ModuleState) View(id string) *ModuleState {
+	if m == nil {
+		return m
+	}
+
+	r := m.deepcopy()
+	for k, _ := range r.Resources {
+		if id == k || strings.HasPrefix(k, id+".") {
+			continue
+		}
+
+		delete(r.Resources, k)
+	}
+
+	return r
 }
 
 func (m *ModuleState) init() {

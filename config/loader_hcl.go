@@ -406,7 +406,7 @@ func loadResourcesHcl(os *hclobj.Object) ([]*Resource, error) {
 			}
 
 			// If we have a count, then figure it out
-			var count int = 1
+			var count string = "1"
 			if o := obj.Get("count", false); o != nil {
 				err = hcl.DecodeObject(&count, o)
 				if err != nil {
@@ -417,6 +417,13 @@ func loadResourcesHcl(os *hclobj.Object) ([]*Resource, error) {
 						err)
 				}
 			}
+			countConfig, err := NewRawConfig(map[string]interface{}{
+				"count": count,
+			})
+			if err != nil {
+				return nil, err
+			}
+			countConfig.Key = "count"
 
 			// If we have depends fields, then add those in
 			var dependsOn []string
@@ -475,7 +482,7 @@ func loadResourcesHcl(os *hclobj.Object) ([]*Resource, error) {
 			result = append(result, &Resource{
 				Name:         k,
 				Type:         t.Key,
-				Count:        count,
+				RawCount:     countConfig,
 				RawConfig:    rawConfig,
 				Provisioners: provisioners,
 				DependsOn:    dependsOn,

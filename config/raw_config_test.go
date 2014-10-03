@@ -125,6 +125,36 @@ func TestRawConfig_unknown(t *testing.T) {
 	}
 }
 
+func TestRawConfigValue(t *testing.T) {
+	raw := map[string]interface{}{
+		"foo": "${var.bar}",
+	}
+
+	rc, err := NewRawConfig(raw)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	rc.Key = ""
+	if rc.Value() != nil {
+		t.Fatalf("bad: %#v", rc.Value())
+	}
+
+	rc.Key = "foo"
+	if rc.Value() != "${var.bar}" {
+		t.Fatalf("err: %#v", rc.Value())
+	}
+
+	vars := map[string]string{"var.bar": "baz"}
+	if err := rc.Interpolate(vars); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	if rc.Value() != "baz" {
+		t.Fatalf("bad: %#v", rc.Value())
+	}
+}
+
 func TestRawConfig_implGob(t *testing.T) {
 	var _ gob.GobDecoder = new(RawConfig)
 	var _ gob.GobEncoder = new(RawConfig)
