@@ -17,8 +17,8 @@ import (
 // RemoteStatePayload is used to return the remote state
 // along with associated meta data when we do a remote fetch.
 type RemoteStatePayload struct {
-	MD5 []byte
-	R   io.Reader
+	MD5   []byte
+	State []byte
 }
 
 // GetState is used to read the remote state
@@ -72,7 +72,7 @@ func GetState(conf *terraform.RemoteState) (*RemoteStatePayload, error) {
 
 	// Create the payload
 	payload := &RemoteStatePayload{
-		R: buf,
+		State: buf.Bytes(),
 	}
 
 	// Check if this is Consul
@@ -88,11 +88,7 @@ func GetState(conf *terraform.RemoteState) (*RemoteStatePayload, error) {
 			}
 
 			// Setup the reader to pull the value from Consul
-			payload.R = bytes.NewReader(values[0].Value)
-
-			// Generate the MD5
-			hash := md5.Sum(values[0].Value)
-			payload.MD5 = hash[:md5.Size]
+			payload.State = values[0].Value
 		}
 	}
 
@@ -104,9 +100,9 @@ func GetState(conf *terraform.RemoteState) (*RemoteStatePayload, error) {
 		}
 		payload.MD5 = md5
 
-	} else if _, ok := payload.R.(*bytes.Buffer); ok {
+	} else {
 		// Generate the MD5
-		hash := md5.Sum(buf.Bytes())
+		hash := md5.Sum(payload.State)
 		payload.MD5 = hash[:md5.Size]
 	}
 

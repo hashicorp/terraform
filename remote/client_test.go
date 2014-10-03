@@ -3,7 +3,6 @@ package remote
 import (
 	"bytes"
 	"crypto/md5"
-	"io"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -63,9 +62,7 @@ REQ:
 	}
 
 	// Check the body
-	var buf bytes.Buffer
-	io.Copy(&buf, payload.R)
-	if string(buf.Bytes()) != "testing" {
+	if string(payload.State) != "testing" {
 		t.Fatalf("Bad body")
 	}
 
@@ -151,9 +148,7 @@ func TestGetState(t *testing.T) {
 		}
 
 		if tc.Body != nil {
-			buf := bytes.NewBuffer(nil)
-			io.Copy(buf, payload.R)
-			if !bytes.Equal(buf.Bytes(), tc.Body) {
+			if !bytes.Equal(payload.State, tc.Body) {
 				t.Fatalf("bad: %#v", payload)
 			}
 		}
