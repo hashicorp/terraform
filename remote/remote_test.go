@@ -2,7 +2,11 @@ package remote
 
 import (
 	"bytes"
+	"crypto/md5"
+	"encoding/base64"
 	"io/ioutil"
+	"net/http"
+	"net/http/httptest"
 	"os"
 	"path/filepath"
 	"testing"
@@ -68,19 +72,42 @@ func TestValidateConfig(t *testing.T) {
 	// TODO:
 }
 
-func TestRefreshState_Blank(t *testing.T) {
-	// TODO
-}
+func TestRefreshState_Init(t *testing.T) {
+	defer fixDir(testDir(t))
+	remote, srv := testRemote(t, nil)
+	defer srv.Close()
 
-func TestRefreshState_Update_Newer(t *testing.T) {
-	// TODO
-}
+	sc, err := RefreshState(remote)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
 
-func TestRefreshState_Update_Older(t *testing.T) {
-	// TODO
+	if sc != StateChangeInit {
+		t.Fatalf("bad: %s", sc)
+	}
+
+	local := testReadLocal(t)
+	if !local.Remote.Equals(remote) {
+		t.Fatalf("Bad: %#v", local)
+	}
+	if local.Serial != 1 {
+		t.Fatalf("Bad: %#v", local)
+	}
 }
 
 func TestRefreshState_Noop(t *testing.T) {
+	// TODO
+}
+
+func TestRefreshState_UpdateLocal(t *testing.T) {
+	// TODO
+}
+
+func TestRefreshState_LocalNewer(t *testing.T) {
+	// TODO
+}
+
+func TestRefreshState_Conflict(t *testing.T) {
 	// TODO
 }
 
@@ -104,17 +131,8 @@ func TestBlankState(t *testing.T) {
 }
 
 func TestPersist(t *testing.T) {
-	tmp, err := ioutil.TempDir("", "remote")
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
-	defer os.RemoveAll(tmp)
-	cwd, err := os.Getwd()
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
-	os.Chdir(tmp)
-	defer os.Chdir(cwd)
+	tmp, cwd := testDir(t)
+	defer fixDir(tmp, cwd)
 
 	EnsureDirectory()
 
@@ -156,4 +174,76 @@ func TestPersist(t *testing.T) {
 	if !remote.Equals(s.Remote) {
 		t.Fatalf("remote mismatch")
 	}
+}
+
+// testRemote is used to make a test HTTP server to
+// return a given state file
+func testRemote(t *testing.T, s *terraform.State) (*terraform.RemoteState, *httptest.Server) {
+	var b64md5 string
+	buf := bytes.NewBuffer(nil)
+
+	if s != nil {
+		terraform.WriteState(s, buf)
+		md5 := md5.Sum(buf.Bytes())
+		b64md5 = base64.StdEncoding.EncodeToString(md5[:16])
+	}
+
+	cb := func(resp http.ResponseWriter, req *http.Request) {
+		if s == nil {
+			resp.WriteHeader(404)
+			return
+		}
+		resp.Header().Set("Content-MD5", b64md5)
+		resp.Write(buf.Bytes())
+	}
+	srv := httptest.NewServer(http.HandlerFunc(cb))
+	remote := &terraform.RemoteState{
+		Name:   "foo",
+		Server: srv.URL,
+	}
+	return remote, srv
+}
+
+// testDir is used to change the current working directory
+// into a test directory that should be remoted after
+func testDir(t *testing.T) (string, string) {
+	tmp, err := ioutil.TempDir("", "remote")
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	cwd, err := os.Getwd()
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	os.Chdir(tmp)
+	if err := EnsureDirectory(); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	return tmp, cwd
+}
+
+// fixDir is used to as a defer to testDir
+func fixDir(tmp, cwd string) {
+	os.Chdir(cwd)
+	os.RemoveAll(tmp)
+}
+
+// testReadLocal is used to just get the local state
+func testReadLocal(t *testing.T) *terraform.State {
+	path, err := HiddenStatePath()
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	raw, err := ioutil.ReadFile(path)
+	if err != nil && !os.IsNotExist(err) {
+		t.Fatalf("err: %v", err)
+	}
+	if raw == nil {
+		return nil
+	}
+	s, err := terraform.ReadState(bytes.NewReader(raw))
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	return s
 }
