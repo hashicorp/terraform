@@ -498,7 +498,7 @@ func (c *walkContext) Walk() error {
 		// On Apply, we prune so that we don't do outputs if we destroyed
 		mod.prune()
 	}
-	if len(mod.Resources) == 0 {
+	if mod == nil || len(mod.Resources) == 0 {
 		return nil
 	}
 

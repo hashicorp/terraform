@@ -3336,6 +3336,27 @@ func TestContextRefresh_modules(t *testing.T) {
 	}
 }
 
+// GH-70
+func TestContextRefresh_noState(t *testing.T) {
+	p := testProvider("aws")
+	m := testModule(t, "refresh-no-state")
+	ctx := testContext(t, &ContextOpts{
+		Module: m,
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+	})
+
+	p.RefreshFn = nil
+	p.RefreshReturn = &InstanceState{
+		ID: "foo",
+	}
+
+	if _, err := ctx.Refresh(); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+}
+
 func TestContextRefresh_state(t *testing.T) {
 	p := testProvider("aws")
 	m := testModule(t, "refresh-basic")
