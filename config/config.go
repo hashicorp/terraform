@@ -258,6 +258,11 @@ func (c *Config) Validate() error {
 		// Verify count variables
 		for _, v := range r.RawCount.Variables {
 			switch v.(type) {
+			case *CountVariable:
+				errs = append(errs, fmt.Errorf(
+					"%s: resource count can't reference count variable: %s",
+					n,
+					v.FullKey()))
 			case *ModuleVariable:
 				errs = append(errs, fmt.Errorf(
 					"%s: resource count can't reference module variable: %s",

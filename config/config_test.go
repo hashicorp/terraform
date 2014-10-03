@@ -60,6 +60,13 @@ func TestConfigValidate_countInt(t *testing.T) {
 	}
 }
 
+func TestConfigValidate_countCountVar(t *testing.T) {
+	c := testConfig(t, "validate-count-count-var")
+	if err := c.Validate(); err == nil {
+		t.Fatal("should not be valid")
+	}
+}
+
 func TestConfigValidate_countModuleVar(t *testing.T) {
 	c := testConfig(t, "validate-count-module-var")
 	if err := c.Validate(); err == nil {
