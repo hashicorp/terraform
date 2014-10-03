@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
+	"sync"
 
 	"github.com/hashicorp/terraform/plugin"
 	"github.com/mitchellh/cli"
@@ -47,8 +48,9 @@ func realMain() int {
 
 		// Setup the prefixed readers that send data properly to
 		// stdout/stderr.
+		doneCh := make(chan struct{})
 		outR, outW := io.Pipe()
-		go copyOutput(outR)
+		go copyOutput(outR, doneCh)
 
 		// Create the configuration for panicwrap and wrap our executable
 		wrapConfig.Handler = panicHandler(logTempFile)
@@ -62,6 +64,12 @@ func realMain() int {
 
 		// If >= 0, we're the parent, so just exit
 		if exitStatus >= 0 {
+			// Close the stdout writer so that our copy process can finish
+			outW.Close()
+
+			// Wait for the output copying to finish
+			<-doneCh
+
 			return exitStatus
 		}
 
@@ -175,7 +183,9 @@ func cliConfigFile() (string, error) {
 // copyOutput uses output prefixes to determine whether data on stdout
 // should go to stdout or stderr. This is due to panicwrap using stderr
 // as the log and error channel.
-func copyOutput(r io.Reader) {
+func copyOutput(r io.Reader, doneCh chan<- struct{}) {
+	defer close(doneCh)
+
 	pr, err := prefixedio.NewReader(r)
 	if err != nil {
 		panic(err)
@@ -194,7 +204,20 @@ func copyOutput(r io.Reader) {
 		panic(err)
 	}
 
-	go io.Copy(os.Stderr, stderrR)
-	go io.Copy(os.Stdout, stdoutR)
-	go io.Copy(os.Stdout, defaultR)
+	var wg sync.WaitGroup
+	wg.Add(3)
+	go func() {
+		defer wg.Done()
+		io.Copy(os.Stderr, stderrR)
+	}()
+	go func() {
+		defer wg.Done()
+		io.Copy(os.Stdout, stdoutR)
+	}()
+	go func() {
+		defer wg.Done()
+		io.Copy(os.Stdout, defaultR)
+	}()
+
+	wg.Wait()
 }
