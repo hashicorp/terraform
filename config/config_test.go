@@ -95,6 +95,13 @@ func TestConfigValidate_countUserVar(t *testing.T) {
 	}
 }
 
+func TestConfigValidate_countVarInvalid(t *testing.T) {
+	c := testConfig(t, "validate-count-var-invalid")
+	if err := c.Validate(); err == nil {
+		t.Fatal("should not be valid")
+	}
+}
+
 func TestConfigValidate_dupModule(t *testing.T) {
 	c := testConfig(t, "validate-dup-module")
 	if err := c.Validate(); err == nil {
