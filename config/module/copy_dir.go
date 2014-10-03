@@ -26,7 +26,11 @@ func copyDir(dst, src string) error {
 		basePath := filepath.Base(path)
 		if strings.HasPrefix(basePath, ".") {
 			// Skip any dot files
-			return filepath.SkipDir
+			if info.IsDir() {
+				return filepath.SkipDir
+			} else {
+				return nil
+			}
 		}
 
 		dstPath := filepath.Join(dst, basePath)
