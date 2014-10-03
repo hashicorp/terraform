@@ -99,18 +99,18 @@ func (c *InitCommand) Run(args []string) int {
 
 	// Handle remote state if configured
 	if !remoteConf.Empty() {
-		// Read the updated state file
-		remoteR, err := remote.ReadState(&remoteConf)
+		change, err := remote.RefreshState(&remoteConf)
 		if err != nil {
 			c.Ui.Error(fmt.Sprintf(
-				"Failed to read remote state: %v", err))
+				"Failed to refresh from remote state: %v", err))
 			return 1
 		}
 
-		// Persist the remote state
-		if err := remote.Persist(remoteR); err != nil {
-			c.Ui.Error(fmt.Sprintf(
-				"Failed to persist state: %v", err))
+		// Log the change that took place
+		c.Ui.Output(fmt.Sprintf("%s", change))
+
+		// Use an error exit code if the update was not a success
+		if !change.SuccessfulPull() {
 			return 1
 		}
 	}

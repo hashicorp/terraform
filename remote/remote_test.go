@@ -68,7 +68,19 @@ func TestValidateConfig(t *testing.T) {
 	// TODO:
 }
 
-func TestReadState(t *testing.T) {
+func TestRefreshState_Blank(t *testing.T) {
+	// TODO
+}
+
+func TestRefreshState_Update_Newer(t *testing.T) {
+	// TODO
+}
+
+func TestRefreshState_Update_Older(t *testing.T) {
+	// TODO
+}
+
+func TestRefreshState_Noop(t *testing.T) {
 	// TODO
 }
 
@@ -82,7 +94,7 @@ func TestBlankState(t *testing.T) {
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	s, err := terraform.ReadState(r)
+	s, err := terraform.ReadState(bytes.NewReader(r))
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -116,7 +128,7 @@ func TestPersist(t *testing.T) {
 		AuthToken: "foobar",
 	}
 	blank, _ := blankState(remote)
-	if err := Persist(blank); err != nil {
+	if err := Persist(bytes.NewReader(blank)); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
