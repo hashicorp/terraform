@@ -1415,7 +1415,9 @@ func (c *walkContext) computeVars(
 		case *config.CountVariable:
 			switch v.Type {
 			case config.CountValueIndex:
-				vs[n] = strconv.FormatInt(int64(r.CountIndex), 10)
+				if r != nil {
+					vs[n] = strconv.FormatInt(int64(r.CountIndex), 10)
+				}
 			}
 		case *config.ModuleVariable:
 			value, err := c.computeModuleVariable(v)
