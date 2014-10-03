@@ -20,6 +20,8 @@ FEATURES:
     so that new resources are created before the old ones are destroyed.
   * The `count` metaparameter can now contain interpolations (such as
     variables).
+  * The current index for a resource with a `count` set can be interpolated
+    using `${count.index}`.
 
 IMPROVEMENTS:
 
