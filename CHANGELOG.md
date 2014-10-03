@@ -18,6 +18,8 @@ FEATURES:
     automatically upgraded.
   * You can now specify `create_before_destroy` as an option for replacement
     so that new resources are created before the old ones are destroyed.
+  * The `count` metaparameter can now contain interpolations (such as
+    variables).
 
 IMPROVEMENTS:
 
