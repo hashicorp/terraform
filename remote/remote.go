@@ -41,6 +41,10 @@ const (
 	// just up to date. (Push/Pull)
 	StateChangeNoop StateChangeResult = iota
 
+	// StateChangeInit indicates that there is no local or
+	// remote state, and that the state was initialized
+	StateChangeInit
+
 	// StateChangeUpdateLocal indicates the local state
 	// was updated. (Pull)
 	StateChangeUpdateLocal
@@ -74,6 +78,8 @@ func (sc StateChangeResult) String() string {
 	switch sc {
 	case StateChangeNoop:
 		return "Local and remote state in sync"
+	case StateChangeInit:
+		return "Local state initialized"
 	case StateChangeUpdateLocal:
 		return "Local state updated"
 	case StateChangeUpdateRemote:
@@ -95,6 +101,8 @@ func (sc StateChangeResult) String() string {
 func (sc StateChangeResult) SuccessfulPull() bool {
 	switch sc {
 	case StateChangeNoop:
+		return true
+	case StateChangeInit:
 		return true
 	case StateChangeUpdateLocal:
 		return true
@@ -266,7 +274,7 @@ func RefreshState(conf *terraform.RemoteState) (StateChangeResult, error) {
 			return StateChangeNoop,
 				fmt.Errorf("Failed to persist state: %v", err)
 		}
-		return StateChangeNoop, nil
+		return StateChangeInit, nil
 
 	case remoteState == nil && localState != nil:
 		fallthrough
