@@ -26,7 +26,7 @@ func copyDir(dst, src string) error {
 		basePath := filepath.Base(path)
 		if strings.HasPrefix(basePath, ".") {
 			// Skip any dot files
-			return nil
+			return filepath.SkipDir
 		}
 
 		dstPath := filepath.Join(dst, basePath)
@@ -38,7 +38,7 @@ func copyDir(dst, src string) error {
 				return err
 			}
 
-			return copyDir(dstPath, path)
+			return nil
 		}
 
 		// If we have a file, copy the contents.
