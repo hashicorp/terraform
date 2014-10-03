@@ -40,6 +40,7 @@ func TestApply_destroy(t *testing.T) {
 
 	// Run the apply command pointing to our existing state
 	args := []string{
+		"-force",
 		"-state", statePath,
 		testFixturePath("apply"),
 	}
