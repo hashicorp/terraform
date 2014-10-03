@@ -92,7 +92,10 @@ func formatStateModuleExpand(
 
 		rs := m.Resources[k]
 		is := rs.Primary
-		id := is.ID
+		var id string
+		if is != nil {
+			id = is.ID
+		}
 		if id == "" {
 			id = "<not created>"
 		}
@@ -105,22 +108,24 @@ func formatStateModuleExpand(
 		buf.WriteString(fmt.Sprintf("%s:%s\n", name, taintStr))
 		buf.WriteString(fmt.Sprintf("  id = %s\n", id))
 
-		// Sort the attributes
-		attrKeys := make([]string, 0, len(is.Attributes))
-		for ak, _ := range is.Attributes {
-			// Skip the id attribute since we just show the id directly
-			if ak == "id" {
-				continue
+		if is != nil {
+			// Sort the attributes
+			attrKeys := make([]string, 0, len(is.Attributes))
+			for ak, _ := range is.Attributes {
+				// Skip the id attribute since we just show the id directly
+				if ak == "id" {
+					continue
+				}
+
+				attrKeys = append(attrKeys, ak)
 			}
+			sort.Strings(attrKeys)
 
-			attrKeys = append(attrKeys, ak)
-		}
-		sort.Strings(attrKeys)
-
-		// Output each attribute
-		for _, ak := range attrKeys {
-			av := is.Attributes[ak]
-			buf.WriteString(fmt.Sprintf("  %s = %s\n", ak, av))
+			// Output each attribute
+			for _, ak := range attrKeys {
+				av := is.Attributes[ak]
+				buf.WriteString(fmt.Sprintf("  %s = %s\n", ak, av))
+			}
 		}
 	}
 
