@@ -34,6 +34,7 @@ type Resource struct {
 	Provider     ResourceProvider
 	State        *InstanceState
 	Provisioners []*ResourceProvisionerConfig
+	CountIndex   int
 	Flags        ResourceFlag
 	TaintedIndex int
 }
@@ -92,7 +93,7 @@ type ResourceConfig struct {
 // NewResourceConfig creates a new ResourceConfig from a config.RawConfig.
 func NewResourceConfig(c *config.RawConfig) *ResourceConfig {
 	result := &ResourceConfig{raw: c}
-	result.interpolate(nil)
+	result.interpolate(nil, nil)
 	return result
 }
 
@@ -190,13 +191,14 @@ func (c *ResourceConfig) get(
 	return current, true
 }
 
-func (c *ResourceConfig) interpolate(ctx *walkContext) error {
+func (c *ResourceConfig) interpolate(
+	ctx *walkContext, r *Resource) error {
 	if c == nil {
 		return nil
 	}
 
 	if ctx != nil {
-		if err := ctx.computeVars(c.raw); err != nil {
+		if err := ctx.computeVars(c.raw, r); err != nil {
 			return err
 		}
 	}

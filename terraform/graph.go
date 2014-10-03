@@ -1704,6 +1704,7 @@ func (n *GraphNodeResource) expand(g *depgraph.Graph, count int) {
 
 		// Copy the base resource so we can fill it in
 		resource := n.copyResource(name)
+		resource.CountIndex = i
 		resource.State = state.Primary
 		resource.Flags = flags
 

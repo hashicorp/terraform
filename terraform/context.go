@@ -498,7 +498,7 @@ func (c *walkContext) Walk() error {
 
 	outputs := make(map[string]string)
 	for _, o := range conf.Outputs {
-		if err := c.computeVars(o.RawConfig); err != nil {
+		if err := c.computeVars(o.RawConfig, nil); err != nil {
 			return err
 		}
 		vraw := o.RawConfig.Config()["value"]
@@ -619,7 +619,7 @@ func (c *walkContext) applyWalkFn() depgraph.WalkFunc {
 
 		if !diff.Destroy {
 			// Since we need the configuration, interpolate the variables
-			if err := r.Config.interpolate(c); err != nil {
+			if err := r.Config.interpolate(c, r); err != nil {
 				return err
 			}
 
@@ -780,7 +780,7 @@ func (c *walkContext) planWalkFn() depgraph.WalkFunc {
 			diff = &InstanceDiff{Destroy: true}
 		} else {
 			// Make sure the configuration is interpolated
-			if err := r.Config.interpolate(c); err != nil {
+			if err := r.Config.interpolate(c, r); err != nil {
 				return err
 			}
 
@@ -993,7 +993,7 @@ func (c *walkContext) validateWalkFn() depgraph.WalkFunc {
 			if rn.ExpandMode > ResourceExpandNone {
 				// Interpolate the count and verify it is non-negative
 				rc := NewResourceConfig(rn.Config.RawCount)
-				rc.interpolate(c)
+				rc.interpolate(c, rn.Resource)
 				count, err := rn.Config.Count()
 				if err == nil {
 					if count < 0 {
@@ -1063,7 +1063,7 @@ func (c *walkContext) validateWalkFn() depgraph.WalkFunc {
 			for k, p := range sharedProvider.Providers {
 				// Merge the configurations to get what we use to configure with
 				rc := sharedProvider.MergeConfig(false, cs[k])
-				rc.interpolate(c)
+				rc.interpolate(c, nil)
 
 				log.Printf("[INFO] Validating provider: %s", k)
 				ws, es := p.Validate(rc)
@@ -1125,7 +1125,7 @@ func (c *walkContext) genericWalkFn(cb genericWalkFunc) depgraph.WalkFunc {
 				wc.Variables = make(map[string]string)
 
 				rc := NewResourceConfig(m.Config.RawConfig)
-				rc.interpolate(c)
+				rc.interpolate(c, nil)
 				for k, v := range rc.Config {
 					wc.Variables[k] = v.(string)
 				}
@@ -1151,7 +1151,7 @@ func (c *walkContext) genericWalkFn(cb genericWalkFunc) depgraph.WalkFunc {
 			for k, p := range sharedProvider.Providers {
 				// Merge the configurations to get what we use to configure with
 				rc := sharedProvider.MergeConfig(false, cs[k])
-				rc.interpolate(c)
+				rc.interpolate(c, nil)
 
 				log.Printf("[INFO] Configuring provider: %s", k)
 				err := p.Configure(rc)
@@ -1211,7 +1211,7 @@ func (c *walkContext) genericWalkResource(
 	rn *GraphNodeResource, fn depgraph.WalkFunc) error {
 	// Interpolate the count
 	rc := NewResourceConfig(rn.Config.RawCount)
-	rc.interpolate(c)
+	rc.interpolate(c, rn.Resource)
 
 	// Expand the node to the actual resources
 	ns, err := rn.Expand()
@@ -1260,13 +1260,13 @@ func (c *walkContext) applyProvisioners(r *Resource, is *InstanceState) error {
 	for _, prov := range r.Provisioners {
 		// Interpolate since we may have variables that depend on the
 		// local resource.
-		if err := prov.Config.interpolate(c); err != nil {
+		if err := prov.Config.interpolate(c, r); err != nil {
 			return err
 		}
 
 		// Interpolate the conn info, since it may contain variables
 		connInfo := NewResourceConfig(prov.ConnInfo)
-		if err := connInfo.interpolate(c); err != nil {
+		if err := connInfo.interpolate(c, r); err != nil {
 			return err
 		}
 
@@ -1396,7 +1396,8 @@ func (c *walkContext) persistState(r *Resource) {
 // computeVars takes the State and given RawConfig and processes all
 // the variables. This dynamically discovers the attributes instead of
 // using a static map[string]string that the genericWalkFn uses.
-func (c *walkContext) computeVars(raw *config.RawConfig) error {
+func (c *walkContext) computeVars(
+	raw *config.RawConfig, r *Resource) error {
 	// If there isn't a raw configuration, don't do anything
 	if raw == nil {
 		return nil
@@ -1411,6 +1412,11 @@ func (c *walkContext) computeVars(raw *config.RawConfig) error {
 	// Next, the actual computed variables
 	for n, rawV := range raw.Variables {
 		switch v := rawV.(type) {
+		case *config.CountVariable:
+			switch v.Type {
+			case config.CountValueIndex:
+				vs[n] = strconv.FormatInt(int64(r.CountIndex), 10)
+			}
 		case *config.ModuleVariable:
 			value, err := c.computeModuleVariable(v)
 			if err != nil {
