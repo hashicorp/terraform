@@ -991,6 +991,23 @@ func (c *walkContext) validateWalkFn() depgraph.WalkFunc {
 
 			// If we're expanding, then expand the nodes, and then rewalk the graph
 			if rn.ExpandMode > ResourceExpandNone {
+				// Interpolate the count and verify it is non-negative
+				rc := NewResourceConfig(rn.Config.RawCount)
+				rc.interpolate(c)
+				count, err := rn.Config.Count()
+				if err == nil {
+					if count < 0 {
+						err = fmt.Errorf(
+							"%s error: count must be positive", rn.Resource.Id)
+					}
+				}
+				if err != nil {
+					l.Lock()
+					defer l.Unlock()
+					meta.Errs = append(meta.Errs, err)
+					return nil
+				}
+
 				return c.genericWalkResource(rn, walkFn)
 			}
 
