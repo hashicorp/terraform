@@ -34,6 +34,7 @@ type Context struct {
 	provisioners   map[string]ResourceProvisionerFactory
 	variables      map[string]string
 	uiInput        UIInput
+	uiOutput       UIOutput
 
 	l     sync.Mutex    // Lock acquired during any task
 	parCh chan struct{} // Semaphore used to limit parallelism
@@ -54,7 +55,8 @@ type ContextOpts struct {
 	Provisioners map[string]ResourceProvisionerFactory
 	Variables    map[string]string
 
-	UIInput UIInput
+	UIInput  UIInput
+	UIOutput UIOutput
 }
 
 // NewContext creates a new context.
@@ -88,6 +90,7 @@ func NewContext(opts *ContextOpts) *Context {
 		provisioners:   opts.Provisioners,
 		variables:      opts.Variables,
 		uiInput:        opts.UIInput,
+		uiOutput:       opts.UIOutput,
 
 		parCh: parCh,
 		sh:    sh,
@@ -1310,7 +1313,8 @@ func (c *walkContext) applyProvisioners(r *Resource, is *InstanceState) error {
 			handleHook(h.PreProvision(r.Info, prov.Type))
 		}
 
-		if err := prov.Provisioner.Apply(is, prov.Config); err != nil {
+		err := prov.Provisioner.Apply(c.Context.uiOutput, is, prov.Config)
+		if err != nil {
 			return err
 		}
 
