@@ -101,6 +101,7 @@ func (c *Client) ResourceProvisioner() (terraform.ResourceProvisioner, error) {
 	}
 
 	return &ResourceProvisioner{
+		Broker: c.broker,
 		Client: rpc.NewClient(conn),
 		Name:   "ResourceProvisioner",
 	}, nil

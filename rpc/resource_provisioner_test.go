@@ -13,18 +13,21 @@ func TestResourceProvisioner_impl(t *testing.T) {
 }
 
 func TestResourceProvisioner_apply(t *testing.T) {
-	p := new(terraform.MockResourceProvisioner)
-	client, server := testClientServer(t)
-	name, err := Register(server, p)
+	client, server := testNewClientServer(t)
+	defer client.Close()
+
+	p := server.ProvisionerFunc().(*terraform.MockResourceProvisioner)
+
+	provisioner, err := client.ResourceProvisioner()
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
-	provisioner := &ResourceProvisioner{Client: client, Name: name}
 
 	// Apply
+	output := &terraform.MockUIOutput{}
 	state := &terraform.InstanceState{}
 	conf := &terraform.ResourceConfig{}
-	err = provisioner.Apply(state, conf)
+	err = provisioner.Apply(output, state, conf)
 	if !p.ApplyCalled {
 		t.Fatal("apply should be called")
 	}
