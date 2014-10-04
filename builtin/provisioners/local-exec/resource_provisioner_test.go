@@ -20,8 +20,9 @@ func TestResourceProvider_Apply(t *testing.T) {
 		"command": "echo foo > test_out",
 	})
 
+	output := new(terraform.MockUIOutput)
 	p := new(ResourceProvisioner)
-	if err := p.Apply(nil, c); err != nil {
+	if err := p.Apply(output, nil, c); err != nil {
 		t.Fatalf("err: %v", err)
 	}
 
