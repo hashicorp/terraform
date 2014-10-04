@@ -164,6 +164,18 @@ func (h *UiHook) PreProvision(
 	return terraform.HookActionContinue, nil
 }
 
+func (h *UiHook) ProvisionOutput(
+	n *terraform.InstanceInfo,
+	provId string,
+	msg string) {
+	id := n.HumanId()
+	var buf bytes.Buffer
+	buf.WriteString(h.Colorize.Color(fmt.Sprintf(
+		"[reset]%s (%s): ", id, provId)))
+	buf.WriteString(msg)
+	h.ui.Output(buf.String())
+}
+
 func (h *UiHook) PreRefresh(
 	n *terraform.InstanceInfo,
 	s *terraform.InstanceState) (terraform.HookAction, error) {
