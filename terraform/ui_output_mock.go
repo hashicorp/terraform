@@ -10,7 +10,7 @@ type MockUIOutput struct {
 func (o *MockUIOutput) Output(v string) {
 	o.OutputCalled = true
 	o.OutputMessage= v
-	if o.OutputFn == nil {
+	if o.OutputFn != nil {
 		o.OutputFn(v)
 	}
 }
