@@ -37,6 +37,7 @@ type Hook interface {
 	PostProvisionResource(*InstanceInfo, *InstanceState) (HookAction, error)
 	PreProvision(*InstanceInfo, string) (HookAction, error)
 	PostProvision(*InstanceInfo, string) (HookAction, error)
+	ProvisionOutput(*InstanceInfo, string, string)
 
 	// PreRefresh and PostRefresh are called before and after a single
 	// resource state is refreshed, respectively.
@@ -79,6 +80,10 @@ func (*NilHook) PreProvision(*InstanceInfo, string) (HookAction, error) {
 
 func (*NilHook) PostProvision(*InstanceInfo, string) (HookAction, error) {
 	return HookActionContinue, nil
+}
+
+func (*NilHook) ProvisionOutput(
+	*InstanceInfo, string, string) {
 }
 
 func (*NilHook) PreRefresh(*InstanceInfo, *InstanceState) (HookAction, error) {
