@@ -1313,7 +1313,11 @@ func (c *walkContext) applyProvisioners(r *Resource, is *InstanceState) error {
 			handleHook(h.PreProvision(r.Info, prov.Type))
 		}
 
-		err := prov.Provisioner.Apply(c.Context.uiOutput, is, prov.Config)
+		output := PrefixUIOutput{
+			Prefix:   r.Id + ": ",
+			UIOutput: c.Context.uiOutput,
+		}
+		err := prov.Provisioner.Apply(&output, is, prov.Config)
 		if err != nil {
 			return err
 		}
