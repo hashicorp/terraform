@@ -634,13 +634,12 @@ func (c *walkContext) applyWalkFn() depgraph.WalkFunc {
 				return err
 			}
 
-			// This should never happen because we check if Diff.Empty above.
-			// If this happened, then the diff above returned a bad diff.
+			// This can happen if we aren't actually applying anything
+			// except an ID (the "null" provider). It is not really an issue
+			// since the Same check later down will catch any real problems.
 			if diff == nil {
-				return fmt.Errorf(
-					"%s: diff became nil during Apply. This is a bug with "+
-						"the resource provider. Please report a bug.",
-					r.Id)
+				diff = new(InstanceDiff)
+				diff.init()
 			}
 
 			// Delete id from the diff because it is dependent on
