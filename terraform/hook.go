@@ -33,10 +33,17 @@ type Hook interface {
 	PostDiff(*InstanceInfo, *InstanceDiff) (HookAction, error)
 
 	// Provisioning hooks
+	//
+	// All should be self-explanatory. ProvisionOutput is called with
+	// output sent back by the provisioners. This will be called multiple
+	// times as output comes in, but each call should represent a line of
+	// output. The ProvisionOutput method cannot control whether the
+	// hook continues running.
 	PreProvisionResource(*InstanceInfo, *InstanceState) (HookAction, error)
 	PostProvisionResource(*InstanceInfo, *InstanceState) (HookAction, error)
 	PreProvision(*InstanceInfo, string) (HookAction, error)
 	PostProvision(*InstanceInfo, string) (HookAction, error)
+	ProvisionOutput(*InstanceInfo, string, string)
 
 	// PreRefresh and PostRefresh are called before and after a single
 	// resource state is refreshed, respectively.
@@ -79,6 +86,10 @@ func (*NilHook) PreProvision(*InstanceInfo, string) (HookAction, error) {
 
 func (*NilHook) PostProvision(*InstanceInfo, string) (HookAction, error) {
 	return HookActionContinue, nil
+}
+
+func (*NilHook) ProvisionOutput(
+	*InstanceInfo, string, string) {
 }
 
 func (*NilHook) PreRefresh(*InstanceInfo, *InstanceState) (HookAction, error) {

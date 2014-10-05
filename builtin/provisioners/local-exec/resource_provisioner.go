@@ -20,6 +20,7 @@ const (
 type ResourceProvisioner struct{}
 
 func (p *ResourceProvisioner) Apply(
+	o terraform.UIOutput,
 	s *terraform.InstanceState,
 	c *terraform.ResourceConfig) error {
 

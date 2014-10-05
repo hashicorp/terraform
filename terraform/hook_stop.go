@@ -42,6 +42,9 @@ func (h *stopHook) PostProvision(*InstanceInfo, string) (HookAction, error) {
 	return h.hook()
 }
 
+func (h *stopHook) ProvisionOutput(*InstanceInfo, string, string) {
+}
+
 func (h *stopHook) PreRefresh(*InstanceInfo, *InstanceState) (HookAction, error) {
 	return h.hook()
 }

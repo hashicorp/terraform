@@ -118,6 +118,7 @@ func (d *dispenseServer) ResourceProvisioner(
 		}
 
 		serve(conn, "ResourceProvisioner", &ResourceProvisionerServer{
+			Broker:      d.broker,
 			Provisioner: d.ProvisionerFunc(),
 		})
 	}()

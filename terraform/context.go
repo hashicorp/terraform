@@ -54,7 +54,7 @@ type ContextOpts struct {
 	Provisioners map[string]ResourceProvisionerFactory
 	Variables    map[string]string
 
-	UIInput UIInput
+	UIInput  UIInput
 }
 
 // NewContext creates a new context.
@@ -1309,7 +1309,13 @@ func (c *walkContext) applyProvisioners(r *Resource, is *InstanceState) error {
 			handleHook(h.PreProvision(r.Info, prov.Type))
 		}
 
-		if err := prov.Provisioner.Apply(is, prov.Config); err != nil {
+		output := ProvisionerUIOutput{
+			Info:  r.Info,
+			Type:  prov.Type,
+			Hooks: c.Context.hooks,
+		}
+		err := prov.Provisioner.Apply(&output, is, prov.Config)
+		if err != nil {
 			return err
 		}
 

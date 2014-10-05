@@ -13,7 +13,9 @@ import (
 
 type ResourceProvisioner struct{}
 
-func (p *ResourceProvisioner) Apply(s *terraform.InstanceState,
+func (p *ResourceProvisioner) Apply(
+	o terraform.UIOutput,
+	s *terraform.InstanceState,
 	c *terraform.ResourceConfig) error {
 	// Ensure the connection type is SSH
 	if err := helper.VerifySSH(s); err != nil {

@@ -53,6 +53,11 @@ type MockHook struct {
 	PostProvisionReturn        HookAction
 	PostProvisionError         error
 
+	ProvisionOutputCalled        bool
+	ProvisionOutputInfo          *InstanceInfo
+	ProvisionOutputProvisionerId string
+	ProvisionOutputMessage       string
+
 	PostRefreshCalled bool
 	PostRefreshInfo   *InstanceInfo
 	PostRefreshState  *InstanceState
@@ -122,6 +127,16 @@ func (h *MockHook) PostProvision(n *InstanceInfo, provId string) (HookAction, er
 	h.PostProvisionInfo = n
 	h.PostProvisionProvisionerId = provId
 	return h.PostProvisionReturn, h.PostProvisionError
+}
+
+func (h *MockHook) ProvisionOutput(
+	n *InstanceInfo,
+	provId string,
+	msg string) {
+	h.ProvisionOutputCalled = true
+	h.ProvisionOutputInfo = n
+	h.ProvisionOutputProvisionerId = provId
+	h.ProvisionOutputMessage = msg
 }
 
 func (h *MockHook) PreRefresh(n *InstanceInfo, s *InstanceState) (HookAction, error) {

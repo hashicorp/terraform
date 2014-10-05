@@ -9,6 +9,7 @@ import (
 // ResourceProvisioner is an implementation of terraform.ResourceProvisioner
 // that communicates over RPC.
 type ResourceProvisioner struct {
+	Broker *muxBroker
 	Client *rpc.Client
 	Name   string
 }
@@ -36,12 +37,19 @@ func (p *ResourceProvisioner) Validate(c *terraform.ResourceConfig) ([]string, [
 }
 
 func (p *ResourceProvisioner) Apply(
+	output terraform.UIOutput,
 	s *terraform.InstanceState,
 	c *terraform.ResourceConfig) error {
+	id := p.Broker.NextId()
+	go acceptAndServe(p.Broker, id, "UIOutput", &UIOutputServer{
+		UIOutput: output,
+	})
+
 	var resp ResourceProvisionerApplyResponse
 	args := &ResourceProvisionerApplyArgs{
-		State:  s,
-		Config: c,
+		OutputId: id,
+		State:    s,
+		Config:   c,
 	}
 
 	err := p.Client.Call(p.Name+".Apply", args, &resp)
@@ -65,8 +73,9 @@ type ResourceProvisionerValidateResponse struct {
 }
 
 type ResourceProvisionerApplyArgs struct {
-	State  *terraform.InstanceState
-	Config *terraform.ResourceConfig
+	OutputId uint32
+	State    *terraform.InstanceState
+	Config   *terraform.ResourceConfig
 }
 
 type ResourceProvisionerApplyResponse struct {
@@ -76,13 +85,29 @@ type ResourceProvisionerApplyResponse struct {
 // ResourceProvisionerServer is a net/rpc compatible structure for serving
 // a ResourceProvisioner. This should not be used directly.
 type ResourceProvisionerServer struct {
+	Broker      *muxBroker
 	Provisioner terraform.ResourceProvisioner
 }
 
 func (s *ResourceProvisionerServer) Apply(
 	args *ResourceProvisionerApplyArgs,
 	result *ResourceProvisionerApplyResponse) error {
-	err := s.Provisioner.Apply(args.State, args.Config)
+	conn, err := s.Broker.Dial(args.OutputId)
+	if err != nil {
+		*result = ResourceProvisionerApplyResponse{
+			Error: NewBasicError(err),
+		}
+		return nil
+	}
+	client := rpc.NewClient(conn)
+	defer client.Close()
+
+	output := &UIOutput{
+		Client: client,
+		Name:   "UIOutput",
+	}
+
+	err = s.Provisioner.Apply(output, args.State, args.Config)
 	*result = ResourceProvisionerApplyResponse{
 		Error: NewBasicError(err),
 	}

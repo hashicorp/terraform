@@ -60,9 +60,10 @@ func TestClient_ResourceProvisioner(t *testing.T) {
 	}
 
 	// Apply
+	output := &terraform.MockUIOutput{}
 	state := &terraform.InstanceState{}
 	conf := &terraform.ResourceConfig{}
-	err = provisioner.Apply(state, conf)
+	err = provisioner.Apply(output, state, conf)
 	if !p.ApplyCalled {
 		t.Fatal("apply should be called")
 	}
