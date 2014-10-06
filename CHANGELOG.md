@@ -37,6 +37,7 @@ IMPROVEMENTS:
   * providers/aws: Add `self` option for security groups for ingress
       rules with self as source. [GH-303]
   * providers/google: Support `target_tags` for firewalls. [GH-324]
+  * provisioners/local-exec: Output from command is shown in CLI output. [GH-311]
 
 BUG FIXES:
 
