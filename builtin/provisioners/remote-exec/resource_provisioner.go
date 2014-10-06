@@ -1,7 +1,6 @@
 package remoteexec
 
 import (
-	"bufio"
 	"bytes"
 	"fmt"
 	"io"
@@ -13,6 +12,7 @@ import (
 
 	helper "github.com/hashicorp/terraform/helper/ssh"
 	"github.com/hashicorp/terraform/terraform"
+	"github.com/mitchellh/go-linereader"
 )
 
 const (
@@ -47,7 +47,7 @@ func (p *ResourceProvisioner) Apply(
 	}
 
 	// Copy and execute each script
-	if err := p.runScripts(conf, scripts); err != nil {
+	if err := p.runScripts(o, conf, scripts); err != nil {
 		return err
 	}
 	return nil
@@ -163,26 +163,51 @@ func (p *ResourceProvisioner) collectScripts(c *terraform.ResourceConfig) ([]io.
 }
 
 // runScripts is used to copy and execute a set of scripts
-func (p *ResourceProvisioner) runScripts(conf *helper.SSHConfig, scripts []io.ReadCloser) error {
+func (p *ResourceProvisioner) runScripts(
+	o terraform.UIOutput,
+	conf *helper.SSHConfig,
+	scripts []io.ReadCloser) error {
 	// Get the SSH client config
 	config, err := helper.PrepareConfig(conf)
 	if err != nil {
 		return err
 	}
 
+	o.Output(fmt.Sprintf(
+		"Connecting to remote host via SSH...\n"+
+			"  Host: %s\n"+
+			"  User: %s\n"+
+			"  Password: %v\n"+
+			"  Private key: %v",
+		conf.Host, conf.User,
+		conf.Password != "",
+		conf.KeyFile != ""))
+
 	// Wait and retry until we establish the SSH connection
 	var comm *helper.SSHCommunicator
 	err = retryFunc(conf.TimeoutVal, func() error {
 		host := fmt.Sprintf("%s:%d", conf.Host, conf.Port)
 		comm, err = helper.New(host, config)
+		if err != nil {
+			o.Output(fmt.Sprintf("Connection error, will retry: %s", err))
+		}
+
 		return err
 	})
 	if err != nil {
 		return err
 	}
 
+	o.Output("Connected! Executing scripts...")
 	for _, script := range scripts {
 		var cmd *helper.RemoteCmd
+		outR, outW := io.Pipe()
+		errR, errW := io.Pipe()
+		outDoneCh := make(chan struct{})
+		errDoneCh := make(chan struct{})
+		go p.copyOutput(o, outR, outDoneCh)
+		go p.copyOutput(o, errR, errDoneCh)
+
 		err := retryFunc(conf.TimeoutVal, func() error {
 			if err := comm.Upload(conf.ScriptPath, script); err != nil {
 				return fmt.Errorf("Failed to upload script: %v", err)
@@ -197,32 +222,45 @@ func (p *ResourceProvisioner) runScripts(conf *helper.SSHConfig, scripts []io.Re
 			}
 			cmd.Wait()
 
-			stdOutReader, stdOutWriter := io.Pipe()
-			stdErrReader, stdErrWriter := io.Pipe()
-			go streamLogs(stdOutReader, "stdout")
-			go streamLogs(stdErrReader, "stderr")
-
 			cmd = &helper.RemoteCmd{
 				Command: conf.ScriptPath,
-				Stdout:  stdOutWriter,
-				Stderr:  stdErrWriter,
+				Stdout:  outW,
+				Stderr:  errW,
 			}
 			if err := comm.Start(cmd); err != nil {
 				return fmt.Errorf("Error starting script: %v", err)
 			}
 			return nil
 		})
-		if err != nil {
-			return err
+		if err == nil {
+			cmd.Wait()
+			if cmd.ExitStatus != 0 {
+				err = fmt.Errorf("Script exited with non-zero exit status: %d", cmd.ExitStatus)
+			}
 		}
 
-		cmd.Wait()
-		if cmd.ExitStatus != 0 {
-			return fmt.Errorf("Script exited with non-zero exit status: %d", cmd.ExitStatus)
+		// Wait for output to clean up
+		outW.Close()
+		errW.Close()
+		<-outDoneCh
+		<-errDoneCh
+
+		// If we have an error, return it out now that we've cleaned up
+		if err != nil {
+			return err
 		}
 	}
 
 	return nil
+}
+
+func (p *ResourceProvisioner) copyOutput(
+	o terraform.UIOutput, r io.Reader, doneCh chan<- struct{}) {
+	defer close(doneCh)
+	lr := linereader.New(r)
+	for line := range lr.Ch {
+		o.Output(line)
+	}
 }
 
 // retryFunc is used to retry a function for a given duration
@@ -240,18 +278,5 @@ func retryFunc(timeout time.Duration, f func() error) error {
 			return err
 		case <-time.After(3 * time.Second):
 		}
-	}
-}
-
-// streamLogs is used to stream lines from stdout/stderr
-// of a remote command to log output for users.
-func streamLogs(r io.ReadCloser, name string) {
-	defer r.Close()
-	scanner := bufio.NewScanner(r)
-	for scanner.Scan() {
-		log.Printf("remote-exec: %s: %s", name, scanner.Text())
-	}
-	if err := scanner.Err(); err != nil {
-		return
 	}
 }
