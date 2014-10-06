@@ -97,7 +97,14 @@ func resourceAwsInstance() *schema.Resource {
 					return hashcode.String(v.(string))
 				},
 			},
-
+			"tags": &schema.Schema{
+				Type:     schema.TypeSet,
+				Optional: true,
+				Elem:     &schema.Schema{Type: schema.TypeString},
+				Set: func(v interface{}) int {
+					return hashcode.String(v.(string))
+				},
+			},
 			"public_dns": &schema.Schema{
 				Type:     schema.TypeString,
 				Computed: true,
@@ -158,7 +165,6 @@ func resourceAwsInstanceCreate(d *schema.ResourceData, meta interface{}) error {
 	if v := d.Get("security_groups"); v != nil {
 		for _, v := range v.(*schema.Set).List() {
 			str := v.(string)
-
 			var g ec2.SecurityGroup
 			if runOpts.SubnetId != "" {
 				g.Id = str
@@ -179,6 +185,28 @@ func resourceAwsInstanceCreate(d *schema.ResourceData, meta interface{}) error {
 
 	instance := &runResp.Instances[0]
 	log.Printf("[INFO] Instance ID: %s", instance.InstanceId)
+
+	if v := d.Get("tags"); v != nil {
+		tagList := v.(*schema.Set).List()
+		var tags = make([]ec2.Tag, len(tagList))
+		for i, v := range tagList {
+			str := v.(string)
+			splitStr := strings.SplitAfterN(str, ":", 2)
+			tags[i] = ec2.Tag{splitStr[0], splitStr[1]}
+		}
+		instances := []string{instance.InstanceId}
+
+		log.Printf("[DEBUG] Run CreatTags: %s:%s",
+			instance.InstanceId, tags)
+
+		_, err := ec2conn.CreateTags(instances, tags)
+
+		if err != nil {
+			return fmt.Errorf("Error tagging instance %s: %s",
+				instance.InstanceId, err)
+		}
+
+	}
 
 	// Store the resulting ID so we can look this up later
 	d.SetId(instance.InstanceId)
