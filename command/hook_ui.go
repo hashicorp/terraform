@@ -1,6 +1,7 @@
 package command
 
 import (
+	"bufio"
 	"bytes"
 	"fmt"
 	"sort"
@@ -170,10 +171,15 @@ func (h *UiHook) ProvisionOutput(
 	msg string) {
 	id := n.HumanId()
 	var buf bytes.Buffer
-	buf.WriteString(h.Colorize.Color(fmt.Sprintf(
-		"[reset]%s (%s): ", id, provId)))
-	buf.WriteString(msg)
-	h.ui.Output(buf.String())
+	buf.WriteString(h.Colorize.Color("[reset]"))
+
+	prefix := fmt.Sprintf("%s (%s): ", id, provId)
+	s := bufio.NewScanner(strings.NewReader(msg))
+	for s.Scan() {
+		buf.WriteString(fmt.Sprintf("%s%s\n", prefix, s.Text()))
+	}
+
+	h.ui.Output(strings.TrimSpace(buf.String()))
 }
 
 func (h *UiHook) PreRefresh(
