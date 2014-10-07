@@ -18,6 +18,18 @@ var (
 	// ErrConflict is used to indicate the upload was rejected
 	// due to a conflict on the state
 	ErrConflict = fmt.Errorf("Conflicting state file")
+
+	// ErrRequireAuth is used if the remote server requires
+	// authentication and none is provided
+	ErrRequireAuth = fmt.Errorf("Remote server requires authentication")
+
+	// ErrInvalidAuth is used if we provide authentication which
+	// is not valid
+	ErrInvalidAuth = fmt.Errorf("Invalid authentication")
+
+	// ErrRemoteInternal is used if we get an internal error
+	// from the remote server
+	ErrRemoteInternal = fmt.Errorf("Remote server reporting internal error")
 )
 
 // RemoteStatePayload is used to return the remote state
@@ -78,11 +90,11 @@ func (r *remoteStateClient) GetState() (*RemoteStatePayload, error) {
 	case http.StatusNotFound:
 		return nil, nil
 	case http.StatusUnauthorized:
-		return nil, fmt.Errorf("Remote server requires authentication")
+		return nil, ErrRequireAuth
 	case http.StatusForbidden:
-		return nil, fmt.Errorf("Invalid authentication")
+		return nil, ErrInvalidAuth
 	case http.StatusInternalServerError:
-		return nil, fmt.Errorf("Remote server reporting internal error")
+		return nil, ErrRemoteInternal
 	default:
 		return nil, fmt.Errorf("Unexpected HTTP response code %d", resp.StatusCode)
 	}
@@ -176,11 +188,11 @@ func (r *remoteStateClient) PutState(state []byte, force bool) error {
 	case http.StatusConflict:
 		return ErrConflict
 	case http.StatusUnauthorized:
-		return fmt.Errorf("Remote server requires authentication")
+		return ErrRequireAuth
 	case http.StatusForbidden:
-		return fmt.Errorf("Invalid authentication")
+		return ErrInvalidAuth
 	case http.StatusInternalServerError:
-		return fmt.Errorf("Remote server reporting internal error")
+		return ErrRemoteInternal
 	default:
 		return fmt.Errorf("Unexpected HTTP response code %d", resp.StatusCode)
 	}
