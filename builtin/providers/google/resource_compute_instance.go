@@ -124,6 +124,33 @@ func resourceComputeInstance() *schema.Resource {
 				},
 			},
 
+			"service_account": &schema.Schema{
+				Type:     schema.TypeList,
+				Optional: true,
+				ForceNew: true,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"email": &schema.Schema{
+							Type:     schema.TypeString,
+							Computed: true,
+							ForceNew: true,
+						},
+
+						"scopes": &schema.Schema{
+							Type:      schema.TypeList,
+							Required:  true,
+							ForceNew:  true,
+							Elem:      &schema.Schema{
+								Type:      schema.TypeString,
+								StateFunc: func(v interface{}) string {
+									return canonicalizeServiceScope(v.(string))
+								},
+							},
+						},
+					},
+				},
+			},
+
 			"tags": &schema.Schema{
 				Type:     schema.TypeSet,
 				Optional: true,
@@ -259,6 +286,26 @@ func resourceComputeInstanceCreate(d *schema.ResourceData, meta interface{}) err
 		networks = append(networks, &iface)
 	}
 
+	serviceAccountsCount := d.Get("service_account.#").(int)
+	serviceAccounts := make([]*compute.ServiceAccount, 0, serviceAccountsCount)
+	for i := 0; i < serviceAccountsCount; i++ {
+		prefix := fmt.Sprintf("service_account.%d", i)
+
+		scopesCount := d.Get(prefix + ".scopes.#").(int)
+		scopes := make([]string, 0, scopesCount)
+		for j := 0; j < scopesCount; j++ {
+			scope := d.Get(fmt.Sprintf(prefix + ".scopes.%d", j)).(string)
+			scopes = append(scopes, canonicalizeServiceScope(scope))
+		}
+
+		serviceAccount := &compute.ServiceAccount {
+			Email:  "default",
+			Scopes: scopes,
+		}
+
+		serviceAccounts = append(serviceAccounts, serviceAccount)
+	}
+
 	// Create the instance information
 	instance := compute.Instance{
 		CanIpForward:      d.Get("can_ip_forward").(bool),
@@ -269,18 +316,7 @@ func resourceComputeInstanceCreate(d *schema.ResourceData, meta interface{}) err
 		Name:              d.Get("name").(string),
 		NetworkInterfaces: networks,
 		Tags:              resourceInstanceTags(d),
-		/*
-			ServiceAccounts: []*compute.ServiceAccount{
-				&compute.ServiceAccount{
-					Email: "default",
-					Scopes: []string{
-						"https://www.googleapis.com/auth/userinfo.email",
-						"https://www.googleapis.com/auth/compute",
-						"https://www.googleapis.com/auth/devstorage.full_control",
-					},
-				},
-			},
-		*/
+		ServiceAccounts:   serviceAccounts,
 	}
 
 	log.Printf("[INFO] Requesting instance creation")
@@ -338,6 +374,16 @@ func resourceComputeInstanceRead(d *schema.ResourceData, meta interface{}) error
 	}
 
 	d.Set("can_ip_forward", instance.CanIpForward)
+
+	// Set the service accounts
+	for i, serviceAccount := range instance.ServiceAccounts {
+		prefix := fmt.Sprintf("service_account.%d", i)
+		d.Set(prefix + ".email", serviceAccount.Email)
+		d.Set(prefix + ".scopes.#", len(serviceAccount.Scopes))
+		for j, scope := range serviceAccount.Scopes {
+			d.Set(fmt.Sprintf("%s.scopes.%d", prefix, j), scope)
+		}
+	}
 
 	// Set the networks
 	externalIP := ""
