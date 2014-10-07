@@ -50,7 +50,8 @@ func TestGetState_Consul(t *testing.T) {
 		Server: "http://demo.consul.io/v1/kv/test/tf/remote",
 	}
 REQ:
-	payload, err := GetState(remote)
+	r := &remoteStateClient{conf: remote}
+	payload, err := r.GetState()
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -132,7 +133,8 @@ func TestGetState(t *testing.T) {
 			Server: s.URL,
 		}
 
-		payload, err := GetState(remote)
+		r := &remoteStateClient{remote}
+		payload, err := r.GetState()
 		errStr := ""
 		if err != nil {
 			errStr = err.Error()

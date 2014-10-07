@@ -21,22 +21,39 @@ type RemoteStatePayload struct {
 	State []byte
 }
 
-// GetState is used to read the remote state
-func GetState(conf *terraform.RemoteState) (*RemoteStatePayload, error) {
+// remoteStateClient is used to interact with a remote state store
+// using the API
+type remoteStateClient struct {
+	conf *terraform.RemoteState
+}
+
+// URL is used to return an appropriate URL to hit for the
+// given server and remote name
+func (r *remoteStateClient) URL() (*url.URL, error) {
 	// Get the base URL configuration
-	base, err := url.Parse(conf.Server)
+	base, err := url.Parse(r.conf.Server)
 	if err != nil {
-		return nil, fmt.Errorf("Failed to parse remote server '%s': %v", conf.Server, err)
+		return nil, fmt.Errorf("Failed to parse remote server '%s': %v", r.conf.Server, err)
 	}
 
 	// Compute the full path by just appending the name
-	base.Path = path.Join(base.Path, conf.Name)
+	base.Path = path.Join(base.Path, r.conf.Name)
 
 	// Add the request token if any
-	if conf.AuthToken != "" {
+	if r.conf.AuthToken != "" {
 		values := base.Query()
-		values.Set("access_token", conf.AuthToken)
+		values.Set("access_token", r.conf.AuthToken)
 		base.RawQuery = values.Encode()
+	}
+	return base, nil
+}
+
+// GetState is used to read the remote state
+func (r *remoteStateClient) GetState() (*RemoteStatePayload, error) {
+	// Get the target URL
+	base, err := r.URL()
+	if err != nil {
+		return nil, err
 	}
 
 	// Request the url
