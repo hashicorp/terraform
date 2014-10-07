@@ -217,7 +217,8 @@ This is likely a bug, please report it.`)
 // the local state if necessary.
 func RefreshState(conf *terraform.RemoteState) (StateChangeResult, error) {
 	// Read the state from the server
-	payload, err := GetState(conf)
+	client := &remoteStateClient{conf: conf}
+	payload, err := client.GetState()
 	if err != nil {
 		return StateChangeNoop,
 			fmt.Errorf("Failed to read remote state: %v", err)
