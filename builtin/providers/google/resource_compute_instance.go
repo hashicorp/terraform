@@ -97,6 +97,13 @@ func resourceComputeInstance() *schema.Resource {
 				},
 			},
 
+			"can_ip_forward": &schema.Schema{
+				Type:     schema.TypeBool,
+				Optional: true,
+				Default:  false,
+				ForceNew: true,
+			},
+
 			"metadata": &schema.Schema{
 				Type:     schema.TypeList,
 				Optional: true,
@@ -230,6 +237,7 @@ func resourceComputeInstanceCreate(d *schema.ResourceData, meta interface{}) err
 
 	// Create the instance information
 	instance := compute.Instance{
+		CanIpForward:      d.Get("can_ip_forward").(bool),
 		Description:       d.Get("description").(string),
 		Disks:             disks,
 		MachineType:       machineType.SelfLink,
@@ -304,6 +312,8 @@ func resourceComputeInstanceRead(d *schema.ResourceData, meta interface{}) error
 
 		return fmt.Errorf("Error reading instance: %s", err)
 	}
+
+	d.Set("can_ip_forward", instance.CanIpForward)
 
 	// Set the networks
 	for i, iface := range instance.NetworkInterfaces {
