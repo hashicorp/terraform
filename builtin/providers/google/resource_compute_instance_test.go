@@ -298,6 +298,7 @@ resource "google_compute_instance" "foobar" {
 	disk {
 		disk = "terraform-test-disk"
 		auto_delete = false
+		type = "pd-ssd"
 	}
 
 	network {

@@ -67,6 +67,8 @@ The `disk` block supports:
 * `auto_delete` - (Optional) Whether or not the disk should be auto-deleted.
     This defaults to true.
 
+* `type` - (Optional) The GCE disk type.
+
 The `network` block supports:
 
 * `source` - (Required) The name of the network to attach this interface to.

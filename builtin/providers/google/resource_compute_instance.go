@@ -60,6 +60,13 @@ func resourceComputeInstance() *schema.Resource {
 							Type:     schema.TypeString,
 							Optional: true,
 						},
+
+						"type": &schema.Schema{
+							Type:     schema.TypeString,
+							Optional: true,
+							ForceNew: true,
+						},
+
 						"auto_delete": &schema.Schema{
 							Type:     schema.TypeBool,
 							Optional: true,
@@ -195,6 +202,18 @@ func resourceComputeInstanceCreate(d *schema.ResourceData, meta interface{}) err
 			disk.InitializeParams = &compute.AttachedDiskInitializeParams{
 				SourceImage: image.SelfLink,
 			}
+		}
+
+                if v, ok := d.GetOk(prefix + ".type"); ok {
+			diskTypeName := v.(string)
+			diskType, err := readDiskType(config, zone, diskTypeName)
+			if err != nil {
+				return fmt.Errorf(
+					"Error loading disk type '%s': %s",
+					diskTypeName, err)
+			}
+
+			disk.InitializeParams.DiskType = diskType.SelfLink
 		}
 
 		disks = append(disks, &disk)
