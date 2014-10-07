@@ -14,6 +14,12 @@ import (
 	"github.com/hashicorp/terraform/terraform"
 )
 
+var (
+	// ErrConflict is used to indicate the upload was rejected
+	// due to a conflict on the state
+	ErrConflict = fmt.Errorf("Conflicting state file")
+)
+
 // RemoteStatePayload is used to return the remote state
 // along with associated meta data when we do a remote fetch.
 type RemoteStatePayload struct {
@@ -124,4 +130,58 @@ func (r *remoteStateClient) GetState() (*RemoteStatePayload, error) {
 	}
 
 	return payload, nil
+}
+
+// Put is used to update the remote state
+func (r *remoteStateClient) PutState(state []byte, force bool) error {
+	// Get the target URL
+	base, err := r.URL()
+	if err != nil {
+		return err
+	}
+
+	// Generate the MD5
+	hash := md5.Sum(state)
+	b64 := base64.StdEncoding.EncodeToString(hash[:md5.Size])
+
+	// Set the force query parameter if needed
+	if force {
+		values := base.Query()
+		values.Set("force", "true")
+		base.RawQuery = values.Encode()
+	}
+
+	// Make the HTTP client and request
+	client := http.Client{}
+	req, err := http.NewRequest("PUT", base.String(), bytes.NewReader(state))
+	if err != nil {
+		return fmt.Errorf("Failed to make HTTP request: %v", err)
+	}
+
+	// Prepare the request
+	req.Header.Set("Content-MD5", b64)
+	req.ContentLength = int64(len(state))
+
+	// Make the request
+	resp, err := client.Do(req)
+	if err != nil {
+		return fmt.Errorf("Failed to upload state: %v", err)
+	}
+	defer resp.Body.Close()
+
+	// Handle the error codes
+	switch resp.StatusCode {
+	case http.StatusOK:
+		return nil
+	case http.StatusConflict:
+		return ErrConflict
+	case http.StatusUnauthorized:
+		return fmt.Errorf("Remote server requires authentication")
+	case http.StatusForbidden:
+		return fmt.Errorf("Invalid authentication")
+	case http.StatusInternalServerError:
+		return fmt.Errorf("Remote server reporting internal error")
+	default:
+		return fmt.Errorf("Unexpected HTTP response code %d", resp.StatusCode)
+	}
 }
