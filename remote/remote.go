@@ -178,6 +178,30 @@ func validConfig(conf *terraform.RemoteState) error {
 	return nil
 }
 
+// ReadLocalState is used to read and parse the local state file
+func ReadLocalState() (*terraform.State, []byte, error) {
+	path, err := HiddenStatePath()
+	if err != nil {
+		return nil, nil, err
+	}
+
+	// Open the existing file
+	raw, err := ioutil.ReadFile(path)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return nil, nil, nil
+		}
+		return nil, nil, fmt.Errorf("Failed to open state file '%s': %s", path, err)
+	}
+
+	// Decode the state
+	state, err := terraform.ReadState(bytes.NewReader(raw))
+	if err != nil {
+		return nil, nil, fmt.Errorf("Failed to read state file '%s': %v", path, err)
+	}
+	return state, raw, nil
+}
+
 // ValidateConfig is used to take a remote state configuration,
 // ensure the local directory exists and that the remote state
 // does not conflict with an existing state file.
@@ -193,39 +217,28 @@ func ValidateConfig(conf *terraform.RemoteState) error {
 			"Remote state setup failed: %s", err)
 	}
 
-	// Get the path to the state file
-	path, err := HiddenStatePath()
+	// Check for local state
+	local, _, err := ReadLocalState()
 	if err != nil {
 		return err
 	}
 
-	// Open the existing file
-	f, err := os.Open(path)
-	if err != nil {
-		if !os.IsNotExist(err) {
-			return fmt.Errorf("Failed to open state file '%s': %s", path, err)
-		}
+	// Nothing to check if no local state yet
+	if local == nil {
 		return nil
-	}
-	defer f.Close()
-
-	// Decode the state
-	state, err := terraform.ReadState(f)
-	if err != nil {
-		return fmt.Errorf("Failed to read state file '%s': %v", path, err)
 	}
 
 	// If the hidden state file has no remote info, something
 	// is definitely wrong...
-	if state.Remote == nil {
-		return fmt.Errorf(`State file '%s' missing remote storage information.
+	if local.Remote == nil {
+		return fmt.Errorf(`Local state file missing remote storage information.
 This is likely a bug, please report it.`)
 	}
 
 	// Check if there is a conflict
-	if !state.Remote.Equals(conf) {
+	if !local.Remote.Equals(conf) {
 		return fmt.Errorf(
-			"Conflicting definitions for remote storage in existing state file '%s'", path)
+			"Conflicting definitions for remote storage in existing state file")
 	}
 	return nil
 }
@@ -258,26 +271,10 @@ func RefreshState(conf *terraform.RemoteState) (StateChangeResult, error) {
 		}
 	}
 
-	// Get the path to the state file
-	path, err := HiddenStatePath()
+	// Decode the state
+	localState, raw, err := ReadLocalState()
 	if err != nil {
 		return StateChangeNoop, err
-	}
-
-	// Get the existing state file
-	raw, err := ioutil.ReadFile(path)
-	if err != nil && !os.IsNotExist(err) {
-		return StateChangeNoop, fmt.Errorf("Failed to read local state: %v", err)
-	}
-
-	// Decode the state
-	var localState *terraform.State
-	if raw != nil {
-		localState, err = terraform.ReadState(bytes.NewReader(raw))
-		if err != nil {
-			return StateChangeNoop,
-				fmt.Errorf("Failed to decode state file '%s': %v", path, err)
-		}
 	}
 
 	// We need to handle the matrix of cases in reconciling
@@ -335,16 +332,10 @@ func RefreshState(conf *terraform.RemoteState) (StateChangeResult, error) {
 // can be 'forced' to override any conflict detection
 // on the server-side.
 func PushState(conf *terraform.RemoteState, force bool) (StateChangeResult, error) {
-	// Get the path to the state file
-	path, err := HiddenStatePath()
+	// Read the local state
+	_, raw, err := ReadLocalState()
 	if err != nil {
 		return StateChangeNoop, err
-	}
-
-	// Get the existing state file
-	raw, err := ioutil.ReadFile(path)
-	if err != nil && !os.IsNotExist(err) {
-		return StateChangeNoop, fmt.Errorf("Failed to read local state: %v", err)
 	}
 
 	// Check if there is no local state
