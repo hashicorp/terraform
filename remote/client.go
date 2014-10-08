@@ -19,6 +19,10 @@ var (
 	// due to a conflict on the state
 	ErrConflict = fmt.Errorf("Conflicting state file")
 
+	// ErrServerNewer is used to indicate the serial number of
+	// the state is newer on the server side
+	ErrServerNewer = fmt.Errorf("Server-side Serial is newer")
+
 	// ErrRequireAuth is used if the remote server requires
 	// authentication and none is provided
 	ErrRequireAuth = fmt.Errorf("Remote server requires authentication")
@@ -187,6 +191,8 @@ func (r *remoteStateClient) PutState(state []byte, force bool) error {
 		return nil
 	case http.StatusConflict:
 		return ErrConflict
+	case http.StatusPreconditionFailed:
+		return ErrServerNewer
 	case http.StatusUnauthorized:
 		return ErrRequireAuth
 	case http.StatusForbidden:

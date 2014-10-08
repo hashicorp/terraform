@@ -194,6 +194,13 @@ func TestPutState(t *testing.T) {
 			ExpectErr: ErrConflict.Error(),
 		},
 		&tcase{
+			Code:      http.StatusPreconditionFailed,
+			Path:      "/foobar",
+			Body:      inp,
+			ExpectMD5: hash,
+			ExpectErr: ErrServerNewer.Error(),
+		},
+		&tcase{
 			Code:      http.StatusUnauthorized,
 			Path:      "/foobar",
 			Body:      inp,
