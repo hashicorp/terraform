@@ -39,6 +39,12 @@ For example, `${count.index}` will interpolate the current index
 in a multi-count resource. For more information on count, see the
 resource configuration page.
 
+**To reference path information**, the syntax is `path.TYPE`.
+TYPE can be `cwd`, `module`, or `root`. `cwd` will interpolate the
+cwd. `module` will interpolate the path to the current module. `root`
+will interpolate the path of the root module. In general, you probably
+want the `path.module` variable.
+
 ## Built-in Functions
 
 Terraform ships with built-in functions. Functions are called with

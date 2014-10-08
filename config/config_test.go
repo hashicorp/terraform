@@ -144,6 +144,20 @@ func TestConfigValidate_outputBadField(t *testing.T) {
 	}
 }
 
+func TestConfigValidate_pathVar(t *testing.T) {
+	c := testConfig(t, "validate-path-var")
+	if err := c.Validate(); err != nil {
+		t.Fatal("err: %s", err)
+	}
+}
+
+func TestConfigValidate_pathVarInvalid(t *testing.T) {
+	c := testConfig(t, "validate-path-var-invalid")
+	if err := c.Validate(); err == nil {
+		t.Fatal("should not be valid")
+	}
+}
+
 func TestConfigValidate_unknownThing(t *testing.T) {
 	c := testConfig(t, "validate-unknownthing")
 	if err := c.Validate(); err == nil {

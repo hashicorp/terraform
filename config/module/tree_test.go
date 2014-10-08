@@ -6,6 +6,42 @@ import (
 	"testing"
 )
 
+func TestTreeChild(t *testing.T) {
+	storage := testStorage(t)
+	tree := NewTree("", testConfig(t, "child"))
+	if err := tree.Load(storage, GetModeGet); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	// Should be able to get the root child
+	if c := tree.Child([]string{}); c == nil {
+		t.Fatal("should not be nil")
+	} else if c.Name() != "root" {
+		t.Fatalf("bad: %#v", c.Name())
+	}
+
+	// Should be able to get the root child
+	if c := tree.Child(nil); c == nil {
+		t.Fatal("should not be nil")
+	} else if c.Name() != "root" {
+		t.Fatalf("bad: %#v", c.Name())
+	}
+
+	// Should be able to get the foo child
+	if c := tree.Child([]string{"foo"}); c == nil {
+		t.Fatal("should not be nil")
+	} else if c.Name() != "foo" {
+		t.Fatalf("bad: %#v", c.Name())
+	}
+
+	// Should be able to get the nested child
+	if c := tree.Child([]string{"foo", "bar"}); c == nil {
+		t.Fatal("should not be nil")
+	} else if c.Name() != "bar" {
+		t.Fatalf("bad: %#v", c.Name())
+	}
+}
+
 func TestTreeLoad(t *testing.T) {
 	storage := testStorage(t)
 	tree := NewTree("", testConfig(t, "basic"))

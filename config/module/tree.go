@@ -67,6 +67,20 @@ func (t *Tree) Config() *config.Config {
 	return t.config
 }
 
+// Child returns the child with the given path (by name).
+func (t *Tree) Child(path []string) *Tree {
+	if len(path) == 0 {
+		return t
+	}
+
+	c := t.Children()[path[0]]
+	if c == nil {
+		return nil
+	}
+
+	return c.Child(path[1:])
+}
+
 // Children returns the children of this tree (the modules that are
 // imported by this root).
 //
