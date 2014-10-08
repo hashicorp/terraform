@@ -39,6 +39,7 @@ IMPROVEMENTS:
   * providers/aws: Add `self` option for security groups for ingress
       rules with self as source. [GH-303]
   * providers/google: Support `target_tags` for firewalls. [GH-324]
+  * providers/google: `google_compute_instance` supports `can_ip_forward` [GH-375]
   * provisioners/local-exec: Output from command is shown in CLI output. [GH-311]
   * provisioners/remote-exec: Output from command is shown in CLI output. [GH-311]
 
