@@ -9,7 +9,7 @@ import (
 	"github.com/mitchellh/goamz/ec2"
 )
 
-func TestAccVpc(t *testing.T) {
+func TestAccVpc_basic(t *testing.T) {
 	var vpc ec2.VPC
 
 	resource.Test(t, resource.TestCase{

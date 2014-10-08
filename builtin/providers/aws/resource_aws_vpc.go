@@ -3,142 +3,133 @@ package aws
 import (
 	"fmt"
 	"log"
-	"strconv"
 	"time"
 
-	"github.com/hashicorp/terraform/helper/diff"
+	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/helper/resource"
-	"github.com/hashicorp/terraform/terraform"
 	"github.com/mitchellh/goamz/ec2"
 )
 
-func resource_aws_vpc_create(
-	s *terraform.InstanceState,
-	d *terraform.InstanceDiff,
-	meta interface{}) (*terraform.InstanceState, error) {
+func resourceAwsVpc() *schema.Resource {
+	return &schema.Resource{
+		Create: resourceAwsVpcCreate,
+		Read:   resourceAwsVpcRead,
+		Update: resourceAwsVpcUpdate,
+		Delete: resourceAwsVpcDelete,
+
+		Schema: map[string]*schema.Schema{
+			"cidr_block": &schema.Schema{
+				Type:     schema.TypeString,
+				Required: true,
+				ForceNew: true,
+			},
+
+			"enable_dns_hostnames": &schema.Schema{
+				Type:     schema.TypeBool,
+				Optional: true,
+				Computed: true,
+			},
+
+			"enable_dns_support": &schema.Schema{
+				Type:     schema.TypeBool,
+				Optional: true,
+				Computed: true,
+			},
+		},
+	}
+}
+
+func resourceAwsVpcCreate(d *schema.ResourceData, meta interface{}) error {
 	p := meta.(*ResourceProvider)
 	ec2conn := p.ec2conn
 
-	// Merge the diff so that we have all the proper attributes
-	s = s.MergeDiff(d)
-
 	// Create the VPC
 	createOpts := &ec2.CreateVpc{
-		CidrBlock: s.Attributes["cidr_block"],
+		CidrBlock: d.Get("cidr_block").(string),
 	}
 	log.Printf("[DEBUG] VPC create config: %#v", createOpts)
 	vpcResp, err := ec2conn.CreateVpc(createOpts)
 	if err != nil {
-		return nil, fmt.Errorf("Error creating VPC: %s", err)
+		return fmt.Errorf("Error creating VPC: %s", err)
 	}
 
 	// Get the ID and store it
 	vpc := &vpcResp.VPC
 	log.Printf("[INFO] VPC ID: %s", vpc.VpcId)
-	s.ID = vpc.VpcId
+	d.SetId(vpc.VpcId)
+
+	// Set partial mode and say that we setup the cidr block
+	d.Partial(true)
+	d.SetPartial("cidr_block")
 
 	// Wait for the VPC to become available
 	log.Printf(
 		"[DEBUG] Waiting for VPC (%s) to become available",
-		s.ID)
+		d.Id())
 	stateConf := &resource.StateChangeConf{
 		Pending: []string{"pending"},
 		Target:  "available",
-		Refresh: VPCStateRefreshFunc(ec2conn, s.ID),
+		Refresh: VPCStateRefreshFunc(ec2conn, d.Id()),
 		Timeout: 10 * time.Minute,
 	}
-	vpcRaw, err := stateConf.WaitForState()
-	if err != nil {
-		return s, fmt.Errorf(
+	if _, err := stateConf.WaitForState(); err != nil {
+		return fmt.Errorf(
 			"Error waiting for VPC (%s) to become available: %s",
-			s.ID, err)
-	}
-
-	if attr, ok := d.Attributes["enable_dns_support"]; ok {
-		options := new(ec2.ModifyVpcAttribute)
-
-		options.EnableDnsSupport = attr.New != "" && attr.New != "false"
-		options.SetEnableDnsSupport = true
-
-		s.Attributes["enable_dns_support"] = strconv.FormatBool(options.EnableDnsSupport)
-
-		log.Printf("[INFO] Modifying vpc attributes for %s: %#v", s.ID, options)
-
-		if _, err := ec2conn.ModifyVpcAttribute(s.ID, options); err != nil {
-			return s, err
-		}
-	}
-
-	if attr, ok := d.Attributes["enable_dns_hostnames"]; ok {
-		options := new(ec2.ModifyVpcAttribute)
-
-		options.EnableDnsHostnames = attr.New != "" && attr.New != "false"
-		options.SetEnableDnsHostnames = true
-
-		s.Attributes["enable_dns_hostnames"] = strconv.FormatBool(options.EnableDnsHostnames)
-
-		log.Printf("[INFO] Modifying enable_dns_hostnames vpc attribute for %s: %#v", s.ID, options)
-
-		if _, err := ec2conn.ModifyVpcAttribute(s.ID, options); err != nil {
-			return s, err
-		}
+			d.Id(), err)
 	}
 
 	// Update our attributes and return
-	return resource_aws_vpc_update_state(s, vpcRaw.(*ec2.VPC))
+	return resourceAwsVpcUpdate(d, meta)
 }
 
-func resource_aws_vpc_update(
-	s *terraform.InstanceState,
-	d *terraform.InstanceDiff,
-	meta interface{}) (*terraform.InstanceState, error) {
+func resourceAwsVpcUpdate(d *schema.ResourceData, meta interface{}) error {
 	p := meta.(*ResourceProvider)
 	ec2conn := p.ec2conn
-	rs := s.MergeDiff(d)
 
-	log.Printf("[DEBUG] attributes: %#v", d.Attributes)
+	// Turn on partial mode
+	d.Partial(true)
+	defer d.Partial(false)
 
-	if attr, ok := d.Attributes["enable_dns_support"]; ok {
+	if d.HasChange("enable_dns_hostnames") {
 		options := new(ec2.ModifyVpcAttribute)
-
-		options.EnableDnsSupport = attr.New != "" && attr.New != "false"
-		options.SetEnableDnsSupport = true
-
-		rs.Attributes["enable_dns_support"] = strconv.FormatBool(options.EnableDnsSupport)
-
-		log.Printf("[INFO] Modifying enable_dns_support vpc attribute for %s: %#v", s.ID, options)
-
-		if _, err := ec2conn.ModifyVpcAttribute(s.ID, options); err != nil {
-			return s, err
-		}
-	}
-
-	if attr, ok := d.Attributes["enable_dns_hostnames"]; ok {
-		options := new(ec2.ModifyVpcAttribute)
-
-		options.EnableDnsHostnames = attr.New != "" && attr.New != "false"
+		options.EnableDnsHostnames = d.Get("enable_dns_hostnames").(bool)
 		options.SetEnableDnsHostnames = true
 
-		rs.Attributes["enable_dns_hostnames"] = strconv.FormatBool(options.EnableDnsHostnames)
-
-		log.Printf("[INFO] Modifying enable_dns_hostnames vpc attribute for %s: %#v", s.ID, options)
-
-		if _, err := ec2conn.ModifyVpcAttribute(s.ID, options); err != nil {
-			return s, err
+		log.Printf(
+			"[INFO] Modifying enable_dns_hostnames vpc attribute for %s: %#v",
+			d.Id(), options)
+		if _, err := ec2conn.ModifyVpcAttribute(d.Id(), options); err != nil {
+			return err
 		}
+
+		d.SetPartial("enable_dns_hostnames")
 	}
 
-	return rs, nil
+	if d.HasChange("enable_dns_support") {
+		options := new(ec2.ModifyVpcAttribute)
+		options.EnableDnsSupport = d.Get("enable_dns_support").(bool)
+		options.SetEnableDnsSupport = true
+
+		log.Printf(
+			"[INFO] Modifying enable_dns_support vpc attribute for %s: %#v",
+			d.Id(), options)
+		if _, err := ec2conn.ModifyVpcAttribute(d.Id(), options); err != nil {
+			return err
+		}
+
+		d.SetPartial("enable_dns_support")
+	}
+
+	return nil
 }
 
-func resource_aws_vpc_destroy(
-	s *terraform.InstanceState,
-	meta interface{}) error {
+
+func resourceAwsVpcDelete(d *schema.ResourceData, meta interface{}) error {
 	p := meta.(*ResourceProvider)
 	ec2conn := p.ec2conn
 
-	log.Printf("[INFO] Deleting VPC: %s", s.ID)
-	if _, err := ec2conn.DeleteVpc(s.ID); err != nil {
+	log.Printf("[INFO] Deleting VPC: %s", d.Id())
+	if _, err := ec2conn.DeleteVpc(d.Id()); err != nil {
 		ec2err, ok := err.(*ec2.Error)
 		if ok && ec2err.Code == "InvalidVpcID.NotFound" {
 			return nil
@@ -150,60 +141,37 @@ func resource_aws_vpc_destroy(
 	return nil
 }
 
-func resource_aws_vpc_refresh(
-	s *terraform.InstanceState,
-	meta interface{}) (*terraform.InstanceState, error) {
+func resourceAwsVpcRead(d *schema.ResourceData, meta interface{}) error {
 	p := meta.(*ResourceProvider)
 	ec2conn := p.ec2conn
 
-	vpcRaw, _, err := VPCStateRefreshFunc(ec2conn, s.ID)()
+	// Refresh the VPC state
+	vpcRaw, _, err := VPCStateRefreshFunc(ec2conn, d.Id())()
 	if err != nil {
-		return s, err
+		return err
 	}
 	if vpcRaw == nil {
-		return nil, nil
+		return nil
 	}
 
-	if dnsSupportResp, err := ec2conn.VpcAttribute(s.ID, "enableDnsSupport"); err != nil {
-		return s, err
-	} else {
-		s.Attributes["enable_dns_support"] = strconv.FormatBool(dnsSupportResp.EnableDnsSupport)
+	// VPC stuff
+	vpc := vpcRaw.(*ec2.VPC)
+	d.Set("cidr_block", vpc.CidrBlock)
+
+	// Attributes
+	resp, err := ec2conn.VpcAttribute(d.Id(), "enableDnsSupport")
+	if err != nil {
+		return err
 	}
+	d.Set("enable_dns_support", resp.EnableDnsSupport)
 
-	if dnsHostnamesResp, err := ec2conn.VpcAttribute(s.ID, "enableDnsHostnames"); err != nil {
-		return s, err
-	} else {
-		s.Attributes["enable_dns_hostnames"] = strconv.FormatBool(dnsHostnamesResp.EnableDnsHostnames)
+	resp, err = ec2conn.VpcAttribute(d.Id(), "enableDnsHostnames")
+	if err != nil {
+		return err
 	}
+	d.Set("enable_dns_hostnames", resp.EnableDnsHostnames)
 
-	return resource_aws_vpc_update_state(s, vpcRaw.(*ec2.VPC))
-}
-
-func resource_aws_vpc_diff(
-	s *terraform.InstanceState,
-	c *terraform.ResourceConfig,
-	meta interface{}) (*terraform.InstanceDiff, error) {
-	b := &diff.ResourceBuilder{
-		Attrs: map[string]diff.AttrType{
-			"cidr_block":           diff.AttrTypeCreate,
-			"enable_dns_support":   diff.AttrTypeUpdate,
-			"enable_dns_hostnames": diff.AttrTypeUpdate,
-		},
-
-		ComputedAttrs: []string{
-			"enable_dns_support",
-			"enable_dns_hostnames",
-		},
-	}
-
-	return b.Diff(s, c)
-}
-
-func resource_aws_vpc_update_state(
-	s *terraform.InstanceState,
-	vpc *ec2.VPC) (*terraform.InstanceState, error) {
-	s.Attributes["cidr_block"] = vpc.CidrBlock
-	return s, nil
+	return nil
 }
 
 // VPCStateRefreshFunc returns a resource.StateRefreshFunc that is used to watch

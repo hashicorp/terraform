@@ -117,6 +117,7 @@ func resourceAwsInstance() *schema.Resource {
 				Type:     schema.TypeBool,
 				Optional: true,
 			},
+
 			"iam_instance_profile": &schema.Schema{
 				Type:     schema.TypeString,
 				ForceNew: true,
