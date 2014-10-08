@@ -24,6 +24,10 @@ func resource_aws_launch_configuration_create(
 
 	var err error
 	createLaunchConfigurationOpts := autoscaling.CreateLaunchConfiguration{}
+     
+	if rs.Attributes["iam_instance_profile"] != "" {
+		createLaunchConfigurationOpts.IamInstanceProfile = rs.Attributes["iam_instance_profile"]
+	}
 
 	if rs.Attributes["image_id"] != "" {
 		createLaunchConfigurationOpts.ImageId = rs.Attributes["image_id"]
@@ -124,13 +128,14 @@ func resource_aws_launch_configuration_diff(
 
 	b := &diff.ResourceBuilder{
 		Attrs: map[string]diff.AttrType{
-			"image_id":        diff.AttrTypeCreate,
-			"instance_id":     diff.AttrTypeCreate,
-			"instance_type":   diff.AttrTypeCreate,
-			"key_name":        diff.AttrTypeCreate,
-			"name":            diff.AttrTypeCreate,
-			"security_groups": diff.AttrTypeCreate,
-			"user_data":       diff.AttrTypeCreate,
+			"iam_instance_profile": diff.AttrTypeCreate,
+			"image_id":             diff.AttrTypeCreate,
+			"instance_id":          diff.AttrTypeCreate,
+			"instance_type":        diff.AttrTypeCreate,
+			"key_name":             diff.AttrTypeCreate,
+			"name":                 diff.AttrTypeCreate,
+			"security_groups":      diff.AttrTypeCreate,
+			"user_data":            diff.AttrTypeCreate,
 		},
 
 		ComputedAttrs: []string{
@@ -145,6 +150,7 @@ func resource_aws_launch_configuration_update_state(
 	s *terraform.InstanceState,
 	lc *autoscaling.LaunchConfiguration) (*terraform.InstanceState, error) {
 
+	s.Attributes["iam_instance_profile"] = lc.IamInstanceProfile
 	s.Attributes["image_id"] = lc.ImageId
 	s.Attributes["instance_type"] = lc.InstanceType
 	s.Attributes["key_name"] = lc.KeyName
@@ -199,6 +205,7 @@ func resource_aws_launch_configuration_validation() *config.Validator {
 			"instance_type",
 		},
 		Optional: []string{
+			"iam_instance_profile",
 			"key_name",
 			"security_groups.*",
 			"user_data",
