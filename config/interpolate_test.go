@@ -45,6 +45,14 @@ func TestNewInterpolatedVariable(t *testing.T) {
 			},
 			false,
 		},
+		{
+			"path.module",
+			&PathVariable{
+				Type: PathValueModule,
+				key:  "path.module",
+			},
+			false,
+		},
 	}
 
 	for i, tc := range cases {

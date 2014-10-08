@@ -75,6 +75,20 @@ type ModuleVariable struct {
 	key   string
 }
 
+// A PathVariable is a variable that references path information about the
+// module.
+type PathVariable struct {
+	Type PathValueType
+	key  string
+}
+
+type PathValueType byte
+
+const (
+	PathValueInvalid PathValueType = iota
+	PathValueModule
+)
+
 // A ResourceVariable is a variable that is referencing the field
 // of a resource, such as "${aws_instance.foo.ami}"
 type ResourceVariable struct {
@@ -101,6 +115,8 @@ type UserVariable struct {
 func NewInterpolatedVariable(v string) (InterpolatedVariable, error) {
 	if strings.HasPrefix(v, "count.") {
 		return NewCountVariable(v)
+	} else if strings.HasPrefix(v, "path.") {
+		return NewPathVariable(v)
 	} else if strings.HasPrefix(v, "var.") {
 		return NewUserVariable(v)
 	} else if strings.HasPrefix(v, "module.") {
@@ -203,6 +219,24 @@ func NewModuleVariable(key string) (*ModuleVariable, error) {
 }
 
 func (v *ModuleVariable) FullKey() string {
+	return v.key
+}
+
+func NewPathVariable(key string) (*PathVariable, error) {
+	var fieldType PathValueType
+	parts := strings.SplitN(key, ".", 2)
+	switch parts[1] {
+	case "module":
+		fieldType = PathValueModule
+	}
+
+	return &PathVariable{
+		Type: fieldType,
+		key:  key,
+	}, nil
+}
+
+func (v *PathVariable) FullKey() string {
 	return v.key
 }
 
