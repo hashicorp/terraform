@@ -150,7 +150,7 @@ func TestInit_remoteState(t *testing.T) {
 	defer fixDir(tmp, cwd)
 
 	s := terraform.NewState()
-	conf, srv := testRemoteState(t, s)
+	conf, srv := testRemoteState(t, s, 200)
 	defer srv.Close()
 
 	ui := new(cli.MockUi)
