@@ -25,6 +25,8 @@ The following arguments are supported:
 * `name` - (Required) The name of the launch configuration.
 * `image_id` - (Required) The EC2 image ID to launch.
 * `instance_type` - (Required) The size of instance to launch.
+* `iam_instance_profile` - (Optional) The IAM instance profile to associate
+     with launched instances.
 * `key_name` - (Optional) The key name that should be used for the instance.
 * `security_groups` - (Optional) A list of associated security group IDS.
 * `user_data` - (Optional) The user data to provide when launching the instance.

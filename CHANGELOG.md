@@ -38,6 +38,8 @@ IMPROVEMENTS:
   * providers/aws: Add `ssl_certificate_id` for ELB listeners. [GH-350]
   * providers/aws: Add `self` option for security groups for ingress
       rules with self as source. [GH-303]
+  * providers/aws: Add `iam_instance_profile` option to
+      `aws_launch_configuration`. [GH-371]
   * providers/google: Support `target_tags` for firewalls. [GH-324]
   * providers/google: `google_compute_instance` supports `can_ip_forward` [GH-375]
   * providers/google: `google_compute_disk` supports `type` to support disks
