@@ -220,12 +220,30 @@ func (c *Config) Validate() error {
 	modules := make(map[string]*Module)
 	dupped := make(map[string]struct{})
 	for _, m := range c.Modules {
+		// Check for duplicates
 		if _, ok := modules[m.Id()]; ok {
 			if _, ok := dupped[m.Id()]; !ok {
 				dupped[m.Id()] = struct{}{}
 
 				errs = append(errs, fmt.Errorf(
 					"%s: module repeated multiple times",
+					m.Id()))
+			}
+		}
+
+		// If we haven't seen this module before, check that the
+		// source has no interpolations.
+		if _, ok := modules[m.Id()]; !ok {
+			rc, err := NewRawConfig(map[string]interface{}{
+				"root": m.Source,
+			})
+			if err != nil {
+				errs = append(errs, fmt.Errorf(
+					"%s: module source error: %s",
+					m.Id(), err))
+			} else if len(rc.Interpolations) > 0 {
+				errs = append(errs, fmt.Errorf(
+					"%s: module source cannot contain interpolations",
 					m.Id()))
 			}
 		}

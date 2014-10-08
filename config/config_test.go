@@ -123,6 +123,13 @@ func TestConfigValidate_dupResource(t *testing.T) {
 	}
 }
 
+func TestConfigValidate_moduleSourceVar(t *testing.T) {
+	c := testConfig(t, "validate-module-source-var")
+	if err := c.Validate(); err == nil {
+		t.Fatal("should not be valid")
+	}
+}
+
 func TestConfigValidate_nil(t *testing.T) {
 	var c Config
 	if err := c.Validate(); err != nil {
