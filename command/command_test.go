@@ -174,3 +174,24 @@ func testTempDir(t *testing.T) string {
 
 	return d
 }
+
+// testCwdDir is used to change the current working directory
+// into a test directory that should be remoted after
+func testCwd(t *testing.T) (string, string) {
+	tmp, err := ioutil.TempDir("", "remote")
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	cwd, err := os.Getwd()
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	os.Chdir(tmp)
+	return tmp, cwd
+}
+
+// fixDir is used to as a defer to testDir
+func fixDir(tmp, cwd string) {
+	os.Chdir(cwd)
+	os.RemoveAll(tmp)
+}
