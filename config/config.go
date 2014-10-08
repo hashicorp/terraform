@@ -4,6 +4,7 @@ package config
 
 import (
 	"fmt"
+	"regexp"
 	"strconv"
 	"strings"
 
@@ -12,6 +13,10 @@ import (
 	"github.com/mitchellh/mapstructure"
 	"github.com/mitchellh/reflectwalk"
 )
+
+// NameRegexp is the regular expression that all names (modules, providers,
+// resources, etc.) must follow.
+var NameRegexp = regexp.MustCompile(`\A[A-Za-z0-9\-\_]+\z`)
 
 // Config is the configuration that comes from loading a collection
 // of Terraform templates.

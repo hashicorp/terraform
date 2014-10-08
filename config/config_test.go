@@ -228,6 +228,26 @@ func TestConfigValidate_varModuleInvalid(t *testing.T) {
 	}
 }
 
+func TestNameRegexp(t *testing.T) {
+	cases := []struct{
+		Input string
+		Match bool
+	}{
+		{"hello", true},
+		{"foo-bar", true},
+		{"foo_bar", true},
+		{"_hello", true},
+		{"foo bar", false},
+		{"foo.bar", false},
+	}
+
+	for _, tc := range cases {
+		if NameRegexp.Match([]byte(tc.Input)) != tc.Match {
+			t.Fatalf("Input: %s\n\nExpected: %#v", tc.Input, tc.Match)
+		}
+	}
+}
+
 func TestProviderConfigName(t *testing.T) {
 	pcs := []*ProviderConfig{
 		&ProviderConfig{Name: "aw"},
