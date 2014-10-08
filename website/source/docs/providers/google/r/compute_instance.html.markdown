@@ -28,6 +28,10 @@ resource "google_compute_instance" "default" {
 	metadata {
 		foo = "bar"
 	}
+
+	service_account {
+		scopes = ["userinfo-email", "compute-ro", "storage-ro"]
+	}
 }
 ```
 
@@ -54,6 +58,8 @@ The following arguments are supported:
     specified multiple times for multiple networks. Structure is documented
     below.
 
+* `service_account` - (Optional) Service account to attach to the instance.
+
 * `tags` - (Optional) Tags to attach to the instance.
 
 The `disk` block supports:
@@ -73,6 +79,14 @@ The `network` block supports:
 
 * `address` - (Optional) The IP address of a reserved IP address to assign
      to this interface.
+
+The `service_account` block supports:
+
+* `email` - (Optional) The email address associated with the service account.
+    This defaults to "default".
+
+* `scopes` - (Required) A list of service scopes. Both OAuth2 URLs and gcloud
+    short names are supported.
 
 ## Attributes Reference
 
