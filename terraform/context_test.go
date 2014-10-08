@@ -312,6 +312,25 @@ func TestContextValidate_resourceConfig_good(t *testing.T) {
 	}
 }
 
+func TestContextValidate_resourceNameSymbol(t *testing.T) {
+	p := testProvider("aws")
+	m := testModule(t, "validate-resource-name-symbol")
+	c := testContext(t, &ContextOpts{
+		Module: m,
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+	})
+
+	w, e := c.Validate()
+	if len(w) == 0 {
+		t.Fatalf("bad: %#v", w)
+	}
+	if len(e) > 0 {
+		t.Fatalf("bad: %#v", e)
+	}
+}
+
 func TestContextValidate_requiredVar(t *testing.T) {
 	m := testModule(t, "validate-required-var")
 	c := testContext(t, &ContextOpts{
