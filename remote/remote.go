@@ -293,20 +293,18 @@ func RefreshState(conf *terraform.RemoteState) (StateChangeResult, error) {
 		return StateChangeInit, nil
 
 	case remoteState == nil && localState != nil:
-		fallthrough
-	case remoteState.Serial < localState.Serial:
 		// User should probably do a push, nothing to do
 		return StateChangeLocalNewer, nil
 
 	case remoteState != nil && localState == nil:
-		fallthrough
+		goto PERSIST
+
+	case remoteState.Serial < localState.Serial:
+		// User should probably do a push, nothing to do
+		return StateChangeLocalNewer, nil
+
 	case remoteState.Serial > localState.Serial:
-		// Update the local state from the remote state
-		if err := Persist(bytes.NewReader(payload.State)); err != nil {
-			return StateChangeNoop,
-				fmt.Errorf("Failed to persist state: %v", err)
-		}
-		return StateChangeUpdateLocal, nil
+		goto PERSIST
 
 	case remoteState.Serial == localState.Serial:
 		// Check for a hash collision on the local/remote state
@@ -321,10 +319,18 @@ func RefreshState(conf *terraform.RemoteState) (StateChangeResult, error) {
 			// requires a manual reconciliation.
 			return StateChangeConflict, nil
 		}
+	default:
+		// We should not reach this point
+		panic("Unhandled remote update case")
 	}
 
-	// We should not reach this point
-	panic("Unhandled remote update case")
+PERSIST:
+	// Update the local state from the remote state
+	if err := Persist(bytes.NewReader(payload.State)); err != nil {
+		return StateChangeNoop,
+			fmt.Errorf("Failed to persist state: %v", err)
+	}
+	return StateChangeUpdateLocal, nil
 }
 
 // PushState is used to read the local state and
