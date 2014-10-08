@@ -13,6 +13,7 @@ Creates a new persistent disk within GCE, based on another disk.
 ```
 resource "google_compute_disk" "default" {
 	name = "test-disk"
+	type = "pd-ssd"
 	zone = "us-central1-a"
 	image = "debian7-wheezy"
 }
@@ -31,6 +32,8 @@ The following arguments are supported:
 
 * `size` - (Optional) The size of the image in gigabytes. If not specified,
     it will inherit the size of its base image.
+
+* `type` - (Optional) The GCE disk type.
 
 ## Attributes Reference
 

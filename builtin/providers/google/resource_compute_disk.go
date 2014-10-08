@@ -40,12 +40,27 @@ func resourceComputeDisk() *schema.Resource {
 				Optional: true,
 				ForceNew: true,
 			},
+
+			"type": &schema.Schema{
+				Type:	  schema.TypeString,
+				Optional: true,
+				ForceNew: true,
+			},
 		},
 	}
 }
 
 func resourceComputeDiskCreate(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
+
+	// Get the zone
+	log.Printf("[DEBUG] Loading zone: %s", d.Get("zone").(string))
+	zone, err := config.clientCompute.Zones.Get(
+		config.Project, d.Get("zone").(string)).Do()
+	if err != nil {
+		return fmt.Errorf(
+			"Error loading zone '%s': %s", d.Get("zone").(string), err)
+	}
 
 	// Build the disk parameter
 	disk := &compute.Disk{
@@ -64,6 +79,18 @@ func resourceComputeDiskCreate(d *schema.ResourceData, meta interface{}) error {
 		}
 
 		disk.SourceImage = image.SelfLink
+	}
+
+	if v, ok := d.GetOk("type"); ok {
+		log.Printf("[DEBUG] Loading disk type: %s", v.(string))
+		diskType, err := readDiskType(config, zone, v.(string))
+		if err != nil {
+			return fmt.Errorf(
+				"Error loading disk type '%s': %s",
+				v.(string), err)
+		}
+
+		disk.Type = diskType.SelfLink
 	}
 
 	op, err := config.clientCompute.Disks.Insert(

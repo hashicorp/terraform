@@ -80,5 +80,6 @@ resource "google_compute_disk" "foobar" {
 	name = "terraform-test"
 	image = "debian-7-wheezy-v20140814"
 	size = 50
+	type = "pd-ssd"
 	zone = "us-central1-a"
 }`
