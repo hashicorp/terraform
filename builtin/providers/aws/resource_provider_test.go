@@ -92,7 +92,4 @@ func testAccPreCheck(t *testing.T) {
 		log.Println("[INFO] Test: Using us-west-2 as test region")
 		os.Setenv("AWS_REGION", "us-west-2")
 	}
-	if v := os.Getenv("AWS_SSL_CERTIFICATE_ID"); v == "" {
-		t.Fatal("AWS_SSL_CERTIFICATE_ID must be set for acceptance tests")
-	}
 }

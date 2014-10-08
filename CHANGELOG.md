@@ -49,6 +49,8 @@ BUG FIXES:
   * core: Plugin loading from CWD works properly.
   * providers/aws: autoscaling_group can be launched into a vpc [GH-259]
   * providers/aws: not an error when RDS instance is deleted manually. [GH-307]
+  * providers/aws: Retry deleting subnet for some time while AWS eventually
+      destroys dependencies. [GH-357]
 
 ## 0.2.2 (September 9, 2014)
 
