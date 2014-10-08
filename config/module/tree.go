@@ -70,16 +70,12 @@ func (t *Tree) Config() *config.Config {
 // Child returns the child with the given path (by name).
 func (t *Tree) Child(path []string) *Tree {
 	if len(path) == 0 {
-		return nil
+		return t
 	}
 
 	c := t.Children()[path[0]]
 	if c == nil {
 		return nil
-	}
-
-	if len(path) == 1 {
-		return c
 	}
 
 	return c.Child(path[1:])

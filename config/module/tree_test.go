@@ -13,6 +13,20 @@ func TestTreeChild(t *testing.T) {
 		t.Fatalf("err: %s", err)
 	}
 
+	// Should be able to get the root child
+	if c := tree.Child([]string{}); c == nil {
+		t.Fatal("should not be nil")
+	} else if c.Name() != "root" {
+		t.Fatalf("bad: %#v", c.Name())
+	}
+
+	// Should be able to get the root child
+	if c := tree.Child(nil); c == nil {
+		t.Fatal("should not be nil")
+	} else if c.Name() != "root" {
+		t.Fatalf("bad: %#v", c.Name())
+	}
+
 	// Should be able to get the foo child
 	if c := tree.Child([]string{"foo"}); c == nil {
 		t.Fatal("should not be nil")
