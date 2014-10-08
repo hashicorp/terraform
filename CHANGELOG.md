@@ -22,6 +22,8 @@ FEATURES:
     variables).
   * The current index for a resource with a `count` set can be interpolated
     using `${count.index}`.
+  * Various paths can be interpolated with the `path.X` variables. For example,
+    the path to the current module can be interpolated using `${path.module}`.
 
 IMPROVEMENTS:
 
