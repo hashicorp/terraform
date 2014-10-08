@@ -260,7 +260,8 @@ func (c *Config) Validate() error {
 			// Check that the name matches our regexp
 			if !NameRegexp.Match([]byte(m.Name)) {
 				errs = append(errs, fmt.Errorf(
-					"%s: module name cannot contain special characters",
+					"%s: module name can only contain letters, numbers, "+
+						"dashes, and underscores",
 					m.Id()))
 			}
 		}
