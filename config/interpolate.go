@@ -86,7 +86,9 @@ type PathValueType byte
 
 const (
 	PathValueInvalid PathValueType = iota
+	PathValueCwd
 	PathValueModule
+	PathValueRoot
 )
 
 // A ResourceVariable is a variable that is referencing the field
@@ -226,8 +228,12 @@ func NewPathVariable(key string) (*PathVariable, error) {
 	var fieldType PathValueType
 	parts := strings.SplitN(key, ".", 2)
 	switch parts[1] {
+	case "cwd":
+		fieldType = PathValueCwd
 	case "module":
 		fieldType = PathValueModule
+	case "root":
+		fieldType = PathValueRoot
 	}
 
 	return &PathVariable{

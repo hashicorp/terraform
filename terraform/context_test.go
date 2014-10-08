@@ -2,6 +2,7 @@ package terraform
 
 import (
 	"fmt"
+	"os"
 	"reflect"
 	"sort"
 	"strings"
@@ -2819,6 +2820,43 @@ func TestContextPlan_moduleDestroy(t *testing.T) {
 	expected := strings.TrimSpace(testTerraformPlanModuleDestroyStr)
 	if actual != expected {
 		t.Fatalf("bad:\n%s", actual)
+	}
+}
+
+func TestContextPlan_pathVar(t *testing.T) {
+	cwd, err := os.Getwd()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	m := testModule(t, "plan-path-var")
+	p := testProvider("aws")
+	p.DiffFn = testDiffFn
+	ctx := testContext(t, &ContextOpts{
+		Module: m,
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+	})
+
+	plan, err := ctx.Plan(nil)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	actual := strings.TrimSpace(plan.String())
+	expected := strings.TrimSpace(testTerraformPlanPathVarStr)
+
+	// Warning: this ordering REALLY matters for this test. The
+	// order is: cwd, module, root.
+	expected = fmt.Sprintf(
+		expected,
+		cwd,
+		m.Config().Dir,
+		m.Config().Dir)
+
+	if actual != expected {
+		t.Fatalf("bad:\n%s\n\nexpected:\n\n%s", actual, expected)
 	}
 }
 

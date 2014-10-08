@@ -3,6 +3,7 @@ package terraform
 import (
 	"fmt"
 	"log"
+	"os"
 	"sort"
 	"strconv"
 	"strings"
@@ -54,7 +55,7 @@ type ContextOpts struct {
 	Provisioners map[string]ResourceProvisionerFactory
 	Variables    map[string]string
 
-	UIInput  UIInput
+	UIInput UIInput
 }
 
 // NewContext creates a new context.
@@ -1437,6 +1438,24 @@ func (c *walkContext) computeVars(
 			}
 
 			vs[n] = value
+		case *config.PathVariable:
+			switch v.Type {
+			case config.PathValueCwd:
+				wd, err := os.Getwd()
+				if err != nil {
+					return fmt.Errorf(
+						"Couldn't get cwd for var %s: %s",
+						v.FullKey(), err)
+				}
+
+				vs[n] = wd
+			case config.PathValueModule:
+				if t := c.Context.module.Child(c.Path[1:]); t != nil {
+					vs[n] = t.Config().Dir
+				}
+			case config.PathValueRoot:
+				vs[n] = c.Context.module.Config().Dir
+			}
 		case *config.ResourceVariable:
 			var attr string
 			var err error

@@ -875,3 +875,18 @@ STATE:
 
 <no state>
 `
+
+const testTerraformPlanPathVarStr = `
+DIFF:
+
+CREATE: aws_instance.foo
+  cwd:    "" => "%s/barpath"
+  module: "" => "%s/foopath"
+  root:   "" => "%s/barpath"
+  type:   "" => "aws_instance"
+
+STATE:
+
+<no state>
+`
+
