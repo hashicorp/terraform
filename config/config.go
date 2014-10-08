@@ -241,9 +241,9 @@ func (c *Config) Validate() error {
 			}
 		}
 
-		// If we haven't seen this module before, check that the
-		// source has no interpolations.
 		if _, ok := modules[m.Id()]; !ok {
+			// If we haven't seen this module before, check that the
+			// source has no interpolations.
 			rc, err := NewRawConfig(map[string]interface{}{
 				"root": m.Source,
 			})
@@ -254,6 +254,13 @@ func (c *Config) Validate() error {
 			} else if len(rc.Interpolations) > 0 {
 				errs = append(errs, fmt.Errorf(
 					"%s: module source cannot contain interpolations",
+					m.Id()))
+			}
+
+			// Check that the name matches our regexp
+			if !NameRegexp.Match([]byte(m.Name)) {
+				errs = append(errs, fmt.Errorf(
+					"%s: module name cannot contain special characters",
 					m.Id()))
 			}
 		}
