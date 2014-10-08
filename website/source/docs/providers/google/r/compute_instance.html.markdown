@@ -47,6 +47,10 @@ The following arguments are supported:
 * `disk` - (Required) Disks to attach to the instance. This can be specified
     multiple times for multiple disks. Structure is documented below.
 
+* `can_ip_forward` - (Optional) Whether to allow sending and receiving of
+    packets with non-matching source or destination IPs.
+    This defaults to false.
+
 * `metadata` - (Optional) Metadata key/value pairs to make available from
     within the instance.
 
