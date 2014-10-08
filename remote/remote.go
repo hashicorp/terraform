@@ -115,6 +115,24 @@ func (sc StateChangeResult) SuccessfulPull() bool {
 	}
 }
 
+// SuccessfulPush is used to clasify the StateChangeResult for
+// a push operation. This is different by operation, but can be used
+// to determine a proper exit code
+func (sc StateChangeResult) SuccessfulPush() bool {
+	switch sc {
+	case StateChangeNoop:
+		return true
+	case StateChangeUpdateRemote:
+		return true
+	case StateChangeRemoteNewer:
+		return false
+	case StateChangeConflict:
+		return false
+	default:
+		return false
+	}
+}
+
 // EnsureDirectory is used to make sure the local storage
 // directory exists
 func EnsureDirectory() error {
@@ -310,6 +328,45 @@ func RefreshState(conf *terraform.RemoteState) (StateChangeResult, error) {
 
 	// We should not reach this point
 	panic("Unhandled remote update case")
+}
+
+// PushState is used to read the local state and
+// update the remote state if necessary. The state push
+// can be 'forced' to override any conflict detection
+// on the server-side.
+func PushState(conf *terraform.RemoteState, force bool) (StateChangeResult, error) {
+	// Get the path to the state file
+	path, err := HiddenStatePath()
+	if err != nil {
+		return StateChangeNoop, err
+	}
+
+	// Get the existing state file
+	raw, err := ioutil.ReadFile(path)
+	if err != nil && !os.IsNotExist(err) {
+		return StateChangeNoop, fmt.Errorf("Failed to read local state: %v", err)
+	}
+
+	// Check if there is no local state
+	if raw == nil {
+		return StateChangeNoop, fmt.Errorf("No local state to push")
+	}
+
+	// Push the state to the server
+	client := &remoteStateClient{conf: conf}
+	err = client.PutState(raw, force)
+
+	// Handle the various edge cases
+	switch err {
+	case nil:
+		return StateChangeUpdateRemote, nil
+	case ErrServerNewer:
+		return StateChangeRemoteNewer, nil
+	case ErrConflict:
+		return StateChangeConflict, nil
+	default:
+		return StateChangeNoop, err
+	}
 }
 
 // blankState is used to return a serialized form of a blank state

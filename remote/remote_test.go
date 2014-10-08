@@ -241,6 +241,93 @@ func TestRefreshState_Conflict(t *testing.T) {
 	}
 }
 
+func TestPushState_NoState(t *testing.T) {
+	defer fixDir(testDir(t))
+
+	remote, srv := testRemotePush(t, 200)
+	defer srv.Close()
+
+	sc, err := PushState(remote, false)
+	if err.Error() != "No local state to push" {
+		t.Fatalf("err: %v", err)
+	}
+	if sc != StateChangeNoop {
+		t.Fatalf("Bad: %v", sc)
+	}
+}
+
+func TestPushState_Update(t *testing.T) {
+	defer fixDir(testDir(t))
+
+	remote, srv := testRemotePush(t, 200)
+	defer srv.Close()
+
+	local := terraform.NewState()
+	testWriteLocal(t, local)
+
+	sc, err := PushState(remote, false)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if sc != StateChangeUpdateRemote {
+		t.Fatalf("Bad: %v", sc)
+	}
+}
+
+func TestPushState_RemoteNewer(t *testing.T) {
+	defer fixDir(testDir(t))
+
+	remote, srv := testRemotePush(t, 412)
+	defer srv.Close()
+
+	local := terraform.NewState()
+	testWriteLocal(t, local)
+
+	sc, err := PushState(remote, false)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if sc != StateChangeRemoteNewer {
+		t.Fatalf("Bad: %v", sc)
+	}
+}
+
+func TestPushState_Conflict(t *testing.T) {
+	defer fixDir(testDir(t))
+
+	remote, srv := testRemotePush(t, 409)
+	defer srv.Close()
+
+	local := terraform.NewState()
+	testWriteLocal(t, local)
+
+	sc, err := PushState(remote, false)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if sc != StateChangeConflict {
+		t.Fatalf("Bad: %v", sc)
+	}
+}
+
+func TestPushState_Error(t *testing.T) {
+	defer fixDir(testDir(t))
+
+	remote, srv := testRemotePush(t, 500)
+	defer srv.Close()
+
+	local := terraform.NewState()
+	testWriteLocal(t, local)
+
+	sc, err := PushState(remote, false)
+	if err != ErrRemoteInternal {
+		t.Fatalf("err: %v", err)
+	}
+	if sc != StateChangeNoop {
+		t.Fatalf("Bad: %v", sc)
+	}
+}
+
 func TestBlankState(t *testing.T) {
 	remote := &terraform.RemoteState{
 		Name:      "foo",
@@ -328,6 +415,20 @@ func testRemote(t *testing.T, s *terraform.State) (*terraform.RemoteState, *http
 		}
 		resp.Header().Set("Content-MD5", b64md5)
 		resp.Write(buf.Bytes())
+	}
+	srv := httptest.NewServer(http.HandlerFunc(cb))
+	remote := &terraform.RemoteState{
+		Name:   "foo",
+		Server: srv.URL,
+	}
+	return remote, srv
+}
+
+// testRemotePush is used to make a test HTTP server to
+// return a given status code on push
+func testRemotePush(t *testing.T, c int) (*terraform.RemoteState, *httptest.Server) {
+	cb := func(resp http.ResponseWriter, req *http.Request) {
+		resp.WriteHeader(c)
 	}
 	srv := httptest.NewServer(http.HandlerFunc(cb))
 	remote := &terraform.RemoteState{
