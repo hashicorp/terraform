@@ -6,6 +6,8 @@ import (
 	"path/filepath"
 	"reflect"
 	"testing"
+
+	"github.com/hashicorp/terraform/terraform"
 )
 
 func TestMetaColorize(t *testing.T) {
@@ -51,7 +53,7 @@ func TestMetaColorize(t *testing.T) {
 	}
 }
 
-func TestMetaInputEnabled(t *testing.T) {
+func TestMetaInputMode(t *testing.T) {
 	test = false
 	defer func() { test = true }()
 
@@ -63,12 +65,12 @@ func TestMetaInputEnabled(t *testing.T) {
 		t.Fatalf("err: %s", err)
 	}
 
-	if !m.InputEnabled() {
-		t.Fatal("should input")
+	if m.InputMode() != terraform.InputModeStd {
+		t.Fatalf("bad: %#v", m.InputMode())
 	}
 }
 
-func TestMetaInput_disable(t *testing.T) {
+func TestMetaInputMode_disable(t *testing.T) {
 	test = false
 	defer func() { test = true }()
 
@@ -80,12 +82,12 @@ func TestMetaInput_disable(t *testing.T) {
 		t.Fatalf("err: %s", err)
 	}
 
-	if m.InputEnabled() {
-		t.Fatal("should not input")
+	if m.InputMode() > 0 {
+		t.Fatalf("bad: %#v", m.InputMode())
 	}
 }
 
-func TestMetaInput_defaultVars(t *testing.T) {
+func TestMetaInputMode_defaultVars(t *testing.T) {
 	test = false
 	defer func() { test = true }()
 
@@ -121,11 +123,12 @@ func TestMetaInput_defaultVars(t *testing.T) {
 		t.Fatalf("err: %s", err)
 	}
 
-	if m.InputEnabled() {
-		t.Fatal("should not input")
+	if m.InputMode()&terraform.InputModeVar != 0 {
+		t.Fatalf("bad: %#v", m.InputMode())
 	}
 }
-func TestMetaInput_vars(t *testing.T) {
+
+func TestMetaInputMode_vars(t *testing.T) {
 	test = false
 	defer func() { test = true }()
 
@@ -137,7 +140,7 @@ func TestMetaInput_vars(t *testing.T) {
 		t.Fatalf("err: %s", err)
 	}
 
-	if m.InputEnabled() {
-		t.Fatal("should not input")
+	if m.InputMode()&terraform.InputModeVar != 0 {
+		t.Fatalf("bad: %#v", m.InputMode())
 	}
 }

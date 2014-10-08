@@ -106,11 +106,20 @@ func (m *Meta) Context(copts contextOpts) (*terraform.Context, bool, error) {
 	return ctx, false, nil
 }
 
-// InputEnabled returns true if we should ask for input for context.
-func (m *Meta) InputEnabled() bool {
-	return !test && m.input &&
-		len(m.variables) == 0 &&
-		m.autoKey == ""
+// InputMode returns the type of input we should ask for in the form of
+// terraform.InputMode which is passed directly to Context.Input.
+func (m *Meta) InputMode() terraform.InputMode {
+	if test || !m.input {
+		return 0
+	}
+
+	var mode terraform.InputMode
+	mode |= terraform.InputModeProvider
+	if len(m.variables) == 0 && m.autoKey == "" {
+		mode |= terraform.InputModeVar
+	}
+
+	return mode
 }
 
 // UIInput returns a UIInput object to be used for asking for input.

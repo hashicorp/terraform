@@ -133,12 +133,10 @@ func (c *ApplyCommand) Run(args []string) int {
 			return 1
 		}
 	}
-	if c.InputEnabled() {
-		if !planned {
-			if err := ctx.Input(); err != nil {
-				c.Ui.Error(fmt.Sprintf("Error configuring: %s", err))
-				return 1
-			}
+	if !planned {
+		if err := ctx.Input(c.InputMode()); err != nil {
+			c.Ui.Error(fmt.Sprintf("Error configuring: %s", err))
+			return 1
 		}
 	}
 	if !validateContext(ctx, c.Ui) {
