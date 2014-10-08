@@ -1054,7 +1054,8 @@ func (c *walkContext) validateWalkFn() depgraph.WalkFunc {
 			if !config.NameRegexp.Match([]byte(rn.Config.Name)) {
 				l.Lock()
 				meta.Warns = append(meta.Warns, fmt.Sprintf(
-					"'%s' warning: name can't contain special characters",
+					"'%s' warning: name can't contain special characters.\n" +
+					"this will be an error in Terraform 0.4",
 					rn.Resource.Id))
 				l.Unlock()
 			}
