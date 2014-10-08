@@ -79,6 +79,32 @@ And that is all there is to it. Variables and outputs are used to configure
 modules and provide results. Resources within a module are isolated,
 and the whole thing is managed as a single unit.
 
+## Paths and Embedded Files
+
+It is sometimes useful to embed files within the module that aren't
+Terraform configuration files, such as a script to provision a resource
+or a file to upload.
+
+In these cases, you can't use a relative path, since paths in Terraform
+are generally relative to the working directory that Terraform was executed
+from. Instead, you want to use a module-relative path. To do this, use
+the [path interpolated variables](/docs/configuration/interpolation.html).
+
+An example is shown below:
+
+```
+resource "aws_instance" "server" {
+	...
+
+	provisioner "remote-exec" {
+		script = "${path.module}/script.sh"
+	}
+}
+```
+
+In the above, we use `${path.module}` to get a module-relative path. This
+is usually what you'll want in any case.
+
 ## Nested Modules
 
 You can use a module within a module just like you would anywhere else.
