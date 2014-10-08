@@ -1049,6 +1049,18 @@ func (c *walkContext) validateWalkFn() depgraph.WalkFunc {
 				return nil
 			}
 
+			// If the resouce name doesn't match the name regular
+			// expression, show a warning.
+			if !config.NameRegexp.Match([]byte(rn.Config.Name)) {
+				l.Lock()
+				meta.Warns = append(meta.Warns, fmt.Sprintf(
+					"%s: module name can only contain letters, numbers, "+
+						"dashes, and underscores.\n"+
+						"This will be an error in Terraform 0.4",
+					rn.Resource.Id))
+				l.Unlock()
+			}
+
 			log.Printf("[INFO] Validating resource: %s", rn.Resource.Id)
 			ws, es := rn.Resource.Provider.ValidateResource(
 				rn.Resource.Info.Type, rn.Resource.Config)

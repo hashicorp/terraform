@@ -123,6 +123,13 @@ func TestConfigValidate_dupResource(t *testing.T) {
 	}
 }
 
+func TestConfigValidate_moduleNameBad(t *testing.T) {
+	c := testConfig(t, "validate-module-name-bad")
+	if err := c.Validate(); err == nil {
+		t.Fatal("should not be valid")
+	}
+}
+
 func TestConfigValidate_moduleSourceVar(t *testing.T) {
 	c := testConfig(t, "validate-module-source-var")
 	if err := c.Validate(); err == nil {
@@ -225,6 +232,26 @@ func TestConfigValidate_varModuleInvalid(t *testing.T) {
 	c := testConfig(t, "validate-var-module-invalid")
 	if err := c.Validate(); err == nil {
 		t.Fatal("should not be valid")
+	}
+}
+
+func TestNameRegexp(t *testing.T) {
+	cases := []struct{
+		Input string
+		Match bool
+	}{
+		{"hello", true},
+		{"foo-bar", true},
+		{"foo_bar", true},
+		{"_hello", true},
+		{"foo bar", false},
+		{"foo.bar", false},
+	}
+
+	for _, tc := range cases {
+		if NameRegexp.Match([]byte(tc.Input)) != tc.Match {
+			t.Fatalf("Input: %s\n\nExpected: %#v", tc.Input, tc.Match)
+		}
 	}
 }
 

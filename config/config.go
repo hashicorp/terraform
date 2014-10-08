@@ -4,6 +4,7 @@ package config
 
 import (
 	"fmt"
+	"regexp"
 	"strconv"
 	"strings"
 
@@ -12,6 +13,10 @@ import (
 	"github.com/mitchellh/mapstructure"
 	"github.com/mitchellh/reflectwalk"
 )
+
+// NameRegexp is the regular expression that all names (modules, providers,
+// resources, etc.) must follow.
+var NameRegexp = regexp.MustCompile(`\A[A-Za-z0-9\-\_]+\z`)
 
 // Config is the configuration that comes from loading a collection
 // of Terraform templates.
@@ -236,9 +241,9 @@ func (c *Config) Validate() error {
 			}
 		}
 
-		// If we haven't seen this module before, check that the
-		// source has no interpolations.
 		if _, ok := modules[m.Id()]; !ok {
+			// If we haven't seen this module before, check that the
+			// source has no interpolations.
 			rc, err := NewRawConfig(map[string]interface{}{
 				"root": m.Source,
 			})
@@ -249,6 +254,14 @@ func (c *Config) Validate() error {
 			} else if len(rc.Interpolations) > 0 {
 				errs = append(errs, fmt.Errorf(
 					"%s: module source cannot contain interpolations",
+					m.Id()))
+			}
+
+			// Check that the name matches our regexp
+			if !NameRegexp.Match([]byte(m.Name)) {
+				errs = append(errs, fmt.Errorf(
+					"%s: module name can only contain letters, numbers, "+
+						"dashes, and underscores",
 					m.Id()))
 			}
 		}
