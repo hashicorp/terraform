@@ -78,6 +78,12 @@ func init() {
 			}, nil
 		},
 
+		"pull": func() (cli.Command, error) {
+			return &command.PullCommand{
+				Meta: meta,
+			}, nil
+		},
+
 		"refresh": func() (cli.Command, error) {
 			return &command.RefreshCommand{
 				Meta: meta,
