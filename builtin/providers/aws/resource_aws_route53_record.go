@@ -165,13 +165,18 @@ func resource_aws_r53_record_destroy(
 				if strings.Contains(err.Error(), "PriorRequestNotComplete") {
 					// There is some pending operation, so just retry
 					// in a bit.
-					return nil, "rejected", nil
+					return 42, "rejected", nil
 				}
 
-				return nil, "failure", err
+				if strings.Contains(err.Error(), "InvalidChangeBatch") {
+					// This means that the record is already gone.
+					return 42, "accepted", nil
+				}
+
+				return 42, "failure", err
 			}
 
-			return nil, "accepted", nil
+			return 42, "accepted", nil
 		},
 	}
 	if _, err := wait.WaitForState(); err != nil {

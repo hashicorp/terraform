@@ -51,6 +51,7 @@ BUG FIXES:
   * providers/aws: not an error when RDS instance is deleted manually. [GH-307]
   * providers/aws: Retry deleting subnet for some time while AWS eventually
       destroys dependencies. [GH-357]
+  * providers/aws: More robust destroy for route53 records. [GH-342]
 
 ## 0.2.2 (September 9, 2014)
 
