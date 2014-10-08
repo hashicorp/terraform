@@ -58,6 +58,22 @@ type ContextOpts struct {
 	UIInput UIInput
 }
 
+// InputMode defines what sort of input will be asked for when Input
+// is called on Context.
+type InputMode byte
+
+const (
+	// InputModeVar asks for variables
+	InputModeVar InputMode = 1 << iota
+
+	// InputModeProvider asks for provider variables
+	InputModeProvider
+
+	// InputModeStd is the standard operating mode and asks for both variables
+	// and providers.
+	InputModeStd = InputModeVar | InputModeProvider
+)
+
 // NewContext creates a new context.
 //
 // Once a context is created, the pointer values within ContextOpts should
@@ -137,75 +153,81 @@ func (c *Context) Graph() (*depgraph.Graph, error) {
 // Input asks for input to fill variables and provider configurations.
 // This modifies the configuration in-place, so asking for Input twice
 // may result in different UI output showing different current values.
-func (c *Context) Input() error {
+func (c *Context) Input(mode InputMode) error {
 	v := c.acquireRun()
 	defer c.releaseRun(v)
 
-	// Walk the variables first for the root module. We walk them in
-	// alphabetical order for UX reasons.
-	rootConf := c.module.Config()
-	names := make([]string, len(rootConf.Variables))
-	m := make(map[string]*config.Variable)
-	for i, v := range rootConf.Variables {
-		names[i] = v.Name
-		m[v.Name] = v
-	}
-	sort.Strings(names)
-	for _, n := range names {
-		v := m[n]
-		switch v.Type() {
-		case config.VariableTypeMap:
-			continue
-		case config.VariableTypeString:
-			// Good!
-		default:
-			panic(fmt.Sprintf("Unknown variable type: %s", v.Type()))
+	if mode&InputModeVar != 0 {
+		// Walk the variables first for the root module. We walk them in
+		// alphabetical order for UX reasons.
+		rootConf := c.module.Config()
+		names := make([]string, len(rootConf.Variables))
+		m := make(map[string]*config.Variable)
+		for i, v := range rootConf.Variables {
+			names[i] = v.Name
+			m[v.Name] = v
 		}
-
-		var defaultString string
-		if v.Default != nil {
-			defaultString = v.Default.(string)
-		}
-
-		// Ask the user for a value for this variable
-		var value string
-		for {
-			var err error
-			value, err = c.uiInput.Input(&InputOpts{
-				Id:          fmt.Sprintf("var.%s", n),
-				Query:       fmt.Sprintf("var.%s", n),
-				Default:     defaultString,
-				Description: v.Description,
-			})
-			if err != nil {
-				return fmt.Errorf(
-					"Error asking for %s: %s", n, err)
-			}
-
-			if value == "" && v.Required() {
-				// Redo if it is required.
+		sort.Strings(names)
+		for _, n := range names {
+			v := m[n]
+			switch v.Type() {
+			case config.VariableTypeMap:
 				continue
+			case config.VariableTypeString:
+				// Good!
+			default:
+				panic(fmt.Sprintf("Unknown variable type: %s", v.Type()))
 			}
 
-			if value == "" {
-				// No value, just exit the loop. With no value, we just
-				// use whatever is currently set in variables.
+			var defaultString string
+			if v.Default != nil {
+				defaultString = v.Default.(string)
+			}
+
+			// Ask the user for a value for this variable
+			var value string
+			for {
+				var err error
+				value, err = c.uiInput.Input(&InputOpts{
+					Id:          fmt.Sprintf("var.%s", n),
+					Query:       fmt.Sprintf("var.%s", n),
+					Default:     defaultString,
+					Description: v.Description,
+				})
+				if err != nil {
+					return fmt.Errorf(
+						"Error asking for %s: %s", n, err)
+				}
+
+				if value == "" && v.Required() {
+					// Redo if it is required.
+					continue
+				}
+
+				if value == "" {
+					// No value, just exit the loop. With no value, we just
+					// use whatever is currently set in variables.
+					break
+				}
+
 				break
 			}
 
-			break
-		}
-
-		if value != "" {
-			c.variables[n] = value
+			if value != "" {
+				c.variables[n] = value
+			}
 		}
 	}
 
-	// Create the walk context and walk the inputs, which will gather the
-	// inputs for any resource providers.
-	wc := c.walkContext(walkInput, rootModulePath)
-	wc.Meta = new(walkInputMeta)
-	return wc.Walk()
+	if mode&InputModeProvider != 0 {
+		// Create the walk context and walk the inputs, which will gather the
+		// inputs for any resource providers.
+		wc := c.walkContext(walkInput, rootModulePath)
+		wc.Meta = new(walkInputMeta)
+		return wc.Walk()
+	}
+
+	return nil
 }
 
 // Plan generates an execution plan for the given context.

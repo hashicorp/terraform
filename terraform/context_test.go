@@ -460,7 +460,7 @@ func TestContextInput(t *testing.T) {
 		"var.foo": "us-east-1",
 	}
 
-	if err := ctx.Input(); err != nil {
+	if err := ctx.Input(InputModeStd); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 
@@ -502,7 +502,7 @@ func TestContextInput_provider(t *testing.T) {
 		return nil
 	}
 
-	if err := ctx.Input(); err != nil {
+	if err := ctx.Input(InputModeStd); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 
@@ -552,7 +552,7 @@ func TestContextInput_providerId(t *testing.T) {
 		"provider.aws.foo": "bar",
 	}
 
-	if err := ctx.Input(); err != nil {
+	if err := ctx.Input(InputModeStd); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 
@@ -566,6 +566,116 @@ func TestContextInput_providerId(t *testing.T) {
 
 	if !reflect.DeepEqual(actual, "bar") {
 		t.Fatalf("bad: %#v", actual)
+	}
+}
+
+func TestContextInput_providerOnly(t *testing.T) {
+	input := new(MockUIInput)
+	m := testModule(t, "input-provider-vars")
+	p := testProvider("aws")
+	p.ApplyFn = testApplyFn
+	p.DiffFn = testDiffFn
+	ctx := testContext(t, &ContextOpts{
+		Module: m,
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+		Variables: map[string]string{
+			"foo": "us-west-2",
+		},
+		UIInput: input,
+	})
+
+	input.InputReturnMap = map[string]string{
+		"var.foo": "us-east-1",
+	}
+
+	var actual interface{}
+	p.InputFn = func(i UIInput, c *ResourceConfig) (*ResourceConfig, error) {
+		c.Raw["foo"] = "bar"
+		return c, nil
+	}
+	p.ConfigureFn = func(c *ResourceConfig) error {
+		actual = c.Raw["foo"]
+		return nil
+	}
+
+	if err := ctx.Input(InputModeProvider); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	if _, err := ctx.Plan(nil); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	state, err := ctx.Apply()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	if !reflect.DeepEqual(actual, "bar") {
+		t.Fatalf("bad: %#v", actual)
+	}
+
+	actualStr := strings.TrimSpace(state.String())
+	expectedStr := strings.TrimSpace(testTerraformInputProviderOnlyStr)
+	if actualStr != expectedStr {
+		t.Fatalf("bad: \n%s", actualStr)
+	}
+}
+
+func TestContextInput_varOnly(t *testing.T) {
+	input := new(MockUIInput)
+	m := testModule(t, "input-provider-vars")
+	p := testProvider("aws")
+	p.ApplyFn = testApplyFn
+	p.DiffFn = testDiffFn
+	ctx := testContext(t, &ContextOpts{
+		Module: m,
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+		Variables: map[string]string{
+			"foo": "us-west-2",
+		},
+		UIInput: input,
+	})
+
+	input.InputReturnMap = map[string]string{
+		"var.foo": "us-east-1",
+	}
+
+	var actual interface{}
+	p.InputFn = func(i UIInput, c *ResourceConfig) (*ResourceConfig, error) {
+		c.Raw["foo"] = "bar"
+		return c, nil
+	}
+	p.ConfigureFn = func(c *ResourceConfig) error {
+		actual = c.Raw["foo"]
+		return nil
+	}
+
+	if err := ctx.Input(InputModeVar); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	if _, err := ctx.Plan(nil); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	state, err := ctx.Apply()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	if reflect.DeepEqual(actual, "bar") {
+		t.Fatalf("bad: %#v", actual)
+	}
+
+	actualStr := strings.TrimSpace(state.String())
+	expectedStr := strings.TrimSpace(testTerraformInputVarOnlyStr)
+	if actualStr != expectedStr {
+		t.Fatalf("bad: \n%s", actualStr)
 	}
 }
 

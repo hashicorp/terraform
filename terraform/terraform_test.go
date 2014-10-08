@@ -126,6 +126,20 @@ aws_instance.foo:
   type = aws_instance
 `
 
+const testTerraformInputProviderOnlyStr = `
+aws_instance.foo:
+  ID = foo
+  foo = us-west-2
+  type = aws_instance
+`
+
+const testTerraformInputVarOnlyStr = `
+aws_instance.foo:
+  ID = foo
+  foo = us-east-1
+  type = aws_instance
+`
+
 const testTerraformInputVarsStr = `
 aws_instance.bar:
   ID = foo
