@@ -48,6 +48,15 @@ func TestAccVpc_tags(t *testing.T) {
 					testAccCheckTags(&vpc.Tags, "foo", "bar"),
 				),
 			},
+
+			resource.TestStep{
+				Config: testAccVpcConfigTagsUpdate,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckVpcExists("aws_vpc.foo", &vpc),
+					testAccCheckTags(&vpc.Tags, "foo", ""),
+					testAccCheckTags(&vpc.Tags, "bar", "baz"),
+				),
+			},
 		},
 	})
 }
@@ -167,6 +176,16 @@ resource "aws_vpc" "foo" {
 
 	tags {
 		foo = "bar"
+	}
+}
+`
+
+const testAccVpcConfigTagsUpdate = `
+resource "aws_vpc" "foo" {
+	cidr_block = "10.1.0.0/16"
+
+	tags {
+		bar = "baz"
 	}
 }
 `

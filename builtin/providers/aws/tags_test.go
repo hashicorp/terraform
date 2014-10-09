@@ -14,9 +14,15 @@ func testAccCheckTags(
 	return func(s *terraform.State) error {
 		m := tagsToMap(*ts)
 		v, ok := m[key]
-		if !ok {
+		if value != "" && !ok {
 			return fmt.Errorf("Missing tag: %s", key)
+		} else if value == "" && ok {
+			return fmt.Errorf("Extra tag: %s", key)
 		}
+		if value == "" {
+			return nil
+		}
+
 		if v != value {
 			return fmt.Errorf("%s: bad value: %s", key, v)
 		}

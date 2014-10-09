@@ -143,6 +143,10 @@ func (s *Schema) finalizeDiff(
 		return d
 	}
 
+	if d.NewRemoved {
+		return d
+	}
+
 	if s.Computed {
 		if d.Old != "" && d.New == "" {
 			// This is a computed value with an old value set already,

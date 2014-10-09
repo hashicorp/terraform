@@ -373,6 +373,7 @@ func (d *ResourceData) getMap(
 	if d.config != nil && source == getSourceConfig {
 		// For config, we always set the result to exactly what was requested
 		if mraw, ok := d.config.Get(k); ok {
+			result = make(map[string]interface{})
 			switch m := mraw.(type) {
 			case []interface{}:
 				for _, innerRaw := range m {
