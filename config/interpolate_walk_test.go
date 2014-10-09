@@ -136,6 +136,7 @@ func TestInterpolationWalker_replace(t *testing.T) {
 	cases := []struct {
 		Input  interface{}
 		Output interface{}
+		Value  string
 	}{
 		{
 			Input: map[string]interface{}{
@@ -144,6 +145,7 @@ func TestInterpolationWalker_replace(t *testing.T) {
 			Output: map[string]interface{}{
 				"foo": "$${var.foo}",
 			},
+			Value: "bar",
 		},
 
 		{
@@ -153,6 +155,7 @@ func TestInterpolationWalker_replace(t *testing.T) {
 			Output: map[string]interface{}{
 				"foo": "hello, bar",
 			},
+			Value: "bar",
 		},
 
 		{
@@ -166,12 +169,30 @@ func TestInterpolationWalker_replace(t *testing.T) {
 					"bar": "bar",
 				},
 			},
+			Value: "bar",
+		},
+
+		{
+			Input: map[string]interface{}{
+				"foo": []interface{}{
+					"${var.foo}",
+					"bing",
+				},
+			},
+			Output: map[string]interface{}{
+				"foo": []interface{}{
+					"bar",
+					"baz",
+					"bing",
+				},
+			},
+			Value: "bar,baz",
 		},
 	}
 
 	for i, tc := range cases {
 		fn := func(i Interpolation) (string, error) {
-			return "bar", nil
+			return tc.Value, nil
 		}
 
 		w := &interpolationWalker{F: fn, Replace: true}

@@ -9,6 +9,11 @@ import (
 	"github.com/mitchellh/reflectwalk"
 )
 
+// InterpSplitDelim is the delimeter that is looked for to split when
+// it is returned. This is a comma right now but should eventually become
+// a value that a user is very unlikely to use (such as UUID).
+const InterpSplitDelim = `,`
+
 // interpRegexp is a regexp that matches interpolations such as ${foo.bar}
 var interpRegexp *regexp.Regexp = regexp.MustCompile(
 	`(?i)(\$+)\{([\s*-.,\\/\(\)a-z0-9_"]+)\}`)
@@ -24,7 +29,9 @@ type interpolationWalker struct {
 	lastValue   reflect.Value
 	loc         reflectwalk.Location
 	cs          []reflect.Value
+	csKey       []reflect.Value
 	csData      interface{}
+	sliceIndex  int
 	unknownKeys []string
 }
 
@@ -49,6 +56,13 @@ func (w *interpolationWalker) Exit(loc reflectwalk.Location) error {
 		w.cs = w.cs[:len(w.cs)-1]
 	case reflectwalk.MapValue:
 		w.key = w.key[:len(w.key)-1]
+		w.csKey = w.csKey[:len(w.csKey)-1]
+	case reflectwalk.Slice:
+		// Split any values that need to be split
+		w.splitSlice()
+		w.cs = w.cs[:len(w.cs)-1]
+	case reflectwalk.SliceElem:
+		w.csKey = w.csKey[:len(w.csKey)-1]
 	}
 
 	return nil
@@ -61,8 +75,20 @@ func (w *interpolationWalker) Map(m reflect.Value) error {
 
 func (w *interpolationWalker) MapElem(m, k, v reflect.Value) error {
 	w.csData = k
+	w.csKey = append(w.csKey, k)
 	w.key = append(w.key, k.String())
 	w.lastValue = v
+	return nil
+}
+
+func (w *interpolationWalker) Slice(s reflect.Value) error {
+	w.cs = append(w.cs, s)
+	return nil
+}
+
+func (w *interpolationWalker) SliceElem(i int, elem reflect.Value) error {
+	w.csKey = append(w.csKey, reflect.ValueOf(i))
+	w.sliceIndex = i
 	return nil
 }
 
@@ -112,13 +138,28 @@ func (w *interpolationWalker) Primitive(v reflect.Value) error {
 		}
 
 		if w.Replace {
-			// If this is an unknown variable, then we remove it from
-			// the configuration.
-			if replaceVal == UnknownVariableValue {
+			// We need to determine if we need to remove this element
+			// if the result contains any "UnknownVariableValue" which is
+			// set if it is computed. This behavior is different if we're
+			// splitting (in a SliceElem) or not.
+			remove := false
+			if w.loc == reflectwalk.SliceElem {
+				parts := strings.Split(replaceVal, InterpSplitDelim)
+				for _, p := range parts {
+					if p == UnknownVariableValue {
+						remove = true
+						break
+					}
+				}
+			} else if replaceVal == UnknownVariableValue {
+				remove = true
+			}
+			if remove {
 				w.removeCurrent()
 				return nil
 			}
 
+			// Replace in our interpolation and continue on.
 			result = strings.Replace(result, match[0], replaceVal, -1)
 		}
 	}
@@ -167,4 +208,70 @@ func (w *interpolationWalker) removeCurrent() {
 
 	// Append the key to the unknown keys
 	w.unknownKeys = append(w.unknownKeys, strings.Join(w.key, "."))
+}
+
+func (w *interpolationWalker) replace(v reflect.Value, offset int) {
+	c := w.cs[len(w.cs)-1+offset]
+	switch c.Kind() {
+	case reflect.Map:
+		// Get the key and delete it
+		k := w.csKey[len(w.csKey)-1]
+		c.SetMapIndex(k, v)
+	}
+}
+
+func (w *interpolationWalker) splitSlice() {
+	// Get the []interface{} slice so we can do some operations on
+	// it without dealing with reflection. We'll document each step
+	// here to be clear.
+	var s []interface{}
+	raw := w.cs[len(w.cs)-1]
+	switch v := raw.Interface().(type) {
+	case []interface{}:
+		s = v
+	case []map[string]interface{}:
+		return
+	default:
+		panic("Unknown kind: " + raw.Kind().String())
+	}
+
+	// Check if we have any elements that we need to split. If not, then
+	// just return since we're done.
+	split := false
+	for _, v := range s {
+		sv, ok := v.(string)
+		if !ok {
+			continue
+		}
+		if idx := strings.Index(sv, InterpSplitDelim); idx >= 0 {
+			split = true
+			break
+		}
+	}
+	if !split {
+		return
+	}
+
+	// Make a new result slice that is twice the capacity to fit our growth.
+	result := make([]interface{}, 0, len(s)*2)
+
+	// Go over each element of the original slice and start building up
+	// the resulting slice by splitting where we have to.
+	for _, v := range s {
+		sv, ok := v.(string)
+		if !ok {
+			// Not a string, so just set it
+			result = append(result, v)
+			continue
+		}
+
+		// Split on the delimiter
+		for _, p := range strings.Split(sv, InterpSplitDelim) {
+			result = append(result, p)
+		}
+	}
+
+	// Our slice is now done, we have to replace the slice now
+	// with this new one that we have.
+	w.replace(reflect.ValueOf(result), -1)
 }
