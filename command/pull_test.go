@@ -17,7 +17,7 @@ import (
 
 func TestPull_noRemote(t *testing.T) {
 	tmp, cwd := testCwd(t)
-	defer fixDir(tmp, cwd)
+	defer testFixCwd(t, tmp, cwd)
 
 	ui := new(cli.MockUi)
 	c := &PullCommand{
@@ -35,7 +35,7 @@ func TestPull_noRemote(t *testing.T) {
 
 func TestPull_cliRemote(t *testing.T) {
 	tmp, cwd := testCwd(t)
-	defer fixDir(tmp, cwd)
+	defer testFixCwd(t, tmp, cwd)
 
 	s := terraform.NewState()
 	conf, srv := testRemoteState(t, s, 200)
@@ -63,7 +63,7 @@ func TestPull_cliRemote(t *testing.T) {
 
 func TestPull_local(t *testing.T) {
 	tmp, cwd := testCwd(t)
-	defer fixDir(tmp, cwd)
+	defer testFixCwd(t, tmp, cwd)
 
 	s := terraform.NewState()
 	s.Serial = 10

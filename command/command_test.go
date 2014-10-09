@@ -186,12 +186,18 @@ func testCwd(t *testing.T) (string, string) {
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}
-	os.Chdir(tmp)
+	if err := os.Chdir(tmp); err != nil {
+		t.Fatalf("err: %v", err)
+	}
 	return tmp, cwd
 }
 
-// fixDir is used to as a defer to testDir
-func fixDir(tmp, cwd string) {
-	os.Chdir(cwd)
-	os.RemoveAll(tmp)
+// testFixCwd is used to as a defer to testDir
+func testFixCwd(t *testing.T, tmp, cwd string) {
+	if err := os.Chdir(cwd); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if err := os.RemoveAll(tmp); err != nil {
+		t.Fatalf("err: %v", err)
+	}
 }
