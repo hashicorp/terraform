@@ -382,6 +382,14 @@ func (d *ResourceData) getMap(
 				}
 
 				resultSet = true
+			case []map[string]interface{}:
+				for _, innerRaw := range m {
+					for k, v := range innerRaw {
+						result[k] = v
+					}
+				}
+
+				resultSet = true
 			case map[string]interface{}:
 				result = m
 				resultSet = true
