@@ -188,14 +188,6 @@ func flattenInstances(list []elb.Instance) []string {
 // Takes the result of flatmap.Expand for an array of strings
 // and returns a []string
 func expandStringList(configured []interface{}) []string {
-	// here we special case the * expanded lists. For example:
-	//
-	//	 instances = ["${aws_instance.foo.*.id}"]
-	//
-	if len(configured) == 1 && strings.Contains(configured[0].(string), ",") {
-		return strings.Split(configured[0].(string), ",")
-	}
-
 	vs := make([]string, 0, len(configured))
 	for _, v := range configured {
 		vs = append(vs, v.(string))
