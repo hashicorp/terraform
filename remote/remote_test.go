@@ -70,7 +70,7 @@ func TestValidConfig(t *testing.T) {
 }
 
 func TestValidateConfig(t *testing.T) {
-	defer fixDir(testDir(t))
+	defer testFixCwd(testDir(t))
 	remote, srv := testRemote(t, nil)
 	defer srv.Close()
 
@@ -104,7 +104,7 @@ func TestValidateConfig(t *testing.T) {
 }
 
 func TestRefreshState_Init(t *testing.T) {
-	defer fixDir(testDir(t))
+	defer testFixCwd(testDir(t))
 	remote, srv := testRemote(t, nil)
 	defer srv.Close()
 
@@ -127,7 +127,7 @@ func TestRefreshState_Init(t *testing.T) {
 }
 
 func TestRefreshState_NewVersion(t *testing.T) {
-	defer fixDir(testDir(t))
+	defer testFixCwd(testDir(t))
 
 	rs := terraform.NewState()
 	rs.Serial = 100
@@ -146,7 +146,7 @@ func TestRefreshState_NewVersion(t *testing.T) {
 }
 
 func TestRefreshState_Noop(t *testing.T) {
-	defer fixDir(testDir(t))
+	defer testFixCwd(testDir(t))
 
 	rs := terraform.NewState()
 	rs.Serial = 100
@@ -168,7 +168,7 @@ func TestRefreshState_Noop(t *testing.T) {
 }
 
 func TestRefreshState_UpdateLocal(t *testing.T) {
-	defer fixDir(testDir(t))
+	defer testFixCwd(testDir(t))
 
 	rs := terraform.NewState()
 	rs.Serial = 100
@@ -196,7 +196,7 @@ func TestRefreshState_UpdateLocal(t *testing.T) {
 }
 
 func TestRefreshState_LocalNewer(t *testing.T) {
-	defer fixDir(testDir(t))
+	defer testFixCwd(testDir(t))
 
 	rs := terraform.NewState()
 	rs.Serial = 99
@@ -218,7 +218,7 @@ func TestRefreshState_LocalNewer(t *testing.T) {
 }
 
 func TestRefreshState_Conflict(t *testing.T) {
-	defer fixDir(testDir(t))
+	defer testFixCwd(testDir(t))
 
 	rs := terraform.NewState()
 	rs.Serial = 50
@@ -242,7 +242,7 @@ func TestRefreshState_Conflict(t *testing.T) {
 }
 
 func TestPushState_NoState(t *testing.T) {
-	defer fixDir(testDir(t))
+	defer testFixCwd(testDir(t))
 
 	remote, srv := testRemotePush(t, 200)
 	defer srv.Close()
@@ -257,7 +257,7 @@ func TestPushState_NoState(t *testing.T) {
 }
 
 func TestPushState_Update(t *testing.T) {
-	defer fixDir(testDir(t))
+	defer testFixCwd(testDir(t))
 
 	remote, srv := testRemotePush(t, 200)
 	defer srv.Close()
@@ -275,7 +275,7 @@ func TestPushState_Update(t *testing.T) {
 }
 
 func TestPushState_RemoteNewer(t *testing.T) {
-	defer fixDir(testDir(t))
+	defer testFixCwd(testDir(t))
 
 	remote, srv := testRemotePush(t, 412)
 	defer srv.Close()
@@ -293,7 +293,7 @@ func TestPushState_RemoteNewer(t *testing.T) {
 }
 
 func TestPushState_Conflict(t *testing.T) {
-	defer fixDir(testDir(t))
+	defer testFixCwd(testDir(t))
 
 	remote, srv := testRemotePush(t, 409)
 	defer srv.Close()
@@ -311,7 +311,7 @@ func TestPushState_Conflict(t *testing.T) {
 }
 
 func TestPushState_Error(t *testing.T) {
-	defer fixDir(testDir(t))
+	defer testFixCwd(testDir(t))
 
 	remote, srv := testRemotePush(t, 500)
 	defer srv.Close()
@@ -349,7 +349,7 @@ func TestBlankState(t *testing.T) {
 
 func TestPersist(t *testing.T) {
 	tmp, cwd := testDir(t)
-	defer fixDir(tmp, cwd)
+	defer testFixCwd(tmp, cwd)
 
 	EnsureDirectory()
 
@@ -456,8 +456,8 @@ func testDir(t *testing.T) (string, string) {
 	return tmp, cwd
 }
 
-// fixDir is used to as a defer to testDir
-func fixDir(tmp, cwd string) {
+// testFixCwd is used to as a defer to testDir
+func testFixCwd(tmp, cwd string) {
 	os.Chdir(cwd)
 	os.RemoveAll(tmp)
 }
