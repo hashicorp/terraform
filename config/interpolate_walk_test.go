@@ -186,7 +186,7 @@ func TestInterpolationWalker_replace(t *testing.T) {
 					"bing",
 				},
 			},
-			Value: "bar,baz",
+			Value: "bar" + InterpSplitDelim + "baz",
 		},
 	}
 
