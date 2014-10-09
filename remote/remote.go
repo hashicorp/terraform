@@ -152,6 +152,7 @@ func EnsureDirectory() error {
 
 // HiddenStatePath is used to return the path to the hidden state file,
 // should there be one.
+// TODO: Rename to LocalStatePath
 func HiddenStatePath() (string, error) {
 	cwd, err := os.Getwd()
 	if err != nil {
@@ -161,8 +162,29 @@ func HiddenStatePath() (string, error) {
 	return path, nil
 }
 
-// validConfig does a purely logical validation of the remote config
-func validConfig(conf *terraform.RemoteState) error {
+// HaveLocalState is used to check if we have a local state file
+func HaveLocalState() (bool, error) {
+	path, err := HiddenStatePath()
+	if err != nil {
+		return false, err
+	}
+	return ExistsFile(path)
+}
+
+// ExistsFile is used to check if a given file exists
+func ExistsFile(path string) (bool, error) {
+	_, err := os.Stat(path)
+	if err == nil {
+		return true, nil
+	}
+	if os.IsNotExist(err) {
+		return false, nil
+	}
+	return false, err
+}
+
+// ValidConfig does a purely logical validation of the remote config
+func ValidConfig(conf *terraform.RemoteState) error {
 	// Verify the remote server configuration is sane
 	if (conf.Server != "" || conf.AuthToken != "") && conf.Name == "" {
 		return fmt.Errorf("Name must be provided for remote state storage")
@@ -200,47 +222,6 @@ func ReadLocalState() (*terraform.State, []byte, error) {
 		return nil, nil, fmt.Errorf("Failed to read state file '%s': %v", path, err)
 	}
 	return state, raw, nil
-}
-
-// ValidateConfig is used to take a remote state configuration,
-// ensure the local directory exists and that the remote state
-// does not conflict with an existing state file.
-func ValidateConfig(conf *terraform.RemoteState) error {
-	// Logical validation first
-	if err := validConfig(conf); err != nil {
-		return err
-	}
-
-	// Ensure the hidden directory
-	if err := EnsureDirectory(); err != nil {
-		return fmt.Errorf(
-			"Remote state setup failed: %s", err)
-	}
-
-	// Check for local state
-	local, _, err := ReadLocalState()
-	if err != nil {
-		return err
-	}
-
-	// Nothing to check if no local state yet
-	if local == nil {
-		return nil
-	}
-
-	// If the hidden state file has no remote info, something
-	// is definitely wrong...
-	if local.Remote == nil {
-		return fmt.Errorf(`Local state file missing remote storage information.
-This is likely a bug, please report it.`)
-	}
-
-	// Check if there is a conflict
-	if !local.Remote.Equals(conf) {
-		return fmt.Errorf(
-			"Conflicting definitions for remote storage in existing state file")
-	}
-	return nil
 }
 
 // RefreshState is used to read the remote state given
@@ -374,6 +355,19 @@ func blankState(conf *terraform.RemoteState) ([]byte, error) {
 	buf := bytes.NewBuffer(nil)
 	err := terraform.WriteState(blank, buf)
 	return buf.Bytes(), err
+}
+
+// PersistState is used to persist out the given terraform state
+// in our local state cache location.
+func PersistState(s *terraform.State) error {
+	buf := bytes.NewBuffer(nil)
+	if err := terraform.WriteState(s, buf); err != nil {
+		return fmt.Errorf("Failed to encode state: %v", err)
+	}
+	if err := Persist(buf); err != nil {
+		return err
+	}
+	return nil
 }
 
 // Persist is used to write out the state given by a reader (likely

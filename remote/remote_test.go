@@ -46,60 +46,26 @@ func TestHiddenStatePath(t *testing.T) {
 
 func TestValidConfig(t *testing.T) {
 	conf := &terraform.RemoteState{}
-	if err := validConfig(conf); err != nil {
+	if err := ValidConfig(conf); err != nil {
 		t.Fatalf("blank should be valid: %v", err)
 	}
 	conf.Server = "http://foo.com"
-	if err := validConfig(conf); err == nil {
+	if err := ValidConfig(conf); err == nil {
 		t.Fatalf("server without name")
 	}
 	conf.Server = ""
 	conf.AuthToken = "foo"
-	if err := validConfig(conf); err == nil {
+	if err := ValidConfig(conf); err == nil {
 		t.Fatalf("auth without name")
 	}
 	conf.Name = "test"
 	conf.Server = ""
 	conf.AuthToken = ""
-	if err := validConfig(conf); err != nil {
+	if err := ValidConfig(conf); err != nil {
 		t.Fatalf("should be valid")
 	}
 	if conf.Server != DefaultServer {
 		t.Fatalf("should default server")
-	}
-}
-
-func TestValidateConfig(t *testing.T) {
-	defer testFixCwd(testDir(t))
-	remote, srv := testRemote(t, nil)
-	defer srv.Close()
-
-	// No local state, should validate
-	if err := ValidateConfig(remote); err != nil {
-		t.Fatalf("err: %v", err)
-	}
-
-	// Local state without remote, error!
-	local := terraform.NewState()
-	testWriteLocal(t, local)
-	if err := ValidateConfig(remote); err == nil {
-		t.Fatalf("local missing remote")
-	}
-
-	// Local with matching remote, should be fine
-	local.Remote = remote
-	testWriteLocal(t, local)
-	if err := ValidateConfig(remote); err != nil {
-		t.Fatalf("err: %v", err)
-	}
-
-	// Local with conflicting remote, not fine
-	local.Remote = &terraform.RemoteState{
-		Name: "whatchutalkingabout",
-	}
-	testWriteLocal(t, local)
-	if err := ValidateConfig(remote); err == nil {
-		t.Fatalf("conflicting remote")
 	}
 }
 
