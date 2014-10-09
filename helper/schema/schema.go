@@ -143,6 +143,10 @@ func (s *Schema) finalizeDiff(
 		return d
 	}
 
+	if d.NewRemoved {
+		return d
+	}
+
 	if s.Computed {
 		if d.Old != "" && d.New == "" {
 			// This is a computed value with an old value set already,
@@ -615,6 +619,9 @@ func (m schemaMap) diffString(
 	removed := false
 	if o != nil && n == nil {
 		removed = true
+	}
+	if removed && schema.Computed {
+		return nil
 	}
 
 	diff.Attributes[k] = schema.finalizeDiff(&terraform.ResourceAttrDiff{

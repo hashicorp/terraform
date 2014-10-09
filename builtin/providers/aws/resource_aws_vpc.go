@@ -5,8 +5,8 @@ import (
 	"log"
 	"time"
 
-	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/helper/resource"
+	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/mitchellh/goamz/ec2"
 )
 
@@ -35,6 +35,8 @@ func resourceAwsVpc() *schema.Resource {
 				Optional: true,
 				Computed: true,
 			},
+
+			"tags": tagsSchema(),
 		},
 	}
 }
@@ -120,9 +122,14 @@ func resourceAwsVpcUpdate(d *schema.ResourceData, meta interface{}) error {
 		d.SetPartial("enable_dns_support")
 	}
 
+	if err := setTags(ec2conn, d); err != nil {
+		return err
+	} else {
+		d.SetPartial("tags")
+	}
+
 	return nil
 }
-
 
 func resourceAwsVpcDelete(d *schema.ResourceData, meta interface{}) error {
 	p := meta.(*ResourceProvider)
@@ -157,6 +164,9 @@ func resourceAwsVpcRead(d *schema.ResourceData, meta interface{}) error {
 	// VPC stuff
 	vpc := vpcRaw.(*ec2.VPC)
 	d.Set("cidr_block", vpc.CidrBlock)
+
+	// Tags
+	d.Set("tags", tagsToMap(vpc.Tags))
 
 	// Attributes
 	resp, err := ec2conn.VpcAttribute(d.Id(), "enableDnsSupport")

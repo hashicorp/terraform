@@ -30,6 +30,37 @@ func TestAccVpc_basic(t *testing.T) {
 	})
 }
 
+func TestAccVpc_tags(t *testing.T) {
+	var vpc ec2.VPC
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckVpcDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccVpcConfigTags,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckVpcExists("aws_vpc.foo", &vpc),
+					testAccCheckVpcCidr(&vpc, "10.1.0.0/16"),
+					resource.TestCheckResourceAttr(
+						"aws_vpc.foo", "cidr_block", "10.1.0.0/16"),
+					testAccCheckTags(&vpc.Tags, "foo", "bar"),
+				),
+			},
+
+			resource.TestStep{
+				Config: testAccVpcConfigTagsUpdate,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckVpcExists("aws_vpc.foo", &vpc),
+					testAccCheckTags(&vpc.Tags, "foo", ""),
+					testAccCheckTags(&vpc.Tags, "bar", "baz"),
+				),
+			},
+		},
+	})
+}
+
 func TestAccVpcUpdate(t *testing.T) {
 	var vpc ec2.VPC
 
@@ -136,5 +167,25 @@ const testAccVpcConfigUpdate = `
 resource "aws_vpc" "foo" {
 	cidr_block = "10.1.0.0/16"
 	enable_dns_hostnames = true
+}
+`
+
+const testAccVpcConfigTags = `
+resource "aws_vpc" "foo" {
+	cidr_block = "10.1.0.0/16"
+
+	tags {
+		foo = "bar"
+	}
+}
+`
+
+const testAccVpcConfigTagsUpdate = `
+resource "aws_vpc" "foo" {
+	cidr_block = "10.1.0.0/16"
+
+	tags {
+		bar = "baz"
+	}
 }
 `
