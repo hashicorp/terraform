@@ -138,6 +138,24 @@ func flattenHealthCheck(check elb.HealthCheck) []map[string]interface{} {
 	return result
 }
 
+// Flattens an array of listeners into something that flatmap.Flatten()
+// can handle
+func flattenListeners(listeners []elb.Listener) []map[string]interface{} {
+	result := make([]map[string]interface{}, 0, len(listeners))
+
+	for _, listener := range listeners {
+		lst := make(map[string]interface{})
+		lst["instance_port"] = int(listener.InstancePort)
+		lst["instance_protocol"] = strings.ToLower(listener.InstanceProtocol)
+		lst["lb_port"] = int(listener.LoadBalancerPort)
+		lst["lb_protocol"] = strings.ToLower(listener.Protocol)
+
+		result = append(result, lst)
+	}
+
+	return result
+}
+
 // Flattens an array of UserSecurityGroups into a []string
 func flattenSecurityGroups(list []ec2.UserSecurityGroup) []string {
 	result := make([]string, 0, len(list))

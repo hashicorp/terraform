@@ -309,6 +309,10 @@ func resource_aws_elb_update_state(
 		toFlatten["health_check"] = flattenHealthCheck(balancer.HealthCheck)
 	}
 
+	if len(balancer.Listeners) > 0 && balancer.Listeners[0].InstanceProtocol != "" {
+		toFlatten["listener"] = flattenListeners(balancer.Listeners)
+	}
+
 	for k, v := range flatmap.Flatten(toFlatten) {
 		s.Attributes[k] = v
 	}
