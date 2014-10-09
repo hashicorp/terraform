@@ -7,7 +7,6 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
-	"os"
 	"testing"
 
 	"github.com/hashicorp/terraform/remote"
@@ -30,34 +29,6 @@ func TestPull_noRemote(t *testing.T) {
 	args := []string{}
 	if code := c.Run(args); code != 1 {
 		t.Fatalf("bad: \n%s", ui.ErrorWriter.String())
-	}
-}
-
-func TestPull_cliRemote(t *testing.T) {
-	tmp, cwd := testCwd(t)
-	defer testFixCwd(t, tmp, cwd)
-
-	s := terraform.NewState()
-	conf, srv := testRemoteState(t, s, 200)
-	defer srv.Close()
-
-	ui := new(cli.MockUi)
-	c := &PullCommand{
-		Meta: Meta{
-			ContextOpts: testCtxConfig(testProvider()),
-			Ui:          ui,
-		},
-	}
-
-	args := []string{"-remote", conf.Name, "-remote-server", conf.Server}
-	if code := c.Run(args); code != 0 {
-		t.Fatalf("bad: \n%s", ui.ErrorWriter.String())
-	}
-
-	path, _ := remote.HiddenStatePath()
-	_, err := os.Stat(path)
-	if err != nil {
-		t.Fatalf("missing state")
 	}
 }
 
