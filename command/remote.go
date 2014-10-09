@@ -180,12 +180,7 @@ func (c *RemoteCommand) initBlankState() int {
 	blank.Remote = &c.remoteConf
 
 	// Persist the state
-	buf := bytes.NewBuffer(nil)
-	if err := terraform.WriteState(blank, buf); err != nil {
-		c.Ui.Error(fmt.Sprintf("Failed to encode state: %v", err))
-		return 1
-	}
-	if err := remote.Persist(buf); err != nil {
+	if err := remote.PersistState(blank); err != nil {
 		c.Ui.Error(fmt.Sprintf("Failed to initialize state file: %v", err))
 		return 1
 	}
