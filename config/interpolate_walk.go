@@ -210,8 +210,8 @@ func (w *interpolationWalker) removeCurrent() {
 	w.unknownKeys = append(w.unknownKeys, strings.Join(w.key, "."))
 }
 
-func (w *interpolationWalker) replace(v reflect.Value, offset int) {
-	c := w.cs[len(w.cs)-1+offset]
+func (w *interpolationWalker) replaceCurrent(v reflect.Value) {
+	c := w.cs[len(w.cs)-2]
 	switch c.Kind() {
 	case reflect.Map:
 		// Get the key and delete it
@@ -273,5 +273,5 @@ func (w *interpolationWalker) splitSlice() {
 
 	// Our slice is now done, we have to replace the slice now
 	// with this new one that we have.
-	w.replace(reflect.ValueOf(result), -1)
+	w.replaceCurrent(reflect.ValueOf(result))
 }
