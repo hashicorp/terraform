@@ -13,7 +13,7 @@ import (
 
 func TestPush_noRemote(t *testing.T) {
 	tmp, cwd := testCwd(t)
-	defer fixDir(tmp, cwd)
+	defer testFixCwd(t, tmp, cwd)
 
 	ui := new(cli.MockUi)
 	c := &PushCommand{
@@ -31,7 +31,7 @@ func TestPush_noRemote(t *testing.T) {
 
 func TestPush_cliRemote_noState(t *testing.T) {
 	tmp, cwd := testCwd(t)
-	defer fixDir(tmp, cwd)
+	defer testFixCwd(t, tmp, cwd)
 
 	s := terraform.NewState()
 	conf, srv := testRemoteState(t, s, 200)
@@ -54,7 +54,7 @@ func TestPush_cliRemote_noState(t *testing.T) {
 
 func TestPush_cliRemote_withState(t *testing.T) {
 	tmp, cwd := testCwd(t)
-	defer fixDir(tmp, cwd)
+	defer testFixCwd(t, tmp, cwd)
 
 	s := terraform.NewState()
 	conf, srv := testRemoteState(t, s, 200)
@@ -98,7 +98,7 @@ func TestPush_cliRemote_withState(t *testing.T) {
 
 func TestPush_local(t *testing.T) {
 	tmp, cwd := testCwd(t)
-	defer fixDir(tmp, cwd)
+	defer testFixCwd(t, tmp, cwd)
 
 	s := terraform.NewState()
 	s.Serial = 5
