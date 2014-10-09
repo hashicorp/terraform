@@ -620,6 +620,9 @@ func (m schemaMap) diffString(
 	if o != nil && n == nil {
 		removed = true
 	}
+	if removed && schema.Computed {
+		return nil
+	}
 
 	diff.Attributes[k] = schema.finalizeDiff(&terraform.ResourceAttrDiff{
 		Old:        os,

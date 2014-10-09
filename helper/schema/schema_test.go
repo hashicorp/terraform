@@ -867,6 +867,43 @@ func TestSchemaMap_Diff(t *testing.T) {
 		{
 			Schema: map[string]*Schema{
 				"config_vars": &Schema{
+					Type: TypeMap,
+				},
+			},
+
+			State: &terraform.InstanceState{
+				Attributes: map[string]string{
+					"config_vars.foo": "bar",
+				},
+			},
+
+			Config: map[string]interface{}{
+				"config_vars": []interface{}{
+					map[string]interface{}{
+						"bar": "baz",
+					},
+				},
+			},
+
+			Diff: &terraform.InstanceDiff{
+				Attributes: map[string]*terraform.ResourceAttrDiff{
+					"config_vars.foo": &terraform.ResourceAttrDiff{
+						Old:        "bar",
+						NewRemoved: true,
+					},
+					"config_vars.bar": &terraform.ResourceAttrDiff{
+						Old: "",
+						New: "baz",
+					},
+				},
+			},
+
+			Err: false,
+		},
+
+		{
+			Schema: map[string]*Schema{
+				"config_vars": &Schema{
 					Type: TypeList,
 					Elem: &Schema{Type: TypeMap},
 				},
