@@ -56,7 +56,8 @@ func diffTags(oldTags, newTags []ec2.Tag) ([]ec2.Tag, []ec2.Tag) {
 	// Build the list of what to remove
 	var remove []ec2.Tag
 	for _, t := range oldTags {
-		if _, ok := create[t.Key]; !ok {
+		old, ok := create[t.Key]
+		if !ok || old != t.Value {
 			// Delete it!
 			remove = append(remove, t)
 		}
