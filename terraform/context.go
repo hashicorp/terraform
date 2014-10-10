@@ -1261,9 +1261,6 @@ func (c *walkContext) genericWalkResource(
 		return err
 	}
 
-	println(fmt.Sprintf("%s NODES: %#v", rn.Resource.Id, ns))
-	println(fmt.Sprintf("%s DIFF: %#v", rn.Resource.Id, rn.Resource.Diff))
-
 	// Go through all the nouns and run them in parallel, collecting
 	// any errors.
 	var l sync.Mutex
