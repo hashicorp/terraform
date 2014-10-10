@@ -35,7 +35,7 @@ func (c *RemoteCommand) Run(args []string) int {
 	cmdFlags := flag.NewFlagSet("remote", flag.ContinueOnError)
 	cmdFlags.BoolVar(&c.conf.disableRemote, "disable", false, "")
 	cmdFlags.BoolVar(&c.conf.pullOnDisable, "pull", true, "")
-	cmdFlags.StringVar(&c.conf.statePath, "state", "", "path")
+	cmdFlags.StringVar(&c.conf.statePath, "state", DefaultStateFilename, "path")
 	cmdFlags.StringVar(&c.conf.backupPath, "backup", "", "path")
 	cmdFlags.StringVar(&c.remoteConf.AuthToken, "auth", "", "")
 	cmdFlags.StringVar(&c.remoteConf.Name, "name", "", "")
