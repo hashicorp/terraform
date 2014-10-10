@@ -874,12 +874,19 @@ func (d *ResourceData) stateList(
 	schema *Schema) map[string]string {
 	countRaw := d.get(prefix, []string{"#"}, schema, d.stateSource(prefix))
 	if !countRaw.Exists {
-		return nil
+		if schema.Computed {
+			// If it is computed, then it always _exists_ in the state,
+			// it is just empty.
+			countRaw.Exists = true
+			countRaw.Value = 0
+		} else {
+			return nil
+		}
 	}
 	count := countRaw.Value.(int)
 
 	result := make(map[string]string)
-	if count > 0 {
+	if count > 0 || schema.Computed {
 		result[prefix+".#"] = strconv.FormatInt(int64(count), 10)
 	}
 	for i := 0; i < count; i++ {
@@ -974,7 +981,14 @@ func (d *ResourceData) stateSet(
 	schema *Schema) map[string]string {
 	raw := d.get(prefix, nil, schema, d.stateSource(prefix))
 	if !raw.Exists {
-		return nil
+		if schema.Computed {
+			// If it is computed, then it always _exists_ in the state,
+			// it is just empty.
+			raw.Exists = true
+			raw.Value = new(Set)
+		} else {
+			return nil
+		}
 	}
 
 	set := raw.Value.(*Set)
