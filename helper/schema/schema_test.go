@@ -653,6 +653,88 @@ func TestSchemaMap_Diff(t *testing.T) {
 				},
 			},
 
+			State: nil,
+
+			Config: map[string]interface{}{
+				"ports": []interface{}{"${var.foo}", 1},
+			},
+
+			ConfigVariables: map[string]string{
+				"var.foo": "2" + config.InterpSplitDelim + "5",
+			},
+
+			Diff: &terraform.InstanceDiff{
+				Attributes: map[string]*terraform.ResourceAttrDiff{
+					"ports.#": &terraform.ResourceAttrDiff{
+						Old: "0",
+						New: "3",
+					},
+					"ports.0": &terraform.ResourceAttrDiff{
+						Old: "",
+						New: "1",
+					},
+					"ports.1": &terraform.ResourceAttrDiff{
+						Old: "",
+						New: "2",
+					},
+					"ports.2": &terraform.ResourceAttrDiff{
+						Old: "",
+						New: "5",
+					},
+				},
+			},
+
+			Err: false,
+		},
+
+		{
+			Schema: map[string]*Schema{
+				"ports": &Schema{
+					Type:     TypeSet,
+					Required: true,
+					Elem:     &Schema{Type: TypeInt},
+					Set: func(a interface{}) int {
+						return a.(int)
+					},
+				},
+			},
+
+			State: nil,
+
+			Config: map[string]interface{}{
+				"ports": []interface{}{1, "${var.foo}"},
+			},
+
+			ConfigVariables: map[string]string{
+				"var.foo": config.UnknownVariableValue +
+					config.InterpSplitDelim + "5",
+			},
+
+			Diff: &terraform.InstanceDiff{
+				Attributes: map[string]*terraform.ResourceAttrDiff{
+					"ports.#": &terraform.ResourceAttrDiff{
+						Old: "0",
+						New: "",
+						NewComputed: true,
+					},
+				},
+			},
+
+			Err: false,
+		},
+
+		{
+			Schema: map[string]*Schema{
+				"ports": &Schema{
+					Type:     TypeSet,
+					Required: true,
+					Elem:     &Schema{Type: TypeInt},
+					Set: func(a interface{}) int {
+						return a.(int)
+					},
+				},
+			},
+
 			State: &terraform.InstanceState{
 				Attributes: map[string]string{
 					"ports.#": "2",
