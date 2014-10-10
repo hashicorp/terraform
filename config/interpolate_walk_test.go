@@ -188,6 +188,17 @@ func TestInterpolationWalker_replace(t *testing.T) {
 			},
 			Value: "bar" + InterpSplitDelim + "baz",
 		},
+
+		{
+			Input: map[string]interface{}{
+				"foo": []interface{}{
+					"${var.foo}",
+					"bing",
+				},
+			},
+			Output: map[string]interface{}{},
+			Value: UnknownVariableValue + InterpSplitDelim + "baz",
+		},
 	}
 
 	for i, tc := range cases {
