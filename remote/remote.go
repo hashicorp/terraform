@@ -186,7 +186,7 @@ func ExistsFile(path string) (bool, error) {
 // ValidConfig does a purely logical validation of the remote config
 func ValidConfig(conf *terraform.RemoteState) error {
 	// Verify the remote server configuration is sane
-	if (conf.Server != "" || conf.AuthToken != "") && conf.Name == "" {
+	if conf.Name == "" {
 		return fmt.Errorf("Name must be provided for remote state storage")
 	}
 	if conf.Server != "" {

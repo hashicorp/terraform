@@ -110,6 +110,7 @@ func (c *RemoteCommand) disableRemoteState() int {
 
 	// Ensure we have the latest state before disabling
 	if c.conf.pullOnDisable {
+		log.Printf("[INFO] Refreshing local state from remote server")
 		change, err := remote.RefreshState(local.Remote)
 		if err != nil {
 			c.Ui.Error(fmt.Sprintf(
@@ -122,7 +123,14 @@ func (c *RemoteCommand) disableRemoteState() int {
 			c.Ui.Error(fmt.Sprintf("%s", change))
 			return 1
 		} else {
-			c.Ui.Output(fmt.Sprintf("%s", change))
+			log.Printf("[INFO] %s", change)
+		}
+
+		// Reload the local state after the refresh
+		local, _, err = remote.ReadLocalState()
+		if err != nil {
+			c.Ui.Error(fmt.Sprintf("Failed to read local state: %v", err))
+			return 1
 		}
 	}
 
