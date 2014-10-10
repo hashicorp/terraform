@@ -103,6 +103,32 @@ func TestInterpolationWalker_detect(t *testing.T) {
 				},
 			},
 		},
+
+		{
+			Input: map[string]interface{}{
+				"foo": `${join(",", foo.bar.*.id)}`,
+			},
+			Result: []Interpolation{
+				&FunctionInterpolation{
+					Func: nil,
+					Args: []Interpolation{
+						&LiteralInterpolation{
+							Literal: ",",
+						},
+						&VariableInterpolation{
+							Variable: &ResourceVariable{
+								Type:  "foo",
+								Name:  "bar",
+								Field: "id",
+								Multi: true,
+								Index: -1,
+								key:   "foo.bar.*.id",
+							},
+						},
+					},
+				},
+			},
+		},
 	}
 
 	for i, tc := range cases {
@@ -197,7 +223,7 @@ func TestInterpolationWalker_replace(t *testing.T) {
 				},
 			},
 			Output: map[string]interface{}{},
-			Value: UnknownVariableValue + InterpSplitDelim + "baz",
+			Value:  UnknownVariableValue + InterpSplitDelim + "baz",
 		},
 	}
 
