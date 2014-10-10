@@ -351,6 +351,22 @@ func TestInstanceDiffSame(t *testing.T) {
 			false,
 		},
 
+		// Extra attributes
+		{
+			&InstanceDiff{
+				Attributes: map[string]*ResourceAttrDiff{
+					"foo": &ResourceAttrDiff{},
+				},
+			},
+			&InstanceDiff{
+				Attributes: map[string]*ResourceAttrDiff{
+					"foo": &ResourceAttrDiff{},
+					"bar": &ResourceAttrDiff{},
+				},
+			},
+			false,
+		},
+
 		{
 			&InstanceDiff{
 				Attributes: map[string]*ResourceAttrDiff{
@@ -364,12 +380,33 @@ func TestInstanceDiffSame(t *testing.T) {
 			},
 			false,
 		},
+
+		{
+			&InstanceDiff{
+				Attributes: map[string]*ResourceAttrDiff{
+					"foo.#": &ResourceAttrDiff{NewComputed: true},
+				},
+			},
+			&InstanceDiff{
+				Attributes: map[string]*ResourceAttrDiff{
+					"foo.#": &ResourceAttrDiff{
+						Old: "0",
+						New: "1",
+					},
+					"foo.0": &ResourceAttrDiff{
+						Old: "",
+						New: "12",
+					},
+				},
+			},
+			true,
+		},
 	}
 
 	for i, tc := range cases {
 		actual := tc.One.Same(tc.Two)
 		if actual != tc.Same {
-			t.Fatalf("Fail %d", i)
+			t.Fatalf("%d:\n\n%#v\n\n%#v", i, tc.One, tc.Two)
 		}
 	}
 }
