@@ -9,7 +9,7 @@ import (
 	"github.com/mitchellh/goamz/autoscaling"
 )
 
-func TestAccAWSAutoScalingGroup(t *testing.T) {
+func TestAccAWSAutoScalingGroup_basic(t *testing.T) {
 	var group autoscaling.AutoScalingGroup
 
 	resource.Test(t, resource.TestCase{
@@ -23,7 +23,7 @@ func TestAccAWSAutoScalingGroup(t *testing.T) {
 					testAccCheckAWSAutoScalingGroupExists("aws_autoscaling_group.bar", &group),
 					testAccCheckAWSAutoScalingGroupAttributes(&group),
 					resource.TestCheckResourceAttr(
-						"aws_autoscaling_group.bar", "availability_zones.#.0", "us-west-2a"),
+						"aws_autoscaling_group.bar", "availability_zones.0", "us-west-2a"),
 					resource.TestCheckResourceAttr(
 						"aws_autoscaling_group.bar", "name", "foobar3-terraform-test"),
 					resource.TestCheckResourceAttr(
@@ -126,8 +126,8 @@ func testAccCheckAWSAutoScalingGroupAttributes(group *autoscaling.AutoScalingGro
 			return fmt.Errorf("Bad desired_capacity: %d", group.DesiredCapacity)
 		}
 
-		if group.LaunchConfigurationName != "" {
-			return fmt.Errorf("Bad desired_capacity: %d", group.DesiredCapacity)
+		if group.LaunchConfigurationName == "" {
+			return fmt.Errorf("Bad launch configuration name: %s", group.LaunchConfigurationName)
 		}
 
 		return nil

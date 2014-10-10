@@ -12,15 +12,6 @@ var resourceMap *resource.Map
 func init() {
 	resourceMap = &resource.Map{
 		Mapping: map[string]resource.Resource{
-			"aws_autoscaling_group": resource.Resource{
-				ConfigValidator: resource_aws_autoscaling_group_validation(),
-				Create:          resource_aws_autoscaling_group_create,
-				Destroy:         resource_aws_autoscaling_group_destroy,
-				Diff:            resource_aws_autoscaling_group_diff,
-				Refresh:         resource_aws_autoscaling_group_refresh,
-				Update:          resource_aws_autoscaling_group_update,
-			},
-
 			"aws_db_instance": resource.Resource{
 				ConfigValidator: resource_aws_db_instance_validation(),
 				Create:          resource_aws_db_instance_create,

@@ -42,12 +42,13 @@ func Provider() *schema.Provider {
 		},
 
 		ResourcesMap: map[string]*schema.Resource{
-			"aws_eip":             resourceAwsEip(),
-			"aws_elb":             resourceAwsElb(),
-			"aws_instance":        resourceAwsInstance(),
-			"aws_security_group":  resourceAwsSecurityGroup(),
-			"aws_db_subnet_group": resourceAwsDbSubnetGroup(),
-			"aws_vpc":             resourceAwsVpc(),
+			"aws_autoscaling_group": resourceAwsAutoscalingGroup(),
+			"aws_eip":               resourceAwsEip(),
+			"aws_elb":               resourceAwsElb(),
+			"aws_instance":          resourceAwsInstance(),
+			"aws_security_group":    resourceAwsSecurityGroup(),
+			"aws_db_subnet_group":   resourceAwsDbSubnetGroup(),
+			"aws_vpc":               resourceAwsVpc(),
 		},
 	}
 }
