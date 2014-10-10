@@ -172,8 +172,10 @@ func (d *ModuleDiff) Empty() bool {
 func (d *ModuleDiff) Instances(id string) []*InstanceDiff {
 	var result []*InstanceDiff
 	for k, diff := range d.Resources {
-		if strings.HasPrefix(k, id) && !diff.Empty() {
-			result = append(result, diff)
+		if k == id || strings.HasPrefix(k, id+".") {
+			if !diff.Empty() {
+				result = append(result, diff)
+			}
 		}
 	}
 

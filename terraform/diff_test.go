@@ -1,6 +1,7 @@
 package terraform
 
 import (
+	"reflect"
 	"strings"
 	"testing"
 )
@@ -265,6 +266,68 @@ func TestInstanceDiff_Empty(t *testing.T) {
 
 	if rd.Empty() {
 		t.Fatal("should not be empty")
+	}
+}
+
+func TestModuleDiff_Instances(t *testing.T) {
+	yesDiff := &InstanceDiff{Destroy: true}
+	noDiff := &InstanceDiff{Destroy: true, DestroyTainted: true}
+
+	cases := []struct {
+		Diff   *ModuleDiff
+		Id     string
+		Result []*InstanceDiff
+	}{
+		{
+			&ModuleDiff{
+				Resources: map[string]*InstanceDiff{
+					"foo": yesDiff,
+					"bar": noDiff,
+				},
+			},
+			"foo",
+			[]*InstanceDiff{
+				yesDiff,
+			},
+		},
+
+		{
+			&ModuleDiff{
+				Resources: map[string]*InstanceDiff{
+					"foo":   yesDiff,
+					"foo.0": yesDiff,
+					"bar":   noDiff,
+				},
+			},
+			"foo",
+			[]*InstanceDiff{
+				yesDiff,
+				yesDiff,
+			},
+		},
+
+		{
+			&ModuleDiff{
+				Resources: map[string]*InstanceDiff{
+					"foo":     yesDiff,
+					"foo.0":   yesDiff,
+					"foo_bar": noDiff,
+					"bar":     noDiff,
+				},
+			},
+			"foo",
+			[]*InstanceDiff{
+				yesDiff,
+				yesDiff,
+			},
+		},
+	}
+
+	for i, tc := range cases {
+		actual := tc.Diff.Instances(tc.Id)
+		if !reflect.DeepEqual(actual, tc.Result) {
+			t.Fatalf("%d: %#v", i, actual)
+		}
 	}
 }
 
