@@ -53,11 +53,16 @@ BUG FIXES:
   * core: Providers are validated even without a `provider` block. [GH-284]
   * core: In the case of error, walk all non-dependent trees.
   * core: Plugin loading from CWD works properly.
+  * core: Fix many edge cases surrounding the `count` meta-parameter.
   * providers/aws: autoscaling_group can be launched into a vpc [GH-259]
   * providers/aws: not an error when RDS instance is deleted manually. [GH-307]
   * providers/aws: Retry deleting subnet for some time while AWS eventually
       destroys dependencies. [GH-357]
   * providers/aws: More robust destroy for route53 records. [GH-342]
+  * providers/aws: ELB generates much more correct plans without extranneous
+      data.
+  * providers/aws: ELB works properly with dynamically changing
+      count of instances.
 
 ## 0.2.2 (September 9, 2014)
 
