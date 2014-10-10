@@ -98,29 +98,32 @@ func (c *RemoteCommand) Run(args []string) int {
 	return 0
 }
 
-// pullState is used to refresh our state before disabling remote
-// state management
-func (c *RemoteCommand) pullState() error {
-	// TODO
-	return nil
-}
-
 // disableRemoteState is used to disable remote state management,
 // and move the state file into place.
 func (c *RemoteCommand) disableRemoteState() int {
-	// Ensure we have the latest state before disabling
-	if c.conf.pullOnDisable {
-		if err := c.pullState(); err != nil {
-			c.Ui.Error(fmt.Sprintf("%s", err))
-			return 1
-		}
-	}
-
 	// Get the local state
 	local, _, err := remote.ReadLocalState()
 	if err != nil {
 		c.Ui.Error(fmt.Sprintf("Failed to read local state: %v", err))
 		return 1
+	}
+
+	// Ensure we have the latest state before disabling
+	if c.conf.pullOnDisable {
+		change, err := remote.RefreshState(local.Remote)
+		if err != nil {
+			c.Ui.Error(fmt.Sprintf(
+				"Failed to refresh from remote state: %v", err))
+			return 1
+		}
+
+		// Exit if we were unable to update
+		if !change.SuccessfulPull() {
+			c.Ui.Error(fmt.Sprintf("%s", change))
+			return 1
+		} else {
+			c.Ui.Output(fmt.Sprintf("%s", change))
+		}
 	}
 
 	// Clear the remote management, and copy into place
