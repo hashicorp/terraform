@@ -288,7 +288,7 @@ func resourceAwsElbUpdate(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	d.Partial(false)
-	return nil
+	return resourceAwsElbRead(d, meta)
 }
 
 func resourceAwsElbDelete(d *schema.ResourceData, meta interface{}) error {
