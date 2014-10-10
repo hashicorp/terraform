@@ -1,7 +1,6 @@
 package aws
 
 import (
-	"strconv"
 	"strings"
 
 	"github.com/mitchellh/goamz/autoscaling"
@@ -16,27 +15,19 @@ func expandListeners(configured []interface{}) ([]elb.Listener, error) {
 
 	// Loop over our configured listeners and create
 	// an array of goamz compatabile objects
-	for _, listener := range configured {
-		newL := listener.(map[string]interface{})
-
-		instancePort, err := strconv.ParseInt(newL["instance_port"].(string), 0, 0)
-		lbPort, err := strconv.ParseInt(newL["lb_port"].(string), 0, 0)
-
-		if err != nil {
-			return nil, err
-		}
+	for _, lRaw := range configured {
+		data := lRaw.(map[string]interface{})
 
 		l := elb.Listener{
-			InstancePort:     instancePort,
-			InstanceProtocol: newL["instance_protocol"].(string),
-			LoadBalancerPort: lbPort,
-			Protocol:         newL["lb_protocol"].(string),
+			InstancePort:     int64(data["instance_port"].(int)),
+			InstanceProtocol: data["instance_protocol"].(string),
+			LoadBalancerPort: int64(data["lb_port"].(int)),
+			Protocol:         data["lb_protocol"].(string),
 		}
 
-		if attr, ok := newL["ssl_certificate_id"].(string); ok {
-			l.SSLCertificateId = attr
+		if v, ok := data["ssl_certificate_id"]; ok {
+			l.SSLCertificateId = v.(string)
 		}
-
 
 		listeners = append(listeners, l)
 	}

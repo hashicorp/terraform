@@ -38,15 +38,6 @@ func init() {
 				Refresh:         resource_aws_db_security_group_refresh,
 			},
 
-			"aws_elb": resource.Resource{
-				ConfigValidator: resource_aws_elb_validation(),
-				Create:          resource_aws_elb_create,
-				Update:          resource_aws_elb_update,
-				Destroy:         resource_aws_elb_destroy,
-				Diff:            resource_aws_elb_diff,
-				Refresh:         resource_aws_elb_refresh,
-			},
-
 			"aws_internet_gateway": resource.Resource{
 				Create:  resource_aws_internet_gateway_create,
 				Destroy: resource_aws_internet_gateway_destroy,

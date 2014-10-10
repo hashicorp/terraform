@@ -1,95 +1,221 @@
 package aws
 
 import (
+	"bytes"
 	"fmt"
 	"log"
-	"strconv"
 
-	"github.com/hashicorp/terraform/flatmap"
-	"github.com/hashicorp/terraform/helper/config"
-	"github.com/hashicorp/terraform/helper/diff"
-	"github.com/hashicorp/terraform/terraform"
+	"github.com/hashicorp/terraform/helper/hashcode"
+	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/mitchellh/goamz/elb"
 )
 
-func resource_aws_elb_create(
-	s *terraform.InstanceState,
-	d *terraform.InstanceDiff,
-	meta interface{}) (*terraform.InstanceState, error) {
+func resourceAwsElb() *schema.Resource {
+	return &schema.Resource{
+		Create: resourceAwsElbCreate,
+		Read:   resourceAwsElbRead,
+		Update: resourceAwsElbUpdate,
+		Delete: resourceAwsElbDelete,
+
+		Schema: map[string]*schema.Schema{
+			"name": &schema.Schema{
+				Type:     schema.TypeString,
+				Required: true,
+				ForceNew: true,
+			},
+
+			"internal": &schema.Schema{
+				Type:     schema.TypeBool,
+				Optional: true,
+				ForceNew: true,
+			},
+
+			"availability_zones": &schema.Schema{
+				Type:     schema.TypeList,
+				Elem:     &schema.Schema{Type: schema.TypeString},
+				Optional: true,
+				ForceNew: true,
+			},
+
+			"instances": &schema.Schema{
+				Type:     schema.TypeSet,
+				Elem:     &schema.Schema{Type: schema.TypeString},
+				Optional: true,
+				Set: func(v interface{}) int {
+					return hashcode.String(v.(string))
+				},
+			},
+
+			// TODO: could be not ForceNew
+			"security_groups": &schema.Schema{
+				Type:     schema.TypeList,
+				Elem:     &schema.Schema{Type: schema.TypeString},
+				Optional: true,
+				ForceNew: true,
+			},
+
+			// TODO: could be not ForceNew
+			"subnets": &schema.Schema{
+				Type:     schema.TypeList,
+				Elem:     &schema.Schema{Type: schema.TypeString},
+				Optional: true,
+				ForceNew: true,
+			},
+
+			// TODO: could be not ForceNew
+			"listener": &schema.Schema{
+				Type:     schema.TypeSet,
+				Required: true,
+				ForceNew: true,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"instance_port": &schema.Schema{
+							Type:     schema.TypeInt,
+							Required: true,
+						},
+
+						"instance_protocol": &schema.Schema{
+							Type:     schema.TypeString,
+							Required: true,
+						},
+
+						"lb_port": &schema.Schema{
+							Type:     schema.TypeInt,
+							Required: true,
+						},
+
+						"lb_protocol": &schema.Schema{
+							Type:     schema.TypeString,
+							Required: true,
+						},
+
+						"ssl_certificate_id": &schema.Schema{
+							Type:     schema.TypeString,
+							Optional: true,
+						},
+					},
+				},
+				Set: resourceAwsElbListenerHash,
+			},
+
+			// TODO: could be not ForceNew
+			"health_check": &schema.Schema{
+				Type:     schema.TypeSet,
+				Optional: true,
+				ForceNew: true,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"healthy_threshold": &schema.Schema{
+							Type:     schema.TypeInt,
+							Required: true,
+						},
+
+						"unhealthy_threshold": &schema.Schema{
+							Type:     schema.TypeInt,
+							Required: true,
+						},
+
+						"target": &schema.Schema{
+							Type:     schema.TypeString,
+							Required: true,
+						},
+
+						"interval": &schema.Schema{
+							Type:     schema.TypeInt,
+							Required: true,
+						},
+
+						"timeout": &schema.Schema{
+							Type:     schema.TypeInt,
+							Required: true,
+						},
+					},
+				},
+				Set: resourceAwsElbHealthCheckHash,
+			},
+
+			"dns_name": &schema.Schema{
+				Type:     schema.TypeString,
+				Computed: true,
+			},
+		},
+	}
+}
+
+func resourceAwsElbHealthCheckHash(v interface{}) int {
+	var buf bytes.Buffer
+	m := v.(map[string]interface{})
+	buf.WriteString(fmt.Sprintf("%d-", m["healthy_threshold"].(int)))
+	buf.WriteString(fmt.Sprintf("%d-", m["unhealthy_threshold"].(int)))
+	buf.WriteString(fmt.Sprintf("%s-", m["target"].(string)))
+	buf.WriteString(fmt.Sprintf("%d-", m["interval"].(int)))
+	buf.WriteString(fmt.Sprintf("%d-", m["timeout"].(int)))
+
+	return hashcode.String(buf.String())
+}
+
+func resourceAwsElbListenerHash(v interface{}) int {
+	var buf bytes.Buffer
+	m := v.(map[string]interface{})
+	buf.WriteString(fmt.Sprintf("%d-", m["instance_port"].(int)))
+	buf.WriteString(fmt.Sprintf("%s-", m["instance_protocol"].(string)))
+	buf.WriteString(fmt.Sprintf("%d-", m["lb_port"].(int)))
+	buf.WriteString(fmt.Sprintf("%s-", m["lb_protocol"].(string)))
+
+	if v, ok := m["ssl_certificate_id"]; ok {
+		buf.WriteString(fmt.Sprintf("%s-", v.(string)))
+	}
+
+	return hashcode.String(buf.String())
+}
+
+func resourceAwsElbCreate(d *schema.ResourceData, meta interface{}) error {
 	p := meta.(*ResourceProvider)
 	elbconn := p.elbconn
 
-	// Merge the diff into the state so that we have all the attributes
-	// properly.
-	rs := s.MergeDiff(d)
-
-	// The name specified for the ELB. This is also our unique ID
-	// we save to state if the creation is successful (amazon verifies
-	// it is unique)
-	elbName := rs.Attributes["name"]
-
-	// Expand the "listener" array to goamz compat []elb.Listener
-	v := flatmap.Expand(rs.Attributes, "listener").([]interface{})
-	listeners, err := expandListeners(v)
+	// Expand the "listener" set to goamz compat []elb.Listener
+	listeners, err := expandListeners(d.Get("listener").(*schema.Set).List())
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	// Provision the elb
 	elbOpts := &elb.CreateLoadBalancer{
-		LoadBalancerName: elbName,
+		LoadBalancerName: d.Get("name").(string),
 		Listeners:        listeners,
+		Internal:         d.Get("internal").(bool),
 	}
 
-	if rs.Attributes["internal"] == "true" {
-		elbOpts.Internal = true
+	if v, ok := d.GetOk("availability_zones"); ok {
+		elbOpts.AvailZone = expandStringList(v.([]interface{}))
 	}
 
-	if _, ok := rs.Attributes["availability_zones.#"]; ok {
-		v = flatmap.Expand(rs.Attributes, "availability_zones").([]interface{})
-		elbOpts.AvailZone = expandStringList(v)
+	if v, ok := d.GetOk("security_groups"); ok {
+		elbOpts.SecurityGroups = expandStringList(v.([]interface{}))
 	}
 
-	if _, ok := rs.Attributes["security_groups.#"]; ok {
-		v = flatmap.Expand(rs.Attributes, "security_groups").([]interface{})
-		elbOpts.SecurityGroups = expandStringList(v)
-	}
-
-	if _, ok := rs.Attributes["subnets.#"]; ok {
-		v = flatmap.Expand(rs.Attributes, "subnets").([]interface{})
-		elbOpts.Subnets = expandStringList(v)
+	if v, ok := d.GetOk("subnets"); ok {
+		elbOpts.Subnets = expandStringList(v.([]interface{}))
 	}
 
 	log.Printf("[DEBUG] ELB create configuration: %#v", elbOpts)
-
-	_, err = elbconn.CreateLoadBalancer(elbOpts)
-	if err != nil {
-		return nil, fmt.Errorf("Error creating ELB: %s", err)
+	if _, err := elbconn.CreateLoadBalancer(elbOpts); err != nil {
+		return fmt.Errorf("Error creating ELB: %s", err)
 	}
 
 	// Assign the elb's unique identifier for use later
-	rs.ID = elbName
-	log.Printf("[INFO] ELB ID: %s", elbName)
+	d.SetId(d.Get("name").(string))
+	log.Printf("[INFO] ELB ID: %s", d.Id())
 
-	if _, ok := rs.Attributes["instances.#"]; ok {
-		// If we have any instances, we need to register them
-		v = flatmap.Expand(rs.Attributes, "instances").([]interface{})
-		instances := expandStringList(v)
+	// Enable partial mode and record what we set
+	d.Partial(true)
+	d.SetPartial("name")
+	d.SetPartial("internal")
+	d.SetPartial("availability_zones")
+	d.SetPartial("security_groups")
+	d.SetPartial("subnets")
 
-		if len(instances) > 0 {
-			registerInstancesOpts := elb.RegisterInstancesWithLoadBalancer{
-				LoadBalancerName: elbName,
-				Instances:        instances,
-			}
-
-			_, err := elbconn.RegisterInstancesWithLoadBalancer(&registerInstancesOpts)
-
-			if err != nil {
-				return rs, fmt.Errorf("Failure registering instances: %s", err)
-			}
-		}
-	}
-
+	/*
 	if _, ok := rs.Attributes["health_check.#"]; ok {
 		v := flatmap.Expand(rs.Attributes, "health_check").([]interface{})
 		health_check := v[0].(map[string]interface{})
@@ -118,252 +244,107 @@ func resource_aws_elb_create(
 			return rs, fmt.Errorf("Failure configuring health check: %s", err)
 		}
 	}
+	*/
 
-	loadBalancer, err := resource_aws_elb_retrieve_balancer(rs.ID, elbconn)
-	if err != nil {
-		return rs, err
-	}
-
-	return resource_aws_elb_update_state(rs, loadBalancer)
+	return resourceAwsElbUpdate(d, meta)
 }
 
-func resource_aws_elb_update(
-	s *terraform.InstanceState,
-	d *terraform.InstanceDiff,
-	meta interface{}) (*terraform.InstanceState, error) {
+func resourceAwsElbUpdate(d *schema.ResourceData, meta interface{}) error {
 	p := meta.(*ResourceProvider)
 	elbconn := p.elbconn
 
-	rs := s.MergeDiff(d)
+	d.Partial(true)
 
 	// If we currently have instances, or did have instances,
 	// we want to figure out what to add and remove from the load
 	// balancer
-	if attr, ok := d.Attributes["instances.#"]; ok && attr.Old != "" {
-		// The new state of instances merged with the diff
-		mergedInstances := expandStringList(flatmap.Expand(
-			rs.Attributes, "instances").([]interface{}))
+	if d.HasChange("instances") {
+		o, n := d.GetChange("instances")
+		os := o.(*schema.Set)
+		ns := n.(*schema.Set)
+		remove := expandStringList(os.Difference(ns).List())
+		add := expandStringList(ns.Difference(os).List())
 
-		// The state before the diff merge
-		previousInstances := expandStringList(flatmap.Expand(
-			s.Attributes, "instances").([]interface{}))
-
-		// keep track of what instances we are removing, and which
-		// we are adding
-		var toRemove []string
-		var toAdd []string
-
-		for _, instanceId := range mergedInstances {
-			for _, prevId := range previousInstances {
-				// If the merged instance ID existed
-				// previously, we don't have to do anything
-				if instanceId == prevId {
-					continue
-					// Otherwise, we need to add it to the load balancer
-				} else {
-					toAdd = append(toAdd, instanceId)
-				}
-			}
-		}
-
-		for i, instanceId := range toAdd {
-			for _, prevId := range previousInstances {
-				// If the instance ID we are adding existed
-				// previously, we want to not add it, but rather remove
-				// it
-				if instanceId == prevId {
-					toRemove = append(toRemove, instanceId)
-					toAdd = append(toAdd[:i], toAdd[i+1:]...)
-					// Otherwise, we continue adding it to the ELB
-				} else {
-					continue
-				}
-			}
-		}
-
-		if len(toAdd) > 0 {
+		if len(add) > 0 {
 			registerInstancesOpts := elb.RegisterInstancesWithLoadBalancer{
-				LoadBalancerName: rs.ID,
-				Instances:        toAdd,
+				LoadBalancerName: d.Id(),
+				Instances:        add,
 			}
 
 			_, err := elbconn.RegisterInstancesWithLoadBalancer(&registerInstancesOpts)
-
 			if err != nil {
-				return s, fmt.Errorf("Failure registering instances: %s", err)
+				return fmt.Errorf("Failure registering instances: %s", err)
 			}
 		}
-
-		if len(toRemove) > 0 {
+		if len(remove) > 0 {
 			deRegisterInstancesOpts := elb.DeregisterInstancesFromLoadBalancer{
-				LoadBalancerName: rs.ID,
-				Instances:        toRemove,
+				LoadBalancerName: d.Id(),
+				Instances:        remove,
 			}
 
 			_, err := elbconn.DeregisterInstancesFromLoadBalancer(&deRegisterInstancesOpts)
-
 			if err != nil {
-				return s, fmt.Errorf("Failure deregistering instances: %s", err)
+				return fmt.Errorf("Failure deregistering instances: %s", err)
 			}
 		}
+
+		d.SetPartial("instances")
 	}
 
-	loadBalancer, err := resource_aws_elb_retrieve_balancer(rs.ID, elbconn)
-
-	if err != nil {
-		return s, err
-	}
-
-	return resource_aws_elb_update_state(rs, loadBalancer)
+	d.Partial(false)
+	return nil
 }
 
-func resource_aws_elb_destroy(
-	s *terraform.InstanceState,
-	meta interface{}) error {
+func resourceAwsElbDelete(d *schema.ResourceData, meta interface{}) error {
 	p := meta.(*ResourceProvider)
 	elbconn := p.elbconn
 
-	log.Printf("[INFO] Deleting ELB: %s", s.ID)
+	log.Printf("[INFO] Deleting ELB: %s", d.Id())
 
 	// Destroy the load balancer
 	deleteElbOpts := elb.DeleteLoadBalancer{
-		LoadBalancerName: s.ID,
+		LoadBalancerName: d.Id(),
 	}
-	_, err := elbconn.DeleteLoadBalancer(&deleteElbOpts)
-
-	if err != nil {
+	if _, err := elbconn.DeleteLoadBalancer(&deleteElbOpts); err != nil {
 		return fmt.Errorf("Error deleting ELB: %s", err)
 	}
 
 	return nil
 }
 
-func resource_aws_elb_refresh(
-	s *terraform.InstanceState,
-	meta interface{}) (*terraform.InstanceState, error) {
+func resourceAwsElbRead(d *schema.ResourceData, meta interface{}) error {
 	p := meta.(*ResourceProvider)
 	elbconn := p.elbconn
 
-	loadBalancer, err := resource_aws_elb_retrieve_balancer(s.ID, elbconn)
+	// Retrieve the ELB properties for updating the state
+	describeElbOpts := &elb.DescribeLoadBalancer{
+		Names: []string{d.Id()},
+	}
+
+	describeResp, err := elbconn.DescribeLoadBalancers(describeElbOpts)
 	if err != nil {
-		return nil, err
+		return fmt.Errorf("Error retrieving ELB: %s", err)
+	}
+	if len(describeResp.LoadBalancers) != 1 {
+		return fmt.Errorf("Unable to find ELB: %#v", describeResp.LoadBalancers)
 	}
 
-	return resource_aws_elb_update_state(s, loadBalancer)
-}
+	lb := describeResp.LoadBalancers[0]
 
-func resource_aws_elb_diff(
-	s *terraform.InstanceState,
-	c *terraform.ResourceConfig,
-	meta interface{}) (*terraform.InstanceDiff, error) {
+	d.Set("name", lb.LoadBalancerName)
+	d.Set("dns_name", lb.DNSName)
+	d.Set("internal", lb.Scheme == "internal")
+	d.Set("instances", flattenInstances(lb.Instances))
+	d.Set("security_groups", lb.SecurityGroups)
+	d.Set("subnets", lb.Subnets)
 
-	b := &diff.ResourceBuilder{
-		Attrs: map[string]diff.AttrType{
-			"name":              diff.AttrTypeCreate,
-			"availability_zone": diff.AttrTypeCreate,
-			"security_groups":   diff.AttrTypeCreate, // TODO could be AttrTypeUpdate
-			"subnets":           diff.AttrTypeCreate, // TODO could be AttrTypeUpdate
-			"listener":          diff.AttrTypeCreate,
-			"instances":         diff.AttrTypeUpdate,
-			"health_check":      diff.AttrTypeCreate,
-			"internal":          diff.AttrTypeCreate,
-		},
-
-		ComputedAttrs: []string{
-			"dns_name",
-		},
-	}
-
-	return b.Diff(s, c)
-}
-
-func resource_aws_elb_update_state(
-	s *terraform.InstanceState,
-	balancer *elb.LoadBalancer) (*terraform.InstanceState, error) {
-
-	s.Attributes["name"] = balancer.LoadBalancerName
-	s.Attributes["dns_name"] = balancer.DNSName
-
-	if balancer.Scheme == "internal" {
-		s.Attributes["internal"] = "true"
-	}
-
-	// Flatten our group values
-	toFlatten := make(map[string]interface{})
-
-	if len(balancer.Instances) > 0 && balancer.Instances[0].InstanceId != "" {
-		toFlatten["instances"] = flattenInstances(balancer.Instances)
-	}
-
-	if len(balancer.SecurityGroups) > 0 && balancer.SecurityGroups[0] != "" {
-		toFlatten["security_groups"] = balancer.SecurityGroups
-	}
-
-	if len(balancer.Subnets) > 0 && balancer.Subnets[0] != "" {
-		toFlatten["subnets"] = balancer.Subnets
-	}
-
+	/*
 	// There's only one health check, so save that to state as we
 	// currently can
 	if balancer.HealthCheck.Target != "" {
 		toFlatten["health_check"] = flattenHealthCheck(balancer.HealthCheck)
 	}
+	*/
 
-	for k, v := range flatmap.Flatten(toFlatten) {
-		s.Attributes[k] = v
-	}
-
-	return s, nil
-}
-
-// retrieves an ELB by its ID
-func resource_aws_elb_retrieve_balancer(id string, elbconn *elb.ELB) (*elb.LoadBalancer, error) {
-	describeElbOpts := &elb.DescribeLoadBalancer{
-		Names: []string{id},
-	}
-
-	// Retrieve the ELB properties for updating the state
-	describeResp, err := elbconn.DescribeLoadBalancers(describeElbOpts)
-	if err != nil {
-		return nil, fmt.Errorf("Error retrieving ELB: %s", err)
-	}
-
-	loadBalancer := describeResp.LoadBalancers[0]
-
-	// Verify AWS returned our ELB
-	if len(describeResp.LoadBalancers) != 1 ||
-		describeResp.LoadBalancers[0].LoadBalancerName != id {
-		if err != nil {
-			return nil, fmt.Errorf("Unable to find ELB: %#v", describeResp.LoadBalancers)
-		}
-	}
-
-	return &loadBalancer, nil
-}
-
-func resource_aws_elb_validation() *config.Validator {
-	return &config.Validator{
-		Required: []string{
-			"name",
-			"listener.*",
-			"listener.*.instance_port",
-			"listener.*.instance_protocol",
-			"listener.*.lb_port",
-			"listener.*.lb_protocol",
-		},
-		Optional: []string{
-			"instances.*",
-			"listener.*.ssl_certificate_id",
-			"internal",
-			"availability_zones.*",
-			"security_groups.*",
-			"subnets.*",
-			"health_check.#",
-			"health_check.0.healthy_threshold",
-			"health_check.0.unhealthy_threshold",
-			"health_check.0.interval",
-			"health_check.0.target",
-			"health_check.0.timeout",
-		},
-	}
+	return nil
 }
