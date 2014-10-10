@@ -463,16 +463,16 @@ func TestGraphAddDiff(t *testing.T) {
 	}
 
 	/*
-	TODO: test this somewhere
-	// Verify that the state has been added
-	n := g.Noun("aws_instance.foo")
-	rn := n.Meta.(*GraphNodeResource)
+		TODO: test this somewhere
+		// Verify that the state has been added
+		n := g.Noun("aws_instance.foo")
+		rn := n.Meta.(*GraphNodeResource)
 
-	expected2 := diff.RootModule().Resources["aws_instance.foo"]
-	actual2 := rn.Resource.Diff
-	if !reflect.DeepEqual(actual2, expected2) {
-		t.Fatalf("bad: %#v", actual2)
-	}
+		expected2 := diff.RootModule().Resources["aws_instance.foo"]
+		actual2 := rn.Resource.Diff
+		if !reflect.DeepEqual(actual2, expected2) {
+			t.Fatalf("bad: %#v", actual2)
+		}
 	*/
 }
 

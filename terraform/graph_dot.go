@@ -221,49 +221,49 @@ func graphDotAddResources(
 
 	// Handle the meta resources
 	/*
-	edgeBuf.Reset()
-	for _, n := range g.Nouns {
-		_, ok := n.Meta.(*GraphNodeResourceMeta)
-		if !ok {
-			continue
-		}
-
-		// Determine which edges to add
-		var edges []digraph.Edge
-		if hasDiff {
-			for _, e := range n.Edges() {
-				rn, ok := e.Tail().(*depgraph.Noun).Meta.(*GraphNodeResource)
-				if !ok {
-					continue
-				}
-				if rn.Resource.Diff == nil || rn.Resource.Diff.Empty() {
-					continue
-				}
-				edges = append(edges, e)
+		edgeBuf.Reset()
+		for _, n := range g.Nouns {
+			_, ok := n.Meta.(*GraphNodeResourceMeta)
+			if !ok {
+				continue
 			}
-		} else {
-			edges = n.Edges()
-		}
 
-		// Do not draw if we have no edges
-		if len(edges) == 0 {
-			continue
-		}
+			// Determine which edges to add
+			var edges []digraph.Edge
+			if hasDiff {
+				for _, e := range n.Edges() {
+					rn, ok := e.Tail().(*depgraph.Noun).Meta.(*GraphNodeResource)
+					if !ok {
+						continue
+					}
+					if rn.Resource.Diff == nil || rn.Resource.Diff.Empty() {
+						continue
+					}
+					edges = append(edges, e)
+				}
+			} else {
+				edges = n.Edges()
+			}
 
-		uniqueName := fmt.Sprintf("%d_%s", opts.depth, n)
-		for _, e := range edges {
-			target := e.Tail()
-			uniqueTarget := fmt.Sprintf("%d_%s", opts.depth, target)
-			edgeBuf.WriteString(fmt.Sprintf(
-				"\t\"%s\" -> \"%s\";\n",
-				uniqueName,
-				uniqueTarget))
+			// Do not draw if we have no edges
+			if len(edges) == 0 {
+				continue
+			}
+
+			uniqueName := fmt.Sprintf("%d_%s", opts.depth, n)
+			for _, e := range edges {
+				target := e.Tail()
+				uniqueTarget := fmt.Sprintf("%d_%s", opts.depth, target)
+				edgeBuf.WriteString(fmt.Sprintf(
+					"\t\"%s\" -> \"%s\";\n",
+					uniqueName,
+					uniqueTarget))
+			}
 		}
-	}
-	if edgeBuf.Len() > 0 {
-		buf.WriteString(edgeBuf.String())
-		buf.WriteString("\n")
-	}
+		if edgeBuf.Len() > 0 {
+			buf.WriteString(edgeBuf.String())
+			buf.WriteString("\n")
+		}
 	*/
 }
 

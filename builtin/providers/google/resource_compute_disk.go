@@ -42,7 +42,7 @@ func resourceComputeDisk() *schema.Resource {
 			},
 
 			"type": &schema.Schema{
-				Type:	  schema.TypeString,
+				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: true,
 			},

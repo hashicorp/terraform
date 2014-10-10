@@ -19,7 +19,7 @@ func TestRetry(t *testing.T) {
 		return fmt.Errorf("error")
 	}
 
-	err := Retry(2 * time.Second, f)
+	err := Retry(2*time.Second, f)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -32,7 +32,7 @@ func TestRetry_timeout(t *testing.T) {
 		return fmt.Errorf("always")
 	}
 
-	err := Retry(1 * time.Second, f)
+	err := Retry(1*time.Second, f)
 	if err == nil {
 		t.Fatal("should error")
 	}

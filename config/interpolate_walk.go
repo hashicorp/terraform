@@ -26,8 +26,8 @@ type interpolationWalker struct {
 	//
 	// If Replace is true, then the return value of F will be used to
 	// replace the interpolation.
-	F           interpolationWalkerFunc
-	Replace     bool
+	F       interpolationWalkerFunc
+	Replace bool
 
 	// ContextF is an advanced version of F that also receives the
 	// location of where it is in the structure. This lets you do

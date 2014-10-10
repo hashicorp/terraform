@@ -172,10 +172,10 @@ func Test_flattenIPPerms(t *testing.T) {
 func Test_expandListeners(t *testing.T) {
 	expanded := []interface{}{
 		map[string]interface{}{
-			"instance_port": 8000,
-			"lb_port": 80,
+			"instance_port":     8000,
+			"lb_port":           80,
 			"instance_protocol": "http",
-			"lb_protocol": "http",
+			"lb_protocol":       "http",
 		},
 	}
 	listeners, err := expandListeners(expanded)

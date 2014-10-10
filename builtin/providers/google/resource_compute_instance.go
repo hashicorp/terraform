@@ -211,7 +211,7 @@ func resourceComputeInstanceCreate(d *schema.ResourceData, meta interface{}) err
 			}
 		}
 
-                if v, ok := d.GetOk(prefix + ".type"); ok {
+		if v, ok := d.GetOk(prefix + ".type"); ok {
 			diskTypeName := v.(string)
 			diskType, err := readDiskType(config, zone, diskTypeName)
 			if err != nil {

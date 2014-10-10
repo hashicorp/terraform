@@ -243,7 +243,7 @@ func TestConfigValidate_varModuleInvalid(t *testing.T) {
 }
 
 func TestNameRegexp(t *testing.T) {
-	cases := []struct{
+	cases := []struct {
 		Input string
 		Match bool
 	}{
