@@ -52,14 +52,6 @@ func (c *InitCommand) Run(args []string) int {
 		}
 	}
 
-	// Validate the remote configuration
-	if !remoteConf.Empty() {
-		if err := remote.ValidateConfig(&remoteConf); err != nil {
-			c.Ui.Error(fmt.Sprintf("%s", err))
-			return 1
-		}
-	}
-
 	source := args[0]
 
 	// Get our pwd since we need it
@@ -99,20 +91,35 @@ func (c *InitCommand) Run(args []string) int {
 
 	// Handle remote state if configured
 	if !remoteConf.Empty() {
-		change, err := remote.RefreshState(&remoteConf)
+		// Ensure remote state is not already enabled
+		haveLocal, err := remote.HaveLocalState()
 		if err != nil {
-			c.Ui.Error(fmt.Sprintf(
-				"Failed to refresh from remote state: %v", err))
+			c.Ui.Error(fmt.Sprintf("Failed to check for local state: %v", err))
+			return 1
+		}
+		if haveLocal {
+			c.Ui.Error("Remote state is already enabled. Aborting.")
 			return 1
 		}
 
-		// Log the change that took place
-		c.Ui.Output(fmt.Sprintf("%s", change))
-
-		// Use an error exit code if the update was not a success
-		if !change.SuccessfulPull() {
+		// Check if we have the non-managed state file
+		haveNonManaged, err := remote.ExistsFile(DefaultStateFilename)
+		if err != nil {
+			c.Ui.Error(fmt.Sprintf("Failed to check for state file: %v", err))
 			return 1
 		}
+		if haveNonManaged {
+			c.Ui.Error(fmt.Sprintf("Existing state file '%s' found. Aborting.",
+				DefaultStateFilename))
+			return 1
+		}
+
+		// Initialize a blank state file with remote enabled
+		remoteCmd := &RemoteCommand{
+			Meta:       c.Meta,
+			remoteConf: remoteConf,
+		}
+		return remoteCmd.initBlankState()
 	}
 	return 0
 }
