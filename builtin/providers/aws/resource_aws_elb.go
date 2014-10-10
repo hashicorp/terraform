@@ -215,36 +215,28 @@ func resourceAwsElbCreate(d *schema.ResourceData, meta interface{}) error {
 	d.SetPartial("security_groups")
 	d.SetPartial("subnets")
 
-	/*
-	if _, ok := rs.Attributes["health_check.#"]; ok {
-		v := flatmap.Expand(rs.Attributes, "health_check").([]interface{})
-		health_check := v[0].(map[string]interface{})
-		healthyThreshold, err := strconv.ParseInt(health_check["healthy_threshold"].(string), 0, 0)
-		unhealthyThreshold, err := strconv.ParseInt(health_check["unhealthy_threshold"].(string), 0, 0)
-		interval, err := strconv.ParseInt(health_check["interval"].(string), 0, 0)
-		timeout, err := strconv.ParseInt(health_check["timeout"].(string), 0, 0)
+	if d.HasChange("health_check") {
+		vs := d.Get("health_check").(*schema.Set).List()
+		if len(vs) > 0 {
+			check := vs[0].(map[string]interface{})
 
-		if err != nil {
-			return nil, err
-		}
+			configureHealthCheckOpts := elb.ConfigureHealthCheck{
+				LoadBalancerName: d.Id(),
+				Check: elb.HealthCheck{
+					HealthyThreshold:   int64(check["healthy_threshold"].(int)),
+					UnhealthyThreshold: int64(check["unhealthy_threshold"].(int)),
+					Interval:           int64(check["interval"].(int)),
+					Target:             check["target"].(string),
+					Timeout:            int64(check["timeout"].(int)),
+				},
+			}
 
-		configureHealthCheckOpts := elb.ConfigureHealthCheck{
-			LoadBalancerName: elbName,
-			Check: elb.HealthCheck{
-				HealthyThreshold:   healthyThreshold,
-				UnhealthyThreshold: unhealthyThreshold,
-				Interval:           interval,
-				Target:             health_check["target"].(string),
-				Timeout:            timeout,
-			},
-		}
-
-		_, err = elbconn.ConfigureHealthCheck(&configureHealthCheckOpts)
-		if err != nil {
-			return rs, fmt.Errorf("Failure configuring health check: %s", err)
+			_, err = elbconn.ConfigureHealthCheck(&configureHealthCheckOpts)
+			if err != nil {
+				return fmt.Errorf("Failure configuring health check: %s", err)
+			}
 		}
 	}
-	*/
 
 	return resourceAwsElbUpdate(d, meta)
 }
@@ -338,13 +330,11 @@ func resourceAwsElbRead(d *schema.ResourceData, meta interface{}) error {
 	d.Set("security_groups", lb.SecurityGroups)
 	d.Set("subnets", lb.Subnets)
 
-	/*
 	// There's only one health check, so save that to state as we
 	// currently can
-	if balancer.HealthCheck.Target != "" {
-		toFlatten["health_check"] = flattenHealthCheck(balancer.HealthCheck)
+	if lb.HealthCheck.Target != "" {
+		d.Set("health_check", flattenHealthCheck(lb.HealthCheck))
 	}
-	*/
 
 	return nil
 }
