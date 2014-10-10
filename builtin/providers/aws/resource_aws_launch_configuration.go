@@ -1,214 +1,165 @@
 package aws
 
 import (
+	"crypto/sha1"
+	"encoding/hex"
 	"fmt"
 	"log"
 
-	"github.com/hashicorp/terraform/flatmap"
-	"github.com/hashicorp/terraform/helper/config"
-	"github.com/hashicorp/terraform/helper/diff"
-	"github.com/hashicorp/terraform/terraform"
+	"github.com/hashicorp/terraform/helper/hashcode"
+	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/mitchellh/goamz/autoscaling"
 )
 
-func resource_aws_launch_configuration_create(
-	s *terraform.InstanceState,
-	d *terraform.InstanceDiff,
-	meta interface{}) (*terraform.InstanceState, error) {
+func resourceAwsLaunchConfiguration() *schema.Resource {
+	return &schema.Resource{
+		Create: resourceAwsLaunchConfigurationCreate,
+		Read:   resourceAwsLaunchConfigurationRead,
+		Delete: resourceAwsLaunchConfigurationDelete,
+
+		Schema: map[string]*schema.Schema{
+			"name": &schema.Schema{
+				Type:     schema.TypeString,
+				Required: true,
+				ForceNew: true,
+			},
+
+			"image_id": &schema.Schema{
+				Type:     schema.TypeString,
+				Required: true,
+				ForceNew: true,
+			},
+
+			"instance_type": &schema.Schema{
+				Type:     schema.TypeString,
+				Required: true,
+				ForceNew: true,
+			},
+
+			"iam_instance_profile": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				ForceNew: true,
+			},
+
+			"key_name": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				Computed: true,
+				ForceNew: true,
+			},
+
+			"user_data": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				ForceNew: true,
+				StateFunc: func(v interface{}) string {
+					switch v.(type) {
+					case string:
+						hash := sha1.Sum([]byte(v.(string)))
+						return hex.EncodeToString(hash[:])
+					default:
+						return ""
+					}
+				},
+			},
+
+			"security_groups": &schema.Schema{
+				Type:     schema.TypeSet,
+				Optional: true,
+				ForceNew: true,
+				Elem:     &schema.Schema{Type: schema.TypeString},
+				Set: func(v interface{}) int {
+					return hashcode.String(v.(string))
+				},
+			},
+		},
+	}
+}
+
+func resourceAwsLaunchConfigurationCreate(d *schema.ResourceData, meta interface{}) error {
 	p := meta.(*ResourceProvider)
 	autoscalingconn := p.autoscalingconn
 
-	// Merge the diff into the state so that we have all the attributes
-	// properly.
-	rs := s.MergeDiff(d)
+	var createLaunchConfigurationOpts autoscaling.CreateLaunchConfiguration
+	createLaunchConfigurationOpts.Name = d.Get("name").(string)
+	createLaunchConfigurationOpts.IamInstanceProfile = d.Get("iam_instance_profile").(string)
+	createLaunchConfigurationOpts.ImageId = d.Get("image_id").(string)
+	createLaunchConfigurationOpts.InstanceType = d.Get("instance_type").(string)
+	createLaunchConfigurationOpts.KeyName = d.Get("key_name").(string)
+	createLaunchConfigurationOpts.UserData = d.Get("user_data").(string)
 
-	var err error
-	createLaunchConfigurationOpts := autoscaling.CreateLaunchConfiguration{}
-     
-	if rs.Attributes["iam_instance_profile"] != "" {
-		createLaunchConfigurationOpts.IamInstanceProfile = rs.Attributes["iam_instance_profile"]
+	if v, ok := d.GetOk("security_groups"); ok {
+		createLaunchConfigurationOpts.SecurityGroups = expandStringList(
+			v.(*schema.Set).List())
 	}
-
-	if rs.Attributes["image_id"] != "" {
-		createLaunchConfigurationOpts.ImageId = rs.Attributes["image_id"]
-	}
-
-	if rs.Attributes["instance_type"] != "" {
-		createLaunchConfigurationOpts.InstanceType = rs.Attributes["instance_type"]
-	}
-
-	if rs.Attributes["instance_id"] != "" {
-		createLaunchConfigurationOpts.InstanceId = rs.Attributes["instance_id"]
-	}
-
-	if rs.Attributes["key_name"] != "" {
-		createLaunchConfigurationOpts.KeyName = rs.Attributes["key_name"]
-	}
-
-	if err != nil {
-		return nil, fmt.Errorf("Error parsing configuration: %s", err)
-	}
-
-	if _, ok := rs.Attributes["security_groups.#"]; ok {
-		createLaunchConfigurationOpts.SecurityGroups = expandStringList(flatmap.Expand(
-			rs.Attributes, "security_groups").([]interface{}))
-	}
-
-	if rs.Attributes["user_data"] != "" {
-		createLaunchConfigurationOpts.UserData = rs.Attributes["user_data"]
-	}
-
-	createLaunchConfigurationOpts.Name = rs.Attributes["name"]
 
 	log.Printf("[DEBUG] autoscaling create launch configuration: %#v", createLaunchConfigurationOpts)
-	_, err = autoscalingconn.CreateLaunchConfiguration(&createLaunchConfigurationOpts)
+	_, err := autoscalingconn.CreateLaunchConfiguration(&createLaunchConfigurationOpts)
 	if err != nil {
-		return nil, fmt.Errorf("Error creating launch configuration: %s", err)
+		return fmt.Errorf("Error creating launch configuration: %s", err)
 	}
 
-	rs.ID = rs.Attributes["name"]
+	d.SetId(d.Get("name").(string))
+	log.Printf("[INFO] launch configuration ID: %s", d.Id())
 
-	log.Printf("[INFO] launch configuration ID: %s", rs.ID)
-
-	g, err := resource_aws_launch_configuration_retrieve(rs.ID, autoscalingconn)
-	if err != nil {
-		return rs, err
-	}
-
-	return resource_aws_launch_configuration_update_state(rs, g)
+	return resourceAwsLaunchConfigurationRead(d, meta)
 }
 
-func resource_aws_launch_configuration_update(
-	s *terraform.InstanceState,
-	d *terraform.InstanceDiff,
-	meta interface{}) (*terraform.InstanceState, error) {
-	panic("Update for AWS Launch Configuration is not supported")
-}
-
-func resource_aws_launch_configuration_destroy(
-	s *terraform.InstanceState,
-	meta interface{}) error {
+func resourceAwsLaunchConfigurationDelete(d *schema.ResourceData, meta interface{}) error {
 	p := meta.(*ResourceProvider)
 	autoscalingconn := p.autoscalingconn
 
-	log.Printf("[DEBUG] Launch Configuration destroy: %v", s.ID)
-
-	_, err := autoscalingconn.DeleteLaunchConfiguration(&autoscaling.DeleteLaunchConfiguration{Name: s.ID})
-
+	log.Printf("[DEBUG] Launch Configuration destroy: %v", d.Id())
+	_, err := autoscalingconn.DeleteLaunchConfiguration(
+		&autoscaling.DeleteLaunchConfiguration{Name: d.Id()})
 	if err != nil {
 		autoscalingerr, ok := err.(*autoscaling.Error)
 		if ok && autoscalingerr.Code == "InvalidConfiguration.NotFound" {
 			return nil
 		}
+
 		return err
 	}
 
 	return nil
 }
 
-func resource_aws_launch_configuration_refresh(
-	s *terraform.InstanceState,
-	meta interface{}) (*terraform.InstanceState, error) {
+func resourceAwsLaunchConfigurationRead(d *schema.ResourceData, meta interface{}) error {
 	p := meta.(*ResourceProvider)
 	autoscalingconn := p.autoscalingconn
 
-	g, err := resource_aws_launch_configuration_retrieve(s.ID, autoscalingconn)
-
-	if err != nil {
-		return s, err
-	}
-
-	return resource_aws_launch_configuration_update_state(s, g)
-}
-
-func resource_aws_launch_configuration_diff(
-	s *terraform.InstanceState,
-	c *terraform.ResourceConfig,
-	meta interface{}) (*terraform.InstanceDiff, error) {
-
-	b := &diff.ResourceBuilder{
-		Attrs: map[string]diff.AttrType{
-			"iam_instance_profile": diff.AttrTypeCreate,
-			"image_id":             diff.AttrTypeCreate,
-			"instance_id":          diff.AttrTypeCreate,
-			"instance_type":        diff.AttrTypeCreate,
-			"key_name":             diff.AttrTypeCreate,
-			"name":                 diff.AttrTypeCreate,
-			"security_groups":      diff.AttrTypeCreate,
-			"user_data":            diff.AttrTypeCreate,
-		},
-
-		ComputedAttrs: []string{
-			"key_name",
-		},
-	}
-
-	return b.Diff(s, c)
-}
-
-func resource_aws_launch_configuration_update_state(
-	s *terraform.InstanceState,
-	lc *autoscaling.LaunchConfiguration) (*terraform.InstanceState, error) {
-
-	s.Attributes["iam_instance_profile"] = lc.IamInstanceProfile
-	s.Attributes["image_id"] = lc.ImageId
-	s.Attributes["instance_type"] = lc.InstanceType
-	s.Attributes["key_name"] = lc.KeyName
-	s.Attributes["name"] = lc.Name
-
-	// Flatten our group values
-	toFlatten := make(map[string]interface{})
-
-	if len(lc.SecurityGroups) > 0 && lc.SecurityGroups[0].SecurityGroup != "" {
-		toFlatten["security_groups"] = flattenAutoscalingSecurityGroups(lc.SecurityGroups)
-	}
-
-	for k, v := range flatmap.Flatten(toFlatten) {
-		s.Attributes[k] = v
-	}
-
-	return s, nil
-}
-
-// Returns a single group by its ID
-func resource_aws_launch_configuration_retrieve(id string, autoscalingconn *autoscaling.AutoScaling) (*autoscaling.LaunchConfiguration, error) {
 	describeOpts := autoscaling.DescribeLaunchConfigurations{
-		Names: []string{id},
+		Names: []string{d.Id()},
 	}
 
 	log.Printf("[DEBUG] launch configuration describe configuration: %#v", describeOpts)
-
 	describConfs, err := autoscalingconn.DescribeLaunchConfigurations(&describeOpts)
-
 	if err != nil {
-		return nil, fmt.Errorf("Error retrieving launch configuration: %s", err)
+		return fmt.Errorf("Error retrieving launch configuration: %s", err)
 	}
 
 	// Verify AWS returned our launch configuration
 	if len(describConfs.LaunchConfigurations) != 1 ||
-		describConfs.LaunchConfigurations[0].Name != id {
+		describConfs.LaunchConfigurations[0].Name != d.Id() {
 		if err != nil {
-			return nil, fmt.Errorf("Unable to find launch configuration: %#v", describConfs.LaunchConfigurations)
+			return fmt.Errorf(
+				"Unable to find launch configuration: %#v",
+				describConfs.LaunchConfigurations)
 		}
 	}
 
-	l := describConfs.LaunchConfigurations[0]
+	lc := describConfs.LaunchConfigurations[0]
 
-	return &l, nil
-}
+	d.Set("key_name", lc.KeyName)
+	d.Set("iam_instance_profile", lc.IamInstanceProfile)
+	d.Set("image_id", lc.ImageId)
+	d.Set("instance_type", lc.InstanceType)
+	d.Set("name", lc.Name)
 
-func resource_aws_launch_configuration_validation() *config.Validator {
-	return &config.Validator{
-		Required: []string{
-			"name",
-			"image_id",
-			"instance_type",
-		},
-		Optional: []string{
-			"iam_instance_profile",
-			"key_name",
-			"security_groups.*",
-			"user_data",
-		},
+	if v := lc.SecurityGroups; len(v) > 0 && v[0].SecurityGroup != "" {
+		d.Set("security_groups", flattenAutoscalingSecurityGroups(v))
 	}
+
+	return nil
 }
