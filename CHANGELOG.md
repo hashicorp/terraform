@@ -43,6 +43,7 @@ IMPROVEMENTS:
       `aws_launch_configuration`. [GH-371]
   * providers/aws: Non-destructive update of `desired_capacity` for
       autoscale groups.
+  * providers/aws: Add `main_route_table_id` attribute to VPCs. [GH-193]
   * providers/google: Support `target_tags` for firewalls. [GH-324]
   * providers/google: `google_compute_instance` supports `can_ip_forward` [GH-375]
   * providers/google: `google_compute_disk` supports `type` to support disks

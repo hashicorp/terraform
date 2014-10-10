@@ -36,6 +36,11 @@ func resourceAwsVpc() *schema.Resource {
 				Computed: true,
 			},
 
+			"main_route_table_id": &schema.Schema{
+				Type:     schema.TypeString,
+				Computed: true,
+			},
+
 			"tags": tagsSchema(),
 		},
 	}
@@ -90,7 +95,6 @@ func resourceAwsVpcUpdate(d *schema.ResourceData, meta interface{}) error {
 
 	// Turn on partial mode
 	d.Partial(true)
-	defer d.Partial(false)
 
 	if d.HasChange("enable_dns_hostnames") {
 		options := new(ec2.ModifyVpcAttribute)
@@ -128,7 +132,8 @@ func resourceAwsVpcUpdate(d *schema.ResourceData, meta interface{}) error {
 		d.SetPartial("tags")
 	}
 
-	return nil
+	d.Partial(false)
+	return resourceAwsVpcRead(d, meta)
 }
 
 func resourceAwsVpcDelete(d *schema.ResourceData, meta interface{}) error {
@@ -180,6 +185,18 @@ func resourceAwsVpcRead(d *schema.ResourceData, meta interface{}) error {
 		return err
 	}
 	d.Set("enable_dns_hostnames", resp.EnableDnsHostnames)
+
+	// Get the main routing table for this VPC
+	filter := ec2.NewFilter()
+	filter.Add("association.main", "true")
+	filter.Add("vpc-id", d.Id())
+	routeResp, err := ec2conn.DescribeRouteTables(nil, filter)
+	if err != nil {
+		return err
+	}
+	if v := routeResp.RouteTables; len(v) > 0 {
+		d.Set("main_route_table_id", v[0].RouteTableId)
+	}
 
 	return nil
 }
