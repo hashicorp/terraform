@@ -176,6 +176,21 @@ func flattenInstances(list []elb.Instance) []string {
 	return result
 }
 
+// Flattens an array of Listeners into a []map[string]interface{}
+func flattenListeners(list []elb.Listener) []map[string]interface{} {
+	result := make([]map[string]interface{}, 0, len(list))
+	for _, i := range list {
+		result = append(result, map[string]interface{}{
+			"instance_port":      i.InstancePort,
+			"instance_protocol":  i.InstanceProtocol,
+			"ssl_certificate_id": i.SSLCertificateId,
+			"lb_port":            i.LoadBalancerPort,
+			"lb_protocol":        i.Protocol,
+		})
+	}
+	return result
+}
+
 // Takes the result of flatmap.Expand for an array of strings
 // and returns a []string
 func expandStringList(configured []interface{}) []string {

@@ -337,6 +337,7 @@ func resourceAwsElbRead(d *schema.ResourceData, meta interface{}) error {
 	d.Set("dns_name", lb.DNSName)
 	d.Set("internal", lb.Scheme == "internal")
 	d.Set("instances", flattenInstances(lb.Instances))
+	d.Set("listener", flattenListeners(lb.Listeners))
 	d.Set("security_groups", lb.SecurityGroups)
 	d.Set("subnets", lb.Subnets)
 
