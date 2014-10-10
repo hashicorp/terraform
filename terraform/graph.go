@@ -1750,6 +1750,7 @@ func (n *GraphNodeResource) copyResource(id string) *Resource {
 	resource.Id = id
 	resource.Info = &info
 	resource.Config = NewResourceConfig(n.Config.RawConfig)
+	resource.Diff = nil
 	return &resource
 }
 

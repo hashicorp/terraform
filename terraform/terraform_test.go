@@ -206,6 +206,24 @@ aws_instance.foo:
   type = aws_instance
 `
 
+const testTerraformApplyCountDecStr = `
+aws_instance.foo.0:
+  ID = bar
+  foo = foo
+  type = aws_instance
+aws_instance.foo.1:
+  ID = bar
+  foo = foo
+  type = aws_instance
+`
+
+const testTerraformApplyCountDecToOneStr = `
+aws_instance.foo.0:
+  ID = bar
+  foo = foo
+  type = aws_instance
+`
+
 const testTerraformApplyMinimalStr = `
 aws_instance.bar:
   ID = foo

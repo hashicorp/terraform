@@ -862,6 +862,8 @@ func (c *walkContext) planWalkFn() depgraph.WalkFunc {
 		}
 
 		if !diff.Empty() {
+			log.Printf("[DEBUG] %s: Diff: %#v", r.Id, diff)
+
 			l.Lock()
 			md := result.Diff.ModuleByPath(c.Path)
 			if md == nil {
@@ -1258,6 +1260,9 @@ func (c *walkContext) genericWalkResource(
 	if err != nil {
 		return err
 	}
+
+	println(fmt.Sprintf("%s NODES: %#v", rn.Resource.Id, ns))
+	println(fmt.Sprintf("%s DIFF: %#v", rn.Resource.Id, rn.Resource.Diff))
 
 	// Go through all the nouns and run them in parallel, collecting
 	// any errors.
