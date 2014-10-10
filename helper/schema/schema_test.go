@@ -437,6 +437,39 @@ func TestSchemaMap_Diff(t *testing.T) {
 				},
 			},
 
+			State: nil,
+
+			Config: map[string]interface{}{
+				"ports": []interface{}{1, "${var.foo}"},
+			},
+
+			ConfigVariables: map[string]string{
+				"var.foo": config.UnknownVariableValue +
+					config.InterpSplitDelim + "5",
+			},
+
+			Diff: &terraform.InstanceDiff{
+				Attributes: map[string]*terraform.ResourceAttrDiff{
+					"ports.#": &terraform.ResourceAttrDiff{
+						Old: "0",
+						New: "",
+						NewComputed: true,
+					},
+				},
+			},
+
+			Err: false,
+		},
+
+		{
+			Schema: map[string]*Schema{
+				"ports": &Schema{
+					Type:     TypeList,
+					Required: true,
+					Elem:     &Schema{Type: TypeInt},
+				},
+			},
+
 			State: &terraform.InstanceState{
 				Attributes: map[string]string{
 					"ports.#": "3",

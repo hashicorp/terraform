@@ -52,6 +52,7 @@ const (
 type getResult struct {
 	Value          interface{}
 	ValueProcessed interface{}
+	Computed       bool
 	Exists         bool
 	Schema         *Schema
 }
@@ -221,7 +222,8 @@ func (d *ResourceData) init() {
 	d.newState = &copyState
 }
 
-func (d *ResourceData) diffChange(k string) (interface{}, interface{}, bool) {
+func (d *ResourceData) diffChange(
+	k string) (interface{}, interface{}, bool, bool) {
 	// Get the change between the state and the config.
 	o, n := d.getChange(k, getSourceState, getSourceConfig)
 	if !o.Exists {
@@ -232,7 +234,7 @@ func (d *ResourceData) diffChange(k string) (interface{}, interface{}, bool) {
 	}
 
 	// Return the old, new, and whether there is a change
-	return o.Value, n.Value, !reflect.DeepEqual(o.Value, n.Value)
+	return o.Value, n.Value, !reflect.DeepEqual(o.Value, n.Value), n.Computed
 }
 
 func (d *ResourceData) getChange(
@@ -516,17 +518,21 @@ func (d *ResourceData) getList(
 	}
 
 	// Get the entire list.
+	var result []interface{}
 	count := d.getList(k, []string{"#"}, schema, source)
-	result := make([]interface{}, count.Value.(int))
-	for i, _ := range result {
-		is := strconv.FormatInt(int64(i), 10)
-		result[i] = d.getList(k, []string{is}, schema, source).Value
+	if !count.Computed {
+		result = make([]interface{}, count.Value.(int))
+		for i, _ := range result {
+			is := strconv.FormatInt(int64(i), 10)
+			result[i] = d.getList(k, []string{is}, schema, source).Value
+		}
 	}
 
 	return getResult{
-		Value:  result,
-		Exists: count.Exists,
-		Schema: schema,
+		Value:    result,
+		Computed: count.Computed,
+		Exists:   count.Exists,
+		Schema:   schema,
 	}
 }
 
@@ -537,7 +543,7 @@ func (d *ResourceData) getPrimitive(
 	source getSource) getResult {
 	var result string
 	var resultProcessed interface{}
-	var resultSet bool
+	var resultComputed, resultSet bool
 	if d.state != nil && source >= getSourceState {
 		result, resultSet = d.state.Attributes[k]
 	}
@@ -555,6 +561,8 @@ func (d *ResourceData) getPrimitive(
 			resultSet = false
 		}
 
+		// If it is computed, set that.
+		resultComputed = d.config.IsComputed(k)
 	}
 
 	if d.diff != nil && source >= getSourceDiff {
@@ -615,6 +623,10 @@ func (d *ResourceData) getPrimitive(
 			break
 		}
 
+		if resultComputed {
+			break
+		}
+
 		v, err := strconv.ParseInt(result, 0, 0)
 		if err != nil {
 			panic(err)
@@ -628,6 +640,7 @@ func (d *ResourceData) getPrimitive(
 	return getResult{
 		Value:          resultValue,
 		ValueProcessed: resultProcessed,
+		Computed:       resultComputed,
 		Exists:         resultSet,
 		Schema:         schema,
 	}

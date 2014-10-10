@@ -434,7 +434,7 @@ func (m schemaMap) diffList(
 	schema *Schema,
 	diff *terraform.InstanceDiff,
 	d *ResourceData) error {
-	o, n, _ := d.diffChange(k)
+	o, n, _, computedList := d.diffChange(k)
 
 	// If we have an old value, but no new value set but we're computed,
 	// then nothing has changed.
@@ -460,6 +460,16 @@ func (m schemaMap) diffList(
 	// Get the counts
 	oldLen := len(os)
 	newLen := len(vs)
+	oldStr := strconv.FormatInt(int64(oldLen), 10)
+
+	// If the whole list is computed, then say that the # is computed
+	if computedList {
+		diff.Attributes[k+".#"] = &terraform.ResourceAttrDiff{
+			Old:         oldStr,
+			NewComputed: true,
+		}
+		return nil
+	}
 
 	// If the counts are not the same, then record that diff
 	changed := oldLen != newLen
@@ -471,11 +481,11 @@ func (m schemaMap) diffList(
 			ForceNew: schema.ForceNew,
 		}
 
-		oldStr := ""
 		newStr := ""
 		if !computed {
-			oldStr = strconv.FormatInt(int64(oldLen), 10)
 			newStr = strconv.FormatInt(int64(newLen), 10)
+		} else {
+			oldStr = ""
 		}
 
 		diff.Attributes[k+".#"] = countSchema.finalizeDiff(&terraform.ResourceAttrDiff{
@@ -534,7 +544,7 @@ func (m schemaMap) diffMap(
 
 	// First get all the values from the state
 	var stateMap, configMap map[string]string
-	o, n, _ := d.diffChange(k)
+	o, n, _, _ := d.diffChange(k)
 	if err := mapstructure.WeakDecode(o, &stateMap); err != nil {
 		return fmt.Errorf("%s: %s", k, err)
 	}
@@ -581,7 +591,7 @@ func (m schemaMap) diffString(
 	d *ResourceData) error {
 	var originalN interface{}
 	var os, ns string
-	o, n, _ := d.diffChange(k)
+	o, n, _, _ := d.diffChange(k)
 	if n == nil {
 		n = schema.Default
 		if schema.DefaultFunc != nil {
