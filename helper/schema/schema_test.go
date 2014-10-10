@@ -645,6 +645,32 @@ func TestSchemaMap_Diff(t *testing.T) {
 			Schema: map[string]*Schema{
 				"ports": &Schema{
 					Type:     TypeSet,
+					Computed: true,
+					Required: true,
+					Elem:     &Schema{Type: TypeInt},
+					Set: func(a interface{}) int {
+						return a.(int)
+					},
+				},
+			},
+
+			State: &terraform.InstanceState{
+				Attributes: map[string]string{
+					"ports.#": "0",
+				},
+			},
+
+			Config: nil,
+
+			Diff: nil,
+
+			Err: false,
+		},
+
+		{
+			Schema: map[string]*Schema{
+				"ports": &Schema{
+					Type:     TypeSet,
 					Required: true,
 					Elem:     &Schema{Type: TypeInt},
 					Set: func(a interface{}) int {

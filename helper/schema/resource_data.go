@@ -304,6 +304,7 @@ func (d *ResourceData) getSet(
 			return d.getList(k, parts, schema, source)
 		}
 
+		result.Exists = raw.Exists
 		return result
 	}
 
