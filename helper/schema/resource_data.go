@@ -291,6 +291,13 @@ func (d *ResourceData) getSet(
 		return result
 	}
 
+	// If the entire list is computed, then the entire set is
+	// necessarilly computed.
+	if raw.Computed {
+		result.Computed = true
+		return result
+	}
+
 	list := raw.Value.([]interface{})
 	if len(list) == 0 {
 		if len(parts) > 0 {
