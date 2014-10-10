@@ -61,5 +61,9 @@ The supported built-in functions are:
       in this file are _not_ interpolated. The contents of the file are
       read as-is.
 
+  * `join(delim, list)` - Joins the list with the delimiter. A list is
+      only possible with splat variables from resources with a count
+      greater than one. Example: `join(",", aws_instance.foo.*.id)`
+
   * `lookup(map, key)` - Performs a dynamic lookup into a mapping
       variable.
