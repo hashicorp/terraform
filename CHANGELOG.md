@@ -41,6 +41,8 @@ IMPROVEMENTS:
       rules with self as source. [GH-303]
   * providers/aws: Add `iam_instance_profile` option to
       `aws_launch_configuration`. [GH-371]
+  * providers/aws: Non-destructive update of `desired_capacity` for
+      autoscale groups.
   * providers/google: Support `target_tags` for firewalls. [GH-324]
   * providers/google: `google_compute_instance` supports `can_ip_forward` [GH-375]
   * providers/google: `google_compute_disk` supports `type` to support disks
