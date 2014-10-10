@@ -22,8 +22,17 @@ var interpRegexp *regexp.Regexp = regexp.MustCompile(
 // (github.com/mitchellh/reflectwalk) that can be used to automatically
 // execute a callback for an interpolation.
 type interpolationWalker struct {
-	F       interpolationWalkerFunc
-	Replace bool
+	// F is the function to call for every interpolation. It can be nil.
+	//
+	// If Replace is true, then the return value of F will be used to
+	// replace the interpolation.
+	F           interpolationWalkerFunc
+	Replace     bool
+
+	// ContextF is an advanced version of F that also receives the
+	// location of where it is in the structure. This lets you do
+	// context-aware validation.
+	ContextF interpolationWalkerContextFunc
 
 	key         []string
 	lastValue   reflect.Value
@@ -42,6 +51,14 @@ type interpolationWalker struct {
 // If Replace is set to false in interpolationWalker, then the replace
 // value can be anything as it will have no effect.
 type interpolationWalkerFunc func(Interpolation) (string, error)
+
+// interpolationWalkerContextFunc is called by interpolationWalk if
+// ContextF is set. This receives both the interpolation and the location
+// where the interpolation is.
+//
+// This callback can be used to validate the location of the interpolation
+// within the configuration.
+type interpolationWalkerContextFunc func(reflectwalk.Location, Interpolation)
 
 func (w *interpolationWalker) Enter(loc reflectwalk.Location) error {
 	w.loc = loc
@@ -127,6 +144,14 @@ func (w *interpolationWalker) Primitive(v reflect.Value) error {
 		i, err := ExprParse(key)
 		if err != nil {
 			return err
+		}
+
+		if w.ContextF != nil {
+			w.ContextF(w.loc, i)
+		}
+
+		if w.F == nil {
+			continue
 		}
 
 		replaceVal, err := w.F(i)

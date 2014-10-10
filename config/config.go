@@ -388,6 +388,17 @@ func (c *Config) Validate() error {
 		}
 	}
 
+	// Check that all variables are in the proper context
+	for source, rc := range c.rawConfigs() {
+		walker := &interpolationWalker{
+			ContextF: c.validateVarContextFn(source, &errs),
+		}
+		if err := reflectwalk.Walk(rc.Raw, walker); err != nil {
+			errs = append(errs, fmt.Errorf(
+				"%s: error reading config: %s", source, err))
+		}
+	}
+
 	if len(errs) > 0 {
 		return &multierror.Error{Errors: errs}
 	}
@@ -400,31 +411,55 @@ func (c *Config) Validate() error {
 // are valid in the Validate step.
 func (c *Config) InterpolatedVariables() map[string][]InterpolatedVariable {
 	result := make(map[string][]InterpolatedVariable)
-	for _, pc := range c.ProviderConfigs {
-		source := fmt.Sprintf("provider config '%s'", pc.Name)
-		for _, v := range pc.RawConfig.Variables {
+	for source, rc := range c.rawConfigs() {
+		for _, v := range rc.Variables {
 			result[source] = append(result[source], v)
 		}
+	}
+	return result
+}
+
+// rawConfigs returns all of the RawConfigs that are available keyed by
+// a human-friendly source.
+func (c *Config) rawConfigs() map[string]*RawConfig {
+	result := make(map[string]*RawConfig)
+	for _, pc := range c.ProviderConfigs {
+		source := fmt.Sprintf("provider config '%s'", pc.Name)
+		result[source] = pc.RawConfig
 	}
 
 	for _, rc := range c.Resources {
 		source := fmt.Sprintf("resource '%s'", rc.Id())
-		for _, v := range rc.RawCount.Variables {
-			result[source] = append(result[source], v)
-		}
-		for _, v := range rc.RawConfig.Variables {
-			result[source] = append(result[source], v)
-		}
+		result[source+" count"] = rc.RawCount
+		result[source+" config"] = rc.RawConfig
 	}
 
 	for _, o := range c.Outputs {
 		source := fmt.Sprintf("output '%s'", o.Name)
-		for _, v := range o.RawConfig.Variables {
-			result[source] = append(result[source], v)
-		}
+		result[source] = o.RawConfig
 	}
 
 	return result
+}
+
+func (c *Config) validateVarContextFn(
+	source string, errs *[]error) interpolationWalkerContextFunc {
+	return func(loc reflectwalk.Location, i Interpolation) {
+		vi, ok := i.(*VariableInterpolation)
+		if !ok {
+			return
+		}
+
+		rv, ok := vi.Variable.(*ResourceVariable)
+		if !ok {
+			return
+		}
+
+		if rv.Multi && loc != reflectwalk.SliceElem {
+			*errs = append(*errs, fmt.Errorf(
+				"%s: multi-variable must be in a slice", source))
+		}
+	}
 }
 
 func (m *Module) mergerName() string {
