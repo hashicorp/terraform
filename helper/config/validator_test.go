@@ -56,7 +56,7 @@ func TestValidator_array(t *testing.T) {
 	// Valid
 	c = testConfig(t, map[string]interface{}{
 		"foo":    "bar",
-		"nested": []string{"foo", "bar"},
+		"nested": []interface{}{"foo", "bar"},
 	})
 	testValid(v, c)
 
@@ -124,7 +124,7 @@ func TestValidator_complexNested(t *testing.T) {
 		"ingress": []map[string]interface{}{
 			map[string]interface{}{
 				"from_port":   "80",
-				"cidr_blocks": []string{"foo"},
+				"cidr_blocks": []interface{}{"foo"},
 			},
 		},
 	})

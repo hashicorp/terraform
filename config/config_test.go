@@ -221,6 +221,13 @@ func TestConfigValidate_varDefaultInterpolate(t *testing.T) {
 	}
 }
 
+func TestConfigValidate_varMultiNonSlice(t *testing.T) {
+	c := testConfig(t, "validate-var-multi-non-slice")
+	if err := c.Validate(); err == nil {
+		t.Fatal("should not be valid")
+	}
+}
+
 func TestConfigValidate_varModule(t *testing.T) {
 	c := testConfig(t, "validate-var-module")
 	if err := c.Validate(); err != nil {

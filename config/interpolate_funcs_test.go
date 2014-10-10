@@ -1,6 +1,7 @@
 package config
 
 import (
+	"fmt"
 	"io/ioutil"
 	"os"
 	"testing"
@@ -81,6 +82,55 @@ func TestInterpolateFuncFile(t *testing.T) {
 
 	for i, tc := range cases {
 		actual, err := interpolationFuncFile(nil, tc.Args...)
+		if (err != nil) != tc.Error {
+			t.Fatalf("%d: err: %s", i, err)
+		}
+
+		if actual != tc.Result {
+			t.Fatalf("%d: bad: %#v", i, actual)
+		}
+	}
+}
+
+func TestInterpolateFuncJoin(t *testing.T) {
+	cases := []struct {
+		Args   []string
+		Result string
+		Error  bool
+	}{
+		{
+			[]string{","},
+			"",
+			true,
+		},
+
+		{
+			[]string{",", "foo"},
+			"foo",
+			false,
+		},
+
+		{
+			[]string{",", "foo", "bar"},
+			"foo,bar",
+			false,
+		},
+
+		{
+			[]string{
+				".",
+				fmt.Sprintf(
+					"foo%sbar%sbaz",
+					InterpSplitDelim,
+					InterpSplitDelim),
+			},
+			"foo.bar.baz",
+			false,
+		},
+	}
+
+	for i, tc := range cases {
+		actual, err := interpolationFuncJoin(nil, tc.Args...)
 		if (err != nil) != tc.Error {
 			t.Fatalf("%d: err: %s", i, err)
 		}

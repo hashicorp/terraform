@@ -128,6 +128,13 @@ func (c *ResourceConfig) Get(k string) (interface{}, bool) {
 	return c.get(k, c.Raw)
 }
 
+// IsComputed returns whether the given key is computed or not.
+func (c *ResourceConfig) IsComputed(k string) bool {
+	_, ok := c.get(k, c.Config)
+	_, okRaw := c.get(k, c.Raw)
+	return !ok && okRaw
+}
+
 // IsSet checks if the key in the configuration is set. A key is set if
 // it has a value or the value is being computed (is unknown currently).
 //

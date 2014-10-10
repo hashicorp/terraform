@@ -8,5 +8,5 @@ resource "aws_instance" "bar" {
 }
 
 output "foo_num" {
-    value = "${aws_instance.bar.*.foo}"
+    value = "${join(",", aws_instance.bar.*.foo)}"
 }

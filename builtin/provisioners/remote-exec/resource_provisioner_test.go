@@ -44,7 +44,7 @@ func TestResourceProvider_Validate_bad(t *testing.T) {
 func TestResourceProvider_generateScript(t *testing.T) {
 	p := new(ResourceProvisioner)
 	conf := testConfig(t, map[string]interface{}{
-		"inline": []string{
+		"inline": []interface{}{
 			"cd /tmp",
 			"wget http://foobar",
 			"exit 0",
@@ -69,7 +69,7 @@ exit 0
 func TestResourceProvider_CollectScripts_inline(t *testing.T) {
 	p := new(ResourceProvisioner)
 	conf := testConfig(t, map[string]interface{}{
-		"inline": []string{
+		"inline": []interface{}{
 			"cd /tmp",
 			"wget http://foobar",
 			"exit 0",

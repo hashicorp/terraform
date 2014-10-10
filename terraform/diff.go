@@ -358,19 +358,55 @@ func (d *InstanceDiff) Same(d2 *InstanceDiff) bool {
 	if d.RequiresNew() != d2.RequiresNew() {
 		return false
 	}
-	if len(d.Attributes) != len(d2.Attributes) {
-		return false
-	}
 
-	ks := make(map[string]struct{})
+	// Go through the old diff and make sure the new diff has all the
+	// same attributes. To start, build up the check map to be all the keys.
+	checkOld := make(map[string]struct{})
+	checkNew := make(map[string]struct{})
 	for k, _ := range d.Attributes {
-		ks[k] = struct{}{}
+		checkOld[k] = struct{}{}
 	}
 	for k, _ := range d2.Attributes {
-		delete(ks, k)
+		checkNew[k] = struct{}{}
+	}
+	for k, diffOld := range d.Attributes {
+		if _, ok := checkOld[k]; !ok {
+			// We're not checking this key for whatever reason (see where
+			// check is modified).
+			continue
+		}
+
+		// Remove this key since we'll never hit it again
+		delete(checkOld, k)
+		delete(checkNew, k)
+
+		_, ok := d2.Attributes[k]
+		if !ok {
+			// The matching attribute was not found, we're different
+			return false
+		}
+
+		if diffOld.NewComputed && strings.HasSuffix(k, ".#") {
+			// This is a computed list, so remove any keys with this
+			// prefix from the check list.
+			kprefix := k[0:len(k)-2] + "."
+			for k2, _ := range checkOld {
+				if strings.HasPrefix(k2, kprefix) {
+					delete(checkOld, k2)
+				}
+			}
+			for k2, _ := range checkNew {
+				if strings.HasPrefix(k2, kprefix) {
+					delete(checkNew, k2)
+				}
+			}
+		}
+
+		// TODO: check for the same value if not computed
 	}
 
-	if len(ks) > 0 {
+	// Check for leftover attributes
+	if len(checkNew) > 0 {
 		return false
 	}
 

@@ -1687,7 +1687,7 @@ func (c *walkContext) computeResourceMultiVariable(
 			v.FullKey())
 	}
 
-	return strings.Join(values, ","), nil
+	return strings.Join(values, config.InterpSplitDelim), nil
 }
 
 type walkInputMeta struct {

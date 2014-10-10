@@ -14,6 +14,7 @@ func init() {
 	Funcs = map[string]InterpolationFunc{
 		"concat": interpolationFuncConcat,
 		"file":   interpolationFuncFile,
+		"join":   interpolationFuncJoin,
 		"lookup": interpolationFuncLookup,
 	}
 }
@@ -48,6 +49,23 @@ func interpolationFuncFile(
 	}
 
 	return string(data), nil
+}
+
+// interpolationFuncJoin implements the "join" function that allows
+// multi-variable values to be joined by some character.
+func interpolationFuncJoin(
+	vs map[string]string, args ...string) (string, error) {
+	if len(args) < 2 {
+		return "", fmt.Errorf("join expects 2 arguments")
+	}
+
+	var list []string
+	for _, arg := range args[1:] {
+		parts := strings.Split(arg, InterpSplitDelim)
+		list = append(list, parts...)
+	}
+
+	return strings.Join(list, args[0]), nil
 }
 
 // interpolationFuncLookup implements the "lookup" function that allows
