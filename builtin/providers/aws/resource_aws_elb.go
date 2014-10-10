@@ -319,6 +319,12 @@ func resourceAwsElbRead(d *schema.ResourceData, meta interface{}) error {
 
 	describeResp, err := elbconn.DescribeLoadBalancers(describeElbOpts)
 	if err != nil {
+		if ec2err, ok := err.(*elb.Error); ok && ec2err.Code == "LoadBalancerNotFound" {
+			// The ELB is gone now, so just remove it from the state
+			d.SetId("")
+			return nil
+		}
+
 		return fmt.Errorf("Error retrieving ELB: %s", err)
 	}
 	if len(describeResp.LoadBalancers) != 1 {

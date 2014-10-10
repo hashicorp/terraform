@@ -63,6 +63,7 @@ BUG FIXES:
       data.
   * providers/aws: ELB works properly with dynamically changing
       count of instances.
+  * providers/aws: Terraform can handle ELBs deleted manually. [GH-304]
 
 ## 0.2.2 (September 9, 2014)
 
