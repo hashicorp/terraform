@@ -46,8 +46,8 @@ func TestHiddenStatePath(t *testing.T) {
 
 func TestValidConfig(t *testing.T) {
 	conf := &terraform.RemoteState{}
-	if err := ValidConfig(conf); err != nil {
-		t.Fatalf("blank should be valid: %v", err)
+	if err := ValidConfig(conf); err == nil {
+		t.Fatalf("blank should be not be valid: %v", err)
 	}
 	conf.Server = "http://foo.com"
 	if err := ValidConfig(conf); err == nil {
