@@ -54,6 +54,8 @@ BUG FIXES:
   * core: In the case of error, walk all non-dependent trees.
   * core: Plugin loading from CWD works properly.
   * core: Fix many edge cases surrounding the `count` meta-parameter.
+  * core: Strings in the configuration can escape double-quotes with the
+      standard `\"` syntax.
   * providers/aws: autoscaling_group can be launched into a vpc [GH-259]
   * providers/aws: not an error when RDS instance is deleted manually. [GH-307]
   * providers/aws: Retry deleting subnet for some time while AWS eventually
