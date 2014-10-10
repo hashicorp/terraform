@@ -28,6 +28,7 @@ func resourceAwsElb() *schema.Resource {
 				Type:     schema.TypeBool,
 				Optional: true,
 				ForceNew: true,
+				Computed: true,
 			},
 
 			"availability_zones": &schema.Schema{
@@ -52,6 +53,7 @@ func resourceAwsElb() *schema.Resource {
 				Elem:     &schema.Schema{Type: schema.TypeString},
 				Optional: true,
 				ForceNew: true,
+				Computed: true,
 			},
 
 			// TODO: could be not ForceNew
@@ -60,6 +62,7 @@ func resourceAwsElb() *schema.Resource {
 				Elem:     &schema.Schema{Type: schema.TypeString},
 				Optional: true,
 				ForceNew: true,
+				Computed: true,
 			},
 
 			// TODO: could be not ForceNew
@@ -103,6 +106,7 @@ func resourceAwsElb() *schema.Resource {
 				Type:     schema.TypeSet,
 				Optional: true,
 				ForceNew: true,
+				Computed: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"healthy_threshold": &schema.Schema{
