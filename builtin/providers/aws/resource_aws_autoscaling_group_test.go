@@ -40,6 +40,15 @@ func TestAccAWSAutoScalingGroup_basic(t *testing.T) {
 						"aws_autoscaling_group.bar", "force_delete", "true"),
 				),
 			},
+
+			resource.TestStep{
+				Config: testAccAWSAutoScalingGroupConfigUpdate,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSAutoScalingGroupExists("aws_autoscaling_group.bar", &group),
+					resource.TestCheckResourceAttr(
+						"aws_autoscaling_group.bar", "desired_capacity", "5"),
+				),
+			},
 		},
 	})
 }
@@ -192,6 +201,27 @@ resource "aws_autoscaling_group" "bar" {
   health_check_grace_period = 300
   health_check_type = "ELB"
   desired_capacity = 4
+  force_delete = true
+
+  launch_configuration = "${aws_launch_configuration.foobar.name}"
+}
+`
+
+const testAccAWSAutoScalingGroupConfigUpdate = `
+resource "aws_launch_configuration" "foobar" {
+  name = "foobarautoscaling-terraform-test"
+  image_id = "ami-21f78e11"
+  instance_type = "t1.micro"
+}
+
+resource "aws_autoscaling_group" "bar" {
+  availability_zones = ["us-west-2a"]
+  name = "foobar3-terraform-test"
+  max_size = 5
+  min_size = 2
+  health_check_grace_period = 300
+  health_check_type = "ELB"
+  desired_capacity = 5
   force_delete = true
 
   launch_configuration = "${aws_launch_configuration.foobar.name}"

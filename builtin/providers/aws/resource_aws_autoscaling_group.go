@@ -33,7 +33,6 @@ func resourceAwsAutoscalingGroup() *schema.Resource {
 				Type:     schema.TypeInt,
 				Optional: true,
 				Computed: true,
-				ForceNew: true,
 			},
 
 			"min_size": &schema.Schema{
@@ -166,6 +165,11 @@ func resourceAwsAutoscalingGroupUpdate(d *schema.ResourceData, meta interface{})
 
 	opts := autoscaling.UpdateAutoScalingGroup{
 		Name: d.Id(),
+	}
+
+	if d.HasChange("desired_capacity") {
+		opts.DesiredCapacity = d.Get("desired_capacity").(int)
+		opts.SetDesiredCapacity = true
 	}
 
 	if d.HasChange("min_size") {
