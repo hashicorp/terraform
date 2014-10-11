@@ -1,6 +1,9 @@
 package command
 
 import (
+	"io/ioutil"
+	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/hashicorp/terraform/config/module"
@@ -27,6 +30,33 @@ func TestShow(t *testing.T) {
 }
 
 func TestShow_noArgs(t *testing.T) {
+	// Create the default state
+	td, err := ioutil.TempDir("", "tf")
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	statePath := filepath.Join(td, DefaultStateFilename)
+
+	f, err := os.Create(statePath)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	err = terraform.WriteState(testState(), f)
+	f.Close()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	// Change to the temporary directory
+	cwd, err := os.Getwd()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if err := os.Chdir(filepath.Dir(statePath)); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	defer os.Chdir(cwd)
+
 	ui := new(cli.MockUi)
 	c := &ShowCommand{
 		Meta: Meta{
@@ -36,7 +66,39 @@ func TestShow_noArgs(t *testing.T) {
 	}
 
 	args := []string{}
-	if code := c.Run(args); code != 1 {
+	if code := c.Run(args); code != 0 {
+		t.Fatalf("bad: \n%s", ui.OutputWriter.String())
+	}
+}
+
+func TestShow_noArgsNoState(t *testing.T) {
+	// Create the default state
+	td, err := ioutil.TempDir("", "tf")
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	statePath := filepath.Join(td, DefaultStateFilename)
+
+	// Change to the temporary directory
+	cwd, err := os.Getwd()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if err := os.Chdir(filepath.Dir(statePath)); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	defer os.Chdir(cwd)
+
+	ui := new(cli.MockUi)
+	c := &ShowCommand{
+		Meta: Meta{
+			ContextOpts: testCtxConfig(testProvider()),
+			Ui:          ui,
+		},
+	}
+
+	args := []string{}
+	if code := c.Run(args); code != 0 {
 		t.Fatalf("bad: \n%s", ui.OutputWriter.String())
 	}
 }

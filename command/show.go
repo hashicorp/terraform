@@ -28,14 +28,27 @@ func (c *ShowCommand) Run(args []string) int {
 	}
 
 	args = cmdFlags.Args()
-	if len(args) != 1 {
+	if len(args) > 1 {
 		c.Ui.Error(
-			"The show command expects exactly one argument with the path\n" +
+			"The show command expects at most one argument with the path\n" +
 				"to a Terraform state or plan file.\n")
 		cmdFlags.Usage()
 		return 1
 	}
-	path := args[0]
+
+	var path string
+	if len(args) > 0 {
+		path = args[0]
+	} else {
+		// We should use the default state if it exists.
+		path = DefaultStateFilename
+		if _, err := os.Stat(DefaultStateFilename); err != nil {
+			if os.IsNotExist(err) {
+				c.Ui.Output("No state.")
+				return 0
+			}
+		}
+	}
 
 	var plan *terraform.Plan
 	var state *terraform.State

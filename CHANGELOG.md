@@ -30,6 +30,7 @@ IMPROVEMENTS:
   * config: Trailing commas are now allowed for the final elements of lists.
   * core: Plugins are loaded from `~/.terraform.d/plugins` (Unix) or
     `%USERDATA%/terraform.d/plugins` (Windows).
+  * command/show: With no arguments, it will show the default state. [GH-349]
   * helper/schema: Can now have default values. [GH-245]
   * providers/aws: Tag support for most resources.
   * providers/aws: New resource `db_subnet_group`. [GH-295]
