@@ -914,7 +914,7 @@ func TestSchemaMap_Diff(t *testing.T) {
 
 			State: &terraform.InstanceState{
 				Attributes: map[string]string{
-					"ingress.#":      "2",
+					"ingress.#":         "2",
 					"ingress.0.ports.#": "1",
 					"ingress.0.ports.0": "80",
 					"ingress.1.ports.#": "1",
