@@ -69,6 +69,7 @@ BUG FIXES:
   * providers/aws: ELB works properly with dynamically changing
       count of instances.
   * providers/aws: Terraform can handle ELBs deleted manually. [GH-304]
+  * providers/aws: Report errors properly if RDS fails to delete. [GH-310]
 
 ## 0.2.2 (September 9, 2014)
 
