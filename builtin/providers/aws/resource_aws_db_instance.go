@@ -163,11 +163,12 @@ func resource_aws_db_instance_destroy(
 	}
 
 	log.Printf("[DEBUG] DB Instance destroy configuration: %v", opts)
-	_, err := conn.DeleteDBInstance(&opts)
+	if _, err := conn.DeleteDBInstance(&opts); err != nil {
+		return err
+	}
 
 	log.Println(
 		"[INFO] Waiting for DB Instance to be destroyed")
-
 	stateConf := &resource.StateChangeConf{
 		Pending: []string{"creating", "backing-up",
 			"modifying", "deleting", "available"},
@@ -177,10 +178,7 @@ func resource_aws_db_instance_destroy(
 		MinTimeout: 10 * time.Second,
 		Delay:      30 * time.Second, // Wait 30 secs before starting
 	}
-
-	// Wait, catching any errors
-	_, err = stateConf.WaitForState()
-	if err != nil {
+	if _, err := stateConf.WaitForState(); err != nil {
 		return err
 	}
 
