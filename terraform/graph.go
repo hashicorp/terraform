@@ -744,6 +744,11 @@ func graphAddExplicitDeps(g *depgraph.Graph) {
 		if !ok {
 			continue
 		}
+		if rn.Config == nil {
+			// Orphan. It can't be depended on or have depends (explicit)
+			// anyways.
+			continue
+		}
 
 		rs[rn.Resource.Id] = n
 		if rn.Config != nil && len(rn.Config.DependsOn) > 0 {

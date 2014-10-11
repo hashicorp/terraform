@@ -97,6 +97,37 @@ func TestGraph_dependsOnCount(t *testing.T) {
 	}
 }
 
+func TestGraph_dependsOnWithOrphan(t *testing.T) {
+	m := testModule(t, "graph-depends-on")
+
+	state := &State{
+		Modules: []*ModuleState{
+			&ModuleState{
+				Path: []string{"root"},
+				Resources: map[string]*ResourceState{
+					"aws_instance.old": &ResourceState{
+						Type: "aws_instance",
+						Primary: &InstanceState{
+							ID: "foo",
+						},
+					},
+				},
+			},
+		},
+	}
+
+	g, err := Graph(&GraphOpts{Module: m, State: state})
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	actual := strings.TrimSpace(g.String())
+	expected := strings.TrimSpace(testTerraformGraphDependsOrphanStr)
+	if actual != expected {
+		t.Fatalf("bad:\n\n%s", actual)
+	}
+}
+
 func TestGraph_modules(t *testing.T) {
 	m := testModule(t, "graph-modules")
 
@@ -1009,6 +1040,18 @@ aws_instance.db
 aws_instance.web
 root
   root -> aws_instance.db
+  root -> aws_instance.web
+`
+
+const testTerraformGraphDependsOrphanStr = `
+root: root
+aws_instance.db
+  aws_instance.db -> aws_instance.web
+aws_instance.old
+aws_instance.web
+root
+  root -> aws_instance.db
+  root -> aws_instance.old
   root -> aws_instance.web
 `
 
