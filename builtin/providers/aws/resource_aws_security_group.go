@@ -36,6 +36,7 @@ func resourceAwsSecurityGroup() *schema.Resource {
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: true,
+				Computed: true,
 			},
 
 			"ingress": &schema.Schema{
