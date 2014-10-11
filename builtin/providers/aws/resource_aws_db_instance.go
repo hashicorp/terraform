@@ -75,7 +75,7 @@ func resource_aws_db_instance_create(
 		opts.PubliclyAccessible = true
 	}
 
-	if attr = rs.Attributes["subnet_group_name"]; attr != "" {
+	if attr = rs.Attributes["db_subnet_group_name"]; attr != "" {
 		opts.DBSubnetGroupName = attr
 	}
 
@@ -229,7 +229,7 @@ func resource_aws_db_instance_diff(
 			"username":                  diff.AttrTypeCreate,
 			"vpc_security_group_ids":    diff.AttrTypeCreate,
 			"security_group_names":      diff.AttrTypeCreate,
-			"subnet_group_name":         diff.AttrTypeCreate,
+			"db_subnet_group_name":      diff.AttrTypeCreate,
 			"skip_final_snapshot":       diff.AttrTypeUpdate,
 			"final_snapshot_identifier": diff.AttrTypeUpdate,
 		},
@@ -272,7 +272,7 @@ func resource_aws_db_instance_update_state(
 	s.Attributes["port"] = strconv.Itoa(v.Port)
 	s.Attributes["status"] = v.DBInstanceStatus
 	s.Attributes["username"] = v.MasterUsername
-	s.Attributes["subnet_group_name"] = v.DBSubnetGroup.Name
+	s.Attributes["db_subnet_group_name"] = v.DBSubnetGroup.Name
 
 	// Flatten our group values
 	toFlatten := make(map[string]interface{})
@@ -342,7 +342,7 @@ func resource_aws_db_instance_validation() *config.Validator {
 			"vpc_security_group_ids.*",
 			"skip_final_snapshot",
 			"security_group_names.*",
-			"subnet_group_name",
+			"db_subnet_group_name",
 		},
 	}
 }
