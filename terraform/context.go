@@ -1046,23 +1046,24 @@ func (c *walkContext) validateWalkFn() depgraph.WalkFunc {
 				return nil
 			}
 
-			// Don't validate orphans since they never have a config
+			// Don't validate orphans or tainted since they never have a config
 			if rn.Resource.Flags&FlagOrphan != 0 {
+				return nil
+			}
+			if rn.Resource.Flags&FlagTainted != 0 {
 				return nil
 			}
 
 			// If the resouce name doesn't match the name regular
 			// expression, show a warning.
-			if rn.Config != nil {
-				if !config.NameRegexp.Match([]byte(rn.Config.Name)) {
-					l.Lock()
-					meta.Warns = append(meta.Warns, fmt.Sprintf(
-						"%s: module name can only contain letters, numbers, "+
-							"dashes, and underscores.\n"+
-							"This will be an error in Terraform 0.4",
-						rn.Resource.Id))
-					l.Unlock()
-				}
+			if !config.NameRegexp.Match([]byte(rn.Config.Name)) {
+				l.Lock()
+				meta.Warns = append(meta.Warns, fmt.Sprintf(
+					"%s: module name can only contain letters, numbers, "+
+						"dashes, and underscores.\n"+
+						"This will be an error in Terraform 0.4",
+					rn.Resource.Id))
+				l.Unlock()
 			}
 
 			log.Printf("[INFO] Validating resource: %s", rn.Resource.Id)
