@@ -70,6 +70,8 @@ BUG FIXES:
       count of instances.
   * providers/aws: Terraform can handle ELBs deleted manually. [GH-304]
   * providers/aws: Report errors properly if RDS fails to delete. [GH-310]
+  * providers/aws: Wait for launch configuration to exist after creation
+      (AWS eventual consistency) [GH-302]
 
 ## 0.2.2 (September 9, 2014)
 

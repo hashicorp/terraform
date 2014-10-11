@@ -5,8 +5,10 @@ import (
 	"encoding/hex"
 	"fmt"
 	"log"
+	"time"
 
 	"github.com/hashicorp/terraform/helper/hashcode"
+	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/mitchellh/goamz/autoscaling"
 )
@@ -103,7 +105,11 @@ func resourceAwsLaunchConfigurationCreate(d *schema.ResourceData, meta interface
 	d.SetId(d.Get("name").(string))
 	log.Printf("[INFO] launch configuration ID: %s", d.Id())
 
-	return resourceAwsLaunchConfigurationRead(d, meta)
+	// We put a Retry here since sometimes eventual consistency bites
+	// us and we need to retry a few times to get the LC to load properly
+	return resource.Retry(30 * time.Second, func() error {
+		return resourceAwsLaunchConfigurationRead(d, meta)
+	})
 }
 
 func resourceAwsLaunchConfigurationDelete(d *schema.ResourceData, meta interface{}) error {
