@@ -195,7 +195,7 @@ func (c *ApplyCommand) Run(args []string) int {
 		c.Ui.Output("Interrupt received. Gracefully shutting down...")
 
 		// Stop execution
-		ctx.Stop()
+		go ctx.Stop()
 
 		// Still get the result, since there is still one
 		select {

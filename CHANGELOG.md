@@ -61,6 +61,7 @@ BUG FIXES:
   * core: Strings in the configuration can escape double-quotes with the
       standard `\"` syntax.
   * core: Error parsing CLI config will show properly. [GH-288]
+  * core: More than one Ctrl-C will exit immediately.
   * providers/aws: autoscaling_group can be launched into a vpc [GH-259]
   * providers/aws: not an error when RDS instance is deleted manually. [GH-307]
   * providers/aws: Retry deleting subnet for some time while AWS eventually
