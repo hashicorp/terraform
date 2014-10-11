@@ -100,9 +100,6 @@ func resource_aws_db_instance_create(
 	opts.EngineVersion = rs.Attributes["engine_version"]
 	opts.Engine = rs.Attributes["engine"]
 
-	// Don't keep the password around in the state
-	delete(rs.Attributes, "password")
-
 	log.Printf("[DEBUG] DB Instance create configuration: %#v", opts)
 	_, err = conn.CreateDBInstance(&opts)
 	if err != nil {
@@ -223,7 +220,7 @@ func resource_aws_db_instance_diff(
 			"maintenance_window":        diff.AttrTypeCreate,
 			"multi_az":                  diff.AttrTypeCreate,
 			"name":                      diff.AttrTypeCreate,
-			"password":                  diff.AttrTypeUpdate,
+			"password":                  diff.AttrTypeCreate,
 			"port":                      diff.AttrTypeCreate,
 			"publicly_accessible":       diff.AttrTypeCreate,
 			"username":                  diff.AttrTypeCreate,
