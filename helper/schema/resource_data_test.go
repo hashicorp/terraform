@@ -1762,6 +1762,104 @@ func TestResourceDataState(t *testing.T) {
 			},
 		},
 
+		{
+			Schema: map[string]*Schema{
+				"ports": &Schema{
+					Type:     TypeSet,
+					Optional: true,
+					Computed: true,
+					Elem:     &Schema{Type: TypeInt},
+					Set: func(a interface{}) int {
+						return a.(int)
+					},
+				},
+			},
+
+			State: nil,
+
+			Diff: nil,
+
+			Set: map[string]interface{}{
+				"ports": []interface{}{100, 80},
+			},
+
+			Result: &terraform.InstanceState{
+				Attributes: map[string]string{
+					"ports.#": "2",
+					"ports.0": "80",
+					"ports.1": "100",
+				},
+			},
+		},
+
+		{
+			Schema: map[string]*Schema{
+				"ports": &Schema{
+					Type:     TypeSet,
+					Optional: true,
+					Computed: true,
+					Elem: &Resource{
+						Schema: map[string]*Schema{
+							"order": &Schema{
+								Type: TypeInt,
+							},
+
+							"a": &Schema{
+								Type: TypeList,
+								Elem: &Schema{Type: TypeInt},
+							},
+
+							"b": &Schema{
+								Type: TypeList,
+								Elem: &Schema{Type: TypeInt},
+							},
+						},
+					},
+					Set: func(a interface{}) int {
+						m := a.(map[string]interface{})
+						return m["order"].(int)
+					},
+				},
+			},
+
+			State: &terraform.InstanceState{
+				Attributes: map[string]string{
+					"ports.#":       "2",
+					"ports.0.order": "10",
+					"ports.0.a.#":   "1",
+					"ports.0.a.0":   "80",
+					"ports.1.order": "20",
+					"ports.1.b.#":   "1",
+					"ports.1.b.0":   "100",
+				},
+			},
+
+			Set: map[string]interface{}{
+				"ports": []interface{}{
+					map[string]interface{}{
+						"order": 20,
+						"b":     []interface{}{100},
+					},
+					map[string]interface{}{
+						"order": 10,
+						"a":     []interface{}{80},
+					},
+				},
+			},
+
+			Result: &terraform.InstanceState{
+				Attributes: map[string]string{
+					"ports.#":       "2",
+					"ports.0.order": "10",
+					"ports.0.a.#":   "1",
+					"ports.0.a.0":   "80",
+					"ports.1.order": "20",
+					"ports.1.b.#":   "1",
+					"ports.1.b.0":   "100",
+				},
+			},
+		},
+
 		/*
 		 * PARTIAL STATES
 		 */

@@ -435,6 +435,7 @@ func (m schemaMap) diffList(
 	diff *terraform.InstanceDiff,
 	d *ResourceData) error {
 	o, n, _, computedList := d.diffChange(k)
+	nSet := n != nil
 
 	// If we have an old value, but no new value set but we're computed,
 	// then nothing has changed.
@@ -456,6 +457,13 @@ func (m schemaMap) diffList(
 	}
 	os := o.([]interface{})
 	vs := n.([]interface{})
+
+	// If the new value was set, and the two are equal, then we're done.
+	// We have to do this check here because sets might be NOT
+	// reflect.DeepEqual so we need to wait until we get the []interface{}
+	if nSet && reflect.DeepEqual(os, vs) {
+		return nil
+	}
 
 	// Get the counts
 	oldLen := len(os)

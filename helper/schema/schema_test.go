@@ -886,6 +886,58 @@ func TestSchemaMap_Diff(t *testing.T) {
 			Err: false,
 		},
 
+		{
+			Schema: map[string]*Schema{
+				"ingress": &Schema{
+					Type:     TypeSet,
+					Required: true,
+					Elem: &Resource{
+						Schema: map[string]*Schema{
+							"ports": &Schema{
+								Type:     TypeList,
+								Optional: true,
+								Elem:     &Schema{Type: TypeInt},
+							},
+						},
+					},
+					Set: func(v interface{}) int {
+						m := v.(map[string]interface{})
+						ps := m["ports"].([]interface{})
+						result := 0
+						for _, p := range ps {
+							result += p.(int)
+						}
+						return result
+					},
+				},
+			},
+
+			State: &terraform.InstanceState{
+				Attributes: map[string]string{
+					"ingress.#":      "2",
+					"ingress.0.ports.#": "1",
+					"ingress.0.ports.0": "80",
+					"ingress.1.ports.#": "1",
+					"ingress.1.ports.0": "443",
+				},
+			},
+
+			Config: map[string]interface{}{
+				"ingress": []interface{}{
+					map[string]interface{}{
+						"ports": []interface{}{443},
+					},
+					map[string]interface{}{
+						"ports": []interface{}{80},
+					},
+				},
+			},
+
+			Diff: nil,
+
+			Err: false,
+		},
+
 		/*
 		 * List of structure decode
 		 */
