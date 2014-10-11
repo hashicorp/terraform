@@ -11,8 +11,8 @@ import (
 )
 
 func TestStateAddModule(t *testing.T) {
-	cases := []struct{
-		In [][]string
+	cases := []struct {
+		In  [][]string
 		Out [][]string
 	}{
 		{

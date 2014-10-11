@@ -107,7 +107,7 @@ func resourceAwsLaunchConfigurationCreate(d *schema.ResourceData, meta interface
 
 	// We put a Retry here since sometimes eventual consistency bites
 	// us and we need to retry a few times to get the LC to load properly
-	return resource.Retry(30 * time.Second, func() error {
+	return resource.Retry(30*time.Second, func() error {
 		return resourceAwsLaunchConfigurationRead(d, meta)
 	})
 }
