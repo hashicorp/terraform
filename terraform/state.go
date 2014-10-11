@@ -67,6 +67,7 @@ func (s *State) AddModule(path []string) *ModuleState {
 	m := &ModuleState{Path: path}
 	m.init()
 	s.Modules = append(s.Modules, m)
+	s.sort()
 	return m
 }
 
@@ -133,6 +134,11 @@ func (s *State) prune() {
 	for _, mod := range s.Modules {
 		mod.prune()
 	}
+}
+
+// sort sorts the modules
+func (s *State) sort() {
+	sort.Sort(moduleStateSort(s.Modules))
 }
 
 func (s *State) GoString() string {
@@ -619,11 +625,18 @@ func ReadState(src io.Reader) (*State, error) {
 		return nil, fmt.Errorf("State version %d not supported, please update.",
 			state.Version)
 	}
+
+	// Sort it
+	state.sort()
+
 	return state, nil
 }
 
 // WriteState writes a state somewhere in a binary format.
 func WriteState(d *State, dst io.Writer) error {
+	// Make sure it is sorted
+	d.sort()
+
 	// Ensure the version is set
 	d.Version = textStateVersion
 
@@ -681,4 +694,29 @@ func upgradeV1State(old *StateV1) (*State, error) {
 		}
 	}
 	return s, nil
+}
+
+// moduleStateSort implements sort.Interface to sort module states
+type moduleStateSort []*ModuleState
+
+func (s moduleStateSort) Len() int {
+	return len(s)
+}
+
+func (s moduleStateSort) Less(i, j int) bool {
+	a := s[i]
+	b := s[j]
+
+	// If the lengths are different, then the shorter one always wins
+	if len(a.Path) != len(b.Path) {
+		return len(a.Path) < len(b.Path)
+	}
+
+	// Otherwise, compare by last path element
+	idx := len(a.Path) - 1
+	return a.Path[idx] < b.Path[idx]
+}
+
+func (s moduleStateSort) Swap(i, j int) {
+	s[i], s[j] = s[j], s[i]
 }

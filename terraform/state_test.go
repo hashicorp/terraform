@@ -10,6 +10,55 @@ import (
 	"github.com/hashicorp/terraform/config"
 )
 
+func TestStateAddModule(t *testing.T) {
+	cases := []struct{
+		In [][]string
+		Out [][]string
+	}{
+		{
+			[][]string{
+				[]string{"root"},
+				[]string{"root", "child"},
+			},
+			[][]string{
+				[]string{"root"},
+				[]string{"root", "child"},
+			},
+		},
+
+		{
+			[][]string{
+				[]string{"root", "foo", "bar"},
+				[]string{"root", "foo"},
+				[]string{"root"},
+				[]string{"root", "bar"},
+			},
+			[][]string{
+				[]string{"root"},
+				[]string{"root", "bar"},
+				[]string{"root", "foo"},
+				[]string{"root", "foo", "bar"},
+			},
+		},
+	}
+
+	for _, tc := range cases {
+		s := new(State)
+		for _, p := range tc.In {
+			s.AddModule(p)
+		}
+
+		actual := make([][]string, 0, len(tc.In))
+		for _, m := range s.Modules {
+			actual = append(actual, m.Path)
+		}
+
+		if !reflect.DeepEqual(actual, tc.Out) {
+			t.Fatalf("In: %#v\n\nOut: %#v", tc.In, actual)
+		}
+	}
+}
+
 func TestInstanceState_MergeDiff(t *testing.T) {
 	is := InstanceState{
 		ID: "foo",
