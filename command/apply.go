@@ -215,7 +215,7 @@ func (c *ApplyCommand) Run(args []string) int {
 				"infrastructure, so keep it safe. To inspect the complete state\n"+
 				"use the `terraform show` command.\n\n"+
 				"State path: %s",
-			c.Meta.stateOutPath)))
+			c.Meta.StateOutPath())))
 	}
 
 	// If we have outputs, then output those at the end.

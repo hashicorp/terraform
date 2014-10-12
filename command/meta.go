@@ -76,6 +76,16 @@ func (m *Meta) initStatePaths() {
 	}
 }
 
+// StateOutPath returns the true output path for the state file
+func (m *Meta) StateOutPath() string {
+	m.initStatePaths()
+	if m.useRemoteState {
+		path, _ := remote.HiddenStatePath()
+		return path
+	}
+	return m.stateOutPath
+}
+
 // Colorize returns the colorization structure for a command.
 func (m *Meta) Colorize() *colorstring.Colorize {
 	return &colorstring.Colorize{
