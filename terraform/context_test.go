@@ -1108,6 +1108,54 @@ func TestContextApply_countDecreaseToOne(t *testing.T) {
 	}
 }
 
+func TestContextApply_countTainted(t *testing.T) {
+	m := testModule(t, "apply-count-tainted")
+	p := testProvider("aws")
+	p.DiffFn = testDiffFn
+	s := &State{
+		Modules: []*ModuleState{
+			&ModuleState{
+				Path: rootModulePath,
+				Resources: map[string]*ResourceState{
+					"aws_instance.foo.0": &ResourceState{
+						Type: "aws_instance",
+						Tainted: []*InstanceState{
+							&InstanceState{
+								ID: "bar",
+								Attributes: map[string]string{
+									"foo":  "foo",
+									"type": "aws_instance",
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+	ctx := testContext(t, &ContextOpts{
+		Module: m,
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+		State: s,
+	})
+
+	if _, err := ctx.Plan(nil); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	state, err := ctx.Apply()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	actual := strings.TrimSpace(state.String())
+	expected := strings.TrimSpace(testTerraformApplyCountTaintedStr)
+	if actual != expected {
+		t.Fatalf("bad: \n%s", actual)
+	}
+}
 func TestContextApply_module(t *testing.T) {
 	m := testModule(t, "apply-module")
 	p := testProvider("aws")

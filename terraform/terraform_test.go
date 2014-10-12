@@ -224,6 +224,10 @@ aws_instance.foo.0:
   type = aws_instance
 `
 
+const testTerraformApplyCountTaintedStr = `
+<no state>
+`
+
 const testTerraformApplyMinimalStr = `
 aws_instance.bar:
   ID = foo
