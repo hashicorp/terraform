@@ -177,7 +177,9 @@ func (h *UiHook) ProvisionOutput(
 	s := bufio.NewScanner(strings.NewReader(msg))
 	s.Split(scanLines)
 	for s.Scan() {
-		buf.WriteString(fmt.Sprintf("%s%s\n", prefix, s.Text()))
+		if line := strings.TrimSpace(s.Text()); line != "" {
+			buf.WriteString(fmt.Sprintf("%s%s\n", prefix, line))
+		}
 	}
 
 	h.ui.Output(strings.TrimSpace(buf.String()))
