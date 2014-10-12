@@ -1190,8 +1190,20 @@ func nounAddVariableDeps(
 			name = fmt.Sprintf("module.%s", v.Name)
 			target = g.Noun(name)
 		case *config.ResourceVariable:
-			name = v.ResourceId()
-			target = g.Noun(v.ResourceId())
+			// For resource variables, if we ourselves are a resource, then
+			// we have to check whether to expand or not to create the proper
+			// resource dependency.
+			rn, ok := n.Meta.(*GraphNodeResource)
+			if !ok || rn.ExpandMode > ResourceExpandNone {
+				name = v.ResourceId()
+				target = g.Noun(v.ResourceId())
+				break
+			}
+
+			// We're an expanded resource, so add the specific index
+			// as the dependency.
+			name = fmt.Sprintf("%s.%d", v.ResourceId(), v.Index)
+			target = g.Noun(name)
 		default:
 		}
 
@@ -1639,6 +1651,9 @@ func (n *GraphNodeResource) Expand() (*depgraph.Graph, error) {
 			return nil, err
 		}
 	}
+
+	// Add all the variable dependencies
+	graphAddVariableDeps(g)
 
 	// If we're just expanding the apply, then filter those out and
 	// return them now.

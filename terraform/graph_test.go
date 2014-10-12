@@ -1007,6 +1007,38 @@ func TestGraphNodeResourceExpand(t *testing.T) {
 	}
 }
 
+func TestGraphNodeResourceExpand_provDeps(t *testing.T) {
+	m := testModule(t, "graph-resource-expand-prov-deps")
+	provs := map[string]ResourceProvisionerFactory{
+		"remote-exec": func() (ResourceProvisioner, error) {
+			return new(MockResourceProvisioner), nil
+		},
+	}
+
+	g, err := Graph(&GraphOpts{Module: m, Provisioners: provs})
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	// Get the resource we care about expanding
+	n := g.Noun("aws_instance.web")
+	if n == nil {
+		t.Fatal("could not find")
+	}
+	rn := n.Meta.(*GraphNodeResource)
+
+	g, err = rn.Expand()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	actual := strings.TrimSpace(g.String())
+	expected := strings.TrimSpace(testTerraformGraphResourceExpandProvDepsStr)
+	if actual != expected {
+		t.Fatalf("bad:\n\nactual:\n%s\n\nexpected:\n%s", actual, expected)
+	}
+}
+
 /*
 func TestGraphNodeResourceExpand_tainted(t *testing.T) {
 	m := testModule(t, "graph-resource-expand")
@@ -1375,6 +1407,19 @@ root: root
 aws_instance.web.0
 aws_instance.web.1
 aws_instance.web.2
+root
+  root -> aws_instance.web.0
+  root -> aws_instance.web.1
+  root -> aws_instance.web.2
+`
+
+const testTerraformGraphResourceExpandProvDepsStr = `
+root: root
+aws_instance.web.0
+aws_instance.web.1
+  aws_instance.web.1 -> aws_instance.web.0
+aws_instance.web.2
+  aws_instance.web.2 -> aws_instance.web.0
 root
   root -> aws_instance.web.0
   root -> aws_instance.web.1
