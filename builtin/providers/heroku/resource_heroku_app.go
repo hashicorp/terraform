@@ -104,8 +104,7 @@ func resourceHerokuApp() *schema.Resource {
 }
 
 func switchHerokuAppCreate(d *schema.ResourceData, meta interface{}) error {
-	isOrg := d.Get("organization")
-	if len(isOrg.(string)) != 0 {
+	if _, ok := d.GetOk("organization"); ok {
 		return resourceHerokuOrgAppCreate(d, meta)
 	} else {
 		return resourceHerokuAppCreate(d, meta)
