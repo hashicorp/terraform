@@ -980,6 +980,98 @@ func TestGraph_orphanDependenciesModules(t *testing.T) {
 	}
 }
 
+func TestGraphNodeResourceExpand(t *testing.T) {
+	m := testModule(t, "graph-resource-expand")
+
+	g, err := Graph(&GraphOpts{Module: m})
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	// Get the resource we care about expanding
+	n := g.Noun("aws_instance.web")
+	if n == nil {
+		t.Fatal("could not find")
+	}
+	rn := n.Meta.(*GraphNodeResource)
+
+	g, err = rn.Expand()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	actual := strings.TrimSpace(g.String())
+	expected := strings.TrimSpace(testTerraformGraphResourceExpandStr)
+	if actual != expected {
+		t.Fatalf("bad:\n\nactual:\n%s\n\nexpected:\n%s", actual, expected)
+	}
+}
+
+/*
+func TestGraphNodeResourceExpand_tainted(t *testing.T) {
+	m := testModule(t, "graph-resource-expand")
+	state := &State{
+		Modules: []*ModuleState{
+			&ModuleState{
+				Path: rootModulePath,
+
+				Resources: map[string]*ResourceState{
+					"aws_instance.web.0": &ResourceState{
+						Type: "aws_instance",
+						Tainted: []*InstanceState{
+							&InstanceState{
+								ID: "bar",
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	g, err := Graph(&GraphOpts{Module: m, State: state})
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	// Get the resource we care about expanding
+	n := g.Noun("aws_instance.web")
+	if n == nil {
+		t.Fatal("could not find")
+	}
+	rn := n.Meta.(*GraphNodeResource)
+
+	g, err = rn.Expand()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	actual := strings.TrimSpace(g.String())
+	expected := strings.TrimSpace(testTerraformGraphResourceExpandTaintStr)
+	if actual != expected {
+		t.Fatalf("bad:\n\nactual:\n%s\n\nexpected:\n%s", actual, expected)
+	}
+
+	// Check the destruction noun
+	n = g.Noun("aws_instance.web (destroy)")
+	if n == nil {
+		t.Fatal("could not find")
+	}
+	rn = n.Meta.(*GraphNodeResource)
+
+	g, err = rn.Expand()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	actual = strings.TrimSpace(g.String())
+	expected = strings.TrimSpace(testTerraformGraphResourceExpandStr)
+	if actual != expected {
+		t.Fatalf("bad:\n\nactual:\n%s\n\nexpected:\n%s", actual, expected)
+	}
+}
+*/
+
 const testTerraformGraphStr = `
 root: root
 aws_instance.web
@@ -1276,4 +1368,26 @@ root
   root -> aws_instance.web
   root -> aws_security_group.firewall
   root -> module.consul
+`
+
+const testTerraformGraphResourceExpandStr = `
+root: root
+aws_instance.web.0
+aws_instance.web.1
+aws_instance.web.2
+root
+  root -> aws_instance.web.0
+  root -> aws_instance.web.1
+  root -> aws_instance.web.2
+`
+
+const testTerraformGraphResourceExpandTaintStr = `
+root: root
+aws_instance.web.0
+aws_instance.web.1
+aws_instance.web.2
+root
+  root -> aws_instance.web.0
+  root -> aws_instance.web.1
+  root -> aws_instance.web.2
 `

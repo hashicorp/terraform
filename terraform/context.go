@@ -1259,35 +1259,14 @@ func (c *walkContext) genericWalkResource(
 	rc.interpolate(c, rn.Resource)
 
 	// Expand the node to the actual resources
-	ns, err := rn.Expand()
+	g, err := rn.Expand()
 	if err != nil {
 		return err
 	}
 
-	// Go through all the nouns and run them in parallel, collecting
-	// any errors.
-	var l sync.Mutex
-	var wg sync.WaitGroup
-	errs := make([]error, 0, len(ns))
-	for _, n := range ns {
-		wg.Add(1)
-
-		go func(n *depgraph.Noun) {
-			defer wg.Done()
-			if err := fn(n); err != nil {
-				l.Lock()
-				defer l.Unlock()
-				errs = append(errs, err)
-			}
-		}(n)
-	}
-
-	// Wait for the subgraph
-	wg.Wait()
-
-	// If there are errors, then we should return them
-	if len(errs) > 0 {
-		return &multierror.Error{Errors: errs}
+	// Walk the graph with our function
+	if err := g.Walk(fn); err != nil {
+		return err
 	}
 
 	return nil

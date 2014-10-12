@@ -1016,12 +1016,7 @@ func graphAddConfigProviderConfigs(g *depgraph.Graph, c *config.Config) {
 func graphAddRoot(g *depgraph.Graph) {
 	root := &depgraph.Noun{Name: GraphRootNode}
 	for _, n := range g.Nouns {
-		switch m := n.Meta.(type) {
-		case *GraphNodeResource:
-			// If the resource is part of a group, we don't need to make a dep
-			if m.Index != -1 {
-				continue
-			}
+		switch n.Meta.(type) {
 		case *GraphNodeResourceProvider:
 			// ResourceProviders don't need to be in the root deps because
 			// they're always pointed to by some resource.
@@ -1554,6 +1549,27 @@ func graphMapResourceProvisioners(g *depgraph.Graph,
 	return nil
 }
 
+// grpahRemoveInvalidDeps goes through the graph and removes dependencies
+// that no longer exist.
+func graphRemoveInvalidDeps(g *depgraph.Graph) {
+	check := make(map[*depgraph.Noun]struct{})
+	for _, n := range g.Nouns {
+		check[n] = struct{}{}
+	}
+	for _, n := range g.Nouns {
+		deps := n.Deps
+		num := len(deps)
+		for i := 0; i < num; i++ {
+			if _, ok := check[deps[i].Target]; !ok {
+				deps[i], deps[num-1] = deps[num-1], nil
+				i--
+				num--
+			}
+		}
+		n.Deps = deps[:num]
+	}
+}
+
 // MergeConfig merges all the configurations in the proper order
 // to result in the final configuration to use to configure this
 // provider.
@@ -1599,7 +1615,7 @@ func (p *graphSharedProvider) MergeConfig(
 }
 
 // Expand will expand this node into a subgraph if Expand is set.
-func (n *GraphNodeResource) Expand() ([]*depgraph.Noun, error) {
+func (n *GraphNodeResource) Expand() (*depgraph.Graph, error) {
 	// Expand the count out, which should be interpolated at this point.
 	count, err := n.Config.Count()
 	if err != nil {
@@ -1627,7 +1643,7 @@ func (n *GraphNodeResource) Expand() ([]*depgraph.Noun, error) {
 	// If we're just expanding the apply, then filter those out and
 	// return them now.
 	if n.ExpandMode == ResourceExpandApply {
-		return n.finalizeNouns(g, false), nil
+		return n.finalizeGraph(g, false)
 	}
 
 	if n.State != nil {
@@ -1637,7 +1653,7 @@ func (n *GraphNodeResource) Expand() ([]*depgraph.Noun, error) {
 		graphAddTainted(g, n.State)
 	}
 
-	return n.finalizeNouns(g, true), nil
+	return n.finalizeGraph(g, true)
 }
 
 // expand expands this resource and adds the resources to the graph. It
@@ -1759,8 +1775,8 @@ func (n *GraphNodeResource) copyResource(id string) *Resource {
 	return &resource
 }
 
-func (n *GraphNodeResource) finalizeNouns(
-	g *depgraph.Graph, destroy bool) []*depgraph.Noun {
+func (n *GraphNodeResource) finalizeGraph(
+	g *depgraph.Graph, destroy bool) (*depgraph.Graph, error) {
 	result := make([]*depgraph.Noun, 0, len(g.Nouns))
 	for _, n := range g.Nouns {
 		rn, ok := n.Meta.(*GraphNodeResource)
@@ -1802,7 +1818,22 @@ func (n *GraphNodeResource) finalizeNouns(
 			result = append(result, n)
 		}
 	}
-	return result
+
+	// Set the nouns to be only those we care about
+	g.Nouns = result
+
+	// Remove the dependencies that don't exist
+	graphRemoveInvalidDeps(g)
+
+	// Build the root so that we have a single valid root
+	graphAddRoot(g)
+
+	// Validate
+	if err := g.Validate(); err != nil {
+		return nil, err
+	}
+
+	return g, nil
 }
 
 // matchingPrefixes takes a resource type and a set of resource
