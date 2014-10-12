@@ -381,7 +381,7 @@ func Persist(r io.Reader) error {
 	backupPath := filepath.Join(cwd, LocalDirectory, BackupHiddenStateFile)
 
 	// Backup the old file if it exists
-	if err := copyFile(statePath, backupPath); err != nil {
+	if err := CopyFile(statePath, backupPath); err != nil {
 		return fmt.Errorf("Failed to backup state file '%s' to '%s': %v", statePath, backupPath, err)
 	}
 
@@ -401,9 +401,9 @@ func Persist(r io.Reader) error {
 	return nil
 }
 
-// copyFile is used to copy from a source file if it exists to a destination.
+// CopyFile is used to copy from a source file if it exists to a destination.
 // This is used to create a backup of the state file.
-func copyFile(src, dst string) error {
+func CopyFile(src, dst string) error {
 	srcFH, err := os.Open(src)
 	if err != nil {
 		if os.IsNotExist(err) {
