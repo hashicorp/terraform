@@ -175,6 +175,7 @@ func (h *UiHook) ProvisionOutput(
 
 	prefix := fmt.Sprintf("%s (%s): ", id, provId)
 	s := bufio.NewScanner(strings.NewReader(msg))
+	s.Split(scanLines)
 	for s.Scan() {
 		buf.WriteString(fmt.Sprintf("%s%s\n", prefix, s.Text()))
 	}
@@ -204,4 +205,34 @@ func (h *UiHook) init() {
 	// Wrap the ui so that it is safe for concurrency regardless of the
 	// underlying reader/writer that is in place.
 	h.ui = &cli.ConcurrentUi{Ui: h.Ui}
+}
+
+// scanLines is basically copied from the Go standard library except
+// we've modified it to also fine `\r`.
+func scanLines(data []byte, atEOF bool) (advance int, token []byte, err error) {
+	if atEOF && len(data) == 0 {
+		return 0, nil, nil
+	}
+	if i := bytes.IndexByte(data, '\n'); i >= 0 {
+		// We have a full newline-terminated line.
+		return i + 1, dropCR(data[0:i]), nil
+	}
+	if i := bytes.IndexByte(data, '\r'); i >= 0 {
+		// We have a full newline-terminated line.
+		return i + 1, dropCR(data[0:i]), nil
+	}
+	// If we're at EOF, we have a final, non-terminated line. Return it.
+	if atEOF {
+		return len(data), dropCR(data), nil
+	}
+	// Request more data.
+	return 0, nil, nil
+}
+
+// dropCR drops a terminal \r from the data.
+func dropCR(data []byte) []byte {
+	if len(data) > 0 && data[len(data)-1] == '\r' {
+		return data[0 : len(data)-1]
+	}
+	return data
 }
