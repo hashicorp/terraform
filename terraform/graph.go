@@ -1662,8 +1662,6 @@ func (n *GraphNodeResource) Expand() (*depgraph.Graph, error) {
 	}
 
 	if n.State != nil {
-		// TODO: orphans
-
 		// Add the tainted resources
 		graphAddTainted(g, n.State)
 	}
