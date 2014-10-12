@@ -95,9 +95,10 @@ func resourceHerokuApp() *schema.Resource {
 			},
 
 			"organization": &schema.Schema{
-				Type:     schema.TypeString,
-				Optional: true,
-				ForceNew: true,
+				Type:        schema.TypeString,
+				Description: "Name of Organization to create application in. Leave blank for personal apps.",
+				Optional:    true,
+				ForceNew:    true,
 			},
 		},
 	}
