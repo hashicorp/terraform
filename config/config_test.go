@@ -221,6 +221,13 @@ func TestConfigValidate_varDefaultInterpolate(t *testing.T) {
 	}
 }
 
+func TestConfigValidate_varMultiExactNonSlice(t *testing.T) {
+	c := testConfig(t, "validate-var-multi-exact-non-slice")
+	if err := c.Validate(); err != nil {
+		t.Fatalf("should be valid: %s", err)
+	}
+}
+
 func TestConfigValidate_varMultiNonSlice(t *testing.T) {
 	c := testConfig(t, "validate-var-multi-non-slice")
 	if err := c.Validate(); err == nil {

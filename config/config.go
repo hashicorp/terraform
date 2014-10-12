@@ -455,7 +455,7 @@ func (c *Config) validateVarContextFn(
 			return
 		}
 
-		if rv.Multi && loc != reflectwalk.SliceElem {
+		if rv.Multi && rv.Index == -1 && loc != reflectwalk.SliceElem {
 			*errs = append(*errs, fmt.Errorf(
 				"%s: multi-variable must be in a slice", source))
 		}
