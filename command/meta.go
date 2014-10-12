@@ -42,6 +42,8 @@ type Meta struct {
 	oldUi cli.Ui
 
 	// useRemoteState is enabled if we are using remote state storage
+	// This is set when the context is loaded if we read from a remote
+	// enabled state file.
 	useRemoteState bool
 
 	// statePath is the path to the state file. If this is empty, then
@@ -106,25 +108,16 @@ func (m *Meta) Context(copts contextOpts) (*terraform.Context, bool, error) {
 		}
 	}
 
-	// Load up the state
-	var state *terraform.State
+	// Load the statePath if not given
 	if copts.StatePath != "" {
-		f, err := os.Open(copts.StatePath)
-		if err != nil && os.IsNotExist(err) {
-			// If the state file doesn't exist, it is okay, since it
-			// is probably a new infrastructure.
-			err = nil
-		} else if err == nil {
-			state, err = terraform.ReadState(f)
-			f.Close()
-		}
-
-		if err != nil {
-			return nil, false, fmt.Errorf("Error loading state: %s", err)
-		}
+		m.statePath = copts.StatePath
 	}
 
 	// Store the loaded state
+	state, err := m.loadState()
+	if err != nil {
+		return nil, false, err
+	}
 	m.state = state
 
 	// Load the root module
@@ -169,6 +162,43 @@ func (m *Meta) UIInput() terraform.UIInput {
 	return &UIInput{
 		Colorize: m.Colorize(),
 	}
+}
+
+// laodState is used to load the Terraform state. We give precedence
+// to a remote state if enabled, and then check the normal state path.
+func (m *Meta) loadState() (*terraform.State, error) {
+	// Check if we remote state is enabled
+	localCache, _, err := remote.ReadLocalState()
+	if err != nil {
+		return nil, fmt.Errorf("Error loading state: %s", err)
+	}
+
+	// Set the state if enabled
+	var state *terraform.State
+	if localCache != nil {
+		state = localCache
+		m.useRemoteState = true
+	}
+
+	// Load up the state
+	if m.statePath != "" {
+		f, err := os.Open(m.statePath)
+		if err != nil && os.IsNotExist(err) {
+			// If the state file doesn't exist, it is okay, since it
+			// is probably a new infrastructure.
+			err = nil
+		} else if m.useRemoteState && err == nil {
+			err = fmt.Errorf("Remote state enabled, but state file '%s' also present.", m.statePath)
+			f.Close()
+		} else if err == nil {
+			state, err = terraform.ReadState(f)
+			f.Close()
+		}
+		if err != nil {
+			return nil, fmt.Errorf("Error loading state: %s", err)
+		}
+	}
+	return state, nil
 }
 
 // PersistState is used to write out the state, handling backup of
