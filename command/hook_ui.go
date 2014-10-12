@@ -7,6 +7,7 @@ import (
 	"sort"
 	"strings"
 	"sync"
+	"unicode"
 
 	"github.com/hashicorp/terraform/terraform"
 	"github.com/mitchellh/cli"
@@ -177,7 +178,8 @@ func (h *UiHook) ProvisionOutput(
 	s := bufio.NewScanner(strings.NewReader(msg))
 	s.Split(scanLines)
 	for s.Scan() {
-		if line := strings.TrimSpace(s.Text()); line != "" {
+		line := strings.TrimRightFunc(s.Text(), unicode.IsSpace)
+		if line != "" {
 			buf.WriteString(fmt.Sprintf("%s%s\n", prefix, line))
 		}
 	}
