@@ -5,10 +5,12 @@ import (
 	"flag"
 	"fmt"
 	"io"
+	"log"
 	"os"
 	"path/filepath"
 
 	"github.com/hashicorp/terraform/config/module"
+	"github.com/hashicorp/terraform/remote"
 	"github.com/hashicorp/terraform/terraform"
 	"github.com/mitchellh/cli"
 	"github.com/mitchellh/colorstring"
@@ -38,6 +40,38 @@ type Meta struct {
 
 	color bool
 	oldUi cli.Ui
+
+	// useRemoteState is enabled if we are using remote state storage
+	useRemoteState bool
+
+	// statePath is the path to the state file. If this is empty, then
+	// no state will be loaded. It is also okay for this to be a path to
+	// a file that doesn't exist; it is assumed that this means that there
+	// is simply no state.
+	statePath string
+
+	// stateOutPath is used to override the output path for the state.
+	// If not provided, the StatePath is used causing the old state to
+	// be overriden.
+	stateOutPath string
+
+	// backupPath is used to backup the state file before writing a modified
+	// version. It defaults to stateOutPath + DefaultBackupExtention
+	backupPath string
+}
+
+// initStatePaths is used to initialize the default values for
+// statePath, stateOutPath, and backupPath
+func (m *Meta) initStatePaths() {
+	if m.statePath == "" {
+		m.statePath = DefaultStateFilename
+	}
+	if m.stateOutPath == "" {
+		m.stateOutPath = m.statePath
+	}
+	if m.backupPath == "" {
+		m.backupPath = m.stateOutPath + DefaultBackupExtention
+	}
 }
 
 // Colorize returns the colorization structure for a command.
@@ -135,6 +169,65 @@ func (m *Meta) UIInput() terraform.UIInput {
 	return &UIInput{
 		Colorize: m.Colorize(),
 	}
+}
+
+// PersistState is used to write out the state, handling backup of
+// the existing state file and respecting path configurations.
+func (m *Meta) PersistState(s *terraform.State) error {
+	if m.useRemoteState {
+		return m.persistRemoteState(s)
+	}
+	return m.persistLocalState(s)
+}
+
+// persistRemoteState is used to handle persisting a state file
+// when remote state management is enabled
+func (m *Meta) persistRemoteState(s *terraform.State) error {
+	log.Printf("[INFO] Persisting state to local cache")
+	if err := remote.PersistState(s); err != nil {
+		return err
+	}
+	log.Printf("[INFO] Uploading state to remote store")
+	change, err := remote.PushState(s.Remote, false)
+	if err != nil {
+		return err
+	}
+	if !change.SuccessfulPush() {
+		return fmt.Errorf("Failed to upload state: %s", change)
+	}
+	return nil
+}
+
+// persistLocalState is used to handle persisting a state file
+// when remote state management is disabled.
+func (m *Meta) persistLocalState(s *terraform.State) error {
+	m.initStatePaths()
+
+	// Create a backup of the state before updating
+	if m.backupPath != "-" {
+		log.Printf("[INFO] Writing backup state to: %s", m.backupPath)
+		if err := remote.CopyFile(m.statePath, m.backupPath); err != nil {
+			return fmt.Errorf("Failed to backup state: %v", err)
+		}
+	}
+
+	// Open the new state file
+	fh, err := os.Create(m.stateOutPath)
+	if err != nil {
+		return fmt.Errorf("Failed to open state file: %v", err)
+	}
+	defer fh.Close()
+
+	// Write out the state
+	if err := terraform.WriteState(s, fh); err != nil {
+		return fmt.Errorf("Failed to encode the state: %v", err)
+	}
+	return nil
+}
+
+// Input returns true if we should ask for input for context.
+func (m *Meta) Input() bool {
+	return !test && m.input && len(m.variables) == 0
 }
 
 // contextOpts returns the options to use to initialize a Terraform
