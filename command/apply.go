@@ -254,7 +254,7 @@ func (c *ApplyCommand) Run(args []string) int {
 
 	// If we have outputs, then output those at the end.
 	var outputs map[string]string
-	if state != nil {
+	if !c.Destroy && state != nil {
 		outputs = state.RootModule().Outputs
 	}
 	if len(outputs) > 0 {
