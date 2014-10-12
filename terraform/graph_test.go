@@ -43,6 +43,38 @@ func TestGraph_count(t *testing.T) {
 	}
 }
 
+func TestGraph_countTainted(t *testing.T) {
+	m := testModule(t, "graph-count")
+	state := &State{
+		Modules: []*ModuleState{
+			&ModuleState{
+				Path: []string{"root"},
+				Resources: map[string]*ResourceState{
+					"aws_instance.web.0": &ResourceState{
+						Type: "aws_instance",
+						Tainted: []*InstanceState{
+							&InstanceState{
+								ID: "foo",
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	g, err := Graph(&GraphOpts{Module: m, State: state})
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	actual := strings.TrimSpace(g.String())
+	expected := strings.TrimSpace(testTerraformGraphCountTaintedStr)
+	if actual != expected {
+		t.Fatalf("bad:\n\n%s", actual)
+	}
+}
+
 func TestGraph_varResource(t *testing.T) {
 	m := testModule(t, "graph-count-var-resource")
 
@@ -1066,6 +1098,19 @@ aws_load_balancer.weblb
   aws_load_balancer.weblb -> aws_instance.web
 root
   root -> aws_instance.web
+  root -> aws_load_balancer.weblb
+`
+
+const testTerraformGraphCountTaintedStr = `
+root: root
+aws_instance.web
+  aws_instance.web -> aws_instance.web.0 (tainted #1)
+aws_instance.web.0 (tainted #1)
+aws_load_balancer.weblb
+  aws_load_balancer.weblb -> aws_instance.web
+root
+  root -> aws_instance.web
+  root -> aws_instance.web.0 (tainted #1)
   root -> aws_load_balancer.weblb
 `
 

@@ -1088,10 +1088,16 @@ func graphAddTainted(g *depgraph.Graph, mod *ModuleState) {
 			continue
 		}
 
-		// Find the untainted resource of this in the noun list
+		// Find the untainted resource of this in the noun list. If our
+		// name is 3 parts, then we mus be a count instance, so our
+		// untainted node is just the noun without the count.
 		var untainted *depgraph.Noun
+		untaintedK := k
+		if ps := strings.Split(k, "."); len(ps) == 3 {
+			untaintedK = strings.Join(ps[0:2], ".")
+		}
 		for _, n := range g.Nouns {
-			if n.Name == k {
+			if n.Name == untaintedK {
 				untainted = n
 				break
 			}
