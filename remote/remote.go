@@ -228,6 +228,10 @@ func ReadLocalState() (*terraform.State, []byte, error) {
 // the configuration for the remote endpoint, and update
 // the local state if necessary.
 func RefreshState(conf *terraform.RemoteState) (StateChangeResult, error) {
+	if conf == nil {
+		return StateChangeNoop, fmt.Errorf("Missing remote server configuration")
+	}
+
 	// Read the state from the server
 	client := &remoteStateClient{conf: conf}
 	payload, err := client.GetState()

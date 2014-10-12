@@ -186,6 +186,26 @@ func (m *Meta) loadState() (*terraform.State, error) {
 	// Set the state if enabled
 	var state *terraform.State
 	if localCache != nil {
+		// Refresh the state
+		log.Printf("[INFO] Refreshing local state...")
+		changes, err := remote.RefreshState(localCache.Remote)
+		if err != nil {
+			return nil, fmt.Errorf("Failed to refresh state: %v", err)
+		}
+		switch changes {
+		case remote.StateChangeNoop:
+		case remote.StateChangeInit:
+		case remote.StateChangeLocalNewer:
+		case remote.StateChangeUpdateLocal:
+			// Reload the state since we've udpated
+			localCache, _, err = remote.ReadLocalState()
+			if err != nil {
+				return nil, fmt.Errorf("Error loading state: %s", err)
+			}
+		default:
+			return nil, fmt.Errorf("%s", changes)
+		}
+
 		state = localCache
 		m.useRemoteState = true
 	}

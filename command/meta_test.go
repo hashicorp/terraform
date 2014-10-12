@@ -267,6 +267,11 @@ func TestMeta_loadState_remote(t *testing.T) {
 
 	s := terraform.NewState()
 	s.Serial = 1000
+	conf, srv := testRemoteState(t, s, 200)
+	s.Remote = conf
+	defer srv.Close()
+
+	s.Serial = 500
 	if err := remote.PersistState(s); err != nil {
 		t.Fatalf("err: %v", err)
 	}
