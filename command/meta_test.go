@@ -255,3 +255,78 @@ func TestMeta_persistRemote(t *testing.T) {
 		t.Fatalf("backup should exist")
 	}
 }
+
+func TestMeta_loadState_remote(t *testing.T) {
+	tmp, cwd := testCwd(t)
+	defer testFixCwd(t, tmp, cwd)
+
+	err := remote.EnsureDirectory()
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	s := terraform.NewState()
+	s.Serial = 1000
+	if err := remote.PersistState(s); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	m := new(Meta)
+	s1, err := m.loadState()
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if s1.Serial < 1000 {
+		t.Fatalf("Bad: %#v", s1)
+	}
+
+	if !m.useRemoteState {
+		t.Fatalf("should enable remote")
+	}
+}
+
+func TestMeta_loadState_statePath(t *testing.T) {
+	tmp, cwd := testCwd(t)
+	defer testFixCwd(t, tmp, cwd)
+
+	m := new(Meta)
+
+	s := terraform.NewState()
+	s.Serial = 1000
+	if err := m.persistLocalState(s); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	s1, err := m.loadState()
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if s1.Serial < 1000 {
+		t.Fatalf("Bad: %#v", s1)
+	}
+}
+
+func TestMeta_loadState_conflict(t *testing.T) {
+	tmp, cwd := testCwd(t)
+	defer testFixCwd(t, tmp, cwd)
+
+	err := remote.EnsureDirectory()
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	m := new(Meta)
+
+	s := terraform.NewState()
+	if err := remote.PersistState(s); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if err := m.persistLocalState(s); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	_, err = m.loadState()
+	if err == nil {
+		t.Fatalf("should error with conflict")
+	}
+}
