@@ -27,6 +27,9 @@ type Meta struct {
 	// This can be set by the command itself to provide extra hooks.
 	extraHooks []terraform.Hook
 
+	// This can be set by tests to change some directories
+	dataDir string
+
 	// Variables for the context (private)
 	autoKey       string
 	autoVariables map[string]string
@@ -95,7 +98,12 @@ func (m *Meta) Context(copts contextOpts) (*terraform.Context, bool, error) {
 	if err != nil {
 		return nil, false, fmt.Errorf("Error loading config: %s", err)
 	}
-	err = mod.Load(m.moduleStorage(copts.Path), copts.GetMode)
+
+	dataDir := DefaultDataDirectory
+	if m.dataDir != "" {
+		dataDir = m.dataDir
+	}
+	err = mod.Load(m.moduleStorage(dataDir), copts.GetMode)
 	if err != nil {
 		return nil, false, fmt.Errorf("Error downloading modules: %s", err)
 	}

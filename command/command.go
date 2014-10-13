@@ -19,6 +19,10 @@ const DefaultVarsFilename = "terraform.tfvars"
 // DefaultBackupExtention is added to the state file to form the path
 const DefaultBackupExtention = ".backup"
 
+// DefaultDataDirectory is the directory where local state is stored
+// by default.
+const DefaultDataDirectory = ".terraform"
+
 func validateContext(ctx *terraform.Context, ui cli.Ui) bool {
 	if ws, es := ctx.Validate(); len(ws) > 0 || len(es) > 0 {
 		ui.Output(

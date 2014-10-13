@@ -14,6 +14,7 @@ func TestGet(t *testing.T) {
 		Meta: Meta{
 			ContextOpts: testCtxConfig(testProvider()),
 			Ui:          ui,
+			dataDir:     tempDir(t),
 		},
 	}
 
@@ -39,6 +40,7 @@ func TestGet_multipleArgs(t *testing.T) {
 		Meta: Meta{
 			ContextOpts: testCtxConfig(testProvider()),
 			Ui:          ui,
+			dataDir:     tempDir(t),
 		},
 	}
 
@@ -66,6 +68,7 @@ func TestGet_noArgs(t *testing.T) {
 		Meta: Meta{
 			ContextOpts: testCtxConfig(testProvider()),
 			Ui:          ui,
+			dataDir:     tempDir(t),
 		},
 	}
 
@@ -89,6 +92,7 @@ func TestGet_update(t *testing.T) {
 		Meta: Meta{
 			ContextOpts: testCtxConfig(testProvider()),
 			Ui:          ui,
+			dataDir:     tempDir(t),
 		},
 	}
 
