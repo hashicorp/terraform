@@ -3,7 +3,6 @@ package ssh
 import (
 	"bufio"
 	"bytes"
-	"code.google.com/p/go.crypto/ssh"
 	"errors"
 	"fmt"
 	"io"
@@ -14,6 +13,8 @@ import (
 	"path/filepath"
 	"sync"
 	"time"
+
+	"code.google.com/p/go.crypto/ssh"
 )
 
 // RemoteCmd represents a remote command being prepared or run.
@@ -145,11 +146,6 @@ func (c *SSHCommunicator) Start(cmd *RemoteCmd) (err error) {
 		return
 	}
 
-	// A channel to keep track of our done state
-	doneCh := make(chan struct{})
-	sessionLock := new(sync.Mutex)
-	timedOut := false
-
 	// Start a goroutine to wait for the session to end and set the
 	// exit boolean and status.
 	go func() {
@@ -164,17 +160,8 @@ func (c *SSHCommunicator) Start(cmd *RemoteCmd) (err error) {
 			}
 		}
 
-		sessionLock.Lock()
-		defer sessionLock.Unlock()
-
-		if timedOut {
-			// We timed out, so set the exit status to -1
-			exitStatus = -1
-		}
-
 		log.Printf("remote command exited with '%d': %s", exitStatus, cmd.Command)
 		cmd.SetExited(exitStatus)
-		close(doneCh)
 	}()
 
 	return
