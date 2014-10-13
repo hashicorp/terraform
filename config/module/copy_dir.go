@@ -23,8 +23,7 @@ func copyDir(dst, src string) error {
 			return nil
 		}
 
-		basePath := filepath.Base(path)
-		if strings.HasPrefix(basePath, ".") {
+		if strings.HasPrefix(filepath.Base(path), ".") {
 			// Skip any dot files
 			if info.IsDir() {
 				return filepath.SkipDir
@@ -33,7 +32,9 @@ func copyDir(dst, src string) error {
 			}
 		}
 
-		dstPath := filepath.Join(dst, basePath)
+		// The "path" has the src prefixed to it. We need to join our
+		// destination with the path without the src on it.
+		dstPath := filepath.Join(dst, path[len(src):])
 
 		// If we have a directory, make that subdirectory, then continue
 		// the walk.
