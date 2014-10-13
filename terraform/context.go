@@ -524,6 +524,10 @@ func (c *walkContext) Walk() error {
 	if mod == nil || len(mod.Resources) == 0 {
 		return nil
 	}
+	if len(mod.Resources) == 0 {
+		mod.Outputs = nil
+		return nil
+	}
 
 	outputs := make(map[string]string)
 	for _, o := range conf.Outputs {
