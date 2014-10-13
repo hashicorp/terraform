@@ -9,14 +9,15 @@ sidebar_current: "examples"
 These examples are designed to help you understand some
 of the ways Terraform can be used.
 
-Other than configuring the provider (with, for example, an API key),
-the examples are ready to run as-is.
-
+All examples in this section are ready to run as-is. Terraform will
+ask for input of things such as variables and API keys. If you want to
+conitnue using the example, you should save those parameters in a
+"terraform.tfvars" file or in a `provider` config bock.
 
 <div class="alert alert-block alert-warning">
 <div>
 <strong>Note:</strong> The examples use real providers that launch
-<strong>real</strong> resources. That means they can cost money to
+<em>real</em> resources. That means they can cost money to
 experiment with. To avoid unexpected charges, be sure to understand the price
 of resources before launching them, and verify any unneeded resources
 are cleaned up afterwards.</div>
