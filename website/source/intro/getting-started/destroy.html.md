@@ -18,37 +18,27 @@ destroying is a useful action.
 
 ## Plan
 
-For Terraform to destroy our infrastructure, we need to ask
-Terraform to generate a destroy execution plan. This is a special
-kind of execution plan that only destroys all Terraform-managed
-infrastructure, and doesn't create or update any components.
+Before destroying our infrastructure, we can use the plan command
+to see what resources Terraform will destroy.
 
 ```
-$ terraform plan -destroy -out=terraform.tfplan
+$ terraform plan -destroy
 ...
 
 - aws_instance.example
 ```
 
-The plan command is given two new flags.
+With the `-destroy` flag, we're asking Terraform to plan a destroy,
+where all resources under Terraform management are destroyed. You can
+use this output to verify exactly what resources Terraform is managing
+and will destroy.
 
-The first flag, `-destroy` tells Terraform to create an execution
-plan to destroy the infrastructure. You can see in the output that
-our one EC2 instance will be destroyed.
+## Destroy
 
-The second flag, `-out` tells Terraform to save the execution plan
-to a file. We haven't seen this before, but it isn't limited to
-only destroys. Any plan can be saved to a file. Terraform can then
-apply a plan, ensuring that only exactly the plan you saw is executed.
-For destroys, you must save into a plan, since there is no way to
-tell `apply` to destroy otherwise.
-
-## Apply
-
-Let's apply the destroy:
+Let's destroy the infrastructure now:
 
 ```
-$ terraform apply terraform.tfplan
+$ terraform destroy
 aws_instance.example: Destroying...
 
 Apply complete! Resources: 0 added, 0 changed, 1 destroyed.
@@ -56,11 +46,15 @@ Apply complete! Resources: 0 added, 0 changed, 1 destroyed.
 ...
 ```
 
-Done. Terraform destroyed our one instance, and if you run a
-`terraform show`, you'll see that the state file is now empty.
+The `terraform destroy` command should ask you to verify that you
+really want to destroy the infrastructure. Terraform only accepts the
+literal "yes" as an answer as a safety mechanism. Once entered, Terraform
+will go through and destroy the infrastructure.
 
-For this command, we gave an argument to `apply` for the first
-time. You can give apply a specific plan to execute.
+Just like with `apply`, Terraform is smart enough to determine what order
+things should be destroyed. In our case, we only had one resource, so there
+wasn't any ordering necessary. But in more complicated cases with multiple
+resources, Terraform will destroy in the proper order.
 
 ## Next
 

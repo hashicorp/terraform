@@ -170,10 +170,10 @@ what it is managing. This file must be saved and distributed
 to anyone who might run Terraform. We recommend simply putting it
 into version control, since it generally isn't too large.
 
-You can inspect the state using `terraform show terraform.tfstate`:
+You can inspect the state using `terraform show`:
 
 ```
-$ terraform show terraform.tfstate
+$ terraform show
 aws_instance.example:
   id = i-e60900cd
   ami = ami-408c7f28

@@ -51,9 +51,14 @@ the AWS provider with the given variables.
 
 ## Assigning Variables
 
-There are two ways to assign variables.
+There are three ways to assign variables.
 
-First, you can set it directly on the command-line with the
+First, if you execute `terraform plan` or apply without doing
+anythiing, Terraform will ask you to input the variables interactively.
+These variables are not saved, but provides a nice user experience for
+getting started with Terraform.
+
+For another option, you can set it directly on the command-line with the
 `-var` flag. Any command in Terraform that inspects the configuration
 accepts this flag, such as `apply`, `plan`, and `refresh`:
 
@@ -64,8 +69,12 @@ $ terraform plan \
 ...
 ```
 
-Second, you can create a file and assign variables directly. Create
-a file named "terraform.tfvars" with the following contents:
+Once again, setting variables this way will not save them, and they'll
+have to be input repeatedly as commands are executed.
+
+The third way, and the way to persist variable values, is to create
+a file and assign variables within this file. Create a file named
+"terraform.tfvars" with the following contents:
 
 ```
 access_key = "foo"
@@ -75,8 +84,8 @@ secret_key = "bar"
 If a "terraform.tfvars" file is present in the current directory,
 Terraform automatically loads it to populate variables. If the file is
 named something else, you can use the `-var-file` flag directly to
-specify a file. Like configuration files, variable files can also be
-JSON.
+specify a file. These files are the same syntax as Terraform configuration
+files. And like Terraform configuration files, these files can also be JSON.
 
 We recommend using the "terraform.tfvars" file, and ignoring it from
 version control.

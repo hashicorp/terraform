@@ -75,6 +75,6 @@ You now know how to parameterize configurations with input
 variables, extract important data using output variables,
 and bootstrap resources using provisioners.
 
-We've now concluded the getting started guide, however
-there are a number of [next steps](/intro/getting-started/next-steps.html)
-to get started with Terraform.
+Next, we're going to take a look at
+[how to use modules](/intro/getting-started/modules.html), a useful
+abstraction to organization and reuse Terraform configurations.

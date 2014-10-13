@@ -67,8 +67,8 @@ aws_eip.ip: Creating...
 Apply complete! Resources: 2 added, 0 changed, 0 destroyed.
 ```
 
-Terraform currently doesn't output anything to indicate the provisioners
-have run. This is going to be fixed soon. However, we can verify
+Terraform will output anything from provisioners to the console,
+but in this case there is no output. However, we can verify
 everything worked by looking at the "file.txt" file:
 
 ```
