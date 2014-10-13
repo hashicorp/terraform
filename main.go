@@ -92,6 +92,9 @@ func wrappedMain() int {
 		return 1
 	}
 
+	// Run checkpoint
+	go runCheckpoint(&config)
+
 	// Make sure we clean up any managed plugins at the end of this
 	defer plugin.CleanupClients()
 

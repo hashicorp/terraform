@@ -22,6 +22,9 @@ import (
 type Config struct {
 	Providers    map[string]string
 	Provisioners map[string]string
+
+	DisableCheckpoint          bool `hcl:"disable_checkpoint"`
+	DisableCheckpointSignature bool `hcl:"disable_checkpoint_signature"`
 }
 
 // BuiltinConfig is the built-in defaults for the configuration. These

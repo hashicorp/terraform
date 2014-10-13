@@ -96,6 +96,7 @@ func init() {
 				Revision:          GitCommit,
 				Version:           Version,
 				VersionPrerelease: VersionPrerelease,
+				CheckFunc:         commandVersionCheck,
 			}, nil
 		},
 	}
