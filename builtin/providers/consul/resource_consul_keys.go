@@ -26,6 +26,11 @@ func resourceConsulKeys() *schema.Resource {
 				ForceNew: true,
 			},
 
+			"token": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+			},
+
 			"keys": &schema.Schema{
 				Type:     schema.TypeSet,
 				Optional: true,
@@ -95,10 +100,14 @@ func resourceConsulKeysCreate(d *schema.ResourceData, meta interface{}) error {
 			return err
 		}
 	}
+	var token string
+	if v := d.Get("token"); v != nil {
+		token = v.(string)
+	}
 
 	// Setup the operations using the datacenter
-	qOpts := consulapi.QueryOptions{Datacenter: dc}
-	wOpts := consulapi.WriteOptions{Datacenter: dc}
+	qOpts := consulapi.QueryOptions{Datacenter: dc, Token: token}
+	wOpts := consulapi.WriteOptions{Datacenter: dc, Token: token}
 
 	// Store the computed vars
 	vars := make(map[string]string)
@@ -157,9 +166,13 @@ func resourceConsulKeysRead(d *schema.ResourceData, meta interface{}) error {
 	} else {
 		return fmt.Errorf("Missing datacenter configuration")
 	}
+	var token string
+	if v := d.Get("token"); v != nil {
+		token = v.(string)
+	}
 
 	// Setup the operations using the datacenter
-	qOpts := consulapi.QueryOptions{Datacenter: dc}
+	qOpts := consulapi.QueryOptions{Datacenter: dc, Token: token}
 
 	// Store the computed vars
 	vars := make(map[string]string)
@@ -201,9 +214,13 @@ func resourceConsulKeysDelete(d *schema.ResourceData, meta interface{}) error {
 	} else {
 		return fmt.Errorf("Missing datacenter configuration")
 	}
+	var token string
+	if v := d.Get("token"); v != nil {
+		token = v.(string)
+	}
 
 	// Setup the operations using the datacenter
-	wOpts := consulapi.WriteOptions{Datacenter: dc}
+	wOpts := consulapi.WriteOptions{Datacenter: dc, Token: token}
 
 	// Extract the keys
 	keys := d.Get("keys").(*schema.Set).List()
