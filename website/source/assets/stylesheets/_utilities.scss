@@ -6,12 +6,12 @@
 //
 // -------------------------
 
-.anti-alias() {
+@mixin anti-alias() {
 	text-rendering: optimizeLegibility;
  	 -webkit-font-smoothing: antialiased;
 }
 
-.consul-gradient-bg(){
+@mixin consul-gradient-bg() {
 	background: #694a9c; /* Old browsers */
 	background: -moz-linear-gradient(left, #694a9c 0%, #cd2028 100%); /* FF3.6+ */
 	background: -webkit-gradient(linear, left top, right top, color-stop(0%,#694a9c), color-stop(100%,#cd2028)); /* Chrome,Safari4+ */
@@ -23,15 +23,15 @@
 
 }
 
-.lato-light(){
-  font-family: @font-family-lato;
+@mixin lato-light() {
+  font-family: $font-family-lato;
   font-weight: 300;
 }
 
-.skewY(@skew){
-	-webkit-transform: skewY(@skew);
-  -moz-transform: skewY(@skew);
-  -ms-transform: skewY(@skew);
-  -o-transform: skewY(@skew);
-  transform: skewY(@skew);
+@mixin skewY($skew) {
+	-webkit-transform: skewY($skew);
+  -moz-transform: skewY($skew);
+  -ms-transform: skewY($skew);
+  -o-transform: skewY($skew);
+  transform: skewY($skew);
 }

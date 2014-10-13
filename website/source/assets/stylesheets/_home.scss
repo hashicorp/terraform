@@ -7,7 +7,7 @@
 
 .feature{
 	padding: 240px 0;
-	.lato-light();
+	@include lato-light();
 
 	h2{
 		text-align: right;
@@ -15,15 +15,15 @@
 		line-height: 44px;
 		letter-spacing: 2px;
 		text-transform: uppercase;
-		color: @purple;
-		.lato-light();
+		color: $purple;
+		@include lato-light();
 	}
 
 	p{
 		font-size: 16px;
 		letter-spacing: 1px;
     	line-height: 1.5em;
-		font-family: @font-family-lato;
+		font-family: $font-family-lato;
 		font-weight: 300;
 	}
 
@@ -61,9 +61,9 @@
 	margin-top: -36px;
 
 	#feature-auto-bg{
-		background: #fff url(../images/white-wireframe.png) center top no-repeat;
+		background: #fff image-url("white-wireframe.png") center top no-repeat;
 		background-size: cover;
-		.skewY(-3deg);
+		@include skewY(-3deg);
 		z-index: 10;
 	}
 
@@ -98,11 +98,11 @@
 	}
 
 	#feature-iterate-bg{
-		background: #fff url(../images/feature-iterate-bg.png) center top no-repeat;
+		background: #fff image-url("feature-iterate-bg.png") center top no-repeat;
 		border-top: 2px solid white;
-		border-bottom: 2px solid @purple;
+		border-bottom: 2px solid $purple;
 		background-size: cover;
-		.skewY(3deg);
+		@include skewY(3deg);
 		z-index: 20;
 	}
 
@@ -120,7 +120,7 @@
 		background-color: rgb(255, 255, 255);
 		width: 80px;
 		height: 80px;
-		.skewY(26deg);
+		@include skewY(26deg);
 		float: left;
 		margin-right: 25px;
 
@@ -153,8 +153,8 @@
 	}
 
 	#feature-clone-bg{
-		background-color: @purple;
-		.skewY(3deg);
+		background-color: $purple;
+		@include skewY(3deg);
 		z-index: 20;
 	}
 
@@ -199,7 +199,7 @@
 				background-color: white;
 				width: 30px;
 				height: 30px;
-				.skewY(30deg);
+				@include skewY(30deg);
 				margin: 5px 5px 0 0;
 			}
 		}
@@ -216,8 +216,8 @@
 	}
 
 	#cta-bg{
-		background-color: @purple;
-		.skewY(-3deg);
+		background-color: $purple;
+		@include skewY(-3deg);
 		z-index: 20;
 	}
 
@@ -238,7 +238,7 @@
 		font-size: 14px;
 		letter-spacing: 1px;
     	line-height: 1.5esm;
-		font-family: @font-family-lato;
+		font-family: $font-family-lato;
 	}
 
 
@@ -256,7 +256,7 @@
 	    text-transform: uppercase;
 	    letter-spacing: 3px;
 	    color: white;
-	    .lato-light();
+	    @include lato-light();
 		font-weight: 500;
 
     &:hover {
@@ -276,7 +276,7 @@
 
 	#demo-bg{
 		background-color: #000;
-		.skewY(-3deg);
+		@include skewY(-3deg);
 		z-index: 30;
 	}
 
@@ -287,8 +287,8 @@
 		h2 {
 			margin-top: 0;
 			font-size: 28px;
-			color: lighten(@purple, 8%);
-			.lato-light();
+			color: lighten($purple, 8%);
+			@include lato-light();
 		}
 
 		p{
@@ -296,7 +296,7 @@
 			font-size: 16px;
 			letter-spacing: 1px;
 			line-height: 1.5em;
-			color: @gray-light;
+			color: $gray-light;
 			font-weight: 400;
 		}
 	}
@@ -349,8 +349,8 @@
 						font-size: 14px;
 						letter-spacing: 1px;
 						color: white;
-						font-family: @font-family-lato;
-						font-weight: @font-weight-lato-xb;
+						font-family: $font-family-lato;
+						font-weight: $font-weight-lato-xb;
 					}
 
 					ul.shell-dots{
@@ -384,28 +384,28 @@
 					padding: 20px;
 					font-size: 15px;
 					font-family: "Courier New", Monaco, Menlo, Consolas, monospace;
-					color: @white;
+					color: $white;
 					background-color: transparent;
 					overflow:auto;
 					font-weight: 500;
 					-webkit-font-smoothing: subpixel-antialiased;
 
 					.txt-spe {
-						color: lighten(@blue, 5%);
+						color: lighten($blue, 5%);
 						font-weight: 600;
 					}
 
 					.txt-var {
-						color: lighten(@purple, 8%);
+						color: lighten($purple, 8%);
 						font-weight: 600;
 					}
 
 					.txt-str {
-						color: lighten(@green, 2%);
+						color: lighten($green, 2%);
 					}
 
 					.txt-int {
-						color: lighten(@orange, 2%);
+						color: lighten($orange, 2%);
 						font-weight: 600;
 					}
 
@@ -414,7 +414,7 @@
 						white-space: pre-wrap;
 					}
 					.cursor {
-						background-color: lighten(@purple, %5);
+						background-color: lighten($purple, 5%);
 					}
 				}
 			}
@@ -667,14 +667,14 @@
 		margin-top: -80px;
 		padding: 280px 0 360px;
 		color: white;
-		background: #fff url(../images/feature-iterate-bg.png) center top no-repeat;
+		background: #fff image-url("feature-iterate-bg.png") center top no-repeat;
 		border-top: 2px solid white;
-		border-bottom: 2px solid @purple;
+		border-bottom: 2px solid $purple;
 		background-size: cover;
-		.skewY(3deg);
+		@include skewY(3deg);
 
 		>.container{
-			.skewY(-3deg);
+			@include skewY(-3deg);
 		}
 
 		p{
@@ -693,7 +693,7 @@
 			background-color: rgb(255, 255, 255);
 			width: 40px;
 			height: 40px;
-			.skewY(26deg);
+			@include skewY(26deg);
 			float: left;
 			margin-right: 15px;
 		}
@@ -729,7 +729,7 @@
 					background-color: white;
 					width: 15px;
 					height: 15px;
-					.skewY(30deg);
+					@include skewY(30deg);
 					margin: 3px 3px 0 0;
 				}
 			}

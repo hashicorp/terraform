@@ -5,13 +5,12 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="description" content="">
 
-<link rel="shortcut icon" href="/images/favicon.png">
+<link rel="shortcut icon" href="<%= image_path('favicon.png') %>">
 
 <title><%= current_page.data.page_title ? "#{current_page.data.page_title} - " : "" %>Terraform</title>
 
 <!-- Bootstrap core CSS -->
-<%= stylesheet_link_tag "bootstrap.min" %>
-<%= stylesheet_link_tag "main" %>
+<%= stylesheet_link_tag "application" %>
 
 <!-- google fonts -->
 <link href='http://fonts.googleapis.com/css?family=Lato:300,400,700' rel='stylesheet' type='text/css'>

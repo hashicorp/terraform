@@ -4,21 +4,21 @@
 
 .outline-btn{
 	background-color: transparent;
-	color: @white;
-	border: 2px solid @white;
-	//border-radius: @btn-border-radius;
+	color: $white;
+	border: 2px solid $white;
+	//border-radius: $btn-border-radius;
 	text-decoration: none !important;
-	.transition(background-color .3s ease-in-out);
+	@include transition(background-color .3s ease-in-out);
 
 	&.purple{
-		color: @purple;
-		border: 2px solid @purple;
+		color: $purple;
+		border: 2px solid $purple;
 	}
 
 	&:hover{
-		color: @white;
+		color: $white;
 		background-color: rgba(255, 255, 255, .2);
-		.transition(background-color .3s ease-in-out);
+		@include transition(background-color .3s ease-in-out);
 
 		&.purple{
 			background-color: rgba(255, 255, 255, .5);
@@ -28,11 +28,11 @@
 
 .terra-btn{
   background-color: rgba(130, 47, 247, 0.36);
-  .transition( background-color 0.3s ease );
+  @include transition( background-color 0.3s ease );
 
   &:hover{
     background-color: rgba(130, 47, 247, 0.8);
-    .transition( background-color 0.3s ease );
+    @include transition( background-color 0.3s ease );
   }
 }
 

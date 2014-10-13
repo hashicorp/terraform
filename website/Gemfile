@@ -1,13 +1,3 @@
-source "https://rubygems.org"
+source 'https://rubygems.org'
 
-gem "less",                  "~> 2.6"
-gem "middleman",             "~> 3.3"
-gem "middleman-minify-html", "~> 3.4"
-gem "rack-contrib",          "~> 1.1"
-gem "redcarpet",             "~> 3.1"
-gem "therubyracer",          "~> 0.12"
-gem "thin",                  "~> 1.6"
-
-group :development do
-  gem "highline", "~> 1.6"
-end
+gem 'middleman-hashicorp', github: 'hashicorp/middleman-hashicorp'

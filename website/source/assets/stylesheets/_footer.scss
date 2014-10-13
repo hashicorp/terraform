@@ -31,7 +31,7 @@ body.page-home{
         }
 
         .li-under a::after {
-            background-color: @purple;
+            background-color: $purple;
         }
 
         li{
@@ -39,12 +39,12 @@ body.page-home{
                 text-transform: uppercase;
                 font-size: 12px;
                 letter-spacing: 3px;
-                .transition( color 0.3s ease );
+                @include transition( color 0.3s ease );
                 font-weight: 400;
 
                 &:hover{
-                    color: @purple;
-                    .transition( color 0.3s ease );
+                    color: $purple;
+                    @include transition( color 0.3s ease );
                     background-color: transparent;
                 }
             }
@@ -64,15 +64,15 @@ body.page-home{
 
             &.download{
                 a{
-                  background: url(../images/icon-download-purple.png)  8px 6px no-repeat;
-                  .img-retina("../images/icon-download-purple.png", "../images/icon-download-purple@2x.png", 20px, 20px);
+                  background: image-url('icon-download-purple.png')  8px 6px no-repeat;
+                  @include img-retina("icon-download-purple.png", "icon-download-purple@2x.png", 20px, 20px);
                 }
             }
 
             &.github{
                 a{
-                  background: url(../images/icon-github-purple.png)  8px 6px no-repeat;
-                  .img-retina("../images/icon-github-purple.png", "../images/icon-github-purple@2x.png", 20px, 20px);
+                  background: image-url('icon-github-purple.png')  8px 6px no-repeat;
+                  @include img-retina("icon-github-purple.png", "icon-github-purple@2x.png", 20px, 20px);
                 }
             }
         }
@@ -91,7 +91,7 @@ body.page-home{
 
         a{
             color: black;
-            font-weight: @font-weight-lato-xb;
+            font-weight: $font-weight-lato-xb;
         }
 
         span{
@@ -105,8 +105,8 @@ body.page-home{
                 display: inline-block;
                 width: 37px;
                 height: 40px;
-                background: url(../images/footer-hashicorp-logo.png) 0 0 no-repeat;
-                .img-retina("../images/footer-hashicorp-logo.png", "../images/footer-hashicorp-logo@2x.png", 37px, 40px);
+                background: image-url('footer-hashicorp-logo.png') 0 0 no-repeat;
+                @include img-retina("footer-hashicorp-logo.png", "footer-hashicorp-logo@2x.png", 37px, 40px);
             }
         }
     }
@@ -119,7 +119,7 @@ body.page-home{
 
     #footer{
         padding: 140px 0 100px;
-        background-color: @black;
+        background-color: $black;
         transform: none;
 
         >.container{
@@ -135,8 +135,8 @@ body.page-home{
 
             .hashi-logo{
                 i{
-                    background: url(../images/footer-hashicorp-white-logo.png) 0 0 no-repeat;
-                    .img-retina("../images/footer-hashicorp-white-logo.png", "../images/footer-hashicorp-white-logo@2x.png", 37px, 40px);
+                    background: image-url('footer-hashicorp-white-logo.png') 0 0 no-repeat;
+                    @include img-retina("footer-hashicorp-white-logo.png", "footer-hashicorp-white-logo@2x.png", 37px, 40px);
                 }
             }
         }

@@ -10,7 +10,7 @@ body.page-sub{
 
     #header{
         height: 90px;
-        background-color: @purple;
+        background-color: $purple;
 
         .navbar-collapse{
             background-color: rgba(255, 255, 255, 0.98);
@@ -29,30 +29,30 @@ body.page-sub{
             float: left !important;
             li > a {
                 color: black;
-                .transition( color 0.3s ease );
+                @include transition( color 0.3s ease );
             }
         }
 
         .buttons.nav > li > a, .buttons.nav > li > a {
-            //background-color: lighten(@purple, 1%);
-            .transition( background-color 0.3s ease );
+            //background-color: lighten($purple, 1%);
+            @include transition( background-color 0.3s ease );
         }
 
         .buttons.nav > li > a:hover, .buttons.nav > li > a:focus {
             background-color: black;
-            .transition( background-color 0.3s ease );
+            @include transition( background-color 0.3s ease );
         }
 
         .main-links.nav > li > a:hover, .main-links.nav > li > a:focus {
-            color: @purple;
-            .transition( color 0.3s ease );
+            color: $purple;
+            @include transition( color 0.3s ease );
         }
     }
 }
 
 #header {
     position: relative;
-    color: @white;
+    color: $white;
     text-rendering: optimizeLegibility;
     margin-bottom: 0;
 
@@ -68,17 +68,17 @@ body.page-sub{
     }
 
     a{
-        color: @white;
+        color: $white;
     }
 
     .navbar-toggle{
         margin-top: 26px;
         margin-bottom: 14px;
         margin-right: 0;
-        border: 2px solid @white;
+        border: 2px solid $white;
         border-radius: 0;
         .icon-bar{
-            border: 1px solid @white;
+            border: 1px solid $white;
             border-radius: 0;
         }
     }
@@ -90,10 +90,10 @@ body.page-sub{
             height: 56px;
             line-height: 56px;
             font-size: 24px;
-            .lato-light();
+            @include lato-light();
             text-transform: uppercase;
-            background: url(../images/consul-header-logo.png) 0 0 no-repeat;
-            .img-retina("../images/header-logo.png", "../images/header-logo@2x.png", 50px, 56px);
+            background: image-url('consul-header-logo.png') 0 0 no-repeat;
+            @include img-retina("header-logo.png", "header-logo@2x.png", 50px, 56px);
             -webkit-font-smoothing: default;
         }
     }
@@ -108,7 +108,7 @@ body.page-sub{
                 text-transform: uppercase;
                 letter-spacing: 3px;
                 padding-left: 22px;
-                .transition( color 0.3s ease );
+                @include transition( color 0.3s ease );
             }
 
             &.first{
@@ -121,8 +121,8 @@ body.page-sub{
 
     .nav > li > a:hover, .nav > li > a:focus {
         background-color: transparent;
-        color: lighten(@purple, 15%);
-        .transition( color 0.3s ease );
+        color: lighten($purple, 15%);
+        @include transition( color 0.3s ease );
     }
 
     .main-links.navbar-nav{
@@ -139,8 +139,8 @@ body.page-sub{
             top: 7px;
             width: 1px;
             height: 12px;
-            background-color: @purple;
-            .skewY(24deg);
+            background-color: $purple;
+            @include skewY(24deg);
             padding-right: 0;
         }
 
@@ -165,15 +165,15 @@ body.page-sub{
             &.download{
                 a{
                     padding-left: 30px;
-                    background: url(../images/header-download-icon.png)  12px 8px no-repeat;
-                    .img-retina("../images/header-download-icon.png", "../images/header-download-icon@2x.png", 12px, 13px);
+                    background: image-url("header-download-icon.png")  12px 8px no-repeat;
+                    @include img-retina("header-download-icon.png", "header-download-icon@2x.png", 12px, 13px);
                 }
             }
 
             &.github{
                 a{
-                  background: url(../images/header-github-icon.png)  12px 7px no-repeat;
-                  .img-retina("../images/header-github-icon.png", "../images/header-github-icon@2x.png", 12px, 13px);
+                  background: image-url("header-github-icon.png")  12px 7px no-repeat;
+                  @include img-retina("header-github-icon.png", "header-github-icon@2x.png", 12px, 13px);
                 }
             }
         }
@@ -206,8 +206,8 @@ body.page-sub{
                 top: 9px;
                 width: 6px;
                 height: 8px;
-                background-color: @purple;
-                .skewY(24deg);
+                background-color: $purple;
+                @include skewY(24deg);
                 padding-right: 8px;
             }
 
@@ -243,8 +243,8 @@ body.page-sub{
                     top: 9px;
                     width: 6px;
                     height: 8px;
-                    background-color: @purple;
-                    .skewY(24deg);
+                    background-color: $purple;
+                    @include skewY(24deg);
                     padding-right: 8px;
                 }
             }
@@ -366,7 +366,7 @@ body.page-sub{
                 font-size: 20px !important;
                 line-height:42px !important;
                 margin-top: 23px !important ;
-                .img-retina("../images/header-logo.png", "../images/header-logo@2x.png", 39px, 44px);
+                @include img-retina("../images/header-logo.png", "../images/header-logo@2x.png", 39px, 44px);
             }
         }
 

@@ -6,7 +6,7 @@
   position:relative;
   z-index:0;
   height:700px;
-  margin-top: @negative-hero-margin;
+  margin-top: $negative-hero-margin;
   background-color: black;
 }
 
@@ -15,15 +15,15 @@
   height:700px;
   padding-top: 0;
   padding-bottom: 0;
-  color: @jumbotron-color;
+  color: $jumbotron-color;
 
   &.static {
-    background-image:url(../images/bg-galaxy.jpg);
+    background-image:image-url("bg-galaxy.jpg");
     background-position:50% 50%;
     background-repeat:no-repeat;
 
     .jumbotron-content {
-      background-image:url(../images/bg-static.png);
+      background-image:image-url("bg-static.png");
       background-size:cover;
       background-position:50% 50%;
       background-repeat:no-repeat;
@@ -35,7 +35,7 @@
       position:absolute;
       top:50%;
       left:50%;
-      background:url(../images/logo-static.png);
+      background:image-url("logo-static.png");
 
       -webkit-background-size:100% 100%;
          -moz-background-size:100% 100%;
@@ -92,7 +92,7 @@
     top:0;
     left:0;
 
-    background-image:url(../images/bg-galaxy.jpg);
+    background-image:image-url("bg-galaxy.jpg");
     /* background-size:cover; */
     background-position:50% 50%;
     background-repeat: no-repeat;
