@@ -643,10 +643,20 @@ func WriteState(d *State, dst io.Writer) error {
 	// Always increment the serial number
 	d.Serial++
 
-	enc := json.NewEncoder(dst)
-	if err := enc.Encode(d); err != nil {
+	// Encode the data in a human-friendly way
+	data, err := json.MarshalIndent(d, "", "    ")
+	if err != nil {
+		return fmt.Errorf("Failed to encode state: %s", err)
+	}
+
+	// We append a newline to the data because MarshalIndent doesn't
+	data = append(data, '\n')
+
+	// Write the data out to the dst
+	if _, err := io.Copy(dst, bytes.NewReader(data)); err != nil {
 		return fmt.Errorf("Failed to write state: %v", err)
 	}
+
 	return nil
 }
 
