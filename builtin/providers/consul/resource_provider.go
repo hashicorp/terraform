@@ -3,71 +3,40 @@ package consul
 import (
 	"log"
 
-	"github.com/armon/consul-api"
-	"github.com/hashicorp/terraform/helper/config"
+	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/terraform"
+	"github.com/mitchellh/mapstructure"
 )
 
-type ResourceProvider struct {
-	Config Config
-	client *consulapi.Client
-}
+// Provider returns a terraform.ResourceProvider.
+func Provider() terraform.ResourceProvider {
+	return &schema.Provider{
+		Schema: map[string]*schema.Schema{
+			"datacenter": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+			},
 
-func (p *ResourceProvider) Input(
-	input terraform.UIInput,
-	c *terraform.ResourceConfig) (*terraform.ResourceConfig, error) {
-	return c, nil
-}
-
-func (p *ResourceProvider) Validate(c *terraform.ResourceConfig) ([]string, []error) {
-	v := &config.Validator{
-		Optional: []string{
-			"datacenter",
-			"address",
+			"address": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+			},
 		},
+
+		ResourcesMap: map[string]*schema.Resource{
+			"consul_keys": resourceConsulKeys(),
+		},
+
+		ConfigureFunc: providerConfigure,
 	}
-	return v.Validate(c)
 }
 
-func (p *ResourceProvider) ValidateResource(
-	t string, c *terraform.ResourceConfig) ([]string, []error) {
-	return resourceMap.Validate(t, c)
-}
-
-func (p *ResourceProvider) Configure(c *terraform.ResourceConfig) error {
-	if _, err := config.Decode(&p.Config, c.Config); err != nil {
-		return err
+func providerConfigure(d *schema.ResourceData) (interface{}, error) {
+	var config Config
+	configRaw := d.Get("").(map[string]interface{})
+	if err := mapstructure.Decode(configRaw, &config); err != nil {
+		return nil, err
 	}
-
 	log.Printf("[INFO] Initializing Consul client")
-	var err error
-	p.client, err = p.Config.Client()
-	if err != nil {
-		return err
-	}
-	return nil
-}
-
-func (p *ResourceProvider) Apply(
-	info *terraform.InstanceInfo,
-	s *terraform.InstanceState,
-	d *terraform.InstanceDiff) (*terraform.InstanceState, error) {
-	return resourceMap.Apply(info, s, d, p)
-}
-
-func (p *ResourceProvider) Diff(
-	info *terraform.InstanceInfo,
-	s *terraform.InstanceState,
-	c *terraform.ResourceConfig) (*terraform.InstanceDiff, error) {
-	return resourceMap.Diff(info, s, c, p)
-}
-
-func (p *ResourceProvider) Refresh(
-	info *terraform.InstanceInfo,
-	s *terraform.InstanceState) (*terraform.InstanceState, error) {
-	return resourceMap.Refresh(info, s, p)
-}
-
-func (p *ResourceProvider) Resources() []terraform.ResourceType {
-	return resourceMap.Resources()
+	return config.Client()
 }
