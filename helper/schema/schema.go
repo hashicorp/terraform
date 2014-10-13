@@ -72,6 +72,9 @@ type Schema struct {
 	// If Required is true above, then Default cannot be set. DefaultFunc
 	// can be set with Required. If the DefaultFunc returns nil, then there
 	// will no default and the user will be asked to fill it in.
+	//
+	// If either of these is set, then the user won't be asked for input
+	// for this key if the default is not nil.
 	Default     interface{}
 	DefaultFunc SchemaDefaultFunc
 
@@ -81,6 +84,8 @@ type Schema struct {
 	Description string
 
 	// InputDefault is the default value to use for when inputs are requested.
+	// This differs from Default in that if Default is set, no input is
+	// asked for. If Input is asked, this will be the default value offered.
 	InputDefault string
 
 	// The fields below relate to diffs.
@@ -306,6 +311,21 @@ func (m schemaMap) Input(
 		// Skip things that have a value of some sort already
 		if _, ok := c.Raw[k]; ok {
 			continue
+		}
+
+		// Skip if it has a default
+		if v.Default != nil {
+			continue
+		}
+		if f := v.DefaultFunc; f != nil {
+			value, err := f()
+			if err != nil {
+				return nil, fmt.Errorf(
+					"%s: error loading default: %s", k, err)
+			}
+			if value != nil {
+				continue
+			}
 		}
 
 		var value interface{}

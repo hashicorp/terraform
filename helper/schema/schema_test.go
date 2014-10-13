@@ -1419,6 +1419,66 @@ func TestSchemaMap_Input(t *testing.T) {
 
 			Err: false,
 		},
+
+		{
+			Schema: map[string]*Schema{
+				"availability_zone": &Schema{
+					Type:     TypeString,
+					Default:  "foo",
+					Optional: true,
+				},
+			},
+
+			Input: map[string]string{
+				"availability_zone": "bar",
+			},
+
+			Result: map[string]interface{}{},
+
+			Err: false,
+		},
+
+		{
+			Schema: map[string]*Schema{
+				"availability_zone": &Schema{
+					Type: TypeString,
+					DefaultFunc: func() (interface{}, error) {
+						return "foo", nil
+					},
+					Optional: true,
+				},
+			},
+
+			Input: map[string]string{
+				"availability_zone": "bar",
+			},
+
+			Result: map[string]interface{}{},
+
+			Err: false,
+		},
+
+		{
+			Schema: map[string]*Schema{
+				"availability_zone": &Schema{
+					Type: TypeString,
+					DefaultFunc: func() (interface{}, error) {
+						return nil, nil
+					},
+					Optional: true,
+				},
+			},
+
+			Input: map[string]string{
+				"availability_zone": "bar",
+			},
+
+			Result: map[string]interface{}{
+				"availability_zone": "bar",
+			},
+
+			Err: false,
+		},
 	}
 
 	for i, tc := range cases {
