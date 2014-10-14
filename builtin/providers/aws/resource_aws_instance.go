@@ -1,10 +1,12 @@
 package aws
 
 import (
+	"bytes"
 	"crypto/sha1"
 	"encoding/hex"
 	"fmt"
 	"log"
+	"strconv"
 	"strings"
 	"time"
 
@@ -99,6 +101,45 @@ func resourceAwsInstance() *schema.Resource {
 				},
 			},
 
+			"volume": &schema.Schema{
+				Type:     schema.TypeSet,
+				Optional: true,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"size": &schema.Schema{
+							Type:     schema.TypeInt,
+							Required: true,
+							ForceNew: true,
+						},
+						"device_name": &schema.Schema{
+							Type:     schema.TypeString,
+							Required: true,
+							ForceNew: true,
+						},
+						"volume_type": &schema.Schema{
+							Type:     schema.TypeString,
+							Optional: true,
+							ForceNew: true,
+						},
+						"iops": &schema.Schema{
+							Type:     schema.TypeInt,
+							Optional: true,
+							ForceNew: true,
+						},
+						"encrypted": &schema.Schema{
+							Type:     schema.TypeBool,
+							Optional: true,
+							ForceNew: true,
+						},
+						"volume_id": &schema.Schema{
+							Type: 	  schema.TypeString,
+							Computed: true,
+						},
+					},
+				},
+				Set: resourceAwsInstanceVolumeHash,
+			},
+
 			"public_dns": &schema.Schema{
 				Type:     schema.TypeString,
 				Computed: true,
@@ -126,6 +167,14 @@ func resourceAwsInstance() *schema.Resource {
 			},
 		},
 	}
+}
+
+func resourceAwsInstanceVolumeHash(v interface{}) int {
+	var buf bytes.Buffer
+	m := v.(map[string]interface{})
+	buf.WriteString(fmt.Sprintf("%d-", m["size"].(int)))
+
+	return hashcode.String(buf.String())
 }
 
 func resourceAwsInstanceCreate(d *schema.ResourceData, meta interface{}) error {
@@ -170,6 +219,27 @@ func resourceAwsInstanceCreate(d *schema.ResourceData, meta interface{}) error {
 
 			runOpts.SecurityGroups = append(runOpts.SecurityGroups, g)
 		}
+	}
+
+	volumeRaw := d.Get("volume")
+	if volumeRaw == nil {
+		volumeRaw = new(schema.Set)
+	}
+	volumeList := volumeRaw.(*schema.Set).List()
+	i := 0
+	for _, v := range volumeList {
+		volume := v.(map[string]interface{})
+		var b ec2.BlockDeviceMapping
+		b.DeviceName = volume["device_name"].(string)
+		if _, ok := volume["encrypted"].(bool); ok {
+			b.Encrypted = volume["encrypted"].(bool)
+		}
+		if _, ok := volume["volume_type"].(string); ok {
+			b.VolumeType = volume["volume_type"].(string)
+		}
+		b.VolumeSize, _ = strconv.ParseInt(strconv.Itoa(volume["size"].(int)), 0, 0)
+		runOpts.BlockDevices = append(runOpts.BlockDevices, b)
+		i++
 	}
 
 	// Create the instance
@@ -351,6 +421,14 @@ func resourceAwsInstanceRead(d *schema.ResourceData, meta interface{}) error {
 		}
 	}
 	d.Set("security_groups", sgs)
+
+	// Add Volume Ids
+	vols := make([]string, len(instance.BlockDevices))
+	for i, bd := range instance.BlockDevices{
+		vols[i] = bd.VolumeId
+	}
+	d.Set("volumes", vols)
+
 
 	return nil
 }

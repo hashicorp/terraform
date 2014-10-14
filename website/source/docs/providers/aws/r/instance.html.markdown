@@ -41,6 +41,15 @@ The following arguments are supported:
 * `user_data` - (Optional) The user data to provide when launching the instance.
 * `iam_instance_profile` - (Optional) The IAM Instance Profile to
   launch the instance with.
+* `volume` - (Optional) A list of volumes to add. Their keys are documented below.
+
+Each volume supports the following:
+
+* `size` - (Required) The size of the device in gbs.
+* `device_name` - (Required) The name of the device.  Example: "/dev/sda1".
+* `volume_type` - (Optional) The type of volume to add.
+* `encrypted` - (Optional) If the volume is to be encrypted or not.
+* `iops` - (Optional) How many I/O operations per second for volume.  100-4,000.
 
 ## Attributes Reference
 
