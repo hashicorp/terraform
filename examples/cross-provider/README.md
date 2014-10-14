@@ -1,12 +1,4 @@
----
-layout: "intro"
-page_title: "Cross Provider"
-sidebar_current: "examples-cross-provider"
----
-
-# Cross Provider Example
-
-[**Example Contents**](https://github.com/hashicorp/terraform/tree/master/examples/cross-provider)
+# Cross Provider Examples
 
 This is a simple example of the cross-provider capabilities of
 Terraform.

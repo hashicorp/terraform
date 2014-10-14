@@ -1,12 +1,4 @@
----
-layout: "intro"
-page_title: "Consul Example"
-sidebar_current: "examples-consul"
----
-
 # Consul Example
-
-[**Example Contents**](https://github.com/hashicorp/terraform/tree/master/examples/consul)
 
 [Consul](http://www.consul.io) is a tool for service discovery, configuration
 and orchestration. The Key/Value store it provides is often used to store
@@ -54,3 +46,4 @@ application relies on ELB for routing, Terraform can update the application's
 configuration directly by setting the ELB address into Consul. Any resource
 attribute can be stored in Consul, allowing an operator to capture anything
 useful.
+
