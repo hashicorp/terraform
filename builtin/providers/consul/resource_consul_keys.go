@@ -89,7 +89,7 @@ func resourceConsulKeysCreate(d *schema.ResourceData, meta interface{}) error {
 	// Resolve the datacenter first, all the other keys are dependent
 	// on this.
 	var dc string
-	if v := d.Get("datacenter"); v != nil {
+	if v, ok := d.GetOk("datacenter"); ok {
 		dc = v.(string)
 		log.Printf("[DEBUG] Consul datacenter: %s", dc)
 	} else {
@@ -101,7 +101,7 @@ func resourceConsulKeysCreate(d *schema.ResourceData, meta interface{}) error {
 		}
 	}
 	var token string
-	if v := d.Get("token"); v != nil {
+	if v, ok := d.GetOk("token"); ok {
 		token = v.(string)
 	}
 
@@ -160,14 +160,14 @@ func resourceConsulKeysRead(d *schema.ResourceData, meta interface{}) error {
 
 	// Get the DC, error if not available.
 	var dc string
-	if v := d.Get("datacenter"); v != nil {
+	if v, ok := d.GetOk("datacenter"); ok {
 		dc = v.(string)
 		log.Printf("[DEBUG] Consul datacenter: %s", dc)
 	} else {
 		return fmt.Errorf("Missing datacenter configuration")
 	}
 	var token string
-	if v := d.Get("token"); v != nil {
+	if v, ok := d.GetOk("token"); ok {
 		token = v.(string)
 	}
 
@@ -208,14 +208,14 @@ func resourceConsulKeysDelete(d *schema.ResourceData, meta interface{}) error {
 
 	// Get the DC, error if not available.
 	var dc string
-	if v := d.Get("datacenter"); v != nil {
+	if v, ok := d.GetOk("datacenter"); ok {
 		dc = v.(string)
 		log.Printf("[DEBUG] Consul datacenter: %s", dc)
 	} else {
 		return fmt.Errorf("Missing datacenter configuration")
 	}
 	var token string
-	if v := d.Get("token"); v != nil {
+	if v, ok := d.GetOk("token"); ok {
 		token = v.(string)
 	}
 
