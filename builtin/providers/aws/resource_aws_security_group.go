@@ -84,6 +84,8 @@ func resourceAwsSecurityGroup() *schema.Resource {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
+
+			"tags": tagsSchema(),
 		},
 	}
 }
@@ -226,6 +228,12 @@ func resourceAwsSecurityGroupUpdate(d *schema.ResourceData, meta interface{}) er
 		}
 	}
 
+	if err := setTags(ec2conn, d); err != nil {
+		return err
+	} else {
+		d.SetPartial("tags")
+	}
+
 	return nil
 }
 
@@ -295,6 +303,7 @@ func resourceAwsSecurityGroupRead(d *schema.ResourceData, meta interface{}) erro
 	d.Set("vpc_id", sg.VpcId)
 	d.Set("owner_id", sg.OwnerId)
 	d.Set("ingress", ingressRules)
+	d.Set("tags", tagsToMap(sg.Tags))
 
 	return nil
 }
