@@ -20,7 +20,6 @@ Use the navigation to the left to read about the available resources.
 # Configure the Google Cloud provider
 provider "google" {
     account_file = "account.json"
-    client_secrets_file = "client_secrets.json"
     project = "my-gce-project"
     region = "us-central1"
 }
@@ -38,10 +37,6 @@ The following keys can be used to configure the provider.
 * `account_file` - (Required) Path to the JSON file used to describe
   your account credentials, downloaded from Google Cloud Console. More
   details on retrieving this file are below.
-
-* `client_secrets_file` - (Required) Path to the JSON file containing
-  the secrets for your account, downloaded from Google Cloud Console.
-  More details on retrieving this file are below.
 
 * `project` - (Required) The name of the project to apply any resources to.
 
@@ -61,11 +56,6 @@ the process more straightforwarded, it is documented here.
 
 2. Under the "APIs & Auth" section, click "Credentials."
 
-3. Create a new OAuth client ID and select "Installed application" as the
-   type of account. Once created, click the "Download JSON" button underneath
-   the account. The file should start with "client\_secret". This is your _client
-   secrets file_.
-
-4. Create a new OAuth client ID and select "Service account" as the type
+3. Create a new OAuth client ID and select "Service account" as the type
    of account. Once created, a JSON file should be downloaded. This is your
    _account file_.
