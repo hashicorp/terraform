@@ -16,6 +16,7 @@ and to expose infrastructure details to clients.
 ```
 resource "consul_keys" "app" {
     datacenter = "nyc1"
+    token = "abcd"
 
     # Read the launch AMI from Consul
     key {
@@ -45,6 +46,9 @@ The following arguments are supported:
 
 * `datacenter` - (Optional) The datacenter to use. This overrides the
   datacenter in the provider setup and the agent's default datacenter.
+
+* `token` - (Optional) The ACL token to use. This overrides the
+  token that the agent provides by default.
 
 * `key` - (Required) Specifies a key in Consul to be read or written.
   Supported values documented below.
