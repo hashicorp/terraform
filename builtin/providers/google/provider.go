@@ -17,12 +17,6 @@ func Provider() terraform.ResourceProvider {
 				DefaultFunc: envDefaultFunc("GOOGLE_ACCOUNT_FILE"),
 			},
 
-			"client_secrets_file": &schema.Schema{
-				Type:        schema.TypeString,
-				Required:    true,
-				DefaultFunc: envDefaultFunc("GOOGLE_CLIENT_FILE"),
-			},
-
 			"project": &schema.Schema{
 				Type:        schema.TypeString,
 				Required:    true,
@@ -62,7 +56,6 @@ func envDefaultFunc(k string) schema.SchemaDefaultFunc {
 func providerConfigure(d *schema.ResourceData) (interface{}, error) {
 	config := Config{
 		AccountFile:       d.Get("account_file").(string),
-		ClientSecretsFile: d.Get("client_secrets_file").(string),
 		Project:           d.Get("project").(string),
 		Region:            d.Get("region").(string),
 	}
