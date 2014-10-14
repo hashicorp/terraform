@@ -36,6 +36,10 @@ The following arguments are supported:
      variables, but rather variables you want present. That is, other
      configuration variables set externally won't be removed by Terraform
      if they aren't present in this list.
+* `organization` - (Optional) The organization name to create the application
+    under. You must have the correct permissions for this organization on Heroku to
+    create new applications inside an organization.
+
 
 ## Attributes Reference
 
