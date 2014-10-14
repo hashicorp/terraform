@@ -1,3 +1,5 @@
 source 'https://rubygems.org'
 
+ruby "2.1.2"
+
 gem 'middleman-hashicorp', github: 'hashicorp/middleman-hashicorp'
