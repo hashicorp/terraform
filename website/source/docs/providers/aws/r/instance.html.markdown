@@ -12,13 +12,6 @@ and deleted. Instances also support [provisioning](/docs/provisioners/index.html
 ## Example Usage
 
 ```
-# Create a new instance of the ami-1234 on an m1.small node
-resource "aws_instance" "web" {
-    ami = "ami-1234"
-    instance_type = "m1.small"
-}
-```
-
 # Create a new instance of the ami-1234 on an m1.small node with an AWS Tag naming it "HelloWorld"
 resource "aws_instance" "web" {
     ami = "ami-1234"
