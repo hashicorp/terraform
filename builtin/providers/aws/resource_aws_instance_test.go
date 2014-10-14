@@ -64,6 +64,8 @@ func TestAccAWSInstance_normal(t *testing.T) {
 	})
 }
 
+
+
 func TestAccAWSInstance_sourceDestCheck(t *testing.T) {
 	var v ec2.Instance
 
@@ -116,6 +118,34 @@ func TestAccAWSInstance_vpc(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckInstanceExists(
 						"aws_instance.foo", &v),
+				),
+			},
+		},
+	})
+}
+
+func TestAccInstance_tags(t *testing.T) {
+	var v ec2.Instance
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckInstanceDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccCheckInstanceConfigTags,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckInstanceExists("aws_instance.foo", &v),
+					testAccCheckTags(&v.Tags, "foo", "bar"),
+				),
+			},
+
+			resource.TestStep{
+				Config: testAccCheckInstanceConfigTagsUpdate,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckInstanceExists("aws_instance.foo", &v),
+					testAccCheckTags(&v.Tags, "foo", ""),
+					testAccCheckTags(&v.Tags, "bar", "baz"),
 				),
 			},
 		},
@@ -261,3 +291,18 @@ resource "aws_instance" "foo" {
 	associate_public_ip_address = true
 }
 `
+
+const testAccCheckInstanceConfigTags = `
+resource "aws_instance" "foo" {
+	tags {
+		foo = "bar"
+	}
+}
+`
+
+const testAccCheckInstanceConfigTagsUpdate = `
+resource "aws_vpc" "foo" {
+	tags {
+		bar = "baz"
+	}
+}
