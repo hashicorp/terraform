@@ -17,16 +17,16 @@ sidebar_current: "downloads-terraform"
 			</p>
 		</div>
 	</div>
-	<% $terraform_os.each do |os| %>
+	<% product_versions.each do |os, versions| %>
 		<div class="row">
 		<div class="col-md-12 download">
-			<div class="icon pull-left"><%= image_tag "/images/icons/icon_#{os}.png" %>
+			<div class="icon pull-left"><%= system_icon(os) %>
 		</div>
 			<div class="details">
-				<h2 class="os-name"><%= download_os_human(os) %></h2>
+				<h2 class="os-name"><%= os %></h2>
 				<ul>
-					<% $terraform_files[os].each do |file| %>
-						<li><a href="<%= download_url(file) %>"><%= download_arch(file) %></a></li>
+					<% versions.each do |url| %>
+						<li><a href="<%= url %>"><%= arch_for_filename(url) %></a></li>
 					<% end %>
 				</ul>
 				<div class="clearfix">

@@ -1,0 +1,57 @@
+//
+// Variables
+// --------------------------------------------------
+
+
+// Global values
+// --------------------------------------------------
+
+$jumbotron-height:  		    804px;
+$header-height:  		   	    90px;
+$jumbotron-color:  			    #fff;
+$btn-border-radius:   		  4px;
+$el-border-radius:   		    6px;
+$negative-hero-margin: 		  -70px;
+// colors
+// -------------------------
+
+$white: 					      #fff;
+$black:                 #000;
+$light-black: 					#242424;
+$orange:                #e78c5b;
+$blue:                  #5b7fe7;
+$green:                 #5be764;
+$gray-darker: 				  #555;
+$gray: 						      #777;
+$gray-light:   				  #939393;
+$gray-lighter:   			  #979797;
+$red: 						      #dd4e58;
+$red-dark:            	#c5454e;
+$purple:   					    #822ff7;
+$light-purple:				  #f7f3f9;
+$btn-color:  				    #4592C5;
+
+
+// Scaffolding
+// -------------------------
+$body-bg:               	#fff;
+$text-color:            	$gray;
+
+// Links
+// -------------------------
+$link-color:            	$red-dark;
+$link-hover-color:      	darken($link-color, 15%);
+
+// Typography
+// -------------------------
+$font-family-lato:  	 	'Lato', "Helvetica Neue", Helvetica, Arial, sans-serif;
+$font-family-open-sans: 'Lato', "Helvetica Neue", Helvetica, Arial, sans-serif;
+$font-weight-lato-xl:  	300;
+$font-weight-lato-reg:  300;
+$font-weight-lato-sb:  	500;
+$font-weight-lato-xb:  	700;
+$font-weight-open:  		$font-weight-lato-reg;
+
+
+$text-shadow: 				1px 1px 1px #000;
+$shadow: 					    $text-shadow;

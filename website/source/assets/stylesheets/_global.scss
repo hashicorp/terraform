@@ -9,10 +9,10 @@
 
 body {
     -webkit-font-smoothing: subpixel-antialiased;
-    color: @black;
-    background-color: @black;
+    color: $black;
+    background-color: $black;
     font-size: 15px;
-    font-family: @font-family-lato;
+    font-family: $font-family-lato;
     font-weight: 500;
 }
 
@@ -23,24 +23,24 @@ h1, h2, h3, h4, h5 {
 h1{
 	font-size: 42px;
 	line-height: 42px;
-	font-family: @font-family-lato;
-	font-weight: @font-weight-lato-sb;
+	font-family: $font-family-lato;
+	font-weight: $font-weight-lato-sb;
 	margin-bottom: 24px;
 }
 
 h3{
 	font-size: 28px;
 	line-height: 28px;
-	font-family: @font-family-lato;
-	font-weight: @font-weight-lato-sb;
+	font-family: $font-family-lato;
+	font-weight: $font-weight-lato-sb;
 }
 
 //an alternative color for buttons in the doc body
 .btn-serf{
-	color: @white !important;
-	background-color: @btn-color;
-	border-radius: @btn-border-radius;
-	//.box-shadow( @shadow );
+	color: $white !important;
+	background-color: $btn-color;
+	border-radius: $btn-border-radius;
+	//@include box-shadow( $shadow );
 }
 
 .highlight{
@@ -48,8 +48,8 @@ h3{
 }
 
 pre {
-	background-color: @black;
-	color: @white;
+	background-color: $black;
+	color: $white;
 	font-size: 14px;
 	font-weight: normal;
 	font-family: "Courier New", Monaco, Menlo, Consolas, monospace;
