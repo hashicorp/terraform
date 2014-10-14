@@ -69,7 +69,7 @@ func Get(dst, src string) error {
 		defer os.RemoveAll(tmpDir)
 
 		realDst = dst
-		dst = subDir
+		dst = tmpDir
 	}
 
 	u, err := url.Parse(src)
