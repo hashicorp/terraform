@@ -1,6 +1,6 @@
 GIT
   remote: git://github.com/hashicorp/middleman-hashicorp.git
-  revision: 81fe3211fb66b867c70671ed2db12206d711d61b
+  revision: 96bbea3c8d62d1ea72436a8d803c16af0dd36efa
   specs:
     middleman-hashicorp (0.1.0)
       bootstrap-sass (~> 3.2)
@@ -129,7 +129,7 @@ GEM
     rb-fsevent (0.9.4)
     rb-inotify (0.9.5)
       ffi (>= 0.5.0)
-    redcarpet (3.1.2)
+    redcarpet (3.2.0)
     ref (1.0.5)
     rouge (1.7.2)
     sass (3.4.5)
