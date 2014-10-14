@@ -306,3 +306,4 @@ resource "aws_instance" "foo" {
 		bar = "baz"
 	}
 }
+`
