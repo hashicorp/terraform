@@ -301,7 +301,7 @@ resource "aws_instance" "foo" {
 `
 
 const testAccCheckInstanceConfigTagsUpdate = `
-resource "aws_vpc" "foo" {
+resource "aws_instance" "foo" {
 	tags {
 		bar = "baz"
 	}
