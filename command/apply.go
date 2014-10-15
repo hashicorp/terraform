@@ -121,7 +121,7 @@ func (c *ApplyCommand) Run(args []string) int {
 		v, err := c.UIInput().Input(&terraform.InputOpts{
 			Id:    "destroy",
 			Query: "Do you really want to destroy?",
-			Description: "Terraform will delete all your manage infrastructure.\n" +
+			Description: "Terraform will delete all your Terraform-managed infrastructure.\n" +
 				"There is no undo. Only 'yes' will be accepted to confirm.",
 		})
 		if err != nil {
