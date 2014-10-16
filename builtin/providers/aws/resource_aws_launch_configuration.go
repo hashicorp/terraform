@@ -162,10 +162,7 @@ func resourceAwsLaunchConfigurationRead(d *schema.ResourceData, meta interface{}
 	d.Set("image_id", lc.ImageId)
 	d.Set("instance_type", lc.InstanceType)
 	d.Set("name", lc.Name)
-
-	if v := lc.SecurityGroups; len(v) > 0 && v[0].SecurityGroup != "" {
-		d.Set("security_groups", flattenAutoscalingSecurityGroups(v))
-	}
+	d.Set("security_groups", lc.SecurityGroups)
 
 	return nil
 }

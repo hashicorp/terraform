@@ -7,6 +7,8 @@ BUG FIXES:
   * core: Fix a hang that can occur with enough resources. [GH-410]
   * core: Config validation will not error if the field is being
       computed so the value is still unknown.
+  * providers/aws: Refresh of launch configs and autoscale groups load
+      the correct data and don't incorrectly recreate themselves. [GH-425]
 
 ## 0.3.0 (October 14, 2014)
 

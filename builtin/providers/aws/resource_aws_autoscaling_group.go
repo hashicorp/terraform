@@ -251,20 +251,17 @@ func resourceAwsAutoscalingGroupRead(d *schema.ResourceData, meta interface{}) e
 
 	g := describeGroups.AutoScalingGroups[0]
 
-	d.Set("availability_zones", flattenAvailabilityZones(g.AvailabilityZones))
+	d.Set("availability_zones", g.AvailabilityZones)
 	d.Set("default_cooldown", g.DefaultCooldown)
 	d.Set("desired_capacity", g.DesiredCapacity)
 	d.Set("health_check_grace_period", g.HealthCheckGracePeriod)
 	d.Set("health_check_type", g.HealthCheckType)
 	d.Set("launch_configuration", g.LaunchConfigurationName)
+	d.Set("load_balancers", g.LoadBalancerNames)
 	d.Set("min_size", g.MinSize)
 	d.Set("max_size", g.MaxSize)
 	d.Set("name", g.Name)
 	d.Set("vpc_zone_identifier", g.VPCZoneIdentifier)
-
-	if len(g.LoadBalancerNames) > 0 && g.LoadBalancerNames[0].LoadBalancerName != "" {
-		d.Set("load_balancers", flattenLoadBalancers(g.LoadBalancerNames))
-	}
 
 	return nil
 }
