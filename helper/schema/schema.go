@@ -813,6 +813,11 @@ func (m schemaMap) validatePrimitive(
 	raw interface{},
 	schema *Schema,
 	c *terraform.ResourceConfig) ([]string, []error) {
+	if c.IsComputed(k) {
+		// If the key is being computed, then it is not an error
+		return nil, nil
+	}
+
 	switch schema.Type {
 	case TypeList:
 		return m.validateList(k, raw, schema, c)

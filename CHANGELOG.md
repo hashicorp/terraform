@@ -5,6 +5,8 @@ BUG FIXES:
   * core: Remove panic case when applying with a plan that generates no
       new state. [GH-403]
   * core: Fix a hang that can occur with enough resources. [GH-410]
+  * core: Config validation will not error if the field is being
+      computed so the value is still unknown.
 
 ## 0.3.0 (October 14, 2014)
 

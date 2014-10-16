@@ -1720,6 +1720,7 @@ func TestSchemaMap_Validate(t *testing.T) {
 	cases := []struct {
 		Schema map[string]*Schema
 		Config map[string]interface{}
+		Vars   map[string]string
 		Warn   bool
 		Err    bool
 	}{
@@ -1736,6 +1737,24 @@ func TestSchemaMap_Validate(t *testing.T) {
 
 			Config: map[string]interface{}{
 				"availability_zone": "foo",
+			},
+		},
+
+		// Good, because the var is not set and that error will come elsewhere
+		{
+			Schema: map[string]*Schema{
+				"size": &Schema{
+					Type:     TypeInt,
+					Required: true,
+				},
+			},
+
+			Config: map[string]interface{}{
+				"size": "${var.foo}",
+			},
+
+			Vars: map[string]string{
+				"var.foo": config.UnknownVariableValue,
 			},
 		},
 
@@ -1764,6 +1783,26 @@ func TestSchemaMap_Validate(t *testing.T) {
 
 			Config: map[string]interface{}{
 				"port": "I am invalid",
+			},
+
+			Err: true,
+		},
+
+		// Bad type, interpolated
+		{
+			Schema: map[string]*Schema{
+				"size": &Schema{
+					Type:     TypeInt,
+					Required: true,
+				},
+			},
+
+			Config: map[string]interface{}{
+				"size": "${var.foo}",
+			},
+
+			Vars: map[string]string{
+				"var.foo": "nope",
 			},
 
 			Err: true,
@@ -1937,6 +1976,11 @@ func TestSchemaMap_Validate(t *testing.T) {
 		c, err := config.NewRawConfig(tc.Config)
 		if err != nil {
 			t.Fatalf("err: %s", err)
+		}
+		if tc.Vars != nil {
+			if err := c.Interpolate(tc.Vars); err != nil {
+				t.Fatalf("err: %s", err)
+			}
 		}
 
 		ws, es := schemaMap(tc.Schema).Validate(terraform.NewResourceConfig(c))
