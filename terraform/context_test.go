@@ -499,6 +499,53 @@ func TestContextValidate_selfRefMultiAll(t *testing.T) {
 	}
 }
 
+func TestContextValidate_varRef(t *testing.T) {
+	m := testModule(t, "validate-variable-ref")
+	p := testProvider("aws")
+	c := testContext(t, &ContextOpts{
+		Module: m,
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+	})
+
+	computed := false
+	p.ValidateResourceFn = func(t string, c *ResourceConfig) ([]string, []error) {
+		computed = c.IsComputed("foo")
+		return nil, nil
+	}
+
+	c.Validate()
+	if !computed {
+		t.Fatal("should be computed")
+	}
+}
+
+func TestContextValidate_varRefFilled(t *testing.T) {
+	m := testModule(t, "validate-variable-ref")
+	p := testProvider("aws")
+	c := testContext(t, &ContextOpts{
+		Module: m,
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+		Variables: map[string]string{
+			"foo": "bar",
+		},
+	})
+
+	var value interface{}
+	p.ValidateResourceFn = func(t string, c *ResourceConfig) ([]string, []error) {
+		value, _ = c.Get("foo")
+		return nil, nil
+	}
+
+	c.Validate()
+	if value != "bar" {
+		t.Fatalf("bad: %#v", value)
+	}
+}
+
 func TestContextInput(t *testing.T) {
 	input := new(MockUIInput)
 	m := testModule(t, "input-vars")

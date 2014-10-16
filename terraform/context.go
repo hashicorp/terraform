@@ -1069,6 +1069,9 @@ func (c *walkContext) validateWalkFn() depgraph.WalkFunc {
 				l.Unlock()
 			}
 
+			// Compute the variables in this resource
+			rn.Resource.Config.interpolate(c, rn.Resource)
+
 			log.Printf("[INFO] Validating resource: %s", rn.Resource.Id)
 			ws, es := rn.Resource.Provider.ValidateResource(
 				rn.Resource.Info.Type, rn.Resource.Config)
@@ -1451,6 +1454,11 @@ func (c *walkContext) computeVars(
 				}
 			}
 		case *config.ModuleVariable:
+			if c.Operation == walkValidate {
+				vs[n] = config.UnknownVariableValue
+				continue
+			}
+
 			value, err := c.computeModuleVariable(v)
 			if err != nil {
 				return err
@@ -1476,6 +1484,11 @@ func (c *walkContext) computeVars(
 				vs[n] = c.Context.module.Config().Dir
 			}
 		case *config.ResourceVariable:
+			if c.Operation == walkValidate {
+				vs[n] = config.UnknownVariableValue
+				continue
+			}
+
 			var attr string
 			var err error
 			if v.Multi && v.Index == -1 {
@@ -1492,6 +1505,11 @@ func (c *walkContext) computeVars(
 			val, ok := c.Variables[v.Name]
 			if ok {
 				vs[n] = val
+				continue
+			}
+
+			if c.Operation == walkValidate {
+				vs[n] = config.UnknownVariableValue
 				continue
 			}
 
