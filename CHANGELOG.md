@@ -1,6 +1,9 @@
 ## 0.3.1 (unreleased)
 
+BUG FIXES:
 
+  * core: Remove panic case when applying with a plan that generates no
+      new state. [GH-403]
 
 ## 0.3.0 (October 14, 2014)
 

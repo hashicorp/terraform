@@ -517,12 +517,12 @@ func (c *walkContext) Walk() error {
 	// Likewise, if we have no resources in our state, we're done. This
 	// guards against the case that we destroyed.
 	mod := c.Context.state.ModuleByPath(c.Path)
+	if mod == nil {
+		return nil
+	}
 	if c.Operation == walkApply {
 		// On Apply, we prune so that we don't do outputs if we destroyed
 		mod.prune()
-	}
-	if mod == nil || len(mod.Resources) == 0 {
-		return nil
 	}
 	if len(mod.Resources) == 0 {
 		mod.Outputs = nil
