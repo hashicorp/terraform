@@ -4,6 +4,7 @@ BUG FIXES:
 
   * core: Remove panic case when applying with a plan that generates no
       new state. [GH-403]
+  * core: Fix a hang that can occur with enough resources. [GH-410]
 
 ## 0.3.0 (October 14, 2014)
 
