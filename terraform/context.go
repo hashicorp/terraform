@@ -36,11 +36,11 @@ type Context struct {
 	variables      map[string]string
 	uiInput        UIInput
 
-	l     sync.Mutex    // Lock acquired during any task
-	parCh chan struct{} // Semaphore used to limit parallelism
-	sl    sync.RWMutex  // Lock acquired to R/W internal data
-	runCh <-chan struct{}
-	sh    *stopHook
+	parallelSem Semaphore    // Semaphore used to limit parallelism
+	l           sync.Mutex   // Lock acquired during any task
+	sl          sync.RWMutex // Lock acquired to R/W internal data
+	runCh       <-chan struct{}
+	sh          *stopHook
 }
 
 // ContextOpts are the user-creatable configuration structure to create
@@ -93,7 +93,6 @@ func NewContext(opts *ContextOpts) *Context {
 	if par == 0 {
 		par = 10
 	}
-	parCh := make(chan struct{}, par)
 
 	return &Context{
 		diff:           opts.Diff,
@@ -106,8 +105,8 @@ func NewContext(opts *ContextOpts) *Context {
 		variables:      opts.Variables,
 		uiInput:        opts.UIInput,
 
-		parCh: parCh,
-		sh:    sh,
+		parallelSem: NewSemaphore(par),
+		sh:          sh,
 	}
 }
 
@@ -1152,12 +1151,6 @@ func (c *walkContext) genericWalkFn(cb genericWalkFunc) depgraph.WalkFunc {
 			return nil
 		}
 
-		// Limit parallelism
-		c.Context.parCh <- struct{}{}
-		defer func() {
-			<-c.Context.parCh
-		}()
-
 		switch m := n.Meta.(type) {
 		case *GraphNodeModule:
 			// Build another walkContext for this module and walk it.
@@ -1238,6 +1231,10 @@ func (c *walkContext) genericWalkFn(cb genericWalkFunc) depgraph.WalkFunc {
 				}
 			}
 		}()
+
+		// Limit parallelism
+		c.Context.parallelSem.Acquire()
+		defer c.Context.parallelSem.Release()
 
 		// Call the callack
 		log.Printf(
