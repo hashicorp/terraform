@@ -152,10 +152,10 @@ func flattenListeners(list []elb.Listener) []map[string]interface{} {
 	for _, i := range list {
 		result = append(result, map[string]interface{}{
 			"instance_port":      i.InstancePort,
-			"instance_protocol":  i.InstanceProtocol,
+			"instance_protocol":  strings.ToLower(i.InstanceProtocol),
 			"ssl_certificate_id": i.SSLCertificateId,
 			"lb_port":            i.LoadBalancerPort,
-			"lb_protocol":        i.Protocol,
+			"lb_protocol":        strings.ToLower(i.Protocol),
 		})
 	}
 	return result

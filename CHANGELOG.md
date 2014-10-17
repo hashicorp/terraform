@@ -9,6 +9,8 @@ BUG FIXES:
       computed so the value is still unknown.
   * providers/aws: Refresh of launch configs and autoscale groups load
       the correct data and don't incorrectly recreate themselves. [GH-425]
+  * providers/aws: Fix case where ELB would incorrectly plan to modify
+      listeners (with the same data) in some cases.
 
 ## 0.3.0 (October 14, 2014)
 

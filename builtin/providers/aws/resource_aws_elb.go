@@ -216,6 +216,7 @@ func resourceAwsElbCreate(d *schema.ResourceData, meta interface{}) error {
 	d.SetPartial("name")
 	d.SetPartial("internal")
 	d.SetPartial("availability_zones")
+	d.SetPartial("listener")
 	d.SetPartial("security_groups")
 	d.SetPartial("subnets")
 
