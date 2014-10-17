@@ -275,6 +275,12 @@ aws_instance.foo:
   type = aws_instance
 `
 
+const testTerraformApplyProvisionerFailCreateStr = `
+aws_instance.bar: (1 tainted)
+  ID = <not created>
+  Tainted ID 1 = foo
+`
+
 const testTerraformApplyProvisionerFailCreateBeforeDestroyStr = `
 aws_instance.bar: (1 tainted)
   ID = bar

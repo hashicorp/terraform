@@ -1304,6 +1304,46 @@ func TestContextApply_Provisioner_compute(t *testing.T) {
 	}
 }
 
+func TestContextApply_provisionerCreateFail(t *testing.T) {
+	m := testModule(t, "apply-provisioner-fail-create")
+	p := testProvider("aws")
+	pr := testProvisioner()
+	p.DiffFn = testDiffFn
+
+	p.ApplyFn = func(
+		info *InstanceInfo,
+		is *InstanceState,
+		id *InstanceDiff) (*InstanceState, error) {
+		is.ID = "foo"
+		return is, fmt.Errorf("error")
+	}
+
+	ctx := testContext(t, &ContextOpts{
+		Module: m,
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+		Provisioners: map[string]ResourceProvisionerFactory{
+			"shell": testProvisionerFuncFixed(pr),
+		},
+	})
+
+	if _, err := ctx.Plan(nil); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	state, err := ctx.Apply()
+	if err == nil {
+		t.Fatal("should error")
+	}
+
+	actual := strings.TrimSpace(state.String())
+	expected := strings.TrimSpace(testTerraformApplyProvisionerFailCreateStr)
+	if actual != expected {
+		t.Fatalf("bad: \n%s", actual)
+	}
+}
+
 func TestContextApply_provisionerFail(t *testing.T) {
 	m := testModule(t, "apply-provisioner-fail")
 	p := testProvider("aws")

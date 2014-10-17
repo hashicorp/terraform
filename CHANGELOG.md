@@ -7,6 +7,8 @@ BUG FIXES:
   * core: Fix a hang that can occur with enough resources. [GH-410]
   * core: Config validation will not error if the field is being
       computed so the value is still unknown.
+  * core: If a resource fails to create and has provisioners, it is
+      marked as tainted. [GH-434]
   * providers/aws: Refresh of launch configs and autoscale groups load
       the correct data and don't incorrectly recreate themselves. [GH-425]
   * providers/aws: Fix case where ELB would incorrectly plan to modify

@@ -743,18 +743,25 @@ func (c *walkContext) applyWalkFn() depgraph.WalkFunc {
 		// Additionally, we need to be careful to not run this if there
 		// was an error during the provider apply.
 		tainted := false
-		if applyerr == nil && createNew && len(r.Provisioners) > 0 {
-			for _, h := range c.Context.hooks {
-				handleHook(h.PreProvisionResource(r.Info, is))
-			}
+		if createNew && len(r.Provisioners) > 0 {
+			if applyerr == nil {
+				// If the apply succeeded, we have to run the provisioners
+				for _, h := range c.Context.hooks {
+					handleHook(h.PreProvisionResource(r.Info, is))
+				}
 
-			if err := c.applyProvisioners(r, is); err != nil {
-				errs = append(errs, err)
+				if err := c.applyProvisioners(r, is); err != nil {
+					errs = append(errs, err)
+					tainted = true
+				}
+
+				for _, h := range c.Context.hooks {
+					handleHook(h.PostProvisionResource(r.Info, is))
+				}
+			} else {
+				// If we failed to create properly and we have provisioners,
+				// then we have to mark ourselves as tainted to try again.
 				tainted = true
-			}
-
-			for _, h := range c.Context.hooks {
-				handleHook(h.PostProvisionResource(r.Info, is))
 			}
 		}
 
