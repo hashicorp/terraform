@@ -281,6 +281,10 @@ aws_instance.bar: (1 tainted)
   Tainted ID 1 = foo
 `
 
+const testTerraformApplyProvisionerFailCreateNoIdStr = `
+<no state>
+`
+
 const testTerraformApplyProvisionerFailCreateBeforeDestroyStr = `
 aws_instance.bar: (1 tainted)
   ID = bar
