@@ -14,6 +14,9 @@ BUG FIXES:
       the correct data and don't incorrectly recreate themselves. [GH-425]
   * providers/aws: Fix case where ELB would incorrectly plan to modify
       listeners (with the same data) in some cases.
+  * providers/aws: Retry destroying internet gateway for some amount of time
+      if there is a dependency violation since it is probably just eventual
+      consistency (public facing resources being destroyed). [GH-447]
   * providers/aws: Retry deleting security groups for some amount of time
       if there is a dependency violation since it is probably just eventual
       consistency. [GH-436]
