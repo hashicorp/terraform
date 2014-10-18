@@ -10,6 +10,7 @@ BUG FIXES:
   * core: If a resource fails to create and has provisioners, it is
       marked as tainted. [GH-434]
   * core: Set types are validated to be sets. [GH-413]
+  * core: Fix crash case when destroying with tainted resources. [GH-412]
   * providers/aws: Refresh of launch configs and autoscale groups load
       the correct data and don't incorrectly recreate themselves. [GH-425]
   * providers/aws: Fix case where ELB would incorrectly plan to modify
@@ -20,8 +21,8 @@ BUG FIXES:
   * providers/aws: Retry deleting security groups for some amount of time
       if there is a dependency violation since it is probably just eventual
       consistency. [GH-436]
-  * providers/aws: Retry deleting subnet for some amount of time if there is a 
-      dependency violation since probably asynchronous destroy events take 
+  * providers/aws: Retry deleting subnet for some amount of time if there is a
+      dependency violation since probably asynchronous destroy events take
       place still. [GH-449]
   * providers/aws: Drain autoscale groups before deleting. [GH-435]
   * providers/aws: Fix crash case if launch config is manually deleted. [GH-421]

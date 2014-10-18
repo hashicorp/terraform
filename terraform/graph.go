@@ -1667,11 +1667,6 @@ func (n *GraphNodeResource) Expand() (*depgraph.Graph, error) {
 		return n.finalizeGraph(g, false)
 	}
 
-	if n.State != nil {
-		// Add the tainted resources
-		graphAddTainted(g, n.State)
-	}
-
 	return n.finalizeGraph(g, true)
 }
 
