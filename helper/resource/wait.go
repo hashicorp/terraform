@@ -18,14 +18,29 @@ func Retry(timeout time.Duration, f RetryFunc) error {
 		MinTimeout: 500 * time.Millisecond,
 		Refresh: func() (interface{}, string, error) {
 			err = f()
-			if err != nil {
-				return 42, "error", nil
+			if err == nil {
+				return 42, "success", nil
 			}
 
-			return 42, "success", nil
+			if rerr, ok := err.(RetryError); ok {
+				err = rerr.Err
+				return nil, "quit", err
+			}
+
+			return 42, "error", nil
 		},
 	}
 
 	c.WaitForState()
 	return err
+}
+
+// RetryError, if returned, will quit the retry immediately with the
+// Err.
+type RetryError struct {
+	Err error
+}
+
+func (e RetryError) Error() string {
+	return e.Err.Error()
 }
