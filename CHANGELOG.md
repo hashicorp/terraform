@@ -16,6 +16,7 @@ BUG FIXES:
   * providers/aws: Retry deleting security groups for some amount of time
       if there is a dependency violation since it is probably just eventual
       consistency. [GH-436]
+  * providers/aws: Drain autoscale groups before deleting. [GH-435]
 
 ## 0.3.0 (October 14, 2014)
 
