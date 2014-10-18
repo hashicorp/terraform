@@ -3782,6 +3782,36 @@ func TestContextPlan_multiple_taint(t *testing.T) {
 	}
 }
 
+func TestContextPlan_provider(t *testing.T) {
+	m := testModule(t, "plan-provider")
+	p := testProvider("aws")
+	p.DiffFn = testDiffFn
+
+	var value interface{}
+	p.ConfigureFn = func(c *ResourceConfig) error {
+		value, _ = c.Get("foo")
+		return nil
+	}
+
+	ctx := testContext(t, &ContextOpts{
+		Module: m,
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+		Variables: map[string]string{
+			"foo": "bar",
+		},
+	})
+
+	if _, err := ctx.Plan(nil); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	if value != "bar" {
+		t.Fatalf("bad: %#v", value)
+	}
+}
+
 func TestContextPlan_varMultiCountOne(t *testing.T) {
 	m := testModule(t, "plan-var-multi-count-one")
 	p := testProvider("aws")
