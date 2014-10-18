@@ -1594,13 +1594,14 @@ func graphRemoveInvalidDeps(g *depgraph.Graph) {
 func (p *graphSharedProvider) MergeConfig(
 	raw bool, override map[string]interface{}) *ResourceConfig {
 	var rawMap map[string]interface{}
-	if override != nil {
-		rawMap = override
-	} else if p.Config != nil {
+	if p.Config != nil {
 		rawMap = p.Config.RawConfig.Config()
 	}
 	if rawMap == nil {
 		rawMap = make(map[string]interface{})
+	}
+	for k, v := range override {
+		rawMap[k] = v
 	}
 
 	// Merge in all the parent configurations

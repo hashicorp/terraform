@@ -1413,9 +1413,7 @@ func TestSchemaMap_Input(t *testing.T) {
 				"availability_zone": "foo",
 			},
 
-			Result: map[string]interface{}{
-				"availability_zone": "bar",
-			},
+			Result: map[string]interface{}{},
 
 			Err: false,
 		},
@@ -1494,14 +1492,16 @@ func TestSchemaMap_Input(t *testing.T) {
 		input := new(terraform.MockUIInput)
 		input.InputReturnMap = tc.Input
 
-		actual, err := schemaMap(tc.Schema).Input(
-			input, terraform.NewResourceConfig(c))
+		rc := terraform.NewResourceConfig(c)
+		rc.Config = make(map[string]interface{})
+
+		actual, err := schemaMap(tc.Schema).Input(input, rc)
 		if (err != nil) != tc.Err {
 			t.Fatalf("#%d err: %s", i, err)
 		}
 
-		if !reflect.DeepEqual(tc.Result, actual.Raw) {
-			t.Fatalf("#%d: bad:\n\n%#v", i, actual.Raw)
+		if !reflect.DeepEqual(tc.Result, actual.Config) {
+			t.Fatalf("#%d: bad:\n\n%#v", i, actual.Config)
 		}
 	}
 }

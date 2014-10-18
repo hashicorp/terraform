@@ -346,7 +346,7 @@ func (m schemaMap) Input(
 				"%s: %s", k, err)
 		}
 
-		c.Raw[k] = value
+		c.Config[k] = value
 	}
 
 	return c, nil

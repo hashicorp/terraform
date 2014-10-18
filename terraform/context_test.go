@@ -647,11 +647,11 @@ func TestContextInput_provider(t *testing.T) {
 
 	var actual interface{}
 	p.InputFn = func(i UIInput, c *ResourceConfig) (*ResourceConfig, error) {
-		c.Raw["foo"] = "bar"
+		c.Config["foo"] = "bar"
 		return c, nil
 	}
 	p.ConfigureFn = func(c *ResourceConfig) error {
-		actual = c.Raw["foo"]
+		actual = c.Config["foo"]
 		return nil
 	}
 
@@ -693,11 +693,11 @@ func TestContextInput_providerId(t *testing.T) {
 			return nil, err
 		}
 
-		c.Raw["foo"] = v
+		c.Config["foo"] = v
 		return c, nil
 	}
 	p.ConfigureFn = func(c *ResourceConfig) error {
-		actual = c.Raw["foo"]
+		actual = c.Config["foo"]
 		return nil
 	}
 
@@ -745,11 +745,11 @@ func TestContextInput_providerOnly(t *testing.T) {
 
 	var actual interface{}
 	p.InputFn = func(i UIInput, c *ResourceConfig) (*ResourceConfig, error) {
-		c.Raw["foo"] = "bar"
+		c.Config["foo"] = "bar"
 		return c, nil
 	}
 	p.ConfigureFn = func(c *ResourceConfig) error {
-		actual = c.Raw["foo"]
+		actual = c.Config["foo"]
 		return nil
 	}
 
@@ -794,10 +794,13 @@ func TestContextInput_providerVars(t *testing.T) {
 		UIInput: input,
 	})
 
-	input.InputReturnMap = map[string]string{}
+	input.InputReturnMap = map[string]string{
+		"var.foo": "bar",
+	}
 
 	var actual interface{}
 	p.InputFn = func(i UIInput, c *ResourceConfig) (*ResourceConfig, error) {
+		c.Config["bar"] = "baz"
 		return c, nil
 	}
 	p.ConfigureFn = func(c *ResourceConfig) error {

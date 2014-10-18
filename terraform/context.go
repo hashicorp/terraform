@@ -600,6 +600,7 @@ func (c *walkContext) inputWalkFn() depgraph.WalkFunc {
 				raw = sharedProvider.Config.RawConfig
 			}
 			rc := NewResourceConfig(raw)
+			rc.Config = make(map[string]interface{})
 
 			// Wrap the input into a namespace
 			input := &PrefixUIInput{
@@ -617,8 +618,8 @@ func (c *walkContext) inputWalkFn() depgraph.WalkFunc {
 					return fmt.Errorf(
 						"Error configuring %s: %s", k, err)
 				}
-				if newc != nil {
-					configs[k] = newc.Raw
+				if newc != nil && len(newc.Config) > 0 {
+					configs[k] = newc.Config
 				}
 			}
 
