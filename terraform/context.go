@@ -1515,7 +1515,7 @@ func (c *walkContext) computeVars(
 				continue
 			}
 
-			if c.Operation == walkValidate {
+			if _, ok := vs[n]; !ok && c.Operation == walkValidate {
 				vs[n] = config.UnknownVariableValue
 				continue
 			}
