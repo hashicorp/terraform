@@ -777,6 +777,51 @@ func TestContextInput_providerOnly(t *testing.T) {
 	}
 }
 
+func TestContextInput_providerVars(t *testing.T) {
+	input := new(MockUIInput)
+	m := testModule(t, "input-provider-with-vars")
+	p := testProvider("aws")
+	p.ApplyFn = testApplyFn
+	p.DiffFn = testDiffFn
+	ctx := testContext(t, &ContextOpts{
+		Module: m,
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+		Variables: map[string]string{
+			"foo": "bar",
+		},
+		UIInput: input,
+	})
+
+	input.InputReturnMap = map[string]string{}
+
+	var actual interface{}
+	p.InputFn = func(i UIInput, c *ResourceConfig) (*ResourceConfig, error) {
+		return c, nil
+	}
+	p.ConfigureFn = func(c *ResourceConfig) error {
+		actual, _ = c.Get("foo")
+		return nil
+	}
+
+	if err := ctx.Input(InputModeStd); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	if _, err := ctx.Plan(nil); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	if _, err := ctx.Apply(); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	if !reflect.DeepEqual(actual, "bar") {
+		t.Fatalf("bad: %#v", actual)
+	}
+}
+
 func TestContextInput_varOnly(t *testing.T) {
 	input := new(MockUIInput)
 	m := testModule(t, "input-provider-vars")
