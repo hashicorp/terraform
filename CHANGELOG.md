@@ -20,6 +20,9 @@ BUG FIXES:
   * providers/aws: Retry deleting security groups for some amount of time
       if there is a dependency violation since it is probably just eventual
       consistency. [GH-436]
+  * providers/aws: Retry deleting subnet for some amount of time if there is a 
+      dependency violation since probably asynchronous destroy events take 
+      place still. [GH-449]
   * providers/aws: Drain autoscale groups before deleting. [GH-435]
   * providers/aws: Fix crash case if launch config is manually deleted. [GH-421]
 
