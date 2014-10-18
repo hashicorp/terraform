@@ -1597,7 +1597,7 @@ func (p *graphSharedProvider) MergeConfig(
 	if override != nil {
 		rawMap = override
 	} else if p.Config != nil {
-		rawMap = p.Config.RawConfig.Raw
+		rawMap = p.Config.RawConfig.Config()
 	}
 	if rawMap == nil {
 		rawMap = make(map[string]interface{})

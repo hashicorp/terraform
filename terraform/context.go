@@ -1203,9 +1203,17 @@ func (c *walkContext) genericWalkFn(cb genericWalkFunc) depgraph.WalkFunc {
 			}
 
 			for k, p := range sharedProvider.Providers {
-				// Merge the configurations to get what we use to configure with
+				// Interpolate our own configuration before merging
+				if sharedProvider.Config != nil {
+					rc := NewResourceConfig(sharedProvider.Config.RawConfig)
+					rc.interpolate(c, nil)
+				}
+
+				// Merge the configurations to get what we use to configure
+				// with. We don't need to interpolate this because the
+				// lines above verify that all parents are interpolated
+				// properly.
 				rc := sharedProvider.MergeConfig(false, cs[k])
-				rc.interpolate(c, nil)
 
 				log.Printf("[INFO] Configuring provider: %s", k)
 				err := p.Configure(rc)

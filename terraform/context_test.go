@@ -1,6 +1,7 @@
 package terraform
 
 import (
+	"bytes"
 	"fmt"
 	"os"
 	"reflect"
@@ -2900,6 +2901,54 @@ func TestContextPlan_moduleProviderDefaults(t *testing.T) {
 	expected := []string{"child", "root"}
 	if !reflect.DeepEqual(actual, expected) {
 		t.Fatalf("bad: %#v", actual)
+	}
+}
+
+func TestContextPlan_moduleProviderDefaultsVar(t *testing.T) {
+	var l sync.Mutex
+	var calls []string
+
+	m := testModule(t, "plan-module-provider-defaults-var")
+	ctx := testContext(t, &ContextOpts{
+		Module: m,
+		Providers: map[string]ResourceProviderFactory{
+			"aws": func() (ResourceProvider, error) {
+				l.Lock()
+				defer l.Unlock()
+
+				p := testProvider("aws")
+				p.ConfigureFn = func(c *ResourceConfig) error {
+					var buf bytes.Buffer
+					if v, ok := c.Get("from"); ok {
+						buf.WriteString(v.(string) + "\n")
+					}
+					if v, ok := c.Get("to"); ok {
+						buf.WriteString(v.(string) + "\n")
+					}
+
+					calls = append(calls, buf.String())
+					return nil
+				}
+				p.DiffFn = testDiffFn
+				return p, nil
+			},
+		},
+		Variables: map[string]string{
+			"foo": "root",
+		},
+	})
+
+	_, err := ctx.Plan(nil)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	expected := []string{
+		"root\n",
+		"root\nchild\n",
+	}
+	if !reflect.DeepEqual(calls, expected) {
+		t.Fatalf("BAD: %#v", calls)
 	}
 }
 
