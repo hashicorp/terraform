@@ -9,6 +9,7 @@ BUG FIXES:
       computed so the value is still unknown.
   * core: If a resource fails to create and has provisioners, it is
       marked as tainted. [GH-434]
+  * core: Set types are validated to be sets. [GH-413]
   * providers/aws: Refresh of launch configs and autoscale groups load
       the correct data and don't incorrectly recreate themselves. [GH-425]
   * providers/aws: Fix case where ELB would incorrectly plan to modify

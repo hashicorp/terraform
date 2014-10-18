@@ -1970,6 +1970,26 @@ func TestSchemaMap_Validate(t *testing.T) {
 
 			Err: true,
 		},
+
+		// Not a set
+		{
+			Schema: map[string]*Schema{
+				"ports": &Schema{
+					Type:     TypeSet,
+					Required: true,
+					Elem:     &Schema{Type: TypeInt},
+					Set: func(a interface{}) int {
+						return a.(int)
+					},
+				},
+			},
+
+			Config: map[string]interface{}{
+				"ports": "foo",
+			},
+
+			Err: true,
+		},
 	}
 
 	for i, tc := range cases {
