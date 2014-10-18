@@ -42,14 +42,14 @@ The following keys can be used to configure the provider.
 
 * `region` - (Required) The region to operate under.
 
-## Authentication JSON Files
+## Authentication JSON File
 
-Authenticating with Google Cloud services requires two separate JSON
-files: one which we call the _account file_ and the _client secrets file_.
+Authenticating with Google Cloud services requires a JSON
+file which we call the _account file_.
 
-Both of these files are downloaded directly from the
+This file is downloaded directly from the
 [Google Developers Console](https://console.developers.google.com). To make
-the process more straightforwarded, it is documented here.
+the process more straightforwarded, it is documented here:
 
 1. Log into the [Google Developers Console](https://console.developers.google.com)
    and select a project.
