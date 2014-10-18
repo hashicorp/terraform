@@ -235,15 +235,17 @@ func resourceAwsSecurityGroupDelete(d *schema.ResourceData, meta interface{}) er
 
 	log.Printf("[DEBUG] Security Group destroy: %v", d.Id())
 
-	_, err := ec2conn.DeleteSecurityGroup(ec2.SecurityGroup{Id: d.Id()})
-	if err != nil {
-		ec2err, ok := err.(*ec2.Error)
-		if ok && ec2err.Code == "InvalidGroup.NotFound" {
-			return nil
+	return resource.Retry(5 * time.Minute, func() error {
+		_, err := ec2conn.DeleteSecurityGroup(ec2.SecurityGroup{Id: d.Id()})
+		if err != nil {
+			ec2err, ok := err.(*ec2.Error)
+			if ok && ec2err.Code == "InvalidGroup.NotFound" {
+				return nil
+			}
 		}
-	}
 
-	return err
+		return err
+	})
 }
 
 func resourceAwsSecurityGroupRead(d *schema.ResourceData, meta interface{}) error {
