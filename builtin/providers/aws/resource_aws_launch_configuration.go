@@ -144,15 +144,16 @@ func resourceAwsLaunchConfigurationRead(d *schema.ResourceData, meta interface{}
 	if err != nil {
 		return fmt.Errorf("Error retrieving launch configuration: %s", err)
 	}
+	if len(describConfs.LaunchConfigurations) == 0 {
+		d.SetId("")
+		return nil
+	}
 
 	// Verify AWS returned our launch configuration
-	if len(describConfs.LaunchConfigurations) != 1 ||
-		describConfs.LaunchConfigurations[0].Name != d.Id() {
-		if err != nil {
-			return fmt.Errorf(
-				"Unable to find launch configuration: %#v",
-				describConfs.LaunchConfigurations)
-		}
+	if describConfs.LaunchConfigurations[0].Name != d.Id() {
+		return fmt.Errorf(
+			"Unable to find launch configuration: %#v",
+			describConfs.LaunchConfigurations)
 	}
 
 	lc := describConfs.LaunchConfigurations[0]

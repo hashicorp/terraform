@@ -17,6 +17,7 @@ BUG FIXES:
       if there is a dependency violation since it is probably just eventual
       consistency. [GH-436]
   * providers/aws: Drain autoscale groups before deleting. [GH-435]
+  * providers/aws: Fix crash case if launch config is manually deleted. [GH-421]
 
 ## 0.3.0 (October 14, 2014)
 
