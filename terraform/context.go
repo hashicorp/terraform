@@ -1034,18 +1034,20 @@ func (c *walkContext) validateWalkFn() depgraph.WalkFunc {
 				// Interpolate the count and verify it is non-negative
 				rc := NewResourceConfig(rn.Config.RawCount)
 				rc.interpolate(c, rn.Resource)
-				count, err := rn.Config.Count()
-				if err == nil {
-					if count < 0 {
-						err = fmt.Errorf(
-							"%s error: count must be positive", rn.Resource.Id)
+				if !rc.IsComputed(rn.Config.RawCount.Key) {
+					count, err := rn.Config.Count()
+					if err == nil {
+						if count < 0 {
+							err = fmt.Errorf(
+								"%s error: count must be positive", rn.Resource.Id)
+						}
 					}
-				}
-				if err != nil {
-					l.Lock()
-					defer l.Unlock()
-					meta.Errs = append(meta.Errs, err)
-					return nil
+					if err != nil {
+						l.Lock()
+						defer l.Unlock()
+						meta.Errs = append(meta.Errs, err)
+						return nil
+					}
 				}
 
 				return c.genericWalkResource(rn, walkFn)
@@ -1268,6 +1270,20 @@ func (c *walkContext) genericWalkResource(
 	// Interpolate the count
 	rc := NewResourceConfig(rn.Config.RawCount)
 	rc.interpolate(c, rn.Resource)
+
+	// If we're validating, then we set the count to 1 if it is computed
+	if c.Operation == walkValidate {
+		if key := rn.Config.RawCount.Key; rc.IsComputed(key) {
+			// Preserve the old value so that we reset it properly
+			old := rn.Config.RawCount.Raw[key]
+			defer func() {
+				rn.Config.RawCount.Raw[key] = old
+			}()
+
+			// Set th count to 1 for validation purposes
+			rn.Config.RawCount.Raw[key] = "1"
+		}
+	}
 
 	// Expand the node to the actual resources
 	g, err := rn.Expand()
