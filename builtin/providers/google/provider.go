@@ -55,9 +55,9 @@ func envDefaultFunc(k string) schema.SchemaDefaultFunc {
 
 func providerConfigure(d *schema.ResourceData) (interface{}, error) {
 	config := Config{
-		AccountFile:       d.Get("account_file").(string),
-		Project:           d.Get("project").(string),
-		Region:            d.Get("region").(string),
+		AccountFile: d.Get("account_file").(string),
+		Project:     d.Get("project").(string),
+		Region:      d.Get("region").(string),
 	}
 
 	if err := config.loadAndValidate(); err != nil {
