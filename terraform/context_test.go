@@ -1203,6 +1203,35 @@ func TestContextApply_countTainted(t *testing.T) {
 		t.Fatalf("bad: \n%s", actual)
 	}
 }
+
+func TestContextApply_countVariable(t *testing.T) {
+	m := testModule(t, "apply-count-variable")
+	p := testProvider("aws")
+	p.ApplyFn = testApplyFn
+	p.DiffFn = testDiffFn
+	ctx := testContext(t, &ContextOpts{
+		Module: m,
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+	})
+
+	if _, err := ctx.Plan(nil); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	state, err := ctx.Apply()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	actual := strings.TrimSpace(state.String())
+	expected := strings.TrimSpace(testTerraformApplyCountVariableStr)
+	if actual != expected {
+		t.Fatalf("bad: \n%s", actual)
+	}
+}
+
 func TestContextApply_module(t *testing.T) {
 	m := testModule(t, "apply-module")
 	p := testProvider("aws")
