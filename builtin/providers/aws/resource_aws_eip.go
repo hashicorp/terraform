@@ -36,6 +36,11 @@ func resourceAwsEip() *schema.Resource {
 				Computed: true,
 			},
 
+			"association_id": &schema.Schema{
+				Type:     schema.TypeString,
+				Computed: true,
+			},
+
 			"domain": &schema.Schema{
 				Type:     schema.TypeString,
 				Computed: true,
@@ -127,15 +132,55 @@ func resourceAwsEipUpdate(d *schema.ResourceData, meta interface{}) error {
 }
 
 func resourceAwsEipDelete(d *schema.ResourceData, meta interface{}) error {
-	stateConf := &resource.StateChangeConf{
-		Pending:    []string{"pending"},
-		Target:     "destroyed",
-		Refresh:    resourceEipDeleteRefreshFunc(d, meta),
-		Timeout:    3 * time.Minute,
-		MinTimeout: 1 * time.Second,
+	p := meta.(*ResourceProvider)
+	ec2conn := p.ec2conn
+
+	if err := resourceAwsEipRead(d, meta); err != nil {
+		return err
 	}
-	_, err := stateConf.WaitForState()
-	return err
+	if d.Id() == "" {
+		// This might happen from the read
+		return nil
+	}
+
+	// If we are attached to an instance, detach first.
+	if d.Get("instance").(string) != "" {
+		log.Printf("[DEBUG] Disassociating EIP: %s", d.Id())
+		var err error
+		switch resourceAwsEipDomain(d) {
+		case "vpc":
+			_, err = ec2conn.DisassociateAddress(d.Get("association_id").(string))
+		case "standard":
+			_, err = ec2conn.DisassociateAddressClassic(d.Get("public_ip").(string))
+		}
+		if err != nil {
+			return err
+		}
+	}
+
+	domain := resourceAwsEipDomain(d)
+	return resource.Retry(3*time.Minute, func() error {
+		var err error
+		switch domain {
+		case "vpc":
+			log.Printf(
+				"[DEBUG] EIP release (destroy) address allocation: %v",
+				d.Id())
+			_, err = ec2conn.ReleaseAddress(d.Id())
+		case "standard":
+			log.Printf("[DEBUG] EIP release (destroy) address: %v", d.Id())
+			_, err = ec2conn.ReleasePublicAddress(d.Id())
+		}
+
+		if err == nil {
+			return nil
+		}
+		if _, ok := err.(*ec2.Error); !ok {
+			return resource.RetryError{err}
+		}
+
+		return err
+	})
 }
 
 func resourceAwsEipRead(d *schema.ResourceData, meta interface{}) error {
@@ -178,6 +223,7 @@ func resourceAwsEipRead(d *schema.ResourceData, meta interface{}) error {
 
 	address := describeAddresses.Addresses[0]
 
+	d.Set("association_id", address.AssociationId)
 	d.Set("instance", address.InstanceId)
 	d.Set("public_ip", address.PublicIp)
 	d.Set("private_ip", address.PrivateIpAddress)
@@ -195,39 +241,4 @@ func resourceAwsEipDomain(d *schema.ResourceData) string {
 	}
 
 	return "standard"
-}
-
-func resourceEipDeleteRefreshFunc(
-	d *schema.ResourceData,
-	meta interface{}) resource.StateRefreshFunc {
-	p := meta.(*ResourceProvider)
-	ec2conn := p.ec2conn
-	domain := resourceAwsEipDomain(d)
-
-	return func() (interface{}, string, error) {
-		var err error
-		if domain == "vpc" {
-			log.Printf(
-				"[DEBUG] EIP release (destroy) address allocation: %v",
-				d.Id())
-			_, err = ec2conn.ReleaseAddress(d.Id())
-		} else {
-			log.Printf("[DEBUG] EIP release (destroy) address: %v", d.Id())
-			_, err = ec2conn.ReleasePublicAddress(d.Id())
-		}
-
-		if err == nil {
-			return d, "destroyed", nil
-		}
-
-		ec2err, ok := err.(*ec2.Error)
-		if !ok {
-			return d, "error", err
-		}
-		if ec2err.Code != "InvalidIPAddress.InUse" {
-			return d, "error", err
-		}
-
-		return d, "pending", nil
-	}
 }

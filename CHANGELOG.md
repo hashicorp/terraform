@@ -28,6 +28,7 @@ BUG FIXES:
       place still. [GH-449]
   * providers/aws: Drain autoscale groups before deleting. [GH-435]
   * providers/aws: Fix crash case if launch config is manually deleted. [GH-421]
+  * providers/aws: Disassociate EIP before destroying.
 
 ## 0.3.0 (October 14, 2014)
 
