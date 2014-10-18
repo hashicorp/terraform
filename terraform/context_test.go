@@ -2067,6 +2067,71 @@ func TestContextApply_destroyOrphan(t *testing.T) {
 	}
 }
 
+func TestContextApply_destroyTaintedProvisioner(t *testing.T) {
+	m := testModule(t, "apply-destroy-provisioner")
+	p := testProvider("aws")
+	pr := testProvisioner()
+	p.ApplyFn = testApplyFn
+	p.DiffFn = testDiffFn
+
+	called := false
+	pr.ApplyFn = func(rs *InstanceState, c *ResourceConfig) error {
+		called = true
+		return nil
+	}
+
+	s := &State{
+		Modules: []*ModuleState{
+			&ModuleState{
+				Path: rootModulePath,
+				Resources: map[string]*ResourceState{
+					"aws_instance.foo": &ResourceState{
+						Type: "aws_instance",
+						Tainted: []*InstanceState{
+							&InstanceState{
+								ID: "bar",
+								Attributes: map[string]string{
+									"id": "bar",
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	ctx := testContext(t, &ContextOpts{
+		Module: m,
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+		Provisioners: map[string]ResourceProvisionerFactory{
+			"shell": testProvisionerFuncFixed(pr),
+		},
+		State: s,
+	})
+
+	if _, err := ctx.Plan(&PlanOpts{Destroy: true}); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	state, err := ctx.Apply()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	if called {
+		t.Fatal("provisioner should not be called")
+	}
+
+	actual := strings.TrimSpace(state.String())
+	expected := strings.TrimSpace("<no state>")
+	if actual != expected {
+		t.Fatalf("bad: \n%s", actual)
+	}
+}
+
 func TestContextApply_error(t *testing.T) {
 	errored := false
 

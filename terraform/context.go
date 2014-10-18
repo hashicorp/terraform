@@ -700,7 +700,7 @@ func (c *walkContext) applyWalkFn() depgraph.WalkFunc {
 		// We create a new instance if there was no ID
 		// previously or the diff requires re-creating the
 		// underlying instance
-		createNew := is.ID == "" || diff.RequiresNew()
+		createNew := (is.ID == "" && !diff.Destroy) || diff.RequiresNew()
 
 		// With the completed diff, apply!
 		log.Printf("[DEBUG] %s: Executing Apply", r.Id)
