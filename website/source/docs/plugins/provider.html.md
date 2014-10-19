@@ -182,7 +182,7 @@ The parameter to provider configuration as well as all the CRUD operations
 on a resource is a
 [schema.ResourceData](http://godoc.org/github.com/hashicorp/terraform/helper/schema#ResourceData).
 This structure is used to query configurations as well as to set information
-about the resource such as it's ID, connection information, and computed
+about the resource such as its ID, connection information, and computed
 attributes.
 
 The API documentation covers ResourceData well, as well as the core providers
