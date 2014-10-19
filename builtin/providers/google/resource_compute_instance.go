@@ -340,16 +340,26 @@ func resourceComputeInstanceRead(d *schema.ResourceData, meta interface{}) error
 	d.Set("can_ip_forward", instance.CanIpForward)
 
 	// Set the networks
+	externalIP := ""
 	for i, iface := range instance.NetworkInterfaces {
 		prefix := fmt.Sprintf("network.%d", i)
 		d.Set(prefix+".name", iface.Name)
 
-		if len(iface.AccessConfigs) > 0 {
-			// Get the first one.
-			d.Set(prefix+".external_address", iface.AccessConfigs[0].NatIP)
+		// Use the first external IP found for the default connection info.
+		natIP := resourceInstanceNatIP(iface)
+		if externalIP == "" && natIP != "" {
+			externalIP = natIP
 		}
+		d.Set(prefix+".external_address", natIP)
+
 		d.Set(prefix+".internal_address", iface.NetworkIP)
 	}
+
+	// Initialize the connection info
+	d.SetConnInfo(map[string]string{
+		"type": "ssh",
+		"host": externalIP,
+	})
 
 	// Set the metadata fingerprint if there is one.
 	if instance.Metadata != nil {
@@ -515,4 +525,17 @@ func resourceInstanceTags(d *schema.ResourceData) *compute.Tags {
 	}
 
 	return tags
+}
+
+// resourceInstanceNatIP acquires the first NatIP with a "ONE_TO_ONE_NAT" type
+// in the compute.NetworkInterface's AccessConfigs.
+func resourceInstanceNatIP(iface *compute.NetworkInterface) (natIP string) {
+	for _, config := range iface.AccessConfigs {
+		if config.Type == "ONE_TO_ONE_NAT" {
+			natIP = config.NatIP
+			break
+		}
+	}
+
+	return natIP
 }
