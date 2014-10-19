@@ -95,11 +95,15 @@ func resourceComputeInstance() *schema.Resource {
 							Type:     schema.TypeString,
 							Computed: true,
 						},
-
 						"internal_address": &schema.Schema{
 							Type:     schema.TypeString,
 							Computed: true,
 						},
+						"external_address": &schema.Schema{
+							Type:     schema.TypeString,
+							Computed: true,
+						},
+
 					},
 				},
 			},
@@ -338,6 +342,11 @@ func resourceComputeInstanceRead(d *schema.ResourceData, meta interface{}) error
 	for i, iface := range instance.NetworkInterfaces {
 		prefix := fmt.Sprintf("network.%d", i)
 		d.Set(prefix+".name", iface.Name)
+
+		if len(iface.AccessConfigs) > 0 {
+			// Get the first one.
+			d.Set(prefix+".external_address", iface.AccessConfigs[0].NatIP)
+		}
 		d.Set(prefix+".internal_address", iface.NetworkIP)
 	}
 
