@@ -95,10 +95,12 @@ func resourceComputeInstance() *schema.Resource {
 							Type:     schema.TypeString,
 							Computed: true,
 						},
+
 						"internal_address": &schema.Schema{
 							Type:     schema.TypeString,
 							Computed: true,
 						},
+
 						"external_address": &schema.Schema{
 							Type:     schema.TypeString,
 							Computed: true,
