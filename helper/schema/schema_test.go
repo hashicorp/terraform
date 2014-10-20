@@ -343,6 +343,31 @@ func TestSchemaMap_Diff(t *testing.T) {
 		},
 
 		/*
+		 * Bool
+		 */
+		{
+			Schema: map[string]*Schema{
+				"delete": &Schema{
+					Type:     TypeBool,
+					Optional: true,
+					Default:  false,
+				},
+			},
+
+			State: &terraform.InstanceState{
+				Attributes: map[string]string{
+					"delete": "false",
+				},
+			},
+
+			Config: nil,
+
+			Diff: nil,
+
+			Err: false,
+		},
+
+		/*
 		 * List decode
 		 */
 
