@@ -78,7 +78,7 @@ func testAccCheckConsulKeysValue(n, attr, val string) resource.TestCheckFunc {
 
 const testAccConsulKeysConfig = `
 resource "consul_keys" "app" {
-	datacenter = "nyc1"
+	datacenter = "nyc3"
 	key {
 		name = "time"
 		path = "global/time"
