@@ -30,6 +30,7 @@ BUG FIXES:
   * providers/aws: Drain autoscale groups before deleting. [GH-435]
   * providers/aws: Fix crash case if launch config is manually deleted. [GH-421]
   * providers/aws: Disassociate EIP before destroying.
+  * providers/aws: ELB treats subnets as a set.
 
 ## 0.3.0 (October 14, 2014)
 

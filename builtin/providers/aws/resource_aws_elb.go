@@ -59,11 +59,14 @@ func resourceAwsElb() *schema.Resource {
 
 			// TODO: could be not ForceNew
 			"subnets": &schema.Schema{
-				Type:     schema.TypeList,
+				Type:     schema.TypeSet,
 				Elem:     &schema.Schema{Type: schema.TypeString},
 				Optional: true,
 				ForceNew: true,
 				Computed: true,
+				Set: func(v interface{}) int {
+					return hashcode.String(v.(string))
+				},
 			},
 
 			// TODO: could be not ForceNew
