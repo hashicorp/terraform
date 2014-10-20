@@ -10,6 +10,7 @@ BUG FIXES:
   * core: If a resource fails to create and has provisioners, it is
       marked as tainted. [GH-434]
   * core: Set types are validated to be sets. [GH-413]
+  * core: String types are validated properly. [GH-460]
   * core: Fix crash case when destroying with tainted resources. [GH-412]
   * core: Don't execute provisioners in some cases on destroy.
   * core: Inherited provider configurations will be properly interpolated. [GH-418]

@@ -1788,6 +1788,25 @@ func TestSchemaMap_Validate(t *testing.T) {
 			Err: true,
 		},
 
+		{
+			Schema: map[string]*Schema{
+				"user_data": &Schema{
+					Type:     TypeString,
+					Optional: true,
+				},
+			},
+
+			Config: map[string]interface{}{
+				"user_data": []interface{}{
+					map[string]interface{}{
+						"foo": "bar",
+					},
+				},
+			},
+
+			Err: true,
+		},
+
 		// Bad type, interpolated
 		{
 			Schema: map[string]*Schema{

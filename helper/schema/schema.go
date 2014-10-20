@@ -823,12 +823,26 @@ func (m schemaMap) validatePrimitive(
 		fallthrough
 	case TypeList:
 		return m.validateList(k, raw, schema, c)
+	case TypeBool:
+		// Verify that we can parse this as the correct type
+		var n bool
+		if err := mapstructure.WeakDecode(raw, &n); err != nil {
+			return nil, []error{err}
+		}
 	case TypeInt:
 		// Verify that we can parse this as an int
 		var n int
 		if err := mapstructure.WeakDecode(raw, &n); err != nil {
 			return nil, []error{err}
 		}
+	case TypeString:
+		// Verify that we can parse this as a string
+		var n string
+		if err := mapstructure.WeakDecode(raw, &n); err != nil {
+			return nil, []error{err}
+		}
+	default:
+		panic(fmt.Sprintf("Unknown validation type: %s", schema.Type))
 	}
 
 	return nil, nil
