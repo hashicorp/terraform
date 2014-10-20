@@ -120,12 +120,8 @@ func resourceConsulKeysCreate(d *schema.ResourceData, meta interface{}) error {
 			return err
 		}
 
-		if valueRaw, ok := sub["value"]; ok {
-			value, ok := valueRaw.(string)
-			if !ok {
-				return fmt.Errorf("Failed to get value for key '%s'", key)
-			}
-
+		value := sub["value"].(string)
+		if value != "" {
 			log.Printf("[DEBUG] Setting key '%s' to '%v' in %s", path, value, dc)
 			pair := consulapi.KVPair{Key: path, Value: []byte(value)}
 			if _, err := kv.Put(&pair, &wOpts); err != nil {
@@ -142,7 +138,6 @@ func resourceConsulKeysCreate(d *schema.ResourceData, meta interface{}) error {
 			}
 			value := attribute_value(sub, key, pair)
 			vars[key] = value
-			sub["value"] = value
 		}
 	}
 
