@@ -203,7 +203,7 @@ func resourceAwsElbCreate(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	if v, ok := d.GetOk("subnets"); ok {
-		elbOpts.Subnets = expandStringList(v.([]interface{}))
+		elbOpts.Subnets = expandStringList(v.(*schema.Set).List())
 	}
 
 	log.Printf("[DEBUG] ELB create configuration: %#v", elbOpts)
