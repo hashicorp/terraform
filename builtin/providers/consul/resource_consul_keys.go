@@ -31,7 +31,7 @@ func resourceConsulKeys() *schema.Resource {
 				Optional: true,
 			},
 
-			"keys": &schema.Schema{
+			"key": &schema.Schema{
 				Type:     schema.TypeSet,
 				Optional: true,
 				Elem: &schema.Resource{
@@ -113,7 +113,7 @@ func resourceConsulKeysCreate(d *schema.ResourceData, meta interface{}) error {
 	vars := make(map[string]string)
 
 	// Extract the keys
-	keys := d.Get("keys").(*schema.Set).List()
+	keys := d.Get("key").(*schema.Set).List()
 	for _, raw := range keys {
 		key, path, sub, err := parse_key(raw)
 		if err != nil {
@@ -149,7 +149,7 @@ func resourceConsulKeysCreate(d *schema.ResourceData, meta interface{}) error {
 	// Update the resource
 	d.SetId("consul")
 	d.Set("datacenter", dc)
-	d.Set("keys", keys)
+	d.Set("key", keys)
 	d.Set("var", vars)
 	return nil
 }
@@ -178,7 +178,7 @@ func resourceConsulKeysRead(d *schema.ResourceData, meta interface{}) error {
 	vars := make(map[string]string)
 
 	// Extract the keys
-	keys := d.Get("keys").(*schema.Set).List()
+	keys := d.Get("key").(*schema.Set).List()
 	for _, raw := range keys {
 		key, path, sub, err := parse_key(raw)
 		if err != nil {
@@ -197,7 +197,7 @@ func resourceConsulKeysRead(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	// Update the resource
-	d.Set("keys", keys)
+	d.Set("key", keys)
 	d.Set("var", vars)
 	return nil
 }
@@ -223,7 +223,7 @@ func resourceConsulKeysDelete(d *schema.ResourceData, meta interface{}) error {
 	wOpts := consulapi.WriteOptions{Datacenter: dc, Token: token}
 
 	// Extract the keys
-	keys := d.Get("keys").(*schema.Set).List()
+	keys := d.Get("key").(*schema.Set).List()
 	for _, raw := range keys {
 		_, path, sub, err := parse_key(raw)
 		if err != nil {
