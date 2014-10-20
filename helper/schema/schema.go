@@ -580,6 +580,11 @@ func (m schemaMap) diffMap(
 		return fmt.Errorf("%s: %s", k, err)
 	}
 
+	// If the new map is nil and we're computed, then ignore it.
+	if n == nil && schema.Computed {
+		return nil
+	}
+
 	// Now we compare, preferring values from the config map
 	for k, v := range configMap {
 		old := stateMap[k]
