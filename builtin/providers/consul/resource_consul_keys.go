@@ -60,6 +60,7 @@ func resourceConsulKeys() *schema.Resource {
 						"delete": &schema.Schema{
 							Type:     schema.TypeBool,
 							Optional: true,
+							Default:  false,
 						},
 					},
 				},
