@@ -527,6 +527,58 @@ func TestResourceDataGet(t *testing.T) {
 
 			Value: []interface{}{80},
 		},
+
+		{
+			Schema: map[string]*Schema{
+				"data": &Schema{
+					Type:     TypeSet,
+					Optional: true,
+					Elem: &Resource{
+						Schema: map[string]*Schema{
+							"index": &Schema{
+								Type:     TypeInt,
+								Required: true,
+							},
+
+							"value": &Schema{
+								Type:     TypeString,
+								Required: true,
+							},
+						},
+					},
+					Set: func(a interface{}) int {
+						m := a.(map[string]interface{})
+						return m["index"].(int)
+					},
+				},
+			},
+
+			State: &terraform.InstanceState{
+				Attributes: map[string]string{
+					"data.#":       "1",
+					"data.0.index": "10",
+					"data.0.value": "50",
+				},
+			},
+
+			Diff: &terraform.InstanceDiff{
+				Attributes: map[string]*terraform.ResourceAttrDiff{
+					"data.0.value": &terraform.ResourceAttrDiff{
+						Old: "50",
+						New: "80",
+					},
+				},
+			},
+
+			Key: "data",
+
+			Value: []interface{}{
+				map[string]interface{}{
+					"index": 10,
+					"value": "80",
+				},
+			},
+		},
 	}
 
 	for i, tc := range cases {
