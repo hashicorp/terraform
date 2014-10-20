@@ -31,6 +31,7 @@ BUG FIXES:
   * providers/aws: Fix crash case if launch config is manually deleted. [GH-421]
   * providers/aws: Disassociate EIP before destroying.
   * providers/aws: ELB treats subnets as a set.
+  * providers/consul: Fix regression where `key` param changed to `keys. [GH-475]
 
 ## 0.3.0 (October 14, 2014)
 
