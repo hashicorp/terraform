@@ -2009,6 +2009,71 @@ func TestSchemaMap_Validate(t *testing.T) {
 
 			Err: true,
 		},
+
+		// Maps
+		{
+			Schema: map[string]*Schema{
+				"user_data": &Schema{
+					Type:     TypeMap,
+					Optional: true,
+				},
+			},
+
+			Config: map[string]interface{}{
+				"user_data": "foo",
+			},
+
+			Err: true,
+		},
+
+		{
+			Schema: map[string]*Schema{
+				"user_data": &Schema{
+					Type:     TypeMap,
+					Optional: true,
+				},
+			},
+
+			Config: map[string]interface{}{
+				"user_data": []interface{}{
+					map[string]interface{}{
+						"foo": "bar",
+					},
+				},
+			},
+		},
+
+		{
+			Schema: map[string]*Schema{
+				"user_data": &Schema{
+					Type:     TypeMap,
+					Optional: true,
+				},
+			},
+
+			Config: map[string]interface{}{
+				"user_data": map[string]interface{}{
+					"foo": "bar",
+				},
+			},
+		},
+
+		{
+			Schema: map[string]*Schema{
+				"user_data": &Schema{
+					Type:     TypeMap,
+					Optional: true,
+				},
+			},
+
+			Config: map[string]interface{}{
+				"user_data": []interface{}{
+					"foo",
+				},
+			},
+
+			Err: true,
+		},
 	}
 
 	for i, tc := range cases {

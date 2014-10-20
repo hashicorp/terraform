@@ -767,6 +767,44 @@ func (m schemaMap) validateList(
 	return ws, es
 }
 
+func (m schemaMap) validateMap(
+	k string,
+	raw interface{},
+	schema *Schema,
+	c *terraform.ResourceConfig) ([]string, []error) {
+	// We use reflection to verify the slice because you can't
+	// case to []interface{} unless the slice is exactly that type.
+	rawV := reflect.ValueOf(raw)
+	switch rawV.Kind() {
+	case reflect.Map:
+	case reflect.Slice:
+	default:
+		return nil, []error{fmt.Errorf(
+			"%s: should be a map", k)}
+	}
+
+	// If it is not a slice, it is valid
+	if rawV.Kind() != reflect.Slice {
+		return nil, nil
+	}
+
+	// It is a slice, verify that all the elements are maps
+	raws := make([]interface{}, rawV.Len())
+	for i, _ := range raws {
+		raws[i] = rawV.Index(i).Interface()
+	}
+
+	for _, raw := range raws {
+		v := reflect.ValueOf(raw)
+		if v.Kind() != reflect.Map {
+			return nil, []error{fmt.Errorf(
+				"%s: should be a map", k)}
+		}
+	}
+
+	return nil, nil
+}
+
 func (m schemaMap) validateObject(
 	k string,
 	schema map[string]*Schema,
@@ -823,6 +861,8 @@ func (m schemaMap) validatePrimitive(
 		fallthrough
 	case TypeList:
 		return m.validateList(k, raw, schema, c)
+	case TypeMap:
+		return m.validateMap(k, raw, schema, c)
 	case TypeBool:
 		// Verify that we can parse this as the correct type
 		var n bool
