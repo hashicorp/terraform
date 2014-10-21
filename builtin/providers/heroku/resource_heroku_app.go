@@ -125,7 +125,7 @@ func resourceHerokuApp() *schema.Resource {
 func switchHerokuAppCreate(d *schema.ResourceData, meta interface{}) error {
 	orgCount := d.Get("organization.#").(int)
 	if orgCount > 1 {
-                return fmt.Errorf("Error Creating Heroku App: Only 1 Heroku Organization is permitted")
+		return fmt.Errorf("Error Creating Heroku App: Only 1 Heroku Organization is permitted")
 	}
 
 	if _, ok := d.GetOk("organization.0.name"); ok {

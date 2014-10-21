@@ -927,8 +927,8 @@ func TestResourceDataHasChange(t *testing.T) {
 			Diff: &terraform.InstanceDiff{
 				Attributes: map[string]*terraform.ResourceAttrDiff{
 					"tags.Name": &terraform.ResourceAttrDiff{
-						Old:         "foo",
-						New:         "foo",
+						Old: "foo",
+						New: "foo",
 					},
 				},
 			},
