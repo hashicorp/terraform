@@ -1,5 +1,10 @@
 ## 0.3.1 (unreleased)
 
+IMPROVEMENTS:
+
+  * providers/google: Add "external\_address" to network attributes [GH-454]
+  * providers/google: External address is used as default connection host. [GH-454]
+
 BUG FIXES:
 
   * core: Remove panic case when applying with a plan that generates no
