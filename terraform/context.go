@@ -531,6 +531,14 @@ func (c *walkContext) Walk() error {
 	outputs := make(map[string]string)
 	for _, o := range conf.Outputs {
 		if err := c.computeVars(o.RawConfig, nil); err != nil {
+			// If we're refreshing, then we ignore output errors. This is
+			// properly not fully the correct behavior, but fixes a range
+			// of issues right now. As we expand test cases to find the
+			// correct behavior, this will likely be removed.
+			if c.Operation == walkRefresh {
+				continue
+			}
+
 			return err
 		}
 		vraw := o.RawConfig.Config()["value"]
