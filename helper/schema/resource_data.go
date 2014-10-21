@@ -349,12 +349,10 @@ func (d *ResourceData) getSet(
 	var indexMap map[int]int
 	if len(parts) > 0 {
 		indexMap = make(map[int]int)
-	}
 
-	// Build the set from all the items using the given hash code
-	for i, v := range list {
-		code := s.add(v)
-		if indexMap != nil {
+		// Build the set from all the items using the given hash code
+		for i, v := range list {
+			code := s.add(v)
 			indexMap[code] = i
 		}
 	}
