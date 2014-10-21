@@ -40,7 +40,7 @@ The following arguments are supported:
    for all instances in the pool to terminate.
 * `load_balancers` (Optional) A list of load balancer names to add to the autoscaling
    group names.
-* `vpc_zone_identifier` (Optional) A list of vpc IDs to launch resources in.
+* `vpc_zone_identifier` (Optional) A list of subnet IDs to launch resources in.
 
 ## Attributes Reference
 
