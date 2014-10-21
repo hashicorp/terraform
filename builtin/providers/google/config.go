@@ -13,8 +13,6 @@ import (
 )
 
 const clientScopes string = "https://www.googleapis.com/auth/compute"
-const authURL string = "https://accounts.google.com/o/oauth2/auth"
-const tokenURL string = "https://accounts.google.com/o/oauth2/token"
 
 // Config is the configuration structure used to instantiate the Google
 // provider.
@@ -66,8 +64,6 @@ func (c *Config) loadAndValidate() error {
 		Config: &oauth.Config{
 			ClientId: account.ClientId,
 			Scope:    clientScopes,
-			AuthURL:  authURL,
-			TokenURL: tokenURL,
 		},
 		Token: token,
 	}
