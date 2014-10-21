@@ -912,6 +912,31 @@ func TestResourceDataHasChange(t *testing.T) {
 
 			Change: false,
 		},
+
+		{
+			Schema: map[string]*Schema{
+				"tags": &Schema{
+					Type:     TypeMap,
+					Optional: true,
+					Computed: true,
+				},
+			},
+
+			State: nil,
+
+			Diff: &terraform.InstanceDiff{
+				Attributes: map[string]*terraform.ResourceAttrDiff{
+					"tags.Name": &terraform.ResourceAttrDiff{
+						Old:         "foo",
+						New:         "foo",
+					},
+				},
+			},
+
+			Key: "tags",
+
+			Change: true,
+		},
 	}
 
 	for i, tc := range cases {

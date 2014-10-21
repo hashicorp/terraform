@@ -91,6 +91,12 @@ func (r *Resource) Apply(
 		if !d.RequiresNew() {
 			return nil, nil
 		}
+
+		// Reset the data to be stateless since we just destroyed
+		data, err = schemaMap(r.Schema).Data(nil, d)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	err = nil
