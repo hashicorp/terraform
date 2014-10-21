@@ -66,14 +66,18 @@ func resourceAwsSecurityGroup() *schema.Resource {
 						},
 
 						"security_groups": &schema.Schema{
-							Type:     schema.TypeList,
+							Type:     schema.TypeSet,
 							Optional: true,
 							Elem:     &schema.Schema{Type: schema.TypeString},
+							Set: func(v interface{}) int {
+								return hashcode.String(v.(string))
+							},
 						},
 
 						"self": &schema.Schema{
 							Type:     schema.TypeBool,
 							Optional: true,
+							Default:  false,
 						},
 					},
 				},
@@ -112,7 +116,7 @@ func resourceAwsSecurityGroupIngressHash(v interface{}) int {
 		}
 	}
 	if v, ok := m["security_groups"]; ok {
-		vs := v.([]interface{})
+		vs := v.(*schema.Set).List()
 		s := make([]string, len(vs))
 		for i, raw := range vs {
 			s[i] = raw.(string)
@@ -283,15 +287,28 @@ func resourceAwsSecurityGroupRead(d *schema.ResourceData, meta interface{}) erro
 	sg := sgRaw.(*ec2.SecurityGroupInfo)
 
 	// Gather our ingress rules
-	ingressRules := make([]map[string]interface{}, len(sg.IPPerms))
-	for i, perm := range sg.IPPerms {
-		n := make(map[string]interface{})
-		n["from_port"] = perm.FromPort
-		n["protocol"] = perm.Protocol
-		n["to_port"] = perm.ToPort
+	ingressMap := make(map[string]map[string]interface{})
+	for _, perm := range sg.IPPerms {
+		k := fmt.Sprintf("%s-%d-%d", perm.Protocol, perm.FromPort, perm.ToPort)
+		m, ok := ingressMap[k]
+		if !ok {
+			m = make(map[string]interface{})
+			ingressMap[k] = m
+		}
+
+		m["from_port"] = perm.FromPort
+		m["to_port"] = perm.ToPort
+		m["protocol"] = perm.Protocol
 
 		if len(perm.SourceIPs) > 0 {
-			n["cidr_blocks"] = perm.SourceIPs
+			raw, ok := m["cidr_blocks"]
+			if !ok {
+				raw = make([]string, 0, len(perm.SourceIPs))
+			}
+			list := raw.([]string)
+
+			list = append(list, perm.SourceIPs...)
+			m["cidr_blocks"] = list
 		}
 
 		var groups []string
@@ -301,14 +318,24 @@ func resourceAwsSecurityGroupRead(d *schema.ResourceData, meta interface{}) erro
 		for i, id := range groups {
 			if id == d.Id() {
 				groups[i], groups = groups[len(groups)-1], groups[:len(groups)-1]
-				n["self"] = true
+				m["self"] = true
 			}
 		}
-		if len(groups) > 0 {
-			n["security_groups"] = groups
-		}
 
-		ingressRules[i] = n
+		if len(groups) > 0 {
+			raw, ok := m["security_groups"]
+			if !ok {
+				raw = make([]string, 0, len(groups))
+			}
+			list := raw.([]string)
+
+			list = append(list, groups...)
+			m["security_groups"] = list
+		}
+	}
+	ingressRules := make([]map[string]interface{}, 0, len(ingressMap))
+	for _, m := range ingressMap {
+		ingressRules = append(ingressRules, m)
 	}
 
 	d.Set("description", sg.Description)

@@ -2,6 +2,7 @@ package schema
 
 import (
 	"fmt"
+	"log"
 	"reflect"
 	"strconv"
 	"strings"
@@ -645,6 +646,17 @@ func (d *ResourceData) getPrimitive(
 				resultSet = false
 			}
 		}
+	}
+
+	if strings.HasSuffix(k, "protocol") && result == "" {
+		log.Printf("------------------------------------------------")
+		log.Printf("KEY: %s", k)
+		log.Printf("LEVEL: %#v", source)
+		log.Printf("DIFF: %#v", diff)
+		log.Printf("EXACT: %#v", exact)
+		log.Printf("Config: %#v\n\n", d.config)
+		log.Printf("DIFF: %#v\n\n", d.diff)
+		log.Printf("State: %#v\n\n", d.state)
 	}
 
 	if !exact || source == getSourceSet {
