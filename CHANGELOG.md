@@ -14,6 +14,8 @@ BUG FIXES:
   * core: Fix crash case when destroying with tainted resources. [GH-412]
   * core: Don't execute provisioners in some cases on destroy.
   * core: Inherited provider configurations will be properly interpolated. [GH-418]
+  * core: Refresh works properly if there are outputs that depend on resources
+      that aren't yet created. [GH-483]
   * providers/aws: Refresh of launch configs and autoscale groups load
       the correct data and don't incorrectly recreate themselves. [GH-425]
   * providers/aws: Fix case where ELB would incorrectly plan to modify
