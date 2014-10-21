@@ -4,6 +4,8 @@ IMPROVEMENTS:
 
   * providers/google: Add "external\_address" to network attributes [GH-454]
   * providers/google: External address is used as default connection host. [GH-454]
+  * providers/heroku: Support `locked` and `personal` booleans on organization
+      settings. [GH-406]
 
 BUG FIXES:
 
