@@ -50,7 +50,7 @@ The following arguments are supported:
 * `vpc_security_group_ids` - (Optional) List of VPC security groups to associate.
 * `skip_final_snapshot` - (Optional) Enables skipping the final snapshot on deletion.
 * `security_group_names` - (Optional) List of DB Security Groups to associate.
-* `subnet_group_name` - (Optional) Name of DB subnet group
+* `db_subnet_group_name` - (Optional) Name of DB subnet group
 
 ## Attributes Reference
 
