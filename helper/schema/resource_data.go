@@ -465,20 +465,27 @@ func (d *ResourceData) getMap(
 	if !exact || level == getSourceSet {
 		if d.setMap != nil && level >= getSourceSet {
 			cleared := false
-			for k, _ := range d.setMap {
-				if !strings.HasPrefix(k, prefix) {
-					continue
-				}
+			if v, ok := d.setMap[k]; ok && v == "" {
+				// We've cleared the map
+				result = make(map[string]interface{})
 				resultSet = true
+			} else {
+				for k, _ := range d.setMap {
+					if !strings.HasPrefix(k, prefix) {
+						continue
+					}
+					resultSet = true
 
-				if !cleared {
-					// We clear the results if they are in the set map
-					result = make(map[string]interface{})
-					cleared = true
+					if !cleared {
+						// We clear the results if they are in the set map
+						result = make(map[string]interface{})
+						cleared = true
+					}
+
+					single := k[len(prefix):]
+					result[single] = d.getPrimitive(
+						k, nil, elemSchema, source).Value
 				}
-
-				single := k[len(prefix):]
-				result[single] = d.getPrimitive(k, nil, elemSchema, source).Value
 			}
 		}
 	}
@@ -783,14 +790,6 @@ func (d *ResourceData) setMapValue(
 		return fmt.Errorf("%s: full map must be set, no a single element", k)
 	}
 
-	// Delete any prior map set
-	/*
-		v := d.getMap(k, nil, schema, getSourceSet)
-		for subKey, _ := range v.(map[string]interface{}) {
-			delete(d.setMap, fmt.Sprintf("%s.%s", k, subKey))
-		}
-	*/
-
 	v := reflect.ValueOf(value)
 	if v.Kind() != reflect.Map {
 		return fmt.Errorf("%s: must be a map", k)
@@ -804,6 +803,13 @@ func (d *ResourceData) setMapValue(
 		vs[mk.String()] = mv.Interface()
 	}
 
+	if len(vs) == 0 {
+		// The empty string here means the map is removed.
+		d.setMap[k] = ""
+		return nil
+	}
+
+	delete(d.setMap, k)
 	for subKey, v := range vs {
 		err := d.set(fmt.Sprintf("%s.%s", k, subKey), nil, elemSchema, v)
 		if err != nil {

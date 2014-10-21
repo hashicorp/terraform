@@ -2193,6 +2193,63 @@ func TestResourceDataState(t *testing.T) {
 				},
 			},
 		},
+
+		// Maps
+		{
+			Schema: map[string]*Schema{
+				"tags": &Schema{
+					Type:     TypeMap,
+					Optional: true,
+					Computed: true,
+				},
+			},
+
+			State: nil,
+
+			Diff: &terraform.InstanceDiff{
+				Attributes: map[string]*terraform.ResourceAttrDiff{
+					"tags.Name": &terraform.ResourceAttrDiff{
+						Old: "",
+						New: "foo",
+					},
+				},
+			},
+
+			Result: &terraform.InstanceState{
+				Attributes: map[string]string{
+					"tags.Name": "foo",
+				},
+			},
+		},
+
+		{
+			Schema: map[string]*Schema{
+				"tags": &Schema{
+					Type:     TypeMap,
+					Optional: true,
+					Computed: true,
+				},
+			},
+
+			State: nil,
+
+			Diff: &terraform.InstanceDiff{
+				Attributes: map[string]*terraform.ResourceAttrDiff{
+					"tags.Name": &terraform.ResourceAttrDiff{
+						Old: "",
+						New: "foo",
+					},
+				},
+			},
+
+			Set: map[string]interface{}{
+				"tags": map[string]string{},
+			},
+
+			Result: &terraform.InstanceState{
+				Attributes: map[string]string{},
+			},
+		},
 	}
 
 	for i, tc := range cases {
