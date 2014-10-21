@@ -1611,17 +1611,23 @@ func (c *walkContext) computeResourceVariable(
 	// Get the relevant module
 	module := c.Context.state.ModuleByPath(c.Path)
 
-	r, ok := module.Resources[id]
-	if !ok {
-		if v.Multi && v.Index == 0 {
+	var r *ResourceState
+	if module != nil {
+		var ok bool
+		r, ok = module.Resources[id]
+		if !ok && v.Multi && v.Index == 0 {
 			r, ok = module.Resources[v.ResourceId()]
 		}
 		if !ok {
-			return "", fmt.Errorf(
-				"Resource '%s' not found for variable '%s'",
-				id,
-				v.FullKey())
+			r = nil
 		}
+	}
+
+	if r == nil {
+		return "", fmt.Errorf(
+			"Resource '%s' not found for variable '%s'",
+			id,
+			v.FullKey())
 	}
 
 	if r.Primary == nil {
