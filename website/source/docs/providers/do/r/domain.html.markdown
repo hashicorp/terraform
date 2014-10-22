@@ -2,6 +2,8 @@
 layout: "digitalocean"
 page_title: "DigitalOcean: digitalocean_domain"
 sidebar_current: "docs-do-resource-domain"
+description: |-
+  Provides a DigitalOcean domain resource.
 ---
 
 # digitalocean\_domain

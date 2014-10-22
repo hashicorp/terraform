@@ -2,6 +2,8 @@
 layout: "heroku"
 page_title: "Provider: Heroku"
 sidebar_current: "docs-heroku-index"
+description: |-
+  The Heroku provider is used to interact with the resources supported by Heroku. The provider needs to be configured with the proper credentials before it can be used.
 ---
 
 # Heroku Provider

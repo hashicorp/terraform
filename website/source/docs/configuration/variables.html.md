@@ -2,6 +2,8 @@
 layout: "docs"
 page_title: "Configuring Variables"
 sidebar_current: "docs-config-variables"
+description: |-
+  Variables define the parameterization of Terraform configurations. Variables can be overridden via the CLI. Variable usage is covered in more detail in the getting started guide. This page covers configuration syntax for variables.
 ---
 
 # Variable Configuration

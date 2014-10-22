@@ -2,6 +2,8 @@
 layout: "docs"
 page_title: "Configuration Syntax"
 sidebar_current: "docs-config-syntax"
+description: |-
+  The syntax of Terraform configurations is custom. It is meant to strike a balance between human readable and editable as well as being machine-friendly. For machine-friendliness, Terraform can also read JSON configurations. For general Terraform configurations, however, we recommend using the Terraform syntax.
 ---
 
 # Configuration Syntax

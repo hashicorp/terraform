@@ -2,6 +2,8 @@
 layout: "aws"
 page_title: "AWS: aws_autoscaling_group"
 sidebar_current: "docs-aws-resource-autoscale"
+description: |-
+  Provides an AutoScaling Group resource.
 ---
 
 # aws\_autoscaling\_group

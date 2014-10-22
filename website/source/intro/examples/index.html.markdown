@@ -2,6 +2,8 @@
 layout: "intro"
 page_title: "Example Configurations"
 sidebar_current: "examples"
+description: |-
+  These examples are designed to help you understand some of the ways Terraform can be used.
 ---
 
 # Example Configurations

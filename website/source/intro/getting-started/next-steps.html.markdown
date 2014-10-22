@@ -2,6 +2,8 @@
 layout: "intro"
 page_title: "Next Steps"
 sidebar_current: "gettingstarted-nextsteps"
+description: |-
+  That concludes the getting started guide for Terraform. Hopefully you're now able to not only see what Terraform is useful for, but you're also able to put this knowledge to use to improve building your own infrastructure.
 ---
 
 # Next Steps

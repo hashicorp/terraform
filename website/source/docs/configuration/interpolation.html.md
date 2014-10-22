@@ -2,6 +2,8 @@
 layout: "docs"
 page_title: "Interpolation Syntax"
 sidebar_current: "docs-config-interpolation"
+description: |-
+  Embedded within strings in Terraform, whether you're using the Terraform syntax or JSON syntax, you can interpolate other values into strings. These interpolations are wrapped in `${}`, such as `${var.foo}`.
 ---
 
 # Interpolation Syntax

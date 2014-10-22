@@ -2,6 +2,8 @@
 layout: "google"
 page_title: "Google: google_compute_firewall"
 sidebar_current: "docs-google-resource-firewall"
+description: |-
+  Manages a firewall resource within GCE.
 ---
 
 # google\_compute\_firewall

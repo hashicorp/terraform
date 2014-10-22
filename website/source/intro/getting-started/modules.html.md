@@ -2,6 +2,8 @@
 layout: "intro"
 page_title: "Modules"
 sidebar_current: "gettingstarted-modules"
+description: |-
+  Up to this point, we've been configuring Terraform by editing Terraform configurations directly. As our infrastructure grows, this practice has a few key problems: a lack of organization, a lack of reusability, and difficulties in management for teams.
 ---
 
 # Modules

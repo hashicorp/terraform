@@ -2,6 +2,8 @@
 layout: "docs"
 page_title: "Command: output"
 sidebar_current: "docs-commands-output"
+description: |-
+  The `terraform output` command is used to extract the value of an output variable from the state file.
 ---
 
 # Command: output

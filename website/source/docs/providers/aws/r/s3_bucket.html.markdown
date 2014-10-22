@@ -2,6 +2,8 @@
 layout: "aws"
 page_title: "AWS: aws_s3_bucket"
 sidebar_current: "docs-aws-resource-s3-bucket"
+description: |-
+  Provides a S3 bucket resource.
 ---
 
 # aws\_s3\_bucket

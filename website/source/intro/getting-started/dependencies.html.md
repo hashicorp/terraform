@@ -2,6 +2,8 @@
 layout: "intro"
 page_title: "Resource Dependencies"
 sidebar_current: "gettingstarted-deps"
+description: |-
+  In this page, we're going to introduce resource dependencies, where we'll not only see a configuration with multiple resources for the first time, but also scenarios where resource parameters use information from other resources.
 ---
 
 # Resource Dependencies

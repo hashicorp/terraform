@@ -2,6 +2,8 @@
 layout: "docs"
 page_title: "Resource Lifecycle"
 sidebar_current: "docs-internals-lifecycle"
+description: |-
+  Resources have a strict lifecycle, and can be thought of as basic state machines. Understanding this lifecycle can help better understand how Terraform generates an execution plan, how it safely executes that plan, and what the resource provider is doing throughout all of this.
 ---
 
 # Resource Lifecycle

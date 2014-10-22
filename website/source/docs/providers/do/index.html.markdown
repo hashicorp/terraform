@@ -2,6 +2,8 @@
 layout: "digitalocean"
 page_title: "Provider: DigitalOcean"
 sidebar_current: "docs-do-index"
+description: |-
+  The DigitalOcean (DO) provider is used to interact with the resources supported by DigitalOcean. The provider needs to be configured with the proper credentials before it can be used.
 ---
 
 # DigitalOcean Provider

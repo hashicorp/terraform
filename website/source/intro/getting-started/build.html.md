@@ -1,7 +1,9 @@
 ---
 layout: "intro"
 page_title: "Build Infrastructure"
-sidebar_current: "gettingstarted-build"
+sidebar_current: "gettingstarted-build
+description: |-
+  With Terraform installed, let's dive right into it and start creating some infrastructure.
 ---
 
 # Build Infrastructure

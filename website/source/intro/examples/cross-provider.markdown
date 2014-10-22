@@ -2,6 +2,8 @@
 layout: "intro"
 page_title: "Cross Provider"
 sidebar_current: "examples-cross-provider"
+description: |-
+  This is a simple example of the cross-provider capabilities of Terraform.
 ---
 
 # Cross Provider Example

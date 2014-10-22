@@ -2,6 +2,8 @@
 layout: "docs"
 page_title: "Commands"
 sidebar_current: "docs-commands"
+description: |-
+  Terraform is controlled via a very easy to use command-line interface (CLI). Terraform is only a single command-line application: terraform. This application then takes a subcommand such as "apply" or "plan". The complete list of subcommands is in the navigation to the left.
 ---
 
 # Terraform Commands (CLI)

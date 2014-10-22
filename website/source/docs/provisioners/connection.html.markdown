@@ -2,6 +2,8 @@
 layout: "docs"
 page_title: "Provisioner Connections"
 sidebar_current: "docs-provisioners-connection"
+description: |-
+  Many provisioners require access to the remote resource. For example, a provisioner may need to use ssh to connect to the resource.
 ---
 
 # Provisioner Connections

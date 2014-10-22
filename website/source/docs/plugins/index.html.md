@@ -2,6 +2,8 @@
 layout: "docs"
 page_title: "Plugins"
 sidebar_current: "docs-plugins"
+description: |-
+  Terraform is built on a plugin-based architecture. All providers and provisioners that are used in Terraform configurations are plugins, even the core types such as AWS and Heroku. Users of Terraform are able to write new plugins in order to support new functionality in Terraform.
 ---
 
 # Plugins

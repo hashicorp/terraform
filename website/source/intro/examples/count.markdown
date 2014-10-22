@@ -2,6 +2,8 @@
 layout: "intro"
 page_title: "Count"
 sidebar_current: "examples-count"
+description: |-
+  The count parameter on resources can simplify configurations and let you scale resources by simply incrementing a number.
 ---
 
 # Count Example

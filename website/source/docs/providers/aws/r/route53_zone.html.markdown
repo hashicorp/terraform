@@ -2,6 +2,8 @@
 layout: "aws"
 page_title: "AWS: aws_route53_zone"
 sidebar_current: "docs-aws-resource-route53-zone"
+description: |-
+  Provides a Route53 Hosted Zone resource.
 ---
 
 # aws\_route53\_zone

@@ -2,6 +2,8 @@
 layout: "docs"
 page_title: "Provider Plugins"
 sidebar_current: "docs-plugins-provider"
+description: |-
+  A provider in Terraform is responsible for the lifecycle of a resource: create, read, update, delete. An example of a provider is AWS, which can manage resources of type `aws_instance`, `aws_eip`, `aws_elb`, etc.
 ---
 
 # Provider Plugins

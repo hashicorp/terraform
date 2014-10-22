@@ -2,6 +2,8 @@
 layout: "aws"
 page_title: "AWS: aws_security_group"
 sidebar_current: "docs-aws-resource-security-group"
+description: |-
+  Provides an security group resource.
 ---
 
 # aws\_security\_group

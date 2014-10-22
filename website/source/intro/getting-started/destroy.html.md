@@ -2,6 +2,8 @@
 layout: "intro"
 page_title: "Destroy Infrastructure"
 sidebar_current: "gettingstarted-destroy"
+description: |-
+  We've now seen how to build and change infrastructure. Before we move on to creating multiple resources and showing resource dependencies, we're going to go over how to completely destroy the Terraform-managed infrastructure.
 ---
 
 # Destroy Infrastructure

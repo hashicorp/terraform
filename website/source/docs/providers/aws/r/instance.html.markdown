@@ -2,6 +2,8 @@
 layout: "aws"
 page_title: "AWS: aws_instance"
 sidebar_current: "docs-aws-resource-instance"
+description: |-
+  Provides an EC2 instance resource. This allows instances to be created, updated, and deleted. Instances also support provisioning.
 ---
 
 # aws\_instance

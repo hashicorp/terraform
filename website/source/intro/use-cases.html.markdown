@@ -2,6 +2,8 @@
 layout: "intro"
 page_title: "Use Cases"
 sidebar_current: "use-cases"
+description: |-
+  Before understanding use cases, it's useful to know what Terraform is. This page lists some concrete use cases for Terraform, but the possible use cases are much broader than what we cover. Due to its extensible nature, providers and provisioners can be added to further extend Terraform's ability to manipulate resources.
 ---
 
 # Use Cases

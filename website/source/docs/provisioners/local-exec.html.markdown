@@ -2,6 +2,8 @@
 layout: "docs"
 page_title: "Provisioner: local-exec"
 sidebar_current: "docs-provisioners-local"
+description: |-
+  The `local-exec` provisioner invokes a local executable after a resource is created. This invokes a process on the machine running Terraform, not on the resource. See the `remote-exec` provisioner to run commands on the resource.
 ---
 
 # local-exec Provisioner

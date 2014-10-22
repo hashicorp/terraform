@@ -2,6 +2,8 @@
 layout: "docs"
 page_title: "Configuring Outputs"
 sidebar_current: "docs-config-outputs"
+description: |-
+  Outputs define values that will be highlighted to the user when Terraform applies, and can be queried easily using the output command. Output usage is covered in more detail in the getting started guide. This page covers configuration syntax for outputs.
 ---
 
 # Output Configuration

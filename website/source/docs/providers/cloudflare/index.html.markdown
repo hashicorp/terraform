@@ -2,6 +2,8 @@
 layout: "cloudflare"
 page_title: "Provider: Cloudflare"
 sidebar_current: "docs-cloudflare-index"
+description: |-
+  The CloudFlare provider is used to interact with the DNS resources supported by CloudFlare. The provider needs to be configured with the proper credentials before it can be used.
 ---
 
 # CloudFlare Provider

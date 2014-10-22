@@ -2,6 +2,8 @@
 layout: "heroku"
 page_title: "Heroku: heroku_drain"
 sidebar_current: "docs-heroku-resource-drain"
+description: |-
+  Provides a Heroku Drain resource. This can be used to create and manage Log Drains on Heroku.
 ---
 
 # heroku\_drain

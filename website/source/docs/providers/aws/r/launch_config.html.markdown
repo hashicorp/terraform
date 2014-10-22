@@ -2,6 +2,8 @@
 layout: "aws"
 page_title: "AWS: aws_launch_configuration"
 sidebar_current: "docs-aws-resource-launch-config"
+description: |-
+  Provides a resource to create a new launch configuration, used for autoscaling groups.
 ---
 
 # aws\_launch\_configuration

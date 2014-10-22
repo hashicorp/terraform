@@ -2,6 +2,8 @@
 layout: "dnsimple"
 page_title: "Provider: DNSimple"
 sidebar_current: "docs-dnsimple-index"
+description: |-
+  The DNSimple provider is used to interact with the resources supported by DNSimple. The provider needs to be configured with the proper credentials before it can be used.
 ---
 
 # DNSimple Provider

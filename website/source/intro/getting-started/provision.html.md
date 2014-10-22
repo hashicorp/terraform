@@ -2,6 +2,8 @@
 layout: "intro"
 page_title: "Provision"
 sidebar_current: "gettingstarted-provision"
+description: |-
+  You're now able to create and modify infrastructure. This page introduces how to use provisioners to run basic shell scripts on instances when they're created.
 ---
 
 # Provision

@@ -2,6 +2,8 @@
 layout: "intro"
 page_title: "Terraform vs. Boto, Fog, etc."
 sidebar_current: "vs-other-boto"
+description: |-
+  Libraries like Boto, Fog, etc. are used to provide native access to cloud providers and services by using their APIs. Some libraries are focused on specific clouds, while others attempt to bridge them all and mask the semantic differences. Using a client library only provides low-level access to APIs, requiring application developers to create their own tooling to build and manage their infrastructure.
 ---
 
 # Terraform vs. Boto, Fog, etc.

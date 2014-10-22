@@ -2,6 +2,8 @@
 layout: "aws"
 page_title: "AWS: aws_route_table_association"
 sidebar_current: "docs-aws-resource-route-table-assoc"
+description: |-
+  Provides a resource to create an association between a subnet and routing table.
 ---
 
 # aws\_route\_table\_association
