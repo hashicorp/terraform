@@ -18,9 +18,7 @@ to write plugins for Terraform. It does not hold your hand through the
 process, however, and expects a relatively high level of understanding
 of Go, provider semantics, Unix, etc.
 
-<div class="alert alert-block alert-warning">
-<strong>Advanced topic!</strong> Plugin development is a highly advanced
+~> **Advanced topic!** Plugin development is a highly advanced
 topic in Terraform, and is not required knowledge for day-to-day usage.
 If you don't plan on writing any plugins, we recommend not reading
 this section of the documentation.
-</div>

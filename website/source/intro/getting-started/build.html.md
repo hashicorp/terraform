@@ -29,16 +29,10 @@ If you already have an AWS account, you may be charged some
 amount of money, but it shouldn't be more than a few dollars
 at most.
 
-<div class="alert alert-block alert-warning">
-<p>
-<strong>Note:</strong> If you're not using an account that qualifies
-under the AWS
-<a href="http://aws.amazon.com/free/">free-tier</a>,
-you may be charged to run these examples. The most you should
-be charged should only be a few dollars, but we're not responsible
-for any charges that may incur.
-</p>
-</div>
+~> **Warning!** If you're not using an account that qualifies under the AWS
+[free-tier](http://aws.amazon.com/free/), you may be charged to run these
+examples. The most you should be charged should only be a few dollars, but
+we're not responsible for any charges that may incur.
 
 ## Configuration
 

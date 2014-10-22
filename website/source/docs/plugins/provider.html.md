@@ -22,12 +22,10 @@ The primary reasons to care about provider plugins are:
   * You want to write a completely new provider for custom, internal
     systems such as a private inventory management system.
 
-<div class="alert alert-block alert-warning">
-<strong>Advanced topic!</strong> Plugin development is a highly advanced
+~> **Advanced topic!** Plugin development is a highly advanced
 topic in Terraform, and is not required knowledge for day-to-day usage.
 If you don't plan on writing any plugins, we recommend not reading
 this section of the documentation.
-</div>
 
 If you're interested in provider development, then read on. The remainder
 of this page will assume you're familiar with
