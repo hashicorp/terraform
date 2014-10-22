@@ -1,11 +1,13 @@
 package aws
 
 import (
+	"sort"
 	"strings"
 
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/mitchellh/goamz/ec2"
 	"github.com/mitchellh/goamz/elb"
+	"github.com/mitchellh/goamz/rds"
 )
 
 // Takes the result of flatmap.Expand for an array of listeners and
@@ -87,6 +89,28 @@ func expandIPPerms(id string, configured []interface{}) []ec2.IPPerm {
 	return perms
 }
 
+// Takes the result of flatmap.Expand for an array of parameters and
+// returns Parameter API compatible objects
+func expandParameters(configured []interface{}) ([]rds.Parameter, error) {
+	parameters := make([]rds.Parameter, 0, len(configured))
+
+	// Loop over our configured parameters and create
+	// an array of goamz compatabile objects
+	for _, pRaw := range configured {
+		data := pRaw.(map[string]interface{})
+
+		p := rds.Parameter{
+			ApplyMethod:    data["apply_method"].(string),
+			ParameterName:  data["name"].(string),
+			ParameterValue: data["value"].(string),
+		}
+
+		parameters = append(parameters, p)
+	}
+
+	return parameters, nil
+}
+
 // Flattens an array of ipPerms into a list of primitives that
 // flatmap.Flatten() can handle
 func flattenIPPerms(list []ec2.IPPerm) []map[string]interface{} {
@@ -162,6 +186,19 @@ func flattenListeners(list []elb.Listener) []map[string]interface{} {
 	return result
 }
 
+// Flattens and sorts by name an array of Parameters into a []map[string]interface{}
+func flattenParameters(list []rds.Parameter) []map[string]interface{} {
+	sort.Sort(ByParameterName(list))
+	result := make([]map[string]interface{}, 0, len(list))
+	for _, i := range list {
+		result = append(result, map[string]interface{}{
+				"name":  strings.ToLower(i.ParameterName),
+				"value": strings.ToLower(i.ParameterValue),
+			})
+	}
+	return result
+}
+
 // Takes the result of flatmap.Expand for an array of strings
 // and returns a []string
 func expandStringList(configured []interface{}) []string {
@@ -171,3 +208,8 @@ func expandStringList(configured []interface{}) []string {
 	}
 	return vs
 }
+
+type ByParameterName []rds.Parameter
+func (a ByParameterName) Len() int           { return len(a) }
+func (a ByParameterName) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
+func (a ByParameterName) Less(i, j int) bool { return a[i].ParameterName < a[j].ParameterName }

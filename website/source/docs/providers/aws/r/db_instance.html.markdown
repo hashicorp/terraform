@@ -24,6 +24,7 @@ resource "aws_db_instance" "default" {
 	password = "bar"
 	security_group_names = ["${aws_db_security_group.bar.name}"]
 	db_subnet_group_name = "my_database_subnet_group"
+	parameter_group_name = "default.mysql5.6"
 }
 ```
 
@@ -53,6 +54,7 @@ The following arguments are supported:
 * `skip_final_snapshot` - (Optional) Enables skipping the final snapshot on deletion.
 * `security_group_names` - (Optional) List of DB Security Groups to associate.
 * `db_subnet_group_name` - (Optional) Name of DB subnet group
+* `parameter_group_name` - (Optional) Name of the DB parameter group to associate.
 
 ## Attributes Reference
 
