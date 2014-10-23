@@ -12,6 +12,7 @@ import (
 )
 
 func resourceAwsAutoscalingGroup() *schema.Resource {
+	fmt.Println("HELLO WORLD")
 	return &schema.Resource{
 		Create: resourceAwsAutoscalingGroupCreate,
 		Read:   resourceAwsAutoscalingGroupRead,
@@ -105,6 +106,17 @@ func resourceAwsAutoscalingGroup() *schema.Resource {
 					return hashcode.String(v.(string))
 				},
 			},
+
+			"termination_policies": &schema.Schema{
+				Type:     schema.TypeSet,
+				Optional: true,
+				Computed: true,
+				ForceNew: true,
+				Elem:     &schema.Schema{Type: schema.TypeString},
+				Set: func(v interface{}) int {
+					return hashcode.String(v.(string))
+				},
+			},
 		},
 	}
 }
@@ -146,6 +158,11 @@ func resourceAwsAutoscalingGroupCreate(d *schema.ResourceData, meta interface{})
 
 	if v, ok := d.GetOk("vpc_zone_identifier"); ok {
 		autoScalingGroupOpts.VPCZoneIdentifier = expandStringList(
+			v.(*schema.Set).List())
+	}
+	
+	if v, ok := d.GetOk("termination_policies"); ok {
+		autoScalingGroupOpts.TerminationPolicies = expandStringList(
 			v.(*schema.Set).List())
 	}
 
