@@ -29,35 +29,50 @@ func TestAccAWSDBParameterGroup(t *testing.T) {
 					resource.TestCheckResourceAttr(
 						"aws_db_parameter_group.bar", "description", "Test parameter group for terraform"),
 					resource.TestCheckResourceAttr(
+						"aws_db_parameter_group.bar", "parameter.0.name", "character_set_results"),
+					resource.TestCheckResourceAttr(
+						"aws_db_parameter_group.bar", "parameter.0.value", "utf8"),
+					resource.TestCheckResourceAttr(
+						"aws_db_parameter_group.bar", "parameter.1.name", "character_set_server"),
+					resource.TestCheckResourceAttr(
+						"aws_db_parameter_group.bar", "parameter.1.value", "utf8"),
+					resource.TestCheckResourceAttr(
+						"aws_db_parameter_group.bar", "parameter.2.name", "character_set_client"),
+					resource.TestCheckResourceAttr(
+						"aws_db_parameter_group.bar", "parameter.2.value", "utf8"),
+				),
+			},
+			resource.TestStep{
+				Config: testAccAWSDBParameterGroupAddParametersConfig,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSDBParameterGroupExists("aws_db_parameter_group.bar", &v),
+					testAccCheckAWSDBParameterGroupAttributes(&v),
+					resource.TestCheckResourceAttr(
+						"aws_db_parameter_group.bar", "name", "parameter-group-test-terraform"),
+					resource.TestCheckResourceAttr(
+						"aws_db_parameter_group.bar", "family", "mysql5.6"),
+					resource.TestCheckResourceAttr(
+						"aws_db_parameter_group.bar", "description", "Test parameter group for terraform"),
+					resource.TestCheckResourceAttr(
 						"aws_db_parameter_group.bar", "parameter.0.name", "collation_connection"),
 					resource.TestCheckResourceAttr(
 						"aws_db_parameter_group.bar", "parameter.0.value", "utf8_unicode_ci"),
-					resource.TestCheckResourceAttr(
-						"aws_db_parameter_group.bar", "parameter.0.apply_method", "immediate"),
 					resource.TestCheckResourceAttr(
 						"aws_db_parameter_group.bar", "parameter.1.name", "character_set_results"),
 					resource.TestCheckResourceAttr(
 						"aws_db_parameter_group.bar", "parameter.1.value", "utf8"),
 					resource.TestCheckResourceAttr(
-						"aws_db_parameter_group.bar", "parameter.1.apply_method", "immediate"),
-					resource.TestCheckResourceAttr(
 						"aws_db_parameter_group.bar", "parameter.2.name", "character_set_server"),
 					resource.TestCheckResourceAttr(
 						"aws_db_parameter_group.bar", "parameter.2.value", "utf8"),
-					resource.TestCheckResourceAttr(
-						"aws_db_parameter_group.bar", "parameter.2.apply_method", "immediate"),
 					resource.TestCheckResourceAttr(
 						"aws_db_parameter_group.bar", "parameter.3.name", "collation_server"),
 					resource.TestCheckResourceAttr(
 						"aws_db_parameter_group.bar", "parameter.3.value", "utf8_unicode_ci"),
 					resource.TestCheckResourceAttr(
-						"aws_db_parameter_group.bar", "parameter.3.apply_method", "immediate"),
-					resource.TestCheckResourceAttr(
 						"aws_db_parameter_group.bar", "parameter.4.name", "character_set_client"),
 					resource.TestCheckResourceAttr(
 						"aws_db_parameter_group.bar", "parameter.4.value", "utf8"),
-					resource.TestCheckResourceAttr(
-						"aws_db_parameter_group.bar", "parameter.4.apply_method", "immediate"),
 				),
 			},
 		},
@@ -65,14 +80,14 @@ func TestAccAWSDBParameterGroup(t *testing.T) {
 }
 
 func TestAccAWSDBParameterGroupOnly(t *testing.T) {
-			var v rds.DBParameterGroup
+	var v rds.DBParameterGroup
 
-			resource.Test(t, resource.TestCase{
-				PreCheck:     func() { testAccPreCheck(t) },
-				Providers:    testAccProviders,
-				CheckDestroy: testAccCheckAWSDBParameterGroupDestroy,
-				Steps: []resource.TestStep{
-				resource.TestStep{
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSDBParameterGroupDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
 				Config: testAccAWSDBParameterGroupOnlyConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSDBParameterGroupExists("aws_db_parameter_group.bar", &v),
@@ -177,6 +192,29 @@ func testAccCheckAWSDBParameterGroupExists(n string, v *rds.DBParameterGroup) re
 }
 
 const testAccAWSDBParameterGroupConfig = `
+resource "aws_db_parameter_group" "bar" {
+	name = "parameter-group-test-terraform"
+	family = "mysql5.6"
+	description = "Test parameter group for terraform"
+	parameter {
+	  name = "character_set_server"
+	  value = "utf8"
+	  apply_method = "immediate"
+	}
+	parameter {
+	  name = "character_set_client"
+	  value = "utf8"
+	  apply_method = "immediate"
+	}
+	parameter{
+	  name = "character_set_results"
+	  value = "utf8"
+	  apply_method = "immediate"
+	}
+}
+`
+
+const testAccAWSDBParameterGroupAddParametersConfig = `
 resource "aws_db_parameter_group" "bar" {
 	name = "parameter-group-test-terraform"
 	family = "mysql5.6"
