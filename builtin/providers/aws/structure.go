@@ -1,7 +1,6 @@
 package aws
 
 import (
-	"sort"
 	"strings"
 
 	"github.com/hashicorp/terraform/helper/schema"
@@ -186,9 +185,8 @@ func flattenListeners(list []elb.Listener) []map[string]interface{} {
 	return result
 }
 
-// Flattens and sorts by name an array of Parameters into a []map[string]interface{}
+// Flattens an array of Parameters into a []map[string]interface{}
 func flattenParameters(list []rds.Parameter) []map[string]interface{} {
-	sort.Sort(ByParameterName(list))
 	result := make([]map[string]interface{}, 0, len(list))
 	for _, i := range list {
 		result = append(result, map[string]interface{}{
@@ -208,8 +206,3 @@ func expandStringList(configured []interface{}) []string {
 	}
 	return vs
 }
-
-type ByParameterName []rds.Parameter
-func (a ByParameterName) Len() int           { return len(a) }
-func (a ByParameterName) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
-func (a ByParameterName) Less(i, j int) bool { return a[i].ParameterName < a[j].ParameterName }
