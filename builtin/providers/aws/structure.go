@@ -190,8 +190,11 @@ func flattenParameters(list []rds.Parameter) []map[string]interface{} {
 	result := make([]map[string]interface{}, 0, len(list))
 	for _, i := range list {
 		result = append(result, map[string]interface{}{
-				"name":  strings.ToLower(i.ParameterName),
-				"value": strings.ToLower(i.ParameterValue),
+				"name":         strings.ToLower(i.ParameterName),
+				"value":        strings.ToLower(i.ParameterValue),
+				// apply_method is only used on create/modify and is not returned when reading from AWS.
+				// This is a dummy value to print out as it's not used when doing the state diff for updating
+				"apply_method": "applied",
 			})
 	}
 	return result

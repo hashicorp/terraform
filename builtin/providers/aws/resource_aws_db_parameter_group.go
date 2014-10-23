@@ -37,7 +37,7 @@ func resourceAwsDbParameterGroup() *schema.Resource {
 			"parameter": &schema.Schema{
 				Type:     schema.TypeSet,
 				Optional: true,
-				ForceNew: true,
+				ForceNew: false,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"apply_method": &schema.Schema{
@@ -85,6 +85,12 @@ func resourceAwsDbParameterGroupCreate(d *schema.ResourceData, meta interface{})
 		return fmt.Errorf("Error creating DB Parameter Group: %s", err)
 	}
 
+	d.Partial(true)
+	d.SetPartial("name")
+	d.SetPartial("family")
+	d.SetPartial("description")
+	d.Partial(false)
+
 	d.SetId(createOpts.DBParameterGroupName)
 	log.Printf("[INFO] DB Parameter Group ID: %s", d.Id())
 
@@ -94,6 +100,8 @@ func resourceAwsDbParameterGroupCreate(d *schema.ResourceData, meta interface{})
 func resourceAwsDbParameterGroupUpdate(d *schema.ResourceData, meta interface{}) error {
 	p := meta.(*ResourceProvider)
 	rdsconn := p.rdsconn
+
+	d.Partial(true)
 
 	if d.HasChange("parameter") {
 		o, n := d.GetChange("parameter")
@@ -125,9 +133,12 @@ func resourceAwsDbParameterGroupUpdate(d *schema.ResourceData, meta interface{})
 				return fmt.Errorf("Error modifying DB Parameter Group: %s", err)
 			}
 		}
+		d.SetPartial("parameter")
 	}
 
-	return nil
+	d.Partial(false)
+
+	return resourceAwsDbParameterGroupRead(d, meta)
 }
 
 func resourceAwsDbParameterGroupDelete(d *schema.ResourceData, meta interface{}) error {
@@ -174,6 +185,9 @@ func resourceAwsDbParameterGroupRead(d *schema.ResourceData, meta interface{}) e
 	if err != nil {
 		return err
 	}
+
+	// apply_method is only relevant for creates and AWS does not maintain its state.
+
 
 	d.Set("parameter", flattenParameters(describeParametersResp.Parameters))
 
