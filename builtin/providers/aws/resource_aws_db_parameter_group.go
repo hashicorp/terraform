@@ -40,10 +40,6 @@ func resourceAwsDbParameterGroup() *schema.Resource {
 				ForceNew: false,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
-						"apply_method": &schema.Schema{
-							Type:     schema.TypeString,
-							Required: true,
-						},
 						"name": &schema.Schema{
 							Type:     schema.TypeString,
 							Required: true,
@@ -185,9 +181,6 @@ func resourceAwsDbParameterGroupRead(d *schema.ResourceData, meta interface{}) e
 	if err != nil {
 		return err
 	}
-
-	// apply_method is only relevant for creates and AWS does not maintain its state.
-
 
 	d.Set("parameter", flattenParameters(describeParametersResp.Parameters))
 

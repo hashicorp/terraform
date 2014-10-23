@@ -99,7 +99,9 @@ func expandParameters(configured []interface{}) ([]rds.Parameter, error) {
 		data := pRaw.(map[string]interface{})
 
 		p := rds.Parameter{
-			ApplyMethod:    data["apply_method"].(string),
+			// Only immediate is supported for now; should add in pending-reboot at some point
+			// but gets tricky as the DescribeParameterGroups AWS call doesn't return this data
+			ApplyMethod:    "immediate",
 			ParameterName:  data["name"].(string),
 			ParameterValue: data["value"].(string),
 		}
@@ -192,9 +194,6 @@ func flattenParameters(list []rds.Parameter) []map[string]interface{} {
 		result = append(result, map[string]interface{}{
 				"name":         strings.ToLower(i.ParameterName),
 				"value":        strings.ToLower(i.ParameterValue),
-				// apply_method is only used on create/modify and is not returned when reading from AWS.
-				// This is a dummy value to print out as it's not used when doing the state diff for updating
-				"apply_method": "applied",
 			})
 	}
 	return result

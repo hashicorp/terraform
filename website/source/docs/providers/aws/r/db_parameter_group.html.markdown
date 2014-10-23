@@ -19,13 +19,11 @@ resource "aws_db_parameter_group" "default" {
   	parameter {
    	  name = "character_set_server"
    	  value = "utf8"
-   	  apply_method = "immediate"
    	}
    	
    	parameter {
       name = "character_set_client"
       value = "utf8"
-      apply_method = "immediate"
     }
 }
 ```
@@ -43,7 +41,6 @@ Parameter blocks support the following:
 
 * `name` - (Required) The name of the DB parameter.
 * `value` - (Required) The value of the DB parameter.
-* `apply_method` - (Required) Indicates when to apply parameter updates. Either immediate or pending-reboot.
 
 ## Attributes Reference
 

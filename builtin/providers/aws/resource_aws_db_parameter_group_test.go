@@ -199,17 +199,14 @@ resource "aws_db_parameter_group" "bar" {
 	parameter {
 	  name = "character_set_server"
 	  value = "utf8"
-	  apply_method = "immediate"
 	}
 	parameter {
 	  name = "character_set_client"
 	  value = "utf8"
-	  apply_method = "immediate"
 	}
 	parameter{
 	  name = "character_set_results"
 	  value = "utf8"
-	  apply_method = "immediate"
 	}
 }
 `
@@ -222,27 +219,22 @@ resource "aws_db_parameter_group" "bar" {
 	parameter {
 	  name = "character_set_server"
 	  value = "utf8"
-	  apply_method = "immediate"
 	}
 	parameter {
 	  name = "character_set_client"
 	  value = "utf8"
-	  apply_method = "immediate"
 	}
 	parameter{
 	  name = "character_set_results"
 	  value = "utf8"
-	  apply_method = "immediate"
 	}
 	parameter {
 	  name = "collation_server"
 	  value = "utf8_unicode_ci"
-	  apply_method = "immediate"
 	}
 	parameter {
 	  name = "collation_connection"
 	  value = "utf8_unicode_ci"
-	  apply_method = "immediate"
 	}
 }
 `
