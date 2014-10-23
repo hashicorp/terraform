@@ -12,7 +12,6 @@ import (
 )
 
 func resourceAwsAutoscalingGroup() *schema.Resource {
-	fmt.Println("HELLO WORLD")
 	return &schema.Resource{
 		Create: resourceAwsAutoscalingGroupCreate,
 		Read:   resourceAwsAutoscalingGroupRead,
