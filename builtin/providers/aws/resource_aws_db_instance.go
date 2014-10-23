@@ -347,6 +347,8 @@ func resource_aws_db_instance_validation() *config.Validator {
 			"security_group_names.*",
 			"db_subnet_group_name",
 			"parameter_group_name",
+			"skip_final_snapshot",
+			"final_snapshot_identifier",
 		},
 	}
 }
