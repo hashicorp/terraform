@@ -1,10 +1,12 @@
 package aws
 
 import (
+	"bytes"
 	"fmt"
 	"log"
 	"time"
 
+	"github.com/hashicorp/terraform/helper/hashcode"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/mitchellh/goamz/rds"
@@ -14,7 +16,7 @@ func resourceAwsDbParameterGroup() *schema.Resource {
 	return &schema.Resource{
 		Create: resourceAwsDbParameterGroupCreate,
 		Read:   resourceAwsDbParameterGroupRead,
-		Update: nil,
+		Update: resourceAwsDbParameterGroupUpdate,
 		Delete: resourceAwsDbParameterGroupDelete,
 		Schema: map[string]*schema.Schema{
 			"name": &schema.Schema{
@@ -33,7 +35,7 @@ func resourceAwsDbParameterGroup() *schema.Resource {
 				ForceNew: true,
 			},
 			"parameter": &schema.Schema{
-				Type:     schema.TypeList,
+				Type:     schema.TypeSet,
 				Optional: true,
 				ForceNew: true,
 				Elem: &schema.Resource{
@@ -52,9 +54,19 @@ func resourceAwsDbParameterGroup() *schema.Resource {
 						},
 					},
 				},
+				Set: resourceAwsDbParameterHash,
 			},
 		},
 	}
+}
+
+func resourceAwsDbParameterHash(v interface{}) int {
+	var buf bytes.Buffer
+	m := v.(map[string]interface{})
+	buf.WriteString(fmt.Sprintf("%s-", m["name"].(string)))
+	buf.WriteString(fmt.Sprintf("%s-", m["value"].(string)))
+
+	return hashcode.String(buf.String())
 }
 
 func resourceAwsDbParameterGroupCreate(d *schema.ResourceData, meta interface{}) error {
@@ -76,26 +88,46 @@ func resourceAwsDbParameterGroupCreate(d *schema.ResourceData, meta interface{})
 	d.SetId(createOpts.DBParameterGroupName)
 	log.Printf("[INFO] DB Parameter Group ID: %s", d.Id())
 
-	if d.Get("parameter") != "" {
+	return resourceAwsDbParameterGroupUpdate(d, meta)
+}
+
+func resourceAwsDbParameterGroupUpdate(d *schema.ResourceData, meta interface{}) error {
+	p := meta.(*ResourceProvider)
+	rdsconn := p.rdsconn
+
+	if d.HasChange("parameter") {
+		o, n := d.GetChange("parameter")
+		if o == nil {
+			o = new(schema.Set)
+		}
+		if n == nil {
+			n = new(schema.Set)
+		}
+
+		os := o.(*schema.Set)
+		ns := n.(*schema.Set)
+
 		// Expand the "parameter" set to goamz compat []rds.Parameter
-		parameters, err := expandParameters(d.Get("parameter").([]interface{}))
+		parameters, err := expandParameters(ns.Difference(os).List())
 		if err != nil {
 			return err
 		}
 
-		modifyOpts := rds.ModifyDBParameterGroup{
-			DBParameterGroupName:   d.Get("name").(string),
-			Parameters:             parameters,
-		}
+		if len(parameters) > 0 {
+			modifyOpts := rds.ModifyDBParameterGroup{
+				DBParameterGroupName:   d.Get("name").(string),
+				Parameters:             parameters,
+			}
 
-		log.Printf("[DEBUG] Modify DB Parameter Group: %#v", modifyOpts)
-		_, err = rdsconn.ModifyDBParameterGroup(&modifyOpts)
-		if err != nil {
-			return fmt.Errorf("Error modifying DB Parameter Group: %s", err)
+			log.Printf("[DEBUG] Modify DB Parameter Group: %#v", modifyOpts)
+			_, err = rdsconn.ModifyDBParameterGroup(&modifyOpts)
+			if err != nil {
+				return fmt.Errorf("Error modifying DB Parameter Group: %s", err)
+			}
 		}
 	}
 
-	return resourceAwsDbParameterGroupRead(d, meta)
+	return nil
 }
 
 func resourceAwsDbParameterGroupDelete(d *schema.ResourceData, meta interface{}) error {

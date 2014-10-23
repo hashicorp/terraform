@@ -294,16 +294,8 @@ func Test_flattenParameters(t *testing.T) {
 					ParameterName:  "character_set_client",
 					ParameterValue: "utf8",
 				},
-				rds.Parameter{
-					ParameterName:  "character_set_aaaclient",
-					ParameterValue: "utf8",
-				},
 			},
 			Output: []map[string]interface{}{
-				map[string]interface{}{
-					"name":  "character_set_aaaclient",
-					"value": "utf8",
-				},
 				map[string]interface{}{
 					"name":  "character_set_client",
 					"value": "utf8",
