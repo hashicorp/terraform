@@ -121,7 +121,7 @@ func resource_aws_db_instance_create(
 		Pending:    []string{"creating", "backing-up", "modifying"},
 		Target:     "available",
 		Refresh:    DBInstanceStateRefreshFunc(rs.ID, conn),
-		Timeout:    10 * time.Minute,
+		Timeout:    20 * time.Minute,
 		MinTimeout: 10 * time.Second,
 		Delay:      30 * time.Second, // Wait 30 secs before starting
 	}
@@ -175,7 +175,7 @@ func resource_aws_db_instance_destroy(
 			"modifying", "deleting", "available"},
 		Target:     "",
 		Refresh:    DBInstanceStateRefreshFunc(s.ID, conn),
-		Timeout:    10 * time.Minute,
+		Timeout:    20 * time.Minute,
 		MinTimeout: 10 * time.Second,
 		Delay:      30 * time.Second, // Wait 30 secs before starting
 	}
