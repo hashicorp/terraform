@@ -2,6 +2,8 @@
 layout: "docs"
 page_title: "Plugin Basics"
 sidebar_current: "docs-plugins-basics"
+description: |-
+  This page documents the basics of how the plugin system in Terraform works, and how to setup a basic development environment for plugin development if you're writing a Terraform plugin.
 ---
 
 # Plugin Basics
@@ -10,12 +12,10 @@ This page documents the basics of how the plugin system in Terraform
 works, and how to setup a basic development environment for plugin development
 if you're writing a Terraform plugin.
 
-<div class="alert alert-block alert-warning">
-<strong>Advanced topic!</strong> Plugin development is a highly advanced
+~> **Advanced topic!** Plugin development is a highly advanced
 topic in Terraform, and is not required knowledge for day-to-day usage.
 If you don't plan on writing any plugins, we recommend not reading
 this section of the documentation.
-</div>
 
 ## How it Works
 
@@ -68,12 +68,10 @@ Developing a plugin is simple. The only knowledge necessary to write
 a plugin is basic command-line skills and basic knowledge of the
 [Go programming language](http://golang.org).
 
-<div class="alert alert-block alert-info">
-<strong>Note:</strong> A common pitfall is not properly setting up a
+-> **Note:** A common pitfall is not properly setting up a
 <code>$GOPATH</code>. This can lead to strange errors. You can read more about
-this <a href="https://golang.org/doc/code.html">here</a> to familiarize
+this [here](https://golang.org/doc/code.html) to familiarize
 yourself.
-</div>
 
 Create a new Go project somewhere in your `$GOPATH`. If you're a
 GitHub user, we recommend creating the project in the directory

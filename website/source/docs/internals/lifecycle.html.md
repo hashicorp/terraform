@@ -2,6 +2,8 @@
 layout: "docs"
 page_title: "Resource Lifecycle"
 sidebar_current: "docs-internals-lifecycle"
+description: |-
+  Resources have a strict lifecycle, and can be thought of as basic state machines. Understanding this lifecycle can help better understand how Terraform generates an execution plan, how it safely executes that plan, and what the resource provider is doing throughout all of this.
 ---
 
 # Resource Lifecycle
@@ -11,13 +13,11 @@ state machines. Understanding this lifecycle can help better understand
 how Terraform generates an execution plan, how it safely executes that
 plan, and what the resource provider is doing throughout all of this.
 
-<div class="alert alert-block alert-warning">
-<strong>Advanced Topic!</strong> This page covers technical details
+~> **Advanced Topic!** This page covers technical details
 of Terraform. You don't need to understand these details to
 effectively use Terraform. The details are documented here for
 those who wish to learn about them without having to go
 spelunking through the source code.
-</div>
 
 ## Lifecycle
 

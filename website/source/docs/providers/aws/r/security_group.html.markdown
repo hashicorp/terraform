@@ -2,6 +2,8 @@
 layout: "aws"
 page_title: "AWS: aws_security_group"
 sidebar_current: "docs-aws-resource-security-group"
+description: |-
+  Provides an security group resource.
 ---
 
 # aws\_security\_group
@@ -10,17 +12,39 @@ Provides an security group resource.
 
 ## Example Usage
 
+Basic usage
+
 ```
 resource "aws_security_group" "allow_all" {
-    name = "allow_all"
+  name = "allow_all"
 	description = "Allow all inbound traffic"
 
-    ingress {
-        from_port = 0
-        to_port = 65535
-        protocol = "tcp"
-        cidr_blocks = ["0.0.0.0/0"]
-    }
+  ingress {
+      from_port = 0
+      to_port = 65535
+      protocol = "tcp"
+      cidr_blocks = ["0.0.0.0/0"]
+  }
+}
+```
+
+Basic usage with tags:
+
+```
+resource "aws_security_group" "allow_all" {
+  name = "allow_all"
+  description = "Allow all inbound traffic"
+
+  ingress {
+      from_port = 0
+      to_port = 65535
+      protocol = "tcp"
+      cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  tags {
+    Name = "allow_all"
+  }
 }
 ```
 
@@ -44,6 +68,7 @@ The `ingress` block supports:
 * `self` - (Optional) If true, the security group itself will be added as
      a source to this ingress rule.
 * `to_port` - (Required) The end range port.
+* `tags` - (Optional) A mapping of tags to assign to the resource.
 
 ## Attributes Reference
 
@@ -55,4 +80,3 @@ The following attributes are exported:
 * `name` - The name of the security group
 * `description` - The description of the security group
 * `ingress` - The ingress rules. See above for more.
-

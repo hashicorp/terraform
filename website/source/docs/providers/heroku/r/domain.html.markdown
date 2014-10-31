@@ -2,6 +2,8 @@
 layout: "heroku"
 page_title: "Heroku: heroku_domain"
 sidebar_current: "docs-heroku-resource-domain"
+description: |-
+  Provides a Heroku App resource. This can be used to create and manage applications on Heroku.
 ---
 
 # heroku\_domain

@@ -276,6 +276,34 @@ func testAccCheckAWSSecurityGroupAttributes(group *ec2.SecurityGroupInfo) resour
 	}
 }
 
+func TestAccAWSSecurityGroup_tags(t *testing.T) {
+	var group ec2.SecurityGroupInfo
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSSecurityGroupDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccAWSSecurityGroupConfigTags,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSSecurityGroupExists("aws_security_group.foo", &group),
+					testAccCheckTags(&group.Tags, "foo", "bar"),
+				),
+			},
+
+			resource.TestStep{
+				Config: testAccAWSSecurityGroupConfigTagsUpdate,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSSecurityGroupExists("aws_security_group.foo", &group),
+					testAccCheckTags(&group.Tags, "foo", ""),
+					testAccCheckTags(&group.Tags, "bar", "baz"),
+				),
+			},
+		},
+	})
+}
+
 func testAccCheckAWSSecurityGroupAttributesChanged(group *ec2.SecurityGroupInfo) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		p := []ec2.IPPerm{
@@ -430,5 +458,21 @@ resource "aws_security_group" "web" {
         to_port = 8000
         security_groups = ["${aws_security_group.worker.id}"]
     }
+}
+`
+
+const testAccAWSSecurityGroupConfigTags = `
+resource "aws_security_group" "foo" {
+	tags {
+		foo = "bar"
+	}
+}
+`
+
+const testAccAWSSecurityGroupConfigTagsUpdate = `
+resource "aws_security_group" "foo" {
+	tags {
+		bar = "baz"
+	}
 }
 `

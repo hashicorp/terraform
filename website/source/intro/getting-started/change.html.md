@@ -2,6 +2,8 @@
 layout: "intro"
 page_title: "Change Infrastructure"
 sidebar_current: "gettingstarted-change"
+description: |-
+  In the previous page, you created your first infrastructure with Terraform: a single EC2 instance. In this page, we're going to modify that resource, and see how Terraform handles change.
 ---
 
 # Change Infrastructure

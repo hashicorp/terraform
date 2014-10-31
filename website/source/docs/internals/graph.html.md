@@ -2,6 +2,8 @@
 layout: "docs"
 page_title: "Resource Graph"
 sidebar_current: "docs-internals-graph"
+description: |-
+  Terraform builds a dependency graph from the Terraform configurations, and walks this graph to generate plans, refresh state, and more. This page documents the details of what are contained in this graph, what types of nodes there are, and how the edges of the graph are determined.
 ---
 
 # Resource Graph
@@ -13,13 +15,11 @@ generate plans, refresh state, and more. This page documents
 the details of what are contained in this graph, what types
 of nodes there are, and how the edges of the graph are determined.
 
-<div class="alert alert-block alert-warning">
-<strong>Advanced Topic!</strong> This page covers technical details
+~> **Advanced Topic!** This page covers technical details
 of Terraform. You don't need to understand these details to
 effectively use Terraform. The details are documented here for
 those who wish to learn about them without having to go
 spelunking through the source code.
-</div>
 
 ## Graph Nodes
 

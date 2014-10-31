@@ -5,6 +5,8 @@ import (
 	"testing"
 
 	"github.com/hashicorp/terraform/flatmap"
+	"github.com/hashicorp/terraform/helper/hashcode"
+	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/mitchellh/goamz/ec2"
 	"github.com/mitchellh/goamz/elb"
 )
@@ -33,16 +35,20 @@ func testConf() map[string]string {
 }
 
 func Test_expandIPPerms(t *testing.T) {
+	hash := func(v interface{}) int {
+		return hashcode.String(v.(string))
+	}
+
 	expanded := []interface{}{
 		map[string]interface{}{
 			"protocol":    "icmp",
 			"from_port":   1,
 			"to_port":     -1,
 			"cidr_blocks": []interface{}{"0.0.0.0/0"},
-			"security_groups": []interface{}{
+			"security_groups": schema.NewSet(hash, []interface{}{
 				"sg-11111",
 				"foo/sg-22222",
-			},
+			}),
 		},
 		map[string]interface{}{
 			"protocol":  "icmp",
@@ -61,11 +67,11 @@ func Test_expandIPPerms(t *testing.T) {
 			SourceIPs: []string{"0.0.0.0/0"},
 			SourceGroups: []ec2.UserSecurityGroup{
 				ec2.UserSecurityGroup{
-					Id: "sg-11111",
-				},
-				ec2.UserSecurityGroup{
 					OwnerId: "foo",
 					Id:      "sg-22222",
+				},
+				ec2.UserSecurityGroup{
+					Id: "sg-11111",
 				},
 			},
 		},

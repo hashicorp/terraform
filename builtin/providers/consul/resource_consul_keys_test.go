@@ -30,7 +30,7 @@ func TestAccConsulKeys(t *testing.T) {
 
 func testAccCheckConsulKeysDestroy(s *terraform.State) error {
 	kv := testAccProvider.Meta().(*consulapi.Client).KV()
-	opts := &consulapi.QueryOptions{Datacenter: "nyc1"}
+	opts := &consulapi.QueryOptions{Datacenter: "nyc3"}
 	pair, _, err := kv.Get("test/set", opts)
 	if err != nil {
 		return err
@@ -44,7 +44,7 @@ func testAccCheckConsulKeysDestroy(s *terraform.State) error {
 func testAccCheckConsulKeysExists() resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		kv := testAccProvider.Meta().(*consulapi.Client).KV()
-		opts := &consulapi.QueryOptions{Datacenter: "nyc1"}
+		opts := &consulapi.QueryOptions{Datacenter: "nyc3"}
 		pair, _, err := kv.Get("test/set", opts)
 		if err != nil {
 			return err
@@ -78,7 +78,7 @@ func testAccCheckConsulKeysValue(n, attr, val string) resource.TestCheckFunc {
 
 const testAccConsulKeysConfig = `
 resource "consul_keys" "app" {
-	datacenter = "nyc1"
+	datacenter = "nyc3"
 	key {
 		name = "time"
 		path = "global/time"

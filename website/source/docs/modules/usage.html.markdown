@@ -2,6 +2,7 @@
 layout: "docs"
 page_title: "Using Modules"
 sidebar_current: "docs-modules-usage"
+description: Using modules in Terraform is very similar to defining resources.
 ---
 
 # Module Usage
@@ -91,13 +92,13 @@ For example, with a configuration similar to what we've built above, here
 is what the graph output looks like by default:
 
 <div class="center">
-<%= image_tag "docs/module_graph.png" %>
+![Terraform Module Graph](images/docs/module_graph.png)
 </div>
 
 But if we set `-module-depth=-1`, the graph will look like this:
 
 <div class="center">
-<%= image_tag "docs/module_graph_expand.png" %>
+![Terraform Expanded Module Graph](images/docs/module_graph_expand.png)
 </div>
 
 Other commands work similarly with modules. Note that the `-module-depth`

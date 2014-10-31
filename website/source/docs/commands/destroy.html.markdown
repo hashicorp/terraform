@@ -2,6 +2,8 @@
 layout: "docs"
 page_title: "Command: destroy"
 sidebar_current: "docs-commands-destroy"
+description: |-
+  The `terraform destroy` command is used to destroy the Terraform-managed infrastructure.
 ---
 
 # Command: destroy

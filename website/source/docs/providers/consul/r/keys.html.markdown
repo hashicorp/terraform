@@ -2,6 +2,8 @@
 layout: "consul"
 page_title: "Consul: consul_keys"
 sidebar_current: "docs-consul-resource-keys"
+description: |-
+  Provides access to Key/Value data in Consul. This can be used to both read keys from Consul, but also to set the value of keys in Consul. This is a powerful way dynamically set values in templates, and to expose infrastructure details to clients.
 ---
 
 # consul\_keys

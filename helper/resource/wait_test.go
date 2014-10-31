@@ -37,3 +37,26 @@ func TestRetry_timeout(t *testing.T) {
 		t.Fatal("should error")
 	}
 }
+
+func TestRetry_error(t *testing.T) {
+	t.Parallel()
+
+	expected := fmt.Errorf("nope")
+	f := func() error {
+		return RetryError{expected}
+	}
+
+	errCh := make(chan error)
+	go func() {
+		errCh <- Retry(1*time.Second, f)
+	}()
+
+	select {
+	case err := <-errCh:
+		if err != expected {
+			t.Fatalf("bad: %#v", err)
+		}
+	case <-time.After(5 * time.Second):
+		t.Fatal("timeout")
+	}
+}

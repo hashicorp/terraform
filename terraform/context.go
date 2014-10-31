@@ -531,6 +531,14 @@ func (c *walkContext) Walk() error {
 	outputs := make(map[string]string)
 	for _, o := range conf.Outputs {
 		if err := c.computeVars(o.RawConfig, nil); err != nil {
+			// If we're refreshing, then we ignore output errors. This is
+			// properly not fully the correct behavior, but fixes a range
+			// of issues right now. As we expand test cases to find the
+			// correct behavior, this will likely be removed.
+			if c.Operation == walkRefresh {
+				continue
+			}
+
 			return err
 		}
 		vraw := o.RawConfig.Config()["value"]
@@ -600,6 +608,7 @@ func (c *walkContext) inputWalkFn() depgraph.WalkFunc {
 				raw = sharedProvider.Config.RawConfig
 			}
 			rc := NewResourceConfig(raw)
+			rc.Config = make(map[string]interface{})
 
 			// Wrap the input into a namespace
 			input := &PrefixUIInput{
@@ -617,8 +626,8 @@ func (c *walkContext) inputWalkFn() depgraph.WalkFunc {
 					return fmt.Errorf(
 						"Error configuring %s: %s", k, err)
 				}
-				if newc != nil {
-					configs[k] = newc.Raw
+				if newc != nil && len(newc.Config) > 0 {
+					configs[k] = newc.Config
 				}
 			}
 
@@ -700,7 +709,7 @@ func (c *walkContext) applyWalkFn() depgraph.WalkFunc {
 		// We create a new instance if there was no ID
 		// previously or the diff requires re-creating the
 		// underlying instance
-		createNew := is.ID == "" || diff.RequiresNew()
+		createNew := (is.ID == "" && !diff.Destroy) || diff.RequiresNew()
 
 		// With the completed diff, apply!
 		log.Printf("[DEBUG] %s: Executing Apply", r.Id)
@@ -1034,18 +1043,20 @@ func (c *walkContext) validateWalkFn() depgraph.WalkFunc {
 				// Interpolate the count and verify it is non-negative
 				rc := NewResourceConfig(rn.Config.RawCount)
 				rc.interpolate(c, rn.Resource)
-				count, err := rn.Config.Count()
-				if err == nil {
-					if count < 0 {
-						err = fmt.Errorf(
-							"%s error: count must be positive", rn.Resource.Id)
+				if !rc.IsComputed(rn.Config.RawCount.Key) {
+					count, err := rn.Config.Count()
+					if err == nil {
+						if count < 0 {
+							err = fmt.Errorf(
+								"%s error: count must be positive", rn.Resource.Id)
+						}
 					}
-				}
-				if err != nil {
-					l.Lock()
-					defer l.Unlock()
-					meta.Errs = append(meta.Errs, err)
-					return nil
+					if err != nil {
+						l.Lock()
+						defer l.Unlock()
+						meta.Errs = append(meta.Errs, err)
+						return nil
+					}
 				}
 
 				return c.genericWalkResource(rn, walkFn)
@@ -1201,9 +1212,17 @@ func (c *walkContext) genericWalkFn(cb genericWalkFunc) depgraph.WalkFunc {
 			}
 
 			for k, p := range sharedProvider.Providers {
-				// Merge the configurations to get what we use to configure with
+				// Interpolate our own configuration before merging
+				if sharedProvider.Config != nil {
+					rc := NewResourceConfig(sharedProvider.Config.RawConfig)
+					rc.interpolate(c, nil)
+				}
+
+				// Merge the configurations to get what we use to configure
+				// with. We don't need to interpolate this because the
+				// lines above verify that all parents are interpolated
+				// properly.
 				rc := sharedProvider.MergeConfig(false, cs[k])
-				rc.interpolate(c, nil)
 
 				log.Printf("[INFO] Configuring provider: %s", k)
 				err := p.Configure(rc)
@@ -1268,6 +1287,20 @@ func (c *walkContext) genericWalkResource(
 	// Interpolate the count
 	rc := NewResourceConfig(rn.Config.RawCount)
 	rc.interpolate(c, rn.Resource)
+
+	// If we're validating, then we set the count to 1 if it is computed
+	if c.Operation == walkValidate {
+		if key := rn.Config.RawCount.Key; rc.IsComputed(key) {
+			// Preserve the old value so that we reset it properly
+			old := rn.Config.RawCount.Raw[key]
+			defer func() {
+				rn.Config.RawCount.Raw[key] = old
+			}()
+
+			// Set th count to 1 for validation purposes
+			rn.Config.RawCount.Raw[key] = "1"
+		}
+	}
 
 	// Expand the node to the actual resources
 	g, err := rn.Expand()
@@ -1515,7 +1548,7 @@ func (c *walkContext) computeVars(
 				continue
 			}
 
-			if c.Operation == walkValidate {
+			if _, ok := vs[n]; !ok && c.Operation == walkValidate {
 				vs[n] = config.UnknownVariableValue
 				continue
 			}
@@ -1578,17 +1611,23 @@ func (c *walkContext) computeResourceVariable(
 	// Get the relevant module
 	module := c.Context.state.ModuleByPath(c.Path)
 
-	r, ok := module.Resources[id]
-	if !ok {
-		if v.Multi && v.Index == 0 {
+	var r *ResourceState
+	if module != nil {
+		var ok bool
+		r, ok = module.Resources[id]
+		if !ok && v.Multi && v.Index == 0 {
 			r, ok = module.Resources[v.ResourceId()]
 		}
 		if !ok {
-			return "", fmt.Errorf(
-				"Resource '%s' not found for variable '%s'",
-				id,
-				v.FullKey())
+			r = nil
 		}
+	}
+
+	if r == nil {
+		return "", fmt.Errorf(
+			"Resource '%s' not found for variable '%s'",
+			id,
+			v.FullKey())
 	}
 
 	if r.Primary == nil {

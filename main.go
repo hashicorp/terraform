@@ -84,6 +84,9 @@ func realMain() int {
 
 func wrappedMain() int {
 	log.SetOutput(os.Stderr)
+	log.Printf(
+		"[INFO] Terraform version: %s %s %s",
+		Version, VersionPrerelease, GitCommit)
 
 	// Load the configuration
 	config := BuiltinConfig

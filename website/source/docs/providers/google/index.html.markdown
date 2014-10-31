@@ -2,6 +2,8 @@
 layout: "google"
 page_title: "Provider: Google Cloud"
 sidebar_current: "docs-google-index"
+description: |-
+  The Google Cloud provider is used to interact with Google Cloud services. The provider needs to be configured with the proper credentials before it can be used.
 ---
 
 # Google Cloud Provider

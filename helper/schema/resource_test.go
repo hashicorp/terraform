@@ -95,6 +95,77 @@ func TestResourceApply_destroy(t *testing.T) {
 	}
 }
 
+func TestResourceApply_destroyCreate(t *testing.T) {
+	r := &Resource{
+		Schema: map[string]*Schema{
+			"foo": &Schema{
+				Type:     TypeInt,
+				Optional: true,
+			},
+
+			"tags": &Schema{
+				Type:     TypeMap,
+				Optional: true,
+				Computed: true,
+			},
+		},
+	}
+
+	change := false
+	r.Create = func(d *ResourceData, m interface{}) error {
+		change = d.HasChange("tags")
+		d.SetId("foo")
+		return nil
+	}
+	r.Delete = func(d *ResourceData, m interface{}) error {
+		return nil
+	}
+
+	var s *terraform.InstanceState = &terraform.InstanceState{
+		ID: "bar",
+		Attributes: map[string]string{
+			"foo":       "bar",
+			"tags.Name": "foo",
+		},
+	}
+
+	d := &terraform.InstanceDiff{
+		Attributes: map[string]*terraform.ResourceAttrDiff{
+			"foo": &terraform.ResourceAttrDiff{
+				New:         "42",
+				RequiresNew: true,
+			},
+			"tags.Name": &terraform.ResourceAttrDiff{
+				Old:         "foo",
+				New:         "foo",
+				RequiresNew: true,
+			},
+		},
+	}
+
+	actual, err := r.Apply(s, d, nil)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	if !change {
+		t.Fatal("should have change")
+	}
+
+	expected := &terraform.InstanceState{
+		ID: "foo",
+		Attributes: map[string]string{
+			"id":        "foo",
+			"foo":       "42",
+			"tags.Name": "foo",
+		},
+	}
+
+	if !reflect.DeepEqual(actual, expected) {
+		t.Fatalf("bad: %#v", actual)
+	}
+}
+
 func TestResourceApply_destroyPartial(t *testing.T) {
 	r := &Resource{
 		Schema: map[string]*Schema{

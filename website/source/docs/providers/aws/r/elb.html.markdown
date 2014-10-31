@@ -2,6 +2,8 @@
 layout: "aws"
 page_title: "AWS: aws_elb"
 sidebar_current: "docs-aws-resource-elb"
+description: |-
+  Provides an Elastic Load Balancer resource.
 ---
 
 # aws\_elb
@@ -28,7 +30,7 @@ resource "aws_elb" "bar" {
     instance_protocol = "http"
     lb_port = 443
     lb_protocol = "https"
-    ssl_certificate_id = "arn:aws:iam::123456789012:server-certificate/certName" 
+    ssl_certificate_id = "arn:aws:iam::123456789012:server-certificate/certName"
   }
 
   health_check {

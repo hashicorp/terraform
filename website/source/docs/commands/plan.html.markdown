@@ -2,6 +2,8 @@
 layout: "docs"
 page_title: "Command: plan"
 sidebar_current: "docs-commands-plan"
+description: |-
+  The `terraform plan` command is used to create an execution plan. Terraform performs a refresh, unless explicitly disabled, and then determines what actions are necessary to achieve the desired state specified in the configuration files. The plan can be saved using `-out`, and then provided to `terraform apply` to ensure only the pre-planned actions are executed.
 ---
 
 # Command: plan

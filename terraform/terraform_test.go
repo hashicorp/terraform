@@ -228,6 +228,17 @@ const testTerraformApplyCountTaintedStr = `
 <no state>
 `
 
+const testTerraformApplyCountVariableStr = `
+aws_instance.foo.0:
+  ID = foo
+  foo = foo
+  type = aws_instance
+aws_instance.foo.1:
+  ID = foo
+  foo = foo
+  type = aws_instance
+`
+
 const testTerraformApplyMinimalStr = `
 aws_instance.bar:
   ID = foo

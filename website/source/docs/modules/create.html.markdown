@@ -2,6 +2,8 @@
 layout: "docs"
 page_title: "Creating Modules"
 sidebar_current: "docs-modules-create"
+description: |-
+  Creating modules in Terraform is easy. You may want to do this to better organize your code, to make a reusable component, or just to learn more about Terraform. For any reason, if you already know the basics of Terraform, creating a module is a piece of cake.
 ---
 
 # Creating Modules

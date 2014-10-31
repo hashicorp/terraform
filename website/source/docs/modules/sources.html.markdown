@@ -2,6 +2,8 @@
 layout: "docs"
 page_title: "Module Sources"
 sidebar_current: "docs-modules-sources"
+description: |-
+  As documented in usage, the only required parameter when using a module is the `source` paramter which tells Terraform where the module can be found and what constraints to put on the module if any (such as branches for git, versions, etc.).
 ---
 
 # Module Sources

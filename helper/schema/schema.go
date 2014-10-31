@@ -205,7 +205,7 @@ func (m schemaMap) Diff(
 	}
 
 	for k, schema := range m {
-		err := m.diff(k, schema, result, d)
+		err := m.diff(k, schema, result, d, false)
 		if err != nil {
 			return nil, err
 		}
@@ -225,7 +225,7 @@ func (m schemaMap) Diff(
 
 		// Perform the diff again
 		for k, schema := range m {
-			err := m.diff(k, schema, result2, d)
+			err := m.diff(k, schema, result2, d, false)
 			if err != nil {
 				return nil, err
 			}
@@ -346,7 +346,7 @@ func (m schemaMap) Input(
 				"%s: %s", k, err)
 		}
 
-		c.Raw[k] = value
+		c.Config[k] = value
 	}
 
 	return c, nil
@@ -427,7 +427,8 @@ func (m schemaMap) diff(
 	k string,
 	schema *Schema,
 	diff *terraform.InstanceDiff,
-	d *ResourceData) error {
+	d *ResourceData,
+	all bool) error {
 	var err error
 	switch schema.Type {
 	case TypeBool:
@@ -435,13 +436,13 @@ func (m schemaMap) diff(
 	case TypeInt:
 		fallthrough
 	case TypeString:
-		err = m.diffString(k, schema, diff, d)
+		err = m.diffString(k, schema, diff, d, all)
 	case TypeList:
-		err = m.diffList(k, schema, diff, d)
+		err = m.diffList(k, schema, diff, d, all)
 	case TypeMap:
-		err = m.diffMap(k, schema, diff, d)
+		err = m.diffMap(k, schema, diff, d, all)
 	case TypeSet:
-		err = m.diffSet(k, schema, diff, d)
+		err = m.diffSet(k, schema, diff, d, all)
 	default:
 		err = fmt.Errorf("%s: unknown type %#v", k, schema.Type)
 	}
@@ -453,7 +454,8 @@ func (m schemaMap) diffList(
 	k string,
 	schema *Schema,
 	diff *terraform.InstanceDiff,
-	d *ResourceData) error {
+	d *ResourceData,
+	all bool) error {
 	o, n, _, computedList := d.diffChange(k)
 	nSet := n != nil
 
@@ -481,7 +483,7 @@ func (m schemaMap) diffList(
 	// If the new value was set, and the two are equal, then we're done.
 	// We have to do this check here because sets might be NOT
 	// reflect.DeepEqual so we need to wait until we get the []interface{}
-	if nSet && reflect.DeepEqual(os, vs) {
+	if !all && nSet && reflect.DeepEqual(os, vs) {
 		return nil
 	}
 
@@ -502,7 +504,7 @@ func (m schemaMap) diffList(
 	// If the counts are not the same, then record that diff
 	changed := oldLen != newLen
 	computed := oldLen == 0 && newLen == 0 && schema.Computed
-	if changed || computed {
+	if changed || computed || all {
 		countSchema := &Schema{
 			Type:     TypeInt,
 			Computed: schema.Computed,
@@ -539,7 +541,7 @@ func (m schemaMap) diffList(
 		// just diff each.
 		for i := 0; i < maxLen; i++ {
 			subK := fmt.Sprintf("%s.%d", k, i)
-			err := m.diff(subK, &t2, diff, d)
+			err := m.diff(subK, &t2, diff, d, all)
 			if err != nil {
 				return err
 			}
@@ -549,7 +551,7 @@ func (m schemaMap) diffList(
 		for i := 0; i < maxLen; i++ {
 			for k2, schema := range t.Schema {
 				subK := fmt.Sprintf("%s.%d.%s", k, i, k2)
-				err := m.diff(subK, schema, diff, d)
+				err := m.diff(subK, schema, diff, d, all)
 				if err != nil {
 					return err
 				}
@@ -566,8 +568,8 @@ func (m schemaMap) diffMap(
 	k string,
 	schema *Schema,
 	diff *terraform.InstanceDiff,
-	d *ResourceData) error {
-	//elemSchema := &Schema{Type: TypeString}
+	d *ResourceData,
+	all bool) error {
 	prefix := k + "."
 
 	// First get all the values from the state
@@ -580,12 +582,17 @@ func (m schemaMap) diffMap(
 		return fmt.Errorf("%s: %s", k, err)
 	}
 
+	// If the new map is nil and we're computed, then ignore it.
+	if n == nil && schema.Computed {
+		return nil
+	}
+
 	// Now we compare, preferring values from the config map
 	for k, v := range configMap {
 		old := stateMap[k]
 		delete(stateMap, k)
 
-		if old == v {
+		if old == v && !all {
 			continue
 		}
 
@@ -608,15 +615,35 @@ func (m schemaMap) diffSet(
 	k string,
 	schema *Schema,
 	diff *terraform.InstanceDiff,
-	d *ResourceData) error {
-	return m.diffList(k, schema, diff, d)
+	d *ResourceData,
+	all bool) error {
+	if !all {
+		// This is a bit strange, but we expect the entire set to be in the diff,
+		// so we first diff the set normally but with a new diff. Then, if
+		// there IS any change, we just set the change to the entire list.
+		tempD := new(terraform.InstanceDiff)
+		tempD.Attributes = make(map[string]*terraform.ResourceAttrDiff)
+		if err := m.diffList(k, schema, tempD, d, false); err != nil {
+			return err
+		}
+
+		// If we had no changes, then we're done
+		if tempD.Empty() {
+			return nil
+		}
+	}
+
+	// We have changes, so re-run the diff, but set a flag to force
+	// getting all diffs, even if there is no change.
+	return m.diffList(k, schema, diff, d, true)
 }
 
 func (m schemaMap) diffString(
 	k string,
 	schema *Schema,
 	diff *terraform.InstanceDiff,
-	d *ResourceData) error {
+	d *ResourceData,
+	all bool) error {
 	var originalN interface{}
 	var os, ns string
 	o, n, _, _ := d.diffChange(k)
@@ -641,7 +668,7 @@ func (m schemaMap) diffString(
 		return fmt.Errorf("%s: %s", k, err)
 	}
 
-	if os == ns {
+	if os == ns && !all {
 		// They're the same value. If there old value is not blank or we
 		// have an ID, then return right away since we're already setup.
 		if os != "" || d.Id() != "" {
@@ -767,6 +794,44 @@ func (m schemaMap) validateList(
 	return ws, es
 }
 
+func (m schemaMap) validateMap(
+	k string,
+	raw interface{},
+	schema *Schema,
+	c *terraform.ResourceConfig) ([]string, []error) {
+	// We use reflection to verify the slice because you can't
+	// case to []interface{} unless the slice is exactly that type.
+	rawV := reflect.ValueOf(raw)
+	switch rawV.Kind() {
+	case reflect.Map:
+	case reflect.Slice:
+	default:
+		return nil, []error{fmt.Errorf(
+			"%s: should be a map", k)}
+	}
+
+	// If it is not a slice, it is valid
+	if rawV.Kind() != reflect.Slice {
+		return nil, nil
+	}
+
+	// It is a slice, verify that all the elements are maps
+	raws := make([]interface{}, rawV.Len())
+	for i, _ := range raws {
+		raws[i] = rawV.Index(i).Interface()
+	}
+
+	for _, raw := range raws {
+		v := reflect.ValueOf(raw)
+		if v.Kind() != reflect.Map {
+			return nil, []error{fmt.Errorf(
+				"%s: should be a map", k)}
+		}
+	}
+
+	return nil, nil
+}
+
 func (m schemaMap) validateObject(
 	k string,
 	schema map[string]*Schema,
@@ -819,14 +884,32 @@ func (m schemaMap) validatePrimitive(
 	}
 
 	switch schema.Type {
+	case TypeSet:
+		fallthrough
 	case TypeList:
 		return m.validateList(k, raw, schema, c)
+	case TypeMap:
+		return m.validateMap(k, raw, schema, c)
+	case TypeBool:
+		// Verify that we can parse this as the correct type
+		var n bool
+		if err := mapstructure.WeakDecode(raw, &n); err != nil {
+			return nil, []error{err}
+		}
 	case TypeInt:
 		// Verify that we can parse this as an int
 		var n int
 		if err := mapstructure.WeakDecode(raw, &n); err != nil {
 			return nil, []error{err}
 		}
+	case TypeString:
+		// Verify that we can parse this as a string
+		var n string
+		if err := mapstructure.WeakDecode(raw, &n); err != nil {
+			return nil, []error{err}
+		}
+	default:
+		panic(fmt.Sprintf("Unknown validation type: %s", schema.Type))
 	}
 
 	return nil, nil

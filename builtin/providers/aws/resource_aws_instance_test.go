@@ -64,8 +64,6 @@ func TestAccAWSInstance_normal(t *testing.T) {
 	})
 }
 
-
-
 func TestAccAWSInstance_sourceDestCheck(t *testing.T) {
 	var v ec2.Instance
 

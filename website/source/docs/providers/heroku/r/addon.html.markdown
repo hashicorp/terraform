@@ -2,6 +2,8 @@
 layout: "heroku"
 page_title: "Heroku: heroku_addon"
 sidebar_current: "docs-heroku-resource-addon"
+description: |-
+  Provides a Heroku Add-On resource. These can be attach services to a Heroku app.
 ---
 
 # heroku\_addon

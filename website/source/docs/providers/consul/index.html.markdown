@@ -2,6 +2,8 @@
 layout: "consul"
 page_title: "Provider: Consul"
 sidebar_current: "docs-consul-index"
+description: |-
+  Consul is a tool for service discovery, configuration and orchestration. The Consul provider exposes resources used to interact with a Consul cluster. Configuration of the provider is optional, as it provides defaults for all arguments.
 ---
 
 # Consul Provider

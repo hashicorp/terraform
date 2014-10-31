@@ -2,6 +2,8 @@
 layout: "mailgun"
 page_title: "Mailgun: mailgun_domain"
 sidebar_current: "docs-mailgun-resource-domain"
+description: |-
+  Provides a Mailgun App resource. This can be used to create and manage applications on Mailgun.
 ---
 
 # mailgun\_domain

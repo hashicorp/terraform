@@ -2,6 +2,8 @@
 layout: "docs"
 page_title: "Command: init"
 sidebar_current: "docs-commands-init"
+description: |-
+  The `terraform init` command is used to initialize a Terraform configuration using another module as a skeleton.
 ---
 
 # Command: init

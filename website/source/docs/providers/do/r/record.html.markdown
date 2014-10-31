@@ -2,6 +2,8 @@
 layout: "digitalocean"
 page_title: "DigitalOcean: digitalocean_record"
 sidebar_current: "docs-do-resource-record"
+description: |-
+  Provides a DigitalOcean domain resource.
 ---
 
 # digitalocean\_record

@@ -14,6 +14,17 @@ type Set struct {
 	once sync.Once
 }
 
+// NewSet is a convenience method for creating a new set with the given
+// items.
+func NewSet(f SchemaSetFunc, items []interface{}) *Set {
+	s := &Set{F: f}
+	for _, i := range items {
+		s.Add(i)
+	}
+
+	return s
+}
+
 // Add adds an item to the set if it isn't already in the set.
 func (s *Set) Add(item interface{}) {
 	s.add(item)

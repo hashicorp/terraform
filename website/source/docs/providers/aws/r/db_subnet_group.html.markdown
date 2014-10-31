@@ -2,6 +2,8 @@
 layout: "aws"
 page_title: "AWS: aws_db_subnet_group"
 sidebar_current: "docs-aws-resource-db-subnet-group"
+description: |-
+  Provides an RDS DB subnet group resource.
 ---
 
 # aws\_db\_subnet\_group

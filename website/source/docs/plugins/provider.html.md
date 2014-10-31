@@ -2,6 +2,8 @@
 layout: "docs"
 page_title: "Provider Plugins"
 sidebar_current: "docs-plugins-provider"
+description: |-
+  A provider in Terraform is responsible for the lifecycle of a resource: create, read, update, delete. An example of a provider is AWS, which can manage resources of type `aws_instance`, `aws_eip`, `aws_elb`, etc.
 ---
 
 # Provider Plugins
@@ -20,12 +22,10 @@ The primary reasons to care about provider plugins are:
   * You want to write a completely new provider for custom, internal
     systems such as a private inventory management system.
 
-<div class="alert alert-block alert-warning">
-<strong>Advanced topic!</strong> Plugin development is a highly advanced
+~> **Advanced topic!** Plugin development is a highly advanced
 topic in Terraform, and is not required knowledge for day-to-day usage.
 If you don't plan on writing any plugins, we recommend not reading
 this section of the documentation.
-</div>
 
 If you're interested in provider development, then read on. The remainder
 of this page will assume you're familiar with
@@ -182,7 +182,7 @@ The parameter to provider configuration as well as all the CRUD operations
 on a resource is a
 [schema.ResourceData](http://godoc.org/github.com/hashicorp/terraform/helper/schema#ResourceData).
 This structure is used to query configurations as well as to set information
-about the resource such as it's ID, connection information, and computed
+about the resource such as its ID, connection information, and computed
 attributes.
 
 The API documentation covers ResourceData well, as well as the core providers

@@ -2,6 +2,8 @@
 layout: "intro"
 page_title: "Installing Terraform"
 sidebar_current: "gettingstarted-install"
+description: |-
+  Terraform must first be installed on your machine. Terraform is distributed as a binary package for all supported platforms and architecture. This page will not cover how to compile Terraform from source.
 ---
 
 # Install Terraform

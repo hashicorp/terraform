@@ -59,11 +59,14 @@ func resourceAwsElb() *schema.Resource {
 
 			// TODO: could be not ForceNew
 			"subnets": &schema.Schema{
-				Type:     schema.TypeList,
+				Type:     schema.TypeSet,
 				Elem:     &schema.Schema{Type: schema.TypeString},
 				Optional: true,
 				ForceNew: true,
 				Computed: true,
+				Set: func(v interface{}) int {
+					return hashcode.String(v.(string))
+				},
 			},
 
 			// TODO: could be not ForceNew
@@ -200,7 +203,7 @@ func resourceAwsElbCreate(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	if v, ok := d.GetOk("subnets"); ok {
-		elbOpts.Subnets = expandStringList(v.([]interface{}))
+		elbOpts.Subnets = expandStringList(v.(*schema.Set).List())
 	}
 
 	log.Printf("[DEBUG] ELB create configuration: %#v", elbOpts)

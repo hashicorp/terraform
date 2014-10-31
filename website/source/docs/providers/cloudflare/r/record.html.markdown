@@ -2,6 +2,8 @@
 layout: "cloudflare"
 page_title: "CloudFlare: cloudflare_record"
 sidebar_current: "docs-cloudflare-resource-record"
+description: |-
+  Provides a Cloudflare record resource.
 ---
 
 # cloudflare\_record

@@ -1,6 +1,6 @@
 GIT
   remote: git://github.com/hashicorp/middleman-hashicorp.git
-  revision: d884dbcc1be77ba2042b471b1423639c33296109
+  revision: 66e68bbb66eef195542bfb334bf0942df6da2c6e
   specs:
     middleman-hashicorp (0.1.0)
       bootstrap-sass (~> 3.2)
@@ -29,7 +29,7 @@ GEM
     builder (3.2.2)
     celluloid (0.16.0)
       timers (~> 4.0.0)
-    chunky_png (1.3.1)
+    chunky_png (1.3.2)
     coffee-script (2.3.0)
       coffee-script-source
       execjs
@@ -53,7 +53,7 @@ GEM
       http_parser.rb (~> 0.6.0)
     erubis (2.7.0)
     eventmachine (1.0.3)
-    execjs (2.2.1)
+    execjs (2.2.2)
     ffi (1.9.6)
     haml (4.0.5)
       tilt
@@ -113,11 +113,11 @@ GEM
       rouge (~> 1.0)
     minitest (5.4.2)
     multi_json (1.10.1)
-    padrino-helpers (0.12.3)
+    padrino-helpers (0.12.4)
       i18n (~> 0.6, >= 0.6.7)
-      padrino-support (= 0.12.3)
+      padrino-support (= 0.12.4)
       tilt (~> 1.4.1)
-    padrino-support (0.12.3)
+    padrino-support (0.12.4)
       activesupport (>= 3.1)
     rack (1.5.2)
     rack-contrib (1.1.0)
@@ -132,7 +132,7 @@ GEM
     redcarpet (3.2.0)
     ref (1.0.5)
     rouge (1.7.2)
-    sass (3.4.5)
+    sass (3.4.6)
     sprockets (2.12.2)
       hike (~> 1.2)
       multi_json (~> 1.0)

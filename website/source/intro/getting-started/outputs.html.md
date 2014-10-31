@@ -2,6 +2,8 @@
 layout: "intro"
 page_title: "Output Variables"
 sidebar_current: "gettingstarted-outputs"
+description: |-
+  In the previous section, we introduced input variables as a way to parameterize Terraform configurations. In this page, we introduce output variables as a way to organize data to be easily queried and shown back to the Terraform user.
 ---
 
 # Output Variables

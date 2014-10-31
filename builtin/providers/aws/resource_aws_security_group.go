@@ -66,14 +66,18 @@ func resourceAwsSecurityGroup() *schema.Resource {
 						},
 
 						"security_groups": &schema.Schema{
-							Type:     schema.TypeList,
+							Type:     schema.TypeSet,
 							Optional: true,
 							Elem:     &schema.Schema{Type: schema.TypeString},
+							Set: func(v interface{}) int {
+								return hashcode.String(v.(string))
+							},
 						},
 
 						"self": &schema.Schema{
 							Type:     schema.TypeBool,
 							Optional: true,
+							Default:  false,
 						},
 					},
 				},
@@ -84,6 +88,8 @@ func resourceAwsSecurityGroup() *schema.Resource {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
+
+			"tags": tagsSchema(),
 		},
 	}
 }
@@ -110,7 +116,7 @@ func resourceAwsSecurityGroupIngressHash(v interface{}) int {
 		}
 	}
 	if v, ok := m["security_groups"]; ok {
-		vs := v.([]interface{})
+		vs := v.(*schema.Set).List()
 		s := make([]string, len(vs))
 		for i, raw := range vs {
 			s[i] = raw.(string)
@@ -226,6 +232,12 @@ func resourceAwsSecurityGroupUpdate(d *schema.ResourceData, meta interface{}) er
 		}
 	}
 
+	if err := setTags(ec2conn, d); err != nil {
+		return err
+	} else {
+		d.SetPartial("tags")
+	}
+
 	return nil
 }
 
@@ -235,15 +247,28 @@ func resourceAwsSecurityGroupDelete(d *schema.ResourceData, meta interface{}) er
 
 	log.Printf("[DEBUG] Security Group destroy: %v", d.Id())
 
-	_, err := ec2conn.DeleteSecurityGroup(ec2.SecurityGroup{Id: d.Id()})
-	if err != nil {
-		ec2err, ok := err.(*ec2.Error)
-		if ok && ec2err.Code == "InvalidGroup.NotFound" {
-			return nil
-		}
-	}
+	return resource.Retry(5*time.Minute, func() error {
+		_, err := ec2conn.DeleteSecurityGroup(ec2.SecurityGroup{Id: d.Id()})
+		if err != nil {
+			ec2err, ok := err.(*ec2.Error)
+			if !ok {
+				return err
+			}
 
-	return err
+			switch ec2err.Code {
+			case "InvalidGroup.NotFound":
+				return nil
+			case "DependencyViolation":
+				// If it is a dependency violation, we want to retry
+				return err
+			default:
+				// Any other error, we want to quit the retry loop immediately
+				return resource.RetryError{err}
+			}
+		}
+
+		return nil
+	})
 }
 
 func resourceAwsSecurityGroupRead(d *schema.ResourceData, meta interface{}) error {
@@ -262,15 +287,28 @@ func resourceAwsSecurityGroupRead(d *schema.ResourceData, meta interface{}) erro
 	sg := sgRaw.(*ec2.SecurityGroupInfo)
 
 	// Gather our ingress rules
-	ingressRules := make([]map[string]interface{}, len(sg.IPPerms))
-	for i, perm := range sg.IPPerms {
-		n := make(map[string]interface{})
-		n["from_port"] = perm.FromPort
-		n["protocol"] = perm.Protocol
-		n["to_port"] = perm.ToPort
+	ingressMap := make(map[string]map[string]interface{})
+	for _, perm := range sg.IPPerms {
+		k := fmt.Sprintf("%s-%d-%d", perm.Protocol, perm.FromPort, perm.ToPort)
+		m, ok := ingressMap[k]
+		if !ok {
+			m = make(map[string]interface{})
+			ingressMap[k] = m
+		}
+
+		m["from_port"] = perm.FromPort
+		m["to_port"] = perm.ToPort
+		m["protocol"] = perm.Protocol
 
 		if len(perm.SourceIPs) > 0 {
-			n["cidr_blocks"] = perm.SourceIPs
+			raw, ok := m["cidr_blocks"]
+			if !ok {
+				raw = make([]string, 0, len(perm.SourceIPs))
+			}
+			list := raw.([]string)
+
+			list = append(list, perm.SourceIPs...)
+			m["cidr_blocks"] = list
 		}
 
 		var groups []string
@@ -280,14 +318,24 @@ func resourceAwsSecurityGroupRead(d *schema.ResourceData, meta interface{}) erro
 		for i, id := range groups {
 			if id == d.Id() {
 				groups[i], groups = groups[len(groups)-1], groups[:len(groups)-1]
-				n["self"] = true
+				m["self"] = true
 			}
 		}
-		if len(groups) > 0 {
-			n["security_groups"] = groups
-		}
 
-		ingressRules[i] = n
+		if len(groups) > 0 {
+			raw, ok := m["security_groups"]
+			if !ok {
+				raw = make([]string, 0, len(groups))
+			}
+			list := raw.([]string)
+
+			list = append(list, groups...)
+			m["security_groups"] = list
+		}
+	}
+	ingressRules := make([]map[string]interface{}, 0, len(ingressMap))
+	for _, m := range ingressMap {
+		ingressRules = append(ingressRules, m)
 	}
 
 	d.Set("description", sg.Description)
@@ -295,6 +343,7 @@ func resourceAwsSecurityGroupRead(d *schema.ResourceData, meta interface{}) erro
 	d.Set("vpc_id", sg.VpcId)
 	d.Set("owner_id", sg.OwnerId)
 	d.Set("ingress", ingressRules)
+	d.Set("tags", tagsToMap(sg.Tags))
 
 	return nil
 }

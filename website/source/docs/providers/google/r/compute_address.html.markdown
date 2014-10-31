@@ -2,6 +2,8 @@
 layout: "google"
 page_title: "Google: google_compute_address"
 sidebar_current: "docs-google-resource-address"
+description: |-
+  Creates a static IP address resource for Google Compute Engine.
 ---
 
 # google\_compute\_address

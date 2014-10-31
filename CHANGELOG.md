@@ -1,4 +1,16 @@
-## 0.3.1 (unreleased)
+## 0.3.2 (unreleased)
+
+
+
+## 0.3.1 (October 21, 2014)
+
+IMPROVEMENTS:
+
+  * providers/aws: Support tags for security groups.
+  * providers/google: Add "external\_address" to network attributes [GH-454]
+  * providers/google: External address is used as default connection host. [GH-454]
+  * providers/heroku: Support `locked` and `personal` booleans on organization
+      settings. [GH-406]
 
 BUG FIXES:
 
@@ -9,10 +21,34 @@ BUG FIXES:
       computed so the value is still unknown.
   * core: If a resource fails to create and has provisioners, it is
       marked as tainted. [GH-434]
+  * core: Set types are validated to be sets. [GH-413]
+  * core: String types are validated properly. [GH-460]
+  * core: Fix crash case when destroying with tainted resources. [GH-412]
+  * core: Don't execute provisioners in some cases on destroy.
+  * core: Inherited provider configurations will be properly interpolated. [GH-418]
+  * core: Refresh works properly if there are outputs that depend on resources
+      that aren't yet created. [GH-483]
   * providers/aws: Refresh of launch configs and autoscale groups load
       the correct data and don't incorrectly recreate themselves. [GH-425]
   * providers/aws: Fix case where ELB would incorrectly plan to modify
       listeners (with the same data) in some cases.
+  * providers/aws: Retry destroying internet gateway for some amount of time
+      if there is a dependency violation since it is probably just eventual
+      consistency (public facing resources being destroyed). [GH-447]
+  * providers/aws: Retry deleting security groups for some amount of time
+      if there is a dependency violation since it is probably just eventual
+      consistency. [GH-436]
+  * providers/aws: Retry deleting subnet for some amount of time if there is a
+      dependency violation since probably asynchronous destroy events take
+      place still. [GH-449]
+  * providers/aws: Drain autoscale groups before deleting. [GH-435]
+  * providers/aws: Fix crash case if launch config is manually deleted. [GH-421]
+  * providers/aws: Disassociate EIP before destroying.
+  * providers/aws: ELB treats subnets as a set.
+  * providers/aws: Fix case where in a destroy/create tags weren't reapplied. [GH-464]
+  * providers/aws: Fix incorrect/erroneous apply cases around security group
+      rules. [GH-457]
+  * providers/consul: Fix regression where `key` param changed to `keys. [GH-475]
 
 ## 0.3.0 (October 14, 2014)
 

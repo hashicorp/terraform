@@ -3,6 +3,7 @@ package aws
 import (
 	"strings"
 
+	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/mitchellh/goamz/ec2"
 	"github.com/mitchellh/goamz/elb"
 )
@@ -48,7 +49,7 @@ func expandIPPerms(id string, configured []interface{}) []ec2.IPPerm {
 
 		var groups []string
 		if raw, ok := m["security_groups"]; ok {
-			list := raw.([]interface{})
+			list := raw.(*schema.Set).List()
 			for _, v := range list {
 				groups = append(groups, v.(string))
 			}

@@ -2,6 +2,8 @@
 layout: "intro"
 page_title: "Modules"
 sidebar_current: "gettingstarted-modules"
+description: |-
+  Up to this point, we've been configuring Terraform by editing Terraform configurations directly. As our infrastructure grows, this practice has a few key problems: a lack of organization, a lack of reusability, and difficulties in management for teams.
 ---
 
 # Modules
@@ -19,16 +21,9 @@ This section of the getting started will cover the basics of using modules.
 Writing modules is covered in more detail in the
 [modules documentation](/docs/modules/index.html).
 
-<div class="alert alert-block alert-warning">
-<p>
-<strong>Warning:</strong> The examples on this page are
-<em>not eligible</em> for the
-AWS
-<a href="http://aws.amazon.com/free/">free-tier</a>. Do not execute
-the examples on this page unless you're willing to spend a small
-amount of money.
-</p>
-</div>
+~> **Warning!** The examples on this page are _**not** eligible_ for the AWS
+[free-tier](http://aws.amazon.com/free/). Do not execute the examples on this
+page unless you're willing to spend a small amount of money.
 
 ## Using Modules
 

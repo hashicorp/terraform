@@ -43,10 +43,11 @@ type getSource byte
 const (
 	getSourceState getSource = 1 << iota
 	getSourceConfig
-	getSourceDiff
 	getSourceSet
-	getSourceExact
-	getSourceMax = getSourceSet
+	getSourceExact               // Only get from the _exact_ level
+	getSourceDiff                // Apply the diff on top our level
+	getSourceLevelMask getSource = getSourceState | getSourceConfig | getSourceSet
+	getSourceMax       getSource = getSourceSet
 )
 
 // getResult is the internal structure that is generated when a Get
@@ -82,7 +83,7 @@ func (d *ResourceData) Get(key string) interface{} {
 // set and the new value is. This is common, for example, for boolean
 // fields which have a zero value of false.
 func (d *ResourceData) GetChange(key string) (interface{}, interface{}) {
-	o, n := d.getChange(key, getSourceConfig, getSourceDiff)
+	o, n := d.getChange(key, getSourceConfig, getSourceConfig|getSourceDiff)
 	return o.Value, n.Value
 }
 
@@ -93,7 +94,7 @@ func (d *ResourceData) GetChange(key string) (interface{}, interface{}) {
 // The first result will not necessarilly be nil if the value doesn't exist.
 // The second result should be checked to determine this information.
 func (d *ResourceData) GetOk(key string) (interface{}, bool) {
-	r := d.getRaw(key, getSourceSet)
+	r := d.getRaw(key, getSourceSet|getSourceDiff)
 	return r.Value, r.Exists
 }
 
@@ -289,12 +290,21 @@ func (d *ResourceData) getSet(
 	// entire set must come from set, diff, state, etc. So we go backwards
 	// and once we get a result, we take it. Or, we never get a result.
 	var raw getResult
-	for listSource := source; listSource > 0; listSource >>= 1 {
-		if source&getSourceExact != 0 && listSource != source {
+	sourceLevel := source & getSourceLevelMask
+	sourceFlags := source & ^getSourceLevelMask
+	for listSource := sourceLevel; listSource > 0; listSource >>= 1 {
+		// If we're already asking for an exact source and it doesn't
+		// match, then leave since the original source was the match.
+		if sourceFlags&getSourceExact != 0 && listSource != sourceLevel {
 			break
 		}
 
-		raw = d.getList(k, nil, schema, listSource|getSourceExact)
+		// The source we get from is the level we're on, plus the flags
+		// we had, plus the exact flag.
+		getSource := listSource
+		getSource |= sourceFlags
+		getSource |= getSourceExact
+		raw = d.getList(k, nil, schema, getSource)
 		if raw.Exists {
 			break
 		}
@@ -384,11 +394,13 @@ func (d *ResourceData) getMap(
 	resultSet := false
 	prefix := k + "."
 
-	exact := source&getSourceExact != 0
-	source &^= getSourceExact
+	flags := source & ^getSourceLevelMask
+	level := source & getSourceLevelMask
+	exact := flags&getSourceExact != 0
+	diff := flags&getSourceDiff != 0
 
-	if !exact || source == getSourceState {
-		if d.state != nil && source >= getSourceState {
+	if !exact || level == getSourceState {
+		if d.state != nil && level >= getSourceState {
 			for k, _ := range d.state.Attributes {
 				if !strings.HasPrefix(k, prefix) {
 					continue
@@ -401,7 +413,7 @@ func (d *ResourceData) getMap(
 		}
 	}
 
-	if d.config != nil && source == getSourceConfig {
+	if d.config != nil && level == getSourceConfig {
 		// For config, we always set the result to exactly what was requested
 		if mraw, ok := d.config.Get(k); ok {
 			result = make(map[string]interface{})
@@ -433,42 +445,47 @@ func (d *ResourceData) getMap(
 		}
 	}
 
-	if !exact || source == getSourceDiff {
-		if d.diff != nil && source >= getSourceDiff {
-			for k, v := range d.diff.Attributes {
-				if !strings.HasPrefix(k, prefix) {
-					continue
-				}
-				resultSet = true
+	if d.diff != nil && diff {
+		for k, v := range d.diff.Attributes {
+			if !strings.HasPrefix(k, prefix) {
+				continue
+			}
+			resultSet = true
 
-				single := k[len(prefix):]
+			single := k[len(prefix):]
 
-				if v.NewRemoved {
-					delete(result, single)
-				} else {
-					result[single] = d.getPrimitive(k, nil, elemSchema, source).Value
-				}
+			if v.NewRemoved {
+				delete(result, single)
+			} else {
+				result[single] = d.getPrimitive(k, nil, elemSchema, source).Value
 			}
 		}
 	}
 
-	if !exact || source == getSourceSet {
-		if d.setMap != nil && source >= getSourceSet {
+	if !exact || level == getSourceSet {
+		if d.setMap != nil && level >= getSourceSet {
 			cleared := false
-			for k, _ := range d.setMap {
-				if !strings.HasPrefix(k, prefix) {
-					continue
-				}
+			if v, ok := d.setMap[k]; ok && v == "" {
+				// We've cleared the map
+				result = make(map[string]interface{})
 				resultSet = true
+			} else {
+				for k, _ := range d.setMap {
+					if !strings.HasPrefix(k, prefix) {
+						continue
+					}
+					resultSet = true
 
-				if !cleared {
-					// We clear the results if they are in the set map
-					result = make(map[string]interface{})
-					cleared = true
+					if !cleared {
+						// We clear the results if they are in the set map
+						result = make(map[string]interface{})
+						cleared = true
+					}
+
+					single := k[len(prefix):]
+					result[single] = d.getPrimitive(
+						k, nil, elemSchema, source).Value
 				}
-
-				single := k[len(prefix):]
-				result[single] = d.getPrimitive(k, nil, elemSchema, source).Value
 			}
 		}
 	}
@@ -577,8 +594,10 @@ func (d *ResourceData) getPrimitive(
 	var result string
 	var resultProcessed interface{}
 	var resultComputed, resultSet bool
-	exact := source&getSourceExact != 0
-	source &^= getSourceExact
+	flags := source & ^getSourceLevelMask
+	source = source & getSourceLevelMask
+	exact := flags&getSourceExact != 0
+	diff := flags&getSourceDiff != 0
 
 	if !exact || source == getSourceState {
 		if d.state != nil && source >= getSourceState {
@@ -604,28 +623,26 @@ func (d *ResourceData) getPrimitive(
 		resultComputed = d.config.IsComputed(k)
 	}
 
-	if !exact || source == getSourceDiff {
-		if d.diff != nil && source >= getSourceDiff {
-			attrD, ok := d.diff.Attributes[k]
-			if ok {
-				if !attrD.NewComputed {
-					result = attrD.New
-					if attrD.NewExtra != nil {
-						// If NewExtra != nil, then we have processed data as the New,
-						// so we store that but decode the unprocessed data into result
-						resultProcessed = result
+	if d.diff != nil && diff {
+		attrD, ok := d.diff.Attributes[k]
+		if ok {
+			if !attrD.NewComputed {
+				result = attrD.New
+				if attrD.NewExtra != nil {
+					// If NewExtra != nil, then we have processed data as the New,
+					// so we store that but decode the unprocessed data into result
+					resultProcessed = result
 
-						err := mapstructure.WeakDecode(attrD.NewExtra, &result)
-						if err != nil {
-							panic(err)
-						}
+					err := mapstructure.WeakDecode(attrD.NewExtra, &result)
+					if err != nil {
+						panic(err)
 					}
-
-					resultSet = true
-				} else {
-					result = ""
-					resultSet = false
 				}
+
+				resultSet = true
+			} else {
+				result = ""
+				resultSet = false
 			}
 		}
 	}
@@ -773,14 +790,6 @@ func (d *ResourceData) setMapValue(
 		return fmt.Errorf("%s: full map must be set, no a single element", k)
 	}
 
-	// Delete any prior map set
-	/*
-		v := d.getMap(k, nil, schema, getSourceSet)
-		for subKey, _ := range v.(map[string]interface{}) {
-			delete(d.setMap, fmt.Sprintf("%s.%s", k, subKey))
-		}
-	*/
-
 	v := reflect.ValueOf(value)
 	if v.Kind() != reflect.Map {
 		return fmt.Errorf("%s: must be a map", k)
@@ -794,6 +803,13 @@ func (d *ResourceData) setMapValue(
 		vs[mk.String()] = mv.Interface()
 	}
 
+	if len(vs) == 0 {
+		// The empty string here means the map is removed.
+		d.setMap[k] = ""
+		return nil
+	}
+
+	delete(d.setMap, k)
 	for subKey, v := range vs {
 		err := d.set(fmt.Sprintf("%s.%s", k, subKey), nil, elemSchema, v)
 		if err != nil {
@@ -1101,14 +1117,14 @@ func (d *ResourceData) stateSingle(
 func (d *ResourceData) stateSource(prefix string) getSource {
 	// If we're not doing a partial apply, then get the set level
 	if !d.partial {
-		return getSourceSet
+		return getSourceSet | getSourceDiff
 	}
 
 	// Otherwise, only return getSourceSet if its in the partial map.
 	// Otherwise we use state level only.
 	for k, _ := range d.partialMap {
 		if strings.HasPrefix(prefix, k) {
-			return getSourceSet
+			return getSourceSet | getSourceDiff
 		}
 	}
 

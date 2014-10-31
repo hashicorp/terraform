@@ -2,6 +2,8 @@
 layout: "dnsimple"
 page_title: "DNSimple: dnsimple_record"
 sidebar_current: "docs-dnsimple-resource-record"
+description: |-
+  Provides a DNSimple record resource.
 ---
 
 # dnsimple\_record

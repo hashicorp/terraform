@@ -95,17 +95,40 @@ func resourceHerokuApp() *schema.Resource {
 			},
 
 			"organization": &schema.Schema{
-				Type:        schema.TypeString,
 				Description: "Name of Organization to create application in. Leave blank for personal apps.",
+				Type:        schema.TypeList,
 				Optional:    true,
 				ForceNew:    true,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"name": &schema.Schema{
+							Type:     schema.TypeString,
+							Required: true,
+						},
+
+						"locked": &schema.Schema{
+							Type:     schema.TypeBool,
+							Optional: true,
+						},
+
+						"personal": &schema.Schema{
+							Type:     schema.TypeBool,
+							Optional: true,
+						},
+					},
+				},
 			},
 		},
 	}
 }
 
 func switchHerokuAppCreate(d *schema.ResourceData, meta interface{}) error {
-	if _, ok := d.GetOk("organization"); ok {
+	orgCount := d.Get("organization.#").(int)
+	if orgCount > 1 {
+		return fmt.Errorf("Error Creating Heroku App: Only 1 Heroku Organization is permitted")
+	}
+
+	if _, ok := d.GetOk("organization.0.name"); ok {
 		return resourceHerokuOrgAppCreate(d, meta)
 	} else {
 		return resourceHerokuAppCreate(d, meta)
@@ -157,12 +180,26 @@ func resourceHerokuOrgAppCreate(d *schema.ResourceData, meta interface{}) error 
 	client := meta.(*heroku.Service)
 	// Build up our creation options
 	opts := heroku.OrganizationAppCreateOpts{}
-	if v, ok := d.GetOk("organization"); ok {
+
+	if v := d.Get("organization.0.name"); v != nil {
 		vs := v.(string)
-		log.Printf("[DEBUG] App name: %s", vs)
+		log.Printf("[DEBUG] Organization name: %s", vs)
 		opts.Organization = &vs
 	}
-	if v, ok := d.GetOk("name"); ok {
+
+	if v := d.Get("organization.0.personal"); v != nil {
+		vs := v.(bool)
+		log.Printf("[DEBUG] Organization Personal: %s", vs)
+		opts.Personal = &vs
+	}
+
+	if v := d.Get("organization.0.locked"); v != nil {
+		vs := v.(bool)
+		log.Printf("[DEBUG] Organization locked: %s", vs)
+		opts.Locked = &vs
+	}
+
+	if v := d.Get("name"); v != nil {
 		vs := v.(string)
 		log.Printf("[DEBUG] App name: %s", vs)
 		opts.Name = &vs

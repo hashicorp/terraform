@@ -2,6 +2,8 @@
 layout: "intro"
 page_title: "Introduction"
 sidebar_current: "what"
+description: |-
+  Welcome to the intro guide to Terraform! This guide is the best place to start with Terraform. We cover what Terraform is, what problems it can solve, how it compares to existing software, and contains a quick start for using Terraform.
 ---
 
 # Introduction to Terraform

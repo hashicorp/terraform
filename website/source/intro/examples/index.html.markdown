@@ -2,6 +2,8 @@
 layout: "intro"
 page_title: "Example Configurations"
 sidebar_current: "examples"
+description: |-
+  These examples are designed to help you understand some of the ways Terraform can be used.
 ---
 
 # Example Configurations
@@ -14,14 +16,10 @@ ask for input of things such as variables and API keys. If you want to
 conitnue using the example, you should save those parameters in a
 "terraform.tfvars" file or in a `provider` config bock.
 
-<div class="alert alert-block alert-warning">
-<div>
-<strong>Note:</strong> The examples use real providers that launch
-<em>real</em> resources. That means they can cost money to
-experiment with. To avoid unexpected charges, be sure to understand the price
-of resources before launching them, and verify any unneeded resources
-are cleaned up afterwards.</div>
-</div>
+~> **Warning!** The examples use real providers that launch _real_ resources.
+That means they can cost money to experiment with. To avoid unexpected charges,
+be sure to understand the price of resources before launching them, and verify
+any unneeded resources are cleaned up afterwards.
 
 Experimenting in this way can help you learn how the Terraform lifecycle
 works, as well as how to repeatedly create and destroy infrastructure.

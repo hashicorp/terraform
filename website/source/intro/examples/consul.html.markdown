@@ -2,6 +2,8 @@
 layout: "intro"
 page_title: "Consul Example"
 sidebar_current: "examples-consul"
+description: |-
+  Consul is a tool for service discovery, configuration and orchestration. The Key/Value store it provides is often used to store application configuration and information about the infrastructure necessary to process requests.
 ---
 
 # Consul Example
