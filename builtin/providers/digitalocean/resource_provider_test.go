@@ -25,9 +25,16 @@ func TestResourceProvider_impl(t *testing.T) {
 
 func TestResourceProvider_Configure(t *testing.T) {
 	rp := new(ResourceProvider)
+	var expectedToken string
+
+	if v := os.Getenv("DIGITALOCEAN_TOKEN"); v != "foo" {
+		expectedToken = v
+	} else {
+		expectedToken = "foo"
+	}
 
 	raw := map[string]interface{}{
-		"token": "foo",
+		"token": expectedToken,
 	}
 
 	rawConfig, err := config.NewRawConfig(raw)
@@ -41,7 +48,7 @@ func TestResourceProvider_Configure(t *testing.T) {
 	}
 
 	expected := Config{
-		Token: "foo",
+		Token: expectedToken,
 	}
 
 	if !reflect.DeepEqual(rp.Config, expected) {
