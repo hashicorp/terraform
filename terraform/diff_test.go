@@ -97,7 +97,7 @@ func TestModuleDiff_ChangeType(t *testing.T) {
 	for i, tc := range cases {
 		actual := tc.Diff.ChangeType()
 		if actual != tc.Result {
-			t.Fatalf("%d: %s", i, actual)
+			t.Fatalf("%d: %#v", i, actual)
 		}
 	}
 }
@@ -232,7 +232,7 @@ func TestInstanceDiff_ChangeType(t *testing.T) {
 	for i, tc := range cases {
 		actual := tc.Diff.ChangeType()
 		if actual != tc.Result {
-			t.Fatalf("%d: %s", i, actual)
+			t.Fatalf("%d: %#v", i, actual)
 		}
 	}
 }

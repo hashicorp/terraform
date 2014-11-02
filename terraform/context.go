@@ -175,7 +175,7 @@ func (c *Context) Input(mode InputMode) error {
 			case config.VariableTypeString:
 				// Good!
 			default:
-				panic(fmt.Sprintf("Unknown variable type: %s", v.Type()))
+				panic(fmt.Sprintf("Unknown variable type: %#v", v.Type()))
 			}
 
 			var defaultString string
@@ -483,7 +483,7 @@ func (c *walkContext) Walk() error {
 	case walkValidate:
 		walkFn = c.validateWalkFn()
 	default:
-		panic(fmt.Sprintf("unknown operation: %s", c.Operation))
+		panic(fmt.Sprintf("unknown operation: %#v", c.Operation))
 	}
 
 	if err := g.Walk(walkFn); err != nil {

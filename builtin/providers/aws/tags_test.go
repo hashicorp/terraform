@@ -53,10 +53,10 @@ func TestDiffTags(t *testing.T) {
 		cm := tagsToMap(c)
 		rm := tagsToMap(r)
 		if !reflect.DeepEqual(cm, tc.Create) {
-			t.Fatalf("%i: bad create: %#v", i, cm)
+			t.Fatalf("%d: bad create: %#v", i, cm)
 		}
 		if !reflect.DeepEqual(rm, tc.Remove) {
-			t.Fatalf("%i: bad remove: %#v", i, rm)
+			t.Fatalf("%d: bad remove: %#v", i, rm)
 		}
 	}
 }
