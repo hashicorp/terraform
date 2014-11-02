@@ -123,8 +123,8 @@ func testAccCheckDigitalOceanDropletAttributes(droplet *digitalocean.Droplet) re
 			return fmt.Errorf("Bad image_slug: %s", droplet.ImageSlug())
 		}
 
-		if droplet.SizeSlug() != "512mb" {
-			return fmt.Errorf("Bad size_slug: %s", droplet.SizeSlug())
+		if droplet.SizeSlug != "512mb" {
+			return fmt.Errorf("Bad size_slug: %s", droplet.SizeSlug)
 		}
 
 		if droplet.RegionSlug() != "nyc3" {
@@ -141,8 +141,8 @@ func testAccCheckDigitalOceanDropletAttributes(droplet *digitalocean.Droplet) re
 func testAccCheckDigitalOceanDropletRenamedAndResized(droplet *digitalocean.Droplet) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 
-		if droplet.SizeSlug() != "1gb" {
-			return fmt.Errorf("Bad size_slug: %s", droplet.SizeSlug())
+		if droplet.SizeSlug != "1gb" {
+			return fmt.Errorf("Bad size_slug: %s", droplet.SizeSlug)
 		}
 
 		if droplet.Name != "baz" {
@@ -160,8 +160,8 @@ func testAccCheckDigitalOceanDropletAttributes_PrivateNetworkingIpv6(droplet *di
 			return fmt.Errorf("Bad image_slug: %s", droplet.ImageSlug())
 		}
 
-		if droplet.SizeSlug() != "1gb" {
-			return fmt.Errorf("Bad size_slug: %s", droplet.SizeSlug())
+		if droplet.SizeSlug != "1gb" {
+			return fmt.Errorf("Bad size_slug: %s", droplet.SizeSlug)
 		}
 
 		if droplet.RegionSlug() != "sgp1" {
