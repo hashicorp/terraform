@@ -287,6 +287,7 @@ resource "aws_instance" "foo" {
 	instance_type = "m1.small"
 	subnet_id = "${aws_subnet.foo.id}"
 	associate_public_ip_address = true
+	tenancy = "dedicated"
 }
 `
 
