@@ -54,6 +54,16 @@ func (s *Set) List() []interface{} {
 	return result
 }
 
+// RawList returns the unordered elements of this set in slice format.
+func (s *Set) rawList() []interface{} {
+	var result []interface{}
+	for _, v := range s.m {
+		result = append(result, v)
+	}
+
+	return result
+}
+
 // Differences performs a set difference of the two sets, returning
 // a new third set that has only the elements unique to this set.
 func (s *Set) Difference(other *Set) *Set {

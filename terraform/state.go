@@ -495,6 +495,30 @@ func (i *InstanceState) deepcopy() *InstanceState {
 	return n
 }
 
+// GetPartialState looks up a partial state by key and returns a new
+// *InstanceState.
+//
+// This function is used to make sensable diffs for set items.
+func (s *InstanceState) GetPartialState(subK string) *InstanceState {
+	n := &InstanceState{
+		ID:         subK,
+		Attributes: make(map[string]string),
+	}
+	if s == nil {
+		return n
+	}
+	for k, v := range s.Attributes {
+		if strings.HasPrefix(k, subK) {
+			if k != subK {
+				k = strings.TrimPrefix(k[len(subK):], ".")
+			}
+			n.Attributes[k] = v
+		}
+	}
+
+	return n
+}
+
 // MergeDiff takes a ResourceDiff and merges the attributes into
 // this resource state in order to generate a new state. This new
 // state can be used to provide updated attribute lookups for

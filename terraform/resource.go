@@ -128,6 +128,39 @@ func (c *ResourceConfig) Get(k string) (interface{}, bool) {
 	return c.get(k, c.Raw)
 }
 
+// GetPartialConfig looks up a partial configuration by key and returns
+// a new *ResourceConfig.
+//
+// This function is used to make sensable diffs for set items.
+func (c *ResourceConfig) GetPartialConfig(k string) (*ResourceConfig, error) {
+	// Get the item config from the current ResourceConfig
+	result, _ := c.Get(k)
+
+	if result == nil {
+		return &ResourceConfig{}, nil
+	}
+
+	// If the result is a []interface{}, it first needs to be converted to a
+	// map[string]interface{}
+	switch result.(type) {
+	case []interface{}:
+		r := make(map[string]interface{})
+		for i, v := range result.([]interface{}) {
+			r[strconv.Itoa(i)] = v
+		}
+		result = r
+	}
+
+	// Create a new RawConfig
+	raw, err := config.NewRawConfig(result.(map[string]interface{}))
+	if err != nil {
+		return nil, err
+	}
+
+	// Return a new ResourceConfig
+	return NewResourceConfig(raw), nil
+}
+
 // IsComputed returns whether the given key is computed or not.
 func (c *ResourceConfig) IsComputed(k string) bool {
 	_, ok := c.get(k, c.Config)
