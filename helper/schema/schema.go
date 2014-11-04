@@ -617,25 +617,190 @@ func (m schemaMap) diffSet(
 	diff *terraform.InstanceDiff,
 	d *ResourceData,
 	all bool) error {
-	if !all {
-		// This is a bit strange, but we expect the entire set to be in the diff,
-		// so we first diff the set normally but with a new diff. Then, if
-		// there IS any change, we just set the change to the entire list.
-		tempD := new(terraform.InstanceDiff)
-		tempD.Attributes = make(map[string]*terraform.ResourceAttrDiff)
-		if err := m.diffList(k, schema, tempD, d, false); err != nil {
-			return err
+	o, n, _, computedSet := d.diffChange(k)
+	nSet := n != nil
+
+	// If we have an old value, but no new value set but we're computed,
+	// then nothing has changed.
+	if o != nil && n == nil && schema.Computed {
+		return nil
+	}
+
+	if o == nil {
+		o = &Set{F: schema.Set}
+	}
+	if n == nil {
+		n = &Set{F: schema.Set}
+	}
+	os := o.(*Set)
+	ns := n.(*Set)
+
+	// If the new value was set, compare the listCode's to determine if
+	// the two are equal. Comparing listCode's instead of the actuall values
+	// is needed because there could be computed values in the set which
+	// would result in false positives while comparing.
+	if !all && nSet && reflect.DeepEqual(os.listCode(), ns.listCode()) {
+		return nil
+	}
+
+	// Get the counts
+	oldLen := os.Len()
+	newLen := ns.Len()
+	oldStr := strconv.FormatInt(int64(oldLen), 10)
+
+	// If the whole list is computed, then say that the # is computed
+	if computedSet {
+		diff.Attributes[k+".#"] = &terraform.ResourceAttrDiff{
+			Old:         oldStr,
+			NewComputed: true,
+		}
+		return nil
+	}
+
+	// If the counts are not the same, then record that diff
+	changed := oldLen != newLen
+	computed := oldLen == 0 && newLen == 0 && schema.Computed
+	if changed || computed || all {
+		countSchema := &Schema{
+			Type:     TypeInt,
+			Computed: schema.Computed,
+			ForceNew: schema.ForceNew,
 		}
 
-		// If we had no changes, then we're done
-		if tempD.Empty() {
-			return nil
+		newStr := ""
+		if !computed {
+			newStr = strconv.FormatInt(int64(newLen), 10)
+		} else {
+			oldStr = ""
+		}
+
+		diff.Attributes[k+".#"] = countSchema.finalizeDiff(&terraform.ResourceAttrDiff{
+			Old: oldStr,
+			New: newStr,
+		})
+	}
+
+	// Build the set from all the items using the given hash code
+	oIndexMap := make(map[int]int)
+	s := &Set{F: schema.Set}
+	for i, v := range os.List() {
+		code := s.add(v)
+		oIndexMap[code] = i
+	}
+
+	// Build the set from all the items using the given hash code
+	// based on the raw order of the set
+	nIndexMap := make(map[int]int)
+	s = &Set{F: schema.Set}
+	for i, v := range ns.rawList() {
+		code := s.add(v)
+		nIndexMap[code] = i
+	}
+
+	var count int
+	for i, code := range os.Union(ns).listCode() {
+		var ok bool
+		var o, n int
+
+		if o, ok = oIndexMap[code]; !ok {
+			o = len(oIndexMap)
+		}
+		if n, ok = nIndexMap[code]; !ok {
+			n = len(nIndexMap)
+		}
+
+		k1 := fmt.Sprintf("%s.%d", k, o)
+		k2 := fmt.Sprintf("%s.%d", k, n)
+		idx := strconv.Itoa(i)
+
+		err := m.diffItem(k, k1, k2, idx, &count, schema, diff, d, all)
+		if err != nil {
+			return err
 		}
 	}
 
-	// We have changes, so re-run the diff, but set a flag to force
-	// getting all diffs, even if there is no change.
-	return m.diffList(k, schema, diff, d, true)
+	return nil
+}
+
+func (m schemaMap) diffItem(
+	k string,
+	k1 string,
+	k2 string,
+	idx string,
+	count *int,
+	schema *Schema,
+	diff *terraform.InstanceDiff,
+	d *ResourceData,
+	all bool) (err error) {
+
+	tempD := new(terraform.InstanceDiff)
+	tempD.Attributes = make(map[string]*terraform.ResourceAttrDiff)
+	r := &ResourceData{
+		diff:    tempD,
+		diffing: d.diffing,
+	}
+
+	switch t := schema.Elem.(type) {
+	case *Schema:
+		// Set the remaining ResourceDate info
+		r.schema = map[string]*Schema{idx: t}
+		r.state = d.state.GetPartialState(k)
+		r.config, err = d.config.GetPartialConfig(k)
+		if err != err {
+			return err
+		}
+
+		// This is just a primitive element, so just diff it
+		err = m.diff(idx, t, tempD, r, all)
+		if err != nil {
+			return err
+		}
+
+		// If the diff is empty just return as there are no changes
+		if tempD.Empty() {
+			return nil
+		}
+
+		// Merge the temp diff with the to the main diff
+		for subK, v := range tempD.Attributes {
+			k := fmt.Sprintf("%s.%s", k, subK)
+			diff.Attributes[k] = v
+		}
+	case *Resource:
+		// Set the remaining ResourceDate info
+		r.schema = t.Schema
+		r.state = d.state.GetPartialState(k1)
+		r.config, err = d.config.GetPartialConfig(k2)
+		if err != err {
+			return err
+		}
+
+		// This is a complex resource
+		for k, schema := range t.Schema {
+			err := m.diff(k, schema, tempD, r, all)
+			if err != nil {
+				return err
+			}
+		}
+
+		// If the diff is empty just return as there are no changes
+		if tempD.Empty() {
+			return nil
+		}
+
+		// Merge the temp diff with the to the main diff
+		for subK, v := range tempD.Attributes {
+			k := fmt.Sprintf("%s.%d.%s", k, *count, subK)
+			diff.Attributes[k] = v
+		}
+
+		// Increase the count of changed items
+		*count++
+	default:
+		return fmt.Errorf("%s: unknown element type (internal)", k)
+	}
+
+	return nil
 }
 
 func (m schemaMap) diffString(
