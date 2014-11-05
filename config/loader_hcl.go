@@ -17,11 +17,12 @@ type hclConfigurable struct {
 
 func (t *hclConfigurable) Config() (*Config, error) {
 	validKeys := map[string]struct{}{
-		"module":   struct{}{},
-		"output":   struct{}{},
-		"provider": struct{}{},
-		"resource": struct{}{},
-		"variable": struct{}{},
+		"module":            struct{}{},
+		"output":            struct{}{},
+		"provider":          struct{}{},
+		"resource":          struct{}{},
+		"resource_template": struct{}{},
+		"variable":          struct{}{},
 	}
 
 	type hclVariable struct {
@@ -83,6 +84,19 @@ func (t *hclConfigurable) Config() (*Config, error) {
 	if providers := t.Object.Get("provider", false); providers != nil {
 		var err error
 		config.ProviderConfigs, err = loadProvidersHcl(providers)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	// Build the resource templates
+	if resourceTemplates := t.Object.Get(
+		"resource_template",
+		false); resourceTemplates != nil {
+
+		var err error
+		config.ResourceTemplates, err = loadResourceTemplatesHcl(
+		resourceTemplates)
 		if err != nil {
 			return nil, err
 		}
@@ -395,12 +409,178 @@ func loadResourcesHcl(os *hclobj.Object) ([]*Resource, error) {
 			delete(config, "depends_on")
 			delete(config, "provisioner")
 			delete(config, "lifecycle")
+			delete(config, "resource_template")
 
 			rawConfig, err := NewRawConfig(config)
 			if err != nil {
 				return nil, fmt.Errorf(
 					"Error reading config for %s[%s]: %s",
 					t.Key,
+					k,
+					err)
+			}
+
+			// countSet indicates whether or not a resource count was explicitly
+			// defined. We need this to know whether we should take the value
+			// from a resource template later on.
+			countSet := false
+
+			// If we have a count, then figure it out
+			var count string = "1"
+			if o := obj.Get("count", false); o != nil {
+				countSet = true
+				err = hcl.DecodeObject(&count, o)
+				if err != nil {
+					return nil, fmt.Errorf(
+						"Error parsing count for %s[%s]: %s",
+						t.Key,
+						k,
+						err)
+				}
+			}
+			countConfig, err := NewRawConfig(map[string]interface{}{
+				"count": count,
+			})
+			if err != nil {
+				return nil, err
+			}
+			countConfig.Key = "count"
+
+			// If we have depends fields, then add those in
+			var dependsOn []string
+			if o := obj.Get("depends_on", false); o != nil {
+				err := hcl.DecodeObject(&dependsOn, o)
+				if err != nil {
+					return nil, fmt.Errorf(
+						"Error reading depends_on for %s[%s]: %s",
+						t.Key,
+						k,
+						err)
+				}
+			}
+
+			// If we have connection info, then parse those out
+			var connInfo map[string]interface{}
+			if o := obj.Get("connection", false); o != nil {
+				err := hcl.DecodeObject(&connInfo, o)
+				if err != nil {
+					return nil, fmt.Errorf(
+						"Error reading connection info for %s[%s]: %s",
+						t.Key,
+						k,
+						err)
+				}
+			}
+
+			// If we have provisioners, then parse those out
+			var provisioners []*Provisioner
+			if os := obj.Get("provisioner", false); os != nil {
+				var err error
+				provisioners, err = loadProvisionersHcl(os, connInfo)
+				if err != nil {
+					return nil, fmt.Errorf(
+						"Error reading provisioners for %s[%s]: %s",
+						t.Key,
+						k,
+						err)
+				}
+			}
+
+			// Check if the resource should be re-created before
+			// destroying the existing instance
+			var lifecycle ResourceLifecycle
+			if o := obj.Get("lifecycle", false); o != nil {
+				err = hcl.DecodeObject(&lifecycle, o)
+				if err != nil {
+					return nil, fmt.Errorf(
+						"Error parsing lifecycle for %s[%s]: %s",
+						t.Key,
+						k,
+						err)
+				}
+			}
+
+			// If we have a resource template, then save it for later evaluation
+			var resourceTemplate string
+			if o := obj.Get("resource_template", false); o != nil {
+				err = hcl.DecodeObject(&resourceTemplate, o)
+				if err != nil {
+					return nil, fmt.Errorf(
+						"Error parsing resource_template for %s[%s]: %s",
+						t.Key,
+						k,
+						err)
+				}
+			}
+
+			resource := &Resource{
+				Name:         k,
+				Type:         t.Key,
+				RawCount:     countConfig,
+				countSet:     countSet,
+				RawConfig:    rawConfig,
+				Provisioners: provisioners,
+				DependsOn:    dependsOn,
+				Lifecycle:    lifecycle,
+				Template:     resourceTemplate,
+			}
+
+			result = append(result, resource)
+		}
+	}
+
+	return result, nil
+}
+
+// loadResourceTemplatesHcl will read any resource_template objects from the
+// configuration and return them as a set. Resource templates are a generic
+// construct that is completely independent of any provider, so there is not
+// a lot of "magic" here.
+//
+// This could be more DRY, since it is very similar to loadResourcesHcl.
+func loadResourceTemplatesHcl(rt *hclobj.Object) ([]*ResourceTemplate, error) {
+	var objects []*hclobj.Object
+
+	for _, o1 := range rt.Elem(false) {
+		for _, o2 := range o1.Elem(false) {
+			objects = append(objects, o2)
+		}
+	}
+
+	if len(objects) == 0 {
+		return nil, nil
+	}
+
+	// Where all the results will go
+	var result []*ResourceTemplate
+
+	// Now go over all the types and their children in order to get
+	// all of the actual resources.
+	for _, t := range objects {
+		for _, obj := range t.Elem(true) {
+			k := obj.Key
+
+			var config map[string]interface{}
+			if err := hcl.DecodeObject(&config, obj); err != nil {
+				return nil, fmt.Errorf(
+					"Error reading config for %s[%s]: %s",
+					t,
+					k,
+					err)
+			}
+
+			// Remove the fields we handle specially
+			delete(config, "connection")
+			delete(config, "count")
+			delete(config, "depends_on")
+			delete(config, "provisioner")
+			delete(config, "lifecycle")
+			delete(config, "resource_template")
+
+			rawConfig, err := NewRawConfig(config)
+			if err != nil {
+				return nil, fmt.Errorf(
+					"Error reading config for resource template %s: %s",
 					k,
 					err)
 			}
@@ -479,15 +659,13 @@ func loadResourcesHcl(os *hclobj.Object) ([]*Resource, error) {
 				}
 			}
 
-			result = append(result, &Resource{
-				Name:         k,
-				Type:         t.Key,
-				RawCount:     countConfig,
-				RawConfig:    rawConfig,
-				Provisioners: provisioners,
-				DependsOn:    dependsOn,
-				Lifecycle:    lifecycle,
-			})
+			result = append(result, &ResourceTemplate{
+					Name:         k,
+					RawCount:     countConfig,
+					RawConfig:    rawConfig,
+					Provisioners: provisioners,
+					DependsOn:    dependsOn,
+				})
 		}
 	}
 
