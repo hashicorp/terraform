@@ -43,6 +43,8 @@ func TestAccAWSDBInstance(t *testing.T) {
 						"aws_db_instance.bar", "skip_final_snapshot", "true"),
 					resource.TestCheckResourceAttr(
 						"aws_db_instance.bar", "security_group_names.0", "secfoobarbaz-test-terraform"),
+					resource.TestCheckResourceAttr(
+						"aws_db_instance.bar", "parameter_group_name", "default.mysql5.6"),
 				),
 			},
 		},
@@ -160,5 +162,6 @@ resource "aws_db_instance" "bar" {
 	skip_final_snapshot = true
 
 	security_group_names = ["${aws_db_security_group.bar.name}"]
+	parameter_group_name = "default.mysql5.6"
 }
 `

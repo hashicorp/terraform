@@ -79,6 +79,10 @@ func resource_aws_db_instance_create(
 		opts.DBSubnetGroupName = attr
 	}
 
+	if attr = rs.Attributes["parameter_group_name"]; attr != "" {
+                opts.DBParameterGroupName = attr
+        }
+
 	if err != nil {
 		return nil, fmt.Errorf("Error parsing configuration: %s", err)
 	}
@@ -117,7 +121,7 @@ func resource_aws_db_instance_create(
 		Pending:    []string{"creating", "backing-up", "modifying"},
 		Target:     "available",
 		Refresh:    DBInstanceStateRefreshFunc(rs.ID, conn),
-		Timeout:    10 * time.Minute,
+		Timeout:    20 * time.Minute,
 		MinTimeout: 10 * time.Second,
 		Delay:      30 * time.Second, // Wait 30 secs before starting
 	}
@@ -171,7 +175,7 @@ func resource_aws_db_instance_destroy(
 			"modifying", "deleting", "available"},
 		Target:     "",
 		Refresh:    DBInstanceStateRefreshFunc(s.ID, conn),
-		Timeout:    10 * time.Minute,
+		Timeout:    20 * time.Minute,
 		MinTimeout: 10 * time.Second,
 		Delay:      30 * time.Second, // Wait 30 secs before starting
 	}
@@ -227,6 +231,7 @@ func resource_aws_db_instance_diff(
 			"vpc_security_group_ids":    diff.AttrTypeCreate,
 			"security_group_names":      diff.AttrTypeCreate,
 			"db_subnet_group_name":      diff.AttrTypeCreate,
+			"parameter_group_name":      diff.AttrTypeCreate,
 			"skip_final_snapshot":       diff.AttrTypeUpdate,
 			"final_snapshot_identifier": diff.AttrTypeUpdate,
 		},
@@ -270,6 +275,7 @@ func resource_aws_db_instance_update_state(
 	s.Attributes["status"] = v.DBInstanceStatus
 	s.Attributes["username"] = v.MasterUsername
 	s.Attributes["db_subnet_group_name"] = v.DBSubnetGroup.Name
+	s.Attributes["parameter_group_name"] = v.DBParameterGroupName
 
 	// Flatten our group values
 	toFlatten := make(map[string]interface{})
@@ -340,6 +346,9 @@ func resource_aws_db_instance_validation() *config.Validator {
 			"skip_final_snapshot",
 			"security_group_names.*",
 			"db_subnet_group_name",
+			"parameter_group_name",
+			"skip_final_snapshot",
+			"final_snapshot_identifier",
 		},
 	}
 }

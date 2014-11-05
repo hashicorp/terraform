@@ -26,11 +26,12 @@ type Config struct {
 	// any meaningful directory.
 	Dir string
 
-	Modules         []*Module
-	ProviderConfigs []*ProviderConfig
-	Resources       []*Resource
-	Variables       []*Variable
-	Outputs         []*Output
+	Modules           []*Module
+	ProviderConfigs   []*ProviderConfig
+	Resources         []*Resource
+	ResourceTemplates []*ResourceTemplate
+	Variables         []*Variable
+	Outputs           []*Output
 
 	// The fields below can be filled in by loaders for validation
 	// purposes.
@@ -63,10 +64,23 @@ type Resource struct {
 	Name         string
 	Type         string
 	RawCount     *RawConfig
+	countSet     bool
 	RawConfig    *RawConfig
 	Provisioners []*Provisioner
 	DependsOn    []string
 	Lifecycle    ResourceLifecycle
+	Template     string
+}
+
+// ResourceTemplate is the configuration of a given resource template. The
+// attached RawConfig carries values which will be used to apply templated
+// values to other resources.
+type ResourceTemplate struct {
+	Name         string
+	RawCount     *RawConfig
+	RawConfig    *RawConfig
+	Provisioners []*Provisioner
+	DependsOn    []string
 }
 
 // ResourceLifecycle is used to store the lifecycle tuning parameters
@@ -139,6 +153,49 @@ func (r *Resource) Count() (int, error) {
 // A unique identifier for this resource.
 func (r *Resource) Id() string {
 	return fmt.Sprintf("%s.%s", r.Type, r.Name)
+}
+
+// applyTemplate will apply a resource template onto an existing RawConfig. This
+// is done by checking if the keys were explicitly set within the resource, and
+// if they were not, copying the values from the template.
+//
+// Since resource templates are a generic construct and may be applied to _any_
+// resource, this method does not itself need to perform validation of the keys.
+// Rather, we allow any keys to be passed into a resource template, and defer to
+// the provider's config validator to catch any errors.
+func (r *Resource) applyTemplate(t *ResourceTemplate) {
+	if r.Name == "" {
+		r.Name = t.Name
+	}
+	if !r.countSet && t.RawCount.Value() != "1" {
+		r.RawCount = t.RawCount
+	}
+	if len(r.DependsOn) == 0 {
+		r.DependsOn = t.DependsOn
+	}
+	if len(r.Provisioners) == 0 {
+		r.Provisioners = t.Provisioners
+	}
+
+	for _, interp := range t.RawConfig.Interpolations {
+		r.RawConfig.Interpolations = append(r.RawConfig.Interpolations, interp)
+	}
+
+	if r.RawConfig.Variables == nil {
+		r.RawConfig.Variables = make(map[string]InterpolatedVariable)
+	}
+
+	for k, v := range t.RawConfig.Variables {
+		if _, ok := r.RawConfig.Variables[k]; !ok {
+			r.RawConfig.Variables[k] = v
+		}
+	}
+
+	for k, v := range t.RawConfig.Raw {
+		if _, ok := r.RawConfig.Raw[k]; !ok {
+			r.RawConfig.Raw[k] = v
+		}
+	}
 }
 
 // Validate does some basic semantic checking of the configuration.
@@ -352,6 +409,19 @@ func (c *Config) Validate() error {
 					n, d))
 			}
 		}
+
+		if r.Template != "" {
+			for _, rt := range c.ResourceTemplates {
+				if rt.Name == r.Template {
+					goto VALID_TEMPLATE
+				}
+			}
+			errs = append(errs, fmt.Errorf(
+					"%s: unknown resource template: %s",
+					n,
+					r.Template))
+		VALID_TEMPLATE:
+		}
 	}
 
 	for source, vs := range vars {
@@ -458,6 +528,20 @@ func (c *Config) validateVarContextFn(
 		if rv.Multi && rv.Index == -1 && loc != reflectwalk.SliceElem {
 			*errs = append(*errs, fmt.Errorf(
 				"%s: multi-variable must be in a slice", source))
+		}
+	}
+}
+
+// applyTemplates steps through all resources in the configuration
+// and applies resource templates where they are configured.
+func (c *Config) applyTemplates() {
+	for _, resource := range c.Resources {
+		if resource.Template != "" {
+			for _, template := range c.ResourceTemplates {
+				if template.Name == resource.Template {
+					resource.applyTemplate(template)
+				}
+			}
 		}
 	}
 }

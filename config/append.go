@@ -59,6 +59,16 @@ func Append(c1, c2 *Config) (*Config, error) {
 		c.Resources = append(c.Resources, c2.Resources...)
 	}
 
+	if len(c1.ResourceTemplates) > 0 || len(c2.ResourceTemplates) > 0 {
+		c.ResourceTemplates = make(
+			[]*ResourceTemplate,
+			0, len(c1.ResourceTemplates)+len(c2.ResourceTemplates))
+		c.ResourceTemplates = append(c.ResourceTemplates,
+			c1.ResourceTemplates...)
+		c.ResourceTemplates = append(c.ResourceTemplates,
+			c2.ResourceTemplates...)
+	}
+
 	if len(c1.Variables) > 0 || len(c2.Variables) > 0 {
 		c.Variables = make(
 			[]*Variable, 0, len(c1.Variables)+len(c2.Variables))
