@@ -74,3 +74,10 @@ The supported built-in functions are:
 
   * `lookup(map, key)` - Performs a dynamic lookup into a mapping
       variable.
+
+  * `element(list, index)` - Returns a single element from a list
+      at the given index. If the index is greater than the number of
+      elements, this function will wrap using a standard mod algorithm.
+      A list is only possible with splat variables from resources with
+      a count greater than one.
+      Example: `element(aws_subnet.foo.*.id, count.index)`
