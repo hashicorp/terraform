@@ -23,7 +23,7 @@ resource "aws_db_instance" "default" {
 	username = "foo"
 	password = "bar"
 	security_group_names = ["${aws_db_security_group.bar.name}"]
-        subnet_group_name = "my_database_subnet_group"
+	db_subnet_group_name = "my_database_subnet_group"
 }
 ```
 
