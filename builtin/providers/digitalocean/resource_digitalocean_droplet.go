@@ -296,7 +296,7 @@ func resource_digitalocean_droplet_update_state(
 		s.Attributes["ipv4_address_private"] = droplet.IPV4Address("private")
 	}
 
-	s.Attributes["size"] = droplet.SizeSlug()
+	s.Attributes["size"] = droplet.SizeSlug
 	s.Attributes["status"] = droplet.Status
 
 	return s, nil
