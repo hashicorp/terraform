@@ -52,7 +52,7 @@ func resource_aws_r53_zone_create(
 		Pending:    []string{"PENDING"},
 		Target:     "INSYNC",
 		Timeout:    10 * time.Minute,
-		MinTimeout: 5 * time.Second,
+		MinTimeout: 2 * time.Second,
 		Refresh: func() (result interface{}, state string, err error) {
 			return resource_aws_r53_wait(r53, resp.ChangeInfo.ID)
 		},
