@@ -9,12 +9,12 @@ import (
 	"github.com/pearkes/digitalocean"
 )
 
-func resourceRecord() *schema.Resource {
+func resourceDigitalOceanRecord() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceRecordCreate,
-		Read:   resourceRecordRead,
-		Update: resourceRecordUpdate,
-		Delete: resourceRecordDelete,
+		Create: resourceDigitalOceanRecordCreate,
+		Read:   resourceDigitalOceanRecordRead,
+		Update: resourceDigitalOceanRecordUpdate,
+		Delete: resourceDigitalOceanRecordDelete,
 
 		Schema: map[string]*schema.Schema{
 			"type": &schema.Schema{
@@ -65,9 +65,8 @@ func resourceRecord() *schema.Resource {
 	}
 }
 
-func resourceRecordCreate(d *schema.ResourceData, meta interface{}) error {
-	p := meta.(*ResourceProvider)
-	client := p.client
+func resourceDigitalOceanRecordCreate(d *schema.ResourceData, meta interface{}) error {
+	client := meta.(*digitalocean.Client)
 
 	newRecord := digitalocean.CreateRecord{
 		Type:     d.Get("type").(string),
@@ -87,50 +86,11 @@ func resourceRecordCreate(d *schema.ResourceData, meta interface{}) error {
 	d.SetId(recId)
 	log.Printf("[INFO] Record ID: %s", d.Id())
 
-	return resourceRecordRead(d, meta)
+	return resourceDigitalOceanRecordRead(d, meta)
 }
 
-func resourceRecordUpdate(d *schema.ResourceData, meta interface{}) error {
-	p := meta.(*ResourceProvider)
-	client := p.client
-
-	var updateRecord digitalocean.UpdateRecord
-	if v, ok := d.GetOk("name"); ok {
-		updateRecord.Name = v.(string)
-	}
-
-	log.Printf("[DEBUG] record update configuration: %#v", updateRecord)
-	err := client.UpdateRecord(d.Get("domain").(string), d.Id(), &updateRecord)
-	if err != nil {
-		return fmt.Errorf("Failed to update record: %s", err)
-	}
-
-	return resourceRecordRead(d, meta)
-}
-
-func resourceRecordDelete(d *schema.ResourceData, meta interface{}) error {
-	p := meta.(*ResourceProvider)
-	client := p.client
-
-	log.Printf(
-		"[INFO] Deleting record: %s, %s", d.Get("domain").(string), d.Id())
-	err := client.DestroyRecord(d.Get("domain").(string), d.Id())
-	if err != nil {
-		// If the record is somehow already destroyed, mark as
-		// succesfully gone
-		if strings.Contains(err.Error(), "404 Not Found") {
-			return nil
-		}
-
-		return fmt.Errorf("Error deleting record: %s", err)
-	}
-
-	return nil
-}
-
-func resourceRecordRead(d *schema.ResourceData, meta interface{}) error {
-	p := meta.(*ResourceProvider)
-	client := p.client
+func resourceDigitalOceanRecordRead(d *schema.ResourceData, meta interface{}) error {
+	client := meta.(*digitalocean.Client)
 
 	rec, err := client.RetrieveRecord(d.Get("domain").(string), d.Id())
 	if err != nil {
@@ -150,6 +110,42 @@ func resourceRecordRead(d *schema.ResourceData, meta interface{}) error {
 	d.Set("weight", rec.StringWeight())
 	d.Set("priority", rec.StringPriority())
 	d.Set("port", rec.StringPort())
+
+	return nil
+}
+
+func resourceDigitalOceanRecordUpdate(d *schema.ResourceData, meta interface{}) error {
+	client := meta.(*digitalocean.Client)
+
+	var updateRecord digitalocean.UpdateRecord
+	if v, ok := d.GetOk("name"); ok {
+		updateRecord.Name = v.(string)
+	}
+
+	log.Printf("[DEBUG] record update configuration: %#v", updateRecord)
+	err := client.UpdateRecord(d.Get("domain").(string), d.Id(), &updateRecord)
+	if err != nil {
+		return fmt.Errorf("Failed to update record: %s", err)
+	}
+
+	return resourceDigitalOceanRecordRead(d, meta)
+}
+
+func resourceDigitalOceanRecordDelete(d *schema.ResourceData, meta interface{}) error {
+	client := meta.(*digitalocean.Client)
+
+	log.Printf(
+		"[INFO] Deleting record: %s, %s", d.Get("domain").(string), d.Id())
+	err := client.DestroyRecord(d.Get("domain").(string), d.Id())
+	if err != nil {
+		// If the record is somehow already destroyed, mark as
+		// succesfully gone
+		if strings.Contains(err.Error(), "404 Not Found") {
+			return nil
+		}
+
+		return fmt.Errorf("Error deleting record: %s", err)
+	}
 
 	return nil
 }

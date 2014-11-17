@@ -77,7 +77,7 @@ func TestAccDigitalOceanRecord_Updated(t *testing.T) {
 }
 
 func testAccCheckDigitalOceanRecordDestroy(s *terraform.State) error {
-	client := testAccProvider.client
+	client := testAccProvider.Meta().(*digitalocean.Client)
 
 	for _, rs := range s.RootModule().Resources {
 		if rs.Type != "digitalocean_record" {
@@ -128,7 +128,7 @@ func testAccCheckDigitalOceanRecordExists(n string, record *digitalocean.Record)
 			return fmt.Errorf("No Record ID is set")
 		}
 
-		client := testAccProvider.client
+		client := testAccProvider.Meta().(*digitalocean.Client)
 
 		foundRecord, err := client.RetrieveRecord(rs.Primary.Attributes["domain"], rs.Primary.ID)
 

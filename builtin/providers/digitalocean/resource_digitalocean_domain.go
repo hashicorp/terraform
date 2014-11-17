@@ -9,11 +9,11 @@ import (
 	"github.com/pearkes/digitalocean"
 )
 
-func resourceDomain() *schema.Resource {
+func resourceDigitalOceanDomain() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceDomainCreate,
-		Read:   resourceDomainRead,
-		Delete: resourceDomainDelete,
+		Create: resourceDigitalOceanDomainCreate,
+		Read:   resourceDigitalOceanDomainRead,
+		Delete: resourceDigitalOceanDomainDelete,
 
 		Schema: map[string]*schema.Schema{
 			"name": &schema.Schema{
@@ -31,18 +31,17 @@ func resourceDomain() *schema.Resource {
 	}
 }
 
-func resourceDomainCreate(d *schema.ResourceData, meta interface{}) error {
-	p := meta.(*ResourceProvider)
-	client := p.client
+func resourceDigitalOceanDomainCreate(d *schema.ResourceData, meta interface{}) error {
+	client := meta.(*digitalocean.Client)
 
 	// Build up our creation options
-	opts := digitalocean.CreateDomain{
+	opts := &digitalocean.CreateDomain{
 		Name:      d.Get("name").(string),
 		IPAddress: d.Get("ip_address").(string),
 	}
 
 	log.Printf("[DEBUG] Domain create configuration: %#v", opts)
-	name, err := client.CreateDomain(&opts)
+	name, err := client.CreateDomain(opts)
 	if err != nil {
 		return fmt.Errorf("Error creating Domain: %s", err)
 	}
@@ -50,26 +49,11 @@ func resourceDomainCreate(d *schema.ResourceData, meta interface{}) error {
 	d.SetId(name)
 	log.Printf("[INFO] Domain Name: %s", name)
 
-	return nil
+	return resourceDigitalOceanDomainRead(d, meta)
 }
 
-func resourceDomainDelete(d *schema.ResourceData, meta interface{}) error {
-	p := meta.(*ResourceProvider)
-	client := p.client
-
-	log.Printf("[INFO] Deleting Domain: %s", d.Id())
-	err := client.DestroyDomain(d.Id())
-	if err != nil {
-		return fmt.Errorf("Error deleting Domain: %s", err)
-	}
-
-	d.SetId("")
-	return nil
-}
-
-func resourceDomainRead(d *schema.ResourceData, meta interface{}) error {
-	p := meta.(*ResourceProvider)
-	client := p.client
+func resourceDigitalOceanDomainRead(d *schema.ResourceData, meta interface{}) error {
+	client := meta.(*digitalocean.Client)
 
 	domain, err := client.RetrieveDomain(d.Id())
 	if err != nil {
@@ -85,5 +69,18 @@ func resourceDomainRead(d *schema.ResourceData, meta interface{}) error {
 
 	d.Set("name", domain.Name)
 
+	return nil
+}
+
+func resourceDigitalOceanDomainDelete(d *schema.ResourceData, meta interface{}) error {
+	client := meta.(*digitalocean.Client)
+
+	log.Printf("[INFO] Deleting Domain: %s", d.Id())
+	err := client.DestroyDomain(d.Id())
+	if err != nil {
+		return fmt.Errorf("Error deleting Domain: %s", err)
+	}
+
+	d.SetId("")
 	return nil
 }

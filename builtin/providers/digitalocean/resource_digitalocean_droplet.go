@@ -6,202 +6,335 @@ import (
 	"strings"
 	"time"
 
-	"github.com/hashicorp/terraform/flatmap"
-	"github.com/hashicorp/terraform/helper/config"
-	"github.com/hashicorp/terraform/helper/diff"
 	"github.com/hashicorp/terraform/helper/resource"
-	"github.com/hashicorp/terraform/terraform"
+	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/pearkes/digitalocean"
 )
 
-func resource_digitalocean_droplet_create(
-	s *terraform.InstanceState,
-	d *terraform.InstanceDiff,
-	meta interface{}) (*terraform.InstanceState, error) {
-	p := meta.(*ResourceProvider)
-	client := p.client
+func resourceDigitalOceanDroplet() *schema.Resource {
+	return &schema.Resource{
+		Create: resourceDigitalOceanDropletCreate,
+		Read:   resourceDigitalOceanDropletRead,
+		Update: resourceDigitalOceanDropletUpdate,
+		Delete: resourceDigitalOceanDropletDelete,
 
-	// Merge the diff into the state so that we have all the attributes
-	// properly.
-	rs := s.MergeDiff(d)
+		Schema: map[string]*schema.Schema{
+			"image": &schema.Schema{
+				Type:     schema.TypeString,
+				Required: true,
+				ForceNew: true,
+			},
+
+			"name": &schema.Schema{
+				Type:     schema.TypeString,
+				Required: true,
+			},
+
+			"region": &schema.Schema{
+				Type:     schema.TypeString,
+				Required: true,
+				ForceNew: true,
+			},
+
+			"size": &schema.Schema{
+				Type:     schema.TypeString,
+				Required: true,
+			},
+
+			"status": &schema.Schema{
+				Type:     schema.TypeString,
+				Computed: true,
+			},
+
+			"locked": &schema.Schema{
+				Type:     schema.TypeString,
+				Computed: true,
+			},
+
+			"backups": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+			},
+
+			"ipv6": &schema.Schema{
+				Type:     schema.TypeBool,
+				Optional: true,
+			},
+
+			"ipv6_address": &schema.Schema{
+				Type:     schema.TypeString,
+				Computed: true,
+			},
+
+			"ipv6_address_private": &schema.Schema{
+				Type:     schema.TypeString,
+				Computed: true,
+			},
+
+			"private_networking": &schema.Schema{
+				Type:     schema.TypeBool,
+				Optional: true,
+			},
+
+			"ipv4_address": &schema.Schema{
+				Type:     schema.TypeString,
+				Computed: true,
+			},
+
+			"ipv4_address_private": &schema.Schema{
+				Type:     schema.TypeString,
+				Computed: true,
+			},
+
+			"ssh_keys": &schema.Schema{
+				Type:     schema.TypeList,
+				Optional: true,
+				Elem:     &schema.Schema{Type: schema.TypeString},
+			},
+
+			"user_data": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+			},
+		},
+	}
+}
+
+func resourceDigitalOceanDropletCreate(d *schema.ResourceData, meta interface{}) error {
+	client := meta.(*digitalocean.Client)
 
 	// Build up our creation options
-	opts := digitalocean.CreateDroplet{
-		Backups:           rs.Attributes["backups"],
-		Image:             rs.Attributes["image"],
-		IPV6:              rs.Attributes["ipv6"],
-		Name:              rs.Attributes["name"],
-		PrivateNetworking: rs.Attributes["private_networking"],
-		Region:            rs.Attributes["region"],
-		Size:              rs.Attributes["size"],
-		UserData:          rs.Attributes["user_data"],
+	opts := &digitalocean.CreateDroplet{
+		Image:  d.Get("image").(string),
+		Name:   d.Get("name").(string),
+		Region: d.Get("region").(string),
+		Size:   d.Get("size").(string),
 	}
 
-	// Only expand ssh_keys if we have them
-	if _, ok := rs.Attributes["ssh_keys.#"]; ok {
-		v := flatmap.Expand(rs.Attributes, "ssh_keys").([]interface{})
-		if len(v) > 0 {
-			vs := make([]string, 0, len(v))
+	if attr, ok := d.GetOk("backups"); ok {
+		opts.Backups = attr.(string)
+	}
 
-			// here we special case the * expanded lists. For example:
-			//
-			//	 ssh_keys = ["${digitalocean_key.foo.*.id}"]
-			//
-			if len(v) == 1 && strings.Contains(v[0].(string), ",") {
-				vs = strings.Split(v[0].(string), ",")
-			}
+	if attr, ok := d.GetOk("ipv6"); ok && attr.(bool) {
+		opts.IPV6 = "true"
+	}
 
-			for _, v := range v {
-				vs = append(vs, v.(string))
-			}
+	if attr, ok := d.GetOk("private_networking"); ok && attr.(bool) {
+		opts.PrivateNetworking = "true"
+	}
 
-			opts.SSHKeys = vs
+	if attr, ok := d.GetOk("user_data"); ok {
+		opts.UserData = attr.(string)
+	}
+
+	// Get configured ssh_keys
+	ssh_keys := d.Get("ssh_keys.#").(int)
+	if ssh_keys > 0 {
+		opts.SSHKeys = make([]string, 0, ssh_keys)
+		for i := 0; i < ssh_keys; i++ {
+			key := fmt.Sprintf("ssh_keys.%d", i)
+			opts.SSHKeys = append(opts.SSHKeys, d.Get(key).(string))
 		}
 	}
 
 	log.Printf("[DEBUG] Droplet create configuration: %#v", opts)
 
-	id, err := client.CreateDroplet(&opts)
+	id, err := client.CreateDroplet(opts)
 
 	if err != nil {
-		return nil, fmt.Errorf("Error creating Droplet: %s", err)
+		return fmt.Errorf("Error creating droplet: %s", err)
 	}
 
 	// Assign the droplets id
-	rs.ID = id
+	d.SetId(id)
 
-	log.Printf("[INFO] Droplet ID: %s", id)
+	log.Printf("[INFO] Droplet ID: %s", d.Id())
 
-	dropletRaw, err := WaitForDropletAttribute(id, "active", []string{"new"}, "status", client)
+	_, err = WaitForDropletAttribute(d, "active", []string{"new"}, "status", meta)
 
 	if err != nil {
-		return rs, fmt.Errorf(
-			"Error waiting for droplet (%s) to become ready: %s",
-			id, err)
+		return fmt.Errorf(
+			"Error waiting for droplet (%s) to become ready: %s", d.Id(), err)
 	}
 
-	droplet := dropletRaw.(*digitalocean.Droplet)
-
-	// Initialize the connection info
-	rs.Ephemeral.ConnInfo["type"] = "ssh"
-	rs.Ephemeral.ConnInfo["host"] = droplet.IPV4Address("public")
-
-	return resource_digitalocean_droplet_update_state(rs, droplet)
+	return resourceDigitalOceanDropletRead(d, meta)
 }
 
-func resource_digitalocean_droplet_update(
-	s *terraform.InstanceState,
-	d *terraform.InstanceDiff,
-	meta interface{}) (*terraform.InstanceState, error) {
-	p := meta.(*ResourceProvider)
-	client := p.client
-	rs := s.MergeDiff(d)
+func resourceDigitalOceanDropletRead(d *schema.ResourceData, meta interface{}) error {
+	client := meta.(*digitalocean.Client)
 
-	var err error
+	// Retrieve the droplet properties for updating the state
+	droplet, err := client.RetrieveDroplet(d.Id())
 
-	if attr, ok := d.Attributes["size"]; ok {
-		err = client.PowerOff(rs.ID)
+	if err != nil {
+		return fmt.Errorf("Error retrieving droplet: %s", err)
+	}
+
+	if droplet.ImageSlug() == "" && droplet.ImageId() != "" {
+		d.Set("image", droplet.ImageId())
+	} else {
+		d.Set("image", droplet.ImageSlug())
+	}
+
+	d.Set("name", droplet.Name)
+	d.Set("region", droplet.RegionSlug())
+	d.Set("size", droplet.SizeSlug)
+	d.Set("status", droplet.Status)
+	d.Set("locked", droplet.IsLocked())
+
+	if droplet.IPV6Address("public") != "" {
+		d.Set("ipv6", true)
+		d.Set("ipv6_address", droplet.IPV6Address("public"))
+		d.Set("ipv6_address_private", droplet.IPV6Address("private"))
+	}
+
+	d.Set("ipv4_address", droplet.IPV4Address("public"))
+
+	if droplet.NetworkingType() == "private" {
+		d.Set("private_networking", true)
+		d.Set("ipv4_address_private", droplet.IPV4Address("private"))
+	}
+
+	// Initialize the connection info
+	d.SetConnInfo(map[string]string{
+		"type": "ssh",
+		"host": droplet.IPV4Address("public"),
+	})
+
+	return nil
+}
+
+func resourceDigitalOceanDropletUpdate(d *schema.ResourceData, meta interface{}) error {
+	client := meta.(*digitalocean.Client)
+
+	if d.HasChange("size") {
+		oldSize, newSize := d.GetChange("size")
+
+		err := client.PowerOff(d.Id())
 
 		if err != nil && !strings.Contains(err.Error(), "Droplet is already powered off") {
-			return s, err
+			return fmt.Errorf(
+				"Error powering off droplet (%s): %s", d.Id(), err)
 		}
 
 		// Wait for power off
-		_, err = WaitForDropletAttribute(
-			rs.ID, "off", []string{"active"}, "status", client)
-
-		err = client.Resize(rs.ID, attr.New)
+		_, err = WaitForDropletAttribute(d, "off", []string{"active"}, "status", client)
 
 		if err != nil {
-			newErr := power_on_and_wait(rs.ID, client)
+			return fmt.Errorf(
+				"Error waiting for droplet (%s) to become powered off: %s", d.Id(), err)
+		}
+
+		// Resize the droplet
+		err = client.Resize(d.Id(), newSize.(string))
+
+		if err != nil {
+			newErr := power_on_and_wait(d, meta)
 			if newErr != nil {
-				return rs, newErr
+				return fmt.Errorf(
+					"Error powering on droplet (%s) after failed resize: %s", d.Id(), err)
 			}
-			return rs, err
+			return fmt.Errorf(
+				"Error resizing droplet (%s): %s", d.Id(), err)
 		}
 
 		// Wait for the size to change
 		_, err = WaitForDropletAttribute(
-			rs.ID, attr.New, []string{"", attr.Old}, "size", client)
+			d, newSize.(string), []string{"", oldSize.(string)}, "size", meta)
 
 		if err != nil {
-			newErr := power_on_and_wait(rs.ID, client)
+			newErr := power_on_and_wait(d, meta)
 			if newErr != nil {
-				return rs, newErr
+				return fmt.Errorf(
+					"Error powering on droplet (%s) after waiting for resize to finish: %s", d.Id(), err)
 			}
-			return s, err
+			return fmt.Errorf(
+				"Error waiting for resize droplet (%s) to finish: %s", d.Id(), err)
 		}
 
-		err = client.PowerOn(rs.ID)
+		err = client.PowerOn(d.Id())
 
 		if err != nil {
-			return s, err
+			return fmt.Errorf(
+				"Error powering on droplet (%s) after resize: %s", d.Id(), err)
 		}
 
 		// Wait for power off
-		_, err = WaitForDropletAttribute(
-			rs.ID, "active", []string{"off"}, "status", client)
+		_, err = WaitForDropletAttribute(d, "active", []string{"off"}, "status", meta)
 
 		if err != nil {
-			return s, err
+			return err
 		}
 	}
 
-	if attr, ok := d.Attributes["name"]; ok {
-		err = client.Rename(rs.ID, attr.New)
+	if d.HasChange("name") {
+		oldName, newName := d.GetChange("name")
+
+		// Rename the droplet
+		err := client.Rename(d.Id(), newName.(string))
 
 		if err != nil {
-			return s, err
+			return fmt.Errorf(
+				"Error renaming droplet (%s): %s", d.Id(), err)
 		}
 
 		// Wait for the name to change
 		_, err = WaitForDropletAttribute(
-			rs.ID, attr.New, []string{"", attr.Old}, "name", client)
-	}
-
-	if attr, ok := d.Attributes["private_networking"]; ok {
-		err = client.Rename(rs.ID, attr.New)
+			d, newName.(string), []string{"", oldName.(string)}, "name", meta)
 
 		if err != nil {
-			return s, err
+			return fmt.Errorf(
+				"Error waiting for rename droplet (%s) to finish: %s", d.Id(), err)
 		}
-
-		// Wait for the private_networking to turn on/off
-		_, err = WaitForDropletAttribute(
-			rs.ID, attr.New, []string{"", attr.Old}, "private_networking", client)
 	}
 
-	if attr, ok := d.Attributes["ipv6"]; ok {
-		err = client.Rename(rs.ID, attr.New)
+	// As there is no way to disable private networking,
+	// we only check if it needs to be enabled
+	if d.HasChange("private_networking") && d.Get("private_networking").(bool) {
+		err := client.EnablePrivateNetworking(d.Id())
 
 		if err != nil {
-			return s, err
+			return fmt.Errorf(
+				"Error enabling private networking for droplet (%s): %s", d.Id(), err)
 		}
 
-		// Wait for ipv6 to turn on/off
+		// Wait for the private_networking to turn on
 		_, err = WaitForDropletAttribute(
-			rs.ID, attr.New, []string{"", attr.Old}, "ipv6", client)
+			d, "true", []string{"", "false"}, "private_networking", meta)
+
+		return fmt.Errorf(
+			"Error waiting for private networking to be enabled on for droplet (%s): %s", d.Id(), err)
 	}
 
-	droplet, err := resource_digitalocean_droplet_retrieve(rs.ID, client)
+	// As there is no way to disable IPv6, we only check if it needs to be enabled
+	if d.HasChange("ipv6") && d.Get("ipv6").(bool) {
+		err := client.EnableIPV6s(d.Id())
 
-	if err != nil {
-		return s, err
+		if err != nil {
+			return fmt.Errorf(
+				"Error turning on ipv6 for droplet (%s): %s", d.Id(), err)
+		}
+
+		// Wait for ipv6 to turn on
+		_, err = WaitForDropletAttribute(
+			d, "true", []string{"", "false"}, "ipv6", meta)
+
+		if err != nil {
+			return fmt.Errorf(
+				"Error waiting for ipv6 to be turned on for droplet (%s): %s", d.Id(), err)
+		}
 	}
 
-	return resource_digitalocean_droplet_update_state(rs, droplet)
+	return resourceDigitalOceanDropletRead(d, meta)
 }
 
-func resource_digitalocean_droplet_destroy(
-	s *terraform.InstanceState,
-	meta interface{}) error {
-	p := meta.(*ResourceProvider)
-	client := p.client
+func resourceDigitalOceanDropletDelete(d *schema.ResourceData, meta interface{}) error {
+	client := meta.(*digitalocean.Client)
 
-	log.Printf("[INFO] Deleting Droplet: %s", s.ID)
+	log.Printf("[INFO] Deleting droplet: %s", d.Id())
 
 	// Destroy the droplet
-	err := client.DestroyDroplet(s.ID)
+	err := client.DestroyDroplet(d.Id())
 
 	// Handle remotely destroyed droplets
 	if err != nil && strings.Contains(err.Error(), "404 Not Found") {
@@ -209,140 +342,24 @@ func resource_digitalocean_droplet_destroy(
 	}
 
 	if err != nil {
-		return fmt.Errorf("Error deleting Droplet: %s", err)
+		return fmt.Errorf("Error deleting droplet: %s", err)
 	}
 
 	return nil
 }
 
-func resource_digitalocean_droplet_refresh(
-	s *terraform.InstanceState,
-	meta interface{}) (*terraform.InstanceState, error) {
-	p := meta.(*ResourceProvider)
-	client := p.client
-
-	droplet, err := resource_digitalocean_droplet_retrieve(s.ID, client)
-
-	// Handle remotely destroyed droplets
-	if err != nil && strings.Contains(err.Error(), "404 Not Found") {
-		return nil, nil
-	}
-
-	if err != nil {
-		return nil, err
-	}
-
-	return resource_digitalocean_droplet_update_state(s, droplet)
-}
-
-func resource_digitalocean_droplet_diff(
-	s *terraform.InstanceState,
-	c *terraform.ResourceConfig,
-	meta interface{}) (*terraform.InstanceDiff, error) {
-
-	b := &diff.ResourceBuilder{
-		Attrs: map[string]diff.AttrType{
-			"backups":            diff.AttrTypeUpdate,
-			"image":              diff.AttrTypeCreate,
-			"ipv6":               diff.AttrTypeUpdate,
-			"name":               diff.AttrTypeUpdate,
-			"private_networking": diff.AttrTypeUpdate,
-			"region":             diff.AttrTypeCreate,
-			"size":               diff.AttrTypeUpdate,
-			"ssh_keys":           diff.AttrTypeCreate,
-			"user_data":          diff.AttrTypeCreate,
-		},
-
-		ComputedAttrs: []string{
-			"backups",
-			"ipv4_address",
-			"ipv4_address_private",
-			"ipv6",
-			"ipv6_address",
-			"ipv6_address_private",
-			"locked",
-			"private_networking",
-			"status",
-		},
-	}
-
-	return b.Diff(s, c)
-}
-
-func resource_digitalocean_droplet_update_state(
-	s *terraform.InstanceState,
-	droplet *digitalocean.Droplet) (*terraform.InstanceState, error) {
-
-	s.Attributes["name"] = droplet.Name
-	s.Attributes["region"] = droplet.RegionSlug()
-
-	if droplet.ImageSlug() == "" && droplet.ImageId() != "" {
-		s.Attributes["image"] = droplet.ImageId()
-	} else {
-		s.Attributes["image"] = droplet.ImageSlug()
-	}
-
-	if droplet.IPV6Address("public") != "" {
-		s.Attributes["ipv6"] = "true"
-		s.Attributes["ipv6_address"] = droplet.IPV6Address("public")
-		s.Attributes["ipv6_address_private"] = droplet.IPV6Address("private")
-	}
-
-	s.Attributes["ipv4_address"] = droplet.IPV4Address("public")
-	s.Attributes["locked"] = droplet.IsLocked()
-
-	if droplet.NetworkingType() == "private" {
-		s.Attributes["private_networking"] = "true"
-		s.Attributes["ipv4_address_private"] = droplet.IPV4Address("private")
-	}
-
-	s.Attributes["size"] = droplet.SizeSlug
-	s.Attributes["status"] = droplet.Status
-
-	return s, nil
-}
-
-// retrieves an ELB by its ID
-func resource_digitalocean_droplet_retrieve(id string, client *digitalocean.Client) (*digitalocean.Droplet, error) {
-	// Retrieve the ELB properties for updating the state
-	droplet, err := client.RetrieveDroplet(id)
-
-	if err != nil {
-		return nil, fmt.Errorf("Error retrieving droplet: %s", err)
-	}
-
-	return &droplet, nil
-}
-
-func resource_digitalocean_droplet_validation() *config.Validator {
-	return &config.Validator{
-		Required: []string{
-			"image",
-			"name",
-			"region",
-			"size",
-		},
-		Optional: []string{
-			"backups",
-			"user_data",
-			"ipv6",
-			"private_networking",
-			"ssh_keys.*",
-		},
-	}
-}
-
-func WaitForDropletAttribute(id string, target string, pending []string, attribute string, client *digitalocean.Client) (interface{}, error) {
+func WaitForDropletAttribute(
+	d *schema.ResourceData, target string, pending []string, attribute string, meta interface{}) (interface{}, error) {
 	// Wait for the droplet so we can get the networking attributes
 	// that show up after a while
 	log.Printf(
 		"[INFO] Waiting for Droplet (%s) to have %s of %s",
-		id, attribute, target)
+		d.Id(), attribute, target)
 
 	stateConf := &resource.StateChangeConf{
 		Pending:    pending,
 		Target:     target,
-		Refresh:    new_droplet_state_refresh_func(id, attribute, client),
+		Refresh:    new_droplet_state_refresh_func(d, attribute, meta),
 		Timeout:    10 * time.Minute,
 		Delay:      10 * time.Second,
 		MinTimeout: 3 * time.Second,
@@ -351,37 +368,36 @@ func WaitForDropletAttribute(id string, target string, pending []string, attribu
 	return stateConf.WaitForState()
 }
 
-func new_droplet_state_refresh_func(id string, attribute string, client *digitalocean.Client) resource.StateRefreshFunc {
+// TODO This function still needs a little more refactoring to make it
+// cleaner and more efficient
+func new_droplet_state_refresh_func(
+	d *schema.ResourceData, attribute string, meta interface{}) resource.StateRefreshFunc {
+	client := meta.(*digitalocean.Client)
 	return func() (interface{}, string, error) {
-		// Retrieve the ELB properties for updating the state
-		droplet, err := client.RetrieveDroplet(id)
+		err := resourceDigitalOceanDropletRead(d, meta)
 
 		if err != nil {
-			log.Printf("Error on retrieving droplet when waiting: %s", err)
 			return nil, "", err
 		}
 
 		// If the droplet is locked, continue waiting. We can
 		// only perform actions on unlocked droplets, so it's
 		// pointless to look at that status
-		if droplet.IsLocked() == "true" {
+		if d.Get("locked").(string) == "true" {
 			log.Println("[DEBUG] Droplet is locked, skipping status check and retrying")
 			return nil, "", nil
 		}
 
-		// Use our mapping to get back a map of the
-		// droplet properties
-		resourceMap, err := resource_digitalocean_droplet_update_state(
-			&terraform.InstanceState{Attributes: map[string]string{}}, &droplet)
-
-		if err != nil {
-			log.Printf("Error creating map from droplet: %s", err)
-			return nil, "", err
-		}
-
 		// See if we can access our attribute
-		if attr, ok := resourceMap.Attributes[attribute]; ok {
-			return &droplet, attr, nil
+		if attr, ok := d.GetOk(attribute); ok {
+			// Retrieve the droplet properties
+			droplet, err := client.RetrieveDroplet(d.Id())
+
+			if err != nil {
+				return nil, "", fmt.Errorf("Error retrieving droplet: %s", err)
+			}
+
+			return &droplet, attr.(string), nil
 		}
 
 		return nil, "", nil
@@ -389,16 +405,16 @@ func new_droplet_state_refresh_func(id string, attribute string, client *digital
 }
 
 // Powers on the droplet and waits for it to be active
-func power_on_and_wait(id string, client *digitalocean.Client) error {
-	err := client.PowerOn(id)
+func power_on_and_wait(d *schema.ResourceData, meta interface{}) error {
+	client := meta.(*digitalocean.Client)
+	err := client.PowerOn(d.Id())
 
 	if err != nil {
 		return err
 	}
 
 	// Wait for power on
-	_, err = WaitForDropletAttribute(
-		id, "active", []string{"off"}, "status", client)
+	_, err = WaitForDropletAttribute(d, "active", []string{"off"}, "status", client)
 
 	if err != nil {
 		return err
