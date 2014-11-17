@@ -1662,13 +1662,18 @@ func (n *GraphNodeResource) Expand() (*depgraph.Graph, error) {
 	// Add all the variable dependencies
 	graphAddVariableDeps(g)
 
-	// If we're just expanding the apply, then filter those out and
-	// return them now.
-	if n.ExpandMode == ResourceExpandApply {
-		return n.finalizeGraph(g, false)
+	// Filter the nodes depending on the expansion type
+	switch n.ExpandMode {
+	case ResourceExpandApply:
+		n.filterResources(g, false)
+	case ResourceExpandDestroy:
+		n.filterResources(g, true)
+	default:
+		panic(fmt.Sprintf("Unhandled expansion mode %d", n.ExpandMode))
 	}
 
-	return n.finalizeGraph(g, true)
+	// Return the finalized graph
+	return g, n.finalizeGraph(g)
 }
 
 // expand expands this resource and adds the resources to the graph. It
@@ -1790,8 +1795,11 @@ func (n *GraphNodeResource) copyResource(id string) *Resource {
 	return &resource
 }
 
-func (n *GraphNodeResource) finalizeGraph(
-	g *depgraph.Graph, destroy bool) (*depgraph.Graph, error) {
+// filterResources is used to remove resources from the sub-graph based
+// on the ExpandMode. This is because there is a Destroy sub-graph, and
+// Apply sub-graph, and we cannot includes the same instances in both
+// sub-graphs.
+func (n *GraphNodeResource) filterResources(g *depgraph.Graph, destroy bool) {
 	result := make([]*depgraph.Noun, 0, len(g.Nouns))
 	for _, n := range g.Nouns {
 		rn, ok := n.Meta.(*GraphNodeResource)
@@ -1799,44 +1807,22 @@ func (n *GraphNodeResource) finalizeGraph(
 			continue
 		}
 
-		// If the diff is nil, then we're not destroying, so append only
-		// in that case.
-		if rn.Resource.Diff == nil {
-			if !destroy {
+		if destroy {
+			if rn.Resource.Diff != nil && rn.Resource.Diff.Destroy {
 				result = append(result, n)
 			}
-
 			continue
 		}
 
-		// If we are destroying, append it only if we care about destroys
-		if rn.Resource.Diff.Destroy {
-			if destroy {
-				result = append(result, n)
-			}
-
-			continue
-		}
-
-		// If this is an oprhan, we only care about it if we're destroying.
-		if rn.Resource.Flags&FlagOrphan != 0 {
-			if destroy {
-				result = append(result, n)
-			}
-
-			continue
-		}
-
-		// If we're not destroying, then add it only if we don't
-		// care about deploys.
-		if !destroy {
+		if rn.Resource.Diff == nil || !rn.Resource.Diff.Destroy {
 			result = append(result, n)
 		}
 	}
-
-	// Set the nouns to be only those we care about
 	g.Nouns = result
+}
 
+// finalizeGraph is used to ensure the generated graph is valid
+func (n *GraphNodeResource) finalizeGraph(g *depgraph.Graph) error {
 	// Remove the dependencies that don't exist
 	graphRemoveInvalidDeps(g)
 
@@ -1845,10 +1831,9 @@ func (n *GraphNodeResource) finalizeGraph(
 
 	// Validate
 	if err := g.Validate(); err != nil {
-		return nil, err
+		return err
 	}
-
-	return g, nil
+	return nil
 }
 
 // matchingPrefixes takes a resource type and a set of resource
