@@ -8,8 +8,8 @@ import (
 )
 
 type Config struct {
-	Email string `mapstructure:"email"`
-	Token string `mapstructure:"token"`
+	Email string
+	Token string
 }
 
 // Client() returns a new client for accessing cloudflare.
