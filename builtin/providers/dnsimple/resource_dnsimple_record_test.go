@@ -76,7 +76,7 @@ func TestAccDNSimpleRecord_Updated(t *testing.T) {
 }
 
 func testAccCheckDNSimpleRecordDestroy(s *terraform.State) error {
-	client := testAccProvider.client
+	client := testAccProvider.Meta().(*dnsimple.Client)
 
 	for _, rs := range s.RootModule().Resources {
 		if rs.Type != "dnsimple_record" {
@@ -127,7 +127,7 @@ func testAccCheckDNSimpleRecordExists(n string, record *dnsimple.Record) resourc
 			return fmt.Errorf("No Record ID is set")
 		}
 
-		client := testAccProvider.client
+		client := testAccProvider.Meta().(*dnsimple.Client)
 
 		foundRecord, err := client.RetrieveRecord(rs.Primary.Attributes["domain"], rs.Primary.ID)
 
