@@ -1751,24 +1751,42 @@ func (n *GraphNodeResource) expand(g *depgraph.Graph, count int, diff *ModuleDif
 			}
 		}
 
+		// Initialize a default state if not available
 		if state == nil {
 			state = &ResourceState{
 				Type: r.Type,
 			}
 		}
 
-		if inDiff != nil && n.ExpandMode != ResourceExpandDestroy {
-			// Disable Destroy if we aren't doing a destroy expansion.
-			// There is a seperate expansion for the destruction action.
-			d := new(InstanceDiff)
-			*d = *inDiff
-			inDiff = d
-			inDiff.Destroy = false
-		} else if inDiff != nil && inDiff.Destroy && n.ExpandMode == ResourceExpandDestroy {
-			// If we are doing a destroy, make sure it is exclusively
-			// a destroy, since there is a seperate expansion for the apply
-			inDiff = new(InstanceDiff)
-			inDiff.Destroy = true
+		// Prepare the diff if it exists
+		if inDiff != nil {
+			switch n.ExpandMode {
+			case ResourceExpandApply:
+				// Disable Destroy if we aren't doing a destroy expansion.
+				// There is a seperate expansion for the destruction action.
+				d := new(InstanceDiff)
+				*d = *inDiff
+				inDiff = d
+				inDiff.Destroy = false
+
+				// If we require a new resource, there is a seperate delete
+				// phase, so the create phase must not have access to the ID.
+				if inDiff.RequiresNew() {
+					s := new(ResourceState)
+					*s = *state
+					state = s
+					state.Primary = nil
+				}
+
+			case ResourceExpandDestroy:
+				// If we are doing a destroy, make sure it is exclusively
+				// a destroy, since there is a seperate expansion for the apply
+				inDiff = new(InstanceDiff)
+				inDiff.Destroy = true
+
+			default:
+				panic(fmt.Sprintf("Unhandled expansion mode %d", n.ExpandMode))
+			}
 		}
 
 		// Inherit the existing flags!
