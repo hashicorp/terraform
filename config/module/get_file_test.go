@@ -88,7 +88,7 @@ func TestFileGetter_dirSymlink(t *testing.T) {
 
 	// Make a symlink
 	if err := os.Symlink(dst2, dst); err != nil {
-		t.Fatalf("err: %s")
+		t.Fatalf("err: %s", err)
 	}
 
 	// With a dir that exists that isn't a symlink

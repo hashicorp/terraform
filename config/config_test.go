@@ -98,7 +98,7 @@ func TestConfigValidate_countUserVar(t *testing.T) {
 func TestConfigValidate_countVar(t *testing.T) {
 	c := testConfig(t, "validate-count-var")
 	if err := c.Validate(); err != nil {
-		t.Fatal("err: %s", err)
+		t.Fatalf("err: %s", err)
 	}
 }
 
@@ -154,7 +154,7 @@ func TestConfigValidate_outputBadField(t *testing.T) {
 func TestConfigValidate_pathVar(t *testing.T) {
 	c := testConfig(t, "validate-path-var")
 	if err := c.Validate(); err != nil {
-		t.Fatal("err: %s", err)
+		t.Fatalf("err: %s", err)
 	}
 }
 
