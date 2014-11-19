@@ -1,6 +1,12 @@
 ## 0.3.2 (unreleased)
 
+BUG FIXES:
 
+  * core: Fixed issue causing double delete. [GH-555]
+  * core: Fixed issue with create-before-destroy not being respected in
+      some circumstances.
+  * core: Fixing issue with count expansion with non-homogenous instance
+      plans.
 
 ## 0.3.1 (October 21, 2014)
 

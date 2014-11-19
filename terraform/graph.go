@@ -539,6 +539,8 @@ func graphAddDiff(g *depgraph.Graph, d *ModuleDiff) error {
 			rn.Diff = d
 		}
 
+		// If we are not expanding, then we assign the
+		// instance diff to the resource.
 		var rd *InstanceDiff
 		if rn.ExpandMode == ResourceExpandNone {
 			rd = diffs[0]
@@ -1648,32 +1650,30 @@ func (n *GraphNodeResource) Expand() (*depgraph.Graph, error) {
 		ModulePath: n.Resource.Info.ModulePath,
 	}
 
-	// Determine the nodes to create. If we're just looking for the
-	// nodes to create, return that.
-	n.expand(g, count)
-
-	// Add in the diff if we have it
-	if n.Diff != nil {
-		if err := graphAddDiff(g, n.Diff); err != nil {
-			return nil, err
-		}
-	}
+	// Do the initial expansion of the nodes, attaching diffs if
+	// applicable
+	n.expand(g, count, n.Diff)
 
 	// Add all the variable dependencies
 	graphAddVariableDeps(g)
 
-	// If we're just expanding the apply, then filter those out and
-	// return them now.
-	if n.ExpandMode == ResourceExpandApply {
-		return n.finalizeGraph(g, false)
+	// Filter the nodes depending on the expansion type
+	switch n.ExpandMode {
+	case ResourceExpandApply:
+		n.filterResources(g, false)
+	case ResourceExpandDestroy:
+		n.filterResources(g, true)
+	default:
+		panic(fmt.Sprintf("Unhandled expansion mode %d", n.ExpandMode))
 	}
 
-	return n.finalizeGraph(g, true)
+	// Return the finalized graph
+	return g, n.finalizeGraph(g)
 }
 
 // expand expands this resource and adds the resources to the graph. It
 // adds both create and destroy resources.
-func (n *GraphNodeResource) expand(g *depgraph.Graph, count int) {
+func (n *GraphNodeResource) expand(g *depgraph.Graph, count int, diff *ModuleDiff) {
 	// Create the list of nouns
 	result := make([]*depgraph.Noun, 0, count)
 
@@ -1727,13 +1727,70 @@ func (n *GraphNodeResource) expand(g *depgraph.Graph, count int) {
 			}
 		}
 
+		// Add in the diff if we have it
+		var inDiff *InstanceDiff
+		if diff != nil {
+			// Looup the instance diff
+			if d, ok := diff.Resources[name]; ok {
+				inDiff = d
+			}
+
+			if inDiff == nil {
+				if count == 1 {
+					// If the count is one, check the state for ".0"
+					// appended, which might exist if we go from
+					// count > 1 to count == 1.
+					k := r.Id() + ".0"
+					inDiff = diff.Resources[k]
+				} else if i == 0 {
+					// If count is greater than one, check for state
+					// with just the ID, which might exist if we go
+					// from count == 1 to count > 1
+					inDiff = diff.Resources[r.Id()]
+				}
+			}
+		}
+
+		// Initialize a default state if not available
 		if state == nil {
 			state = &ResourceState{
 				Type: r.Type,
 			}
 		}
 
-		flags := FlagPrimary
+		// Prepare the diff if it exists
+		if inDiff != nil {
+			switch n.ExpandMode {
+			case ResourceExpandApply:
+				// Disable Destroy if we aren't doing a destroy expansion.
+				// There is a seperate expansion for the destruction action.
+				d := new(InstanceDiff)
+				*d = *inDiff
+				inDiff = d
+				inDiff.Destroy = false
+
+				// If we require a new resource, there is a seperate delete
+				// phase, so the create phase must not have access to the ID.
+				if inDiff.RequiresNew() {
+					s := new(ResourceState)
+					*s = *state
+					state = s
+					state.Primary = nil
+				}
+
+			case ResourceExpandDestroy:
+				// If we are doing a destroy, make sure it is exclusively
+				// a destroy, since there is a seperate expansion for the apply
+				inDiff = new(InstanceDiff)
+				inDiff.Destroy = true
+
+			default:
+				panic(fmt.Sprintf("Unhandled expansion mode %d", n.ExpandMode))
+			}
+		}
+
+		// Inherit the existing flags!
+		flags := n.Resource.Flags
 		if len(state.Tainted) > 0 {
 			flags |= FlagHasTainted
 		}
@@ -1743,6 +1800,7 @@ func (n *GraphNodeResource) expand(g *depgraph.Graph, count int) {
 		resource.CountIndex = i
 		resource.State = state.Primary
 		resource.Flags = flags
+		resource.Diff = inDiff
 
 		// Add the result
 		result = append(result, &depgraph.Noun{
@@ -1763,6 +1821,7 @@ func (n *GraphNodeResource) expand(g *depgraph.Graph, count int) {
 		resource.Config = NewResourceConfig(nil)
 		resource.State = rs.Primary
 		resource.Flags = FlagOrphan
+		resource.Diff = &InstanceDiff{Destroy: true}
 
 		noun := &depgraph.Noun{
 			Name: k,
@@ -1790,8 +1849,11 @@ func (n *GraphNodeResource) copyResource(id string) *Resource {
 	return &resource
 }
 
-func (n *GraphNodeResource) finalizeGraph(
-	g *depgraph.Graph, destroy bool) (*depgraph.Graph, error) {
+// filterResources is used to remove resources from the sub-graph based
+// on the ExpandMode. This is because there is a Destroy sub-graph, and
+// Apply sub-graph, and we cannot includes the same instances in both
+// sub-graphs.
+func (n *GraphNodeResource) filterResources(g *depgraph.Graph, destroy bool) {
 	result := make([]*depgraph.Noun, 0, len(g.Nouns))
 	for _, n := range g.Nouns {
 		rn, ok := n.Meta.(*GraphNodeResource)
@@ -1799,44 +1861,23 @@ func (n *GraphNodeResource) finalizeGraph(
 			continue
 		}
 
-		// If the diff is nil, then we're not destroying, so append only
-		// in that case.
-		if rn.Resource.Diff == nil {
-			if !destroy {
+		if destroy {
+			if rn.Resource.Diff != nil && rn.Resource.Diff.Destroy {
 				result = append(result, n)
 			}
-
 			continue
 		}
 
-		// If we are destroying, append it only if we care about destroys
-		if rn.Resource.Diff.Destroy {
-			if destroy {
-				result = append(result, n)
-			}
-
-			continue
-		}
-
-		// If this is an oprhan, we only care about it if we're destroying.
-		if rn.Resource.Flags&FlagOrphan != 0 {
-			if destroy {
-				result = append(result, n)
-			}
-
-			continue
-		}
-
-		// If we're not destroying, then add it only if we don't
-		// care about deploys.
-		if !destroy {
+		if rn.Resource.Flags&FlagOrphan != 0 ||
+			rn.Resource.Diff == nil || !rn.Resource.Diff.Destroy {
 			result = append(result, n)
 		}
 	}
-
-	// Set the nouns to be only those we care about
 	g.Nouns = result
+}
 
+// finalizeGraph is used to ensure the generated graph is valid
+func (n *GraphNodeResource) finalizeGraph(g *depgraph.Graph) error {
 	// Remove the dependencies that don't exist
 	graphRemoveInvalidDeps(g)
 
@@ -1845,10 +1886,9 @@ func (n *GraphNodeResource) finalizeGraph(
 
 	// Validate
 	if err := g.Validate(); err != nil {
-		return nil, err
+		return err
 	}
-
-	return g, nil
+	return nil
 }
 
 // matchingPrefixes takes a resource type and a set of resource
