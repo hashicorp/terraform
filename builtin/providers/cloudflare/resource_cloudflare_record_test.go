@@ -76,7 +76,7 @@ func TestAccCLOudflareRecord_Updated(t *testing.T) {
 }
 
 func testAccCheckCLOudflareRecordDestroy(s *terraform.State) error {
-	client := testAccProvider.client
+	client := testAccProvider.Meta().(*cloudflare.Client)
 
 	for _, rs := range s.RootModule().Resources {
 		if rs.Type != "cloudflare_record" {
@@ -127,7 +127,7 @@ func testAccCheckCLOudflareRecordExists(n string, record *cloudflare.Record) res
 			return fmt.Errorf("No Record ID is set")
 		}
 
-		client := testAccProvider.client
+		client := testAccProvider.Meta().(*cloudflare.Client)
 
 		foundRecord, err := client.RetrieveRecord(rs.Primary.Attributes["domain"], rs.Primary.ID)
 
