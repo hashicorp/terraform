@@ -47,6 +47,16 @@ The following arguments are supported:
 * `iam_instance_profile` - (Optional) The IAM Instance Profile to
   launch the instance with.
 * `tags` - (Optional) A mapping of tags to assign to the resource.
+* `block_device` - (Optional) A list of block devices to add. Their keys are documented below.
+
+Each `block_device` supports the following:
+
+* `device_name` - The name of the device to mount.
+* `snapshot_id` - (Optional) The Snapshot ID to mount.
+* `volume_type` - (Optional) The type of volume. Can be standard, gp2, or io1. Defaults to standard.
+* `volume_size` - (Optional) The size of the volume in gigabytes.
+* `delete_on_termination` - (Optional) Should the volume be destroyed on instance termination (defaults true).
+* `encrypted` - (Optional) Should encryption be enabled (defaults false).
 
 ## Attributes Reference
 
