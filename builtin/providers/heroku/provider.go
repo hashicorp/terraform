@@ -2,10 +2,10 @@ package heroku
 
 import (
 	"log"
+	"os"
 
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/terraform"
-	"github.com/mitchellh/mapstructure"
 )
 
 // Provider returns a terraform.ResourceProvider.
@@ -13,13 +13,15 @@ func Provider() terraform.ResourceProvider {
 	return &schema.Provider{
 		Schema: map[string]*schema.Schema{
 			"email": &schema.Schema{
-				Type:     schema.TypeString,
-				Optional: true,
+				Type:        schema.TypeString,
+				Optional:    true,
+				DefaultFunc: envDefaultFunc("HEROKU_EMAIL"),
 			},
 
 			"api_key": &schema.Schema{
-				Type:     schema.TypeString,
-				Optional: true,
+				Type:        schema.TypeString,
+				Optional:    true,
+				DefaultFunc: envDefaultFunc("HEROKU_API_KEY"),
 			},
 		},
 
@@ -34,11 +36,20 @@ func Provider() terraform.ResourceProvider {
 	}
 }
 
+func envDefaultFunc(k string) schema.SchemaDefaultFunc {
+	return func() (interface{}, error) {
+		if v := os.Getenv(k); v != "" {
+			return v, nil
+		}
+
+		return nil, nil
+	}
+}
+
 func providerConfigure(d *schema.ResourceData) (interface{}, error) {
-	var config Config
-	configRaw := d.Get("").(map[string]interface{})
-	if err := mapstructure.Decode(configRaw, &config); err != nil {
-		return nil, err
+	config := Config{
+		Email:  d.Get("email").(string),
+		APIKey: d.Get("api_key").(string),
 	}
 
 	log.Println("[INFO] Initializing Heroku client")
