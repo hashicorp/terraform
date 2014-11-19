@@ -4,193 +4,154 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/hashicorp/terraform/helper/config"
-	"github.com/hashicorp/terraform/helper/diff"
-	"github.com/hashicorp/terraform/terraform"
+	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/pearkes/dnsimple"
 )
 
-func resource_dnsimple_record_create(
-	s *terraform.InstanceState,
-	d *terraform.InstanceDiff,
-	meta interface{}) (*terraform.InstanceState, error) {
-	p := meta.(*ResourceProvider)
-	client := p.client
+func resourceDNSimpleRecord() *schema.Resource {
+	return &schema.Resource{
+		Create: resourceDNSimpleRecordCreate,
+		Read:   resourceDNSimpleRecordRead,
+		Update: resourceDNSimpleRecordUpdate,
+		Delete: resourceDNSimpleRecordDelete,
 
-	// Merge the diff into the state so that we have all the attributes
-	// properly.
-	rs := s.MergeDiff(d)
+		Schema: map[string]*schema.Schema{
+			"domain": &schema.Schema{
+				Type:     schema.TypeString,
+				Required: true,
+			},
 
-	var err error
+			"domain_id": &schema.Schema{
+				Type:     schema.TypeString,
+				Computed: true,
+			},
 
-	newRecord := dnsimple.ChangeRecord{
-		Name:  rs.Attributes["name"],
-		Value: rs.Attributes["value"],
-		Type:  rs.Attributes["type"],
+			"name": &schema.Schema{
+				Type:     schema.TypeString,
+				Required: true,
+			},
+
+			"hostname": &schema.Schema{
+				Type:     schema.TypeString,
+				Computed: true,
+			},
+
+			"type": &schema.Schema{
+				Type:     schema.TypeString,
+				Required: true,
+			},
+
+			"value": &schema.Schema{
+				Type:     schema.TypeString,
+				Required: true,
+			},
+
+			"ttl": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+			},
+
+			"priority": &schema.Schema{
+				Type:     schema.TypeString,
+				Computed: true,
+			},
+		},
+	}
+}
+
+func resourceDNSimpleRecordCreate(d *schema.ResourceData, meta interface{}) error {
+	client := meta.(*dnsimple.Client)
+
+	// Create the new record
+	newRecord := &dnsimple.ChangeRecord{
+		Name:  d.Get("name").(string),
+		Type:  d.Get("type").(string),
+		Value: d.Get("value").(string),
 	}
 
-	if attr, ok := rs.Attributes["ttl"]; ok {
-		newRecord.Ttl = attr
+	if ttl, ok := d.GetOk("ttl"); ok {
+		newRecord.Ttl = ttl.(string)
 	}
 
 	log.Printf("[DEBUG] record create configuration: %#v", newRecord)
 
-	recId, err := client.CreateRecord(rs.Attributes["domain"], &newRecord)
+	recId, err := client.CreateRecord(d.Get("domain").(string), newRecord)
 
 	if err != nil {
-		return nil, fmt.Errorf("Failed to create record: %s", err)
+		return fmt.Errorf("Failed to create record: %s", err)
 	}
 
-	rs.ID = recId
-	log.Printf("[INFO] record ID: %s", rs.ID)
+	d.SetId(recId)
+	log.Printf("[INFO] record ID: %s", d.Id())
 
-	record, err := resource_dnsimple_record_retrieve(rs.Attributes["domain"], rs.ID, client)
-	if err != nil {
-		return nil, fmt.Errorf("Couldn't find record: %s", err)
-	}
-
-	return resource_dnsimple_record_update_state(rs, record)
+	return resourceDNSimpleRecordRead(d, meta)
 }
 
-func resource_dnsimple_record_update(
-	s *terraform.InstanceState,
-	d *terraform.InstanceDiff,
-	meta interface{}) (*terraform.InstanceState, error) {
-	p := meta.(*ResourceProvider)
-	client := p.client
-	rs := s.MergeDiff(d)
+func resourceDNSimpleRecordRead(d *schema.ResourceData, meta interface{}) error {
+	client := meta.(*dnsimple.Client)
 
-	updateRecord := dnsimple.ChangeRecord{}
-
-	if attr, ok := d.Attributes["name"]; ok {
-		updateRecord.Name = attr.New
+	rec, err := client.RetrieveRecord(d.Get("domain").(string), d.Id())
+	if err != nil {
+		return fmt.Errorf("Couldn't find record: %s", err)
 	}
 
-	if attr, ok := d.Attributes["value"]; ok {
-		updateRecord.Value = attr.New
+	d.Set("domain_id", rec.StringDomainId())
+	d.Set("name", rec.Name)
+	d.Set("type", rec.RecordType)
+	d.Set("value", rec.Content)
+	d.Set("ttl", rec.StringTtl())
+	d.Set("priority", rec.StringPrio())
+
+	if rec.Name == "" {
+		d.Set("hostname", d.Get("domain").(string))
+	} else {
+		d.Set("hostname", fmt.Sprintf("%s.%s", rec.Name, d.Get("domain").(string)))
 	}
 
-	if attr, ok := d.Attributes["type"]; ok {
-		updateRecord.Type = attr.New
+	return nil
+}
+
+func resourceDNSimpleRecordUpdate(d *schema.ResourceData, meta interface{}) error {
+	client := meta.(*dnsimple.Client)
+
+	updateRecord := &dnsimple.ChangeRecord{}
+
+	if attr, ok := d.GetOk("name"); ok {
+		updateRecord.Name = attr.(string)
 	}
 
-	if attr, ok := d.Attributes["ttl"]; ok {
-		updateRecord.Ttl = attr.New
+	if attr, ok := d.GetOk("type"); ok {
+		updateRecord.Type = attr.(string)
+	}
+
+	if attr, ok := d.GetOk("value"); ok {
+		updateRecord.Value = attr.(string)
+	}
+
+	if attr, ok := d.GetOk("ttl"); ok {
+		updateRecord.Ttl = attr.(string)
 	}
 
 	log.Printf("[DEBUG] record update configuration: %#v", updateRecord)
 
-	_, err := client.UpdateRecord(rs.Attributes["domain"], rs.ID, &updateRecord)
+	_, err := client.UpdateRecord(d.Get("domain").(string), d.Id(), updateRecord)
 	if err != nil {
-		return rs, fmt.Errorf("Failed to update record: %s", err)
+		return fmt.Errorf("Failed to update record: %s", err)
 	}
 
-	record, err := resource_dnsimple_record_retrieve(rs.Attributes["domain"], rs.ID, client)
-	if err != nil {
-		return rs, fmt.Errorf("Couldn't find record: %s", err)
-	}
-
-	return resource_dnsimple_record_update_state(rs, record)
+	return resourceDNSimpleRecordRead(d, meta)
 }
 
-func resource_dnsimple_record_destroy(
-	s *terraform.InstanceState,
-	meta interface{}) error {
-	p := meta.(*ResourceProvider)
-	client := p.client
+func resourceDNSimpleRecordDelete(d *schema.ResourceData, meta interface{}) error {
+	client := meta.(*dnsimple.Client)
 
-	log.Printf("[INFO] Deleting record: %s, %s", s.Attributes["domain"], s.ID)
+	log.Printf("[INFO] Deleting record: %s, %s", d.Get("domain").(string), d.Id())
 
-	err := client.DestroyRecord(s.Attributes["domain"], s.ID)
+	err := client.DestroyRecord(d.Get("domain").(string), d.Id())
 
 	if err != nil {
 		return fmt.Errorf("Error deleting record: %s", err)
 	}
 
 	return nil
-}
-
-func resource_dnsimple_record_refresh(
-	s *terraform.InstanceState,
-	meta interface{}) (*terraform.InstanceState, error) {
-	p := meta.(*ResourceProvider)
-	client := p.client
-
-	rec, err := resource_dnsimple_record_retrieve(s.Attributes["domain"], s.ID, client)
-	if err != nil {
-		return nil, err
-	}
-
-	return resource_dnsimple_record_update_state(s, rec)
-}
-
-func resource_dnsimple_record_diff(
-	s *terraform.InstanceState,
-	c *terraform.ResourceConfig,
-	meta interface{}) (*terraform.InstanceDiff, error) {
-
-	b := &diff.ResourceBuilder{
-		Attrs: map[string]diff.AttrType{
-			"domain": diff.AttrTypeCreate,
-			"name":   diff.AttrTypeUpdate,
-			"value":  diff.AttrTypeUpdate,
-			"ttl":    diff.AttrTypeUpdate,
-			"type":   diff.AttrTypeUpdate,
-		},
-
-		ComputedAttrs: []string{
-			"priority",
-			"domain_id",
-			"ttl",
-		},
-
-		ComputedAttrsUpdate: []string{
-			"hostname",
-		},
-	}
-
-	return b.Diff(s, c)
-}
-
-func resource_dnsimple_record_update_state(
-	s *terraform.InstanceState,
-	rec *dnsimple.Record) (*terraform.InstanceState, error) {
-
-	s.Attributes["name"] = rec.Name
-	s.Attributes["value"] = rec.Content
-	s.Attributes["type"] = rec.RecordType
-	s.Attributes["ttl"] = rec.StringTtl()
-	s.Attributes["priority"] = rec.StringPrio()
-	s.Attributes["domain_id"] = rec.StringDomainId()
-
-	if rec.Name == "" {
-		s.Attributes["hostname"] = s.Attributes["domain"]
-	} else {
-		s.Attributes["hostname"] = fmt.Sprintf("%s.%s", rec.Name, s.Attributes["domain"])
-	}
-
-	return s, nil
-}
-
-func resource_dnsimple_record_retrieve(domain string, id string, client *dnsimple.Client) (*dnsimple.Record, error) {
-	record, err := client.RetrieveRecord(domain, id)
-	if err != nil {
-		return nil, err
-	}
-
-	return record, nil
-}
-
-func resource_dnsimple_record_validation() *config.Validator {
-	return &config.Validator{
-		Required: []string{
-			"domain",
-			"name",
-			"value",
-			"type",
-		},
-		Optional: []string{
-			"ttl",
-		},
-	}
 }

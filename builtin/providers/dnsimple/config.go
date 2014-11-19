@@ -3,29 +3,17 @@ package dnsimple
 import (
 	"fmt"
 	"log"
-	"os"
 
 	"github.com/pearkes/dnsimple"
 )
 
 type Config struct {
-	Token string `mapstructure:"token"`
-	Email string `mapstructure:"email"`
+	Email string
+	Token string
 }
 
 // Client() returns a new client for accessing dnsimple.
-//
 func (c *Config) Client() (*dnsimple.Client, error) {
-
-	// If we have env vars set (like in the acc) tests,
-	// we need to override the values passed in here.
-	if v := os.Getenv("DNSIMPLE_EMAIL"); v != "" {
-		c.Email = v
-	}
-	if v := os.Getenv("DNSIMPLE_TOKEN"); v != "" {
-		c.Token = v
-	}
-
 	client, err := dnsimple.NewClient(c.Email, c.Token)
 
 	if err != nil {
