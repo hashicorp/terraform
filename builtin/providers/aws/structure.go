@@ -6,6 +6,7 @@ import (
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/mitchellh/goamz/ec2"
 	"github.com/mitchellh/goamz/elb"
+	"github.com/mitchellh/goamz/rds"
 )
 
 // Takes the result of flatmap.Expand for an array of listeners and
@@ -87,6 +88,30 @@ func expandIPPerms(id string, configured []interface{}) []ec2.IPPerm {
 	return perms
 }
 
+// Takes the result of flatmap.Expand for an array of parameters and
+// returns Parameter API compatible objects
+func expandParameters(configured []interface{}) ([]rds.Parameter, error) {
+	parameters := make([]rds.Parameter, 0, len(configured))
+
+	// Loop over our configured parameters and create
+	// an array of goamz compatabile objects
+	for _, pRaw := range configured {
+		data := pRaw.(map[string]interface{})
+
+		p := rds.Parameter{
+			// Only immediate is supported for now; should add in pending-reboot at some point
+			// but gets tricky as the DescribeParameterGroups AWS call doesn't return this data
+			ApplyMethod:    "immediate",
+			ParameterName:  data["name"].(string),
+			ParameterValue: data["value"].(string),
+		}
+
+		parameters = append(parameters, p)
+	}
+
+	return parameters, nil
+}
+
 // Flattens an array of ipPerms into a list of primitives that
 // flatmap.Flatten() can handle
 func flattenIPPerms(list []ec2.IPPerm) []map[string]interface{} {
@@ -158,6 +183,18 @@ func flattenListeners(list []elb.Listener) []map[string]interface{} {
 			"lb_port":            i.LoadBalancerPort,
 			"lb_protocol":        strings.ToLower(i.Protocol),
 		})
+	}
+	return result
+}
+
+// Flattens an array of Parameters into a []map[string]interface{}
+func flattenParameters(list []rds.Parameter) []map[string]interface{} {
+	result := make([]map[string]interface{}, 0, len(list))
+	for _, i := range list {
+		result = append(result, map[string]interface{}{
+				"name":         strings.ToLower(i.ParameterName),
+				"value":        strings.ToLower(i.ParameterValue),
+			})
 	}
 	return result
 }
