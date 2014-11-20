@@ -52,9 +52,6 @@ func TestAccComputeInstance_IP(t *testing.T) {
 	})
 }
 
-//!NB requires that disk with name terraform-test-disk is present in gce,
-//if created as dependency then it tries to remove it while it is still attached
-//to instance and that fails with an error
 func TestAccComputeInstance_disks(t *testing.T) {
 	var instance compute.Instance
 
@@ -66,6 +63,8 @@ func TestAccComputeInstance_disks(t *testing.T) {
 			resource.TestStep{
 				Config: testAccComputeInstance_disks,
 				Check: resource.ComposeTestCheckFunc(
+					testAccCheckComputeInstanceExists(
+						"google_compute_instance.foobar", &instance),
 					testAccCheckComputeInstanceDisk(&instance, "terraform-test", true, true),
 					testAccCheckComputeInstanceDisk(&instance, "terraform-test-disk", false, false),
 				),
@@ -287,6 +286,13 @@ resource "google_compute_instance" "foobar" {
 }`
 
 const testAccComputeInstance_disks = `
+resource "google_compute_disk" "foobar" {
+	name = "terraform-test-disk"
+	size = 10
+	type = "pd-ssd"
+	zone = "us-central1-a"
+}
+
 resource "google_compute_instance" "foobar" {
 	name = "terraform-test"
 	machine_type = "n1-standard-1"
@@ -297,9 +303,8 @@ resource "google_compute_instance" "foobar" {
 	}
 
 	disk {
-		disk = "terraform-test-disk"
+		disk = "${google_compute_disk.foobar.name}"
 		auto_delete = false
-		type = "pd-ssd"
 	}
 
 	network {
