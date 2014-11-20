@@ -514,10 +514,10 @@ func resourceInstanceTags(d *schema.ResourceData) *compute.Tags {
 	// Calculate the tags
 	var tags *compute.Tags
 	if v := d.Get("tags"); v != nil {
-		vs := v.(*schema.Set).List()
+		vs := v.(*schema.Set)
 		tags = new(compute.Tags)
-		tags.Items = make([]string, len(vs))
-		for i, v := range v.(*schema.Set).List() {
+		tags.Items = make([]string, vs.Len())
+		for i, v := range vs.List() {
 			tags.Items[i] = v.(string)
 		}
 
