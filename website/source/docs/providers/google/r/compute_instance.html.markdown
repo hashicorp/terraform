@@ -8,7 +8,11 @@ description: |-
 
 # google\_compute\_instance
 
-Manages a VM instance resource within GCE.
+Manages a VM instance resource within GCE.  For more information see
+[the official documentation](https://cloud.google.com/compute/docs/instances)
+and
+[API](https://cloud.google.com/compute/docs/reference/latest/instances).
+
 
 ## Example Usage
 
