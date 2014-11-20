@@ -93,13 +93,6 @@ func init() {
 				Diff:            resource_aws_s3_bucket_diff,
 				Refresh:         resource_aws_s3_bucket_refresh,
 			},
-
-			"aws_subnet": resource.Resource{
-				Create:  resource_aws_subnet_create,
-				Destroy: resource_aws_subnet_destroy,
-				Diff:    resource_aws_subnet_diff,
-				Refresh: resource_aws_subnet_refresh,
-			},
 		},
 	}
 }

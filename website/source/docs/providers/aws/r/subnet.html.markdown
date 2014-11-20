@@ -16,6 +16,10 @@ Provides an VPC subnet resource.
 resource "aws_subnet" "main" {
     vpc_id = "${aws_vpc.main.id}"
     cidr_block = "10.0.1.0/24"
+
+    tags {
+        Name = "Main"
+    }
 }
 ```
 
@@ -29,6 +33,7 @@ The following arguments are supported:
     that instances launched into the subnet should be assigned
     a public IP address.
 * `vpc_id` - (Required) The VPC ID.
+* `tags` - (Optional) A mapping of tags to assign to the resource.
 
 ## Attributes Reference
 

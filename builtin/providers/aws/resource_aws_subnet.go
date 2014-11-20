@@ -5,180 +5,166 @@ import (
 	"log"
 	"time"
 
-	"github.com/hashicorp/terraform/helper/diff"
 	"github.com/hashicorp/terraform/helper/resource"
-	"github.com/hashicorp/terraform/terraform"
+	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/mitchellh/goamz/ec2"
 )
 
-func resource_aws_subnet_create(
-	s *terraform.InstanceState,
-	d *terraform.InstanceDiff,
-	meta interface{}) (*terraform.InstanceState, error) {
+func resourceAwsSubnet() *schema.Resource {
+	return &schema.Resource{
+		Create: resourceAwsSubnetCreate,
+		Read:   resourceAwsSubnetRead,
+		Update: resourceAwsSubnetUpdate,
+		Delete: resourceAwsSubnetDelete,
+
+		Schema: map[string]*schema.Schema{
+			"vpc_id": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				ForceNew: true,
+				Computed: true,
+			},
+
+			"cidr_block": &schema.Schema{
+				Type:     schema.TypeString,
+				Required: true,
+				ForceNew: true,
+			},
+
+			"availability_zone": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				Computed: true,
+				ForceNew: true,
+			},
+
+			"map_public_ip_on_launch": &schema.Schema{
+				Type:     schema.TypeBool,
+				Optional: true,
+			},
+
+			"tags": tagsSchema(),
+		},
+	}
+}
+
+func resourceAwsSubnetCreate(d *schema.ResourceData, meta interface{}) error {
 	p := meta.(*ResourceProvider)
 	ec2conn := p.ec2conn
 
-	// Merge the diff so that we have all the proper attributes
-	s = s.MergeDiff(d)
-
-	// Create the Subnet
 	createOpts := &ec2.CreateSubnet{
-		AvailabilityZone: s.Attributes["availability_zone"],
-		CidrBlock:        s.Attributes["cidr_block"],
-		VpcId:            s.Attributes["vpc_id"],
+		AvailabilityZone: d.Get("availability_zone").(string),
+		CidrBlock:        d.Get("cidr_block").(string),
+		VpcId:            d.Get("vpc_id").(string),
 	}
-	log.Printf("[DEBUG] Subnet create config: %#v", createOpts)
+
 	resp, err := ec2conn.CreateSubnet(createOpts)
+
 	if err != nil {
-		return nil, fmt.Errorf("Error creating subnet: %s", err)
+		return fmt.Errorf("Error creating subnet: %s", err)
 	}
 
 	// Get the ID and store it
 	subnet := &resp.Subnet
-	s.ID = subnet.SubnetId
-	log.Printf("[INFO] Subnet ID: %s", s.ID)
+	d.SetId(subnet.SubnetId)
+	log.Printf("[INFO] Subnet ID: %s", subnet.SubnetId)
 
 	// Wait for the Subnet to become available
-	log.Printf(
-		"[DEBUG] Waiting for subnet (%s) to become available",
-		s.ID)
+	log.Printf("[DEBUG] Waiting for subnet (%s) to become available", subnet.SubnetId)
 	stateConf := &resource.StateChangeConf{
 		Pending: []string{"pending"},
 		Target:  "available",
-		Refresh: SubnetStateRefreshFunc(ec2conn, s.ID),
+		Refresh: SubnetStateRefreshFunc(ec2conn, subnet.SubnetId),
 		Timeout: 10 * time.Minute,
 	}
-	subnetRaw, err := stateConf.WaitForState()
+
+	_, err = stateConf.WaitForState()
+
 	if err != nil {
-		return s, fmt.Errorf(
-			"Error waiting for subnet (%s) to become available: %s",
-			s.ID, err)
+		return fmt.Errorf(
+			"Error waiting for subnet (%s) to become ready: %s",
+			d.Id(), err)
 	}
 
-	// Map public ip on launch must be set in another API call
-	if attr := s.Attributes["map_public_ip_on_launch"]; attr == "true" {
-		modifyOpts := &ec2.ModifySubnetAttribute{
-			SubnetId:            s.ID,
-			MapPublicIpOnLaunch: true,
-		}
-		log.Printf("[DEBUG] Subnet modify attributes: %#v", modifyOpts)
-		_, err := ec2conn.ModifySubnetAttribute(modifyOpts)
-		if err != nil {
-			return nil, fmt.Errorf("Error modify subnet attributes: %s", err)
-		}
-	}
-
-	// Update our attributes and return
-	return resource_aws_subnet_update_state(s, subnetRaw.(*ec2.Subnet))
+	return resourceAwsSubnetUpdate(d, meta)
 }
 
-func resource_aws_subnet_update(
-	s *terraform.InstanceState,
-	d *terraform.InstanceDiff,
-	meta interface{}) (*terraform.InstanceState, error) {
-	// This should never be called because we have no update-able
-	// attributes
-	panic("Update for subnet is not supported")
-}
-
-func resource_aws_subnet_destroy(
-	s *terraform.InstanceState,
-	meta interface{}) error {
+func resourceAwsSubnetRead(d *schema.ResourceData, meta interface{}) error {
 	p := meta.(*ResourceProvider)
 	ec2conn := p.ec2conn
 
-	log.Printf("[INFO] Deleting Subnet: %s", s.ID)
-	return resource.Retry(5*time.Minute, func() error {
-		_, err := ec2conn.DeleteSubnet(s.ID)
-		if err != nil {
-			ec2err, ok := err.(*ec2.Error)
-			if !ok {
-				return err
-			}
+	resp, err := ec2conn.DescribeSubnets([]string{d.Id()}, ec2.NewFilter())
 
-			switch ec2err.Code {
-			case "InvalidSubnetID.NotFound":
-				return nil
-			case "DependencyViolation":
-				return err // retry
-			default:
-				return resource.RetryError{err}
-			}
+	if err != nil {
+		return err
+	}
+	if resp == nil {
+		return nil
+	}
+
+	subnet := &resp.Subnets[0]
+
+	d.Set("vpc_id", subnet.VpcId)
+	d.Set("availability_zone", subnet.AvailabilityZone)
+	d.Set("cidr_block", subnet.CidrBlock)
+	d.Set("map_public_ip_on_launch", subnet.MapPublicIpOnLaunch)
+	d.Set("tags", tagsToMap(subnet.Tags))
+
+	return nil
+}
+
+func resourceAwsSubnetUpdate(d *schema.ResourceData, meta interface{}) error {
+	p := meta.(*ResourceProvider)
+	ec2conn := p.ec2conn
+
+	d.Partial(true)
+
+	if err := setTags(ec2conn, d); err != nil {
+		return err
+	} else {
+		d.SetPartial("tags")
+	}
+
+	if d.HasChange("map_public_ip_on_launch") {
+		modifyOpts := &ec2.ModifySubnetAttribute{
+			SubnetId:            d.Id(),
+			MapPublicIpOnLaunch: true,
+		}
+
+		log.Printf("[DEBUG] Subnet modify attributes: %#v", modifyOpts)
+
+		_, err := ec2conn.ModifySubnetAttribute(modifyOpts)
+
+		if err != nil {
+			return err
+		} else {
+			d.SetPartial("map_public_ip_on_launch")
+		}
+	}
+
+	d.Partial(false)
+
+	return resourceAwsSubnetRead(d, meta)
+}
+
+func resourceAwsSubnetDelete(d *schema.ResourceData, meta interface{}) error {
+	p := meta.(*ResourceProvider)
+	ec2conn := p.ec2conn
+
+	log.Printf("[INFO] Deleting subnet: %s", d.Id())
+	if _, err := ec2conn.DeleteSubnet(d.Id()); err != nil {
+		ec2err, ok := err.(*ec2.Error)
+		if ok && ec2err.Code == "InvalidSubnetID.NotFound" {
+			return nil
 		}
 
 		return fmt.Errorf("Error deleting subnet: %s", err)
-	})
-
-	// Wait for the Subnet to actually delete
-	log.Printf("[DEBUG] Waiting for subnet (%s) to delete", s.ID)
-	stateConf := &resource.StateChangeConf{
-		Pending: []string{"available", "pending"},
-		Target:  "",
-		Refresh: SubnetStateRefreshFunc(ec2conn, s.ID),
-		Timeout: 10 * time.Minute,
-	}
-	if _, err := stateConf.WaitForState(); err != nil {
-		return fmt.Errorf(
-			"Error waiting for subnet (%s) to destroy: %s",
-			s.ID, err)
 	}
 
 	return nil
 }
 
-func resource_aws_subnet_refresh(
-	s *terraform.InstanceState,
-	meta interface{}) (*terraform.InstanceState, error) {
-	p := meta.(*ResourceProvider)
-	ec2conn := p.ec2conn
-
-	subnetRaw, _, err := SubnetStateRefreshFunc(ec2conn, s.ID)()
-	if err != nil {
-		return s, err
-	}
-	if subnetRaw == nil {
-		return nil, nil
-	}
-
-	subnet := subnetRaw.(*ec2.Subnet)
-	return resource_aws_subnet_update_state(s, subnet)
-}
-
-func resource_aws_subnet_diff(
-	s *terraform.InstanceState,
-	c *terraform.ResourceConfig,
-	meta interface{}) (*terraform.InstanceDiff, error) {
-	b := &diff.ResourceBuilder{
-		Attrs: map[string]diff.AttrType{
-			"availability_zone":       diff.AttrTypeCreate,
-			"cidr_block":              diff.AttrTypeCreate,
-			"vpc_id":                  diff.AttrTypeCreate,
-			"map_public_ip_on_launch": diff.AttrTypeCreate,
-		},
-
-		ComputedAttrs: []string{
-			"availability_zone",
-		},
-	}
-
-	return b.Diff(s, c)
-}
-
-func resource_aws_subnet_update_state(
-	s *terraform.InstanceState,
-	subnet *ec2.Subnet) (*terraform.InstanceState, error) {
-	s.Attributes["availability_zone"] = subnet.AvailabilityZone
-	s.Attributes["cidr_block"] = subnet.CidrBlock
-	s.Attributes["vpc_id"] = subnet.VpcId
-	if subnet.MapPublicIpOnLaunch {
-		s.Attributes["map_public_ip_on_launch"] = "true"
-	}
-
-	return s, nil
-}
-
-// SubnetStateRefreshFunc returns a resource.StateRefreshFunc that is used to watch
-// a Subnet.
+// SubnetStateRefreshFunc returns a resource.StateRefreshFunc that is used to watch a Subnet.
 func SubnetStateRefreshFunc(conn *ec2.EC2, id string) resource.StateRefreshFunc {
 	return func() (interface{}, string, error) {
 		resp, err := conn.DescribeSubnets([]string{id}, ec2.NewFilter())
