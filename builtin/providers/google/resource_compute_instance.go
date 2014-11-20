@@ -109,6 +109,30 @@ func resourceComputeInstance() *schema.Resource {
 				},
 			},
 
+			"serviceAccounts": &schema.Schema{
+				Type:     schema.TypeList,
+				Optional: true,
+				ForceNew: true,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"email": &schema.Schema{
+							Type:     schema.TypeString,
+							Required: true,
+							ForceNew: true,
+						},
+
+                        "scopes": &schema.Schema{
+                            Type:     schema.TypeList,
+                            Optional: true,
+							ForceNew: true,
+                            Elem: &schema.Schema{
+                                Type: schema.TypeString,
+                            },
+                        },
+					},
+				},
+			},
+
 			"can_ip_forward": &schema.Schema{
 				Type:     schema.TypeBool,
 				Optional: true,
@@ -259,6 +283,24 @@ func resourceComputeInstanceCreate(d *schema.ResourceData, meta interface{}) err
 		networks = append(networks, &iface)
 	}
 
+	// TODO(dcunnin): find out how many service accounts there were, allocate the array, create
+	// service accounts with the same emails
+	// for each scope inside each service account, check it is gettable and then put it in
+	servAccsCount := d.Get("serviceAccounts.#").(int)
+    servAccs := make([]*compute.ServiceAccount, servAccsCount)
+	for i := 0; i < servAccsCount; i++ {
+		prefix := fmt.Sprintf("serviceAccounts.%d", i)
+		schemaScopes := d.Get(prefix + ".scopes").([]interface{})
+		scopes := make([]string, len(schemaScopes))
+		for j, v := range(schemaScopes) {
+			scopes[j] = v.(string)
+		}
+		servAccs[i] = &compute.ServiceAccount{
+			Email: d.Get(prefix + ".email").(string),
+			Scopes: scopes,
+		}
+	}
+
 	// Create the instance information
 	instance := compute.Instance{
 		CanIpForward:      d.Get("can_ip_forward").(bool),
@@ -269,19 +311,9 @@ func resourceComputeInstanceCreate(d *schema.ResourceData, meta interface{}) err
 		Name:              d.Get("name").(string),
 		NetworkInterfaces: networks,
 		Tags:              resourceInstanceTags(d),
-		/*
-			ServiceAccounts: []*compute.ServiceAccount{
-				&compute.ServiceAccount{
-					Email: "default",
-					Scopes: []string{
-						"https://www.googleapis.com/auth/userinfo.email",
-						"https://www.googleapis.com/auth/compute",
-						"https://www.googleapis.com/auth/devstorage.full_control",
-					},
-				},
-			},
-		*/
+        ServiceAccounts:   servAccs,
 	}
+
 
 	log.Printf("[INFO] Requesting instance creation")
 	op, err := config.clientCompute.Instances.Insert(
@@ -539,3 +571,5 @@ func resourceInstanceNatIP(iface *compute.NetworkInterface) (natIP string) {
 
 	return natIP
 }
+
+// vim: ts=4:sw=4:noet
