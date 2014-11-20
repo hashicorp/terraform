@@ -27,6 +27,12 @@ func resourceComputeAddress() *schema.Resource {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
+
+			"self_link": &schema.Schema{
+				Type:     schema.TypeString,
+				Computed: true,
+			},
+
 		},
 	}
 }
@@ -90,6 +96,7 @@ func resourceComputeAddressRead(d *schema.ResourceData, meta interface{}) error 
 	}
 
 	d.Set("address", addr.Address)
+	d.Set("self_link", addr.SelfLink)
 
 	return nil
 }
@@ -98,6 +105,7 @@ func resourceComputeAddressDelete(d *schema.ResourceData, meta interface{}) erro
 	config := meta.(*Config)
 
 	// Delete the address
+	log.Printf("[DEBUG] address delete request")
 	op, err := config.clientCompute.Addresses.Delete(
 		config.Project, config.Region, d.Id()).Do()
 	if err != nil {

@@ -15,3 +15,5 @@ website/node_modules
 *.tfstate
 *.log
 *.bak
+*~
+.*.swp

@@ -8,7 +8,10 @@ description: |-
 
 # google\_compute\_address
 
-Creates a static IP address resource for Google Compute Engine.
+Creates a static IP address resource for Google Compute Engine.  For more information see
+[the official documentation](https://cloud.google.com/compute/docs/instances-and-network) and
+[API](https://cloud.google.com/compute/docs/reference/latest/addresses).
+
 
 ## Example Usage
 
@@ -31,3 +34,4 @@ The following attributes are exported:
 
 * `name` - The name of the resource.
 * `address` - The IP address that was allocated.
+* `self_link` - The URI of the created resource.
