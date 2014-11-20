@@ -102,7 +102,7 @@ func TestInit_noArgs(t *testing.T) {
 }
 
 // https://github.com/hashicorp/terraform/issues/518
-func TestIssue518(t *testing.T) {
+func TestInit_dstInSrc(t *testing.T) {
 	dir := tempDir(t)
 	if err := os.MkdirAll(dir, 0755); err != nil {
 		t.Fatalf("err: %s", err)
