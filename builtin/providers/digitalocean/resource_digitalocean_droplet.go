@@ -353,7 +353,7 @@ func WaitForDropletAttribute(
 	// Wait for the droplet so we can get the networking attributes
 	// that show up after a while
 	log.Printf(
-		"[INFO] Waiting for Droplet (%s) to have %s of %s",
+		"[INFO] Waiting for droplet (%s) to have %s of %s",
 		d.Id(), attribute, target)
 
 	stateConf := &resource.StateChangeConf{
