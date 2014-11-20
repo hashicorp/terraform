@@ -51,6 +51,7 @@ func Provider() *schema.Provider {
 			"aws_db_subnet_group":      resourceAwsDbSubnetGroup(),
 			"aws_vpc":                  resourceAwsVpc(),
 			"aws_db_parameter_group":   resourceAwsDbParameterGroup(),
+			"aws_subnet":               resourceAwsSubnet(),
 		},
 	}
 }
