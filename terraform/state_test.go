@@ -180,6 +180,9 @@ func TestReadWriteState(t *testing.T) {
 		Modules: []*ModuleState{
 			&ModuleState{
 				Path: rootModulePath,
+				Dependencies: []string{
+					"aws_instance.bar",
+				},
 				Resources: map[string]*ResourceState{
 					"foo": &ResourceState{
 						Primary: &InstanceState{
