@@ -19,7 +19,7 @@ func resourceComputeTargetPool() *schema.Resource {
 		Update: resourceComputeTargetPoolUpdate,
 
 		Schema: map[string]*schema.Schema{
-			"backupPool": &schema.Schema{
+			"backup_pool": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: false,
@@ -31,7 +31,7 @@ func resourceComputeTargetPool() *schema.Resource {
 				ForceNew: true,
 			},
 
-			"healthChecks": &schema.Schema{
+			"health_checks": &schema.Schema{
 				Type:     schema.TypeList,
 				Optional: true,
 				ForceNew: false,
@@ -51,12 +51,12 @@ func resourceComputeTargetPool() *schema.Resource {
 				ForceNew: true,
 			},
 
-			"selfLink": &schema.Schema{
+			"self_link": &schema.Schema{
 				Type:     schema.TypeString,
 				Computed: true,
 			},
 
-			"sessionAffinity": &schema.Schema{
+			"session_affinity": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: true,
@@ -132,7 +132,7 @@ func resourceComputeTargetPoolCreate(d *schema.ResourceData, meta interface{}) e
 	config := meta.(*Config)
 
 	hchkUrls, err := convertHealthChecks(
-		config, convertStringArr(d.Get("healthChecks").([]interface{})))
+		config, convertStringArr(d.Get("health_checks").([]interface{})))
 	if err != nil {
 		return err
 	}
@@ -145,12 +145,12 @@ func resourceComputeTargetPoolCreate(d *schema.ResourceData, meta interface{}) e
 
 	// Build the parameter
 	tpool := &compute.TargetPool{
-		BackupPool: d.Get("backupPool").(string),
+		BackupPool: d.Get("backup_pool").(string),
 		Description: d.Get("description").(string),
 		HealthChecks: hchkUrls,
 		Instances:  instanceUrls,
 		Name: d.Get("name").(string),
-		SessionAffinity: d.Get("sessionAffinity").(string),
+		SessionAffinity: d.Get("session_affinity").(string),
 	}
 	log.Printf("[DEBUG] TargetPool insert request: %#v", tpool)
 	op, err := config.clientCompute.TargetPools.Insert(
@@ -212,9 +212,9 @@ func resourceComputeTargetPoolUpdate(d *schema.ResourceData, meta interface{}) e
 
 	d.Partial(true)
 
-	if d.HasChange("healthChecks") {
+	if d.HasChange("health_checks") {
 
-		from_, to_ := d.GetChange("healthChecks")
+		from_, to_ := d.GetChange("health_checks")
 		from := convertStringArr(from_.([]interface{}))
 		to := convertStringArr(to_.([]interface{}))
 		fromUrls, err := convertHealthChecks(config, from)
@@ -236,7 +236,7 @@ func resourceComputeTargetPoolUpdate(d *schema.ResourceData, meta interface{}) e
 		op, err := config.clientCompute.TargetPools.RemoveHealthCheck(
 			config.Project, config.Region, d.Id(), removeReq).Do()
 		if err != nil {
-			return fmt.Errorf("Error updating healthCheck: %s", err)
+			return fmt.Errorf("Error updating health_check: %s", err)
 		}
 		op, err = waitOp(config, op, "TargetPool", "removing HealthChecks")
 		if err != nil {
@@ -255,7 +255,7 @@ func resourceComputeTargetPoolUpdate(d *schema.ResourceData, meta interface{}) e
 		op, err = config.clientCompute.TargetPools.AddHealthCheck(
 			config.Project, config.Region, d.Id(), addReq).Do()
 		if err != nil {
-			return fmt.Errorf("Error updating healthCheck: %s", err)
+			return fmt.Errorf("Error updating health_check: %s", err)
 		}
 		op, err = waitOp(config, op, "TargetPool", "adding HealthChecks")
 		if err != nil {
@@ -265,7 +265,7 @@ func resourceComputeTargetPoolUpdate(d *schema.ResourceData, meta interface{}) e
 			return OperationError(*op.Error)
 		}
 
-		d.SetPartial("healthChecks")
+		d.SetPartial("health_checks")
 	}
 
 	if d.HasChange("instances") {
@@ -324,18 +324,18 @@ func resourceComputeTargetPoolUpdate(d *schema.ResourceData, meta interface{}) e
 		d.SetPartial("instances")
 	}
 
-	if d.HasChange("backupPool") {
-		bpool_name := d.Get("backupPool").(string)
+	if d.HasChange("backup_pool") {
+		bpool_name := d.Get("backup_pool").(string)
 		tref := &compute.TargetReference{
 			Target: bpool_name,
 		}
 		op, err := config.clientCompute.TargetPools.SetBackup(
 			config.Project, config.Region, d.Id(), tref).Do()
 		if err != nil {
-			return fmt.Errorf("Error updating backupPool: %s", err)
+			return fmt.Errorf("Error updating backup_pool: %s", err)
 		}
 
-		op, err = waitOp(config, op, "TargetPool", "updating backupPool")
+		op, err = waitOp(config, op, "TargetPool", "updating backup_pool")
 		if err != nil {
 			return err
 		}
@@ -343,7 +343,7 @@ func resourceComputeTargetPoolUpdate(d *schema.ResourceData, meta interface{}) e
 			return OperationError(*op.Error)
 		}
 
-		d.SetPartial("backupPool")
+		d.SetPartial("backup_pool")
 	}
 
 	d.Partial(false)
@@ -367,7 +367,7 @@ func resourceComputeTargetPoolRead(d *schema.ResourceData, meta interface{}) err
 		return fmt.Errorf("Error reading TargetPool: %s", err)
 	}
 
-	d.Set("selfLink", tpool.SelfLink)
+	d.Set("self_link", tpool.SelfLink)
 
 	return nil
 }
@@ -393,5 +393,3 @@ func resourceComputeTargetPoolDelete(d *schema.ResourceData, meta interface{}) e
 	d.SetId("")
 	return nil
 }
-
-// vim: ts=4:sw=4:noet

@@ -109,7 +109,7 @@ func resourceComputeInstance() *schema.Resource {
 				},
 			},
 
-			"serviceAccounts": &schema.Schema{
+			"service_accounts": &schema.Schema{
 				Type:     schema.TypeList,
 				Optional: true,
 				ForceNew: true,
@@ -286,10 +286,10 @@ func resourceComputeInstanceCreate(d *schema.ResourceData, meta interface{}) err
 	// TODO(dcunnin): find out how many service accounts there were, allocate the array, create
 	// service accounts with the same emails
 	// for each scope inside each service account, check it is gettable and then put it in
-	servAccsCount := d.Get("serviceAccounts.#").(int)
+	servAccsCount := d.Get("service_accounts.#").(int)
     servAccs := make([]*compute.ServiceAccount, servAccsCount)
 	for i := 0; i < servAccsCount; i++ {
-		prefix := fmt.Sprintf("serviceAccounts.%d", i)
+		prefix := fmt.Sprintf("service_accounts.%d", i)
 		schemaScopes := d.Get(prefix + ".scopes").([]interface{})
 		scopes := make([]string, len(schemaScopes))
 		for j, v := range(schemaScopes) {
@@ -571,5 +571,3 @@ func resourceInstanceNatIP(iface *compute.NetworkInterface) (natIP string) {
 
 	return natIP
 }
-
-// vim: ts=4:sw=4:noet

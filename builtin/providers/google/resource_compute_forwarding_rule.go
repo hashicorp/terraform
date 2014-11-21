@@ -18,14 +18,14 @@ func resourceComputeForwardingRule() *schema.Resource {
 		Update: resourceComputeForwardingRuleUpdate,
 
 		Schema: map[string]*schema.Schema{
-			"IPAddress": &schema.Schema{
+			"ip_address": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: true,
 				Computed: true,
 			},
 
-			"IPProtocol": &schema.Schema{
+			"ip_protocol": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: true,
@@ -44,13 +44,13 @@ func resourceComputeForwardingRule() *schema.Resource {
 				ForceNew: true,
 			},
 
-			"portRange": &schema.Schema{
+			"port_range": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: true,
 			},
 
-			"selfLink": &schema.Schema{
+			"self_link": &schema.Schema{
 				Type:     schema.TypeString,
 				Computed: true,
 			},
@@ -68,11 +68,11 @@ func resourceComputeForwardingRuleCreate(d *schema.ResourceData, meta interface{
 	config := meta.(*Config)
 
 	frule := &compute.ForwardingRule{
-		IPAddress:  d.Get("IPAddress").(string),
-		IPProtocol: d.Get("IPProtocol").(string),
+		IPAddress:  d.Get("ip_address").(string),
+		IPProtocol: d.Get("ip_protocol").(string),
 		Description: d.Get("description").(string),
 		Name: d.Get("name").(string),
-		PortRange: d.Get("portRange").(string),
+		PortRange: d.Get("port_range").(string),
 		Target: d.Get("target").(string),
 	}
 
@@ -174,9 +174,9 @@ func resourceComputeForwardingRuleRead(d *schema.ResourceData, meta interface{})
 		return fmt.Errorf("Error reading ForwardingRule: %s", err)
 	}
 
-	d.Set("IPAddress", frule.IPAddress)
-	d.Set("IPProtocol", frule.IPProtocol)
-	d.Set("selfLink", frule.SelfLink)
+	d.Set("ip_address", frule.IPAddress)
+	d.Set("ip_protocol", frule.IPProtocol)
+	d.Set("self_link", frule.SelfLink)
 
 	return nil
 }
@@ -217,4 +217,3 @@ func resourceComputeForwardingRuleDelete(d *schema.ResourceData, meta interface{
 	return nil
 }
 
-// vim: ts=4:sw=4:noet

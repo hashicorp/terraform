@@ -18,7 +18,7 @@ func resourceComputeHttpHealthCheck() *schema.Resource {
 		Update: resourceComputeHttpHealthCheckUpdate,
 
 		Schema: map[string]*schema.Schema{
-			"checkIntervalSec": &schema.Schema{
+			"check_interval_sec": &schema.Schema{
 				Type:     schema.TypeInt,
 				Optional: true,
 				ForceNew: false,
@@ -30,7 +30,7 @@ func resourceComputeHttpHealthCheck() *schema.Resource {
 				ForceNew: false,
 			},
 
-			"healthyThreshold": &schema.Schema{
+			"healthy_threshold": &schema.Schema{
 				Type:     schema.TypeInt,
 				Optional: true,
 				ForceNew: false,
@@ -54,18 +54,18 @@ func resourceComputeHttpHealthCheck() *schema.Resource {
 				ForceNew: false,
 			},
 
-			"requestPath": &schema.Schema{
+			"request_path": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: false,
 			},
 
-			"selfLink": &schema.Schema{
+			"self_link": &schema.Schema{
 				Type:     schema.TypeString,
 				Computed: true,
 			},
 
-			"timeoutSec": &schema.Schema{
+			"timeout_sec": &schema.Schema{
 				Type:     schema.TypeInt,
 				Optional: true,
 				ForceNew: false,
@@ -85,15 +85,15 @@ func resourceComputeHttpHealthCheckCreate(d *schema.ResourceData, meta interface
 
 	// Build the parameter
 	hchk := &compute.HttpHealthCheck{
-		CheckIntervalSec: int64(d.Get("checkIntervalSec").(int)),
+		CheckIntervalSec: int64(d.Get("check_interval_sec").(int)),
 		Description: d.Get("description").(string),
-		HealthyThreshold: int64(d.Get("healthyThreshold").(int)),
+		HealthyThreshold: int64(d.Get("healthy_threshold").(int)),
 		Host: d.Get("host").(string),
 		Name: d.Get("name").(string),
 		Port: int64(d.Get("port").(int)),
-		RequestPath: d.Get("requestPath").(string),
-		TimeoutSec: int64(d.Get("timeoutSec").(int)),
-		UnhealthyThreshold: int64(d.Get("unhealthyThreshold").(int)),
+		RequestPath: d.Get("request_path").(string),
+		TimeoutSec: int64(d.Get("timeout_sec").(int)),
+		UnhealthyThreshold: int64(d.Get("unhealthy_threshold").(int)),
 	}
 	log.Printf("[DEBUG] HttpHealthCheck insert request: %#v", hchk)
 	op, err := config.clientCompute.HttpHealthChecks.Insert(
@@ -136,15 +136,15 @@ func resourceComputeHttpHealthCheckUpdate(d *schema.ResourceData, meta interface
 
 	// Build the parameter
 	hchk := &compute.HttpHealthCheck{
-		CheckIntervalSec: int64(d.Get("checkIntervalSec").(int)),
+		CheckIntervalSec: int64(d.Get("check_interval_sec").(int)),
 		Description: d.Get("description").(string),
-		HealthyThreshold: int64(d.Get("healthyThreshold").(int)),
+		HealthyThreshold: int64(d.Get("healthy_threshold").(int)),
 		Host: d.Get("host").(string),
 		Name: d.Get("name").(string),
 		Port: int64(d.Get("port").(int)),
-		RequestPath: d.Get("requestPath").(string),
-		TimeoutSec: int64(d.Get("timeoutSec").(int)),
-		UnhealthyThreshold: int64(d.Get("unhealthyThreshold").(int)),
+		RequestPath: d.Get("request_path").(string),
+		TimeoutSec: int64(d.Get("timeout_sec").(int)),
+		UnhealthyThreshold: int64(d.Get("unhealthy_threshold").(int)),
 	}
 	log.Printf("[DEBUG] HttpHealthCheck patch request: %#v", hchk)
 	op, err := config.clientCompute.HttpHealthChecks.Patch(
@@ -198,7 +198,7 @@ func resourceComputeHttpHealthCheckRead(d *schema.ResourceData, meta interface{}
 		return fmt.Errorf("Error reading HttpHealthCheck: %s", err)
 	}
 
-	d.Set("selfLink", hchk.SelfLink)
+	d.Set("self_link", hchk.SelfLink)
 
 	return nil
 }
@@ -236,5 +236,3 @@ func resourceComputeHttpHealthCheckDelete(d *schema.ResourceData, meta interface
 	d.SetId("")
 	return nil
 }
-
-// vim: ts=4:sw=4:noet

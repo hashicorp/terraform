@@ -60,5 +60,3 @@ func providerConfigure(d *schema.ResourceData) (interface{}, error) {
 
 	return &config, nil
 }
-
-// vim: ts=4:sw=4:noet
