@@ -1,5 +1,6 @@
 package aws
 
+/*
 import (
 	"fmt"
 	"log"
@@ -8,111 +9,187 @@ import (
 	"time"
 
 	"github.com/hashicorp/terraform/flatmap"
-	"github.com/hashicorp/terraform/helper/config"
-	"github.com/hashicorp/terraform/helper/diff"
+	"github.com/hashicorp/terraform/helper/hashcode"
 	"github.com/hashicorp/terraform/helper/resource"
+	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/terraform"
 	"github.com/mitchellh/goamz/rds"
 )
 
-func resource_aws_db_instance_create(
-	s *terraform.InstanceState,
-	d *terraform.InstanceDiff,
-	meta interface{}) (*terraform.InstanceState, error) {
-	p := meta.(*ResourceProvider)
-	conn := p.rdsconn
+func resourceAwsDbInstance() *schema.Resource {
+	return &schema.Resource{
+		Create: resourceAwsDbInstanceCreate,
+		Read:   resourceAwsDbInstanceRead,
+		Delete: resourceAwsDbInstanceDelete,
 
-	// Merge the diff into the state so that we have all the attributes
-	// properly.
-	rs := s.MergeDiff(d)
+		Schema: map[string]*schema.Schema{
+			"name": &schema.Schema{
+				Type:     schema.TypeString,
+				Required: true,
+				ForceNew: true,
+			},
 
-	var err error
-	var attr string
+			"username": &schema.Schema{
+				Type:     schema.TypeString,
+				Required: true,
+				ForceNew: true,
+			},
 
+			"password": &schema.Schema{
+				Type:     schema.TypeInt,
+				Required: true,
+				ForceNew: true,
+			},
+
+			"engine": &schema.Schema{
+				Type:     schema.TypeString,
+				Required: true,
+				ForceNew: true,
+			},
+
+			"engine_version": &schema.Schema{
+				Type:     schema.TypeString,
+				Required: true,
+				ForceNew: true,
+			},
+
+			"allocated_storage": &schema.Schema{
+				Type:     schema.TypeInt,
+				Required: true,
+				ForceNew: true,
+			},
+
+			"identifier": &schema.Schema{
+				Type:     schema.TypeString,
+				Required: true,
+				ForceNew: true,
+			},
+
+			"instance_class": &schema.Schema{
+				Type:     schema.TypeString,
+				Required: true,
+				ForceNew: true,
+			},
+			// tot hier
+			"health_check_type": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				Computed: true,
+				ForceNew: true,
+			},
+
+			"availability_zones": &schema.Schema{
+				Type:     schema.TypeSet,
+				Required: true,
+				ForceNew: true,
+				Elem:     &schema.Schema{Type: schema.TypeString},
+				Set: func(v interface{}) int {
+					return hashcode.String(v.(string))
+				},
+			},
+
+			"load_balancers": &schema.Schema{
+				Type:     schema.TypeSet,
+				Optional: true,
+				ForceNew: true,
+				Elem:     &schema.Schema{Type: schema.TypeString},
+				Set: func(v interface{}) int {
+					return hashcode.String(v.(string))
+				},
+			},
+
+			"vpc_zone_identifier": &schema.Schema{
+				Type:     schema.TypeSet,
+				Optional: true,
+				Computed: true,
+				ForceNew: true,
+				Elem:     &schema.Schema{Type: schema.TypeString},
+				Set: func(v interface{}) int {
+					return hashcode.String(v.(string))
+				},
+			},
+		},
+	}
+}
+
+func resourceAwsDbInstanceCreate(d *schema.ResourceData, meta interface{}) error {
+	conn := meta.(*AWSClient).rdsconn
 	opts := rds.CreateDBInstance{}
 
-	if attr = rs.Attributes["allocated_storage"]; attr != "" {
-		opts.AllocatedStorage, err = strconv.Atoi(attr)
-		opts.SetAllocatedStorage = true
+	opts.AllocatedStorage = d.Get("allocated_storage").(int)
+	opts.SetAllocatedStorage = true
+
+	if attr, ok := d.GetOk("instance_class"); ok {
+		opts.DBInstanceClass = attr.(string)
 	}
 
-	if attr = rs.Attributes["backup_retention_period"]; attr != "" {
-		opts.BackupRetentionPeriod, err = strconv.Atoi(attr)
+	if attr, ok := d.GetOk("backup_retention_period"); ok {
+		opts.BackupRetentionPeriod = attr.(int)
 		opts.SetBackupRetentionPeriod = true
 	}
 
-	if attr = rs.Attributes["iops"]; attr != "" {
-		opts.Iops, err = strconv.Atoi(attr)
+	if attr, ok := d.GetOk("iops"); ok {
+		opts.Iops = attr.(int)
 		opts.SetIops = true
 	}
 
-	if attr = rs.Attributes["port"]; attr != "" {
-		opts.Port, err = strconv.Atoi(attr)
+	if attr, ok := d.GetOk("port"); ok {
+		opts.Port = attr.(int)
 		opts.SetPort = true
 	}
 
-	if attr = rs.Attributes["availability_zone"]; attr != "" {
-		opts.AvailabilityZone = attr
+	if attr, ok := d.GetOk("availability_zone"); ok {
+		opts.AvailabilityZone = attr.(string)
 	}
 
-	if attr = rs.Attributes["instance_class"]; attr != "" {
-		opts.DBInstanceClass = attr
+	if attr, ok := d.GetOk("maintenance_window"); ok {
+		opts.PreferredMaintenanceWindow = attr.(string)
 	}
 
-	if attr = rs.Attributes["maintenance_window"]; attr != "" {
-		opts.PreferredMaintenanceWindow = attr
+	if attr, ok := d.GetOk("backup_window"); ok {
+		opts.PreferredBackupWindow = attr.(string)
 	}
 
-	if attr = rs.Attributes["backup_window"]; attr != "" {
-		opts.PreferredBackupWindow = attr
+	if attr, ok := d.GetOk("multi_az"); ok {
+		opts.MultiAZ = attr.(bool)
 	}
 
-	if attr = rs.Attributes["multi_az"]; attr == "true" {
-		opts.MultiAZ = true
+	if attr, ok := d.GetOk("publicly_accessible"); ok {
+		opts.PubliclyAccessible = attr.(bool)
 	}
 
-	if attr = rs.Attributes["publicly_accessible"]; attr == "true" {
-		opts.PubliclyAccessible = true
+	if attr, ok := d.GetOk("db_subnet_group_name"); ok {
+		opts.DBSubnetGroupName = attr.(string)
 	}
 
-	if attr = rs.Attributes["db_subnet_group_name"]; attr != "" {
-		opts.DBSubnetGroupName = attr
+	if attr, ok := d.GetOk("parameter_group_name"); ok {
+		opts.DBParameterGroupName = attr.(string)
 	}
 
-	if attr = rs.Attributes["parameter_group_name"]; attr != "" {
-                opts.DBParameterGroupName = attr
-        }
-
-	if err != nil {
-		return nil, fmt.Errorf("Error parsing configuration: %s", err)
+	if d.Get("vpc_security_group_ids.#").(int) > 0 {
+		opts.VpcSecurityGroupIds = d.Get("vpc_security_group_ids").([]string)
 	}
 
-	if _, ok := rs.Attributes["vpc_security_group_ids.#"]; ok {
-		opts.VpcSecurityGroupIds = expandStringList(flatmap.Expand(
-			rs.Attributes, "vpc_security_group_ids").([]interface{}))
+	if d.Get("security_group_names.#").(int) > 0 {
+		opts.DBSecurityGroupNames = d.Get("security_group_names").([]string)
 	}
 
-	if _, ok := rs.Attributes["security_group_names.#"]; ok {
-		opts.DBSecurityGroupNames = expandStringList(flatmap.Expand(
-			rs.Attributes, "security_group_names").([]interface{}))
-	}
-
-	opts.DBInstanceIdentifier = rs.Attributes["identifier"]
-	opts.DBName = rs.Attributes["name"]
-	opts.MasterUsername = rs.Attributes["username"]
-	opts.MasterUserPassword = rs.Attributes["password"]
-	opts.EngineVersion = rs.Attributes["engine_version"]
-	opts.Engine = rs.Attributes["engine"]
+	opts.DBInstanceIdentifier = d.Get("identifier").(string)
+	opts.DBName = d.Get("name").(string)
+	opts.MasterUsername = d.Get("username").(string)
+	opts.MasterUserPassword = d.Get("password").(string)
+	opts.EngineVersion = d.Get("engine_version").(string)
+	opts.Engine = d.Get("engine").(string)
 
 	log.Printf("[DEBUG] DB Instance create configuration: %#v", opts)
-	_, err = conn.CreateDBInstance(&opts)
+	_, err := conn.CreateDBInstance(&opts)
 	if err != nil {
-		return nil, fmt.Errorf("Error creating DB Instance: %s", err)
+		return fmt.Errorf("Error creating DB Instance: %s", err)
 	}
 
-	rs.ID = rs.Attributes["identifier"]
+	d.SetId(d.Get("identifier").(string))
 
-	log.Printf("[INFO] DB Instance ID: %s", rs.ID)
+	log.Printf("[INFO] DB Instance ID: %s", d.Id())
 
 	log.Println(
 		"[INFO] Waiting for DB Instance to be available")
@@ -120,7 +197,7 @@ func resource_aws_db_instance_create(
 	stateConf := &resource.StateChangeConf{
 		Pending:    []string{"creating", "backing-up", "modifying"},
 		Target:     "available",
-		Refresh:    DBInstanceStateRefreshFunc(rs.ID, conn),
+		Refresh:    resourceAwsDbInstanceStateRefreshFunc(d.Id(), conn),
 		Timeout:    20 * time.Minute,
 		MinTimeout: 10 * time.Second,
 		Delay:      30 * time.Second, // Wait 30 secs before starting
@@ -129,135 +206,14 @@ func resource_aws_db_instance_create(
 	// Wait, catching any errors
 	_, err = stateConf.WaitForState()
 	if err != nil {
-		return rs, err
-	}
-
-	v, err := resource_aws_db_instance_retrieve(rs.ID, conn)
-	if err != nil {
-		return rs, err
-	}
-
-	return resource_aws_db_instance_update_state(rs, v)
-}
-
-func resource_aws_db_instance_update(
-	s *terraform.InstanceState,
-	d *terraform.InstanceDiff,
-	meta interface{}) (*terraform.InstanceState, error) {
-	panic("Cannot update DB")
-}
-
-func resource_aws_db_instance_destroy(
-	s *terraform.InstanceState,
-	meta interface{}) error {
-	p := meta.(*ResourceProvider)
-	conn := p.rdsconn
-
-	log.Printf("[DEBUG] DB Instance destroy: %v", s.ID)
-
-	opts := rds.DeleteDBInstance{DBInstanceIdentifier: s.ID}
-
-	if s.Attributes["skip_final_snapshot"] == "true" {
-		opts.SkipFinalSnapshot = true
-	} else {
-		opts.FinalDBSnapshotIdentifier = s.Attributes["final_snapshot_identifier"]
-	}
-
-	log.Printf("[DEBUG] DB Instance destroy configuration: %v", opts)
-	if _, err := conn.DeleteDBInstance(&opts); err != nil {
 		return err
 	}
 
-	log.Println(
-		"[INFO] Waiting for DB Instance to be destroyed")
-	stateConf := &resource.StateChangeConf{
-		Pending: []string{"creating", "backing-up",
-			"modifying", "deleting", "available"},
-		Target:     "",
-		Refresh:    DBInstanceStateRefreshFunc(s.ID, conn),
-		Timeout:    20 * time.Minute,
-		MinTimeout: 10 * time.Second,
-		Delay:      30 * time.Second, // Wait 30 secs before starting
-	}
-	if _, err := stateConf.WaitForState(); err != nil {
-		return err
-	}
-
-	return nil
+	return resourceAwsDbInstanceRead(d, meta)
 }
 
-func resource_aws_db_instance_refresh(
-	s *terraform.InstanceState,
-	meta interface{}) (*terraform.InstanceState, error) {
-	p := meta.(*ResourceProvider)
-	conn := p.rdsconn
-
-	v, err := resource_aws_db_instance_retrieve(s.ID, conn)
-
-	if err != nil {
-		return s, err
-	}
-	if v == nil {
-		s.ID = ""
-		return s, nil
-	}
-
-	return resource_aws_db_instance_update_state(s, v)
-}
-
-func resource_aws_db_instance_diff(
-	s *terraform.InstanceState,
-	c *terraform.ResourceConfig,
-	meta interface{}) (*terraform.InstanceDiff, error) {
-
-	b := &diff.ResourceBuilder{
-		Attrs: map[string]diff.AttrType{
-			"allocated_storage":         diff.AttrTypeCreate,
-			"availability_zone":         diff.AttrTypeCreate,
-			"backup_retention_period":   diff.AttrTypeCreate,
-			"backup_window":             diff.AttrTypeCreate,
-			"engine":                    diff.AttrTypeCreate,
-			"engine_version":            diff.AttrTypeCreate,
-			"identifier":                diff.AttrTypeCreate,
-			"instance_class":            diff.AttrTypeCreate,
-			"iops":                      diff.AttrTypeCreate,
-			"maintenance_window":        diff.AttrTypeCreate,
-			"multi_az":                  diff.AttrTypeCreate,
-			"name":                      diff.AttrTypeCreate,
-			"password":                  diff.AttrTypeCreate,
-			"port":                      diff.AttrTypeCreate,
-			"publicly_accessible":       diff.AttrTypeCreate,
-			"username":                  diff.AttrTypeCreate,
-			"vpc_security_group_ids":    diff.AttrTypeCreate,
-			"security_group_names":      diff.AttrTypeCreate,
-			"db_subnet_group_name":      diff.AttrTypeCreate,
-			"parameter_group_name":      diff.AttrTypeCreate,
-			"skip_final_snapshot":       diff.AttrTypeUpdate,
-			"final_snapshot_identifier": diff.AttrTypeUpdate,
-		},
-
-		ComputedAttrs: []string{
-			"address",
-			"availability_zone",
-			"backup_retention_period",
-			"backup_window",
-			"engine_version",
-			"maintenance_window",
-			"endpoint",
-			"status",
-			"multi_az",
-			"port",
-			"address",
-			"password",
-		},
-	}
-
-	return b.Diff(s, c)
-}
-
-func resource_aws_db_instance_update_state(
-	s *terraform.InstanceState,
-	v *rds.DBInstance) (*terraform.InstanceState, error) {
+func resourceAwsDbInstanceRead(d *schema.ResourceData, meta interface{}) error {
+	conn := meta.(*AWSClient).rdsconn
 
 	s.Attributes["address"] = v.Address
 	s.Attributes["allocated_storage"] = strconv.Itoa(v.AllocatedStorage)
@@ -293,6 +249,61 @@ func resource_aws_db_instance_update_state(
 	return s, nil
 }
 
+func resourceAwsDbInstanceDelete(d *schema.ResourceData, meta interface{}) error {
+	conn := meta.(*AWSClient).rdsconn
+
+	log.Printf("[DEBUG] DB Instance destroy: %v", d.Id())
+
+	opts := rds.DeleteDBInstance{DBInstanceIdentifier: d.Id()}
+
+	if d.Get("skip_final_snapshot").(string) == "true" {
+		opts.SkipFinalSnapshot = true
+	} else {
+		opts.FinalDBSnapshotIdentifier = s.Attributes["final_snapshot_identifier"]
+	}
+
+	log.Printf("[DEBUG] DB Instance destroy configuration: %v", opts)
+	if _, err := conn.DeleteDBInstance(&opts); err != nil {
+		return err
+	}
+
+	log.Println(
+		"[INFO] Waiting for DB Instance to be destroyed")
+	stateConf := &resource.StateChangeConf{
+		Pending: []string{"creating", "backing-up",
+			"modifying", "deleting", "available"},
+		Target:     "",
+		Refresh:    resourceAwsDbInstanceStateRefreshFunc(s.ID, conn),
+		Timeout:    20 * time.Minute,
+		MinTimeout: 10 * time.Second,
+		Delay:      30 * time.Second, // Wait 30 secs before starting
+	}
+	if _, err := stateConf.WaitForState(); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func resource_aws_db_instance_refresh(
+	s *terraform.InstanceState,
+	meta interface{}) (*terraform.InstanceState, error) {
+	p := meta.(*ResourceProvider)
+	conn := p.rdsconn
+
+	v, err := resource_aws_db_instance_retrieve(s.ID, conn)
+
+	if err != nil {
+		return s, err
+	}
+	if v == nil {
+		s.ID = ""
+		return s, nil
+	}
+
+	return resource_aws_db_instance_update_state(s, v)
+}
+
 func resource_aws_db_instance_retrieve(id string, conn *rds.Rds) (*rds.DBInstance, error) {
 	opts := rds.DescribeDBInstances{
 		DBInstanceIdentifier: id,
@@ -321,39 +332,7 @@ func resource_aws_db_instance_retrieve(id string, conn *rds.Rds) (*rds.DBInstanc
 	return &v, nil
 }
 
-func resource_aws_db_instance_validation() *config.Validator {
-	return &config.Validator{
-		Required: []string{
-			"allocated_storage",
-			"engine",
-			"engine_version",
-			"identifier",
-			"instance_class",
-			"name",
-			"password",
-			"username",
-		},
-		Optional: []string{
-			"availability_zone",
-			"backup_retention_period",
-			"backup_window",
-			"iops",
-			"maintenance_window",
-			"multi_az",
-			"port",
-			"publicly_accessible",
-			"vpc_security_group_ids.*",
-			"skip_final_snapshot",
-			"security_group_names.*",
-			"db_subnet_group_name",
-			"parameter_group_name",
-			"skip_final_snapshot",
-			"final_snapshot_identifier",
-		},
-	}
-}
-
-func DBInstanceStateRefreshFunc(id string, conn *rds.Rds) resource.StateRefreshFunc {
+func resourceAwsDbInstanceStateRefreshFunc(id string, conn *rds.Rds) resource.StateRefreshFunc {
 	return func() (interface{}, string, error) {
 		v, err := resource_aws_db_instance_retrieve(id, conn)
 
@@ -369,3 +348,4 @@ func DBInstanceStateRefreshFunc(id string, conn *rds.Rds) resource.StateRefreshF
 		return v, v.DBInstanceStatus, nil
 	}
 }
+*/

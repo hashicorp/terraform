@@ -25,7 +25,7 @@ func TestAccAWSS3Bucket(t *testing.T) {
 }
 
 func testAccCheckAWSS3BucketDestroy(s *terraform.State) error {
-	conn := testAccProvider.s3conn
+	conn := testAccProvider.Meta().(*AWSClient).s3conn
 
 	for _, rs := range s.RootModule().Resources {
 		if rs.Type != "aws_s3_bucket" {
@@ -53,7 +53,7 @@ func testAccCheckAWSS3BucketExists(n string) resource.TestCheckFunc {
 			return fmt.Errorf("No S3 Bucket ID is set")
 		}
 
-		conn := testAccProvider.s3conn
+		conn := testAccProvider.Meta().(*AWSClient).s3conn
 		bucket := conn.Bucket(rs.Primary.ID)
 		resp, err := bucket.Head("/")
 		if err != nil {

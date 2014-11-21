@@ -56,18 +56,8 @@ func resourceAwsDbParameterGroup() *schema.Resource {
 	}
 }
 
-func resourceAwsDbParameterHash(v interface{}) int {
-	var buf bytes.Buffer
-	m := v.(map[string]interface{})
-	buf.WriteString(fmt.Sprintf("%s-", m["name"].(string)))
-	buf.WriteString(fmt.Sprintf("%s-", m["value"].(string)))
-
-	return hashcode.String(buf.String())
-}
-
 func resourceAwsDbParameterGroupCreate(d *schema.ResourceData, meta interface{}) error {
-	p := meta.(*ResourceProvider)
-	rdsconn := p.rdsconn
+	rdsconn := meta.(*AWSClient).rdsconn
 
 	createOpts := rds.CreateDBParameterGroup{
 		DBParameterGroupName:   d.Get("name").(string),
@@ -93,65 +83,8 @@ func resourceAwsDbParameterGroupCreate(d *schema.ResourceData, meta interface{})
 	return resourceAwsDbParameterGroupUpdate(d, meta)
 }
 
-func resourceAwsDbParameterGroupUpdate(d *schema.ResourceData, meta interface{}) error {
-	p := meta.(*ResourceProvider)
-	rdsconn := p.rdsconn
-
-	d.Partial(true)
-
-	if d.HasChange("parameter") {
-		o, n := d.GetChange("parameter")
-		if o == nil {
-			o = new(schema.Set)
-		}
-		if n == nil {
-			n = new(schema.Set)
-		}
-
-		os := o.(*schema.Set)
-		ns := n.(*schema.Set)
-
-		// Expand the "parameter" set to goamz compat []rds.Parameter
-		parameters, err := expandParameters(ns.Difference(os).List())
-		if err != nil {
-			return err
-		}
-
-		if len(parameters) > 0 {
-			modifyOpts := rds.ModifyDBParameterGroup{
-				DBParameterGroupName:   d.Get("name").(string),
-				Parameters:             parameters,
-			}
-
-			log.Printf("[DEBUG] Modify DB Parameter Group: %#v", modifyOpts)
-			_, err = rdsconn.ModifyDBParameterGroup(&modifyOpts)
-			if err != nil {
-				return fmt.Errorf("Error modifying DB Parameter Group: %s", err)
-			}
-		}
-		d.SetPartial("parameter")
-	}
-
-	d.Partial(false)
-
-	return resourceAwsDbParameterGroupRead(d, meta)
-}
-
-func resourceAwsDbParameterGroupDelete(d *schema.ResourceData, meta interface{}) error {
-	stateConf := &resource.StateChangeConf{
-		Pending:    []string{"pending"},
-		Target:     "destroyed",
-		Refresh:    resourceDbParameterGroupDeleteRefreshFunc(d, meta),
-		Timeout:    3 * time.Minute,
-		MinTimeout: 1 * time.Second,
-	}
-	_, err := stateConf.WaitForState()
-	return err
-}
-
 func resourceAwsDbParameterGroupRead(d *schema.ResourceData, meta interface{}) error {
-	p := meta.(*ResourceProvider)
-	rdsconn := p.rdsconn
+	rdsconn := meta.(*AWSClient).rdsconn
 
 	describeOpts := rds.DescribeDBParameterGroups{
 		DBParameterGroupName: d.Id(),
@@ -187,11 +120,65 @@ func resourceAwsDbParameterGroupRead(d *schema.ResourceData, meta interface{}) e
 	return nil
 }
 
-func resourceDbParameterGroupDeleteRefreshFunc(
+func resourceAwsDbParameterGroupUpdate(d *schema.ResourceData, meta interface{}) error {
+	rdsconn := meta.(*AWSClient).rdsconn
+
+	d.Partial(true)
+
+	if d.HasChange("parameter") {
+		o, n := d.GetChange("parameter")
+		if o == nil {
+			o = new(schema.Set)
+		}
+		if n == nil {
+			n = new(schema.Set)
+		}
+
+		os := o.(*schema.Set)
+		ns := n.(*schema.Set)
+
+		// Expand the "parameter" set to goamz compat []rds.Parameter
+		parameters, err := expandParameters(ns.Difference(os).List())
+		if err != nil {
+			return err
+		}
+
+		if len(parameters) > 0 {
+			modifyOpts := rds.ModifyDBParameterGroup{
+				DBParameterGroupName: d.Get("name").(string),
+				Parameters:           parameters,
+			}
+
+			log.Printf("[DEBUG] Modify DB Parameter Group: %#v", modifyOpts)
+			_, err = rdsconn.ModifyDBParameterGroup(&modifyOpts)
+			if err != nil {
+				return fmt.Errorf("Error modifying DB Parameter Group: %s", err)
+			}
+		}
+		d.SetPartial("parameter")
+	}
+
+	d.Partial(false)
+
+	return resourceAwsDbParameterGroupRead(d, meta)
+}
+
+func resourceAwsDbParameterGroupDelete(d *schema.ResourceData, meta interface{}) error {
+	stateConf := &resource.StateChangeConf{
+		Pending:    []string{"pending"},
+		Target:     "destroyed",
+		Refresh:    resourceAwsDbParameterGroupDeleteRefreshFunc(d, meta),
+		Timeout:    3 * time.Minute,
+		MinTimeout: 1 * time.Second,
+	}
+	_, err := stateConf.WaitForState()
+	return err
+}
+
+func resourceAwsDbParameterGroupDeleteRefreshFunc(
 	d *schema.ResourceData,
 	meta interface{}) resource.StateRefreshFunc {
-	p := meta.(*ResourceProvider)
-	rdsconn := p.rdsconn
+	rdsconn := meta.(*AWSClient).rdsconn
 
 	return func() (interface{}, string, error) {
 
@@ -212,4 +199,13 @@ func resourceDbParameterGroupDeleteRefreshFunc(
 
 		return d, "destroyed", nil
 	}
+}
+
+func resourceAwsDbParameterHash(v interface{}) int {
+	var buf bytes.Buffer
+	m := v.(map[string]interface{})
+	buf.WriteString(fmt.Sprintf("%s-", m["name"].(string)))
+	buf.WriteString(fmt.Sprintf("%s-", m["value"].(string)))
+
+	return hashcode.String(buf.String())
 }

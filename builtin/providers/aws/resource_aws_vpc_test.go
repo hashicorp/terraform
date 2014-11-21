@@ -91,7 +91,7 @@ func TestAccVpcUpdate(t *testing.T) {
 }
 
 func testAccCheckVpcDestroy(s *terraform.State) error {
-	conn := testAccProvider.ec2conn
+	conn := testAccProvider.Meta().(*AWSClient).ec2conn
 
 	for _, rs := range s.RootModule().Resources {
 		if rs.Type != "aws_vpc" {
@@ -142,7 +142,7 @@ func testAccCheckVpcExists(n string, vpc *ec2.VPC) resource.TestCheckFunc {
 			return fmt.Errorf("No VPC ID is set")
 		}
 
-		conn := testAccProvider.ec2conn
+		conn := testAccProvider.Meta().(*AWSClient).ec2conn
 		resp, err := conn.DescribeVpcs([]string{rs.Primary.ID}, ec2.NewFilter())
 		if err != nil {
 			return err

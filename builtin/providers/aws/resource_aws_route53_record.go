@@ -3,45 +3,62 @@ package aws
 import (
 	"fmt"
 	"log"
-	"strconv"
 	"strings"
 	"time"
 
-	"github.com/hashicorp/terraform/flatmap"
-	"github.com/hashicorp/terraform/helper/config"
-	"github.com/hashicorp/terraform/helper/diff"
 	"github.com/hashicorp/terraform/helper/resource"
-	"github.com/hashicorp/terraform/terraform"
+	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/mitchellh/goamz/route53"
 )
 
-func resource_aws_r53_record_validation() *config.Validator {
-	return &config.Validator{
-		Required: []string{
-			"zone_id",
-			"name",
-			"type",
-			"ttl",
-			"records.*",
+func resourceAwsRoute53Record() *schema.Resource {
+	return &schema.Resource{
+		Create: resourceAwsRoute53RecordCreate,
+		Read:   resourceAwsRoute53RecordRead,
+		Delete: resourceAwsRoute53RecordDelete,
+
+		Schema: map[string]*schema.Schema{
+			"name": &schema.Schema{
+				Type:     schema.TypeString,
+				Required: true,
+				ForceNew: true,
+			},
+
+			"type": &schema.Schema{
+				Type:     schema.TypeString,
+				Required: true,
+				ForceNew: true,
+			},
+
+			"zone_id": &schema.Schema{
+				Type:     schema.TypeString,
+				Required: true,
+				ForceNew: true,
+			},
+
+			"ttl": &schema.Schema{
+				Type:     schema.TypeInt,
+				Required: true,
+				ForceNew: true,
+			},
+
+			"records": &schema.Schema{
+				Type:     schema.TypeList,
+				Elem:     &schema.Schema{Type: schema.TypeString},
+				Required: true,
+				ForceNew: true,
+			},
 		},
 	}
 }
 
-func resource_aws_r53_record_create(
-	s *terraform.InstanceState,
-	d *terraform.InstanceDiff,
-	meta interface{}) (*terraform.InstanceState, error) {
-	p := meta.(*ResourceProvider)
-	conn := p.route53
-
-	// Merge the diff into the state so that we have all the attributes
-	// properly.
-	rs := s.MergeDiff(d)
+func resourceAwsRoute53RecordCreate(d *schema.ResourceData, meta interface{}) error {
+	conn := meta.(*AWSClient).route53
 
 	// Get the record
-	rec, err := resource_aws_r53_build_record_set(rs)
+	rec, err := resourceAwsRoute53RecordBuildSet(d)
 	if err != nil {
-		return rs, err
+		return err
 	}
 
 	// Create the new records. We abuse StateChangeConf for this to
@@ -56,9 +73,10 @@ func resource_aws_r53_record_create(
 			},
 		},
 	}
-	zone := rs.Attributes["zone_id"]
+	zone := d.Get("zone_id").(string)
 	log.Printf("[DEBUG] Creating resource records for zone: %s, name: %s",
-		zone, rs.Attributes["name"])
+		zone, d.Get("name").(string))
+
 	wait := resource.StateChangeConf{
 		Pending:    []string{"rejected"},
 		Target:     "accepted",
@@ -79,14 +97,15 @@ func resource_aws_r53_record_create(
 			return resp.ChangeInfo, "accepted", nil
 		},
 	}
+
 	respRaw, err := wait.WaitForState()
 	if err != nil {
-		return rs, err
+		return err
 	}
 	changeInfo := respRaw.(route53.ChangeInfo)
 
 	// Generate an ID
-	rs.ID = fmt.Sprintf("%s_%s_%s", zone, rs.Attributes["name"], rs.Attributes["type"])
+	d.SetId(fmt.Sprintf("%s_%s_%s", zone, d.Get("name").(string), d.Get("type").(string)))
 
 	// Wait until we are done
 	wait = resource.StateChangeConf{
@@ -96,47 +115,63 @@ func resource_aws_r53_record_create(
 		Timeout:    10 * time.Minute,
 		MinTimeout: 5 * time.Second,
 		Refresh: func() (result interface{}, state string, err error) {
-			return resource_aws_r53_wait(conn, changeInfo.ID)
+			return resourceAwsRoute53Wait(conn, changeInfo.ID)
 		},
 	}
 	_, err = wait.WaitForState()
 	if err != nil {
-		return rs, err
+		return err
 	}
-	return rs, nil
+
+	return nil
 }
 
-func resource_aws_r53_build_record_set(s *terraform.InstanceState) (*route53.ResourceRecordSet, error) {
-	// Parse the TTL
-	ttl, err := strconv.ParseInt(s.Attributes["ttl"], 10, 32)
+func resourceAwsRoute53RecordRead(d *schema.ResourceData, meta interface{}) error {
+	conn := meta.(*AWSClient).route53
+
+	zone := d.Get("zone_id").(string)
+	lopts := &route53.ListOpts{
+		Name: d.Get("name").(string),
+		Type: d.Get("type").(string),
+	}
+	resp, err := conn.ListResourceRecordSets(zone, lopts)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	// Expand the records
-	recRaw := flatmap.Expand(s.Attributes, "records")
-	var records []string
-	for _, raw := range recRaw.([]interface{}) {
-		records = append(records, raw.(string))
+	// Scan for a matching record
+	found := false
+	for _, record := range resp.Records {
+		if route53.FQDN(record.Name) != route53.FQDN(lopts.Name) {
+			continue
+		}
+		if strings.ToUpper(record.Type) != strings.ToUpper(lopts.Type) {
+			continue
+		}
+
+		found = true
+
+		for i, rec := range record.Records {
+			key := fmt.Sprintf("records.%d", i)
+			d.Set(key, rec)
+		}
+		d.Set("ttl", record.TTL)
+
+		break
 	}
 
-	rec := &route53.ResourceRecordSet{
-		Name:    s.Attributes["name"],
-		Type:    s.Attributes["type"],
-		TTL:     int(ttl),
-		Records: records,
+	if !found {
+		d.SetId("")
 	}
-	return rec, nil
+
+	return nil
 }
 
-func resource_aws_r53_record_destroy(
-	s *terraform.InstanceState,
-	meta interface{}) error {
-	p := meta.(*ResourceProvider)
-	conn := p.route53
+func resourceAwsRoute53RecordDelete(d *schema.ResourceData, meta interface{}) error {
+	conn := meta.(*AWSClient).route53
 
-	// Get the record
-	rec, err := resource_aws_r53_build_record_set(s)
+	// Get the records
+	rec, err := resourceAwsRoute53RecordBuildSet(d)
 	if err != nil {
 		return err
 	}
@@ -151,9 +186,10 @@ func resource_aws_r53_record_destroy(
 			},
 		},
 	}
-	zone := s.Attributes["zone_id"]
+	zone := d.Get("zone_id").(string)
 	log.Printf("[DEBUG] Deleting resource records for zone: %s, name: %s",
-		zone, s.Attributes["name"])
+		zone, d.Get("name").(string))
+
 	wait := resource.StateChangeConf{
 		Pending:    []string{"rejected"},
 		Target:     "accepted",
@@ -179,6 +215,7 @@ func resource_aws_r53_record_destroy(
 			return 42, "accepted", nil
 		},
 	}
+
 	if _, err := wait.WaitForState(); err != nil {
 		return err
 	}
@@ -186,68 +223,19 @@ func resource_aws_r53_record_destroy(
 	return nil
 }
 
-func resource_aws_r53_record_refresh(
-	s *terraform.InstanceState,
-	meta interface{}) (*terraform.InstanceState, error) {
-	p := meta.(*ResourceProvider)
-	conn := p.route53
-
-	zone := s.Attributes["zone_id"]
-	lopts := &route53.ListOpts{
-		Name: s.Attributes["name"],
-		Type: s.Attributes["type"],
-	}
-	resp, err := conn.ListResourceRecordSets(zone, lopts)
-	if err != nil {
-		return s, err
+func resourceAwsRoute53RecordBuildSet(d *schema.ResourceData) (*route53.ResourceRecordSet, error) {
+	recs := d.Get("records.#").(int)
+	records := make([]string, 0, recs)
+	for i := 0; i < recs; i++ {
+		key := fmt.Sprintf("records.%d", i)
+		records = append(records, d.Get(key).(string))
 	}
 
-	// Scan for a matching record
-	found := false
-	for _, record := range resp.Records {
-		if route53.FQDN(record.Name) != route53.FQDN(lopts.Name) {
-			continue
-		}
-		if strings.ToUpper(record.Type) != strings.ToUpper(lopts.Type) {
-			continue
-		}
-
-		found = true
-		resource_aws_r53_record_update_state(s, &record)
-		break
+	rec := &route53.ResourceRecordSet{
+		Name:    d.Get("name").(string),
+		Type:    d.Get("type").(string),
+		TTL:     d.Get("ttl").(int),
+		Records: records,
 	}
-	if !found {
-		s.ID = ""
-	}
-	return s, nil
-}
-
-func resource_aws_r53_record_update_state(
-	s *terraform.InstanceState,
-	rec *route53.ResourceRecordSet) {
-
-	flatRec := flatmap.Flatten(map[string]interface{}{
-		"records": rec.Records,
-	})
-	for k, v := range flatRec {
-		s.Attributes[k] = v
-	}
-
-	s.Attributes["ttl"] = strconv.FormatInt(int64(rec.TTL), 10)
-}
-
-func resource_aws_r53_record_diff(
-	s *terraform.InstanceState,
-	c *terraform.ResourceConfig,
-	meta interface{}) (*terraform.InstanceDiff, error) {
-	b := &diff.ResourceBuilder{
-		Attrs: map[string]diff.AttrType{
-			"zone_id": diff.AttrTypeCreate,
-			"name":    diff.AttrTypeCreate,
-			"type":    diff.AttrTypeCreate,
-			"ttl":     diff.AttrTypeUpdate,
-			"records": diff.AttrTypeUpdate,
-		},
-	}
-	return b.Diff(s, c)
+	return rec, nil
 }

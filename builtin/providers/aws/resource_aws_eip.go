@@ -8,7 +8,6 @@ import (
 
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
-	//"github.com/hashicorp/terraform/terraform"
 	"github.com/mitchellh/goamz/ec2"
 )
 
@@ -60,8 +59,7 @@ func resourceAwsEip() *schema.Resource {
 }
 
 func resourceAwsEipCreate(d *schema.ResourceData, meta interface{}) error {
-	p := meta.(*ResourceProvider)
-	ec2conn := p.ec2conn
+	ec2conn := meta.(*AWSClient).ec2conn
 
 	// By default, we're not in a VPC
 	domainOpt := ""
@@ -97,9 +95,55 @@ func resourceAwsEipCreate(d *schema.ResourceData, meta interface{}) error {
 	return resourceAwsEipUpdate(d, meta)
 }
 
+func resourceAwsEipRead(d *schema.ResourceData, meta interface{}) error {
+	ec2conn := meta.(*AWSClient).ec2conn
+
+	domain := resourceAwsEipDomain(d)
+	id := d.Id()
+
+	assocIds := []string{}
+	publicIps := []string{}
+	if domain == "vpc" {
+		assocIds = []string{id}
+	} else {
+		publicIps = []string{id}
+	}
+
+	log.Printf(
+		"[DEBUG] EIP describe configuration: %#v, %#v (domain: %s)",
+		assocIds, publicIps, domain)
+
+	describeAddresses, err := ec2conn.Addresses(publicIps, assocIds, nil)
+	if err != nil {
+		if ec2err, ok := err.(*ec2.Error); ok && ec2err.Code == "InvalidAllocationID.NotFound" {
+			d.SetId("")
+			return nil
+		}
+
+		return fmt.Errorf("Error retrieving EIP: %s", err)
+	}
+
+	// Verify AWS returned our EIP
+	if len(describeAddresses.Addresses) != 1 ||
+		describeAddresses.Addresses[0].AllocationId != id ||
+		describeAddresses.Addresses[0].PublicIp != id {
+		if err != nil {
+			return fmt.Errorf("Unable to find EIP: %#v", describeAddresses.Addresses)
+		}
+	}
+
+	address := describeAddresses.Addresses[0]
+
+	d.Set("association_id", address.AssociationId)
+	d.Set("instance", address.InstanceId)
+	d.Set("public_ip", address.PublicIp)
+	d.Set("private_ip", address.PrivateIpAddress)
+
+	return nil
+}
+
 func resourceAwsEipUpdate(d *schema.ResourceData, meta interface{}) error {
-	p := meta.(*ResourceProvider)
-	ec2conn := p.ec2conn
+	ec2conn := meta.(*AWSClient).ec2conn
 
 	domain := resourceAwsEipDomain(d)
 
@@ -132,8 +176,7 @@ func resourceAwsEipUpdate(d *schema.ResourceData, meta interface{}) error {
 }
 
 func resourceAwsEipDelete(d *schema.ResourceData, meta interface{}) error {
-	p := meta.(*ResourceProvider)
-	ec2conn := p.ec2conn
+	ec2conn := meta.(*AWSClient).ec2conn
 
 	if err := resourceAwsEipRead(d, meta); err != nil {
 		return err
@@ -181,54 +224,6 @@ func resourceAwsEipDelete(d *schema.ResourceData, meta interface{}) error {
 
 		return err
 	})
-}
-
-func resourceAwsEipRead(d *schema.ResourceData, meta interface{}) error {
-	p := meta.(*ResourceProvider)
-	ec2conn := p.ec2conn
-
-	domain := resourceAwsEipDomain(d)
-	id := d.Id()
-
-	assocIds := []string{}
-	publicIps := []string{}
-	if domain == "vpc" {
-		assocIds = []string{id}
-	} else {
-		publicIps = []string{id}
-	}
-
-	log.Printf(
-		"[DEBUG] EIP describe configuration: %#v, %#v (domain: %s)",
-		assocIds, publicIps, domain)
-
-	describeAddresses, err := ec2conn.Addresses(publicIps, assocIds, nil)
-	if err != nil {
-		if ec2err, ok := err.(*ec2.Error); ok && ec2err.Code == "InvalidAllocationID.NotFound" {
-			d.SetId("")
-			return nil
-		}
-
-		return fmt.Errorf("Error retrieving EIP: %s", err)
-	}
-
-	// Verify AWS returned our EIP
-	if len(describeAddresses.Addresses) != 1 ||
-		describeAddresses.Addresses[0].AllocationId != id ||
-		describeAddresses.Addresses[0].PublicIp != id {
-		if err != nil {
-			return fmt.Errorf("Unable to find EIP: %#v", describeAddresses.Addresses)
-		}
-	}
-
-	address := describeAddresses.Addresses[0]
-
-	d.Set("association_id", address.AssociationId)
-	d.Set("instance", address.InstanceId)
-	d.Set("public_ip", address.PublicIp)
-	d.Set("private_ip", address.PrivateIpAddress)
-
-	return nil
 }
 
 func resourceAwsEipDomain(d *schema.ResourceData) string {

@@ -177,8 +177,7 @@ func resourceAwsInstance() *schema.Resource {
 }
 
 func resourceAwsInstanceCreate(d *schema.ResourceData, meta interface{}) error {
-	p := meta.(*ResourceProvider)
-	ec2conn := p.ec2conn
+	ec2conn := meta.(*AWSClient).ec2conn
 
 	// Figure out user data
 	userData := ""
@@ -288,74 +287,8 @@ func resourceAwsInstanceCreate(d *schema.ResourceData, meta interface{}) error {
 	return resourceAwsInstanceUpdate(d, meta)
 }
 
-func resourceAwsInstanceUpdate(d *schema.ResourceData, meta interface{}) error {
-	p := meta.(*ResourceProvider)
-	ec2conn := p.ec2conn
-
-	modify := false
-	opts := new(ec2.ModifyInstance)
-
-	if v, ok := d.GetOk("source_dest_check"); ok {
-		opts.SourceDestCheck = v.(bool)
-		opts.SetSourceDestCheck = true
-		modify = true
-	}
-
-	if modify {
-		log.Printf("[INFO] Modifing instance %s: %#v", d.Id(), opts)
-		if _, err := ec2conn.ModifyInstance(d.Id(), opts); err != nil {
-			return err
-		}
-
-		// TODO(mitchellh): wait for the attributes we modified to
-		// persist the change...
-	}
-
-	if err := setTags(ec2conn, d); err != nil {
-		return err
-	} else {
-		d.SetPartial("tags")
-	}
-
-	return nil
-}
-
-func resourceAwsInstanceDelete(d *schema.ResourceData, meta interface{}) error {
-	p := meta.(*ResourceProvider)
-	ec2conn := p.ec2conn
-
-	log.Printf("[INFO] Terminating instance: %s", d.Id())
-	if _, err := ec2conn.TerminateInstances([]string{d.Id()}); err != nil {
-		return fmt.Errorf("Error terminating instance: %s", err)
-	}
-
-	log.Printf(
-		"[DEBUG] Waiting for instance (%s) to become terminated",
-		d.Id())
-
-	stateConf := &resource.StateChangeConf{
-		Pending:    []string{"pending", "running", "shutting-down", "stopped", "stopping"},
-		Target:     "terminated",
-		Refresh:    InstanceStateRefreshFunc(ec2conn, d.Id()),
-		Timeout:    10 * time.Minute,
-		Delay:      10 * time.Second,
-		MinTimeout: 3 * time.Second,
-	}
-
-	_, err := stateConf.WaitForState()
-	if err != nil {
-		return fmt.Errorf(
-			"Error waiting for instance (%s) to terminate: %s",
-			d.Id(), err)
-	}
-
-	d.SetId("")
-	return nil
-}
-
 func resourceAwsInstanceRead(d *schema.ResourceData, meta interface{}) error {
-	p := meta.(*ResourceProvider)
-	ec2conn := p.ec2conn
+	ec2conn := meta.(*AWSClient).ec2conn
 
 	resp, err := ec2conn.Instances([]string{d.Id()}, ec2.NewFilter())
 	if err != nil {
@@ -447,6 +380,69 @@ func resourceAwsInstanceRead(d *schema.ResourceData, meta interface{}) error {
 	}
 	d.Set("block_device", bds)
 
+	return nil
+}
+
+func resourceAwsInstanceUpdate(d *schema.ResourceData, meta interface{}) error {
+	ec2conn := meta.(*AWSClient).ec2conn
+
+	modify := false
+	opts := new(ec2.ModifyInstance)
+
+	if v, ok := d.GetOk("source_dest_check"); ok {
+		opts.SourceDestCheck = v.(bool)
+		opts.SetSourceDestCheck = true
+		modify = true
+	}
+
+	if modify {
+		log.Printf("[INFO] Modifing instance %s: %#v", d.Id(), opts)
+		if _, err := ec2conn.ModifyInstance(d.Id(), opts); err != nil {
+			return err
+		}
+
+		// TODO(mitchellh): wait for the attributes we modified to
+		// persist the change...
+	}
+
+	if err := setTags(ec2conn, d); err != nil {
+		return err
+	} else {
+		d.SetPartial("tags")
+	}
+
+	return nil
+}
+
+func resourceAwsInstanceDelete(d *schema.ResourceData, meta interface{}) error {
+	ec2conn := meta.(*AWSClient).ec2conn
+
+	log.Printf("[INFO] Terminating instance: %s", d.Id())
+	if _, err := ec2conn.TerminateInstances([]string{d.Id()}); err != nil {
+		return fmt.Errorf("Error terminating instance: %s", err)
+	}
+
+	log.Printf(
+		"[DEBUG] Waiting for instance (%s) to become terminated",
+		d.Id())
+
+	stateConf := &resource.StateChangeConf{
+		Pending:    []string{"pending", "running", "shutting-down", "stopped", "stopping"},
+		Target:     "terminated",
+		Refresh:    InstanceStateRefreshFunc(ec2conn, d.Id()),
+		Timeout:    10 * time.Minute,
+		Delay:      10 * time.Second,
+		MinTimeout: 3 * time.Second,
+	}
+
+	_, err := stateConf.WaitForState()
+	if err != nil {
+		return fmt.Errorf(
+			"Error waiting for instance (%s) to terminate: %s",
+			d.Id(), err)
+	}
+
+	d.SetId("")
 	return nil
 }
 

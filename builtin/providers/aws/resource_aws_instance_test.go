@@ -189,7 +189,7 @@ func TestAccInstance_tags(t *testing.T) {
 }
 
 func testAccCheckInstanceDestroy(s *terraform.State) error {
-	conn := testAccProvider.ec2conn
+	conn := testAccProvider.Meta().(*AWSClient).ec2conn
 
 	for _, rs := range s.RootModule().Resources {
 		if rs.Type != "aws_instance" {
@@ -231,7 +231,7 @@ func testAccCheckInstanceExists(n string, i *ec2.Instance) resource.TestCheckFun
 			return fmt.Errorf("No ID is set")
 		}
 
-		conn := testAccProvider.ec2conn
+		conn := testAccProvider.Meta().(*AWSClient).ec2conn
 		resp, err := conn.Instances(
 			[]string{rs.Primary.ID}, ec2.NewFilter())
 		if err != nil {

@@ -72,7 +72,7 @@ func TestAccAWSAutoScalingGroupWithLoadBalancer(t *testing.T) {
 	})
 }
 func testAccCheckAWSAutoScalingGroupDestroy(s *terraform.State) error {
-	conn := testAccProvider.autoscalingconn
+	conn := testAccProvider.Meta().(*AWSClient).autoscalingconn
 
 	for _, rs := range s.RootModule().Resources {
 		if rs.Type != "aws_autoscaling_group" {
@@ -164,7 +164,7 @@ func testAccCheckAWSAutoScalingGroupExists(n string, group *autoscaling.AutoScal
 			return fmt.Errorf("No AutoScaling Group ID is set")
 		}
 
-		conn := testAccProvider.autoscalingconn
+		conn := testAccProvider.Meta().(*AWSClient).autoscalingconn
 
 		describeOpts := autoscaling.DescribeAutoScalingGroups{
 			Names: []string{rs.Primary.ID},
