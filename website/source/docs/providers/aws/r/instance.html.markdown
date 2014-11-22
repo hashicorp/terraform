@@ -52,6 +52,7 @@ The following arguments are supported:
 Each `block_device` supports the following:
 
 * `device_name` - The name of the device to mount.
+* `virtual_name` - (Optional) The virtual device name.
 * `snapshot_id` - (Optional) The Snapshot ID to mount.
 * `volume_type` - (Optional) The type of volume. Can be standard, gp2, or io1. Defaults to standard.
 * `volume_size` - (Optional) The size of the volume in gigabytes.
