@@ -80,6 +80,8 @@ type GraphNodeModule struct {
 	Config *config.Module
 	Path   []string
 	Graph  *depgraph.Graph
+	State  *ModuleState
+	Flags  ResourceFlag
 }
 
 // GraphNodeResource is a node type in the graph that represents a resource
@@ -245,6 +247,9 @@ func Graph(opts *GraphOpts) (*depgraph.Graph, error) {
 
 	// Add the orphan dependencies
 	graphAddOrphanDeps(g, modState)
+
+	// Add the orphan module dependencies
+	graphAddOrphanModuleDeps(g, modState)
 
 	// Add the provider dependencies
 	graphAddResourceProviderDeps(g)
@@ -857,6 +862,10 @@ func graphAddModuleOrphans(
 		if n, err := graphModuleNoun(k, nil, g, opts); err != nil {
 			return err
 		} else {
+			// Mark this module as being an orphan
+			module := n.Meta.(*GraphNodeModule)
+			module.Flags |= FlagOrphan
+			module.State = m
 			nounsList = append(nounsList, n)
 		}
 	}
@@ -901,6 +910,56 @@ func graphAddOrphanDeps(g *depgraph.Graph, mod *ModuleState) {
 			}
 
 			for _, depName := range rs.Dependencies {
+				if !strings.HasPrefix(depName, compareName) {
+					continue
+				}
+				dep := &depgraph.Dependency{
+					Name:   depName,
+					Source: n,
+					Target: n2,
+				}
+				n.Deps = append(n.Deps, dep)
+				break
+			}
+		}
+	}
+}
+
+// graphAddOrphanModuleDeps adds the dependencies to the orphan
+// modules based on their explicit Dependencies state.
+func graphAddOrphanModuleDeps(g *depgraph.Graph, mod *ModuleState) {
+	for _, n := range g.Nouns {
+		module, ok := n.Meta.(*GraphNodeModule)
+		if !ok {
+			continue
+		}
+		if module.Flags&FlagOrphan == 0 {
+			continue
+		}
+
+		// If we have no dependencies, then just continue
+		if len(module.State.Dependencies) == 0 {
+			continue
+		}
+
+		for _, n2 := range g.Nouns {
+			// Don't ever depend on ourselves
+			if n2.Meta == n.Meta {
+				continue
+			}
+
+			var compareName string
+			switch rn2 := n2.Meta.(type) {
+			case *GraphNodeModule:
+				compareName = n2.Name
+			case *GraphNodeResource:
+				compareName = rn2.Resource.Id
+			}
+			if compareName == "" {
+				continue
+			}
+
+			for _, depName := range module.State.Dependencies {
 				if !strings.HasPrefix(depName, compareName) {
 					continue
 				}
