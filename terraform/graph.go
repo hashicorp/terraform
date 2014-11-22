@@ -303,45 +303,70 @@ func Graph(opts *GraphOpts) (*depgraph.Graph, error) {
 // allows orphaned resources to be destroyed in the proper order.
 func graphEncodeDependencies(g *depgraph.Graph) {
 	for _, n := range g.Nouns {
-		// Ignore any non-resource nodes
-		rn, ok := n.Meta.(*GraphNodeResource)
-		if !ok {
-			continue
-		}
-		r := rn.Resource
+		switch rn := n.Meta.(type) {
+		case *GraphNodeResource:
+			// If we are using create-before-destroy, there
+			// are some special depedencies injected on the
+			// deposed node that would cause a circular depedency
+			// chain if persisted. We must only handle the new node,
+			// node the deposed node.
+			r := rn.Resource
+			if r.Flags&FlagDeposed != 0 {
+				continue
+			}
 
-		// If we are using create-before-destroy, there
-		// are some special depedencies injected on the
-		// deposed node that would cause a circular depedency
-		// chain if persisted. We must only handle the new node,
-		// node the deposed node.
-		if r.Flags&FlagDeposed != 0 {
-			continue
-		}
+			// Update the dependencies
+			var inject []string
+			for _, dep := range n.Deps {
+				switch target := dep.Target.Meta.(type) {
+				case *GraphNodeModule:
+					inject = append(inject, dep.Target.Name)
 
-		// Update the dependencies
-		var inject []string
-		for _, dep := range n.Deps {
-			switch target := dep.Target.Meta.(type) {
-			case *GraphNodeModule:
-				inject = append(inject, dep.Target.Name)
+				case *GraphNodeResource:
+					if target.Resource.Id == r.Id {
+						continue
+					}
+					inject = append(inject, target.Resource.Id)
 
-			case *GraphNodeResource:
-				if target.Resource.Id == r.Id {
-					continue
+				case *GraphNodeResourceProvider:
+					// Do nothing
+
+				default:
+					panic(fmt.Sprintf("Unknown graph node: %#v", dep.Target))
 				}
-				inject = append(inject, target.Resource.Id)
+			}
 
-			case *GraphNodeResourceProvider:
-				// Do nothing
+			// Update the dependencies
+			r.Dependencies = inject
 
-			default:
-				panic(fmt.Sprintf("Unknown graph node: %#v", dep.Target))
+		case *GraphNodeModule:
+			// Update the dependencies
+			var inject []string
+			for _, dep := range n.Deps {
+				switch target := dep.Target.Meta.(type) {
+				case *GraphNodeModule:
+					if dep.Target.Name == n.Name {
+						continue
+					}
+					inject = append(inject, dep.Target.Name)
+
+				case *GraphNodeResource:
+					inject = append(inject, target.Resource.Id)
+
+				case *GraphNodeResourceProvider:
+					// Do nothing
+
+				default:
+					panic(fmt.Sprintf("Unknown graph node: %#v", dep.Target))
+				}
+
+			}
+
+			// Update the dependencies
+			if rn.State != nil {
+				rn.State.Dependencies = inject
 			}
 		}
-
-		// Update the dependencies
-		r.Dependencies = inject
 	}
 }
 
