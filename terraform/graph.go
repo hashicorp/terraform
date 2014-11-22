@@ -362,6 +362,14 @@ func graphAddConfigModules(
 		if n, err := graphModuleNoun(m.Name, m, g, opts); err != nil {
 			return err
 		} else {
+			// Attach the module state if any
+			if opts.State != nil {
+				module := n.Meta.(*GraphNodeModule)
+				module.State = opts.State.ModuleByPath(module.Path)
+				if module.State == nil {
+					module.State = opts.State.AddModule(module.Path)
+				}
+			}
 			nounsList = append(nounsList, n)
 		}
 	}
