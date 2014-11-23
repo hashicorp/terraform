@@ -56,7 +56,7 @@ the AWS provider with the given variables.
 There are three ways to assign variables.
 
 First, if you execute `terraform plan` or apply without doing
-anythiing, Terraform will ask you to input the variables interactively.
+anything, Terraform will ask you to input the variables interactively.
 These variables are not saved, but provides a nice user experience for
 getting started with Terraform.
 
