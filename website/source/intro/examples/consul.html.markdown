@@ -51,7 +51,7 @@ infrastructure to be decoupled from its overall architecture. This enables
 details to be changed without updating the Terraform configuration.
 
 Outputs from Terraform can also be easily stored in Consul. One powerful
-features this enables is using Consul for inventory management. If an
+feature this enables is using Consul for inventory management. If an
 application relies on ELB for routing, Terraform can update the application's
 configuration directly by setting the ELB address into Consul. Any resource
 attribute can be stored in Consul, allowing an operator to capture anything

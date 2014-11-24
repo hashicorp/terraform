@@ -40,4 +40,8 @@ func testAccPreCheck(t *testing.T) {
 	if v := os.Getenv("GOOGLE_PROJECT"); v == "" {
 		t.Fatal("GOOGLE_PROJECT must be set for acceptance tests")
 	}
+
+	if v := os.Getenv("GOOGLE_REGION"); v != "us-central1" {
+		t.Fatal("GOOGLE_REGION must be set to us-central1 for acceptance tests")
+	}
 }

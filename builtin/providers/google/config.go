@@ -29,20 +29,6 @@ func (c *Config) loadAndValidate() error {
 	var account accountFile
 	var secrets clientSecretsFile
 
-	// TODO: validation that it isn't blank
-	if c.AccountFile == "" {
-		c.AccountFile = os.Getenv("GOOGLE_ACCOUNT_FILE")
-	}
-	if c.ClientSecretsFile == "" {
-		c.ClientSecretsFile = os.Getenv("GOOGLE_CLIENT_FILE")
-	}
-	if c.Project == "" {
-		c.Project = os.Getenv("GOOGLE_PROJECT")
-	}
-	if c.Region == "" {
-		c.Region = os.Getenv("GOOGLE_REGION")
-	}
-
 	if err := loadJSON(&account, c.AccountFile); err != nil {
 		return fmt.Errorf(
 			"Error loading account file '%s': %s",

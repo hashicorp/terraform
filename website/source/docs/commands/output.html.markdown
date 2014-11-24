@@ -15,7 +15,7 @@ an output variable from the state file.
 
 Usage: `terraform output [options] NAME`
 
-By default, `plan` requires only a variable name and looks in the
+By default, `output` requires only a variable name and looks in the
 current directory for the state file to query.
 
 The command-line flags are all optional. The list of available flags are:

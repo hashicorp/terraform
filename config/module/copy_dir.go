@@ -39,6 +39,11 @@ func copyDir(dst, src string) error {
 		// If we have a directory, make that subdirectory, then continue
 		// the walk.
 		if info.IsDir() {
+			if path == filepath.Join(src, dst) {
+				// dst is in src; don't walk it.
+				return nil
+			}
+
 			if err := os.MkdirAll(dstPath, 0755); err != nil {
 				return err
 			}

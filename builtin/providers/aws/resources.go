@@ -41,9 +41,9 @@ func init() {
 				ConfigValidator: &config.Validator{
 					Required: []string{
 						"vpc_id",
-						"route.*.cidr_block",
 					},
 					Optional: []string{
+						"route.*.cidr_block",
 						"route.*.gateway_id",
 						"route.*.instance_id",
 					},
