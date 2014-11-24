@@ -193,6 +193,10 @@ func (d *ModuleDiff) IsRoot() bool {
 func (d *ModuleDiff) String() string {
 	var buf bytes.Buffer
 
+	if d.Destroy {
+		buf.WriteString("DESTROY MODULE\n")
+	}
+
 	names := make([]string, 0, len(d.Resources))
 	for name, _ := range d.Resources {
 		names = append(names, name)

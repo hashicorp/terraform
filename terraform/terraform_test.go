@@ -739,6 +739,7 @@ DIFF:
 DESTROY: aws_instance.foo
 
 module.child:
+  DESTROY MODULE
   DESTROY: aws_instance.foo
 
 STATE:
