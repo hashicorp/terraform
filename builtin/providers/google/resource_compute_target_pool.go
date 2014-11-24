@@ -32,6 +32,7 @@ func resourceComputeTargetPool() *schema.Resource {
 			},
 
 /* 
+			// TODO(dcunnin): blocked on #594
 			"failover_ratio": &schema.Schema{
 				Type:     schema.TypeFloat,
 				Optional: true,
