@@ -71,7 +71,7 @@ func resourceComputeHttpHealthCheck() *schema.Resource {
 				ForceNew: false,
 			},
 
-			"unhealthyThreshold": &schema.Schema{
+			"unhealthy_threshold": &schema.Schema{
 				Type:     schema.TypeInt,
 				Optional: true,
 				ForceNew: false,
