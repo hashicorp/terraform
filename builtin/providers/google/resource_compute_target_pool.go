@@ -31,6 +31,14 @@ func resourceComputeTargetPool() *schema.Resource {
 				ForceNew: true,
 			},
 
+/* 
+			"failover_ratio": &schema.Schema{
+				Type:     schema.TypeFloat,
+				Optional: true,
+				ForceNew: true,
+			},
+*/
+
 			"health_checks": &schema.Schema{
 				Type:     schema.TypeList,
 				Optional: true,
@@ -151,6 +159,9 @@ func resourceComputeTargetPoolCreate(d *schema.ResourceData, meta interface{}) e
 		Instances:  instanceUrls,
 		Name: d.Get("name").(string),
 		SessionAffinity: d.Get("session_affinity").(string),
+	}
+	if d.Get("failover_ratio") != nil {
+		tpool.FailoverRatio = d.Get("failover_ratio").(float64)
 	}
 	log.Printf("[DEBUG] TargetPool insert request: %#v", tpool)
 	op, err := config.clientCompute.TargetPools.Insert(

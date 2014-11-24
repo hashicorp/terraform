@@ -85,16 +85,27 @@ func resourceComputeHttpHealthCheckCreate(d *schema.ResourceData, meta interface
 
 	// Build the parameter
 	hchk := &compute.HttpHealthCheck{
-		CheckIntervalSec: int64(d.Get("check_interval_sec").(int)),
 		Description: d.Get("description").(string),
-		HealthyThreshold: int64(d.Get("healthy_threshold").(int)),
 		Host: d.Get("host").(string),
 		Name: d.Get("name").(string),
-		Port: int64(d.Get("port").(int)),
 		RequestPath: d.Get("request_path").(string),
-		TimeoutSec: int64(d.Get("timeout_sec").(int)),
-		UnhealthyThreshold: int64(d.Get("unhealthy_threshold").(int)),
 	}
+	if d.Get("check_interval_sec") != nil {
+		hchk.CheckIntervalSec = int64(d.Get("check_interval_sec").(int))
+	}
+	if d.Get("health_threshold") != nil {
+		hchk.HealthyThreshold = int64(d.Get("healthy_threshold").(int))
+	}
+	if d.Get("port") != nil {
+		hchk.Port = int64(d.Get("port").(int))
+	}
+	if d.Get("timeout") != nil {
+		hchk.TimeoutSec = int64(d.Get("timeout_sec").(int))
+	}
+	if d.Get("unhealthy_threshold") != nil {
+		hchk.UnhealthyThreshold = int64(d.Get("unhealthy_threshold").(int))
+	}
+
 	log.Printf("[DEBUG] HttpHealthCheck insert request: %#v", hchk)
 	op, err := config.clientCompute.HttpHealthChecks.Insert(
 		config.Project, hchk).Do()
@@ -136,16 +147,27 @@ func resourceComputeHttpHealthCheckUpdate(d *schema.ResourceData, meta interface
 
 	// Build the parameter
 	hchk := &compute.HttpHealthCheck{
-		CheckIntervalSec: int64(d.Get("check_interval_sec").(int)),
 		Description: d.Get("description").(string),
-		HealthyThreshold: int64(d.Get("healthy_threshold").(int)),
 		Host: d.Get("host").(string),
 		Name: d.Get("name").(string),
-		Port: int64(d.Get("port").(int)),
 		RequestPath: d.Get("request_path").(string),
-		TimeoutSec: int64(d.Get("timeout_sec").(int)),
-		UnhealthyThreshold: int64(d.Get("unhealthy_threshold").(int)),
 	}
+	if d.Get("check_interval_sec") != nil {
+		hchk.CheckIntervalSec = int64(d.Get("check_interval_sec").(int))
+	}
+	if d.Get("health_threshold") != nil {
+		hchk.HealthyThreshold = int64(d.Get("healthy_threshold").(int))
+	}
+	if d.Get("port") != nil {
+		hchk.Port = int64(d.Get("port").(int))
+	}
+	if d.Get("timeout") != nil {
+		hchk.TimeoutSec = int64(d.Get("timeout_sec").(int))
+	}
+	if d.Get("unhealthy_threshold") != nil {
+		hchk.UnhealthyThreshold = int64(d.Get("unhealthy_threshold").(int))
+	}
+
 	log.Printf("[DEBUG] HttpHealthCheck patch request: %#v", hchk)
 	op, err := config.clientCompute.HttpHealthChecks.Patch(
 		config.Project, hchk.Name, hchk).Do()
