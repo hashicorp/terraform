@@ -922,6 +922,13 @@ func (c *walkContext) planDestroyWalkFn() depgraph.WalkFunc {
 	walkFn = func(n *depgraph.Noun) error {
 		switch m := n.Meta.(type) {
 		case *GraphNodeModule:
+			// Set the destroy bool on the module
+			md := result.Diff.ModuleByPath(m.Path)
+			if md == nil {
+				md = result.Diff.AddModule(m.Path)
+			}
+			md.Destroy = true
+
 			// Build another walkContext for this module and walk it.
 			wc := c.Context.walkContext(c.Operation, m.Path)
 

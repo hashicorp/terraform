@@ -114,6 +114,7 @@ func (d *Diff) init() {
 type ModuleDiff struct {
 	Path      []string
 	Resources map[string]*InstanceDiff
+	Destroy   bool // Set only by the destroy plan
 }
 
 func (d *ModuleDiff) init() {
