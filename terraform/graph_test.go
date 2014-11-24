@@ -731,6 +731,42 @@ func TestGraphAddDiff_module(t *testing.T) {
 	}
 }
 
+func TestGraphAddDiff_module_depends(t *testing.T) {
+	m := testModule(t, "graph-diff-module-dep")
+	diff := &Diff{
+		Modules: []*ModuleDiff{
+			&ModuleDiff{
+				Path: rootModulePath,
+				Resources: map[string]*InstanceDiff{
+					"aws_instance.foo": &InstanceDiff{
+						Destroy: true,
+					},
+				},
+			},
+			&ModuleDiff{
+				Path:    []string{"root", "child"},
+				Destroy: true,
+				Resources: map[string]*InstanceDiff{
+					"aws_instance.foo": &InstanceDiff{
+						Destroy: true,
+					},
+				},
+			},
+		},
+	}
+
+	g, err := Graph(&GraphOpts{Module: m, Diff: diff})
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	actual := strings.TrimSpace(g.String())
+	expected := strings.TrimSpace(testTerraformGraphDiffModuleDependsStr)
+	if actual != expected {
+		t.Fatalf("bad:\n\n%s", actual)
+	}
+}
+
 func TestGraphAddDiff_createBeforeDestroy(t *testing.T) {
 	m := testModule(t, "graph-diff-create-before")
 	diff := &Diff{
@@ -1209,6 +1245,18 @@ aws_instance.foo
 aws_instance.foo (destroy)
 module.child
   module.child -> aws_instance.foo (destroy)
+root
+  root -> aws_instance.foo
+  root -> module.child
+`
+
+const testTerraformGraphDiffModuleDependsStr = `
+root: root
+aws_instance.foo
+  aws_instance.foo -> aws_instance.foo (destroy)
+aws_instance.foo (destroy)
+  aws_instance.foo (destroy) -> module.child
+module.child
 root
   root -> aws_instance.foo
   root -> module.child
