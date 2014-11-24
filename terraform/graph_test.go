@@ -945,7 +945,7 @@ func TestGraphEncodeDependencies_count(t *testing.T) {
 func TestGraphEncodeDependencies_module(t *testing.T) {
 	m := testModule(t, "graph-modules")
 
-	g, err := Graph(&GraphOpts{Module: m})
+	g, err := Graph(&GraphOpts{Module: m, State: &State{}})
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -963,6 +963,15 @@ func TestGraphEncodeDependencies_module(t *testing.T) {
 	}
 	if web.Dependencies[1] != "module.consul" {
 		t.Fatalf("bad: %#v", web)
+	}
+
+	mod := g.Noun("module.consul").Meta.(*GraphNodeModule)
+	deps := mod.State.Dependencies
+	if len(deps) != 1 {
+		t.Fatalf("Bad: %#v", deps)
+	}
+	if deps[0] != "aws_security_group.firewall" {
+		t.Fatalf("Bad: %#v", deps)
 	}
 }
 
