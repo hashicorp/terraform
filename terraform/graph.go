@@ -274,7 +274,7 @@ func Graph(opts *GraphOpts) (*depgraph.Graph, error) {
 
 	// If we have a diff, then make sure to add that in
 	if modDiff != nil {
-		if err := graphAddDiff(g, modDiff); err != nil {
+		if err := graphAddDiff(g, opts.Diff, modDiff); err != nil {
 			return nil, err
 		}
 	}
@@ -544,10 +544,22 @@ func graphAddConfigResources(
 // destroying the VPC's subnets first, whereas creating a VPC requires
 // doing it before the subnets are created. This function handles inserting
 // these nodes for you.
-func graphAddDiff(g *depgraph.Graph, d *ModuleDiff) error {
+func graphAddDiff(g *depgraph.Graph, gDiff *Diff, d *ModuleDiff) error {
 	var nlist []*depgraph.Noun
+	var modules []*depgraph.Noun
 	injected := make(map[*depgraph.Dependency]struct{})
 	for _, n := range g.Nouns {
+		// A module is being destroyed if all it's resources are being
+		// destroyed (via a destroy plan) or if it is orphaned. Only in
+		// those cases do we need to handle depedency inversion.
+		if mod, ok := n.Meta.(*GraphNodeModule); ok {
+			md := gDiff.ModuleByPath(mod.Path)
+			if mod.Flags&FlagOrphan != 0 || (md != nil && md.Destroy) {
+				modules = append(modules, n)
+			}
+			continue
+		}
+
 		rn, ok := n.Meta.(*GraphNodeResource)
 		if !ok {
 			continue
@@ -693,78 +705,81 @@ func graphAddDiff(g *depgraph.Graph, d *ModuleDiff) error {
 		rn.Resource.Diff = rd
 	}
 
-	// Go through each noun and make sure we calculate all the dependencies
-	// properly.
-	for _, n := range nlist {
-		deps := n.Deps
-		num := len(deps)
-		for i := 0; i < num; i++ {
-			dep := deps[i]
+	// Go through each resource and module and make sure we
+	// calculate all the dependencies properly.
+	invertDeps := [][]*depgraph.Noun{nlist, modules}
+	for _, list := range invertDeps {
+		for _, n := range list {
+			deps := n.Deps
+			num := len(deps)
+			for i := 0; i < num; i++ {
+				dep := deps[i]
 
-			// Check if this dependency was just injected, otherwise
-			// we will incorrectly flip the depedency twice.
-			if _, ok := injected[dep]; ok {
-				continue
-			}
+				// Check if this dependency was just injected, otherwise
+				// we will incorrectly flip the depedency twice.
+				if _, ok := injected[dep]; ok {
+					continue
+				}
 
-			switch target := dep.Target.Meta.(type) {
-			case *GraphNodeResource:
-				// If the other node is also being deleted,
-				// we must be deleted first. E.g. if A -> B,
-				// then when we create, B is created first then A.
-				// On teardown, A is destroyed first, then B.
-				// Thus we must flip our depedency and instead inject
-				// it on B.
-				for _, n2 := range nlist {
-					rn2 := n2.Meta.(*GraphNodeResource)
-					if target.Resource.Id == rn2.Resource.Id {
-						newDep := &depgraph.Dependency{
-							Name:   n.Name,
-							Source: n2,
-							Target: n,
+				switch target := dep.Target.Meta.(type) {
+				case *GraphNodeResource:
+					// If the other node is also being deleted,
+					// we must be deleted first. E.g. if A -> B,
+					// then when we create, B is created first then A.
+					// On teardown, A is destroyed first, then B.
+					// Thus we must flip our depedency and instead inject
+					// it on B.
+					for _, n2 := range nlist {
+						rn2 := n2.Meta.(*GraphNodeResource)
+						if target.Resource.Id == rn2.Resource.Id {
+							newDep := &depgraph.Dependency{
+								Name:   n.Name,
+								Source: n2,
+								Target: n,
+							}
+							injected[newDep] = struct{}{}
+							n2.Deps = append(n2.Deps, newDep)
+							break
 						}
-						injected[newDep] = struct{}{}
-						n2.Deps = append(n2.Deps, newDep)
-						break
 					}
+
+					// Drop the dependency. We may have created
+					// an inverse depedency if the dependent resource
+					// is also being deleted, but this dependence is
+					// no longer required.
+					deps[i], deps[num-1] = deps[num-1], nil
+					num--
+					i--
+
+				case *GraphNodeModule:
+					// We invert any module dependencies so we're destroyed
+					// first, before any modules are applied.
+					newDep := &depgraph.Dependency{
+						Name:   n.Name,
+						Source: dep.Target,
+						Target: n,
+					}
+					dep.Target.Deps = append(dep.Target.Deps, newDep)
+
+					// Drop the dependency. We may have created
+					// an inverse depedency if the dependent resource
+					// is also being deleted, but this dependence is
+					// no longer required.
+					deps[i], deps[num-1] = deps[num-1], nil
+					num--
+					i--
+				case *GraphNodeResourceProvider:
+					// Keep these around, but fix up the source to be ourselves
+					// rather than the old node.
+					newDep := *dep
+					newDep.Source = n
+					deps[i] = &newDep
+				default:
+					panic(fmt.Errorf("Unhandled depedency type: %#v", dep.Target.Meta))
 				}
-
-				// Drop the dependency. We may have created
-				// an inverse depedency if the dependent resource
-				// is also being deleted, but this dependence is
-				// no longer required.
-				deps[i], deps[num-1] = deps[num-1], nil
-				num--
-				i--
-
-			case *GraphNodeModule:
-				// We invert any module dependencies so we're destroyed
-				// first, before any modules are applied.
-				newDep := &depgraph.Dependency{
-					Name:   n.Name,
-					Source: dep.Target,
-					Target: n,
-				}
-				dep.Target.Deps = append(dep.Target.Deps, newDep)
-
-				// Drop the dependency. We may have created
-				// an inverse depedency if the dependent resource
-				// is also being deleted, but this dependence is
-				// no longer required.
-				deps[i], deps[num-1] = deps[num-1], nil
-				num--
-				i--
-			case *GraphNodeResourceProvider:
-				// Keep these around, but fix up the source to be ourselves
-				// rather than the old node.
-				newDep := *dep
-				newDep.Source = n
-				deps[i] = &newDep
-			default:
-				panic(fmt.Errorf("Unhandled depedency type: %#v", dep.Target.Meta))
 			}
+			n.Deps = deps[:num]
 		}
-		n.Deps = deps[:num]
 	}
 
 	// Add the nouns to the graph
