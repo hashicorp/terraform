@@ -754,8 +754,27 @@ func TestGraphAddDiff_module_depends(t *testing.T) {
 			},
 		},
 	}
+	state := &State{
+		Modules: []*ModuleState{
+			&ModuleState{
+				Path: []string{"root", "orphan"},
+				Resources: map[string]*ResourceState{
+					"aws_instance.dead": &ResourceState{
+						Type: "aws_instance",
+						Primary: &InstanceState{
+							ID: "dead",
+						},
+					},
+				},
+				Dependencies: []string{
+					"aws_instance.foo",
+					"module.child",
+				},
+			},
+		},
+	}
 
-	g, err := Graph(&GraphOpts{Module: m, Diff: diff})
+	g, err := Graph(&GraphOpts{Module: m, Diff: diff, State: state})
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -1316,10 +1335,14 @@ aws_instance.foo
   aws_instance.foo -> aws_instance.foo (destroy)
 aws_instance.foo (destroy)
   aws_instance.foo (destroy) -> module.child
+  aws_instance.foo (destroy) -> module.orphan
 module.child
+  module.child -> module.orphan
+module.orphan
 root
   root -> aws_instance.foo
   root -> module.child
+  root -> module.orphan
 `
 
 const testTerraformGraphModulesStr = `
