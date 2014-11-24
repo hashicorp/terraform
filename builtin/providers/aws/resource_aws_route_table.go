@@ -16,6 +16,7 @@ func resourceAwsRouteTable() *schema.Resource {
 	return &schema.Resource{
 		Create: resourceAwsRouteTableCreate,
 		Read:   resourceAwsRouteTableRead,
+		Update: resourceAwsRouteTableUpdate,
 		Delete: resourceAwsRouteTableDelete,
 
 		Schema: map[string]*schema.Schema{
@@ -87,7 +88,7 @@ func resourceAwsRouteTableCreate(d *schema.ResourceData, meta interface{}) error
 			d.Id(), err)
 	}
 
-	return resourceAwsRouteTableRead(d, meta)
+	return resourceAwsRouteTableUpdate(d, meta)
 }
 
 func resourceAwsRouteTableRead(d *schema.ResourceData, meta interface{}) error {
@@ -104,7 +105,29 @@ func resourceAwsRouteTableRead(d *schema.ResourceData, meta interface{}) error {
 	rt := rtRaw.(*ec2.RouteTable)
 	d.Set("vpc_id", rt.VpcId)
 
-	// TODO: Add some code to also update the route set
+	// Create an empty schema.Set to hold all routes
+	route := &schema.Set{F: resourceAwsRouteTableHash}
+
+	// Loop through the routes and add them to the set
+	for _, r := range rt.Routes {
+		if r.GatewayId == "local" {
+			continue
+		}
+
+		m := make(map[string]interface{})
+		m["cidr_block"] = r.DestinationCidrBlock
+
+		if r.GatewayId != "" {
+			m["gateway_id"] = r.GatewayId
+		}
+
+		if r.InstanceId != "" {
+			m["instance_id"] = r.InstanceId
+		}
+
+		route.Add(m)
+	}
+	d.Set("route", route)
 
 	return nil
 }

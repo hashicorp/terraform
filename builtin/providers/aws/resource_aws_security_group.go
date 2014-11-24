@@ -275,7 +275,7 @@ func resourceAwsSecurityGroupUpdate(d *schema.ResourceData, meta interface{}) er
 		d.SetPartial("tags")
 	}
 
-	return nil
+	return resourceAwsSecurityGroupRead(d, meta)
 }
 
 func resourceAwsSecurityGroupDelete(d *schema.ResourceData, meta interface{}) error {

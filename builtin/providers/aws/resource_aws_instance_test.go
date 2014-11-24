@@ -343,6 +343,8 @@ resource "aws_instance" "foo" {
 
 const testAccCheckInstanceConfigTags = `
 resource "aws_instance" "foo" {
+	ami = "ami-4fccb37f"
+	instance_type = "m1.small"
 	tags {
 		foo = "bar"
 	}
@@ -351,6 +353,8 @@ resource "aws_instance" "foo" {
 
 const testAccCheckInstanceConfigTagsUpdate = `
 resource "aws_instance" "foo" {
+	ami = "ami-4fccb37f"
+	instance_type = "m1.small"
 	tags {
 		bar = "baz"
 	}
