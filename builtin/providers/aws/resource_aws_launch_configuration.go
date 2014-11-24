@@ -75,6 +75,12 @@ func resourceAwsLaunchConfiguration() *schema.Resource {
 					return hashcode.String(v.(string))
 				},
 			},
+
+			"associate_public_ip_address": &schema.Schema{
+				Type:     schema.TypeBool,
+				Optional: true,
+				Default:  false,
+			},
 		},
 	}
 }
@@ -90,6 +96,7 @@ func resourceAwsLaunchConfigurationCreate(d *schema.ResourceData, meta interface
 	createLaunchConfigurationOpts.InstanceType = d.Get("instance_type").(string)
 	createLaunchConfigurationOpts.KeyName = d.Get("key_name").(string)
 	createLaunchConfigurationOpts.UserData = d.Get("user_data").(string)
+	createLaunchConfigurationOpts.AssociatePublicIpAddress = d.Get("associate_public_ip_address").(bool)
 
 	if v, ok := d.GetOk("security_groups"); ok {
 		createLaunchConfigurationOpts.SecurityGroups = expandStringList(
