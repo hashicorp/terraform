@@ -1048,6 +1048,57 @@ func TestGraph_orphanDependenciesModules(t *testing.T) {
 	}
 }
 
+func TestGraph_orphanModules_Dependencies(t *testing.T) {
+	m := testModule(t, "graph-modules")
+	state := &State{
+		Modules: []*ModuleState{
+			&ModuleState{
+				Path: rootModulePath,
+
+				Resources: map[string]*ResourceState{
+					"aws_instance.foo": &ResourceState{
+						Type: "aws_instance",
+						Primary: &InstanceState{
+							ID: "foo",
+						},
+						Dependencies: []string{
+							"module.consul",
+						},
+					},
+				},
+			},
+
+			// Add an orphan module
+			&ModuleState{
+				Path: []string{"root", "orphan"},
+				Resources: map[string]*ResourceState{
+					"aws_instance.bar": &ResourceState{
+						Type: "aws_instance",
+						Primary: &InstanceState{
+							ID: "bar",
+						},
+					},
+				},
+				Dependencies: []string{
+					"aws_instance.foo",
+					"aws_instance.web",
+				},
+			},
+		},
+	}
+
+	g, err := Graph(&GraphOpts{Module: m, State: state})
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	actual := strings.TrimSpace(g.String())
+	expected := strings.TrimSpace(testTerraformGraphOrphanedModuleDepsStr)
+	if actual != expected {
+		t.Fatalf("bad:\n\nactual:\n%s\n\nexpected:\n%s", actual, expected)
+	}
+}
+
 func TestGraphNodeResourceExpand(t *testing.T) {
 	m := testModule(t, "graph-resource-expand")
 
@@ -1428,6 +1479,33 @@ root
   root -> aws_instance.web
   root -> aws_security_group.firewall
   root -> module.consul
+`
+
+const testTerraformGraphOrphanedModuleDepsStr = `
+root: root
+aws_instance.foo
+  aws_instance.foo -> module.consul
+  aws_instance.foo -> provider.aws
+aws_instance.web
+  aws_instance.web -> aws_security_group.firewall
+  aws_instance.web -> module.consul
+  aws_instance.web -> provider.aws
+aws_security_group.firewall
+  aws_security_group.firewall -> provider.aws
+module.consul
+  module.consul -> aws_security_group.firewall
+  module.consul -> provider.aws
+module.orphan
+  module.orphan -> aws_instance.foo
+  module.orphan -> aws_instance.web
+  module.orphan -> provider.aws
+provider.aws
+root
+  root -> aws_instance.foo
+  root -> aws_instance.web
+  root -> aws_security_group.firewall
+  root -> module.consul
+  root -> module.orphan
 `
 
 const testTerraformGraphResourceExpandStr = `
