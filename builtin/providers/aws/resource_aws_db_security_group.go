@@ -1,12 +1,12 @@
 package aws
 
-/*
 import (
+	"bytes"
 	"fmt"
 	"log"
 	"time"
 
-	"github.com/hashicorp/terraform/flatmap"
+	"github.com/hashicorp/terraform/helper/hashcode"
 	"github.com/hashicorp/terraform/helper/multierror"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
@@ -33,19 +33,20 @@ func resourceAwsDbSecurityGroup() *schema.Resource {
 			},
 
 			"ingress": &schema.Schema{
-				Type:     schema.TypeList,
-				Optional: true,
+				Type:     schema.TypeSet,
+				Required: true,
 				ForceNew: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"cidr": &schema.Schema{
 							Type:     schema.TypeString,
-							Required: true,
+							Optional: true,
 						},
 
 						"security_group_name": &schema.Schema{
 							Type:     schema.TypeString,
-							Required: true,
+							Optional: true,
+							Computed: true,
 						},
 
 						"security_group_id": &schema.Schema{
@@ -61,6 +62,7 @@ func resourceAwsDbSecurityGroup() *schema.Resource {
 						},
 					},
 				},
+				Set: resourceAwsDbSecurityGroupIngressHash,
 			},
 		},
 	}
@@ -92,20 +94,17 @@ func resourceAwsDbSecurityGroupCreate(d *schema.ResourceData, meta interface{}) 
 		return err
 	}
 
-	rules := d.Get("ingress.#").(int)
-	if rules > 0 {
-		for i := 0; i < ssh_keys; i++ {
-			key := fmt.Sprintf("ingress.%d", i)
-			err = resourceAwsDbSecurityGroupAuthorizeRule(d.Get(key), sg.Name, conn)
+	ingresses := d.Get("ingress").(*schema.Set)
+	for _, ing := range ingresses.List() {
+		err = resourceAwsDbSecurityGroupAuthorizeRule(ing, sg.Name, conn)
 
-			if err != nil {
-				errs = append(errs, err)
-			}
+		if err != nil {
+			errs = append(errs, err)
 		}
+	}
 
-		if len(errs) > 0 {
-			return &multierror.Error{Errors: errs}
-		}
+	if len(errs) > 0 {
+		return &multierror.Error{Errors: errs}
 	}
 
 	log.Println(
@@ -114,7 +113,7 @@ func resourceAwsDbSecurityGroupCreate(d *schema.ResourceData, meta interface{}) 
 	stateConf := &resource.StateChangeConf{
 		Pending: []string{"authorizing"},
 		Target:  "authorized",
-		Refresh: DBSecurityGroupStateRefreshFunc(d.Id(), conn),
+		Refresh: resourceAwsDbSecurityGroupStateRefreshFunc(d, meta),
 		Timeout: 10 * time.Minute,
 	}
 
@@ -128,8 +127,6 @@ func resourceAwsDbSecurityGroupCreate(d *schema.ResourceData, meta interface{}) 
 }
 
 func resourceAwsDbSecurityGroupRead(d *schema.ResourceData, meta interface{}) error {
-	conn := meta.(*AWSClient).rdsconn
-
 	sg, err := resourceAwsDbSecurityGroupRetrieve(d, meta)
 	if err != nil {
 		return err
@@ -138,20 +135,26 @@ func resourceAwsDbSecurityGroupRead(d *schema.ResourceData, meta interface{}) er
 	d.Set("name", sg.Name)
 	d.Set("description", sg.Description)
 
-	// Flatten our group values
-	toFlatten := make(map[string]interface{})
-
-	if len(v.EC2SecurityGroupOwnerIds) > 0 && v.EC2SecurityGroupOwnerIds[0] != "" {
-		toFlatten["ingress_security_groups"] = v.EC2SecurityGroupOwnerIds
+	// Create an empty schema.Set to hold all ingress rules
+	rules := &schema.Set{
+		F: resourceAwsDbSecurityGroupIngressHash,
 	}
 
-	if len(v.CidrIps) > 0 && v.CidrIps[0] != "" {
-		toFlatten["ingress_cidr"] = v.CidrIps
+	for _, v := range sg.CidrIps {
+		rule := map[string]interface{}{"cidr": v}
+		rules.Add(rule)
 	}
 
-	for k, v := range flatmap.Flatten(toFlatten) {
-		s.Attributes[k] = v
+	for i, _ := range sg.EC2SecurityGroupOwnerIds {
+		rule := map[string]interface{}{
+			"security_group_name":     sg.EC2SecurityGroupNames[i],
+			"security_group_id":       sg.EC2SecurityGroupIds[i],
+			"security_group_owner_id": sg.EC2SecurityGroupOwnerIds[i],
+		}
+		rules.Add(rule)
 	}
+
+	d.Set("ingress", rules)
 
 	return nil
 }
@@ -212,15 +215,20 @@ func resourceAwsDbSecurityGroupAuthorizeRule(ingress interface{}, dbSecurityGrou
 		DBSecurityGroupName: dbSecurityGroupName,
 	}
 
-	opts.Cidr = ing["cidr"].(string)
-	opts.EC2SecurityGroupName = ing["security_group_name"].(string)
-
-	if attr, ok := ing["security_group_id"].(string); ok && attr != "" {
-		opts.EC2SecurityGroupId = attr
+	if attr, ok := ing["cidr"]; ok && attr != "" {
+		opts.Cidr = attr.(string)
 	}
 
-	if attr, ok := ing["security_group_owner_id"].(string); ok && attr != "" {
-		opts.EC2SecurityGroupOwnerId = attr
+	if attr, ok := ing["security_group_name"]; ok && attr != "" {
+		opts.EC2SecurityGroupName = attr.(string)
+	}
+
+	if attr, ok := ing["security_group_id"]; ok && attr != "" {
+		opts.EC2SecurityGroupId = attr.(string)
+	}
+
+	if attr, ok := ing["security_group_owner_id"]; ok && attr != "" {
+		opts.EC2SecurityGroupOwnerId = attr.(string)
 	}
 
 	log.Printf("[DEBUG] Authorize ingress rule configuration: %#v", opts)
@@ -234,9 +242,33 @@ func resourceAwsDbSecurityGroupAuthorizeRule(ingress interface{}, dbSecurityGrou
 	return nil
 }
 
-func resourceAwsDbSecurityGroupStateRefreshFunc(id string, conn *rds.Rds) resource.StateRefreshFunc {
+func resourceAwsDbSecurityGroupIngressHash(v interface{}) int {
+	var buf bytes.Buffer
+	m := v.(map[string]interface{})
+
+	if v, ok := m["cidr"]; ok {
+		buf.WriteString(fmt.Sprintf("%s-", v.(string)))
+	}
+
+	if v, ok := m["security_group_name"]; ok {
+		buf.WriteString(fmt.Sprintf("%s-", v.(string)))
+	}
+
+	if v, ok := m["security_group_id"]; ok {
+		buf.WriteString(fmt.Sprintf("%s-", v.(string)))
+	}
+
+	if v, ok := m["security_group_owner_id"]; ok {
+		buf.WriteString(fmt.Sprintf("%s-", v.(string)))
+	}
+
+	return hashcode.String(buf.String())
+}
+
+func resourceAwsDbSecurityGroupStateRefreshFunc(
+	d *schema.ResourceData, meta interface{}) resource.StateRefreshFunc {
 	return func() (interface{}, string, error) {
-		v, err := resource_aws_db_security_group_retrieve(id, conn)
+		v, err := resourceAwsDbSecurityGroupRetrieve(d, meta)
 
 		if err != nil {
 			log.Printf("Error on retrieving DB Security Group when waiting: %s", err)
@@ -255,4 +287,3 @@ func resourceAwsDbSecurityGroupStateRefreshFunc(id string, conn *rds.Rds) resour
 		return v, "authorized", nil
 	}
 }
-*/

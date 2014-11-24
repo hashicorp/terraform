@@ -1,6 +1,5 @@
 package aws
 
-/*
 import (
 	"fmt"
 	"testing"
@@ -166,4 +165,3 @@ resource "aws_db_instance" "bar" {
 	parameter_group_name = "default.mysql5.6"
 }
 `
-*/

@@ -101,7 +101,7 @@ func resourceAwsRouteTableRead(d *schema.ResourceData, meta interface{}) error {
 		return nil
 	}
 
-	rt := rtRaw.(ec2.RouteTable)
+	rt := rtRaw.(*ec2.RouteTable)
 	d.Set("vpc_id", rt.VpcId)
 
 	// TODO: Add some code to also update the route set

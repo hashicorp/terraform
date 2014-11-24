@@ -1,6 +1,5 @@
 package aws
 
-/*
 import (
 	"fmt"
 	"testing"
@@ -141,4 +140,3 @@ resource "aws_db_security_group" "bar" {
     }
 }
 `
-*/

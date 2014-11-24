@@ -4,15 +4,11 @@ import (
 	"os"
 
 	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/hashicorp/terraform/terraform"
 )
 
-// Provider returns a schema.Provider for AWS.
-//
-// NOTE: schema.Provider became available long after the AWS provider
-// was started, so resources may not be converted to this new structure
-// yet. This is a WIP. To assist with the migration, make sure any resources
-// you migrate are acceptance tested, then perform the migration.
-func Provider() *schema.Provider {
+// Provider returns a terraform.ResourceProvider.
+func Provider() terraform.ResourceProvider {
 	// TODO: Move the validation to this, requires conditional schemas
 	// TODO: Move the configuration to this, requires validation
 
@@ -42,10 +38,10 @@ func Provider() *schema.Provider {
 		},
 
 		ResourcesMap: map[string]*schema.Resource{
-			"aws_autoscaling_group": resourceAwsAutoscalingGroup(),
-			//"aws_db_instance":             resourceAwsDbInstance(),
-			"aws_db_parameter_group": resourceAwsDbParameterGroup(),
-			//"aws_db_security_group":       resourceAwsDbSecurityGroup(),
+			"aws_autoscaling_group":       resourceAwsAutoscalingGroup(),
+			"aws_db_instance":             resourceAwsDbInstance(),
+			"aws_db_parameter_group":      resourceAwsDbParameterGroup(),
+			"aws_db_security_group":       resourceAwsDbSecurityGroup(),
 			"aws_db_subnet_group":         resourceAwsDbSubnetGroup(),
 			"aws_eip":                     resourceAwsEip(),
 			"aws_elb":                     resourceAwsElb(),
