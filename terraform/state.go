@@ -294,11 +294,11 @@ func (m *ModuleState) GoString() string {
 }
 
 func (m *ModuleState) String() string {
-	if len(m.Resources) == 0 {
-		return "<no state>"
-	}
-
 	var buf bytes.Buffer
+
+	if len(m.Resources) == 0 {
+		buf.WriteString("<no state>")
+	}
 
 	names := make([]string, 0, len(m.Resources))
 	for name, _ := range m.Resources {

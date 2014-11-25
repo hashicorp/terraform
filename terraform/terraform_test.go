@@ -164,6 +164,21 @@ aws_instance.foo:
   type = aws_instance
 `
 
+const testTerraformApplyEmptyModuleStr = `
+<no state>
+Outputs:
+
+end = XXXX
+
+module.child:
+<no state>
+Outputs:
+
+aws_access_key = YYYYY
+aws_route53_zone_id = XXXX
+aws_secret_key = ZZZZ
+`
+
 const testTerraformApplyDependsCreateBeforeStr = `
 aws_instance.lb:
   ID = foo

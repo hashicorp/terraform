@@ -913,6 +913,35 @@ func TestContextApply(t *testing.T) {
 	}
 }
 
+func TestContextApply_emptyModule(t *testing.T) {
+	m := testModule(t, "apply-empty-module")
+	p := testProvider("aws")
+	p.ApplyFn = testApplyFn
+	p.DiffFn = testDiffFn
+	ctx := testContext(t, &ContextOpts{
+		Module: m,
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+	})
+
+	if _, err := ctx.Plan(nil); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	state, err := ctx.Apply()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	actual := strings.TrimSpace(state.String())
+	actual = strings.Replace(actual, "  ", "", -1)
+	expected := strings.TrimSpace(testTerraformApplyEmptyModuleStr)
+	if actual != expected {
+		t.Fatalf("bad: \n%s\nexpect:\n%s", actual, expected)
+	}
+}
+
 func TestContextApply_createBeforeDestroy(t *testing.T) {
 	m := testModule(t, "apply-good-create-before")
 	p := testProvider("aws")
