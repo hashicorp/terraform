@@ -114,6 +114,7 @@ func (d *Diff) init() {
 type ModuleDiff struct {
 	Path      []string
 	Resources map[string]*InstanceDiff
+	Destroy   bool // Set only by the destroy plan
 }
 
 func (d *ModuleDiff) init() {
@@ -191,6 +192,10 @@ func (d *ModuleDiff) IsRoot() bool {
 // format that users can read to quickly inspect a diff.
 func (d *ModuleDiff) String() string {
 	var buf bytes.Buffer
+
+	if d.Destroy {
+		buf.WriteString("DESTROY MODULE\n")
+	}
 
 	names := make([]string, 0, len(d.Resources))
 	for name, _ := range d.Resources {
