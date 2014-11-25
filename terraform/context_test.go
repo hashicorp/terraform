@@ -2416,6 +2416,55 @@ func TestContextApply_output(t *testing.T) {
 	}
 }
 
+func TestContextApply_outputInvalid(t *testing.T) {
+	m := testModule(t, "apply-output-invalid")
+	p := testProvider("aws")
+	p.ApplyFn = testApplyFn
+	p.DiffFn = testDiffFn
+	ctx := testContext(t, &ContextOpts{
+		Module: m,
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+	})
+
+	_, err := ctx.Plan(nil)
+	if err == nil {
+		t.Fatalf("err: %s", err)
+	}
+	if !strings.Contains(err.Error(), "is not a string") {
+		t.Fatalf("err: %s", err)
+	}
+}
+
+func TestContextApply_outputList(t *testing.T) {
+	m := testModule(t, "apply-output-list")
+	p := testProvider("aws")
+	p.ApplyFn = testApplyFn
+	p.DiffFn = testDiffFn
+	ctx := testContext(t, &ContextOpts{
+		Module: m,
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+	})
+
+	if _, err := ctx.Plan(nil); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	state, err := ctx.Apply()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	actual := strings.TrimSpace(state.String())
+	expected := strings.TrimSpace(testTerraformApplyOutputListStr)
+	if actual != expected {
+		t.Fatalf("bad: \n%s", actual)
+	}
+}
+
 func TestContextApply_outputMulti(t *testing.T) {
 	m := testModule(t, "apply-output-multi")
 	p := testProvider("aws")

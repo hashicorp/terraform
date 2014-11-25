@@ -550,7 +550,14 @@ func (c *walkContext) Walk() error {
 			}
 		}
 		if vraw != nil {
-			outputs[o.Name] = vraw.(string)
+			if list, ok := vraw.([]interface{}); ok {
+				vraw = list[0]
+			}
+			if s, ok := vraw.(string); ok {
+				outputs[o.Name] = s
+			} else {
+				return fmt.Errorf("Type of output '%s' is not a string: %#v", o.Name, vraw)
+			}
 		}
 	}
 
