@@ -86,8 +86,7 @@ func resourceAwsLaunchConfiguration() *schema.Resource {
 }
 
 func resourceAwsLaunchConfigurationCreate(d *schema.ResourceData, meta interface{}) error {
-	p := meta.(*ResourceProvider)
-	autoscalingconn := p.autoscalingconn
+	autoscalingconn := meta.(*AWSClient).autoscalingconn
 
 	var createLaunchConfigurationOpts autoscaling.CreateLaunchConfiguration
 	createLaunchConfigurationOpts.Name = d.Get("name").(string)
@@ -119,28 +118,8 @@ func resourceAwsLaunchConfigurationCreate(d *schema.ResourceData, meta interface
 	})
 }
 
-func resourceAwsLaunchConfigurationDelete(d *schema.ResourceData, meta interface{}) error {
-	p := meta.(*ResourceProvider)
-	autoscalingconn := p.autoscalingconn
-
-	log.Printf("[DEBUG] Launch Configuration destroy: %v", d.Id())
-	_, err := autoscalingconn.DeleteLaunchConfiguration(
-		&autoscaling.DeleteLaunchConfiguration{Name: d.Id()})
-	if err != nil {
-		autoscalingerr, ok := err.(*autoscaling.Error)
-		if ok && autoscalingerr.Code == "InvalidConfiguration.NotFound" {
-			return nil
-		}
-
-		return err
-	}
-
-	return nil
-}
-
 func resourceAwsLaunchConfigurationRead(d *schema.ResourceData, meta interface{}) error {
-	p := meta.(*ResourceProvider)
-	autoscalingconn := p.autoscalingconn
+	autoscalingconn := meta.(*AWSClient).autoscalingconn
 
 	describeOpts := autoscaling.DescribeLaunchConfigurations{
 		Names: []string{d.Id()},
@@ -171,6 +150,24 @@ func resourceAwsLaunchConfigurationRead(d *schema.ResourceData, meta interface{}
 	d.Set("instance_type", lc.InstanceType)
 	d.Set("name", lc.Name)
 	d.Set("security_groups", lc.SecurityGroups)
+
+	return nil
+}
+
+func resourceAwsLaunchConfigurationDelete(d *schema.ResourceData, meta interface{}) error {
+	autoscalingconn := meta.(*AWSClient).autoscalingconn
+
+	log.Printf("[DEBUG] Launch Configuration destroy: %v", d.Id())
+	_, err := autoscalingconn.DeleteLaunchConfiguration(
+		&autoscaling.DeleteLaunchConfiguration{Name: d.Id()})
+	if err != nil {
+		autoscalingerr, ok := err.(*autoscaling.Error)
+		if ok && autoscalingerr.Code == "InvalidConfiguration.NotFound" {
+			return nil
+		}
+
+		return err
+	}
 
 	return nil
 }

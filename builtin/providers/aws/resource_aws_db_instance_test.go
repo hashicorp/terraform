@@ -52,7 +52,7 @@ func TestAccAWSDBInstance(t *testing.T) {
 }
 
 func testAccCheckAWSDBInstanceDestroy(s *terraform.State) error {
-	conn := testAccProvider.rdsconn
+	conn := testAccProvider.Meta().(*AWSClient).rdsconn
 
 	for _, rs := range s.RootModule().Resources {
 		if rs.Type != "aws_db_instance" {
@@ -115,7 +115,7 @@ func testAccCheckAWSDBInstanceExists(n string, v *rds.DBInstance) resource.TestC
 			return fmt.Errorf("No DB Instance ID is set")
 		}
 
-		conn := testAccProvider.rdsconn
+		conn := testAccProvider.Meta().(*AWSClient).rdsconn
 
 		opts := rds.DescribeDBInstances{
 			DBInstanceIdentifier: rs.Primary.ID,

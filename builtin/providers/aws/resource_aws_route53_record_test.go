@@ -27,7 +27,7 @@ func TestAccRoute53Record(t *testing.T) {
 }
 
 func testAccCheckRoute53RecordDestroy(s *terraform.State) error {
-	conn := testAccProvider.route53
+	conn := testAccProvider.Meta().(*AWSClient).route53
 	for _, rs := range s.RootModule().Resources {
 		if rs.Type != "aws_route53_record" {
 			continue
@@ -56,7 +56,7 @@ func testAccCheckRoute53RecordDestroy(s *terraform.State) error {
 
 func testAccCheckRoute53RecordExists(n string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
-		conn := testAccProvider.route53
+		conn := testAccProvider.Meta().(*AWSClient).route53
 		rs, ok := s.RootModule().Resources[n]
 		if !ok {
 			return fmt.Errorf("Not found: %s", n)

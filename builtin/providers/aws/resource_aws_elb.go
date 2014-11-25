@@ -150,36 +150,8 @@ func resourceAwsElb() *schema.Resource {
 	}
 }
 
-func resourceAwsElbHealthCheckHash(v interface{}) int {
-	var buf bytes.Buffer
-	m := v.(map[string]interface{})
-	buf.WriteString(fmt.Sprintf("%d-", m["healthy_threshold"].(int)))
-	buf.WriteString(fmt.Sprintf("%d-", m["unhealthy_threshold"].(int)))
-	buf.WriteString(fmt.Sprintf("%s-", m["target"].(string)))
-	buf.WriteString(fmt.Sprintf("%d-", m["interval"].(int)))
-	buf.WriteString(fmt.Sprintf("%d-", m["timeout"].(int)))
-
-	return hashcode.String(buf.String())
-}
-
-func resourceAwsElbListenerHash(v interface{}) int {
-	var buf bytes.Buffer
-	m := v.(map[string]interface{})
-	buf.WriteString(fmt.Sprintf("%d-", m["instance_port"].(int)))
-	buf.WriteString(fmt.Sprintf("%s-", m["instance_protocol"].(string)))
-	buf.WriteString(fmt.Sprintf("%d-", m["lb_port"].(int)))
-	buf.WriteString(fmt.Sprintf("%s-", m["lb_protocol"].(string)))
-
-	if v, ok := m["ssl_certificate_id"]; ok {
-		buf.WriteString(fmt.Sprintf("%s-", v.(string)))
-	}
-
-	return hashcode.String(buf.String())
-}
-
 func resourceAwsElbCreate(d *schema.ResourceData, meta interface{}) error {
-	p := meta.(*ResourceProvider)
-	elbconn := p.elbconn
+	elbconn := meta.(*AWSClient).elbconn
 
 	// Expand the "listener" set to goamz compat []elb.Listener
 	listeners, err := expandListeners(d.Get("listener").(*schema.Set).List())
@@ -250,9 +222,49 @@ func resourceAwsElbCreate(d *schema.ResourceData, meta interface{}) error {
 	return resourceAwsElbUpdate(d, meta)
 }
 
+func resourceAwsElbRead(d *schema.ResourceData, meta interface{}) error {
+	elbconn := meta.(*AWSClient).elbconn
+
+	// Retrieve the ELB properties for updating the state
+	describeElbOpts := &elb.DescribeLoadBalancer{
+		Names: []string{d.Id()},
+	}
+
+	describeResp, err := elbconn.DescribeLoadBalancers(describeElbOpts)
+	if err != nil {
+		if ec2err, ok := err.(*elb.Error); ok && ec2err.Code == "LoadBalancerNotFound" {
+			// The ELB is gone now, so just remove it from the state
+			d.SetId("")
+			return nil
+		}
+
+		return fmt.Errorf("Error retrieving ELB: %s", err)
+	}
+	if len(describeResp.LoadBalancers) != 1 {
+		return fmt.Errorf("Unable to find ELB: %#v", describeResp.LoadBalancers)
+	}
+
+	lb := describeResp.LoadBalancers[0]
+
+	d.Set("name", lb.LoadBalancerName)
+	d.Set("dns_name", lb.DNSName)
+	d.Set("internal", lb.Scheme == "internal")
+	d.Set("instances", flattenInstances(lb.Instances))
+	d.Set("listener", flattenListeners(lb.Listeners))
+	d.Set("security_groups", lb.SecurityGroups)
+	d.Set("subnets", lb.Subnets)
+
+	// There's only one health check, so save that to state as we
+	// currently can
+	if lb.HealthCheck.Target != "" {
+		d.Set("health_check", flattenHealthCheck(lb.HealthCheck))
+	}
+
+	return nil
+}
+
 func resourceAwsElbUpdate(d *schema.ResourceData, meta interface{}) error {
-	p := meta.(*ResourceProvider)
-	elbconn := p.elbconn
+	elbconn := meta.(*AWSClient).elbconn
 
 	d.Partial(true)
 
@@ -297,8 +309,7 @@ func resourceAwsElbUpdate(d *schema.ResourceData, meta interface{}) error {
 }
 
 func resourceAwsElbDelete(d *schema.ResourceData, meta interface{}) error {
-	p := meta.(*ResourceProvider)
-	elbconn := p.elbconn
+	elbconn := meta.(*AWSClient).elbconn
 
 	log.Printf("[INFO] Deleting ELB: %s", d.Id())
 
@@ -313,44 +324,29 @@ func resourceAwsElbDelete(d *schema.ResourceData, meta interface{}) error {
 	return nil
 }
 
-func resourceAwsElbRead(d *schema.ResourceData, meta interface{}) error {
-	p := meta.(*ResourceProvider)
-	elbconn := p.elbconn
+func resourceAwsElbHealthCheckHash(v interface{}) int {
+	var buf bytes.Buffer
+	m := v.(map[string]interface{})
+	buf.WriteString(fmt.Sprintf("%d-", m["healthy_threshold"].(int)))
+	buf.WriteString(fmt.Sprintf("%d-", m["unhealthy_threshold"].(int)))
+	buf.WriteString(fmt.Sprintf("%s-", m["target"].(string)))
+	buf.WriteString(fmt.Sprintf("%d-", m["interval"].(int)))
+	buf.WriteString(fmt.Sprintf("%d-", m["timeout"].(int)))
 
-	// Retrieve the ELB properties for updating the state
-	describeElbOpts := &elb.DescribeLoadBalancer{
-		Names: []string{d.Id()},
+	return hashcode.String(buf.String())
+}
+
+func resourceAwsElbListenerHash(v interface{}) int {
+	var buf bytes.Buffer
+	m := v.(map[string]interface{})
+	buf.WriteString(fmt.Sprintf("%d-", m["instance_port"].(int)))
+	buf.WriteString(fmt.Sprintf("%s-", m["instance_protocol"].(string)))
+	buf.WriteString(fmt.Sprintf("%d-", m["lb_port"].(int)))
+	buf.WriteString(fmt.Sprintf("%s-", m["lb_protocol"].(string)))
+
+	if v, ok := m["ssl_certificate_id"]; ok {
+		buf.WriteString(fmt.Sprintf("%s-", v.(string)))
 	}
 
-	describeResp, err := elbconn.DescribeLoadBalancers(describeElbOpts)
-	if err != nil {
-		if ec2err, ok := err.(*elb.Error); ok && ec2err.Code == "LoadBalancerNotFound" {
-			// The ELB is gone now, so just remove it from the state
-			d.SetId("")
-			return nil
-		}
-
-		return fmt.Errorf("Error retrieving ELB: %s", err)
-	}
-	if len(describeResp.LoadBalancers) != 1 {
-		return fmt.Errorf("Unable to find ELB: %#v", describeResp.LoadBalancers)
-	}
-
-	lb := describeResp.LoadBalancers[0]
-
-	d.Set("name", lb.LoadBalancerName)
-	d.Set("dns_name", lb.DNSName)
-	d.Set("internal", lb.Scheme == "internal")
-	d.Set("instances", flattenInstances(lb.Instances))
-	d.Set("listener", flattenListeners(lb.Listeners))
-	d.Set("security_groups", lb.SecurityGroups)
-	d.Set("subnets", lb.Subnets)
-
-	// There's only one health check, so save that to state as we
-	// currently can
-	if lb.HealthCheck.Target != "" {
-		d.Set("health_check", flattenHealthCheck(lb.HealthCheck))
-	}
-
-	return nil
+	return hashcode.String(buf.String())
 }

@@ -47,8 +47,7 @@ func resourceAwsVpc() *schema.Resource {
 }
 
 func resourceAwsVpcCreate(d *schema.ResourceData, meta interface{}) error {
-	p := meta.(*ResourceProvider)
-	ec2conn := p.ec2conn
+	ec2conn := meta.(*AWSClient).ec2conn
 
 	// Create the VPC
 	createOpts := &ec2.CreateVpc{
@@ -89,9 +88,55 @@ func resourceAwsVpcCreate(d *schema.ResourceData, meta interface{}) error {
 	return resourceAwsVpcUpdate(d, meta)
 }
 
+func resourceAwsVpcRead(d *schema.ResourceData, meta interface{}) error {
+	ec2conn := meta.(*AWSClient).ec2conn
+
+	// Refresh the VPC state
+	vpcRaw, _, err := VPCStateRefreshFunc(ec2conn, d.Id())()
+	if err != nil {
+		return err
+	}
+	if vpcRaw == nil {
+		return nil
+	}
+
+	// VPC stuff
+	vpc := vpcRaw.(*ec2.VPC)
+	d.Set("cidr_block", vpc.CidrBlock)
+
+	// Tags
+	d.Set("tags", tagsToMap(vpc.Tags))
+
+	// Attributes
+	resp, err := ec2conn.VpcAttribute(d.Id(), "enableDnsSupport")
+	if err != nil {
+		return err
+	}
+	d.Set("enable_dns_support", resp.EnableDnsSupport)
+
+	resp, err = ec2conn.VpcAttribute(d.Id(), "enableDnsHostnames")
+	if err != nil {
+		return err
+	}
+	d.Set("enable_dns_hostnames", resp.EnableDnsHostnames)
+
+	// Get the main routing table for this VPC
+	filter := ec2.NewFilter()
+	filter.Add("association.main", "true")
+	filter.Add("vpc-id", d.Id())
+	routeResp, err := ec2conn.DescribeRouteTables(nil, filter)
+	if err != nil {
+		return err
+	}
+	if v := routeResp.RouteTables; len(v) > 0 {
+		d.Set("main_route_table_id", v[0].RouteTableId)
+	}
+
+	return nil
+}
+
 func resourceAwsVpcUpdate(d *schema.ResourceData, meta interface{}) error {
-	p := meta.(*ResourceProvider)
-	ec2conn := p.ec2conn
+	ec2conn := meta.(*AWSClient).ec2conn
 
 	// Turn on partial mode
 	d.Partial(true)
@@ -137,8 +182,7 @@ func resourceAwsVpcUpdate(d *schema.ResourceData, meta interface{}) error {
 }
 
 func resourceAwsVpcDelete(d *schema.ResourceData, meta interface{}) error {
-	p := meta.(*ResourceProvider)
-	ec2conn := p.ec2conn
+	ec2conn := meta.(*AWSClient).ec2conn
 
 	log.Printf("[INFO] Deleting VPC: %s", d.Id())
 	if _, err := ec2conn.DeleteVpc(d.Id()); err != nil {
@@ -148,54 +192,6 @@ func resourceAwsVpcDelete(d *schema.ResourceData, meta interface{}) error {
 		}
 
 		return fmt.Errorf("Error deleting VPC: %s", err)
-	}
-
-	return nil
-}
-
-func resourceAwsVpcRead(d *schema.ResourceData, meta interface{}) error {
-	p := meta.(*ResourceProvider)
-	ec2conn := p.ec2conn
-
-	// Refresh the VPC state
-	vpcRaw, _, err := VPCStateRefreshFunc(ec2conn, d.Id())()
-	if err != nil {
-		return err
-	}
-	if vpcRaw == nil {
-		return nil
-	}
-
-	// VPC stuff
-	vpc := vpcRaw.(*ec2.VPC)
-	d.Set("cidr_block", vpc.CidrBlock)
-
-	// Tags
-	d.Set("tags", tagsToMap(vpc.Tags))
-
-	// Attributes
-	resp, err := ec2conn.VpcAttribute(d.Id(), "enableDnsSupport")
-	if err != nil {
-		return err
-	}
-	d.Set("enable_dns_support", resp.EnableDnsSupport)
-
-	resp, err = ec2conn.VpcAttribute(d.Id(), "enableDnsHostnames")
-	if err != nil {
-		return err
-	}
-	d.Set("enable_dns_hostnames", resp.EnableDnsHostnames)
-
-	// Get the main routing table for this VPC
-	filter := ec2.NewFilter()
-	filter.Add("association.main", "true")
-	filter.Add("vpc-id", d.Id())
-	routeResp, err := ec2conn.DescribeRouteTables(nil, filter)
-	if err != nil {
-		return err
-	}
-	if v := routeResp.RouteTables; len(v) > 0 {
-		d.Set("main_route_table_id", v[0].RouteTableId)
 	}
 
 	return nil

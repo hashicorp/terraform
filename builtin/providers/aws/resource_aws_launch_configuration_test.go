@@ -37,7 +37,7 @@ func TestAccAWSLaunchConfiguration(t *testing.T) {
 }
 
 func testAccCheckAWSLaunchConfigurationDestroy(s *terraform.State) error {
-	conn := testAccProvider.autoscalingconn
+	conn := testAccProvider.Meta().(*AWSClient).autoscalingconn
 
 	for _, rs := range s.RootModule().Resources {
 		if rs.Type != "aws_launch_configuration" {
@@ -98,7 +98,7 @@ func testAccCheckAWSLaunchConfigurationExists(n string, res *autoscaling.LaunchC
 			return fmt.Errorf("No Launch Configuration ID is set")
 		}
 
-		conn := testAccProvider.autoscalingconn
+		conn := testAccProvider.Meta().(*AWSClient).autoscalingconn
 
 		describeOpts := autoscaling.DescribeLaunchConfigurations{
 			Names: []string{rs.Primary.ID},
