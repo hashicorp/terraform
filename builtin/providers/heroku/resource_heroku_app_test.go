@@ -128,7 +128,7 @@ func testAccCheckHerokuAppAttributes(app *heroku.App) resource.TestCheckFunc {
 			return fmt.Errorf("Bad region: %s", app.Region.Name)
 		}
 
-		if app.Stack.Name != "cedar" {
+		if app.Stack.Name != "cedar-14" {
 			return fmt.Errorf("Bad stack: %s", app.Stack.Name)
 		}
 

@@ -64,6 +64,44 @@ func TestAccAWSInstance_normal(t *testing.T) {
 	})
 }
 
+func TestAccAWSInstance_blockDevicesCheck(t *testing.T) {
+	var v ec2.Instance
+
+	testCheck := func() resource.TestCheckFunc {
+		return func(*terraform.State) error {
+
+			// Map out the block devices by name, which should be unique.
+			blockDevices := make(map[string]ec2.BlockDevice)
+			for _, blockDevice := range v.BlockDevices {
+				blockDevices[blockDevice.DeviceName] = blockDevice
+			}
+
+			// Check if the secondary block device exists.
+			if _, ok := blockDevices["/dev/sdb"]; !ok {
+				fmt.Errorf("block device doesn't exist: /dev/sdb")
+			}
+
+			return nil
+		}
+	}
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckInstanceDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccInstanceConfigBlockDevices,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckInstanceExists(
+						"aws_instance.foo", &v),
+					testCheck(),
+				),
+			},
+		},
+	})
+}
+
 func TestAccAWSInstance_sourceDestCheck(t *testing.T) {
 	var v ec2.Instance
 
@@ -151,7 +189,7 @@ func TestAccInstance_tags(t *testing.T) {
 }
 
 func testAccCheckInstanceDestroy(s *terraform.State) error {
-	conn := testAccProvider.ec2conn
+	conn := testAccProvider.Meta().(*AWSClient).ec2conn
 
 	for _, rs := range s.RootModule().Resources {
 		if rs.Type != "aws_instance" {
@@ -193,7 +231,7 @@ func testAccCheckInstanceExists(n string, i *ec2.Instance) resource.TestCheckFun
 			return fmt.Errorf("No ID is set")
 		}
 
-		conn := testAccProvider.ec2conn
+		conn := testAccProvider.Meta().(*AWSClient).ec2conn
 		resp, err := conn.Instances(
 			[]string{rs.Primary.ID}, ec2.NewFilter())
 		if err != nil {
@@ -230,6 +268,19 @@ resource "aws_instance" "foo" {
 	instance_type = "m1.small"
 	security_groups = ["${aws_security_group.tf_test_foo.name}"]
 	user_data = "foo"
+}
+`
+
+const testAccInstanceConfigBlockDevices = `
+resource "aws_instance" "foo" {
+	# us-west-2
+	ami = "ami-55a7ea65"
+	instance_type = "m1.small"
+	block_device {
+	  device_name = "/dev/sdb"
+	  volume_type = "gp2"
+	  volume_size = 10
+	}
 }
 `
 
@@ -293,6 +344,8 @@ resource "aws_instance" "foo" {
 
 const testAccCheckInstanceConfigTags = `
 resource "aws_instance" "foo" {
+	ami = "ami-4fccb37f"
+	instance_type = "m1.small"
 	tags {
 		foo = "bar"
 	}
@@ -301,6 +354,8 @@ resource "aws_instance" "foo" {
 
 const testAccCheckInstanceConfigTagsUpdate = `
 resource "aws_instance" "foo" {
+	ami = "ami-4fccb37f"
+	instance_type = "m1.small"
 	tags {
 		bar = "baz"
 	}

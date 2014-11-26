@@ -62,6 +62,20 @@ of sources including Git, Mercurial, HTTP, and file paths.
 The other configurations are parameters to our module. Please fill them
 in with the proper values.
 
+Prior to running any command such as `plan` with a configuration that
+uses modules, you'll have to [get](/docs/commands/get.html) the modules.
+This is done using the [get command](/docs/commands/get.html).
+
+```
+$ terraform get
+...
+```
+
+This command will download the modules if they haven't been already.
+By default, the command will not check for updates, so it is safe (and fast)
+to run multiple times. You can use the `-u` flag to check and download
+updates.
+
 ## Planning and Apply Modules
 
 With the modules downloaded, we can now plan and apply it. If you run

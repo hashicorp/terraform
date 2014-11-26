@@ -1,6 +1,7 @@
 package aws
 
 import (
+	"bytes"
 	"crypto/sha1"
 	"encoding/hex"
 	"fmt"
@@ -131,13 +132,58 @@ func resourceAwsInstance() *schema.Resource {
 				ForceNew: true,
 			},
 			"tags": tagsSchema(),
+
+			"block_device": &schema.Schema{
+				Type:     schema.TypeSet,
+				Optional: true,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"device_name": &schema.Schema{
+							Type:     schema.TypeString,
+							Required: true,
+							ForceNew: true,
+						},
+
+						"snapshot_id": &schema.Schema{
+							Type:     schema.TypeString,
+							Optional: true,
+							ForceNew: true,
+						},
+
+						"volume_type": &schema.Schema{
+							Type:     schema.TypeString,
+							Optional: true,
+							ForceNew: true,
+						},
+
+						"volume_size": &schema.Schema{
+							Type:     schema.TypeInt,
+							Optional: true,
+							ForceNew: true,
+						},
+
+						"delete_on_termination": &schema.Schema{
+							Type:     schema.TypeBool,
+							Optional: true,
+							Default:  true,
+							ForceNew: true,
+						},
+
+						"encrypted": &schema.Schema{
+							Type:     schema.TypeBool,
+							Optional: true,
+							ForceNew: true,
+						},
+					},
+				},
+				Set: resourceAwsInstanceBlockDevicesHash,
+			},
 		},
 	}
 }
 
 func resourceAwsInstanceCreate(d *schema.ResourceData, meta interface{}) error {
-	p := meta.(*ResourceProvider)
-	ec2conn := p.ec2conn
+	ec2conn := meta.(*AWSClient).ec2conn
 
 	// Figure out user data
 	userData := ""
@@ -177,6 +223,22 @@ func resourceAwsInstanceCreate(d *schema.ResourceData, meta interface{}) error {
 			}
 
 			runOpts.SecurityGroups = append(runOpts.SecurityGroups, g)
+		}
+	}
+
+	if v := d.Get("block_device"); v != nil {
+		vs := v.(*schema.Set).List()
+		if len(vs) > 0 {
+			runOpts.BlockDevices = make([]ec2.BlockDeviceMapping, len(vs))
+			for i, v := range vs {
+				bd := v.(map[string]interface{})
+				runOpts.BlockDevices[i].DeviceName = bd["device_name"].(string)
+				runOpts.BlockDevices[i].SnapshotId = bd["snapshot_id"].(string)
+				runOpts.BlockDevices[i].VolumeType = bd["volume_type"].(string)
+				runOpts.BlockDevices[i].VolumeSize = int64(bd["volume_size"].(int))
+				runOpts.BlockDevices[i].DeleteOnTermination = bd["delete_on_termination"].(bool)
+				runOpts.BlockDevices[i].Encrypted = bd["encrypted"].(bool)
+			}
 		}
 	}
 
@@ -232,74 +294,8 @@ func resourceAwsInstanceCreate(d *schema.ResourceData, meta interface{}) error {
 	return resourceAwsInstanceUpdate(d, meta)
 }
 
-func resourceAwsInstanceUpdate(d *schema.ResourceData, meta interface{}) error {
-	p := meta.(*ResourceProvider)
-	ec2conn := p.ec2conn
-
-	modify := false
-	opts := new(ec2.ModifyInstance)
-
-	if v, ok := d.GetOk("source_dest_check"); ok {
-		opts.SourceDestCheck = v.(bool)
-		opts.SetSourceDestCheck = true
-		modify = true
-	}
-
-	if modify {
-		log.Printf("[INFO] Modifing instance %s: %#v", d.Id(), opts)
-		if _, err := ec2conn.ModifyInstance(d.Id(), opts); err != nil {
-			return err
-		}
-
-		// TODO(mitchellh): wait for the attributes we modified to
-		// persist the change...
-	}
-
-	if err := setTags(ec2conn, d); err != nil {
-		return err
-	} else {
-		d.SetPartial("tags")
-	}
-
-	return nil
-}
-
-func resourceAwsInstanceDelete(d *schema.ResourceData, meta interface{}) error {
-	p := meta.(*ResourceProvider)
-	ec2conn := p.ec2conn
-
-	log.Printf("[INFO] Terminating instance: %s", d.Id())
-	if _, err := ec2conn.TerminateInstances([]string{d.Id()}); err != nil {
-		return fmt.Errorf("Error terminating instance: %s", err)
-	}
-
-	log.Printf(
-		"[DEBUG] Waiting for instance (%s) to become terminated",
-		d.Id())
-
-	stateConf := &resource.StateChangeConf{
-		Pending:    []string{"pending", "running", "shutting-down", "stopped", "stopping"},
-		Target:     "terminated",
-		Refresh:    InstanceStateRefreshFunc(ec2conn, d.Id()),
-		Timeout:    10 * time.Minute,
-		Delay:      10 * time.Second,
-		MinTimeout: 3 * time.Second,
-	}
-
-	_, err := stateConf.WaitForState()
-	if err != nil {
-		return fmt.Errorf(
-			"Error waiting for instance (%s) to terminate: %s",
-			d.Id(), err)
-	}
-
-	d.SetId("")
-	return nil
-}
-
 func resourceAwsInstanceRead(d *schema.ResourceData, meta interface{}) error {
-	p := meta.(*ResourceProvider)
-	ec2conn := p.ec2conn
+	ec2conn := meta.(*AWSClient).ec2conn
 
 	resp, err := ec2conn.Instances([]string{d.Id()}, ec2.NewFilter())
 	if err != nil {
@@ -368,6 +364,93 @@ func resourceAwsInstanceRead(d *schema.ResourceData, meta interface{}) error {
 	}
 	d.Set("security_groups", sgs)
 
+	volIDs := make([]string, len(instance.BlockDevices))
+	bdByVolID := make(map[string]ec2.BlockDevice)
+	for i, bd := range instance.BlockDevices {
+		volIDs[i] = bd.VolumeId
+		bdByVolID[bd.VolumeId] = bd
+	}
+
+	volResp, err := ec2conn.Volumes(volIDs, ec2.NewFilter())
+	if err != nil {
+		return err
+	}
+
+	bds := make([]map[string]interface{}, len(instance.BlockDevices))
+	for i, vol := range volResp.Volumes {
+		bds[i] = make(map[string]interface{})
+		bds[i]["device_name"] = bdByVolID[vol.VolumeId].DeviceName
+		bds[i]["snapshot_id"] = vol.SnapshotId
+		bds[i]["volume_type"] = vol.VolumeType
+		bds[i]["volume_size"] = vol.Size
+		bds[i]["delete_on_termination"] = bdByVolID[vol.VolumeId].DeleteOnTermination
+		bds[i]["encrypted"] = vol.Encrypted
+	}
+	d.Set("block_device", bds)
+
+	return nil
+}
+
+func resourceAwsInstanceUpdate(d *schema.ResourceData, meta interface{}) error {
+	ec2conn := meta.(*AWSClient).ec2conn
+
+	modify := false
+	opts := new(ec2.ModifyInstance)
+
+	if v, ok := d.GetOk("source_dest_check"); ok {
+		opts.SourceDestCheck = v.(bool)
+		opts.SetSourceDestCheck = true
+		modify = true
+	}
+
+	if modify {
+		log.Printf("[INFO] Modifing instance %s: %#v", d.Id(), opts)
+		if _, err := ec2conn.ModifyInstance(d.Id(), opts); err != nil {
+			return err
+		}
+
+		// TODO(mitchellh): wait for the attributes we modified to
+		// persist the change...
+	}
+
+	if err := setTags(ec2conn, d); err != nil {
+		return err
+	} else {
+		d.SetPartial("tags")
+	}
+
+	return nil
+}
+
+func resourceAwsInstanceDelete(d *schema.ResourceData, meta interface{}) error {
+	ec2conn := meta.(*AWSClient).ec2conn
+
+	log.Printf("[INFO] Terminating instance: %s", d.Id())
+	if _, err := ec2conn.TerminateInstances([]string{d.Id()}); err != nil {
+		return fmt.Errorf("Error terminating instance: %s", err)
+	}
+
+	log.Printf(
+		"[DEBUG] Waiting for instance (%s) to become terminated",
+		d.Id())
+
+	stateConf := &resource.StateChangeConf{
+		Pending:    []string{"pending", "running", "shutting-down", "stopped", "stopping"},
+		Target:     "terminated",
+		Refresh:    InstanceStateRefreshFunc(ec2conn, d.Id()),
+		Timeout:    10 * time.Minute,
+		Delay:      10 * time.Second,
+		MinTimeout: 3 * time.Second,
+	}
+
+	_, err := stateConf.WaitForState()
+	if err != nil {
+		return fmt.Errorf(
+			"Error waiting for instance (%s) to terminate: %s",
+			d.Id(), err)
+	}
+
+	d.SetId("")
 	return nil
 }
 
@@ -395,4 +478,16 @@ func InstanceStateRefreshFunc(conn *ec2.EC2, instanceID string) resource.StateRe
 		i := &resp.Reservations[0].Instances[0]
 		return i, i.State.Name, nil
 	}
+}
+
+func resourceAwsInstanceBlockDevicesHash(v interface{}) int {
+	var buf bytes.Buffer
+	m := v.(map[string]interface{})
+	buf.WriteString(fmt.Sprintf("%s-", m["device_name"].(string)))
+	buf.WriteString(fmt.Sprintf("%s-", m["snapshot_id"].(string)))
+	buf.WriteString(fmt.Sprintf("%s-", m["volume_type"].(string)))
+	buf.WriteString(fmt.Sprintf("%d-", m["volume_size"].(int)))
+	buf.WriteString(fmt.Sprintf("%t-", m["delete_on_termination"].(bool)))
+	buf.WriteString(fmt.Sprintf("%t-", m["encrypted"].(bool)))
+	return hashcode.String(buf.String())
 }

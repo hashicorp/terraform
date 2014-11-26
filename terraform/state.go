@@ -185,6 +185,20 @@ type ModuleState struct {
 	// N instances underneath, although a user only needs to think
 	// about the 1:1 case.
 	Resources map[string]*ResourceState `json:"resources"`
+
+	// Dependencies are a list of things that this module relies on
+	// existing to remain intact. For example: an module may depend
+	// on a VPC ID given by an aws_vpc resource.
+	//
+	// Terraform uses this information to build valid destruction
+	// orders and to warn the user if they're destroying a module that
+	// another resource depends on.
+	//
+	// Things can be put into this list that may not be managed by
+	// Terraform. If Terraform doesn't find a matching ID in the
+	// overall state, then it assumes it isn't managed and doesn't
+	// worry about it.
+	Dependencies []string `json:"depends_on,omitempty"`
 }
 
 // IsRoot says whether or not this module diff is for the root module.
@@ -280,11 +294,11 @@ func (m *ModuleState) GoString() string {
 }
 
 func (m *ModuleState) String() string {
-	if len(m.Resources) == 0 {
-		return "<no state>"
-	}
-
 	var buf bytes.Buffer
+
+	if len(m.Resources) == 0 {
+		buf.WriteString("<no state>")
+	}
 
 	names := make([]string, 0, len(m.Resources))
 	for name, _ := range m.Resources {

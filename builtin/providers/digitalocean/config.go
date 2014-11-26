@@ -7,12 +7,10 @@ import (
 )
 
 type Config struct {
-	Token string `mapstructure:"token"`
+	Token string
 }
 
-// Client() returns a new client for accessing digital
-// ocean.
-//
+// Client() returns a new client for accessing digital ocean.
 func (c *Config) Client() (*digitalocean.Client, error) {
 	client, err := digitalocean.NewClient(c.Token)
 

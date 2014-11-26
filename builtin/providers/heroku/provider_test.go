@@ -4,7 +4,6 @@ import (
 	"os"
 	"testing"
 
-	"github.com/hashicorp/terraform/config"
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/terraform"
 )
@@ -27,39 +26,6 @@ func TestProvider(t *testing.T) {
 
 func TestProvider_impl(t *testing.T) {
 	var _ terraform.ResourceProvider = Provider()
-}
-
-func TestProviderConfigure(t *testing.T) {
-	var expectedKey string
-	var expectedEmail string
-
-	if v := os.Getenv("HEROKU_EMAIL"); v != "" {
-		expectedEmail = v
-	} else {
-		expectedEmail = "foo"
-	}
-
-	if v := os.Getenv("HEROKU_API_KEY"); v != "" {
-		expectedKey = v
-	} else {
-		expectedKey = "foo"
-	}
-
-	raw := map[string]interface{}{
-		"api_key": expectedKey,
-		"email":   expectedEmail,
-	}
-
-	rawConfig, err := config.NewRawConfig(raw)
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-
-	rp := Provider()
-	err = rp.Configure(terraform.NewResourceConfig(rawConfig))
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
 }
 
 func testAccPreCheck(t *testing.T) {

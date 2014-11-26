@@ -42,7 +42,7 @@ func TestAccAWSSubnet(t *testing.T) {
 }
 
 func testAccCheckSubnetDestroy(s *terraform.State) error {
-	conn := testAccProvider.ec2conn
+	conn := testAccProvider.Meta().(*AWSClient).ec2conn
 
 	for _, rs := range s.RootModule().Resources {
 		if rs.Type != "aws_subnet" {
@@ -84,7 +84,7 @@ func testAccCheckSubnetExists(n string, v *ec2.Subnet) resource.TestCheckFunc {
 			return fmt.Errorf("No ID is set")
 		}
 
-		conn := testAccProvider.ec2conn
+		conn := testAccProvider.Meta().(*AWSClient).ec2conn
 		resp, err := conn.DescribeSubnets(
 			[]string{rs.Primary.ID}, ec2.NewFilter())
 		if err != nil {

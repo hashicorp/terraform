@@ -9,6 +9,7 @@ import (
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/mitchellh/goamz/ec2"
 	"github.com/mitchellh/goamz/elb"
+	"github.com/mitchellh/goamz/rds"
 )
 
 // Returns test configuration
@@ -253,4 +254,60 @@ func Test_expandStringList(t *testing.T) {
 			expected)
 	}
 
+}
+
+func Test_expandParameters(t *testing.T) {
+	expanded := []interface{}{
+		map[string]interface{}{
+			"name":         "character_set_client",
+			"value":        "utf8",
+			"apply_method": "immediate",
+		},
+	}
+	parameters, err := expandParameters(expanded)
+	if err != nil {
+		t.Fatalf("bad: %#v", err)
+	}
+
+	expected := rds.Parameter{
+		ParameterName:  "character_set_client",
+		ParameterValue: "utf8",
+		ApplyMethod:    "immediate",
+	}
+
+	if !reflect.DeepEqual(parameters[0], expected) {
+		t.Fatalf(
+			"Got:\n\n%#v\n\nExpected:\n\n%#v\n",
+			parameters[0],
+			expected)
+	}
+}
+
+func Test_flattenParameters(t *testing.T) {
+	cases := []struct {
+		Input  []rds.Parameter
+		Output []map[string]interface{}
+	}{
+		{
+			Input: []rds.Parameter{
+				rds.Parameter{
+					ParameterName:  "character_set_client",
+					ParameterValue: "utf8",
+				},
+			},
+			Output: []map[string]interface{}{
+				map[string]interface{}{
+					"name":         "character_set_client",
+					"value":        "utf8",
+				},
+			},
+		},
+	}
+
+	for _, tc := range cases {
+		output := flattenParameters(tc.Input)
+		if !reflect.DeepEqual(output, tc.Output) {
+			t.Fatalf("Got:\n\n%#v\n\nExpected:\n\n%#v", output, tc.Output)
+		}
+	}
 }

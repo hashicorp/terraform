@@ -175,7 +175,7 @@ func (c *Context) Input(mode InputMode) error {
 			case config.VariableTypeString:
 				// Good!
 			default:
-				panic(fmt.Sprintf("Unknown variable type: %s", v.Type()))
+				panic(fmt.Sprintf("Unknown variable type: %#v", v.Type()))
 			}
 
 			var defaultString string
@@ -483,7 +483,7 @@ func (c *walkContext) Walk() error {
 	case walkValidate:
 		walkFn = c.validateWalkFn()
 	default:
-		panic(fmt.Sprintf("unknown operation: %s", c.Operation))
+		panic(fmt.Sprintf("unknown operation: %#v", c.Operation))
 	}
 
 	if err := g.Walk(walkFn); err != nil {
@@ -523,7 +523,7 @@ func (c *walkContext) Walk() error {
 		// On Apply, we prune so that we don't do outputs if we destroyed
 		mod.prune()
 	}
-	if len(mod.Resources) == 0 {
+	if len(mod.Resources) == 0 && len(conf.Resources) != 0 {
 		mod.Outputs = nil
 		return nil
 	}
@@ -550,7 +550,14 @@ func (c *walkContext) Walk() error {
 			}
 		}
 		if vraw != nil {
-			outputs[o.Name] = vraw.(string)
+			if list, ok := vraw.([]interface{}); ok {
+				vraw = list[0]
+			}
+			if s, ok := vraw.(string); ok {
+				outputs[o.Name] = s
+			} else {
+				return fmt.Errorf("Type of output '%s' is not a string: %#v", o.Name, vraw)
+			}
 		}
 	}
 
@@ -922,6 +929,13 @@ func (c *walkContext) planDestroyWalkFn() depgraph.WalkFunc {
 	walkFn = func(n *depgraph.Noun) error {
 		switch m := n.Meta.(type) {
 		case *GraphNodeModule:
+			// Set the destroy bool on the module
+			md := result.Diff.ModuleByPath(m.Path)
+			if md == nil {
+				md = result.Diff.AddModule(m.Path)
+			}
+			md.Destroy = true
+
 			// Build another walkContext for this module and walk it.
 			wc := c.Context.walkContext(c.Operation, m.Path)
 

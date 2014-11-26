@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"io/ioutil"
+	"strconv"
 	"strings"
 )
 
@@ -16,6 +17,7 @@ func init() {
 		"file":   interpolationFuncFile,
 		"join":   interpolationFuncJoin,
 		"lookup": interpolationFuncLookup,
+		"element":  interpolationFuncElement,
 	}
 }
 
@@ -84,6 +86,29 @@ func interpolationFuncLookup(
 			"lookup in '%s' failed to find '%s'",
 			args[0], args[1])
 	}
+
+	return v, nil
+}
+
+// interpolationFuncElement implements the "element" function that allows
+// a specific index to be looked up in a multi-variable value. Note that this will
+// wrap if the index is larger than the number of elements in the multi-variable value.
+func interpolationFuncElement(
+	vs map[string]string, args ...string) (string, error) {
+	if len(args) != 2 {
+		return "", fmt.Errorf(
+			"element expects 2 arguments, got %d", len(args))
+	}
+
+	list := strings.Split(args[0], InterpSplitDelim)
+
+	index, err := strconv.Atoi(args[1])
+	if err != nil {
+		return "", fmt.Errorf(
+			"invalid number for index, got %s", args[1])
+	}
+
+	v := list[index % len(list)]
 
 	return v, nil
 }

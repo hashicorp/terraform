@@ -913,6 +913,35 @@ func TestContextApply(t *testing.T) {
 	}
 }
 
+func TestContextApply_emptyModule(t *testing.T) {
+	m := testModule(t, "apply-empty-module")
+	p := testProvider("aws")
+	p.ApplyFn = testApplyFn
+	p.DiffFn = testDiffFn
+	ctx := testContext(t, &ContextOpts{
+		Module: m,
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+	})
+
+	if _, err := ctx.Plan(nil); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	state, err := ctx.Apply()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	actual := strings.TrimSpace(state.String())
+	actual = strings.Replace(actual, "  ", "", -1)
+	expected := strings.TrimSpace(testTerraformApplyEmptyModuleStr)
+	if actual != expected {
+		t.Fatalf("bad: \n%s\nexpect:\n%s", actual, expected)
+	}
+}
+
 func TestContextApply_createBeforeDestroy(t *testing.T) {
 	m := testModule(t, "apply-good-create-before")
 	p := testProvider("aws")
@@ -2416,6 +2445,55 @@ func TestContextApply_output(t *testing.T) {
 	}
 }
 
+func TestContextApply_outputInvalid(t *testing.T) {
+	m := testModule(t, "apply-output-invalid")
+	p := testProvider("aws")
+	p.ApplyFn = testApplyFn
+	p.DiffFn = testDiffFn
+	ctx := testContext(t, &ContextOpts{
+		Module: m,
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+	})
+
+	_, err := ctx.Plan(nil)
+	if err == nil {
+		t.Fatalf("err: %s", err)
+	}
+	if !strings.Contains(err.Error(), "is not a string") {
+		t.Fatalf("err: %s", err)
+	}
+}
+
+func TestContextApply_outputList(t *testing.T) {
+	m := testModule(t, "apply-output-list")
+	p := testProvider("aws")
+	p.ApplyFn = testApplyFn
+	p.DiffFn = testDiffFn
+	ctx := testContext(t, &ContextOpts{
+		Module: m,
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+	})
+
+	if _, err := ctx.Plan(nil); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	state, err := ctx.Apply()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	actual := strings.TrimSpace(state.String())
+	expected := strings.TrimSpace(testTerraformApplyOutputListStr)
+	if actual != expected {
+		t.Fatalf("bad: \n%s", actual)
+	}
+}
+
 func TestContextApply_outputMulti(t *testing.T) {
 	m := testModule(t, "apply-output-multi")
 	p := testProvider("aws")
@@ -2656,7 +2734,7 @@ func TestContextApply_createBefore_depends(t *testing.T) {
 	// Test that things were managed _in the right order_
 	order := h.States
 	diffs := h.Diffs
-	if order[0].ID != "bar" || diffs[0].Destroy {
+	if order[0].ID != "" || diffs[0].Destroy {
 		t.Fatalf("should create new instance first: %#v", order)
 	}
 
@@ -2666,6 +2744,93 @@ func TestContextApply_createBefore_depends(t *testing.T) {
 
 	if order[2].ID != "bar" || !diffs[2].Destroy {
 		t.Fatalf("destroy must happen after update: %#v", order)
+	}
+}
+
+func TestContextApply_singleDestroy(t *testing.T) {
+	m := testModule(t, "apply-depends-create-before")
+	h := new(HookRecordApplyOrder)
+	p := testProvider("aws")
+
+	invokeCount := 0
+	p.ApplyFn = func(info *InstanceInfo, s *InstanceState, d *InstanceDiff) (*InstanceState, error) {
+		invokeCount++
+		switch invokeCount {
+		case 1:
+			if d.Destroy {
+				t.Fatalf("should not destroy")
+			}
+			if s.ID != "" {
+				t.Fatalf("should not have ID")
+			}
+		case 2:
+			if d.Destroy {
+				t.Fatalf("should not destroy")
+			}
+			if s.ID != "baz" {
+				t.Fatalf("should have id")
+			}
+		case 3:
+			if !d.Destroy {
+				t.Fatalf("should destroy")
+			}
+			if s.ID == "" {
+				t.Fatalf("should have ID")
+			}
+		default:
+			t.Fatalf("bad invoke count %d", invokeCount)
+		}
+		return testApplyFn(info, s, d)
+	}
+	p.DiffFn = testDiffFn
+	state := &State{
+		Modules: []*ModuleState{
+			&ModuleState{
+				Path: rootModulePath,
+				Resources: map[string]*ResourceState{
+					"aws_instance.web": &ResourceState{
+						Type: "aws_instance",
+						Primary: &InstanceState{
+							ID: "bar",
+							Attributes: map[string]string{
+								"require_new": "ami-old",
+							},
+						},
+					},
+					"aws_instance.lb": &ResourceState{
+						Type: "aws_instance",
+						Primary: &InstanceState{
+							ID: "baz",
+							Attributes: map[string]string{
+								"instance": "bar",
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+	ctx := testContext(t, &ContextOpts{
+		Module: m,
+		Hooks:  []Hook{h},
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+		State: state,
+	})
+
+	if _, err := ctx.Plan(nil); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	h.Active = true
+	state, err := ctx.Apply()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	if invokeCount != 3 {
+		t.Fatalf("bad: %d", invokeCount)
 	}
 }
 

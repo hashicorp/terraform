@@ -8,12 +8,11 @@ import (
 )
 
 type Config struct {
-	Token string `mapstructure:"token"`
-	Email string `mapstructure:"email"`
+	Email string
+	Token string
 }
 
 // Client() returns a new client for accessing cloudflare.
-//
 func (c *Config) Client() (*cloudflare.Client, error) {
 	client, err := cloudflare.NewClient(c.Email, c.Token)
 

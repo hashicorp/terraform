@@ -1,68 +1,110 @@
 package aws
 
 import (
+	"bytes"
 	"fmt"
 	"log"
 	"time"
 
-	"github.com/hashicorp/terraform/flatmap"
-	"github.com/hashicorp/terraform/helper/config"
-	"github.com/hashicorp/terraform/helper/diff"
+	"github.com/hashicorp/terraform/helper/hashcode"
 	"github.com/hashicorp/terraform/helper/multierror"
 	"github.com/hashicorp/terraform/helper/resource"
-	"github.com/hashicorp/terraform/terraform"
+	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/mitchellh/goamz/rds"
 )
 
-func resource_aws_db_security_group_create(
-	s *terraform.InstanceState,
-	d *terraform.InstanceDiff,
-	meta interface{}) (*terraform.InstanceState, error) {
-	p := meta.(*ResourceProvider)
-	conn := p.rdsconn
+func resourceAwsDbSecurityGroup() *schema.Resource {
+	return &schema.Resource{
+		Create: resourceAwsDbSecurityGroupCreate,
+		Read:   resourceAwsDbSecurityGroupRead,
+		Delete: resourceAwsDbSecurityGroupDelete,
 
-	// Merge the diff into the state so that we have all the attributes
-	// properly.
-	rs := s.MergeDiff(d)
+		Schema: map[string]*schema.Schema{
+			"name": &schema.Schema{
+				Type:     schema.TypeString,
+				Required: true,
+				ForceNew: true,
+			},
+
+			"description": &schema.Schema{
+				Type:     schema.TypeString,
+				Required: true,
+				ForceNew: true,
+			},
+
+			"ingress": &schema.Schema{
+				Type:     schema.TypeSet,
+				Required: true,
+				ForceNew: true,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"cidr": &schema.Schema{
+							Type:     schema.TypeString,
+							Optional: true,
+						},
+
+						"security_group_name": &schema.Schema{
+							Type:     schema.TypeString,
+							Optional: true,
+							Computed: true,
+						},
+
+						"security_group_id": &schema.Schema{
+							Type:     schema.TypeString,
+							Optional: true,
+							Computed: true,
+						},
+
+						"security_group_owner_id": &schema.Schema{
+							Type:     schema.TypeString,
+							Optional: true,
+							Computed: true,
+						},
+					},
+				},
+				Set: resourceAwsDbSecurityGroupIngressHash,
+			},
+		},
+	}
+}
+
+func resourceAwsDbSecurityGroupCreate(d *schema.ResourceData, meta interface{}) error {
+	conn := meta.(*AWSClient).rdsconn
 
 	var err error
 	var errs []error
 
 	opts := rds.CreateDBSecurityGroup{
-		DBSecurityGroupName:        rs.Attributes["name"],
-		DBSecurityGroupDescription: rs.Attributes["description"],
+		DBSecurityGroupName:        d.Get("name").(string),
+		DBSecurityGroupDescription: d.Get("description").(string),
 	}
 
 	log.Printf("[DEBUG] DB Security Group create configuration: %#v", opts)
 	_, err = conn.CreateDBSecurityGroup(&opts)
 	if err != nil {
-		return nil, fmt.Errorf("Error creating DB Security Group: %s", err)
+		return fmt.Errorf("Error creating DB Security Group: %s", err)
 	}
 
-	rs.ID = rs.Attributes["name"]
+	d.SetId(d.Get("name").(string))
 
-	log.Printf("[INFO] DB Security Group ID: %s", rs.ID)
+	log.Printf("[INFO] DB Security Group ID: %s", d.Id())
 
-	v, err := resource_aws_db_security_group_retrieve(rs.ID, conn)
+	sg, err := resourceAwsDbSecurityGroupRetrieve(d, meta)
 	if err != nil {
-		return rs, err
+		return err
 	}
 
-	if _, ok := rs.Attributes["ingress.#"]; ok {
-		ingresses := flatmap.Expand(
-			rs.Attributes, "ingress").([]interface{})
+	ingresses := d.Get("ingress").(*schema.Set)
+	for _, ing := range ingresses.List() {
+		err = resourceAwsDbSecurityGroupAuthorizeRule(ing, sg.Name, conn)
 
-		for _, ing := range ingresses {
-			err = authorize_ingress_rule(ing, v.Name, conn)
-
-			if err != nil {
-				errs = append(errs, err)
-			}
+		if err != nil {
+			errs = append(errs, err)
 		}
+	}
 
-		if len(errs) > 0 {
-			return rs, &multierror.Error{Errors: errs}
-		}
+	if len(errs) > 0 {
+		return &multierror.Error{Errors: errs}
 	}
 
 	log.Println(
@@ -71,35 +113,58 @@ func resource_aws_db_security_group_create(
 	stateConf := &resource.StateChangeConf{
 		Pending: []string{"authorizing"},
 		Target:  "authorized",
-		Refresh: DBSecurityGroupStateRefreshFunc(rs.ID, conn),
+		Refresh: resourceAwsDbSecurityGroupStateRefreshFunc(d, meta),
 		Timeout: 10 * time.Minute,
 	}
 
 	// Wait, catching any errors
 	_, err = stateConf.WaitForState()
 	if err != nil {
-		return rs, err
+		return err
 	}
 
-	return resource_aws_db_security_group_update_state(rs, v)
+	return resourceAwsDbSecurityGroupRead(d, meta)
 }
 
-func resource_aws_db_security_group_update(
-	s *terraform.InstanceState,
-	d *terraform.InstanceDiff,
-	meta interface{}) (*terraform.InstanceState, error) {
-	panic("Cannot update DB security group")
+func resourceAwsDbSecurityGroupRead(d *schema.ResourceData, meta interface{}) error {
+	sg, err := resourceAwsDbSecurityGroupRetrieve(d, meta)
+	if err != nil {
+		return err
+	}
+
+	d.Set("name", sg.Name)
+	d.Set("description", sg.Description)
+
+	// Create an empty schema.Set to hold all ingress rules
+	rules := &schema.Set{
+		F: resourceAwsDbSecurityGroupIngressHash,
+	}
+
+	for _, v := range sg.CidrIps {
+		rule := map[string]interface{}{"cidr": v}
+		rules.Add(rule)
+	}
+
+	for i, _ := range sg.EC2SecurityGroupOwnerIds {
+		rule := map[string]interface{}{
+			"security_group_name":     sg.EC2SecurityGroupNames[i],
+			"security_group_id":       sg.EC2SecurityGroupIds[i],
+			"security_group_owner_id": sg.EC2SecurityGroupOwnerIds[i],
+		}
+		rules.Add(rule)
+	}
+
+	d.Set("ingress", rules)
+
+	return nil
 }
 
-func resource_aws_db_security_group_destroy(
-	s *terraform.InstanceState,
-	meta interface{}) error {
-	p := meta.(*ResourceProvider)
-	conn := p.rdsconn
+func resourceAwsDbSecurityGroupDelete(d *schema.ResourceData, meta interface{}) error {
+	conn := meta.(*AWSClient).rdsconn
 
-	log.Printf("[DEBUG] DB Security Group destroy: %v", s.ID)
+	log.Printf("[DEBUG] DB Security Group destroy: %v", d.Id())
 
-	opts := rds.DeleteDBSecurityGroup{DBSecurityGroupName: s.ID}
+	opts := rds.DeleteDBSecurityGroup{DBSecurityGroupName: d.Id()}
 
 	log.Printf("[DEBUG] DB Security Group destroy configuration: %v", opts)
 	_, err := conn.DeleteDBSecurityGroup(&opts)
@@ -115,70 +180,11 @@ func resource_aws_db_security_group_destroy(
 	return nil
 }
 
-func resource_aws_db_security_group_refresh(
-	s *terraform.InstanceState,
-	meta interface{}) (*terraform.InstanceState, error) {
-	p := meta.(*ResourceProvider)
-	conn := p.rdsconn
+func resourceAwsDbSecurityGroupRetrieve(d *schema.ResourceData, meta interface{}) (*rds.DBSecurityGroup, error) {
+	conn := meta.(*AWSClient).rdsconn
 
-	v, err := resource_aws_db_security_group_retrieve(s.ID, conn)
-
-	if err != nil {
-		return s, err
-	}
-
-	return resource_aws_db_security_group_update_state(s, v)
-}
-
-func resource_aws_db_security_group_diff(
-	s *terraform.InstanceState,
-	c *terraform.ResourceConfig,
-	meta interface{}) (*terraform.InstanceDiff, error) {
-
-	b := &diff.ResourceBuilder{
-		Attrs: map[string]diff.AttrType{
-			"name":        diff.AttrTypeCreate,
-			"description": diff.AttrTypeCreate,
-			"ingress":     diff.AttrTypeCreate,
-		},
-
-		ComputedAttrs: []string{
-			"ingress_cidr",
-			"ingress_security_groups",
-		},
-	}
-
-	return b.Diff(s, c)
-}
-
-func resource_aws_db_security_group_update_state(
-	s *terraform.InstanceState,
-	v *rds.DBSecurityGroup) (*terraform.InstanceState, error) {
-
-	s.Attributes["name"] = v.Name
-	s.Attributes["description"] = v.Description
-
-	// Flatten our group values
-	toFlatten := make(map[string]interface{})
-
-	if len(v.EC2SecurityGroupOwnerIds) > 0 && v.EC2SecurityGroupOwnerIds[0] != "" {
-		toFlatten["ingress_security_groups"] = v.EC2SecurityGroupOwnerIds
-	}
-
-	if len(v.CidrIps) > 0 && v.CidrIps[0] != "" {
-		toFlatten["ingress_cidr"] = v.CidrIps
-	}
-
-	for k, v := range flatmap.Flatten(toFlatten) {
-		s.Attributes[k] = v
-	}
-
-	return s, nil
-}
-
-func resource_aws_db_security_group_retrieve(id string, conn *rds.Rds) (*rds.DBSecurityGroup, error) {
 	opts := rds.DescribeDBSecurityGroups{
-		DBSecurityGroupName: id,
+		DBSecurityGroupName: d.Id(),
 	}
 
 	log.Printf("[DEBUG] DB Security Group describe configuration: %#v", opts)
@@ -190,7 +196,7 @@ func resource_aws_db_security_group_retrieve(id string, conn *rds.Rds) (*rds.DBS
 	}
 
 	if len(resp.DBSecurityGroups) != 1 ||
-		resp.DBSecurityGroups[0].Name != id {
+		resp.DBSecurityGroups[0].Name != d.Id() {
 		if err != nil {
 			return nil, fmt.Errorf("Unable to find DB Security Group: %#v", resp.DBSecurityGroups)
 		}
@@ -202,27 +208,27 @@ func resource_aws_db_security_group_retrieve(id string, conn *rds.Rds) (*rds.DBS
 }
 
 // Authorizes the ingress rule on the db security group
-func authorize_ingress_rule(ingress interface{}, dbSecurityGroupName string, conn *rds.Rds) error {
+func resourceAwsDbSecurityGroupAuthorizeRule(ingress interface{}, dbSecurityGroupName string, conn *rds.Rds) error {
 	ing := ingress.(map[string]interface{})
 
 	opts := rds.AuthorizeDBSecurityGroupIngress{
 		DBSecurityGroupName: dbSecurityGroupName,
 	}
 
-	if attr, ok := ing["cidr"].(string); ok && attr != "" {
-		opts.Cidr = attr
+	if attr, ok := ing["cidr"]; ok && attr != "" {
+		opts.Cidr = attr.(string)
 	}
 
-	if attr, ok := ing["security_group_name"].(string); ok && attr != "" {
-		opts.EC2SecurityGroupName = attr
+	if attr, ok := ing["security_group_name"]; ok && attr != "" {
+		opts.EC2SecurityGroupName = attr.(string)
 	}
 
-	if attr, ok := ing["security_group_id"].(string); ok && attr != "" {
-		opts.EC2SecurityGroupId = attr
+	if attr, ok := ing["security_group_id"]; ok && attr != "" {
+		opts.EC2SecurityGroupId = attr.(string)
 	}
 
-	if attr, ok := ing["security_group_owner_id"].(string); ok && attr != "" {
-		opts.EC2SecurityGroupOwnerId = attr
+	if attr, ok := ing["security_group_owner_id"]; ok && attr != "" {
+		opts.EC2SecurityGroupOwnerId = attr.(string)
 	}
 
 	log.Printf("[DEBUG] Authorize ingress rule configuration: %#v", opts)
@@ -236,25 +242,33 @@ func authorize_ingress_rule(ingress interface{}, dbSecurityGroupName string, con
 	return nil
 }
 
-func resource_aws_db_security_group_validation() *config.Validator {
-	return &config.Validator{
-		Required: []string{
-			"name",
-			"description",
-		},
-		Optional: []string{
-			"ingress.*",
-			"ingress.*.cidr",
-			"ingress.*.security_group_name",
-			"ingress.*.security_group_id",
-			"ingress.*.security_group_owner_id",
-		},
+func resourceAwsDbSecurityGroupIngressHash(v interface{}) int {
+	var buf bytes.Buffer
+	m := v.(map[string]interface{})
+
+	if v, ok := m["cidr"]; ok {
+		buf.WriteString(fmt.Sprintf("%s-", v.(string)))
 	}
+
+	if v, ok := m["security_group_name"]; ok {
+		buf.WriteString(fmt.Sprintf("%s-", v.(string)))
+	}
+
+	if v, ok := m["security_group_id"]; ok {
+		buf.WriteString(fmt.Sprintf("%s-", v.(string)))
+	}
+
+	if v, ok := m["security_group_owner_id"]; ok {
+		buf.WriteString(fmt.Sprintf("%s-", v.(string)))
+	}
+
+	return hashcode.String(buf.String())
 }
 
-func DBSecurityGroupStateRefreshFunc(id string, conn *rds.Rds) resource.StateRefreshFunc {
+func resourceAwsDbSecurityGroupStateRefreshFunc(
+	d *schema.ResourceData, meta interface{}) resource.StateRefreshFunc {
 	return func() (interface{}, string, error) {
-		v, err := resource_aws_db_security_group_retrieve(id, conn)
+		v, err := resourceAwsDbSecurityGroupRetrieve(d, meta)
 
 		if err != nil {
 			log.Printf("Error on retrieving DB Security Group when waiting: %s", err)

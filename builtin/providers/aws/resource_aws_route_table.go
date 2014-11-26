@@ -1,146 +1,192 @@
 package aws
 
 import (
+	"bytes"
 	"fmt"
 	"log"
-	"reflect"
 	"time"
 
-	"github.com/hashicorp/terraform/flatmap"
-	"github.com/hashicorp/terraform/helper/diff"
+	"github.com/hashicorp/terraform/helper/hashcode"
 	"github.com/hashicorp/terraform/helper/resource"
-	"github.com/hashicorp/terraform/terraform"
+	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/mitchellh/goamz/ec2"
 )
 
-func resource_aws_route_table_create(
-	s *terraform.InstanceState,
-	d *terraform.InstanceDiff,
-	meta interface{}) (*terraform.InstanceState, error) {
-	p := meta.(*ResourceProvider)
-	ec2conn := p.ec2conn
+func resourceAwsRouteTable() *schema.Resource {
+	return &schema.Resource{
+		Create: resourceAwsRouteTableCreate,
+		Read:   resourceAwsRouteTableRead,
+		Update: resourceAwsRouteTableUpdate,
+		Delete: resourceAwsRouteTableDelete,
+
+		Schema: map[string]*schema.Schema{
+			"vpc_id": &schema.Schema{
+				Type:     schema.TypeString,
+				Required: true,
+				ForceNew: true,
+			},
+
+			"route": &schema.Schema{
+				Type:     schema.TypeSet,
+				Optional: true,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"cidr_block": &schema.Schema{
+							Type:     schema.TypeString,
+							Required: true,
+						},
+
+						"gateway_id": &schema.Schema{
+							Type:     schema.TypeString,
+							Optional: true,
+						},
+
+						"instance_id": &schema.Schema{
+							Type:     schema.TypeString,
+							Optional: true,
+						},
+					},
+				},
+				Set: resourceAwsRouteTableHash,
+			},
+		},
+	}
+}
+
+func resourceAwsRouteTableCreate(d *schema.ResourceData, meta interface{}) error {
+	ec2conn := meta.(*AWSClient).ec2conn
 
 	// Create the routing table
 	createOpts := &ec2.CreateRouteTable{
-		VpcId: d.Attributes["vpc_id"].New,
+		VpcId: d.Get("vpc_id").(string),
 	}
 	log.Printf("[DEBUG] RouteTable create config: %#v", createOpts)
+
 	resp, err := ec2conn.CreateRouteTable(createOpts)
 	if err != nil {
-		return nil, fmt.Errorf("Error creating route table: %s", err)
+		return fmt.Errorf("Error creating route table: %s", err)
 	}
 
 	// Get the ID and store it
 	rt := &resp.RouteTable
-	s.ID = rt.RouteTableId
-	log.Printf("[INFO] Route Table ID: %s", s.ID)
+	d.SetId(rt.RouteTableId)
+	log.Printf("[INFO] Route Table ID: %s", d.Id())
 
 	// Wait for the route table to become available
 	log.Printf(
 		"[DEBUG] Waiting for route table (%s) to become available",
-		s.ID)
+		d.Id())
 	stateConf := &resource.StateChangeConf{
 		Pending: []string{"pending"},
 		Target:  "ready",
-		Refresh: RouteTableStateRefreshFunc(ec2conn, s.ID),
+		Refresh: resourceAwsRouteTableStateRefreshFunc(ec2conn, d.Id()),
 		Timeout: 1 * time.Minute,
 	}
 	if _, err := stateConf.WaitForState(); err != nil {
-		return s, fmt.Errorf(
+		return fmt.Errorf(
 			"Error waiting for route table (%s) to become available: %s",
-			s.ID, err)
+			d.Id(), err)
 	}
 
-	// Update our routes
-	return resource_aws_route_table_update(s, d, meta)
+	return resourceAwsRouteTableUpdate(d, meta)
 }
 
-func resource_aws_route_table_update(
-	s *terraform.InstanceState,
-	d *terraform.InstanceDiff,
-	meta interface{}) (*terraform.InstanceState, error) {
-	p := meta.(*ResourceProvider)
-	ec2conn := p.ec2conn
+func resourceAwsRouteTableRead(d *schema.ResourceData, meta interface{}) error {
+	ec2conn := meta.(*AWSClient).ec2conn
 
-	// Our resulting state
-	rs := s.MergeDiff(d)
-
-	// Get our routes out of the merge
-	oldroutes := flatmap.Expand(s.Attributes, "route")
-	routes := flatmap.Expand(s.MergeDiff(d).Attributes, "route")
-
-	// Determine the route operations we need to perform
-	ops := routeTableOps(oldroutes, routes)
-	if len(ops) == 0 {
-		return s, nil
+	rtRaw, _, err := resourceAwsRouteTableStateRefreshFunc(ec2conn, d.Id())()
+	if err != nil {
+		return err
+	}
+	if rtRaw == nil {
+		return nil
 	}
 
-	// Go through each operation, performing each one at a time.
-	// We store the updated state on each operation so that if any
-	// individual operation fails, we can return a valid partial state.
-	var err error
-	resultRoutes := make([]map[string]string, 0, len(ops))
-	for _, op := range ops {
-		switch op.Op {
-		case routeTableOpCreate:
+	rt := rtRaw.(*ec2.RouteTable)
+	d.Set("vpc_id", rt.VpcId)
+
+	// Create an empty schema.Set to hold all routes
+	route := &schema.Set{F: resourceAwsRouteTableHash}
+
+	// Loop through the routes and add them to the set
+	for _, r := range rt.Routes {
+		if r.GatewayId == "local" {
+			continue
+		}
+
+		m := make(map[string]interface{})
+		m["cidr_block"] = r.DestinationCidrBlock
+
+		if r.GatewayId != "" {
+			m["gateway_id"] = r.GatewayId
+		}
+
+		if r.InstanceId != "" {
+			m["instance_id"] = r.InstanceId
+		}
+
+		route.Add(m)
+	}
+	d.Set("route", route)
+
+	return nil
+}
+
+func resourceAwsRouteTableUpdate(d *schema.ResourceData, meta interface{}) error {
+	ec2conn := meta.(*AWSClient).ec2conn
+
+	// Check if the route set as a whole has changed
+	if d.HasChange("route") {
+		o, n := d.GetChange("route")
+		ors := o.(*schema.Set).Difference(n.(*schema.Set))
+		nrs := n.(*schema.Set).Difference(o.(*schema.Set))
+
+		// Now first loop through all the old routes and delete any obsolete ones
+		for _, route := range ors.List() {
+			m := route.(map[string]interface{})
+
+			// Delete the route as it no longer exists in the config
+			_, err := ec2conn.DeleteRoute(
+				d.Id(), m["cidr_block"].(string))
+			if err != nil {
+				return err
+			}
+		}
+
+		// Make sure we save the state of the currently configured rules
+		routes := o.(*schema.Set).Intersection(n.(*schema.Set))
+		d.Set("route", routes)
+
+		// Then loop through al the newly configured routes and create them
+		for _, route := range nrs.List() {
+			m := route.(map[string]interface{})
+
 			opts := ec2.CreateRoute{
-				RouteTableId:         s.ID,
-				DestinationCidrBlock: op.Route.DestinationCidrBlock,
-				GatewayId:            op.Route.GatewayId,
-				InstanceId:           op.Route.InstanceId,
+				RouteTableId:         d.Id(),
+				DestinationCidrBlock: m["cidr_block"].(string),
+				GatewayId:            m["gateway_id"].(string),
+				InstanceId:           m["instance_id"].(string),
 			}
 
-			_, err = ec2conn.CreateRoute(&opts)
-		case routeTableOpReplace:
-			opts := ec2.ReplaceRoute{
-				RouteTableId:         s.ID,
-				DestinationCidrBlock: op.Route.DestinationCidrBlock,
-				GatewayId:            op.Route.GatewayId,
-				InstanceId:           op.Route.InstanceId,
+			_, err := ec2conn.CreateRoute(&opts)
+			if err != nil {
+				return err
 			}
 
-			_, err = ec2conn.ReplaceRoute(&opts)
-		case routeTableOpDelete:
-			_, err = ec2conn.DeleteRoute(
-				s.ID, op.Route.DestinationCidrBlock)
-		}
-
-		if err != nil {
-			// Exit early so we can return what we've done so far
-			break
-		}
-
-		// If we didn't delete the route, append it to the list of routes
-		// we have.
-		if op.Op != routeTableOpDelete {
-			resultMap := map[string]string{"cidr_block": op.Route.DestinationCidrBlock}
-			if op.Route.GatewayId != "" {
-				resultMap["gateway_id"] = op.Route.GatewayId
-			} else if op.Route.InstanceId != "" {
-				resultMap["instance_id"] = op.Route.InstanceId
-			}
-
-			resultRoutes = append(resultRoutes, resultMap)
+			routes.Add(route)
+			d.Set("route", routes)
 		}
 	}
 
-	// Update our state with the settings
-	flatmap.Map(rs.Attributes).Merge(flatmap.Flatten(map[string]interface{}{
-		"route": resultRoutes,
-	}))
-
-	return rs, err
+	return resourceAwsRouteTableRead(d, meta)
 }
 
-func resource_aws_route_table_destroy(
-	s *terraform.InstanceState,
-	meta interface{}) error {
-	p := meta.(*ResourceProvider)
-	ec2conn := p.ec2conn
+func resourceAwsRouteTableDelete(d *schema.ResourceData, meta interface{}) error {
+	ec2conn := meta.(*AWSClient).ec2conn
 
 	// First request the routing table since we'll have to disassociate
 	// all the subnets first.
-	rtRaw, _, err := RouteTableStateRefreshFunc(ec2conn, s.ID)()
+	rtRaw, _, err := resourceAwsRouteTableStateRefreshFunc(ec2conn, d.Id())()
 	if err != nil {
 		return err
 	}
@@ -158,8 +204,8 @@ func resource_aws_route_table_destroy(
 	}
 
 	// Delete the route table
-	log.Printf("[INFO] Deleting Route Table: %s", s.ID)
-	if _, err := ec2conn.DeleteRouteTable(s.ID); err != nil {
+	log.Printf("[INFO] Deleting Route Table: %s", d.Id())
+	if _, err := ec2conn.DeleteRouteTable(d.Id()); err != nil {
 		ec2err, ok := err.(*ec2.Error)
 		if ok && ec2err.Code == "InvalidRouteTableID.NotFound" {
 			return nil
@@ -171,147 +217,42 @@ func resource_aws_route_table_destroy(
 	// Wait for the route table to really destroy
 	log.Printf(
 		"[DEBUG] Waiting for route table (%s) to become destroyed",
-		s.ID)
+		d.Id())
+
 	stateConf := &resource.StateChangeConf{
 		Pending: []string{"ready"},
 		Target:  "",
-		Refresh: RouteTableStateRefreshFunc(ec2conn, s.ID),
+		Refresh: resourceAwsRouteTableStateRefreshFunc(ec2conn, d.Id()),
 		Timeout: 1 * time.Minute,
 	}
 	if _, err := stateConf.WaitForState(); err != nil {
 		return fmt.Errorf(
 			"Error waiting for route table (%s) to become destroyed: %s",
-			s.ID, err)
+			d.Id(), err)
 	}
 
 	return nil
 }
 
-func resource_aws_route_table_refresh(
-	s *terraform.InstanceState,
-	meta interface{}) (*terraform.InstanceState, error) {
-	p := meta.(*ResourceProvider)
-	ec2conn := p.ec2conn
+func resourceAwsRouteTableHash(v interface{}) int {
+	var buf bytes.Buffer
+	m := v.(map[string]interface{})
+	buf.WriteString(fmt.Sprintf("%s-", m["cidr_block"].(string)))
 
-	rtRaw, _, err := RouteTableStateRefreshFunc(ec2conn, s.ID)()
-	if err != nil {
-		return s, err
-	}
-	if rtRaw == nil {
-		return nil, nil
+	if v, ok := m["gateway_id"]; ok {
+		buf.WriteString(fmt.Sprintf("%s-", v.(string)))
 	}
 
-	rt := rtRaw.(*ec2.RouteTable)
-	return resource_aws_route_table_update_state(s, rt)
+	if v, ok := m["instance_id"]; ok {
+		buf.WriteString(fmt.Sprintf("%s-", v.(string)))
+	}
+
+	return hashcode.String(buf.String())
 }
 
-func resource_aws_route_table_diff(
-	s *terraform.InstanceState,
-	c *terraform.ResourceConfig,
-	meta interface{}) (*terraform.InstanceDiff, error) {
-	b := &diff.ResourceBuilder{
-		Attrs: map[string]diff.AttrType{
-			"vpc_id": diff.AttrTypeCreate,
-			"route":  diff.AttrTypeUpdate,
-		},
-	}
-
-	return b.Diff(s, c)
-}
-
-func resource_aws_route_table_update_state(
-	s *terraform.InstanceState,
-	rt *ec2.RouteTable) (*terraform.InstanceState, error) {
-	s.Attributes["vpc_id"] = rt.VpcId
-
-	return s, nil
-}
-
-// routeTableOp represents a minor operation on the routing table.
-// This tells us what we should do to the routing table.
-type routeTableOp struct {
-	Op    routeTableOpType
-	Route ec2.Route
-}
-
-// routeTableOpType is the type of operation related to a route that
-// can be operated on a routing table.
-type routeTableOpType byte
-
-const (
-	routeTableOpCreate routeTableOpType = iota
-	routeTableOpReplace
-	routeTableOpDelete
-)
-
-// routeTableOps takes the old and new routes from flatmap.Expand
-// and returns a set of operations that must be performed in order
-// to get to the desired state.
-func routeTableOps(a interface{}, b interface{}) []routeTableOp {
-	// Build up the actual ec2.Route objects
-	oldRoutes := make(map[string]ec2.Route)
-	newRoutes := make(map[string]ec2.Route)
-	for i, raws := range []interface{}{a, b} {
-		result := oldRoutes
-		if i == 1 {
-			result = newRoutes
-		}
-		if raws == nil {
-			continue
-		}
-
-		for _, raw := range raws.([]interface{}) {
-			m := raw.(map[string]interface{})
-			r := ec2.Route{
-				DestinationCidrBlock: m["cidr_block"].(string),
-			}
-			if v, ok := m["gateway_id"]; ok {
-				r.GatewayId = v.(string)
-			}
-			if v, ok := m["instance_id"]; ok {
-				r.InstanceId = v.(string)
-			}
-
-			result[r.DestinationCidrBlock] = r
-		}
-	}
-
-	// Now, start building up the ops
-	ops := make([]routeTableOp, 0, len(newRoutes))
-	for n, r := range newRoutes {
-		op := routeTableOpCreate
-		if oldR, ok := oldRoutes[n]; ok {
-			if reflect.DeepEqual(r, oldR) {
-				// No changes!
-				continue
-			}
-
-			op = routeTableOpReplace
-		}
-
-		ops = append(ops, routeTableOp{
-			Op:    op,
-			Route: r,
-		})
-	}
-
-	// Determine what routes we need to delete
-	for _, op := range ops {
-		delete(oldRoutes, op.Route.DestinationCidrBlock)
-	}
-	for _, r := range oldRoutes {
-		ops = append(ops, routeTableOp{
-			Op:    routeTableOpDelete,
-			Route: r,
-		})
-	}
-
-	return ops
-}
-
-// RouteTableStateRefreshFunc returns a resource.StateRefreshFunc that is used to watch
+// resourceAwsRouteTableStateRefreshFunc returns a resource.StateRefreshFunc that is used to watch
 // a RouteTable.
-func RouteTableStateRefreshFunc(conn *ec2.EC2, id string) resource.StateRefreshFunc {
+func resourceAwsRouteTableStateRefreshFunc(conn *ec2.EC2, id string) resource.StateRefreshFunc {
 	return func() (interface{}, string, error) {
 		resp, err := conn.DescribeRouteTables([]string{id}, ec2.NewFilter())
 		if err != nil {

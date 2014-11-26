@@ -37,5 +37,5 @@ Alternatively, the web-based [GraphViz Workspace](http://graphviz-dev.appspot.co
 can be used to quickly render DOT file inputs as well.
 
 Here is an example graph output:
-![Graph Example](/images/graph-example.png)
+![Graph Example](graph-example.png)
 

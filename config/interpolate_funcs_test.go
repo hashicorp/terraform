@@ -189,3 +189,48 @@ func TestInterpolateFuncLookup(t *testing.T) {
 		}
 	}
 }
+
+func TestInterpolateFuncElement(t *testing.T) {
+	cases := []struct {
+		Args   []string
+		Result string
+		Error  bool
+	}{
+		{
+			[]string{"foo" + InterpSplitDelim + "baz", "1"},
+			"baz",
+			false,
+		},
+
+		{
+			[]string{"foo", "0"},
+			"foo",
+			false,
+		},
+
+		// Invalid index should wrap vs. out-of-bounds
+		{
+			[]string{"foo" + InterpSplitDelim + "baz", "2"},
+			"foo",
+			false,
+		},
+
+		// Too many args
+		{
+			[]string{"foo" + InterpSplitDelim + "baz", "0", "1"},
+			"",
+			true,
+		},
+	}
+
+	for i, tc := range cases {
+		actual, err := interpolationFuncElement(nil, tc.Args...)
+		if (err != nil) != tc.Error {
+			t.Fatalf("%d: err: %s", i, err)
+		}
+
+		if actual != tc.Result {
+			t.Fatalf("%d: bad: %#v", i, actual)
+		}
+	}
+}

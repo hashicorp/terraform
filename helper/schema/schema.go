@@ -338,7 +338,7 @@ func (m schemaMap) Input(
 		case TypeString:
 			value, err = m.inputString(input, k, v)
 		default:
-			panic(fmt.Sprintf("Unknown type for input: %s", v.Type))
+			panic(fmt.Sprintf("Unknown type for input: %#v", v.Type))
 		}
 
 		if err != nil {
@@ -653,7 +653,7 @@ func (m schemaMap) diffString(
 			var err error
 			n, err = schema.DefaultFunc()
 			if err != nil {
-				return fmt.Errorf("%s, error loading default: %s", err)
+				return fmt.Errorf("%s, error loading default: %s", k, err)
 			}
 		}
 	}
@@ -909,7 +909,7 @@ func (m schemaMap) validatePrimitive(
 			return nil, []error{err}
 		}
 	default:
-		panic(fmt.Sprintf("Unknown validation type: %s", schema.Type))
+		panic(fmt.Sprintf("Unknown validation type: %#v", schema.Type))
 	}
 
 	return nil, nil
