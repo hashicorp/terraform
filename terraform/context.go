@@ -1679,10 +1679,19 @@ func (c *walkContext) computeResourceMultiVariable(
 	c.Context.sl.RLock()
 	defer c.Context.sl.RUnlock()
 
+	childPath := c.Path[1:len(c.Path)]
+
+	var modTree *module.Tree
+	if len(childPath) == 0 {
+		modTree = c.Context.module
+	} else {
+		modTree = c.Context.module.Child(childPath)
+	}
+
 	// Get the resource from the configuration so we can know how
 	// many of the resource there is.
 	var cr *config.Resource
-	for _, r := range c.Context.module.Config().Resources {
+	for _, r := range modTree.Config().Resources {
 		if r.Id() == v.ResourceId() {
 			cr = r
 			break
@@ -1697,7 +1706,7 @@ func (c *walkContext) computeResourceMultiVariable(
 
 	// Get the relevant module
 	// TODO: Not use only root module
-	module := c.Context.state.RootModule()
+	module := c.Context.state.ModuleByPath(c.Path)
 
 	count, err := cr.Count()
 	if err != nil {
