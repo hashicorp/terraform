@@ -11,35 +11,79 @@ import (
 	// "github.com/hashicorp/terraform/helper/schema"
 )
 
-const testAccAWSNetworkAclConfig = `
+const testAccAWSNetworkAclIngressConfig = `
 resource "aws_vpc" "foo" {
-	cidr_block = "10.2.0.0/16"
+	cidr_block = "10.1.0.0/16"
 }
-
+resource "aws_subnet" "blob" {
+	cidr_block = "10.1.1.0/24"
+	vpc_id = "${aws_vpc.foo.id}"
+	map_public_ip_on_launch = true
+}
 resource "aws_network_acl" "bar" {
 	vpc_id = "${aws_vpc.foo.id}"
+	ingress = {
+		protocol = "tcp"
+		rule_no = 2
+		action = "deny"
+		cidr_block =  "10.2.2.3/18"
+		from_port = 0
+		to_port = 22
+	}
+
+	ingress = {
+		protocol = "tcp"
+		rule_no = 1
+		action = "deny"
+		cidr_block =  "10.2.10.3/18"
+		from_port = 443
+		to_port = 443
+	}
 }
 `
 
-// NetworkAclId   string                  `xml:"networkAclId"`
-// VpcId          string                  `xml:"vpcId"`
-// Default        string                  `xml:"default"`
-// EntrySet       []NetworkAclEntry       `xml:"entrySet>item"`
-// AssociationSet []NetworkAclAssociation `xml:"AssociationSet>item"`
-// Tags           []Tag                   `xml:"tagSet>item"`
 
-// type NetworkAclEntry struct {
-// 	RuleNumber int       `xml:"ruleNumber"`
-// 	Protocol   string    `xml:"protocol"`
-// 	RuleAction string    `xml:"ruleAction"`
-// 	Egress     bool      `xml:"egress"`
-// 	CidrBlock  string    `xml:"cidrBlock"`
-// 	IcmpCode   IcmpCode  `xml:"icmpTypeCode"`
-// 	PortRange  PortRange `xml:"portRange"`
-// }
+const testAccAWSNetworkAclEgressConfig = `
+resource "aws_vpc" "foo" {
+	cidr_block = "10.2.0.0/16"
+}
+resource "aws_subnet" "blob" {
+	cidr_block = "10.2.0.0/24"
+	vpc_id = "${aws_vpc.foo.id}"
+	map_public_ip_on_launch = true
+}
+resource "aws_network_acl" "bar" {
+	vpc_id = "${aws_vpc.foo.id}"
+	egress = {
+		protocol = "tcp"
+		rule_no = 2
+		action = "allow"
+		cidr_block =  "10.2.2.3/18"
+		from_port = 443
+		to_port = 443
+	}
 
-func TestAccAWSNetworkAclsSneha(t *testing.T) {
-	fmt.Printf("%s\n", "i am inside")
+	egress = {
+		protocol = "tcp"
+		rule_no = 1
+		action = "allow"
+		cidr_block =  "10.2.10.3/18"
+		from_port = 80
+		to_port = 80
+	}
+
+	egress = {
+		protocol = "tcp"
+		rule_no = 3
+		action = "allow"
+		cidr_block =  "10.2.10.3/18"
+		from_port = 22
+		to_port = 22
+	}
+}
+`
+
+func TestAccAWSNetworkAclsIngressSneha(t *testing.T) {
 	var networkAcl ec2.NetworkAcl
 
 	resource.Test(t, resource.TestCase{
@@ -48,7 +92,26 @@ func TestAccAWSNetworkAclsSneha(t *testing.T) {
 		CheckDestroy: testAccCheckAWSNetworkAclDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccAWSNetworkAclConfig,
+				Config: testAccAWSNetworkAclIngressConfig,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSNetworkAclExists("aws_network_acl.bar", &networkAcl),
+				),
+			},
+		},
+	})
+}
+
+
+func TestAccAWSNetworkAclsEgressSneha(t *testing.T) {
+	var networkAcl ec2.NetworkAcl
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSNetworkAclDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccAWSNetworkAclEgressConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSNetworkAclExists("aws_network_acl.bar", &networkAcl),
 				),
