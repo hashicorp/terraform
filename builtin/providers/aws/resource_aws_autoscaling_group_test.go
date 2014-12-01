@@ -23,7 +23,7 @@ func TestAccAWSAutoScalingGroup_basic(t *testing.T) {
 					testAccCheckAWSAutoScalingGroupExists("aws_autoscaling_group.bar", &group),
 					testAccCheckAWSAutoScalingGroupAttributes(&group),
 					resource.TestCheckResourceAttr(
-						"aws_autoscaling_group.bar", "availability_zones.0", "us-west-2a"),
+						"aws_autoscaling_group.bar", "availability_zones.2487133097", "us-west-2a"),
 					resource.TestCheckResourceAttr(
 						"aws_autoscaling_group.bar", "name", "foobar3-terraform-test"),
 					resource.TestCheckResourceAttr(

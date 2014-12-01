@@ -221,5 +221,14 @@ func (c *ResourceConfig) interpolate(
 	c.ComputedKeys = c.raw.UnknownKeys()
 	c.Raw = c.raw.Raw
 	c.Config = c.raw.Config()
+
+	if r != nil && r.Provider != nil {
+		cfg, err := r.Provider.FormatResourceConfig(r.Info.Type, c)
+		if err != nil {
+			return err
+		}
+		c.Config = cfg
+	}
+
 	return nil
 }
