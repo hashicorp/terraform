@@ -1,26 +1,24 @@
 package aws
 
 import (
-
 	"github.com/mitchellh/goamz/ec2"
 )
 
-func expandNetworkAclEntries(configured []interface{}) ([]ec2.NetworkAclEntry) {
+func expandNetworkAclEntries(configured []interface{}, entryType string) []ec2.NetworkAclEntry {
 	entries := make([]ec2.NetworkAclEntry, 0, len(configured))
-
 	for _, eRaw := range configured {
 		data := eRaw.(map[string]interface{})
 		p := extractProtocolInteger(data["protocol"].(string))
 		e := ec2.NetworkAclEntry{
-			Protocol:  p,
+			Protocol: p,
 			PortRange: ec2.PortRange{
-				From:  data["from_port"].(int),
-				To:    data["to_port"].(int),
+				From: data["from_port"].(int),
+				To:   data["to_port"].(int),
 			},
-			Egress: false,
+			Egress:     (entryType == "egress"),
 			RuleAction: data["action"].(string),
 			RuleNumber: data["rule_no"].(int),
-			CidrBlock: data["cidr_block"].(string),
+			CidrBlock:  data["cidr_block"].(string),
 		}
 		entries = append(entries, e)
 	}
@@ -32,16 +30,16 @@ func expandNetworkAclEntries(configured []interface{}) ([]ec2.NetworkAclEntry) {
 func flattenNetworkAclEntries(list []ec2.NetworkAclEntry) []map[string]interface{} {
 	entries := make([]map[string]interface{}, 0, len(list))
 
-		for _, entry := range list {
+	for _, entry := range list {
 		entries = append(entries, map[string]interface{}{
-				"from_port": entry.PortRange.From,
-				"to_port": entry.PortRange.To,
-				"action": entry.RuleAction,
-				"rule_no": entry.RuleNumber,
-				"protocol":  extractProtocolString(entry.Protocol),
-				"cidr_block":  entry.CidrBlock,
-			})
-		}
+			"from_port":  entry.PortRange.From,
+			"to_port":    entry.PortRange.To,
+			"action":     entry.RuleAction,
+			"rule_no":    entry.RuleNumber,
+			"protocol":   extractProtocolString(entry.Protocol),
+			"cidr_block": entry.CidrBlock,
+		})
+	}
 	return entries
 
 }
@@ -52,20 +50,19 @@ func extractProtocolInteger(protocol string) int {
 
 func extractProtocolString(protocol int) string {
 	for key, value := range protocolIntegers() {
-		if value == protocol{
+		if value == protocol {
 			return key
 		}
 	}
 	return ""
 }
 
-
-func protocolIntegers() map[string]int{
-	var protocolIntegers =  make(map[string]int)
+func protocolIntegers() map[string]int {
+	var protocolIntegers = make(map[string]int)
 	protocolIntegers = map[string]int{
-		 "udp": 17,
-		 "tcp": 6,
-		 "icmp": 1,
+		"udp":  17,
+		"tcp":  6,
+		"icmp": 1,
 	}
 	return protocolIntegers
 }

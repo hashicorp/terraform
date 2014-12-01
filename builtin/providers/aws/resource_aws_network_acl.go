@@ -1,22 +1,22 @@
 package aws
 
 import (
+	"bytes"
 	"fmt"
 	"log"
-	"bytes"
 
-	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/helper/hashcode"
+	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/mitchellh/goamz/ec2"
 )
 
 func resourceAwsNetworkAcl() *schema.Resource {
 
 	return &schema.Resource{
-		Create: 		resourceAwsNetworkAclCreate,
-		Read:   		resourceAwsNetworkAclRead,
-		Delete:   		resourceAwsNetworkAclDelete,
-		Update: 		resourceAwsNetworkAclUpdate,
+		Create: resourceAwsNetworkAclCreate,
+		Read:   resourceAwsNetworkAclRead,
+		Delete: resourceAwsNetworkAclDelete,
+		Update: resourceAwsNetworkAclUpdate,
 
 		Schema: map[string]*schema.Schema{
 			"vpc_id": &schema.Schema{
@@ -98,13 +98,13 @@ func resourceAwsNetworkAcl() *schema.Resource {
 					},
 				},
 				Set: resourceAwsNetworkAclEntryHash,
-			},		
+			},
 		},
 	}
 }
 
 func resourceAwsNetworkAclCreate(d *schema.ResourceData, meta interface{}) error {
-	
+
 	ec2conn := meta.(*AWSClient).ec2conn
 
 	// Create the Network Acl
@@ -123,7 +123,7 @@ func resourceAwsNetworkAclCreate(d *schema.ResourceData, meta interface{}) error
 	log.Printf("[INFO] Network Acl ID: %s", networkAcl.NetworkAclId)
 
 	// Update our attributes and return
-	// return nil 
+	// return nil
 	return resourceAwsNetworkAclUpdate(d, meta)
 }
 
@@ -146,14 +146,13 @@ func resourceAwsNetworkAclRead(d *schema.ResourceData, meta interface{}) error {
 	d.Set("vpc_id", networkAcl.VpcId)
 
 	for _, e := range networkAcl.EntrySet {
-		if(e.Egress ==  true){
+		if e.Egress == true {
 			egressEntries = append(egressEntries, e)
-		} else{
+		} else {
 			ingressEntries = append(ingressEntries, e)
 		}
 	}
 	fmt.Printf("appending ingress entries %s", ingressEntries)
-
 	fmt.Printf("appending egress entries %s", egressEntries)
 
 	d.Set("ingress", ingressEntries)
@@ -162,33 +161,30 @@ func resourceAwsNetworkAclRead(d *schema.ResourceData, meta interface{}) error {
 	return nil
 }
 
-
 func resourceAwsNetworkAclUpdate(d *schema.ResourceData, meta interface{}) error {
 	ec2conn := meta.(*AWSClient).ec2conn
-
 	d.Partial(true)
 
-	if(d.HasChange("ingress")) {
+	if d.HasChange("ingress") {
 		err := updateNetworkAclEntries(d, "ingress", ec2conn)
-		if(err != nil) {
+		if err != nil {
 			return err
 		}
 	}
 
-	if(d.HasChange("egress")) {
+	if d.HasChange("egress") {
 		err := updateNetworkAclEntries(d, "egress", ec2conn)
-		if(err != nil){
+		if err != nil {
 			return err
 		}
 	}
 
 	d.Partial(false)
-
 	return resourceAwsNetworkAclRead(d, meta)
 
 }
 
-func updateNetworkAclEntries(d *schema.ResourceData, entryType string, ec2conn *ec2.EC2) error{
+func updateNetworkAclEntries(d *schema.ResourceData, entryType string, ec2conn *ec2.EC2) error {
 
 	o, n := d.GetChange(entryType)
 	fmt.Printf("Old : %s", o)
@@ -204,32 +200,31 @@ func updateNetworkAclEntries(d *schema.ResourceData, entryType string, ec2conn *
 	os := o.(*schema.Set)
 	ns := n.(*schema.Set)
 
-	toBeDeleted := expandNetworkAclEntries(os.Difference(ns).List())
-	toBeCreated := expandNetworkAclEntries(ns.Difference(os).List())
+	toBeDeleted := expandNetworkAclEntries(os.Difference(ns).List(), entryType)
+	toBeCreated := expandNetworkAclEntries(ns.Difference(os).List(), entryType)
 	fmt.Printf("to be created %s", toBeCreated)
 	for _, remove := range toBeDeleted {
-			// Revoke the old entry
-			_, err := ec2conn.DeleteNetworkAclEntry(d.Id(), remove.RuleNumber, remove.Egress)
-			if err != nil {
-				return fmt.Errorf("Error deleting %s entry: %s", entryType, err)
-			}
+		// Revoke the old entry
+		_, err := ec2conn.DeleteNetworkAclEntry(d.Id(), remove.RuleNumber, remove.Egress)
+		if err != nil {
+			return fmt.Errorf("Error deleting %s entry: %s", entryType, err)
+		}
 	}
 	fmt.Printf("to be deleted %s", toBeDeleted)
 
 	for _, add := range toBeCreated {
-			// Authorize the new entry
-			_, err := ec2conn.CreateNetworkAclEntry(d.Id(), &add)
-			fmt.Printf("$$$$#### %s", err)
-			if err != nil {
-				return fmt.Errorf("Error creating %s entry: %s", entryType, err)
-			}
+		// Authorize the new entry
+		_, err := ec2conn.CreateNetworkAclEntry(d.Id(), &add)
+		fmt.Printf("$$$$#### %s", err)
+		if err != nil {
+			return fmt.Errorf("Error creating %s entry: %s", entryType, err)
+		}
 	}
 	return nil
 }
 
 func resourceAwsNetworkAclDelete(d *schema.ResourceData, meta interface{}) error {
 	ec2conn := meta.(*AWSClient).ec2conn
-
 
 	log.Printf("[INFO] Deleting Network Acl: %s", d.Id())
 	if _, err := ec2conn.DeleteNetworkAcl(d.Id()); err != nil {
