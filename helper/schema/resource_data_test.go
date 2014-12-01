@@ -516,8 +516,8 @@ func TestResourceDataGet(t *testing.T) {
 
 			State: &terraform.InstanceState{
 				Attributes: map[string]string{
-					"ports.#": "1",
-					"ports.0": "80",
+					"ports.#":  "1",
+					"ports.80": "80",
 				},
 			},
 
@@ -555,15 +555,15 @@ func TestResourceDataGet(t *testing.T) {
 
 			State: &terraform.InstanceState{
 				Attributes: map[string]string{
-					"data.#":       "1",
-					"data.0.index": "10",
-					"data.0.value": "50",
+					"data.#":        "1",
+					"data.10.index": "10",
+					"data.10.value": "50",
 				},
 			},
 
 			Diff: &terraform.InstanceDiff{
 				Attributes: map[string]*terraform.ResourceAttrDiff{
-					"data.0.value": &terraform.ResourceAttrDiff{
+					"data.10.value": &terraform.ResourceAttrDiff{
 						Old: "50",
 						New: "80",
 					},
@@ -1063,10 +1063,10 @@ func TestResourceDataSet(t *testing.T) {
 
 			Key:   "availability_zone",
 			Value: 80,
-			Err:   true,
+			Err:   false,
 
 			GetKey:   "availability_zone",
-			GetValue: "",
+			GetValue: "80",
 		},
 
 		// List of primitives, set element
@@ -1397,10 +1397,10 @@ func TestResourceDataSet(t *testing.T) {
 
 			State: &terraform.InstanceState{
 				Attributes: map[string]string{
-					"ports.#": "3",
-					"ports.0": "100",
-					"ports.1": "80",
-					"ports.2": "80",
+					"ports.#":   "3",
+					"ports.100": "100",
+					"ports.80":  "80",
+					"ports.81":  "81",
 				},
 			},
 
@@ -1432,13 +1432,13 @@ func TestResourceDataSet(t *testing.T) {
 
 			State: &terraform.InstanceState{
 				Attributes: map[string]string{
-					"ports.#": "2",
-					"ports.0": "100",
-					"ports.1": "80",
+					"ports.#":   "2",
+					"ports.100": "100",
+					"ports.80":  "80",
 				},
 			},
 
-			Key:   "ports.0",
+			Key:   "ports.100",
 			Value: 256,
 			Err:   true,
 
@@ -1821,10 +1821,10 @@ func TestResourceDataState(t *testing.T) {
 
 			State: &terraform.InstanceState{
 				Attributes: map[string]string{
-					"ports.#": "3",
-					"ports.0": "100",
-					"ports.1": "80",
-					"ports.2": "80",
+					"ports.#":   "3",
+					"ports.100": "100",
+					"ports.80":  "80",
+					"ports.81":  "81",
 				},
 			},
 
@@ -1832,9 +1832,10 @@ func TestResourceDataState(t *testing.T) {
 
 			Result: &terraform.InstanceState{
 				Attributes: map[string]string{
-					"ports.#": "2",
-					"ports.0": "80",
-					"ports.1": "100",
+					"ports.#":   "3",
+					"ports.80":  "80",
+					"ports.81":  "81",
+					"ports.100": "100",
 				},
 			},
 		},
@@ -1862,9 +1863,9 @@ func TestResourceDataState(t *testing.T) {
 
 			Result: &terraform.InstanceState{
 				Attributes: map[string]string{
-					"ports.#": "2",
-					"ports.0": "80",
-					"ports.1": "100",
+					"ports.#":   "2",
+					"ports.80":  "80",
+					"ports.100": "100",
 				},
 			},
 		},
@@ -1901,13 +1902,13 @@ func TestResourceDataState(t *testing.T) {
 
 			State: &terraform.InstanceState{
 				Attributes: map[string]string{
-					"ports.#":       "2",
-					"ports.0.order": "10",
-					"ports.0.a.#":   "1",
-					"ports.0.a.0":   "80",
-					"ports.1.order": "20",
-					"ports.1.b.#":   "1",
-					"ports.1.b.0":   "100",
+					"ports.#":        "2",
+					"ports.10.order": "10",
+					"ports.10.a.#":   "1",
+					"ports.10.a.0":   "80",
+					"ports.20.order": "20",
+					"ports.20.b.#":   "1",
+					"ports.20.b.0":   "100",
 				},
 			},
 
@@ -1926,13 +1927,13 @@ func TestResourceDataState(t *testing.T) {
 
 			Result: &terraform.InstanceState{
 				Attributes: map[string]string{
-					"ports.#":       "2",
-					"ports.0.order": "10",
-					"ports.0.a.#":   "1",
-					"ports.0.a.0":   "80",
-					"ports.1.order": "20",
-					"ports.1.b.#":   "1",
-					"ports.1.b.0":   "100",
+					"ports.#":        "2",
+					"ports.10.order": "10",
+					"ports.10.a.#":   "1",
+					"ports.10.a.0":   "80",
+					"ports.20.order": "20",
+					"ports.20.b.#":   "1",
+					"ports.20.b.0":   "100",
 				},
 			},
 		},
@@ -2160,16 +2161,16 @@ func TestResourceDataState(t *testing.T) {
 
 			State: &terraform.InstanceState{
 				Attributes: map[string]string{
-					"ports.#": "3",
-					"ports.0": "100",
-					"ports.1": "80",
-					"ports.2": "80",
+					"ports.#":   "3",
+					"ports.100": "100",
+					"ports.80":  "80",
+					"ports.81":  "81",
 				},
 			},
 
 			Diff: &terraform.InstanceDiff{
 				Attributes: map[string]*terraform.ResourceAttrDiff{
-					"ports.1": &terraform.ResourceAttrDiff{
+					"ports.120": &terraform.ResourceAttrDiff{
 						New: "120",
 					},
 				},
@@ -2179,9 +2180,10 @@ func TestResourceDataState(t *testing.T) {
 
 			Result: &terraform.InstanceState{
 				Attributes: map[string]string{
-					"ports.#": "2",
-					"ports.0": "80",
-					"ports.1": "100",
+					"ports.#":   "3",
+					"ports.80":  "80",
+					"ports.81":  "81",
+					"ports.100": "100",
 				},
 			},
 		},

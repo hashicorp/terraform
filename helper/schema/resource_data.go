@@ -283,104 +283,157 @@ func (d *ResourceData) getSet(
 	parts []string,
 	schema *Schema,
 	source getSource) getResult {
-	s := &Set{F: schema.Set}
-	result := getResult{Schema: schema, Value: s}
+	prefix := k + "."
 
-	// Get the list. For sets, the entire source must be exact: the
+	if len(parts) > 0 {
+		// We still have parts left over meaning we're accessing an
+		// element of this set.
+		idx := parts[0]
+		parts = parts[1:]
+
+		// Special case if we're accessing the count of the set
+		if idx == "#" {
+			schema := &Schema{Type: TypeInt}
+			return d.get(prefix+"#", parts, schema, source)
+		}
+
+		switch t := schema.Elem.(type) {
+		case *Schema:
+			return d.get(prefix+idx, parts, t, source)
+		case *Resource:
+			return d.getObject(prefix+idx, parts, t.Schema, source)
+		}
+	}
+
+	// Get the set. For sets, the entire source must be exact: the
 	// entire set must come from set, diff, state, etc. So we go backwards
 	// and once we get a result, we take it. Or, we never get a result.
-	var raw getResult
+	codes := make(map[string]int)
 	sourceLevel := source & getSourceLevelMask
 	sourceFlags := source & ^getSourceLevelMask
-	for listSource := sourceLevel; listSource > 0; listSource >>= 1 {
+	sourceDiff := sourceFlags&getSourceDiff != 0
+	for setSource := sourceLevel; setSource > 0; setSource >>= 1 {
 		// If we're already asking for an exact source and it doesn't
 		// match, then leave since the original source was the match.
-		if sourceFlags&getSourceExact != 0 && listSource != sourceLevel {
+		if sourceFlags&getSourceExact != 0 && setSource != sourceLevel {
 			break
 		}
 
-		// The source we get from is the level we're on, plus the flags
-		// we had, plus the exact flag.
-		getSource := listSource
-		getSource |= sourceFlags
-		getSource |= getSourceExact
-		raw = d.getList(k, nil, schema, getSource)
-		if raw.Exists {
+		if d.state != nil && setSource == getSourceState {
+			for k, _ := range d.state.Attributes {
+				if !strings.HasPrefix(k, prefix) || strings.HasPrefix(k, prefix+"#") {
+					continue
+				}
+				parts := strings.Split(k[len(prefix):], ".")
+				idx := parts[0]
+				if _, ok := codes[idx]; ok {
+					continue
+				}
+
+				code, err := strconv.Atoi(idx)
+				if err != nil {
+					panic(fmt.Sprintf("unable to convert %s to int: %v", idx, err))
+				}
+				codes[idx] = code
+			}
+		}
+
+		if d.config != nil && setSource == getSourceConfig {
+			// For config, we always set the result to exactly what was requested
+			if raw, ok := d.config.Get(k); ok {
+				// If the set is computed we need to format the raw config and set
+				// the computed flag to true
+				if d.config.IsComputed(k) {
+					return getResult{
+						Value:    nil,
+						Computed: true,
+						Exists:   true,
+						Schema:   schema,
+					}
+				}
+
+				for idx, _ := range raw.(map[string]interface{}) {
+					if _, ok := codes[idx]; ok {
+						continue
+					}
+
+					code, err := strconv.Atoi(idx)
+					if err != nil {
+						panic(fmt.Sprintf("unable to convert %s to int: %v", idx, err))
+					}
+					codes[idx] = code
+				}
+			}
+		}
+
+		if d.setMap != nil && setSource == getSourceSet {
+			for k, _ := range d.setMap {
+				if !strings.HasPrefix(k, prefix) || strings.HasPrefix(k, prefix+"#") {
+					continue
+				}
+				parts := strings.Split(k[len(prefix):], ".")
+				idx := parts[0]
+				if _, ok := codes[idx]; ok {
+					continue
+				}
+
+				code, err := strconv.Atoi(idx)
+				if err != nil {
+					panic(fmt.Sprintf("unable to convert %s to int: %v", idx, err))
+				}
+				codes[idx] = code
+			}
+		}
+
+		if d.diff != nil && sourceDiff {
+			for k, _ := range d.diff.Attributes {
+				if !strings.HasPrefix(k, prefix) || strings.HasPrefix(k, prefix+"#") {
+					continue
+				}
+				parts := strings.Split(k[len(prefix):], ".")
+				idx := parts[0]
+				if _, ok := codes[idx]; ok {
+					continue
+				}
+
+				code, err := strconv.Atoi(idx)
+				if err != nil {
+					panic(fmt.Sprintf("unable to convert %s to int: %v", idx, err))
+				}
+				codes[idx] = code
+			}
+		}
+
+		if len(codes) > 0 {
 			break
 		}
 	}
-	if !raw.Exists {
-		if len(parts) > 0 {
-			return d.getList(k, parts, schema, source)
-		}
 
-		return result
-	}
+	result := make(map[int]interface{})
+	resultSet := false
 
-	// If the entire list is computed, then the entire set is
-	// necessarilly computed.
-	if raw.Computed {
-		result.Computed = true
-		return result
-	}
-
-	list := raw.Value.([]interface{})
-	if len(list) == 0 {
-		if len(parts) > 0 {
-			return d.getList(k, parts, schema, source)
-		}
-
-		result.Exists = raw.Exists
-		return result
-	}
-
-	// This is a reverse map of hash code => index in config used to
-	// resolve direct set item lookup for turning into state. Confused?
-	// Read on...
-	//
-	// To create the state (the state* functions), a Get call is done
-	// with a full key such as "ports.0". The index of a set ("0") doesn't
-	// make a lot of sense, but we need to deterministically list out
-	// elements of the set like this. Luckily, same sets have a deterministic
-	// List() output, so we can use that to look things up.
-	//
-	// This mapping makes it so that we can look up the hash code of an
-	// object back to its index in the REAL config.
-	var indexMap map[int]int
-	if len(parts) > 0 {
-		indexMap = make(map[int]int)
-	}
-
-	// Build the set from all the items using the given hash code
-	for i, v := range list {
-		code := s.add(v)
-		if indexMap != nil {
-			indexMap[code] = i
+	for idx, code := range codes {
+		switch t := schema.Elem.(type) {
+		case *Schema:
+			// Get a single value
+			result[code] = d.get(prefix+idx, nil, t, source).Value
+			resultSet = true
+		case *Resource:
+			// Get the entire object
+			m := make(map[string]interface{})
+			for field, _ := range t.Schema {
+				m[field] = d.getObject(prefix+idx, []string{field}, t.Schema, source).Value
+			}
+			result[code] = m
+			resultSet = true
 		}
 	}
 
-	// If we're trying to get a specific element, then rewrite the
-	// index to be just that, then jump direct to getList.
-	if len(parts) > 0 {
-		index := parts[0]
-		indexInt, err := strconv.ParseInt(index, 0, 0)
-		if err != nil {
-			return getResultEmpty
-		}
-
-		codes := s.listCode()
-		if int(indexInt) >= len(codes) {
-			return getResultEmpty
-		}
-		code := codes[indexInt]
-		realIndex := indexMap[code]
-
-		parts[0] = strconv.FormatInt(int64(realIndex), 10)
-		return d.getList(k, parts, schema, source)
+	return getResult{
+		Value:  &Set{F: schema.Set, m: result},
+		Exists: resultSet,
+		Schema: schema,
 	}
-
-	result.Exists = true
-	return result
 }
 
 func (d *ResourceData) getMap(
@@ -488,6 +541,10 @@ func (d *ResourceData) getMap(
 				}
 			}
 		}
+	}
+
+	if result == nil {
+		result = make(map[string]interface{})
 	}
 
 	// If we're requesting a specific element, return that
@@ -880,18 +937,18 @@ func (d *ResourceData) setPrimitive(
 	switch schema.Type {
 	case TypeBool:
 		var b bool
-		if err := mapstructure.Decode(v, &b); err != nil {
+		if err := mapstructure.WeakDecode(v, &b); err != nil {
 			return fmt.Errorf("%s: %s", k, err)
 		}
 
 		set = strconv.FormatBool(b)
 	case TypeString:
-		if err := mapstructure.Decode(v, &set); err != nil {
+		if err := mapstructure.WeakDecode(v, &set); err != nil {
 			return fmt.Errorf("%s: %s", k, err)
 		}
 	case TypeInt:
 		var n int
-		if err := mapstructure.Decode(v, &n); err != nil {
+		if err := mapstructure.WeakDecode(v, &n); err != nil {
 			return fmt.Errorf("%s: %s", k, err)
 		}
 
@@ -916,8 +973,13 @@ func (d *ResourceData) setSet(
 	// If it is a slice, then we have to turn it into a *Set so that
 	// we get the proper order back based on the hash code.
 	if v := reflect.ValueOf(value); v.Kind() == reflect.Slice {
+		// Build a temp *ResourceData to use for the conversion
+		tempD := &ResourceData{
+			setMap: make(map[string]string),
+		}
+
 		// Set the entire list, this lets us get sane values out of it
-		if err := d.setList(k, nil, schema, value); err != nil {
+		if err := tempD.setList(k, nil, schema, value); err != nil {
 			return err
 		}
 
@@ -930,7 +992,7 @@ func (d *ResourceData) setSet(
 		source := getSourceSet | getSourceExact
 		for i := 0; i < v.Len(); i++ {
 			is := strconv.FormatInt(int64(i), 10)
-			result := d.getList(k, []string{is}, schema, source)
+			result := tempD.getList(k, []string{is}, schema, source)
 			if !result.Exists {
 				panic("just set item doesn't exist")
 			}
@@ -941,11 +1003,31 @@ func (d *ResourceData) setSet(
 		value = s
 	}
 
-	if s, ok := value.(*Set); ok {
-		value = s.List()
+	switch t := schema.Elem.(type) {
+	case *Schema:
+		for code, elem := range value.(*Set).m {
+			subK := fmt.Sprintf("%s.%d", k, code)
+			err := d.set(subK, nil, t, elem)
+			if err != nil {
+				return err
+			}
+		}
+	case *Resource:
+		for code, elem := range value.(*Set).m {
+			for field, _ := range t.Schema {
+				subK := fmt.Sprintf("%s.%d", k, code)
+				err := d.setObject(subK, []string{field}, t.Schema, elem.(map[string]interface{})[field])
+				if err != nil {
+					return err
+				}
+			}
+		}
+	default:
+		return fmt.Errorf("%s: unknown element type (internal)", k)
 	}
 
-	return d.setList(k, nil, schema, value)
+	d.setMap[k+".#"] = strconv.Itoa(value.(*Set).Len())
+	return nil
 }
 
 func (d *ResourceData) stateList(
@@ -1071,18 +1153,18 @@ func (d *ResourceData) stateSet(
 	}
 
 	set := raw.Value.(*Set)
-	list := set.List()
 	result := make(map[string]string)
-	result[prefix+".#"] = strconv.FormatInt(int64(len(list)), 10)
-	for i := 0; i < len(list); i++ {
-		key := fmt.Sprintf("%s.%d", prefix, i)
+	result[prefix+".#"] = strconv.Itoa(set.Len())
+
+	for _, idx := range set.listCode() {
+		key := fmt.Sprintf("%s.%d", prefix, idx)
 
 		var m map[string]string
 		switch t := schema.Elem.(type) {
-		case *Resource:
-			m = d.stateObject(key, t.Schema)
 		case *Schema:
 			m = d.stateSingle(key, t)
+		case *Resource:
+			m = d.stateObject(key, t.Schema)
 		}
 
 		for k, v := range m {

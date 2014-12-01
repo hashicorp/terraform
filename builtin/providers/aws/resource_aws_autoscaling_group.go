@@ -3,6 +3,7 @@ package aws
 import (
 	"fmt"
 	"log"
+	"strings"
 	"time"
 
 	"github.com/hashicorp/terraform/helper/hashcode"
@@ -195,7 +196,7 @@ func resourceAwsAutoscalingGroupRead(d *schema.ResourceData, meta interface{}) e
 	d.Set("min_size", g.MinSize)
 	d.Set("max_size", g.MaxSize)
 	d.Set("name", g.Name)
-	d.Set("vpc_zone_identifier", g.VPCZoneIdentifier)
+	d.Set("vpc_zone_identifier", strings.Split(g.VPCZoneIdentifier, ","))
 
 	return nil
 }

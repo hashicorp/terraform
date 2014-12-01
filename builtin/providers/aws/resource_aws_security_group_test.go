@@ -28,15 +28,15 @@ func TestAccAWSSecurityGroup_normal(t *testing.T) {
 					resource.TestCheckResourceAttr(
 						"aws_security_group.web", "description", "Used in the terraform acceptance tests"),
 					resource.TestCheckResourceAttr(
-						"aws_security_group.web", "ingress.0.protocol", "tcp"),
+						"aws_security_group.web", "ingress.332851786.protocol", "tcp"),
 					resource.TestCheckResourceAttr(
-						"aws_security_group.web", "ingress.0.from_port", "80"),
+						"aws_security_group.web", "ingress.332851786.from_port", "80"),
 					resource.TestCheckResourceAttr(
-						"aws_security_group.web", "ingress.0.to_port", "8000"),
+						"aws_security_group.web", "ingress.332851786.to_port", "8000"),
 					resource.TestCheckResourceAttr(
-						"aws_security_group.web", "ingress.0.cidr_blocks.#", "1"),
+						"aws_security_group.web", "ingress.332851786.cidr_blocks.#", "1"),
 					resource.TestCheckResourceAttr(
-						"aws_security_group.web", "ingress.0.cidr_blocks.0", "10.0.0.0/8"),
+						"aws_security_group.web", "ingress.332851786.cidr_blocks.0", "10.0.0.0/8"),
 				),
 			},
 		},
@@ -74,13 +74,13 @@ func TestAccAWSSecurityGroup_self(t *testing.T) {
 					resource.TestCheckResourceAttr(
 						"aws_security_group.web", "description", "Used in the terraform acceptance tests"),
 					resource.TestCheckResourceAttr(
-						"aws_security_group.web", "ingress.0.protocol", "tcp"),
+						"aws_security_group.web", "ingress.3128515109.protocol", "tcp"),
 					resource.TestCheckResourceAttr(
-						"aws_security_group.web", "ingress.0.from_port", "80"),
+						"aws_security_group.web", "ingress.3128515109.from_port", "80"),
 					resource.TestCheckResourceAttr(
-						"aws_security_group.web", "ingress.0.to_port", "8000"),
+						"aws_security_group.web", "ingress.3128515109.to_port", "8000"),
 					resource.TestCheckResourceAttr(
-						"aws_security_group.web", "ingress.0.self", "true"),
+						"aws_security_group.web", "ingress.3128515109.self", "true"),
 					checkSelf,
 				),
 			},
@@ -114,15 +114,15 @@ func TestAccAWSSecurityGroup_vpc(t *testing.T) {
 					resource.TestCheckResourceAttr(
 						"aws_security_group.web", "description", "Used in the terraform acceptance tests"),
 					resource.TestCheckResourceAttr(
-						"aws_security_group.web", "ingress.0.protocol", "tcp"),
+						"aws_security_group.web", "ingress.332851786.protocol", "tcp"),
 					resource.TestCheckResourceAttr(
-						"aws_security_group.web", "ingress.0.from_port", "80"),
+						"aws_security_group.web", "ingress.332851786.from_port", "80"),
 					resource.TestCheckResourceAttr(
-						"aws_security_group.web", "ingress.0.to_port", "8000"),
+						"aws_security_group.web", "ingress.332851786.to_port", "8000"),
 					resource.TestCheckResourceAttr(
-						"aws_security_group.web", "ingress.0.cidr_blocks.#", "1"),
+						"aws_security_group.web", "ingress.332851786.cidr_blocks.#", "1"),
 					resource.TestCheckResourceAttr(
-						"aws_security_group.web", "ingress.0.cidr_blocks.0", "10.0.0.0/8"),
+						"aws_security_group.web", "ingress.332851786.cidr_blocks.0", "10.0.0.0/8"),
 					testCheck,
 				),
 			},
@@ -383,7 +383,7 @@ resource "aws_security_group" "web" {
         protocol = "tcp"
         from_port = 80
         to_port = 8000
-        cidr_blocks = ["10.0.0.0/8", "0.0.0.0/0"]
+        cidr_blocks = ["0.0.0.0/0", "10.0.0.0/8"]
     }
 }
 `

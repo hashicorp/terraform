@@ -3,6 +3,7 @@ package schema
 import (
 	"errors"
 	"fmt"
+	"strconv"
 
 	"github.com/hashicorp/terraform/terraform"
 )
@@ -58,6 +59,97 @@ type UpdateFunc func(*ResourceData, interface{}) error
 
 // See Resource documentation.
 type DeleteFunc func(*ResourceData, interface{}) error
+
+func (r *Resource) FormatResourceConfig(
+	c *terraform.ResourceConfig) (map[string]interface{}, error) {
+	return r.formatResourceConfig(c.Config, r.Schema)
+}
+
+func (r *Resource) formatResourceConfig(
+	cfg map[string]interface{},
+	sm map[string]*Schema) (map[string]interface{}, error) {
+	result := make(map[string]interface{})
+	source := getSourceSet | getSourceExact
+
+	// Build a temp *ResourceData to use for the conversion
+	tempD := &ResourceData{
+		setMap: make(map[string]string),
+	}
+
+	for k, s := range sm {
+		// If the value is nil, just move along...
+		if cfg[k] == nil {
+			continue
+		}
+
+		// If the value type is not a TypeSet, just add the key and
+		// value to the result and move on
+		if s.Type != TypeSet {
+			result[k] = cfg[k]
+			continue
+		}
+
+		// Set the entire list, this lets us get sane values out of it
+		if err := tempD.setList(k, nil, s, cfg[k]); err != nil {
+			return nil, err
+		}
+
+		hash := s.Set
+		m := make(map[string]interface{})
+
+		switch t := s.Elem.(type) {
+		case *Schema:
+			for i, v := range cfg[k].([]interface{}) {
+				if v == nil {
+					continue
+				}
+
+				// Get the current item from the list
+				is := strconv.FormatInt(int64(i), 10)
+				result := tempD.getList(k, []string{is}, s, source)
+
+				// Continue if the result doesn't exist
+				if !result.Exists {
+					continue
+				}
+
+				// Calculate the hash and add the values to the map
+				idx := hash(result.Value)
+				m[strconv.Itoa(idx)] = v
+			}
+		case *Resource:
+			for i, v := range cfg[k].([]map[string]interface{}) {
+				if v == nil {
+					continue
+				}
+
+				// Get the current item from the list
+				is := strconv.FormatInt(int64(i), 10)
+				result := tempD.getList(k, []string{is}, s, source)
+
+				// Continue if the result doesn't exist
+				if !result.Exists {
+					continue
+				}
+
+				// Calculate the hash and get the formatted value
+				// so it can be added to the map
+				idx := hash(result.Value)
+				fv, err := r.formatResourceConfig(v, t.Schema)
+				if err != nil {
+					return nil, err
+				}
+				m[strconv.Itoa(idx)] = fv
+			}
+		}
+
+		if len(m) > 0 {
+			result[k] = m
+		}
+	}
+
+	return result, nil
+}
 
 // Apply creates, updates, and/or deletes a resource.
 func (r *Resource) Apply(
