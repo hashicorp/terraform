@@ -844,6 +844,9 @@ STATE:
 const testTerraformPlanModuleMultiVarStr = `
 DIFF:
 
+CREATE: aws_instance.parent.0
+CREATE: aws_instance.parent.1
+
 module.child:
   CREATE: aws_instance.bar.0
     baz:  "" => "baz"
