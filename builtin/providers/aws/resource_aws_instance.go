@@ -144,6 +144,12 @@ func resourceAwsInstance() *schema.Resource {
 							ForceNew: true,
 						},
 
+						"virtual_name": &schema.Schema{
+							Type:     schema.TypeString,
+							Optional: true,
+							ForceNew: true,
+						},
+
 						"snapshot_id": &schema.Schema{
 							Type:     schema.TypeString,
 							Optional: true,
@@ -233,6 +239,7 @@ func resourceAwsInstanceCreate(d *schema.ResourceData, meta interface{}) error {
 			for i, v := range vs {
 				bd := v.(map[string]interface{})
 				runOpts.BlockDevices[i].DeviceName = bd["device_name"].(string)
+				runOpts.BlockDevices[i].VirtualName = bd["virtual_name"].(string)
 				runOpts.BlockDevices[i].SnapshotId = bd["snapshot_id"].(string)
 				runOpts.BlockDevices[i].VolumeType = bd["volume_type"].(string)
 				runOpts.BlockDevices[i].VolumeSize = int64(bd["volume_size"].(int))
