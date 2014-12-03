@@ -46,11 +46,14 @@ All documentation is available on the
 ## Developing Terraform
 
 If you wish to work on Terraform itself or any of its built-in providers,
-you'll first need [Go](http://www.golang.org) installed (version 1.2+ is
-_required_). Make sure Go is properly installed, including setting up
-a [GOPATH](http://golang.org/doc/code.html#GOPATH).
+you'll first need [Go](http://www.golang.org) installed on your machine (version 
+1.2+ is _required_). Alternatively, you can use the Vagrantfile in the root of 
+this repo to stand up a virtual machine with the appropriate dev tooling 
+already set up for you.
 
-Next, install the following software packages, which are needed for some dependencies:
+For local dev first make sure Go is properly installed, including setting up
+a [GOPATH](http://golang.org/doc/code.html#GOPATH). Next, install the following 
+software packages, which are needed for some dependencies:
 
 - [Git](http://git-scm.com/)
 - [Mercurial](http://mercurial.selenic.com/)
