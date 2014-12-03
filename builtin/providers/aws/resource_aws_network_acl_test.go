@@ -11,7 +11,7 @@ import (
 	// "github.com/hashicorp/terraform/helper/schema"
 )
 
-func TestAccAWSNetworkAclsWithEgressAndIngressRulesSneha(t *testing.T) {
+func TestAccAWSNetworkAclsWithEgressAndIngressRules(t *testing.T) {
 	var networkAcl ec2.NetworkAcl
 
 	resource.Test(t, resource.TestCase{
@@ -53,8 +53,9 @@ func TestAccAWSNetworkAclsWithEgressAndIngressRulesSneha(t *testing.T) {
 	})
 }
 
-func TestAccAWSNetworkAclsOnlyIngressRulesSneha(t *testing.T) {
+func TestAccAWSNetworkAclsOnlyIngressRules(t *testing.T) {
 	var networkAcl ec2.NetworkAcl
+	// var subnet ec2.Subnet
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -65,6 +66,7 @@ func TestAccAWSNetworkAclsOnlyIngressRulesSneha(t *testing.T) {
 				Config: testAccAWSNetworkAclIngressConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSNetworkAclExists("aws_network_acl.foos", &networkAcl),
+					testAccCheckSubnetAssociation("aws_network_acl.foos", "aws_subnet.blob"),
 					resource.TestCheckResourceAttr(
 						"aws_network_acl.foos", "ingress.0.protocol", "tcp"),
 					resource.TestCheckResourceAttr(
@@ -83,7 +85,7 @@ func TestAccAWSNetworkAclsOnlyIngressRulesSneha(t *testing.T) {
 	})
 }
 
-func TestAccAWSNetworkAclsOnlyEgressRulesSneha(t *testing.T) {
+func TestAccAWSNetworkAclsOnlyEgressRules(t *testing.T) {
 	var networkAcl ec2.NetworkAcl
 
 	resource.Test(t, resource.TestCase{
@@ -158,6 +160,26 @@ func testAccCheckAWSNetworkAclExists(n string, networkAcl *ec2.NetworkAcl) resou
 	}
 }
 
+func testAccCheckSubnetAssociation(acl string, subnet string) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		networkAcl := s.RootModule().Resources[acl]	
+		subnet := s.RootModule().Resources[subnet]
+
+		conn := testAccProvider.Meta().(*AWSClient).ec2conn
+		filter := ec2.NewFilter()
+		filter.Add("association.subnet-id", subnet.Primary.ID)
+		resp, err := conn.NetworkAcls([]string{networkAcl.Primary.ID},  filter)
+
+		if err != nil {
+			return err
+		}
+		if len(resp.NetworkAcls) > 0 && resp.NetworkAcls[0].NetworkAclId == networkAcl.Primary.ID {
+			return nil
+		}	
+		return fmt.Errorf("Network Acl %s is not associated with subnet %s", acl, subnet)
+	}
+}
+
 const testAccAWSNetworkAclIngressConfig = `
 resource "aws_vpc" "foo" {
 	cidr_block = "10.1.0.0/16"
@@ -177,6 +199,7 @@ resource "aws_network_acl" "foos" {
 		from_port = 0
 		to_port = 22
 	}
+	subnet_id = "${aws_subnet.blob.id}"
 }
 `
 

@@ -7,7 +7,7 @@ import (
 	"github.com/mitchellh/goamz/ec2"
 )
 
-func Test_expandNetworkAclEntryJoJo(t *testing.T) {
+func Test_expandNetworkAclEntry(t *testing.T) {
 	input := []interface{}{
 		map[string]interface{}{
 			"protocol":   "tcp",
@@ -64,7 +64,7 @@ func Test_expandNetworkAclEntryJoJo(t *testing.T) {
 
 }
 
-func Test_flattenNetworkAclEntryJoJo(t *testing.T) {
+func Test_flattenNetworkAclEntry(t *testing.T) {
 
 	apiInput := []ec2.NetworkAclEntry{
 		ec2.NetworkAclEntry{
