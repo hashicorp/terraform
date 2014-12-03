@@ -1,3 +1,5 @@
+variable "things" {}
+
 resource "aws_instance" "bar" {
   baz = "baz"
   count = 2

@@ -1705,7 +1705,6 @@ func (c *walkContext) computeResourceMultiVariable(
 	}
 
 	// Get the relevant module
-	// TODO: Not use only root module
 	module := c.Context.state.ModuleByPath(c.Path)
 
 	count, err := cr.Count()
@@ -1716,8 +1715,8 @@ func (c *walkContext) computeResourceMultiVariable(
 			err)
 	}
 
-	// If we have no count, return empty
-	if count == 0 {
+	// If we have no module in the state yet or count, return empty
+	if module == nil || count == 0 {
 		return "", nil
 	}
 
