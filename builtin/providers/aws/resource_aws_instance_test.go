@@ -3,8 +3,10 @@ package aws
 import (
 	"fmt"
 	"testing"
+	"reflect"
 
 	"github.com/hashicorp/terraform/helper/resource"
+	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/terraform"
 	"github.com/mitchellh/goamz/ec2"
 )
@@ -247,6 +249,22 @@ func testAccCheckInstanceExists(n string, i *ec2.Instance) resource.TestCheckFun
 	}
 }
 
+func TestInstanceTenancySchema(t *testing.T) {
+	actualSchema := resourceAwsInstance().Schema["tenancy"]
+	expectedSchema := &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				Computed: true,
+				ForceNew: true,
+			}
+	if !reflect.DeepEqual(actualSchema, expectedSchema  ) {
+		t.Fatalf(
+			"Got:\n\n%#v\n\nExpected:\n\n%#v\n",
+			actualSchema,
+			expectedSchema)
+	}
+}
+
 const testAccInstanceConfig = `
 resource "aws_security_group" "tf_test_foo" {
 	name = "tf_test_foo"
@@ -338,6 +356,7 @@ resource "aws_instance" "foo" {
 	instance_type = "m1.small"
 	subnet_id = "${aws_subnet.foo.id}"
 	associate_public_ip_address = true
+	tenancy = "dedicated"
 }
 `
 

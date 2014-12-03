@@ -125,6 +125,12 @@ func resourceAwsInstance() *schema.Resource {
 				ForceNew: true,
 				Optional: true,
 			},
+			"tenancy": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				Computed: true,
+				ForceNew: true,
+			},
 			"tags": tagsSchema(),
 
 			"block_device": &schema.Schema{
@@ -202,6 +208,7 @@ func resourceAwsInstanceCreate(d *schema.ResourceData, meta interface{}) error {
 		UserData:                 []byte(userData),
 		EbsOptimized:             d.Get("ebs_optimized").(bool),
 		IamInstanceProfile:       d.Get("iam_instance_profile").(string),
+		Tenancy:                  d.Get("tenancy").(string),
 	}
 
 	if v := d.Get("security_groups"); v != nil {
@@ -326,6 +333,7 @@ func resourceAwsInstanceRead(d *schema.ResourceData, meta interface{}) error {
 	d.Set("subnet_id", instance.SubnetId)
 	d.Set("ebs_optimized", instance.EbsOptimized)
 	d.Set("tags", tagsToMap(instance.Tags))
+	d.Set("tenancy", instance.Tenancy)
 
 	// Determine whether we're referring to security groups with
 	// IDs or names. We use a heuristic to figure this out. By default,
