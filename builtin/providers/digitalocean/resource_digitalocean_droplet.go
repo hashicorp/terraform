@@ -170,10 +170,10 @@ func resourceDigitalOceanDropletRead(d *schema.ResourceData, meta interface{}) e
 		return fmt.Errorf("Error retrieving droplet: %s", err)
 	}
 
-	if droplet.ImageSlug() == "" && droplet.ImageId() != "" {
-		d.Set("image", droplet.ImageId())
-	} else {
+	if droplet.ImageSlug() != "" {
 		d.Set("image", droplet.ImageSlug())
+	} else {
+		d.Set("image", droplet.ImageId())
 	}
 
 	d.Set("name", droplet.Name)
