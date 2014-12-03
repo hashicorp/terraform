@@ -376,7 +376,7 @@ func resourceAwsInstanceRead(d *schema.ResourceData, meta interface{}) error {
 		return err
 	}
 
-	bds := make([]map[string]interface{}, len(instance.BlockDevices))
+	bds := make([]map[string]interface{}, len(volResp.Volumes))
 	for i, vol := range volResp.Volumes {
 		bds[i] = make(map[string]interface{})
 		bds[i]["device_name"] = bdByVolID[vol.VolumeId].DeviceName
