@@ -9,7 +9,7 @@ while [ -h "$SOURCE" ] ; do SOURCE="$(readlink "$SOURCE")"; done
 DIR="$( cd -P "$( dirname "$SOURCE" )/.." && pwd )"
 
 # Change into that directory
-cd $DIR
+cd "$DIR"
 
 # Get the git commit
 GIT_COMMIT=$(git rev-parse HEAD)

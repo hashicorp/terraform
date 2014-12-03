@@ -3,10 +3,10 @@ TEST?=./...
 default: test
 
 bin: config/y.go
-	@sh -c "$(CURDIR)/scripts/build.sh"
+	@sh -c "'$(CURDIR)/scripts/build.sh'"
 
 dev: config/y.go
-	@TF_DEV=1 sh -c "$(CURDIR)/scripts/build.sh"
+	@TF_DEV=1 sh -c "'$(CURDIR)/scripts/build.sh'"
 
 test: config/y.go
 	TF_ACC= go test $(TEST) $(TESTARGS) -timeout=10s -parallel=4
