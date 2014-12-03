@@ -841,6 +841,25 @@ STATE:
 <no state>
 `
 
+const testTerraformPlanModuleMultiVarStr = `
+DIFF:
+
+module.child:
+  CREATE: aws_instance.bar.0
+    baz:  "" => "baz"
+    type: "" => "aws_instance"
+  CREATE: aws_instance.bar.1
+    baz:  "" => "baz"
+    type: "" => "aws_instance"
+  CREATE: aws_instance.foo
+    foo:  "" => "baz,baz"
+    type: "" => "aws_instance"
+
+STATE:
+
+<no state>
+`
+
 const testTerraformPlanModuleOrphansStr = `
 DIFF:
 
