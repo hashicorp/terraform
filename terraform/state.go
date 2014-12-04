@@ -187,39 +187,40 @@ func (s *State) String() string {
 // RemoteState is used to track the information about a remote
 // state store that we push/pull state to.
 type RemoteState struct {
-	// Name is the name of the project in the remote state store
-	Name string `json:"name"`
+	// Type controls the client we use for the remote state
+	Type string `json:"type"`
 
-	// Server is the address of the server. Defaults to the public
-	// hosted version if not provided.
-	Server string `json:"server,omitempty"`
-
-	// AuthToken is used for optional authentication with the
-	// server.
-	AuthToken string `json:"auth_token,omitempty"`
+	// Config is used to store arbitrary configuration that
+	// is type specific
+	Config map[string]string `json:"config"`
 }
 
 func (r *RemoteState) deepcopy() *RemoteState {
+	confCopy := make(map[string]string, len(r.Config))
+	for k, v := range r.Config {
+		confCopy[k] = v
+	}
 	return &RemoteState{
-		Name:      r.Name,
-		Server:    r.Server,
-		AuthToken: r.AuthToken,
+		Type:   r.Type,
+		Config: confCopy,
 	}
 }
 
 func (r *RemoteState) Empty() bool {
-	return (r.Name == "" && r.Server == "" && r.AuthToken == "")
+	return r.Type == "" && len(r.Config) == 0
 }
 
 func (r *RemoteState) Equals(other *RemoteState) bool {
-	if r.Name != other.Name {
+	if r.Type != other.Type {
 		return false
 	}
-	if r.Server != other.Server {
+	if len(r.Config) != len(other.Config) {
 		return false
 	}
-	if r.AuthToken != other.AuthToken {
-		return false
+	for k, v := range r.Config {
+		if other.Config[k] != v {
+			return false
+		}
 	}
 	return true
 }
