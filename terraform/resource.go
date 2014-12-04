@@ -223,10 +223,11 @@ func (c *ResourceConfig) interpolate(
 	c.Config = c.raw.Config()
 
 	if r != nil && r.Provider != nil {
-		cfg, err := r.Provider.FormatResourceConfig(r.Info.Type, c)
+		raw, cfg, err := r.Provider.FormatResourceConfig(r.Info.Type, c)
 		if err != nil {
 			return err
 		}
+		c.Raw = raw
 		c.Config = cfg
 	}
 

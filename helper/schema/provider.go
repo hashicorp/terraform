@@ -143,10 +143,12 @@ func (p *Provider) Configure(c *terraform.ResourceConfig) error {
 
 // FormatResourceConfig implementation of terraform.ResourceProvider interface.
 func (p *Provider) FormatResourceConfig(
-	t string, c *terraform.ResourceConfig) (map[string]interface{}, error) {
+	t string,
+	c *terraform.ResourceConfig) (
+	map[string]interface{}, map[string]interface{}, error) {
 	r, ok := p.ResourcesMap[t]
 	if !ok {
-		return nil, fmt.Errorf("Provider doesn't support resource: %s", t)
+		return nil, nil, fmt.Errorf("Provider doesn't support resource: %s", t)
 	}
 
 	return r.FormatResourceConfig(c)

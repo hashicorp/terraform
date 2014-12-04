@@ -355,36 +355,36 @@ func testAccCheckAWSSecurityGroupAttributesChanged(group *ec2.SecurityGroupInfo)
 
 const testAccAWSSecurityGroupConfig = `
 resource "aws_security_group" "web" {
-    name = "terraform_acceptance_test_example"
-    description = "Used in the terraform acceptance tests"
+  name = "terraform_acceptance_test_example"
+  description = "Used in the terraform acceptance tests"
 
-    ingress {
-        protocol = "tcp"
-        from_port = 80
-        to_port = 8000
-        cidr_blocks = ["10.0.0.0/8"]
-    }
+  ingress {
+    protocol = "tcp"
+    from_port = 80
+    to_port = 8000
+    cidr_blocks = ["10.0.0.0/8"]
+  }
 }
 `
 
 const testAccAWSSecurityGroupConfigChange = `
 resource "aws_security_group" "web" {
-    name = "terraform_acceptance_test_example"
-    description = "Used in the terraform acceptance tests"
+  name = "terraform_acceptance_test_example"
+  description = "Used in the terraform acceptance tests"
 
-    ingress {
-        protocol = "tcp"
-        from_port = 80
-        to_port = 9000
-        cidr_blocks = ["10.0.0.0/8"]
-    }
+  ingress {
+    protocol = "tcp"
+    from_port = 80
+    to_port = 9000
+    cidr_blocks = ["10.0.0.0/8"]
+  }
 
-    ingress {
-        protocol = "tcp"
-        from_port = 80
-        to_port = 8000
-        cidr_blocks = ["0.0.0.0/0", "10.0.0.0/8"]
-    }
+  ingress {
+    protocol = "tcp"
+    from_port = 80
+    to_port = 8000
+    cidr_blocks = ["0.0.0.0/0", "10.0.0.0/8"]
+  }
 }
 `
 
@@ -410,7 +410,7 @@ resource "aws_vpc" "foo" {
 resource "aws_security_group" "web" {
     name = "terraform_acceptance_test_example"
     description = "Used in the terraform acceptance tests"
-	vpc_id = "${aws_vpc.foo.id}"
+		vpc_id = "${aws_vpc.foo.id}"
 
     ingress {
         protocol = "tcp"
@@ -423,46 +423,56 @@ resource "aws_security_group" "web" {
 
 const testAccAWSSecurityGroupConfigMultiIngress = `
 resource "aws_security_group" "worker" {
-    name = "terraform_acceptance_test_example_1"
-    description = "Used in the terraform acceptance tests"
+  name = "terraform_acceptance_test_example_1"
+  description = "Used in the terraform acceptance tests"
 
-    ingress {
-        protocol = "tcp"
-        from_port = 80
-        to_port = 8000
-        cidr_blocks = ["10.0.0.0/8"]
-    }
+  ingress {
+    protocol = "tcp"
+    from_port = 80
+    to_port = 8000
+    cidr_blocks = ["10.0.0.0/8"]
+  }
 }
 
 resource "aws_security_group" "web" {
-    name = "terraform_acceptance_test_example_2"
-    description = "Used in the terraform acceptance tests"
+  name = "terraform_acceptance_test_example_2"
+  description = "Used in the terraform acceptance tests"
 
-    ingress {
-        protocol = "tcp"
-        from_port = 22
-        to_port = 22
-        cidr_blocks = ["10.0.0.0/8"]
-    }
+  ingress {
+    protocol = "tcp"
+    from_port = 22
+    to_port = 22
+    cidr_blocks = ["10.0.0.0/8"]
+  }
 
-    ingress {
-        protocol = "tcp"
-        from_port = 800
-        to_port = 800
-        cidr_blocks = ["10.0.0.0/8"]
-    }
+  ingress {
+    protocol = "tcp"
+    from_port = 800
+    to_port = 800
+    cidr_blocks = ["10.0.0.0/8"]
+  }
 
-    ingress {
-        protocol = "tcp"
-        from_port = 80
-        to_port = 8000
-        security_groups = ["${aws_security_group.worker.id}"]
-    }
+  ingress {
+    protocol = "tcp"
+    from_port = 80
+    to_port = 8000
+    security_groups = ["${aws_security_group.worker.id}"]
+  }
 }
 `
 
 const testAccAWSSecurityGroupConfigTags = `
 resource "aws_security_group" "foo" {
+	name = "terraform_acceptance_test_example"
+  description = "Used in the terraform acceptance tests"
+
+  ingress {
+    protocol = "tcp"
+    from_port = 80
+    to_port = 8000
+    cidr_blocks = ["10.0.0.0/8"]
+  }
+
 	tags {
 		foo = "bar"
 	}
@@ -471,6 +481,16 @@ resource "aws_security_group" "foo" {
 
 const testAccAWSSecurityGroupConfigTagsUpdate = `
 resource "aws_security_group" "foo" {
+  name = "terraform_acceptance_test_example"
+  description = "Used in the terraform acceptance tests"
+
+  ingress {
+    protocol = "tcp"
+    from_port = 80
+    to_port = 8000
+    cidr_blocks = ["10.0.0.0/8"]
+  }
+
 	tags {
 		bar = "baz"
 	}
