@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
-	"net/url"
 	"os"
 	"path/filepath"
 
@@ -185,17 +184,13 @@ func ExistsFile(path string) (bool, error) {
 
 // ValidConfig does a purely logical validation of the remote config
 func ValidConfig(conf *terraform.RemoteState) error {
-	// Verify the remote server configuration is sane
-	if conf.Name == "" {
-		return fmt.Errorf("Name must be provided for remote state storage")
+	// Default the type to Atlas
+	if conf.Type == "" {
+		conf.Type = "atlas"
 	}
-	if conf.Server != "" {
-		if _, err := url.Parse(conf.Server); err != nil {
-			return fmt.Errorf("Remote Server URL invalid: %v", err)
-		}
-	} else {
-		// Fill in the default server
-		conf.Server = DefaultServer
+	_, err := NewClientByType(conf.Type, conf.Config)
+	if err != nil {
+		return err
 	}
 	return nil
 }
@@ -233,7 +228,11 @@ func RefreshState(conf *terraform.RemoteState) (StateChangeResult, error) {
 	}
 
 	// Read the state from the server
-	client := &remoteStateClient{conf: conf}
+	client, err := NewClientByType(conf.Type, conf.Config)
+	if err != nil {
+		return StateChangeNoop,
+			fmt.Errorf("Failed to create remote client: %v", err)
+	}
 	payload, err := client.GetState()
 	if err != nil {
 		return StateChangeNoop,
@@ -335,7 +334,11 @@ func PushState(conf *terraform.RemoteState, force bool) (StateChangeResult, erro
 	}
 
 	// Push the state to the server
-	client := &remoteStateClient{conf: conf}
+	client, err := NewClientByType(conf.Type, conf.Config)
+	if err != nil {
+		return StateChangeNoop,
+			fmt.Errorf("Failed to create remote client: %v", err)
+	}
 	err = client.PutState(raw, force)
 
 	// Handle the various edge cases
