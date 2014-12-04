@@ -61,14 +61,24 @@ type UpdateFunc func(*ResourceData, interface{}) error
 type DeleteFunc func(*ResourceData, interface{}) error
 
 func (r *Resource) FormatResourceConfig(
-	c *terraform.ResourceConfig) (map[string]interface{}, error) {
-	return r.formatResourceConfig(c.Config, r.Schema)
+	c *terraform.ResourceConfig) (
+	map[string]interface{}, map[string]interface{}, error) {
+	fr, fc, err := r.formatResourceConfig(c.Raw, c.Config, r.Schema)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return fr.Value.(map[string]interface{}), fc.Value.(map[string]interface{}), nil
 }
 
 func (r *Resource) formatResourceConfig(
+	raw map[string]interface{},
 	cfg map[string]interface{},
-	sm map[string]*Schema) (map[string]interface{}, error) {
-	result := make(map[string]interface{})
+	schemaM map[string]*Schema) (getResult, getResult, error) {
+	rawResult := getResult{Value: make(map[string]interface{})}
+	cfgResult := getResult{Value: make(map[string]interface{})}
+	fraw := rawResult.Value.(map[string]interface{})
+	fcfg := cfgResult.Value.(map[string]interface{})
 	source := getSourceSet | getSourceExact
 
 	// Build a temp *ResourceData to use for the conversion
@@ -76,28 +86,36 @@ func (r *Resource) formatResourceConfig(
 		setMap: make(map[string]string),
 	}
 
-	for k, s := range sm {
-		// If the value is nil, just move along...
+	// First format the config to get the correct hash
+	for k, schema := range schemaM {
+		// If the config value is nil, just move along...
 		if cfg[k] == nil {
+			// Save the raw value is there is one
+			if raw[k] != nil {
+				cfgResult.Computed = true
+				fraw[k] = raw[k]
+			}
 			continue
 		}
 
-		// If the value type is not a TypeSet, just add the key and
-		// value to the result and move on
-		if s.Type != TypeSet {
-			result[k] = cfg[k]
+		// If the value type is a primitive type, just add the key and
+		// value to fcfg and move on
+		if schema.Type != TypeSet {
+			fraw[k] = raw[k]
+			fcfg[k] = cfg[k]
 			continue
 		}
 
 		// Set the entire list, this lets us get sane values out of it
-		if err := tempD.setList(k, nil, s, cfg[k]); err != nil {
-			return nil, err
+		if err := tempD.setList(k, nil, schema, cfg[k]); err != nil {
+			return rawResult, cfgResult, err
 		}
 
-		hash := s.Set
-		m := make(map[string]interface{})
+		hash := schema.Set
+		mraw := make(map[string]interface{})
+		mcfg := make(map[string]interface{})
 
-		switch t := s.Elem.(type) {
+		switch t := schema.Elem.(type) {
 		case *Schema:
 			for i, v := range cfg[k].([]interface{}) {
 				if v == nil {
@@ -106,16 +124,18 @@ func (r *Resource) formatResourceConfig(
 
 				// Get the current item from the list
 				is := strconv.FormatInt(int64(i), 10)
-				result := tempD.getList(k, []string{is}, s, source)
+				fcfg := tempD.getList(k, []string{is}, schema, source)
+				cfgResult.Computed = fcfg.Computed
 
-				// Continue if the result doesn't exist
-				if !result.Exists {
+				// Continue if the value doesn't exist
+				if !fcfg.Exists {
 					continue
 				}
 
-				// Calculate the hash and add the values to the map
-				idx := hash(result.Value)
-				m[strconv.Itoa(idx)] = v
+				// Calculate the hash and add the values to the maps
+				idx := hash(fcfg.Value)
+				mraw[strconv.Itoa(idx)] = v
+				mcfg[strconv.Itoa(idx)] = v
 			}
 		case *Resource:
 			for i, v := range cfg[k].([]map[string]interface{}) {
@@ -125,30 +145,45 @@ func (r *Resource) formatResourceConfig(
 
 				// Get the current item from the list
 				is := strconv.FormatInt(int64(i), 10)
-				result := tempD.getList(k, []string{is}, s, source)
+				fcfg := tempD.getList(k, []string{is}, schema, source)
+				cfgResult.Computed = fcfg.Computed
 
-				// Continue if the result doesn't exist
-				if !result.Exists {
+				// Continue if the value doesn't exist
+				if !fcfg.Exists {
 					continue
 				}
 
 				// Calculate the hash and get the formatted value
 				// so it can be added to the map
-				idx := hash(result.Value)
-				fv, err := r.formatResourceConfig(v, t.Schema)
+				idx := hash(fcfg.Value)
+				idxs := strconv.Itoa(idx)
+
+				fr, fc, err := r.formatResourceConfig(
+					raw[k].([]map[string]interface{})[i], v, t.Schema)
 				if err != nil {
-					return nil, err
+					return rawResult, cfgResult, err
 				}
-				m[strconv.Itoa(idx)] = fv
+
+				// Check if this item contains computed keys and if so,
+				// then add a tilde to indicate that the hash is only an
+				// approximation that can be different during the diff
+				// check in the applyWalkFn
+				if fc.Computed {
+					idxs = "~" + idxs
+				}
+
+				mraw[idxs] = fr.Value.(map[string]interface{})
+				mcfg[idxs] = fc.Value.(map[string]interface{})
 			}
 		}
 
-		if len(m) > 0 {
-			result[k] = m
+		if len(mcfg) > 0 {
+			fraw[k] = mraw
+			fcfg[k] = mcfg
 		}
 	}
 
-	return result, nil
+	return rawResult, cfgResult, nil
 }
 
 // Apply creates, updates, and/or deletes a resource.

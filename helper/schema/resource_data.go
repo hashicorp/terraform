@@ -330,7 +330,7 @@ func (d *ResourceData) getSet(
 					continue
 				}
 
-				code, err := strconv.Atoi(idx)
+				code, err := strconv.Atoi(strings.Replace(parts[0], "~", "-", -1))
 				if err != nil {
 					panic(fmt.Sprintf("unable to convert %s to int: %v", idx, err))
 				}
@@ -357,7 +357,7 @@ func (d *ResourceData) getSet(
 						continue
 					}
 
-					code, err := strconv.Atoi(idx)
+					code, err := strconv.Atoi(strings.Replace(idx, "~", "-", -1))
 					if err != nil {
 						panic(fmt.Sprintf("unable to convert %s to int: %v", idx, err))
 					}
@@ -377,7 +377,7 @@ func (d *ResourceData) getSet(
 					continue
 				}
 
-				code, err := strconv.Atoi(idx)
+				code, err := strconv.Atoi(strings.Replace(parts[0], "~", "-", -1))
 				if err != nil {
 					panic(fmt.Sprintf("unable to convert %s to int: %v", idx, err))
 				}
@@ -396,7 +396,7 @@ func (d *ResourceData) getSet(
 					continue
 				}
 
-				code, err := strconv.Atoi(idx)
+				code, err := strconv.Atoi(strings.Replace(parts[0], "~", "-", -1))
 				if err != nil {
 					panic(fmt.Sprintf("unable to convert %s to int: %v", idx, err))
 				}

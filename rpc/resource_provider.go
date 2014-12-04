@@ -101,7 +101,7 @@ func (p *ResourceProvider) Configure(c *terraform.ResourceConfig) error {
 
 func (p *ResourceProvider) FormatResourceConfig(
 	t string,
-	c *terraform.ResourceConfig) (map[string]interface{}, error) {
+	c *terraform.ResourceConfig) (map[string]interface{}, map[string]interface{}, error) {
 	var resp ResourceProviderFormatResourceConfigResponse
 	args := ResourceProviderFormatResourceConfigArgs{
 		Config: c,
@@ -110,13 +110,13 @@ func (p *ResourceProvider) FormatResourceConfig(
 
 	err := p.Client.Call(p.Name+".FormatResourceConfig", &args, &resp)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	if resp.Error != nil {
-		return nil, resp.Error
+		return nil, nil, resp.Error
 	}
 
-	return resp.Config, nil
+	return resp.Raw, resp.Config, nil
 }
 
 func (p *ResourceProvider) Apply(
@@ -221,6 +221,7 @@ type ResourceProviderFormatResourceConfigArgs struct {
 }
 
 type ResourceProviderFormatResourceConfigResponse struct {
+	Raw    map[string]interface{}
 	Config map[string]interface{}
 	Error  *BasicError
 }
@@ -346,8 +347,9 @@ func (s *ResourceProviderServer) Configure(
 func (s *ResourceProviderServer) FormatResourceConfig(
 	args *ResourceProviderFormatResourceConfigArgs,
 	reply *ResourceProviderFormatResourceConfigResponse) error {
-	cfg, err := s.Provider.FormatResourceConfig(args.Type, args.Config)
+	raw, cfg, err := s.Provider.FormatResourceConfig(args.Type, args.Config)
 	*reply = ResourceProviderFormatResourceConfigResponse{
+		Raw:    raw,
 		Config: cfg,
 		Error:  NewBasicError(err),
 	}

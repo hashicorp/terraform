@@ -946,7 +946,9 @@ func TestSchemaMap_Diff(t *testing.T) {
 					Optional: true,
 					Computed: true,
 					Elem:     &Schema{Type: TypeInt},
-					Set:      func(v interface{}) int { return v.(int) },
+					Set: func(a interface{}) int {
+						return a.(int)
+					},
 				},
 			},
 
@@ -1457,7 +1459,9 @@ func TestSchemaMap_Diff(t *testing.T) {
 					Optional: true,
 					Computed: true,
 					Elem:     &Schema{Type: TypeInt},
-					Set:      func(v interface{}) int { return v.(int) },
+					Set: func(a interface{}) int {
+						return a.(int)
+					},
 				},
 			},
 
@@ -1465,7 +1469,7 @@ func TestSchemaMap_Diff(t *testing.T) {
 				Attributes: map[string]string{
 					"availability_zone": "bar",
 					"ports.#":           "1",
-					"ports.0":           "80",
+					"ports.80":          "80",
 				},
 			},
 
@@ -1491,6 +1495,132 @@ func TestSchemaMap_Diff(t *testing.T) {
 
 			Err: false,
 		},
+
+		// #40 Set
+		{
+			Schema: map[string]*Schema{
+				"route": &Schema{
+					Type:     TypeSet,
+					Optional: true,
+					Elem: &Resource{
+						Schema: map[string]*Schema{
+							"index": &Schema{
+								Type:     TypeInt,
+								Required: true,
+							},
+
+							"gateway": &Schema{
+								Type:     TypeString,
+								Optional: true,
+							},
+						},
+					},
+					Set: func(v interface{}) int {
+						m := v.(map[string]interface{})
+						return m["index"].(int)
+					},
+				},
+			},
+
+			State: nil,
+
+			Config: map[string]interface{}{
+				"route": []map[string]interface{}{
+					map[string]interface{}{
+						"index":   "1",
+						"gateway": "${var.foo}",
+					},
+				},
+			},
+
+			ConfigVariables: map[string]string{
+				"var.foo": config.UnknownVariableValue,
+			},
+
+			Diff: &terraform.InstanceDiff{
+				Attributes: map[string]*terraform.ResourceAttrDiff{
+					"route.#": &terraform.ResourceAttrDiff{
+						Old: "0",
+						New: "1",
+					},
+					"route.~1.index": &terraform.ResourceAttrDiff{
+						Old: "",
+						New: "1",
+					},
+					"route.~1.gateway": &terraform.ResourceAttrDiff{
+						Old: "",
+						New: "${var.foo}",
+					},
+				},
+			},
+
+			Err: false,
+		},
+
+		// #41 Set
+		{
+			Schema: map[string]*Schema{
+				"route": &Schema{
+					Type:     TypeSet,
+					Optional: true,
+					Elem: &Resource{
+						Schema: map[string]*Schema{
+							"index": &Schema{
+								Type:     TypeInt,
+								Required: true,
+							},
+
+							"gateway": &Schema{
+								Type:     TypeSet,
+								Optional: true,
+								Elem:     &Schema{Type: TypeInt},
+								Set: func(a interface{}) int {
+									return a.(int)
+								},
+							},
+						},
+					},
+					Set: func(v interface{}) int {
+						m := v.(map[string]interface{})
+						return m["index"].(int)
+					},
+				},
+			},
+
+			State: nil,
+
+			Config: map[string]interface{}{
+				"route": []map[string]interface{}{
+					map[string]interface{}{
+						"index":   "1",
+						"gateway": "${var.foo}",
+					},
+				},
+			},
+
+			ConfigVariables: map[string]string{
+				"var.foo": config.UnknownVariableValue,
+			},
+
+			Diff: &terraform.InstanceDiff{
+				Attributes: map[string]*terraform.ResourceAttrDiff{
+					"route.#": &terraform.ResourceAttrDiff{
+						Old: "0",
+						New: "1",
+					},
+					"route.~1.index": &terraform.ResourceAttrDiff{
+						Old: "",
+						New: "1",
+					},
+					"route.~1.gateway.#": &terraform.ResourceAttrDiff{
+						Old:         "",
+						NewComputed: true,
+					},
+				},
+			},
+
+			Err: false,
+		},
 	}
 
 	for i, tc := range cases {
@@ -1507,7 +1637,7 @@ func TestSchemaMap_Diff(t *testing.T) {
 
 		r := &Resource{Schema: tc.Schema}
 		rc := terraform.NewResourceConfig(c)
-		rc.Config, err = r.FormatResourceConfig(rc)
+		rc.Raw, rc.Config, err = r.FormatResourceConfig(rc)
 		if err != nil {
 			t.Fatalf("#%d err: %s", i, err)
 		}

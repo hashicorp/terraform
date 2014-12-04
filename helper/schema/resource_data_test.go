@@ -15,6 +15,7 @@ func TestResourceDataGet(t *testing.T) {
 		Key    string
 		Value  interface{}
 	}{
+		// #0
 		{
 			Schema: map[string]*Schema{
 				"availability_zone": &Schema{
@@ -41,6 +42,7 @@ func TestResourceDataGet(t *testing.T) {
 			Value: "",
 		},
 
+		// #1
 		{
 			Schema: map[string]*Schema{
 				"availability_zone": &Schema{
@@ -68,6 +70,7 @@ func TestResourceDataGet(t *testing.T) {
 			Value: "foo",
 		},
 
+		// #2
 		{
 			Schema: map[string]*Schema{
 				"availability_zone": &Schema{
@@ -94,6 +97,7 @@ func TestResourceDataGet(t *testing.T) {
 			Value: "foo",
 		},
 
+		// #3
 		{
 			Schema: map[string]*Schema{
 				"availability_zone": &Schema{
@@ -117,6 +121,7 @@ func TestResourceDataGet(t *testing.T) {
 			Value: "bar",
 		},
 
+		// #4
 		{
 			Schema: map[string]*Schema{
 				"availability_zone": &Schema{
@@ -147,6 +152,7 @@ func TestResourceDataGet(t *testing.T) {
 			Value: "",
 		},
 
+		// #5
 		{
 			Schema: map[string]*Schema{
 				"port": &Schema{
@@ -170,6 +176,7 @@ func TestResourceDataGet(t *testing.T) {
 			Value: 80,
 		},
 
+		// #6
 		{
 			Schema: map[string]*Schema{
 				"ports": &Schema{
@@ -193,6 +200,7 @@ func TestResourceDataGet(t *testing.T) {
 			Value: 2,
 		},
 
+		// #7
 		{
 			Schema: map[string]*Schema{
 				"ports": &Schema{
@@ -216,6 +224,7 @@ func TestResourceDataGet(t *testing.T) {
 			Value: 3,
 		},
 
+		// #8
 		{
 			Schema: map[string]*Schema{
 				"ports": &Schema{
@@ -232,6 +241,7 @@ func TestResourceDataGet(t *testing.T) {
 			Value: 0,
 		},
 
+		// #9
 		{
 			Schema: map[string]*Schema{
 				"ports": &Schema{
@@ -255,6 +265,7 @@ func TestResourceDataGet(t *testing.T) {
 			Value: []interface{}{1, 2, 5},
 		},
 
+		// #10
 		{
 			Schema: map[string]*Schema{
 				"ingress": &Schema{
@@ -293,6 +304,7 @@ func TestResourceDataGet(t *testing.T) {
 			},
 		},
 
+		// #11
 		{
 			Schema: map[string]*Schema{
 				"ingress": &Schema{
@@ -333,7 +345,7 @@ func TestResourceDataGet(t *testing.T) {
 			},
 		},
 
-		// Computed get
+		// #12 Computed get
 		{
 			Schema: map[string]*Schema{
 				"availability_zone": &Schema{
@@ -353,7 +365,7 @@ func TestResourceDataGet(t *testing.T) {
 			Value: "foo",
 		},
 
-		// Full object
+		// #13 Full object
 		{
 			Schema: map[string]*Schema{
 				"availability_zone": &Schema{
@@ -383,7 +395,7 @@ func TestResourceDataGet(t *testing.T) {
 			},
 		},
 
-		// List of maps
+		// #14 List of maps
 		{
 			Schema: map[string]*Schema{
 				"config_vars": &Schema{
@@ -427,7 +439,7 @@ func TestResourceDataGet(t *testing.T) {
 			},
 		},
 
-		// List of maps in state
+		// #15 List of maps in state
 		{
 			Schema: map[string]*Schema{
 				"config_vars": &Schema{
@@ -462,7 +474,7 @@ func TestResourceDataGet(t *testing.T) {
 			},
 		},
 
-		// List of maps with removal in diff
+		// #16 List of maps with removal in diff
 		{
 			Schema: map[string]*Schema{
 				"config_vars": &Schema{
@@ -500,7 +512,7 @@ func TestResourceDataGet(t *testing.T) {
 			Value: []interface{}{},
 		},
 
-		// Sets
+		// #17 Sets
 		{
 			Schema: map[string]*Schema{
 				"ports": &Schema{
@@ -528,6 +540,7 @@ func TestResourceDataGet(t *testing.T) {
 			Value: []interface{}{80},
 		},
 
+		// #18
 		{
 			Schema: map[string]*Schema{
 				"data": &Schema{
