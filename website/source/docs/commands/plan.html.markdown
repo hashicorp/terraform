@@ -28,6 +28,12 @@ The command-line flags are all optional. The list of available flags are:
 
 * `-destroy` - If set, generates a plan to destroy all the known resources.
 
+* `-input=true` - Ask for input for variables if not directly set.
+
+* `-module-depth=n` - Specifies the depth of modules to show in the output.
+  This does not affect the plan itself, only the output shown. By default,
+  this is zero. -1 will expand all.
+
 * `-no-color` - Disables output with coloring.
 
 * `-out=path` - The path to save the generated execution plan. This plan
