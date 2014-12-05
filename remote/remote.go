@@ -188,7 +188,7 @@ func ValidConfig(conf *terraform.RemoteState) error {
 	if conf.Type == "" {
 		conf.Type = "atlas"
 	}
-	_, err := NewClientByType(conf.Type, conf.Config)
+	_, err := NewClientByState(conf)
 	if err != nil {
 		return err
 	}
@@ -228,7 +228,7 @@ func RefreshState(conf *terraform.RemoteState) (StateChangeResult, error) {
 	}
 
 	// Read the state from the server
-	client, err := NewClientByType(conf.Type, conf.Config)
+	client, err := NewClientByState(conf)
 	if err != nil {
 		return StateChangeNoop,
 			fmt.Errorf("Failed to create remote client: %v", err)
@@ -334,7 +334,7 @@ func PushState(conf *terraform.RemoteState, force bool) (StateChangeResult, erro
 	}
 
 	// Push the state to the server
-	client, err := NewClientByType(conf.Type, conf.Config)
+	client, err := NewClientByState(conf)
 	if err != nil {
 		return StateChangeNoop,
 			fmt.Errorf("Failed to create remote client: %v", err)
