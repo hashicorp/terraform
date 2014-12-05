@@ -24,10 +24,6 @@ const (
 	// BackupHiddenStateFile is the path we backup the state
 	// file to before modifications are made
 	BackupHiddenStateFile = "terraform.tfstate.backup"
-
-	// DefaultServer is used when no server is provided. We use
-	// the hosted cloud URL.
-	DefaultServer = "http://www.hashicorp.com/"
 )
 
 // StateChangeResult is used to communicate to a caller
