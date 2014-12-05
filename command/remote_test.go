@@ -264,10 +264,9 @@ func TestRemote_initBlank(t *testing.T) {
 	}
 
 	args := []string{
-		"-name=foobar",
-		"-server",
-		"http://example.com",
-		"-auth=test",
+		"-backend=http",
+		"-address", "http://example.com",
+		"-access-token=test",
 	}
 	if code := c.Run(args); code != 0 {
 		t.Fatalf("bad: \n%s", ui.ErrorWriter.String())
@@ -278,13 +277,13 @@ func TestRemote_initBlank(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 
-	if local.Remote.Name != "foobar" {
+	if local.Remote.Type != "http" {
 		t.Fatalf("Bad: %#v", local.Remote)
 	}
-	if local.Remote.Server != "http://example.com" {
+	if local.Remote.Config["address"] != "http://example.com" {
 		t.Fatalf("Bad: %#v", local.Remote)
 	}
-	if local.Remote.AuthToken != "test" {
+	if local.Remote.Config["access_token"] != "test" {
 		t.Fatalf("Bad: %#v", local.Remote)
 	}
 }
@@ -317,7 +316,7 @@ func TestRemote_updateRemote(t *testing.T) {
 	s := terraform.NewState()
 	s.Serial = 5
 	s.Remote = &terraform.RemoteState{
-		Name: "invalid",
+		Type: "invalid",
 	}
 	if err := remote.EnsureDirectory(); err != nil {
 		t.Fatalf("err: %v", err)
@@ -335,10 +334,10 @@ func TestRemote_updateRemote(t *testing.T) {
 	}
 
 	args := []string{
-		"-name=foobar",
-		"-server",
+		"-backend=http",
+		"-address",
 		"http://example.com",
-		"-auth=test",
+		"-access-token=test",
 	}
 	if code := c.Run(args); code != 0 {
 		t.Fatalf("bad: \n%s", ui.ErrorWriter.String())
@@ -349,13 +348,13 @@ func TestRemote_updateRemote(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 
-	if local.Remote.Name != "foobar" {
+	if local.Remote.Type != "http" {
 		t.Fatalf("Bad: %#v", local.Remote)
 	}
-	if local.Remote.Server != "http://example.com" {
+	if local.Remote.Config["address"] != "http://example.com" {
 		t.Fatalf("Bad: %#v", local.Remote)
 	}
-	if local.Remote.AuthToken != "test" {
+	if local.Remote.Config["access_token"] != "test" {
 		t.Fatalf("Bad: %#v", local.Remote)
 	}
 }
@@ -389,10 +388,10 @@ func TestRemote_enableRemote(t *testing.T) {
 	}
 
 	args := []string{
-		"-name=foobar",
-		"-server",
+		"-backend=http",
+		"-address",
 		"http://example.com",
-		"-auth=test",
+		"-access-token=test",
 	}
 	if code := c.Run(args); code != 0 {
 		t.Fatalf("bad: \n%s", ui.ErrorWriter.String())
@@ -403,13 +402,13 @@ func TestRemote_enableRemote(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 
-	if local.Remote.Name != "foobar" {
+	if local.Remote.Type != "http" {
 		t.Fatalf("Bad: %#v", local.Remote)
 	}
-	if local.Remote.Server != "http://example.com" {
+	if local.Remote.Config["address"] != "http://example.com" {
 		t.Fatalf("Bad: %#v", local.Remote)
 	}
-	if local.Remote.AuthToken != "test" {
+	if local.Remote.Config["access_token"] != "test" {
 		t.Fatalf("Bad: %#v", local.Remote)
 	}
 
