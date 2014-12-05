@@ -30,6 +30,11 @@ func TestHTTPRemote_Validate(t *testing.T) {
 		t.Fatalf("expect error")
 	}
 
+	conf["url"] = "*"
+	if _, err := NewHTTPRemoteClient(conf); err == nil {
+		t.Fatalf("expect error")
+	}
+
 	conf["url"] = "http://cool.com"
 	if _, err := NewHTTPRemoteClient(conf); err != nil {
 		t.Fatalf("err: %v", err)
