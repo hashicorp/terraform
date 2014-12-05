@@ -790,6 +790,24 @@ module.child:
     ID = bar
 `
 
+const testTerraformPlanModuleDestroyMultivarStr = `
+DIFF:
+
+module.child:
+  DESTROY MODULE
+  DESTROY: aws_instance.foo.0
+  DESTROY: aws_instance.foo.1
+
+STATE:
+
+<no state>
+module.child:
+  aws_instance.foo.0:
+    ID = bar0
+  aws_instance.foo.1:
+    ID = bar1
+`
+
 const testTerraformPlanModuleInputStr = `
 DIFF:
 
