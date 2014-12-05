@@ -32,7 +32,7 @@ func NewAtlasRemoteClient(conf map[string]string) (*AtlasRemoteClient, error) {
 	if err := client.validateConfig(conf); err != nil {
 		return nil, err
 	}
-	return nil, nil
+	return client, nil
 }
 
 func (c *AtlasRemoteClient) validateConfig(conf map[string]string) error {
@@ -53,14 +53,14 @@ func (c *AtlasRemoteClient) validateConfig(conf map[string]string) error {
 	}
 	c.accessToken = token
 
-	name, ok := conf["access_token"]
+	name, ok := conf["name"]
 	if !ok || name == "" {
 		return fmt.Errorf("missing 'name' configuration")
 	}
 
 	parts := strings.Split(name, "/")
 	if len(parts) != 2 {
-		return fmt.Errorf("malformed slug '%s'", name)
+		return fmt.Errorf("malformed name '%s'", name)
 	}
 	c.user = parts[0]
 	c.name = parts[1]
@@ -69,7 +69,7 @@ func (c *AtlasRemoteClient) validateConfig(conf map[string]string) error {
 
 func (c *AtlasRemoteClient) GetState() (*RemoteStatePayload, error) {
 	// Make the HTTP request
-	req, err := http.NewRequest("GET", c.url("show").String(), nil)
+	req, err := http.NewRequest("GET", c.url().String(), nil)
 	if err != nil {
 		return nil, fmt.Errorf("Failed to make HTTP request: %v", err)
 	}
@@ -129,7 +129,7 @@ func (c *AtlasRemoteClient) GetState() (*RemoteStatePayload, error) {
 
 func (c *AtlasRemoteClient) PutState(state []byte, force bool) error {
 	// Get the target URL
-	base := c.url("update")
+	base := c.url()
 
 	// Generate the MD5
 	hash := md5.Sum(state)
@@ -181,7 +181,7 @@ func (c *AtlasRemoteClient) PutState(state []byte, force bool) error {
 
 func (c *AtlasRemoteClient) DeleteState() error {
 	// Make the HTTP request
-	req, err := http.NewRequest("DELETE", c.url("destroy").String(), nil)
+	req, err := http.NewRequest("DELETE", c.url().String(), nil)
 	if err != nil {
 		return fmt.Errorf("Failed to make HTTP request: %v", err)
 	}
@@ -213,11 +213,11 @@ func (c *AtlasRemoteClient) DeleteState() error {
 	return nil
 }
 
-func (c *AtlasRemoteClient) url(route string) *url.URL {
+func (c *AtlasRemoteClient) url() *url.URL {
 	return &url.URL{
 		Scheme:   c.serverURL.Scheme,
 		Host:     c.serverURL.Host,
-		Path:     path.Join("api/v1/state", c.user, c.name, route),
+		Path:     path.Join("api/v1/state", c.user, c.name),
 		RawQuery: fmt.Sprintf("access_token=%s", c.accessToken),
 	}
 }
