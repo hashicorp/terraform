@@ -34,6 +34,9 @@ func (c *HTTPRemoteClient) validateConfig(conf map[string]string) error {
 	if err != nil {
 		return fmt.Errorf("failed to parse url: %v", err)
 	}
+	if url.Scheme != "http" && url.Scheme != "https" {
+		return fmt.Errorf("invalid url: %s", url)
+	}
 	c.url = url
 	return nil
 }
