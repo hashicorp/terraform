@@ -1,6 +1,13 @@
 package remote
 
-import "testing"
+import (
+	"bytes"
+	"crypto/md5"
+	"os"
+	"testing"
+
+	"github.com/hashicorp/terraform/terraform"
+)
 
 func TestAtlasRemote_Interface(t *testing.T) {
 	var client interface{} = &AtlasRemoteClient{}
@@ -9,6 +16,97 @@ func TestAtlasRemote_Interface(t *testing.T) {
 	}
 }
 
+func checkAtlas(t *testing.T) {
+	if os.Getenv("ATLAS_TOKEN") == "" {
+		t.SkipNow()
+	}
+}
+
+func TestAtlasRemote_Validate(t *testing.T) {
+	conf := map[string]string{}
+	if _, err := NewAtlasRemoteClient(conf); err == nil {
+		t.Fatalf("expect error")
+	}
+
+	conf["access_token"] = "test"
+	conf["name"] = "hashicorp/test-state"
+	if _, err := NewAtlasRemoteClient(conf); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+}
+
 func TestAtlasRemote(t *testing.T) {
-	// TODO
+	checkAtlas(t)
+	remote := &terraform.RemoteState{
+		Type: "atlas",
+		Config: map[string]string{
+			"access_token": os.Getenv("ATLAS_TOKEN"),
+			"name":         "hashicorp/test-remote-state",
+		},
+	}
+	r, err := NewClientByState(remote)
+	if err != nil {
+		t.Fatalf("Err: %v", err)
+	}
+
+	// Get a valid input
+	inp, err := blankState(remote)
+	if err != nil {
+		t.Fatalf("Err: %v", err)
+	}
+	inpMD5 := md5.Sum(inp)
+	hash := inpMD5[:16]
+
+	// Delete the state, should be none
+	err = r.DeleteState()
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Ensure no state
+	payload, err := r.GetState()
+	if err != nil {
+		t.Fatalf("Err: %v", err)
+	}
+	if payload != nil {
+		t.Fatalf("unexpected payload")
+	}
+
+	// Put the state
+	err = r.PutState(inp, false)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Get it back
+	payload, err = r.GetState()
+	if err != nil {
+		t.Fatalf("Err: %v", err)
+	}
+	if payload != nil {
+		t.Fatalf("unexpected payload")
+	}
+
+	// Check the payload
+	if !bytes.Equal(payload.State, inp) {
+		t.Fatalf("bad response: %v", payload)
+	}
+	if !bytes.Equal(payload.MD5, hash) {
+		t.Fatalf("bad response: %v", payload)
+	}
+
+	// Delete the state
+	err = r.DeleteState()
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Should be gone
+	payload, err = r.GetState()
+	if err != nil {
+		t.Fatalf("Err: %v", err)
+	}
+	if payload != nil {
+		t.Fatalf("unexpected payload")
+	}
 }
