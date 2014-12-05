@@ -36,7 +36,7 @@ func NewAtlasRemoteClient(conf map[string]string) (*AtlasRemoteClient, error) {
 }
 
 func (c *AtlasRemoteClient) validateConfig(conf map[string]string) error {
-	server, ok := conf["server"]
+	server, ok := conf["address"]
 	if !ok || server == "" {
 		server = defaultAtlasServer
 	}

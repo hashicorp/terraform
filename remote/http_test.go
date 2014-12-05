@@ -25,17 +25,17 @@ func TestHTTPRemote_Validate(t *testing.T) {
 		t.Fatalf("expect error")
 	}
 
-	conf["url"] = ""
+	conf["address"] = ""
 	if _, err := NewHTTPRemoteClient(conf); err == nil {
 		t.Fatalf("expect error")
 	}
 
-	conf["url"] = "*"
+	conf["address"] = "*"
 	if _, err := NewHTTPRemoteClient(conf); err == nil {
 		t.Fatalf("expect error")
 	}
 
-	conf["url"] = "http://cool.com"
+	conf["address"] = "http://cool.com"
 	if _, err := NewHTTPRemoteClient(conf); err != nil {
 		t.Fatalf("err: %v", err)
 	}
@@ -90,7 +90,7 @@ func TestHTTPRemote_GetState(t *testing.T) {
 		remote := &terraform.RemoteState{
 			Type: "http",
 			Config: map[string]string{
-				"url": s.URL,
+				"address": s.URL,
 			},
 		}
 		r, err := NewClientByState(remote)
@@ -231,7 +231,7 @@ func TestHTTPRemote_PutState(t *testing.T) {
 		remote := &terraform.RemoteState{
 			Type: "http",
 			Config: map[string]string{
-				"url": s.URL + "/foobar",
+				"address": s.URL + "/foobar",
 			},
 		}
 		r, err := NewClientByState(remote)
@@ -311,7 +311,7 @@ func TestHTTPRemote_DeleteState(t *testing.T) {
 		remote := &terraform.RemoteState{
 			Type: "http",
 			Config: map[string]string{
-				"url": s.URL + "/foobar",
+				"address": s.URL + "/foobar",
 			},
 		}
 		r, err := NewClientByState(remote)

@@ -306,7 +306,7 @@ func TestBlankState(t *testing.T) {
 	remote := &terraform.RemoteState{
 		Type: "http",
 		Config: map[string]string{
-			"url": "http://foo.com/",
+			"address": "http://foo.com/",
 		},
 	}
 	r, err := blankState(remote)
@@ -335,7 +335,7 @@ func TestPersist(t *testing.T) {
 	remote := &terraform.RemoteState{
 		Type: "http",
 		Config: map[string]string{
-			"url": "http://foo.com/",
+			"address": "http://foo.com/",
 		},
 	}
 	blank, _ := blankState(remote)
@@ -396,7 +396,7 @@ func testRemote(t *testing.T, s *terraform.State) (*terraform.RemoteState, *http
 	remote := &terraform.RemoteState{
 		Type: "http",
 		Config: map[string]string{
-			"url": srv.URL,
+			"address": srv.URL,
 		},
 	}
 	return remote, srv
@@ -412,7 +412,7 @@ func testRemotePush(t *testing.T, c int) (*terraform.RemoteState, *httptest.Serv
 	remote := &terraform.RemoteState{
 		Type: "http",
 		Config: map[string]string{
-			"url": srv.URL,
+			"address": srv.URL,
 		},
 	}
 	return remote, srv

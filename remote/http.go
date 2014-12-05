@@ -26,9 +26,9 @@ func NewHTTPRemoteClient(conf map[string]string) (*HTTPRemoteClient, error) {
 }
 
 func (c *HTTPRemoteClient) validateConfig(conf map[string]string) error {
-	urlRaw, ok := conf["url"]
+	urlRaw, ok := conf["address"]
 	if !ok || urlRaw == "" {
-		return fmt.Errorf("missing 'url' configuration")
+		return fmt.Errorf("missing 'address' configuration")
 	}
 	url, err := url.Parse(urlRaw)
 	if err != nil {
