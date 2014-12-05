@@ -93,8 +93,8 @@ func testRemoteState(t *testing.T, s *terraform.State, c int) (*terraform.Remote
 	}
 	srv := httptest.NewServer(http.HandlerFunc(cb))
 	remote := &terraform.RemoteState{
-		Name:   "foo",
-		Server: srv.URL,
+		Type:   "http",
+		Config: map[string]string{"address": srv.URL},
 	}
 	return remote, srv
 }

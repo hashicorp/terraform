@@ -19,12 +19,14 @@ type InitCommand struct {
 }
 
 func (c *InitCommand) Run(args []string) int {
-	var remoteConf terraform.RemoteState
+	var remoteBackend, remoteAddress, remoteAccessToken, remoteName, remotePath string
 	args = c.Meta.process(args, false)
 	cmdFlags := flag.NewFlagSet("init", flag.ContinueOnError)
-	cmdFlags.StringVar(&remoteConf.Name, "remote", "", "")
-	cmdFlags.StringVar(&remoteConf.Server, "remote-server", "", "")
-	cmdFlags.StringVar(&remoteConf.AuthToken, "remote-auth", "", "")
+	cmdFlags.StringVar(&remoteBackend, "backend", "atlas", "")
+	cmdFlags.StringVar(&remoteAddress, "address", "", "")
+	cmdFlags.StringVar(&remoteAccessToken, "access-token", "", "")
+	cmdFlags.StringVar(&remoteName, "name", "", "")
+	cmdFlags.StringVar(&remotePath, "path", "", "")
 	cmdFlags.Usage = func() { c.Ui.Error(c.Help()) }
 	if err := cmdFlags.Parse(args); err != nil {
 		return 1
@@ -90,7 +92,16 @@ func (c *InitCommand) Run(args []string) int {
 	}
 
 	// Handle remote state if configured
-	if !remoteConf.Empty() {
+	if remoteAddress != "" || remoteAccessToken != "" || remoteName != "" || remotePath != "" {
+		var remoteConf terraform.RemoteState
+		remoteConf.Type = remoteBackend
+		remoteConf.Config = map[string]string{
+			"address":      remoteAddress,
+			"access_token": remoteAccessToken,
+			"name":         remoteName,
+			"path":         remotePath,
+		}
+
 		// Ensure remote state is not already enabled
 		haveLocal, err := remote.HaveLocalState()
 		if err != nil {
@@ -138,13 +149,20 @@ Usage: terraform init [options] SOURCE [PATH]
 
 Options:
 
-  -remote=name           Name of the state file in the state storage server.
-                         Optional, default does not use remote storage.
+  -address=url           URL of the remote storage server.
+                         Required for HTTP backend, optional for Atlas and Consul.
 
-  -remote-auth=token     Authentication token for state storage server.
-                         Optional, defaults to blank.
+  -access-token=token    Authentication token for state storage server.
+                         Required for Atlas backend, optional for Consul.
 
-  -remote-server=url     URL of the remote storage server.
+  -backend=atlas         Specifies the type of remote backend. Must be one
+                         of Atlas, Consul, or HTTP. Defaults to atlas.
+
+  -name=name             Name of the state file in the state storage server.
+                         Required for Atlas backend.
+
+  -path=path             Path of the remote state in Consul. Required for the
+                         Consul backend.
 
 `
 	return strings.TrimSpace(helpText)
