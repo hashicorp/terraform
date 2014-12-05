@@ -54,6 +54,12 @@ func (c *HTTPRemoteClient) GetState() (*RemoteStatePayload, error) {
 		return nil, nil
 	case http.StatusNotFound:
 		return nil, nil
+	case http.StatusUnauthorized:
+		return nil, ErrRequireAuth
+	case http.StatusForbidden:
+		return nil, ErrInvalidAuth
+	case http.StatusInternalServerError:
+		return nil, ErrRemoteInternal
 	default:
 		return nil, fmt.Errorf("Unexpected HTTP response code %d", resp.StatusCode)
 	}
@@ -124,6 +130,16 @@ func (c *HTTPRemoteClient) PutState(state []byte, force bool) error {
 	switch resp.StatusCode {
 	case http.StatusOK:
 		return nil
+	case http.StatusConflict:
+		return ErrConflict
+	case http.StatusPreconditionFailed:
+		return ErrServerNewer
+	case http.StatusUnauthorized:
+		return ErrRequireAuth
+	case http.StatusForbidden:
+		return ErrInvalidAuth
+	case http.StatusInternalServerError:
+		return ErrRemoteInternal
 	default:
 		return fmt.Errorf("Unexpected HTTP response code %d", resp.StatusCode)
 	}
@@ -151,6 +167,12 @@ func (c *HTTPRemoteClient) DeleteState() error {
 		return nil
 	case http.StatusNotFound:
 		return nil
+	case http.StatusUnauthorized:
+		return ErrRequireAuth
+	case http.StatusForbidden:
+		return ErrInvalidAuth
+	case http.StatusInternalServerError:
+		return ErrRemoteInternal
 	default:
 		return fmt.Errorf("Unexpected HTTP response code %d", resp.StatusCode)
 	}
