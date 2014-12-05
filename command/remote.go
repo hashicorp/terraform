@@ -48,6 +48,13 @@ func (c *RemoteCommand) Run(args []string) int {
 		return 1
 	}
 
+	// Show help if given no inputs
+	if !c.conf.disableRemote && c.remoteConf.Type == "atlas" &&
+		name == "" && accessToken == "" {
+		cmdFlags.Usage()
+		return 1
+	}
+
 	// Populate the various configurations
 	c.remoteConf.Config = map[string]string{
 		"address":      address,
