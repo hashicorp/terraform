@@ -19,6 +19,23 @@ func TestHTTPRemote_Interface(t *testing.T) {
 	}
 }
 
+func TestHTTPRemote_Validate(t *testing.T) {
+	conf := map[string]string{}
+	if _, err := NewHTTPRemoteClient(conf); err == nil {
+		t.Fatalf("expect error")
+	}
+
+	conf["url"] = ""
+	if _, err := NewHTTPRemoteClient(conf); err == nil {
+		t.Fatalf("expect error")
+	}
+
+	conf["url"] = "http://cool.com"
+	if _, err := NewHTTPRemoteClient(conf); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+}
+
 func TestHTTPRemote_GetState(t *testing.T) {
 	type tcase struct {
 		Code      int
