@@ -350,6 +350,27 @@ func PushState(conf *terraform.RemoteState, force bool) (StateChangeResult, erro
 	}
 }
 
+// DeleteState is used to delete the remote state given
+// the configuration for the remote endpoint.
+func DeleteState(conf *terraform.RemoteState) error {
+	if conf == nil {
+		return fmt.Errorf("Missing remote server configuration")
+	}
+
+	// Setup the client
+	client, err := NewClientByState(conf)
+	if err != nil {
+		return fmt.Errorf("Failed to create remote client: %v", err)
+	}
+
+	// Destroy the state
+	err = client.DeleteState()
+	if err != nil {
+		return fmt.Errorf("Failed to delete remote state: %v", err)
+	}
+	return nil
+}
+
 // blankState is used to return a serialized form of a blank state
 // with only the remote info.
 func blankState(conf *terraform.RemoteState) ([]byte, error) {

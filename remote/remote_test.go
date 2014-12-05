@@ -287,6 +287,21 @@ func TestPushState_Error(t *testing.T) {
 	}
 }
 
+func TestDeleteState(t *testing.T) {
+	defer testFixCwd(testDir(t))
+
+	remote, srv := testRemotePush(t, 200)
+	defer srv.Close()
+
+	local := terraform.NewState()
+	testWriteLocal(t, local)
+
+	err := DeleteState(remote)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+}
+
 func TestBlankState(t *testing.T) {
 	remote := &terraform.RemoteState{
 		Type: "http",
