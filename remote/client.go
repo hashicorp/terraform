@@ -3,6 +3,8 @@ package remote
 import (
 	"fmt"
 	"strings"
+
+	"github.com/hashicorp/terraform/terraform"
 )
 
 var (
@@ -38,6 +40,12 @@ type RemoteClient interface {
 type RemoteStatePayload struct {
 	MD5   []byte
 	State []byte
+}
+
+// NewClientByState is used to construct a client from
+// our remote state.
+func NewClientByState(remote *terraform.RemoteState) (RemoteClient, error) {
+	return NewClientByType(remote.Type, remote.Config)
 }
 
 // NewClientByType is used to construct a RemoteClient
