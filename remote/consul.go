@@ -24,7 +24,7 @@ func NewConsulRemoteClient(conf map[string]string) (*ConsulRemoteClient, error) 
 
 func (c *ConsulRemoteClient) validateConfig(conf map[string]string) (err error) {
 	config := consulapi.DefaultConfig()
-	if token, ok := conf["token"]; ok && token != "" {
+	if token, ok := conf["access_token"]; ok && token != "" {
 		config.Token = token
 	}
 	if addr, ok := conf["address"]; ok && addr != "" {
