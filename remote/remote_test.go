@@ -45,27 +45,20 @@ func TestHiddenStatePath(t *testing.T) {
 }
 
 func TestValidConfig(t *testing.T) {
-	conf := &terraform.RemoteState{}
+	conf := &terraform.RemoteState{
+		Type:   "",
+		Config: map[string]string{},
+	}
 	if err := ValidConfig(conf); err == nil {
 		t.Fatalf("blank should be not be valid: %v", err)
 	}
-	conf.Server = "http://foo.com"
-	if err := ValidConfig(conf); err == nil {
-		t.Fatalf("server without name")
-	}
-	conf.Server = ""
-	conf.AuthToken = "foo"
-	if err := ValidConfig(conf); err == nil {
-		t.Fatalf("auth without name")
-	}
-	conf.Name = "test"
-	conf.Server = ""
-	conf.AuthToken = ""
+	conf.Config["name"] = "hashicorp/test-remote-state"
+	conf.Config["access_token"] = "abcd"
 	if err := ValidConfig(conf); err != nil {
 		t.Fatalf("should be valid")
 	}
-	if conf.Server != DefaultServer {
-		t.Fatalf("should default server")
+	if conf.Type != "atlas" {
+		t.Fatalf("should default to atlas")
 	}
 }
 
@@ -296,9 +289,10 @@ func TestPushState_Error(t *testing.T) {
 
 func TestBlankState(t *testing.T) {
 	remote := &terraform.RemoteState{
-		Name:      "foo",
-		Server:    "http://foo.com/",
-		AuthToken: "foobar",
+		Type: "http",
+		Config: map[string]string{
+			"url": "http://foo.com/",
+		},
 	}
 	r, err := blankState(remote)
 	if err != nil {
@@ -324,9 +318,10 @@ func TestPersist(t *testing.T) {
 	ioutil.WriteFile(old, []byte("test"), 0777)
 
 	remote := &terraform.RemoteState{
-		Name:      "foo",
-		Server:    "http://foo.com/",
-		AuthToken: "foobar",
+		Type: "http",
+		Config: map[string]string{
+			"url": "http://foo.com/",
+		},
 	}
 	blank, _ := blankState(remote)
 	if err := Persist(bytes.NewReader(blank)); err != nil {
@@ -384,8 +379,10 @@ func testRemote(t *testing.T, s *terraform.State) (*terraform.RemoteState, *http
 	}
 	srv := httptest.NewServer(http.HandlerFunc(cb))
 	remote := &terraform.RemoteState{
-		Name:   "foo",
-		Server: srv.URL,
+		Type: "http",
+		Config: map[string]string{
+			"url": srv.URL,
+		},
 	}
 	return remote, srv
 }
@@ -398,8 +395,10 @@ func testRemotePush(t *testing.T, c int) (*terraform.RemoteState, *httptest.Serv
 	}
 	srv := httptest.NewServer(http.HandlerFunc(cb))
 	remote := &terraform.RemoteState{
-		Name:   "foo",
-		Server: srv.URL,
+		Type: "http",
+		Config: map[string]string{
+			"url": srv.URL,
+		},
 	}
 	return remote, srv
 }
