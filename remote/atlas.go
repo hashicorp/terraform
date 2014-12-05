@@ -217,7 +217,7 @@ func (c *AtlasRemoteClient) url() *url.URL {
 	return &url.URL{
 		Scheme:   c.serverURL.Scheme,
 		Host:     c.serverURL.Host,
-		Path:     path.Join("api/v1/state", c.user, c.name),
+		Path:     path.Join("api/v1/terraform/state", c.user, c.name),
 		RawQuery: fmt.Sprintf("access_token=%s", c.accessToken),
 	}
 }
