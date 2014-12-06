@@ -1732,7 +1732,7 @@ func (c *walkContext) computeResourceMultiVariable(
 	}
 
 	// If we have no module in the state yet or count, return empty
-	if module == nil || count == 0 {
+	if module == nil || len(module.Resources) == 0 || count == 0 {
 		return "", nil
 	}
 
