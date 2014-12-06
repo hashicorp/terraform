@@ -939,6 +939,22 @@ func (c *walkContext) planDestroyWalkFn() depgraph.WalkFunc {
 			// Build another walkContext for this module and walk it.
 			wc := c.Context.walkContext(c.Operation, m.Path)
 
+			// compute incoming vars
+			if m.Config != nil {
+				wc.Variables = make(map[string]string)
+
+				rc := NewResourceConfig(m.Config.RawConfig)
+				rc.interpolate(c, nil)
+				for k, v := range rc.Config {
+					wc.Variables[k] = v.(string)
+				}
+				for k, _ := range rc.Raw {
+					if _, ok := wc.Variables[k]; !ok {
+						wc.Variables[k] = config.UnknownVariableValue
+					}
+				}
+			}
+
 			// Set the graph to specifically walk this subgraph
 			wc.graph = m.Graph
 
@@ -1716,7 +1732,7 @@ func (c *walkContext) computeResourceMultiVariable(
 	}
 
 	// If we have no module in the state yet or count, return empty
-	if module == nil || count == 0 {
+	if module == nil || len(module.Resources) == 0 || count == 0 {
 		return "", nil
 	}
 
