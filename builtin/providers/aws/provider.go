@@ -48,6 +48,7 @@ func Provider() terraform.ResourceProvider {
 			"aws_instance":                resourceAwsInstance(),
 			"aws_internet_gateway":        resourceAwsInternetGateway(),
 			"aws_launch_configuration":    resourceAwsLaunchConfiguration(),
+			"aws_network_acl":             resourceAwsNetworkAcl(),
 			"aws_route53_record":          resourceAwsRoute53Record(),
 			"aws_route53_zone":            resourceAwsRoute53Zone(),
 			"aws_route_table":             resourceAwsRouteTable(),
