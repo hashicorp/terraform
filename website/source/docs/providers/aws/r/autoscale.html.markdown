@@ -43,6 +43,7 @@ The following arguments are supported:
 * `load_balancers` (Optional) A list of load balancer names to add to the autoscaling
    group names.
 * `vpc_zone_identifier` (Optional) A list of subnet IDs to launch resources in.
+* `termination_policies` (Optional) A list of policies to decide how the instances in the auto scale group should be terminated.
 
 ## Attributes Reference
 
