@@ -58,9 +58,5 @@ Both `egress` and `ingress` support the following keys:
 
 The following attributes are exported:
 
-* `id` - The ID of the VPC
-* `cidr_block` - The CIDR block of the VPC
-* `enable_dns_support` - Whether or not the VPC has DNS support
-* `enable_dns_hostnames` - Whether or not the VPC has DNS hostname support
-* `main_route_table_id` - The ID of the main route table associated with
-     this VPC.
+* `id` - The ID of the network ACL
+
