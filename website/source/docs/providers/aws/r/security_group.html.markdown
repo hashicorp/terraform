@@ -54,7 +54,7 @@ The following arguments are supported:
 
 * `name` - (Required) The name of the security group
 * `description` - (Required) The security group description.
-* `ingress` - (Required) Can be specified multiple times for each
+* `ingress` - (Optional) Can be specified multiple times for each
    ingress rule. Each ingress block supports fields documented below.
 * `vpc_id` - (Optional) The VPC ID.
 * `owner_id` - (Optional) The AWS Owner ID.
