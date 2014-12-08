@@ -211,8 +211,11 @@ func updateNetworkAclEntries(d *schema.ResourceData, entryType string, ec2conn *
 
 	os := o.(*schema.Set)
 	ns := n.(*schema.Set)
-	toBeDeleted := expandNetworkAclEntries(os.Difference(ns).List(), entryType)
-	toBeCreated := expandNetworkAclEntries(ns.Difference(os).List(), entryType)
+	
+	toBeDeleted, err := expandNetworkAclEntries(os.Difference(ns).List(), entryType)
+	if(err != nil){
+		return err
+	}
 	for _, remove := range toBeDeleted {
 		// Delete old Acl
 		_, err := ec2conn.DeleteNetworkAclEntry(d.Id(), remove.RuleNumber, remove.Egress)
@@ -221,6 +224,10 @@ func updateNetworkAclEntries(d *schema.ResourceData, entryType string, ec2conn *
 		}
 	}
 
+	toBeCreated, err := expandNetworkAclEntries(ns.Difference(os).List(), entryType)
+	if(err != nil){
+		return err
+	}
 	for _, add := range toBeCreated {
 		// Add new Acl entry
 		_, err := ec2conn.CreateNetworkAclEntry(d.Id(), &add)
