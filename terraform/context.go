@@ -944,7 +944,9 @@ func (c *walkContext) planDestroyWalkFn() depgraph.WalkFunc {
 				wc.Variables = make(map[string]string)
 
 				rc := NewResourceConfig(m.Config.RawConfig)
-				rc.interpolate(c, nil)
+				if err := rc.interpolate(c, nil); err != nil {
+					return err
+				}
 				for k, v := range rc.Config {
 					wc.Variables[k] = v.(string)
 				}
@@ -1072,7 +1074,9 @@ func (c *walkContext) validateWalkFn() depgraph.WalkFunc {
 			if rn.ExpandMode > ResourceExpandNone {
 				// Interpolate the count and verify it is non-negative
 				rc := NewResourceConfig(rn.Config.RawCount)
-				rc.interpolate(c, rn.Resource)
+				if err := rc.interpolate(c, rn.Resource); err != nil {
+					return err
+				}
 				if !rc.IsComputed(rn.Config.RawCount.Key) {
 					count, err := rn.Config.Count()
 					if err == nil {
@@ -1162,7 +1166,9 @@ func (c *walkContext) validateWalkFn() depgraph.WalkFunc {
 			for k, p := range sharedProvider.Providers {
 				// Merge the configurations to get what we use to configure with
 				rc := sharedProvider.MergeConfig(false, cs[k])
-				rc.interpolate(c, nil)
+				if err := rc.interpolate(c, nil); err != nil {
+					return err
+				}
 
 				log.Printf("[INFO] Validating provider: %s", k)
 				ws, es := p.Validate(rc)
@@ -1218,7 +1224,9 @@ func (c *walkContext) genericWalkFn(cb genericWalkFunc) depgraph.WalkFunc {
 				wc.Variables = make(map[string]string)
 
 				rc := NewResourceConfig(m.Config.RawConfig)
-				rc.interpolate(c, nil)
+				if err := rc.interpolate(c, nil); err != nil {
+					return err
+				}
 				for k, v := range rc.Config {
 					wc.Variables[k] = v.(string)
 				}
@@ -1245,7 +1253,9 @@ func (c *walkContext) genericWalkFn(cb genericWalkFunc) depgraph.WalkFunc {
 				// Interpolate our own configuration before merging
 				if sharedProvider.Config != nil {
 					rc := NewResourceConfig(sharedProvider.Config.RawConfig)
-					rc.interpolate(c, nil)
+					if err := rc.interpolate(c, nil); err != nil {
+						return err
+					}
 				}
 
 				// Merge the configurations to get what we use to configure
@@ -1316,7 +1326,9 @@ func (c *walkContext) genericWalkResource(
 	rn *GraphNodeResource, fn depgraph.WalkFunc) error {
 	// Interpolate the count
 	rc := NewResourceConfig(rn.Config.RawCount)
-	rc.interpolate(c, rn.Resource)
+	if err := rc.interpolate(c, rn.Resource); err != nil {
+		return err
+	}
 
 	// If we're validating, then we set the count to 1 if it is computed
 	if c.Operation == walkValidate {
