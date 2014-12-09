@@ -21,6 +21,7 @@ of resources.
 resource "atlas_artifact" "web" {
     name = "hashicorp/web"
     type = "aws.ami"
+    build = "latest"
     metadata {
         arch = "386"
     }
@@ -42,9 +43,17 @@ The following arguments are supported:
 
 * `type` - (Required) The type of artifact to query for.
 
-* `version` - (Optional) By default, if no version is provided the
-  latest version of the artifact is used. Providing a version can
-  be used to pin a dependency.
+* `build` - (Optional) The build to filter on. This can be "latest",
+  to find a matching artifact in the latest build, "any" to find a
+  matching artifact in any build, or a specific number to pin to that
+  build. If `build` and `version` are unspecified, `version` will default
+  to "latest". Cannot be specified with `version`.
+
+* `version` - (Optional)  The version to filter on. This can be "latest",
+  to match against the latest version, "any" to find a matching artifact
+  in any version, or a specific number to pin to that version. Defaults to
+  "latest" if neither `build` or `version` is specified. Cannot be specified
+  with `build`.
 
 * `metadata_keys` - (Optional) If given, only an artifact containing
   the given keys will be returned. This is used to disambiguate when
@@ -61,8 +70,9 @@ The following arguments are supported:
 
 The following attributes are exported:
 
-* `version` - The matching version of the artifact
 * `id` - The ID of the artifact. This could be an AMI ID, GCE Image ID, etc.
 * `file_url` - For artifacts that are binaries, this is a download path.
 * `metadata_full` - Contains the full metadata of the artifact.
+* `version_real` - The matching version of the artifact
+* `slug` - The artifact slug in Atlas
 
