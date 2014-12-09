@@ -26,7 +26,7 @@ func Test_expandNetworkAclEntry(t *testing.T) {
 			"rule_no":    2,
 		},
 	}
-	expanded := expandNetworkAclEntries(input, "egress")
+	expanded, _ := expandNetworkAclEntries(input, "egress")
 
 	expected := []ec2.NetworkAclEntry{
 		ec2.NetworkAclEntry{
