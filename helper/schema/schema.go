@@ -584,13 +584,6 @@ func (m schemaMap) diffMap(
 
 	// If the new map is nil and we're computed, then ignore it.
 	if n == nil && schema.Computed {
-		// If we don't have an old value, this whole map is computed
-		if o == nil {
-			diff.Attributes[k] = &terraform.ResourceAttrDiff{
-				NewComputed: true,
-			}
-		}
-
 		return nil
 	}
 
