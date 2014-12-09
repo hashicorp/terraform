@@ -4,6 +4,6 @@ resource "aws_instance" "parent" {
 
 module "child" {
   source = "./child"
-  things = "${join(",", aws_instance.bar.*.private_ip)}"
+  things = "${join(",", aws_instance.parent.*.id)}"
 }
 
