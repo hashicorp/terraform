@@ -1650,21 +1650,28 @@ func (c *walkContext) computeResourceVariable(
 	c.Context.sl.RLock()
 	defer c.Context.sl.RUnlock()
 
-	// Get the relevant module
-	module := c.Context.state.ModuleByPath(c.Path)
-
-	var r *ResourceState
-	if module != nil {
-		var ok bool
-		r, ok = module.Resources[id]
-		if !ok && v.Multi && v.Index == 0 {
-			r, ok = module.Resources[v.ResourceId()]
-		}
-		if !ok {
-			r = nil
-		}
+	// Get the information about this resource variable, and verify
+	// that it exists and such.
+	module, _, err := c.resourceVariableInfo(v)
+	if err != nil {
+		return "", err
 	}
 
+	// If we have no module in the state yet or count, return empty
+	if module == nil || len(module.Resources) == 0 {
+		return "", nil
+	}
+
+	// Get the resource out from the state. We know the state exists
+	// at this point and if there is a state, we expect there to be a
+	// resource with the given name.
+	r, ok := module.Resources[id]
+	if !ok && v.Multi && v.Index == 0 {
+		r, ok = module.Resources[v.ResourceId()]
+	}
+	if !ok {
+		r = nil
+	}
 	if r == nil {
 		return "", fmt.Errorf(
 			"Resource '%s' not found for variable '%s'",
@@ -1707,34 +1714,14 @@ func (c *walkContext) computeResourceMultiVariable(
 	c.Context.sl.RLock()
 	defer c.Context.sl.RUnlock()
 
-	childPath := c.Path[1:len(c.Path)]
-
-	var modTree *module.Tree
-	if len(childPath) == 0 {
-		modTree = c.Context.module
-	} else {
-		modTree = c.Context.module.Child(childPath)
+	// Get the information about this resource variable, and verify
+	// that it exists and such.
+	module, cr, err := c.resourceVariableInfo(v)
+	if err != nil {
+		return "", err
 	}
 
-	// Get the resource from the configuration so we can know how
-	// many of the resource there is.
-	var cr *config.Resource
-	for _, r := range modTree.Config().Resources {
-		if r.Id() == v.ResourceId() {
-			cr = r
-			break
-		}
-	}
-	if cr == nil {
-		return "", fmt.Errorf(
-			"Resource '%s' not found for variable '%s'",
-			v.ResourceId(),
-			v.FullKey())
-	}
-
-	// Get the relevant module
-	module := c.Context.state.ModuleByPath(c.Path)
-
+	// Get the count so we know how many to iterate over
 	count, err := cr.Count()
 	if err != nil {
 		return "", fmt.Errorf(
@@ -1785,6 +1772,40 @@ func (c *walkContext) computeResourceMultiVariable(
 	}
 
 	return strings.Join(values, config.InterpSplitDelim), nil
+}
+
+func (c *walkContext) resourceVariableInfo(
+	v *config.ResourceVariable) (*ModuleState, *config.Resource, error) {
+	// Get the module tree that contains our current path. This is
+	// either the current module (path is empty) or a child.
+	var modTree *module.Tree
+	childPath := c.Path[1:len(c.Path)]
+	if len(childPath) == 0 {
+		modTree = c.Context.module
+	} else {
+		modTree = c.Context.module.Child(childPath)
+	}
+
+	// Get the resource from the configuration so we can verify
+	// that the resource is in the configuration and so we can access
+	// the configuration if we need to.
+	var cr *config.Resource
+	for _, r := range modTree.Config().Resources {
+		if r.Id() == v.ResourceId() {
+			cr = r
+			break
+		}
+	}
+	if cr == nil {
+		return nil, nil, fmt.Errorf(
+			"Resource '%s' not found for variable '%s'",
+			v.ResourceId(),
+			v.FullKey())
+	}
+
+	// Get the relevant module
+	module := c.Context.state.ModuleByPath(c.Path)
+	return module, cr, nil
 }
 
 type walkInputMeta struct {
