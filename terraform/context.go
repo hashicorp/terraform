@@ -1687,13 +1687,31 @@ func (c *walkContext) computeResourceVariable(
 		return attr, nil
 	}
 
+	// At apply time, we can't do the "maybe has it" check below
+	// that we need for plans since parent elements might be computed.
+	// Therefore, it is an error and we're missing the key.
+	//
+	// TODO: test by creating a state and configuration that is referencing
+	// a non-existent variable "foo.bar" where the state only has "foo"
+	// and verify plan works, but apply doesn't.
+	if c.Operation == walkApply {
+		goto MISSING
+	}
+
 	// We didn't find the exact field, so lets separate the dots
 	// and see if anything along the way is a computed set. i.e. if
 	// we have "foo.0.bar" as the field, check to see if "foo" is
 	// a computed list. If so, then the whole thing is computed.
 	if parts := strings.Split(v.Field, "."); len(parts) > 1 {
 		for i := 1; i < len(parts); i++ {
+			// Lists and sets make this
 			key := fmt.Sprintf("%s.#", strings.Join(parts[:i], "."))
+			if attr, ok := r.Primary.Attributes[key]; ok {
+				return attr, nil
+			}
+
+			// Maps make this
+			key = fmt.Sprintf("%s", strings.Join(parts[:i], "."))
 			if attr, ok := r.Primary.Attributes[key]; ok {
 				return attr, nil
 			}
