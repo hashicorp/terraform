@@ -7,6 +7,8 @@ BUG FIXES:
       some circumstances.
   * core: Fixing issue with count expansion with non-homogenous instance
       plans.
+  * core: Fix issue with referencing resource variables from resources
+      that don't exist yet within resources that do exist, or modules.
 
 ## 0.3.1 (October 21, 2014)
 
