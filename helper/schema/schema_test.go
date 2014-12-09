@@ -1294,6 +1294,29 @@ func TestSchemaMap_Diff(t *testing.T) {
 
 		{
 			Schema: map[string]*Schema{
+				"vars": &Schema{
+					Type:     TypeMap,
+					Computed: true,
+				},
+			},
+
+			State: nil,
+
+			Config: nil,
+
+			Diff: &terraform.InstanceDiff{
+				Attributes: map[string]*terraform.ResourceAttrDiff{
+					"vars": &terraform.ResourceAttrDiff{
+						NewComputed: true,
+					},
+				},
+			},
+
+			Err: false,
+		},
+
+		{
+			Schema: map[string]*Schema{
 				"config_vars": &Schema{
 					Type: TypeList,
 					Elem: &Schema{Type: TypeMap},
