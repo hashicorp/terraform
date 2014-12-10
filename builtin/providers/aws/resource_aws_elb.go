@@ -31,6 +31,11 @@ func resourceAwsElb() *schema.Resource {
 				Computed: true,
 			},
 
+			"cross_zone_load_balancing": &schema.Schema{
+				Type:     schema.TypeBool,
+				Optional: true,
+			},
+
 			"availability_zones": &schema.Schema{
 				Type:     schema.TypeList,
 				Elem:     &schema.Schema{Type: schema.TypeString},
@@ -218,7 +223,8 @@ func resourceAwsElbCreate(d *schema.ResourceData, meta interface{}) error {
 			}
 		}
 	}
-
+	
+	
 	return resourceAwsElbUpdate(d, meta)
 }
 
@@ -300,9 +306,25 @@ func resourceAwsElbUpdate(d *schema.ResourceData, meta interface{}) error {
 				return fmt.Errorf("Failure deregistering instances: %s", err)
 			}
 		}
-
+		
 		d.SetPartial("instances")
 	}
+
+	log.Println("[INFO] outside modify attributes")
+		if d.HasChange("cross_zone_load_balancing") {
+			log.Println("[INFO] inside modify attributes")
+			attrs := elb.ModifyLoadBalancerAttributes{
+				LoadBalancerName: d.Get("name").(string),
+				LoadBalancerAttributes: elb.LoadBalancerAttributes{
+					CrossZoneLoadBalancingEnabled:  d.Get("cross_zone_load_balancing").(bool),
+				},
+			}
+			_, err := elbconn.ModifyLoadBalancerAttributes(&attrs)
+			if err != nil {
+				return fmt.Errorf("Failure configuring health check: %s", err)
+			}
+			d.SetPartial("cross_zone_load_balancing")
+		}
 
 	d.Partial(false)
 	return resourceAwsElbRead(d, meta)
