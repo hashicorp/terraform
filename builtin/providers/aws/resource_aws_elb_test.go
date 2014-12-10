@@ -43,6 +43,8 @@ func TestAccAWSELB_basic(t *testing.T) {
 						"aws_elb.bar", "listener.0.lb_port", "80"),
 					resource.TestCheckResourceAttr(
 						"aws_elb.bar", "listener.0.lb_protocol", "http"),
+					resource.TestCheckResourceAttr(
+						"aws_elb.bar", "cross_zone_load_balancing", "true"),
 				),
 			},
 		},
@@ -256,6 +258,7 @@ resource "aws_elb" "bar" {
   }
 
   instances = []
+  cross_zone_load_balancing = true
 }
 `
 
