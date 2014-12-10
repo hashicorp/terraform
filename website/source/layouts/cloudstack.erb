@@ -1,0 +1,62 @@
+<% wrap_layout :inner do %>
+	<% content_for :sidebar do %>
+		<div class="docs-sidebar hidden-print affix-top" role="complementary">
+			<ul class="nav docs-sidenav">
+				<li<%= sidebar_current("docs-home") %>>
+				  <a href="/docs/index.html">&laquo; Documentation Home</a>
+        </li>
+
+				<li<%= sidebar_current("docs-cloudstack-index") %>>
+				  <a href="/docs/providers/cloudstack/index.html">CloudStack Provider</a>
+        </li>
+
+				<li<%= sidebar_current("docs-cloudstack-resource") %>>
+				  <a href="#">Resources</a>
+          <ul class="nav nav-visible">
+            <li<%= sidebar_current("docs-cloudstack-resource-disk") %>>
+					    <a href="/docs/providers/cloudstack/r/disk.html">cloudstack_disk</a>
+            </li>
+
+            <li<%= sidebar_current("docs-cloudstack-resource-firewall") %>>
+					    <a href="/docs/providers/cloudstack/r/firewall.html">cloudstack_firewall</a>
+            </li>
+
+            <li<%= sidebar_current("docs-cloudstack-resource-instance") %>>
+					    <a href="/docs/providers/cloudstack/r/instance.html">cloudstack_instance</a>
+            </li>
+
+            <li<%= sidebar_current("docs-cloudstack-resource-ipaddress") %>>
+               <a href="/docs/providers/cloudstack/r/ipaddress.html">cloudstack_ipaddress</a>
+            </li>
+
+            <li<%= sidebar_current("docs-cloudstack-resource-network") %>>
+               <a href="/docs/providers/cloudstack/r/network.html">cloudstack_network</a>
+            </li>
+
+            <li<%= sidebar_current("docs-cloudstack-resource-network_acl") %>>
+					    <a href="/docs/providers/cloudstack/r/network_acl.html">cloudstack_network_acl</a>
+            </li>
+
+            <li<%= sidebar_current("docs-cloudstack-resource-network_acl_rule") %>>
+					    <a href="/docs/providers/cloudstack/r/network_acl_rule.html">cloudstack_network_acl_rule</a>
+            </li>
+
+            <li<%= sidebar_current("docs-cloudstack-resource-nic") %>>
+					    <a href="/docs/providers/cloudstack/r/nic.html">cloudstack_nic</a>
+					  </li>
+
+            <li<%= sidebar_current("docs-cloudstack-resource-port-forward") %>>
+              <a href="/docs/providers/cloudstack/r/port_forward.html">cloudstack_port_forward</a>
+            </li>
+
+            <li<%= sidebar_current("docs-cloudstack-resource-vpc") %>>
+					    <a href="/docs/providers/cloudstack/r/vpc.html">cloudstack_vpc</a>
+				    </li>
+				  </ul>
+				</li>
+			</ul>
+		</div>
+	<% end %>
+
+	<%= yield %>
+	<% end %>

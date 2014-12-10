@@ -1,0 +1,118 @@
+package cloudstack
+
+import (
+	"fmt"
+	"testing"
+
+	"github.com/hashicorp/terraform/helper/resource"
+	"github.com/hashicorp/terraform/terraform"
+	"github.com/xanzy/go-cloudstack/cloudstack"
+)
+
+func TestAccCloudStackVPC_basic(t *testing.T) {
+	var vpc cloudstack.VPC
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckCloudStackVPCDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccCloudStackVPC_basic,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckCloudStackVPCExists(
+						"cloudstack_vpc.foo", &vpc),
+					testAccCheckCloudStackVPCAttributes(&vpc),
+					resource.TestCheckResourceAttr(
+						"cloudstack_vpc.foo", "vpc_offering", CLOUDSTACK_VPC_OFFERING),
+				),
+			},
+		},
+	})
+}
+
+func testAccCheckCloudStackVPCExists(
+	n string, vpc *cloudstack.VPC) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		rs, ok := s.RootModule().Resources[n]
+		if !ok {
+			return fmt.Errorf("Not found: %s", n)
+		}
+
+		if rs.Primary.ID == "" {
+			return fmt.Errorf("No VPC ID is set")
+		}
+
+		cs := testAccProvider.Meta().(*cloudstack.CloudStackClient)
+		v, _, err := cs.VPC.GetVPCByID(rs.Primary.ID)
+
+		if err != nil {
+			return err
+		}
+
+		if v.Id != rs.Primary.ID {
+			return fmt.Errorf("VPC not found")
+		}
+
+		*vpc = *v
+
+		return nil
+	}
+}
+
+func testAccCheckCloudStackVPCAttributes(
+	vpc *cloudstack.VPC) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+
+		if vpc.Name != "terraform-vpc" {
+			return fmt.Errorf("Bad name: %s", vpc.Name)
+		}
+
+		if vpc.Displaytext != "terraform-vpc-text" {
+			return fmt.Errorf("Bad display text: %s", vpc.Displaytext)
+		}
+
+		if vpc.Cidr != CLOUDSTACK_VPC_CIDR {
+			return fmt.Errorf("Bad VPC offering: %s", vpc.Cidr)
+		}
+
+		return nil
+	}
+}
+
+func testAccCheckCloudStackVPCDestroy(s *terraform.State) error {
+	cs := testAccProvider.Meta().(*cloudstack.CloudStackClient)
+
+	for _, rs := range s.RootModule().Resources {
+		if rs.Type != "cloudstack_vpc" {
+			continue
+		}
+
+		if rs.Primary.ID == "" {
+			return fmt.Errorf("No VPC ID is set")
+		}
+
+		p := cs.VPC.NewDeleteVPCParams(rs.Primary.ID)
+		err, _ := cs.VPC.DeleteVPC(p)
+
+		if err != nil {
+			return fmt.Errorf(
+				"Error deleting VPC (%s): %s",
+				rs.Primary.ID, err)
+		}
+	}
+
+	return nil
+}
+
+var testAccCloudStackVPC_basic = fmt.Sprintf(`
+resource "cloudstack_vpc" "foo" {
+  name = "terraform-vpc"
+  display_text = "terraform-vpc-text"
+  cidr = "%s"
+  vpc_offering = "%s"
+  zone = "%s"
+}`,
+	CLOUDSTACK_VPC_CIDR,
+	CLOUDSTACK_VPC_OFFERING,
+	CLOUDSTACK_ZONE)
