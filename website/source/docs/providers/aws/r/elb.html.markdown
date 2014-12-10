@@ -42,6 +42,7 @@ resource "aws_elb" "bar" {
   }
 
   instances = ["${aws_instance.foo.id}"]
+  cross_zone_load_balancing = true
 }
 ```
 
@@ -57,6 +58,7 @@ The following arguments are supported:
 * `internal` - (Optional) If true, ELB will be an internal ELB.
 * `listener` - (Required) A list of listener blocks. Listeners documented below.
 * `health_check` - (Optional) A health_check block. Health Check documented below.
+* `cross_zone_load_balancing` - (Optional) Enable cross-zone load balancing.
 
 Listeners support the following:
 
