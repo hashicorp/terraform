@@ -2,7 +2,11 @@
 
 FEATURES:
 
- * New element() function to index into arrays
+ * **Remote State**: State files can now be stored remotely via HTTP,
+     Consul, or HashiCorp's Atlas.
+ * **New Provider: `atlas`**: Retrieve artifacts for deployment from
+     HashiCorp's Atlas service.
+ * New `element()` function to index into arrays
 
 IMPROVEMENTS:
 
