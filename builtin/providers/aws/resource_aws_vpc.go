@@ -24,6 +24,12 @@ func resourceAwsVpc() *schema.Resource {
 				ForceNew: true,
 			},
 
+			"instance_tenancy": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				ForceNew: true,
+			},
+
 			"enable_dns_hostnames": &schema.Schema{
 				Type:     schema.TypeBool,
 				Optional: true,
@@ -52,6 +58,7 @@ func resourceAwsVpcCreate(d *schema.ResourceData, meta interface{}) error {
 	// Create the VPC
 	createOpts := &ec2.CreateVpc{
 		CidrBlock: d.Get("cidr_block").(string),
+		InstanceTenancy: d.Get("instance_tenancy").(string),
 	}
 	log.Printf("[DEBUG] VPC create config: %#v", createOpts)
 	vpcResp, err := ec2conn.CreateVpc(createOpts)

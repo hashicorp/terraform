@@ -25,6 +25,7 @@ Basic usage with tags:
 ```
 resource "aws_vpc" "main" {
 	cidr_block = "10.0.0.0/16"
+	instance_tenancy = "dedicated"
 
 	tags {
 		Name = "main"
@@ -37,6 +38,7 @@ resource "aws_vpc" "main" {
 The following arguments are supported:
 
 * `cidr_block` - (Required) The CIDR block for the VPC.
+* `instance_tenancy` - (Optional) A tenancy option for instances launched into the VPC
 * `enable_dns_support` - (Optional) A boolean flag to enable/disable DNS support in the VPC. Defaults true.
 * `enable_dns_hostnames` - (Optional) A boolean flag to enable/disable DNS hostnames in the VPC. Defaults false.
 * `tags` - (Optional) A mapping of tags to assign to the resource.
@@ -47,6 +49,7 @@ The following attributes are exported:
 
 * `id` - The ID of the VPC
 * `cidr_block` - The CIDR block of the VPC
+* `instance_tenancy` - Tenancy of instances spin up within VPC.
 * `enable_dns_support` - Whether or not the VPC has DNS support
 * `enable_dns_hostnames` - Whether or not the VPC has DNS hostname support
 * `main_route_table_id` - The ID of the main route table associated with
