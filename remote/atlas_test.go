@@ -35,6 +35,21 @@ func TestAtlasRemote_Validate(t *testing.T) {
 	}
 }
 
+func TestAtlasRemote_Validate_envVar(t *testing.T) {
+	conf := map[string]string{}
+	if _, err := NewAtlasRemoteClient(conf); err == nil {
+		t.Fatalf("expect error")
+	}
+
+	defer os.Setenv("ATLAS_TOKEN", os.Getenv("ATLAS_TOKEN"))
+	os.Setenv("ATLAS_TOKEN", "foo")
+
+	conf["name"] = "hashicorp/test-state"
+	if _, err := NewAtlasRemoteClient(conf); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+}
+
 func TestAtlasRemote(t *testing.T) {
 	checkAtlas(t)
 	remote := &terraform.RemoteState{

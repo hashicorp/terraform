@@ -8,6 +8,7 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"os"
 	"path"
 	"strings"
 )
@@ -48,8 +49,13 @@ func (c *AtlasRemoteClient) validateConfig(conf map[string]string) error {
 	c.serverURL = url
 
 	token, ok := conf["access_token"]
+	if token == "" {
+		token = os.Getenv("ATLAS_TOKEN")
+		ok = true
+	}
 	if !ok || token == "" {
-		return fmt.Errorf("missing 'access_token' configuration")
+		return fmt.Errorf(
+			"missing 'access_token' configuration or ATLAS_TOKEN environmental variable")
 	}
 	c.accessToken = token
 
