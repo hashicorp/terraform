@@ -129,13 +129,16 @@ func resourceArtifactRead(d *schema.ResourceData, meta interface{}) error {
 	})
 	if err != nil {
 		return fmt.Errorf(
-			"Error searching for artifact: %s", err)
+			"Error searching for artifact '%s/%s': %s",
+			user, name, err)
 	}
 
 	if len(vs) == 0 {
-		return fmt.Errorf("No matching artifact")
+		return fmt.Errorf("No matching artifact for '%s/%s'", user, name)
 	} else if len(vs) > 1 {
-		return fmt.Errorf("Got %d results, only one is allowed", len(vs))
+		return fmt.Errorf(
+			"Got %d results for '%s/%s', only one is allowed",
+			user, name, len(vs))
 	}
 	v := vs[0]
 
