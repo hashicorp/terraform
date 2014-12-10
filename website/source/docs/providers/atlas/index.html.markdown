@@ -36,5 +36,6 @@ The following arguments are supported:
 
 * `address` - (Optional) Atlas server endpoint. Defaults to public Atlas.
   This is only required when using an on-premise deployment of Atlas.
+
 * `token` - (Required) API token
 
