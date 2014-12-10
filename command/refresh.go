@@ -6,7 +6,7 @@ import (
 	"os"
 	"strings"
 
-	"github.com/hashicorp/terraform/terraform"
+	"github.com/hashicorp/terraform/remote"
 )
 
 // RefreshCommand is a cli.Command implementation that refreshes the state
@@ -16,14 +16,12 @@ type RefreshCommand struct {
 }
 
 func (c *RefreshCommand) Run(args []string) int {
-	var statePath, stateOutPath, backupPath string
-
 	args = c.Meta.process(args, true)
 
 	cmdFlags := c.Meta.flagSet("refresh")
-	cmdFlags.StringVar(&statePath, "state", DefaultStateFilename, "path")
-	cmdFlags.StringVar(&stateOutPath, "state-out", "", "path")
-	cmdFlags.StringVar(&backupPath, "backup", "", "path")
+	cmdFlags.StringVar(&c.Meta.statePath, "state", DefaultStateFilename, "path")
+	cmdFlags.StringVar(&c.Meta.stateOutPath, "state-out", "", "path")
+	cmdFlags.StringVar(&c.Meta.backupPath, "backup", "", "path")
 	cmdFlags.Usage = func() { c.Ui.Error(c.Help()) }
 	if err := cmdFlags.Parse(args); err != nil {
 		return 1
@@ -45,48 +43,45 @@ func (c *RefreshCommand) Run(args []string) int {
 		}
 	}
 
-	// If we don't specify an output path, default to out normal state
-	// path.
-	if stateOutPath == "" {
-		stateOutPath = statePath
-	}
-
-	// If we don't specify a backup path, default to state out with
-	// the extension
-	if backupPath == "" {
-		backupPath = stateOutPath + DefaultBackupExtention
+	// Check if remote state is enabled
+	remoteEnabled, err := remote.HaveLocalState()
+	if err != nil {
+		c.Ui.Error(fmt.Sprintf("Failed to check for remote state: %v", err))
+		return 1
 	}
 
 	// Verify that the state path exists. The "ContextArg" function below
 	// will actually do this, but we want to provide a richer error message
 	// if possible.
-	if _, err := os.Stat(statePath); err != nil {
-		if os.IsNotExist(err) {
+	if !remoteEnabled {
+		if _, err := os.Stat(c.Meta.statePath); err != nil {
+			if os.IsNotExist(err) {
+				c.Ui.Error(fmt.Sprintf(
+					"The Terraform state file for your infrastructure does not\n"+
+						"exist. The 'refresh' command only works and only makes sense\n"+
+						"when there is existing state that Terraform is managing. Please\n"+
+						"double-check the value given below and try again. If you\n"+
+						"haven't created infrastructure with Terraform yet, use the\n"+
+						"'terraform apply' command.\n\n"+
+						"Path: %s",
+					c.Meta.statePath))
+				return 1
+			}
+
 			c.Ui.Error(fmt.Sprintf(
-				"The Terraform state file for your infrastructure does not\n"+
-					"exist. The 'refresh' command only works and only makes sense\n"+
-					"when there is existing state that Terraform is managing. Please\n"+
-					"double-check the value given below and try again. If you\n"+
-					"haven't created infrastructure with Terraform yet, use the\n"+
-					"'terraform apply' command.\n\n"+
-					"Path: %s",
-				statePath))
+				"There was an error reading the Terraform state that is needed\n"+
+					"for refreshing. The path and error are shown below.\n\n"+
+					"Path: %s\n\nError: %s",
+				c.Meta.statePath,
+				err))
 			return 1
 		}
-
-		c.Ui.Error(fmt.Sprintf(
-			"There was an error reading the Terraform state that is needed\n"+
-				"for refreshing. The path and error are shown below.\n\n"+
-				"Path: %s\n\nError: %s",
-			statePath,
-			err))
-		return 1
 	}
 
 	// Build the context based on the arguments given
 	ctx, _, err := c.Context(contextOpts{
 		Path:      configPath,
-		StatePath: statePath,
+		StatePath: c.Meta.statePath,
 	})
 	if err != nil {
 		c.Ui.Error(err.Error())
@@ -100,33 +95,14 @@ func (c *RefreshCommand) Run(args []string) int {
 		return 1
 	}
 
-	// Create a backup of the state before updating
-	if backupPath != "-" && c.state != nil {
-		log.Printf("[INFO] Writing backup state to: %s", backupPath)
-		f, err := os.Create(backupPath)
-		if err == nil {
-			err = terraform.WriteState(c.state, f)
-			f.Close()
-		}
-		if err != nil {
-			c.Ui.Error(fmt.Sprintf("Error writing backup state file: %s", err))
-			return 1
-		}
-	}
-
 	state, err := ctx.Refresh()
 	if err != nil {
 		c.Ui.Error(fmt.Sprintf("Error refreshing state: %s", err))
 		return 1
 	}
 
-	log.Printf("[INFO] Writing state output to: %s", stateOutPath)
-	f, err := os.Create(stateOutPath)
-	if err == nil {
-		defer f.Close()
-		err = terraform.WriteState(state, f)
-	}
-	if err != nil {
+	log.Printf("[INFO] Writing state output to: %s", c.Meta.StateOutPath())
+	if err := c.Meta.PersistState(state); err != nil {
 		c.Ui.Error(fmt.Sprintf("Error writing state file: %s", err))
 		return 1
 	}

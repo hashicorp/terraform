@@ -8,6 +8,8 @@ import (
 
 	"github.com/hashicorp/terraform/config"
 	"github.com/hashicorp/terraform/config/module"
+	"github.com/hashicorp/terraform/remote"
+	"github.com/hashicorp/terraform/terraform"
 )
 
 // InitCommand is a Command implementation that takes a Terraform
@@ -17,9 +19,14 @@ type InitCommand struct {
 }
 
 func (c *InitCommand) Run(args []string) int {
+	var remoteBackend, remoteAddress, remoteAccessToken, remoteName, remotePath string
 	args = c.Meta.process(args, false)
-
 	cmdFlags := flag.NewFlagSet("init", flag.ContinueOnError)
+	cmdFlags.StringVar(&remoteBackend, "backend", "atlas", "")
+	cmdFlags.StringVar(&remoteAddress, "address", "", "")
+	cmdFlags.StringVar(&remoteAccessToken, "access-token", "", "")
+	cmdFlags.StringVar(&remoteName, "name", "", "")
+	cmdFlags.StringVar(&remotePath, "path", "", "")
 	cmdFlags.Usage = func() { c.Ui.Error(c.Help()) }
 	if err := cmdFlags.Parse(args); err != nil {
 		return 1
@@ -84,6 +91,47 @@ func (c *InitCommand) Run(args []string) int {
 		return 1
 	}
 
+	// Handle remote state if configured
+	if remoteAddress != "" || remoteAccessToken != "" || remoteName != "" || remotePath != "" {
+		var remoteConf terraform.RemoteState
+		remoteConf.Type = remoteBackend
+		remoteConf.Config = map[string]string{
+			"address":      remoteAddress,
+			"access_token": remoteAccessToken,
+			"name":         remoteName,
+			"path":         remotePath,
+		}
+
+		// Ensure remote state is not already enabled
+		haveLocal, err := remote.HaveLocalState()
+		if err != nil {
+			c.Ui.Error(fmt.Sprintf("Failed to check for local state: %v", err))
+			return 1
+		}
+		if haveLocal {
+			c.Ui.Error("Remote state is already enabled. Aborting.")
+			return 1
+		}
+
+		// Check if we have the non-managed state file
+		haveNonManaged, err := remote.ExistsFile(DefaultStateFilename)
+		if err != nil {
+			c.Ui.Error(fmt.Sprintf("Failed to check for state file: %v", err))
+			return 1
+		}
+		if haveNonManaged {
+			c.Ui.Error(fmt.Sprintf("Existing state file '%s' found. Aborting.",
+				DefaultStateFilename))
+			return 1
+		}
+
+		// Initialize a blank state file with remote enabled
+		remoteCmd := &RemoteCommand{
+			Meta:       c.Meta,
+			remoteConf: remoteConf,
+		}
+		return remoteCmd.initBlankState()
+	}
 	return 0
 }
 
@@ -98,6 +146,23 @@ Usage: terraform init [options] SOURCE [PATH]
   The module downloaded is a copy. If you're downloading a module from
   Git, it will not preserve the Git history, it will only copy the
   latest files.
+
+Options:
+
+  -address=url           URL of the remote storage server.
+                         Required for HTTP backend, optional for Atlas and Consul.
+
+  -access-token=token    Authentication token for state storage server.
+                         Required for Atlas backend, optional for Consul.
+
+  -backend=atlas         Specifies the type of remote backend. Must be one
+                         of Atlas, Consul, or HTTP. Defaults to atlas.
+
+  -name=name             Name of the state file in the state storage server.
+                         Required for Atlas backend.
+
+  -path=path             Path of the remote state in Consul. Required for the
+                         Consul backend.
 
 `
 	return strings.TrimSpace(helpText)

@@ -177,6 +177,12 @@ func TestReadUpgradeState(t *testing.T) {
 func TestReadWriteState(t *testing.T) {
 	state := &State{
 		Serial: 9,
+		Remote: &RemoteState{
+			Type: "http",
+			Config: map[string]string{
+				"url": "http://my-cool-server.com/",
+			},
+		},
 		Modules: []*ModuleState{
 			&ModuleState{
 				Path: rootModulePath,
@@ -210,7 +216,7 @@ func TestReadWriteState(t *testing.T) {
 	}
 
 	// Verify that the version and serial are set
-	if state.Version != textStateVersion {
+	if state.Version != StateVersion {
 		t.Fatalf("bad version number: %d", state.Version)
 	}
 
@@ -235,7 +241,7 @@ func TestReadWriteState(t *testing.T) {
 	}
 
 	// Verify the changes came through
-	state.Version = textStateVersion
+	state.Version = StateVersion
 	state.Serial = 10
 
 	// ReadState should not restore sensitive information!
@@ -252,7 +258,7 @@ func TestReadStateNewVersion(t *testing.T) {
 		Version int
 	}
 
-	buf, err := json.Marshal(&out{textStateVersion + 1})
+	buf, err := json.Marshal(&out{StateVersion + 1})
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}

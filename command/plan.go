@@ -17,7 +17,7 @@ type PlanCommand struct {
 
 func (c *PlanCommand) Run(args []string) int {
 	var destroy, refresh bool
-	var outPath, statePath, backupPath string
+	var outPath string
 	var moduleDepth int
 
 	args = c.Meta.process(args, true)
@@ -27,8 +27,8 @@ func (c *PlanCommand) Run(args []string) int {
 	cmdFlags.BoolVar(&refresh, "refresh", true, "refresh")
 	cmdFlags.IntVar(&moduleDepth, "module-depth", 0, "module-depth")
 	cmdFlags.StringVar(&outPath, "out", "", "path")
-	cmdFlags.StringVar(&statePath, "state", DefaultStateFilename, "path")
-	cmdFlags.StringVar(&backupPath, "backup", "", "path")
+	cmdFlags.StringVar(&c.Meta.statePath, "state", DefaultStateFilename, "path")
+	cmdFlags.StringVar(&c.Meta.backupPath, "backup", "", "path")
 	cmdFlags.Usage = func() { c.Ui.Error(c.Help()) }
 	if err := cmdFlags.Parse(args); err != nil {
 		return 1
@@ -52,24 +52,9 @@ func (c *PlanCommand) Run(args []string) int {
 		}
 	}
 
-	// If the default state path doesn't exist, ignore it.
-	if statePath != "" {
-		if _, err := os.Stat(statePath); err != nil {
-			if os.IsNotExist(err) && statePath == DefaultStateFilename {
-				statePath = ""
-			}
-		}
-	}
-
-	// If we don't specify a backup path, default to state out with
-	// the extension
-	if backupPath == "" {
-		backupPath = statePath + DefaultBackupExtention
-	}
-
 	ctx, _, err := c.Context(contextOpts{
 		Path:      path,
-		StatePath: statePath,
+		StatePath: c.Meta.statePath,
 	})
 	if err != nil {
 		c.Ui.Error(err.Error())
@@ -84,26 +69,21 @@ func (c *PlanCommand) Run(args []string) int {
 	}
 
 	if refresh {
-		// Create a backup of the state before updating
-		if backupPath != "-" && c.state != nil {
-			log.Printf("[INFO] Writing backup state to: %s", backupPath)
-			f, err := os.Create(backupPath)
-			if err == nil {
-				err = terraform.WriteState(c.state, f)
-				f.Close()
-			}
-			if err != nil {
-				c.Ui.Error(fmt.Sprintf("Error writing backup state file: %s", err))
-				return 1
-			}
-		}
-
 		c.Ui.Output("Refreshing Terraform state prior to plan...\n")
-		if _, err := ctx.Refresh(); err != nil {
+		state, err := ctx.Refresh()
+		if err != nil {
 			c.Ui.Error(fmt.Sprintf("Error refreshing state: %s", err))
 			return 1
 		}
 		c.Ui.Output("")
+
+		if state != nil {
+			log.Printf("[INFO] Writing state output to: %s", c.Meta.StateOutPath())
+			if err := c.Meta.PersistState(state); err != nil {
+				c.Ui.Error(fmt.Sprintf("Error writing state file: %s", err))
+				return 1
+			}
+		}
 	}
 
 	plan, err := ctx.Plan(&terraform.PlanOpts{Destroy: destroy})

@@ -36,46 +36,50 @@ func (c *ShowCommand) Run(args []string) int {
 		return 1
 	}
 
+	var err, planErr, stateErr error
 	var path string
-	if len(args) > 0 {
-		path = args[0]
-	} else {
-		// We should use the default state if it exists.
-		path = DefaultStateFilename
-		if _, err := os.Stat(DefaultStateFilename); err != nil {
-			if os.IsNotExist(err) {
-				c.Ui.Output("No state.")
-				return 0
-			}
-		}
-	}
-
 	var plan *terraform.Plan
 	var state *terraform.State
-
-	f, err := os.Open(path)
-	if err != nil {
-		c.Ui.Error(fmt.Sprintf("Error loading file: %s", err))
-		return 1
-	}
-
-	var planErr, stateErr error
-	plan, err = terraform.ReadPlan(f)
-	if err != nil {
-		if _, err := f.Seek(0, 0); err != nil {
-			c.Ui.Error(fmt.Sprintf("Error reading file: %s", err))
+	if len(args) > 0 {
+		path = args[0]
+		f, err := os.Open(path)
+		if err != nil {
+			c.Ui.Error(fmt.Sprintf("Error loading file: %s", err))
 			return 1
 		}
+		defer f.Close()
 
-		plan = nil
-		planErr = err
-	}
-	if plan == nil {
-		state, err = terraform.ReadState(f)
+		plan, err = terraform.ReadPlan(f)
 		if err != nil {
-			stateErr = err
+			if _, err := f.Seek(0, 0); err != nil {
+				c.Ui.Error(fmt.Sprintf("Error reading file: %s", err))
+				return 1
+			}
+
+			plan = nil
+			planErr = err
+		}
+		if plan == nil {
+			state, err = terraform.ReadState(f)
+			if err != nil {
+				stateErr = err
+			}
+		}
+
+	} else {
+		// We should use the default state if it exists.
+		c.Meta.statePath = DefaultStateFilename
+		state, err = c.Meta.loadState()
+		if err != nil {
+			c.Ui.Error(fmt.Sprintf("Error reading state: %s", err))
+			return 1
+		}
+		if state == nil {
+			c.Ui.Output("No state.")
+			return 0
 		}
 	}
+
 	if plan == nil && state == nil {
 		c.Ui.Error(fmt.Sprintf(
 			"Terraform couldn't read the given file as a state or plan file.\n"+

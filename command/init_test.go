@@ -5,6 +5,8 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/hashicorp/terraform/remote"
+	"github.com/hashicorp/terraform/terraform"
 	"github.com/mitchellh/cli"
 )
 
@@ -140,5 +142,42 @@ func TestInit_dstInSrc(t *testing.T) {
 
 	if _, err := os.Stat(filepath.Join(dir, "foo", "issue518.tf")); err != nil {
 		t.Fatalf("err: %s", err)
+	}
+}
+
+func TestInit_remoteState(t *testing.T) {
+	tmp, cwd := testCwd(t)
+	defer testFixCwd(t, tmp, cwd)
+
+	s := terraform.NewState()
+	conf, srv := testRemoteState(t, s, 200)
+	defer srv.Close()
+
+	ui := new(cli.MockUi)
+	c := &InitCommand{
+		Meta: Meta{
+			ContextOpts: testCtxConfig(testProvider()),
+			Ui:          ui,
+		},
+	}
+
+	args := []string{
+		"-backend", "http",
+		"-address", conf.Config["address"],
+		testFixturePath("init"),
+		tmp,
+	}
+	if code := c.Run(args); code != 0 {
+		t.Fatalf("bad: \n%s", ui.ErrorWriter.String())
+	}
+
+	if _, err := os.Stat(filepath.Join(tmp, "hello.tf")); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	path, _ := remote.HiddenStatePath()
+	_, err := os.Stat(path)
+	if err != nil {
+		t.Fatalf("missing state")
 	}
 }
