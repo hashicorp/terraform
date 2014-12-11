@@ -26,6 +26,8 @@ func resourceAwsRouteTable() *schema.Resource {
 				ForceNew: true,
 			},
 
+			"tags": tagsSchema(),
+
 			"route": &schema.Schema{
 				Type:     schema.TypeSet,
 				Optional: true,
@@ -129,6 +131,9 @@ func resourceAwsRouteTableRead(d *schema.ResourceData, meta interface{}) error {
 	}
 	d.Set("route", route)
 
+	// Tags
+	d.Set("tags", tagsToMap(rt.Tags))
+
 	return nil
 }
 
@@ -176,6 +181,12 @@ func resourceAwsRouteTableUpdate(d *schema.ResourceData, meta interface{}) error
 			routes.Add(route)
 			d.Set("route", routes)
 		}
+	}
+
+	if err := setTags(ec2conn, d); err != nil {
+		return err
+	} else {
+		d.SetPartial("tags")
 	}
 
 	return resourceAwsRouteTableRead(d, meta)

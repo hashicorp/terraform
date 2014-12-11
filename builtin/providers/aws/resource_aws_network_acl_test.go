@@ -223,6 +223,7 @@ func TestAccAWSNetworkAclsOnlyEgressRules(t *testing.T) {
 				Config: testAccAWSNetworkAclEgressConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSNetworkAclExists("aws_network_acl.bond", &networkAcl),
+					testAccCheckTags(&networkAcl.Tags, "foo", "bar"),
 				),
 			},
 		},
@@ -409,6 +410,10 @@ resource "aws_network_acl" "bond" {
 		cidr_block =  "10.1.10.3/18"
 		from_port = 22
 		to_port = 22
+	}
+
+	tags {
+		foo = "bar"
 	}
 }
 `

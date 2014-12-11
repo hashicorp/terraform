@@ -1,20 +1,24 @@
-## 0.3.2 (unreleased)
+## 0.3.5 (December 9, 2014)
 
 FEATURES:
 
- * New element() function to index into arrays
+ * **Remote State**: State files can now be stored remotely via HTTP,
+     Consul, or HashiCorp's Atlas.
+ * **New Provider: `atlas`**: Retrieve artifacts for deployment from
+     HashiCorp's Atlas service.
+ * New `element()` function to index into arrays
 
 IMPROVEMENTS:
 
-  * provider/aws: Support tenancy for aws_instance
-  * provider/aws: Support block devices for aws_instance
-  * provider/aws: Support virtual_name on block device
+  * provider/aws: Support tenancy for aws\_instance
+  * provider/aws: Support block devices for aws\_instance
+  * provider/aws: Support virtual\_name on block device
   * provider/aws: Improve RDS reliability (more grace time)
-  * provider/aws: Added aws_db_parameter_group resource
-  * provider/aws: Added tag support to aws_subnet
+  * provider/aws: Added aws\_db\_parameter\_group resource
+  * provider/aws: Added tag support to aws\_subnet
   * provider/aws: Routes in RouteTable are optional
-  * provider/aws: associate_public_ip_address on aws_launch_configuration
-  * provider/aws: Added aws_network_acl
+  * provider/aws: associate\_public\_ip\_address on aws\_launch\_configuration
+  * provider/aws: Added aws\_network\_acl
   * provider/aws: Ingress rules in security groups are optional
   * provider/aws: Support termination policy for ASG
   * provider/digitalocean: Improved droplet size compatibility

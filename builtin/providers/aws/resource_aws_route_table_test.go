@@ -121,6 +121,35 @@ func TestAccAWSRouteTable_instance(t *testing.T) {
 	})
 }
 
+func TestAccAWSRouteTable_tags(t *testing.T) {
+	var route_table ec2.RouteTable
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckRouteTableDestroy,
+		Steps: []resource.TestStep{
+		resource.TestStep{
+		Config: testAccRouteTableConfigTags,
+		Check: resource.ComposeTestCheckFunc(
+			testAccCheckRouteTableExists("aws_route_table.foo", &route_table),
+			testAccCheckTags(&route_table.Tags, "foo", "bar"),
+		),
+	},
+
+		resource.TestStep{
+		Config: testAccRouteTableConfigTagsUpdate,
+		Check: resource.ComposeTestCheckFunc(
+			testAccCheckRouteTableExists("aws_route_table.foo", &route_table),
+			testAccCheckTags(&route_table.Tags, "foo", ""),
+			testAccCheckTags(&route_table.Tags, "bar", "baz"),
+		),
+	},
+	},
+	})
+}
+
+
 func testAccCheckRouteTableDestroy(s *terraform.State) error {
 	conn := testAccProvider.Meta().(*AWSClient).ec2conn
 
@@ -246,6 +275,34 @@ resource "aws_route_table" "foo" {
 	route {
 		cidr_block = "10.2.0.0/16"
 		instance_id = "${aws_instance.foo.id}"
+	}
+}
+`
+
+const testAccRouteTableConfigTags = `
+resource "aws_vpc" "foo" {
+	cidr_block = "10.1.0.0/16"
+}
+
+resource "aws_route_table" "foo" {
+	vpc_id = "${aws_vpc.foo.id}"
+
+	tags {
+		foo = "bar"
+	}
+}
+`
+
+const testAccRouteTableConfigTagsUpdate = `
+resource "aws_vpc" "foo" {
+	cidr_block = "10.1.0.0/16"
+}
+
+resource "aws_route_table" "foo" {
+	vpc_id = "${aws_vpc.foo.id}"
+
+	tags {
+		bar = "baz"
 	}
 }
 `
