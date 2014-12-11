@@ -49,16 +49,6 @@ type ResourceProvider interface {
 	// knows how to manage.
 	Resources() []ResourceType
 
-	// FormatResourceConfig formats any TypeSets in the given config. The config
-	// of sets need to be formatted to a more advanced internal representation
-	// containing the hash and value of each item. This enables making more
-	// advanced diffs and preserving computed set item data.
-	//
-	// FormatResourceConfig returns formatted values for raw config and
-	// interpolated config.
-	FormatResourceConfig(string, *ResourceConfig) (
-		map[string]interface{}, map[string]interface{}, error)
-
 	// Apply applies a diff to a specific resource and returns the new
 	// resource state along with an error.
 	//

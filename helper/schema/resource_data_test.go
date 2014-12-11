@@ -1076,10 +1076,10 @@ func TestResourceDataSet(t *testing.T) {
 
 			Key:   "availability_zone",
 			Value: 80,
-			Err:   false,
+			Err:   true,
 
 			GetKey:   "availability_zone",
-			GetValue: "80",
+			GetValue: "",
 		},
 
 		// List of primitives, set element

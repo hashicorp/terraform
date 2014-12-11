@@ -969,10 +969,10 @@ func (m schemaMap) validatePrimitive(
 	switch schema.Type {
 	case TypeSet:
 		fallthrough
-	case TypeMap:
-		return m.validateMap(k, raw, schema, c)
 	case TypeList:
 		return m.validateList(k, raw, schema, c)
+	case TypeMap:
+		return m.validateMap(k, raw, schema, c)
 	case TypeBool:
 		// Verify that we can parse this as the correct type
 		var n bool
