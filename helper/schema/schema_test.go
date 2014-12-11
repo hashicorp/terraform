@@ -1635,15 +1635,8 @@ func TestSchemaMap_Diff(t *testing.T) {
 			}
 		}
 
-		r := &Resource{Schema: tc.Schema}
-		rc := terraform.NewResourceConfig(c)
-		rc.Raw, rc.Config, err = r.FormatResourceConfig(rc)
-		if err != nil {
-			t.Fatalf("#%d err: %s", i, err)
-		}
-
 		d, err := schemaMap(tc.Schema).Diff(
-			tc.State, rc)
+			tc.State, terraform.NewResourceConfig(c))
 		if (err != nil) != tc.Err {
 			t.Fatalf("#%d err: %s", i, err)
 		}

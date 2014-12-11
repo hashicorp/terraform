@@ -10,56 +10,49 @@ type MockResourceProvider struct {
 	// Anything you want, in case you need to store extra data with the mock.
 	Meta interface{}
 
-	InputCalled                      bool
-	InputInput                       UIInput
-	InputConfig                      *ResourceConfig
-	InputReturnConfig                *ResourceConfig
-	InputReturnError                 error
-	InputFn                          func(UIInput, *ResourceConfig) (*ResourceConfig, error)
-	ApplyCalled                      bool
-	ApplyInfo                        *InstanceInfo
-	ApplyState                       *InstanceState
-	ApplyDiff                        *InstanceDiff
-	ApplyFn                          func(*InstanceInfo, *InstanceState, *InstanceDiff) (*InstanceState, error)
-	ApplyReturn                      *InstanceState
-	ApplyReturnError                 error
-	ConfigureCalled                  bool
-	ConfigureConfig                  *ResourceConfig
-	ConfigureFn                      func(*ResourceConfig) error
-	ConfigureReturnError             error
-	DiffCalled                       bool
-	DiffInfo                         *InstanceInfo
-	DiffState                        *InstanceState
-	DiffDesired                      *ResourceConfig
-	DiffFn                           func(*InstanceInfo, *InstanceState, *ResourceConfig) (*InstanceDiff, error)
-	DiffReturn                       *InstanceDiff
-	DiffReturnError                  error
-	RefreshCalled                    bool
-	RefreshInfo                      *InstanceInfo
-	RefreshState                     *InstanceState
-	RefreshFn                        func(*InstanceInfo, *InstanceState) (*InstanceState, error)
-	RefreshReturn                    *InstanceState
-	RefreshReturnError               error
-	ResourcesCalled                  bool
-	ResourcesReturn                  []ResourceType
-	ValidateCalled                   bool
-	ValidateConfig                   *ResourceConfig
-	ValidateFn                       func(*ResourceConfig) ([]string, []error)
-	ValidateReturnWarns              []string
-	ValidateReturnErrors             []error
-	FormatResourceConfigFn           func(string, *ResourceConfig) (map[string]interface{}, map[string]interface{}, error)
-	FormatResourceConfigCalled       bool
-	FormatResourceConfigType         string
-	FormatResourceConfigConfig       *ResourceConfig
-	FormatResourceConfigReturnRaw    map[string]interface{}
-	FormatResourceConfigReturnConfig map[string]interface{}
-	FormatResourceConfigReturnError  error
-	ValidateResourceFn               func(string, *ResourceConfig) ([]string, []error)
-	ValidateResourceCalled           bool
-	ValidateResourceType             string
-	ValidateResourceConfig           *ResourceConfig
-	ValidateResourceReturnWarns      []string
-	ValidateResourceReturnErrors     []error
+	InputCalled                  bool
+	InputInput                   UIInput
+	InputConfig                  *ResourceConfig
+	InputReturnConfig            *ResourceConfig
+	InputReturnError             error
+	InputFn                      func(UIInput, *ResourceConfig) (*ResourceConfig, error)
+	ApplyCalled                  bool
+	ApplyInfo                    *InstanceInfo
+	ApplyState                   *InstanceState
+	ApplyDiff                    *InstanceDiff
+	ApplyFn                      func(*InstanceInfo, *InstanceState, *InstanceDiff) (*InstanceState, error)
+	ApplyReturn                  *InstanceState
+	ApplyReturnError             error
+	ConfigureCalled              bool
+	ConfigureConfig              *ResourceConfig
+	ConfigureFn                  func(*ResourceConfig) error
+	ConfigureReturnError         error
+	DiffCalled                   bool
+	DiffInfo                     *InstanceInfo
+	DiffState                    *InstanceState
+	DiffDesired                  *ResourceConfig
+	DiffFn                       func(*InstanceInfo, *InstanceState, *ResourceConfig) (*InstanceDiff, error)
+	DiffReturn                   *InstanceDiff
+	DiffReturnError              error
+	RefreshCalled                bool
+	RefreshInfo                  *InstanceInfo
+	RefreshState                 *InstanceState
+	RefreshFn                    func(*InstanceInfo, *InstanceState) (*InstanceState, error)
+	RefreshReturn                *InstanceState
+	RefreshReturnError           error
+	ResourcesCalled              bool
+	ResourcesReturn              []ResourceType
+	ValidateCalled               bool
+	ValidateConfig               *ResourceConfig
+	ValidateFn                   func(*ResourceConfig) ([]string, []error)
+	ValidateReturnWarns          []string
+	ValidateReturnErrors         []error
+	ValidateResourceFn           func(string, *ResourceConfig) ([]string, []error)
+	ValidateResourceCalled       bool
+	ValidateResourceType         string
+	ValidateResourceConfig       *ResourceConfig
+	ValidateResourceReturnWarns  []string
+	ValidateResourceReturnErrors []error
 }
 
 func (p *MockResourceProvider) Input(
@@ -83,25 +76,6 @@ func (p *MockResourceProvider) Validate(c *ResourceConfig) ([]string, []error) {
 		return p.ValidateFn(c)
 	}
 	return p.ValidateReturnWarns, p.ValidateReturnErrors
-}
-
-func (p *MockResourceProvider) FormatResourceConfig(
-	t string, c *ResourceConfig) (map[string]interface{}, map[string]interface{}, error) {
-	p.Lock()
-	defer p.Unlock()
-
-	p.FormatResourceConfigCalled = true
-	p.FormatResourceConfigType = t
-	p.FormatResourceConfigConfig = c
-
-	if p.FormatResourceConfigFn != nil {
-		return p.FormatResourceConfigFn(t, c)
-	}
-
-	p.FormatResourceConfigReturnRaw = c.Raw
-	p.FormatResourceConfigReturnConfig = c.Config
-	return p.FormatResourceConfigReturnRaw,
-		p.FormatResourceConfigReturnConfig, p.FormatResourceConfigReturnError
 }
 
 func (p *MockResourceProvider) ValidateResource(t string, c *ResourceConfig) ([]string, []error) {

@@ -113,6 +113,25 @@ func (d *ResourceData) HasChange(key string) bool {
 	return !reflect.DeepEqual(o, n)
 }
 
+// hasComputedSubKeys walks true a schema and returns whether or not the
+// given key contains any subkeys that are computed.
+func (d *ResourceData) hasComputedSubKeys(key string, schema *Schema) bool {
+	prefix := key + "."
+
+	switch t := schema.Elem.(type) {
+	case *Resource:
+		for k, schema := range t.Schema {
+			if d.config.IsComputed(prefix + k) {
+				return true
+			}
+			if d.hasComputedSubKeys(prefix+k, schema) {
+				return true
+			}
+		}
+	}
+	return false
+}
+
 // Partial turns partial state mode on/off.
 //
 // When partial state mode is enabled, then only key prefixes specified
@@ -283,31 +302,14 @@ func (d *ResourceData) getSet(
 	parts []string,
 	schema *Schema,
 	source getSource) getResult {
+	s := &Set{F: schema.Set}
+	result := getResult{Schema: schema, Value: s}
 	prefix := k + "."
-
-	if len(parts) > 0 {
-		// We still have parts left over meaning we're accessing an
-		// element of this set.
-		idx := parts[0]
-		parts = parts[1:]
-
-		// Special case if we're accessing the count of the set
-		if idx == "#" {
-			schema := &Schema{Type: TypeInt}
-			return d.get(prefix+"#", parts, schema, source)
-		}
-
-		switch t := schema.Elem.(type) {
-		case *Schema:
-			return d.get(prefix+idx, parts, t, source)
-		case *Resource:
-			return d.getObject(prefix+idx, parts, t.Schema, source)
-		}
-	}
 
 	// Get the set. For sets, the entire source must be exact: the
 	// entire set must come from set, diff, state, etc. So we go backwards
 	// and once we get a result, we take it. Or, we never get a result.
+	var indexMap map[int]int
 	codes := make(map[string]int)
 	sourceLevel := source & getSourceLevelMask
 	sourceFlags := source & ^getSourceLevelMask
@@ -317,6 +319,49 @@ func (d *ResourceData) getSet(
 		// match, then leave since the original source was the match.
 		if sourceFlags&getSourceExact != 0 && setSource != sourceLevel {
 			break
+		}
+
+		if d.config != nil && setSource == getSourceConfig {
+			raw := d.getList(k, nil, schema, setSource)
+			// If the entire list is computed, then the entire set is
+			// necessarilly computed.
+			if raw.Computed {
+				result.Computed = true
+				if len(parts) > 0 {
+					break
+				}
+				return result
+			}
+
+			if raw.Exists {
+				result.Exists = true
+
+				list := raw.Value.([]interface{})
+				indexMap = make(map[int]int, len(list))
+
+				// Build the set from all the items using the given hash code
+				for i, v := range list {
+					code := s.add(v)
+
+					// Check if any of the keys in this item are computed
+					computed := false
+					if len(d.config.ComputedKeys) > 0 {
+						prefix := fmt.Sprintf("%s.%d", k, i)
+						computed = d.hasComputedSubKeys(prefix, schema)
+					}
+
+					// Check if we are computed and if so negatate the hash to
+					// this is a approximate hash
+					if computed {
+						s.m[-code] = s.m[code]
+						delete(s.m, code)
+						code = -code
+					}
+					indexMap[code] = i
+				}
+
+				break
+			}
 		}
 
 		if d.state != nil && setSource == getSourceState {
@@ -335,34 +380,6 @@ func (d *ResourceData) getSet(
 					panic(fmt.Sprintf("unable to convert %s to int: %v", idx, err))
 				}
 				codes[idx] = code
-			}
-		}
-
-		if d.config != nil && setSource == getSourceConfig {
-			// For config, we always set the result to exactly what was requested
-			if raw, ok := d.config.Get(k); ok {
-				// If the set is computed we need to format the raw config and set
-				// the computed flag to true
-				if d.config.IsComputed(k) {
-					return getResult{
-						Value:    nil,
-						Computed: true,
-						Exists:   true,
-						Schema:   schema,
-					}
-				}
-
-				for idx, _ := range raw.(map[string]interface{}) {
-					if _, ok := codes[idx]; ok {
-						continue
-					}
-
-					code, err := strconv.Atoi(strings.Replace(idx, "~", "-", -1))
-					if err != nil {
-						panic(fmt.Sprintf("unable to convert %s to int: %v", idx, err))
-					}
-					codes[idx] = code
-				}
 			}
 		}
 
@@ -409,31 +426,57 @@ func (d *ResourceData) getSet(
 		}
 	}
 
-	result := make(map[int]interface{})
-	resultSet := false
-
-	for idx, code := range codes {
-		switch t := schema.Elem.(type) {
-		case *Schema:
-			// Get a single value
-			result[code] = d.get(prefix+idx, nil, t, source).Value
-			resultSet = true
-		case *Resource:
-			// Get the entire object
-			m := make(map[string]interface{})
-			for field, _ := range t.Schema {
-				m[field] = d.getObject(prefix+idx, []string{field}, t.Schema, source).Value
+	if indexMap == nil {
+		s.m = make(map[int]interface{})
+		for idx, code := range codes {
+			switch t := schema.Elem.(type) {
+			case *Schema:
+				// Get a single value
+				s.m[code] = d.get(prefix+idx, nil, t, source).Value
+				result.Exists = true
+			case *Resource:
+				// Get the entire object
+				m := make(map[string]interface{})
+				for field, _ := range t.Schema {
+					m[field] = d.getObject(prefix+idx, []string{field}, t.Schema, source).Value
+				}
+				s.m[code] = m
+				result.Exists = true
 			}
-			result[code] = m
-			resultSet = true
 		}
 	}
 
-	return getResult{
-		Value:  &Set{F: schema.Set, m: result},
-		Exists: resultSet,
-		Schema: schema,
+	if len(parts) > 0 {
+		// We still have parts left over meaning we're accessing an
+		// element of this set.
+		idx := parts[0]
+		parts = parts[1:]
+
+		// Special case if we're accessing the count of the set
+		if idx == "#" {
+			schema := &Schema{Type: TypeInt}
+			return d.get(prefix+"#", parts, schema, source)
+		}
+
+		if source&getSourceLevelMask == getSourceConfig {
+			i, err := strconv.Atoi(strings.Replace(idx, "~", "-", -1))
+			if err != nil {
+				panic(fmt.Sprintf("unable to convert %s to int: %v", idx, err))
+			}
+			if i, ok := indexMap[i]; ok {
+				idx = strconv.Itoa(i)
+			}
+		}
+
+		switch t := schema.Elem.(type) {
+		case *Schema:
+			return d.get(prefix+idx, parts, t, source)
+		case *Resource:
+			return d.getObject(prefix+idx, parts, t.Schema, source)
+		}
 	}
+
+	return result
 }
 
 func (d *ResourceData) getMap(
@@ -541,10 +584,6 @@ func (d *ResourceData) getMap(
 				}
 			}
 		}
-	}
-
-	if result == nil {
-		result = make(map[string]interface{})
 	}
 
 	// If we're requesting a specific element, return that
@@ -937,18 +976,18 @@ func (d *ResourceData) setPrimitive(
 	switch schema.Type {
 	case TypeBool:
 		var b bool
-		if err := mapstructure.WeakDecode(v, &b); err != nil {
+		if err := mapstructure.Decode(v, &b); err != nil {
 			return fmt.Errorf("%s: %s", k, err)
 		}
 
 		set = strconv.FormatBool(b)
 	case TypeString:
-		if err := mapstructure.WeakDecode(v, &set); err != nil {
+		if err := mapstructure.Decode(v, &set); err != nil {
 			return fmt.Errorf("%s: %s", k, err)
 		}
 	case TypeInt:
 		var n int
-		if err := mapstructure.WeakDecode(v, &n); err != nil {
+		if err := mapstructure.Decode(v, &n); err != nil {
 			return fmt.Errorf("%s: %s", k, err)
 		}
 
