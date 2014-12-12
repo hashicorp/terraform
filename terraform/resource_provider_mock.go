@@ -1,8 +1,6 @@
 package terraform
 
-import (
-	"sync"
-)
+import "sync"
 
 // MockResourceProvider implements ResourceProvider but mocks out all the
 // calls for testing purposes.

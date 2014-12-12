@@ -29,17 +29,17 @@ func TestAccAWSDBParameterGroup(t *testing.T) {
 					resource.TestCheckResourceAttr(
 						"aws_db_parameter_group.bar", "description", "Test parameter group for terraform"),
 					resource.TestCheckResourceAttr(
-						"aws_db_parameter_group.bar", "parameter.0.name", "character_set_results"),
+						"aws_db_parameter_group.bar", "parameter.1708034931.name", "character_set_results"),
 					resource.TestCheckResourceAttr(
-						"aws_db_parameter_group.bar", "parameter.0.value", "utf8"),
+						"aws_db_parameter_group.bar", "parameter.1708034931.value", "utf8"),
 					resource.TestCheckResourceAttr(
-						"aws_db_parameter_group.bar", "parameter.1.name", "character_set_server"),
+						"aws_db_parameter_group.bar", "parameter.2421266705.name", "character_set_server"),
 					resource.TestCheckResourceAttr(
-						"aws_db_parameter_group.bar", "parameter.1.value", "utf8"),
+						"aws_db_parameter_group.bar", "parameter.2421266705.value", "utf8"),
 					resource.TestCheckResourceAttr(
-						"aws_db_parameter_group.bar", "parameter.2.name", "character_set_client"),
+						"aws_db_parameter_group.bar", "parameter.2478663599.name", "character_set_client"),
 					resource.TestCheckResourceAttr(
-						"aws_db_parameter_group.bar", "parameter.2.value", "utf8"),
+						"aws_db_parameter_group.bar", "parameter.2478663599.value", "utf8"),
 				),
 			},
 			resource.TestStep{
@@ -54,25 +54,25 @@ func TestAccAWSDBParameterGroup(t *testing.T) {
 					resource.TestCheckResourceAttr(
 						"aws_db_parameter_group.bar", "description", "Test parameter group for terraform"),
 					resource.TestCheckResourceAttr(
-						"aws_db_parameter_group.bar", "parameter.0.name", "collation_connection"),
+						"aws_db_parameter_group.bar", "parameter.1706463059.name", "collation_connection"),
 					resource.TestCheckResourceAttr(
-						"aws_db_parameter_group.bar", "parameter.0.value", "utf8_unicode_ci"),
+						"aws_db_parameter_group.bar", "parameter.1706463059.value", "utf8_unicode_ci"),
 					resource.TestCheckResourceAttr(
-						"aws_db_parameter_group.bar", "parameter.1.name", "character_set_results"),
+						"aws_db_parameter_group.bar", "parameter.1708034931.name", "character_set_results"),
 					resource.TestCheckResourceAttr(
-						"aws_db_parameter_group.bar", "parameter.1.value", "utf8"),
+						"aws_db_parameter_group.bar", "parameter.1708034931.value", "utf8"),
 					resource.TestCheckResourceAttr(
-						"aws_db_parameter_group.bar", "parameter.2.name", "character_set_server"),
+						"aws_db_parameter_group.bar", "parameter.2421266705.name", "character_set_server"),
 					resource.TestCheckResourceAttr(
-						"aws_db_parameter_group.bar", "parameter.2.value", "utf8"),
+						"aws_db_parameter_group.bar", "parameter.2421266705.value", "utf8"),
 					resource.TestCheckResourceAttr(
-						"aws_db_parameter_group.bar", "parameter.3.name", "collation_server"),
+						"aws_db_parameter_group.bar", "parameter.2475805061.name", "collation_server"),
 					resource.TestCheckResourceAttr(
-						"aws_db_parameter_group.bar", "parameter.3.value", "utf8_unicode_ci"),
+						"aws_db_parameter_group.bar", "parameter.2475805061.value", "utf8_unicode_ci"),
 					resource.TestCheckResourceAttr(
-						"aws_db_parameter_group.bar", "parameter.4.name", "character_set_client"),
+						"aws_db_parameter_group.bar", "parameter.2478663599.name", "character_set_client"),
 					resource.TestCheckResourceAttr(
-						"aws_db_parameter_group.bar", "parameter.4.value", "utf8"),
+						"aws_db_parameter_group.bar", "parameter.2478663599.value", "utf8"),
 				),
 			},
 		},

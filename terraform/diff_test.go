@@ -464,6 +464,34 @@ func TestInstanceDiffSame(t *testing.T) {
 			},
 			true,
 		},
+
+		{
+			&InstanceDiff{
+				Attributes: map[string]*ResourceAttrDiff{
+					"foo.#": &ResourceAttrDiff{
+						Old: "0",
+						New: "1",
+					},
+					"foo.~35964334.bar": &ResourceAttrDiff{
+						Old: "",
+						New: "${var.foo}",
+					},
+				},
+			},
+			&InstanceDiff{
+				Attributes: map[string]*ResourceAttrDiff{
+					"foo.#": &ResourceAttrDiff{
+						Old: "0",
+						New: "1",
+					},
+					"foo.87654323.bar": &ResourceAttrDiff{
+						Old: "",
+						New: "12",
+					},
+				},
+			},
+			true,
+		},
 	}
 
 	for i, tc := range cases {

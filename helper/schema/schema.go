@@ -618,25 +618,109 @@ func (m schemaMap) diffSet(
 	diff *terraform.InstanceDiff,
 	d *ResourceData,
 	all bool) error {
-	if !all {
-		// This is a bit strange, but we expect the entire set to be in the diff,
-		// so we first diff the set normally but with a new diff. Then, if
-		// there IS any change, we just set the change to the entire list.
-		tempD := new(terraform.InstanceDiff)
-		tempD.Attributes = make(map[string]*terraform.ResourceAttrDiff)
-		if err := m.diffList(k, schema, tempD, d, false); err != nil {
-			return err
+	o, n, _, computedSet := d.diffChange(k)
+	nSet := n != nil
+
+	// If we have an old value and no new value is set or will be
+	// computed once all variables can be interpolated and we're
+	// computed, then nothing has changed.
+	if o != nil && n == nil && !computedSet && schema.Computed {
+		return nil
+	}
+
+	if o == nil {
+		o = &Set{F: schema.Set}
+	}
+	if n == nil {
+		n = &Set{F: schema.Set}
+	}
+	os := o.(*Set)
+	ns := n.(*Set)
+
+	// If the new value was set, compare the listCode's to determine if
+	// the two are equal. Comparing listCode's instead of the actuall values
+	// is needed because there could be computed values in the set which
+	// would result in false positives while comparing.
+	if !all && nSet && reflect.DeepEqual(os.listCode(), ns.listCode()) {
+		return nil
+	}
+
+	// Get the counts
+	oldLen := os.Len()
+	newLen := ns.Len()
+	oldStr := strconv.Itoa(oldLen)
+	newStr := strconv.Itoa(newLen)
+
+	// If the set computed then say that the # is computed
+	if computedSet || (schema.Computed && !nSet) {
+		// If # already exists, equals 0 and no new set is supplied, there
+		// is nothing to record in the diff
+		count, ok := d.GetOk(k + ".#")
+		if ok && count.(int) == 0 && !nSet && !computedSet {
+			return nil
 		}
 
-		// If we had no changes, then we're done
-		if tempD.Empty() {
-			return nil
+		// Set the count but make sure that if # does not exist, we don't
+		// use the zeroed value
+		countStr := strconv.Itoa(count.(int))
+		if !ok {
+			countStr = ""
+		}
+
+		diff.Attributes[k+".#"] = &terraform.ResourceAttrDiff{
+			Old:         countStr,
+			NewComputed: true,
+		}
+		return nil
+	}
+
+	// If the counts are not the same, then record that diff
+	changed := oldLen != newLen
+	if changed || all {
+		countSchema := &Schema{
+			Type:     TypeInt,
+			Computed: schema.Computed,
+			ForceNew: schema.ForceNew,
+		}
+
+		diff.Attributes[k+".#"] = countSchema.finalizeDiff(&terraform.ResourceAttrDiff{
+			Old: oldStr,
+			New: newStr,
+		})
+	}
+
+	for _, code := range ns.listCode() {
+		switch t := schema.Elem.(type) {
+		case *Schema:
+			// Copy the schema so that we can set Computed/ForceNew from
+			// the parent schema (the TypeSet).
+			t2 := *t
+			t2.ForceNew = schema.ForceNew
+
+			// This is just a primitive element, so go through each and
+			// just diff each.
+			subK := fmt.Sprintf("%s.%d", k, code)
+			subK = strings.Replace(subK, "-", "~", -1)
+			err := m.diff(subK, &t2, diff, d, true)
+			if err != nil {
+				return err
+			}
+		case *Resource:
+			// This is a complex resource
+			for k2, schema := range t.Schema {
+				subK := fmt.Sprintf("%s.%d.%s", k, code, k2)
+				subK = strings.Replace(subK, "-", "~", -1)
+				err := m.diff(subK, schema, diff, d, true)
+				if err != nil {
+					return err
+				}
+			}
+		default:
+			return fmt.Errorf("%s: unknown element type (internal)", k)
 		}
 	}
 
-	// We have changes, so re-run the diff, but set a flag to force
-	// getting all diffs, even if there is no change.
-	return m.diffList(k, schema, diff, d, true)
+	return nil
 }
 
 func (m schemaMap) diffString(

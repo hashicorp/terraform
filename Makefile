@@ -16,7 +16,7 @@ testacc: config/y.go
 		echo "ERROR: Set TEST to a specific package"; \
 		exit 1; \
 	fi
-	TF_ACC=1 go test $(TEST) -v $(TESTARGS) -timeout 30m
+	TF_ACC=1 go test $(TEST) -v $(TESTARGS) -timeout 45m
 
 testrace: config/y.go
 	TF_ACC= go test -race $(TEST) $(TESTARGS)
