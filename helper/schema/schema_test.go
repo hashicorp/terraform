@@ -1592,8 +1592,10 @@ func TestSchemaMap_Diff(t *testing.T) {
 			Config: map[string]interface{}{
 				"route": []map[string]interface{}{
 					map[string]interface{}{
-						"index":   "1",
-						"gateway": "${var.foo}",
+						"index": "1",
+						"gateway": []interface{}{
+							"${var.foo}",
+						},
 					},
 				},
 			},
