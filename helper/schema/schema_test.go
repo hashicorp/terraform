@@ -1480,7 +1480,7 @@ func TestSchemaMap_Diff(t *testing.T) {
 					Optional: true,
 					Computed: true,
 					Set: func(v interface{}) int {
-						return len(v)
+						return len(v.(string))
 					},
 				},
 			},
