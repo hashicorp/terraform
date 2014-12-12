@@ -1466,6 +1466,57 @@ func TestSchemaMap_Diff(t *testing.T) {
 
 			Err: false,
 		},
+
+		{
+			Schema: map[string]*Schema{
+				"internal": &Schema{
+					Type:     TypeBool,
+					Required: true,
+				},
+
+				"instances": &Schema{
+					Type:     TypeSet,
+					Elem:     &Schema{Type: TypeString},
+					Optional: true,
+					Computed: true,
+					Set: func(v interface{}) int {
+						return len(v)
+					},
+				},
+			},
+
+			State: &terraform.InstanceState{
+				Attributes: map[string]string{
+					"internal":    "false",
+					"instances.#": "0",
+				},
+			},
+
+			Config: map[string]interface{}{
+				"internal":  true,
+				"instances": []interface{}{"${var.foo}"},
+			},
+
+			ConfigVariables: map[string]string{
+				"var.foo": config.UnknownVariableValue,
+			},
+
+			Diff: &terraform.InstanceDiff{
+				Attributes: map[string]*terraform.ResourceAttrDiff{
+					"internal": &terraform.ResourceAttrDiff{
+						Old: "0",
+						New: "1",
+					},
+
+					"instances.#": &terraform.ResourceAttrDiff{
+						Old:         "0",
+						NewComputed: true,
+					},
+				},
+			},
+
+			Err: false,
+		},
 	}
 
 	for i, tc := range cases {

@@ -459,9 +459,10 @@ func (m schemaMap) diffList(
 	o, n, _, computedList := d.diffChange(k)
 	nSet := n != nil
 
-	// If we have an old value, but no new value set but we're computed,
-	// then nothing has changed.
-	if o != nil && n == nil && schema.Computed {
+	// If we have an old value and no new value is set or will be
+	// computed once all variables can be interpolated and we're
+	// computed, then nothing has changed.
+	if o != nil && n == nil && !computedList && schema.Computed {
 		return nil
 	}
 
