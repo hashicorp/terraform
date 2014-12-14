@@ -60,7 +60,11 @@ func resourceAwsInternetGatewayRead(d *schema.ResourceData, meta interface{}) er
 	}
 
 	ig := igRaw.(*ec2.InternetGateway)
-	d.Set("vpc_id", ig.Attachments[0].VpcId)
+	if len(ig.Attachments) == 0 {
+		d.SetId("")
+	} else {
+		d.Set("vpc_id", ig.Attachments[0].VpcId)
+	}
 
 	return nil
 }
