@@ -9,13 +9,24 @@ import (
 	"github.com/hashicorp/terraform/helper/schema"
 )
 
+type herokuApplication struct {
+	Name             string
+	Region           string
+	Stack            string
+	GitURL           string
+	WebURL           string
+	OrganizationName string
+	Locked           bool
+}
+
 // type application is used to store all the details of a heroku app
 type application struct {
 	Id string // Id of the resource
 
-	App    *heroku.App       // The heroku application
-	Client *heroku.Service   // Client to interact with the heroku API
-	Vars   map[string]string // The vars on the application
+	App          *herokuApplication // The heroku application
+	Client       *heroku.Service    // Client to interact with the heroku API
+	Vars         map[string]string  // The vars on the application
+	Organization bool               // is the application organization app
 }
 
 // Updates the application to have the latest from remote
@@ -23,9 +34,37 @@ func (a *application) Update() error {
 	var errs []error
 	var err error
 
-	a.App, err = a.Client.AppInfo(a.Id)
-	if err != nil {
-		errs = append(errs, err)
+	if !a.Organization {
+		app, err := a.Client.AppInfo(a.Id)
+		if err != nil {
+			errs = append(errs, err)
+		} else {
+			a.App = &herokuApplication{}
+			a.App.Name = app.Name
+			a.App.Region = app.Region.Name
+			a.App.Stack = app.Stack.Name
+			a.App.GitURL = app.GitURL
+			a.App.WebURL = app.WebURL
+		}
+	} else {
+		app, err := a.Client.OrganizationAppInfo(a.Id)
+		if err != nil {
+			errs = append(errs, err)
+		} else {
+			// No inheritance between OrganizationApp and App is killing it :/
+			a.App = &herokuApplication{}
+			a.App.Name = app.Name
+			a.App.Region = app.Region.Name
+			a.App.Stack = app.Stack.Name
+			a.App.GitURL = app.GitURL
+			a.App.WebURL = app.WebURL
+			if app.Organization != nil {
+				a.App.OrganizationName = app.Organization.Name
+			} else {
+				log.Println("[DEBUG] Something is wrong - didn't get information about organization name, while the app is marked as being so")
+			}
+			a.App.Locked = app.Locked
+		}
 	}
 
 	a.Vars, err = retrieveConfigVars(a.Id, a.Client)
@@ -122,13 +161,18 @@ func resourceHerokuApp() *schema.Resource {
 	}
 }
 
+func isOrganizationApp(d *schema.ResourceData) bool {
+	_, ok := d.GetOk("organization.0.name")
+	return ok
+}
+
 func switchHerokuAppCreate(d *schema.ResourceData, meta interface{}) error {
 	orgCount := d.Get("organization.#").(int)
 	if orgCount > 1 {
 		return fmt.Errorf("Error Creating Heroku App: Only 1 Heroku Organization is permitted")
 	}
 
-	if _, ok := d.GetOk("organization.0.name"); ok {
+	if isOrganizationApp(d) {
 		return resourceHerokuOrgAppCreate(d, meta)
 	} else {
 		return resourceHerokuAppCreate(d, meta)
@@ -236,13 +280,7 @@ func resourceHerokuOrgAppCreate(d *schema.ResourceData, meta interface{}) error 
 
 func resourceHerokuAppRead(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*heroku.Service)
-	app, err := resourceHerokuAppRetrieve(d.Id(), client)
-	if err != nil {
-		return err
-	}
 
-	// Only set the config_vars that we have set in the configuration.
-	// The "all_config_vars" field has all of them.
 	configVars := make(map[string]string)
 	care := make(map[string]struct{})
 	for _, v := range d.Get("config_vars").([]interface{}) {
@@ -250,6 +288,15 @@ func resourceHerokuAppRead(d *schema.ResourceData, meta interface{}) error {
 			care[k] = struct{}{}
 		}
 	}
+
+	_, organizationApp := d.GetOk("organization.0.name")
+	// Only set the config_vars that we have set in the configuration.
+	// The "all_config_vars" field has all of them.
+	app, err := resourceHerokuAppRetrieve(d.Id(), organizationApp, client)
+	if err != nil {
+		return err
+	}
+
 	for k, v := range app.Vars {
 		if _, ok := care[k]; ok {
 			configVars[k] = v
@@ -261,12 +308,18 @@ func resourceHerokuAppRead(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	d.Set("name", app.App.Name)
-	d.Set("stack", app.App.Stack.Name)
-	d.Set("region", app.App.Region.Name)
+	d.Set("stack", app.App.Stack)
+	d.Set("region", app.App.Region)
 	d.Set("git_url", app.App.GitURL)
 	d.Set("web_url", app.App.WebURL)
 	d.Set("config_vars", configVarsValue)
 	d.Set("all_config_vars", app.Vars)
+	if organizationApp {
+		d.Set("organization.#", "1")
+		d.Set("organization.0.name", app.App.OrganizationName)
+		d.Set("organization.0.locked", app.App.Locked)
+		d.Set("organization.0.private", false)
+	}
 
 	// We know that the hostname on heroku will be the name+herokuapp.com
 	// You need this to do things like create DNS CNAME records
@@ -327,8 +380,8 @@ func resourceHerokuAppDelete(d *schema.ResourceData, meta interface{}) error {
 	return nil
 }
 
-func resourceHerokuAppRetrieve(id string, client *heroku.Service) (*application, error) {
-	app := application{Id: id, Client: client}
+func resourceHerokuAppRetrieve(id string, organization bool, client *heroku.Service) (*application, error) {
+	app := application{Id: id, Client: client, Organization: organization}
 
 	err := app.Update()
 
