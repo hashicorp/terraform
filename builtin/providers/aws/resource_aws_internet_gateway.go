@@ -66,7 +66,7 @@ func resourceAwsInternetGatewayRead(d *schema.ResourceData, meta interface{}) er
 
 func resourceAwsInternetGatewayUpdate(d *schema.ResourceData, meta interface{}) error {
 	if d.HasChange("vpc_id") {
-	// If we're already attached, detach it first
+		// If we're already attached, detach it first
 		if err := resourceAwsInternetGatewayDetach(d, meta); err != nil {
 			return err
 		}
