@@ -20,8 +20,7 @@ func resourceAwsInternetGateway() *schema.Resource {
 		Schema: map[string]*schema.Schema{
 			"vpc_id": &schema.Schema{
 				Type:     schema.TypeString,
-				Required: true,
-				ForceNew: true,
+				Optional: true,
 			},
 		},
 	}
@@ -66,13 +65,19 @@ func resourceAwsInternetGatewayRead(d *schema.ResourceData, meta interface{}) er
 }
 
 func resourceAwsInternetGatewayUpdate(d *schema.ResourceData, meta interface{}) error {
-	// If we're already attached, detach it first
-	if err := resourceAwsInternetGatewayDetach(d, meta); err != nil {
-		return err
+	if d.HasChange("vpc_id") {
+		// If we're already attached, detach it first
+		if err := resourceAwsInternetGatewayDetach(d, meta); err != nil {
+			return err
+		}
+
+		// Attach the gateway to the new vpc
+		if err := resourceAwsInternetGatewayAttach(d, meta); err != nil {
+			return err
+		}
 	}
 
-	// Attach the gateway to the new vpc
-	return resourceAwsInternetGatewayAttach(d, meta)
+	return nil
 }
 
 func resourceAwsInternetGatewayDelete(d *schema.ResourceData, meta interface{}) error {
@@ -126,6 +131,13 @@ func resourceAwsInternetGatewayDelete(d *schema.ResourceData, meta interface{}) 
 func resourceAwsInternetGatewayAttach(d *schema.ResourceData, meta interface{}) error {
 	ec2conn := meta.(*AWSClient).ec2conn
 
+	if d.Get("vpc_id").(string) == "" {
+		log.Printf(
+			"[DEBUG] Not attaching Internet Gateway '%s' as no VPC ID is set",
+			d.Id())
+		return nil
+	}
+
 	log.Printf(
 		"[INFO] Attaching Internet Gateway '%s' to VPC '%s'",
 		d.Id(),
@@ -161,13 +173,23 @@ func resourceAwsInternetGatewayAttach(d *schema.ResourceData, meta interface{}) 
 func resourceAwsInternetGatewayDetach(d *schema.ResourceData, meta interface{}) error {
 	ec2conn := meta.(*AWSClient).ec2conn
 
+	// Get the old VPC ID to detach from
+	vpc_id, _ := d.GetChange("vpc_id")
+
+	if vpc_id.(string) == "" {
+		log.Printf(
+			"[DEBUG] Not detaching Internet Gateway '%s' as no VPC ID is set",
+			d.Id())
+		return nil
+	}
+
 	log.Printf(
 		"[INFO] Detaching Internet Gateway '%s' from VPC '%s'",
 		d.Id(),
-		d.Get("vpc_id").(string))
+		vpc_id.(string))
 
 	wait := true
-	_, err := ec2conn.DetachInternetGateway(d.Id(), d.Get("vpc_id").(string))
+	_, err := ec2conn.DetachInternetGateway(d.Id(), vpc_id.(string))
 	if err != nil {
 		ec2err, ok := err.(*ec2.Error)
 		if ok {
