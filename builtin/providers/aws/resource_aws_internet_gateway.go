@@ -61,7 +61,8 @@ func resourceAwsInternetGatewayRead(d *schema.ResourceData, meta interface{}) er
 
 	ig := igRaw.(*ec2.InternetGateway)
 	if len(ig.Attachments) == 0 {
-		d.SetId("")
+		// Gateway exists but not attached to the VPC
+		d.Set("vpc_id", "")
 	} else {
 		d.Set("vpc_id", ig.Attachments[0].VpcId)
 	}
