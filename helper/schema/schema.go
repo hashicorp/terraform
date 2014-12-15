@@ -532,6 +532,17 @@ func (m schemaMap) diffList(
 	}
 
 	switch t := schema.Elem.(type) {
+	case *Resource:
+		// This is a complex resource
+		for i := 0; i < maxLen; i++ {
+			for k2, schema := range t.Schema {
+				subK := fmt.Sprintf("%s.%d.%s", k, i, k2)
+				err := m.diff(subK, schema, diff, d, all)
+				if err != nil {
+					return err
+				}
+			}
+		}
 	case *Schema:
 		// Copy the schema so that we can set Computed/ForceNew from
 		// the parent schema (the TypeList).
@@ -545,17 +556,6 @@ func (m schemaMap) diffList(
 			err := m.diff(subK, &t2, diff, d, all)
 			if err != nil {
 				return err
-			}
-		}
-	case *Resource:
-		// This is a complex resource
-		for i := 0; i < maxLen; i++ {
-			for k2, schema := range t.Schema {
-				subK := fmt.Sprintf("%s.%d.%s", k, i, k2)
-				err := m.diff(subK, schema, diff, d, all)
-				if err != nil {
-					return err
-				}
 			}
 		}
 	default:
@@ -691,6 +691,16 @@ func (m schemaMap) diffSet(
 
 	for _, code := range ns.listCode() {
 		switch t := schema.Elem.(type) {
+		case *Resource:
+			// This is a complex resource
+			for k2, schema := range t.Schema {
+				subK := fmt.Sprintf("%s.%d.%s", k, code, k2)
+				subK = strings.Replace(subK, "-", "~", -1)
+				err := m.diff(subK, schema, diff, d, true)
+				if err != nil {
+					return err
+				}
+			}
 		case *Schema:
 			// Copy the schema so that we can set Computed/ForceNew from
 			// the parent schema (the TypeSet).
@@ -704,16 +714,6 @@ func (m schemaMap) diffSet(
 			err := m.diff(subK, &t2, diff, d, true)
 			if err != nil {
 				return err
-			}
-		case *Resource:
-			// This is a complex resource
-			for k2, schema := range t.Schema {
-				subK := fmt.Sprintf("%s.%d.%s", k, code, k2)
-				subK = strings.Replace(subK, "-", "~", -1)
-				err := m.diff(subK, schema, diff, d, true)
-				if err != nil {
-					return err
-				}
 			}
 		default:
 			return fmt.Errorf("%s: unknown element type (internal)", k)
