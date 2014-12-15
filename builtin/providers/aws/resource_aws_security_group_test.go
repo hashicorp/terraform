@@ -28,15 +28,15 @@ func TestAccAWSSecurityGroup_normal(t *testing.T) {
 					resource.TestCheckResourceAttr(
 						"aws_security_group.web", "description", "Used in the terraform acceptance tests"),
 					resource.TestCheckResourceAttr(
-						"aws_security_group.web", "ingress.0.protocol", "tcp"),
+						"aws_security_group.web", "ingress.332851786.protocol", "tcp"),
 					resource.TestCheckResourceAttr(
-						"aws_security_group.web", "ingress.0.from_port", "80"),
+						"aws_security_group.web", "ingress.332851786.from_port", "80"),
 					resource.TestCheckResourceAttr(
-						"aws_security_group.web", "ingress.0.to_port", "8000"),
+						"aws_security_group.web", "ingress.332851786.to_port", "8000"),
 					resource.TestCheckResourceAttr(
-						"aws_security_group.web", "ingress.0.cidr_blocks.#", "1"),
+						"aws_security_group.web", "ingress.332851786.cidr_blocks.#", "1"),
 					resource.TestCheckResourceAttr(
-						"aws_security_group.web", "ingress.0.cidr_blocks.0", "10.0.0.0/8"),
+						"aws_security_group.web", "ingress.332851786.cidr_blocks.0", "10.0.0.0/8"),
 				),
 			},
 		},
@@ -74,13 +74,13 @@ func TestAccAWSSecurityGroup_self(t *testing.T) {
 					resource.TestCheckResourceAttr(
 						"aws_security_group.web", "description", "Used in the terraform acceptance tests"),
 					resource.TestCheckResourceAttr(
-						"aws_security_group.web", "ingress.0.protocol", "tcp"),
+						"aws_security_group.web", "ingress.3128515109.protocol", "tcp"),
 					resource.TestCheckResourceAttr(
-						"aws_security_group.web", "ingress.0.from_port", "80"),
+						"aws_security_group.web", "ingress.3128515109.from_port", "80"),
 					resource.TestCheckResourceAttr(
-						"aws_security_group.web", "ingress.0.to_port", "8000"),
+						"aws_security_group.web", "ingress.3128515109.to_port", "8000"),
 					resource.TestCheckResourceAttr(
-						"aws_security_group.web", "ingress.0.self", "true"),
+						"aws_security_group.web", "ingress.3128515109.self", "true"),
 					checkSelf,
 				),
 			},
@@ -114,15 +114,15 @@ func TestAccAWSSecurityGroup_vpc(t *testing.T) {
 					resource.TestCheckResourceAttr(
 						"aws_security_group.web", "description", "Used in the terraform acceptance tests"),
 					resource.TestCheckResourceAttr(
-						"aws_security_group.web", "ingress.0.protocol", "tcp"),
+						"aws_security_group.web", "ingress.332851786.protocol", "tcp"),
 					resource.TestCheckResourceAttr(
-						"aws_security_group.web", "ingress.0.from_port", "80"),
+						"aws_security_group.web", "ingress.332851786.from_port", "80"),
 					resource.TestCheckResourceAttr(
-						"aws_security_group.web", "ingress.0.to_port", "8000"),
+						"aws_security_group.web", "ingress.332851786.to_port", "8000"),
 					resource.TestCheckResourceAttr(
-						"aws_security_group.web", "ingress.0.cidr_blocks.#", "1"),
+						"aws_security_group.web", "ingress.332851786.cidr_blocks.#", "1"),
 					resource.TestCheckResourceAttr(
-						"aws_security_group.web", "ingress.0.cidr_blocks.0", "10.0.0.0/8"),
+						"aws_security_group.web", "ingress.332851786.cidr_blocks.0", "10.0.0.0/8"),
 					testCheck,
 				),
 			},
@@ -355,124 +355,144 @@ func testAccCheckAWSSecurityGroupAttributesChanged(group *ec2.SecurityGroupInfo)
 
 const testAccAWSSecurityGroupConfig = `
 resource "aws_security_group" "web" {
-    name = "terraform_acceptance_test_example"
-    description = "Used in the terraform acceptance tests"
+  name = "terraform_acceptance_test_example"
+  description = "Used in the terraform acceptance tests"
 
-    ingress {
-        protocol = "tcp"
-        from_port = 80
-        to_port = 8000
-        cidr_blocks = ["10.0.0.0/8"]
-    }
+  ingress {
+    protocol = "tcp"
+    from_port = 80
+    to_port = 8000
+    cidr_blocks = ["10.0.0.0/8"]
+  }
 }
 `
 
 const testAccAWSSecurityGroupConfigChange = `
 resource "aws_security_group" "web" {
-    name = "terraform_acceptance_test_example"
-    description = "Used in the terraform acceptance tests"
+  name = "terraform_acceptance_test_example"
+  description = "Used in the terraform acceptance tests"
 
-    ingress {
-        protocol = "tcp"
-        from_port = 80
-        to_port = 9000
-        cidr_blocks = ["10.0.0.0/8"]
-    }
+  ingress {
+    protocol = "tcp"
+    from_port = 80
+    to_port = 9000
+    cidr_blocks = ["10.0.0.0/8"]
+  }
 
-    ingress {
-        protocol = "tcp"
-        from_port = 80
-        to_port = 8000
-        cidr_blocks = ["10.0.0.0/8", "0.0.0.0/0"]
-    }
+  ingress {
+    protocol = "tcp"
+    from_port = 80
+    to_port = 8000
+    cidr_blocks = ["0.0.0.0/0", "10.0.0.0/8"]
+  }
 }
 `
 
 const testAccAWSSecurityGroupConfigSelf = `
 resource "aws_security_group" "web" {
-    name = "terraform_acceptance_test_example"
-    description = "Used in the terraform acceptance tests"
+  name = "terraform_acceptance_test_example"
+  description = "Used in the terraform acceptance tests"
 
-    ingress {
-        protocol = "tcp"
-        from_port = 80
-        to_port = 8000
-        self = true
-    }
+  ingress {
+    protocol = "tcp"
+    from_port = 80
+    to_port = 8000
+    self = true
+  }
 }
 `
 
 const testAccAWSSecurityGroupConfigVpc = `
 resource "aws_vpc" "foo" {
-	cidr_block = "10.1.0.0/16"
+  cidr_block = "10.1.0.0/16"
 }
 
 resource "aws_security_group" "web" {
-    name = "terraform_acceptance_test_example"
-    description = "Used in the terraform acceptance tests"
-	vpc_id = "${aws_vpc.foo.id}"
+  name = "terraform_acceptance_test_example"
+  description = "Used in the terraform acceptance tests"
+  vpc_id = "${aws_vpc.foo.id}"
 
-    ingress {
-        protocol = "tcp"
-        from_port = 80
-        to_port = 8000
-        cidr_blocks = ["10.0.0.0/8"]
-    }
+  ingress {
+    protocol = "tcp"
+    from_port = 80
+    to_port = 8000
+    cidr_blocks = ["10.0.0.0/8"]
+  }
 }
 `
 
 const testAccAWSSecurityGroupConfigMultiIngress = `
 resource "aws_security_group" "worker" {
-    name = "terraform_acceptance_test_example_1"
-    description = "Used in the terraform acceptance tests"
+  name = "terraform_acceptance_test_example_1"
+  description = "Used in the terraform acceptance tests"
 
-    ingress {
-        protocol = "tcp"
-        from_port = 80
-        to_port = 8000
-        cidr_blocks = ["10.0.0.0/8"]
-    }
+  ingress {
+    protocol = "tcp"
+    from_port = 80
+    to_port = 8000
+    cidr_blocks = ["10.0.0.0/8"]
+  }
 }
 
 resource "aws_security_group" "web" {
-    name = "terraform_acceptance_test_example_2"
-    description = "Used in the terraform acceptance tests"
+  name = "terraform_acceptance_test_example_2"
+  description = "Used in the terraform acceptance tests"
 
-    ingress {
-        protocol = "tcp"
-        from_port = 22
-        to_port = 22
-        cidr_blocks = ["10.0.0.0/8"]
-    }
+  ingress {
+    protocol = "tcp"
+    from_port = 22
+    to_port = 22
+    cidr_blocks = ["10.0.0.0/8"]
+  }
 
-    ingress {
-        protocol = "tcp"
-        from_port = 800
-        to_port = 800
-        cidr_blocks = ["10.0.0.0/8"]
-    }
+  ingress {
+    protocol = "tcp"
+    from_port = 800
+    to_port = 800
+    cidr_blocks = ["10.0.0.0/8"]
+  }
 
-    ingress {
-        protocol = "tcp"
-        from_port = 80
-        to_port = 8000
-        security_groups = ["${aws_security_group.worker.id}"]
-    }
+  ingress {
+    protocol = "tcp"
+    from_port = 80
+    to_port = 8000
+    security_groups = ["${aws_security_group.worker.id}"]
+  }
 }
 `
 
 const testAccAWSSecurityGroupConfigTags = `
 resource "aws_security_group" "foo" {
-	tags {
-		foo = "bar"
-	}
+	name = "terraform_acceptance_test_example"
+  description = "Used in the terraform acceptance tests"
+
+  ingress {
+    protocol = "tcp"
+    from_port = 80
+    to_port = 8000
+    cidr_blocks = ["10.0.0.0/8"]
+  }
+
+  tags {
+    foo = "bar"
+  }
 }
 `
 
 const testAccAWSSecurityGroupConfigTagsUpdate = `
 resource "aws_security_group" "foo" {
-	tags {
-		bar = "baz"
-	}
+  name = "terraform_acceptance_test_example"
+  description = "Used in the terraform acceptance tests"
+
+  ingress {
+    protocol = "tcp"
+    from_port = 80
+    to_port = 8000
+    cidr_blocks = ["10.0.0.0/8"]
+  }
+
+  tags {
+    bar = "baz"
+  }
 }
 `

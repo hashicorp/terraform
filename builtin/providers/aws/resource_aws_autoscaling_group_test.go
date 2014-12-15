@@ -23,7 +23,7 @@ func TestAccAWSAutoScalingGroup_basic(t *testing.T) {
 					testAccCheckAWSAutoScalingGroupExists("aws_autoscaling_group.bar", &group),
 					testAccCheckAWSAutoScalingGroupAttributes(&group),
 					resource.TestCheckResourceAttr(
-						"aws_autoscaling_group.bar", "availability_zones.0", "us-west-2a"),
+						"aws_autoscaling_group.bar", "availability_zones.2487133097", "us-west-2a"),
 					resource.TestCheckResourceAttr(
 						"aws_autoscaling_group.bar", "name", "foobar3-terraform-test"),
 					resource.TestCheckResourceAttr(
@@ -39,7 +39,7 @@ func TestAccAWSAutoScalingGroup_basic(t *testing.T) {
 					resource.TestCheckResourceAttr(
 						"aws_autoscaling_group.bar", "force_delete", "true"),
 					resource.TestCheckResourceAttr(
-							"aws_autoscaling_group.bar", "termination_policies.0", "OldestInstance"),
+						"aws_autoscaling_group.bar", "termination_policies.912102603", "OldestInstance"),
 				),
 			},
 
@@ -205,7 +205,7 @@ resource "aws_autoscaling_group" "bar" {
   desired_capacity = 4
   force_delete = true
   termination_policies = ["OldestInstance"]
-	
+
   launch_configuration = "${aws_launch_configuration.foobar.name}"
 }
 `

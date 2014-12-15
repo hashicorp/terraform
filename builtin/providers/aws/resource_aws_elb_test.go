@@ -34,15 +34,15 @@ func TestAccAWSELB_basic(t *testing.T) {
 					resource.TestCheckResourceAttr(
 						"aws_elb.bar", "availability_zones.2", "us-west-2c"),
 					resource.TestCheckResourceAttr(
-						"aws_elb.bar", "listener.0.instance_port", "8000"),
+						"aws_elb.bar", "listener.206423021.instance_port", "8000"),
 					resource.TestCheckResourceAttr(
-						"aws_elb.bar", "listener.0.instance_protocol", "http"),
+						"aws_elb.bar", "listener.206423021.instance_protocol", "http"),
 					resource.TestCheckResourceAttr(
-						"aws_elb.bar", "listener.0.ssl_certificate_id", ssl_certificate_id),
+						"aws_elb.bar", "listener.206423021.ssl_certificate_id", ssl_certificate_id),
 					resource.TestCheckResourceAttr(
-						"aws_elb.bar", "listener.0.lb_port", "80"),
+						"aws_elb.bar", "listener.206423021.lb_port", "80"),
 					resource.TestCheckResourceAttr(
-						"aws_elb.bar", "listener.0.lb_protocol", "http"),
+						"aws_elb.bar", "listener.206423021.lb_protocol", "http"),
 					resource.TestCheckResourceAttr(
 						"aws_elb.bar", "cross_zone_load_balancing", "true"),
 				),
@@ -101,15 +101,15 @@ func TestAccAWSELB_HealthCheck(t *testing.T) {
 					testAccCheckAWSELBExists("aws_elb.bar", &conf),
 					testAccCheckAWSELBAttributesHealthCheck(&conf),
 					resource.TestCheckResourceAttr(
-						"aws_elb.bar", "health_check.0.healthy_threshold", "5"),
+						"aws_elb.bar", "health_check.3484319807.healthy_threshold", "5"),
 					resource.TestCheckResourceAttr(
-						"aws_elb.bar", "health_check.0.unhealthy_threshold", "5"),
+						"aws_elb.bar", "health_check.3484319807.unhealthy_threshold", "5"),
 					resource.TestCheckResourceAttr(
-						"aws_elb.bar", "health_check.0.target", "HTTP:8000/"),
+						"aws_elb.bar", "health_check.3484319807.target", "HTTP:8000/"),
 					resource.TestCheckResourceAttr(
-						"aws_elb.bar", "health_check.0.timeout", "30"),
+						"aws_elb.bar", "health_check.3484319807.timeout", "30"),
 					resource.TestCheckResourceAttr(
-						"aws_elb.bar", "health_check.0.interval", "60"),
+						"aws_elb.bar", "health_check.3484319807.interval", "60"),
 				),
 			},
 		},
@@ -257,7 +257,6 @@ resource "aws_elb" "bar" {
     lb_protocol = "http"
   }
 
-  instances = []
   cross_zone_load_balancing = true
 }
 `
