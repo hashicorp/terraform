@@ -123,7 +123,7 @@ func resourceMailgunDomainCreate(d *schema.ResourceData, meta interface{}) error
 	log.Printf("[INFO] Domain ID: %s", d.Id())
 
 	// Retrieve and update state of domain
-	_, err = resource_mailgin_domain_retrieve(d.Id(), client, d)
+	_, err = resourceMailginDomainRetrieve(d.Id(), client, d)
 
 	if err != nil {
 		return err
@@ -149,7 +149,7 @@ func resourceMailgunDomainDelete(d *schema.ResourceData, meta interface{}) error
 func resourceMailgunDomainRead(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*mailgun.Client)
 
-	_, err := resource_mailgin_domain_retrieve(d.Id(), client, d)
+	_, err := resourceMailginDomainRetrieve(d.Id(), client, d)
 
 	if err != nil {
 		return err
@@ -158,7 +158,7 @@ func resourceMailgunDomainRead(d *schema.ResourceData, meta interface{}) error {
 	return nil
 }
 
-func resource_mailgin_domain_retrieve(id string, client *mailgun.Client, d *schema.ResourceData) (*mailgun.DomainResponse, error) {
+func resourceMailginDomainRetrieve(id string, client *mailgun.Client, d *schema.ResourceData) (*mailgun.DomainResponse, error) {
 	resp, err := client.RetrieveDomain(id)
 
 	if err != nil {
