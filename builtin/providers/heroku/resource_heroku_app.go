@@ -28,7 +28,7 @@ func (a *application) Update() error {
 		errs = append(errs, err)
 	}
 
-	a.Vars, err = retrieve_config_vars(a.Id, a.Client)
+	a.Vars, err = retrieveConfigVars(a.Id, a.Client)
 	if err != nil {
 		errs = append(errs, err)
 	}
@@ -167,7 +167,7 @@ func resourceHerokuAppCreate(d *schema.ResourceData, meta interface{}) error {
 	log.Printf("[INFO] App ID: %s", d.Id())
 
 	if v, ok := d.GetOk("config_vars"); ok {
-		err = update_config_vars(d.Id(), client, nil, v.([]interface{}))
+		err = updateConfigVars(d.Id(), client, nil, v.([]interface{}))
 		if err != nil {
 			return err
 		}
@@ -225,7 +225,7 @@ func resourceHerokuOrgAppCreate(d *schema.ResourceData, meta interface{}) error 
 	log.Printf("[INFO] App ID: %s", d.Id())
 
 	if v, ok := d.GetOk("config_vars"); ok {
-		err = update_config_vars(d.Id(), client, nil, v.([]interface{}))
+		err = updateConfigVars(d.Id(), client, nil, v.([]interface{}))
 		if err != nil {
 			return err
 		}
@@ -236,7 +236,7 @@ func resourceHerokuOrgAppCreate(d *schema.ResourceData, meta interface{}) error 
 
 func resourceHerokuAppRead(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*heroku.Service)
-	app, err := resource_heroku_app_retrieve(d.Id(), client)
+	app, err := resourceHerokuAppRetrieve(d.Id(), client)
 	if err != nil {
 		return err
 	}
@@ -304,7 +304,7 @@ func resourceHerokuAppUpdate(d *schema.ResourceData, meta interface{}) error {
 			n = []interface{}{}
 		}
 
-		err := update_config_vars(
+		err := updateConfigVars(
 			d.Id(), client, o.([]interface{}), n.([]interface{}))
 		if err != nil {
 			return err
@@ -327,7 +327,7 @@ func resourceHerokuAppDelete(d *schema.ResourceData, meta interface{}) error {
 	return nil
 }
 
-func resource_heroku_app_retrieve(id string, client *heroku.Service) (*application, error) {
+func resourceHerokuAppRetrieve(id string, client *heroku.Service) (*application, error) {
 	app := application{Id: id, Client: client}
 
 	err := app.Update()
@@ -339,7 +339,7 @@ func resource_heroku_app_retrieve(id string, client *heroku.Service) (*applicati
 	return &app, nil
 }
 
-func retrieve_config_vars(id string, client *heroku.Service) (map[string]string, error) {
+func retrieveConfigVars(id string, client *heroku.Service) (map[string]string, error) {
 	vars, err := client.ConfigVarInfo(id)
 
 	if err != nil {
@@ -350,7 +350,7 @@ func retrieve_config_vars(id string, client *heroku.Service) (map[string]string,
 }
 
 // Updates the config vars for from an expanded configuration.
-func update_config_vars(
+func updateConfigVars(
 	id string,
 	client *heroku.Service,
 	o []interface{},

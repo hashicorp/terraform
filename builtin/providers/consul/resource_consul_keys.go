@@ -96,7 +96,7 @@ func resourceConsulKeysCreate(d *schema.ResourceData, meta interface{}) error {
 	} else {
 		log.Printf("[DEBUG] Resolving Consul datacenter...")
 		var err error
-		dc, err = get_dc(client)
+		dc, err = getDC(client)
 		if err != nil {
 			return err
 		}
@@ -116,7 +116,7 @@ func resourceConsulKeysCreate(d *schema.ResourceData, meta interface{}) error {
 	// Extract the keys
 	keys := d.Get("key").(*schema.Set).List()
 	for _, raw := range keys {
-		key, path, sub, err := parse_key(raw)
+		key, path, sub, err := parseKey(raw)
 		if err != nil {
 			return err
 		}
@@ -137,7 +137,7 @@ func resourceConsulKeysCreate(d *schema.ResourceData, meta interface{}) error {
 			if err != nil {
 				return fmt.Errorf("Failed to get Consul key '%s': %v", path, err)
 			}
-			value := attribute_value(sub, key, pair)
+			value := attributeValue(sub, key, pair)
 			vars[key] = value
 		}
 	}
@@ -176,7 +176,7 @@ func resourceConsulKeysRead(d *schema.ResourceData, meta interface{}) error {
 	// Extract the keys
 	keys := d.Get("key").(*schema.Set).List()
 	for _, raw := range keys {
-		key, path, sub, err := parse_key(raw)
+		key, path, sub, err := parseKey(raw)
 		if err != nil {
 			return err
 		}
@@ -187,7 +187,7 @@ func resourceConsulKeysRead(d *schema.ResourceData, meta interface{}) error {
 			return fmt.Errorf("Failed to get value for path '%s' from Consul: %v", path, err)
 		}
 
-		value := attribute_value(sub, key, pair)
+		value := attributeValue(sub, key, pair)
 		vars[key] = value
 		sub["value"] = value
 	}
@@ -221,7 +221,7 @@ func resourceConsulKeysDelete(d *schema.ResourceData, meta interface{}) error {
 	// Extract the keys
 	keys := d.Get("key").(*schema.Set).List()
 	for _, raw := range keys {
-		_, path, sub, err := parse_key(raw)
+		_, path, sub, err := parseKey(raw)
 		if err != nil {
 			return err
 		}
@@ -243,8 +243,8 @@ func resourceConsulKeysDelete(d *schema.ResourceData, meta interface{}) error {
 	return nil
 }
 
-// parse_key is used to parse a key into a name, path, config or error
-func parse_key(raw interface{}) (string, string, map[string]interface{}, error) {
+// parseKey is used to parse a key into a name, path, config or error
+func parseKey(raw interface{}) (string, string, map[string]interface{}, error) {
 	sub, ok := raw.(map[string]interface{})
 	if !ok {
 		return "", "", nil, fmt.Errorf("Failed to unroll: %#v", raw)
@@ -262,9 +262,9 @@ func parse_key(raw interface{}) (string, string, map[string]interface{}, error) 
 	return key, path, sub, nil
 }
 
-// attribute_value determines the value for a key, potentially
+// attributeValue determines the value for a key, potentially
 // using a default value if provided.
-func attribute_value(sub map[string]interface{}, key string, pair *consulapi.KVPair) string {
+func attributeValue(sub map[string]interface{}, key string, pair *consulapi.KVPair) string {
 	// Use the value if given
 	if pair != nil {
 		return string(pair.Value)
@@ -284,8 +284,8 @@ func attribute_value(sub map[string]interface{}, key string, pair *consulapi.KVP
 	return ""
 }
 
-// get_dc is used to get the datacenter of the local agent
-func get_dc(client *consulapi.Client) (string, error) {
+// getDC is used to get the datacenter of the local agent
+func getDC(client *consulapi.Client) (string, error) {
 	info, err := client.Agent().Self()
 	if err != nil {
 		return "", fmt.Errorf("Failed to get datacenter from Consul agent: %v", err)

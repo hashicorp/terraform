@@ -229,7 +229,7 @@ func resourceDigitalOceanDropletUpdate(d *schema.ResourceData, meta interface{})
 		err = client.Resize(d.Id(), newSize.(string))
 
 		if err != nil {
-			newErr := power_on_and_wait(d, meta)
+			newErr := powerOnAndWait(d, meta)
 			if newErr != nil {
 				return fmt.Errorf(
 					"Error powering on droplet (%s) after failed resize: %s", d.Id(), err)
@@ -243,7 +243,7 @@ func resourceDigitalOceanDropletUpdate(d *schema.ResourceData, meta interface{})
 			d, newSize.(string), []string{"", oldSize.(string)}, "size", meta)
 
 		if err != nil {
-			newErr := power_on_and_wait(d, meta)
+			newErr := powerOnAndWait(d, meta)
 			if newErr != nil {
 				return fmt.Errorf(
 					"Error powering on droplet (%s) after waiting for resize to finish: %s", d.Id(), err)
@@ -359,7 +359,7 @@ func WaitForDropletAttribute(
 	stateConf := &resource.StateChangeConf{
 		Pending:    pending,
 		Target:     target,
-		Refresh:    new_droplet_state_refresh_func(d, attribute, meta),
+		Refresh:    newDropletStateRefreshFunc(d, attribute, meta),
 		Timeout:    10 * time.Minute,
 		Delay:      10 * time.Second,
 		MinTimeout: 3 * time.Second,
@@ -370,7 +370,7 @@ func WaitForDropletAttribute(
 
 // TODO This function still needs a little more refactoring to make it
 // cleaner and more efficient
-func new_droplet_state_refresh_func(
+func newDropletStateRefreshFunc(
 	d *schema.ResourceData, attribute string, meta interface{}) resource.StateRefreshFunc {
 	client := meta.(*digitalocean.Client)
 	return func() (interface{}, string, error) {
@@ -405,7 +405,7 @@ func new_droplet_state_refresh_func(
 }
 
 // Powers on the droplet and waits for it to be active
-func power_on_and_wait(d *schema.ResourceData, meta interface{}) error {
+func powerOnAndWait(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*digitalocean.Client)
 	err := client.PowerOn(d.Id())
 
