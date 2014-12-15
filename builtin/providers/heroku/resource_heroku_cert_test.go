@@ -21,11 +21,6 @@ func TestAccHerokuCert_Basic(t *testing.T) {
     resource "heroku_app" "foobar" {
         name = "terraform-test-cert-app"
         region = "eu"
-        organization = {
-            name = "plan3-labs"
-            locked = false
-            private = false
-        }   
     }
 
     resource "heroku_addon" "ssl" {

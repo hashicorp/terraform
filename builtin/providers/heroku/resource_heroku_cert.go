@@ -70,7 +70,7 @@ func resourceHerokuCertCreate(d *schema.ResourceData, meta interface{}) error {
 func resourceHerokuCertRead(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*heroku.Service)
 
-	cert, err := resource_heroku_ssl_cert_retrieve(
+	cert, err := resourceHerokuSSLCertRetrieve(
 		d.Get("app").(string), d.Id(), client)
 	if err != nil {
 		return err
@@ -79,8 +79,6 @@ func resourceHerokuCertRead(d *schema.ResourceData, meta interface{}) error {
 	d.Set("certificate_chain", cert.CertificateChain)
 	d.Set("name", cert.Name)
 	d.Set("cname", cert.CName)
-	d.Set("created_at", cert.CreatedAt)
-	d.Set("updated_at", cert.UpdatedAt)
 
 	return nil
 }
@@ -125,7 +123,7 @@ func resourceHerokuCertDelete(d *schema.ResourceData, meta interface{}) error {
 	return nil
 }
 
-func resource_heroku_ssl_cert_retrieve(app string, id string, client *heroku.Service) (*heroku.SSLEndpoint, error) {
+func resourceHerokuSSLCertRetrieve(app string, id string, client *heroku.Service) (*heroku.SSLEndpoint, error) {
 	addon, err := client.SSLEndpointInfo(app, id)
 
 	if err != nil {
