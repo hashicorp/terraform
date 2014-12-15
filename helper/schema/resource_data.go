@@ -113,7 +113,7 @@ func (d *ResourceData) HasChange(key string) bool {
 	return !reflect.DeepEqual(o, n)
 }
 
-// hasComputedSubKeys walks true a schema and returns whether or not the
+// hasComputedSubKeys walks through a schema and returns whether or not the
 // given key contains any subkeys that are computed.
 func (d *ResourceData) hasComputedSubKeys(key string, schema *Schema) bool {
 	prefix := key + "."
@@ -430,10 +430,6 @@ func (d *ResourceData) getSet(
 		s.m = make(map[int]interface{})
 		for idx, code := range codes {
 			switch t := schema.Elem.(type) {
-			case *Schema:
-				// Get a single value
-				s.m[code] = d.get(prefix+idx, nil, t, source).Value
-				result.Exists = true
 			case *Resource:
 				// Get the entire object
 				m := make(map[string]interface{})
@@ -441,6 +437,10 @@ func (d *ResourceData) getSet(
 					m[field] = d.getObject(prefix+idx, []string{field}, t.Schema, source).Value
 				}
 				s.m[code] = m
+				result.Exists = true
+			case *Schema:
+				// Get a single value
+				s.m[code] = d.get(prefix+idx, nil, t, source).Value
 				result.Exists = true
 			}
 		}
@@ -469,10 +469,10 @@ func (d *ResourceData) getSet(
 		}
 
 		switch t := schema.Elem.(type) {
-		case *Schema:
-			return d.get(prefix+idx, parts, t, source)
 		case *Resource:
 			return d.getObject(prefix+idx, parts, t.Schema, source)
+		case *Schema:
+			return d.get(prefix+idx, parts, t, source)
 		}
 	}
 
@@ -1043,14 +1043,6 @@ func (d *ResourceData) setSet(
 	}
 
 	switch t := schema.Elem.(type) {
-	case *Schema:
-		for code, elem := range value.(*Set).m {
-			subK := fmt.Sprintf("%s.%d", k, code)
-			err := d.set(subK, nil, t, elem)
-			if err != nil {
-				return err
-			}
-		}
 	case *Resource:
 		for code, elem := range value.(*Set).m {
 			for field, _ := range t.Schema {
@@ -1060,6 +1052,14 @@ func (d *ResourceData) setSet(
 				if err != nil {
 					return err
 				}
+			}
+		}
+	case *Schema:
+		for code, elem := range value.(*Set).m {
+			subK := fmt.Sprintf("%s.%d", k, code)
+			err := d.set(subK, nil, t, elem)
+			if err != nil {
+				return err
 			}
 		}
 	default:
@@ -1201,10 +1201,10 @@ func (d *ResourceData) stateSet(
 
 		var m map[string]string
 		switch t := schema.Elem.(type) {
-		case *Schema:
-			m = d.stateSingle(key, t)
 		case *Resource:
 			m = d.stateObject(key, t.Schema)
+		case *Schema:
+			m = d.stateSingle(key, t)
 		}
 
 		for k, v := range m {
