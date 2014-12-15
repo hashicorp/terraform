@@ -6,6 +6,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/hashicorp/terraform/helper/hashcode"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/mitchellh/goamz/route53"
@@ -43,10 +44,13 @@ func resourceAwsRoute53Record() *schema.Resource {
 			},
 
 			"records": &schema.Schema{
-				Type:     schema.TypeList,
+				Type:     schema.TypeSet,
 				Elem:     &schema.Schema{Type: schema.TypeString},
 				Required: true,
 				ForceNew: true,
+				Set: func(v interface{}) int {
+					return hashcode.String(v.(string))
+				},
 			},
 		},
 	}
@@ -151,10 +155,18 @@ func resourceAwsRoute53RecordRead(d *schema.ResourceData, meta interface{}) erro
 
 		found = true
 
-		for i, rec := range record.Records {
-			key := fmt.Sprintf("records.%d", i)
-			d.Set(key, rec)
+		// Create an empty schema.Set to hold all found records
+		records := &schema.Set{
+			F: func(v interface{}) int {
+				return hashcode.String(v.(string))
+			},
 		}
+
+		for _, rec := range record.Records {
+			records.Add(rec)
+		}
+
+		d.Set("records", records)
 		d.Set("ttl", record.TTL)
 
 		break
