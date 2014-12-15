@@ -236,11 +236,11 @@ func resourceAwsRoute53RecordDelete(d *schema.ResourceData, meta interface{}) er
 }
 
 func resourceAwsRoute53RecordBuildSet(d *schema.ResourceData) (*route53.ResourceRecordSet, error) {
-	recs := d.Get("records.#").(int)
-	records := make([]string, 0, recs)
-	for i := 0; i < recs; i++ {
-		key := fmt.Sprintf("records.%d", i)
-		records = append(records, d.Get(key).(string))
+	recs := d.Get("records").(*schema.Set).List()
+	records := make([]string, 0, len(recs))
+
+	for _, r := range recs {
+		records = append(records, r.(string))
 	}
 
 	rec := &route53.ResourceRecordSet{
