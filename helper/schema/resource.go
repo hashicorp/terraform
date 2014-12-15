@@ -47,11 +47,16 @@ type Resource struct {
 	// accordingly. If this function isn't set, it will not be called. It
 	// is highly recommended to set it. The *ResourceData passed to Exists
 	// should _not_ be modified.
-	Create CreateFunc
-	Read   ReadFunc
-	Update UpdateFunc
-	Delete DeleteFunc
-	Exists ExistsFunc
+	//
+	// CreateInitialInstanceState is a function that will populate initial state
+	// with data that can be retrieved from an existing instances defined in
+	// config
+	Create                     CreateFunc
+	Read                       ReadFunc
+	Update                     UpdateFunc
+	Delete                     DeleteFunc
+	Exists                     ExistsFunc
+	CreateInitialInstanceState CreateInitialInstanceStateFunc
 }
 
 // See Resource documentation.
@@ -68,6 +73,9 @@ type DeleteFunc func(*ResourceData, interface{}) error
 
 // See Resource documentation.
 type ExistsFunc func(*ResourceData, interface{}) (bool, error)
+
+// See Resource documentation
+type CreateInitialInstanceStateFunc func(*terraform.ResourceConfig, *terraform.InstanceState, interface{}) (*terraform.InstanceState, error)
 
 // Apply creates, updates, and/or deletes a resource.
 func (r *Resource) Apply(
@@ -188,4 +196,11 @@ func (r *Resource) InternalValidate() error {
 	}
 
 	return schemaMap(r.Schema).InternalValidate()
+}
+
+func (r *Resource) InitialInstanceState(config *terraform.ResourceConfig, state *terraform.InstanceState, meta interface{}) (*terraform.InstanceState, error) {
+	if r.CreateInitialInstanceState != nil {
+		return r.CreateInitialInstanceState(config, state, meta)
+	}
+	return &terraform.InstanceState{}, nil
 }

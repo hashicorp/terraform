@@ -996,12 +996,31 @@ func (c *walkContext) planDestroyWalkFn() depgraph.WalkFunc {
 
 func (c *walkContext) refreshWalkFn() depgraph.WalkFunc {
 	cb := func(c *walkContext, r *Resource) error {
-		is := r.State
 
-		if is == nil || is.ID == "" {
-			log.Printf("[DEBUG] %s: Not refreshing, ID is empty", r.Id)
-			return nil
+		if r.State == nil || r.State.ID == "" {
+			if c.Context.state == nil {
+				log.Printf("[DEBUG] There was no initial state, so I will try to create initial state from provider")
+				c.Context.state = &State{}
+			}
+			err := r.Config.interpolate(c, r)
+			if err != nil {
+				return err
+			}
+			state := &InstanceState{}
+			state.init()
+			state, err = r.Provider.InitialInstanceState(r.Info, state, r.Config)
+			if err != nil {
+				log.Printf("[DEBUG] Couldn't resolve initial state of %v because of error: %v", r.Config, err)
+				return nil
+			}
+			if state.ID == "" {
+				log.Printf("[DEBUG] Provider returned no initial state - so there is no existing resource for sure")
+				return nil
+			}
+			r.State = state
 		}
+
+		is := r.State
 
 		for _, h := range c.Context.hooks {
 			handleHook(h.PreRefresh(r.Info, is))
@@ -1313,7 +1332,6 @@ func (c *walkContext) genericWalkFn(cb genericWalkFunc) depgraph.WalkFunc {
 			rn.Resource.Id,
 			n.Name)
 		if err := cb(c, rn.Resource); err != nil {
-			log.Printf("[ERROR] Error walking '%s': %s", rn.Resource.Id, err)
 			return err
 		}
 

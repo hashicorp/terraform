@@ -69,6 +69,10 @@ type ResourceProvider interface {
 	// Refresh refreshes a resource and updates all of its attributes
 	// with the latest information.
 	Refresh(*InstanceInfo, *InstanceState) (*InstanceState, error)
+
+	// Try resolve id from config if possible (the resource is unique, and can be
+	// existing even if we don't know about it).
+	InitialInstanceState(*InstanceInfo, *InstanceState, *ResourceConfig) (*InstanceState, error)
 }
 
 // ResourceType is a type of resource that a resource provider can manage.
