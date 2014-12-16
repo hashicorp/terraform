@@ -786,6 +786,77 @@ func TestGraphAddDiff_module_depends(t *testing.T) {
 	}
 }
 
+func TestGraphAddDiff_moduleDependsModule(t *testing.T) {
+	m := testModule(t, "graph-diff-module-dep-module")
+	diff := &Diff{
+		Modules: []*ModuleDiff{
+			&ModuleDiff{
+				Path:    []string{"root"},
+				Destroy: true,
+			},
+			&ModuleDiff{
+				Path:    []string{"root", "foo"},
+				Destroy: true,
+				Resources: map[string]*InstanceDiff{
+					"aws_instance.foo": &InstanceDiff{
+						Destroy: true,
+					},
+				},
+			},
+			&ModuleDiff{
+				Path:    []string{"root", "bar"},
+				Destroy: true,
+				Resources: map[string]*InstanceDiff{
+					"aws_instance.foo": &InstanceDiff{
+						Destroy: true,
+					},
+				},
+			},
+		},
+	}
+	state := &State{
+		Modules: []*ModuleState{
+			&ModuleState{
+				Path: []string{"root", "foo"},
+				Resources: map[string]*ResourceState{
+					"aws_instance.foo": &ResourceState{
+						Type: "aws_instance",
+						Primary: &InstanceState{
+							ID: "foo",
+						},
+					},
+				},
+			},
+
+			&ModuleState{
+				Path: []string{"root", "bar"},
+				Resources: map[string]*ResourceState{
+					"aws_instance.foo": &ResourceState{
+						Type: "aws_instance",
+						Primary: &InstanceState{
+							ID: "foo",
+						},
+					},
+				},
+				Dependencies: []string{
+					"module.foo",
+				},
+			},
+		},
+	}
+
+	g, err := Graph(&GraphOpts{Module: m, Diff: diff, State: state})
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	actual := strings.TrimSpace(g.String())
+	expected := strings.TrimSpace(testTerraformGraphDiffModuleDependsModuleStr)
+	if actual != expected {
+		t.Fatalf("bad:\n\n%s", actual)
+	}
+}
+
 func TestGraphAddDiff_createBeforeDestroy(t *testing.T) {
 	m := testModule(t, "graph-diff-create-before")
 	diff := &Diff{
@@ -1343,6 +1414,16 @@ root
   root -> aws_instance.foo
   root -> module.child
   root -> module.orphan
+`
+
+const testTerraformGraphDiffModuleDependsModuleStr = `
+root: root
+module.bar
+module.foo
+  module.foo -> module.bar
+root
+  root -> module.bar
+  root -> module.foo
 `
 
 const testTerraformGraphModulesStr = `
