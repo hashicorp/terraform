@@ -257,7 +257,7 @@ func resourceAwsElbRead(d *schema.ResourceData, meta interface{}) error {
 	d.Set("name", lb.LoadBalancerName)
 	d.Set("dns_name", lb.DNSName)
 	d.Set("internal", lb.Scheme == "internal")
-	d.Set("availability_zones", flattenAvailabilityZones(lb.AvailabilityZones))
+	d.Set("availability_zones", lb.AvailabilityZones)
 	d.Set("instances", flattenInstances(lb.Instances))
 	d.Set("listener", flattenListeners(lb.Listeners))
 	d.Set("security_groups", lb.SecurityGroups)

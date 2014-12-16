@@ -172,15 +172,6 @@ func flattenInstances(list []elb.Instance) []string {
 	return result
 }
 
-// Flattens an array of AvailabilityZones into a []string
-func flattenAvailabilityZones(list []elb.AvailabilityZone) []string {
-	result := make([]string, 0, len(list))
-	for _, z := range list {
-		result = append(result, z.AvailabilityZone)
-	}
-	return result
-}
-
 // Flattens an array of Listeners into a []map[string]interface{}
 func flattenListeners(list []elb.Listener) []map[string]interface{} {
 	result := make([]map[string]interface{}, 0, len(list))

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"reflect"
+	"sort"
 	"testing"
 
 	"github.com/hashicorp/terraform/helper/resource"
@@ -28,11 +29,11 @@ func TestAccAWSELB_basic(t *testing.T) {
 					resource.TestCheckResourceAttr(
 						"aws_elb.bar", "name", "foobar-terraform-test"),
 					resource.TestCheckResourceAttr(
-						"aws_elb.bar", "availability_zones.0", "us-west-2a"),
+						"aws_elb.bar", "availability_zones.2487133097", "us-west-2a"),
 					resource.TestCheckResourceAttr(
-						"aws_elb.bar", "availability_zones.1", "us-west-2b"),
+						"aws_elb.bar", "availability_zones.221770259", "us-west-2b"),
 					resource.TestCheckResourceAttr(
-						"aws_elb.bar", "availability_zones.2", "us-west-2c"),
+						"aws_elb.bar", "availability_zones.2050015877", "us-west-2c"),
 					resource.TestCheckResourceAttr(
 						"aws_elb.bar", "listener.206423021.instance_port", "8000"),
 					resource.TestCheckResourceAttr(
@@ -150,7 +151,9 @@ func testAccCheckAWSELBDestroy(s *terraform.State) error {
 
 func testAccCheckAWSELBAttributes(conf *elb.LoadBalancer) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
-		if conf.AvailabilityZones[0].AvailabilityZone != "us-west-2a" {
+		zones := []string{"us-west-2a", "us-west-2b", "us-west-2c"}
+		sort.StringSlice(conf.AvailabilityZones).Sort()
+		if !reflect.DeepEqual(conf.AvailabilityZones, zones) {
 			return fmt.Errorf("bad availability_zones")
 		}
 
@@ -182,7 +185,9 @@ func testAccCheckAWSELBAttributes(conf *elb.LoadBalancer) resource.TestCheckFunc
 
 func testAccCheckAWSELBAttributesHealthCheck(conf *elb.LoadBalancer) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
-		if conf.AvailabilityZones[0].AvailabilityZone != "us-west-2a" {
+		zones := []string{"us-west-2a", "us-west-2b", "us-west-2c"}
+		sort.StringSlice(conf.AvailabilityZones).Sort()
+		if !reflect.DeepEqual(conf.AvailabilityZones, zones) {
 			return fmt.Errorf("bad availability_zones")
 		}
 
