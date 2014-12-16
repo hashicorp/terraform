@@ -67,27 +67,43 @@ func TestAccAWSNetworkAclsOnlyIngressRulesCreate(t *testing.T) {
 					testAccCheckAWSNetworkAclExists("aws_network_acl.foos", &networkAcl),
 					// testAccCheckSubnetAssociation("aws_network_acl.foos", "aws_subnet.blob"),
 					resource.TestCheckResourceAttr(
+						"aws_network_acl.foos", "ingress.2.protocol", "tcp"),
+					resource.TestCheckResourceAttr(
+						"aws_network_acl.foos", "ingress.2.rule_no", "1"),
+					resource.TestCheckResourceAttr(
+						"aws_network_acl.foos", "ingress.2.from_port", "0"),
+					resource.TestCheckResourceAttr(
+						"aws_network_acl.foos", "ingress.2.to_port", "22"),
+					resource.TestCheckResourceAttr(
+						"aws_network_acl.foos", "ingress.2.action", "deny"),
+					resource.TestCheckResourceAttr(
+						"aws_network_acl.foos", "ingress.2.cidr_block", "10.1.2.3/18"),
+					resource.TestCheckResourceAttr(
 						"aws_network_acl.foos", "ingress.1.protocol", "tcp"),
 					resource.TestCheckResourceAttr(
-						"aws_network_acl.foos", "ingress.1.rule_no", "1"),
+						"aws_network_acl.foos", "ingress.1.rule_no", "2"),
 					resource.TestCheckResourceAttr(
-						"aws_network_acl.foos", "ingress.1.from_port", "0"),
+						"aws_network_acl.foos", "ingress.1.from_port", "443"),
 					resource.TestCheckResourceAttr(
-						"aws_network_acl.foos", "ingress.1.to_port", "22"),
+						"aws_network_acl.foos", "ingress.1.to_port", "443"),
 					resource.TestCheckResourceAttr(
 						"aws_network_acl.foos", "ingress.1.action", "deny"),
 					resource.TestCheckResourceAttr(
 						"aws_network_acl.foos", "ingress.1.cidr_block", "10.1.2.3/18"),
 					resource.TestCheckResourceAttr(
-						"aws_network_acl.foos", "ingress.0.protocol", "tcp"),
+						"aws_network_acl.foos", "ingress.0.protocol", "icmp"),
 					resource.TestCheckResourceAttr(
-						"aws_network_acl.foos", "ingress.0.rule_no", "2"),
+						"aws_network_acl.foos", "ingress.0.rule_no", "3"),
 					resource.TestCheckResourceAttr(
-						"aws_network_acl.foos", "ingress.0.from_port", "443"),
+						"aws_network_acl.foos", "ingress.0.from_port", "-1"),
 					resource.TestCheckResourceAttr(
-						"aws_network_acl.foos", "ingress.0.to_port", "443"),
+						"aws_network_acl.foos", "ingress.0.to_port", "-1"),
 					resource.TestCheckResourceAttr(
-						"aws_network_acl.foos", "ingress.0.action", "deny"),
+						"aws_network_acl.foos", "ingress.0.icmp_code", "-1"),
+					resource.TestCheckResourceAttr(
+						"aws_network_acl.foos", "ingress.0.icmp_type", "-1"),
+					resource.TestCheckResourceAttr(
+						"aws_network_acl.foos", "ingress.0.action", "allow"),
 					resource.TestCheckResourceAttr(
 						"aws_network_acl.foos", "ingress.0.cidr_block", "10.1.2.3/18"),
 				),
@@ -123,6 +139,17 @@ resource "aws_network_acl" "foos" {
 		from_port = 443
 		to_port = 443
 	}
+	ingress = {
+		protocol = "icmp"
+		rule_no = 3
+		action = "allow"
+		icmp_code = -1
+		icmp_type = -1
+		cidr_block =  "10.1.2.3/18"
+		from_port = -1
+		to_port = -1
+	}
+
 	subnets = ["${aws_subnet.blob.id}"]
 }
 `
@@ -148,6 +175,60 @@ resource "aws_network_acl" "foos" {
 	subnets = ["${aws_subnet.blob.id}"]
 }
 `
+const testAccAWSNetworkAclIngress_AllProtocolsConfig = `
+resource "aws_vpc" "foo" {
+	cidr_block = "10.1.0.0/16"
+}
+resource "aws_subnet" "blob" {
+	cidr_block = "10.1.1.0/24"
+	vpc_id = "${aws_vpc.foo.id}"
+	map_public_ip_on_launch = true
+}
+resource "aws_network_acl" "foos" {
+	vpc_id = "${aws_vpc.foo.id}"
+	ingress = {
+		protocol = "all"
+		rule_no = 100
+		action = "allow"
+		cidr_block =  "10.1.4.0/24"
+		from_port = 80
+		to_port = 80
+	}
+
+	subnets = ["${aws_subnet.blob.id}"]
+}
+`
+
+func TestAccAWSNetworkAclsOnlyIngressRules_AllProtocols(t *testing.T) {
+	var networkAcl ec2.NetworkAcl
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSNetworkAclDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccAWSNetworkAclIngress_AllProtocolsConfig,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSNetworkAclExists("aws_network_acl.foos", &networkAcl),
+					// testAccCheckSubnetAssociation("aws_network_acl.foos", "aws_subnet.blob"),
+					resource.TestCheckResourceAttr(
+						"aws_network_acl.foos", "ingress.0.protocol", "all"),
+					resource.TestCheckResourceAttr(
+						"aws_network_acl.foos", "ingress.0.rule_no", "100"),
+					resource.TestCheckResourceAttr(
+						"aws_network_acl.foos", "ingress.0.from_port", "80"),
+					resource.TestCheckResourceAttr(
+						"aws_network_acl.foos", "ingress.0.to_port", "80"),
+					resource.TestCheckResourceAttr(
+						"aws_network_acl.foos", "ingress.0.action", "allow"),
+					resource.TestCheckResourceAttr(
+						"aws_network_acl.foos", "ingress.0.cidr_block", "10.1.4.0/24"),
+				),
+			},
+		},
+	})
+}
 
 func TestAccAWSNetworkAclsOnlyIngressRulesChange(t *testing.T) {
 	var networkAcl ec2.NetworkAcl

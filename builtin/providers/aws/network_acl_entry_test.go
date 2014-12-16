@@ -25,6 +25,16 @@ func Test_expandNetworkAclEntry(t *testing.T) {
 			"action":     "deny",
 			"rule_no":    2,
 		},
+		map[string]interface{}{
+			"protocol":   "icmp",
+			"from_port":  -1,
+			"to_port":    -1,
+			"icmp_code":  -1,
+			"icmp_type":  -1,
+			"cidr_block": "0.0.0.0/0",
+			"action":     "allow",
+			"rule_no":    3,
+		},
 	}
 	expanded, _ := expandNetworkAclEntries(input, "egress")
 
@@ -39,7 +49,10 @@ func Test_expandNetworkAclEntry(t *testing.T) {
 			RuleNumber: 1,
 			CidrBlock:  "0.0.0.0/0",
 			Egress:     true,
-			IcmpCode:   ec2.IcmpCode{Code: 0, Type: 0},
+			IcmpCode: ec2.IcmpCode{
+				Code: 0,
+				Type: 0,
+			},
 		},
 		ec2.NetworkAclEntry{
 			Protocol: 6,
@@ -51,7 +64,25 @@ func Test_expandNetworkAclEntry(t *testing.T) {
 			RuleNumber: 2,
 			CidrBlock:  "0.0.0.0/0",
 			Egress:     true,
-			IcmpCode:   ec2.IcmpCode{Code: 0, Type: 0},
+			IcmpCode: ec2.IcmpCode{
+				Code: 0,
+				Type: 0,
+			},
+		},
+		ec2.NetworkAclEntry{
+			Protocol: 1,
+			PortRange: ec2.PortRange{
+				From: -1,
+				To:   -1,
+			},
+			RuleAction: "allow",
+			RuleNumber: 3,
+			CidrBlock:  "0.0.0.0/0",
+			Egress:     true,
+			IcmpCode: ec2.IcmpCode{
+				Code: -1,
+				Type: -1,
+			},
 		},
 	}
 
@@ -87,6 +118,21 @@ func Test_flattenNetworkAclEntry(t *testing.T) {
 			RuleNumber: 2,
 			CidrBlock:  "0.0.0.0/0",
 		},
+		ec2.NetworkAclEntry{
+			Protocol: 1,
+			PortRange: ec2.PortRange{
+				From: -1,
+				To:   -1,
+			},
+			RuleAction: "allow",
+			RuleNumber: 3,
+			CidrBlock:  "0.0.0.0/0",
+			Egress:     true,
+			IcmpCode: ec2.IcmpCode{
+				Code: -1,
+				Type: -1,
+			},
+		},
 	}
 	flattened := flattenNetworkAclEntries(apiInput)
 
@@ -106,6 +152,16 @@ func Test_flattenNetworkAclEntry(t *testing.T) {
 			"cidr_block": "0.0.0.0/0",
 			"action":     "deny",
 			"rule_no":    2,
+		},
+		map[string]interface{}{
+			"protocol":   "icmp",
+			"from_port":  -1,
+			"to_port":    -1,
+			"icmp_code":  -1,
+			"icmp_type":  -1,
+			"cidr_block": "0.0.0.0/0",
+			"action":     "allow",
+			"rule_no":    3,
 		},
 	}
 
