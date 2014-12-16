@@ -137,6 +137,20 @@ func TestConfigValidate_moduleSourceVar(t *testing.T) {
 	}
 }
 
+func TestConfigValidate_moduleVarInt(t *testing.T) {
+	c := testConfig(t, "validate-module-var-int")
+	if err := c.Validate(); err != nil {
+		t.Fatalf("should be valid: %s", err)
+	}
+}
+
+func TestConfigValidate_moduleVarMap(t *testing.T) {
+	c := testConfig(t, "validate-module-var-map")
+	if err := c.Validate(); err == nil {
+		t.Fatal("should be invalid")
+	}
+}
+
 func TestConfigValidate_nil(t *testing.T) {
 	var c Config
 	if err := c.Validate(); err != nil {
