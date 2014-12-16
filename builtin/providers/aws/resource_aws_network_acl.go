@@ -52,6 +52,14 @@ func resourceAwsNetworkAcl() *schema.Resource {
 							Type:     schema.TypeInt,
 							Required: true,
 						},
+						"icmp_code": &schema.Schema{
+							Type:     schema.TypeInt,
+							Optional: true,
+						},
+						"icmp_type": &schema.Schema{
+							Type:     schema.TypeInt,
+							Optional: true,
+						},
 						"rule_no": &schema.Schema{
 							Type:     schema.TypeInt,
 							Required: true,
@@ -85,6 +93,14 @@ func resourceAwsNetworkAcl() *schema.Resource {
 						"to_port": &schema.Schema{
 							Type:     schema.TypeInt,
 							Required: true,
+						},
+						"icmp_code": &schema.Schema{
+							Type:     schema.TypeInt,
+							Optional: true,
+						},
+						"icmp_type": &schema.Schema{
+							Type:     schema.TypeInt,
+							Optional: true,
 						},
 						"rule_no": &schema.Schema{
 							Type:     schema.TypeInt,
@@ -251,9 +267,9 @@ func updateNetworkAclEntries(d *schema.ResourceData, entryType string, ec2conn *
 
 	os := o.(*schema.Set)
 	ns := n.(*schema.Set)
-	
+
 	toBeDeleted, err := expandNetworkAclEntries(os.Difference(ns).List(), entryType)
-	if(err != nil){
+	if err != nil {
 		return err
 	}
 	for _, remove := range toBeDeleted {
@@ -266,7 +282,7 @@ func updateNetworkAclEntries(d *schema.ResourceData, entryType string, ec2conn *
 	}
 
 	toBeCreated, err := expandNetworkAclEntries(ns.Difference(os).List(), entryType)
-	if(err != nil){
+	if err != nil {
 		return err
 	}
 	for _, add := range toBeCreated {
