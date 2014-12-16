@@ -155,18 +155,7 @@ func resourceAwsRoute53RecordRead(d *schema.ResourceData, meta interface{}) erro
 
 		found = true
 
-		// Create an empty schema.Set to hold all found records
-		records := &schema.Set{
-			F: func(v interface{}) int {
-				return hashcode.String(v.(string))
-			},
-		}
-
-		for _, rec := range record.Records {
-			records.Add(rec)
-		}
-
-		d.Set("records", records)
+		d.Set("records", record.Records)
 		d.Set("ttl", record.TTL)
 
 		break
