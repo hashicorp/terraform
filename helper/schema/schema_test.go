@@ -1697,6 +1697,43 @@ func TestSchemaMap_Diff(t *testing.T) {
 
 			Err: false,
 		},
+
+		// #44 - Computed maps
+		{
+			Schema: map[string]*Schema{
+				"vars": &Schema{
+					Type:     TypeMap,
+					Computed: true,
+				},
+			},
+
+			State: &terraform.InstanceState{
+				Attributes: map[string]string{
+					"vars.#": "0",
+				},
+			},
+
+			Config: map[string]interface{}{
+				"vars": map[string]interface{}{
+					"bar": "${var.foo}",
+				},
+			},
+
+			ConfigVariables: map[string]string{
+				"var.foo": config.UnknownVariableValue,
+			},
+
+			Diff: &terraform.InstanceDiff{
+				Attributes: map[string]*terraform.ResourceAttrDiff{
+					"vars.#": &terraform.ResourceAttrDiff{
+						Old:         "",
+						NewComputed: true,
+					},
+				},
+			},
+
+			Err: false,
+		},
 	}
 
 	for i, tc := range cases {

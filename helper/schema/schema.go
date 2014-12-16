@@ -583,6 +583,10 @@ func (m schemaMap) diffMap(
 		return fmt.Errorf("%s: %s", k, err)
 	}
 
+	// Delete any count values, since we don't use those
+	delete(configMap, "#")
+	delete(stateMap, "#")
+
 	// Check if the number of elements has changed. If we're computing
 	// a list and there isn't a config, then it hasn't changed.
 	oldLen, newLen := len(stateMap), len(configMap)
