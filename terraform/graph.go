@@ -1816,21 +1816,23 @@ func (n *GraphNodeResource) expand(g *depgraph.Graph, count int, diff *ModuleDif
 				delete(keys, name)
 			}
 
-			if state == nil {
-				if count == 1 {
-					// If the count is one, check the state for ".0"
-					// appended, which might exist if we go from
-					// count > 1 to count == 1.
-					k := r.Id() + ".0"
+			if count == 1 {
+				// If the count is one, check the state for ".0"
+				// appended, which might exist if we go from
+				// count > 1 to count == 1.
+				k := r.Id() + ".0"
+				if state == nil {
 					state = n.State.Resources[k]
-					delete(keys, k)
-				} else if i == 0 {
-					// If count is greater than one, check for state
-					// with just the ID, which might exist if we go
-					// from count == 1 to count > 1
-					state = n.State.Resources[r.Id()]
-					delete(keys, r.Id())
 				}
+				delete(keys, k)
+			} else if i == 0 {
+				// If count is greater than one, check for state
+				// with just the ID, which might exist if we go
+				// from count == 1 to count > 1
+				if state == nil {
+					state = n.State.Resources[r.Id()]
+				}
+				delete(keys, r.Id())
 			}
 		}
 
