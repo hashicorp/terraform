@@ -7,6 +7,7 @@ FEATURES:
 IMPROVEMENTS:
 
   * **New resource: `heroku_cert`** - Manage Heroku app certs.
+  * provider/aws: Support `eu-central-1`, `cn-north-1`, and GovCloud. [GH-525]
   * provider/aws: `route_table` can have tags. [GH-648]
 
 BUG FIXES:
