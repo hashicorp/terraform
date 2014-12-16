@@ -1623,6 +1623,12 @@ func (c *walkContext) computeModuleVariable(
 	// Get that module from our state
 	mod := c.Context.state.ModuleByPath(path)
 	if mod == nil {
+		// If the module doesn't exist, then we can return an empty string.
+		// This happens usually only in Refresh() when we haven't populated
+		// a state. During validation, we semantically verify that all
+		// modules reference other modules, and graph ordering should
+		// ensure that the module is in the state, so if we reach this
+		// point otherwise it really is a panic.
 		return "", nil
 	}
 
