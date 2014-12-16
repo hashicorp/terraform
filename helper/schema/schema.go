@@ -575,7 +575,7 @@ func (m schemaMap) diffMap(
 
 	// First get all the values from the state
 	var stateMap, configMap map[string]string
-	o, n, _, computedMap := d.diffChange(k)
+	o, n, _, _ := d.diffChange(k)
 	if err := mapstructure.WeakDecode(o, &stateMap); err != nil {
 		return fmt.Errorf("%s: %s", k, err)
 	}
@@ -583,21 +583,9 @@ func (m schemaMap) diffMap(
 		return fmt.Errorf("%s: %s", k, err)
 	}
 
-	// Get the counts
-	oldLen, newLen := len(stateMap), len(configMap)
-	oldStr := strconv.FormatInt(int64(oldLen), 10)
-
-	// If the whole map is computed, then just say the # is computed and exit.
-	if computedMap {
-		diff.Attributes[k+".#"] = &terraform.ResourceAttrDiff{
-			Old:         oldStr,
-			NewComputed: true,
-		}
-		return nil
-	}
-
 	// Check if the number of elements has changed. If we're computing
 	// a list and there isn't a config, then it hasn't changed.
+	oldLen, newLen := len(stateMap), len(configMap)
 	changed := oldLen != newLen
 	if oldLen != 0 && newLen == 0 && schema.Computed {
 		changed = false
@@ -610,6 +598,7 @@ func (m schemaMap) diffMap(
 			ForceNew: schema.ForceNew,
 		}
 
+		oldStr := strconv.FormatInt(int64(oldLen), 10)
 		newStr := ""
 		if !computed {
 			newStr = strconv.FormatInt(int64(newLen), 10)
