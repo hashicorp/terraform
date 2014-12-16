@@ -239,34 +239,54 @@ func (c *Config) Validate() error {
 					"%s: module repeated multiple times",
 					m.Id()))
 			}
-		}
 
-		if _, ok := modules[m.Id()]; !ok {
-			// If we haven't seen this module before, check that the
-			// source has no interpolations.
-			rc, err := NewRawConfig(map[string]interface{}{
-				"root": m.Source,
-			})
-			if err != nil {
-				errs = append(errs, fmt.Errorf(
-					"%s: module source error: %s",
-					m.Id(), err))
-			} else if len(rc.Interpolations) > 0 {
-				errs = append(errs, fmt.Errorf(
-					"%s: module source cannot contain interpolations",
-					m.Id()))
-			}
-
-			// Check that the name matches our regexp
-			if !NameRegexp.Match([]byte(m.Name)) {
-				errs = append(errs, fmt.Errorf(
-					"%s: module name can only contain letters, numbers, "+
-						"dashes, and underscores",
-					m.Id()))
-			}
+			// Already seen this module, just skip it
+			continue
 		}
 
 		modules[m.Id()] = m
+
+		// Check that the source has no interpolations
+		rc, err := NewRawConfig(map[string]interface{}{
+			"root": m.Source,
+		})
+		if err != nil {
+			errs = append(errs, fmt.Errorf(
+				"%s: module source error: %s",
+				m.Id(), err))
+		} else if len(rc.Interpolations) > 0 {
+			errs = append(errs, fmt.Errorf(
+				"%s: module source cannot contain interpolations",
+				m.Id()))
+		}
+
+		// Check that the name matches our regexp
+		if !NameRegexp.Match([]byte(m.Name)) {
+			errs = append(errs, fmt.Errorf(
+				"%s: module name can only contain letters, numbers, "+
+					"dashes, and underscores",
+				m.Id()))
+		}
+
+		// Check that the configuration can all be strings
+		raw := make(map[string]interface{})
+		for k, v := range m.RawConfig.Raw {
+			var strVal string
+			if err := mapstructure.WeakDecode(v, &strVal); err != nil {
+				errs = append(errs, fmt.Errorf(
+					"%s: variable %s must be a string value",
+					m.Id(), k))
+			}
+			raw[k] = strVal
+		}
+
+		// Update the raw configuration to only contain the string values
+		m.RawConfig, err = NewRawConfig(raw)
+		if err != nil {
+			errs = append(errs, fmt.Errorf(
+				"%s: can't initialize configuration: %s",
+				m.Id(), err))
+		}
 	}
 	dupped = nil
 
