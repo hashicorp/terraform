@@ -1734,6 +1734,19 @@ func TestSchemaMap_Diff(t *testing.T) {
 
 			Err: false,
 		},
+
+		// #45 - Empty
+		{
+			Schema: map[string]*Schema{},
+
+			State: &terraform.InstanceState{},
+
+			Config: map[string]interface{}{},
+
+			Diff: nil,
+
+			Err: false,
+		},
 	}
 
 	for i, tc := range cases {
