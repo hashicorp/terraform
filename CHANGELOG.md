@@ -25,6 +25,8 @@ BUG FIXES:
   * provider/aws: Fix crash case when internet gateway is not attached
       to any VPC. [GH-664]
   * provider/aws: `vpc_id` is no longer required. [GH-667]
+  * provider/aws: `availability_zones` on ELB will contain more than one
+      AZ if it is set as such. [GH-682]
 
 ## 0.3.5 (December 9, 2014)
 
