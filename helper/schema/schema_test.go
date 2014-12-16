@@ -1205,6 +1205,11 @@ func TestSchemaMap_Diff(t *testing.T) {
 
 			Diff: &terraform.InstanceDiff{
 				Attributes: map[string]*terraform.ResourceAttrDiff{
+					"config_vars.#": &terraform.ResourceAttrDiff{
+						Old: "0",
+						New: "1",
+					},
+
 					"config_vars.bar": &terraform.ResourceAttrDiff{
 						Old: "",
 						New: "baz",
@@ -1379,6 +1384,10 @@ func TestSchemaMap_Diff(t *testing.T) {
 				Attributes: map[string]*terraform.ResourceAttrDiff{
 					"config_vars.#": &terraform.ResourceAttrDiff{
 						Old: "1",
+						New: "0",
+					},
+					"config_vars.0.#": &terraform.ResourceAttrDiff{
+						Old: "2",
 						New: "0",
 					},
 					"config_vars.0.foo": &terraform.ResourceAttrDiff{
@@ -1655,6 +1664,68 @@ func TestSchemaMap_Diff(t *testing.T) {
 						New: "1",
 					},
 					"route.~1.gateway.#": &terraform.ResourceAttrDiff{
+						Old:         "",
+						NewComputed: true,
+					},
+				},
+			},
+
+			Err: false,
+		},
+
+		// #43 - Computed maps
+		{
+			Schema: map[string]*Schema{
+				"vars": &Schema{
+					Type:     TypeMap,
+					Computed: true,
+				},
+			},
+
+			State: nil,
+
+			Config: nil,
+
+			Diff: &terraform.InstanceDiff{
+				Attributes: map[string]*terraform.ResourceAttrDiff{
+					"vars.#": &terraform.ResourceAttrDiff{
+						Old:         "",
+						NewComputed: true,
+					},
+				},
+			},
+
+			Err: false,
+		},
+
+		// #44 - Computed maps
+		{
+			Schema: map[string]*Schema{
+				"vars": &Schema{
+					Type:     TypeMap,
+					Computed: true,
+				},
+			},
+
+			State: &terraform.InstanceState{
+				Attributes: map[string]string{
+					"vars.#": "0",
+				},
+			},
+
+			Config: map[string]interface{}{
+				"vars": map[string]interface{}{
+					"bar": "${var.foo}",
+				},
+			},
+
+			ConfigVariables: map[string]string{
+				"var.foo": config.UnknownVariableValue,
+			},
+
+			Diff: &terraform.InstanceDiff{
+				Attributes: map[string]*terraform.ResourceAttrDiff{
+					"vars.#": &terraform.ResourceAttrDiff{
 						Old:         "",
 						NewComputed: true,
 					},

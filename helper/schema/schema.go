@@ -583,6 +583,41 @@ func (m schemaMap) diffMap(
 		return fmt.Errorf("%s: %s", k, err)
 	}
 
+	// Delete any count values, since we don't use those
+	delete(configMap, "#")
+	delete(stateMap, "#")
+
+	// Check if the number of elements has changed. If we're computing
+	// a list and there isn't a config, then it hasn't changed.
+	oldLen, newLen := len(stateMap), len(configMap)
+	changed := oldLen != newLen
+	if oldLen != 0 && newLen == 0 && schema.Computed {
+		changed = false
+	}
+	computed := oldLen == 0 && newLen == 0 && schema.Computed
+	if changed || computed {
+		countSchema := &Schema{
+			Type:     TypeInt,
+			Computed: schema.Computed,
+			ForceNew: schema.ForceNew,
+		}
+
+		oldStr := strconv.FormatInt(int64(oldLen), 10)
+		newStr := ""
+		if !computed {
+			newStr = strconv.FormatInt(int64(newLen), 10)
+		} else {
+			oldStr = ""
+		}
+
+		diff.Attributes[k+".#"] = countSchema.finalizeDiff(
+			&terraform.ResourceAttrDiff{
+				Old: oldStr,
+				New: newStr,
+			},
+		)
+	}
+
 	// If the new map is nil and we're computed, then ignore it.
 	if n == nil && schema.Computed {
 		return nil
