@@ -18,6 +18,8 @@ BUG FIXES:
       resulting in cleaner plans. [GH-663]
   * core: fix issue where "diff was not the same" would come up with
       diffing lists. [GH-661]
+  * core: fix crash where module inputs weren't strings, and add more
+      validation around invalid types here. [GH-624]
   * provider/aws: Fix crash case when internet gateway is not attached
       to any VPC. [GH-664]
   * provider/aws: `vpc_id` is no longer required. [GH-667]
