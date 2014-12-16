@@ -1623,10 +1623,7 @@ func (c *walkContext) computeModuleVariable(
 	// Get that module from our state
 	mod := c.Context.state.ModuleByPath(path)
 	if mod == nil {
-		return "", fmt.Errorf(
-			"Module '%s' not found for variable '%s'",
-			strings.Join(path[1:], "."),
-			v.FullKey())
+		return "", nil
 	}
 
 	value, ok := mod.Outputs[v.Field]

@@ -20,6 +20,8 @@ BUG FIXES:
       diffing lists. [GH-661]
   * core: fix crash where module inputs weren't strings, and add more
       validation around invalid types here. [GH-624]
+  * core: fix error when using a computed module output as an input to
+      another module. [GH-659]
   * provider/aws: Fix crash case when internet gateway is not attached
       to any VPC. [GH-664]
   * provider/aws: `vpc_id` is no longer required. [GH-667]

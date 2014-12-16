@@ -4362,6 +4362,22 @@ func TestContextRefresh_moduleInputComputedOutput(t *testing.T) {
 	}
 }
 
+func TestContextRefresh_moduleVarModule(t *testing.T) {
+	m := testModule(t, "refresh-module-var-module")
+	p := testProvider("aws")
+	p.DiffFn = testDiffFn
+	ctx := testContext(t, &ContextOpts{
+		Module: m,
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+	})
+
+	if _, err := ctx.Refresh(); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+}
+
 // GH-70
 func TestContextRefresh_noState(t *testing.T) {
 	p := testProvider("aws")
