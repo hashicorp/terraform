@@ -1629,15 +1629,13 @@ func (c *walkContext) computeModuleVariable(
 		// modules reference other modules, and graph ordering should
 		// ensure that the module is in the state, so if we reach this
 		// point otherwise it really is a panic.
-		return "", nil
+		return config.UnknownVariableValue, nil
 	}
 
 	value, ok := mod.Outputs[v.Field]
 	if !ok {
-		return "", fmt.Errorf(
-			"Output field '%s' not found for variable '%s'",
-			v.Field,
-			v.FullKey())
+		// Same reasons as the comment above.
+		return config.UnknownVariableValue, nil
 	}
 
 	return value, nil
