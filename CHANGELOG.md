@@ -22,6 +22,8 @@ BUG FIXES:
       validation around invalid types here. [GH-624]
   * core: fix error when using a computed module output as an input to
       another module. [GH-659]
+  * core: map overrides in "terraform.tfvars" no longer result in a syntax
+      error. [GH-647]
   * provider/aws: Fix crash case when internet gateway is not attached
       to any VPC. [GH-664]
   * provider/aws: `vpc_id` is no longer required. [GH-667]
