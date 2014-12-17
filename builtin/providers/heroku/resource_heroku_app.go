@@ -189,13 +189,13 @@ func resourceHerokuOrgAppCreate(d *schema.ResourceData, meta interface{}) error 
 
 	if v := d.Get("organization.0.personal"); v != nil {
 		vs := v.(bool)
-		log.Printf("[DEBUG] Organization Personal: %s", vs)
+		log.Printf("[DEBUG] Organization Personal: %t", vs)
 		opts.Personal = &vs
 	}
 
 	if v := d.Get("organization.0.locked"); v != nil {
 		vs := v.(bool)
-		log.Printf("[DEBUG] Organization locked: %s", vs)
+		log.Printf("[DEBUG] Organization locked: %t", vs)
 		opts.Locked = &vs
 	}
 

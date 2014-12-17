@@ -138,7 +138,7 @@ func resourceArtifactRead(d *schema.ResourceData, meta interface{}) error {
 	} else if len(vs) > 1 {
 		return fmt.Errorf(
 			"Got %d results for '%s/%s', only one is allowed",
-			user, name, len(vs))
+			len(vs), user, name)
 	}
 	v := vs[0]
 
