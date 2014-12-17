@@ -58,11 +58,14 @@ func resourceAwsElb() *schema.Resource {
 
 			// TODO: could be not ForceNew
 			"security_groups": &schema.Schema{
-				Type:     schema.TypeList,
+				Type:     schema.TypeSet,
 				Elem:     &schema.Schema{Type: schema.TypeString},
 				Optional: true,
 				ForceNew: true,
 				Computed: true,
+				Set: func(v interface{}) int {
+					return hashcode.String(v.(string))
+				},
 			},
 
 			// TODO: could be not ForceNew
@@ -179,7 +182,7 @@ func resourceAwsElbCreate(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	if v, ok := d.GetOk("security_groups"); ok {
-		elbOpts.SecurityGroups = expandStringList(v.([]interface{}))
+		elbOpts.SecurityGroups = expandStringList(v.(*schema.Set).List())
 	}
 
 	if v, ok := d.GetOk("subnets"); ok {
