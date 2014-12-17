@@ -70,7 +70,7 @@ func testAccCheckMailgunDomainAttributes(DomainResp *mailgun.DomainResponse) res
 		}
 
 		if DomainResp.Domain.Wildcard != true {
-			return fmt.Errorf("Bad wildcard: %s", DomainResp.Domain.Wildcard)
+			return fmt.Errorf("Bad wildcard: %t", DomainResp.Domain.Wildcard)
 		}
 
 		if DomainResp.Domain.SmtpPassword != "foobar" {
