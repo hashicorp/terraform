@@ -274,7 +274,7 @@ func testAccCheckSubnetIsAssociatedWithAcl(acl string, sub string) resource.Test
 		}
 
 		r, _ := conn.NetworkAcls([]string{}, ec2.NewFilter())
-		fmt.Printf("\n\nall acls\n %s\n\n", r.NetworkAcls)
+		fmt.Printf("\n\nall acls\n %#v\n\n", r.NetworkAcls)
 		conn.NetworkAcls([]string{}, filter)
 
 		return fmt.Errorf("Network Acl %s is not associated with subnet %s", acl, sub)

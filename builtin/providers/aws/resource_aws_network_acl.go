@@ -188,7 +188,7 @@ func resourceAwsNetworkAclUpdate(d *schema.ResourceData, meta interface{}) error
 		newSubnet := n.(string)
 		association, err := findNetworkAclAssociation(newSubnet, ec2conn)
 		if err != nil {
-			return fmt.Errorf("Failed to update acl %s with subnet %s: ", d.Id(), newSubnet, err)
+			return fmt.Errorf("Failed to update acl %s with subnet %s: %s", d.Id(), newSubnet, err)
 		}
 		_, err = ec2conn.ReplaceNetworkAclAssociation(association.NetworkAclAssociationId, d.Id())
 		if err != nil {
@@ -219,9 +219,9 @@ func updateNetworkAclEntries(d *schema.ResourceData, entryType string, ec2conn *
 
 	os := o.(*schema.Set)
 	ns := n.(*schema.Set)
-	
+
 	toBeDeleted, err := expandNetworkAclEntries(os.Difference(ns).List(), entryType)
-	if(err != nil){
+	if err != nil {
 		return err
 	}
 	for _, remove := range toBeDeleted {
@@ -233,7 +233,7 @@ func updateNetworkAclEntries(d *schema.ResourceData, entryType string, ec2conn *
 	}
 
 	toBeCreated, err := expandNetworkAclEntries(ns.Difference(os).List(), entryType)
-	if(err != nil){
+	if err != nil {
 		return err
 	}
 	for _, add := range toBeCreated {
@@ -261,11 +261,11 @@ func resourceAwsNetworkAclDelete(d *schema.ResourceData, meta interface{}) error
 				// This means the subnet is attached to default acl of vpc.
 				association, err := findNetworkAclAssociation(d.Get("subnet_id").(string), ec2conn)
 				if err != nil {
-					return fmt.Errorf("Depedency voilation: Can not delete acl: %s", d.Id(), err)
+					return fmt.Errorf("Dependency violation: Cannot delete acl %s: %s", d.Id(), err)
 				}
 				defaultAcl, err := getDefaultNetworkAcl(d.Get("vpc_id").(string), ec2conn)
 				if err != nil {
-					return fmt.Errorf("Depedency voilation: Can not delete acl %s", d.Id(), err)
+					return fmt.Errorf("Dependency violation: Cannot delete acl %s: %s", d.Id(), err)
 				}
 				_, err = ec2conn.ReplaceNetworkAclAssociation(association.NetworkAclAssociationId, defaultAcl.NetworkAclId)
 				return resource.RetryError{err}
@@ -283,7 +283,7 @@ func resourceAwsNetworkAclEntryHash(v interface{}) int {
 	var buf bytes.Buffer
 	m := v.(map[string]interface{})
 	buf.WriteString(fmt.Sprintf("%d-", m["from_port"].(int)))
-	buf.WriteString(fmt.Sprintf("%s-", m["to_port"].(int)))
+	buf.WriteString(fmt.Sprintf("%d-", m["to_port"].(int)))
 	buf.WriteString(fmt.Sprintf("%d-", m["rule_no"].(int)))
 	buf.WriteString(fmt.Sprintf("%s-", m["action"].(string)))
 	buf.WriteString(fmt.Sprintf("%s-", m["protocol"].(string)))
