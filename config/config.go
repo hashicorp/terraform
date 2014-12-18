@@ -365,6 +365,7 @@ func (c *Config) Validate() error {
 		}
 		r.RawCount.init()
 
+		// Verify depends on points to resources that all exist
 		for _, d := range r.DependsOn {
 			if _, ok := resources[d]; !ok {
 				errs = append(errs, fmt.Errorf(
