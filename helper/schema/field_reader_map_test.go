@@ -40,16 +40,18 @@ func TestMapFieldReader(t *testing.T) {
 	}
 
 	cases := map[string]struct {
-		Addr   []string
-		Schema *Schema
-		Out    interface{}
-		OutOk  bool
-		OutErr bool
+		Addr        []string
+		Schema      *Schema
+		Out         interface{}
+		OutOk       bool
+		OutComputed bool
+		OutErr      bool
 	}{
 		"noexist": {
 			[]string{"boolNOPE"},
 			&Schema{Type: TypeBool},
 			nil,
+			false,
 			false,
 			false,
 		},
@@ -60,6 +62,7 @@ func TestMapFieldReader(t *testing.T) {
 			true,
 			true,
 			false,
+			false,
 		},
 
 		"int": {
@@ -68,6 +71,7 @@ func TestMapFieldReader(t *testing.T) {
 			42,
 			true,
 			false,
+			false,
 		},
 
 		"string": {
@@ -75,6 +79,7 @@ func TestMapFieldReader(t *testing.T) {
 			&Schema{Type: TypeString},
 			"string",
 			true,
+			false,
 			false,
 		},
 
@@ -90,6 +95,7 @@ func TestMapFieldReader(t *testing.T) {
 			},
 			true,
 			false,
+			false,
 		},
 
 		"listInt": {
@@ -104,6 +110,7 @@ func TestMapFieldReader(t *testing.T) {
 			},
 			true,
 			false,
+			false,
 		},
 
 		"map": {
@@ -115,6 +122,7 @@ func TestMapFieldReader(t *testing.T) {
 			},
 			true,
 			false,
+			false,
 		},
 
 		"mapelem": {
@@ -122,6 +130,7 @@ func TestMapFieldReader(t *testing.T) {
 			&Schema{Type: TypeString},
 			"bar",
 			true,
+			false,
 			false,
 		},
 
@@ -136,6 +145,7 @@ func TestMapFieldReader(t *testing.T) {
 			},
 			[]interface{}{10, 50},
 			true,
+			false,
 			false,
 		},
 
@@ -165,13 +175,17 @@ func TestMapFieldReader(t *testing.T) {
 			},
 			true,
 			false,
+			false,
 		},
 	}
 
 	for name, tc := range cases {
-		out, outOk, outErr := r.ReadField(tc.Addr, tc.Schema)
+		out, outOk, outComputed, outErr := r.ReadField(tc.Addr, tc.Schema)
 		if (outErr != nil) != tc.OutErr {
 			t.Fatalf("%s: err: %s", name, outErr)
+		}
+		if outComputed != tc.OutComputed {
+			t.Fatalf("%s: err: %#v", name, outComputed)
 		}
 
 		if s, ok := out.(*Set); ok {
