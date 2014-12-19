@@ -33,6 +33,7 @@ const (
 	TypeList
 	TypeMap
 	TypeSet
+	typeObject
 )
 
 // Schema is used to describe the structure of a value.
