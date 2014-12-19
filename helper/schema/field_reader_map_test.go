@@ -180,24 +180,24 @@ func TestMapFieldReader(t *testing.T) {
 	}
 
 	for name, tc := range cases {
-		out, outOk, outComputed, outErr := r.ReadField(tc.Addr, tc.Schema)
-		if (outErr != nil) != tc.OutErr {
-			t.Fatalf("%s: err: %s", name, outErr)
+		out, err := r.ReadField(tc.Addr, tc.Schema)
+		if (err != nil) != tc.OutErr {
+			t.Fatalf("%s: err: %s", name, err)
 		}
-		if outComputed != tc.OutComputed {
-			t.Fatalf("%s: err: %#v", name, outComputed)
+		if out.Computed != tc.OutComputed {
+			t.Fatalf("%s: err: %#v", name, out.Computed)
 		}
 
-		if s, ok := out.(*Set); ok {
+		if s, ok := out.Value.(*Set); ok {
 			// If it is a set, convert to a list so its more easily checked.
-			out = s.List()
+			out.Value = s.List()
 		}
 
-		if !reflect.DeepEqual(out, tc.Out) {
-			t.Fatalf("%s: out: %#v", name, out)
+		if !reflect.DeepEqual(out.Value, tc.Out) {
+			t.Fatalf("%s: out: %#v", name, out.Value)
 		}
-		if outOk != tc.OutOk {
-			t.Fatalf("%s: outOk: %#v", name, outOk)
+		if out.Exists != tc.OutOk {
+			t.Fatalf("%s: outOk: %#v", name, out.Exists)
 		}
 	}
 }

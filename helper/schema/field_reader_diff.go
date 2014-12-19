@@ -3,15 +3,17 @@ package schema
 import (
 	"fmt"
 	"strings"
+
+	"github.com/hashicorp/terraform/terraform"
+	"github.com/mitchellh/mapstructure"
 )
 
-// MapFieldReader reads fields out of an untyped map[string]string to
-// the best of its ability.
-type MapFieldReader struct {
-	Map map[string]string
+// DiffFieldReader reads fields out of a diff structures.
+type DiffFieldReader struct {
+	Diff *terraform.InstanceDiff
 }
 
-func (r *MapFieldReader) ReadField(
+func (r *DiffFieldReader) ReadField(
 	address []string, schema *Schema) (FieldReadResult, error) {
 	k := strings.Join(address, ".")
 
@@ -35,18 +37,25 @@ func (r *MapFieldReader) ReadField(
 	}
 }
 
-func (r *MapFieldReader) readMap(k string) (FieldReadResult, error) {
+func (r *DiffFieldReader) readMap(k string) (FieldReadResult, error) {
 	result := make(map[string]interface{})
+	negresult := make(map[string]interface{})
 	resultSet := false
 
 	prefix := k + "."
-	for k, v := range r.Map {
+	for k, v := range r.Diff.Attributes {
 		if !strings.HasPrefix(k, prefix) {
 			continue
 		}
-
-		result[k[len(prefix):]] = v
 		resultSet = true
+
+		k = k[len(prefix):]
+		if v.NewRemoved {
+			negresult[k] = ""
+			continue
+		}
+
+		result[k] = v.New
 	}
 
 	var resultVal interface{}
@@ -55,16 +64,30 @@ func (r *MapFieldReader) readMap(k string) (FieldReadResult, error) {
 	}
 
 	return FieldReadResult{
-		Value:  resultVal,
-		Exists: resultSet,
+		Value:    resultVal,
+		NegValue: negresult,
+		Exists:   resultSet,
 	}, nil
 }
 
-func (r *MapFieldReader) readPrimitive(
+func (r *DiffFieldReader) readPrimitive(
 	k string, schema *Schema) (FieldReadResult, error) {
-	result, ok := r.Map[k]
+	attrD, ok := r.Diff.Attributes[k]
 	if !ok {
 		return FieldReadResult{}, nil
+	}
+	if attrD.NewComputed {
+		return FieldReadResult{
+			Exists:   true,
+			Computed: true,
+		}, nil
+	}
+
+	result := attrD.New
+	if attrD.NewExtra != nil {
+		if err := mapstructure.WeakDecode(attrD.NewExtra, &result); err != nil {
+			return FieldReadResult{}, err
+		}
 	}
 
 	returnVal, err := stringToPrimitive(result, false, schema)
@@ -78,29 +101,10 @@ func (r *MapFieldReader) readPrimitive(
 	}, nil
 }
 
-func (r *MapFieldReader) readSet(
+func (r *DiffFieldReader) readSet(
 	k string, schema *Schema) (FieldReadResult, error) {
-	// Get the number of elements in the list
-	countRaw, err := r.readPrimitive(k+".#", &Schema{Type: TypeInt})
-	if err != nil {
-		return FieldReadResult{}, err
-	}
-	if !countRaw.Exists {
-		// No count, means we have no list
-		countRaw.Value = 0
-	}
-
 	// Create the set that will be our result
 	set := &Set{F: schema.Set}
-
-	// If we have an empty list, then return an empty list
-	if countRaw.Computed || countRaw.Value.(int) == 0 {
-		return FieldReadResult{
-			Value:    set,
-			Exists:   true,
-			Computed: countRaw.Computed,
-		}, nil
-	}
 
 	// Get the schema for the elements
 	var elemSchema *Schema
@@ -116,7 +120,7 @@ func (r *MapFieldReader) readSet(
 
 	// Go through the map and find all the set items
 	prefix := k + "."
-	for k, _ := range r.Map {
+	for k, _ := range r.Diff.Attributes {
 		if !strings.HasPrefix(k, prefix) {
 			continue
 		}

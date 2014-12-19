@@ -15,7 +15,7 @@ type ConfigFieldReader struct {
 }
 
 func (r *ConfigFieldReader) ReadField(
-	address []string, schema *Schema) (interface{}, bool, bool, error) {
+	address []string, schema *Schema) (FieldReadResult, error) {
 	k := strings.Join(address, ".")
 
 	switch schema.Type {
@@ -38,10 +38,10 @@ func (r *ConfigFieldReader) ReadField(
 	}
 }
 
-func (r *ConfigFieldReader) readMap(k string) (interface{}, bool, bool, error) {
+func (r *ConfigFieldReader) readMap(k string) (FieldReadResult, error) {
 	mraw, ok := r.Config.Get(k)
 	if !ok {
-		return nil, false, false, nil
+		return FieldReadResult{}, nil
 	}
 
 	result := make(map[string]interface{})
@@ -64,52 +64,66 @@ func (r *ConfigFieldReader) readMap(k string) (interface{}, bool, bool, error) {
 		panic(fmt.Sprintf("unknown type: %#v", mraw))
 	}
 
-	return result, true, false, nil
+	return FieldReadResult{
+		Value:  result,
+		Exists: true,
+	}, nil
 }
 
 func (r *ConfigFieldReader) readPrimitive(
-	k string, schema *Schema) (interface{}, bool, bool, error) {
+	k string, schema *Schema) (FieldReadResult, error) {
 	raw, ok := r.Config.Get(k)
 	if !ok {
-		return nil, false, false, nil
+		return FieldReadResult{}, nil
 	}
 
 	var result string
 	if err := mapstructure.WeakDecode(raw, &result); err != nil {
-		return nil, false, false, err
+		return FieldReadResult{}, err
 	}
 
 	computed := r.Config.IsComputed(k)
 	returnVal, err := stringToPrimitive(result, computed, schema)
 	if err != nil {
-		return nil, false, false, err
+		return FieldReadResult{}, err
 	}
 
-	return returnVal, true, computed, nil
+	return FieldReadResult{
+		Value:    returnVal,
+		Exists:   true,
+		Computed: computed,
+	}, nil
 }
 
 func (r *ConfigFieldReader) readSet(
-	k string, schema *Schema) (interface{}, bool, bool, error) {
-	raw, ok, computed, err := readListField(r, k, schema)
+	k string, schema *Schema) (FieldReadResult, error) {
+	raw, err := readListField(r, k, schema)
 	if err != nil {
-		return nil, false, false, err
+		return FieldReadResult{}, err
 	}
-	if !ok {
-		return nil, false, false, nil
+	if !raw.Exists {
+		return FieldReadResult{}, nil
 	}
 
 	// Create the set that will be our result
 	set := &Set{F: schema.Set}
 
 	// If the list is computed, the set is necessarilly computed
-	if computed {
-		return set, true, computed, nil
+	if raw.Computed {
+		return FieldReadResult{
+			Value:    set,
+			Exists:   true,
+			Computed: raw.Computed,
+		}, nil
 	}
 
 	// Build up the set from the list elements
-	for _, v := range raw.([]interface{}) {
+	for _, v := range raw.Value.([]interface{}) {
 		set.Add(v)
 	}
 
-	return set, true, false, nil
+	return FieldReadResult{
+		Value:  set,
+		Exists: true,
+	}, nil
 }
