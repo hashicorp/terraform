@@ -129,6 +129,25 @@ func TestInterpolationWalker_detect(t *testing.T) {
 				},
 			},
 		},
+
+		{
+			Input: map[string]interface{}{
+				"foo": `${concat("localhost", ":8080")}`,
+			},
+			Result: []Interpolation{
+				&FunctionInterpolation{
+					Func: nil,
+					Args: []Interpolation{
+						&LiteralInterpolation{
+							Literal: "localhost",
+						},
+						&LiteralInterpolation{
+							Literal: ":8080",
+						},
+					},
+				},
+			},
+		},
 	}
 
 	for i, tc := range cases {

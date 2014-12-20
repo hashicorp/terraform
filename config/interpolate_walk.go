@@ -16,7 +16,7 @@ const InterpSplitDelim = `B780FFEC-B661-4EB8-9236-A01737AD98B6`
 
 // interpRegexp is a regexp that matches interpolations such as ${foo.bar}
 var interpRegexp *regexp.Regexp = regexp.MustCompile(
-	`(?i)(\$+)\{([\s*-.,\\/\(\)a-z0-9_"]+)\}`)
+	`(?i)(\$+)\{([\s*-.,\\/\(\):a-z0-9_"]+)\}`)
 
 // interpolationWalker implements interfaces for the reflectwalk package
 // (github.com/mitchellh/reflectwalk) that can be used to automatically
