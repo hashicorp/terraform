@@ -22,7 +22,11 @@ testrace: config/y.go
 	TF_ACC= go test -race $(TEST) $(TESTARGS)
 
 updatedeps: config/y.go
-	go get -u -v ./...
+	@if [ $(shell go version | cut -f3 -d" " | cut -f2 -d.) -lt 4 ]; then \
+		go get -u -v ./...; \
+	else \
+		go get -f -u -v ./...; \
+	fi
 
 config/y.go: config/expr.y
 	cd config/ && \
