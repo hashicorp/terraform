@@ -54,3 +54,5 @@ The following attributes are exported:
 * `enable_dns_hostnames` - Whether or not the VPC has DNS hostname support
 * `main_route_table_id` - The ID of the main route table associated with
      this VPC.
+* `default_network_acl_id` - The ID of the network ACL created by default on VPC creation
+* `default_security_group_id` - The ID of the security group created by default on VPC creation
