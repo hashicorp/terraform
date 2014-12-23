@@ -52,6 +52,12 @@ func resourceAwsVpc() *schema.Resource {
 				Computed: true,
 			},
 
+			"default_security_group_id": &schema.Schema{
+				Type:     schema.TypeString,
+				Computed: true,
+			},
+
+
 			"tags": tagsSchema(),
 		},
 	}
@@ -145,6 +151,7 @@ func resourceAwsVpcRead(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	resourceAwsVpcSetDefaultNetworkAcl(ec2conn, d)
+	resourceAwsVpcSetDefaultSecurityGroup(ec2conn, d)
 
 	return nil
 }
@@ -248,6 +255,22 @@ func resourceAwsVpcSetDefaultNetworkAcl(conn *ec2.EC2, d *schema.ResourceData) e
 	}
 	if v := networkAclResp.NetworkAcls; len(v) > 0 {
 		d.Set("default_network_acl_id", v[0].NetworkAclId)
+	}
+
+	return nil
+}
+
+func resourceAwsVpcSetDefaultSecurityGroup(conn *ec2.EC2, d *schema.ResourceData) error  {
+	filter := ec2.NewFilter()
+	filter.Add("group-name", "default")
+	filter.Add("vpc-id", d.Id())
+	securityGroupResp, err := conn.SecurityGroups(nil, filter)
+
+	if err != nil {
+		return err
+	}
+	if v := securityGroupResp.Groups; len(v) > 0 {
+		d.Set("default_security_group_id", v[0].Id)
 	}
 
 	return nil
