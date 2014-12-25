@@ -163,12 +163,12 @@ func resourceCloudStackPortForwardRead(d *schema.ResourceData, meta interface{})
 
 			privPort, err := strconv.Atoi(r.Privateport)
 			if err != nil {
-				return fmt.Errorf("Error converting private_port: %s", err)
+				return err
 			}
 
 			pubPort, err := strconv.Atoi(r.Publicport)
 			if err != nil {
-				return fmt.Errorf("Error converting public_port: %s", err)
+				return err
 			}
 
 			// Update the values
