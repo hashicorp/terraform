@@ -137,6 +137,7 @@ func resourceAwsInstance() *schema.Resource {
 			"block_device": &schema.Schema{
 				Type:     schema.TypeSet,
 				Optional: true,
+				Computed: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"device_name": &schema.Schema{
