@@ -29,6 +29,10 @@ BUG FIXES:
   * provider/aws: `vpc_id` is no longer required. [GH-667]
   * provider/aws: `availability_zones` on ELB will contain more than one
       AZ if it is set as such. [GH-682]
+  * provider/aws: More fields are marked as "computed" properly, resulting
+      in more accurate diffs for AWS instances. [GH-712]
+  * provider/aws: Fix panic case by using the wrong type when setting
+      volume size for AWS instances. [GH-712]
 
 ## 0.3.5 (December 9, 2014)
 
