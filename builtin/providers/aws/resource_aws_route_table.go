@@ -116,6 +116,10 @@ func resourceAwsRouteTableRead(d *schema.ResourceData, meta interface{}) error {
 			continue
 		}
 
+		if r.Origin == "EnableVgwRoutePropagation" {
+			continue
+		}
+
 		m := make(map[string]interface{})
 		m["cidr_block"] = r.DestinationCidrBlock
 
