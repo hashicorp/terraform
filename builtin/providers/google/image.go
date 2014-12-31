@@ -24,6 +24,7 @@ func readImage(c *Config, name string) (*compute.Image, error) {
 		"opensuse": "opensuse-cloud",
 		"rhel":     "rhel-cloud",
 		"sles":     "suse-cloud",
+		"ubuntu":   "ubuntu-os-cloud",
 	}
 
 	// If we match a lookup for an alternate project, then try that next.
