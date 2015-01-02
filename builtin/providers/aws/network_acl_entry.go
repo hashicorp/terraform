@@ -1,8 +1,8 @@
 package aws
 
 import (
-	"github.com/mitchellh/goamz/ec2"
 	"fmt"
+	"github.com/mitchellh/goamz/ec2"
 )
 
 func expandNetworkAclEntries(configured []interface{}, entryType string) ([]ec2.NetworkAclEntry, error) {
@@ -11,7 +11,7 @@ func expandNetworkAclEntries(configured []interface{}, entryType string) ([]ec2.
 		data := eRaw.(map[string]interface{})
 		protocol := data["protocol"].(string)
 		_, ok := protocolIntegers()[protocol]
-		if(!ok){
+		if !ok {
 			return nil, fmt.Errorf("Invalid Protocol %s for rule %#v", protocol, data)
 		}
 		p := extractProtocolInteger(data["protocol"].(string))
@@ -69,7 +69,7 @@ func protocolIntegers() map[string]int {
 		"udp":  17,
 		"tcp":  6,
 		"icmp": 1,
-		"all": -1,
+		"all":  -1,
 	}
 	return protocolIntegers
 }

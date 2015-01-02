@@ -13,11 +13,11 @@ var Funcs map[string]InterpolationFunc
 
 func init() {
 	Funcs = map[string]InterpolationFunc{
-		"concat": interpolationFuncConcat,
-		"file":   interpolationFuncFile,
-		"join":   interpolationFuncJoin,
-		"lookup": interpolationFuncLookup,
-		"element":  interpolationFuncElement,
+		"concat":  interpolationFuncConcat,
+		"file":    interpolationFuncFile,
+		"join":    interpolationFuncJoin,
+		"lookup":  interpolationFuncLookup,
+		"element": interpolationFuncElement,
 	}
 }
 
@@ -108,7 +108,7 @@ func interpolationFuncElement(
 			"invalid number for index, got %s", args[1])
 	}
 
-	v := list[index % len(list)]
+	v := list[index%len(list)]
 
 	return v, nil
 }
