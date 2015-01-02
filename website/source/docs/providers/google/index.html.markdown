@@ -57,5 +57,4 @@ the process more straightforwarded, it is documented here:
 2. Under the "APIs & Auth" section, click "Credentials."
 
 3. Create a new OAuth client ID and select "Service account" as the type
-   of account. Once created, a JSON file should be downloaded. This is your
-   _account file_.
+   of account. Once created, and after a P12 key is downloaded, a JSON file should be downloaded. This is your _account file_.
