@@ -221,7 +221,21 @@ func resourceComputeInstanceUpdate(d *schema.ResourceData, meta interface{}) err
 
 		_, err := servers.Update(osClient, d.Id(), updateOpts).Extract()
 		if err != nil {
-			return fmt.Errorf("Error updating Openstack server: %s", err)
+			return fmt.Errorf("Error updating OpenStack server: %s", err)
+		}
+	}
+
+	if d.HasChange("metadata") {
+		var metadataOpts servers.MetadataOpts
+		metadataOpts = make(servers.MetadataOpts)
+		newMetadata := d.Get("metadata").(map[string]interface{})
+		for k, v := range newMetadata {
+			metadataOpts[k] = v.(string)
+		}
+
+		_, err := servers.UpdateMetadata(osClient, d.Id(), metadataOpts).Extract()
+		if err != nil {
+			return fmt.Errorf("Error updating OpenStack server (%s) metadata: %s", d.Id(), err)
 		}
 	}
 
