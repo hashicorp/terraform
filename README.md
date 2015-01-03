@@ -19,12 +19,12 @@ The key features of Terraform are:
 
 -	**Change Automation**: Complex changesets can be applied to your infrastructure with minimal human interaction. With the previously mentioned execution plan and resource graph, you know exactly what Terraform will change and in what order, avoiding many possible human errors.
 
-For more information, see the[introduction section](http://www.terraform.io/intro) of the Terraform website.
+For more information, see the [introduction section](http://www.terraform.io/intro) of the Terraform website.
 
 Getting Started & Documentation
 -------------------------------
 
-All documentation is available on the[Terraform website](http://www.terraform.io).
+All documentation is available on the [Terraform website](http://www.terraform.io).
 
 Developing Terraform
 --------------------
@@ -69,7 +69,7 @@ $ make test TEST=./terraform
 
 ### Acceptance Tests
 
-Terraform also has a comprehensive[acceptance test](http://en.wikipedia.org/wiki/Acceptance_testing) suite covering most of the major features of the built-in providers.
+Terraform also has a comprehensive [acceptance test](http://en.wikipedia.org/wiki/Acceptance_testing) suite covering most of the major features of the built-in providers.
 
 If you're working on a feature of a provider and want to verify it is functioning (and hasn't broken anything else), we recommend running the acceptance tests. Note that we *do not require* that you run or write acceptance tests to have a PR accepted. The acceptance tests are just here for your convenience.
 
