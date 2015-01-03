@@ -18,7 +18,7 @@ To simplify the example, this intentionally ignores deploying and
 getting your application onto the servers. However, you could do so either via
 [provisioners](/docs/provisioners/index.html) and a configuration
 management tool, or by pre-baking configured AMIs with
-[Packer](http://www.packer.io).
+[Packer](https://www.packer.io).
 
 After you run `terraform apply` on this configuration, it will
 automatically output the DNS address of the ELB. After your instance

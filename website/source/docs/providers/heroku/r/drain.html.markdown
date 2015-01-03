@@ -24,12 +24,12 @@ resource "heroku_drain" "default" {
 
 The following arguments are supported:
 
-* `url` - (Required) The URL for Heroku to drain your logs to
+* `url` - (Required) The URL for Heroku to drain your logs to.
 * `app` - (Required) The Heroku app to link to.
 
 ## Attributes Reference
 
 The following attributes are exported:
 
-* `token` - The unique token for your created drain
+* `token` - The unique token for your created drain.
 

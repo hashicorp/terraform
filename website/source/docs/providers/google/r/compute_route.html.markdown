@@ -63,7 +63,7 @@ The following arguments are supported:
 The following attributes are exported:
 
 * `name` - The name of the resource.
-* `dest_range` - The detination CIDR block of this route.
+* `dest_range` - The destination CIDR block of this route.
 * `network` - The name of the network of this route.
 * `next_hop_ip` - The IP address of the next hop, if available.
 * `next_hop_instance` - The name of the instance of the next hop, if available.

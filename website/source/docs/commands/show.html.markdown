@@ -3,7 +3,7 @@ layout: "docs"
 page_title: "Command: show"
 sidebar_current: "docs-commands-show"
 description: |-
-  The `terraform show` command is used to provide human-readable output from a state or plan file. This can be used to inspect a plan to ensure that the planned operations are expected, or to inspect the current state as terraform sees it.
+  The `terraform show` command is used to provide human-readable output from a state or plan file. This can be used to inspect a plan to ensure that the planned operations are expected, or to inspect the current state as Terraform sees it.
 ---
 
 # Command: show
@@ -11,7 +11,7 @@ description: |-
 The `terraform show` command is used to provide human-readable output
 from a state or plan file. This can be used to inspect a plan to ensure
 that the planned operations are expected, or to inspect the current state
-as terraform sees it.
+as Terraform sees it.
 
 ## Usage
 

@@ -73,7 +73,7 @@ The following attributes are exported:
 * `id` - The ID of the artifact. This could be an AMI ID, GCE Image ID, etc.
 * `file_url` - For artifacts that are binaries, this is a download path.
 * `metadata_full` - Contains the full metadata of the artifact. The keys are sanitized
-  to replace any characters that are invalid in a resource name with a hypen.
+  to replace any characters that are invalid in a resource name with a hyphen.
   For example, the "region.us-east-1" key will become "region-us-east-1".
 * `version_real` - The matching version of the artifact
 * `slug` - The artifact slug in Atlas

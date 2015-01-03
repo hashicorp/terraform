@@ -29,7 +29,7 @@ resource "cloudstack_port_forward" "default" {
 
 The following arguments are supported:
 
-* `ipaddress` - (Required) The ip address for which to create the port forwards.
+* `ipaddress` - (Required) The IP address for which to create the port forwards.
     Changing this forces a new resource to be created.
 
 * `forward` - (Required) Can be specified multiple times. Each forward block supports
@@ -50,4 +50,4 @@ The `forward` block supports:
 
 The following attributes are exported:
 
-* `ipaddress` - The ip address for which the port forwards are created.
+* `ipaddress` - The IP address for which the port forwards are created.

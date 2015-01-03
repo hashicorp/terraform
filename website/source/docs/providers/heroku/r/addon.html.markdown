@@ -14,7 +14,7 @@ services to a Heroku app.
 ## Example Usage
 
 ```
-# Create a new heroku app
+# Create a new Heroku app
 resource "heroku_app" "default" {
     name = "test-app"
 }

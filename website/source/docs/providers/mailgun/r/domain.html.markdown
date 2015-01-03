@@ -14,7 +14,7 @@ create and manage applications on Mailgun.
 ## Example Usage
 
 ```
-# Create a new mailgun domain
+# Create a new Mailgun domain
 resource "mailgun_domain" "default" {
     name = "test.example.com"
     spam_action = "disabled"
@@ -30,8 +30,8 @@ The following arguments are supported:
 * `smtp_password` - (Required) Password for SMTP authentication
 * `spam_action` - (Optional) `disabled` or `tag` Disable, no spam
     filtering will occur for inbound messages. Tag, messages
-    will be tagged wtih a spam header.
-* `wildcard` - (Optional) Boolean determines whether
+    will be tagged with a spam header.
+* `wildcard` - (Optional) Boolean that determines whether
     the domain will accept email for sub-domains.
 
 ## Attributes Reference
@@ -48,7 +48,7 @@ The following attributes are exported:
     * `record_type` - The record type.
     * `valid` - `"valid"` if the record is valid.
     * `value` - The value of the record.
-* `sending_records` - An arry of DNS records for sending validation.
+* `sending_records` - An array of DNS records for sending validation.
     * `name` - The name of the record.
     * `record_type` - The record type.
     * `valid` - `"valid"` if the record is valid.

@@ -13,7 +13,7 @@ Provides a Heroku SSL certificate resource. It allows to set a given certificate
 ## Example Usage
 
 ```
-# Create a new heroku app
+# Create a new Heroku app
 resource "heroku_app" "default" {
     name = "test-app"
 }
@@ -46,6 +46,6 @@ The following arguments are supported:
 The following attributes are exported:
 
 * `id` - The ID of the add-on
-* `cname` - The CNAME of ssl endpoint
+* `cname` - The CNAME for the SSL endpoint
 * `name` - The name of the SSL certificate
 
