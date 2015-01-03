@@ -3,12 +3,12 @@ layout: "cloudstack"
 page_title: "CloudStack: cloudstack_firewall"
 sidebar_current: "docs-cloudstack-resource-firewall"
 description: |-
-  Creates firewall rules for a given ip address.
+  Creates firewall rules for a given IP address.
 ---
 
 # cloudstack\_firewall
 
-Creates firewall rules for a given ip address.
+Creates firewall rules for a given IP address.
 
 ## Example Usage
 
@@ -28,7 +28,7 @@ resource "cloudstack_firewall" "default" {
 
 The following arguments are supported:
 
-* `ipaddress` - (Required) The ip address for which to create the firewall rules.
+* `ipaddress` - (Required) The IP address for which to create the firewall rules.
     Changing this forces a new resource to be created.
 
 * `rule` - (Required) Can be specified multiple times. Each rule block supports
@@ -36,7 +36,7 @@ The following arguments are supported:
 
 The `rule` block supports:
 
-* `source_cidr` - (Required) The source cidr to allow access to the given ports.
+* `source_cidr` - (Required) The source CIDR to allow access to the given ports.
 
 * `protocol` - (Required) The name of the protocol to allow. Valid options are:
     `tcp`, `udp` and `icmp`.
@@ -54,4 +54,4 @@ The `rule` block supports:
 
 The following attributes are exported:
 
-* `ipaddress` - The ip address for which the firewall rules are created.
+* `ipaddress` - The IP address for which the firewall rules are created.

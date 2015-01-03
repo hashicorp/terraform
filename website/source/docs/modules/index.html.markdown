@@ -3,12 +3,12 @@ layout: "docs"
 page_title: "Modules"
 sidebar_current: "docs-modules"
 description: |-
-  Modules in terraform are self-contained packages of Terraform configurations that are managed as a group. Modules are used to create reusable components in Terraform as well as for basic code organization.
+  Modules in Terraform are self-contained packages of Terraform configurations that are managed as a group. Modules are used to create reusable components in Terraform as well as for basic code organization.
 ---
 
 # Modules
 
-Modules in terraform are self-contained packages of Terraform configurations
+Modules in Terraform are self-contained packages of Terraform configurations
 that are managed as a group. Modules are used to create reusable components
 in Terraform as well as for basic code organization.
 

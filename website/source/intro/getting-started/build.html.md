@@ -195,7 +195,7 @@ the getting started guide.
 The EC2 instance we launched at this point is based on the AMI
 given, but has no additional software installed. If you're running
 an image-based infrastructure (perhaps creating images with
-[Packer](http://www.packer.io)), then this is all you need.
+[Packer](https://www.packer.io)), then this is all you need.
 
 However, many infrastructures still require some sort of initialization
 or software provisioning step. Terraform supports

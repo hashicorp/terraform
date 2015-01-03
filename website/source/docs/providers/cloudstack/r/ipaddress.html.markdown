@@ -23,10 +23,10 @@ resource "cloudstack_ipaddress" "default" {
 The following arguments are supported:
 
 * `network` - (Optional) The name of the network for which an IP address should
-    be aquired and accociated. Changing this forces a new resource to be created.
+    be acquired and associated. Changing this forces a new resource to be created.
 
-* `vpc` - (Optional) The name of the vpc for which an IP address should
-    be aquired and accociated. Changing this forces a new resource to be created.
+* `vpc` - (Optional) The name of the VPC for which an IP address should
+    be acquired and associated. Changing this forces a new resource to be created.
 
 *NOTE: Either `network` or `vpc` should have a value!*
 
@@ -34,5 +34,5 @@ The following arguments are supported:
 
 The following attributes are exported:
 
-* `id` - The ID of the aquired and accociated IP address.
-* `ipaddress` - The IP address that was aquired and accociated.
+* `id` - The ID of the acquired and associated IP address.
+* `ipaddress` - The IP address that was acquired and associated.

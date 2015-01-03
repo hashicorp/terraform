@@ -43,7 +43,7 @@ The following arguments are supported:
 * `vpc_id` - (Required) The ID of the associated VPC.
 * `subnet_id` - (Optional) The ID of the associated subnet.
 * `ingress` - (Optional) Specifies an ingress rule. Parameters defined below.
-* `egress` - (Optional) Speicifes an egress rule. Parameters defined below.
+* `egress` - (Optional) Specifies an egress rule. Parameters defined below.
 
 Both `egress` and `ingress` support the following keys:
 

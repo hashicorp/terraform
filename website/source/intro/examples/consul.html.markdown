@@ -10,7 +10,7 @@ description: |-
 
 [**Example Contents**](https://github.com/hashicorp/terraform/tree/master/examples/consul)
 
-[Consul](http://www.consul.io) is a tool for service discovery, configuration
+[Consul](https://www.consul.io) is a tool for service discovery, configuration
 and orchestration. The Key/Value store it provides is often used to store
 application configuration and information about the infrastructure necessary
 to process requests.
