@@ -76,11 +76,6 @@ func TestDiffFieldReader(t *testing.T) {
 					New: "baz",
 				},
 
-				"mapRemove.foo": &terraform.ResourceAttrDiff{
-					Old: "",
-					New: "bar",
-				},
-
 				"mapRemove.bar": &terraform.ResourceAttrDiff{
 					NewRemoved: true,
 				},
@@ -124,6 +119,31 @@ func TestDiffFieldReader(t *testing.T) {
 					Old: "",
 					New: "bar",
 				},
+
+				"listMap.0.bar": &terraform.ResourceAttrDiff{
+					NewRemoved: true,
+				},
+
+				"setChange.10.value": &terraform.ResourceAttrDiff{
+					Old: "50",
+					New: "80",
+				},
+			},
+		},
+
+		Source: &MapFieldReader{
+			Map: map[string]string{
+				"listMap.#":     "2",
+				"listMap.0.foo": "bar",
+				"listMap.0.bar": "baz",
+				"listMap.1.baz": "baz",
+
+				"mapRemove.foo": "bar",
+				"mapRemove.bar": "bar",
+
+				"setChange.#":        "1",
+				"setChange.10.index": "10",
+				"setChange.10.value": "50",
 			},
 		},
 	}
@@ -231,7 +251,6 @@ func TestDiffFieldReader(t *testing.T) {
 					"foo": "bar",
 					"bar": "baz",
 				},
-				NegValue: map[string]interface{}{},
 				Exists:   true,
 				Computed: false,
 			},
@@ -255,9 +274,6 @@ func TestDiffFieldReader(t *testing.T) {
 			FieldReadResult{
 				Value: map[string]interface{}{
 					"foo": "bar",
-				},
-				NegValue: map[string]interface{}{
-					"bar": "",
 				},
 				Exists:   true,
 				Computed: false,
@@ -309,6 +325,63 @@ func TestDiffFieldReader(t *testing.T) {
 				},
 				Exists:   true,
 				Computed: false,
+			},
+			false,
+		},
+
+		"listMapRemoval": {
+			[]string{"listMap"},
+			&Schema{
+				Type: TypeList,
+				Elem: &Schema{
+					Type: TypeMap,
+				},
+			},
+			FieldReadResult{
+				Value: []interface{}{
+					map[string]interface{}{
+						"foo": "bar",
+					},
+					map[string]interface{}{
+						"baz": "baz",
+					},
+				},
+				Exists: true,
+			},
+			false,
+		},
+
+		"setChange": {
+			[]string{"setChange"},
+			&Schema{
+				Type:     TypeSet,
+				Optional: true,
+				Elem: &Resource{
+					Schema: map[string]*Schema{
+						"index": &Schema{
+							Type:     TypeInt,
+							Required: true,
+						},
+
+						"value": &Schema{
+							Type:     TypeString,
+							Required: true,
+						},
+					},
+				},
+				Set: func(a interface{}) int {
+					m := a.(map[string]interface{})
+					return m["index"].(int)
+				},
+			},
+			FieldReadResult{
+				Value: []interface{}{
+					map[string]interface{}{
+						"index": 10,
+						"value": "80",
+					},
+				},
+				Exists: true,
 			},
 			false,
 		},
