@@ -8,12 +8,16 @@ import (
 // MapFieldReader reads fields out of an untyped map[string]string to
 // the best of its ability.
 type MapFieldReader struct {
-	Map map[string]string
+	Map    map[string]string
+	Schema map[string]*Schema
 }
 
-func (r *MapFieldReader) ReadField(
-	address []string, schema *Schema) (FieldReadResult, error) {
+func (r *MapFieldReader) ReadField(address []string) (FieldReadResult, error) {
 	k := strings.Join(address, ".")
+	schema := addrToSchema(address, r.Schema)
+	if schema == nil {
+		return FieldReadResult{}, nil
+	}
 
 	switch schema.Type {
 	case TypeBool:
@@ -23,13 +27,13 @@ func (r *MapFieldReader) ReadField(
 	case TypeString:
 		return r.readPrimitive(k, schema)
 	case TypeList:
-		return readListField(r, k, schema)
+		return readListField(r, address, schema)
 	case TypeMap:
 		return r.readMap(k)
 	case TypeSet:
 		return r.readSet(k, schema)
 	case typeObject:
-		return readObjectField(r, k, schema.Elem.(map[string]*Schema))
+		return readObjectField(r, address, schema.Elem.(map[string]*Schema))
 	default:
 		panic(fmt.Sprintf("Unknown type: %#v", schema.Type))
 	}
@@ -102,18 +106,6 @@ func (r *MapFieldReader) readSet(
 		}, nil
 	}
 
-	// Get the schema for the elements
-	var elemSchema *Schema
-	switch t := schema.Elem.(type) {
-	case *Resource:
-		elemSchema = &Schema{
-			Type: typeObject,
-			Elem: t.Schema,
-		}
-	case *Schema:
-		elemSchema = t
-	}
-
 	// Go through the map and find all the set items
 	prefix := k + "."
 	for k, _ := range r.Map {
@@ -129,7 +121,7 @@ func (r *MapFieldReader) readSet(
 		parts := strings.Split(k[len(prefix):], ".")
 		idx := parts[0]
 
-		raw, err := r.ReadField([]string{prefix + idx}, elemSchema)
+		raw, err := r.ReadField([]string{prefix[:len(prefix)-1], idx})
 		if err != nil {
 			return FieldReadResult{}, err
 		}

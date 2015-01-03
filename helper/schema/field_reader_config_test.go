@@ -14,6 +14,40 @@ func TestConfigFieldReader_impl(t *testing.T) {
 
 func TestConfigFieldReader(t *testing.T) {
 	r := &ConfigFieldReader{
+		Schema: map[string]*Schema{
+			"bool":   &Schema{Type: TypeBool},
+			"int":    &Schema{Type: TypeInt},
+			"string": &Schema{Type: TypeString},
+			"list": &Schema{
+				Type: TypeList,
+				Elem: &Schema{Type: TypeString},
+			},
+			"listInt": &Schema{
+				Type: TypeList,
+				Elem: &Schema{Type: TypeInt},
+			},
+			"map": &Schema{Type: TypeMap},
+			"set": &Schema{
+				Type: TypeSet,
+				Elem: &Schema{Type: TypeInt},
+				Set: func(a interface{}) int {
+					return a.(int)
+				},
+			},
+			"setDeep": &Schema{
+				Type: TypeSet,
+				Elem: &Resource{
+					Schema: map[string]*Schema{
+						"index": &Schema{Type: TypeInt},
+						"value": &Schema{Type: TypeString},
+					},
+				},
+				Set: func(a interface{}) int {
+					return a.(map[string]interface{})["index"].(int)
+				},
+			},
+		},
+
 		Config: testConfig(t, map[string]interface{}{
 			"bool":   true,
 			"int":    42,
@@ -45,7 +79,6 @@ func TestConfigFieldReader(t *testing.T) {
 
 	cases := map[string]struct {
 		Addr        []string
-		Schema      *Schema
 		Out         interface{}
 		OutOk       bool
 		OutComputed bool
@@ -53,7 +86,6 @@ func TestConfigFieldReader(t *testing.T) {
 	}{
 		"noexist": {
 			[]string{"boolNOPE"},
-			&Schema{Type: TypeBool},
 			nil,
 			false,
 			false,
@@ -62,7 +94,6 @@ func TestConfigFieldReader(t *testing.T) {
 
 		"bool": {
 			[]string{"bool"},
-			&Schema{Type: TypeBool},
 			true,
 			true,
 			false,
@@ -71,7 +102,6 @@ func TestConfigFieldReader(t *testing.T) {
 
 		"int": {
 			[]string{"int"},
-			&Schema{Type: TypeInt},
 			42,
 			true,
 			false,
@@ -80,7 +110,6 @@ func TestConfigFieldReader(t *testing.T) {
 
 		"string": {
 			[]string{"string"},
-			&Schema{Type: TypeString},
 			"string",
 			true,
 			false,
@@ -89,10 +118,6 @@ func TestConfigFieldReader(t *testing.T) {
 
 		"list": {
 			[]string{"list"},
-			&Schema{
-				Type: TypeList,
-				Elem: &Schema{Type: TypeString},
-			},
 			[]interface{}{
 				"foo",
 				"bar",
@@ -104,10 +129,6 @@ func TestConfigFieldReader(t *testing.T) {
 
 		"listInt": {
 			[]string{"listInt"},
-			&Schema{
-				Type: TypeList,
-				Elem: &Schema{Type: TypeInt},
-			},
 			[]interface{}{
 				21,
 				42,
@@ -119,7 +140,6 @@ func TestConfigFieldReader(t *testing.T) {
 
 		"map": {
 			[]string{"map"},
-			&Schema{Type: TypeMap},
 			map[string]interface{}{
 				"foo": "bar",
 				"bar": "baz",
@@ -131,7 +151,6 @@ func TestConfigFieldReader(t *testing.T) {
 
 		"mapelem": {
 			[]string{"map", "foo"},
-			&Schema{Type: TypeString},
 			"bar",
 			true,
 			false,
@@ -140,13 +159,6 @@ func TestConfigFieldReader(t *testing.T) {
 
 		"set": {
 			[]string{"set"},
-			&Schema{
-				Type: TypeSet,
-				Elem: &Schema{Type: TypeInt},
-				Set: func(a interface{}) int {
-					return a.(int)
-				},
-			},
 			[]interface{}{10, 50},
 			true,
 			false,
@@ -155,18 +167,6 @@ func TestConfigFieldReader(t *testing.T) {
 
 		"setDeep": {
 			[]string{"setDeep"},
-			&Schema{
-				Type: TypeSet,
-				Elem: &Resource{
-					Schema: map[string]*Schema{
-						"index": &Schema{Type: TypeInt},
-						"value": &Schema{Type: TypeString},
-					},
-				},
-				Set: func(a interface{}) int {
-					return a.(map[string]interface{})["index"].(int)
-				},
-			},
 			[]interface{}{
 				map[string]interface{}{
 					"index": 10,
@@ -184,7 +184,7 @@ func TestConfigFieldReader(t *testing.T) {
 	}
 
 	for name, tc := range cases {
-		out, err := r.ReadField(tc.Addr, tc.Schema)
+		out, err := r.ReadField(tc.Addr)
 		if (err != nil) != tc.OutErr {
 			t.Fatalf("%s: err: %s", name, err)
 		}

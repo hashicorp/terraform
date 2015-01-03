@@ -9,7 +9,7 @@ import (
 // the proper typed representation. ResourceData uses this to query data
 // out of multiple sources: config, state, diffs, etc.
 type FieldReader interface {
-	ReadField([]string, *Schema) (FieldReadResult, error)
+	ReadField([]string) (FieldReadResult, error)
 }
 
 // FieldReadResult encapsulates all the resulting data from reading
@@ -31,14 +31,92 @@ type FieldReadResult struct {
 	Computed bool
 }
 
+// addrToSchema finds the final element schema for the given address
+// and the given schema.
+func addrToSchema(addr []string, schemaMap map[string]*Schema) *Schema {
+	var result *Schema
+	var lastType ValueType
+	current := &Schema{
+		Type: typeObject,
+		Elem: schemaMap,
+	}
+
+	for len(addr) > 0 {
+		k := addr[0]
+		addr = addr[1:]
+
+	REPEAT:
+		if len(addr) == 0 {
+			result = current
+		}
+
+		currentType := current.Type
+		switch current.Type {
+		case TypeBool:
+			fallthrough
+		case TypeInt:
+			fallthrough
+		case TypeString:
+			if len(addr) > 0 {
+				return nil
+			}
+		case TypeList:
+			fallthrough
+		case TypeSet:
+			switch v := current.Elem.(type) {
+			case *Resource:
+				current = &Schema{
+					Type: typeObject,
+					Elem: v.Schema,
+				}
+			case *Schema:
+				current = v
+			default:
+				return nil
+			}
+
+			if len(addr) > 0 && addr[0] == "#" {
+				current = &Schema{Type: TypeInt}
+			}
+		case TypeMap:
+			if len(addr) > 0 {
+				current = &Schema{Type: TypeString}
+			}
+		case typeObject:
+			if lastType == TypeSet || lastType == TypeList {
+				// We just ignore sets/lists since they don't access
+				// objects the same way.
+				break
+			}
+
+			m := current.Elem.(map[string]*Schema)
+			val, ok := m[k]
+			if !ok {
+				return nil
+			}
+
+			current = val
+			goto REPEAT
+		}
+
+		lastType = currentType
+	}
+
+	return result
+}
+
 // readListField is a generic method for reading a list field out of a
 // a FieldReader. It does this based on the assumption that there is a key
 // "foo.#" for a list "foo" and that the indexes are "foo.0", "foo.1", etc.
 // after that point.
 func readListField(
-	r FieldReader, k string, schema *Schema) (FieldReadResult, error) {
+	r FieldReader, addr []string, schema *Schema) (FieldReadResult, error) {
+	addrPadded := make([]string, len(addr)+1)
+	copy(addrPadded, addr)
+	addrPadded[len(addrPadded)-1] = "#"
+
 	// Get the number of elements in the list
-	countResult, err := r.ReadField([]string{k + ".#"}, &Schema{Type: TypeInt})
+	countResult, err := r.ReadField(addrPadded)
 	if err != nil {
 		return FieldReadResult{}, err
 	}
@@ -56,23 +134,12 @@ func readListField(
 		}, nil
 	}
 
-	// Get the schema for the elements
-	var elemSchema *Schema
-	switch t := schema.Elem.(type) {
-	case *Resource:
-		elemSchema = &Schema{
-			Type: typeObject,
-			Elem: t.Schema,
-		}
-	case *Schema:
-		elemSchema = t
-	}
-
 	// Go through each count, and get the item value out of it
 	result := make([]interface{}, countResult.Value.(int))
 	for i, _ := range result {
 		is := strconv.FormatInt(int64(i), 10)
-		rawResult, err := r.ReadField([]string{k, is}, elemSchema)
+		addrPadded[len(addrPadded)-1] = is
+		rawResult, err := r.ReadField(addrPadded)
 		if err != nil {
 			return FieldReadResult{}, err
 		}
@@ -97,11 +164,14 @@ func readListField(
 // will result in the proper field data.
 func readObjectField(
 	r FieldReader,
-	k string,
+	addr []string,
 	schema map[string]*Schema) (FieldReadResult, error) {
 	result := make(map[string]interface{})
-	for field, schema := range schema {
-		rawResult, err := r.ReadField([]string{k, field}, schema)
+	for field, _ := range schema {
+		addrRead := make([]string, len(addr), len(addr)+1)
+		copy(addrRead, addr)
+		addrRead = append(addrRead, field)
+		rawResult, err := r.ReadField(addrRead)
 		if err != nil {
 			return FieldReadResult{}, err
 		}

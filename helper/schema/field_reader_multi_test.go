@@ -11,7 +11,6 @@ import (
 func TestMultiLevelFieldReaderReadFieldExact(t *testing.T) {
 	cases := map[string]struct {
 		Addr    []string
-		Schema  *Schema
 		Readers []FieldReader
 		Level   string
 		Result  FieldReadResult
@@ -19,22 +18,27 @@ func TestMultiLevelFieldReaderReadFieldExact(t *testing.T) {
 		"specific": {
 			Addr: []string{"foo"},
 
-			Schema: &Schema{
-				Type: TypeString,
-			},
-
 			Readers: []FieldReader{
 				&MapFieldReader{
+					Schema: map[string]*Schema{
+						"foo": &Schema{Type: TypeString},
+					},
 					Map: map[string]string{
 						"foo": "bar",
 					},
 				},
 				&MapFieldReader{
+					Schema: map[string]*Schema{
+						"foo": &Schema{Type: TypeString},
+					},
 					Map: map[string]string{
 						"foo": "baz",
 					},
 				},
 				&MapFieldReader{
+					Schema: map[string]*Schema{
+						"foo": &Schema{Type: TypeString},
+					},
 					Map: map[string]string{},
 				},
 			},
@@ -61,7 +65,7 @@ func TestMultiLevelFieldReaderReadFieldExact(t *testing.T) {
 			Levels:  levels,
 		}
 
-		out, err := r.ReadFieldExact(tc.Addr, tc.Schema, tc.Level)
+		out, err := r.ReadFieldExact(tc.Addr, tc.Level)
 		if err != nil {
 			t.Fatalf("%s: err: %s", name, err)
 		}
@@ -75,23 +79,22 @@ func TestMultiLevelFieldReaderReadFieldExact(t *testing.T) {
 func TestMultiLevelFieldReaderReadFieldMerge(t *testing.T) {
 	cases := map[string]struct {
 		Addr    []string
-		Schema  *Schema
 		Readers []FieldReader
 		Result  FieldReadResult
 	}{
 		"stringInDiff": {
 			Addr: []string{"availability_zone"},
 
-			Schema: &Schema{
-				Type:     TypeString,
-				Optional: true,
-				Computed: true,
-				ForceNew: true,
-			},
-
 			Readers: []FieldReader{
 				&DiffFieldReader{
+					Schema: map[string]*Schema{
+						"availability_zone": &Schema{Type: TypeString},
+					},
+
 					Source: &MapFieldReader{
+						Schema: map[string]*Schema{
+							"availability_zone": &Schema{Type: TypeString},
+						},
 						Map: map[string]string{
 							"availability_zone": "foo",
 						},
@@ -118,22 +121,27 @@ func TestMultiLevelFieldReaderReadFieldMerge(t *testing.T) {
 		"lastLevelComputed": {
 			Addr: []string{"availability_zone"},
 
-			Schema: &Schema{
-				Type:     TypeString,
-				Optional: true,
-				Computed: true,
-				ForceNew: true,
-			},
-
 			Readers: []FieldReader{
 				&MapFieldReader{
+					Schema: map[string]*Schema{
+						"availability_zone": &Schema{Type: TypeString},
+					},
+
 					Map: map[string]string{
 						"availability_zone": "foo",
 					},
 				},
 
 				&DiffFieldReader{
+					Schema: map[string]*Schema{
+						"availability_zone": &Schema{Type: TypeString},
+					},
+
 					Source: &MapFieldReader{
+						Schema: map[string]*Schema{
+							"availability_zone": &Schema{Type: TypeString},
+						},
+
 						Map: map[string]string{
 							"availability_zone": "foo",
 						},
@@ -161,18 +169,23 @@ func TestMultiLevelFieldReaderReadFieldMerge(t *testing.T) {
 		"list of maps with removal in diff": {
 			Addr: []string{"config_vars"},
 
-			Schema: &Schema{
-				Type:     TypeList,
-				Optional: true,
-				Computed: true,
-				Elem: &Schema{
-					Type: TypeMap,
-				},
-			},
-
 			Readers: []FieldReader{
 				&DiffFieldReader{
+					Schema: map[string]*Schema{
+						"config_vars": &Schema{
+							Type: TypeList,
+							Elem: &Schema{Type: TypeMap},
+						},
+					},
+
 					Source: &MapFieldReader{
+						Schema: map[string]*Schema{
+							"config_vars": &Schema{
+								Type: TypeList,
+								Elem: &Schema{Type: TypeMap},
+							},
+						},
+
 						Map: map[string]string{
 							"config_vars.#":     "2",
 							"config_vars.0.foo": "bar",
@@ -207,17 +220,19 @@ func TestMultiLevelFieldReaderReadFieldMerge(t *testing.T) {
 		"first level only": {
 			Addr: []string{"foo"},
 
-			Schema: &Schema{
-				Type: TypeString,
-			},
-
 			Readers: []FieldReader{
 				&MapFieldReader{
+					Schema: map[string]*Schema{
+						"foo": &Schema{Type: TypeString},
+					},
 					Map: map[string]string{
 						"foo": "bar",
 					},
 				},
 				&MapFieldReader{
+					Schema: map[string]*Schema{
+						"foo": &Schema{Type: TypeString},
+					},
 					Map: map[string]string{},
 				},
 			},
@@ -243,7 +258,7 @@ func TestMultiLevelFieldReaderReadFieldMerge(t *testing.T) {
 			Levels:  levels,
 		}
 
-		out, err := r.ReadFieldMerge(tc.Addr, tc.Schema, levels[len(levels)-1])
+		out, err := r.ReadFieldMerge(tc.Addr, levels[len(levels)-1])
 		if err != nil {
 			t.Fatalf("%s: err: %s", name, err)
 		}

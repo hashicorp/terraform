@@ -12,7 +12,71 @@ func TestDiffFieldReader_impl(t *testing.T) {
 }
 
 func TestDiffFieldReader(t *testing.T) {
+	schema := map[string]*Schema{
+		"bool":           &Schema{Type: TypeBool},
+		"int":            &Schema{Type: TypeInt},
+		"string":         &Schema{Type: TypeString},
+		"stringComputed": &Schema{Type: TypeString},
+		"list": &Schema{
+			Type: TypeList,
+			Elem: &Schema{Type: TypeString},
+		},
+		"listInt": &Schema{
+			Type: TypeList,
+			Elem: &Schema{Type: TypeInt},
+		},
+		"listMap": &Schema{
+			Type: TypeList,
+			Elem: &Schema{
+				Type: TypeMap,
+			},
+		},
+		"map":       &Schema{Type: TypeMap},
+		"mapRemove": &Schema{Type: TypeMap},
+		"set": &Schema{
+			Type: TypeSet,
+			Elem: &Schema{Type: TypeInt},
+			Set: func(a interface{}) int {
+				return a.(int)
+			},
+		},
+		"setChange": &Schema{
+			Type:     TypeSet,
+			Optional: true,
+			Elem: &Resource{
+				Schema: map[string]*Schema{
+					"index": &Schema{
+						Type:     TypeInt,
+						Required: true,
+					},
+
+					"value": &Schema{
+						Type:     TypeString,
+						Required: true,
+					},
+				},
+			},
+			Set: func(a interface{}) int {
+				m := a.(map[string]interface{})
+				return m["index"].(int)
+			},
+		},
+		"setDeep": &Schema{
+			Type: TypeSet,
+			Elem: &Resource{
+				Schema: map[string]*Schema{
+					"index": &Schema{Type: TypeInt},
+					"value": &Schema{Type: TypeString},
+				},
+			},
+			Set: func(a interface{}) int {
+				return a.(map[string]interface{})["index"].(int)
+			},
+		},
+	}
+
 	r := &DiffFieldReader{
+		Schema: schema,
 		Diff: &terraform.InstanceDiff{
 			Attributes: map[string]*terraform.ResourceAttrDiff{
 				"bool": &terraform.ResourceAttrDiff{
@@ -132,6 +196,7 @@ func TestDiffFieldReader(t *testing.T) {
 		},
 
 		Source: &MapFieldReader{
+			Schema: schema,
 			Map: map[string]string{
 				"listMap.#":     "2",
 				"listMap.0.foo": "bar",
@@ -150,13 +215,11 @@ func TestDiffFieldReader(t *testing.T) {
 
 	cases := map[string]struct {
 		Addr   []string
-		Schema *Schema
 		Result FieldReadResult
 		Err    bool
 	}{
 		"noexist": {
 			[]string{"boolNOPE"},
-			&Schema{Type: TypeBool},
 			FieldReadResult{
 				Value:    nil,
 				Exists:   false,
@@ -167,7 +230,6 @@ func TestDiffFieldReader(t *testing.T) {
 
 		"bool": {
 			[]string{"bool"},
-			&Schema{Type: TypeBool},
 			FieldReadResult{
 				Value:    true,
 				Exists:   true,
@@ -178,7 +240,6 @@ func TestDiffFieldReader(t *testing.T) {
 
 		"int": {
 			[]string{"int"},
-			&Schema{Type: TypeInt},
 			FieldReadResult{
 				Value:    42,
 				Exists:   true,
@@ -189,7 +250,6 @@ func TestDiffFieldReader(t *testing.T) {
 
 		"string": {
 			[]string{"string"},
-			&Schema{Type: TypeString},
 			FieldReadResult{
 				Value:    "string",
 				Exists:   true,
@@ -200,7 +260,6 @@ func TestDiffFieldReader(t *testing.T) {
 
 		"stringComputed": {
 			[]string{"stringComputed"},
-			&Schema{Type: TypeString},
 			FieldReadResult{
 				Value:    "",
 				Exists:   true,
@@ -211,10 +270,6 @@ func TestDiffFieldReader(t *testing.T) {
 
 		"list": {
 			[]string{"list"},
-			&Schema{
-				Type: TypeList,
-				Elem: &Schema{Type: TypeString},
-			},
 			FieldReadResult{
 				Value: []interface{}{
 					"foo",
@@ -228,10 +283,6 @@ func TestDiffFieldReader(t *testing.T) {
 
 		"listInt": {
 			[]string{"listInt"},
-			&Schema{
-				Type: TypeList,
-				Elem: &Schema{Type: TypeInt},
-			},
 			FieldReadResult{
 				Value: []interface{}{
 					21,
@@ -245,7 +296,6 @@ func TestDiffFieldReader(t *testing.T) {
 
 		"map": {
 			[]string{"map"},
-			&Schema{Type: TypeMap},
 			FieldReadResult{
 				Value: map[string]interface{}{
 					"foo": "bar",
@@ -259,7 +309,6 @@ func TestDiffFieldReader(t *testing.T) {
 
 		"mapelem": {
 			[]string{"map", "foo"},
-			&Schema{Type: TypeString},
 			FieldReadResult{
 				Value:    "bar",
 				Exists:   true,
@@ -270,7 +319,6 @@ func TestDiffFieldReader(t *testing.T) {
 
 		"mapRemove": {
 			[]string{"mapRemove"},
-			&Schema{Type: TypeMap},
 			FieldReadResult{
 				Value: map[string]interface{}{
 					"foo": "bar",
@@ -283,13 +331,6 @@ func TestDiffFieldReader(t *testing.T) {
 
 		"set": {
 			[]string{"set"},
-			&Schema{
-				Type: TypeSet,
-				Elem: &Schema{Type: TypeInt},
-				Set: func(a interface{}) int {
-					return a.(int)
-				},
-			},
 			FieldReadResult{
 				Value:    []interface{}{10, 50},
 				Exists:   true,
@@ -300,18 +341,6 @@ func TestDiffFieldReader(t *testing.T) {
 
 		"setDeep": {
 			[]string{"setDeep"},
-			&Schema{
-				Type: TypeSet,
-				Elem: &Resource{
-					Schema: map[string]*Schema{
-						"index": &Schema{Type: TypeInt},
-						"value": &Schema{Type: TypeString},
-					},
-				},
-				Set: func(a interface{}) int {
-					return a.(map[string]interface{})["index"].(int)
-				},
-			},
 			FieldReadResult{
 				Value: []interface{}{
 					map[string]interface{}{
@@ -331,12 +360,6 @@ func TestDiffFieldReader(t *testing.T) {
 
 		"listMapRemoval": {
 			[]string{"listMap"},
-			&Schema{
-				Type: TypeList,
-				Elem: &Schema{
-					Type: TypeMap,
-				},
-			},
 			FieldReadResult{
 				Value: []interface{}{
 					map[string]interface{}{
@@ -353,27 +376,6 @@ func TestDiffFieldReader(t *testing.T) {
 
 		"setChange": {
 			[]string{"setChange"},
-			&Schema{
-				Type:     TypeSet,
-				Optional: true,
-				Elem: &Resource{
-					Schema: map[string]*Schema{
-						"index": &Schema{
-							Type:     TypeInt,
-							Required: true,
-						},
-
-						"value": &Schema{
-							Type:     TypeString,
-							Required: true,
-						},
-					},
-				},
-				Set: func(a interface{}) int {
-					m := a.(map[string]interface{})
-					return m["index"].(int)
-				},
-			},
 			FieldReadResult{
 				Value: []interface{}{
 					map[string]interface{}{
@@ -388,7 +390,7 @@ func TestDiffFieldReader(t *testing.T) {
 	}
 
 	for name, tc := range cases {
-		out, err := r.ReadField(tc.Addr, tc.Schema)
+		out, err := r.ReadField(tc.Addr)
 		if (err != nil) != tc.Err {
 			t.Fatalf("%s: err: %s", name, err)
 		}

@@ -12,11 +12,15 @@ import (
 // the best of its ability.
 type ConfigFieldReader struct {
 	Config *terraform.ResourceConfig
+	Schema map[string]*Schema
 }
 
-func (r *ConfigFieldReader) ReadField(
-	address []string, schema *Schema) (FieldReadResult, error) {
+func (r *ConfigFieldReader) ReadField(address []string) (FieldReadResult, error) {
 	k := strings.Join(address, ".")
+	schema := addrToSchema(address, r.Schema)
+	if schema == nil {
+		return FieldReadResult{}, nil
+	}
 
 	switch schema.Type {
 	case TypeBool:
@@ -26,13 +30,13 @@ func (r *ConfigFieldReader) ReadField(
 	case TypeString:
 		return r.readPrimitive(k, schema)
 	case TypeList:
-		return readListField(r, k, schema)
+		return readListField(r, address, schema)
 	case TypeMap:
 		return r.readMap(k)
 	case TypeSet:
-		return r.readSet(k, schema)
+		return r.readSet(address, schema)
 	case typeObject:
-		return readObjectField(r, k, schema.Elem.(map[string]*Schema))
+		return readObjectField(r, address, schema.Elem.(map[string]*Schema))
 	default:
 		panic(fmt.Sprintf("Unknown type: %#v", schema.Type))
 	}
@@ -96,8 +100,8 @@ func (r *ConfigFieldReader) readPrimitive(
 }
 
 func (r *ConfigFieldReader) readSet(
-	k string, schema *Schema) (FieldReadResult, error) {
-	raw, err := readListField(r, k, schema)
+	address []string, schema *Schema) (FieldReadResult, error) {
+	raw, err := readListField(r, address, schema)
 	if err != nil {
 		return FieldReadResult{}, err
 	}

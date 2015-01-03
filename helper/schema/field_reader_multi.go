@@ -16,20 +16,19 @@ type MultiLevelFieldReader struct {
 	Levels  []string
 }
 
-func (r *MultiLevelFieldReader) ReadField(
-	address []string, schema *Schema) (FieldReadResult, error) {
-	return r.ReadFieldMerge(address, schema, r.Levels[len(r.Levels)-1])
+func (r *MultiLevelFieldReader) ReadField(address []string) (FieldReadResult, error) {
+	return r.ReadFieldMerge(address, r.Levels[len(r.Levels)-1])
 }
 
 func (r *MultiLevelFieldReader) ReadFieldExact(
-	address []string, schema *Schema, level string) (FieldReadResult, error) {
+	address []string, level string) (FieldReadResult, error) {
 	reader, ok := r.Readers[level]
 	if !ok {
 		return FieldReadResult{}, fmt.Errorf(
 			"Unknown reader level: %s", level)
 	}
 
-	result, err := reader.ReadField(address, schema)
+	result, err := reader.ReadField(address)
 	if err != nil {
 		return FieldReadResult{}, fmt.Errorf(
 			"Error reading level %s: %s", level, err)
@@ -39,7 +38,7 @@ func (r *MultiLevelFieldReader) ReadFieldExact(
 }
 
 func (r *MultiLevelFieldReader) ReadFieldMerge(
-	address []string, schema *Schema, level string) (FieldReadResult, error) {
+	address []string, level string) (FieldReadResult, error) {
 	var result FieldReadResult
 	for _, l := range r.Levels {
 		r, ok := r.Readers[l]
@@ -47,7 +46,7 @@ func (r *MultiLevelFieldReader) ReadFieldMerge(
 			continue
 		}
 
-		out, err := r.ReadField(address, schema)
+		out, err := r.ReadField(address)
 		if err != nil {
 			return FieldReadResult{}, fmt.Errorf(
 				"Error reading level %s: %s", l, err)
