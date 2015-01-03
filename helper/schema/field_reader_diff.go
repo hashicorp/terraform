@@ -76,17 +76,14 @@ func (r *DiffFieldReader) readPrimitive(
 	if !ok {
 		return FieldReadResult{}, nil
 	}
-	if attrD.NewComputed {
-		return FieldReadResult{
-			Exists:   true,
-			Computed: true,
-		}, nil
-	}
 
-	result := attrD.New
-	if attrD.NewExtra != nil {
-		if err := mapstructure.WeakDecode(attrD.NewExtra, &result); err != nil {
-			return FieldReadResult{}, err
+	var result string
+	if !attrD.NewComputed {
+		result = attrD.New
+		if attrD.NewExtra != nil {
+			if err := mapstructure.WeakDecode(attrD.NewExtra, &result); err != nil {
+				return FieldReadResult{}, err
+			}
 		}
 	}
 
@@ -96,8 +93,9 @@ func (r *DiffFieldReader) readPrimitive(
 	}
 
 	return FieldReadResult{
-		Value:  returnVal,
-		Exists: true,
+		Value:    returnVal,
+		Exists:   true,
+		Computed: attrD.NewComputed,
 	}, nil
 }
 

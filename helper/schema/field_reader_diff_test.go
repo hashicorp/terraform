@@ -30,6 +30,12 @@ func TestDiffFieldReader(t *testing.T) {
 					New: "string",
 				},
 
+				"stringComputed": &terraform.ResourceAttrDiff{
+					Old:         "foo",
+					New:         "bar",
+					NewComputed: true,
+				},
+
 				"list.#": &terraform.ResourceAttrDiff{
 					Old: "0",
 					New: "2",
@@ -168,6 +174,17 @@ func TestDiffFieldReader(t *testing.T) {
 				Value:    "string",
 				Exists:   true,
 				Computed: false,
+			},
+			false,
+		},
+
+		"stringComputed": {
+			[]string{"stringComputed"},
+			&Schema{Type: TypeString},
+			FieldReadResult{
+				Value:    "",
+				Exists:   true,
+				Computed: true,
 			},
 			false,
 		},
