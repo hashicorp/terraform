@@ -14,7 +14,7 @@ func Provider() terraform.ResourceProvider {
 			"region": &schema.Schema{
 				Type:        schema.TypeString,
 				Required:    true,
-				DefaultFunc: envDefaultFunc("OS_REGION"),
+				DefaultFunc: envDefaultFunc("OS_REGION_NAME"),
 				Description: descriptions["region"],
 			},
 
@@ -61,7 +61,7 @@ func configureProvider(d *schema.ResourceData) (interface{}, error) {
 		IdentityEndpoint: d.Get("auth_url").(string),
 		Username:         d.Get("username").(string),
 		Password:         d.Get("password").(string),
-		TenantName: 			d.Get("tenant_name").(string),
+		TenantName:       d.Get("tenant_name").(string),
 	}
 
 	if err := config.loadAndValidate(); err != nil {
