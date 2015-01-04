@@ -9,6 +9,7 @@ import (
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/rackspace/gophercloud"
+	"github.com/rackspace/gophercloud/openstack/compute/v2/extensions/keypairs"
 	"github.com/rackspace/gophercloud/openstack/compute/v2/servers"
 )
 
@@ -81,6 +82,7 @@ func resourceComputeInstance() *schema.Resource {
 			"metadata": &schema.Schema{
 				Type:     schema.TypeMap,
 				Optional: true,
+				ForceNew: false,
 			},
 
 			"config_drive": &schema.Schema{
@@ -102,6 +104,12 @@ func resourceComputeInstance() *schema.Resource {
 				Optional: true,
 				ForceNew: false,
 			},
+
+			"key_pair": &schema.Schema{
+				Type:     schema.TypeMap,
+				Optional: true,
+				ForceNew: true,
+			},
 		},
 	}
 }
@@ -110,7 +118,9 @@ func resourceComputeInstanceCreate(d *schema.ResourceData, meta interface{}) err
 	config := meta.(*Config)
 	osClient := config.computeV2Client
 
-	createOpts := &servers.CreateOpts{
+	var createOpts servers.CreateOptsBuilder
+
+	serverCreateOpts := &servers.CreateOpts{
 		Name:      d.Get("name").(string),
 		ImageRef:  d.Get("image_ref").(string),
 		FlavorRef: d.Get("flavor_ref").(string),
@@ -119,6 +129,15 @@ func resourceComputeInstanceCreate(d *schema.ResourceData, meta interface{}) err
 		Networks:         resourceInstanceNetworks(d),
 		Metadata:         resourceInstanceMetadata(d),
 		ConfigDrive:      d.Get("config_drive").(bool),
+	}
+
+	if kp, ok := d.Get("key_pair").(map[string]interface{}); ok && kp != nil {
+		if keyName, ok := kp["name"].(string); ok && keyName != "" {
+			createOpts = &keypairs.CreateOptsExt{
+				serverCreateOpts,
+				keyName,
+			}
+		}
 	}
 
 	log.Printf("[INFO] Requesting instance creation")
