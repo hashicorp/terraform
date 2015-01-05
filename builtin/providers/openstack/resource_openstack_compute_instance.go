@@ -214,6 +214,11 @@ func resourceComputeInstanceRead(d *schema.ResourceData, meta interface{}) error
 	})
 
 	d.Set("metadata", server.Metadata)
+	newFlavor, ok := server.Flavor["id"].(string)
+	if !ok {
+		return fmt.Errorf("Error setting OpenStack server's flavor: %v", newFlavor)
+	}
+	d.Set("flavor_ref", newFlavor)
 
 	return nil
 }
@@ -258,6 +263,54 @@ func resourceComputeInstanceUpdate(d *schema.ResourceData, meta interface{}) err
 		}
 	}
 
+	if d.HasChange("flavor_ref") {
+		resizeOpts := &servers.ResizeOpts{
+			FlavorRef: d.Get("flavor_ref").(string),
+		}
+		err := servers.Resize(osClient, d.Id(), resizeOpts).ExtractErr()
+		if err != nil {
+			return fmt.Errorf("Error resizing OpenStack server: %s", err)
+		}
+
+		// Wait for the instance to finish resizing.
+		log.Printf("[DEBUG] Waiting for instance (%s) to finish resizing", d.Id())
+
+		stateConf := &resource.StateChangeConf{
+			Pending:    []string{"RESIZE"},
+			Target:     "VERIFY_RESIZE",
+			Refresh:    ServerStateRefreshFunc(osClient, d.Id()),
+			Timeout:    3 * time.Minute,
+			Delay:      10 * time.Second,
+			MinTimeout: 3 * time.Second,
+		}
+
+		_, err = stateConf.WaitForState()
+		if err != nil {
+			return fmt.Errorf("Error waiting for instance (%s) to resize: %s", d.Id(), err)
+		}
+
+		// Confirm resize.
+		log.Printf("[DEBUG] Confirming resize")
+		err = servers.ConfirmResize(osClient, d.Id()).ExtractErr()
+		if err != nil {
+			return fmt.Errorf("Error confirming resize of OpenStack server: %s", err)
+		}
+
+		stateConf = &resource.StateChangeConf{
+			Pending:    []string{"VERIFY_RESIZE"},
+			Target:     "ACTIVE",
+			Refresh:    ServerStateRefreshFunc(osClient, d.Id()),
+			Timeout:    3 * time.Minute,
+			Delay:      10 * time.Second,
+			MinTimeout: 3 * time.Second,
+		}
+
+		_, err = stateConf.WaitForState()
+		if err != nil {
+			return fmt.Errorf("Error waiting for instance (%s) to confirm resize: %s", d.Id(), err)
+		}
+	}
+
 	return resourceComputeInstanceRead(d, meta)
 }
 
@@ -271,9 +324,7 @@ func resourceComputeInstanceDelete(d *schema.ResourceData, meta interface{}) err
 	}
 
 	// Wait for the instance to delete before moving on.
-	log.Printf(
-		"[DEBUG] Waiting for instance (%s) to delete",
-		d.Id())
+	log.Printf("[DEBUG] Waiting for instance (%s) to delete", d.Id())
 
 	stateConf := &resource.StateChangeConf{
 		Target:     "",
