@@ -97,40 +97,24 @@ func resourceAwsInternetGatewayDelete(d *schema.ResourceData, meta interface{}) 
 
 	return resource.Retry(5*time.Minute, func() error {
 		_, err := ec2conn.DeleteInternetGateway(d.Id())
-		if err != nil {
-			ec2err, ok := err.(*ec2.Error)
-			if !ok {
-				return err
-			}
-
-			switch ec2err.Code {
-			case "InvalidInternetGatewayID.NotFound":
-				return nil
-			case "DependencyViolation":
-				return err // retry
-			default:
-				return resource.RetryError{err}
-			}
+		if err == nil {
+			return nil
 		}
 
-		return fmt.Errorf("Error deleting internet gateway: %s", err)
+		ec2err, ok := err.(*ec2.Error)
+		if !ok {
+			return err
+		}
+
+		switch ec2err.Code {
+		case "InvalidInternetGatewayID.NotFound":
+			return nil
+		case "DependencyViolation":
+			return err // retry
+		}
+
+		return resource.RetryError{err}
 	})
-
-	// Wait for the internet gateway to actually delete
-	log.Printf("[DEBUG] Waiting for internet gateway (%s) to delete", d.Id())
-	stateConf := &resource.StateChangeConf{
-		Pending: []string{"available"},
-		Target:  "",
-		Refresh: IGStateRefreshFunc(ec2conn, d.Id()),
-		Timeout: 10 * time.Minute,
-	}
-	if _, err := stateConf.WaitForState(); err != nil {
-		return fmt.Errorf(
-			"Error waiting for internet gateway (%s) to destroy: %s",
-			d.Id(), err)
-	}
-
-	return nil
 }
 
 func resourceAwsInternetGatewayAttach(d *schema.ResourceData, meta interface{}) error {
