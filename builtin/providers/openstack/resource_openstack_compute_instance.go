@@ -10,7 +10,9 @@ import (
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/rackspace/gophercloud"
 	"github.com/rackspace/gophercloud/openstack/compute/v2/extensions/keypairs"
+	"github.com/rackspace/gophercloud/openstack/compute/v2/extensions/secgroups"
 	"github.com/rackspace/gophercloud/openstack/compute/v2/servers"
+	"github.com/rackspace/gophercloud/pagination"
 )
 
 func resourceComputeInstance() *schema.Resource {
@@ -121,10 +123,10 @@ func resourceComputeInstanceCreate(d *schema.ResourceData, meta interface{}) err
 	var createOpts servers.CreateOptsBuilder
 
 	serverCreateOpts := &servers.CreateOpts{
-		Name:      d.Get("name").(string),
-		ImageRef:  d.Get("image_ref").(string),
-		FlavorRef: d.Get("flavor_ref").(string),
-		//SecurityGroups []string
+		Name:             d.Get("name").(string),
+		ImageRef:         d.Get("image_ref").(string),
+		FlavorRef:        d.Get("flavor_ref").(string),
+		SecurityGroups:   resourceInstanceSecGroups(d),
 		AvailabilityZone: d.Get("availability_zone").(string),
 		Networks:         resourceInstanceNetworks(d),
 		Metadata:         resourceInstanceMetadata(d),
@@ -214,6 +216,22 @@ func resourceComputeInstanceRead(d *schema.ResourceData, meta interface{}) error
 	})
 
 	d.Set("metadata", server.Metadata)
+
+	var currentSG []string
+	err = secgroups.ListByServer(osClient, d.Id()).EachPage(func(page pagination.Page) (bool, error) {
+		secGrpList, err := secgroups.ExtractSecurityGroups(page)
+		if err != nil {
+			return false, fmt.Errorf("Error setting security groups for OpenStack server: %s", err)
+		}
+
+		for _, sg := range secGrpList {
+			currentSG = append(currentSG, sg.Name)
+		}
+
+		return true, nil
+	})
+	d.Set("security_groups", currentSG)
+
 	newFlavor, ok := server.Flavor["id"].(string)
 	if !ok {
 		return fmt.Errorf("Error setting OpenStack server's flavor: %v", newFlavor)
@@ -260,6 +278,33 @@ func resourceComputeInstanceUpdate(d *schema.ResourceData, meta interface{}) err
 		_, err := servers.UpdateMetadata(osClient, d.Id(), metadataOpts).Extract()
 		if err != nil {
 			return fmt.Errorf("Error updating OpenStack server (%s) metadata: %s", d.Id(), err)
+		}
+	}
+
+	if d.HasChange("security_groups") {
+		oldSGRaw, newSGRaw := d.GetChange("security_groups")
+		oldSGSet, newSGSet := oldSGRaw.(*schema.Set), newSGRaw.(*schema.Set)
+		secgroupsToAdd := newSGSet.Difference(oldSGSet)
+		secgroupsToRemove := oldSGSet.Difference(newSGSet)
+
+		log.Printf("[DEBUG] Security groups to add: %v", secgroupsToAdd)
+
+		log.Printf("[DEBUG] Security groups to remove: %v", secgroupsToRemove)
+
+		for _, g := range secgroupsToAdd.List() {
+			err := secgroups.AddServerToGroup(osClient, d.Id(), g.(string)).ExtractErr()
+			if err != nil {
+				return fmt.Errorf("Error adding security group to OpenStack server (%s): %s", d.Id(), err)
+			}
+			log.Printf("[DEBUG] Added security group (%s) to instance (%s)", g.(string), d.Id())
+		}
+
+		for _, g := range secgroupsToRemove.List() {
+			err := secgroups.RemoveServerFromGroup(osClient, d.Id(), g.(string)).ExtractErr()
+			if err != nil {
+				return fmt.Errorf("Error removing security group from OpenStack server (%s): %s", d.Id(), err)
+			}
+			log.Printf("[DEBUG] Removed security group (%s) from instance (%s)", g.(string), d.Id())
 		}
 	}
 
@@ -356,6 +401,15 @@ func ServerStateRefreshFunc(client *gophercloud.ServiceClient, instanceID string
 
 		return s, s.Status, nil
 	}
+}
+
+func resourceInstanceSecGroups(d *schema.ResourceData) []string {
+	rawSecGroups := d.Get("security_groups").(*schema.Set)
+	secgroups := make([]string, rawSecGroups.Len())
+	for i, raw := range rawSecGroups.List() {
+		secgroups[i] = raw.(string)
+	}
+	return secgroups
 }
 
 func resourceInstanceNetworks(d *schema.ResourceData) []servers.Network {
