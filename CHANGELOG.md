@@ -6,9 +6,12 @@ FEATURES:
 
 IMPROVEMENTS:
 
+  * **New resource: `aws_key_pair`** - Import a public key into AWS. [GH-695]
   * **New resource: `heroku_cert`** - Manage Heroku app certs.
   * provider/aws: Support `eu-central-1`, `cn-north-1`, and GovCloud. [GH-525]
   * provider/aws: `route_table` can have tags. [GH-648]
+  * provider/google: Support Ubuntu images. [GH-724]
+  * provider/google: Support for service accounts. [GH-725]
 
 BUG FIXES:
 
@@ -24,6 +27,7 @@ BUG FIXES:
       another module. [GH-659]
   * core: map overrides in "terraform.tfvars" no longer result in a syntax
       error. [GH-647]
+  * core: Colon character works in interpolation [GH-700]
   * provider/aws: Fix crash case when internet gateway is not attached
       to any VPC. [GH-664]
   * provider/aws: `vpc_id` is no longer required. [GH-667]
@@ -33,6 +37,10 @@ BUG FIXES:
       in more accurate diffs for AWS instances. [GH-712]
   * provider/aws: Fix panic case by using the wrong type when setting
       volume size for AWS instances. [GH-712]
+  * provider/aws: route table ignores routes with 'EnableVgwRoutePropagation'
+      origin since those come from gateways. [GH-722]
+  * provider/aws: Default network ACL ID and default security group ID
+      support for `aws_vpc`. [GH-704]
 
 ## 0.3.5 (December 9, 2014)
 
