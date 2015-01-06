@@ -41,6 +41,9 @@ BUG FIXES:
       origin since those come from gateways. [GH-722]
   * provider/aws: Default network ACL ID and default security group ID
       support for `aws_vpc`. [GH-704]
+  * provider/aws: Tags are not marked as computed. This introduces another
+      issue with not detecting external tags, but this will be fixed in
+      the future. [GH-730]
 
 ## 0.3.5 (December 9, 2014)
 
