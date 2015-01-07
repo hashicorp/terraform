@@ -1,6 +1,8 @@
 ## 0.3.7 (unreleased)
 
+BUG FIXES:
 
+ * core: Fixing use of remote state with plan files. [GH-741]
 
 ## 0.3.6 (January 6, 2015)
 
