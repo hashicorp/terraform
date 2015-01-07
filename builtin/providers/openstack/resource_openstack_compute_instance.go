@@ -172,14 +172,12 @@ func resourceComputeInstanceCreate(d *schema.ResourceData, meta interface{}) err
 		MinTimeout: 3 * time.Second,
 	}
 
-	serverRaw, err := stateConf.WaitForState()
+	_, err = stateConf.WaitForState()
 	if err != nil {
 		return fmt.Errorf(
 			"Error waiting for instance (%s) to become ready: %s",
 			server.ID, err)
 	}
-
-	server = serverRaw.(*servers.Server)
 
 	return resourceComputeInstanceRead(d, meta)
 }
