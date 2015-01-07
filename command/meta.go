@@ -109,7 +109,7 @@ func (m *Meta) Context(copts contextOpts) (*terraform.Context, bool, error) {
 			// Check if remote state is enabled, but do not refresh.
 			// Since a plan is supposed to lock-in the changes, we do not
 			// attempt a state refresh.
-			if plan.State.Remote != nil && plan.State.Remote.Type != "" {
+			if plan != nil && plan.State != nil && plan.State.Remote != nil && plan.State.Remote.Type != "" {
 				log.Printf("[INFO] Enabling remote state from plan")
 				m.useRemoteState = true
 			}
