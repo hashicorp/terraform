@@ -93,6 +93,12 @@ func resourceComputeInstance() *schema.Resource {
 				ForceNew: true,
 			},
 
+			"admin_pass": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				ForceNew: false,
+			},
+
 			"access_ip_v4": &schema.Schema{
 				Type:     schema.TypeString,
 				Computed: true,
@@ -108,7 +114,7 @@ func resourceComputeInstance() *schema.Resource {
 			},
 
 			"key_pair": &schema.Schema{
-				Type:     schema.TypeMap,
+				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: true,
 			},
@@ -131,14 +137,13 @@ func resourceComputeInstanceCreate(d *schema.ResourceData, meta interface{}) err
 		Networks:         resourceInstanceNetworks(d),
 		Metadata:         resourceInstanceMetadata(d),
 		ConfigDrive:      d.Get("config_drive").(bool),
+		AdminPass:        d.Get("admin_pass").(string),
 	}
 
-	if kp, ok := d.Get("key_pair").(map[string]interface{}); ok && kp != nil {
-		if keyName, ok := kp["name"].(string); ok && keyName != "" {
-			createOpts = &keypairs.CreateOptsExt{
-				serverCreateOpts,
-				keyName,
-			}
+	if keyName, ok := d.Get("key_pair").(string); ok && keyName != "" {
+		createOpts = &keypairs.CreateOptsExt{
+			serverCreateOpts,
+			keyName,
 		}
 	}
 
@@ -305,6 +310,15 @@ func resourceComputeInstanceUpdate(d *schema.ResourceData, meta interface{}) err
 				return fmt.Errorf("Error removing security group from OpenStack server (%s): %s", d.Id(), err)
 			}
 			log.Printf("[DEBUG] Removed security group (%s) from instance (%s)", g.(string), d.Id())
+		}
+	}
+
+	if d.HasChange("admin_pass") {
+		if newPwd, ok := d.Get("admin_pass").(string); ok {
+			err := servers.ChangeAdminPassword(osClient, d.Id(), newPwd).ExtractErr()
+			if err != nil {
+				return fmt.Errorf("Error changing admin password of OpenStack server (%s): %s", d.Id(), err)
+			}
 		}
 	}
 
