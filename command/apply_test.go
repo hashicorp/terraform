@@ -15,6 +15,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/hashicorp/terraform/remote"
 	"github.com/hashicorp/terraform/terraform"
 	"github.com/mitchellh/cli"
 )
@@ -365,6 +366,70 @@ func TestApply_plan(t *testing.T) {
 	}
 	if state == nil {
 		t.Fatal("state should not be nil")
+	}
+}
+
+func TestApply_plan_remoteState(t *testing.T) {
+	// Disable test mode so input would be asked
+	test = false
+	defer func() { test = true }()
+	tmp, cwd := testCwd(t)
+	defer testFixCwd(t, tmp, cwd)
+	if err := remote.EnsureDirectory(); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	// Set some default reader/writers for the inputs
+	defaultInputReader = new(bytes.Buffer)
+	defaultInputWriter = new(bytes.Buffer)
+
+	// Create a remote state
+	state := testState()
+	conf, srv := testRemoteState(t, state, 200)
+	defer srv.Close()
+	state.Remote = conf
+
+	planPath := testPlanFile(t, &terraform.Plan{
+		Module: testModule(t, "apply"),
+		State:  state,
+	})
+
+	p := testProvider()
+	ui := new(cli.MockUi)
+	c := &ApplyCommand{
+		Meta: Meta{
+			ContextOpts: testCtxConfig(p),
+			Ui:          ui,
+		},
+	}
+
+	args := []string{
+		planPath,
+	}
+	if code := c.Run(args); code != 0 {
+		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
+	}
+
+	if p.InputCalled {
+		t.Fatalf("input should not be called for plans")
+	}
+
+	// State file should be not be installed
+	exists, err := remote.ExistsFile(DefaultStateFilename)
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if exists {
+		t.Fatalf("State path should not exist")
+	}
+
+	// Check for remote state
+	output, _, err := remote.ReadLocalState()
+	if err != nil {
+		t.Fatalf("err: %v", err)
+	}
+	if output == nil {
+		t.Fatalf("missing remote state")
 	}
 }
 
