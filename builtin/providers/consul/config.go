@@ -3,7 +3,7 @@ package consul
 import (
 	"log"
 
-	"github.com/armon/consul-api"
+	consulapi "github.com/hashicorp/consul/api"
 )
 
 type Config struct {
