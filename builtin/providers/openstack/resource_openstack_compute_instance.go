@@ -249,7 +249,6 @@ func resourceComputeInstanceUpdate(d *schema.ResourceData, meta interface{}) err
 	osClient := config.computeV2Client
 
 	var updateOpts servers.UpdateOpts
-	// If the Metadata has changed, then update that.
 	if d.HasChange("name") {
 		updateOpts.Name = d.Get("name").(string)
 	}
