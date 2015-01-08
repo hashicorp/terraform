@@ -48,8 +48,10 @@ func Provider() terraform.ResourceProvider {
 		},
 
 		ResourcesMap: map[string]*schema.Resource{
-			"openstack_compute_instance": resourceComputeInstance(),
-			"openstack_compute_keypair":  resourceComputeKeypair(),
+			"openstack_compute_instance":     resourceComputeInstance(),
+			"openstack_compute_keypair":      resourceComputeKeypair(),
+			"openstack_compute_secgroup":     resourceComputeSecGroup(),
+			"openstack_compute_secgrouprule": resourceComputeSecGroupRule(),
 		},
 
 		ConfigureFunc: configureProvider,
