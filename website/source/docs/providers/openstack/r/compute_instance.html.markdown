@@ -1,0 +1,80 @@
+---
+layout: "openstack"
+page_title: "OpenStack: openstack_compute_instance"
+sidebar_current: "docs-openstack-resource-compute-instance"
+description: |-
+  Manages a VM instance resource within OpenStack.
+---
+
+# openstack\_compute\_instance
+
+Manages a VM instance resource within OpenStack.
+
+## Example Usage
+
+```
+resource "openstack_compute_instance" "test-server" {
+  name = "tf-test"
+  image_ref = "ad091b52-742f-469e-8f3c-fd81cadf0743"
+  flavor_ref = "3"
+  metadata {
+    this = "that"
+  }
+  key_pair = "my_key_pair_name"
+  security_groups = ["test-group-1"]
+}
+```
+
+## Argument Reference
+
+The following arguments are supported:
+
+* `name` - (Required) A unique name for the resource.
+
+* `image_ref` - (Required) The image reference (ID) for the desired image for
+    the server. Changing this creates a new server.
+
+* `flavor_ref` - (Required) The flavor reference (ID) for the desired flavor
+    for the server. Changing this resizes the existing server.
+
+* `security_groups` - (Optional) An array of one or more security group names
+    to associate with the server. Changing this results in adding/removing
+    security groups from the existing server.
+
+* `availability_zone` - (Optional) The availability zone in which to create
+    the server. Changing this creates a new server.
+
+* `networks` - (Optional) An array of one or more networks to attach to the
+    instance. The network object structure is documented below.
+
+* `metadata` - (Optional) Metadata key/value pairs to make available from
+    within the instance. Changing this updates the existing server metadata.
+
+* `admin_pass` - (Optional) The administrative password to assign to the server.
+    Changing this changes the root password on the existing server.
+
+* `key_pair` - (Optional) The name of a key pair to put on the server. The key
+    pair must already be created and associated with the tenant's account.
+    Changing this creates a new server.
+
+The `network` block supports:
+
+* `uuid` - (Required unless `port` is provided) The network UUID to attach to
+    the server.
+
+* `port` - (Required unless `uuid` is provided) The port UUID of a network to
+    attach to the server.
+
+* `fixed_ip` - (Optional) Specifies a fixed IP address to be used on this
+    network.
+
+## Attributes Reference
+
+The following attributes are exported:
+
+* `name` - See Argument Reference above.
+* `access_ip_v4` - See Argument Reference above.
+* `access_ip_v6` - See Argument Reference above.
+* `metadata` - See Argument Reference above.
+* `security_groups` - See Argument Reference above.
+* `flavor_ref` - See Argument Reference above.
