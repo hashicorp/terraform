@@ -44,6 +44,13 @@ func (r *MapFieldReader) readMap(k string) (FieldReadResult, error) {
 	result := make(map[string]interface{})
 	resultSet := false
 
+	// If the name of the map field is directly in the map with an
+	// empty string, it means that the map is being deleted, so mark
+	// that is is set.
+	if v, ok := r.Map.Access(k); ok && v == "" {
+		resultSet = true
+	}
+
 	prefix := k + "."
 	r.Map.Range(func(k, v string) bool {
 		if strings.HasPrefix(k, prefix) {

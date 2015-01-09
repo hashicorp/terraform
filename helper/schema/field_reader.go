@@ -57,8 +57,13 @@ func addrToSchema(addr []string, schemaMap map[string]*Schema) []*Schema {
 		Type: typeObject,
 		Elem: schemaMap,
 	}
-	result := make([]*Schema, 0, len(addr))
 
+	// TODO: test
+	if len(addr) == 0 {
+		return []*Schema{current}
+	}
+
+	result := make([]*Schema, 0, len(addr))
 	for len(addr) > 0 {
 		k := addr[0]
 		addr = addr[1:]

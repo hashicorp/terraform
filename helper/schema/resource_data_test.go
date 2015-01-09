@@ -1391,7 +1391,7 @@ func TestResourceDataState(t *testing.T) {
 		Result  *terraform.InstanceState
 		Partial []string
 	}{
-		// Basic primitive in diff
+		// #0 Basic primitive in diff
 		{
 			Schema: map[string]*Schema{
 				"availability_zone": &Schema{
@@ -1421,7 +1421,7 @@ func TestResourceDataState(t *testing.T) {
 			},
 		},
 
-		// Basic primitive set override
+		// #1 Basic primitive set override
 		{
 			Schema: map[string]*Schema{
 				"availability_zone": &Schema{
@@ -1455,6 +1455,7 @@ func TestResourceDataState(t *testing.T) {
 			},
 		},
 
+		// #2
 		{
 			Schema: map[string]*Schema{
 				"vpc": &Schema{
@@ -1478,7 +1479,7 @@ func TestResourceDataState(t *testing.T) {
 			},
 		},
 
-		// Basic primitive with StateFunc set
+		// #3 Basic primitive with StateFunc set
 		{
 			Schema: map[string]*Schema{
 				"availability_zone": &Schema{
@@ -1508,7 +1509,7 @@ func TestResourceDataState(t *testing.T) {
 			},
 		},
 
-		// List
+		// #4 List
 		{
 			Schema: map[string]*Schema{
 				"ports": &Schema{
@@ -1547,7 +1548,7 @@ func TestResourceDataState(t *testing.T) {
 			},
 		},
 
-		// List of resources
+		// #5 List of resources
 		{
 			Schema: map[string]*Schema{
 				"ingress": &Schema{
@@ -1597,7 +1598,7 @@ func TestResourceDataState(t *testing.T) {
 			},
 		},
 
-		// List of maps
+		// #6 List of maps
 		{
 			Schema: map[string]*Schema{
 				"config_vars": &Schema{
@@ -1647,7 +1648,7 @@ func TestResourceDataState(t *testing.T) {
 			},
 		},
 
-		// List of maps with removal in diff
+		// #7 List of maps with removal in diff
 		{
 			Schema: map[string]*Schema{
 				"config_vars": &Schema{
@@ -1687,7 +1688,7 @@ func TestResourceDataState(t *testing.T) {
 			},
 		},
 
-		// Basic state with other keys
+		// #8 Basic state with other keys
 		{
 			Schema: map[string]*Schema{
 				"availability_zone": &Schema{
@@ -1724,7 +1725,7 @@ func TestResourceDataState(t *testing.T) {
 			},
 		},
 
-		// Sets
+		// #9 Sets
 		{
 			Schema: map[string]*Schema{
 				"ports": &Schema{
@@ -1759,6 +1760,7 @@ func TestResourceDataState(t *testing.T) {
 			},
 		},
 
+		// #10
 		{
 			Schema: map[string]*Schema{
 				"ports": &Schema{
@@ -1789,6 +1791,7 @@ func TestResourceDataState(t *testing.T) {
 			},
 		},
 
+		// #11
 		{
 			Schema: map[string]*Schema{
 				"ports": &Schema{
@@ -1861,7 +1864,7 @@ func TestResourceDataState(t *testing.T) {
 		 * PARTIAL STATES
 		 */
 
-		// Basic primitive
+		// #12 Basic primitive
 		{
 			Schema: map[string]*Schema{
 				"availability_zone": &Schema{
@@ -1891,7 +1894,7 @@ func TestResourceDataState(t *testing.T) {
 			},
 		},
 
-		// List
+		// #13 List
 		{
 			Schema: map[string]*Schema{
 				"ports": &Schema{
@@ -1931,6 +1934,7 @@ func TestResourceDataState(t *testing.T) {
 			},
 		},
 
+		// #14
 		{
 			Schema: map[string]*Schema{
 				"ports": &Schema{
@@ -1965,7 +1969,7 @@ func TestResourceDataState(t *testing.T) {
 			},
 		},
 
-		// List of resources
+		// #15 List of resources
 		{
 			Schema: map[string]*Schema{
 				"ingress": &Schema{
@@ -2016,7 +2020,7 @@ func TestResourceDataState(t *testing.T) {
 			},
 		},
 
-		// List of maps
+		// #16 List of maps
 		{
 			Schema: map[string]*Schema{
 				"config_vars": &Schema{
@@ -2070,7 +2074,7 @@ func TestResourceDataState(t *testing.T) {
 			},
 		},
 
-		// Sets
+		// #17 Sets
 		{
 			Schema: map[string]*Schema{
 				"ports": &Schema{
@@ -2113,6 +2117,7 @@ func TestResourceDataState(t *testing.T) {
 			},
 		},
 
+		// #18
 		{
 			Schema: map[string]*Schema{
 				"ports": &Schema{
@@ -2146,7 +2151,7 @@ func TestResourceDataState(t *testing.T) {
 			},
 		},
 
-		// Maps
+		// #19 Maps
 		{
 			Schema: map[string]*Schema{
 				"tags": &Schema{
@@ -2174,6 +2179,7 @@ func TestResourceDataState(t *testing.T) {
 			},
 		},
 
+		// #20
 		{
 			Schema: map[string]*Schema{
 				"tags": &Schema{

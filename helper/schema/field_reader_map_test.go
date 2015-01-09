@@ -23,7 +23,8 @@ func TestMapFieldReader(t *testing.T) {
 				Type: TypeList,
 				Elem: &Schema{Type: TypeInt},
 			},
-			"map": &Schema{Type: TypeMap},
+			"map":    &Schema{Type: TypeMap},
+			"mapDel": &Schema{Type: TypeMap},
 			"set": &Schema{
 				Type: TypeSet,
 				Elem: &Schema{Type: TypeInt},
@@ -67,6 +68,8 @@ func TestMapFieldReader(t *testing.T) {
 
 			"map.foo": "bar",
 			"map.bar": "baz",
+
+			"mapDel": "",
 
 			"set.#":  "2",
 			"set.10": "10",
@@ -147,6 +150,14 @@ func TestMapFieldReader(t *testing.T) {
 				"foo": "bar",
 				"bar": "baz",
 			},
+			true,
+			false,
+			false,
+		},
+
+		"mapDel": {
+			[]string{"mapDel"},
+			map[string]interface{}{},
 			true,
 			false,
 			false,

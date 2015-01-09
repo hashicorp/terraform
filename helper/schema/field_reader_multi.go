@@ -42,7 +42,10 @@ func (r *MultiLevelFieldReader) ReadFieldMerge(
 	var result FieldReadResult
 	for _, l := range r.Levels {
 		if r, ok := r.Readers[l]; ok {
+			println(fmt.Sprintf("GET %#v %s %#v", address, l, r))
 			out, err := r.ReadField(address)
+			println(fmt.Sprintf("%#v", out))
+			println("======================================")
 			if err != nil {
 				return FieldReadResult{}, fmt.Errorf(
 					"Error reading level %s: %s", l, err)
