@@ -362,13 +362,7 @@ func (d *ResourceData) get(
 	if result.Value == nil {
 		if schemaL := addrToSchema(addr, d.schema); len(schemaL) > 0 {
 			schema := schemaL[len(schemaL)-1]
-			result.Value = schema.Type.Zero()
-
-			// The zero value of a set is nil, but we want it
-			// to actually be an empty set object...
-			if schema.Type == TypeSet && result.Value == nil {
-				result.Value = &Set{F: schema.Set}
-			}
+			result.Value = result.ValueOrZero(schema)
 		}
 	}
 

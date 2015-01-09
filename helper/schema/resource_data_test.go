@@ -998,8 +998,12 @@ func TestResourceDataSet(t *testing.T) {
 		Err      bool
 		GetKey   string
 		GetValue interface{}
+
+		// GetPreProcess can be set to munge the return value before being
+		// compared to GetValue
+		GetPreProcess func(interface{}) interface{}
 	}{
-		// Basic good
+		// #0: Basic good
 		{
 			Schema: map[string]*Schema{
 				"availability_zone": &Schema{
@@ -1021,7 +1025,7 @@ func TestResourceDataSet(t *testing.T) {
 			GetValue: "foo",
 		},
 
-		// Basic int
+		// #1: Basic int
 		{
 			Schema: map[string]*Schema{
 				"port": &Schema{
@@ -1043,7 +1047,7 @@ func TestResourceDataSet(t *testing.T) {
 			GetValue: 80,
 		},
 
-		// Basic bool
+		// #2: Basic bool
 		{
 			Schema: map[string]*Schema{
 				"vpc": &Schema{
@@ -1063,6 +1067,7 @@ func TestResourceDataSet(t *testing.T) {
 			GetValue: true,
 		},
 
+		// #3
 		{
 			Schema: map[string]*Schema{
 				"vpc": &Schema{
@@ -1082,7 +1087,7 @@ func TestResourceDataSet(t *testing.T) {
 			GetValue: false,
 		},
 
-		// Invalid type
+		// #4: Invalid type
 		{
 			Schema: map[string]*Schema{
 				"availability_zone": &Schema{
@@ -1105,7 +1110,7 @@ func TestResourceDataSet(t *testing.T) {
 			GetValue: "",
 		},
 
-		// List of primitives, set list
+		// #5: List of primitives, set list
 		{
 			Schema: map[string]*Schema{
 				"ports": &Schema{
@@ -1126,7 +1131,7 @@ func TestResourceDataSet(t *testing.T) {
 			GetValue: []interface{}{1, 2, 5},
 		},
 
-		// List of primitives, set list with error
+		// #6: List of primitives, set list with error
 		{
 			Schema: map[string]*Schema{
 				"ports": &Schema{
@@ -1148,7 +1153,7 @@ func TestResourceDataSet(t *testing.T) {
 			GetValue: []interface{}{},
 		},
 
-		// Set a list of maps
+		// #7: Set a list of maps
 		{
 			Schema: map[string]*Schema{
 				"config_vars": &Schema{
@@ -1187,7 +1192,7 @@ func TestResourceDataSet(t *testing.T) {
 			},
 		},
 
-		// Set, with list
+		// #8: Set, with list
 		{
 			Schema: map[string]*Schema{
 				"ports": &Schema{
@@ -1217,7 +1222,7 @@ func TestResourceDataSet(t *testing.T) {
 			GetValue: []interface{}{100, 125},
 		},
 
-		// Set, with Set
+		// #9: Set, with Set
 		{
 			Schema: map[string]*Schema{
 				"ports": &Schema{
@@ -1252,7 +1257,7 @@ func TestResourceDataSet(t *testing.T) {
 			GetValue: []interface{}{1, 2},
 		},
 
-		// Set single item
+		// #10: Set single item
 		{
 			Schema: map[string]*Schema{
 				"ports": &Schema{
@@ -1281,6 +1286,74 @@ func TestResourceDataSet(t *testing.T) {
 			GetKey:   "ports",
 			GetValue: []interface{}{80, 100},
 		},
+
+		// #11: Set with nested set
+		{
+			Schema: map[string]*Schema{
+				"ports": &Schema{
+					Type: TypeSet,
+					Elem: &Resource{
+						Schema: map[string]*Schema{
+							"port": &Schema{
+								Type: TypeInt,
+							},
+
+							"set": &Schema{
+								Type: TypeSet,
+								Elem: &Schema{Type: TypeInt},
+								Set: func(a interface{}) int {
+									return a.(int)
+								},
+							},
+						},
+					},
+					Set: func(a interface{}) int {
+						return a.(map[string]interface{})["port"].(int)
+					},
+				},
+			},
+
+			State: nil,
+
+			Key: "ports",
+			Value: []interface{}{
+				map[string]interface{}{
+					"port": 80,
+				},
+			},
+
+			GetKey: "ports",
+			GetValue: []interface{}{
+				map[string]interface{}{
+					"port": 80,
+					"set":  []interface{}{},
+				},
+			},
+
+			GetPreProcess: func(v interface{}) interface{} {
+				if v == nil {
+					return v
+				}
+				s, ok := v.([]interface{})
+				if !ok {
+					return v
+				}
+				for _, v := range s {
+					m, ok := v.(map[string]interface{})
+					if !ok {
+						continue
+					}
+					if m["set"] == nil {
+						continue
+					}
+					if s, ok := m["set"].(*Set); ok {
+						m["set"] = s.List()
+					}
+				}
+
+				return v
+			},
+		},
 	}
 
 	for i, tc := range cases {
@@ -1298,6 +1371,11 @@ func TestResourceDataSet(t *testing.T) {
 		if s, ok := v.(*Set); ok {
 			v = s.List()
 		}
+
+		if tc.GetPreProcess != nil {
+			v = tc.GetPreProcess(v)
+		}
+
 		if !reflect.DeepEqual(v, tc.GetValue) {
 			t.Fatalf("Get Bad: %d\n\n%#v", i, v)
 		}

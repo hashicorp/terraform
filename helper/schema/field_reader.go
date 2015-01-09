@@ -31,6 +31,24 @@ type FieldReadResult struct {
 	Computed bool
 }
 
+// ValueOrZero returns the value of this result or the zero value of the
+// schema type, ensuring a consistent non-nil return value.
+func (r *FieldReadResult) ValueOrZero(s *Schema) interface{} {
+	if r.Value != nil {
+		return r.Value
+	}
+
+	result := s.Type.Zero()
+
+	// The zero value of a set is nil, but we want it
+	// to actually be an empty set object...
+	if s.Type == TypeSet && result == nil {
+		result = &Set{F: s.Set}
+	}
+
+	return result
+}
+
 // addrToSchema finds the final element schema for the given address
 // and the given schema. It returns all the schemas that led to the final
 // schema. These are in order of the address (out to in).
@@ -182,7 +200,8 @@ func readObjectField(
 	addr []string,
 	schema map[string]*Schema) (FieldReadResult, error) {
 	result := make(map[string]interface{})
-	for field, _ := range schema {
+	exists := false
+	for field, s := range schema {
 		addrRead := make([]string, len(addr), len(addr)+1)
 		copy(addrRead, addr)
 		addrRead = append(addrRead, field)
@@ -190,16 +209,16 @@ func readObjectField(
 		if err != nil {
 			return FieldReadResult{}, err
 		}
-		if !rawResult.Exists {
-			continue
+		if rawResult.Exists {
+			exists = true
 		}
 
-		result[field] = rawResult.Value
+		result[field] = rawResult.ValueOrZero(s)
 	}
 
 	return FieldReadResult{
 		Value:  result,
-		Exists: len(schema) > 0 && len(result) > 0,
+		Exists: exists,
 	}, nil
 }
 
