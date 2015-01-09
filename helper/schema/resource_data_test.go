@@ -592,6 +592,29 @@ func TestResourceDataGet(t *testing.T) {
 				},
 			},
 		},
+
+		// #19 Empty Set
+		{
+			Schema: map[string]*Schema{
+				"ports": &Schema{
+					Type:     TypeSet,
+					Optional: true,
+					Computed: true,
+					Elem:     &Schema{Type: TypeInt},
+					Set: func(a interface{}) int {
+						return a.(int)
+					},
+				},
+			},
+
+			State: nil,
+
+			Diff: nil,
+
+			Key: "ports",
+
+			Value: []interface{}{},
+		},
 	}
 
 	for i, tc := range cases {
@@ -816,7 +839,7 @@ func TestResourceDataGetOk(t *testing.T) {
 			Diff: nil,
 
 			Key:   "ports",
-			Value: nil,
+			Value: []interface{}{},
 			Ok:    false,
 		},
 

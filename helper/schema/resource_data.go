@@ -360,8 +360,15 @@ func (d *ResourceData) get(
 
 	// If the result doesn't exist, then we set the value to the zero value
 	if result.Value == nil {
-		if schema := addrToSchema(addr, d.schema); len(schema) > 0 {
-			result.Value = schema[len(schema)-1].Type.Zero()
+		if schemaL := addrToSchema(addr, d.schema); len(schemaL) > 0 {
+			schema := schemaL[len(schemaL)-1]
+			result.Value = schema.Type.Zero()
+
+			// The zero value of a set is nil, but we want it
+			// to actually be an empty set object...
+			if schema.Type == TypeSet && result.Value == nil {
+				result.Value = &Set{F: schema.Set}
+			}
 		}
 	}
 
@@ -1129,8 +1136,8 @@ func (d *ResourceData) setSet(
 		for code, elem := range value.(*Set).m {
 			for field, _ := range t.Schema {
 				subK := fmt.Sprintf("%s.%d", k, code)
-				err := d.setObject(
-					subK, []string{field}, t.Schema, elem.(map[string]interface{})[field])
+				value := elem.(map[string]interface{})[field]
+				err := d.setObject(subK, []string{field}, t.Schema, value)
 				if err != nil {
 					return err
 				}
