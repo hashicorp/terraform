@@ -38,3 +38,5 @@ of a change, which quickly becomes intractable in large infrastructures.
 Terraform lets operators apply changes with confidence, as they know exactly
 what will happen beforehand.
 
+~> **Note:** It should be clarified that OpenStack provider support is not yet
+part of Terraform, though it is actively in the works.
