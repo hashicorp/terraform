@@ -28,11 +28,12 @@ type ResourceData struct {
 	diffing bool
 
 	// Don't set
-	setMap     map[string]string
-	newState   *terraform.InstanceState
-	partial    bool
-	partialMap map[string]struct{}
-	once       sync.Once
+	multiReader *MultiLevelFieldReader
+	setMap      map[string]string
+	newState    *terraform.InstanceState
+	partial     bool
+	partialMap  map[string]struct{}
+	once        sync.Once
 }
 
 // getSource represents the level we want to get for a value (internally).
@@ -153,10 +154,7 @@ func (d *ResourceData) Partial(on bool) {
 // If the key is invalid or the value is not a correct type, an error
 // will be returned.
 func (d *ResourceData) Set(key string, value interface{}) error {
-	if d.setMap == nil {
-		d.setMap = make(map[string]string)
-	}
-
+	d.once.Do(d.init)
 	parts := strings.Split(key, ".")
 	return d.setObject("", parts, d.schema, value)
 }
@@ -236,12 +234,57 @@ func (d *ResourceData) State() *terraform.InstanceState {
 }
 
 func (d *ResourceData) init() {
+	// Initialize the field that will store our new state
 	var copyState terraform.InstanceState
 	if d.state != nil {
 		copyState = *d.state
 	}
-
 	d.newState = &copyState
+
+	// Initialize the map for storing set data
+	d.setMap = make(map[string]string)
+
+	// Initialize the reader for getting data from the
+	// underlying sources (config, diff, etc.)
+	readers := make(map[string]FieldReader)
+	var stateAttributes map[string]string
+	if d.state != nil {
+		stateAttributes = d.state.Attributes
+		readers["state"] = &MapFieldReader{
+			Schema: d.schema,
+			Map:    BasicMapReader(stateAttributes),
+		}
+	}
+	if d.config != nil {
+		readers["config"] = &ConfigFieldReader{
+			Schema: d.schema,
+			Config: d.config,
+		}
+	}
+	if d.diff != nil {
+		readers["diff"] = &DiffFieldReader{
+			Schema: d.schema,
+			Diff:   d.diff,
+			Source: &MultiLevelFieldReader{
+				Levels:  []string{"state", "config"},
+				Readers: readers,
+			},
+		}
+	}
+	readers["set"] = &MapFieldReader{
+		Schema: d.schema,
+		Map:    BasicMapReader(d.setMap),
+	}
+	d.multiReader = &MultiLevelFieldReader{
+		Levels: []string{
+			"state",
+			"config",
+			"diff",
+			"set",
+		},
+
+		Readers: readers,
+	}
 }
 
 func (d *ResourceData) diffChange(
@@ -279,21 +322,57 @@ func (d *ResourceData) get(
 	parts []string,
 	schema *Schema,
 	source getSource) getResult {
-	switch schema.Type {
-	case TypeList:
-		return d.getList(k, parts, schema, source)
-	case TypeMap:
-		return d.getMap(k, parts, schema, source)
-	case TypeSet:
-		return d.getSet(k, parts, schema, source)
-	case TypeBool:
-		fallthrough
-	case TypeInt:
-		fallthrough
-	case TypeString:
-		return d.getPrimitive(k, parts, schema, source)
-	default:
-		panic(fmt.Sprintf("%s: unknown type %#v", k, schema.Type))
+	d.once.Do(d.init)
+
+	level := "set"
+	flags := source & ^getSourceLevelMask
+	diff := flags&getSourceDiff != 0
+	exact := flags&getSourceExact != 0
+	source = source & getSourceLevelMask
+	if source >= getSourceSet {
+		level = "set"
+	} else if diff {
+		level = "diff"
+	} else if source >= getSourceConfig {
+		level = "config"
+	} else {
+		level = "state"
+	}
+
+	// Build the address of the key we're looking for and ask the FieldReader
+	addr := append(strings.Split(k, "."), parts...)
+	for i, v := range addr {
+		if v[0] == '~' {
+			addr[i] = v[1:]
+		}
+	}
+
+	var result FieldReadResult
+	var err error
+	if exact {
+		result, err = d.multiReader.ReadFieldExact(addr, level)
+	} else {
+		result, err = d.multiReader.ReadFieldMerge(addr, level)
+	}
+	if err != nil {
+		panic(err)
+	}
+
+	// If the result doesn't exist, then we set the value to the zero value
+	if result.Value == nil {
+		if schema := addrToSchema(addr, d.schema); len(schema) > 0 {
+			result.Value = schema[len(schema)-1].Type.Zero()
+		}
+	}
+
+	// Transform the FieldReadResult into a getResult. It might be worth
+	// merging these two structures one day.
+	return getResult{
+		Value:          result.Value,
+		ValueProcessed: result.ValueProcessed,
+		Computed:       result.Computed,
+		Exists:         result.Exists,
+		Schema:         schema,
 	}
 }
 
@@ -831,11 +910,10 @@ func (d *ResourceData) setList(
 	schema *Schema,
 	value interface{}) error {
 	if len(parts) > 0 {
-		// We're setting a specific element
-		idx := parts[0]
-		parts = parts[1:]
+		return fmt.Errorf("%s: can only set the full list, not elements", k)
+	}
 
-		// Special case if we're accessing the count of the list
+	setElement := func(k string, idx string, value interface{}) error {
 		if idx == "#" {
 			return fmt.Errorf("%s: can't set count of list", k)
 		}
@@ -843,10 +921,12 @@ func (d *ResourceData) setList(
 		key := fmt.Sprintf("%s.%s", k, idx)
 		switch t := schema.Elem.(type) {
 		case *Resource:
-			return d.setObject(key, parts, t.Schema, value)
+			return d.setObject(key, nil, t.Schema, value)
 		case *Schema:
-			return d.set(key, parts, t, value)
+			return d.set(key, nil, t, value)
 		}
+
+		return nil
 	}
 
 	var vs []interface{}
@@ -858,7 +938,7 @@ func (d *ResourceData) setList(
 	var err error
 	for i, elem := range vs {
 		is := strconv.FormatInt(int64(i), 10)
-		err = d.setList(k, []string{is}, schema, elem)
+		err = setElement(k, is, elem)
 		if err != nil {
 			break
 		}
@@ -866,7 +946,7 @@ func (d *ResourceData) setList(
 	if err != nil {
 		for i, _ := range vs {
 			is := strconv.FormatInt(int64(i), 10)
-			d.setList(k, []string{is}, schema, nil)
+			setElement(k, is, nil)
 		}
 
 		return err
@@ -1015,7 +1095,9 @@ func (d *ResourceData) setSet(
 		// Build a temp *ResourceData to use for the conversion
 		tempD := &ResourceData{
 			setMap: make(map[string]string),
+			schema: map[string]*Schema{k: schema},
 		}
+		tempD.once.Do(tempD.init)
 
 		// Set the entire list, this lets us get sane values out of it
 		if err := tempD.setList(k, nil, schema, value); err != nil {
@@ -1031,7 +1113,7 @@ func (d *ResourceData) setSet(
 		source := getSourceSet | getSourceExact
 		for i := 0; i < v.Len(); i++ {
 			is := strconv.FormatInt(int64(i), 10)
-			result := tempD.getList(k, []string{is}, schema, source)
+			result := tempD.get(k, []string{is}, schema, source)
 			if !result.Exists {
 				panic("just set item doesn't exist")
 			}

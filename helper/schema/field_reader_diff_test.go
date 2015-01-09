@@ -73,6 +73,13 @@ func TestDiffFieldReader(t *testing.T) {
 				return a.(map[string]interface{})["index"].(int)
 			},
 		},
+		"setEmpty": &Schema{
+			Type: TypeSet,
+			Elem: &Schema{Type: TypeInt},
+			Set: func(a interface{}) int {
+				return a.(int)
+			},
+		},
 	}
 
 	r := &DiffFieldReader{
@@ -197,7 +204,7 @@ func TestDiffFieldReader(t *testing.T) {
 
 		Source: &MapFieldReader{
 			Schema: schema,
-			Map: map[string]string{
+			Map: BasicMapReader(map[string]string{
 				"listMap.#":     "2",
 				"listMap.0.foo": "bar",
 				"listMap.0.bar": "baz",
@@ -209,7 +216,7 @@ func TestDiffFieldReader(t *testing.T) {
 				"setChange.#":        "1",
 				"setChange.10.index": "10",
 				"setChange.10.value": "50",
-			},
+			}),
 		},
 	}
 
@@ -384,6 +391,15 @@ func TestDiffFieldReader(t *testing.T) {
 					},
 				},
 				Exists: true,
+			},
+			false,
+		},
+
+		"setEmpty": {
+			[]string{"setEmpty"},
+			FieldReadResult{
+				Value:  []interface{}{},
+				Exists: false,
 			},
 			false,
 		},

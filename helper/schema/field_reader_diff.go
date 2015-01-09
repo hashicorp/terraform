@@ -32,11 +32,12 @@ type DiffFieldReader struct {
 }
 
 func (r *DiffFieldReader) ReadField(address []string) (FieldReadResult, error) {
-	schema := addrToSchema(address, r.Schema)
-	if schema == nil {
+	schemaList := addrToSchema(address, r.Schema)
+	if len(schemaList) == 0 {
 		return FieldReadResult{}, nil
 	}
 
+	schema := schemaList[len(schemaList)-1]
 	switch schema.Type {
 	case TypeBool:
 		fallthrough
@@ -117,14 +118,15 @@ func (r *DiffFieldReader) readPrimitive(
 	if !attrD.NewComputed {
 		resultVal = attrD.New
 		if attrD.NewExtra != nil {
+			result.ValueProcessed = resultVal
 			if err := mapstructure.WeakDecode(attrD.NewExtra, &resultVal); err != nil {
 				return FieldReadResult{}, err
 			}
 		}
 	}
 
-	result.Exists = true
 	result.Computed = attrD.NewComputed
+	result.Exists = true
 	result.Value, err = stringToPrimitive(resultVal, false, schema)
 	if err != nil {
 		return FieldReadResult{}, err
@@ -167,6 +169,6 @@ func (r *DiffFieldReader) readSet(
 
 	return FieldReadResult{
 		Value:  set,
-		Exists: true,
+		Exists: set.Len() > 0,
 	}, nil
 }

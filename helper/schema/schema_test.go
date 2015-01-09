@@ -8,6 +8,27 @@ import (
 	"github.com/hashicorp/terraform/terraform"
 )
 
+func TestValueType_Zero(t *testing.T) {
+	cases := []struct {
+		Type  ValueType
+		Value interface{}
+	}{
+		{TypeBool, false},
+		{TypeInt, 0},
+		{TypeString, ""},
+		{TypeList, []interface{}{}},
+		{TypeMap, map[string]interface{}{}},
+		{TypeSet, nil},
+	}
+
+	for i, tc := range cases {
+		actual := tc.Type.Zero()
+		if !reflect.DeepEqual(actual, tc.Value) {
+			t.Fatalf("%d: %#v != %#v", i, actual, tc.Value)
+		}
+	}
+}
+
 func TestSchemaMap_Diff(t *testing.T) {
 	cases := []struct {
 		Schema          map[string]*Schema
@@ -844,7 +865,7 @@ func TestSchemaMap_Diff(t *testing.T) {
 			Diff: &terraform.InstanceDiff{
 				Attributes: map[string]*terraform.ResourceAttrDiff{
 					"ports.#": &terraform.ResourceAttrDiff{
-						Old:         "",
+						Old:         "0",
 						New:         "",
 						NewComputed: true,
 					},
@@ -1664,7 +1685,7 @@ func TestSchemaMap_Diff(t *testing.T) {
 						New: "1",
 					},
 					"route.~1.gateway.#": &terraform.ResourceAttrDiff{
-						Old:         "",
+						Old:         "0",
 						NewComputed: true,
 					},
 				},

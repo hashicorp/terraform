@@ -23,23 +23,23 @@ func TestMultiLevelFieldReaderReadFieldExact(t *testing.T) {
 					Schema: map[string]*Schema{
 						"foo": &Schema{Type: TypeString},
 					},
-					Map: map[string]string{
+					Map: BasicMapReader(map[string]string{
 						"foo": "bar",
-					},
+					}),
 				},
 				&MapFieldReader{
 					Schema: map[string]*Schema{
 						"foo": &Schema{Type: TypeString},
 					},
-					Map: map[string]string{
+					Map: BasicMapReader(map[string]string{
 						"foo": "baz",
-					},
+					}),
 				},
 				&MapFieldReader{
 					Schema: map[string]*Schema{
 						"foo": &Schema{Type: TypeString},
 					},
-					Map: map[string]string{},
+					Map: BasicMapReader(map[string]string{}),
 				},
 			},
 
@@ -95,9 +95,9 @@ func TestMultiLevelFieldReaderReadFieldMerge(t *testing.T) {
 						Schema: map[string]*Schema{
 							"availability_zone": &Schema{Type: TypeString},
 						},
-						Map: map[string]string{
+						Map: BasicMapReader(map[string]string{
 							"availability_zone": "foo",
-						},
+						}),
 					},
 
 					Diff: &terraform.InstanceDiff{
@@ -127,9 +127,9 @@ func TestMultiLevelFieldReaderReadFieldMerge(t *testing.T) {
 						"availability_zone": &Schema{Type: TypeString},
 					},
 
-					Map: map[string]string{
+					Map: BasicMapReader(map[string]string{
 						"availability_zone": "foo",
-					},
+					}),
 				},
 
 				&DiffFieldReader{
@@ -142,9 +142,9 @@ func TestMultiLevelFieldReaderReadFieldMerge(t *testing.T) {
 							"availability_zone": &Schema{Type: TypeString},
 						},
 
-						Map: map[string]string{
+						Map: BasicMapReader(map[string]string{
 							"availability_zone": "foo",
-						},
+						}),
 					},
 
 					Diff: &terraform.InstanceDiff{
@@ -186,12 +186,12 @@ func TestMultiLevelFieldReaderReadFieldMerge(t *testing.T) {
 							},
 						},
 
-						Map: map[string]string{
+						Map: BasicMapReader(map[string]string{
 							"config_vars.#":     "2",
 							"config_vars.0.foo": "bar",
 							"config_vars.0.bar": "bar",
 							"config_vars.1.bar": "baz",
-						},
+						}),
 					},
 
 					Diff: &terraform.InstanceDiff{
@@ -225,15 +225,15 @@ func TestMultiLevelFieldReaderReadFieldMerge(t *testing.T) {
 					Schema: map[string]*Schema{
 						"foo": &Schema{Type: TypeString},
 					},
-					Map: map[string]string{
+					Map: BasicMapReader(map[string]string{
 						"foo": "bar",
-					},
+					}),
 				},
 				&MapFieldReader{
 					Schema: map[string]*Schema{
 						"foo": &Schema{Type: TypeString},
 					},
-					Map: map[string]string{},
+					Map: BasicMapReader(map[string]string{}),
 				},
 			},
 

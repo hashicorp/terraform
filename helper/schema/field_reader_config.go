@@ -2,7 +2,9 @@ package schema
 
 import (
 	"fmt"
+	"strconv"
 	"strings"
+	"sync"
 
 	"github.com/hashicorp/terraform/terraform"
 	"github.com/mitchellh/mapstructure"
@@ -13,15 +15,68 @@ import (
 type ConfigFieldReader struct {
 	Config *terraform.ResourceConfig
 	Schema map[string]*Schema
+
+	lock sync.Mutex
 }
 
 func (r *ConfigFieldReader) ReadField(address []string) (FieldReadResult, error) {
-	k := strings.Join(address, ".")
-	schema := addrToSchema(address, r.Schema)
-	if schema == nil {
+	return r.readField(address, false)
+}
+
+func (r *ConfigFieldReader) readField(
+	address []string, nested bool) (FieldReadResult, error) {
+	schemaList := addrToSchema(address, r.Schema)
+	if len(schemaList) == 0 {
 		return FieldReadResult{}, nil
 	}
 
+	if !nested {
+		// If we have a set anywhere in the address, then we need to
+		// read that set out in order and actually replace that part of
+		// the address with the real list index. i.e. set.50 might actually
+		// map to set.12 in the config, since it is in list order in the
+		// config, not indexed by set value.
+		for i, v := range schemaList {
+			// Sets are the only thing that cause this issue.
+			if v.Type != TypeSet {
+				continue
+			}
+
+			// If we're at the end of the list, then we don't have to worry
+			// about this because we're just requesting the whole set.
+			if i == len(schemaList)-1 {
+				continue
+			}
+
+			// If we're looking for the count, then ignore...
+			if address[i+1] == "#" {
+				continue
+			}
+
+			// Get the code
+			code, err := strconv.ParseInt(address[i+1], 0, 0)
+			if err != nil {
+				return FieldReadResult{}, err
+			}
+
+			// Get the set so we can get the index map that tells us the
+			// mapping of the hash code to the list index
+			_, indexMap, err := r.readSet(address[:i+1], v)
+			if err != nil {
+				return FieldReadResult{}, err
+			}
+
+			index, ok := indexMap[int(code)]
+			if !ok {
+				return FieldReadResult{}, nil
+			}
+
+			address[i+1] = strconv.FormatInt(int64(index), 10)
+		}
+	}
+
+	k := strings.Join(address, ".")
+	schema := schemaList[len(schemaList)-1]
 	switch schema.Type {
 	case TypeBool:
 		fallthrough
@@ -30,13 +85,16 @@ func (r *ConfigFieldReader) ReadField(address []string) (FieldReadResult, error)
 	case TypeString:
 		return r.readPrimitive(k, schema)
 	case TypeList:
-		return readListField(r, address, schema)
+		return readListField(&nestedConfigFieldReader{r}, address, schema)
 	case TypeMap:
 		return r.readMap(k)
 	case TypeSet:
-		return r.readSet(address, schema)
+		result, _, err := r.readSet(address, schema)
+		return result, err
 	case typeObject:
-		return readObjectField(r, address, schema.Elem.(map[string]*Schema))
+		return readObjectField(
+			&nestedConfigFieldReader{r},
+			address, schema.Elem.(map[string]*Schema))
 	default:
 		panic(fmt.Sprintf("Unknown type: %#v", schema.Type))
 	}
@@ -100,13 +158,14 @@ func (r *ConfigFieldReader) readPrimitive(
 }
 
 func (r *ConfigFieldReader) readSet(
-	address []string, schema *Schema) (FieldReadResult, error) {
-	raw, err := readListField(r, address, schema)
+	address []string, schema *Schema) (FieldReadResult, map[int]int, error) {
+	indexMap := make(map[int]int)
+	raw, err := readListField(&nestedConfigFieldReader{r}, address, schema)
 	if err != nil {
-		return FieldReadResult{}, err
+		return FieldReadResult{}, indexMap, err
 	}
 	if !raw.Exists {
-		return FieldReadResult{}, nil
+		return FieldReadResult{}, indexMap, nil
 	}
 
 	// Create the set that will be our result
@@ -118,16 +177,60 @@ func (r *ConfigFieldReader) readSet(
 			Value:    set,
 			Exists:   true,
 			Computed: raw.Computed,
-		}, nil
+		}, indexMap, nil
 	}
 
 	// Build up the set from the list elements
-	for _, v := range raw.Value.([]interface{}) {
-		set.Add(v)
+	for i, v := range raw.Value.([]interface{}) {
+		// Check if any of the keys in this item are computed
+		computed := r.hasComputedSubKeys(
+			fmt.Sprintf("%s.%d", strings.Join(address, "."), i), schema)
+
+		code := set.add(v)
+		indexMap[code] = i
+		if computed {
+			set.m[-code] = set.m[code]
+			delete(set.m, code)
+			code = -code
+		}
 	}
 
 	return FieldReadResult{
 		Value:  set,
 		Exists: true,
-	}, nil
+	}, indexMap, nil
+}
+
+// hasComputedSubKeys walks through a schema and returns whether or not the
+// given key contains any subkeys that are computed.
+func (r *ConfigFieldReader) hasComputedSubKeys(key string, schema *Schema) bool {
+	prefix := key + "."
+
+	switch t := schema.Elem.(type) {
+	case *Resource:
+		for k, schema := range t.Schema {
+			if r.Config.IsComputed(prefix + k) {
+				return true
+			}
+
+			if r.hasComputedSubKeys(prefix+k, schema) {
+				return true
+			}
+		}
+	}
+
+	return false
+}
+
+// nestedConfigFieldReader is a funny little thing that just wraps a
+// ConfigFieldReader to call readField when ReadField is called so that
+// we don't recalculate the set rewrites in the address, which leads to
+// an infinite loop.
+type nestedConfigFieldReader struct {
+	Reader *ConfigFieldReader
+}
+
+func (r *nestedConfigFieldReader) ReadField(
+	address []string) (FieldReadResult, error) {
+	return r.Reader.readField(address, true)
 }

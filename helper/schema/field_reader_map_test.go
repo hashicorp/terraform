@@ -43,9 +43,16 @@ func TestMapFieldReader(t *testing.T) {
 					return a.(map[string]interface{})["index"].(int)
 				},
 			},
+			"setEmpty": &Schema{
+				Type: TypeSet,
+				Elem: &Schema{Type: TypeInt},
+				Set: func(a interface{}) int {
+					return a.(int)
+				},
+			},
 		},
 
-		Map: map[string]string{
+		Map: BasicMapReader(map[string]string{
 			"bool":   "true",
 			"int":    "42",
 			"string": "string",
@@ -70,7 +77,7 @@ func TestMapFieldReader(t *testing.T) {
 			"setDeep.10.value": "foo",
 			"setDeep.50.index": "50",
 			"setDeep.50.value": "bar",
-		},
+		}),
 	}
 
 	cases := map[string]struct {
@@ -157,6 +164,14 @@ func TestMapFieldReader(t *testing.T) {
 			[]string{"set"},
 			[]interface{}{10, 50},
 			true,
+			false,
+			false,
+		},
+
+		"setEmpty": {
+			[]string{"setEmpty"},
+			[]interface{}{},
+			false,
 			false,
 			false,
 		},

@@ -19,8 +19,8 @@ type FieldReadResult struct {
 	// or the items that should be removed (if they existed). NegValue
 	// doesn't make sense for primitives but is important for any
 	// container types such as maps, sets, lists.
-	Value    interface{}
-	NegValue interface{}
+	Value          interface{}
+	ValueProcessed interface{}
 
 	// Exists is true if the field was found in the data. False means
 	// it wasn't found if there was no error.
@@ -32,26 +32,28 @@ type FieldReadResult struct {
 }
 
 // addrToSchema finds the final element schema for the given address
-// and the given schema.
-func addrToSchema(addr []string, schemaMap map[string]*Schema) *Schema {
-	var result *Schema
-	var lastType ValueType
+// and the given schema. It returns all the schemas that led to the final
+// schema. These are in order of the address (out to in).
+func addrToSchema(addr []string, schemaMap map[string]*Schema) []*Schema {
 	current := &Schema{
 		Type: typeObject,
 		Elem: schemaMap,
 	}
+	result := make([]*Schema, 0, len(addr))
 
 	for len(addr) > 0 {
 		k := addr[0]
 		addr = addr[1:]
 
 	REPEAT:
-		if len(addr) == 0 {
-			result = current
+		// We want to trim off the first "typeObject" since its not a
+		// real lookup that people do. i.e. []string{"foo"} in a structure
+		// isn't {typeObject, typeString}, its just a {typeString}.
+		if len(result) > 0 || current.Type != typeObject {
+			result = append(result, current)
 		}
 
-		currentType := current.Type
-		switch current.Type {
+		switch t := current.Type; t {
 		case TypeBool:
 			fallthrough
 		case TypeInt:
@@ -75,18 +77,33 @@ func addrToSchema(addr []string, schemaMap map[string]*Schema) *Schema {
 				return nil
 			}
 
+			// If we only have one more thing and the the next thing
+			// is a #, then we're accessing the index which is always
+			// an int.
 			if len(addr) > 0 && addr[0] == "#" {
 				current = &Schema{Type: TypeInt}
+				break
 			}
 		case TypeMap:
 			if len(addr) > 0 {
 				current = &Schema{Type: TypeString}
 			}
 		case typeObject:
-			if lastType == TypeSet || lastType == TypeList {
-				// We just ignore sets/lists since they don't access
-				// objects the same way.
-				break
+			// If we're already in the object, then we want to handle Sets
+			// and Lists specially. Basically, their next key is the lookup
+			// key (the set value or the list element). For these scenarios,
+			// we just want to skip it and move to the next element if there
+			// is one.
+			if len(result) > 0 {
+				lastType := result[len(result)-2].Type
+				if lastType == TypeSet || lastType == TypeList {
+					if len(addr) == 0 {
+						break
+					}
+
+					k = addr[0]
+					addr = addr[1:]
+				}
 			}
 
 			m := current.Elem.(map[string]*Schema)
@@ -98,8 +115,6 @@ func addrToSchema(addr []string, schemaMap map[string]*Schema) *Schema {
 			current = val
 			goto REPEAT
 		}
-
-		lastType = currentType
 	}
 
 	return result
@@ -129,7 +144,7 @@ func readListField(
 	if countResult.Computed || countResult.Value.(int) == 0 {
 		return FieldReadResult{
 			Value:    []interface{}{},
-			Exists:   true,
+			Exists:   countResult.Exists,
 			Computed: countResult.Computed,
 		}, nil
 	}
@@ -184,7 +199,7 @@ func readObjectField(
 
 	return FieldReadResult{
 		Value:  result,
-		Exists: true,
+		Exists: len(schema) > 0 && len(result) > 0,
 	}, nil
 }
 

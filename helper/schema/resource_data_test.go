@@ -606,7 +606,7 @@ func TestResourceDataGet(t *testing.T) {
 		}
 
 		if !reflect.DeepEqual(v, tc.Value) {
-			t.Fatalf("Bad: %d\n\n%#v", i, v)
+			t.Fatalf("Bad: %d\n\n%#v\n\nExpected: %#v", i, v, tc.Value)
 		}
 	}
 }
@@ -816,7 +816,7 @@ func TestResourceDataGetOk(t *testing.T) {
 			Diff: nil,
 
 			Key:   "ports",
-			Value: []interface{}{},
+			Value: nil,
 			Ok:    false,
 		},
 
@@ -1082,34 +1082,6 @@ func TestResourceDataSet(t *testing.T) {
 			GetValue: "",
 		},
 
-		// List of primitives, set element
-		{
-			Schema: map[string]*Schema{
-				"ports": &Schema{
-					Type:     TypeList,
-					Computed: true,
-					Elem:     &Schema{Type: TypeInt},
-				},
-			},
-
-			State: &terraform.InstanceState{
-				Attributes: map[string]string{
-					"ports.#": "3",
-					"ports.0": "1",
-					"ports.1": "2",
-					"ports.2": "5",
-				},
-			},
-
-			Diff: nil,
-
-			Key:   "ports.1",
-			Value: 3,
-
-			GetKey:   "ports",
-			GetValue: []interface{}{1, 3, 5},
-		},
-
 		// List of primitives, set list
 		{
 			Schema: map[string]*Schema{
@@ -1153,139 +1125,6 @@ func TestResourceDataSet(t *testing.T) {
 			GetValue: []interface{}{},
 		},
 
-		// List of resource, set element
-		{
-			Schema: map[string]*Schema{
-				"ingress": &Schema{
-					Type:     TypeList,
-					Computed: true,
-					Elem: &Resource{
-						Schema: map[string]*Schema{
-							"from": &Schema{
-								Type: TypeInt,
-							},
-						},
-					},
-				},
-			},
-
-			State: &terraform.InstanceState{
-				Attributes: map[string]string{
-					"ingress.#":      "2",
-					"ingress.0.from": "80",
-					"ingress.1.from": "8080",
-				},
-			},
-
-			Diff: nil,
-
-			Key:   "ingress.1.from",
-			Value: 9000,
-
-			GetKey: "ingress",
-			GetValue: []interface{}{
-				map[string]interface{}{
-					"from": 80,
-				},
-				map[string]interface{}{
-					"from": 9000,
-				},
-			},
-		},
-
-		// List of resource, set full resource element
-		{
-			Schema: map[string]*Schema{
-				"ingress": &Schema{
-					Type:     TypeList,
-					Computed: true,
-					Elem: &Resource{
-						Schema: map[string]*Schema{
-							"from": &Schema{
-								Type: TypeInt,
-							},
-						},
-					},
-				},
-			},
-
-			State: &terraform.InstanceState{
-				Attributes: map[string]string{
-					"ingress.#":      "2",
-					"ingress.0.from": "80",
-					"ingress.1.from": "8080",
-				},
-			},
-
-			Diff: nil,
-
-			Key: "ingress.1",
-			Value: map[string]interface{}{
-				"from": 9000,
-			},
-
-			GetKey: "ingress",
-			GetValue: []interface{}{
-				map[string]interface{}{
-					"from": 80,
-				},
-				map[string]interface{}{
-					"from": 9000,
-				},
-			},
-		},
-
-		// List of resource, set full resource element, with error
-		{
-			Schema: map[string]*Schema{
-				"ingress": &Schema{
-					Type:     TypeList,
-					Computed: true,
-					Elem: &Resource{
-						Schema: map[string]*Schema{
-							"from": &Schema{
-								Type: TypeInt,
-							},
-							"to": &Schema{
-								Type: TypeInt,
-							},
-						},
-					},
-				},
-			},
-
-			State: &terraform.InstanceState{
-				Attributes: map[string]string{
-					"ingress.#":      "2",
-					"ingress.0.from": "80",
-					"ingress.0.to":   "10",
-					"ingress.1.from": "8080",
-					"ingress.1.to":   "8080",
-				},
-			},
-
-			Diff: nil,
-
-			Key: "ingress.1",
-			Value: map[string]interface{}{
-				"from": 9000,
-				"to":   "bar",
-			},
-			Err: true,
-
-			GetKey: "ingress",
-			GetValue: []interface{}{
-				map[string]interface{}{
-					"from": 80,
-					"to":   10,
-				},
-				map[string]interface{}{
-					"from": 8080,
-					"to":   8080,
-				},
-			},
-		},
-
 		// Set a list of maps
 		{
 			Schema: map[string]*Schema{
@@ -1309,45 +1148,6 @@ func TestResourceDataSet(t *testing.T) {
 					"foo": "bar",
 				},
 				map[string]interface{}{
-					"bar": "baz",
-				},
-			},
-			Err: false,
-
-			GetKey: "config_vars",
-			GetValue: []interface{}{
-				map[string]interface{}{
-					"foo": "bar",
-				},
-				map[string]interface{}{
-					"bar": "baz",
-				},
-			},
-		},
-
-		// Set a list of maps
-		{
-			Schema: map[string]*Schema{
-				"config_vars": &Schema{
-					Type:     TypeList,
-					Optional: true,
-					Computed: true,
-					Elem: &Schema{
-						Type: TypeMap,
-					},
-				},
-			},
-
-			State: nil,
-
-			Diff: nil,
-
-			Key: "config_vars",
-			Value: []interface{}{
-				map[string]string{
-					"foo": "bar",
-				},
-				map[string]string{
 					"bar": "baz",
 				},
 			},
@@ -1727,8 +1527,13 @@ func TestResourceDataState(t *testing.T) {
 			},
 
 			Set: map[string]interface{}{
-				"config_vars.1": map[string]interface{}{
-					"baz": "bang",
+				"config_vars": []map[string]interface{}{
+					map[string]interface{}{
+						"foo": "bar",
+					},
+					map[string]interface{}{
+						"baz": "bang",
+					},
 				},
 			},
 
@@ -2141,8 +1946,13 @@ func TestResourceDataState(t *testing.T) {
 			},
 
 			Set: map[string]interface{}{
-				"config_vars.1": map[string]interface{}{
-					"baz": "bang",
+				"config_vars": []map[string]interface{}{
+					map[string]interface{}{
+						"foo": "bar",
+					},
+					map[string]interface{}{
+						"baz": "bang",
+					},
 				},
 			},
 
@@ -2150,6 +1960,7 @@ func TestResourceDataState(t *testing.T) {
 
 			Result: &terraform.InstanceState{
 				Attributes: map[string]string{
+					// TODO: broken, shouldn't bar be removed?
 					"config_vars.#":     "2",
 					"config_vars.0.foo": "bar",
 					"config_vars.0.bar": "bar",
