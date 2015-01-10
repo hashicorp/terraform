@@ -41,10 +41,17 @@ type Resource struct {
 	// If any errors occur during each of the operation, an error should be
 	// returned. If a resource was partially updated, be careful to enable
 	// partial state mode for ResourceData and use it accordingly.
+	//
+	// Exists is a function that is called to check if a resource still
+	// exists. If this returns false, then this will affect the diff
+	// accordingly. If this function isn't set, it will not be called. It
+	// is highly recommended to set it. The *ResourceData passed to Exists
+	// should _not_ be modified.
 	Create CreateFunc
 	Read   ReadFunc
 	Update UpdateFunc
 	Delete DeleteFunc
+	Exists ExistsFunc
 }
 
 // See Resource documentation.
@@ -58,6 +65,9 @@ type UpdateFunc func(*ResourceData, interface{}) error
 
 // See Resource documentation.
 type DeleteFunc func(*ResourceData, interface{}) error
+
+// See Resource documentation.
+type ExistsFunc func(*ResourceData, interface{}) (bool, error)
 
 // Apply creates, updates, and/or deletes a resource.
 func (r *Resource) Apply(
@@ -131,6 +141,23 @@ func (r *Resource) Validate(c *terraform.ResourceConfig) ([]string, []error) {
 func (r *Resource) Refresh(
 	s *terraform.InstanceState,
 	meta interface{}) (*terraform.InstanceState, error) {
+	if r.Exists != nil {
+		// Make a copy of data so that if it is modified it doesn't
+		// affect our Read later.
+		data, err := schemaMap(r.Schema).Data(s, nil)
+		if err != nil {
+			return s, err
+		}
+
+		exists, err := r.Exists(data, meta)
+		if err != nil {
+			return s, err
+		}
+		if !exists {
+			return nil, nil
+		}
+	}
+
 	data, err := schemaMap(r.Schema).Data(s, nil)
 	if err != nil {
 		return s, err

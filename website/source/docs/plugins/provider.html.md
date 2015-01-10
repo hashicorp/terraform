@@ -158,6 +158,10 @@ The CRUD operations in more detail, along with their contracts:
   * `Delete` - This is called to delete the resource. Terraform guarantees
       an existing ID will be set.
 
+  * `Exists` - This is called to verify a resource still exists. It is
+      called prior to `Read`, and lowers the burden of `Read` to be able
+      to assume the resource exists.
+
 ## Schemas
 
 Both providers and resources require a schema to be specified. The schema
