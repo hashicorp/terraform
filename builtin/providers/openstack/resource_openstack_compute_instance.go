@@ -237,7 +237,7 @@ func resourceComputeInstanceRead(d *schema.ResourceData, meta interface{}) error
 
 	newFlavor, ok := server.Flavor["id"].(string)
 	if !ok {
-		return fmt.Errorf("Error setting OpenStack server's flavor: %v", newFlavor)
+		return fmt.Errorf("Error setting OpenStack server's flavor: %v", server.Flavor)
 	}
 	d.Set("flavor_ref", newFlavor)
 
