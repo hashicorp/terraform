@@ -58,7 +58,8 @@ func addrToSchema(addr []string, schemaMap map[string]*Schema) []*Schema {
 		Elem: schemaMap,
 	}
 
-	// TODO: test
+	// If we aren't given an address, then the user is requesting the
+	// full object, so we return the special value which is the full object.
 	if len(addr) == 0 {
 		return []*Schema{current}
 	}

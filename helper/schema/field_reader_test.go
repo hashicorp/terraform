@@ -11,6 +11,17 @@ func TestAddrToSchema(t *testing.T) {
 		Schema map[string]*Schema
 		Result []ValueType
 	}{
+		"full object": {
+			[]string{},
+			map[string]*Schema{
+				"list": &Schema{
+					Type: TypeList,
+					Elem: &Schema{Type: TypeInt},
+				},
+			},
+			[]ValueType{typeObject},
+		},
+
 		"list": {
 			[]string{"list"},
 			map[string]*Schema{
