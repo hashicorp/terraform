@@ -1853,7 +1853,9 @@ func TestResourceDataState(t *testing.T) {
 					"ports.10.order": "10",
 					"ports.10.a.#":   "1",
 					"ports.10.a.0":   "80",
+					"ports.10.b.#":   "0",
 					"ports.20.order": "20",
+					"ports.20.a.#":   "0",
 					"ports.20.b.#":   "1",
 					"ports.20.b.0":   "100",
 				},
@@ -1890,7 +1892,9 @@ func TestResourceDataState(t *testing.T) {
 			Partial: []string{},
 
 			Result: &terraform.InstanceState{
-				Attributes: map[string]string{},
+				Attributes: map[string]string{
+					"availability_zone": "",
+				},
 			},
 		},
 

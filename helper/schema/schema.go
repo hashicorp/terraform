@@ -53,6 +53,8 @@ func (t ValueType) Zero() interface{} {
 		return map[string]interface{}{}
 	case TypeSet:
 		return nil
+	case typeObject:
+		return map[string]interface{}{}
 	default:
 		panic(fmt.Sprintf("unknown type %#v", t))
 	}

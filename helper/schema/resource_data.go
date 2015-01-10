@@ -1,9 +1,7 @@
 package schema
 
 import (
-	"fmt"
 	"reflect"
-	"strconv"
 	"strings"
 	"sync"
 
@@ -139,8 +137,9 @@ func (d *ResourceData) Set(key string, value interface{}) error {
 	return d.setWriter.WriteField(strings.Split(key, "."), value)
 }
 
-// SetPartial adds the key prefix to the final state output while
-// in partial state mode.
+// SetPartial adds the key to the final state output while
+// in partial state mode. The key must be a root key in the schema (i.e.
+// it cannot be "list.0").
 //
 // If partial state mode is disabled, then this has no effect. Additionally,
 // whenever partial state mode is toggled, the partial data is cleared.
@@ -203,8 +202,45 @@ func (d *ResourceData) State() *terraform.InstanceState {
 		return nil
 	}
 
-	result.Attributes = d.stateObject("", d.schema)
+	// In order to build the final state attributes, we read the full
+	// attribute set as a map[string]interface{}, write it to a MapFieldWriter,
+	// and then use that map.
+	rawMap := make(map[string]interface{})
+	for k, _ := range d.schema {
+		source := getSourceSet
+		if d.partial {
+			source = getSourceState
+			if _, ok := d.partialMap[k]; ok {
+				source = getSourceSet
+			}
+		}
+
+		raw := d.get(k, nil, nil, source)
+		rawMap[k] = raw.Value
+		if raw.ValueProcessed != nil {
+			rawMap[k] = raw.ValueProcessed
+		}
+	}
+	mapW := &MapFieldWriter{Schema: d.schema}
+	if err := mapW.WriteField(nil, rawMap); err != nil {
+		return nil
+	}
+
+	result.Attributes = mapW.Map()
 	result.Ephemeral.ConnInfo = d.ConnInfo()
+
+	// TODO: This is hacky and we can remove this when we have a proper
+	// state writer. We should instead have a proper StateFieldWriter
+	// and use that.
+	for k, schema := range d.schema {
+		if schema.Type != TypeMap {
+			continue
+		}
+
+		if result.Attributes[k] == "" {
+			delete(result.Attributes, k)
+		}
+	}
 
 	if v := d.Id(); v != "" {
 		result.Attributes["id"] = d.Id()
@@ -360,187 +396,4 @@ func (d *ResourceData) get(
 		Exists:         result.Exists,
 		Schema:         schema,
 	}
-}
-
-func (d *ResourceData) stateList(
-	prefix string,
-	schema *Schema) map[string]string {
-	countRaw := d.get(prefix, []string{"#"}, schema, d.stateSource(prefix))
-	if !countRaw.Exists {
-		if schema.Computed {
-			// If it is computed, then it always _exists_ in the state,
-			// it is just empty.
-			countRaw.Exists = true
-			countRaw.Value = 0
-		} else {
-			return nil
-		}
-	}
-	count := countRaw.Value.(int)
-
-	result := make(map[string]string)
-	if count > 0 || schema.Computed {
-		result[prefix+".#"] = strconv.FormatInt(int64(count), 10)
-	}
-	for i := 0; i < count; i++ {
-		key := fmt.Sprintf("%s.%d", prefix, i)
-
-		var m map[string]string
-		switch t := schema.Elem.(type) {
-		case *Resource:
-			m = d.stateObject(key, t.Schema)
-		case *Schema:
-			m = d.stateSingle(key, t)
-		}
-
-		for k, v := range m {
-			result[k] = v
-		}
-	}
-
-	return result
-}
-
-func (d *ResourceData) stateMap(
-	prefix string,
-	schema *Schema) map[string]string {
-	v := d.get(prefix, nil, schema, d.stateSource(prefix))
-	if !v.Exists {
-		return nil
-	}
-
-	elemSchema := &Schema{Type: TypeString}
-	result := make(map[string]string)
-	for mk, _ := range v.Value.(map[string]interface{}) {
-		mp := fmt.Sprintf("%s.%s", prefix, mk)
-		for k, v := range d.stateSingle(mp, elemSchema) {
-			result[k] = v
-		}
-	}
-
-	return result
-}
-
-func (d *ResourceData) stateObject(
-	prefix string,
-	schema map[string]*Schema) map[string]string {
-	result := make(map[string]string)
-	for k, v := range schema {
-		key := k
-		if prefix != "" {
-			key = prefix + "." + key
-		}
-
-		for k1, v1 := range d.stateSingle(key, v) {
-			result[k1] = v1
-		}
-	}
-
-	return result
-}
-
-func (d *ResourceData) statePrimitive(
-	prefix string,
-	schema *Schema) map[string]string {
-	raw := d.getRaw(prefix, d.stateSource(prefix))
-	if !raw.Exists {
-		return nil
-	}
-
-	v := raw.Value
-	if raw.ValueProcessed != nil {
-		v = raw.ValueProcessed
-	}
-
-	var vs string
-	switch schema.Type {
-	case TypeBool:
-		vs = strconv.FormatBool(v.(bool))
-	case TypeString:
-		vs = v.(string)
-	case TypeInt:
-		vs = strconv.FormatInt(int64(v.(int)), 10)
-	default:
-		panic(fmt.Sprintf("Unknown type: %#v", schema.Type))
-	}
-
-	return map[string]string{
-		prefix: vs,
-	}
-}
-
-func (d *ResourceData) stateSet(
-	prefix string,
-	schema *Schema) map[string]string {
-	raw := d.get(prefix, nil, schema, d.stateSource(prefix))
-	if !raw.Exists {
-		if schema.Computed {
-			// If it is computed, then it always _exists_ in the state,
-			// it is just empty.
-			raw.Exists = true
-			raw.Value = new(Set)
-		} else {
-			return nil
-		}
-	}
-
-	set := raw.Value.(*Set)
-	result := make(map[string]string)
-	result[prefix+".#"] = strconv.Itoa(set.Len())
-
-	for _, idx := range set.listCode() {
-		key := fmt.Sprintf("%s.%d", prefix, idx)
-
-		var m map[string]string
-		switch t := schema.Elem.(type) {
-		case *Resource:
-			m = d.stateObject(key, t.Schema)
-		case *Schema:
-			m = d.stateSingle(key, t)
-		}
-
-		for k, v := range m {
-			result[k] = v
-		}
-	}
-
-	return result
-}
-
-func (d *ResourceData) stateSingle(
-	prefix string,
-	schema *Schema) map[string]string {
-	switch schema.Type {
-	case TypeList:
-		return d.stateList(prefix, schema)
-	case TypeMap:
-		return d.stateMap(prefix, schema)
-	case TypeSet:
-		return d.stateSet(prefix, schema)
-	case TypeBool:
-		fallthrough
-	case TypeInt:
-		fallthrough
-	case TypeString:
-		return d.statePrimitive(prefix, schema)
-	default:
-		panic(fmt.Sprintf("%s: unknown type %#v", prefix, schema.Type))
-	}
-}
-
-func (d *ResourceData) stateSource(prefix string) getSource {
-	// If we're not doing a partial apply, then get the set level
-	if !d.partial {
-		return getSourceSet | getSourceDiff
-	}
-
-	// Otherwise, only return getSourceSet if its in the partial map.
-	// Otherwise we use state level only.
-	for k, _ := range d.partialMap {
-		if strings.HasPrefix(prefix, k) {
-			return getSourceSet | getSourceDiff
-		}
-	}
-
-	return getSourceState
 }
