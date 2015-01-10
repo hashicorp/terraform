@@ -41,11 +41,10 @@ type getSource byte
 const (
 	getSourceState getSource = 1 << iota
 	getSourceConfig
+	getSourceDiff
 	getSourceSet
 	getSourceExact               // Only get from the _exact_ level
-	getSourceDiff                // Apply the diff on top our level
-	getSourceLevelMask getSource = getSourceState | getSourceConfig | getSourceSet
-	getSourceMax       getSource = getSourceSet
+	getSourceLevelMask getSource = getSourceState | getSourceConfig | getSourceDiff | getSourceSet
 )
 
 // getResult is the internal structure that is generated when a Get
@@ -81,7 +80,7 @@ func (d *ResourceData) Get(key string) interface{} {
 // set and the new value is. This is common, for example, for boolean
 // fields which have a zero value of false.
 func (d *ResourceData) GetChange(key string) (interface{}, interface{}) {
-	o, n := d.getChange(key, getSourceConfig, getSourceConfig|getSourceDiff)
+	o, n := d.getChange(key, getSourceConfig, getSourceDiff)
 	return o.Value, n.Value
 }
 
@@ -92,7 +91,7 @@ func (d *ResourceData) GetChange(key string) (interface{}, interface{}) {
 // The first result will not necessarilly be nil if the value doesn't exist.
 // The second result should be checked to determine this information.
 func (d *ResourceData) GetOk(key string) (interface{}, bool) {
-	r := d.getRaw(key, getSourceSet|getSourceDiff)
+	r := d.getRaw(key, getSourceSet)
 	return r.Value, r.Exists
 }
 
@@ -337,12 +336,11 @@ func (d *ResourceData) get(addr []string, source getSource) getResult {
 
 	level := "set"
 	flags := source & ^getSourceLevelMask
-	diff := flags&getSourceDiff != 0
 	exact := flags&getSourceExact != 0
 	source = source & getSourceLevelMask
 	if source >= getSourceSet {
 		level = "set"
-	} else if diff {
+	} else if source >= getSourceDiff {
 		level = "diff"
 	} else if source >= getSourceConfig {
 		level = "config"
