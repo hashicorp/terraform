@@ -29,7 +29,7 @@ func TestAccAWSDBInstance(t *testing.T) {
 					resource.TestCheckResourceAttr(
 						"aws_db_instance.bar", "engine", "mysql"),
 					resource.TestCheckResourceAttr(
-						"aws_db_instance.bar", "engine_version", "5.6.17"),
+						"aws_db_instance.bar", "engine_version", "5.6.21"),
 					resource.TestCheckResourceAttr(
 						"aws_db_instance.bar", "instance_class", "db.t1.micro"),
 					resource.TestCheckResourceAttr(
@@ -42,7 +42,7 @@ func TestAccAWSDBInstance(t *testing.T) {
 					resource.TestCheckResourceAttr(
 						"aws_db_instance.bar", "skip_final_snapshot", "true"),
 					resource.TestCheckResourceAttr(
-						"aws_db_instance.bar", "security_group_names.0", "secfoobarbaz-test-terraform"),
+						"aws_db_instance.bar", "security_group_names.3322503515", "secfoobarbaz-test-terraform"),
 					resource.TestCheckResourceAttr(
 						"aws_db_instance.bar", "parameter_group_name", "default.mysql5.6"),
 				),
@@ -96,7 +96,7 @@ func testAccCheckAWSDBInstanceAttributes(v *rds.DBInstance) resource.TestCheckFu
 			return fmt.Errorf("bad engine: %#v", v.Engine)
 		}
 
-		if v.EngineVersion != "5.6.17" {
+		if v.EngineVersion != "5.6.21" {
 			return fmt.Errorf("bad engine_version: %#v", v.EngineVersion)
 		}
 
@@ -153,7 +153,7 @@ resource "aws_db_instance" "bar" {
 
 	allocated_storage = 10
 	engine = "mysql"
-	engine_version = "5.6.17"
+	engine_version = "5.6.21"
 	instance_class = "db.t1.micro"
 	name = "baz"
 	password = "barbarbarbar"
