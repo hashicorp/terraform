@@ -52,6 +52,8 @@ func Provider() terraform.ResourceProvider {
 			"openstack_compute_keypair":      resourceComputeKeypair(),
 			"openstack_compute_secgroup":     resourceComputeSecGroup(),
 			"openstack_compute_secgrouprule": resourceComputeSecGroupRule(),
+			"openstack_networking_network":   resourceNetworkingNetwork(),
+			"openstack_networking_subnet":    resourceNetworkingSubnet(),
 		},
 
 		ConfigureFunc: configureProvider,
