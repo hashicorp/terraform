@@ -33,7 +33,32 @@ const (
 	TypeList
 	TypeMap
 	TypeSet
+	typeObject
 )
+
+// Zero returns the zero value for a type.
+func (t ValueType) Zero() interface{} {
+	switch t {
+	case TypeInvalid:
+		return nil
+	case TypeBool:
+		return false
+	case TypeInt:
+		return 0
+	case TypeString:
+		return ""
+	case TypeList:
+		return []interface{}{}
+	case TypeMap:
+		return map[string]interface{}{}
+	case TypeSet:
+		return nil
+	case typeObject:
+		return map[string]interface{}{}
+	default:
+		panic(fmt.Sprintf("unknown type %#v", t))
+	}
+}
 
 // Schema is used to describe the structure of a value.
 //
@@ -198,10 +223,9 @@ func (m schemaMap) Diff(
 	result.Attributes = make(map[string]*terraform.ResourceAttrDiff)
 
 	d := &ResourceData{
-		schema:  m,
-		state:   s,
-		config:  c,
-		diffing: true,
+		schema: m,
+		state:  s,
+		config: c,
 	}
 
 	for k, schema := range m {
@@ -220,8 +244,10 @@ func (m schemaMap) Diff(
 		result2 := new(terraform.InstanceDiff)
 		result2.Attributes = make(map[string]*terraform.ResourceAttrDiff)
 
-		// Reset the data to not contain state
+		// Reset the data to not contain state. We have to call init()
+		// again in order to reset the FieldReaders.
 		d.state = nil
+		d.init()
 
 		// Perform the diff again
 		for k, schema := range m {
@@ -457,6 +483,9 @@ func (m schemaMap) diffList(
 	d *ResourceData,
 	all bool) error {
 	o, n, _, computedList := d.diffChange(k)
+	if computedList {
+		n = nil
+	}
 	nSet := n != nil
 
 	// If we have an old value and no new value is set or will be
@@ -654,6 +683,9 @@ func (m schemaMap) diffSet(
 	d *ResourceData,
 	all bool) error {
 	o, n, _, computedSet := d.diffChange(k)
+	if computedSet {
+		n = nil
+	}
 	nSet := n != nil
 
 	// If we have an old value and no new value is set or will be
