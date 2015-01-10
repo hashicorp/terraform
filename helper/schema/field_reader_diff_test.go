@@ -11,35 +11,19 @@ func TestDiffFieldReader_impl(t *testing.T) {
 	var _ FieldReader = new(DiffFieldReader)
 }
 
-func TestDiffFieldReader(t *testing.T) {
+func TestDiffFieldReader_extra(t *testing.T) {
 	schema := map[string]*Schema{
-		"bool":           &Schema{Type: TypeBool},
-		"int":            &Schema{Type: TypeInt},
-		"string":         &Schema{Type: TypeString},
 		"stringComputed": &Schema{Type: TypeString},
-		"list": &Schema{
-			Type: TypeList,
-			Elem: &Schema{Type: TypeString},
-		},
-		"listInt": &Schema{
-			Type: TypeList,
-			Elem: &Schema{Type: TypeInt},
-		},
+
 		"listMap": &Schema{
 			Type: TypeList,
 			Elem: &Schema{
 				Type: TypeMap,
 			},
 		},
-		"map":       &Schema{Type: TypeMap},
+
 		"mapRemove": &Schema{Type: TypeMap},
-		"set": &Schema{
-			Type: TypeSet,
-			Elem: &Schema{Type: TypeInt},
-			Set: func(a interface{}) int {
-				return a.(int)
-			},
-		},
+
 		"setChange": &Schema{
 			Type:     TypeSet,
 			Optional: true,
@@ -61,137 +45,23 @@ func TestDiffFieldReader(t *testing.T) {
 				return m["index"].(int)
 			},
 		},
-		"setDeep": &Schema{
-			Type: TypeSet,
-			Elem: &Resource{
-				Schema: map[string]*Schema{
-					"index": &Schema{Type: TypeInt},
-					"value": &Schema{Type: TypeString},
-				},
-			},
-			Set: func(a interface{}) int {
-				return a.(map[string]interface{})["index"].(int)
-			},
-		},
-		"setEmpty": &Schema{
-			Type: TypeSet,
-			Elem: &Schema{Type: TypeInt},
-			Set: func(a interface{}) int {
-				return a.(int)
-			},
-		},
 	}
 
 	r := &DiffFieldReader{
 		Schema: schema,
 		Diff: &terraform.InstanceDiff{
 			Attributes: map[string]*terraform.ResourceAttrDiff{
-				"bool": &terraform.ResourceAttrDiff{
-					Old: "",
-					New: "true",
-				},
-
-				"int": &terraform.ResourceAttrDiff{
-					Old: "",
-					New: "42",
-				},
-
-				"string": &terraform.ResourceAttrDiff{
-					Old: "",
-					New: "string",
-				},
-
 				"stringComputed": &terraform.ResourceAttrDiff{
 					Old:         "foo",
 					New:         "bar",
 					NewComputed: true,
 				},
 
-				"list.#": &terraform.ResourceAttrDiff{
-					Old: "0",
-					New: "2",
-				},
-
-				"list.0": &terraform.ResourceAttrDiff{
-					Old: "",
-					New: "foo",
-				},
-
-				"list.1": &terraform.ResourceAttrDiff{
-					Old: "",
-					New: "bar",
-				},
-
-				"listInt.#": &terraform.ResourceAttrDiff{
-					Old: "0",
-					New: "2",
-				},
-
-				"listInt.0": &terraform.ResourceAttrDiff{
-					Old: "",
-					New: "21",
-				},
-
-				"listInt.1": &terraform.ResourceAttrDiff{
-					Old: "",
-					New: "42",
-				},
-
-				"map.foo": &terraform.ResourceAttrDiff{
-					Old: "",
-					New: "bar",
-				},
-
-				"map.bar": &terraform.ResourceAttrDiff{
-					Old: "",
-					New: "baz",
-				},
-
-				"mapRemove.bar": &terraform.ResourceAttrDiff{
+				"listMap.0.bar": &terraform.ResourceAttrDiff{
 					NewRemoved: true,
 				},
 
-				"set.#": &terraform.ResourceAttrDiff{
-					Old: "0",
-					New: "2",
-				},
-
-				"set.10": &terraform.ResourceAttrDiff{
-					Old: "",
-					New: "10",
-				},
-
-				"set.50": &terraform.ResourceAttrDiff{
-					Old: "",
-					New: "50",
-				},
-
-				"setDeep.#": &terraform.ResourceAttrDiff{
-					Old: "0",
-					New: "2",
-				},
-
-				"setDeep.10.index": &terraform.ResourceAttrDiff{
-					Old: "",
-					New: "10",
-				},
-
-				"setDeep.10.value": &terraform.ResourceAttrDiff{
-					Old: "",
-					New: "foo",
-				},
-
-				"setDeep.50.index": &terraform.ResourceAttrDiff{
-					Old: "",
-					New: "50",
-				},
-
-				"setDeep.50.value": &terraform.ResourceAttrDiff{
-					Old: "",
-					New: "bar",
-				},
-
-				"listMap.0.bar": &terraform.ResourceAttrDiff{
+				"mapRemove.bar": &terraform.ResourceAttrDiff{
 					NewRemoved: true,
 				},
 
@@ -225,142 +95,12 @@ func TestDiffFieldReader(t *testing.T) {
 		Result FieldReadResult
 		Err    bool
 	}{
-		"noexist": {
-			[]string{"boolNOPE"},
-			FieldReadResult{
-				Value:    nil,
-				Exists:   false,
-				Computed: false,
-			},
-			false,
-		},
-
-		"bool": {
-			[]string{"bool"},
-			FieldReadResult{
-				Value:    true,
-				Exists:   true,
-				Computed: false,
-			},
-			false,
-		},
-
-		"int": {
-			[]string{"int"},
-			FieldReadResult{
-				Value:    42,
-				Exists:   true,
-				Computed: false,
-			},
-			false,
-		},
-
-		"string": {
-			[]string{"string"},
-			FieldReadResult{
-				Value:    "string",
-				Exists:   true,
-				Computed: false,
-			},
-			false,
-		},
-
 		"stringComputed": {
 			[]string{"stringComputed"},
 			FieldReadResult{
 				Value:    "",
 				Exists:   true,
 				Computed: true,
-			},
-			false,
-		},
-
-		"list": {
-			[]string{"list"},
-			FieldReadResult{
-				Value: []interface{}{
-					"foo",
-					"bar",
-				},
-				Exists:   true,
-				Computed: false,
-			},
-			false,
-		},
-
-		"listInt": {
-			[]string{"listInt"},
-			FieldReadResult{
-				Value: []interface{}{
-					21,
-					42,
-				},
-				Exists:   true,
-				Computed: false,
-			},
-			false,
-		},
-
-		"map": {
-			[]string{"map"},
-			FieldReadResult{
-				Value: map[string]interface{}{
-					"foo": "bar",
-					"bar": "baz",
-				},
-				Exists:   true,
-				Computed: false,
-			},
-			false,
-		},
-
-		"mapelem": {
-			[]string{"map", "foo"},
-			FieldReadResult{
-				Value:    "bar",
-				Exists:   true,
-				Computed: false,
-			},
-			false,
-		},
-
-		"mapRemove": {
-			[]string{"mapRemove"},
-			FieldReadResult{
-				Value: map[string]interface{}{
-					"foo": "bar",
-				},
-				Exists:   true,
-				Computed: false,
-			},
-			false,
-		},
-
-		"set": {
-			[]string{"set"},
-			FieldReadResult{
-				Value:    []interface{}{10, 50},
-				Exists:   true,
-				Computed: false,
-			},
-			false,
-		},
-
-		"setDeep": {
-			[]string{"setDeep"},
-			FieldReadResult{
-				Value: []interface{}{
-					map[string]interface{}{
-						"index": 10,
-						"value": "foo",
-					},
-					map[string]interface{}{
-						"index": 50,
-						"value": "bar",
-					},
-				},
-				Exists:   true,
-				Computed: false,
 			},
 			false,
 		},
@@ -381,6 +121,18 @@ func TestDiffFieldReader(t *testing.T) {
 			false,
 		},
 
+		"mapRemove": {
+			[]string{"mapRemove"},
+			FieldReadResult{
+				Value: map[string]interface{}{
+					"foo": "bar",
+				},
+				Exists:   true,
+				Computed: false,
+			},
+			false,
+		},
+
 		"setChange": {
 			[]string{"setChange"},
 			FieldReadResult{
@@ -391,15 +143,6 @@ func TestDiffFieldReader(t *testing.T) {
 					},
 				},
 				Exists: true,
-			},
-			false,
-		},
-
-		"setEmpty": {
-			[]string{"setEmpty"},
-			FieldReadResult{
-				Value:  []interface{}{},
-				Exists: false,
 			},
 			false,
 		},
@@ -418,4 +161,126 @@ func TestDiffFieldReader(t *testing.T) {
 			t.Fatalf("%s: bad: %#v", name, out)
 		}
 	}
+}
+
+func TestDiffFieldReader(t *testing.T) {
+	testFieldReader(t, func(s map[string]*Schema) FieldReader {
+		return &DiffFieldReader{
+			Schema: s,
+			Diff: &terraform.InstanceDiff{
+				Attributes: map[string]*terraform.ResourceAttrDiff{
+					"bool": &terraform.ResourceAttrDiff{
+						Old: "",
+						New: "true",
+					},
+
+					"int": &terraform.ResourceAttrDiff{
+						Old: "",
+						New: "42",
+					},
+
+					"string": &terraform.ResourceAttrDiff{
+						Old: "",
+						New: "string",
+					},
+
+					"stringComputed": &terraform.ResourceAttrDiff{
+						Old:         "foo",
+						New:         "bar",
+						NewComputed: true,
+					},
+
+					"list.#": &terraform.ResourceAttrDiff{
+						Old: "0",
+						New: "2",
+					},
+
+					"list.0": &terraform.ResourceAttrDiff{
+						Old: "",
+						New: "foo",
+					},
+
+					"list.1": &terraform.ResourceAttrDiff{
+						Old: "",
+						New: "bar",
+					},
+
+					"listInt.#": &terraform.ResourceAttrDiff{
+						Old: "0",
+						New: "2",
+					},
+
+					"listInt.0": &terraform.ResourceAttrDiff{
+						Old: "",
+						New: "21",
+					},
+
+					"listInt.1": &terraform.ResourceAttrDiff{
+						Old: "",
+						New: "42",
+					},
+
+					"map.foo": &terraform.ResourceAttrDiff{
+						Old: "",
+						New: "bar",
+					},
+
+					"map.bar": &terraform.ResourceAttrDiff{
+						Old: "",
+						New: "baz",
+					},
+
+					"set.#": &terraform.ResourceAttrDiff{
+						Old: "0",
+						New: "2",
+					},
+
+					"set.10": &terraform.ResourceAttrDiff{
+						Old: "",
+						New: "10",
+					},
+
+					"set.50": &terraform.ResourceAttrDiff{
+						Old: "",
+						New: "50",
+					},
+
+					"setDeep.#": &terraform.ResourceAttrDiff{
+						Old: "0",
+						New: "2",
+					},
+
+					"setDeep.10.index": &terraform.ResourceAttrDiff{
+						Old: "",
+						New: "10",
+					},
+
+					"setDeep.10.value": &terraform.ResourceAttrDiff{
+						Old: "",
+						New: "foo",
+					},
+
+					"setDeep.50.index": &terraform.ResourceAttrDiff{
+						Old: "",
+						New: "50",
+					},
+
+					"setDeep.50.value": &terraform.ResourceAttrDiff{
+						Old: "",
+						New: "bar",
+					},
+				},
+			},
+
+			Source: &MapFieldReader{
+				Schema: s,
+				Map: BasicMapReader(map[string]string{
+					"listMap.#":     "2",
+					"listMap.0.foo": "bar",
+					"listMap.0.bar": "baz",
+					"listMap.1.baz": "baz",
+				}),
+			},
+		}
+	})
 }

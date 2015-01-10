@@ -182,3 +182,209 @@ func TestAddrToSchema(t *testing.T) {
 		}
 	}
 }
+
+// testFieldReader is a helper that should be used to verify that
+// a FieldReader behaves properly in all the common cases.
+func testFieldReader(t *testing.T, f func(map[string]*Schema) FieldReader) {
+	schema := map[string]*Schema{
+		// Primitives
+		"bool":   &Schema{Type: TypeBool},
+		"int":    &Schema{Type: TypeInt},
+		"string": &Schema{Type: TypeString},
+
+		// Lists
+		"list": &Schema{
+			Type: TypeList,
+			Elem: &Schema{Type: TypeString},
+		},
+		"listInt": &Schema{
+			Type: TypeList,
+			Elem: &Schema{Type: TypeInt},
+		},
+		"listMap": &Schema{
+			Type: TypeList,
+			Elem: &Schema{
+				Type: TypeMap,
+			},
+		},
+
+		// Maps
+		"map": &Schema{Type: TypeMap},
+
+		// Sets
+		"set": &Schema{
+			Type: TypeSet,
+			Elem: &Schema{Type: TypeInt},
+			Set: func(a interface{}) int {
+				return a.(int)
+			},
+		},
+		"setDeep": &Schema{
+			Type: TypeSet,
+			Elem: &Resource{
+				Schema: map[string]*Schema{
+					"index": &Schema{Type: TypeInt},
+					"value": &Schema{Type: TypeString},
+				},
+			},
+			Set: func(a interface{}) int {
+				return a.(map[string]interface{})["index"].(int)
+			},
+		},
+		"setEmpty": &Schema{
+			Type: TypeSet,
+			Elem: &Schema{Type: TypeInt},
+			Set: func(a interface{}) int {
+				return a.(int)
+			},
+		},
+	}
+
+	cases := map[string]struct {
+		Addr   []string
+		Result FieldReadResult
+		Err    bool
+	}{
+		"noexist": {
+			[]string{"boolNOPE"},
+			FieldReadResult{
+				Value:    nil,
+				Exists:   false,
+				Computed: false,
+			},
+			false,
+		},
+
+		"bool": {
+			[]string{"bool"},
+			FieldReadResult{
+				Value:    true,
+				Exists:   true,
+				Computed: false,
+			},
+			false,
+		},
+
+		"int": {
+			[]string{"int"},
+			FieldReadResult{
+				Value:    42,
+				Exists:   true,
+				Computed: false,
+			},
+			false,
+		},
+
+		"string": {
+			[]string{"string"},
+			FieldReadResult{
+				Value:    "string",
+				Exists:   true,
+				Computed: false,
+			},
+			false,
+		},
+
+		"list": {
+			[]string{"list"},
+			FieldReadResult{
+				Value: []interface{}{
+					"foo",
+					"bar",
+				},
+				Exists:   true,
+				Computed: false,
+			},
+			false,
+		},
+
+		"listInt": {
+			[]string{"listInt"},
+			FieldReadResult{
+				Value: []interface{}{
+					21,
+					42,
+				},
+				Exists:   true,
+				Computed: false,
+			},
+			false,
+		},
+
+		"map": {
+			[]string{"map"},
+			FieldReadResult{
+				Value: map[string]interface{}{
+					"foo": "bar",
+					"bar": "baz",
+				},
+				Exists:   true,
+				Computed: false,
+			},
+			false,
+		},
+
+		"mapelem": {
+			[]string{"map", "foo"},
+			FieldReadResult{
+				Value:    "bar",
+				Exists:   true,
+				Computed: false,
+			},
+			false,
+		},
+
+		"set": {
+			[]string{"set"},
+			FieldReadResult{
+				Value:    []interface{}{10, 50},
+				Exists:   true,
+				Computed: false,
+			},
+			false,
+		},
+
+		"setDeep": {
+			[]string{"setDeep"},
+			FieldReadResult{
+				Value: []interface{}{
+					map[string]interface{}{
+						"index": 10,
+						"value": "foo",
+					},
+					map[string]interface{}{
+						"index": 50,
+						"value": "bar",
+					},
+				},
+				Exists:   true,
+				Computed: false,
+			},
+			false,
+		},
+
+		"setEmpty": {
+			[]string{"setEmpty"},
+			FieldReadResult{
+				Value:  []interface{}{},
+				Exists: false,
+			},
+			false,
+		},
+	}
+
+	for name, tc := range cases {
+		r := f(schema)
+		out, err := r.ReadField(tc.Addr)
+		if (err != nil) != tc.Err {
+			t.Fatalf("%s: err: %s", name, err)
+		}
+		if s, ok := out.Value.(*Set); ok {
+			// If it is a set, convert to a list so its more easily checked.
+			out.Value = s.List()
+		}
+		if !reflect.DeepEqual(tc.Result, out) {
+			t.Fatalf("%s: bad: %#v", name, out)
+		}
+	}
+}

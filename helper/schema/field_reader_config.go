@@ -160,16 +160,16 @@ func (r *ConfigFieldReader) readPrimitive(
 func (r *ConfigFieldReader) readSet(
 	address []string, schema *Schema) (FieldReadResult, map[int]int, error) {
 	indexMap := make(map[int]int)
+	// Create the set that will be our result
+	set := &Set{F: schema.Set}
+
 	raw, err := readListField(&nestedConfigFieldReader{r}, address, schema)
 	if err != nil {
 		return FieldReadResult{}, indexMap, err
 	}
 	if !raw.Exists {
-		return FieldReadResult{}, indexMap, nil
+		return FieldReadResult{Value: set}, indexMap, nil
 	}
-
-	// Create the set that will be our result
-	set := &Set{F: schema.Set}
 
 	// If the list is computed, the set is necessarilly computed
 	if raw.Computed {
