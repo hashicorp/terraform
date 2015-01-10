@@ -223,10 +223,9 @@ func (m schemaMap) Diff(
 	result.Attributes = make(map[string]*terraform.ResourceAttrDiff)
 
 	d := &ResourceData{
-		schema:  m,
-		state:   s,
-		config:  c,
-		diffing: true,
+		schema: m,
+		state:  s,
+		config: c,
 	}
 
 	for k, schema := range m {

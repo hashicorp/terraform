@@ -18,11 +18,10 @@ import (
 // The most relevant methods to take a look at are Get, Set, and Partial.
 type ResourceData struct {
 	// Settable (internally)
-	schema  map[string]*Schema
-	config  *terraform.ResourceConfig
-	state   *terraform.InstanceState
-	diff    *terraform.InstanceDiff
-	diffing bool
+	schema map[string]*Schema
+	config *terraform.ResourceConfig
+	state  *terraform.InstanceState
+	diff   *terraform.InstanceDiff
 
 	// Don't set
 	multiReader *MultiLevelFieldReader
