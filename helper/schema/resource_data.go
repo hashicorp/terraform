@@ -8,7 +8,6 @@ import (
 	"sync"
 
 	"github.com/hashicorp/terraform/terraform"
-	"github.com/mitchellh/mapstructure"
 )
 
 // ResourceData is used to query and set the attributes of a resource.
@@ -29,7 +28,7 @@ type ResourceData struct {
 
 	// Don't set
 	multiReader *MultiLevelFieldReader
-	setMap      map[string]string
+	setWriter   *MapFieldWriter
 	newState    *terraform.InstanceState
 	partial     bool
 	partialMap  map[string]struct{}
@@ -156,8 +155,7 @@ func (d *ResourceData) Partial(on bool) {
 // will be returned.
 func (d *ResourceData) Set(key string, value interface{}) error {
 	d.once.Do(d.init)
-	parts := strings.Split(key, ".")
-	return d.setObject("", parts, d.schema, value)
+	return d.setWriter.WriteField(strings.Split(key, "."), value)
 }
 
 // SetPartial adds the key prefix to the final state output while
@@ -243,7 +241,7 @@ func (d *ResourceData) init() {
 	d.newState = &copyState
 
 	// Initialize the map for storing set data
-	d.setMap = make(map[string]string)
+	d.setWriter = &MapFieldWriter{Schema: d.schema}
 
 	// Initialize the reader for getting data from the
 	// underlying sources (config, diff, etc.)
@@ -274,7 +272,7 @@ func (d *ResourceData) init() {
 	}
 	readers["set"] = &MapFieldReader{
 		Schema: d.schema,
-		Map:    BasicMapReader(d.setMap),
+		Map:    BasicMapReader(d.setWriter.Map()),
 	}
 	d.multiReader = &MultiLevelFieldReader{
 		Levels: []string{
@@ -381,277 +379,6 @@ func (d *ResourceData) get(
 		Exists:         result.Exists,
 		Schema:         schema,
 	}
-}
-
-func (d *ResourceData) set(
-	k string,
-	parts []string,
-	schema *Schema,
-	value interface{}) error {
-	switch schema.Type {
-	case TypeList:
-		return d.setList(k, parts, schema, value)
-	case TypeMap:
-		return d.setMapValue(k, parts, schema, value)
-	case TypeSet:
-		return d.setSet(k, parts, schema, value)
-	case TypeBool:
-		fallthrough
-	case TypeInt:
-		fallthrough
-	case TypeString:
-		return d.setPrimitive(k, schema, value)
-	default:
-		panic(fmt.Sprintf("%s: unknown type %#v", k, schema.Type))
-	}
-}
-
-func (d *ResourceData) setList(
-	k string,
-	parts []string,
-	schema *Schema,
-	value interface{}) error {
-	if len(parts) > 0 {
-		return fmt.Errorf("%s: can only set the full list, not elements", k)
-	}
-
-	setElement := func(k string, idx string, value interface{}) error {
-		if idx == "#" {
-			return fmt.Errorf("%s: can't set count of list", k)
-		}
-
-		key := fmt.Sprintf("%s.%s", k, idx)
-		switch t := schema.Elem.(type) {
-		case *Resource:
-			return d.setObject(key, nil, t.Schema, value)
-		case *Schema:
-			return d.set(key, nil, t, value)
-		}
-
-		return nil
-	}
-
-	var vs []interface{}
-	if err := mapstructure.Decode(value, &vs); err != nil {
-		return fmt.Errorf("%s: %s", k, err)
-	}
-
-	// Set the entire list.
-	var err error
-	for i, elem := range vs {
-		is := strconv.FormatInt(int64(i), 10)
-		err = setElement(k, is, elem)
-		if err != nil {
-			break
-		}
-	}
-	if err != nil {
-		for i, _ := range vs {
-			is := strconv.FormatInt(int64(i), 10)
-			setElement(k, is, nil)
-		}
-
-		return err
-	}
-
-	d.setMap[k+".#"] = strconv.FormatInt(int64(len(vs)), 10)
-	return nil
-}
-
-func (d *ResourceData) setMapValue(
-	k string,
-	parts []string,
-	schema *Schema,
-	value interface{}) error {
-	elemSchema := &Schema{Type: TypeString}
-	if len(parts) > 0 {
-		return fmt.Errorf("%s: full map must be set, no a single element", k)
-	}
-
-	v := reflect.ValueOf(value)
-	if v.Kind() != reflect.Map {
-		return fmt.Errorf("%s: must be a map", k)
-	}
-	if v.Type().Key().Kind() != reflect.String {
-		return fmt.Errorf("%s: keys must strings", k)
-	}
-	vs := make(map[string]interface{})
-	for _, mk := range v.MapKeys() {
-		mv := v.MapIndex(mk)
-		vs[mk.String()] = mv.Interface()
-	}
-
-	if len(vs) == 0 {
-		// The empty string here means the map is removed.
-		d.setMap[k] = ""
-		return nil
-	}
-
-	delete(d.setMap, k)
-	for subKey, v := range vs {
-		err := d.set(fmt.Sprintf("%s.%s", k, subKey), nil, elemSchema, v)
-		if err != nil {
-			return err
-		}
-	}
-
-	return nil
-}
-
-func (d *ResourceData) setObject(
-	k string,
-	parts []string,
-	schema map[string]*Schema,
-	value interface{}) error {
-	if len(parts) > 0 {
-		// We're setting a specific key in an object
-		key := parts[0]
-		parts = parts[1:]
-
-		s, ok := schema[key]
-		if !ok {
-			return fmt.Errorf("%s (internal): unknown key to set: %s", k, key)
-		}
-
-		if k != "" {
-			// If we're not at the root, then we need to append
-			// the key to get the full key path.
-			key = fmt.Sprintf("%s.%s", k, key)
-		}
-
-		return d.set(key, parts, s, value)
-	}
-
-	// Set the entire object. First decode into a proper structure
-	var v map[string]interface{}
-	if err := mapstructure.Decode(value, &v); err != nil {
-		return fmt.Errorf("%s: %s", k, err)
-	}
-
-	// Set each element in turn
-	var err error
-	for k1, v1 := range v {
-		err = d.setObject(k, []string{k1}, schema, v1)
-		if err != nil {
-			break
-		}
-	}
-	if err != nil {
-		for k1, _ := range v {
-			d.setObject(k, []string{k1}, schema, nil)
-		}
-	}
-
-	return err
-}
-
-func (d *ResourceData) setPrimitive(
-	k string,
-	schema *Schema,
-	v interface{}) error {
-	if v == nil {
-		delete(d.setMap, k)
-		return nil
-	}
-
-	var set string
-	switch schema.Type {
-	case TypeBool:
-		var b bool
-		if err := mapstructure.Decode(v, &b); err != nil {
-			return fmt.Errorf("%s: %s", k, err)
-		}
-
-		set = strconv.FormatBool(b)
-	case TypeString:
-		if err := mapstructure.Decode(v, &set); err != nil {
-			return fmt.Errorf("%s: %s", k, err)
-		}
-	case TypeInt:
-		var n int
-		if err := mapstructure.Decode(v, &n); err != nil {
-			return fmt.Errorf("%s: %s", k, err)
-		}
-
-		set = strconv.FormatInt(int64(n), 10)
-	default:
-		return fmt.Errorf("Unknown type: %#v", schema.Type)
-	}
-
-	d.setMap[k] = set
-	return nil
-}
-
-func (d *ResourceData) setSet(
-	k string,
-	parts []string,
-	schema *Schema,
-	value interface{}) error {
-	if len(parts) > 0 {
-		return fmt.Errorf("%s: can only set the full set, not elements", k)
-	}
-
-	// If it is a slice, then we have to turn it into a *Set so that
-	// we get the proper order back based on the hash code.
-	if v := reflect.ValueOf(value); v.Kind() == reflect.Slice {
-		// Build a temp *ResourceData to use for the conversion
-		tempD := &ResourceData{
-			setMap: make(map[string]string),
-			schema: map[string]*Schema{k: schema},
-		}
-		tempD.once.Do(tempD.init)
-
-		// Set the entire list, this lets us get sane values out of it
-		if err := tempD.setList(k, nil, schema, value); err != nil {
-			return err
-		}
-
-		// Build the set by going over the list items in order and
-		// hashing them into the set. The reason we go over the list and
-		// not the `value` directly is because this forces all types
-		// to become []interface{} (generic) instead of []string, which
-		// most hash functions are expecting.
-		s := &Set{F: schema.Set}
-		source := getSourceSet | getSourceExact
-		for i := 0; i < v.Len(); i++ {
-			is := strconv.FormatInt(int64(i), 10)
-			result := tempD.get(k, []string{is}, schema, source)
-			if !result.Exists {
-				panic("just set item doesn't exist")
-			}
-
-			s.Add(result.Value)
-		}
-
-		value = s
-	}
-
-	switch t := schema.Elem.(type) {
-	case *Resource:
-		for code, elem := range value.(*Set).m {
-			for field, _ := range t.Schema {
-				subK := fmt.Sprintf("%s.%d", k, code)
-				value := elem.(map[string]interface{})[field]
-				err := d.setObject(subK, []string{field}, t.Schema, value)
-				if err != nil {
-					return err
-				}
-			}
-		}
-	case *Schema:
-		for code, elem := range value.(*Set).m {
-			subK := fmt.Sprintf("%s.%d", k, code)
-			err := d.set(subK, nil, t, elem)
-			if err != nil {
-				return err
-			}
-		}
-	default:
-		return fmt.Errorf("%s: unknown element type (internal)", k)
-	}
-
-	d.setMap[k+".#"] = strconv.Itoa(value.(*Set).Len())
-	return nil
 }
 
 func (d *ResourceData) stateList(
