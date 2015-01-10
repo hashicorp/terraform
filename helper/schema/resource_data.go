@@ -102,8 +102,7 @@ func (d *ResourceData) getRaw(key string, level getSource) getResult {
 		parts = strings.Split(key, ".")
 	}
 
-	schema := &Schema{Type: typeObject, Elem: d.schema}
-	return d.get("", parts, schema, level)
+	return d.get(parts, level)
 }
 
 // HasChange returns whether or not the given key has been changed.
@@ -215,7 +214,7 @@ func (d *ResourceData) State() *terraform.InstanceState {
 			}
 		}
 
-		raw := d.get(k, nil, nil, source)
+		raw := d.get([]string{k}, source)
 		rawMap[k] = raw.Value
 		if raw.ValueProcessed != nil {
 			rawMap[k] = raw.ValueProcessed
@@ -328,17 +327,12 @@ func (d *ResourceData) getChange(
 		parts2 = strings.Split(key, ".")
 	}
 
-	schema := &Schema{Type: typeObject, Elem: d.schema}
-	o := d.get("", parts, schema, oldLevel)
-	n := d.get("", parts2, schema, newLevel)
+	o := d.get(parts, oldLevel)
+	n := d.get(parts2, newLevel)
 	return o, n
 }
 
-func (d *ResourceData) get(
-	k string,
-	parts []string,
-	schema *Schema,
-	source getSource) getResult {
+func (d *ResourceData) get(addr []string, source getSource) getResult {
 	d.once.Do(d.init)
 
 	level := "set"
@@ -357,11 +351,6 @@ func (d *ResourceData) get(
 	}
 
 	// Build the address of the key we're looking for and ask the FieldReader
-	var addr []string
-	if k != "" {
-		addr = strings.Split(k, ".")
-	}
-	addr = append(addr, parts...)
 	for i, v := range addr {
 		if v[0] == '~' {
 			addr[i] = v[1:]
@@ -394,6 +383,5 @@ func (d *ResourceData) get(
 		ValueProcessed: result.ValueProcessed,
 		Computed:       result.Computed,
 		Exists:         result.Exists,
-		Schema:         schema,
 	}
 }
