@@ -11,6 +11,8 @@
 // A good starting point is to view the Provider structure.
 package schema
 
+//go:generate stringer -type=ValueType
+
 import (
 	"fmt"
 	"reflect"
@@ -56,7 +58,7 @@ func (t ValueType) Zero() interface{} {
 	case typeObject:
 		return map[string]interface{}{}
 	default:
-		panic(fmt.Sprintf("unknown type %#v", t))
+		panic(fmt.Sprintf("unknown type %s", t))
 	}
 }
 
