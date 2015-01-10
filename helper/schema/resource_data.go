@@ -114,25 +114,6 @@ func (d *ResourceData) HasChange(key string) bool {
 	return !reflect.DeepEqual(o, n)
 }
 
-// hasComputedSubKeys walks through a schema and returns whether or not the
-// given key contains any subkeys that are computed.
-func (d *ResourceData) hasComputedSubKeys(key string, schema *Schema) bool {
-	prefix := key + "."
-
-	switch t := schema.Elem.(type) {
-	case *Resource:
-		for k, schema := range t.Schema {
-			if d.config.IsComputed(prefix + k) {
-				return true
-			}
-			if d.hasComputedSubKeys(prefix+k, schema) {
-				return true
-			}
-		}
-	}
-	return false
-}
-
 // Partial turns partial state mode on/off.
 //
 // When partial state mode is enabled, then only key prefixes specified
