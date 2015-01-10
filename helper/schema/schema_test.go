@@ -15,7 +15,6 @@ func TestValueType_Zero(t *testing.T) {
 	}{
 		{TypeBool, false},
 		{TypeInt, 0},
-		{TypeFloat, 0.0},
 		{TypeString, ""},
 		{TypeList, []interface{}{}},
 		{TypeMap, map[string]interface{}{}},
