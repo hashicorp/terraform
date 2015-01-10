@@ -1,5 +1,9 @@
 ## 0.3.7 (unreleased)
 
+IMPROVEMENTS:
+
+ * provider/aws: Internet gateway supports tags [GH-720]
+
 BUG FIXES:
 
  * core: Fixing use of remote state with plan files. [GH-741]
