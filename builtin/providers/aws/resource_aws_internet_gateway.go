@@ -22,6 +22,7 @@ func resourceAwsInternetGateway() *schema.Resource {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
+			"tags": tagsSchema(),
 		},
 	}
 }
@@ -66,6 +67,8 @@ func resourceAwsInternetGatewayRead(d *schema.ResourceData, meta interface{}) er
 		d.Set("vpc_id", ig.Attachments[0].VpcId)
 	}
 
+	d.Set("tags", tagsToMap(ig.Tags))
+
 	return nil
 }
 
@@ -81,6 +84,14 @@ func resourceAwsInternetGatewayUpdate(d *schema.ResourceData, meta interface{}) 
 			return err
 		}
 	}
+
+	ec2conn := meta.(*AWSClient).ec2conn
+
+	if err := setTags(ec2conn, d); err != nil {
+		return err
+	}
+
+	d.SetPartial("tags")
 
 	return nil
 }
@@ -163,9 +174,9 @@ func resourceAwsInternetGatewayDetach(d *schema.ResourceData, meta interface{}) 
 	ec2conn := meta.(*AWSClient).ec2conn
 
 	// Get the old VPC ID to detach from
-	vpc_id, _ := d.GetChange("vpc_id")
+	vpcID, _ := d.GetChange("vpc_id")
 
-	if vpc_id.(string) == "" {
+	if vpcID.(string) == "" {
 		log.Printf(
 			"[DEBUG] Not detaching Internet Gateway '%s' as no VPC ID is set",
 			d.Id())
@@ -175,10 +186,10 @@ func resourceAwsInternetGatewayDetach(d *schema.ResourceData, meta interface{}) 
 	log.Printf(
 		"[INFO] Detaching Internet Gateway '%s' from VPC '%s'",
 		d.Id(),
-		vpc_id.(string))
+		vpcID.(string))
 
 	wait := true
-	_, err := ec2conn.DetachInternetGateway(d.Id(), vpc_id.(string))
+	_, err := ec2conn.DetachInternetGateway(d.Id(), vpcID.(string))
 	if err != nil {
 		ec2err, ok := err.(*ec2.Error)
 		if ok {
