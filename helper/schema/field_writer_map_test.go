@@ -167,6 +167,21 @@ func TestMapFieldWriter(t *testing.T) {
 			true,
 			map[string]string{},
 		},
+
+		"full object": {
+			nil,
+			map[string]interface{}{
+				"string": "foo",
+				"list":   []interface{}{"foo", "bar"},
+			},
+			false,
+			map[string]string{
+				"string": "foo",
+				"list.#": "2",
+				"list.0": "foo",
+				"list.1": "bar",
+			},
+		},
 	}
 
 	for name, tc := range cases {
