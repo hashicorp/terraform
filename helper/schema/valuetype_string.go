@@ -4,9 +4,9 @@ package schema
 
 import "fmt"
 
-const _ValueType_name = "TypeInvalidTypeBoolTypeIntTypeStringTypeListTypeMapTypeSettypeObject"
+const _ValueType_name = "TypeInvalidTypeBoolTypeIntTypeFloatTypeStringTypeListTypeMapTypeSettypeObject"
 
-var _ValueType_index = [...]uint8{0, 11, 19, 26, 36, 44, 51, 58, 68}
+var _ValueType_index = [...]uint8{0, 11, 19, 26, 35, 45, 53, 60, 67, 77}
 
 func (i ValueType) String() string {
 	if i < 0 || i+1 >= ValueType(len(_ValueType_index)) {
