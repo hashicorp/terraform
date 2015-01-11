@@ -18,13 +18,43 @@ type parserLex struct {
 	Err   error
 	Input string
 
+	mode               parserMode
 	interpolationDepth int
 	pos                int
 	width              int
 }
 
+// parserMode keeps track of what mode we're in for the parser. We have
+// two modes: literal and interpolation. Literal mode is when strings
+// don't have to be quoted, and interpolations are defined as ${foo}.
+// Interpolation mode means that strings have to be quoted and unquoted
+// things are identifiers, such as foo("bar").
+type parserMode uint8
+
+const (
+	parserModeInvalid parserMode = 0
+	parserModeLiteral            = 1 << iota
+	parserModeInterpolation
+)
+
 // The parser calls this method to get each new token.
 func (x *parserLex) Lex(yylval *parserSymType) int {
+	if x.mode == parserModeInvalid {
+		x.mode = parserModeLiteral
+	}
+
+	switch x.mode {
+	case parserModeLiteral:
+		return x.lexModeLiteral(yylval)
+	case parserModeInterpolation:
+		return x.lexModeInterpolation(yylval)
+	default:
+		x.Error(fmt.Sprintf("Unknown parse mode: %s", x.mode))
+		return lexEOF
+	}
+}
+
+func (x *parserLex) lexModeLiteral(yylval *parserSymType) int {
 	for {
 		c := x.next()
 		if c == lexEOF {
@@ -35,14 +65,36 @@ func (x *parserLex) Lex(yylval *parserSymType) int {
 		if c == '$' && x.peek() == '{' {
 			x.next()
 			x.interpolationDepth++
+			x.mode = parserModeInterpolation
 			return PROGRAM_BRACKET_LEFT
 		}
 
-		if x.interpolationDepth == 0 {
-			// We're just a normal string that isn't part of any
-			// interpolation yet.
-			x.backup()
-			return x.lexString(yylval, false)
+		// We're just a normal string that isn't part of any interpolation yet.
+		x.backup()
+		result, terminated := x.lexString(yylval, x.interpolationDepth > 0)
+
+		// If the string terminated and we're within an interpolation already
+		// then that means that we finished a nested string, so pop
+		// back out to interpolation mode.
+		if terminated && x.interpolationDepth > 0 {
+			x.mode = parserModeInterpolation
+
+			// If the string is empty, just skip it. We're still in
+			// an interpolation so we do this to avoid empty nodes.
+			if yylval.str == "" {
+				return x.Lex(yylval)
+			}
+		}
+
+		return result
+	}
+}
+
+func (x *parserLex) lexModeInterpolation(yylval *parserSymType) int {
+	for {
+		c := x.next()
+		if c == lexEOF {
+			return lexEOF
 		}
 
 		// Ignore all whitespace
@@ -53,12 +105,26 @@ func (x *parserLex) Lex(yylval *parserSymType) int {
 		// If we see a double quote and we're in an interpolation, then
 		// we are lexing a string.
 		if c == '"' {
-			return x.lexString(yylval, true)
+			result, terminated := x.lexString(yylval, true)
+			if !terminated {
+				// The string didn't end, which means that we're in the
+				// middle of starting another interpolation.
+				x.mode = parserModeLiteral
+
+				// If the string is empty and we're starting an interpolation,
+				// then just skip it to avoid empty string AST nodes
+				if yylval.str == "" {
+					return x.Lex(yylval)
+				}
+			}
+
+			return result
 		}
 
 		switch c {
 		case '}':
 			x.interpolationDepth--
+			x.mode = parserModeLiteral
 			return PROGRAM_BRACKET_RIGHT
 		case '(':
 			return PAREN_LEFT
@@ -103,11 +169,16 @@ func (x *parserLex) lexId(yylval *parserSymType) int {
 	return IDENTIFIER
 }
 
-func (x *parserLex) lexString(yylval *parserSymType, quoted bool) int {
+func (x *parserLex) lexString(yylval *parserSymType, quoted bool) (int, bool) {
 	var b bytes.Buffer
+	terminated := false
 	for {
 		c := x.next()
 		if c == lexEOF {
+			if quoted {
+				x.Error("unterminated string")
+			}
+
 			break
 		}
 
@@ -115,6 +186,7 @@ func (x *parserLex) lexString(yylval *parserSymType, quoted bool) int {
 		if quoted {
 			// If its a double quote, we've reached the end of the string
 			if c == '"' {
+				terminated = true
 				break
 			}
 
@@ -148,12 +220,12 @@ func (x *parserLex) lexString(yylval *parserSymType, quoted bool) int {
 
 		if _, err := b.WriteRune(c); err != nil {
 			x.Error(err.Error())
-			return lexEOF
+			return lexEOF, false
 		}
 	}
 
 	yylval.str = b.String()
-	return STRING
+	return STRING, terminated
 }
 
 // Return the next rune for the lexer.

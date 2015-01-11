@@ -18,27 +18,47 @@ import (
 }
 
 %token  <str> STRING IDENTIFIER PROGRAM_BRACKET_LEFT PROGRAM_BRACKET_RIGHT
+%token  <str> PROGRAM_STRING_START PROGRAM_STRING_END
 %token  <str> PAREN_LEFT PAREN_RIGHT COMMA
 
-%type <node> expr interpolation literal
+%type <node> expr interpolation literal literalModeTop literalModeValue
 %type <nodeList> args
 
 %%
 
 top:
-	literal
+	literalModeTop
 	{
         parserResult = $1
 	}
+
+literalModeTop:
+    literalModeValue
+    {
+        $$ = $1
+    }
+|   literalModeTop literalModeValue
+    {
+        var result []ast.Node
+        if c, ok := $1.(*ast.Concat); ok {
+            result = append(c.Exprs, $2)
+        } else {
+            result = []ast.Node{$1, $2}
+        }
+
+        $$ = &ast.Concat{
+            Exprs: result,
+        }
+    }
+
+literalModeValue:
+	literal
+	{
+        $$ = $1
+	}
 |   interpolation
     {
-        parserResult = $1
-    }
-|   literal interpolation
-    {
-        parserResult = &ast.Concat{
-            Exprs: []ast.Node{$1, $2},
-        }
+        $$ = $1
     }
 
 interpolation:
@@ -48,7 +68,7 @@ interpolation:
     }
 
 expr:
-    literal
+    literalModeTop
     {
         $$ = $1
     }
