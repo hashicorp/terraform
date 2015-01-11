@@ -105,11 +105,3 @@ func TestLex(t *testing.T) {
 		}
 	}
 }
-
-/* OTHERS:
-
-foo ${var.foo}
-bar ${"hello"}
-foo ${concat("foo ${var.bar}", var.baz)}
-
-*/
