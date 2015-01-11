@@ -1,0 +1,85 @@
+
+state 0
+	$accept: .top $end 
+
+	STRING  shift 3
+	.  error
+
+	literal  goto 2
+	top  goto 1
+
+state 1
+	$accept:  top.$end 
+
+	$end  accept
+	.  error
+
+
+state 2
+	top:  literal.    (1)
+	top:  literal.interpolation 
+
+	PROGRAM_BRACKET_LEFT  shift 5
+	.  reduce 1 (src line 25)
+
+	interpolation  goto 4
+
+state 3
+	literal:  STRING.    (6)
+
+	.  reduce 6 (src line 53)
+
+
+state 4
+	top:  literal interpolation.    (2)
+
+	.  reduce 2 (src line 30)
+
+
+state 5
+	interpolation:  PROGRAM_BRACKET_LEFT.expr PROGRAM_BRACKET_RIGHT 
+
+	STRING  shift 3
+	IDENTIFIER  shift 7
+	.  error
+
+	expr  goto 6
+	literal  goto 8
+
+state 6
+	interpolation:  PROGRAM_BRACKET_LEFT expr.PROGRAM_BRACKET_RIGHT 
+
+	PROGRAM_BRACKET_RIGHT  shift 9
+	.  error
+
+
+state 7
+	expr:  IDENTIFIER.    (4)
+
+	.  reduce 4 (src line 43)
+
+
+state 8
+	expr:  literal.    (5)
+
+	.  reduce 5 (src line 48)
+
+
+state 9
+	interpolation:  PROGRAM_BRACKET_LEFT expr PROGRAM_BRACKET_RIGHT.    (3)
+
+	.  reduce 3 (src line 37)
+
+
+7 terminals, 5 nonterminals
+7 grammar rules, 10/2000 states
+0 shift/reduce, 0 reduce/reduce conflicts reported
+54 working sets used
+memory: parser 5/30000
+1 extra closures
+5 shift entries, 1 exceptions
+5 goto entries
+0 entries saved by goto default
+Optimizer space used: output 10/30000
+10 table entries, 0 zero
+maximum spread: 7, maximum offset: 7
