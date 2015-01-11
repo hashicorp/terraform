@@ -76,6 +76,15 @@ func TestParse(t *testing.T) {
 		},
 
 		{
+			"${foo()}",
+			false,
+			&ast.Call{
+				Func: "foo",
+				Args: nil,
+			},
+		},
+
+		{
 			"${foo(bar)}",
 			false,
 			&ast.Call{
