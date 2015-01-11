@@ -18,6 +18,7 @@ func TestConfigFieldReader(t *testing.T) {
 
 			Config: testConfig(t, map[string]interface{}{
 				"bool":   true,
+				"float":  3.1415,
 				"int":    42,
 				"string": "string",
 

@@ -31,6 +31,7 @@ const (
 	TypeInvalid ValueType = iota
 	TypeBool
 	TypeInt
+	TypeFloat
 	TypeString
 	TypeList
 	TypeMap
@@ -47,6 +48,8 @@ func (t ValueType) Zero() interface{} {
 		return false
 	case TypeInt:
 		return 0
+	case TypeFloat:
+		return 0.0
 	case TypeString:
 		return ""
 	case TypeList:

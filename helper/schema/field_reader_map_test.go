@@ -17,6 +17,7 @@ func TestMapFieldReader(t *testing.T) {
 			Map: BasicMapReader(map[string]string{
 				"bool":   "true",
 				"int":    "42",
+				"float":  "3.1415",
 				"string": "string",
 
 				"list.#": "2",

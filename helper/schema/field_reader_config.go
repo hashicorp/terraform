@@ -80,6 +80,8 @@ func (r *ConfigFieldReader) readField(
 	switch schema.Type {
 	case TypeBool:
 		fallthrough
+	case TypeFloat:
+		fallthrough
 	case TypeInt:
 		fallthrough
 	case TypeString:
@@ -96,7 +98,7 @@ func (r *ConfigFieldReader) readField(
 			&nestedConfigFieldReader{r},
 			address, schema.Elem.(map[string]*Schema))
 	default:
-		panic(fmt.Sprintf("Unknown type: %#v", schema.Type))
+		panic(fmt.Sprintf("Unknown type: %s", schema.Type))
 	}
 }
 

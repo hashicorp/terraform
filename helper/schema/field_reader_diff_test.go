@@ -179,6 +179,11 @@ func TestDiffFieldReader(t *testing.T) {
 						New: "42",
 					},
 
+					"float": &terraform.ResourceAttrDiff{
+						Old: "",
+						New: "3.1415",
+					},
+
 					"string": &terraform.ResourceAttrDiff{
 						Old: "",
 						New: "string",
