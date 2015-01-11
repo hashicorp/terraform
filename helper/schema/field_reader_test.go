@@ -189,6 +189,7 @@ func testFieldReader(t *testing.T, f func(map[string]*Schema) FieldReader) {
 	schema := map[string]*Schema{
 		// Primitives
 		"bool":   &Schema{Type: TypeBool},
+		"float":  &Schema{Type: TypeFloat},
 		"int":    &Schema{Type: TypeInt},
 		"string": &Schema{Type: TypeString},
 
@@ -259,6 +260,16 @@ func testFieldReader(t *testing.T, f func(map[string]*Schema) FieldReader) {
 			[]string{"bool"},
 			FieldReadResult{
 				Value:    true,
+				Exists:   true,
+				Computed: false,
+			},
+			false,
+		},
+
+		"float": {
+			[]string{"float"},
+			FieldReadResult{
+				Value:    3.1415,
 				Exists:   true,
 				Computed: false,
 			},

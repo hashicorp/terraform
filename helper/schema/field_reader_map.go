@@ -23,6 +23,8 @@ func (r *MapFieldReader) ReadField(address []string) (FieldReadResult, error) {
 	switch schema.Type {
 	case TypeBool:
 		fallthrough
+	case TypeFloat:
+		fallthrough
 	case TypeInt:
 		fallthrough
 	case TypeString:
@@ -36,7 +38,7 @@ func (r *MapFieldReader) ReadField(address []string) (FieldReadResult, error) {
 	case typeObject:
 		return readObjectField(r, address, schema.Elem.(map[string]*Schema))
 	default:
-		panic(fmt.Sprintf("Unknown type: %#v", schema.Type))
+		panic(fmt.Sprintf("Unknown type: %s", schema.Type))
 	}
 }
 

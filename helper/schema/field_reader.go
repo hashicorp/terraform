@@ -244,6 +244,21 @@ func stringToPrimitive(
 		}
 
 		returnVal = v
+	case TypeFloat:
+		if value == "" {
+			returnVal = 0.0
+			break
+		}
+		if computed {
+			break
+		}
+
+		v, err := strconv.ParseFloat(value, 64)
+		if err != nil {
+			return nil, err
+		}
+
+		returnVal = v
 	case TypeInt:
 		if value == "" {
 			returnVal = 0
@@ -262,7 +277,7 @@ func stringToPrimitive(
 	case TypeString:
 		returnVal = value
 	default:
-		panic(fmt.Sprintf("Unknown type: %#v", schema.Type))
+		panic(fmt.Sprintf("Unknown type: %s", schema.Type))
 	}
 
 	return returnVal, nil
