@@ -38,9 +38,21 @@ func (x *parserLex) Lex(yylval *parserSymType) int {
 			return PROGRAM_BRACKET_LEFT
 		}
 
+		if x.interpolationDepth == 0 {
+			// We're just a normal string that isn't part of any
+			// interpolation yet.
+			x.backup()
+			return x.lexString(yylval, false)
+		}
+
+		// Ignore all whitespace
+		if unicode.IsSpace(c) {
+			continue
+		}
+
 		// If we see a double quote and we're in an interpolation, then
 		// we are lexing a string.
-		if c == '"' && x.interpolationDepth > 0 {
+		if c == '"' {
 			return x.lexString(yylval, true)
 		}
 
@@ -48,16 +60,15 @@ func (x *parserLex) Lex(yylval *parserSymType) int {
 		case '}':
 			x.interpolationDepth--
 			return PROGRAM_BRACKET_RIGHT
+		case '(':
+			return PAREN_LEFT
+		case ')':
+			return PAREN_RIGHT
+		case ',':
+			return COMMA
 		default:
 			x.backup()
-			if x.interpolationDepth > 0 {
-				// We're within an interpolation.
-				return x.lexId(yylval)
-			} else {
-				// We're just a normal string that isn't part of any
-				// interpolation yet.
-				return x.lexString(yylval, false)
-			}
+			return x.lexId(yylval)
 		}
 	}
 }

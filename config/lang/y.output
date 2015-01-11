@@ -2,9 +2,11 @@
 state 0
 	$accept: .top $end 
 
-	STRING  shift 3
+	STRING  shift 4
+	PROGRAM_BRACKET_LEFT  shift 5
 	.  error
 
+	interpolation  goto 3
 	literal  goto 2
 	top  goto 1
 
@@ -20,66 +22,123 @@ state 2
 	top:  literal.interpolation 
 
 	PROGRAM_BRACKET_LEFT  shift 5
-	.  reduce 1 (src line 25)
+	.  reduce 1 (src line 28)
 
-	interpolation  goto 4
+	interpolation  goto 6
 
 state 3
-	literal:  STRING.    (6)
+	top:  interpolation.    (2)
 
-	.  reduce 6 (src line 53)
+	.  reduce 2 (src line 33)
 
 
 state 4
-	top:  literal interpolation.    (2)
+	literal:  STRING.    (11)
 
-	.  reduce 2 (src line 30)
+	.  reduce 11 (src line 77)
 
 
 state 5
 	interpolation:  PROGRAM_BRACKET_LEFT.expr PROGRAM_BRACKET_RIGHT 
 
-	STRING  shift 3
-	IDENTIFIER  shift 7
+	STRING  shift 4
+	IDENTIFIER  shift 9
 	.  error
 
-	expr  goto 6
+	expr  goto 7
 	literal  goto 8
 
 state 6
-	interpolation:  PROGRAM_BRACKET_LEFT expr.PROGRAM_BRACKET_RIGHT 
+	top:  literal interpolation.    (3)
 
-	PROGRAM_BRACKET_RIGHT  shift 9
-	.  error
+	.  reduce 3 (src line 37)
 
 
 state 7
-	expr:  IDENTIFIER.    (4)
+	interpolation:  PROGRAM_BRACKET_LEFT expr.PROGRAM_BRACKET_RIGHT 
 
-	.  reduce 4 (src line 43)
+	PROGRAM_BRACKET_RIGHT  shift 10
+	.  error
 
 
 state 8
 	expr:  literal.    (5)
 
-	.  reduce 5 (src line 48)
+	.  reduce 5 (src line 50)
 
 
 state 9
-	interpolation:  PROGRAM_BRACKET_LEFT expr PROGRAM_BRACKET_RIGHT.    (3)
+	expr:  IDENTIFIER.    (6)
+	expr:  IDENTIFIER.PAREN_LEFT args PAREN_RIGHT 
 
-	.  reduce 3 (src line 37)
+	PAREN_LEFT  shift 11
+	.  reduce 6 (src line 55)
 
 
-7 terminals, 5 nonterminals
-7 grammar rules, 10/2000 states
+state 10
+	interpolation:  PROGRAM_BRACKET_LEFT expr PROGRAM_BRACKET_RIGHT.    (4)
+
+	.  reduce 4 (src line 44)
+
+
+state 11
+	expr:  IDENTIFIER PAREN_LEFT.args PAREN_RIGHT 
+	args: .    (8)
+
+	STRING  shift 4
+	IDENTIFIER  shift 9
+	.  reduce 8 (src line 64)
+
+	expr  goto 13
+	literal  goto 8
+	args  goto 12
+
+state 12
+	expr:  IDENTIFIER PAREN_LEFT args.PAREN_RIGHT 
+	args:  args.COMMA expr 
+
+	PAREN_RIGHT  shift 14
+	COMMA  shift 15
+	.  error
+
+
+state 13
+	args:  expr.    (10)
+
+	.  reduce 10 (src line 72)
+
+
+state 14
+	expr:  IDENTIFIER PAREN_LEFT args PAREN_RIGHT.    (7)
+
+	.  reduce 7 (src line 59)
+
+
+state 15
+	args:  args COMMA.expr 
+
+	STRING  shift 4
+	IDENTIFIER  shift 9
+	.  error
+
+	expr  goto 16
+	literal  goto 8
+
+state 16
+	args:  args COMMA expr.    (9)
+
+	.  reduce 9 (src line 68)
+
+
+10 terminals, 6 nonterminals
+12 grammar rules, 17/2000 states
 0 shift/reduce, 0 reduce/reduce conflicts reported
-54 working sets used
-memory: parser 5/30000
-1 extra closures
-5 shift entries, 1 exceptions
-5 goto entries
-0 entries saved by goto default
-Optimizer space used: output 10/30000
-10 table entries, 0 zero
-maximum spread: 7, maximum offset: 7
+55 working sets used
+memory: parser 11/30000
+6 extra closures
+13 shift entries, 1 exceptions
+9 goto entries
+2 entries saved by goto default
+Optimizer space used: output 18/30000
+18 table entries, 0 zero
+maximum spread: 10, maximum offset: 15

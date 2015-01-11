@@ -12,13 +12,16 @@ import (
 %}
 
 %union {
-    node ast.Node
-    str  string
+    node     ast.Node
+    nodeList []ast.Node
+    str      string
 }
 
 %token  <str> STRING IDENTIFIER PROGRAM_BRACKET_LEFT PROGRAM_BRACKET_RIGHT
+%token  <str> PAREN_LEFT PAREN_RIGHT COMMA
 
 %type <node> expr interpolation literal
+%type <nodeList> args
 
 %%
 
@@ -27,6 +30,10 @@ top:
 	{
         parserResult = $1
 	}
+|   interpolation
+    {
+        parserResult = $1
+    }
 |   literal interpolation
     {
         parserResult = &ast.Concat{
@@ -41,14 +48,31 @@ interpolation:
     }
 
 expr:
-    IDENTIFIER
-    {
-        $$ = &ast.VariableAccess{Name: $1}
-    }
-|   literal
+    literal
     {
         $$ = $1
     }
+|   IDENTIFIER
+    {
+        $$ = &ast.VariableAccess{Name: $1}
+    }
+|   IDENTIFIER PAREN_LEFT args PAREN_RIGHT
+    {
+        $$ = &ast.Call{Func: $1, Args: $3}
+    }
+
+args:
+	{
+		$$ = nil
+	}
+|	args COMMA expr
+	{
+		$$ = append($1, $3)
+	}
+|	expr
+	{
+		$$ = append($$, $1)
+	}
 
 literal:
     STRING
