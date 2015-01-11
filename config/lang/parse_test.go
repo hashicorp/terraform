@@ -54,6 +54,35 @@ func TestParse(t *testing.T) {
 				},
 			},
 		},
+
+		{
+			"${foo(bar)}",
+			false,
+			&ast.Call{
+				Func: "foo",
+				Args: []ast.Node{
+					&ast.VariableAccess{
+						Name: "bar",
+					},
+				},
+			},
+		},
+
+		{
+			"${foo(bar, baz)}",
+			false,
+			&ast.Call{
+				Func: "foo",
+				Args: []ast.Node{
+					&ast.VariableAccess{
+						Name: "bar",
+					},
+					&ast.VariableAccess{
+						Name: "baz",
+					},
+				},
+			},
+		},
 	}
 
 	for _, tc := range cases {

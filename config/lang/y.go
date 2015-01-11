@@ -10,21 +10,28 @@ import (
 
 //line lang.y:14
 type parserSymType struct {
-	yys  int
-	node ast.Node
-	str  string
+	yys      int
+	node     ast.Node
+	nodeList []ast.Node
+	str      string
 }
 
 const STRING = 57346
 const IDENTIFIER = 57347
 const PROGRAM_BRACKET_LEFT = 57348
 const PROGRAM_BRACKET_RIGHT = 57349
+const PAREN_LEFT = 57350
+const PAREN_RIGHT = 57351
+const COMMA = 57352
 
 var parserToknames = []string{
 	"STRING",
 	"IDENTIFIER",
 	"PROGRAM_BRACKET_LEFT",
 	"PROGRAM_BRACKET_RIGHT",
+	"PAREN_LEFT",
+	"PAREN_RIGHT",
+	"COMMA",
 }
 var parserStatenames = []string{}
 
@@ -32,7 +39,7 @@ const parserEofCode = 1
 const parserErrCode = 2
 const parserMaxDepth = 200
 
-//line lang.y:59
+//line lang.y:83
 
 //line yacctab:1
 var parserExca = []int{
@@ -41,41 +48,47 @@ var parserExca = []int{
 	-2, 0,
 }
 
-const parserNprod = 7
+const parserNprod = 12
 const parserPrivate = 57344
 
 var parserTokenNames []string
 var parserStates []string
 
-const parserLast = 10
+const parserLast = 18
 
 var parserAct = []int{
 
-	9, 3, 7, 2, 5, 3, 1, 4, 6, 8,
+	7, 14, 15, 11, 10, 4, 5, 5, 4, 9,
+	3, 1, 13, 6, 8, 2, 16, 12,
 }
 var parserPact = []int{
 
-	1, -1000, -2, -1000, -1000, -3, -7, -1000, -1000, -1000,
+	1, -1000, 0, -1000, -1000, 4, -1000, -3, -1000, -5,
+	-1000, 4, -8, -1000, -1000, 4, -1000,
 }
 var parserPgo = []int{
 
-	0, 8, 7, 3, 6,
+	0, 0, 10, 14, 17, 11,
 }
 var parserR1 = []int{
 
-	0, 4, 4, 2, 1, 1, 3,
+	0, 5, 5, 5, 2, 1, 1, 1, 4, 4,
+	4, 3,
 }
 var parserR2 = []int{
 
-	0, 1, 2, 3, 1, 1, 1,
+	0, 1, 1, 2, 3, 1, 1, 4, 0, 3,
+	1, 1,
 }
 var parserChk = []int{
 
-	-1000, -4, -3, 4, -2, 6, -1, 5, -3, 7,
+	-1000, -5, -3, -2, 4, 6, -2, -1, -3, 5,
+	7, 8, -4, -1, 9, 10, -1,
 }
 var parserDef = []int{
 
-	0, -2, 1, 6, 2, 0, 0, 4, 5, 3,
+	0, -2, 1, 2, 11, 0, 3, 0, 5, 6,
+	4, 8, 0, 10, 7, 0, 9,
 }
 var parserTok1 = []int{
 
@@ -83,7 +96,7 @@ var parserTok1 = []int{
 }
 var parserTok2 = []int{
 
-	2, 3, 4, 5, 6, 7,
+	2, 3, 4, 5, 6, 7, 8, 9, 10,
 }
 var parserTok3 = []int{
 	0,
@@ -315,34 +328,59 @@ parserdefault:
 	switch parsernt {
 
 	case 1:
-		//line lang.y:27
+		//line lang.y:30
 		{
 			parserResult = parserS[parserpt-0].node
 		}
 	case 2:
-		//line lang.y:31
+		//line lang.y:34
+		{
+			parserResult = parserS[parserpt-0].node
+		}
+	case 3:
+		//line lang.y:38
 		{
 			parserResult = &ast.Concat{
 				Exprs: []ast.Node{parserS[parserpt-1].node, parserS[parserpt-0].node},
 			}
 		}
-	case 3:
-		//line lang.y:39
+	case 4:
+		//line lang.y:46
 		{
 			parserVAL.node = parserS[parserpt-1].node
 		}
-	case 4:
-		//line lang.y:45
-		{
-			parserVAL.node = &ast.VariableAccess{Name: parserS[parserpt-0].str}
-		}
 	case 5:
-		//line lang.y:49
+		//line lang.y:52
 		{
 			parserVAL.node = parserS[parserpt-0].node
 		}
 	case 6:
-		//line lang.y:55
+		//line lang.y:56
+		{
+			parserVAL.node = &ast.VariableAccess{Name: parserS[parserpt-0].str}
+		}
+	case 7:
+		//line lang.y:60
+		{
+			parserVAL.node = &ast.Call{Func: parserS[parserpt-3].str, Args: parserS[parserpt-1].nodeList}
+		}
+	case 8:
+		//line lang.y:65
+		{
+			parserVAL.nodeList = nil
+		}
+	case 9:
+		//line lang.y:69
+		{
+			parserVAL.nodeList = append(parserS[parserpt-2].nodeList, parserS[parserpt-0].node)
+		}
+	case 10:
+		//line lang.y:73
+		{
+			parserVAL.nodeList = append(parserVAL.nodeList, parserS[parserpt-0].node)
+		}
+	case 11:
+		//line lang.y:79
 		{
 			parserVAL.node = &ast.LiteralNode{Value: parserS[parserpt-0].str, Type: ast.TypeString}
 		}

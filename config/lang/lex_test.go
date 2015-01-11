@@ -29,6 +29,22 @@ func TestLex(t *testing.T) {
 			"foo ${\"bar\"}",
 			[]int{STRING, PROGRAM_BRACKET_LEFT, STRING, PROGRAM_BRACKET_RIGHT, lexEOF},
 		},
+
+		{
+			"${bar(baz)}",
+			[]int{PROGRAM_BRACKET_LEFT,
+				IDENTIFIER, PAREN_LEFT, IDENTIFIER, PAREN_RIGHT,
+				PROGRAM_BRACKET_RIGHT, lexEOF},
+		},
+
+		{
+			"${bar(baz, foo)}",
+			[]int{PROGRAM_BRACKET_LEFT,
+				IDENTIFIER, PAREN_LEFT,
+				IDENTIFIER, COMMA, IDENTIFIER,
+				PAREN_RIGHT,
+				PROGRAM_BRACKET_RIGHT, lexEOF},
+		},
 	}
 
 	for _, tc := range cases {
