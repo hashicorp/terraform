@@ -11,6 +11,10 @@ type LiteralNode struct {
 	Type  Type
 }
 
+func (n *LiteralNode) Accept(v Visitor) {
+	v(n)
+}
+
 func (n *LiteralNode) GoString() string {
 	return fmt.Sprintf("*%#v", *n)
 }
