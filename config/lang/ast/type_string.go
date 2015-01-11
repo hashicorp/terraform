@@ -4,14 +4,13 @@ package ast
 
 import "fmt"
 
-const _Type_name = "TypeInvalidTypeString"
+const _Type_name = "TypeInvalid"
 
-var _Type_index = [...]uint8{0, 11, 21}
+var _Type_index = [...]uint8{0, 11}
 
 func (i Type) String() string {
-	i -= 1
 	if i+1 >= Type(len(_Type_index)) {
-		return fmt.Sprintf("Type(%d)", i+1)
+		return fmt.Sprintf("Type(%d)", i)
 	}
 	return _Type_name[_Type_index[i]:_Type_index[i+1]]
 }

@@ -10,6 +10,14 @@ type Concat struct {
 	Exprs []Node
 }
 
+func (n *Concat) Accept(v Visitor) {
+	for _, n := range n.Exprs {
+		n.Accept(v)
+	}
+
+	v(n)
+}
+
 func (n *Concat) GoString() string {
 	return fmt.Sprintf("*%#v", *n)
 }
