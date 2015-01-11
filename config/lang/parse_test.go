@@ -39,6 +39,26 @@ func TestParse(t *testing.T) {
 		},
 
 		{
+			"foo ${var.bar} baz",
+			false,
+			&ast.Concat{
+				Exprs: []ast.Node{
+					&ast.LiteralNode{
+						Value: "foo ",
+						Type:  ast.TypeString,
+					},
+					&ast.VariableAccess{
+						Name: "var.bar",
+					},
+					&ast.LiteralNode{
+						Value: " baz",
+						Type:  ast.TypeString,
+					},
+				},
+			},
+		},
+
+		{
 			"foo ${\"bar\"}",
 			false,
 			&ast.Concat{
@@ -82,6 +102,60 @@ func TestParse(t *testing.T) {
 					},
 				},
 			},
+		},
+
+		{
+			"${foo(bar(baz))}",
+			false,
+			&ast.Call{
+				Func: "foo",
+				Args: []ast.Node{
+					&ast.Call{
+						Func: "bar",
+						Args: []ast.Node{
+							&ast.VariableAccess{
+								Name: "baz",
+							},
+						},
+					},
+				},
+			},
+		},
+
+		{
+			`foo ${"bar ${baz}"}`,
+			false,
+			&ast.Concat{
+				Exprs: []ast.Node{
+					&ast.LiteralNode{
+						Value: "foo ",
+						Type:  ast.TypeString,
+					},
+					&ast.Concat{
+						Exprs: []ast.Node{
+							&ast.LiteralNode{
+								Value: "bar ",
+								Type:  ast.TypeString,
+							},
+							&ast.VariableAccess{
+								Name: "baz",
+							},
+						},
+					},
+				},
+			},
+		},
+
+		{
+			`foo ${bar ${baz}}`,
+			true,
+			nil,
+		},
+
+		{
+			`foo ${${baz}}`,
+			true,
+			nil,
 		},
 	}
 
