@@ -37,9 +37,9 @@ type Variable struct {
 // The type checker will validate that the proper types will be called
 // to the callback.
 type Function struct {
-	Name     string
-	ArgTypes []ast.Type
-	Callback func([]interface{}) (interface{}, ast.Type, error)
+	ArgTypes   []ast.Type
+	ReturnType ast.Type
+	Callback   func([]interface{}) (interface{}, error)
 }
 
 // Execute executes the given ast.Node and returns its final value, its
@@ -89,6 +89,8 @@ func (v *executeVisitor) visit(raw ast.Node) {
 	}
 
 	switch n := raw.(type) {
+	case *ast.Call:
+		v.visitCall(n)
 	case *ast.Concat:
 		v.visitConcat(n)
 	case *ast.LiteralNode:
@@ -98,6 +100,35 @@ func (v *executeVisitor) visit(raw ast.Node) {
 	default:
 		v.err = fmt.Errorf("unknown node: %#v", raw)
 	}
+}
+
+func (v *executeVisitor) visitCall(n *ast.Call) {
+	// Look up the function in the map
+	function, ok := v.Engine.FuncMap[n.Func]
+	if !ok {
+		v.err = fmt.Errorf("unknown function called: %s", n.Func)
+		return
+	}
+
+	// The arguments are on the stack in reverse order, so pop them off.
+	args := make([]interface{}, len(n.Args))
+	for i, _ := range n.Args {
+		node := v.stackPop()
+		args[len(n.Args)-1-i] = node.Value
+	}
+
+	// Call the function
+	result, err := function.Callback(args)
+	if err != nil {
+		v.err = fmt.Errorf("%s: %s", n.Func, err)
+		return
+	}
+
+	// Push the result
+	v.stackPush(&ast.LiteralNode{
+		Value: result,
+		Type:  function.ReturnType,
+	})
 }
 
 func (v *executeVisitor) visitConcat(n *ast.Concat) {

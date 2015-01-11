@@ -37,6 +37,23 @@ func TestEngineExecute(t *testing.T) {
 			"foo baz",
 			ast.TypeString,
 		},
+
+		{
+			"foo ${rand()}",
+			&Engine{
+				FuncMap: map[string]Function{
+					"rand": Function{
+						ReturnType: ast.TypeString,
+						Callback: func([]interface{}) (interface{}, error) {
+							return "42", nil
+						},
+					},
+				},
+			},
+			false,
+			"foo 42",
+			ast.TypeString,
+		},
 	}
 
 	for _, tc := range cases {
