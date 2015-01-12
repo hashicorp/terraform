@@ -22,4 +22,5 @@ type Type uint
 const (
 	TypeInvalid Type = 0
 	TypeString       = 1 << iota
+	TypeInt
 )
