@@ -35,7 +35,7 @@ The following arguments are supported:
 * `name` - (Required) The name of the DB parameter group.
 * `family` - (Required) The family of the DB parameter group.
 * `description` - (Required) The description of the DB parameter group.
-* `parameter` - (Optional) A list of DB parameters to apply.
+* `parameter` - (Optional) An array of DB parameters to apply.
 
 Parameter blocks support the following:
 

@@ -52,11 +52,11 @@ The following arguments are supported:
 
 * `name` - (Required) The name of the ELB
 * `availability_zones` - (Optional) The AZ's to serve traffic in.
-* `security_groups` - (Optional) A list of security group IDs to assign to the ELB.
-* `subnets` - (Optional) A list of subnets to attach to the ELB.
-* `instances` - (Optional) A list of instance ids to place in the ELB pool.
+* `security_groups` - (Optional) An array of security group IDs to assign to the ELB.
+* `subnets` - (Optional) An array of subnets to attach to the ELB.
+* `instances` - (Optional) An array of instance ids to place in the ELB pool.
 * `internal` - (Optional) If true, ELB will be an internal ELB.
-* `listener` - (Required) A list of listener blocks. Listeners documented below.
+* `listener` - (Required) An array of listener blocks. Listeners documented below.
 * `health_check` - (Optional) A health_check block. Health Check documented below.
 * `cross_zone_load_balancing` - (Optional) Enable cross-zone load balancing.
 
@@ -83,4 +83,4 @@ The following attributes are exported:
 * `id` - The name of the ELB
 * `name` - The name of the ELB
 * `dns_name` - The DNS name of the ELB
-* `instances` - The list of instances in the ELB
+* `instances` - The array of instances in the ELB

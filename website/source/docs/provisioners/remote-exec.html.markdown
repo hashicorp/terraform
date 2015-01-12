@@ -34,14 +34,14 @@ resource "aws_instance" "web" {
 
 The following arguments are supported:
 
-* `inline` - This is a list of command strings. They are executed in the order
+* `inline` - This is an array of command strings. They are executed in the order
   they are provided. This cannot be provided with `script` or `scripts`.
 
 * `script` - This is a path (relative or absolute) to a local script that will
   be copied to the remote resource and then executed. This cannot be provided
   with `inline` or `scripts`.
 
-* `scripts` - This is a list of paths (relative or absolute) to local scripts
+* `scripts` - This is an array of paths (relative or absolute) to local scripts
   that will be copied to the remote resource and then executed. They are executed
   in the order they are provided. This cannot be provided with `inline` or `script`.
 
