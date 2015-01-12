@@ -27,6 +27,13 @@ type SemanticChecker func(ast.Node) error
 // Execute executes the given ast.Node and returns its final value, its
 // type, and an error if one exists.
 func (e *Engine) Execute(root ast.Node) (interface{}, ast.Type, error) {
+	// Run the type checker
+	tv := &TypeVisitor{Scope: e.GlobalScope}
+	if err := tv.Visit(root); err != nil {
+		return nil, ast.TypeInvalid, err
+	}
+
+	// Execute
 	v := &executeVisitor{Scope: e.GlobalScope}
 	return v.Visit(root)
 }
@@ -182,6 +189,17 @@ type Function struct {
 	ArgTypes   []ast.Type
 	ReturnType ast.Type
 	Callback   func([]interface{}) (interface{}, error)
+}
+
+// LookupFunc will look up a variable by name.
+// TODO test
+func (s *Scope) LookupFunc(n string) (Function, bool) {
+	if s == nil {
+		return Function{}, false
+	}
+
+	v, ok := s.FuncMap[n]
+	return v, ok
 }
 
 // LookupVar will look up a variable by name.
