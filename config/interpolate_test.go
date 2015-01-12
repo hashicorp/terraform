@@ -300,6 +300,11 @@ func TestDetectVariables(t *testing.T) {
 		Result []InterpolatedVariable
 	}{
 		{
+			"foo $${var.foo}",
+			nil,
+		},
+
+		{
 			"foo ${var.foo}",
 			[]InterpolatedVariable{
 				&UserVariable{
