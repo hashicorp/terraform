@@ -42,6 +42,7 @@ func resourceCloudStackDisk() *schema.Resource {
 			"size": &schema.Schema{
 				Type:     schema.TypeInt,
 				Optional: true,
+				Computed: true,
 			},
 
 			"shrink_ok": &schema.Schema{
