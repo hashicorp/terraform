@@ -2,8 +2,8 @@
 state 0
 	$accept: .top $end 
 
-	STRING  shift 6
 	PROGRAM_BRACKET_LEFT  shift 7
+	STRING  shift 6
 	.  error
 
 	interpolation  goto 5
@@ -23,9 +23,9 @@ state 2
 	top:  literalModeTop.    (1)
 	literalModeTop:  literalModeTop.literalModeValue 
 
-	STRING  shift 6
 	PROGRAM_BRACKET_LEFT  shift 7
-	.  reduce 1 (src line 29)
+	STRING  shift 6
+	.  reduce 1 (src line 32)
 
 	interpolation  goto 5
 	literal  goto 4
@@ -34,33 +34,33 @@ state 2
 state 3
 	literalModeTop:  literalModeValue.    (2)
 
-	.  reduce 2 (src line 35)
+	.  reduce 2 (src line 38)
 
 
 state 4
 	literalModeValue:  literal.    (4)
 
-	.  reduce 4 (src line 54)
+	.  reduce 4 (src line 58)
 
 
 state 5
 	literalModeValue:  interpolation.    (5)
 
-	.  reduce 5 (src line 59)
+	.  reduce 5 (src line 63)
 
 
 state 6
 	literal:  STRING.    (13)
 
-	.  reduce 13 (src line 97)
+	.  reduce 13 (src line 101)
 
 
 state 7
 	interpolation:  PROGRAM_BRACKET_LEFT.expr PROGRAM_BRACKET_RIGHT 
 
-	STRING  shift 6
-	IDENTIFIER  shift 11
 	PROGRAM_BRACKET_LEFT  shift 7
+	IDENTIFIER  shift 11
+	STRING  shift 6
 	.  error
 
 	expr  goto 9
@@ -72,7 +72,7 @@ state 7
 state 8
 	literalModeTop:  literalModeTop literalModeValue.    (3)
 
-	.  reduce 3 (src line 40)
+	.  reduce 3 (src line 43)
 
 
 state 9
@@ -86,9 +86,9 @@ state 10
 	literalModeTop:  literalModeTop.literalModeValue 
 	expr:  literalModeTop.    (7)
 
-	STRING  shift 6
 	PROGRAM_BRACKET_LEFT  shift 7
-	.  reduce 7 (src line 70)
+	STRING  shift 6
+	.  reduce 7 (src line 74)
 
 	interpolation  goto 5
 	literal  goto 4
@@ -99,23 +99,23 @@ state 11
 	expr:  IDENTIFIER.PAREN_LEFT args PAREN_RIGHT 
 
 	PAREN_LEFT  shift 13
-	.  reduce 8 (src line 75)
+	.  reduce 8 (src line 79)
 
 
 state 12
 	interpolation:  PROGRAM_BRACKET_LEFT expr PROGRAM_BRACKET_RIGHT.    (6)
 
-	.  reduce 6 (src line 64)
+	.  reduce 6 (src line 68)
 
 
 state 13
 	expr:  IDENTIFIER PAREN_LEFT.args PAREN_RIGHT 
 	args: .    (10)
 
-	STRING  shift 6
-	IDENTIFIER  shift 11
 	PROGRAM_BRACKET_LEFT  shift 7
-	.  reduce 10 (src line 84)
+	IDENTIFIER  shift 11
+	STRING  shift 6
+	.  reduce 10 (src line 88)
 
 	expr  goto 15
 	interpolation  goto 5
@@ -136,21 +136,21 @@ state 14
 state 15
 	args:  expr.    (12)
 
-	.  reduce 12 (src line 92)
+	.  reduce 12 (src line 96)
 
 
 state 16
 	expr:  IDENTIFIER PAREN_LEFT args PAREN_RIGHT.    (9)
 
-	.  reduce 9 (src line 79)
+	.  reduce 9 (src line 83)
 
 
 state 17
 	args:  args COMMA.expr 
 
-	STRING  shift 6
-	IDENTIFIER  shift 11
 	PROGRAM_BRACKET_LEFT  shift 7
+	IDENTIFIER  shift 11
+	STRING  shift 6
 	.  error
 
 	expr  goto 18
@@ -162,7 +162,7 @@ state 17
 state 18
 	args:  args COMMA expr.    (11)
 
-	.  reduce 11 (src line 88)
+	.  reduce 11 (src line 92)
 
 
 12 terminals, 8 nonterminals

@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"unicode"
 	"unicode/utf8"
+
+	"github.com/hashicorp/terraform/config/lang/ast"
 )
 
 //go:generate go tool yacc -p parser lang.y
@@ -22,6 +24,17 @@ type parserLex struct {
 	interpolationDepth int
 	pos                int
 	width              int
+	col, line          int
+	lastLine           int
+	astPos             *ast.Pos
+}
+
+// parserToken is the token yielded to the parser. The value can be
+// determined within the parser type based on the enum value returned
+// from Lex.
+type parserToken struct {
+	Value interface{}
+	Pos   ast.Pos
 }
 
 // parserMode keeps track of what mode we're in for the parser. We have
@@ -43,6 +56,17 @@ func (x *parserLex) Lex(yylval *parserSymType) int {
 		x.mode = parserModeLiteral
 	}
 
+	defer func() {
+		if yylval.token != nil && yylval.token.Pos.Column == 0 {
+			yylval.token.Pos = *x.astPos
+		}
+	}()
+
+	x.astPos = nil
+	return x.lex(yylval)
+}
+
+func (x *parserLex) lex(yylval *parserSymType) int {
 	switch x.mode {
 	case parserModeLiteral:
 		return x.lexModeLiteral(yylval)
@@ -81,8 +105,8 @@ func (x *parserLex) lexModeLiteral(yylval *parserSymType) int {
 
 			// If the string is empty, just skip it. We're still in
 			// an interpolation so we do this to avoid empty nodes.
-			if yylval.str == "" {
-				return x.Lex(yylval)
+			if yylval.token.Value.(string) == "" {
+				return x.lex(yylval)
 			}
 		}
 
@@ -113,8 +137,8 @@ func (x *parserLex) lexModeInterpolation(yylval *parserSymType) int {
 
 				// If the string is empty and we're starting an interpolation,
 				// then just skip it to avoid empty string AST nodes
-				if yylval.str == "" {
-					return x.Lex(yylval)
+				if yylval.token.Value.(string) == "" {
+					return x.lex(yylval)
 				}
 			}
 
@@ -165,7 +189,7 @@ func (x *parserLex) lexId(yylval *parserSymType) int {
 		}
 	}
 
-	yylval.str = b.String()
+	yylval.token = &parserToken{Value: b.String()}
 	return IDENTIFIER
 }
 
@@ -224,7 +248,7 @@ func (x *parserLex) lexString(yylval *parserSymType, quoted bool) (int, bool) {
 		}
 	}
 
-	yylval.str = b.String()
+	yylval.token = &parserToken{Value: b.String()}
 	return STRING, terminated
 }
 
@@ -238,6 +262,24 @@ func (x *parserLex) next() rune {
 	r, w := utf8.DecodeRuneInString(x.Input[x.pos:])
 	x.width = w
 	x.pos += x.width
+
+	if x.line == 0 {
+		x.line = 1
+		x.col = 1
+	} else {
+		x.col += 1
+	}
+
+	if r == '\n' {
+		x.lastLine = x.col
+		x.line += 1
+		x.col = 1
+	}
+
+	if x.astPos == nil {
+		x.astPos = &ast.Pos{Column: x.col, Line: x.line}
+	}
+
 	return r
 }
 
@@ -251,6 +293,14 @@ func (x *parserLex) peek() rune {
 // backup steps back one rune. Can only be called once per next.
 func (x *parserLex) backup() {
 	x.pos -= x.width
+	x.col -= 1
+
+	// If we are at column 0, we're backing up across a line boundary
+	// so we need to be careful to get the proper value.
+	if x.col == 0 {
+		x.col = x.lastLine
+		x.line -= 1
+	}
 }
 
 // The parser calls this method on a parse error.

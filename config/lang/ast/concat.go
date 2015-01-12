@@ -8,6 +8,7 @@ import (
 // concatenated. The result of all expressions must be a string.
 type Concat struct {
 	Exprs []Node
+	Posx  Pos
 }
 
 func (n *Concat) Accept(v Visitor) {
@@ -16,6 +17,10 @@ func (n *Concat) Accept(v Visitor) {
 	}
 
 	v(n)
+}
+
+func (n *Concat) Pos() Pos {
+	return n.Posx
 }
 
 func (n *Concat) GoString() string {
