@@ -47,12 +47,59 @@ func TestTypeVisitor(t *testing.T) {
 		},
 
 		{
+			`foo ${rand("42")}`,
+			&TypeVisitor{
+				FuncMap: map[string]Function{
+					"rand": Function{
+						ArgTypes:   []ast.Type{ast.TypeString},
+						ReturnType: ast.TypeString,
+						Callback: func([]interface{}) (interface{}, error) {
+							return "42", nil
+						},
+					},
+				},
+			},
+			false,
+		},
+
+		{
+			`foo ${rand(42)}`,
+			&TypeVisitor{
+				FuncMap: map[string]Function{
+					"rand": Function{
+						ArgTypes:   []ast.Type{ast.TypeString},
+						ReturnType: ast.TypeString,
+						Callback: func([]interface{}) (interface{}, error) {
+							return "42", nil
+						},
+					},
+				},
+			},
+			true,
+		},
+
+		{
 			"foo ${bar}",
 			&TypeVisitor{
 				VarMap: map[string]Variable{
 					"bar": Variable{
 						Value: 42,
 						Type:  ast.TypeInt,
+					},
+				},
+			},
+			true,
+		},
+
+		{
+			"foo ${rand()}",
+			&TypeVisitor{
+				FuncMap: map[string]Function{
+					"rand": Function{
+						ReturnType: ast.TypeInt,
+						Callback: func([]interface{}) (interface{}, error) {
+							return 42, nil
+						},
 					},
 				},
 			},
