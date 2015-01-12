@@ -16,12 +16,17 @@ The output is in the DOT format, which can be used by
 
 ## Usage
 
-Usage: `terraform output [options] [input]`
+Usage: `terraform graph [options] PATH`
 
-By default, `output` scans the current directory for the configuration
-and generates the output for that configuration. However, a path to
-another configuration or an execution plan can be provided. Execution plans
-provide more details on creation, deletion or changes.
+Outputs the visual graph of Terraform resources. If the path given is
+the path to a configuration, the dependency graph of the resources are
+shown. If the path is a plan file, then the dependency graph of the
+plan itself is shown.
+
+Options:
+
+* `-module-depth=n` - The maximum depth to expand modules. By default this is
+                      zero, which will not expand modules at all.
 
 ## Generating Images
 

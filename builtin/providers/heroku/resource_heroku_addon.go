@@ -92,7 +92,7 @@ func resourceHerokuAddonCreate(d *schema.ResourceData, meta interface{}) error {
 func resourceHerokuAddonRead(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*heroku.Service)
 
-	addon, err := resource_heroku_addon_retrieve(
+	addon, err := resourceHerokuAddonRetrieve(
 		d.Get("app").(string), d.Id(), client)
 	if err != nil {
 		return err
@@ -153,7 +153,7 @@ func resourceHerokuAddonDelete(d *schema.ResourceData, meta interface{}) error {
 	return nil
 }
 
-func resource_heroku_addon_retrieve(app string, id string, client *heroku.Service) (*heroku.Addon, error) {
+func resourceHerokuAddonRetrieve(app string, id string, client *heroku.Service) (*heroku.Addon, error) {
 	addon, err := client.AddonInfo(app, id)
 
 	if err != nil {

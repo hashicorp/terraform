@@ -383,6 +383,13 @@ func TestLoad_createBeforeDestroy(t *testing.T) {
 	}
 }
 
+func TestLoad_temporary_files(t *testing.T) {
+	_, err := LoadDir(filepath.Join(fixtureDir, "dir-temporary-files"))
+	if err == nil {
+		t.Fatalf("Expected to see an error stating no config files found")
+	}
+}
+
 const basicOutputsStr = `
 web_ip
   vars
