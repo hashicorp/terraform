@@ -25,7 +25,9 @@ const PAREN_LEFT = 57350
 const PAREN_RIGHT = 57351
 const COMMA = 57352
 const IDENTIFIER = 57353
-const STRING = 57354
+const INTEGER = 57354
+const FLOAT = 57355
+const STRING = 57356
 
 var parserToknames = []string{
 	"PROGRAM_BRACKET_LEFT",
@@ -36,6 +38,8 @@ var parserToknames = []string{
 	"PAREN_RIGHT",
 	"COMMA",
 	"IDENTIFIER",
+	"INTEGER",
+	"FLOAT",
 	"STRING",
 }
 var parserStatenames = []string{}
@@ -44,7 +48,7 @@ const parserEofCode = 1
 const parserErrCode = 2
 const parserMaxDepth = 200
 
-//line lang.y:111
+//line lang.y:127
 
 //line yacctab:1
 var parserExca = []int{
@@ -53,48 +57,51 @@ var parserExca = []int{
 	-2, 0,
 }
 
-const parserNprod = 14
+const parserNprod = 16
 const parserPrivate = 57344
 
 var parserTokenNames []string
 var parserStates []string
 
-const parserLast = 21
+const parserLast = 23
 
 var parserAct = []int{
 
-	9, 7, 7, 13, 3, 16, 17, 8, 11, 6,
-	6, 12, 10, 2, 15, 8, 1, 14, 18, 4,
-	5,
+	9, 7, 7, 3, 18, 19, 8, 15, 13, 11,
+	12, 6, 6, 14, 8, 1, 17, 10, 2, 16,
+	20, 4, 5,
 }
 var parserPact = []int{
 
-	-2, -1000, -2, -1000, -1000, -1000, -1000, -3, -1000, 6,
-	-2, -5, -1000, -3, -4, -1000, -1000, -3, -1000,
+	-2, -1000, -2, -1000, -1000, -1000, -1000, -3, -1000, 8,
+	-2, -1000, -1000, -1, -1000, -3, -5, -1000, -1000, -3,
+	-1000,
 }
 var parserPgo = []int{
 
-	0, 0, 20, 19, 12, 4, 17, 16,
+	0, 0, 22, 21, 17, 3, 19, 15,
 }
 var parserR1 = []int{
 
 	0, 7, 4, 4, 5, 5, 2, 1, 1, 1,
-	6, 6, 6, 3,
+	1, 1, 6, 6, 6, 3,
 }
 var parserR2 = []int{
 
-	0, 1, 1, 2, 1, 1, 3, 1, 1, 4,
-	0, 3, 1, 1,
+	0, 1, 1, 2, 1, 1, 3, 1, 1, 1,
+	1, 4, 0, 3, 1, 1,
 }
 var parserChk = []int{
 
-	-1000, -7, -4, -5, -3, -2, 12, 4, -5, -1,
-	-4, 11, 5, 8, -6, -1, 9, 10, -1,
+	-1000, -7, -4, -5, -3, -2, 14, 4, -5, -1,
+	-4, 12, 13, 11, 5, 8, -6, -1, 9, 10,
+	-1,
 }
 var parserDef = []int{
 
-	0, -2, 1, 2, 4, 5, 13, 0, 3, 0,
-	7, 8, 6, 10, 0, 12, 9, 0, 11,
+	0, -2, 1, 2, 4, 5, 15, 0, 3, 0,
+	7, 8, 9, 10, 6, 12, 0, 14, 11, 0,
+	13,
 }
 var parserTok1 = []int{
 
@@ -103,7 +110,7 @@ var parserTok1 = []int{
 var parserTok2 = []int{
 
 	2, 3, 4, 5, 6, 7, 8, 9, 10, 11,
-	12,
+	12, 13, 14,
 }
 var parserTok3 = []int{
 	0,
@@ -382,30 +389,48 @@ parserdefault:
 	case 8:
 		//line lang.y:80
 		{
-			parserVAL.node = &ast.VariableAccess{Name: parserS[parserpt-0].token.Value.(string), Posx: parserS[parserpt-0].token.Pos}
+			parserVAL.node = &ast.LiteralNode{
+				Value: parserS[parserpt-0].token.Value.(int),
+				Type:  ast.TypeInt,
+				Posx:  parserS[parserpt-0].token.Pos,
+			}
 		}
 	case 9:
-		//line lang.y:84
+		//line lang.y:88
+		{
+			parserVAL.node = &ast.LiteralNode{
+				Value: parserS[parserpt-0].token.Value.(float64),
+				Type:  ast.TypeFloat,
+				Posx:  parserS[parserpt-0].token.Pos,
+			}
+		}
+	case 10:
+		//line lang.y:96
+		{
+			parserVAL.node = &ast.VariableAccess{Name: parserS[parserpt-0].token.Value.(string), Posx: parserS[parserpt-0].token.Pos}
+		}
+	case 11:
+		//line lang.y:100
 		{
 			parserVAL.node = &ast.Call{Func: parserS[parserpt-3].token.Value.(string), Args: parserS[parserpt-1].nodeList, Posx: parserS[parserpt-3].token.Pos}
 		}
-	case 10:
-		//line lang.y:89
+	case 12:
+		//line lang.y:105
 		{
 			parserVAL.nodeList = nil
 		}
-	case 11:
-		//line lang.y:93
+	case 13:
+		//line lang.y:109
 		{
 			parserVAL.nodeList = append(parserS[parserpt-2].nodeList, parserS[parserpt-0].node)
 		}
-	case 12:
-		//line lang.y:97
+	case 14:
+		//line lang.y:113
 		{
 			parserVAL.nodeList = append(parserVAL.nodeList, parserS[parserpt-0].node)
 		}
-	case 13:
-		//line lang.y:103
+	case 15:
+		//line lang.y:119
 		{
 			parserVAL.node = &ast.LiteralNode{
 				Value: parserS[parserpt-0].token.Value.(string),

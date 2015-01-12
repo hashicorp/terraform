@@ -22,7 +22,7 @@ import (
 %token  <str> PROGRAM_STRING_START PROGRAM_STRING_END
 %token  <str> PAREN_LEFT PAREN_RIGHT COMMA
 
-%token <token> IDENTIFIER STRING
+%token <token> IDENTIFIER INTEGER FLOAT STRING
 
 %type <node> expr interpolation literal literalModeTop literalModeValue
 %type <nodeList> args
@@ -75,6 +75,22 @@ expr:
     literalModeTop
     {
         $$ = $1
+    }
+|   INTEGER
+    {
+        $$ = &ast.LiteralNode{
+            Value: $1.Value.(int),
+            Type:  ast.TypeInt,
+            Posx:  $1.Pos,
+        }
+    }
+|   FLOAT
+    {
+        $$ = &ast.LiteralNode{
+            Value: $1.Value.(float64),
+            Type:  ast.TypeFloat,
+            Posx:  $1.Pos,
+        }
     }
 |   IDENTIFIER
     {

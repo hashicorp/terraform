@@ -3,6 +3,7 @@ package lang
 import (
 	"bytes"
 	"fmt"
+	"strconv"
 	"unicode"
 	"unicode/utf8"
 
@@ -145,6 +146,12 @@ func (x *parserLex) lexModeInterpolation(yylval *parserSymType) int {
 			return result
 		}
 
+		// If we are seeing a number, it is the start of a number. Lex it.
+		if c >= '0' && c <= '9' {
+			x.backup()
+			return x.lexNumber(yylval)
+		}
+
 		switch c {
 		case '}':
 			x.interpolationDepth--
@@ -191,6 +198,61 @@ func (x *parserLex) lexId(yylval *parserSymType) int {
 
 	yylval.token = &parserToken{Value: b.String()}
 	return IDENTIFIER
+}
+
+// lexNumber lexes out a number: an integer or a float.
+func (x *parserLex) lexNumber(yylval *parserSymType) int {
+	var b bytes.Buffer
+	gotPeriod := false
+	for {
+		c := x.next()
+		if c == lexEOF {
+			break
+		}
+
+		// If we see a period, we might be getting a float..
+		if c == '.' {
+			// If we've already seen a period, then ignore it, and
+			// exit. This will probably result in a syntax error later.
+			if gotPeriod {
+				x.backup()
+				break
+			}
+
+			gotPeriod = true
+		} else if c < '0' || c > '9' {
+			// If we're not seeing a number, then also exit.
+			x.backup()
+			break
+		}
+
+		if _, err := b.WriteRune(c); err != nil {
+			x.Error(fmt.Sprintf("internal error: %s", err))
+			return lexEOF
+		}
+	}
+
+	// If we didn't see a period, it is an int
+	if !gotPeriod {
+		v, err := strconv.ParseInt(b.String(), 0, 0)
+		if err != nil {
+			x.Error(fmt.Sprintf("expected number: %s", err))
+			return lexEOF
+		}
+
+		yylval.token = &parserToken{Value: int(v)}
+		return INTEGER
+	}
+
+	// If we did see a period, it is a float
+	f, err := strconv.ParseFloat(b.String(), 64)
+	if err != nil {
+		x.Error(fmt.Sprintf("expected float: %s", err))
+		return lexEOF
+	}
+
+	yylval.token = &parserToken{Value: f}
+	return FLOAT
 }
 
 func (x *parserLex) lexString(yylval *parserSymType, quoted bool) (int, bool) {

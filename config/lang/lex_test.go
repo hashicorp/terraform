@@ -47,6 +47,20 @@ func TestLex(t *testing.T) {
 		},
 
 		{
+			"${bar(42)}",
+			[]int{PROGRAM_BRACKET_LEFT,
+				IDENTIFIER, PAREN_LEFT, INTEGER, PAREN_RIGHT,
+				PROGRAM_BRACKET_RIGHT, lexEOF},
+		},
+
+		{
+			"${bar(3.14159)}",
+			[]int{PROGRAM_BRACKET_LEFT,
+				IDENTIFIER, PAREN_LEFT, FLOAT, PAREN_RIGHT,
+				PROGRAM_BRACKET_RIGHT, lexEOF},
+		},
+
+		{
 			"${bar(inner(baz))}",
 			[]int{PROGRAM_BRACKET_LEFT,
 				IDENTIFIER, PAREN_LEFT,
