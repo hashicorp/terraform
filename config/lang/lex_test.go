@@ -26,6 +26,16 @@ func TestLex(t *testing.T) {
 		},
 
 		{
+			"foo $${bar}",
+			[]int{STRING, lexEOF},
+		},
+
+		{
+			"foo $$$${bar}",
+			[]int{STRING, lexEOF},
+		},
+
+		{
 			"foo ${\"bar\"}",
 			[]int{STRING, PROGRAM_BRACKET_LEFT, STRING, PROGRAM_BRACKET_RIGHT, lexEOF},
 		},
