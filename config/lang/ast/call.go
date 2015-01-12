@@ -4,6 +4,7 @@ package ast
 type Call struct {
 	Func string
 	Args []Node
+	Posx Pos
 }
 
 func (n *Call) Accept(v Visitor) {
@@ -12,4 +13,8 @@ func (n *Call) Accept(v Visitor) {
 	}
 
 	v(n)
+}
+
+func (n *Call) Pos() Pos {
+	return n.Posx
 }

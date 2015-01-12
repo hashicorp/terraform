@@ -15,11 +15,14 @@ import (
     node     ast.Node
     nodeList []ast.Node
     str      string
+    token    *parserToken
 }
 
-%token  <str> STRING IDENTIFIER PROGRAM_BRACKET_LEFT PROGRAM_BRACKET_RIGHT
+%token  <str> PROGRAM_BRACKET_LEFT PROGRAM_BRACKET_RIGHT
 %token  <str> PROGRAM_STRING_START PROGRAM_STRING_END
 %token  <str> PAREN_LEFT PAREN_RIGHT COMMA
+
+%token <token> IDENTIFIER STRING
 
 %type <node> expr interpolation literal literalModeTop literalModeValue
 %type <nodeList> args
@@ -48,6 +51,7 @@ literalModeTop:
 
         $$ = &ast.Concat{
             Exprs: result,
+            Posx:  result[0].Pos(),
         }
     }
 
@@ -74,11 +78,11 @@ expr:
     }
 |   IDENTIFIER
     {
-        $$ = &ast.VariableAccess{Name: $1}
+        $$ = &ast.VariableAccess{Name: $1.Value.(string), Posx: $1.Pos}
     }
 |   IDENTIFIER PAREN_LEFT args PAREN_RIGHT
     {
-        $$ = &ast.Call{Func: $1, Args: $3}
+        $$ = &ast.Call{Func: $1.Value.(string), Args: $3, Posx: $1.Pos}
     }
 
 args:
@@ -97,7 +101,11 @@ args:
 literal:
     STRING
     {
-        $$ = &ast.LiteralNode{Value: $1, Type: ast.TypeString}
+        $$ = &ast.LiteralNode{
+            Value: $1.Value.(string),
+            Type:  ast.TypeString,
+            Posx:  $1.Pos,
+        }
     }
 
 %%

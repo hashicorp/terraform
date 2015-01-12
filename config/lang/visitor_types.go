@@ -41,7 +41,7 @@ func (v *TypeVisitor) visit(raw ast.Node) {
 	case *ast.VariableAccess:
 		v.visitVariableAccess(n)
 	default:
-		v.err = fmt.Errorf("unknown node: %#v", raw)
+		v.createErr(n, fmt.Sprintf("unknown node: %#v", raw))
 	}
 }
 
@@ -59,7 +59,8 @@ func (v *TypeVisitor) visitConcat(n *ast.Concat) {
 	// All concat args must be strings, so validate that
 	for i, t := range types {
 		if t != ast.TypeString {
-			v.err = fmt.Errorf("%s: argument %d must be a sting", n, i+1)
+			v.createErr(n, fmt.Sprintf(
+				"argument %d must be a sting", n, i+1))
 			return
 		}
 	}
@@ -76,12 +77,17 @@ func (v *TypeVisitor) visitVariableAccess(n *ast.VariableAccess) {
 	// Look up the variable in the map
 	variable, ok := v.VarMap[n.Name]
 	if !ok {
-		v.err = fmt.Errorf("unknown variable accessed: %s", n.Name)
+		v.createErr(n, fmt.Sprintf(
+			"unknown variable accessed: %s", n.Name))
 		return
 	}
 
 	// Add the type to the stack
 	v.stackPush(variable.Type)
+}
+
+func (v *TypeVisitor) createErr(n ast.Node, str string) {
+	v.err = fmt.Errorf("%s: %s", n.Pos(), str)
 }
 
 func (v *TypeVisitor) reset() {

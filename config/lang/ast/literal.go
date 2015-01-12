@@ -9,10 +9,15 @@ import (
 type LiteralNode struct {
 	Value interface{}
 	Type  Type
+	Posx  Pos
 }
 
 func (n *LiteralNode) Accept(v Visitor) {
 	v(n)
+}
+
+func (n *LiteralNode) Pos() Pos {
+	return n.Posx
 }
 
 func (n *LiteralNode) GoString() string {
