@@ -87,6 +87,46 @@ func TestParse(t *testing.T) {
 		},
 
 		{
+			"foo ${42}",
+			false,
+			&ast.Concat{
+				Posx: ast.Pos{Column: 1, Line: 1},
+				Exprs: []ast.Node{
+					&ast.LiteralNode{
+						Value: "foo ",
+						Type:  ast.TypeString,
+						Posx:  ast.Pos{Column: 1, Line: 1},
+					},
+					&ast.LiteralNode{
+						Value: 42,
+						Type:  ast.TypeInt,
+						Posx:  ast.Pos{Column: 7, Line: 1},
+					},
+				},
+			},
+		},
+
+		{
+			"foo ${3.14159}",
+			false,
+			&ast.Concat{
+				Posx: ast.Pos{Column: 1, Line: 1},
+				Exprs: []ast.Node{
+					&ast.LiteralNode{
+						Value: "foo ",
+						Type:  ast.TypeString,
+						Posx:  ast.Pos{Column: 1, Line: 1},
+					},
+					&ast.LiteralNode{
+						Value: 3.14159,
+						Type:  ast.TypeFloat,
+						Posx:  ast.Pos{Column: 7, Line: 1},
+					},
+				},
+			},
+		},
+
+		{
 			"${foo()}",
 			false,
 			&ast.Call{
