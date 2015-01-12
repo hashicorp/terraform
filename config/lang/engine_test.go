@@ -10,14 +10,14 @@ import (
 func TestEngineExecute(t *testing.T) {
 	cases := []struct {
 		Input      string
-		Engine     *Engine
+		Scope      *Scope
 		Error      bool
 		Result     interface{}
 		ResultType ast.Type
 	}{
 		{
 			"foo",
-			&Engine{},
+			nil,
 			false,
 			"foo",
 			ast.TypeString,
@@ -25,7 +25,7 @@ func TestEngineExecute(t *testing.T) {
 
 		{
 			"foo ${bar}",
-			&Engine{
+			&Scope{
 				VarMap: map[string]Variable{
 					"bar": Variable{
 						Value: "baz",
@@ -40,7 +40,7 @@ func TestEngineExecute(t *testing.T) {
 
 		{
 			"foo ${rand()}",
-			&Engine{
+			&Scope{
 				FuncMap: map[string]Function{
 					"rand": Function{
 						ReturnType: ast.TypeString,
@@ -62,7 +62,8 @@ func TestEngineExecute(t *testing.T) {
 			t.Fatalf("Error: %s\n\nInput: %s", err, tc.Input)
 		}
 
-		out, outType, err := tc.Engine.Execute(node)
+		engine := &Engine{GlobalScope: tc.Scope}
+		out, outType, err := engine.Execute(node)
 		if (err != nil) != tc.Error {
 			t.Fatalf("Error: %s\n\nInput: %s", err, tc.Input)
 		}
