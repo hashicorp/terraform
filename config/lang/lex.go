@@ -299,9 +299,19 @@ func (x *parserLex) lexString(yylval *parserSymType, quoted bool) (int, bool) {
 
 		// If we hit a dollar sign, then check if we're starting
 		// another interpolation. If so, then we're done.
-		if c == '$' && x.peek() == '{' {
-			x.backup()
-			break
+		if c == '$' {
+			n := x.peek()
+
+			// If it is '{', then we're starting another interpolation
+			if n == '{' {
+				x.backup()
+				break
+			}
+
+			// If it is '$', then we're escaping a dollar sign
+			if n == '$' {
+				x.next()
+			}
 		}
 
 		if _, err := b.WriteRune(c); err != nil {
