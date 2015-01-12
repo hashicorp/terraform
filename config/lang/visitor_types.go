@@ -10,8 +10,7 @@ import (
 // TypeVisitor implements ast.Visitor for type checking an AST tree.
 // It requires some configuration to look up the type of nodes.
 type TypeVisitor struct {
-	VarMap  map[string]Variable
-	FuncMap map[string]Function
+	Scope *Scope
 
 	stack []ast.Type
 	err   error
@@ -47,7 +46,7 @@ func (v *TypeVisitor) visit(raw ast.Node) {
 
 func (v *TypeVisitor) visitCall(n *ast.Call) {
 	// Look up the function in the map
-	function, ok := v.FuncMap[n.Func]
+	function, ok := v.Scope.LookupFunc(n.Func)
 	if !ok {
 		v.createErr(n, fmt.Sprintf("unknown function called: %s", n.Func))
 		return
@@ -98,7 +97,7 @@ func (v *TypeVisitor) visitLiteral(n *ast.LiteralNode) {
 
 func (v *TypeVisitor) visitVariableAccess(n *ast.VariableAccess) {
 	// Look up the variable in the map
-	variable, ok := v.VarMap[n.Name]
+	variable, ok := v.Scope.LookupVar(n.Name)
 	if !ok {
 		v.createErr(n, fmt.Sprintf(
 			"unknown variable accessed: %s", n.Name))

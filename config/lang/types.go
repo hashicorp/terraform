@@ -51,8 +51,3 @@ func (n typedVariableAccess) Type(s *Scope) (ast.Type, error) {
 
 	return v.Type, nil
 }
-
-var supportedTransforms = map[ast.Type]ast.Type{
-	ast.TypeString: ast.TypeInt,
-	ast.TypeInt:    ast.TypeString,
-}
