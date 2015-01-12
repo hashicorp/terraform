@@ -2503,6 +2503,45 @@ func TestSchemaMap_Validate(t *testing.T) {
 
 			Err: true,
 		},
+
+		{
+			Schema: map[string]*Schema{
+				"security_groups": &Schema{
+					Type:     TypeSet,
+					Optional: true,
+					Computed: true,
+					ForceNew: true,
+					Elem:     &Schema{Type: TypeString},
+					Set: func(v interface{}) int {
+						return len(v.(string))
+					},
+				},
+			},
+
+			Config: map[string]interface{}{
+				"security_groups": []interface{}{"${var.foo}"},
+			},
+
+			Err: false,
+		},
+
+		{
+			Schema: map[string]*Schema{
+				"security_groups": &Schema{
+					Type:     TypeSet,
+					Optional: true,
+					Computed: true,
+					ForceNew: true,
+					Elem:     &Schema{Type: TypeString},
+				},
+			},
+
+			Config: map[string]interface{}{
+				"security_groups": "${var.foo}",
+			},
+
+			Err: true,
+		},
 	}
 
 	for i, tc := range cases {
