@@ -1,4 +1,18 @@
-## 0.3.6 (unreleased)
+## 0.3.7 (unreleased)
+
+IMPROVEMENTS:
+
+ * provider/aws: Internet gateway supports tags [GH-720]
+
+BUG FIXES:
+
+ * core: Fixing use of remote state with plan files. [GH-741]
+
+PLUGIN CHANGES:
+
+ * New `helper/schema` type: `TypeFloat` [GH-594]
+
+## 0.3.6 (January 6, 2015)
 
 FEATURES:
 
@@ -6,8 +20,12 @@ FEATURES:
 
 IMPROVEMENTS:
 
+  * **New resource: `aws_key_pair`** - Import a public key into AWS. [GH-695]
   * **New resource: `heroku_cert`** - Manage Heroku app certs.
+  * provider/aws: Support `eu-central-1`, `cn-north-1`, and GovCloud. [GH-525]
   * provider/aws: `route_table` can have tags. [GH-648]
+  * provider/google: Support Ubuntu images. [GH-724]
+  * provider/google: Support for service accounts. [GH-725]
 
 BUG FIXES:
 
@@ -17,9 +35,29 @@ BUG FIXES:
       resulting in cleaner plans. [GH-663]
   * core: fix issue where "diff was not the same" would come up with
       diffing lists. [GH-661]
+  * core: fix crash where module inputs weren't strings, and add more
+      validation around invalid types here. [GH-624]
+  * core: fix error when using a computed module output as an input to
+      another module. [GH-659]
+  * core: map overrides in "terraform.tfvars" no longer result in a syntax
+      error. [GH-647]
+  * core: Colon character works in interpolation [GH-700]
   * provider/aws: Fix crash case when internet gateway is not attached
       to any VPC. [GH-664]
   * provider/aws: `vpc_id` is no longer required. [GH-667]
+  * provider/aws: `availability_zones` on ELB will contain more than one
+      AZ if it is set as such. [GH-682]
+  * provider/aws: More fields are marked as "computed" properly, resulting
+      in more accurate diffs for AWS instances. [GH-712]
+  * provider/aws: Fix panic case by using the wrong type when setting
+      volume size for AWS instances. [GH-712]
+  * provider/aws: route table ignores routes with 'EnableVgwRoutePropagation'
+      origin since those come from gateways. [GH-722]
+  * provider/aws: Default network ACL ID and default security group ID
+      support for `aws_vpc`. [GH-704]
+  * provider/aws: Tags are not marked as computed. This introduces another
+      issue with not detecting external tags, but this will be fixed in
+      the future. [GH-730]
 
 ## 0.3.5 (December 9, 2014)
 

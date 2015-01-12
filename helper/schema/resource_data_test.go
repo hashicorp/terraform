@@ -592,6 +592,29 @@ func TestResourceDataGet(t *testing.T) {
 				},
 			},
 		},
+
+		// #19 Empty Set
+		{
+			Schema: map[string]*Schema{
+				"ports": &Schema{
+					Type:     TypeSet,
+					Optional: true,
+					Computed: true,
+					Elem:     &Schema{Type: TypeInt},
+					Set: func(a interface{}) int {
+						return a.(int)
+					},
+				},
+			},
+
+			State: nil,
+
+			Diff: nil,
+
+			Key: "ports",
+
+			Value: []interface{}{},
+		},
 	}
 
 	for i, tc := range cases {
@@ -606,7 +629,7 @@ func TestResourceDataGet(t *testing.T) {
 		}
 
 		if !reflect.DeepEqual(v, tc.Value) {
-			t.Fatalf("Bad: %d\n\n%#v", i, v)
+			t.Fatalf("Bad: %d\n\n%#v\n\nExpected: %#v", i, v, tc.Value)
 		}
 	}
 }
@@ -975,8 +998,12 @@ func TestResourceDataSet(t *testing.T) {
 		Err      bool
 		GetKey   string
 		GetValue interface{}
+
+		// GetPreProcess can be set to munge the return value before being
+		// compared to GetValue
+		GetPreProcess func(interface{}) interface{}
 	}{
-		// Basic good
+		// #0: Basic good
 		{
 			Schema: map[string]*Schema{
 				"availability_zone": &Schema{
@@ -998,7 +1025,7 @@ func TestResourceDataSet(t *testing.T) {
 			GetValue: "foo",
 		},
 
-		// Basic int
+		// #1: Basic int
 		{
 			Schema: map[string]*Schema{
 				"port": &Schema{
@@ -1020,7 +1047,7 @@ func TestResourceDataSet(t *testing.T) {
 			GetValue: 80,
 		},
 
-		// Basic bool
+		// #2: Basic bool
 		{
 			Schema: map[string]*Schema{
 				"vpc": &Schema{
@@ -1040,6 +1067,7 @@ func TestResourceDataSet(t *testing.T) {
 			GetValue: true,
 		},
 
+		// #3
 		{
 			Schema: map[string]*Schema{
 				"vpc": &Schema{
@@ -1059,7 +1087,7 @@ func TestResourceDataSet(t *testing.T) {
 			GetValue: false,
 		},
 
-		// Invalid type
+		// #4: Invalid type
 		{
 			Schema: map[string]*Schema{
 				"availability_zone": &Schema{
@@ -1082,35 +1110,7 @@ func TestResourceDataSet(t *testing.T) {
 			GetValue: "",
 		},
 
-		// List of primitives, set element
-		{
-			Schema: map[string]*Schema{
-				"ports": &Schema{
-					Type:     TypeList,
-					Computed: true,
-					Elem:     &Schema{Type: TypeInt},
-				},
-			},
-
-			State: &terraform.InstanceState{
-				Attributes: map[string]string{
-					"ports.#": "3",
-					"ports.0": "1",
-					"ports.1": "2",
-					"ports.2": "5",
-				},
-			},
-
-			Diff: nil,
-
-			Key:   "ports.1",
-			Value: 3,
-
-			GetKey:   "ports",
-			GetValue: []interface{}{1, 3, 5},
-		},
-
-		// List of primitives, set list
+		// #5: List of primitives, set list
 		{
 			Schema: map[string]*Schema{
 				"ports": &Schema{
@@ -1131,7 +1131,7 @@ func TestResourceDataSet(t *testing.T) {
 			GetValue: []interface{}{1, 2, 5},
 		},
 
-		// List of primitives, set list with error
+		// #6: List of primitives, set list with error
 		{
 			Schema: map[string]*Schema{
 				"ports": &Schema{
@@ -1153,140 +1153,7 @@ func TestResourceDataSet(t *testing.T) {
 			GetValue: []interface{}{},
 		},
 
-		// List of resource, set element
-		{
-			Schema: map[string]*Schema{
-				"ingress": &Schema{
-					Type:     TypeList,
-					Computed: true,
-					Elem: &Resource{
-						Schema: map[string]*Schema{
-							"from": &Schema{
-								Type: TypeInt,
-							},
-						},
-					},
-				},
-			},
-
-			State: &terraform.InstanceState{
-				Attributes: map[string]string{
-					"ingress.#":      "2",
-					"ingress.0.from": "80",
-					"ingress.1.from": "8080",
-				},
-			},
-
-			Diff: nil,
-
-			Key:   "ingress.1.from",
-			Value: 9000,
-
-			GetKey: "ingress",
-			GetValue: []interface{}{
-				map[string]interface{}{
-					"from": 80,
-				},
-				map[string]interface{}{
-					"from": 9000,
-				},
-			},
-		},
-
-		// List of resource, set full resource element
-		{
-			Schema: map[string]*Schema{
-				"ingress": &Schema{
-					Type:     TypeList,
-					Computed: true,
-					Elem: &Resource{
-						Schema: map[string]*Schema{
-							"from": &Schema{
-								Type: TypeInt,
-							},
-						},
-					},
-				},
-			},
-
-			State: &terraform.InstanceState{
-				Attributes: map[string]string{
-					"ingress.#":      "2",
-					"ingress.0.from": "80",
-					"ingress.1.from": "8080",
-				},
-			},
-
-			Diff: nil,
-
-			Key: "ingress.1",
-			Value: map[string]interface{}{
-				"from": 9000,
-			},
-
-			GetKey: "ingress",
-			GetValue: []interface{}{
-				map[string]interface{}{
-					"from": 80,
-				},
-				map[string]interface{}{
-					"from": 9000,
-				},
-			},
-		},
-
-		// List of resource, set full resource element, with error
-		{
-			Schema: map[string]*Schema{
-				"ingress": &Schema{
-					Type:     TypeList,
-					Computed: true,
-					Elem: &Resource{
-						Schema: map[string]*Schema{
-							"from": &Schema{
-								Type: TypeInt,
-							},
-							"to": &Schema{
-								Type: TypeInt,
-							},
-						},
-					},
-				},
-			},
-
-			State: &terraform.InstanceState{
-				Attributes: map[string]string{
-					"ingress.#":      "2",
-					"ingress.0.from": "80",
-					"ingress.0.to":   "10",
-					"ingress.1.from": "8080",
-					"ingress.1.to":   "8080",
-				},
-			},
-
-			Diff: nil,
-
-			Key: "ingress.1",
-			Value: map[string]interface{}{
-				"from": 9000,
-				"to":   "bar",
-			},
-			Err: true,
-
-			GetKey: "ingress",
-			GetValue: []interface{}{
-				map[string]interface{}{
-					"from": 80,
-					"to":   10,
-				},
-				map[string]interface{}{
-					"from": 8080,
-					"to":   8080,
-				},
-			},
-		},
-
-		// Set a list of maps
+		// #7: Set a list of maps
 		{
 			Schema: map[string]*Schema{
 				"config_vars": &Schema{
@@ -1325,46 +1192,7 @@ func TestResourceDataSet(t *testing.T) {
 			},
 		},
 
-		// Set a list of maps
-		{
-			Schema: map[string]*Schema{
-				"config_vars": &Schema{
-					Type:     TypeList,
-					Optional: true,
-					Computed: true,
-					Elem: &Schema{
-						Type: TypeMap,
-					},
-				},
-			},
-
-			State: nil,
-
-			Diff: nil,
-
-			Key: "config_vars",
-			Value: []interface{}{
-				map[string]string{
-					"foo": "bar",
-				},
-				map[string]string{
-					"bar": "baz",
-				},
-			},
-			Err: false,
-
-			GetKey: "config_vars",
-			GetValue: []interface{}{
-				map[string]interface{}{
-					"foo": "bar",
-				},
-				map[string]interface{}{
-					"bar": "baz",
-				},
-			},
-		},
-
-		// Set, with list
+		// #8: Set, with list
 		{
 			Schema: map[string]*Schema{
 				"ports": &Schema{
@@ -1394,7 +1222,7 @@ func TestResourceDataSet(t *testing.T) {
 			GetValue: []interface{}{100, 125},
 		},
 
-		// Set, with Set
+		// #9: Set, with Set
 		{
 			Schema: map[string]*Schema{
 				"ports": &Schema{
@@ -1429,7 +1257,7 @@ func TestResourceDataSet(t *testing.T) {
 			GetValue: []interface{}{1, 2},
 		},
 
-		// Set single item
+		// #10: Set single item
 		{
 			Schema: map[string]*Schema{
 				"ports": &Schema{
@@ -1458,6 +1286,74 @@ func TestResourceDataSet(t *testing.T) {
 			GetKey:   "ports",
 			GetValue: []interface{}{80, 100},
 		},
+
+		// #11: Set with nested set
+		{
+			Schema: map[string]*Schema{
+				"ports": &Schema{
+					Type: TypeSet,
+					Elem: &Resource{
+						Schema: map[string]*Schema{
+							"port": &Schema{
+								Type: TypeInt,
+							},
+
+							"set": &Schema{
+								Type: TypeSet,
+								Elem: &Schema{Type: TypeInt},
+								Set: func(a interface{}) int {
+									return a.(int)
+								},
+							},
+						},
+					},
+					Set: func(a interface{}) int {
+						return a.(map[string]interface{})["port"].(int)
+					},
+				},
+			},
+
+			State: nil,
+
+			Key: "ports",
+			Value: []interface{}{
+				map[string]interface{}{
+					"port": 80,
+				},
+			},
+
+			GetKey: "ports",
+			GetValue: []interface{}{
+				map[string]interface{}{
+					"port": 80,
+					"set":  []interface{}{},
+				},
+			},
+
+			GetPreProcess: func(v interface{}) interface{} {
+				if v == nil {
+					return v
+				}
+				s, ok := v.([]interface{})
+				if !ok {
+					return v
+				}
+				for _, v := range s {
+					m, ok := v.(map[string]interface{})
+					if !ok {
+						continue
+					}
+					if m["set"] == nil {
+						continue
+					}
+					if s, ok := m["set"].(*Set); ok {
+						m["set"] = s.List()
+					}
+				}
+
+				return v
+			},
+		},
 	}
 
 	for i, tc := range cases {
@@ -1475,6 +1371,11 @@ func TestResourceDataSet(t *testing.T) {
 		if s, ok := v.(*Set); ok {
 			v = s.List()
 		}
+
+		if tc.GetPreProcess != nil {
+			v = tc.GetPreProcess(v)
+		}
+
 		if !reflect.DeepEqual(v, tc.GetValue) {
 			t.Fatalf("Get Bad: %d\n\n%#v", i, v)
 		}
@@ -1490,7 +1391,7 @@ func TestResourceDataState(t *testing.T) {
 		Result  *terraform.InstanceState
 		Partial []string
 	}{
-		// Basic primitive in diff
+		// #0 Basic primitive in diff
 		{
 			Schema: map[string]*Schema{
 				"availability_zone": &Schema{
@@ -1520,7 +1421,7 @@ func TestResourceDataState(t *testing.T) {
 			},
 		},
 
-		// Basic primitive set override
+		// #1 Basic primitive set override
 		{
 			Schema: map[string]*Schema{
 				"availability_zone": &Schema{
@@ -1554,6 +1455,7 @@ func TestResourceDataState(t *testing.T) {
 			},
 		},
 
+		// #2
 		{
 			Schema: map[string]*Schema{
 				"vpc": &Schema{
@@ -1577,7 +1479,7 @@ func TestResourceDataState(t *testing.T) {
 			},
 		},
 
-		// Basic primitive with StateFunc set
+		// #3 Basic primitive with StateFunc set
 		{
 			Schema: map[string]*Schema{
 				"availability_zone": &Schema{
@@ -1607,7 +1509,7 @@ func TestResourceDataState(t *testing.T) {
 			},
 		},
 
-		// List
+		// #4 List
 		{
 			Schema: map[string]*Schema{
 				"ports": &Schema{
@@ -1646,7 +1548,7 @@ func TestResourceDataState(t *testing.T) {
 			},
 		},
 
-		// List of resources
+		// #5 List of resources
 		{
 			Schema: map[string]*Schema{
 				"ingress": &Schema{
@@ -1696,7 +1598,7 @@ func TestResourceDataState(t *testing.T) {
 			},
 		},
 
-		// List of maps
+		// #6 List of maps
 		{
 			Schema: map[string]*Schema{
 				"config_vars": &Schema{
@@ -1727,8 +1629,13 @@ func TestResourceDataState(t *testing.T) {
 			},
 
 			Set: map[string]interface{}{
-				"config_vars.1": map[string]interface{}{
-					"baz": "bang",
+				"config_vars": []map[string]interface{}{
+					map[string]interface{}{
+						"foo": "bar",
+					},
+					map[string]interface{}{
+						"baz": "bang",
+					},
 				},
 			},
 
@@ -1741,7 +1648,7 @@ func TestResourceDataState(t *testing.T) {
 			},
 		},
 
-		// List of maps with removal in diff
+		// #7 List of maps with removal in diff
 		{
 			Schema: map[string]*Schema{
 				"config_vars": &Schema{
@@ -1781,7 +1688,7 @@ func TestResourceDataState(t *testing.T) {
 			},
 		},
 
-		// Basic state with other keys
+		// #8 Basic state with other keys
 		{
 			Schema: map[string]*Schema{
 				"availability_zone": &Schema{
@@ -1818,7 +1725,7 @@ func TestResourceDataState(t *testing.T) {
 			},
 		},
 
-		// Sets
+		// #9 Sets
 		{
 			Schema: map[string]*Schema{
 				"ports": &Schema{
@@ -1853,6 +1760,7 @@ func TestResourceDataState(t *testing.T) {
 			},
 		},
 
+		// #10
 		{
 			Schema: map[string]*Schema{
 				"ports": &Schema{
@@ -1883,6 +1791,7 @@ func TestResourceDataState(t *testing.T) {
 			},
 		},
 
+		// #11
 		{
 			Schema: map[string]*Schema{
 				"ports": &Schema{
@@ -1944,7 +1853,9 @@ func TestResourceDataState(t *testing.T) {
 					"ports.10.order": "10",
 					"ports.10.a.#":   "1",
 					"ports.10.a.0":   "80",
+					"ports.10.b.#":   "0",
 					"ports.20.order": "20",
+					"ports.20.a.#":   "0",
 					"ports.20.b.#":   "1",
 					"ports.20.b.0":   "100",
 				},
@@ -1955,7 +1866,7 @@ func TestResourceDataState(t *testing.T) {
 		 * PARTIAL STATES
 		 */
 
-		// Basic primitive
+		// #12 Basic primitive
 		{
 			Schema: map[string]*Schema{
 				"availability_zone": &Schema{
@@ -1981,11 +1892,13 @@ func TestResourceDataState(t *testing.T) {
 			Partial: []string{},
 
 			Result: &terraform.InstanceState{
-				Attributes: map[string]string{},
+				Attributes: map[string]string{
+					"availability_zone": "",
+				},
 			},
 		},
 
-		// List
+		// #13 List
 		{
 			Schema: map[string]*Schema{
 				"ports": &Schema{
@@ -2025,6 +1938,7 @@ func TestResourceDataState(t *testing.T) {
 			},
 		},
 
+		// #14
 		{
 			Schema: map[string]*Schema{
 				"ports": &Schema{
@@ -2059,7 +1973,7 @@ func TestResourceDataState(t *testing.T) {
 			},
 		},
 
-		// List of resources
+		// #15 List of resources
 		{
 			Schema: map[string]*Schema{
 				"ingress": &Schema{
@@ -2110,7 +2024,7 @@ func TestResourceDataState(t *testing.T) {
 			},
 		},
 
-		// List of maps
+		// #16 List of maps
 		{
 			Schema: map[string]*Schema{
 				"config_vars": &Schema{
@@ -2141,8 +2055,13 @@ func TestResourceDataState(t *testing.T) {
 			},
 
 			Set: map[string]interface{}{
-				"config_vars.1": map[string]interface{}{
-					"baz": "bang",
+				"config_vars": []map[string]interface{}{
+					map[string]interface{}{
+						"foo": "bar",
+					},
+					map[string]interface{}{
+						"baz": "bang",
+					},
 				},
 			},
 
@@ -2150,6 +2069,7 @@ func TestResourceDataState(t *testing.T) {
 
 			Result: &terraform.InstanceState{
 				Attributes: map[string]string{
+					// TODO: broken, shouldn't bar be removed?
 					"config_vars.#":     "2",
 					"config_vars.0.foo": "bar",
 					"config_vars.0.bar": "bar",
@@ -2158,7 +2078,7 @@ func TestResourceDataState(t *testing.T) {
 			},
 		},
 
-		// Sets
+		// #17 Sets
 		{
 			Schema: map[string]*Schema{
 				"ports": &Schema{
@@ -2201,6 +2121,7 @@ func TestResourceDataState(t *testing.T) {
 			},
 		},
 
+		// #18
 		{
 			Schema: map[string]*Schema{
 				"ports": &Schema{
@@ -2234,7 +2155,7 @@ func TestResourceDataState(t *testing.T) {
 			},
 		},
 
-		// Maps
+		// #19 Maps
 		{
 			Schema: map[string]*Schema{
 				"tags": &Schema{
@@ -2262,6 +2183,7 @@ func TestResourceDataState(t *testing.T) {
 			},
 		},
 
+		// #20
 		{
 			Schema: map[string]*Schema{
 				"tags": &Schema{

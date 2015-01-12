@@ -11,6 +11,8 @@
 // A good starting point is to view the Provider structure.
 package schema
 
+//go:generate stringer -type=ValueType
+
 import (
 	"fmt"
 	"reflect"
@@ -29,11 +31,39 @@ const (
 	TypeInvalid ValueType = iota
 	TypeBool
 	TypeInt
+	TypeFloat
 	TypeString
 	TypeList
 	TypeMap
 	TypeSet
+	typeObject
 )
+
+// Zero returns the zero value for a type.
+func (t ValueType) Zero() interface{} {
+	switch t {
+	case TypeInvalid:
+		return nil
+	case TypeBool:
+		return false
+	case TypeInt:
+		return 0
+	case TypeFloat:
+		return 0.0
+	case TypeString:
+		return ""
+	case TypeList:
+		return []interface{}{}
+	case TypeMap:
+		return map[string]interface{}{}
+	case TypeSet:
+		return nil
+	case typeObject:
+		return map[string]interface{}{}
+	default:
+		panic(fmt.Sprintf("unknown type %s", t))
+	}
+}
 
 // Schema is used to describe the structure of a value.
 //
@@ -198,10 +228,9 @@ func (m schemaMap) Diff(
 	result.Attributes = make(map[string]*terraform.ResourceAttrDiff)
 
 	d := &ResourceData{
-		schema:  m,
-		state:   s,
-		config:  c,
-		diffing: true,
+		schema: m,
+		state:  s,
+		config: c,
 	}
 
 	for k, schema := range m {
@@ -220,8 +249,10 @@ func (m schemaMap) Diff(
 		result2 := new(terraform.InstanceDiff)
 		result2.Attributes = make(map[string]*terraform.ResourceAttrDiff)
 
-		// Reset the data to not contain state
+		// Reset the data to not contain state. We have to call init()
+		// again in order to reset the FieldReaders.
 		d.state = nil
+		d.init()
 
 		// Perform the diff again
 		for k, schema := range m {
@@ -457,6 +488,9 @@ func (m schemaMap) diffList(
 	d *ResourceData,
 	all bool) error {
 	o, n, _, computedList := d.diffChange(k)
+	if computedList {
+		n = nil
+	}
 	nSet := n != nil
 
 	// If we have an old value and no new value is set or will be
@@ -583,6 +617,41 @@ func (m schemaMap) diffMap(
 		return fmt.Errorf("%s: %s", k, err)
 	}
 
+	// Delete any count values, since we don't use those
+	delete(configMap, "#")
+	delete(stateMap, "#")
+
+	// Check if the number of elements has changed. If we're computing
+	// a list and there isn't a config, then it hasn't changed.
+	oldLen, newLen := len(stateMap), len(configMap)
+	changed := oldLen != newLen
+	if oldLen != 0 && newLen == 0 && schema.Computed {
+		changed = false
+	}
+	computed := oldLen == 0 && newLen == 0 && schema.Computed
+	if changed || computed {
+		countSchema := &Schema{
+			Type:     TypeInt,
+			Computed: schema.Computed,
+			ForceNew: schema.ForceNew,
+		}
+
+		oldStr := strconv.FormatInt(int64(oldLen), 10)
+		newStr := ""
+		if !computed {
+			newStr = strconv.FormatInt(int64(newLen), 10)
+		} else {
+			oldStr = ""
+		}
+
+		diff.Attributes[k+".#"] = countSchema.finalizeDiff(
+			&terraform.ResourceAttrDiff{
+				Old: oldStr,
+				New: newStr,
+			},
+		)
+	}
+
 	// If the new map is nil and we're computed, then ignore it.
 	if n == nil && schema.Computed {
 		return nil
@@ -619,6 +688,9 @@ func (m schemaMap) diffSet(
 	d *ResourceData,
 	all bool) error {
 	o, n, _, computedSet := d.diffChange(k)
+	if computedSet {
+		n = nil
+	}
 	nSet := n != nil
 
 	// If we have an old value and no new value is set or will be

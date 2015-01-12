@@ -162,7 +162,7 @@ func (c *RemoteCommand) disableRemoteState() int {
 	}
 	defer fh.Close()
 	if err := terraform.WriteState(local, fh); err != nil {
-		c.Ui.Error(fmt.Sprintf("Failed to encode state file: %v",
+		c.Ui.Error(fmt.Sprintf("Failed to encode state file '%s': %v",
 			c.conf.statePath, err))
 		return 1
 	}

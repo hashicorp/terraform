@@ -41,7 +41,7 @@ The `rule` block supports:
 * `action` - (Optional) The action for the rule. Valid options are: `allow` and
     `deny` (defaults allow).
 
-* `source_cidr` - (Required) The source cidr to allow access to the given ports.
+* `source_cidr` - (Required) The source CIDR to allow access to the given ports.
 
 * `protocol` - (Required) The name of the protocol to allow. Valid options are:
     `tcp`, `udp`, `icmp`, `all` or a valid protocol number.

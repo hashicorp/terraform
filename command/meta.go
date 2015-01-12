@@ -106,6 +106,14 @@ func (m *Meta) Context(copts contextOpts) (*terraform.Context, bool, error) {
 		plan, err := terraform.ReadPlan(f)
 		f.Close()
 		if err == nil {
+			// Check if remote state is enabled, but do not refresh.
+			// Since a plan is supposed to lock-in the changes, we do not
+			// attempt a state refresh.
+			if plan != nil && plan.State != nil && plan.State.Remote != nil && plan.State.Remote.Type != "" {
+				log.Printf("[INFO] Enabling remote state from plan")
+				m.useRemoteState = true
+			}
+
 			if len(m.variables) > 0 {
 				return nil, false, fmt.Errorf(
 					"You can't set variables with the '-var' or '-var-file' flag\n" +

@@ -1,6 +1,7 @@
 package schema
 
 import (
+	"fmt"
 	"sort"
 	"sync"
 )
@@ -98,6 +99,10 @@ func (s *Set) Union(other *Set) *Set {
 	}
 
 	return result
+}
+
+func (s *Set) GoString() string {
+	return fmt.Sprintf("*Set(%#v)", s.m)
 }
 
 func (s *Set) init() {

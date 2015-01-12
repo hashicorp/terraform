@@ -438,6 +438,15 @@ func (d *InstanceDiff) Same(d2 *InstanceDiff) bool {
 				}
 			}
 
+			// This is a little tricky, but when a diff contains a computed list
+			// or set that can only be interpolated after the apply command has
+			// created the dependant resources, it could turn out that the result
+			// is actually the same as the existing state which would remove the
+			// key from the diff.
+			if diffOld.NewComputed && strings.HasSuffix(k, ".#") {
+				ok = true
+			}
+
 			if !ok {
 				return false
 			}

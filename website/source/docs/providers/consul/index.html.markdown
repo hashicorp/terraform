@@ -8,7 +8,7 @@ description: |-
 
 # Consul Provider
 
-[Consul](http://www.consul.io) is a tool for service discovery, configuration
+[Consul](https://www.consul.io) is a tool for service discovery, configuration
 and orchestration. The Consul provider exposes resources used to interact with a
 Consul cluster. Configuration of the provider is optional, as it provides
 defaults for all arguments.

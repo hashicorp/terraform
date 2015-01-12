@@ -22,6 +22,7 @@ func resourceAwsInternetGateway() *schema.Resource {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
+			"tags": tagsSchema(),
 		},
 	}
 }
@@ -66,6 +67,8 @@ func resourceAwsInternetGatewayRead(d *schema.ResourceData, meta interface{}) er
 		d.Set("vpc_id", ig.Attachments[0].VpcId)
 	}
 
+	d.Set("tags", tagsToMap(ig.Tags))
+
 	return nil
 }
 
@@ -82,6 +85,14 @@ func resourceAwsInternetGatewayUpdate(d *schema.ResourceData, meta interface{}) 
 		}
 	}
 
+	ec2conn := meta.(*AWSClient).ec2conn
+
+	if err := setTags(ec2conn, d); err != nil {
+		return err
+	}
+
+	d.SetPartial("tags")
+
 	return nil
 }
 
@@ -97,40 +108,24 @@ func resourceAwsInternetGatewayDelete(d *schema.ResourceData, meta interface{}) 
 
 	return resource.Retry(5*time.Minute, func() error {
 		_, err := ec2conn.DeleteInternetGateway(d.Id())
-		if err != nil {
-			ec2err, ok := err.(*ec2.Error)
-			if !ok {
-				return err
-			}
-
-			switch ec2err.Code {
-			case "InvalidInternetGatewayID.NotFound":
-				return nil
-			case "DependencyViolation":
-				return err // retry
-			default:
-				return resource.RetryError{err}
-			}
+		if err == nil {
+			return nil
 		}
 
-		return fmt.Errorf("Error deleting internet gateway: %s", err)
+		ec2err, ok := err.(*ec2.Error)
+		if !ok {
+			return err
+		}
+
+		switch ec2err.Code {
+		case "InvalidInternetGatewayID.NotFound":
+			return nil
+		case "DependencyViolation":
+			return err // retry
+		}
+
+		return resource.RetryError{err}
 	})
-
-	// Wait for the internet gateway to actually delete
-	log.Printf("[DEBUG] Waiting for internet gateway (%s) to delete", d.Id())
-	stateConf := &resource.StateChangeConf{
-		Pending: []string{"available"},
-		Target:  "",
-		Refresh: IGStateRefreshFunc(ec2conn, d.Id()),
-		Timeout: 10 * time.Minute,
-	}
-	if _, err := stateConf.WaitForState(); err != nil {
-		return fmt.Errorf(
-			"Error waiting for internet gateway (%s) to destroy: %s",
-			d.Id(), err)
-	}
-
-	return nil
 }
 
 func resourceAwsInternetGatewayAttach(d *schema.ResourceData, meta interface{}) error {
@@ -179,9 +174,9 @@ func resourceAwsInternetGatewayDetach(d *schema.ResourceData, meta interface{}) 
 	ec2conn := meta.(*AWSClient).ec2conn
 
 	// Get the old VPC ID to detach from
-	vpc_id, _ := d.GetChange("vpc_id")
+	vpcID, _ := d.GetChange("vpc_id")
 
-	if vpc_id.(string) == "" {
+	if vpcID.(string) == "" {
 		log.Printf(
 			"[DEBUG] Not detaching Internet Gateway '%s' as no VPC ID is set",
 			d.Id())
@@ -191,10 +186,10 @@ func resourceAwsInternetGatewayDetach(d *schema.ResourceData, meta interface{}) 
 	log.Printf(
 		"[INFO] Detaching Internet Gateway '%s' from VPC '%s'",
 		d.Id(),
-		vpc_id.(string))
+		vpcID.(string))
 
 	wait := true
-	_, err := ec2conn.DetachInternetGateway(d.Id(), vpc_id.(string))
+	_, err := ec2conn.DetachInternetGateway(d.Id(), vpcID.(string))
 	if err != nil {
 		ec2err, ok := err.(*ec2.Error)
 		if ok {

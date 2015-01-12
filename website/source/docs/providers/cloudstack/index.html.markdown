@@ -3,14 +3,14 @@ layout: "cloudstack"
 page_title: "Provider: CloudStack"
 sidebar_current: "docs-cloudstack-index"
 description: |-
-  The CloudStack provider is used to interact with the many resources supported by CloudStack. The provider needs to be configured with a URL pointing to a runnning CloudStack API and the proper credentials before it can be used.
+  The CloudStack provider is used to interact with the many resources supported by CloudStack. The provider needs to be configured with a URL pointing to a running CloudStack API and the proper credentials before it can be used.
 ---
 
 # CloudStack Provider
 
 The CloudStack provider is used to interact with the many resources
 supported by CloudStack. The provider needs to be configured with a
-URL pointing to a runnning CloudStack API and the proper credentials
+URL pointing to a running CloudStack API and the proper credentials
 before it can be used.
 
 Use the navigation to the left to read about the available resources.

@@ -32,7 +32,7 @@ The following arguments are supported:
 * `value` - (Required) The value of the record
 * `type` - (Required) The type of the record
 * `ttl` - (Optional) The TTL of the record
-* `priority` - (Optional) The TTL of the record
+* `priority` - (Optional) The priority of the record
 
 ## Attributes Reference
 
@@ -42,7 +42,7 @@ The following attributes are exported:
 * `name` - The name of the record
 * `value` - The value of the record
 * `type` - The type of the record
-* `ttl` - The ttl of the record
+* `ttl` - The TTL of the record
 * `priority` - The priority of the record
 * `hostname` - The FQDN of the record
 

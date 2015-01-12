@@ -116,16 +116,15 @@ func resourceAwsRouteTableRead(d *schema.ResourceData, meta interface{}) error {
 			continue
 		}
 
+		if r.Origin == "EnableVgwRoutePropagation" {
+			continue
+		}
+
 		m := make(map[string]interface{})
 		m["cidr_block"] = r.DestinationCidrBlock
 
-		if r.GatewayId != "" {
-			m["gateway_id"] = r.GatewayId
-		}
-
-		if r.InstanceId != "" {
-			m["instance_id"] = r.InstanceId
-		}
+		m["gateway_id"] = r.GatewayId
+		m["instance_id"] = r.InstanceId
 
 		route.Add(m)
 	}

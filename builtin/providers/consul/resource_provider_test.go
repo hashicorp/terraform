@@ -3,7 +3,7 @@ package consul
 import (
 	"testing"
 
-	"github.com/armon/consul-api"
+	consulapi "github.com/hashicorp/consul/api"
 	"github.com/hashicorp/terraform/config"
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/terraform"

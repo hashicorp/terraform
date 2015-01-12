@@ -4,7 +4,7 @@ import (
 	"crypto/md5"
 	"fmt"
 
-	"github.com/armon/consul-api"
+	consulapi "github.com/hashicorp/consul/api"
 )
 
 // ConsulRemoteClient implements the RemoteClient interface

@@ -6,6 +6,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"log"
+	"strconv"
 	"strings"
 	"time"
 
@@ -136,6 +137,7 @@ func resourceAwsInstance() *schema.Resource {
 			"block_device": &schema.Schema{
 				Type:     schema.TypeSet,
 				Optional: true,
+				Computed: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"device_name": &schema.Schema{
@@ -153,18 +155,21 @@ func resourceAwsInstance() *schema.Resource {
 						"snapshot_id": &schema.Schema{
 							Type:     schema.TypeString,
 							Optional: true,
+							Computed: true,
 							ForceNew: true,
 						},
 
 						"volume_type": &schema.Schema{
 							Type:     schema.TypeString,
 							Optional: true,
+							Computed: true,
 							ForceNew: true,
 						},
 
 						"volume_size": &schema.Schema{
 							Type:     schema.TypeInt,
 							Optional: true,
+							Computed: true,
 							ForceNew: true,
 						},
 
@@ -178,6 +183,7 @@ func resourceAwsInstance() *schema.Resource {
 						"encrypted": &schema.Schema{
 							Type:     schema.TypeBool,
 							Optional: true,
+							Computed: true,
 							ForceNew: true,
 						},
 					},
@@ -385,11 +391,15 @@ func resourceAwsInstanceRead(d *schema.ResourceData, meta interface{}) error {
 
 	bds := make([]map[string]interface{}, len(volResp.Volumes))
 	for i, vol := range volResp.Volumes {
+		volSize, err := strconv.Atoi(vol.Size)
+		if err != nil {
+			return err
+		}
 		bds[i] = make(map[string]interface{})
 		bds[i]["device_name"] = bdByVolID[vol.VolumeId].DeviceName
 		bds[i]["snapshot_id"] = vol.SnapshotId
 		bds[i]["volume_type"] = vol.VolumeType
-		bds[i]["volume_size"] = vol.Size
+		bds[i]["volume_size"] = volSize
 		bds[i]["delete_on_termination"] = bdByVolID[vol.VolumeId].DeleteOnTermination
 		bds[i]["encrypted"] = vol.Encrypted
 	}
@@ -491,10 +501,7 @@ func resourceAwsInstanceBlockDevicesHash(v interface{}) int {
 	var buf bytes.Buffer
 	m := v.(map[string]interface{})
 	buf.WriteString(fmt.Sprintf("%s-", m["device_name"].(string)))
-	buf.WriteString(fmt.Sprintf("%s-", m["snapshot_id"].(string)))
-	buf.WriteString(fmt.Sprintf("%s-", m["volume_type"].(string)))
-	buf.WriteString(fmt.Sprintf("%d-", m["volume_size"].(int)))
+	buf.WriteString(fmt.Sprintf("%s-", m["virtual_name"].(string)))
 	buf.WriteString(fmt.Sprintf("%t-", m["delete_on_termination"].(bool)))
-	buf.WriteString(fmt.Sprintf("%t-", m["encrypted"].(bool)))
 	return hashcode.String(buf.String())
 }

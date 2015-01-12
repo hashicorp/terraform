@@ -60,7 +60,7 @@ Basic bullet point reference:
   * Numbers can be suffixed with `kKmMgG` for some multiple of 10.
     For example: `1k` is equal to `1000`.
 
-  * Numbers can be suffxed with `[kKmMgG]b` for power of 2 multiples,
+  * Numbers can be suffixed with `[kKmMgG]b` for power of 2 multiples,
     example: `1kb` is equal to `1024`.
 
   * Boolean values: `true`, `false`, `on`, `off`, `yes`, `no`.

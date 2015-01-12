@@ -3,15 +3,15 @@ layout: "docs"
 page_title: "Module Sources"
 sidebar_current: "docs-modules-sources"
 description: |-
-  As documented in usage, the only required parameter when using a module is the `source` paramter which tells Terraform where the module can be found and what constraints to put on the module if any (such as branches for git, versions, etc.).
+  As documented in usage, the only required parameter when using a module is the `source` parameter which tells Terraform where the module can be found and what constraints to put on the module if any (such as branches for Git, versions, etc.).
 ---
 
 # Module Sources
 
 As documented in [usage](/docs/modules/usage.html), the only required
-parameter when using a module is the `source` paramter which tells Terraform
+parameter when using a module is the `source` parameter which tells Terraform
 where the module can be found and what constraints to put on the module
-if any (such as branches for git, versions, etc.).
+if any (such as branches for Git, versions, etc.).
 
 Terraform manages modules for you: it downloads them, organizes them
 on disk, checks for updates, etc. Terraform uses this source parameter for

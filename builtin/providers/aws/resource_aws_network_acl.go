@@ -341,7 +341,7 @@ func resourceAwsNetworkAclEntryHash(v interface{}) int {
 	var buf bytes.Buffer
 	m := v.(map[string]interface{})
 	buf.WriteString(fmt.Sprintf("%d-", m["from_port"].(int)))
-	buf.WriteString(fmt.Sprintf("%s-", m["to_port"].(int)))
+	buf.WriteString(fmt.Sprintf("%d-", m["to_port"].(int)))
 	buf.WriteString(fmt.Sprintf("%d-", m["rule_no"].(int)))
 	buf.WriteString(fmt.Sprintf("%s-", m["action"].(string)))
 	buf.WriteString(fmt.Sprintf("%s-", m["protocol"].(string)))

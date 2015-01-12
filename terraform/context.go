@@ -1623,18 +1623,19 @@ func (c *walkContext) computeModuleVariable(
 	// Get that module from our state
 	mod := c.Context.state.ModuleByPath(path)
 	if mod == nil {
-		return "", fmt.Errorf(
-			"Module '%s' not found for variable '%s'",
-			strings.Join(path[1:], "."),
-			v.FullKey())
+		// If the module doesn't exist, then we can return an empty string.
+		// This happens usually only in Refresh() when we haven't populated
+		// a state. During validation, we semantically verify that all
+		// modules reference other modules, and graph ordering should
+		// ensure that the module is in the state, so if we reach this
+		// point otherwise it really is a panic.
+		return config.UnknownVariableValue, nil
 	}
 
 	value, ok := mod.Outputs[v.Field]
 	if !ok {
-		return "", fmt.Errorf(
-			"Output field '%s' not found for variable '%s'",
-			v.Field,
-			v.FullKey())
+		// Same reasons as the comment above.
+		return config.UnknownVariableValue, nil
 	}
 
 	return value, nil

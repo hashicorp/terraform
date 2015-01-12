@@ -2,8 +2,8 @@ package aws
 
 import (
 	"fmt"
-	"testing"
 	"reflect"
+	"testing"
 
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
@@ -190,6 +190,64 @@ func TestAccInstance_tags(t *testing.T) {
 	})
 }
 
+func TestAccInstance_privateIP(t *testing.T) {
+	var v ec2.Instance
+
+	testCheckPrivateIP := func() resource.TestCheckFunc {
+		return func(*terraform.State) error {
+			if v.PrivateIpAddress != "10.1.1.42" {
+				return fmt.Errorf("bad private IP: %s", v.PrivateIpAddress)
+			}
+
+			return nil
+		}
+	}
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckInstanceDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccInstanceConfigPrivateIP,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckInstanceExists("aws_instance.foo", &v),
+					testCheckPrivateIP(),
+				),
+			},
+		},
+	})
+}
+
+func TestAccInstance_associatePublicIPAndPrivateIP(t *testing.T) {
+	var v ec2.Instance
+
+	testCheckPrivateIP := func() resource.TestCheckFunc {
+		return func(*terraform.State) error {
+			if v.PrivateIpAddress != "10.1.1.42" {
+				return fmt.Errorf("bad private IP: %s", v.PrivateIpAddress)
+			}
+
+			return nil
+		}
+	}
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckInstanceDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccInstanceConfigAssociatePublicIPAndPrivateIP,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckInstanceExists("aws_instance.foo", &v),
+					testCheckPrivateIP(),
+				),
+			},
+		},
+	})
+}
+
 func testAccCheckInstanceDestroy(s *terraform.State) error {
 	conn := testAccProvider.Meta().(*AWSClient).ec2conn
 
@@ -252,12 +310,12 @@ func testAccCheckInstanceExists(n string, i *ec2.Instance) resource.TestCheckFun
 func TestInstanceTenancySchema(t *testing.T) {
 	actualSchema := resourceAwsInstance().Schema["tenancy"]
 	expectedSchema := &schema.Schema{
-				Type:     schema.TypeString,
-				Optional: true,
-				Computed: true,
-				ForceNew: true,
-			}
-	if !reflect.DeepEqual(actualSchema, expectedSchema  ) {
+		Type:     schema.TypeString,
+		Optional: true,
+		Computed: true,
+		ForceNew: true,
+	}
+	if !reflect.DeepEqual(actualSchema, expectedSchema) {
 		t.Fatalf(
 			"Got:\n\n%#v\n\nExpected:\n\n%#v\n",
 			actualSchema,
@@ -377,5 +435,42 @@ resource "aws_instance" "foo" {
 	tags {
 		bar = "baz"
 	}
+}
+`
+
+const testAccInstanceConfigPrivateIP = `
+resource "aws_vpc" "foo" {
+	cidr_block = "10.1.0.0/16"
+}
+
+resource "aws_subnet" "foo" {
+	cidr_block = "10.1.1.0/24"
+	vpc_id = "${aws_vpc.foo.id}"
+}
+
+resource "aws_instance" "foo" {
+	ami = "ami-c5eabbf5"
+	instance_type = "t2.micro"
+	subnet_id = "${aws_subnet.foo.id}"
+	private_ip = "10.1.1.42"
+}
+`
+
+const testAccInstanceConfigAssociatePublicIPAndPrivateIP = `
+resource "aws_vpc" "foo" {
+	cidr_block = "10.1.0.0/16"
+}
+
+resource "aws_subnet" "foo" {
+	cidr_block = "10.1.1.0/24"
+	vpc_id = "${aws_vpc.foo.id}"
+}
+
+resource "aws_instance" "foo" {
+	ami = "ami-c5eabbf5"
+	instance_type = "t2.micro"
+	subnet_id = "${aws_subnet.foo.id}"
+	associate_public_ip_address = true
+	private_ip = "10.1.1.42"
 }
 `

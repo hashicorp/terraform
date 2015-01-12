@@ -33,7 +33,7 @@ configuration files.
 
 As an example, we're going to use the
 [Consul Terraform module](#)
-which will setup a complete [Consul](http://www.consul.io) cluster
+which will setup a complete [Consul](https://www.consul.io) cluster
 for us.
 
 Create a configuration file with the following contents:
