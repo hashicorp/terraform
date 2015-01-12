@@ -46,8 +46,31 @@ func (v *TypeVisitor) visit(raw ast.Node) {
 }
 
 func (v *TypeVisitor) visitCall(n *ast.Call) {
-	// TODO
-	v.stackPush(ast.TypeString)
+	// Look up the function in the map
+	function, ok := v.FuncMap[n.Func]
+	if !ok {
+		v.createErr(n, fmt.Sprintf("unknown function called: %s", n.Func))
+		return
+	}
+
+	// The arguments are on the stack in reverse order, so pop them off.
+	args := make([]ast.Type, len(n.Args))
+	for i, _ := range n.Args {
+		args[len(n.Args)-1-i] = v.stackPop()
+	}
+
+	// Verify the args
+	for i, expected := range function.ArgTypes {
+		if args[i] != expected {
+			v.createErr(n, fmt.Sprintf(
+				"%s: argument %d should be %s, got %s",
+				n.Func, i+1, expected, args[i]))
+			return
+		}
+	}
+
+	// Return type
+	v.stackPush(function.ReturnType)
 }
 
 func (v *TypeVisitor) visitConcat(n *ast.Concat) {
