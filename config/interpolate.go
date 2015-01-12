@@ -5,6 +5,8 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+
+	"github.com/hashicorp/terraform/config/lang/ast"
 )
 
 // We really need to replace this with a real parser.
@@ -316,4 +318,40 @@ func (v *UserVariable) FullKey() string {
 
 func (v *UserVariable) GoString() string {
 	return fmt.Sprintf("*%#v", *v)
+}
+
+// DetectVariables takes an AST root and returns all the interpolated
+// variables that are detected in the AST tree.
+func DetectVariables(root ast.Node) ([]InterpolatedVariable, error) {
+	var result []InterpolatedVariable
+	var resultErr error
+
+	// Visitor callback
+	fn := func(n ast.Node) {
+		if resultErr != nil {
+			return
+		}
+
+		vn, ok := n.(*ast.VariableAccess)
+		if !ok {
+			return
+		}
+
+		v, err := NewInterpolatedVariable(vn.Name)
+		if err != nil {
+			resultErr = err
+			return
+		}
+
+		result = append(result, v)
+	}
+
+	// Visitor pattern
+	root.Accept(fn)
+
+	if resultErr != nil {
+		return nil, resultErr
+	}
+
+	return result, nil
 }

@@ -4,6 +4,8 @@ import (
 	"reflect"
 	"strings"
 	"testing"
+
+	"github.com/hashicorp/terraform/config/lang"
 )
 
 func TestNewInterpolatedVariable(t *testing.T) {
@@ -289,5 +291,51 @@ func TestVariableInterpolation_missing(t *testing.T) {
 	})
 	if err == nil {
 		t.Fatal("should error")
+	}
+}
+
+func TestDetectVariables(t *testing.T) {
+	cases := []struct {
+		Input  string
+		Result []InterpolatedVariable
+	}{
+		{
+			"foo ${var.foo}",
+			[]InterpolatedVariable{
+				&UserVariable{
+					Name: "foo",
+					key:  "var.foo",
+				},
+			},
+		},
+
+		{
+			"foo ${var.foo} ${var.bar}",
+			[]InterpolatedVariable{
+				&UserVariable{
+					Name: "foo",
+					key:  "var.foo",
+				},
+				&UserVariable{
+					Name: "bar",
+					key:  "var.bar",
+				},
+			},
+		},
+	}
+
+	for _, tc := range cases {
+		ast, err := lang.Parse(tc.Input)
+		if err != nil {
+			t.Fatalf("%s\n\nInput: %s", err, tc.Input)
+		}
+
+		actual, err := DetectVariables(ast)
+		if err != nil {
+			t.Fatalf("err: %s", err)
+		}
+		if !reflect.DeepEqual(actual, tc.Result) {
+			t.Fatalf("bad: %#v\n\nInput: %s", actual, tc.Input)
+		}
 	}
 }
