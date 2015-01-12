@@ -18,7 +18,7 @@ type Pos struct {
 	Column, Line int // Column/Line number, starting at 1
 }
 
-func (p *Pos) String() string {
+func (p Pos) String() string {
 	return fmt.Sprintf("%d:%d", p.Line, p.Column)
 }
 
