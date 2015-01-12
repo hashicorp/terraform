@@ -90,7 +90,7 @@ The `network` block supports:
 
 The `service_account` block supports:
 
-* `scopes` - (Required) A list of service scopes. Both OAuth2 URLs and gcloud
+* `scopes` - (Required) An array of service scopes. Both OAuth2 URLs and gcloud
     short names are supported.
 
 ## Attributes Reference

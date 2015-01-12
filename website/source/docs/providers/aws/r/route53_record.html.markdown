@@ -30,7 +30,7 @@ The following arguments are supported:
 * `name` - (Required) The name of the record.
 * `type` - (Required) The record type.
 * `ttl` - (Required) The TTL of the record.
-* `records` - (Required) A string list of records.
+* `records` - (Required) A string array of records.
 
 ## Attributes Reference
 
