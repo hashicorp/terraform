@@ -44,7 +44,7 @@ func (e *Engine) Execute(root ast.Node) (interface{}, ast.Type, error) {
 type executeVisitor struct {
 	Scope *Scope
 
-	stack []*ast.LiteralNode
+	stack EngineStack
 	err   error
 	lock  sync.Mutex
 }
@@ -58,15 +58,15 @@ func (v *executeVisitor) Visit(root ast.Node) (interface{}, ast.Type, error) {
 
 	// Get our result and clear out everything else
 	var result *ast.LiteralNode
-	if len(v.stack) > 0 {
-		result = v.stack[len(v.stack)-1]
+	if v.stack.Len() > 0 {
+		result = v.stack.Pop()
 	} else {
 		result = new(ast.LiteralNode)
 	}
 	resultErr := v.err
 
 	// Clear everything else so we aren't just dangling
-	v.stack = nil
+	v.stack.Reset()
 	v.err = nil
 
 	return result.Value, result.Type, resultErr
@@ -102,7 +102,7 @@ func (v *executeVisitor) visitCall(n *ast.Call) {
 	// The arguments are on the stack in reverse order, so pop them off.
 	args := make([]interface{}, len(n.Args))
 	for i, _ := range n.Args {
-		node := v.stackPop()
+		node := v.stack.Pop()
 		args[len(n.Args)-1-i] = node.Value
 	}
 
@@ -114,7 +114,7 @@ func (v *executeVisitor) visitCall(n *ast.Call) {
 	}
 
 	// Push the result
-	v.stackPush(&ast.LiteralNode{
+	v.stack.Push(&ast.LiteralNode{
 		Value: result,
 		Type:  function.ReturnType,
 	})
@@ -125,7 +125,7 @@ func (v *executeVisitor) visitConcat(n *ast.Concat) {
 	// order. So pop them off, reverse their order, and concatenate.
 	nodes := make([]*ast.LiteralNode, 0, len(n.Exprs))
 	for range n.Exprs {
-		nodes = append(nodes, v.stackPop())
+		nodes = append(nodes, v.stack.Pop())
 	}
 
 	var buf bytes.Buffer
@@ -133,14 +133,14 @@ func (v *executeVisitor) visitConcat(n *ast.Concat) {
 		buf.WriteString(nodes[i].Value.(string))
 	}
 
-	v.stackPush(&ast.LiteralNode{
+	v.stack.Push(&ast.LiteralNode{
 		Value: buf.String(),
 		Type:  ast.TypeString,
 	})
 }
 
 func (v *executeVisitor) visitLiteral(n *ast.LiteralNode) {
-	v.stack = append(v.stack, n)
+	v.stack.Push(n)
 }
 
 func (v *executeVisitor) visitVariableAccess(n *ast.VariableAccess) {
@@ -151,20 +151,37 @@ func (v *executeVisitor) visitVariableAccess(n *ast.VariableAccess) {
 		return
 	}
 
-	v.stack = append(v.stack, &ast.LiteralNode{
+	v.stack.Push(&ast.LiteralNode{
 		Value: variable.Value,
 		Type:  variable.Type,
 	})
 }
 
-func (v *executeVisitor) stackPush(n *ast.LiteralNode) {
-	v.stack = append(v.stack, n)
+// EngineStack is a stack of ast.LiteralNodes that the Engine keeps track
+// of during execution. This is currently backed by a dumb slice, but can be
+// replaced with a better data structure at some point in the future if this
+// turns out to require optimization.
+type EngineStack struct {
+	stack []*ast.LiteralNode
 }
 
-func (v *executeVisitor) stackPop() *ast.LiteralNode {
-	var x *ast.LiteralNode
-	x, v.stack = v.stack[len(v.stack)-1], v.stack[:len(v.stack)-1]
+func (s *EngineStack) Len() int {
+	return len(s.stack)
+}
+
+func (s *EngineStack) Push(n *ast.LiteralNode) {
+	s.stack = append(s.stack, n)
+}
+
+func (s *EngineStack) Pop() *ast.LiteralNode {
+	x := s.stack[len(s.stack)-1]
+	s.stack[len(s.stack)-1] = nil
+	s.stack = s.stack[:len(s.stack)-1]
 	return x
+}
+
+func (s *EngineStack) Reset() {
+	s.stack = nil
 }
 
 // Scope represents a lookup scope for execution.
