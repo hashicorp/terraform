@@ -15,9 +15,8 @@ var Funcs map[string]lang.Function
 
 func init() {
 	Funcs = map[string]lang.Function{
-		"file": interpolationFuncFile(),
-		"join": interpolationFuncJoin(),
-		//"lookup":  interpolationFuncLookup(),
+		"file":    interpolationFuncFile(),
+		"join":    interpolationFuncJoin(),
 		"element": interpolationFuncElement(),
 	}
 }
@@ -59,22 +58,22 @@ func interpolationFuncJoin() lang.Function {
 
 // interpolationFuncLookup implements the "lookup" function that allows
 // dynamic lookups of map types within a Terraform configuration.
-func interpolationFuncLookup(
-	vs map[string]string, args ...string) (string, error) {
-	if len(args) != 2 {
-		return "", fmt.Errorf(
-			"lookup expects 2 arguments, got %d", len(args))
-	}
+func interpolationFuncLookup(vs map[string]string) lang.Function {
+	return lang.Function{
+		ArgTypes:   []ast.Type{ast.TypeString, ast.TypeString},
+		ReturnType: ast.TypeString,
+		Callback: func(args []interface{}) (interface{}, error) {
+			k := fmt.Sprintf("var.%s.%s", args[0].(string), args[1].(string))
+			v, ok := vs[k]
+			if !ok {
+				return "", fmt.Errorf(
+					"lookup in '%s' failed to find '%s'",
+					args[0].(string), args[1].(string))
+			}
 
-	k := fmt.Sprintf("var.%s", strings.Join(args, "."))
-	v, ok := vs[k]
-	if !ok {
-		return "", fmt.Errorf(
-			"lookup in '%s' failed to find '%s'",
-			args[0], args[1])
+			return v, nil
+		},
 	}
-
-	return v, nil
 }
 
 // interpolationFuncElement implements the "element" function that allows
