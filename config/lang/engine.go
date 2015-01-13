@@ -105,7 +105,7 @@ func (v *executeVisitor) visit(raw ast.Node) {
 
 func (v *executeVisitor) visitCall(n *ast.Call) {
 	// Look up the function in the map
-	function, ok := v.Scope.FuncMap[n.Func]
+	function, ok := v.Scope.LookupFunc(n.Func)
 	if !ok {
 		v.err = fmt.Errorf("unknown function called: %s", n.Func)
 		return
@@ -157,7 +157,7 @@ func (v *executeVisitor) visitLiteral(n *ast.LiteralNode) {
 
 func (v *executeVisitor) visitVariableAccess(n *ast.VariableAccess) {
 	// Look up the variable in the map
-	variable, ok := v.Scope.VarMap[n.Name]
+	variable, ok := v.Scope.LookupVar(n.Name)
 	if !ok {
 		v.err = fmt.Errorf("unknown variable accessed: %s", n.Name)
 		return
