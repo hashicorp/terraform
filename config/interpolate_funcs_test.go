@@ -10,6 +10,30 @@ import (
 	"github.com/hashicorp/terraform/config/lang"
 )
 
+func TestInterpolateFuncConcat(t *testing.T) {
+	testFunction(t, testFunctionConfig{
+		Cases: []testFunctionCase{
+			{
+				`${concat("foo", "bar")}`,
+				"foobar",
+				false,
+			},
+
+			{
+				`${concat("foo")}`,
+				"foo",
+				false,
+			},
+
+			{
+				`${concat()}`,
+				nil,
+				true,
+			},
+		},
+	})
+}
+
 func TestInterpolateFuncFile(t *testing.T) {
 	tf, err := ioutil.TempFile("", "tf")
 	if err != nil {
