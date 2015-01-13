@@ -122,29 +122,6 @@ func TestNewUserVariable_map(t *testing.T) {
 	}
 }
 
-func TestLiteralInterpolation_impl(t *testing.T) {
-	var _ Interpolation = new(LiteralInterpolation)
-}
-
-func TestLiteralInterpolation(t *testing.T) {
-	i := &LiteralInterpolation{
-		Literal: "bar",
-	}
-
-	if i.Variables() != nil {
-		t.Fatalf("bad: %#v", i.Variables())
-	}
-
-	actual, err := i.Interpolate(nil)
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-
-	if actual != "bar" {
-		t.Fatalf("bad: %#v", actual)
-	}
-}
-
 func TestResourceVariable_impl(t *testing.T) {
 	var _ InterpolatedVariable = new(ResourceVariable)
 }
@@ -199,50 +176,6 @@ func TestResourceVariable_MultiIndex(t *testing.T) {
 
 func TestUserVariable_impl(t *testing.T) {
 	var _ InterpolatedVariable = new(UserVariable)
-}
-
-func TestVariableInterpolation_impl(t *testing.T) {
-	var _ Interpolation = new(VariableInterpolation)
-}
-
-func TestVariableInterpolation(t *testing.T) {
-	uv, err := NewUserVariable("var.foo")
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-
-	i := &VariableInterpolation{Variable: uv}
-
-	expected := map[string]InterpolatedVariable{"var.foo": uv}
-	if !reflect.DeepEqual(i.Variables(), expected) {
-		t.Fatalf("bad: %#v", i.Variables())
-	}
-
-	actual, err := i.Interpolate(map[string]string{
-		"var.foo": "bar",
-	})
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-
-	if actual != "bar" {
-		t.Fatalf("bad: %#v", actual)
-	}
-}
-
-func TestVariableInterpolation_missing(t *testing.T) {
-	uv, err := NewUserVariable("var.foo")
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-
-	i := &VariableInterpolation{Variable: uv}
-	_, err = i.Interpolate(map[string]string{
-		"var.bar": "bar",
-	})
-	if err == nil {
-		t.Fatal("should error")
-	}
 }
 
 func TestDetectVariables(t *testing.T) {
