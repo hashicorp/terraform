@@ -7,9 +7,9 @@ import (
 	"github.com/hashicorp/terraform/config/lang/ast"
 )
 
-// TypeVisitor implements ast.Visitor for type checking an AST tree.
+// TypeCheck implements ast.Visitor for type checking an AST tree.
 // It requires some configuration to look up the type of nodes.
-type TypeVisitor struct {
+type TypeCheck struct {
 	Scope *Scope
 
 	stack []ast.Type
@@ -17,7 +17,7 @@ type TypeVisitor struct {
 	lock  sync.Mutex
 }
 
-func (v *TypeVisitor) Visit(root ast.Node) error {
+func (v *TypeCheck) Visit(root ast.Node) error {
 	v.lock.Lock()
 	defer v.lock.Unlock()
 	defer v.reset()
@@ -25,7 +25,7 @@ func (v *TypeVisitor) Visit(root ast.Node) error {
 	return v.err
 }
 
-func (v *TypeVisitor) visit(raw ast.Node) {
+func (v *TypeCheck) visit(raw ast.Node) {
 	if v.err != nil {
 		return
 	}
@@ -44,7 +44,7 @@ func (v *TypeVisitor) visit(raw ast.Node) {
 	}
 }
 
-func (v *TypeVisitor) visitCall(n *ast.Call) {
+func (v *TypeCheck) visitCall(n *ast.Call) {
 	// Look up the function in the map
 	function, ok := v.Scope.LookupFunc(n.Func)
 	if !ok {
@@ -72,7 +72,7 @@ func (v *TypeVisitor) visitCall(n *ast.Call) {
 	v.stackPush(function.ReturnType)
 }
 
-func (v *TypeVisitor) visitConcat(n *ast.Concat) {
+func (v *TypeCheck) visitConcat(n *ast.Concat) {
 	types := make([]ast.Type, len(n.Exprs))
 	for i, _ := range n.Exprs {
 		types[len(n.Exprs)-1-i] = v.stackPop()
@@ -91,11 +91,11 @@ func (v *TypeVisitor) visitConcat(n *ast.Concat) {
 	v.stackPush(ast.TypeString)
 }
 
-func (v *TypeVisitor) visitLiteral(n *ast.LiteralNode) {
+func (v *TypeCheck) visitLiteral(n *ast.LiteralNode) {
 	v.stackPush(n.Type)
 }
 
-func (v *TypeVisitor) visitVariableAccess(n *ast.VariableAccess) {
+func (v *TypeCheck) visitVariableAccess(n *ast.VariableAccess) {
 	// Look up the variable in the map
 	variable, ok := v.Scope.LookupVar(n.Name)
 	if !ok {
@@ -108,20 +108,20 @@ func (v *TypeVisitor) visitVariableAccess(n *ast.VariableAccess) {
 	v.stackPush(variable.Type)
 }
 
-func (v *TypeVisitor) createErr(n ast.Node, str string) {
+func (v *TypeCheck) createErr(n ast.Node, str string) {
 	v.err = fmt.Errorf("%s: %s", n.Pos(), str)
 }
 
-func (v *TypeVisitor) reset() {
+func (v *TypeCheck) reset() {
 	v.stack = nil
 	v.err = nil
 }
 
-func (v *TypeVisitor) stackPush(t ast.Type) {
+func (v *TypeCheck) stackPush(t ast.Type) {
 	v.stack = append(v.stack, t)
 }
 
-func (v *TypeVisitor) stackPop() ast.Type {
+func (v *TypeCheck) stackPop() ast.Type {
 	var x ast.Type
 	x, v.stack = v.stack[len(v.stack)-1], v.stack[:len(v.stack)-1]
 	return x

@@ -6,7 +6,7 @@ import (
 	"github.com/hashicorp/terraform/config/lang/ast"
 )
 
-func TestTypeVisitor(t *testing.T) {
+func TestTypeCheck(t *testing.T) {
 	cases := []struct {
 		Input string
 		Scope *Scope
@@ -113,7 +113,7 @@ func TestTypeVisitor(t *testing.T) {
 			t.Fatalf("Error: %s\n\nInput: %s", err, tc.Input)
 		}
 
-		visitor := &TypeVisitor{Scope: tc.Scope}
+		visitor := &TypeCheck{Scope: tc.Scope}
 		err = visitor.Visit(node)
 		if (err != nil) != tc.Error {
 			t.Fatalf("Error: %s\n\nInput: %s", err, tc.Input)
