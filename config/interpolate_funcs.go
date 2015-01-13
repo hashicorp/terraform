@@ -1,6 +1,7 @@
 package config
 
 import (
+	"bytes"
 	"fmt"
 	"io/ioutil"
 	"strconv"
@@ -15,9 +16,31 @@ var Funcs map[string]lang.Function
 
 func init() {
 	Funcs = map[string]lang.Function{
+		"concat":  interpolationFuncConcat(),
 		"file":    interpolationFuncFile(),
 		"join":    interpolationFuncJoin(),
 		"element": interpolationFuncElement(),
+	}
+}
+
+// interpolationFuncConcat implements the "concat" function that
+// concatenates multiple strings. This isn't actually necessary anymore
+// since our language supports string concat natively, but for backwards
+// compat we do this.
+func interpolationFuncConcat() lang.Function {
+	return lang.Function{
+		ArgTypes:     []ast.Type{ast.TypeString},
+		ReturnType:   ast.TypeString,
+		Variadic:     true,
+		VariadicType: ast.TypeString,
+		Callback: func(args []interface{}) (interface{}, error) {
+			var b bytes.Buffer
+			for _, v := range args {
+				b.WriteString(v.(string))
+			}
+
+			return b.String(), nil
+		},
 	}
 }
 
