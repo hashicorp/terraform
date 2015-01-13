@@ -81,16 +81,7 @@ func (r *RawConfig) Config() map[string]interface{} {
 //
 // If a variable key is missing, this will panic.
 func (r *RawConfig) Interpolate(vs map[string]string) error {
-	varMap := make(map[string]lang.Variable)
-	for k, v := range vs {
-		varMap[k] = lang.Variable{Value: v, Type: ast.TypeString}
-	}
-	engine := &lang.Engine{
-		GlobalScope: &lang.Scope{
-			VarMap: varMap,
-		},
-	}
-
+	engine := langEngine(vs)
 	return r.interpolate(func(root ast.Node) (string, error) {
 		out, _, err := engine.Execute(root)
 		if err != nil {
@@ -209,4 +200,18 @@ func (r *RawConfig) GobEncode() ([]byte, error) {
 type gobRawConfig struct {
 	Key string
 	Raw map[string]interface{}
+}
+
+// langEngine returns the lang.Engine to use for evaluating configurations.
+func langEngine(vs map[string]string) *lang.Engine {
+	varMap := make(map[string]lang.Variable)
+	for k, v := range vs {
+		varMap[k] = lang.Variable{Value: v, Type: ast.TypeString}
+	}
+	return &lang.Engine{
+		GlobalScope: &lang.Scope{
+			VarMap:  varMap,
+			FuncMap: Funcs,
+		},
+	}
 }
