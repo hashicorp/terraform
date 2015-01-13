@@ -24,6 +24,16 @@ func TestParse(t *testing.T) {
 		},
 
 		{
+			"$${var.foo}",
+			false,
+			&ast.LiteralNode{
+				Value: "${var.foo}",
+				Type:  ast.TypeString,
+				Posx:  ast.Pos{Column: 1, Line: 1},
+			},
+		},
+
+		{
 			"foo ${var.bar}",
 			false,
 			&ast.Concat{
