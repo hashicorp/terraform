@@ -48,7 +48,7 @@ const parserEofCode = 1
 const parserErrCode = 2
 const parserMaxDepth = 200
 
-//line lang.y:127
+//line lang.y:134
 
 //line yacctab:1
 var parserExca = []int{
@@ -57,7 +57,7 @@ var parserExca = []int{
 	-2, 0,
 }
 
-const parserNprod = 16
+const parserNprod = 17
 const parserPrivate = 57344
 
 var parserTokenNames []string
@@ -83,13 +83,13 @@ var parserPgo = []int{
 }
 var parserR1 = []int{
 
-	0, 7, 4, 4, 5, 5, 2, 1, 1, 1,
-	1, 1, 6, 6, 6, 3,
+	0, 7, 7, 4, 4, 5, 5, 2, 1, 1,
+	1, 1, 1, 6, 6, 6, 3,
 }
 var parserR2 = []int{
 
-	0, 1, 1, 2, 1, 1, 3, 1, 1, 1,
-	1, 4, 0, 3, 1, 1,
+	0, 0, 1, 1, 2, 1, 1, 3, 1, 1,
+	1, 1, 4, 0, 3, 1, 1,
 }
 var parserChk = []int{
 
@@ -99,9 +99,9 @@ var parserChk = []int{
 }
 var parserDef = []int{
 
-	0, -2, 1, 2, 4, 5, 15, 0, 3, 0,
-	7, 8, 9, 10, 6, 12, 0, 14, 11, 0,
-	13,
+	1, -2, 2, 3, 5, 6, 16, 0, 4, 0,
+	8, 9, 10, 11, 7, 13, 0, 15, 12, 0,
+	14,
 }
 var parserTok1 = []int{
 
@@ -342,17 +342,26 @@ parserdefault:
 	switch parsernt {
 
 	case 1:
-		//line lang.y:34
+		//line lang.y:33
+		{
+			parserResult = &ast.LiteralNode{
+				Value: "",
+				Type:  ast.TypeString,
+				Posx:  ast.Pos{Column: 1, Line: 1},
+			}
+		}
+	case 2:
+		//line lang.y:41
 		{
 			parserResult = parserS[parserpt-0].node
 		}
-	case 2:
-		//line lang.y:40
+	case 3:
+		//line lang.y:47
 		{
 			parserVAL.node = parserS[parserpt-0].node
 		}
-	case 3:
-		//line lang.y:44
+	case 4:
+		//line lang.y:51
 		{
 			var result []ast.Node
 			if c, ok := parserS[parserpt-1].node.(*ast.Concat); ok {
@@ -366,28 +375,28 @@ parserdefault:
 				Posx:  result[0].Pos(),
 			}
 		}
-	case 4:
-		//line lang.y:60
-		{
-			parserVAL.node = parserS[parserpt-0].node
-		}
 	case 5:
-		//line lang.y:64
+		//line lang.y:67
 		{
 			parserVAL.node = parserS[parserpt-0].node
 		}
 	case 6:
-		//line lang.y:70
-		{
-			parserVAL.node = parserS[parserpt-1].node
-		}
-	case 7:
-		//line lang.y:76
+		//line lang.y:71
 		{
 			parserVAL.node = parserS[parserpt-0].node
 		}
+	case 7:
+		//line lang.y:77
+		{
+			parserVAL.node = parserS[parserpt-1].node
+		}
 	case 8:
-		//line lang.y:80
+		//line lang.y:83
+		{
+			parserVAL.node = parserS[parserpt-0].node
+		}
+	case 9:
+		//line lang.y:87
 		{
 			parserVAL.node = &ast.LiteralNode{
 				Value: parserS[parserpt-0].token.Value.(int),
@@ -395,8 +404,8 @@ parserdefault:
 				Posx:  parserS[parserpt-0].token.Pos,
 			}
 		}
-	case 9:
-		//line lang.y:88
+	case 10:
+		//line lang.y:95
 		{
 			parserVAL.node = &ast.LiteralNode{
 				Value: parserS[parserpt-0].token.Value.(float64),
@@ -404,33 +413,33 @@ parserdefault:
 				Posx:  parserS[parserpt-0].token.Pos,
 			}
 		}
-	case 10:
-		//line lang.y:96
+	case 11:
+		//line lang.y:103
 		{
 			parserVAL.node = &ast.VariableAccess{Name: parserS[parserpt-0].token.Value.(string), Posx: parserS[parserpt-0].token.Pos}
 		}
-	case 11:
-		//line lang.y:100
+	case 12:
+		//line lang.y:107
 		{
 			parserVAL.node = &ast.Call{Func: parserS[parserpt-3].token.Value.(string), Args: parserS[parserpt-1].nodeList, Posx: parserS[parserpt-3].token.Pos}
 		}
-	case 12:
-		//line lang.y:105
+	case 13:
+		//line lang.y:112
 		{
 			parserVAL.nodeList = nil
 		}
-	case 13:
-		//line lang.y:109
+	case 14:
+		//line lang.y:116
 		{
 			parserVAL.nodeList = append(parserS[parserpt-2].nodeList, parserS[parserpt-0].node)
 		}
-	case 14:
-		//line lang.y:113
+	case 15:
+		//line lang.y:120
 		{
 			parserVAL.nodeList = append(parserVAL.nodeList, parserS[parserpt-0].node)
 		}
-	case 15:
-		//line lang.y:119
+	case 16:
+		//line lang.y:126
 		{
 			parserVAL.node = &ast.LiteralNode{
 				Value: parserS[parserpt-0].token.Value.(string),

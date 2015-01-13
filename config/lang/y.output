@@ -1,10 +1,11 @@
 
 state 0
 	$accept: .top $end 
+	top: .    (1)
 
 	PROGRAM_BRACKET_LEFT  shift 7
 	STRING  shift 6
-	.  error
+	.  reduce 1 (src line 32)
 
 	interpolation  goto 5
 	literal  goto 4
@@ -20,39 +21,39 @@ state 1
 
 
 state 2
-	top:  literalModeTop.    (1)
+	top:  literalModeTop.    (2)
 	literalModeTop:  literalModeTop.literalModeValue 
 
 	PROGRAM_BRACKET_LEFT  shift 7
 	STRING  shift 6
-	.  reduce 1 (src line 32)
+	.  reduce 2 (src line 40)
 
 	interpolation  goto 5
 	literal  goto 4
 	literalModeValue  goto 8
 
 state 3
-	literalModeTop:  literalModeValue.    (2)
+	literalModeTop:  literalModeValue.    (3)
 
-	.  reduce 2 (src line 38)
+	.  reduce 3 (src line 45)
 
 
 state 4
-	literalModeValue:  literal.    (4)
+	literalModeValue:  literal.    (5)
 
-	.  reduce 4 (src line 58)
+	.  reduce 5 (src line 65)
 
 
 state 5
-	literalModeValue:  interpolation.    (5)
+	literalModeValue:  interpolation.    (6)
 
-	.  reduce 5 (src line 63)
+	.  reduce 6 (src line 70)
 
 
 state 6
-	literal:  STRING.    (15)
+	literal:  STRING.    (16)
 
-	.  reduce 15 (src line 117)
+	.  reduce 16 (src line 124)
 
 
 state 7
@@ -72,9 +73,9 @@ state 7
 	literalModeValue  goto 3
 
 state 8
-	literalModeTop:  literalModeTop literalModeValue.    (3)
+	literalModeTop:  literalModeTop literalModeValue.    (4)
 
-	.  reduce 3 (src line 43)
+	.  reduce 4 (src line 50)
 
 
 state 9
@@ -86,52 +87,52 @@ state 9
 
 state 10
 	literalModeTop:  literalModeTop.literalModeValue 
-	expr:  literalModeTop.    (7)
+	expr:  literalModeTop.    (8)
 
 	PROGRAM_BRACKET_LEFT  shift 7
 	STRING  shift 6
-	.  reduce 7 (src line 74)
+	.  reduce 8 (src line 81)
 
 	interpolation  goto 5
 	literal  goto 4
 	literalModeValue  goto 8
 
 state 11
-	expr:  INTEGER.    (8)
+	expr:  INTEGER.    (9)
 
-	.  reduce 8 (src line 79)
+	.  reduce 9 (src line 86)
 
 
 state 12
-	expr:  FLOAT.    (9)
+	expr:  FLOAT.    (10)
 
-	.  reduce 9 (src line 87)
+	.  reduce 10 (src line 94)
 
 
 state 13
-	expr:  IDENTIFIER.    (10)
+	expr:  IDENTIFIER.    (11)
 	expr:  IDENTIFIER.PAREN_LEFT args PAREN_RIGHT 
 
 	PAREN_LEFT  shift 15
-	.  reduce 10 (src line 95)
+	.  reduce 11 (src line 102)
 
 
 state 14
-	interpolation:  PROGRAM_BRACKET_LEFT expr PROGRAM_BRACKET_RIGHT.    (6)
+	interpolation:  PROGRAM_BRACKET_LEFT expr PROGRAM_BRACKET_RIGHT.    (7)
 
-	.  reduce 6 (src line 68)
+	.  reduce 7 (src line 75)
 
 
 state 15
 	expr:  IDENTIFIER PAREN_LEFT.args PAREN_RIGHT 
-	args: .    (12)
+	args: .    (13)
 
 	PROGRAM_BRACKET_LEFT  shift 7
 	IDENTIFIER  shift 13
 	INTEGER  shift 11
 	FLOAT  shift 12
 	STRING  shift 6
-	.  reduce 12 (src line 104)
+	.  reduce 13 (src line 111)
 
 	expr  goto 17
 	interpolation  goto 5
@@ -150,15 +151,15 @@ state 16
 
 
 state 17
-	args:  expr.    (14)
+	args:  expr.    (15)
 
-	.  reduce 14 (src line 112)
+	.  reduce 15 (src line 119)
 
 
 state 18
-	expr:  IDENTIFIER PAREN_LEFT args PAREN_RIGHT.    (11)
+	expr:  IDENTIFIER PAREN_LEFT args PAREN_RIGHT.    (12)
 
-	.  reduce 11 (src line 99)
+	.  reduce 12 (src line 106)
 
 
 state 19
@@ -178,13 +179,13 @@ state 19
 	literalModeValue  goto 3
 
 state 20
-	args:  args COMMA expr.    (13)
+	args:  args COMMA expr.    (14)
 
-	.  reduce 13 (src line 108)
+	.  reduce 14 (src line 115)
 
 
 14 terminals, 8 nonterminals
-16 grammar rules, 21/2000 states
+17 grammar rules, 21/2000 states
 0 shift/reduce, 0 reduce/reduce conflicts reported
 57 working sets used
 memory: parser 25/30000
