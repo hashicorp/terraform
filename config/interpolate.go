@@ -8,34 +8,12 @@ import (
 	"github.com/hashicorp/terraform/config/lang/ast"
 )
 
-// Interpolation is something that can be contained in a "${}" in a
-// configuration value.
-//
-// Interpolations might be simple variable references, or it might be
-// function calls, or even nested function calls.
-type Interpolation interface {
-	Interpolate(map[string]string) (string, error)
-	Variables() map[string]InterpolatedVariable
-}
-
 // An InterpolatedVariable is a variable reference within an interpolation.
 //
 // Implementations of this interface represents various sources where
 // variables can come from: user variables, resources, etc.
 type InterpolatedVariable interface {
 	FullKey() string
-}
-
-// LiteralInterpolation implements Interpolation for literals. Ex:
-// ${"foo"} will equal "foo".
-type LiteralInterpolation struct {
-	Literal string
-}
-
-// VariableInterpolation implements Interpolation for simple variable
-// interpolation. Ex: "${var.foo}" or "${aws_instance.foo.bar}"
-type VariableInterpolation struct {
-	Variable InterpolatedVariable
 }
 
 // CountVariable is a variable for referencing information about
@@ -112,35 +90,6 @@ func NewInterpolatedVariable(v string) (InterpolatedVariable, error) {
 	} else {
 		return NewResourceVariable(v)
 	}
-}
-
-func (i *LiteralInterpolation) Interpolate(
-	map[string]string) (string, error) {
-	return i.Literal, nil
-}
-
-func (i *LiteralInterpolation) Variables() map[string]InterpolatedVariable {
-	return nil
-}
-
-func (i *VariableInterpolation) Interpolate(
-	vs map[string]string) (string, error) {
-	v, ok := vs[i.Variable.FullKey()]
-	if !ok {
-		return "", fmt.Errorf(
-			"%s: value for variable not found",
-			i.Variable.FullKey())
-	}
-
-	return v, nil
-}
-
-func (i *VariableInterpolation) GoString() string {
-	return fmt.Sprintf("*%#v", *i)
-}
-
-func (i *VariableInterpolation) Variables() map[string]InterpolatedVariable {
-	return map[string]InterpolatedVariable{i.Variable.FullKey(): i.Variable}
 }
 
 func NewCountVariable(key string) (*CountVariable, error) {
