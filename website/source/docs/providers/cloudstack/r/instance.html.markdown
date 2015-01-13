@@ -15,11 +15,11 @@ disk offering, and template.
 
 ```
 resource "cloudstack_instance" "web" {
-    ami = "ami-1234"
-    instance_type = "m1.small"
-    tags {
-        Name = "HelloWorld"
-    }
+    name = "server-1"
+    service_offering= "small"
+    network = "network-1"
+    template = "CentOS 6.5"
+    zone = "zone-1"
 }
 ```
 
