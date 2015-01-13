@@ -1,7 +1,7 @@
 ---
 layout: "cloudstack"
 page_title: "CloudStack: cloudstack_network_acl_rule"
-sidebar_current: "docs-cloudstack-resource-network_acl_rule"
+sidebar_current: "docs-cloudstack-resource-network-acl-rule"
 description: |-
   Creates network ACL rules for a given network ACL.
 ---
