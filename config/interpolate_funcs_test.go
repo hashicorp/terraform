@@ -4,45 +4,11 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"reflect"
 	"testing"
+
+	"github.com/hashicorp/terraform/config/lang"
 )
-
-func TestInterpolateFuncConcat(t *testing.T) {
-	cases := []struct {
-		Args   []string
-		Result string
-		Error  bool
-	}{
-		{
-			[]string{"foo", "bar", "baz"},
-			"foobarbaz",
-			false,
-		},
-
-		{
-			[]string{"foo", "bar"},
-			"foobar",
-			false,
-		},
-
-		{
-			[]string{"foo"},
-			"foo",
-			false,
-		},
-	}
-
-	for i, tc := range cases {
-		actual, err := interpolationFuncConcat(nil, tc.Args...)
-		if (err != nil) != tc.Error {
-			t.Fatalf("%d: err: %s", i, err)
-		}
-
-		if actual != tc.Result {
-			t.Fatalf("%d: bad: %#v", i, actual)
-		}
-	}
-}
 
 func TestInterpolateFuncFile(t *testing.T) {
 	tf, err := ioutil.TempFile("", "tf")
@@ -54,94 +20,67 @@ func TestInterpolateFuncFile(t *testing.T) {
 	tf.Close()
 	defer os.Remove(path)
 
-	cases := []struct {
-		Args   []string
-		Result string
-		Error  bool
-	}{
+	testFunction(t, []testFunctionCase{
 		{
-			[]string{path},
+			fmt.Sprintf(`${file("%s")}`, path),
 			"foo",
 			false,
 		},
 
 		// Invalid path
 		{
-			[]string{"/i/dont/exist"},
-			"",
+			`${file("/i/dont/exist")}`,
+			nil,
 			true,
 		},
 
 		// Too many args
 		{
-			[]string{"foo", "bar"},
-			"",
+			`${file("foo", "bar")}`,
+			nil,
 			true,
 		},
-	}
-
-	for i, tc := range cases {
-		actual, err := interpolationFuncFile(nil, tc.Args...)
-		if (err != nil) != tc.Error {
-			t.Fatalf("%d: err: %s", i, err)
-		}
-
-		if actual != tc.Result {
-			t.Fatalf("%d: bad: %#v", i, actual)
-		}
-	}
+	})
 }
 
 func TestInterpolateFuncJoin(t *testing.T) {
-	cases := []struct {
-		Args   []string
-		Result string
-		Error  bool
-	}{
+	testFunction(t, []testFunctionCase{
 		{
-			[]string{","},
-			"",
+			`${join(",")}`,
+			nil,
 			true,
 		},
 
 		{
-			[]string{",", "foo"},
+			`${join(",", "foo")}`,
 			"foo",
 			false,
 		},
 
-		{
-			[]string{",", "foo", "bar"},
-			"foo,bar",
-			false,
-		},
+		/*
+			TODO
+			{
+				`${join(",", "foo", "bar")}`,
+				"foo,bar",
+				false,
+			},
+		*/
 
 		{
-			[]string{
-				".",
+			fmt.Sprintf(`${join(".", "%s")}`,
 				fmt.Sprintf(
 					"foo%sbar%sbaz",
 					InterpSplitDelim,
-					InterpSplitDelim),
-			},
+					InterpSplitDelim)),
 			"foo.bar.baz",
 			false,
 		},
-	}
-
-	for i, tc := range cases {
-		actual, err := interpolationFuncJoin(nil, tc.Args...)
-		if (err != nil) != tc.Error {
-			t.Fatalf("%d: err: %s", i, err)
-		}
-
-		if actual != tc.Result {
-			t.Fatalf("%d: bad: %#v", i, actual)
-		}
-	}
+	})
 }
 
+/*
 func TestInterpolateFuncLookup(t *testing.T) {
+	testFunction(t, []testFunctionCase{
 	cases := []struct {
 		M      map[string]string
 		Args   []string
@@ -189,48 +128,62 @@ func TestInterpolateFuncLookup(t *testing.T) {
 		}
 	}
 }
+*/
 
 func TestInterpolateFuncElement(t *testing.T) {
-	cases := []struct {
-		Args   []string
-		Result string
-		Error  bool
-	}{
+	testFunction(t, []testFunctionCase{
 		{
-			[]string{"foo" + InterpSplitDelim + "baz", "1"},
+			fmt.Sprintf(`${element("%s", "1")}`,
+				"foo"+InterpSplitDelim+"baz"),
 			"baz",
 			false,
 		},
 
 		{
-			[]string{"foo", "0"},
+			`${element("foo", "0")}`,
 			"foo",
 			false,
 		},
 
 		// Invalid index should wrap vs. out-of-bounds
 		{
-			[]string{"foo" + InterpSplitDelim + "baz", "2"},
+			fmt.Sprintf(`${element("%s", "2")}`,
+				"foo"+InterpSplitDelim+"baz"),
 			"foo",
 			false,
 		},
 
 		// Too many args
 		{
-			[]string{"foo" + InterpSplitDelim + "baz", "0", "1"},
-			"",
+			fmt.Sprintf(`${element("%s", "0", "2")}`,
+				"foo"+InterpSplitDelim+"baz"),
+			nil,
 			true,
 		},
-	}
+	})
+}
 
+type testFunctionCase struct {
+	Input  string
+	Result interface{}
+	Error  bool
+}
+
+func testFunction(t *testing.T, cases []testFunctionCase) {
 	for i, tc := range cases {
-		actual, err := interpolationFuncElement(nil, tc.Args...)
+		ast, err := lang.Parse(tc.Input)
+		if err != nil {
+			t.Fatalf("%d: err: %s", i, err)
+		}
+
+		engine := langEngine(nil)
+		out, _, err := engine.Execute(ast)
 		if (err != nil) != tc.Error {
 			t.Fatalf("%d: err: %s", i, err)
 		}
 
-		if actual != tc.Result {
-			t.Fatalf("%d: bad: %#v", i, actual)
+		if !reflect.DeepEqual(out, tc.Result) {
+			t.Fatalf("%d: bad: %#v", i, out)
 		}
 	}
 }
