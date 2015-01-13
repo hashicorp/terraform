@@ -72,6 +72,58 @@ func TestIdentifierCheck(t *testing.T) {
 			},
 			true,
 		},
+
+		{
+			"foo ${rand()} ",
+			&Scope{
+				FuncMap: map[string]Function{
+					"rand": Function{
+						ReturnType:   ast.TypeString,
+						Variadic:     true,
+						VariadicType: ast.TypeInt,
+						Callback: func([]interface{}) (interface{}, error) {
+							return "42", nil
+						},
+					},
+				},
+			},
+			false,
+		},
+
+		{
+			"foo ${rand(42)} ",
+			&Scope{
+				FuncMap: map[string]Function{
+					"rand": Function{
+						ReturnType:   ast.TypeString,
+						Variadic:     true,
+						VariadicType: ast.TypeInt,
+						Callback: func([]interface{}) (interface{}, error) {
+							return "42", nil
+						},
+					},
+				},
+			},
+			false,
+		},
+
+		{
+			"foo ${rand(\"foo\", 42)} ",
+			&Scope{
+				FuncMap: map[string]Function{
+					"rand": Function{
+						ArgTypes:     []ast.Type{ast.TypeString},
+						ReturnType:   ast.TypeString,
+						Variadic:     true,
+						VariadicType: ast.TypeInt,
+						Callback: func([]interface{}) (interface{}, error) {
+							return "42", nil
+						},
+					},
+				},
+			},
+			false,
+		},
 	}
 
 	for _, tc := range cases {

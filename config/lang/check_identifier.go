@@ -52,8 +52,14 @@ func (c *IdentifierCheck) visitCall(n *ast.Call) {
 		return
 	}
 
+	// Break up the args into what is variadic and what is required
+	args := n.Args
+	if function.Variadic && len(args) > len(function.ArgTypes) {
+		args = n.Args[:len(function.ArgTypes)]
+	}
+
 	// Verify the number of arguments
-	if len(n.Args) != len(function.ArgTypes) {
+	if len(args) != len(function.ArgTypes) {
 		c.createErr(n, fmt.Sprintf(
 			"%s: expected %d arguments, got %d",
 			n.Func, len(function.ArgTypes), len(n.Args)))

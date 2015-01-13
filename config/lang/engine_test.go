@@ -54,6 +54,29 @@ func TestEngineExecute(t *testing.T) {
 			"foo 42",
 			ast.TypeString,
 		},
+
+		{
+			`foo ${rand("foo", "bar")}`,
+			&Scope{
+				FuncMap: map[string]Function{
+					"rand": Function{
+						ReturnType:   ast.TypeString,
+						Variadic:     true,
+						VariadicType: ast.TypeString,
+						Callback: func(args []interface{}) (interface{}, error) {
+							var result string
+							for _, a := range args {
+								result += a.(string)
+							}
+							return result, nil
+						},
+					},
+				},
+			},
+			false,
+			"foo foobar",
+			ast.TypeString,
+		},
 	}
 
 	for _, tc := range cases {
