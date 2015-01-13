@@ -42,39 +42,6 @@ func resourceAwsVpc() *schema.Resource {
 				Computed: true,
 			},
 
-			"dhcp_options": &schema.Schema{
-				Type:     schema.TypeList,
-				Optional: true,
-				Elem: &schema.Resource{
-					Schema: map[string]*schema.Schema{
-						"domain_name_servers": &schema.Schema{
-							Type:     schema.TypeString,
-							Required: true,
-						},
-
-						"domain_name": &schema.Schema{
-							Type:     schema.TypeString,
-							Required: true,
-						},
-
-						"ntp_servers": &schema.Schema{
-							Type:     schema.TypeString,
-							Required: true,
-						},
-
-						"netbios_name_servers": &schema.Schema{
-							Type:     schema.TypeString,
-							Required: true,
-						},
-
-						"netbios_node_type": &schema.Schema{
-							Type:     schema.TypeString,
-							Required: true,
-						},
-					},
-				},
-			},
-
 			"main_route_table_id": &schema.Schema{
 				Type:     schema.TypeString,
 				Computed: true,
@@ -88,6 +55,11 @@ func resourceAwsVpc() *schema.Resource {
 			"default_security_group_id": &schema.Schema{
 				Type:     schema.TypeString,
 				Computed: true,
+			},
+
+			"dhcp_options_id": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
 			},
 
 			"tags": tagsSchema(),
@@ -134,33 +106,13 @@ func resourceAwsVpcCreate(d *schema.ResourceData, meta interface{}) error {
 			d.Id(), err)
 	}
 
-	if _, ok := d.GetOk("dhcp_options"); ok {
-		// Create DHCP Options set options
-		createDhcpOpts := &ec2.CreateDhcpOptions{
-			DomainNameServers: d.Get("domain_name_servers").(string),
-			DomainName: d.Get("domain_name").(string),
-			NtpServers: d.Get("ntp_servers").(string),
-			NetbiosNameServers: d.Get("netbios_name_servers").(string),
-			NetbiosNodeType: d.Get("netbios_node_type").(string),
-		}
-
-		// Create the DHCP Options set
-		log.Printf("[DEBUG] DHCP Options create config: %#v", createDhcpOpts)
-		dhcpResp, err := ec2conn.CreateDhcpOptions(createDhcpOpts)
-		if err != nil {
-			return fmt.Errorf("Error creating DHCP Options: %s", err)
-		}
-
-		// Get the ID
-		dhcp := &dhcpResp.DhcpOptions
-		log.Printf("[INFO] DHCP Options ID: %s", dhcp.DhcpOptionsId)
-
-		// Set partial mode and say that we setup the cidr block
+	// Link DHCP Options Set if specified
+	if _, ok := d.Get("dhcp_options_id").(string); ok {
 		d.Partial(true)
-		d.SetPartial("dhcp_options")
+		d.SetPartial("dhcp_option_set")
 
 		// Link DhcpOptionsId and VpcId if we have a dhcp_options_id
-		_, err = ec2conn.AssociateDhcpOptions(dhcp.DhcpOptionsId, vpc.VpcId)
+		_, err = ec2conn.AssociateDhcpOptions(d.Get("dhcp_options_id").(string), vpc.VpcId)
 		if err != nil {
 			return fmt.Errorf("Error associating DHCP Options with VPC: %s", err)
 		}
