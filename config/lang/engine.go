@@ -28,7 +28,7 @@ type SemanticChecker func(ast.Node) error
 // type, and an error if one exists.
 func (e *Engine) Execute(root ast.Node) (interface{}, ast.Type, error) {
 	// Build our own semantic checks that we always run
-	tv := &TypeVisitor{Scope: e.GlobalScope}
+	tv := &TypeCheck{Scope: e.GlobalScope}
 	ic := &IdentifierCheck{Scope: e.GlobalScope}
 
 	// Build up the semantic checks for execution
