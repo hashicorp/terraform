@@ -68,7 +68,7 @@ func resourceAwsVpcCreate(d *schema.ResourceData, meta interface{}) error {
 
 	// Create the VPC
 	createOpts := &ec2.CreateVpc{
-		CidrBlock: d.Get("cidr_block").(string),
+		CidrBlock:       d.Get("cidr_block").(string),
 		InstanceTenancy: d.Get("instance_tenancy").(string),
 	}
 	log.Printf("[DEBUG] VPC create config: %#v", createOpts)
