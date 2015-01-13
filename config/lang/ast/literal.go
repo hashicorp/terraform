@@ -23,3 +23,7 @@ func (n *LiteralNode) Pos() Pos {
 func (n *LiteralNode) GoString() string {
 	return fmt.Sprintf("*%#v", *n)
 }
+
+func (n *LiteralNode) String() string {
+	return fmt.Sprintf("Literal(%s, %v)", n.Type, n.Value)
+}
