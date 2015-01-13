@@ -20,147 +20,133 @@ func TestInterpolateFuncFile(t *testing.T) {
 	tf.Close()
 	defer os.Remove(path)
 
-	testFunction(t, []testFunctionCase{
-		{
-			fmt.Sprintf(`${file("%s")}`, path),
-			"foo",
-			false,
-		},
+	testFunction(t, testFunctionConfig{
+		Cases: []testFunctionCase{
+			{
+				fmt.Sprintf(`${file("%s")}`, path),
+				"foo",
+				false,
+			},
 
-		// Invalid path
-		{
-			`${file("/i/dont/exist")}`,
-			nil,
-			true,
-		},
+			// Invalid path
+			{
+				`${file("/i/dont/exist")}`,
+				nil,
+				true,
+			},
 
-		// Too many args
-		{
-			`${file("foo", "bar")}`,
-			nil,
-			true,
+			// Too many args
+			{
+				`${file("foo", "bar")}`,
+				nil,
+				true,
+			},
 		},
 	})
 }
 
 func TestInterpolateFuncJoin(t *testing.T) {
-	testFunction(t, []testFunctionCase{
-		{
-			`${join(",")}`,
-			nil,
-			true,
-		},
-
-		{
-			`${join(",", "foo")}`,
-			"foo",
-			false,
-		},
-
-		/*
-			TODO
+	testFunction(t, testFunctionConfig{
+		Cases: []testFunctionCase{
 			{
-				`${join(",", "foo", "bar")}`,
-				"foo,bar",
+				`${join(",")}`,
+				nil,
+				true,
+			},
+
+			{
+				`${join(",", "foo")}`,
+				"foo",
 				false,
 			},
-		*/
 
-		{
-			fmt.Sprintf(`${join(".", "%s")}`,
-				fmt.Sprintf(
-					"foo%sbar%sbaz",
-					InterpSplitDelim,
-					InterpSplitDelim)),
-			"foo.bar.baz",
-			false,
+			/*
+				TODO
+				{
+					`${join(",", "foo", "bar")}`,
+					"foo,bar",
+					false,
+				},
+			*/
+
+			{
+				fmt.Sprintf(`${join(".", "%s")}`,
+					fmt.Sprintf(
+						"foo%sbar%sbaz",
+						InterpSplitDelim,
+						InterpSplitDelim)),
+				"foo.bar.baz",
+				false,
+			},
 		},
 	})
 }
 
-/*
 func TestInterpolateFuncLookup(t *testing.T) {
-	testFunction(t, []testFunctionCase{
-	cases := []struct {
-		M      map[string]string
-		Args   []string
-		Result string
-		Error  bool
-	}{
-		{
-			map[string]string{
-				"var.foo.bar": "baz",
+	testFunction(t, testFunctionConfig{
+		Vars: map[string]string{"var.foo.bar": "baz"},
+		Cases: []testFunctionCase{
+			{
+				`${lookup("foo", "bar")}`,
+				"baz",
+				false,
 			},
-			[]string{"foo", "bar"},
-			"baz",
-			false,
-		},
 
-		// Invalid key
-		{
-			map[string]string{
-				"var.foo.bar": "baz",
+			// Invalid key
+			{
+				`${lookup("foo", "baz")}`,
+				nil,
+				true,
 			},
-			[]string{"foo", "baz"},
-			"",
-			true,
-		},
 
-		// Too many args
-		{
-			map[string]string{
-				"var.foo.bar": "baz",
+			// Too many args
+			{
+				`${lookup("foo", "bar", "baz")}`,
+				nil,
+				true,
 			},
-			[]string{"foo", "bar", "baz"},
-			"",
-			true,
 		},
-	}
-
-	for i, tc := range cases {
-		actual, err := interpolationFuncLookup(tc.M, tc.Args...)
-		if (err != nil) != tc.Error {
-			t.Fatalf("%d: err: %s", i, err)
-		}
-
-		if actual != tc.Result {
-			t.Fatalf("%d: bad: %#v", i, actual)
-		}
-	}
+	})
 }
-*/
 
 func TestInterpolateFuncElement(t *testing.T) {
-	testFunction(t, []testFunctionCase{
-		{
-			fmt.Sprintf(`${element("%s", "1")}`,
-				"foo"+InterpSplitDelim+"baz"),
-			"baz",
-			false,
-		},
+	testFunction(t, testFunctionConfig{
+		Cases: []testFunctionCase{
+			{
+				fmt.Sprintf(`${element("%s", "1")}`,
+					"foo"+InterpSplitDelim+"baz"),
+				"baz",
+				false,
+			},
 
-		{
-			`${element("foo", "0")}`,
-			"foo",
-			false,
-		},
+			{
+				`${element("foo", "0")}`,
+				"foo",
+				false,
+			},
 
-		// Invalid index should wrap vs. out-of-bounds
-		{
-			fmt.Sprintf(`${element("%s", "2")}`,
-				"foo"+InterpSplitDelim+"baz"),
-			"foo",
-			false,
-		},
+			// Invalid index should wrap vs. out-of-bounds
+			{
+				fmt.Sprintf(`${element("%s", "2")}`,
+					"foo"+InterpSplitDelim+"baz"),
+				"foo",
+				false,
+			},
 
-		// Too many args
-		{
-			fmt.Sprintf(`${element("%s", "0", "2")}`,
-				"foo"+InterpSplitDelim+"baz"),
-			nil,
-			true,
+			// Too many args
+			{
+				fmt.Sprintf(`${element("%s", "0", "2")}`,
+					"foo"+InterpSplitDelim+"baz"),
+				nil,
+				true,
+			},
 		},
 	})
+}
+
+type testFunctionConfig struct {
+	Cases []testFunctionCase
+	Vars  map[string]string
 }
 
 type testFunctionCase struct {
@@ -169,14 +155,14 @@ type testFunctionCase struct {
 	Error  bool
 }
 
-func testFunction(t *testing.T, cases []testFunctionCase) {
-	for i, tc := range cases {
+func testFunction(t *testing.T, config testFunctionConfig) {
+	for i, tc := range config.Cases {
 		ast, err := lang.Parse(tc.Input)
 		if err != nil {
 			t.Fatalf("%d: err: %s", i, err)
 		}
 
-		engine := langEngine(nil)
+		engine := langEngine(config.Vars)
 		out, _, err := engine.Execute(ast)
 		if (err != nil) != tc.Error {
 			t.Fatalf("%d: err: %s", i, err)

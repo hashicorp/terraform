@@ -208,10 +208,17 @@ func langEngine(vs map[string]string) *lang.Engine {
 	for k, v := range vs {
 		varMap[k] = lang.Variable{Value: v, Type: ast.TypeString}
 	}
+
+	funcMap := make(map[string]lang.Function)
+	for k, v := range Funcs {
+		funcMap[k] = v
+	}
+	funcMap["lookup"] = interpolationFuncLookup(vs)
+
 	return &lang.Engine{
 		GlobalScope: &lang.Scope{
 			VarMap:  varMap,
-			FuncMap: Funcs,
+			FuncMap: funcMap,
 		},
 	}
 }
