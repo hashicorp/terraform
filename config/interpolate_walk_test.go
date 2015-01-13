@@ -1,16 +1,18 @@
 package config
 
 import (
+	"fmt"
 	"reflect"
 	"testing"
 
+	"github.com/hashicorp/terraform/config/lang/ast"
 	"github.com/mitchellh/reflectwalk"
 )
 
 func TestInterpolationWalker_detect(t *testing.T) {
 	cases := []struct {
 		Input  interface{}
-		Result []Interpolation
+		Result []string
 	}{
 		{
 			Input: map[string]interface{}{
@@ -23,13 +25,8 @@ func TestInterpolationWalker_detect(t *testing.T) {
 			Input: map[string]interface{}{
 				"foo": "${var.foo}",
 			},
-			Result: []Interpolation{
-				&VariableInterpolation{
-					Variable: &UserVariable{
-						Name: "foo",
-						key:  "var.foo",
-					},
-				},
+			Result: []string{
+				"Variable(var.foo)",
 			},
 		},
 
@@ -37,19 +34,8 @@ func TestInterpolationWalker_detect(t *testing.T) {
 			Input: map[string]interface{}{
 				"foo": "${aws_instance.foo.*.num}",
 			},
-			Result: []Interpolation{
-				&VariableInterpolation{
-					Variable: &ResourceVariable{
-						Type:  "aws_instance",
-						Name:  "foo",
-						Field: "num",
-
-						Multi: true,
-						Index: -1,
-
-						key: "aws_instance.foo.*.num",
-					},
-				},
+			Result: []string{
+				"Variable(aws_instance.foo.*.num)",
 			},
 		},
 
@@ -57,18 +43,8 @@ func TestInterpolationWalker_detect(t *testing.T) {
 			Input: map[string]interface{}{
 				"foo": "${lookup(var.foo)}",
 			},
-			Result: []Interpolation{
-				&FunctionInterpolation{
-					Func: nil,
-					Args: []Interpolation{
-						&VariableInterpolation{
-							Variable: &UserVariable{
-								Name: "foo",
-								key:  "var.foo",
-							},
-						},
-					},
-				},
+			Result: []string{
+				"Call(lookup, Variable(var.foo))",
 			},
 		},
 
@@ -76,15 +52,8 @@ func TestInterpolationWalker_detect(t *testing.T) {
 			Input: map[string]interface{}{
 				"foo": `${file("test.txt")}`,
 			},
-			Result: []Interpolation{
-				&FunctionInterpolation{
-					Func: nil,
-					Args: []Interpolation{
-						&LiteralInterpolation{
-							Literal: "test.txt",
-						},
-					},
-				},
+			Result: []string{
+				"Call(file, Literal(TypeString, test.txt))",
 			},
 		},
 
@@ -92,15 +61,8 @@ func TestInterpolationWalker_detect(t *testing.T) {
 			Input: map[string]interface{}{
 				"foo": `${file("foo/bar.txt")}`,
 			},
-			Result: []Interpolation{
-				&FunctionInterpolation{
-					Func: nil,
-					Args: []Interpolation{
-						&LiteralInterpolation{
-							Literal: "foo/bar.txt",
-						},
-					},
-				},
+			Result: []string{
+				"Call(file, Literal(TypeString, foo/bar.txt))",
 			},
 		},
 
@@ -108,25 +70,8 @@ func TestInterpolationWalker_detect(t *testing.T) {
 			Input: map[string]interface{}{
 				"foo": `${join(",", foo.bar.*.id)}`,
 			},
-			Result: []Interpolation{
-				&FunctionInterpolation{
-					Func: nil,
-					Args: []Interpolation{
-						&LiteralInterpolation{
-							Literal: ",",
-						},
-						&VariableInterpolation{
-							Variable: &ResourceVariable{
-								Type:  "foo",
-								Name:  "bar",
-								Field: "id",
-								Multi: true,
-								Index: -1,
-								key:   "foo.bar.*.id",
-							},
-						},
-					},
-				},
+			Result: []string{
+				"Call(join, Literal(TypeString, ,), Variable(foo.bar.*.id))",
 			},
 		},
 
@@ -134,41 +79,22 @@ func TestInterpolationWalker_detect(t *testing.T) {
 			Input: map[string]interface{}{
 				"foo": `${concat("localhost", ":8080")}`,
 			},
-			Result: []Interpolation{
-				&FunctionInterpolation{
-					Func: nil,
-					Args: []Interpolation{
-						&LiteralInterpolation{
-							Literal: "localhost",
-						},
-						&LiteralInterpolation{
-							Literal: ":8080",
-						},
-					},
-				},
+			Result: []string{
+				"Call(concat, Literal(TypeString, localhost), Literal(TypeString, :8080))",
 			},
 		},
 	}
 
 	for i, tc := range cases {
-		var actual []Interpolation
-
-		detectFn := func(i Interpolation) (string, error) {
-			actual = append(actual, i)
+		var actual []string
+		detectFn := func(root ast.Node) (string, error) {
+			actual = append(actual, fmt.Sprintf("%s", root))
 			return "", nil
 		}
 
 		w := &interpolationWalker{F: detectFn}
 		if err := reflectwalk.Walk(tc.Input, w); err != nil {
 			t.Fatalf("err: %s", err)
-		}
-
-		for _, a := range actual {
-			// This is jank, but reflect.DeepEqual never has functions
-			// being the same.
-			if f, ok := a.(*FunctionInterpolation); ok {
-				f.Func = nil
-			}
 		}
 
 		if !reflect.DeepEqual(actual, tc.Result) {
@@ -198,7 +124,7 @@ func TestInterpolationWalker_replace(t *testing.T) {
 				"foo": "hello, ${var.foo}",
 			},
 			Output: map[string]interface{}{
-				"foo": "hello, bar",
+				"foo": "bar",
 			},
 			Value: "bar",
 		},
@@ -247,7 +173,7 @@ func TestInterpolationWalker_replace(t *testing.T) {
 	}
 
 	for i, tc := range cases {
-		fn := func(i Interpolation) (string, error) {
+		fn := func(ast.Node) (string, error) {
 			return tc.Value, nil
 		}
 
