@@ -27,10 +27,22 @@ type SemanticChecker func(ast.Node) error
 // Execute executes the given ast.Node and returns its final value, its
 // type, and an error if one exists.
 func (e *Engine) Execute(root ast.Node) (interface{}, ast.Type, error) {
-	// Run the type checker
+	// Build our own semantic checks that we always run
 	tv := &TypeVisitor{Scope: e.GlobalScope}
-	if err := tv.Visit(root); err != nil {
-		return nil, ast.TypeInvalid, err
+	ic := &IdentifierCheck{Scope: e.GlobalScope}
+
+	// Build up the semantic checks for execution
+	checks := make(
+		[]SemanticChecker, len(e.SemanticChecks), len(e.SemanticChecks)+2)
+	copy(checks, e.SemanticChecks)
+	checks = append(checks, ic.Visit)
+	checks = append(checks, tv.Visit)
+
+	// Run the semantic checks
+	for _, check := range checks {
+		if err := check(root); err != nil {
+			return nil, ast.TypeInvalid, err
+		}
 	}
 
 	// Execute
