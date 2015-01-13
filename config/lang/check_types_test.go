@@ -79,6 +79,60 @@ func TestTypeCheck(t *testing.T) {
 		},
 
 		{
+			`foo ${rand()}`,
+			&Scope{
+				FuncMap: map[string]Function{
+					"rand": Function{
+						ArgTypes:     nil,
+						ReturnType:   ast.TypeString,
+						Variadic:     true,
+						VariadicType: ast.TypeString,
+						Callback: func([]interface{}) (interface{}, error) {
+							return "42", nil
+						},
+					},
+				},
+			},
+			false,
+		},
+
+		{
+			`foo ${rand("42")}`,
+			&Scope{
+				FuncMap: map[string]Function{
+					"rand": Function{
+						ArgTypes:     nil,
+						ReturnType:   ast.TypeString,
+						Variadic:     true,
+						VariadicType: ast.TypeString,
+						Callback: func([]interface{}) (interface{}, error) {
+							return "42", nil
+						},
+					},
+				},
+			},
+			false,
+		},
+
+		{
+			`foo ${rand("42", 42)}`,
+			&Scope{
+				FuncMap: map[string]Function{
+					"rand": Function{
+						ArgTypes:     nil,
+						ReturnType:   ast.TypeString,
+						Variadic:     true,
+						VariadicType: ast.TypeString,
+						Callback: func([]interface{}) (interface{}, error) {
+							return "42", nil
+						},
+					},
+				},
+			},
+			true,
+		},
+
+		{
 			"foo ${bar}",
 			&Scope{
 				VarMap: map[string]Variable{

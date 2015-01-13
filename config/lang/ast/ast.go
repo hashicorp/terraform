@@ -33,7 +33,7 @@ type Visitor func(Node)
 //go:generate stringer -type=Type
 
 // Type is the type of a literal.
-type Type uint
+type Type uint32
 
 const (
 	TypeInvalid Type = 0

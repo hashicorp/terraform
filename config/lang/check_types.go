@@ -68,6 +68,20 @@ func (v *TypeCheck) visitCall(n *ast.Call) {
 		}
 	}
 
+	// If we're variadic, then verify the types there
+	if function.Variadic {
+		args = args[len(function.ArgTypes):]
+		for i, t := range args {
+			if t != function.VariadicType {
+				v.createErr(n, fmt.Sprintf(
+					"%s: argument %d should be %s, got %s",
+					n.Func, i+len(function.ArgTypes),
+					function.VariadicType, t))
+				return
+			}
+		}
+	}
+
 	// Return type
 	v.stackPush(function.ReturnType)
 }
