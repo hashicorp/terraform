@@ -30,7 +30,14 @@ import (
 %%
 
 top:
-	literalModeTop
+    {
+        parserResult = &ast.LiteralNode{
+            Value: "",
+            Type:  ast.TypeString,
+            Posx:  ast.Pos{Column: 1, Line: 1},
+        }
+    }
+|   literalModeTop
 	{
         parserResult = $1
 	}

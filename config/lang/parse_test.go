@@ -14,6 +14,16 @@ func TestParse(t *testing.T) {
 		Result ast.Node
 	}{
 		{
+			"",
+			false,
+			&ast.LiteralNode{
+				Value: "",
+				Type:  ast.TypeString,
+				Posx:  ast.Pos{Column: 1, Line: 1},
+			},
+		},
+
+		{
 			"foo",
 			false,
 			&ast.LiteralNode{
