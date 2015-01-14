@@ -81,7 +81,7 @@ func interpolationFuncJoin() lang.Function {
 
 // interpolationFuncLookup implements the "lookup" function that allows
 // dynamic lookups of map types within a Terraform configuration.
-func interpolationFuncLookup(vs map[string]string) lang.Function {
+func interpolationFuncLookup(vs map[string]lang.Variable) lang.Function {
 	return lang.Function{
 		ArgTypes:   []ast.Type{ast.TypeString, ast.TypeString},
 		ReturnType: ast.TypeString,
@@ -93,8 +93,13 @@ func interpolationFuncLookup(vs map[string]string) lang.Function {
 					"lookup in '%s' failed to find '%s'",
 					args[0].(string), args[1].(string))
 			}
+			if v.Type != ast.TypeString {
+				return "", fmt.Errorf(
+					"lookup in '%s' for '%s' has bad type %s",
+					args[0].(string), args[1].(string), v.Type)
+			}
 
-			return v, nil
+			return v.Value.(string), nil
 		},
 	}
 }

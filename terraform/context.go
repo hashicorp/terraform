@@ -11,6 +11,8 @@ import (
 	"sync/atomic"
 
 	"github.com/hashicorp/terraform/config"
+	"github.com/hashicorp/terraform/config/lang"
+	"github.com/hashicorp/terraform/config/lang/ast"
 	"github.com/hashicorp/terraform/config/module"
 	"github.com/hashicorp/terraform/depgraph"
 	"github.com/hashicorp/terraform/helper/multierror"
@@ -1520,9 +1522,12 @@ func (c *walkContext) computeVars(
 	}
 
 	// Copy the default variables
-	vs := make(map[string]string)
+	vs := make(map[string]lang.Variable)
 	for k, v := range c.defaultVariables {
-		vs[k] = v
+		vs[k] = lang.Variable{
+			Value: v,
+			Type:  ast.TypeString,
+		}
 	}
 
 	// Next, the actual computed variables
@@ -1532,12 +1537,18 @@ func (c *walkContext) computeVars(
 			switch v.Type {
 			case config.CountValueIndex:
 				if r != nil {
-					vs[n] = strconv.FormatInt(int64(r.CountIndex), 10)
+					vs[n] = lang.Variable{
+						Value: int(r.CountIndex),
+						Type:  ast.TypeInt,
+					}
 				}
 			}
 		case *config.ModuleVariable:
 			if c.Operation == walkValidate {
-				vs[n] = config.UnknownVariableValue
+				vs[n] = lang.Variable{
+					Value: config.UnknownVariableValue,
+					Type:  ast.TypeString,
+				}
 				continue
 			}
 
@@ -1546,7 +1557,10 @@ func (c *walkContext) computeVars(
 				return err
 			}
 
-			vs[n] = value
+			vs[n] = lang.Variable{
+				Value: value,
+				Type:  ast.TypeString,
+			}
 		case *config.PathVariable:
 			switch v.Type {
 			case config.PathValueCwd:
@@ -1557,17 +1571,29 @@ func (c *walkContext) computeVars(
 						v.FullKey(), err)
 				}
 
-				vs[n] = wd
+				vs[n] = lang.Variable{
+					Value: wd,
+					Type:  ast.TypeString,
+				}
 			case config.PathValueModule:
 				if t := c.Context.module.Child(c.Path[1:]); t != nil {
-					vs[n] = t.Config().Dir
+					vs[n] = lang.Variable{
+						Value: t.Config().Dir,
+						Type:  ast.TypeString,
+					}
 				}
 			case config.PathValueRoot:
-				vs[n] = c.Context.module.Config().Dir
+				vs[n] = lang.Variable{
+					Value: c.Context.module.Config().Dir,
+					Type:  ast.TypeString,
+				}
 			}
 		case *config.ResourceVariable:
 			if c.Operation == walkValidate {
-				vs[n] = config.UnknownVariableValue
+				vs[n] = lang.Variable{
+					Value: config.UnknownVariableValue,
+					Type:  ast.TypeString,
+				}
 				continue
 			}
 
@@ -1582,16 +1608,25 @@ func (c *walkContext) computeVars(
 				return err
 			}
 
-			vs[n] = attr
+			vs[n] = lang.Variable{
+				Value: attr,
+				Type:  ast.TypeString,
+			}
 		case *config.UserVariable:
 			val, ok := c.Variables[v.Name]
 			if ok {
-				vs[n] = val
+				vs[n] = lang.Variable{
+					Value: val,
+					Type:  ast.TypeString,
+				}
 				continue
 			}
 
 			if _, ok := vs[n]; !ok && c.Operation == walkValidate {
-				vs[n] = config.UnknownVariableValue
+				vs[n] = lang.Variable{
+					Value: config.UnknownVariableValue,
+					Type:  ast.TypeString,
+				}
 				continue
 			}
 
@@ -1599,7 +1634,10 @@ func (c *walkContext) computeVars(
 			// those are map overrides. Include those.
 			for k, val := range c.Variables {
 				if strings.HasPrefix(k, v.Name+".") {
-					vs["var."+k] = val
+					vs["var."+k] = lang.Variable{
+						Value: val,
+						Type:  ast.TypeString,
+					}
 				}
 			}
 		}

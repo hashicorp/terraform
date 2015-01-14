@@ -251,6 +251,12 @@ func TestParse(t *testing.T) {
 			true,
 			nil,
 		},
+
+		{
+			"${var",
+			true,
+			nil,
+		},
 	}
 
 	for _, tc := range cases {
