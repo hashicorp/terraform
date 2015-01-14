@@ -77,7 +77,7 @@ func (x *parserLex) lex(yylval *parserSymType) int {
 	case parserModeInterpolation:
 		return x.lexModeInterpolation(yylval)
 	default:
-		x.Error(fmt.Sprintf("Unknown parse mode: %s", x.mode))
+		x.Error(fmt.Sprintf("Unknown parse mode: %d", x.mode))
 		return lexEOF
 	}
 }
