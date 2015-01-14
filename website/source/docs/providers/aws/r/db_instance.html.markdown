@@ -50,9 +50,9 @@ The following arguments are supported:
 * `multi_az` - (Optional) Specifies if the RDS instance is multi-AZ
 * `port` - (Optional) The port on which the DB accepts connections.
 * `publicly_accessible` - (Optional) Bool to control if instance is publicly accessible.
-* `vpc_security_group_ids` - (Optional) Array of VPC security groups to associate.
+* `vpc_security_group_ids` - (Optional) List of VPC security groups to associate.
 * `skip_final_snapshot` - (Optional) Enables skipping the final snapshot on deletion.
-* `security_group_names` - (Optional) Array of DB Security Groups to associate.
+* `security_group_names` - (Optional) List of DB Security Groups to associate.
 * `db_subnet_group_name` - (Optional) Name of DB subnet group
 * `parameter_group_name` - (Optional) Name of the DB parameter group to associate.
 

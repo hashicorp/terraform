@@ -61,10 +61,10 @@ The following arguments are supported:
 
 The `ingress` block supports:
 
-* `cidr_blocks` - (Optional) Array of CIDR blocks. Cannot be used with `security_groups`.
+* `cidr_blocks` - (Optional) List of CIDR blocks. Cannot be used with `security_groups`.
 * `from_port` - (Required) The start port.
 * `protocol` - (Required) The protocol.
-* `security_groups` - (Optional) Array of security group IDs. Cannot be used with `cidr_blocks`.
+* `security_groups` - (Optional) List of security group IDs. Cannot be used with `cidr_blocks`.
 * `self` - (Optional) If true, the security group itself will be added as
      a source to this ingress rule.
 * `to_port` - (Required) The end range port.

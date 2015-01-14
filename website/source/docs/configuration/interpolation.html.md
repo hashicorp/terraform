@@ -32,7 +32,7 @@ will interpolate the ID attribute from the "aws\_instance"
 resource named "web". If the resource has a `count` attribute set,
 you can access individual attributes with a zero-based index, such
 as `${aws_instance.web.0.id}`. You can also use the splat syntax
-to get an array of all the attributes: `${aws_instance.web.*.id}`.
+to get a list of all the attributes: `${aws_instance.web.*.id}`.
 This is documented in more detail in the
 [resource configuration page](/docs/configuration/resources.html).
 
@@ -68,16 +68,16 @@ The supported built-in functions are:
       in this file are _not_ interpolated. The contents of the file are
       read as-is.
 
-  * `join(delim, array)` - Joins the array with the delimiter. An array is
+  * `join(delim, list)` - Joins the list with the delimiter. A list is
       only possible with splat variables from resources with a count
       greater than one. Example: `join(",", aws_instance.foo.*.id)`
 
   * `lookup(map, key)` - Performs a dynamic lookup into a mapping
       variable.
 
-  * `element(array, index)` - Returns a single element from an array
+  * `element(list, index)` - Returns a single element from a list
       at the given index. If the index is greater than the number of
       elements, this function will wrap using a standard mod algorithm.
-      An array is only possible with splat variables from resources with
+      A list is only possible with splat variables from resources with
       a count greater than one.
       Example: `element(aws_subnet.foo.*.id, count.index)`

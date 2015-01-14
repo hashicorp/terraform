@@ -33,17 +33,17 @@ The following arguments are supported:
 * `name` - (Required) The name of the auto scale group.
 * `max_size` - (Required) The maximum size of the auto scale group.
 * `min_size` - (Required) The minimum size of the auto scale group.
-* `availability_zones` - (Required) An array of AZs to launch resources in.
+* `availability_zones` - (Required) A list of AZs to launch resources in.
 * `launch_configuration` - (Required) The ID of the launch configuration to use.
 * `health_check_grace_period` - (Optional) Time after instance comes into service before checking health.
 * `health_check_type` - (Optional) "EC2" or "ELB". Controls how health checking is done.
 * `desired_capacity` - (Optional) The number of Amazon EC2 instances that should be running in the group.
 * `force_delete` - (Optional) Allows deleting the autoscaling group without waiting
    for all instances in the pool to terminate.
-* `load_balancers` (Optional) An array of load balancer names to add to the autoscaling
+* `load_balancers` (Optional) A list of load balancer names to add to the autoscaling
    group names.
-* `vpc_zone_identifier` (Optional) An array of subnet IDs to launch resources in.
-* `termination_policies` (Optional) An array of policies to decide how the instances in the auto scale group should be terminated.
+* `vpc_zone_identifier` (Optional) A list of subnet IDs to launch resources in.
+* `termination_policies` (Optional) A list of policies to decide how the instances in the auto scale group should be terminated.
 
 ## Attributes Reference
 

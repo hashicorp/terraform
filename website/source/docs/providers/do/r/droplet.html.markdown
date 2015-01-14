@@ -35,7 +35,7 @@ The following arguments are supported:
 * `backups` - (Optional) Boolean controlling if backups are made.
 * `ipv6` - (Optional) Boolean controlling if IPv6 is enabled.
 * `private_networking` - (Optional) Boolean controlling if private networks are enabled.
-* `ssh_keys` - (Optional) An array of SSH IDs or fingerprints to enable in
+* `ssh_keys` - (Optional) A list of SSH IDs or fingerprints to enable in
    the format `[12345, 123456]`. To retrieve this info, use a tool such
    as `curl` with the [DigitalOcean API](https://developers.digitalocean.com/#keys),
    to retrieve them.
