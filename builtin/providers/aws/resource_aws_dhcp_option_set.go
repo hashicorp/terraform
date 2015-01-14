@@ -3,9 +3,8 @@ package aws
 import (
 	"fmt"
 	"log"
-	"time"
 
-	"github.com/hashicorp/terraform/helper/resource"
+	//"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/mitchellh/goamz/ec2"
 )
@@ -15,47 +14,38 @@ func resourceAwsDhcpOptionSet() *schema.Resource {
 		Create: resourceAwsDhcpOptionSetCreate,
 		Delete: resourceAwsDhcpOptionSetDelete,
 
-		"dhcp_options": &schema.Schema{
-			Type:     schema.TypeList,
-			Required: true,
-			Elem: &schema.Resource{
-				Schema: map[string]*schema.Schema{
-					"domain_name_servers": &schema.Schema{
-						Type:        schema.TypeString,
-						Required:    true,
-						RequiresNew: true,
-					},
+		Schema: map[string]*schema.Schema{
+			"domain_name_servers": &schema.Schema{
+				Type:     schema.TypeString,
+				Required: true,
+			},
 
-					"domain_name": &schema.Schema{
-						Type:        schema.TypeString,
-						Required:    true,
-						RequiresNew: true,
-					},
+			"domain_name": &schema.Schema{
+				Type:     schema.TypeString,
+				Required: true,
+			},
 
-					"ntp_servers": &schema.Schema{
-						Type:        schema.TypeString,
-						Required:    true,
-						RequiresNew: true,
-					},
+			"ntp_servers": &schema.Schema{
+				Type:     schema.TypeString,
+				Required: true,
+			},
 
-					"netbios_name_servers": &schema.Schema{
-						Type:        schema.TypeString,
-						Required:    true,
-						RequiresNew: true,
-					},
+			"netbios_name_servers": &schema.Schema{
+				Type:     schema.TypeString,
+				Required: true,
+			},
 
-					"netbios_node_type": &schema.Schema{
-						Type:        schema.TypeString,
-						Required:    true,
-						RequiresNew: true,
-					},
-				},
+			"netbios_node_type": &schema.Schema{
+				Type:     schema.TypeString,
+				Required: true,
 			},
 		},
 	}
 }
 
 func resourceAwsDhcpOptionSetCreate(d *schema.ResourceData, meta interface{}) error {
+	ec2conn := meta.(*AWSClient).ec2conn
+
 	// Create DHCP Options set options
 	createDhcpOpts := &ec2.CreateDhcpOptions{
 		DomainNameServers:  d.Get("domain_name_servers").(string),
@@ -86,12 +76,7 @@ func resourceAwsDhcpOptionSetDelete(d *schema.ResourceData, meta interface{}) er
 	log.Printf("[INFO] Deleting DHCP Options Set: %s", d.Id())
 
 	if _, err := ec2conn.DeleteDhcpOptions(d.Id()); err != nil {
-		ec2err, ok := err.(*ec2.Error)
-		if ok {
-			return nil
-		}
-
-		return fmt.Errorf("Error deleting VPC: %s", err)
+		return fmt.Errorf("Error deleting DHCP Options Set: %s", err)
 	}
 
 	return nil
