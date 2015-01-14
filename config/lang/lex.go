@@ -53,10 +53,13 @@ const (
 
 // The parser calls this method to get each new token.
 func (x *parserLex) Lex(yylval *parserSymType) int {
+	// We always start in literal mode, since programs don't start
+	// in an interpolation. ex. "foo ${bar}" vs "bar" (and assuming interp.)
 	if x.mode == parserModeInvalid {
 		x.mode = parserModeLiteral
 	}
 
+	// Defer an update to set the proper column/line we read the next token.
 	defer func() {
 		if yylval.token != nil && yylval.token.Pos.Column == 0 {
 			yylval.token.Pos = *x.astPos
@@ -127,8 +130,8 @@ func (x *parserLex) lexModeInterpolation(yylval *parserSymType) int {
 			continue
 		}
 
-		// If we see a double quote and we're in an interpolation, then
-		// we are lexing a string.
+		// If we see a double quote then we're lexing a string since
+		// we're in interpolation mode.
 		if c == '"' {
 			result, terminated := x.lexString(yylval, true)
 			if !terminated {
@@ -154,6 +157,8 @@ func (x *parserLex) lexModeInterpolation(yylval *parserSymType) int {
 
 		switch c {
 		case '}':
+			// '}' means we ended the interpolation. Pop back into
+			// literal mode and reduce our interpolation depth.
 			x.interpolationDepth--
 			x.mode = parserModeLiteral
 			return PROGRAM_BRACKET_RIGHT
@@ -289,12 +294,6 @@ func (x *parserLex) lexString(yylval *parserSymType, quoted bool) (int, bool) {
 					x.backup()
 				}
 			}
-		}
-
-		// If we hit a '}' and we're in a program, then end it.
-		if c == '}' && x.interpolationDepth > 0 {
-			x.backup()
-			break
 		}
 
 		// If we hit a dollar sign, then check if we're starting
