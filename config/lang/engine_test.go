@@ -2,6 +2,7 @@ package lang
 
 import (
 	"reflect"
+	"strconv"
 	"testing"
 
 	"github.com/hashicorp/terraform/config/lang/ast"
@@ -87,6 +88,24 @@ func TestEngineExecute(t *testing.T) {
 					"bar": Variable{
 						Value: 42,
 						Type:  ast.TypeInt,
+					},
+				},
+			},
+			false,
+			"foo 42",
+			ast.TypeString,
+		},
+
+		{
+			`foo ${foo("42")}`,
+			&Scope{
+				FuncMap: map[string]Function{
+					"foo": Function{
+						ArgTypes:   []ast.Type{ast.TypeInt},
+						ReturnType: ast.TypeString,
+						Callback: func(args []interface{}) (interface{}, error) {
+							return strconv.FormatInt(int64(args[0].(int)), 10), nil
+						},
 					},
 				},
 			},
