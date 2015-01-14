@@ -270,7 +270,11 @@ func resourceSubnetAllocationPools(d *schema.ResourceData) []subnets.AllocationP
 	rawAPs := d.Get("allocation_pools").([]interface{})
 	aps := make([]subnets.AllocationPool, len(rawAPs))
 	for i, raw := range rawAPs {
-		aps[i] = raw.(subnets.AllocationPool)
+		rawMap := raw.(map[string]interface{})
+		aps[i] = subnets.AllocationPool{
+			Start: rawMap["start"].(string),
+			End:   rawMap["end"].(string),
+		}
 	}
 	return aps
 }
@@ -288,7 +292,11 @@ func resourceSubnetHostRoutes(d *schema.ResourceData) []subnets.HostRoute {
 	rawHR := d.Get("host_routes").([]interface{})
 	hr := make([]subnets.HostRoute, len(rawHR))
 	for i, raw := range rawHR {
-		hr[i] = raw.(subnets.HostRoute)
+		rawMap := raw.(map[string]interface{})
+		hr[i] = subnets.HostRoute{
+			DestinationCIDR: rawMap["destination_cidr"].(string),
+			NextHop:         rawMap["next_hop"].(string),
+		}
 	}
 	return hr
 }
