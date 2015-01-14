@@ -34,7 +34,7 @@ The following arguments are supported:
      EBS-optimized.
 * `instance_type` - (Required) The type of instance to start
 * `key_name` - (Optional) The key name to use for the instance.
-* `security_groups` - (Optional) An array of security group IDs or names to associate with.
+* `security_groups` - (Optional) A list of security group IDs or names to associate with.
    If you are within a non-default VPC, you'll need to use the security group ID. Otherwise,
    for EC2 and the default VPC, use the security group name.
 * `subnet_id` - (Optional) The VPC Subnet ID to launch in.
@@ -47,7 +47,7 @@ The following arguments are supported:
 * `iam_instance_profile` - (Optional) The IAM Instance Profile to
   launch the instance with.
 * `tags` - (Optional) A mapping of tags to assign to the resource.
-* `block_device` - (Optional) An array of block devices to add. Their keys are documented below.
+* `block_device` - (Optional) A list of block devices to add. Their keys are documented below.
 
 Each `block_device` supports the following:
 

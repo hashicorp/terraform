@@ -42,18 +42,18 @@ The following arguments are supported:
 * `allow` - (Required) Can be specified multiple times for each allow
     rule. Each allow block supports fields documented below.
 
-* `source_ranges` - (Optional) An array of source CIDR ranges that this
+* `source_ranges` - (Optional) A list of source CIDR ranges that this
    firewall applies to.
 
-* `source_tags` - (Optional) An array of source tags that this firewall applies to.
+* `source_tags` - (Optional) A list of source tags that this firewall applies to.
 
-* `target_tags` - (Optional) An array of target tags that this firewall applies to.
+* `target_tags` - (Optional) A list of target tags that this firewall applies to.
 
 The `allow` block supports:
 
 * `protocol` - (Required) The name of the protocol to allow.
 
-* `ports` - (Optional) Array of ports and/or port ranges to allow. This can
+* `ports` - (Optional) List of ports and/or port ranges to allow. This can
     only be specified if the protocol is TCP or UDP.
 
 ## Attributes Reference

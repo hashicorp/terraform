@@ -29,7 +29,7 @@ The following arguments are supported:
 
 * `name` - (Required) The name of the DB security group.
 * `description` - (Required) The description of the DB security group.
-* `ingress` - (Optional) An array of ingress rules.
+* `ingress` - (Optional) A list of ingress rules.
 
 Ingress blocks support the following:
 

@@ -30,7 +30,7 @@ The following arguments are supported:
 * `iam_instance_profile` - (Optional) The IAM instance profile to associate
      with launched instances.
 * `key_name` - (Optional) The key name that should be used for the instance.
-* `security_groups` - (Optional) An array of associated security group IDS.
+* `security_groups` - (Optional) A list of associated security group IDS.
 * `user_data` - (Optional) The user data to provide when launching the instance.
 
 ## Attributes Reference

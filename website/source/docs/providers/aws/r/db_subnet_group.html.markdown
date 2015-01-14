@@ -26,7 +26,7 @@ The following arguments are supported:
 
 * `name` - (Required) The name of the DB security group.
 * `description` - (Required) The description of the DB security group.
-* `subnet_ids` - (Required) An array of ingress rules.
+* `subnet_ids` - (Required) A list of ingress rules.
 
 ## Attributes Reference
 

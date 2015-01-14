@@ -37,7 +37,7 @@ The following arguments are supported:
      The config variables in this map are not the final set of configuration
      variables, but rather variables you want present. That is, other
      configuration variables set externally won't be removed by Terraform
-     if they aren't present in this array.
+     if they aren't present in this list.
 * `organization` - (Optional) A block that can be specified once to define
      organization settings for this app. The fields for this block are
      documented below.
