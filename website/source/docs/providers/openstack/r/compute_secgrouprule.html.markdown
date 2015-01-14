@@ -43,11 +43,11 @@ The following arguments are supported:
 * `ip_protocol` - (Required) The protocol type that will be allowed. Changing
     this creates a new security group rule.
 
-* `cidr` - (Optional) Required is `from_group_id` is empty. The IP range that
+* `cidr` - (Optional) Required if `from_group_id` is empty. The IP range that
     will be the source of network traffic to the security group. Use 0.0.0.0./0
     to allow all IP addresses. Changing this creates a new security group rule.
 
-* `from_group_id - (Optional) Required is `cidr` is empty. The ID of a group
+* `from_group_id - (Optional) Required if `cidr` is empty. The ID of a group
     from which to forward traffic to the parent group. Changing
     this creates a new security group rule.
 
