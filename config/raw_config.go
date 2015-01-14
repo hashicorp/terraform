@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"encoding/gob"
 
+	"github.com/hashicorp/terraform/config/lang"
+	"github.com/hashicorp/terraform/config/lang/ast"
 	"github.com/mitchellh/copystructure"
 	"github.com/mitchellh/reflectwalk"
 )
@@ -26,7 +28,7 @@ const UnknownVariableValue = "74D93920-ED26-11E3-AC10-0800200C9A66"
 type RawConfig struct {
 	Key            string
 	Raw            map[string]interface{}
-	Interpolations []Interpolation
+	Interpolations []ast.Node
 	Variables      map[string]InterpolatedVariable
 
 	config      map[string]interface{}
@@ -79,8 +81,14 @@ func (r *RawConfig) Config() map[string]interface{} {
 //
 // If a variable key is missing, this will panic.
 func (r *RawConfig) Interpolate(vs map[string]string) error {
-	return r.interpolate(func(i Interpolation) (string, error) {
-		return i.Interpolate(vs)
+	engine := langEngine(vs)
+	return r.interpolate(func(root ast.Node) (string, error) {
+		out, _, err := engine.Execute(root)
+		if err != nil {
+			return "", err
+		}
+
+		return out.(string), nil
 	})
 }
 
@@ -89,15 +97,19 @@ func (r *RawConfig) init() error {
 	r.Interpolations = nil
 	r.Variables = nil
 
-	fn := func(i Interpolation) (string, error) {
-		r.Interpolations = append(r.Interpolations, i)
+	fn := func(node ast.Node) (string, error) {
+		r.Interpolations = append(r.Interpolations, node)
+		vars, err := DetectVariables(node)
+		if err != nil {
+			return "", err
+		}
 
-		for k, v := range i.Variables() {
+		for _, v := range vars {
 			if r.Variables == nil {
 				r.Variables = make(map[string]InterpolatedVariable)
 			}
 
-			r.Variables[k] = v
+			r.Variables[v.FullKey()] = v
 		}
 
 		return "", nil
@@ -188,4 +200,25 @@ func (r *RawConfig) GobEncode() ([]byte, error) {
 type gobRawConfig struct {
 	Key string
 	Raw map[string]interface{}
+}
+
+// langEngine returns the lang.Engine to use for evaluating configurations.
+func langEngine(vs map[string]string) *lang.Engine {
+	varMap := make(map[string]lang.Variable)
+	for k, v := range vs {
+		varMap[k] = lang.Variable{Value: v, Type: ast.TypeString}
+	}
+
+	funcMap := make(map[string]lang.Function)
+	for k, v := range Funcs {
+		funcMap[k] = v
+	}
+	funcMap["lookup"] = interpolationFuncLookup(vs)
+
+	return &lang.Engine{
+		GlobalScope: &lang.Scope{
+			VarMap:  varMap,
+			FuncMap: funcMap,
+		},
+	}
 }

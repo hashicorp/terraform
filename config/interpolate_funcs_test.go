@@ -4,44 +4,34 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"reflect"
 	"testing"
+
+	"github.com/hashicorp/terraform/config/lang"
 )
 
 func TestInterpolateFuncConcat(t *testing.T) {
-	cases := []struct {
-		Args   []string
-		Result string
-		Error  bool
-	}{
-		{
-			[]string{"foo", "bar", "baz"},
-			"foobarbaz",
-			false,
+	testFunction(t, testFunctionConfig{
+		Cases: []testFunctionCase{
+			{
+				`${concat("foo", "bar")}`,
+				"foobar",
+				false,
+			},
+
+			{
+				`${concat("foo")}`,
+				"foo",
+				false,
+			},
+
+			{
+				`${concat()}`,
+				nil,
+				true,
+			},
 		},
-
-		{
-			[]string{"foo", "bar"},
-			"foobar",
-			false,
-		},
-
-		{
-			[]string{"foo"},
-			"foo",
-			false,
-		},
-	}
-
-	for i, tc := range cases {
-		actual, err := interpolationFuncConcat(nil, tc.Args...)
-		if (err != nil) != tc.Error {
-			t.Fatalf("%d: err: %s", i, err)
-		}
-
-		if actual != tc.Result {
-			t.Fatalf("%d: bad: %#v", i, actual)
-		}
-	}
+	})
 }
 
 func TestInterpolateFuncFile(t *testing.T) {
@@ -54,183 +44,156 @@ func TestInterpolateFuncFile(t *testing.T) {
 	tf.Close()
 	defer os.Remove(path)
 
-	cases := []struct {
-		Args   []string
-		Result string
-		Error  bool
-	}{
-		{
-			[]string{path},
-			"foo",
-			false,
+	testFunction(t, testFunctionConfig{
+		Cases: []testFunctionCase{
+			{
+				fmt.Sprintf(`${file("%s")}`, path),
+				"foo",
+				false,
+			},
+
+			// Invalid path
+			{
+				`${file("/i/dont/exist")}`,
+				nil,
+				true,
+			},
+
+			// Too many args
+			{
+				`${file("foo", "bar")}`,
+				nil,
+				true,
+			},
 		},
-
-		// Invalid path
-		{
-			[]string{"/i/dont/exist"},
-			"",
-			true,
-		},
-
-		// Too many args
-		{
-			[]string{"foo", "bar"},
-			"",
-			true,
-		},
-	}
-
-	for i, tc := range cases {
-		actual, err := interpolationFuncFile(nil, tc.Args...)
-		if (err != nil) != tc.Error {
-			t.Fatalf("%d: err: %s", i, err)
-		}
-
-		if actual != tc.Result {
-			t.Fatalf("%d: bad: %#v", i, actual)
-		}
-	}
+	})
 }
 
 func TestInterpolateFuncJoin(t *testing.T) {
-	cases := []struct {
-		Args   []string
-		Result string
-		Error  bool
-	}{
-		{
-			[]string{","},
-			"",
-			true,
-		},
-
-		{
-			[]string{",", "foo"},
-			"foo",
-			false,
-		},
-
-		{
-			[]string{",", "foo", "bar"},
-			"foo,bar",
-			false,
-		},
-
-		{
-			[]string{
-				".",
-				fmt.Sprintf(
-					"foo%sbar%sbaz",
-					InterpSplitDelim,
-					InterpSplitDelim),
+	testFunction(t, testFunctionConfig{
+		Cases: []testFunctionCase{
+			{
+				`${join(",")}`,
+				nil,
+				true,
 			},
-			"foo.bar.baz",
-			false,
+
+			{
+				`${join(",", "foo")}`,
+				"foo",
+				false,
+			},
+
+			/*
+				TODO
+				{
+					`${join(",", "foo", "bar")}`,
+					"foo,bar",
+					false,
+				},
+			*/
+
+			{
+				fmt.Sprintf(`${join(".", "%s")}`,
+					fmt.Sprintf(
+						"foo%sbar%sbaz",
+						InterpSplitDelim,
+						InterpSplitDelim)),
+				"foo.bar.baz",
+				false,
+			},
 		},
-	}
-
-	for i, tc := range cases {
-		actual, err := interpolationFuncJoin(nil, tc.Args...)
-		if (err != nil) != tc.Error {
-			t.Fatalf("%d: err: %s", i, err)
-		}
-
-		if actual != tc.Result {
-			t.Fatalf("%d: bad: %#v", i, actual)
-		}
-	}
+	})
 }
 
 func TestInterpolateFuncLookup(t *testing.T) {
-	cases := []struct {
-		M      map[string]string
-		Args   []string
-		Result string
-		Error  bool
-	}{
-		{
-			map[string]string{
-				"var.foo.bar": "baz",
+	testFunction(t, testFunctionConfig{
+		Vars: map[string]string{"var.foo.bar": "baz"},
+		Cases: []testFunctionCase{
+			{
+				`${lookup("foo", "bar")}`,
+				"baz",
+				false,
 			},
-			[]string{"foo", "bar"},
-			"baz",
-			false,
-		},
 
-		// Invalid key
-		{
-			map[string]string{
-				"var.foo.bar": "baz",
+			// Invalid key
+			{
+				`${lookup("foo", "baz")}`,
+				nil,
+				true,
 			},
-			[]string{"foo", "baz"},
-			"",
-			true,
-		},
 
-		// Too many args
-		{
-			map[string]string{
-				"var.foo.bar": "baz",
+			// Too many args
+			{
+				`${lookup("foo", "bar", "baz")}`,
+				nil,
+				true,
 			},
-			[]string{"foo", "bar", "baz"},
-			"",
-			true,
 		},
-	}
-
-	for i, tc := range cases {
-		actual, err := interpolationFuncLookup(tc.M, tc.Args...)
-		if (err != nil) != tc.Error {
-			t.Fatalf("%d: err: %s", i, err)
-		}
-
-		if actual != tc.Result {
-			t.Fatalf("%d: bad: %#v", i, actual)
-		}
-	}
+	})
 }
 
 func TestInterpolateFuncElement(t *testing.T) {
-	cases := []struct {
-		Args   []string
-		Result string
-		Error  bool
-	}{
-		{
-			[]string{"foo" + InterpSplitDelim + "baz", "1"},
-			"baz",
-			false,
-		},
+	testFunction(t, testFunctionConfig{
+		Cases: []testFunctionCase{
+			{
+				fmt.Sprintf(`${element("%s", "1")}`,
+					"foo"+InterpSplitDelim+"baz"),
+				"baz",
+				false,
+			},
 
-		{
-			[]string{"foo", "0"},
-			"foo",
-			false,
-		},
+			{
+				`${element("foo", "0")}`,
+				"foo",
+				false,
+			},
 
-		// Invalid index should wrap vs. out-of-bounds
-		{
-			[]string{"foo" + InterpSplitDelim + "baz", "2"},
-			"foo",
-			false,
-		},
+			// Invalid index should wrap vs. out-of-bounds
+			{
+				fmt.Sprintf(`${element("%s", "2")}`,
+					"foo"+InterpSplitDelim+"baz"),
+				"foo",
+				false,
+			},
 
-		// Too many args
-		{
-			[]string{"foo" + InterpSplitDelim + "baz", "0", "1"},
-			"",
-			true,
+			// Too many args
+			{
+				fmt.Sprintf(`${element("%s", "0", "2")}`,
+					"foo"+InterpSplitDelim+"baz"),
+				nil,
+				true,
+			},
 		},
-	}
+	})
+}
 
-	for i, tc := range cases {
-		actual, err := interpolationFuncElement(nil, tc.Args...)
+type testFunctionConfig struct {
+	Cases []testFunctionCase
+	Vars  map[string]string
+}
+
+type testFunctionCase struct {
+	Input  string
+	Result interface{}
+	Error  bool
+}
+
+func testFunction(t *testing.T, config testFunctionConfig) {
+	for i, tc := range config.Cases {
+		ast, err := lang.Parse(tc.Input)
+		if err != nil {
+			t.Fatalf("%d: err: %s", i, err)
+		}
+
+		engine := langEngine(config.Vars)
+		out, _, err := engine.Execute(ast)
 		if (err != nil) != tc.Error {
 			t.Fatalf("%d: err: %s", i, err)
 		}
 
-		if actual != tc.Result {
-			t.Fatalf("%d: bad: %#v", i, actual)
+		if !reflect.DeepEqual(out, tc.Result) {
+			t.Fatalf("%d: bad: %#v", i, out)
 		}
 	}
 }
