@@ -915,7 +915,7 @@ func (m schemaMap) validateList(
 	rawV := reflect.ValueOf(raw)
 	if rawV.Kind() != reflect.Slice {
 		return nil, []error{fmt.Errorf(
-			"%s: should be an array", k)}
+			"%s: should be a list", k)}
 	}
 
 	// Now build the []interface{}
