@@ -38,7 +38,7 @@ func resourceNetworkingNetwork() *schema.Resource {
 			"tenant_id": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
-				ForceNew: false,
+				ForceNew: true,
 			},
 		},
 	}
@@ -157,18 +157,12 @@ func resourceNetworkingNetworkUpdate(d *schema.ResourceData, meta interface{}) e
 			updateOpts.Shared = &shared
 		}
 	}
-	if d.HasChange("tenant_id") {
-		updateOpts.TenantID = d.Get("tenant_id").(string)
-	}
 
-	// If there's nothing to update, don't waste an HTTP call.
-	if updateOpts != (networks.UpdateOpts{}) {
-		log.Printf("[DEBUG] Updating Network %s with options: %+v", d.Id(), updateOpts)
+	log.Printf("[DEBUG] Updating Network %s with options: %+v", d.Id(), updateOpts)
 
-		_, err := networks.Update(osClient, d.Id(), updateOpts).Extract()
-		if err != nil {
-			return fmt.Errorf("Error updating OpenStack Neutron Network: %s", err)
-		}
+	_, err := networks.Update(osClient, d.Id(), updateOpts).Extract()
+	if err != nil {
+		return fmt.Errorf("Error updating OpenStack Neutron Network: %s", err)
 	}
 
 	return resourceNetworkingNetworkRead(d, meta)
