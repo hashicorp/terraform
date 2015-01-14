@@ -9,8 +9,20 @@ import (
 
 // TypeCheck implements ast.Visitor for type checking an AST tree.
 // It requires some configuration to look up the type of nodes.
+//
+// It also optionally will not type error and will insert an implicit
+// type conversions for specific types if specified by the Implicit
+// field. Note that this is kind of organizationally weird to put into
+// this structure but we'd rather do that than duplicate the type checking
+// logic multiple times.
 type TypeCheck struct {
 	Scope *Scope
+
+	// Implicit is a map of implicit type conversions that we can do,
+	// and that shouldn't error. The key of the first map is the from type,
+	// the key of the second map is the to type, and the final string
+	// value is the function to call (which must be registered in the Scope).
+	Implicit map[ast.Type]map[ast.Type]string
 
 	stack []ast.Type
 	err   error
@@ -61,6 +73,12 @@ func (v *TypeCheck) visitCall(n *ast.Call) {
 	// Verify the args
 	for i, expected := range function.ArgTypes {
 		if args[i] != expected {
+			cn := v.implicitConversion(args[i], expected, n.Args[i])
+			if cn != nil {
+				n.Args[i] = cn
+				continue
+			}
+
 			v.createErr(n, fmt.Sprintf(
 				"%s: argument %d should be %s, got %s",
 				n.Func, i+1, expected, args[i]))
@@ -73,9 +91,17 @@ func (v *TypeCheck) visitCall(n *ast.Call) {
 		args = args[len(function.ArgTypes):]
 		for i, t := range args {
 			if t != function.VariadicType {
+				realI := i + len(function.ArgTypes)
+				cn := v.implicitConversion(
+					t, function.VariadicType, n.Args[realI])
+				if cn != nil {
+					n.Args[realI] = cn
+					continue
+				}
+
 				v.createErr(n, fmt.Sprintf(
 					"%s: argument %d should be %s, got %s",
-					n.Func, i+len(function.ArgTypes),
+					n.Func, realI,
 					function.VariadicType, t))
 				return
 			}
@@ -95,8 +121,14 @@ func (v *TypeCheck) visitConcat(n *ast.Concat) {
 	// All concat args must be strings, so validate that
 	for i, t := range types {
 		if t != ast.TypeString {
+			cn := v.implicitConversion(t, ast.TypeString, n.Exprs[i])
+			if cn != nil {
+				n.Exprs[i] = cn
+				continue
+			}
+
 			v.createErr(n, fmt.Sprintf(
-				"argument %d must be a sting", n, i+1))
+				"argument %d must be a string", i+1))
 			return
 		}
 	}
@@ -124,6 +156,29 @@ func (v *TypeCheck) visitVariableAccess(n *ast.VariableAccess) {
 
 func (v *TypeCheck) createErr(n ast.Node, str string) {
 	v.err = fmt.Errorf("%s: %s", n.Pos(), str)
+}
+
+func (v *TypeCheck) implicitConversion(
+	actual ast.Type, expected ast.Type, n ast.Node) ast.Node {
+	if v.Implicit == nil {
+		return nil
+	}
+
+	fromMap, ok := v.Implicit[actual]
+	if !ok {
+		return nil
+	}
+
+	toFunc, ok := fromMap[expected]
+	if !ok {
+		return nil
+	}
+
+	return &ast.Call{
+		Func: toFunc,
+		Args: []ast.Node{n},
+		Posx: n.Pos(),
+	}
 }
 
 func (v *TypeCheck) reset() {
