@@ -43,12 +43,12 @@ The following attributes are exported:
 * `smtp_password` - The password to the SMTP server.
 * `wildcard` - Whether or not the domain will accept email for sub-domains.
 * `spam_action` - The spam filtering setting.
-* `receiving_records` - An array of DNS records for receiving validation.
+* `receiving_records` - A list of DNS records for receiving validation.
     * `priority` - The priority of the record.
     * `record_type` - The record type.
     * `valid` - `"valid"` if the record is valid.
     * `value` - The value of the record.
-* `sending_records` - An array of DNS records for sending validation.
+* `sending_records` - A list of DNS records for sending validation.
     * `name` - The name of the record.
     * `record_type` - The record type.
     * `valid` - `"valid"` if the record is valid.
