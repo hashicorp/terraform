@@ -1764,21 +1764,27 @@ func (c *walkContext) computeResourceMultiVariable(
 			id = v.ResourceId()
 		}
 
+		var value string
+
 		r, ok := module.Resources[id]
 		if !ok {
-			continue
+			value = "undefined"
+		} else {
+			if r.Primary == nil {
+				value = "undefined"
+			} else {
+				attr, ok := r.Primary.Attributes[v.Field]
+				if !ok {
+					value = "undefined"
+				} else {
+					value = attr
+				}
+
+			}
 		}
 
-		if r.Primary == nil {
-			continue
-		}
+		values = append(values, value)
 
-		attr, ok := r.Primary.Attributes[v.Field]
-		if !ok {
-			continue
-		}
-
-		values = append(values, attr)
 	}
 
 	if len(values) == 0 {
