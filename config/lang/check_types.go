@@ -155,7 +155,9 @@ func (v *TypeCheck) visitVariableAccess(n *ast.VariableAccess) {
 }
 
 func (v *TypeCheck) createErr(n ast.Node, str string) {
-	v.err = fmt.Errorf("%s: %s", n.Pos(), str)
+	pos := n.Pos()
+	v.err = fmt.Errorf("At column %d, line %d: %s",
+		pos.Column, pos.Line, str)
 }
 
 func (v *TypeCheck) implicitConversion(
