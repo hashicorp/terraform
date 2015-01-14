@@ -107,7 +107,7 @@ func resourceAwsVpcCreate(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	// Link DHCP Options Set if specified
-	if _, ok := d.Get("dhcp_options_id").(string); ok {
+	if _, ok := d.GetOk("dhcp_options_id"); ok {
 		d.Partial(true)
 		d.SetPartial("dhcp_option_set")
 
