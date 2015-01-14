@@ -1769,6 +1769,36 @@ func TestSchemaMap_Diff(t *testing.T) {
 
 			Err: false,
 		},
+
+		// #46 - Float
+		{
+			Schema: map[string]*Schema{
+				"some_threshold": &Schema{
+					Type: TypeFloat,
+				},
+			},
+
+			State: &terraform.InstanceState{
+				Attributes: map[string]string{
+					"some_threshold": "567.8",
+				},
+			},
+
+			Config: map[string]interface{}{
+				"some_threshold": 12.34,
+			},
+
+			Diff: &terraform.InstanceDiff{
+				Attributes: map[string]*terraform.ResourceAttrDiff{
+					"port": &terraform.ResourceAttrDiff{
+						Old: "567.8",
+						New: "12.34",
+					},
+				},
+			},
+
+			Err: false,
+		},
 	}
 
 	for i, tc := range cases {
