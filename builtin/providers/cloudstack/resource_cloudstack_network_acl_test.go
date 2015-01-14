@@ -87,7 +87,7 @@ func testAccCheckCloudStackNetworkACLDestroy(s *terraform.State) error {
 		}
 
 		p := cs.NetworkACL.NewDeleteNetworkACLListParams(rs.Primary.ID)
-		err, _ := cs.NetworkACL.DeleteNetworkACLList(p)
+		_, err := cs.NetworkACL.DeleteNetworkACLList(p)
 
 		if err != nil {
 			return fmt.Errorf(
