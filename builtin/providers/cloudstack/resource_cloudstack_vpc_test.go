@@ -93,7 +93,7 @@ func testAccCheckCloudStackVPCDestroy(s *terraform.State) error {
 		}
 
 		p := cs.VPC.NewDeleteVPCParams(rs.Primary.ID)
-		err, _ := cs.VPC.DeleteVPC(p)
+		_, err := cs.VPC.DeleteVPC(p)
 
 		if err != nil {
 			return fmt.Errorf(
