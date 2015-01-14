@@ -45,7 +45,8 @@ The following arguments are supported:
     the server. Changing this creates a new server.
 
 * `networks` - (Optional) An array of one or more networks to attach to the
-    instance. The network object structure is documented below.
+    instance. The network object structure is documented below. Changing this
+    creates a new server.
 
 * `metadata` - (Optional) Metadata key/value pairs to make available from
     within the instance. Changing this updates the existing server metadata.
