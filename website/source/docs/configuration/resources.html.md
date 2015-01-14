@@ -48,7 +48,7 @@ There are **meta-parameters** available to all resources:
       [interpolation](/docs/configuration/interpolation.html) to reference
       the current count index in your resource.
 
-  * `depends_on` (list of strings) - Explicit dependencies that this
+  * `depends_on` (array of strings) - Explicit dependencies that this
       resource has. These dependencies will be created before this
       resource. The dependencies are in the format of `TYPE.NAME`,
       for example `aws_instance.web`.

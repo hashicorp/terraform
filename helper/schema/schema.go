@@ -142,7 +142,7 @@ type Schema struct {
 	// element type is a complex structure, potentially with its own lifecycle.
 	Elem interface{}
 
-	// The follow fields are only valid for a TypeSet type.
+	// The following fields are only valid for a TypeSet type.
 	//
 	// Set defines a function to determine the unique ID of an item so that
 	// a proper set can be built.
@@ -902,7 +902,7 @@ func (m schemaMap) validate(
 			"%s: this field cannot be set", k)}
 	}
 
-	return m.validatePrimitive(k, raw, schema, c)
+	return m.validateType(k, raw, schema, c)
 }
 
 func (m schemaMap) validateList(
@@ -915,7 +915,7 @@ func (m schemaMap) validateList(
 	rawV := reflect.ValueOf(raw)
 	if rawV.Kind() != reflect.Slice {
 		return nil, []error{fmt.Errorf(
-			"%s: should be a list", k)}
+			"%s: should be an array", k)}
 	}
 
 	// Now build the []interface{}
@@ -936,8 +936,7 @@ func (m schemaMap) validateList(
 			// This is a sub-resource
 			ws2, es2 = m.validateObject(key, t.Schema, c)
 		case *Schema:
-			// This is some sort of primitive
-			ws2, es2 = m.validatePrimitive(key, raw, t, c)
+			ws2, es2 = m.validateType(key, raw, t, c)
 		}
 
 		if len(ws2) > 0 {
@@ -1041,12 +1040,6 @@ func (m schemaMap) validatePrimitive(
 	}
 
 	switch schema.Type {
-	case TypeSet:
-		fallthrough
-	case TypeList:
-		return m.validateList(k, raw, schema, c)
-	case TypeMap:
-		return m.validateMap(k, raw, schema, c)
 	case TypeBool:
 		// Verify that we can parse this as the correct type
 		var n bool
@@ -1070,4 +1063,21 @@ func (m schemaMap) validatePrimitive(
 	}
 
 	return nil, nil
+}
+
+func (m schemaMap) validateType(
+	k string,
+	raw interface{},
+	schema *Schema,
+	c *terraform.ResourceConfig) ([]string, []error) {
+	switch schema.Type {
+	case TypeSet:
+		fallthrough
+	case TypeList:
+		return m.validateList(k, raw, schema, c)
+	case TypeMap:
+		return m.validateMap(k, raw, schema, c)
+	default:
+		return m.validatePrimitive(k, raw, schema, c)
+	}
 }

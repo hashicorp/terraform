@@ -52,7 +52,7 @@ The `rule` block supports:
 * `icmp_code` - (Optional) The ICMP code to allow. This can only be specified if
     the protocol is ICMP.
 
-* `ports` - (Optional) List of ports and/or port ranges to allow. This can only
+* `ports` - (Optional) Array of ports and/or port ranges to allow. This can only
     be specified if the protocol is TCP, UDP, ALL or a valid protocol number.
 
 * `traffic_type` - (Optional) The traffic type for the rule. Valid options are:
