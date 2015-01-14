@@ -205,10 +205,12 @@ func resourceComputeInstanceRead(d *schema.ResourceData, meta interface{}) error
 				pa := paRaw.(map[string]interface{})
 				if pa["version"].(float64) == 4 {
 					host = pa["addr"].(string)
+					d.Set("access_ip_v4", host)
 				}
 			}
 		}
 	}
+	d.Set("host", host)
 
 	log.Printf("host: %s", host)
 
