@@ -7,6 +7,8 @@ IMPROVEMENTS:
 BUG FIXES:
 
  * core: Fixing use of remote state with plan files. [GH-741]
+ * core: Fix a panic case when certain invalid types were used in
+     the configuration. [GH-691]
 
 PLUGIN CHANGES:
 
