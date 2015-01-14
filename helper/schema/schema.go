@@ -466,6 +466,8 @@ func (m schemaMap) diff(
 		fallthrough
 	case TypeInt:
 		fallthrough
+	case TypeFloat:
+		fallthrough
 	case TypeString:
 		err = m.diffString(k, schema, diff, d, all)
 	case TypeList:

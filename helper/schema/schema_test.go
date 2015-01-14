@@ -1790,7 +1790,7 @@ func TestSchemaMap_Diff(t *testing.T) {
 
 			Diff: &terraform.InstanceDiff{
 				Attributes: map[string]*terraform.ResourceAttrDiff{
-					"port": &terraform.ResourceAttrDiff{
+					"some_threshold": &terraform.ResourceAttrDiff{
 						Old: "567.8",
 						New: "12.34",
 					},
