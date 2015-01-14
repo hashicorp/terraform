@@ -103,7 +103,7 @@ func interpolationFuncElement(
 
 	list := strings.Split(args[0], InterpSplitDelim)
 
-	log.Printf("interpolationFuncElement: %#v", list)
+	log.Printf("[DEBUG] interpolationFuncElement: %#v", list)
 
 	index, err := strconv.Atoi(args[1])
 	if err != nil {

@@ -22,8 +22,8 @@ func (p *ResourceProvisioner) Apply(
 		return err
 	}
 
-	log.Printf("private_ip attribute: %#v", s.Attributes["private_ip"])
-	log.Printf("connection:host attribute: %#v", s.Ephemeral.ConnInfo["host"])
+	log.Printf("[DEBUG] private_ip attribute: %#v", s.Attributes["private_ip"])
+	log.Printf("[DEBUG] connection:host attribute: %#v", s.Ephemeral.ConnInfo["host"])
 
 	// Get the SSH configuration
 	conf, err := helper.ParseSSHConfig(s)
@@ -59,7 +59,7 @@ func (p *ResourceProvisioner) Validate(c *terraform.ResourceConfig) (ws []string
 // copyFiles is used to copy the files from a source to a destination
 func (p *ResourceProvisioner) copyFiles(conf *helper.SSHConfig, src, dst string, o terraform.UIOutput) error {
 	// Get the SSH client config
-	log.Printf("ssh host: %#v", conf.Host)
+	log.Printf("[DEBUG] ssh host: %#v", conf.Host)
 
 	config, err := helper.PrepareConfig(conf)
 	if err != nil {
