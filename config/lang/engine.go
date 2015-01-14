@@ -33,6 +33,9 @@ func (e *Engine) Execute(root ast.Node) (interface{}, ast.Type, error) {
 		ast.TypeInt: {
 			ast.TypeString: "__builtin_IntToString",
 		},
+		ast.TypeString: {
+			ast.TypeInt: "__builtin_StringToInt",
+		},
 	}
 
 	// Build our own semantic checks that we always run
