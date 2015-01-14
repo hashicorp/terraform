@@ -22,6 +22,9 @@ func (p *ResourceProvisioner) Apply(
 		return err
 	}
 
+	log.Printf("private_ip attribute: %#v", s.Attributes["private_ip"])
+	log.Printf("connection:host attribute: %#v", s.Ephemeral.ConnInfo["host"])
+
 	// Get the SSH configuration
 	conf, err := helper.ParseSSHConfig(s)
 	if err != nil {
@@ -40,7 +43,7 @@ func (p *ResourceProvisioner) Apply(
 	if !ok {
 		return fmt.Errorf("Unsupported 'destination' type! Must be string.")
 	}
-	return p.copyFiles(conf, src, dst)
+	return p.copyFiles(conf, src, dst, o)
 }
 
 func (p *ResourceProvisioner) Validate(c *terraform.ResourceConfig) (ws []string, es []error) {
@@ -54,10 +57,13 @@ func (p *ResourceProvisioner) Validate(c *terraform.ResourceConfig) (ws []string
 }
 
 // copyFiles is used to copy the files from a source to a destination
-func (p *ResourceProvisioner) copyFiles(conf *helper.SSHConfig, src, dst string) error {
+func (p *ResourceProvisioner) copyFiles(conf *helper.SSHConfig, src, dst string, o terraform.UIOutput) error {
 	// Get the SSH client config
+	log.Printf("ssh host: %#v", conf.Host)
+
 	config, err := helper.PrepareConfig(conf)
 	if err != nil {
+		o.Output(fmt.Sprintf("Config error: %s", err))
 		return err
 	}
 
@@ -66,14 +72,20 @@ func (p *ResourceProvisioner) copyFiles(conf *helper.SSHConfig, src, dst string)
 	err = retryFunc(conf.TimeoutVal, func() error {
 		host := fmt.Sprintf("%s:%d", conf.Host, conf.Port)
 		comm, err = helper.New(host, config)
+		if err != nil {
+			o.Output(fmt.Sprintf("Connection error, will retry: %s", err))
+		}
+
 		return err
 	})
 	if err != nil {
+		o.Output(fmt.Sprintf("Connection error, retryFunc failed: %s", err))
 		return err
 	}
 
 	info, err := os.Stat(src)
 	if err != nil {
+		o.Output(fmt.Sprintf("Failed to stat file '%s': %s", src, err))
 		return err
 	}
 
@@ -88,14 +100,17 @@ func (p *ResourceProvisioner) copyFiles(conf *helper.SSHConfig, src, dst string)
 	// We're uploading a file...
 	f, err := os.Open(src)
 	if err != nil {
+		o.Output(fmt.Sprintf("Failed to open file '%s': %s", src, err))
 		return err
 	}
 	defer f.Close()
 
 	err = comm.Upload(dst, f)
 	if err != nil {
+		o.Output(fmt.Sprintf("Upload failed: %s", err))
 		return fmt.Errorf("Upload failed: %v", err)
 	}
+	o.Output(fmt.Sprintf("File copied successfully %s => %s", src, dst))
 	return err
 }
 
