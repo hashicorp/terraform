@@ -96,7 +96,7 @@ func (v *TypeCheck) visitConcat(n *ast.Concat) {
 	for i, t := range types {
 		if t != ast.TypeString {
 			v.createErr(n, fmt.Sprintf(
-				"argument %d must be a sting", n, i+1))
+				"argument %d must be a string", i+1))
 			return
 		}
 	}
