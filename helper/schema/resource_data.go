@@ -91,7 +91,7 @@ func (d *ResourceData) GetChange(key string) (interface{}, interface{}) {
 // The second result should be checked to determine this information.
 func (d *ResourceData) GetOk(key string) (interface{}, bool) {
 	r := d.getRaw(key, getSourceSet)
-	return r.Value, r.Exists
+	return r.Value, r.Exists && !r.Computed
 }
 
 func (d *ResourceData) getRaw(key string, level getSource) getResult {

@@ -868,7 +868,7 @@ func TestSchemaMap_Diff(t *testing.T) {
 			Diff: &terraform.InstanceDiff{
 				Attributes: map[string]*terraform.ResourceAttrDiff{
 					"ports.#": &terraform.ResourceAttrDiff{
-						Old:         "0",
+						Old:         "",
 						New:         "",
 						NewComputed: true,
 					},
@@ -1560,7 +1560,6 @@ func TestSchemaMap_Diff(t *testing.T) {
 			Diff: &terraform.InstanceDiff{
 				Attributes: map[string]*terraform.ResourceAttrDiff{
 					"instances.#": &terraform.ResourceAttrDiff{
-						Old:         "0",
 						NewComputed: true,
 					},
 				},
@@ -1688,7 +1687,6 @@ func TestSchemaMap_Diff(t *testing.T) {
 						New: "1",
 					},
 					"route.~1.gateway.#": &terraform.ResourceAttrDiff{
-						Old:         "0",
 						NewComputed: true,
 					},
 				},
