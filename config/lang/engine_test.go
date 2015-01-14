@@ -77,6 +77,23 @@ func TestEngineExecute(t *testing.T) {
 			"foo foobar",
 			ast.TypeString,
 		},
+
+		// Testing implicit type conversions
+
+		{
+			"foo ${bar}",
+			&Scope{
+				VarMap: map[string]Variable{
+					"bar": Variable{
+						Value: 42,
+						Type:  ast.TypeInt,
+					},
+				},
+			},
+			false,
+			"foo 42",
+			ast.TypeString,
+		},
 	}
 
 	for _, tc := range cases {
