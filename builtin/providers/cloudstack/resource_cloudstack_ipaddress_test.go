@@ -104,7 +104,7 @@ func testAccCheckCloudStackIPAddressDestroy(s *terraform.State) error {
 		}
 
 		p := cs.Address.NewDisassociateIpAddressParams(rs.Primary.ID)
-		err, _ := cs.Address.DisassociateIpAddress(p)
+		_, err := cs.Address.DisassociateIpAddress(p)
 
 		if err != nil {
 			return fmt.Errorf(

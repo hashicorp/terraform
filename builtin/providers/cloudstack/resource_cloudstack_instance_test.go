@@ -173,7 +173,7 @@ func testAccCheckCloudStackInstanceDestroy(s *terraform.State) error {
 		}
 
 		p := cs.VirtualMachine.NewDestroyVirtualMachineParams(rs.Primary.ID)
-		err, _ := cs.VirtualMachine.DestroyVirtualMachine(p)
+		_, err := cs.VirtualMachine.DestroyVirtualMachine(p)
 
 		if err != nil {
 			return fmt.Errorf(
