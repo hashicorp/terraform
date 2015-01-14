@@ -40,6 +40,23 @@ top:
 |   literalModeTop
 	{
         parserResult = $1
+
+        // We want to make sure that the top value is always a Concat
+        // so that the return value is always a string type from an
+        // interpolation.
+        //
+        // The logic for checking for a LiteralNode is a little annoying
+        // because functionally the AST is the same, but we do that because
+        // it makes for an easy literal check later (to check if a string
+        // has any interpolations).
+        if _, ok := $1.(*ast.Concat); !ok {
+            if n, ok := $1.(*ast.LiteralNode); !ok || n.Type != ast.TypeString {
+                parserResult = &ast.Concat{
+                    Exprs: []ast.Node{$1},
+                    Posx:  $1.Pos(),
+                }
+            }
+        }
 	}
 
 literalModeTop:

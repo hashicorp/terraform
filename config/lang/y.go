@@ -48,7 +48,7 @@ const parserEofCode = 1
 const parserErrCode = 2
 const parserMaxDepth = 200
 
-//line lang.y:134
+//line lang.y:151
 
 //line yacctab:1
 var parserExca = []int{
@@ -354,14 +354,31 @@ parserdefault:
 		//line lang.y:41
 		{
 			parserResult = parserS[parserpt-0].node
+
+			// We want to make sure that the top value is always a Concat
+			// so that the return value is always a string type from an
+			// interpolation.
+			//
+			// The logic for checking for a LiteralNode is a little annoying
+			// because functionally the AST is the same, but we do that because
+			// it makes for an easy literal check later (to check if a string
+			// has any interpolations).
+			if _, ok := parserS[parserpt-0].node.(*ast.Concat); !ok {
+				if n, ok := parserS[parserpt-0].node.(*ast.LiteralNode); !ok || n.Type != ast.TypeString {
+					parserResult = &ast.Concat{
+						Exprs: []ast.Node{parserS[parserpt-0].node},
+						Posx:  parserS[parserpt-0].node.Pos(),
+					}
+				}
+			}
 		}
 	case 3:
-		//line lang.y:47
+		//line lang.y:64
 		{
 			parserVAL.node = parserS[parserpt-0].node
 		}
 	case 4:
-		//line lang.y:51
+		//line lang.y:68
 		{
 			var result []ast.Node
 			if c, ok := parserS[parserpt-1].node.(*ast.Concat); ok {
@@ -376,27 +393,27 @@ parserdefault:
 			}
 		}
 	case 5:
-		//line lang.y:67
+		//line lang.y:84
 		{
 			parserVAL.node = parserS[parserpt-0].node
 		}
 	case 6:
-		//line lang.y:71
+		//line lang.y:88
 		{
 			parserVAL.node = parserS[parserpt-0].node
 		}
 	case 7:
-		//line lang.y:77
+		//line lang.y:94
 		{
 			parserVAL.node = parserS[parserpt-1].node
 		}
 	case 8:
-		//line lang.y:83
+		//line lang.y:100
 		{
 			parserVAL.node = parserS[parserpt-0].node
 		}
 	case 9:
-		//line lang.y:87
+		//line lang.y:104
 		{
 			parserVAL.node = &ast.LiteralNode{
 				Value: parserS[parserpt-0].token.Value.(int),
@@ -405,7 +422,7 @@ parserdefault:
 			}
 		}
 	case 10:
-		//line lang.y:95
+		//line lang.y:112
 		{
 			parserVAL.node = &ast.LiteralNode{
 				Value: parserS[parserpt-0].token.Value.(float64),
@@ -414,32 +431,32 @@ parserdefault:
 			}
 		}
 	case 11:
-		//line lang.y:103
+		//line lang.y:120
 		{
 			parserVAL.node = &ast.VariableAccess{Name: parserS[parserpt-0].token.Value.(string), Posx: parserS[parserpt-0].token.Pos}
 		}
 	case 12:
-		//line lang.y:107
+		//line lang.y:124
 		{
 			parserVAL.node = &ast.Call{Func: parserS[parserpt-3].token.Value.(string), Args: parserS[parserpt-1].nodeList, Posx: parserS[parserpt-3].token.Pos}
 		}
 	case 13:
-		//line lang.y:112
+		//line lang.y:129
 		{
 			parserVAL.nodeList = nil
 		}
 	case 14:
-		//line lang.y:116
+		//line lang.y:133
 		{
 			parserVAL.nodeList = append(parserS[parserpt-2].nodeList, parserS[parserpt-0].node)
 		}
 	case 15:
-		//line lang.y:120
+		//line lang.y:137
 		{
 			parserVAL.nodeList = append(parserVAL.nodeList, parserS[parserpt-0].node)
 		}
 	case 16:
-		//line lang.y:126
+		//line lang.y:143
 		{
 			parserVAL.node = &ast.LiteralNode{
 				Value: parserS[parserpt-0].token.Value.(string),
