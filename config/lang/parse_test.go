@@ -149,23 +149,33 @@ func TestParse(t *testing.T) {
 		{
 			"${foo()}",
 			false,
-			&ast.Call{
-				Func: "foo",
-				Args: nil,
+			&ast.Concat{
 				Posx: ast.Pos{Column: 3, Line: 1},
+				Exprs: []ast.Node{
+					&ast.Call{
+						Func: "foo",
+						Args: nil,
+						Posx: ast.Pos{Column: 3, Line: 1},
+					},
+				},
 			},
 		},
 
 		{
 			"${foo(bar)}",
 			false,
-			&ast.Call{
-				Func: "foo",
+			&ast.Concat{
 				Posx: ast.Pos{Column: 3, Line: 1},
-				Args: []ast.Node{
-					&ast.VariableAccess{
-						Name: "bar",
-						Posx: ast.Pos{Column: 7, Line: 1},
+				Exprs: []ast.Node{
+					&ast.Call{
+						Func: "foo",
+						Posx: ast.Pos{Column: 3, Line: 1},
+						Args: []ast.Node{
+							&ast.VariableAccess{
+								Name: "bar",
+								Posx: ast.Pos{Column: 7, Line: 1},
+							},
+						},
 					},
 				},
 			},
@@ -174,17 +184,22 @@ func TestParse(t *testing.T) {
 		{
 			"${foo(bar, baz)}",
 			false,
-			&ast.Call{
-				Func: "foo",
+			&ast.Concat{
 				Posx: ast.Pos{Column: 3, Line: 1},
-				Args: []ast.Node{
-					&ast.VariableAccess{
-						Name: "bar",
-						Posx: ast.Pos{Column: 7, Line: 1},
-					},
-					&ast.VariableAccess{
-						Name: "baz",
-						Posx: ast.Pos{Column: 11, Line: 1},
+				Exprs: []ast.Node{
+					&ast.Call{
+						Func: "foo",
+						Posx: ast.Pos{Column: 3, Line: 1},
+						Args: []ast.Node{
+							&ast.VariableAccess{
+								Name: "bar",
+								Posx: ast.Pos{Column: 7, Line: 1},
+							},
+							&ast.VariableAccess{
+								Name: "baz",
+								Posx: ast.Pos{Column: 11, Line: 1},
+							},
+						},
 					},
 				},
 			},
@@ -193,17 +208,22 @@ func TestParse(t *testing.T) {
 		{
 			"${foo(bar(baz))}",
 			false,
-			&ast.Call{
-				Func: "foo",
+			&ast.Concat{
 				Posx: ast.Pos{Column: 3, Line: 1},
-				Args: []ast.Node{
+				Exprs: []ast.Node{
 					&ast.Call{
-						Func: "bar",
-						Posx: ast.Pos{Column: 7, Line: 1},
+						Func: "foo",
+						Posx: ast.Pos{Column: 3, Line: 1},
 						Args: []ast.Node{
-							&ast.VariableAccess{
-								Name: "baz",
-								Posx: ast.Pos{Column: 11, Line: 1},
+							&ast.Call{
+								Func: "bar",
+								Posx: ast.Pos{Column: 7, Line: 1},
+								Args: []ast.Node{
+									&ast.VariableAccess{
+										Name: "baz",
+										Posx: ast.Pos{Column: 11, Line: 1},
+									},
+								},
 							},
 						},
 					},
@@ -248,6 +268,12 @@ func TestParse(t *testing.T) {
 
 		{
 			`foo ${${baz}}`,
+			true,
+			nil,
+		},
+
+		{
+			"${var",
 			true,
 			nil,
 		},

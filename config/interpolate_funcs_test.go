@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/hashicorp/terraform/config/lang"
+	"github.com/hashicorp/terraform/config/lang/ast"
 )
 
 func TestInterpolateFuncConcat(t *testing.T) {
@@ -108,7 +109,12 @@ func TestInterpolateFuncJoin(t *testing.T) {
 
 func TestInterpolateFuncLookup(t *testing.T) {
 	testFunction(t, testFunctionConfig{
-		Vars: map[string]string{"var.foo.bar": "baz"},
+		Vars: map[string]lang.Variable{
+			"var.foo.bar": lang.Variable{
+				Value: "baz",
+				Type:  ast.TypeString,
+			},
+		},
 		Cases: []testFunctionCase{
 			{
 				`${lookup("foo", "bar")}`,
@@ -170,7 +176,7 @@ func TestInterpolateFuncElement(t *testing.T) {
 
 type testFunctionConfig struct {
 	Cases []testFunctionCase
-	Vars  map[string]string
+	Vars  map[string]lang.Variable
 }
 
 type testFunctionCase struct {

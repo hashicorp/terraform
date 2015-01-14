@@ -27,9 +27,20 @@ type SemanticChecker func(ast.Node) error
 // Execute executes the given ast.Node and returns its final value, its
 // type, and an error if one exists.
 func (e *Engine) Execute(root ast.Node) (interface{}, ast.Type, error) {
+	// Copy the scope so we can add our builtins
+	scope := e.scope()
+	implicitMap := map[ast.Type]map[ast.Type]string{
+		ast.TypeInt: {
+			ast.TypeString: "__builtin_IntToString",
+		},
+		ast.TypeString: {
+			ast.TypeInt: "__builtin_StringToInt",
+		},
+	}
+
 	// Build our own semantic checks that we always run
-	tv := &TypeCheck{Scope: e.GlobalScope}
-	ic := &IdentifierCheck{Scope: e.GlobalScope}
+	tv := &TypeCheck{Scope: scope, Implicit: implicitMap}
+	ic := &IdentifierCheck{Scope: scope}
 
 	// Build up the semantic checks for execution
 	checks := make(
@@ -46,8 +57,18 @@ func (e *Engine) Execute(root ast.Node) (interface{}, ast.Type, error) {
 	}
 
 	// Execute
-	v := &executeVisitor{Scope: e.GlobalScope}
+	v := &executeVisitor{Scope: scope}
 	return v.Visit(root)
+}
+
+func (e *Engine) scope() *Scope {
+	var scope Scope
+	if e.GlobalScope != nil {
+		scope = *e.GlobalScope
+	}
+
+	registerBuiltins(&scope)
+	return &scope
 }
 
 // executeVisitor is the visitor used to do the actual execution of

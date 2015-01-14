@@ -1,6 +1,7 @@
 package ast
 
 import (
+	"bytes"
 	"fmt"
 )
 
@@ -25,4 +26,13 @@ func (n *Concat) Pos() Pos {
 
 func (n *Concat) GoString() string {
 	return fmt.Sprintf("*%#v", *n)
+}
+
+func (n *Concat) String() string {
+	var b bytes.Buffer
+	for _, expr := range n.Exprs {
+		b.WriteString(fmt.Sprintf("%s", expr))
+	}
+
+	return b.String()
 }
