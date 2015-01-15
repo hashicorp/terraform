@@ -8,10 +8,10 @@ import (
 	"github.com/hashicorp/terraform/config/lang/ast"
 )
 
-func TestEngineExecute(t *testing.T) {
+func TestEval(t *testing.T) {
 	cases := []struct {
 		Input      string
-		Scope      *Scope
+		Scope      *ast.BasicScope
 		Error      bool
 		Result     interface{}
 		ResultType ast.Type
@@ -26,9 +26,9 @@ func TestEngineExecute(t *testing.T) {
 
 		{
 			"foo ${bar}",
-			&Scope{
-				VarMap: map[string]Variable{
-					"bar": Variable{
+			&ast.BasicScope{
+				VarMap: map[string]ast.Variable{
+					"bar": ast.Variable{
 						Value: "baz",
 						Type:  ast.TypeString,
 					},
@@ -41,9 +41,9 @@ func TestEngineExecute(t *testing.T) {
 
 		{
 			"foo ${rand()}",
-			&Scope{
-				FuncMap: map[string]Function{
-					"rand": Function{
+			&ast.BasicScope{
+				FuncMap: map[string]ast.Function{
+					"rand": ast.Function{
 						ReturnType: ast.TypeString,
 						Callback: func([]interface{}) (interface{}, error) {
 							return "42", nil
@@ -58,9 +58,9 @@ func TestEngineExecute(t *testing.T) {
 
 		{
 			`foo ${rand("foo", "bar")}`,
-			&Scope{
-				FuncMap: map[string]Function{
-					"rand": Function{
+			&ast.BasicScope{
+				FuncMap: map[string]ast.Function{
+					"rand": ast.Function{
 						ReturnType:   ast.TypeString,
 						Variadic:     true,
 						VariadicType: ast.TypeString,
@@ -83,9 +83,9 @@ func TestEngineExecute(t *testing.T) {
 
 		{
 			"foo ${bar}",
-			&Scope{
-				VarMap: map[string]Variable{
-					"bar": Variable{
+			&ast.BasicScope{
+				VarMap: map[string]ast.Variable{
+					"bar": ast.Variable{
 						Value: 42,
 						Type:  ast.TypeInt,
 					},
@@ -98,9 +98,9 @@ func TestEngineExecute(t *testing.T) {
 
 		{
 			`foo ${foo("42")}`,
-			&Scope{
-				FuncMap: map[string]Function{
-					"foo": Function{
+			&ast.BasicScope{
+				FuncMap: map[string]ast.Function{
+					"foo": ast.Function{
 						ArgTypes:   []ast.Type{ast.TypeInt},
 						ReturnType: ast.TypeString,
 						Callback: func(args []interface{}) (interface{}, error) {
@@ -121,8 +121,7 @@ func TestEngineExecute(t *testing.T) {
 			t.Fatalf("Error: %s\n\nInput: %s", err, tc.Input)
 		}
 
-		engine := &Engine{GlobalScope: tc.Scope}
-		out, outType, err := engine.Execute(node)
+		out, outType, err := Eval(node, &EvalConfig{GlobalScope: tc.Scope})
 		if (err != nil) != tc.Error {
 			t.Fatalf("Error: %s\n\nInput: %s", err, tc.Input)
 		}

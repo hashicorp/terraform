@@ -5,7 +5,6 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/hashicorp/terraform/config/lang"
 	"github.com/hashicorp/terraform/config/lang/ast"
 )
 
@@ -43,8 +42,8 @@ func TestRawConfig(t *testing.T) {
 		t.Fatalf("bad: %#v", rc.Config())
 	}
 
-	vars := map[string]lang.Variable{
-		"var.bar": lang.Variable{
+	vars := map[string]ast.Variable{
+		"var.bar": ast.Variable{
 			Value: "baz",
 			Type:  ast.TypeString,
 		},
@@ -76,8 +75,8 @@ func TestRawConfig_double(t *testing.T) {
 		t.Fatalf("err: %s", err)
 	}
 
-	vars := map[string]lang.Variable{
-		"var.bar": lang.Variable{
+	vars := map[string]ast.Variable{
+		"var.bar": ast.Variable{
 			Value: "baz",
 			Type:  ast.TypeString,
 		},
@@ -95,8 +94,8 @@ func TestRawConfig_double(t *testing.T) {
 		t.Fatalf("bad: %#v", actual)
 	}
 
-	vars = map[string]lang.Variable{
-		"var.bar": lang.Variable{
+	vars = map[string]ast.Variable{
+		"var.bar": ast.Variable{
 			Value: "what",
 			Type:  ast.TypeString,
 		},
@@ -135,8 +134,8 @@ func TestRawConfig_unknown(t *testing.T) {
 		t.Fatalf("err: %s", err)
 	}
 
-	vars := map[string]lang.Variable{
-		"var.bar": lang.Variable{
+	vars := map[string]ast.Variable{
+		"var.bar": ast.Variable{
 			Value: UnknownVariableValue,
 			Type:  ast.TypeString,
 		},
@@ -178,8 +177,8 @@ func TestRawConfigValue(t *testing.T) {
 		t.Fatalf("err: %#v", rc.Value())
 	}
 
-	vars := map[string]lang.Variable{
-		"var.bar": lang.Variable{
+	vars := map[string]ast.Variable{
+		"var.bar": ast.Variable{
 			Value: "baz",
 			Type:  ast.TypeString,
 		},

@@ -12,6 +12,9 @@ type Node interface {
 
 	// Pos returns the position of this node in some source.
 	Pos() Pos
+
+	// Type returns the type of this node for the given context.
+	Type(Scope) (Type, error)
 }
 
 // Pos is the starting position of an AST node
@@ -40,7 +43,7 @@ type Visitor func(Node) Node
 
 //go:generate stringer -type=Type
 
-// Type is the type of a literal.
+// Type is the type of any value.
 type Type uint32
 
 const (

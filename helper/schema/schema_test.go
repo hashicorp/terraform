@@ -5,7 +5,6 @@ import (
 	"testing"
 
 	"github.com/hashicorp/terraform/config"
-	"github.com/hashicorp/terraform/config/lang"
 	"github.com/hashicorp/terraform/config/lang/ast"
 	"github.com/hashicorp/terraform/terraform"
 )
@@ -1808,9 +1807,9 @@ func TestSchemaMap_Diff(t *testing.T) {
 		}
 
 		if len(tc.ConfigVariables) > 0 {
-			vars := make(map[string]lang.Variable)
+			vars := make(map[string]ast.Variable)
 			for k, v := range tc.ConfigVariables {
-				vars[k] = lang.Variable{Value: v, Type: ast.TypeString}
+				vars[k] = ast.Variable{Value: v, Type: ast.TypeString}
 			}
 
 			if err := c.Interpolate(vars); err != nil {
@@ -2585,9 +2584,9 @@ func TestSchemaMap_Validate(t *testing.T) {
 			t.Fatalf("err: %s", err)
 		}
 		if tc.Vars != nil {
-			vars := make(map[string]lang.Variable)
+			vars := make(map[string]ast.Variable)
 			for k, v := range tc.Vars {
-				vars[k] = lang.Variable{Value: v, Type: ast.TypeString}
+				vars[k] = ast.Variable{Value: v, Type: ast.TypeString}
 			}
 
 			if err := c.Interpolate(vars); err != nil {

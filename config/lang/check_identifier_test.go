@@ -9,20 +9,20 @@ import (
 func TestIdentifierCheck(t *testing.T) {
 	cases := []struct {
 		Input string
-		Scope *Scope
+		Scope ast.Scope
 		Error bool
 	}{
 		{
 			"foo",
-			&Scope{},
+			&ast.BasicScope{},
 			false,
 		},
 
 		{
 			"foo ${bar} success",
-			&Scope{
-				VarMap: map[string]Variable{
-					"bar": Variable{
+			&ast.BasicScope{
+				VarMap: map[string]ast.Variable{
+					"bar": ast.Variable{
 						Value: "baz",
 						Type:  ast.TypeString,
 					},
@@ -33,15 +33,15 @@ func TestIdentifierCheck(t *testing.T) {
 
 		{
 			"foo ${bar}",
-			&Scope{},
+			&ast.BasicScope{},
 			true,
 		},
 
 		{
 			"foo ${rand()} success",
-			&Scope{
-				FuncMap: map[string]Function{
-					"rand": Function{
+			&ast.BasicScope{
+				FuncMap: map[string]ast.Function{
+					"rand": ast.Function{
 						ReturnType: ast.TypeString,
 						Callback: func([]interface{}) (interface{}, error) {
 							return "42", nil
@@ -54,15 +54,15 @@ func TestIdentifierCheck(t *testing.T) {
 
 		{
 			"foo ${rand()}",
-			&Scope{},
+			&ast.BasicScope{},
 			true,
 		},
 
 		{
 			"foo ${rand(42)} ",
-			&Scope{
-				FuncMap: map[string]Function{
-					"rand": Function{
+			&ast.BasicScope{
+				FuncMap: map[string]ast.Function{
+					"rand": ast.Function{
 						ReturnType: ast.TypeString,
 						Callback: func([]interface{}) (interface{}, error) {
 							return "42", nil
@@ -75,9 +75,9 @@ func TestIdentifierCheck(t *testing.T) {
 
 		{
 			"foo ${rand()} ",
-			&Scope{
-				FuncMap: map[string]Function{
-					"rand": Function{
+			&ast.BasicScope{
+				FuncMap: map[string]ast.Function{
+					"rand": ast.Function{
 						ReturnType:   ast.TypeString,
 						Variadic:     true,
 						VariadicType: ast.TypeInt,
@@ -92,9 +92,9 @@ func TestIdentifierCheck(t *testing.T) {
 
 		{
 			"foo ${rand(42)} ",
-			&Scope{
-				FuncMap: map[string]Function{
-					"rand": Function{
+			&ast.BasicScope{
+				FuncMap: map[string]ast.Function{
+					"rand": ast.Function{
 						ReturnType:   ast.TypeString,
 						Variadic:     true,
 						VariadicType: ast.TypeInt,
@@ -109,9 +109,9 @@ func TestIdentifierCheck(t *testing.T) {
 
 		{
 			"foo ${rand(\"foo\", 42)} ",
-			&Scope{
-				FuncMap: map[string]Function{
-					"rand": Function{
+			&ast.BasicScope{
+				FuncMap: map[string]ast.Function{
+					"rand": ast.Function{
 						ArgTypes:     []ast.Type{ast.TypeString},
 						ReturnType:   ast.TypeString,
 						Variadic:     true,

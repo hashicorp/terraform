@@ -33,7 +33,7 @@ top:
     {
         parserResult = &ast.LiteralNode{
             Value: "",
-            Type:  ast.TypeString,
+            Typex:  ast.TypeString,
             Posx:  ast.Pos{Column: 1, Line: 1},
         }
     }
@@ -50,7 +50,7 @@ top:
         // it makes for an easy literal check later (to check if a string
         // has any interpolations).
         if _, ok := $1.(*ast.Concat); !ok {
-            if n, ok := $1.(*ast.LiteralNode); !ok || n.Type != ast.TypeString {
+            if n, ok := $1.(*ast.LiteralNode); !ok || n.Typex != ast.TypeString {
                 parserResult = &ast.Concat{
                     Exprs: []ast.Node{$1},
                     Posx:  $1.Pos(),
@@ -104,7 +104,7 @@ expr:
     {
         $$ = &ast.LiteralNode{
             Value: $1.Value.(int),
-            Type:  ast.TypeInt,
+            Typex:  ast.TypeInt,
             Posx:  $1.Pos,
         }
     }
@@ -112,7 +112,7 @@ expr:
     {
         $$ = &ast.LiteralNode{
             Value: $1.Value.(float64),
-            Type:  ast.TypeFloat,
+            Typex:  ast.TypeFloat,
             Posx:  $1.Pos,
         }
     }
@@ -143,7 +143,7 @@ literal:
     {
         $$ = &ast.LiteralNode{
             Value: $1.Value.(string),
-            Type:  ast.TypeString,
+            Typex:  ast.TypeString,
             Posx:  $1.Pos,
         }
     }

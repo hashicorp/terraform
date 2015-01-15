@@ -109,8 +109,8 @@ func TestInterpolateFuncJoin(t *testing.T) {
 
 func TestInterpolateFuncLookup(t *testing.T) {
 	testFunction(t, testFunctionConfig{
-		Vars: map[string]lang.Variable{
-			"var.foo.bar": lang.Variable{
+		Vars: map[string]ast.Variable{
+			"var.foo.bar": ast.Variable{
 				Value: "baz",
 				Type:  ast.TypeString,
 			},
@@ -176,7 +176,7 @@ func TestInterpolateFuncElement(t *testing.T) {
 
 type testFunctionConfig struct {
 	Cases []testFunctionCase
-	Vars  map[string]lang.Variable
+	Vars  map[string]ast.Variable
 }
 
 type testFunctionCase struct {
@@ -192,8 +192,7 @@ func testFunction(t *testing.T, config testFunctionConfig) {
 			t.Fatalf("%d: err: %s", i, err)
 		}
 
-		engine := langEngine(config.Vars)
-		out, _, err := engine.Execute(ast)
+		out, _, err := lang.Eval(ast, langEvalConfig(config.Vars))
 		if (err != nil) != tc.Error {
 			t.Fatalf("%d: err: %s", i, err)
 		}
