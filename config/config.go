@@ -478,9 +478,30 @@ func (c *Config) rawConfigs() map[string]*RawConfig {
 func (c *Config) validateVarContextFn(
 	source string, errs *[]error) interpolationWalkerContextFunc {
 	return func(loc reflectwalk.Location, node ast.Node) {
+		// If we're in a slice element, then its fine, since you can do
+		// anything in there.
 		if loc == reflectwalk.SliceElem {
 			return
 		}
+
+		// Otherwise, let's check if there is a splat resource variable
+		// at the top level in here. We do this by doing a transform that
+		// replaces everything with a noop node unless its a variable
+		// access or concat. This should turn the AST into a flat tree
+		// of Concat(Noop, ...). If there are any variables left that are
+		// multi-access, then its still broken.
+		node = node.Accept(func(n ast.Node) ast.Node {
+			// If it is a concat or variable access, we allow it.
+			switch n.(type) {
+			case *ast.Concat:
+				return n
+			case *ast.VariableAccess:
+				return n
+			}
+
+			// Otherwise, noop
+			return &noopNode{}
+		})
 
 		vars, err := DetectVariables(node)
 		if err != nil {
