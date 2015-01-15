@@ -25,7 +25,7 @@ func (n *LiteralNode) GoString() string {
 }
 
 func (n *LiteralNode) String() string {
-	return fmt.Sprintf("Literal(%s, %v)", n.Type, n.Value)
+	return fmt.Sprintf("Literal(%s, %v)", n.Typex, n.Value)
 }
 
 func (n *LiteralNode) Type(Scope) (Type, error) {

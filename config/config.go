@@ -359,9 +359,10 @@ func (c *Config) Validate() error {
 		r.RawCount.interpolate(func(root ast.Node) (string, error) {
 			// Execute the node but transform the AST so that it returns
 			// a fixed value of "5" for all interpolations.
-			var engine lang.Engine
-			out, _, err := engine.Execute(lang.FixedValueTransform(
-				root, &ast.LiteralNode{Value: "5", Type: ast.TypeString}))
+			out, _, err := lang.Eval(
+				lang.FixedValueTransform(
+					root, &ast.LiteralNode{Value: "5", Typex: ast.TypeString}),
+				nil)
 			if err != nil {
 				return "", err
 			}

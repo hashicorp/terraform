@@ -27,6 +27,9 @@ type SemanticChecker func(ast.Node) error
 // of the output, and any error that occurred.
 func Eval(root ast.Node, config *EvalConfig) (interface{}, ast.Type, error) {
 	// Copy the scope so we can add our builtins
+	if config == nil {
+		config = new(EvalConfig)
+	}
 	scope := registerBuiltins(config.GlobalScope)
 	implicitMap := map[ast.Type]map[ast.Type]string{
 		ast.TypeInt: {

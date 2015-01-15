@@ -40,7 +40,7 @@ func (c *IdentifierCheck) visit(raw ast.Node) ast.Node {
 	case *ast.LiteralNode:
 		// Ignore
 	default:
-		c.createErr(n, fmt.Sprintf("unknown node: %#v", raw))
+		// Ignore
 	}
 
 	// We never do replacement with this visitor

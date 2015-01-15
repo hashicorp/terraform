@@ -80,10 +80,10 @@ func (r *RawConfig) Config() map[string]interface{} {
 // Any prior calls to Interpolate are replaced with this one.
 //
 // If a variable key is missing, this will panic.
-func (r *RawConfig) Interpolate(vs map[string]lang.Variable) error {
-	engine := langEngine(vs)
+func (r *RawConfig) Interpolate(vs map[string]ast.Variable) error {
+	config := langEvalConfig(vs)
 	return r.interpolate(func(root ast.Node) (string, error) {
-		out, _, err := engine.Execute(root)
+		out, _, err := lang.Eval(root, config)
 		if err != nil {
 			return "", err
 		}
@@ -202,16 +202,16 @@ type gobRawConfig struct {
 	Raw map[string]interface{}
 }
 
-// langEngine returns the lang.Engine to use for evaluating configurations.
-func langEngine(vs map[string]lang.Variable) *lang.Engine {
-	funcMap := make(map[string]lang.Function)
+// langEvalConfig returns the evaluation configuration we use to execute.
+func langEvalConfig(vs map[string]ast.Variable) *lang.EvalConfig {
+	funcMap := make(map[string]ast.Function)
 	for k, v := range Funcs {
 		funcMap[k] = v
 	}
 	funcMap["lookup"] = interpolationFuncLookup(vs)
 
-	return &lang.Engine{
-		GlobalScope: &lang.Scope{
+	return &lang.EvalConfig{
+		GlobalScope: &ast.BasicScope{
 			VarMap:  vs,
 			FuncMap: funcMap,
 		},

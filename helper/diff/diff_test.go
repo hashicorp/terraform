@@ -8,7 +8,6 @@ import (
 	"testing"
 
 	"github.com/hashicorp/terraform/config"
-	"github.com/hashicorp/terraform/config/lang"
 	"github.com/hashicorp/terraform/config/lang/ast"
 	"github.com/hashicorp/terraform/terraform"
 )
@@ -23,9 +22,9 @@ func testConfig(
 	}
 
 	if len(vs) > 0 {
-		vars := make(map[string]lang.Variable)
+		vars := make(map[string]ast.Variable)
 		for k, v := range vs {
-			vars[k] = lang.Variable{Value: v, Type: ast.TypeString}
+			vars[k] = ast.Variable{Value: v, Type: ast.TypeString}
 		}
 
 		if err := rc.Interpolate(vars); err != nil {
