@@ -11,7 +11,7 @@ import (
 // resolve properly and that the right number of arguments are passed
 // to functions.
 type IdentifierCheck struct {
-	Scope *Scope
+	Scope ast.Scope
 
 	err  error
 	lock sync.Mutex

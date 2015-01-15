@@ -346,7 +346,7 @@ parserdefault:
 		{
 			parserResult = &ast.LiteralNode{
 				Value: "",
-				Type:  ast.TypeString,
+				Typex: ast.TypeString,
 				Posx:  ast.Pos{Column: 1, Line: 1},
 			}
 		}
@@ -364,7 +364,7 @@ parserdefault:
 			// it makes for an easy literal check later (to check if a string
 			// has any interpolations).
 			if _, ok := parserS[parserpt-0].node.(*ast.Concat); !ok {
-				if n, ok := parserS[parserpt-0].node.(*ast.LiteralNode); !ok || n.Type != ast.TypeString {
+				if n, ok := parserS[parserpt-0].node.(*ast.LiteralNode); !ok || n.Typex != ast.TypeString {
 					parserResult = &ast.Concat{
 						Exprs: []ast.Node{parserS[parserpt-0].node},
 						Posx:  parserS[parserpt-0].node.Pos(),
@@ -417,7 +417,7 @@ parserdefault:
 		{
 			parserVAL.node = &ast.LiteralNode{
 				Value: parserS[parserpt-0].token.Value.(int),
-				Type:  ast.TypeInt,
+				Typex: ast.TypeInt,
 				Posx:  parserS[parserpt-0].token.Pos,
 			}
 		}
@@ -426,7 +426,7 @@ parserdefault:
 		{
 			parserVAL.node = &ast.LiteralNode{
 				Value: parserS[parserpt-0].token.Value.(float64),
-				Type:  ast.TypeFloat,
+				Typex: ast.TypeFloat,
 				Posx:  parserS[parserpt-0].token.Pos,
 			}
 		}
@@ -460,7 +460,7 @@ parserdefault:
 		{
 			parserVAL.node = &ast.LiteralNode{
 				Value: parserS[parserpt-0].token.Value.(string),
-				Type:  ast.TypeString,
+				Typex: ast.TypeString,
 				Posx:  parserS[parserpt-0].token.Pos,
 			}
 		}

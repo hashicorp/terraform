@@ -18,7 +18,7 @@ func TestParse(t *testing.T) {
 			false,
 			&ast.LiteralNode{
 				Value: "",
-				Type:  ast.TypeString,
+				Typex: ast.TypeString,
 				Posx:  ast.Pos{Column: 1, Line: 1},
 			},
 		},
@@ -28,7 +28,7 @@ func TestParse(t *testing.T) {
 			false,
 			&ast.LiteralNode{
 				Value: "foo",
-				Type:  ast.TypeString,
+				Typex: ast.TypeString,
 				Posx:  ast.Pos{Column: 1, Line: 1},
 			},
 		},
@@ -38,7 +38,7 @@ func TestParse(t *testing.T) {
 			false,
 			&ast.LiteralNode{
 				Value: "${var.foo}",
-				Type:  ast.TypeString,
+				Typex: ast.TypeString,
 				Posx:  ast.Pos{Column: 1, Line: 1},
 			},
 		},
@@ -51,7 +51,7 @@ func TestParse(t *testing.T) {
 				Exprs: []ast.Node{
 					&ast.LiteralNode{
 						Value: "foo ",
-						Type:  ast.TypeString,
+						Typex: ast.TypeString,
 						Posx:  ast.Pos{Column: 1, Line: 1},
 					},
 					&ast.VariableAccess{
@@ -70,7 +70,7 @@ func TestParse(t *testing.T) {
 				Exprs: []ast.Node{
 					&ast.LiteralNode{
 						Value: "foo ",
-						Type:  ast.TypeString,
+						Typex: ast.TypeString,
 						Posx:  ast.Pos{Column: 1, Line: 1},
 					},
 					&ast.VariableAccess{
@@ -79,7 +79,7 @@ func TestParse(t *testing.T) {
 					},
 					&ast.LiteralNode{
 						Value: " baz",
-						Type:  ast.TypeString,
+						Typex: ast.TypeString,
 						Posx:  ast.Pos{Column: 15, Line: 1},
 					},
 				},
@@ -94,12 +94,12 @@ func TestParse(t *testing.T) {
 				Exprs: []ast.Node{
 					&ast.LiteralNode{
 						Value: "foo ",
-						Type:  ast.TypeString,
+						Typex: ast.TypeString,
 						Posx:  ast.Pos{Column: 1, Line: 1},
 					},
 					&ast.LiteralNode{
 						Value: "bar",
-						Type:  ast.TypeString,
+						Typex: ast.TypeString,
 						Posx:  ast.Pos{Column: 7, Line: 1},
 					},
 				},
@@ -114,12 +114,12 @@ func TestParse(t *testing.T) {
 				Exprs: []ast.Node{
 					&ast.LiteralNode{
 						Value: "foo ",
-						Type:  ast.TypeString,
+						Typex: ast.TypeString,
 						Posx:  ast.Pos{Column: 1, Line: 1},
 					},
 					&ast.LiteralNode{
 						Value: 42,
-						Type:  ast.TypeInt,
+						Typex: ast.TypeInt,
 						Posx:  ast.Pos{Column: 7, Line: 1},
 					},
 				},
@@ -134,12 +134,12 @@ func TestParse(t *testing.T) {
 				Exprs: []ast.Node{
 					&ast.LiteralNode{
 						Value: "foo ",
-						Type:  ast.TypeString,
+						Typex: ast.TypeString,
 						Posx:  ast.Pos{Column: 1, Line: 1},
 					},
 					&ast.LiteralNode{
 						Value: 3.14159,
-						Type:  ast.TypeFloat,
+						Typex: ast.TypeFloat,
 						Posx:  ast.Pos{Column: 7, Line: 1},
 					},
 				},
@@ -239,7 +239,7 @@ func TestParse(t *testing.T) {
 				Exprs: []ast.Node{
 					&ast.LiteralNode{
 						Value: "foo ",
-						Type:  ast.TypeString,
+						Typex: ast.TypeString,
 						Posx:  ast.Pos{Column: 1, Line: 1},
 					},
 					&ast.Concat{
@@ -247,7 +247,7 @@ func TestParse(t *testing.T) {
 						Exprs: []ast.Node{
 							&ast.LiteralNode{
 								Value: "bar ",
-								Type:  ast.TypeString,
+								Typex: ast.TypeString,
 								Posx:  ast.Pos{Column: 7, Line: 1},
 							},
 							&ast.VariableAccess{
