@@ -28,6 +28,7 @@ func TestMapFieldReader(t *testing.T) {
 				"listInt.0": "21",
 				"listInt.1": "42",
 
+				"map.#":   "2",
 				"map.foo": "bar",
 				"map.bar": "baz",
 
