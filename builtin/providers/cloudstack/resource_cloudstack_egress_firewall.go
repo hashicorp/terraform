@@ -13,15 +13,15 @@ import (
 	"github.com/xanzy/go-cloudstack/cloudstack"
 )
 
-func resourceCloudStackFirewall() *schema.Resource {
+func resourceCloudStackEgressFirewall() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceCloudStackFirewallCreate,
-		Read:   resourceCloudStackFirewallRead,
-		Update: resourceCloudStackFirewallUpdate,
-		Delete: resourceCloudStackFirewallDelete,
+		Create: resourceCloudStackEgressFirewallCreate,
+		Read:   resourceCloudStackEgressFirewallRead,
+		Update: resourceCloudStackEgressFirewallUpdate,
+		Delete: resourceCloudStackEgressFirewallDelete,
 
 		Schema: map[string]*schema.Schema{
-			"ipaddress": &schema.Schema{
+			"network": &schema.Schema{
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
@@ -81,17 +81,17 @@ func resourceCloudStackFirewall() *schema.Resource {
 	}
 }
 
-func resourceCloudStackFirewallCreate(d *schema.ResourceData, meta interface{}) error {
+func resourceCloudStackEgressFirewallCreate(d *schema.ResourceData, meta interface{}) error {
 	cs := meta.(*cloudstack.CloudStackClient)
 
-	// Retrieve the ipaddress UUID
-	ipaddressid, e := retrieveUUID(cs, "ipaddress", d.Get("ipaddress").(string))
+	// Retrieve the network UUID
+	networkid, e := retrieveUUID(cs, "network", d.Get("network").(string))
 	if e != nil {
 		return e.Error()
 	}
 
 	// We need to set this upfront in order to be able to save a partial state
-	d.SetId(ipaddressid)
+	d.SetId(networkid)
 
 	// Create all rules that are configured
 	if rs := d.Get("rule").(*schema.Set); rs.Len() > 0 {
@@ -103,7 +103,7 @@ func resourceCloudStackFirewallCreate(d *schema.ResourceData, meta interface{}) 
 
 		for _, rule := range rs.List() {
 			// Create a single rule
-			err := resourceCloudStackFirewallCreateRule(d, meta, rule.(map[string]interface{}))
+			err := resourceCloudStackEgressFirewallCreateRule(d, meta, rule.(map[string]interface{}))
 
 			// We need to update this first to preserve the correct state
 			rules.Add(rule)
@@ -115,21 +115,21 @@ func resourceCloudStackFirewallCreate(d *schema.ResourceData, meta interface{}) 
 		}
 	}
 
-	return resourceCloudStackFirewallRead(d, meta)
+	return resourceCloudStackEgressFirewallRead(d, meta)
 }
 
-func resourceCloudStackFirewallCreateRule(
+func resourceCloudStackEgressFirewallCreateRule(
 	d *schema.ResourceData, meta interface{}, rule map[string]interface{}) error {
 	cs := meta.(*cloudstack.CloudStackClient)
 	uuids := rule["uuids"].(map[string]interface{})
 
 	// Make sure all required rule parameters are there
-	if err := verifyFirewallRuleParams(d, rule); err != nil {
+	if err := verifyEgressFirewallRuleParams(d, rule); err != nil {
 		return err
 	}
 
 	// Create a new parameter struct
-	p := cs.Firewall.NewCreateFirewallRuleParams(d.Id(), rule["protocol"].(string))
+	p := cs.Firewall.NewCreateEgressFirewallRuleParams(d.Id(), rule["protocol"].(string))
 
 	// Set the CIDR list
 	p.SetCidrlist([]string{rule["source_cidr"].(string)})
@@ -139,7 +139,7 @@ func resourceCloudStackFirewallCreateRule(
 		p.SetIcmptype(rule["icmp_type"].(int))
 		p.SetIcmpcode(rule["icmp_code"].(int))
 
-		r, err := cs.Firewall.CreateFirewallRule(p)
+		r, err := cs.Firewall.CreateEgressFirewallRule(p)
 		if err != nil {
 			return err
 		}
@@ -178,7 +178,7 @@ func resourceCloudStackFirewallCreateRule(
 				p.SetStartport(startPort)
 				p.SetEndport(endPort)
 
-				r, err := cs.Firewall.CreateFirewallRule(p)
+				r, err := cs.Firewall.CreateEgressFirewallRule(p)
 				if err != nil {
 					return err
 				}
@@ -195,12 +195,16 @@ func resourceCloudStackFirewallCreateRule(
 	return nil
 }
 
-func resourceCloudStackFirewallRead(d *schema.ResourceData, meta interface{}) error {
+func resourceCloudStackEgressFirewallRead(d *schema.ResourceData, meta interface{}) error {
 	cs := meta.(*cloudstack.CloudStackClient)
 
 	// Create an empty schema.Set to hold all rules
 	rules := &schema.Set{
 		F: resourceCloudStackFirewallRuleHash,
+	}
+
+	if d.Get("managed").(bool) {
+		// Read all rules...
 	}
 
 	// Read all rules that are configured
@@ -216,7 +220,7 @@ func resourceCloudStackFirewallRead(d *schema.ResourceData, meta interface{}) er
 				}
 
 				// Get the rule
-				r, count, err := cs.Firewall.GetFirewallRuleByID(id.(string))
+				r, count, err := cs.Firewall.GetEgressFirewallRuleByID(id.(string))
 				// If the count == 0, there is no object found for this UUID
 				if err != nil {
 					if count == 0 {
@@ -254,7 +258,7 @@ func resourceCloudStackFirewallRead(d *schema.ResourceData, meta interface{}) er
 						}
 
 						// Get the rule
-						r, count, err := cs.Firewall.GetFirewallRuleByID(id.(string))
+						r, count, err := cs.Firewall.GetEgressFirewallRuleByID(id.(string))
 						if err != nil {
 							if count == 0 {
 								delete(uuids, port.(string))
@@ -283,18 +287,18 @@ func resourceCloudStackFirewallRead(d *schema.ResourceData, meta interface{}) er
 	// If this is a managed firewall, add all unknown rules into a single dummy rule
 	if d.Get("managed").(bool) {
 		// Get all the rules from the running environment
-		p := cs.Firewall.NewListFirewallRulesParams()
-		p.SetIpaddressid(d.Id())
+		p := cs.Firewall.NewListEgressFirewallRulesParams()
+		p.SetNetworkid(d.Id())
 		p.SetListall(true)
 
-		r, err := cs.Firewall.ListFirewallRules(p)
+		r, err := cs.Firewall.ListEgressFirewallRules(p)
 		if err != nil {
 			return err
 		}
 
 		// Add all UUIDs to the uuids map
 		uuids := make(map[string]interface{})
-		for _, r := range r.FirewallRules {
+		for _, r := range r.EgressFirewallRules {
 			uuids[r.Id] = r.Id
 		}
 
@@ -329,7 +333,7 @@ func resourceCloudStackFirewallRead(d *schema.ResourceData, meta interface{}) er
 	return nil
 }
 
-func resourceCloudStackFirewallUpdate(d *schema.ResourceData, meta interface{}) error {
+func resourceCloudStackEgressFirewallUpdate(d *schema.ResourceData, meta interface{}) error {
 	// Check if the rule set as a whole has changed
 	if d.HasChange("rule") {
 		o, n := d.GetChange("rule")
@@ -365,10 +369,10 @@ func resourceCloudStackFirewallUpdate(d *schema.ResourceData, meta interface{}) 
 		}
 	}
 
-	return resourceCloudStackFirewallRead(d, meta)
+	return resourceCloudStackEgressFirewallRead(d, meta)
 }
 
-func resourceCloudStackFirewallDelete(d *schema.ResourceData, meta interface{}) error {
+func resourceCloudStackEgressFirewallDelete(d *schema.ResourceData, meta interface{}) error {
 	// Delete all rules
 	if rs := d.Get("rule").(*schema.Set); rs.Len() > 0 {
 		for _, rule := range rs.List() {
@@ -387,17 +391,17 @@ func resourceCloudStackFirewallDelete(d *schema.ResourceData, meta interface{}) 
 	return nil
 }
 
-func resourceCloudStackFirewallDeleteRule(
+func resourceCloudStackEgressFirewallDeleteRule(
 	d *schema.ResourceData, meta interface{}, rule map[string]interface{}) error {
 	cs := meta.(*cloudstack.CloudStackClient)
 	uuids := rule["uuids"].(map[string]interface{})
 
 	for k, id := range uuids {
 		// Create the parameter struct
-		p := cs.Firewall.NewDeleteFirewallRuleParams(id.(string))
+		p := cs.Firewall.NewDeleteEgressFirewallRuleParams(id.(string))
 
 		// Delete the rule
-		if _, err := cs.Firewall.DeleteFirewallRule(p); err != nil {
+		if _, err := cs.Firewall.DeleteEgressFirewallRule(p); err != nil {
 
 			// This is a very poor way to be told the UUID does no longer exist :(
 			if strings.Contains(err.Error(), fmt.Sprintf(
@@ -420,7 +424,7 @@ func resourceCloudStackFirewallDeleteRule(
 	return nil
 }
 
-func resourceCloudStackFirewallRuleHash(v interface{}) int {
+func resourceCloudStackEgressFirewallRuleHash(v interface{}) int {
 	var buf bytes.Buffer
 	m := v.(map[string]interface{})
 	buf.WriteString(fmt.Sprintf(
@@ -453,7 +457,7 @@ func resourceCloudStackFirewallRuleHash(v interface{}) int {
 	return hashcode.String(buf.String())
 }
 
-func verifyFirewallRuleParams(d *schema.ResourceData, rule map[string]interface{}) error {
+func verifyEgressFirewallRuleParams(d *schema.ResourceData, rule map[string]interface{}) error {
 	protocol := rule["protocol"].(string)
 	if protocol != "tcp" && protocol != "udp" && protocol != "icmp" {
 		return fmt.Errorf(
