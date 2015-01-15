@@ -227,38 +227,6 @@ type Scope struct {
 	FuncMap map[string]Function
 }
 
-// Variable is a variable value for execution given as input to the engine.
-// It records the value of a variables along with their type.
-type Variable struct {
-	Value interface{}
-	Type  ast.Type
-}
-
-// Function defines a function that can be executed by the engine.
-// The type checker will validate that the proper types will be called
-// to the callback.
-type Function struct {
-	// ArgTypes is the list of types in argument order. These are the
-	// required arguments.
-	//
-	// ReturnType is the type of the returned value. The Callback MUST
-	// return this type.
-	ArgTypes   []ast.Type
-	ReturnType ast.Type
-
-	// Variadic, if true, says that this function is variadic, meaning
-	// it takes a variable number of arguments. In this case, the
-	// VariadicType must be set.
-	Variadic     bool
-	VariadicType ast.Type
-
-	// Callback is the function called for a function. The argument
-	// types are guaranteed to match the spec above by the type checker.
-	// The length of the args is strictly == len(ArgTypes) unless Varidiac
-	// is true, in which case its >= len(ArgTypes).
-	Callback func([]interface{}) (interface{}, error)
-}
-
 // LookupFunc will look up a variable by name.
 // TODO test
 func (s *Scope) LookupFunc(n string) (Function, bool) {

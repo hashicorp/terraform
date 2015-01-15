@@ -36,3 +36,7 @@ func (n *Concat) String() string {
 
 	return b.String()
 }
+
+func (n *Concat) Type(Scope) (Type, error) {
+	return TypeString, nil
+}

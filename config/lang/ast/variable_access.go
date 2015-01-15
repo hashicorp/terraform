@@ -25,3 +25,12 @@ func (n *VariableAccess) GoString() string {
 func (n *VariableAccess) String() string {
 	return fmt.Sprintf("Variable(%s)", n.Name)
 }
+
+func (n *VariableAccess) Type(s Scope) (Type, error) {
+	v, ok := s.LookupVar(n.Name)
+	if !ok {
+		return TypeInvalid, fmt.Errorf("unknown variable: %s", n.Name)
+	}
+
+	return v.Type, nil
+}
