@@ -41,3 +41,22 @@ func (n *Call) Type(s Scope) (Type, error) {
 
 	return f.ReturnType, nil
 }
+
+func (n *Call) Eval(ctx *EvalContext) (interface{}, error) {
+	f, ok := ctx.Scope.LookupFunc(n.Func)
+	if !ok {
+		return TypeInvalid, fmt.Errorf("unknown function: %s", n.Func)
+	}
+
+	args := make([]interface{}, len(n.Args))
+	for i, arg := range n.Args {
+		result, err := arg.Eval(ctx)
+		if err != nil {
+			return nil, err
+		}
+
+		args[i] = result
+	}
+
+	return f.Callback(args)
+}
