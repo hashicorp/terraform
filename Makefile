@@ -23,13 +23,7 @@ testrace: generate
 
 updatedeps:
 	go get -u golang.org/x/tools/cmd/stringer
-	# Go 1.4 changed the format of `go get` a bit by requiring the
-	# canonical full path. We work around this and just force.
-	@if [ $(shell go version | cut -f3 -d" " | cut -f2 -d.) -lt 4 ]; then \
-		go get -u -v ./...; \
-	else \
-		go get -f -u -v ./...; \
-	fi
+	go get -f -u -v ./...; \
 
 generate:
 	go generate ./...
