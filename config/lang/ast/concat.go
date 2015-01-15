@@ -40,17 +40,3 @@ func (n *Concat) String() string {
 func (n *Concat) Type(Scope) (Type, error) {
 	return TypeString, nil
 }
-
-func (n *Concat) Eval(ctx *EvalContext) (interface{}, error) {
-	var b bytes.Buffer
-	for _, expr := range n.Exprs {
-		result, err := expr.Eval(ctx)
-		if err != nil {
-			return nil, err
-		}
-
-		b.WriteString(result.(string))
-	}
-
-	return b.String(), nil
-}

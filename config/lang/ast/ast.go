@@ -15,10 +15,6 @@ type Node interface {
 
 	// Type returns the type of this node for the given context.
 	Type(Scope) (Type, error)
-
-	// Eval evaluates this node, returning its final value. The type
-	// of the final value will match the result of Type with the same scope.
-	Eval(*EvalContext) (interface{}, error)
 }
 
 // Pos is the starting position of an AST node
@@ -28,14 +24,6 @@ type Pos struct {
 
 func (p Pos) String() string {
 	return fmt.Sprintf("%d:%d", p.Line, p.Column)
-}
-
-// EvalContext is the context given for evaluation.
-//
-// It is simple for now with just a Scope but we use a struct in case we
-// plan on adding fields in the future.
-type EvalContext struct {
-	Scope Scope
 }
 
 // Visitors are just implementations of this function.
