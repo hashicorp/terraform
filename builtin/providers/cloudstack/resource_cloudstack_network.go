@@ -79,13 +79,13 @@ func resourceCloudStackNetworkCreate(d *schema.ResourceData, meta interface{}) e
 	}
 
 	// Compute/set the display text
-	displaytext := d.Get("display_text").(string)
-	if displaytext == "" {
+	displaytext, ok := d.GetOk("display_text")
+	if !ok {
 		displaytext = name
 	}
 
 	// Create a new parameter struct
-	p := cs.Network.NewCreateNetworkParams(displaytext, name, networkofferingid, zoneid)
+	p := cs.Network.NewCreateNetworkParams(displaytext.(string), name, networkofferingid, zoneid)
 
 	// Get the network details from the CIDR
 	m, err := parseCIDR(d.Get("cidr").(string))
@@ -147,7 +147,7 @@ func resourceCloudStackNetworkRead(d *schema.ResourceData, meta interface{}) err
 	}
 
 	d.Set("name", n.Name)
-	d.Set("display_test", n.Displaytext)
+	d.Set("display_text", n.Displaytext)
 	d.Set("cidr", n.Cidr)
 	d.Set("network_offering", n.Networkofferingname)
 	d.Set("zone", n.Zonename)

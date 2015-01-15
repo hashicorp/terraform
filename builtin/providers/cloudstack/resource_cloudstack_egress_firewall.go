@@ -13,15 +13,15 @@ import (
 	"github.com/xanzy/go-cloudstack/cloudstack"
 )
 
-func resourceCloudStackNetworkACLRule() *schema.Resource {
+func resourceCloudStackEgressFirewall() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceCloudStackNetworkACLRuleCreate,
-		Read:   resourceCloudStackNetworkACLRuleRead,
-		Update: resourceCloudStackNetworkACLRuleUpdate,
-		Delete: resourceCloudStackNetworkACLRuleDelete,
+		Create: resourceCloudStackEgressFirewallCreate,
+		Read:   resourceCloudStackEgressFirewallRead,
+		Update: resourceCloudStackEgressFirewallUpdate,
+		Delete: resourceCloudStackEgressFirewallDelete,
 
 		Schema: map[string]*schema.Schema{
-			"aclid": &schema.Schema{
+			"network": &schema.Schema{
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
@@ -38,12 +38,6 @@ func resourceCloudStackNetworkACLRule() *schema.Resource {
 				Required: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
-						"action": &schema.Schema{
-							Type:     schema.TypeString,
-							Optional: true,
-							Default:  "allow",
-						},
-
 						"source_cidr": &schema.Schema{
 							Type:     schema.TypeString,
 							Required: true,
@@ -75,43 +69,41 @@ func resourceCloudStackNetworkACLRule() *schema.Resource {
 							},
 						},
 
-						"traffic_type": &schema.Schema{
-							Type:     schema.TypeString,
-							Optional: true,
-							Default:  "ingress",
-						},
-
 						"uuids": &schema.Schema{
 							Type:     schema.TypeMap,
 							Computed: true,
 						},
 					},
 				},
-				Set: resourceCloudStackNetworkACLRuleHash,
+				Set: resourceCloudStackEgressFirewallRuleHash,
 			},
 		},
 	}
 }
 
-func resourceCloudStackNetworkACLRuleCreate(d *schema.ResourceData, meta interface{}) error {
-	// Get the acl UUID
-	aclid := d.Get("aclid").(string)
+func resourceCloudStackEgressFirewallCreate(d *schema.ResourceData, meta interface{}) error {
+	cs := meta.(*cloudstack.CloudStackClient)
+
+	// Retrieve the network UUID
+	networkid, e := retrieveUUID(cs, "network", d.Get("network").(string))
+	if e != nil {
+		return e.Error()
+	}
 
 	// We need to set this upfront in order to be able to save a partial state
-	d.SetId(aclid)
+	d.SetId(networkid)
 
 	// Create all rules that are configured
 	if rs := d.Get("rule").(*schema.Set); rs.Len() > 0 {
 
 		// Create an empty schema.Set to hold all rules
 		rules := &schema.Set{
-			F: resourceCloudStackNetworkACLRuleHash,
+			F: resourceCloudStackEgressFirewallRuleHash,
 		}
 
 		for _, rule := range rs.List() {
 			// Create a single rule
-			err := resourceCloudStackNetworkACLRuleCreateRule(
-				d, meta, aclid, rule.(map[string]interface{}))
+			err := resourceCloudStackEgressFirewallCreateRule(d, meta, rule.(map[string]interface{}))
 
 			// We need to update this first to preserve the correct state
 			rules.Add(rule)
@@ -123,40 +115,31 @@ func resourceCloudStackNetworkACLRuleCreate(d *schema.ResourceData, meta interfa
 		}
 	}
 
-	return resourceCloudStackNetworkACLRuleRead(d, meta)
+	return resourceCloudStackEgressFirewallRead(d, meta)
 }
 
-func resourceCloudStackNetworkACLRuleCreateRule(
-	d *schema.ResourceData, meta interface{}, aclid string, rule map[string]interface{}) error {
+func resourceCloudStackEgressFirewallCreateRule(
+	d *schema.ResourceData, meta interface{}, rule map[string]interface{}) error {
 	cs := meta.(*cloudstack.CloudStackClient)
 	uuids := rule["uuids"].(map[string]interface{})
 
-	// Make sure all required parameters are there
-	if err := verifyNetworkACLRuleParams(d, rule); err != nil {
+	// Make sure all required rule parameters are there
+	if err := verifyEgressFirewallRuleParams(d, rule); err != nil {
 		return err
 	}
 
 	// Create a new parameter struct
-	p := cs.NetworkACL.NewCreateNetworkACLParams(rule["protocol"].(string))
-
-	// Set the acl ID
-	p.SetAclid(aclid)
-
-	// Set the action
-	p.SetAction(rule["action"].(string))
+	p := cs.Firewall.NewCreateEgressFirewallRuleParams(d.Id(), rule["protocol"].(string))
 
 	// Set the CIDR list
 	p.SetCidrlist([]string{rule["source_cidr"].(string)})
-
-	// Set the traffic type
-	p.SetTraffictype(rule["traffic_type"].(string))
 
 	// If the protocol is ICMP set the needed ICMP parameters
 	if rule["protocol"].(string) == "icmp" {
 		p.SetIcmptype(rule["icmp_type"].(int))
 		p.SetIcmpcode(rule["icmp_code"].(int))
 
-		r, err := cs.NetworkACL.CreateNetworkACL(p)
+		r, err := cs.Firewall.CreateEgressFirewallRule(p)
 		if err != nil {
 			return err
 		}
@@ -195,7 +178,7 @@ func resourceCloudStackNetworkACLRuleCreateRule(
 				p.SetStartport(startPort)
 				p.SetEndport(endPort)
 
-				r, err := cs.NetworkACL.CreateNetworkACL(p)
+				r, err := cs.Firewall.CreateEgressFirewallRule(p)
 				if err != nil {
 					return err
 				}
@@ -212,12 +195,16 @@ func resourceCloudStackNetworkACLRuleCreateRule(
 	return nil
 }
 
-func resourceCloudStackNetworkACLRuleRead(d *schema.ResourceData, meta interface{}) error {
+func resourceCloudStackEgressFirewallRead(d *schema.ResourceData, meta interface{}) error {
 	cs := meta.(*cloudstack.CloudStackClient)
 
 	// Create an empty schema.Set to hold all rules
 	rules := &schema.Set{
-		F: resourceCloudStackNetworkACLRuleHash,
+		F: resourceCloudStackEgressFirewallRuleHash,
+	}
+
+	if d.Get("managed").(bool) {
+		// Read all rules...
 	}
 
 	// Read all rules that are configured
@@ -233,7 +220,7 @@ func resourceCloudStackNetworkACLRuleRead(d *schema.ResourceData, meta interface
 				}
 
 				// Get the rule
-				r, count, err := cs.NetworkACL.GetNetworkACLByID(id.(string))
+				r, count, err := cs.Firewall.GetEgressFirewallRuleByID(id.(string))
 				// If the count == 0, there is no object found for this UUID
 				if err != nil {
 					if count == 0 {
@@ -245,12 +232,10 @@ func resourceCloudStackNetworkACLRuleRead(d *schema.ResourceData, meta interface
 				}
 
 				// Update the values
-				rule["action"] = r.Action
 				rule["source_cidr"] = r.Cidrlist
 				rule["protocol"] = r.Protocol
 				rule["icmp_type"] = r.Icmptype
 				rule["icmp_code"] = r.Icmpcode
-				rule["traffic_type"] = r.Traffictype
 				rules.Add(rule)
 			}
 
@@ -273,7 +258,7 @@ func resourceCloudStackNetworkACLRuleRead(d *schema.ResourceData, meta interface
 						}
 
 						// Get the rule
-						r, count, err := cs.NetworkACL.GetNetworkACLByID(id.(string))
+						r, count, err := cs.Firewall.GetEgressFirewallRuleByID(id.(string))
 						if err != nil {
 							if count == 0 {
 								delete(uuids, port.(string))
@@ -284,10 +269,8 @@ func resourceCloudStackNetworkACLRuleRead(d *schema.ResourceData, meta interface
 						}
 
 						// Update the values
-						rule["action"] = strings.ToLower(r.Action)
 						rule["source_cidr"] = r.Cidrlist
 						rule["protocol"] = r.Protocol
-						rule["traffic_type"] = strings.ToLower(r.Traffictype)
 						ports.Add(port)
 					}
 
@@ -304,18 +287,18 @@ func resourceCloudStackNetworkACLRuleRead(d *schema.ResourceData, meta interface
 	// If this is a managed firewall, add all unknown rules into a single dummy rule
 	if d.Get("managed").(bool) {
 		// Get all the rules from the running environment
-		p := cs.NetworkACL.NewListNetworkACLsParams()
-		p.SetAclid(d.Id())
+		p := cs.Firewall.NewListEgressFirewallRulesParams()
+		p.SetNetworkid(d.Id())
 		p.SetListall(true)
 
-		r, err := cs.NetworkACL.ListNetworkACLs(p)
+		r, err := cs.Firewall.ListEgressFirewallRules(p)
 		if err != nil {
 			return err
 		}
 
 		// Add all UUIDs to the uuids map
 		uuids := make(map[string]interface{})
-		for _, r := range r.NetworkACLs {
+		for _, r := range r.EgressFirewallRules {
 			uuids[r.Id] = r.Id
 		}
 
@@ -350,10 +333,7 @@ func resourceCloudStackNetworkACLRuleRead(d *schema.ResourceData, meta interface
 	return nil
 }
 
-func resourceCloudStackNetworkACLRuleUpdate(d *schema.ResourceData, meta interface{}) error {
-	// Get the acl UUID
-	aclid := d.Get("aclid").(string)
-
+func resourceCloudStackEgressFirewallUpdate(d *schema.ResourceData, meta interface{}) error {
 	// Check if the rule set as a whole has changed
 	if d.HasChange("rule") {
 		o, n := d.GetChange("rule")
@@ -363,7 +343,7 @@ func resourceCloudStackNetworkACLRuleUpdate(d *schema.ResourceData, meta interfa
 		// Now first loop through all the old rules and delete any obsolete ones
 		for _, rule := range ors.List() {
 			// Delete the rule as it no longer exists in the config
-			err := resourceCloudStackNetworkACLRuleDeleteRule(d, meta, rule.(map[string]interface{}))
+			err := resourceCloudStackEgressFirewallDeleteRule(d, meta, rule.(map[string]interface{}))
 			if err != nil {
 				return err
 			}
@@ -376,8 +356,8 @@ func resourceCloudStackNetworkACLRuleUpdate(d *schema.ResourceData, meta interfa
 		// Then loop through al the currently configured rules and create the new ones
 		for _, rule := range nrs.List() {
 			// When succesfully deleted, re-create it again if it still exists
-			err := resourceCloudStackNetworkACLRuleCreateRule(
-				d, meta, aclid, rule.(map[string]interface{}))
+			err := resourceCloudStackEgressFirewallCreateRule(
+				d, meta, rule.(map[string]interface{}))
 
 			// We need to update this first to preserve the correct state
 			rules.Add(rule)
@@ -389,15 +369,15 @@ func resourceCloudStackNetworkACLRuleUpdate(d *schema.ResourceData, meta interfa
 		}
 	}
 
-	return resourceCloudStackNetworkACLRuleRead(d, meta)
+	return resourceCloudStackEgressFirewallRead(d, meta)
 }
 
-func resourceCloudStackNetworkACLRuleDelete(d *schema.ResourceData, meta interface{}) error {
+func resourceCloudStackEgressFirewallDelete(d *schema.ResourceData, meta interface{}) error {
 	// Delete all rules
 	if rs := d.Get("rule").(*schema.Set); rs.Len() > 0 {
 		for _, rule := range rs.List() {
 			// Delete a single rule
-			err := resourceCloudStackNetworkACLRuleDeleteRule(d, meta, rule.(map[string]interface{}))
+			err := resourceCloudStackEgressFirewallDeleteRule(d, meta, rule.(map[string]interface{}))
 
 			// We need to update this first to preserve the correct state
 			d.Set("rule", rs)
@@ -411,7 +391,7 @@ func resourceCloudStackNetworkACLRuleDelete(d *schema.ResourceData, meta interfa
 	return nil
 }
 
-func resourceCloudStackNetworkACLRuleDeleteRule(
+func resourceCloudStackEgressFirewallDeleteRule(
 	d *schema.ResourceData, meta interface{}, rule map[string]interface{}) error {
 	cs := meta.(*cloudstack.CloudStackClient)
 	uuids := rule["uuids"].(map[string]interface{})
@@ -423,10 +403,10 @@ func resourceCloudStackNetworkACLRuleDeleteRule(
 		}
 
 		// Create the parameter struct
-		p := cs.NetworkACL.NewDeleteNetworkACLParams(id.(string))
+		p := cs.Firewall.NewDeleteEgressFirewallRuleParams(id.(string))
 
 		// Delete the rule
-		if _, err := cs.NetworkACL.DeleteNetworkACL(p); err != nil {
+		if _, err := cs.Firewall.DeleteEgressFirewallRule(p); err != nil {
 
 			// This is a very poor way to be told the UUID does no longer exist :(
 			if strings.Contains(err.Error(), fmt.Sprintf(
@@ -449,15 +429,11 @@ func resourceCloudStackNetworkACLRuleDeleteRule(
 	return nil
 }
 
-func resourceCloudStackNetworkACLRuleHash(v interface{}) int {
+func resourceCloudStackEgressFirewallRuleHash(v interface{}) int {
 	var buf bytes.Buffer
 	m := v.(map[string]interface{})
 	buf.WriteString(fmt.Sprintf(
-		"%s-%s-%s-%s-",
-		m["action"].(string),
-		m["source_cidr"].(string),
-		m["protocol"].(string),
-		m["traffic_type"].(string)))
+		"%s-%s-", m["source_cidr"].(string), m["protocol"].(string)))
 
 	if v, ok := m["icmp_type"]; ok {
 		buf.WriteString(fmt.Sprintf("%d-", v.(int)))
@@ -486,13 +462,13 @@ func resourceCloudStackNetworkACLRuleHash(v interface{}) int {
 	return hashcode.String(buf.String())
 }
 
-func verifyNetworkACLRuleParams(d *schema.ResourceData, rule map[string]interface{}) error {
-	action := rule["action"].(string)
-	if action != "allow" && action != "deny" {
-		return fmt.Errorf("Parameter action only accepts 'allow' or 'deny' as values")
+func verifyEgressFirewallRuleParams(d *schema.ResourceData, rule map[string]interface{}) error {
+	protocol := rule["protocol"].(string)
+	if protocol != "tcp" && protocol != "udp" && protocol != "icmp" {
+		return fmt.Errorf(
+			"%s is not a valid protocol. Valid options are 'tcp', 'udp' and 'icmp'", protocol)
 	}
 
-	protocol := rule["protocol"].(string)
 	if protocol == "icmp" {
 		if _, ok := rule["icmp_type"]; !ok {
 			return fmt.Errorf(
@@ -503,24 +479,10 @@ func verifyNetworkACLRuleParams(d *schema.ResourceData, rule map[string]interfac
 				"Parameter icmp_code is a required parameter when using protocol 'icmp'")
 		}
 	} else {
-		if protocol != "tcp" && protocol != "udp" && protocol != "all" {
-			_, err := strconv.ParseInt(protocol, 0, 0)
-			if err != nil {
-				return fmt.Errorf(
-					"%s is not a valid protocol. Valid options are 'tcp', 'udp', "+
-						"'icmp', 'all' or a valid protocol number", protocol)
-			}
-		}
 		if _, ok := rule["ports"]; !ok {
 			return fmt.Errorf(
-				"Parameter ports is a required parameter when *not* using protocol 'icmp'")
+				"Parameter port is a required parameter when using protocol 'tcp' or 'udp'")
 		}
-	}
-
-	traffic := rule["traffic_type"].(string)
-	if traffic != "ingress" && traffic != "egress" {
-		return fmt.Errorf(
-			"Parameter traffic_type only accepts 'ingress' or 'egress' as values")
 	}
 
 	return nil

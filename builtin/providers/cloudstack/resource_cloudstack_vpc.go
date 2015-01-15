@@ -69,7 +69,7 @@ func resourceCloudStackVPCCreate(d *schema.ResourceData, meta interface{}) error
 	// Set the display text
 	displaytext, ok := d.GetOk("display_text")
 	if !ok {
-		displaytext = d.Get("name")
+		displaytext = name
 	}
 
 	// Create a new parameter struct
@@ -103,7 +103,7 @@ func resourceCloudStackVPCRead(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	d.Set("name", v.Name)
-	d.Set("display_test", v.Displaytext)
+	d.Set("display_text", v.Displaytext)
 	d.Set("cidr", v.Cidr)
 	d.Set("zone", v.Zonename)
 
@@ -124,7 +124,7 @@ func resourceCloudStackVPCUpdate(d *schema.ResourceData, meta interface{}) error
 	// Check if the name or display text is changed
 	if d.HasChange("name") || d.HasChange("display_text") {
 		// Create a new parameter struct
-		p := cs.VPC.NewUpdateVPCParams(d.Id(), d.Get("name").(string))
+		p := cs.VPC.NewUpdateVPCParams(d.Id())
 
 		// Set the display text
 		displaytext, ok := d.GetOk("display_text")

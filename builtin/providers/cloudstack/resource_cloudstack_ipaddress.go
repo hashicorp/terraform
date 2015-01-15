@@ -147,7 +147,8 @@ func verifyIPAddressParams(d *schema.ResourceData) error {
 	_, vpc := d.GetOk("vpc")
 
 	if (network && vpc) || (!network && !vpc) {
-		return fmt.Errorf("You must supply a value for either (so not both) the 'network' or 'vpc' argument")
+		return fmt.Errorf(
+			"You must supply a value for either (so not both) the 'network' or 'vpc' parameter")
 	}
 
 	return nil
