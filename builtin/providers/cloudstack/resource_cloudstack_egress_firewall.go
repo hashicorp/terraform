@@ -75,7 +75,7 @@ func resourceCloudStackEgressFirewall() *schema.Resource {
 						},
 					},
 				},
-				Set: resourceCloudStackFirewallRuleHash,
+				Set: resourceCloudStackEgressFirewallRuleHash,
 			},
 		},
 	}
@@ -98,7 +98,7 @@ func resourceCloudStackEgressFirewallCreate(d *schema.ResourceData, meta interfa
 
 		// Create an empty schema.Set to hold all rules
 		rules := &schema.Set{
-			F: resourceCloudStackFirewallRuleHash,
+			F: resourceCloudStackEgressFirewallRuleHash,
 		}
 
 		for _, rule := range rs.List() {
@@ -200,7 +200,7 @@ func resourceCloudStackEgressFirewallRead(d *schema.ResourceData, meta interface
 
 	// Create an empty schema.Set to hold all rules
 	rules := &schema.Set{
-		F: resourceCloudStackFirewallRuleHash,
+		F: resourceCloudStackEgressFirewallRuleHash,
 	}
 
 	if d.Get("managed").(bool) {
@@ -343,7 +343,7 @@ func resourceCloudStackEgressFirewallUpdate(d *schema.ResourceData, meta interfa
 		// Now first loop through all the old rules and delete any obsolete ones
 		for _, rule := range ors.List() {
 			// Delete the rule as it no longer exists in the config
-			err := resourceCloudStackFirewallDeleteRule(d, meta, rule.(map[string]interface{}))
+			err := resourceCloudStackEgressFirewallDeleteRule(d, meta, rule.(map[string]interface{}))
 			if err != nil {
 				return err
 			}
@@ -356,7 +356,7 @@ func resourceCloudStackEgressFirewallUpdate(d *schema.ResourceData, meta interfa
 		// Then loop through al the currently configured rules and create the new ones
 		for _, rule := range nrs.List() {
 			// When succesfully deleted, re-create it again if it still exists
-			err := resourceCloudStackFirewallCreateRule(
+			err := resourceCloudStackEgressFirewallCreateRule(
 				d, meta, rule.(map[string]interface{}))
 
 			// We need to update this first to preserve the correct state
@@ -377,7 +377,7 @@ func resourceCloudStackEgressFirewallDelete(d *schema.ResourceData, meta interfa
 	if rs := d.Get("rule").(*schema.Set); rs.Len() > 0 {
 		for _, rule := range rs.List() {
 			// Delete a single rule
-			err := resourceCloudStackFirewallDeleteRule(d, meta, rule.(map[string]interface{}))
+			err := resourceCloudStackEgressFirewallDeleteRule(d, meta, rule.(map[string]interface{}))
 
 			// We need to update this first to preserve the correct state
 			d.Set("rule", rs)

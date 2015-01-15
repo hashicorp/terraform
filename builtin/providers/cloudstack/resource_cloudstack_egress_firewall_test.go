@@ -23,15 +23,17 @@ func TestAccCloudStackEgressFirewall_basic(t *testing.T) {
 					resource.TestCheckResourceAttr(
 						"cloudstack_egress_firewall.foo", "network", CLOUDSTACK_NETWORK_1),
 					resource.TestCheckResourceAttr(
-						"cloudstack_egress_firewall.foo", "rule.1702320581.source_cidr", "10.0.0.0/24"),
+						"cloudstack_egress_firewall.foo",
+						"rule.411689741.source_cidr",
+						CLOUDSTACK_NETWORK_1_IPADDRESS+"/32"),
 					resource.TestCheckResourceAttr(
-						"cloudstack_egress_firewall.foo", "rule.1702320581.protocol", "tcp"),
+						"cloudstack_egress_firewall.foo", "rule.411689741.protocol", "tcp"),
 					resource.TestCheckResourceAttr(
-						"cloudstack_egress_firewall.foo", "rule.1702320581.ports.#", "2"),
+						"cloudstack_egress_firewall.foo", "rule.411689741.ports.#", "2"),
 					resource.TestCheckResourceAttr(
-						"cloudstack_egress_firewall.foo", "rule.1702320581.ports.1209010669", "1000-2000"),
+						"cloudstack_egress_firewall.foo", "rule.411689741.ports.1209010669", "1000-2000"),
 					resource.TestCheckResourceAttr(
-						"cloudstack_egress_firewall.foo", "rule.1702320581.ports.1889509032", "80"),
+						"cloudstack_egress_firewall.foo", "rule.411689741.ports.1889509032", "80"),
 				),
 			},
 		},
@@ -49,19 +51,21 @@ func TestAccCloudStackEgressFirewall_update(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckCloudStackEgressFirewallRulesExist("cloudstack_egress_firewall.foo"),
 					resource.TestCheckResourceAttr(
-						"cloudstack_egress_firewall.foo", "ipaddress", CLOUDSTACK_NETWORK_1),
+						"cloudstack_egress_firewall.foo", "network", CLOUDSTACK_NETWORK_1),
 					resource.TestCheckResourceAttr(
 						"cloudstack_egress_firewall.foo", "rule.#", "1"),
 					resource.TestCheckResourceAttr(
-						"cloudstack_egress_firewall.foo", "rule.1702320581.source_cidr", "10.0.0.0/24"),
+						"cloudstack_egress_firewall.foo",
+						"rule.411689741.source_cidr",
+						CLOUDSTACK_NETWORK_1_IPADDRESS+"/32"),
 					resource.TestCheckResourceAttr(
-						"cloudstack_egress_firewall.foo", "rule.1702320581.protocol", "tcp"),
+						"cloudstack_egress_firewall.foo", "rule.411689741.protocol", "tcp"),
 					resource.TestCheckResourceAttr(
-						"cloudstack_egress_firewall.foo", "rule.1702320581.ports.#", "2"),
+						"cloudstack_egress_firewall.foo", "rule.411689741.ports.#", "2"),
 					resource.TestCheckResourceAttr(
-						"cloudstack_egress_firewall.foo", "rule.1702320581.ports.1209010669", "1000-2000"),
+						"cloudstack_egress_firewall.foo", "rule.411689741.ports.1209010669", "1000-2000"),
 					resource.TestCheckResourceAttr(
-						"cloudstack_egress_firewall.foo", "rule.1702320581.ports.1889509032", "80"),
+						"cloudstack_egress_firewall.foo", "rule.411689741.ports.1889509032", "80"),
 				),
 			},
 
@@ -70,29 +74,31 @@ func TestAccCloudStackEgressFirewall_update(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckCloudStackEgressFirewallRulesExist("cloudstack_egress_firewall.foo"),
 					resource.TestCheckResourceAttr(
-						"cloudstack_egress_firewall.foo", "ipaddress", CLOUDSTACK_NETWORK_1),
+						"cloudstack_egress_firewall.foo", "network", CLOUDSTACK_NETWORK_1),
 					resource.TestCheckResourceAttr(
 						"cloudstack_egress_firewall.foo", "rule.#", "2"),
 					resource.TestCheckResourceAttr(
-						"cloudstack_egress_firewall.foo", "rule.1702320581.source_cidr", "10.0.0.0/24"),
+						"cloudstack_egress_firewall.foo",
+						"rule.411689741.source_cidr",
+						CLOUDSTACK_NETWORK_1_IPADDRESS+"/32"),
 					resource.TestCheckResourceAttr(
-						"cloudstack_egress_firewall.foo", "rule.1702320581.protocol", "tcp"),
+						"cloudstack_egress_firewall.foo", "rule.411689741.protocol", "tcp"),
 					resource.TestCheckResourceAttr(
-						"cloudstack_egress_firewall.foo", "rule.1702320581.ports.#", "2"),
+						"cloudstack_egress_firewall.foo", "rule.411689741.ports.#", "2"),
 					resource.TestCheckResourceAttr(
-						"cloudstack_egress_firewall.foo", "rule.1702320581.ports.1209010669", "1000-2000"),
+						"cloudstack_egress_firewall.foo", "rule.411689741.ports.1209010669", "1000-2000"),
 					resource.TestCheckResourceAttr(
-						"cloudstack_egress_firewall.foo", "rule.1702320581.ports.1889509032", "80"),
+						"cloudstack_egress_firewall.foo", "rule.411689741.ports.1889509032", "80"),
 					resource.TestCheckResourceAttr(
-						"cloudstack_egress_firewall.foo", "rule.3779782959.source_cidr", "172.16.100.0/24"),
+						"cloudstack_egress_firewall.foo",
+						"rule.845479598.source_cidr",
+						CLOUDSTACK_NETWORK_1_IPADDRESS+"/32"),
 					resource.TestCheckResourceAttr(
-						"cloudstack_egress_firewall.foo", "rule.3779782959.protocol", "tcp"),
+						"cloudstack_egress_firewall.foo", "rule.845479598.protocol", "tcp"),
 					resource.TestCheckResourceAttr(
-						"cloudstack_egress_firewall.foo", "rule.3779782959.ports.#", "2"),
+						"cloudstack_egress_firewall.foo", "rule.845479598.ports.#", "1"),
 					resource.TestCheckResourceAttr(
-						"cloudstack_egress_firewall.foo", "rule.3779782959.ports.1889509032", "80"),
-					resource.TestCheckResourceAttr(
-						"cloudstack_egress_firewall.foo", "rule.3779782959.ports.3638101695", "443"),
+						"cloudstack_egress_firewall.foo", "rule.845479598.ports.3638101695", "443"),
 				),
 			},
 		},
@@ -162,7 +168,7 @@ func testAccCheckCloudStackEgressFirewallDestroy(s *terraform.State) error {
 
 var testAccCloudStackEgressFirewall_basic = fmt.Sprintf(`
 resource "cloudstack_egress_firewall" "foo" {
-  ipaddress = "%s"
+  network = "%s"
 
   rule {
     source_cidr = "%s/32"
@@ -175,13 +181,20 @@ resource "cloudstack_egress_firewall" "foo" {
 
 var testAccCloudStackEgressFirewall_update = fmt.Sprintf(`
 resource "cloudstack_egress_firewall" "foo" {
-  ipaddress = "%s"
+  network = "%s"
 
   rule {
     source_cidr = "%s/32"
     protocol = "tcp"
-    ports = ["80", "443", 1000-2000"]
+    ports = ["80", "1000-2000"]
+  }
+
+  rule {
+    source_cidr = "%s/32"
+    protocol = "tcp"
+    ports = ["443"]
   }
 }`,
 	CLOUDSTACK_NETWORK_1,
+	CLOUDSTACK_NETWORK_1_IPADDRESS,
 	CLOUDSTACK_NETWORK_1_IPADDRESS)
