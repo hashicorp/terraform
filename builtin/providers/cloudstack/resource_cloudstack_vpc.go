@@ -124,7 +124,7 @@ func resourceCloudStackVPCUpdate(d *schema.ResourceData, meta interface{}) error
 	// Check if the name or display text is changed
 	if d.HasChange("name") || d.HasChange("display_text") {
 		// Create a new parameter struct
-		p := cs.VPC.NewUpdateVPCParams(d.Id(), d.Get("name").(string))
+		p := cs.VPC.NewUpdateVPCParams(d.Id())
 
 		// Set the display text
 		displaytext, ok := d.GetOk("display_text")

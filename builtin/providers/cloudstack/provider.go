@@ -38,6 +38,7 @@ func Provider() terraform.ResourceProvider {
 
 		ResourcesMap: map[string]*schema.Resource{
 			"cloudstack_disk":             resourceCloudStackDisk(),
+			"cloudstack_egress_firewall":  resourceCloudStackEgressFirewall(),
 			"cloudstack_firewall":         resourceCloudStackFirewall(),
 			"cloudstack_instance":         resourceCloudStackInstance(),
 			"cloudstack_ipaddress":        resourceCloudStackIPAddress(),
