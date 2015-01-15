@@ -34,3 +34,12 @@ func (n *VariableAccess) Type(s Scope) (Type, error) {
 
 	return v.Type, nil
 }
+
+func (n *VariableAccess) Eval(ctx *EvalContext) (interface{}, error) {
+	v, ok := ctx.Scope.LookupVar(n.Name)
+	if !ok {
+		return TypeInvalid, fmt.Errorf("unknown variable: %s", n.Name)
+	}
+
+	return v.Value, nil
+}

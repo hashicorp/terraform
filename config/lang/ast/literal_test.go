@@ -14,3 +14,16 @@ func TestLiteralNodeType(t *testing.T) {
 		t.Fatalf("bad: %s", actual)
 	}
 }
+
+func TestLiteralNodeEval(t *testing.T) {
+	c := &LiteralNode{Value: "42", Typex: TypeString}
+	scope := &BasicScope{}
+
+	actual, err := c.Eval(&EvalContext{Scope: scope})
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if actual != "42" {
+		t.Fatalf("bad: %s", actual)
+	}
+}
