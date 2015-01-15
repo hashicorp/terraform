@@ -8,12 +8,16 @@ import (
 
 // NOTE: All builtins are tested in engine_test.go
 
-func registerBuiltins(scope *ast.BasicScope) {
+func registerBuiltins(scope *ast.BasicScope) *ast.BasicScope {
+	if scope == nil {
+		scope = new(ast.BasicScope)
+	}
 	if scope.FuncMap == nil {
 		scope.FuncMap = make(map[string]ast.Function)
 	}
 	scope.FuncMap["__builtin_IntToString"] = builtinIntToString()
 	scope.FuncMap["__builtin_StringToInt"] = builtinStringToInt()
+	return scope
 }
 
 func builtinIntToString() ast.Function {

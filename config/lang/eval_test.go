@@ -8,7 +8,7 @@ import (
 	"github.com/hashicorp/terraform/config/lang/ast"
 )
 
-func TestEngineExecute(t *testing.T) {
+func TestEval(t *testing.T) {
 	cases := []struct {
 		Input      string
 		Scope      *ast.BasicScope
@@ -121,8 +121,7 @@ func TestEngineExecute(t *testing.T) {
 			t.Fatalf("Error: %s\n\nInput: %s", err, tc.Input)
 		}
 
-		engine := &Engine{GlobalScope: tc.Scope}
-		out, outType, err := engine.Execute(node)
+		out, outType, err := Eval(node, &EvalConfig{GlobalScope: tc.Scope})
 		if (err != nil) != tc.Error {
 			t.Fatalf("Error: %s\n\nInput: %s", err, tc.Input)
 		}
