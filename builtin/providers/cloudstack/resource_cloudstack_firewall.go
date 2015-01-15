@@ -393,6 +393,11 @@ func resourceCloudStackFirewallDeleteRule(
 	uuids := rule["uuids"].(map[string]interface{})
 
 	for k, id := range uuids {
+		// We don't care about the count here, so just continue
+		if k == "#" {
+			continue
+		}
+
 		// Create the parameter struct
 		p := cs.Firewall.NewDeleteFirewallRuleParams(id.(string))
 

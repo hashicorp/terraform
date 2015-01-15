@@ -123,7 +123,7 @@ func testAccCheckCloudStackNetworkACLRulesExist(n string) resource.TestCheckFunc
 		}
 
 		for k, uuid := range rs.Primary.Attributes {
-			if !strings.Contains(k, "uuids") {
+			if !strings.Contains(k, ".uuids.") || strings.HasSuffix(k, ".uuids.#") {
 				continue
 			}
 
@@ -156,7 +156,7 @@ func testAccCheckCloudStackNetworkACLRuleDestroy(s *terraform.State) error {
 		}
 
 		for k, uuid := range rs.Primary.Attributes {
-			if !strings.Contains(k, "uuids") {
+			if !strings.Contains(k, ".uuids.") || strings.HasSuffix(k, ".uuids.#") {
 				continue
 			}
 

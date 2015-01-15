@@ -111,7 +111,7 @@ func testAccCheckCloudStackEgressFirewallRulesExist(n string) resource.TestCheck
 		}
 
 		for k, uuid := range rs.Primary.Attributes {
-			if !strings.Contains(k, "uuids") {
+			if !strings.Contains(k, ".uuids.") || strings.HasSuffix(k, ".uuids.#") {
 				continue
 			}
 
@@ -144,7 +144,7 @@ func testAccCheckCloudStackEgressFirewallDestroy(s *terraform.State) error {
 		}
 
 		for k, uuid := range rs.Primary.Attributes {
-			if !strings.Contains(k, "uuids") {
+			if !strings.Contains(k, ".uuids.") || strings.HasSuffix(k, ".uuids.#") {
 				continue
 			}
 
@@ -165,25 +165,23 @@ resource "cloudstack_egress_firewall" "foo" {
   ipaddress = "%s"
 
   rule {
-    source_cidr = "10.0.0.0/24"
+    source_cidr = "%s/32"
     protocol = "tcp"
     ports = ["80", "1000-2000"]
   }
-}`, CLOUDSTACK_NETWORK_1)
+}`,
+	CLOUDSTACK_NETWORK_1,
+	CLOUDSTACK_NETWORK_1_IPADDRESS)
 
 var testAccCloudStackEgressFirewall_update = fmt.Sprintf(`
 resource "cloudstack_egress_firewall" "foo" {
   ipaddress = "%s"
 
   rule {
-    source_cidr = "10.0.0.0/24"
+    source_cidr = "%s/32"
     protocol = "tcp"
-    ports = ["80", "1000-2000"]
+    ports = ["80", "443", 1000-2000"]
   }
-
-  rule {
-    source_cidr = "172.16.100.0/24"
-    protocol = "tcp"
-    ports = ["80", "443"]
-  }
-}`, CLOUDSTACK_NETWORK_1)
+}`,
+	CLOUDSTACK_NETWORK_1,
+	CLOUDSTACK_NETWORK_1_IPADDRESS)
