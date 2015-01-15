@@ -230,23 +230,24 @@ func DetectVariables(root ast.Node) ([]InterpolatedVariable, error) {
 	var resultErr error
 
 	// Visitor callback
-	fn := func(n ast.Node) {
+	fn := func(n ast.Node) ast.Node {
 		if resultErr != nil {
-			return
+			return n
 		}
 
 		vn, ok := n.(*ast.VariableAccess)
 		if !ok {
-			return
+			return n
 		}
 
 		v, err := NewInterpolatedVariable(vn.Name)
 		if err != nil {
 			resultErr = err
-			return
+			return n
 		}
 
 		result = append(result, v)
+		return n
 	}
 
 	// Visitor pattern

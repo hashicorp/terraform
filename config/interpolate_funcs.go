@@ -7,15 +7,14 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/hashicorp/terraform/config/lang"
 	"github.com/hashicorp/terraform/config/lang/ast"
 )
 
 // Funcs is the mapping of built-in functions for configuration.
-var Funcs map[string]lang.Function
+var Funcs map[string]ast.Function
 
 func init() {
-	Funcs = map[string]lang.Function{
+	Funcs = map[string]ast.Function{
 		"concat":  interpolationFuncConcat(),
 		"file":    interpolationFuncFile(),
 		"join":    interpolationFuncJoin(),
@@ -27,8 +26,8 @@ func init() {
 // concatenates multiple strings. This isn't actually necessary anymore
 // since our language supports string concat natively, but for backwards
 // compat we do this.
-func interpolationFuncConcat() lang.Function {
-	return lang.Function{
+func interpolationFuncConcat() ast.Function {
+	return ast.Function{
 		ArgTypes:     []ast.Type{ast.TypeString},
 		ReturnType:   ast.TypeString,
 		Variadic:     true,
@@ -46,8 +45,8 @@ func interpolationFuncConcat() lang.Function {
 
 // interpolationFuncFile implements the "file" function that allows
 // loading contents from a file.
-func interpolationFuncFile() lang.Function {
-	return lang.Function{
+func interpolationFuncFile() ast.Function {
+	return ast.Function{
 		ArgTypes:   []ast.Type{ast.TypeString},
 		ReturnType: ast.TypeString,
 		Callback: func(args []interface{}) (interface{}, error) {
@@ -63,8 +62,8 @@ func interpolationFuncFile() lang.Function {
 
 // interpolationFuncJoin implements the "join" function that allows
 // multi-variable values to be joined by some character.
-func interpolationFuncJoin() lang.Function {
-	return lang.Function{
+func interpolationFuncJoin() ast.Function {
+	return ast.Function{
 		ArgTypes:   []ast.Type{ast.TypeString, ast.TypeString},
 		ReturnType: ast.TypeString,
 		Callback: func(args []interface{}) (interface{}, error) {
@@ -81,8 +80,8 @@ func interpolationFuncJoin() lang.Function {
 
 // interpolationFuncLookup implements the "lookup" function that allows
 // dynamic lookups of map types within a Terraform configuration.
-func interpolationFuncLookup(vs map[string]lang.Variable) lang.Function {
-	return lang.Function{
+func interpolationFuncLookup(vs map[string]ast.Variable) ast.Function {
+	return ast.Function{
 		ArgTypes:   []ast.Type{ast.TypeString, ast.TypeString},
 		ReturnType: ast.TypeString,
 		Callback: func(args []interface{}) (interface{}, error) {
@@ -107,8 +106,8 @@ func interpolationFuncLookup(vs map[string]lang.Variable) lang.Function {
 // interpolationFuncElement implements the "element" function that allows
 // a specific index to be looked up in a multi-variable value. Note that this will
 // wrap if the index is larger than the number of elements in the multi-variable value.
-func interpolationFuncElement() lang.Function {
-	return lang.Function{
+func interpolationFuncElement() ast.Function {
+	return ast.Function{
 		ArgTypes:   []ast.Type{ast.TypeString, ast.TypeString},
 		ReturnType: ast.TypeString,
 		Callback: func(args []interface{}) (interface{}, error) {
