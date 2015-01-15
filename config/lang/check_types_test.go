@@ -9,20 +9,20 @@ import (
 func TestTypeCheck(t *testing.T) {
 	cases := []struct {
 		Input string
-		Scope *Scope
+		Scope ast.Scope
 		Error bool
 	}{
 		{
 			"foo",
-			&Scope{},
+			&ast.BasicScope{},
 			false,
 		},
 
 		{
 			"foo ${bar}",
-			&Scope{
-				VarMap: map[string]Variable{
-					"bar": Variable{
+			&ast.BasicScope{
+				VarMap: map[string]ast.Variable{
+					"bar": ast.Variable{
 						Value: "baz",
 						Type:  ast.TypeString,
 					},
@@ -33,9 +33,9 @@ func TestTypeCheck(t *testing.T) {
 
 		{
 			"foo ${rand()}",
-			&Scope{
-				FuncMap: map[string]Function{
-					"rand": Function{
+			&ast.BasicScope{
+				FuncMap: map[string]ast.Function{
+					"rand": ast.Function{
 						ReturnType: ast.TypeString,
 						Callback: func([]interface{}) (interface{}, error) {
 							return "42", nil
@@ -48,9 +48,9 @@ func TestTypeCheck(t *testing.T) {
 
 		{
 			`foo ${rand("42")}`,
-			&Scope{
-				FuncMap: map[string]Function{
-					"rand": Function{
+			&ast.BasicScope{
+				FuncMap: map[string]ast.Function{
+					"rand": ast.Function{
 						ArgTypes:   []ast.Type{ast.TypeString},
 						ReturnType: ast.TypeString,
 						Callback: func([]interface{}) (interface{}, error) {
@@ -64,9 +64,9 @@ func TestTypeCheck(t *testing.T) {
 
 		{
 			`foo ${rand(42)}`,
-			&Scope{
-				FuncMap: map[string]Function{
-					"rand": Function{
+			&ast.BasicScope{
+				FuncMap: map[string]ast.Function{
+					"rand": ast.Function{
 						ArgTypes:   []ast.Type{ast.TypeString},
 						ReturnType: ast.TypeString,
 						Callback: func([]interface{}) (interface{}, error) {
@@ -80,9 +80,9 @@ func TestTypeCheck(t *testing.T) {
 
 		{
 			`foo ${rand()}`,
-			&Scope{
-				FuncMap: map[string]Function{
-					"rand": Function{
+			&ast.BasicScope{
+				FuncMap: map[string]ast.Function{
+					"rand": ast.Function{
 						ArgTypes:     nil,
 						ReturnType:   ast.TypeString,
 						Variadic:     true,
@@ -98,9 +98,9 @@ func TestTypeCheck(t *testing.T) {
 
 		{
 			`foo ${rand("42")}`,
-			&Scope{
-				FuncMap: map[string]Function{
-					"rand": Function{
+			&ast.BasicScope{
+				FuncMap: map[string]ast.Function{
+					"rand": ast.Function{
 						ArgTypes:     nil,
 						ReturnType:   ast.TypeString,
 						Variadic:     true,
@@ -116,9 +116,9 @@ func TestTypeCheck(t *testing.T) {
 
 		{
 			`foo ${rand("42", 42)}`,
-			&Scope{
-				FuncMap: map[string]Function{
-					"rand": Function{
+			&ast.BasicScope{
+				FuncMap: map[string]ast.Function{
+					"rand": ast.Function{
 						ArgTypes:     nil,
 						ReturnType:   ast.TypeString,
 						Variadic:     true,
@@ -134,9 +134,9 @@ func TestTypeCheck(t *testing.T) {
 
 		{
 			"foo ${bar}",
-			&Scope{
-				VarMap: map[string]Variable{
-					"bar": Variable{
+			&ast.BasicScope{
+				VarMap: map[string]ast.Variable{
+					"bar": ast.Variable{
 						Value: 42,
 						Type:  ast.TypeInt,
 					},
@@ -147,9 +147,9 @@ func TestTypeCheck(t *testing.T) {
 
 		{
 			"foo ${rand()}",
-			&Scope{
-				FuncMap: map[string]Function{
-					"rand": Function{
+			&ast.BasicScope{
+				FuncMap: map[string]ast.Function{
+					"rand": ast.Function{
 						ReturnType: ast.TypeInt,
 						Callback: func([]interface{}) (interface{}, error) {
 							return 42, nil
@@ -184,14 +184,14 @@ func TestTypeCheck_implicit(t *testing.T) {
 
 	cases := []struct {
 		Input string
-		Scope *Scope
+		Scope *ast.BasicScope
 		Error bool
 	}{
 		{
 			"foo ${bar}",
-			&Scope{
-				VarMap: map[string]Variable{
-					"bar": Variable{
+			&ast.BasicScope{
+				VarMap: map[string]ast.Variable{
+					"bar": ast.Variable{
 						Value: 42,
 						Type:  ast.TypeInt,
 					},
@@ -202,9 +202,9 @@ func TestTypeCheck_implicit(t *testing.T) {
 
 		{
 			"foo ${foo(42)}",
-			&Scope{
-				FuncMap: map[string]Function{
-					"foo": Function{
+			&ast.BasicScope{
+				FuncMap: map[string]ast.Function{
+					"foo": ast.Function{
 						ArgTypes:   []ast.Type{ast.TypeString},
 						ReturnType: ast.TypeString,
 					},
@@ -215,9 +215,9 @@ func TestTypeCheck_implicit(t *testing.T) {
 
 		{
 			`foo ${foo("42", 42)}`,
-			&Scope{
-				FuncMap: map[string]Function{
-					"foo": Function{
+			&ast.BasicScope{
+				FuncMap: map[string]ast.Function{
+					"foo": ast.Function{
 						ArgTypes:     []ast.Type{ast.TypeString},
 						Variadic:     true,
 						VariadicType: ast.TypeString,
@@ -237,9 +237,9 @@ func TestTypeCheck_implicit(t *testing.T) {
 
 		// Modify the scope to add our conversion functions.
 		if tc.Scope.FuncMap == nil {
-			tc.Scope.FuncMap = make(map[string]Function)
+			tc.Scope.FuncMap = make(map[string]ast.Function)
 		}
-		tc.Scope.FuncMap["intToString"] = Function{
+		tc.Scope.FuncMap["intToString"] = ast.Function{
 			ArgTypes:   []ast.Type{ast.TypeInt},
 			ReturnType: ast.TypeString,
 		}

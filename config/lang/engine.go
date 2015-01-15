@@ -12,7 +12,7 @@ import (
 // prior to running Execute.
 type Engine struct {
 	// GlobalScope is the global scope of execution for this engine.
-	GlobalScope *Scope
+	GlobalScope *ast.BasicScope
 
 	// SemanticChecks is a list of additional semantic checks that will be run
 	// on the tree prior to executing it. The type checker, identifier checker,
@@ -61,8 +61,8 @@ func (e *Engine) Execute(root ast.Node) (interface{}, ast.Type, error) {
 	return v.Visit(root)
 }
 
-func (e *Engine) scope() *Scope {
-	var scope Scope
+func (e *Engine) scope() ast.Scope {
+	var scope ast.BasicScope
 	if e.GlobalScope != nil {
 		scope = *e.GlobalScope
 	}
@@ -75,7 +75,7 @@ func (e *Engine) scope() *Scope {
 // a program. Note at this point it is assumed that the types check out
 // and the identifiers exist.
 type executeVisitor struct {
-	Scope *Scope
+	Scope ast.Scope
 
 	stack EngineStack
 	err   error
@@ -102,7 +102,12 @@ func (v *executeVisitor) Visit(root ast.Node) (interface{}, ast.Type, error) {
 	v.stack.Reset()
 	v.err = nil
 
-	return result.Value, result.Type, resultErr
+	t, err := result.Type(v.Scope)
+	if err != nil {
+		return nil, ast.TypeInvalid, err
+	}
+
+	return result.Value, t, resultErr
 }
 
 func (v *executeVisitor) visit(raw ast.Node) ast.Node {
@@ -151,7 +156,7 @@ func (v *executeVisitor) visitCall(n *ast.Call) {
 	// Push the result
 	v.stack.Push(&ast.LiteralNode{
 		Value: result,
-		Type:  function.ReturnType,
+		Typex: function.ReturnType,
 	})
 }
 
@@ -170,7 +175,7 @@ func (v *executeVisitor) visitConcat(n *ast.Concat) {
 
 	v.stack.Push(&ast.LiteralNode{
 		Value: buf.String(),
-		Type:  ast.TypeString,
+		Typex: ast.TypeString,
 	})
 }
 
@@ -188,7 +193,7 @@ func (v *executeVisitor) visitVariableAccess(n *ast.VariableAccess) {
 
 	v.stack.Push(&ast.LiteralNode{
 		Value: variable.Value,
-		Type:  variable.Type,
+		Typex: variable.Type,
 	})
 }
 
@@ -217,34 +222,4 @@ func (s *EngineStack) Pop() *ast.LiteralNode {
 
 func (s *EngineStack) Reset() {
 	s.stack = nil
-}
-
-// Scope represents a lookup scope for execution.
-type Scope struct {
-	// VarMap and FuncMap are the mappings of identifiers to functions
-	// and variable values.
-	VarMap  map[string]Variable
-	FuncMap map[string]Function
-}
-
-// LookupFunc will look up a variable by name.
-// TODO test
-func (s *Scope) LookupFunc(n string) (Function, bool) {
-	if s == nil {
-		return Function{}, false
-	}
-
-	v, ok := s.FuncMap[n]
-	return v, ok
-}
-
-// LookupVar will look up a variable by name.
-// TODO test
-func (s *Scope) LookupVar(n string) (Variable, bool) {
-	if s == nil {
-		return Variable{}, false
-	}
-
-	v, ok := s.VarMap[n]
-	return v, ok
 }

@@ -16,7 +16,7 @@ import (
 // this structure but we'd rather do that than duplicate the type checking
 // logic multiple times.
 type TypeCheck struct {
-	Scope *Scope
+	Scope ast.Scope
 
 	// Implicit is a map of implicit type conversions that we can do,
 	// and that shouldn't error. The key of the first map is the from type,
@@ -140,7 +140,7 @@ func (v *TypeCheck) visitConcat(n *ast.Concat) {
 }
 
 func (v *TypeCheck) visitLiteral(n *ast.LiteralNode) {
-	v.stackPush(n.Type)
+	v.stackPush(n.Typex)
 }
 
 func (v *TypeCheck) visitVariableAccess(n *ast.VariableAccess) {
