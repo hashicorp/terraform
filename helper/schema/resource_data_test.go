@@ -2258,6 +2258,37 @@ func TestResourceDataState(t *testing.T) {
 				Attributes: map[string]string{},
 			},
 		},
+
+		// #22
+		{
+			Schema: map[string]*Schema{
+				"foo": &Schema{
+					Type:     TypeString,
+					Optional: true,
+					Computed: true,
+				},
+			},
+
+			State: nil,
+
+			Diff: &terraform.InstanceDiff{
+				Attributes: map[string]*terraform.ResourceAttrDiff{
+					"foo": &terraform.ResourceAttrDiff{
+						NewComputed: true,
+					},
+				},
+			},
+
+			Set: map[string]interface{}{
+				"foo": "bar",
+			},
+
+			Result: &terraform.InstanceState{
+				Attributes: map[string]string{
+					"foo": "bar",
+				},
+			},
+		},
 	}
 
 	for i, tc := range cases {
