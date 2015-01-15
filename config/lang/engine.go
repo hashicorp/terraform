@@ -105,9 +105,9 @@ func (v *executeVisitor) Visit(root ast.Node) (interface{}, ast.Type, error) {
 	return result.Value, result.Type, resultErr
 }
 
-func (v *executeVisitor) visit(raw ast.Node) {
+func (v *executeVisitor) visit(raw ast.Node) ast.Node {
 	if v.err != nil {
-		return
+		return raw
 	}
 
 	switch n := raw.(type) {
@@ -122,6 +122,8 @@ func (v *executeVisitor) visit(raw ast.Node) {
 	default:
 		v.err = fmt.Errorf("unknown node: %#v", raw)
 	}
+
+	return raw
 }
 
 func (v *executeVisitor) visitCall(n *ast.Call) {

@@ -12,12 +12,12 @@ type Concat struct {
 	Posx  Pos
 }
 
-func (n *Concat) Accept(v Visitor) {
-	for _, n := range n.Exprs {
-		n.Accept(v)
+func (n *Concat) Accept(v Visitor) Node {
+	for i, expr := range n.Exprs {
+		n.Exprs[i] = expr.Accept(v)
 	}
 
-	v(n)
+	return v(n)
 }
 
 func (n *Concat) Pos() Pos {

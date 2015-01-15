@@ -64,11 +64,11 @@ func TestLookupType(t *testing.T) {
 
 type customUntyped struct{}
 
-func (n customUntyped) Accept(ast.Visitor) {}
-func (n customUntyped) Pos() (v ast.Pos)   { return }
+func (n customUntyped) Accept(ast.Visitor) ast.Node { return n }
+func (n customUntyped) Pos() (v ast.Pos)            { return }
 
 type customTyped struct{}
 
-func (n customTyped) Accept(ast.Visitor)            {}
+func (n customTyped) Accept(ast.Visitor) ast.Node   { return n }
 func (n customTyped) Pos() (v ast.Pos)              { return }
 func (n customTyped) Type(*Scope) (ast.Type, error) { return ast.TypeString, nil }

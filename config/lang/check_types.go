@@ -37,9 +37,9 @@ func (v *TypeCheck) Visit(root ast.Node) error {
 	return v.err
 }
 
-func (v *TypeCheck) visit(raw ast.Node) {
+func (v *TypeCheck) visit(raw ast.Node) ast.Node {
 	if v.err != nil {
-		return
+		return raw
 	}
 
 	switch n := raw.(type) {
@@ -54,6 +54,8 @@ func (v *TypeCheck) visit(raw ast.Node) {
 	default:
 		v.createErr(n, fmt.Sprintf("unknown node: %#v", raw))
 	}
+
+	return raw
 }
 
 func (v *TypeCheck) visitCall(n *ast.Call) {
