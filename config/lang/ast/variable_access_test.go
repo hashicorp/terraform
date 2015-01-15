@@ -34,20 +34,3 @@ func TestVariableAccessType_invalid(t *testing.T) {
 		t.Fatal("should error")
 	}
 }
-
-func TestVariableAccessEval(t *testing.T) {
-	c := &VariableAccess{Name: "foo"}
-	scope := &BasicScope{
-		VarMap: map[string]Variable{
-			"foo": Variable{Value: "42", Type: TypeString},
-		},
-	}
-
-	actual, err := c.Eval(&EvalContext{Scope: scope})
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-	if actual != "42" {
-		t.Fatalf("bad: %s", actual)
-	}
-}

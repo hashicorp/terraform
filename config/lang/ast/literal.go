@@ -31,7 +31,3 @@ func (n *LiteralNode) String() string {
 func (n *LiteralNode) Type(Scope) (Type, error) {
 	return n.Typex, nil
 }
-
-func (n *LiteralNode) Eval(*EvalContext) (interface{}, error) {
-	return n.Value, nil
-}
