@@ -23,7 +23,7 @@ testrace: generate
 
 updatedeps:
 	go get -u golang.org/x/tools/cmd/stringer
-	go get -f -u -v ./...; \
+	go get -f -u -v ./...
 
 generate:
 	go generate ./...
