@@ -56,8 +56,11 @@ func (r *MapFieldReader) readMap(k string) (FieldReadResult, error) {
 	prefix := k + "."
 	r.Map.Range(func(k, v string) bool {
 		if strings.HasPrefix(k, prefix) {
-			result[k[len(prefix):]] = v
-			resultSet = true
+			key := k[len(prefix):]
+			if key != "#" {
+				result[key] = v
+				resultSet = true
+			}
 		}
 
 		return true
