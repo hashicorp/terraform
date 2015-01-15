@@ -12,12 +12,12 @@ type Call struct {
 	Posx Pos
 }
 
-func (n *Call) Accept(v Visitor) {
-	for _, a := range n.Args {
-		a.Accept(v)
+func (n *Call) Accept(v Visitor) Node {
+	for i, a := range n.Args {
+		n.Args[i] = a.Accept(v)
 	}
 
-	v(n)
+	return v(n)
 }
 
 func (n *Call) Pos() Pos {

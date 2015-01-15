@@ -12,8 +12,8 @@ type LiteralNode struct {
 	Posx  Pos
 }
 
-func (n *LiteralNode) Accept(v Visitor) {
-	v(n)
+func (n *LiteralNode) Accept(v Visitor) Node {
+	return v(n)
 }
 
 func (n *LiteralNode) Pos() Pos {
