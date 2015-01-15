@@ -25,9 +25,9 @@ func (c *IdentifierCheck) Visit(root ast.Node) error {
 	return c.err
 }
 
-func (c *IdentifierCheck) visit(raw ast.Node) {
+func (c *IdentifierCheck) visit(raw ast.Node) ast.Node {
 	if c.err != nil {
-		return
+		return raw
 	}
 
 	switch n := raw.(type) {
@@ -42,6 +42,9 @@ func (c *IdentifierCheck) visit(raw ast.Node) {
 	default:
 		c.createErr(n, fmt.Sprintf("unknown node: %#v", raw))
 	}
+
+	// We never do replacement with this visitor
+	return raw
 }
 
 func (c *IdentifierCheck) visitCall(n *ast.Call) {

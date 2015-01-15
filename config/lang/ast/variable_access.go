@@ -10,8 +10,8 @@ type VariableAccess struct {
 	Posx Pos
 }
 
-func (n *VariableAccess) Accept(v Visitor) {
-	v(n)
+func (n *VariableAccess) Accept(v Visitor) Node {
+	return v(n)
 }
 
 func (n *VariableAccess) Pos() Pos {
