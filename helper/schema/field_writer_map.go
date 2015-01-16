@@ -251,6 +251,12 @@ func (w *MapFieldWriter) setSet(
 	schema *Schema) error {
 	addrCopy := make([]string, len(addr), len(addr)+1)
 	copy(addrCopy, addr)
+	k := strings.Join(addr, ".")
+
+	if value == nil {
+		w.result[k+".#"] = "0"
+		return nil
+	}
 
 	// If it is a slice, then we have to turn it into a *Set so that
 	// we get the proper order back based on the hash code.
@@ -290,13 +296,6 @@ func (w *MapFieldWriter) setSet(
 		}
 
 		value = s
-	}
-
-	k := strings.Join(addr, ".")
-
-	if value == nil {
-		w.result[k+".#"] = "0"
-		return nil
 	}
 
 	for code, elem := range value.(*Set).m {
