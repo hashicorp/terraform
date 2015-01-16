@@ -25,6 +25,9 @@ BUG FIXES:
 PLUGIN CHANGES:
 
   * New `helper/schema` type: `TypeFloat` [GH-594]
+  * New `helper/schema` field for resources: `Exists` must point to a function
+      to check for the existence of a resource. This is used to properly
+      handle the case where the resource was manually deleted. [GH-766]
 
 ## 0.3.6 (January 6, 2015)
 
