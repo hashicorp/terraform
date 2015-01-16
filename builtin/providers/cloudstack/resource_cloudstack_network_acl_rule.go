@@ -35,7 +35,7 @@ func resourceCloudStackNetworkACLRule() *schema.Resource {
 
 			"rule": &schema.Schema{
 				Type:     schema.TypeSet,
-				Required: true,
+				Optional: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"action": &schema.Schema{
@@ -94,11 +94,13 @@ func resourceCloudStackNetworkACLRule() *schema.Resource {
 }
 
 func resourceCloudStackNetworkACLRuleCreate(d *schema.ResourceData, meta interface{}) error {
-	// Get the acl UUID
-	aclid := d.Get("aclid").(string)
+	// Make sure all required parameters are there
+	if err := verifyNetworkACLParams(d); err != nil {
+		return err
+	}
 
 	// We need to set this upfront in order to be able to save a partial state
-	d.SetId(aclid)
+	d.SetId(d.Get("aclid").(string))
 
 	// Create all rules that are configured
 	if rs := d.Get("rule").(*schema.Set); rs.Len() > 0 {
@@ -110,8 +112,7 @@ func resourceCloudStackNetworkACLRuleCreate(d *schema.ResourceData, meta interfa
 
 		for _, rule := range rs.List() {
 			// Create a single rule
-			err := resourceCloudStackNetworkACLRuleCreateRule(
-				d, meta, aclid, rule.(map[string]interface{}))
+			err := resourceCloudStackNetworkACLRuleCreateRule(d, meta, rule.(map[string]interface{}))
 
 			// We need to update this first to preserve the correct state
 			rules.Add(rule)
@@ -127,7 +128,7 @@ func resourceCloudStackNetworkACLRuleCreate(d *schema.ResourceData, meta interfa
 }
 
 func resourceCloudStackNetworkACLRuleCreateRule(
-	d *schema.ResourceData, meta interface{}, aclid string, rule map[string]interface{}) error {
+	d *schema.ResourceData, meta interface{}, rule map[string]interface{}) error {
 	cs := meta.(*cloudstack.CloudStackClient)
 	uuids := rule["uuids"].(map[string]interface{})
 
@@ -140,7 +141,7 @@ func resourceCloudStackNetworkACLRuleCreateRule(
 	p := cs.NetworkACL.NewCreateNetworkACLParams(rule["protocol"].(string))
 
 	// Set the acl ID
-	p.SetAclid(aclid)
+	p.SetAclid(d.Id())
 
 	// Set the action
 	p.SetAction(rule["action"].(string))
@@ -302,7 +303,8 @@ func resourceCloudStackNetworkACLRuleRead(d *schema.ResourceData, meta interface
 	}
 
 	// If this is a managed firewall, add all unknown rules into a single dummy rule
-	if d.Get("managed").(bool) {
+	managed := d.Get("managed").(bool)
+	if managed {
 		// Get all the rules from the running environment
 		p := cs.NetworkACL.NewListNetworkACLsParams()
 		p.SetAclid(d.Id())
@@ -314,7 +316,7 @@ func resourceCloudStackNetworkACLRuleRead(d *schema.ResourceData, meta interface
 		}
 
 		// Add all UUIDs to the uuids map
-		uuids := make(map[string]interface{})
+		uuids := make(map[string]interface{}, len(r.NetworkACLs))
 		for _, r := range r.NetworkACLs {
 			uuids[r.Id] = r.Id
 		}
@@ -343,7 +345,7 @@ func resourceCloudStackNetworkACLRuleRead(d *schema.ResourceData, meta interface
 
 	if rules.Len() > 0 {
 		d.Set("rule", rules)
-	} else {
+	} else if !managed {
 		d.SetId("")
 	}
 
@@ -351,8 +353,10 @@ func resourceCloudStackNetworkACLRuleRead(d *schema.ResourceData, meta interface
 }
 
 func resourceCloudStackNetworkACLRuleUpdate(d *schema.ResourceData, meta interface{}) error {
-	// Get the acl UUID
-	aclid := d.Get("aclid").(string)
+	// Make sure all required parameters are there
+	if err := verifyNetworkACLParams(d); err != nil {
+		return err
+	}
 
 	// Check if the rule set as a whole has changed
 	if d.HasChange("rule") {
@@ -376,8 +380,7 @@ func resourceCloudStackNetworkACLRuleUpdate(d *schema.ResourceData, meta interfa
 		// Then loop through al the currently configured rules and create the new ones
 		for _, rule := range nrs.List() {
 			// When succesfully deleted, re-create it again if it still exists
-			err := resourceCloudStackNetworkACLRuleCreateRule(
-				d, meta, aclid, rule.(map[string]interface{}))
+			err := resourceCloudStackNetworkACLRuleCreateRule(d, meta, rule.(map[string]interface{}))
 
 			// We need to update this first to preserve the correct state
 			rules.Add(rule)
@@ -484,6 +487,18 @@ func resourceCloudStackNetworkACLRuleHash(v interface{}) int {
 	}
 
 	return hashcode.String(buf.String())
+}
+
+func verifyNetworkACLParams(d *schema.ResourceData) error {
+	managed := d.Get("managed").(bool)
+	_, rules := d.GetOk("rule")
+
+	if !rules && !managed {
+		return fmt.Errorf(
+			"You must supply at least one 'rule' when not using the 'managed' firewall feature")
+	}
+
+	return nil
 }
 
 func verifyNetworkACLRuleParams(d *schema.ResourceData, rule map[string]interface{}) error {
