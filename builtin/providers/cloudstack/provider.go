@@ -1,8 +1,6 @@
 package cloudstack
 
 import (
-	"os"
-
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/terraform"
 )
@@ -14,25 +12,25 @@ func Provider() terraform.ResourceProvider {
 			"api_url": &schema.Schema{
 				Type:        schema.TypeString,
 				Required:    true,
-				DefaultFunc: envDefaultFunc("CLOUDSTACK_API_URL", nil),
+				DefaultFunc: schema.EnvDefaultFunc("CLOUDSTACK_API_URL", nil),
 			},
 
 			"api_key": &schema.Schema{
 				Type:        schema.TypeString,
 				Required:    true,
-				DefaultFunc: envDefaultFunc("CLOUDSTACK_API_KEY", nil),
+				DefaultFunc: schema.EnvDefaultFunc("CLOUDSTACK_API_KEY", nil),
 			},
 
 			"secret_key": &schema.Schema{
 				Type:        schema.TypeString,
 				Required:    true,
-				DefaultFunc: envDefaultFunc("CLOUDSTACK_SECRET_KEY", nil),
+				DefaultFunc: schema.EnvDefaultFunc("CLOUDSTACK_SECRET_KEY", nil),
 			},
 
 			"timeout": &schema.Schema{
 				Type:        schema.TypeInt,
 				Required:    true,
-				DefaultFunc: envDefaultFunc("CLOUDSTACK_TIMEOUT", 180),
+				DefaultFunc: schema.EnvDefaultFunc("CLOUDSTACK_TIMEOUT", 180),
 			},
 		},
 
@@ -63,14 +61,4 @@ func providerConfigure(d *schema.ResourceData) (interface{}, error) {
 	}
 
 	return config.NewClient()
-}
-
-func envDefaultFunc(k string, dv interface{}) schema.SchemaDefaultFunc {
-	return func() (interface{}, error) {
-		if v := os.Getenv(k); v != "" {
-			return v, nil
-		}
-
-		return dv, nil
-	}
 }
