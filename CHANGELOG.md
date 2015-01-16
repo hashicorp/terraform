@@ -2,23 +2,23 @@
 
 IMPROVEMENTS:
 
- * core: Formalized the syntax of interpolations and documented it
-     very heavily.
- * core: Strings in interpolations can now contain further interpolations,
-     e.g.: `foo ${bar("${baz}")}`.
- * provider/aws: Internet gateway supports tags [GH-720]
+  * core: Formalized the syntax of interpolations and documented it
+      very heavily.
+  * core: Strings in interpolations can now contain further interpolations,
+      e.g.: `foo ${bar("${baz}")}`.
+  * provider/aws: Internet gateway supports tags [GH-720]
 
 BUG FIXES:
 
- * core: Fixing use of remote state with plan files. [GH-741]
- * core: Fix a panic case when certain invalid types were used in
-     the configuration. [GH-691]
- * core: Escape characters `\"`, `\n`, and `\\` now work in interpolations.
- * provider/aws: ELB subnet change doesn't force new resource. [GH-804]
+  * core: Fixing use of remote state with plan files. [GH-741]
+  * core: Fix a panic case when certain invalid types were used in
+      the configuration. [GH-691]
+  * core: Escape characters `\"`, `\n`, and `\\` now work in interpolations.
+  * provider/aws: ELB subnet change doesn't force new resource. [GH-804]
 
 PLUGIN CHANGES:
 
- * New `helper/schema` type: `TypeFloat` [GH-594]
+  * New `helper/schema` type: `TypeFloat` [GH-594]
 
 ## 0.3.6 (January 6, 2015)
 
