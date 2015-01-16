@@ -1,6 +1,7 @@
 package schema
 
 import (
+	"os"
 	"reflect"
 	"testing"
 
@@ -8,6 +9,36 @@ import (
 	"github.com/hashicorp/terraform/config/lang/ast"
 	"github.com/hashicorp/terraform/terraform"
 )
+
+func TestEnvDefaultFunc(t *testing.T) {
+	key := "TF_TEST_ENV_DEFAULT_FUNC"
+	defer os.Unsetenv(key)
+
+	f := EnvDefaultFunc(key, "42")
+	if err := os.Setenv(key, "foo"); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	actual, err := f()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if actual != "foo" {
+		t.Fatalf("bad: %#v", actual)
+	}
+
+	if err := os.Unsetenv(key); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	actual, err = f()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if actual != "42" {
+		t.Fatalf("bad: %#v", actual)
+	}
+}
 
 func TestValueType_Zero(t *testing.T) {
 	cases := []struct {
