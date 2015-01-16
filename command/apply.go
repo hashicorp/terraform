@@ -53,6 +53,7 @@ func (c *ApplyCommand) Run(args []string) int {
 	}
 
 	var configPath string
+	maybeInit := true
 	args = cmdFlags.Args()
 	if len(args) > 1 {
 		c.Ui.Error("The apply command expects at most one argument.")
@@ -62,13 +63,14 @@ func (c *ApplyCommand) Run(args []string) int {
 		configPath = args[0]
 	} else {
 		configPath = pwd
+		maybeInit = false
 	}
 
 	// Prepare the extra hooks to count resources
 	countHook := new(CountHook)
 	c.Meta.extraHooks = []terraform.Hook{countHook}
 
-	if !c.Destroy {
+	if !c.Destroy && maybeInit {
 		// Do a detect to determine if we need to do an init + apply.
 		if detected, err := module.Detect(configPath, pwd); err != nil {
 			c.Ui.Error(fmt.Sprintf(
