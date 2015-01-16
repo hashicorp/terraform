@@ -106,11 +106,11 @@ func (d *ResourceData) getRaw(key string, level getSource) getResult {
 func (d *ResourceData) HasChange(key string) bool {
 	o, n := d.GetChange(key)
 
-	// There is a special case needed for *schema.Set's as they contain
-	// a function and reflect.DeepEqual will only say two functions are
-	// equal when they are both nil (which in this case they are not).
-	if reflect.TypeOf(o).String() == "*schema.Set" {
-		return !reflect.DeepEqual(o.(*Set).m, n.(*Set).m)
+	// If the type implements the Equal interface, then call that
+	// instead of just doing a reflect.DeepEqual. An example where this is
+	// needed is *Set
+	if eq, ok := o.(Equal); ok {
+		return !eq.Equal(n)
 	}
 
 	return !reflect.DeepEqual(o, n)
