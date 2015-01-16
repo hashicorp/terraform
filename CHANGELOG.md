@@ -14,6 +14,7 @@ BUG FIXES:
  * core: Fix a panic case when certain invalid types were used in
      the configuration. [GH-691]
  * core: Escape characters `\"`, `\n`, and `\\` now work in interpolations.
+ * provider/aws: ELB subnet change doesn't force new resource. [GH-804]
 
 PLUGIN CHANGES:
 
