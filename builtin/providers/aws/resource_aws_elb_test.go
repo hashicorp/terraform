@@ -88,6 +88,42 @@ func TestAccAWSELB_InstanceAttaching(t *testing.T) {
 	})
 }
 
+func TestAccAWSELB_AddSubnet(t *testing.T) {
+	var conf elb.LoadBalancer
+
+	testCheckSubnetsAdded := func(count int) resource.TestCheckFunc {
+		return func(*terraform.State) error {
+			if len(conf.Subnets) != count {
+				return fmt.Errorf("subnet count does not match")
+			}
+			return nil
+		}
+	}
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSELBDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccAWSELBConfigVPC,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSELBExists("aws_elb.bar", &conf),
+					testAccCheckAWSELBAttributes(&conf),
+				),
+			},
+
+			resource.TestStep{
+				Config: testAccAWSELBAddSubnets,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSELBExists("aws_elb.bar", &conf),
+					testCheckSubnetsAdded(2),
+				),
+			},
+		},
+	})
+}
+
 func TestAccAWSELB_HealthCheck(t *testing.T) {
 	var conf elb.LoadBalancer
 
@@ -285,6 +321,64 @@ resource "aws_instance" "foo" {
 	# us-west-2
 	ami = "ami-043a5034"
 	instance_type = "t1.micro"
+}
+`
+const testAccAWSELBConfigVPC = `
+resource "aws_elb" "bar" {
+  vpc_id = "${aws_vpc.foobar.id}"
+  name = "foobar-terraform-test"
+  availability_zones = ["us-west-2a", "us-west-2b", "us-west-2c"]
+
+  listener {
+    instance_port = 8000
+    instance_protocol = "http"
+    lb_port = 80
+    lb_protocol = "http"
+  }
+
+  subnets = ["${aws_subnet.baz.id}"]
+
+}
+
+resource "aws_subnet" "baz" {
+  vpc_id = "${aws_vpc.foobar.id}"
+  cidr_block = "10.0.69.0/24"
+}
+
+resource "aws_vpc" "foobar" {
+  cidr_block = "10.0.0.0/16"
+}
+`
+
+const testAccAWSELBAddSubnets = `
+resource "aws_elb" "bar" {
+  vpc_id = "${aws_vpc.foobar.id}"
+  name = "foobar-terraform-test"
+  availability_zones = ["us-west-2a", "us-west-2b", "us-west-2c"]
+
+  listener {
+    instance_port = 8000
+    instance_protocol = "http"
+    lb_port = 80
+    lb_protocol = "http"
+  }
+
+  subnets = ["${aws_subnet.baz.id}",
+             "${aws_subnet.foo.id}"]
+}
+
+resource "aws_subnet" "foo" {
+  vpc_id = "${aws_vpc.foobar.id}"
+  cidr_block = "10.0.68.0/24"
+}
+
+resource "aws_subnet" "baz" {
+  vpc_id = "${aws_vpc.foobar.id}"
+  cidr_block = "10.0.69.0/24"
+}
+
+resource "aws_vpc" "foobar" {
+  cidr_block = "10.0.0.0/16"
 }
 `
 
