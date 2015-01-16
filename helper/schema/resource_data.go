@@ -79,7 +79,7 @@ func (d *ResourceData) Get(key string) interface{} {
 // set and the new value is. This is common, for example, for boolean
 // fields which have a zero value of false.
 func (d *ResourceData) GetChange(key string) (interface{}, interface{}) {
-	o, n := d.getChange(key, getSourceConfig, getSourceDiff)
+	o, n := d.getChange(key, getSourceState, getSourceDiff|getSourceExact)
 	return o.Value, n.Value
 }
 
@@ -105,6 +105,14 @@ func (d *ResourceData) getRaw(key string, level getSource) getResult {
 // HasChange returns whether or not the given key has been changed.
 func (d *ResourceData) HasChange(key string) bool {
 	o, n := d.GetChange(key)
+
+	// There is a special case needed for *schema.Set's as they contain
+	// a function and reflect.DeepEqual will only say two functions are
+	// equal when they are both nil (which in this case they are not).
+	if reflect.TypeOf(o).String() == "*schema.Set" {
+		return !reflect.DeepEqual(o.(*Set).m, n.(*Set).m)
+	}
+
 	return !reflect.DeepEqual(o, n)
 }
 
