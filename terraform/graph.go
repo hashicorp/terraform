@@ -214,7 +214,7 @@ func Graph(opts *GraphOpts) (*depgraph.Graph, error) {
 	// determine what providers are missing.
 	graphMapResourceProviderId(g)
 
-	if len(opts.Providers) > 0 {
+	if opts.Providers != nil {
 		// Add missing providers from the mapping.
 		if err := graphAddMissingResourceProviders(g, opts.Providers); err != nil {
 			return nil, err
