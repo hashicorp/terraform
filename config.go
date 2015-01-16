@@ -105,6 +105,13 @@ func (c *Config) Discover() error {
 		}
 	}
 
+	if len(c.Providers) == 0 {
+		return fmt.Errorf("no providers found")
+	}
+	if len(c.Provisioners) == 0 {
+		return fmt.Errorf("no provisioners found")
+	}
+
 	return nil
 }
 
