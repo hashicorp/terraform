@@ -23,9 +23,12 @@ resource "cloudstack_network_acl" "default" {
 
 The following arguments are supported:
 
-* `name` - (Required) The name of the ACL. Changing this forces a new resource to be created.
-* `description` - (Optional) The description of the ACL. Changing this forces a new resource to be created.
-* `vpc` - (Required) The name of the VPC to create this ACL for. Changing this forces a new resource to be created.
+* `name` - (Required) The name of the ACL. Changing this forces a new resource
+    to be created.
+* `description` - (Optional) The description of the ACL. Changing this forces a
+    new resource to be created.
+* `vpc` - (Required) The name of the VPC to create this ACL for. Changing this
+    forces a new resource to be created.
 
 ## Attributes Reference
 

@@ -1,20 +1,20 @@
 ---
 layout: "cloudstack"
-page_title: "CloudStack: cloudstack_firewall"
-sidebar_current: "docs-cloudstack-resource-firewall"
+page_title: "CloudStack: cloudstack_egress_firewall"
+sidebar_current: "docs-cloudstack-resource-egress-firewall"
 description: |-
-  Creates firewall rules for a given IP address.
+  Creates egress firewall rules for a given network.
 ---
 
-# cloudstack\_firewall
+# cloudstack\_egress\_firewall
 
-Creates firewall rules for a given IP address.
+Creates egress firewall rules for a given network.
 
 ## Example Usage
 
 ```
-resource "cloudstack_firewall" "default" {
-  ipaddress = "192.168.0.1"
+resource "cloudstack_egress_firewall" "default" {
+  network = "test-network"
 
   rule {
     source_cidr = "10.0.0.0/8"
@@ -28,12 +28,12 @@ resource "cloudstack_firewall" "default" {
 
 The following arguments are supported:
 
-* `ipaddress` - (Required) The IP address for which to create the firewall rules.
-    Changing this forces a new resource to be created.
+* `network` - (Required) The network for which to create the egress firewall
+    rules. Changing this forces a new resource to be created.
 
-* `managed` - (Optional) USE WITH CAUTION! If enabled all the firewall rules for
-    this IP address will be managed by this resource. This means it will delete
-    all firewall rules that are not in your config! (defaults false)
+* `managed` - (Optional) USE WITH CAUTION! If enabled all the egress firewall
+    rules for this network will be managed by this resource. This means it will
+    delete all firewall rules that are not in your config! (defaults false)
 
 * `rule` - (Optional) Can be specified multiple times. Each rule block supports
     fields documented below. If `managed = false` at least one rule is required!
@@ -58,4 +58,4 @@ The `rule` block supports:
 
 The following attributes are exported:
 
-* `ID` - The IP address ID for which the firewall rules are created.
+* `ID` - The network ID for which the egress firewall rules are created.
