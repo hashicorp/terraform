@@ -1,7 +1,6 @@
 package main
 
 import (
-	"errors"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -107,10 +106,10 @@ func (c *Config) Discover() error {
 	}
 
 	if len(c.Providers) == 0 {
-		return errors.New("no providers found")
+		return fmt.Errorf("no providers found")
 	}
 	if len(c.Provisioners) == 0 {
-		return errors.New("no provisioners found")
+		return fmt.Errorf("no provisioners found")
 	}
 
 	return nil
