@@ -19,6 +19,7 @@ BUG FIXES:
   * core: JSON TF configurations can configure provisioners. [GH-807]
   * command/apply: Won't try to initialize modules in some cases when
       no arguments are given. [GH-780]
+  * command/apply: Fix regression where user variables weren't asked [GH-736]
   * provider/aws: ELB subnet change doesn't force new resource. [GH-804]
 
 PLUGIN CHANGES:

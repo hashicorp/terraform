@@ -268,6 +268,39 @@ func TestApply_init(t *testing.T) {
 	}
 }
 
+func TestApply_input(t *testing.T) {
+	// Disable test mode so input would be asked
+	test = false
+	defer func() { test = true }()
+
+	// Set some default reader/writers for the inputs
+	defaultInputReader = bytes.NewBufferString("foo\n")
+	defaultInputWriter = new(bytes.Buffer)
+
+	statePath := testTempFile(t)
+
+	p := testProvider()
+	ui := new(cli.MockUi)
+	c := &ApplyCommand{
+		Meta: Meta{
+			ContextOpts: testCtxConfig(p),
+			Ui:          ui,
+		},
+	}
+
+	args := []string{
+		"-state", statePath,
+		testFixturePath("apply-input"),
+	}
+	if code := c.Run(args); code != 0 {
+		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
+	}
+
+	if !p.InputCalled {
+		t.Fatal("input should be called")
+	}
+}
+
 func TestApply_noArgs(t *testing.T) {
 	cwd, err := os.Getwd()
 	if err != nil {
