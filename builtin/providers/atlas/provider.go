@@ -1,8 +1,6 @@
 package atlas
 
 import (
-	"os"
-
 	"github.com/hashicorp/atlas-go/v1"
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/terraform"
@@ -21,14 +19,14 @@ func Provider() terraform.ResourceProvider {
 			"token": &schema.Schema{
 				Type:        schema.TypeString,
 				Required:    true,
-				DefaultFunc: envDefaultFunc("ATLAS_TOKEN", nil),
+				DefaultFunc: schema.EnvDefaultFunc("ATLAS_TOKEN", nil),
 				Description: descriptions["token"],
 			},
 
 			"address": &schema.Schema{
 				Type:        schema.TypeString,
 				Optional:    true,
-				DefaultFunc: envDefaultFunc("ATLAS_ADDRESS", defaultAtlasServer),
+				DefaultFunc: schema.EnvDefaultFunc("ATLAS_ADDRESS", defaultAtlasServer),
 				Description: descriptions["address"],
 			},
 		},
@@ -53,16 +51,6 @@ func providerConfigure(d *schema.ResourceData) (interface{}, error) {
 	client.Token = d.Get("token").(string)
 
 	return client, nil
-}
-
-func envDefaultFunc(k string, alt interface{}) schema.SchemaDefaultFunc {
-	return func() (interface{}, error) {
-		if v := os.Getenv(k); v != "" {
-			return v, nil
-		}
-
-		return alt, nil
-	}
 }
 
 var descriptions map[string]string

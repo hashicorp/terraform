@@ -1,8 +1,6 @@
 package aws
 
 import (
-	"os"
-
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/terraform"
 )
@@ -17,21 +15,21 @@ func Provider() terraform.ResourceProvider {
 			"access_key": &schema.Schema{
 				Type:        schema.TypeString,
 				Required:    true,
-				DefaultFunc: envDefaultFunc("AWS_ACCESS_KEY"),
+				DefaultFunc: schema.EnvDefaultFunc("AWS_ACCESS_KEY", nil),
 				Description: descriptions["access_key"],
 			},
 
 			"secret_key": &schema.Schema{
 				Type:        schema.TypeString,
 				Required:    true,
-				DefaultFunc: envDefaultFunc("AWS_SECRET_KEY"),
+				DefaultFunc: schema.EnvDefaultFunc("AWS_SECRET_KEY", nil),
 				Description: descriptions["secret_key"],
 			},
 
 			"region": &schema.Schema{
 				Type:         schema.TypeString,
 				Required:     true,
-				DefaultFunc:  envDefaultFunc("AWS_REGION"),
+				DefaultFunc:  schema.EnvDefaultFunc("AWS_REGION", nil),
 				Description:  descriptions["region"],
 				InputDefault: "us-east-1",
 			},
@@ -76,16 +74,6 @@ func init() {
 
 		"secret_key": "The secret key for API operations. You can retrieve this\n" +
 			"from the 'Security & Credentials' section of the AWS console.",
-	}
-}
-
-func envDefaultFunc(k string) schema.SchemaDefaultFunc {
-	return func() (interface{}, error) {
-		if v := os.Getenv(k); v != "" {
-			return v, nil
-		}
-
-		return nil, nil
 	}
 }
 

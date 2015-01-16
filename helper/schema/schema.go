@@ -15,6 +15,7 @@ package schema
 
 import (
 	"fmt"
+	"os"
 	"reflect"
 	"sort"
 	"strconv"
@@ -159,6 +160,19 @@ type Schema struct {
 // SchemaDefaultFunc is a function called to return a default value for
 // a field.
 type SchemaDefaultFunc func() (interface{}, error)
+
+// EnvDefaultFunc is a helper function that returns the value of the
+// given environment variable, if one exists, or the default value
+// otherwise.
+func EnvDefaultFunc(k string, dv interface{}) SchemaDefaultFunc {
+	return func() (interface{}, error) {
+		if v := os.Getenv(k); v != "" {
+			return v, nil
+		}
+
+		return dv, nil
+	}
+}
 
 // SchemaSetFunc is a function that must return a unique ID for the given
 // element. This unique ID is used to store the element in a hash.

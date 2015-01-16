@@ -1,8 +1,6 @@
 package cloudflare
 
 import (
-	"os"
-
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/terraform"
 )
@@ -14,14 +12,14 @@ func Provider() terraform.ResourceProvider {
 			"email": &schema.Schema{
 				Type:        schema.TypeString,
 				Required:    true,
-				DefaultFunc: envDefaultFunc("CLOUDFLARE_EMAIL"),
+				DefaultFunc: schema.EnvDefaultFunc("CLOUDFLARE_EMAIL", nil),
 				Description: "A registered CloudFlare email address.",
 			},
 
 			"token": &schema.Schema{
 				Type:        schema.TypeString,
 				Required:    true,
-				DefaultFunc: envDefaultFunc("CLOUDFLARE_TOKEN"),
+				DefaultFunc: schema.EnvDefaultFunc("CLOUDFLARE_TOKEN", nil),
 				Description: "The token key for API operations.",
 			},
 		},
@@ -31,16 +29,6 @@ func Provider() terraform.ResourceProvider {
 		},
 
 		ConfigureFunc: providerConfigure,
-	}
-}
-
-func envDefaultFunc(k string) schema.SchemaDefaultFunc {
-	return func() (interface{}, error) {
-		if v := os.Getenv(k); v != "" {
-			return v, nil
-		}
-
-		return nil, nil
 	}
 }
 

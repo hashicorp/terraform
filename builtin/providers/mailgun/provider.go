@@ -2,7 +2,6 @@ package mailgun
 
 import (
 	"log"
-	"os"
 
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/terraform"
@@ -15,7 +14,7 @@ func Provider() terraform.ResourceProvider {
 			"api_key": &schema.Schema{
 				Type:        schema.TypeString,
 				Required:    true,
-				DefaultFunc: envDefaultFunc("MAILGUN_API_KEY"),
+				DefaultFunc: schema.EnvDefaultFunc("MAILGUN_API_KEY", nil),
 			},
 		},
 
@@ -24,16 +23,6 @@ func Provider() terraform.ResourceProvider {
 		},
 
 		ConfigureFunc: providerConfigure,
-	}
-}
-
-func envDefaultFunc(k string) schema.SchemaDefaultFunc {
-	return func() (interface{}, error) {
-		if v := os.Getenv(k); v != "" {
-			return v, nil
-		}
-
-		return nil, nil
 	}
 }
 

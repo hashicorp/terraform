@@ -1,8 +1,6 @@
 package google
 
 import (
-	"os"
-
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/terraform"
 )
@@ -14,25 +12,25 @@ func Provider() terraform.ResourceProvider {
 			"account_file": &schema.Schema{
 				Type:        schema.TypeString,
 				Required:    true,
-				DefaultFunc: envDefaultFunc("GOOGLE_ACCOUNT_FILE"),
+				DefaultFunc: schema.EnvDefaultFunc("GOOGLE_ACCOUNT_FILE", nil),
 			},
 
 			"client_secrets_file": &schema.Schema{
 				Type:        schema.TypeString,
 				Required:    true,
-				DefaultFunc: envDefaultFunc("GOOGLE_CLIENT_FILE"),
+				DefaultFunc: schema.EnvDefaultFunc("GOOGLE_CLIENT_FILE", nil),
 			},
 
 			"project": &schema.Schema{
 				Type:        schema.TypeString,
 				Required:    true,
-				DefaultFunc: envDefaultFunc("GOOGLE_PROJECT"),
+				DefaultFunc: schema.EnvDefaultFunc("GOOGLE_PROJECT", nil),
 			},
 
 			"region": &schema.Schema{
 				Type:        schema.TypeString,
 				Required:    true,
-				DefaultFunc: envDefaultFunc("GOOGLE_REGION"),
+				DefaultFunc: schema.EnvDefaultFunc("GOOGLE_REGION", nil),
 			},
 		},
 
@@ -46,16 +44,6 @@ func Provider() terraform.ResourceProvider {
 		},
 
 		ConfigureFunc: providerConfigure,
-	}
-}
-
-func envDefaultFunc(k string) schema.SchemaDefaultFunc {
-	return func() (interface{}, error) {
-		if v := os.Getenv(k); v != "" {
-			return v, nil
-		}
-
-		return nil, nil
 	}
 }
 
