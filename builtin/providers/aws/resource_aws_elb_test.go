@@ -340,7 +340,7 @@ resource "aws_elb" "bar" {
 
 }
 
-resource "aws_subnet.baz" {
+resource "aws_subnet" "baz" {
   vpc_id = "${aws_vpc.foobar.id}"
   cidr_block = "10.0.69.0/24"
 }
@@ -367,12 +367,12 @@ resource "aws_elb" "bar" {
              "${aws_subnet.foo.id}"]
 }
 
-resource "aws_subnet.foo" {
+resource "aws_subnet" "foo" {
   vpc_id = "${aws_vpc.foobar.id}"
   cidr_block = "10.0.68.0/24"
 }
 
-resource "aws_subnet.baz" {
+resource "aws_subnet" "baz" {
   vpc_id = "${aws_vpc.foobar.id}"
   cidr_block = "10.0.69.0/24"
 }
