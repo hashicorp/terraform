@@ -104,7 +104,7 @@ func TestAccCloudStackNetworkACLRule_update(t *testing.T) {
 					resource.TestCheckResourceAttr(
 						"cloudstack_network_acl_rule.foo", "rule.4267872693.ports.1889509032", "80"),
 					resource.TestCheckResourceAttr(
-						"cloudstack_network_acl_rule.foo", "rule.4267872693.traffic_type", "engress"),
+						"cloudstack_network_acl_rule.foo", "rule.4267872693.traffic_type", "egress"),
 				),
 			},
 		},
@@ -123,7 +123,7 @@ func testAccCheckCloudStackNetworkACLRulesExist(n string) resource.TestCheckFunc
 		}
 
 		for k, uuid := range rs.Primary.Attributes {
-			if !strings.Contains(k, "uuids") {
+			if !strings.Contains(k, ".uuids.") || strings.HasSuffix(k, ".uuids.#") {
 				continue
 			}
 
@@ -156,7 +156,7 @@ func testAccCheckCloudStackNetworkACLRuleDestroy(s *terraform.State) error {
 		}
 
 		for k, uuid := range rs.Primary.Attributes {
-			if !strings.Contains(k, "uuids") {
+			if !strings.Contains(k, ".uuids.") || strings.HasSuffix(k, ".uuids.#") {
 				continue
 			}
 

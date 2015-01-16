@@ -4148,6 +4148,22 @@ func TestContextPlan_varMultiCountOne(t *testing.T) {
 	}
 }
 
+func TestContextPlan_varListErr(t *testing.T) {
+	m := testModule(t, "plan-var-list-err")
+	p := testProvider("aws")
+	ctx := testContext(t, &ContextOpts{
+		Module: m,
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+	})
+
+	_, err := ctx.Plan(nil)
+	if err == nil {
+		t.Fatal("should error")
+	}
+}
+
 func TestContextRefresh(t *testing.T) {
 	p := testProvider("aws")
 	m := testModule(t, "refresh-basic")

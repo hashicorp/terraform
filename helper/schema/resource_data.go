@@ -84,14 +84,13 @@ func (d *ResourceData) GetChange(key string) (interface{}, interface{}) {
 }
 
 // GetOk returns the data for the given key and whether or not the key
-// existed or not in the configuration. The second boolean result will also
-// be false if a key is given that isn't in the schema at all.
+// has been set.
 //
 // The first result will not necessarilly be nil if the value doesn't exist.
 // The second result should be checked to determine this information.
 func (d *ResourceData) GetOk(key string) (interface{}, bool) {
 	r := d.getRaw(key, getSourceSet)
-	return r.Value, r.Exists
+	return r.Value, r.Exists && !r.Computed
 }
 
 func (d *ResourceData) getRaw(key string, level getSource) getResult {
@@ -213,9 +212,11 @@ func (d *ResourceData) State() *terraform.InstanceState {
 		}
 
 		raw := d.get([]string{k}, source)
-		rawMap[k] = raw.Value
-		if raw.ValueProcessed != nil {
-			rawMap[k] = raw.ValueProcessed
+		if raw.Exists && !raw.Computed {
+			rawMap[k] = raw.Value
+			if raw.ValueProcessed != nil {
+				rawMap[k] = raw.ValueProcessed
+			}
 		}
 	}
 	mapW := &MapFieldWriter{Schema: d.schema}

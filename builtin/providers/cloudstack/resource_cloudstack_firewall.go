@@ -27,6 +27,12 @@ func resourceCloudStackFirewall() *schema.Resource {
 				ForceNew: true,
 			},
 
+			"managed": &schema.Schema{
+				Type:     schema.TypeBool,
+				Optional: true,
+				Default:  false,
+			},
+
 			"rule": &schema.Schema{
 				Type:     schema.TypeSet,
 				Required: true,
@@ -85,7 +91,7 @@ func resourceCloudStackFirewallCreate(d *schema.ResourceData, meta interface{}) 
 	}
 
 	// We need to set this upfront in order to be able to save a partial state
-	d.SetId(d.Get("ipaddress").(string))
+	d.SetId(ipaddressid)
 
 	// Create all rules that are configured
 	if rs := d.Get("rule").(*schema.Set); rs.Len() > 0 {
@@ -97,7 +103,7 @@ func resourceCloudStackFirewallCreate(d *schema.ResourceData, meta interface{}) 
 
 		for _, rule := range rs.List() {
 			// Create a single rule
-			err := resourceCloudStackFirewallCreateRule(d, meta, ipaddressid, rule.(map[string]interface{}))
+			err := resourceCloudStackFirewallCreateRule(d, meta, rule.(map[string]interface{}))
 
 			// We need to update this first to preserve the correct state
 			rules.Add(rule)
@@ -113,17 +119,17 @@ func resourceCloudStackFirewallCreate(d *schema.ResourceData, meta interface{}) 
 }
 
 func resourceCloudStackFirewallCreateRule(
-	d *schema.ResourceData, meta interface{}, ipaddressid string, rule map[string]interface{}) error {
+	d *schema.ResourceData, meta interface{}, rule map[string]interface{}) error {
 	cs := meta.(*cloudstack.CloudStackClient)
 	uuids := rule["uuids"].(map[string]interface{})
 
-	// Make sure all required parameters are there
-	if err := verifyFirewallParams(d, rule); err != nil {
+	// Make sure all required rule parameters are there
+	if err := verifyFirewallRuleParams(d, rule); err != nil {
 		return err
 	}
 
 	// Create a new parameter struct
-	p := cs.Firewall.NewCreateFirewallRuleParams(ipaddressid, rule["protocol"].(string))
+	p := cs.Firewall.NewCreateFirewallRuleParams(d.Id(), rule["protocol"].(string))
 
 	// Set the CIDR list
 	p.SetCidrlist([]string{rule["source_cidr"].(string)})
@@ -274,6 +280,46 @@ func resourceCloudStackFirewallRead(d *schema.ResourceData, meta interface{}) er
 		}
 	}
 
+	// If this is a managed firewall, add all unknown rules into a single dummy rule
+	if d.Get("managed").(bool) {
+		// Get all the rules from the running environment
+		p := cs.Firewall.NewListFirewallRulesParams()
+		p.SetIpaddressid(d.Id())
+		p.SetListall(true)
+
+		r, err := cs.Firewall.ListFirewallRules(p)
+		if err != nil {
+			return err
+		}
+
+		// Add all UUIDs to the uuids map
+		uuids := make(map[string]interface{})
+		for _, r := range r.FirewallRules {
+			uuids[r.Id] = r.Id
+		}
+
+		// Delete all expected UUIDs from the uuids map
+		for _, rule := range rules.List() {
+			rule := rule.(map[string]interface{})
+
+			for _, id := range rule["uuids"].(map[string]interface{}) {
+				delete(uuids, id.(string))
+			}
+		}
+
+		if len(uuids) > 0 {
+			// Make a dummy rule to hold all unknown UUIDs
+			rule := map[string]interface{}{
+				"source_cidr": "N/A",
+				"protocol":    "N/A",
+				"uuids":       uuids,
+			}
+
+			// Add the dummy rule to the rules set
+			rules.Add(rule)
+		}
+	}
+
 	if rules.Len() > 0 {
 		d.Set("rule", rules)
 	} else {
@@ -284,14 +330,6 @@ func resourceCloudStackFirewallRead(d *schema.ResourceData, meta interface{}) er
 }
 
 func resourceCloudStackFirewallUpdate(d *schema.ResourceData, meta interface{}) error {
-	cs := meta.(*cloudstack.CloudStackClient)
-
-	// Retrieve the ipaddress UUID
-	ipaddressid, e := retrieveUUID(cs, "ipaddress", d.Get("ipaddress").(string))
-	if e != nil {
-		return e.Error()
-	}
-
 	// Check if the rule set as a whole has changed
 	if d.HasChange("rule") {
 		o, n := d.GetChange("rule")
@@ -315,7 +353,7 @@ func resourceCloudStackFirewallUpdate(d *schema.ResourceData, meta interface{}) 
 		for _, rule := range nrs.List() {
 			// When succesfully deleted, re-create it again if it still exists
 			err := resourceCloudStackFirewallCreateRule(
-				d, meta, ipaddressid, rule.(map[string]interface{}))
+				d, meta, rule.(map[string]interface{}))
 
 			// We need to update this first to preserve the correct state
 			rules.Add(rule)
@@ -355,6 +393,11 @@ func resourceCloudStackFirewallDeleteRule(
 	uuids := rule["uuids"].(map[string]interface{})
 
 	for k, id := range uuids {
+		// We don't care about the count here, so just continue
+		if k == "#" {
+			continue
+		}
+
 		// Create the parameter struct
 		p := cs.Firewall.NewDeleteFirewallRuleParams(id.(string))
 
@@ -415,7 +458,7 @@ func resourceCloudStackFirewallRuleHash(v interface{}) int {
 	return hashcode.String(buf.String())
 }
 
-func verifyFirewallParams(d *schema.ResourceData, rule map[string]interface{}) error {
+func verifyFirewallRuleParams(d *schema.ResourceData, rule map[string]interface{}) error {
 	protocol := rule["protocol"].(string)
 	if protocol != "tcp" && protocol != "udp" && protocol != "icmp" {
 		return fmt.Errorf(

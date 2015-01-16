@@ -107,6 +107,7 @@ func TestMapFieldWriter(t *testing.T) {
 			map[string]interface{}{"foo": "bar"},
 			false,
 			map[string]string{
+				"map.#":   "1",
 				"map.foo": "bar",
 			},
 		},

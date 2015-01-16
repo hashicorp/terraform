@@ -40,8 +40,11 @@ func TestSetDifference(t *testing.T) {
 	s2.Add(5)
 	s2.Add(25)
 
-	expected := []interface{}{1}
-	actual := s1.Difference(s2).List()
+	difference := s1.Difference(s2)
+	difference.Add(2)
+
+	expected := []interface{}{1, 2}
+	actual := difference.List()
 	if !reflect.DeepEqual(actual, expected) {
 		t.Fatalf("bad: %#v", actual)
 	}
@@ -57,8 +60,11 @@ func TestSetIntersection(t *testing.T) {
 	s2.Add(5)
 	s2.Add(25)
 
-	expected := []interface{}{5}
-	actual := s1.Intersection(s2).List()
+	intersection := s1.Intersection(s2)
+	intersection.Add(2)
+
+	expected := []interface{}{2, 5}
+	actual := intersection.List()
 	if !reflect.DeepEqual(actual, expected) {
 		t.Fatalf("bad: %#v", actual)
 	}
@@ -74,8 +80,11 @@ func TestSetUnion(t *testing.T) {
 	s2.Add(5)
 	s2.Add(25)
 
-	expected := []interface{}{1, 5, 25}
-	actual := s1.Union(s2).List()
+	union := s1.Union(s2)
+	union.Add(2)
+
+	expected := []interface{}{1, 2, 5, 25}
+	actual := union.List()
 	if !reflect.DeepEqual(actual, expected) {
 		t.Fatalf("bad: %#v", actual)
 	}

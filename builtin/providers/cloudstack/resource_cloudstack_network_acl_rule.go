@@ -27,6 +27,12 @@ func resourceCloudStackNetworkACLRule() *schema.Resource {
 				ForceNew: true,
 			},
 
+			"managed": &schema.Schema{
+				Type:     schema.TypeBool,
+				Optional: true,
+				Default:  false,
+			},
+
 			"rule": &schema.Schema{
 				Type:     schema.TypeSet,
 				Required: true,
@@ -295,6 +301,46 @@ func resourceCloudStackNetworkACLRuleRead(d *schema.ResourceData, meta interface
 		}
 	}
 
+	// If this is a managed firewall, add all unknown rules into a single dummy rule
+	if d.Get("managed").(bool) {
+		// Get all the rules from the running environment
+		p := cs.NetworkACL.NewListNetworkACLsParams()
+		p.SetAclid(d.Id())
+		p.SetListall(true)
+
+		r, err := cs.NetworkACL.ListNetworkACLs(p)
+		if err != nil {
+			return err
+		}
+
+		// Add all UUIDs to the uuids map
+		uuids := make(map[string]interface{})
+		for _, r := range r.NetworkACLs {
+			uuids[r.Id] = r.Id
+		}
+
+		// Delete all expected UUIDs from the uuids map
+		for _, rule := range rules.List() {
+			rule := rule.(map[string]interface{})
+
+			for _, id := range rule["uuids"].(map[string]interface{}) {
+				delete(uuids, id.(string))
+			}
+		}
+
+		if len(uuids) > 0 {
+			// Make a dummy rule to hold all unknown UUIDs
+			rule := map[string]interface{}{
+				"source_cidr": "N/A",
+				"protocol":    "N/A",
+				"uuids":       uuids,
+			}
+
+			// Add the dummy rule to the rules set
+			rules.Add(rule)
+		}
+	}
+
 	if rules.Len() > 0 {
 		d.Set("rule", rules)
 	} else {
@@ -371,6 +417,11 @@ func resourceCloudStackNetworkACLRuleDeleteRule(
 	uuids := rule["uuids"].(map[string]interface{})
 
 	for k, id := range uuids {
+		// We don't care about the count here, so just continue
+		if k == "#" {
+			continue
+		}
+
 		// Create the parameter struct
 		p := cs.NetworkACL.NewDeleteNetworkACLParams(id.(string))
 
@@ -438,7 +489,7 @@ func resourceCloudStackNetworkACLRuleHash(v interface{}) int {
 func verifyNetworkACLRuleParams(d *schema.ResourceData, rule map[string]interface{}) error {
 	action := rule["action"].(string)
 	if action != "allow" && action != "deny" {
-		return fmt.Errorf("Parameter action only excepts 'allow' or 'deny' as values")
+		return fmt.Errorf("Parameter action only accepts 'allow' or 'deny' as values")
 	}
 
 	protocol := rule["protocol"].(string)
@@ -469,7 +520,7 @@ func verifyNetworkACLRuleParams(d *schema.ResourceData, rule map[string]interfac
 	traffic := rule["traffic_type"].(string)
 	if traffic != "ingress" && traffic != "egress" {
 		return fmt.Errorf(
-			"Parameter traffic_type only excepts 'ingress' or 'egress' as values")
+			"Parameter traffic_type only accepts 'ingress' or 'egress' as values")
 	}
 
 	return nil

@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/hashicorp/terraform/config"
+	"github.com/hashicorp/terraform/config/lang/ast"
 	"github.com/hashicorp/terraform/terraform"
 )
 
@@ -866,7 +867,7 @@ func TestSchemaMap_Diff(t *testing.T) {
 			Diff: &terraform.InstanceDiff{
 				Attributes: map[string]*terraform.ResourceAttrDiff{
 					"ports.#": &terraform.ResourceAttrDiff{
-						Old:         "0",
+						Old:         "",
 						New:         "",
 						NewComputed: true,
 					},
@@ -1558,7 +1559,6 @@ func TestSchemaMap_Diff(t *testing.T) {
 			Diff: &terraform.InstanceDiff{
 				Attributes: map[string]*terraform.ResourceAttrDiff{
 					"instances.#": &terraform.ResourceAttrDiff{
-						Old:         "0",
 						NewComputed: true,
 					},
 				},
@@ -1686,7 +1686,6 @@ func TestSchemaMap_Diff(t *testing.T) {
 						New: "1",
 					},
 					"route.~1.gateway.#": &terraform.ResourceAttrDiff{
-						Old:         "0",
 						NewComputed: true,
 					},
 				},
@@ -1769,6 +1768,36 @@ func TestSchemaMap_Diff(t *testing.T) {
 
 			Err: false,
 		},
+
+		// #46 - Float
+		{
+			Schema: map[string]*Schema{
+				"some_threshold": &Schema{
+					Type: TypeFloat,
+				},
+			},
+
+			State: &terraform.InstanceState{
+				Attributes: map[string]string{
+					"some_threshold": "567.8",
+				},
+			},
+
+			Config: map[string]interface{}{
+				"some_threshold": 12.34,
+			},
+
+			Diff: &terraform.InstanceDiff{
+				Attributes: map[string]*terraform.ResourceAttrDiff{
+					"some_threshold": &terraform.ResourceAttrDiff{
+						Old: "567.8",
+						New: "12.34",
+					},
+				},
+			},
+
+			Err: false,
+		},
 	}
 
 	for i, tc := range cases {
@@ -1778,7 +1807,12 @@ func TestSchemaMap_Diff(t *testing.T) {
 		}
 
 		if len(tc.ConfigVariables) > 0 {
-			if err := c.Interpolate(tc.ConfigVariables); err != nil {
+			vars := make(map[string]ast.Variable)
+			for k, v := range tc.ConfigVariables {
+				vars[k] = ast.Variable{Value: v, Type: ast.TypeString}
+			}
+
+			if err := c.Interpolate(vars); err != nil {
 				t.Fatalf("#%d err: %s", i, err)
 			}
 		}
@@ -2503,6 +2537,45 @@ func TestSchemaMap_Validate(t *testing.T) {
 
 			Err: true,
 		},
+
+		{
+			Schema: map[string]*Schema{
+				"security_groups": &Schema{
+					Type:     TypeSet,
+					Optional: true,
+					Computed: true,
+					ForceNew: true,
+					Elem:     &Schema{Type: TypeString},
+					Set: func(v interface{}) int {
+						return len(v.(string))
+					},
+				},
+			},
+
+			Config: map[string]interface{}{
+				"security_groups": []interface{}{"${var.foo}"},
+			},
+
+			Err: false,
+		},
+
+		{
+			Schema: map[string]*Schema{
+				"security_groups": &Schema{
+					Type:     TypeSet,
+					Optional: true,
+					Computed: true,
+					ForceNew: true,
+					Elem:     &Schema{Type: TypeString},
+				},
+			},
+
+			Config: map[string]interface{}{
+				"security_groups": "${var.foo}",
+			},
+
+			Err: true,
+		},
 	}
 
 	for i, tc := range cases {
@@ -2511,7 +2584,12 @@ func TestSchemaMap_Validate(t *testing.T) {
 			t.Fatalf("err: %s", err)
 		}
 		if tc.Vars != nil {
-			if err := c.Interpolate(tc.Vars); err != nil {
+			vars := make(map[string]ast.Variable)
+			for k, v := range tc.Vars {
+				vars[k] = ast.Variable{Value: v, Type: ast.TypeString}
+			}
+
+			if err := c.Interpolate(vars); err != nil {
 				t.Fatalf("err: %s", err)
 			}
 		}

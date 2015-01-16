@@ -8,6 +8,8 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/hashicorp/terraform/config/lang"
+	"github.com/hashicorp/terraform/config/lang/ast"
 	"github.com/hashicorp/terraform/flatmap"
 	"github.com/hashicorp/terraform/helper/multierror"
 	"github.com/mitchellh/mapstructure"
@@ -169,7 +171,7 @@ func (c *Config) Validate() error {
 		}
 
 		interp := false
-		fn := func(i Interpolation) (string, error) {
+		fn := func(ast.Node) (string, error) {
 			interp = true
 			return "", nil
 		}
@@ -353,9 +355,19 @@ func (c *Config) Validate() error {
 			}
 		}
 
-		// Interpolate with a fixed number to verify that its a number
-		r.RawCount.interpolate(func(Interpolation) (string, error) {
-			return "5", nil
+		// Interpolate with a fixed number to verify that its a number.
+		r.RawCount.interpolate(func(root ast.Node) (string, error) {
+			// Execute the node but transform the AST so that it returns
+			// a fixed value of "5" for all interpolations.
+			out, _, err := lang.Eval(
+				lang.FixedValueTransform(
+					root, &ast.LiteralNode{Value: "5", Typex: ast.TypeString}),
+				nil)
+			if err != nil {
+				return "", err
+			}
+
+			return out.(string), nil
 		})
 		_, err := strconv.ParseInt(r.RawCount.Value().(string), 0, 0)
 		if err != nil {
@@ -465,20 +477,50 @@ func (c *Config) rawConfigs() map[string]*RawConfig {
 
 func (c *Config) validateVarContextFn(
 	source string, errs *[]error) interpolationWalkerContextFunc {
-	return func(loc reflectwalk.Location, i Interpolation) {
-		vi, ok := i.(*VariableInterpolation)
-		if !ok {
+	return func(loc reflectwalk.Location, node ast.Node) {
+		// If we're in a slice element, then its fine, since you can do
+		// anything in there.
+		if loc == reflectwalk.SliceElem {
 			return
 		}
 
-		rv, ok := vi.Variable.(*ResourceVariable)
-		if !ok {
+		// Otherwise, let's check if there is a splat resource variable
+		// at the top level in here. We do this by doing a transform that
+		// replaces everything with a noop node unless its a variable
+		// access or concat. This should turn the AST into a flat tree
+		// of Concat(Noop, ...). If there are any variables left that are
+		// multi-access, then its still broken.
+		node = node.Accept(func(n ast.Node) ast.Node {
+			// If it is a concat or variable access, we allow it.
+			switch n.(type) {
+			case *ast.Concat:
+				return n
+			case *ast.VariableAccess:
+				return n
+			}
+
+			// Otherwise, noop
+			return &noopNode{}
+		})
+
+		vars, err := DetectVariables(node)
+		if err != nil {
+			// Ignore it since this will be caught during parse. This
+			// actually probably should never happen by the time this
+			// is called, but its okay.
 			return
 		}
 
-		if rv.Multi && rv.Index == -1 && loc != reflectwalk.SliceElem {
-			*errs = append(*errs, fmt.Errorf(
-				"%s: multi-variable must be in a slice", source))
+		for _, v := range vars {
+			rv, ok := v.(*ResourceVariable)
+			if !ok {
+				return
+			}
+
+			if rv.Multi && rv.Index == -1 {
+				*errs = append(*errs, fmt.Errorf(
+					"%s: multi-variable must be in a slice", source))
+			}
 		}
 	}
 }

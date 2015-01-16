@@ -3,9 +3,10 @@ package config
 import (
 	"fmt"
 	"reflect"
-	"regexp"
 	"strings"
 
+	"github.com/hashicorp/terraform/config/lang"
+	"github.com/hashicorp/terraform/config/lang/ast"
 	"github.com/mitchellh/reflectwalk"
 )
 
@@ -13,10 +14,6 @@ import (
 // it is returned. This is a comma right now but should eventually become
 // a value that a user is very unlikely to use (such as UUID).
 const InterpSplitDelim = `B780FFEC-B661-4EB8-9236-A01737AD98B6`
-
-// interpRegexp is a regexp that matches interpolations such as ${foo.bar}
-var interpRegexp *regexp.Regexp = regexp.MustCompile(
-	`(?i)(\$+)\{([\s*-.,\\/\(\):a-z0-9_"]+)\}`)
 
 // interpolationWalker implements interfaces for the reflectwalk package
 // (github.com/mitchellh/reflectwalk) that can be used to automatically
@@ -50,7 +47,7 @@ type interpolationWalker struct {
 //
 // If Replace is set to false in interpolationWalker, then the replace
 // value can be anything as it will have no effect.
-type interpolationWalkerFunc func(Interpolation) (string, error)
+type interpolationWalkerFunc func(ast.Node) (string, error)
 
 // interpolationWalkerContextFunc is called by interpolationWalk if
 // ContextF is set. This receives both the interpolation and the location
@@ -58,7 +55,7 @@ type interpolationWalkerFunc func(Interpolation) (string, error)
 //
 // This callback can be used to validate the location of the interpolation
 // within the configuration.
-type interpolationWalkerContextFunc func(reflectwalk.Location, Interpolation)
+type interpolationWalkerContextFunc func(reflectwalk.Location, ast.Node)
 
 func (w *interpolationWalker) Enter(loc reflectwalk.Location) error {
 	w.loc = loc
@@ -121,76 +118,54 @@ func (w *interpolationWalker) Primitive(v reflect.Value) error {
 		return nil
 	}
 
-	// XXX: This can be a lot more efficient if we used a real
-	// parser. A regexp is a hammer though that will get this working.
+	astRoot, err := lang.Parse(v.String())
+	if err != nil {
+		return err
+	}
 
-	matches := interpRegexp.FindAllStringSubmatch(v.String(), -1)
-	if len(matches) == 0 {
+	// If the AST we got is just a literal string value, then we ignore it
+	if _, ok := astRoot.(*ast.LiteralNode); ok {
 		return nil
 	}
 
-	result := v.String()
-	for _, match := range matches {
-		dollars := len(match[1])
+	if w.ContextF != nil {
+		w.ContextF(w.loc, astRoot)
+	}
 
-		// If there are even amounts of dollar signs, then it is escaped
-		if dollars%2 == 0 {
-			continue
-		}
+	if w.F == nil {
+		return nil
+	}
 
-		// Interpolation found, instantiate it
-		key := match[2]
-
-		i, err := ExprParse(key)
-		if err != nil {
-			return err
-		}
-
-		if w.ContextF != nil {
-			w.ContextF(w.loc, i)
-		}
-
-		if w.F == nil {
-			continue
-		}
-
-		replaceVal, err := w.F(i)
-		if err != nil {
-			return fmt.Errorf(
-				"%s: %s",
-				key,
-				err)
-		}
-
-		if w.Replace {
-			// We need to determine if we need to remove this element
-			// if the result contains any "UnknownVariableValue" which is
-			// set if it is computed. This behavior is different if we're
-			// splitting (in a SliceElem) or not.
-			remove := false
-			if w.loc == reflectwalk.SliceElem {
-				parts := strings.Split(replaceVal, InterpSplitDelim)
-				for _, p := range parts {
-					if p == UnknownVariableValue {
-						remove = true
-						break
-					}
-				}
-			} else if replaceVal == UnknownVariableValue {
-				remove = true
-			}
-			if remove {
-				w.removeCurrent()
-				return nil
-			}
-
-			// Replace in our interpolation and continue on.
-			result = strings.Replace(result, match[0], replaceVal, -1)
-		}
+	replaceVal, err := w.F(astRoot)
+	if err != nil {
+		return fmt.Errorf(
+			"%s in:\n\n%s",
+			err, v.String())
 	}
 
 	if w.Replace {
-		resultVal := reflect.ValueOf(result)
+		// We need to determine if we need to remove this element
+		// if the result contains any "UnknownVariableValue" which is
+		// set if it is computed. This behavior is different if we're
+		// splitting (in a SliceElem) or not.
+		remove := false
+		if w.loc == reflectwalk.SliceElem {
+			parts := strings.Split(replaceVal, InterpSplitDelim)
+			for _, p := range parts {
+				if p == UnknownVariableValue {
+					remove = true
+					break
+				}
+			}
+		} else if replaceVal == UnknownVariableValue {
+			remove = true
+		}
+		if remove {
+			w.removeCurrent()
+			return nil
+		}
+
+		resultVal := reflect.ValueOf(replaceVal)
 		switch w.loc {
 		case reflectwalk.MapKey:
 			m := w.cs[len(w.cs)-1]

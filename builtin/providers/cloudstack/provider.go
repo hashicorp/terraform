@@ -38,6 +38,7 @@ func Provider() terraform.ResourceProvider {
 
 		ResourcesMap: map[string]*schema.Resource{
 			"cloudstack_disk":             resourceCloudStackDisk(),
+			"cloudstack_egress_firewall":  resourceCloudStackEgressFirewall(),
 			"cloudstack_firewall":         resourceCloudStackFirewall(),
 			"cloudstack_instance":         resourceCloudStackInstance(),
 			"cloudstack_ipaddress":        resourceCloudStackIPAddress(),
@@ -58,7 +59,7 @@ func providerConfigure(d *schema.ResourceData) (interface{}, error) {
 		ApiURL:    d.Get("api_url").(string),
 		ApiKey:    d.Get("api_key").(string),
 		SecretKey: d.Get("secret_key").(string),
-		Timeout:   d.Get("timeout").(int64),
+		Timeout:   int64(d.Get("timeout").(int)),
 	}
 
 	return config.NewClient()
