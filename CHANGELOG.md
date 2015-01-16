@@ -16,6 +16,7 @@ BUG FIXES:
   * core: Escape characters `\"`, `\n`, and `\\` now work in interpolations.
   * core: Fix crash that could occur when there are exactly zero providers
       installed on a system. [GH-786]
+  * core: JSON TF configurations can configure provisioners. [GH-807]
   * provider/aws: ELB subnet change doesn't force new resource. [GH-804]
 
 PLUGIN CHANGES:
