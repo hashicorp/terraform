@@ -294,14 +294,18 @@ func (w *MapFieldWriter) setSet(
 
 	k := strings.Join(addr, ".")
 
-	if value != nil {
-		for code, elem := range value.(*Set).m {
-			codeStr := strconv.FormatInt(int64(code), 10)
-			if err := w.set(append(addrCopy, codeStr), elem); err != nil {
-				return err
-			}
-		}
-		w.result[k+".#"] = strconv.Itoa(value.(*Set).Len())
+	if value == nil {
+		w.result[k+".#"] = "0"
+		return nil
 	}
+
+	for code, elem := range value.(*Set).m {
+		codeStr := strconv.FormatInt(int64(code), 10)
+		if err := w.set(append(addrCopy, codeStr), elem); err != nil {
+			return err
+		}
+	}
+
+	w.result[k+".#"] = strconv.Itoa(value.(*Set).Len())
 	return nil
 }
