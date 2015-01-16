@@ -35,7 +35,7 @@ func resourceCloudStackEgressFirewall() *schema.Resource {
 
 			"rule": &schema.Schema{
 				Type:     schema.TypeSet,
-				Required: true,
+				Optional: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"source_cidr": &schema.Schema{
@@ -83,6 +83,11 @@ func resourceCloudStackEgressFirewall() *schema.Resource {
 
 func resourceCloudStackEgressFirewallCreate(d *schema.ResourceData, meta interface{}) error {
 	cs := meta.(*cloudstack.CloudStackClient)
+
+	// Make sure all required parameters are there
+	if err := verifyEgressFirewallParams(d); err != nil {
+		return err
+	}
 
 	// Retrieve the network UUID
 	networkid, e := retrieveUUID(cs, "network", d.Get("network").(string))
@@ -203,10 +208,6 @@ func resourceCloudStackEgressFirewallRead(d *schema.ResourceData, meta interface
 		F: resourceCloudStackEgressFirewallRuleHash,
 	}
 
-	if d.Get("managed").(bool) {
-		// Read all rules...
-	}
-
 	// Read all rules that are configured
 	if rs := d.Get("rule").(*schema.Set); rs.Len() > 0 {
 		for _, rule := range rs.List() {
@@ -285,7 +286,8 @@ func resourceCloudStackEgressFirewallRead(d *schema.ResourceData, meta interface
 	}
 
 	// If this is a managed firewall, add all unknown rules into a single dummy rule
-	if d.Get("managed").(bool) {
+	managed := d.Get("managed").(bool)
+	if managed {
 		// Get all the rules from the running environment
 		p := cs.Firewall.NewListEgressFirewallRulesParams()
 		p.SetNetworkid(d.Id())
@@ -297,7 +299,7 @@ func resourceCloudStackEgressFirewallRead(d *schema.ResourceData, meta interface
 		}
 
 		// Add all UUIDs to the uuids map
-		uuids := make(map[string]interface{})
+		uuids := make(map[string]interface{}, len(r.EgressFirewallRules))
 		for _, r := range r.EgressFirewallRules {
 			uuids[r.Id] = r.Id
 		}
@@ -326,7 +328,7 @@ func resourceCloudStackEgressFirewallRead(d *schema.ResourceData, meta interface
 
 	if rules.Len() > 0 {
 		d.Set("rule", rules)
-	} else {
+	} else if !managed {
 		d.SetId("")
 	}
 
@@ -334,6 +336,11 @@ func resourceCloudStackEgressFirewallRead(d *schema.ResourceData, meta interface
 }
 
 func resourceCloudStackEgressFirewallUpdate(d *schema.ResourceData, meta interface{}) error {
+	// Make sure all required parameters are there
+	if err := verifyEgressFirewallParams(d); err != nil {
+		return err
+	}
+
 	// Check if the rule set as a whole has changed
 	if d.HasChange("rule") {
 		o, n := d.GetChange("rule")
@@ -460,6 +467,18 @@ func resourceCloudStackEgressFirewallRuleHash(v interface{}) int {
 	}
 
 	return hashcode.String(buf.String())
+}
+
+func verifyEgressFirewallParams(d *schema.ResourceData) error {
+	managed := d.Get("managed").(bool)
+	_, rules := d.GetOk("rule")
+
+	if !rules && !managed {
+		return fmt.Errorf(
+			"You must supply at least one 'rule' when not using the 'managed' firewall feature")
+	}
+
+	return nil
 }
 
 func verifyEgressFirewallRuleParams(d *schema.ResourceData, rule map[string]interface{}) error {
