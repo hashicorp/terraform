@@ -328,7 +328,7 @@ func resourceAwsElbUpdate(d *schema.ResourceData, meta interface{}) error {
 		}
 		_, err := elbconn.ModifyLoadBalancerAttributes(&attrs)
 		if err != nil {
-			return fmt.Errorf("Failure configuring health check: %s", err)
+			return fmt.Errorf("Failure configuring cross zone balancing: %s", err)
 		}
 		d.SetPartial("cross_zone_load_balancing")
 	}
