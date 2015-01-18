@@ -15,3 +15,4 @@ website/node_modules
 *.tfstate
 *.log
 *.bak
+config/y.output
