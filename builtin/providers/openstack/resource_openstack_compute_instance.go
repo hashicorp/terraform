@@ -261,14 +261,11 @@ func resourceComputeInstanceUpdate(d *schema.ResourceData, meta interface{}) err
 		updateOpts.AccessIPv4 = d.Get("access_ip_v6").(string)
 	}
 
-	// If there's nothing to update, don't waste an HTTP call.
-	if updateOpts != (servers.UpdateOpts{}) {
-		log.Printf("[DEBUG] Updating Server %s with options: %+v", d.Id(), updateOpts)
+	log.Printf("[DEBUG] Updating Server %s with options: %+v", d.Id(), updateOpts)
 
-		_, err := servers.Update(osClient, d.Id(), updateOpts).Extract()
-		if err != nil {
-			return fmt.Errorf("Error updating OpenStack server: %s", err)
-		}
+	_, err := servers.Update(osClient, d.Id(), updateOpts).Extract()
+	if err != nil {
+		return fmt.Errorf("Error updating OpenStack server: %s", err)
 	}
 
 	if d.HasChange("metadata") {
