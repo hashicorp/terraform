@@ -56,7 +56,28 @@ func (n *graphNodeConfigBasicDepMap) setDepMap(m map[string]depgraph.Node) {
 	n.DepMap = m
 }
 
-// GraphNodeConfigProvider represents a resource within the config graph.
+// GraphNodeConfigModule represents a module within the configuration graph.
+type GraphNodeConfigModule struct {
+	graphNodeConfigBasicDepMap
+
+	Module *config.Module
+}
+
+func (n *GraphNodeConfigModule) Name() string {
+	return fmt.Sprintf("module.%s", n.Module.Name)
+}
+
+func (n *GraphNodeConfigModule) Variables() map[string]config.InterpolatedVariable {
+	return n.Module.RawConfig.Variables
+}
+
+func (n *GraphNodeConfigModule) VarName() string {
+	return n.Name()
+}
+
+// GraphNodeConfigProvider represents a configured provider within the
+// configuration graph. These are only immediately in the graph when an
+// explicit `provider` configuration block is in the configuration.
 type GraphNodeConfigProvider struct {
 	graphNodeConfigBasicDepMap
 

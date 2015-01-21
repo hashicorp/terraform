@@ -40,6 +40,19 @@ func TestGraph(t *testing.T) {
 	}
 }
 
+func TestGraph2_modules(t *testing.T) {
+	g, err := Graph2(testModule(t, "graph-modules"))
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	actual := strings.TrimSpace(g.String())
+	expected := strings.TrimSpace(testGraphModulesStr)
+	if actual != expected {
+		t.Fatalf("bad:\n\n%s", actual)
+	}
+}
+
 const testGraphBasicStr = `
 aws_instance.web
   aws_security_group.firewall
@@ -49,4 +62,14 @@ aws_security_group.firewall
 openstack_floating_ip.random
 provider.aws
   openstack_floating_ip.random
+`
+
+const testGraphModulesStr = `
+aws_instance.web
+  aws_security_group.firewall
+  module.consul
+aws_security_group.firewall
+module.consul
+  aws_security_group.firewall
+provider.aws
 `

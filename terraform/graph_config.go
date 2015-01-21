@@ -25,7 +25,7 @@ func Graph2(mod *module.Tree) (*depgraph.Graph, error) {
 
 	// Create the node list we'll use for the graph
 	nodes := make([]graphNodeConfig, 0,
-		(len(config.Modules)+len(config.Resources))*2)
+		(len(config.ProviderConfigs)+len(config.Modules)+len(config.Resources))*2)
 
 	// Write all the provider configs out
 	for _, pc := range config.ProviderConfigs {
@@ -38,7 +38,9 @@ func Graph2(mod *module.Tree) (*depgraph.Graph, error) {
 	}
 
 	// Write all the modules out
-	// TODO
+	for _, m := range config.Modules {
+		nodes = append(nodes, &GraphNodeConfigModule{Module: m})
+	}
 
 	// Build the full map of the var names to the nodes.
 	fullMap := make(map[string]depgraph.Node)
