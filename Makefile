@@ -27,6 +27,7 @@ updatedeps:
 	$(eval REF := $(shell sh -c "\
 		git symbolic-ref --short HEAD 2>/dev/null \
 		|| git rev-parse HEAD"))
+	go get -u github.com/mitchellh/gox
 	go get -u golang.org/x/tools/cmd/stringer
 	go get -u golang.org/x/tools/cmd/vet
 	go get -f -u -v ./...
