@@ -40,6 +40,19 @@ func TestGraph(t *testing.T) {
 	}
 }
 
+func TestGraph2_dependsOn(t *testing.T) {
+	g, err := Graph2(testModule(t, "graph-depends-on"))
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	actual := strings.TrimSpace(g.String())
+	expected := strings.TrimSpace(testGraphDependsOnStr)
+	if actual != expected {
+		t.Fatalf("bad:\n\n%s", actual)
+	}
+}
+
 func TestGraph2_modules(t *testing.T) {
 	g, err := Graph2(testModule(t, "graph-modules"))
 	if err != nil {
@@ -62,6 +75,12 @@ aws_security_group.firewall
 openstack_floating_ip.random
 provider.aws
   openstack_floating_ip.random
+`
+
+const testGraphDependsOnStr = `
+aws_instance.db
+  aws_instance.web
+aws_instance.web
 `
 
 const testGraphModulesStr = `
