@@ -54,8 +54,7 @@ func Graph2(mod *module.Tree) (*depgraph.Graph, error) {
 	// of var names to the actual node with that name.
 	for _, n := range nodes {
 		m := make(map[string]depgraph.Node)
-		for _, v := range n.Variables() {
-			id := varNameForVar(v)
+		for _, id := range n.Variables() {
 			m[id] = fullMap[id]
 		}
 
