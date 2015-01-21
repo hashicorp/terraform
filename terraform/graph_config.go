@@ -27,11 +27,14 @@ func Graph2(mod *module.Tree) (*depgraph.Graph, error) {
 	nodes := make([]graphNodeConfig, 0,
 		(len(config.Modules)+len(config.Resources))*2)
 
+	// Write all the provider configs out
+	for _, pc := range config.ProviderConfigs {
+		nodes = append(nodes, &GraphNodeConfigProvider{Provider: pc})
+	}
+
 	// Write all the resources out
 	for _, r := range config.Resources {
-		nodes = append(nodes, &GraphNodeConfigResource{
-			Resource: r,
-		})
+		nodes = append(nodes, &GraphNodeConfigResource{Resource: r})
 	}
 
 	// Write all the modules out
@@ -64,71 +67,6 @@ func Graph2(mod *module.Tree) (*depgraph.Graph, error) {
 	}
 
 	return g, nil
-}
-
-// graphNodeConfig is an interface that all graph nodes for the
-// configuration graph need to implement in order to build the variable
-// dependencies properly.
-type graphNodeConfig interface {
-	depgraph.Node
-
-	// Variables returns the full list of variables that this node
-	// depends on.
-	Variables() map[string]config.InterpolatedVariable
-
-	// VarName returns the name that is used to identify a variable
-	// maps to this node. It should match the result of the
-	// `VarName` function.
-	VarName() string
-
-	// setDepMap sets the dependency map for this node. If the node is
-	// nil, then it wasn't found.
-	setDepMap(map[string]depgraph.Node)
-}
-
-// GraphNodeConfigResource represents a resource within the configuration
-// graph.
-type GraphNodeConfigResource struct {
-	Resource *config.Resource
-	DepMap   map[string]depgraph.Node
-}
-
-func (n *GraphNodeConfigResource) Deps() []depgraph.Node {
-	r := make([]depgraph.Node, 0, len(n.DepMap))
-	for _, v := range n.DepMap {
-		if v != nil {
-			r = append(r, v)
-		}
-	}
-
-	return r
-}
-
-func (n *GraphNodeConfigResource) Name() string {
-	return n.Resource.Id()
-}
-
-func (n *GraphNodeConfigResource) Variables() map[string]config.InterpolatedVariable {
-	var m map[string]config.InterpolatedVariable
-	if n.Resource != nil {
-		m = make(map[string]config.InterpolatedVariable)
-		for k, v := range n.Resource.RawCount.Variables {
-			m[k] = v
-		}
-		for k, v := range n.Resource.RawConfig.Variables {
-			m[k] = v
-		}
-	}
-
-	return m
-}
-
-func (n *GraphNodeConfigResource) VarName() string {
-	return n.Resource.Id()
-}
-
-func (n *GraphNodeConfigResource) setDepMap(m map[string]depgraph.Node) {
-	n.DepMap = m
 }
 
 // varNameForVar returns the VarName value for an interpolated variable.
