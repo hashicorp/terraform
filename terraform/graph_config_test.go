@@ -47,4 +47,6 @@ aws_load_balancer.weblb
   aws_instance.web
 aws_security_group.firewall
 openstack_floating_ip.random
+provider.aws
+  openstack_floating_ip.random
 `
