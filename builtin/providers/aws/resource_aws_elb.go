@@ -69,7 +69,6 @@ func resourceAwsElb() *schema.Resource {
 				},
 			},
 
-			// TODO: could be not ForceNew
 			"subnets": &schema.Schema{
 				Type:     schema.TypeSet,
 				Elem:     &schema.Schema{Type: schema.TypeString},
