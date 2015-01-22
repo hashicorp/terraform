@@ -42,4 +42,3 @@ The following arguments are supported:
 
 * `region` - (Required) This is the AWS region. It must be provided, but
   it can also be sourced from the `AWS_DEFAULT_REGION` environment variables.
-
