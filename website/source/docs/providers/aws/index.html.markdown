@@ -35,11 +35,11 @@ resource "aws_instance" "web" {
 The following arguments are supported:
 
 * `access_key` - (Required) This is the AWS access key. It must be provided, but
-  it can also be sourced from the `AWS_ACCESS_KEY` environment variable.
+  it can also be sourced from the `AWS_ACCESS_KEY_ID` environment variable.
 
 * `secret_key` - (Required) This is the AWS secret key. It must be provided, but
-  it can also be sourced from the `AWS_SECRET_KEY` environment variable.
+  it can also be sourced from the `AWS_SECRET_ACCESS_KEY` environment variable.
 
 * `region` - (Required) This is the AWS region. It must be provided, but
-  it can also be sourced from the `AWS_REGION` environment variables.
+  it can also be sourced from the `AWS_DEFAULT_REGION` environment variables.
 
