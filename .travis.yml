@@ -12,6 +12,10 @@ script:
   - go test ./...
   #- go test -race ./...
 
+branches:
+  only:
+    - master
+
 matrix:
   fast_finish: true
   allow_failures:
