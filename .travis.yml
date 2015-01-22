@@ -1,15 +1,18 @@
+sudo: false
+
 language: go
 
 go:
-    - 1.4
-    - tip
+  - 1.4
+  - tip
 
 install: make updatedeps
 
 script:
-    - go test ./...
-    #- go test -race ./...
+  - go test ./...
+  #- go test -race ./...
 
 matrix:
-    allow_failures:
-        - go: tip
+  fast_finish: true
+  allow_failures:
+    - go: tip
