@@ -7,7 +7,7 @@ import (
 )
 
 func TestGraphNodeConfigResource_impl(t *testing.T) {
-	var _ dag.Node = new(GraphNodeConfigResource)
-	var _ dag.NamedNode = new(GraphNodeConfigResource)
+	var _ dag.Vertex = new(GraphNodeConfigResource)
+	var _ dag.NamedVertex = new(GraphNodeConfigResource)
 	var _ graphNodeConfig = new(GraphNodeConfigResource)
 }

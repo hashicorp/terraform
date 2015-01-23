@@ -11,7 +11,7 @@ import (
 // configuration graph need to implement in order to build the variable
 // dependencies properly.
 type graphNodeConfig interface {
-	dag.Node
+	dag.Vertex
 
 	// Variables returns the full list of variables that this node
 	// depends on. The values within the slice should map to the VarName()
@@ -22,45 +22,10 @@ type graphNodeConfig interface {
 	// maps to this node. It should match the result of the
 	// `VarName` function.
 	VarName() string
-
-	// depMap and setDepMap are used to get and set the dependency map
-	// for this node. This is used to modify the dependencies. The key of
-	// this map should be the VarName() of graphNodeConfig.
-	depMap() map[string]dag.Node
-	setDepMap(map[string]dag.Node)
-}
-
-// graphNodeConfigBasicDepMap is a struct that provides the Deps(),
-// depMap(), and setDepMap() functions to help satisfy the graphNodeConfig
-// interface. This struct is meant to be embedded into other nodes to get
-// these features for free.
-type graphNodeConfigBasicDepMap struct {
-	DepMap map[string]dag.Node
-}
-
-func (n *graphNodeConfigBasicDepMap) Deps() []dag.Node {
-	r := make([]dag.Node, 0, len(n.DepMap))
-	for _, v := range n.DepMap {
-		if v != nil {
-			r = append(r, v)
-		}
-	}
-
-	return r
-}
-
-func (n *graphNodeConfigBasicDepMap) depMap() map[string]dag.Node {
-	return n.DepMap
-}
-
-func (n *graphNodeConfigBasicDepMap) setDepMap(m map[string]dag.Node) {
-	n.DepMap = m
 }
 
 // GraphNodeConfigModule represents a module within the configuration graph.
 type GraphNodeConfigModule struct {
-	graphNodeConfigBasicDepMap
-
 	Module *config.Module
 }
 
@@ -86,8 +51,6 @@ func (n *GraphNodeConfigModule) VarName() string {
 // configuration graph. These are only immediately in the graph when an
 // explicit `provider` configuration block is in the configuration.
 type GraphNodeConfigProvider struct {
-	graphNodeConfigBasicDepMap
-
 	Provider *config.ProviderConfig
 }
 
@@ -111,8 +74,6 @@ func (n *GraphNodeConfigProvider) VarName() string {
 
 // GraphNodeConfigResource represents a resource within the config graph.
 type GraphNodeConfigResource struct {
-	graphNodeConfigBasicDepMap
-
 	Resource *config.Resource
 }
 
