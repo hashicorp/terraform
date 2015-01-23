@@ -131,12 +131,12 @@ func resourceComputeInstanceCreate(d *schema.ResourceData, meta interface{}) err
 	}
 
 	// Add configured networks
-	networksCount := d.Get("network.#").(int)
-	for i := 0; i < networksCount; i++ {
-		prefix := fmt.Sprintf("network.%d", i)
+	networks := d.Get("network").([]interface{})
+	for i, v := range networks {
+		networkData := v.(map[string]interface{})
 
 		// Load up the uuid of this network out of the source setting
-		networkUuid := d.Get(prefix + ".source").(string)
+		networkUuid := networkData["source"].(string)
 
 		// Test if the given uuid is valid
 		if network, err := config.sdc_client.GetNetwork(networkUuid); err != nil {
@@ -144,10 +144,12 @@ func resourceComputeInstanceCreate(d *schema.ResourceData, meta interface{}) err
 				"Error adding network '%s': %s",
 				networkUuid, err)
 		} else {
-			d.Set(prefix+".public", network.Public)
+			networkData["public"] = network.Public
 
 			opts.Networks = append(opts.Networks, network.Id)
 		}
+
+		networks[i] = networkData
 	}
 
 	machine, err := config.sdc_client.CreateMachine(opts)
@@ -333,12 +335,16 @@ func computeInstanceUpdateMeta(d *schema.ResourceData, machine *cloudapi.Machine
 	d.Set("updated", machine.Updated)
 
 	// match the list of networks + IPs
-	networksCount := d.Get("network.#").(int)
-	for i := 0; i < networksCount; i++ {
-		prefix := fmt.Sprintf("network.%d", i)
+	networks := d.Get("network").([]interface{})
+	for i, v := range networks {
+		networkData := v.(map[string]interface{})
 
-		d.Set(prefix+".address", machine.IPs[i])
+		networkData["address"] = machine.IPs[i]
+
+		networks[i] = networkData
 	}
+
+	d.Set("network", networks)
 
 	if machine.PrimaryIP != "" {
 		d.SetConnInfo(map[string]string{
