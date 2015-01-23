@@ -123,6 +123,16 @@ func TestAccAWSSecurityGroup_vpc(t *testing.T) {
 						"aws_security_group.web", "ingress.332851786.cidr_blocks.#", "1"),
 					resource.TestCheckResourceAttr(
 						"aws_security_group.web", "ingress.332851786.cidr_blocks.0", "10.0.0.0/8"),
+					resource.TestCheckResourceAttr(
+						"aws_security_group.web", "egress.332851786.protocol", "tcp"),
+					resource.TestCheckResourceAttr(
+						"aws_security_group.web", "egress.332851786.from_port", "80"),
+					resource.TestCheckResourceAttr(
+						"aws_security_group.web", "egress.332851786.to_port", "8000"),
+					resource.TestCheckResourceAttr(
+						"aws_security_group.web", "egress.332851786.cidr_blocks.#", "1"),
+					resource.TestCheckResourceAttr(
+						"aws_security_group.web", "egress.332851786.cidr_blocks.0", "10.0.0.0/8"),
 					testCheck,
 				),
 			},
@@ -418,6 +428,13 @@ resource "aws_security_group" "web" {
     to_port = 8000
     cidr_blocks = ["10.0.0.0/8"]
   }
+
+	egress {
+		protocol = "tcp"
+		from_port = 80
+		to_port = 8000
+		cidr_blocks = ["10.0.0.0/8"]
+	}
 }
 `
 
