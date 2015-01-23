@@ -43,31 +43,30 @@ func Graph2(mod *module.Tree) (*dag.Graph, error) {
 	}
 
 	// Build the full map of the var names to the nodes.
-	fullMap := make(map[string]dag.Node)
+	fullMap := make(map[string]dag.Vertex)
 	for _, n := range nodes {
 		fullMap[n.VarName()] = n
 	}
 
-	// Go through all the nodes and build up the actual dependency map. We
+	// Build the graph vertices
+	var g dag.Graph
+	for _, n := range nodes {
+		g.Add(n)
+	}
+
+	// Go through all the nodes and build up the actual graph edges. We
 	// do this by getting the variables that each node depends on and then
 	// building the dep map based on the fullMap which contains the mapping
 	// of var names to the actual node with that name.
 	for _, n := range nodes {
-		m := make(map[string]dag.Node)
 		for _, id := range n.Variables() {
-			m[id] = fullMap[id]
+			if target, ok := fullMap[id]; ok {
+				g.Connect(dag.BasicEdge(n, target))
+			}
 		}
-
-		n.setDepMap(m)
 	}
 
-	// Build the graph and return it
-	g := &dag.Graph{Nodes: make([]dag.Node, 0, len(nodes))}
-	for _, n := range nodes {
-		g.Nodes = append(g.Nodes, n)
-	}
-
-	return g, nil
+	return &g, nil
 }
 
 // varNameForVar returns the VarName value for an interpolated variable.
