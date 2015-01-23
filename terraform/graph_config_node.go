@@ -11,7 +11,7 @@ import (
 // configuration graph need to implement in order to build the variable
 // dependencies properly.
 type graphNodeConfig interface {
-	dag.Vertex
+	dag.NamedVertex
 
 	// Variables returns the full list of variables that this node
 	// depends on. The values within the slice should map to the VarName()
