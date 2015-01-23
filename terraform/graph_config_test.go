@@ -66,6 +66,13 @@ func TestGraph2_modules(t *testing.T) {
 	}
 }
 
+func TestGraph2_errMissingDeps(t *testing.T) {
+	_, err := Graph2(testModule(t, "graph-missing-deps"))
+	if err == nil {
+		t.Fatal("should error")
+	}
+}
+
 const testGraphBasicStr = `
 aws_instance.web
   aws_security_group.firewall
