@@ -3,11 +3,11 @@ package terraform
 import (
 	"testing"
 
-	"github.com/hashicorp/terraform/depgraph2"
+	"github.com/hashicorp/terraform/dag"
 )
 
 func TestGraphNodeConfigResource_impl(t *testing.T) {
-	var _ depgraph.Node = new(GraphNodeConfigResource)
-	var _ depgraph.NamedNode = new(GraphNodeConfigResource)
+	var _ dag.Node = new(GraphNodeConfigResource)
+	var _ dag.NamedNode = new(GraphNodeConfigResource)
 	var _ graphNodeConfig = new(GraphNodeConfigResource)
 }

@@ -6,12 +6,12 @@ import (
 
 	"github.com/hashicorp/terraform/config"
 	"github.com/hashicorp/terraform/config/module"
-	"github.com/hashicorp/terraform/depgraph2"
+	"github.com/hashicorp/terraform/dag"
 )
 
 // Graph takes a module tree and builds a logical graph of all the nodes
 // in that module.
-func Graph2(mod *module.Tree) (*depgraph.Graph, error) {
+func Graph2(mod *module.Tree) (*dag.Graph, error) {
 	// A module is required and also must be completely loaded.
 	if mod == nil {
 		return nil, errors.New("module must not be nil")
@@ -43,7 +43,7 @@ func Graph2(mod *module.Tree) (*depgraph.Graph, error) {
 	}
 
 	// Build the full map of the var names to the nodes.
-	fullMap := make(map[string]depgraph.Node)
+	fullMap := make(map[string]dag.Node)
 	for _, n := range nodes {
 		fullMap[n.VarName()] = n
 	}
@@ -53,7 +53,7 @@ func Graph2(mod *module.Tree) (*depgraph.Graph, error) {
 	// building the dep map based on the fullMap which contains the mapping
 	// of var names to the actual node with that name.
 	for _, n := range nodes {
-		m := make(map[string]depgraph.Node)
+		m := make(map[string]dag.Node)
 		for _, id := range n.Variables() {
 			m[id] = fullMap[id]
 		}
@@ -62,7 +62,7 @@ func Graph2(mod *module.Tree) (*depgraph.Graph, error) {
 	}
 
 	// Build the graph and return it
-	g := &depgraph.Graph{Nodes: make([]depgraph.Node, 0, len(nodes))}
+	g := &dag.Graph{Nodes: make([]dag.Node, 0, len(nodes))}
 	for _, n := range nodes {
 		g.Nodes = append(g.Nodes, n)
 	}
