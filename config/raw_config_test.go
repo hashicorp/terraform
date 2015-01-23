@@ -4,6 +4,8 @@ import (
 	"encoding/gob"
 	"reflect"
 	"testing"
+
+	"github.com/hashicorp/terraform/config/lang/ast"
 )
 
 func TestNewRawConfig(t *testing.T) {
@@ -40,7 +42,12 @@ func TestRawConfig(t *testing.T) {
 		t.Fatalf("bad: %#v", rc.Config())
 	}
 
-	vars := map[string]string{"var.bar": "baz"}
+	vars := map[string]ast.Variable{
+		"var.bar": ast.Variable{
+			Value: "baz",
+			Type:  ast.TypeString,
+		},
+	}
 	if err := rc.Interpolate(vars); err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -68,7 +75,12 @@ func TestRawConfig_double(t *testing.T) {
 		t.Fatalf("err: %s", err)
 	}
 
-	vars := map[string]string{"var.bar": "baz"}
+	vars := map[string]ast.Variable{
+		"var.bar": ast.Variable{
+			Value: "baz",
+			Type:  ast.TypeString,
+		},
+	}
 	if err := rc.Interpolate(vars); err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -82,7 +94,12 @@ func TestRawConfig_double(t *testing.T) {
 		t.Fatalf("bad: %#v", actual)
 	}
 
-	vars = map[string]string{"var.bar": "what"}
+	vars = map[string]ast.Variable{
+		"var.bar": ast.Variable{
+			Value: "what",
+			Type:  ast.TypeString,
+		},
+	}
 	if err := rc.Interpolate(vars); err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -97,6 +114,16 @@ func TestRawConfig_double(t *testing.T) {
 	}
 }
 
+func TestRawConfig_syntax(t *testing.T) {
+	raw := map[string]interface{}{
+		"foo": "${var",
+	}
+
+	if _, err := NewRawConfig(raw); err == nil {
+		t.Fatal("should error")
+	}
+}
+
 func TestRawConfig_unknown(t *testing.T) {
 	raw := map[string]interface{}{
 		"foo": "${var.bar}",
@@ -107,7 +134,12 @@ func TestRawConfig_unknown(t *testing.T) {
 		t.Fatalf("err: %s", err)
 	}
 
-	vars := map[string]string{"var.bar": UnknownVariableValue}
+	vars := map[string]ast.Variable{
+		"var.bar": ast.Variable{
+			Value: UnknownVariableValue,
+			Type:  ast.TypeString,
+		},
+	}
 	if err := rc.Interpolate(vars); err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -145,7 +177,12 @@ func TestRawConfigValue(t *testing.T) {
 		t.Fatalf("err: %#v", rc.Value())
 	}
 
-	vars := map[string]string{"var.bar": "baz"}
+	vars := map[string]ast.Variable{
+		"var.bar": ast.Variable{
+			Value: "baz",
+			Type:  ast.TypeString,
+		},
+	}
 	if err := rc.Interpolate(vars); err != nil {
 		t.Fatalf("err: %s", err)
 	}

@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"encoding/gob"
 
+	"github.com/hashicorp/terraform/config/lang"
+	"github.com/hashicorp/terraform/config/lang/ast"
 	"github.com/mitchellh/copystructure"
 	"github.com/mitchellh/reflectwalk"
 )
@@ -26,7 +28,7 @@ const UnknownVariableValue = "74D93920-ED26-11E3-AC10-0800200C9A66"
 type RawConfig struct {
 	Key            string
 	Raw            map[string]interface{}
-	Interpolations []Interpolation
+	Interpolations []ast.Node
 	Variables      map[string]InterpolatedVariable
 
 	config      map[string]interface{}
@@ -78,9 +80,15 @@ func (r *RawConfig) Config() map[string]interface{} {
 // Any prior calls to Interpolate are replaced with this one.
 //
 // If a variable key is missing, this will panic.
-func (r *RawConfig) Interpolate(vs map[string]string) error {
-	return r.interpolate(func(i Interpolation) (string, error) {
-		return i.Interpolate(vs)
+func (r *RawConfig) Interpolate(vs map[string]ast.Variable) error {
+	config := langEvalConfig(vs)
+	return r.interpolate(func(root ast.Node) (string, error) {
+		out, _, err := lang.Eval(root, config)
+		if err != nil {
+			return "", err
+		}
+
+		return out.(string), nil
 	})
 }
 
@@ -89,15 +97,19 @@ func (r *RawConfig) init() error {
 	r.Interpolations = nil
 	r.Variables = nil
 
-	fn := func(i Interpolation) (string, error) {
-		r.Interpolations = append(r.Interpolations, i)
+	fn := func(node ast.Node) (string, error) {
+		r.Interpolations = append(r.Interpolations, node)
+		vars, err := DetectVariables(node)
+		if err != nil {
+			return "", err
+		}
 
-		for k, v := range i.Variables() {
+		for _, v := range vars {
 			if r.Variables == nil {
 				r.Variables = make(map[string]InterpolatedVariable)
 			}
 
-			r.Variables[k] = v
+			r.Variables[v.FullKey()] = v
 		}
 
 		return "", nil
@@ -188,4 +200,20 @@ func (r *RawConfig) GobEncode() ([]byte, error) {
 type gobRawConfig struct {
 	Key string
 	Raw map[string]interface{}
+}
+
+// langEvalConfig returns the evaluation configuration we use to execute.
+func langEvalConfig(vs map[string]ast.Variable) *lang.EvalConfig {
+	funcMap := make(map[string]ast.Function)
+	for k, v := range Funcs {
+		funcMap[k] = v
+	}
+	funcMap["lookup"] = interpolationFuncLookup(vs)
+
+	return &lang.EvalConfig{
+		GlobalScope: &ast.BasicScope{
+			VarMap:  vs,
+			FuncMap: funcMap,
+		},
+	}
 }

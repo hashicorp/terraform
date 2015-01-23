@@ -13,7 +13,7 @@ introduces how to use provisioners to run basic shell scripts on
 instances when they're created.
 
 If you're using an image-based infrastructure (perhaps with images
-created with [Packer](http://www.packer.io)), then what you've
+created with [Packer](https://www.packer.io)), then what you've
 learned so far is good enough. But if you need to do some initial
 setup on your instances, provisioners let you upload files,
 run shell scripts, etc.
@@ -35,7 +35,7 @@ resource "aws_instance" "example" {
 ```
 
 This adds a `provision` block within the `resource` block. Multiple
-`provision` blocks can be added to define multiple provisoining steps.
+`provision` blocks can be added to define multiple provisioning steps.
 Terraform supports
 [multiple provisioners](/docs/provisioners/index.html),
 but for this example we use the "local-exec" provisioner.

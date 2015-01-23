@@ -5,46 +5,49 @@ import (
 	"strings"
 	"time"
 
-	"github.com/hashicorp/terraform/helper/config"
-	"github.com/hashicorp/terraform/helper/diff"
 	"github.com/hashicorp/terraform/helper/resource"
-	"github.com/hashicorp/terraform/terraform"
+	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/mitchellh/goamz/route53"
 )
 
-func resource_aws_r53_zone_validation() *config.Validator {
-	return &config.Validator{
-		Required: []string{
-			"name",
+func resourceAwsRoute53Zone() *schema.Resource {
+	return &schema.Resource{
+		Create: resourceAwsRoute53ZoneCreate,
+		Read:   resourceAwsRoute53ZoneRead,
+		Delete: resourceAwsRoute53ZoneDelete,
+
+		Schema: map[string]*schema.Schema{
+			"name": &schema.Schema{
+				Type:     schema.TypeString,
+				Required: true,
+				ForceNew: true,
+			},
+
+			"zone_id": &schema.Schema{
+				Type:     schema.TypeString,
+				Computed: true,
+			},
 		},
 	}
 }
 
-func resource_aws_r53_zone_create(
-	s *terraform.InstanceState,
-	d *terraform.InstanceDiff,
-	meta interface{}) (*terraform.InstanceState, error) {
-	p := meta.(*ResourceProvider)
-	r53 := p.route53
-
-	// Merge the diff into the state so that we have all the attributes
-	// properly.
-	rs := s.MergeDiff(d)
+func resourceAwsRoute53ZoneCreate(d *schema.ResourceData, meta interface{}) error {
+	r53 := meta.(*AWSClient).route53
 
 	req := &route53.CreateHostedZoneRequest{
-		Name:    rs.Attributes["name"],
+		Name:    d.Get("name").(string),
 		Comment: "Managed by Terraform",
 	}
 	log.Printf("[DEBUG] Creating Route53 hosted zone: %s", req.Name)
 	resp, err := r53.CreateHostedZone(req)
 	if err != nil {
-		return rs, err
+		return err
 	}
 
 	// Store the zone_id
 	zone := route53.CleanZoneID(resp.HostedZone.ID)
-	rs.ID = zone
-	rs.Attributes["zone_id"] = zone
+	d.Set("zone_id", zone)
+	d.SetId(zone)
 
 	// Wait until we are done initializing
 	wait := resource.StateChangeConf{
@@ -54,71 +57,50 @@ func resource_aws_r53_zone_create(
 		Timeout:    10 * time.Minute,
 		MinTimeout: 2 * time.Second,
 		Refresh: func() (result interface{}, state string, err error) {
-			return resource_aws_r53_wait(r53, resp.ChangeInfo.ID)
+			return resourceAwsRoute53Wait(r53, resp.ChangeInfo.ID)
 		},
 	}
 	_, err = wait.WaitForState()
-	if err != nil {
-		return rs, err
-	}
-	return rs, nil
-}
-
-// resource_aws_r53_wait checks the status of a change
-func resource_aws_r53_wait(r53 *route53.Route53, ref string) (result interface{}, state string, err error) {
-	status, err := r53.GetChange(ref)
-	if err != nil {
-		return nil, "UNKNOWN", err
-	}
-	return true, status, nil
-}
-
-func resource_aws_r53_zone_destroy(
-	s *terraform.InstanceState,
-	meta interface{}) error {
-	p := meta.(*ResourceProvider)
-	r53 := p.route53
-
-	log.Printf("[DEBUG] Deleting Route53 hosted zone: %s (ID: %s)",
-		s.Attributes["name"], s.Attributes["zone_id"])
-	_, err := r53.DeleteHostedZone(s.Attributes["zone_id"])
 	if err != nil {
 		return err
 	}
 	return nil
 }
 
-func resource_aws_r53_zone_refresh(
-	s *terraform.InstanceState,
-	meta interface{}) (*terraform.InstanceState, error) {
-	p := meta.(*ResourceProvider)
-	r53 := p.route53
+func resourceAwsRoute53ZoneRead(d *schema.ResourceData, meta interface{}) error {
+	r53 := meta.(*AWSClient).route53
 
-	_, err := r53.GetHostedZone(s.Attributes["zone_id"])
+	_, err := r53.GetHostedZone(d.Id())
 	if err != nil {
 		// Handle a deleted zone
 		if strings.Contains(err.Error(), "404") {
-			s.ID = ""
-			return s, nil
+			d.SetId("")
+			return nil
 		}
-		return s, err
+		return err
 	}
-	return s, nil
+
+	return nil
 }
 
-func resource_aws_r53_zone_diff(
-	s *terraform.InstanceState,
-	c *terraform.ResourceConfig,
-	meta interface{}) (*terraform.InstanceDiff, error) {
+func resourceAwsRoute53ZoneDelete(d *schema.ResourceData, meta interface{}) error {
+	r53 := meta.(*AWSClient).route53
 
-	b := &diff.ResourceBuilder{
-		Attrs: map[string]diff.AttrType{
-			"name": diff.AttrTypeCreate,
-		},
-
-		ComputedAttrs: []string{
-			"zone_id",
-		},
+	log.Printf("[DEBUG] Deleting Route53 hosted zone: %s (ID: %s)",
+		d.Get("name").(string), d.Id())
+	_, err := r53.DeleteHostedZone(d.Id())
+	if err != nil {
+		return err
 	}
-	return b.Diff(s, c)
+
+	return nil
+}
+
+// resourceAwsRoute53Wait checks the status of a change
+func resourceAwsRoute53Wait(r53 *route53.Route53, ref string) (result interface{}, state string, err error) {
+	status, err := r53.GetChange(ref)
+	if err != nil {
+		return nil, "UNKNOWN", err
+	}
+	return true, status, nil
 }

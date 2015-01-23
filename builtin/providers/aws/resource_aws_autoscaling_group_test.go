@@ -23,7 +23,7 @@ func TestAccAWSAutoScalingGroup_basic(t *testing.T) {
 					testAccCheckAWSAutoScalingGroupExists("aws_autoscaling_group.bar", &group),
 					testAccCheckAWSAutoScalingGroupAttributes(&group),
 					resource.TestCheckResourceAttr(
-						"aws_autoscaling_group.bar", "availability_zones.0", "us-west-2a"),
+						"aws_autoscaling_group.bar", "availability_zones.2487133097", "us-west-2a"),
 					resource.TestCheckResourceAttr(
 						"aws_autoscaling_group.bar", "name", "foobar3-terraform-test"),
 					resource.TestCheckResourceAttr(
@@ -38,6 +38,8 @@ func TestAccAWSAutoScalingGroup_basic(t *testing.T) {
 						"aws_autoscaling_group.bar", "desired_capacity", "4"),
 					resource.TestCheckResourceAttr(
 						"aws_autoscaling_group.bar", "force_delete", "true"),
+					resource.TestCheckResourceAttr(
+						"aws_autoscaling_group.bar", "termination_policies.912102603", "OldestInstance"),
 				),
 			},
 
@@ -72,7 +74,7 @@ func TestAccAWSAutoScalingGroupWithLoadBalancer(t *testing.T) {
 	})
 }
 func testAccCheckAWSAutoScalingGroupDestroy(s *terraform.State) error {
-	conn := testAccProvider.autoscalingconn
+	conn := testAccProvider.Meta().(*AWSClient).autoscalingconn
 
 	for _, rs := range s.RootModule().Resources {
 		if rs.Type != "aws_autoscaling_group" {
@@ -164,7 +166,7 @@ func testAccCheckAWSAutoScalingGroupExists(n string, group *autoscaling.AutoScal
 			return fmt.Errorf("No AutoScaling Group ID is set")
 		}
 
-		conn := testAccProvider.autoscalingconn
+		conn := testAccProvider.Meta().(*AWSClient).autoscalingconn
 
 		describeOpts := autoscaling.DescribeAutoScalingGroups{
 			Names: []string{rs.Primary.ID},
@@ -202,6 +204,7 @@ resource "aws_autoscaling_group" "bar" {
   health_check_type = "ELB"
   desired_capacity = 4
   force_delete = true
+  termination_policies = ["OldestInstance"]
 
   launch_configuration = "${aws_launch_configuration.foobar.name}"
 }

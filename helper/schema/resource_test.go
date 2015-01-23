@@ -157,6 +157,7 @@ func TestResourceApply_destroyCreate(t *testing.T) {
 		Attributes: map[string]string{
 			"id":        "foo",
 			"foo":       "42",
+			"tags.#":    "1",
 			"tags.Name": "foo",
 		},
 	}
@@ -407,5 +408,73 @@ func TestResourceRefresh_delete(t *testing.T) {
 
 	if actual != nil {
 		t.Fatalf("bad: %#v", actual)
+	}
+}
+
+func TestResourceRefresh_existsError(t *testing.T) {
+	r := &Resource{
+		Schema: map[string]*Schema{
+			"foo": &Schema{
+				Type:     TypeInt,
+				Optional: true,
+			},
+		},
+	}
+
+	r.Exists = func(*ResourceData, interface{}) (bool, error) {
+		return false, fmt.Errorf("error")
+	}
+
+	r.Read = func(d *ResourceData, m interface{}) error {
+		panic("shouldn't be called")
+	}
+
+	s := &terraform.InstanceState{
+		ID: "bar",
+		Attributes: map[string]string{
+			"foo": "12",
+		},
+	}
+
+	actual, err := r.Refresh(s, 42)
+	if err == nil {
+		t.Fatalf("should error")
+	}
+	if !reflect.DeepEqual(actual, s) {
+		t.Fatalf("bad: %#v", actual)
+	}
+}
+
+func TestResourceRefresh_noExists(t *testing.T) {
+	r := &Resource{
+		Schema: map[string]*Schema{
+			"foo": &Schema{
+				Type:     TypeInt,
+				Optional: true,
+			},
+		},
+	}
+
+	r.Exists = func(*ResourceData, interface{}) (bool, error) {
+		return false, nil
+	}
+
+	r.Read = func(d *ResourceData, m interface{}) error {
+		panic("shouldn't be called")
+	}
+
+	s := &terraform.InstanceState{
+		ID: "bar",
+		Attributes: map[string]string{
+			"foo": "12",
+		},
+	}
+
+	actual, err := r.Refresh(s, 42)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if actual != nil {
+		t.Fatalf("should have no state")
 	}
 }

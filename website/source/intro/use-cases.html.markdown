@@ -56,7 +56,7 @@ a tool to manage their services.
 #### Software Demos
 
 Modern software is increasingly networked and distributed. Although tools like
-[Vagrant](http://www.vagrantup.com/) exist to build virtualized environments
+[Vagrant](https://www.vagrantup.com/) exist to build virtualized environments
 for demos, it is still very challenging to demo software on real infrastructure
 which more closely matches production environments.
 

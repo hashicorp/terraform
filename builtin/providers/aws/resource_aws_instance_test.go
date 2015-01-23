@@ -2,9 +2,11 @@ package aws
 
 import (
 	"fmt"
+	"reflect"
 	"testing"
 
 	"github.com/hashicorp/terraform/helper/resource"
+	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/terraform"
 	"github.com/mitchellh/goamz/ec2"
 )
@@ -188,8 +190,66 @@ func TestAccInstance_tags(t *testing.T) {
 	})
 }
 
+func TestAccInstance_privateIP(t *testing.T) {
+	var v ec2.Instance
+
+	testCheckPrivateIP := func() resource.TestCheckFunc {
+		return func(*terraform.State) error {
+			if v.PrivateIpAddress != "10.1.1.42" {
+				return fmt.Errorf("bad private IP: %s", v.PrivateIpAddress)
+			}
+
+			return nil
+		}
+	}
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckInstanceDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccInstanceConfigPrivateIP,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckInstanceExists("aws_instance.foo", &v),
+					testCheckPrivateIP(),
+				),
+			},
+		},
+	})
+}
+
+func TestAccInstance_associatePublicIPAndPrivateIP(t *testing.T) {
+	var v ec2.Instance
+
+	testCheckPrivateIP := func() resource.TestCheckFunc {
+		return func(*terraform.State) error {
+			if v.PrivateIpAddress != "10.1.1.42" {
+				return fmt.Errorf("bad private IP: %s", v.PrivateIpAddress)
+			}
+
+			return nil
+		}
+	}
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckInstanceDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccInstanceConfigAssociatePublicIPAndPrivateIP,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckInstanceExists("aws_instance.foo", &v),
+					testCheckPrivateIP(),
+				),
+			},
+		},
+	})
+}
+
 func testAccCheckInstanceDestroy(s *terraform.State) error {
-	conn := testAccProvider.ec2conn
+	conn := testAccProvider.Meta().(*AWSClient).ec2conn
 
 	for _, rs := range s.RootModule().Resources {
 		if rs.Type != "aws_instance" {
@@ -231,7 +291,7 @@ func testAccCheckInstanceExists(n string, i *ec2.Instance) resource.TestCheckFun
 			return fmt.Errorf("No ID is set")
 		}
 
-		conn := testAccProvider.ec2conn
+		conn := testAccProvider.Meta().(*AWSClient).ec2conn
 		resp, err := conn.Instances(
 			[]string{rs.Primary.ID}, ec2.NewFilter())
 		if err != nil {
@@ -244,6 +304,22 @@ func testAccCheckInstanceExists(n string, i *ec2.Instance) resource.TestCheckFun
 		*i = resp.Reservations[0].Instances[0]
 
 		return nil
+	}
+}
+
+func TestInstanceTenancySchema(t *testing.T) {
+	actualSchema := resourceAwsInstance().Schema["tenancy"]
+	expectedSchema := &schema.Schema{
+		Type:     schema.TypeString,
+		Optional: true,
+		Computed: true,
+		ForceNew: true,
+	}
+	if !reflect.DeepEqual(actualSchema, expectedSchema) {
+		t.Fatalf(
+			"Got:\n\n%#v\n\nExpected:\n\n%#v\n",
+			actualSchema,
+			expectedSchema)
 	}
 }
 
@@ -338,11 +414,14 @@ resource "aws_instance" "foo" {
 	instance_type = "m1.small"
 	subnet_id = "${aws_subnet.foo.id}"
 	associate_public_ip_address = true
+	tenancy = "dedicated"
 }
 `
 
 const testAccCheckInstanceConfigTags = `
 resource "aws_instance" "foo" {
+	ami = "ami-4fccb37f"
+	instance_type = "m1.small"
 	tags {
 		foo = "bar"
 	}
@@ -351,8 +430,47 @@ resource "aws_instance" "foo" {
 
 const testAccCheckInstanceConfigTagsUpdate = `
 resource "aws_instance" "foo" {
+	ami = "ami-4fccb37f"
+	instance_type = "m1.small"
 	tags {
 		bar = "baz"
 	}
+}
+`
+
+const testAccInstanceConfigPrivateIP = `
+resource "aws_vpc" "foo" {
+	cidr_block = "10.1.0.0/16"
+}
+
+resource "aws_subnet" "foo" {
+	cidr_block = "10.1.1.0/24"
+	vpc_id = "${aws_vpc.foo.id}"
+}
+
+resource "aws_instance" "foo" {
+	ami = "ami-c5eabbf5"
+	instance_type = "t2.micro"
+	subnet_id = "${aws_subnet.foo.id}"
+	private_ip = "10.1.1.42"
+}
+`
+
+const testAccInstanceConfigAssociatePublicIPAndPrivateIP = `
+resource "aws_vpc" "foo" {
+	cidr_block = "10.1.0.0/16"
+}
+
+resource "aws_subnet" "foo" {
+	cidr_block = "10.1.1.0/24"
+	vpc_id = "${aws_vpc.foo.id}"
+}
+
+resource "aws_instance" "foo" {
+	ami = "ami-c5eabbf5"
+	instance_type = "t2.micro"
+	subnet_id = "${aws_subnet.foo.id}"
+	associate_public_ip_address = true
+	private_ip = "10.1.1.42"
 }
 `

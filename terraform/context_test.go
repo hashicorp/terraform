@@ -913,6 +913,35 @@ func TestContextApply(t *testing.T) {
 	}
 }
 
+func TestContextApply_emptyModule(t *testing.T) {
+	m := testModule(t, "apply-empty-module")
+	p := testProvider("aws")
+	p.ApplyFn = testApplyFn
+	p.DiffFn = testDiffFn
+	ctx := testContext(t, &ContextOpts{
+		Module: m,
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+	})
+
+	if _, err := ctx.Plan(nil); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	state, err := ctx.Apply()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	actual := strings.TrimSpace(state.String())
+	actual = strings.Replace(actual, "  ", "", -1)
+	expected := strings.TrimSpace(testTerraformApplyEmptyModuleStr)
+	if actual != expected {
+		t.Fatalf("bad: \n%s\nexpect:\n%s", actual, expected)
+	}
+}
+
 func TestContextApply_createBeforeDestroy(t *testing.T) {
 	m := testModule(t, "apply-good-create-before")
 	p := testProvider("aws")
@@ -2416,6 +2445,55 @@ func TestContextApply_output(t *testing.T) {
 	}
 }
 
+func TestContextApply_outputInvalid(t *testing.T) {
+	m := testModule(t, "apply-output-invalid")
+	p := testProvider("aws")
+	p.ApplyFn = testApplyFn
+	p.DiffFn = testDiffFn
+	ctx := testContext(t, &ContextOpts{
+		Module: m,
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+	})
+
+	_, err := ctx.Plan(nil)
+	if err == nil {
+		t.Fatalf("err: %s", err)
+	}
+	if !strings.Contains(err.Error(), "is not a string") {
+		t.Fatalf("err: %s", err)
+	}
+}
+
+func TestContextApply_outputList(t *testing.T) {
+	m := testModule(t, "apply-output-list")
+	p := testProvider("aws")
+	p.ApplyFn = testApplyFn
+	p.DiffFn = testDiffFn
+	ctx := testContext(t, &ContextOpts{
+		Module: m,
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+	})
+
+	if _, err := ctx.Plan(nil); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	state, err := ctx.Apply()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	actual := strings.TrimSpace(state.String())
+	expected := strings.TrimSpace(testTerraformApplyOutputListStr)
+	if actual != expected {
+		t.Fatalf("bad: \n%s", actual)
+	}
+}
+
 func TestContextApply_outputMulti(t *testing.T) {
 	m := testModule(t, "apply-output-multi")
 	p := testProvider("aws")
@@ -2783,6 +2861,35 @@ func TestContextPlan(t *testing.T) {
 	}
 }
 
+func TestContextPlan_emptyDiff(t *testing.T) {
+	m := testModule(t, "plan-empty")
+	p := testProvider("aws")
+	p.DiffFn = func(
+		info *InstanceInfo,
+		s *InstanceState,
+		c *ResourceConfig) (*InstanceDiff, error) {
+		return nil, nil
+	}
+
+	ctx := testContext(t, &ContextOpts{
+		Module: m,
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+	})
+
+	plan, err := ctx.Plan(nil)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	actual := strings.TrimSpace(plan.String())
+	expected := strings.TrimSpace(testTerraformPlanEmptyStr)
+	if actual != expected {
+		t.Fatalf("bad:\n%s", actual)
+	}
+}
+
 func TestContextPlan_minimal(t *testing.T) {
 	m := testModule(t, "plan-empty")
 	p := testProvider("aws")
@@ -2896,6 +3003,28 @@ func TestContextPlan_moduleInputFromVar(t *testing.T) {
 
 	actual := strings.TrimSpace(plan.String())
 	expected := strings.TrimSpace(testTerraformPlanModuleInputVarStr)
+	if actual != expected {
+		t.Fatalf("bad:\n%s", actual)
+	}
+}
+func TestContextPlan_moduleMultiVar(t *testing.T) {
+	m := testModule(t, "plan-module-multi-var")
+	p := testProvider("aws")
+	p.DiffFn = testDiffFn
+	ctx := testContext(t, &ContextOpts{
+		Module: m,
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+	})
+
+	plan, err := ctx.Plan(nil)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	actual := strings.TrimSpace(plan.String())
+	expected := strings.TrimSpace(testTerraformPlanModuleMultiVarStr)
 	if actual != expected {
 		t.Fatalf("bad:\n%s", actual)
 	}
@@ -3616,6 +3745,55 @@ func TestContextPlan_moduleDestroy(t *testing.T) {
 	}
 }
 
+func TestContextPlan_moduleDestroyMultivar(t *testing.T) {
+	m := testModule(t, "plan-module-destroy-multivar")
+	p := testProvider("aws")
+	p.DiffFn = testDiffFn
+	s := &State{
+		Modules: []*ModuleState{
+			&ModuleState{
+				Path:      rootModulePath,
+				Resources: map[string]*ResourceState{},
+			},
+			&ModuleState{
+				Path: []string{"root", "child"},
+				Resources: map[string]*ResourceState{
+					"aws_instance.foo.0": &ResourceState{
+						Type: "aws_instance",
+						Primary: &InstanceState{
+							ID: "bar0",
+						},
+					},
+					"aws_instance.foo.1": &ResourceState{
+						Type: "aws_instance",
+						Primary: &InstanceState{
+							ID: "bar1",
+						},
+					},
+				},
+			},
+		},
+	}
+	ctx := testContext(t, &ContextOpts{
+		Module: m,
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+		State: s,
+	})
+
+	plan, err := ctx.Plan(&PlanOpts{Destroy: true})
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	actual := strings.TrimSpace(plan.String())
+	expected := strings.TrimSpace(testTerraformPlanModuleDestroyMultivarStr)
+	if actual != expected {
+		t.Fatalf("bad:\n%s", actual)
+	}
+}
+
 func TestContextPlan_pathVar(t *testing.T) {
 	cwd, err := os.Getwd()
 	if err != nil {
@@ -3866,6 +4044,25 @@ func TestContextPlan_taint(t *testing.T) {
 	}
 }
 
+// Doing a Refresh (or any operation really, but Refresh usually
+// happens first) with a config with an unknown provider should result in
+// an error. The key bug this found was that this wasn't happening if
+// Providers was _empty_.
+func TestContextRefresh_unknownProvider(t *testing.T) {
+	m := testModule(t, "refresh-unknown-provider")
+	p := testProvider("aws")
+	p.ApplyFn = testApplyFn
+	p.DiffFn = testDiffFn
+	ctx := testContext(t, &ContextOpts{
+		Module:    m,
+		Providers: map[string]ResourceProviderFactory{},
+	})
+
+	if _, err := ctx.Refresh(); err == nil {
+		t.Fatal("should error")
+	}
+}
+
 func TestContextPlan_multiple_taint(t *testing.T) {
 	m := testModule(t, "plan-taint")
 	p := testProvider("aws")
@@ -3967,6 +4164,22 @@ func TestContextPlan_varMultiCountOne(t *testing.T) {
 	expected := strings.TrimSpace(testTerraformPlanVarMultiCountOneStr)
 	if actual != expected {
 		t.Fatalf("bad:\n%s", actual)
+	}
+}
+
+func TestContextPlan_varListErr(t *testing.T) {
+	m := testModule(t, "plan-var-list-err")
+	p := testProvider("aws")
+	ctx := testContext(t, &ContextOpts{
+		Module: m,
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+	})
+
+	_, err := ctx.Plan(nil)
+	if err == nil {
+		t.Fatal("should error")
 	}
 }
 
@@ -4199,6 +4412,22 @@ func TestContextRefresh_modules(t *testing.T) {
 
 func TestContextRefresh_moduleInputComputedOutput(t *testing.T) {
 	m := testModule(t, "refresh-module-input-computed-output")
+	p := testProvider("aws")
+	p.DiffFn = testDiffFn
+	ctx := testContext(t, &ContextOpts{
+		Module: m,
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+	})
+
+	if _, err := ctx.Refresh(); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+}
+
+func TestContextRefresh_moduleVarModule(t *testing.T) {
+	m := testModule(t, "refresh-module-var-module")
 	p := testProvider("aws")
 	p.DiffFn = testDiffFn
 	ctx := testContext(t, &ContextOpts{

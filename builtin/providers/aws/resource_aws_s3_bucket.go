@@ -4,90 +4,70 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/hashicorp/terraform/helper/config"
-	"github.com/hashicorp/terraform/helper/diff"
-	"github.com/hashicorp/terraform/terraform"
+	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/mitchellh/goamz/s3"
 )
 
-func resource_aws_s3_bucket_validation() *config.Validator {
-	return &config.Validator{
-		Required: []string{
-			"bucket",
-		},
-		Optional: []string{
-			"acl",
+func resourceAwsS3Bucket() *schema.Resource {
+	return &schema.Resource{
+		Create: resourceAwsS3BucketCreate,
+		Read:   resourceAwsS3BucketRead,
+		Delete: resourceAwsS3BucketDelete,
+
+		Schema: map[string]*schema.Schema{
+			"bucket": &schema.Schema{
+				Type:     schema.TypeString,
+				Required: true,
+				ForceNew: true,
+			},
+
+			"acl": &schema.Schema{
+				Type:     schema.TypeString,
+				Default:  "private",
+				Optional: true,
+				ForceNew: true,
+			},
 		},
 	}
 }
 
-func resource_aws_s3_bucket_create(
-	s *terraform.InstanceState,
-	d *terraform.InstanceDiff,
-	meta interface{}) (*terraform.InstanceState, error) {
-	p := meta.(*ResourceProvider)
-	s3conn := p.s3conn
+func resourceAwsS3BucketCreate(d *schema.ResourceData, meta interface{}) error {
+	s3conn := meta.(*AWSClient).s3conn
 
-	// Merge the diff into the state so that we have all the attributes
-	// properly.
-	rs := s.MergeDiff(d)
-
-	// Get the bucket and optional acl
-	bucket := rs.Attributes["bucket"]
-	acl := "private"
-	if other, ok := rs.Attributes["acl"]; ok {
-		acl = other
-	}
+	// Get the bucket and acl
+	bucket := d.Get("bucket").(string)
+	acl := d.Get("acl").(string)
 
 	log.Printf("[DEBUG] S3 bucket create: %s, ACL: %s", bucket, acl)
 	s3Bucket := s3conn.Bucket(bucket)
 	err := s3Bucket.PutBucket(s3.ACL(acl))
 	if err != nil {
-		return nil, fmt.Errorf("Error creating S3 bucket: %s", err)
+		return fmt.Errorf("Error creating S3 bucket: %s", err)
 	}
 
 	// Assign the bucket name as the resource ID
-	rs.ID = bucket
-	return rs, nil
+	d.SetId(bucket)
+
+	return nil
 }
 
-func resource_aws_s3_bucket_destroy(
-	s *terraform.InstanceState,
-	meta interface{}) error {
-	p := meta.(*ResourceProvider)
-	s3conn := p.s3conn
+func resourceAwsS3BucketRead(d *schema.ResourceData, meta interface{}) error {
+	s3conn := meta.(*AWSClient).s3conn
 
-	name := s.Attributes["bucket"]
-	bucket := s3conn.Bucket(name)
-
-	log.Printf("[DEBUG] S3 Delete Bucket: %s", name)
-	return bucket.DelBucket()
-}
-
-func resource_aws_s3_bucket_refresh(
-	s *terraform.InstanceState,
-	meta interface{}) (*terraform.InstanceState, error) {
-	p := meta.(*ResourceProvider)
-	s3conn := p.s3conn
-
-	bucket := s3conn.Bucket(s.Attributes["bucket"])
+	bucket := s3conn.Bucket(d.Id())
 	resp, err := bucket.Head("/")
 	if err != nil {
-		return s, err
+		return err
 	}
 	defer resp.Body.Close()
-	return s, nil
+	return nil
 }
 
-func resource_aws_s3_bucket_diff(
-	s *terraform.InstanceState,
-	c *terraform.ResourceConfig,
-	meta interface{}) (*terraform.InstanceDiff, error) {
+func resourceAwsS3BucketDelete(d *schema.ResourceData, meta interface{}) error {
+	s3conn := meta.(*AWSClient).s3conn
 
-	b := &diff.ResourceBuilder{
-		Attrs: map[string]diff.AttrType{
-			"bucket": diff.AttrTypeCreate,
-		},
-	}
-	return b.Diff(s, c)
+	log.Printf("[DEBUG] S3 Delete Bucket: %s", d.Id())
+	bucket := s3conn.Bucket(d.Id())
+
+	return bucket.DelBucket()
 }

@@ -27,6 +27,11 @@ resource aws_instance "web" {
         device_index = 0
         description = "Main network interface"
     }
+
+    provisioner "file" {
+        source = "foo"
+        destination = "bar"
+    }
 }
 
 resource "aws_instance" "db" {
@@ -34,6 +39,11 @@ resource "aws_instance" "db" {
     VPC = "foo"
 
     depends_on = ["aws_instance.web"]
+
+    provisioner "file" {
+        source = "foo"
+        destination = "bar"
+    }
 }
 
 output "web_ip" {

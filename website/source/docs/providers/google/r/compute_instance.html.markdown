@@ -35,11 +35,9 @@ resource "google_compute_instance" "default" {
 		foo = "bar"
 	}
 
-	service_accounts {
-		email = "default"
-		scopes = [ "https://www.googleapis.com/auth/devstorage.read_only" ]
+	service_account {
+		scopes = ["userinfo-email", "compute-ro", "storage-ro"]
 	}
-
 }
 ```
 
@@ -70,11 +68,7 @@ The following arguments are supported:
     specified multiple times for multiple networks. Structure is documented
     below.
 
-* `service_accounts` - (Optional) This can be specified multiple times
-    for multiple service accounts.  Of particular importance is the
-    "default" service account which allows instances to access Google
-    Cloud APIs without needing to authenticate with additional keys.
-    Structure is documented below.
+* `service_account` - (Optional) Service account to attach to the instance.
 
 * `tags` - (Optional) Tags to attach to the instance.
 
@@ -98,13 +92,10 @@ The `network` block supports:
 * `address` - (Optional) The IP address of a reserved IP address to assign
      to this interface.
 
-The `service_accounts` block supports:
+The `service_account` block supports:
 
-* `email` - (Required) The email (username) of the service account.
-    Use "default" for the default service account.
-
-* `scopes` - (Optional) The list of OAauth 2.0 scopes (URLs) this instance is
-    implicitly allowed to use, via this service account.
+* `scopes` - (Required) A list of service scopes. Both OAuth2 URLs and gcloud
+    short names are supported.
 
 ## Attributes Reference
 

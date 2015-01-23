@@ -14,7 +14,7 @@ create and manage applications on Heroku.
 ## Example Usage
 
 ```
-# Create a new heroku app
+# Create a new Heroku app
 resource "heroku_app" "default" {
     name = "test-app"
 }
@@ -37,7 +37,7 @@ The following arguments are supported:
 
 The following attributes are exported:
 
-* `id` - The ID of the of the domain record
-* `hostname` - The hostname traffic will be served as
-* `cname` - The cname traffic should route to.
+* `id` - The ID of the of the domain record.
+* `hostname` - The hostname traffic will be served as.
+* `cname` - The CNAME traffic should route to.
 

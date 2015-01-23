@@ -6,9 +6,11 @@ body.page-sub{
 	background-color: $light-black;
 }
 
+body.layout-atlas,
 body.layout-consul,
 body.layout-dnsimple,
 body.layout-cloudflare,
+body.layout-cloudstack,
 body.layout-google,
 body.layout-heroku,
 body.layout-mailgun,

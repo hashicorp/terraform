@@ -15,8 +15,8 @@ import (
 )
 
 const (
-	// textStateVersion is the current version for our state file
-	textStateVersion = 1
+	// StateVersion is the current version for our state file
+	StateVersion = 1
 )
 
 // rootModulePath is the path of the root module
@@ -34,8 +34,19 @@ type State struct {
 	// updates.
 	Serial int64 `json:"serial"`
 
+	// Remote is used to track the metadata required to
+	// pull and push state files from a remote storage endpoint.
+	Remote *RemoteState `json:"remote,omitempty"`
+
 	// Modules contains all the modules in a breadth-first order
 	Modules []*ModuleState `json:"modules"`
+}
+
+// NewState is used to initialize a blank state
+func NewState() *State {
+	s := &State{}
+	s.init()
+	return s
 }
 
 // Children returns the ModuleStates that are direct children of
@@ -100,7 +111,7 @@ func (s *State) RootModule() *ModuleState {
 
 func (s *State) init() {
 	if s.Version == 0 {
-		s.Version = textStateVersion
+		s.Version = StateVersion
 	}
 	if len(s.Modules) == 0 {
 		root := &ModuleState{
@@ -123,6 +134,9 @@ func (s *State) deepcopy() *State {
 	for _, mod := range s.Modules {
 		n.Modules = append(n.Modules, mod.deepcopy())
 	}
+	if s.Remote != nil {
+		n.Remote = s.Remote.deepcopy()
+	}
 	return n
 }
 
@@ -133,6 +147,9 @@ func (s *State) prune() {
 	}
 	for _, mod := range s.Modules {
 		mod.prune()
+	}
+	if s.Remote != nil && s.Remote.Empty() {
+		s.Remote = nil
 	}
 }
 
@@ -167,6 +184,47 @@ func (s *State) String() string {
 	return strings.TrimSpace(buf.String())
 }
 
+// RemoteState is used to track the information about a remote
+// state store that we push/pull state to.
+type RemoteState struct {
+	// Type controls the client we use for the remote state
+	Type string `json:"type"`
+
+	// Config is used to store arbitrary configuration that
+	// is type specific
+	Config map[string]string `json:"config"`
+}
+
+func (r *RemoteState) deepcopy() *RemoteState {
+	confCopy := make(map[string]string, len(r.Config))
+	for k, v := range r.Config {
+		confCopy[k] = v
+	}
+	return &RemoteState{
+		Type:   r.Type,
+		Config: confCopy,
+	}
+}
+
+func (r *RemoteState) Empty() bool {
+	return r.Type == "" && len(r.Config) == 0
+}
+
+func (r *RemoteState) Equals(other *RemoteState) bool {
+	if r.Type != other.Type {
+		return false
+	}
+	if len(r.Config) != len(other.Config) {
+		return false
+	}
+	for k, v := range r.Config {
+		if other.Config[k] != v {
+			return false
+		}
+	}
+	return true
+}
+
 // ModuleState is used to track all the state relevant to a single
 // module. Previous to Terraform 0.3, all state belonged to the "root"
 // module.
@@ -185,6 +243,20 @@ type ModuleState struct {
 	// N instances underneath, although a user only needs to think
 	// about the 1:1 case.
 	Resources map[string]*ResourceState `json:"resources"`
+
+	// Dependencies are a list of things that this module relies on
+	// existing to remain intact. For example: an module may depend
+	// on a VPC ID given by an aws_vpc resource.
+	//
+	// Terraform uses this information to build valid destruction
+	// orders and to warn the user if they're destroying a module that
+	// another resource depends on.
+	//
+	// Things can be put into this list that may not be managed by
+	// Terraform. If Terraform doesn't find a matching ID in the
+	// overall state, then it assumes it isn't managed and doesn't
+	// worry about it.
+	Dependencies []string `json:"depends_on,omitempty"`
 }
 
 // IsRoot says whether or not this module diff is for the root module.
@@ -280,11 +352,11 @@ func (m *ModuleState) GoString() string {
 }
 
 func (m *ModuleState) String() string {
-	if len(m.Resources) == 0 {
-		return "<no state>"
-	}
-
 	var buf bytes.Buffer
+
+	if len(m.Resources) == 0 {
+		buf.WriteString("<no state>")
+	}
 
 	names := make([]string, 0, len(m.Resources))
 	for name, _ := range m.Resources {
@@ -621,7 +693,7 @@ func ReadState(src io.Reader) (*State, error) {
 
 	// Check the version, this to ensure we don't read a future
 	// version that we don't understand
-	if state.Version > textStateVersion {
+	if state.Version > StateVersion {
 		return nil, fmt.Errorf("State version %d not supported, please update.",
 			state.Version)
 	}
@@ -638,7 +710,7 @@ func WriteState(d *State, dst io.Writer) error {
 	d.sort()
 
 	// Ensure the version is set
-	d.Version = textStateVersion
+	d.Version = StateVersion
 
 	// Always increment the serial number
 	d.Serial++

@@ -35,8 +35,8 @@ The following arguments are supported:
 * `instance_type` - (Required) The type of instance to start
 * `key_name` - (Optional) The key name to use for the instance.
 * `security_groups` - (Optional) A list of security group IDs or names to associate with.
-   If you are within a VPC, you'll need to use the security group ID. Otherwise,
-   for EC2, use the security group name.
+   If you are within a non-default VPC, you'll need to use the security group ID. Otherwise,
+   for EC2 and the default VPC, use the security group name.
 * `subnet_id` - (Optional) The VPC Subnet ID to launch in.
 * `associate_public_ip_address` - (Optional) Associate a public ip address with an instance in a VPC.
 * `private_ip` - (Optional) Private IP address to associate with the
@@ -52,6 +52,7 @@ The following arguments are supported:
 Each `block_device` supports the following:
 
 * `device_name` - The name of the device to mount.
+* `virtual_name` - (Optional) The virtual device name.
 * `snapshot_id` - (Optional) The Snapshot ID to mount.
 * `volume_type` - (Optional) The type of volume. Can be standard, gp2, or io1. Defaults to standard.
 * `volume_size` - (Optional) The size of the volume in gigabytes.

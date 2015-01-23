@@ -4,77 +4,121 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/hashicorp/terraform/helper/diff"
-	"github.com/hashicorp/terraform/terraform"
+	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/mitchellh/goamz/ec2"
 )
 
-func resource_aws_route_table_association_create(
-	s *terraform.InstanceState,
-	d *terraform.InstanceDiff,
-	meta interface{}) (*terraform.InstanceState, error) {
-	p := meta.(*ResourceProvider)
-	ec2conn := p.ec2conn
-	rs := s.MergeDiff(d)
+func resourceAwsRouteTableAssociation() *schema.Resource {
+	return &schema.Resource{
+		Create: resourceAwsRouteTableAssociationCreate,
+		Read:   resourceAwsRouteTableAssociationRead,
+		Update: resourceAwsRouteTableAssociationUpdate,
+		Delete: resourceAwsRouteTableAssociationDelete,
+
+		Schema: map[string]*schema.Schema{
+			"subnet_id": &schema.Schema{
+				Type:     schema.TypeString,
+				Required: true,
+				ForceNew: true,
+			},
+
+			"route_table_id": &schema.Schema{
+				Type:     schema.TypeString,
+				Required: true,
+			},
+		},
+	}
+}
+
+func resourceAwsRouteTableAssociationCreate(d *schema.ResourceData, meta interface{}) error {
+	ec2conn := meta.(*AWSClient).ec2conn
 
 	log.Printf(
 		"[INFO] Creating route table association: %s => %s",
-		rs.Attributes["subnet_id"],
-		rs.Attributes["route_table_id"])
+		d.Get("subnet_id").(string),
+		d.Get("route_table_id").(string))
+
 	resp, err := ec2conn.AssociateRouteTable(
-		rs.Attributes["route_table_id"],
-		rs.Attributes["subnet_id"])
+		d.Get("route_table_id").(string),
+		d.Get("subnet_id").(string))
+
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	// Set the ID and return
-	rs.ID = resp.AssociationId
-	log.Printf("[INFO] Association ID: %s", rs.ID)
+	d.SetId(resp.AssociationId)
+	log.Printf("[INFO] Association ID: %s", d.Id())
 
-	return rs, nil
+	return nil
 }
 
-func resource_aws_route_table_association_update(
-	s *terraform.InstanceState,
-	d *terraform.InstanceDiff,
-	meta interface{}) (*terraform.InstanceState, error) {
-	p := meta.(*ResourceProvider)
-	ec2conn := p.ec2conn
+func resourceAwsRouteTableAssociationRead(d *schema.ResourceData, meta interface{}) error {
+	ec2conn := meta.(*AWSClient).ec2conn
 
-	rs := s.MergeDiff(d)
+	// Get the routing table that this association belongs to
+	rtRaw, _, err := resourceAwsRouteTableStateRefreshFunc(
+		ec2conn, d.Get("route_table_id").(string))()
+	if err != nil {
+		return err
+	}
+	if rtRaw == nil {
+		return nil
+	}
+	rt := rtRaw.(*ec2.RouteTable)
+
+	// Inspect that the association exists
+	found := false
+	for _, a := range rt.Associations {
+		if a.AssociationId == d.Id() {
+			found = true
+			d.Set("subnet_id", a.SubnetId)
+			break
+		}
+	}
+
+	if !found {
+		// It seems it doesn't exist anymore, so clear the ID
+		d.SetId("")
+	}
+
+	return nil
+}
+
+func resourceAwsRouteTableAssociationUpdate(d *schema.ResourceData, meta interface{}) error {
+	ec2conn := meta.(*AWSClient).ec2conn
+
 	log.Printf(
-		"[INFO] Replacing route table association: %s => %s",
-		rs.Attributes["subnet_id"],
-		rs.Attributes["route_table_id"])
+		"[INFO] Creating route table association: %s => %s",
+		d.Get("subnet_id").(string),
+		d.Get("route_table_id").(string))
+
 	resp, err := ec2conn.ReassociateRouteTable(
-		rs.ID,
-		rs.Attributes["route_table_id"])
+		d.Id(),
+		d.Get("route_table_id").(string))
+
 	if err != nil {
 		ec2err, ok := err.(*ec2.Error)
 		if ok && ec2err.Code == "InvalidAssociationID.NotFound" {
 			// Not found, so just create a new one
-			return resource_aws_route_table_association_create(s, d, meta)
+			return resourceAwsRouteTableAssociationCreate(d, meta)
 		}
 
-		return s, err
+		return err
 	}
 
 	// Update the ID
-	rs.ID = resp.AssociationId
-	log.Printf("[INFO] Association ID: %s", rs.ID)
+	d.SetId(resp.AssociationId)
+	log.Printf("[INFO] Association ID: %s", d.Id())
 
-	return rs, nil
+	return nil
 }
 
-func resource_aws_route_table_association_destroy(
-	s *terraform.InstanceState,
-	meta interface{}) error {
-	p := meta.(*ResourceProvider)
-	ec2conn := p.ec2conn
+func resourceAwsRouteTableAssociationDelete(d *schema.ResourceData, meta interface{}) error {
+	ec2conn := meta.(*AWSClient).ec2conn
 
-	log.Printf("[INFO] Deleting route table association: %s", s.ID)
-	if _, err := ec2conn.DisassociateRouteTable(s.ID); err != nil {
+	log.Printf("[INFO] Deleting route table association: %s", d.Id())
+	if _, err := ec2conn.DisassociateRouteTable(d.Id()); err != nil {
 		ec2err, ok := err.(*ec2.Error)
 		if ok && ec2err.Code == "InvalidAssociationID.NotFound" {
 			return nil
@@ -84,51 +128,4 @@ func resource_aws_route_table_association_destroy(
 	}
 
 	return nil
-}
-
-func resource_aws_route_table_association_refresh(
-	s *terraform.InstanceState,
-	meta interface{}) (*terraform.InstanceState, error) {
-	p := meta.(*ResourceProvider)
-	ec2conn := p.ec2conn
-
-	// Get the routing table that this association belongs to
-	rtRaw, _, err := RouteTableStateRefreshFunc(
-		ec2conn, s.Attributes["route_table_id"])()
-	if err != nil {
-		return s, err
-	}
-	if rtRaw == nil {
-		return nil, nil
-	}
-	rt := rtRaw.(*ec2.RouteTable)
-
-	// Inspect that the association exists
-	found := false
-	for _, a := range rt.Associations {
-		if a.AssociationId == s.ID {
-			found = true
-			s.Attributes["subnet_id"] = a.SubnetId
-			break
-		}
-	}
-	if !found {
-		return nil, nil
-	}
-
-	return s, nil
-}
-
-func resource_aws_route_table_association_diff(
-	s *terraform.InstanceState,
-	c *terraform.ResourceConfig,
-	meta interface{}) (*terraform.InstanceDiff, error) {
-	b := &diff.ResourceBuilder{
-		Attrs: map[string]diff.AttrType{
-			"subnet_id":      diff.AttrTypeCreate,
-			"route_table_id": diff.AttrTypeUpdate,
-		},
-	}
-
-	return b.Diff(s, c)
 }

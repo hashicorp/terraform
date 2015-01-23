@@ -109,30 +109,6 @@ func resourceComputeInstance() *schema.Resource {
 				},
 			},
 
-			"service_accounts": &schema.Schema{
-				Type:     schema.TypeList,
-				Optional: true,
-				ForceNew: true,
-				Elem: &schema.Resource{
-					Schema: map[string]*schema.Schema{
-						"email": &schema.Schema{
-							Type:     schema.TypeString,
-							Required: true,
-							ForceNew: true,
-						},
-
-                        "scopes": &schema.Schema{
-                            Type:     schema.TypeList,
-                            Optional: true,
-							ForceNew: true,
-                            Elem: &schema.Schema{
-                                Type: schema.TypeString,
-                            },
-                        },
-					},
-				},
-			},
-
 			"can_ip_forward": &schema.Schema{
 				Type:     schema.TypeBool,
 				Optional: true,
@@ -145,6 +121,33 @@ func resourceComputeInstance() *schema.Resource {
 				Optional: true,
 				Elem: &schema.Schema{
 					Type: schema.TypeMap,
+				},
+			},
+
+			"service_account": &schema.Schema{
+				Type:     schema.TypeList,
+				Optional: true,
+				ForceNew: true,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"email": &schema.Schema{
+							Type:     schema.TypeString,
+							Computed: true,
+							ForceNew: true,
+						},
+
+						"scopes": &schema.Schema{
+							Type:      schema.TypeList,
+							Required:  true,
+							ForceNew:  true,
+							Elem:      &schema.Schema{
+								Type:      schema.TypeString,
+								StateFunc: func(v interface{}) string {
+									return canonicalizeServiceScope(v.(string))
+								},
+							},
+						},
+					},
 				},
 			},
 
@@ -283,22 +286,24 @@ func resourceComputeInstanceCreate(d *schema.ResourceData, meta interface{}) err
 		networks = append(networks, &iface)
 	}
 
-	// TODO(dcunnin): find out how many service accounts there were, allocate the array, create
-	// service accounts with the same emails
-	// for each scope inside each service account, check it is gettable and then put it in
-	servAccsCount := d.Get("service_accounts.#").(int)
-    servAccs := make([]*compute.ServiceAccount, servAccsCount)
-	for i := 0; i < servAccsCount; i++ {
-		prefix := fmt.Sprintf("service_accounts.%d", i)
-		schemaScopes := d.Get(prefix + ".scopes").([]interface{})
-		scopes := make([]string, len(schemaScopes))
-		for j, v := range(schemaScopes) {
-			scopes[j] = v.(string)
+	serviceAccountsCount := d.Get("service_account.#").(int)
+	serviceAccounts := make([]*compute.ServiceAccount, 0, serviceAccountsCount)
+	for i := 0; i < serviceAccountsCount; i++ {
+		prefix := fmt.Sprintf("service_account.%d", i)
+
+		scopesCount := d.Get(prefix + ".scopes.#").(int)
+		scopes := make([]string, 0, scopesCount)
+		for j := 0; j < scopesCount; j++ {
+			scope := d.Get(fmt.Sprintf(prefix + ".scopes.%d", j)).(string)
+			scopes = append(scopes, canonicalizeServiceScope(scope))
 		}
-		servAccs[i] = &compute.ServiceAccount{
-			Email: d.Get(prefix + ".email").(string),
+
+		serviceAccount := &compute.ServiceAccount {
+			Email:  "default",
 			Scopes: scopes,
 		}
+
+		serviceAccounts = append(serviceAccounts, serviceAccount)
 	}
 
 	// Create the instance information
@@ -311,7 +316,7 @@ func resourceComputeInstanceCreate(d *schema.ResourceData, meta interface{}) err
 		Name:              d.Get("name").(string),
 		NetworkInterfaces: networks,
 		Tags:              resourceInstanceTags(d),
-        ServiceAccounts:   servAccs,
+		ServiceAccounts:   serviceAccounts,
 	}
 
 
@@ -370,6 +375,16 @@ func resourceComputeInstanceRead(d *schema.ResourceData, meta interface{}) error
 	}
 
 	d.Set("can_ip_forward", instance.CanIpForward)
+
+	// Set the service accounts
+	for i, serviceAccount := range instance.ServiceAccounts {
+		prefix := fmt.Sprintf("service_account.%d", i)
+		d.Set(prefix + ".email", serviceAccount.Email)
+		d.Set(prefix + ".scopes.#", len(serviceAccount.Scopes))
+		for j, scope := range serviceAccount.Scopes {
+			d.Set(fmt.Sprintf("%s.scopes.%d", prefix, j), scope)
+		}
+	}
 
 	// Set the networks
 	externalIP := ""

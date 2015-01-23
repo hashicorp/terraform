@@ -60,12 +60,12 @@ Basic bullet point reference:
   * Numbers can be suffixed with `kKmMgG` for some multiple of 10.
     For example: `1k` is equal to `1000`.
 
-  * Numbers can be suffxed with `[kKmMgG]b` for power of 2 multiples,
+  * Numbers can be suffixed with `[kKmMgG]b` for power of 2 multiples,
     example: `1kb` is equal to `1024`.
 
   * Boolean values: `true`, `false`, `on`, `off`, `yes`, `no`.
 
-  * Arrays of primitive types can be made by wrapping it in `[]`.
+  * Lists of primitive types can be made by wrapping it in `[]`.
     Example: `["foo", "bar", 42]`.
 
   * Maps can be made with the `{}` syntax:
@@ -91,7 +91,7 @@ variable = [{
 ```
 
 Notice how the top stanza visually looks a lot better? By repeating
-multiple `variable` sections, it builds up the `variable` array. When
+multiple `variable` sections, it builds up the `variable` list. When
 possible, use sections since they're visually clearer and more readable.
 
 ## JSON Syntax

@@ -1,4 +1,105 @@
-## 0.3.2 (unreleased)
+## 0.3.7 (unreleased)
+
+IMPROVEMENTS:
+
+  * core: Formalized the syntax of interpolations and documented it
+      very heavily.
+  * core: Strings in interpolations can now contain further interpolations,
+      e.g.: `foo ${bar("${baz}")}`.
+  * provider/aws: Internet gateway supports tags [GH-720]
+
+BUG FIXES:
+
+  * core: Fixing use of remote state with plan files. [GH-741]
+  * core: Fix a panic case when certain invalid types were used in
+      the configuration. [GH-691]
+  * core: Escape characters `\"`, `\n`, and `\\` now work in interpolations.
+  * core: Fix crash that could occur when there are exactly zero providers
+      installed on a system. [GH-786]
+  * core: JSON TF configurations can configure provisioners. [GH-807]
+  * command/apply: Won't try to initialize modules in some cases when
+      no arguments are given. [GH-780]
+  * command/apply: Fix regression where user variables weren't asked [GH-736]
+  * provider/aws: ELB subnet change doesn't force new resource. [GH-804]
+
+PLUGIN CHANGES:
+
+  * New `helper/schema` type: `TypeFloat` [GH-594]
+  * New `helper/schema` field for resources: `Exists` must point to a function
+      to check for the existence of a resource. This is used to properly
+      handle the case where the resource was manually deleted. [GH-766]
+
+## 0.3.6 (January 6, 2015)
+
+FEATURES:
+
+  * **New provider: `cloudstack`**
+
+IMPROVEMENTS:
+
+  * **New resource: `aws_key_pair`** - Import a public key into AWS. [GH-695]
+  * **New resource: `heroku_cert`** - Manage Heroku app certs.
+  * provider/aws: Support `eu-central-1`, `cn-north-1`, and GovCloud. [GH-525]
+  * provider/aws: `route_table` can have tags. [GH-648]
+  * provider/google: Support Ubuntu images. [GH-724]
+  * provider/google: Support for service accounts. [GH-725]
+
+BUG FIXES:
+
+  * core: temporary/hidden files that look like Terraform configurations
+      are no longer loaded. [GH-548]
+  * core: Set types in resources now result in deterministic states,
+      resulting in cleaner plans. [GH-663]
+  * core: fix issue where "diff was not the same" would come up with
+      diffing lists. [GH-661]
+  * core: fix crash where module inputs weren't strings, and add more
+      validation around invalid types here. [GH-624]
+  * core: fix error when using a computed module output as an input to
+      another module. [GH-659]
+  * core: map overrides in "terraform.tfvars" no longer result in a syntax
+      error. [GH-647]
+  * core: Colon character works in interpolation [GH-700]
+  * provider/aws: Fix crash case when internet gateway is not attached
+      to any VPC. [GH-664]
+  * provider/aws: `vpc_id` is no longer required. [GH-667]
+  * provider/aws: `availability_zones` on ELB will contain more than one
+      AZ if it is set as such. [GH-682]
+  * provider/aws: More fields are marked as "computed" properly, resulting
+      in more accurate diffs for AWS instances. [GH-712]
+  * provider/aws: Fix panic case by using the wrong type when setting
+      volume size for AWS instances. [GH-712]
+  * provider/aws: route table ignores routes with 'EnableVgwRoutePropagation'
+      origin since those come from gateways. [GH-722]
+  * provider/aws: Default network ACL ID and default security group ID
+      support for `aws_vpc`. [GH-704]
+  * provider/aws: Tags are not marked as computed. This introduces another
+      issue with not detecting external tags, but this will be fixed in
+      the future. [GH-730]
+
+## 0.3.5 (December 9, 2014)
+
+FEATURES:
+
+ * **Remote State**: State files can now be stored remotely via HTTP,
+     Consul, or HashiCorp's Atlas.
+ * **New Provider: `atlas`**: Retrieve artifacts for deployment from
+     HashiCorp's Atlas service.
+ * New `element()` function to index into arrays
+
+IMPROVEMENTS:
+
+  * provider/aws: Support tenancy for aws\_instance
+  * provider/aws: Support block devices for aws\_instance
+  * provider/aws: Support virtual\_name on block device
+  * provider/aws: Improve RDS reliability (more grace time)
+  * provider/aws: Added aws\_db\_parameter\_group resource
+  * provider/aws: Added tag support to aws\_subnet
+  * provider/aws: Routes in RouteTable are optional
+  * provider/aws: associate\_public\_ip\_address on aws\_launch\_configuration
+  * provider/aws: Added aws\_network\_acl
+  * provider/aws: Ingress rules in security groups are optional
+  * provider/aws: Support termination policy for ASG
+  * provider/digitalocean: Improved droplet size compatibility
 
 BUG FIXES:
 
@@ -7,6 +108,28 @@ BUG FIXES:
       some circumstances.
   * core: Fixing issue with count expansion with non-homogenous instance
       plans.
+  * core: Fix issue with referencing resource variables from resources
+      that don't exist yet within resources that do exist, or modules.
+  * core: Fixing depedency handling for modules
+  * core: Fixing output handling [GH-474]
+  * core: Fixing count interpolation in modules
+  * core: Fixing multi-var without module state
+  * core: Fixing HCL variable declaration
+  * core: Fixing resource interpolation for without state
+  * core: Fixing handling of computed maps
+  * command/init: Fixing recursion issue [GH-518]
+  * command: Validate config before requesting input [GH-602]
+  * build: Fixing GOPATHs with spaces
+
+MISC:
+
+  * provider/aws: Upgraded to helper.Schema
+  * provider/heroku: Upgraded to helper.Schema
+  * provider/mailgun: Upgraded to helper.Schema
+  * provider/dnsimple: Upgraded to helper.Schema
+  * provider/cloudflare: Upgraded to helper.Schema
+  * provider/digitalocean: Upgraded to helper.Schema
+  * provider/google: Upgraded to helper.Schema
 
 ## 0.3.1 (October 21, 2014)
 

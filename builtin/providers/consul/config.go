@@ -3,7 +3,7 @@ package consul
 import (
 	"log"
 
-	"github.com/armon/consul-api"
+	consulapi "github.com/hashicorp/consul/api"
 )
 
 type Config struct {
@@ -11,8 +11,7 @@ type Config struct {
 	Address    string `mapstructure:"address"`
 }
 
-// Client() returns a new client for accessing digital
-// ocean.
+// Client() returns a new client for accessing consul.
 //
 func (c *Config) Client() (*consulapi.Client, error) {
 	config := consulapi.DefaultConfig()

@@ -3,10 +3,7 @@ package command
 import (
 	"flag"
 	"fmt"
-	"os"
 	"strings"
-
-	"github.com/hashicorp/terraform/terraform"
 )
 
 // OutputCommand is a Command implementation that reads an output
@@ -16,12 +13,10 @@ type OutputCommand struct {
 }
 
 func (c *OutputCommand) Run(args []string) int {
-	var statePath string
-
 	args = c.Meta.process(args, false)
 
 	cmdFlags := flag.NewFlagSet("output", flag.ContinueOnError)
-	cmdFlags.StringVar(&statePath, "state", DefaultStateFilename, "path")
+	cmdFlags.StringVar(&c.Meta.statePath, "state", DefaultStateFilename, "path")
 	cmdFlags.Usage = func() { c.Ui.Error(c.Help()) }
 	if err := cmdFlags.Parse(args); err != nil {
 		return 1
@@ -37,14 +32,7 @@ func (c *OutputCommand) Run(args []string) int {
 	}
 	name := args[0]
 
-	f, err := os.Open(statePath)
-	if err != nil {
-		c.Ui.Error(fmt.Sprintf("Error loading file: %s", err))
-		return 1
-	}
-
-	state, err := terraform.ReadState(f)
-	f.Close()
+	state, err := c.Meta.loadState()
 	if err != nil {
 		c.Ui.Error(fmt.Sprintf("Error reading state: %s", err))
 		return 1

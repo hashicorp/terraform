@@ -50,7 +50,8 @@ it raises the chances we can quickly merge or address your contributions.
 ## Setting up Go to work on Terraform
 
 If you have never worked with Go before, you will have to complete the
-following steps in order to be able to compile and test Terraform.
+following steps in order to be able to compile and test Terraform (or 
+use the Vagrantfile in this repo to stand up a dev VM).
 
 1. Install Go. Make sure the Go version is at least Go 1.2. Terraform will not work with anything less than
    Go 1.2. On a Mac, you can `brew install go` to install Go 1.2.

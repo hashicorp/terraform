@@ -192,9 +192,9 @@ func flattenParameters(list []rds.Parameter) []map[string]interface{} {
 	result := make([]map[string]interface{}, 0, len(list))
 	for _, i := range list {
 		result = append(result, map[string]interface{}{
-				"name":         strings.ToLower(i.ParameterName),
-				"value":        strings.ToLower(i.ParameterValue),
-			})
+			"name":  strings.ToLower(i.ParameterName),
+			"value": strings.ToLower(i.ParameterValue),
+		})
 	}
 	return result
 }

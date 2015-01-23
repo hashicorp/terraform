@@ -3,7 +3,6 @@ package command
 import (
 	"bytes"
 	"fmt"
-	"log"
 	"os"
 	"sort"
 	"strings"
@@ -27,8 +26,6 @@ type ApplyCommand struct {
 
 func (c *ApplyCommand) Run(args []string) int {
 	var destroyForce, refresh bool
-	var statePath, stateOutPath, backupPath string
-
 	args = c.Meta.process(args, true)
 
 	cmdName := "apply"
@@ -41,9 +38,9 @@ func (c *ApplyCommand) Run(args []string) int {
 		cmdFlags.BoolVar(&destroyForce, "force", false, "force")
 	}
 	cmdFlags.BoolVar(&refresh, "refresh", true, "refresh")
-	cmdFlags.StringVar(&statePath, "state", DefaultStateFilename, "path")
-	cmdFlags.StringVar(&stateOutPath, "state-out", "", "path")
-	cmdFlags.StringVar(&backupPath, "backup", "", "path")
+	cmdFlags.StringVar(&c.Meta.statePath, "state", DefaultStateFilename, "path")
+	cmdFlags.StringVar(&c.Meta.stateOutPath, "state-out", "", "path")
+	cmdFlags.StringVar(&c.Meta.backupPath, "backup", "", "path")
 	cmdFlags.Usage = func() { c.Ui.Error(c.Help()) }
 	if err := cmdFlags.Parse(args); err != nil {
 		return 1
@@ -56,6 +53,7 @@ func (c *ApplyCommand) Run(args []string) int {
 	}
 
 	var configPath string
+	maybeInit := true
 	args = cmdFlags.Args()
 	if len(args) > 1 {
 		c.Ui.Error("The apply command expects at most one argument.")
@@ -65,25 +63,14 @@ func (c *ApplyCommand) Run(args []string) int {
 		configPath = args[0]
 	} else {
 		configPath = pwd
+		maybeInit = false
 	}
 
 	// Prepare the extra hooks to count resources
 	countHook := new(CountHook)
 	c.Meta.extraHooks = []terraform.Hook{countHook}
 
-	// If we don't specify an output path, default to out normal state
-	// path.
-	if stateOutPath == "" {
-		stateOutPath = statePath
-	}
-
-	// If we don't specify a backup path, default to state out with
-	// the extension
-	if backupPath == "" {
-		backupPath = stateOutPath + DefaultBackupExtention
-	}
-
-	if !c.Destroy {
+	if !c.Destroy && maybeInit {
 		// Do a detect to determine if we need to do an init + apply.
 		if detected, err := module.Detect(configPath, pwd); err != nil {
 			c.Ui.Error(fmt.Sprintf(
@@ -106,7 +93,7 @@ func (c *ApplyCommand) Run(args []string) int {
 	// Build the context based on the arguments given
 	ctx, planned, err := c.Context(contextOpts{
 		Path:      configPath,
-		StatePath: statePath,
+		StatePath: c.Meta.statePath,
 	})
 	if err != nil {
 		c.Ui.Error(err.Error())
@@ -141,20 +128,6 @@ func (c *ApplyCommand) Run(args []string) int {
 	}
 	if !validateContext(ctx, c.Ui) {
 		return 1
-	}
-
-	// Create a backup of the state before updating
-	if backupPath != "-" && c.state != nil {
-		log.Printf("[INFO] Writing backup state to: %s", backupPath)
-		f, err := os.Create(backupPath)
-		if err == nil {
-			err = terraform.WriteState(c.state, f)
-			f.Close()
-		}
-		if err != nil {
-			c.Ui.Error(fmt.Sprintf("Error writing backup state file: %s", err))
-			return 1
-		}
 	}
 
 	// Plan if we haven't already
@@ -209,14 +182,9 @@ func (c *ApplyCommand) Run(args []string) int {
 	case <-doneCh:
 	}
 
+	// Persist the state
 	if state != nil {
-		// Write state out to the file
-		f, err := os.Create(stateOutPath)
-		if err == nil {
-			err = terraform.WriteState(state, f)
-			f.Close()
-		}
-		if err != nil {
+		if err := c.Meta.PersistState(state); err != nil {
 			c.Ui.Error(fmt.Sprintf("Failed to save state: %s", err))
 			return 1
 		}
@@ -249,7 +217,7 @@ func (c *ApplyCommand) Run(args []string) int {
 				"infrastructure, so keep it safe. To inspect the complete state\n"+
 				"use the `terraform show` command.\n\n"+
 				"State path: %s",
-			stateOutPath)))
+			c.Meta.StateOutPath())))
 	}
 
 	// If we have outputs, then output those at the end.

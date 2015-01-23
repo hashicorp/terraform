@@ -28,6 +28,8 @@ func TestAccAWSLaunchConfiguration(t *testing.T) {
 						"aws_launch_configuration.bar", "name", "foobar-terraform-test"),
 					resource.TestCheckResourceAttr(
 						"aws_launch_configuration.bar", "instance_type", "t1.micro"),
+					resource.TestCheckResourceAttr(
+						"aws_launch_configuration.bar", "associate_public_ip_address", "true"),
 				),
 			},
 		},
@@ -35,7 +37,7 @@ func TestAccAWSLaunchConfiguration(t *testing.T) {
 }
 
 func testAccCheckAWSLaunchConfigurationDestroy(s *terraform.State) error {
-	conn := testAccProvider.autoscalingconn
+	conn := testAccProvider.Meta().(*AWSClient).autoscalingconn
 
 	for _, rs := range s.RootModule().Resources {
 		if rs.Type != "aws_launch_configuration" {
@@ -96,7 +98,7 @@ func testAccCheckAWSLaunchConfigurationExists(n string, res *autoscaling.LaunchC
 			return fmt.Errorf("No Launch Configuration ID is set")
 		}
 
-		conn := testAccProvider.autoscalingconn
+		conn := testAccProvider.Meta().(*AWSClient).autoscalingconn
 
 		describeOpts := autoscaling.DescribeLaunchConfigurations{
 			Names: []string{rs.Primary.ID},
@@ -124,5 +126,6 @@ resource "aws_launch_configuration" "bar" {
   image_id = "ami-21f78e11"
   instance_type = "t1.micro"
   user_data = "foobar-user-data"
+  associate_public_ip_address = true
 }
 `

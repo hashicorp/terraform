@@ -15,7 +15,6 @@ func resourceAwsDbSubnetGroup() *schema.Resource {
 	return &schema.Resource{
 		Create: resourceAwsDbSubnetGroupCreate,
 		Read:   resourceAwsDbSubnetGroupRead,
-		Update: nil,
 		Delete: resourceAwsDbSubnetGroupDelete,
 
 		Schema: map[string]*schema.Schema{
@@ -45,8 +44,7 @@ func resourceAwsDbSubnetGroup() *schema.Resource {
 }
 
 func resourceAwsDbSubnetGroupCreate(d *schema.ResourceData, meta interface{}) error {
-	p := meta.(*ResourceProvider)
-	rdsconn := p.rdsconn
+	rdsconn := meta.(*AWSClient).rdsconn
 
 	subnetIdsSet := d.Get("subnet_ids").(*schema.Set)
 	subnetIds := make([]string, subnetIdsSet.Len())
@@ -71,21 +69,8 @@ func resourceAwsDbSubnetGroupCreate(d *schema.ResourceData, meta interface{}) er
 	return resourceAwsDbSubnetGroupRead(d, meta)
 }
 
-func resourceAwsDbSubnetGroupDelete(d *schema.ResourceData, meta interface{}) error {
-	stateConf := &resource.StateChangeConf{
-		Pending:    []string{"pending"},
-		Target:     "destroyed",
-		Refresh:    resourceDbSubnetGroupDeleteRefreshFunc(d, meta),
-		Timeout:    3 * time.Minute,
-		MinTimeout: 1 * time.Second,
-	}
-	_, err := stateConf.WaitForState()
-	return err
-}
-
 func resourceAwsDbSubnetGroupRead(d *schema.ResourceData, meta interface{}) error {
-	p := meta.(*ResourceProvider)
-	rdsconn := p.rdsconn
+	rdsconn := meta.(*AWSClient).rdsconn
 
 	describeOpts := rds.DescribeDBSubnetGroups{
 		DBSubnetGroupName: d.Id(),
@@ -107,11 +92,22 @@ func resourceAwsDbSubnetGroupRead(d *schema.ResourceData, meta interface{}) erro
 	return nil
 }
 
-func resourceDbSubnetGroupDeleteRefreshFunc(
+func resourceAwsDbSubnetGroupDelete(d *schema.ResourceData, meta interface{}) error {
+	stateConf := &resource.StateChangeConf{
+		Pending:    []string{"pending"},
+		Target:     "destroyed",
+		Refresh:    resourceAwsDbSubnetGroupDeleteRefreshFunc(d, meta),
+		Timeout:    3 * time.Minute,
+		MinTimeout: 1 * time.Second,
+	}
+	_, err := stateConf.WaitForState()
+	return err
+}
+
+func resourceAwsDbSubnetGroupDeleteRefreshFunc(
 	d *schema.ResourceData,
 	meta interface{}) resource.StateRefreshFunc {
-	p := meta.(*ResourceProvider)
-	rdsconn := p.rdsconn
+	rdsconn := meta.(*AWSClient).rdsconn
 
 	return func() (interface{}, string, error) {
 

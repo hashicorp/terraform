@@ -31,11 +31,20 @@ func resourceAwsElb() *schema.Resource {
 				Computed: true,
 			},
 
+			"cross_zone_load_balancing": &schema.Schema{
+				Type:     schema.TypeBool,
+				Optional: true,
+			},
+
 			"availability_zones": &schema.Schema{
-				Type:     schema.TypeList,
+				Type:     schema.TypeSet,
 				Elem:     &schema.Schema{Type: schema.TypeString},
 				Optional: true,
 				ForceNew: true,
+				Computed: true,
+				Set: func(v interface{}) int {
+					return hashcode.String(v.(string))
+				},
 			},
 
 			"instances": &schema.Schema{
@@ -50,19 +59,20 @@ func resourceAwsElb() *schema.Resource {
 
 			// TODO: could be not ForceNew
 			"security_groups": &schema.Schema{
-				Type:     schema.TypeList,
-				Elem:     &schema.Schema{Type: schema.TypeString},
-				Optional: true,
-				ForceNew: true,
-				Computed: true,
-			},
-
-			// TODO: could be not ForceNew
-			"subnets": &schema.Schema{
 				Type:     schema.TypeSet,
 				Elem:     &schema.Schema{Type: schema.TypeString},
 				Optional: true,
 				ForceNew: true,
+				Computed: true,
+				Set: func(v interface{}) int {
+					return hashcode.String(v.(string))
+				},
+			},
+
+			"subnets": &schema.Schema{
+				Type:     schema.TypeSet,
+				Elem:     &schema.Schema{Type: schema.TypeString},
+				Optional: true,
 				Computed: true,
 				Set: func(v interface{}) int {
 					return hashcode.String(v.(string))
@@ -150,36 +160,8 @@ func resourceAwsElb() *schema.Resource {
 	}
 }
 
-func resourceAwsElbHealthCheckHash(v interface{}) int {
-	var buf bytes.Buffer
-	m := v.(map[string]interface{})
-	buf.WriteString(fmt.Sprintf("%d-", m["healthy_threshold"].(int)))
-	buf.WriteString(fmt.Sprintf("%d-", m["unhealthy_threshold"].(int)))
-	buf.WriteString(fmt.Sprintf("%s-", m["target"].(string)))
-	buf.WriteString(fmt.Sprintf("%d-", m["interval"].(int)))
-	buf.WriteString(fmt.Sprintf("%d-", m["timeout"].(int)))
-
-	return hashcode.String(buf.String())
-}
-
-func resourceAwsElbListenerHash(v interface{}) int {
-	var buf bytes.Buffer
-	m := v.(map[string]interface{})
-	buf.WriteString(fmt.Sprintf("%d-", m["instance_port"].(int)))
-	buf.WriteString(fmt.Sprintf("%s-", m["instance_protocol"].(string)))
-	buf.WriteString(fmt.Sprintf("%d-", m["lb_port"].(int)))
-	buf.WriteString(fmt.Sprintf("%s-", m["lb_protocol"].(string)))
-
-	if v, ok := m["ssl_certificate_id"]; ok {
-		buf.WriteString(fmt.Sprintf("%s-", v.(string)))
-	}
-
-	return hashcode.String(buf.String())
-}
-
 func resourceAwsElbCreate(d *schema.ResourceData, meta interface{}) error {
-	p := meta.(*ResourceProvider)
-	elbconn := p.elbconn
+	elbconn := meta.(*AWSClient).elbconn
 
 	// Expand the "listener" set to goamz compat []elb.Listener
 	listeners, err := expandListeners(d.Get("listener").(*schema.Set).List())
@@ -195,11 +177,11 @@ func resourceAwsElbCreate(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	if v, ok := d.GetOk("availability_zones"); ok {
-		elbOpts.AvailZone = expandStringList(v.([]interface{}))
+		elbOpts.AvailZone = expandStringList(v.(*schema.Set).List())
 	}
 
 	if v, ok := d.GetOk("security_groups"); ok {
-		elbOpts.SecurityGroups = expandStringList(v.([]interface{}))
+		elbOpts.SecurityGroups = expandStringList(v.(*schema.Set).List())
 	}
 
 	if v, ok := d.GetOk("subnets"); ok {
@@ -250,9 +232,50 @@ func resourceAwsElbCreate(d *schema.ResourceData, meta interface{}) error {
 	return resourceAwsElbUpdate(d, meta)
 }
 
+func resourceAwsElbRead(d *schema.ResourceData, meta interface{}) error {
+	elbconn := meta.(*AWSClient).elbconn
+
+	// Retrieve the ELB properties for updating the state
+	describeElbOpts := &elb.DescribeLoadBalancer{
+		Names: []string{d.Id()},
+	}
+
+	describeResp, err := elbconn.DescribeLoadBalancers(describeElbOpts)
+	if err != nil {
+		if ec2err, ok := err.(*elb.Error); ok && ec2err.Code == "LoadBalancerNotFound" {
+			// The ELB is gone now, so just remove it from the state
+			d.SetId("")
+			return nil
+		}
+
+		return fmt.Errorf("Error retrieving ELB: %s", err)
+	}
+	if len(describeResp.LoadBalancers) != 1 {
+		return fmt.Errorf("Unable to find ELB: %#v", describeResp.LoadBalancers)
+	}
+
+	lb := describeResp.LoadBalancers[0]
+
+	d.Set("name", lb.LoadBalancerName)
+	d.Set("dns_name", lb.DNSName)
+	d.Set("internal", lb.Scheme == "internal")
+	d.Set("availability_zones", lb.AvailabilityZones)
+	d.Set("instances", flattenInstances(lb.Instances))
+	d.Set("listener", flattenListeners(lb.Listeners))
+	d.Set("security_groups", lb.SecurityGroups)
+	d.Set("subnets", lb.Subnets)
+
+	// There's only one health check, so save that to state as we
+	// currently can
+	if lb.HealthCheck.Target != "" {
+		d.Set("health_check", flattenHealthCheck(lb.HealthCheck))
+	}
+
+	return nil
+}
+
 func resourceAwsElbUpdate(d *schema.ResourceData, meta interface{}) error {
-	p := meta.(*ResourceProvider)
-	elbconn := p.elbconn
+	elbconn := meta.(*AWSClient).elbconn
 
 	d.Partial(true)
 
@@ -292,13 +315,28 @@ func resourceAwsElbUpdate(d *schema.ResourceData, meta interface{}) error {
 		d.SetPartial("instances")
 	}
 
+	log.Println("[INFO] outside modify attributes")
+	if d.HasChange("cross_zone_load_balancing") {
+		log.Println("[INFO] inside modify attributes")
+		attrs := elb.ModifyLoadBalancerAttributes{
+			LoadBalancerName: d.Get("name").(string),
+			LoadBalancerAttributes: elb.LoadBalancerAttributes{
+				CrossZoneLoadBalancingEnabled: d.Get("cross_zone_load_balancing").(bool),
+			},
+		}
+		_, err := elbconn.ModifyLoadBalancerAttributes(&attrs)
+		if err != nil {
+			return fmt.Errorf("Failure configuring cross zone balancing: %s", err)
+		}
+		d.SetPartial("cross_zone_load_balancing")
+	}
+
 	d.Partial(false)
 	return resourceAwsElbRead(d, meta)
 }
 
 func resourceAwsElbDelete(d *schema.ResourceData, meta interface{}) error {
-	p := meta.(*ResourceProvider)
-	elbconn := p.elbconn
+	elbconn := meta.(*AWSClient).elbconn
 
 	log.Printf("[INFO] Deleting ELB: %s", d.Id())
 
@@ -313,44 +351,29 @@ func resourceAwsElbDelete(d *schema.ResourceData, meta interface{}) error {
 	return nil
 }
 
-func resourceAwsElbRead(d *schema.ResourceData, meta interface{}) error {
-	p := meta.(*ResourceProvider)
-	elbconn := p.elbconn
+func resourceAwsElbHealthCheckHash(v interface{}) int {
+	var buf bytes.Buffer
+	m := v.(map[string]interface{})
+	buf.WriteString(fmt.Sprintf("%d-", m["healthy_threshold"].(int)))
+	buf.WriteString(fmt.Sprintf("%d-", m["unhealthy_threshold"].(int)))
+	buf.WriteString(fmt.Sprintf("%s-", m["target"].(string)))
+	buf.WriteString(fmt.Sprintf("%d-", m["interval"].(int)))
+	buf.WriteString(fmt.Sprintf("%d-", m["timeout"].(int)))
 
-	// Retrieve the ELB properties for updating the state
-	describeElbOpts := &elb.DescribeLoadBalancer{
-		Names: []string{d.Id()},
+	return hashcode.String(buf.String())
+}
+
+func resourceAwsElbListenerHash(v interface{}) int {
+	var buf bytes.Buffer
+	m := v.(map[string]interface{})
+	buf.WriteString(fmt.Sprintf("%d-", m["instance_port"].(int)))
+	buf.WriteString(fmt.Sprintf("%s-", m["instance_protocol"].(string)))
+	buf.WriteString(fmt.Sprintf("%d-", m["lb_port"].(int)))
+	buf.WriteString(fmt.Sprintf("%s-", m["lb_protocol"].(string)))
+
+	if v, ok := m["ssl_certificate_id"]; ok {
+		buf.WriteString(fmt.Sprintf("%s-", v.(string)))
 	}
 
-	describeResp, err := elbconn.DescribeLoadBalancers(describeElbOpts)
-	if err != nil {
-		if ec2err, ok := err.(*elb.Error); ok && ec2err.Code == "LoadBalancerNotFound" {
-			// The ELB is gone now, so just remove it from the state
-			d.SetId("")
-			return nil
-		}
-
-		return fmt.Errorf("Error retrieving ELB: %s", err)
-	}
-	if len(describeResp.LoadBalancers) != 1 {
-		return fmt.Errorf("Unable to find ELB: %#v", describeResp.LoadBalancers)
-	}
-
-	lb := describeResp.LoadBalancers[0]
-
-	d.Set("name", lb.LoadBalancerName)
-	d.Set("dns_name", lb.DNSName)
-	d.Set("internal", lb.Scheme == "internal")
-	d.Set("instances", flattenInstances(lb.Instances))
-	d.Set("listener", flattenListeners(lb.Listeners))
-	d.Set("security_groups", lb.SecurityGroups)
-	d.Set("subnets", lb.Subnets)
-
-	// There's only one health check, so save that to state as we
-	// currently can
-	if lb.HealthCheck.Target != "" {
-		d.Set("health_check", flattenHealthCheck(lb.HealthCheck))
-	}
-
-	return nil
+	return hashcode.String(buf.String())
 }

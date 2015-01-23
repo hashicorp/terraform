@@ -1,6 +1,8 @@
 package schema
 
 import (
+	"fmt"
+	"reflect"
 	"sort"
 	"sync"
 )
@@ -58,7 +60,7 @@ func (s *Set) List() []interface{} {
 // a new third set that has only the elements unique to this set.
 func (s *Set) Difference(other *Set) *Set {
 	result := &Set{F: s.F}
-	result.init()
+	result.once.Do(result.init)
 
 	for k, v := range s.m {
 		if _, ok := other.m[k]; !ok {
@@ -73,7 +75,7 @@ func (s *Set) Difference(other *Set) *Set {
 // and returns a new third set.
 func (s *Set) Intersection(other *Set) *Set {
 	result := &Set{F: s.F}
-	result.init()
+	result.once.Do(result.init)
 
 	for k, v := range s.m {
 		if _, ok := other.m[k]; ok {
@@ -88,7 +90,7 @@ func (s *Set) Intersection(other *Set) *Set {
 // set.
 func (s *Set) Union(other *Set) *Set {
 	result := &Set{F: s.F}
-	result.init()
+	result.once.Do(result.init)
 
 	for k, v := range s.m {
 		result.m[k] = v
@@ -98,6 +100,19 @@ func (s *Set) Union(other *Set) *Set {
 	}
 
 	return result
+}
+
+func (s *Set) Equal(raw interface{}) bool {
+	other, ok := raw.(*Set)
+	if !ok {
+		return false
+	}
+
+	return reflect.DeepEqual(s.m, other.m)
+}
+
+func (s *Set) GoString() string {
+	return fmt.Sprintf("*Set(%#v)", s.m)
 }
 
 func (s *Set) init() {

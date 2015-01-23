@@ -1,14 +1,11 @@
 package schema
 
 import (
-	"fmt"
 	"reflect"
-	"strconv"
 	"strings"
 	"sync"
 
 	"github.com/hashicorp/terraform/terraform"
-	"github.com/mitchellh/mapstructure"
 )
 
 // ResourceData is used to query and set the attributes of a resource.
@@ -21,18 +18,18 @@ import (
 // The most relevant methods to take a look at are Get, Set, and Partial.
 type ResourceData struct {
 	// Settable (internally)
-	schema  map[string]*Schema
-	config  *terraform.ResourceConfig
-	state   *terraform.InstanceState
-	diff    *terraform.InstanceDiff
-	diffing bool
+	schema map[string]*Schema
+	config *terraform.ResourceConfig
+	state  *terraform.InstanceState
+	diff   *terraform.InstanceDiff
 
 	// Don't set
-	setMap     map[string]string
-	newState   *terraform.InstanceState
-	partial    bool
-	partialMap map[string]struct{}
-	once       sync.Once
+	multiReader *MultiLevelFieldReader
+	setWriter   *MapFieldWriter
+	newState    *terraform.InstanceState
+	partial     bool
+	partialMap  map[string]struct{}
+	once        sync.Once
 }
 
 // getSource represents the level we want to get for a value (internally).
@@ -43,11 +40,10 @@ type getSource byte
 const (
 	getSourceState getSource = 1 << iota
 	getSourceConfig
+	getSourceDiff
 	getSourceSet
 	getSourceExact               // Only get from the _exact_ level
-	getSourceDiff                // Apply the diff on top our level
-	getSourceLevelMask getSource = getSourceState | getSourceConfig | getSourceSet
-	getSourceMax       getSource = getSourceSet
+	getSourceLevelMask getSource = getSourceState | getSourceConfig | getSourceDiff | getSourceSet
 )
 
 // getResult is the internal structure that is generated when a Get
@@ -83,19 +79,18 @@ func (d *ResourceData) Get(key string) interface{} {
 // set and the new value is. This is common, for example, for boolean
 // fields which have a zero value of false.
 func (d *ResourceData) GetChange(key string) (interface{}, interface{}) {
-	o, n := d.getChange(key, getSourceConfig, getSourceConfig|getSourceDiff)
+	o, n := d.getChange(key, getSourceState, getSourceDiff|getSourceExact)
 	return o.Value, n.Value
 }
 
 // GetOk returns the data for the given key and whether or not the key
-// existed or not in the configuration. The second boolean result will also
-// be false if a key is given that isn't in the schema at all.
+// has been set.
 //
 // The first result will not necessarilly be nil if the value doesn't exist.
 // The second result should be checked to determine this information.
 func (d *ResourceData) GetOk(key string) (interface{}, bool) {
-	r := d.getRaw(key, getSourceSet|getSourceDiff)
-	return r.Value, r.Exists
+	r := d.getRaw(key, getSourceSet)
+	return r.Value, r.Exists && !r.Computed
 }
 
 func (d *ResourceData) getRaw(key string, level getSource) getResult {
@@ -104,12 +99,20 @@ func (d *ResourceData) getRaw(key string, level getSource) getResult {
 		parts = strings.Split(key, ".")
 	}
 
-	return d.getObject("", parts, d.schema, level)
+	return d.get(parts, level)
 }
 
 // HasChange returns whether or not the given key has been changed.
 func (d *ResourceData) HasChange(key string) bool {
 	o, n := d.GetChange(key)
+
+	// If the type implements the Equal interface, then call that
+	// instead of just doing a reflect.DeepEqual. An example where this is
+	// needed is *Set
+	if eq, ok := o.(Equal); ok {
+		return !eq.Equal(n)
+	}
+
 	return !reflect.DeepEqual(o, n)
 }
 
@@ -134,16 +137,13 @@ func (d *ResourceData) Partial(on bool) {
 // If the key is invalid or the value is not a correct type, an error
 // will be returned.
 func (d *ResourceData) Set(key string, value interface{}) error {
-	if d.setMap == nil {
-		d.setMap = make(map[string]string)
-	}
-
-	parts := strings.Split(key, ".")
-	return d.setObject("", parts, d.schema, value)
+	d.once.Do(d.init)
+	return d.setWriter.WriteField(strings.Split(key, "."), value)
 }
 
-// SetPartial adds the key prefix to the final state output while
-// in partial state mode.
+// SetPartial adds the key to the final state output while
+// in partial state mode. The key must be a root key in the schema (i.e.
+// it cannot be "list.0").
 //
 // If partial state mode is disabled, then this has no effect. Additionally,
 // whenever partial state mode is toggled, the partial data is cleared.
@@ -206,8 +206,47 @@ func (d *ResourceData) State() *terraform.InstanceState {
 		return nil
 	}
 
-	result.Attributes = d.stateObject("", d.schema)
+	// In order to build the final state attributes, we read the full
+	// attribute set as a map[string]interface{}, write it to a MapFieldWriter,
+	// and then use that map.
+	rawMap := make(map[string]interface{})
+	for k, _ := range d.schema {
+		source := getSourceSet
+		if d.partial {
+			source = getSourceState
+			if _, ok := d.partialMap[k]; ok {
+				source = getSourceSet
+			}
+		}
+
+		raw := d.get([]string{k}, source)
+		if raw.Exists && !raw.Computed {
+			rawMap[k] = raw.Value
+			if raw.ValueProcessed != nil {
+				rawMap[k] = raw.ValueProcessed
+			}
+		}
+	}
+	mapW := &MapFieldWriter{Schema: d.schema}
+	if err := mapW.WriteField(nil, rawMap); err != nil {
+		return nil
+	}
+
+	result.Attributes = mapW.Map()
 	result.Ephemeral.ConnInfo = d.ConnInfo()
+
+	// TODO: This is hacky and we can remove this when we have a proper
+	// state writer. We should instead have a proper StateFieldWriter
+	// and use that.
+	for k, schema := range d.schema {
+		if schema.Type != TypeMap {
+			continue
+		}
+
+		if result.Attributes[k] == "" {
+			delete(result.Attributes, k)
+		}
+	}
 
 	if v := d.Id(); v != "" {
 		result.Attributes["id"] = d.Id()
@@ -217,12 +256,57 @@ func (d *ResourceData) State() *terraform.InstanceState {
 }
 
 func (d *ResourceData) init() {
+	// Initialize the field that will store our new state
 	var copyState terraform.InstanceState
 	if d.state != nil {
 		copyState = *d.state
 	}
-
 	d.newState = &copyState
+
+	// Initialize the map for storing set data
+	d.setWriter = &MapFieldWriter{Schema: d.schema}
+
+	// Initialize the reader for getting data from the
+	// underlying sources (config, diff, etc.)
+	readers := make(map[string]FieldReader)
+	var stateAttributes map[string]string
+	if d.state != nil {
+		stateAttributes = d.state.Attributes
+		readers["state"] = &MapFieldReader{
+			Schema: d.schema,
+			Map:    BasicMapReader(stateAttributes),
+		}
+	}
+	if d.config != nil {
+		readers["config"] = &ConfigFieldReader{
+			Schema: d.schema,
+			Config: d.config,
+		}
+	}
+	if d.diff != nil {
+		readers["diff"] = &DiffFieldReader{
+			Schema: d.schema,
+			Diff:   d.diff,
+			Source: &MultiLevelFieldReader{
+				Levels:  []string{"state", "config"},
+				Readers: readers,
+			},
+		}
+	}
+	readers["set"] = &MapFieldReader{
+		Schema: d.schema,
+		Map:    BasicMapReader(d.setWriter.Map()),
+	}
+	d.multiReader = &MultiLevelFieldReader{
+		Levels: []string{
+			"state",
+			"config",
+			"diff",
+			"set",
+		},
+
+		Readers: readers,
+	}
 }
 
 func (d *ResourceData) diffChange(
@@ -250,883 +334,60 @@ func (d *ResourceData) getChange(
 		parts2 = strings.Split(key, ".")
 	}
 
-	o := d.getObject("", parts, d.schema, oldLevel)
-	n := d.getObject("", parts2, d.schema, newLevel)
+	o := d.get(parts, oldLevel)
+	n := d.get(parts2, newLevel)
 	return o, n
 }
 
-func (d *ResourceData) get(
-	k string,
-	parts []string,
-	schema *Schema,
-	source getSource) getResult {
-	switch schema.Type {
-	case TypeList:
-		return d.getList(k, parts, schema, source)
-	case TypeMap:
-		return d.getMap(k, parts, schema, source)
-	case TypeSet:
-		return d.getSet(k, parts, schema, source)
-	case TypeBool:
-		fallthrough
-	case TypeInt:
-		fallthrough
-	case TypeString:
-		return d.getPrimitive(k, parts, schema, source)
-	default:
-		panic(fmt.Sprintf("%s: unknown type %#v", k, schema.Type))
-	}
-}
+func (d *ResourceData) get(addr []string, source getSource) getResult {
+	d.once.Do(d.init)
 
-func (d *ResourceData) getSet(
-	k string,
-	parts []string,
-	schema *Schema,
-	source getSource) getResult {
-	s := &Set{F: schema.Set}
-	result := getResult{Schema: schema, Value: s}
-
-	// Get the list. For sets, the entire source must be exact: the
-	// entire set must come from set, diff, state, etc. So we go backwards
-	// and once we get a result, we take it. Or, we never get a result.
-	var raw getResult
-	sourceLevel := source & getSourceLevelMask
-	sourceFlags := source & ^getSourceLevelMask
-	for listSource := sourceLevel; listSource > 0; listSource >>= 1 {
-		// If we're already asking for an exact source and it doesn't
-		// match, then leave since the original source was the match.
-		if sourceFlags&getSourceExact != 0 && listSource != sourceLevel {
-			break
-		}
-
-		// The source we get from is the level we're on, plus the flags
-		// we had, plus the exact flag.
-		getSource := listSource
-		getSource |= sourceFlags
-		getSource |= getSourceExact
-		raw = d.getList(k, nil, schema, getSource)
-		if raw.Exists {
-			break
-		}
-	}
-	if !raw.Exists {
-		if len(parts) > 0 {
-			return d.getList(k, parts, schema, source)
-		}
-
-		return result
-	}
-
-	// If the entire list is computed, then the entire set is
-	// necessarilly computed.
-	if raw.Computed {
-		result.Computed = true
-		return result
-	}
-
-	list := raw.Value.([]interface{})
-	if len(list) == 0 {
-		if len(parts) > 0 {
-			return d.getList(k, parts, schema, source)
-		}
-
-		result.Exists = raw.Exists
-		return result
-	}
-
-	// This is a reverse map of hash code => index in config used to
-	// resolve direct set item lookup for turning into state. Confused?
-	// Read on...
-	//
-	// To create the state (the state* functions), a Get call is done
-	// with a full key such as "ports.0". The index of a set ("0") doesn't
-	// make a lot of sense, but we need to deterministically list out
-	// elements of the set like this. Luckily, same sets have a deterministic
-	// List() output, so we can use that to look things up.
-	//
-	// This mapping makes it so that we can look up the hash code of an
-	// object back to its index in the REAL config.
-	var indexMap map[int]int
-	if len(parts) > 0 {
-		indexMap = make(map[int]int)
-	}
-
-	// Build the set from all the items using the given hash code
-	for i, v := range list {
-		code := s.add(v)
-		if indexMap != nil {
-			indexMap[code] = i
-		}
-	}
-
-	// If we're trying to get a specific element, then rewrite the
-	// index to be just that, then jump direct to getList.
-	if len(parts) > 0 {
-		index := parts[0]
-		indexInt, err := strconv.ParseInt(index, 0, 0)
-		if err != nil {
-			return getResultEmpty
-		}
-
-		codes := s.listCode()
-		if int(indexInt) >= len(codes) {
-			return getResultEmpty
-		}
-		code := codes[indexInt]
-		realIndex := indexMap[code]
-
-		parts[0] = strconv.FormatInt(int64(realIndex), 10)
-		return d.getList(k, parts, schema, source)
-	}
-
-	result.Exists = true
-	return result
-}
-
-func (d *ResourceData) getMap(
-	k string,
-	parts []string,
-	schema *Schema,
-	source getSource) getResult {
-	elemSchema := &Schema{Type: TypeString}
-
-	result := make(map[string]interface{})
-	resultSet := false
-	prefix := k + "."
-
+	level := "set"
 	flags := source & ^getSourceLevelMask
-	level := source & getSourceLevelMask
 	exact := flags&getSourceExact != 0
-	diff := flags&getSourceDiff != 0
-
-	if !exact || level == getSourceState {
-		if d.state != nil && level >= getSourceState {
-			for k, _ := range d.state.Attributes {
-				if !strings.HasPrefix(k, prefix) {
-					continue
-				}
-
-				single := k[len(prefix):]
-				result[single] = d.getPrimitive(k, nil, elemSchema, source).Value
-				resultSet = true
-			}
-		}
-	}
-
-	if d.config != nil && level == getSourceConfig {
-		// For config, we always set the result to exactly what was requested
-		if mraw, ok := d.config.Get(k); ok {
-			result = make(map[string]interface{})
-			switch m := mraw.(type) {
-			case []interface{}:
-				for _, innerRaw := range m {
-					for k, v := range innerRaw.(map[string]interface{}) {
-						result[k] = v
-					}
-				}
-
-				resultSet = true
-			case []map[string]interface{}:
-				for _, innerRaw := range m {
-					for k, v := range innerRaw {
-						result[k] = v
-					}
-				}
-
-				resultSet = true
-			case map[string]interface{}:
-				result = m
-				resultSet = true
-			default:
-				panic(fmt.Sprintf("unknown type: %#v", mraw))
-			}
-		} else {
-			result = nil
-		}
-	}
-
-	if d.diff != nil && diff {
-		for k, v := range d.diff.Attributes {
-			if !strings.HasPrefix(k, prefix) {
-				continue
-			}
-			resultSet = true
-
-			single := k[len(prefix):]
-
-			if v.NewRemoved {
-				delete(result, single)
-			} else {
-				result[single] = d.getPrimitive(k, nil, elemSchema, source).Value
-			}
-		}
-	}
-
-	if !exact || level == getSourceSet {
-		if d.setMap != nil && level >= getSourceSet {
-			cleared := false
-			if v, ok := d.setMap[k]; ok && v == "" {
-				// We've cleared the map
-				result = make(map[string]interface{})
-				resultSet = true
-			} else {
-				for k, _ := range d.setMap {
-					if !strings.HasPrefix(k, prefix) {
-						continue
-					}
-					resultSet = true
-
-					if !cleared {
-						// We clear the results if they are in the set map
-						result = make(map[string]interface{})
-						cleared = true
-					}
-
-					single := k[len(prefix):]
-					result[single] = d.getPrimitive(
-						k, nil, elemSchema, source).Value
-				}
-			}
-		}
-	}
-
-	// If we're requesting a specific element, return that
-	var resultValue interface{} = result
-	if len(parts) > 0 {
-		resultValue = result[parts[0]]
-	}
-
-	return getResult{
-		Value:  resultValue,
-		Exists: resultSet,
-		Schema: schema,
-	}
-}
-
-func (d *ResourceData) getObject(
-	k string,
-	parts []string,
-	schema map[string]*Schema,
-	source getSource) getResult {
-	if len(parts) > 0 {
-		// We're requesting a specific key in an object
-		key := parts[0]
-		parts = parts[1:]
-		s, ok := schema[key]
-		if !ok {
-			return getResultEmpty
-		}
-
-		if k != "" {
-			// If we're not at the root, then we need to append
-			// the key to get the full key path.
-			key = fmt.Sprintf("%s.%s", k, key)
-		}
-
-		return d.get(key, parts, s, source)
-	}
-
-	// Get the entire object
-	result := make(map[string]interface{})
-	for field, _ := range schema {
-		result[field] = d.getObject(k, []string{field}, schema, source).Value
-	}
-
-	return getResult{
-		Value:  result,
-		Exists: true,
-		Schema: &Schema{
-			Elem: schema,
-		},
-	}
-}
-
-func (d *ResourceData) getList(
-	k string,
-	parts []string,
-	schema *Schema,
-	source getSource) getResult {
-	if len(parts) > 0 {
-		// We still have parts left over meaning we're accessing an
-		// element of this list.
-		idx := parts[0]
-		parts = parts[1:]
-
-		// Special case if we're accessing the count of the list
-		if idx == "#" {
-			schema := &Schema{Type: TypeInt}
-			return d.get(k+".#", parts, schema, source)
-		}
-
-		key := fmt.Sprintf("%s.%s", k, idx)
-		switch t := schema.Elem.(type) {
-		case *Resource:
-			return d.getObject(key, parts, t.Schema, source)
-		case *Schema:
-			return d.get(key, parts, t, source)
-		}
-	}
-
-	// Get the entire list.
-	var result []interface{}
-	count := d.getList(k, []string{"#"}, schema, source)
-	if !count.Computed {
-		result = make([]interface{}, count.Value.(int))
-		for i, _ := range result {
-			is := strconv.FormatInt(int64(i), 10)
-			result[i] = d.getList(k, []string{is}, schema, source).Value
-		}
-	}
-
-	return getResult{
-		Value:    result,
-		Computed: count.Computed,
-		Exists:   count.Exists,
-		Schema:   schema,
-	}
-}
-
-func (d *ResourceData) getPrimitive(
-	k string,
-	parts []string,
-	schema *Schema,
-	source getSource) getResult {
-	var result string
-	var resultProcessed interface{}
-	var resultComputed, resultSet bool
-	flags := source & ^getSourceLevelMask
 	source = source & getSourceLevelMask
-	exact := flags&getSourceExact != 0
-	diff := flags&getSourceDiff != 0
+	if source >= getSourceSet {
+		level = "set"
+	} else if source >= getSourceDiff {
+		level = "diff"
+	} else if source >= getSourceConfig {
+		level = "config"
+	} else {
+		level = "state"
+	}
 
-	if !exact || source == getSourceState {
-		if d.state != nil && source >= getSourceState {
-			result, resultSet = d.state.Attributes[k]
+	// Build the address of the key we're looking for and ask the FieldReader
+	for i, v := range addr {
+		if v[0] == '~' {
+			addr[i] = v[1:]
 		}
 	}
 
-	// No exact check is needed here because config is always exact
-	if d.config != nil && source == getSourceConfig {
-		// For config, we always return the exact value
-		if v, ok := d.config.Get(k); ok {
-			if err := mapstructure.WeakDecode(v, &result); err != nil {
-				panic(err)
-			}
-
-			resultSet = true
-		} else {
-			result = ""
-			resultSet = false
-		}
-
-		// If it is computed, set that.
-		resultComputed = d.config.IsComputed(k)
+	var result FieldReadResult
+	var err error
+	if exact {
+		result, err = d.multiReader.ReadFieldExact(addr, level)
+	} else {
+		result, err = d.multiReader.ReadFieldMerge(addr, level)
+	}
+	if err != nil {
+		panic(err)
 	}
 
-	if d.diff != nil && diff {
-		attrD, ok := d.diff.Attributes[k]
-		if ok {
-			if !attrD.NewComputed {
-				result = attrD.New
-				if attrD.NewExtra != nil {
-					// If NewExtra != nil, then we have processed data as the New,
-					// so we store that but decode the unprocessed data into result
-					resultProcessed = result
-
-					err := mapstructure.WeakDecode(attrD.NewExtra, &result)
-					if err != nil {
-						panic(err)
-					}
-				}
-
-				resultSet = true
-			} else {
-				result = ""
-				resultSet = false
-			}
+	// If the result doesn't exist, then we set the value to the zero value
+	if result.Value == nil {
+		if schemaL := addrToSchema(addr, d.schema); len(schemaL) > 0 {
+			schema := schemaL[len(schemaL)-1]
+			result.Value = result.ValueOrZero(schema)
 		}
 	}
 
-	if !exact || source == getSourceSet {
-		if d.setMap != nil && source >= getSourceSet {
-			if v, ok := d.setMap[k]; ok {
-				result = v
-				resultSet = true
-			}
-		}
-	}
-
-	if !resultSet {
-		result = ""
-	}
-
-	var resultValue interface{}
-	switch schema.Type {
-	case TypeBool:
-		if result == "" {
-			resultValue = false
-			break
-		}
-
-		v, err := strconv.ParseBool(result)
-		if err != nil {
-			panic(err)
-		}
-
-		resultValue = v
-	case TypeString:
-		// Use the value as-is. We just put this case here to be explicit.
-		resultValue = result
-	case TypeInt:
-		if result == "" {
-			resultValue = 0
-			break
-		}
-
-		if resultComputed {
-			break
-		}
-
-		v, err := strconv.ParseInt(result, 0, 0)
-		if err != nil {
-			panic(err)
-		}
-
-		resultValue = int(v)
-	default:
-		panic(fmt.Sprintf("Unknown type: %#v", schema.Type))
-	}
-
+	// Transform the FieldReadResult into a getResult. It might be worth
+	// merging these two structures one day.
 	return getResult{
-		Value:          resultValue,
-		ValueProcessed: resultProcessed,
-		Computed:       resultComputed,
-		Exists:         resultSet,
-		Schema:         schema,
+		Value:          result.Value,
+		ValueProcessed: result.ValueProcessed,
+		Computed:       result.Computed,
+		Exists:         result.Exists,
 	}
-}
-
-func (d *ResourceData) set(
-	k string,
-	parts []string,
-	schema *Schema,
-	value interface{}) error {
-	switch schema.Type {
-	case TypeList:
-		return d.setList(k, parts, schema, value)
-	case TypeMap:
-		return d.setMapValue(k, parts, schema, value)
-	case TypeSet:
-		return d.setSet(k, parts, schema, value)
-	case TypeBool:
-		fallthrough
-	case TypeInt:
-		fallthrough
-	case TypeString:
-		return d.setPrimitive(k, schema, value)
-	default:
-		panic(fmt.Sprintf("%s: unknown type %#v", k, schema.Type))
-	}
-}
-
-func (d *ResourceData) setList(
-	k string,
-	parts []string,
-	schema *Schema,
-	value interface{}) error {
-	if len(parts) > 0 {
-		// We're setting a specific element
-		idx := parts[0]
-		parts = parts[1:]
-
-		// Special case if we're accessing the count of the list
-		if idx == "#" {
-			return fmt.Errorf("%s: can't set count of list", k)
-		}
-
-		key := fmt.Sprintf("%s.%s", k, idx)
-		switch t := schema.Elem.(type) {
-		case *Resource:
-			return d.setObject(key, parts, t.Schema, value)
-		case *Schema:
-			return d.set(key, parts, t, value)
-		}
-	}
-
-	var vs []interface{}
-	if err := mapstructure.Decode(value, &vs); err != nil {
-		return fmt.Errorf("%s: %s", k, err)
-	}
-
-	// Set the entire list.
-	var err error
-	for i, elem := range vs {
-		is := strconv.FormatInt(int64(i), 10)
-		err = d.setList(k, []string{is}, schema, elem)
-		if err != nil {
-			break
-		}
-	}
-	if err != nil {
-		for i, _ := range vs {
-			is := strconv.FormatInt(int64(i), 10)
-			d.setList(k, []string{is}, schema, nil)
-		}
-
-		return err
-	}
-
-	d.setMap[k+".#"] = strconv.FormatInt(int64(len(vs)), 10)
-	return nil
-}
-
-func (d *ResourceData) setMapValue(
-	k string,
-	parts []string,
-	schema *Schema,
-	value interface{}) error {
-	elemSchema := &Schema{Type: TypeString}
-	if len(parts) > 0 {
-		return fmt.Errorf("%s: full map must be set, no a single element", k)
-	}
-
-	v := reflect.ValueOf(value)
-	if v.Kind() != reflect.Map {
-		return fmt.Errorf("%s: must be a map", k)
-	}
-	if v.Type().Key().Kind() != reflect.String {
-		return fmt.Errorf("%s: keys must strings", k)
-	}
-	vs := make(map[string]interface{})
-	for _, mk := range v.MapKeys() {
-		mv := v.MapIndex(mk)
-		vs[mk.String()] = mv.Interface()
-	}
-
-	if len(vs) == 0 {
-		// The empty string here means the map is removed.
-		d.setMap[k] = ""
-		return nil
-	}
-
-	delete(d.setMap, k)
-	for subKey, v := range vs {
-		err := d.set(fmt.Sprintf("%s.%s", k, subKey), nil, elemSchema, v)
-		if err != nil {
-			return err
-		}
-	}
-
-	return nil
-}
-
-func (d *ResourceData) setObject(
-	k string,
-	parts []string,
-	schema map[string]*Schema,
-	value interface{}) error {
-	if len(parts) > 0 {
-		// We're setting a specific key in an object
-		key := parts[0]
-		parts = parts[1:]
-
-		s, ok := schema[key]
-		if !ok {
-			return fmt.Errorf("%s (internal): unknown key to set: %s", k, key)
-		}
-
-		if k != "" {
-			// If we're not at the root, then we need to append
-			// the key to get the full key path.
-			key = fmt.Sprintf("%s.%s", k, key)
-		}
-
-		return d.set(key, parts, s, value)
-	}
-
-	// Set the entire object. First decode into a proper structure
-	var v map[string]interface{}
-	if err := mapstructure.Decode(value, &v); err != nil {
-		return fmt.Errorf("%s: %s", k, err)
-	}
-
-	// Set each element in turn
-	var err error
-	for k1, v1 := range v {
-		err = d.setObject(k, []string{k1}, schema, v1)
-		if err != nil {
-			break
-		}
-	}
-	if err != nil {
-		for k1, _ := range v {
-			d.setObject(k, []string{k1}, schema, nil)
-		}
-	}
-
-	return err
-}
-
-func (d *ResourceData) setPrimitive(
-	k string,
-	schema *Schema,
-	v interface{}) error {
-	if v == nil {
-		delete(d.setMap, k)
-		return nil
-	}
-
-	var set string
-	switch schema.Type {
-	case TypeBool:
-		var b bool
-		if err := mapstructure.Decode(v, &b); err != nil {
-			return fmt.Errorf("%s: %s", k, err)
-		}
-
-		set = strconv.FormatBool(b)
-	case TypeString:
-		if err := mapstructure.Decode(v, &set); err != nil {
-			return fmt.Errorf("%s: %s", k, err)
-		}
-	case TypeInt:
-		var n int
-		if err := mapstructure.Decode(v, &n); err != nil {
-			return fmt.Errorf("%s: %s", k, err)
-		}
-
-		set = strconv.FormatInt(int64(n), 10)
-	default:
-		return fmt.Errorf("Unknown type: %#v", schema.Type)
-	}
-
-	d.setMap[k] = set
-	return nil
-}
-
-func (d *ResourceData) setSet(
-	k string,
-	parts []string,
-	schema *Schema,
-	value interface{}) error {
-	if len(parts) > 0 {
-		return fmt.Errorf("%s: can only set the full set, not elements", k)
-	}
-
-	// If it is a slice, then we have to turn it into a *Set so that
-	// we get the proper order back based on the hash code.
-	if v := reflect.ValueOf(value); v.Kind() == reflect.Slice {
-		// Set the entire list, this lets us get sane values out of it
-		if err := d.setList(k, nil, schema, value); err != nil {
-			return err
-		}
-
-		// Build the set by going over the list items in order and
-		// hashing them into the set. The reason we go over the list and
-		// not the `value` directly is because this forces all types
-		// to become []interface{} (generic) instead of []string, which
-		// most hash functions are expecting.
-		s := &Set{F: schema.Set}
-		source := getSourceSet | getSourceExact
-		for i := 0; i < v.Len(); i++ {
-			is := strconv.FormatInt(int64(i), 10)
-			result := d.getList(k, []string{is}, schema, source)
-			if !result.Exists {
-				panic("just set item doesn't exist")
-			}
-
-			s.Add(result.Value)
-		}
-
-		value = s
-	}
-
-	if s, ok := value.(*Set); ok {
-		value = s.List()
-	}
-
-	return d.setList(k, nil, schema, value)
-}
-
-func (d *ResourceData) stateList(
-	prefix string,
-	schema *Schema) map[string]string {
-	countRaw := d.get(prefix, []string{"#"}, schema, d.stateSource(prefix))
-	if !countRaw.Exists {
-		if schema.Computed {
-			// If it is computed, then it always _exists_ in the state,
-			// it is just empty.
-			countRaw.Exists = true
-			countRaw.Value = 0
-		} else {
-			return nil
-		}
-	}
-	count := countRaw.Value.(int)
-
-	result := make(map[string]string)
-	if count > 0 || schema.Computed {
-		result[prefix+".#"] = strconv.FormatInt(int64(count), 10)
-	}
-	for i := 0; i < count; i++ {
-		key := fmt.Sprintf("%s.%d", prefix, i)
-
-		var m map[string]string
-		switch t := schema.Elem.(type) {
-		case *Resource:
-			m = d.stateObject(key, t.Schema)
-		case *Schema:
-			m = d.stateSingle(key, t)
-		}
-
-		for k, v := range m {
-			result[k] = v
-		}
-	}
-
-	return result
-}
-
-func (d *ResourceData) stateMap(
-	prefix string,
-	schema *Schema) map[string]string {
-	v := d.getMap(prefix, nil, schema, d.stateSource(prefix))
-	if !v.Exists {
-		return nil
-	}
-
-	elemSchema := &Schema{Type: TypeString}
-	result := make(map[string]string)
-	for mk, _ := range v.Value.(map[string]interface{}) {
-		mp := fmt.Sprintf("%s.%s", prefix, mk)
-		for k, v := range d.stateSingle(mp, elemSchema) {
-			result[k] = v
-		}
-	}
-
-	return result
-}
-
-func (d *ResourceData) stateObject(
-	prefix string,
-	schema map[string]*Schema) map[string]string {
-	result := make(map[string]string)
-	for k, v := range schema {
-		key := k
-		if prefix != "" {
-			key = prefix + "." + key
-		}
-
-		for k1, v1 := range d.stateSingle(key, v) {
-			result[k1] = v1
-		}
-	}
-
-	return result
-}
-
-func (d *ResourceData) statePrimitive(
-	prefix string,
-	schema *Schema) map[string]string {
-	raw := d.getRaw(prefix, d.stateSource(prefix))
-	if !raw.Exists {
-		return nil
-	}
-
-	v := raw.Value
-	if raw.ValueProcessed != nil {
-		v = raw.ValueProcessed
-	}
-
-	var vs string
-	switch schema.Type {
-	case TypeBool:
-		vs = strconv.FormatBool(v.(bool))
-	case TypeString:
-		vs = v.(string)
-	case TypeInt:
-		vs = strconv.FormatInt(int64(v.(int)), 10)
-	default:
-		panic(fmt.Sprintf("Unknown type: %#v", schema.Type))
-	}
-
-	return map[string]string{
-		prefix: vs,
-	}
-}
-
-func (d *ResourceData) stateSet(
-	prefix string,
-	schema *Schema) map[string]string {
-	raw := d.get(prefix, nil, schema, d.stateSource(prefix))
-	if !raw.Exists {
-		if schema.Computed {
-			// If it is computed, then it always _exists_ in the state,
-			// it is just empty.
-			raw.Exists = true
-			raw.Value = new(Set)
-		} else {
-			return nil
-		}
-	}
-
-	set := raw.Value.(*Set)
-	list := set.List()
-	result := make(map[string]string)
-	result[prefix+".#"] = strconv.FormatInt(int64(len(list)), 10)
-	for i := 0; i < len(list); i++ {
-		key := fmt.Sprintf("%s.%d", prefix, i)
-
-		var m map[string]string
-		switch t := schema.Elem.(type) {
-		case *Resource:
-			m = d.stateObject(key, t.Schema)
-		case *Schema:
-			m = d.stateSingle(key, t)
-		}
-
-		for k, v := range m {
-			result[k] = v
-		}
-	}
-
-	return result
-}
-
-func (d *ResourceData) stateSingle(
-	prefix string,
-	schema *Schema) map[string]string {
-	switch schema.Type {
-	case TypeList:
-		return d.stateList(prefix, schema)
-	case TypeMap:
-		return d.stateMap(prefix, schema)
-	case TypeSet:
-		return d.stateSet(prefix, schema)
-	case TypeBool:
-		fallthrough
-	case TypeInt:
-		fallthrough
-	case TypeString:
-		return d.statePrimitive(prefix, schema)
-	default:
-		panic(fmt.Sprintf("%s: unknown type %#v", prefix, schema.Type))
-	}
-}
-
-func (d *ResourceData) stateSource(prefix string) getSource {
-	// If we're not doing a partial apply, then get the set level
-	if !d.partial {
-		return getSourceSet | getSourceDiff
-	}
-
-	// Otherwise, only return getSourceSet if its in the partial map.
-	// Otherwise we use state level only.
-	for k, _ := range d.partialMap {
-		if strings.HasPrefix(prefix, k) {
-			return getSourceSet | getSourceDiff
-		}
-	}
-
-	return getSourceState
 }

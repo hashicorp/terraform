@@ -10,7 +10,7 @@ description: |-
 
 Provides a resource to create a VPC routing table.
 
-## Example Usage
+## Example usage with tags:
 
 ```
 resource "aws_route_table" "r" {
@@ -19,6 +19,10 @@ resource "aws_route_table" "r" {
         cidr_block = "10.0.1.0/24"
         gateway_id = "${aws_internet_gateway.main.id}"
     }
+
+	tags {
+		Name = "main"
+	}
 }
 ```
 
@@ -28,6 +32,7 @@ The following arguments are supported:
 
 * `vpc_id` - (Required) The ID of the routing table.
 * `route` - (Optional) A list of route objects. Their keys are documented below.
+* `tags` - (Optional) A mapping of tags to assign to the resource.
 
 Each route supports the following:
 

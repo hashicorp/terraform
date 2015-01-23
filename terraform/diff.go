@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"fmt"
 	"reflect"
+	"regexp"
 	"sort"
 	"strings"
 )
@@ -114,6 +115,7 @@ func (d *Diff) init() {
 type ModuleDiff struct {
 	Path      []string
 	Resources map[string]*InstanceDiff
+	Destroy   bool // Set only by the destroy plan
 }
 
 func (d *ModuleDiff) init() {
@@ -191,6 +193,10 @@ func (d *ModuleDiff) IsRoot() bool {
 // format that users can read to quickly inspect a diff.
 func (d *ModuleDiff) String() string {
 	var buf bytes.Buffer
+
+	if d.Destroy {
+		buf.WriteString("DESTROY MODULE\n")
+	}
 
 	names := make([]string, 0, len(d.Resources))
 	for name, _ := range d.Resources {
@@ -343,7 +349,7 @@ func (d *InstanceDiff) RequiresNew() bool {
 	return false
 }
 
-// Same checks whether or not to InstanceDiff are the "same." When
+// Same checks whether or not two InstanceDiff's are the "same". When
 // we say "same", it is not necessarily exactly equal. Instead, it is
 // just checking that the same attributes are changing, a destroy
 // isn't suddenly happening, etc.
@@ -371,7 +377,18 @@ func (d *InstanceDiff) Same(d2 *InstanceDiff) bool {
 	for k, _ := range d2.Attributes {
 		checkNew[k] = struct{}{}
 	}
-	for k, diffOld := range d.Attributes {
+
+	// Make an ordered list so we are sure the approximated hashes are left
+	// to process at the end of the loop
+	keys := make([]string, 0, len(d.Attributes))
+	for k, _ := range d.Attributes {
+		keys = append(keys, k)
+	}
+	sort.StringSlice(keys).Sort()
+
+	for _, k := range keys {
+		diffOld := d.Attributes[k]
+
 		if _, ok := checkOld[k]; !ok {
 			// We're not checking this key for whatever reason (see where
 			// check is modified).
@@ -384,14 +401,61 @@ func (d *InstanceDiff) Same(d2 *InstanceDiff) bool {
 
 		_, ok := d2.Attributes[k]
 		if !ok {
-			// The matching attribute was not found, we're different
-			return false
+			// No exact match, but maybe this is a set containing computed
+			// values. So check if there is an approximate hash in the key
+			// and if so, try to match the key.
+			if strings.Contains(k, "~") {
+				// TODO (SvH): There should be a better way to do this...
+				parts := strings.Split(k, ".")
+				parts2 := strings.Split(k, ".")
+				re := regexp.MustCompile(`^~\d+$`)
+				for i, part := range parts {
+					if re.MatchString(part) {
+						parts2[i] = `\d+`
+					}
+				}
+				re, err := regexp.Compile("^" + strings.Join(parts2, `\.`) + "$")
+				if err != nil {
+					return false
+				}
+				for k2, _ := range checkNew {
+					if re.MatchString(k2) {
+						delete(checkNew, k2)
+
+						if diffOld.NewComputed && strings.HasSuffix(k, ".#") {
+							// This is a computed list or set, so remove any keys with this
+							// prefix from the check list.
+							prefix := k2[:len(k2)-1]
+							for k2, _ := range checkNew {
+								if strings.HasPrefix(k2, prefix) {
+									delete(checkNew, k2)
+								}
+							}
+						}
+						ok = true
+						break
+					}
+				}
+			}
+
+			// This is a little tricky, but when a diff contains a computed list
+			// or set that can only be interpolated after the apply command has
+			// created the dependant resources, it could turn out that the result
+			// is actually the same as the existing state which would remove the
+			// key from the diff.
+			if diffOld.NewComputed && strings.HasSuffix(k, ".#") {
+				ok = true
+			}
+
+			if !ok {
+				return false
+			}
 		}
 
 		if diffOld.NewComputed && strings.HasSuffix(k, ".#") {
-			// This is a computed list, so remove any keys with this
+			// This is a computed list or set, so remove any keys with this
 			// prefix from the check list.
-			kprefix := k[0:len(k)-2] + "."
+			kprefix := k[:len(k)-1]
 			for k2, _ := range checkOld {
 				if strings.HasPrefix(k2, kprefix) {
 					delete(checkOld, k2)

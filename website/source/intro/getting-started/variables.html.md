@@ -3,14 +3,14 @@ layout: "intro"
 page_title: "Input Variables"
 sidebar_current: "gettingstarted-variables"
 description: |-
-  You now have enough Terraform knowledge to create useful configurations, but we're still hardcoding access keys, AMIs, etc. To become truly shareable and commitable to version control, we need to parameterize the configurations. This page introduces input variables as a way to do this.
+  You now have enough Terraform knowledge to create useful configurations, but we're still hardcoding access keys, AMIs, etc. To become truly shareable and committable to version control, we need to parameterize the configurations. This page introduces input variables as a way to do this.
 ---
 
 # Input Variables
 
 You now have enough Terraform knowledge to create useful
 configurations, but we're still hardcoding access keys,
-AMIs, etc. To become truly shareable and commitable to version
+AMIs, etc. To become truly shareable and committable to version
 control, we need to parameterize the configurations. This page
 introduces input variables as a way to do this.
 

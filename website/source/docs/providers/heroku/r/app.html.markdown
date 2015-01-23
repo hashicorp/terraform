@@ -14,7 +14,7 @@ create and manage applications on Heroku.
 ## Example Usage
 
 ```
-# Create a new heroku app
+# Create a new Heroku app
 resource "heroku_app" "default" {
     name = "my-cool-app"
 

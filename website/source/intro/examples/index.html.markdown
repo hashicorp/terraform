@@ -13,7 +13,7 @@ of the ways Terraform can be used.
 
 All examples are ready to run as-is. Terraform will
 ask for input of things such as variables and API keys. If you want to
-conitnue using the example, you should save those parameters in a
+continue using the example, you should save those parameters in a
 "terraform.tfvars" file or in a `provider` config bock.
 
 ~> **Warning!** The examples use real providers that launch _real_ resources.

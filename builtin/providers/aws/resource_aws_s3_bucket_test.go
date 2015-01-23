@@ -2,13 +2,17 @@ package aws
 
 import (
 	"fmt"
+	"math/rand"
 	"testing"
+	"time"
 
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
 )
 
 func TestAccAWSS3Bucket(t *testing.T) {
+	rand.Seed(time.Now().UnixNano())
+
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
@@ -25,7 +29,7 @@ func TestAccAWSS3Bucket(t *testing.T) {
 }
 
 func testAccCheckAWSS3BucketDestroy(s *terraform.State) error {
-	conn := testAccProvider.s3conn
+	conn := testAccProvider.Meta().(*AWSClient).s3conn
 
 	for _, rs := range s.RootModule().Resources {
 		if rs.Type != "aws_s3_bucket" {
@@ -53,7 +57,7 @@ func testAccCheckAWSS3BucketExists(n string) resource.TestCheckFunc {
 			return fmt.Errorf("No S3 Bucket ID is set")
 		}
 
-		conn := testAccProvider.s3conn
+		conn := testAccProvider.Meta().(*AWSClient).s3conn
 		bucket := conn.Bucket(rs.Primary.ID)
 		resp, err := bucket.Head("/")
 		if err != nil {
@@ -64,9 +68,11 @@ func testAccCheckAWSS3BucketExists(n string) resource.TestCheckFunc {
 	}
 }
 
-const testAccAWSS3BucketConfig = `
+// This needs a bit of randoness as the name can only be
+// used once globally within AWS
+var testAccAWSS3BucketConfig = fmt.Sprintf(`
 resource "aws_s3_bucket" "bar" {
-	bucket = "tf-test-bucket"
+	bucket = "tf-test-bucket-%d"
 	acl = "public-read"
 }
-`
+`, rand.Int())

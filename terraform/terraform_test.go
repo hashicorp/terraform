@@ -164,6 +164,21 @@ aws_instance.foo:
   type = aws_instance
 `
 
+const testTerraformApplyEmptyModuleStr = `
+<no state>
+Outputs:
+
+end = XXXX
+
+module.child:
+<no state>
+Outputs:
+
+aws_access_key = YYYYY
+aws_route53_zone_id = XXXX
+aws_secret_key = ZZZZ
+`
+
 const testTerraformApplyDependsCreateBeforeStr = `
 aws_instance.lb:
   ID = foo
@@ -375,6 +390,29 @@ aws_instance.foo:
 Outputs:
 
 foo_num = 2
+`
+
+const testTerraformApplyOutputListStr = `
+aws_instance.bar.0:
+  ID = foo
+  foo = bar
+  type = aws_instance
+aws_instance.bar.1:
+  ID = foo
+  foo = bar
+  type = aws_instance
+aws_instance.bar.2:
+  ID = foo
+  foo = bar
+  type = aws_instance
+aws_instance.foo:
+  ID = foo
+  num = 2
+  type = aws_instance
+
+Outputs:
+
+foo_num = bar,bar,bar
 `
 
 const testTerraformApplyOutputMultiStr = `
@@ -739,6 +777,7 @@ DIFF:
 DESTROY: aws_instance.foo
 
 module.child:
+  DESTROY MODULE
   DESTROY: aws_instance.foo
 
 STATE:
@@ -749,6 +788,24 @@ aws_instance.foo:
 module.child:
   aws_instance.foo:
     ID = bar
+`
+
+const testTerraformPlanModuleDestroyMultivarStr = `
+DIFF:
+
+module.child:
+  DESTROY MODULE
+  DESTROY: aws_instance.foo.0
+  DESTROY: aws_instance.foo.1
+
+STATE:
+
+<no state>
+module.child:
+  aws_instance.foo.0:
+    ID = bar0
+  aws_instance.foo.1:
+    ID = bar1
 `
 
 const testTerraformPlanModuleInputStr = `
@@ -802,6 +859,28 @@ STATE:
 <no state>
 `
 
+const testTerraformPlanModuleMultiVarStr = `
+DIFF:
+
+CREATE: aws_instance.parent.0
+CREATE: aws_instance.parent.1
+
+module.child:
+  CREATE: aws_instance.bar.0
+    baz:  "" => "baz"
+    type: "" => "aws_instance"
+  CREATE: aws_instance.bar.1
+    baz:  "" => "baz"
+    type: "" => "aws_instance"
+  CREATE: aws_instance.foo
+    foo:  "" => "baz,baz"
+    type: "" => "aws_instance"
+
+STATE:
+
+<no state>
+`
+
 const testTerraformPlanModuleOrphansStr = `
 DIFF:
 
@@ -846,6 +925,19 @@ CREATE: aws_instance.bar
 module.child:
   CREATE: aws_instance.foo
     foo:  "" => "<computed>"
+    type: "" => "aws_instance"
+
+STATE:
+
+<no state>
+`
+
+const testTerraformPlanModuleVarIntStr = `
+DIFF:
+
+module.child:
+  CREATE: aws_instance.foo
+    num:  "" => "2"
     type: "" => "aws_instance"
 
 STATE:
