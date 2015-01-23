@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/hashicorp/go-multierror"
 	"github.com/hashicorp/terraform/config"
 	"github.com/hashicorp/terraform/config/module"
 	"github.com/hashicorp/terraform/dag"
@@ -54,19 +55,34 @@ func Graph2(mod *module.Tree) (*dag.Graph, error) {
 		g.Add(n)
 	}
 
+	// Err is where the final error value will go if there is one
+	var err error
+
 	// Go through all the nodes and build up the actual graph edges. We
 	// do this by getting the variables that each node depends on and then
 	// building the dep map based on the fullMap which contains the mapping
 	// of var names to the actual node with that name.
 	for _, n := range nodes {
 		for _, id := range n.Variables() {
-			if target, ok := fullMap[id]; ok {
-				g.Connect(dag.BasicEdge(n, target))
+			if id == "" {
+				// Empty name means its a variable we don't care about
+				continue
 			}
+
+			target, ok := fullMap[id]
+			if !ok {
+				// We can't find the target meaning the dependency
+				// is missing. Accumulate the error.
+				err = multierror.Append(err, fmt.Errorf(
+					"%s: missing dependency: %s", n, id))
+				continue
+			}
+
+			g.Connect(dag.BasicEdge(n, target))
 		}
 	}
 
-	return &g, nil
+	return &g, err
 }
 
 // varNameForVar returns the VarName value for an interpolated variable.
