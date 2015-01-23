@@ -30,6 +30,18 @@ func TestAccAWSLaunchConfiguration(t *testing.T) {
 						"aws_launch_configuration.bar", "instance_type", "t1.micro"),
 					resource.TestCheckResourceAttr(
 						"aws_launch_configuration.bar", "associate_public_ip_address", "true"),
+					resource.TestCheckResourceAttr(
+						"aws_launch_configuration.bar", "spot_price", ""),
+				),
+			},
+
+			resource.TestStep{
+				Config: TestAccAWSLaunchConfigurationWithSpotPriceConfig,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSLaunchConfigurationExists("aws_launch_configuration.bar", &conf),
+					testAccCheckAWSLaunchConfigurationAttributes(&conf),
+					resource.TestCheckResourceAttr(
+						"aws_launch_configuration.bar", "spot_price", "0.01"),
 				),
 			},
 		},
@@ -127,5 +139,16 @@ resource "aws_launch_configuration" "bar" {
   instance_type = "t1.micro"
   user_data = "foobar-user-data"
   associate_public_ip_address = true
+}
+`
+
+const TestAccAWSLaunchConfigurationWithSpotPriceConfig = `
+resource "aws_launch_configuration" "bar" {
+  name = "foobar-terraform-test"
+  image_id = "ami-21f78e11"
+  instance_type = "t1.micro"
+  user_data = "foobar-user-data"
+  associate_public_ip_address = true
+  spot_price = "0.01"
 }
 `
