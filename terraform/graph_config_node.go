@@ -4,14 +4,14 @@ import (
 	"fmt"
 
 	"github.com/hashicorp/terraform/config"
-	"github.com/hashicorp/terraform/depgraph2"
+	"github.com/hashicorp/terraform/dag"
 )
 
 // graphNodeConfig is an interface that all graph nodes for the
 // configuration graph need to implement in order to build the variable
 // dependencies properly.
 type graphNodeConfig interface {
-	depgraph.Node
+	dag.Node
 
 	// Variables returns the full list of variables that this node
 	// depends on. The values within the slice should map to the VarName()
@@ -26,8 +26,8 @@ type graphNodeConfig interface {
 	// depMap and setDepMap are used to get and set the dependency map
 	// for this node. This is used to modify the dependencies. The key of
 	// this map should be the VarName() of graphNodeConfig.
-	depMap() map[string]depgraph.Node
-	setDepMap(map[string]depgraph.Node)
+	depMap() map[string]dag.Node
+	setDepMap(map[string]dag.Node)
 }
 
 // graphNodeConfigBasicDepMap is a struct that provides the Deps(),
@@ -35,11 +35,11 @@ type graphNodeConfig interface {
 // interface. This struct is meant to be embedded into other nodes to get
 // these features for free.
 type graphNodeConfigBasicDepMap struct {
-	DepMap map[string]depgraph.Node
+	DepMap map[string]dag.Node
 }
 
-func (n *graphNodeConfigBasicDepMap) Deps() []depgraph.Node {
-	r := make([]depgraph.Node, 0, len(n.DepMap))
+func (n *graphNodeConfigBasicDepMap) Deps() []dag.Node {
+	r := make([]dag.Node, 0, len(n.DepMap))
 	for _, v := range n.DepMap {
 		if v != nil {
 			r = append(r, v)
@@ -49,11 +49,11 @@ func (n *graphNodeConfigBasicDepMap) Deps() []depgraph.Node {
 	return r
 }
 
-func (n *graphNodeConfigBasicDepMap) depMap() map[string]depgraph.Node {
+func (n *graphNodeConfigBasicDepMap) depMap() map[string]dag.Node {
 	return n.DepMap
 }
 
-func (n *graphNodeConfigBasicDepMap) setDepMap(m map[string]depgraph.Node) {
+func (n *graphNodeConfigBasicDepMap) setDepMap(m map[string]dag.Node) {
 	n.DepMap = m
 }
 
