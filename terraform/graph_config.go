@@ -39,8 +39,12 @@ func Graph2(mod *module.Tree) (*dag.Graph, error) {
 	}
 
 	// Write all the modules out
+	children := mod.Children()
 	for _, m := range config.Modules {
-		nodes = append(nodes, &GraphNodeConfigModule{Module: m})
+		nodes = append(nodes, &GraphNodeConfigModule{
+			Module: m,
+			Tree:   children[m.Name],
+		})
 	}
 
 	// Build the full map of the var names to the nodes.
