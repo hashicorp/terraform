@@ -10,7 +10,7 @@ dev: generate
 	@TF_DEV=1 sh -c "'$(CURDIR)/scripts/build.sh'"
 
 test: generate
-	TF_ACC= go test $(TEST) $(TESTARGS) -timeout=10s -parallel=4
+	TF_ACC= go test $(TEST) $(TESTARGS) -timeout=30s -parallel=4
 	@$(MAKE) vet
 
 testacc: generate
