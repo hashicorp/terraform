@@ -26,6 +26,9 @@ type NamedVertex interface {
 	Name() string
 }
 
+// WalkFunc is the callback used for walking the graph.
+type WalkFunc func(Vertex)
+
 // Vertices returns the list of all the vertices in the graph.
 func (g *Graph) Vertices() []Vertex {
 	return g.vertices
@@ -76,6 +79,10 @@ func (g *Graph) Connect(edge Edge) {
 		g.upEdges[target] = s
 	}
 	s.Add(source)
+}
+
+// Walk walks the graph, calling your callback as each node is visited.
+func (g *Graph) Walk(cb WalkFunc) {
 }
 
 // String outputs some human-friendly output for the graph structure.
