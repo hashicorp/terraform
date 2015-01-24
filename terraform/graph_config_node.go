@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/hashicorp/terraform/config"
+	"github.com/hashicorp/terraform/config/module"
 	"github.com/hashicorp/terraform/dag"
 )
 
@@ -27,6 +28,7 @@ type graphNodeConfig interface {
 // GraphNodeConfigModule represents a module within the configuration graph.
 type GraphNodeConfigModule struct {
 	Module *config.Module
+	Tree   *module.Tree
 }
 
 func (n *GraphNodeConfigModule) Name() string {
