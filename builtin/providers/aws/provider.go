@@ -13,23 +13,32 @@ func Provider() terraform.ResourceProvider {
 	return &schema.Provider{
 		Schema: map[string]*schema.Schema{
 			"access_key": &schema.Schema{
-				Type:        schema.TypeString,
-				Required:    true,
-				DefaultFunc: schema.EnvDefaultFunc("AWS_ACCESS_KEY", nil),
+				Type:     schema.TypeString,
+				Required: true,
+				DefaultFunc: schema.MultiEnvDefaultFunc([]string{
+					"AWS_ACCESS_KEY",
+					"AWS_ACCESS_KEY_ID",
+				}, nil),
 				Description: descriptions["access_key"],
 			},
 
 			"secret_key": &schema.Schema{
-				Type:        schema.TypeString,
-				Required:    true,
-				DefaultFunc: schema.EnvDefaultFunc("AWS_SECRET_KEY", nil),
+				Type:     schema.TypeString,
+				Required: true,
+				DefaultFunc: schema.MultiEnvDefaultFunc([]string{
+					"AWS_SECRET_KEY",
+					"AWS_SECRET_ACCESS_KEY",
+				}, nil),
 				Description: descriptions["secret_key"],
 			},
 
 			"region": &schema.Schema{
-				Type:         schema.TypeString,
-				Required:     true,
-				DefaultFunc:  schema.EnvDefaultFunc("AWS_REGION", nil),
+				Type:     schema.TypeString,
+				Required: true,
+				DefaultFunc: schema.MultiEnvDefaultFunc([]string{
+					"AWS_REGION",
+					"AWS_DEFAULT_REGION",
+				}, nil),
 				Description:  descriptions["region"],
 				InputDefault: "us-east-1",
 			},
