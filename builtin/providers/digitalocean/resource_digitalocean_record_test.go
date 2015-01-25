@@ -76,6 +76,33 @@ func TestAccDigitalOceanRecord_Updated(t *testing.T) {
 	})
 }
 
+func TestAccDigitalOceanRecord_HostnameValue(t *testing.T) {
+	var record digitalocean.Record
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckDigitalOceanRecordDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccCheckDigitalOceanRecordConfig_cname,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckDigitalOceanRecordExists("digitalocean_record.foobar", &record),
+					testAccCheckDigitalOceanRecordAttributesHostname(&record),
+					resource.TestCheckResourceAttr(
+						"digitalocean_record.foobar", "name", "terraform"),
+					resource.TestCheckResourceAttr(
+						"digitalocean_record.foobar", "domain", "foobar-test-terraform.com"),
+					resource.TestCheckResourceAttr(
+						"digitalocean_record.foobar", "value", "a.foobar-test-terraform.com"),
+					resource.TestCheckResourceAttr(
+						"digitalocean_record.foobar", "type", "CNAME"),
+				),
+			},
+		},
+	})
+}
+
 func testAccCheckDigitalOceanRecordDestroy(s *terraform.State) error {
 	client := testAccProvider.Meta().(*digitalocean.Client)
 
@@ -146,6 +173,17 @@ func testAccCheckDigitalOceanRecordExists(n string, record *digitalocean.Record)
 	}
 }
 
+func testAccCheckDigitalOceanRecordAttributesHostname(record *digitalocean.Record) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+
+		if record.Data != "a.foobar-test-terraform.com" {
+			return fmt.Errorf("Bad value: %s", record.Data)
+		}
+
+		return nil
+	}
+}
+
 const testAccCheckDigitalOceanRecordConfig_basic = `
 resource "digitalocean_domain" "foobar" {
     name = "foobar-test-terraform.com"
@@ -172,4 +210,18 @@ resource "digitalocean_record" "foobar" {
     name = "terraform"
     value = "192.168.0.11"
     type = "A"
+}`
+
+const testAccCheckDigitalOceanRecordConfig_cname = `
+resource "digitalocean_domain" "foobar" {
+    name = "foobar-test-terraform.com"
+    ip_address = "192.168.0.10"
+}
+
+resource "digitalocean_record" "foobar" {
+    domain = "${digitalocean_domain.foobar.name}"
+
+    name = "terraform"
+    value = "a.foobar-test-terraform.com"
+    type = "CNAME"
 }`
