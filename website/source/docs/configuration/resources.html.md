@@ -44,9 +44,9 @@ resource type in the
 There are **meta-parameters** available to all resources:
 
   * `count` (int) - The number of identical resources to create.
-      This doesn't apply to all resources. You can use the `${count.index}`
-      [interpolation](/docs/configuration/interpolation.html) to reference
-      the current count index in your resource.
+      This doesn't apply to all resources. For details on using variables in
+      conjunction with count, see [Using Variables with
+     `count`](#using-variables-with-count) below.
 
   * `depends_on` (list of strings) - Explicit dependencies that this
       resource has. These dependencies will be created before this
@@ -93,6 +93,35 @@ Provisioner blocks can also contain a connection block
 provide more specific connection info for a specific provisioner.
 An example use case might be to use a different user to log in
 for a single provisioner.
+
+<a id="using-variables-with-count"></a>
+
+## Using Variables With `count`
+
+When declaring multiple instances of a resource using [`count`](#count), it is
+common to want each instance to have a different value for a given attribute.
+
+You can use the `${count.index}`
+[interpolation](/docs/configuration/interpolation.html) along with a mapping [variable](/docs/configuration/variables.html) to accomplish this.
+
+For example, here's how you could create three [AWS Instances](/docs/providers/aws/r/instance.html) each with their own static IP
+address:
+
+```
+variable "instance_ips" {
+  default = {
+    "0" = "10.11.12.100"
+    "1" = "10.11.12.101"
+    "2" = "10.11.12.102"
+  }
+}
+
+resource "aws_instance" "app" {
+  count = "3"
+  private_ip = "${lookup(instance_ips, count.index)}"
+  # ...
+}
+```
 
 ## Syntax
 
