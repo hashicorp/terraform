@@ -174,6 +174,21 @@ func EnvDefaultFunc(k string, dv interface{}) SchemaDefaultFunc {
 	}
 }
 
+// MultiEnvDefaultFunc is a helper function that returns the value of the first
+// environment variable in the given list that returns a non-empty value. If
+// none of the environment variables return a value, the default value is
+// returned.
+func MultiEnvDefaultFunc(ks []string, dv interface{}) SchemaDefaultFunc {
+	return func() (interface{}, error) {
+		for _, k := range ks {
+			if v := os.Getenv(k); v != "" {
+				return v, nil
+			}
+		}
+		return dv, nil
+	}
+}
+
 // SchemaSetFunc is a function that must return a unique ID for the given
 // element. This unique ID is used to store the element in a hash.
 type SchemaSetFunc func(interface{}) int
