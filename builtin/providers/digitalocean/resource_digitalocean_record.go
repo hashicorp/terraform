@@ -68,10 +68,18 @@ func resourceDigitalOceanRecord() *schema.Resource {
 func resourceDigitalOceanRecordCreate(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*digitalocean.Client)
 
+	rrValue := d.Get("value").(string)
+	// Ensure all records with domain value are absolute (ending with dot)
+	if t := d.Get("type").(string); t == "CNAME" || t == "MX" || t == "NS" || t == "SRV" {
+		if rrValue[len(rrValue)-1] != '.' {
+			rrValue += "."
+		}
+	}
+
 	newRecord := digitalocean.CreateRecord{
 		Type:     d.Get("type").(string),
 		Name:     d.Get("name").(string),
-		Data:     d.Get("value").(string),
+		Data:     rrValue,
 		Priority: d.Get("priority").(string),
 		Port:     d.Get("port").(string),
 		Weight:   d.Get("weight").(string),
