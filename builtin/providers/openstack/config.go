@@ -6,22 +6,30 @@ import (
 )
 
 type Config struct {
-	Region           string
 	Username         string
+	UserID           string
 	Password         string
+	APIKey           string
 	IdentityEndpoint string
+	TenantID         string
 	TenantName       string
+	DomainID         string
+	DomainName       string
 
-	computeV2Client    *gophercloud.ServiceClient
-	networkingV2Client *gophercloud.ServiceClient
+	osClient *gophercloud.ProviderClient
 }
 
 func (c *Config) loadAndValidate() error {
 	ao := gophercloud.AuthOptions{
 		Username:         c.Username,
+		UserID:           c.UserID,
 		Password:         c.Password,
+		APIKey:           c.APIKey,
 		IdentityEndpoint: c.IdentityEndpoint,
+		TenantID:         c.TenantID,
 		TenantName:       c.TenantName,
+		DomainID:         c.DomainID,
+		DomainName:       c.DomainName,
 	}
 
 	client, err := openstack.AuthenticatedClient(ao)
@@ -29,13 +37,7 @@ func (c *Config) loadAndValidate() error {
 		return err
 	}
 
-	c.computeV2Client, err = openstack.NewComputeV2(client, gophercloud.EndpointOpts{
-		Region: c.Region,
-	})
-
-	c.networkingV2Client, err = openstack.NewNetworkV2(client, gophercloud.EndpointOpts{
-		Region: c.Region,
-	})
+	c.osClient = client
 
 	return nil
 }
