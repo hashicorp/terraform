@@ -66,7 +66,7 @@ func resourceLBVipV1() *schema.Resource {
 				ForceNew: false,
 			},
 			"persistence": &schema.Schema{
-				Type:     schema.TypeString,
+				Type:     schema.TypeMap,
 				Optional: true,
 				ForceNew: false,
 			},
@@ -265,7 +265,7 @@ func resourceLBVipV1Delete(d *schema.ResourceData, meta interface{}) error {
 func resourceVipPersistenceV1(d *schema.ResourceData) *vips.SessionPersistence {
 	rawP := d.Get("persistence").(interface{})
 	rawMap := rawP.(map[string]interface{})
-	if rawMap != nil {
+	if len(rawMap) != 0 {
 		p := vips.SessionPersistence{}
 		if t, ok := rawMap["type"]; ok {
 			p.Type = t.(string)
