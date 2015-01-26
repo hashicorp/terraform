@@ -22,7 +22,6 @@ func resourceComputeSecGroupV2() *schema.Resource {
 				Type:        schema.TypeString,
 				Required:    true,
 				ForceNew:    true,
-				DefaultFunc: envDefaultFunc("OS_REGION_NAME"),
 			},
 			"name": &schema.Schema{
 				Type:     schema.TypeString,
@@ -93,7 +92,7 @@ func resourceComputeSecGroupV2Update(d *schema.ResourceData, meta interface{}) e
 	}
 
 	updateOpts := secgroups.UpdateOpts{
-		Name: d.Get("name").(string),
+		Name:        d.Get("name").(string),
 		Description: d.Get("description").(string),
 	}
 

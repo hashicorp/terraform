@@ -5,8 +5,8 @@ import (
 	"log"
 	"strconv"
 
-	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/helper/hashcode"
+	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/rackspace/gophercloud"
 	"github.com/rackspace/gophercloud/openstack"
 	"github.com/rackspace/gophercloud/openstack/networking/v2/subnets"
@@ -24,7 +24,6 @@ func resourceNetworkingSubnetV2() *schema.Resource {
 				Type:        schema.TypeString,
 				Required:    true,
 				ForceNew:    true,
-				DefaultFunc: envDefaultFunc("OS_REGION_NAME"),
 			},
 			"network_id": &schema.Schema{
 				Type:     schema.TypeString,
