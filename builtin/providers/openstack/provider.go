@@ -24,17 +24,17 @@ func Provider() terraform.ResourceProvider {
 			"user_id": &schema.Schema{
 				Type:        schema.TypeString,
 				Optional:    true,
-				DefaultFunc: envDefaultFunc("OS_USERID"),
+				Default: "",
 			},
 			"tenant_id": &schema.Schema{
 				Type:        schema.TypeString,
 				Optional:    true,
-				DefaultFunc: envDefaultFunc("OS_TENANT_ID"),
+				Default: "",
 			},
 			"tenant_name": &schema.Schema{
 				Type:        schema.TypeString,
 				Optional:    true,
-				DefaultFunc: envDefaultFunc("OS_TENANT_NAME"),
+				Default: "",
 			},
 			"password": &schema.Schema{
 				Type:        schema.TypeString,
@@ -44,17 +44,17 @@ func Provider() terraform.ResourceProvider {
 			"api_key": &schema.Schema{
 				Type:        schema.TypeString,
 				Optional:    true,
-				DefaultFunc: envDefaultFunc("OS_API_KEY"),
+				Default: "",
 			},
 			"domain_id": &schema.Schema{
 				Type:        schema.TypeString,
 				Optional:    true,
-				DefaultFunc: envDefaultFunc("OS_DOMAIN_ID"),
+				Default: "",
 			},
 			"domain_name": &schema.Schema{
 				Type:        schema.TypeString,
 				Optional:    true,
-				DefaultFunc: envDefaultFunc("OS_DOMAIN_NAME"),
+				Default: "",
 			},
 		},
 
