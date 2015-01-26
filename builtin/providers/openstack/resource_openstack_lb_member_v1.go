@@ -5,6 +5,8 @@ import (
 	"log"
 
 	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/rackspace/gophercloud"
+	"github.com/rackspace/gophercloud/openstack"
 	"github.com/rackspace/gophercloud/openstack/networking/v2/extensions/lbaas/members"
 )
 
@@ -16,30 +18,32 @@ func resourceLBMember() *schema.Resource {
 		Delete: resourceLBMemberDelete,
 
 		Schema: map[string]*schema.Schema{
+			"region": &schema.Schema{
+				Type:        schema.TypeString,
+				Required:    true,
+				ForceNew:    true,
+				DefaultFunc: envDefaultFunc("OS_REGION_NAME"),
+			},
 			"tenant_id": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: true,
 			},
-
 			"address": &schema.Schema{
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
-
 			"port": &schema.Schema{
 				Type:     schema.TypeInt,
 				Required: true,
 				ForceNew: true,
 			},
-
 			"pool_id": &schema.Schema{
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
-
 			"admin_state_up": &schema.Schema{
 				Type:     schema.TypeBool,
 				Required: true,
@@ -51,7 +55,12 @@ func resourceLBMember() *schema.Resource {
 
 func resourceLBMemberCreate(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
-	osClient := config.networkingV2Client
+	networkingClient, err := openstack.NewNetworkV2(config.osClient, gophercloud.EndpointOpts{
+		Region: d.Get("region").(string),
+	})
+	if err != nil {
+		return fmt.Errorf("Error creating OpenStack networking client: %s", err)
+	}
 
 	createOpts := members.CreateOpts{
 		//TenantID:     d.Get("tenant_id").(string),
@@ -61,7 +70,7 @@ func resourceLBMemberCreate(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	log.Printf("[INFO] Requesting lb member creation")
-	p, err := members.Create(osClient, createOpts).Extract()
+	p, err := members.Create(networkingClient, createOpts).Extract()
 	if err != nil {
 		return fmt.Errorf("Error creating OpenStack LB member: %s", err)
 	}
@@ -74,9 +83,14 @@ func resourceLBMemberCreate(d *schema.ResourceData, meta interface{}) error {
 
 func resourceLBMemberRead(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
-	osClient := config.networkingV2Client
+	networkingClient, err := openstack.NewNetworkV2(config.osClient, gophercloud.EndpointOpts{
+		Region: d.Get("region").(string),
+	})
+	if err != nil {
+		return fmt.Errorf("Error creating OpenStack networking client: %s", err)
+	}
 
-	p, err := members.Get(osClient, d.Id()).Extract()
+	p, err := members.Get(networkingClient, d.Id()).Extract()
 	if err != nil {
 		return fmt.Errorf("Error retrieving OpenStack LB Member: %s", err)
 	}
@@ -100,7 +114,12 @@ func resourceLBMemberRead(d *schema.ResourceData, meta interface{}) error {
 
 func resourceLBMemberUpdate(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
-	osClient := config.networkingV2Client
+	networkingClient, err := openstack.NewNetworkV2(config.osClient, gophercloud.EndpointOpts{
+		Region: d.Get("region").(string),
+	})
+	if err != nil {
+		return fmt.Errorf("Error creating OpenStack networking client: %s", err)
+	}
 
 	var updateOpts members.UpdateOpts
 	if d.HasChange("admin_state_up") {
@@ -109,7 +128,7 @@ func resourceLBMemberUpdate(d *schema.ResourceData, meta interface{}) error {
 
 	log.Printf("[DEBUG] Updating OpenStack LB Member %s with options: %+v", d.Id(), updateOpts)
 
-	_, err := members.Update(osClient, d.Id(), updateOpts).Extract()
+	_, err = members.Update(networkingClient, d.Id(), updateOpts).Extract()
 	if err != nil {
 		return fmt.Errorf("Error updating OpenStack LB Member: %s", err)
 	}
@@ -119,9 +138,14 @@ func resourceLBMemberUpdate(d *schema.ResourceData, meta interface{}) error {
 
 func resourceLBMemberDelete(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
-	osClient := config.networkingV2Client
+	networkingClient, err := openstack.NewNetworkV2(config.osClient, gophercloud.EndpointOpts{
+		Region: d.Get("region").(string),
+	})
+	if err != nil {
+		return fmt.Errorf("Error creating OpenStack networking client: %s", err)
+	}
 
-	err := members.Delete(osClient, d.Id()).ExtractErr()
+	err = members.Delete(networkingClient, d.Id()).ExtractErr()
 	if err != nil {
 		return fmt.Errorf("Error deleting OpenStack LB Member: %s", err)
 	}

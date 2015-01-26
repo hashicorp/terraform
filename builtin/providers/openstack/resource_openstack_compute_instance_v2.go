@@ -9,6 +9,7 @@ import (
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/rackspace/gophercloud"
+	"github.com/rackspace/gophercloud/openstack"
 	"github.com/rackspace/gophercloud/openstack/compute/v2/extensions/keypairs"
 	"github.com/rackspace/gophercloud/openstack/compute/v2/extensions/secgroups"
 	"github.com/rackspace/gophercloud/openstack/compute/v2/servers"
@@ -23,24 +24,27 @@ func resourceComputeInstance() *schema.Resource {
 		Delete: resourceComputeInstanceDelete,
 
 		Schema: map[string]*schema.Schema{
+			"region": &schema.Schema{
+				Type:        schema.TypeString,
+				Required:    true,
+				ForceNew:    true,
+				DefaultFunc: envDefaultFunc("OS_REGION_NAME"),
+			},
 			"name": &schema.Schema{
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: false,
 			},
-
 			"image_ref": &schema.Schema{
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: false,
 			},
-
 			"flavor_ref": &schema.Schema{
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: false,
 			},
-
 			"security_groups": &schema.Schema{
 				Type:     schema.TypeSet,
 				Optional: true,
@@ -50,13 +54,11 @@ func resourceComputeInstance() *schema.Resource {
 					return hashcode.String(v.(string))
 				},
 			},
-
 			"availability_zone": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: true,
 			},
-
 			"networks": &schema.Schema{
 				Type:     schema.TypeList,
 				Optional: true,
@@ -67,12 +69,10 @@ func resourceComputeInstance() *schema.Resource {
 							Type:     schema.TypeString,
 							Optional: true,
 						},
-
 						"port": &schema.Schema{
 							Type:     schema.TypeString,
 							Optional: true,
 						},
-
 						"fixed_ip": &schema.Schema{
 							Type:     schema.TypeString,
 							Optional: true,
@@ -80,39 +80,33 @@ func resourceComputeInstance() *schema.Resource {
 					},
 				},
 			},
-
 			"metadata": &schema.Schema{
 				Type:     schema.TypeMap,
 				Optional: true,
 				ForceNew: false,
 			},
-
 			"config_drive": &schema.Schema{
 				Type:     schema.TypeBool,
 				Optional: true,
 				ForceNew: true,
 			},
-
 			"admin_pass": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: false,
 			},
-
 			"access_ip_v4": &schema.Schema{
 				Type:     schema.TypeString,
 				Computed: true,
 				Optional: true,
 				ForceNew: false,
 			},
-
 			"access_ip_v6": &schema.Schema{
 				Type:     schema.TypeString,
 				Computed: true,
 				Optional: true,
 				ForceNew: false,
 			},
-
 			"key_pair": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
@@ -124,7 +118,13 @@ func resourceComputeInstance() *schema.Resource {
 
 func resourceComputeInstanceCreate(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
-	osClient := config.computeV2Client
+	computeClient, err := openstack.NewComputeV2(config.osClient, gophercloud.EndpointOpts{
+		Region: d.Get("region").(string),
+	})
+	if err != nil {
+		return fmt.Errorf("Error creating OpenStack compute client: %s", err)
+	}
+
 
 	var createOpts servers.CreateOptsBuilder
 
@@ -148,7 +148,7 @@ func resourceComputeInstanceCreate(d *schema.ResourceData, meta interface{}) err
 	}
 
 	log.Printf("[INFO] Requesting instance creation")
-	server, err := servers.Create(osClient, createOpts).Extract()
+	server, err := servers.Create(computeClient, createOpts).Extract()
 	if err != nil {
 		return fmt.Errorf("Error creating OpenStack server: %s", err)
 	}
@@ -166,7 +166,7 @@ func resourceComputeInstanceCreate(d *schema.ResourceData, meta interface{}) err
 	stateConf := &resource.StateChangeConf{
 		Pending:    []string{"BUILD"},
 		Target:     "ACTIVE",
-		Refresh:    ServerStateRefreshFunc(osClient, server.ID),
+		Refresh:    ServerStateRefreshFunc(computeClient, server.ID),
 		Timeout:    10 * time.Minute,
 		Delay:      10 * time.Second,
 		MinTimeout: 3 * time.Second,
@@ -184,9 +184,14 @@ func resourceComputeInstanceCreate(d *schema.ResourceData, meta interface{}) err
 
 func resourceComputeInstanceRead(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
-	osClient := config.computeV2Client
+	computeClient, err := openstack.NewComputeV2(config.osClient, gophercloud.EndpointOpts{
+		Region: d.Get("region").(string),
+	})
+	if err != nil {
+		return fmt.Errorf("Error creating OpenStack compute client: %s", err)
+	}
 
-	server, err := servers.Get(osClient, d.Id()).Extract()
+	server, err := servers.Get(computeClient, d.Id()).Extract()
 	if err != nil {
 		return fmt.Errorf("Error retrieving OpenStack server: %s", err)
 	}
@@ -223,7 +228,7 @@ func resourceComputeInstanceRead(d *schema.ResourceData, meta interface{}) error
 	d.Set("metadata", server.Metadata)
 
 	var currentSG []string
-	err = secgroups.ListByServer(osClient, d.Id()).EachPage(func(page pagination.Page) (bool, error) {
+	err = secgroups.ListByServer(computeClient, d.Id()).EachPage(func(page pagination.Page) (bool, error) {
 		secGrpList, err := secgroups.ExtractSecurityGroups(page)
 		if err != nil {
 			return false, fmt.Errorf("Error setting security groups for OpenStack server: %s", err)
@@ -248,7 +253,12 @@ func resourceComputeInstanceRead(d *schema.ResourceData, meta interface{}) error
 
 func resourceComputeInstanceUpdate(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
-	osClient := config.computeV2Client
+	computeClient, err := openstack.NewComputeV2(config.osClient, gophercloud.EndpointOpts{
+		Region: d.Get("region").(string),
+	})
+	if err != nil {
+		return fmt.Errorf("Error creating OpenStack compute client: %s", err)
+	}
 
 	var updateOpts servers.UpdateOpts
 	if d.HasChange("name") {
@@ -263,7 +273,7 @@ func resourceComputeInstanceUpdate(d *schema.ResourceData, meta interface{}) err
 
 	log.Printf("[DEBUG] Updating Server %s with options: %+v", d.Id(), updateOpts)
 
-	_, err := servers.Update(osClient, d.Id(), updateOpts).Extract()
+	_, err = servers.Update(computeClient, d.Id(), updateOpts).Extract()
 	if err != nil {
 		return fmt.Errorf("Error updating OpenStack server: %s", err)
 	}
@@ -276,7 +286,7 @@ func resourceComputeInstanceUpdate(d *schema.ResourceData, meta interface{}) err
 			metadataOpts[k] = v.(string)
 		}
 
-		_, err := servers.UpdateMetadata(osClient, d.Id(), metadataOpts).Extract()
+		_, err := servers.UpdateMetadata(computeClient, d.Id(), metadataOpts).Extract()
 		if err != nil {
 			return fmt.Errorf("Error updating OpenStack server (%s) metadata: %s", d.Id(), err)
 		}
@@ -293,7 +303,7 @@ func resourceComputeInstanceUpdate(d *schema.ResourceData, meta interface{}) err
 		log.Printf("[DEBUG] Security groups to remove: %v", secgroupsToRemove)
 
 		for _, g := range secgroupsToAdd.List() {
-			err := secgroups.AddServerToGroup(osClient, d.Id(), g.(string)).ExtractErr()
+			err := secgroups.AddServerToGroup(computeClient, d.Id(), g.(string)).ExtractErr()
 			if err != nil {
 				return fmt.Errorf("Error adding security group to OpenStack server (%s): %s", d.Id(), err)
 			}
@@ -301,7 +311,7 @@ func resourceComputeInstanceUpdate(d *schema.ResourceData, meta interface{}) err
 		}
 
 		for _, g := range secgroupsToRemove.List() {
-			err := secgroups.RemoveServerFromGroup(osClient, d.Id(), g.(string)).ExtractErr()
+			err := secgroups.RemoveServerFromGroup(computeClient, d.Id(), g.(string)).ExtractErr()
 			if err != nil {
 				return fmt.Errorf("Error removing security group from OpenStack server (%s): %s", d.Id(), err)
 			}
@@ -311,7 +321,7 @@ func resourceComputeInstanceUpdate(d *schema.ResourceData, meta interface{}) err
 
 	if d.HasChange("admin_pass") {
 		if newPwd, ok := d.Get("admin_pass").(string); ok {
-			err := servers.ChangeAdminPassword(osClient, d.Id(), newPwd).ExtractErr()
+			err := servers.ChangeAdminPassword(computeClient, d.Id(), newPwd).ExtractErr()
 			if err != nil {
 				return fmt.Errorf("Error changing admin password of OpenStack server (%s): %s", d.Id(), err)
 			}
@@ -322,7 +332,7 @@ func resourceComputeInstanceUpdate(d *schema.ResourceData, meta interface{}) err
 		resizeOpts := &servers.ResizeOpts{
 			FlavorRef: d.Get("flavor_ref").(string),
 		}
-		err := servers.Resize(osClient, d.Id(), resizeOpts).ExtractErr()
+		err := servers.Resize(computeClient, d.Id(), resizeOpts).ExtractErr()
 		if err != nil {
 			return fmt.Errorf("Error resizing OpenStack server: %s", err)
 		}
@@ -333,7 +343,7 @@ func resourceComputeInstanceUpdate(d *schema.ResourceData, meta interface{}) err
 		stateConf := &resource.StateChangeConf{
 			Pending:    []string{"RESIZE"},
 			Target:     "VERIFY_RESIZE",
-			Refresh:    ServerStateRefreshFunc(osClient, d.Id()),
+			Refresh:    ServerStateRefreshFunc(computeClient, d.Id()),
 			Timeout:    3 * time.Minute,
 			Delay:      10 * time.Second,
 			MinTimeout: 3 * time.Second,
@@ -346,7 +356,7 @@ func resourceComputeInstanceUpdate(d *schema.ResourceData, meta interface{}) err
 
 		// Confirm resize.
 		log.Printf("[DEBUG] Confirming resize")
-		err = servers.ConfirmResize(osClient, d.Id()).ExtractErr()
+		err = servers.ConfirmResize(computeClient, d.Id()).ExtractErr()
 		if err != nil {
 			return fmt.Errorf("Error confirming resize of OpenStack server: %s", err)
 		}
@@ -354,7 +364,7 @@ func resourceComputeInstanceUpdate(d *schema.ResourceData, meta interface{}) err
 		stateConf = &resource.StateChangeConf{
 			Pending:    []string{"VERIFY_RESIZE"},
 			Target:     "ACTIVE",
-			Refresh:    ServerStateRefreshFunc(osClient, d.Id()),
+			Refresh:    ServerStateRefreshFunc(computeClient, d.Id()),
 			Timeout:    3 * time.Minute,
 			Delay:      10 * time.Second,
 			MinTimeout: 3 * time.Second,
@@ -371,9 +381,14 @@ func resourceComputeInstanceUpdate(d *schema.ResourceData, meta interface{}) err
 
 func resourceComputeInstanceDelete(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
-	osClient := config.computeV2Client
+	computeClient, err := openstack.NewComputeV2(config.osClient, gophercloud.EndpointOpts{
+		Region: d.Get("region").(string),
+	})
+	if err != nil {
+		return fmt.Errorf("Error creating OpenStack compute client: %s", err)
+	}
 
-	err := servers.Delete(osClient, d.Id()).ExtractErr()
+	err = servers.Delete(computeClient, d.Id()).ExtractErr()
 	if err != nil {
 		return fmt.Errorf("Error deleting OpenStack server: %s", err)
 	}
@@ -383,7 +398,7 @@ func resourceComputeInstanceDelete(d *schema.ResourceData, meta interface{}) err
 
 	stateConf := &resource.StateChangeConf{
 		Target:     "",
-		Refresh:    ServerStateRefreshFunc(osClient, d.Id()),
+		Refresh:    ServerStateRefreshFunc(computeClient, d.Id()),
 		Timeout:    10 * time.Minute,
 		Delay:      10 * time.Second,
 		MinTimeout: 3 * time.Second,

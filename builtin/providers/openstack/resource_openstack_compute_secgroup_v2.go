@@ -5,6 +5,8 @@ import (
 	"log"
 
 	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/rackspace/gophercloud"
+	"github.com/rackspace/gophercloud/openstack"
 	"github.com/rackspace/gophercloud/openstack/compute/v2/extensions/secgroups"
 )
 
@@ -16,12 +18,17 @@ func resourceComputeSecGroup() *schema.Resource {
 		Delete: resourceComputeSecGroupDelete,
 
 		Schema: map[string]*schema.Schema{
+			"region": &schema.Schema{
+				Type:        schema.TypeString,
+				Required:    true,
+				ForceNew:    true,
+				DefaultFunc: envDefaultFunc("OS_REGION_NAME"),
+			},
 			"name": &schema.Schema{
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: false,
 			},
-
 			"description": &schema.Schema{
 				Type:     schema.TypeString,
 				Required: true,
@@ -33,14 +40,19 @@ func resourceComputeSecGroup() *schema.Resource {
 
 func resourceComputeSecGroupCreate(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
-	osClient := config.computeV2Client
+	computeClient, err := openstack.NewComputeV2(config.osClient, gophercloud.EndpointOpts{
+		Region: d.Get("region").(string),
+	})
+	if err != nil {
+		return fmt.Errorf("Error creating OpenStack compute client: %s", err)
+	}
 
 	createOpts := secgroups.CreateOpts{
 		Name:        d.Get("name").(string),
 		Description: d.Get("description").(string),
 	}
 
-	sg, err := secgroups.Create(osClient, createOpts).Extract()
+	sg, err := secgroups.Create(computeClient, createOpts).Extract()
 	if err != nil {
 		return fmt.Errorf("Error creating OpenStack security group: %s", err)
 	}
@@ -52,9 +64,14 @@ func resourceComputeSecGroupCreate(d *schema.ResourceData, meta interface{}) err
 
 func resourceComputeSecGroupRead(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
-	osClient := config.computeV2Client
+	computeClient, err := openstack.NewComputeV2(config.osClient, gophercloud.EndpointOpts{
+		Region: d.Get("region").(string),
+	})
+	if err != nil {
+		return fmt.Errorf("Error creating OpenStack compute client: %s", err)
+	}
 
-	sg, err := secgroups.Get(osClient, d.Id()).Extract()
+	sg, err := secgroups.Get(computeClient, d.Id()).Extract()
 	if err != nil {
 		return fmt.Errorf("Error retrieving OpenStack security group: %s", err)
 	}
@@ -67,7 +84,12 @@ func resourceComputeSecGroupRead(d *schema.ResourceData, meta interface{}) error
 
 func resourceComputeSecGroupUpdate(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
-	osClient := config.computeV2Client
+	computeClient, err := openstack.NewComputeV2(config.osClient, gophercloud.EndpointOpts{
+		Region: d.Get("region").(string),
+	})
+	if err != nil {
+		return fmt.Errorf("Error creating OpenStack compute client: %s", err)
+	}
 
 	var updateOpts secgroups.UpdateOpts
 	if d.HasChange("name") {
@@ -77,14 +99,11 @@ func resourceComputeSecGroupUpdate(d *schema.ResourceData, meta interface{}) err
 		updateOpts.Description = d.Get("description").(string)
 	}
 
-	// If there's nothing to update, don't waste an HTTP call.
-	if updateOpts != (secgroups.UpdateOpts{}) {
-		log.Printf("[DEBUG] Updating Security Group (%s) with options: %+v", d.Id(), updateOpts)
+	log.Printf("[DEBUG] Updating Security Group (%s) with options: %+v", d.Id(), updateOpts)
 
-		_, err := secgroups.Update(osClient, d.Id(), updateOpts).Extract()
-		if err != nil {
-			return fmt.Errorf("Error updating OpenStack security group (%s): %s", d.Id(), err)
-		}
+	_, err = secgroups.Update(computeClient, d.Id(), updateOpts).Extract()
+	if err != nil {
+		return fmt.Errorf("Error updating OpenStack security group (%s): %s", d.Id(), err)
 	}
 
 	return resourceComputeSecGroupRead(d, meta)
@@ -92,9 +111,14 @@ func resourceComputeSecGroupUpdate(d *schema.ResourceData, meta interface{}) err
 
 func resourceComputeSecGroupDelete(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
-	osClient := config.computeV2Client
+	computeClient, err := openstack.NewComputeV2(config.osClient, gophercloud.EndpointOpts{
+		Region: d.Get("region").(string),
+	})
+	if err != nil {
+		return fmt.Errorf("Error creating OpenStack compute client: %s", err)
+	}
 
-	err := secgroups.Delete(osClient, d.Id()).ExtractErr()
+	err = secgroups.Delete(computeClient, d.Id()).ExtractErr()
 	if err != nil {
 		return fmt.Errorf("Error deleting OpenStack security group: %s", err)
 	}
