@@ -15,27 +15,46 @@ func Provider() terraform.ResourceProvider {
 				Type:        schema.TypeString,
 				Required:    true,
 				DefaultFunc: envDefaultFunc("OS_AUTH_URL"),
-				Description: descriptions["auth_url"],
 			},
-
-			"username": &schema.Schema{
+			"user_name": &schema.Schema{
 				Type:        schema.TypeString,
-				Required:    true,
+				Optional:    true,
 				DefaultFunc: envDefaultFunc("OS_USERNAME"),
-				Description: descriptions["username"],
 			},
-
+			"user_id": &schema.Schema{
+				Type:        schema.TypeString,
+				Optional:    true,
+				DefaultFunc: envDefaultFunc("OS_USERID"),
+			},
+			"tenant_id": &schema.Schema{
+				Type:        schema.TypeString,
+				Optional:    true,
+				DefaultFunc: envDefaultFunc("OS_TENANT_ID"),
+			},
 			"tenant_name": &schema.Schema{
 				Type:        schema.TypeString,
 				Optional:    true,
 				DefaultFunc: envDefaultFunc("OS_TENANT_NAME"),
 			},
-
 			"password": &schema.Schema{
 				Type:        schema.TypeString,
-				Required:    true,
+				Optional:    true,
 				DefaultFunc: envDefaultFunc("OS_PASSWORD"),
-				Description: descriptions["password"],
+			},
+			"api_key": &schema.Schema{
+				Type:        schema.TypeString,
+				Optional:    true,
+				DefaultFunc: envDefaultFunc("OS_API_KEY"),
+			},
+			"domain_id": &schema.Schema{
+				Type:        schema.TypeString,
+				Optional:    true,
+				DefaultFunc: envDefaultFunc("OS_DOMAIN_ID"),
+			},
+			"domain_name": &schema.Schema{
+				Type:        schema.TypeString,
+				Optional:    true,
+				DefaultFunc: envDefaultFunc("OS_DOMAIN_NAME"),
 			},
 		},
 
@@ -58,11 +77,15 @@ func Provider() terraform.ResourceProvider {
 
 func configureProvider(d *schema.ResourceData) (interface{}, error) {
 	config := Config{
-		Region:           d.Get("region").(string),
 		IdentityEndpoint: d.Get("auth_url").(string),
-		Username:         d.Get("username").(string),
+		Username:         d.Get("user_name").(string),
+		UserID:           d.Get("user_id").(string),
 		Password:         d.Get("password").(string),
+		APIKey:           d.Get("api_key").(string),
+		TenantID:         d.Get("tenant_id").(string),
 		TenantName:       d.Get("tenant_name").(string),
+		DomainID:         d.Get("domain_id").(string),
+		DomainName:       d.Get("domain_name").(string),
 	}
 
 	if err := config.loadAndValidate(); err != nil {
@@ -79,16 +102,5 @@ func envDefaultFunc(k string) schema.SchemaDefaultFunc {
 		}
 
 		return nil, nil
-	}
-}
-
-var descriptions map[string]string
-
-func init() {
-	descriptions = map[string]string{
-		"region":   "The region where OpenStack operations will take place.",
-		"auth_url": "The endpoint against which to authenticate.",
-		"username": "The username with which to authenticate.",
-		"password": "The password with which to authenticate.",
 	}
 }
