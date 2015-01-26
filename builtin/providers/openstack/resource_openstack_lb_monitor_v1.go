@@ -6,6 +6,8 @@ import (
 	"strconv"
 
 	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/rackspace/gophercloud"
+	"github.com/rackspace/gophercloud/openstack"
 	"github.com/rackspace/gophercloud/openstack/networking/v2/extensions/lbaas/monitors"
 )
 
@@ -17,54 +19,52 @@ func resourceLBMonitor() *schema.Resource {
 		Delete: resourceLBMonitorDelete,
 
 		Schema: map[string]*schema.Schema{
+			"region": &schema.Schema{
+				Type:        schema.TypeString,
+				Required:    true,
+				ForceNew:    true,
+				DefaultFunc: envDefaultFunc("OS_REGION_NAME"),
+			},
 			"tenant_id": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: true,
 			},
-
 			"type": &schema.Schema{
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
-
 			"delay": &schema.Schema{
 				Type:     schema.TypeInt,
 				Required: true,
 				ForceNew: false,
 			},
-
 			"timeout": &schema.Schema{
 				Type:     schema.TypeInt,
 				Required: true,
 				ForceNew: false,
 			},
-
 			"max_retries": &schema.Schema{
 				Type:     schema.TypeInt,
 				Required: true,
 				ForceNew: false,
 			},
-
 			"url_path": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: false,
 			},
-
 			"http_method": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: false,
 			},
-
 			"expected_codes": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: false,
 			},
-
 			"admin_state_up": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
@@ -76,7 +76,12 @@ func resourceLBMonitor() *schema.Resource {
 
 func resourceLBMonitorCreate(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
-	osClient := config.networkingV2Client
+	networkingClient, err := openstack.NewNetworkV2(config.osClient, gophercloud.EndpointOpts{
+		Region: d.Get("region").(string),
+	})
+	if err != nil {
+		return fmt.Errorf("Error creating OpenStack networking client: %s", err)
+	}
 
 	createOpts := monitors.CreateOpts{
 		TenantID:      d.Get("tenant_id").(string),
@@ -99,7 +104,7 @@ func resourceLBMonitorCreate(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	log.Printf("[INFO] Requesting lb monitor creation")
-	m, err := monitors.Create(osClient, createOpts).Extract()
+	m, err := monitors.Create(networkingClient, createOpts).Extract()
 	if err != nil {
 		return fmt.Errorf("Error creating OpenStack LB Monitor: %s", err)
 	}
@@ -112,9 +117,14 @@ func resourceLBMonitorCreate(d *schema.ResourceData, meta interface{}) error {
 
 func resourceLBMonitorRead(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
-	osClient := config.networkingV2Client
+	networkingClient, err := openstack.NewNetworkV2(config.osClient, gophercloud.EndpointOpts{
+		Region: d.Get("region").(string),
+	})
+	if err != nil {
+		return fmt.Errorf("Error creating OpenStack networking client: %s", err)
+	}
 
-	m, err := monitors.Get(osClient, d.Id()).Extract()
+	m, err := monitors.Get(networkingClient, d.Id()).Extract()
 	if err != nil {
 		return fmt.Errorf("Error retrieving OpenStack LB Monitor: %s", err)
 	}
@@ -171,7 +181,12 @@ func resourceLBMonitorRead(d *schema.ResourceData, meta interface{}) error {
 
 func resourceLBMonitorUpdate(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
-	osClient := config.networkingV2Client
+	networkingClient, err := openstack.NewNetworkV2(config.osClient, gophercloud.EndpointOpts{
+		Region: d.Get("region").(string),
+	})
+	if err != nil {
+		return fmt.Errorf("Error creating OpenStack networking client: %s", err)
+	}
 
 	var updateOpts monitors.UpdateOpts
 	if d.HasChange("delay") {
@@ -205,7 +220,7 @@ func resourceLBMonitorUpdate(d *schema.ResourceData, meta interface{}) error {
 
 	log.Printf("[DEBUG] Updating OpenStack LB Monitor %s with options: %+v", d.Id(), updateOpts)
 
-	_, err := monitors.Update(osClient, d.Id(), updateOpts).Extract()
+	_, err = monitors.Update(networkingClient, d.Id(), updateOpts).Extract()
 	if err != nil {
 		return fmt.Errorf("Error updating OpenStack LB Monitor: %s", err)
 	}
@@ -215,9 +230,14 @@ func resourceLBMonitorUpdate(d *schema.ResourceData, meta interface{}) error {
 
 func resourceLBMonitorDelete(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
-	osClient := config.networkingV2Client
+	networkingClient, err := openstack.NewNetworkV2(config.osClient, gophercloud.EndpointOpts{
+		Region: d.Get("region").(string),
+	})
+	if err != nil {
+		return fmt.Errorf("Error creating OpenStack networking client: %s", err)
+	}
 
-	err := monitors.Delete(osClient, d.Id()).ExtractErr()
+	err = monitors.Delete(networkingClient, d.Id()).ExtractErr()
 	if err != nil {
 		return fmt.Errorf("Error deleting OpenStack LB Monitor: %s", err)
 	}

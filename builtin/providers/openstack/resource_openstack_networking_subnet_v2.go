@@ -6,7 +6,9 @@ import (
 	"strconv"
 
 	"github.com/hashicorp/terraform/helper/schema"
-	"github.com/jrperritt/terraform/helper/hashcode"
+	"github.com/hashicorp/terraform/helper/hashcode"
+	"github.com/rackspace/gophercloud"
+	"github.com/rackspace/gophercloud/openstack"
 	"github.com/rackspace/gophercloud/openstack/networking/v2/subnets"
 )
 
@@ -18,30 +20,32 @@ func resourceNetworkingSubnet() *schema.Resource {
 		Delete: resourceNetworkingSubnetDelete,
 
 		Schema: map[string]*schema.Schema{
+			"region": &schema.Schema{
+				Type:        schema.TypeString,
+				Required:    true,
+				ForceNew:    true,
+				DefaultFunc: envDefaultFunc("OS_REGION_NAME"),
+			},
 			"network_id": &schema.Schema{
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
-
 			"cidr": &schema.Schema{
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
-
 			"name": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: false,
 			},
-
 			"tenant_id": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: true,
 			},
-
 			"allocation_pools": &schema.Schema{
 				Type:     schema.TypeList,
 				Optional: true,
@@ -52,7 +56,6 @@ func resourceNetworkingSubnet() *schema.Resource {
 							Type:     schema.TypeString,
 							Required: true,
 						},
-
 						"end": &schema.Schema{
 							Type:     schema.TypeString,
 							Required: true,
@@ -60,25 +63,21 @@ func resourceNetworkingSubnet() *schema.Resource {
 					},
 				},
 			},
-
 			"gateway_ip": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: false,
 			},
-
 			"ip_version": &schema.Schema{
 				Type:     schema.TypeInt,
 				Required: true,
 				ForceNew: true,
 			},
-
 			"enable_dhcp": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: false,
 			},
-
 			"dns_nameservers": &schema.Schema{
 				Type:     schema.TypeSet,
 				Optional: true,
@@ -88,7 +87,6 @@ func resourceNetworkingSubnet() *schema.Resource {
 					return hashcode.String(v.(string))
 				},
 			},
-
 			"host_routes": &schema.Schema{
 				Type:     schema.TypeList,
 				Optional: true,
@@ -99,7 +97,6 @@ func resourceNetworkingSubnet() *schema.Resource {
 							Type:     schema.TypeString,
 							Required: true,
 						},
-
 						"next_hop": &schema.Schema{
 							Type:     schema.TypeString,
 							Required: true,
@@ -113,7 +110,12 @@ func resourceNetworkingSubnet() *schema.Resource {
 
 func resourceNetworkingSubnetCreate(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
-	osClient := config.networkingV2Client
+	networkingClient, err := openstack.NewNetworkV2(config.osClient, gophercloud.EndpointOpts{
+		Region: d.Get("region").(string),
+	})
+	if err != nil {
+		return fmt.Errorf("Error creating OpenStack networking client: %s", err)
+	}
 
 	createOpts := subnets.CreateOpts{
 		NetworkID:       d.Get("network_id").(string),
@@ -137,7 +139,7 @@ func resourceNetworkingSubnetCreate(d *schema.ResourceData, meta interface{}) er
 	}
 
 	log.Printf("[INFO] Requesting subnet creation")
-	s, err := subnets.Create(osClient, createOpts).Extract()
+	s, err := subnets.Create(networkingClient, createOpts).Extract()
 	if err != nil {
 		return fmt.Errorf("Error creating OpenStack Neutron subnet: %s", err)
 	}
@@ -150,9 +152,14 @@ func resourceNetworkingSubnetCreate(d *schema.ResourceData, meta interface{}) er
 
 func resourceNetworkingSubnetRead(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
-	osClient := config.networkingV2Client
+	networkingClient, err := openstack.NewNetworkV2(config.osClient, gophercloud.EndpointOpts{
+		Region: d.Get("region").(string),
+	})
+	if err != nil {
+		return fmt.Errorf("Error creating OpenStack networking client: %s", err)
+	}
 
-	s, err := subnets.Get(osClient, d.Id()).Extract()
+	s, err := subnets.Get(networkingClient, d.Id()).Extract()
 	if err != nil {
 		return fmt.Errorf("Error retrieving OpenStack Neutron Subnet: %s", err)
 	}
@@ -212,7 +219,12 @@ func resourceNetworkingSubnetRead(d *schema.ResourceData, meta interface{}) erro
 
 func resourceNetworkingSubnetUpdate(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
-	osClient := config.networkingV2Client
+	networkingClient, err := openstack.NewNetworkV2(config.osClient, gophercloud.EndpointOpts{
+		Region: d.Get("region").(string),
+	})
+	if err != nil {
+		return fmt.Errorf("Error creating OpenStack networking client: %s", err)
+	}
 
 	var updateOpts subnets.UpdateOpts
 
@@ -245,7 +257,7 @@ func resourceNetworkingSubnetUpdate(d *schema.ResourceData, meta interface{}) er
 
 	log.Printf("[DEBUG] Updating Subnet %s with options: %+v", d.Id(), updateOpts)
 
-	_, err := subnets.Update(osClient, d.Id(), updateOpts).Extract()
+	_, err = subnets.Update(networkingClient, d.Id(), updateOpts).Extract()
 	if err != nil {
 		return fmt.Errorf("Error updating OpenStack Neutron Subnet: %s", err)
 	}
@@ -255,9 +267,14 @@ func resourceNetworkingSubnetUpdate(d *schema.ResourceData, meta interface{}) er
 
 func resourceNetworkingSubnetDelete(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
-	osClient := config.networkingV2Client
+	networkingClient, err := openstack.NewNetworkV2(config.osClient, gophercloud.EndpointOpts{
+		Region: d.Get("region").(string),
+	})
+	if err != nil {
+		return fmt.Errorf("Error creating OpenStack networking client: %s", err)
+	}
 
-	err := subnets.Delete(osClient, d.Id()).ExtractErr()
+	err = subnets.Delete(networkingClient, d.Id()).ExtractErr()
 	if err != nil {
 		return fmt.Errorf("Error deleting OpenStack Neutron Subnet: %s", err)
 	}

@@ -5,7 +5,9 @@ import (
 	"log"
 
 	"github.com/hashicorp/terraform/helper/schema"
-	"github.com/jrperritt/terraform/helper/hashcode"
+	"github.com/hashicorp/terraform/helper/hashcode"
+	"github.com/rackspace/gophercloud"
+	"github.com/rackspace/gophercloud/openstack"
 	"github.com/rackspace/gophercloud/openstack/networking/v2/extensions/lbaas/pools"
 )
 
@@ -17,18 +19,22 @@ func resourceLBPool() *schema.Resource {
 		Delete: resourceLBPoolDelete,
 
 		Schema: map[string]*schema.Schema{
+			"region": &schema.Schema{
+				Type:        schema.TypeString,
+				Required:    true,
+				ForceNew:    true,
+				DefaultFunc: envDefaultFunc("OS_REGION_NAME"),
+			},
 			"name": &schema.Schema{
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: false,
 			},
-
 			"protocol": &schema.Schema{
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
-
 			"subnet_id": &schema.Schema{
 				Type:     schema.TypeString,
 				Required: true,
@@ -40,13 +46,11 @@ func resourceLBPool() *schema.Resource {
 				Required: true,
 				ForceNew: false,
 			},
-
 			"tenant_id": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: true,
 			},
-
 			"monitor_ids": &schema.Schema{
 				Type:     schema.TypeSet,
 				Optional: true,
@@ -62,7 +66,12 @@ func resourceLBPool() *schema.Resource {
 
 func resourceLBPoolCreate(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
-	osClient := config.networkingV2Client
+	networkingClient, err := openstack.NewNetworkV2(config.osClient, gophercloud.EndpointOpts{
+		Region: d.Get("region").(string),
+	})
+	if err != nil {
+		return fmt.Errorf("Error creating OpenStack networking client: %s", err)
+	}
 
 	createOpts := pools.CreateOpts{
 		Name:     d.Get("name").(string),
@@ -73,7 +82,7 @@ func resourceLBPoolCreate(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	log.Printf("[INFO] Requesting lb pool creation")
-	p, err := pools.Create(osClient, createOpts).Extract()
+	p, err := pools.Create(networkingClient, createOpts).Extract()
 	if err != nil {
 		return fmt.Errorf("Error creating OpenStack LB pool: %s", err)
 	}
@@ -83,7 +92,7 @@ func resourceLBPoolCreate(d *schema.ResourceData, meta interface{}) error {
 
 	if mIDs := resourcePoolMonitorIDs(d); mIDs != nil {
 		for _, mID := range mIDs {
-			_, err := pools.AssociateMonitor(osClient, p.ID, mID).Extract()
+			_, err := pools.AssociateMonitor(networkingClient, p.ID, mID).Extract()
 			if err != nil {
 				return fmt.Errorf("Error associating monitor (%s) with OpenStack LB pool (%s): %s", mID, p.ID, err)
 			}
@@ -95,9 +104,14 @@ func resourceLBPoolCreate(d *schema.ResourceData, meta interface{}) error {
 
 func resourceLBPoolRead(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
-	osClient := config.networkingV2Client
+	networkingClient, err := openstack.NewNetworkV2(config.osClient, gophercloud.EndpointOpts{
+		Region: d.Get("region").(string),
+	})
+	if err != nil {
+		return fmt.Errorf("Error creating OpenStack networking client: %s", err)
+	}
 
-	p, err := pools.Get(osClient, d.Id()).Extract()
+	p, err := pools.Get(networkingClient, d.Id()).Extract()
 	if err != nil {
 		return fmt.Errorf("Error retrieving OpenStack LB Pool: %s", err)
 	}
@@ -124,7 +138,12 @@ func resourceLBPoolRead(d *schema.ResourceData, meta interface{}) error {
 
 func resourceLBPoolUpdate(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
-	osClient := config.networkingV2Client
+	networkingClient, err := openstack.NewNetworkV2(config.osClient, gophercloud.EndpointOpts{
+		Region: d.Get("region").(string),
+	})
+	if err != nil {
+		return fmt.Errorf("Error creating OpenStack networking client: %s", err)
+	}
 
 	var updateOpts pools.UpdateOpts
 	if d.HasChange("name") {
@@ -136,7 +155,7 @@ func resourceLBPoolUpdate(d *schema.ResourceData, meta interface{}) error {
 
 	log.Printf("[DEBUG] Updating OpenStack LB Pool %s with options: %+v", d.Id(), updateOpts)
 
-	_, err := pools.Update(osClient, d.Id(), updateOpts).Extract()
+	_, err = pools.Update(networkingClient, d.Id(), updateOpts).Extract()
 	if err != nil {
 		return fmt.Errorf("Error updating OpenStack LB Pool: %s", err)
 	}
@@ -152,7 +171,7 @@ func resourceLBPoolUpdate(d *schema.ResourceData, meta interface{}) error {
 		log.Printf("[DEBUG] Monitors to remove: %v", monitorsToRemove)
 
 		for _, m := range monitorsToAdd.List() {
-			_, err := pools.AssociateMonitor(osClient, d.Id(), m.(string)).Extract()
+			_, err := pools.AssociateMonitor(networkingClient, d.Id(), m.(string)).Extract()
 			if err != nil {
 				return fmt.Errorf("Error associating monitor (%s) with OpenStack server (%s): %s", m.(string), d.Id(), err)
 			}
@@ -160,7 +179,7 @@ func resourceLBPoolUpdate(d *schema.ResourceData, meta interface{}) error {
 		}
 
 		for _, m := range monitorsToRemove.List() {
-			_, err := pools.DisassociateMonitor(osClient, d.Id(), m.(string)).Extract()
+			_, err := pools.DisassociateMonitor(networkingClient, d.Id(), m.(string)).Extract()
 			if err != nil {
 				return fmt.Errorf("Error disassociating monitor (%s) from OpenStack server (%s): %s", m.(string), d.Id(), err)
 			}
@@ -173,9 +192,14 @@ func resourceLBPoolUpdate(d *schema.ResourceData, meta interface{}) error {
 
 func resourceLBPoolDelete(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
-	osClient := config.networkingV2Client
+	networkingClient, err := openstack.NewNetworkV2(config.osClient, gophercloud.EndpointOpts{
+		Region: d.Get("region").(string),
+	})
+	if err != nil {
+		return fmt.Errorf("Error creating OpenStack networking client: %s", err)
+	}
 
-	err := pools.Delete(osClient, d.Id()).ExtractErr()
+	err = pools.Delete(networkingClient, d.Id()).ExtractErr()
 	if err != nil {
 		return fmt.Errorf("Error deleting OpenStack LB Pool: %s", err)
 	}

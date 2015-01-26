@@ -7,6 +7,7 @@ import (
 
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/rackspace/gophercloud"
+	"github.com/rackspace/gophercloud/openstack"
 	"github.com/rackspace/gophercloud/openstack/networking/v2/extensions/lbaas/vips"
 )
 
@@ -18,66 +19,62 @@ func resourceLBVip() *schema.Resource {
 		Delete: resourceLBVipDelete,
 
 		Schema: map[string]*schema.Schema{
+			"region": &schema.Schema{
+				Type:        schema.TypeString,
+				Required:    true,
+				ForceNew:    true,
+				DefaultFunc: envDefaultFunc("OS_REGION_NAME"),
+			},
 			"name": &schema.Schema{
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: false,
 			},
-
 			"subnet_id": &schema.Schema{
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
-
 			"protocol": &schema.Schema{
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
-
 			"port": &schema.Schema{
 				Type:     schema.TypeInt,
 				Required: true,
 				ForceNew: true,
 			},
-
 			"pool_id": &schema.Schema{
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: false,
 			},
-
 			"tenant_id": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: true,
 			},
-
 			"address": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: true,
 			},
-
 			"description": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: false,
 			},
-
 			"persistence": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: false,
 			},
-
 			"conn_limit": &schema.Schema{
 				Type:     schema.TypeInt,
 				Optional: true,
 				ForceNew: false,
 			},
-
 			"admin_state_up": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
@@ -89,7 +86,12 @@ func resourceLBVip() *schema.Resource {
 
 func resourceLBVipCreate(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
-	osClient := config.networkingV2Client
+	networkingClient, err := openstack.NewNetworkV2(config.osClient, gophercloud.EndpointOpts{
+		Region: d.Get("region").(string),
+	})
+	if err != nil {
+		return fmt.Errorf("Error creating OpenStack networking client: %s", err)
+	}
 
 	createOpts := vips.CreateOpts{
 		Name:         d.Get("name").(string),
@@ -114,7 +116,7 @@ func resourceLBVipCreate(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	log.Printf("[INFO] Requesting lb vip creation")
-	p, err := vips.Create(osClient, createOpts).Extract()
+	p, err := vips.Create(networkingClient, createOpts).Extract()
 	if err != nil {
 		return fmt.Errorf("Error creating OpenStack LB VIP: %s", err)
 	}
@@ -127,9 +129,14 @@ func resourceLBVipCreate(d *schema.ResourceData, meta interface{}) error {
 
 func resourceLBVipRead(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
-	osClient := config.networkingV2Client
+	networkingClient, err := openstack.NewNetworkV2(config.osClient, gophercloud.EndpointOpts{
+		Region: d.Get("region").(string),
+	})
+	if err != nil {
+		return fmt.Errorf("Error creating OpenStack networking client: %s", err)
+	}
 
-	p, err := vips.Get(osClient, d.Id()).Extract()
+	p, err := vips.Get(networkingClient, d.Id()).Extract()
 	if err != nil {
 		return fmt.Errorf("Error retrieving OpenStack LB VIP: %s", err)
 	}
@@ -193,7 +200,12 @@ func resourceLBVipRead(d *schema.ResourceData, meta interface{}) error {
 
 func resourceLBVipUpdate(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
-	osClient := config.networkingV2Client
+	networkingClient, err := openstack.NewNetworkV2(config.osClient, gophercloud.EndpointOpts{
+		Region: d.Get("region").(string),
+	})
+	if err != nil {
+		return fmt.Errorf("Error creating OpenStack networking client: %s", err)
+	}
 
 	var updateOpts vips.UpdateOpts
 	if d.HasChange("name") {
@@ -224,7 +236,7 @@ func resourceLBVipUpdate(d *schema.ResourceData, meta interface{}) error {
 
 	log.Printf("[DEBUG] Updating OpenStack LB VIP %s with options: %+v", d.Id(), updateOpts)
 
-	_, err := vips.Update(osClient, d.Id(), updateOpts).Extract()
+	_, err = vips.Update(networkingClient, d.Id(), updateOpts).Extract()
 	if err != nil {
 		return fmt.Errorf("Error updating OpenStack LB VIP: %s", err)
 	}
@@ -234,9 +246,14 @@ func resourceLBVipUpdate(d *schema.ResourceData, meta interface{}) error {
 
 func resourceLBVipDelete(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
-	osClient := config.networkingV2Client
+	networkingClient, err := openstack.NewNetworkV2(config.osClient, gophercloud.EndpointOpts{
+		Region: d.Get("region").(string),
+	})
+	if err != nil {
+		return fmt.Errorf("Error creating OpenStack networking client: %s", err)
+	}
 
-	err := vips.Delete(osClient, d.Id()).ExtractErr()
+	err = vips.Delete(networkingClient, d.Id()).ExtractErr()
 	if err != nil {
 		return fmt.Errorf("Error deleting OpenStack LB VIP: %s", err)
 	}

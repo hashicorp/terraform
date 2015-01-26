@@ -6,6 +6,8 @@ import (
 	"strconv"
 
 	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/rackspace/gophercloud"
+	"github.com/rackspace/gophercloud/openstack"
 	"github.com/rackspace/gophercloud/openstack/networking/v2/networks"
 )
 
@@ -17,24 +19,27 @@ func resourceNetworkingNetwork() *schema.Resource {
 		Delete: resourceNetworkingNetworkDelete,
 
 		Schema: map[string]*schema.Schema{
+			"region": &schema.Schema{
+				Type:        schema.TypeString,
+				Required:    true,
+				ForceNew:    true,
+				DefaultFunc: envDefaultFunc("OS_REGION_NAME"),
+			},
 			"name": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: false,
 			},
-
 			"admin_state_up": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: false,
 			},
-
 			"shared": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: false,
 			},
-
 			"tenant_id": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
@@ -46,7 +51,12 @@ func resourceNetworkingNetwork() *schema.Resource {
 
 func resourceNetworkingNetworkCreate(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
-	osClient := config.networkingV2Client
+	networkingClient, err := openstack.NewNetworkV2(config.osClient, gophercloud.EndpointOpts{
+		Region: d.Get("region").(string),
+	})
+	if err != nil {
+		return fmt.Errorf("Error creating OpenStack networking client: %s", err)
+	}
 
 	createOpts := networks.CreateOpts{
 		Name:     d.Get("name").(string),
@@ -72,7 +82,7 @@ func resourceNetworkingNetworkCreate(d *schema.ResourceData, meta interface{}) e
 	}
 
 	log.Printf("[INFO] Requesting network creation")
-	n, err := networks.Create(osClient, createOpts).Extract()
+	n, err := networks.Create(networkingClient, createOpts).Extract()
 	if err != nil {
 		return fmt.Errorf("Error creating OpenStack Neutron network: %s", err)
 	}
@@ -85,9 +95,14 @@ func resourceNetworkingNetworkCreate(d *schema.ResourceData, meta interface{}) e
 
 func resourceNetworkingNetworkRead(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
-	osClient := config.networkingV2Client
+	networkingClient, err := openstack.NewNetworkV2(config.osClient, gophercloud.EndpointOpts{
+		Region: d.Get("region").(string),
+	})
+	if err != nil {
+		return fmt.Errorf("Error creating OpenStack networking client: %s", err)
+	}
 
-	n, err := networks.Get(osClient, d.Id()).Extract()
+	n, err := networks.Get(networkingClient, d.Id()).Extract()
 	if err != nil {
 		return fmt.Errorf("Error retrieving OpenStack Neutron Network: %s", err)
 	}
@@ -131,7 +146,12 @@ func resourceNetworkingNetworkRead(d *schema.ResourceData, meta interface{}) err
 
 func resourceNetworkingNetworkUpdate(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
-	osClient := config.networkingV2Client
+	networkingClient, err := openstack.NewNetworkV2(config.osClient, gophercloud.EndpointOpts{
+		Region: d.Get("region").(string),
+	})
+	if err != nil {
+		return fmt.Errorf("Error creating OpenStack networking client: %s", err)
+	}
 
 	var updateOpts networks.UpdateOpts
 	if d.HasChange("name") {
@@ -160,7 +180,7 @@ func resourceNetworkingNetworkUpdate(d *schema.ResourceData, meta interface{}) e
 
 	log.Printf("[DEBUG] Updating Network %s with options: %+v", d.Id(), updateOpts)
 
-	_, err := networks.Update(osClient, d.Id(), updateOpts).Extract()
+	_, err = networks.Update(networkingClient, d.Id(), updateOpts).Extract()
 	if err != nil {
 		return fmt.Errorf("Error updating OpenStack Neutron Network: %s", err)
 	}
@@ -170,9 +190,14 @@ func resourceNetworkingNetworkUpdate(d *schema.ResourceData, meta interface{}) e
 
 func resourceNetworkingNetworkDelete(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
-	osClient := config.networkingV2Client
+	networkingClient, err := openstack.NewNetworkV2(config.osClient, gophercloud.EndpointOpts{
+		Region: d.Get("region").(string),
+	})
+	if err != nil {
+		return fmt.Errorf("Error creating OpenStack networking client: %s", err)
+	}
 
-	err := networks.Delete(osClient, d.Id()).ExtractErr()
+	err = networks.Delete(networkingClient, d.Id()).ExtractErr()
 	if err != nil {
 		return fmt.Errorf("Error deleting OpenStack Neutron Network: %s", err)
 	}
