@@ -9,11 +9,11 @@ import (
 	"github.com/rackspace/gophercloud/openstack/compute/v2/extensions/keypairs"
 )
 
-func resourceComputeKeypair() *schema.Resource {
+func resourceComputeKeypairV2() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceComputeKeypairCreate,
-		Read:   resourceComputeKeypairRead,
-		Delete: resourceComputeKeypairDelete,
+		Create: resourceComputeKeypairV2Create,
+		Read:   resourceComputeKeypairV2Read,
+		Delete: resourceComputeKeypairV2Delete,
 
 		Schema: map[string]*schema.Schema{
 			"region": &schema.Schema{
@@ -36,7 +36,7 @@ func resourceComputeKeypair() *schema.Resource {
 	}
 }
 
-func resourceComputeKeypairCreate(d *schema.ResourceData, meta interface{}) error {
+func resourceComputeKeypairV2Create(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
 	computeClient, err := openstack.NewComputeV2(config.osClient, gophercloud.EndpointOpts{
 		Region: d.Get("region").(string),
@@ -57,10 +57,10 @@ func resourceComputeKeypairCreate(d *schema.ResourceData, meta interface{}) erro
 
 	d.SetId(kp.Name)
 
-	return resourceComputeKeypairRead(d, meta)
+	return resourceComputeKeypairV2Read(d, meta)
 }
 
-func resourceComputeKeypairRead(d *schema.ResourceData, meta interface{}) error {
+func resourceComputeKeypairV2Read(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
 	computeClient, err := openstack.NewComputeV2(config.osClient, gophercloud.EndpointOpts{
 		Region: d.Get("region").(string),
@@ -80,7 +80,7 @@ func resourceComputeKeypairRead(d *schema.ResourceData, meta interface{}) error 
 	return nil
 }
 
-func resourceComputeKeypairDelete(d *schema.ResourceData, meta interface{}) error {
+func resourceComputeKeypairV2Delete(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
 	computeClient, err := openstack.NewComputeV2(config.osClient, gophercloud.EndpointOpts{
 		Region: d.Get("region").(string),

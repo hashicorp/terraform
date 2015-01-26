@@ -11,12 +11,12 @@ import (
 	"github.com/rackspace/gophercloud/openstack/networking/v2/networks"
 )
 
-func resourceNetworkingNetwork() *schema.Resource {
+func resourceNetworkingNetworkV2() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceNetworkingNetworkCreate,
-		Read:   resourceNetworkingNetworkRead,
-		Update: resourceNetworkingNetworkUpdate,
-		Delete: resourceNetworkingNetworkDelete,
+		Create: resourceNetworkingNetworkV2Create,
+		Read:   resourceNetworkingNetworkV2Read,
+		Update: resourceNetworkingNetworkV2Update,
+		Delete: resourceNetworkingNetworkV2Delete,
 
 		Schema: map[string]*schema.Schema{
 			"region": &schema.Schema{
@@ -49,7 +49,7 @@ func resourceNetworkingNetwork() *schema.Resource {
 	}
 }
 
-func resourceNetworkingNetworkCreate(d *schema.ResourceData, meta interface{}) error {
+func resourceNetworkingNetworkV2Create(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
 	networkingClient, err := openstack.NewNetworkV2(config.osClient, gophercloud.EndpointOpts{
 		Region: d.Get("region").(string),
@@ -90,10 +90,10 @@ func resourceNetworkingNetworkCreate(d *schema.ResourceData, meta interface{}) e
 
 	d.SetId(n.ID)
 
-	return resourceNetworkingNetworkRead(d, meta)
+	return resourceNetworkingNetworkV2Read(d, meta)
 }
 
-func resourceNetworkingNetworkRead(d *schema.ResourceData, meta interface{}) error {
+func resourceNetworkingNetworkV2Read(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
 	networkingClient, err := openstack.NewNetworkV2(config.osClient, gophercloud.EndpointOpts{
 		Region: d.Get("region").(string),
@@ -144,7 +144,7 @@ func resourceNetworkingNetworkRead(d *schema.ResourceData, meta interface{}) err
 	return nil
 }
 
-func resourceNetworkingNetworkUpdate(d *schema.ResourceData, meta interface{}) error {
+func resourceNetworkingNetworkV2Update(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
 	networkingClient, err := openstack.NewNetworkV2(config.osClient, gophercloud.EndpointOpts{
 		Region: d.Get("region").(string),
@@ -185,10 +185,10 @@ func resourceNetworkingNetworkUpdate(d *schema.ResourceData, meta interface{}) e
 		return fmt.Errorf("Error updating OpenStack Neutron Network: %s", err)
 	}
 
-	return resourceNetworkingNetworkRead(d, meta)
+	return resourceNetworkingNetworkV2Read(d, meta)
 }
 
-func resourceNetworkingNetworkDelete(d *schema.ResourceData, meta interface{}) error {
+func resourceNetworkingNetworkV2Delete(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
 	networkingClient, err := openstack.NewNetworkV2(config.osClient, gophercloud.EndpointOpts{
 		Region: d.Get("region").(string),

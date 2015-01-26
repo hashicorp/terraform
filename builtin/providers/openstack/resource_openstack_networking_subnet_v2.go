@@ -12,12 +12,12 @@ import (
 	"github.com/rackspace/gophercloud/openstack/networking/v2/subnets"
 )
 
-func resourceNetworkingSubnet() *schema.Resource {
+func resourceNetworkingSubnetV2() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceNetworkingSubnetCreate,
-		Read:   resourceNetworkingSubnetRead,
-		Update: resourceNetworkingSubnetUpdate,
-		Delete: resourceNetworkingSubnetDelete,
+		Create: resourceNetworkingSubnetV2Create,
+		Read:   resourceNetworkingSubnetV2Read,
+		Update: resourceNetworkingSubnetV2Update,
+		Delete: resourceNetworkingSubnetV2Delete,
 
 		Schema: map[string]*schema.Schema{
 			"region": &schema.Schema{
@@ -108,7 +108,7 @@ func resourceNetworkingSubnet() *schema.Resource {
 	}
 }
 
-func resourceNetworkingSubnetCreate(d *schema.ResourceData, meta interface{}) error {
+func resourceNetworkingSubnetV2Create(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
 	networkingClient, err := openstack.NewNetworkV2(config.osClient, gophercloud.EndpointOpts{
 		Region: d.Get("region").(string),
@@ -122,11 +122,11 @@ func resourceNetworkingSubnetCreate(d *schema.ResourceData, meta interface{}) er
 		CIDR:            d.Get("cidr").(string),
 		Name:            d.Get("name").(string),
 		TenantID:        d.Get("tenant_id").(string),
-		AllocationPools: resourceSubnetAllocationPools(d),
+		AllocationPools: resourceSubnetAllocationPoolsV2(d),
 		GatewayIP:       d.Get("gateway_ip").(string),
 		IPVersion:       d.Get("ip_version").(int),
-		DNSNameservers:  resourceSubnetDNSNameservers(d),
-		HostRoutes:      resourceSubnetHostRoutes(d),
+		DNSNameservers:  resourceSubnetDNSNameserversV2(d),
+		HostRoutes:      resourceSubnetHostRoutesV2(d),
 	}
 
 	edRaw := d.Get("enable_dhcp").(string)
@@ -147,10 +147,10 @@ func resourceNetworkingSubnetCreate(d *schema.ResourceData, meta interface{}) er
 
 	d.SetId(s.ID)
 
-	return resourceNetworkingSubnetRead(d, meta)
+	return resourceNetworkingSubnetV2Read(d, meta)
 }
 
-func resourceNetworkingSubnetRead(d *schema.ResourceData, meta interface{}) error {
+func resourceNetworkingSubnetV2Read(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
 	networkingClient, err := openstack.NewNetworkV2(config.osClient, gophercloud.EndpointOpts{
 		Region: d.Get("region").(string),
@@ -217,7 +217,7 @@ func resourceNetworkingSubnetRead(d *schema.ResourceData, meta interface{}) erro
 	return nil
 }
 
-func resourceNetworkingSubnetUpdate(d *schema.ResourceData, meta interface{}) error {
+func resourceNetworkingSubnetV2Update(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
 	networkingClient, err := openstack.NewNetworkV2(config.osClient, gophercloud.EndpointOpts{
 		Region: d.Get("region").(string),
@@ -237,11 +237,11 @@ func resourceNetworkingSubnetUpdate(d *schema.ResourceData, meta interface{}) er
 	}
 
 	if d.HasChange("dns_nameservers") {
-		updateOpts.DNSNameservers = resourceSubnetDNSNameservers(d)
+		updateOpts.DNSNameservers = resourceSubnetDNSNameserversV2(d)
 	}
 
 	if d.HasChange("host_routes") {
-		updateOpts.HostRoutes = resourceSubnetHostRoutes(d)
+		updateOpts.HostRoutes = resourceSubnetHostRoutesV2(d)
 	}
 
 	if d.HasChange("enable_dhcp") {
@@ -262,10 +262,10 @@ func resourceNetworkingSubnetUpdate(d *schema.ResourceData, meta interface{}) er
 		return fmt.Errorf("Error updating OpenStack Neutron Subnet: %s", err)
 	}
 
-	return resourceNetworkingSubnetRead(d, meta)
+	return resourceNetworkingSubnetV2Read(d, meta)
 }
 
-func resourceNetworkingSubnetDelete(d *schema.ResourceData, meta interface{}) error {
+func resourceNetworkingSubnetV2Delete(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
 	networkingClient, err := openstack.NewNetworkV2(config.osClient, gophercloud.EndpointOpts{
 		Region: d.Get("region").(string),
@@ -283,7 +283,7 @@ func resourceNetworkingSubnetDelete(d *schema.ResourceData, meta interface{}) er
 	return nil
 }
 
-func resourceSubnetAllocationPools(d *schema.ResourceData) []subnets.AllocationPool {
+func resourceSubnetAllocationPoolsV2(d *schema.ResourceData) []subnets.AllocationPool {
 	rawAPs := d.Get("allocation_pools").([]interface{})
 	aps := make([]subnets.AllocationPool, len(rawAPs))
 	for i, raw := range rawAPs {
@@ -296,7 +296,7 @@ func resourceSubnetAllocationPools(d *schema.ResourceData) []subnets.AllocationP
 	return aps
 }
 
-func resourceSubnetDNSNameservers(d *schema.ResourceData) []string {
+func resourceSubnetDNSNameserversV2(d *schema.ResourceData) []string {
 	rawDNSN := d.Get("dns_nameservers").(*schema.Set)
 	dnsn := make([]string, rawDNSN.Len())
 	for i, raw := range rawDNSN.List() {
@@ -305,7 +305,7 @@ func resourceSubnetDNSNameservers(d *schema.ResourceData) []string {
 	return dnsn
 }
 
-func resourceSubnetHostRoutes(d *schema.ResourceData) []subnets.HostRoute {
+func resourceSubnetHostRoutesV2(d *schema.ResourceData) []subnets.HostRoute {
 	rawHR := d.Get("host_routes").([]interface{})
 	hr := make([]subnets.HostRoute, len(rawHR))
 	for i, raw := range rawHR {

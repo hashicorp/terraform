@@ -9,11 +9,11 @@ import (
 	"github.com/rackspace/gophercloud/openstack/compute/v2/extensions/secgroups"
 )
 
-func resourceComputeSecGroupRule() *schema.Resource {
+func resourceComputeSecGroupRuleV2() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceComputeSecGroupRuleCreate,
-		Read:   resourceComputeSecGroupRuleRead,
-		Delete: resourceComputeSecGroupRuleDelete,
+		Create: resourceComputeSecGroupRuleV2Create,
+		Read:   resourceComputeSecGroupRuleV2Read,
+		Delete: resourceComputeSecGroupRuleV2Delete,
 
 		Schema: map[string]*schema.Schema{
 			"region": &schema.Schema{
@@ -56,7 +56,7 @@ func resourceComputeSecGroupRule() *schema.Resource {
 	}
 }
 
-func resourceComputeSecGroupRuleCreate(d *schema.ResourceData, meta interface{}) error {
+func resourceComputeSecGroupRuleV2Create(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
 	computeClient, err := openstack.NewComputeV2(config.osClient, gophercloud.EndpointOpts{
 		Region: d.Get("region").(string),
@@ -87,14 +87,14 @@ func resourceComputeSecGroupRuleCreate(d *schema.ResourceData, meta interface{})
 	d.Set("cidr", sgr.IPRange.CIDR)
 	d.Set("from_group_id", d.Get("from_group_id").(string))
 
-	return resourceComputeSecGroupRuleRead(d, meta)
+	return resourceComputeSecGroupRuleV2Read(d, meta)
 }
 
-func resourceComputeSecGroupRuleRead(d *schema.ResourceData, meta interface{}) error {
+func resourceComputeSecGroupRuleV2Read(d *schema.ResourceData, meta interface{}) error {
 	return nil
 }
 
-func resourceComputeSecGroupRuleDelete(d *schema.ResourceData, meta interface{}) error {
+func resourceComputeSecGroupRuleV2Delete(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
 	computeClient, err := openstack.NewComputeV2(config.osClient, gophercloud.EndpointOpts{
 		Region: d.Get("region").(string),

@@ -10,12 +10,12 @@ import (
 	"github.com/rackspace/gophercloud/openstack/networking/v2/extensions/lbaas/members"
 )
 
-func resourceLBMember() *schema.Resource {
+func resourceLBMemberV1() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceLBMemberCreate,
-		Read:   resourceLBMemberRead,
-		Update: resourceLBMemberUpdate,
-		Delete: resourceLBMemberDelete,
+		Create: resourceLBMemberV1Create,
+		Read:   resourceLBMemberV1Read,
+		Update: resourceLBMemberV1Update,
+		Delete: resourceLBMemberV1Delete,
 
 		Schema: map[string]*schema.Schema{
 			"region": &schema.Schema{
@@ -53,7 +53,7 @@ func resourceLBMember() *schema.Resource {
 	}
 }
 
-func resourceLBMemberCreate(d *schema.ResourceData, meta interface{}) error {
+func resourceLBMemberV1Create(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
 	networkingClient, err := openstack.NewNetworkV2(config.osClient, gophercloud.EndpointOpts{
 		Region: d.Get("region").(string),
@@ -78,10 +78,10 @@ func resourceLBMemberCreate(d *schema.ResourceData, meta interface{}) error {
 
 	d.SetId(p.ID)
 
-	return resourceLBMemberRead(d, meta)
+	return resourceLBMemberV1Read(d, meta)
 }
 
-func resourceLBMemberRead(d *schema.ResourceData, meta interface{}) error {
+func resourceLBMemberV1Read(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
 	networkingClient, err := openstack.NewNetworkV2(config.osClient, gophercloud.EndpointOpts{
 		Region: d.Get("region").(string),
@@ -112,7 +112,7 @@ func resourceLBMemberRead(d *schema.ResourceData, meta interface{}) error {
 	return nil
 }
 
-func resourceLBMemberUpdate(d *schema.ResourceData, meta interface{}) error {
+func resourceLBMemberV1Update(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
 	networkingClient, err := openstack.NewNetworkV2(config.osClient, gophercloud.EndpointOpts{
 		Region: d.Get("region").(string),
@@ -133,10 +133,10 @@ func resourceLBMemberUpdate(d *schema.ResourceData, meta interface{}) error {
 		return fmt.Errorf("Error updating OpenStack LB Member: %s", err)
 	}
 
-	return resourceLBMemberRead(d, meta)
+	return resourceLBMemberV1Read(d, meta)
 }
 
-func resourceLBMemberDelete(d *schema.ResourceData, meta interface{}) error {
+func resourceLBMemberV1Delete(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
 	networkingClient, err := openstack.NewNetworkV2(config.osClient, gophercloud.EndpointOpts{
 		Region: d.Get("region").(string),
