@@ -97,6 +97,7 @@ func resourceLBMemberV1Read(d *schema.ResourceData, meta interface{}) error {
 
 	log.Printf("[DEBUG] Retreived OpenStack LB Member %s: %+v", d.Id(), p)
 
+	d.Set("region", d.Get("region").(string))
 	d.Set("address", p.Address)
 	d.Set("port", p.ProtocolPort)
 	d.Set("pool_id", p.PoolID)

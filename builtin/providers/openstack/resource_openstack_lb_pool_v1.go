@@ -118,6 +118,7 @@ func resourceLBPoolV1Read(d *schema.ResourceData, meta interface{}) error {
 
 	log.Printf("[DEBUG] Retreived OpenStack LB Pool %s: %+v", d.Id(), p)
 
+	d.Set("region", d.Get("region").(string))
 	d.Set("name", p.Name)
 	d.Set("protocol", p.Protocol)
 	d.Set("subnet_id", p.SubnetID)

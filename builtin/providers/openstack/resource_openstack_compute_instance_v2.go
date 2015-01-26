@@ -198,6 +198,7 @@ func resourceComputeInstanceV2Read(d *schema.ResourceData, meta interface{}) err
 
 	log.Printf("[DEBUG] Retreived Server %s: %+v", d.Id(), server)
 
+	d.Set("region", d.Get("region").(string))
 	d.Set("name", server.Name)
 	d.Set("access_ip_v4", server.AccessIPv4)
 	d.Set("access_ip_v6", server.AccessIPv6)

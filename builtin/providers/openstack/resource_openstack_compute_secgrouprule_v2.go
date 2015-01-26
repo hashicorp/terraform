@@ -80,6 +80,7 @@ func resourceComputeSecGroupRuleV2Create(d *schema.ResourceData, meta interface{
 	}
 
 	d.SetId(sgr.ID)
+	d.Set("region", d.Get("region").(string))
 	d.Set("group_id", sgr.ParentGroupID)
 	d.Set("from_port", sgr.FromPort)
 	d.Set("to_port", sgr.ToPort)
