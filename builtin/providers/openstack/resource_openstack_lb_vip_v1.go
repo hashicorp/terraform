@@ -11,12 +11,12 @@ import (
 	"github.com/rackspace/gophercloud/openstack/networking/v2/extensions/lbaas/vips"
 )
 
-func resourceLBVip() *schema.Resource {
+func resourceLBVipV1() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceLBVipCreate,
-		Read:   resourceLBVipRead,
-		Update: resourceLBVipUpdate,
-		Delete: resourceLBVipDelete,
+		Create: resourceLBVipV1Create,
+		Read:   resourceLBVipV1Read,
+		Update: resourceLBVipV1Update,
+		Delete: resourceLBVipV1Delete,
 
 		Schema: map[string]*schema.Schema{
 			"region": &schema.Schema{
@@ -84,7 +84,7 @@ func resourceLBVip() *schema.Resource {
 	}
 }
 
-func resourceLBVipCreate(d *schema.ResourceData, meta interface{}) error {
+func resourceLBVipV1Create(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
 	networkingClient, err := openstack.NewNetworkV2(config.osClient, gophercloud.EndpointOpts{
 		Region: d.Get("region").(string),
@@ -102,7 +102,7 @@ func resourceLBVipCreate(d *schema.ResourceData, meta interface{}) error {
 		TenantID:     d.Get("tenant_id").(string),
 		Address:      d.Get("address").(string),
 		Description:  d.Get("description").(string),
-		Persistence:  resourceVipPersistence(d),
+		Persistence:  resourceVipPersistenceV1(d),
 		ConnLimit:    gophercloud.MaybeInt(d.Get("conn_limit").(int)),
 	}
 
@@ -124,10 +124,10 @@ func resourceLBVipCreate(d *schema.ResourceData, meta interface{}) error {
 
 	d.SetId(p.ID)
 
-	return resourceLBVipRead(d, meta)
+	return resourceLBVipV1Read(d, meta)
 }
 
-func resourceLBVipRead(d *schema.ResourceData, meta interface{}) error {
+func resourceLBVipV1Read(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
 	networkingClient, err := openstack.NewNetworkV2(config.osClient, gophercloud.EndpointOpts{
 		Region: d.Get("region").(string),
@@ -198,7 +198,7 @@ func resourceLBVipRead(d *schema.ResourceData, meta interface{}) error {
 	return nil
 }
 
-func resourceLBVipUpdate(d *schema.ResourceData, meta interface{}) error {
+func resourceLBVipV1Update(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
 	networkingClient, err := openstack.NewNetworkV2(config.osClient, gophercloud.EndpointOpts{
 		Region: d.Get("region").(string),
@@ -218,7 +218,7 @@ func resourceLBVipUpdate(d *schema.ResourceData, meta interface{}) error {
 		updateOpts.Description = d.Get("description").(string)
 	}
 	if d.HasChange("persistence") {
-		updateOpts.Persistence = resourceVipPersistence(d)
+		updateOpts.Persistence = resourceVipPersistenceV1(d)
 	}
 	if d.HasChange("conn_limit") {
 		updateOpts.ConnLimit = gophercloud.MaybeInt(d.Get("conn_limit").(int))
@@ -241,10 +241,10 @@ func resourceLBVipUpdate(d *schema.ResourceData, meta interface{}) error {
 		return fmt.Errorf("Error updating OpenStack LB VIP: %s", err)
 	}
 
-	return resourceLBVipRead(d, meta)
+	return resourceLBVipV1Read(d, meta)
 }
 
-func resourceLBVipDelete(d *schema.ResourceData, meta interface{}) error {
+func resourceLBVipV1Delete(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
 	networkingClient, err := openstack.NewNetworkV2(config.osClient, gophercloud.EndpointOpts{
 		Region: d.Get("region").(string),
@@ -262,12 +262,18 @@ func resourceLBVipDelete(d *schema.ResourceData, meta interface{}) error {
 	return nil
 }
 
-func resourceVipPersistence(d *schema.ResourceData) *vips.SessionPersistence {
+func resourceVipPersistenceV1(d *schema.ResourceData) *vips.SessionPersistence {
 	rawP := d.Get("persistence").(interface{})
 	rawMap := rawP.(map[string]interface{})
-	p := vips.SessionPersistence{
-		Type:       rawMap["type"].(string),
-		CookieName: rawMap["cookie_name"].(string),
+	if rawMap != nil {
+		p := vips.SessionPersistence{}
+		if t, ok := rawMap["type"]; ok {
+			p.Type = t.(string)
+		}
+		if c, ok := rawMap["cookie_name"]; ok {
+			p.CookieName = c.(string)
+		}
+		return &p
 	}
-	return &p
+	return nil
 }

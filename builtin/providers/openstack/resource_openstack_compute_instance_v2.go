@@ -16,12 +16,12 @@ import (
 	"github.com/rackspace/gophercloud/pagination"
 )
 
-func resourceComputeInstance() *schema.Resource {
+func resourceComputeInstanceV2() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceComputeInstanceCreate,
-		Read:   resourceComputeInstanceRead,
-		Update: resourceComputeInstanceUpdate,
-		Delete: resourceComputeInstanceDelete,
+		Create: resourceComputeInstanceV2Create,
+		Read:   resourceComputeInstanceV2Read,
+		Update: resourceComputeInstanceV2Update,
+		Delete: resourceComputeInstanceV2Delete,
 
 		Schema: map[string]*schema.Schema{
 			"region": &schema.Schema{
@@ -116,7 +116,7 @@ func resourceComputeInstance() *schema.Resource {
 	}
 }
 
-func resourceComputeInstanceCreate(d *schema.ResourceData, meta interface{}) error {
+func resourceComputeInstanceV2Create(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
 	computeClient, err := openstack.NewComputeV2(config.osClient, gophercloud.EndpointOpts{
 		Region: d.Get("region").(string),
@@ -132,10 +132,10 @@ func resourceComputeInstanceCreate(d *schema.ResourceData, meta interface{}) err
 		Name:             d.Get("name").(string),
 		ImageRef:         d.Get("image_ref").(string),
 		FlavorRef:        d.Get("flavor_ref").(string),
-		SecurityGroups:   resourceInstanceSecGroups(d),
+		SecurityGroups:   resourceInstanceSecGroupsV2(d),
 		AvailabilityZone: d.Get("availability_zone").(string),
-		Networks:         resourceInstanceNetworks(d),
-		Metadata:         resourceInstanceMetadata(d),
+		Networks:         resourceInstanceNetworksV2(d),
+		Metadata:         resourceInstanceMetadataV2(d),
 		ConfigDrive:      d.Get("config_drive").(bool),
 		AdminPass:        d.Get("admin_pass").(string),
 	}
@@ -166,7 +166,7 @@ func resourceComputeInstanceCreate(d *schema.ResourceData, meta interface{}) err
 	stateConf := &resource.StateChangeConf{
 		Pending:    []string{"BUILD"},
 		Target:     "ACTIVE",
-		Refresh:    ServerStateRefreshFunc(computeClient, server.ID),
+		Refresh:    ServerV2StateRefreshFunc(computeClient, server.ID),
 		Timeout:    10 * time.Minute,
 		Delay:      10 * time.Second,
 		MinTimeout: 3 * time.Second,
@@ -179,10 +179,10 @@ func resourceComputeInstanceCreate(d *schema.ResourceData, meta interface{}) err
 			server.ID, err)
 	}
 
-	return resourceComputeInstanceRead(d, meta)
+	return resourceComputeInstanceV2Read(d, meta)
 }
 
-func resourceComputeInstanceRead(d *schema.ResourceData, meta interface{}) error {
+func resourceComputeInstanceV2Read(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
 	computeClient, err := openstack.NewComputeV2(config.osClient, gophercloud.EndpointOpts{
 		Region: d.Get("region").(string),
@@ -251,7 +251,7 @@ func resourceComputeInstanceRead(d *schema.ResourceData, meta interface{}) error
 	return nil
 }
 
-func resourceComputeInstanceUpdate(d *schema.ResourceData, meta interface{}) error {
+func resourceComputeInstanceV2Update(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
 	computeClient, err := openstack.NewComputeV2(config.osClient, gophercloud.EndpointOpts{
 		Region: d.Get("region").(string),
@@ -343,7 +343,7 @@ func resourceComputeInstanceUpdate(d *schema.ResourceData, meta interface{}) err
 		stateConf := &resource.StateChangeConf{
 			Pending:    []string{"RESIZE"},
 			Target:     "VERIFY_RESIZE",
-			Refresh:    ServerStateRefreshFunc(computeClient, d.Id()),
+			Refresh:    ServerV2StateRefreshFunc(computeClient, d.Id()),
 			Timeout:    3 * time.Minute,
 			Delay:      10 * time.Second,
 			MinTimeout: 3 * time.Second,
@@ -364,7 +364,7 @@ func resourceComputeInstanceUpdate(d *schema.ResourceData, meta interface{}) err
 		stateConf = &resource.StateChangeConf{
 			Pending:    []string{"VERIFY_RESIZE"},
 			Target:     "ACTIVE",
-			Refresh:    ServerStateRefreshFunc(computeClient, d.Id()),
+			Refresh:    ServerV2StateRefreshFunc(computeClient, d.Id()),
 			Timeout:    3 * time.Minute,
 			Delay:      10 * time.Second,
 			MinTimeout: 3 * time.Second,
@@ -376,10 +376,10 @@ func resourceComputeInstanceUpdate(d *schema.ResourceData, meta interface{}) err
 		}
 	}
 
-	return resourceComputeInstanceRead(d, meta)
+	return resourceComputeInstanceV2Read(d, meta)
 }
 
-func resourceComputeInstanceDelete(d *schema.ResourceData, meta interface{}) error {
+func resourceComputeInstanceV2Delete(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
 	computeClient, err := openstack.NewComputeV2(config.osClient, gophercloud.EndpointOpts{
 		Region: d.Get("region").(string),
@@ -398,7 +398,7 @@ func resourceComputeInstanceDelete(d *schema.ResourceData, meta interface{}) err
 
 	stateConf := &resource.StateChangeConf{
 		Target:     "",
-		Refresh:    ServerStateRefreshFunc(computeClient, d.Id()),
+		Refresh:    ServerV2StateRefreshFunc(computeClient, d.Id()),
 		Timeout:    10 * time.Minute,
 		Delay:      10 * time.Second,
 		MinTimeout: 3 * time.Second,
@@ -417,7 +417,7 @@ func resourceComputeInstanceDelete(d *schema.ResourceData, meta interface{}) err
 
 // ServerStateRefreshFunc returns a resource.StateRefreshFunc that is used to watch
 // an OpenStack instance.
-func ServerStateRefreshFunc(client *gophercloud.ServiceClient, instanceID string) resource.StateRefreshFunc {
+func ServerV2StateRefreshFunc(client *gophercloud.ServiceClient, instanceID string) resource.StateRefreshFunc {
 	return func() (interface{}, string, error) {
 		s, err := servers.Get(client, instanceID).Extract()
 		if err != nil {
@@ -428,7 +428,7 @@ func ServerStateRefreshFunc(client *gophercloud.ServiceClient, instanceID string
 	}
 }
 
-func resourceInstanceSecGroups(d *schema.ResourceData) []string {
+func resourceInstanceSecGroupsV2(d *schema.ResourceData) []string {
 	rawSecGroups := d.Get("security_groups").(*schema.Set)
 	secgroups := make([]string, rawSecGroups.Len())
 	for i, raw := range rawSecGroups.List() {
@@ -437,7 +437,7 @@ func resourceInstanceSecGroups(d *schema.ResourceData) []string {
 	return secgroups
 }
 
-func resourceInstanceNetworks(d *schema.ResourceData) []servers.Network {
+func resourceInstanceNetworksV2(d *schema.ResourceData) []servers.Network {
 	rawNetworks := d.Get("networks").([]interface{})
 	networks := make([]servers.Network, len(rawNetworks))
 	for i, raw := range rawNetworks {
@@ -451,7 +451,7 @@ func resourceInstanceNetworks(d *schema.ResourceData) []servers.Network {
 	return networks
 }
 
-func resourceInstanceMetadata(d *schema.ResourceData) map[string]string {
+func resourceInstanceMetadataV2(d *schema.ResourceData) map[string]string {
 	m := make(map[string]string)
 	for key, val := range d.Get("metadata").(map[string]interface{}) {
 		m[key] = val.(string)

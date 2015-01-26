@@ -10,12 +10,12 @@ import (
 	"github.com/rackspace/gophercloud/openstack/compute/v2/extensions/secgroups"
 )
 
-func resourceComputeSecGroup() *schema.Resource {
+func resourceComputeSecGroupV2() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceComputeSecGroupCreate,
-		Read:   resourceComputeSecGroupRead,
-		Update: resourceComputeSecGroupUpdate,
-		Delete: resourceComputeSecGroupDelete,
+		Create: resourceComputeSecGroupV2Create,
+		Read:   resourceComputeSecGroupV2Read,
+		Update: resourceComputeSecGroupV2Update,
+		Delete: resourceComputeSecGroupV2Delete,
 
 		Schema: map[string]*schema.Schema{
 			"region": &schema.Schema{
@@ -38,7 +38,7 @@ func resourceComputeSecGroup() *schema.Resource {
 	}
 }
 
-func resourceComputeSecGroupCreate(d *schema.ResourceData, meta interface{}) error {
+func resourceComputeSecGroupV2Create(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
 	computeClient, err := openstack.NewComputeV2(config.osClient, gophercloud.EndpointOpts{
 		Region: d.Get("region").(string),
@@ -59,10 +59,10 @@ func resourceComputeSecGroupCreate(d *schema.ResourceData, meta interface{}) err
 
 	d.SetId(sg.ID)
 
-	return resourceComputeSecGroupRead(d, meta)
+	return resourceComputeSecGroupV2Read(d, meta)
 }
 
-func resourceComputeSecGroupRead(d *schema.ResourceData, meta interface{}) error {
+func resourceComputeSecGroupV2Read(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
 	computeClient, err := openstack.NewComputeV2(config.osClient, gophercloud.EndpointOpts{
 		Region: d.Get("region").(string),
@@ -82,7 +82,7 @@ func resourceComputeSecGroupRead(d *schema.ResourceData, meta interface{}) error
 	return nil
 }
 
-func resourceComputeSecGroupUpdate(d *schema.ResourceData, meta interface{}) error {
+func resourceComputeSecGroupV2Update(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
 	computeClient, err := openstack.NewComputeV2(config.osClient, gophercloud.EndpointOpts{
 		Region: d.Get("region").(string),
@@ -106,10 +106,10 @@ func resourceComputeSecGroupUpdate(d *schema.ResourceData, meta interface{}) err
 		return fmt.Errorf("Error updating OpenStack security group (%s): %s", d.Id(), err)
 	}
 
-	return resourceComputeSecGroupRead(d, meta)
+	return resourceComputeSecGroupV2Read(d, meta)
 }
 
-func resourceComputeSecGroupDelete(d *schema.ResourceData, meta interface{}) error {
+func resourceComputeSecGroupV2Delete(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
 	computeClient, err := openstack.NewComputeV2(config.osClient, gophercloud.EndpointOpts{
 		Region: d.Get("region").(string),

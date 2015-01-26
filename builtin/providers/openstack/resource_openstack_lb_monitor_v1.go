@@ -11,12 +11,12 @@ import (
 	"github.com/rackspace/gophercloud/openstack/networking/v2/extensions/lbaas/monitors"
 )
 
-func resourceLBMonitor() *schema.Resource {
+func resourceLBMonitorV1() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceLBMonitorCreate,
-		Read:   resourceLBMonitorRead,
-		Update: resourceLBMonitorUpdate,
-		Delete: resourceLBMonitorDelete,
+		Create: resourceLBMonitorV1Create,
+		Read:   resourceLBMonitorV1Read,
+		Update: resourceLBMonitorV1Update,
+		Delete: resourceLBMonitorV1Delete,
 
 		Schema: map[string]*schema.Schema{
 			"region": &schema.Schema{
@@ -74,7 +74,7 @@ func resourceLBMonitor() *schema.Resource {
 	}
 }
 
-func resourceLBMonitorCreate(d *schema.ResourceData, meta interface{}) error {
+func resourceLBMonitorV1Create(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
 	networkingClient, err := openstack.NewNetworkV2(config.osClient, gophercloud.EndpointOpts{
 		Region: d.Get("region").(string),
@@ -112,10 +112,10 @@ func resourceLBMonitorCreate(d *schema.ResourceData, meta interface{}) error {
 
 	d.SetId(m.ID)
 
-	return resourceLBMonitorRead(d, meta)
+	return resourceLBMonitorV1Read(d, meta)
 }
 
-func resourceLBMonitorRead(d *schema.ResourceData, meta interface{}) error {
+func resourceLBMonitorV1Read(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
 	networkingClient, err := openstack.NewNetworkV2(config.osClient, gophercloud.EndpointOpts{
 		Region: d.Get("region").(string),
@@ -179,7 +179,7 @@ func resourceLBMonitorRead(d *schema.ResourceData, meta interface{}) error {
 	return nil
 }
 
-func resourceLBMonitorUpdate(d *schema.ResourceData, meta interface{}) error {
+func resourceLBMonitorV1Update(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
 	networkingClient, err := openstack.NewNetworkV2(config.osClient, gophercloud.EndpointOpts{
 		Region: d.Get("region").(string),
@@ -225,10 +225,10 @@ func resourceLBMonitorUpdate(d *schema.ResourceData, meta interface{}) error {
 		return fmt.Errorf("Error updating OpenStack LB Monitor: %s", err)
 	}
 
-	return resourceLBMonitorRead(d, meta)
+	return resourceLBMonitorV1Read(d, meta)
 }
 
-func resourceLBMonitorDelete(d *schema.ResourceData, meta interface{}) error {
+func resourceLBMonitorV1Delete(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
 	networkingClient, err := openstack.NewNetworkV2(config.osClient, gophercloud.EndpointOpts{
 		Region: d.Get("region").(string),

@@ -11,12 +11,12 @@ import (
 	"github.com/rackspace/gophercloud/openstack/networking/v2/extensions/lbaas/pools"
 )
 
-func resourceLBPool() *schema.Resource {
+func resourceLBPoolV1() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceLBPoolCreate,
-		Read:   resourceLBPoolRead,
-		Update: resourceLBPoolUpdate,
-		Delete: resourceLBPoolDelete,
+		Create: resourceLBPoolV1Create,
+		Read:   resourceLBPoolV1Read,
+		Update: resourceLBPoolV1Update,
+		Delete: resourceLBPoolV1Delete,
 
 		Schema: map[string]*schema.Schema{
 			"region": &schema.Schema{
@@ -64,7 +64,7 @@ func resourceLBPool() *schema.Resource {
 	}
 }
 
-func resourceLBPoolCreate(d *schema.ResourceData, meta interface{}) error {
+func resourceLBPoolV1Create(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
 	networkingClient, err := openstack.NewNetworkV2(config.osClient, gophercloud.EndpointOpts{
 		Region: d.Get("region").(string),
@@ -90,7 +90,7 @@ func resourceLBPoolCreate(d *schema.ResourceData, meta interface{}) error {
 
 	d.SetId(p.ID)
 
-	if mIDs := resourcePoolMonitorIDs(d); mIDs != nil {
+	if mIDs := resourcePoolMonitorIDsV1(d); mIDs != nil {
 		for _, mID := range mIDs {
 			_, err := pools.AssociateMonitor(networkingClient, p.ID, mID).Extract()
 			if err != nil {
@@ -99,10 +99,10 @@ func resourceLBPoolCreate(d *schema.ResourceData, meta interface{}) error {
 		}
 	}
 
-	return resourceLBPoolRead(d, meta)
+	return resourceLBPoolV1Read(d, meta)
 }
 
-func resourceLBPoolRead(d *schema.ResourceData, meta interface{}) error {
+func resourceLBPoolV1Read(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
 	networkingClient, err := openstack.NewNetworkV2(config.osClient, gophercloud.EndpointOpts{
 		Region: d.Get("region").(string),
@@ -136,7 +136,7 @@ func resourceLBPoolRead(d *schema.ResourceData, meta interface{}) error {
 	return nil
 }
 
-func resourceLBPoolUpdate(d *schema.ResourceData, meta interface{}) error {
+func resourceLBPoolV1Update(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
 	networkingClient, err := openstack.NewNetworkV2(config.osClient, gophercloud.EndpointOpts{
 		Region: d.Get("region").(string),
@@ -187,10 +187,10 @@ func resourceLBPoolUpdate(d *schema.ResourceData, meta interface{}) error {
 		}
 	}
 
-	return resourceLBPoolRead(d, meta)
+	return resourceLBPoolV1Read(d, meta)
 }
 
-func resourceLBPoolDelete(d *schema.ResourceData, meta interface{}) error {
+func resourceLBPoolV1Delete(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
 	networkingClient, err := openstack.NewNetworkV2(config.osClient, gophercloud.EndpointOpts{
 		Region: d.Get("region").(string),
@@ -208,7 +208,7 @@ func resourceLBPoolDelete(d *schema.ResourceData, meta interface{}) error {
 	return nil
 }
 
-func resourcePoolMonitorIDs(d *schema.ResourceData) []string {
+func resourcePoolMonitorIDsV1(d *schema.ResourceData) []string {
 	mIDsRaw := d.Get("monitor_ids").(*schema.Set)
 	mIDs := make([]string, mIDsRaw.Len())
 	for i, raw := range mIDsRaw.List() {
