@@ -28,7 +28,6 @@ func resourceComputeInstanceV2() *schema.Resource {
 				Type:        schema.TypeString,
 				Required:    true,
 				ForceNew:    true,
-				DefaultFunc: envDefaultFunc("OS_REGION_NAME"),
 			},
 			"name": &schema.Schema{
 				Type:     schema.TypeString,
@@ -124,7 +123,6 @@ func resourceComputeInstanceV2Create(d *schema.ResourceData, meta interface{}) e
 	if err != nil {
 		return fmt.Errorf("Error creating OpenStack compute client: %s", err)
 	}
-
 
 	var createOpts servers.CreateOptsBuilder
 
@@ -228,20 +226,16 @@ func resourceComputeInstanceV2Read(d *schema.ResourceData, meta interface{}) err
 
 	d.Set("metadata", server.Metadata)
 
-	var currentSG []string
 	err = secgroups.ListByServer(computeClient, d.Id()).EachPage(func(page pagination.Page) (bool, error) {
 		secGrpList, err := secgroups.ExtractSecurityGroups(page)
 		if err != nil {
-			return false, fmt.Errorf("Error setting security groups for OpenStack server: %s", err)
+			return false, fmt.Errorf("Error getting security groups for OpenStack server: %s", err)
 		}
-
-		for _, sg := range secGrpList {
-			currentSG = append(currentSG, sg.Name)
+		for i, sg := range secGrpList {
+			d.Set(fmt.Sprintf("security_groups.%d", i), sg.Name)
 		}
-
 		return true, nil
 	})
-	d.Set("security_groups", currentSG)
 
 	newFlavor, ok := server.Flavor["id"].(string)
 	if !ok {
@@ -272,11 +266,11 @@ func resourceComputeInstanceV2Update(d *schema.ResourceData, meta interface{}) e
 		updateOpts.AccessIPv4 = d.Get("access_ip_v6").(string)
 	}
 
-	log.Printf("[DEBUG] Updating Server %s with options: %+v", d.Id(), updateOpts)
-
-	_, err = servers.Update(computeClient, d.Id(), updateOpts).Extract()
-	if err != nil {
-		return fmt.Errorf("Error updating OpenStack server: %s", err)
+	if updateOpts != (servers.UpdateOpts{}) {
+		_, err := servers.Update(computeClient, d.Id(), updateOpts).Extract()
+		if err != nil {
+			return fmt.Errorf("Error updating OpenStack server: %s", err)
+		}
 	}
 
 	if d.HasChange("metadata") {

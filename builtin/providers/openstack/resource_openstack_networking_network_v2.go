@@ -20,10 +20,9 @@ func resourceNetworkingNetworkV2() *schema.Resource {
 
 		Schema: map[string]*schema.Schema{
 			"region": &schema.Schema{
-				Type:        schema.TypeString,
-				Required:    true,
-				ForceNew:    true,
-				DefaultFunc: envDefaultFunc("OS_REGION_NAME"),
+				Type:     schema.TypeString,
+				Required: true,
+				ForceNew: true,
 			},
 			"name": &schema.Schema{
 				Type:     schema.TypeString,
