@@ -11,13 +11,6 @@ import (
 func Provider() terraform.ResourceProvider {
 	return &schema.Provider{
 		Schema: map[string]*schema.Schema{
-			"region": &schema.Schema{
-				Type:        schema.TypeString,
-				Required:    true,
-				DefaultFunc: envDefaultFunc("OS_REGION_NAME"),
-				Description: descriptions["region"],
-			},
-
 			"auth_url": &schema.Schema{
 				Type:        schema.TypeString,
 				Required:    true,
@@ -36,7 +29,6 @@ func Provider() terraform.ResourceProvider {
 				Type:        schema.TypeString,
 				Optional:    true,
 				DefaultFunc: envDefaultFunc("OS_TENANT_NAME"),
-				//Description: descriptions["tenantname"],
 			},
 
 			"password": &schema.Schema{
