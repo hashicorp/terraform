@@ -74,6 +74,7 @@ func resourceComputeKeypairV2Read(d *schema.ResourceData, meta interface{}) erro
 		return fmt.Errorf("Error retrieving OpenStack keypair: %s", err)
 	}
 
+	d.Set("region", d.Get("region").(string))
 	d.Set("name", kp.Name)
 	d.Set("public_key", kp.PublicKey)
 

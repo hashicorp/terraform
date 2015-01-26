@@ -166,6 +166,7 @@ func resourceNetworkingSubnetV2Read(d *schema.ResourceData, meta interface{}) er
 
 	log.Printf("[DEBUG] Retreived Subnet %s: %+v", d.Id(), s)
 
+	d.Set("region", d.Get("region").(string))
 	d.Set("newtork_id", s.NetworkID)
 	d.Set("cidr", s.CIDR)
 	d.Set("ip_version", s.IPVersion)

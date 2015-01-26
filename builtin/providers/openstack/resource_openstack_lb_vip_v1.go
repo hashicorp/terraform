@@ -143,6 +143,7 @@ func resourceLBVipV1Read(d *schema.ResourceData, meta interface{}) error {
 
 	log.Printf("[DEBUG] Retreived OpenStack LB VIP %s: %+v", d.Id(), p)
 
+	d.Set("region", d.Get("region").(string))
 	d.Set("name", p.Name)
 	d.Set("subnet_id", p.SubnetID)
 	d.Set("protocol", p.Protocol)

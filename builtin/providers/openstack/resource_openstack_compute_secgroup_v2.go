@@ -76,6 +76,7 @@ func resourceComputeSecGroupV2Read(d *schema.ResourceData, meta interface{}) err
 		return fmt.Errorf("Error retrieving OpenStack security group: %s", err)
 	}
 
+	d.Set("region", d.Get("region").(string))
 	d.Set("name", sg.Name)
 	d.Set("description", sg.Description)
 

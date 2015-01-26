@@ -131,6 +131,7 @@ func resourceLBMonitorV1Read(d *schema.ResourceData, meta interface{}) error {
 
 	log.Printf("[DEBUG] Retreived OpenStack LB Monitor %s: %+v", d.Id(), m)
 
+	d.Set("region", d.Get("region").(string))
 	d.Set("type", m.Type)
 	d.Set("delay", m.Delay)
 	d.Set("timeout", m.Timeout)

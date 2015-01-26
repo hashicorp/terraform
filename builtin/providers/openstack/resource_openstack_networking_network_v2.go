@@ -109,6 +109,8 @@ func resourceNetworkingNetworkV2Read(d *schema.ResourceData, meta interface{}) e
 
 	log.Printf("[DEBUG] Retreived Network %s: %+v", d.Id(), n)
 
+	d.Set("region", d.Get("region").(string))
+
 	if _, exists := d.GetOk("name"); exists {
 		if d.HasChange("name") {
 			d.Set("name", n.Name)
