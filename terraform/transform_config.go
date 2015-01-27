@@ -63,14 +63,7 @@ func (t *ConfigTransformer) Transform(g *Graph) error {
 	// Build up the dependencies. We have to do this outside of the above
 	// loop since the nodes need to be in place for us to build the deps.
 	for _, n := range nodes {
-		vars := n.Variables()
-		targets := make([]string, 0, len(vars))
-		for _, t := range vars {
-			if t != "" {
-				targets = append(targets, t)
-			}
-		}
-		if missing := g.ConnectTo(n, targets); len(missing) > 0 {
+		if missing := g.ConnectDependent(n); len(missing) > 0 {
 			for _, m := range missing {
 				err = multierror.Append(err, fmt.Errorf(
 					"%s: missing dependency: %s", n.Name(), m))

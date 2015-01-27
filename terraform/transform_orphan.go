@@ -29,17 +29,21 @@ func (t *OrphanTransformer) Transform(g *Graph) error {
 	resourceOrphans := state.Orphans(t.Config)
 	resourceVertexes := make([]dag.Vertex, len(resourceOrphans))
 	for i, k := range resourceOrphans {
-		resourceVertexes[i] = g.Add(&graphNodeOrphanResource{ResourceName: k})
+		resourceVertexes[i] = g.Add(&graphNodeOrphanResource{
+			ResourceName: k,
+			dependentOn:  state.Resources[k].Dependencies,
+		})
 	}
 
 	// Go over each module orphan and add it to the graph. We store the
 	// vertexes and states outside so that we can connect dependencies later.
 	moduleOrphans := t.State.ModuleOrphans(g.Path, t.Config)
 	moduleVertexes := make([]dag.Vertex, len(moduleOrphans))
-	moduleStates := make([]*ModuleState, len(moduleVertexes))
 	for i, path := range moduleOrphans {
-		moduleVertexes[i] = g.Add(&graphNodeOrphanModule{Path: path})
-		moduleStates[i] = t.State.ModuleByPath(path)
+		moduleVertexes[i] = g.Add(&graphNodeOrphanModule{
+			Path:        path,
+			dependentOn: t.State.ModuleByPath(path).Dependencies,
+		})
 	}
 
 	// Now do the dependencies. We do this _after_ adding all the orphan
@@ -47,13 +51,13 @@ func (t *OrphanTransformer) Transform(g *Graph) error {
 	// depend on other orphans.
 
 	// Resource dependencies
-	for i, v := range resourceVertexes {
-		g.ConnectTo(v, state.Resources[resourceOrphans[i]].Dependencies)
+	for _, v := range resourceVertexes {
+		g.ConnectDependent(v)
 	}
 
 	// Module dependencies
-	for i, v := range moduleVertexes {
-		g.ConnectTo(v, moduleStates[i].Dependencies)
+	for _, v := range moduleVertexes {
+		g.ConnectDependent(v)
 	}
 
 	return nil
@@ -62,10 +66,16 @@ func (t *OrphanTransformer) Transform(g *Graph) error {
 // graphNodeOrphanModule is the graph vertex representing an orphan resource..
 type graphNodeOrphanModule struct {
 	Path []string
+
+	dependentOn []string
 }
 
 func (n *graphNodeOrphanModule) DependableName() []string {
 	return []string{n.dependableName()}
+}
+
+func (n *graphNodeOrphanModule) DependentOn() []string {
+	return n.dependentOn
 }
 
 func (n *graphNodeOrphanModule) Name() string {
@@ -79,10 +89,16 @@ func (n *graphNodeOrphanModule) dependableName() string {
 // graphNodeOrphanResource is the graph vertex representing an orphan resource..
 type graphNodeOrphanResource struct {
 	ResourceName string
+
+	dependentOn []string
 }
 
 func (n *graphNodeOrphanResource) DependableName() []string {
 	return []string{n.dependableName()}
+}
+
+func (n *graphNodeOrphanResource) DependentOn() []string {
+	return n.dependentOn
 }
 
 func (n *graphNodeOrphanResource) Name() string {

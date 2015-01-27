@@ -14,10 +14,10 @@ import (
 type graphNodeConfig interface {
 	dag.NamedVertex
 
-	// Variables returns the full list of variables that this node
-	// depends on. The values within the slice should map to the VarName()
-	// values that are returned by any nodes.
-	Variables() []string
+	// All graph nodes should be dependent on other things, and able to
+	// be depended on.
+	GraphNodeDependable
+	GraphNodeDependent
 }
 
 // GraphNodeConfigModule represents a module within the configuration graph.
@@ -29,18 +29,21 @@ type GraphNodeConfigModule struct {
 func (n *GraphNodeConfigModule) DependableName() []string {
 	return []string{n.Name()}
 }
-func (n *GraphNodeConfigModule) Name() string {
-	return fmt.Sprintf("module.%s", n.Module.Name)
-}
 
-func (n *GraphNodeConfigModule) Variables() []string {
+func (n *GraphNodeConfigModule) DependentOn() []string {
 	vars := n.Module.RawConfig.Variables
 	result := make([]string, 0, len(vars))
 	for _, v := range vars {
-		result = append(result, varNameForVar(v))
+		if vn := varNameForVar(v); vn != "" {
+			result = append(result, vn)
+		}
 	}
 
 	return result
+}
+
+func (n *GraphNodeConfigModule) Name() string {
+	return fmt.Sprintf("module.%s", n.Module.Name)
 }
 
 // GraphNodeConfigProvider represents a configured provider within the
@@ -54,11 +57,17 @@ func (n *GraphNodeConfigProvider) Name() string {
 	return fmt.Sprintf("provider.%s", n.Provider.Name)
 }
 
-func (n *GraphNodeConfigProvider) Variables() []string {
+func (n *GraphNodeConfigProvider) DependableName() []string {
+	return []string{n.Name()}
+}
+
+func (n *GraphNodeConfigProvider) DependentOn() []string {
 	vars := n.Provider.RawConfig.Variables
 	result := make([]string, 0, len(vars))
 	for _, v := range vars {
-		result = append(result, varNameForVar(v))
+		if vn := varNameForVar(v); vn != "" {
+			result = append(result, vn)
+		}
 	}
 
 	return result
@@ -73,22 +82,26 @@ func (n *GraphNodeConfigResource) DependableName() []string {
 	return []string{n.Resource.Id()}
 }
 
-func (n *GraphNodeConfigResource) Name() string {
-	return n.Resource.Id()
-}
-
-func (n *GraphNodeConfigResource) Variables() []string {
+func (n *GraphNodeConfigResource) DependentOn() []string {
 	result := make([]string, len(n.Resource.DependsOn),
 		len(n.Resource.RawCount.Variables)+
 			len(n.Resource.RawConfig.Variables)+
 			len(n.Resource.DependsOn))
 	copy(result, n.Resource.DependsOn)
 	for _, v := range n.Resource.RawCount.Variables {
-		result = append(result, varNameForVar(v))
+		if vn := varNameForVar(v); vn != "" {
+			result = append(result, vn)
+		}
 	}
 	for _, v := range n.Resource.RawConfig.Variables {
-		result = append(result, varNameForVar(v))
+		if vn := varNameForVar(v); vn != "" {
+			result = append(result, vn)
+		}
 	}
 
 	return result
+}
+
+func (n *GraphNodeConfigResource) Name() string {
+	return n.Resource.Id()
 }
