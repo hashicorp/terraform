@@ -24,6 +24,7 @@ func resourceNetworkingSubnetV2() *schema.Resource {
 				Type:        schema.TypeString,
 				Required:    true,
 				ForceNew:    true,
+				DefaultFunc: envDefaultFunc("OS_REGION_NAME"),
 			},
 			"network_id": &schema.Schema{
 				Type:     schema.TypeString,
@@ -170,18 +171,14 @@ func resourceNetworkingSubnetV2Read(d *schema.ResourceData, meta interface{}) er
 	d.Set("cidr", s.CIDR)
 	d.Set("ip_version", s.IPVersion)
 
-	if _, exists := d.GetOk("name"); exists {
-		if d.HasChange("name") {
-			d.Set("name", s.Name)
-		}
+	if t, exists := d.GetOk("name"); exists && t != "" {
+		d.Set("name", s.Name)
 	} else {
 		d.Set("name", "")
 	}
 
-	if _, exists := d.GetOk("tenant_id"); exists {
-		if d.HasChange("tenant_id") {
-			d.Set("tenant_id", s.Name)
-		}
+	if t, exists := d.GetOk("tenant_id"); exists && t != "" {
+		d.Set("tenant_id", s.TenantID)
 	} else {
 		d.Set("tenant_id", "")
 	}
@@ -190,18 +187,14 @@ func resourceNetworkingSubnetV2Read(d *schema.ResourceData, meta interface{}) er
 		d.Set("allocation_pools", s.AllocationPools)
 	}
 
-	if _, exists := d.GetOk("gateway_ip"); exists {
-		if d.HasChange("gateway_ip") {
-			d.Set("gateway_ip", s.Name)
-		}
+	if t, exists := d.GetOk("gateway_ip"); exists && t != "" {
+		d.Set("gateway_ip", s.GatewayIP)
 	} else {
 		d.Set("gateway_ip", "")
 	}
 
-	if _, exists := d.GetOk("enable_dhcp"); exists {
-		if d.HasChange("enable_dhcp") {
-			d.Set("enable_dhcp", strconv.FormatBool(s.EnableDHCP))
-		}
+	if t, exists := d.GetOk("enable_dhcp"); exists && t != "" {
+		d.Set("enable_dhcp", strconv.FormatBool(s.EnableDHCP))
 	} else {
 		d.Set("enable_dhcp", "")
 	}

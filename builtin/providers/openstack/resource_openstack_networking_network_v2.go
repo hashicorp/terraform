@@ -23,6 +23,7 @@ func resourceNetworkingNetworkV2() *schema.Resource {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
+				DefaultFunc: envDefaultFunc("OS_REGION_NAME"),
 			},
 			"name": &schema.Schema{
 				Type:     schema.TypeString,
@@ -110,34 +111,26 @@ func resourceNetworkingNetworkV2Read(d *schema.ResourceData, meta interface{}) e
 
 	d.Set("region", d.Get("region").(string))
 
-	if _, exists := d.GetOk("name"); exists {
-		if d.HasChange("name") {
-			d.Set("name", n.Name)
-		}
+	if t, exists := d.GetOk("name"); exists && t != ""{
+		d.Set("name", n.Name)
 	} else {
 		d.Set("name", "")
 	}
 
-	if _, exists := d.GetOk("admin_state_up"); exists {
-		if d.HasChange("admin_state_up") {
-			d.Set("admin_state_up", strconv.FormatBool(n.AdminStateUp))
-		}
+	if t, exists := d.GetOk("admin_state_up"); exists && t != "" {
+		d.Set("admin_state_up", strconv.FormatBool(n.AdminStateUp))
 	} else {
 		d.Set("admin_state_up", "")
 	}
 
-	if _, exists := d.GetOk("shared"); exists {
-		if d.HasChange("shared") {
-			d.Set("shared", strconv.FormatBool(n.Shared))
-		}
+	if t, exists := d.GetOk("shared"); exists && t != "" {
+		d.Set("shared", strconv.FormatBool(n.Shared))
 	} else {
 		d.Set("shared", "")
 	}
 
-	if _, exists := d.GetOk("tenant_id"); exists {
-		if d.HasChange("tenant_id") {
-			d.Set("tenant_id", n.TenantID)
-		}
+	if t, exists := d.GetOk("tenant_id"); exists && t != "" {
+		d.Set("tenant_id", n.TenantID)
 	} else {
 		d.Set("tenant_id", "")
 	}

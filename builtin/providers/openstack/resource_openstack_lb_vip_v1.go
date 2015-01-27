@@ -150,48 +150,36 @@ func resourceLBVipV1Read(d *schema.ResourceData, meta interface{}) error {
 	d.Set("port", p.ProtocolPort)
 	d.Set("pool_id", p.PoolID)
 
-	if _, exists := d.GetOk("tenant_id"); exists {
-		if d.HasChange("tenant_id") {
-			d.Set("tenant_id", p.TenantID)
-		}
+	if t, exists := d.GetOk("tenant_id"); exists && t != "" {
+		d.Set("tenant_id", p.TenantID)
 	} else {
 		d.Set("tenant_id", "")
 	}
 
-	if _, exists := d.GetOk("address"); exists {
-		if d.HasChange("address") {
-			d.Set("address", p.Address)
-		}
+	if t, exists := d.GetOk("address"); exists && t != "" {
+		d.Set("address", p.Address)
 	} else {
 		d.Set("address", "")
 	}
 
-	if _, exists := d.GetOk("description"); exists {
-		if d.HasChange("description") {
-			d.Set("description", p.Description)
-		}
+	if t, exists := d.GetOk("description"); exists && t != "" {
+		d.Set("description", p.Description)
 	} else {
 		d.Set("description", "")
 	}
 
-	if _, exists := d.GetOk("persistence"); exists {
-		if d.HasChange("persistence") {
+	if t, exists := d.GetOk("persistence"); exists && t != "" {
 			d.Set("persistence", p.Description)
-		}
 	}
 
-	if _, exists := d.GetOk("conn_limit"); exists {
-		if d.HasChange("conn_limit") {
-			d.Set("conn_limit", p.ConnLimit)
-		}
+	if t, exists := d.GetOk("conn_limit"); exists && t != "" {
+		d.Set("conn_limit", p.ConnLimit)
 	} else {
 		d.Set("conn_limit", "")
 	}
 
-	if _, exists := d.GetOk("admin_state_up"); exists {
-		if d.HasChange("admin_state_up") {
-			d.Set("admin_state_up", strconv.FormatBool(p.AdminStateUp))
-		}
+	if t, exists := d.GetOk("admin_state_up"); exists && t != "" {
+		d.Set("admin_state_up", strconv.FormatBool(p.AdminStateUp))
 	} else {
 		d.Set("admin_state_up", "")
 	}

@@ -137,42 +137,32 @@ func resourceLBMonitorV1Read(d *schema.ResourceData, meta interface{}) error {
 	d.Set("timeout", m.Timeout)
 	d.Set("max_retries", m.MaxRetries)
 
-	if _, exists := d.GetOk("tenant_id"); exists {
-		if d.HasChange("tenant_id") {
-			d.Set("tenant_id", m.TenantID)
-		}
+	if t, exists := d.GetOk("tenant_id"); exists && t != "" {
+		d.Set("tenant_id", m.TenantID)
 	} else {
 		d.Set("tenant_id", "")
 	}
 
-	if _, exists := d.GetOk("url_path"); exists {
-		if d.HasChange("url_path") {
-			d.Set("url_path", m.URLPath)
-		}
+	if t, exists := d.GetOk("url_path"); exists && t != "" {
+		d.Set("url_path", m.URLPath)
 	} else {
 		d.Set("url_path", "")
 	}
 
-	if _, exists := d.GetOk("http_method"); exists {
-		if d.HasChange("http_method") {
-			d.Set("http_method", m.HTTPMethod)
-		}
+	if t, exists := d.GetOk("http_method"); exists && t != "" {
+		d.Set("http_method", m.HTTPMethod)
 	} else {
 		d.Set("http_method", "")
 	}
 
-	if _, exists := d.GetOk("expected_codes"); exists {
-		if d.HasChange("expected_codes") {
-			d.Set("expected_codes", m.ExpectedCodes)
-		}
+	if t, exists := d.GetOk("expected_codes"); exists && t != "" {
+		d.Set("expected_codes", m.ExpectedCodes)
 	} else {
 		d.Set("expected_codes", "")
 	}
 
-	if _, exists := d.GetOk("admin_state_up"); exists {
-		if d.HasChange("admin_state_up") {
-			d.Set("admin_state_up", strconv.FormatBool(m.AdminStateUp))
-		}
+	if t, exists := d.GetOk("admin_state_up"); exists && t != "" {
+		d.Set("admin_state_up", strconv.FormatBool(m.AdminStateUp))
 	} else {
 		d.Set("admin_state_up", "")
 	}
