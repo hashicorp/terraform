@@ -39,11 +39,13 @@ func resourceComputeInstanceV2() *schema.Resource {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: false,
+				DefaultFunc: envDefaultFunc("OS_IMAGE_ID"),
 			},
 			"flavor_ref": &schema.Schema{
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: false,
+				DefaultFunc: envDefaultFunc("OS_FLAVOR_ID"),
 			},
 			"security_groups": &schema.Schema{
 				Type:     schema.TypeSet,
@@ -127,7 +129,7 @@ func resourceComputeInstanceV2Create(d *schema.ResourceData, meta interface{}) e
 
 	var createOpts servers.CreateOptsBuilder
 
-	serverCreateOpts := &servers.CreateOpts{
+	createOpts = &servers.CreateOpts{
 		Name:             d.Get("name").(string),
 		ImageRef:         d.Get("image_ref").(string),
 		FlavorRef:        d.Get("flavor_ref").(string),
@@ -141,7 +143,7 @@ func resourceComputeInstanceV2Create(d *schema.ResourceData, meta interface{}) e
 
 	if keyName, ok := d.Get("key_pair").(string); ok && keyName != "" {
 		createOpts = &keypairs.CreateOptsExt{
-			serverCreateOpts,
+			createOpts,
 			keyName,
 		}
 	}
