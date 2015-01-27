@@ -1,0 +1,3 @@
+module "bar" {
+    source = "./bar"
+}
