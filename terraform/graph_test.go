@@ -18,7 +18,42 @@ func TestGraphAdd(t *testing.T) {
 	}
 }
 
+func TestGraphConnectTo(t *testing.T) {
+	var g Graph
+	g.Add(&testGraphDependable{VertexName: "a", Mock: []string{"a"}})
+	b := g.Add(&testGraphDependable{VertexName: "b"})
+
+	if missing := g.ConnectTo(b, []string{"a"}); len(missing) > 0 {
+		t.Fatalf("bad: %#v", missing)
+	}
+
+	actual := strings.TrimSpace(g.String())
+	expected := strings.TrimSpace(testGraphConnectDepsStr)
+	if actual != expected {
+		t.Fatalf("bad: %s", actual)
+	}
+}
+
+type testGraphDependable struct {
+	VertexName string
+	Mock       []string
+}
+
+func (v *testGraphDependable) Name() string {
+	return v.VertexName
+}
+
+func (v *testGraphDependable) DependableName() []string {
+	return v.Mock
+}
+
 const testGraphAddStr = `
 42
 84
+`
+
+const testGraphConnectDepsStr = `
+a
+b
+  a
 `

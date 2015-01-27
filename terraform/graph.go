@@ -56,7 +56,6 @@ func (g *Graph) Add(v dag.Vertex) dag.Vertex {
 func (g *Graph) ConnectTo(source dag.Vertex, target []string) []string {
 	g.once.Do(g.init)
 
-	// TODO: test
 	var missing []string
 	for _, t := range target {
 		if dest := g.dependableMap[t]; dest != nil {
@@ -77,4 +76,13 @@ func (g *Graph) init() {
 	if g.dependableMap == nil {
 		g.dependableMap = make(map[string]dag.Vertex)
 	}
+}
+
+// GraphNodeDependable is an interface which says that a node can be
+// depended on (an edge can be placed between this node and another) according
+// to the well-known name returned by DependableName.
+//
+// DependableName can return multiple names it is known by.
+type GraphNodeDependable interface {
+	DependableName() []string
 }
