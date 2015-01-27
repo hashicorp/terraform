@@ -38,9 +38,10 @@ func (g *Graph) Edges() []Edge {
 
 // Add adds a vertex to the graph. This is safe to call multiple time with
 // the same Vertex.
-func (g *Graph) Add(v Vertex) {
+func (g *Graph) Add(v Vertex) Vertex {
 	g.once.Do(g.init)
 	g.vertices = append(g.vertices, v)
+	return v
 }
 
 // Connect adds an edge with the given source and target. This is safe to

@@ -79,6 +79,10 @@ type GraphNodeConfigResource struct {
 	Resource *config.Resource
 }
 
+func (n *GraphNodeConfigResource) DependableName() []string {
+	return []string{n.Resource.Id()}
+}
+
 func (n *GraphNodeConfigResource) Name() string {
 	return n.Resource.Id()
 }
