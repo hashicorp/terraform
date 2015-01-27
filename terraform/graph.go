@@ -9,6 +9,9 @@ import (
 // RootModuleName is the name given to the root module implicitly.
 const RootModuleName = "root"
 
+// RootModulePath is the path for the root module.
+var RootModulePath = []string{RootModuleName}
+
 // Graph represents the graph that Terraform uses to represent resources
 // and their dependencies. Each graph represents only one module, but it
 // can contain further modules, which themselves have their own graph.

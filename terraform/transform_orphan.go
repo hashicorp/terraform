@@ -9,13 +9,23 @@ import (
 // OrphanTransformer is a GraphTransformer that adds orphans to the
 // graph. This transformer adds both resource and module orphans.
 type OrphanTransformer struct {
-	State  *ModuleState
+	// State is the global state. We require the global state to
+	// properly find module orphans at our path.
+	State *State
+
+	// Config is just the configuration of our current module.
 	Config *config.Config
 }
 
 func (t *OrphanTransformer) Transform(g *Graph) error {
+	state := t.State.ModuleByPath(g.Path)
+	if state == nil {
+		// If there is no state for our module, there can't be any orphans
+		return nil
+	}
+
 	// Get the orphans from our configuration. This will only get resources.
-	orphans := t.State.Orphans(t.Config)
+	orphans := state.Orphans(t.Config)
 	if len(orphans) == 0 {
 		return nil
 	}
@@ -24,7 +34,7 @@ func (t *OrphanTransformer) Transform(g *Graph) error {
 	for _, k := range orphans {
 		g.ConnectTo(
 			g.Add(&graphNodeOrphanResource{ResourceName: k}),
-			t.State.Resources[k].Dependencies)
+			state.Resources[k].Dependencies)
 	}
 
 	// TODO: modules
