@@ -4,7 +4,6 @@ import (
 	"fmt"
 
 	"github.com/hashicorp/terraform/config"
-	"github.com/hashicorp/terraform/dag"
 )
 
 // OrphanTransformer is a GraphTransformer that adds orphans to the
@@ -14,7 +13,7 @@ type OrphanTransformer struct {
 	Config *config.Config
 }
 
-func (t *OrphanTransformer) Transform(g *dag.Graph) error {
+func (t *OrphanTransformer) Transform(g *Graph) error {
 	// Get the orphans from our configuration. This will only get resources.
 	orphans := t.State.Orphans(t.Config)
 	if len(orphans) == 0 {
@@ -23,8 +22,9 @@ func (t *OrphanTransformer) Transform(g *dag.Graph) error {
 
 	// Go over each orphan and add it to the graph.
 	for _, k := range orphans {
-		v := g.Add(&graphNodeOrphanResource{ResourceName: k})
-		GraphConnectDeps(g, v, t.State.Resources[k].Dependencies)
+		g.ConnectTo(
+			g.Add(&graphNodeOrphanResource{ResourceName: k}),
+			t.State.Resources[k].Dependencies)
 	}
 
 	// TODO: modules

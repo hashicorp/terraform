@@ -18,11 +18,6 @@ type graphNodeConfig interface {
 	// depends on. The values within the slice should map to the VarName()
 	// values that are returned by any nodes.
 	Variables() []string
-
-	// VarName returns the name that is used to identify a variable
-	// maps to this node. It should match the result of the
-	// `VarName` function.
-	VarName() string
 }
 
 // GraphNodeConfigModule represents a module within the configuration graph.
@@ -31,6 +26,9 @@ type GraphNodeConfigModule struct {
 	Tree   *module.Tree
 }
 
+func (n *GraphNodeConfigModule) DependableName() []string {
+	return []string{n.Name()}
+}
 func (n *GraphNodeConfigModule) Name() string {
 	return fmt.Sprintf("module.%s", n.Module.Name)
 }
@@ -43,10 +41,6 @@ func (n *GraphNodeConfigModule) Variables() []string {
 	}
 
 	return result
-}
-
-func (n *GraphNodeConfigModule) VarName() string {
-	return n.Name()
 }
 
 // GraphNodeConfigProvider represents a configured provider within the
@@ -68,10 +62,6 @@ func (n *GraphNodeConfigProvider) Variables() []string {
 	}
 
 	return result
-}
-
-func (n *GraphNodeConfigProvider) VarName() string {
-	return "never valid"
 }
 
 // GraphNodeConfigResource represents a resource within the config graph.
@@ -101,8 +91,4 @@ func (n *GraphNodeConfigResource) Variables() []string {
 	}
 
 	return result
-}
-
-func (n *GraphNodeConfigResource) VarName() string {
-	return n.Resource.Id()
 }

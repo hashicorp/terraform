@@ -7,22 +7,27 @@ import (
 	"github.com/hashicorp/go-multierror"
 	"github.com/hashicorp/terraform/config"
 	"github.com/hashicorp/terraform/config/module"
-	"github.com/hashicorp/terraform/dag"
 )
 
-// Graph takes a module tree and builds a logical graph of all the nodes
-// in that module.
-func Graph2(mod *module.Tree) (*dag.Graph, error) {
+// ConfigTransformer is a GraphTransformer that adds the configuration
+// to the graph. It is assumed that the module tree given in Module matches
+// the Path attribute of the Graph being transformed. If this is not the case,
+// the behavior is unspecified, but unlikely to be what you want.
+type ConfigTransformer struct {
+	Module *module.Tree
+}
+
+func (t *ConfigTransformer) Transform(g *Graph) error {
 	// A module is required and also must be completely loaded.
-	if mod == nil {
-		return nil, errors.New("module must not be nil")
+	if t.Module == nil {
+		return errors.New("module must not be nil")
 	}
-	if !mod.Loaded() {
-		return nil, errors.New("module must be loaded")
+	if !t.Module.Loaded() {
+		return errors.New("module must be loaded")
 	}
 
 	// Get the configuration for this module
-	config := mod.Config()
+	config := t.Module.Config()
 
 	// Create the node list we'll use for the graph
 	nodes := make([]graphNodeConfig, 0,
@@ -39,7 +44,7 @@ func Graph2(mod *module.Tree) (*dag.Graph, error) {
 	}
 
 	// Write all the modules out
-	children := mod.Children()
+	children := t.Module.Children()
 	for _, m := range config.Modules {
 		nodes = append(nodes, &GraphNodeConfigModule{
 			Module: m,
@@ -47,46 +52,33 @@ func Graph2(mod *module.Tree) (*dag.Graph, error) {
 		})
 	}
 
-	// Build the full map of the var names to the nodes.
-	fullMap := make(map[string]dag.Vertex)
-	for _, n := range nodes {
-		fullMap[n.VarName()] = n
-	}
+	// Err is where the final error value will go if there is one
+	var err error
 
 	// Build the graph vertices
-	var g dag.Graph
 	for _, n := range nodes {
 		g.Add(n)
 	}
 
-	// Err is where the final error value will go if there is one
-	var err error
-
-	// Go through all the nodes and build up the actual graph edges. We
-	// do this by getting the variables that each node depends on and then
-	// building the dep map based on the fullMap which contains the mapping
-	// of var names to the actual node with that name.
+	// Build up the dependencies. We have to do this outside of the above
+	// loop since the nodes need to be in place for us to build the deps.
 	for _, n := range nodes {
-		for _, id := range n.Variables() {
-			if id == "" {
-				// Empty name means its a variable we don't care about
-				continue
+		vars := n.Variables()
+		targets := make([]string, 0, len(vars))
+		for _, t := range vars {
+			if t != "" {
+				targets = append(targets, t)
 			}
-
-			target, ok := fullMap[id]
-			if !ok {
-				// We can't find the target meaning the dependency
-				// is missing. Accumulate the error.
+		}
+		if missing := g.ConnectTo(n, targets); len(missing) > 0 {
+			for _, m := range missing {
 				err = multierror.Append(err, fmt.Errorf(
-					"%s: missing dependency: %s", n, id))
-				continue
+					"%s: missing dependency: %s", n.Name(), m))
 			}
-
-			g.Connect(dag.BasicEdge(n, target))
 		}
 	}
 
-	return &g, err
+	return err
 }
 
 // varNameForVar returns the VarName value for an interpolated variable.
