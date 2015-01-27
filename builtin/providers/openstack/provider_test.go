@@ -8,6 +8,11 @@ import (
 	"github.com/hashicorp/terraform/terraform"
 )
 
+
+var (
+	OS_REGION_NAME = ""
+)
+
 var testAccProviders map[string]terraform.ResourceProvider
 var testAccProvider *schema.Provider
 
@@ -29,23 +34,24 @@ func TestProvider_impl(t *testing.T) {
 }
 
 func testAccPreCheck(t *testing.T) {
-	if v := os.Getenv("OS_REGION_NAME"); v == "" {
-		t.Fatal("OS_REGION_NAME must be set for acceptance tests")
-	}
-
-	if v := os.Getenv("OS_AUTH_URL"); v == "" {
+	v := os.Getenv("OS_AUTH_URL")
+	if v == "" {
 		t.Fatal("OS_AUTH_URL must be set for acceptance tests")
 	}
 
-	if v := os.Getenv("OS_USERNAME"); v == "" {
-		t.Fatal("OS_USERNAME must be set for acceptance tests")
+	v = os.Getenv("OS_REGION_NAME")
+	if v == "" {
+		t.Fatal("OS_REGION_NAME must be set for acceptance tests")
+	}
+	OS_REGION_NAME = v
+
+	v = os.Getenv("OS_IMAGE_ID")
+	if v == "" {
+		t.Fatal("OS_IMAGE_ID must be set for acceptance tests")
 	}
 
-	if v := os.Getenv("OS_TENANT_NAME"); v != "us-central1" {
-		t.Fatal("OS_TENANT_NAME must be set to us-central1 for acceptance tests")
-	}
-
-	if v := os.Getenv("OS_PASSWORD"); v != "us-central1" {
-		t.Fatal("OS_PASSWORD must be set to us-central1 for acceptance tests")
+	v = os.Getenv("OS_FLAVOR_ID")
+	if v == "" {
+		t.Fatal("OS_FLAVOR_ID must be set for acceptance tests")
 	}
 }
