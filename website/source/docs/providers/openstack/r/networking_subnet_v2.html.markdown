@@ -1,25 +1,25 @@
 ---
 layout: "openstack"
-page_title: "OpenStack: openstack_networking_subnet"
-sidebar_current: "docs-openstack-resource-networking-subnet"
+page_title: "OpenStack: openstack_networking_subnet_v2"
+sidebar_current: "docs-openstack-resource-networking-subnet-v2"
 description: |-
-  Manages a Neutron subnet resource within OpenStack.
+  Manages a V2 Neutron subnet resource within OpenStack.
 ---
 
-# openstack\_networking\_subnet
+# openstack\_networking\_subnet_v2
 
-Manages a Neutron subnet resource within OpenStack.
+Manages a V2 Neutron subnet resource within OpenStack.
 
 ## Example Usage
 
 ```
-resource "openstack_networking_network" "network_1" {
+resource "openstack_networking_network_v2" "network_1" {
   name = "tf_test_network"
   admin_state_up = "true"
 }
 
-resource "openstack_networking_subnet" "subnet_1" {
-  network_id = "${openstack_networking_network.network_1.id}"
+resource "openstack_networking_subnet_v2" "subnet_1" {
+  network_id = "${openstack_networking_network_v2.network_1.id}"
   cidr = "192.168.199.0/24"
   ip_version = 4
 }
@@ -28,6 +28,11 @@ resource "openstack_networking_subnet" "subnet_1" {
 ## Argument Reference
 
 The following arguments are supported:
+
+* `region` - (Required) The region in which to obtain the V2 Networking client.
+    A Networking client is needed to create a Neutron subnet. If omitted, the
+    `OS_REGION_NAME` environment variable is used. Changing this creates a new
+    subnet.
 
 * `network_id` - (Required) The UUID of the parent network. Changing this
     creates a new subnet.
@@ -80,6 +85,7 @@ The `host_routes` block supports:
 
 The following attributes are exported:
 
+* `region` - See Argument Reference above.
 * `network_id` - See Argument Reference above.
 * `cidr` - See Argument Reference above.
 * `ip_version` - See Argument Reference above.

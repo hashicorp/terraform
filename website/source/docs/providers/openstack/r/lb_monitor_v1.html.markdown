@@ -1,19 +1,19 @@
 ---
 layout: "openstack"
-page_title: "OpenStack: openstack_lb_monitor"
-sidebar_current: "docs-openstack-resource-lb-monitor"
+page_title: "OpenStack: openstack_lb_monitor_v1"
+sidebar_current: "docs-openstack-resource-lb-monitor-v1"
 description: |-
-  Manages a load balancer monitor resource within OpenStack.
+  Manages a V1 load balancer monitor resource within OpenStack.
 ---
 
-# openstack\_lb\_monitor
+# openstack\_lb\_monitor_v1
 
-Manages a load balancer monitor resource within OpenStack.
+Manages a V1 load balancer monitor resource within OpenStack.
 
 ## Example Usage
 
 ```
-resource "openstack_lb_monitor" "monitor_1" {
+resource "openstack_lb_monitor_v1" "monitor_1" {
   type = "PING"
   delay = 30
   timeout = 5
@@ -25,6 +25,11 @@ resource "openstack_lb_monitor" "monitor_1" {
 ## Argument Reference
 
 The following arguments are supported:
+
+* `region` - (Required) The region in which to obtain the V2 Networking client.
+    A Networking client is needed to create an LB monitor. If omitted, the
+    `OS_REGION_NAME` environment variable is used. Changing this creates a new
+    LB monitor.
 
 * `type` - (Required) The type of probe, which is PING, TCP, HTTP, or HTTPS,
     that is sent by the monitor to verify the member state. Changing this
@@ -65,6 +70,7 @@ The following arguments are supported:
 
 The following attributes are exported:
 
+* `region` - See Argument Reference above.
 * `type` - See Argument Reference above.
 * `delay` - See Argument Reference above.
 * `timeout` - See Argument Reference above.

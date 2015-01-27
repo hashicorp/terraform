@@ -1,19 +1,19 @@
 ---
 layout: "openstack"
-page_title: "OpenStack: openstack_lb_pool"
-sidebar_current: "docs-openstack-resource-lb-pool"
+page_title: "OpenStack: openstack_lb_pool_v1"
+sidebar_current: "docs-openstack-resource-lb-pool-v1"
 description: |-
-  Manages a load balancer pool resource within OpenStack.
+  Manages a V1 load balancer pool resource within OpenStack.
 ---
 
-# openstack\_lb\_pool
+# openstack\_lb\_pool_v1
 
-Manages a load balancer pool resource within OpenStack.
+Manages a V1 load balancer pool resource within OpenStack.
 
 ## Example Usage
 
 ```
-resource "openstack_lb_pool" "pool_1" {
+resource "openstack_lb_pool_v1" "pool_1" {
   name = "tf_test_lb_pool"
   protocol = "HTTP"
   subnet_id = "12345"
@@ -25,6 +25,11 @@ resource "openstack_lb_pool" "pool_1" {
 ## Argument Reference
 
 The following arguments are supported:
+
+* `region` - (Required) The region in which to obtain the V2 Networking client.
+    A Networking client is needed to create an LB pool. If omitted, the
+    `OS_REGION_NAME` environment variable is used. Changing this creates a new
+    LB pool.
 
 * `name` - (Required) The name of the pool. Changing this updates the name of
     the existing pool.
@@ -50,6 +55,7 @@ The following arguments are supported:
 
 The following attributes are exported:
 
+* `region` - See Argument Reference above.
 * `name` - See Argument Reference above.
 * `protocol` - See Argument Reference above.
 * `subnet_id` - See Argument Reference above.
