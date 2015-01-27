@@ -51,21 +51,41 @@ func (g *Graph) Add(v dag.Vertex) dag.Vertex {
 	return v
 }
 
-// ConnectTo is a helper to create edges between a node and a list of
-// targets by their DependableNames.
-func (g *Graph) ConnectTo(source dag.Vertex, target []string) []string {
+// ConnectDependent connects a GraphNodeDependent to all of its
+// GraphNodeDependables. It returns the list of dependents it was
+// unable to connect to.
+func (g *Graph) ConnectDependent(raw dag.Vertex) []string {
 	g.once.Do(g.init)
 
+	v, ok := raw.(GraphNodeDependent)
+	if !ok {
+		return nil
+	}
+
 	var missing []string
-	for _, t := range target {
+	for _, t := range v.DependentOn() {
 		if dest := g.dependableMap[t]; dest != nil {
-			g.Connect(dag.BasicEdge(source, dest))
+			g.Connect(dag.BasicEdge(v, dest))
 		} else {
 			missing = append(missing, t)
 		}
 	}
 
 	return missing
+}
+
+// ConnectDependents goes through the graph, connecting all the
+// GraphNodeDependents to GraphNodeDependables. This is safe to call
+// multiple times.
+//
+// To get details on whether dependencies could be found/made, the more
+// specific ConnectDependent should be used.
+func (g *Graph) ConnectDependents() {
+	for _, v := range g.Vertices() {
+		if dv, ok := v.(GraphNodeDependent); ok {
+			g.ConnectDependent(dv)
+		}
+	}
 }
 
 func (g *Graph) init() {
@@ -85,4 +105,12 @@ func (g *Graph) init() {
 // DependableName can return multiple names it is known by.
 type GraphNodeDependable interface {
 	DependableName() []string
+}
+
+// GraphNodeDependent is an interface which says that a node depends
+// on another GraphNodeDependable by some name. By implementing this
+// interface, Graph.ConnectDependents() can be called multiple times
+// safely and efficiently.
+type GraphNodeDependent interface {
+	DependentOn() []string
 }
