@@ -21,13 +21,5 @@ func (d *FileDetector) Detect(src, pwd string) (string, bool, error) {
 
 		src = filepath.Join(pwd, src)
 	}
-	// Make sure we're using "/" even on Windows. URLs are "/"-based.
-	src = filepath.ToSlash(src)
-
-	// Make sure that we don't start with "/" since we add that below
-	if src[0] == '/' {
-		src = src[1:]
-	}
-
-	return fmt.Sprintf("file:///%s", src), true, nil
+	return fmtFileURL(src), true, nil
 }
