@@ -35,6 +35,8 @@ func (t *TaintedTransformer) Transform(g *Graph) error {
 		}
 	}
 
+	// TODO: Dependencies?
+
 	return nil
 }
 
