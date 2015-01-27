@@ -1,6 +1,5 @@
 package terraform
 
-/*
 import (
 	"strings"
 	"testing"
@@ -8,33 +7,40 @@ import (
 
 func TestOrphanTransformer(t *testing.T) {
 	mod := testModule(t, "transform-orphan-basic")
-	state := &ModuleState{
-		Path: rootModulePath,
-		Resources: map[string]*ResourceState{
-			"aws_instance.web": &ResourceState{
-				Type: "aws_instance",
-				Primary: &InstanceState{
-					ID: "foo",
-				},
-			},
+	state := &State{
+		Modules: []*ModuleState{
+			&ModuleState{
+				Path: RootModulePath,
+				Resources: map[string]*ResourceState{
+					"aws_instance.web": &ResourceState{
+						Type: "aws_instance",
+						Primary: &InstanceState{
+							ID: "foo",
+						},
+					},
 
-			// The orphan
-			"aws_instance.db": &ResourceState{
-				Type: "aws_instance",
-				Primary: &InstanceState{
-					ID: "foo",
+					// The orphan
+					"aws_instance.db": &ResourceState{
+						Type: "aws_instance",
+						Primary: &InstanceState{
+							ID: "foo",
+						},
+					},
 				},
 			},
 		},
 	}
 
-	g, err := Graph2(mod)
-	if err != nil {
-		t.Fatalf("err: %s", err)
+	g := Graph{Path: RootModulePath}
+	{
+		tf := &ConfigTransformer{Module: mod}
+		if err := tf.Transform(&g); err != nil {
+			t.Fatalf("err: %s", err)
+		}
 	}
 
 	transform := &OrphanTransformer{State: state, Config: mod.Config()}
-	if err := transform.Transform(g); err != nil {
+	if err := transform.Transform(&g); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 
@@ -47,36 +53,43 @@ func TestOrphanTransformer(t *testing.T) {
 
 func TestOrphanTransformer_resourceDepends(t *testing.T) {
 	mod := testModule(t, "transform-orphan-basic")
-	state := &ModuleState{
-		Path: rootModulePath,
-		Resources: map[string]*ResourceState{
-			"aws_instance.web": &ResourceState{
-				Type: "aws_instance",
-				Primary: &InstanceState{
-					ID: "foo",
-				},
-			},
+	state := &State{
+		Modules: []*ModuleState{
+			&ModuleState{
+				Path: RootModulePath,
+				Resources: map[string]*ResourceState{
+					"aws_instance.web": &ResourceState{
+						Type: "aws_instance",
+						Primary: &InstanceState{
+							ID: "foo",
+						},
+					},
 
-			// The orphan
-			"aws_instance.db": &ResourceState{
-				Type: "aws_instance",
-				Primary: &InstanceState{
-					ID: "foo",
-				},
-				Dependencies: []string{
-					"aws_instance.web",
+					// The orphan
+					"aws_instance.db": &ResourceState{
+						Type: "aws_instance",
+						Primary: &InstanceState{
+							ID: "foo",
+						},
+						Dependencies: []string{
+							"aws_instance.web",
+						},
+					},
 				},
 			},
 		},
 	}
 
-	g, err := Graph2(mod)
-	if err != nil {
-		t.Fatalf("err: %s", err)
+	g := Graph{Path: RootModulePath}
+	{
+		tf := &ConfigTransformer{Module: mod}
+		if err := tf.Transform(&g); err != nil {
+			t.Fatalf("err: %s", err)
+		}
 	}
 
 	transform := &OrphanTransformer{State: state, Config: mod.Config()}
-	if err := transform.Transform(g); err != nil {
+	if err := transform.Transform(&g); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 
@@ -97,4 +110,3 @@ aws_instance.db (orphan)
   aws_instance.web
 aws_instance.web
 `
-*/
