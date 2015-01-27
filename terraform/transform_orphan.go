@@ -26,10 +26,10 @@ func (t *OrphanTransformer) Transform(g *Graph) error {
 	}
 
 	// Go over each resource orphan and add it to the graph.
-	for _, k := range state.Orphans(t.Config) {
-		g.ConnectTo(
-			g.Add(&graphNodeOrphanResource{ResourceName: k}),
-			state.Resources[k].Dependencies)
+	resourceOrphans := state.Orphans(t.Config)
+	resourceVertexes := make([]dag.Vertex, len(resourceOrphans))
+	for i, k := range resourceOrphans {
+		resourceVertexes[i] = g.Add(&graphNodeOrphanResource{ResourceName: k})
 	}
 
 	// Go over each module orphan and add it to the graph. We store the
@@ -40,6 +40,15 @@ func (t *OrphanTransformer) Transform(g *Graph) error {
 	for i, path := range moduleOrphans {
 		moduleVertexes[i] = g.Add(&graphNodeOrphanModule{Path: path})
 		moduleStates[i] = t.State.ModuleByPath(path)
+	}
+
+	// Now do the dependencies. We do this _after_ adding all the orphan
+	// nodes above because there are cases in which the orphans themselves
+	// depend on other orphans.
+
+	// Resource dependencies
+	for i, v := range resourceVertexes {
+		g.ConnectTo(v, state.Resources[resourceOrphans[i]].Dependencies)
 	}
 
 	// Module dependencies
