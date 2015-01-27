@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/hashicorp/terraform/config"
+	"github.com/hashicorp/terraform/dag"
 )
 
 // OrphanTransformer is a GraphTransformer that adds orphans to the
@@ -31,9 +32,19 @@ func (t *OrphanTransformer) Transform(g *Graph) error {
 			state.Resources[k].Dependencies)
 	}
 
-	// Go over each module orphan and add it to the graph
-	for _, path := range t.State.ModuleOrphans(g.Path, t.Config) {
-		g.Add(&graphNodeOrphanModule{Path: path})
+	// Go over each module orphan and add it to the graph. We store the
+	// vertexes and states outside so that we can connect dependencies later.
+	moduleOrphans := t.State.ModuleOrphans(g.Path, t.Config)
+	moduleVertexes := make([]dag.Vertex, len(moduleOrphans))
+	moduleStates := make([]*ModuleState, len(moduleVertexes))
+	for i, path := range moduleOrphans {
+		moduleVertexes[i] = g.Add(&graphNodeOrphanModule{Path: path})
+		moduleStates[i] = t.State.ModuleByPath(path)
+	}
+
+	// Module dependencies
+	for i, v := range moduleVertexes {
+		g.ConnectTo(v, moduleStates[i].Dependencies)
 	}
 
 	return nil
