@@ -39,15 +39,11 @@ func testModule(n string) string {
 	if err != nil {
 		panic(err)
 	}
-
-	var url url.URL
-	url.Scheme = "file"
-	url.Path = filepath.ToSlash(p)
-	return url.String()
+	return fmtFileURL(p)
 }
 
 func testModuleURL(n string) *url.URL {
-	u, err := url.Parse(testModule(n))
+	u, err := urlParse(testModule(n))
 	if err != nil {
 		panic(err)
 	}
