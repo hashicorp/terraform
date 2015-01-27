@@ -72,7 +72,7 @@ func Get(dst, src string) error {
 		dst = tmpDir
 	}
 
-	u, err := url.Parse(src)
+	u, err := urlParse(src)
 	if err != nil {
 		return err
 	}
