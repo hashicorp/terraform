@@ -100,6 +100,29 @@ func (s *State) ModuleByPath(path []string) *ModuleState {
 	return nil
 }
 
+// ModuleOrphans returns all the module orphans in this state by
+// returning their full paths. These paths can be used with ModuleByPath
+// to return the actual state.
+func (s *State) ModuleOrphans(path []string, c *config.Config) [][]string {
+	childrenKeys := make(map[string]struct{})
+	for _, m := range c.Modules {
+		childrenKeys[m.Name] = struct{}{}
+	}
+
+	// Go over the direct children and find any that aren't in our
+	// keys.
+	var orphans [][]string
+	for _, m := range s.Children(path) {
+		if _, ok := childrenKeys[m.Path[len(m.Path)-1]]; ok {
+			continue
+		}
+
+		orphans = append(orphans, m.Path)
+	}
+
+	return orphans
+}
+
 // RootModule returns the ModuleState for the root module
 func (s *State) RootModule() *ModuleState {
 	root := s.ModuleByPath(rootModulePath)
