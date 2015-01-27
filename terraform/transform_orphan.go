@@ -24,25 +24,31 @@ func (t *OrphanTransformer) Transform(g *Graph) error {
 		return nil
 	}
 
-	// Get the orphans from our configuration. This will only get resources.
-	orphans := state.Orphans(t.Config)
-	if len(orphans) == 0 {
-		return nil
-	}
-
-	// Go over each orphan and add it to the graph.
-	for _, k := range orphans {
+	// Go over each resource orphan and add it to the graph.
+	for _, k := range state.Orphans(t.Config) {
 		g.ConnectTo(
 			g.Add(&graphNodeOrphanResource{ResourceName: k}),
 			state.Resources[k].Dependencies)
 	}
 
-	// TODO: modules
+	// Go over each module orphan and add it to the graph
+	for _, path := range t.State.ModuleOrphans(g.Path, t.Config) {
+		g.Add(&graphNodeOrphanModule{Path: path})
+	}
 
 	return nil
 }
 
-// graphNodeOrphan is the graph vertex representing an orphan resource..
+// graphNodeOrphanModule is the graph vertex representing an orphan resource..
+type graphNodeOrphanModule struct {
+	Path []string
+}
+
+func (n *graphNodeOrphanModule) Name() string {
+	return fmt.Sprintf("module.%s (orphan)", n.Path[len(n.Path)-1])
+}
+
+// graphNodeOrphanResource is the graph vertex representing an orphan resource..
 type graphNodeOrphanResource struct {
 	ResourceName string
 }
