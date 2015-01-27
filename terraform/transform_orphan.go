@@ -64,8 +64,16 @@ type graphNodeOrphanModule struct {
 	Path []string
 }
 
+func (n *graphNodeOrphanModule) DependableName() []string {
+	return []string{n.dependableName()}
+}
+
 func (n *graphNodeOrphanModule) Name() string {
-	return fmt.Sprintf("module.%s (orphan)", n.Path[len(n.Path)-1])
+	return fmt.Sprintf("%s (orphan)", n.dependableName())
+}
+
+func (n *graphNodeOrphanModule) dependableName() string {
+	return fmt.Sprintf("module.%s", n.Path[len(n.Path)-1])
 }
 
 // graphNodeOrphanResource is the graph vertex representing an orphan resource..
@@ -73,6 +81,14 @@ type graphNodeOrphanResource struct {
 	ResourceName string
 }
 
+func (n *graphNodeOrphanResource) DependableName() []string {
+	return []string{n.dependableName()}
+}
+
 func (n *graphNodeOrphanResource) Name() string {
 	return fmt.Sprintf("%s (orphan)", n.ResourceName)
+}
+
+func (n *graphNodeOrphanResource) dependableName() string {
+	return n.ResourceName
 }
