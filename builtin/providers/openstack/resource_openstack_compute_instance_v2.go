@@ -36,15 +36,15 @@ func resourceComputeInstanceV2() *schema.Resource {
 				ForceNew: false,
 			},
 			"image_ref": &schema.Schema{
-				Type:     schema.TypeString,
-				Required: true,
-				ForceNew: false,
+				Type:        schema.TypeString,
+				Required:    true,
+				ForceNew:    false,
 				DefaultFunc: envDefaultFunc("OS_IMAGE_ID"),
 			},
 			"flavor_ref": &schema.Schema{
-				Type:     schema.TypeString,
-				Required: true,
-				ForceNew: false,
+				Type:        schema.TypeString,
+				Required:    true,
+				ForceNew:    false,
 				DefaultFunc: envDefaultFunc("OS_FLAVOR_ID"),
 			},
 			"security_groups": &schema.Schema{

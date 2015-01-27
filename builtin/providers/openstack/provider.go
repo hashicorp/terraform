@@ -32,9 +32,9 @@ func Provider() terraform.ResourceProvider {
 				Default:  "",
 			},
 			"tenant_name": &schema.Schema{
-				Type:     schema.TypeString,
-				Optional: true,
-				DefaultFunc:  envDefaultFunc("OS_TENANT_NAME"),
+				Type:        schema.TypeString,
+				Optional:    true,
+				DefaultFunc: envDefaultFunc("OS_TENANT_NAME"),
 			},
 			"password": &schema.Schema{
 				Type:        schema.TypeString,

@@ -8,7 +8,6 @@ import (
 	"github.com/hashicorp/terraform/terraform"
 )
 
-
 var (
 	OS_REGION_NAME = ""
 )
