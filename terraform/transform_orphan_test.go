@@ -1,5 +1,6 @@
 package terraform
 
+/*
 import (
 	"strings"
 	"testing"
@@ -96,3 +97,4 @@ aws_instance.db (orphan)
   aws_instance.web
 aws_instance.web
 `
+*/

@@ -8,28 +8,32 @@ import (
 	"github.com/hashicorp/terraform/config/module"
 )
 
-func TestGraph_nilModule(t *testing.T) {
-	_, err := Graph2(nil)
-	if err == nil {
+func TestConfigTransformer_nilModule(t *testing.T) {
+	var g Graph
+	tf := &ConfigTransformer{}
+	if err := tf.Transform(&g); err == nil {
 		t.Fatal("should error")
 	}
 }
 
-func TestGraph_unloadedModule(t *testing.T) {
+func TestConfigTransformer_unloadedModule(t *testing.T) {
 	mod, err := module.NewTreeModule(
 		"", filepath.Join(fixtureDir, "graph-basic"))
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
 
-	if _, err := Graph2(mod); err == nil {
+	var g Graph
+	tf := &ConfigTransformer{Module: mod}
+	if err := tf.Transform(&g); err == nil {
 		t.Fatal("should error")
 	}
 }
 
-func TestGraph(t *testing.T) {
-	g, err := Graph2(testModule(t, "graph-basic"))
-	if err != nil {
+func TestConfigTransformer(t *testing.T) {
+	var g Graph
+	tf := &ConfigTransformer{Module: testModule(t, "graph-basic")}
+	if err := tf.Transform(&g); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 
@@ -40,9 +44,10 @@ func TestGraph(t *testing.T) {
 	}
 }
 
-func TestGraph2_dependsOn(t *testing.T) {
-	g, err := Graph2(testModule(t, "graph-depends-on"))
-	if err != nil {
+func TestConfigTransformer_dependsOn(t *testing.T) {
+	var g Graph
+	tf := &ConfigTransformer{Module: testModule(t, "graph-depends-on")}
+	if err := tf.Transform(&g); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 
@@ -53,9 +58,10 @@ func TestGraph2_dependsOn(t *testing.T) {
 	}
 }
 
-func TestGraph2_modules(t *testing.T) {
-	g, err := Graph2(testModule(t, "graph-modules"))
-	if err != nil {
+func TestConfigTransformer_modules(t *testing.T) {
+	var g Graph
+	tf := &ConfigTransformer{Module: testModule(t, "graph-modules")}
+	if err := tf.Transform(&g); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 
@@ -66,10 +72,11 @@ func TestGraph2_modules(t *testing.T) {
 	}
 }
 
-func TestGraph2_errMissingDeps(t *testing.T) {
-	_, err := Graph2(testModule(t, "graph-missing-deps"))
-	if err == nil {
-		t.Fatal("should error")
+func TestConfigTransformer_errMissingDeps(t *testing.T) {
+	var g Graph
+	tf := &ConfigTransformer{Module: testModule(t, "graph-missing-deps")}
+	if err := tf.Transform(&g); err == nil {
+		t.Fatalf("err: %s", err)
 	}
 }
 
