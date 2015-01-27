@@ -20,9 +20,9 @@ func resourceNetworkingNetworkV2() *schema.Resource {
 
 		Schema: map[string]*schema.Schema{
 			"region": &schema.Schema{
-				Type:     schema.TypeString,
-				Required: true,
-				ForceNew: true,
+				Type:        schema.TypeString,
+				Required:    true,
+				ForceNew:    true,
 				DefaultFunc: envDefaultFunc("OS_REGION_NAME"),
 			},
 			"name": &schema.Schema{
@@ -111,7 +111,7 @@ func resourceNetworkingNetworkV2Read(d *schema.ResourceData, meta interface{}) e
 
 	d.Set("region", d.Get("region").(string))
 
-	if t, exists := d.GetOk("name"); exists && t != ""{
+	if t, exists := d.GetOk("name"); exists && t != "" {
 		d.Set("name", n.Name)
 	} else {
 		d.Set("name", "")

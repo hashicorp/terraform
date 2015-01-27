@@ -73,7 +73,6 @@ func testAccCheckComputeV2InstanceExists(t *testing.T, n string, instance *serve
 			return fmt.Errorf("(testAccCheckComputeV2InstanceExists) Error creating OpenStack compute client: %s", err)
 		}
 
-
 		found, err := servers.Get(computeClient, rs.Primary.ID).Extract()
 		if err != nil {
 			return err
@@ -120,4 +119,4 @@ var testAccComputeV2Instance_basic = fmt.Sprintf(`
 			foo = "bar"
 		}
 	}`,
-		OS_REGION_NAME)
+	OS_REGION_NAME)

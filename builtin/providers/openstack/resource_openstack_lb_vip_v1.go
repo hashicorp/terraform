@@ -169,7 +169,7 @@ func resourceLBVipV1Read(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	if t, exists := d.GetOk("persistence"); exists && t != "" {
-			d.Set("persistence", p.Description)
+		d.Set("persistence", p.Description)
 	}
 
 	if t, exists := d.GetOk("conn_limit"); exists && t != "" {
