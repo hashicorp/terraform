@@ -102,10 +102,8 @@ func resourceLBMemberV1Read(d *schema.ResourceData, meta interface{}) error {
 	d.Set("port", p.ProtocolPort)
 	d.Set("pool_id", p.PoolID)
 
-	if _, exists := d.GetOk("tenant_id"); exists {
-		if d.HasChange("tenant_id") {
-			d.Set("tenant_id", p.TenantID)
-		}
+	if t, exists := d.GetOk("tenant_id"); exists && t != "" {
+		d.Set("tenant_id", p.TenantID)
 	} else {
 		d.Set("tenant_id", "")
 	}
