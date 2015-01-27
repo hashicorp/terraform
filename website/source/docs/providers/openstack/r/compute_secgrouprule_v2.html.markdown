@@ -1,25 +1,25 @@
 ---
 layout: "openstack"
-page_title: "OpenStack: openstack_compute_secgrouprule"
-sidebar_current: "docs-openstack-resource-compute-secgrouprule"
+page_title: "OpenStack: openstack_compute_secgrouprule_v2"
+sidebar_current: "docs-openstack-resource-compute-secgrouprule-v2"
 description: |-
-  Manages a security group rule resource within OpenStack.
+  Manages a V2 security group rule resource within OpenStack.
 ---
 
-# openstack\_compute\_secgrouprule
+# openstack\_compute\_secgrouprule_v2
 
-Manages a security group rule resource within OpenStack.
+Manages a V2 security group rule resource within OpenStack.
 
 ## Example Usage
 
 ```
-resource "openstack_compute_secgroup" "secgroup_1" {
+resource "openstack_compute_secgroup_v2" "secgroup_1" {
   name = "my_secgroup"
   description = "my security group"
 }
 
-resource "openstack_compute_secgrouprule" "secgrouprule_1" {
-    group_id = "${openstack_compute_secgroup.secgroup_1.id}"
+resource "openstack_compute_secgrouprule_v2" "secgrouprule_1" {
+    group_id = "${openstack_compute_secgroup_v2.secgroup_1.id}"
     from_port = 22
     to_port = 22
     ip_protocol = "TCP"
@@ -30,6 +30,11 @@ resource "openstack_compute_secgrouprule" "secgrouprule_1" {
 ## Argument Reference
 
 The following arguments are supported:
+
+* `region` - (Required) The region in which to obtain the V2 Compute client.
+    A Compute client is needed to create a security group rule. If omitted, the
+    `OS_REGION_NAME` environment variable is used. Changing this creates a new
+    security group rule.
 
 * `group_id` - (Required) The ID of the group to which this rule will be added.
     Changing this creates a new security group rule.
@@ -55,6 +60,7 @@ The following arguments are supported:
 
 The following attributes are exported:
 
+* `region` - See Argument Reference above.
 * `group_id` - See Argument Reference above.
 * `from_port` - See Argument Reference above.
 * `to_port` - See Argument Reference above.

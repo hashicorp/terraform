@@ -1,19 +1,19 @@
 ---
 layout: "openstack"
-page_title: "OpenStack: openstack_lb_vip"
-sidebar_current: "docs-openstack-resource-lb-vip"
+page_title: "OpenStack: openstack_lb_vip_v1"
+sidebar_current: "docs-openstack-resource-lb-vip-v1"
 description: |-
-  Manages a load balancer vip resource within OpenStack.
+  Manages a V1 load balancer vip resource within OpenStack.
 ---
 
-# openstack\_lb\_vip
+# openstack\_lb\_vip_v1
 
-Manages a load balancer vip resource within OpenStack.
+Manages a V1 load balancer vip resource within OpenStack.
 
 ## Example Usage
 
 ```
-resource "openstack_lb_vip" "vip_1" {
+resource "openstack_lb_vip_v1" "vip_1" {
   name = "tf_test_lb_vip"
   subnet_id = "12345"
   protocol = "HTTP"
@@ -25,6 +25,11 @@ resource "openstack_lb_vip" "vip_1" {
 ## Argument Reference
 
 The following arguments are supported:
+
+* `region` - (Required) The region in which to obtain the V2 Networking client.
+    A Networking client is needed to create a VIP. If omitted, the
+    `OS_REGION_NAME` environment variable is used. Changing this creates a new
+    VIP.
 
 * `name` - (Required) The name of the vip. Changing this updates the name of
     the existing vip.
@@ -76,6 +81,7 @@ The `persistence` block supports:
 
 The following attributes are exported:
 
+* `region` - See Argument Reference above.
 * `name` - See Argument Reference above.
 * `subnet_id` - See Argument Reference above.
 * `protocol` - See Argument Reference above.

@@ -1,19 +1,19 @@
 ---
 layout: "openstack"
-page_title: "OpenStack: openstack_compute_instance"
-sidebar_current: "docs-openstack-resource-compute-instance"
+page_title: "OpenStack: openstack_compute_instance_v2"
+sidebar_current: "docs-openstack-resource-compute-instance-v2"
 description: |-
-  Manages a VM instance resource within OpenStack.
+  Manages a V2 VM instance resource within OpenStack.
 ---
 
-# openstack\_compute\_instance
+# openstack\_compute\_instance_v2
 
-Manages a VM instance resource within OpenStack.
+Manages a V2 VM instance resource within OpenStack.
 
 ## Example Usage
 
 ```
-resource "openstack_compute_instance" "test-server" {
+resource "openstack_compute_instance_v2" "test-server" {
   name = "tf-test"
   image_ref = "ad091b52-742f-469e-8f3c-fd81cadf0743"
   flavor_ref = "3"
@@ -28,6 +28,10 @@ resource "openstack_compute_instance" "test-server" {
 ## Argument Reference
 
 The following arguments are supported:
+
+* `region` - (Required) The region in which to create the server instance. If
+    omitted, the `OS_REGION_NAME` environment variable is used. Changing this
+    creates a new server.
 
 * `name` - (Required) A unique name for the resource.
 
@@ -73,6 +77,7 @@ The `network` block supports:
 
 The following attributes are exported:
 
+* `region` - See Argument Reference above.
 * `name` - See Argument Reference above.
 * `access_ip_v4` - See Argument Reference above.
 * `access_ip_v6` - See Argument Reference above.
