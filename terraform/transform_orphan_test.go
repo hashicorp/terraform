@@ -156,6 +156,60 @@ func TestOrphanTransformer_modulesDeps(t *testing.T) {
 	}
 }
 
+func TestOrphanTransformer_modulesDepsOrphan(t *testing.T) {
+	mod := testModule(t, "transform-orphan-modules")
+	state := &State{
+		Modules: []*ModuleState{
+			&ModuleState{
+				Path: RootModulePath,
+				Resources: map[string]*ResourceState{
+					"aws_instance.web": &ResourceState{
+						Type: "aws_instance",
+						Primary: &InstanceState{
+							ID: "foo",
+						},
+					},
+				},
+			},
+
+			// Orphan module
+			&ModuleState{
+				Path: []string{RootModuleName, "foo"},
+				Resources: map[string]*ResourceState{
+					"aws_instance.web": &ResourceState{
+						Type: "aws_instance",
+						Primary: &InstanceState{
+							ID: "foo",
+						},
+					},
+				},
+				Dependencies: []string{
+					"aws_instance.web",
+				},
+			},
+		},
+	}
+
+	g := Graph{Path: RootModulePath}
+	{
+		tf := &ConfigTransformer{Module: mod}
+		if err := tf.Transform(&g); err != nil {
+			t.Fatalf("err: %s", err)
+		}
+	}
+
+	transform := &OrphanTransformer{State: state, Config: mod.Config()}
+	if err := transform.Transform(&g); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	actual := strings.TrimSpace(g.String())
+	expected := strings.TrimSpace(testTransformOrphanModulesDepsOrphanStr)
+	if actual != expected {
+		t.Fatalf("bad:\n\n%s", actual)
+	}
+}
+
 func TestOrphanTransformer_resourceDepends(t *testing.T) {
 	mod := testModule(t, "transform-orphan-basic")
 	state := &State{
@@ -219,6 +273,13 @@ const testTransformOrphanModulesDepsStr = `
 aws_instance.foo
 module.foo (orphan)
   aws_instance.foo
+`
+
+const testTransformOrphanModulesDepsOrphanStr = `
+aws_instance.foo
+aws_instance.web (orphan)
+module.foo (orphan)
+  aws_instance.web (orphan)
 `
 
 const testTransformOrphanResourceDependsStr = `
