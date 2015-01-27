@@ -145,7 +145,7 @@ const (
 //   *GraphNodeResourceProvider - A resource provider that needs to be
 //     configured at this point.
 //
-func Graph(opts *GraphOpts) (*depgraph.Graph, error) {
+func GraphOld(opts *GraphOpts) (*depgraph.Graph, error) {
 	if opts.Module == nil {
 		return nil, errors.New("Module is required for Graph")
 	}
@@ -1272,7 +1272,7 @@ func graphModuleNoun(
 	subOpts := *opts
 	subOpts.ModulePath = path
 	subOpts.parent = g
-	subGraph, err := Graph(&subOpts)
+	subGraph, err := GraphOld(&subOpts)
 	if err != nil {
 		return nil, fmt.Errorf(
 			"Error building module graph '%s': %s",
