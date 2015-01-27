@@ -42,7 +42,7 @@ func testModule(n string) string {
 
 	var url url.URL
 	url.Scheme = "file"
-	url.Path = p
+	url.Path = filepath.ToSlash(p)
 	return url.String()
 }
 
