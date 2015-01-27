@@ -141,7 +141,7 @@ func (c *Context) Apply() (*State, error) {
 
 // Graph returns the graph for this context.
 func (c *Context) Graph() (*depgraph.Graph, error) {
-	return Graph(&GraphOpts{
+	return GraphOld(&GraphOpts{
 		Diff:         c.diff,
 		Module:       c.module,
 		Providers:    c.providers,
@@ -463,7 +463,7 @@ func (c *walkContext) Walk() error {
 		}
 
 		var err error
-		g, err = Graph(gopts)
+		g, err = GraphOld(gopts)
 		if err != nil {
 			return err
 		}

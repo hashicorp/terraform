@@ -10,7 +10,7 @@ import (
 func TestGraph_basic(t *testing.T) {
 	m := testModule(t, "graph-basic")
 
-	g, err := Graph(&GraphOpts{Module: m})
+	g, err := GraphOld(&GraphOpts{Module: m})
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -23,7 +23,7 @@ func TestGraph_basic(t *testing.T) {
 }
 
 func TestGraph_configRequired(t *testing.T) {
-	if _, err := Graph(new(GraphOpts)); err == nil {
+	if _, err := GraphOld(new(GraphOpts)); err == nil {
 		t.Fatal("should error")
 	}
 }
@@ -31,7 +31,7 @@ func TestGraph_configRequired(t *testing.T) {
 func TestGraph_count(t *testing.T) {
 	m := testModule(t, "graph-count")
 
-	g, err := Graph(&GraphOpts{Module: m})
+	g, err := GraphOld(&GraphOpts{Module: m})
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -63,7 +63,7 @@ func TestGraph_countTainted(t *testing.T) {
 		},
 	}
 
-	g, err := Graph(&GraphOpts{Module: m, State: state})
+	g, err := GraphOld(&GraphOpts{Module: m, State: state})
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -78,7 +78,7 @@ func TestGraph_countTainted(t *testing.T) {
 func TestGraph_varResource(t *testing.T) {
 	m := testModule(t, "graph-count-var-resource")
 
-	g, err := Graph(&GraphOpts{Module: m})
+	g, err := GraphOld(&GraphOpts{Module: m})
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -93,7 +93,7 @@ func TestGraph_varResource(t *testing.T) {
 func TestGraph_cycle(t *testing.T) {
 	m := testModule(t, "graph-cycle")
 
-	_, err := Graph(&GraphOpts{Module: m})
+	_, err := GraphOld(&GraphOpts{Module: m})
 	if err == nil {
 		t.Fatal("should error")
 	}
@@ -102,7 +102,7 @@ func TestGraph_cycle(t *testing.T) {
 func TestGraph_dependsOn(t *testing.T) {
 	m := testModule(t, "graph-depends-on")
 
-	g, err := Graph(&GraphOpts{Module: m})
+	g, err := GraphOld(&GraphOpts{Module: m})
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -117,7 +117,7 @@ func TestGraph_dependsOn(t *testing.T) {
 func TestGraph_dependsOnCount(t *testing.T) {
 	m := testModule(t, "graph-depends-on-count")
 
-	g, err := Graph(&GraphOpts{Module: m})
+	g, err := GraphOld(&GraphOpts{Module: m})
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -148,7 +148,7 @@ func TestGraph_dependsOnWithOrphan(t *testing.T) {
 		},
 	}
 
-	g, err := Graph(&GraphOpts{Module: m, State: state})
+	g, err := GraphOld(&GraphOpts{Module: m, State: state})
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -163,7 +163,7 @@ func TestGraph_dependsOnWithOrphan(t *testing.T) {
 func TestGraph_modules(t *testing.T) {
 	m := testModule(t, "graph-modules")
 
-	g, err := Graph(&GraphOpts{Module: m})
+	g, err := GraphOld(&GraphOpts{Module: m})
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -210,7 +210,7 @@ func TestGraph_moduleOrphan(t *testing.T) {
 		},
 	}
 
-	g, err := Graph(&GraphOpts{Module: m, State: state})
+	g, err := GraphOld(&GraphOpts{Module: m, State: state})
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -241,7 +241,7 @@ func TestGraph_moduleOrphan(t *testing.T) {
 func TestGraph_providerPrune(t *testing.T) {
 	m := testModule(t, "graph-provider-prune")
 
-	g, err := Graph(&GraphOpts{Module: m})
+	g, err := GraphOld(&GraphOpts{Module: m})
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -272,7 +272,7 @@ func TestGraph_state(t *testing.T) {
 		},
 	}
 
-	g, err := Graph(&GraphOpts{Module: m, State: state})
+	g, err := GraphOld(&GraphOpts{Module: m, State: state})
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -308,7 +308,7 @@ func TestGraph_tainted(t *testing.T) {
 		},
 	}
 
-	g, err := Graph(&GraphOpts{Module: m, State: state})
+	g, err := GraphOld(&GraphOpts{Module: m, State: state})
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -347,7 +347,7 @@ func TestGraph_taintedMulti(t *testing.T) {
 		},
 	}
 
-	g, err := Graph(&GraphOpts{Module: m, State: state})
+	g, err := GraphOld(&GraphOpts{Module: m, State: state})
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -378,7 +378,7 @@ func TestGraphFull(t *testing.T) {
 	}
 
 	m := testModule(t, "graph-basic")
-	g, err := Graph(&GraphOpts{Module: m, Providers: ps})
+	g, err := GraphOld(&GraphOpts{Module: m, Providers: ps})
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -434,7 +434,7 @@ func TestGraphProvisioners(t *testing.T) {
 	}
 
 	m := testModule(t, "graph-provisioners")
-	g, err := Graph(&GraphOpts{Module: m, Providers: pf, Provisioners: ps})
+	g, err := GraphOld(&GraphOpts{Module: m, Providers: pf, Provisioners: ps})
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -514,7 +514,7 @@ func TestGraphAddDiff(t *testing.T) {
 		},
 	}
 
-	g, err := Graph(&GraphOpts{Module: m, Diff: diff})
+	g, err := GraphOld(&GraphOpts{Module: m, Diff: diff})
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -582,7 +582,7 @@ func TestGraphAddDiff_destroy(t *testing.T) {
 
 	diffHash := checksumStruct(t, diff)
 
-	g, err := Graph(&GraphOpts{
+	g, err := GraphOld(&GraphOpts{
 		Module: m,
 		Diff:   diff,
 		State:  state,
@@ -674,7 +674,7 @@ func TestGraphAddDiff_destroy_counts(t *testing.T) {
 
 	diffHash := checksumStruct(t, diff)
 
-	g, err := Graph(&GraphOpts{
+	g, err := GraphOld(&GraphOpts{
 		Module: m,
 		Diff:   diff,
 		State:  state,
@@ -719,7 +719,7 @@ func TestGraphAddDiff_module(t *testing.T) {
 		},
 	}
 
-	g, err := Graph(&GraphOpts{Module: m, Diff: diff})
+	g, err := GraphOld(&GraphOpts{Module: m, Diff: diff})
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -774,7 +774,7 @@ func TestGraphAddDiff_module_depends(t *testing.T) {
 		},
 	}
 
-	g, err := Graph(&GraphOpts{Module: m, Diff: diff, State: state})
+	g, err := GraphOld(&GraphOpts{Module: m, Diff: diff, State: state})
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -845,7 +845,7 @@ func TestGraphAddDiff_moduleDependsModule(t *testing.T) {
 		},
 	}
 
-	g, err := Graph(&GraphOpts{Module: m, Diff: diff, State: state})
+	g, err := GraphOld(&GraphOpts{Module: m, Diff: diff, State: state})
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -899,7 +899,7 @@ func TestGraphAddDiff_createBeforeDestroy(t *testing.T) {
 
 	diffHash := checksumStruct(t, diff)
 
-	g, err := Graph(&GraphOpts{
+	g, err := GraphOld(&GraphOpts{
 		Module: m,
 		Diff:   diff,
 		State:  state,
@@ -955,7 +955,7 @@ func TestGraphAddDiff_moduleDestroy(t *testing.T) {
 		},
 	}
 
-	g, err := Graph(&GraphOpts{Module: m, Diff: diff})
+	g, err := GraphOld(&GraphOpts{Module: m, Diff: diff})
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -970,7 +970,7 @@ func TestGraphAddDiff_moduleDestroy(t *testing.T) {
 func TestGraphEncodeDependencies(t *testing.T) {
 	m := testModule(t, "graph-basic")
 
-	g, err := Graph(&GraphOpts{Module: m})
+	g, err := GraphOld(&GraphOpts{Module: m})
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -1013,7 +1013,7 @@ func TestGraphEncodeDependencies_count(t *testing.T) {
 		},
 	}
 
-	g, err := Graph(&GraphOpts{Module: m, State: state})
+	g, err := GraphOld(&GraphOpts{Module: m, State: state})
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -1035,7 +1035,7 @@ func TestGraphEncodeDependencies_count(t *testing.T) {
 func TestGraphEncodeDependencies_module(t *testing.T) {
 	m := testModule(t, "graph-modules")
 
-	g, err := Graph(&GraphOpts{Module: m, State: &State{}})
+	g, err := GraphOld(&GraphOpts{Module: m, State: &State{}})
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -1101,7 +1101,7 @@ func TestGraph_orphan_dependencies(t *testing.T) {
 		},
 	}
 
-	g, err := Graph(&GraphOpts{Module: m, State: state})
+	g, err := GraphOld(&GraphOpts{Module: m, State: state})
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -1135,7 +1135,7 @@ func TestGraph_orphanDependenciesModules(t *testing.T) {
 		},
 	}
 
-	g, err := Graph(&GraphOpts{Module: m, State: state})
+	g, err := GraphOld(&GraphOpts{Module: m, State: state})
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -1186,7 +1186,7 @@ func TestGraph_orphanModules_Dependencies(t *testing.T) {
 		},
 	}
 
-	g, err := Graph(&GraphOpts{Module: m, State: state})
+	g, err := GraphOld(&GraphOpts{Module: m, State: state})
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -1201,7 +1201,7 @@ func TestGraph_orphanModules_Dependencies(t *testing.T) {
 func TestGraphNodeResourceExpand(t *testing.T) {
 	m := testModule(t, "graph-resource-expand")
 
-	g, err := Graph(&GraphOpts{Module: m})
+	g, err := GraphOld(&GraphOpts{Module: m})
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -1233,7 +1233,7 @@ func TestGraphNodeResourceExpand_provDeps(t *testing.T) {
 		},
 	}
 
-	g, err := Graph(&GraphOpts{Module: m, Provisioners: provs})
+	g, err := GraphOld(&GraphOpts{Module: m, Provisioners: provs})
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
