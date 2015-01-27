@@ -7,6 +7,8 @@ IMPROVEMENTS:
   * core: Strings in interpolations can now contain further interpolations,
       e.g.: `foo ${bar("${baz}")}`.
   * provider/aws: Internet gateway supports tags [GH-720]
+  * provider/aws: Support the more standard environmental variable names
+      for access key and secret keys. [GH-851]
 
 BUG FIXES:
 
