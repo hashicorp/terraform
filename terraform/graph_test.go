@@ -18,12 +18,15 @@ func TestGraphAdd(t *testing.T) {
 	}
 }
 
-func TestGraphConnectTo(t *testing.T) {
+func TestGraphConnectDependent(t *testing.T) {
 	var g Graph
 	g.Add(&testGraphDependable{VertexName: "a", Mock: []string{"a"}})
-	b := g.Add(&testGraphDependable{VertexName: "b"})
+	b := g.Add(&testGraphDependable{
+		VertexName:      "b",
+		DependentOnMock: []string{"a"},
+	})
 
-	if missing := g.ConnectTo(b, []string{"a"}); len(missing) > 0 {
+	if missing := g.ConnectDependent(b); len(missing) > 0 {
 		t.Fatalf("bad: %#v", missing)
 	}
 
@@ -35,8 +38,9 @@ func TestGraphConnectTo(t *testing.T) {
 }
 
 type testGraphDependable struct {
-	VertexName string
-	Mock       []string
+	VertexName      string
+	DependentOnMock []string
+	Mock            []string
 }
 
 func (v *testGraphDependable) Name() string {
@@ -45,6 +49,10 @@ func (v *testGraphDependable) Name() string {
 
 func (v *testGraphDependable) DependableName() []string {
 	return v.Mock
+}
+
+func (v *testGraphDependable) DependentOn() []string {
+	return v.DependentOnMock
 }
 
 const testGraphAddStr = `
