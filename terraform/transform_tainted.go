@@ -28,14 +28,17 @@ func (t *TaintedTransformer) Transform(g *Graph) error {
 		}
 
 		for i, _ := range rs.Tainted {
-			g.Add(&graphNodeTaintedResource{
+			// Add the graph node and make the connection from any untainted
+			// resources with this name to the tainted resource, so that
+			// the tainted resource gets destroyed first.
+			g.ConnectFrom(k, g.Add(&graphNodeTaintedResource{
 				Index:        i,
 				ResourceName: k,
-			})
+			}))
 		}
 	}
 
-	// TODO: Dependencies?
+	// TODO: Any other dependencies?
 
 	return nil
 }
@@ -46,14 +49,10 @@ type graphNodeTaintedResource struct {
 	ResourceName string
 }
 
-func (n *graphNodeTaintedResource) DependableName() []string {
-	return []string{n.dependableName()}
+func (n *graphNodeTaintedResource) DependentOn() []string {
+	return []string{n.ResourceName}
 }
 
 func (n *graphNodeTaintedResource) Name() string {
 	return fmt.Sprintf("%s (tainted #%d)", n.ResourceName, n.Index+1)
-}
-
-func (n *graphNodeTaintedResource) dependableName() string {
-	return n.ResourceName
 }
