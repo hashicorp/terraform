@@ -1,6 +1,7 @@
 package schema
 
 import (
+	"math"
 	"reflect"
 	"testing"
 
