@@ -237,13 +237,13 @@ func (w *MapFieldWriter) setPrimitive(
 		if err := mapstructure.Decode(v, &n); err != nil {
 			return fmt.Errorf("%s: %s", k, err)
 		}
+		set = strconv.FormatInt(int64(n), 10)
 	case TypeFloat:
 		var n float64
 		if err := mapstructure.Decode(v, &n); err != nil {
 			return fmt.Errorf("%s: %s", k, err)
 		}
-
-		set = strconv.FormatInt(int64(n), 10)
+		set = strconv.FormatFloat(float64(n), 'G', -1, 64)
 	default:
 		return fmt.Errorf("Unknown type: %#v", schema.Type)
 	}
