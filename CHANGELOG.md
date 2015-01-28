@@ -9,6 +9,9 @@ IMPROVEMENTS:
   * provider/aws: Internet gateway supports tags [GH-720]
   * provider/aws: Support the more standard environmental variable names
       for access key and secret keys. [GH-851]
+  * provider/aws: The `aws_db_instance` resource no longer requires both
+      `final_snapshot_identifier` and `skip_final_snapshot`; the presence or
+      absence of the former now implies the latter. [GH-874]
 
 BUG FIXES:
 
@@ -24,6 +27,7 @@ BUG FIXES:
   * command/apply: Fix regression where user variables weren't asked [GH-736]
   * provider/aws: ELB subnet change doesn't force new resource. [GH-804]
   * provider/aws: Instance should ignore root EBS devices. [GH-877]
+  * provider/aws: Fix `aws_db_instance` to not recreate each time. [GH-874]
 
 PLUGIN CHANGES:
 
