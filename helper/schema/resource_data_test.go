@@ -1,6 +1,7 @@
 package schema
 
 import (
+	"math"
 	"reflect"
 	"testing"
 
@@ -614,6 +615,81 @@ func TestResourceDataGet(t *testing.T) {
 			Key: "ports",
 
 			Value: []interface{}{},
+		},
+
+		// #20 Float zero
+		{
+			Schema: map[string]*Schema{
+				"ratio": &Schema{
+					Type:     TypeFloat,
+					Optional: true,
+					Computed: true,
+				},
+			},
+
+			State: nil,
+
+			Diff: nil,
+
+			Key: "ratio",
+
+			Value: 0.0,
+		},
+
+		// #21 Float given
+		{
+			Schema: map[string]*Schema{
+				"ratio": &Schema{
+					Type:     TypeFloat,
+					Optional: true,
+					Computed: true,
+				},
+			},
+
+			State: &terraform.InstanceState{
+				Attributes: map[string]string{
+					"ratio":        "0.5",
+				},
+			},
+
+
+			Diff: nil,
+
+			Key: "ratio",
+
+			Value: 0.5,
+		},
+
+		// #22 Float diff
+		{
+			Schema: map[string]*Schema{
+				"ratio": &Schema{
+					Type:     TypeFloat,
+					Optional: true,
+					Computed: true,
+				},
+			},
+
+			State: &terraform.InstanceState{
+				Attributes: map[string]string{
+					"ratio":        "-0.5",
+				},
+			},
+
+
+			Diff: &terraform.InstanceDiff{
+				Attributes: map[string]*terraform.ResourceAttrDiff{
+					"ratio": &terraform.ResourceAttrDiff{
+						Old: "-0.5",
+						New: "33.0",
+					},
+				},
+			},
+
+
+			Key: "ratio",
+
+			Value: 33.0,
 		},
 	}
 
@@ -1412,6 +1488,52 @@ func TestResourceDataSet(t *testing.T) {
 				return v
 			},
 		},
+
+		// #12: List of floats, set list
+		{
+			Schema: map[string]*Schema{
+				"ratios": &Schema{
+					Type:     TypeList,
+					Computed: true,
+					Elem:     &Schema{Type: TypeFloat},
+				},
+			},
+
+			State: nil,
+
+			Diff: nil,
+
+			Key:   "ratios",
+			Value: []float64{1.0, 2.2, 5.5},
+
+			GetKey:   "ratios",
+			GetValue: []interface{}{1.0, 2.2, 5.5},
+		},
+
+		// #12: Set of floats, set list
+		{
+			Schema: map[string]*Schema{
+				"ratios": &Schema{
+					Type:     TypeSet,
+					Computed: true,
+					Elem:     &Schema{Type: TypeFloat},
+					Set: func(a interface{}) int {
+						return int(math.Float64bits(a.(float64)))
+					},
+				},
+			},
+
+			State: nil,
+
+			Diff: nil,
+
+			Key:   "ratios",
+			Value: []float64{1.0, 2.2, 5.5},
+
+			GetKey:   "ratios",
+			GetValue: []interface{}{1.0, 2.2, 5.5},
+		},
+
 	}
 
 	for i, tc := range cases {
