@@ -137,11 +137,11 @@ func resourceComputeInstance() *schema.Resource {
 						},
 
 						"scopes": &schema.Schema{
-							Type:      schema.TypeList,
-							Required:  true,
-							ForceNew:  true,
-							Elem:      &schema.Schema{
-								Type:      schema.TypeString,
+							Type:     schema.TypeList,
+							Required: true,
+							ForceNew: true,
+							Elem: &schema.Schema{
+								Type: schema.TypeString,
 								StateFunc: func(v interface{}) string {
 									return canonicalizeServiceScope(v.(string))
 								},
@@ -294,11 +294,11 @@ func resourceComputeInstanceCreate(d *schema.ResourceData, meta interface{}) err
 		scopesCount := d.Get(prefix + ".scopes.#").(int)
 		scopes := make([]string, 0, scopesCount)
 		for j := 0; j < scopesCount; j++ {
-			scope := d.Get(fmt.Sprintf(prefix + ".scopes.%d", j)).(string)
+			scope := d.Get(fmt.Sprintf(prefix+".scopes.%d", j)).(string)
 			scopes = append(scopes, canonicalizeServiceScope(scope))
 		}
 
-		serviceAccount := &compute.ServiceAccount {
+		serviceAccount := &compute.ServiceAccount{
 			Email:  "default",
 			Scopes: scopes,
 		}
@@ -378,8 +378,8 @@ func resourceComputeInstanceRead(d *schema.ResourceData, meta interface{}) error
 	// Set the service accounts
 	for i, serviceAccount := range instance.ServiceAccounts {
 		prefix := fmt.Sprintf("service_account.%d", i)
-		d.Set(prefix + ".email", serviceAccount.Email)
-		d.Set(prefix + ".scopes.#", len(serviceAccount.Scopes))
+		d.Set(prefix+".email", serviceAccount.Email)
+		d.Set(prefix+".scopes.#", len(serviceAccount.Scopes))
 		for j, scope := range serviceAccount.Scopes {
 			d.Set(fmt.Sprintf("%s.scopes.%d", prefix, j), scope)
 		}
@@ -534,14 +534,19 @@ func resourceComputeInstanceDelete(d *schema.ResourceData, meta interface{}) err
 
 func resourceInstanceMetadata(d *schema.ResourceData) *compute.Metadata {
 	var metadata *compute.Metadata
-	if v := d.Get("metadata").([]interface{}); len(v) > 0 {
+	if metadataList := d.Get("metadata").([]interface{}); len(metadataList) > 0 {
 		m := new(compute.Metadata)
-		m.Items = make([]*compute.MetadataItems, 0, len(v))
-		for _, v := range v {
-			for k, v := range v.(map[string]interface{}) {
+		m.Items = make([]*compute.MetadataItems, 0, len(metadataList))
+		for _, metadataMap := range metadataList {
+			for key, val := range metadataMap.(map[string]interface{}) {
+				// TODO: fix https://github.com/hashicorp/terraform/issues/883
+				//       and remove this workaround <3 phinze
+				if key == "#" {
+					continue
+				}
 				m.Items = append(m.Items, &compute.MetadataItems{
-					Key:   k,
-					Value: v.(string),
+					Key:   key,
+					Value: val.(string),
 				})
 			}
 		}
