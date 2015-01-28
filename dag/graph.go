@@ -88,7 +88,7 @@ func (g *Graph) String() string {
 	names := make([]string, 0, len(g.vertices))
 	mapping := make(map[string]Vertex, len(g.vertices))
 	for _, v := range g.vertices {
-		name := vertName(v)
+		name := VertexName(v)
 		names = append(names, name)
 		mapping[name] = v
 	}
@@ -104,7 +104,7 @@ func (g *Graph) String() string {
 		// Alphabetize dependencies
 		deps := make([]string, 0, targets.Len())
 		for _, target := range targets.List() {
-			deps = append(deps, vertName(target))
+			deps = append(deps, VertexName(target))
 		}
 		sort.Strings(deps)
 
@@ -124,7 +124,8 @@ func (g *Graph) init() {
 	g.upEdges = make(map[Vertex]*set)
 }
 
-func vertName(raw Vertex) string {
+// VertexName returns the name of a vertex.
+func VertexName(raw Vertex) string {
 	switch v := raw.(type) {
 	case NamedVertex:
 		return v.Name()
