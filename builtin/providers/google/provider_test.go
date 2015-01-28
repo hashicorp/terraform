@@ -33,10 +33,6 @@ func testAccPreCheck(t *testing.T) {
 		t.Fatal("GOOGLE_ACCOUNT_FILE must be set for acceptance tests")
 	}
 
-	if v := os.Getenv("GOOGLE_CLIENT_FILE"); v == "" {
-		t.Fatal("GOOGLE_CLIENT_FILE must be set for acceptance tests")
-	}
-
 	if v := os.Getenv("GOOGLE_PROJECT"); v == "" {
 		t.Fatal("GOOGLE_PROJECT must be set for acceptance tests")
 	}
