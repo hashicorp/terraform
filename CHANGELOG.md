@@ -23,6 +23,7 @@ BUG FIXES:
       no arguments are given. [GH-780]
   * command/apply: Fix regression where user variables weren't asked [GH-736]
   * provider/aws: ELB subnet change doesn't force new resource. [GH-804]
+  * provider/aws: Instance should ignore root EBS devices. [GH-877]
 
 PLUGIN CHANGES:
 
