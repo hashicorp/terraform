@@ -1142,7 +1142,7 @@ func testHttpServer(t *testing.T) net.Listener {
 func testHttpHandlerHeader(w http.ResponseWriter, r *http.Request) {
 	var url url.URL
 	url.Scheme = "file"
-	url.Path = testFixturePath("init")
+	url.Path = filepath.ToSlash(testFixturePath("init"))
 
 	w.Header().Add("X-Terraform-Get", url.String())
 	w.WriteHeader(200)
