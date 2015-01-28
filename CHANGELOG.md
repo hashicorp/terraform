@@ -7,6 +7,8 @@ IMPROVEMENTS:
   * core: Strings in interpolations can now contain further interpolations,
       e.g.: `foo ${bar("${baz}")}`.
   * provider/aws: Internet gateway supports tags [GH-720]
+  * provider/aws: Support the more standard environmental variable names
+      for access key and secret keys. [GH-851]
 
 BUG FIXES:
 
@@ -21,6 +23,7 @@ BUG FIXES:
       no arguments are given. [GH-780]
   * command/apply: Fix regression where user variables weren't asked [GH-736]
   * provider/aws: ELB subnet change doesn't force new resource. [GH-804]
+  * provider/aws: Instance should ignore root EBS devices. [GH-877]
 
 PLUGIN CHANGES:
 

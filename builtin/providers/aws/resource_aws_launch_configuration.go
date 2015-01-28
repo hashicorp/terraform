@@ -81,6 +81,12 @@ func resourceAwsLaunchConfiguration() *schema.Resource {
 				Optional: true,
 				Default:  false,
 			},
+
+			"spot_price": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				ForceNew: true,
+			},
 		},
 	}
 }
@@ -96,6 +102,7 @@ func resourceAwsLaunchConfigurationCreate(d *schema.ResourceData, meta interface
 	createLaunchConfigurationOpts.KeyName = d.Get("key_name").(string)
 	createLaunchConfigurationOpts.UserData = d.Get("user_data").(string)
 	createLaunchConfigurationOpts.AssociatePublicIpAddress = d.Get("associate_public_ip_address").(bool)
+	createLaunchConfigurationOpts.SpotPrice = d.Get("spot_price").(string)
 
 	if v, ok := d.GetOk("security_groups"); ok {
 		createLaunchConfigurationOpts.SecurityGroups = expandStringList(
@@ -150,6 +157,7 @@ func resourceAwsLaunchConfigurationRead(d *schema.ResourceData, meta interface{}
 	d.Set("instance_type", lc.InstanceType)
 	d.Set("name", lc.Name)
 	d.Set("security_groups", lc.SecurityGroups)
+	d.Set("spot_price", lc.SpotPrice)
 
 	return nil
 }

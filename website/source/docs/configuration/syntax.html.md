@@ -63,7 +63,7 @@ Basic bullet point reference:
   * Numbers can be suffixed with `[kKmMgG]b` for power of 2 multiples,
     example: `1kb` is equal to `1024`.
 
-  * Boolean values: `true`, `false`, `on`, `off`, `yes`, `no`.
+  * Boolean values: `true`, `false`.
 
   * Lists of primitive types can be made by wrapping it in `[]`.
     Example: `["foo", "bar", 42]`.
