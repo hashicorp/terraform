@@ -28,7 +28,7 @@ func resourceComputeAddress() *schema.Resource {
 				Computed: true,
 			},
 
-			"selfLink": &schema.Schema{
+			"self_link": &schema.Schema{
 				Type:     schema.TypeString,
 				Computed: true,
 			},
@@ -96,7 +96,7 @@ func resourceComputeAddressRead(d *schema.ResourceData, meta interface{}) error 
 	}
 
 	d.Set("address", addr.Address)
-	d.Set("selfLink", addr.SelfLink)
+	d.Set("self_link", addr.SelfLink)
 
 	return nil
 }
