@@ -82,6 +82,8 @@ func addrToSchema(addr []string, schemaMap map[string]*Schema) []*Schema {
 			fallthrough
 		case TypeInt:
 			fallthrough
+		case TypeFloat:
+			fallthrough
 		case TypeString:
 			if len(addr) > 0 {
 				return nil
