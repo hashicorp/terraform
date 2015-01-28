@@ -35,8 +35,7 @@ The following arguments are supported:
 * `description` - (Optional) Textual description field.
 
 * `failover_ratio` - (Optional) Ratio (0 to 1) of failed nodes before using the
-  backup pool (which must also be set).  This is currently not implemented, see
-  issue \#594.
+  backup pool (which must also be set).
 
 * `health_checks` - (Optional) List of zero or one healthcheck names.
 
