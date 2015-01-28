@@ -55,23 +55,12 @@ func (g *Graph) Add(v dag.Vertex) dag.Vertex {
 // GraphNodeDependables. It returns the list of dependents it was
 // unable to connect to.
 func (g *Graph) ConnectDependent(raw dag.Vertex) []string {
-	g.once.Do(g.init)
-
 	v, ok := raw.(GraphNodeDependent)
 	if !ok {
 		return nil
 	}
 
-	var missing []string
-	for _, t := range v.DependentOn() {
-		if dest := g.dependableMap[t]; dest != nil {
-			g.Connect(dag.BasicEdge(v, dest))
-		} else {
-			missing = append(missing, t)
-		}
-	}
-
-	return missing
+	return g.ConnectTo(v, v.DependentOn())
 }
 
 // ConnectDependents goes through the graph, connecting all the
@@ -86,6 +75,40 @@ func (g *Graph) ConnectDependents() {
 			g.ConnectDependent(dv)
 		}
 	}
+}
+
+// ConnectFrom creates an edge by finding the source from a DependableName
+// and connecting it to the specific vertex.
+func (g *Graph) ConnectFrom(source string, target dag.Vertex) {
+	g.once.Do(g.init)
+
+	if source := g.dependableMap[source]; source != nil {
+		g.Connect(dag.BasicEdge(source, target))
+	}
+}
+
+// ConnectTo connects a vertex to a raw string of targets that are the
+// result of DependableName, and returns the list of targets that are missing.
+func (g *Graph) ConnectTo(v dag.Vertex, targets []string) []string {
+	g.once.Do(g.init)
+
+	var missing []string
+	for _, t := range targets {
+		if dest := g.dependableMap[t]; dest != nil {
+			g.Connect(dag.BasicEdge(v, dest))
+		} else {
+			missing = append(missing, t)
+		}
+	}
+
+	return missing
+}
+
+// Dependable finds the vertices in the graph that have the given dependable
+// names and returns them.
+func (g *Graph) Dependable(n string) dag.Vertex {
+	// TODO: do we need this?
+	return nil
 }
 
 func (g *Graph) init() {
