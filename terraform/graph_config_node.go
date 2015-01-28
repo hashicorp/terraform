@@ -73,6 +73,11 @@ func (n *GraphNodeConfigProvider) DependentOn() []string {
 	return result
 }
 
+// GraphNodeProvider implementation
+func (n *GraphNodeConfigProvider) ProviderName() string {
+	return n.Provider.Name
+}
+
 // GraphNodeConfigResource represents a resource within the config graph.
 type GraphNodeConfigResource struct {
 	Resource *config.Resource
@@ -104,4 +109,9 @@ func (n *GraphNodeConfigResource) DependentOn() []string {
 
 func (n *GraphNodeConfigResource) Name() string {
 	return n.Resource.Id()
+}
+
+// GraphNodeProviderConsumer
+func (n *GraphNodeConfigResource) ProvidedBy() string {
+	return resourceProvider(n.Resource.Type)
 }
