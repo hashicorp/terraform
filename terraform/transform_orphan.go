@@ -105,6 +105,10 @@ func (n *graphNodeOrphanResource) Name() string {
 	return fmt.Sprintf("%s (orphan)", n.ResourceName)
 }
 
+func (n *graphNodeOrphanResource) ProvidedBy() string {
+	return resourceProvider(n.ResourceName)
+}
+
 func (n *graphNodeOrphanResource) dependableName() string {
 	return n.ResourceName
 }
