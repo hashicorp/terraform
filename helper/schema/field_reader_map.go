@@ -23,9 +23,9 @@ func (r *MapFieldReader) ReadField(address []string) (FieldReadResult, error) {
 	switch schema.Type {
 	case TypeBool:
 		fallthrough
-	case TypeFloat:
-		fallthrough
 	case TypeInt:
+		fallthrough
+	case TypeFloat:
 		fallthrough
 	case TypeString:
 		return r.readPrimitive(address, schema)
