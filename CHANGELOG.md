@@ -12,6 +12,8 @@ IMPROVEMENTS:
   * provider/aws: The `aws_db_instance` resource no longer requires both
       `final_snapshot_identifier` and `skip_final_snapshot`; the presence or
       absence of the former now implies the latter. [GH-874]
+  * provider/google: Remove "client secrets file", as it's no longer necessary
+      for API authentication [GH-884].
 
 BUG FIXES:
 
@@ -28,6 +30,8 @@ BUG FIXES:
   * provider/aws: ELB subnet change doesn't force new resource. [GH-804]
   * provider/aws: Instance should ignore root EBS devices. [GH-877]
   * provider/aws: Fix `aws_db_instance` to not recreate each time. [GH-874]
+  * provider/google: Fix bug preventing instances with metadata from being
+      created [GH-884].
 
 PLUGIN CHANGES:
 
