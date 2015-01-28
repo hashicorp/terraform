@@ -9,8 +9,13 @@ import (
 
 func urlParse(rawURL string) (*url.URL, error) {
 	if runtime.GOOS == "windows" {
-		// Make sure we're using "/" on Windows. URLs are "/"-based.
-		rawURL = filepath.ToSlash(rawURL)
+		if len(rawURL) > 1 && rawURL[1] == ':' {
+			// Assume we're dealing with a file path.
+			rawURL = fmtFileURL(rawURL)
+		} else {
+			// Make sure we're using "/" on Windows. URLs are "/"-based.
+			rawURL = filepath.ToSlash(rawURL)
+		}
 	}
 	u, err := url.Parse(rawURL)
 	if err != nil {
