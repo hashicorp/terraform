@@ -358,9 +358,9 @@ resource "aws_instance" "foo" {
 	ami = "ami-55a7ea65"
 	instance_type = "m1.small"
 	block_device {
-	  device_name = "/dev/sdb"
-	  volume_type = "gp2"
-	  volume_size = 10
+		device_name = "/dev/sdb"
+		volume_type = "gp2"
+		volume_size = 10
 	}
 }
 `
