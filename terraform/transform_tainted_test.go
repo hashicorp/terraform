@@ -3,6 +3,8 @@ package terraform
 import (
 	"strings"
 	"testing"
+
+	"github.com/hashicorp/terraform/dag"
 )
 
 func TestTaintedTransformer(t *testing.T) {
@@ -40,6 +42,19 @@ func TestTaintedTransformer(t *testing.T) {
 	expected := strings.TrimSpace(testTransformTaintedBasicStr)
 	if actual != expected {
 		t.Fatalf("bad:\n\n%s", actual)
+	}
+}
+
+func TestGraphNodeTaintedResource_impl(t *testing.T) {
+	var _ dag.Vertex = new(graphNodeTaintedResource)
+	var _ dag.NamedVertex = new(graphNodeTaintedResource)
+	var _ GraphNodeProviderConsumer = new(graphNodeTaintedResource)
+}
+
+func TestGraphNodeTaintedResource_ProvidedBy(t *testing.T) {
+	n := &graphNodeTaintedResource{ResourceName: "aws_instance.foo"}
+	if v := n.ProvidedBy(); v != "aws" {
+		t.Fatalf("bad: %#v", v)
 	}
 }
 
