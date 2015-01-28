@@ -97,6 +97,11 @@ func TestAccAWSInstance_blockDevicesCheck(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckInstanceExists(
 						"aws_instance.foo", &v),
+					// though two block devices exist in EC2, terraform state should only
+					// have the one block device we created, as terraform does not manage
+					// the root device
+					resource.TestCheckResourceAttr(
+						"aws_instance.foo", "block_device.#", "1"),
 					testCheck(),
 				),
 			},
@@ -353,9 +358,9 @@ resource "aws_instance" "foo" {
 	ami = "ami-55a7ea65"
 	instance_type = "m1.small"
 	block_device {
-	  device_name = "/dev/sdb"
-	  volume_type = "gp2"
-	  volume_size = 10
+		device_name = "/dev/sdb"
+		volume_type = "gp2"
+		volume_size = 10
 	}
 }
 `
