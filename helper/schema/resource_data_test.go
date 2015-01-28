@@ -633,7 +633,7 @@ func TestResourceDataGet(t *testing.T) {
 
 			Key: "ratio",
 
-			Value: []interface{}{0.0},
+			Value: 0.0,
 		},
 
 		// #21 Float given
@@ -657,7 +657,7 @@ func TestResourceDataGet(t *testing.T) {
 
 			Key: "ratio",
 
-			Value: []interface{}{0.5},
+			Value: 0.5,
 		},
 
 		// #22 Float diff
@@ -689,7 +689,7 @@ func TestResourceDataGet(t *testing.T) {
 
 			Key: "ratio",
 
-			Value: []interface{}{33.0},
+			Value: 33.0,
 		},
 	}
 
