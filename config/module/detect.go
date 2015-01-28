@@ -38,10 +38,10 @@ func Detect(src string, pwd string) (string, error) {
 	// Separate out the subdir if there is one, we don't pass that to detect
 	getSrc, subDir := getDirSubdir(getSrc)
 
-	u, err := url.Parse(getSrc)
+	u, err := urlParse(getSrc)
 	if err == nil && u.Scheme != "" {
 		// Valid URL
-		return src, nil
+		return u.String(), nil
 	}
 
 	for _, d := range Detectors {
