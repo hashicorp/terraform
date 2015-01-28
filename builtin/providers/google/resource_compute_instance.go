@@ -319,6 +319,7 @@ func resourceComputeInstanceCreate(d *schema.ResourceData, meta interface{}) err
 		ServiceAccounts:   serviceAccounts,
 	}
 
+
 	log.Printf("[INFO] Requesting instance creation")
 	op, err := config.clientCompute.Instances.Insert(
 		config.Project, zone.Name, &instance).Do()
