@@ -78,6 +78,7 @@ type Schema struct {
 	//
 	//   TypeBool - bool
 	//   TypeInt - int
+	//   TypeFloat - float64
 	//   TypeString - string
 	//   TypeList - []interface{}
 	//   TypeMap - map[string]interface{}
@@ -405,6 +406,8 @@ func (m schemaMap) Input(
 		case TypeBool:
 			fallthrough
 		case TypeInt:
+			fallthrough
+		case TypeFloat:
 			fallthrough
 		case TypeString:
 			value, err = m.inputString(input, k, v)
@@ -1081,6 +1084,12 @@ func (m schemaMap) validatePrimitive(
 	case TypeInt:
 		// Verify that we can parse this as an int
 		var n int
+		if err := mapstructure.WeakDecode(raw, &n); err != nil {
+			return nil, []error{err}
+		}
+	case TypeFloat:
+		// Verify that we can parse this as an int
+		var n float64
 		if err := mapstructure.WeakDecode(raw, &n); err != nil {
 			return nil, []error{err}
 		}
