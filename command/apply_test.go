@@ -1124,7 +1124,7 @@ func TestApply_disableBackup(t *testing.T) {
 }
 
 func testHttpServer(t *testing.T) net.Listener {
-	ln, err := net.Listen("tcp", ":0")
+	ln, err := net.Listen("tcp", "127.0.0.1:0")
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
