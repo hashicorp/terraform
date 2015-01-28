@@ -377,11 +377,19 @@ func resourceAwsInstanceRead(d *schema.ResourceData, meta interface{}) error {
 	}
 	d.Set("security_groups", sgs)
 
-	volIDs := make([]string, len(instance.BlockDevices))
-	bdByVolID := make(map[string]ec2.BlockDevice)
-	for i, bd := range instance.BlockDevices {
-		volIDs[i] = bd.VolumeId
-		bdByVolID[bd.VolumeId] = bd
+	blockDevices := make(map[string]ec2.BlockDevice)
+	for _, bd := range instance.BlockDevices {
+		// Skip root device; AWS attaches it automatically and terraform does not
+		// manage it
+		if bd.DeviceName == instance.RootDeviceName {
+			continue
+		}
+		blockDevices[bd.VolumeId] = bd
+	}
+
+	volIDs := make([]string, 0, len(blockDevices))
+	for volID := range blockDevices {
+		volIDs = append(volIDs, volID)
 	}
 
 	volResp, err := ec2conn.Volumes(volIDs, ec2.NewFilter())
@@ -396,11 +404,11 @@ func resourceAwsInstanceRead(d *schema.ResourceData, meta interface{}) error {
 			return err
 		}
 		bds[i] = make(map[string]interface{})
-		bds[i]["device_name"] = bdByVolID[vol.VolumeId].DeviceName
+		bds[i]["device_name"] = blockDevices[vol.VolumeId].DeviceName
 		bds[i]["snapshot_id"] = vol.SnapshotId
 		bds[i]["volume_type"] = vol.VolumeType
 		bds[i]["volume_size"] = volSize
-		bds[i]["delete_on_termination"] = bdByVolID[vol.VolumeId].DeleteOnTermination
+		bds[i]["delete_on_termination"] = blockDevices[vol.VolumeId].DeleteOnTermination
 		bds[i]["encrypted"] = vol.Encrypted
 	}
 	d.Set("block_device", bds)
