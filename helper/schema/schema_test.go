@@ -1,12 +1,15 @@
 package schema
 
 import (
+	"bytes"
+	"fmt"
 	"os"
 	"reflect"
 	"testing"
 
 	"github.com/hashicorp/terraform/config"
 	"github.com/hashicorp/terraform/config/lang/ast"
+	"github.com/hashicorp/terraform/helper/hashcode"
 	"github.com/hashicorp/terraform/terraform"
 )
 
@@ -1886,6 +1889,60 @@ func TestSchemaMap_Diff(t *testing.T) {
 
 			Err: false,
 		},
+
+		// #47 - https://github.com/hashicorp/terraform/issues/824
+		{
+			Schema: map[string]*Schema{
+				"block_device": &Schema{
+					Type:     TypeSet,
+					Optional: true,
+					Computed: true,
+					Elem: &Resource{
+						Schema: map[string]*Schema{
+							"device_name": &Schema{
+								Type:     TypeString,
+								Required: true,
+							},
+							"delete_on_termination": &Schema{
+								Type:     TypeBool,
+								Optional: true,
+								Default:  true,
+							},
+						},
+					},
+					Set: func(v interface{}) int {
+						var buf bytes.Buffer
+						m := v.(map[string]interface{})
+						buf.WriteString(fmt.Sprintf("%s-", m["device_name"].(string)))
+						buf.WriteString(fmt.Sprintf("%t-", m["delete_on_termination"].(bool)))
+						return hashcode.String(buf.String())
+					},
+				},
+			},
+
+			State: &terraform.InstanceState{
+				Attributes: map[string]string{
+					"block_device.#":                                "2",
+					"block_device.616397234.delete_on_termination":  "true",
+					"block_device.616397234.device_name":            "/dev/sda1",
+					"block_device.2801811477.delete_on_termination": "true",
+					"block_device.2801811477.device_name":           "/dev/sdx",
+				},
+			},
+
+			Config: map[string]interface{}{
+				"block_device": []map[string]interface{}{
+					map[string]interface{}{
+						"device_name": "/dev/sda1",
+					},
+					map[string]interface{}{
+						"device_name": "/dev/sdx",
+					},
+				},
+			},
+			Diff: nil,
+			Err:  false,
+		},
 	}
 
 	for i, tc := range cases {
@@ -1918,7 +1975,7 @@ func TestSchemaMap_Diff(t *testing.T) {
 }
 
 func TestSchemaMap_Input(t *testing.T) {
-	cases := []struct {
+	cases := map[string]struct {
 		Schema map[string]*Schema
 		Config map[string]interface{}
 		Input  map[string]string
@@ -1929,7 +1986,7 @@ func TestSchemaMap_Input(t *testing.T) {
 		 * String decode
 		 */
 
-		{
+		"uses input on optional field with no config": {
 			Schema: map[string]*Schema{
 				"availability_zone": &Schema{
 					Type:     TypeString,
@@ -1948,7 +2005,7 @@ func TestSchemaMap_Input(t *testing.T) {
 			Err: false,
 		},
 
-		{
+		"input ignored when config has a value": {
 			Schema: map[string]*Schema{
 				"availability_zone": &Schema{
 					Type:     TypeString,
@@ -1969,7 +2026,7 @@ func TestSchemaMap_Input(t *testing.T) {
 			Err: false,
 		},
 
-		{
+		"input ignored when schema has a default": {
 			Schema: map[string]*Schema{
 				"availability_zone": &Schema{
 					Type:     TypeString,
@@ -1987,7 +2044,7 @@ func TestSchemaMap_Input(t *testing.T) {
 			Err: false,
 		},
 
-		{
+		"input ignored when default function returns a value": {
 			Schema: map[string]*Schema{
 				"availability_zone": &Schema{
 					Type: TypeString,
@@ -2007,7 +2064,7 @@ func TestSchemaMap_Input(t *testing.T) {
 			Err: false,
 		},
 
-		{
+		"input used when default function returns nil": {
 			Schema: map[string]*Schema{
 				"availability_zone": &Schema{
 					Type: TypeString,
@@ -2048,11 +2105,11 @@ func TestSchemaMap_Input(t *testing.T) {
 
 		actual, err := schemaMap(tc.Schema).Input(input, rc)
 		if (err != nil) != tc.Err {
-			t.Fatalf("#%d err: %s", i, err)
+			t.Fatalf("#%v err: %s", i, err)
 		}
 
 		if !reflect.DeepEqual(tc.Result, actual.Config) {
-			t.Fatalf("#%d: bad:\n\n%#v", i, actual.Config)
+			t.Fatalf("#%v: bad:\n\ngot: %#v\nexpected: %#v", i, actual.Config, tc.Result)
 		}
 	}
 }

@@ -10,8 +10,10 @@ import (
 	"github.com/mitchellh/mapstructure"
 )
 
-// ConfigFieldReader reads fields out of an untyped map[string]string to
-// the best of its ability.
+// ConfigFieldReader reads fields out of an untyped map[string]string to the
+// best of its ability. It also applies defaults from the Schema. (The other
+// field readers do not need default handling because they source fully
+// populated data structures.)
 type ConfigFieldReader struct {
 	Config *terraform.ResourceConfig
 	Schema map[string]*Schema
@@ -138,7 +140,16 @@ func (r *ConfigFieldReader) readPrimitive(
 	k string, schema *Schema) (FieldReadResult, error) {
 	raw, ok := r.Config.Get(k)
 	if !ok {
-		return FieldReadResult{}, nil
+		// Nothing in config, but we might still have a default from the schema
+		var err error
+		raw, err = schema.DefaultValue()
+		if err != nil {
+			return FieldReadResult{}, fmt.Errorf("%s, error loading default: %s", k, err)
+		}
+
+		if raw == nil {
+			return FieldReadResult{}, nil
+		}
 	}
 
 	var result string
