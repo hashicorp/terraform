@@ -56,3 +56,7 @@ func (n *graphNodeTaintedResource) DependentOn() []string {
 func (n *graphNodeTaintedResource) Name() string {
 	return fmt.Sprintf("%s (tainted #%d)", n.ResourceName, n.Index+1)
 }
+
+func (n *graphNodeTaintedResource) ProvidedBy() string {
+	return resourceProvider(n.ResourceName)
+}

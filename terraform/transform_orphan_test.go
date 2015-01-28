@@ -3,6 +3,8 @@ package terraform
 import (
 	"strings"
 	"testing"
+
+	"github.com/hashicorp/terraform/dag"
 )
 
 func TestOrphanTransformer(t *testing.T) {
@@ -256,6 +258,19 @@ func TestOrphanTransformer_resourceDepends(t *testing.T) {
 	expected := strings.TrimSpace(testTransformOrphanResourceDependsStr)
 	if actual != expected {
 		t.Fatalf("bad:\n\n%s", actual)
+	}
+}
+
+func TestGraphNodeOrphanResource_impl(t *testing.T) {
+	var _ dag.Vertex = new(graphNodeOrphanResource)
+	var _ dag.NamedVertex = new(graphNodeOrphanResource)
+	var _ GraphNodeProviderConsumer = new(graphNodeOrphanResource)
+}
+
+func TestGraphNodeOrphanResource_ProvidedBy(t *testing.T) {
+	n := &graphNodeOrphanResource{ResourceName: "aws_instance.foo"}
+	if v := n.ProvidedBy(); v != "aws" {
+		t.Fatalf("bad: %#v", v)
 	}
 }
 
