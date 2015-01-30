@@ -231,15 +231,17 @@ func resourceComputeInstanceCreate(d *schema.ResourceData, meta interface{}) err
 		// Load up the image for this disk if specified
 		if v, ok := d.GetOk(prefix + ".image"); ok {
 			imageName := v.(string)
-			image, err := readImage(config, imageName)
+
+
+			imageUrl, err := resolveImage(config, imageName)
 			if err != nil {
 				return fmt.Errorf(
-					"Error loading image '%s': %s",
+					"Error resolving image name '%s': %s",
 					imageName, err)
 			}
 
 			disk.InitializeParams = &compute.AttachedDiskInitializeParams{
-				SourceImage: image.SelfLink,
+				SourceImage: imageUrl,
 			}
 		}
 

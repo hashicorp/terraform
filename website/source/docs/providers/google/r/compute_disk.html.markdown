@@ -30,7 +30,9 @@ The following arguments are supported:
 
 * `zone` - (Required) The zone where this disk will be available.
 
-* `image` - (Optional) The machine image to base this disk off of.
+* `image` - (Optional) The image from which to initialize this disk.  Either the full URL, a
+  contraction of the form "project/name", or just a name (in which case the current project is
+used).
 
 * `size` - (Optional) The size of the image in gigabytes. If not specified,
     it will inherit the size of its base image.

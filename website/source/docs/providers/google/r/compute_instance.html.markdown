@@ -73,8 +73,9 @@ The `disk` block supports:
 * `disk` - (Required if image not set) The name of the disk (such as
      those managed by `google_compute_disk`) to attach.
 
-* `image` - (Required if disk not set) The name of the image to base
-    this disk off of.
+* `image` - (Required if disk not set) The image from which to initialize this
+  disk.  Either the full URL, a contraction of the form "project/name", or just
+  a name (in which case the current project is used).
 
 * `auto_delete` - (Optional) Whether or not the disk should be auto-deleted.
     This defaults to true.
