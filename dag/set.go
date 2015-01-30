@@ -4,34 +4,40 @@ import (
 	"sync"
 )
 
-// set is an internal Set data structure that is based on simply using
-// pointers as the hash key into a map.
-type set struct {
-	m    map[interface{}]struct{}
+// Set is a set data structure.
+type Set struct {
+	m    map[interface{}]interface{}
 	once sync.Once
 }
 
+// hashable is the interface used by set to get the hash code of a value.
+// If this isn't given, then the value of the item being added to the set
+// itself is used as the comparison value.
+type hashable interface {
+	Hashcode() interface{}
+}
+
 // Add adds an item to the set
-func (s *set) Add(v interface{}) {
+func (s *Set) Add(v interface{}) {
 	s.once.Do(s.init)
-	s.m[v] = struct{}{}
+	s.m[s.code(v)] = v
 }
 
 // Delete removes an item from the set.
-func (s *set) Delete(v interface{}) {
+func (s *Set) Delete(v interface{}) {
 	s.once.Do(s.init)
-	delete(s.m, v)
+	delete(s.m, s.code(v))
 }
 
 // Include returns true/false of whether a value is in the set.
-func (s *set) Include(v interface{}) bool {
+func (s *Set) Include(v interface{}) bool {
 	s.once.Do(s.init)
-	_, ok := s.m[v]
+	_, ok := s.m[s.code(v)]
 	return ok
 }
 
 // Len is the number of items in the set.
-func (s *set) Len() int {
+func (s *Set) Len() int {
 	if s == nil {
 		return 0
 	}
@@ -40,19 +46,27 @@ func (s *set) Len() int {
 }
 
 // List returns the list of set elements.
-func (s *set) List() []interface{} {
+func (s *Set) List() []interface{} {
 	if s == nil {
 		return nil
 	}
 
 	r := make([]interface{}, 0, len(s.m))
-	for k, _ := range s.m {
-		r = append(r, k)
+	for _, v := range s.m {
+		r = append(r, v)
 	}
 
 	return r
 }
 
-func (s *set) init() {
-	s.m = make(map[interface{}]struct{})
+func (s *Set) code(v interface{}) interface{} {
+	if h, ok := v.(hashable); ok {
+		return h.Hashcode()
+	}
+
+	return v
+}
+
+func (s *Set) init() {
+	s.m = make(map[interface{}]interface{})
 }
