@@ -55,6 +55,13 @@ func resourceAwsDbInstance() *schema.Resource {
 				ForceNew: true,
 			},
 
+			"storage_type": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				Computed: true,
+				ForceNew: true,
+			},
+
 			"identifier": &schema.Schema{
 				Type:     schema.TypeString,
 				Required: true,
@@ -190,6 +197,10 @@ func resourceAwsDbInstanceCreate(d *schema.ResourceData, meta interface{}) error
 		EngineVersion:        d.Get("engine_version").(string),
 	}
 
+	if attr, ok := d.GetOk("storage_type"); ok {
+		opts.StorageType = attr.(string)
+	}
+
 	if attr, ok := d.GetOk("backup_retention_period"); ok {
 		opts.BackupRetentionPeriod = attr.(int)
 		opts.SetBackupRetentionPeriod = true
@@ -296,6 +307,7 @@ func resourceAwsDbInstanceRead(d *schema.ResourceData, meta interface{}) error {
 	d.Set("engine", v.Engine)
 	d.Set("engine_version", v.EngineVersion)
 	d.Set("allocated_storage", v.AllocatedStorage)
+	d.Set("storage_type", v.StorageType)
 	d.Set("instance_class", v.DBInstanceClass)
 	d.Set("availability_zone", v.AvailabilityZone)
 	d.Set("backup_retention_period", v.BackupRetentionPeriod)
