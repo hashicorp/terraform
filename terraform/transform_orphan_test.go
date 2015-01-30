@@ -41,7 +41,7 @@ func TestOrphanTransformer(t *testing.T) {
 		}
 	}
 
-	transform := &OrphanTransformer{State: state, Config: mod.Config()}
+	transform := &OrphanTransformer{State: state, Module: mod}
 	if err := transform.Transform(&g); err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -92,7 +92,7 @@ func TestOrphanTransformer_modules(t *testing.T) {
 		}
 	}
 
-	transform := &OrphanTransformer{State: state, Config: mod.Config()}
+	transform := &OrphanTransformer{State: state, Module: mod}
 	if err := transform.Transform(&g); err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -146,7 +146,7 @@ func TestOrphanTransformer_modulesDeps(t *testing.T) {
 		}
 	}
 
-	transform := &OrphanTransformer{State: state, Config: mod.Config()}
+	transform := &OrphanTransformer{State: state, Module: mod}
 	if err := transform.Transform(&g); err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -200,7 +200,7 @@ func TestOrphanTransformer_modulesDepsOrphan(t *testing.T) {
 		}
 	}
 
-	transform := &OrphanTransformer{State: state, Config: mod.Config()}
+	transform := &OrphanTransformer{State: state, Module: mod}
 	if err := transform.Transform(&g); err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -249,7 +249,7 @@ func TestOrphanTransformer_resourceDepends(t *testing.T) {
 		}
 	}
 
-	transform := &OrphanTransformer{State: state, Config: mod.Config()}
+	transform := &OrphanTransformer{State: state, Module: mod}
 	if err := transform.Transform(&g); err != nil {
 		t.Fatalf("err: %s", err)
 	}
