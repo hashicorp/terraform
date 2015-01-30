@@ -1,8 +1,7 @@
 package dag
 
 import (
-	"bytes"
-	"fmt"
+	"sort"
 	"strings"
 	"testing"
 )
@@ -58,28 +57,30 @@ func TestGraphStronglyConnected_three(t *testing.T) {
 }
 
 func testSCCStr(list [][]Vertex) string {
-	var buf bytes.Buffer
+	var lines []string
 	for _, vs := range list {
 		result := make([]string, len(vs))
 		for i, v := range vs {
 			result[i] = VertexName(v)
 		}
 
-		buf.WriteString(fmt.Sprintf("%s\n", strings.Join(result, ",")))
+		sort.Strings(result)
+		lines = append(lines, strings.Join(result, ","))
 	}
 
-	return buf.String()
+	sort.Strings(lines)
+	return strings.Join(lines, "\n")
 }
 
-const testGraphStronglyConnectedStr = `2,1`
+const testGraphStronglyConnectedStr = `1,2`
 
 const testGraphStronglyConnectedTwoStr = `
-2,1
+1,2
 3
 `
 
 const testGraphStronglyConnectedThreeStr = `
-2,1
+1,2
 3
-6,5,4
+4,5,6
 `
