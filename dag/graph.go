@@ -9,7 +9,7 @@ import (
 
 // Graph is used to represent a dependency graph.
 type Graph struct {
-	vertices  []Vertex
+	vertices  *set
 	edges     []Edge
 	downEdges map[Vertex]*set
 	upEdges   map[Vertex]*set
@@ -28,7 +28,13 @@ type NamedVertex interface {
 
 // Vertices returns the list of all the vertices in the graph.
 func (g *Graph) Vertices() []Vertex {
-	return g.vertices
+	list := g.vertices.List()
+	result := make([]Vertex, len(list))
+	for i, v := range list {
+		result[i] = v.(Vertex)
+	}
+
+	return result
 }
 
 // Edges returns the list of all the edges in the graph.
@@ -40,7 +46,7 @@ func (g *Graph) Edges() []Edge {
 // the same Vertex.
 func (g *Graph) Add(v Vertex) Vertex {
 	g.once.Do(g.init)
-	g.vertices = append(g.vertices, v)
+	g.vertices.Add(v)
 	return v
 }
 
@@ -85,9 +91,10 @@ func (g *Graph) String() string {
 
 	// Build the list of node names and a mapping so that we can more
 	// easily alphabetize the output to remain deterministic.
-	names := make([]string, 0, len(g.vertices))
-	mapping := make(map[string]Vertex, len(g.vertices))
-	for _, v := range g.vertices {
+	vertices := g.Vertices()
+	names := make([]string, 0, len(vertices))
+	mapping := make(map[string]Vertex, len(vertices))
+	for _, v := range vertices {
 		name := VertexName(v)
 		names = append(names, name)
 		mapping[name] = v
@@ -118,7 +125,7 @@ func (g *Graph) String() string {
 }
 
 func (g *Graph) init() {
-	g.vertices = make([]Vertex, 0, 5)
+	g.vertices = new(set)
 	g.edges = make([]Edge, 0, 2)
 	g.downEdges = make(map[Vertex]*set)
 	g.upEdges = make(map[Vertex]*set)
