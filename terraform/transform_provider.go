@@ -71,6 +71,27 @@ func (t *MissingProviderTransformer) Transform(g *Graph) error {
 	return nil
 }
 
+// PruneProviderTransformer is a GraphTransformer that prunes all the
+// providers that aren't needed from the graph. A provider is unneeded if
+// no resource or module is using that provider.
+type PruneProviderTransformer struct{}
+
+func (t *PruneProviderTransformer) Transform(g *Graph) error {
+	for _, v := range g.Vertices() {
+		// We only care about the providers
+		if _, ok := v.(GraphNodeProvider); !ok {
+			continue
+		}
+
+		// Does anything depend on this? If not, then prune it.
+		if s := g.UpEdges(v); s.Len() == 0 {
+			g.Remove(v)
+		}
+	}
+
+	return nil
+}
+
 type graphNodeMissingProvider struct {
 	ProviderNameValue string
 }
