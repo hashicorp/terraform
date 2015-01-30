@@ -9,7 +9,7 @@ import (
 )
 
 func TestConfigTransformer_nilModule(t *testing.T) {
-	var g Graph
+	g := Graph{Path: RootModulePath}
 	tf := &ConfigTransformer{}
 	if err := tf.Transform(&g); err == nil {
 		t.Fatal("should error")
@@ -23,7 +23,7 @@ func TestConfigTransformer_unloadedModule(t *testing.T) {
 		t.Fatalf("err: %s", err)
 	}
 
-	var g Graph
+	g := Graph{Path: RootModulePath}
 	tf := &ConfigTransformer{Module: mod}
 	if err := tf.Transform(&g); err == nil {
 		t.Fatal("should error")
@@ -31,7 +31,7 @@ func TestConfigTransformer_unloadedModule(t *testing.T) {
 }
 
 func TestConfigTransformer(t *testing.T) {
-	var g Graph
+	g := Graph{Path: RootModulePath}
 	tf := &ConfigTransformer{Module: testModule(t, "graph-basic")}
 	if err := tf.Transform(&g); err != nil {
 		t.Fatalf("err: %s", err)
@@ -45,7 +45,7 @@ func TestConfigTransformer(t *testing.T) {
 }
 
 func TestConfigTransformer_dependsOn(t *testing.T) {
-	var g Graph
+	g := Graph{Path: RootModulePath}
 	tf := &ConfigTransformer{Module: testModule(t, "graph-depends-on")}
 	if err := tf.Transform(&g); err != nil {
 		t.Fatalf("err: %s", err)
@@ -59,7 +59,7 @@ func TestConfigTransformer_dependsOn(t *testing.T) {
 }
 
 func TestConfigTransformer_modules(t *testing.T) {
-	var g Graph
+	g := Graph{Path: RootModulePath}
 	tf := &ConfigTransformer{Module: testModule(t, "graph-modules")}
 	if err := tf.Transform(&g); err != nil {
 		t.Fatalf("err: %s", err)
@@ -73,7 +73,7 @@ func TestConfigTransformer_modules(t *testing.T) {
 }
 
 func TestConfigTransformer_errMissingDeps(t *testing.T) {
-	var g Graph
+	g := Graph{Path: RootModulePath}
 	tf := &ConfigTransformer{Module: testModule(t, "graph-missing-deps")}
 	if err := tf.Transform(&g); err == nil {
 		t.Fatalf("err: %s", err)

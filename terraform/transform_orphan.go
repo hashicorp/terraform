@@ -3,7 +3,7 @@ package terraform
 import (
 	"fmt"
 
-	"github.com/hashicorp/terraform/config"
+	"github.com/hashicorp/terraform/config/module"
 	"github.com/hashicorp/terraform/dag"
 )
 
@@ -14,8 +14,9 @@ type OrphanTransformer struct {
 	// properly find module orphans at our path.
 	State *State
 
-	// Config is just the configuration of our current module.
-	Config *config.Config
+	// Module is the root module. We'll look up the proper configuration
+	// using the graph path.
+	Module *module.Tree
 }
 
 func (t *OrphanTransformer) Transform(g *Graph) error {
@@ -25,8 +26,16 @@ func (t *OrphanTransformer) Transform(g *Graph) error {
 		return nil
 	}
 
+	module := t.Module.Child(g.Path[1:])
+	if module == nil {
+		panic(fmt.Sprintf(
+			"module not found for path: %#v",
+			g.Path[1:]))
+	}
+	config := module.Config()
+
 	// Go over each resource orphan and add it to the graph.
-	resourceOrphans := state.Orphans(t.Config)
+	resourceOrphans := state.Orphans(config)
 	resourceVertexes := make([]dag.Vertex, len(resourceOrphans))
 	for i, k := range resourceOrphans {
 		resourceVertexes[i] = g.Add(&graphNodeOrphanResource{
@@ -37,7 +46,7 @@ func (t *OrphanTransformer) Transform(g *Graph) error {
 
 	// Go over each module orphan and add it to the graph. We store the
 	// vertexes and states outside so that we can connect dependencies later.
-	moduleOrphans := t.State.ModuleOrphans(g.Path, t.Config)
+	moduleOrphans := t.State.ModuleOrphans(g.Path, config)
 	moduleVertexes := make([]dag.Vertex, len(moduleOrphans))
 	for i, path := range moduleOrphans {
 		moduleVertexes[i] = g.Add(&graphNodeOrphanModule{

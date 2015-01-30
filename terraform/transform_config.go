@@ -10,9 +10,9 @@ import (
 )
 
 // ConfigTransformer is a GraphTransformer that adds the configuration
-// to the graph. It is assumed that the module tree given in Module matches
-// the Path attribute of the Graph being transformed. If this is not the case,
-// the behavior is unspecified, but unlikely to be what you want.
+// to the graph. The module used to configure this transformer must be
+// the root module. We'll look up the child module by the Path in the
+// Graph.
 type ConfigTransformer struct {
 	Module *module.Tree
 }
@@ -26,8 +26,15 @@ func (t *ConfigTransformer) Transform(g *Graph) error {
 		return errors.New("module must be loaded")
 	}
 
+	// Get the module we care about
+	module := t.Module.Child(g.Path[1:])
+	if module == nil {
+		return fmt.Errorf(
+			"module not found for path: %#v", g.Path[1:])
+	}
+
 	// Get the configuration for this module
-	config := t.Module.Config()
+	config := module.Config()
 
 	// Create the node list we'll use for the graph
 	nodes := make([]graphNodeConfig, 0,
@@ -44,7 +51,7 @@ func (t *ConfigTransformer) Transform(g *Graph) error {
 	}
 
 	// Write all the modules out
-	children := t.Module.Children()
+	children := module.Children()
 	for _, m := range config.Modules {
 		nodes = append(nodes, &GraphNodeConfigModule{
 			Module: m,
