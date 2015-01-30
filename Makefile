@@ -32,14 +32,15 @@ testrace: generate
 # updatedeps installs all the dependencies that Terraform needs to run
 # and build.
 updatedeps:
-	$(eval REF := $(shell sh -c "\
-		git symbolic-ref --short HEAD 2>/dev/null \
-		|| git rev-parse HEAD"))
+	go get -u github.com/phinze/deplist
 	go get -u github.com/mitchellh/gox
 	go get -u golang.org/x/tools/cmd/stringer
 	go get -u golang.org/x/tools/cmd/vet
-	go get -f -u -v ./...
-	git checkout $(REF)
+	go list github.com/hashicorp/terraform/... \
+		| xargs -n 1 deplist -s \
+		| grep -v github.com/hashicorp/terraform \
+		| sort -u \
+		| xargs go get -f -u -v
 
 # vet runs the Go source code static analysis tool `vet` to find
 # any common errors.
