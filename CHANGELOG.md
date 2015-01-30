@@ -7,6 +7,9 @@ FEATURES:
 
 IMPROVEMENTS:
 
+  * **New resources: `google_compute_forwarding_rule`, `google_compute_http_health_check`, 
+      and `google_compute_target_pool`** - Together these provide network-level 
+      load balancing. [GH-588]
   * core: Formalized the syntax of interpolations and documented it
       very heavily.
   * core: Strings in interpolations can now contain further interpolations,
