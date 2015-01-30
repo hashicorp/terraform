@@ -240,6 +240,48 @@ resource "google_compute_instance" "foobar" {
 	}
 }`
 
+const testAccComputeInstance_basic2 = `
+resource "google_compute_instance" "foobar" {
+	name = "terraform-test"
+	machine_type = "n1-standard-1"
+	zone = "us-central1-a"
+	can_ip_forward = false
+	tags = ["foo", "bar"]
+
+	disk {
+		image = "debian-cloud/debian-7-wheezy-v20140814"
+	}
+
+	network {
+		source = "default"
+	}
+
+	metadata {
+		foo = "bar"
+	}
+}`
+
+const testAccComputeInstance_basic3 = `
+resource "google_compute_instance" "foobar" {
+	name = "terraform-test"
+	machine_type = "n1-standard-1"
+	zone = "us-central1-a"
+	can_ip_forward = false
+	tags = ["foo", "bar"]
+
+	disk {
+		image = "https://www.googleapis.com/compute/v1/projects/debian-cloud/global/images/debian-7-wheezy-v20140814"
+	}
+
+	network {
+		source = "default"
+	}
+
+	metadata {
+		foo = "bar"
+	}
+}`
+
 const testAccComputeInstance_update = `
 resource "google_compute_instance" "foobar" {
 	name = "terraform-test"
