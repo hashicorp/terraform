@@ -70,15 +70,15 @@ func resourceComputeDiskCreate(d *schema.ResourceData, meta interface{}) error {
 
 	// If we were given a source image, load that.
 	if v, ok := d.GetOk("image"); ok {
-		log.Printf("[DEBUG] Loading image: %s", v.(string))
-		image, err := readImage(config, v.(string))
+		log.Printf("[DEBUG] Resolving image name: %s", v.(string))
+		imageUrl, err := resolveImage(config, v.(string))
 		if err != nil {
 			return fmt.Errorf(
-				"Error loading image '%s': %s",
+				"Error resolving image name '%s': %s",
 				v.(string), err)
 		}
 
-		disk.SourceImage = image.SelfLink
+		disk.SourceImage = imageUrl
 	}
 
 	if v, ok := d.GetOk("type"); ok {
