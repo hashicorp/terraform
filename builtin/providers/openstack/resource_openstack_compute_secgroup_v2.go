@@ -1,9 +1,11 @@
 package openstack
 
 import (
+	"bytes"
 	"fmt"
 	"log"
 
+	"github.com/hashicorp/terraform/helper/hashcode"
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/rackspace/gophercloud"
 	"github.com/rackspace/gophercloud/openstack"
@@ -34,6 +36,40 @@ func resourceComputeSecGroupV2() *schema.Resource {
 				Required: true,
 				ForceNew: false,
 			},
+			"rules": &schema.Schema{
+				Type:     schema.TypeSet,
+				Optional: true,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"from_port": &schema.Schema{
+							Type:     schema.TypeInt,
+							Required: true,
+							ForceNew: true,
+						},
+						"to_port": &schema.Schema{
+							Type:     schema.TypeInt,
+							Required: true,
+							ForceNew: true,
+						},
+						"ip_protocol": &schema.Schema{
+							Type:     schema.TypeString,
+							Required: true,
+							ForceNew: true,
+						},
+						"cidr": &schema.Schema{
+							Type:     schema.TypeString,
+							Optional: true,
+							ForceNew: true,
+						},
+						"from_group_id": &schema.Schema{
+							Type:     schema.TypeString,
+							Optional: true,
+							ForceNew: true,
+						},
+					},
+				},
+				Set: resourceSecGroupRuleHash,
+			},
 		},
 	}
 }
@@ -59,6 +95,14 @@ func resourceComputeSecGroupV2Create(d *schema.ResourceData, meta interface{}) e
 
 	d.SetId(sg.ID)
 
+	createRuleOptsList := resourceSecGroupRulesV2(d)
+	for _, createRuleOpts := range createRuleOptsList {
+		_, err := secgroups.CreateRule(computeClient, createRuleOpts).Extract()
+		if err != nil {
+			return fmt.Errorf("Error creating OpenStack security group rule: %s", err)
+		}
+	}
+
 	return resourceComputeSecGroupV2Read(d, meta)
 }
 
@@ -79,6 +123,7 @@ func resourceComputeSecGroupV2Read(d *schema.ResourceData, meta interface{}) err
 	d.Set("region", d.Get("region").(string))
 	d.Set("name", sg.Name)
 	d.Set("description", sg.Description)
+	d.Set("rules", sg.Rules)
 
 	return nil
 }
@@ -104,6 +149,35 @@ func resourceComputeSecGroupV2Update(d *schema.ResourceData, meta interface{}) e
 		return fmt.Errorf("Error updating OpenStack security group (%s): %s", d.Id(), err)
 	}
 
+	if d.HasChange("rules") {
+		oldSGRaw, newSGRaw := d.GetChange("rules")
+		oldSGRSet, newSGRSet := oldSGRaw.(*schema.Set), newSGRaw.(*schema.Set)
+		secgrouprulesToAdd := newSGRSet.Difference(oldSGRSet)
+		secgrouprulesToRemove := oldSGRSet.Difference(newSGRSet)
+
+		log.Printf("[DEBUG] Security group rules to add: %v", secgrouprulesToAdd)
+
+		log.Printf("[DEBUG] Security groups to remove: %v", secgrouprulesToRemove)
+
+		for _, rawRule := range secgrouprulesToAdd.List() {
+			createRuleOpts := resourceSecGroupRuleV2(d, rawRule)
+			rule, err := secgroups.CreateRule(computeClient, createRuleOpts).Extract()
+			if err != nil {
+				return fmt.Errorf("Error adding rule to OpenStack security group (%s): %s", d.Id(), err)
+			}
+			log.Printf("[DEBUG] Added rule (%s) to OpenStack security group (%s) ", rule.ID, d.Id())
+		}
+
+		for _, r := range secgrouprulesToRemove.List() {
+			rule := r.(secgroups.Rule)
+			err := secgroups.DeleteRule(computeClient, "").ExtractErr()
+			if err != nil {
+				return fmt.Errorf("Error removing rule (%s) from OpenStack security group (%s): %s", rule.ID, d.Id(), err)
+			}
+			log.Printf("[DEBUG] Removed rule (%s) from OpenStack security group (%s)", rule.ID, d.Id())
+		}
+	}
+
 	return resourceComputeSecGroupV2Read(d, meta)
 }
 
@@ -122,4 +196,47 @@ func resourceComputeSecGroupV2Delete(d *schema.ResourceData, meta interface{}) e
 	}
 	d.SetId("")
 	return nil
+}
+
+func resourceSecGroupRuleHash(v interface{}) int {
+	var buf bytes.Buffer
+	m := v.(map[string]interface{})
+	buf.WriteString(fmt.Sprintf("%d-", m["from_port"].(int)))
+	buf.WriteString(fmt.Sprintf("%d-", m["to_port"].(int)))
+	buf.WriteString(fmt.Sprintf("%s-", m["ip_protocol"].(string)))
+	buf.WriteString(fmt.Sprintf("%s-", m["cidr"].(string)))
+	buf.WriteString(fmt.Sprintf("%s-", m["from_group_id"].(string)))
+
+	return hashcode.String(buf.String())
+}
+
+func resourceSecGroupRulesV2(d *schema.ResourceData) []secgroups.CreateRuleOpts {
+	rawRules := (d.Get("rules")).(*schema.Set)
+	createRuleOptsList := make([]secgroups.CreateRuleOpts, rawRules.Len())
+	for i, raw := range rawRules.List() {
+		rawMap := raw.(map[string]interface{})
+		createRuleOptsList[i] = secgroups.CreateRuleOpts{
+			ParentGroupID: d.Id(),
+			FromPort:      rawMap["from_port"].(int),
+			ToPort:        rawMap["to_port"].(int),
+			IPProtocol:    rawMap["ip_protocol"].(string),
+			CIDR:          rawMap["cidr"].(string),
+			FromGroupID:   rawMap["from_group_id"].(string),
+		}
+	}
+	return createRuleOptsList
+}
+
+func resourceSecGroupRuleV2(d *schema.ResourceData, raw interface{}) secgroups.CreateRuleOpts {
+	rawMap := raw.(map[string]interface{})
+	createRuleOpts := secgroups.CreateRuleOpts{
+		ParentGroupID: d.Id(),
+		FromPort:      rawMap["from_port"].(int),
+		ToPort:        rawMap["to_port"].(int),
+		IPProtocol:    rawMap["ip_protocol"].(string),
+		CIDR:          rawMap["cidr"].(string),
+		FromGroupID:   rawMap["from_group_id"].(string),
+	}
+
+	return createRuleOpts
 }
