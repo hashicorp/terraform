@@ -7,9 +7,12 @@ import (
 	"net/http"
 	"os"
 
-	"code.google.com/p/goauth2/oauth"
-	"code.google.com/p/goauth2/oauth/jwt"
 	"code.google.com/p/google-api-go-client/compute/v1"
+	// oauth2 "github.com/rasa/oauth2-fork-b3f9a68"
+	"github.com/rasa/oauth2-fork-b3f9a68"
+
+	// oauth2 "github.com/rasa/oauth2-fork-b3f9a68/google"
+	"github.com/rasa/oauth2-fork-b3f9a68/google"
 )
 
 const clientScopes string = "https://www.googleapis.com/auth/compute"
@@ -38,38 +41,40 @@ func (c *Config) loadAndValidate() error {
 		c.Region = os.Getenv("GOOGLE_REGION")
 	}
 
-	if err := loadJSON(&account, c.AccountFile); err != nil {
-		return fmt.Errorf(
-			"Error loading account file '%s': %s",
-			c.AccountFile,
-			err)
+	var f *oauth2.Options
+	var err error
+
+	if c.AccountFile != "" {
+		if err := loadJSON(&account, c.AccountFile); err != nil {
+			return fmt.Errorf(
+				"Error loading account file '%s': %s",
+				c.AccountFile,
+				err)
+		}
+
+		// Get the token for use in our requests
+		log.Printf("[INFO] Requesting Google token...")
+		log.Printf("[INFO]   -- Email: %s", account.ClientEmail)
+		log.Printf("[INFO]   -- Scopes: %s", clientScopes)
+		log.Printf("[INFO]   -- Private Key Length: %d", len(account.PrivateKey))
+
+		f, err = oauth2.New(
+			oauth2.JWTClient(account.ClientEmail, []byte(account.PrivateKey)),
+			oauth2.Scope(clientScopes),
+			google.JWTEndpoint())
+
+	} else {
+		log.Printf("[INFO] Requesting Google token via GCE Service Role...")
+		f, err = oauth2.New(google.ComputeEngineAccount(""))
+
 	}
 
-	// Get the token for use in our requests
-	log.Printf("[INFO] Requesting Google token...")
-	log.Printf("[INFO]   -- Email: %s", account.ClientEmail)
-	log.Printf("[INFO]   -- Scopes: %s", clientScopes)
-	log.Printf("[INFO]   -- Private Key Length: %d", len(account.PrivateKey))
-	jwtTok := jwt.NewToken(
-		account.ClientEmail,
-		clientScopes,
-		[]byte(account.PrivateKey))
-	token, err := jwtTok.Assert(new(http.Client))
 	if err != nil {
 		return fmt.Errorf("Error retrieving auth token: %s", err)
 	}
 
-	// Instantiate the transport to communicate to Google
-	transport := &oauth.Transport{
-		Config: &oauth.Config{
-			ClientId: account.ClientId,
-			Scope:    clientScopes,
-		},
-		Token: token,
-	}
-
 	log.Printf("[INFO] Instantiating GCE client...")
-	c.clientCompute, err = compute.New(transport.Client())
+	c.clientCompute, err = compute.New(&http.Client{Transport: f.NewTransport()})
 	if err != nil {
 		return err
 	}
