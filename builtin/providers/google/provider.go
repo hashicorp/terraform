@@ -29,12 +29,13 @@ func Provider() terraform.ResourceProvider {
 		},
 
 		ResourcesMap: map[string]*schema.Resource{
-			"google_compute_address":  resourceComputeAddress(),
-			"google_compute_disk":     resourceComputeDisk(),
-			"google_compute_firewall": resourceComputeFirewall(),
-			"google_compute_instance": resourceComputeInstance(),
-			"google_compute_network":  resourceComputeNetwork(),
-			"google_compute_route":    resourceComputeRoute(),
+			"google_compute_address":    resourceComputeAddress(),
+			"google_compute_disk":       resourceComputeDisk(),
+			"google_compute_firewall":   resourceComputeFirewall(),
+			"google_compute_instance":   resourceComputeInstance(),
+			"google_compute_network":    resourceComputeNetwork(),
+			"google_compute_route":      resourceComputeRoute(),
+			"google_compute_targetpool": resourceComputeTargetpool(),
 		},
 
 		ConfigureFunc: providerConfigure,
