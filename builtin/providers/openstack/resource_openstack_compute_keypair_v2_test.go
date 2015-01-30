@@ -36,7 +36,7 @@ func testAccCheckComputeV2KeypairDestroy(s *terraform.State) error {
 		Region: OS_REGION_NAME,
 	})
 	if err != nil {
-		return fmt.Errorf("(testAccCheckComputeV2InstanceDestroy) Error creating OpenStack compute client: %s", err)
+		return fmt.Errorf("(testAccCheckComputeV2KeypairDestroy) Error creating OpenStack compute client: %s", err)
 	}
 
 	for _, rs := range s.RootModule().Resources {
