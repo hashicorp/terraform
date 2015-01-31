@@ -6,8 +6,6 @@ import (
 	"strconv"
 
 	"github.com/hashicorp/terraform/helper/schema"
-	"github.com/rackspace/gophercloud"
-	"github.com/rackspace/gophercloud/openstack"
 	"github.com/rackspace/gophercloud/openstack/networking/v2/networks"
 )
 
@@ -51,9 +49,7 @@ func resourceNetworkingNetworkV2() *schema.Resource {
 
 func resourceNetworkingNetworkV2Create(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
-	networkingClient, err := openstack.NewNetworkV2(config.osClient, gophercloud.EndpointOpts{
-		Region: d.Get("region").(string),
-	})
+	networkingClient, err := config.networkingV2Client(d.Get("region").(string))
 	if err != nil {
 		return fmt.Errorf("Error creating OpenStack networking client: %s", err)
 	}
@@ -95,9 +91,7 @@ func resourceNetworkingNetworkV2Create(d *schema.ResourceData, meta interface{})
 
 func resourceNetworkingNetworkV2Read(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
-	networkingClient, err := openstack.NewNetworkV2(config.osClient, gophercloud.EndpointOpts{
-		Region: d.Get("region").(string),
-	})
+	networkingClient, err := config.networkingV2Client(d.Get("region").(string))
 	if err != nil {
 		return fmt.Errorf("Error creating OpenStack networking client: %s", err)
 	}
@@ -140,9 +134,7 @@ func resourceNetworkingNetworkV2Read(d *schema.ResourceData, meta interface{}) e
 
 func resourceNetworkingNetworkV2Update(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
-	networkingClient, err := openstack.NewNetworkV2(config.osClient, gophercloud.EndpointOpts{
-		Region: d.Get("region").(string),
-	})
+	networkingClient, err := config.networkingV2Client(d.Get("region").(string))
 	if err != nil {
 		return fmt.Errorf("Error creating OpenStack networking client: %s", err)
 	}
@@ -184,9 +176,7 @@ func resourceNetworkingNetworkV2Update(d *schema.ResourceData, meta interface{})
 
 func resourceNetworkingNetworkV2Delete(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
-	networkingClient, err := openstack.NewNetworkV2(config.osClient, gophercloud.EndpointOpts{
-		Region: d.Get("region").(string),
-	})
+	networkingClient, err := config.networkingV2Client(d.Get("region").(string))
 	if err != nil {
 		return fmt.Errorf("Error creating OpenStack networking client: %s", err)
 	}
