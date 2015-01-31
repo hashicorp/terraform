@@ -9,7 +9,6 @@ import (
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/rackspace/gophercloud"
-	"github.com/rackspace/gophercloud/openstack"
 	"github.com/rackspace/gophercloud/openstack/compute/v2/extensions/keypairs"
 	"github.com/rackspace/gophercloud/openstack/compute/v2/extensions/secgroups"
 	"github.com/rackspace/gophercloud/openstack/compute/v2/servers"
@@ -120,9 +119,7 @@ func resourceComputeInstanceV2() *schema.Resource {
 
 func resourceComputeInstanceV2Create(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
-	computeClient, err := openstack.NewComputeV2(config.osClient, gophercloud.EndpointOpts{
-		Region: d.Get("region").(string),
-	})
+	computeClient, err := config.computeV2Client(d.Get("region").(string))
 	if err != nil {
 		return fmt.Errorf("Error creating OpenStack compute client: %s", err)
 	}
@@ -185,9 +182,7 @@ func resourceComputeInstanceV2Create(d *schema.ResourceData, meta interface{}) e
 
 func resourceComputeInstanceV2Read(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
-	computeClient, err := openstack.NewComputeV2(config.osClient, gophercloud.EndpointOpts{
-		Region: d.Get("region").(string),
-	})
+	computeClient, err := config.computeV2Client(d.Get("region").(string))
 	if err != nil {
 		return fmt.Errorf("Error creating OpenStack compute client: %s", err)
 	}
@@ -254,9 +249,7 @@ func resourceComputeInstanceV2Read(d *schema.ResourceData, meta interface{}) err
 
 func resourceComputeInstanceV2Update(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
-	computeClient, err := openstack.NewComputeV2(config.osClient, gophercloud.EndpointOpts{
-		Region: d.Get("region").(string),
-	})
+	computeClient, err := config.computeV2Client(d.Get("region").(string))
 	if err != nil {
 		return fmt.Errorf("Error creating OpenStack compute client: %s", err)
 	}
@@ -382,9 +375,7 @@ func resourceComputeInstanceV2Update(d *schema.ResourceData, meta interface{}) e
 
 func resourceComputeInstanceV2Delete(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
-	computeClient, err := openstack.NewComputeV2(config.osClient, gophercloud.EndpointOpts{
-		Region: d.Get("region").(string),
-	})
+	computeClient, err := config.computeV2Client(d.Get("region").(string))
 	if err != nil {
 		return fmt.Errorf("Error creating OpenStack compute client: %s", err)
 	}

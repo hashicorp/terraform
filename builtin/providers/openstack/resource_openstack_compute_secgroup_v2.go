@@ -7,8 +7,6 @@ import (
 
 	"github.com/hashicorp/terraform/helper/hashcode"
 	"github.com/hashicorp/terraform/helper/schema"
-	"github.com/rackspace/gophercloud"
-	"github.com/rackspace/gophercloud/openstack"
 	"github.com/rackspace/gophercloud/openstack/compute/v2/extensions/secgroups"
 )
 
@@ -76,9 +74,7 @@ func resourceComputeSecGroupV2() *schema.Resource {
 
 func resourceComputeSecGroupV2Create(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
-	computeClient, err := openstack.NewComputeV2(config.osClient, gophercloud.EndpointOpts{
-		Region: d.Get("region").(string),
-	})
+	computeClient, err := config.computeV2Client(d.Get("region").(string))
 	if err != nil {
 		return fmt.Errorf("Error creating OpenStack compute client: %s", err)
 	}
@@ -108,9 +104,7 @@ func resourceComputeSecGroupV2Create(d *schema.ResourceData, meta interface{}) e
 
 func resourceComputeSecGroupV2Read(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
-	computeClient, err := openstack.NewComputeV2(config.osClient, gophercloud.EndpointOpts{
-		Region: d.Get("region").(string),
-	})
+	computeClient, err := config.computeV2Client(d.Get("region").(string))
 	if err != nil {
 		return fmt.Errorf("Error creating OpenStack compute client: %s", err)
 	}
@@ -130,9 +124,7 @@ func resourceComputeSecGroupV2Read(d *schema.ResourceData, meta interface{}) err
 
 func resourceComputeSecGroupV2Update(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
-	computeClient, err := openstack.NewComputeV2(config.osClient, gophercloud.EndpointOpts{
-		Region: d.Get("region").(string),
-	})
+	computeClient, err := config.computeV2Client(d.Get("region").(string))
 	if err != nil {
 		return fmt.Errorf("Error creating OpenStack compute client: %s", err)
 	}
@@ -183,9 +175,7 @@ func resourceComputeSecGroupV2Update(d *schema.ResourceData, meta interface{}) e
 
 func resourceComputeSecGroupV2Delete(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
-	computeClient, err := openstack.NewComputeV2(config.osClient, gophercloud.EndpointOpts{
-		Region: d.Get("region").(string),
-	})
+	computeClient, err := config.computeV2Client(d.Get("region").(string))
 	if err != nil {
 		return fmt.Errorf("Error creating OpenStack compute client: %s", err)
 	}

@@ -41,3 +41,15 @@ func (c *Config) loadAndValidate() error {
 
 	return nil
 }
+
+func (c *Config) computeV2Client(region string) (*gophercloud.ServiceClient, error) {
+	return openstack.NewComputeV2(c.osClient, gophercloud.EndpointOpts{
+		Region: region,
+	})
+}
+
+func (c *Config) networkingV2Client(region string) (*gophercloud.ServiceClient, error) {
+	return openstack.NewNetworkV2(c.osClient, gophercloud.EndpointOpts{
+		Region: region,
+	})
+}

@@ -4,8 +4,6 @@ import (
 	"fmt"
 
 	"github.com/hashicorp/terraform/helper/schema"
-	"github.com/rackspace/gophercloud"
-	"github.com/rackspace/gophercloud/openstack"
 	"github.com/rackspace/gophercloud/openstack/compute/v2/extensions/keypairs"
 )
 
@@ -38,9 +36,7 @@ func resourceComputeKeypairV2() *schema.Resource {
 
 func resourceComputeKeypairV2Create(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
-	computeClient, err := openstack.NewComputeV2(config.osClient, gophercloud.EndpointOpts{
-		Region: d.Get("region").(string),
-	})
+	computeClient, err := config.computeV2Client(d.Get("region").(string))
 	if err != nil {
 		return fmt.Errorf("Error creating OpenStack compute client: %s", err)
 	}
@@ -62,9 +58,7 @@ func resourceComputeKeypairV2Create(d *schema.ResourceData, meta interface{}) er
 
 func resourceComputeKeypairV2Read(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
-	computeClient, err := openstack.NewComputeV2(config.osClient, gophercloud.EndpointOpts{
-		Region: d.Get("region").(string),
-	})
+	computeClient, err := config.computeV2Client(d.Get("region").(string))
 	if err != nil {
 		return fmt.Errorf("Error creating OpenStack compute client: %s", err)
 	}
@@ -83,9 +77,7 @@ func resourceComputeKeypairV2Read(d *schema.ResourceData, meta interface{}) erro
 
 func resourceComputeKeypairV2Delete(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
-	computeClient, err := openstack.NewComputeV2(config.osClient, gophercloud.EndpointOpts{
-		Region: d.Get("region").(string),
-	})
+	computeClient, err := config.computeV2Client(d.Get("region").(string))
 	if err != nil {
 		return fmt.Errorf("Error creating OpenStack compute client: %s", err)
 	}
