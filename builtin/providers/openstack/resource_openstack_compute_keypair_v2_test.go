@@ -7,8 +7,6 @@ import (
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
 
-	"github.com/rackspace/gophercloud"
-	"github.com/rackspace/gophercloud/openstack"
 	"github.com/rackspace/gophercloud/openstack/compute/v2/extensions/keypairs"
 )
 
@@ -32,9 +30,7 @@ func TestAccComputeV2Keypair_basic(t *testing.T) {
 
 func testAccCheckComputeV2KeypairDestroy(s *terraform.State) error {
 	config := testAccProvider.Meta().(*Config)
-	computeClient, err := openstack.NewComputeV2(config.osClient, gophercloud.EndpointOpts{
-		Region: OS_REGION_NAME,
-	})
+	computeClient, err := config.computeV2Client(OS_REGION_NAME)
 	if err != nil {
 		return fmt.Errorf("(testAccCheckComputeV2KeypairDestroy) Error creating OpenStack compute client: %s", err)
 	}
@@ -64,10 +60,8 @@ func testAccCheckComputeV2KeypairExists(t *testing.T, n string, kp *keypairs.Key
 			return fmt.Errorf("No ID is set")
 		}
 
-		osClient := testAccProvider.Meta().(*Config).osClient
-		computeClient, err := openstack.NewComputeV2(osClient, gophercloud.EndpointOpts{
-			Region: OS_REGION_NAME,
-		})
+		config := testAccProvider.Meta().(*Config)
+		computeClient, err := config.computeV2Client(OS_REGION_NAME)
 		if err != nil {
 			return fmt.Errorf("(testAccCheckComputeV2KeypairExists) Error creating OpenStack compute client: %s", err)
 		}

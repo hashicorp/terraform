@@ -7,8 +7,6 @@ import (
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
 
-	"github.com/rackspace/gophercloud"
-	"github.com/rackspace/gophercloud/openstack"
 	"github.com/rackspace/gophercloud/openstack/compute/v2/servers"
 )
 
@@ -33,9 +31,7 @@ func TestAccComputeV2Instance_basic(t *testing.T) {
 
 func testAccCheckComputeV2InstanceDestroy(s *terraform.State) error {
 	config := testAccProvider.Meta().(*Config)
-	computeClient, err := openstack.NewComputeV2(config.osClient, gophercloud.EndpointOpts{
-		Region: OS_REGION_NAME,
-	})
+	computeClient, err := config.computeV2Client(OS_REGION_NAME)
 	if err != nil {
 		return fmt.Errorf("(testAccCheckComputeV2InstanceDestroy) Error creating OpenStack compute client: %s", err)
 	}
@@ -65,10 +61,8 @@ func testAccCheckComputeV2InstanceExists(t *testing.T, n string, instance *serve
 			return fmt.Errorf("No ID is set")
 		}
 
-		osClient := testAccProvider.Meta().(*Config).osClient
-		computeClient, err := openstack.NewComputeV2(osClient, gophercloud.EndpointOpts{
-			Region: OS_REGION_NAME,
-		})
+		config := testAccProvider.Meta().(*Config)
+		computeClient, err := config.computeV2Client(OS_REGION_NAME)
 		if err != nil {
 			return fmt.Errorf("(testAccCheckComputeV2InstanceExists) Error creating OpenStack compute client: %s", err)
 		}
