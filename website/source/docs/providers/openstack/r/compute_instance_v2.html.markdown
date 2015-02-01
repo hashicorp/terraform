@@ -62,6 +62,9 @@ The following arguments are supported:
     pair must already be created and associated with the tenant's account.
     Changing this creates a new server.
 
+* `block_device` - (Optional) The object for booting by volume. The block_device
+    object structure is documented below. Changing this creates a new server.
+
 The `network` block supports:
 
 * `uuid` - (Required unless `port` is provided) The network UUID to attach to
@@ -72,6 +75,20 @@ The `network` block supports:
 
 * `fixed_ip` - (Optional) Specifies a fixed IP address to be used on this
     network.
+
+The `block_device` block supports:
+
+* `uuid` - (Required) The UUID of the image, volume, or snapshot.
+
+* `source_type` - (Required) The source type of the device. Must be one of
+    "image", "volume", or "snapshot".
+
+* `volume_size` - (Optional) The size of the volume to create (in gigabytes).
+
+* `boot_index` - (Optional) The boot index of the volume. It defaults to 0.
+
+* `destination_type` - (Optional) The type that gets created. Possible values
+    are "volume" and "local".
 
 ## Attributes Reference
 

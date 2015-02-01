@@ -9,6 +9,7 @@ import (
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/rackspace/gophercloud"
+	"github.com/rackspace/gophercloud/openstack/compute/v2/extensions/bootfromvolume"
 	"github.com/rackspace/gophercloud/openstack/compute/v2/extensions/keypairs"
 	"github.com/rackspace/gophercloud/openstack/compute/v2/extensions/secgroups"
 	"github.com/rackspace/gophercloud/openstack/compute/v2/servers"
@@ -36,13 +37,13 @@ func resourceComputeInstanceV2() *schema.Resource {
 			},
 			"image_ref": &schema.Schema{
 				Type:        schema.TypeString,
-				Required:    true,
+				Optional:    true,
 				ForceNew:    false,
 				DefaultFunc: envDefaultFunc("OS_IMAGE_ID"),
 			},
 			"flavor_ref": &schema.Schema{
 				Type:        schema.TypeString,
-				Required:    true,
+				Optional:    true,
 				ForceNew:    false,
 				DefaultFunc: envDefaultFunc("OS_FLAVOR_ID"),
 			},
@@ -113,6 +114,11 @@ func resourceComputeInstanceV2() *schema.Resource {
 				Optional: true,
 				ForceNew: true,
 			},
+			"block_device": &schema.Schema{
+				Type:     schema.TypeMap,
+				Optional: true,
+				ForceNew: true,
+			},
 		},
 	}
 }
@@ -142,6 +148,14 @@ func resourceComputeInstanceV2Create(d *schema.ResourceData, meta interface{}) e
 		createOpts = &keypairs.CreateOptsExt{
 			createOpts,
 			keyName,
+		}
+	}
+
+	if blockDeviceRaw, ok := d.Get("block_device").(map[string]interface{}); ok && blockDeviceRaw != nil {
+		blockDevice := resourceInstanceBlockDeviceV2(d, blockDeviceRaw)
+		createOpts = &bootfromvolume.CreateOptsExt{
+			createOpts,
+			blockDevice,
 		}
 	}
 
@@ -407,7 +421,7 @@ func resourceComputeInstanceV2Delete(d *schema.ResourceData, meta interface{}) e
 	return nil
 }
 
-// ServerStateRefreshFunc returns a resource.StateRefreshFunc that is used to watch
+// ServerV2StateRefreshFunc returns a resource.StateRefreshFunc that is used to watch
 // an OpenStack instance.
 func ServerV2StateRefreshFunc(client *gophercloud.ServiceClient, instanceID string) resource.StateRefreshFunc {
 	return func() (interface{}, string, error) {
@@ -449,4 +463,25 @@ func resourceInstanceMetadataV2(d *schema.ResourceData) map[string]string {
 		m[key] = val.(string)
 	}
 	return m
+}
+
+func resourceInstanceBlockDeviceV2(d *schema.ResourceData, bd map[string]interface{}) []bootfromvolume.BlockDevice {
+	sourceType := bootfromvolume.SourceType(bd["source_type"].(string))
+	bfvOpts := []bootfromvolume.BlockDevice{
+		bootfromvolume.BlockDevice{
+			UUID:       bd["uuid"].(string),
+			SourceType: sourceType,
+		},
+	}
+	if vs, ok := bd["volume_size"].(int); ok {
+		bfvOpts[0].VolumeSize = vs
+	}
+	if dt, ok := bd["destination_type"].(string); ok {
+		bfvOpts[0].DestinationType = dt
+	}
+	if bi, ok := bd["boot_index"].(int); ok {
+		bfvOpts[0].BootIndex = bi
+	}
+
+	return bfvOpts
 }
