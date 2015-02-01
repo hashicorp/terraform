@@ -115,9 +115,33 @@ func resourceComputeInstanceV2() *schema.Resource {
 				ForceNew: true,
 			},
 			"block_device": &schema.Schema{
-				Type:     schema.TypeMap,
+				Type:     schema.TypeList,
 				Optional: true,
 				ForceNew: true,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"uuid": &schema.Schema{
+							Type:     schema.TypeString,
+							Required: true,
+						},
+						"source_type": &schema.Schema{
+							Type:     schema.TypeString,
+							Required: true,
+						},
+						"volume_size": &schema.Schema{
+							Type:     schema.TypeInt,
+							Optional: true,
+						},
+						"destination_type": &schema.Schema{
+							Type:     schema.TypeString,
+							Optional: true,
+						},
+						"boot_index": &schema.Schema{
+							Type:     schema.TypeInt,
+							Optional: true,
+						},
+					},
+				},
 			},
 		},
 	}
@@ -469,18 +493,12 @@ func resourceInstanceBlockDeviceV2(d *schema.ResourceData, bd map[string]interfa
 	sourceType := bootfromvolume.SourceType(bd["source_type"].(string))
 	bfvOpts := []bootfromvolume.BlockDevice{
 		bootfromvolume.BlockDevice{
-			UUID:       bd["uuid"].(string),
-			SourceType: sourceType,
+			UUID:            bd["uuid"].(string),
+			SourceType:      sourceType,
+			VolumeSize:      bd["volume_size"].(int),
+			DestinationType: bd["destination_type"].(string),
+			BootIndex:       bd["boot_index"].(int),
 		},
-	}
-	if vs, ok := bd["volume_size"].(int); ok {
-		bfvOpts[0].VolumeSize = vs
-	}
-	if dt, ok := bd["destination_type"].(string); ok {
-		bfvOpts[0].DestinationType = dt
-	}
-	if bi, ok := bd["boot_index"].(int); ok {
-		bfvOpts[0].BootIndex = bi
 	}
 
 	return bfvOpts
