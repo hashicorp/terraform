@@ -60,7 +60,7 @@ func resourceComputeInstanceV2() *schema.Resource {
 				Optional: true,
 				ForceNew: true,
 			},
-			"networks": &schema.Schema{
+			"network": &schema.Schema{
 				Type:     schema.TypeList,
 				Optional: true,
 				ForceNew: true,
@@ -430,7 +430,7 @@ func resourceInstanceSecGroupsV2(d *schema.ResourceData) []string {
 }
 
 func resourceInstanceNetworksV2(d *schema.ResourceData) []servers.Network {
-	rawNetworks := d.Get("networks").([]interface{})
+	rawNetworks := d.Get("network").([]interface{})
 	networks := make([]servers.Network, len(rawNetworks))
 	for i, raw := range rawNetworks {
 		rawMap := raw.(map[string]interface{})
