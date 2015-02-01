@@ -34,7 +34,7 @@ func resourceComputeSecGroupV2() *schema.Resource {
 				Required: true,
 				ForceNew: false,
 			},
-			"rules": &schema.Schema{
+			"rule": &schema.Schema{
 				Type:     schema.TypeSet,
 				Optional: true,
 				Elem: &schema.Resource{
@@ -66,7 +66,7 @@ func resourceComputeSecGroupV2() *schema.Resource {
 						},
 					},
 				},
-				Set: resourceSecGroupRuleHash,
+				Set: resourceSecGroupRuleV2Hash,
 			},
 		},
 	}
@@ -117,7 +117,7 @@ func resourceComputeSecGroupV2Read(d *schema.ResourceData, meta interface{}) err
 	d.Set("region", d.Get("region").(string))
 	d.Set("name", sg.Name)
 	d.Set("description", sg.Description)
-	d.Set("rules", sg.Rules)
+	d.Set("rule", sg.Rules)
 
 	return nil
 }
@@ -141,8 +141,8 @@ func resourceComputeSecGroupV2Update(d *schema.ResourceData, meta interface{}) e
 		return fmt.Errorf("Error updating OpenStack security group (%s): %s", d.Id(), err)
 	}
 
-	if d.HasChange("rules") {
-		oldSGRaw, newSGRaw := d.GetChange("rules")
+	if d.HasChange("rule") {
+		oldSGRaw, newSGRaw := d.GetChange("rule")
 		oldSGRSet, newSGRSet := oldSGRaw.(*schema.Set), newSGRaw.(*schema.Set)
 		secgrouprulesToAdd := newSGRSet.Difference(oldSGRSet)
 		secgrouprulesToRemove := oldSGRSet.Difference(newSGRSet)
@@ -188,7 +188,7 @@ func resourceComputeSecGroupV2Delete(d *schema.ResourceData, meta interface{}) e
 	return nil
 }
 
-func resourceSecGroupRuleHash(v interface{}) int {
+func resourceSecGroupRuleV2Hash(v interface{}) int {
 	var buf bytes.Buffer
 	m := v.(map[string]interface{})
 	buf.WriteString(fmt.Sprintf("%d-", m["from_port"].(int)))
@@ -201,7 +201,7 @@ func resourceSecGroupRuleHash(v interface{}) int {
 }
 
 func resourceSecGroupRulesV2(d *schema.ResourceData) []secgroups.CreateRuleOpts {
-	rawRules := (d.Get("rules")).(*schema.Set)
+	rawRules := (d.Get("rule")).(*schema.Set)
 	createRuleOptsList := make([]secgroups.CreateRuleOpts, rawRules.Len())
 	for i, raw := range rawRules.List() {
 		rawMap := raw.(map[string]interface{})
@@ -219,7 +219,7 @@ func resourceSecGroupRulesV2(d *schema.ResourceData) []secgroups.CreateRuleOpts 
 
 func resourceSecGroupRuleV2(d *schema.ResourceData, raw interface{}) secgroups.CreateRuleOpts {
 	rawMap := raw.(map[string]interface{})
-	createRuleOpts := secgroups.CreateRuleOpts{
+	return secgroups.CreateRuleOpts{
 		ParentGroupID: d.Id(),
 		FromPort:      rawMap["from_port"].(int),
 		ToPort:        rawMap["to_port"].(int),
@@ -227,6 +227,4 @@ func resourceSecGroupRuleV2(d *schema.ResourceData, raw interface{}) secgroups.C
 		CIDR:          rawMap["cidr"].(string),
 		FromGroupID:   rawMap["from_group_id"].(string),
 	}
-
-	return createRuleOpts
 }
