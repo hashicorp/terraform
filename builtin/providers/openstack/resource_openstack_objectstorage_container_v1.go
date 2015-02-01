@@ -111,13 +111,13 @@ func resourceObjectStorageContainerV1Update(d *schema.ResourceData, meta interfa
 		ContentType:      d.Get("content_type").(string),
 	}
 
+	if d.HasChange("metadata") {
+		updateOpts.Metadata = resourceContainerMetadataV2(d)
+	}
+
 	_, err = containers.Update(objectStorgeClient, d.Id(), updateOpts).Extract()
 	if err != nil {
 		return fmt.Errorf("Error updating OpenStack container: %s", err)
-	}
-
-	if d.HasChange("metadata") {
-		updateOpts.Metadata = resourceContainerMetadataV2(d)
 	}
 
 	return resourceObjectStorageContainerV1Read(d, meta)
