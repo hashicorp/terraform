@@ -48,7 +48,7 @@ The following arguments are supported:
 * `availability_zone` - (Optional) The availability zone in which to create
     the server. Changing this creates a new server.
 
-* `networks` - (Optional) An array of one or more networks to attach to the
+* `network` - (Optional) An array of one or more networks to attach to the
     instance. The network object structure is documented below. Changing this
     creates a new server.
 
