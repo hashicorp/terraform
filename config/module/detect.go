@@ -41,7 +41,7 @@ func Detect(src string, pwd string) (string, error) {
 	u, err := urlParse(getSrc)
 	if err == nil && u.Scheme != "" {
 		// Valid URL
-		return u.String(), nil
+		return src, nil
 	}
 
 	for _, d := range Detectors {
