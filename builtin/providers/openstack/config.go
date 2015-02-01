@@ -53,3 +53,9 @@ func (c *Config) networkingV2Client(region string) (*gophercloud.ServiceClient, 
 		Region: region,
 	})
 }
+
+func (c *Config) objectStorageV1Client(region string) (*gophercloud.ServiceClient, error) {
+	return openstack.NewObjectStorageV1(c.osClient, gophercloud.EndpointOpts{
+		Region: region,
+	})
+}

@@ -59,14 +59,15 @@ func Provider() terraform.ResourceProvider {
 		},
 
 		ResourcesMap: map[string]*schema.Resource{
-			"openstack_compute_instance_v2":   resourceComputeInstanceV2(),
-			"openstack_compute_keypair_v2":    resourceComputeKeypairV2(),
-			"openstack_compute_secgroup_v2":   resourceComputeSecGroupV2(),
-			"openstack_lb_monitor_v1":         resourceLBMonitorV1(),
-			"openstack_lb_pool_v1":            resourceLBPoolV1(),
-			"openstack_lb_vip_v1":             resourceLBVipV1(),
-			"openstack_networking_network_v2": resourceNetworkingNetworkV2(),
-			"openstack_networking_subnet_v2":  resourceNetworkingSubnetV2(),
+			"openstack_compute_instance_v2":        resourceComputeInstanceV2(),
+			"openstack_compute_keypair_v2":         resourceComputeKeypairV2(),
+			"openstack_compute_secgroup_v2":        resourceComputeSecGroupV2(),
+			"openstack_lb_monitor_v1":              resourceLBMonitorV1(),
+			"openstack_lb_pool_v1":                 resourceLBPoolV1(),
+			"openstack_lb_vip_v1":                  resourceLBVipV1(),
+			"openstack_networking_network_v2":      resourceNetworkingNetworkV2(),
+			"openstack_networking_subnet_v2":       resourceNetworkingSubnetV2(),
+			"openstack_objectstorage_container_v1": resourceObjectStorageContainerV1(),
 		},
 
 		ConfigureFunc: configureProvider,
