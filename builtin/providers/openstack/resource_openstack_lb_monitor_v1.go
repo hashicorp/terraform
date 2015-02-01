@@ -171,25 +171,15 @@ func resourceLBMonitorV1Update(d *schema.ResourceData, meta interface{}) error {
 		return fmt.Errorf("Error creating OpenStack networking client: %s", err)
 	}
 
-	var updateOpts monitors.UpdateOpts
-	if d.HasChange("delay") {
-		updateOpts.Delay = d.Get("delay").(int)
+	updateOpts := monitors.UpdateOpts{
+		Delay:         d.Get("delay").(int),
+		Timeout:       d.Get("timeout").(int),
+		MaxRetries:    d.Get("max_retries").(int),
+		URLPath:       d.Get("url_path").(string),
+		HTTPMethod:    d.Get("http_method").(string),
+		ExpectedCodes: d.Get("expected_codes").(string),
 	}
-	if d.HasChange("timeout") {
-		updateOpts.Timeout = d.Get("timeout").(int)
-	}
-	if d.HasChange("max_retries") {
-		updateOpts.MaxRetries = d.Get("max_retries").(int)
-	}
-	if d.HasChange("url_path") {
-		updateOpts.URLPath = d.Get("url_path").(string)
-	}
-	if d.HasChange("http_method") {
-		updateOpts.HTTPMethod = d.Get("http_method").(string)
-	}
-	if d.HasChange("expected_codes") {
-		updateOpts.ExpectedCodes = d.Get("expected_codes").(string)
-	}
+
 	if d.HasChange("admin_state_up") {
 		asuRaw := d.Get("admin_state_up").(string)
 		if asuRaw != "" {
