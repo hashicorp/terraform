@@ -42,6 +42,12 @@ func (c *Config) loadAndValidate() error {
 	return nil
 }
 
+func (c *Config) blockStorageV1Client(region string) (*gophercloud.ServiceClient, error) {
+	return openstack.NewBlockStorageV1(c.osClient, gophercloud.EndpointOpts{
+		Region: region,
+	})
+}
+
 func (c *Config) computeV2Client(region string) (*gophercloud.ServiceClient, error) {
 	return openstack.NewComputeV2(c.osClient, gophercloud.EndpointOpts{
 		Region: region,
