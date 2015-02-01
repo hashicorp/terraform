@@ -63,7 +63,7 @@ func resourceObjectStorageContainerV1() *schema.Resource {
 
 func resourceObjectStorageContainerV1Create(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
-	objectStorgeClient, err := config.objectStorageV1Client(d.Get("region").(string))
+	objectStorageClient, err := config.objectStorageV1Client(d.Get("region").(string))
 	if err != nil {
 		return fmt.Errorf("Error creating OpenStack object storage client: %s", err)
 	}
@@ -80,7 +80,7 @@ func resourceObjectStorageContainerV1Create(d *schema.ResourceData, meta interfa
 	}
 
 	log.Printf("[INFO] Requesting container creation")
-	_, err = containers.Create(objectStorgeClient, cn, createOpts).Extract()
+	_, err = containers.Create(objectStorageClient, cn, createOpts).Extract()
 	if err != nil {
 		return fmt.Errorf("Error creating OpenStack container: %s", err)
 	}
@@ -98,7 +98,7 @@ func resourceObjectStorageContainerV1Read(d *schema.ResourceData, meta interface
 
 func resourceObjectStorageContainerV1Update(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
-	objectStorgeClient, err := config.objectStorageV1Client(d.Get("region").(string))
+	objectStorageClient, err := config.objectStorageV1Client(d.Get("region").(string))
 	if err != nil {
 		return fmt.Errorf("Error creating OpenStack object storage client: %s", err)
 	}
@@ -115,7 +115,7 @@ func resourceObjectStorageContainerV1Update(d *schema.ResourceData, meta interfa
 		updateOpts.Metadata = resourceContainerMetadataV2(d)
 	}
 
-	_, err = containers.Update(objectStorgeClient, d.Id(), updateOpts).Extract()
+	_, err = containers.Update(objectStorageClient, d.Id(), updateOpts).Extract()
 	if err != nil {
 		return fmt.Errorf("Error updating OpenStack container: %s", err)
 	}
@@ -125,12 +125,12 @@ func resourceObjectStorageContainerV1Update(d *schema.ResourceData, meta interfa
 
 func resourceObjectStorageContainerV1Delete(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
-	objectStorgeClient, err := config.objectStorageV1Client(d.Get("region").(string))
+	objectStorageClient, err := config.objectStorageV1Client(d.Get("region").(string))
 	if err != nil {
 		return fmt.Errorf("Error creating OpenStack object storage client: %s", err)
 	}
 
-	_, err = containers.Delete(objectStorgeClient, d.Id()).Extract()
+	_, err = containers.Delete(objectStorageClient, d.Id()).Extract()
 	if err != nil {
 		return fmt.Errorf("Error deleting OpenStack container: %s", err)
 	}
