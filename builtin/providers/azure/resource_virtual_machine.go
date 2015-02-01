@@ -5,9 +5,10 @@ import (
 	"fmt"
 	"log"
 
+	"github.com/MSOpenTech/azure-sdk-for-go/clients/hostedServiceClient"
+	"github.com/MSOpenTech/azure-sdk-for-go/clients/vmClient"
 	"github.com/hashicorp/terraform/helper/hashcode"
 	"github.com/hashicorp/terraform/helper/schema"
-	"github.com/MSOpenTech/azure-sdk-for-go/clients/vmClient"
 )
 
 func resourceVirtualMachine() *schema.Resource {
@@ -220,7 +221,7 @@ func resourceVirtualMachineDelete(d *schema.ResourceData, meta interface{}) erro
 	}
 
 	log.Printf("[DEBUG] Deleting Azure Hosted Service: %s", d.Id())
-	if err := vmClient.DeleteHostedService(d.Id()); err != nil {
+	if err := hostedServiceClient.DeleteHostedService(d.Id()); err != nil {
 		return fmt.Errorf("Error deleting Azure hosted service: %s", err)
 	}
 
