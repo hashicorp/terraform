@@ -20,6 +20,8 @@ IMPROVEMENTS:
   * provider/aws: The `aws_db_instance` resource no longer requires both
       `final_snapshot_identifier` and `skip_final_snapshot`; the presence or
       absence of the former now implies the latter. [GH-874]
+  * provider/aws: Avoid unecessary update of `aws_subnet` when 
+      `map_public_ip_on_launch` is not specified in config. [GH-898]
   * provider/google: Remove "client secrets file", as it's no longer necessary
       for API authentication [GH-884].
 
