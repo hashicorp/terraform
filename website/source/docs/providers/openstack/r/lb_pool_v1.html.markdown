@@ -18,7 +18,12 @@ resource "openstack_lb_pool_v1" "pool_1" {
   protocol = "HTTP"
   subnet_id = "12345"
   lb_method = "ROUND_ROBIN"
-  monitor_id = "67890"
+  monitor_ids = ["67890"]
+  member {
+    address = "192.168.0.1"
+    port = 80
+    admin_state_up = "true"
+  }
 }
 ```
 
@@ -51,6 +56,26 @@ The following arguments are supported:
 * `monitor_ids` - (Optional) A list of IDs of monitors to associate with the
     pool.
 
+* `member` - (Optional) An existing node to add to the pool. Changing this
+    updates the members of the pool. The member object structure is documented
+    below.
+
+The `member` block supports:
+
+* `address` - (Required) The IP address of the member. Changing this creates a
+new member.
+
+* `port` - (Required) An integer representing the port on which the member is
+hosted. Changing this creates a new member.
+
+* `admin_state_up` - (Optional) The administrative state of the member.
+Acceptable values are 'true' and 'false'. Changing this value updates the
+state of the existing member.
+
+* `tenant_id` - (Optional) The owner of the member. Required if admin wants to
+create a pool member for another tenant. Changing this creates a new member.
+
+
 ## Attributes Reference
 
 The following attributes are exported:
@@ -62,3 +87,4 @@ The following attributes are exported:
 * `lb_method` - See Argument Reference above.
 * `tenant_id` - See Argument Reference above.
 * `monitor_id` - See Argument Reference above.
+* `member` - See Argument Reference above.
