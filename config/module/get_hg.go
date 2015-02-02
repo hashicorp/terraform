@@ -5,6 +5,7 @@ import (
 	"net/url"
 	"os"
 	"os/exec"
+	"runtime"
 )
 
 // HgGetter is a Getter implementation that will download a module from
@@ -16,34 +17,40 @@ func (g *HgGetter) Get(dst string, u *url.URL) error {
 		return fmt.Errorf("hg must be available and on the PATH")
 	}
 
+	newURL, err := urlParse(u.String())
+	if err != nil {
+		return err
+	}
+	if fixWindowsDrivePath(newURL) {
+		// See valid file path form on http://www.selenic.com/hg/help/urls
+		newURL.Path = fmt.Sprintf("/%s", newURL.Path)
+	}
+
 	// Extract some query parameters we use
 	var rev string
-	q := u.Query()
+	q := newURL.Query()
 	if len(q) > 0 {
 		rev = q.Get("rev")
 		q.Del("rev")
 
-		// Copy the URL
-		var newU url.URL = *u
-		u = &newU
-		u.RawQuery = q.Encode()
+		newURL.RawQuery = q.Encode()
 	}
 
-	_, err := os.Stat(dst)
+	_, err = os.Stat(dst)
 	if err != nil && !os.IsNotExist(err) {
 		return err
 	}
 	if err != nil {
-		if err := g.clone(dst, u); err != nil {
+		if err := g.clone(dst, newURL); err != nil {
 			return err
 		}
 	}
 
-	if err := g.pull(dst, u); err != nil {
+	if err := g.pull(dst, newURL); err != nil {
 		return err
 	}
 
-	return g.update(dst, u, rev)
+	return g.update(dst, newURL, rev)
 }
 
 func (g *HgGetter) clone(dst string, u *url.URL) error {
@@ -66,4 +73,15 @@ func (g *HgGetter) update(dst string, u *url.URL, rev string) error {
 	cmd := exec.Command("hg", args...)
 	cmd.Dir = dst
 	return getRunCommand(cmd)
+}
+
+func fixWindowsDrivePath(u *url.URL) bool {
+	// hg assumes a file:/// prefix for Windows drive letter file paths.
+	// (e.g. file:///c:/foo/bar)
+	// If the URL Path does not begin with a '/' character, the resulting URL
+	// path will have a file:// prefix. (e.g. file://c:/foo/bar)
+	// See http://www.selenic.com/hg/help/urls and the examples listed in
+	// http://selenic.com/repo/hg-stable/file/1265a3a71d75/mercurial/util.py#l1936
+	return runtime.GOOS == "windows" && u.Scheme == "file" &&
+		len(u.Path) > 1 && u.Path[0] != '/' && u.Path[1] == ':'
 }
