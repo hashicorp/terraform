@@ -5,6 +5,7 @@ import (
 	"net/url"
 	"path/filepath"
 	"runtime"
+	"strings"
 )
 
 func urlParse(rawURL string) (*url.URL, error) {
@@ -28,6 +29,13 @@ func urlParse(rawURL string) (*url.URL, error) {
 		// and URL path = "/users/user".
 		u.Path = fmt.Sprintf("%s:%s", u.Scheme, u.Path)
 		u.Scheme = ""
+	}
+
+	if len(u.Host) > 1 && u.Host[1] == ':' && strings.HasPrefix(rawURL, "file://") {
+		// Assume we're dealing with a drive letter file path on Windows
+		// where the drive letter has been parsed into the URL Host.
+		u.Path = fmt.Sprintf("%s%s", u.Host, u.Path)
+		u.Host = ""
 	}
 
 	// Remove leading slash for absolute file paths on Windows.
