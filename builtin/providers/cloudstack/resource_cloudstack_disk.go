@@ -65,7 +65,7 @@ func resourceCloudStackDisk() *schema.Resource {
 	}
 }
 
-func resourceCloudStackDiskCreate(d *schema.ResourceData, meta interface{}) error {
+func resourceCloudStackDiskCreate(d schema.ResourceData, meta interface{}) error {
 	cs := meta.(*cloudstack.CloudStackClient)
 	d.Partial(true)
 
@@ -124,7 +124,7 @@ func resourceCloudStackDiskCreate(d *schema.ResourceData, meta interface{}) erro
 	return resourceCloudStackDiskRead(d, meta)
 }
 
-func resourceCloudStackDiskRead(d *schema.ResourceData, meta interface{}) error {
+func resourceCloudStackDiskRead(d schema.ResourceData, meta interface{}) error {
 	cs := meta.(*cloudstack.CloudStackClient)
 
 	// Get the volume details
@@ -170,7 +170,7 @@ func resourceCloudStackDiskRead(d *schema.ResourceData, meta interface{}) error 
 	return nil
 }
 
-func resourceCloudStackDiskUpdate(d *schema.ResourceData, meta interface{}) error {
+func resourceCloudStackDiskUpdate(d schema.ResourceData, meta interface{}) error {
 	cs := meta.(*cloudstack.CloudStackClient)
 	d.Partial(true)
 
@@ -245,7 +245,7 @@ func resourceCloudStackDiskUpdate(d *schema.ResourceData, meta interface{}) erro
 	return resourceCloudStackDiskRead(d, meta)
 }
 
-func resourceCloudStackDiskDelete(d *schema.ResourceData, meta interface{}) error {
+func resourceCloudStackDiskDelete(d schema.ResourceData, meta interface{}) error {
 	cs := meta.(*cloudstack.CloudStackClient)
 
 	// Detach the volume
@@ -271,7 +271,7 @@ func resourceCloudStackDiskDelete(d *schema.ResourceData, meta interface{}) erro
 	return nil
 }
 
-func resourceCloudStackDiskAttach(d *schema.ResourceData, meta interface{}) error {
+func resourceCloudStackDiskAttach(d schema.ResourceData, meta interface{}) error {
 	cs := meta.(*cloudstack.CloudStackClient)
 
 	// First check if the disk isn't already attached
@@ -310,7 +310,7 @@ func resourceCloudStackDiskAttach(d *schema.ResourceData, meta interface{}) erro
 	return nil
 }
 
-func resourceCloudStackDiskDetach(d *schema.ResourceData, meta interface{}) error {
+func resourceCloudStackDiskDetach(d schema.ResourceData, meta interface{}) error {
 	cs := meta.(*cloudstack.CloudStackClient)
 
 	// Check if the volume is actually attached, before detaching

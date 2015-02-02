@@ -84,7 +84,7 @@ func resourceComputeRoute() *schema.Resource {
 	}
 }
 
-func resourceComputeRouteCreate(d *schema.ResourceData, meta interface{}) error {
+func resourceComputeRouteCreate(d schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
 
 	// Look up the network to attach the route to
@@ -180,7 +180,7 @@ func resourceComputeRouteCreate(d *schema.ResourceData, meta interface{}) error 
 	return resourceComputeRouteRead(d, meta)
 }
 
-func resourceComputeRouteRead(d *schema.ResourceData, meta interface{}) error {
+func resourceComputeRouteRead(d schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
 
 	_, err := config.clientCompute.Routes.Get(
@@ -199,7 +199,7 @@ func resourceComputeRouteRead(d *schema.ResourceData, meta interface{}) error {
 	return nil
 }
 
-func resourceComputeRouteDelete(d *schema.ResourceData, meta interface{}) error {
+func resourceComputeRouteDelete(d schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
 
 	// Delete the route

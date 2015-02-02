@@ -49,7 +49,7 @@ func resourceCloudStackVPC() *schema.Resource {
 	}
 }
 
-func resourceCloudStackVPCCreate(d *schema.ResourceData, meta interface{}) error {
+func resourceCloudStackVPCCreate(d schema.ResourceData, meta interface{}) error {
 	cs := meta.(*cloudstack.CloudStackClient)
 
 	name := d.Get("name").(string)
@@ -86,7 +86,7 @@ func resourceCloudStackVPCCreate(d *schema.ResourceData, meta interface{}) error
 	return resourceCloudStackVPCRead(d, meta)
 }
 
-func resourceCloudStackVPCRead(d *schema.ResourceData, meta interface{}) error {
+func resourceCloudStackVPCRead(d schema.ResourceData, meta interface{}) error {
 	cs := meta.(*cloudstack.CloudStackClient)
 
 	// Get the VPC details
@@ -118,7 +118,7 @@ func resourceCloudStackVPCRead(d *schema.ResourceData, meta interface{}) error {
 	return nil
 }
 
-func resourceCloudStackVPCUpdate(d *schema.ResourceData, meta interface{}) error {
+func resourceCloudStackVPCUpdate(d schema.ResourceData, meta interface{}) error {
 	cs := meta.(*cloudstack.CloudStackClient)
 
 	// Check if the name or display text is changed
@@ -145,7 +145,7 @@ func resourceCloudStackVPCUpdate(d *schema.ResourceData, meta interface{}) error
 	return resourceCloudStackVPCRead(d, meta)
 }
 
-func resourceCloudStackVPCDelete(d *schema.ResourceData, meta interface{}) error {
+func resourceCloudStackVPCDelete(d schema.ResourceData, meta interface{}) error {
 	cs := meta.(*cloudstack.CloudStackClient)
 
 	// Create a new parameter struct

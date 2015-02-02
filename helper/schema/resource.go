@@ -55,19 +55,19 @@ type Resource struct {
 }
 
 // See Resource documentation.
-type CreateFunc func(*ResourceData, interface{}) error
+type CreateFunc func(ResourceData, interface{}) error
 
 // See Resource documentation.
-type ReadFunc func(*ResourceData, interface{}) error
+type ReadFunc func(ResourceData, interface{}) error
 
 // See Resource documentation.
-type UpdateFunc func(*ResourceData, interface{}) error
+type UpdateFunc func(ResourceData, interface{}) error
 
 // See Resource documentation.
-type DeleteFunc func(*ResourceData, interface{}) error
+type DeleteFunc func(ResourceData, interface{}) error
 
 // See Resource documentation.
-type ExistsFunc func(*ResourceData, interface{}) (bool, error)
+type ExistsFunc func(ResourceData, interface{}) (bool, error)
 
 // Apply creates, updates, and/or deletes a resource.
 func (r *Resource) Apply(

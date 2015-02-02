@@ -38,7 +38,7 @@ func resourceCloudStackNetworkACL() *schema.Resource {
 	}
 }
 
-func resourceCloudStackNetworkACLCreate(d *schema.ResourceData, meta interface{}) error {
+func resourceCloudStackNetworkACLCreate(d schema.ResourceData, meta interface{}) error {
 	cs := meta.(*cloudstack.CloudStackClient)
 
 	name := d.Get("name").(string)
@@ -70,7 +70,7 @@ func resourceCloudStackNetworkACLCreate(d *schema.ResourceData, meta interface{}
 	return resourceCloudStackNetworkACLRead(d, meta)
 }
 
-func resourceCloudStackNetworkACLRead(d *schema.ResourceData, meta interface{}) error {
+func resourceCloudStackNetworkACLRead(d schema.ResourceData, meta interface{}) error {
 	cs := meta.(*cloudstack.CloudStackClient)
 
 	// Get the network ACL list details
@@ -100,7 +100,7 @@ func resourceCloudStackNetworkACLRead(d *schema.ResourceData, meta interface{}) 
 	return nil
 }
 
-func resourceCloudStackNetworkACLDelete(d *schema.ResourceData, meta interface{}) error {
+func resourceCloudStackNetworkACLDelete(d schema.ResourceData, meta interface{}) error {
 	cs := meta.(*cloudstack.CloudStackClient)
 
 	// Create a new parameter struct

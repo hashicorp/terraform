@@ -19,7 +19,7 @@ func TestResourceApply_create(t *testing.T) {
 	}
 
 	called := false
-	r.Create = func(d *ResourceData, m interface{}) error {
+	r.Create = func(d ResourceData, m interface{}) error {
 		called = true
 		d.SetId("foo")
 		return nil
@@ -68,7 +68,7 @@ func TestResourceApply_destroy(t *testing.T) {
 	}
 
 	called := false
-	r.Delete = func(d *ResourceData, m interface{}) error {
+	r.Delete = func(d ResourceData, m interface{}) error {
 		called = true
 		return nil
 	}
@@ -112,12 +112,12 @@ func TestResourceApply_destroyCreate(t *testing.T) {
 	}
 
 	change := false
-	r.Create = func(d *ResourceData, m interface{}) error {
+	r.Create = func(d ResourceData, m interface{}) error {
 		change = d.HasChange("tags")
 		d.SetId("foo")
 		return nil
 	}
-	r.Delete = func(d *ResourceData, m interface{}) error {
+	r.Delete = func(d ResourceData, m interface{}) error {
 		return nil
 	}
 
@@ -177,7 +177,7 @@ func TestResourceApply_destroyPartial(t *testing.T) {
 		},
 	}
 
-	r.Delete = func(d *ResourceData, m interface{}) error {
+	r.Delete = func(d ResourceData, m interface{}) error {
 		d.Set("foo", 42)
 		return fmt.Errorf("some error")
 	}
@@ -221,7 +221,7 @@ func TestResourceApply_update(t *testing.T) {
 		},
 	}
 
-	r.Update = func(d *ResourceData, m interface{}) error {
+	r.Update = func(d ResourceData, m interface{}) error {
 		d.Set("foo", 42)
 		return nil
 	}
@@ -346,7 +346,7 @@ func TestResourceRefresh(t *testing.T) {
 		},
 	}
 
-	r.Read = func(d *ResourceData, m interface{}) error {
+	r.Read = func(d ResourceData, m interface{}) error {
 		if m != 42 {
 			return fmt.Errorf("meta not passed")
 		}
@@ -389,7 +389,7 @@ func TestResourceRefresh_delete(t *testing.T) {
 		},
 	}
 
-	r.Read = func(d *ResourceData, m interface{}) error {
+	r.Read = func(d ResourceData, m interface{}) error {
 		d.SetId("")
 		return nil
 	}
@@ -421,11 +421,11 @@ func TestResourceRefresh_existsError(t *testing.T) {
 		},
 	}
 
-	r.Exists = func(*ResourceData, interface{}) (bool, error) {
+	r.Exists = func(ResourceData, interface{}) (bool, error) {
 		return false, fmt.Errorf("error")
 	}
 
-	r.Read = func(d *ResourceData, m interface{}) error {
+	r.Read = func(d ResourceData, m interface{}) error {
 		panic("shouldn't be called")
 	}
 
@@ -455,11 +455,11 @@ func TestResourceRefresh_noExists(t *testing.T) {
 		},
 	}
 
-	r.Exists = func(*ResourceData, interface{}) (bool, error) {
+	r.Exists = func(ResourceData, interface{}) (bool, error) {
 		return false, nil
 	}
 
-	r.Read = func(d *ResourceData, m interface{}) error {
+	r.Read = func(d ResourceData, m interface{}) error {
 		panic("shouldn't be called")
 	}
 

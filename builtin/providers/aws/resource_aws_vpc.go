@@ -57,18 +57,17 @@ func resourceAwsVpc() *schema.Resource {
 				Computed: true,
 			},
 
-
 			"tags": tagsSchema(),
 		},
 	}
 }
 
-func resourceAwsVpcCreate(d *schema.ResourceData, meta interface{}) error {
+func resourceAwsVpcCreate(d schema.ResourceData, meta interface{}) error {
 	ec2conn := meta.(*AWSClient).ec2conn
 
 	// Create the VPC
 	createOpts := &ec2.CreateVpc{
-		CidrBlock: d.Get("cidr_block").(string),
+		CidrBlock:       d.Get("cidr_block").(string),
 		InstanceTenancy: d.Get("instance_tenancy").(string),
 	}
 	log.Printf("[DEBUG] VPC create config: %#v", createOpts)
@@ -106,7 +105,7 @@ func resourceAwsVpcCreate(d *schema.ResourceData, meta interface{}) error {
 	return resourceAwsVpcUpdate(d, meta)
 }
 
-func resourceAwsVpcRead(d *schema.ResourceData, meta interface{}) error {
+func resourceAwsVpcRead(d schema.ResourceData, meta interface{}) error {
 	ec2conn := meta.(*AWSClient).ec2conn
 
 	// Refresh the VPC state
@@ -156,7 +155,7 @@ func resourceAwsVpcRead(d *schema.ResourceData, meta interface{}) error {
 	return nil
 }
 
-func resourceAwsVpcUpdate(d *schema.ResourceData, meta interface{}) error {
+func resourceAwsVpcUpdate(d schema.ResourceData, meta interface{}) error {
 	ec2conn := meta.(*AWSClient).ec2conn
 
 	// Turn on partial mode
@@ -202,7 +201,7 @@ func resourceAwsVpcUpdate(d *schema.ResourceData, meta interface{}) error {
 	return resourceAwsVpcRead(d, meta)
 }
 
-func resourceAwsVpcDelete(d *schema.ResourceData, meta interface{}) error {
+func resourceAwsVpcDelete(d schema.ResourceData, meta interface{}) error {
 	ec2conn := meta.(*AWSClient).ec2conn
 
 	log.Printf("[INFO] Deleting VPC: %s", d.Id())
@@ -243,8 +242,7 @@ func VPCStateRefreshFunc(conn *ec2.EC2, id string) resource.StateRefreshFunc {
 	}
 }
 
-
-func resourceAwsVpcSetDefaultNetworkAcl(conn *ec2.EC2, d *schema.ResourceData) error  {
+func resourceAwsVpcSetDefaultNetworkAcl(conn *ec2.EC2, d schema.ResourceData) error {
 	filter := ec2.NewFilter()
 	filter.Add("default", "true")
 	filter.Add("vpc-id", d.Id())
@@ -260,7 +258,7 @@ func resourceAwsVpcSetDefaultNetworkAcl(conn *ec2.EC2, d *schema.ResourceData) e
 	return nil
 }
 
-func resourceAwsVpcSetDefaultSecurityGroup(conn *ec2.EC2, d *schema.ResourceData) error  {
+func resourceAwsVpcSetDefaultSecurityGroup(conn *ec2.EC2, d schema.ResourceData) error {
 	filter := ec2.NewFilter()
 	filter.Add("group-name", "default")
 	filter.Add("vpc-id", d.Id())

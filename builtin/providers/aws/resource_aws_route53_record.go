@@ -56,7 +56,7 @@ func resourceAwsRoute53Record() *schema.Resource {
 	}
 }
 
-func resourceAwsRoute53RecordCreate(d *schema.ResourceData, meta interface{}) error {
+func resourceAwsRoute53RecordCreate(d schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).route53
 
 	// Get the record
@@ -130,7 +130,7 @@ func resourceAwsRoute53RecordCreate(d *schema.ResourceData, meta interface{}) er
 	return nil
 }
 
-func resourceAwsRoute53RecordRead(d *schema.ResourceData, meta interface{}) error {
+func resourceAwsRoute53RecordRead(d schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).route53
 
 	zone := d.Get("zone_id").(string)
@@ -168,7 +168,7 @@ func resourceAwsRoute53RecordRead(d *schema.ResourceData, meta interface{}) erro
 	return nil
 }
 
-func resourceAwsRoute53RecordDelete(d *schema.ResourceData, meta interface{}) error {
+func resourceAwsRoute53RecordDelete(d schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).route53
 
 	// Get the records
@@ -224,7 +224,7 @@ func resourceAwsRoute53RecordDelete(d *schema.ResourceData, meta interface{}) er
 	return nil
 }
 
-func resourceAwsRoute53RecordBuildSet(d *schema.ResourceData) (*route53.ResourceRecordSet, error) {
+func resourceAwsRoute53RecordBuildSet(d schema.ResourceData) (*route53.ResourceRecordSet, error) {
 	recs := d.Get("records").(*schema.Set).List()
 	records := make([]string, 0, len(recs))
 

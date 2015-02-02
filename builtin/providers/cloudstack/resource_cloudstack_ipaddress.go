@@ -36,7 +36,7 @@ func resourceCloudStackIPAddress() *schema.Resource {
 	}
 }
 
-func resourceCloudStackIPAddressCreate(d *schema.ResourceData, meta interface{}) error {
+func resourceCloudStackIPAddressCreate(d schema.ResourceData, meta interface{}) error {
 	cs := meta.(*cloudstack.CloudStackClient)
 
 	if err := verifyIPAddressParams(d); err != nil {
@@ -79,7 +79,7 @@ func resourceCloudStackIPAddressCreate(d *schema.ResourceData, meta interface{})
 	return resourceCloudStackIPAddressRead(d, meta)
 }
 
-func resourceCloudStackIPAddressRead(d *schema.ResourceData, meta interface{}) error {
+func resourceCloudStackIPAddressRead(d schema.ResourceData, meta interface{}) error {
 	cs := meta.(*cloudstack.CloudStackClient)
 
 	// Get the network ACL list details
@@ -121,7 +121,7 @@ func resourceCloudStackIPAddressRead(d *schema.ResourceData, meta interface{}) e
 	return nil
 }
 
-func resourceCloudStackIPAddressDelete(d *schema.ResourceData, meta interface{}) error {
+func resourceCloudStackIPAddressDelete(d schema.ResourceData, meta interface{}) error {
 	cs := meta.(*cloudstack.CloudStackClient)
 
 	// Create a new parameter struct
@@ -142,7 +142,7 @@ func resourceCloudStackIPAddressDelete(d *schema.ResourceData, meta interface{})
 	return nil
 }
 
-func verifyIPAddressParams(d *schema.ResourceData) error {
+func verifyIPAddressParams(d schema.ResourceData) error {
 	_, network := d.GetOk("network")
 	_, vpc := d.GetOk("vpc")
 

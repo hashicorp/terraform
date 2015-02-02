@@ -58,7 +58,7 @@ func resourceAwsEip() *schema.Resource {
 	}
 }
 
-func resourceAwsEipCreate(d *schema.ResourceData, meta interface{}) error {
+func resourceAwsEipCreate(d schema.ResourceData, meta interface{}) error {
 	ec2conn := meta.(*AWSClient).ec2conn
 
 	// By default, we're not in a VPC
@@ -95,7 +95,7 @@ func resourceAwsEipCreate(d *schema.ResourceData, meta interface{}) error {
 	return resourceAwsEipUpdate(d, meta)
 }
 
-func resourceAwsEipRead(d *schema.ResourceData, meta interface{}) error {
+func resourceAwsEipRead(d schema.ResourceData, meta interface{}) error {
 	ec2conn := meta.(*AWSClient).ec2conn
 
 	domain := resourceAwsEipDomain(d)
@@ -142,7 +142,7 @@ func resourceAwsEipRead(d *schema.ResourceData, meta interface{}) error {
 	return nil
 }
 
-func resourceAwsEipUpdate(d *schema.ResourceData, meta interface{}) error {
+func resourceAwsEipUpdate(d schema.ResourceData, meta interface{}) error {
 	ec2conn := meta.(*AWSClient).ec2conn
 
 	domain := resourceAwsEipDomain(d)
@@ -175,7 +175,7 @@ func resourceAwsEipUpdate(d *schema.ResourceData, meta interface{}) error {
 	return resourceAwsEipRead(d, meta)
 }
 
-func resourceAwsEipDelete(d *schema.ResourceData, meta interface{}) error {
+func resourceAwsEipDelete(d schema.ResourceData, meta interface{}) error {
 	ec2conn := meta.(*AWSClient).ec2conn
 
 	if err := resourceAwsEipRead(d, meta); err != nil {
@@ -226,7 +226,7 @@ func resourceAwsEipDelete(d *schema.ResourceData, meta interface{}) error {
 	})
 }
 
-func resourceAwsEipDomain(d *schema.ResourceData) string {
+func resourceAwsEipDomain(d schema.ResourceData) string {
 	if v, ok := d.GetOk("domain"); ok {
 		return v.(string)
 	} else if strings.Contains(d.Id(), "eipalloc") {

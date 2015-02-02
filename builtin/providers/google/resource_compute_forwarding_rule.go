@@ -64,16 +64,16 @@ func resourceComputeForwardingRule() *schema.Resource {
 	}
 }
 
-func resourceComputeForwardingRuleCreate(d *schema.ResourceData, meta interface{}) error {
+func resourceComputeForwardingRuleCreate(d schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
 
 	frule := &compute.ForwardingRule{
-		IPAddress:  d.Get("ip_address").(string),
-		IPProtocol: d.Get("ip_protocol").(string),
+		IPAddress:   d.Get("ip_address").(string),
+		IPProtocol:  d.Get("ip_protocol").(string),
 		Description: d.Get("description").(string),
-		Name: d.Get("name").(string),
-		PortRange: d.Get("port_range").(string),
-		Target: d.Get("target").(string),
+		Name:        d.Get("name").(string),
+		PortRange:   d.Get("port_range").(string),
+		Target:      d.Get("target").(string),
 	}
 
 	log.Printf("[DEBUG] ForwardingRule insert request: %#v", frule)
@@ -113,7 +113,7 @@ func resourceComputeForwardingRuleCreate(d *schema.ResourceData, meta interface{
 	return resourceComputeForwardingRuleRead(d, meta)
 }
 
-func resourceComputeForwardingRuleUpdate(d *schema.ResourceData, meta interface{}) error {
+func resourceComputeForwardingRuleUpdate(d schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
 
 	d.Partial(true)
@@ -158,7 +158,7 @@ func resourceComputeForwardingRuleUpdate(d *schema.ResourceData, meta interface{
 	return resourceComputeForwardingRuleRead(d, meta)
 }
 
-func resourceComputeForwardingRuleRead(d *schema.ResourceData, meta interface{}) error {
+func resourceComputeForwardingRuleRead(d schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
 
 	frule, err := config.clientCompute.ForwardingRules.Get(
@@ -181,7 +181,7 @@ func resourceComputeForwardingRuleRead(d *schema.ResourceData, meta interface{})
 	return nil
 }
 
-func resourceComputeForwardingRuleDelete(d *schema.ResourceData, meta interface{}) error {
+func resourceComputeForwardingRuleDelete(d schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
 
 	// Delete the ForwardingRule
@@ -216,4 +216,3 @@ func resourceComputeForwardingRuleDelete(d *schema.ResourceData, meta interface{
 	d.SetId("")
 	return nil
 }
-

@@ -80,14 +80,14 @@ func resourceComputeHttpHealthCheck() *schema.Resource {
 	}
 }
 
-func resourceComputeHttpHealthCheckCreate(d *schema.ResourceData, meta interface{}) error {
+func resourceComputeHttpHealthCheckCreate(d schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
 
 	// Build the parameter
 	hchk := &compute.HttpHealthCheck{
 		Description: d.Get("description").(string),
-		Host: d.Get("host").(string),
-		Name: d.Get("name").(string),
+		Host:        d.Get("host").(string),
+		Name:        d.Get("name").(string),
 		RequestPath: d.Get("request_path").(string),
 	}
 	if d.Get("check_interval_sec") != nil {
@@ -142,14 +142,14 @@ func resourceComputeHttpHealthCheckCreate(d *schema.ResourceData, meta interface
 	return resourceComputeHttpHealthCheckRead(d, meta)
 }
 
-func resourceComputeHttpHealthCheckUpdate(d *schema.ResourceData, meta interface{}) error {
+func resourceComputeHttpHealthCheckUpdate(d schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
 
 	// Build the parameter
 	hchk := &compute.HttpHealthCheck{
 		Description: d.Get("description").(string),
-		Host: d.Get("host").(string),
-		Name: d.Get("name").(string),
+		Host:        d.Get("host").(string),
+		Name:        d.Get("name").(string),
 		RequestPath: d.Get("request_path").(string),
 	}
 	if d.Get("check_interval_sec") != nil {
@@ -204,7 +204,7 @@ func resourceComputeHttpHealthCheckUpdate(d *schema.ResourceData, meta interface
 	return resourceComputeHttpHealthCheckRead(d, meta)
 }
 
-func resourceComputeHttpHealthCheckRead(d *schema.ResourceData, meta interface{}) error {
+func resourceComputeHttpHealthCheckRead(d schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
 
 	hchk, err := config.clientCompute.HttpHealthChecks.Get(
@@ -225,7 +225,7 @@ func resourceComputeHttpHealthCheckRead(d *schema.ResourceData, meta interface{}
 	return nil
 }
 
-func resourceComputeHttpHealthCheckDelete(d *schema.ResourceData, meta interface{}) error {
+func resourceComputeHttpHealthCheckDelete(d schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
 
 	// Delete the HttpHealthCheck

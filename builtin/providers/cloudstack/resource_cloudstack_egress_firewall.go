@@ -81,7 +81,7 @@ func resourceCloudStackEgressFirewall() *schema.Resource {
 	}
 }
 
-func resourceCloudStackEgressFirewallCreate(d *schema.ResourceData, meta interface{}) error {
+func resourceCloudStackEgressFirewallCreate(d schema.ResourceData, meta interface{}) error {
 	cs := meta.(*cloudstack.CloudStackClient)
 
 	// Make sure all required parameters are there
@@ -124,7 +124,7 @@ func resourceCloudStackEgressFirewallCreate(d *schema.ResourceData, meta interfa
 }
 
 func resourceCloudStackEgressFirewallCreateRule(
-	d *schema.ResourceData, meta interface{}, rule map[string]interface{}) error {
+	d schema.ResourceData, meta interface{}, rule map[string]interface{}) error {
 	cs := meta.(*cloudstack.CloudStackClient)
 	uuids := rule["uuids"].(map[string]interface{})
 
@@ -200,7 +200,7 @@ func resourceCloudStackEgressFirewallCreateRule(
 	return nil
 }
 
-func resourceCloudStackEgressFirewallRead(d *schema.ResourceData, meta interface{}) error {
+func resourceCloudStackEgressFirewallRead(d schema.ResourceData, meta interface{}) error {
 	cs := meta.(*cloudstack.CloudStackClient)
 
 	// Create an empty schema.Set to hold all rules
@@ -335,7 +335,7 @@ func resourceCloudStackEgressFirewallRead(d *schema.ResourceData, meta interface
 	return nil
 }
 
-func resourceCloudStackEgressFirewallUpdate(d *schema.ResourceData, meta interface{}) error {
+func resourceCloudStackEgressFirewallUpdate(d schema.ResourceData, meta interface{}) error {
 	// Make sure all required parameters are there
 	if err := verifyEgressFirewallParams(d); err != nil {
 		return err
@@ -379,7 +379,7 @@ func resourceCloudStackEgressFirewallUpdate(d *schema.ResourceData, meta interfa
 	return resourceCloudStackEgressFirewallRead(d, meta)
 }
 
-func resourceCloudStackEgressFirewallDelete(d *schema.ResourceData, meta interface{}) error {
+func resourceCloudStackEgressFirewallDelete(d schema.ResourceData, meta interface{}) error {
 	// Delete all rules
 	if rs := d.Get("rule").(*schema.Set); rs.Len() > 0 {
 		for _, rule := range rs.List() {
@@ -399,7 +399,7 @@ func resourceCloudStackEgressFirewallDelete(d *schema.ResourceData, meta interfa
 }
 
 func resourceCloudStackEgressFirewallDeleteRule(
-	d *schema.ResourceData, meta interface{}, rule map[string]interface{}) error {
+	d schema.ResourceData, meta interface{}, rule map[string]interface{}) error {
 	cs := meta.(*cloudstack.CloudStackClient)
 	uuids := rule["uuids"].(map[string]interface{})
 
@@ -469,7 +469,7 @@ func resourceCloudStackEgressFirewallRuleHash(v interface{}) int {
 	return hashcode.String(buf.String())
 }
 
-func verifyEgressFirewallParams(d *schema.ResourceData) error {
+func verifyEgressFirewallParams(d schema.ResourceData) error {
 	managed := d.Get("managed").(bool)
 	_, rules := d.GetOk("rule")
 
@@ -481,7 +481,7 @@ func verifyEgressFirewallParams(d *schema.ResourceData) error {
 	return nil
 }
 
-func verifyEgressFirewallRuleParams(d *schema.ResourceData, rule map[string]interface{}) error {
+func verifyEgressFirewallRuleParams(d schema.ResourceData, rule map[string]interface{}) error {
 	protocol := rule["protocol"].(string)
 	if protocol != "tcp" && protocol != "udp" && protocol != "icmp" {
 		return fmt.Errorf(

@@ -31,7 +31,7 @@ func resourceAwsRoute53Zone() *schema.Resource {
 	}
 }
 
-func resourceAwsRoute53ZoneCreate(d *schema.ResourceData, meta interface{}) error {
+func resourceAwsRoute53ZoneCreate(d schema.ResourceData, meta interface{}) error {
 	r53 := meta.(*AWSClient).route53
 
 	req := &route53.CreateHostedZoneRequest{
@@ -67,7 +67,7 @@ func resourceAwsRoute53ZoneCreate(d *schema.ResourceData, meta interface{}) erro
 	return nil
 }
 
-func resourceAwsRoute53ZoneRead(d *schema.ResourceData, meta interface{}) error {
+func resourceAwsRoute53ZoneRead(d schema.ResourceData, meta interface{}) error {
 	r53 := meta.(*AWSClient).route53
 
 	_, err := r53.GetHostedZone(d.Id())
@@ -83,7 +83,7 @@ func resourceAwsRoute53ZoneRead(d *schema.ResourceData, meta interface{}) error 
 	return nil
 }
 
-func resourceAwsRoute53ZoneDelete(d *schema.ResourceData, meta interface{}) error {
+func resourceAwsRoute53ZoneDelete(d schema.ResourceData, meta interface{}) error {
 	r53 := meta.(*AWSClient).route53
 
 	log.Printf("[DEBUG] Deleting Route53 hosted zone: %s (ID: %s)",

@@ -122,4 +122,3 @@ resource "google_compute_forwarding_rule" "foobar" {
     target = "${google_compute_target_pool.foobar-tp.self_link}"
 }
 `
-

@@ -118,7 +118,7 @@ func resourceVirtualMachine() *schema.Resource {
 	}
 }
 
-func resourceVirtualMachineCreate(d *schema.ResourceData, meta interface{}) error {
+func resourceVirtualMachineCreate(d schema.ResourceData, meta interface{}) error {
 	log.Printf("[DEBUG] Creating Azure Virtual Machine Configuration...")
 	vmConfig, err := vmClient.CreateAzureVMConfiguration(
 		d.Get("name").(string),
@@ -182,7 +182,7 @@ func resourceVirtualMachineCreate(d *schema.ResourceData, meta interface{}) erro
 	return resourceVirtualMachineRead(d, meta)
 }
 
-func resourceVirtualMachineRead(d *schema.ResourceData, meta interface{}) error {
+func resourceVirtualMachineRead(d schema.ResourceData, meta interface{}) error {
 	log.Printf("[DEBUG] Getting Azure Virtual Machine Deployment: %s", d.Id())
 	VMDeployment, err := vmClient.GetVMDeployment(d.Id(), d.Id())
 	if err != nil {
@@ -214,7 +214,7 @@ func resourceVirtualMachineRead(d *schema.ResourceData, meta interface{}) error 
 	return nil
 }
 
-func resourceVirtualMachineDelete(d *schema.ResourceData, meta interface{}) error {
+func resourceVirtualMachineDelete(d schema.ResourceData, meta interface{}) error {
 	log.Printf("[DEBUG] Deleting Azure Virtual Machine Deployment: %s", d.Id())
 	if err := vmClient.DeleteVMDeployment(d.Id(), d.Id()); err != nil {
 		return fmt.Errorf("Error deleting Azure virtual machine deployment: %s", err)

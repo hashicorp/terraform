@@ -56,7 +56,7 @@ func resourceAwsDbParameterGroup() *schema.Resource {
 	}
 }
 
-func resourceAwsDbParameterGroupCreate(d *schema.ResourceData, meta interface{}) error {
+func resourceAwsDbParameterGroupCreate(d schema.ResourceData, meta interface{}) error {
 	rdsconn := meta.(*AWSClient).rdsconn
 
 	createOpts := rds.CreateDBParameterGroup{
@@ -83,7 +83,7 @@ func resourceAwsDbParameterGroupCreate(d *schema.ResourceData, meta interface{})
 	return resourceAwsDbParameterGroupUpdate(d, meta)
 }
 
-func resourceAwsDbParameterGroupRead(d *schema.ResourceData, meta interface{}) error {
+func resourceAwsDbParameterGroupRead(d schema.ResourceData, meta interface{}) error {
 	rdsconn := meta.(*AWSClient).rdsconn
 
 	describeOpts := rds.DescribeDBParameterGroups{
@@ -120,7 +120,7 @@ func resourceAwsDbParameterGroupRead(d *schema.ResourceData, meta interface{}) e
 	return nil
 }
 
-func resourceAwsDbParameterGroupUpdate(d *schema.ResourceData, meta interface{}) error {
+func resourceAwsDbParameterGroupUpdate(d schema.ResourceData, meta interface{}) error {
 	rdsconn := meta.(*AWSClient).rdsconn
 
 	d.Partial(true)
@@ -163,7 +163,7 @@ func resourceAwsDbParameterGroupUpdate(d *schema.ResourceData, meta interface{})
 	return resourceAwsDbParameterGroupRead(d, meta)
 }
 
-func resourceAwsDbParameterGroupDelete(d *schema.ResourceData, meta interface{}) error {
+func resourceAwsDbParameterGroupDelete(d schema.ResourceData, meta interface{}) error {
 	stateConf := &resource.StateChangeConf{
 		Pending:    []string{"pending"},
 		Target:     "destroyed",
@@ -176,7 +176,7 @@ func resourceAwsDbParameterGroupDelete(d *schema.ResourceData, meta interface{})
 }
 
 func resourceAwsDbParameterGroupDeleteRefreshFunc(
-	d *schema.ResourceData,
+	d schema.ResourceData,
 	meta interface{}) resource.StateRefreshFunc {
 	rdsconn := meta.(*AWSClient).rdsconn
 

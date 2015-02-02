@@ -83,7 +83,7 @@ func resourceConsulKeysHash(v interface{}) int {
 	return hashcode.String(buf.String())
 }
 
-func resourceConsulKeysCreate(d *schema.ResourceData, meta interface{}) error {
+func resourceConsulKeysCreate(d schema.ResourceData, meta interface{}) error {
 	client := meta.(*consulapi.Client)
 	kv := client.KV()
 
@@ -150,7 +150,7 @@ func resourceConsulKeysCreate(d *schema.ResourceData, meta interface{}) error {
 	return nil
 }
 
-func resourceConsulKeysRead(d *schema.ResourceData, meta interface{}) error {
+func resourceConsulKeysRead(d schema.ResourceData, meta interface{}) error {
 	client := meta.(*consulapi.Client)
 	kv := client.KV()
 
@@ -198,7 +198,7 @@ func resourceConsulKeysRead(d *schema.ResourceData, meta interface{}) error {
 	return nil
 }
 
-func resourceConsulKeysDelete(d *schema.ResourceData, meta interface{}) error {
+func resourceConsulKeysDelete(d schema.ResourceData, meta interface{}) error {
 	client := meta.(*consulapi.Client)
 	kv := client.KV()
 

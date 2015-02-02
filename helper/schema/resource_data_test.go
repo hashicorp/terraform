@@ -648,10 +648,9 @@ func TestResourceDataGet(t *testing.T) {
 
 			State: &terraform.InstanceState{
 				Attributes: map[string]string{
-					"ratio":        "0.5",
+					"ratio": "0.5",
 				},
 			},
-
 
 			Diff: nil,
 
@@ -672,10 +671,9 @@ func TestResourceDataGet(t *testing.T) {
 
 			State: &terraform.InstanceState{
 				Attributes: map[string]string{
-					"ratio":        "-0.5",
+					"ratio": "-0.5",
 				},
 			},
-
 
 			Diff: &terraform.InstanceDiff{
 				Attributes: map[string]*terraform.ResourceAttrDiff{
@@ -685,7 +683,6 @@ func TestResourceDataGet(t *testing.T) {
 					},
 				},
 			},
-
 
 			Key: "ratio",
 
@@ -1533,7 +1530,6 @@ func TestResourceDataSet(t *testing.T) {
 			GetKey:   "ratios",
 			GetValue: []interface{}{1.0, 2.2, 5.5},
 		},
-
 	}
 
 	for i, tc := range cases {
@@ -2544,7 +2540,7 @@ func TestResourceDataState(t *testing.T) {
 }
 
 func TestResourceDataSetConnInfo(t *testing.T) {
-	d := &ResourceData{}
+	d := &resourceData{}
 	d.SetId("foo")
 	d.SetConnInfo(map[string]string{
 		"foo": "bar",
@@ -2561,7 +2557,7 @@ func TestResourceDataSetConnInfo(t *testing.T) {
 }
 
 func TestResourceDataSetId(t *testing.T) {
-	d := &ResourceData{}
+	d := &resourceData{}
 	d.SetId("foo")
 
 	actual := d.State()
@@ -2571,7 +2567,7 @@ func TestResourceDataSetId(t *testing.T) {
 }
 
 func TestResourceDataSetId_clear(t *testing.T) {
-	d := &ResourceData{
+	d := &resourceData{
 		state: &terraform.InstanceState{ID: "bar"},
 	}
 	d.SetId("")
@@ -2583,7 +2579,7 @@ func TestResourceDataSetId_clear(t *testing.T) {
 }
 
 func TestResourceDataSetId_override(t *testing.T) {
-	d := &ResourceData{
+	d := &resourceData{
 		state: &terraform.InstanceState{ID: "bar"},
 	}
 	d.SetId("foo")

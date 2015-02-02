@@ -86,7 +86,7 @@ func resourceArtifact() *schema.Resource {
 	}
 }
 
-func resourceArtifactRead(d *schema.ResourceData, meta interface{}) error {
+func resourceArtifactRead(d schema.ResourceData, meta interface{}) error {
 	client := meta.(*atlas.Client)
 
 	// Parse the slug from the name given of the artifact since the API
@@ -161,7 +161,7 @@ func resourceArtifactRead(d *schema.ResourceData, meta interface{}) error {
 	return nil
 }
 
-func resourceArtifactDelete(d *schema.ResourceData, meta interface{}) error {
+func resourceArtifactDelete(d schema.ResourceData, meta interface{}) error {
 	// This just always succeeds since this is a readonly element.
 	d.SetId("")
 	return nil

@@ -160,7 +160,7 @@ func resourceAwsElb() *schema.Resource {
 	}
 }
 
-func resourceAwsElbCreate(d *schema.ResourceData, meta interface{}) error {
+func resourceAwsElbCreate(d schema.ResourceData, meta interface{}) error {
 	elbconn := meta.(*AWSClient).elbconn
 
 	// Expand the "listener" set to goamz compat []elb.Listener
@@ -232,7 +232,7 @@ func resourceAwsElbCreate(d *schema.ResourceData, meta interface{}) error {
 	return resourceAwsElbUpdate(d, meta)
 }
 
-func resourceAwsElbRead(d *schema.ResourceData, meta interface{}) error {
+func resourceAwsElbRead(d schema.ResourceData, meta interface{}) error {
 	elbconn := meta.(*AWSClient).elbconn
 
 	// Retrieve the ELB properties for updating the state
@@ -274,7 +274,7 @@ func resourceAwsElbRead(d *schema.ResourceData, meta interface{}) error {
 	return nil
 }
 
-func resourceAwsElbUpdate(d *schema.ResourceData, meta interface{}) error {
+func resourceAwsElbUpdate(d schema.ResourceData, meta interface{}) error {
 	elbconn := meta.(*AWSClient).elbconn
 
 	d.Partial(true)
@@ -335,7 +335,7 @@ func resourceAwsElbUpdate(d *schema.ResourceData, meta interface{}) error {
 	return resourceAwsElbRead(d, meta)
 }
 
-func resourceAwsElbDelete(d *schema.ResourceData, meta interface{}) error {
+func resourceAwsElbDelete(d schema.ResourceData, meta interface{}) error {
 	elbconn := meta.(*AWSClient).elbconn
 
 	log.Printf("[INFO] Deleting ELB: %s", d.Id())

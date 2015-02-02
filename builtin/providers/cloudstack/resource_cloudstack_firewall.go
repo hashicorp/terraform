@@ -81,7 +81,7 @@ func resourceCloudStackFirewall() *schema.Resource {
 	}
 }
 
-func resourceCloudStackFirewallCreate(d *schema.ResourceData, meta interface{}) error {
+func resourceCloudStackFirewallCreate(d schema.ResourceData, meta interface{}) error {
 	cs := meta.(*cloudstack.CloudStackClient)
 
 	// Make sure all required parameters are there
@@ -124,7 +124,7 @@ func resourceCloudStackFirewallCreate(d *schema.ResourceData, meta interface{}) 
 }
 
 func resourceCloudStackFirewallCreateRule(
-	d *schema.ResourceData, meta interface{}, rule map[string]interface{}) error {
+	d schema.ResourceData, meta interface{}, rule map[string]interface{}) error {
 	cs := meta.(*cloudstack.CloudStackClient)
 	uuids := rule["uuids"].(map[string]interface{})
 
@@ -200,7 +200,7 @@ func resourceCloudStackFirewallCreateRule(
 	return nil
 }
 
-func resourceCloudStackFirewallRead(d *schema.ResourceData, meta interface{}) error {
+func resourceCloudStackFirewallRead(d schema.ResourceData, meta interface{}) error {
 	cs := meta.(*cloudstack.CloudStackClient)
 
 	// Create an empty schema.Set to hold all rules
@@ -335,7 +335,7 @@ func resourceCloudStackFirewallRead(d *schema.ResourceData, meta interface{}) er
 	return nil
 }
 
-func resourceCloudStackFirewallUpdate(d *schema.ResourceData, meta interface{}) error {
+func resourceCloudStackFirewallUpdate(d schema.ResourceData, meta interface{}) error {
 	// Make sure all required parameters are there
 	if err := verifyFirewallParams(d); err != nil {
 		return err
@@ -379,7 +379,7 @@ func resourceCloudStackFirewallUpdate(d *schema.ResourceData, meta interface{}) 
 	return resourceCloudStackFirewallRead(d, meta)
 }
 
-func resourceCloudStackFirewallDelete(d *schema.ResourceData, meta interface{}) error {
+func resourceCloudStackFirewallDelete(d schema.ResourceData, meta interface{}) error {
 	// Delete all rules
 	if rs := d.Get("rule").(*schema.Set); rs.Len() > 0 {
 		for _, rule := range rs.List() {
@@ -399,7 +399,7 @@ func resourceCloudStackFirewallDelete(d *schema.ResourceData, meta interface{}) 
 }
 
 func resourceCloudStackFirewallDeleteRule(
-	d *schema.ResourceData, meta interface{}, rule map[string]interface{}) error {
+	d schema.ResourceData, meta interface{}, rule map[string]interface{}) error {
 	cs := meta.(*cloudstack.CloudStackClient)
 	uuids := rule["uuids"].(map[string]interface{})
 
@@ -469,7 +469,7 @@ func resourceCloudStackFirewallRuleHash(v interface{}) int {
 	return hashcode.String(buf.String())
 }
 
-func verifyFirewallParams(d *schema.ResourceData) error {
+func verifyFirewallParams(d schema.ResourceData) error {
 	managed := d.Get("managed").(bool)
 	_, rules := d.GetOk("rule")
 
@@ -481,7 +481,7 @@ func verifyFirewallParams(d *schema.ResourceData) error {
 	return nil
 }
 
-func verifyFirewallRuleParams(d *schema.ResourceData, rule map[string]interface{}) error {
+func verifyFirewallRuleParams(d schema.ResourceData, rule map[string]interface{}) error {
 	protocol := rule["protocol"].(string)
 	if protocol != "tcp" && protocol != "udp" && protocol != "icmp" {
 		return fmt.Errorf(

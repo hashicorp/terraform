@@ -54,7 +54,7 @@ func resourceCloudFlareRecord() *schema.Resource {
 	}
 }
 
-func resourceCloudFlareRecordCreate(d *schema.ResourceData, meta interface{}) error {
+func resourceCloudFlareRecordCreate(d schema.ResourceData, meta interface{}) error {
 	client := meta.(*cloudflare.Client)
 
 	// Create the new record
@@ -86,7 +86,7 @@ func resourceCloudFlareRecordCreate(d *schema.ResourceData, meta interface{}) er
 	return resourceCloudFlareRecordRead(d, meta)
 }
 
-func resourceCloudFlareRecordRead(d *schema.ResourceData, meta interface{}) error {
+func resourceCloudFlareRecordRead(d schema.ResourceData, meta interface{}) error {
 	client := meta.(*cloudflare.Client)
 
 	rec, err := client.RetrieveRecord(d.Get("domain").(string), d.Id())
@@ -104,7 +104,7 @@ func resourceCloudFlareRecordRead(d *schema.ResourceData, meta interface{}) erro
 	return nil
 }
 
-func resourceCloudFlareRecordUpdate(d *schema.ResourceData, meta interface{}) error {
+func resourceCloudFlareRecordUpdate(d schema.ResourceData, meta interface{}) error {
 	client := meta.(*cloudflare.Client)
 
 	// CloudFlare requires we send all values for an update request
@@ -132,7 +132,7 @@ func resourceCloudFlareRecordUpdate(d *schema.ResourceData, meta interface{}) er
 	return resourceCloudFlareRecordRead(d, meta)
 }
 
-func resourceCloudFlareRecordDelete(d *schema.ResourceData, meta interface{}) error {
+func resourceCloudFlareRecordDelete(d schema.ResourceData, meta interface{}) error {
 	client := meta.(*cloudflare.Client)
 
 	log.Printf("[INFO] Deleting record: %s, %s", d.Get("domain").(string), d.Id())

@@ -23,20 +23,20 @@ func resource() *schema.Resource {
 	}
 }
 
-func resourceCreate(d *schema.ResourceData, meta interface{}) error {
+func resourceCreate(d schema.ResourceData, meta interface{}) error {
 	d.SetId(fmt.Sprintf("%d", rand.Int()))
 	return nil
 }
 
-func resourceRead(d *schema.ResourceData, meta interface{}) error {
+func resourceRead(d schema.ResourceData, meta interface{}) error {
 	return nil
 }
 
-func resourceUpdate(d *schema.ResourceData, meta interface{}) error {
+func resourceUpdate(d schema.ResourceData, meta interface{}) error {
 	return nil
 }
 
-func resourceDelete(d *schema.ResourceData, meta interface{}) error {
+func resourceDelete(d schema.ResourceData, meta interface{}) error {
 	d.SetId("")
 	return nil
 }

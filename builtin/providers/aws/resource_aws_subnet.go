@@ -49,7 +49,7 @@ func resourceAwsSubnet() *schema.Resource {
 	}
 }
 
-func resourceAwsSubnetCreate(d *schema.ResourceData, meta interface{}) error {
+func resourceAwsSubnetCreate(d schema.ResourceData, meta interface{}) error {
 	ec2conn := meta.(*AWSClient).ec2conn
 
 	createOpts := &ec2.CreateSubnet{
@@ -89,7 +89,7 @@ func resourceAwsSubnetCreate(d *schema.ResourceData, meta interface{}) error {
 	return resourceAwsSubnetUpdate(d, meta)
 }
 
-func resourceAwsSubnetRead(d *schema.ResourceData, meta interface{}) error {
+func resourceAwsSubnetRead(d schema.ResourceData, meta interface{}) error {
 	ec2conn := meta.(*AWSClient).ec2conn
 
 	resp, err := ec2conn.DescribeSubnets([]string{d.Id()}, ec2.NewFilter())
@@ -112,7 +112,7 @@ func resourceAwsSubnetRead(d *schema.ResourceData, meta interface{}) error {
 	return nil
 }
 
-func resourceAwsSubnetUpdate(d *schema.ResourceData, meta interface{}) error {
+func resourceAwsSubnetUpdate(d schema.ResourceData, meta interface{}) error {
 	ec2conn := meta.(*AWSClient).ec2conn
 
 	d.Partial(true)
@@ -145,7 +145,7 @@ func resourceAwsSubnetUpdate(d *schema.ResourceData, meta interface{}) error {
 	return resourceAwsSubnetRead(d, meta)
 }
 
-func resourceAwsSubnetDelete(d *schema.ResourceData, meta interface{}) error {
+func resourceAwsSubnetDelete(d schema.ResourceData, meta interface{}) error {
 	ec2conn := meta.(*AWSClient).ec2conn
 
 	log.Printf("[INFO] Deleting subnet: %s", d.Id())

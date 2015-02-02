@@ -52,7 +52,7 @@ func Provider() terraform.ResourceProvider {
 	}
 }
 
-func providerConfigure(d *schema.ResourceData) (interface{}, error) {
+func providerConfigure(d schema.ResourceData) (interface{}, error) {
 	config := Config{
 		ApiURL:    d.Get("api_url").(string),
 		ApiKey:    d.Get("api_key").(string),

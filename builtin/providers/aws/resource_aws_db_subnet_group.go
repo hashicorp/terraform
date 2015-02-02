@@ -43,7 +43,7 @@ func resourceAwsDbSubnetGroup() *schema.Resource {
 	}
 }
 
-func resourceAwsDbSubnetGroupCreate(d *schema.ResourceData, meta interface{}) error {
+func resourceAwsDbSubnetGroupCreate(d schema.ResourceData, meta interface{}) error {
 	rdsconn := meta.(*AWSClient).rdsconn
 
 	subnetIdsSet := d.Get("subnet_ids").(*schema.Set)
@@ -69,7 +69,7 @@ func resourceAwsDbSubnetGroupCreate(d *schema.ResourceData, meta interface{}) er
 	return resourceAwsDbSubnetGroupRead(d, meta)
 }
 
-func resourceAwsDbSubnetGroupRead(d *schema.ResourceData, meta interface{}) error {
+func resourceAwsDbSubnetGroupRead(d schema.ResourceData, meta interface{}) error {
 	rdsconn := meta.(*AWSClient).rdsconn
 
 	describeOpts := rds.DescribeDBSubnetGroups{
@@ -92,7 +92,7 @@ func resourceAwsDbSubnetGroupRead(d *schema.ResourceData, meta interface{}) erro
 	return nil
 }
 
-func resourceAwsDbSubnetGroupDelete(d *schema.ResourceData, meta interface{}) error {
+func resourceAwsDbSubnetGroupDelete(d schema.ResourceData, meta interface{}) error {
 	stateConf := &resource.StateChangeConf{
 		Pending:    []string{"pending"},
 		Target:     "destroyed",
@@ -105,7 +105,7 @@ func resourceAwsDbSubnetGroupDelete(d *schema.ResourceData, meta interface{}) er
 }
 
 func resourceAwsDbSubnetGroupDeleteRefreshFunc(
-	d *schema.ResourceData,
+	d schema.ResourceData,
 	meta interface{}) resource.StateRefreshFunc {
 	rdsconn := meta.(*AWSClient).rdsconn
 

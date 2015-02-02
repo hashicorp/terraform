@@ -48,7 +48,7 @@ type Provider struct {
 // the subsequent resources as the meta parameter. This return value is
 // usually used to pass along a configured API client, a configuration
 // structure, etc.
-type ConfigureFunc func(*ResourceData) (interface{}, error)
+type ConfigureFunc func(ResourceData) (interface{}, error)
 
 // InternalValidate should be called to validate the structure
 // of the provider.

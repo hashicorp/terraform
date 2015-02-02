@@ -34,7 +34,7 @@ func TestProviderConfigure(t *testing.T) {
 					},
 				},
 
-				ConfigureFunc: func(d *ResourceData) (interface{}, error) {
+				ConfigureFunc: func(d ResourceData) (interface{}, error) {
 					if d.Get("foo").(int) == 42 {
 						return nil, nil
 					}
@@ -57,7 +57,7 @@ func TestProviderConfigure(t *testing.T) {
 					},
 				},
 
-				ConfigureFunc: func(d *ResourceData) (interface{}, error) {
+				ConfigureFunc: func(d ResourceData) (interface{}, error) {
 					if d.Get("foo").(int) == 42 {
 						return nil, nil
 					}

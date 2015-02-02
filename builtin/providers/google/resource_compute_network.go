@@ -37,7 +37,7 @@ func resourceComputeNetwork() *schema.Resource {
 	}
 }
 
-func resourceComputeNetworkCreate(d *schema.ResourceData, meta interface{}) error {
+func resourceComputeNetworkCreate(d schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
 
 	// Build the network parameter
@@ -81,7 +81,7 @@ func resourceComputeNetworkCreate(d *schema.ResourceData, meta interface{}) erro
 	return resourceComputeNetworkRead(d, meta)
 }
 
-func resourceComputeNetworkRead(d *schema.ResourceData, meta interface{}) error {
+func resourceComputeNetworkRead(d schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
 
 	network, err := config.clientCompute.Networks.Get(
@@ -102,7 +102,7 @@ func resourceComputeNetworkRead(d *schema.ResourceData, meta interface{}) error 
 	return nil
 }
 
-func resourceComputeNetworkDelete(d *schema.ResourceData, meta interface{}) error {
+func resourceComputeNetworkDelete(d schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
 
 	// Delete the network

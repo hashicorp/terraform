@@ -59,7 +59,7 @@ func resourceDNSimpleRecord() *schema.Resource {
 	}
 }
 
-func resourceDNSimpleRecordCreate(d *schema.ResourceData, meta interface{}) error {
+func resourceDNSimpleRecordCreate(d schema.ResourceData, meta interface{}) error {
 	client := meta.(*dnsimple.Client)
 
 	// Create the new record
@@ -87,7 +87,7 @@ func resourceDNSimpleRecordCreate(d *schema.ResourceData, meta interface{}) erro
 	return resourceDNSimpleRecordRead(d, meta)
 }
 
-func resourceDNSimpleRecordRead(d *schema.ResourceData, meta interface{}) error {
+func resourceDNSimpleRecordRead(d schema.ResourceData, meta interface{}) error {
 	client := meta.(*dnsimple.Client)
 
 	rec, err := client.RetrieveRecord(d.Get("domain").(string), d.Id())
@@ -111,7 +111,7 @@ func resourceDNSimpleRecordRead(d *schema.ResourceData, meta interface{}) error 
 	return nil
 }
 
-func resourceDNSimpleRecordUpdate(d *schema.ResourceData, meta interface{}) error {
+func resourceDNSimpleRecordUpdate(d schema.ResourceData, meta interface{}) error {
 	client := meta.(*dnsimple.Client)
 
 	updateRecord := &dnsimple.ChangeRecord{}
@@ -142,7 +142,7 @@ func resourceDNSimpleRecordUpdate(d *schema.ResourceData, meta interface{}) erro
 	return resourceDNSimpleRecordRead(d, meta)
 }
 
-func resourceDNSimpleRecordDelete(d *schema.ResourceData, meta interface{}) error {
+func resourceDNSimpleRecordDelete(d schema.ResourceData, meta interface{}) error {
 	client := meta.(*dnsimple.Client)
 
 	log.Printf("[INFO] Deleting record: %s, %s", d.Get("domain").(string), d.Id())

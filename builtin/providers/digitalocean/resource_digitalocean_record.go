@@ -65,7 +65,7 @@ func resourceDigitalOceanRecord() *schema.Resource {
 	}
 }
 
-func resourceDigitalOceanRecordCreate(d *schema.ResourceData, meta interface{}) error {
+func resourceDigitalOceanRecordCreate(d schema.ResourceData, meta interface{}) error {
 	client := meta.(*digitalocean.Client)
 
 	newRecord := digitalocean.CreateRecord{
@@ -89,7 +89,7 @@ func resourceDigitalOceanRecordCreate(d *schema.ResourceData, meta interface{}) 
 	return resourceDigitalOceanRecordRead(d, meta)
 }
 
-func resourceDigitalOceanRecordRead(d *schema.ResourceData, meta interface{}) error {
+func resourceDigitalOceanRecordRead(d schema.ResourceData, meta interface{}) error {
 	client := meta.(*digitalocean.Client)
 
 	rec, err := client.RetrieveRecord(d.Get("domain").(string), d.Id())
@@ -114,7 +114,7 @@ func resourceDigitalOceanRecordRead(d *schema.ResourceData, meta interface{}) er
 	return nil
 }
 
-func resourceDigitalOceanRecordUpdate(d *schema.ResourceData, meta interface{}) error {
+func resourceDigitalOceanRecordUpdate(d schema.ResourceData, meta interface{}) error {
 	client := meta.(*digitalocean.Client)
 
 	var updateRecord digitalocean.UpdateRecord
@@ -131,7 +131,7 @@ func resourceDigitalOceanRecordUpdate(d *schema.ResourceData, meta interface{}) 
 	return resourceDigitalOceanRecordRead(d, meta)
 }
 
-func resourceDigitalOceanRecordDelete(d *schema.ResourceData, meta interface{}) error {
+func resourceDigitalOceanRecordDelete(d schema.ResourceData, meta interface{}) error {
 	client := meta.(*digitalocean.Client)
 
 	log.Printf(
