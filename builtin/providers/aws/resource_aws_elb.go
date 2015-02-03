@@ -331,6 +331,28 @@ func resourceAwsElbUpdate(d *schema.ResourceData, meta interface{}) error {
 		d.SetPartial("cross_zone_load_balancing")
 	}
 
+	if d.HasChange("health_check") {
+		vs := d.Get("health_check").(*schema.Set).List()
+		if len(vs) > 0 {
+			check := vs[0].(map[string]interface{})
+			configureHealthCheckOpts := elb.ConfigureHealthCheck{
+				LoadBalancerName: d.Id(),
+				Check: elb.HealthCheck{
+					HealthyThreshold:   int64(check["healthy_threshold"].(int)),
+					UnhealthyThreshold: int64(check["unhealthy_threshold"].(int)),
+					Interval:           int64(check["interval"].(int)),
+					Target:             check["target"].(string),
+					Timeout:            int64(check["timeout"].(int)),
+				},
+			}
+			_, err := elbconn.ConfigureHealthCheck(&configureHealthCheckOpts)
+			if err != nil {
+				return fmt.Errorf("Failure configuring health check: %s", err)
+			}
+			d.SetPartial("health_check")
+		}
+	}
+
 	d.Partial(false)
 	return resourceAwsElbRead(d, meta)
 }
