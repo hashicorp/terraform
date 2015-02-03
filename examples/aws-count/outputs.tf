@@ -1,3 +1,3 @@
 output "address" {
-  value = "Instances: ${aws_instance.web.*.id}"
+  value = "Instances: ${element(aws_instance.web.*.id, 0)}"
 }
