@@ -169,6 +169,11 @@ func resourceComputeInstance() *schema.Resource {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
+
+			"self_link": &schema.Schema{
+				Type:     schema.TypeString,
+				Computed: true,
+			},
 		},
 	}
 }
@@ -416,6 +421,8 @@ func resourceComputeInstanceRead(d *schema.ResourceData, meta interface{}) error
 	if instance.Tags != nil {
 		d.Set("tags_fingerprint", instance.Tags.Fingerprint)
 	}
+
+	d.Set("self_link", instance.SelfLink)
 
 	return nil
 }
