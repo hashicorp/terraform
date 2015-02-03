@@ -100,6 +100,11 @@ func (n *graphNodeMissingProvider) Name() string {
 	return fmt.Sprintf("provider.%s", n.ProviderNameValue)
 }
 
+// GraphNodeEvalable impl.
+func (n *graphNodeMissingProvider) EvalTree() EvalNode {
+	return &EvalInitProvider{Name: n.ProviderNameValue}
+}
+
 func (n *graphNodeMissingProvider) ProviderName() string {
 	return n.ProviderNameValue
 }

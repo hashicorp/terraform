@@ -73,6 +73,14 @@ func (n *GraphNodeConfigProvider) DependentOn() []string {
 	return result
 }
 
+// GraphNodeEvalable impl.
+func (n *GraphNodeConfigProvider) EvalTree() EvalNode {
+	return &EvalConfigProvider{
+		Provider: &EvalGetProvider{Name: n.Provider.Name},
+		Config:   &EvalInterpolate{Config: n.Provider.RawConfig},
+	}
+}
+
 // GraphNodeProvider implementation
 func (n *GraphNodeConfigProvider) ProviderName() string {
 	return n.Provider.Name
