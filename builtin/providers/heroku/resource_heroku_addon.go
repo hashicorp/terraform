@@ -57,7 +57,7 @@ func resourceHerokuAddon() *schema.Resource {
 	}
 }
 
-func resourceHerokuAddonCreate(d *schema.ResourceData, meta interface{}) error {
+func resourceHerokuAddonCreate(d schema.ResourceData, meta interface{}) error {
 	addonLock.Lock()
 	defer addonLock.Unlock()
 
@@ -89,7 +89,7 @@ func resourceHerokuAddonCreate(d *schema.ResourceData, meta interface{}) error {
 	return resourceHerokuAddonRead(d, meta)
 }
 
-func resourceHerokuAddonRead(d *schema.ResourceData, meta interface{}) error {
+func resourceHerokuAddonRead(d schema.ResourceData, meta interface{}) error {
 	client := meta.(*heroku.Service)
 
 	addon, err := resourceHerokuAddonRetrieve(
@@ -119,7 +119,7 @@ func resourceHerokuAddonRead(d *schema.ResourceData, meta interface{}) error {
 	return nil
 }
 
-func resourceHerokuAddonUpdate(d *schema.ResourceData, meta interface{}) error {
+func resourceHerokuAddonUpdate(d schema.ResourceData, meta interface{}) error {
 	client := meta.(*heroku.Service)
 
 	app := d.Get("app").(string)
@@ -138,7 +138,7 @@ func resourceHerokuAddonUpdate(d *schema.ResourceData, meta interface{}) error {
 	return resourceHerokuAddonRead(d, meta)
 }
 
-func resourceHerokuAddonDelete(d *schema.ResourceData, meta interface{}) error {
+func resourceHerokuAddonDelete(d schema.ResourceData, meta interface{}) error {
 	client := meta.(*heroku.Service)
 
 	log.Printf("[INFO] Deleting Addon: %s", d.Id())

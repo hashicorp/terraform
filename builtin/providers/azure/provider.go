@@ -18,7 +18,7 @@ func Provider() terraform.ResourceProvider {
 		},
 
 		ResourcesMap: map[string]*schema.Resource{
-			"azure_virtual_machine":  resourceVirtualMachine(),
+			"azure_virtual_machine": resourceVirtualMachine(),
 		},
 
 		ConfigureFunc: providerConfigure,
@@ -35,7 +35,7 @@ func envDefaultFunc(k string) schema.SchemaDefaultFunc {
 	}
 }
 
-func providerConfigure(d *schema.ResourceData) (interface{}, error) {
+func providerConfigure(d schema.ResourceData) (interface{}, error) {
 	config := Config{
 		PublishSettingsFile: d.Get("publish_settings_file").(string),
 	}

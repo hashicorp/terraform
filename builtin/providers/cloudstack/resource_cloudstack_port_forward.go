@@ -63,7 +63,7 @@ func resourceCloudStackPortForward() *schema.Resource {
 	}
 }
 
-func resourceCloudStackPortForwardCreate(d *schema.ResourceData, meta interface{}) error {
+func resourceCloudStackPortForwardCreate(d schema.ResourceData, meta interface{}) error {
 	cs := meta.(*cloudstack.CloudStackClient)
 
 	// Retrieve the ipaddress UUID
@@ -101,7 +101,7 @@ func resourceCloudStackPortForwardCreate(d *schema.ResourceData, meta interface{
 }
 
 func resourceCloudStackPortForwardCreateForward(
-	d *schema.ResourceData, meta interface{}, ipaddressid string, forward map[string]interface{}) error {
+	d schema.ResourceData, meta interface{}, ipaddressid string, forward map[string]interface{}) error {
 	cs := meta.(*cloudstack.CloudStackClient)
 
 	// Make sure all required parameters are there
@@ -132,7 +132,7 @@ func resourceCloudStackPortForwardCreateForward(
 	return nil
 }
 
-func resourceCloudStackPortForwardRead(d *schema.ResourceData, meta interface{}) error {
+func resourceCloudStackPortForwardRead(d schema.ResourceData, meta interface{}) error {
 	cs := meta.(*cloudstack.CloudStackClient)
 
 	// Create an empty schema.Set to hold all forwards
@@ -189,7 +189,7 @@ func resourceCloudStackPortForwardRead(d *schema.ResourceData, meta interface{})
 	return nil
 }
 
-func resourceCloudStackPortForwardUpdate(d *schema.ResourceData, meta interface{}) error {
+func resourceCloudStackPortForwardUpdate(d schema.ResourceData, meta interface{}) error {
 	cs := meta.(*cloudstack.CloudStackClient)
 
 	// Retrieve the ipaddress UUID
@@ -235,7 +235,7 @@ func resourceCloudStackPortForwardUpdate(d *schema.ResourceData, meta interface{
 	return resourceCloudStackPortForwardRead(d, meta)
 }
 
-func resourceCloudStackPortForwardDelete(d *schema.ResourceData, meta interface{}) error {
+func resourceCloudStackPortForwardDelete(d schema.ResourceData, meta interface{}) error {
 	// Delete all forwards
 	if rs := d.Get("forward").(*schema.Set); rs.Len() > 0 {
 		for _, forward := range rs.List() {
@@ -255,7 +255,7 @@ func resourceCloudStackPortForwardDelete(d *schema.ResourceData, meta interface{
 }
 
 func resourceCloudStackPortForwardDeleteForward(
-	d *schema.ResourceData, meta interface{}, forward map[string]interface{}) error {
+	d schema.ResourceData, meta interface{}, forward map[string]interface{}) error {
 	cs := meta.(*cloudstack.CloudStackClient)
 
 	// Create the parameter struct
@@ -289,7 +289,7 @@ func resourceCloudStackPortForwardHash(v interface{}) int {
 	return hashcode.String(buf.String())
 }
 
-func verifyPortForwardParams(d *schema.ResourceData, forward map[string]interface{}) error {
+func verifyPortForwardParams(d schema.ResourceData, forward map[string]interface{}) error {
 	protocol := forward["protocol"].(string)
 	if protocol != "tcp" && protocol != "udp" {
 		return fmt.Errorf(

@@ -31,7 +31,7 @@ func resourceAwsS3Bucket() *schema.Resource {
 	}
 }
 
-func resourceAwsS3BucketCreate(d *schema.ResourceData, meta interface{}) error {
+func resourceAwsS3BucketCreate(d schema.ResourceData, meta interface{}) error {
 	s3conn := meta.(*AWSClient).s3conn
 
 	// Get the bucket and acl
@@ -51,7 +51,7 @@ func resourceAwsS3BucketCreate(d *schema.ResourceData, meta interface{}) error {
 	return nil
 }
 
-func resourceAwsS3BucketRead(d *schema.ResourceData, meta interface{}) error {
+func resourceAwsS3BucketRead(d schema.ResourceData, meta interface{}) error {
 	s3conn := meta.(*AWSClient).s3conn
 
 	bucket := s3conn.Bucket(d.Id())
@@ -63,7 +63,7 @@ func resourceAwsS3BucketRead(d *schema.ResourceData, meta interface{}) error {
 	return nil
 }
 
-func resourceAwsS3BucketDelete(d *schema.ResourceData, meta interface{}) error {
+func resourceAwsS3BucketDelete(d schema.ResourceData, meta interface{}) error {
 	s3conn := meta.(*AWSClient).s3conn
 
 	log.Printf("[DEBUG] S3 Delete Bucket: %s", d.Id())

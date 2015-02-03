@@ -38,7 +38,7 @@ func resourceCloudStackNIC() *schema.Resource {
 	}
 }
 
-func resourceCloudStackNICCreate(d *schema.ResourceData, meta interface{}) error {
+func resourceCloudStackNICCreate(d schema.ResourceData, meta interface{}) error {
 	cs := meta.(*cloudstack.CloudStackClient)
 
 	// Retrieve the network UUID
@@ -83,7 +83,7 @@ func resourceCloudStackNICCreate(d *schema.ResourceData, meta interface{}) error
 	return resourceCloudStackNICRead(d, meta)
 }
 
-func resourceCloudStackNICRead(d *schema.ResourceData, meta interface{}) error {
+func resourceCloudStackNICRead(d schema.ResourceData, meta interface{}) error {
 	cs := meta.(*cloudstack.CloudStackClient)
 
 	// Get the virtual machine details
@@ -118,7 +118,7 @@ func resourceCloudStackNICRead(d *schema.ResourceData, meta interface{}) error {
 	return nil
 }
 
-func resourceCloudStackNICDelete(d *schema.ResourceData, meta interface{}) error {
+func resourceCloudStackNICDelete(d schema.ResourceData, meta interface{}) error {
 	cs := meta.(*cloudstack.CloudStackClient)
 
 	// Retrieve the virtual_machine UUID

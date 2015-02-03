@@ -19,7 +19,7 @@ func init() {
 	}
 
 	// Use the demo address for the acceptance tests
-	testAccProvider.ConfigureFunc = func(d *schema.ResourceData) (interface{}, error) {
+	testAccProvider.ConfigureFunc = func(d schema.ResourceData) (interface{}, error) {
 		conf := consulapi.DefaultConfig()
 		conf.Address = "demo.consul.io:80"
 		return consulapi.NewClient(conf)

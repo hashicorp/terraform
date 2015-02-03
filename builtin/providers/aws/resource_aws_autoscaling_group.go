@@ -121,7 +121,7 @@ func resourceAwsAutoscalingGroup() *schema.Resource {
 	}
 }
 
-func resourceAwsAutoscalingGroupCreate(d *schema.ResourceData, meta interface{}) error {
+func resourceAwsAutoscalingGroupCreate(d schema.ResourceData, meta interface{}) error {
 	autoscalingconn := meta.(*AWSClient).autoscalingconn
 
 	var autoScalingGroupOpts autoscaling.CreateAutoScalingGroup
@@ -177,7 +177,7 @@ func resourceAwsAutoscalingGroupCreate(d *schema.ResourceData, meta interface{})
 	return resourceAwsAutoscalingGroupRead(d, meta)
 }
 
-func resourceAwsAutoscalingGroupRead(d *schema.ResourceData, meta interface{}) error {
+func resourceAwsAutoscalingGroupRead(d schema.ResourceData, meta interface{}) error {
 	g, err := getAwsAutoscalingGroup(d, meta)
 	if err != nil {
 		return err
@@ -201,7 +201,7 @@ func resourceAwsAutoscalingGroupRead(d *schema.ResourceData, meta interface{}) e
 	return nil
 }
 
-func resourceAwsAutoscalingGroupUpdate(d *schema.ResourceData, meta interface{}) error {
+func resourceAwsAutoscalingGroupUpdate(d schema.ResourceData, meta interface{}) error {
 	autoscalingconn := meta.(*AWSClient).autoscalingconn
 
 	opts := autoscaling.UpdateAutoScalingGroup{
@@ -233,7 +233,7 @@ func resourceAwsAutoscalingGroupUpdate(d *schema.ResourceData, meta interface{})
 	return resourceAwsAutoscalingGroupRead(d, meta)
 }
 
-func resourceAwsAutoscalingGroupDelete(d *schema.ResourceData, meta interface{}) error {
+func resourceAwsAutoscalingGroupDelete(d schema.ResourceData, meta interface{}) error {
 	autoscalingconn := meta.(*AWSClient).autoscalingconn
 
 	// Read the autoscaling group first. If it doesn't exist, we're done.
@@ -277,7 +277,7 @@ func resourceAwsAutoscalingGroupDelete(d *schema.ResourceData, meta interface{})
 }
 
 func getAwsAutoscalingGroup(
-	d *schema.ResourceData,
+	d schema.ResourceData,
 	meta interface{}) (*autoscaling.AutoScalingGroup, error) {
 	autoscalingconn := meta.(*AWSClient).autoscalingconn
 
@@ -309,7 +309,7 @@ func getAwsAutoscalingGroup(
 	return nil, nil
 }
 
-func resourceAwsAutoscalingGroupDrain(d *schema.ResourceData, meta interface{}) error {
+func resourceAwsAutoscalingGroupDrain(d schema.ResourceData, meta interface{}) error {
 	autoscalingconn := meta.(*AWSClient).autoscalingconn
 
 	// First, set the capacity to zero so the group will drain

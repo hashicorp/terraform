@@ -259,8 +259,8 @@ type schemaMap map[string]*Schema
 // The diff is optional.
 func (m schemaMap) Data(
 	s *terraform.InstanceState,
-	d *terraform.InstanceDiff) (*ResourceData, error) {
-	return &ResourceData{
+	d *terraform.InstanceDiff) (*resourceData, error) {
+	return &resourceData{
 		schema: m,
 		state:  s,
 		diff:   d,
@@ -275,7 +275,7 @@ func (m schemaMap) Diff(
 	result := new(terraform.InstanceDiff)
 	result.Attributes = make(map[string]*terraform.ResourceAttrDiff)
 
-	d := &ResourceData{
+	d := &resourceData{
 		schema: m,
 		state:  s,
 		config: c,
@@ -501,8 +501,7 @@ func (m schemaMap) diff(
 	k string,
 	schema *Schema,
 	diff *terraform.InstanceDiff,
-	d *ResourceData,
-	all bool) error {
+	d *resourceData, all bool) error {
 	var err error
 	switch schema.Type {
 	case TypeBool:
@@ -530,8 +529,7 @@ func (m schemaMap) diffList(
 	k string,
 	schema *Schema,
 	diff *terraform.InstanceDiff,
-	d *ResourceData,
-	all bool) error {
+	d *resourceData, all bool) error {
 	o, n, _, computedList := d.diffChange(k)
 	if computedList {
 		n = nil
@@ -648,8 +646,7 @@ func (m schemaMap) diffMap(
 	k string,
 	schema *Schema,
 	diff *terraform.InstanceDiff,
-	d *ResourceData,
-	all bool) error {
+	d *resourceData, all bool) error {
 	prefix := k + "."
 
 	// First get all the values from the state
@@ -730,8 +727,7 @@ func (m schemaMap) diffSet(
 	k string,
 	schema *Schema,
 	diff *terraform.InstanceDiff,
-	d *ResourceData,
-	all bool) error {
+	d *resourceData, all bool) error {
 	o, n, _, computedSet := d.diffChange(k)
 	if computedSet {
 		n = nil
@@ -844,8 +840,7 @@ func (m schemaMap) diffString(
 	k string,
 	schema *Schema,
 	diff *terraform.InstanceDiff,
-	d *ResourceData,
-	all bool) error {
+	d *resourceData, all bool) error {
 	var originalN interface{}
 	var os, ns string
 	o, n, _, _ := d.diffChange(k)

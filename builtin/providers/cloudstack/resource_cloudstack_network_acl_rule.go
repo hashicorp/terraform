@@ -93,7 +93,7 @@ func resourceCloudStackNetworkACLRule() *schema.Resource {
 	}
 }
 
-func resourceCloudStackNetworkACLRuleCreate(d *schema.ResourceData, meta interface{}) error {
+func resourceCloudStackNetworkACLRuleCreate(d schema.ResourceData, meta interface{}) error {
 	// Make sure all required parameters are there
 	if err := verifyNetworkACLParams(d); err != nil {
 		return err
@@ -128,7 +128,7 @@ func resourceCloudStackNetworkACLRuleCreate(d *schema.ResourceData, meta interfa
 }
 
 func resourceCloudStackNetworkACLRuleCreateRule(
-	d *schema.ResourceData, meta interface{}, rule map[string]interface{}) error {
+	d schema.ResourceData, meta interface{}, rule map[string]interface{}) error {
 	cs := meta.(*cloudstack.CloudStackClient)
 	uuids := rule["uuids"].(map[string]interface{})
 
@@ -213,7 +213,7 @@ func resourceCloudStackNetworkACLRuleCreateRule(
 	return nil
 }
 
-func resourceCloudStackNetworkACLRuleRead(d *schema.ResourceData, meta interface{}) error {
+func resourceCloudStackNetworkACLRuleRead(d schema.ResourceData, meta interface{}) error {
 	cs := meta.(*cloudstack.CloudStackClient)
 
 	// Create an empty schema.Set to hold all rules
@@ -352,7 +352,7 @@ func resourceCloudStackNetworkACLRuleRead(d *schema.ResourceData, meta interface
 	return nil
 }
 
-func resourceCloudStackNetworkACLRuleUpdate(d *schema.ResourceData, meta interface{}) error {
+func resourceCloudStackNetworkACLRuleUpdate(d schema.ResourceData, meta interface{}) error {
 	// Make sure all required parameters are there
 	if err := verifyNetworkACLParams(d); err != nil {
 		return err
@@ -395,7 +395,7 @@ func resourceCloudStackNetworkACLRuleUpdate(d *schema.ResourceData, meta interfa
 	return resourceCloudStackNetworkACLRuleRead(d, meta)
 }
 
-func resourceCloudStackNetworkACLRuleDelete(d *schema.ResourceData, meta interface{}) error {
+func resourceCloudStackNetworkACLRuleDelete(d schema.ResourceData, meta interface{}) error {
 	// Delete all rules
 	if rs := d.Get("rule").(*schema.Set); rs.Len() > 0 {
 		for _, rule := range rs.List() {
@@ -415,7 +415,7 @@ func resourceCloudStackNetworkACLRuleDelete(d *schema.ResourceData, meta interfa
 }
 
 func resourceCloudStackNetworkACLRuleDeleteRule(
-	d *schema.ResourceData, meta interface{}, rule map[string]interface{}) error {
+	d schema.ResourceData, meta interface{}, rule map[string]interface{}) error {
 	cs := meta.(*cloudstack.CloudStackClient)
 	uuids := rule["uuids"].(map[string]interface{})
 
@@ -489,7 +489,7 @@ func resourceCloudStackNetworkACLRuleHash(v interface{}) int {
 	return hashcode.String(buf.String())
 }
 
-func verifyNetworkACLParams(d *schema.ResourceData) error {
+func verifyNetworkACLParams(d schema.ResourceData) error {
 	managed := d.Get("managed").(bool)
 	_, rules := d.GetOk("rule")
 
@@ -501,7 +501,7 @@ func verifyNetworkACLParams(d *schema.ResourceData) error {
 	return nil
 }
 
-func verifyNetworkACLRuleParams(d *schema.ResourceData, rule map[string]interface{}) error {
+func verifyNetworkACLRuleParams(d schema.ResourceData, rule map[string]interface{}) error {
 	action := rule["action"].(string)
 	if action != "allow" && action != "deny" {
 		return fmt.Errorf("Parameter action only accepts 'allow' or 'deny' as values")

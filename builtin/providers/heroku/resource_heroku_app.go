@@ -122,7 +122,7 @@ func resourceHerokuApp() *schema.Resource {
 	}
 }
 
-func switchHerokuAppCreate(d *schema.ResourceData, meta interface{}) error {
+func switchHerokuAppCreate(d schema.ResourceData, meta interface{}) error {
 	orgCount := d.Get("organization.#").(int)
 	if orgCount > 1 {
 		return fmt.Errorf("Error Creating Heroku App: Only 1 Heroku Organization is permitted")
@@ -135,7 +135,7 @@ func switchHerokuAppCreate(d *schema.ResourceData, meta interface{}) error {
 	}
 }
 
-func resourceHerokuAppCreate(d *schema.ResourceData, meta interface{}) error {
+func resourceHerokuAppCreate(d schema.ResourceData, meta interface{}) error {
 	client := meta.(*heroku.Service)
 
 	// Build up our creation options
@@ -176,7 +176,7 @@ func resourceHerokuAppCreate(d *schema.ResourceData, meta interface{}) error {
 	return resourceHerokuAppRead(d, meta)
 }
 
-func resourceHerokuOrgAppCreate(d *schema.ResourceData, meta interface{}) error {
+func resourceHerokuOrgAppCreate(d schema.ResourceData, meta interface{}) error {
 	client := meta.(*heroku.Service)
 	// Build up our creation options
 	opts := heroku.OrganizationAppCreateOpts{}
@@ -234,7 +234,7 @@ func resourceHerokuOrgAppCreate(d *schema.ResourceData, meta interface{}) error 
 	return resourceHerokuAppRead(d, meta)
 }
 
-func resourceHerokuAppRead(d *schema.ResourceData, meta interface{}) error {
+func resourceHerokuAppRead(d schema.ResourceData, meta interface{}) error {
 	client := meta.(*heroku.Service)
 	app, err := resourceHerokuAppRetrieve(d.Id(), client)
 	if err != nil {
@@ -275,7 +275,7 @@ func resourceHerokuAppRead(d *schema.ResourceData, meta interface{}) error {
 	return nil
 }
 
-func resourceHerokuAppUpdate(d *schema.ResourceData, meta interface{}) error {
+func resourceHerokuAppUpdate(d schema.ResourceData, meta interface{}) error {
 	client := meta.(*heroku.Service)
 
 	// If name changed, update it
@@ -314,7 +314,7 @@ func resourceHerokuAppUpdate(d *schema.ResourceData, meta interface{}) error {
 	return resourceHerokuAppRead(d, meta)
 }
 
-func resourceHerokuAppDelete(d *schema.ResourceData, meta interface{}) error {
+func resourceHerokuAppDelete(d schema.ResourceData, meta interface{}) error {
 	client := meta.(*heroku.Service)
 
 	log.Printf("[INFO] Deleting App: %s", d.Id())

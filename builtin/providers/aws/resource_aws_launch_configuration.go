@@ -91,7 +91,7 @@ func resourceAwsLaunchConfiguration() *schema.Resource {
 	}
 }
 
-func resourceAwsLaunchConfigurationCreate(d *schema.ResourceData, meta interface{}) error {
+func resourceAwsLaunchConfigurationCreate(d schema.ResourceData, meta interface{}) error {
 	autoscalingconn := meta.(*AWSClient).autoscalingconn
 
 	var createLaunchConfigurationOpts autoscaling.CreateLaunchConfiguration
@@ -125,7 +125,7 @@ func resourceAwsLaunchConfigurationCreate(d *schema.ResourceData, meta interface
 	})
 }
 
-func resourceAwsLaunchConfigurationRead(d *schema.ResourceData, meta interface{}) error {
+func resourceAwsLaunchConfigurationRead(d schema.ResourceData, meta interface{}) error {
 	autoscalingconn := meta.(*AWSClient).autoscalingconn
 
 	describeOpts := autoscaling.DescribeLaunchConfigurations{
@@ -162,7 +162,7 @@ func resourceAwsLaunchConfigurationRead(d *schema.ResourceData, meta interface{}
 	return nil
 }
 
-func resourceAwsLaunchConfigurationDelete(d *schema.ResourceData, meta interface{}) error {
+func resourceAwsLaunchConfigurationDelete(d schema.ResourceData, meta interface{}) error {
 	autoscalingconn := meta.(*AWSClient).autoscalingconn
 
 	log.Printf("[DEBUG] Launch Configuration destroy: %v", d.Id())

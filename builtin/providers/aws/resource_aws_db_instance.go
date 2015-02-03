@@ -176,7 +176,7 @@ func resourceAwsDbInstance() *schema.Resource {
 	}
 }
 
-func resourceAwsDbInstanceCreate(d *schema.ResourceData, meta interface{}) error {
+func resourceAwsDbInstanceCreate(d schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).rdsconn
 	opts := rds.CreateDBInstance{
 		AllocatedStorage:     d.Get("allocated_storage").(int),
@@ -280,7 +280,7 @@ func resourceAwsDbInstanceCreate(d *schema.ResourceData, meta interface{}) error
 	return resourceAwsDbInstanceRead(d, meta)
 }
 
-func resourceAwsDbInstanceRead(d *schema.ResourceData, meta interface{}) error {
+func resourceAwsDbInstanceRead(d schema.ResourceData, meta interface{}) error {
 	v, err := resourceAwsBbInstanceRetrieve(d, meta)
 
 	if err != nil {
@@ -334,7 +334,7 @@ func resourceAwsDbInstanceRead(d *schema.ResourceData, meta interface{}) error {
 	return nil
 }
 
-func resourceAwsDbInstanceDelete(d *schema.ResourceData, meta interface{}) error {
+func resourceAwsDbInstanceDelete(d schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).rdsconn
 
 	log.Printf("[DEBUG] DB Instance destroy: %v", d.Id())
@@ -372,7 +372,7 @@ func resourceAwsDbInstanceDelete(d *schema.ResourceData, meta interface{}) error
 }
 
 func resourceAwsBbInstanceRetrieve(
-	d *schema.ResourceData, meta interface{}) (*rds.DBInstance, error) {
+	d schema.ResourceData, meta interface{}) (*rds.DBInstance, error) {
 	conn := meta.(*AWSClient).rdsconn
 
 	opts := rds.DescribeDBInstances{
@@ -403,7 +403,7 @@ func resourceAwsBbInstanceRetrieve(
 }
 
 func resourceAwsDbInstanceStateRefreshFunc(
-	d *schema.ResourceData, meta interface{}) resource.StateRefreshFunc {
+	d schema.ResourceData, meta interface{}) resource.StateRefreshFunc {
 	return func() (interface{}, string, error) {
 		v, err := resourceAwsBbInstanceRetrieve(d, meta)
 

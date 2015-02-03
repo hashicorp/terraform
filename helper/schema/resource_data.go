@@ -16,7 +16,23 @@ import (
 // define partial state updates, etc.
 //
 // The most relevant methods to take a look at are Get, Set, and Partial.
-type ResourceData struct {
+
+type ResourceData interface {
+	Get(key string) interface{}
+	GetChange(key string) (interface{}, interface{})
+	GetOk(key string) (interface{}, bool)
+	HasChange(key string) bool
+	Partial(on bool)
+	Set(key string, value interface{}) error
+	SetPartial(k string)
+	Id() string
+	ConnInfo() map[string]string
+	SetId(v string)
+	SetConnInfo(v map[string]string)
+	State() *terraform.InstanceState
+}
+
+type resourceData struct {
 	// Settable (internally)
 	schema map[string]*Schema
 	config *terraform.ResourceConfig
@@ -67,7 +83,7 @@ var getResultEmpty getResult
 //
 // If you want to test if something is set at all in the configuration,
 // use GetOk.
-func (d *ResourceData) Get(key string) interface{} {
+func (d *resourceData) Get(key string) interface{} {
 	v, _ := d.GetOk(key)
 	return v
 }
@@ -78,7 +94,7 @@ func (d *ResourceData) Get(key string) interface{} {
 // that both the old and new value are the same if the old value was not
 // set and the new value is. This is common, for example, for boolean
 // fields which have a zero value of false.
-func (d *ResourceData) GetChange(key string) (interface{}, interface{}) {
+func (d *resourceData) GetChange(key string) (interface{}, interface{}) {
 	o, n := d.getChange(key, getSourceState, getSourceDiff|getSourceExact)
 	return o.Value, n.Value
 }
@@ -88,12 +104,12 @@ func (d *ResourceData) GetChange(key string) (interface{}, interface{}) {
 //
 // The first result will not necessarilly be nil if the value doesn't exist.
 // The second result should be checked to determine this information.
-func (d *ResourceData) GetOk(key string) (interface{}, bool) {
+func (d *resourceData) GetOk(key string) (interface{}, bool) {
 	r := d.getRaw(key, getSourceSet)
 	return r.Value, r.Exists && !r.Computed
 }
 
-func (d *ResourceData) getRaw(key string, level getSource) getResult {
+func (d *resourceData) getRaw(key string, level getSource) getResult {
 	var parts []string
 	if key != "" {
 		parts = strings.Split(key, ".")
@@ -103,7 +119,7 @@ func (d *ResourceData) getRaw(key string, level getSource) getResult {
 }
 
 // HasChange returns whether or not the given key has been changed.
-func (d *ResourceData) HasChange(key string) bool {
+func (d *resourceData) HasChange(key string) bool {
 	o, n := d.GetChange(key)
 
 	// If the type implements the Equal interface, then call that
@@ -121,7 +137,7 @@ func (d *ResourceData) HasChange(key string) bool {
 // When partial state mode is enabled, then only key prefixes specified
 // by SetPartial will be in the final state. This allows providers to return
 // partial states for partially applied resources (when errors occur).
-func (d *ResourceData) Partial(on bool) {
+func (d *resourceData) Partial(on bool) {
 	d.partial = on
 	if on {
 		if d.partialMap == nil {
@@ -136,7 +152,7 @@ func (d *ResourceData) Partial(on bool) {
 //
 // If the key is invalid or the value is not a correct type, an error
 // will be returned.
-func (d *ResourceData) Set(key string, value interface{}) error {
+func (d *resourceData) Set(key string, value interface{}) error {
 	d.once.Do(d.init)
 	return d.setWriter.WriteField(strings.Split(key, "."), value)
 }
@@ -147,14 +163,14 @@ func (d *ResourceData) Set(key string, value interface{}) error {
 //
 // If partial state mode is disabled, then this has no effect. Additionally,
 // whenever partial state mode is toggled, the partial data is cleared.
-func (d *ResourceData) SetPartial(k string) {
+func (d *resourceData) SetPartial(k string) {
 	if d.partial {
 		d.partialMap[k] = struct{}{}
 	}
 }
 
 // Id returns the ID of the resource.
-func (d *ResourceData) Id() string {
+func (d *resourceData) Id() string {
 	var result string
 
 	if d.state != nil {
@@ -169,7 +185,7 @@ func (d *ResourceData) Id() string {
 }
 
 // ConnInfo returns the connection info for this resource.
-func (d *ResourceData) ConnInfo() map[string]string {
+func (d *resourceData) ConnInfo() map[string]string {
 	if d.newState != nil {
 		return d.newState.Ephemeral.ConnInfo
 	}
@@ -183,20 +199,20 @@ func (d *ResourceData) ConnInfo() map[string]string {
 
 // SetId sets the ID of the resource. If the value is blank, then the
 // resource is destroyed.
-func (d *ResourceData) SetId(v string) {
+func (d *resourceData) SetId(v string) {
 	d.once.Do(d.init)
 	d.newState.ID = v
 }
 
 // SetConnInfo sets the connection info for a resource.
-func (d *ResourceData) SetConnInfo(v map[string]string) {
+func (d *resourceData) SetConnInfo(v map[string]string) {
 	d.once.Do(d.init)
 	d.newState.Ephemeral.ConnInfo = v
 }
 
 // State returns the new InstanceState after the diff and any Set
 // calls.
-func (d *ResourceData) State() *terraform.InstanceState {
+func (d *resourceData) State() *terraform.InstanceState {
 	var result terraform.InstanceState
 	result.ID = d.Id()
 
@@ -255,7 +271,7 @@ func (d *ResourceData) State() *terraform.InstanceState {
 	return &result
 }
 
-func (d *ResourceData) init() {
+func (d *resourceData) init() {
 	// Initialize the field that will store our new state
 	var copyState terraform.InstanceState
 	if d.state != nil {
@@ -309,7 +325,7 @@ func (d *ResourceData) init() {
 	}
 }
 
-func (d *ResourceData) diffChange(
+func (d *resourceData) diffChange(
 	k string) (interface{}, interface{}, bool, bool) {
 	// Get the change between the state and the config.
 	o, n := d.getChange(k, getSourceState, getSourceConfig|getSourceExact)
@@ -324,7 +340,7 @@ func (d *ResourceData) diffChange(
 	return o.Value, n.Value, !reflect.DeepEqual(o.Value, n.Value), n.Computed
 }
 
-func (d *ResourceData) getChange(
+func (d *resourceData) getChange(
 	key string,
 	oldLevel getSource,
 	newLevel getSource) (getResult, getResult) {
@@ -339,7 +355,7 @@ func (d *ResourceData) getChange(
 	return o, n
 }
 
-func (d *ResourceData) get(addr []string, source getSource) getResult {
+func (d *resourceData) get(addr []string, source getSource) getResult {
 	d.once.Do(d.init)
 
 	level := "set"

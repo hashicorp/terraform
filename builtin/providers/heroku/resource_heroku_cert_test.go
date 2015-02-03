@@ -2,9 +2,9 @@ package heroku
 
 import (
 	"fmt"
+	"io/ioutil"
+	"os"
 	"testing"
-    "os"
-    "io/ioutil"
 
 	"github.com/cyberdelia/heroku-go/v3"
 	"github.com/hashicorp/terraform/helper/resource"
@@ -13,11 +13,11 @@ import (
 
 func TestAccHerokuCert_Basic(t *testing.T) {
 	var endpoint heroku.SSLEndpoint
-    wd, _ := os.Getwd()
-    certificateChainFile := wd + "/test-fixtures/terraform.cert"
-    certificateChainBytes, _ := ioutil.ReadFile(certificateChainFile)
-    certificateChain := string(certificateChainBytes)
-    testAccCheckHerokuCertConfig_basic := `
+	wd, _ := os.Getwd()
+	certificateChainFile := wd + "/test-fixtures/terraform.cert"
+	certificateChainBytes, _ := ioutil.ReadFile(certificateChainFile)
+	certificateChain := string(certificateChainBytes)
+	testAccCheckHerokuCertConfig_basic := `
     resource "heroku_app" "foobar" {
         name = "terraform-test-cert-app"
         region = "eu"
@@ -47,7 +47,7 @@ func TestAccHerokuCert_Basic(t *testing.T) {
 					testAccCheckHerokuCertExists("heroku_cert.ssl_certificate", &endpoint),
 					testAccCheckHerokuCertificateChain(&endpoint, certificateChain),
 					resource.TestCheckResourceAttr(
-                        "heroku_cert.ssl_certificate", "cname", "terraform-test-cert-app.herokuapp.com"),
+						"heroku_cert.ssl_certificate", "cname", "terraform-test-cert-app.herokuapp.com"),
 				),
 			},
 		},
@@ -112,5 +112,3 @@ func testAccCheckHerokuCertExists(n string, endpoint *heroku.SSLEndpoint) resour
 		return nil
 	}
 }
-
-

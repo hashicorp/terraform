@@ -100,7 +100,7 @@ func resourceDigitalOceanDroplet() *schema.Resource {
 	}
 }
 
-func resourceDigitalOceanDropletCreate(d *schema.ResourceData, meta interface{}) error {
+func resourceDigitalOceanDropletCreate(d schema.ResourceData, meta interface{}) error {
 	client := meta.(*digitalocean.Client)
 
 	// Build up our creation options
@@ -160,7 +160,7 @@ func resourceDigitalOceanDropletCreate(d *schema.ResourceData, meta interface{})
 	return resourceDigitalOceanDropletRead(d, meta)
 }
 
-func resourceDigitalOceanDropletRead(d *schema.ResourceData, meta interface{}) error {
+func resourceDigitalOceanDropletRead(d schema.ResourceData, meta interface{}) error {
 	client := meta.(*digitalocean.Client)
 
 	// Retrieve the droplet properties for updating the state
@@ -204,7 +204,7 @@ func resourceDigitalOceanDropletRead(d *schema.ResourceData, meta interface{}) e
 	return nil
 }
 
-func resourceDigitalOceanDropletUpdate(d *schema.ResourceData, meta interface{}) error {
+func resourceDigitalOceanDropletUpdate(d schema.ResourceData, meta interface{}) error {
 	client := meta.(*digitalocean.Client)
 
 	if d.HasChange("size") {
@@ -328,7 +328,7 @@ func resourceDigitalOceanDropletUpdate(d *schema.ResourceData, meta interface{})
 	return resourceDigitalOceanDropletRead(d, meta)
 }
 
-func resourceDigitalOceanDropletDelete(d *schema.ResourceData, meta interface{}) error {
+func resourceDigitalOceanDropletDelete(d schema.ResourceData, meta interface{}) error {
 	client := meta.(*digitalocean.Client)
 
 	log.Printf("[INFO] Deleting droplet: %s", d.Id())
@@ -349,7 +349,7 @@ func resourceDigitalOceanDropletDelete(d *schema.ResourceData, meta interface{})
 }
 
 func WaitForDropletAttribute(
-	d *schema.ResourceData, target string, pending []string, attribute string, meta interface{}) (interface{}, error) {
+	d schema.ResourceData, target string, pending []string, attribute string, meta interface{}) (interface{}, error) {
 	// Wait for the droplet so we can get the networking attributes
 	// that show up after a while
 	log.Printf(
@@ -371,7 +371,7 @@ func WaitForDropletAttribute(
 // TODO This function still needs a little more refactoring to make it
 // cleaner and more efficient
 func newDropletStateRefreshFunc(
-	d *schema.ResourceData, attribute string, meta interface{}) resource.StateRefreshFunc {
+	d schema.ResourceData, attribute string, meta interface{}) resource.StateRefreshFunc {
 	client := meta.(*digitalocean.Client)
 	return func() (interface{}, string, error) {
 		err := resourceDigitalOceanDropletRead(d, meta)
@@ -405,7 +405,7 @@ func newDropletStateRefreshFunc(
 }
 
 // Powers on the droplet and waits for it to be active
-func powerOnAndWait(d *schema.ResourceData, meta interface{}) error {
+func powerOnAndWait(d schema.ResourceData, meta interface{}) error {
 	client := meta.(*digitalocean.Client)
 	err := client.PowerOn(d.Id())
 

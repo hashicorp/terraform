@@ -32,12 +32,11 @@ func resourceComputeAddress() *schema.Resource {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
-
 		},
 	}
 }
 
-func resourceComputeAddressCreate(d *schema.ResourceData, meta interface{}) error {
+func resourceComputeAddressCreate(d schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
 
 	// Build the address parameter
@@ -79,7 +78,7 @@ func resourceComputeAddressCreate(d *schema.ResourceData, meta interface{}) erro
 	return resourceComputeAddressRead(d, meta)
 }
 
-func resourceComputeAddressRead(d *schema.ResourceData, meta interface{}) error {
+func resourceComputeAddressRead(d schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
 
 	addr, err := config.clientCompute.Addresses.Get(
@@ -101,7 +100,7 @@ func resourceComputeAddressRead(d *schema.ResourceData, meta interface{}) error 
 	return nil
 }
 
-func resourceComputeAddressDelete(d *schema.ResourceData, meta interface{}) error {
+func resourceComputeAddressDelete(d schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
 
 	// Delete the address

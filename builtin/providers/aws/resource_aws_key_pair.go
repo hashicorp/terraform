@@ -32,7 +32,7 @@ func resourceAwsKeyPair() *schema.Resource {
 	}
 }
 
-func resourceAwsKeyPairCreate(d *schema.ResourceData, meta interface{}) error {
+func resourceAwsKeyPairCreate(d schema.ResourceData, meta interface{}) error {
 	ec2conn := meta.(*AWSClient).ec2conn
 
 	keyName := d.Get("key_name").(string)
@@ -47,7 +47,7 @@ func resourceAwsKeyPairCreate(d *schema.ResourceData, meta interface{}) error {
 	return nil
 }
 
-func resourceAwsKeyPairRead(d *schema.ResourceData, meta interface{}) error {
+func resourceAwsKeyPairRead(d schema.ResourceData, meta interface{}) error {
 	ec2conn := meta.(*AWSClient).ec2conn
 
 	resp, err := ec2conn.KeyPairs([]string{d.Id()}, nil)
@@ -66,7 +66,7 @@ func resourceAwsKeyPairRead(d *schema.ResourceData, meta interface{}) error {
 	return fmt.Errorf("Unable to find key pair within: %#v", resp.Keys)
 }
 
-func resourceAwsKeyPairDelete(d *schema.ResourceData, meta interface{}) error {
+func resourceAwsKeyPairDelete(d schema.ResourceData, meta interface{}) error {
 	ec2conn := meta.(*AWSClient).ec2conn
 
 	_, err := ec2conn.DeleteKeyPair(d.Id())

@@ -68,7 +68,7 @@ func resourceAwsDbSecurityGroup() *schema.Resource {
 	}
 }
 
-func resourceAwsDbSecurityGroupCreate(d *schema.ResourceData, meta interface{}) error {
+func resourceAwsDbSecurityGroupCreate(d schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).rdsconn
 
 	var err error
@@ -126,7 +126,7 @@ func resourceAwsDbSecurityGroupCreate(d *schema.ResourceData, meta interface{}) 
 	return resourceAwsDbSecurityGroupRead(d, meta)
 }
 
-func resourceAwsDbSecurityGroupRead(d *schema.ResourceData, meta interface{}) error {
+func resourceAwsDbSecurityGroupRead(d schema.ResourceData, meta interface{}) error {
 	sg, err := resourceAwsDbSecurityGroupRetrieve(d, meta)
 	if err != nil {
 		return err
@@ -159,7 +159,7 @@ func resourceAwsDbSecurityGroupRead(d *schema.ResourceData, meta interface{}) er
 	return nil
 }
 
-func resourceAwsDbSecurityGroupDelete(d *schema.ResourceData, meta interface{}) error {
+func resourceAwsDbSecurityGroupDelete(d schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).rdsconn
 
 	log.Printf("[DEBUG] DB Security Group destroy: %v", d.Id())
@@ -180,7 +180,7 @@ func resourceAwsDbSecurityGroupDelete(d *schema.ResourceData, meta interface{}) 
 	return nil
 }
 
-func resourceAwsDbSecurityGroupRetrieve(d *schema.ResourceData, meta interface{}) (*rds.DBSecurityGroup, error) {
+func resourceAwsDbSecurityGroupRetrieve(d schema.ResourceData, meta interface{}) (*rds.DBSecurityGroup, error) {
 	conn := meta.(*AWSClient).rdsconn
 
 	opts := rds.DescribeDBSecurityGroups{
@@ -266,7 +266,7 @@ func resourceAwsDbSecurityGroupIngressHash(v interface{}) int {
 }
 
 func resourceAwsDbSecurityGroupStateRefreshFunc(
-	d *schema.ResourceData, meta interface{}) resource.StateRefreshFunc {
+	d schema.ResourceData, meta interface{}) resource.StateRefreshFunc {
 	return func() (interface{}, string, error) {
 		v, err := resourceAwsDbSecurityGroupRetrieve(d, meta)
 

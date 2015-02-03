@@ -108,7 +108,7 @@ func resourceComputeFirewallAllowHash(v interface{}) int {
 	return hashcode.String(buf.String())
 }
 
-func resourceComputeFirewallCreate(d *schema.ResourceData, meta interface{}) error {
+func resourceComputeFirewallCreate(d schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
 
 	firewall, err := resourceFirewall(d, meta)
@@ -151,7 +151,7 @@ func resourceComputeFirewallCreate(d *schema.ResourceData, meta interface{}) err
 	return resourceComputeFirewallRead(d, meta)
 }
 
-func resourceComputeFirewallRead(d *schema.ResourceData, meta interface{}) error {
+func resourceComputeFirewallRead(d schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
 
 	_, err := config.clientCompute.Firewalls.Get(
@@ -170,7 +170,7 @@ func resourceComputeFirewallRead(d *schema.ResourceData, meta interface{}) error
 	return nil
 }
 
-func resourceComputeFirewallUpdate(d *schema.ResourceData, meta interface{}) error {
+func resourceComputeFirewallUpdate(d schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
 
 	d.Partial(true)
@@ -211,7 +211,7 @@ func resourceComputeFirewallUpdate(d *schema.ResourceData, meta interface{}) err
 	return resourceComputeFirewallRead(d, meta)
 }
 
-func resourceComputeFirewallDelete(d *schema.ResourceData, meta interface{}) error {
+func resourceComputeFirewallDelete(d schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
 
 	// Delete the firewall
@@ -246,7 +246,7 @@ func resourceComputeFirewallDelete(d *schema.ResourceData, meta interface{}) err
 }
 
 func resourceFirewall(
-	d *schema.ResourceData,
+	d schema.ResourceData,
 	meta interface{}) (*compute.Firewall, error) {
 	config := meta.(*Config)
 

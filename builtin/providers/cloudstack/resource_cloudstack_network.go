@@ -61,7 +61,7 @@ func resourceCloudStackNetwork() *schema.Resource {
 	}
 }
 
-func resourceCloudStackNetworkCreate(d *schema.ResourceData, meta interface{}) error {
+func resourceCloudStackNetworkCreate(d schema.ResourceData, meta interface{}) error {
 	cs := meta.(*cloudstack.CloudStackClient)
 
 	name := d.Get("name").(string)
@@ -130,7 +130,7 @@ func resourceCloudStackNetworkCreate(d *schema.ResourceData, meta interface{}) e
 	return resourceCloudStackNetworkRead(d, meta)
 }
 
-func resourceCloudStackNetworkRead(d *schema.ResourceData, meta interface{}) error {
+func resourceCloudStackNetworkRead(d schema.ResourceData, meta interface{}) error {
 	cs := meta.(*cloudstack.CloudStackClient)
 
 	// Get the virtual machine details
@@ -155,7 +155,7 @@ func resourceCloudStackNetworkRead(d *schema.ResourceData, meta interface{}) err
 	return nil
 }
 
-func resourceCloudStackNetworkUpdate(d *schema.ResourceData, meta interface{}) error {
+func resourceCloudStackNetworkUpdate(d schema.ResourceData, meta interface{}) error {
 	cs := meta.(*cloudstack.CloudStackClient)
 	name := d.Get("name").(string)
 
@@ -199,7 +199,7 @@ func resourceCloudStackNetworkUpdate(d *schema.ResourceData, meta interface{}) e
 	return resourceCloudStackNetworkRead(d, meta)
 }
 
-func resourceCloudStackNetworkDelete(d *schema.ResourceData, meta interface{}) error {
+func resourceCloudStackNetworkDelete(d schema.ResourceData, meta interface{}) error {
 	cs := meta.(*cloudstack.CloudStackClient)
 
 	// Create a new parameter struct

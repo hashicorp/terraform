@@ -86,7 +86,7 @@ func resourceCloudStackInstance() *schema.Resource {
 	}
 }
 
-func resourceCloudStackInstanceCreate(d *schema.ResourceData, meta interface{}) error {
+func resourceCloudStackInstanceCreate(d schema.ResourceData, meta interface{}) error {
 	cs := meta.(*cloudstack.CloudStackClient)
 
 	// Retrieve the service_offering UUID
@@ -159,7 +159,7 @@ func resourceCloudStackInstanceCreate(d *schema.ResourceData, meta interface{}) 
 	return resourceCloudStackInstanceRead(d, meta)
 }
 
-func resourceCloudStackInstanceRead(d *schema.ResourceData, meta interface{}) error {
+func resourceCloudStackInstanceRead(d schema.ResourceData, meta interface{}) error {
 	cs := meta.(*cloudstack.CloudStackClient)
 
 	// Get the virtual machine details
@@ -187,7 +187,7 @@ func resourceCloudStackInstanceRead(d *schema.ResourceData, meta interface{}) er
 	return nil
 }
 
-func resourceCloudStackInstanceUpdate(d *schema.ResourceData, meta interface{}) error {
+func resourceCloudStackInstanceUpdate(d schema.ResourceData, meta interface{}) error {
 	cs := meta.(*cloudstack.CloudStackClient)
 	d.Partial(true)
 
@@ -252,7 +252,7 @@ func resourceCloudStackInstanceUpdate(d *schema.ResourceData, meta interface{}) 
 	return resourceCloudStackInstanceRead(d, meta)
 }
 
-func resourceCloudStackInstanceDelete(d *schema.ResourceData, meta interface{}) error {
+func resourceCloudStackInstanceDelete(d schema.ResourceData, meta interface{}) error {
 	cs := meta.(*cloudstack.CloudStackClient)
 
 	// Create a new parameter struct

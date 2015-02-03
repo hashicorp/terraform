@@ -129,26 +129,25 @@ func TestAccAWSRouteTable_tags(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckRouteTableDestroy,
 		Steps: []resource.TestStep{
-		resource.TestStep{
-		Config: testAccRouteTableConfigTags,
-		Check: resource.ComposeTestCheckFunc(
-			testAccCheckRouteTableExists("aws_route_table.foo", &route_table),
-			testAccCheckTags(&route_table.Tags, "foo", "bar"),
-		),
-	},
+			resource.TestStep{
+				Config: testAccRouteTableConfigTags,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckRouteTableExists("aws_route_table.foo", &route_table),
+					testAccCheckTags(&route_table.Tags, "foo", "bar"),
+				),
+			},
 
-		resource.TestStep{
-		Config: testAccRouteTableConfigTagsUpdate,
-		Check: resource.ComposeTestCheckFunc(
-			testAccCheckRouteTableExists("aws_route_table.foo", &route_table),
-			testAccCheckTags(&route_table.Tags, "foo", ""),
-			testAccCheckTags(&route_table.Tags, "bar", "baz"),
-		),
-	},
-	},
+			resource.TestStep{
+				Config: testAccRouteTableConfigTagsUpdate,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckRouteTableExists("aws_route_table.foo", &route_table),
+					testAccCheckTags(&route_table.Tags, "foo", ""),
+					testAccCheckTags(&route_table.Tags, "bar", "baz"),
+				),
+			},
+		},
 	})
 }
-
 
 func testAccCheckRouteTableDestroy(s *terraform.State) error {
 	conn := testAccProvider.Meta().(*AWSClient).ec2conn

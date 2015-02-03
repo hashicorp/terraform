@@ -35,7 +35,7 @@ func resourceHerokuDomain() *schema.Resource {
 	}
 }
 
-func resourceHerokuDomainCreate(d *schema.ResourceData, meta interface{}) error {
+func resourceHerokuDomainCreate(d schema.ResourceData, meta interface{}) error {
 	client := meta.(*heroku.Service)
 
 	app := d.Get("app").(string)
@@ -56,7 +56,7 @@ func resourceHerokuDomainCreate(d *schema.ResourceData, meta interface{}) error 
 	return nil
 }
 
-func resourceHerokuDomainDelete(d *schema.ResourceData, meta interface{}) error {
+func resourceHerokuDomainDelete(d schema.ResourceData, meta interface{}) error {
 	client := meta.(*heroku.Service)
 
 	log.Printf("[INFO] Deleting Domain: %s", d.Id())
@@ -70,7 +70,7 @@ func resourceHerokuDomainDelete(d *schema.ResourceData, meta interface{}) error 
 	return nil
 }
 
-func resourceHerokuDomainRead(d *schema.ResourceData, meta interface{}) error {
+func resourceHerokuDomainRead(d schema.ResourceData, meta interface{}) error {
 	client := meta.(*heroku.Service)
 
 	app := d.Get("app").(string)

@@ -178,7 +178,7 @@ func resourceComputeInstance() *schema.Resource {
 	}
 }
 
-func resourceComputeInstanceCreate(d *schema.ResourceData, meta interface{}) error {
+func resourceComputeInstanceCreate(d schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
 
 	// Get the zone
@@ -362,7 +362,7 @@ func resourceComputeInstanceCreate(d *schema.ResourceData, meta interface{}) err
 	return resourceComputeInstanceRead(d, meta)
 }
 
-func resourceComputeInstanceRead(d *schema.ResourceData, meta interface{}) error {
+func resourceComputeInstanceRead(d schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
 
 	instance, err := config.clientCompute.Instances.Get(
@@ -427,7 +427,7 @@ func resourceComputeInstanceRead(d *schema.ResourceData, meta interface{}) error
 	return nil
 }
 
-func resourceComputeInstanceUpdate(d *schema.ResourceData, meta interface{}) error {
+func resourceComputeInstanceUpdate(d schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
 
 	// Enable partial mode for the resource since it is possible
@@ -504,7 +504,7 @@ func resourceComputeInstanceUpdate(d *schema.ResourceData, meta interface{}) err
 	return resourceComputeInstanceRead(d, meta)
 }
 
-func resourceComputeInstanceDelete(d *schema.ResourceData, meta interface{}) error {
+func resourceComputeInstanceDelete(d schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
 
 	op, err := config.clientCompute.Instances.Delete(
@@ -539,7 +539,7 @@ func resourceComputeInstanceDelete(d *schema.ResourceData, meta interface{}) err
 	return nil
 }
 
-func resourceInstanceMetadata(d *schema.ResourceData) *compute.Metadata {
+func resourceInstanceMetadata(d schema.ResourceData) *compute.Metadata {
 	var metadata *compute.Metadata
 	if metadataList := d.Get("metadata").([]interface{}); len(metadataList) > 0 {
 		m := new(compute.Metadata)
@@ -568,7 +568,7 @@ func resourceInstanceMetadata(d *schema.ResourceData) *compute.Metadata {
 	return metadata
 }
 
-func resourceInstanceTags(d *schema.ResourceData) *compute.Tags {
+func resourceInstanceTags(d schema.ResourceData) *compute.Tags {
 	// Calculate the tags
 	var tags *compute.Tags
 	if v := d.Get("tags"); v != nil {

@@ -106,7 +106,7 @@ func resourceAwsNetworkAcl() *schema.Resource {
 	}
 }
 
-func resourceAwsNetworkAclCreate(d *schema.ResourceData, meta interface{}) error {
+func resourceAwsNetworkAclCreate(d schema.ResourceData, meta interface{}) error {
 
 	ec2conn := meta.(*AWSClient).ec2conn
 
@@ -130,7 +130,7 @@ func resourceAwsNetworkAclCreate(d *schema.ResourceData, meta interface{}) error
 	return resourceAwsNetworkAclUpdate(d, meta)
 }
 
-func resourceAwsNetworkAclRead(d *schema.ResourceData, meta interface{}) error {
+func resourceAwsNetworkAclRead(d schema.ResourceData, meta interface{}) error {
 	ec2conn := meta.(*AWSClient).ec2conn
 
 	resp, err := ec2conn.NetworkAcls([]string{d.Id()}, ec2.NewFilter())
@@ -163,7 +163,7 @@ func resourceAwsNetworkAclRead(d *schema.ResourceData, meta interface{}) error {
 	return nil
 }
 
-func resourceAwsNetworkAclUpdate(d *schema.ResourceData, meta interface{}) error {
+func resourceAwsNetworkAclUpdate(d schema.ResourceData, meta interface{}) error {
 	ec2conn := meta.(*AWSClient).ec2conn
 	d.Partial(true)
 
@@ -206,7 +206,7 @@ func resourceAwsNetworkAclUpdate(d *schema.ResourceData, meta interface{}) error
 	return resourceAwsNetworkAclRead(d, meta)
 }
 
-func updateNetworkAclEntries(d *schema.ResourceData, entryType string, ec2conn *ec2.EC2) error {
+func updateNetworkAclEntries(d schema.ResourceData, entryType string, ec2conn *ec2.EC2) error {
 
 	o, n := d.GetChange(entryType)
 
@@ -246,7 +246,7 @@ func updateNetworkAclEntries(d *schema.ResourceData, entryType string, ec2conn *
 	return nil
 }
 
-func resourceAwsNetworkAclDelete(d *schema.ResourceData, meta interface{}) error {
+func resourceAwsNetworkAclDelete(d schema.ResourceData, meta interface{}) error {
 	ec2conn := meta.(*AWSClient).ec2conn
 
 	log.Printf("[INFO] Deleting Network Acl: %s", d.Id())

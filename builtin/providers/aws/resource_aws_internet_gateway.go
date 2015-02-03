@@ -27,7 +27,7 @@ func resourceAwsInternetGateway() *schema.Resource {
 	}
 }
 
-func resourceAwsInternetGatewayCreate(d *schema.ResourceData, meta interface{}) error {
+func resourceAwsInternetGatewayCreate(d schema.ResourceData, meta interface{}) error {
 	ec2conn := meta.(*AWSClient).ec2conn
 
 	// Create the gateway
@@ -46,7 +46,7 @@ func resourceAwsInternetGatewayCreate(d *schema.ResourceData, meta interface{}) 
 	return resourceAwsInternetGatewayAttach(d, meta)
 }
 
-func resourceAwsInternetGatewayRead(d *schema.ResourceData, meta interface{}) error {
+func resourceAwsInternetGatewayRead(d schema.ResourceData, meta interface{}) error {
 	ec2conn := meta.(*AWSClient).ec2conn
 
 	igRaw, _, err := IGStateRefreshFunc(ec2conn, d.Id())()
@@ -72,7 +72,7 @@ func resourceAwsInternetGatewayRead(d *schema.ResourceData, meta interface{}) er
 	return nil
 }
 
-func resourceAwsInternetGatewayUpdate(d *schema.ResourceData, meta interface{}) error {
+func resourceAwsInternetGatewayUpdate(d schema.ResourceData, meta interface{}) error {
 	if d.HasChange("vpc_id") {
 		// If we're already attached, detach it first
 		if err := resourceAwsInternetGatewayDetach(d, meta); err != nil {
@@ -96,7 +96,7 @@ func resourceAwsInternetGatewayUpdate(d *schema.ResourceData, meta interface{}) 
 	return nil
 }
 
-func resourceAwsInternetGatewayDelete(d *schema.ResourceData, meta interface{}) error {
+func resourceAwsInternetGatewayDelete(d schema.ResourceData, meta interface{}) error {
 	ec2conn := meta.(*AWSClient).ec2conn
 
 	// Detach if it is attached
@@ -128,7 +128,7 @@ func resourceAwsInternetGatewayDelete(d *schema.ResourceData, meta interface{}) 
 	})
 }
 
-func resourceAwsInternetGatewayAttach(d *schema.ResourceData, meta interface{}) error {
+func resourceAwsInternetGatewayAttach(d schema.ResourceData, meta interface{}) error {
 	ec2conn := meta.(*AWSClient).ec2conn
 
 	if d.Get("vpc_id").(string) == "" {
@@ -170,7 +170,7 @@ func resourceAwsInternetGatewayAttach(d *schema.ResourceData, meta interface{}) 
 	return nil
 }
 
-func resourceAwsInternetGatewayDetach(d *schema.ResourceData, meta interface{}) error {
+func resourceAwsInternetGatewayDetach(d schema.ResourceData, meta interface{}) error {
 	ec2conn := meta.(*AWSClient).ec2conn
 
 	// Get the old VPC ID to detach from

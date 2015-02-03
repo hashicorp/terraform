@@ -27,7 +27,7 @@ func Provider() terraform.ResourceProvider {
 	}
 }
 
-func providerConfigure(d *schema.ResourceData) (interface{}, error) {
+func providerConfigure(d schema.ResourceData) (interface{}, error) {
 	config := Config{
 		Token: d.Get("token").(string),
 	}

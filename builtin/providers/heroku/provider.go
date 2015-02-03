@@ -36,7 +36,7 @@ func Provider() terraform.ResourceProvider {
 	}
 }
 
-func providerConfigure(d *schema.ResourceData) (interface{}, error) {
+func providerConfigure(d schema.ResourceData) (interface{}, error) {
 	config := Config{
 		Email:  d.Get("email").(string),
 		APIKey: d.Get("api_key").(string),

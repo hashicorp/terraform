@@ -31,7 +31,7 @@ func resourceDigitalOceanDomain() *schema.Resource {
 	}
 }
 
-func resourceDigitalOceanDomainCreate(d *schema.ResourceData, meta interface{}) error {
+func resourceDigitalOceanDomainCreate(d schema.ResourceData, meta interface{}) error {
 	client := meta.(*digitalocean.Client)
 
 	// Build up our creation options
@@ -52,7 +52,7 @@ func resourceDigitalOceanDomainCreate(d *schema.ResourceData, meta interface{}) 
 	return resourceDigitalOceanDomainRead(d, meta)
 }
 
-func resourceDigitalOceanDomainRead(d *schema.ResourceData, meta interface{}) error {
+func resourceDigitalOceanDomainRead(d schema.ResourceData, meta interface{}) error {
 	client := meta.(*digitalocean.Client)
 
 	domain, err := client.RetrieveDomain(d.Id())
@@ -72,7 +72,7 @@ func resourceDigitalOceanDomainRead(d *schema.ResourceData, meta interface{}) er
 	return nil
 }
 
-func resourceDigitalOceanDomainDelete(d *schema.ResourceData, meta interface{}) error {
+func resourceDigitalOceanDomainDelete(d schema.ResourceData, meta interface{}) error {
 	client := meta.(*digitalocean.Client)
 
 	log.Printf("[INFO] Deleting Domain: %s", d.Id())

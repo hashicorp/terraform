@@ -87,7 +87,7 @@ func init() {
 	}
 }
 
-func providerConfigure(d *schema.ResourceData) (interface{}, error) {
+func providerConfigure(d schema.ResourceData) (interface{}, error) {
 	config := Config{
 		AccessKey: d.Get("access_key").(string),
 		SecretKey: d.Get("secret_key").(string),

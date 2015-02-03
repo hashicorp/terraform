@@ -45,7 +45,7 @@ func resourceHerokuCert() *schema.Resource {
 	}
 }
 
-func resourceHerokuCertCreate(d *schema.ResourceData, meta interface{}) error {
+func resourceHerokuCertCreate(d schema.ResourceData, meta interface{}) error {
 	client := meta.(*heroku.Service)
 
 	app := d.Get("app").(string)
@@ -67,7 +67,7 @@ func resourceHerokuCertCreate(d *schema.ResourceData, meta interface{}) error {
 	return resourceHerokuCertRead(d, meta)
 }
 
-func resourceHerokuCertRead(d *schema.ResourceData, meta interface{}) error {
+func resourceHerokuCertRead(d schema.ResourceData, meta interface{}) error {
 	client := meta.(*heroku.Service)
 
 	cert, err := resourceHerokuSSLCertRetrieve(
@@ -83,7 +83,7 @@ func resourceHerokuCertRead(d *schema.ResourceData, meta interface{}) error {
 	return nil
 }
 
-func resourceHerokuCertUpdate(d *schema.ResourceData, meta interface{}) error {
+func resourceHerokuCertUpdate(d schema.ResourceData, meta interface{}) error {
 	client := meta.(*heroku.Service)
 
 	app := d.Get("app").(string)
@@ -108,7 +108,7 @@ func resourceHerokuCertUpdate(d *schema.ResourceData, meta interface{}) error {
 	return resourceHerokuCertRead(d, meta)
 }
 
-func resourceHerokuCertDelete(d *schema.ResourceData, meta interface{}) error {
+func resourceHerokuCertDelete(d schema.ResourceData, meta interface{}) error {
 	client := meta.(*heroku.Service)
 
 	log.Printf("[INFO] Deleting SSL Cert: %s", d.Id())

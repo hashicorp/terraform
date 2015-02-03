@@ -100,7 +100,7 @@ func resourceMailgunDomain() *schema.Resource {
 	}
 }
 
-func resourceMailgunDomainCreate(d *schema.ResourceData, meta interface{}) error {
+func resourceMailgunDomainCreate(d schema.ResourceData, meta interface{}) error {
 	client := meta.(*mailgun.Client)
 
 	opts := mailgun.CreateDomain{}
@@ -132,7 +132,7 @@ func resourceMailgunDomainCreate(d *schema.ResourceData, meta interface{}) error
 	return nil
 }
 
-func resourceMailgunDomainDelete(d *schema.ResourceData, meta interface{}) error {
+func resourceMailgunDomainDelete(d schema.ResourceData, meta interface{}) error {
 	client := meta.(*mailgun.Client)
 
 	log.Printf("[INFO] Deleting Domain: %s", d.Id())
@@ -146,7 +146,7 @@ func resourceMailgunDomainDelete(d *schema.ResourceData, meta interface{}) error
 	return nil
 }
 
-func resourceMailgunDomainRead(d *schema.ResourceData, meta interface{}) error {
+func resourceMailgunDomainRead(d schema.ResourceData, meta interface{}) error {
 	client := meta.(*mailgun.Client)
 
 	_, err := resourceMailginDomainRetrieve(d.Id(), client, d)
@@ -158,7 +158,7 @@ func resourceMailgunDomainRead(d *schema.ResourceData, meta interface{}) error {
 	return nil
 }
 
-func resourceMailginDomainRetrieve(id string, client *mailgun.Client, d *schema.ResourceData) (*mailgun.DomainResponse, error) {
+func resourceMailginDomainRetrieve(id string, client *mailgun.Client, d schema.ResourceData) (*mailgun.DomainResponse, error) {
 	resp, err := client.RetrieveDomain(id)
 
 	if err != nil {

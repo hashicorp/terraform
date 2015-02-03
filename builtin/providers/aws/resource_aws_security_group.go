@@ -94,7 +94,7 @@ func resourceAwsSecurityGroup() *schema.Resource {
 	}
 }
 
-func resourceAwsSecurityGroupCreate(d *schema.ResourceData, meta interface{}) error {
+func resourceAwsSecurityGroupCreate(d schema.ResourceData, meta interface{}) error {
 	ec2conn := meta.(*AWSClient).ec2conn
 
 	securityGroupOpts := ec2.SecurityGroup{
@@ -139,7 +139,7 @@ func resourceAwsSecurityGroupCreate(d *schema.ResourceData, meta interface{}) er
 	return resourceAwsSecurityGroupUpdate(d, meta)
 }
 
-func resourceAwsSecurityGroupRead(d *schema.ResourceData, meta interface{}) error {
+func resourceAwsSecurityGroupRead(d schema.ResourceData, meta interface{}) error {
 	ec2conn := meta.(*AWSClient).ec2conn
 
 	sgRaw, _, err := SGStateRefreshFunc(ec2conn, d.Id())()
@@ -215,7 +215,7 @@ func resourceAwsSecurityGroupRead(d *schema.ResourceData, meta interface{}) erro
 	return nil
 }
 
-func resourceAwsSecurityGroupUpdate(d *schema.ResourceData, meta interface{}) error {
+func resourceAwsSecurityGroupUpdate(d schema.ResourceData, meta interface{}) error {
 	ec2conn := meta.(*AWSClient).ec2conn
 
 	sgRaw, _, err := SGStateRefreshFunc(ec2conn, d.Id())()
@@ -278,7 +278,7 @@ func resourceAwsSecurityGroupUpdate(d *schema.ResourceData, meta interface{}) er
 	return resourceAwsSecurityGroupRead(d, meta)
 }
 
-func resourceAwsSecurityGroupDelete(d *schema.ResourceData, meta interface{}) error {
+func resourceAwsSecurityGroupDelete(d schema.ResourceData, meta interface{}) error {
 	ec2conn := meta.(*AWSClient).ec2conn
 
 	log.Printf("[DEBUG] Security Group destroy: %v", d.Id())

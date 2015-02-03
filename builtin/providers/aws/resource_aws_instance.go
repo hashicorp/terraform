@@ -194,7 +194,7 @@ func resourceAwsInstance() *schema.Resource {
 	}
 }
 
-func resourceAwsInstanceCreate(d *schema.ResourceData, meta interface{}) error {
+func resourceAwsInstanceCreate(d schema.ResourceData, meta interface{}) error {
 	ec2conn := meta.(*AWSClient).ec2conn
 
 	// Figure out user data
@@ -307,7 +307,7 @@ func resourceAwsInstanceCreate(d *schema.ResourceData, meta interface{}) error {
 	return resourceAwsInstanceUpdate(d, meta)
 }
 
-func resourceAwsInstanceRead(d *schema.ResourceData, meta interface{}) error {
+func resourceAwsInstanceRead(d schema.ResourceData, meta interface{}) error {
 	ec2conn := meta.(*AWSClient).ec2conn
 
 	resp, err := ec2conn.Instances([]string{d.Id()}, ec2.NewFilter())
@@ -416,7 +416,7 @@ func resourceAwsInstanceRead(d *schema.ResourceData, meta interface{}) error {
 	return nil
 }
 
-func resourceAwsInstanceUpdate(d *schema.ResourceData, meta interface{}) error {
+func resourceAwsInstanceUpdate(d schema.ResourceData, meta interface{}) error {
 	ec2conn := meta.(*AWSClient).ec2conn
 
 	modify := false
@@ -447,7 +447,7 @@ func resourceAwsInstanceUpdate(d *schema.ResourceData, meta interface{}) error {
 	return nil
 }
 
-func resourceAwsInstanceDelete(d *schema.ResourceData, meta interface{}) error {
+func resourceAwsInstanceDelete(d schema.ResourceData, meta interface{}) error {
 	ec2conn := meta.(*AWSClient).ec2conn
 
 	log.Printf("[INFO] Terminating instance: %s", d.Id())

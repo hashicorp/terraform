@@ -6,9 +6,9 @@ import (
 	"testing"
 	"time"
 
+	"github.com/MSOpenTech/azure-sdk-for-go/clients/vmClient"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
-	"github.com/MSOpenTech/azure-sdk-for-go/clients/vmClient"
 )
 
 func TestAccAzureVirtualMachine_Basic(t *testing.T) {

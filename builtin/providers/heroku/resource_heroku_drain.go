@@ -35,7 +35,7 @@ func resourceHerokuDrain() *schema.Resource {
 	}
 }
 
-func resourceHerokuDrainCreate(d *schema.ResourceData, meta interface{}) error {
+func resourceHerokuDrainCreate(d schema.ResourceData, meta interface{}) error {
 	client := meta.(*heroku.Service)
 
 	app := d.Get("app").(string)
@@ -56,7 +56,7 @@ func resourceHerokuDrainCreate(d *schema.ResourceData, meta interface{}) error {
 	return nil
 }
 
-func resourceHerokuDrainDelete(d *schema.ResourceData, meta interface{}) error {
+func resourceHerokuDrainDelete(d schema.ResourceData, meta interface{}) error {
 	client := meta.(*heroku.Service)
 
 	log.Printf("[INFO] Deleting drain: %s", d.Id())
@@ -70,7 +70,7 @@ func resourceHerokuDrainDelete(d *schema.ResourceData, meta interface{}) error {
 	return nil
 }
 
-func resourceHerokuDrainRead(d *schema.ResourceData, meta interface{}) error {
+func resourceHerokuDrainRead(d schema.ResourceData, meta interface{}) error {
 	client := meta.(*heroku.Service)
 
 	dr, err := client.LogDrainInfo(d.Get("app").(string), d.Id())

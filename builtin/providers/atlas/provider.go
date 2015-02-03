@@ -39,7 +39,7 @@ func Provider() terraform.ResourceProvider {
 	}
 }
 
-func providerConfigure(d *schema.ResourceData) (interface{}, error) {
+func providerConfigure(d schema.ResourceData) (interface{}, error) {
 	var err error
 	client := atlas.DefaultClient()
 	if v := d.Get("address").(string); v != "" {

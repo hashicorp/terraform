@@ -50,7 +50,7 @@ func resourceComputeDisk() *schema.Resource {
 	}
 }
 
-func resourceComputeDiskCreate(d *schema.ResourceData, meta interface{}) error {
+func resourceComputeDiskCreate(d schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
 
 	// Get the zone
@@ -129,7 +129,7 @@ func resourceComputeDiskCreate(d *schema.ResourceData, meta interface{}) error {
 	return resourceComputeDiskRead(d, meta)
 }
 
-func resourceComputeDiskRead(d *schema.ResourceData, meta interface{}) error {
+func resourceComputeDiskRead(d schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
 
 	_, err := config.clientCompute.Disks.Get(
@@ -148,7 +148,7 @@ func resourceComputeDiskRead(d *schema.ResourceData, meta interface{}) error {
 	return nil
 }
 
-func resourceComputeDiskDelete(d *schema.ResourceData, meta interface{}) error {
+func resourceComputeDiskDelete(d schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
 
 	// Delete the disk
