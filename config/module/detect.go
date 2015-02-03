@@ -3,6 +3,8 @@ package module
 import (
 	"fmt"
 	"path/filepath"
+
+	"github.com/hashicorp/terraform/helper/url"
 )
 
 // Detector defines the interface that an invalid URL or a URL with a blank
@@ -37,7 +39,7 @@ func Detect(src string, pwd string) (string, error) {
 	// Separate out the subdir if there is one, we don't pass that to detect
 	getSrc, subDir := getDirSubdir(getSrc)
 
-	u, err := urlParse(getSrc)
+	u, err := url.Parse(getSrc)
 	if err == nil && u.Scheme != "" {
 		// Valid URL
 		return src, nil
@@ -66,7 +68,7 @@ func Detect(src string, pwd string) (string, error) {
 			}
 		}
 		if subDir != "" {
-			u, err := urlParse(result)
+			u, err := url.Parse(result)
 			if err != nil {
 				return "", fmt.Errorf("Error parsing URL: %s", err)
 			}
