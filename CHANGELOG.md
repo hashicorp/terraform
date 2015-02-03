@@ -10,6 +10,8 @@ IMPROVEMENTS:
   * **New resources: `google_compute_forwarding_rule`, `google_compute_http_health_check`, 
       and `google_compute_target_pool`** - Together these provide network-level 
       load balancing. [GH-588]
+  * **New resource: `aws_main_route_table_association`** - Manage the main routing table 
+      of a VPC. [GH-918]
   * core: Formalized the syntax of interpolations and documented it
       very heavily.
   * core: Strings in interpolations can now contain further interpolations,
