@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/hashicorp/terraform/config"
+	urlhelper "github.com/hashicorp/terraform/helper/url"
 )
 
 const fixtureDir = "./test-fixtures"
@@ -43,7 +44,7 @@ func testModule(n string) string {
 }
 
 func testModuleURL(n string) *url.URL {
-	u, err := urlParse(testModule(n))
+	u, err := urlhelper.Parse(testModule(n))
 	if err != nil {
 		panic(err)
 	}
