@@ -109,30 +109,6 @@ func resourceComputeInstance() *schema.Resource {
 				},
 			},
 
-			"service_accounts": &schema.Schema{
-				Type:     schema.TypeList,
-				Optional: true,
-				ForceNew: true,
-				Elem: &schema.Resource{
-					Schema: map[string]*schema.Schema{
-						"email": &schema.Schema{
-							Type:     schema.TypeString,
-							Required: true,
-							ForceNew: true,
-						},
-
-						"scopes": &schema.Schema{
-							Type:     schema.TypeList,
-							Optional: true,
-							ForceNew: true,
-							Elem: &schema.Schema{
-								Type: schema.TypeString,
-							},
-						},
-					},
-				},
-			},
-
 			"can_ip_forward": &schema.Schema{
 				Type:     schema.TypeBool,
 				Optional: true,
