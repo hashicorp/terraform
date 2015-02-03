@@ -65,6 +65,7 @@ func Provider() terraform.ResourceProvider {
 			"aws_security_group":          resourceAwsSecurityGroup(),
 			"aws_subnet":                  resourceAwsSubnet(),
 			"aws_vpc":                     resourceAwsVpc(),
+			"aws_dhcp_option_set":				 resourceAwsDhcpOptionSet(),
 		},
 
 		ConfigureFunc: providerConfigure,

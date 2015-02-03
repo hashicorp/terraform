@@ -57,6 +57,10 @@ func resourceAwsVpc() *schema.Resource {
 				Computed: true,
 			},
 
+			"dhcp_options_id": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+			},
 
 			"tags": tagsSchema(),
 		},
@@ -68,7 +72,7 @@ func resourceAwsVpcCreate(d *schema.ResourceData, meta interface{}) error {
 
 	// Create the VPC
 	createOpts := &ec2.CreateVpc{
-		CidrBlock: d.Get("cidr_block").(string),
+		CidrBlock:       d.Get("cidr_block").(string),
 		InstanceTenancy: d.Get("instance_tenancy").(string),
 	}
 	log.Printf("[DEBUG] VPC create config: %#v", createOpts)
@@ -100,6 +104,18 @@ func resourceAwsVpcCreate(d *schema.ResourceData, meta interface{}) error {
 		return fmt.Errorf(
 			"Error waiting for VPC (%s) to become available: %s",
 			d.Id(), err)
+	}
+
+	// Link DHCP Options Set if specified
+	if _, ok := d.GetOk("dhcp_options_id"); ok {
+		d.Partial(true)
+		d.SetPartial("dhcp_option_set")
+
+		// Link DhcpOptionsId and VpcId if we have a dhcp_options_id
+		_, err = ec2conn.AssociateDhcpOptions(d.Get("dhcp_options_id").(string), vpc.VpcId)
+		if err != nil {
+			return fmt.Errorf("Error associating DHCP Options with VPC: %s", err)
+		}
 	}
 
 	// Update our attributes and return
@@ -243,8 +259,7 @@ func VPCStateRefreshFunc(conn *ec2.EC2, id string) resource.StateRefreshFunc {
 	}
 }
 
-
-func resourceAwsVpcSetDefaultNetworkAcl(conn *ec2.EC2, d *schema.ResourceData) error  {
+func resourceAwsVpcSetDefaultNetworkAcl(conn *ec2.EC2, d *schema.ResourceData) error {
 	filter := ec2.NewFilter()
 	filter.Add("default", "true")
 	filter.Add("vpc-id", d.Id())
@@ -260,7 +275,7 @@ func resourceAwsVpcSetDefaultNetworkAcl(conn *ec2.EC2, d *schema.ResourceData) e
 	return nil
 }
 
-func resourceAwsVpcSetDefaultSecurityGroup(conn *ec2.EC2, d *schema.ResourceData) error  {
+func resourceAwsVpcSetDefaultSecurityGroup(conn *ec2.EC2, d *schema.ResourceData) error {
 	filter := ec2.NewFilter()
 	filter.Add("group-name", "default")
 	filter.Add("vpc-id", d.Id())
