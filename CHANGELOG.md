@@ -24,6 +24,7 @@ IMPROVEMENTS:
       `map_public_ip_on_launch` is not specified in config. [GH-898]
   * provider/google: Remove "client secrets file", as it's no longer necessary
       for API authentication [GH-884].
+  * provider/google: Expose `self_link` on `google_compute_instance` [GH-906]
 
 BUG FIXES:
 
