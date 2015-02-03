@@ -11,6 +11,8 @@ import (
 	"regexp"
 	"strings"
 	"syscall"
+
+	urlhelper "github.com/hashicorp/terraform/helper/url"
 )
 
 // Getter defines the interface that schemes must implement to download
@@ -72,7 +74,7 @@ func Get(dst, src string) error {
 		dst = tmpDir
 	}
 
-	u, err := urlParse(src)
+	u, err := urlhelper.Parse(src)
 	if err != nil {
 		return err
 	}
