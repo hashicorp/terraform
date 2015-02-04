@@ -226,3 +226,12 @@ func (c *ResourceConfig) interpolate(
 	c.Config = c.raw.Config()
 	return nil
 }
+
+// interpolateForce is a temporary thing. We want to get rid of interpolate
+// above and likewise this, but it can only be done after the f-ast-graph
+// refactor is complete.
+func (c *ResourceConfig) interpolateForce() {
+	c.ComputedKeys = c.raw.UnknownKeys()
+	c.Raw = c.raw.Raw
+	c.Config = c.raw.Config()
+}

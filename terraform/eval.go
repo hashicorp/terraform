@@ -22,3 +22,20 @@ type EvalNode interface {
 type GraphNodeEvalable interface {
 	EvalTree() EvalNode
 }
+
+// Eval evaluates the given EvalNode with the given context, properly
+// evaluating all args in the correct order.
+func Eval(n EvalNode, ctx EvalContext) (interface{}, error) {
+	argNodes, _ := n.Args()
+	args := make([]interface{}, len(argNodes))
+	for i, n := range argNodes {
+		v, err := Eval(n, ctx)
+		if err != nil {
+			return nil, err
+		}
+
+		args[i] = v
+	}
+
+	return n.Eval(ctx, args)
+}
