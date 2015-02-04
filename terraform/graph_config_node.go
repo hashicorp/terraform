@@ -119,6 +119,14 @@ func (n *GraphNodeConfigResource) Name() string {
 	return n.Resource.Id()
 }
 
+// GraphNodeEvalable impl.
+func (n *GraphNodeConfigResource) EvalTree() EvalNode {
+	return &EvalValidateResource{
+		Provider: &EvalGetProvider{Name: n.ProvidedBy()},
+		Config:   n.Resource.RawConfig,
+	}
+}
+
 // GraphNodeProviderConsumer
 func (n *GraphNodeConfigResource) ProvidedBy() string {
 	return resourceProvider(n.Resource.Type)

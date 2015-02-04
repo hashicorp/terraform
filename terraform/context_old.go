@@ -44,21 +44,6 @@ type Context struct {
 	sh          *stopHook
 }
 
-// ContextOpts are the user-creatable configuration structure to create
-// a context with NewContext.
-type ContextOpts struct {
-	Diff         *Diff
-	Hooks        []Hook
-	Module       *module.Tree
-	Parallelism  int
-	State        *State
-	Providers    map[string]ResourceProviderFactory
-	Provisioners map[string]ResourceProvisionerFactory
-	Variables    map[string]string
-
-	UIInput UIInput
-}
-
 // InputMode defines what sort of input will be asked for when Input
 // is called on Context.
 type InputMode byte
