@@ -1,6 +1,8 @@
 package dag
 
 import (
+	"reflect"
+	"sync"
 	"testing"
 )
 
@@ -43,4 +45,36 @@ func TestAcyclicGraphRoot_multiple(t *testing.T) {
 	if _, err := g.Root(); err == nil {
 		t.Fatal("should error")
 	}
+}
+
+func TestAcyclicGraphWalk(t *testing.T) {
+	var g AcyclicGraph
+	g.Add(1)
+	g.Add(2)
+	g.Add(3)
+	g.Connect(BasicEdge(3, 2))
+	g.Connect(BasicEdge(3, 1))
+
+	var visits []Vertex
+	var lock sync.Mutex
+	err := g.Walk(func(v Vertex) {
+		lock.Lock()
+		defer lock.Unlock()
+		visits = append(visits, v)
+	})
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	expected := [][]Vertex{
+		{3, 1, 2},
+		{3, 2, 1},
+	}
+	for _, e := range expected {
+		if reflect.DeepEqual(visits, e) {
+			return
+		}
+	}
+
+	t.Fatalf("bad: %#v", visits)
 }

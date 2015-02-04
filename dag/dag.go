@@ -2,6 +2,7 @@ package dag
 
 import (
 	"fmt"
+	"sync"
 )
 
 // AcyclicGraph is a specialization of Graph that cannot have cycles. With
@@ -37,5 +38,48 @@ func (g *AcyclicGraph) Root() (Vertex, error) {
 }
 
 // Walk walks the graph, calling your callback as each node is visited.
-func (g *AcyclicGraph) Walk(cb WalkFunc) {
+// This will walk nodes in parallel if it can.
+func (g *AcyclicGraph) Walk(cb WalkFunc) error {
+	// We require a root to walk.
+	root, err := g.Root()
+	if err != nil {
+		return err
+	}
+
+	// Build the waitgroup that signals when we're done
+	var wg sync.WaitGroup
+	wg.Add(g.vertices.Len())
+	doneCh := make(chan struct{})
+	go func() {
+		defer close(doneCh)
+		wg.Wait()
+	}()
+
+	// Start walking!
+	visitCh := make(chan Vertex, g.vertices.Len())
+	visitCh <- root
+	for {
+		select {
+		case v := <-visitCh:
+			go g.walkVertex(v, cb, visitCh, &wg)
+		case <-doneCh:
+			goto WALKDONE
+		}
+	}
+
+WALKDONE:
+	return nil
+}
+
+func (g *AcyclicGraph) walkVertex(
+	v Vertex, cb WalkFunc, nextCh chan<- Vertex, wg *sync.WaitGroup) {
+	defer wg.Done()
+
+	// Call the callback on this vertex
+	cb(v)
+
+	// Walk all the children in parallel
+	for _, v := range g.DownEdges(v).List() {
+		nextCh <- v.(Vertex)
+	}
 }
