@@ -18,7 +18,9 @@ func (n *EvalConfigProvider) Args() ([]EvalNode, []EvalType) {
 
 func (n *EvalConfigProvider) Eval(
 	ctx EvalContext, args []interface{}) (interface{}, error) {
-	return nil, nil
+	provider := args[0].(ResourceProvider)
+	config := args[1].(*ResourceConfig)
+	return nil, provider.Configure(config)
 }
 
 func (n *EvalConfigProvider) Type() EvalType {

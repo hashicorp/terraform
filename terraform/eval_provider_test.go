@@ -1,8 +1,52 @@
 package terraform
 
 import (
+	"reflect"
 	"testing"
 )
+
+func TestEvalConfigProvider_impl(t *testing.T) {
+	var _ EvalNode = new(EvalConfigProvider)
+}
+
+func TestEvalConfigProvider(t *testing.T) {
+	config := testResourceConfig(t, map[string]interface{}{})
+	provider := &MockResourceProvider{}
+	n := &EvalConfigProvider{}
+
+	ctx := &MockEvalContext{ProviderProvider: provider}
+	args := []interface{}{provider, config}
+	if actual, err := n.Eval(ctx, args); err != nil {
+		t.Fatalf("err: %s", err)
+	} else if actual != nil {
+		t.Fatalf("bad: %#v", actual)
+	}
+
+	if !provider.ConfigureCalled {
+		t.Fatal("should be called")
+	}
+	if !reflect.DeepEqual(provider.ConfigureConfig, config) {
+		t.Fatalf("bad: %#v", provider.ConfigureConfig)
+	}
+}
+
+func TestEvalConfigProvider_args(t *testing.T) {
+	config := testResourceConfig(t, map[string]interface{}{})
+	provider := &MockResourceProvider{}
+	providerNode := &EvalLiteral{Value: provider}
+	configNode := &EvalLiteral{Value: config}
+	n := &EvalConfigProvider{Provider: providerNode, Config: configNode}
+
+	args, types := n.Args()
+	expectedArgs := []EvalNode{providerNode, configNode}
+	expectedTypes := []EvalType{EvalTypeResourceProvider, EvalTypeConfig}
+	if !reflect.DeepEqual(args, expectedArgs) {
+		t.Fatalf("bad: %#v", args)
+	}
+	if !reflect.DeepEqual(types, expectedTypes) {
+		t.Fatalf("bad: %#v", args)
+	}
+}
 
 func TestEvalInitProvider_impl(t *testing.T) {
 	var _ EvalNode = new(EvalInitProvider)

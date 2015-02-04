@@ -116,3 +116,13 @@ func TestResourceConfigGet(t *testing.T) {
 		}
 	}
 }
+
+func testResourceConfig(
+	t *testing.T, c map[string]interface{}) *ResourceConfig {
+	raw, err := config.NewRawConfig(c)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	return NewResourceConfig(raw)
+}
