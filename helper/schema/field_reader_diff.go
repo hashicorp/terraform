@@ -153,8 +153,8 @@ func (r *DiffFieldReader) readSet(
 		if !strings.HasPrefix(k, prefix) {
 			continue
 		}
-		if strings.HasPrefix(k, prefix+"#") {
-			// Ignore the count field
+		if strings.HasSuffix(k, "#") {
+			// Ignore any count field
 			continue
 		}
 
