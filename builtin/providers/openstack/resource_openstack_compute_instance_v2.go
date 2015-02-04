@@ -442,6 +442,7 @@ func resourceComputeInstanceV2Delete(d *schema.ResourceData, meta interface{}) e
 	log.Printf("[DEBUG] Waiting for instance (%s) to delete", d.Id())
 
 	stateConf := &resource.StateChangeConf{
+		Pending:    []string{"ACTIVE"},
 		Target:     "DELETED",
 		Refresh:    ServerV2StateRefreshFunc(computeClient, d.Id()),
 		Timeout:    10 * time.Minute,
