@@ -7,6 +7,7 @@ import (
 
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/racker/perigee"
 	"github.com/rackspace/gophercloud"
 	"github.com/rackspace/gophercloud/openstack/blockstorage/v1/volumes"
 )
@@ -97,9 +98,9 @@ func resourceBlockStorageVolumeV1Create(d *schema.ResourceData, meta interface{}
 	// Store the ID now
 	d.SetId(v.ID)
 
-	// Wait for the volume to become running.
+	// Wait for the volume to become available.
 	log.Printf(
-		"[DEBUG] Waiting for volume (%s) to become running",
+		"[DEBUG] Waiting for volume (%s) to become available",
 		v.ID)
 
 	stateConf := &resource.StateChangeConf{
@@ -132,16 +133,48 @@ func resourceBlockStorageVolumeV1Read(d *schema.ResourceData, meta interface{}) 
 		return fmt.Errorf("Error retrieving OpenStack volume: %s", err)
 	}
 
+	log.Printf("\n\ngot volume: %+v\n\n", v)
+
 	log.Printf("[DEBUG] Retreived volume %s: %+v", d.Id(), v)
 
 	d.Set("region", d.Get("region").(string))
-	d.Set("description", v.Description)
-	d.Set("name", v.Name)
 	d.Set("size", v.Size)
-	d.Set("snapshot_id", v.SnapshotID)
-	d.Set("source_vol_id", v.SourceVolID)
-	d.Set("volume_type", v.VolumeType)
-	d.Set("metadata", v.Metadata)
+
+	if t, exists := d.GetOk("description"); exists && t != "" {
+		d.Set("description", v.Description)
+	} else {
+		d.Set("description", "")
+	}
+
+	if t, exists := d.GetOk("name"); exists && t != "" {
+		d.Set("name", v.Name)
+	} else {
+		d.Set("name", "")
+	}
+
+	if t, exists := d.GetOk("snapshot_id"); exists && t != "" {
+		d.Set("snapshot_id", v.SnapshotID)
+	} else {
+		d.Set("snapshot_id", "")
+	}
+
+	if t, exists := d.GetOk("source_vol_id"); exists && t != "" {
+		d.Set("source_vol_id", v.SourceVolID)
+	} else {
+		d.Set("source_vol_id", "")
+	}
+
+	if t, exists := d.GetOk("volume_type"); exists && t != "" {
+		d.Set("volume_type", v.VolumeType)
+	} else {
+		d.Set("volume_type", "")
+	}
+
+	if t, exists := d.GetOk("metadata"); exists && t != "" {
+		d.Set("metadata", v.Metadata)
+	} else {
+		d.Set("metadata", "")
+	}
 
 	return nil
 }
@@ -187,7 +220,7 @@ func resourceBlockStorageVolumeV1Delete(d *schema.ResourceData, meta interface{}
 
 	stateConf := &resource.StateChangeConf{
 		Pending:    []string{"deleting"},
-		Target:     "",
+		Target:     "deleted",
 		Refresh:    VolumeV1StateRefreshFunc(blockStorageClient, d.Id()),
 		Timeout:    10 * time.Minute,
 		Delay:      10 * time.Second,
@@ -217,10 +250,18 @@ func resourceVolumeMetadataV1(d *schema.ResourceData) map[string]string {
 // an OpenStack volume.
 func VolumeV1StateRefreshFunc(client *gophercloud.ServiceClient, volumeID string) resource.StateRefreshFunc {
 	return func() (interface{}, string, error) {
-		v, _ := volumes.Get(client, volumeID).Extract()
-		if v != nil {
-			return v, v.Status, nil
+		v, err := volumes.Get(client, volumeID).Extract()
+		if err != nil {
+			errCode, ok := err.(*perigee.UnexpectedResponseCodeError)
+			if !ok {
+				return nil, "", err
+			}
+			if errCode.Actual == 404 {
+				return v, "deleted", nil
+			}
+			return nil, "", err
 		}
-		return nil, "", nil
+
+		return v, v.Status, nil
 	}
 }
