@@ -1,5 +1,9 @@
 package terraform
 
+import (
+	"github.com/hashicorp/terraform/config"
+)
+
 // EvalContext is the interface that is given to eval nodes to execute.
 type EvalContext interface {
 	// InitProvider initializes the provider with the given name and
@@ -9,6 +13,10 @@ type EvalContext interface {
 	// Provider gets the provider instance with the given name (already
 	// initialized) or returns nil if the provider isn't initialized.
 	Provider(string) ResourceProvider
+
+	// Interpolate takes the given raw configuration and completes
+	// the interpolations, returning the processed ResourceConfig.
+	Interpolate(*config.RawConfig) (*ResourceConfig, error)
 }
 
 // EvalNode is the interface that must be implemented by graph nodes to
@@ -45,6 +53,11 @@ type MockEvalContext struct {
 	ProviderCalled   bool
 	ProviderName     string
 	ProviderProvider ResourceProvider
+
+	InterpolateCalled       bool
+	InterpolateConfig       *config.RawConfig
+	InterpolateConfigResult *ResourceConfig
+	InterpolateError        error
 }
 
 func (c *MockEvalContext) InitProvider(n string) (ResourceProvider, error) {
@@ -57,4 +70,11 @@ func (c *MockEvalContext) Provider(n string) ResourceProvider {
 	c.ProviderCalled = true
 	c.ProviderName = n
 	return c.ProviderProvider
+}
+
+func (c *MockEvalContext) Interpolate(
+	config *config.RawConfig) (*ResourceConfig, error) {
+	c.InterpolateCalled = true
+	c.InterpolateConfig = config
+	return c.InterpolateConfigResult, c.InterpolateError
 }
