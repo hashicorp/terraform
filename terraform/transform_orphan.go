@@ -118,6 +118,22 @@ func (n *graphNodeOrphanResource) ProvidedBy() string {
 	return resourceProvider(n.ResourceName)
 }
 
+// GraphNodeEvalable impl.
+func (n *graphNodeOrphanResource) EvalTree() EvalNode {
+	return nil
+	/*
+		TODO
+			return &EvalSequence{
+				Nodes: []EvalNode{
+					&EvalRefresh{},
+					&EvalDiff{},
+					&EvalApply{},
+					&EvalCommitState{},
+				},
+			}
+	*/
+}
+
 func (n *graphNodeOrphanResource) dependableName() string {
 	return n.ResourceName
 }
