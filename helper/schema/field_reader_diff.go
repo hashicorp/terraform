@@ -82,6 +82,11 @@ func (r *DiffFieldReader) readMap(
 		if !strings.HasPrefix(k, prefix) {
 			continue
 		}
+		if strings.HasPrefix(k, prefix+"#") {
+			// Ignore the count field
+			continue
+		}
+
 		resultSet = true
 
 		k = k[len(prefix):]

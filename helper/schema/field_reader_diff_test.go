@@ -11,6 +11,51 @@ func TestDiffFieldReader_impl(t *testing.T) {
 	var _ FieldReader = new(DiffFieldReader)
 }
 
+// https://github.com/hashicorp/terraform/issues/914
+func TestDiffFieldReader_MapHandling(t *testing.T) {
+	schema := map[string]*Schema{
+		"tags": &Schema{
+			Type: TypeMap,
+		},
+	}
+	r := &DiffFieldReader{
+		Schema: schema,
+		Diff: &terraform.InstanceDiff{
+			Attributes: map[string]*terraform.ResourceAttrDiff{
+				"tags.#": &terraform.ResourceAttrDiff{
+					Old: "1",
+					New: "2",
+				},
+				"tags.baz": &terraform.ResourceAttrDiff{
+					Old: "",
+					New: "qux",
+				},
+			},
+		},
+		Source: &MapFieldReader{
+			Schema: schema,
+			Map: BasicMapReader(map[string]string{
+				"tags.#":   "1",
+				"tags.foo": "bar",
+			}),
+		},
+	}
+
+	result, err := r.ReadField([]string{"tags"})
+	if err != nil {
+		t.Fatalf("ReadField failed: %#v", err)
+	}
+
+	expected := map[string]interface{}{
+		"foo": "bar",
+		"baz": "qux",
+	}
+
+	if !reflect.DeepEqual(expected, result.Value) {
+		t.Fatalf("bad: DiffHandling\n\nexpected: %#v\n\ngot: %#v\n\n", expected, result.Value)
+	}
+}
+
 func TestDiffFieldReader_extra(t *testing.T) {
 	schema := map[string]*Schema{
 		"stringComputed": &Schema{Type: TypeString},
