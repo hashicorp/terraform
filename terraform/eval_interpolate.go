@@ -16,7 +16,7 @@ func (n *EvalInterpolate) Args() ([]EvalNode, []EvalType) {
 
 func (n *EvalInterpolate) Eval(
 	ctx EvalContext, args []interface{}) (interface{}, error) {
-	return nil, nil
+	return ctx.Interpolate(n.Config)
 }
 
 func (n *EvalInterpolate) Type() EvalType {
