@@ -16,7 +16,8 @@ func (n *EvalConfigProvider) Args() ([]EvalNode, []EvalType) {
 		[]EvalType{EvalTypeResourceProvider, EvalTypeConfig}
 }
 
-func (n *EvalConfigProvider) Eval(ctx EvalContext) (interface{}, error) {
+func (n *EvalConfigProvider) Eval(
+	ctx EvalContext, args []interface{}) (interface{}, error) {
 	return nil, nil
 }
 
@@ -35,7 +36,8 @@ func (n *EvalInitProvider) Args() ([]EvalNode, []EvalType) {
 	return nil, nil
 }
 
-func (n *EvalInitProvider) Eval(ctx EvalContext) (interface{}, error) {
+func (n *EvalInitProvider) Eval(
+	ctx EvalContext, args []interface{}) (interface{}, error) {
 	return ctx.InitProvider(n.Name)
 }
 
@@ -53,7 +55,8 @@ func (n *EvalGetProvider) Args() ([]EvalNode, []EvalType) {
 	return nil, nil
 }
 
-func (n *EvalGetProvider) Eval(ctx EvalContext) (interface{}, error) {
+func (n *EvalGetProvider) Eval(
+	ctx EvalContext, args []interface{}) (interface{}, error) {
 	result := ctx.Provider(n.Name)
 	if result == nil {
 		return nil, fmt.Errorf("provider %s not initialized", n.Name)
