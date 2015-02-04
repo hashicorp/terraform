@@ -37,6 +37,26 @@ func (g *AcyclicGraph) Root() (Vertex, error) {
 	return roots[0], nil
 }
 
+// Validate validates the DAG. A DAG is valid if it has a single root
+// with no cycles.
+func (g *AcyclicGraph) Validate() error {
+	if _, err := g.Root(); err != nil {
+		return err
+	}
+
+	var cycles [][]Vertex
+	for _, cycle := range StronglyConnected(&g.Graph) {
+		if len(cycle) > 1 {
+			cycles = append(cycles, cycle)
+		}
+	}
+	if len(cycles) > 0 {
+		return fmt.Errorf("cycles: %#v", cycles)
+	}
+
+	return nil
+}
+
 // Walk walks the graph, calling your callback as each node is visited.
 // This will walk nodes in parallel if it can.
 func (g *AcyclicGraph) Walk(cb WalkFunc) error {

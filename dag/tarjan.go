@@ -58,7 +58,7 @@ func strongConnect(g *Graph, v Vertex, data *tarjanData) *tarjanVertex {
 
 	if tv.Lowlink == index {
 		vs := make([]Vertex, 0, 2)
-		for i := len(data.stack) - 1; ; i-- {
+		for i := len(data.stack) - 1; i >= 0; i-- {
 			v := data.stack[i]
 			data.stack[i] = nil
 			data.stack = data.stack[:i]
