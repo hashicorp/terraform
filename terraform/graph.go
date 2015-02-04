@@ -18,7 +18,7 @@ var RootModulePath = []string{RootModuleName}
 type Graph struct {
 	// Graph is the actual DAG. This is embedded so you can call the DAG
 	// methods directly.
-	*dag.Graph
+	dag.AcyclicGraph
 
 	// Path is the path in the module tree that this Graph represents.
 	// The root is represented by a single element list containing
@@ -112,10 +112,6 @@ func (g *Graph) Dependable(n string) dag.Vertex {
 }
 
 func (g *Graph) init() {
-	if g.Graph == nil {
-		g.Graph = new(dag.Graph)
-	}
-
 	if g.dependableMap == nil {
 		g.dependableMap = make(map[string]dag.Vertex)
 	}
