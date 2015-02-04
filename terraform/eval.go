@@ -19,8 +19,10 @@ type EvalNode interface {
 	// and not used at runtime.
 	Args() ([]EvalNode, []EvalType)
 
-	// Eval evaluates this node with the given context.
-	Eval(EvalContext) (interface{}, error)
+	// Eval evaluates this node with the given context. The second parameter
+	// are the argument values. These will match in order and 1-1 with the
+	// results of the Args() return value.
+	Eval(EvalContext, []interface{}) (interface{}, error)
 
 	// Type returns the type that will be returned by this node.
 	Type() EvalType
@@ -30,4 +32,29 @@ type EvalNode interface {
 // to enable valuation.
 type GraphNodeEvalable interface {
 	EvalTree() EvalNode
+}
+
+// MockEvalContext is a mock version of EvalContext that can be used
+// for tests.
+type MockEvalContext struct {
+	InitProviderCalled   bool
+	InitProviderName     string
+	InitProviderProvider ResourceProvider
+	InitProviderError    error
+
+	ProviderCalled   bool
+	ProviderName     string
+	ProviderProvider ResourceProvider
+}
+
+func (c *MockEvalContext) InitProvider(n string) (ResourceProvider, error) {
+	c.InitProviderCalled = true
+	c.InitProviderName = n
+	return c.InitProviderProvider, c.InitProviderError
+}
+
+func (c *MockEvalContext) Provider(n string) ResourceProvider {
+	c.ProviderCalled = true
+	c.ProviderName = n
+	return c.ProviderProvider
 }
