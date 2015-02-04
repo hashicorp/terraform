@@ -246,11 +246,25 @@ func resourceComputeInstanceV2Read(d *schema.ResourceData, meta interface{}) err
 				pa := paRaw.(map[string]interface{})
 				if pa["version"].(float64) == 4 {
 					host = pa["addr"].(string)
-					d.Set("access_ip_v4", host)
+					break
 				}
 			}
 		}
 	}
+
+	// If no host found, just get the first IP we find
+	if host == "" {
+		for _, networkAddresses := range server.Addresses {
+			for _, element := range networkAddresses.([]interface{}) {
+				address := element.(map[string]interface{})
+				if address["version"].(float64) == 4 {
+					host = address["addr"].(string)
+					break
+				}
+			}
+		}
+	}
+	d.Set("access_ip_v4", host)
 	d.Set("host", host)
 
 	log.Printf("host: %s", host)
