@@ -8,6 +8,7 @@ import (
 	"github.com/hashicorp/terraform/helper/hashcode"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/racker/perigee"
 	"github.com/rackspace/gophercloud"
 	"github.com/rackspace/gophercloud/openstack/compute/v2/extensions/bootfromvolume"
 	"github.com/rackspace/gophercloud/openstack/compute/v2/extensions/keypairs"
@@ -427,7 +428,7 @@ func resourceComputeInstanceV2Delete(d *schema.ResourceData, meta interface{}) e
 	log.Printf("[DEBUG] Waiting for instance (%s) to delete", d.Id())
 
 	stateConf := &resource.StateChangeConf{
-		Target:     "",
+		Target:     "DELETED",
 		Refresh:    ServerV2StateRefreshFunc(computeClient, d.Id()),
 		Timeout:    10 * time.Minute,
 		Delay:      10 * time.Second,
@@ -451,6 +452,13 @@ func ServerV2StateRefreshFunc(client *gophercloud.ServiceClient, instanceID stri
 	return func() (interface{}, string, error) {
 		s, err := servers.Get(client, instanceID).Extract()
 		if err != nil {
+			errCode, ok := err.(*perigee.UnexpectedResponseCodeError)
+			if !ok {
+				return nil, "", err
+			}
+			if errCode.Actual == 404 {
+				return s, "DELETED", nil
+			}
 			return nil, "", err
 		}
 
