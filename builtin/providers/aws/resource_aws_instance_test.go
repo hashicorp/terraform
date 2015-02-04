@@ -180,6 +180,8 @@ func TestAccInstance_tags(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckInstanceExists("aws_instance.foo", &v),
 					testAccCheckTags(&v.Tags, "foo", "bar"),
+					// Guard against regression of https://github.com/hashicorp/terraform/issues/914
+					testAccCheckTags(&v.Tags, "#", ""),
 				),
 			},
 
