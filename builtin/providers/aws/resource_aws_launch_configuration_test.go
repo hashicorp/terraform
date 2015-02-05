@@ -95,6 +95,17 @@ func testAccCheckAWSLaunchConfigurationAttributes(conf *autoscaling.LaunchConfig
 			return fmt.Errorf("Bad instance_type: %s", conf.InstanceType)
 		}
 
+		// Map out the block devices by name, which should be unique.
+		blockDevices := make(map[string]autoscaling.BlockDeviceMapping)
+		for _, blockDevice := range conf.BlockDevices {
+			blockDevices[blockDevice.DeviceName] = blockDevice
+		}
+
+		// Check if the secondary block device exists.
+		if _, ok := blockDevices["/dev/sdb"]; !ok {
+			return fmt.Errorf("block device doesn't exist: /dev/sdb")
+		}
+
 		return nil
 	}
 }
@@ -139,6 +150,11 @@ resource "aws_launch_configuration" "bar" {
   instance_type = "t1.micro"
   user_data = "foobar-user-data"
   associate_public_ip_address = true
+  block_device {
+    device_name = "/dev/sdb"
+    volume_type = "gp2"
+    volume_size = 10
+  }
 }
 `
 

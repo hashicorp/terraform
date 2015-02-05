@@ -87,6 +87,63 @@ func resourceAwsLaunchConfiguration() *schema.Resource {
 				Optional: true,
 				ForceNew: true,
 			},
+
+			"block_device": &schema.Schema{
+				Type:     schema.TypeSet,
+				Optional: true,
+				Computed: true,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"device_name": &schema.Schema{
+							Type:     schema.TypeString,
+							Required: true,
+							ForceNew: true,
+						},
+
+						"virtual_name": &schema.Schema{
+							Type:     schema.TypeString,
+							Optional: true,
+							ForceNew: true,
+						},
+
+						"snapshot_id": &schema.Schema{
+							Type:     schema.TypeString,
+							Optional: true,
+							Computed: true,
+							ForceNew: true,
+						},
+
+						"volume_type": &schema.Schema{
+							Type:     schema.TypeString,
+							Optional: true,
+							Computed: true,
+							ForceNew: true,
+						},
+
+						"volume_size": &schema.Schema{
+							Type:     schema.TypeInt,
+							Optional: true,
+							Computed: true,
+							ForceNew: true,
+						},
+
+						"delete_on_termination": &schema.Schema{
+							Type:     schema.TypeBool,
+							Optional: true,
+							Default:  true,
+							ForceNew: true,
+						},
+
+						"encrypted": &schema.Schema{
+							Type:     schema.TypeBool,
+							Optional: true,
+							Computed: true,
+							ForceNew: true,
+						},
+					},
+				},
+				Set: resourceAwsInstanceBlockDevicesHash,
+			},
 		},
 	}
 }
@@ -107,6 +164,23 @@ func resourceAwsLaunchConfigurationCreate(d *schema.ResourceData, meta interface
 	if v, ok := d.GetOk("security_groups"); ok {
 		createLaunchConfigurationOpts.SecurityGroups = expandStringList(
 			v.(*schema.Set).List())
+	}
+
+	if v := d.Get("block_device"); v != nil {
+		vs := v.(*schema.Set).List()
+		if len(vs) > 0 {
+			createLaunchConfigurationOpts.BlockDevices = make([]autoscaling.BlockDeviceMapping, len(vs))
+			for i, v := range vs {
+				bd := v.(map[string]interface{})
+				createLaunchConfigurationOpts.BlockDevices[i].DeviceName = bd["device_name"].(string)
+				createLaunchConfigurationOpts.BlockDevices[i].VirtualName = bd["virtual_name"].(string)
+				createLaunchConfigurationOpts.BlockDevices[i].SnapshotId = bd["snapshot_id"].(string)
+				createLaunchConfigurationOpts.BlockDevices[i].VolumeType = bd["volume_type"].(string)
+				createLaunchConfigurationOpts.BlockDevices[i].VolumeSize = int64(bd["volume_size"].(int))
+				createLaunchConfigurationOpts.BlockDevices[i].DeleteOnTermination = bd["delete_on_termination"].(bool)
+				createLaunchConfigurationOpts.BlockDevices[i].Encrypted = bd["encrypted"].(bool)
+			}
+		}
 	}
 
 	log.Printf("[DEBUG] autoscaling create launch configuration: %#v", createLaunchConfigurationOpts)
@@ -158,6 +232,18 @@ func resourceAwsLaunchConfigurationRead(d *schema.ResourceData, meta interface{}
 	d.Set("name", lc.Name)
 	d.Set("security_groups", lc.SecurityGroups)
 	d.Set("spot_price", lc.SpotPrice)
+
+	bds := make([]map[string]interface{}, len(lc.BlockDevices))
+	for i, m := range lc.BlockDevices {
+		bds[i] = make(map[string]interface{})
+		bds[i]["device_name"] = m.DeviceName
+		bds[i]["snapshot_id"] = m.SnapshotId
+		bds[i]["volume_type"] = m.VolumeType
+		bds[i]["volume_size"] = m.VolumeSize
+		bds[i]["delete_on_termination"] = m.DeleteOnTermination
+		bds[i]["encrypted"] = m.Encrypted
+	}
+	d.Set("block_device", bds)
 
 	return nil
 }
