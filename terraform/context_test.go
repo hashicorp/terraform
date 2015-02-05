@@ -80,7 +80,7 @@ func TestContext2Validate_orphans(t *testing.T) {
 		t.Fatalf("bad: %#v", w)
 	}
 	if len(e) > 0 {
-		t.Fatalf("bad: %#v", e)
+		t.Fatalf("bad: %s", e)
 	}
 }
 
