@@ -146,10 +146,6 @@ func (c *S3RemoteClient) PutState(state []byte, force bool) error {
 		switch s3Err.StatusCode {
 		case http.StatusOK:
 			return nil
-		case http.StatusConflict:
-			return ErrConflict
-		case http.StatusPreconditionFailed:
-			return ErrServerNewer
 		case http.StatusUnauthorized:
 			return ErrRequireAuth
 		case http.StatusForbidden:
