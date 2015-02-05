@@ -2,6 +2,7 @@ package dag
 
 import (
 	"fmt"
+	"strings"
 	"sync"
 )
 
@@ -51,7 +52,17 @@ func (g *AcyclicGraph) Validate() error {
 		}
 	}
 	if len(cycles) > 0 {
-		return fmt.Errorf("cycles: %#v", cycles)
+		cyclesStr := make([]string, len(cycles))
+		for i, cycle := range cycles {
+			cycleStr := make([]string, len(cycle))
+			for j, vertex := range cycle {
+				cycleStr[j] = VertexName(vertex)
+			}
+
+			cyclesStr[i] = strings.Join(cycleStr, ", ")
+		}
+
+		return fmt.Errorf("cycles: %s", cyclesStr)
 	}
 
 	return nil
@@ -60,46 +71,49 @@ func (g *AcyclicGraph) Validate() error {
 // Walk walks the graph, calling your callback as each node is visited.
 // This will walk nodes in parallel if it can.
 func (g *AcyclicGraph) Walk(cb WalkFunc) error {
-	// We require a root to walk.
-	root, err := g.Root()
-	if err != nil {
-		return err
-	}
+	// Cache the vertices since we use it multiple times
+	vertices := g.Vertices()
 
 	// Build the waitgroup that signals when we're done
 	var wg sync.WaitGroup
-	wg.Add(g.vertices.Len())
+	wg.Add(len(vertices))
 	doneCh := make(chan struct{})
 	go func() {
 		defer close(doneCh)
 		wg.Wait()
 	}()
 
-	// Start walking!
-	visitCh := make(chan Vertex, g.vertices.Len())
-	visitCh <- root
-	for {
-		select {
-		case v := <-visitCh:
-			go g.walkVertex(v, cb, visitCh, &wg)
-		case <-doneCh:
-			goto WALKDONE
+	// The map of channels to watch to wait for vertices to finish
+	vertMap := make(map[Vertex]chan struct{})
+	for _, v := range vertices {
+		vertMap[v] = make(chan struct{})
+	}
+	for _, v := range vertices {
+		// Get the list of channels to wait on
+		deps := g.DownEdges(v).List()
+		depChs := make([]<-chan struct{}, len(deps))
+		for i, dep := range deps {
+			depChs[i] = vertMap[dep.(Vertex)]
 		}
+
+		// Get our channel
+		ourCh := vertMap[v]
+
+		// Start the goroutine
+		go func(v Vertex, doneCh chan<- struct{}, chs []<-chan struct{}) {
+			defer close(doneCh)
+			defer wg.Done()
+
+			// Wait on all our dependencies
+			for _, ch := range chs {
+				<-ch
+			}
+
+			// Call our callback
+			cb(v)
+		}(v, ourCh, depChs)
 	}
 
-WALKDONE:
+	<-doneCh
 	return nil
-}
-
-func (g *AcyclicGraph) walkVertex(
-	v Vertex, cb WalkFunc, nextCh chan<- Vertex, wg *sync.WaitGroup) {
-	defer wg.Done()
-
-	// Call the callback on this vertex
-	cb(v)
-
-	// Walk all the children in parallel
-	for _, v := range g.DownEdges(v).List() {
-		nextCh <- v.(Vertex)
-	}
 }

@@ -6,71 +6,102 @@ package dag
 // use.
 func StronglyConnected(g *Graph) [][]Vertex {
 	vs := g.Vertices()
-	data := tarjanData{
-		index:    make(map[interface{}]int),
-		stack:    make([]*tarjanVertex, 0, len(vs)),
-		vertices: make([]*tarjanVertex, 0, len(vs)),
+	acct := sccAcct{
+		NextIndex:   1,
+		VertexIndex: make(map[Vertex]int, len(vs)),
 	}
-
 	for _, v := range vs {
-		if _, ok := data.index[v]; !ok {
-			strongConnect(g, v, &data)
+		// Recurse on any non-visited nodes
+		if acct.VertexIndex[v] == 0 {
+			stronglyConnected(&acct, g, v)
 		}
 	}
-
-	return data.result
+	return acct.SCC
 }
 
-type tarjanData struct {
-	index    map[interface{}]int
-	result   [][]Vertex
-	stack    []*tarjanVertex
-	vertices []*tarjanVertex
-}
+func stronglyConnected(acct *sccAcct, g *Graph, v Vertex) int {
+	// Initial vertex visit
+	index := acct.visit(v)
+	minIdx := index
 
-type tarjanVertex struct {
-	V       Vertex
-	Lowlink int
-	Index   int
-	Stack   bool
-}
-
-func strongConnect(g *Graph, v Vertex, data *tarjanData) *tarjanVertex {
-	index := len(data.index)
-	data.index[v] = index
-	tv := &tarjanVertex{V: v, Lowlink: index, Index: index, Stack: true}
-	data.stack = append(data.stack, tv)
-	data.vertices = append(data.vertices, tv)
-
-	for _, raw := range g.downEdges[v].List() {
+	for _, raw := range g.DownEdges(v).List() {
 		target := raw.(Vertex)
+		targetIdx := acct.VertexIndex[target]
 
-		if idx, ok := data.index[target]; !ok {
-			if tv2 := strongConnect(g, target, data); tv2.Lowlink < tv.Lowlink {
-				tv.Lowlink = tv2.Lowlink
-			}
-		} else if data.vertices[idx].Stack {
-			if idx < tv.Lowlink {
-				tv.Lowlink = idx
-			}
+		// Recurse on successor if not yet visited
+		if targetIdx == 0 {
+			minIdx = min(minIdx, stronglyConnected(acct, g, target))
+		} else if acct.inStack(target) {
+			// Check if the vertex is in the stack
+			minIdx = min(minIdx, targetIdx)
 		}
 	}
 
-	if tv.Lowlink == index {
-		vs := make([]Vertex, 0, 2)
-		for i := len(data.stack) - 1; i >= 0; i-- {
-			v := data.stack[i]
-			data.stack[i] = nil
-			data.stack = data.stack[:i]
-			data.vertices[data.index[v]].Stack = false
-			vs = append(vs, v.V)
-			if data.index[v] == i {
+	// Pop the strongly connected components off the stack if
+	// this is a root vertex
+	if index == minIdx {
+		var scc []Vertex
+		for {
+			v2 := acct.pop()
+			scc = append(scc, v2)
+			if v2 == v {
 				break
 			}
 		}
 
-		data.result = append(data.result, vs)
+		acct.SCC = append(acct.SCC, scc)
 	}
 
-	return tv
+	return minIdx
+}
+
+func min(a, b int) int {
+	if a <= b {
+		return a
+	}
+	return b
+}
+
+// sccAcct is used ot pass around accounting information for
+// the StronglyConnectedComponents algorithm
+type sccAcct struct {
+	NextIndex   int
+	VertexIndex map[Vertex]int
+	Stack       []Vertex
+	SCC         [][]Vertex
+}
+
+// visit assigns an index and pushes a vertex onto the stack
+func (s *sccAcct) visit(v Vertex) int {
+	idx := s.NextIndex
+	s.VertexIndex[v] = idx
+	s.NextIndex++
+	s.push(v)
+	return idx
+}
+
+// push adds a vertex to the stack
+func (s *sccAcct) push(n Vertex) {
+	s.Stack = append(s.Stack, n)
+}
+
+// pop removes a vertex from the stack
+func (s *sccAcct) pop() Vertex {
+	n := len(s.Stack)
+	if n == 0 {
+		return nil
+	}
+	vertex := s.Stack[n-1]
+	s.Stack = s.Stack[:n-1]
+	return vertex
+}
+
+// inStack checks if a vertex is in the stack
+func (s *sccAcct) inStack(needle Vertex) bool {
+	for _, n := range s.Stack {
+		if n == needle {
+			return true
+		}
+	}
+	return false
 }
