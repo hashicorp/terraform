@@ -31,6 +31,7 @@ The following arguments are supported:
      with launched instances.
 * `key_name` - (Optional) The key name that should be used for the instance.
 * `security_groups` - (Optional) A list of associated security group IDS.
+* `associate_public_ip_address` - (Optional) Associate a public ip address with an instance in a VPC.
 * `user_data` - (Optional) The user data to provide when launching the instance.
 
 ## Attributes Reference
