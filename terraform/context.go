@@ -1,6 +1,7 @@
 package terraform
 
 import (
+	"fmt"
 	"sync"
 
 	"github.com/hashicorp/terraform/config/module"
@@ -62,6 +63,14 @@ func (c *Context2) GraphBuilder() GraphBuilder {
 
 // Validate validates the configuration and returns any warnings or errors.
 func (c *Context2) Validate() ([]string, []error) {
+	var warns []string
+	var errs []error
+
+	// Validate the configuration itself
+	if err := c.module.Validate(); err != nil {
+		errs = append(errs, err)
+	}
+
 	evalCtx := c.evalContext()
 	evalCtx.ComputeMissing = true
 
@@ -71,14 +80,7 @@ func (c *Context2) Validate() ([]string, []error) {
 		return nil, []error{err}
 	}
 
-	// Valiate the graph
-	if err := graph.Validate(); err != nil {
-		return nil, []error{err}
-	}
-
 	// Walk the graph
-	var warns []string
-	var errs []error
 	var lock sync.Mutex
 	graph.Walk(func(v dag.Vertex) {
 		ev, ok := v.(GraphNodeEvalable)
@@ -86,7 +88,12 @@ func (c *Context2) Validate() ([]string, []error) {
 			return
 		}
 
-		_, err := Eval(ev.EvalTree(), evalCtx)
+		tree := ev.EvalTree()
+		if tree == nil {
+			panic(fmt.Sprintf("%s (%T): nil eval tree", dag.VertexName(v), v))
+		}
+
+		_, err := Eval(tree, evalCtx)
 		if err == nil {
 			return
 		}
