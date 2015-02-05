@@ -59,6 +59,8 @@ func NewClientByType(ctype string, conf map[string]string) (RemoteClient, error)
 		return NewConsulRemoteClient(conf)
 	case "http":
 		return NewHTTPRemoteClient(conf)
+	case "s3":
+		return NewS3RemoteClient(conf)
 	default:
 		return nil, fmt.Errorf("Unknown remote client type '%s'", ctype)
 	}
