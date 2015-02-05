@@ -75,9 +75,18 @@ func (n *GraphNodeConfigProvider) DependentOn() []string {
 
 // GraphNodeEvalable impl.
 func (n *GraphNodeConfigProvider) EvalTree() EvalNode {
-	return &EvalConfigProvider{
-		Provider: &EvalGetProvider{Name: n.Provider.Name},
-		Config:   &EvalInterpolate{Config: n.Provider.RawConfig},
+	return &EvalSequence{
+		Nodes: []EvalNode{
+			&EvalInitProvider{Name: n.Provider.Name},
+			&EvalValidateProvider{
+				Provider: &EvalGetProvider{Name: n.Provider.Name},
+				Config:   &EvalInterpolate{Config: n.Provider.RawConfig},
+			},
+			&EvalConfigProvider{
+				Provider: &EvalGetProvider{Name: n.Provider.Name},
+				Config:   &EvalInterpolate{Config: n.Provider.RawConfig},
+			},
+		},
 	}
 }
 
@@ -121,11 +130,14 @@ func (n *GraphNodeConfigResource) Name() string {
 
 // GraphNodeEvalable impl.
 func (n *GraphNodeConfigResource) EvalTree() EvalNode {
-	return &EvalValidateResource{
-		Provider: &EvalGetProvider{Name: n.ProvidedBy()},
-
-		Config:       n.Resource.RawConfig,
-		ProviderType: n.ProvidedBy(),
+	return &EvalSequence{
+		Nodes: []EvalNode{
+			&EvalValidateResource{
+				Provider:     &EvalGetProvider{Name: n.ProvidedBy()},
+				Config:       n.Resource.RawConfig,
+				ProviderType: n.ProvidedBy(),
+			},
+		},
 	}
 }
 
