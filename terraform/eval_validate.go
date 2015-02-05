@@ -1,9 +1,5 @@
 package terraform
 
-import (
-	"github.com/hashicorp/terraform/config"
-)
-
 // EvalValidateError is the error structure returned if there were
 // validation errors.
 type EvalValidateError struct {

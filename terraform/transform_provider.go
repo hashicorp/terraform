@@ -102,7 +102,7 @@ func (n *graphNodeMissingProvider) Name() string {
 
 // GraphNodeEvalable impl.
 func (n *graphNodeMissingProvider) EvalTree() EvalNode {
-	return &EvalInitProvider{Name: n.ProviderNameValue}
+	return ProviderEvalTree(n.ProviderNameValue, nil)
 }
 
 func (n *graphNodeMissingProvider) ProviderName() string {
