@@ -1,6 +1,8 @@
 package terraform
 
 import (
+	"fmt"
+	"strings"
 	"testing"
 )
 
@@ -19,7 +21,7 @@ func TestContext2Validate(t *testing.T) {
 		t.Fatalf("bad: %#v", w)
 	}
 	if len(e) > 0 {
-		t.Fatalf("bad: %#v", e)
+		t.Fatalf("bad: %s", e)
 	}
 }
 
@@ -39,6 +41,70 @@ func TestContext2Validate_badVar(t *testing.T) {
 	}
 	if len(e) == 0 {
 		t.Fatalf("bad: %#v", e)
+	}
+}
+
+func TestContext2Validate_orphans(t *testing.T) {
+	p := testProvider("aws")
+	m := testModule(t, "validate-good")
+	state := &State{
+		Modules: []*ModuleState{
+			&ModuleState{
+				Path: rootModulePath,
+				Resources: map[string]*ResourceState{
+					"aws_instance.web": &ResourceState{
+						Type: "aws_instance",
+						Primary: &InstanceState{
+							ID: "bar",
+						},
+					},
+				},
+			},
+		},
+	}
+	c := testContext2(t, &ContextOpts{
+		Module: m,
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+		State: state,
+	})
+
+	p.ValidateResourceFn = func(
+		t string, c *ResourceConfig) ([]string, []error) {
+		return nil, c.CheckSet([]string{"foo"})
+	}
+
+	w, e := c.Validate()
+	if len(w) > 0 {
+		t.Fatalf("bad: %#v", w)
+	}
+	if len(e) > 0 {
+		t.Fatalf("bad: %#v", e)
+	}
+}
+
+func TestContext2Validate_providerConfig_bad(t *testing.T) {
+	m := testModule(t, "validate-bad-pc")
+	p := testProvider("aws")
+	c := testContext2(t, &ContextOpts{
+		Module: m,
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+	})
+
+	p.ValidateReturnErrors = []error{fmt.Errorf("bad")}
+
+	w, e := c.Validate()
+	if len(w) > 0 {
+		t.Fatalf("bad: %#v", w)
+	}
+	if len(e) == 0 {
+		t.Fatalf("bad: %s", e)
+	}
+	if !strings.Contains(fmt.Sprintf("%s", e), "bad") {
+		t.Fatalf("bad: %s", e)
 	}
 }
 
@@ -188,46 +254,6 @@ func TestContextValidate_moduleProviderInherit(t *testing.T) {
 	}
 }
 
-func TestContextValidate_orphans(t *testing.T) {
-	p := testProvider("aws")
-	m := testModule(t, "validate-good")
-	state := &State{
-		Modules: []*ModuleState{
-			&ModuleState{
-				Path: rootModulePath,
-				Resources: map[string]*ResourceState{
-					"aws_instance.web": &ResourceState{
-						Type: "aws_instance",
-						Primary: &InstanceState{
-							ID: "bar",
-						},
-					},
-				},
-			},
-		},
-	}
-	c := testContext(t, &ContextOpts{
-		Module: m,
-		Providers: map[string]ResourceProviderFactory{
-			"aws": testProviderFuncFixed(p),
-		},
-		State: state,
-	})
-
-	p.ValidateResourceFn = func(
-		t string, c *ResourceConfig) ([]string, []error) {
-		return nil, c.CheckSet([]string{"foo"})
-	}
-
-	w, e := c.Validate()
-	if len(w) > 0 {
-		t.Fatalf("bad: %#v", w)
-	}
-	if len(e) > 0 {
-		t.Fatalf("bad: %#v", e)
-	}
-}
-
 func TestContextValidate_tainted(t *testing.T) {
 	p := testProvider("aws")
 	m := testModule(t, "validate-good")
@@ -266,27 +292,6 @@ func TestContextValidate_tainted(t *testing.T) {
 		t.Fatalf("bad: %#v", w)
 	}
 	if len(e) > 0 {
-		t.Fatalf("bad: %#v", e)
-	}
-}
-
-func TestContextValidate_providerConfig_bad(t *testing.T) {
-	m := testModule(t, "validate-bad-pc")
-	p := testProvider("aws")
-	c := testContext(t, &ContextOpts{
-		Module: m,
-		Providers: map[string]ResourceProviderFactory{
-			"aws": testProviderFuncFixed(p),
-		},
-	})
-
-	p.ValidateReturnErrors = []error{fmt.Errorf("bad")}
-
-	w, e := c.Validate()
-	if len(w) > 0 {
-		t.Fatalf("bad: %#v", w)
-	}
-	if len(e) == 0 {
 		t.Fatalf("bad: %#v", e)
 	}
 }

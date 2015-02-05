@@ -1,8 +1,6 @@
 package terraform
 
 import (
-	"fmt"
-
 	"github.com/hashicorp/terraform/config"
 )
 
@@ -20,8 +18,9 @@ func (e *EvalValidateError) Error() string {
 // EvalValidateResource is an EvalNode implementation that validates
 // the configuration of a resource.
 type EvalValidateResource struct {
-	Provider EvalNode
-	Config   *config.RawConfig
+	Provider     EvalNode
+	Config       *config.RawConfig
+	ProviderType string
 }
 
 func (n *EvalValidateResource) Args() ([]EvalNode, []EvalType) {
@@ -31,8 +30,10 @@ func (n *EvalValidateResource) Args() ([]EvalNode, []EvalType) {
 
 func (n *EvalValidateResource) Eval(
 	ctx EvalContext, args []interface{}) (interface{}, error) {
+	// TODO: test
+
 	//provider := args[0].(ResourceProvider)
-	return nil, fmt.Errorf("WHAT")
+	return nil, nil
 }
 
 func (n *EvalValidateResource) Type() EvalType {

@@ -123,7 +123,9 @@ func (n *GraphNodeConfigResource) Name() string {
 func (n *GraphNodeConfigResource) EvalTree() EvalNode {
 	return &EvalValidateResource{
 		Provider: &EvalGetProvider{Name: n.ProvidedBy()},
-		Config:   n.Resource.RawConfig,
+
+		Config:       n.Resource.RawConfig,
+		ProviderType: n.ProvidedBy(),
 	}
 }
 

@@ -30,7 +30,13 @@ func (ctx *BuiltinEvalContext) InitProvider(n string) (ResourceProvider, error) 
 		return nil, fmt.Errorf("Provider '%s' not found", n)
 	}
 
-	return f()
+	p, err := f()
+	if err != nil {
+		return nil, err
+	}
+
+	ctx.providers[n] = p
+	return p, nil
 }
 
 func (ctx *BuiltinEvalContext) Provider(n string) ResourceProvider {

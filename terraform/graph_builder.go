@@ -41,6 +41,11 @@ func (b *BuiltinGraphBuilder) Build(path []string) (*Graph, error) {
 		}
 	}
 
+	// Validate the graph structure
+	if err := g.Validate(); err != nil {
+		return nil, err
+	}
+
 	return g, nil
 }
 
@@ -54,5 +59,6 @@ func (b *BuiltinGraphBuilder) Steps() []GraphTransformer {
 		&MissingProviderTransformer{Providers: b.Providers},
 		&ProviderTransformer{},
 		&PruneProviderTransformer{},
+		&RootTransformer{},
 	}
 }
