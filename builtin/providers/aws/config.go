@@ -85,7 +85,6 @@ func (c *Config) Client() (interface{}, error) {
 			Credentials: creds,
 			Region:      "us-east-1",
 		})
-
 	}
 
 	if len(errs) > 0 {
