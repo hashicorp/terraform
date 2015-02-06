@@ -34,6 +34,23 @@ func (i *Interpolater) Values(
 	scope *InterpolationScope,
 	vars map[string]config.InterpolatedVariable) (map[string]ast.Variable, error) {
 	result := make(map[string]ast.Variable, len(vars))
+
+	// Copy the default variables
+	if i.Module != nil && scope != nil {
+		mod := i.Module
+		if len(scope.Path) > 1 {
+			mod = i.Module.Child(scope.Path[1:])
+		}
+		for _, v := range mod.Config().Variables {
+			for k, val := range v.DefaultsMap() {
+				result[k] = ast.Variable{
+					Value: val,
+					Type:  ast.TypeString,
+				}
+			}
+		}
+	}
+
 	for n, rawV := range vars {
 		var err error
 		switch v := rawV.(type) {
