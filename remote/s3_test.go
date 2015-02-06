@@ -17,8 +17,7 @@ func TestS3Remote_NewClient(t *testing.T) {
 
 	conf["access_token"] = "test"
 	conf["secret_token"] = "test"
-	conf["path"] = "hashicorp/test-state"
-	conf["bucket"] = "plan3-test"
+	conf["address"] = "s3://plan3-test/hashicorp/test-state"
 	conf["region"] = "eu-west-1"
 	if _, err := NewS3RemoteClient(conf); err != nil {
 		t.Fatalf("err: %v", err)
@@ -40,8 +39,7 @@ func TestS3Remote_Validate_envVar(t *testing.T) {
 	defer os.Setenv("AWS_DEFAULT_REGION", os.Getenv("AWS_DEFAULT_REGION"))
 	os.Setenv("AWS_DEFAULT_REGION", "eu-west-1")
 
-	conf["path"] = "hashicorp/test-state"
-	conf["bucket"] = "plan3-test"
+	conf["address"] = "s3://terraform-state/hashicorp/test-state"
 	if _, err := NewS3RemoteClient(conf); err != nil {
 		t.Fatalf("err: %v", err)
 	}

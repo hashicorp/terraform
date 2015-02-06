@@ -8,6 +8,7 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"regexp"
 	"time"
 
 	"github.com/goamz/goamz/aws"
@@ -19,7 +20,7 @@ type S3RemoteClient struct {
 	Path   string
 }
 
-func GetRegion(conf map[string]string) (aws.Region, error) {
+func getRegion(conf map[string]string) (aws.Region, error) {
 	regionName, ok := conf["region"]
 	if !ok || regionName == "" {
 		regionName = os.Getenv("AWS_DEFAULT_REGION")
@@ -35,6 +36,15 @@ func GetRegion(conf map[string]string) (aws.Region, error) {
 	return region, nil
 }
 
+func getBucketAndPath(address string) (string, string, error) {
+	re := regexp.MustCompile("^s3://([^/]+)/(.+)$")
+	matches := re.FindStringSubmatch(address)
+	if len(matches) < 3 {
+		return "", "", fmt.Errorf("Address for s3 should be of form: s3://<bucket_name>/<path>")
+	}
+	return matches[1], matches[2], nil
+}
+
 func NewS3RemoteClient(conf map[string]string) (*S3RemoteClient, error) {
 	client := &S3RemoteClient{}
 
@@ -43,22 +53,20 @@ func NewS3RemoteClient(conf map[string]string) (*S3RemoteClient, error) {
 		return nil, err
 	}
 
-	region, err := GetRegion(conf)
+	region, err := getRegion(conf)
 	if err != nil {
 		return nil, err
 	}
 
-	bucketName, ok := conf["bucket"]
+	address, ok := conf["address"]
 	if !ok {
-		return nil, fmt.Errorf("Missing 'bucket_name' configuration")
+		return nil, fmt.Errorf("'address' configuration not set for S3 remote state storage backend")
 	}
-
+	bucketName, path, err := getBucketAndPath(address)
+	if err != nil {
+		return nil, err
+	}
 	client.Bucket = s3.New(auth, region).Bucket(bucketName)
-
-	path, ok := conf["path"]
-	if !ok {
-		return nil, fmt.Errorf("Missing 'path' configuration")
-	}
 	client.Path = path
 
 	return client, nil
