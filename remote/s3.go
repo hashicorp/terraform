@@ -80,8 +80,6 @@ func (c *S3RemoteClient) GetState() (*RemoteStatePayload, error) {
 			// FIXME copied from Atlas
 			// Handle the common status codes
 			switch s3Err.StatusCode {
-			case http.StatusOK:
-				// Handled after
 			case http.StatusNoContent:
 				return nil, nil
 			case http.StatusNotFound:
@@ -144,8 +142,6 @@ func (c *S3RemoteClient) PutState(state []byte, force bool) error {
 
 		// Handle the error codes
 		switch s3Err.StatusCode {
-		case http.StatusOK:
-			return nil
 		case http.StatusUnauthorized:
 			return ErrRequireAuth
 		case http.StatusForbidden:
@@ -167,8 +163,6 @@ func (c *S3RemoteClient) DeleteState() error {
 		s3Err := err.(*s3.Error)
 		// Handle the error codes
 		switch s3Err.StatusCode {
-		case http.StatusOK:
-			return nil
 		case http.StatusNoContent:
 			return nil
 		case http.StatusNotFound:
