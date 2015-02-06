@@ -162,7 +162,6 @@ func TestContext2Validate_requiredVar(t *testing.T) {
 	if len(w) > 0 {
 		t.Fatalf("bad: %#v", w)
 	}
-	// TODO: fail
 	if len(e) == 0 {
 		t.Fatalf("bad: %s", e)
 	}
