@@ -10,7 +10,6 @@ import (
 	"sync/atomic"
 
 	"github.com/hashicorp/terraform/config"
-	"github.com/hashicorp/terraform/config/lang/ast"
 	"github.com/hashicorp/terraform/config/module"
 	"github.com/hashicorp/terraform/depgraph"
 	"github.com/hashicorp/terraform/helper/multierror"
@@ -373,34 +372,11 @@ func (c *Context) releaseRun(ch chan<- struct{}) {
 }
 
 func (c *Context) walkContext(op walkOperation, path []string) *walkContext {
-	// Get the config structure
-	m := c.module
-	for _, n := range path[1:] {
-		cs := m.Children()
-		m = cs[n]
-	}
-	var conf *config.Config
-	if m != nil {
-		conf = m.Config()
-	}
-
-	// Calculate the default variable values
-	defaultVars := make(map[string]string)
-	if conf != nil {
-		for _, v := range conf.Variables {
-			for k, val := range v.DefaultsMap() {
-				defaultVars[k] = val
-			}
-		}
-	}
-
 	return &walkContext{
 		Context:   c,
 		Operation: op,
 		Path:      path,
 		Variables: c.variables,
-
-		defaultVariables: defaultVars,
 	}
 }
 
@@ -1519,16 +1495,6 @@ func (c *walkContext) computeVars(
 	vs, err := i.Values(scope, raw.Variables)
 	if err != nil {
 		return err
-	}
-
-	// Copy the default variables
-	for k, v := range c.defaultVariables {
-		if _, ok := vs[k]; !ok {
-			vs[k] = ast.Variable{
-				Value: v,
-				Type:  ast.TypeString,
-			}
-		}
 	}
 
 	// Interpolate the variables
