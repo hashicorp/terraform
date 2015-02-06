@@ -8,7 +8,6 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
-	"testing"
 
 	"github.com/hashicorp/terraform/config/module"
 	"github.com/hashicorp/terraform/terraform"
@@ -87,12 +86,6 @@ func Test(t TestT, c TestCase) {
 		t.Skip(fmt.Sprintf(
 			"Acceptance tests skipped unless env '%s' set",
 			TestEnvVar))
-		return
-	}
-
-	// We require verbose mode so that the user knows what is going on.
-	if !testTesting && !testing.Verbose() {
-		t.Fatal("Acceptance tests must be run with the -v flag on tests")
 		return
 	}
 
