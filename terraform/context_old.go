@@ -3,7 +3,6 @@ package terraform
 import (
 	"fmt"
 	"log"
-	"os"
 	"sort"
 	"strconv"
 	"strings"
@@ -1505,348 +1504,35 @@ func (c *walkContext) computeVars(
 		return nil
 	}
 
-	// Copy the default variables
-	vs := make(map[string]ast.Variable)
-	for k, v := range c.defaultVariables {
-		vs[k] = ast.Variable{
-			Value: v,
-			Type:  ast.TypeString,
-		}
+	// Build the interpolater
+	i := &Interpolater{
+		Operation: c.Operation,
+		Module:    c.Context.module,
+		State:     c.Context.state,
+		StateLock: &c.Context.sl,
+		Variables: c.Variables,
+	}
+	scope := &InterpolationScope{
+		Path:     c.Path,
+		Resource: r,
+	}
+	vs, err := i.Values(scope, raw.Variables)
+	if err != nil {
+		return err
 	}
 
-	// Next, the actual computed variables
-	for n, rawV := range raw.Variables {
-		switch v := rawV.(type) {
-		case *config.CountVariable:
-			switch v.Type {
-			case config.CountValueIndex:
-				if r != nil {
-					vs[n] = ast.Variable{
-						Value: int(r.CountIndex),
-						Type:  ast.TypeInt,
-					}
-				}
-			}
-		case *config.ModuleVariable:
-			if c.Operation == walkValidate {
-				vs[n] = ast.Variable{
-					Value: config.UnknownVariableValue,
-					Type:  ast.TypeString,
-				}
-				continue
-			}
-
-			value, err := c.computeModuleVariable(v)
-			if err != nil {
-				return err
-			}
-
-			vs[n] = ast.Variable{
-				Value: value,
+	// Copy the default variables
+	for k, v := range c.defaultVariables {
+		if _, ok := vs[k]; !ok {
+			vs[k] = ast.Variable{
+				Value: v,
 				Type:  ast.TypeString,
-			}
-		case *config.PathVariable:
-			switch v.Type {
-			case config.PathValueCwd:
-				wd, err := os.Getwd()
-				if err != nil {
-					return fmt.Errorf(
-						"Couldn't get cwd for var %s: %s",
-						v.FullKey(), err)
-				}
-
-				vs[n] = ast.Variable{
-					Value: wd,
-					Type:  ast.TypeString,
-				}
-			case config.PathValueModule:
-				if t := c.Context.module.Child(c.Path[1:]); t != nil {
-					vs[n] = ast.Variable{
-						Value: t.Config().Dir,
-						Type:  ast.TypeString,
-					}
-				}
-			case config.PathValueRoot:
-				vs[n] = ast.Variable{
-					Value: c.Context.module.Config().Dir,
-					Type:  ast.TypeString,
-				}
-			}
-		case *config.ResourceVariable:
-			if c.Operation == walkValidate {
-				vs[n] = ast.Variable{
-					Value: config.UnknownVariableValue,
-					Type:  ast.TypeString,
-				}
-				continue
-			}
-
-			var attr string
-			var err error
-			if v.Multi && v.Index == -1 {
-				attr, err = c.computeResourceMultiVariable(v)
-			} else {
-				attr, err = c.computeResourceVariable(v)
-			}
-			if err != nil {
-				return err
-			}
-
-			vs[n] = ast.Variable{
-				Value: attr,
-				Type:  ast.TypeString,
-			}
-		case *config.UserVariable:
-			val, ok := c.Variables[v.Name]
-			if ok {
-				vs[n] = ast.Variable{
-					Value: val,
-					Type:  ast.TypeString,
-				}
-				continue
-			}
-
-			if _, ok := vs[n]; !ok && c.Operation == walkValidate {
-				vs[n] = ast.Variable{
-					Value: config.UnknownVariableValue,
-					Type:  ast.TypeString,
-				}
-				continue
-			}
-
-			// Look up if we have any variables with this prefix because
-			// those are map overrides. Include those.
-			for k, val := range c.Variables {
-				if strings.HasPrefix(k, v.Name+".") {
-					vs["var."+k] = ast.Variable{
-						Value: val,
-						Type:  ast.TypeString,
-					}
-				}
 			}
 		}
 	}
 
 	// Interpolate the variables
 	return raw.Interpolate(vs)
-}
-
-func (c *walkContext) computeModuleVariable(
-	v *config.ModuleVariable) (string, error) {
-	// Build the path to our child
-	path := make([]string, len(c.Path), len(c.Path)+1)
-	copy(path, c.Path)
-	path = append(path, v.Name)
-
-	// Grab some locks
-	c.Context.sl.RLock()
-	defer c.Context.sl.RUnlock()
-
-	// Get that module from our state
-	mod := c.Context.state.ModuleByPath(path)
-	if mod == nil {
-		// If the module doesn't exist, then we can return an empty string.
-		// This happens usually only in Refresh() when we haven't populated
-		// a state. During validation, we semantically verify that all
-		// modules reference other modules, and graph ordering should
-		// ensure that the module is in the state, so if we reach this
-		// point otherwise it really is a panic.
-		return config.UnknownVariableValue, nil
-	}
-
-	value, ok := mod.Outputs[v.Field]
-	if !ok {
-		// Same reasons as the comment above.
-		return config.UnknownVariableValue, nil
-	}
-
-	return value, nil
-}
-
-func (c *walkContext) computeResourceVariable(
-	v *config.ResourceVariable) (string, error) {
-	id := v.ResourceId()
-	if v.Multi {
-		id = fmt.Sprintf("%s.%d", id, v.Index)
-	}
-
-	c.Context.sl.RLock()
-	defer c.Context.sl.RUnlock()
-
-	// Get the information about this resource variable, and verify
-	// that it exists and such.
-	module, _, err := c.resourceVariableInfo(v)
-	if err != nil {
-		return "", err
-	}
-
-	// If we have no module in the state yet or count, return empty
-	if module == nil || len(module.Resources) == 0 {
-		return "", nil
-	}
-
-	// Get the resource out from the state. We know the state exists
-	// at this point and if there is a state, we expect there to be a
-	// resource with the given name.
-	r, ok := module.Resources[id]
-	if !ok && v.Multi && v.Index == 0 {
-		r, ok = module.Resources[v.ResourceId()]
-	}
-	if !ok {
-		r = nil
-	}
-	if r == nil {
-		return "", fmt.Errorf(
-			"Resource '%s' not found for variable '%s'",
-			id,
-			v.FullKey())
-	}
-
-	if r.Primary == nil {
-		goto MISSING
-	}
-
-	if attr, ok := r.Primary.Attributes[v.Field]; ok {
-		return attr, nil
-	}
-
-	// At apply time, we can't do the "maybe has it" check below
-	// that we need for plans since parent elements might be computed.
-	// Therefore, it is an error and we're missing the key.
-	//
-	// TODO: test by creating a state and configuration that is referencing
-	// a non-existent variable "foo.bar" where the state only has "foo"
-	// and verify plan works, but apply doesn't.
-	if c.Operation == walkApply {
-		goto MISSING
-	}
-
-	// We didn't find the exact field, so lets separate the dots
-	// and see if anything along the way is a computed set. i.e. if
-	// we have "foo.0.bar" as the field, check to see if "foo" is
-	// a computed list. If so, then the whole thing is computed.
-	if parts := strings.Split(v.Field, "."); len(parts) > 1 {
-		for i := 1; i < len(parts); i++ {
-			// Lists and sets make this
-			key := fmt.Sprintf("%s.#", strings.Join(parts[:i], "."))
-			if attr, ok := r.Primary.Attributes[key]; ok {
-				return attr, nil
-			}
-
-			// Maps make this
-			key = fmt.Sprintf("%s", strings.Join(parts[:i], "."))
-			if attr, ok := r.Primary.Attributes[key]; ok {
-				return attr, nil
-			}
-		}
-	}
-
-MISSING:
-	return "", fmt.Errorf(
-		"Resource '%s' does not have attribute '%s' "+
-			"for variable '%s'",
-		id,
-		v.Field,
-		v.FullKey())
-}
-
-func (c *walkContext) computeResourceMultiVariable(
-	v *config.ResourceVariable) (string, error) {
-	c.Context.sl.RLock()
-	defer c.Context.sl.RUnlock()
-
-	// Get the information about this resource variable, and verify
-	// that it exists and such.
-	module, cr, err := c.resourceVariableInfo(v)
-	if err != nil {
-		return "", err
-	}
-
-	// Get the count so we know how many to iterate over
-	count, err := cr.Count()
-	if err != nil {
-		return "", fmt.Errorf(
-			"Error reading %s count: %s",
-			v.ResourceId(),
-			err)
-	}
-
-	// If we have no module in the state yet or count, return empty
-	if module == nil || len(module.Resources) == 0 || count == 0 {
-		return "", nil
-	}
-
-	var values []string
-	for i := 0; i < count; i++ {
-		id := fmt.Sprintf("%s.%d", v.ResourceId(), i)
-
-		// If we're dealing with only a single resource, then the
-		// ID doesn't have a trailing index.
-		if count == 1 {
-			id = v.ResourceId()
-		}
-
-		r, ok := module.Resources[id]
-		if !ok {
-			continue
-		}
-
-		if r.Primary == nil {
-			continue
-		}
-
-		attr, ok := r.Primary.Attributes[v.Field]
-		if !ok {
-			continue
-		}
-
-		values = append(values, attr)
-	}
-
-	if len(values) == 0 {
-		return "", fmt.Errorf(
-			"Resource '%s' does not have attribute '%s' "+
-				"for variable '%s'",
-			v.ResourceId(),
-			v.Field,
-			v.FullKey())
-	}
-
-	return strings.Join(values, config.InterpSplitDelim), nil
-}
-
-func (c *walkContext) resourceVariableInfo(
-	v *config.ResourceVariable) (*ModuleState, *config.Resource, error) {
-	// Get the module tree that contains our current path. This is
-	// either the current module (path is empty) or a child.
-	var modTree *module.Tree
-	childPath := c.Path[1:len(c.Path)]
-	if len(childPath) == 0 {
-		modTree = c.Context.module
-	} else {
-		modTree = c.Context.module.Child(childPath)
-	}
-
-	// Get the resource from the configuration so we can verify
-	// that the resource is in the configuration and so we can access
-	// the configuration if we need to.
-	var cr *config.Resource
-	for _, r := range modTree.Config().Resources {
-		if r.Id() == v.ResourceId() {
-			cr = r
-			break
-		}
-	}
-	if cr == nil {
-		return nil, nil, fmt.Errorf(
-			"Resource '%s' not found for variable '%s'",
-			v.ResourceId(),
-			v.FullKey())
-	}
-
-	// Get the relevant module
-	module := c.Context.state.ModuleByPath(c.Path)
-	return module, cr, nil
 }
 
 type walkInputMeta struct {
