@@ -156,13 +156,13 @@ Options:
                          Required for Atlas backend, optional for Consul.
 
   -backend=atlas         Specifies the type of remote backend. Must be one
-                         of Atlas, Consul, or HTTP. Defaults to atlas.
+                         of Atlas, Consul, Swift or HTTP. Defaults to atlas.
 
   -name=name             Name of the state file in the state storage server.
                          Required for Atlas backend.
 
-  -path=path             Path of the remote state in Consul. Required for the
-                         Consul backend.
+  -path=path             Path of the remote state in Consul and Swift. Required for the
+                         Consul and Swift backends.
 
 `
 	return strings.TrimSpace(helpText)
