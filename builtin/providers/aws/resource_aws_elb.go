@@ -119,7 +119,6 @@ func resourceAwsElb() *schema.Resource {
 			"health_check": &schema.Schema{
 				Type:     schema.TypeSet,
 				Optional: true,
-				ForceNew: true,
 				Computed: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
