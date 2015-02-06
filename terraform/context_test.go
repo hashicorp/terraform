@@ -148,6 +148,26 @@ func TestContext2Validate_providerConfig_good(t *testing.T) {
 	}
 }
 
+func TestContext2Validate_requiredVar(t *testing.T) {
+	m := testModule(t, "validate-required-var")
+	p := testProvider("aws")
+	c := testContext2(t, &ContextOpts{
+		Module: m,
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+	})
+
+	w, e := c.Validate()
+	if len(w) > 0 {
+		t.Fatalf("bad: %#v", w)
+	}
+	// TODO: fail
+	if len(e) == 0 {
+		t.Fatalf("bad: %s", e)
+	}
+}
+
 /*
 func TestContextValidate_goodModule(t *testing.T) {
 	p := testProvider("aws")
@@ -391,21 +411,6 @@ func TestContextValidate_resourceNameSymbol(t *testing.T) {
 		t.Fatalf("bad: %#v", w)
 	}
 	if len(e) > 0 {
-		t.Fatalf("bad: %#v", e)
-	}
-}
-
-func TestContextValidate_requiredVar(t *testing.T) {
-	m := testModule(t, "validate-required-var")
-	c := testContext(t, &ContextOpts{
-		Module: m,
-	})
-
-	w, e := c.Validate()
-	if len(w) > 0 {
-		t.Fatalf("bad: %#v", w)
-	}
-	if len(e) == 0 {
 		t.Fatalf("bad: %#v", e)
 	}
 }
