@@ -1,6 +1,7 @@
 package aws
 
 import (
+	"bytes"
 	"fmt"
 	"log"
 	"strings"
@@ -118,8 +119,71 @@ func resourceAwsAutoscalingGroup() *schema.Resource {
 					return hashcode.String(v.(string))
 				},
 			},
+			"tags": &schema.Schema{
+				Type:     schema.TypeSet,
+				Optional: true,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"name": &schema.Schema{
+							Type:     schema.TypeString,
+							Required: true,
+						},
+
+						"value": &schema.Schema{
+							Type:     schema.TypeString,
+							Optional: true,
+						},
+
+						"propagate": &schema.Schema{
+							Type:     schema.TypeBool,
+							Required: true,
+						},
+					},
+				},
+				Set: resourceAwsAutoScalingGroupTagsHash,
+			},
 		},
 	}
+}
+
+func resourceAwsAutoScalingGroupTagsHash(v interface{}) int {
+	var buf bytes.Buffer
+	m := v.(map[string]interface{})
+	buf.WriteString(fmt.Sprintf("%s-", m["name"].(string)))
+	buf.WriteString(fmt.Sprintf("%s-", m["value"].(string)))
+	if m["propagate"].(bool) {
+		buf.WriteString("true")
+	} else {
+		buf.WriteString("false")
+	}
+
+	return hashcode.String(buf.String())
+}
+
+func resourceAwsAutoscalingGroupTags(d *schema.ResourceData, doResources bool) []autoscaling.Tag {
+	if v, ok := d.GetOk("tags"); ok {
+		var f []interface{}
+		f = v.(*schema.Set).List()
+		tags := make([]autoscaling.Tag, 0, len(f))
+		for _, t := range f {
+			data := t.(map[string]interface{})
+			tag := autoscaling.Tag{
+				Key:               aws.String(data["name"].(string)),
+				Value:             aws.String(data["value"].(string)),
+				PropagateAtLaunch: aws.False(),
+			}
+			if doResources {
+				tag.ResourceType = aws.String("auto-scaling-group")
+				tag.ResourceID = aws.String(d.Id())
+			}
+			if data["propagate"].(bool) {
+				tag.PropagateAtLaunch = aws.True()
+			}
+			tags = append(tags, tag)
+		}
+		return tags
+	}
+	return []autoscaling.Tag{}
 }
 
 func resourceAwsAutoscalingGroupCreate(d *schema.ResourceData, meta interface{}) error {
@@ -163,6 +227,7 @@ func resourceAwsAutoscalingGroupCreate(d *schema.ResourceData, meta interface{})
 		autoScalingGroupOpts.TerminationPolicies = expandStringList(
 			v.(*schema.Set).List())
 	}
+	autoScalingGroupOpts.Tags = resourceAwsAutoscalingGroupTags(d, false)
 
 	log.Printf("[DEBUG] AutoScaling Group create configuration: %#v", autoScalingGroupOpts)
 	err := autoscalingconn.CreateAutoScalingGroup(&autoScalingGroupOpts)
@@ -197,7 +262,7 @@ func resourceAwsAutoscalingGroupRead(d *schema.ResourceData, meta interface{}) e
 	d.Set("name", *g.AutoScalingGroupName)
 	d.Set("vpc_zone_identifier", strings.Split(*g.VPCZoneIdentifier, ","))
 	d.Set("termination_policies", g.TerminationPolicies)
-
+	d.Set("tags", g.Tags)
 	return nil
 }
 
@@ -229,6 +294,17 @@ func resourceAwsAutoscalingGroupUpdate(d *schema.ResourceData, meta interface{})
 	if err != nil {
 		d.Partial(true)
 		return fmt.Errorf("Error updating Autoscaling group: %s", err)
+	}
+
+	if d.HasChange("tags") {
+		log.Printf("[DEBUG] AutoScaling Group update tags")
+		var update autoscaling.CreateOrUpdateTagsType
+		update.Tags = resourceAwsAutoscalingGroupTags(d, true)
+		err = autoscalingconn.CreateOrUpdateTags(&update)
+		if err != nil {
+			d.Partial(true)
+			return fmt.Errorf("Error updating Autoscaling group tags: %s", err)
+		}
 	}
 
 	return resourceAwsAutoscalingGroupRead(d, meta)
