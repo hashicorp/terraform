@@ -57,6 +57,8 @@ func NewClientByType(ctype string, conf map[string]string) (RemoteClient, error)
 		return NewAtlasRemoteClient(conf)
 	case "consul":
 		return NewConsulRemoteClient(conf)
+    case "swift":
+        return NewSwiftRemoteClient(conf)
 	case "http":
 		return NewHTTPRemoteClient(conf)
 	default:
