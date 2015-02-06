@@ -5,14 +5,14 @@ import (
 	"sync"
 
 	"github.com/hashicorp/terraform/config"
-	"github.com/hashicorp/terraform/config/lang/ast"
 )
 
 // BuiltinEvalContext is an EvalContext implementation that is used by
 // Terraform by default.
 type BuiltinEvalContext struct {
-	Providers      map[string]ResourceProviderFactory
-	ComputeMissing bool
+	Path         []string
+	Interpolater *Interpolater
+	Providers    map[string]ResourceProviderFactory
 
 	providers map[string]ResourceProvider
 	once      sync.Once
@@ -45,42 +45,23 @@ func (ctx *BuiltinEvalContext) Provider(n string) ResourceProvider {
 }
 
 func (ctx *BuiltinEvalContext) Interpolate(
-	cfg *config.RawConfig) (*ResourceConfig, error) {
-	vs := make(map[string]ast.Variable)
+	cfg *config.RawConfig, r *Resource) (*ResourceConfig, error) {
+	if cfg != nil {
+		scope := &InterpolationScope{
+			Path:     ctx.Path,
+			Resource: r,
+		}
+		vs, err := ctx.Interpolater.Values(scope, cfg.Variables)
+		if err != nil {
+			return nil, err
+		}
 
-	// If we don't have a config, use the blank config
-	if cfg == nil {
-		goto INTERPOLATE_RESULT
-	}
-
-	for n, rawV := range cfg.Variables {
-		switch rawV.(type) {
-		case *config.ModuleVariable:
-			if ctx.ComputeMissing {
-				vs[n] = ast.Variable{
-					Value: config.UnknownVariableValue,
-					Type:  ast.TypeString,
-				}
-			}
-		case *config.ResourceVariable:
-			if ctx.ComputeMissing {
-				vs[n] = ast.Variable{
-					Value: config.UnknownVariableValue,
-					Type:  ast.TypeString,
-				}
-			}
-		default:
-			return nil, fmt.Errorf(
-				"unknown interpolation type: %#v", rawV)
+		// Do the interpolation
+		if err := cfg.Interpolate(vs); err != nil {
+			return nil, err
 		}
 	}
 
-	// Do the interpolation
-	if err := cfg.Interpolate(vs); err != nil {
-		return nil, err
-	}
-
-INTERPOLATE_RESULT:
 	result := NewResourceConfig(cfg)
 	result.interpolateForce()
 	return result, nil

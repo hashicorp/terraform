@@ -30,6 +30,8 @@ type Context2 struct {
 	module    *module.Tree
 	providers map[string]ResourceProviderFactory
 	state     *State
+	stateLock sync.RWMutex
+	variables map[string]string
 }
 
 // NewContext creates a new Context structure.
@@ -42,6 +44,7 @@ func NewContext2(opts *ContextOpts) *Context2 {
 		module:    opts.Module,
 		providers: opts.Providers,
 		state:     opts.State,
+		variables: opts.Variables,
 	}
 }
 
@@ -71,8 +74,7 @@ func (c *Context2) Validate() ([]string, []error) {
 		errs = append(errs, err)
 	}
 
-	evalCtx := c.evalContext()
-	evalCtx.ComputeMissing = true
+	evalCtx := c.evalContext(walkValidate)
 
 	// Build the graph
 	graph, err := c.GraphBuilder().Build(RootModulePath)
@@ -114,8 +116,17 @@ func (c *Context2) Validate() ([]string, []error) {
 	return warns, errs
 }
 
-func (c *Context2) evalContext() *BuiltinEvalContext {
+func (c *Context2) evalContext(op walkOperation) *BuiltinEvalContext {
 	return &BuiltinEvalContext{
+		Path:      RootModulePath,
 		Providers: c.providers,
+
+		Interpolater: &Interpolater{
+			Operation: op,
+			Module:    c.module,
+			State:     c.state,
+			StateLock: &c.stateLock,
+			Variables: nil,
+		},
 	}
 }

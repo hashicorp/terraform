@@ -18,7 +18,10 @@ type EvalContext interface {
 
 	// Interpolate takes the given raw configuration and completes
 	// the interpolations, returning the processed ResourceConfig.
-	Interpolate(*config.RawConfig) (*ResourceConfig, error)
+	//
+	// The resource argument is optional. If given, it is the resource
+	// that is currently being acted upon.
+	Interpolate(*config.RawConfig, *Resource) (*ResourceConfig, error)
 }
 
 // MockEvalContext is a mock version of EvalContext that can be used
@@ -35,6 +38,7 @@ type MockEvalContext struct {
 
 	InterpolateCalled       bool
 	InterpolateConfig       *config.RawConfig
+	InterpolateResource     *Resource
 	InterpolateConfigResult *ResourceConfig
 	InterpolateError        error
 }
@@ -52,8 +56,9 @@ func (c *MockEvalContext) Provider(n string) ResourceProvider {
 }
 
 func (c *MockEvalContext) Interpolate(
-	config *config.RawConfig) (*ResourceConfig, error) {
+	config *config.RawConfig, resource *Resource) (*ResourceConfig, error) {
 	c.InterpolateCalled = true
 	c.InterpolateConfig = config
+	c.InterpolateResource = resource
 	return c.InterpolateConfigResult, c.InterpolateError
 }
