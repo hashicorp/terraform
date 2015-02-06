@@ -32,7 +32,7 @@ type RemoteCommand struct {
 
 func (c *RemoteCommand) Run(args []string) int {
 	args = c.Meta.process(args, false)
-	var address, accessToken, name, path, region, securityToken, bucket string
+	var address, accessToken, name, path, region, securityToken string
 	cmdFlags := flag.NewFlagSet("remote", flag.ContinueOnError)
 	cmdFlags.BoolVar(&c.conf.disableRemote, "disable", false, "")
 	cmdFlags.BoolVar(&c.conf.pullOnDisable, "pull", true, "")
@@ -42,7 +42,6 @@ func (c *RemoteCommand) Run(args []string) int {
 	cmdFlags.StringVar(&address, "address", "", "")
 	cmdFlags.StringVar(&accessToken, "access-token", "", "")
 	cmdFlags.StringVar(&securityToken, "security-token", "", "")
-	cmdFlags.StringVar(&bucket, "bucket", "", "")
 	cmdFlags.StringVar(&region, "region", "", "")
 	cmdFlags.StringVar(&name, "name", "", "")
 	cmdFlags.StringVar(&path, "path", "", "")
@@ -65,7 +64,6 @@ func (c *RemoteCommand) Run(args []string) int {
 		"security_token": securityToken,
 		"name":           name,
 		"path":           path,
-		"bucket":         bucket,
 		"region":         region,
 	}
 
@@ -330,7 +328,7 @@ Usage: terraform remote [options]
 Options:
 
   -address=url           URL of the remote storage server.
-                         Required for HTTP backend, optional for Atlas and Consul.
+                         Required for HTTP and S3 backend, optional for Atlas and Consul.
 
   -access-token=token    Authentication token for state storage server.
                          Required for Atlas backend, optional for Consul.
@@ -344,8 +342,6 @@ Options:
                          modifying. Defaults to the "-state" path with
                          ".backup" extension. Set to "-" to disable backup.
 
-  -bucket=bucket         S3 bucket name. Specific to S3 (required).
-
   -disable               Disables remote state management and migrates the state
                          to the -state path.
 
@@ -353,7 +349,7 @@ Options:
                          Required for Atlas backend.
 
   -path=path             Path of the remote state in Consul. Required for the
-                         Consul and S3 backend.
+                         Consul.
 
   -pull=true             Controls if the remote state is pulled before disabling.
                          This defaults to true to ensure the latest state is cached
