@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"sync"
 
+	"github.com/hashicorp/errwrap"
+	"github.com/hashicorp/go-multierror"
 	"github.com/hashicorp/terraform/config/module"
 	"github.com/hashicorp/terraform/dag"
 )
@@ -67,11 +69,20 @@ func (c *Context2) GraphBuilder() GraphBuilder {
 // Validate validates the configuration and returns any warnings or errors.
 func (c *Context2) Validate() ([]string, []error) {
 	var warns []string
-	var errs []error
+	var errs error
 
 	// Validate the configuration itself
 	if err := c.module.Validate(); err != nil {
-		errs = append(errs, err)
+		errs = multierror.Append(errs, err)
+	}
+
+	// This only needs to be done for the root module, since inter-module
+	// variables are validated in the module tree.
+	if config := c.module.Config(); config != nil {
+		// Validate the user variables
+		if err := smcUserVariables(config, c.variables); len(err) > 0 {
+			errs = multierror.Append(errs, err...)
+		}
 	}
 
 	evalCtx := c.evalContext(walkValidate)
@@ -105,15 +116,23 @@ func (c *Context2) Validate() ([]string, []error) {
 
 		verr, ok := err.(*EvalValidateError)
 		if !ok {
-			errs = append(errs, err)
+			errs = multierror.Append(errs, err)
 			return
 		}
 
 		warns = append(warns, verr.Warnings...)
-		errs = append(errs, verr.Errors...)
+		errs = multierror.Append(errs, verr.Errors...)
 	})
 
-	return warns, errs
+	// Get the actual list of errors out. We do this by checking if the
+	// error is a error wrapper (multierror is one) and grabbing all the
+	// wrapped errors.
+	var rerrs []error
+	if w, ok := errs.(errwrap.Wrapper); ok {
+		rerrs = w.WrappedErrors()
+	}
+
+	return warns, rerrs
 }
 
 func (c *Context2) evalContext(op walkOperation) *BuiltinEvalContext {
