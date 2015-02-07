@@ -90,7 +90,7 @@ func (c *Context2) Validate() ([]string, []error) {
 	// Build the graph
 	graph, err := c.GraphBuilder().Build(RootModulePath)
 	if err != nil {
-		return nil, []error{err}
+		return nil, multierror.Append(errs, err).Errors
 	}
 
 	// Walk the graph
