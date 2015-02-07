@@ -75,6 +75,17 @@ func TestAcyclicGraphValidate_cycle(t *testing.T) {
 	}
 }
 
+func TestAcyclicGraphValidate_cycleSelf(t *testing.T) {
+	var g AcyclicGraph
+	g.Add(1)
+	g.Add(2)
+	g.Connect(BasicEdge(1, 1))
+
+	if err := g.Validate(); err == nil {
+		t.Fatal("should error")
+	}
+}
+
 func TestAcyclicGraphWalk(t *testing.T) {
 	var g AcyclicGraph
 	g.Add(1)
