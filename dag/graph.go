@@ -73,6 +73,30 @@ func (g *Graph) Remove(v Vertex) Vertex {
 	return nil
 }
 
+// Replace replaces the original Vertex with replacement. If the original
+// does not exist within the graph, then false is returned. Otherwise, true
+// is returned.
+func (g *Graph) Replace(original, replacement Vertex) bool {
+	// If we don't have the original, we can't do anything
+	if !g.vertices.Include(original) {
+		return false
+	}
+
+	// Add our new vertex, then copy all the edges
+	g.Add(replacement)
+	for _, target := range g.DownEdges(original).List() {
+		g.Connect(BasicEdge(replacement, target))
+	}
+	for _, source := range g.UpEdges(original).List() {
+		g.Connect(BasicEdge(source, replacement))
+	}
+
+	// Remove our old vertex, which will also remove all the edges
+	g.Remove(original)
+
+	return true
+}
+
 // RemoveEdge removes an edge from the graph.
 func (g *Graph) RemoveEdge(edge Edge) {
 	g.once.Do(g.init)
