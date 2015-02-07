@@ -12,13 +12,17 @@ import (
 type ContextGraphWalker struct {
 	NullGraphWalker
 
+	// Configurable values
 	Context   *Context2
 	Operation walkOperation
 
-	ErrorLock          sync.Mutex
+	// Outputs, do not set these. Do not read these while the graph
+	// is being walked.
 	EvalError          error
 	ValidationWarnings []string
 	ValidationErrors   []error
+
+	errorLock sync.Mutex
 }
 
 func (w *ContextGraphWalker) EnterGraph(g *Graph) EvalContext {
@@ -42,8 +46,8 @@ func (w *ContextGraphWalker) ExitEvalTree(
 	}
 
 	// Acquire the lock because anything is going to require a lock.
-	w.ErrorLock.Lock()
-	defer w.ErrorLock.Unlock()
+	w.errorLock.Lock()
+	defer w.errorLock.Unlock()
 
 	// Try to get a validation error out of it. If its not a validation
 	// error, then just record the normal error.
