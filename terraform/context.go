@@ -1,13 +1,10 @@
 package terraform
 
 import (
-	"fmt"
 	"sync"
 
-	"github.com/hashicorp/errwrap"
 	"github.com/hashicorp/go-multierror"
 	"github.com/hashicorp/terraform/config/module"
-	"github.com/hashicorp/terraform/dag"
 )
 
 // ContextOpts are the user-configurable options to create a context with
@@ -68,7 +65,6 @@ func (c *Context2) GraphBuilder() GraphBuilder {
 
 // Validate validates the configuration and returns any warnings or errors.
 func (c *Context2) Validate() ([]string, []error) {
-	var warns []string
 	var errs error
 
 	// Validate the configuration itself
@@ -85,8 +81,6 @@ func (c *Context2) Validate() ([]string, []error) {
 		}
 	}
 
-	evalCtx := c.evalContext(walkValidate)
-
 	// Build the graph
 	graph, err := c.GraphBuilder().Build(RootModulePath)
 	if err != nil {
@@ -94,58 +88,10 @@ func (c *Context2) Validate() ([]string, []error) {
 	}
 
 	// Walk the graph
-	var lock sync.Mutex
-	graph.Walk(func(v dag.Vertex) {
-		ev, ok := v.(GraphNodeEvalable)
-		if !ok {
-			return
-		}
+	walker := &ContextGraphWalker{Context: c, Operation: walkValidate}
+	graph.Walk(walker)
 
-		tree := ev.EvalTree()
-		if tree == nil {
-			panic(fmt.Sprintf("%s (%T): nil eval tree", dag.VertexName(v), v))
-		}
-
-		_, err := Eval(tree, evalCtx)
-		if err == nil {
-			return
-		}
-
-		lock.Lock()
-		defer lock.Unlock()
-
-		verr, ok := err.(*EvalValidateError)
-		if !ok {
-			errs = multierror.Append(errs, err)
-			return
-		}
-
-		warns = append(warns, verr.Warnings...)
-		errs = multierror.Append(errs, verr.Errors...)
-	})
-
-	// Get the actual list of errors out. We do this by checking if the
-	// error is a error wrapper (multierror is one) and grabbing all the
-	// wrapped errors.
-	var rerrs []error
-	if w, ok := errs.(errwrap.Wrapper); ok {
-		rerrs = w.WrappedErrors()
-	}
-
-	return warns, rerrs
-}
-
-func (c *Context2) evalContext(op walkOperation) *BuiltinEvalContext {
-	return &BuiltinEvalContext{
-		Path:      RootModulePath,
-		Providers: c.providers,
-
-		Interpolater: &Interpolater{
-			Operation: op,
-			Module:    c.module,
-			State:     c.state,
-			StateLock: &c.stateLock,
-			Variables: nil,
-		},
-	}
+	// Return the result
+	rerrs := multierror.Append(errs, walker.ValidationErrors...)
+	return walker.ValidationWarnings, rerrs.Errors
 }
