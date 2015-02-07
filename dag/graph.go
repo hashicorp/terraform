@@ -39,7 +39,7 @@ func (g *Graph) Vertices() []Vertex {
 
 // Edges returns the list of all the edges in the graph.
 func (g *Graph) Edges() []Edge {
-	list := g.vertices.List()
+	list := g.edges.List()
 	result := make([]Edge, len(list))
 	for i, v := range list {
 		result[i] = v.(Edge)

@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"strings"
 	"sync"
+
+	"github.com/hashicorp/go-multierror"
 )
 
 // AcyclicGraph is a specialization of Graph that cannot have cycles. With
@@ -45,6 +47,8 @@ func (g *AcyclicGraph) Validate() error {
 		return err
 	}
 
+	// Look for cycles of more than 1 component
+	var err error
 	var cycles [][]Vertex
 	for _, cycle := range StronglyConnected(&g.Graph) {
 		if len(cycle) > 1 {
@@ -52,20 +56,26 @@ func (g *AcyclicGraph) Validate() error {
 		}
 	}
 	if len(cycles) > 0 {
-		cyclesStr := make([]string, len(cycles))
-		for i, cycle := range cycles {
+		for _, cycle := range cycles {
 			cycleStr := make([]string, len(cycle))
 			for j, vertex := range cycle {
 				cycleStr[j] = VertexName(vertex)
 			}
 
-			cyclesStr[i] = strings.Join(cycleStr, ", ")
+			err = multierror.Append(err, fmt.Errorf(
+				"Cycle: %s", strings.Join(cycleStr, ", ")))
 		}
-
-		return fmt.Errorf("cycles: %s", cyclesStr)
 	}
 
-	return nil
+	// Look for cycles to self
+	for _, e := range g.Edges() {
+		if e.Source() == e.Target() {
+			err = multierror.Append(err, fmt.Errorf(
+				"Self reference: %s", VertexName(e.Source())))
+		}
+	}
+
+	return err
 }
 
 // Walk walks the graph, calling your callback as each node is visited.
