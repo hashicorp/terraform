@@ -38,7 +38,7 @@ func (c *VersionCommand) Run(args []string) int {
 
 	fmt.Fprintf(&versionString, "Terraform v%s", c.Version)
 	if c.VersionPrerelease != "" {
-		fmt.Fprintf(&versionString, ".%s", c.VersionPrerelease)
+		fmt.Fprintf(&versionString, "-%s", c.VersionPrerelease)
 
 		if c.Revision != "" {
 			fmt.Fprintf(&versionString, " (%s)", c.Revision)
