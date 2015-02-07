@@ -1,6 +1,7 @@
 package terraform
 
 import (
+	"fmt"
 	"sync"
 
 	"github.com/hashicorp/terraform/dag"
@@ -111,10 +112,49 @@ func (g *Graph) Dependable(n string) dag.Vertex {
 	return nil
 }
 
+// Walk walks the graph with the given walker for callbacks. The graph
+// will be walked with full parallelism, so the walker should expect
+// to be called in concurrently.
+//
+// There is no way to tell the walker to halt the walk. If you want to
+// halt the walk, you should set a flag in your GraphWalker to ignore
+// future callbacks.
+func (g *Graph) Walk(walker GraphWalker) {
+	// TODO: test
+	g.walk(walker)
+}
+
 func (g *Graph) init() {
 	if g.dependableMap == nil {
 		g.dependableMap = make(map[string]dag.Vertex)
 	}
+}
+
+func (g *Graph) walk(walker GraphWalker) {
+	// The callbacks for enter/exiting a graph
+	ctx := walker.EnterGraph(g)
+	defer walker.ExitGraph(g)
+
+	// Walk the graph
+	g.AcyclicGraph.Walk(func(v dag.Vertex) {
+		walker.EnterVertex(v)
+		defer walker.ExitVertex(v)
+
+		// If the node is eval-able, then evaluate it.
+		if ev, ok := v.(GraphNodeEvalable); ok {
+			tree := ev.EvalTree()
+			if tree == nil {
+				panic(fmt.Sprintf(
+					"%s (%T): nil eval tree", dag.VertexName(v), v))
+			}
+
+			// Allow the walker to change our tree if needed. Eval,
+			// then callback with the output.
+			tree = walker.EnterEvalTree(v, tree)
+			output, err := Eval(tree, ctx)
+			walker.ExitEvalTree(v, output, err)
+		}
+	})
 }
 
 // GraphNodeDependable is an interface which says that a node can be
