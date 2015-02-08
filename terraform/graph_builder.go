@@ -19,7 +19,6 @@ type BasicGraphBuilder struct {
 	Steps []GraphTransformer
 }
 
-// TODO(mitchellh): test
 func (b *BasicGraphBuilder) Build(path []string) (*Graph, error) {
 	g := &Graph{Path: path}
 	for _, step := range b.Steps {
