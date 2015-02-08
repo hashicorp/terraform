@@ -74,6 +74,13 @@ func (b *BuiltinGraphBuilder) Steps() []GraphTransformer {
 		&MissingProviderTransformer{Providers: b.Providers},
 		&ProviderTransformer{},
 		&PruneProviderTransformer{},
+		&VertexTransformer{
+			Transforms: []GraphVertexTransformer{
+				&ExpandTransform{
+					Builder: b,
+				},
+			},
+		},
 		&RootTransformer{},
 	}
 }
