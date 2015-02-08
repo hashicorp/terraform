@@ -6,6 +6,9 @@ import (
 
 // EvalContext is the interface that is given to eval nodes to execute.
 type EvalContext interface {
+	// Path is the current module path.
+	Path() []string
+
 	// InitProvider initializes the provider with the given name and
 	// returns the implementation of the resource provider or an error.
 	//
@@ -41,6 +44,9 @@ type MockEvalContext struct {
 	InterpolateResource     *Resource
 	InterpolateConfigResult *ResourceConfig
 	InterpolateError        error
+
+	PathCalled bool
+	PathPath   []string
 }
 
 func (c *MockEvalContext) InitProvider(n string) (ResourceProvider, error) {
@@ -61,4 +67,9 @@ func (c *MockEvalContext) Interpolate(
 	c.InterpolateConfig = config
 	c.InterpolateResource = resource
 	return c.InterpolateConfigResult, c.InterpolateError
+}
+
+func (c *MockEvalContext) Path() []string {
+	c.PathCalled = true
+	return c.PathPath
 }

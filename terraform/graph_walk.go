@@ -10,7 +10,7 @@ type GraphWalker interface {
 	EnterGraph(*Graph) EvalContext
 	ExitGraph(*Graph)
 	EnterVertex(dag.Vertex)
-	ExitVertex(dag.Vertex)
+	ExitVertex(dag.Vertex, error)
 	EnterEvalTree(dag.Vertex, EvalNode) EvalNode
 	ExitEvalTree(dag.Vertex, interface{}, error)
 }
@@ -23,6 +23,6 @@ type NullGraphWalker struct{}
 func (NullGraphWalker) EnterGraph(*Graph) EvalContext                   { return nil }
 func (NullGraphWalker) ExitGraph(*Graph)                                {}
 func (NullGraphWalker) EnterVertex(dag.Vertex)                          {}
-func (NullGraphWalker) ExitVertex(dag.Vertex)                           {}
+func (NullGraphWalker) ExitVertex(dag.Vertex, error)                    {}
 func (NullGraphWalker) EnterEvalTree(v dag.Vertex, n EvalNode) EvalNode { return n }
 func (NullGraphWalker) ExitEvalTree(dag.Vertex, interface{}, error)     {}

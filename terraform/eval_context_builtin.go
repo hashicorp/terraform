@@ -10,7 +10,7 @@ import (
 // BuiltinEvalContext is an EvalContext implementation that is used by
 // Terraform by default.
 type BuiltinEvalContext struct {
-	Path         []string
+	PathValue    []string
 	Interpolater *Interpolater
 	Providers    map[string]ResourceProviderFactory
 
@@ -48,7 +48,7 @@ func (ctx *BuiltinEvalContext) Interpolate(
 	cfg *config.RawConfig, r *Resource) (*ResourceConfig, error) {
 	if cfg != nil {
 		scope := &InterpolationScope{
-			Path:     ctx.Path,
+			Path:     ctx.Path(),
 			Resource: r,
 		}
 		vs, err := ctx.Interpolater.Values(scope, cfg.Variables)
@@ -65,6 +65,10 @@ func (ctx *BuiltinEvalContext) Interpolate(
 	result := NewResourceConfig(cfg)
 	result.interpolateForce()
 	return result, nil
+}
+
+func (ctx *BuiltinEvalContext) Path() []string {
+	return ctx.PathValue
 }
 
 func (ctx *BuiltinEvalContext) init() {
