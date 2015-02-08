@@ -53,7 +53,12 @@ func (t *ConfigTransformer) Transform(g *Graph) error {
 	// Write all the modules out
 	children := module.Children()
 	for _, m := range config.Modules {
+		path := make([]string, len(g.Path), len(g.Path)+1)
+		copy(path, g.Path)
+		path = append(path, m.Name)
+
 		nodes = append(nodes, &GraphNodeConfigModule{
+			Path:   path,
 			Module: m,
 			Tree:   children[m.Name],
 		})

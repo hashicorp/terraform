@@ -22,6 +22,7 @@ type graphNodeConfig interface {
 
 // GraphNodeConfigModule represents a module within the configuration graph.
 type GraphNodeConfigModule struct {
+	Path   []string
 	Module *config.Module
 	Tree   *module.Tree
 }
@@ -44,6 +45,11 @@ func (n *GraphNodeConfigModule) DependentOn() []string {
 
 func (n *GraphNodeConfigModule) Name() string {
 	return fmt.Sprintf("module.%s", n.Module.Name)
+}
+
+// GraphNodeExpandable
+func (n *GraphNodeConfigModule) Expand(b GraphBuilder) (*Graph, error) {
+	return b.Build(n.Path)
 }
 
 // GraphNodeConfigProvider represents a configured provider within the
