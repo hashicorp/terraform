@@ -29,11 +29,41 @@ func TestBuiltinGraphBuilder(t *testing.T) {
 	}
 }
 
+// This test tests that the graph builder properly expands modules.
+func TestBuiltinGraphBuilder_modules(t *testing.T) {
+	b := &BuiltinGraphBuilder{
+		Root: testModule(t, "graph-builder-modules"),
+	}
+
+	g, err := b.Build(RootModulePath)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	actual := strings.TrimSpace(g.String())
+	expected := strings.TrimSpace(testBuiltinGraphBuilderModuleStr)
+	if actual != expected {
+		t.Fatalf("bad: %s", actual)
+	}
+}
+
 const testBuiltinGraphBuilderBasicStr = `
 aws_instance.db
   provider.aws
 aws_instance.web
   aws_instance.db
   provider.aws
+provider.aws
+`
+
+const testBuiltinGraphBuilderModuleStr = `
+aws_instance.web
+  aws_security_group.firewall
+  module.consul (expanded)
+  provider.aws
+aws_security_group.firewall
+  provider.aws
+module.consul (expanded)
+  aws_security_group.firewall
 provider.aws
 `
