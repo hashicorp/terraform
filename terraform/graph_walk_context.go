@@ -27,7 +27,7 @@ type ContextGraphWalker struct {
 
 func (w *ContextGraphWalker) EnterGraph(g *Graph) EvalContext {
 	return &BuiltinEvalContext{
-		Path:      g.Path,
+		PathValue: g.Path,
 		Providers: w.Context.providers,
 		Interpolater: &Interpolater{
 			Operation: w.Operation,
