@@ -44,6 +44,44 @@ func TestContext2Validate_badVar(t *testing.T) {
 	}
 }
 
+func TestContext2Validate_moduleBadOutput(t *testing.T) {
+	p := testProvider("aws")
+	m := testModule(t, "validate-bad-module-output")
+	c := testContext2(t, &ContextOpts{
+		Module: m,
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+	})
+
+	w, e := c.Validate()
+	if len(w) > 0 {
+		t.Fatalf("bad: %#v", w)
+	}
+	if len(e) == 0 {
+		t.Fatalf("bad: %s", e)
+	}
+}
+
+func TestContext2Validate_moduleGood(t *testing.T) {
+	p := testProvider("aws")
+	m := testModule(t, "validate-good-module")
+	c := testContext2(t, &ContextOpts{
+		Module: m,
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+	})
+
+	w, e := c.Validate()
+	if len(w) > 0 {
+		t.Fatalf("bad: %#v", w)
+	}
+	if len(e) > 0 {
+		t.Fatalf("bad: %#v", e)
+	}
+}
+
 func TestContext2Validate_orphans(t *testing.T) {
 	p := testProvider("aws")
 	m := testModule(t, "validate-good")
@@ -225,44 +263,6 @@ func TestContext2Validate_selfRefMultiAll(t *testing.T) {
 }
 
 /*
-func TestContextValidate_goodModule(t *testing.T) {
-	p := testProvider("aws")
-	m := testModule(t, "validate-good-module")
-	c := testContext(t, &ContextOpts{
-		Module: m,
-		Providers: map[string]ResourceProviderFactory{
-			"aws": testProviderFuncFixed(p),
-		},
-	})
-
-	w, e := c.Validate()
-	if len(w) > 0 {
-		t.Fatalf("bad: %#v", w)
-	}
-	if len(e) > 0 {
-		t.Fatalf("bad: %#v", e)
-	}
-}
-
-func TestContextValidate_badModuleOutput(t *testing.T) {
-	p := testProvider("aws")
-	m := testModule(t, "validate-bad-module-output")
-	c := testContext(t, &ContextOpts{
-		Module: m,
-		Providers: map[string]ResourceProviderFactory{
-			"aws": testProviderFuncFixed(p),
-		},
-	})
-
-	w, e := c.Validate()
-	if len(w) > 0 {
-		t.Fatalf("bad: %#v", w)
-	}
-	if len(e) == 0 {
-		t.Fatalf("bad: %#v", e)
-	}
-}
-
 func TestContextValidate_countNegative(t *testing.T) {
 	p := testProvider("aws")
 	m := testModule(t, "validate-count-negative")
