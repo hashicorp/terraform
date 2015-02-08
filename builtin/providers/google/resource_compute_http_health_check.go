@@ -232,13 +232,13 @@ func resourceComputeHttpHealthCheckRead(d *schema.ResourceData, meta interface{}
 		return fmt.Errorf("Error reading HttpHealthCheck: %s", err)
 	}
 
-    d.Set("host", hchk.Host)
-    d.Set("request_path", hchk.RequestPath)
-    d.Set("check_interval_sec", hchk.CheckIntervalSec)
-    d.Set("health_threshold", hchk.HealthyThreshold)
-    d.Set("port", hchk.Port)
-    d.Set("timeout_sec", hchk.TimeoutSec)
-    d.Set("unhealthy_threshold", hchk.UnhealthyThreshold)
+	d.Set("host", hchk.Host)
+	d.Set("request_path", hchk.RequestPath)
+	d.Set("check_interval_sec", hchk.CheckIntervalSec)
+	d.Set("health_threshold", hchk.HealthyThreshold)
+	d.Set("port", hchk.Port)
+	d.Set("timeout_sec", hchk.TimeoutSec)
+	d.Set("unhealthy_threshold", hchk.UnhealthyThreshold)
 	d.Set("self_link", hchk.SelfLink)
 
 	return nil
