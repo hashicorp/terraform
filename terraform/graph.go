@@ -135,10 +135,10 @@ func (g *Graph) walk(walker GraphWalker) {
 	ctx := walker.EnterGraph(g)
 	defer walker.ExitGraph(g)
 
-	// Walk the graph
-	g.AcyclicGraph.Walk(func(v dag.Vertex) {
+	// Walk the graph.
+	var walkFn func(v dag.Vertex)
+	walkFn = func(v dag.Vertex) {
 		walker.EnterVertex(v)
-		defer walker.ExitVertex(v)
 
 		// If the node is eval-able, then evaluate it.
 		if ev, ok := v.(GraphNodeEvalable); ok {
@@ -154,7 +154,24 @@ func (g *Graph) walk(walker GraphWalker) {
 			output, err := Eval(tree, ctx)
 			walker.ExitEvalTree(v, output, err)
 		}
-	})
+
+		// If the node is dynamically expanded, then expand it
+		if ev, ok := v.(GraphNodeDynamicExpandable); ok {
+			g, err := ev.DynamicExpand(ctx)
+			if err != nil {
+				walker.ExitVertex(v, err)
+				return
+			}
+
+			// Walk the subgraph
+			g.walk(walker)
+		}
+
+		// Exit the vertex
+		walker.ExitVertex(v, nil)
+	}
+
+	g.AcyclicGraph.Walk(walkFn)
 }
 
 // GraphNodeDependable is an interface which says that a node can be

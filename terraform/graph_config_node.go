@@ -98,6 +98,7 @@ func (n *GraphNodeConfigResource) DependableName() []string {
 	return []string{n.Resource.Id()}
 }
 
+// GraphNodeDependent impl.
 func (n *GraphNodeConfigResource) DependentOn() []string {
 	result := make([]string, len(n.Resource.DependsOn),
 		len(n.Resource.RawCount.Variables)+
@@ -122,17 +123,17 @@ func (n *GraphNodeConfigResource) Name() string {
 	return n.Resource.Id()
 }
 
-// GraphNodeEvalable impl.
-func (n *GraphNodeConfigResource) EvalTree() EvalNode {
-	return &EvalSequence{
-		Nodes: []EvalNode{
-			&EvalValidateResource{
-				Provider:     &EvalGetProvider{Name: n.ProvidedBy()},
-				Config:       &EvalInterpolate{Config: n.Resource.RawConfig},
-				ProviderType: n.ProvidedBy(),
-			},
+// GraphNodeDynamicExpandable impl.
+func (n *GraphNodeConfigResource) DynamicExpand(ctx EvalContext) (*Graph, error) {
+	// Build the graph
+	b := &BasicGraphBuilder{
+		Steps: []GraphTransformer{
+			&ResourceCountTransformer{Resource: n.Resource},
+			&RootTransformer{},
 		},
 	}
+
+	return b.Build(ctx.Path())
 }
 
 // GraphNodeProviderConsumer
