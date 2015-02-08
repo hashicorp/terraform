@@ -13,6 +13,29 @@ type GraphBuilder interface {
 	Build(path []string) (*Graph, error)
 }
 
+// BasicGraphBuilder is a GraphBuilder that builds a graph out of a
+// series of transforms and validates the graph is a valid structure.
+type BasicGraphBuilder struct {
+	Steps []GraphTransformer
+}
+
+// TODO(mitchellh): test
+func (b *BasicGraphBuilder) Build(path []string) (*Graph, error) {
+	g := &Graph{Path: path}
+	for _, step := range b.Steps {
+		if err := step.Transform(g); err != nil {
+			return g, err
+		}
+	}
+
+	// Validate the graph structure
+	if err := g.Validate(); err != nil {
+		return nil, err
+	}
+
+	return g, nil
+}
+
 // BuiltinGraphBuilder is responsible for building the complete graph that
 // Terraform uses for execution. It is an opinionated builder that defines
 // the step order required to build a complete graph as is used and expected
@@ -34,19 +57,11 @@ type BuiltinGraphBuilder struct {
 
 // Build builds the graph according to the steps returned by Steps.
 func (b *BuiltinGraphBuilder) Build(path []string) (*Graph, error) {
-	g := &Graph{Path: path}
-	for _, step := range b.Steps() {
-		if err := step.Transform(g); err != nil {
-			return g, err
-		}
+	basic := &BasicGraphBuilder{
+		Steps: b.Steps(),
 	}
 
-	// Validate the graph structure
-	if err := g.Validate(); err != nil {
-		return nil, err
-	}
-
-	return g, nil
+	return basic.Build(path)
 }
 
 // Steps returns the ordered list of GraphTransformers that must be executed
