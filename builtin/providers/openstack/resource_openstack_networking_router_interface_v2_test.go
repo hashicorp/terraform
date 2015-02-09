@@ -78,27 +78,23 @@ func testAccCheckNetworkingV2RouterInterfaceExists(t *testing.T, n string) resou
 }
 
 var testAccNetworkingV2RouterInterface_basic = fmt.Sprintf(`
-  	resource "openstack_networking_router_v2" "router_1" {
-    	name = "router_1"
-    	region = "%s"
-    	admin_state_up = "true"
-	}
+resource "openstack_networking_router_v2" "router_1" {
+  name = "router_1"
+  admin_state_up = "true"
+}
 
-	resource "openstack_networking_router_interface_v2" "int_1" {
-		subnet_id = "${openstack_networking_subnet_v2.subnet_1.id}"
-		router_id = "${openstack_networking_router_v2.router_1.id}"
-		region = "%s"
-	}
+resource "openstack_networking_router_interface_v2" "int_1" {
+    subnet_id = "${openstack_networking_subnet_v2.subnet_1.id}"
+    router_id = "${openstack_networking_router_v2.router_1.id}"
+}
 
-	resource "openstack_networking_network_v2" "network_1" {
-		region = "%s"
-		name = "network_1"
-		admin_state_up = "true"
-	}
+resource "openstack_networking_network_v2" "network_1" {
+    name = "network_1"
+    admin_state_up = "true"
+}
 
-	resource "openstack_networking_subnet_v2" "subnet_1" {
-		region = "%s"
-		network_id = "${openstack_networking_network_v2.network_1.id}"
-		cidr = "192.168.199.0/24"
-		ip_version = 4
-	}`, OS_REGION_NAME, OS_REGION_NAME, OS_REGION_NAME, OS_REGION_NAME)
+resource "openstack_networking_subnet_v2" "subnet_1" {
+    network_id = "${openstack_networking_network_v2.network_1.id}"
+    cidr = "192.168.199.0/24"
+    ip_version = 4
+}`)
