@@ -84,6 +84,6 @@ func testAccCheckNetworkingV2FloatingIPExists(t *testing.T, n string, kp *floati
 var testAccNetworkingV2FloatingIP_basic = fmt.Sprintf(`
   resource "openstack_networking_floatingip_v2" "foo" {
     region = "%s"
-    pool = "PublicNetwork-01"
+    pool = "%s"
     }`,
-	OS_REGION_NAME)
+	OS_REGION_NAME, OS_POOL_NAME)

@@ -10,6 +10,7 @@ import (
 
 var (
 	OS_REGION_NAME = ""
+	OS_POOL_NAME   = ""
 )
 
 var testAccProviders map[string]terraform.ResourceProvider
@@ -48,6 +49,12 @@ func testAccPreCheck(t *testing.T) {
 	if v == "" {
 		t.Fatal("OS_IMAGE_ID must be set for acceptance tests")
 	}
+
+	v = os.Getenv("OS_POOL_NAME")
+	if v == "" {
+		t.Fatal("OS_POOL_NAME must be set for acceptance tests")
+	}
+	OS_POOL_NAME = v
 
 	v = os.Getenv("OS_FLAVOR_ID")
 	if v == "" {
