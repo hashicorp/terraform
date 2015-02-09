@@ -83,6 +83,7 @@ func (n *graphNodeExpandedResource) EvalTree() EvalNode {
 			&EvalValidateResource{
 				Provider:     &EvalGetProvider{Name: n.ProvidedBy()},
 				Config:       &EvalInterpolate{Config: n.Resource.RawConfig},
+				ResourceName: n.Resource.Name,
 				ResourceType: n.Resource.Type,
 			},
 		},

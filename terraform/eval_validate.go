@@ -96,6 +96,7 @@ func (n *EvalValidateProvider) Type() EvalType {
 type EvalValidateResource struct {
 	Provider     EvalNode
 	Config       EvalNode
+	ResourceName string
 	ResourceType string
 }
 
@@ -109,9 +110,19 @@ func (n *EvalValidateResource) Eval(
 	// TODO: test
 
 	provider := args[0].(ResourceProvider)
-	config := args[1].(*ResourceConfig)
+	cfg := args[1].(*ResourceConfig)
+	warns, errs := provider.ValidateResource(n.ResourceType, cfg)
 
-	warns, errs := provider.ValidateResource(n.ResourceType, config)
+	// If the resouce name doesn't match the name regular
+	// expression, show a warning.
+	if !config.NameRegexp.Match([]byte(n.ResourceName)) {
+		warns = append(warns, fmt.Sprintf(
+			"%s: resource name can only contain letters, numbers, "+
+				"dashes, and underscores.\n"+
+				"This will be an error in Terraform 0.4",
+			n.ResourceName))
+	}
+
 	if len(warns) == 0 && len(errs) == 0 {
 		return nil, nil
 	}
