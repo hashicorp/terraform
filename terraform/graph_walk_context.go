@@ -41,7 +41,7 @@ func (w *ContextGraphWalker) EnterGraph(g *Graph) EvalContext {
 			Module:    w.Context.module,
 			State:     w.Context.state,
 			StateLock: &w.Context.stateLock,
-			Variables: nil,
+			Variables: w.Context.variables,
 		},
 	}
 }
