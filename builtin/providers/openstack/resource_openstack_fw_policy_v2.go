@@ -43,6 +43,11 @@ func resourceFWPolicyV2() *schema.Resource {
 				Optional: true,
 				Default:  false,
 			},
+			"tenant_id": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				ForceNew: true,
+			},
 			"rules": &schema.Schema{
 				Type:     schema.TypeSet,
 				Optional: true,
@@ -76,12 +81,16 @@ func resourceFirewallPolicyCreate(d *schema.ResourceData, meta interface{}) erro
 		rules[i] = v.(string)
 	}
 
+	audited := d.Get("audited").(bool)
+	shared := d.Get("shared").(bool)
+
 	opts := policies.CreateOpts{
 		Name:        d.Get("name").(string),
 		Description: d.Get("description").(string),
-		//		Audited:     d.Get("audited").(bool),
-		//		Shared:      d.Get("shared").(bool),
-		Rules: rules,
+		Audited:     &audited,
+		Shared:      &shared,
+		TenantID:    d.Get("tenant_id").(string),
+		Rules:       rules,
 	}
 
 	log.Printf("[DEBUG] Create firewall policy: %#v", opts)
@@ -122,6 +131,10 @@ func resourceFirewallPolicyRead(d *schema.ResourceData, meta interface{}) error 
 	}
 
 	d.Set("name", policy.Name)
+	d.Set("description", policy.Description)
+	d.Set("shared", policy.Shared)
+	d.Set("audited", policy.Audited)
+	d.Set("tenant_id", policy.TenantID)
 
 	return nil
 }

@@ -45,6 +45,11 @@ func resourceFWFirewallV2() *schema.Resource {
 				Optional: true,
 				Default:  true,
 			},
+			"tenant_id": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				ForceNew: true,
+			},
 		},
 	}
 }
@@ -64,6 +69,7 @@ func resourceFirewallCreate(d *schema.ResourceData, meta interface{}) error {
 		Description:  d.Get("description").(string),
 		PolicyID:     d.Get("policy_id").(string),
 		AdminStateUp: &adminStateUp,
+		TenantID:     d.Get("tenant_id").(string),
 	}
 
 	log.Printf("[DEBUG] Create firewall: %#v", firewallConfiguration)
@@ -90,6 +96,7 @@ func resourceFirewallCreate(d *schema.ResourceData, meta interface{}) error {
 	d.Set("description", firewall.Description)
 	d.Set("policy_id", firewall.PolicyID)
 	d.Set("admin_state_up", firewall.AdminStateUp)
+	d.Set("tenant_id", firewall.TenantID)
 
 	_, err = stateConf.WaitForState()
 

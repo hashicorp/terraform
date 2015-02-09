@@ -65,6 +65,11 @@ func resourceFWRuleV2() *schema.Resource {
 				Optional: true,
 				Default:  true,
 			},
+			"tenant_id": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				ForceNew: true,
+			},
 		},
 	}
 }
@@ -90,6 +95,7 @@ func resourceFirewallRuleCreate(d *schema.ResourceData, meta interface{}) error 
 		SourcePort:           d.Get("source_port").(string),
 		DestinationPort:      d.Get("destination_port").(string),
 		Enabled:              &enabled,
+		TenantID:             d.Get("tenant_id").(string),
 	}
 
 	log.Printf("[DEBUG] Create firewall rule: %#v", ruleConfiguration)
@@ -114,6 +120,7 @@ func resourceFirewallRuleCreate(d *schema.ResourceData, meta interface{}) error 
 	d.Set("source_port", rule.SourcePort)
 	d.Set("destination_port", rule.DestinationPort)
 	d.Set("enabled", rule.Enabled)
+	d.Set("tenant_id", rule.TenantID)
 
 	return nil
 }
