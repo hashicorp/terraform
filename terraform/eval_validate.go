@@ -1,5 +1,11 @@
 package terraform
 
+import (
+	"fmt"
+
+	"github.com/hashicorp/terraform/config"
+)
+
 // EvalValidateError is the error structure returned if there were
 // validation errors.
 type EvalValidateError struct {
@@ -9,6 +15,49 @@ type EvalValidateError struct {
 
 func (e *EvalValidateError) Error() string {
 	return ""
+}
+
+// EvalValidateCount is an EvalNode implementation that validates
+// the count of a resource.
+type EvalValidateCount struct {
+	Resource *config.Resource
+}
+
+func (n *EvalValidateCount) Args() ([]EvalNode, []EvalType) {
+	return nil, nil
+}
+
+// TODO: test
+func (n *EvalValidateCount) Eval(
+	ctx EvalContext, args []interface{}) (interface{}, error) {
+	var count int
+	var errs []error
+	var err error
+	if _, err := ctx.Interpolate(n.Resource.RawCount, nil); err != nil {
+		errs = append(errs, fmt.Errorf(
+			"Failed to interpolate count: %s", err))
+		goto RETURN
+	}
+
+	count, err = n.Resource.Count()
+	if err != nil {
+		errs = append(errs)
+		goto RETURN
+	}
+
+	if count < 0 {
+		errs = append(errs, fmt.Errorf(
+			"Count is less than zero: %d", count))
+	}
+
+RETURN:
+	return nil, &EvalValidateError{
+		Errors: errs,
+	}
+}
+
+func (n *EvalValidateCount) Type() EvalType {
+	return EvalTypeNull
 }
 
 // EvalValidateProvider is an EvalNode implementation that validates
