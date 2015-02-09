@@ -15,7 +15,6 @@ func (n *EvalInitProvisioner) Args() ([]EvalNode, []EvalType) {
 	return nil, nil
 }
 
-// TODO: test
 func (n *EvalInitProvisioner) Eval(
 	ctx EvalContext, args []interface{}) (interface{}, error) {
 	return ctx.InitProvisioner(n.Name)
@@ -35,7 +34,6 @@ func (n *EvalGetProvisioner) Args() ([]EvalNode, []EvalType) {
 	return nil, nil
 }
 
-// TODO: test
 func (n *EvalGetProvisioner) Eval(
 	ctx EvalContext, args []interface{}) (interface{}, error) {
 	result := ctx.Provisioner(n.Name)
