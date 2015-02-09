@@ -92,10 +92,19 @@ func (ctx *BuiltinEvalContext) init() {
 	}
 }
 
+// pathCacheKey returns a cache key for the current module path, unique to
+// the module path.
+//
+// This is used because there is a variety of information that needs to be
+// cached per-path, rather than per-context.
 func (ctx *BuiltinEvalContext) pathCacheKey() string {
+	// There is probably a better way to do this, but this is working for now.
+	// We just create an MD5 hash of all the MD5 hashes of all the path
+	// elements. This gets us the property that it is unique per ordering.
 	hash := md5.New()
 	for _, p := range ctx.Path() {
-		if _, err := hash.Write([]byte(p)); err != nil {
+		single := md5.Sum([]byte(p))
+		if _, err := hash.Write(single[:]); err != nil {
 			panic(err)
 		}
 	}
