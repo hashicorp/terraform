@@ -224,7 +224,7 @@ func resourceComputeInstanceV2Create(d *schema.ResourceData, meta interface{}) e
 			server.ID, err)
 	}
 	floatingIP := d.Get("floating_ip").(string)
-	if len(floatingIP) > 0 {
+	if floatingIP != "" {
 		networkingClient, err := config.networkingV2Client(d.Get("region").(string))
 		if err != nil {
 			return fmt.Errorf("Error creating OpenStack compute client: %s", err)
@@ -401,7 +401,7 @@ func resourceComputeInstanceV2Update(d *schema.ResourceData, meta interface{}) e
 
 	if d.HasChange("floating_ip") {
 		floatingIP := d.Get("floating_ip").(string)
-		if len(floatingIP) > 0 {
+		if floatingIP != "" {
 			networkingClient, err := config.networkingV2Client(d.Get("region").(string))
 			if err != nil {
 				return fmt.Errorf("Error creating OpenStack compute client: %s", err)
