@@ -52,6 +52,9 @@ type BuiltinGraphBuilder struct {
 
 	// Providers is the list of providers supported.
 	Providers []string
+
+	// Provisioners is the list of provisioners supported.
+	Provisioners []string
 }
 
 // Build builds the graph according to the steps returned by Steps.
@@ -78,6 +81,9 @@ func (b *BuiltinGraphBuilder) Steps() []GraphTransformer {
 		&PruneProviderTransformer{},
 
 		// Provisioner-related transformations
+		&MissingProvisionerTransformer{Provisioners: b.Provisioners},
+		&ProvisionerTransformer{},
+		&PruneProvisionerTransformer{},
 
 		// Run our vertex-level transforms
 		&VertexTransformer{

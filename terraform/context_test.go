@@ -243,6 +243,31 @@ func TestContext2Validate_providerConfig_good(t *testing.T) {
 	}
 }
 
+func TestContext2Validate_provisionerConfig_bad(t *testing.T) {
+	m := testModule(t, "validate-bad-prov-conf")
+	p := testProvider("aws")
+	pr := testProvisioner()
+	c := testContext2(t, &ContextOpts{
+		Module: m,
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+		Provisioners: map[string]ResourceProvisionerFactory{
+			"shell": testProvisionerFuncFixed(pr),
+		},
+	})
+
+	pr.ValidateReturnErrors = []error{fmt.Errorf("bad")}
+
+	w, e := c.Validate()
+	if len(w) > 0 {
+		t.Fatalf("bad: %#v", w)
+	}
+	if len(e) == 0 {
+		t.Fatalf("bad: %#v", e)
+	}
+}
+
 func TestContext2Validate_requiredVar(t *testing.T) {
 	m := testModule(t, "validate-required-var")
 	p := testProvider("aws")
@@ -508,31 +533,6 @@ func TestContextValidate_tainted(t *testing.T) {
 		t.Fatalf("bad: %#v", w)
 	}
 	if len(e) > 0 {
-		t.Fatalf("bad: %#v", e)
-	}
-}
-
-func TestContextValidate_provisionerConfig_bad(t *testing.T) {
-	m := testModule(t, "validate-bad-prov-conf")
-	p := testProvider("aws")
-	pr := testProvisioner()
-	c := testContext(t, &ContextOpts{
-		Module: m,
-		Providers: map[string]ResourceProviderFactory{
-			"aws": testProviderFuncFixed(p),
-		},
-		Provisioners: map[string]ResourceProvisionerFactory{
-			"shell": testProvisionerFuncFixed(pr),
-		},
-	})
-
-	pr.ValidateReturnErrors = []error{fmt.Errorf("bad")}
-
-	w, e := c.Validate()
-	if len(w) > 0 {
-		t.Fatalf("bad: %#v", w)
-	}
-	if len(e) == 0 {
 		t.Fatalf("bad: %#v", e)
 	}
 }

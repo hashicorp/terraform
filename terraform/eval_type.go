@@ -12,8 +12,9 @@ package terraform
 type EvalType uint32
 
 const (
-	EvalTypeInvalid          EvalType = 0
-	EvalTypeNull             EvalType = 1 << iota // nil
-	EvalTypeConfig                                // *ResourceConfig
-	EvalTypeResourceProvider                      // ResourceProvider
+	EvalTypeInvalid             EvalType = 0
+	EvalTypeNull                EvalType = 1 << iota // nil
+	EvalTypeConfig                                   // *ResourceConfig
+	EvalTypeResourceProvider                         // ResourceProvider
+	EvalTypeResourceProvisioner                      // ResourceProvisioner
 )

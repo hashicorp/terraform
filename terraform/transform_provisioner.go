@@ -104,8 +104,7 @@ func (n *graphNodeMissingProvisioner) Name() string {
 
 // GraphNodeEvalable impl.
 func (n *graphNodeMissingProvisioner) EvalTree() EvalNode {
-	return nil
-	//return ProvisionerEvalTree(n.ProvisionerNameValue, nil)
+	return &EvalInitProvisioner{Name: n.ProvisionerNameValue}
 }
 
 func (n *graphNodeMissingProvisioner) ProvisionerName() string {
