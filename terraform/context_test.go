@@ -262,6 +262,27 @@ func TestContext2Validate_requiredVar(t *testing.T) {
 	}
 }
 
+func TestContext2Validate_resourceConfig_bad(t *testing.T) {
+	m := testModule(t, "validate-bad-rc")
+	p := testProvider("aws")
+	c := testContext2(t, &ContextOpts{
+		Module: m,
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+	})
+
+	p.ValidateResourceReturnErrors = []error{fmt.Errorf("bad")}
+
+	w, e := c.Validate()
+	if len(w) > 0 {
+		t.Fatalf("bad: %#v", w)
+	}
+	if len(e) == 0 {
+		t.Fatalf("bad: %s", e)
+	}
+}
+
 func TestContext2Validate_selfRef(t *testing.T) {
 	p := testProvider("aws")
 	m := testModule(t, "validate-self-ref")
@@ -402,27 +423,6 @@ func TestContextValidate_tainted(t *testing.T) {
 		t.Fatalf("bad: %#v", w)
 	}
 	if len(e) > 0 {
-		t.Fatalf("bad: %#v", e)
-	}
-}
-
-func TestContextValidate_resourceConfig_bad(t *testing.T) {
-	m := testModule(t, "validate-bad-rc")
-	p := testProvider("aws")
-	c := testContext(t, &ContextOpts{
-		Module: m,
-		Providers: map[string]ResourceProviderFactory{
-			"aws": testProviderFuncFixed(p),
-		},
-	})
-
-	p.ValidateResourceReturnErrors = []error{fmt.Errorf("bad")}
-
-	w, e := c.Validate()
-	if len(w) > 0 {
-		t.Fatalf("bad: %#v", w)
-	}
-	if len(e) == 0 {
 		t.Fatalf("bad: %#v", e)
 	}
 }
