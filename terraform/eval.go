@@ -1,5 +1,9 @@
 package terraform
 
+import (
+	"log"
+)
+
 // EvalNode is the interface that must be implemented by graph nodes to
 // evaluate/execute.
 type EvalNode interface {
@@ -37,5 +41,11 @@ func Eval(n EvalNode, ctx EvalContext) (interface{}, error) {
 		args[i] = v
 	}
 
-	return n.Eval(ctx, args)
+	log.Printf("[DEBUG] eval: %T", n)
+	output, err := n.Eval(ctx, args)
+	if err != nil {
+		log.Printf("[ERROR] eval: %T, err: %s", n, err)
+	}
+
+	return output, err
 }

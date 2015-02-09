@@ -22,13 +22,20 @@ type ContextGraphWalker struct {
 	ValidationWarnings []string
 	ValidationErrors   []error
 
-	errorLock sync.Mutex
+	errorLock     sync.Mutex
+	once          sync.Once
+	providerCache map[string]ResourceProvider
+	providerLock  sync.Mutex
 }
 
 func (w *ContextGraphWalker) EnterGraph(g *Graph) EvalContext {
+	w.once.Do(w.init)
+
 	return &BuiltinEvalContext{
-		PathValue: g.Path,
-		Providers: w.Context.providers,
+		PathValue:     g.Path,
+		Providers:     w.Context.providers,
+		ProviderCache: w.providerCache,
+		ProviderLock:  &w.providerLock,
 		Interpolater: &Interpolater{
 			Operation: w.Operation,
 			Module:    w.Context.module,
@@ -61,4 +68,8 @@ func (w *ContextGraphWalker) ExitEvalTree(
 	// Record the validation error
 	w.ValidationWarnings = append(w.ValidationWarnings, verr.Warnings...)
 	w.ValidationErrors = append(w.ValidationErrors, verr.Errors...)
+}
+
+func (w *ContextGraphWalker) init() {
+	w.providerCache = make(map[string]ResourceProvider, 5)
 }

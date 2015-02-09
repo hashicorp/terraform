@@ -2,6 +2,7 @@ package terraform
 
 import (
 	"fmt"
+	"log"
 	"sync"
 
 	"github.com/hashicorp/terraform/dag"
@@ -134,6 +135,8 @@ func (g *Graph) walk(walker GraphWalker) error {
 	// Walk the graph.
 	var walkFn dag.WalkFunc
 	walkFn = func(v dag.Vertex) (rerr error) {
+		log.Printf("[DEBUG] vertex %s: walking", dag.VertexName(v))
+
 		walker.EnterVertex(v)
 		defer func() { walker.ExitVertex(v, rerr) }()
 
@@ -147,6 +150,7 @@ func (g *Graph) walk(walker GraphWalker) error {
 
 			// Allow the walker to change our tree if needed. Eval,
 			// then callback with the output.
+			log.Printf("[DEBUG] vertex %s: evaluating", dag.VertexName(v))
 			tree = walker.EnterEvalTree(v, tree)
 			output, err := Eval(tree, ctx)
 			walker.ExitEvalTree(v, output, err)
@@ -154,6 +158,9 @@ func (g *Graph) walk(walker GraphWalker) error {
 
 		// If the node is dynamically expanded, then expand it
 		if ev, ok := v.(GraphNodeDynamicExpandable); ok {
+			log.Printf(
+				"[DEBUG] vertex %s: expanding dynamic subgraph",
+				dag.VertexName(v))
 			g, err := ev.DynamicExpand(ctx)
 			if err != nil {
 				rerr = err
