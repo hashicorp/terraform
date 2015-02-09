@@ -63,6 +63,44 @@ func TestContext2Validate_countNegative(t *testing.T) {
 	}
 }
 
+func TestContext2Validate_countVariable(t *testing.T) {
+	p := testProvider("aws")
+	m := testModule(t, "apply-count-variable")
+	c := testContext2(t, &ContextOpts{
+		Module: m,
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+	})
+
+	w, e := c.Validate()
+	if len(w) > 0 {
+		t.Fatalf("bad: %#v", w)
+	}
+	if len(e) > 0 {
+		t.Fatalf("bad: %s", e)
+	}
+}
+
+func TestContext2Validate_countVariableNoDefault(t *testing.T) {
+	p := testProvider("aws")
+	m := testModule(t, "validate-count-variable")
+	c := testContext2(t, &ContextOpts{
+		Module: m,
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+	})
+
+	w, e := c.Validate()
+	if len(w) > 0 {
+		t.Fatalf("bad: %#v", w)
+	}
+	if len(e) != 1 {
+		t.Fatalf("bad: %s", e)
+	}
+}
+
 func TestContext2Validate_moduleBadOutput(t *testing.T) {
 	p := testProvider("aws")
 	m := testModule(t, "validate-bad-module-output")
@@ -282,50 +320,6 @@ func TestContext2Validate_selfRefMultiAll(t *testing.T) {
 }
 
 /*
-func TestContextValidate_countVariable(t *testing.T) {
-	p := testProvider("aws")
-	m := testModule(t, "apply-count-variable")
-	c := testContext(t, &ContextOpts{
-		Module: m,
-		Providers: map[string]ResourceProviderFactory{
-			"aws": testProviderFuncFixed(p),
-		},
-	})
-
-	w, e := c.Validate()
-	if len(w) > 0 {
-		t.Fatalf("bad: %#v", w)
-	}
-	if len(e) > 0 {
-		for _, err := range e {
-			t.Errorf("bad: %s", err)
-		}
-		t.FailNow()
-	}
-}
-
-func TestContextValidate_countVariableNoDefault(t *testing.T) {
-	p := testProvider("aws")
-	m := testModule(t, "validate-count-variable")
-	c := testContext(t, &ContextOpts{
-		Module: m,
-		Providers: map[string]ResourceProviderFactory{
-			"aws": testProviderFuncFixed(p),
-		},
-	})
-
-	w, e := c.Validate()
-	if len(w) > 0 {
-		t.Fatalf("bad: %#v", w)
-	}
-	if len(e) > 1 {
-		for _, err := range e {
-			t.Errorf("bad: %s", err)
-		}
-		t.FailNow()
-	}
-}
-
 func TestContextValidate_moduleBadResource(t *testing.T) {
 	m := testModule(t, "validate-module-bad-rc")
 	p := testProvider("aws")
