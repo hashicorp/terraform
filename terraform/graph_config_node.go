@@ -147,3 +147,13 @@ func (n *GraphNodeConfigResource) EvalTree() EvalNode {
 func (n *GraphNodeConfigResource) ProvidedBy() string {
 	return resourceProvider(n.Resource.Type)
 }
+
+// GraphNodeProvisionerConsumer
+func (n *GraphNodeConfigResource) ProvisionedBy() []string {
+	result := make([]string, len(n.Resource.Provisioners))
+	for i, p := range n.Resource.Provisioners {
+		result[i] = p.Type
+	}
+
+	return result
+}
