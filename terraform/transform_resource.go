@@ -78,14 +78,23 @@ func (n *graphNodeExpandedResource) ProvidedBy() string {
 
 // GraphNodeEvalable impl.
 func (n *graphNodeExpandedResource) EvalTree() EvalNode {
-	return &EvalSequence{
-		Nodes: []EvalNode{
-			&EvalValidateResource{
-				Provider:     &EvalGetProvider{Name: n.ProvidedBy()},
-				Config:       &EvalInterpolate{Config: n.Resource.RawConfig},
-				ResourceName: n.Resource.Name,
-				ResourceType: n.Resource.Type,
-			},
-		},
+	seq := &EvalSequence{Nodes: make([]EvalNode, 0, 5)}
+
+	// Validate the resource
+	seq.Nodes = append(seq.Nodes, &EvalValidateResource{
+		Provider:     &EvalGetProvider{Name: n.ProvidedBy()},
+		Config:       &EvalInterpolate{Config: n.Resource.RawConfig},
+		ResourceName: n.Resource.Name,
+		ResourceType: n.Resource.Type,
+	})
+
+	// Validate all the provisioners
+	for _, p := range n.Resource.Provisioners {
+		seq.Nodes = append(seq.Nodes, &EvalValidateProvisioner{
+			Provisioner: &EvalGetProvisioner{Name: p.Type},
+			Config:      &EvalInterpolate{Config: p.RawConfig},
+		})
 	}
+
+	return seq
 }

@@ -91,6 +91,37 @@ func (n *EvalValidateProvider) Type() EvalType {
 	return EvalTypeNull
 }
 
+// EvalValidateProvisioner is an EvalNode implementation that validates
+// the configuration of a resource.
+type EvalValidateProvisioner struct {
+	Provisioner EvalNode
+	Config      EvalNode
+}
+
+func (n *EvalValidateProvisioner) Args() ([]EvalNode, []EvalType) {
+	return []EvalNode{n.Provisioner, n.Config},
+		[]EvalType{EvalTypeResourceProvisioner, EvalTypeConfig}
+}
+
+func (n *EvalValidateProvisioner) Eval(
+	ctx EvalContext, args []interface{}) (interface{}, error) {
+	provider := args[0].(ResourceProvisioner)
+	config := args[1].(*ResourceConfig)
+	warns, errs := provider.Validate(config)
+	if len(warns) == 0 && len(errs) == 0 {
+		return nil, nil
+	}
+
+	return nil, &EvalValidateError{
+		Warnings: warns,
+		Errors:   errs,
+	}
+}
+
+func (n *EvalValidateProvisioner) Type() EvalType {
+	return EvalTypeNull
+}
+
 // EvalValidateResource is an EvalNode implementation that validates
 // the configuration of a resource.
 type EvalValidateResource struct {
