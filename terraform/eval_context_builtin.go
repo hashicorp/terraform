@@ -12,11 +12,14 @@ import (
 // BuiltinEvalContext is an EvalContext implementation that is used by
 // Terraform by default.
 type BuiltinEvalContext struct {
-	PathValue     []string
-	Interpolater  *Interpolater
-	Providers     map[string]ResourceProviderFactory
-	ProviderCache map[string]ResourceProvider
-	ProviderLock  *sync.Mutex
+	PathValue        []string
+	Interpolater     *Interpolater
+	Providers        map[string]ResourceProviderFactory
+	ProviderCache    map[string]ResourceProvider
+	ProviderLock     *sync.Mutex
+	Provisioners     map[string]ResourceProvisionerFactory
+	ProvisionerCache map[string]ResourceProvisioner
+	ProvisionerLock  *sync.Mutex
 
 	once sync.Once
 }
@@ -55,6 +58,43 @@ func (ctx *BuiltinEvalContext) Provider(n string) ResourceProvider {
 	defer ctx.ProviderLock.Unlock()
 
 	return ctx.ProviderCache[ctx.pathCacheKey()]
+}
+
+func (ctx *BuiltinEvalContext) InitProvisioner(
+	n string) (ResourceProvisioner, error) {
+	ctx.once.Do(ctx.init)
+
+	// If we already initialized, it is an error
+	if p := ctx.Provisioner(n); p != nil {
+		return nil, fmt.Errorf("Provisioner '%s' already initialized", n)
+	}
+
+	// Warning: make sure to acquire these locks AFTER the call to Provisioner
+	// above, since it also acquires locks.
+	ctx.ProvisionerLock.Lock()
+	defer ctx.ProvisionerLock.Unlock()
+
+	f, ok := ctx.Provisioners[n]
+	if !ok {
+		return nil, fmt.Errorf("Provisioner '%s' not found", n)
+	}
+
+	p, err := f()
+	if err != nil {
+		return nil, err
+	}
+
+	ctx.ProvisionerCache[ctx.pathCacheKey()] = p
+	return p, nil
+}
+
+func (ctx *BuiltinEvalContext) Provisioner(n string) ResourceProvisioner {
+	ctx.once.Do(ctx.init)
+
+	ctx.ProvisionerLock.Lock()
+	defer ctx.ProvisionerLock.Unlock()
+
+	return ctx.ProvisionerCache[ctx.pathCacheKey()]
 }
 
 func (ctx *BuiltinEvalContext) Interpolate(

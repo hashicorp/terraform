@@ -26,11 +26,12 @@ type ContextOpts struct {
 // perform operations on infrastructure. This structure is built using
 // NewContext. See the documentation for that.
 type Context2 struct {
-	module    *module.Tree
-	providers map[string]ResourceProviderFactory
-	state     *State
-	stateLock sync.RWMutex
-	variables map[string]string
+	module       *module.Tree
+	providers    map[string]ResourceProviderFactory
+	provisioners map[string]ResourceProvisionerFactory
+	state        *State
+	stateLock    sync.RWMutex
+	variables    map[string]string
 }
 
 // NewContext creates a new Context structure.
@@ -40,10 +41,11 @@ type Context2 struct {
 // the values themselves.
 func NewContext2(opts *ContextOpts) *Context2 {
 	return &Context2{
-		module:    opts.Module,
-		providers: opts.Providers,
-		state:     opts.State,
-		variables: opts.Variables,
+		module:       opts.Module,
+		providers:    opts.Providers,
+		provisioners: opts.Provisioners,
+		state:        opts.State,
+		variables:    opts.Variables,
 	}
 }
 
@@ -56,10 +58,16 @@ func (c *Context2) GraphBuilder() GraphBuilder {
 		providers = append(providers, k)
 	}
 
+	provisioners := make([]string, 0, len(c.provisioners))
+	for k, _ := range c.provisioners {
+		provisioners = append(provisioners, k)
+	}
+
 	return &BuiltinGraphBuilder{
-		Root:      c.module,
-		Providers: providers,
-		State:     c.state,
+		Root:         c.module,
+		Providers:    providers,
+		Provisioners: provisioners,
+		State:        c.state,
 	}
 }
 
