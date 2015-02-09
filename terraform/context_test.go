@@ -302,6 +302,25 @@ func TestContext2Validate_resourceConfig_good(t *testing.T) {
 	}
 }
 
+func TestContext2Validate_resourceNameSymbol(t *testing.T) {
+	p := testProvider("aws")
+	m := testModule(t, "validate-resource-name-symbol")
+	c := testContext2(t, &ContextOpts{
+		Module: m,
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+	})
+
+	w, e := c.Validate()
+	if len(w) == 0 {
+		t.Fatalf("bad: %#v", w)
+	}
+	if len(e) > 0 {
+		t.Fatalf("bad: %s", e)
+	}
+}
+
 func TestContext2Validate_selfRef(t *testing.T) {
 	p := testProvider("aws")
 	m := testModule(t, "validate-self-ref")
@@ -439,25 +458,6 @@ func TestContextValidate_tainted(t *testing.T) {
 
 	w, e := c.Validate()
 	if len(w) > 0 {
-		t.Fatalf("bad: %#v", w)
-	}
-	if len(e) > 0 {
-		t.Fatalf("bad: %#v", e)
-	}
-}
-
-func TestContextValidate_resourceNameSymbol(t *testing.T) {
-	p := testProvider("aws")
-	m := testModule(t, "validate-resource-name-symbol")
-	c := testContext(t, &ContextOpts{
-		Module: m,
-		Providers: map[string]ResourceProviderFactory{
-			"aws": testProviderFuncFixed(p),
-		},
-	})
-
-	w, e := c.Validate()
-	if len(w) == 0 {
 		t.Fatalf("bad: %#v", w)
 	}
 	if len(e) > 0 {
