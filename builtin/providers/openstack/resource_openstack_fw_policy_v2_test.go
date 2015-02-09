@@ -117,6 +117,9 @@ func testAccCheckFirewallPolicyExists(n string, expected *policies.Policy) resou
 		}
 
 		expected.ID = found.ID
+		// Erase the tenant id because we don't want to compare
+		// it as long it is not present in the expected
+		found.TenantID = ""
 
 		if !reflect.DeepEqual(expected, found) {
 			return fmt.Errorf("Expected:\n%#v\nFound:\n%#v", expected, found)
