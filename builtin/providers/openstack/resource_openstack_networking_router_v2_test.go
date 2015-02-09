@@ -88,17 +88,13 @@ func testAccCheckNetworkingV2RouterExists(t *testing.T, n string, router *router
 }
 
 var testAccNetworkingV2Router_basic = fmt.Sprintf(`
-	resource "openstack_networking_router_v2" "foo" {
-	    name = "router"
-	    region = "%s"
-	    admin_state_up = "true"
-	}`,
-	OS_REGION_NAME)
+  resource "openstack_networking_router_v2" "foo" {
+    name = "router"
+    admin_state_up = "true"
+  }`)
 
 var testAccNetworkingV2Router_update = fmt.Sprintf(`
-		resource "openstack_networking_router_v2" "foo" {
-			region = "%s"
-			name = "router_2"
-			admin_state_up = "true"
-			}`,
-	OS_REGION_NAME)
+  resource "openstack_networking_router_v2" "foo" {
+    name = "router_2"
+    admin_state_up = "true"
+  }`)
