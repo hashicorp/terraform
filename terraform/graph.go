@@ -115,10 +115,6 @@ func (g *Graph) Dependable(n string) dag.Vertex {
 // Walk walks the graph with the given walker for callbacks. The graph
 // will be walked with full parallelism, so the walker should expect
 // to be called in concurrently.
-//
-// There is no way to tell the walker to halt the walk. If you want to
-// halt the walk, you should set a flag in your GraphWalker to ignore
-// future callbacks.
 func (g *Graph) Walk(walker GraphWalker) {
 	// TODO: test
 	g.walk(walker)
@@ -130,15 +126,16 @@ func (g *Graph) init() {
 	}
 }
 
-func (g *Graph) walk(walker GraphWalker) {
+func (g *Graph) walk(walker GraphWalker) error {
 	// The callbacks for enter/exiting a graph
 	ctx := walker.EnterGraph(g)
 	defer walker.ExitGraph(g)
 
 	// Walk the graph.
-	var walkFn func(v dag.Vertex)
-	walkFn = func(v dag.Vertex) {
+	var walkFn dag.WalkFunc
+	walkFn = func(v dag.Vertex) (rerr error) {
 		walker.EnterVertex(v)
+		defer func() { walker.ExitVertex(v, rerr) }()
 
 		// If the node is eval-able, then evaluate it.
 		if ev, ok := v.(GraphNodeEvalable); ok {
@@ -159,19 +156,20 @@ func (g *Graph) walk(walker GraphWalker) {
 		if ev, ok := v.(GraphNodeDynamicExpandable); ok {
 			g, err := ev.DynamicExpand(ctx)
 			if err != nil {
-				walker.ExitVertex(v, err)
+				rerr = err
 				return
 			}
 
 			// Walk the subgraph
-			g.walk(walker)
+			if rerr = g.walk(walker); rerr != nil {
+				return
+			}
 		}
 
-		// Exit the vertex
-		walker.ExitVertex(v, nil)
+		return nil
 	}
 
-	g.AcyclicGraph.Walk(walkFn)
+	return g.AcyclicGraph.Walk(walkFn)
 }
 
 // GraphNodeDependable is an interface which says that a node can be
