@@ -67,19 +67,29 @@ func (b *BuiltinGraphBuilder) Build(path []string) (*Graph, error) {
 // to build a complete graph.
 func (b *BuiltinGraphBuilder) Steps() []GraphTransformer {
 	return []GraphTransformer{
+		// Create all our resources from the configuration and state
 		&ConfigTransformer{Module: b.Root},
 		&OrphanTransformer{State: b.State, Module: b.Root},
 		&TaintedTransformer{State: b.State},
+
+		// Provider-related transformations
 		&MissingProviderTransformer{Providers: b.Providers},
 		&ProviderTransformer{},
 		&PruneProviderTransformer{},
+
+		// Provisioner-related transformations
+
+		// Run our vertex-level transforms
 		&VertexTransformer{
 			Transforms: []GraphVertexTransformer{
+				// Expand any statically expanded nodes, such as module graphs
 				&ExpandTransform{
 					Builder: b,
 				},
 			},
 		},
+
+		// Make sure we create one root
 		&RootTransformer{},
 	}
 }
