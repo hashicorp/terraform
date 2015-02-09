@@ -1,6 +1,7 @@
 package terraform
 
 import (
+	"reflect"
 	"strings"
 	"testing"
 
@@ -62,6 +63,7 @@ func TestGraphNodeConfigResource_impl(t *testing.T) {
 	var _ dag.NamedVertex = new(GraphNodeConfigResource)
 	var _ graphNodeConfig = new(GraphNodeConfigResource)
 	var _ GraphNodeProviderConsumer = new(GraphNodeConfigResource)
+	var _ GraphNodeProvisionerConsumer = new(GraphNodeConfigResource)
 }
 
 func TestGraphNodeConfigResource_ProvidedBy(t *testing.T) {
@@ -71,6 +73,24 @@ func TestGraphNodeConfigResource_ProvidedBy(t *testing.T) {
 
 	if v := n.ProvidedBy(); v != "aws" {
 		t.Fatalf("bad: %#v", v)
+	}
+}
+
+func TestGraphNodeConfigResource_ProvisionedBy(t *testing.T) {
+	n := &GraphNodeConfigResource{
+		Resource: &config.Resource{
+			Type: "aws_instance",
+			Provisioners: []*config.Provisioner{
+				&config.Provisioner{Type: "foo"},
+				&config.Provisioner{Type: "bar"},
+			},
+		},
+	}
+
+	expected := []string{"foo", "bar"}
+	actual := n.ProvisionedBy()
+	if !reflect.DeepEqual(actual, expected) {
+		t.Fatalf("bad: %#v", actual)
 	}
 }
 
