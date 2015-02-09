@@ -136,6 +136,13 @@ func (n *GraphNodeConfigResource) DynamicExpand(ctx EvalContext) (*Graph, error)
 	return b.Build(ctx.Path())
 }
 
+// GraphNodeEvalable impl.
+func (n *GraphNodeConfigResource) EvalTree() EvalNode {
+	return &EvalValidateCount{
+		Resource: n.Resource,
+	}
+}
+
 // GraphNodeProviderConsumer
 func (n *GraphNodeConfigResource) ProvidedBy() string {
 	return resourceProvider(n.Resource.Type)
