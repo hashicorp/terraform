@@ -453,6 +453,48 @@ func TestContext2Validate_selfRefMultiAll(t *testing.T) {
 	}
 }
 
+func TestContext2Validate_tainted(t *testing.T) {
+	p := testProvider("aws")
+	m := testModule(t, "validate-good")
+	state := &State{
+		Modules: []*ModuleState{
+			&ModuleState{
+				Path: rootModulePath,
+				Resources: map[string]*ResourceState{
+					"aws_instance.foo": &ResourceState{
+						Type: "aws_instance",
+						Tainted: []*InstanceState{
+							&InstanceState{
+								ID: "bar",
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+	c := testContext2(t, &ContextOpts{
+		Module: m,
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+		State: state,
+	})
+
+	p.ValidateResourceFn = func(
+		t string, c *ResourceConfig) ([]string, []error) {
+		return nil, c.CheckSet([]string{"foo"})
+	}
+
+	w, e := c.Validate()
+	if len(w) > 0 {
+		t.Fatalf("bad: %#v", w)
+	}
+	if len(e) > 0 {
+		t.Fatalf("bad: %#v", e)
+	}
+}
+
 func TestContext2Validate_varRef(t *testing.T) {
 	m := testModule(t, "validate-variable-ref")
 	p := testProvider("aws")
@@ -513,48 +555,6 @@ func TestContextValidate_moduleProviderInherit(t *testing.T) {
 
 	p.ValidateFn = func(c *ResourceConfig) ([]string, []error) {
 		return nil, c.CheckSet([]string{"set"})
-	}
-
-	w, e := c.Validate()
-	if len(w) > 0 {
-		t.Fatalf("bad: %#v", w)
-	}
-	if len(e) > 0 {
-		t.Fatalf("bad: %#v", e)
-	}
-}
-
-func TestContextValidate_tainted(t *testing.T) {
-	p := testProvider("aws")
-	m := testModule(t, "validate-good")
-	state := &State{
-		Modules: []*ModuleState{
-			&ModuleState{
-				Path: rootModulePath,
-				Resources: map[string]*ResourceState{
-					"aws_instance.foo": &ResourceState{
-						Type: "aws_instance",
-						Tainted: []*InstanceState{
-							&InstanceState{
-								ID: "bar",
-							},
-						},
-					},
-				},
-			},
-		},
-	}
-	c := testContext(t, &ContextOpts{
-		Module: m,
-		Providers: map[string]ResourceProviderFactory{
-			"aws": testProviderFuncFixed(p),
-		},
-		State: state,
-	})
-
-	p.ValidateResourceFn = func(
-		t string, c *ResourceConfig) ([]string, []error) {
-		return nil, c.CheckSet([]string{"foo"})
 	}
 
 	w, e := c.Validate()
