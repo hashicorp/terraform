@@ -326,42 +326,78 @@ func resourceComputeInstanceV2Read(d *schema.ResourceData, meta interface{}) err
 	d.Set("access_ip_v4", server.AccessIPv4)
 	d.Set("access_ip_v6", server.AccessIPv6)
 
-	host := server.AccessIPv4
-	if host == "" {
+	hostv4 := server.AccessIPv4
+	if hostv4 == "" {
 		if publicAddressesRaw, ok := server.Addresses["public"]; ok {
 			publicAddresses := publicAddressesRaw.([]interface{})
 			for _, paRaw := range publicAddresses {
 				pa := paRaw.(map[string]interface{})
 				if pa["version"].(float64) == 4 {
-					host = pa["addr"].(string)
+					hostv4 = pa["addr"].(string)
 					break
 				}
 			}
 		}
 	}
 
-	// If no host found, just get the first IP we find
-	if host == "" {
+	// If no host found, just get the first IPv4 we find
+	if hostv4 == "" {
 		for _, networkAddresses := range server.Addresses {
 			for _, element := range networkAddresses.([]interface{}) {
 				address := element.(map[string]interface{})
 				if address["version"].(float64) == 4 {
-					host = address["addr"].(string)
+					hostv4 = address["addr"].(string)
 					break
 				}
 			}
 		}
 	}
-	d.Set("access_ip_v4", host)
-	d.Set("host", host)
+	d.Set("access_ip_v4", hostv4)
+	log.Printf("hostv4: %s", hostv4)
 
-	log.Printf("host: %s", host)
+	hostv6 := server.AccessIPv6
+	if hostv6 == "" {
+		if publicAddressesRaw, ok := server.Addresses["public"]; ok {
+			publicAddresses := publicAddressesRaw.([]interface{})
+			for _, paRaw := range publicAddresses {
+				pa := paRaw.(map[string]interface{})
+				if pa["version"].(float64) == 4 {
+					hostv6 = fmt.Sprintf("[%s]", pa["addr"].(string))
+					break
+				}
+			}
+		}
+	}
 
-	// Initialize the connection info
-	d.SetConnInfo(map[string]string{
-		"type": "ssh",
-		"host": host,
-	})
+	// If no hostv6 found, just get the first IPv6 we find
+	if hostv6 == "" {
+		for _, networkAddresses := range server.Addresses {
+			for _, element := range networkAddresses.([]interface{}) {
+				address := element.(map[string]interface{})
+				if address["version"].(float64) == 6 {
+					hostv6 = fmt.Sprintf("[%s]", address["addr"].(string))
+					break
+				}
+			}
+		}
+	}
+	d.Set("access_ip_v6", hostv6)
+	log.Printf("hostv6: %s", hostv6)
+
+	preferredv := ""
+	if hostv4 != "" {
+		preferredv = hostv4
+	} else if hostv6 != "" {
+		preferredv = hostv6
+	}
+
+	if preferredv != "" {
+		// Initialize the connection info
+		d.SetConnInfo(map[string]string{
+			"type": "ssh",
+			"host": preferredv,
+		})
+	}
 
 	d.Set("metadata", server.Metadata)
 
