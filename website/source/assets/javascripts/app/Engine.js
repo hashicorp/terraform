@@ -68,7 +68,10 @@ Engine = Base.extend({
 		this.background.className += ' show';
 		this.canvas.style.opacity = 1;
 
-		new Chainable()
+		// We have to pass the engine into Chainable to
+		// enable the timers to properly attach to the
+		// run/render loop
+		new Chainable(this)
 			.wait(1000)
 			.then(function(){
 				this.starGeneratorRate = 200;
@@ -201,6 +204,13 @@ Engine = Base.extend({
 
 		this.now = Date.now() / 1000;
 		this.tick = Math.min(this.now - this.last, 0.017);
+
+		// We must attach the chainable timer to the engine
+		// run/render loop or else things can get pretty
+		// out of wack
+		if (this.updateChainTimer) {
+			this.updateChainTimer(this.tick);
+		}
 
 		// Update all particles... may need to be optimized
 		for (p = 0; p < this.particles.length; p++) {

@@ -126,6 +126,7 @@ resource "google_compute_network" "foobar" {
 
 resource "google_compute_firewall" "foobar" {
 	name = "terraform-test"
+	description = "Resource created for Terraform acceptance testing"
 	network = "${google_compute_network.foobar.name}"
 	source_tags = ["foo"]
 
@@ -142,6 +143,7 @@ resource "google_compute_network" "foobar" {
 
 resource "google_compute_firewall" "foobar" {
 	name = "terraform-test"
+	description = "Resource created for Terraform acceptance testing"
 	network = "${google_compute_network.foobar.name}"
 	source_tags = ["foo"]
 
