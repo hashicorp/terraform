@@ -2,6 +2,7 @@ package terraform
 
 import (
 	"fmt"
+	"reflect"
 	"strings"
 	"testing"
 )
@@ -562,6 +563,58 @@ func TestContext2Validate_varRefFilled(t *testing.T) {
 	c.Validate()
 	if value != "bar" {
 		t.Fatalf("bad: %#v", value)
+	}
+}
+
+func TestContext2Refresh(t *testing.T) {
+	p := testProvider("aws")
+	m := testModule(t, "refresh-basic")
+	ctx := testContext2(t, &ContextOpts{
+		Module: m,
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+		State: &State{
+			Modules: []*ModuleState{
+				&ModuleState{
+					Path: rootModulePath,
+					Resources: map[string]*ResourceState{
+						"aws_instance.web": &ResourceState{
+							Type: "aws_instance",
+							Primary: &InstanceState{
+								ID: "foo",
+							},
+						},
+					},
+				},
+			},
+		},
+	})
+
+	p.RefreshFn = nil
+	p.RefreshReturn = &InstanceState{
+		ID: "foo",
+	}
+
+	s, err := ctx.Refresh()
+	mod := s.RootModule()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if !p.RefreshCalled {
+		t.Fatal("refresh should be called")
+	}
+	if p.RefreshState.ID != "foo" {
+		t.Fatalf("bad: %#v", p.RefreshState)
+	}
+	if !reflect.DeepEqual(mod.Resources["aws_instance.web"].Primary, p.RefreshReturn) {
+		t.Fatalf("bad: %#v %#v", mod.Resources["aws_instance.web"], p.RefreshReturn)
+	}
+
+	for _, r := range mod.Resources {
+		if r.Type == "" {
+			t.Fatalf("no type: %#v", r)
+		}
 	}
 }
 
@@ -4155,58 +4208,6 @@ func TestContextPlan_varListErr(t *testing.T) {
 	_, err := ctx.Plan(nil)
 	if err == nil {
 		t.Fatal("should error")
-	}
-}
-
-func TestContextRefresh(t *testing.T) {
-	p := testProvider("aws")
-	m := testModule(t, "refresh-basic")
-	ctx := testContext(t, &ContextOpts{
-		Module: m,
-		Providers: map[string]ResourceProviderFactory{
-			"aws": testProviderFuncFixed(p),
-		},
-		State: &State{
-			Modules: []*ModuleState{
-				&ModuleState{
-					Path: rootModulePath,
-					Resources: map[string]*ResourceState{
-						"aws_instance.web": &ResourceState{
-							Type: "aws_instance",
-							Primary: &InstanceState{
-								ID: "foo",
-							},
-						},
-					},
-				},
-			},
-		},
-	})
-
-	p.RefreshFn = nil
-	p.RefreshReturn = &InstanceState{
-		ID: "foo",
-	}
-
-	s, err := ctx.Refresh()
-	mod := s.RootModule()
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-	if !p.RefreshCalled {
-		t.Fatal("refresh should be called")
-	}
-	if p.RefreshState.ID != "foo" {
-		t.Fatalf("bad: %#v", p.RefreshState)
-	}
-	if !reflect.DeepEqual(mod.Resources["aws_instance.web"].Primary, p.RefreshReturn) {
-		t.Fatalf("bad: %#v %#v", mod.Resources["aws_instance.web"], p.RefreshReturn)
-	}
-
-	for _, r := range mod.Resources {
-		if r.Type == "" {
-			t.Fatalf("no type: %#v", r)
-		}
 	}
 }
 

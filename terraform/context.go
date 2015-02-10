@@ -71,6 +71,21 @@ func (c *Context2) GraphBuilder() GraphBuilder {
 	}
 }
 
+// Refresh goes through all the resources in the state and refreshes them
+// to their latest state. This will update the state that this context
+// works with, along with returning it.
+//
+// Even in the case an error is returned, the state will be returned and
+// will potentially be partially updated.
+func (c *Context2) Refresh() (*State, []error) {
+	if _, err := c.walk(walkRefresh); err != nil {
+		var errs error
+		return nil, multierror.Append(errs, err).Errors
+	}
+
+	return nil, nil
+}
+
 // Validate validates the configuration and returns any warnings or errors.
 func (c *Context2) Validate() ([]string, []error) {
 	var errs error
@@ -89,17 +104,25 @@ func (c *Context2) Validate() ([]string, []error) {
 		}
 	}
 
-	// Build the graph
-	graph, err := c.GraphBuilder().Build(RootModulePath)
+	// Walk
+	walker, err := c.walk(walkValidate)
 	if err != nil {
 		return nil, multierror.Append(errs, err).Errors
 	}
 
-	// Walk the graph
-	walker := &ContextGraphWalker{Context: c, Operation: walkValidate}
-	graph.Walk(walker)
-
 	// Return the result
 	rerrs := multierror.Append(errs, walker.ValidationErrors...)
 	return walker.ValidationWarnings, rerrs.Errors
+}
+
+func (c *Context2) walk(operation walkOperation) (*ContextGraphWalker, error) {
+	// Build the graph
+	graph, err := c.GraphBuilder().Build(RootModulePath)
+	if err != nil {
+		return nil, err
+	}
+
+	// Walk the graph
+	walker := &ContextGraphWalker{Context: c, Operation: operation}
+	return walker, graph.Walk(walker)
 }
