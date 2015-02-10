@@ -61,7 +61,7 @@ func (n *graphNodeExpandedResource) Name() string {
 func (n *graphNodeExpandedResource) DependableName() []string {
 	return []string{
 		n.Resource.Id(),
-		fmt.Sprintf("%s.%d", n.Resource.Id(), n.Index),
+		n.stateId(),
 	}
 }
 
@@ -97,4 +97,9 @@ func (n *graphNodeExpandedResource) EvalTree() EvalNode {
 	}
 
 	return seq
+}
+
+// stateId is the name used for the state key
+func (n *graphNodeExpandedResource) stateId() string {
+	return fmt.Sprintf("%s.%d", n.Resource.Id(), n.Index)
 }
