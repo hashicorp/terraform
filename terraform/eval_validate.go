@@ -14,7 +14,7 @@ type EvalValidateError struct {
 }
 
 func (e *EvalValidateError) Error() string {
-	return ""
+	return fmt.Sprintf("Warnings: %s. Errors: %s", e.Warnings, e.Errors)
 }
 
 // EvalValidateCount is an EvalNode implementation that validates
@@ -63,8 +63,9 @@ func (n *EvalValidateCount) Type() EvalType {
 // EvalValidateProvider is an EvalNode implementation that validates
 // the configuration of a resource.
 type EvalValidateProvider struct {
-	Provider EvalNode
-	Config   EvalNode
+	ProviderName string
+	Provider     EvalNode
+	Config       EvalNode
 }
 
 func (n *EvalValidateProvider) Args() ([]EvalNode, []EvalType) {
@@ -76,6 +77,13 @@ func (n *EvalValidateProvider) Eval(
 	ctx EvalContext, args []interface{}) (interface{}, error) {
 	provider := args[0].(ResourceProvider)
 	config := args[1].(*ResourceConfig)
+
+	// Get the parent configuration if there is one
+	if parent := ctx.ParentProviderConfig(n.ProviderName); parent != nil {
+		merged := parent.raw.Merge(config.raw)
+		config = NewResourceConfig(merged)
+	}
+
 	warns, errs := provider.Validate(config)
 	if len(warns) == 0 && len(errs) == 0 {
 		return nil, nil

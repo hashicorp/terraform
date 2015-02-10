@@ -71,7 +71,7 @@ func TestGraphNodeConfigResource_ProvidedBy(t *testing.T) {
 		Resource: &config.Resource{Type: "aws_instance"},
 	}
 
-	if v := n.ProvidedBy(); v != "aws" {
+	if v := n.ProvidedBy(); v[0] != "aws" {
 		t.Fatalf("bad: %#v", v)
 	}
 }

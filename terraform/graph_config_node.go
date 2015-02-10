@@ -52,6 +52,30 @@ func (n *GraphNodeConfigModule) Expand(b GraphBuilder) (*Graph, error) {
 	return b.Build(n.Path)
 }
 
+// GraphNodeExpandable
+func (n *GraphNodeConfigModule) ProvidedBy() []string {
+	// Build up the list of providers by simply going over our configuration
+	// to find the providers that are configured there as well as the
+	// providers that the resources use.
+	config := n.Tree.Config()
+	providers := make(map[string]struct{})
+	for _, p := range config.ProviderConfigs {
+		providers[p.Name] = struct{}{}
+	}
+	for _, r := range config.Resources {
+		providers[resourceProvider(r.Type)] = struct{}{}
+	}
+
+	// Turn the map into a string. This makes sure that the list is
+	// de-dupped since we could be going over potentially many resources.
+	result := make([]string, 0, len(providers))
+	for p, _ := range providers {
+		result = append(result, p)
+	}
+
+	return result
+}
+
 // GraphNodeConfigProvider represents a configured provider within the
 // configuration graph. These are only immediately in the graph when an
 // explicit `provider` configuration block is in the configuration.
@@ -144,8 +168,8 @@ func (n *GraphNodeConfigResource) EvalTree() EvalNode {
 }
 
 // GraphNodeProviderConsumer
-func (n *GraphNodeConfigResource) ProvidedBy() string {
-	return resourceProvider(n.Resource.Type)
+func (n *GraphNodeConfigResource) ProvidedBy() []string {
+	return []string{resourceProvider(n.Resource.Type)}
 }
 
 // GraphNodeProvisionerConsumer
