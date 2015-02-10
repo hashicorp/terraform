@@ -86,6 +86,11 @@ func resourceComputeFirewall() *schema.Resource {
 					return hashcode.String(v.(string))
 				},
 			},
+
+			"self_link": &schema.Schema{
+				Type:     schema.TypeString,
+				Computed: true,
+			},
 		},
 	}
 }
@@ -159,7 +164,7 @@ func resourceComputeFirewallCreate(d *schema.ResourceData, meta interface{}) err
 func resourceComputeFirewallRead(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
 
-	_, err := config.clientCompute.Firewalls.Get(
+	firewall, err := config.clientCompute.Firewalls.Get(
 		config.Project, d.Id()).Do()
 	if err != nil {
 		if gerr, ok := err.(*googleapi.Error); ok && gerr.Code == 404 {
@@ -171,6 +176,8 @@ func resourceComputeFirewallRead(d *schema.ResourceData, meta interface{}) error
 
 		return fmt.Errorf("Error reading firewall: %s", err)
 	}
+
+	d.Set("self_link", firewall.SelfLink)
 
 	return nil
 }
