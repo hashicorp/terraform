@@ -13,6 +13,7 @@ import (
 	"github.com/rackspace/gophercloud/openstack/compute/v2/extensions/bootfromvolume"
 	"github.com/rackspace/gophercloud/openstack/compute/v2/extensions/keypairs"
 	"github.com/rackspace/gophercloud/openstack/compute/v2/extensions/secgroups"
+	"github.com/rackspace/gophercloud/openstack/compute/v2/images"
 	"github.com/rackspace/gophercloud/openstack/compute/v2/servers"
 	"github.com/rackspace/gophercloud/openstack/networking/v2/extensions/layer3/floatingips"
 	"github.com/rackspace/gophercloud/openstack/networking/v2/networks"
@@ -39,11 +40,17 @@ func resourceComputeInstanceV2() *schema.Resource {
 				Required: true,
 				ForceNew: false,
 			},
-			"image_ref": &schema.Schema{
+			"image_id": &schema.Schema{
 				Type:        schema.TypeString,
 				Optional:    true,
-				ForceNew:    false,
+				ForceNew:    true,
 				DefaultFunc: envDefaultFunc("OS_IMAGE_ID"),
+			},
+			"image_name": &schema.Schema{
+				Type:        schema.TypeString,
+				Optional:    true,
+				ForceNew:    true,
+				DefaultFunc: envDefaultFunc("OS_IMAGE_NAME"),
 			},
 			"flavor_ref": &schema.Schema{
 				Type:        schema.TypeString,
@@ -165,9 +172,14 @@ func resourceComputeInstanceV2Create(d *schema.ResourceData, meta interface{}) e
 
 	var createOpts servers.CreateOptsBuilder
 
+	imageId, err := getImageID(computeClient, d)
+	if err != nil {
+		return err
+	}
+
 	createOpts = &servers.CreateOpts{
 		Name:             d.Get("name").(string),
-		ImageRef:         d.Get("image_ref").(string),
+		ImageRef:         imageId,
 		FlavorRef:        d.Get("flavor_ref").(string),
 		SecurityGroups:   resourceInstanceSecGroupsV2(d),
 		AvailabilityZone: d.Get("availability_zone").(string),
@@ -658,4 +670,37 @@ func getFloatingIPs(networkingClient *gophercloud.ServiceClient) ([]floatingips.
 		return nil, err
 	}
 	return ips, nil
+}
+
+func getImageID(client *gophercloud.ServiceClient, d *schema.ResourceData) (string, error) {
+	imageID := d.Get("image_id").(string)
+	imageName := d.Get("image_name").(string)
+	if imageID == "" {
+		pager := images.ListDetail(client, nil)
+
+		pager.EachPage(func(page pagination.Page) (bool, error) {
+			imageList, err := images.ExtractImages(page)
+
+			if err != nil {
+				return false, err
+			}
+
+			for _, i := range imageList {
+				if i.Name == imageName {
+					imageID = i.ID
+				}
+			}
+			return true, nil
+		})
+
+		if imageID == "" {
+			return "", fmt.Errorf("Unable to find image: %v", imageName)
+		}
+	}
+
+	if imageID == "" && imageName == "" {
+		return "", fmt.Errorf("Neither an image ID nor an image name were able to be determined.")
+	}
+
+	return imageID, nil
 }
