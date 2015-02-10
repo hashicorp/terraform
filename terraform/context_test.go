@@ -139,6 +139,27 @@ func TestContext2Validate_moduleGood(t *testing.T) {
 	}
 }
 
+func TestContext2Validate_moduleBadResource(t *testing.T) {
+	m := testModule(t, "validate-module-bad-rc")
+	p := testProvider("aws")
+	c := testContext2(t, &ContextOpts{
+		Module: m,
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+	})
+
+	p.ValidateResourceReturnErrors = []error{fmt.Errorf("bad")}
+
+	w, e := c.Validate()
+	if len(w) > 0 {
+		t.Fatalf("bad: %#v", w)
+	}
+	if len(e) == 0 {
+		t.Fatalf("bad: %#v", e)
+	}
+}
+
 func TestContext2Validate_orphans(t *testing.T) {
 	p := testProvider("aws")
 	m := testModule(t, "validate-good")
@@ -480,27 +501,6 @@ func TestContext2Validate_varRefFilled(t *testing.T) {
 }
 
 /*
-func TestContextValidate_moduleBadResource(t *testing.T) {
-	m := testModule(t, "validate-module-bad-rc")
-	p := testProvider("aws")
-	c := testContext(t, &ContextOpts{
-		Module: m,
-		Providers: map[string]ResourceProviderFactory{
-			"aws": testProviderFuncFixed(p),
-		},
-	})
-
-	p.ValidateResourceReturnErrors = []error{fmt.Errorf("bad")}
-
-	w, e := c.Validate()
-	if len(w) > 0 {
-		t.Fatalf("bad: %#v", w)
-	}
-	if len(e) == 0 {
-		t.Fatalf("bad: %#v", e)
-	}
-}
-
 func TestContextValidate_moduleProviderInherit(t *testing.T) {
 	m := testModule(t, "validate-module-pc-inherit")
 	p := testProvider("aws")

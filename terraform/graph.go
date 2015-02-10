@@ -173,6 +173,17 @@ func (g *Graph) walk(walker GraphWalker) error {
 			}
 		}
 
+		// If the node has a subgraph, then walk the subgraph
+		if sn, ok := v.(GraphNodeSubgraph); ok {
+			log.Printf(
+				"[DEBUG] vertex %s: walking subgraph",
+				dag.VertexName(v))
+
+			if rerr = sn.Subgraph().walk(walker); rerr != nil {
+				return
+			}
+		}
+
 		return nil
 	}
 
