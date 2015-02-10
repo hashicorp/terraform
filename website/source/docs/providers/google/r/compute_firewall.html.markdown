@@ -37,6 +37,8 @@ The following arguments are supported:
 * `name` - (Required) A unique name for the resource, required by GCE.
     Changing this forces a new resource to be created.
 
+* `description` - (Optional) Textual description field.
+
 * `network` - (Required) The name of the network to attach this firewall to.
 
 * `allow` - (Required) Can be specified multiple times for each allow

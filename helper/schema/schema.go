@@ -11,8 +11,6 @@
 // A good starting point is to view the Provider structure.
 package schema
 
-//go:generate stringer -type=ValueType
-
 import (
 	"fmt"
 	"os"
@@ -24,47 +22,6 @@ import (
 	"github.com/hashicorp/terraform/terraform"
 	"github.com/mitchellh/mapstructure"
 )
-
-// ValueType is an enum of the type that can be represented by a schema.
-type ValueType int
-
-const (
-	TypeInvalid ValueType = iota
-	TypeBool
-	TypeInt
-	TypeFloat
-	TypeString
-	TypeList
-	TypeMap
-	TypeSet
-	typeObject
-)
-
-// Zero returns the zero value for a type.
-func (t ValueType) Zero() interface{} {
-	switch t {
-	case TypeInvalid:
-		return nil
-	case TypeBool:
-		return false
-	case TypeInt:
-		return 0
-	case TypeFloat:
-		return 0.0
-	case TypeString:
-		return ""
-	case TypeList:
-		return []interface{}{}
-	case TypeMap:
-		return map[string]interface{}{}
-	case TypeSet:
-		return nil
-	case typeObject:
-		return map[string]interface{}{}
-	default:
-		panic(fmt.Sprintf("unknown type %s", t))
-	}
-}
 
 // Schema is used to describe the structure of a value.
 //

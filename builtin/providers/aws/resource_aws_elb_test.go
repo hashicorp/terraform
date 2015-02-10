@@ -152,6 +152,31 @@ func TestAccAWSELB_HealthCheck(t *testing.T) {
 		},
 	})
 }
+
+func TestAccAWSELBUpdate_HealthCheck(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSELBDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccAWSELBConfigHealthCheck,
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr(
+						"aws_elb.bar", "health_check.3484319807.healthy_threshold", "5"),
+				),
+			},
+			resource.TestStep{
+				Config: testAccAWSELBConfigHealthCheck_update,
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr(
+						"aws_elb.bar", "health_check.2648756019.healthy_threshold", "10"),
+				),
+			},
+		},
+	})
+}
+
 func testAccCheckAWSELBDestroy(s *terraform.State) error {
 	conn := testAccProvider.Meta().(*AWSClient).elbconn
 
@@ -411,6 +436,28 @@ resource "aws_elb" "bar" {
 
   health_check {
     healthy_threshold = 5
+    unhealthy_threshold = 5
+    target = "HTTP:8000/"
+    interval = 60
+    timeout = 30
+  }
+}
+`
+
+const testAccAWSELBConfigHealthCheck_update = `
+resource "aws_elb" "bar" {
+  name = "foobar-terraform-test"
+  availability_zones = ["us-west-2a"]
+
+  listener {
+    instance_port = 8000
+    instance_protocol = "http"
+    lb_port = 80
+    lb_protocol = "http"
+  }
+
+  health_check {
+    healthy_threshold = 10
     unhealthy_threshold = 5
     target = "HTTP:8000/"
     interval = 60
