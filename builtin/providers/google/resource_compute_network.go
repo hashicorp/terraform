@@ -33,6 +33,11 @@ func resourceComputeNetwork() *schema.Resource {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
+
+			"self_link": &schema.Schema{
+				Type:     schema.TypeString,
+				Computed: true,
+			},
 		},
 	}
 }
@@ -98,6 +103,7 @@ func resourceComputeNetworkRead(d *schema.ResourceData, meta interface{}) error 
 	}
 
 	d.Set("gateway_ipv4", network.GatewayIPv4)
+	d.Set("self_link", network.SelfLink)
 
 	return nil
 }
