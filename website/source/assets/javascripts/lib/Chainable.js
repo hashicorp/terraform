@@ -1,11 +1,28 @@
 (function(){
 
-var Chainable = function(){
+var Chainable = function(engine){
+	this.engine = engine;
 	this._chain = [];
+	this._updateTimer = this._updateTimer.bind(this);
 	this._cycle = this._cycle.bind(this);
 };
 
 Chainable.prototype._running = false;
+
+Chainable.prototype._updateTimer = function(tick){
+	this._timer += tick;
+	if (this._timer >= this._timerMax) {
+		this.resetTimer();
+		this._cycle();
+	}
+};
+
+Chainable.prototype.resetTimer = function(){
+	this.engine.updateChainTimer = undefined;
+	this._timer = 0;
+	this._timerMax = 0;
+	return this;
+};
 
 Chainable.prototype.start = function(){
 	if (this._running || !this._chain.length) {
@@ -19,9 +36,8 @@ Chainable.prototype.reset = function(){
 	if (!this._running) {
 		return this;
 	}
-	clearTimeout(this._timer);
-	this._timer = null;
-	this._chain.length = 0;
+	this.resetTimer();
+	this._timer = 0;
 	this._running = false;
 	return this;
 };
@@ -40,8 +56,10 @@ Chainable.prototype._cycle = function(){
 		return this._cycle();
 	}
 	if (current.type === 'wait') {
-		clearTimeout(this._timer);
-		this._timer = setTimeout(this._cycle, current.time || 0);
+		this.resetTimer();
+		// Convert timer to seconds
+		this._timerMax = current.time / 1000;
+		this.engine.updateChainTimer = this._updateTimer;
 		current = null;
 	}
 

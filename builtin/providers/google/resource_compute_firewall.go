@@ -26,6 +26,11 @@ func resourceComputeFirewall() *schema.Resource {
 				ForceNew: true,
 			},
 
+			"description": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+			},
+
 			"network": &schema.Schema{
 				Type:     schema.TypeString,
 				Required: true,
@@ -306,6 +311,7 @@ func resourceFirewall(
 	// Build the firewall parameter
 	return &compute.Firewall{
 		Name:         d.Get("name").(string),
+		Description:  d.Get("description").(string),
 		Network:      network.SelfLink,
 		Allowed:      allowed,
 		SourceRanges: sourceRanges,
