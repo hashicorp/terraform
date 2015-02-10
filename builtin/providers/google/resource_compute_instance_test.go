@@ -10,6 +10,28 @@ import (
 	"github.com/hashicorp/terraform/terraform"
 )
 
+func TestAccComputeInstance_basic_deprecated_network(t *testing.T) {
+	var instance compute.Instance
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckComputeInstanceDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccComputeInstance_basic_deprecated_network,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckComputeInstanceExists(
+						"google_compute_instance.foobar", &instance),
+					testAccCheckComputeInstanceTag(&instance, "foo"),
+					testAccCheckComputeInstanceMetadata(&instance, "foo", "bar"),
+					testAccCheckComputeInstanceDisk(&instance, "terraform-test", true, true),
+				),
+			},
+		},
+	})
+}
+
 func TestAccComputeInstance_basic(t *testing.T) {
 	var instance compute.Instance
 
@@ -20,6 +42,50 @@ func TestAccComputeInstance_basic(t *testing.T) {
 		Steps: []resource.TestStep{
 			resource.TestStep{
 				Config: testAccComputeInstance_basic,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckComputeInstanceExists(
+						"google_compute_instance.foobar", &instance),
+					testAccCheckComputeInstanceTag(&instance, "foo"),
+					testAccCheckComputeInstanceMetadata(&instance, "foo", "bar"),
+					testAccCheckComputeInstanceDisk(&instance, "terraform-test", true, true),
+				),
+			},
+		},
+	})
+}
+
+func TestAccComputeInstance_basic2(t *testing.T) {
+	var instance compute.Instance
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckComputeInstanceDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccComputeInstance_basic2,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckComputeInstanceExists(
+						"google_compute_instance.foobar", &instance),
+					testAccCheckComputeInstanceTag(&instance, "foo"),
+					testAccCheckComputeInstanceMetadata(&instance, "foo", "bar"),
+					testAccCheckComputeInstanceDisk(&instance, "terraform-test", true, true),
+				),
+			},
+		},
+	})
+}
+
+func TestAccComputeInstance_basic3(t *testing.T) {
+	var instance compute.Instance
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckComputeInstanceDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccComputeInstance_basic3,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckComputeInstanceExists(
 						"google_compute_instance.foobar", &instance),
@@ -45,7 +111,7 @@ func TestAccComputeInstance_IP(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckComputeInstanceExists(
 						"google_compute_instance.foobar", &instance),
-					testAccCheckComputeInstanceNetwork(&instance),
+					testAccCheckComputeInstanceAccessConfigHasIP(&instance),
 				),
 			},
 		},
@@ -67,6 +133,35 @@ func TestAccComputeInstance_disks(t *testing.T) {
 						"google_compute_instance.foobar", &instance),
 					testAccCheckComputeInstanceDisk(&instance, "terraform-test", true, true),
 					testAccCheckComputeInstanceDisk(&instance, "terraform-test-disk", false, false),
+				),
+			},
+		},
+	})
+}
+
+func TestAccComputeInstance_update_deprecated_network(t *testing.T) {
+	var instance compute.Instance
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckComputeInstanceDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccComputeInstance_basic_deprecated_network,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckComputeInstanceExists(
+						"google_compute_instance.foobar", &instance),
+				),
+			},
+			resource.TestStep{
+				Config: testAccComputeInstance_update_deprecated_network,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckComputeInstanceExists(
+						"google_compute_instance.foobar", &instance),
+					testAccCheckComputeInstanceMetadata(
+						&instance, "bar", "baz"),
+					testAccCheckComputeInstanceTag(&instance, "baz"),
 				),
 			},
 		},
@@ -96,6 +191,7 @@ func TestAccComputeInstance_update(t *testing.T) {
 					testAccCheckComputeInstanceMetadata(
 						&instance, "bar", "baz"),
 					testAccCheckComputeInstanceTag(&instance, "baz"),
+					testAccCheckComputeInstanceAccessConfig(&instance),
 				),
 			},
 		},
@@ -173,7 +269,19 @@ func testAccCheckComputeInstanceMetadata(
 	}
 }
 
-func testAccCheckComputeInstanceNetwork(instance *compute.Instance) resource.TestCheckFunc {
+func testAccCheckComputeInstanceAccessConfig(instance *compute.Instance) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		for _, i := range instance.NetworkInterfaces {
+			if len(i.AccessConfigs) == 0 {
+				return fmt.Errorf("no access_config")
+			}
+		}
+
+		return nil
+	}
+}
+
+func testAccCheckComputeInstanceAccessConfigHasIP(instance *compute.Instance) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		for _, i := range instance.NetworkInterfaces {
 			for _, c := range i.AccessConfigs {
@@ -219,7 +327,7 @@ func testAccCheckComputeInstanceTag(instance *compute.Instance, n string) resour
 	}
 }
 
-const testAccComputeInstance_basic = `
+const testAccComputeInstance_basic_deprecated_network = `
 resource "google_compute_instance" "foobar" {
 	name = "terraform-test"
 	machine_type = "n1-standard-1"
@@ -240,7 +348,7 @@ resource "google_compute_instance" "foobar" {
 	}
 }`
 
-const testAccComputeInstance_update = `
+const testAccComputeInstance_update_deprecated_network = `
 resource "google_compute_instance" "foobar" {
 	name = "terraform-test"
 	machine_type = "n1-standard-1"
@@ -253,6 +361,92 @@ resource "google_compute_instance" "foobar" {
 
 	network {
 		source = "default"
+	}
+
+	metadata {
+		bar = "baz"
+	}
+}`
+
+const testAccComputeInstance_basic = `
+resource "google_compute_instance" "foobar" {
+	name = "terraform-test"
+	machine_type = "n1-standard-1"
+	zone = "us-central1-a"
+	can_ip_forward = false
+	tags = ["foo", "bar"]
+
+	disk {
+		image = "debian-7-wheezy-v20140814"
+	}
+
+	network_interface {
+		network = "default"
+	}
+
+	metadata {
+		foo = "bar"
+	}
+}`
+
+const testAccComputeInstance_basic2 = `
+resource "google_compute_instance" "foobar" {
+	name = "terraform-test"
+	machine_type = "n1-standard-1"
+	zone = "us-central1-a"
+	can_ip_forward = false
+	tags = ["foo", "bar"]
+
+	disk {
+		image = "debian-cloud/debian-7-wheezy-v20140814"
+	}
+
+	network_interface {
+		network = "default"
+	}
+
+
+	metadata {
+		foo = "bar"
+	}
+}`
+
+const testAccComputeInstance_basic3 = `
+resource "google_compute_instance" "foobar" {
+	name = "terraform-test"
+	machine_type = "n1-standard-1"
+	zone = "us-central1-a"
+	can_ip_forward = false
+	tags = ["foo", "bar"]
+
+	disk {
+		image = "https://www.googleapis.com/compute/v1/projects/debian-cloud/global/images/debian-7-wheezy-v20140814"
+	}
+
+	network_interface {
+		network = "default"
+	}
+
+	metadata {
+		foo = "bar"
+	}
+}`
+
+// Update metadata, tags, and network_interface
+const testAccComputeInstance_update = `
+resource "google_compute_instance" "foobar" {
+	name = "terraform-test"
+	machine_type = "n1-standard-1"
+	zone = "us-central1-a"
+	tags = ["baz"]
+
+	disk {
+		image = "debian-7-wheezy-v20140814"
+	}
+
+	network_interface {
+		network = "default"
+		access_config { }
 	}
 
 	metadata {
@@ -275,9 +469,11 @@ resource "google_compute_instance" "foobar" {
 		image = "debian-7-wheezy-v20140814"
 	}
 
-	network {
-		source = "default"
-		address = "${google_compute_address.foo.address}"
+	network_interface {
+		network = "default"
+		access_config {
+			nat_ip = "${google_compute_address.foo.address}"
+		}
 	}
 
 	metadata {
@@ -307,8 +503,8 @@ resource "google_compute_instance" "foobar" {
 		auto_delete = false
 	}
 
-	network {
-		source = "default"
+	network_interface {
+		network = "default"
 	}
 
 	metadata {

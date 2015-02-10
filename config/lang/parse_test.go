@@ -107,6 +107,12 @@ func TestParse(t *testing.T) {
 		},
 
 		{
+			`foo ${func('baz')}`,
+			true,
+			nil,
+		},
+
+		{
 			"foo ${42}",
 			false,
 			&ast.Concat{

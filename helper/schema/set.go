@@ -2,6 +2,7 @@ package schema
 
 import (
 	"fmt"
+	"reflect"
 	"sort"
 	"sync"
 )
@@ -99,6 +100,15 @@ func (s *Set) Union(other *Set) *Set {
 	}
 
 	return result
+}
+
+func (s *Set) Equal(raw interface{}) bool {
+	other, ok := raw.(*Set)
+	if !ok {
+		return false
+	}
+
+	return reflect.DeepEqual(s.m, other.m)
 }
 
 func (s *Set) GoString() string {

@@ -268,6 +268,39 @@ func TestApply_init(t *testing.T) {
 	}
 }
 
+func TestApply_input(t *testing.T) {
+	// Disable test mode so input would be asked
+	test = false
+	defer func() { test = true }()
+
+	// Set some default reader/writers for the inputs
+	defaultInputReader = bytes.NewBufferString("foo\n")
+	defaultInputWriter = new(bytes.Buffer)
+
+	statePath := testTempFile(t)
+
+	p := testProvider()
+	ui := new(cli.MockUi)
+	c := &ApplyCommand{
+		Meta: Meta{
+			ContextOpts: testCtxConfig(p),
+			Ui:          ui,
+		},
+	}
+
+	args := []string{
+		"-state", statePath,
+		testFixturePath("apply-input"),
+	}
+	if code := c.Run(args); code != 0 {
+		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
+	}
+
+	if !p.InputCalled {
+		t.Fatal("input should be called")
+	}
+}
+
 func TestApply_noArgs(t *testing.T) {
 	cwd, err := os.Getwd()
 	if err != nil {
@@ -1091,7 +1124,7 @@ func TestApply_disableBackup(t *testing.T) {
 }
 
 func testHttpServer(t *testing.T) net.Listener {
-	ln, err := net.Listen("tcp", ":0")
+	ln, err := net.Listen("tcp", "127.0.0.1:0")
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -1109,7 +1142,7 @@ func testHttpServer(t *testing.T) net.Listener {
 func testHttpHandlerHeader(w http.ResponseWriter, r *http.Request) {
 	var url url.URL
 	url.Scheme = "file"
-	url.Path = testFixturePath("init")
+	url.Path = filepath.ToSlash(testFixturePath("init"))
 
 	w.Header().Add("X-Terraform-Get", url.String())
 	w.WriteHeader(200)

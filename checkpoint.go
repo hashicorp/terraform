@@ -34,7 +34,7 @@ func runCheckpoint(c *Config) {
 
 	version := Version
 	if VersionPrerelease != "" {
-		version += fmt.Sprintf(".%s", VersionPrerelease)
+		version += fmt.Sprintf("-%s", VersionPrerelease)
 	}
 
 	signaturePath := filepath.Join(configDir, "checkpoint_signature")

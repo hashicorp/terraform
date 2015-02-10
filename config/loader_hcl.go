@@ -517,7 +517,15 @@ func loadProvisionersHcl(os *hclobj.Object, connInfo map[string]interface{}) ([]
 	//
 	for _, o1 := range os.Elem(false) {
 		for _, o2 := range o1.Elem(true) {
-			pos = append(pos, o2)
+
+			switch o1.Type {
+			case hclobj.ValueTypeList:
+				for _, o3 := range o2.Elem(true) {
+					pos = append(pos, o3)
+				}
+			case hclobj.ValueTypeObject:
+				pos = append(pos, o2)
+			}
 		}
 	}
 

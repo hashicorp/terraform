@@ -2,7 +2,6 @@ package module
 
 import (
 	"fmt"
-	"net/url"
 	"path/filepath"
 )
 
@@ -38,7 +37,7 @@ func Detect(src string, pwd string) (string, error) {
 	// Separate out the subdir if there is one, we don't pass that to detect
 	getSrc, subDir := getDirSubdir(getSrc)
 
-	u, err := url.Parse(getSrc)
+	u, err := urlParse(getSrc)
 	if err == nil && u.Scheme != "" {
 		// Valid URL
 		return src, nil
@@ -67,7 +66,7 @@ func Detect(src string, pwd string) (string, error) {
 			}
 		}
 		if subDir != "" {
-			u, err := url.Parse(result)
+			u, err := urlParse(result)
 			if err != nil {
 				return "", fmt.Errorf("Error parsing URL: %s", err)
 			}

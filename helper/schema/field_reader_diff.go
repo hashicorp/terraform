@@ -41,9 +41,9 @@ func (r *DiffFieldReader) ReadField(address []string) (FieldReadResult, error) {
 	switch schema.Type {
 	case TypeBool:
 		fallthrough
-	case TypeFloat:
-		fallthrough
 	case TypeInt:
+		fallthrough
+	case TypeFloat:
 		fallthrough
 	case TypeString:
 		return r.readPrimitive(address, schema)
@@ -82,6 +82,11 @@ func (r *DiffFieldReader) readMap(
 		if !strings.HasPrefix(k, prefix) {
 			continue
 		}
+		if strings.HasPrefix(k, prefix+"#") {
+			// Ignore the count field
+			continue
+		}
+
 		resultSet = true
 
 		k = k[len(prefix):]
@@ -148,8 +153,8 @@ func (r *DiffFieldReader) readSet(
 		if !strings.HasPrefix(k, prefix) {
 			continue
 		}
-		if strings.HasPrefix(k, prefix+"#") {
-			// Ignore the count field
+		if strings.HasSuffix(k, "#") {
+			// Ignore any count field
 			continue
 		}
 

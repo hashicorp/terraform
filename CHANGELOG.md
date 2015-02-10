@@ -1,23 +1,57 @@
 ## 0.3.7 (unreleased)
 
+FEATURES:
+
+  * **New provider: `azure`** - initially just supporting Linux virtual
+      machines [GH-899]
+
 IMPROVEMENTS:
 
- * core: Formalized the syntax of interpolations and documented it
-     very heavily.
- * core: Strings in interpolations can now contain further interpolations,
-     e.g.: `foo ${bar("${baz}")}`.
- * provider/aws: Internet gateway supports tags [GH-720]
+  * **New resources: `google_compute_forwarding_rule`, `google_compute_http_health_check`, 
+      and `google_compute_target_pool`** - Together these provide network-level 
+      load balancing. [GH-588]
+  * **New resource: `aws_main_route_table_association`** - Manage the main routing table 
+      of a VPC. [GH-918]
+  * core: Formalized the syntax of interpolations and documented it
+      very heavily.
+  * core: Strings in interpolations can now contain further interpolations,
+      e.g.: `foo ${bar("${baz}")}`.
+  * provider/aws: Internet gateway supports tags [GH-720]
+  * provider/aws: Support the more standard environmental variable names
+      for access key and secret keys. [GH-851]
+  * provider/aws: The `aws_db_instance` resource no longer requires both
+      `final_snapshot_identifier` and `skip_final_snapshot`; the presence or
+      absence of the former now implies the latter. [GH-874]
+  * provider/aws: Avoid unecessary update of `aws_subnet` when 
+      `map_public_ip_on_launch` is not specified in config. [GH-898]
+  * provider/google: Remove "client secrets file", as it's no longer necessary
+      for API authentication [GH-884].
+  * provider/google: Expose `self_link` on `google_compute_instance` [GH-906]
 
 BUG FIXES:
 
- * core: Fixing use of remote state with plan files. [GH-741]
- * core: Fix a panic case when certain invalid types were used in
-     the configuration. [GH-691]
- * core: Escape characters `\"`, `\n`, and `\\` now work in interpolations.
+  * core: Fixing use of remote state with plan files. [GH-741]
+  * core: Fix a panic case when certain invalid types were used in
+      the configuration. [GH-691]
+  * core: Escape characters `\"`, `\n`, and `\\` now work in interpolations.
+  * core: Fix crash that could occur when there are exactly zero providers
+      installed on a system. [GH-786]
+  * core: JSON TF configurations can configure provisioners. [GH-807]
+  * command/apply: Won't try to initialize modules in some cases when
+      no arguments are given. [GH-780]
+  * command/apply: Fix regression where user variables weren't asked [GH-736]
+  * provider/aws: ELB subnet change doesn't force new resource. [GH-804]
+  * provider/aws: Instance should ignore root EBS devices. [GH-877]
+  * provider/aws: Fix `aws_db_instance` to not recreate each time. [GH-874]
+  * provider/google: Fix bug preventing instances with metadata from being
+      created [GH-884].
 
 PLUGIN CHANGES:
 
- * New `helper/schema` type: `TypeFloat` [GH-594]
+  * New `helper/schema` type: `TypeFloat` [GH-594]
+  * New `helper/schema` field for resources: `Exists` must point to a function
+      to check for the existence of a resource. This is used to properly
+      handle the case where the resource was manually deleted. [GH-766]
 
 ## 0.3.6 (January 6, 2015)
 

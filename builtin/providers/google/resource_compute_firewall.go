@@ -26,6 +26,11 @@ func resourceComputeFirewall() *schema.Resource {
 				ForceNew: true,
 			},
 
+			"description": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+			},
+
 			"network": &schema.Schema{
 				Type:     schema.TypeString,
 				Required: true,
@@ -80,6 +85,11 @@ func resourceComputeFirewall() *schema.Resource {
 				Set: func(v interface{}) int {
 					return hashcode.String(v.(string))
 				},
+			},
+
+			"self_link": &schema.Schema{
+				Type:     schema.TypeString,
+				Computed: true,
 			},
 		},
 	}
@@ -154,7 +164,7 @@ func resourceComputeFirewallCreate(d *schema.ResourceData, meta interface{}) err
 func resourceComputeFirewallRead(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
 
-	_, err := config.clientCompute.Firewalls.Get(
+	firewall, err := config.clientCompute.Firewalls.Get(
 		config.Project, d.Id()).Do()
 	if err != nil {
 		if gerr, ok := err.(*googleapi.Error); ok && gerr.Code == 404 {
@@ -166,6 +176,8 @@ func resourceComputeFirewallRead(d *schema.ResourceData, meta interface{}) error
 
 		return fmt.Errorf("Error reading firewall: %s", err)
 	}
+
+	d.Set("self_link", firewall.SelfLink)
 
 	return nil
 }
@@ -306,6 +318,7 @@ func resourceFirewall(
 	// Build the firewall parameter
 	return &compute.Firewall{
 		Name:         d.Get("name").(string),
+		Description:  d.Get("description").(string),
 		Network:      network.SelfLink,
 		Allowed:      allowed,
 		SourceRanges: sourceRanges,

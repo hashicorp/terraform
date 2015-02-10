@@ -31,8 +31,12 @@ The following arguments are supported:
 * `ipaddress` - (Required) The IP address for which to create the firewall rules.
     Changing this forces a new resource to be created.
 
-* `rule` - (Required) Can be specified multiple times. Each rule block supports
-    fields documented below.
+* `managed` - (Optional) USE WITH CAUTION! If enabled all the firewall rules for
+    this IP address will be managed by this resource. This means it will delete
+    all firewall rules that are not in your config! (defaults false)
+
+* `rule` - (Optional) Can be specified multiple times. Each rule block supports
+    fields documented below. If `managed = false` at least one rule is required!
 
 The `rule` block supports:
 
@@ -54,4 +58,4 @@ The `rule` block supports:
 
 The following attributes are exported:
 
-* `ipaddress` - The IP address for which the firewall rules are created.
+* `ID` - The IP address ID for which the firewall rules are created.

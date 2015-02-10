@@ -2,7 +2,6 @@ package heroku
 
 import (
 	"log"
-	"os"
 
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/terraform"
@@ -15,13 +14,13 @@ func Provider() terraform.ResourceProvider {
 			"email": &schema.Schema{
 				Type:        schema.TypeString,
 				Optional:    true,
-				DefaultFunc: envDefaultFunc("HEROKU_EMAIL"),
+				DefaultFunc: schema.EnvDefaultFunc("HEROKU_EMAIL", nil),
 			},
 
 			"api_key": &schema.Schema{
 				Type:        schema.TypeString,
 				Optional:    true,
-				DefaultFunc: envDefaultFunc("HEROKU_API_KEY"),
+				DefaultFunc: schema.EnvDefaultFunc("HEROKU_API_KEY", nil),
 			},
 		},
 
@@ -30,20 +29,10 @@ func Provider() terraform.ResourceProvider {
 			"heroku_addon":  resourceHerokuAddon(),
 			"heroku_domain": resourceHerokuDomain(),
 			"heroku_drain":  resourceHerokuDrain(),
-			"heroku_cert":  resourceHerokuCert(),
+			"heroku_cert":   resourceHerokuCert(),
 		},
 
 		ConfigureFunc: providerConfigure,
-	}
-}
-
-func envDefaultFunc(k string) schema.SchemaDefaultFunc {
-	return func() (interface{}, error) {
-		if v := os.Getenv(k); v != "" {
-			return v, nil
-		}
-
-		return nil, nil
 	}
 }
 

@@ -1,8 +1,6 @@
 package google
 
 import (
-	"os"
-
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/terraform"
 )
@@ -14,57 +12,44 @@ func Provider() terraform.ResourceProvider {
 			"account_file": &schema.Schema{
 				Type:        schema.TypeString,
 				Required:    true,
-				DefaultFunc: envDefaultFunc("GOOGLE_ACCOUNT_FILE"),
-			},
-
-			"client_secrets_file": &schema.Schema{
-				Type:        schema.TypeString,
-				Required:    true,
-				DefaultFunc: envDefaultFunc("GOOGLE_CLIENT_FILE"),
+				DefaultFunc: schema.EnvDefaultFunc("GOOGLE_ACCOUNT_FILE", nil),
 			},
 
 			"project": &schema.Schema{
 				Type:        schema.TypeString,
 				Required:    true,
-				DefaultFunc: envDefaultFunc("GOOGLE_PROJECT"),
+				DefaultFunc: schema.EnvDefaultFunc("GOOGLE_PROJECT", nil),
 			},
 
 			"region": &schema.Schema{
 				Type:        schema.TypeString,
 				Required:    true,
-				DefaultFunc: envDefaultFunc("GOOGLE_REGION"),
+				DefaultFunc: schema.EnvDefaultFunc("GOOGLE_REGION", nil),
 			},
 		},
 
 		ResourcesMap: map[string]*schema.Resource{
-			"google_compute_address":  resourceComputeAddress(),
-			"google_compute_disk":     resourceComputeDisk(),
-			"google_compute_firewall": resourceComputeFirewall(),
-			"google_compute_instance": resourceComputeInstance(),
-			"google_compute_network":  resourceComputeNetwork(),
-			"google_compute_route":    resourceComputeRoute(),
+			"google_compute_address":           resourceComputeAddress(),
+			"google_compute_disk":              resourceComputeDisk(),
+			"google_compute_firewall":          resourceComputeFirewall(),
+			"google_compute_forwarding_rule":   resourceComputeForwardingRule(),
+			"google_compute_http_health_check": resourceComputeHttpHealthCheck(),
+			"google_compute_instance":          resourceComputeInstance(),
+			"google_compute_instance_template": resourceComputeInstanceTemplate(),
+			"google_compute_network":           resourceComputeNetwork(),
+			"google_compute_route":             resourceComputeRoute(),
+			"google_compute_target_pool":       resourceComputeTargetPool(),
 		},
 
 		ConfigureFunc: providerConfigure,
 	}
 }
 
-func envDefaultFunc(k string) schema.SchemaDefaultFunc {
-	return func() (interface{}, error) {
-		if v := os.Getenv(k); v != "" {
-			return v, nil
-		}
-
-		return nil, nil
-	}
-}
-
 func providerConfigure(d *schema.ResourceData) (interface{}, error) {
 	config := Config{
-		AccountFile:       d.Get("account_file").(string),
-		ClientSecretsFile: d.Get("client_secrets_file").(string),
-		Project:           d.Get("project").(string),
-		Region:            d.Get("region").(string),
+		AccountFile: d.Get("account_file").(string),
+		Project:     d.Get("project").(string),
+		Region:      d.Get("region").(string),
 	}
 
 	if err := config.loadAndValidate(); err != nil {

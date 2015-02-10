@@ -410,6 +410,10 @@ const basicResourcesStr = `
 aws_instance[db] (x1)
   VPC
   security_groups
+  provisioners
+    file
+      destination
+      source
   dependsOn
     aws_instance.web
   vars
@@ -418,6 +422,10 @@ aws_instance[web] (x1)
   ami
   network_interface
   security_groups
+  provisioners
+    file
+      destination
+      source
   vars
     resource: aws_security_group.firewall.foo
     user: var.foo
