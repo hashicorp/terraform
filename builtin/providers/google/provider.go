@@ -35,6 +35,7 @@ func Provider() terraform.ResourceProvider {
 			"google_compute_forwarding_rule":   resourceComputeForwardingRule(),
 			"google_compute_http_health_check": resourceComputeHttpHealthCheck(),
 			"google_compute_instance":          resourceComputeInstance(),
+			"google_compute_instance_template": resourceComputeInstanceTemplate(),
 			"google_compute_network":           resourceComputeNetwork(),
 			"google_compute_route":             resourceComputeRoute(),
 			"google_compute_target_pool":       resourceComputeTargetPool(),
