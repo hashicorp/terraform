@@ -16,8 +16,6 @@ func resourceComputeInstanceTemplate() *schema.Resource {
 		Read:   resourceComputeInstanceTemplateRead,
 		Delete: resourceComputeInstanceTemplateDelete,
 
-		// TODO: check which items are optional and set optional: true
-
 		Schema: map[string]*schema.Schema{
 			"name": &schema.Schema{
 				Type:     schema.TypeString,
