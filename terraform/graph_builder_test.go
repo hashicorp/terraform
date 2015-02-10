@@ -122,5 +122,6 @@ aws_security_group.firewall
   provider.aws
 module.consul (expanded)
   aws_security_group.firewall
+  provider.aws
 provider.aws
 `

@@ -269,7 +269,7 @@ func TestGraphNodeOrphanResource_impl(t *testing.T) {
 
 func TestGraphNodeOrphanResource_ProvidedBy(t *testing.T) {
 	n := &graphNodeOrphanResource{ResourceName: "aws_instance.foo"}
-	if v := n.ProvidedBy(); v != "aws" {
+	if v := n.ProvidedBy(); v[0] != "aws" {
 		t.Fatalf("bad: %#v", v)
 	}
 }

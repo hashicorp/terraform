@@ -7,20 +7,25 @@ import (
 // EvalConfigProvider is an EvalNode implementation that configures
 // a provider that is already initialized and retrieved.
 type EvalConfigProvider struct {
-	Provider EvalNode
+	Provider string
 	Config   EvalNode
 }
 
 func (n *EvalConfigProvider) Args() ([]EvalNode, []EvalType) {
-	return []EvalNode{n.Provider, n.Config},
-		[]EvalType{EvalTypeResourceProvider, EvalTypeConfig}
+	return []EvalNode{n.Config}, []EvalType{EvalTypeConfig}
 }
 
 func (n *EvalConfigProvider) Eval(
 	ctx EvalContext, args []interface{}) (interface{}, error) {
-	provider := args[0].(ResourceProvider)
-	config := args[1].(*ResourceConfig)
-	return nil, provider.Configure(config)
+	config := args[0].(*ResourceConfig)
+
+	// Get the parent configuration if there is one
+	if parent := ctx.ParentProviderConfig(n.Provider); parent != nil {
+		merged := parent.raw.Merge(config.raw)
+		config = NewResourceConfig(merged)
+	}
+
+	return nil, ctx.ConfigureProvider(n.Provider, config)
 }
 
 func (n *EvalConfigProvider) Type() EvalType {

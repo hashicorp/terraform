@@ -53,7 +53,7 @@ func TestGraphNodeTaintedResource_impl(t *testing.T) {
 
 func TestGraphNodeTaintedResource_ProvidedBy(t *testing.T) {
 	n := &graphNodeTaintedResource{ResourceName: "aws_instance.foo"}
-	if v := n.ProvidedBy(); v != "aws" {
+	if v := n.ProvidedBy(); v[0] != "aws" {
 		t.Fatalf("bad: %#v", v)
 	}
 }

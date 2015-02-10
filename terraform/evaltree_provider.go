@@ -11,11 +11,12 @@ func ProviderEvalTree(n string, config *config.RawConfig) EvalNode {
 		Nodes: []EvalNode{
 			&EvalInitProvider{Name: n},
 			&EvalValidateProvider{
-				Provider: &EvalGetProvider{Name: n},
-				Config:   &EvalInterpolate{Config: config},
+				ProviderName: n,
+				Provider:     &EvalGetProvider{Name: n},
+				Config:       &EvalInterpolate{Config: config},
 			},
 			&EvalConfigProvider{
-				Provider: &EvalGetProvider{Name: n},
+				Provider: n,
 				Config:   &EvalInterpolate{Config: config},
 			},
 		},

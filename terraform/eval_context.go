@@ -19,6 +19,13 @@ type EvalContext interface {
 	// initialized) or returns nil if the provider isn't initialized.
 	Provider(string) ResourceProvider
 
+	// ConfigureProvider configures the provider with the given
+	// configuration. This is a separate context call because this call
+	// is used to store the provider configuration for inheritance lookups
+	// with ParentProviderConfig().
+	ConfigureProvider(string, *ResourceConfig) error
+	ParentProviderConfig(string) *ResourceConfig
+
 	// InitProvisioner initializes the provisioner with the given name and
 	// returns the implementation of the resource provisioner or an error.
 	//
@@ -49,6 +56,15 @@ type MockEvalContext struct {
 	ProviderName     string
 	ProviderProvider ResourceProvider
 
+	ConfigureProviderCalled bool
+	ConfigureProviderName   string
+	ConfigureProviderConfig *ResourceConfig
+	ConfigureProviderError  error
+
+	ParentProviderConfigCalled bool
+	ParentProviderConfigName   string
+	ParentProviderConfigConfig *ResourceConfig
+
 	InitProvisionerCalled      bool
 	InitProvisionerName        string
 	InitProvisionerProvisioner ResourceProvisioner
@@ -78,6 +94,19 @@ func (c *MockEvalContext) Provider(n string) ResourceProvider {
 	c.ProviderCalled = true
 	c.ProviderName = n
 	return c.ProviderProvider
+}
+
+func (c *MockEvalContext) ConfigureProvider(n string, cfg *ResourceConfig) error {
+	c.ConfigureProviderCalled = true
+	c.ConfigureProviderName = n
+	c.ConfigureProviderConfig = cfg
+	return c.ConfigureProviderError
+}
+
+func (c *MockEvalContext) ParentProviderConfig(n string) *ResourceConfig {
+	c.ParentProviderConfigCalled = true
+	c.ParentProviderConfigName = n
+	return c.ParentProviderConfigConfig
 }
 
 func (c *MockEvalContext) InitProvisioner(n string) (ResourceProvisioner, error) {

@@ -22,25 +22,27 @@ type ContextGraphWalker struct {
 	ValidationWarnings []string
 	ValidationErrors   []error
 
-	errorLock        sync.Mutex
-	once             sync.Once
-	providerCache    map[string]ResourceProvider
-	providerLock     sync.Mutex
-	provisionerCache map[string]ResourceProvisioner
-	provisionerLock  sync.Mutex
+	errorLock           sync.Mutex
+	once                sync.Once
+	providerCache       map[string]ResourceProvider
+	providerConfigCache map[string]*ResourceConfig
+	providerLock        sync.Mutex
+	provisionerCache    map[string]ResourceProvisioner
+	provisionerLock     sync.Mutex
 }
 
 func (w *ContextGraphWalker) EnterGraph(g *Graph) EvalContext {
 	w.once.Do(w.init)
 
 	return &BuiltinEvalContext{
-		PathValue:        g.Path,
-		Providers:        w.Context.providers,
-		ProviderCache:    w.providerCache,
-		ProviderLock:     &w.providerLock,
-		Provisioners:     w.Context.provisioners,
-		ProvisionerCache: w.provisionerCache,
-		ProvisionerLock:  &w.provisionerLock,
+		PathValue:           g.Path,
+		Providers:           w.Context.providers,
+		ProviderCache:       w.providerCache,
+		ProviderConfigCache: w.providerConfigCache,
+		ProviderLock:        &w.providerLock,
+		Provisioners:        w.Context.provisioners,
+		ProvisionerCache:    w.provisionerCache,
+		ProvisionerLock:     &w.provisionerLock,
 		Interpolater: &Interpolater{
 			Operation: w.Operation,
 			Module:    w.Context.module,
@@ -77,5 +79,6 @@ func (w *ContextGraphWalker) ExitEvalTree(
 
 func (w *ContextGraphWalker) init() {
 	w.providerCache = make(map[string]ResourceProvider, 5)
+	w.providerConfigCache = make(map[string]*ResourceConfig, 5)
 	w.provisionerCache = make(map[string]ResourceProvisioner, 5)
 }

@@ -18,7 +18,7 @@ type GraphNodeProvider interface {
 // a provider must implement. ProvidedBy must return the name of the provider
 // to use.
 type GraphNodeProviderConsumer interface {
-	ProvidedBy() string
+	ProvidedBy() []string
 }
 
 // ProviderTransformer is a GraphTransformer that maps resources to
@@ -32,15 +32,17 @@ func (t *ProviderTransformer) Transform(g *Graph) error {
 	m := providerVertexMap(g)
 	for _, v := range g.Vertices() {
 		if pv, ok := v.(GraphNodeProviderConsumer); ok {
-			target := m[pv.ProvidedBy()]
-			if target == nil {
-				err = multierror.Append(err, fmt.Errorf(
-					"%s: provider %s couldn't be found",
-					dag.VertexName(v), pv.ProvidedBy()))
-				continue
-			}
+			for _, p := range pv.ProvidedBy() {
+				target := m[p]
+				if target == nil {
+					err = multierror.Append(err, fmt.Errorf(
+						"%s: provider %s couldn't be found",
+						dag.VertexName(v), p))
+					continue
+				}
 
-			g.Connect(dag.BasicEdge(v, target))
+				g.Connect(dag.BasicEdge(v, target))
+			}
 		}
 	}
 
