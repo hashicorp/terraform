@@ -41,8 +41,11 @@ func (n *EvalValidateCount) Eval(
 
 	count, err = n.Resource.Count()
 	if err != nil {
-		errs = append(errs)
-		goto RETURN
+		// If we can't get the count during validation, then
+		// just replace it with the number 1.
+		c := n.Resource.RawCount.Config()
+		c[n.Resource.RawCount.Key] = "1"
+		count = 1
 	}
 
 	if count < 0 {
