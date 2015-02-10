@@ -27,8 +27,11 @@ resource "google_compute_instance" "default" {
 		image = "debian-7-wheezy-v20140814"
 	}
 
-	network {
-		source = "default"
+	network_interface {
+		network = "default"
+        access_config {
+            // Ephemeral IP
+        }
 	}
 
 	metadata {
@@ -64,7 +67,11 @@ The following arguments are supported:
 * `metadata` - (Optional) Metadata key/value pairs to make available from
     within the instance.
 
-* `network` - (Required) Networks to attach to the instance. This can be
+* `network_interface` - (Required) Networks to attach to the instance. This can be
+    specified multiple times for multiple networks. Structure is documented
+    below.
+
+* `network` - (DEPRECATED, Required) Networks to attach to the instance. This can be
     specified multiple times for multiple networks. Structure is documented
     below.
 
@@ -85,7 +92,22 @@ The `disk` block supports:
 
 * `type` - (Optional) The GCE disk type.
 
-The `network` block supports:
+The `network_interface` block supports:
+
+* `network` - (Required) The name of the network to attach this interface to.
+
+* `access_config` - (Optional) Access configurations, i.e. IPs via which this instance can be
+  accessed via the Internet.  Omit to ensure that the instance is not accessible from the Internet
+(this means that ssh provisioners will not work unless you are running Terraform can send traffic to
+the instance's network (e.g. via tunnel or because it is running on another cloud instance on that
+network).  This block can be repeated multiple times.  Structure documented below.
+
+The `access_config` block supports:
+
+* `nat_ip` - (Optional) The IP address that will be 1:1 mapped to the instance's network ip.  If not
+  given, one will be generated.
+
+(DEPRECATED) The `network` block supports:
 
 * `source` - (Required) The name of the network to attach this interface to.
 
