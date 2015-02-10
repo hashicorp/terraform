@@ -22,11 +22,11 @@ func TestEvalConfigProvider(t *testing.T) {
 		t.Fatalf("bad: %#v", actual)
 	}
 
-	if !provider.ConfigureCalled {
+	if !ctx.ConfigureProviderCalled {
 		t.Fatal("should be called")
 	}
-	if !reflect.DeepEqual(provider.ConfigureConfig, config) {
-		t.Fatalf("bad: %#v", provider.ConfigureConfig)
+	if !reflect.DeepEqual(ctx.ConfigureProviderConfig, config) {
+		t.Fatalf("bad: %#v", ctx.ConfigureProviderConfig)
 	}
 }
 
