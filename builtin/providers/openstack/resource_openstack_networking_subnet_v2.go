@@ -155,7 +155,7 @@ func resourceNetworkingSubnetV2Read(d *schema.ResourceData, meta interface{}) er
 
 	s, err := subnets.Get(networkingClient, d.Id()).Extract()
 	if err != nil {
-		return fmt.Errorf("Error retrieving OpenStack Neutron Subnet: %s", err)
+		return CheckDeleted(d, err, "subnet")
 	}
 
 	log.Printf("[DEBUG] Retreived Subnet %s: %+v", d.Id(), s)

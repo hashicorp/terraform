@@ -120,7 +120,7 @@ func resourceLBMonitorV1Read(d *schema.ResourceData, meta interface{}) error {
 
 	m, err := monitors.Get(networkingClient, d.Id()).Extract()
 	if err != nil {
-		return fmt.Errorf("Error retrieving OpenStack LB Monitor: %s", err)
+		return CheckDeleted(d, err, "LB monitor")
 	}
 
 	log.Printf("[DEBUG] Retreived OpenStack LB Monitor %s: %+v", d.Id(), m)

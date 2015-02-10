@@ -133,7 +133,7 @@ func resourceLBVipV1Read(d *schema.ResourceData, meta interface{}) error {
 
 	p, err := vips.Get(networkingClient, d.Id()).Extract()
 	if err != nil {
-		return fmt.Errorf("Error retrieving OpenStack LB VIP: %s", err)
+		return CheckDeleted(d, err, "LB VIP")
 	}
 
 	log.Printf("[DEBUG] Retreived OpenStack LB VIP %s: %+v", d.Id(), p)

@@ -70,7 +70,7 @@ func resourceNetworkFloatingIPV2Read(d *schema.ResourceData, meta interface{}) e
 
 	floatingIP, err := floatingips.Get(networkClient, d.Id()).Extract()
 	if err != nil {
-		return fmt.Errorf("Error retrieving floatingIP: %s", err)
+		return CheckDeleted(d, err, "floating IP")
 	}
 
 	d.Set("region", d.Get("region").(string))

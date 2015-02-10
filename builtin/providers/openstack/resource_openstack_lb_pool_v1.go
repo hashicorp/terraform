@@ -154,7 +154,7 @@ func resourceLBPoolV1Read(d *schema.ResourceData, meta interface{}) error {
 
 	p, err := pools.Get(networkingClient, d.Id()).Extract()
 	if err != nil {
-		return fmt.Errorf("Error retrieving OpenStack LB Pool: %s", err)
+		return CheckDeleted(d, err, "LB pool")
 	}
 
 	log.Printf("[DEBUG] Retreived OpenStack LB Pool %s: %+v", d.Id(), p)

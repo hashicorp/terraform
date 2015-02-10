@@ -252,7 +252,7 @@ func resourceComputeInstanceV2Read(d *schema.ResourceData, meta interface{}) err
 
 	server, err := servers.Get(computeClient, d.Id()).Extract()
 	if err != nil {
-		return fmt.Errorf("Error retrieving OpenStack server: %s", err)
+		return CheckDeleted(d, err, "server")
 	}
 
 	log.Printf("[DEBUG] Retreived Server %s: %+v", d.Id(), server)
