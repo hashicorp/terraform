@@ -47,6 +47,11 @@ func resourceAwsRouteTable() *schema.Resource {
 							Type:     schema.TypeString,
 							Optional: true,
 						},
+
+						"vpc_peering_connection_id": &schema.Schema{
+							Type:     schema.TypeString,
+							Optional: true,
+						},
 					},
 				},
 				Set: resourceAwsRouteTableHash,
@@ -125,6 +130,7 @@ func resourceAwsRouteTableRead(d *schema.ResourceData, meta interface{}) error {
 
 		m["gateway_id"] = r.GatewayId
 		m["instance_id"] = r.InstanceId
+		m["vpc_peering_connection_id"] = r.VpcPeeringConnectionId
 
 		route.Add(m)
 	}
@@ -166,10 +172,11 @@ func resourceAwsRouteTableUpdate(d *schema.ResourceData, meta interface{}) error
 			m := route.(map[string]interface{})
 
 			opts := ec2.CreateRoute{
-				RouteTableId:         d.Id(),
-				DestinationCidrBlock: m["cidr_block"].(string),
-				GatewayId:            m["gateway_id"].(string),
-				InstanceId:           m["instance_id"].(string),
+				RouteTableId:           d.Id(),
+				DestinationCidrBlock:   m["cidr_block"].(string),
+				GatewayId:              m["gateway_id"].(string),
+				InstanceId:             m["instance_id"].(string),
+				VpcPeeringConnectionId: m["vpc_peering_connection_id"].(string),
 			}
 
 			_, err := ec2conn.CreateRoute(&opts)
@@ -254,6 +261,10 @@ func resourceAwsRouteTableHash(v interface{}) int {
 	}
 
 	if v, ok := m["instance_id"]; ok {
+		buf.WriteString(fmt.Sprintf("%s-", v.(string)))
+	}
+
+	if v, ok := m["vpc_peering_connection_id"]; ok {
 		buf.WriteString(fmt.Sprintf("%s-", v.(string)))
 	}
 

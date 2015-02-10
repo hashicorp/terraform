@@ -129,26 +129,25 @@ func TestAccAWSRouteTable_tags(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckRouteTableDestroy,
 		Steps: []resource.TestStep{
-		resource.TestStep{
-		Config: testAccRouteTableConfigTags,
-		Check: resource.ComposeTestCheckFunc(
-			testAccCheckRouteTableExists("aws_route_table.foo", &route_table),
-			testAccCheckTags(&route_table.Tags, "foo", "bar"),
-		),
-	},
+			resource.TestStep{
+				Config: testAccRouteTableConfigTags,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckRouteTableExists("aws_route_table.foo", &route_table),
+					testAccCheckTags(&route_table.Tags, "foo", "bar"),
+				),
+			},
 
-		resource.TestStep{
-		Config: testAccRouteTableConfigTagsUpdate,
-		Check: resource.ComposeTestCheckFunc(
-			testAccCheckRouteTableExists("aws_route_table.foo", &route_table),
-			testAccCheckTags(&route_table.Tags, "foo", ""),
-			testAccCheckTags(&route_table.Tags, "bar", "baz"),
-		),
-	},
-	},
+			resource.TestStep{
+				Config: testAccRouteTableConfigTagsUpdate,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckRouteTableExists("aws_route_table.foo", &route_table),
+					testAccCheckTags(&route_table.Tags, "foo", ""),
+					testAccCheckTags(&route_table.Tags, "bar", "baz"),
+				),
+			},
+		},
 	})
 }
-
 
 func testAccCheckRouteTableDestroy(s *terraform.State) error {
 	conn := testAccProvider.Meta().(*AWSClient).ec2conn
@@ -207,6 +206,45 @@ func testAccCheckRouteTableExists(n string, v *ec2.RouteTable) resource.TestChec
 
 		return nil
 	}
+}
+
+func TestAccAWSRouteTable_vpcPeering(t *testing.T) {
+	var v ec2.RouteTable
+
+	testCheck := func(*terraform.State) error {
+		if len(v.Routes) != 2 {
+			return fmt.Errorf("bad routes: %#v", v.Routes)
+		}
+
+		routes := make(map[string]ec2.Route)
+		for _, r := range v.Routes {
+			routes[r.DestinationCidrBlock] = r
+		}
+
+		if _, ok := routes["10.1.0.0/16"]; !ok {
+			return fmt.Errorf("bad routes: %#v", v.Routes)
+		}
+		if _, ok := routes["10.2.0.0/16"]; !ok {
+			return fmt.Errorf("bad routes: %#v", v.Routes)
+		}
+
+		return nil
+	}
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckRouteTableDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccRouteTableVpcPeeringConfig,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckRouteTableExists(
+						"aws_route_table.foo", &v),
+					testCheck,
+				),
+			},
+		},
+	})
 }
 
 const testAccRouteTableConfig = `
@@ -303,6 +341,25 @@ resource "aws_route_table" "foo" {
 
 	tags {
 		bar = "baz"
+	}
+}
+`
+
+const testAccRouteTableVpcPeeringConfig = `
+resource "aws_vpc" "foo" {
+	cidr_block = "10.1.0.0/16"
+}
+
+resource "aws_internet_gateway" "foo" {
+	vpc_id = "${aws_vpc.foo.id}"
+}
+
+resource "aws_route_table" "foo" {
+	vpc_id = "${aws_vpc.foo.id}"
+
+	route {
+		cidr_block = "10.2.0.0/16"
+        vpc_peering_connection_id = "vpc-12345"
 	}
 }
 `
