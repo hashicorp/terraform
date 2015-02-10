@@ -117,9 +117,8 @@ func (g *Graph) Dependable(n string) dag.Vertex {
 // Walk walks the graph with the given walker for callbacks. The graph
 // will be walked with full parallelism, so the walker should expect
 // to be called in concurrently.
-func (g *Graph) Walk(walker GraphWalker) {
-	// TODO: test
-	g.walk(walker)
+func (g *Graph) Walk(walker GraphWalker) error {
+	return g.walk(walker)
 }
 
 func (g *Graph) init() {
