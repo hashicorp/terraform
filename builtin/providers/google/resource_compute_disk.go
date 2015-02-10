@@ -46,6 +46,11 @@ func resourceComputeDisk() *schema.Resource {
 				Optional: true,
 				ForceNew: true,
 			},
+
+			"self_link": &schema.Schema{
+				Type:     schema.TypeString,
+				Computed: true,
+			},
 		},
 	}
 }
@@ -132,7 +137,7 @@ func resourceComputeDiskCreate(d *schema.ResourceData, meta interface{}) error {
 func resourceComputeDiskRead(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
 
-	_, err := config.clientCompute.Disks.Get(
+	disk, err := config.clientCompute.Disks.Get(
 		config.Project, d.Get("zone").(string), d.Id()).Do()
 	if err != nil {
 		if gerr, ok := err.(*googleapi.Error); ok && gerr.Code == 404 {
@@ -144,6 +149,8 @@ func resourceComputeDiskRead(d *schema.ResourceData, meta interface{}) error {
 
 		return fmt.Errorf("Error reading disk: %s", err)
 	}
+
+	d.Set("self_link", disk.SelfLink)
 
 	return nil
 }
