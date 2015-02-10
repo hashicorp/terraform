@@ -111,7 +111,7 @@ func resourceComputeSecGroupV2Read(d *schema.ResourceData, meta interface{}) err
 
 	sg, err := secgroups.Get(computeClient, d.Id()).Extract()
 	if err != nil {
-		return fmt.Errorf("Error retrieving OpenStack security group: %s", err)
+		return CheckDeleted(d, err, "security group")
 	}
 
 	d.Set("region", d.Get("region").(string))

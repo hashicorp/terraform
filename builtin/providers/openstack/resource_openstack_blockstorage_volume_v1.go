@@ -130,7 +130,7 @@ func resourceBlockStorageVolumeV1Read(d *schema.ResourceData, meta interface{}) 
 
 	v, err := volumes.Get(blockStorageClient, d.Id()).Extract()
 	if err != nil {
-		return fmt.Errorf("Error retrieving OpenStack volume: %s", err)
+		return CheckDeleted(d, err, "volume")
 	}
 
 	log.Printf("\n\ngot volume: %+v\n\n", v)

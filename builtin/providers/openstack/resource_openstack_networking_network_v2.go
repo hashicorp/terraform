@@ -98,7 +98,7 @@ func resourceNetworkingNetworkV2Read(d *schema.ResourceData, meta interface{}) e
 
 	n, err := networks.Get(networkingClient, d.Id()).Extract()
 	if err != nil {
-		return fmt.Errorf("Error retrieving OpenStack Neutron Network: %s", err)
+		return CheckDeleted(d, err, "network")
 	}
 
 	log.Printf("[DEBUG] Retreived Network %s: %+v", d.Id(), n)

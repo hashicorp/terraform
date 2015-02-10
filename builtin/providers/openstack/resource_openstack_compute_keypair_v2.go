@@ -65,7 +65,7 @@ func resourceComputeKeypairV2Read(d *schema.ResourceData, meta interface{}) erro
 
 	kp, err := keypairs.Get(computeClient, d.Id()).Extract()
 	if err != nil {
-		return fmt.Errorf("Error retrieving OpenStack keypair: %s", err)
+		return CheckDeleted(d, err, "keypair")
 	}
 
 	d.Set("region", d.Get("region").(string))
