@@ -114,6 +114,87 @@ func TestRawConfig_double(t *testing.T) {
 	}
 }
 
+func TestRawConfig_merge(t *testing.T) {
+	raw1 := map[string]interface{}{
+		"foo": "${var.foo}",
+		"bar": "${var.bar}",
+	}
+
+	rc1, err := NewRawConfig(raw1)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	{
+		vars := map[string]ast.Variable{
+			"var.foo": ast.Variable{
+				Value: "foovalue",
+				Type:  ast.TypeString,
+			},
+			"var.bar": ast.Variable{
+				Value: "nope",
+				Type:  ast.TypeString,
+			},
+		}
+		if err := rc1.Interpolate(vars); err != nil {
+			t.Fatalf("err: %s", err)
+		}
+	}
+
+	raw2 := map[string]interface{}{
+		"bar": "${var.bar}",
+		"baz": "${var.baz}",
+	}
+
+	rc2, err := NewRawConfig(raw2)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	{
+		vars := map[string]ast.Variable{
+			"var.bar": ast.Variable{
+				Value: "barvalue",
+				Type:  ast.TypeString,
+			},
+			"var.baz": ast.Variable{
+				Value: UnknownVariableValue,
+				Type:  ast.TypeString,
+			},
+		}
+		if err := rc2.Interpolate(vars); err != nil {
+			t.Fatalf("err: %s", err)
+		}
+	}
+
+	// Merge the two
+	rc3 := rc1.Merge(rc2)
+
+	// Raw should be merged
+	raw3 := map[string]interface{}{
+		"foo": "${var.foo}",
+		"bar": "${var.bar}",
+		"baz": "${var.baz}",
+	}
+	if !reflect.DeepEqual(rc3.Raw, raw3) {
+		t.Fatalf("bad: %#v", rc3.Raw)
+	}
+
+	actual := rc3.Config()
+	expected := map[string]interface{}{
+		"foo": "foovalue",
+		"bar": "barvalue",
+	}
+	if !reflect.DeepEqual(actual, expected) {
+		t.Fatalf("bad: %#v", actual)
+	}
+
+	expectedKeys := []string{"baz"}
+	if !reflect.DeepEqual(rc3.UnknownKeys(), expectedKeys) {
+		t.Fatalf("bad: %#v", rc3.UnknownKeys())
+	}
+}
+
 func TestRawConfig_syntax(t *testing.T) {
 	raw := map[string]interface{}{
 		"foo": "${var",
