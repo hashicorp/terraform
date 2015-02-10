@@ -3,6 +3,7 @@ package terraform
 import (
 	"fmt"
 	"log"
+	"strings"
 	"sync"
 
 	"github.com/hashicorp/terraform/dag"
@@ -132,10 +133,13 @@ func (g *Graph) walk(walker GraphWalker) error {
 	ctx := walker.EnterGraph(g)
 	defer walker.ExitGraph(g)
 
+	// Get the path for logs
+	path := strings.Join(ctx.Path(), ".")
+
 	// Walk the graph.
 	var walkFn dag.WalkFunc
 	walkFn = func(v dag.Vertex) (rerr error) {
-		log.Printf("[DEBUG] vertex %s: walking", dag.VertexName(v))
+		log.Printf("[DEBUG] vertex %s.%s: walking", path, dag.VertexName(v))
 
 		walker.EnterVertex(v)
 		defer func() { walker.ExitVertex(v, rerr) }()
@@ -145,12 +149,12 @@ func (g *Graph) walk(walker GraphWalker) error {
 			tree := ev.EvalTree()
 			if tree == nil {
 				panic(fmt.Sprintf(
-					"%s (%T): nil eval tree", dag.VertexName(v), v))
+					"%s.%s (%T): nil eval tree", path, dag.VertexName(v), v))
 			}
 
 			// Allow the walker to change our tree if needed. Eval,
 			// then callback with the output.
-			log.Printf("[DEBUG] vertex %s: evaluating", dag.VertexName(v))
+			log.Printf("[DEBUG] vertex %s.%s: evaluating", path, dag.VertexName(v))
 			tree = walker.EnterEvalTree(v, tree)
 			output, err := Eval(tree, ctx)
 			walker.ExitEvalTree(v, output, err)
@@ -159,7 +163,8 @@ func (g *Graph) walk(walker GraphWalker) error {
 		// If the node is dynamically expanded, then expand it
 		if ev, ok := v.(GraphNodeDynamicExpandable); ok {
 			log.Printf(
-				"[DEBUG] vertex %s: expanding dynamic subgraph",
+				"[DEBUG] vertex %s.%s: expanding/walking dynamic subgraph",
+				path,
 				dag.VertexName(v))
 			g, err := ev.DynamicExpand(ctx)
 			if err != nil {
@@ -176,7 +181,8 @@ func (g *Graph) walk(walker GraphWalker) error {
 		// If the node has a subgraph, then walk the subgraph
 		if sn, ok := v.(GraphNodeSubgraph); ok {
 			log.Printf(
-				"[DEBUG] vertex %s: walking subgraph",
+				"[DEBUG] vertex %s.%s: walking subgraph",
+				path,
 				dag.VertexName(v))
 
 			if rerr = sn.Subgraph().walk(walker); rerr != nil {

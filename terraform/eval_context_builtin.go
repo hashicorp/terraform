@@ -12,14 +12,15 @@ import (
 // BuiltinEvalContext is an EvalContext implementation that is used by
 // Terraform by default.
 type BuiltinEvalContext struct {
-	PathValue        []string
-	Interpolater     *Interpolater
-	Providers        map[string]ResourceProviderFactory
-	ProviderCache    map[string]ResourceProvider
-	ProviderLock     *sync.Mutex
-	Provisioners     map[string]ResourceProvisionerFactory
-	ProvisionerCache map[string]ResourceProvisioner
-	ProvisionerLock  *sync.Mutex
+	PathValue           []string
+	Interpolater        *Interpolater
+	Providers           map[string]ResourceProviderFactory
+	ProviderCache       map[string]ResourceProvider
+	ProviderConfigCache map[string]*ResourceConfig
+	ProviderLock        *sync.Mutex
+	Provisioners        map[string]ResourceProvisionerFactory
+	ProvisionerCache    map[string]ResourceProvisioner
+	ProvisionerLock     *sync.Mutex
 
 	once sync.Once
 }
@@ -47,7 +48,7 @@ func (ctx *BuiltinEvalContext) InitProvider(n string) (ResourceProvider, error) 
 		return nil, err
 	}
 
-	ctx.ProviderCache[ctx.pathCacheKey()] = p
+	ctx.ProviderCache[ctx.pathCacheKey(ctx.Path())] = p
 	return p, nil
 }
 
@@ -57,7 +58,37 @@ func (ctx *BuiltinEvalContext) Provider(n string) ResourceProvider {
 	ctx.ProviderLock.Lock()
 	defer ctx.ProviderLock.Unlock()
 
-	return ctx.ProviderCache[ctx.pathCacheKey()]
+	return ctx.ProviderCache[ctx.pathCacheKey(ctx.Path())]
+}
+
+func (ctx *BuiltinEvalContext) ConfigureProvider(
+	n string, cfg *ResourceConfig) error {
+	p := ctx.Provider(n)
+	if p == nil {
+		return fmt.Errorf("Provider '%s' not initialized", n)
+	}
+
+	// Save the configuration
+	ctx.ProviderLock.Lock()
+	ctx.ProviderConfigCache[ctx.pathCacheKey(ctx.Path())] = cfg
+	ctx.ProviderLock.Unlock()
+
+	return p.Configure(cfg)
+}
+
+func (ctx *BuiltinEvalContext) ParentProviderConfig(n string) *ResourceConfig {
+	ctx.ProviderLock.Lock()
+	defer ctx.ProviderLock.Unlock()
+
+	path := ctx.Path()
+	for i := len(path) - 1; i >= 1; i-- {
+		k := ctx.pathCacheKey(path[:i])
+		if v, ok := ctx.ProviderConfigCache[k]; ok {
+			return v
+		}
+	}
+
+	return nil
 }
 
 func (ctx *BuiltinEvalContext) InitProvisioner(
@@ -84,7 +115,7 @@ func (ctx *BuiltinEvalContext) InitProvisioner(
 		return nil, err
 	}
 
-	ctx.ProvisionerCache[ctx.pathCacheKey()] = p
+	ctx.ProvisionerCache[ctx.pathCacheKey(ctx.Path())] = p
 	return p, nil
 }
 
@@ -94,7 +125,7 @@ func (ctx *BuiltinEvalContext) Provisioner(n string) ResourceProvisioner {
 	ctx.ProvisionerLock.Lock()
 	defer ctx.ProvisionerLock.Unlock()
 
-	return ctx.ProvisionerCache[ctx.pathCacheKey()]
+	return ctx.ProvisionerCache[ctx.pathCacheKey(ctx.Path())]
 }
 
 func (ctx *BuiltinEvalContext) Interpolate(
@@ -137,12 +168,12 @@ func (ctx *BuiltinEvalContext) init() {
 //
 // This is used because there is a variety of information that needs to be
 // cached per-path, rather than per-context.
-func (ctx *BuiltinEvalContext) pathCacheKey() string {
+func (ctx *BuiltinEvalContext) pathCacheKey(path []string) string {
 	// There is probably a better way to do this, but this is working for now.
 	// We just create an MD5 hash of all the MD5 hashes of all the path
 	// elements. This gets us the property that it is unique per ordering.
 	hash := md5.New()
-	for _, p := range ctx.Path() {
+	for _, p := range path {
 		single := md5.Sum([]byte(p))
 		if _, err := hash.Write(single[:]); err != nil {
 			panic(err)

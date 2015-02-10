@@ -15,7 +15,7 @@ func TestEvalConfigProvider(t *testing.T) {
 	n := &EvalConfigProvider{}
 
 	ctx := &MockEvalContext{ProviderProvider: provider}
-	args := []interface{}{provider, config}
+	args := []interface{}{config}
 	if actual, err := n.Eval(ctx, args); err != nil {
 		t.Fatalf("err: %s", err)
 	} else if actual != nil {
@@ -32,14 +32,12 @@ func TestEvalConfigProvider(t *testing.T) {
 
 func TestEvalConfigProvider_args(t *testing.T) {
 	config := testResourceConfig(t, map[string]interface{}{})
-	provider := &MockResourceProvider{}
-	providerNode := &EvalLiteral{Value: provider}
 	configNode := &EvalLiteral{Value: config}
-	n := &EvalConfigProvider{Provider: providerNode, Config: configNode}
+	n := &EvalConfigProvider{Provider: "foo", Config: configNode}
 
 	args, types := n.Args()
-	expectedArgs := []EvalNode{providerNode, configNode}
-	expectedTypes := []EvalType{EvalTypeResourceProvider, EvalTypeConfig}
+	expectedArgs := []EvalNode{configNode}
+	expectedTypes := []EvalType{EvalTypeConfig}
 	if !reflect.DeepEqual(args, expectedArgs) {
 		t.Fatalf("bad: %#v", args)
 	}
