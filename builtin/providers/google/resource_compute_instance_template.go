@@ -77,6 +77,7 @@ func resourceComputeInstanceTemplate() *schema.Resource {
 
 						"disk_name": &schema.Schema{
 							Type:     schema.TypeString,
+							Optional: true,
 							ForceNew: true,
 						},
 
