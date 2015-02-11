@@ -365,8 +365,7 @@ func TestContext2Refresh_state(t *testing.T) {
 	}
 }
 
-/*
-func TestContextRefresh_tainted(t *testing.T) {
+func TestContext2Refresh_tainted(t *testing.T) {
 	p := testProvider("aws")
 	m := testModule(t, "refresh-basic")
 	state := &State{
@@ -386,7 +385,7 @@ func TestContextRefresh_tainted(t *testing.T) {
 			},
 		},
 	}
-	ctx := testContext(t, &ContextOpts{
+	ctx := testContext2(t, &ContextOpts{
 		Module: m,
 		Providers: map[string]ResourceProviderFactory{
 			"aws": testProviderFuncFixed(p),
@@ -414,6 +413,7 @@ func TestContextRefresh_tainted(t *testing.T) {
 	}
 }
 
+/*
 func TestContextRefresh_vars(t *testing.T) {
 	p := testProvider("aws")
 	m := testModule(t, "refresh-vars")
