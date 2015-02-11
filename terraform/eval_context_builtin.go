@@ -22,6 +22,8 @@ type BuiltinEvalContext struct {
 	Provisioners        map[string]ResourceProvisionerFactory
 	ProvisionerCache    map[string]ResourceProvisioner
 	ProvisionerLock     *sync.Mutex
+	DiffValue           *Diff
+	DiffLock            *sync.RWMutex
 	StateValue          *State
 	StateLock           *sync.RWMutex
 
@@ -175,6 +177,10 @@ func (ctx *BuiltinEvalContext) Interpolate(
 
 func (ctx *BuiltinEvalContext) Path() []string {
 	return ctx.PathValue
+}
+
+func (ctx *BuiltinEvalContext) Diff() (*Diff, *sync.RWMutex) {
+	return ctx.DiffValue, ctx.DiffLock
 }
 
 func (ctx *BuiltinEvalContext) State() (*State, *sync.RWMutex) {
