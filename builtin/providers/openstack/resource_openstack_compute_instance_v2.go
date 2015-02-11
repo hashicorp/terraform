@@ -674,10 +674,14 @@ func getFloatingIPs(networkingClient *gophercloud.ServiceClient) ([]floatingips.
 
 func getImageID(client *gophercloud.ServiceClient, d *schema.ResourceData) (string, error) {
 	imageId := d.Get("image_id").(string)
-	imageName := d.Get("image_name").(string)
-	imageCount := 0
 
-	if imageId == "" && imageName != "" {
+	if imageId != "" {
+		return imageId, nil
+	}
+
+	imageCount := 0
+	imageName := d.Get("image_name").(string)
+	if imageName != "" {
 		pager := images.ListDetail(client, &images.ListOpts{
 			Name: imageName,
 		})
@@ -705,11 +709,5 @@ func getImageID(client *gophercloud.ServiceClient, d *schema.ResourceData) (stri
 			return "", fmt.Errorf("Found %d images matching %s", imageCount, imageName)
 		}
 	}
-
-	if imageId == "" && imageName == "" {
-		return "", fmt.Errorf("Neither an image ID nor an image name were able to be determined.")
-	}
-
-	return imageId, nil
-
+	return "", fmt.Errorf("Neither an image ID nor an image name were able to be determined.")
 }
