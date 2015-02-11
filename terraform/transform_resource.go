@@ -72,8 +72,8 @@ func (n *graphNodeExpandedResource) DependentOn() []string {
 }
 
 // GraphNodeProviderConsumer
-func (n *graphNodeExpandedResource) ProvidedBy() string {
-	return resourceProvider(n.Resource.Type)
+func (n *graphNodeExpandedResource) ProvidedBy() []string {
+	return []string{resourceProvider(n.Resource.Type)}
 }
 
 // GraphNodeEvalable impl.
@@ -82,7 +82,7 @@ func (n *graphNodeExpandedResource) EvalTree() EvalNode {
 
 	// Validate the resource
 	seq.Nodes = append(seq.Nodes, &EvalValidateResource{
-		Provider:     &EvalGetProvider{Name: n.ProvidedBy()},
+		Provider:     &EvalGetProvider{Name: n.ProvidedBy()[0]},
 		Config:       &EvalInterpolate{Config: n.Resource.RawConfig},
 		ResourceName: n.Resource.Name,
 		ResourceType: n.Resource.Type,
@@ -109,7 +109,7 @@ func (n *graphNodeExpandedResource) EvalTree() EvalNode {
 			Dependencies: n.DependentOn(),
 			State: &EvalRefresh{
 				Info:     info,
-				Provider: &EvalGetProvider{Name: n.ProvidedBy()},
+				Provider: &EvalGetProvider{Name: n.ProvidedBy()[0]},
 				State:    &EvalReadState{Name: n.stateId()},
 			},
 		},
