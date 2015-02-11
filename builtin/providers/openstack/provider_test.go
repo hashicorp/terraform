@@ -58,8 +58,9 @@ func testAccPreCheck(t *testing.T) {
 	}
 	OS_POOL_NAME = v
 
-	v = os.Getenv("OS_FLAVOR_ID")
-	if v == "" {
-		t.Fatal("OS_FLAVOR_ID must be set for acceptance tests")
+	v1 = os.Getenv("OS_FLAVOR_ID")
+	v2 = os.Getenv("OS_FLAVOR_NAME")
+	if v1 == "" && v2 == "" {
+		t.Fatal("OS_FLAVOR_ID or OS_FLAVOR_NAME must be set for acceptance tests")
 	}
 }
