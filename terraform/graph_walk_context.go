@@ -43,6 +43,8 @@ func (w *ContextGraphWalker) EnterGraph(g *Graph) EvalContext {
 		Provisioners:        w.Context.provisioners,
 		ProvisionerCache:    w.provisionerCache,
 		ProvisionerLock:     &w.provisionerLock,
+		StateValue:          w.Context.state,
+		StateLock:           &w.Context.stateLock,
 		Interpolater: &Interpolater{
 			Operation: w.Operation,
 			Module:    w.Context.module,

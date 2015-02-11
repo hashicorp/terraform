@@ -96,10 +96,29 @@ func (n *graphNodeExpandedResource) EvalTree() EvalNode {
 		})
 	}
 
+	// Refresh the resource
+	seq.Nodes = append(seq.Nodes, &EvalOpFilter{
+		Ops: []walkOperation{walkRefresh},
+		Node: &EvalWriteState{
+			Name:         n.stateId(),
+			ResourceType: n.Resource.Type,
+			Dependencies: n.DependentOn(),
+			State: &EvalRefresh{
+				Provider: &EvalGetProvider{Name: n.ProvidedBy()},
+				State:    &EvalReadState{Name: n.stateId()},
+				Info:     &InstanceInfo{Id: n.stateId(), Type: n.Resource.Type},
+			},
+		},
+	})
+
 	return seq
 }
 
 // stateId is the name used for the state key
 func (n *graphNodeExpandedResource) stateId() string {
+	if n.Index == 0 {
+		return n.Resource.Id()
+	}
+
 	return fmt.Sprintf("%s.%d", n.Resource.Id(), n.Index)
 }
