@@ -1,6 +1,8 @@
 package hashcode
 
-import "hash/crc32"
+import (
+	"hash/crc32"
+)
 
 // String hashes a string to a unique hashcode.
 //
@@ -12,5 +14,6 @@ func String(s string) int {
 	if v < 0 {
 		return -v
 	}
+
 	return v
 }

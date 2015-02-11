@@ -1,6 +1,8 @@
 package hashcode
 
-import "testing"
+import (
+	"testing"
+)
 
 func TestString(t *testing.T) {
 	v := "hello, world"
@@ -16,8 +18,7 @@ func TestString(t *testing.T) {
 func TestString_positiveIndex(t *testing.T) {
 	ips := []string{"192.168.1.3", "192.168.1.5"}
 	for _, ip := range ips {
-		index := String(ip)
-		if index < 0 {
+		if index := String(ip); index < 0 {
 			t.Fatalf("Bad Index %#v for ip %s", index, ip)
 		}
 	}
