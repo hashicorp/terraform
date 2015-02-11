@@ -34,8 +34,7 @@ func TestContext2Plan(t *testing.T) {
 	}
 }
 
-/*
-func TestContextPlan_emptyDiff(t *testing.T) {
+func TestContext2Plan_emptyDiff(t *testing.T) {
 	m := testModule(t, "plan-empty")
 	p := testProvider("aws")
 	p.DiffFn = func(
@@ -45,7 +44,7 @@ func TestContextPlan_emptyDiff(t *testing.T) {
 		return nil, nil
 	}
 
-	ctx := testContext(t, &ContextOpts{
+	ctx := testContext2(t, &ContextOpts{
 		Module: m,
 		Providers: map[string]ResourceProviderFactory{
 			"aws": testProviderFuncFixed(p),
@@ -64,11 +63,11 @@ func TestContextPlan_emptyDiff(t *testing.T) {
 	}
 }
 
-func TestContextPlan_minimal(t *testing.T) {
+func TestContext2Plan_minimal(t *testing.T) {
 	m := testModule(t, "plan-empty")
 	p := testProvider("aws")
 	p.DiffFn = testDiffFn
-	ctx := testContext(t, &ContextOpts{
+	ctx := testContext2(t, &ContextOpts{
 		Module: m,
 		Providers: map[string]ResourceProviderFactory{
 			"aws": testProviderFuncFixed(p),
@@ -87,11 +86,11 @@ func TestContextPlan_minimal(t *testing.T) {
 	}
 }
 
-func TestContextPlan_modules(t *testing.T) {
+func TestContext2Plan_modules(t *testing.T) {
 	m := testModule(t, "plan-modules")
 	p := testProvider("aws")
 	p.DiffFn = testDiffFn
-	ctx := testContext(t, &ContextOpts{
+	ctx := testContext2(t, &ContextOpts{
 		Module: m,
 		Providers: map[string]ResourceProviderFactory{
 			"aws": testProviderFuncFixed(p),
@@ -110,6 +109,7 @@ func TestContextPlan_modules(t *testing.T) {
 	}
 }
 
+/*
 func TestContextPlan_moduleInput(t *testing.T) {
 	m := testModule(t, "plan-module-input")
 	p := testProvider("aws")
