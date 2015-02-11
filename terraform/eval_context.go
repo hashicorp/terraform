@@ -49,6 +49,10 @@ type EvalContext interface {
 	// that is currently being acted upon.
 	Interpolate(*config.RawConfig, *Resource) (*ResourceConfig, error)
 
+	// Diff returns the global diff as well as the lock that should
+	// be used to modify that diff.
+	Diff() (*Diff, *sync.RWMutex)
+
 	// State returns the global state as well as the lock that should
 	// be used to modify that state.
 	State() (*State, *sync.RWMutex)
@@ -95,6 +99,10 @@ type MockEvalContext struct {
 
 	PathCalled bool
 	PathPath   []string
+
+	DiffCalled bool
+	DiffDiff   *Diff
+	DiffLock   *sync.RWMutex
 
 	StateCalled bool
 	StateState  *State
@@ -154,6 +162,11 @@ func (c *MockEvalContext) Interpolate(
 func (c *MockEvalContext) Path() []string {
 	c.PathCalled = true
 	return c.PathPath
+}
+
+func (c *MockEvalContext) Diff() (*Diff, *sync.RWMutex) {
+	c.DiffCalled = true
+	return c.DiffDiff, c.DiffLock
 }
 
 func (c *MockEvalContext) State() (*State, *sync.RWMutex) {

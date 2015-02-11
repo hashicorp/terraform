@@ -115,6 +115,32 @@ func (n *graphNodeExpandedResource) EvalTree() EvalNode {
 		},
 	})
 
+	// Diff the resource
+	var diff InstanceDiff
+	seq.Nodes = append(seq.Nodes, &EvalOpFilter{
+		Ops: []walkOperation{walkPlan},
+		Node: &EvalSequence{
+			Nodes: []EvalNode{
+				&EvalWriteState{
+					Name:         n.stateId(),
+					ResourceType: n.Resource.Type,
+					Dependencies: n.DependentOn(),
+					State: &EvalDiff{
+						Info:     info,
+						Config:   &EvalInterpolate{Config: n.Resource.RawConfig},
+						Provider: &EvalGetProvider{Name: n.ProvidedBy()[0]},
+						State:    &EvalReadState{Name: n.stateId()},
+						Output:   &diff,
+					},
+				},
+				&EvalWriteDiff{
+					Name: n.stateId(),
+					Diff: &diff,
+				},
+			},
+		},
+	})
+
 	return seq
 }
 
