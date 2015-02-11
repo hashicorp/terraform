@@ -22,6 +22,11 @@ func (n *EvalRefresh) Eval(
 		state = args[1].(*InstanceState)
 	}
 
+	// If we have no state, we don't do any refreshing
+	if state == nil {
+		return nil, nil
+	}
+
 	n.Info.ModulePath = ctx.Path()
 	return provider.Refresh(n.Info, state)
 }
