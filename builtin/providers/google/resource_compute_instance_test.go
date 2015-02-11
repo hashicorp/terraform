@@ -54,6 +54,50 @@ func TestAccComputeInstance_basic(t *testing.T) {
 	})
 }
 
+func TestAccComputeInstance_basic2(t *testing.T) {
+	var instance compute.Instance
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckComputeInstanceDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccComputeInstance_basic2,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckComputeInstanceExists(
+						"google_compute_instance.foobar", &instance),
+					testAccCheckComputeInstanceTag(&instance, "foo"),
+					testAccCheckComputeInstanceMetadata(&instance, "foo", "bar"),
+					testAccCheckComputeInstanceDisk(&instance, "terraform-test", true, true),
+				),
+			},
+		},
+	})
+}
+
+func TestAccComputeInstance_basic3(t *testing.T) {
+	var instance compute.Instance
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckComputeInstanceDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccComputeInstance_basic3,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckComputeInstanceExists(
+						"google_compute_instance.foobar", &instance),
+					testAccCheckComputeInstanceTag(&instance, "foo"),
+					testAccCheckComputeInstanceMetadata(&instance, "foo", "bar"),
+					testAccCheckComputeInstanceDisk(&instance, "terraform-test", true, true),
+				),
+			},
+		},
+	})
+}
+
 func TestAccComputeInstance_IP(t *testing.T) {
 	var instance compute.Instance
 
@@ -334,6 +378,49 @@ resource "google_compute_instance" "foobar" {
 
 	disk {
 		image = "debian-7-wheezy-v20140814"
+	}
+
+	network_interface {
+		network = "default"
+	}
+
+	metadata {
+		foo = "bar"
+	}
+}`
+
+const testAccComputeInstance_basic2 = `
+resource "google_compute_instance" "foobar" {
+	name = "terraform-test"
+	machine_type = "n1-standard-1"
+	zone = "us-central1-a"
+	can_ip_forward = false
+	tags = ["foo", "bar"]
+
+	disk {
+		image = "debian-cloud/debian-7-wheezy-v20140814"
+	}
+
+	network_interface {
+		network = "default"
+	}
+
+
+	metadata {
+		foo = "bar"
+	}
+}`
+
+const testAccComputeInstance_basic3 = `
+resource "google_compute_instance" "foobar" {
+	name = "terraform-test"
+	machine_type = "n1-standard-1"
+	zone = "us-central1-a"
+	can_ip_forward = false
+	tags = ["foo", "bar"]
+
+	disk {
+		image = "https://www.googleapis.com/compute/v1/projects/debian-cloud/global/images/debian-7-wheezy-v20140814"
 	}
 
 	network_interface {
