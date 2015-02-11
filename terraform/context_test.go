@@ -161,8 +161,7 @@ func TestContext2Refresh_hook(t *testing.T) {
 	}
 }
 
-/*
-func TestContextRefresh_modules(t *testing.T) {
+func TestContext2Refresh_modules(t *testing.T) {
 	p := testProvider("aws")
 	m := testModule(t, "refresh-modules")
 	state := &State{
@@ -194,7 +193,7 @@ func TestContextRefresh_modules(t *testing.T) {
 			},
 		},
 	}
-	ctx := testContext(t, &ContextOpts{
+	ctx := testContext2(t, &ContextOpts{
 		Module: m,
 		Providers: map[string]ResourceProviderFactory{
 			"aws": testProviderFuncFixed(p),
@@ -223,11 +222,11 @@ func TestContextRefresh_modules(t *testing.T) {
 	}
 }
 
-func TestContextRefresh_moduleInputComputedOutput(t *testing.T) {
+func TestContext2Refresh_moduleInputComputedOutput(t *testing.T) {
 	m := testModule(t, "refresh-module-input-computed-output")
 	p := testProvider("aws")
 	p.DiffFn = testDiffFn
-	ctx := testContext(t, &ContextOpts{
+	ctx := testContext2(t, &ContextOpts{
 		Module: m,
 		Providers: map[string]ResourceProviderFactory{
 			"aws": testProviderFuncFixed(p),
@@ -239,11 +238,11 @@ func TestContextRefresh_moduleInputComputedOutput(t *testing.T) {
 	}
 }
 
-func TestContextRefresh_moduleVarModule(t *testing.T) {
+func TestContext2Refresh_moduleVarModule(t *testing.T) {
 	m := testModule(t, "refresh-module-var-module")
 	p := testProvider("aws")
 	p.DiffFn = testDiffFn
-	ctx := testContext(t, &ContextOpts{
+	ctx := testContext2(t, &ContextOpts{
 		Module: m,
 		Providers: map[string]ResourceProviderFactory{
 			"aws": testProviderFuncFixed(p),
@@ -256,10 +255,10 @@ func TestContextRefresh_moduleVarModule(t *testing.T) {
 }
 
 // GH-70
-func TestContextRefresh_noState(t *testing.T) {
+func TestContext2Refresh_noState(t *testing.T) {
 	p := testProvider("aws")
 	m := testModule(t, "refresh-no-state")
-	ctx := testContext(t, &ContextOpts{
+	ctx := testContext2(t, &ContextOpts{
 		Module: m,
 		Providers: map[string]ResourceProviderFactory{
 			"aws": testProviderFuncFixed(p),
@@ -276,10 +275,10 @@ func TestContextRefresh_noState(t *testing.T) {
 	}
 }
 
-func TestContextRefresh_outputPartial(t *testing.T) {
+func TestContext2Refresh_outputPartial(t *testing.T) {
 	p := testProvider("aws")
 	m := testModule(t, "refresh-output-partial")
-	ctx := testContext(t, &ContextOpts{
+	ctx := testContext2(t, &ContextOpts{
 		Module: m,
 		Providers: map[string]ResourceProviderFactory{
 			"aws": testProviderFuncFixed(p),
@@ -316,6 +315,7 @@ func TestContextRefresh_outputPartial(t *testing.T) {
 	}
 }
 
+/*
 func TestContextRefresh_state(t *testing.T) {
 	p := testProvider("aws")
 	m := testModule(t, "refresh-basic")
