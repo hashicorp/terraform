@@ -27,6 +27,12 @@ type GraphNodeEvalable interface {
 	EvalTree() EvalNode
 }
 
+// EvalEarlyExitError is a special error return value that can be returned
+// by eval nodes that does an early exit.
+type EvalEarlyExitError struct{}
+
+func (EvalEarlyExitError) Error() string { return "early exit" }
+
 // Eval evaluates the given EvalNode with the given context, properly
 // evaluating all args in the correct order.
 func Eval(n EvalNode, ctx EvalContext) (interface{}, error) {
