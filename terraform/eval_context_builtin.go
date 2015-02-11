@@ -14,6 +14,7 @@ import (
 type BuiltinEvalContext struct {
 	PathValue           []string
 	Interpolater        *Interpolater
+	Hooks               []Hook
 	Providers           map[string]ResourceProviderFactory
 	ProviderCache       map[string]ResourceProvider
 	ProviderConfigCache map[string]*ResourceConfig
@@ -25,6 +26,25 @@ type BuiltinEvalContext struct {
 	StateLock           *sync.RWMutex
 
 	once sync.Once
+}
+
+func (ctx *BuiltinEvalContext) Hook(fn func(Hook) (HookAction, error)) error {
+	for _, h := range ctx.Hooks {
+		action, err := fn(h)
+		if err != nil {
+			return err
+		}
+
+		switch action {
+		case HookActionContinue:
+			continue
+		case HookActionHalt:
+			// Return an early exit error to trigger an early exit
+			return EvalEarlyExitError{}
+		}
+	}
+
+	return nil
 }
 
 func (ctx *BuiltinEvalContext) InitProvider(n string) (ResourceProvider, error) {

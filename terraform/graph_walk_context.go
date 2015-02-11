@@ -36,6 +36,7 @@ func (w *ContextGraphWalker) EnterGraph(g *Graph) EvalContext {
 
 	return &BuiltinEvalContext{
 		PathValue:           g.Path,
+		Hooks:               w.Context.hooks,
 		Providers:           w.Context.providers,
 		ProviderCache:       w.providerCache,
 		ProviderConfigCache: w.providerConfigCache,
