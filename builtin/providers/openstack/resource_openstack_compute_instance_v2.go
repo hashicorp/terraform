@@ -781,5 +781,5 @@ func getFlavorID(client *gophercloud.ServiceClient, d *schema.ResourceData) (str
 			return "", fmt.Errorf("Found %d flavors matching %s", flavorCount, flavorName)
 		}
 	}
-	return "", fmt.Errorf("Neither an flavor ID nor an flavor name were able to be determined.")
+	return "", fmt.Errorf("Neither a flavor ID nor a flavor name were able to be determined.")
 }
