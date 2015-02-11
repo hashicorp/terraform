@@ -45,12 +45,14 @@ func resourceComputeInstanceV2() *schema.Resource {
 				Type:        schema.TypeString,
 				Optional:    true,
 				ForceNew:    true,
+				Computed:    true,
 				DefaultFunc: envDefaultFunc("OS_IMAGE_ID"),
 			},
 			"image_name": &schema.Schema{
 				Type:        schema.TypeString,
 				Optional:    true,
 				ForceNew:    true,
+				Computed:    true,
 				DefaultFunc: envDefaultFunc("OS_IMAGE_NAME"),
 			},
 			"flavor_id": &schema.Schema{
@@ -352,6 +354,18 @@ func resourceComputeInstanceV2Read(d *schema.ResourceData, meta interface{}) err
 		return err
 	}
 	d.Set("flavor_name", flavor.Name)
+
+	imageId, ok := server.Image["id"].(string)
+	if !ok {
+		return fmt.Errorf("Error setting OpenStack server's image: %v", server.Image)
+	}
+	d.Set("image_id", imageId)
+
+	image, err := images.Get(computeClient, imageId).Extract()
+	if err != nil {
+		return err
+	}
+	d.Set("image_name", image.Name)
 
 	return nil
 }
