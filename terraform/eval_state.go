@@ -7,7 +7,9 @@ import (
 // EvalReadState is an EvalNode implementation that reads the
 // InstanceState for a specific resource out of the state.
 type EvalReadState struct {
-	Name string
+	Name         string
+	Tainted      bool
+	TaintedIndex int
 }
 
 func (n *EvalReadState) Args() ([]EvalNode, []EvalType) {
@@ -35,8 +37,13 @@ func (n *EvalReadState) Eval(
 		return nil, nil
 	}
 
-	// Return the primary
-	return rs.Primary, nil
+	if !n.Tainted {
+		// Return the primary
+		return rs.Primary, nil
+	} else {
+		// Return the proper tainted resource
+		return rs.Tainted[n.TaintedIndex], nil
+	}
 }
 
 func (n *EvalReadState) Type() EvalType {
@@ -50,6 +57,8 @@ type EvalWriteState struct {
 	ResourceType string
 	Dependencies []string
 	State        EvalNode
+	Tainted      bool
+	TaintedIndex int
 }
 
 func (n *EvalWriteState) Args() ([]EvalNode, []EvalType) {
@@ -89,8 +98,14 @@ func (n *EvalWriteState) Eval(
 	rs.Type = n.ResourceType
 	rs.Dependencies = n.Dependencies
 
-	// Set the primary state
-	rs.Primary = instanceState
+	if n.Tainted {
+		if n.TaintedIndex != -1 {
+			rs.Tainted[n.TaintedIndex] = instanceState
+		}
+	} else {
+		// Set the primary state
+		rs.Primary = instanceState
+	}
 
 	// Prune because why not, we can clear out old useless entries now
 	rs.prune()

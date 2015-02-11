@@ -34,6 +34,7 @@ func (t *TaintedTransformer) Transform(g *Graph) error {
 			g.ConnectFrom(k, g.Add(&graphNodeTaintedResource{
 				Index:        i,
 				ResourceName: k,
+				ResourceType: rs.Type,
 			}))
 		}
 	}
@@ -47,6 +48,7 @@ func (t *TaintedTransformer) Transform(g *Graph) error {
 type graphNodeTaintedResource struct {
 	Index        int
 	ResourceName string
+	ResourceType string
 }
 
 func (n *graphNodeTaintedResource) DependentOn() []string {
@@ -59,4 +61,36 @@ func (n *graphNodeTaintedResource) Name() string {
 
 func (n *graphNodeTaintedResource) ProvidedBy() []string {
 	return []string{resourceProvider(n.ResourceName)}
+}
+
+// GraphNodeEvalable impl.
+func (n *graphNodeTaintedResource) EvalTree() EvalNode {
+	seq := &EvalSequence{Nodes: make([]EvalNode, 0, 5)}
+
+	// Build instance info
+	info := &InstanceInfo{Id: n.ResourceName, Type: n.ResourceType}
+	seq.Nodes = append(seq.Nodes, &EvalInstanceInfo{Info: info})
+
+	// Refresh the resource
+	seq.Nodes = append(seq.Nodes, &EvalOpFilter{
+		Ops: []walkOperation{walkRefresh},
+		Node: &EvalWriteState{
+			Name:         n.ResourceName,
+			ResourceType: n.ResourceType,
+			Dependencies: n.DependentOn(),
+			Tainted:      true,
+			TaintedIndex: n.Index,
+			State: &EvalRefresh{
+				Info:     info,
+				Provider: &EvalGetProvider{Name: n.ProvidedBy()[0]},
+				State: &EvalReadState{
+					Name:         n.ResourceName,
+					Tainted:      true,
+					TaintedIndex: n.Index,
+				},
+			},
+		},
+	})
+
+	return seq
 }
