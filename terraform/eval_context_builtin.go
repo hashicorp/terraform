@@ -21,6 +21,8 @@ type BuiltinEvalContext struct {
 	Provisioners        map[string]ResourceProvisionerFactory
 	ProvisionerCache    map[string]ResourceProvisioner
 	ProvisionerLock     *sync.Mutex
+	StateValue          *State
+	StateLock           *sync.RWMutex
 
 	once sync.Once
 }
@@ -153,6 +155,10 @@ func (ctx *BuiltinEvalContext) Interpolate(
 
 func (ctx *BuiltinEvalContext) Path() []string {
 	return ctx.PathValue
+}
+
+func (ctx *BuiltinEvalContext) State() (*State, *sync.RWMutex) {
+	return ctx.StateValue, ctx.StateLock
 }
 
 func (ctx *BuiltinEvalContext) init() {

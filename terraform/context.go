@@ -83,7 +83,7 @@ func (c *Context2) Refresh() (*State, []error) {
 		return nil, multierror.Append(errs, err).Errors
 	}
 
-	return nil, nil
+	return c.state, nil
 }
 
 // Validate validates the configuration and returns any warnings or errors.

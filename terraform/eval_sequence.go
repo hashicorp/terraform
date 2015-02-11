@@ -31,3 +31,10 @@ func (n *EvalSequence) Type() EvalType {
 
 	return n.Nodes[len(n.Nodes)-1].Type()
 }
+
+// EvalNodeFilterable impl.
+func (n *EvalSequence) Filter(fn EvalNodeFilterFunc) {
+	for i, node := range n.Nodes {
+		n.Nodes[i] = fn(node)
+	}
+}

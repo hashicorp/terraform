@@ -1,6 +1,8 @@
 package terraform
 
 import (
+	"sync"
+
 	"github.com/hashicorp/terraform/config"
 )
 
@@ -42,6 +44,10 @@ type EvalContext interface {
 	// The resource argument is optional. If given, it is the resource
 	// that is currently being acted upon.
 	Interpolate(*config.RawConfig, *Resource) (*ResourceConfig, error)
+
+	// State returns the global state as well as the lock that should
+	// be used to modify that state.
+	State() (*State, *sync.RWMutex)
 }
 
 // MockEvalContext is a mock version of EvalContext that can be used
@@ -82,6 +88,10 @@ type MockEvalContext struct {
 
 	PathCalled bool
 	PathPath   []string
+
+	StateCalled bool
+	StateState  *State
+	StateLock   *sync.RWMutex
 }
 
 func (c *MockEvalContext) InitProvider(n string) (ResourceProvider, error) {
@@ -132,4 +142,9 @@ func (c *MockEvalContext) Interpolate(
 func (c *MockEvalContext) Path() []string {
 	c.PathCalled = true
 	return c.PathPath
+}
+
+func (c *MockEvalContext) State() (*State, *sync.RWMutex) {
+	c.StateCalled = true
+	return c.StateState, c.StateLock
 }

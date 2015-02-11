@@ -21,3 +21,38 @@ func EvalNodeFilterOp(op walkOperation) EvalNodeFilterFunc {
 		return EvalNoop{}
 	}
 }
+
+// EvalOpFilter is an EvalNode implementation that is a proxy to
+// another node but filters based on the operation.
+type EvalOpFilter struct {
+	// Ops is the list of operations to include this node in.
+	Ops []walkOperation
+
+	// Node is the node to execute
+	Node EvalNode
+}
+
+func (n *EvalOpFilter) Args() ([]EvalNode, []EvalType) {
+	return []EvalNode{n.Node}, []EvalType{n.Node.Type()}
+}
+
+// TODO: test
+func (n *EvalOpFilter) Eval(
+	ctx EvalContext, args []interface{}) (interface{}, error) {
+	return args[0], nil
+}
+
+func (n *EvalOpFilter) Type() EvalType {
+	return n.Node.Type()
+}
+
+// EvalNodeOpFilterable impl.
+func (n *EvalOpFilter) IncludeInOp(op walkOperation) bool {
+	for _, v := range n.Ops {
+		if v == op {
+			return true
+		}
+	}
+
+	return false
+}

@@ -17,4 +17,5 @@ const (
 	EvalTypeConfig                                   // *ResourceConfig
 	EvalTypeResourceProvider                         // ResourceProvider
 	EvalTypeResourceProvisioner                      // ResourceProvisioner
+	EvalTypeInstanceState                            // *InstanceState
 )
