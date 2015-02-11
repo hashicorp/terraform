@@ -11,6 +11,10 @@ type EvalContext interface {
 	// Path is the current module path.
 	Path() []string
 
+	// Hook is used to call hook methods. The callback is called for each
+	// hook and should return the hook action to take and the error.
+	Hook(func(Hook) (HookAction, error)) error
+
 	// InitProvider initializes the provider with the given name and
 	// returns the implementation of the resource provider or an error.
 	//
@@ -53,6 +57,9 @@ type EvalContext interface {
 // MockEvalContext is a mock version of EvalContext that can be used
 // for tests.
 type MockEvalContext struct {
+	HookCalled bool
+	HookError  error
+
 	InitProviderCalled   bool
 	InitProviderName     string
 	InitProviderProvider ResourceProvider
@@ -92,6 +99,11 @@ type MockEvalContext struct {
 	StateCalled bool
 	StateState  *State
 	StateLock   *sync.RWMutex
+}
+
+func (c *MockEvalContext) Hook(fn func(Hook) (HookAction, error)) error {
+	c.HookCalled = true
+	return c.HookError
 }
 
 func (c *MockEvalContext) InitProvider(n string) (ResourceProvider, error) {

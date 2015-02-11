@@ -123,12 +123,11 @@ func TestContext2Refresh_ignoreUncreated(t *testing.T) {
 	}
 }
 
-/*
-func TestContextRefresh_hook(t *testing.T) {
+func TestContext2Refresh_hook(t *testing.T) {
 	h := new(MockHook)
 	p := testProvider("aws")
 	m := testModule(t, "refresh-basic")
-	ctx := testContext(t, &ContextOpts{
+	ctx := testContext2(t, &ContextOpts{
 		Module: m,
 		Hooks:  []Hook{h},
 		Providers: map[string]ResourceProviderFactory{
@@ -162,6 +161,7 @@ func TestContextRefresh_hook(t *testing.T) {
 	}
 }
 
+/*
 func TestContextRefresh_modules(t *testing.T) {
 	p := testProvider("aws")
 	m := testModule(t, "refresh-modules")

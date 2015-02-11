@@ -26,6 +26,7 @@ type ContextOpts struct {
 // perform operations on infrastructure. This structure is built using
 // NewContext. See the documentation for that.
 type Context2 struct {
+	hooks        []Hook
 	module       *module.Tree
 	providers    map[string]ResourceProviderFactory
 	provisioners map[string]ResourceProvisionerFactory
@@ -41,6 +42,7 @@ type Context2 struct {
 // the values themselves.
 func NewContext2(opts *ContextOpts) *Context2 {
 	return &Context2{
+		hooks:        opts.Hooks,
 		module:       opts.Module,
 		providers:    opts.Providers,
 		provisioners: opts.Provisioners,

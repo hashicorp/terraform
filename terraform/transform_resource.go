@@ -96,6 +96,10 @@ func (n *graphNodeExpandedResource) EvalTree() EvalNode {
 		})
 	}
 
+	// Build instance info
+	info := &InstanceInfo{Id: n.stateId(), Type: n.Resource.Type}
+	seq.Nodes = append(seq.Nodes, &EvalInstanceInfo{Info: info})
+
 	// Refresh the resource
 	seq.Nodes = append(seq.Nodes, &EvalOpFilter{
 		Ops: []walkOperation{walkRefresh},
@@ -104,9 +108,9 @@ func (n *graphNodeExpandedResource) EvalTree() EvalNode {
 			ResourceType: n.Resource.Type,
 			Dependencies: n.DependentOn(),
 			State: &EvalRefresh{
+				Info:     info,
 				Provider: &EvalGetProvider{Name: n.ProvidedBy()},
 				State:    &EvalReadState{Name: n.stateId()},
-				Info:     &InstanceInfo{Id: n.stateId(), Type: n.Resource.Type},
 			},
 		},
 	})

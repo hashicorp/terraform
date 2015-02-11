@@ -27,8 +27,29 @@ func (n *EvalRefresh) Eval(
 		return nil, nil
 	}
 
-	n.Info.ModulePath = ctx.Path()
-	return provider.Refresh(n.Info, state)
+	// Call pre-refresh hook
+	err := ctx.Hook(func(h Hook) (HookAction, error) {
+		return h.PreRefresh(n.Info, state)
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	// Refresh!
+	state, err = provider.Refresh(n.Info, state)
+	if err != nil {
+		return nil, err
+	}
+
+	// Call post-refresh hook
+	err = ctx.Hook(func(h Hook) (HookAction, error) {
+		return h.PostRefresh(n.Info, state)
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return state, nil
 }
 
 func (n *EvalRefresh) Type() EvalType {
