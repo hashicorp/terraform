@@ -9,10 +9,10 @@ import (
 
 	"code.google.com/p/google-api-go-client/compute/v1"
 	// oauth2 "github.com/rasa/oauth2-fork-b3f9a68"
-	"github.com/rasa/oauth2-fork-b3f9a68"
+	"github.com/golang/oauth2"
 
 	// oauth2 "github.com/rasa/oauth2-fork-b3f9a68/google"
-	"github.com/rasa/oauth2-fork-b3f9a68/google"
+	"github.com/golang/oauth2/google"
 )
 
 const clientScopes string = "https://www.googleapis.com/auth/compute"
