@@ -213,7 +213,7 @@ func resourceAwsNetworkAclUpdate(d *schema.ResourceData, meta interface{}) error
 			for _, subnet := range add {
 				association, err := findNetworkAclAssociation(subnet, ec2conn)
 				if err != nil {
-					return fmt.Errorf("Failed to get the ID of the current association between the original network ACL and the subnet %s: ", subnet, err)
+					return fmt.Errorf("Failed to get the ID of the current association between the original network ACL and the subnet %s: %s", subnet, err)
 				}
 				_, err = ec2conn.ReplaceNetworkAclAssociation(association.NetworkAclAssociationId, d.Id())
 				if err != nil {
@@ -225,17 +225,17 @@ func resourceAwsNetworkAclUpdate(d *schema.ResourceData, meta interface{}) error
 			//we need to get a default newtwork acl and associate it with each subnet in remove list
 			defaultAcl, err := getDefaultNetworkAcl(d.Get("vpc_id").(string), ec2conn)
 			if err != nil {
-				return fmt.Errorf("Failed to get a default network acl for VPC %s", d.Get("vpc_id"), err)
+				return fmt.Errorf("Failed to get a default network acl for VPC %s: %s", d.Get("vpc_id"), err)
 			}
 
 			for _, subnet := range remove {
 				association, err := findNetworkAclAssociation(subnet, ec2conn)
 				if err != nil {
-					return fmt.Errorf("Failed to get the ID of the current association between the network ACL %s and the subnet %s: ", d.Id(), subnet, err)
+					return fmt.Errorf("Failed to get the ID of the current association between the network ACL %s and the subnet %s: %s", d.Id(), subnet, err)
 				}
 				_, err = ec2conn.ReplaceNetworkAclAssociation(association.NetworkAclAssociationId, defaultAcl.NetworkAclId)
 				if err != nil {
-					return fmt.Errorf("Failed to disassociate subnet %s from network acl %s: ", subnet, d.Id(), err)
+					return fmt.Errorf("Failed to disassociate subnet %s from network acl %s: %s", subnet, d.Id(), err)
 				}
 			}
 
@@ -312,18 +312,18 @@ func resourceAwsNetworkAclDelete(d *schema.ResourceData, meta interface{}) error
 				//we need to get a default newtwork acl and associate it with each subnet in remove list
 				defaultAcl, err := getDefaultNetworkAcl(d.Get("vpc_id").(string), ec2conn)
 				if err != nil {
-					return fmt.Errorf("Failed to get a default network acl for VPC %s", d.Get("vpc_id"), err)
+					return fmt.Errorf("Failed to get a default network acl for VPC %s: %s", d.Get("vpc_id"), err)
 				}
 
 				remove := d.Get("subnets")
 				for _, subnet := range remove.(*schema.Set).List() {
 					association, err := findNetworkAclAssociation(subnet.(string), ec2conn)
 					if err != nil {
-						return fmt.Errorf("Failed to get the ID of the current association between the network ACL %s and the subnet %s: ", d.Id(), subnet.(string), err)
+						return fmt.Errorf("Failed to get the ID of the current association between the network ACL %s and the subnet %s: %s", d.Id(), subnet.(string), err)
 					}
 					_, err = ec2conn.ReplaceNetworkAclAssociation(association.NetworkAclAssociationId, defaultAcl.NetworkAclId)
 					if err != nil {
-						return fmt.Errorf("Failed to disassociate subnet %s from network acl %s: ", subnet.(string), d.Id(), err)
+						return fmt.Errorf("Failed to disassociate subnet %s from network acl %s: %s", subnet.(string), d.Id(), err)
 					}
 				}
 				return resource.RetryError{err}
