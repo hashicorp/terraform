@@ -16,7 +16,7 @@ Manages a V2 VM instance resource within OpenStack.
 resource "openstack_compute_instance_v2" "test-server" {
   name = "tf-test"
   image_id = "ad091b52-742f-469e-8f3c-fd81cadf0743"
-  flavor_ref = "3"
+  flavor_id = "3"
   metadata {
     this = "that"
   }
@@ -41,8 +41,11 @@ The following arguments are supported:
 * `image_name` - (Optional; Required if `image_id` is empty) The name of the
     desired image for the server. Changing this creates a new server.
 
-* `flavor_ref` - (Required) The flavor reference (ID) for the desired flavor
-    for the server. Changing this resizes the existing server.
+* `flavor_id` - (Optional; Required if `flavor_name` is empty) The flavor ID of
+    the desired flavor for the server. Changing this resizes the existing server.
+
+* `flavor_name` - (Optional; Required if `flavor_id` is empty) The name of the
+    desired flavor for the server. Changing this resizes the existing server.
 
 * `security_groups` - (Optional) An array of one or more security group names
     to associate with the server. Changing this results in adding/removing

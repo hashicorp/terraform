@@ -13,6 +13,7 @@ import (
 	"github.com/rackspace/gophercloud/openstack/compute/v2/extensions/bootfromvolume"
 	"github.com/rackspace/gophercloud/openstack/compute/v2/extensions/keypairs"
 	"github.com/rackspace/gophercloud/openstack/compute/v2/extensions/secgroups"
+	"github.com/rackspace/gophercloud/openstack/compute/v2/flavors"
 	"github.com/rackspace/gophercloud/openstack/compute/v2/images"
 	"github.com/rackspace/gophercloud/openstack/compute/v2/servers"
 	"github.com/rackspace/gophercloud/openstack/networking/v2/extensions/layer3/floatingips"
@@ -52,11 +53,19 @@ func resourceComputeInstanceV2() *schema.Resource {
 				ForceNew:    true,
 				DefaultFunc: envDefaultFunc("OS_IMAGE_NAME"),
 			},
-			"flavor_ref": &schema.Schema{
+			"flavor_id": &schema.Schema{
 				Type:        schema.TypeString,
 				Optional:    true,
 				ForceNew:    false,
+				Computed:    true,
 				DefaultFunc: envDefaultFunc("OS_FLAVOR_ID"),
+			},
+			"flavor_name": &schema.Schema{
+				Type:        schema.TypeString,
+				Optional:    true,
+				ForceNew:    false,
+				Computed:    true,
+				DefaultFunc: envDefaultFunc("OS_FLAVOR_NAME"),
 			},
 			"floating_ip": &schema.Schema{
 				Type:     schema.TypeString,
@@ -177,10 +186,15 @@ func resourceComputeInstanceV2Create(d *schema.ResourceData, meta interface{}) e
 		return err
 	}
 
+	flavorId, err := getFlavorID(computeClient, d)
+	if err != nil {
+		return err
+	}
+
 	createOpts = &servers.CreateOpts{
 		Name:             d.Get("name").(string),
 		ImageRef:         imageId,
-		FlavorRef:        d.Get("flavor_ref").(string),
+		FlavorRef:        flavorId,
 		SecurityGroups:   resourceInstanceSecGroupsV2(d),
 		AvailabilityZone: d.Get("availability_zone").(string),
 		Networks:         resourceInstanceNetworksV2(d),
@@ -327,11 +341,17 @@ func resourceComputeInstanceV2Read(d *schema.ResourceData, meta interface{}) err
 	})
 	d.Set("security_groups.#", secGrpNum)
 
-	newFlavor, ok := server.Flavor["id"].(string)
+	flavorId, ok := server.Flavor["id"].(string)
 	if !ok {
 		return fmt.Errorf("Error setting OpenStack server's flavor: %v", server.Flavor)
 	}
-	d.Set("flavor_ref", newFlavor)
+	d.Set("flavor_id", flavorId)
+
+	flavor, err := flavors.Get(computeClient, flavorId).Extract()
+	if err != nil {
+		return err
+	}
+	d.Set("flavor_name", flavor.Name)
 
 	return nil
 }
@@ -710,4 +730,42 @@ func getImageID(client *gophercloud.ServiceClient, d *schema.ResourceData) (stri
 		}
 	}
 	return "", fmt.Errorf("Neither an image ID nor an image name were able to be determined.")
+}
+
+func getFlavorID(client *gophercloud.ServiceClient, d *schema.ResourceData) (string, error) {
+	flavorId := d.Get("flavor_id").(string)
+
+	if flavorId != "" {
+		return flavorId, nil
+	}
+
+	flavorCount := 0
+	flavorName := d.Get("flavor_name").(string)
+	if flavorName != "" {
+		pager := flavors.ListDetail(client, nil)
+		pager.EachPage(func(page pagination.Page) (bool, error) {
+			flavorList, err := flavors.ExtractFlavors(page)
+			if err != nil {
+				return false, err
+			}
+
+			for _, f := range flavorList {
+				if f.Name == flavorName {
+					flavorCount++
+					flavorId = f.ID
+				}
+			}
+			return true, nil
+		})
+
+		switch flavorCount {
+		case 0:
+			return "", fmt.Errorf("Unable to find flavor: %s", flavorName)
+		case 1:
+			return flavorId, nil
+		default:
+			return "", fmt.Errorf("Found %d flavors matching %s", flavorCount, flavorName)
+		}
+	}
+	return "", fmt.Errorf("Neither an flavor ID nor an flavor name were able to be determined.")
 }
