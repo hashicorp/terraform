@@ -35,13 +35,11 @@ The following arguments are supported:
 
 * `name` - (Required) A unique name for the resource.
 
-* `image_id` - (Required) The image ID of the desired image for the server.
-    Changing this creates a new server. Note that `image_id` and `image_name`
-    are mutually exclusive.
+* `image_id` - (Optional; Required if `image_name` is empty) The image ID of
+    the desired image for the server. Changing this creates a new server.
 
-* `image_name` - (Required) The image name for the server. Changing this
-   creates a new server. Note that `image_id` and `image_name` are mutually
-   exclusive.
+* `image_name` - (Optional; Required if `image_id` is empty) The name of the
+    desired image for the server. Changing this creates a new server.
 
 * `flavor_ref` - (Required) The flavor reference (ID) for the desired flavor
     for the server. Changing this resizes the existing server.
