@@ -80,6 +80,11 @@ func resourceComputeRoute() *schema.Resource {
 					return hashcode.String(v.(string))
 				},
 			},
+
+			"self_link": &schema.Schema{
+				Type:     schema.TypeString,
+				Computed: true,
+			},
 		},
 	}
 }
@@ -183,7 +188,7 @@ func resourceComputeRouteCreate(d *schema.ResourceData, meta interface{}) error 
 func resourceComputeRouteRead(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
 
-	_, err := config.clientCompute.Routes.Get(
+	route, err := config.clientCompute.Routes.Get(
 		config.Project, d.Id()).Do()
 	if err != nil {
 		if gerr, ok := err.(*googleapi.Error); ok && gerr.Code == 404 {
@@ -195,6 +200,8 @@ func resourceComputeRouteRead(d *schema.ResourceData, meta interface{}) error {
 
 		return fmt.Errorf("Error reading route: %#v", err)
 	}
+
+	d.Set("self_link", route.SelfLink)
 
 	return nil
 }
