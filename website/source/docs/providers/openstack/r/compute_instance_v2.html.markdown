@@ -35,9 +35,9 @@ The following arguments are supported:
 
 * `name` - (Required) A unique name for the resource.
 
-* `image_id` - (Required) The image reference (ID) for the desired image for
-    the server. Changing this creates a new server. Note that `image_id` and
-    `image_name` are mutually exclusive.
+* `image_id` - (Required) The image ID of the desired image for the server.
+    Changing this creates a new server. Note that `image_id` and `image_name`
+    are mutually exclusive.
 
 * `image_name` - (Required) The image name for the server. Changing this
    creates a new server. Note that `image_id` and `image_name` are mutually
