@@ -80,6 +80,10 @@ func (c *Context2) GraphBuilder() GraphBuilder {
 // Even in the case an error is returned, the state will be returned and
 // will potentially be partially updated.
 func (c *Context2) Refresh() (*State, []error) {
+	// Copy our own state
+	c.state = c.state.deepcopy()
+
+	// Do the walk
 	if _, err := c.walk(walkRefresh); err != nil {
 		var errs error
 		return nil, multierror.Append(errs, err).Errors
