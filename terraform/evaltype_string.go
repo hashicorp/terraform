@@ -10,6 +10,7 @@ const (
 	_EvalType_name_2 = "EvalTypeConfig"
 	_EvalType_name_3 = "EvalTypeResourceProvider"
 	_EvalType_name_4 = "EvalTypeResourceProvisioner"
+	_EvalType_name_5 = "EvalTypeInstanceState"
 )
 
 var (
@@ -18,6 +19,7 @@ var (
 	_EvalType_index_2 = [...]uint8{0, 14}
 	_EvalType_index_3 = [...]uint8{0, 24}
 	_EvalType_index_4 = [...]uint8{0, 27}
+	_EvalType_index_5 = [...]uint8{0, 21}
 )
 
 func (i EvalType) String() string {
@@ -32,6 +34,8 @@ func (i EvalType) String() string {
 		return _EvalType_name_3
 	case i == 16:
 		return _EvalType_name_4
+	case i == 32:
+		return _EvalType_name_5
 	default:
 		return fmt.Sprintf("EvalType(%d)", i)
 	}
