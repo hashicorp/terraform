@@ -83,6 +83,9 @@ func (c *Context2) Refresh() (*State, []error) {
 		return nil, multierror.Append(errs, err).Errors
 	}
 
+	// Clean out any unused things
+	c.state.prune()
+
 	return c.state, nil
 }
 
