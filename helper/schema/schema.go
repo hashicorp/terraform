@@ -60,7 +60,7 @@ type Schema struct {
 	//
 	// If Required is true above, then Default cannot be set. DefaultFunc
 	// can be set with Required. If the DefaultFunc returns nil, then there
-	// will no default and the user will be asked to fill it in.
+	// will be no default and the user will be asked to fill it in.
 	//
 	// If either of these is set, then the user won't be asked for input
 	// for this key if the default is not nil.
