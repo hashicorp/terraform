@@ -315,8 +315,7 @@ func TestContext2Refresh_outputPartial(t *testing.T) {
 	}
 }
 
-/*
-func TestContextRefresh_state(t *testing.T) {
+func TestContext2Refresh_state(t *testing.T) {
 	p := testProvider("aws")
 	m := testModule(t, "refresh-basic")
 	state := &State{
@@ -333,7 +332,7 @@ func TestContextRefresh_state(t *testing.T) {
 			},
 		},
 	}
-	ctx := testContext(t, &ContextOpts{
+	ctx := testContext2(t, &ContextOpts{
 		Module: m,
 		Providers: map[string]ResourceProviderFactory{
 			"aws": testProviderFuncFixed(p),
@@ -356,13 +355,17 @@ func TestContextRefresh_state(t *testing.T) {
 		t.Fatal("refresh should be called")
 	}
 	if !reflect.DeepEqual(p.RefreshState, originalMod.Resources["aws_instance.web"].Primary) {
-		t.Fatalf("bad: %#v %#v", p.RefreshState, originalMod.Resources["aws_instance.web"].Primary)
+		t.Fatalf(
+			"bad:\n\n%#v\n\n%#v",
+			p.RefreshState,
+			originalMod.Resources["aws_instance.web"].Primary)
 	}
 	if !reflect.DeepEqual(mod.Resources["aws_instance.web"].Primary, p.RefreshReturn) {
 		t.Fatalf("bad: %#v", mod.Resources)
 	}
 }
 
+/*
 func TestContextRefresh_tainted(t *testing.T) {
 	p := testProvider("aws")
 	m := testModule(t, "refresh-basic")
