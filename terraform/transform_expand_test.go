@@ -57,9 +57,17 @@ type testExpandable struct {
 	Builder GraphBuilder
 }
 
-func (n *testExpandable) Expand(b GraphBuilder) (*Graph, error) {
+func (n *testExpandable) Expand(b GraphBuilder) (GraphNodeSubgraph, error) {
 	n.Builder = b
-	return n.Result, n.ResultError
+	return &testSubgraph{n.Result}, n.ResultError
+}
+
+type testSubgraph struct {
+	Graph *Graph
+}
+
+func (n *testSubgraph) Subgraph() *Graph {
+	return n.Graph
 }
 
 const testExpandTransformStr = `
