@@ -72,6 +72,20 @@ func TestConfigTransformer_modules(t *testing.T) {
 	}
 }
 
+func TestConfigTransformer_outputs(t *testing.T) {
+	g := Graph{Path: RootModulePath}
+	tf := &ConfigTransformer{Module: testModule(t, "graph-outputs")}
+	if err := tf.Transform(&g); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	actual := strings.TrimSpace(g.String())
+	expected := strings.TrimSpace(testGraphOutputsStr)
+	if actual != expected {
+		t.Fatalf("bad:\n\n%s", actual)
+	}
+}
+
 func TestConfigTransformer_errMissingDeps(t *testing.T) {
 	g := Graph{Path: RootModulePath}
 	tf := &ConfigTransformer{Module: testModule(t, "graph-missing-deps")}
@@ -105,4 +119,10 @@ aws_security_group.firewall
 module.consul
   aws_security_group.firewall
 provider.aws
+`
+
+const testGraphOutputsStr = `
+aws_instance.foo
+output.foo
+  aws_instance.foo
 `
