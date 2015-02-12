@@ -396,7 +396,6 @@ func TestContext2Plan_moduleProviderDefaultsVar(t *testing.T) {
 	}
 }
 
-/*
 func TestContext2Plan_moduleVar(t *testing.T) {
 	m := testModule(t, "plan-module-var")
 	p := testProvider("aws")
