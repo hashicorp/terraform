@@ -77,13 +77,10 @@ func resourceComputeInstanceV2() *schema.Resource {
 				ForceNew: false,
 			},
 			"security_groups": &schema.Schema{
-				Type:     schema.TypeSet,
+				Type:     schema.TypeList,
 				Optional: true,
 				ForceNew: false,
 				Elem:     &schema.Schema{Type: schema.TypeString},
-				Set: func(v interface{}) int {
-					return hashcode.String(v.(string))
-				},
 			},
 			"availability_zone": &schema.Schema{
 				Type:     schema.TypeString,
@@ -374,6 +371,7 @@ func resourceComputeInstanceV2Read(d *schema.ResourceData, meta interface{}) err
 		if err != nil {
 			return false, fmt.Errorf("Error getting security groups for OpenStack server: %s", err)
 		}
+		log.Printf("[DEBUG] secGrpList: %+v\n\n", secGrpList)
 		for _, sg := range secGrpList {
 			secGrpNames = append(secGrpNames, sg.Name)
 		}
@@ -466,7 +464,9 @@ func resourceComputeInstanceV2Update(d *schema.ResourceData, meta interface{}) e
 
 	if d.HasChange("security_groups") {
 		oldSGRaw, newSGRaw := d.GetChange("security_groups")
-		oldSGSet, newSGSet := oldSGRaw.(*schema.Set), newSGRaw.(*schema.Set)
+		oldSGSlice, newSGSlice := oldSGRaw.([]interface{}), newSGRaw.([]interface{})
+		oldSGSet := schema.NewSet(func(v interface{}) int { return hashcode.String(v.(string)) }, oldSGSlice)
+		newSGSet := schema.NewSet(func(v interface{}) int { return hashcode.String(v.(string)) }, newSGSlice)
 		secgroupsToAdd := newSGSet.Difference(oldSGSet)
 		secgroupsToRemove := oldSGSet.Difference(newSGSet)
 
@@ -661,9 +661,9 @@ func ServerV2StateRefreshFunc(client *gophercloud.ServiceClient, instanceID stri
 }
 
 func resourceInstanceSecGroupsV2(d *schema.ResourceData) []string {
-	rawSecGroups := d.Get("security_groups").(*schema.Set)
-	secgroups := make([]string, rawSecGroups.Len())
-	for i, raw := range rawSecGroups.List() {
+	rawSecGroups := d.Get("security_groups").([]interface{})
+	secgroups := make([]string, len(rawSecGroups))
+	for i, raw := range rawSecGroups {
 		secgroups[i] = raw.(string)
 	}
 	return secgroups
