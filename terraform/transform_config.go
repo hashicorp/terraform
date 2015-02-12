@@ -29,8 +29,7 @@ func (t *ConfigTransformer) Transform(g *Graph) error {
 	// Get the module we care about
 	module := t.Module.Child(g.Path[1:])
 	if module == nil {
-		return fmt.Errorf(
-			"module not found for path: %#v", g.Path[1:])
+		return nil
 	}
 
 	// Get the configuration for this module

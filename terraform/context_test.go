@@ -204,8 +204,7 @@ func TestContext2Plan_moduleMultiVar(t *testing.T) {
 	}
 }
 
-/*
-func TestContextPlan_moduleOrphans(t *testing.T) {
+func TestContext2Plan_moduleOrphans(t *testing.T) {
 	m := testModule(t, "plan-modules-remove")
 	p := testProvider("aws")
 	p.DiffFn = testDiffFn
@@ -224,7 +223,7 @@ func TestContextPlan_moduleOrphans(t *testing.T) {
 			},
 		},
 	}
-	ctx := testContext(t, &ContextOpts{
+	ctx := testContext2(t, &ContextOpts{
 		Module: m,
 		Providers: map[string]ResourceProviderFactory{
 			"aws": testProviderFuncFixed(p),
@@ -244,6 +243,7 @@ func TestContextPlan_moduleOrphans(t *testing.T) {
 	}
 }
 
+/*
 func TestContextPlan_moduleProviderInherit(t *testing.T) {
 	var l sync.Mutex
 	var calls []string
