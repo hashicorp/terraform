@@ -156,7 +156,9 @@ func (g *Graph) walk(walker GraphWalker) error {
 			log.Printf("[DEBUG] vertex %s.%s: evaluating", path, dag.VertexName(v))
 			tree = walker.EnterEvalTree(v, tree)
 			output, err := Eval(tree, ctx)
-			walker.ExitEvalTree(v, output, err)
+			if rerr = walker.ExitEvalTree(v, output, err); rerr != nil {
+				return
+			}
 		}
 
 		// If the node is dynamically expanded, then expand it
