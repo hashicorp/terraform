@@ -48,8 +48,26 @@ func (n *GraphNodeConfigModule) Name() string {
 }
 
 // GraphNodeExpandable
-func (n *GraphNodeConfigModule) Expand(b GraphBuilder) (*Graph, error) {
-	return b.Build(n.Path)
+func (n *GraphNodeConfigModule) Expand(b GraphBuilder) (GraphNodeSubgraph, error) {
+	// Build the graph first
+	graph, err := b.Build(n.Path)
+	if err != nil {
+		return nil, err
+	}
+
+	// Add the parameters node to the module
+	t := &ModuleInputTransformer{Variables: make(map[string]string)}
+	if err := t.Transform(graph); err != nil {
+		return nil, err
+	}
+
+	// Build the actual subgraph node
+	return &graphNodeModuleExpanded{
+		Original:    n,
+		Graph:       graph,
+		InputConfig: n.Module.RawConfig,
+		Variables:   t.Variables,
+	}, nil
 }
 
 // GraphNodeExpandable
@@ -180,4 +198,35 @@ func (n *GraphNodeConfigResource) ProvisionedBy() []string {
 	}
 
 	return result
+}
+
+// graphNodeModuleExpanded represents a module where the graph has
+// been expanded. It stores the graph of the module as well as a reference
+// to the map of variables.
+type graphNodeModuleExpanded struct {
+	Original    dag.Vertex
+	Graph       *Graph
+	InputConfig *config.RawConfig
+
+	// Variables is a map of the input variables. This reference should
+	// be shared with ModuleInputTransformer in order to create a connection
+	// where the variables are set properly.
+	Variables map[string]string
+}
+
+func (n *graphNodeModuleExpanded) Name() string {
+	return fmt.Sprintf("%s (expanded)", dag.VertexName(n.Original))
+}
+
+// GraphNodeEvalable impl.
+func (n *graphNodeModuleExpanded) EvalTree() EvalNode {
+	return &EvalVariableBlock{
+		Config:    &EvalInterpolate{Config: n.InputConfig},
+		Variables: n.Variables,
+	}
+}
+
+// GraphNodeSubgraph impl.
+func (n *graphNodeModuleExpanded) Subgraph() *Graph {
+	return n.Graph
 }

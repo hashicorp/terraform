@@ -26,6 +26,8 @@ type ContextGraphWalker struct {
 	errorLock           sync.Mutex
 	once                sync.Once
 	diffLock            sync.RWMutex
+	contexts            map[string]*BuiltinEvalContext
+	contextLock         sync.Mutex
 	providerCache       map[string]ResourceProvider
 	providerConfigCache map[string]*ResourceConfig
 	providerLock        sync.Mutex
@@ -36,7 +38,25 @@ type ContextGraphWalker struct {
 func (w *ContextGraphWalker) EnterGraph(g *Graph) EvalContext {
 	w.once.Do(w.init)
 
-	return &BuiltinEvalContext{
+	w.contextLock.Lock()
+	defer w.contextLock.Unlock()
+
+	// If we already have a context for this path cached, use that
+	key := PathCacheKey(g.Path)
+	if ctx, ok := w.contexts[key]; ok {
+		return ctx
+	}
+
+	// Variables should be our context variables, but these only apply
+	// to the root module. As we enter subgraphs, we don't want to set
+	// variables, which is set by the SetVariables EvalContext function.
+	variables := w.Context.variables
+	if len(g.Path) > 1 {
+		// We're in a submodule, the variables should be empty
+		variables = make(map[string]string)
+	}
+
+	ctx := &BuiltinEvalContext{
 		PathValue:           g.Path,
 		Hooks:               w.Context.hooks,
 		Providers:           w.Context.providers,
@@ -55,9 +75,12 @@ func (w *ContextGraphWalker) EnterGraph(g *Graph) EvalContext {
 			Module:    w.Context.module,
 			State:     w.Context.state,
 			StateLock: &w.Context.stateLock,
-			Variables: w.Context.variables,
+			Variables: variables,
 		},
 	}
+
+	w.contexts[key] = ctx
+	return ctx
 }
 
 func (w *ContextGraphWalker) EnterEvalTree(v dag.Vertex, n EvalNode) EvalNode {
@@ -94,6 +117,7 @@ func (w *ContextGraphWalker) init() {
 	w.Diff = new(Diff)
 	w.Diff.init()
 
+	w.contexts = make(map[string]*BuiltinEvalContext, 5)
 	w.providerCache = make(map[string]ResourceProvider, 5)
 	w.providerConfigCache = make(map[string]*ResourceConfig, 5)
 	w.provisionerCache = make(map[string]ResourceProvisioner, 5)
