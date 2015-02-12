@@ -55,7 +55,8 @@ func (n *EvalInitProvider) Type() EvalType {
 // EvalGetProvider is an EvalNode implementation that retrieves an already
 // initialized provider instance for the given name.
 type EvalGetProvider struct {
-	Name string
+	Name   string
+	Output *ResourceProvider
 }
 
 func (n *EvalGetProvider) Args() ([]EvalNode, []EvalType) {
@@ -67,6 +68,10 @@ func (n *EvalGetProvider) Eval(
 	result := ctx.Provider(n.Name)
 	if result == nil {
 		return nil, fmt.Errorf("provider %s not initialized", n.Name)
+	}
+
+	if n.Output != nil {
+		*n.Output = result
 	}
 
 	return result, nil
