@@ -92,7 +92,8 @@ func (n *graphNodeExpandedResource) EvalTree() EvalNode {
 	seq := &EvalSequence{Nodes: make([]EvalNode, 0, 5)}
 
 	// Validate the resource
-	seq.Nodes = append(seq.Nodes, &EvalValidateResource{
+	vseq := &EvalSequence{Nodes: make([]EvalNode, 0, 5)}
+	vseq.Nodes = append(vseq.Nodes, &EvalValidateResource{
 		Provider:     &EvalGetProvider{Name: n.ProvidedBy()[0]},
 		Config:       &EvalInterpolate{Config: n.Resource.RawConfig},
 		ResourceName: n.Resource.Name,
@@ -101,11 +102,17 @@ func (n *graphNodeExpandedResource) EvalTree() EvalNode {
 
 	// Validate all the provisioners
 	for _, p := range n.Resource.Provisioners {
-		seq.Nodes = append(seq.Nodes, &EvalValidateProvisioner{
+		vseq.Nodes = append(vseq.Nodes, &EvalValidateProvisioner{
 			Provisioner: &EvalGetProvisioner{Name: p.Type},
 			Config:      &EvalInterpolate{Config: p.RawConfig},
 		})
 	}
+
+	// Add the validation operations
+	seq.Nodes = append(seq.Nodes, &EvalOpFilter{
+		Ops:  []walkOperation{walkValidate},
+		Node: vseq,
+	})
 
 	// Build instance info
 	info := &InstanceInfo{Id: n.stateId(), Type: n.Resource.Type}
