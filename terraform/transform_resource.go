@@ -183,6 +183,24 @@ func (n *graphNodeExpandedResource) EvalTree() EvalNode {
 		},
 	})
 
+	// Diff the resource for destruction
+	seq.Nodes = append(seq.Nodes, &EvalOpFilter{
+		Ops: []walkOperation{walkPlanDestroy},
+		Node: &EvalSequence{
+			Nodes: []EvalNode{
+				&EvalDiffDestroy{
+					Info:   info,
+					State:  &EvalReadState{Name: n.stateId()},
+					Output: &diff,
+				},
+				&EvalWriteDiff{
+					Name: n.stateId(),
+					Diff: &diff,
+				},
+			},
+		},
+	})
+
 	return seq
 }
 
