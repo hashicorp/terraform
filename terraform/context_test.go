@@ -3,7 +3,9 @@ package terraform
 import (
 	"fmt"
 	"reflect"
+	"sort"
 	"strings"
+	"sync"
 	"testing"
 )
 
@@ -243,13 +245,12 @@ func TestContext2Plan_moduleOrphans(t *testing.T) {
 	}
 }
 
-/*
-func TestContextPlan_moduleProviderInherit(t *testing.T) {
+func TestContext2Plan_moduleProviderInherit(t *testing.T) {
 	var l sync.Mutex
 	var calls []string
 
 	m := testModule(t, "plan-module-provider-inherit")
-	ctx := testContext(t, &ContextOpts{
+	ctx := testContext2(t, &ContextOpts{
 		Module: m,
 		Providers: map[string]ResourceProviderFactory{
 			"aws": func() (ResourceProvider, error) {
@@ -290,6 +291,7 @@ func TestContextPlan_moduleProviderInherit(t *testing.T) {
 	}
 }
 
+/*
 func TestContextPlan_moduleProviderDefaults(t *testing.T) {
 	var l sync.Mutex
 	var calls []string
