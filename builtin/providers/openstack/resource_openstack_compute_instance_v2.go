@@ -550,11 +550,15 @@ func resourceComputeInstanceV2Update(d *schema.ResourceData, meta interface{}) e
 		d.SetPartial("volume")
 	}
 
-	if d.HasChange("flavor_ref") {
-		resizeOpts := &servers.ResizeOpts{
-			FlavorRef: d.Get("flavor_ref").(string),
+	if d.HasChange("flavor_id") || d.HasChange("flavor_name") {
+		flavorId, err := getFlavorID(computeClient, d)
+		if err != nil {
+			return err
 		}
-		err := servers.Resize(computeClient, d.Id(), resizeOpts).ExtractErr()
+		resizeOpts := &servers.ResizeOpts{
+			FlavorRef: flavorId,
+		}
+		err = servers.Resize(computeClient, d.Id(), resizeOpts).ExtractErr()
 		if err != nil {
 			return fmt.Errorf("Error resizing OpenStack server: %s", err)
 		}
