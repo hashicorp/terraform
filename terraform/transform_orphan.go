@@ -3,6 +3,7 @@ package terraform
 import (
 	"fmt"
 
+	"github.com/hashicorp/terraform/config"
 	"github.com/hashicorp/terraform/config/module"
 	"github.com/hashicorp/terraform/dag"
 )
@@ -20,13 +21,10 @@ type OrphanTransformer struct {
 }
 
 func (t *OrphanTransformer) Transform(g *Graph) error {
-	module := t.Module.Child(g.Path[1:])
-	if module == nil {
-		panic(fmt.Sprintf(
-			"module not found for path: %#v",
-			g.Path[1:]))
+	var config *config.Config
+	if module := t.Module.Child(g.Path[1:]); module != nil {
+		config = module.Config()
 	}
-	config := module.Config()
 
 	var resourceVertexes []dag.Vertex
 	if state := t.State.ModuleByPath(g.Path); state != nil {

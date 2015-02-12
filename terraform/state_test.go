@@ -85,6 +85,32 @@ func TestStateModuleOrphans(t *testing.T) {
 	}
 }
 
+func TestStateModuleOrphans_nilConfig(t *testing.T) {
+	state := &State{
+		Modules: []*ModuleState{
+			&ModuleState{
+				Path: RootModulePath,
+			},
+			&ModuleState{
+				Path: []string{RootModuleName, "foo"},
+			},
+			&ModuleState{
+				Path: []string{RootModuleName, "bar"},
+			},
+		},
+	}
+
+	actual := state.ModuleOrphans(RootModulePath, nil)
+	expected := [][]string{
+		[]string{RootModuleName, "foo"},
+		[]string{RootModuleName, "bar"},
+	}
+
+	if !reflect.DeepEqual(actual, expected) {
+		t.Fatalf("bad: %#v", actual)
+	}
+}
+
 func TestInstanceState_MergeDiff(t *testing.T) {
 	is := InstanceState{
 		ID: "foo",
