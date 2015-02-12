@@ -377,6 +377,12 @@ func (m *ModuleState) prune() {
 			delete(m.Resources, k)
 		}
 	}
+
+	for k, v := range m.Outputs {
+		if v == config.UnknownVariableValue {
+			delete(m.Outputs, k)
+		}
+	}
 }
 
 func (m *ModuleState) sort() {
