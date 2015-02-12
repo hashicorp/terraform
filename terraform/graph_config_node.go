@@ -243,6 +243,21 @@ func (n *GraphNodeConfigResource) ProvisionedBy() []string {
 	return result
 }
 
+// GraphNodeDestroyable
+func (n *GraphNodeConfigResource) DestroyNode() dag.Vertex {
+	return &GraphNodeConfigResourceDestroy{Resource: n.Resource}
+}
+
+// GraphNodeConfigResourceDestroy represents the logical destroy step for
+// a resource.
+type GraphNodeConfigResourceDestroy struct {
+	Resource *config.Resource
+}
+
+func (n *GraphNodeConfigResourceDestroy) Name() string {
+	return fmt.Sprintf("%s (destroy)", n.Resource.Id())
+}
+
 // graphNodeModuleExpanded represents a module where the graph has
 // been expanded. It stores the graph of the module as well as a reference
 // to the map of variables.

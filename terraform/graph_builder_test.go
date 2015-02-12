@@ -106,8 +106,12 @@ const testBasicGraphBuilderStr = `
 
 const testBuiltinGraphBuilderBasicStr = `
 aws_instance.db
+  aws_instance.db (destroy)
+aws_instance.db (destroy)
   provider.aws
 aws_instance.web
+  aws_instance.web (destroy)
+aws_instance.web (destroy)
   aws_instance.db
   provider.aws
 provider.aws
@@ -115,10 +119,14 @@ provider.aws
 
 const testBuiltinGraphBuilderModuleStr = `
 aws_instance.web
+  aws_instance.web (destroy)
+aws_instance.web (destroy)
   aws_security_group.firewall
   module.consul (expanded)
   provider.aws
 aws_security_group.firewall
+  aws_security_group.firewall (destroy)
+aws_security_group.firewall (destroy)
   provider.aws
 module.consul (expanded)
   aws_security_group.firewall

@@ -95,6 +95,9 @@ func (b *BuiltinGraphBuilder) Steps() []GraphTransformer {
 			},
 		},
 
+		// Create the destruction nodes
+		&DestroyTransformer{},
+
 		// Make sure we create one root
 		&RootTransformer{},
 	}
