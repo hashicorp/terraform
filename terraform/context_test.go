@@ -1,6 +1,7 @@
 package terraform
 
 import (
+	"bytes"
 	"fmt"
 	"reflect"
 	"sort"
@@ -347,13 +348,12 @@ func TestContext2Plan_moduleProviderDefaults(t *testing.T) {
 	}
 }
 
-/*
-func TestContextPlan_moduleProviderDefaultsVar(t *testing.T) {
+func TestContext2Plan_moduleProviderDefaultsVar(t *testing.T) {
 	var l sync.Mutex
 	var calls []string
 
 	m := testModule(t, "plan-module-provider-defaults-var")
-	ctx := testContext(t, &ContextOpts{
+	ctx := testContext2(t, &ContextOpts{
 		Module: m,
 		Providers: map[string]ResourceProviderFactory{
 			"aws": func() (ResourceProvider, error) {
@@ -396,11 +396,12 @@ func TestContextPlan_moduleProviderDefaultsVar(t *testing.T) {
 	}
 }
 
-func TestContextPlan_moduleVar(t *testing.T) {
+/*
+func TestContext2Plan_moduleVar(t *testing.T) {
 	m := testModule(t, "plan-module-var")
 	p := testProvider("aws")
 	p.DiffFn = testDiffFn
-	ctx := testContext(t, &ContextOpts{
+	ctx := testContext2(t, &ContextOpts{
 		Module: m,
 		Providers: map[string]ResourceProviderFactory{
 			"aws": testProviderFuncFixed(p),
@@ -419,6 +420,7 @@ func TestContextPlan_moduleVar(t *testing.T) {
 	}
 }
 
+/*
 func TestContextPlan_moduleVarComputed(t *testing.T) {
 	m := testModule(t, "plan-module-var-computed")
 	p := testProvider("aws")
