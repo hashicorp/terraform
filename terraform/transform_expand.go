@@ -1,6 +1,8 @@
 package terraform
 
 import (
+	"log"
+
 	"github.com/hashicorp/terraform/dag"
 )
 
@@ -41,5 +43,19 @@ func (t *ExpandTransform) Transform(v dag.Vertex) (dag.Vertex, error) {
 	}
 
 	// Expand the subgraph!
+	log.Printf("[DEBUG] vertex %s: static expanding", dag.VertexName(ev))
 	return ev.Expand(t.Builder)
+}
+
+type GraphNodeBasicSubgraph struct {
+	NameValue string
+	Graph     *Graph
+}
+
+func (n *GraphNodeBasicSubgraph) Name() string {
+	return n.NameValue
+}
+
+func (n *GraphNodeBasicSubgraph) Subgraph() *Graph {
+	return n.Graph
 }

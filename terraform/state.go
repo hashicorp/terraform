@@ -105,8 +105,10 @@ func (s *State) ModuleByPath(path []string) *ModuleState {
 // to return the actual state.
 func (s *State) ModuleOrphans(path []string, c *config.Config) [][]string {
 	childrenKeys := make(map[string]struct{})
-	for _, m := range c.Modules {
-		childrenKeys[m.Name] = struct{}{}
+	if c != nil {
+		for _, m := range c.Modules {
+			childrenKeys[m.Name] = struct{}{}
+		}
 	}
 
 	// Go over the direct children and find any that aren't in our
@@ -301,12 +303,14 @@ func (m *ModuleState) Orphans(c *config.Config) []string {
 		keys[k] = struct{}{}
 	}
 
-	for _, r := range c.Resources {
-		delete(keys, r.Id())
+	if c != nil {
+		for _, r := range c.Resources {
+			delete(keys, r.Id())
 
-		for k, _ := range keys {
-			if strings.HasPrefix(k, r.Id()+".") {
-				delete(keys, k)
+			for k, _ := range keys {
+				if strings.HasPrefix(k, r.Id()+".") {
+					delete(keys, k)
+				}
 			}
 		}
 	}
