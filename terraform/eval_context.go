@@ -49,6 +49,11 @@ type EvalContext interface {
 	// that is currently being acted upon.
 	Interpolate(*config.RawConfig, *Resource) (*ResourceConfig, error)
 
+	// SetVariables sets the variables for interpolation. These variables
+	// should not have a "var." prefix. For example: "var.foo" should be
+	// "foo" as the key.
+	SetVariables(map[string]string)
+
 	// Diff returns the global diff as well as the lock that should
 	// be used to modify that diff.
 	Diff() (*Diff, *sync.RWMutex)
@@ -99,6 +104,9 @@ type MockEvalContext struct {
 
 	PathCalled bool
 	PathPath   []string
+
+	SetVariablesCalled    bool
+	SetVariablesVariables map[string]string
 
 	DiffCalled bool
 	DiffDiff   *Diff
@@ -162,6 +170,11 @@ func (c *MockEvalContext) Interpolate(
 func (c *MockEvalContext) Path() []string {
 	c.PathCalled = true
 	return c.PathPath
+}
+
+func (c *MockEvalContext) SetVariables(vs map[string]string) {
+	c.SetVariablesCalled = true
+	c.SetVariablesVariables = vs
 }
 
 func (c *MockEvalContext) Diff() (*Diff, *sync.RWMutex) {
