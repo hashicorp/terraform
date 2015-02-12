@@ -740,8 +740,7 @@ func TestContext2Plan_countDecreaseToOne(t *testing.T) {
 	}
 }
 
-/*
-func TestContextPlan_countIncreaseFromNotSet(t *testing.T) {
+func TestContext2Plan_countIncreaseFromNotSet(t *testing.T) {
 	m := testModule(t, "plan-count-inc")
 	p := testProvider("aws")
 	p.DiffFn = testDiffFn
@@ -764,7 +763,7 @@ func TestContextPlan_countIncreaseFromNotSet(t *testing.T) {
 			},
 		},
 	}
-	ctx := testContext(t, &ContextOpts{
+	ctx := testContext2(t, &ContextOpts{
 		Module: m,
 		Providers: map[string]ResourceProviderFactory{
 			"aws": testProviderFuncFixed(p),
@@ -784,7 +783,7 @@ func TestContextPlan_countIncreaseFromNotSet(t *testing.T) {
 	}
 }
 
-func TestContextPlan_countIncreaseFromOne(t *testing.T) {
+func TestContext2Plan_countIncreaseFromOne(t *testing.T) {
 	m := testModule(t, "plan-count-inc")
 	p := testProvider("aws")
 	p.DiffFn = testDiffFn
@@ -807,7 +806,7 @@ func TestContextPlan_countIncreaseFromOne(t *testing.T) {
 			},
 		},
 	}
-	ctx := testContext(t, &ContextOpts{
+	ctx := testContext2(t, &ContextOpts{
 		Module: m,
 		Providers: map[string]ResourceProviderFactory{
 			"aws": testProviderFuncFixed(p),
@@ -827,6 +826,7 @@ func TestContextPlan_countIncreaseFromOne(t *testing.T) {
 	}
 }
 
+/*
 func TestContextPlan_destroy(t *testing.T) {
 	m := testModule(t, "plan-destroy")
 	p := testProvider("aws")
