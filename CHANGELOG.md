@@ -40,7 +40,9 @@ BUG FIXES:
   * command/apply: Won't try to initialize modules in some cases when
       no arguments are given. [GH-780]
   * command/apply: Fix regression where user variables weren't asked [GH-736]
-  * helper/hashcode: Update `hash.String()` to always return a positive index. Fixes issue where specific strings would convert to a negative index and be ommited when creating Route53 records. [GH-967]
+  * helper/hashcode: Update `hash.String()` to always return a positive index. 
+      Fixes issue where specific strings would convert to a negative index
+      and be ommited when creating Route53 records. [GH-967]
   * provider/aws: ELB subnet change doesn't force new resource. [GH-804]
   * provider/aws: Instance should ignore root EBS devices. [GH-877]
   * provider/aws: Fix `aws_db_instance` to not recreate each time. [GH-874]
