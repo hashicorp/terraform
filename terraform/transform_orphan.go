@@ -20,12 +20,6 @@ type OrphanTransformer struct {
 }
 
 func (t *OrphanTransformer) Transform(g *Graph) error {
-	state := t.State.ModuleByPath(g.Path)
-	if state == nil {
-		// If there is no state for our module, there can't be any orphans
-		return nil
-	}
-
 	module := t.Module.Child(g.Path[1:])
 	if module == nil {
 		panic(fmt.Sprintf(
@@ -34,14 +28,22 @@ func (t *OrphanTransformer) Transform(g *Graph) error {
 	}
 	config := module.Config()
 
-	// Go over each resource orphan and add it to the graph.
-	resourceOrphans := state.Orphans(config)
-	resourceVertexes := make([]dag.Vertex, len(resourceOrphans))
-	for i, k := range resourceOrphans {
-		resourceVertexes[i] = g.Add(&graphNodeOrphanResource{
-			ResourceName: k,
-			dependentOn:  state.Resources[k].Dependencies,
-		})
+	var resourceVertexes []dag.Vertex
+	if state := t.State.ModuleByPath(g.Path); state != nil {
+		// If we have state, then we can have orphan resources
+
+		// Go over each resource orphan and add it to the graph.
+		resourceOrphans := state.Orphans(config)
+		resourceVertexes = make([]dag.Vertex, len(resourceOrphans))
+		for i, k := range resourceOrphans {
+			rs := state.Resources[k]
+
+			resourceVertexes[i] = g.Add(&graphNodeOrphanResource{
+				ResourceName: k,
+				ResourceType: rs.Type,
+				dependentOn:  rs.Dependencies,
+			})
+		}
 	}
 
 	// Go over each module orphan and add it to the graph. We store the
@@ -95,9 +97,23 @@ func (n *graphNodeOrphanModule) dependableName() string {
 	return fmt.Sprintf("module.%s", n.Path[len(n.Path)-1])
 }
 
+// GraphNodeExpandable
+func (n *graphNodeOrphanModule) Expand(b GraphBuilder) (GraphNodeSubgraph, error) {
+	g, err := b.Build(n.Path)
+	if err != nil {
+		return nil, err
+	}
+
+	return &GraphNodeBasicSubgraph{
+		NameValue: n.Name(),
+		Graph:     g,
+	}, nil
+}
+
 // graphNodeOrphanResource is the graph vertex representing an orphan resource..
 type graphNodeOrphanResource struct {
 	ResourceName string
+	ResourceType string
 
 	dependentOn []string
 }
@@ -119,18 +135,51 @@ func (n *graphNodeOrphanResource) ProvidedBy() []string {
 }
 
 // GraphNodeEvalable impl.
-/*
 func (n *graphNodeOrphanResource) EvalTree() EvalNode {
-			return &EvalSequence{
-				Nodes: []EvalNode{
-					&EvalRefresh{},
-					&EvalDiff{},
-					&EvalApply{},
-					&EvalCommitState{},
+	seq := &EvalSequence{Nodes: make([]EvalNode, 0, 5)}
+
+	// Build instance info
+	info := &InstanceInfo{Id: n.ResourceName, Type: n.ResourceType}
+	seq.Nodes = append(seq.Nodes, &EvalInstanceInfo{Info: info})
+
+	// Refresh the resource
+	seq.Nodes = append(seq.Nodes, &EvalOpFilter{
+		Ops: []walkOperation{walkRefresh},
+		Node: &EvalWriteState{
+			Name:         n.ResourceName,
+			ResourceType: n.ResourceType,
+			Dependencies: n.DependentOn(),
+			State: &EvalRefresh{
+				Info:     info,
+				Provider: &EvalGetProvider{Name: n.ProvidedBy()[0]},
+				State: &EvalReadState{
+					Name: n.ResourceName,
 				},
-			}
+			},
+		},
+	})
+
+	// Diff the resource
+	var diff InstanceDiff
+	seq.Nodes = append(seq.Nodes, &EvalOpFilter{
+		Ops: []walkOperation{walkPlan},
+		Node: &EvalSequence{
+			Nodes: []EvalNode{
+				&EvalDiffDestroy{
+					Info:   info,
+					State:  &EvalReadState{Name: n.ResourceName},
+					Output: &diff,
+				},
+				&EvalWriteDiff{
+					Name: n.ResourceName,
+					Diff: &diff,
+				},
+			},
+		},
+	})
+
+	return seq
 }
-*/
 
 func (n *graphNodeOrphanResource) dependableName() string {
 	return n.ResourceName
