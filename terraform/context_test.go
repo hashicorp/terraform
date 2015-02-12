@@ -1225,8 +1225,7 @@ func TestContext2Plan_taint(t *testing.T) {
 	}
 }
 
-/*
-func TestContextPlan_multiple_taint(t *testing.T) {
+func TestContext2Plan_multiple_taint(t *testing.T) {
 	m := testModule(t, "plan-taint")
 	p := testProvider("aws")
 	p.DiffFn = testDiffFn
@@ -1257,7 +1256,7 @@ func TestContextPlan_multiple_taint(t *testing.T) {
 			},
 		},
 	}
-	ctx := testContext(t, &ContextOpts{
+	ctx := testContext2(t, &ContextOpts{
 		Module: m,
 		Providers: map[string]ResourceProviderFactory{
 			"aws": testProviderFuncFixed(p),
@@ -1277,7 +1276,7 @@ func TestContextPlan_multiple_taint(t *testing.T) {
 	}
 }
 
-func TestContextPlan_provider(t *testing.T) {
+func TestContext2Plan_provider(t *testing.T) {
 	m := testModule(t, "plan-provider")
 	p := testProvider("aws")
 	p.DiffFn = testDiffFn
@@ -1288,7 +1287,7 @@ func TestContextPlan_provider(t *testing.T) {
 		return nil
 	}
 
-	ctx := testContext(t, &ContextOpts{
+	ctx := testContext2(t, &ContextOpts{
 		Module: m,
 		Providers: map[string]ResourceProviderFactory{
 			"aws": testProviderFuncFixed(p),
@@ -1307,11 +1306,11 @@ func TestContextPlan_provider(t *testing.T) {
 	}
 }
 
-func TestContextPlan_varMultiCountOne(t *testing.T) {
+func TestContext2Plan_varMultiCountOne(t *testing.T) {
 	m := testModule(t, "plan-var-multi-count-one")
 	p := testProvider("aws")
 	p.DiffFn = testDiffFn
-	ctx := testContext(t, &ContextOpts{
+	ctx := testContext2(t, &ContextOpts{
 		Module: m,
 		Providers: map[string]ResourceProviderFactory{
 			"aws": testProviderFuncFixed(p),
@@ -1330,10 +1329,10 @@ func TestContextPlan_varMultiCountOne(t *testing.T) {
 	}
 }
 
-func TestContextPlan_varListErr(t *testing.T) {
+func TestContext2Plan_varListErr(t *testing.T) {
 	m := testModule(t, "plan-var-list-err")
 	p := testProvider("aws")
-	ctx := testContext(t, &ContextOpts{
+	ctx := testContext2(t, &ContextOpts{
 		Module: m,
 		Providers: map[string]ResourceProviderFactory{
 			"aws": testProviderFuncFixed(p),
@@ -1345,7 +1344,6 @@ func TestContextPlan_varListErr(t *testing.T) {
 		t.Fatal("should error")
 	}
 }
-*/
 
 func TestContext2Refresh(t *testing.T) {
 	p := testProvider("aws")
