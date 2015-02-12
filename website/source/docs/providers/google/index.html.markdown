@@ -34,9 +34,11 @@ resource "google_compute_instance" "default" {
 
 The following keys can be used to configure the provider.
 
-* `account_file` - (Required) Path to the JSON file used to describe
-  your account credentials, downloaded from Google Cloud Console. More
-  details on retrieving this file are below.
+* `account_file` - (Required) Path to the JSON file used to describe your
+  account credentials, downloaded from Google Cloud Console. More details on
+  retrieving this file are below.  The _account file_ can be "" if you
+  are running terraform from a GCE instance with a properly-configured [Compute
+  Engine Service Account](https://cloud.google.com/compute/docs/authentication).
 
 * `project` - (Required) The name of the project to apply any resources to.
 
