@@ -550,12 +550,11 @@ func TestContext2Plan_count(t *testing.T) {
 	}
 }
 
-/*
-func TestContextPlan_countComputed(t *testing.T) {
+func TestContext2Plan_countComputed(t *testing.T) {
 	m := testModule(t, "plan-count-computed")
 	p := testProvider("aws")
 	p.DiffFn = testDiffFn
-	ctx := testContext(t, &ContextOpts{
+	ctx := testContext2(t, &ContextOpts{
 		Module: m,
 		Providers: map[string]ResourceProviderFactory{
 			"aws": testProviderFuncFixed(p),
@@ -568,6 +567,7 @@ func TestContextPlan_countComputed(t *testing.T) {
 	}
 }
 
+/*
 func TestContextPlan_countIndex(t *testing.T) {
 	m := testModule(t, "plan-count-index")
 	p := testProvider("aws")
