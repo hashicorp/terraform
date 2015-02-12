@@ -122,7 +122,13 @@ func (n *GraphNodeConfigOutput) DependentOn() []string {
 
 // GraphNodeEvalable impl.
 func (n *GraphNodeConfigOutput) EvalTree() EvalNode {
-	return nil
+	return &EvalOpFilter{
+		Ops: []walkOperation{walkRefresh, walkPlan},
+		Node: &EvalWriteOutput{
+			Name:  n.Output.Name,
+			Value: &EvalInterpolate{Config: n.Output.RawConfig},
+		},
+	}
 }
 
 // GraphNodeConfigProvider represents a configured provider within the
