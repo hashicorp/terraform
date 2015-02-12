@@ -171,6 +171,11 @@ func (n *GraphNodeConfigProvider) ProviderName() string {
 // GraphNodeConfigResource represents a resource within the config graph.
 type GraphNodeConfigResource struct {
 	Resource *config.Resource
+
+	// If set to true, this represents a resource that can only be
+	// destroyed. It doesn't mean that the resource WILL be destroyed, only
+	// that logically this node is where it would happen.
+	Destroy bool
 }
 
 func (n *GraphNodeConfigResource) DependableName() []string {
@@ -199,19 +204,42 @@ func (n *GraphNodeConfigResource) DependentOn() []string {
 }
 
 func (n *GraphNodeConfigResource) Name() string {
-	return n.Resource.Id()
+	result := n.Resource.Id()
+	if n.Destroy {
+		result += " (destroy)"
+	}
+
+	return result
 }
 
 // GraphNodeDynamicExpandable impl.
 func (n *GraphNodeConfigResource) DynamicExpand(ctx EvalContext) (*Graph, error) {
-	// Build the graph
-	b := &BasicGraphBuilder{
-		Steps: []GraphTransformer{
-			&ResourceCountTransformer{Resource: n.Resource},
-			&RootTransformer{},
-		},
+	// Start creating the steps
+	steps := make([]GraphTransformer, 0, 5)
+	steps = append(steps, &ResourceCountTransformer{
+		Resource: n.Resource,
+		Destroy:  n.Destroy,
+	})
+
+	// If we're destroying, then we care about adding orphans to
+	// the graph. Orphans in this case are the leftover resources when
+	// we decrease count.
+	if n.Destroy {
+		state, lock := ctx.State()
+		lock.RLock()
+		defer lock.RUnlock()
+
+		steps = append(steps, &OrphanTransformer{
+			State: state,
+			View:  n.Resource.Id(),
+		})
 	}
 
+	// Always end with the root being added
+	steps = append(steps, &RootTransformer{})
+
+	// Build the graph
+	b := &BasicGraphBuilder{Steps: steps}
 	return b.Build(ctx.Path())
 }
 
@@ -224,6 +252,7 @@ func (n *GraphNodeConfigResource) EvalTree() EvalNode {
 				Ops:  []walkOperation{walkValidate},
 				Node: &EvalValidateCount{Resource: n.Resource},
 			},
+			&EvalCountFixZeroOneBoundary{Resource: n.Resource},
 		},
 	}
 }
@@ -245,17 +274,16 @@ func (n *GraphNodeConfigResource) ProvisionedBy() []string {
 
 // GraphNodeDestroyable
 func (n *GraphNodeConfigResource) DestroyNode() dag.Vertex {
-	return &GraphNodeConfigResourceDestroy{Resource: n.Resource}
-}
+	// If we're already a destroy node, then don't do anything
+	if n.Destroy {
+		return nil
+	}
 
-// GraphNodeConfigResourceDestroy represents the logical destroy step for
-// a resource.
-type GraphNodeConfigResourceDestroy struct {
-	Resource *config.Resource
-}
+	// Just make a copy that is set to destroy
+	result := *n
+	result.Destroy = true
 
-func (n *GraphNodeConfigResourceDestroy) Name() string {
-	return fmt.Sprintf("%s (destroy)", n.Resource.Id())
+	return &result
 }
 
 // graphNodeModuleExpanded represents a module where the graph has

@@ -685,7 +685,6 @@ func TestContext2Plan_countOneIndex(t *testing.T) {
 	}
 }
 
-/*
 func TestContext2Plan_countDecreaseToOne(t *testing.T) {
 	m := testModule(t, "plan-count-dec")
 	p := testProvider("aws")
@@ -741,6 +740,7 @@ func TestContext2Plan_countDecreaseToOne(t *testing.T) {
 	}
 }
 
+/*
 func TestContextPlan_countIncreaseFromNotSet(t *testing.T) {
 	m := testModule(t, "plan-count-inc")
 	p := testProvider("aws")
