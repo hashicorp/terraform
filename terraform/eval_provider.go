@@ -21,7 +21,7 @@ func (n *EvalConfigProvider) Eval(
 
 	// Get the parent configuration if there is one
 	if parent := ctx.ParentProviderConfig(n.Provider); parent != nil {
-		merged := parent.raw.Merge(config.raw)
+		merged := config.raw.Merge(parent.raw)
 		config = NewResourceConfig(merged)
 	}
 
