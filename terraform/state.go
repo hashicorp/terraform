@@ -550,7 +550,7 @@ func (r *ResourceState) prune() {
 	n := len(r.Tainted)
 	for i := 0; i < n; i++ {
 		inst := r.Tainted[i]
-		if inst.ID == "" {
+		if inst == nil || inst.ID == "" {
 			copy(r.Tainted[i:], r.Tainted[i+1:])
 			r.Tainted[n-1] = nil
 			n--

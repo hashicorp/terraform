@@ -2671,13 +2671,15 @@ func TestContextInput_varOnly(t *testing.T) {
 		t.Fatalf("bad: \n%s", actualStr)
 	}
 }
+*/
 
-func TestContextApply(t *testing.T) {
+/*
+func TestContext2Apply(t *testing.T) {
 	m := testModule(t, "apply-good")
 	p := testProvider("aws")
 	p.ApplyFn = testApplyFn
 	p.DiffFn = testDiffFn
-	ctx := testContext(t, &ContextOpts{
+	ctx := testContext2(t, &ContextOpts{
 		Module: m,
 		Providers: map[string]ResourceProviderFactory{
 			"aws": testProviderFuncFixed(p),
@@ -2705,6 +2707,7 @@ func TestContextApply(t *testing.T) {
 	}
 }
 
+/*
 func TestContextApply_emptyModule(t *testing.T) {
 	m := testModule(t, "apply-empty-module")
 	p := testProvider("aws")

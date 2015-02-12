@@ -65,6 +65,8 @@ func (n *graphNodeTaintedResource) ProvidedBy() []string {
 
 // GraphNodeEvalable impl.
 func (n *graphNodeTaintedResource) EvalTree() EvalNode {
+	var state *InstanceState
+
 	seq := &EvalSequence{Nodes: make([]EvalNode, 0, 5)}
 
 	// Build instance info
@@ -74,17 +76,25 @@ func (n *graphNodeTaintedResource) EvalTree() EvalNode {
 	// Refresh the resource
 	seq.Nodes = append(seq.Nodes, &EvalOpFilter{
 		Ops: []walkOperation{walkRefresh},
-		Node: &EvalWriteState{
-			Name:         n.ResourceName,
-			ResourceType: n.ResourceType,
-			Dependencies: n.DependentOn(),
-			Tainted:      true,
-			TaintedIndex: n.Index,
-			State: &EvalRefresh{
-				Info:     info,
-				Provider: &EvalGetProvider{Name: n.ProvidedBy()[0]},
-				State: &EvalReadState{
+		Node: &EvalSequence{
+			Nodes: []EvalNode{
+				&EvalReadState{
 					Name:         n.ResourceName,
+					Tainted:      true,
+					TaintedIndex: n.Index,
+					Output:       &state,
+				},
+				&EvalRefresh{
+					Info:     info,
+					Provider: &EvalGetProvider{Name: n.ProvidedBy()[0]},
+					State:    &state,
+					Output:   &state,
+				},
+				&EvalWriteState{
+					Name:         n.ResourceName,
+					ResourceType: n.ResourceType,
+					Dependencies: n.DependentOn(),
+					State:        &state,
 					Tainted:      true,
 					TaintedIndex: n.Index,
 				},

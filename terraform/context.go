@@ -81,6 +81,24 @@ func (c *Context2) GraphBuilder() GraphBuilder {
 	}
 }
 
+// Apply applies the changes represented by this context and returns
+// the resulting state.
+//
+// In addition to returning the resulting state, this context is updated
+// with the latest state.
+func (c *Context2) Apply() (*State, error) {
+	// Copy our own state
+	c.state = c.state.deepcopy()
+
+	// Do the walk
+	_, err := c.walk(walkApply)
+
+	// Clean out any unused things
+	c.state.prune()
+
+	return c.state, err
+}
+
 // Plan generates an execution plan for the given context.
 //
 // The execution plan encapsulates the context and can be stored
