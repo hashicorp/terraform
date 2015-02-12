@@ -191,7 +191,7 @@ func (i *Interpolater) valueResourceVar(
 	result map[string]ast.Variable) error {
 	// If we're computing all dynamic fields, then module vars count
 	// and we mark it as computed.
-	if i.Operation == walkValidate {
+	if i.Operation == walkValidate || i.Operation == walkRefresh {
 		result[n] = ast.Variable{
 			Value: config.UnknownVariableValue,
 			Type:  ast.TypeString,
