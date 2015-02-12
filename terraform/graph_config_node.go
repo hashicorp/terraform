@@ -94,6 +94,37 @@ func (n *GraphNodeConfigModule) ProvidedBy() []string {
 	return result
 }
 
+// GraphNodeConfigOutput represents an output configured within the
+// configuration.
+type GraphNodeConfigOutput struct {
+	Output *config.Output
+}
+
+func (n *GraphNodeConfigOutput) Name() string {
+	return fmt.Sprintf("output.%s", n.Output.Name)
+}
+
+func (n *GraphNodeConfigOutput) DependableName() []string {
+	return []string{n.Name()}
+}
+
+func (n *GraphNodeConfigOutput) DependentOn() []string {
+	vars := n.Output.RawConfig.Variables
+	result := make([]string, 0, len(vars))
+	for _, v := range vars {
+		if vn := varNameForVar(v); vn != "" {
+			result = append(result, vn)
+		}
+	}
+
+	return result
+}
+
+// GraphNodeEvalable impl.
+func (n *GraphNodeConfigOutput) EvalTree() EvalNode {
+	return nil
+}
+
 // GraphNodeConfigProvider represents a configured provider within the
 // configuration graph. These are only immediately in the graph when an
 // explicit `provider` configuration block is in the configuration.
