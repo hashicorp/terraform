@@ -71,6 +71,9 @@ The following arguments are supported:
 * `block_device` - (Optional) The object for booting by volume. The block_device
     object structure is documented below. Changing this creates a new server.
 
+* `volume` - (Optional) Attach an existing volume to the instance. The volume
+    structure is described below.
+
 The `network` block supports:
 
 * `uuid` - (Required unless `port` is provided) The network UUID to attach to
@@ -95,6 +98,14 @@ The `block_device` block supports:
 
 * `destination_type` - (Optional) The type that gets created. Possible values
     are "volume" and "local".
+
+The `volume` block supports:
+
+* `volume_id` - (Required) The UUID of the volume to attach.
+
+* `device` - (Optional) The device that the volume will be attached as. For
+    example:  `/dev/vdc`. Omit this option to allow the volume to be
+    auto-assigned a device.
 
 ## Attributes Reference
 
