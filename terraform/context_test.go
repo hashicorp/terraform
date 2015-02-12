@@ -3,6 +3,7 @@ package terraform
 import (
 	"bytes"
 	"fmt"
+	"os"
 	"reflect"
 	"sort"
 	"strings"
@@ -925,8 +926,7 @@ func TestContext2Plan_moduleDestroy(t *testing.T) {
 	}
 }
 
-/*
-func TestContextPlan_moduleDestroyMultivar(t *testing.T) {
+func TestContext2Plan_moduleDestroyMultivar(t *testing.T) {
 	m := testModule(t, "plan-module-destroy-multivar")
 	p := testProvider("aws")
 	p.DiffFn = testDiffFn
@@ -955,7 +955,7 @@ func TestContextPlan_moduleDestroyMultivar(t *testing.T) {
 			},
 		},
 	}
-	ctx := testContext(t, &ContextOpts{
+	ctx := testContext2(t, &ContextOpts{
 		Module: m,
 		Providers: map[string]ResourceProviderFactory{
 			"aws": testProviderFuncFixed(p),
@@ -975,7 +975,7 @@ func TestContextPlan_moduleDestroyMultivar(t *testing.T) {
 	}
 }
 
-func TestContextPlan_pathVar(t *testing.T) {
+func TestContext2Plan_pathVar(t *testing.T) {
 	cwd, err := os.Getwd()
 	if err != nil {
 		t.Fatalf("err: %s", err)
@@ -984,7 +984,7 @@ func TestContextPlan_pathVar(t *testing.T) {
 	m := testModule(t, "plan-path-var")
 	p := testProvider("aws")
 	p.DiffFn = testDiffFn
-	ctx := testContext(t, &ContextOpts{
+	ctx := testContext2(t, &ContextOpts{
 		Module: m,
 		Providers: map[string]ResourceProviderFactory{
 			"aws": testProviderFuncFixed(p),
@@ -1012,7 +1012,7 @@ func TestContextPlan_pathVar(t *testing.T) {
 	}
 }
 
-func TestContextPlan_diffVar(t *testing.T) {
+func TestContext2Plan_diffVar(t *testing.T) {
 	m := testModule(t, "plan-diffvar")
 	p := testProvider("aws")
 	s := &State{
@@ -1032,7 +1032,7 @@ func TestContextPlan_diffVar(t *testing.T) {
 			},
 		},
 	}
-	ctx := testContext(t, &ContextOpts{
+	ctx := testContext2(t, &ContextOpts{
 		Module: m,
 		Providers: map[string]ResourceProviderFactory{
 			"aws": testProviderFuncFixed(p),
@@ -1070,12 +1070,12 @@ func TestContextPlan_diffVar(t *testing.T) {
 	}
 }
 
-func TestContextPlan_hook(t *testing.T) {
+func TestContext2Plan_hook(t *testing.T) {
 	m := testModule(t, "plan-good")
 	h := new(MockHook)
 	p := testProvider("aws")
 	p.DiffFn = testDiffFn
-	ctx := testContext(t, &ContextOpts{
+	ctx := testContext2(t, &ContextOpts{
 		Module: m,
 		Hooks:  []Hook{h},
 		Providers: map[string]ResourceProviderFactory{
@@ -1096,7 +1096,7 @@ func TestContextPlan_hook(t *testing.T) {
 	}
 }
 
-func TestContextPlan_orphan(t *testing.T) {
+func TestContext2Plan_orphan(t *testing.T) {
 	m := testModule(t, "plan-orphan")
 	p := testProvider("aws")
 	p.DiffFn = testDiffFn
@@ -1115,7 +1115,7 @@ func TestContextPlan_orphan(t *testing.T) {
 			},
 		},
 	}
-	ctx := testContext(t, &ContextOpts{
+	ctx := testContext2(t, &ContextOpts{
 		Module: m,
 		Providers: map[string]ResourceProviderFactory{
 			"aws": testProviderFuncFixed(p),
@@ -1135,7 +1135,7 @@ func TestContextPlan_orphan(t *testing.T) {
 	}
 }
 
-func TestContextPlan_state(t *testing.T) {
+func TestContext2Plan_state(t *testing.T) {
 	m := testModule(t, "plan-good")
 	p := testProvider("aws")
 	p.DiffFn = testDiffFn
@@ -1153,7 +1153,7 @@ func TestContextPlan_state(t *testing.T) {
 			},
 		},
 	}
-	ctx := testContext(t, &ContextOpts{
+	ctx := testContext2(t, &ContextOpts{
 		Module: m,
 		Providers: map[string]ResourceProviderFactory{
 			"aws": testProviderFuncFixed(p),
@@ -1177,7 +1177,8 @@ func TestContextPlan_state(t *testing.T) {
 	}
 }
 
-func TestContextPlan_taint(t *testing.T) {
+/*
+func TestContext2Plan_taint(t *testing.T) {
 	m := testModule(t, "plan-taint")
 	p := testProvider("aws")
 	p.DiffFn = testDiffFn
@@ -1205,7 +1206,7 @@ func TestContextPlan_taint(t *testing.T) {
 			},
 		},
 	}
-	ctx := testContext(t, &ContextOpts{
+	ctx := testContext2(t, &ContextOpts{
 		Module: m,
 		Providers: map[string]ResourceProviderFactory{
 			"aws": testProviderFuncFixed(p),
@@ -1225,6 +1226,7 @@ func TestContextPlan_taint(t *testing.T) {
 	}
 }
 
+/*
 // Doing a Refresh (or any operation really, but Refresh usually
 // happens first) with a config with an unknown provider should result in
 // an error. The key bug this found was that this wasn't happening if
