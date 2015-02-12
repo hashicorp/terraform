@@ -21,7 +21,7 @@ func TestGraphNodeConfigModuleExpand(t *testing.T) {
 
 	node := &GraphNodeConfigModule{
 		Path:   []string{RootModuleName, "child"},
-		Module: nil,
+		Module: &config.Module{},
 		Tree:   nil,
 	}
 
@@ -98,4 +98,6 @@ const testGraphNodeModuleExpandStr = `
 aws_instance.bar
   aws_instance.foo
 aws_instance.foo
+  module inputs
+module inputs
 `
