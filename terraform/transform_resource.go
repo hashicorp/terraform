@@ -195,6 +195,11 @@ func (n *graphNodeExpandedResource) stateId() string {
 	return fmt.Sprintf("%s.%d", n.Resource.Id(), n.Index)
 }
 
+// GraphNodeStateRepresentative impl.
+func (n *graphNodeExpandedResource) StateId() []string {
+	return []string{n.stateId()}
+}
+
 // graphNodeExpandedResourceDestroy represents an expanded resource that
 // is to be destroyed.
 type graphNodeExpandedResourceDestroy struct {
