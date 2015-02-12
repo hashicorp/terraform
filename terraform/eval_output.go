@@ -2,6 +2,8 @@ package terraform
 
 import (
 	"fmt"
+
+	"github.com/hashicorp/terraform/config"
 )
 
 // EvalWriteOutput is an EvalNode implementation that writes the output
@@ -18,7 +20,7 @@ func (n *EvalWriteOutput) Args() ([]EvalNode, []EvalType) {
 // TODO: test
 func (n *EvalWriteOutput) Eval(
 	ctx EvalContext, args []interface{}) (interface{}, error) {
-	config := args[0].(*ResourceConfig)
+	cfg := args[0].(*ResourceConfig)
 
 	state, lock := ctx.State()
 	if state == nil {
@@ -36,9 +38,12 @@ func (n *EvalWriteOutput) Eval(
 	}
 
 	// Get the value from the config
-	valueRaw, ok := config.Get("value")
+	valueRaw, ok := cfg.Get("value")
 	if !ok {
 		valueRaw = ""
+	}
+	if cfg.IsComputed("value") {
+		valueRaw = config.UnknownVariableValue
 	}
 
 	// If it is a list of values, get the first one
