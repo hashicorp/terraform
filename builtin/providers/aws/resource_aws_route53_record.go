@@ -71,7 +71,7 @@ func resourceAwsRoute53RecordCreate(d *schema.ResourceData, meta interface{}) er
 	// and keep AWS happy.
 	recordName := d.Get("name").(string)
 	zoneName := strings.Trim(zoneRecord.HostedZone.Name, ".")
-	if ok := strings.HasSuffix(recordName, zoneName); !ok {
+	if !strings.HasSuffix(recordName, zoneName) {
 		d.Set("name", strings.Join([]string{recordName, zoneName}, "."))
 	}
 
