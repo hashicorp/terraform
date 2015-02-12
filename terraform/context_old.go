@@ -515,7 +515,9 @@ func (c *walkContext) Walk() error {
 				vraw = list[0]
 			}
 			if s, ok := vraw.(string); ok {
-				outputs[o.Name] = s
+				if s != config.UnknownVariableValue {
+					outputs[o.Name] = s
+				}
 			} else {
 				return fmt.Errorf("Type of output '%s' is not a string: %#v", o.Name, vraw)
 			}
@@ -1188,6 +1190,7 @@ func (c *walkContext) genericWalkFn(cb genericWalkFunc) depgraph.WalkFunc {
 				if err := rc.interpolate(c, nil); err != nil {
 					return err
 				}
+				println(fmt.Sprintf("%#v", rc))
 				for k, v := range rc.Config {
 					wc.Variables[k] = v.(string)
 				}
