@@ -875,8 +875,7 @@ func TestContext2Plan_destroy(t *testing.T) {
 	}
 }
 
-/*
-func TestContextPlan_moduleDestroy(t *testing.T) {
+func TestContext2Plan_moduleDestroy(t *testing.T) {
 	m := testModule(t, "plan-module-destroy")
 	p := testProvider("aws")
 	p.DiffFn = testDiffFn
@@ -906,7 +905,7 @@ func TestContextPlan_moduleDestroy(t *testing.T) {
 			},
 		},
 	}
-	ctx := testContext(t, &ContextOpts{
+	ctx := testContext2(t, &ContextOpts{
 		Module: m,
 		Providers: map[string]ResourceProviderFactory{
 			"aws": testProviderFuncFixed(p),
@@ -926,6 +925,7 @@ func TestContextPlan_moduleDestroy(t *testing.T) {
 	}
 }
 
+/*
 func TestContextPlan_moduleDestroyMultivar(t *testing.T) {
 	m := testModule(t, "plan-module-destroy-multivar")
 	p := testProvider("aws")
