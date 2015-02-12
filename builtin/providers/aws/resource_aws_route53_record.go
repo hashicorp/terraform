@@ -59,6 +59,22 @@ func resourceAwsRoute53Record() *schema.Resource {
 func resourceAwsRoute53RecordCreate(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).route53
 
+	zone := d.Get("zone_id").(string)
+
+	zoneRecord, err := conn.GetHostedZone(zone)
+	if err != nil {
+		return err
+	}
+
+	// Check if the current record name contains the zone suffix.
+	// If it does not, add the zone name to form a fully qualified name
+	// and keep AWS happy.
+	recordName := d.Get("name").(string)
+	zoneName := strings.Trim(zoneRecord.HostedZone.Name, ".")
+	if !strings.HasSuffix(recordName, zoneName) {
+		d.Set("name", strings.Join([]string{recordName, zoneName}, "."))
+	}
+
 	// Get the record
 	rec, err := resourceAwsRoute53RecordBuildSet(d)
 	if err != nil {
@@ -77,7 +93,7 @@ func resourceAwsRoute53RecordCreate(d *schema.ResourceData, meta interface{}) er
 			},
 		},
 	}
-	zone := d.Get("zone_id").(string)
+
 	log.Printf("[DEBUG] Creating resource records for zone: %s, name: %s",
 		zone, d.Get("name").(string))
 
