@@ -291,14 +291,13 @@ func TestContext2Plan_moduleProviderInherit(t *testing.T) {
 	}
 }
 
-/*
-func TestContextPlan_moduleProviderDefaults(t *testing.T) {
+func TestContext2Plan_moduleProviderDefaults(t *testing.T) {
 	var l sync.Mutex
 	var calls []string
 	toCount := 0
 
 	m := testModule(t, "plan-module-provider-defaults")
-	ctx := testContext(t, &ContextOpts{
+	ctx := testContext2(t, &ContextOpts{
 		Module: m,
 		Providers: map[string]ResourceProviderFactory{
 			"aws": func() (ResourceProvider, error) {
@@ -335,7 +334,9 @@ func TestContextPlan_moduleProviderDefaults(t *testing.T) {
 	}
 
 	if toCount != 1 {
-		t.Fatal("provider in child didn't set proper config")
+		t.Fatalf(
+			"provider in child didn't set proper config\n\n"+
+				"toCount: %d", toCount)
 	}
 
 	actual := calls
@@ -346,6 +347,7 @@ func TestContextPlan_moduleProviderDefaults(t *testing.T) {
 	}
 }
 
+/*
 func TestContextPlan_moduleProviderDefaultsVar(t *testing.T) {
 	var l sync.Mutex
 	var calls []string
