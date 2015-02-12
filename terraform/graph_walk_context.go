@@ -3,7 +3,6 @@ package terraform
 import (
 	"sync"
 
-	"github.com/hashicorp/go-multierror"
 	"github.com/hashicorp/terraform/dag"
 )
 
@@ -18,7 +17,6 @@ type ContextGraphWalker struct {
 
 	// Outputs, do not set these. Do not read these while the graph
 	// is being walked.
-	EvalError          error
 	Diff               *Diff
 	ValidationWarnings []string
 	ValidationErrors   []error
@@ -90,9 +88,9 @@ func (w *ContextGraphWalker) EnterEvalTree(v dag.Vertex, n EvalNode) EvalNode {
 }
 
 func (w *ContextGraphWalker) ExitEvalTree(
-	v dag.Vertex, output interface{}, err error) {
+	v dag.Vertex, output interface{}, err error) error {
 	if err == nil {
-		return
+		return nil
 	}
 
 	// Acquire the lock because anything is going to require a lock.
@@ -103,14 +101,13 @@ func (w *ContextGraphWalker) ExitEvalTree(
 	// error, then just record the normal error.
 	verr, ok := err.(*EvalValidateError)
 	if !ok {
-		// Some other error, record it
-		w.EvalError = multierror.Append(w.EvalError, err)
-		return
+		return err
 	}
 
 	// Record the validation error
 	w.ValidationWarnings = append(w.ValidationWarnings, verr.Warnings...)
 	w.ValidationErrors = append(w.ValidationErrors, verr.Errors...)
+	return nil
 }
 
 func (w *ContextGraphWalker) init() {
