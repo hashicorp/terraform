@@ -184,6 +184,50 @@ func (n *EvalDiffDestroyModule) Type() EvalType {
 	return EvalTypeNull
 }
 
+// EvalDiffTainted is an EvalNode implementation that writes the diff to
+// the full diff.
+type EvalDiffTainted struct {
+	Name string
+	Diff *InstanceDiff
+}
+
+func (n *EvalDiffTainted) Args() ([]EvalNode, []EvalType) {
+	return nil, nil
+}
+
+// TODO: test
+func (n *EvalDiffTainted) Eval(
+	ctx EvalContext, args []interface{}) (interface{}, error) {
+	state, lock := ctx.State()
+
+	// Get a read lock so we can access this instance
+	lock.RLock()
+	defer lock.RUnlock()
+
+	// Look for the module state. If we don't have one, then it doesn't matter.
+	mod := state.ModuleByPath(ctx.Path())
+	if mod == nil {
+		return nil, nil
+	}
+
+	// Look for the resource state. If we don't have one, then it is okay.
+	rs := mod.Resources[n.Name]
+	if rs == nil {
+		return nil, nil
+	}
+
+	// If we have tainted, then mark it on the diff
+	if len(rs.Tainted) > 0 {
+		n.Diff.DestroyTainted = true
+	}
+
+	return nil, nil
+}
+
+func (n *EvalDiffTainted) Type() EvalType {
+	return EvalTypeNull
+}
+
 // EvalWriteDiff is an EvalNode implementation that writes the diff to
 // the full diff.
 type EvalWriteDiff struct {
