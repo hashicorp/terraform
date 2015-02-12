@@ -212,6 +212,45 @@ func TestOrphanTransformer_modulesDepsOrphan(t *testing.T) {
 	}
 }
 
+func TestOrphanTransformer_modulesNoRoot(t *testing.T) {
+	mod := testModule(t, "transform-orphan-modules")
+	state := &State{
+		Modules: []*ModuleState{
+			// Orphan module
+			&ModuleState{
+				Path: []string{RootModuleName, "foo"},
+				Resources: map[string]*ResourceState{
+					"aws_instance.web": &ResourceState{
+						Type: "aws_instance",
+						Primary: &InstanceState{
+							ID: "foo",
+						},
+					},
+				},
+			},
+		},
+	}
+
+	g := Graph{Path: RootModulePath}
+	{
+		tf := &ConfigTransformer{Module: mod}
+		if err := tf.Transform(&g); err != nil {
+			t.Fatalf("err: %s", err)
+		}
+	}
+
+	transform := &OrphanTransformer{State: state, Module: mod}
+	if err := transform.Transform(&g); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	actual := strings.TrimSpace(g.String())
+	expected := strings.TrimSpace(testTransformOrphanModulesNoRootStr)
+	if actual != expected {
+		t.Fatalf("bad:\n\n%s", actual)
+	}
+}
+
 func TestOrphanTransformer_resourceDepends(t *testing.T) {
 	mod := testModule(t, "transform-orphan-basic")
 	state := &State{
@@ -261,6 +300,12 @@ func TestOrphanTransformer_resourceDepends(t *testing.T) {
 	}
 }
 
+func TestGraphNodeOrphanModule_impl(t *testing.T) {
+	var _ dag.Vertex = new(graphNodeOrphanModule)
+	var _ dag.NamedVertex = new(graphNodeOrphanModule)
+	var _ GraphNodeExpandable = new(graphNodeOrphanModule)
+}
+
 func TestGraphNodeOrphanResource_impl(t *testing.T) {
 	var _ dag.Vertex = new(graphNodeOrphanResource)
 	var _ dag.NamedVertex = new(graphNodeOrphanResource)
@@ -301,4 +346,9 @@ const testTransformOrphanResourceDependsStr = `
 aws_instance.db (orphan)
   aws_instance.web
 aws_instance.web
+`
+
+const testTransformOrphanModulesNoRootStr = `
+aws_instance.foo
+module.foo (orphan)
 `
