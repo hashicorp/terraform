@@ -89,13 +89,21 @@ func (n *graphNodeExpandedResource) ProvidedBy() []string {
 
 // GraphNodeEvalable impl.
 func (n *graphNodeExpandedResource) EvalTree() EvalNode {
+	resource := &Resource{CountIndex: n.Index}
+
+	// Shared node for interpolation of configuration
+	interpolateNode := &EvalInterpolate{
+		Config:   n.Resource.RawConfig,
+		Resource: resource,
+	}
+
 	seq := &EvalSequence{Nodes: make([]EvalNode, 0, 5)}
 
 	// Validate the resource
 	vseq := &EvalSequence{Nodes: make([]EvalNode, 0, 5)}
 	vseq.Nodes = append(vseq.Nodes, &EvalValidateResource{
 		Provider:     &EvalGetProvider{Name: n.ProvidedBy()[0]},
-		Config:       &EvalInterpolate{Config: n.Resource.RawConfig},
+		Config:       interpolateNode,
 		ResourceName: n.Resource.Name,
 		ResourceType: n.Resource.Type,
 	})
@@ -104,7 +112,8 @@ func (n *graphNodeExpandedResource) EvalTree() EvalNode {
 	for _, p := range n.Resource.Provisioners {
 		vseq.Nodes = append(vseq.Nodes, &EvalValidateProvisioner{
 			Provisioner: &EvalGetProvisioner{Name: p.Type},
-			Config:      &EvalInterpolate{Config: p.RawConfig},
+			Config: &EvalInterpolate{
+				Config: p.RawConfig, Resource: resource},
 		})
 	}
 
@@ -145,7 +154,7 @@ func (n *graphNodeExpandedResource) EvalTree() EvalNode {
 					Dependencies: n.DependentOn(),
 					State: &EvalDiff{
 						Info:     info,
-						Config:   &EvalInterpolate{Config: n.Resource.RawConfig},
+						Config:   interpolateNode,
 						Provider: &EvalGetProvider{Name: n.ProvidedBy()[0]},
 						State:    &EvalReadState{Name: n.stateId()},
 						Output:   &diff,
