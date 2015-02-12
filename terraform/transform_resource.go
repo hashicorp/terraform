@@ -61,6 +61,10 @@ type graphNodeExpandedResource struct {
 }
 
 func (n *graphNodeExpandedResource) Name() string {
+	if n.Index == -1 {
+		return n.Resource.Id()
+	}
+
 	return fmt.Sprintf("%s #%d", n.Resource.Id(), n.Index)
 }
 
