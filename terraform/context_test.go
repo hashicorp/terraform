@@ -109,12 +109,11 @@ func TestContext2Plan_modules(t *testing.T) {
 	}
 }
 
-/*
-func TestContextPlan_moduleInput(t *testing.T) {
+func TestContext2Plan_moduleInput(t *testing.T) {
 	m := testModule(t, "plan-module-input")
 	p := testProvider("aws")
 	p.DiffFn = testDiffFn
-	ctx := testContext(t, &ContextOpts{
+	ctx := testContext2(t, &ContextOpts{
 		Module: m,
 		Providers: map[string]ResourceProviderFactory{
 			"aws": testProviderFuncFixed(p),
@@ -133,6 +132,7 @@ func TestContextPlan_moduleInput(t *testing.T) {
 	}
 }
 
+/*
 func TestContextPlan_moduleInputComputed(t *testing.T) {
 	m := testModule(t, "plan-module-input-computed")
 	p := testProvider("aws")

@@ -1,8 +1,6 @@
 package terraform
 
 import (
-	"fmt"
-
 	"github.com/hashicorp/terraform/dag"
 )
 
@@ -10,7 +8,7 @@ import (
 // signal that they can be expanded. Expanded nodes turn into
 // GraphNodeSubgraph nodes within the graph.
 type GraphNodeExpandable interface {
-	Expand(GraphBuilder) (*Graph, error)
+	Expand(GraphBuilder) (GraphNodeSubgraph, error)
 }
 
 // GraphNodeDynamicExpandable is an interface that nodes can implement
@@ -43,27 +41,5 @@ func (t *ExpandTransform) Transform(v dag.Vertex) (dag.Vertex, error) {
 	}
 
 	// Expand the subgraph!
-	g, err := ev.Expand(t.Builder)
-	if err != nil {
-		return nil, err
-	}
-
-	// Replace with our special node
-	return &graphNodeExpanded{
-		Graph:        g,
-		OriginalName: dag.VertexName(v),
-	}, nil
-}
-
-type graphNodeExpanded struct {
-	Graph        *Graph
-	OriginalName string
-}
-
-func (n *graphNodeExpanded) Name() string {
-	return fmt.Sprintf("%s (expanded)", n.OriginalName)
-}
-
-func (n *graphNodeExpanded) Subgraph() *Graph {
-	return n.Graph
+	return ev.Expand(t.Builder)
 }

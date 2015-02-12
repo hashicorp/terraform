@@ -118,6 +118,9 @@ func (c *Context2) Plan(opts *PlanOpts) (*Plan, error) {
 
 	// Do the walk
 	walker, err := c.walk(operation)
+	if err != nil {
+		return nil, err
+	}
 	p.Diff = walker.Diff
 
 	// Update the diff so that our context is up-to-date

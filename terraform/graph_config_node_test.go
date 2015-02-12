@@ -34,7 +34,7 @@ func TestGraphNodeConfigModuleExpand(t *testing.T) {
 		t.Fatalf("err: %s", err)
 	}
 
-	actual := strings.TrimSpace(g.String())
+	actual := strings.TrimSpace(g.Subgraph().String())
 	expected := strings.TrimSpace(testGraphNodeModuleExpandStr)
 	if actual != expected {
 		t.Fatalf("bad:\n\n%s", actual)
