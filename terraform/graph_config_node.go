@@ -217,8 +217,9 @@ func (n *GraphNodeConfigResource) DynamicExpand(ctx EvalContext) (*Graph, error)
 
 // GraphNodeEvalable impl.
 func (n *GraphNodeConfigResource) EvalTree() EvalNode {
-	return &EvalValidateCount{
-		Resource: n.Resource,
+	return &EvalOpFilter{
+		Ops:  []walkOperation{walkValidate},
+		Node: &EvalValidateCount{Resource: n.Resource},
 	}
 }
 
