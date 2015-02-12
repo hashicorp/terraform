@@ -300,6 +300,29 @@ func TestOrphanTransformer_resourceDepends(t *testing.T) {
 	}
 }
 
+func TestOrphanTransformer_nilState(t *testing.T) {
+	mod := testModule(t, "transform-orphan-basic")
+
+	g := Graph{Path: RootModulePath}
+	{
+		tf := &ConfigTransformer{Module: mod}
+		if err := tf.Transform(&g); err != nil {
+			t.Fatalf("err: %s", err)
+		}
+	}
+
+	transform := &OrphanTransformer{State: nil, Module: mod}
+	if err := transform.Transform(&g); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	actual := strings.TrimSpace(g.String())
+	expected := strings.TrimSpace(testTransformOrphanNilStateStr)
+	if actual != expected {
+		t.Fatalf("bad:\n\n%s", actual)
+	}
+}
+
 func TestGraphNodeOrphanModule_impl(t *testing.T) {
 	var _ dag.Vertex = new(graphNodeOrphanModule)
 	var _ dag.NamedVertex = new(graphNodeOrphanModule)
@@ -340,6 +363,10 @@ aws_instance.foo
 aws_instance.web (orphan)
 module.foo (orphan)
   aws_instance.web (orphan)
+`
+
+const testTransformOrphanNilStateStr = `
+aws_instance.web
 `
 
 const testTransformOrphanResourceDependsStr = `

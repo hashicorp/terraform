@@ -21,6 +21,11 @@ type OrphanTransformer struct {
 }
 
 func (t *OrphanTransformer) Transform(g *Graph) error {
+	if t.State == nil {
+		// If the entire state is nil, there can't be any orphans
+		return nil
+	}
+
 	var config *config.Config
 	if module := t.Module.Child(g.Path[1:]); module != nil {
 		config = module.Config()
