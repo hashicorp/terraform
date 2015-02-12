@@ -26,6 +26,22 @@ func TestAccRoute53Record(t *testing.T) {
 	})
 }
 
+func TestAccRoute53Record_generatesSuffix(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckRoute53RecordDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccRoute53RecordConfigSuffix,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckRoute53RecordExists("aws_route53_record.default"),
+				),
+			},
+		},
+	})
+}
+
 func testAccCheckRoute53RecordDestroy(s *terraform.State) error {
 	conn := testAccProvider.Meta().(*AWSClient).route53
 	for _, rs := range s.RootModule().Resources {
@@ -95,6 +111,20 @@ resource "aws_route53_zone" "main" {
 resource "aws_route53_record" "default" {
 	zone_id = "${aws_route53_zone.main.zone_id}"
 	name = "www.notexample.com"
+	type = "A"
+	ttl = "30"
+	records = ["127.0.0.1", "127.0.0.27"]
+}
+`
+
+const testAccRoute53RecordConfigSuffix = `
+resource "aws_route53_zone" "main" {
+	name = "notexample.com"
+}
+
+resource "aws_route53_record" "default" {
+	zone_id = "${aws_route53_zone.main.zone_id}"
+	name = "subdomain"
 	type = "A"
 	ttl = "30"
 	records = ["127.0.0.1", "127.0.0.27"]
