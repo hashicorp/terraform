@@ -1177,7 +1177,6 @@ func TestContext2Plan_state(t *testing.T) {
 	}
 }
 
-/*
 func TestContext2Plan_taint(t *testing.T) {
 	m := testModule(t, "plan-taint")
 	p := testProvider("aws")
