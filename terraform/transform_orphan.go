@@ -8,6 +8,12 @@ import (
 	"github.com/hashicorp/terraform/dag"
 )
 
+// GraphNodeStateRepresentative is an interface that can be implemented by
+// a node to say that it is representing a resource in the state.
+type GraphNodeStateRepresentative interface {
+	StateId() []string
+}
+
 // OrphanTransformer is a GraphTransformer that adds orphans to the
 // graph. This transformer adds both resource and module orphans.
 type OrphanTransformer struct {
@@ -18,6 +24,9 @@ type OrphanTransformer struct {
 	// Module is the root module. We'll look up the proper configuration
 	// using the graph path.
 	Module *module.Tree
+
+	// View, if non-nil will set a view on the module state.
+	View string
 }
 
 func (t *OrphanTransformer) Transform(g *Graph) error {
@@ -26,19 +35,42 @@ func (t *OrphanTransformer) Transform(g *Graph) error {
 		return nil
 	}
 
+	// Build up all our state representatives
+	resourceRep := make(map[string]struct{})
+	for _, v := range g.Vertices() {
+		if sr, ok := v.(GraphNodeStateRepresentative); ok {
+			for _, k := range sr.StateId() {
+				resourceRep[k] = struct{}{}
+			}
+		}
+	}
+
 	var config *config.Config
-	if module := t.Module.Child(g.Path[1:]); module != nil {
-		config = module.Config()
+	if t.Module != nil {
+		if module := t.Module.Child(g.Path[1:]); module != nil {
+			config = module.Config()
+		}
 	}
 
 	var resourceVertexes []dag.Vertex
 	if state := t.State.ModuleByPath(g.Path); state != nil {
 		// If we have state, then we can have orphan resources
 
+		// If we have a view, get the view
+		if t.View != "" {
+			state = state.View(t.View)
+		}
+
 		// Go over each resource orphan and add it to the graph.
 		resourceOrphans := state.Orphans(config)
 		resourceVertexes = make([]dag.Vertex, len(resourceOrphans))
 		for i, k := range resourceOrphans {
+			// If this orphan is represented by some other node somehow,
+			// then ignore it.
+			if _, ok := resourceRep[k]; ok {
+				continue
+			}
+
 			rs := state.Resources[k]
 
 			resourceVertexes[i] = g.Add(&graphNodeOrphanResource{

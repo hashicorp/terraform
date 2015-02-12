@@ -11,6 +11,7 @@ import (
 // out for a specific resource.
 type ResourceCountTransformer struct {
 	Resource *config.Resource
+	Destroy  bool
 }
 
 func (t *ResourceCountTransformer) Transform(g *Graph) error {
@@ -35,13 +36,21 @@ func (t *ResourceCountTransformer) Transform(g *Graph) error {
 			index = -1
 		}
 
-		// Save the node for later so we can do connections
-		nodes[i] = &graphNodeExpandedResource{
+		// Save the node for later so we can do connections. Make the
+		// proper node depending on if we're just a destroy node or if
+		// were a regular node.
+		var node dag.Vertex = &graphNodeExpandedResource{
 			Index:    index,
 			Resource: t.Resource,
 		}
+		if t.Destroy {
+			node = &graphNodeExpandedResourceDestroy{
+				graphNodeExpandedResource: node.(*graphNodeExpandedResource),
+			}
+		}
 
 		// Add the node now
+		nodes[i] = node
 		g.Add(nodes[i])
 	}
 
@@ -184,4 +193,21 @@ func (n *graphNodeExpandedResource) stateId() string {
 	}
 
 	return fmt.Sprintf("%s.%d", n.Resource.Id(), n.Index)
+}
+
+// graphNodeExpandedResourceDestroy represents an expanded resource that
+// is to be destroyed.
+type graphNodeExpandedResourceDestroy struct {
+	*graphNodeExpandedResource
+}
+
+func (n *graphNodeExpandedResourceDestroy) Name() string {
+	return fmt.Sprintf("%s (destroy)", n.graphNodeExpandedResource.Name())
+}
+
+// GraphNodeEvalable impl.
+func (n *graphNodeExpandedResourceDestroy) EvalTree() EvalNode {
+	// TODO: We need an eval tree that destroys when there is a
+	// RequiresNew.
+	return EvalNoop{}
 }
