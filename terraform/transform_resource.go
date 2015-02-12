@@ -175,6 +175,10 @@ func (n *graphNodeExpandedResource) EvalTree() EvalNode {
 						Output:   &diff,
 					},
 				},
+				&EvalDiffTainted{
+					Diff: &diff,
+					Name: n.stateId(),
+				},
 				&EvalWriteDiff{
 					Name: n.stateId(),
 					Diff: &diff,
