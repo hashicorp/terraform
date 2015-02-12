@@ -44,6 +44,7 @@ BUG FIXES:
       Fixes issue where specific strings would convert to a negative index
       and be ommited when creating Route53 records. [GH-967]
   * provider/aws: ELB subnet change doesn't force new resource. [GH-804]
+  * provider/aws: Automatically suffix the Route53 zone name on record names. [GH-312]
   * provider/aws: Instance should ignore root EBS devices. [GH-877]
   * provider/aws: Fix `aws_db_instance` to not recreate each time. [GH-874]
   * provider/google: Fix bug preventing instances with metadata from being
