@@ -366,17 +366,9 @@ func resourceComputeInstanceV2Read(d *schema.ResourceData, meta interface{}) err
 	d.Set("metadata", server.Metadata)
 
 	secGrpNames := []string{}
-	err = secgroups.ListByServer(computeClient, d.Id()).EachPage(func(page pagination.Page) (bool, error) {
-		secGrpList, err := secgroups.ExtractSecurityGroups(page)
-		if err != nil {
-			return false, fmt.Errorf("Error getting security groups for OpenStack server: %s", err)
-		}
-		log.Printf("[DEBUG] secGrpList: %+v\n\n", secGrpList)
-		for _, sg := range secGrpList {
-			secGrpNames = append(secGrpNames, sg.Name)
-		}
-		return true, nil
-	})
+	for _, sg := range server.SecurityGroups {
+		secGrpNames = append(secGrpNames, sg["name"].(string))
+	}
 	d.Set("security_groups", secGrpNames)
 
 	flavorId, ok := server.Flavor["id"].(string)
