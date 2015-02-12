@@ -151,6 +151,39 @@ func (n *EvalDiffDestroy) Type() EvalType {
 	return EvalTypeNull
 }
 
+// EvalDiffDestroyModule is an EvalNode implementation that writes the diff to
+// the full diff.
+type EvalDiffDestroyModule struct {
+	Path []string
+}
+
+func (n *EvalDiffDestroyModule) Args() ([]EvalNode, []EvalType) {
+	return nil, nil
+}
+
+// TODO: test
+func (n *EvalDiffDestroyModule) Eval(
+	ctx EvalContext, args []interface{}) (interface{}, error) {
+	diff, lock := ctx.Diff()
+
+	// Acquire the lock so that we can do this safely concurrently
+	lock.Lock()
+	defer lock.Unlock()
+
+	// Write the diff
+	modDiff := diff.ModuleByPath(n.Path)
+	if modDiff == nil {
+		modDiff = diff.AddModule(n.Path)
+	}
+	modDiff.Destroy = true
+
+	return nil, nil
+}
+
+func (n *EvalDiffDestroyModule) Type() EvalType {
+	return EvalTypeNull
+}
+
 // EvalWriteDiff is an EvalNode implementation that writes the diff to
 // the full diff.
 type EvalWriteDiff struct {

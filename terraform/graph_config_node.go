@@ -306,9 +306,22 @@ func (n *graphNodeModuleExpanded) Name() string {
 
 // GraphNodeEvalable impl.
 func (n *graphNodeModuleExpanded) EvalTree() EvalNode {
-	return &EvalVariableBlock{
-		Config:    &EvalInterpolate{Config: n.InputConfig},
-		Variables: n.Variables,
+	return &EvalSequence{
+		Nodes: []EvalNode{
+			&EvalVariableBlock{
+				Config:    &EvalInterpolate{Config: n.InputConfig},
+				Variables: n.Variables,
+			},
+
+			&EvalOpFilter{
+				Ops: []walkOperation{walkPlanDestroy},
+				Node: &EvalSequence{
+					Nodes: []EvalNode{
+						&EvalDiffDestroyModule{Path: n.Graph.Path},
+					},
+				},
+			},
+		},
 	}
 }
 
