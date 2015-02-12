@@ -89,7 +89,13 @@ func (n *graphNodeExpandedResource) ProvidedBy() []string {
 
 // GraphNodeEvalable impl.
 func (n *graphNodeExpandedResource) EvalTree() EvalNode {
-	resource := &Resource{CountIndex: n.Index}
+	// Build the resource. If we aren't part of a multi-resource, then
+	// we still consider ourselves as count index zero.
+	index := n.Index
+	if index < 0 {
+		index = 0
+	}
+	resource := &Resource{CountIndex: index}
 
 	// Shared node for interpolation of configuration
 	interpolateNode := &EvalInterpolate{
