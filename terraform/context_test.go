@@ -477,12 +477,11 @@ func TestContext2Plan_nil(t *testing.T) {
 	}
 }
 
-/*
-func TestContextPlan_computed(t *testing.T) {
+func TestContext2Plan_computed(t *testing.T) {
 	m := testModule(t, "plan-computed")
 	p := testProvider("aws")
 	p.DiffFn = testDiffFn
-	ctx := testContext(t, &ContextOpts{
+	ctx := testContext2(t, &ContextOpts{
 		Module: m,
 		Providers: map[string]ResourceProviderFactory{
 			"aws": testProviderFuncFixed(p),
@@ -501,11 +500,11 @@ func TestContextPlan_computed(t *testing.T) {
 	}
 }
 
-func TestContextPlan_computedList(t *testing.T) {
+func TestContext2Plan_computedList(t *testing.T) {
 	m := testModule(t, "plan-computed-list")
 	p := testProvider("aws")
 	p.DiffFn = testDiffFn
-	ctx := testContext(t, &ContextOpts{
+	ctx := testContext2(t, &ContextOpts{
 		Module: m,
 		Providers: map[string]ResourceProviderFactory{
 			"aws": testProviderFuncFixed(p),
@@ -524,11 +523,11 @@ func TestContextPlan_computedList(t *testing.T) {
 	}
 }
 
-func TestContextPlan_count(t *testing.T) {
+func TestContext2Plan_count(t *testing.T) {
 	m := testModule(t, "plan-count")
 	p := testProvider("aws")
 	p.DiffFn = testDiffFn
-	ctx := testContext(t, &ContextOpts{
+	ctx := testContext2(t, &ContextOpts{
 		Module: m,
 		Providers: map[string]ResourceProviderFactory{
 			"aws": testProviderFuncFixed(p),
@@ -551,6 +550,7 @@ func TestContextPlan_count(t *testing.T) {
 	}
 }
 
+/*
 func TestContextPlan_countComputed(t *testing.T) {
 	m := testModule(t, "plan-count-computed")
 	p := testProvider("aws")
