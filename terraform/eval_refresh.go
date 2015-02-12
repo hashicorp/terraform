@@ -1,29 +1,31 @@
 package terraform
 
+import (
+	"log"
+)
+
 // EvalRefresh is an EvalNode implementation that does a refresh for
 // a resource.
 type EvalRefresh struct {
 	Provider EvalNode
-	State    EvalNode
+	State    **InstanceState
 	Info     *InstanceInfo
+	Output   **InstanceState
 }
 
 func (n *EvalRefresh) Args() ([]EvalNode, []EvalType) {
-	return []EvalNode{n.Provider, n.State},
-		[]EvalType{EvalTypeResourceProvider, EvalTypeInstanceState}
+	return []EvalNode{n.Provider}, []EvalType{EvalTypeResourceProvider}
 }
 
 // TODO: test
 func (n *EvalRefresh) Eval(
 	ctx EvalContext, args []interface{}) (interface{}, error) {
-	var state *InstanceState
 	provider := args[0].(ResourceProvider)
-	if args[1] != nil {
-		state = args[1].(*InstanceState)
-	}
+	state := *n.State
 
 	// If we have no state, we don't do any refreshing
 	if state == nil {
+		log.Printf("[DEBUG] refresh: %s: no state, not refreshing", n.Info.Id)
 		return nil, nil
 	}
 
@@ -49,6 +51,9 @@ func (n *EvalRefresh) Eval(
 		return nil, err
 	}
 
+	if n.Output != nil {
+		*n.Output = state
+	}
 	return state, nil
 }
 

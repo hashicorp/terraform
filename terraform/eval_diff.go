@@ -3,11 +3,12 @@ package terraform
 // EvalDiff is an EvalNode implementation that does a refresh for
 // a resource.
 type EvalDiff struct {
-	Info     *InstanceInfo
-	Config   EvalNode
-	Provider EvalNode
-	State    EvalNode
-	Output   *InstanceDiff
+	Info        *InstanceInfo
+	Config      EvalNode
+	Provider    EvalNode
+	State       EvalNode
+	Output      **InstanceDiff
+	OutputState **InstanceState
 }
 
 func (n *EvalDiff) Args() ([]EvalNode, []EvalType) {
@@ -82,11 +83,12 @@ func (n *EvalDiff) Eval(
 	}
 
 	// Update our output
-	*n.Output = *diff
+	*n.Output = diff
+	*n.OutputState = state
 
 	// Merge our state so that the state is updated with our plan
-	if !diff.Empty() {
-		state = state.MergeDiff(diff)
+	if !diff.Empty() && n.OutputState != nil {
+		*n.OutputState = state.MergeDiff(diff)
 	}
 
 	return state, nil
@@ -101,7 +103,7 @@ func (n *EvalDiff) Type() EvalType {
 type EvalDiffDestroy struct {
 	Info   *InstanceInfo
 	State  EvalNode
-	Output *InstanceDiff
+	Output **InstanceDiff
 }
 
 func (n *EvalDiffDestroy) Args() ([]EvalNode, []EvalType) {
@@ -142,7 +144,7 @@ func (n *EvalDiffDestroy) Eval(
 	}
 
 	// Update our output
-	*n.Output = *diff
+	*n.Output = diff
 
 	return nil, nil
 }
@@ -188,7 +190,7 @@ func (n *EvalDiffDestroyModule) Type() EvalType {
 // the full diff.
 type EvalDiffTainted struct {
 	Name string
-	Diff *InstanceDiff
+	Diff **InstanceDiff
 }
 
 func (n *EvalDiffTainted) Args() ([]EvalNode, []EvalType) {
@@ -218,7 +220,7 @@ func (n *EvalDiffTainted) Eval(
 
 	// If we have tainted, then mark it on the diff
 	if len(rs.Tainted) > 0 {
-		n.Diff.DestroyTainted = true
+		(*n.Diff).DestroyTainted = true
 	}
 
 	return nil, nil
@@ -228,11 +230,46 @@ func (n *EvalDiffTainted) Type() EvalType {
 	return EvalTypeNull
 }
 
+// EvalReadDiff is an EvalNode implementation that writes the diff to
+// the full diff.
+type EvalReadDiff struct {
+	Name string
+	Diff **InstanceDiff
+}
+
+func (n *EvalReadDiff) Args() ([]EvalNode, []EvalType) {
+	return nil, nil
+}
+
+// TODO: test
+func (n *EvalReadDiff) Eval(
+	ctx EvalContext, args []interface{}) (interface{}, error) {
+	diff, lock := ctx.Diff()
+
+	// Acquire the lock so that we can do this safely concurrently
+	lock.Lock()
+	defer lock.Unlock()
+
+	// Write the diff
+	modDiff := diff.ModuleByPath(ctx.Path())
+	if modDiff == nil {
+		return nil, nil
+	}
+
+	*n.Diff = modDiff.Resources[n.Name]
+
+	return nil, nil
+}
+
+func (n *EvalReadDiff) Type() EvalType {
+	return EvalTypeNull
+}
+
 // EvalWriteDiff is an EvalNode implementation that writes the diff to
 // the full diff.
 type EvalWriteDiff struct {
 	Name string
-	Diff *InstanceDiff
+	Diff **InstanceDiff
 }
 
 func (n *EvalWriteDiff) Args() ([]EvalNode, []EvalType) {
@@ -245,7 +282,7 @@ func (n *EvalWriteDiff) Eval(
 	diff, lock := ctx.Diff()
 
 	// The diff to write, if its empty it should write nil
-	diffVal := n.Diff
+	diffVal := *n.Diff
 	if diffVal.Empty() {
 		diffVal = nil
 	}

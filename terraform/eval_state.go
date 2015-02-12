@@ -10,6 +10,7 @@ type EvalReadState struct {
 	Name         string
 	Tainted      bool
 	TaintedIndex int
+	Output       **InstanceState
 }
 
 func (n *EvalReadState) Args() ([]EvalNode, []EvalType) {
@@ -37,13 +38,21 @@ func (n *EvalReadState) Eval(
 		return nil, nil
 	}
 
+	var result *InstanceState
 	if !n.Tainted {
 		// Return the primary
-		return rs.Primary, nil
+		result = rs.Primary
 	} else {
 		// Return the proper tainted resource
-		return rs.Tainted[n.TaintedIndex], nil
+		result = rs.Tainted[n.TaintedIndex]
 	}
+
+	// Write the result to the output pointer
+	if n.Output != nil {
+		*n.Output = result
+	}
+
+	return result, nil
 }
 
 func (n *EvalReadState) Type() EvalType {
@@ -56,23 +65,18 @@ type EvalWriteState struct {
 	Name         string
 	ResourceType string
 	Dependencies []string
-	State        EvalNode
+	State        **InstanceState
 	Tainted      bool
 	TaintedIndex int
 }
 
 func (n *EvalWriteState) Args() ([]EvalNode, []EvalType) {
-	return []EvalNode{n.State}, []EvalType{EvalTypeInstanceState}
+	return nil, nil
 }
 
 // TODO: test
 func (n *EvalWriteState) Eval(
 	ctx EvalContext, args []interface{}) (interface{}, error) {
-	var instanceState *InstanceState
-	if args[0] != nil {
-		instanceState = args[0].(*InstanceState)
-	}
-
 	state, lock := ctx.State()
 	if state == nil {
 		return nil, fmt.Errorf("cannot write state to nil state")
@@ -100,11 +104,11 @@ func (n *EvalWriteState) Eval(
 
 	if n.Tainted {
 		if n.TaintedIndex != -1 {
-			rs.Tainted[n.TaintedIndex] = instanceState
+			rs.Tainted[n.TaintedIndex] = *n.State
 		}
 	} else {
 		// Set the primary state
-		rs.Primary = instanceState
+		rs.Primary = *n.State
 	}
 
 	// Prune because why not, we can clear out old useless entries now

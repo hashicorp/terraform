@@ -98,6 +98,9 @@ func (n *graphNodeExpandedResource) ProvidedBy() []string {
 
 // GraphNodeEvalable impl.
 func (n *graphNodeExpandedResource) EvalTree() EvalNode {
+	var diff *InstanceDiff
+	var state *InstanceState
+
 	// Build the resource. If we aren't part of a multi-resource, then
 	// we still consider ourselves as count index zero.
 	index := n.Index
@@ -145,35 +148,46 @@ func (n *graphNodeExpandedResource) EvalTree() EvalNode {
 	// Refresh the resource
 	seq.Nodes = append(seq.Nodes, &EvalOpFilter{
 		Ops: []walkOperation{walkRefresh},
-		Node: &EvalWriteState{
-			Name:         n.stateId(),
-			ResourceType: n.Resource.Type,
-			Dependencies: n.DependentOn(),
-			State: &EvalRefresh{
-				Info:     info,
-				Provider: &EvalGetProvider{Name: n.ProvidedBy()[0]},
-				State:    &EvalReadState{Name: n.stateId()},
+		Node: &EvalSequence{
+			Nodes: []EvalNode{
+				&EvalReadState{
+					Name:   n.stateId(),
+					Output: &state,
+				},
+				&EvalRefresh{
+					Info:     info,
+					Provider: &EvalGetProvider{Name: n.ProvidedBy()[0]},
+					State:    &state,
+					Output:   &state,
+				},
+				&EvalWriteState{
+					Name:         n.stateId(),
+					ResourceType: n.Resource.Type,
+					Dependencies: n.DependentOn(),
+					State:        &state,
+				},
 			},
 		},
 	})
 
 	// Diff the resource
-	var diff InstanceDiff
 	seq.Nodes = append(seq.Nodes, &EvalOpFilter{
 		Ops: []walkOperation{walkPlan},
 		Node: &EvalSequence{
 			Nodes: []EvalNode{
+				&EvalDiff{
+					Info:        info,
+					Config:      interpolateNode,
+					Provider:    &EvalGetProvider{Name: n.ProvidedBy()[0]},
+					State:       &EvalReadState{Name: n.stateId()},
+					Output:      &diff,
+					OutputState: &state,
+				},
 				&EvalWriteState{
 					Name:         n.stateId(),
 					ResourceType: n.Resource.Type,
 					Dependencies: n.DependentOn(),
-					State: &EvalDiff{
-						Info:     info,
-						Config:   interpolateNode,
-						Provider: &EvalGetProvider{Name: n.ProvidedBy()[0]},
-						State:    &EvalReadState{Name: n.stateId()},
-						Output:   &diff,
-					},
+					State:        &state,
 				},
 				&EvalDiffTainted{
 					Diff: &diff,
@@ -200,6 +214,41 @@ func (n *graphNodeExpandedResource) EvalTree() EvalNode {
 				&EvalWriteDiff{
 					Name: n.stateId(),
 					Diff: &diff,
+				},
+			},
+		},
+	})
+
+	// Diff the resource for destruction
+	var provider ResourceProvider
+	seq.Nodes = append(seq.Nodes, &EvalOpFilter{
+		Ops: []walkOperation{walkApply},
+		Node: &EvalSequence{
+			Nodes: []EvalNode{
+				&EvalGetProvider{
+					Name:   n.ProvidedBy()[0],
+					Output: &provider,
+				},
+				&EvalReadDiff{
+					Name: n.stateId(),
+					Diff: &diff,
+				},
+				&EvalReadState{
+					Name:   n.stateId(),
+					Output: &state,
+				},
+				&EvalApply{
+					Info:     info,
+					State:    &state,
+					Diff:     &diff,
+					Provider: &provider,
+					Output:   &state,
+				},
+				&EvalWriteState{
+					Name:         n.stateId(),
+					ResourceType: n.Resource.Type,
+					Dependencies: n.DependentOn(),
+					State:        &state,
 				},
 			},
 		},
