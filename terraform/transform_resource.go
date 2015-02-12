@@ -28,9 +28,16 @@ func (t *ResourceCountTransformer) Transform(g *Graph) error {
 	// For each count, build and add the node
 	nodes := make([]dag.Vertex, count)
 	for i := 0; i < count; i++ {
+		// Set the index. If our count is 1 we special case it so that
+		// we handle the "resource.0" and "resource" boundary properly.
+		index := i
+		if count == 1 {
+			index = -1
+		}
+
 		// Save the node for later so we can do connections
 		nodes[i] = &graphNodeExpandedResource{
-			Index:    i,
+			Index:    index,
 			Resource: t.Resource,
 		}
 
@@ -146,7 +153,7 @@ func (n *graphNodeExpandedResource) EvalTree() EvalNode {
 
 // stateId is the name used for the state key
 func (n *graphNodeExpandedResource) stateId() string {
-	if n.Index == 0 {
+	if n.Index == -1 {
 		return n.Resource.Id()
 	}
 
