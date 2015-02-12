@@ -117,6 +117,11 @@ func (n *EvalDiffDestroy) Eval(
 		state = args[0].(*InstanceState)
 	}
 
+	// If there is no state or we don't have an ID, we're already destroyed
+	if state == nil || state.ID == "" {
+		return nil, nil
+	}
+
 	// Call pre-diff hook
 	err := ctx.Hook(func(h Hook) (HookAction, error) {
 		return h.PreDiff(n.Info, state)

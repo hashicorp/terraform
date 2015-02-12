@@ -197,7 +197,7 @@ func (n *graphNodeOrphanResource) EvalTree() EvalNode {
 	// Diff the resource
 	var diff InstanceDiff
 	seq.Nodes = append(seq.Nodes, &EvalOpFilter{
-		Ops: []walkOperation{walkPlan},
+		Ops: []walkOperation{walkPlan, walkPlanDestroy},
 		Node: &EvalSequence{
 			Nodes: []EvalNode{
 				&EvalDiffDestroy{
