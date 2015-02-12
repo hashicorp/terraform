@@ -181,7 +181,6 @@ func TestContext2Plan_moduleInputFromVar(t *testing.T) {
 	}
 }
 
-/*
 func TestContext2Plan_moduleMultiVar(t *testing.T) {
 	m := testModule(t, "plan-module-multi-var")
 	p := testProvider("aws")
@@ -205,6 +204,7 @@ func TestContext2Plan_moduleMultiVar(t *testing.T) {
 	}
 }
 
+/*
 func TestContextPlan_moduleOrphans(t *testing.T) {
 	m := testModule(t, "plan-modules-remove")
 	p := testProvider("aws")
