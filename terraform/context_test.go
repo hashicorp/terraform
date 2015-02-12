@@ -639,12 +639,11 @@ func TestContext2Plan_countVar(t *testing.T) {
 	}
 }
 
-/*
-func TestContextPlan_countZero(t *testing.T) {
+func TestContext2Plan_countZero(t *testing.T) {
 	m := testModule(t, "plan-count-zero")
 	p := testProvider("aws")
 	p.DiffFn = testDiffFn
-	ctx := testContext(t, &ContextOpts{
+	ctx := testContext2(t, &ContextOpts{
 		Module: m,
 		Providers: map[string]ResourceProviderFactory{
 			"aws": testProviderFuncFixed(p),
@@ -663,11 +662,11 @@ func TestContextPlan_countZero(t *testing.T) {
 	}
 }
 
-func TestContextPlan_countOneIndex(t *testing.T) {
+func TestContext2Plan_countOneIndex(t *testing.T) {
 	m := testModule(t, "plan-count-one-index")
 	p := testProvider("aws")
 	p.DiffFn = testDiffFn
-	ctx := testContext(t, &ContextOpts{
+	ctx := testContext2(t, &ContextOpts{
 		Module: m,
 		Providers: map[string]ResourceProviderFactory{
 			"aws": testProviderFuncFixed(p),
@@ -686,7 +685,8 @@ func TestContextPlan_countOneIndex(t *testing.T) {
 	}
 }
 
-func TestContextPlan_countDecreaseToOne(t *testing.T) {
+/*
+func TestContext2Plan_countDecreaseToOne(t *testing.T) {
 	m := testModule(t, "plan-count-dec")
 	p := testProvider("aws")
 	p.DiffFn = testDiffFn
@@ -721,7 +721,7 @@ func TestContextPlan_countDecreaseToOne(t *testing.T) {
 			},
 		},
 	}
-	ctx := testContext(t, &ContextOpts{
+	ctx := testContext2(t, &ContextOpts{
 		Module: m,
 		Providers: map[string]ResourceProviderFactory{
 			"aws": testProviderFuncFixed(p),
