@@ -162,6 +162,12 @@ func (n *EvalWriteDiff) Eval(
 	ctx EvalContext, args []interface{}) (interface{}, error) {
 	diff, lock := ctx.Diff()
 
+	// The diff to write, if its empty it should write nil
+	diffVal := n.Diff
+	if diffVal.Empty() {
+		diffVal = nil
+	}
+
 	// Acquire the lock so that we can do this safely concurrently
 	lock.Lock()
 	defer lock.Unlock()
@@ -171,7 +177,11 @@ func (n *EvalWriteDiff) Eval(
 	if modDiff == nil {
 		modDiff = diff.AddModule(ctx.Path())
 	}
-	modDiff.Resources[n.Name] = n.Diff
+	if diffVal != nil {
+		modDiff.Resources[n.Name] = diffVal
+	} else {
+		delete(modDiff.Resources, n.Name)
+	}
 
 	return nil, nil
 }
