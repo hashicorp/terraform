@@ -287,7 +287,6 @@ func (n *graphNodeExpandedResource) EvalTree() EvalNode {
 					Output:    &state,
 					Error:     &err,
 					CreateNew: &createNew,
-					Tainted:   &tainted,
 				},
 				&EvalWriteState{
 					Name:         n.stateId(),
