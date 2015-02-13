@@ -238,7 +238,7 @@ func (n *graphNodeExpandedResource) EvalTree() EvalNode {
 				&EvalIf{
 					If: func(ctx EvalContext) (bool, error) {
 						if diffApply == nil {
-							return true, nil
+							return true, EvalEarlyExitError{}
 						}
 
 						if diffApply.Destroy {
