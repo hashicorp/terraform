@@ -102,5 +102,50 @@ func (n *graphNodeTaintedResource) EvalTree() EvalNode {
 		},
 	})
 
+	// Apply
+	var provider ResourceProvider
+	var diff *InstanceDiff
+	seq.Nodes = append(seq.Nodes, &EvalOpFilter{
+		Ops: []walkOperation{walkApply},
+		Node: &EvalSequence{
+			Nodes: []EvalNode{
+				&EvalGetProvider{
+					Name:   n.ProvidedBy()[0],
+					Output: &provider,
+				},
+				&EvalReadState{
+					Name:         n.ResourceName,
+					Tainted:      true,
+					TaintedIndex: n.Index,
+					Output:       &state,
+				},
+				&EvalDiffDestroy{
+					Info: info,
+					State: &EvalReadState{
+						Name:         n.ResourceName,
+						Tainted:      true,
+						TaintedIndex: n.Index,
+					},
+					Output: &diff,
+				},
+				&EvalApply{
+					Info:     info,
+					State:    &state,
+					Diff:     &diff,
+					Provider: &provider,
+					Output:   &state,
+				},
+				&EvalWriteState{
+					Name:         n.ResourceName,
+					ResourceType: n.ResourceType,
+					Dependencies: n.DependentOn(),
+					State:        &state,
+					Tainted:      true,
+					TaintedIndex: n.Index,
+				},
+			},
+		},
+	})
+
 	return seq
 }
