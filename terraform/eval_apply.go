@@ -106,6 +106,39 @@ func (n *EvalApply) Type() EvalType {
 	return EvalTypeNull
 }
 
+// EvalApplyPost is an EvalNode implementation that does the post-Apply work
+type EvalApplyPost struct {
+	Info  *InstanceInfo
+	State **InstanceState
+	Error *error
+}
+
+func (n *EvalApplyPost) Args() ([]EvalNode, []EvalType) {
+	return nil, nil
+}
+
+// TODO: test
+func (n *EvalApplyPost) Eval(
+	ctx EvalContext, args []interface{}) (interface{}, error) {
+	state := *n.State
+
+	{
+		// Call post-apply hook
+		err := ctx.Hook(func(h Hook) (HookAction, error) {
+			return h.PostApply(n.Info, state, *n.Error)
+		})
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return nil, *n.Error
+}
+
+func (n *EvalApplyPost) Type() EvalType {
+	return EvalTypeNull
+}
+
 // EvalApplyProvisioners is an EvalNode implementation that executes
 // the provisioners for a resource.
 //
