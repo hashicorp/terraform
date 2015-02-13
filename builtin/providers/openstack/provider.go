@@ -63,6 +63,7 @@ func Provider() terraform.ResourceProvider {
 			"openstack_compute_instance_v2":            resourceComputeInstanceV2(),
 			"openstack_compute_keypair_v2":             resourceComputeKeypairV2(),
 			"openstack_compute_secgroup_v2":            resourceComputeSecGroupV2(),
+			"openstack_compute_floatingip_v2":          resourceComputeFloatingIPV2(),
 			"openstack_lb_monitor_v1":                  resourceLBMonitorV1(),
 			"openstack_lb_pool_v1":                     resourceLBPoolV1(),
 			"openstack_lb_vip_v1":                      resourceLBVipV1(),
