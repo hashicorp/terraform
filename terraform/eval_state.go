@@ -62,12 +62,13 @@ func (n *EvalReadState) Type() EvalType {
 // EvalWriteState is an EvalNode implementation that reads the
 // InstanceState for a specific resource out of the state.
 type EvalWriteState struct {
-	Name         string
-	ResourceType string
-	Dependencies []string
-	State        **InstanceState
-	Tainted      bool
-	TaintedIndex int
+	Name                string
+	ResourceType        string
+	Dependencies        []string
+	State               **InstanceState
+	Tainted             *bool
+	TaintedIndex        int
+	TaintedClearPrimary bool
 }
 
 func (n *EvalWriteState) Args() ([]EvalNode, []EvalType) {
@@ -102,9 +103,15 @@ func (n *EvalWriteState) Eval(
 	rs.Type = n.ResourceType
 	rs.Dependencies = n.Dependencies
 
-	if n.Tainted {
+	if n.Tainted != nil && *n.Tainted {
 		if n.TaintedIndex != -1 {
 			rs.Tainted[n.TaintedIndex] = *n.State
+		} else {
+			rs.Tainted = append(rs.Tainted, *n.State)
+		}
+
+		if n.TaintedClearPrimary {
+			rs.Primary = nil
 		}
 	} else {
 		// Set the primary state

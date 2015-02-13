@@ -222,6 +222,8 @@ func (n *graphNodeExpandedResource) EvalTree() EvalNode {
 	// Diff the resource for destruction
 	var provider ResourceProvider
 	var diffApply *InstanceDiff
+	var err error
+	var tainted bool
 	seq.Nodes = append(seq.Nodes, &EvalOpFilter{
 		Ops: []walkOperation{walkApply},
 		Node: &EvalSequence{
@@ -262,12 +264,31 @@ func (n *graphNodeExpandedResource) EvalTree() EvalNode {
 					Diff:     &diffApply,
 					Provider: &provider,
 					Output:   &state,
+					Error:    &err,
+					Tainted:  &tainted,
 				},
 				&EvalWriteState{
 					Name:         n.stateId(),
 					ResourceType: n.Resource.Type,
 					Dependencies: n.DependentOn(),
 					State:        &state,
+				},
+				&EvalApplyProvisioners{
+					Info:           info,
+					State:          &state,
+					Resource:       n.Resource,
+					InterpResource: resource,
+					Tainted:        &tainted,
+					Error:          &err,
+				},
+				&EvalWriteState{
+					Name:                n.stateId(),
+					ResourceType:        n.Resource.Type,
+					Dependencies:        n.DependentOn(),
+					State:               &state,
+					Tainted:             &tainted,
+					TaintedIndex:        -1,
+					TaintedClearPrimary: true,
 				},
 			},
 		},

@@ -185,9 +185,9 @@ func (n *GraphNodeConfigResource) DependableName() []string {
 // GraphNodeDependent impl.
 func (n *GraphNodeConfigResource) DependentOn() []string {
 	result := make([]string, len(n.Resource.DependsOn),
-		len(n.Resource.RawCount.Variables)+
+		(len(n.Resource.RawCount.Variables)+
 			len(n.Resource.RawConfig.Variables)+
-			len(n.Resource.DependsOn))
+			len(n.Resource.DependsOn))*2)
 	copy(result, n.Resource.DependsOn)
 	for _, v := range n.Resource.RawCount.Variables {
 		if vn := varNameForVar(v); vn != "" {
@@ -197,6 +197,18 @@ func (n *GraphNodeConfigResource) DependentOn() []string {
 	for _, v := range n.Resource.RawConfig.Variables {
 		if vn := varNameForVar(v); vn != "" {
 			result = append(result, vn)
+		}
+	}
+	for _, p := range n.Resource.Provisioners {
+		for _, v := range p.ConnInfo.Variables {
+			if vn := varNameForVar(v); vn != "" {
+				result = append(result, vn)
+			}
+		}
+		for _, v := range p.RawConfig.Variables {
+			if vn := varNameForVar(v); vn != "" {
+				result = append(result, vn)
+			}
 		}
 	}
 

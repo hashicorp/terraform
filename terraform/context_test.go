@@ -3204,8 +3204,7 @@ func TestContext2Apply_nilDiff(t *testing.T) {
 	}
 }
 
-/*
-func TestContextApply_Provisioner_compute(t *testing.T) {
+func TestContext2Apply_Provisioner_compute(t *testing.T) {
 	m := testModule(t, "apply-provisioner-compute")
 	p := testProvider("aws")
 	pr := testProvisioner()
@@ -3219,7 +3218,7 @@ func TestContextApply_Provisioner_compute(t *testing.T) {
 
 		return nil
 	}
-	ctx := testContext(t, &ContextOpts{
+	ctx := testContext2(t, &ContextOpts{
 		Module: m,
 		Providers: map[string]ResourceProviderFactory{
 			"aws": testProviderFuncFixed(p),
@@ -3253,6 +3252,7 @@ func TestContextApply_Provisioner_compute(t *testing.T) {
 	}
 }
 
+/*
 func TestContextApply_provisionerCreateFail(t *testing.T) {
 	m := testModule(t, "apply-provisioner-fail-create")
 	p := testProvider("aws")
