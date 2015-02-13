@@ -1,10 +1,5 @@
 ## 0.3.7 (unreleased)
 
-FEATURES:
-
-  * **New provider: `azure`** - initially just supporting Linux virtual
-      machines [GH-899]
-
 IMPROVEMENTS:
 
   * **New resources: `google_compute_forwarding_rule`, `google_compute_http_health_check`, 
