@@ -81,7 +81,6 @@ func (b *BuiltinGraphBuilder) Steps() []GraphTransformer {
 		// Create all our resources from the configuration and state
 		&ConfigTransformer{Module: b.Root},
 		&OrphanTransformer{State: b.State, Module: b.Root},
-		&TaintedTransformer{State: b.State},
 
 		// Provider-related transformations
 		&MissingProviderTransformer{Providers: b.Providers},
@@ -105,6 +104,7 @@ func (b *BuiltinGraphBuilder) Steps() []GraphTransformer {
 
 		// Create the destruction nodes
 		&DestroyTransformer{},
+		&CreateBeforeDestroyTransformer{},
 		&PruneDestroyTransformer{Diff: b.Diff},
 
 		// Make sure we create one root

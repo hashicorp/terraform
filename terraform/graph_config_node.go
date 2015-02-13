@@ -177,7 +177,7 @@ type GraphNodeConfigResource struct {
 	// that logically this node is where it would happen.
 	Destroy bool
 
-	destroyNode dag.Vertex
+	destroyNode GraphNodeDestroy
 }
 
 func (n *GraphNodeConfigResource) DependableName() []string {
@@ -248,6 +248,11 @@ func (n *GraphNodeConfigResource) DynamicExpand(ctx EvalContext) (*Graph, error)
 			State: state,
 			View:  n.Resource.Id(),
 		})
+
+		steps = append(steps, &TaintedTransformer{
+			State: state,
+			View:  n.Resource.Id(),
+		})
 	}
 
 	// Always end with the root being added
@@ -288,7 +293,7 @@ func (n *GraphNodeConfigResource) ProvisionedBy() []string {
 }
 
 // GraphNodeDestroyable
-func (n *GraphNodeConfigResource) DestroyNode() dag.Vertex {
+func (n *GraphNodeConfigResource) DestroyNode() GraphNodeDestroy {
 	// If we're already a destroy node, then don't do anything
 	if n.Destroy {
 		return nil
@@ -300,11 +305,34 @@ func (n *GraphNodeConfigResource) DestroyNode() dag.Vertex {
 	}
 
 	// Just make a copy that is set to destroy
-	result := *n
+	result := &graphNodeResourceDestroy{
+		GraphNodeConfigResource: *n,
+		Original:                n,
+	}
 	result.Destroy = true
-	n.destroyNode = &result
+	n.destroyNode = result
 
 	return n.destroyNode
+}
+
+// graphNodeResourceDestroy represents the logical destruction of a
+// resource. This node doesn't mean it will be destroyed for sure, but
+// instead that if a destroy were to happen, it must happen at this point.
+type graphNodeResourceDestroy struct {
+	GraphNodeConfigResource
+	Original *GraphNodeConfigResource
+}
+
+func (n *graphNodeResourceDestroy) CreateBeforeDestroy() bool {
+	return n.Original.Resource.Lifecycle.CreateBeforeDestroy
+}
+
+func (n *graphNodeResourceDestroy) CreateNode() dag.Vertex {
+	return n.Original
+}
+
+func (n *graphNodeResourceDestroy) DiffId() string {
+	return ""
 }
 
 // graphNodeModuleExpanded represents a module where the graph has

@@ -10,6 +10,10 @@ type TaintedTransformer struct {
 	// State is the global state. We'll automatically find the correct
 	// ModuleState based on the Graph.Path that is being transformed.
 	State *State
+
+	// View, if non-empty, is the ModuleState.View used around the state
+	// to find tainted resources.
+	View string
 }
 
 func (t *TaintedTransformer) Transform(g *Graph) error {
@@ -18,6 +22,11 @@ func (t *TaintedTransformer) Transform(g *Graph) error {
 		// If there is no state for our module there can't be any tainted
 		// resources, since they live in the state.
 		return nil
+	}
+
+	// If we have a view, apply it now
+	if t.View != "" {
+		state = state.View(t.View)
 	}
 
 	// Go through all the resources in our state to look for tainted resources
@@ -31,15 +40,13 @@ func (t *TaintedTransformer) Transform(g *Graph) error {
 			// Add the graph node and make the connection from any untainted
 			// resources with this name to the tainted resource, so that
 			// the tainted resource gets destroyed first.
-			g.ConnectFrom(k, g.Add(&graphNodeTaintedResource{
+			g.Add(&graphNodeTaintedResource{
 				Index:        i,
 				ResourceName: k,
 				ResourceType: rs.Type,
-			}))
+			})
 		}
 	}
-
-	// TODO: Any other dependencies?
 
 	return nil
 }
@@ -49,10 +56,6 @@ type graphNodeTaintedResource struct {
 	Index        int
 	ResourceName string
 	ResourceType string
-}
-
-func (n *graphNodeTaintedResource) DependentOn() []string {
-	return []string{n.ResourceName}
 }
 
 func (n *graphNodeTaintedResource) Name() string {
@@ -94,7 +97,6 @@ func (n *graphNodeTaintedResource) EvalTree() EvalNode {
 				&EvalWriteState{
 					Name:         n.ResourceName,
 					ResourceType: n.ResourceType,
-					Dependencies: n.DependentOn(),
 					State:        &state,
 					Tainted:      &tainted,
 					TaintedIndex: n.Index,
@@ -139,7 +141,6 @@ func (n *graphNodeTaintedResource) EvalTree() EvalNode {
 				&EvalWriteState{
 					Name:         n.ResourceName,
 					ResourceType: n.ResourceType,
-					Dependencies: n.DependentOn(),
 					State:        &state,
 					Tainted:      &tainted,
 					TaintedIndex: n.Index,
