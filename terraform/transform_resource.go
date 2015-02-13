@@ -290,6 +290,11 @@ func (n *graphNodeExpandedResource) EvalTree() EvalNode {
 					TaintedIndex:        -1,
 					TaintedClearPrimary: true,
 				},
+				&EvalApplyPost{
+					Info:  info,
+					State: &state,
+					Error: &err,
+				},
 			},
 		},
 	})
