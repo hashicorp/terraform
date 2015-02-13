@@ -88,6 +88,7 @@ func (c *Context2) GraphBuilder() GraphBuilder {
 
 	return &BuiltinGraphBuilder{
 		Root:         c.module,
+		Diff:         c.diff,
 		Providers:    providers,
 		Provisioners: provisioners,
 		State:        c.state,

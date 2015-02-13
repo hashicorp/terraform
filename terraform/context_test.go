@@ -3793,7 +3793,6 @@ func TestContext2Apply_Provisioner_ConnInfo(t *testing.T) {
 	}
 }
 
-/*
 func TestContext2Apply_destroy(t *testing.T) {
 	m := testModule(t, "apply-destroy")
 	h := new(HookRecordApplyOrder)

@@ -176,6 +176,8 @@ type GraphNodeConfigResource struct {
 	// destroyed. It doesn't mean that the resource WILL be destroyed, only
 	// that logically this node is where it would happen.
 	Destroy bool
+
+	destroyNode dag.Vertex
 }
 
 func (n *GraphNodeConfigResource) DependableName() []string {
@@ -292,11 +294,17 @@ func (n *GraphNodeConfigResource) DestroyNode() dag.Vertex {
 		return nil
 	}
 
+	// If we already made the node, return that
+	if n.destroyNode != nil {
+		return n.destroyNode
+	}
+
 	// Just make a copy that is set to destroy
 	result := *n
 	result.Destroy = true
+	n.destroyNode = &result
 
-	return &result
+	return n.destroyNode
 }
 
 // graphNodeModuleExpanded represents a module where the graph has

@@ -142,7 +142,7 @@ func (n *graphNodeExpandedResource) EvalTree() EvalNode {
 	})
 
 	// Build instance info
-	info := &InstanceInfo{Id: n.stateId(), Type: n.Resource.Type}
+	info := n.instanceInfo()
 	seq.Nodes = append(seq.Nodes, &EvalInstanceInfo{Info: info})
 
 	// Refresh the resource
@@ -228,7 +228,28 @@ func (n *graphNodeExpandedResource) EvalTree() EvalNode {
 		Ops: []walkOperation{walkApply},
 		Node: &EvalSequence{
 			Nodes: []EvalNode{
-				// Redo the diff so we can compare outputs
+				// Get the saved diff for apply
+				&EvalReadDiff{
+					Name: n.stateId(),
+					Diff: &diffApply,
+				},
+
+				// We don't want to do any destroys
+				&EvalIf{
+					If: func(ctx EvalContext) (bool, error) {
+						if diffApply == nil {
+							return true, nil
+						}
+
+						if diffApply.Destroy {
+							return true, EvalEarlyExitError{}
+						}
+
+						return true, nil
+					},
+					Node: EvalNoop{},
+				},
+
 				&EvalDiff{
 					Info:     info,
 					Config:   interpolateNode,
@@ -304,6 +325,11 @@ func (n *graphNodeExpandedResource) EvalTree() EvalNode {
 	return seq
 }
 
+// instanceInfo is used for EvalTree.
+func (n *graphNodeExpandedResource) instanceInfo() *InstanceInfo {
+	return &InstanceInfo{Id: n.stateId(), Type: n.Resource.Type}
+}
+
 // stateId is the name used for the state key
 func (n *graphNodeExpandedResource) stateId() string {
 	if n.Index == -1 {
@@ -330,7 +356,62 @@ func (n *graphNodeExpandedResourceDestroy) Name() string {
 
 // GraphNodeEvalable impl.
 func (n *graphNodeExpandedResourceDestroy) EvalTree() EvalNode {
-	// TODO: We need an eval tree that destroys when there is a
-	// RequiresNew.
-	return EvalNoop{}
+	info := n.instanceInfo()
+
+	var diffApply *InstanceDiff
+	var provider ResourceProvider
+	var state *InstanceState
+	var err error
+	return &EvalOpFilter{
+		Ops: []walkOperation{walkApply},
+		Node: &EvalSequence{
+			Nodes: []EvalNode{
+				// Get the saved diff for apply
+				&EvalReadDiff{
+					Name: n.stateId(),
+					Diff: &diffApply,
+				},
+
+				// If we're not destroying, then compare diffs
+				&EvalIf{
+					If: func(ctx EvalContext) (bool, error) {
+						if diffApply != nil && diffApply.Destroy {
+							return true, nil
+						}
+
+						return true, EvalEarlyExitError{}
+					},
+					Node: EvalNoop{},
+				},
+
+				&EvalGetProvider{
+					Name:   n.ProvidedBy()[0],
+					Output: &provider,
+				},
+				&EvalReadState{
+					Name:   n.stateId(),
+					Output: &state,
+				},
+				&EvalApply{
+					Info:     info,
+					State:    &state,
+					Diff:     &diffApply,
+					Provider: &provider,
+					Output:   &state,
+					Error:    &err,
+				},
+				&EvalWriteState{
+					Name:         n.stateId(),
+					ResourceType: n.Resource.Type,
+					Dependencies: n.DependentOn(),
+					State:        &state,
+				},
+				&EvalApplyPost{
+					Info:  info,
+					State: &state,
+					Error: &err,
+				},
+			},
+		},
+	}
 }
