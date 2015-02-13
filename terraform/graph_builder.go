@@ -27,11 +27,13 @@ func (b *BasicGraphBuilder) Build(path []string) (*Graph, error) {
 		if err := step.Transform(g); err != nil {
 			return g, err
 		}
+
+		log.Printf("[TRACE] Graph after step %T:\n\n%s", step, g.String())
 	}
 
 	// Validate the graph structure
 	if err := g.Validate(); err != nil {
-		log.Printf("[ERROR] Graph validation failed. Graph: %s", g.String())
+		log.Printf("[ERROR] Graph validation failed. Graph:\n\n%s", g.String())
 		return nil, err
 	}
 
@@ -48,6 +50,9 @@ func (b *BasicGraphBuilder) Build(path []string) (*Graph, error) {
 type BuiltinGraphBuilder struct {
 	// Root is the root module of the graph to build.
 	Root *module.Tree
+
+	// Diff is the diff. The proper module diffs will be looked up.
+	Diff *Diff
 
 	// State is the global state. The proper module states will be looked
 	// up by graph path.
@@ -100,6 +105,7 @@ func (b *BuiltinGraphBuilder) Steps() []GraphTransformer {
 
 		// Create the destruction nodes
 		&DestroyTransformer{},
+		&PruneDestroyTransformer{Diff: b.Diff},
 
 		// Make sure we create one root
 		&RootTransformer{},
