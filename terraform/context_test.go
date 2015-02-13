@@ -2736,7 +2736,7 @@ func TestContext2Apply_emptyModule(t *testing.T) {
 }
 
 /*
-func TestContextApply_createBeforeDestroy(t *testing.T) {
+func TestContext2Apply_createBeforeDestroy(t *testing.T) {
 	m := testModule(t, "apply-good-create-before")
 	p := testProvider("aws")
 	p.ApplyFn = testApplyFn
@@ -2759,7 +2759,7 @@ func TestContextApply_createBeforeDestroy(t *testing.T) {
 			},
 		},
 	}
-	ctx := testContext(t, &ContextOpts{
+	ctx := testContext2(t, &ContextOpts{
 		Module: m,
 		Providers: map[string]ResourceProviderFactory{
 			"aws": testProviderFuncFixed(p),
@@ -2767,8 +2767,10 @@ func TestContextApply_createBeforeDestroy(t *testing.T) {
 		State: state,
 	})
 
-	if _, err := ctx.Plan(nil); err != nil {
+	if p, err := ctx.Plan(nil); err != nil {
 		t.Fatalf("err: %s", err)
+	} else {
+		t.Logf(p.String())
 	}
 
 	state, err := ctx.Apply()
@@ -2778,7 +2780,7 @@ func TestContextApply_createBeforeDestroy(t *testing.T) {
 
 	mod := state.RootModule()
 	if len(mod.Resources) != 1 {
-		t.Fatalf("bad: %#v", mod.Resources)
+		t.Fatalf("bad: %s", state)
 	}
 
 	actual := strings.TrimSpace(state.String())
