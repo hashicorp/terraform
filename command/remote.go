@@ -330,7 +330,7 @@ Options:
                          Required for Atlas backend, optional for Consul.
 
   -backend=Atlas         Specifies the type of remote backend. Must be one
-                         of Atlas, Consul, or HTTP. Defaults to Atlas.
+                         of Atlas, Consul, Swift or HTTP. Defaults to Atlas.
 
   -backup=path           Path to backup the existing state file before
                          modifying. Defaults to the "-state" path with
@@ -342,8 +342,8 @@ Options:
   -name=name             Name of the state file in the state storage server.
                          Required for Atlas backend.
 
-  -path=path             Path of the remote state in Consul. Required for the
-                         Consul backend.
+  -path=path             Path of the remote state in Consul and Swift. Required for the
+                         Consul and Swift backends.
 
   -pull=true             Controls if the remote state is pulled before disabling.
                          This defaults to true to ensure the latest state is cached

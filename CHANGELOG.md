@@ -4,6 +4,7 @@ FEATURES:
 
   * **New provider: `azure`** - initially just supporting Linux virtual
       machines [GH-899]
+  * **New remote: `swift`** - new support for using OpenStack Swift as a remote
 
 IMPROVEMENTS:
 
