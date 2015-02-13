@@ -3292,8 +3292,7 @@ func TestContext2Apply_provisionerCreateFail(t *testing.T) {
 	}
 }
 
-/*
-func TestContextApply_provisionerCreateFailNoId(t *testing.T) {
+func TestContext2Apply_provisionerCreateFailNoId(t *testing.T) {
 	m := testModule(t, "apply-provisioner-fail-create")
 	p := testProvider("aws")
 	pr := testProvisioner()
@@ -3306,7 +3305,7 @@ func TestContextApply_provisionerCreateFailNoId(t *testing.T) {
 		return nil, fmt.Errorf("error")
 	}
 
-	ctx := testContext(t, &ContextOpts{
+	ctx := testContext2(t, &ContextOpts{
 		Module: m,
 		Providers: map[string]ResourceProviderFactory{
 			"aws": testProviderFuncFixed(p),
@@ -3332,7 +3331,7 @@ func TestContextApply_provisionerCreateFailNoId(t *testing.T) {
 	}
 }
 
-func TestContextApply_provisionerFail(t *testing.T) {
+func TestContext2Apply_provisionerFail(t *testing.T) {
 	m := testModule(t, "apply-provisioner-fail")
 	p := testProvider("aws")
 	pr := testProvisioner()
@@ -3343,7 +3342,7 @@ func TestContextApply_provisionerFail(t *testing.T) {
 		return fmt.Errorf("EXPLOSION")
 	}
 
-	ctx := testContext(t, &ContextOpts{
+	ctx := testContext2(t, &ContextOpts{
 		Module: m,
 		Providers: map[string]ResourceProviderFactory{
 			"aws": testProviderFuncFixed(p),
@@ -3372,6 +3371,7 @@ func TestContextApply_provisionerFail(t *testing.T) {
 	}
 }
 
+/*
 func TestContextApply_provisionerFail_createBeforeDestroy(t *testing.T) {
 	m := testModule(t, "apply-provisioner-fail-create-before")
 	p := testProvider("aws")
@@ -3533,8 +3533,10 @@ func TestContextApply_errorDestroy_createBeforeDestroy(t *testing.T) {
 		t.Fatalf("bad: actual:\n%s\n\nexpected:\n%s", actual, expected)
 	}
 }
+*/
 
-func TestContextApply_provisionerResourceRef(t *testing.T) {
+/*
+func TestContext2Apply_provisionerResourceRef(t *testing.T) {
 	m := testModule(t, "apply-provisioner-resource-ref")
 	p := testProvider("aws")
 	pr := testProvisioner()
@@ -3549,7 +3551,7 @@ func TestContextApply_provisionerResourceRef(t *testing.T) {
 		return nil
 	}
 
-	ctx := testContext(t, &ContextOpts{
+	ctx := testContext2(t, &ContextOpts{
 		Module: m,
 		Providers: map[string]ResourceProviderFactory{
 			"aws": testProviderFuncFixed(p),
@@ -3580,6 +3582,7 @@ func TestContextApply_provisionerResourceRef(t *testing.T) {
 	}
 }
 
+/*
 // Provisioner should NOT run on a diff, only create
 func TestContextApply_Provisioner_Diff(t *testing.T) {
 	m := testModule(t, "apply-provisioner-diff")
