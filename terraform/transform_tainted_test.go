@@ -60,6 +60,5 @@ func TestGraphNodeTaintedResource_ProvidedBy(t *testing.T) {
 
 const testTransformTaintedBasicStr = `
 aws_instance.web
-  aws_instance.web (tainted #1)
 aws_instance.web (tainted #1)
 `
