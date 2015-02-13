@@ -7,6 +7,7 @@ import (
 
 	"github.com/hashicorp/terraform/helper/hashcode"
 	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/racker/perigee"
 	"github.com/rackspace/gophercloud/openstack/compute/v2/extensions/secgroups"
 )
 
@@ -35,38 +36,41 @@ func resourceComputeSecGroupV2() *schema.Resource {
 				ForceNew: false,
 			},
 			"rule": &schema.Schema{
-				Type:     schema.TypeSet,
+				Type:     schema.TypeList,
 				Optional: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
+						"id": &schema.Schema{
+							Type:     schema.TypeString,
+							Computed: true,
+						},
 						"from_port": &schema.Schema{
 							Type:     schema.TypeInt,
 							Required: true,
-							ForceNew: true,
+							ForceNew: false,
 						},
 						"to_port": &schema.Schema{
 							Type:     schema.TypeInt,
 							Required: true,
-							ForceNew: true,
+							ForceNew: false,
 						},
 						"ip_protocol": &schema.Schema{
 							Type:     schema.TypeString,
 							Required: true,
-							ForceNew: true,
+							ForceNew: false,
 						},
 						"cidr": &schema.Schema{
 							Type:     schema.TypeString,
 							Optional: true,
-							ForceNew: true,
+							ForceNew: false,
 						},
 						"from_group_id": &schema.Schema{
 							Type:     schema.TypeString,
 							Optional: true,
-							ForceNew: true,
+							ForceNew: false,
 						},
 					},
 				},
-				Set: resourceSecGroupRuleV2Hash,
 			},
 		},
 	}
@@ -117,7 +121,8 @@ func resourceComputeSecGroupV2Read(d *schema.ResourceData, meta interface{}) err
 	d.Set("region", d.Get("region").(string))
 	d.Set("name", sg.Name)
 	d.Set("description", sg.Description)
-	d.Set("rule", sg.Rules)
+	log.Printf("[DEBUG] rulesToMap(sg.Rules): %+v", rulesToMap(sg.Rules))
+	d.Set("rules", rulesToMap(sg.Rules))
 
 	return nil
 }
@@ -143,16 +148,18 @@ func resourceComputeSecGroupV2Update(d *schema.ResourceData, meta interface{}) e
 
 	if d.HasChange("rule") {
 		oldSGRaw, newSGRaw := d.GetChange("rule")
-		oldSGRSet, newSGRSet := oldSGRaw.(*schema.Set), newSGRaw.(*schema.Set)
+		oldSGRSlice, newSGRSlice := oldSGRaw.([]interface{}), newSGRaw.([]interface{})
+		oldSGRSet := schema.NewSet(secgroupRuleV2Hash, oldSGRSlice)
+		newSGRSet := schema.NewSet(secgroupRuleV2Hash, newSGRSlice)
 		secgrouprulesToAdd := newSGRSet.Difference(oldSGRSet)
 		secgrouprulesToRemove := oldSGRSet.Difference(newSGRSet)
 
 		log.Printf("[DEBUG] Security group rules to add: %v", secgrouprulesToAdd)
 
-		log.Printf("[DEBUG] Security groups to remove: %v", secgrouprulesToRemove)
+		log.Printf("[DEBUG] Security groups rules to remove: %v", secgrouprulesToRemove)
 
 		for _, rawRule := range secgrouprulesToAdd.List() {
-			createRuleOpts := resourceSecGroupRuleV2(d, rawRule)
+			createRuleOpts := resourceSecGroupRuleCreateOptsV2(d, rawRule)
 			rule, err := secgroups.CreateRule(computeClient, createRuleOpts).Extract()
 			if err != nil {
 				return fmt.Errorf("Error adding rule to OpenStack security group (%s): %s", d.Id(), err)
@@ -161,12 +168,21 @@ func resourceComputeSecGroupV2Update(d *schema.ResourceData, meta interface{}) e
 		}
 
 		for _, r := range secgrouprulesToRemove.List() {
-			rule := r.(secgroups.Rule)
-			err := secgroups.DeleteRule(computeClient, "").ExtractErr()
+			rule := resourceSecGroupRuleV2(d, r)
+			err := secgroups.DeleteRule(computeClient, rule.ID).ExtractErr()
 			if err != nil {
-				return fmt.Errorf("Error removing rule (%s) from OpenStack security group (%s): %s", rule.ID, d.Id(), err)
+				errCode, ok := err.(*perigee.UnexpectedResponseCodeError)
+				if !ok {
+					return fmt.Errorf("Error removing rule (%s) from OpenStack security group (%s): %s", rule.ID, d.Id(), err)
+				}
+				if errCode.Actual == 404 {
+					continue
+				} else {
+					return fmt.Errorf("Error removing rule (%s) from OpenStack security group (%s)", rule.ID, d.Id())
+				}
+			} else {
+				log.Printf("[DEBUG] Removed rule (%s) from OpenStack security group (%s): %s", rule.ID, d.Id(), err)
 			}
-			log.Printf("[DEBUG] Removed rule (%s) from OpenStack security group (%s)", rule.ID, d.Id())
 		}
 	}
 
@@ -188,22 +204,10 @@ func resourceComputeSecGroupV2Delete(d *schema.ResourceData, meta interface{}) e
 	return nil
 }
 
-func resourceSecGroupRuleV2Hash(v interface{}) int {
-	var buf bytes.Buffer
-	m := v.(map[string]interface{})
-	buf.WriteString(fmt.Sprintf("%d-", m["from_port"].(int)))
-	buf.WriteString(fmt.Sprintf("%d-", m["to_port"].(int)))
-	buf.WriteString(fmt.Sprintf("%s-", m["ip_protocol"].(string)))
-	buf.WriteString(fmt.Sprintf("%s-", m["cidr"].(string)))
-	buf.WriteString(fmt.Sprintf("%s-", m["from_group_id"].(string)))
-
-	return hashcode.String(buf.String())
-}
-
 func resourceSecGroupRulesV2(d *schema.ResourceData) []secgroups.CreateRuleOpts {
-	rawRules := (d.Get("rule")).(*schema.Set)
-	createRuleOptsList := make([]secgroups.CreateRuleOpts, rawRules.Len())
-	for i, raw := range rawRules.List() {
+	rawRules := (d.Get("rule")).([]interface{})
+	createRuleOptsList := make([]secgroups.CreateRuleOpts, len(rawRules))
+	for i, raw := range rawRules {
 		rawMap := raw.(map[string]interface{})
 		createRuleOptsList[i] = secgroups.CreateRuleOpts{
 			ParentGroupID: d.Id(),
@@ -217,7 +221,7 @@ func resourceSecGroupRulesV2(d *schema.ResourceData) []secgroups.CreateRuleOpts 
 	return createRuleOptsList
 }
 
-func resourceSecGroupRuleV2(d *schema.ResourceData, raw interface{}) secgroups.CreateRuleOpts {
+func resourceSecGroupRuleCreateOptsV2(d *schema.ResourceData, raw interface{}) secgroups.CreateRuleOpts {
 	rawMap := raw.(map[string]interface{})
 	return secgroups.CreateRuleOpts{
 		ParentGroupID: d.Id(),
@@ -227,4 +231,42 @@ func resourceSecGroupRuleV2(d *schema.ResourceData, raw interface{}) secgroups.C
 		CIDR:          rawMap["cidr"].(string),
 		FromGroupID:   rawMap["from_group_id"].(string),
 	}
+}
+
+func resourceSecGroupRuleV2(d *schema.ResourceData, raw interface{}) secgroups.Rule {
+	rawMap := raw.(map[string]interface{})
+	return secgroups.Rule{
+		ID:            rawMap["id"].(string),
+		ParentGroupID: d.Id(),
+		FromPort:      rawMap["from_port"].(int),
+		ToPort:        rawMap["to_port"].(int),
+		IPProtocol:    rawMap["ip_protocol"].(string),
+		IPRange:       secgroups.IPRange{CIDR: rawMap["cidr"].(string)},
+	}
+}
+
+func rulesToMap(sgrs []secgroups.Rule) []map[string]interface{} {
+	sgrMap := make([]map[string]interface{}, len(sgrs))
+	for i, sgr := range sgrs {
+		sgrMap[i] = map[string]interface{}{
+			"to_port":     sgr.ToPort,
+			"from_port":   sgr.FromPort,
+			"id":          sgr.ID,
+			"ruleID":      sgr.ID,
+			"cidr":        sgr.IPRange.CIDR,
+			"ip_protocol": sgr.IPProtocol,
+		}
+	}
+	return sgrMap
+}
+
+func secgroupRuleV2Hash(v interface{}) int {
+	var buf bytes.Buffer
+	m := v.(map[string]interface{})
+	buf.WriteString(fmt.Sprintf("%d-", m["from_port"].(int)))
+	buf.WriteString(fmt.Sprintf("%d-", m["to_port"].(int)))
+	buf.WriteString(fmt.Sprintf("%s-", m["ip_protocol"].(string)))
+	buf.WriteString(fmt.Sprintf("%s-", m["cidr"].(string)))
+
+	return hashcode.String(buf.String())
 }
