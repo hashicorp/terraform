@@ -54,11 +54,13 @@ func resourceComputeInstance() *schema.Resource {
 						"disk": &schema.Schema{
 							Type:     schema.TypeString,
 							Optional: true,
+							ForceNew: true,
 						},
 
 						"image": &schema.Schema{
 							Type:     schema.TypeString,
 							Optional: true,
+							ForceNew: true,
 						},
 
 						"type": &schema.Schema{
@@ -70,6 +72,7 @@ func resourceComputeInstance() *schema.Resource {
 						"auto_delete": &schema.Schema{
 							Type:     schema.TypeBool,
 							Optional: true,
+							ForceNew: true,
 						},
 					},
 				},
