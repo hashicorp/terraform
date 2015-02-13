@@ -3658,8 +3658,7 @@ func TestContext2Apply_Provisioner_Diff(t *testing.T) {
 	}
 }
 
-/*
-func TestContextApply_outputDiffVars(t *testing.T) {
+func TestContext2Apply_outputDiffVars(t *testing.T) {
 	m := testModule(t, "apply-good")
 	p := testProvider("aws")
 	s := &State{
@@ -3677,7 +3676,7 @@ func TestContextApply_outputDiffVars(t *testing.T) {
 			},
 		},
 	}
-	ctx := testContext(t, &ContextOpts{
+	ctx := testContext2(t, &ContextOpts{
 		Module: m,
 		Providers: map[string]ResourceProviderFactory{
 			"aws": testProviderFuncFixed(p),
@@ -3718,7 +3717,7 @@ func TestContextApply_outputDiffVars(t *testing.T) {
 	}
 }
 
-func TestContextApply_Provisioner_ConnInfo(t *testing.T) {
+func TestContext2Apply_Provisioner_ConnInfo(t *testing.T) {
 	m := testModule(t, "apply-provisioner-conninfo")
 	p := testProvider("aws")
 	pr := testProvisioner()
@@ -3759,7 +3758,7 @@ func TestContextApply_Provisioner_ConnInfo(t *testing.T) {
 		return nil
 	}
 
-	ctx := testContext(t, &ContextOpts{
+	ctx := testContext2(t, &ContextOpts{
 		Module: m,
 		Providers: map[string]ResourceProviderFactory{
 			"aws": testProviderFuncFixed(p),
@@ -3794,13 +3793,14 @@ func TestContextApply_Provisioner_ConnInfo(t *testing.T) {
 	}
 }
 
-func TestContextApply_destroy(t *testing.T) {
+/*
+func TestContext2Apply_destroy(t *testing.T) {
 	m := testModule(t, "apply-destroy")
 	h := new(HookRecordApplyOrder)
 	p := testProvider("aws")
 	p.ApplyFn = testApplyFn
 	p.DiffFn = testDiffFn
-	ctx := testContext(t, &ContextOpts{
+	ctx := testContext2(t, &ContextOpts{
 		Module: m,
 		Hooks:  []Hook{h},
 		Providers: map[string]ResourceProviderFactory{
@@ -3844,6 +3844,7 @@ func TestContextApply_destroy(t *testing.T) {
 	}
 }
 
+/*
 func TestContextApply_destroyOutputs(t *testing.T) {
 	m := testModule(t, "apply-destroy-outputs")
 	h := new(HookRecordApplyOrder)
