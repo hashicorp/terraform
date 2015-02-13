@@ -223,6 +223,41 @@ func (n *graphNodeOrphanResource) EvalTree() EvalNode {
 		},
 	})
 
+	// Apply
+	var provider ResourceProvider
+	seq.Nodes = append(seq.Nodes, &EvalOpFilter{
+		Ops: []walkOperation{walkApply},
+		Node: &EvalSequence{
+			Nodes: []EvalNode{
+				&EvalReadDiff{
+					Name: n.ResourceName,
+					Diff: &diff,
+				},
+				&EvalGetProvider{
+					Name:   n.ProvidedBy()[0],
+					Output: &provider,
+				},
+				&EvalReadState{
+					Name:   n.ResourceName,
+					Output: &state,
+				},
+				&EvalApply{
+					Info:     info,
+					State:    &state,
+					Diff:     &diff,
+					Provider: &provider,
+					Output:   &state,
+				},
+				&EvalWriteState{
+					Name:         n.ResourceName,
+					ResourceType: n.ResourceType,
+					Dependencies: n.DependentOn(),
+					State:        &state,
+				},
+			},
+		},
+	})
+
 	return seq
 }
 

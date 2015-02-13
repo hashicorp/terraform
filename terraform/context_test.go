@@ -2948,8 +2948,7 @@ func TestContext2Apply_compute(t *testing.T) {
 	}
 }
 
-/*
-func TestContextApply_countDecrease(t *testing.T) {
+func TestContext2Apply_countDecrease(t *testing.T) {
 	m := testModule(t, "apply-count-dec")
 	p := testProvider("aws")
 	p.DiffFn = testDiffFn
@@ -2992,7 +2991,7 @@ func TestContextApply_countDecrease(t *testing.T) {
 			},
 		},
 	}
-	ctx := testContext(t, &ContextOpts{
+	ctx := testContext2(t, &ContextOpts{
 		Module: m,
 		Providers: map[string]ResourceProviderFactory{
 			"aws": testProviderFuncFixed(p),
@@ -3016,6 +3015,7 @@ func TestContextApply_countDecrease(t *testing.T) {
 	}
 }
 
+/*
 func TestContextApply_countDecreaseToOne(t *testing.T) {
 	m := testModule(t, "apply-count-dec-one")
 	p := testProvider("aws")
