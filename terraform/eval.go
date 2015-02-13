@@ -36,10 +36,23 @@ func (EvalEarlyExitError) Error() string { return "early exit" }
 // Eval evaluates the given EvalNode with the given context, properly
 // evaluating all args in the correct order.
 func Eval(n EvalNode, ctx EvalContext) (interface{}, error) {
+	// Call the lower level eval which doesn't understand early exit,
+	// and if we early exit, it isn't an error.
+	result, err := eval(n, ctx)
+	if err != nil {
+		if _, ok := err.(EvalEarlyExitError); ok {
+			return nil, nil
+		}
+	}
+
+	return result, err
+}
+
+func eval(n EvalNode, ctx EvalContext) (interface{}, error) {
 	argNodes, _ := n.Args()
 	args := make([]interface{}, len(argNodes))
 	for i, n := range argNodes {
-		v, err := Eval(n, ctx)
+		v, err := eval(n, ctx)
 		if err != nil {
 			return nil, err
 		}
