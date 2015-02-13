@@ -3844,13 +3844,13 @@ func TestContext2Apply_destroy(t *testing.T) {
 }
 
 /*
-func TestContextApply_destroyOutputs(t *testing.T) {
+func TestContext2Apply_destroyOutputs(t *testing.T) {
 	m := testModule(t, "apply-destroy-outputs")
 	h := new(HookRecordApplyOrder)
 	p := testProvider("aws")
 	p.ApplyFn = testApplyFn
 	p.DiffFn = testDiffFn
-	ctx := testContext(t, &ContextOpts{
+	ctx := testContext2(t, &ContextOpts{
 		Module: m,
 		Hooks:  []Hook{h},
 		Providers: map[string]ResourceProviderFactory{
@@ -3884,8 +3884,9 @@ func TestContextApply_destroyOutputs(t *testing.T) {
 		t.Fatalf("bad: %#v", mod)
 	}
 }
+*/
 
-func TestContextApply_destroyOrphan(t *testing.T) {
+func TestContext2Apply_destroyOrphan(t *testing.T) {
 	m := testModule(t, "apply-error")
 	p := testProvider("aws")
 	s := &State{
@@ -3903,7 +3904,7 @@ func TestContextApply_destroyOrphan(t *testing.T) {
 			},
 		},
 	}
-	ctx := testContext(t, &ContextOpts{
+	ctx := testContext2(t, &ContextOpts{
 		Module: m,
 		Providers: map[string]ResourceProviderFactory{
 			"aws": testProviderFuncFixed(p),
@@ -3945,7 +3946,7 @@ func TestContextApply_destroyOrphan(t *testing.T) {
 	}
 }
 
-func TestContextApply_destroyTaintedProvisioner(t *testing.T) {
+func TestContext2Apply_destroyTaintedProvisioner(t *testing.T) {
 	m := testModule(t, "apply-destroy-provisioner")
 	p := testProvider("aws")
 	pr := testProvisioner()
@@ -3979,7 +3980,7 @@ func TestContextApply_destroyTaintedProvisioner(t *testing.T) {
 		},
 	}
 
-	ctx := testContext(t, &ContextOpts{
+	ctx := testContext2(t, &ContextOpts{
 		Module: m,
 		Providers: map[string]ResourceProviderFactory{
 			"aws": testProviderFuncFixed(p),
@@ -4010,12 +4011,12 @@ func TestContextApply_destroyTaintedProvisioner(t *testing.T) {
 	}
 }
 
-func TestContextApply_error(t *testing.T) {
+func TestContext2Apply_error(t *testing.T) {
 	errored := false
 
 	m := testModule(t, "apply-error")
 	p := testProvider("aws")
-	ctx := testContext(t, &ContextOpts{
+	ctx := testContext2(t, &ContextOpts{
 		Module: m,
 		Providers: map[string]ResourceProviderFactory{
 			"aws": testProviderFuncFixed(p),
@@ -4064,7 +4065,7 @@ func TestContextApply_error(t *testing.T) {
 	}
 }
 
-func TestContextApply_errorPartial(t *testing.T) {
+func TestContext2Apply_errorPartial(t *testing.T) {
 	errored := false
 
 	m := testModule(t, "apply-error")
@@ -4084,7 +4085,7 @@ func TestContextApply_errorPartial(t *testing.T) {
 			},
 		},
 	}
-	ctx := testContext(t, &ContextOpts{
+	ctx := testContext2(t, &ContextOpts{
 		Module: m,
 		Providers: map[string]ResourceProviderFactory{
 			"aws": testProviderFuncFixed(p),
@@ -4136,13 +4137,13 @@ func TestContextApply_errorPartial(t *testing.T) {
 	}
 }
 
-func TestContextApply_hook(t *testing.T) {
+func TestContext2Apply_hook(t *testing.T) {
 	m := testModule(t, "apply-good")
 	h := new(MockHook)
 	p := testProvider("aws")
 	p.ApplyFn = testApplyFn
 	p.DiffFn = testDiffFn
-	ctx := testContext(t, &ContextOpts{
+	ctx := testContext2(t, &ContextOpts{
 		Module: m,
 		Hooks:  []Hook{h},
 		Providers: map[string]ResourceProviderFactory{
@@ -4166,10 +4167,10 @@ func TestContextApply_hook(t *testing.T) {
 	}
 }
 
-func TestContextApply_idAttr(t *testing.T) {
+func TestContext2Apply_idAttr(t *testing.T) {
 	m := testModule(t, "apply-idattr")
 	p := testProvider("aws")
-	ctx := testContext(t, &ContextOpts{
+	ctx := testContext2(t, &ContextOpts{
 		Module: m,
 		Providers: map[string]ResourceProviderFactory{
 			"aws": testProviderFuncFixed(p),
@@ -4217,12 +4218,12 @@ func TestContextApply_idAttr(t *testing.T) {
 	}
 }
 
-func TestContextApply_output(t *testing.T) {
+func TestContext2Apply_output(t *testing.T) {
 	m := testModule(t, "apply-output")
 	p := testProvider("aws")
 	p.ApplyFn = testApplyFn
 	p.DiffFn = testDiffFn
-	ctx := testContext(t, &ContextOpts{
+	ctx := testContext2(t, &ContextOpts{
 		Module: m,
 		Providers: map[string]ResourceProviderFactory{
 			"aws": testProviderFuncFixed(p),
@@ -4245,12 +4246,13 @@ func TestContextApply_output(t *testing.T) {
 	}
 }
 
-func TestContextApply_outputInvalid(t *testing.T) {
+/*
+func TestContext2Apply_outputInvalid(t *testing.T) {
 	m := testModule(t, "apply-output-invalid")
 	p := testProvider("aws")
 	p.ApplyFn = testApplyFn
 	p.DiffFn = testDiffFn
-	ctx := testContext(t, &ContextOpts{
+	ctx := testContext2(t, &ContextOpts{
 		Module: m,
 		Providers: map[string]ResourceProviderFactory{
 			"aws": testProviderFuncFixed(p),
@@ -4266,6 +4268,7 @@ func TestContextApply_outputInvalid(t *testing.T) {
 	}
 }
 
+/*
 func TestContextApply_outputList(t *testing.T) {
 	m := testModule(t, "apply-output-list")
 	p := testProvider("aws")

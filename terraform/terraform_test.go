@@ -337,8 +337,9 @@ const testTerraformApplyDestroyStr = `
 `
 
 const testTerraformApplyErrorStr = `
-aws_instance.bar:
-  ID = bar
+aws_instance.bar: (1 tainted)
+  ID = <not created>
+  Tainted ID 1 = bar
 
   Dependencies:
     aws_instance.foo
@@ -360,8 +361,9 @@ aws_instance.bar: (1 tainted)
 `
 
 const testTerraformApplyErrorPartialStr = `
-aws_instance.bar:
-  ID = bar
+aws_instance.bar: (1 tainted)
+  ID = <not created>
+  Tainted ID 1 = bar
 
   Dependencies:
     aws_instance.foo
