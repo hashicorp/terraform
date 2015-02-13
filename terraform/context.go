@@ -27,6 +27,7 @@ type ContextOpts struct {
 // NewContext. See the documentation for that.
 type Context2 struct {
 	diff         *Diff
+	diffLock     sync.RWMutex
 	hooks        []Hook
 	module       *module.Tree
 	providers    map[string]ResourceProviderFactory
@@ -134,17 +135,19 @@ func (c *Context2) Plan(opts *PlanOpts) (*Plan, error) {
 		operation = walkPlan
 	}
 
+	// Setup our diff
+	c.diffLock.Lock()
+	c.diff = new(Diff)
+	c.diff.init()
+	c.diffLock.Unlock()
+
 	// Do the walk
-	walker, err := c.walk(operation)
-	if err != nil {
+	if _, err := c.walk(operation); err != nil {
 		return nil, err
 	}
-	p.Diff = walker.Diff
+	p.Diff = c.diff
 
-	// Update the diff so that our context is up-to-date
-	c.diff = p.Diff
-
-	return p, err
+	return p, nil
 }
 
 // Refresh goes through all the resources in the state and refreshes them
