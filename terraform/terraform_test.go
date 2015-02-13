@@ -233,7 +233,7 @@ aws_instance.foo.1:
 `
 
 const testTerraformApplyCountDecToOneStr = `
-aws_instance.foo.0:
+aws_instance.foo:
   ID = bar
   foo = foo
   type = aws_instance
