@@ -189,6 +189,7 @@ func (n *GraphNodeConfigResource) DependentOn() []string {
 			len(n.Resource.RawConfig.Variables)+
 			len(n.Resource.DependsOn))*2)
 	copy(result, n.Resource.DependsOn)
+
 	for _, v := range n.Resource.RawCount.Variables {
 		if vn := varNameForVar(v); vn != "" {
 			result = append(result, vn)
@@ -201,12 +202,12 @@ func (n *GraphNodeConfigResource) DependentOn() []string {
 	}
 	for _, p := range n.Resource.Provisioners {
 		for _, v := range p.ConnInfo.Variables {
-			if vn := varNameForVar(v); vn != "" {
+			if vn := varNameForVar(v); vn != "" && vn != n.Resource.Id() {
 				result = append(result, vn)
 			}
 		}
 		for _, v := range p.RawConfig.Variables {
-			if vn := varNameForVar(v); vn != "" {
+			if vn := varNameForVar(v); vn != "" && vn != n.Resource.Id() {
 				result = append(result, vn)
 			}
 		}
