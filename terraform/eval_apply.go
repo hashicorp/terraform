@@ -43,7 +43,7 @@ func (n *EvalApply) Eval(
 		}
 	}
 
-	/*
+	{
 		// Call pre-apply hook
 		err := ctx.Hook(func(h Hook) (HookAction, error) {
 			return h.PreApply(n.Info, state, diff)
@@ -51,7 +51,7 @@ func (n *EvalApply) Eval(
 		if err != nil {
 			return nil, err
 		}
-	*/
+	}
 
 	// With the completed diff, apply!
 	log.Printf("[DEBUG] apply: %s: executing Apply", n.Info.Id)

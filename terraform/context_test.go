@@ -2846,13 +2846,12 @@ func TestContext2Apply_badDiff(t *testing.T) {
 	}
 }
 
-/*
-func TestContextApply_cancel(t *testing.T) {
+func TestContext2Apply_cancel(t *testing.T) {
 	stopped := false
 
 	m := testModule(t, "apply-cancel")
 	p := testProvider("aws")
-	ctx := testContext(t, &ContextOpts{
+	ctx := testContext2(t, &ContextOpts{
 		Module: m,
 		Providers: map[string]ResourceProviderFactory{
 			"aws": testProviderFuncFixed(p),
@@ -2907,7 +2906,7 @@ func TestContextApply_cancel(t *testing.T) {
 
 	mod := state.RootModule()
 	if len(mod.Resources) != 1 {
-		t.Fatalf("bad: %#v", mod.Resources)
+		t.Fatalf("bad: %s", state.String())
 	}
 
 	actual := strings.TrimSpace(state.String())
@@ -2916,7 +2915,6 @@ func TestContextApply_cancel(t *testing.T) {
 		t.Fatalf("bad: \n%s", actual)
 	}
 }
-*/
 
 func TestContext2Apply_compute(t *testing.T) {
 	m := testModule(t, "apply-compute")
