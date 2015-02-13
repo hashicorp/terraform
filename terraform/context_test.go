@@ -3074,8 +3074,7 @@ func TestContext2Apply_countDecreaseToOne(t *testing.T) {
 	}
 }
 
-/*
-func TestContextApply_countTainted(t *testing.T) {
+func TestContext2Apply_countTainted(t *testing.T) {
 	m := testModule(t, "apply-count-tainted")
 	p := testProvider("aws")
 	p.DiffFn = testDiffFn
@@ -3100,7 +3099,7 @@ func TestContextApply_countTainted(t *testing.T) {
 			},
 		},
 	}
-	ctx := testContext(t, &ContextOpts{
+	ctx := testContext2(t, &ContextOpts{
 		Module: m,
 		Providers: map[string]ResourceProviderFactory{
 			"aws": testProviderFuncFixed(p),
@@ -3124,6 +3123,7 @@ func TestContextApply_countTainted(t *testing.T) {
 	}
 }
 
+/*
 func TestContextApply_countVariable(t *testing.T) {
 	m := testModule(t, "apply-count-variable")
 	p := testProvider("aws")
