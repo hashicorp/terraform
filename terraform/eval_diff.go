@@ -2,6 +2,7 @@ package terraform
 
 import (
 	"fmt"
+	"log"
 )
 
 // EvalCompareDiff is an EvalNode implementation that compares two diffs
@@ -20,7 +21,20 @@ func (n *EvalCompareDiff) Eval(
 	ctx EvalContext, args []interface{}) (interface{}, error) {
 	one, two := *n.One, *n.Two
 
+	// If either are nil, let them be empty
+	if one == nil {
+		one = new(InstanceDiff)
+		one.init()
+	}
+	if two == nil {
+		two = new(InstanceDiff)
+		two.init()
+	}
+
 	if !one.Same(two) {
+		log.Printf("[ERROR] %s: diff's didn't match", n.Info.Id)
+		log.Printf("[ERROR] %s: diff one: %#v", n.Info.Id, one)
+		log.Printf("[ERROR] %s: diff two: %#v", n.Info.Id, two)
 		return nil, fmt.Errorf(
 			"%s: diffs didn't match during apply. This is a bug with "+
 				"Terraform and should be reported.", n.Info.Id)
