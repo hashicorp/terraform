@@ -2735,7 +2735,6 @@ func TestContext2Apply_emptyModule(t *testing.T) {
 	}
 }
 
-/*
 func TestContext2Apply_createBeforeDestroy(t *testing.T) {
 	m := testModule(t, "apply-good-create-before")
 	p := testProvider("aws")
@@ -2789,7 +2788,6 @@ func TestContext2Apply_createBeforeDestroy(t *testing.T) {
 		t.Fatalf("bad: \n%s", actual)
 	}
 }
-*/
 
 func TestContext2Apply_minimal(t *testing.T) {
 	m := testModule(t, "apply-minimal")
@@ -3372,7 +3370,7 @@ func TestContext2Apply_provisionerFail(t *testing.T) {
 }
 
 /*
-func TestContextApply_provisionerFail_createBeforeDestroy(t *testing.T) {
+func TestContext2Apply_provisionerFail_createBeforeDestroy(t *testing.T) {
 	m := testModule(t, "apply-provisioner-fail-create-before")
 	p := testProvider("aws")
 	pr := testProvisioner()
@@ -3400,7 +3398,7 @@ func TestContextApply_provisionerFail_createBeforeDestroy(t *testing.T) {
 			},
 		},
 	}
-	ctx := testContext(t, &ContextOpts{
+	ctx := testContext2(t, &ContextOpts{
 		Module: m,
 		Providers: map[string]ResourceProviderFactory{
 			"aws": testProviderFuncFixed(p),
@@ -3427,6 +3425,7 @@ func TestContextApply_provisionerFail_createBeforeDestroy(t *testing.T) {
 	}
 }
 
+/*
 func TestContextApply_error_createBeforeDestroy(t *testing.T) {
 	m := testModule(t, "apply-error-create-before")
 	p := testProvider("aws")
