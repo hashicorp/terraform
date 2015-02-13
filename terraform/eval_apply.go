@@ -12,13 +12,14 @@ import (
 // EvalApply is an EvalNode implementation that writes the diff to
 // the full diff.
 type EvalApply struct {
-	Info     *InstanceInfo
-	State    **InstanceState
-	Diff     **InstanceDiff
-	Provider *ResourceProvider
-	Output   **InstanceState
-	Error    *error
-	Tainted  *bool
+	Info      *InstanceInfo
+	State     **InstanceState
+	Diff      **InstanceDiff
+	Provider  *ResourceProvider
+	Output    **InstanceState
+	CreateNew *bool
+	Error     *error
+	Tainted   *bool
 }
 
 func (n *EvalApply) Args() ([]EvalNode, []EvalType) {
@@ -51,6 +52,11 @@ func (n *EvalApply) Eval(
 		state = new(InstanceState)
 	}
 	state.init()
+
+	// Flag if we're creating a new instance
+	if n.CreateNew != nil {
+		*n.CreateNew = (state.ID == "" && !diff.Destroy) || diff.RequiresNew()
+	}
 
 	{
 		// Call pre-apply hook
@@ -155,6 +161,7 @@ type EvalApplyProvisioners struct {
 	State          **InstanceState
 	Resource       *config.Resource
 	InterpResource *Resource
+	CreateNew      *bool
 	Tainted        *bool
 	Error          *error
 }
@@ -170,6 +177,11 @@ func (n *EvalApplyProvisioners) Eval(
 
 	if *n.Tainted {
 		// We're already tainted, so just return out
+		return nil, nil
+	}
+
+	if !*n.CreateNew {
+		// If we're not creating a new resource, then don't run provisioners
 		return nil, nil
 	}
 
