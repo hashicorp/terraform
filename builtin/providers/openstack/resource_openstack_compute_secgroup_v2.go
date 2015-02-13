@@ -122,7 +122,7 @@ func resourceComputeSecGroupV2Read(d *schema.ResourceData, meta interface{}) err
 	d.Set("name", sg.Name)
 	d.Set("description", sg.Description)
 	log.Printf("[DEBUG] rulesToMap(sg.Rules): %+v", rulesToMap(sg.Rules))
-	d.Set("rules", rulesToMap(sg.Rules))
+	d.Set("rule", rulesToMap(sg.Rules))
 
 	return nil
 }
@@ -249,12 +249,11 @@ func rulesToMap(sgrs []secgroups.Rule) []map[string]interface{} {
 	sgrMap := make([]map[string]interface{}, len(sgrs))
 	for i, sgr := range sgrs {
 		sgrMap[i] = map[string]interface{}{
-			"to_port":     sgr.ToPort,
-			"from_port":   sgr.FromPort,
 			"id":          sgr.ID,
-			"ruleID":      sgr.ID,
-			"cidr":        sgr.IPRange.CIDR,
+			"from_port":   sgr.FromPort,
+			"to_port":     sgr.ToPort,
 			"ip_protocol": sgr.IPProtocol,
+			"cidr":        sgr.IPRange.CIDR,
 		}
 	}
 	return sgrMap
