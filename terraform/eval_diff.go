@@ -1,5 +1,38 @@
 package terraform
 
+import (
+	"fmt"
+)
+
+// EvalCompareDiff is an EvalNode implementation that compares two diffs
+// and errors if the diffs are not equal.
+type EvalCompareDiff struct {
+	Info     *InstanceInfo
+	One, Two **InstanceDiff
+}
+
+func (n *EvalCompareDiff) Args() ([]EvalNode, []EvalType) {
+	return nil, nil
+}
+
+// TODO: test
+func (n *EvalCompareDiff) Eval(
+	ctx EvalContext, args []interface{}) (interface{}, error) {
+	one, two := *n.One, *n.Two
+
+	if !one.Same(two) {
+		return nil, fmt.Errorf(
+			"%s: diffs didn't match during apply. This is a bug with "+
+				"Terraform and should be reported.", n.Info.Id)
+	}
+
+	return nil, nil
+}
+
+func (n *EvalCompareDiff) Type() EvalType {
+	return EvalTypeNull
+}
+
 // EvalDiff is an EvalNode implementation that does a refresh for
 // a resource.
 type EvalDiff struct {
@@ -84,11 +117,15 @@ func (n *EvalDiff) Eval(
 
 	// Update our output
 	*n.Output = diff
-	*n.OutputState = state
 
-	// Merge our state so that the state is updated with our plan
-	if !diff.Empty() && n.OutputState != nil {
-		*n.OutputState = state.MergeDiff(diff)
+	// Update the state if we care
+	if n.OutputState != nil {
+		*n.OutputState = state
+
+		// Merge our state so that the state is updated with our plan
+		if !diff.Empty() && n.OutputState != nil {
+			*n.OutputState = state.MergeDiff(diff)
+		}
 	}
 
 	return state, nil

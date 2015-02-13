@@ -2817,7 +2817,6 @@ func TestContext2Apply_minimal(t *testing.T) {
 	}
 }
 
-/*
 func TestContext2Apply_badDiff(t *testing.T) {
 	m := testModule(t, "apply-good")
 	p := testProvider("aws")
