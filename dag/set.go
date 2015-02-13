@@ -10,10 +10,10 @@ type Set struct {
 	once sync.Once
 }
 
-// hashable is the interface used by set to get the hash code of a value.
+// Hashable is the interface used by set to get the hash code of a value.
 // If this isn't given, then the value of the item being added to the set
 // itself is used as the comparison value.
-type hashable interface {
+type Hashable interface {
 	Hashcode() interface{}
 }
 
@@ -60,7 +60,7 @@ func (s *Set) List() []interface{} {
 }
 
 func (s *Set) code(v interface{}) interface{} {
-	if h, ok := v.(hashable); ok {
+	if h, ok := v.(Hashable); ok {
 		return h.Hashcode()
 	}
 
