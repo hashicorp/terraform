@@ -2787,13 +2787,14 @@ func TestContextApply_createBeforeDestroy(t *testing.T) {
 		t.Fatalf("bad: \n%s", actual)
 	}
 }
+*/
 
-func TestContextApply_Minimal(t *testing.T) {
+func TestContext2Apply_minimal(t *testing.T) {
 	m := testModule(t, "apply-minimal")
 	p := testProvider("aws")
 	p.ApplyFn = testApplyFn
 	p.DiffFn = testDiffFn
-	ctx := testContext(t, &ContextOpts{
+	ctx := testContext2(t, &ContextOpts{
 		Module: m,
 		Providers: map[string]ResourceProviderFactory{
 			"aws": testProviderFuncFixed(p),
@@ -2816,12 +2817,13 @@ func TestContextApply_Minimal(t *testing.T) {
 	}
 }
 
-func TestContextApply_badDiff(t *testing.T) {
+/*
+func TestContext2Apply_badDiff(t *testing.T) {
 	m := testModule(t, "apply-good")
 	p := testProvider("aws")
 	p.ApplyFn = testApplyFn
 	p.DiffFn = testDiffFn
-	ctx := testContext(t, &ContextOpts{
+	ctx := testContext2(t, &ContextOpts{
 		Module: m,
 		Providers: map[string]ResourceProviderFactory{
 			"aws": testProviderFuncFixed(p),
@@ -2845,6 +2847,7 @@ func TestContextApply_badDiff(t *testing.T) {
 	}
 }
 
+/*
 func TestContextApply_cancel(t *testing.T) {
 	stopped := false
 
