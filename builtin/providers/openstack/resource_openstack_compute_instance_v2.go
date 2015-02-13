@@ -477,9 +477,18 @@ func resourceComputeInstanceV2Update(d *schema.ResourceData, meta interface{}) e
 		for _, g := range secgroupsToRemove.List() {
 			err := secgroups.RemoveServerFromGroup(computeClient, d.Id(), g.(string)).ExtractErr()
 			if err != nil {
-				return fmt.Errorf("Error removing security group from OpenStack server (%s): %s", d.Id(), err)
+				errCode, ok := err.(*perigee.UnexpectedResponseCodeError)
+				if !ok {
+					return fmt.Errorf("Error removing security group from OpenStack server (%s): %s", d.Id(), err)
+				}
+				if errCode.Actual == 404 {
+					continue
+				} else {
+					return fmt.Errorf("Error removing security group from OpenStack server (%s): %s", d.Id(), err)
+				}
+			} else {
+				log.Printf("[DEBUG] Removed security group (%s) from instance (%s)", g.(string), d.Id())
 			}
-			log.Printf("[DEBUG] Removed security group (%s) from instance (%s)", g.(string), d.Id())
 		}
 	}
 
