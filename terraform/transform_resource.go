@@ -241,10 +241,11 @@ func (n *graphNodeExpandedResource) EvalTree() EvalNode {
 							return true, EvalEarlyExitError{}
 						}
 
-						if diffApply.Destroy {
+						if diffApply.Destroy && len(diffApply.Attributes) == 0 {
 							return true, EvalEarlyExitError{}
 						}
 
+						diffApply.Destroy = false
 						return true, nil
 					},
 					Node: EvalNoop{},
