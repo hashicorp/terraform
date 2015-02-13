@@ -30,6 +30,18 @@ func (n *EvalCompareDiff) Eval(
 		two = new(InstanceDiff)
 		two.init()
 	}
+	oneId := one.Attributes["id"]
+	twoId := two.Attributes["id"]
+	delete(one.Attributes, "id")
+	delete(two.Attributes, "id")
+	defer func() {
+		if oneId != nil {
+			one.Attributes["id"] = oneId
+		}
+		if twoId != nil {
+			two.Attributes["id"] = twoId
+		}
+	}()
 
 	if !one.Same(two) {
 		log.Printf("[ERROR] %s: diff's didn't match", n.Info.Id)
