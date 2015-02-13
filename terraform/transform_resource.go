@@ -98,7 +98,7 @@ func (n *graphNodeExpandedResource) ProvidedBy() []string {
 
 // GraphNodeEvalable impl.
 func (n *graphNodeExpandedResource) EvalTree() EvalNode {
-	var diff *InstanceDiff
+	var diff, diff2 *InstanceDiff
 	var state *InstanceState
 
 	// Build the resource. If we aren't part of a multi-resource, then
@@ -225,13 +225,31 @@ func (n *graphNodeExpandedResource) EvalTree() EvalNode {
 		Ops: []walkOperation{walkApply},
 		Node: &EvalSequence{
 			Nodes: []EvalNode{
-				&EvalGetProvider{
-					Name:   n.ProvidedBy()[0],
-					Output: &provider,
+				// Redo the diff so we can compare outputs
+				&EvalDiff{
+					Info:     info,
+					Config:   interpolateNode,
+					Provider: &EvalGetProvider{Name: n.ProvidedBy()[0]},
+					State:    &EvalReadState{Name: n.stateId()},
+					Output:   &diff2,
 				},
+
+				// Get the saved diff
 				&EvalReadDiff{
 					Name: n.stateId(),
 					Diff: &diff,
+				},
+
+				// Compare the diffs
+				&EvalCompareDiff{
+					Info: info,
+					One:  &diff,
+					Two:  &diff2,
+				},
+
+				&EvalGetProvider{
+					Name:   n.ProvidedBy()[0],
+					Output: &provider,
 				},
 				&EvalReadState{
 					Name:   n.stateId(),
