@@ -46,6 +46,12 @@ func (n *EvalApply) Eval(
 		}
 	}
 
+	// If the state is nil, make it non-nil
+	if state == nil {
+		state = new(InstanceState)
+	}
+	state.init()
+
 	{
 		// Call pre-apply hook
 		err := ctx.Hook(func(h Hook) (HookAction, error) {
