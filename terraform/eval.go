@@ -38,7 +38,7 @@ func (EvalEarlyExitError) Error() string { return "early exit" }
 func Eval(n EvalNode, ctx EvalContext) (interface{}, error) {
 	// Call the lower level eval which doesn't understand early exit,
 	// and if we early exit, it isn't an error.
-	result, err := eval(n, ctx)
+	result, err := EvalRaw(n, ctx)
 	if err != nil {
 		if _, ok := err.(EvalEarlyExitError); ok {
 			return nil, nil
@@ -48,11 +48,13 @@ func Eval(n EvalNode, ctx EvalContext) (interface{}, error) {
 	return result, err
 }
 
-func eval(n EvalNode, ctx EvalContext) (interface{}, error) {
+// EvalRaw is like Eval except that it returns all errors, even if they
+// signal something normal such as EvalEarlyExitError.
+func EvalRaw(n EvalNode, ctx EvalContext) (interface{}, error) {
 	argNodes, _ := n.Args()
 	args := make([]interface{}, len(argNodes))
 	for i, n := range argNodes {
-		v, err := eval(n, ctx)
+		v, err := EvalRaw(n, ctx)
 		if err != nil {
 			return nil, err
 		}
