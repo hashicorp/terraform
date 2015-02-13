@@ -126,3 +126,99 @@ func (n *EvalWriteState) Eval(
 func (n *EvalWriteState) Type() EvalType {
 	return EvalTypeNull
 }
+
+// EvalDeposeState is an EvalNode implementation that reads the
+// InstanceState for a specific resource out of the state.
+type EvalDeposeState struct {
+	Name string
+}
+
+func (n *EvalDeposeState) Args() ([]EvalNode, []EvalType) {
+	return nil, nil
+}
+
+// TODO: test
+func (n *EvalDeposeState) Eval(
+	ctx EvalContext, args []interface{}) (interface{}, error) {
+	state, lock := ctx.State()
+
+	// Get a read lock so we can access this instance
+	lock.RLock()
+	defer lock.RUnlock()
+
+	// Look for the module state. If we don't have one, then it doesn't matter.
+	mod := state.ModuleByPath(ctx.Path())
+	if mod == nil {
+		return nil, nil
+	}
+
+	// Look for the resource state. If we don't have one, then it is okay.
+	rs := mod.Resources[n.Name]
+	if rs == nil {
+		return nil, nil
+	}
+
+	// If we don't have a primary, we have nothing to depose
+	if rs.Primary == nil {
+		return nil, nil
+	}
+
+	// Depose to the tainted
+	rs.Tainted = append(rs.Tainted, rs.Primary)
+	rs.Primary = nil
+
+	return nil, nil
+}
+
+func (n *EvalDeposeState) Type() EvalType {
+	return EvalTypeNull
+}
+
+// EvalUndeposeState is an EvalNode implementation that reads the
+// InstanceState for a specific resource out of the state.
+type EvalUndeposeState struct {
+	Name string
+}
+
+func (n *EvalUndeposeState) Args() ([]EvalNode, []EvalType) {
+	return nil, nil
+}
+
+// TODO: test
+func (n *EvalUndeposeState) Eval(
+	ctx EvalContext, args []interface{}) (interface{}, error) {
+	state, lock := ctx.State()
+
+	// Get a read lock so we can access this instance
+	lock.RLock()
+	defer lock.RUnlock()
+
+	// Look for the module state. If we don't have one, then it doesn't matter.
+	mod := state.ModuleByPath(ctx.Path())
+	if mod == nil {
+		return nil, nil
+	}
+
+	// Look for the resource state. If we don't have one, then it is okay.
+	rs := mod.Resources[n.Name]
+	if rs == nil {
+		return nil, nil
+	}
+
+	// If we don't have any tainted, then we don't have anything to do
+	if len(rs.Tainted) == 0 {
+		return nil, nil
+	}
+
+	// Undepose to the tainted
+	idx := len(rs.Tainted) - 1
+	rs.Primary = rs.Tainted[idx]
+	rs.Tainted[idx] = nil
+	rs.Tainted = rs.Tainted[:idx]
+
+	return nil, nil
+}
+
+func (n *EvalUndeposeState) Type() EvalType {
+	return EvalTypeNull
+}

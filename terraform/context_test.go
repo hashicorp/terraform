@@ -3369,7 +3369,6 @@ func TestContext2Apply_provisionerFail(t *testing.T) {
 	}
 }
 
-/*
 func TestContext2Apply_provisionerFail_createBeforeDestroy(t *testing.T) {
 	m := testModule(t, "apply-provisioner-fail-create-before")
 	p := testProvider("aws")

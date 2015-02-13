@@ -251,6 +251,15 @@ func (n *graphNodeExpandedResource) EvalTree() EvalNode {
 					Node: EvalNoop{},
 				},
 
+				&EvalIf{
+					If: func(ctx EvalContext) (bool, error) {
+						return n.Resource.Lifecycle.CreateBeforeDestroy, nil
+					},
+					Node: &EvalDeposeState{
+						Name: n.stateId(),
+					},
+				},
+
 				&EvalDiff{
 					Info:     info,
 					Config:   interpolateNode,
@@ -304,6 +313,15 @@ func (n *graphNodeExpandedResource) EvalTree() EvalNode {
 					Tainted:        &tainted,
 					Error:          &err,
 				},
+				&EvalIf{
+					If: func(ctx EvalContext) (bool, error) {
+						return n.Resource.Lifecycle.CreateBeforeDestroy &&
+							tainted, nil
+					},
+					Node: &EvalUndeposeState{
+						Name: n.stateId(),
+					},
+				},
 				&EvalWriteState{
 					Name:                n.stateId(),
 					ResourceType:        n.Resource.Type,
@@ -311,7 +329,7 @@ func (n *graphNodeExpandedResource) EvalTree() EvalNode {
 					State:               &state,
 					Tainted:             &tainted,
 					TaintedIndex:        -1,
-					TaintedClearPrimary: true,
+					TaintedClearPrimary: !n.Resource.Lifecycle.CreateBeforeDestroy,
 				},
 				&EvalApplyPost{
 					Info:  info,
@@ -389,8 +407,10 @@ func (n *graphNodeExpandedResourceDestroy) EvalTree() EvalNode {
 					Output: &provider,
 				},
 				&EvalReadState{
-					Name:   n.stateId(),
-					Output: &state,
+					Name:         n.stateId(),
+					Output:       &state,
+					Tainted:      n.Resource.Lifecycle.CreateBeforeDestroy,
+					TaintedIndex: -1,
 				},
 				&EvalApply{
 					Info:     info,
