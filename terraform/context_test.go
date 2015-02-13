@@ -2673,7 +2673,6 @@ func TestContextInput_varOnly(t *testing.T) {
 }
 */
 
-/*
 func TestContext2Apply(t *testing.T) {
 	m := testModule(t, "apply-good")
 	p := testProvider("aws")
