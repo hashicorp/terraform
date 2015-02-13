@@ -3535,7 +3535,6 @@ func TestContextApply_errorDestroy_createBeforeDestroy(t *testing.T) {
 }
 */
 
-/*
 func TestContext2Apply_provisionerResourceRef(t *testing.T) {
 	m := testModule(t, "apply-provisioner-resource-ref")
 	p := testProvider("aws")

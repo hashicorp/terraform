@@ -1,6 +1,8 @@
 package terraform
 
 import (
+	"log"
+
 	"github.com/hashicorp/terraform/config/module"
 )
 
@@ -29,6 +31,7 @@ func (b *BasicGraphBuilder) Build(path []string) (*Graph, error) {
 
 	// Validate the graph structure
 	if err := g.Validate(); err != nil {
+		log.Printf("[ERROR] Graph validation failed. Graph: %s", g.String())
 		return nil, err
 	}
 
