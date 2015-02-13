@@ -3123,13 +3123,12 @@ func TestContext2Apply_countTainted(t *testing.T) {
 	}
 }
 
-/*
-func TestContextApply_countVariable(t *testing.T) {
+func TestContext2Apply_countVariable(t *testing.T) {
 	m := testModule(t, "apply-count-variable")
 	p := testProvider("aws")
 	p.ApplyFn = testApplyFn
 	p.DiffFn = testDiffFn
-	ctx := testContext(t, &ContextOpts{
+	ctx := testContext2(t, &ContextOpts{
 		Module: m,
 		Providers: map[string]ResourceProviderFactory{
 			"aws": testProviderFuncFixed(p),
@@ -3152,12 +3151,12 @@ func TestContextApply_countVariable(t *testing.T) {
 	}
 }
 
-func TestContextApply_module(t *testing.T) {
+func TestContext2Apply_module(t *testing.T) {
 	m := testModule(t, "apply-module")
 	p := testProvider("aws")
 	p.ApplyFn = testApplyFn
 	p.DiffFn = testDiffFn
-	ctx := testContext(t, &ContextOpts{
+	ctx := testContext2(t, &ContextOpts{
 		Module: m,
 		Providers: map[string]ResourceProviderFactory{
 			"aws": testProviderFuncFixed(p),
@@ -3180,12 +3179,12 @@ func TestContextApply_module(t *testing.T) {
 	}
 }
 
-func TestContextApply_nilDiff(t *testing.T) {
+func TestContext2Apply_nilDiff(t *testing.T) {
 	m := testModule(t, "apply-good")
 	p := testProvider("aws")
 	p.ApplyFn = testApplyFn
 	p.DiffFn = testDiffFn
-	ctx := testContext(t, &ContextOpts{
+	ctx := testContext2(t, &ContextOpts{
 		Module: m,
 		Providers: map[string]ResourceProviderFactory{
 			"aws": testProviderFuncFixed(p),
@@ -3205,6 +3204,7 @@ func TestContextApply_nilDiff(t *testing.T) {
 	}
 }
 
+/*
 func TestContextApply_Provisioner_compute(t *testing.T) {
 	m := testModule(t, "apply-provisioner-compute")
 	p := testProvider("aws")
