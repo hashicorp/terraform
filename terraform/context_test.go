@@ -4267,14 +4267,14 @@ func TestContext2Apply_outputInvalid(t *testing.T) {
 		t.Fatalf("err: %s", err)
 	}
 }
+*/
 
-/*
-func TestContextApply_outputList(t *testing.T) {
+func TestContext2Apply_outputList(t *testing.T) {
 	m := testModule(t, "apply-output-list")
 	p := testProvider("aws")
 	p.ApplyFn = testApplyFn
 	p.DiffFn = testDiffFn
-	ctx := testContext(t, &ContextOpts{
+	ctx := testContext2(t, &ContextOpts{
 		Module: m,
 		Providers: map[string]ResourceProviderFactory{
 			"aws": testProviderFuncFixed(p),
@@ -4297,12 +4297,12 @@ func TestContextApply_outputList(t *testing.T) {
 	}
 }
 
-func TestContextApply_outputMulti(t *testing.T) {
+func TestContext2Apply_outputMulti(t *testing.T) {
 	m := testModule(t, "apply-output-multi")
 	p := testProvider("aws")
 	p.ApplyFn = testApplyFn
 	p.DiffFn = testDiffFn
-	ctx := testContext(t, &ContextOpts{
+	ctx := testContext2(t, &ContextOpts{
 		Module: m,
 		Providers: map[string]ResourceProviderFactory{
 			"aws": testProviderFuncFixed(p),
@@ -4325,12 +4325,12 @@ func TestContextApply_outputMulti(t *testing.T) {
 	}
 }
 
-func TestContextApply_outputMultiIndex(t *testing.T) {
+func TestContext2Apply_outputMultiIndex(t *testing.T) {
 	m := testModule(t, "apply-output-multi-index")
 	p := testProvider("aws")
 	p.ApplyFn = testApplyFn
 	p.DiffFn = testDiffFn
-	ctx := testContext(t, &ContextOpts{
+	ctx := testContext2(t, &ContextOpts{
 		Module: m,
 		Providers: map[string]ResourceProviderFactory{
 			"aws": testProviderFuncFixed(p),
@@ -4353,7 +4353,7 @@ func TestContextApply_outputMultiIndex(t *testing.T) {
 	}
 }
 
-func TestContextApply_taint(t *testing.T) {
+func TestContext2Apply_taint(t *testing.T) {
 	m := testModule(t, "apply-taint")
 	p := testProvider("aws")
 	p.ApplyFn = testApplyFn
@@ -4379,7 +4379,7 @@ func TestContextApply_taint(t *testing.T) {
 			},
 		},
 	}
-	ctx := testContext(t, &ContextOpts{
+	ctx := testContext2(t, &ContextOpts{
 		Module: m,
 		Providers: map[string]ResourceProviderFactory{
 			"aws": testProviderFuncFixed(p),
@@ -4403,12 +4403,12 @@ func TestContextApply_taint(t *testing.T) {
 	}
 }
 
-func TestContextApply_unknownAttribute(t *testing.T) {
+func TestContext2Apply_unknownAttribute(t *testing.T) {
 	m := testModule(t, "apply-unknown")
 	p := testProvider("aws")
 	p.ApplyFn = testApplyFn
 	p.DiffFn = testDiffFn
-	ctx := testContext(t, &ContextOpts{
+	ctx := testContext2(t, &ContextOpts{
 		Module: m,
 		Providers: map[string]ResourceProviderFactory{
 			"aws": testProviderFuncFixed(p),
@@ -4431,12 +4431,12 @@ func TestContextApply_unknownAttribute(t *testing.T) {
 	}
 }
 
-func TestContextApply_vars(t *testing.T) {
+func TestContext2Apply_vars(t *testing.T) {
 	m := testModule(t, "apply-vars")
 	p := testProvider("aws")
 	p.ApplyFn = testApplyFn
 	p.DiffFn = testDiffFn
-	ctx := testContext(t, &ContextOpts{
+	ctx := testContext2(t, &ContextOpts{
 		Module: m,
 		Providers: map[string]ResourceProviderFactory{
 			"aws": testProviderFuncFixed(p),
@@ -4471,6 +4471,7 @@ func TestContextApply_vars(t *testing.T) {
 	}
 }
 
+/*
 func TestContextApply_createBefore_depends(t *testing.T) {
 	m := testModule(t, "apply-depends-create-before")
 	h := new(HookRecordApplyOrder)
@@ -4549,8 +4550,10 @@ func TestContextApply_createBefore_depends(t *testing.T) {
 		t.Fatalf("destroy must happen after update: %#v", order)
 	}
 }
+*/
 
-func TestContextApply_singleDestroy(t *testing.T) {
+/*
+func TestContext2Apply_singleDestroy(t *testing.T) {
 	m := testModule(t, "apply-depends-create-before")
 	h := new(HookRecordApplyOrder)
 	p := testProvider("aws")
@@ -4613,7 +4616,7 @@ func TestContextApply_singleDestroy(t *testing.T) {
 			},
 		},
 	}
-	ctx := testContext(t, &ContextOpts{
+	ctx := testContext2(t, &ContextOpts{
 		Module: m,
 		Hooks:  []Hook{h},
 		Providers: map[string]ResourceProviderFactory{
@@ -4636,7 +4639,6 @@ func TestContextApply_singleDestroy(t *testing.T) {
 		t.Fatalf("bad: %d", invokeCount)
 	}
 }
-
 */
 
 func testContext2(t *testing.T, opts *ContextOpts) *Context2 {

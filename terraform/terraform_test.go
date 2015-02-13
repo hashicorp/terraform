@@ -464,10 +464,9 @@ foo_num = bar
 `
 
 const testTerraformApplyUnknownAttrStr = `
-aws_instance.foo:
-  ID = foo
-  num = 2
-  type = aws_instance
+aws_instance.foo: (1 tainted)
+  ID = <not created>
+  Tainted ID 1 = foo
 `
 
 const testTerraformApplyVarsStr = `
