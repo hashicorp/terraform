@@ -17,13 +17,11 @@ type ContextGraphWalker struct {
 
 	// Outputs, do not set these. Do not read these while the graph
 	// is being walked.
-	Diff               *Diff
 	ValidationWarnings []string
 	ValidationErrors   []error
 
 	errorLock           sync.Mutex
 	once                sync.Once
-	diffLock            sync.RWMutex
 	contexts            map[string]*BuiltinEvalContext
 	contextLock         sync.Mutex
 	providerCache       map[string]ResourceProvider
@@ -64,8 +62,8 @@ func (w *ContextGraphWalker) EnterGraph(g *Graph) EvalContext {
 		Provisioners:        w.Context.provisioners,
 		ProvisionerCache:    w.provisionerCache,
 		ProvisionerLock:     &w.provisionerLock,
-		DiffValue:           w.Diff,
-		DiffLock:            &w.diffLock,
+		DiffValue:           w.Context.diff,
+		DiffLock:            &w.Context.diffLock,
 		StateValue:          w.Context.state,
 		StateLock:           &w.Context.stateLock,
 		Interpolater: &Interpolater{
@@ -111,9 +109,6 @@ func (w *ContextGraphWalker) ExitEvalTree(
 }
 
 func (w *ContextGraphWalker) init() {
-	w.Diff = new(Diff)
-	w.Diff.init()
-
 	w.contexts = make(map[string]*BuiltinEvalContext, 5)
 	w.providerCache = make(map[string]ResourceProvider, 5)
 	w.providerConfigCache = make(map[string]*ResourceConfig, 5)
