@@ -9,7 +9,7 @@ type Edge interface {
 	Source() Vertex
 	Target() Vertex
 
-	hashable
+	Hashable
 }
 
 // BasicEdge returns an Edge implementation that simply tracks the source
