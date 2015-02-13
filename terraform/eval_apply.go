@@ -19,7 +19,6 @@ type EvalApply struct {
 	Output    **InstanceState
 	CreateNew *bool
 	Error     *error
-	Tainted   *bool
 }
 
 func (n *EvalApply) Args() ([]EvalNode, []EvalType) {
@@ -96,11 +95,6 @@ func (n *EvalApply) Eval(
 		*n.Output = state
 	}
 
-	// Set the tainted state
-	if n.Tainted != nil {
-		*n.Tainted = err != nil
-	}
-
 	// If there are no errors, then we append it to our output error
 	// if we have one, otherwise we just output it.
 	if err != nil {
@@ -175,13 +169,23 @@ func (n *EvalApplyProvisioners) Eval(
 	ctx EvalContext, args []interface{}) (interface{}, error) {
 	state := *n.State
 
-	if *n.Tainted {
-		// We're already tainted, so just return out
+	if !*n.CreateNew {
+		// If we're not creating a new resource, then don't run provisioners
 		return nil, nil
 	}
 
-	if !*n.CreateNew {
-		// If we're not creating a new resource, then don't run provisioners
+	if len(n.Resource.Provisioners) == 0 {
+		// We have no provisioners, so don't do anything
+		return nil, nil
+	}
+
+	if n.Error != nil && *n.Error != nil {
+		// We're already errored creating, so mark as tainted and continue
+		if n.Tainted != nil {
+			*n.Tainted = true
+		}
+
+		// We're already tainted, so just return out
 		return nil, nil
 	}
 
