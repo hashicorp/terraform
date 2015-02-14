@@ -15,6 +15,9 @@ type EvalContext interface {
 	// hook and should return the hook action to take and the error.
 	Hook(func(Hook) (HookAction, error)) error
 
+	// Input is the UIInput object for interacting with the UI.
+	Input() UIInput
+
 	// InitProvider initializes the provider with the given name and
 	// returns the implementation of the resource provider or an error.
 	//
@@ -31,6 +34,11 @@ type EvalContext interface {
 	// with ParentProviderConfig().
 	ConfigureProvider(string, *ResourceConfig) error
 	ParentProviderConfig(string) *ResourceConfig
+
+	// ProviderInput and SetProviderInput are used to configure providers
+	// from user input.
+	ProviderInput(string) map[string]interface{}
+	SetProviderInput(string, map[string]interface{})
 
 	// InitProvisioner initializes the provisioner with the given name and
 	// returns the implementation of the resource provisioner or an error.
@@ -69,6 +77,9 @@ type MockEvalContext struct {
 	HookCalled bool
 	HookError  error
 
+	InputCalled bool
+	InputInput  UIInput
+
 	InitProviderCalled   bool
 	InitProviderName     string
 	InitProviderProvider ResourceProvider
@@ -77,6 +88,14 @@ type MockEvalContext struct {
 	ProviderCalled   bool
 	ProviderName     string
 	ProviderProvider ResourceProvider
+
+	ProviderInputCalled bool
+	ProviderInputName   string
+	ProviderInputConfig map[string]interface{}
+
+	SetProviderInputCalled bool
+	SetProviderInputName   string
+	SetProviderInputConfig map[string]interface{}
 
 	ConfigureProviderCalled bool
 	ConfigureProviderName   string
@@ -122,6 +141,11 @@ func (c *MockEvalContext) Hook(fn func(Hook) (HookAction, error)) error {
 	return c.HookError
 }
 
+func (c *MockEvalContext) Input() UIInput {
+	c.InputCalled = true
+	return c.InputInput
+}
+
 func (c *MockEvalContext) InitProvider(n string) (ResourceProvider, error) {
 	c.InitProviderCalled = true
 	c.InitProviderName = n
@@ -145,6 +169,18 @@ func (c *MockEvalContext) ParentProviderConfig(n string) *ResourceConfig {
 	c.ParentProviderConfigCalled = true
 	c.ParentProviderConfigName = n
 	return c.ParentProviderConfigConfig
+}
+
+func (c *MockEvalContext) ProviderInput(n string) map[string]interface{} {
+	c.ProviderInputCalled = true
+	c.ProviderInputName = n
+	return c.ProviderInputConfig
+}
+
+func (c *MockEvalContext) SetProviderInput(n string, cfg map[string]interface{}) {
+	c.SetProviderInputCalled = true
+	c.SetProviderInputName = n
+	c.SetProviderInputConfig = cfg
 }
 
 func (c *MockEvalContext) InitProvisioner(n string) (ResourceProvisioner, error) {
