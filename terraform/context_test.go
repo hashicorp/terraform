@@ -2463,14 +2463,13 @@ func TestContext2Input_provider(t *testing.T) {
 	}
 }
 
-/*
-func TestContextInput_providerId(t *testing.T) {
+func TestContext2Input_providerId(t *testing.T) {
 	input := new(MockUIInput)
 	m := testModule(t, "input-provider")
 	p := testProvider("aws")
 	p.ApplyFn = testApplyFn
 	p.DiffFn = testDiffFn
-	ctx := testContext(t, &ContextOpts{
+	ctx := testContext2(t, &ContextOpts{
 		Module: m,
 		Providers: map[string]ResourceProviderFactory{
 			"aws": testProviderFuncFixed(p),
@@ -2514,13 +2513,13 @@ func TestContextInput_providerId(t *testing.T) {
 	}
 }
 
-func TestContextInput_providerOnly(t *testing.T) {
+func TestContext2Input_providerOnly(t *testing.T) {
 	input := new(MockUIInput)
 	m := testModule(t, "input-provider-vars")
 	p := testProvider("aws")
 	p.ApplyFn = testApplyFn
 	p.DiffFn = testDiffFn
-	ctx := testContext(t, &ContextOpts{
+	ctx := testContext2(t, &ContextOpts{
 		Module: m,
 		Providers: map[string]ResourceProviderFactory{
 			"aws": testProviderFuncFixed(p),
@@ -2569,13 +2568,13 @@ func TestContextInput_providerOnly(t *testing.T) {
 	}
 }
 
-func TestContextInput_providerVars(t *testing.T) {
+func TestContext2Input_providerVars(t *testing.T) {
 	input := new(MockUIInput)
 	m := testModule(t, "input-provider-with-vars")
 	p := testProvider("aws")
 	p.ApplyFn = testApplyFn
 	p.DiffFn = testDiffFn
-	ctx := testContext(t, &ContextOpts{
+	ctx := testContext2(t, &ContextOpts{
 		Module: m,
 		Providers: map[string]ResourceProviderFactory{
 			"aws": testProviderFuncFixed(p),
@@ -2617,13 +2616,13 @@ func TestContextInput_providerVars(t *testing.T) {
 	}
 }
 
-func TestContextInput_varOnly(t *testing.T) {
+func TestContext2Input_varOnly(t *testing.T) {
 	input := new(MockUIInput)
 	m := testModule(t, "input-provider-vars")
 	p := testProvider("aws")
 	p.ApplyFn = testApplyFn
 	p.DiffFn = testDiffFn
-	ctx := testContext(t, &ContextOpts{
+	ctx := testContext2(t, &ContextOpts{
 		Module: m,
 		Providers: map[string]ResourceProviderFactory{
 			"aws": testProviderFuncFixed(p),
@@ -2671,7 +2670,6 @@ func TestContextInput_varOnly(t *testing.T) {
 		t.Fatalf("bad: \n%s", actualStr)
 	}
 }
-*/
 
 func TestContext2Apply(t *testing.T) {
 	m := testModule(t, "apply-good")
