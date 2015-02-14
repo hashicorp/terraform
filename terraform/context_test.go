@@ -4630,3 +4630,171 @@ func TestContext2Apply_singleDestroy(t *testing.T) {
 func testContext2(t *testing.T, opts *ContextOpts) *Context2 {
 	return NewContext2(opts)
 }
+
+func testApplyFn(
+	info *InstanceInfo,
+	s *InstanceState,
+	d *InstanceDiff) (*InstanceState, error) {
+	if d.Destroy {
+		return nil, nil
+	}
+
+	id := "foo"
+	if idAttr, ok := d.Attributes["id"]; ok && !idAttr.NewComputed {
+		id = idAttr.New
+	}
+
+	result := &InstanceState{
+		ID: id,
+	}
+
+	if d != nil {
+		result = result.MergeDiff(d)
+	}
+	return result, nil
+}
+
+func testDiffFn(
+	info *InstanceInfo,
+	s *InstanceState,
+	c *ResourceConfig) (*InstanceDiff, error) {
+	var diff InstanceDiff
+	diff.Attributes = make(map[string]*ResourceAttrDiff)
+
+	for k, v := range c.Raw {
+		if _, ok := v.(string); !ok {
+			continue
+		}
+
+		if k == "nil" {
+			return nil, nil
+		}
+
+		// This key is used for other purposes
+		if k == "compute_value" {
+			continue
+		}
+
+		if k == "compute" {
+			attrDiff := &ResourceAttrDiff{
+				Old:         "",
+				New:         "",
+				NewComputed: true,
+			}
+
+			if cv, ok := c.Config["compute_value"]; ok {
+				if cv.(string) == "1" {
+					attrDiff.NewComputed = false
+					attrDiff.New = fmt.Sprintf("computed_%s", v.(string))
+				}
+			}
+
+			diff.Attributes[v.(string)] = attrDiff
+			continue
+		}
+
+		// If this key is not computed, then look it up in the
+		// cleaned config.
+		found := false
+		for _, ck := range c.ComputedKeys {
+			if ck == k {
+				found = true
+				break
+			}
+		}
+		if !found {
+			v = c.Config[k]
+		}
+
+		attrDiff := &ResourceAttrDiff{
+			Old: "",
+			New: v.(string),
+		}
+
+		if k == "require_new" {
+			attrDiff.RequiresNew = true
+		}
+		diff.Attributes[k] = attrDiff
+	}
+
+	for _, k := range c.ComputedKeys {
+		diff.Attributes[k] = &ResourceAttrDiff{
+			Old:         "",
+			NewComputed: true,
+		}
+	}
+
+	for k, v := range diff.Attributes {
+		if v.NewComputed {
+			continue
+		}
+
+		old, ok := s.Attributes[k]
+		if !ok {
+			continue
+		}
+		if old == v.New {
+			delete(diff.Attributes, k)
+		}
+	}
+
+	if !diff.Empty() {
+		diff.Attributes["type"] = &ResourceAttrDiff{
+			Old: "",
+			New: info.Type,
+		}
+	}
+
+	return &diff, nil
+}
+
+func testProvider(prefix string) *MockResourceProvider {
+	p := new(MockResourceProvider)
+	p.RefreshFn = func(info *InstanceInfo, s *InstanceState) (*InstanceState, error) {
+		return s, nil
+	}
+	p.ResourcesReturn = []ResourceType{
+		ResourceType{
+			Name: fmt.Sprintf("%s_instance", prefix),
+		},
+	}
+
+	return p
+}
+
+func testProvisioner() *MockResourceProvisioner {
+	p := new(MockResourceProvisioner)
+	return p
+}
+
+const testContextGraph = `
+root: root
+aws_instance.bar
+  aws_instance.bar -> provider.aws
+aws_instance.foo
+  aws_instance.foo -> provider.aws
+provider.aws
+root
+  root -> aws_instance.bar
+  root -> aws_instance.foo
+`
+
+const testContextRefreshModuleStr = `
+aws_instance.web: (1 tainted)
+  ID = <not created>
+  Tainted ID 1 = bar
+
+module.child:
+  aws_instance.web:
+    ID = new
+`
+
+const testContextRefreshOutputPartialStr = `
+<no state>
+`
+
+const testContextRefreshTaintedStr = `
+aws_instance.web: (1 tainted)
+  ID = <not created>
+  Tainted ID 1 = foo
+`
