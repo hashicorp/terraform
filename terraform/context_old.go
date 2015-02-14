@@ -42,22 +42,6 @@ type Context struct {
 	sh          *stopHook
 }
 
-// InputMode defines what sort of input will be asked for when Input
-// is called on Context.
-type InputMode byte
-
-const (
-	// InputModeVar asks for variables
-	InputModeVar InputMode = 1 << iota
-
-	// InputModeProvider asks for provider variables
-	InputModeProvider
-
-	// InputModeStd is the standard operating mode and asks for both variables
-	// and providers.
-	InputModeStd = InputModeVar | InputModeProvider
-)
-
 // NewContext creates a new context.
 //
 // Once a context is created, the pointer values within ContextOpts should

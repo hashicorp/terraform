@@ -2382,14 +2382,13 @@ func TestContext2Validate_varRefFilled(t *testing.T) {
 	}
 }
 
-/*
-func TestContextInput(t *testing.T) {
+func TestContext2Input(t *testing.T) {
 	input := new(MockUIInput)
 	m := testModule(t, "input-vars")
 	p := testProvider("aws")
 	p.ApplyFn = testApplyFn
 	p.DiffFn = testDiffFn
-	ctx := testContext(t, &ContextOpts{
+	ctx := testContext2(t, &ContextOpts{
 		Module: m,
 		Providers: map[string]ResourceProviderFactory{
 			"aws": testProviderFuncFixed(p),
@@ -2425,6 +2424,7 @@ func TestContextInput(t *testing.T) {
 	}
 }
 
+/*
 func TestContextInput_provider(t *testing.T) {
 	m := testModule(t, "input-provider")
 	p := testProvider("aws")
