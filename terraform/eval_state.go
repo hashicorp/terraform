@@ -43,8 +43,16 @@ func (n *EvalReadState) Eval(
 		// Return the primary
 		result = rs.Primary
 	} else {
-		// Return the proper tainted resource
-		result = rs.Tainted[n.TaintedIndex]
+		// Get the index. If it is negative, then we get the last one
+		idx := n.TaintedIndex
+		if idx < 0 {
+			idx = len(rs.Tainted) - 1
+		}
+
+		if idx < len(rs.Tainted) {
+			// Return the proper tainted resource
+			result = rs.Tainted[n.TaintedIndex]
+		}
 	}
 
 	// Write the result to the output pointer
@@ -103,8 +111,6 @@ func (n *EvalWriteState) Eval(
 	rs.Type = n.ResourceType
 	rs.Dependencies = n.Dependencies
 
-	println(fmt.Sprintf("%#v", rs))
-	println(fmt.Sprintf("%#v", *n.State))
 	if n.Tainted != nil && *n.Tainted {
 		if n.TaintedIndex != -1 {
 			rs.Tainted[n.TaintedIndex] = *n.State
@@ -119,9 +125,8 @@ func (n *EvalWriteState) Eval(
 		// Set the primary state
 		rs.Primary = *n.State
 	}
+	println(fmt.Sprintf("%#v", rs))
 
-	// Prune because why not, we can clear out old useless entries now
-	rs.prune()
 	return nil, nil
 }
 
@@ -216,7 +221,6 @@ func (n *EvalUndeposeState) Eval(
 	idx := len(rs.Tainted) - 1
 	rs.Primary = rs.Tainted[idx]
 	rs.Tainted[idx] = nil
-	rs.Tainted = rs.Tainted[:idx]
 
 	return nil, nil
 }

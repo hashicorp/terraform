@@ -1,6 +1,7 @@
 package terraform
 
 import (
+	"fmt"
 	"sync"
 
 	"github.com/hashicorp/go-multierror"
@@ -112,6 +113,7 @@ func (c *Context2) Apply() (*State, error) {
 
 	// Clean out any unused things
 	c.state.prune()
+	println(fmt.Sprintf("%#v", c.state))
 
 	return c.state, err
 }
