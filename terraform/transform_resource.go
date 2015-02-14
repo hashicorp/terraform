@@ -315,8 +315,11 @@ func (n *graphNodeExpandedResource) EvalTree() EvalNode {
 				},
 				&EvalIf{
 					If: func(ctx EvalContext) (bool, error) {
+						if n.Resource.Lifecycle.CreateBeforeDestroy {
+							tainted = err != nil
+						}
+
 						failure := tainted || err != nil
-						tainted = n.Resource.Lifecycle.CreateBeforeDestroy
 						return n.Resource.Lifecycle.CreateBeforeDestroy && failure, nil
 					},
 					Node: &EvalUndeposeState{
