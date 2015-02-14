@@ -42,12 +42,12 @@ type Plan struct {
 //
 // The following fields in opts are overridden by the plan: Config,
 // Diff, State, Variables.
-func (p *Plan) Context(opts *ContextOpts) *Context2 {
+func (p *Plan) Context(opts *ContextOpts) *Context {
 	opts.Diff = p.Diff
 	opts.Module = p.Module
 	opts.State = p.State
 	opts.Variables = p.Vars
-	return NewContext2(opts)
+	return NewContext(opts)
 }
 
 func (p *Plan) String() string {

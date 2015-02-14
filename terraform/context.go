@@ -44,7 +44,7 @@ type ContextOpts struct {
 // Context represents all the context that Terraform needs in order to
 // perform operations on infrastructure. This structure is built using
 // NewContext. See the documentation for that.
-type Context2 struct {
+type Context struct {
 	diff         *Diff
 	diffLock     sync.RWMutex
 	hooks        []Hook
@@ -67,7 +67,7 @@ type Context2 struct {
 // Once a Context is creator, the pointer values within ContextOpts
 // should not be mutated in any way, since the pointers are copied, not
 // the values themselves.
-func NewContext2(opts *ContextOpts) *Context2 {
+func NewContext(opts *ContextOpts) *Context {
 	// Copy all the hooks and add our stop hook. We don't append directly
 	// to the Config so that we're not modifying that in-place.
 	sh := new(stopHook)
@@ -81,7 +81,7 @@ func NewContext2(opts *ContextOpts) *Context2 {
 		state.init()
 	}
 
-	return &Context2{
+	return &Context{
 		diff:                opts.Diff,
 		hooks:               hooks,
 		module:              opts.Module,
@@ -97,7 +97,7 @@ func NewContext2(opts *ContextOpts) *Context2 {
 
 // GraphBuilder returns the GraphBuilder that will be used to create
 // the graphs for this context.
-func (c *Context2) GraphBuilder() GraphBuilder {
+func (c *Context) GraphBuilder() GraphBuilder {
 	// TODO test
 	providers := make([]string, 0, len(c.providers))
 	for k, _ := range c.providers {
@@ -121,7 +121,7 @@ func (c *Context2) GraphBuilder() GraphBuilder {
 // Input asks for input to fill variables and provider configurations.
 // This modifies the configuration in-place, so asking for Input twice
 // may result in different UI output showing different current values.
-func (c *Context2) Input(mode InputMode) error {
+func (c *Context) Input(mode InputMode) error {
 	v := c.acquireRun()
 	defer c.releaseRun(v)
 
@@ -202,7 +202,7 @@ func (c *Context2) Input(mode InputMode) error {
 //
 // In addition to returning the resulting state, this context is updated
 // with the latest state.
-func (c *Context2) Apply() (*State, error) {
+func (c *Context) Apply() (*State, error) {
 	v := c.acquireRun()
 	defer c.releaseRun(v)
 
@@ -226,7 +226,7 @@ func (c *Context2) Apply() (*State, error) {
 //
 // Plan also updates the diff of this context to be the diff generated
 // by the plan, so Apply can be called after.
-func (c *Context2) Plan(opts *PlanOpts) (*Plan, error) {
+func (c *Context) Plan(opts *PlanOpts) (*Plan, error) {
 	v := c.acquireRun()
 	defer c.releaseRun(v)
 
@@ -278,7 +278,7 @@ func (c *Context2) Plan(opts *PlanOpts) (*Plan, error) {
 //
 // Even in the case an error is returned, the state will be returned and
 // will potentially be partially updated.
-func (c *Context2) Refresh() (*State, []error) {
+func (c *Context) Refresh() (*State, []error) {
 	v := c.acquireRun()
 	defer c.releaseRun(v)
 
@@ -300,7 +300,7 @@ func (c *Context2) Refresh() (*State, []error) {
 // Stop stops the running task.
 //
 // Stop will block until the task completes.
-func (c *Context2) Stop() {
+func (c *Context) Stop() {
 	c.l.Lock()
 	ch := c.runCh
 
@@ -319,7 +319,7 @@ func (c *Context2) Stop() {
 }
 
 // Validate validates the configuration and returns any warnings or errors.
-func (c *Context2) Validate() ([]string, []error) {
+func (c *Context) Validate() ([]string, []error) {
 	v := c.acquireRun()
 	defer c.releaseRun(v)
 
@@ -350,7 +350,7 @@ func (c *Context2) Validate() ([]string, []error) {
 	return walker.ValidationWarnings, rerrs.Errors
 }
 
-func (c *Context2) acquireRun() chan<- struct{} {
+func (c *Context) acquireRun() chan<- struct{} {
 	c.l.Lock()
 	defer c.l.Unlock()
 
@@ -367,7 +367,7 @@ func (c *Context2) acquireRun() chan<- struct{} {
 	return ch
 }
 
-func (c *Context2) releaseRun(ch chan<- struct{}) {
+func (c *Context) releaseRun(ch chan<- struct{}) {
 	c.l.Lock()
 	defer c.l.Unlock()
 
@@ -376,7 +376,7 @@ func (c *Context2) releaseRun(ch chan<- struct{}) {
 	c.sh.Reset()
 }
 
-func (c *Context2) walk(operation walkOperation) (*ContextGraphWalker, error) {
+func (c *Context) walk(operation walkOperation) (*ContextGraphWalker, error) {
 	// Build the graph
 	graph, err := c.GraphBuilder().Build(RootModulePath)
 	if err != nil {
