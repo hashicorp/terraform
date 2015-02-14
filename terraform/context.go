@@ -278,7 +278,7 @@ func (c *Context) Plan(opts *PlanOpts) (*Plan, error) {
 //
 // Even in the case an error is returned, the state will be returned and
 // will potentially be partially updated.
-func (c *Context) Refresh() (*State, []error) {
+func (c *Context) Refresh() (*State, error) {
 	v := c.acquireRun()
 	defer c.releaseRun(v)
 
@@ -287,8 +287,7 @@ func (c *Context) Refresh() (*State, []error) {
 
 	// Do the walk
 	if _, err := c.walk(walkRefresh); err != nil {
-		var errs error
-		return nil, multierror.Append(errs, err).Errors
+		return nil, err
 	}
 
 	// Clean out any unused things
