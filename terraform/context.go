@@ -57,8 +57,9 @@ type Context2 struct {
 	uiInput      UIInput
 	variables    map[string]string
 
-	l     sync.Mutex // Lock acquired during any task
-	runCh <-chan struct{}
+	l                   sync.Mutex // Lock acquired during any task
+	providerInputConfig map[string]map[string]interface{}
+	runCh               <-chan struct{}
 }
 
 // NewContext creates a new Context structure.
@@ -81,15 +82,16 @@ func NewContext2(opts *ContextOpts) *Context2 {
 	}
 
 	return &Context2{
-		diff:         opts.Diff,
-		hooks:        hooks,
-		module:       opts.Module,
-		providers:    opts.Providers,
-		provisioners: opts.Provisioners,
-		sh:           sh,
-		state:        state,
-		uiInput:      opts.UIInput,
-		variables:    opts.Variables,
+		diff:                opts.Diff,
+		hooks:               hooks,
+		module:              opts.Module,
+		providers:           opts.Providers,
+		providerInputConfig: make(map[string]map[string]interface{}),
+		provisioners:        opts.Provisioners,
+		sh:                  sh,
+		state:               state,
+		uiInput:             opts.UIInput,
+		variables:           opts.Variables,
 	}
 }
 
@@ -185,15 +187,12 @@ func (c *Context2) Input(mode InputMode) error {
 		}
 	}
 
-	/*
-		if mode&InputModeProvider != 0 {
-			// Create the walk context and walk the inputs, which will gather the
-			// inputs for any resource providers.
-			wc := c.walkContext(walkInput, rootModulePath)
-			wc.Meta = new(walkInputMeta)
-			return wc.Walk()
+	if mode&InputModeProvider != 0 {
+		// Do the walk
+		if _, err := c.walk(walkInput); err != nil {
+			return err
 		}
-	*/
+	}
 
 	return nil
 }

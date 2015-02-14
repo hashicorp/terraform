@@ -14,9 +14,11 @@ type BuiltinEvalContext struct {
 	PathValue           []string
 	Interpolater        *Interpolater
 	Hooks               []Hook
+	InputValue          UIInput
 	Providers           map[string]ResourceProviderFactory
 	ProviderCache       map[string]ResourceProvider
 	ProviderConfigCache map[string]*ResourceConfig
+	ProviderInputConfig map[string]map[string]interface{}
 	ProviderLock        *sync.Mutex
 	Provisioners        map[string]ResourceProvisionerFactory
 	ProvisionerCache    map[string]ResourceProvisioner
@@ -47,6 +49,10 @@ func (ctx *BuiltinEvalContext) Hook(fn func(Hook) (HookAction, error)) error {
 	}
 
 	return nil
+}
+
+func (ctx *BuiltinEvalContext) Input() UIInput {
+	return ctx.InputValue
 }
 
 func (ctx *BuiltinEvalContext) InitProvider(n string) (ResourceProvider, error) {
@@ -98,6 +104,20 @@ func (ctx *BuiltinEvalContext) ConfigureProvider(
 	ctx.ProviderLock.Unlock()
 
 	return p.Configure(cfg)
+}
+
+func (ctx *BuiltinEvalContext) ProviderInput(n string) map[string]interface{} {
+	ctx.ProviderLock.Lock()
+	defer ctx.ProviderLock.Unlock()
+
+	return ctx.ProviderInputConfig[n]
+}
+
+func (ctx *BuiltinEvalContext) SetProviderInput(n string, c map[string]interface{}) {
+	ctx.ProviderLock.Lock()
+	defer ctx.ProviderLock.Unlock()
+
+	ctx.ProviderInputConfig[n] = c
 }
 
 func (ctx *BuiltinEvalContext) ParentProviderConfig(n string) *ResourceConfig {
