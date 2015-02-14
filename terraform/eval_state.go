@@ -13,13 +13,8 @@ type EvalReadState struct {
 	Output       **InstanceState
 }
 
-func (n *EvalReadState) Args() ([]EvalNode, []EvalType) {
-	return nil, nil
-}
-
 // TODO: test
-func (n *EvalReadState) Eval(
-	ctx EvalContext, args []interface{}) (interface{}, error) {
+func (n *EvalReadState) Eval(ctx EvalContext) (interface{}, error) {
 	state, lock := ctx.State()
 
 	// Get a read lock so we can access this instance
@@ -63,10 +58,6 @@ func (n *EvalReadState) Eval(
 	return result, nil
 }
 
-func (n *EvalReadState) Type() EvalType {
-	return EvalTypeInstanceState
-}
-
 // EvalWriteState is an EvalNode implementation that reads the
 // InstanceState for a specific resource out of the state.
 type EvalWriteState struct {
@@ -79,13 +70,8 @@ type EvalWriteState struct {
 	TaintedClearPrimary bool
 }
 
-func (n *EvalWriteState) Args() ([]EvalNode, []EvalType) {
-	return nil, nil
-}
-
 // TODO: test
-func (n *EvalWriteState) Eval(
-	ctx EvalContext, args []interface{}) (interface{}, error) {
+func (n *EvalWriteState) Eval(ctx EvalContext) (interface{}, error) {
 	state, lock := ctx.State()
 	if state == nil {
 		return nil, fmt.Errorf("cannot write state to nil state")
@@ -130,10 +116,6 @@ func (n *EvalWriteState) Eval(
 	return nil, nil
 }
 
-func (n *EvalWriteState) Type() EvalType {
-	return EvalTypeNull
-}
-
 // EvalDeposeState is an EvalNode implementation that takes the primary
 // out of a state and makes it tainted. This is done at the beggining of
 // create-before-destroy calls so that the create can create while preserving
@@ -142,13 +124,8 @@ type EvalDeposeState struct {
 	Name string
 }
 
-func (n *EvalDeposeState) Args() ([]EvalNode, []EvalType) {
-	return nil, nil
-}
-
 // TODO: test
-func (n *EvalDeposeState) Eval(
-	ctx EvalContext, args []interface{}) (interface{}, error) {
+func (n *EvalDeposeState) Eval(ctx EvalContext) (interface{}, error) {
 	state, lock := ctx.State()
 
 	// Get a read lock so we can access this instance
@@ -179,23 +156,14 @@ func (n *EvalDeposeState) Eval(
 	return nil, nil
 }
 
-func (n *EvalDeposeState) Type() EvalType {
-	return EvalTypeNull
-}
-
 // EvalUndeposeState is an EvalNode implementation that reads the
 // InstanceState for a specific resource out of the state.
 type EvalUndeposeState struct {
 	Name string
 }
 
-func (n *EvalUndeposeState) Args() ([]EvalNode, []EvalType) {
-	return nil, nil
-}
-
 // TODO: test
-func (n *EvalUndeposeState) Eval(
-	ctx EvalContext, args []interface{}) (interface{}, error) {
+func (n *EvalUndeposeState) Eval(ctx EvalContext) (interface{}, error) {
 	state, lock := ctx.State()
 
 	// Get a read lock so we can access this instance
@@ -225,8 +193,4 @@ func (n *EvalUndeposeState) Eval(
 	rs.Tainted[idx] = nil
 
 	return nil, nil
-}
-
-func (n *EvalUndeposeState) Type() EvalType {
-	return EvalTypeNull
 }

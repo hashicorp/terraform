@@ -12,14 +12,11 @@ func TestEvalConfigProvider_impl(t *testing.T) {
 func TestEvalConfigProvider(t *testing.T) {
 	config := testResourceConfig(t, map[string]interface{}{})
 	provider := &MockResourceProvider{}
-	n := &EvalConfigProvider{}
+	n := &EvalConfigProvider{Config: &config}
 
 	ctx := &MockEvalContext{ProviderProvider: provider}
-	args := []interface{}{config}
-	if actual, err := n.Eval(ctx, args); err != nil {
+	if _, err := n.Eval(ctx); err != nil {
 		t.Fatalf("err: %s", err)
-	} else if actual != nil {
-		t.Fatalf("bad: %#v", actual)
 	}
 
 	if !ctx.ConfigureProviderCalled {
@@ -27,22 +24,6 @@ func TestEvalConfigProvider(t *testing.T) {
 	}
 	if !reflect.DeepEqual(ctx.ConfigureProviderConfig, config) {
 		t.Fatalf("bad: %#v", ctx.ConfigureProviderConfig)
-	}
-}
-
-func TestEvalConfigProvider_args(t *testing.T) {
-	config := testResourceConfig(t, map[string]interface{}{})
-	configNode := &EvalLiteral{Value: config}
-	n := &EvalConfigProvider{Provider: "foo", Config: configNode}
-
-	args, types := n.Args()
-	expectedArgs := []EvalNode{configNode}
-	expectedTypes := []EvalType{EvalTypeConfig}
-	if !reflect.DeepEqual(args, expectedArgs) {
-		t.Fatalf("bad: %#v", args)
-	}
-	if !reflect.DeepEqual(types, expectedTypes) {
-		t.Fatalf("bad: %#v", args)
 	}
 }
 
@@ -54,10 +35,8 @@ func TestEvalInitProvider(t *testing.T) {
 	n := &EvalInitProvider{Name: "foo"}
 	provider := &MockResourceProvider{}
 	ctx := &MockEvalContext{InitProviderProvider: provider}
-	if actual, err := n.Eval(ctx, nil); err != nil {
+	if _, err := n.Eval(ctx); err != nil {
 		t.Fatalf("err: %s", err)
-	} else if actual != provider {
-		t.Fatalf("bad: %#v", actual)
 	}
 
 	if !ctx.InitProviderCalled {
@@ -73,12 +52,14 @@ func TestEvalGetProvider_impl(t *testing.T) {
 }
 
 func TestEvalGetProvider(t *testing.T) {
-	n := &EvalGetProvider{Name: "foo"}
+	var actual ResourceProvider
+	n := &EvalGetProvider{Name: "foo", Output: &actual}
 	provider := &MockResourceProvider{}
 	ctx := &MockEvalContext{ProviderProvider: provider}
-	if actual, err := n.Eval(ctx, nil); err != nil {
+	if _, err := n.Eval(ctx); err != nil {
 		t.Fatalf("err: %s", err)
-	} else if actual != provider {
+	}
+	if actual != provider {
 		t.Fatalf("bad: %#v", actual)
 	}
 

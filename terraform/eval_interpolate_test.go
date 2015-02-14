@@ -17,12 +17,14 @@ func TestEvalInterpolate(t *testing.T) {
 		t.Fatalf("err: %s", err)
 	}
 
-	n := &EvalInterpolate{Config: config}
+	var actual *ResourceConfig
+	n := &EvalInterpolate{Config: config, Output: &actual}
 	result := testResourceConfig(t, map[string]interface{}{})
 	ctx := &MockEvalContext{InterpolateConfigResult: result}
-	if actual, err := n.Eval(ctx, nil); err != nil {
+	if _, err := n.Eval(ctx); err != nil {
 		t.Fatalf("err: %s", err)
-	} else if actual != result {
+	}
+	if actual != result {
 		t.Fatalf("bad: %#v", actual)
 	}
 

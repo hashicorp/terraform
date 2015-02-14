@@ -5,31 +5,14 @@ type EvalSequence struct {
 	Nodes []EvalNode
 }
 
-func (n *EvalSequence) Args() ([]EvalNode, []EvalType) {
-	types := make([]EvalType, len(n.Nodes))
-	for i, n := range n.Nodes {
-		types[i] = n.Type()
+func (n *EvalSequence) Eval(ctx EvalContext) (interface{}, error) {
+	for _, n := range n.Nodes {
+		if _, err := EvalRaw(n, ctx); err != nil {
+			return nil, err
+		}
 	}
 
-	return n.Nodes, types
-}
-
-func (n *EvalSequence) Eval(
-	ctx EvalContext, args []interface{}) (interface{}, error) {
-	// TODO: test
-	if len(args) == 0 {
-		return nil, nil
-	}
-
-	return args[len(args)-1], nil
-}
-
-func (n *EvalSequence) Type() EvalType {
-	if len(n.Nodes) == 0 {
-		return EvalTypeNull
-	}
-
-	return n.Nodes[len(n.Nodes)-1].Type()
+	return nil, nil
 }
 
 // EvalNodeFilterable impl.

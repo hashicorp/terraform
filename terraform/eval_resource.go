@@ -6,17 +6,8 @@ type EvalInstanceInfo struct {
 	Info *InstanceInfo
 }
 
-func (n *EvalInstanceInfo) Args() ([]EvalNode, []EvalType) {
-	return nil, nil
-}
-
 // TODO: test
-func (n *EvalInstanceInfo) Eval(
-	ctx EvalContext, args []interface{}) (interface{}, error) {
+func (n *EvalInstanceInfo) Eval(ctx EvalContext) (interface{}, error) {
 	n.Info.ModulePath = ctx.Path()
 	return nil, nil
-}
-
-func (n *EvalInstanceInfo) Type() EvalType {
-	return EvalTypeNull
 }

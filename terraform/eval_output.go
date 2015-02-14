@@ -13,13 +13,8 @@ type EvalWriteOutput struct {
 	Value *config.RawConfig
 }
 
-func (n *EvalWriteOutput) Args() ([]EvalNode, []EvalType) {
-	return nil, nil
-}
-
 // TODO: test
-func (n *EvalWriteOutput) Eval(
-	ctx EvalContext, args []interface{}) (interface{}, error) {
+func (n *EvalWriteOutput) Eval(ctx EvalContext) (interface{}, error) {
 	cfg, err := ctx.Interpolate(n.Value, nil)
 	if err != nil {
 		// Ignore it
@@ -65,8 +60,4 @@ func (n *EvalWriteOutput) Eval(
 	mod.Outputs[n.Name] = valueRaw.(string)
 
 	return nil, nil
-}
-
-func (n *EvalWriteOutput) Type() EvalType {
-	return EvalTypeNull
 }

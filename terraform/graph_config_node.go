@@ -359,10 +359,16 @@ func (n *graphNodeModuleExpanded) Name() string {
 
 // GraphNodeEvalable impl.
 func (n *graphNodeModuleExpanded) EvalTree() EvalNode {
+	var resourceConfig *ResourceConfig
 	return &EvalSequence{
 		Nodes: []EvalNode{
+			&EvalInterpolate{
+				Config: n.InputConfig,
+				Output: &resourceConfig,
+			},
+
 			&EvalVariableBlock{
-				Config:    &EvalInterpolate{Config: n.InputConfig},
+				Config:    &resourceConfig,
 				Variables: n.Variables,
 			},
 

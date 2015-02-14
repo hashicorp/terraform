@@ -7,20 +7,15 @@ import (
 // EvalRefresh is an EvalNode implementation that does a refresh for
 // a resource.
 type EvalRefresh struct {
-	Provider EvalNode
+	Provider *ResourceProvider
 	State    **InstanceState
 	Info     *InstanceInfo
 	Output   **InstanceState
 }
 
-func (n *EvalRefresh) Args() ([]EvalNode, []EvalType) {
-	return []EvalNode{n.Provider}, []EvalType{EvalTypeResourceProvider}
-}
-
 // TODO: test
-func (n *EvalRefresh) Eval(
-	ctx EvalContext, args []interface{}) (interface{}, error) {
-	provider := args[0].(ResourceProvider)
+func (n *EvalRefresh) Eval(ctx EvalContext) (interface{}, error) {
+	provider := *n.Provider
 	state := *n.State
 
 	// If we have no state, we don't do any refreshing
@@ -54,9 +49,6 @@ func (n *EvalRefresh) Eval(
 	if n.Output != nil {
 		*n.Output = state
 	}
-	return state, nil
-}
 
-func (n *EvalRefresh) Type() EvalType {
-	return EvalTypeInstanceState
+	return nil, nil
 }

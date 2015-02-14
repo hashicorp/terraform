@@ -7,18 +7,10 @@ import (
 // EvalNode is the interface that must be implemented by graph nodes to
 // evaluate/execute.
 type EvalNode interface {
-	// Args returns the arguments for this node as well as the list of
-	// expected types. The expected types are only used for type checking
-	// and not used at runtime.
-	Args() ([]EvalNode, []EvalType)
-
 	// Eval evaluates this node with the given context. The second parameter
 	// are the argument values. These will match in order and 1-1 with the
 	// results of the Args() return value.
-	Eval(EvalContext, []interface{}) (interface{}, error)
-
-	// Type returns the type that will be returned by this node.
-	Type() EvalType
+	Eval(EvalContext) (interface{}, error)
 }
 
 // GraphNodeEvalable is the interface that graph nodes must implement
@@ -51,19 +43,8 @@ func Eval(n EvalNode, ctx EvalContext) (interface{}, error) {
 // EvalRaw is like Eval except that it returns all errors, even if they
 // signal something normal such as EvalEarlyExitError.
 func EvalRaw(n EvalNode, ctx EvalContext) (interface{}, error) {
-	argNodes, _ := n.Args()
-	args := make([]interface{}, len(argNodes))
-	for i, n := range argNodes {
-		v, err := EvalRaw(n, ctx)
-		if err != nil {
-			return nil, err
-		}
-
-		args[i] = v
-	}
-
 	log.Printf("[DEBUG] eval: %T", n)
-	output, err := n.Eval(ctx, args)
+	output, err := n.Eval(ctx)
 	if err != nil {
 		log.Printf("[ERROR] eval: %T, err: %s", n, err)
 	}

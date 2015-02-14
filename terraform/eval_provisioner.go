@@ -11,39 +11,26 @@ type EvalInitProvisioner struct {
 	Name string
 }
 
-func (n *EvalInitProvisioner) Args() ([]EvalNode, []EvalType) {
-	return nil, nil
-}
-
-func (n *EvalInitProvisioner) Eval(
-	ctx EvalContext, args []interface{}) (interface{}, error) {
+func (n *EvalInitProvisioner) Eval(ctx EvalContext) (interface{}, error) {
 	return ctx.InitProvisioner(n.Name)
-}
-
-func (n *EvalInitProvisioner) Type() EvalType {
-	return EvalTypeNull
 }
 
 // EvalGetProvisioner is an EvalNode implementation that retrieves an already
 // initialized provisioner instance for the given name.
 type EvalGetProvisioner struct {
-	Name string
+	Name   string
+	Output *ResourceProvisioner
 }
 
-func (n *EvalGetProvisioner) Args() ([]EvalNode, []EvalType) {
-	return nil, nil
-}
-
-func (n *EvalGetProvisioner) Eval(
-	ctx EvalContext, args []interface{}) (interface{}, error) {
+func (n *EvalGetProvisioner) Eval(ctx EvalContext) (interface{}, error) {
 	result := ctx.Provisioner(n.Name)
 	if result == nil {
 		return nil, fmt.Errorf("provisioner %s not initialized", n.Name)
 	}
 
-	return result, nil
-}
+	if n.Output != nil {
+		*n.Output = result
+	}
 
-func (n *EvalGetProvisioner) Type() EvalType {
-	return EvalTypeResourceProvisioner
+	return result, nil
 }

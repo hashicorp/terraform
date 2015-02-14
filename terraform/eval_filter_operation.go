@@ -32,18 +32,9 @@ type EvalOpFilter struct {
 	Node EvalNode
 }
 
-func (n *EvalOpFilter) Args() ([]EvalNode, []EvalType) {
-	return []EvalNode{n.Node}, []EvalType{n.Node.Type()}
-}
-
 // TODO: test
-func (n *EvalOpFilter) Eval(
-	ctx EvalContext, args []interface{}) (interface{}, error) {
-	return args[0], nil
-}
-
-func (n *EvalOpFilter) Type() EvalType {
-	return n.Node.Type()
+func (n *EvalOpFilter) Eval(ctx EvalContext) (interface{}, error) {
+	return EvalRaw(n.Node, ctx)
 }
 
 // EvalNodeOpFilterable impl.

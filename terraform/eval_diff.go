@@ -12,13 +12,8 @@ type EvalCompareDiff struct {
 	One, Two **InstanceDiff
 }
 
-func (n *EvalCompareDiff) Args() ([]EvalNode, []EvalType) {
-	return nil, nil
-}
-
 // TODO: test
-func (n *EvalCompareDiff) Eval(
-	ctx EvalContext, args []interface{}) (interface{}, error) {
+func (n *EvalCompareDiff) Eval(ctx EvalContext) (interface{}, error) {
 	one, two := *n.One, *n.Two
 
 	// If either are nil, let them be empty
@@ -55,37 +50,22 @@ func (n *EvalCompareDiff) Eval(
 	return nil, nil
 }
 
-func (n *EvalCompareDiff) Type() EvalType {
-	return EvalTypeNull
-}
-
 // EvalDiff is an EvalNode implementation that does a refresh for
 // a resource.
 type EvalDiff struct {
 	Info        *InstanceInfo
-	Config      EvalNode
-	Provider    EvalNode
-	State       EvalNode
+	Config      **ResourceConfig
+	Provider    *ResourceProvider
+	State       **InstanceState
 	Output      **InstanceDiff
 	OutputState **InstanceState
 }
 
-func (n *EvalDiff) Args() ([]EvalNode, []EvalType) {
-	return []EvalNode{n.Config, n.Provider, n.State},
-		[]EvalType{EvalTypeConfig, EvalTypeResourceProvider,
-			EvalTypeInstanceState}
-}
-
 // TODO: test
-func (n *EvalDiff) Eval(
-	ctx EvalContext, args []interface{}) (interface{}, error) {
-	// Extract our arguments
-	var state *InstanceState
-	config := args[0].(*ResourceConfig)
-	provider := args[1].(ResourceProvider)
-	if args[2] != nil {
-		state = args[2].(*InstanceState)
-	}
+func (n *EvalDiff) Eval(ctx EvalContext) (interface{}, error) {
+	state := *n.State
+	config := *n.Config
+	provider := *n.Provider
 
 	// Call pre-diff hook
 	err := ctx.Hook(func(h Hook) (HookAction, error) {
@@ -154,33 +134,20 @@ func (n *EvalDiff) Eval(
 		}
 	}
 
-	return state, nil
-}
-
-func (n *EvalDiff) Type() EvalType {
-	return EvalTypeInstanceState
+	return nil, nil
 }
 
 // EvalDiffDestroy is an EvalNode implementation that returns a plain
 // destroy diff.
 type EvalDiffDestroy struct {
 	Info   *InstanceInfo
-	State  EvalNode
+	State  **InstanceState
 	Output **InstanceDiff
 }
 
-func (n *EvalDiffDestroy) Args() ([]EvalNode, []EvalType) {
-	return []EvalNode{n.State}, []EvalType{EvalTypeInstanceState}
-}
-
 // TODO: test
-func (n *EvalDiffDestroy) Eval(
-	ctx EvalContext, args []interface{}) (interface{}, error) {
-	// Extract our arguments
-	var state *InstanceState
-	if args[0] != nil {
-		state = args[0].(*InstanceState)
-	}
+func (n *EvalDiffDestroy) Eval(ctx EvalContext) (interface{}, error) {
+	state := *n.State
 
 	// If there is no state or we don't have an ID, we're already destroyed
 	if state == nil || state.ID == "" {
@@ -212,23 +179,14 @@ func (n *EvalDiffDestroy) Eval(
 	return nil, nil
 }
 
-func (n *EvalDiffDestroy) Type() EvalType {
-	return EvalTypeNull
-}
-
 // EvalDiffDestroyModule is an EvalNode implementation that writes the diff to
 // the full diff.
 type EvalDiffDestroyModule struct {
 	Path []string
 }
 
-func (n *EvalDiffDestroyModule) Args() ([]EvalNode, []EvalType) {
-	return nil, nil
-}
-
 // TODO: test
-func (n *EvalDiffDestroyModule) Eval(
-	ctx EvalContext, args []interface{}) (interface{}, error) {
+func (n *EvalDiffDestroyModule) Eval(ctx EvalContext) (interface{}, error) {
 	diff, lock := ctx.Diff()
 
 	// Acquire the lock so that we can do this safely concurrently
@@ -245,10 +203,6 @@ func (n *EvalDiffDestroyModule) Eval(
 	return nil, nil
 }
 
-func (n *EvalDiffDestroyModule) Type() EvalType {
-	return EvalTypeNull
-}
-
 // EvalDiffTainted is an EvalNode implementation that writes the diff to
 // the full diff.
 type EvalDiffTainted struct {
@@ -256,13 +210,8 @@ type EvalDiffTainted struct {
 	Diff **InstanceDiff
 }
 
-func (n *EvalDiffTainted) Args() ([]EvalNode, []EvalType) {
-	return nil, nil
-}
-
 // TODO: test
-func (n *EvalDiffTainted) Eval(
-	ctx EvalContext, args []interface{}) (interface{}, error) {
+func (n *EvalDiffTainted) Eval(ctx EvalContext) (interface{}, error) {
 	state, lock := ctx.State()
 
 	// Get a read lock so we can access this instance
@@ -289,10 +238,6 @@ func (n *EvalDiffTainted) Eval(
 	return nil, nil
 }
 
-func (n *EvalDiffTainted) Type() EvalType {
-	return EvalTypeNull
-}
-
 // EvalReadDiff is an EvalNode implementation that writes the diff to
 // the full diff.
 type EvalReadDiff struct {
@@ -300,13 +245,7 @@ type EvalReadDiff struct {
 	Diff **InstanceDiff
 }
 
-func (n *EvalReadDiff) Args() ([]EvalNode, []EvalType) {
-	return nil, nil
-}
-
-// TODO: test
-func (n *EvalReadDiff) Eval(
-	ctx EvalContext, args []interface{}) (interface{}, error) {
+func (n *EvalReadDiff) Eval(ctx EvalContext) (interface{}, error) {
 	diff, lock := ctx.Diff()
 
 	// Acquire the lock so that we can do this safely concurrently
@@ -324,10 +263,6 @@ func (n *EvalReadDiff) Eval(
 	return nil, nil
 }
 
-func (n *EvalReadDiff) Type() EvalType {
-	return EvalTypeNull
-}
-
 // EvalWriteDiff is an EvalNode implementation that writes the diff to
 // the full diff.
 type EvalWriteDiff struct {
@@ -335,13 +270,8 @@ type EvalWriteDiff struct {
 	Diff **InstanceDiff
 }
 
-func (n *EvalWriteDiff) Args() ([]EvalNode, []EvalType) {
-	return nil, nil
-}
-
 // TODO: test
-func (n *EvalWriteDiff) Eval(
-	ctx EvalContext, args []interface{}) (interface{}, error) {
+func (n *EvalWriteDiff) Eval(ctx EvalContext) (interface{}, error) {
 	diff, lock := ctx.Diff()
 
 	// The diff to write, if its empty it should write nil
@@ -366,8 +296,4 @@ func (n *EvalWriteDiff) Eval(
 	}
 
 	return nil, nil
-}
-
-func (n *EvalWriteDiff) Type() EvalType {
-	return EvalTypeNull
 }

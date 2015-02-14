@@ -9,17 +9,18 @@ import (
 type EvalInterpolate struct {
 	Config   *config.RawConfig
 	Resource *Resource
+	Output   **ResourceConfig
 }
 
-func (n *EvalInterpolate) Args() ([]EvalNode, []EvalType) {
+func (n *EvalInterpolate) Eval(ctx EvalContext) (interface{}, error) {
+	rc, err := ctx.Interpolate(n.Config, n.Resource)
+	if err != nil {
+		return nil, err
+	}
+
+	if n.Output != nil {
+		*n.Output = rc
+	}
+
 	return nil, nil
-}
-
-func (n *EvalInterpolate) Eval(
-	ctx EvalContext, args []interface{}) (interface{}, error) {
-	return ctx.Interpolate(n.Config, n.Resource)
-}
-
-func (n *EvalInterpolate) Type() EvalType {
-	return EvalTypeConfig
 }
