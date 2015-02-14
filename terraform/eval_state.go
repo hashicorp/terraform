@@ -103,6 +103,8 @@ func (n *EvalWriteState) Eval(
 	rs.Type = n.ResourceType
 	rs.Dependencies = n.Dependencies
 
+	println(fmt.Sprintf("%#v", rs))
+	println(fmt.Sprintf("%#v", *n.State))
 	if n.Tainted != nil && *n.Tainted {
 		if n.TaintedIndex != -1 {
 			rs.Tainted[n.TaintedIndex] = *n.State
