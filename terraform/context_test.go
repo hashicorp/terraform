@@ -4240,7 +4240,6 @@ func TestContext2Apply_output(t *testing.T) {
 	}
 }
 
-/*
 func TestContext2Apply_outputInvalid(t *testing.T) {
 	m := testModule(t, "apply-output-invalid")
 	p := testProvider("aws")
@@ -4261,7 +4260,6 @@ func TestContext2Apply_outputInvalid(t *testing.T) {
 		t.Fatalf("err: %s", err)
 	}
 }
-*/
 
 func TestContext2Apply_outputList(t *testing.T) {
 	m := testModule(t, "apply-output-list")

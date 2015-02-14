@@ -58,7 +58,7 @@ func (n *EvalWriteOutput) Eval(
 		valueRaw = list[0]
 	}
 	if _, ok := valueRaw.(string); !ok {
-		valueRaw = ""
+		return nil, fmt.Errorf("output %s is not a string", n.Name)
 	}
 
 	// Write the output
