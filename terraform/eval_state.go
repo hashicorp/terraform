@@ -134,8 +134,10 @@ func (n *EvalWriteState) Type() EvalType {
 	return EvalTypeNull
 }
 
-// EvalDeposeState is an EvalNode implementation that reads the
-// InstanceState for a specific resource out of the state.
+// EvalDeposeState is an EvalNode implementation that takes the primary
+// out of a state and makes it tainted. This is done at the beggining of
+// create-before-destroy calls so that the create can create while preserving
+// the old state of the to-be-destroyed resource.
 type EvalDeposeState struct {
 	Name string
 }
