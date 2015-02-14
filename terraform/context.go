@@ -95,6 +95,11 @@ func NewContext(opts *ContextOpts) *Context {
 	}
 }
 
+// Graph returns the graph for this config.
+func (c *Context) Graph() (*Graph, error) {
+	return c.GraphBuilder().Build(RootModulePath)
+}
+
 // GraphBuilder returns the GraphBuilder that will be used to create
 // the graphs for this context.
 func (c *Context) GraphBuilder() GraphBuilder {
