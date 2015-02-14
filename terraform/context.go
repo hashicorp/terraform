@@ -387,3 +387,16 @@ func (c *Context2) walk(operation walkOperation) (*ContextGraphWalker, error) {
 	walker := &ContextGraphWalker{Context: c, Operation: operation}
 	return walker, graph.Walk(walker)
 }
+
+// walkOperation is an enum which tells the walkContext what to do.
+type walkOperation byte
+
+const (
+	walkInvalid walkOperation = iota
+	walkInput
+	walkApply
+	walkPlan
+	walkPlanDestroy
+	walkRefresh
+	walkValidate
+)
