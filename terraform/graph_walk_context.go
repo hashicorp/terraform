@@ -12,7 +12,7 @@ type ContextGraphWalker struct {
 	NullGraphWalker
 
 	// Configurable values
-	Context   *Context2
+	Context   *Context
 	Operation walkOperation
 
 	// Outputs, do not set these. Do not read these while the graph
