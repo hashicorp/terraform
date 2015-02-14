@@ -4467,8 +4467,7 @@ func TestContext2Apply_vars(t *testing.T) {
 	}
 }
 
-/*
-func TestContextApply_createBefore_depends(t *testing.T) {
+func TestContext2Apply_createBefore_depends(t *testing.T) {
 	m := testModule(t, "apply-depends-create-before")
 	h := new(HookRecordApplyOrder)
 	p := testProvider("aws")
@@ -4501,7 +4500,7 @@ func TestContextApply_createBefore_depends(t *testing.T) {
 			},
 		},
 	}
-	ctx := testContext(t, &ContextOpts{
+	ctx := testContext2(t, &ContextOpts{
 		Module: m,
 		Hooks:  []Hook{h},
 		Providers: map[string]ResourceProviderFactory{
@@ -4546,9 +4545,7 @@ func TestContextApply_createBefore_depends(t *testing.T) {
 		t.Fatalf("destroy must happen after update: %#v", order)
 	}
 }
-*/
 
-/*
 func TestContext2Apply_singleDestroy(t *testing.T) {
 	m := testModule(t, "apply-depends-create-before")
 	h := new(HookRecordApplyOrder)
@@ -4635,7 +4632,6 @@ func TestContext2Apply_singleDestroy(t *testing.T) {
 		t.Fatalf("bad: %d", invokeCount)
 	}
 }
-*/
 
 func testContext2(t *testing.T, opts *ContextOpts) *Context2 {
 	return NewContext2(opts)
