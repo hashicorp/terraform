@@ -4627,8 +4627,8 @@ func TestContext2Apply_singleDestroy(t *testing.T) {
 	}
 }
 
-func testContext2(t *testing.T, opts *ContextOpts) *Context2 {
-	return NewContext2(opts)
+func testContext2(t *testing.T, opts *ContextOpts) *Context {
+	return NewContext(opts)
 }
 
 func testApplyFn(
