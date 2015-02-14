@@ -10,17 +10,20 @@ import (
 // for the given name to the current state.
 type EvalWriteOutput struct {
 	Name  string
-	Value EvalNode
+	Value *config.RawConfig
 }
 
 func (n *EvalWriteOutput) Args() ([]EvalNode, []EvalType) {
-	return []EvalNode{n.Value}, []EvalType{EvalTypeConfig}
+	return nil, nil
 }
 
 // TODO: test
 func (n *EvalWriteOutput) Eval(
 	ctx EvalContext, args []interface{}) (interface{}, error) {
-	cfg := args[0].(*ResourceConfig)
+	cfg, err := ctx.Interpolate(n.Value, nil)
+	if err != nil {
+		// Ignore it
+	}
 
 	state, lock := ctx.State()
 	if state == nil {
@@ -38,12 +41,16 @@ func (n *EvalWriteOutput) Eval(
 	}
 
 	// Get the value from the config
-	valueRaw, ok := cfg.Get("value")
-	if !ok {
-		valueRaw = ""
-	}
-	if cfg.IsComputed("value") {
-		valueRaw = config.UnknownVariableValue
+	var valueRaw interface{} = config.UnknownVariableValue
+	if cfg != nil {
+		var ok bool
+		valueRaw, ok = cfg.Get("value")
+		if !ok {
+			valueRaw = ""
+		}
+		if cfg.IsComputed("value") {
+			valueRaw = config.UnknownVariableValue
+		}
 	}
 
 	// If it is a list of values, get the first one

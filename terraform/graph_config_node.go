@@ -124,9 +124,13 @@ func (n *GraphNodeConfigOutput) DependentOn() []string {
 func (n *GraphNodeConfigOutput) EvalTree() EvalNode {
 	return &EvalOpFilter{
 		Ops: []walkOperation{walkRefresh, walkPlan, walkApply},
-		Node: &EvalWriteOutput{
-			Name:  n.Output.Name,
-			Value: &EvalInterpolate{Config: n.Output.RawConfig},
+		Node: &EvalSequence{
+			Nodes: []EvalNode{
+				&EvalWriteOutput{
+					Name:  n.Output.Name,
+					Value: n.Output.RawConfig,
+				},
+			},
 		},
 	}
 }

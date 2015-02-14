@@ -3839,7 +3839,6 @@ func TestContext2Apply_destroy(t *testing.T) {
 	}
 }
 
-/*
 func TestContext2Apply_destroyOutputs(t *testing.T) {
 	m := testModule(t, "apply-destroy-outputs")
 	h := new(HookRecordApplyOrder)
@@ -3880,7 +3879,6 @@ func TestContext2Apply_destroyOutputs(t *testing.T) {
 		t.Fatalf("bad: %#v", mod)
 	}
 }
-*/
 
 func TestContext2Apply_destroyOrphan(t *testing.T) {
 	m := testModule(t, "apply-error")
