@@ -6,13 +6,8 @@ type EvalIf struct {
 	Node EvalNode
 }
 
-func (n *EvalIf) Args() ([]EvalNode, []EvalType) {
-	return nil, nil
-}
-
 // TODO: test
-func (n *EvalIf) Eval(
-	ctx EvalContext, args []interface{}) (interface{}, error) {
+func (n *EvalIf) Eval(ctx EvalContext) (interface{}, error) {
 	yes, err := n.If(ctx)
 	if err != nil {
 		return nil, err
@@ -23,8 +18,4 @@ func (n *EvalIf) Eval(
 	}
 
 	return nil, nil
-}
-
-func (n *EvalIf) Type() EvalType {
-	return EvalTypeNull
 }

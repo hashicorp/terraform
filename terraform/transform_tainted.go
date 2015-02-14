@@ -68,6 +68,7 @@ func (n *graphNodeTaintedResource) ProvidedBy() []string {
 
 // GraphNodeEvalable impl.
 func (n *graphNodeTaintedResource) EvalTree() EvalNode {
+	var provider ResourceProvider
 	var state *InstanceState
 	tainted := true
 
@@ -82,6 +83,10 @@ func (n *graphNodeTaintedResource) EvalTree() EvalNode {
 		Ops: []walkOperation{walkRefresh},
 		Node: &EvalSequence{
 			Nodes: []EvalNode{
+				&EvalGetProvider{
+					Name:   n.ProvidedBy()[0],
+					Output: &provider,
+				},
 				&EvalReadState{
 					Name:         n.ResourceName,
 					Tainted:      true,
@@ -90,7 +95,7 @@ func (n *graphNodeTaintedResource) EvalTree() EvalNode {
 				},
 				&EvalRefresh{
 					Info:     info,
-					Provider: &EvalGetProvider{Name: n.ProvidedBy()[0]},
+					Provider: &provider,
 					State:    &state,
 					Output:   &state,
 				},
@@ -106,7 +111,6 @@ func (n *graphNodeTaintedResource) EvalTree() EvalNode {
 	})
 
 	// Apply
-	var provider ResourceProvider
 	var diff *InstanceDiff
 	seq.Nodes = append(seq.Nodes, &EvalOpFilter{
 		Ops: []walkOperation{walkApply},
@@ -123,12 +127,8 @@ func (n *graphNodeTaintedResource) EvalTree() EvalNode {
 					Output:       &state,
 				},
 				&EvalDiffDestroy{
-					Info: info,
-					State: &EvalReadState{
-						Name:         n.ResourceName,
-						Tainted:      true,
-						TaintedIndex: n.Index,
-					},
+					Info:   info,
+					State:  &state,
 					Output: &diff,
 				},
 				&EvalApply{

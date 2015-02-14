@@ -21,13 +21,8 @@ type EvalApply struct {
 	Error     *error
 }
 
-func (n *EvalApply) Args() ([]EvalNode, []EvalType) {
-	return nil, nil
-}
-
 // TODO: test
-func (n *EvalApply) Eval(
-	ctx EvalContext, args []interface{}) (interface{}, error) {
+func (n *EvalApply) Eval(ctx EvalContext) (interface{}, error) {
 	diff := *n.Diff
 	provider := *n.Provider
 	state := *n.State
@@ -108,10 +103,6 @@ func (n *EvalApply) Eval(
 	return nil, nil
 }
 
-func (n *EvalApply) Type() EvalType {
-	return EvalTypeNull
-}
-
 // EvalApplyPost is an EvalNode implementation that does the post-Apply work
 type EvalApplyPost struct {
 	Info  *InstanceInfo
@@ -119,13 +110,8 @@ type EvalApplyPost struct {
 	Error *error
 }
 
-func (n *EvalApplyPost) Args() ([]EvalNode, []EvalType) {
-	return nil, nil
-}
-
 // TODO: test
-func (n *EvalApplyPost) Eval(
-	ctx EvalContext, args []interface{}) (interface{}, error) {
+func (n *EvalApplyPost) Eval(ctx EvalContext) (interface{}, error) {
 	state := *n.State
 
 	{
@@ -139,10 +125,6 @@ func (n *EvalApplyPost) Eval(
 	}
 
 	return nil, *n.Error
-}
-
-func (n *EvalApplyPost) Type() EvalType {
-	return EvalTypeNull
 }
 
 // EvalApplyProvisioners is an EvalNode implementation that executes
@@ -160,13 +142,8 @@ type EvalApplyProvisioners struct {
 	Error          *error
 }
 
-func (n *EvalApplyProvisioners) Args() ([]EvalNode, []EvalType) {
-	return nil, nil
-}
-
 // TODO: test
-func (n *EvalApplyProvisioners) Eval(
-	ctx EvalContext, args []interface{}) (interface{}, error) {
+func (n *EvalApplyProvisioners) Eval(ctx EvalContext) (interface{}, error) {
 	state := *n.State
 
 	if !*n.CreateNew {
@@ -224,10 +201,6 @@ func (n *EvalApplyProvisioners) Eval(
 	}
 
 	return nil, nil
-}
-
-func (n *EvalApplyProvisioners) Type() EvalType {
-	return EvalTypeNull
 }
 
 func (n *EvalApplyProvisioners) apply(ctx EvalContext) error {

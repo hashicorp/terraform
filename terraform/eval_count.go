@@ -11,13 +11,8 @@ type EvalCountFixZeroOneBoundary struct {
 	Resource *config.Resource
 }
 
-func (n *EvalCountFixZeroOneBoundary) Args() ([]EvalNode, []EvalType) {
-	return nil, nil
-}
-
 // TODO: test
-func (n *EvalCountFixZeroOneBoundary) Eval(
-	ctx EvalContext, args []interface{}) (interface{}, error) {
+func (n *EvalCountFixZeroOneBoundary) Eval(ctx EvalContext) (interface{}, error) {
 	// Get the count, important for knowing whether we're supposed to
 	// be adding the zero, or trimming it.
 	count, err := n.Resource.Count()
@@ -52,8 +47,4 @@ func (n *EvalCountFixZeroOneBoundary) Eval(
 	}
 
 	return nil, nil
-}
-
-func (n *EvalCountFixZeroOneBoundary) Type() EvalType {
-	return EvalTypeNull
 }

@@ -99,6 +99,8 @@ func (n *graphNodeExpandedResource) ProvidedBy() []string {
 // GraphNodeEvalable impl.
 func (n *graphNodeExpandedResource) EvalTree() EvalNode {
 	var diff *InstanceDiff
+	var provider ResourceProvider
+	var resourceConfig *ResourceConfig
 	var state *InstanceState
 
 	// Build the resource. If we aren't part of a multi-resource, then
@@ -109,29 +111,35 @@ func (n *graphNodeExpandedResource) EvalTree() EvalNode {
 	}
 	resource := &Resource{CountIndex: index}
 
-	// Shared node for interpolation of configuration
-	interpolateNode := &EvalInterpolate{
-		Config:   n.Resource.RawConfig,
-		Resource: resource,
-	}
-
 	seq := &EvalSequence{Nodes: make([]EvalNode, 0, 5)}
 
 	// Validate the resource
 	vseq := &EvalSequence{Nodes: make([]EvalNode, 0, 5)}
+	vseq.Nodes = append(vseq.Nodes, &EvalGetProvider{
+		Name:   n.ProvidedBy()[0],
+		Output: &provider,
+	})
+	vseq.Nodes = append(vseq.Nodes, &EvalInterpolate{
+		Config:   n.Resource.RawConfig,
+		Resource: resource,
+		Output:   &resourceConfig,
+	})
 	vseq.Nodes = append(vseq.Nodes, &EvalValidateResource{
-		Provider:     &EvalGetProvider{Name: n.ProvidedBy()[0]},
-		Config:       interpolateNode,
+		Provider:     &provider,
+		Config:       &resourceConfig,
 		ResourceName: n.Resource.Name,
 		ResourceType: n.Resource.Type,
 	})
 
 	// Validate all the provisioners
 	for _, p := range n.Resource.Provisioners {
-		vseq.Nodes = append(vseq.Nodes, &EvalValidateProvisioner{
-			Provisioner: &EvalGetProvisioner{Name: p.Type},
-			Config: &EvalInterpolate{
-				Config: p.RawConfig, Resource: resource},
+		var provisioner ResourceProvisioner
+		vseq.Nodes = append(vseq.Nodes, &EvalGetProvisioner{
+			Name:   p.Type,
+			Output: &provisioner,
+		}, &EvalValidateProvisioner{
+			Provisioner: &provisioner,
+			Config:      &resourceConfig,
 		})
 	}
 
@@ -150,13 +158,17 @@ func (n *graphNodeExpandedResource) EvalTree() EvalNode {
 		Ops: []walkOperation{walkRefresh},
 		Node: &EvalSequence{
 			Nodes: []EvalNode{
+				&EvalGetProvider{
+					Name:   n.ProvidedBy()[0],
+					Output: &provider,
+				},
 				&EvalReadState{
 					Name:   n.stateId(),
 					Output: &state,
 				},
 				&EvalRefresh{
 					Info:     info,
-					Provider: &EvalGetProvider{Name: n.ProvidedBy()[0]},
+					Provider: &provider,
 					State:    &state,
 					Output:   &state,
 				},
@@ -175,11 +187,24 @@ func (n *graphNodeExpandedResource) EvalTree() EvalNode {
 		Ops: []walkOperation{walkPlan},
 		Node: &EvalSequence{
 			Nodes: []EvalNode{
+				&EvalInterpolate{
+					Config:   n.Resource.RawConfig,
+					Resource: resource,
+					Output:   &resourceConfig,
+				},
+				&EvalGetProvider{
+					Name:   n.ProvidedBy()[0],
+					Output: &provider,
+				},
+				&EvalReadState{
+					Name:   n.stateId(),
+					Output: &state,
+				},
 				&EvalDiff{
 					Info:        info,
-					Config:      interpolateNode,
-					Provider:    &EvalGetProvider{Name: n.ProvidedBy()[0]},
-					State:       &EvalReadState{Name: n.stateId()},
+					Config:      &resourceConfig,
+					Provider:    &provider,
+					State:       &state,
 					Output:      &diff,
 					OutputState: &state,
 				},
@@ -206,9 +231,13 @@ func (n *graphNodeExpandedResource) EvalTree() EvalNode {
 		Ops: []walkOperation{walkPlanDestroy},
 		Node: &EvalSequence{
 			Nodes: []EvalNode{
+				&EvalReadState{
+					Name:   n.stateId(),
+					Output: &state,
+				},
 				&EvalDiffDestroy{
 					Info:   info,
-					State:  &EvalReadState{Name: n.stateId()},
+					State:  &state,
 					Output: &diff,
 				},
 				&EvalWriteDiff{
@@ -220,7 +249,6 @@ func (n *graphNodeExpandedResource) EvalTree() EvalNode {
 	})
 
 	// Diff the resource for destruction
-	var provider ResourceProvider
 	var diffApply *InstanceDiff
 	var err error
 	var createNew, tainted bool
@@ -260,11 +288,25 @@ func (n *graphNodeExpandedResource) EvalTree() EvalNode {
 					},
 				},
 
+				&EvalInterpolate{
+					Config:   n.Resource.RawConfig,
+					Resource: resource,
+					Output:   &resourceConfig,
+				},
+				&EvalGetProvider{
+					Name:   n.ProvidedBy()[0],
+					Output: &provider,
+				},
+				&EvalReadState{
+					Name:   n.stateId(),
+					Output: &state,
+				},
+
 				&EvalDiff{
 					Info:     info,
-					Config:   interpolateNode,
-					Provider: &EvalGetProvider{Name: n.ProvidedBy()[0]},
-					State:    &EvalReadState{Name: n.stateId()},
+					Config:   &resourceConfig,
+					Provider: &provider,
+					State:    &state,
 					Output:   &diffApply,
 				},
 
