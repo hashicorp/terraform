@@ -3473,8 +3473,7 @@ func TestContext2Apply_error_createBeforeDestroy(t *testing.T) {
 	}
 }
 
-/*
-func TestContextApply_errorDestroy_createBeforeDestroy(t *testing.T) {
+func TestContext2Apply_errorDestroy_createBeforeDestroy(t *testing.T) {
 	m := testModule(t, "apply-error-create-before")
 	p := testProvider("aws")
 	state := &State{
@@ -3495,7 +3494,7 @@ func TestContextApply_errorDestroy_createBeforeDestroy(t *testing.T) {
 			},
 		},
 	}
-	ctx := testContext(t, &ContextOpts{
+	ctx := testContext2(t, &ContextOpts{
 		Module: m,
 		Providers: map[string]ResourceProviderFactory{
 			"aws": testProviderFuncFixed(p),
@@ -3531,7 +3530,6 @@ func TestContextApply_errorDestroy_createBeforeDestroy(t *testing.T) {
 		t.Fatalf("bad: actual:\n%s\n\nexpected:\n%s", actual, expected)
 	}
 }
-*/
 
 func TestContext2Apply_provisionerResourceRef(t *testing.T) {
 	m := testModule(t, "apply-provisioner-resource-ref")
