@@ -171,6 +171,7 @@ func (n *graphNodeOrphanResource) ProvidedBy() []string {
 
 // GraphNodeEvalable impl.
 func (n *graphNodeOrphanResource) EvalTree() EvalNode {
+	var provider ResourceProvider
 	var state *InstanceState
 
 	seq := &EvalSequence{Nodes: make([]EvalNode, 0, 5)}
@@ -184,13 +185,17 @@ func (n *graphNodeOrphanResource) EvalTree() EvalNode {
 		Ops: []walkOperation{walkRefresh},
 		Node: &EvalSequence{
 			Nodes: []EvalNode{
+				&EvalGetProvider{
+					Name:   n.ProvidedBy()[0],
+					Output: &provider,
+				},
 				&EvalReadState{
 					Name:   n.ResourceName,
 					Output: &state,
 				},
 				&EvalRefresh{
 					Info:     info,
-					Provider: &EvalGetProvider{Name: n.ProvidedBy()[0]},
+					Provider: &provider,
 					State:    &state,
 					Output:   &state,
 				},
@@ -210,9 +215,13 @@ func (n *graphNodeOrphanResource) EvalTree() EvalNode {
 		Ops: []walkOperation{walkPlan, walkPlanDestroy},
 		Node: &EvalSequence{
 			Nodes: []EvalNode{
+				&EvalReadState{
+					Name:   n.ResourceName,
+					Output: &state,
+				},
 				&EvalDiffDestroy{
 					Info:   info,
-					State:  &EvalReadState{Name: n.ResourceName},
+					State:  &state,
 					Output: &diff,
 				},
 				&EvalWriteDiff{
@@ -224,7 +233,6 @@ func (n *graphNodeOrphanResource) EvalTree() EvalNode {
 	})
 
 	// Apply
-	var provider ResourceProvider
 	seq.Nodes = append(seq.Nodes, &EvalOpFilter{
 		Ops: []walkOperation{walkApply},
 		Node: &EvalSequence{

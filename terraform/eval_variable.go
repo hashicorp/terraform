@@ -10,43 +10,29 @@ type EvalSetVariables struct {
 	Variables map[string]string
 }
 
-func (n *EvalSetVariables) Args() ([]EvalNode, []EvalType) {
-	return nil, nil
-}
-
 // TODO: test
-func (n *EvalSetVariables) Eval(
-	ctx EvalContext, args []interface{}) (interface{}, error) {
+func (n *EvalSetVariables) Eval(ctx EvalContext) (interface{}, error) {
 	ctx.SetVariables(n.Variables)
 	return nil, nil
-}
-
-func (n *EvalSetVariables) Type() EvalType {
-	return EvalTypeNull
 }
 
 // EvalVariableBlock is an EvalNode implementation that evaluates the
 // given configuration, and uses the final values as a way to set the
 // mapping.
 type EvalVariableBlock struct {
-	Config    EvalNode
+	Config    **ResourceConfig
 	Variables map[string]string
 }
 
-func (n *EvalVariableBlock) Args() ([]EvalNode, []EvalType) {
-	return []EvalNode{n.Config}, []EvalType{EvalTypeConfig}
-}
-
 // TODO: test
-func (n *EvalVariableBlock) Eval(
-	ctx EvalContext, args []interface{}) (interface{}, error) {
+func (n *EvalVariableBlock) Eval(ctx EvalContext) (interface{}, error) {
 	// Clear out the existing mapping
 	for k, _ := range n.Variables {
 		delete(n.Variables, k)
 	}
 
 	// Get our configuration
-	rc := args[0].(*ResourceConfig)
+	rc := *n.Config
 	for k, v := range rc.Config {
 		n.Variables[k] = v.(string)
 	}
@@ -57,8 +43,4 @@ func (n *EvalVariableBlock) Eval(
 	}
 
 	return nil, nil
-}
-
-func (n *EvalVariableBlock) Type() EvalType {
-	return EvalTypeNull
 }

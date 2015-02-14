@@ -9,15 +9,13 @@ func TestMockEvalContext_impl(t *testing.T) {
 }
 
 func TestEval(t *testing.T) {
+	var result int
 	n := &testEvalAdd{
-		Items: []EvalNode{
-			&EvalLiteral{Value: 10},
-			&EvalLiteral{Value: 32},
-		},
+		Items:  []int{10, 32},
+		Result: &result,
 	}
 
-	result, err := Eval(n, nil)
-	if err != nil {
+	if _, err := Eval(n, nil); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 
@@ -27,28 +25,16 @@ func TestEval(t *testing.T) {
 }
 
 type testEvalAdd struct {
-	Items []EvalNode
+	Items  []int
+	Result *int
 }
 
-func (n *testEvalAdd) Args() ([]EvalNode, []EvalType) {
-	types := make([]EvalType, len(n.Items))
-	for i, _ := range n.Items {
-		types[i] = EvalTypeInvalid
-	}
-
-	return n.Items, types
-}
-
-func (n *testEvalAdd) Eval(
-	ctx EvalContext, args []interface{}) (interface{}, error) {
+func (n *testEvalAdd) Eval(ctx EvalContext) (interface{}, error) {
 	result := 0
-	for _, arg := range args {
-		result += arg.(int)
+	for _, item := range n.Items {
+		result += item
 	}
 
-	return result, nil
-}
-
-func (n *testEvalAdd) Type() EvalType {
-	return EvalTypeInvalid
+	*n.Result = result
+	return nil, nil
 }

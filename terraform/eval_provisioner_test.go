@@ -12,10 +12,8 @@ func TestEvalInitProvisioner(t *testing.T) {
 	n := &EvalInitProvisioner{Name: "foo"}
 	provisioner := &MockResourceProvisioner{}
 	ctx := &MockEvalContext{InitProvisionerProvisioner: provisioner}
-	if actual, err := n.Eval(ctx, nil); err != nil {
+	if _, err := n.Eval(ctx); err != nil {
 		t.Fatalf("err: %s", err)
-	} else if actual != provisioner {
-		t.Fatalf("bad: %#v", actual)
 	}
 
 	if !ctx.InitProvisionerCalled {
@@ -31,12 +29,14 @@ func TestEvalGetProvisioner_impl(t *testing.T) {
 }
 
 func TestEvalGetProvisioner(t *testing.T) {
-	n := &EvalGetProvisioner{Name: "foo"}
+	var actual ResourceProvisioner
+	n := &EvalGetProvisioner{Name: "foo", Output: &actual}
 	provisioner := &MockResourceProvisioner{}
 	ctx := &MockEvalContext{ProvisionerProvisioner: provisioner}
-	if actual, err := n.Eval(ctx, nil); err != nil {
+	if _, err := n.Eval(ctx); err != nil {
 		t.Fatalf("err: %s", err)
-	} else if actual != provisioner {
+	}
+	if actual != provisioner {
 		t.Fatalf("bad: %#v", actual)
 	}
 

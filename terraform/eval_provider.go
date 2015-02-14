@@ -10,16 +10,11 @@ import (
 // a provider that is already initialized and retrieved.
 type EvalConfigProvider struct {
 	Provider string
-	Config   EvalNode
+	Config   **ResourceConfig
 }
 
-func (n *EvalConfigProvider) Args() ([]EvalNode, []EvalType) {
-	return []EvalNode{n.Config}, []EvalType{EvalTypeConfig}
-}
-
-func (n *EvalConfigProvider) Eval(
-	ctx EvalContext, args []interface{}) (interface{}, error) {
-	cfg := args[0].(*ResourceConfig)
+func (n *EvalConfigProvider) Eval(ctx EvalContext) (interface{}, error) {
+	cfg := *n.Config
 
 	// If we have a configuration set, then use that
 	if input := ctx.ProviderInput(n.Provider); input != nil {
@@ -41,10 +36,6 @@ func (n *EvalConfigProvider) Eval(
 	return nil, ctx.ConfigureProvider(n.Provider, cfg)
 }
 
-func (n *EvalConfigProvider) Type() EvalType {
-	return EvalTypeNull
-}
-
 // EvalInitProvider is an EvalNode implementation that initializes a provider
 // and returns nothing. The provider can be retrieved again with the
 // EvalGetProvider node.
@@ -52,17 +43,8 @@ type EvalInitProvider struct {
 	Name string
 }
 
-func (n *EvalInitProvider) Args() ([]EvalNode, []EvalType) {
-	return nil, nil
-}
-
-func (n *EvalInitProvider) Eval(
-	ctx EvalContext, args []interface{}) (interface{}, error) {
+func (n *EvalInitProvider) Eval(ctx EvalContext) (interface{}, error) {
 	return ctx.InitProvider(n.Name)
-}
-
-func (n *EvalInitProvider) Type() EvalType {
-	return EvalTypeNull
 }
 
 // EvalGetProvider is an EvalNode implementation that retrieves an already
@@ -72,12 +54,7 @@ type EvalGetProvider struct {
 	Output *ResourceProvider
 }
 
-func (n *EvalGetProvider) Args() ([]EvalNode, []EvalType) {
-	return nil, nil
-}
-
-func (n *EvalGetProvider) Eval(
-	ctx EvalContext, args []interface{}) (interface{}, error) {
+func (n *EvalGetProvider) Eval(ctx EvalContext) (interface{}, error) {
 	result := ctx.Provider(n.Name)
 	if result == nil {
 		return nil, fmt.Errorf("provider %s not initialized", n.Name)
@@ -87,11 +64,7 @@ func (n *EvalGetProvider) Eval(
 		*n.Output = result
 	}
 
-	return result, nil
-}
-
-func (n *EvalGetProvider) Type() EvalType {
-	return EvalTypeResourceProvider
+	return nil, nil
 }
 
 // EvalInputProvider is an EvalNode implementation that asks for input
@@ -102,12 +75,7 @@ type EvalInputProvider struct {
 	Config   *config.RawConfig
 }
 
-func (n *EvalInputProvider) Args() ([]EvalNode, []EvalType) {
-	return nil, nil
-}
-
-func (n *EvalInputProvider) Eval(
-	ctx EvalContext, args []interface{}) (interface{}, error) {
+func (n *EvalInputProvider) Eval(ctx EvalContext) (interface{}, error) {
 	// If we already configured this provider, then don't do this again
 	if v := ctx.ProviderInput(n.Name); v != nil {
 		return nil, nil
@@ -137,8 +105,4 @@ func (n *EvalInputProvider) Eval(
 	}
 
 	return nil, nil
-}
-
-func (n *EvalInputProvider) Type() EvalType {
-	return EvalTypeNull
 }
