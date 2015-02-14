@@ -5,8 +5,6 @@ import (
 	"fmt"
 	"os"
 	"strings"
-
-	"github.com/hashicorp/terraform/terraform"
 )
 
 // GraphCommand is a Command implementation that takes a Terraform
@@ -58,11 +56,7 @@ func (c *GraphCommand) Run(args []string) int {
 		return 1
 	}
 
-	opts := &terraform.GraphDotOpts{
-		ModuleDepth: moduleDepth,
-	}
-
-	c.Ui.Output(terraform.GraphDot(g, opts))
+	c.Ui.Output(g.String())
 
 	return 0
 }
