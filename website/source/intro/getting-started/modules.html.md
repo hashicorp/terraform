@@ -83,7 +83,9 @@ With the modules downloaded, we can now plan and apply it. If you run
 
 ```
 $ terraform plan
-TODO
+...
++ module.consul
+    4 resource(s)
 ```
 
 As you can see, the module is treated like a black box. In the plan, Terraform
@@ -97,7 +99,8 @@ will have some cost associated with it.
 
 ```
 $ terraform apply
-TODO
+...
+Apply complete! Resources: 3 added, 0 changed, 0 destroyed.
 ```
 
 After a few minutes, you'll have a three server Consul cluster up and
