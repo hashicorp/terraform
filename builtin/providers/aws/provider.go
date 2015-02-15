@@ -1,8 +1,11 @@
 package aws
 
 import (
+	"os"
+
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/terraform"
+	goamz "github.com/mitchellh/goamz/aws"
 )
 
 // Provider returns a terraform.ResourceProvider.
@@ -10,25 +13,21 @@ func Provider() terraform.ResourceProvider {
 	// TODO: Move the validation to this, requires conditional schemas
 	// TODO: Move the configuration to this, requires validation
 
+	auth := awsAuthSource{}
+
 	return &schema.Provider{
 		Schema: map[string]*schema.Schema{
 			"access_key": &schema.Schema{
-				Type:     schema.TypeString,
-				Required: true,
-				DefaultFunc: schema.MultiEnvDefaultFunc([]string{
-					"AWS_ACCESS_KEY",
-					"AWS_ACCESS_KEY_ID",
-				}, nil),
+				Type:        schema.TypeString,
+				Required:    true,
+				DefaultFunc: auth.accessKeyResolver(),
 				Description: descriptions["access_key"],
 			},
 
 			"secret_key": &schema.Schema{
-				Type:     schema.TypeString,
-				Required: true,
-				DefaultFunc: schema.MultiEnvDefaultFunc([]string{
-					"AWS_SECRET_KEY",
-					"AWS_SECRET_ACCESS_KEY",
-				}, nil),
+				Type:        schema.TypeString,
+				Required:    true,
+				DefaultFunc: auth.secretKeyResolver(),
 				Description: descriptions["secret_key"],
 			},
 
@@ -85,6 +84,58 @@ func init() {
 
 		"secret_key": "The secret key for API operations. You can retrieve this\n" +
 			"from the 'Security & Credentials' section of the AWS console.",
+	}
+}
+
+type awsAuthSource struct {
+	conventionalAuth          goamz.Auth
+	attemptedConventionalAuth bool
+}
+
+func (a *awsAuthSource) awsSourcedAuth() goamz.Auth {
+	if a.attemptedConventionalAuth == false {
+		auth, err := goamz.EnvAuth()
+
+		if err != nil {
+			auth, _ = goamz.SharedAuth()
+		}
+
+		a.conventionalAuth = auth
+		a.attemptedConventionalAuth = true
+	}
+
+	return a.conventionalAuth
+}
+
+func (a *awsAuthSource) accessKeyResolver() schema.SchemaDefaultFunc {
+	return func() (interface{}, error) {
+		// NOTE: Do not remove this until AWS_ACCESS_KEY support has been removed
+		// https://github.com/hashicorp/terraform/issues/866
+		if accessKey := os.Getenv("AWS_ACCESS_KEY"); accessKey != "" {
+			return accessKey, nil
+		}
+
+		if auth := a.awsSourcedAuth(); auth.AccessKey != "" {
+			return auth.AccessKey, nil
+		}
+
+		return nil, nil
+	}
+}
+
+func (a *awsAuthSource) secretKeyResolver() schema.SchemaDefaultFunc {
+	return func() (interface{}, error) {
+		// NOTE: Do not remove this until AWS_SECRET_KEY support has been removed
+		// https://github.com/hashicorp/terraform/issues/866
+		if secretKey := os.Getenv("AWS_SECRET_KEY"); secretKey != "" {
+			return secretKey, nil
+		}
+
+		if auth := a.awsSourcedAuth(); auth.SecretKey != "" {
+			return auth.SecretKey, nil
+		}
+
+		return nil, nil
 	}
 }
 
