@@ -172,13 +172,18 @@ func (t *CreateBeforeDestroyTransformer) Transform(g *Graph) error {
 // PruneDestroyTransformer is a GraphTransformer that removes the destroy
 // nodes that aren't in the diff.
 type PruneDestroyTransformer struct {
-	Diff *Diff
+	Diff  *Diff
+	State *State
 }
 
 func (t *PruneDestroyTransformer) Transform(g *Graph) error {
 	var modDiff *ModuleDiff
+	var modState *ModuleState
 	if t.Diff != nil {
 		modDiff = t.Diff.ModuleByPath(g.Path)
+	}
+	if t.State != nil {
+		modState = t.State.ModuleByPath(g.Path)
 	}
 
 	for _, v := range g.Vertices() {
@@ -194,10 +199,27 @@ func (t *PruneDestroyTransformer) Transform(g *Graph) error {
 			continue
 		}
 
+		// Assume we're removing it
 		remove := true
+
+		// We don't remove it if we find it in the diff
 		if modDiff != nil {
 			for k, _ := range modDiff.Resources {
 				if strings.HasPrefix(k, prefix) {
+					remove = false
+					break
+				}
+			}
+		}
+
+		// We don't remove it if we find a tainted resource
+		if modState != nil {
+			for k, v := range modState.Resources {
+				if !strings.HasPrefix(k, prefix) {
+					continue
+				}
+
+				if len(v.Tainted) > 0 {
 					remove = false
 					break
 				}
