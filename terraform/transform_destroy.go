@@ -110,6 +110,13 @@ func (t *DestroyTransformer) Transform(g *Graph) error {
 type CreateBeforeDestroyTransformer struct{}
 
 func (t *CreateBeforeDestroyTransformer) Transform(g *Graph) error {
+	// We "stage" the edge connections/destroys in these slices so that
+	// while we're doing the edge transformations (transpositions) in
+	// the graph, we're not affecting future edge transpositions. These
+	// slices let us stage ALL the changes that WILL happen so that all
+	// of the transformations happen atomically.
+	var connect, destroy []dag.Edge
+
 	for _, v := range g.Vertices() {
 		// We only care to use the destroy nodes
 		dn, ok := v.(GraphNodeDestroy)
@@ -125,7 +132,7 @@ func (t *CreateBeforeDestroyTransformer) Transform(g *Graph) error {
 		// Get the creation side of this node
 		cn := dn.CreateNode()
 
-		// Take all the things which depend on the web creation and
+		// Take all the things which depend on the creation node and
 		// make them dependencies on the destruction. Clarifying this
 		// with an example: if you have a web server and a load balancer
 		// and the load balancer depends on the web server, then when we
@@ -138,13 +145,20 @@ func (t *CreateBeforeDestroyTransformer) Transform(g *Graph) error {
 		// This ensures that.
 		for _, sourceRaw := range g.UpEdges(cn).List() {
 			source := sourceRaw.(dag.Vertex)
-			g.Connect(dag.BasicEdge(dn, source))
+			connect = append(connect, dag.BasicEdge(dn, source))
 		}
 
 		// Swap the edge so that the destroy depends on the creation
 		// happening...
-		g.Connect(dag.BasicEdge(dn, cn))
-		g.RemoveEdge(dag.BasicEdge(cn, dn))
+		connect = append(connect, dag.BasicEdge(dn, cn))
+		destroy = append(destroy, dag.BasicEdge(cn, dn))
+	}
+
+	for _, edge := range connect {
+		g.Connect(edge)
+	}
+	for _, edge := range destroy {
+		g.RemoveEdge(edge)
 	}
 
 	return nil
