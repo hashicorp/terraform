@@ -73,6 +73,19 @@ func TestBuiltinGraphBuilder(t *testing.T) {
 	}
 }
 
+// This tests a cycle we got when a CBD resource depends on a non-CBD
+// resource. This cycle shouldn't happen in the general case anymore.
+func TestBuiltinGraphBuilder_cbdDepNonCbd(t *testing.T) {
+	b := &BuiltinGraphBuilder{
+		Root: testModule(t, "graph-builder-cbd-non-cbd"),
+	}
+
+	_, err := b.Build(RootModulePath)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+}
+
 /*
 TODO: This exposes a really bad bug we need to fix after we merge
 the f-ast-branch. This bug still exists in master.
