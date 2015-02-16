@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"code.google.com/p/google-api-go-client/compute/v1"
+	"code.google.com/p/google-api-go-client/replicapool/v1beta2"
 	"github.com/hashicorp/terraform/helper/resource"
 )
 
@@ -69,6 +70,53 @@ func (w *OperationWaiter) Conf() *resource.StateChangeConf {
 type OperationError compute.OperationError
 
 func (e OperationError) Error() string {
+	var buf bytes.Buffer
+
+	for _, err := range e.Errors {
+		buf.WriteString(err.Message + "\n")
+	}
+
+	return buf.String()
+}
+
+// Replicapool Operations
+type ReplicaPoolOperationWaiter struct {
+	Service *replicapool.Service
+	Op      *replicapool.Operation
+	Project string
+	Region  string
+	Zone    string
+}
+
+func (w *ReplicaPoolOperationWaiter) RefreshFunc() resource.StateRefreshFunc {
+	return func() (interface{}, string, error) {
+		var op *replicapool.Operation
+		var err error
+
+		op, err = w.Service.ZoneOperations.Get(
+			w.Project, w.Zone, w.Op.Name).Do()
+
+		if err != nil {
+			return nil, "", err
+		}
+
+		return op, op.Status, nil
+	}
+}
+
+func (w *ReplicaPoolOperationWaiter) Conf() *resource.StateChangeConf {
+	return &resource.StateChangeConf{
+		Pending: []string{"PENDING", "RUNNING"},
+		Target:  "DONE",
+		Refresh: w.RefreshFunc(),
+	}
+}
+
+// ReplicaPoolOperationError wraps replicapool.OperationError and implements the
+// error interface so it can be returned.
+type ReplicaPoolOperationError replicapool.OperationError
+
+func (e ReplicaPoolOperationError) Error() string {
 	var buf bytes.Buffer
 
 	for _, err := range e.Errors {
