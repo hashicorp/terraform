@@ -336,7 +336,59 @@ func (n *graphNodeResourceDestroy) CreateNode() dag.Vertex {
 }
 
 func (n *graphNodeResourceDestroy) DiffId() string {
-	return ""
+	// Get the count, and specifically the raw value of the count
+	// (with interpolations and all). If the count is NOT a static "1",
+	// then we keep the destroy node no matter what.
+	//
+	// The reasoning for this is complicated and not intuitively obvious,
+	// but I attempt to explain it below.
+	//
+	// The destroy transform works by generating the worst case graph,
+	// with worst case being the case that every resource already exists
+	// and needs to be destroy/created (force-new). There is a single important
+	// edge case where this actually results in a real-life cycle: if a
+	// create-before-destroy (CBD) resource depends on a non-CBD resource.
+	// Imagine a EC2 instance "foo" with CBD depending on a security
+	// group "bar" without CBD, and conceptualize the worst case destroy
+	// order:
+	//
+	//   1.) SG must be destroyed (non-CBD)
+	//   2.) SG must be created/updated
+	//   3.) EC2 instance must be created (CBD, requires the SG be made)
+	//   4.) EC2 instance must be destroyed (requires SG be destroyed)
+	//
+	// Except, #1 depends on #4, since the SG can't be destroyed while
+	// an EC2 instance is using it (AWS API requirements). As you can see,
+	// this is a real life cycle that can't be automatically reconciled
+	// except under two conditions:
+	//
+	//   1.) SG is also CBD. This doesn't work 100% of the time though
+	//       since the non-CBD resource might not support CBD. To make matters
+	//       worse, the entire transitive closure of dependencies must be
+	//       CBD (if the SG depends on a VPC, you have the same problem).
+	//   2.) EC2 must not CBD. This can't happen automatically because CBD
+	//       is used as a way to ensure zero (or minimal) downtime Terraform
+	//       applies, and it isn't acceptable for TF to ignore this request,
+	//       since it can result in unexpected downtime.
+	//
+	// Therefore, we compromise with this edge case here: if there is
+	// a static count of "1", we prune the diff to remove cycles during a
+	// graph optimization path if we don't see the resource in the diff.
+	// If the count is set to ANYTHING other than a static "1" (variable,
+	// computed attribute, static number greater than 1), then we keep the
+	// destroy, since it is required for dynamic graph expansion to find
+	// orphan/tainted count objects.
+	//
+	// This isn't ideal logic, but its strictly better without introducing
+	// new impossibilities. It breaks the cycle in practical cases, and the
+	// cycle comes back in no cases we've found to be practical, but just
+	// as the cycle would already exist without this anyways.
+	count := n.Original.Resource.RawCount
+	if raw := count.Raw[count.Key]; raw != "1" {
+		return ""
+	}
+
+	return n.Original.Resource.Id()
 }
 
 // graphNodeModuleExpanded represents a module where the graph has
