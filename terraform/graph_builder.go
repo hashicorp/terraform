@@ -105,7 +105,7 @@ func (b *BuiltinGraphBuilder) Steps() []GraphTransformer {
 		// Create the destruction nodes
 		&DestroyTransformer{},
 		&CreateBeforeDestroyTransformer{},
-		&PruneDestroyTransformer{Diff: b.Diff},
+		//&PruneDestroyTransformer{Diff: b.Diff, State: b.State},
 
 		// Make sure we create one root
 		&RootTransformer{},
