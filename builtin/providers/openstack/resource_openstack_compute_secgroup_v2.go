@@ -69,6 +69,11 @@ func resourceComputeSecGroupV2() *schema.Resource {
 							Optional: true,
 							ForceNew: false,
 						},
+						"self": &schema.Schema{
+							Type:     schema.TypeBool,
+							Optional: true,
+							ForceNew: false,
+						},
 					},
 				},
 			},
@@ -209,13 +214,17 @@ func resourceSecGroupRulesV2(d *schema.ResourceData) []secgroups.CreateRuleOpts 
 	createRuleOptsList := make([]secgroups.CreateRuleOpts, len(rawRules))
 	for i, raw := range rawRules {
 		rawMap := raw.(map[string]interface{})
+		groupId := rawMap["from_group_id"].(string)
+		if rawMap["self"].(bool) {
+			groupId = d.Id()
+		}
 		createRuleOptsList[i] = secgroups.CreateRuleOpts{
 			ParentGroupID: d.Id(),
 			FromPort:      rawMap["from_port"].(int),
 			ToPort:        rawMap["to_port"].(int),
 			IPProtocol:    rawMap["ip_protocol"].(string),
 			CIDR:          rawMap["cidr"].(string),
-			FromGroupID:   rawMap["from_group_id"].(string),
+			FromGroupID:   groupId,
 		}
 	}
 	return createRuleOptsList
@@ -223,13 +232,17 @@ func resourceSecGroupRulesV2(d *schema.ResourceData) []secgroups.CreateRuleOpts 
 
 func resourceSecGroupRuleCreateOptsV2(d *schema.ResourceData, raw interface{}) secgroups.CreateRuleOpts {
 	rawMap := raw.(map[string]interface{})
+	groupId := rawMap["from_group_id"].(string)
+	if rawMap["self"].(bool) {
+		groupId = d.Id()
+	}
 	return secgroups.CreateRuleOpts{
 		ParentGroupID: d.Id(),
 		FromPort:      rawMap["from_port"].(int),
 		ToPort:        rawMap["to_port"].(int),
 		IPProtocol:    rawMap["ip_protocol"].(string),
 		CIDR:          rawMap["cidr"].(string),
-		FromGroupID:   rawMap["from_group_id"].(string),
+		FromGroupID:   groupId,
 	}
 }
 
