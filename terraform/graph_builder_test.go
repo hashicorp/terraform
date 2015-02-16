@@ -111,16 +111,16 @@ const testBasicGraphBuilderStr = `
 
 const testBuiltinGraphBuilderBasicStr = `
 aws_instance.db
-  aws_instance.db (destroy)
+  aws_instance.db (destroy tainted)
   provider.aws
-aws_instance.db (destroy)
-  aws_instance.web (destroy)
+aws_instance.db (destroy tainted)
+  aws_instance.web (destroy tainted)
   provider.aws
 aws_instance.web
   aws_instance.db
-  aws_instance.web (destroy)
+  aws_instance.web (destroy tainted)
   provider.aws
-aws_instance.web (destroy)
+aws_instance.web (destroy tainted)
   provider.aws
 provider.aws
 `
