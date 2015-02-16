@@ -2,6 +2,7 @@ package terraform
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/hashicorp/terraform/config"
 	"github.com/hashicorp/terraform/config/module"
@@ -359,7 +360,12 @@ func (n *graphNodeResourceDestroy) CreateNode() dag.Vertex {
 	return n.Original
 }
 
-func (n *graphNodeResourceDestroy) DiffId() string {
+func (n *graphNodeResourceDestroy) DestroyInclude(d *ModuleDiff, s *ModuleState) bool {
+	// Always include anything other than the primary destroy
+	if n.DestroyMode != DestroyPrimary {
+		return true
+	}
+
 	// Get the count, and specifically the raw value of the count
 	// (with interpolations and all). If the count is NOT a static "1",
 	// then we keep the destroy node no matter what.
@@ -409,10 +415,38 @@ func (n *graphNodeResourceDestroy) DiffId() string {
 	// as the cycle would already exist without this anyways.
 	count := n.Original.Resource.RawCount
 	if raw := count.Raw[count.Key]; raw != "1" {
-		return ""
+		return true
 	}
 
-	return n.Original.Resource.Id()
+	// Okay, we're dealing with a static count. There are a few ways
+	// to include this resource.
+	prefix := n.Original.Resource.Id()
+
+	// If we're present in the diff proper, then keep it.
+	if d != nil {
+		for k, _ := range d.Resources {
+			if strings.HasPrefix(k, prefix) {
+				return true
+			}
+		}
+	}
+
+	// If we're in the state as a primary in any form, then keep it.
+	// This does a prefix check so it will also catch orphans on count
+	// decreases to "1".
+	if s != nil {
+		for k, v := range s.Resources {
+			if !strings.HasPrefix(k, prefix) {
+				continue
+			}
+
+			if v.Primary != nil {
+				return true
+			}
+		}
+	}
+
+	return false
 }
 
 // graphNodeModuleExpanded represents a module where the graph has
