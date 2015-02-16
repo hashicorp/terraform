@@ -30,8 +30,13 @@ type GraphNodeDestroy interface {
 	// CreateNode returns the node used for the create side of this
 	// destroy. This must already exist within the graph.
 	CreateNode() dag.Vertex
+}
 
-	// Not used right now
+// GraphNodeDiffPrunable is the interface that can be implemented to
+// signal that this node can be pruned depending on what is in the diff.
+type GraphNodeDiffPrunable interface {
+	// DiffId is used to return the ID that should be checked for
+	// pruning this resource. If this is empty, pruning won't be done.
 	DiffId() string
 }
 
@@ -178,7 +183,7 @@ func (t *PruneDestroyTransformer) Transform(g *Graph) error {
 
 	for _, v := range g.Vertices() {
 		// If it is not a destroyer, we don't care
-		dn, ok := v.(GraphNodeDestroy)
+		dn, ok := v.(GraphNodeDiffPrunable)
 		if !ok {
 			continue
 		}
