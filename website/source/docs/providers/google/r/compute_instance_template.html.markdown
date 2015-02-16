@@ -42,8 +42,8 @@ resource "google_compute_instance_template" "foobar" {
 		boot = false
 	}
 
-	network {
-		source = "default"
+	network_interface {
+		network = "default"
 	}
 
 	metadata {
@@ -82,7 +82,7 @@ The following arguments are supported:
 * `metadata` - (Optional) Metadata key/value pairs to make available from
 	within instances created from this template.
 
-* `network` - (Required) Networks to attach to instances created from this template.
+* `network_interface` - (Required) Networks to attach to instances created from this template.
  	This can be specified multiple times for multiple networks. Structure is
 	documented below.
 
@@ -130,12 +130,20 @@ The `disk` block supports:
 
 * `type` - (Optional) The GCE disk type.
 
-The `network` block supports:
+The `network_interface` block supports:
 
-* `source` - (Required) The name of the network to attach this interface to.
+* `network` - (Required) The name of the network to attach this interface to.
 
-* `address` - (Optional) The IP address of a reserved IP address to assign
-	to this interface.
+* `access_config` - (Optional) Access configurations, i.e. IPs via which this instance can be
+  accessed via the Internet.  Omit to ensure that the instance is not accessible from the Internet
+(this means that ssh provisioners will not work unless you are running Terraform can send traffic to
+the instance's network (e.g. via tunnel or because it is running on another cloud instance on that
+network).  This block can be repeated multiple times.  Structure documented below.
+
+The `access_config` block supports:
+
+* `nat_ip` - (Optional) The IP address that will be 1:1 mapped to the instance's network ip.  If not
+  given, one will be generated.
 
 The `service_account` block supports:
 
