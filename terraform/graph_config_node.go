@@ -180,8 +180,6 @@ type GraphNodeConfigResource struct {
 	// destroyed. It doesn't mean that the resource WILL be destroyed, only
 	// that logically this node is where it would happen.
 	Destroy bool
-
-	destroyNode GraphNodeDestroy
 }
 
 func (n *GraphNodeConfigResource) DependableName() []string {
@@ -303,20 +301,14 @@ func (n *GraphNodeConfigResource) DestroyNode() GraphNodeDestroy {
 		return nil
 	}
 
-	// If we already made the node, return that
-	if n.destroyNode != nil {
-		return n.destroyNode
-	}
-
 	// Just make a copy that is set to destroy
 	result := &graphNodeResourceDestroy{
 		GraphNodeConfigResource: *n,
 		Original:                n,
 	}
 	result.Destroy = true
-	n.destroyNode = result
 
-	return n.destroyNode
+	return result
 }
 
 // graphNodeResourceDestroy represents the logical destruction of a
