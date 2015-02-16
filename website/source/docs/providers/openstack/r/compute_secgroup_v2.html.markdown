@@ -59,9 +59,12 @@ this creates a new security group rule.
 will be the source of network traffic to the security group. Use 0.0.0.0./0
 to allow all IP addresses. Changing this creates a new security group rule.
 
-* `from_group_id - (Optional) Required if `cidr` is empty. The ID of a group
+* `from_group_id` - (Optional) Required if `cidr` is empty. The ID of a group
 from which to forward traffic to the parent group. Changing
 this creates a new security group rule.
+
+* `self` - (Optional) Required if `cidr` and `from_group_id` is empty. If true,
+the security group itself will be added as a source to this ingress rule.
 
 ## Attributes Reference
 
