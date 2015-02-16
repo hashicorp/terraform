@@ -30,31 +30,6 @@ func TestDestroyTransformer(t *testing.T) {
 	}
 }
 
-func TestDestroyTransformer_deps(t *testing.T) {
-	mod := testModule(t, "transform-destroy-deps")
-
-	g := Graph{Path: RootModulePath}
-	{
-		tf := &ConfigTransformer{Module: mod}
-		if err := tf.Transform(&g); err != nil {
-			t.Fatalf("err: %s", err)
-		}
-	}
-
-	{
-		tf := &DestroyTransformer{}
-		if err := tf.Transform(&g); err != nil {
-			t.Fatalf("err: %s", err)
-		}
-	}
-
-	actual := strings.TrimSpace(g.String())
-	expected := strings.TrimSpace(testTransformDestroyDepsStr)
-	if actual != expected {
-		t.Fatalf("bad:\n\n%s", actual)
-	}
-}
-
 func TestCreateBeforeDestroyTransformer(t *testing.T) {
 	mod := testModule(t, "transform-create-before-destroy-basic")
 
@@ -231,24 +206,18 @@ func TestPruneDestroyTransformer_count(t *testing.T) {
 
 const testTransformDestroyBasicStr = `
 aws_instance.bar
+  aws_instance.bar (destroy tainted)
   aws_instance.bar (destroy)
   aws_instance.foo
+aws_instance.bar (destroy tainted)
 aws_instance.bar (destroy)
 aws_instance.foo
+  aws_instance.foo (destroy tainted)
   aws_instance.foo (destroy)
+aws_instance.foo (destroy tainted)
+  aws_instance.bar (destroy tainted)
 aws_instance.foo (destroy)
   aws_instance.bar (destroy)
-`
-
-const testTransformDestroyDepsStr = `
-aws_asg.bar
-  aws_asg.bar (destroy)
-  aws_lc.foo
-aws_asg.bar (destroy)
-aws_lc.foo
-  aws_lc.foo (destroy)
-aws_lc.foo (destroy)
-  aws_asg.bar (destroy)
 `
 
 const testTransformPruneDestroyBasicStr = `

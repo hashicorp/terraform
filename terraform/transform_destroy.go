@@ -6,13 +6,22 @@ import (
 	"github.com/hashicorp/terraform/dag"
 )
 
+type GraphNodeDestroyMode byte
+
+const (
+	DestroyNone    GraphNodeDestroyMode = 0
+	DestroyPrimary GraphNodeDestroyMode = 1 << iota
+	DestroyTainted
+)
+
 // GraphNodeDestroyable is the interface that nodes that can be destroyed
 // must implement. This is used to automatically handle the creation of
 // destroy nodes in the graph and the dependency ordering of those destroys.
 type GraphNodeDestroyable interface {
-	// DestroyNode returns the node used for the destroy. This should
-	// return a new destroy node that isn't in the graph.
-	DestroyNode() GraphNodeDestroy
+	// DestroyNode returns the node used for the destroy with the given
+	// mode. If this returns nil, then a destroy node for that mode
+	// will not be added.
+	DestroyNode(GraphNodeDestroyMode) GraphNodeDestroy
 }
 
 // GraphNodeDestroy is the interface that must implemented by
@@ -43,24 +52,51 @@ type GraphNodeDiffPrunable interface {
 type DestroyTransformer struct{}
 
 func (t *DestroyTransformer) Transform(g *Graph) error {
-	nodes := make(map[dag.Vertex]struct{}, len(g.Vertices()))
+	var connect, remove []dag.Edge
+
+	modes := []GraphNodeDestroyMode{DestroyPrimary, DestroyTainted}
+	for _, m := range modes {
+		connectMode, removeMode, err := t.transform(g, m)
+		if err != nil {
+			return err
+		}
+
+		connect = append(connect, connectMode...)
+		remove = append(remove, removeMode...)
+	}
+
+	// Atomatically add/remove the edges
+	for _, e := range connect {
+		g.Connect(e)
+	}
+	for _, e := range remove {
+		g.RemoveEdge(e)
+	}
+
+	return nil
+}
+
+func (t *DestroyTransformer) transform(
+	g *Graph, mode GraphNodeDestroyMode) ([]dag.Edge, []dag.Edge, error) {
+	var connect, remove []dag.Edge
+	nodeToCn := make(map[dag.Vertex]dag.Vertex, len(g.Vertices()))
 	nodeToDn := make(map[dag.Vertex]dag.Vertex, len(g.Vertices()))
 	for _, v := range g.Vertices() {
 		// If it is not a destroyable, we don't care
-		dn, ok := v.(GraphNodeDestroyable)
+		cn, ok := v.(GraphNodeDestroyable)
 		if !ok {
 			continue
 		}
 
 		// Grab the destroy side of the node and connect it through
-		n := dn.DestroyNode()
+		n := cn.DestroyNode(mode)
 		if n == nil {
 			continue
 		}
 
 		// Store it
-		nodes[n] = struct{}{}
-		nodeToDn[dn] = n
+		nodeToCn[n] = cn
+		nodeToDn[cn] = n
 
 		// Add it to the graph
 		g.Add(n)
@@ -73,33 +109,33 @@ func (t *DestroyTransformer) Transform(g *Graph) error {
 
 		// Add a new edge to connect the node to be created to
 		// the destroy node.
-		g.Connect(dag.BasicEdge(v, n))
+		connect = append(connect, dag.BasicEdge(v, n))
 	}
 
 	// Go through the nodes we added and determine if they depend
 	// on any nodes with a destroy node. If so, depend on that instead.
-	for n, _ := range nodes {
+	for n, _ := range nodeToCn {
 		for _, downRaw := range g.DownEdges(n).List() {
 			target := downRaw.(dag.Vertex)
-			dn, ok := target.(GraphNodeDestroyable)
+			cn2, ok := target.(GraphNodeDestroyable)
 			if !ok {
 				continue
 			}
 
-			newTarget := nodeToDn[dn]
+			newTarget := nodeToDn[cn2]
 			if newTarget == nil {
 				continue
 			}
 
 			// Make the new edge and transpose
-			g.Connect(dag.BasicEdge(newTarget, n))
+			connect = append(connect, dag.BasicEdge(newTarget, n))
 
 			// Remove the old edge
-			g.RemoveEdge(dag.BasicEdge(n, target))
+			remove = append(remove, dag.BasicEdge(n, target))
 		}
 	}
 
-	return nil
+	return connect, remove, nil
 }
 
 // CreateBeforeDestroyTransformer is a GraphTransformer that modifies

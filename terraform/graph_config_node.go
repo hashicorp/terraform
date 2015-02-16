@@ -176,10 +176,9 @@ func (n *GraphNodeConfigProvider) ProviderName() string {
 type GraphNodeConfigResource struct {
 	Resource *config.Resource
 
-	// If set to true, this represents a resource that can only be
-	// destroyed. It doesn't mean that the resource WILL be destroyed, only
-	// that logically this node is where it would happen.
-	Destroy bool
+	// If this is set to anything other than destroyModeNone, then this
+	// resource represents a resource that will be destroyed in some way.
+	DestroyMode GraphNodeDestroyMode
 }
 
 func (n *GraphNodeConfigResource) DependableName() []string {
@@ -222,8 +221,14 @@ func (n *GraphNodeConfigResource) DependentOn() []string {
 
 func (n *GraphNodeConfigResource) Name() string {
 	result := n.Resource.Id()
-	if n.Destroy {
+	switch n.DestroyMode {
+	case DestroyNone:
+	case DestroyPrimary:
 		result += " (destroy)"
+	case DestroyTainted:
+		result += " (destroy tainted)"
+	default:
+		result += " (unknown destroy type)"
 	}
 
 	return result
@@ -231,29 +236,52 @@ func (n *GraphNodeConfigResource) Name() string {
 
 // GraphNodeDynamicExpandable impl.
 func (n *GraphNodeConfigResource) DynamicExpand(ctx EvalContext) (*Graph, error) {
+	state, lock := ctx.State()
+	lock.RLock()
+	defer lock.RUnlock()
+
 	// Start creating the steps
 	steps := make([]GraphTransformer, 0, 5)
-	steps = append(steps, &ResourceCountTransformer{
-		Resource: n.Resource,
-		Destroy:  n.Destroy,
-	})
 
-	// If we're destroying, then we care about adding orphans to
-	// the graph. Orphans in this case are the leftover resources when
-	// we decrease count.
-	if n.Destroy {
-		state, lock := ctx.State()
-		lock.RLock()
-		defer lock.RUnlock()
+	// Primary and non-destroy modes are responsible for creating/destroying
+	// all the nodes, expanding counts.
+	switch n.DestroyMode {
+	case DestroyNone:
+		fallthrough
+	case DestroyPrimary:
+		steps = append(steps, &ResourceCountTransformer{
+			Resource: n.Resource,
+			Destroy:  n.DestroyMode != DestroyNone,
+		})
+	}
 
+	// Additional destroy modifications.
+	switch n.DestroyMode {
+	case DestroyPrimary:
+		// If we're destroying the primary instance, then we want to
+		// expand orphans, which have all the same semantics in a destroy
+		// as a primary.
 		steps = append(steps, &OrphanTransformer{
 			State: state,
 			View:  n.Resource.Id(),
 		})
 
+		// If we're only destroying tainted resources, then we only
+		// want to find tainted resources and destroy them here.
 		steps = append(steps, &TaintedTransformer{
-			State: state,
-			View:  n.Resource.Id(),
+			State:          state,
+			View:           n.Resource.Id(),
+			Deposed:        n.Resource.Lifecycle.CreateBeforeDestroy,
+			DeposedInclude: true,
+		})
+	case DestroyTainted:
+		// If we're only destroying tainted resources, then we only
+		// want to find tainted resources and destroy them here.
+		steps = append(steps, &TaintedTransformer{
+			State:          state,
+			View:           n.Resource.Id(),
+			Deposed:        n.Resource.Lifecycle.CreateBeforeDestroy,
+			DeposedInclude: false,
 		})
 	}
 
@@ -295,19 +323,17 @@ func (n *GraphNodeConfigResource) ProvisionedBy() []string {
 }
 
 // GraphNodeDestroyable
-func (n *GraphNodeConfigResource) DestroyNode() GraphNodeDestroy {
+func (n *GraphNodeConfigResource) DestroyNode(mode GraphNodeDestroyMode) GraphNodeDestroy {
 	// If we're already a destroy node, then don't do anything
-	if n.Destroy {
+	if n.DestroyMode != DestroyNone {
 		return nil
 	}
 
-	// Just make a copy that is set to destroy
 	result := &graphNodeResourceDestroy{
 		GraphNodeConfigResource: *n,
 		Original:                n,
 	}
-	result.Destroy = true
-
+	result.DestroyMode = mode
 	return result
 }
 
@@ -320,7 +346,13 @@ type graphNodeResourceDestroy struct {
 }
 
 func (n *graphNodeResourceDestroy) CreateBeforeDestroy() bool {
-	return n.Original.Resource.Lifecycle.CreateBeforeDestroy
+	// CBD is enabled if the resource enables it in addition to us
+	// being responsible for destroying the primary state. The primary
+	// state destroy node is the only destroy node that needs to be
+	// "shuffled" according to the CBD rules, since tainted resources
+	// don't have the same inverse dependencies.
+	return n.Original.Resource.Lifecycle.CreateBeforeDestroy &&
+		n.DestroyMode == DestroyPrimary
 }
 
 func (n *graphNodeResourceDestroy) CreateNode() dag.Vertex {

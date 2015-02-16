@@ -14,6 +14,12 @@ type TaintedTransformer struct {
 	// View, if non-empty, is the ModuleState.View used around the state
 	// to find tainted resources.
 	View string
+
+	// Deposed, if set to true, assumes that the last tainted index
+	// represents a "deposed" resource, or a resource that was previously
+	// a primary but is now tainted since it is demoted.
+	Deposed        bool
+	DeposedInclude bool
 }
 
 func (t *TaintedTransformer) Transform(g *Graph) error {
@@ -35,8 +41,20 @@ func (t *TaintedTransformer) Transform(g *Graph) error {
 		if len(rs.Tainted) == 0 {
 			continue
 		}
+		tainted := rs.Tainted
 
-		for i, _ := range rs.Tainted {
+		// If we expect a deposed resource, then shuffle a bit
+		if t.Deposed {
+			if t.DeposedInclude {
+				// Only include the deposed resource
+				tainted = rs.Tainted[len(rs.Tainted)-1:]
+			} else {
+				// Exclude the deposed resource
+				tainted = rs.Tainted[:len(rs.Tainted)-1]
+			}
+		}
+
+		for i, _ := range tainted {
 			// Add the graph node and make the connection from any untainted
 			// resources with this name to the tainted resource, so that
 			// the tainted resource gets destroyed first.
