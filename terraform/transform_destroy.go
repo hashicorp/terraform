@@ -1,8 +1,6 @@
 package terraform
 
 import (
-	"strings"
-
 	"github.com/hashicorp/terraform/dag"
 )
 
@@ -39,12 +37,12 @@ type GraphNodeDestroy interface {
 	CreateNode() dag.Vertex
 }
 
-// GraphNodeDiffPrunable is the interface that can be implemented to
-// signal that this node can be pruned depending on what is in the diff.
-type GraphNodeDiffPrunable interface {
-	// DiffId is used to return the ID that should be checked for
-	// pruning this resource. If this is empty, pruning won't be done.
-	DiffId() string
+// GraphNodeDestroyPrunable is the interface that can be implemented to
+// signal that this node can be pruned depending on state.
+type GraphNodeDestroyPrunable interface {
+	// DestroyInclude is called to check if this node should be included
+	// with the given state. The state and diff must NOT be modified.
+	DestroyInclude(*ModuleDiff, *ModuleState) bool
 }
 
 // DestroyTransformer is a GraphTransformer that creates the destruction
@@ -217,46 +215,13 @@ func (t *PruneDestroyTransformer) Transform(g *Graph) error {
 
 	for _, v := range g.Vertices() {
 		// If it is not a destroyer, we don't care
-		dn, ok := v.(GraphNodeDiffPrunable)
+		dn, ok := v.(GraphNodeDestroyPrunable)
 		if !ok {
 			continue
 		}
 
-		// Grab the name to destroy
-		prefix := dn.DiffId()
-		if prefix == "" {
-			continue
-		}
-
-		// Assume we're removing it
-		remove := true
-
-		// We don't remove it if we find it in the diff
-		if modDiff != nil {
-			for k, _ := range modDiff.Resources {
-				if strings.HasPrefix(k, prefix) {
-					remove = false
-					break
-				}
-			}
-		}
-
-		// We don't remove it if we find a tainted resource
-		if modState != nil {
-			for k, v := range modState.Resources {
-				if !strings.HasPrefix(k, prefix) {
-					continue
-				}
-
-				if len(v.Tainted) > 0 {
-					remove = false
-					break
-				}
-			}
-		}
-
-		// Remove the node if we have to
-		if remove {
+		// Remove it if we should
+		if !dn.DestroyInclude(modDiff, modState) {
 			g.Remove(v)
 		}
 	}
