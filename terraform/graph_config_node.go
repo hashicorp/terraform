@@ -440,6 +440,15 @@ func (n *graphNodeResourceDestroy) DestroyInclude(d *ModuleDiff, s *ModuleState)
 				continue
 			}
 
+			// Ignore exact matches and the 0'th index. We only care
+			// about if there is a decrease in count.
+			if k == prefix {
+				continue
+			}
+			if k == prefix+".0" {
+				continue
+			}
+
 			if v.Primary != nil {
 				return true
 			}
