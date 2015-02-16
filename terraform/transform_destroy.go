@@ -1,7 +1,6 @@
 package terraform
 
 import (
-	"fmt"
 	"strings"
 
 	"github.com/hashicorp/terraform/dag"
@@ -12,8 +11,7 @@ import (
 // destroy nodes in the graph and the dependency ordering of those destroys.
 type GraphNodeDestroyable interface {
 	// DestroyNode returns the node used for the destroy. This should
-	// return the same node every time so that it can be used later for
-	// lookups as well.
+	// return a new destroy node that isn't in the graph.
 	DestroyNode() GraphNodeDestroy
 }
 
@@ -46,6 +44,7 @@ type DestroyTransformer struct{}
 
 func (t *DestroyTransformer) Transform(g *Graph) error {
 	nodes := make(map[dag.Vertex]struct{}, len(g.Vertices()))
+	nodeToDn := make(map[dag.Vertex]dag.Vertex, len(g.Vertices()))
 	for _, v := range g.Vertices() {
 		// If it is not a destroyable, we don't care
 		dn, ok := v.(GraphNodeDestroyable)
@@ -61,6 +60,7 @@ func (t *DestroyTransformer) Transform(g *Graph) error {
 
 		// Store it
 		nodes[n] = struct{}{}
+		nodeToDn[dn] = n
 
 		// Add it to the graph
 		g.Add(n)
@@ -86,16 +86,9 @@ func (t *DestroyTransformer) Transform(g *Graph) error {
 				continue
 			}
 
-			newTarget := dn.DestroyNode()
+			newTarget := nodeToDn[dn]
 			if newTarget == nil {
 				continue
-			}
-
-			if _, ok := nodes[newTarget]; !ok {
-				return fmt.Errorf(
-					"%s: didn't generate same DestroyNode: %s",
-					dag.VertexName(target),
-					dag.VertexName(newTarget))
 			}
 
 			// Make the new edge and transpose
