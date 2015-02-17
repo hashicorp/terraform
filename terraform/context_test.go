@@ -2787,6 +2787,60 @@ func TestContext2Apply_createBeforeDestroy(t *testing.T) {
 	}
 }
 
+func TestContext2Apply_createBeforeDestroyUpdate(t *testing.T) {
+	m := testModule(t, "apply-good-create-before-update")
+	p := testProvider("aws")
+	p.ApplyFn = testApplyFn
+	p.DiffFn = testDiffFn
+	state := &State{
+		Modules: []*ModuleState{
+			&ModuleState{
+				Path: rootModulePath,
+				Resources: map[string]*ResourceState{
+					"aws_instance.bar": &ResourceState{
+						Type: "aws_instance",
+						Primary: &InstanceState{
+							ID: "bar",
+							Attributes: map[string]string{
+								"foo": "bar",
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+	ctx := testContext2(t, &ContextOpts{
+		Module: m,
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+		State: state,
+	})
+
+	if p, err := ctx.Plan(nil); err != nil {
+		t.Fatalf("err: %s", err)
+	} else {
+		t.Logf(p.String())
+	}
+
+	state, err := ctx.Apply()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	mod := state.RootModule()
+	if len(mod.Resources) != 1 {
+		t.Fatalf("bad: %s", state)
+	}
+
+	actual := strings.TrimSpace(state.String())
+	expected := strings.TrimSpace(testTerraformApplyCreateBeforeUpdateStr)
+	if actual != expected {
+		t.Fatalf("bad: \n%s", actual)
+	}
+}
+
 func TestContext2Apply_minimal(t *testing.T) {
 	m := testModule(t, "apply-minimal")
 	p := testProvider("aws")
