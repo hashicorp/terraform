@@ -81,7 +81,52 @@ func resourceAwsSecurityGroup() *schema.Resource {
 						},
 					},
 				},
-				Set: resourceAwsSecurityGroupIngressHash,
+				Set: resourceAwsSecurityGroupRuleHash,
+			},
+
+			"egress": &schema.Schema{
+				Type:     schema.TypeSet,
+				Optional: true,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"from_port": &schema.Schema{
+							Type:     schema.TypeInt,
+							Required: true,
+						},
+
+						"to_port": &schema.Schema{
+							Type:     schema.TypeInt,
+							Required: true,
+						},
+
+						"protocol": &schema.Schema{
+							Type:     schema.TypeString,
+							Required: true,
+						},
+
+						"cidr_blocks": &schema.Schema{
+							Type:     schema.TypeList,
+							Optional: true,
+							Elem:     &schema.Schema{Type: schema.TypeString},
+						},
+
+						"security_groups": &schema.Schema{
+							Type:     schema.TypeSet,
+							Optional: true,
+							Elem:     &schema.Schema{Type: schema.TypeString},
+							Set: func(v interface{}) int {
+								return hashcode.String(v.(string))
+							},
+						},
+
+						"self": &schema.Schema{
+							Type:     schema.TypeBool,
+							Optional: true,
+							Default:  false,
+						},
+					},
+				},
+				Set: resourceAwsSecurityGroupRuleHash,
 			},
 
 			"owner_id": &schema.Schema{
@@ -139,28 +184,14 @@ func resourceAwsSecurityGroupCreate(d *schema.ResourceData, meta interface{}) er
 	return resourceAwsSecurityGroupUpdate(d, meta)
 }
 
-func resourceAwsSecurityGroupRead(d *schema.ResourceData, meta interface{}) error {
-	ec2conn := meta.(*AWSClient).ec2conn
-
-	sgRaw, _, err := SGStateRefreshFunc(ec2conn, d.Id())()
-	if err != nil {
-		return err
-	}
-	if sgRaw == nil {
-		d.SetId("")
-		return nil
-	}
-
-	sg := sgRaw.(*ec2.SecurityGroupInfo)
-
-	// Gather our ingress rules
-	ingressMap := make(map[string]map[string]interface{})
-	for _, perm := range sg.IPPerms {
+func resourceAwsSecurityGroupIPPermGather(d *schema.ResourceData, permissions []ec2.IPPerm) []map[string]interface{} {
+	ruleMap := make(map[string]map[string]interface{})
+	for _, perm := range permissions {
 		k := fmt.Sprintf("%s-%d-%d", perm.Protocol, perm.FromPort, perm.ToPort)
-		m, ok := ingressMap[k]
+		m, ok := ruleMap[k]
 		if !ok {
 			m = make(map[string]interface{})
-			ingressMap[k] = m
+			ruleMap[k] = m
 		}
 
 		m["from_port"] = perm.FromPort
@@ -200,22 +231,15 @@ func resourceAwsSecurityGroupRead(d *schema.ResourceData, meta interface{}) erro
 			m["security_groups"] = list
 		}
 	}
-	ingressRules := make([]map[string]interface{}, 0, len(ingressMap))
-	for _, m := range ingressMap {
-		ingressRules = append(ingressRules, m)
+	rules := make([]map[string]interface{}, 0, len(ruleMap))
+	for _, m := range ruleMap {
+		rules = append(rules, m)
 	}
 
-	d.Set("description", sg.Description)
-	d.Set("name", sg.Name)
-	d.Set("vpc_id", sg.VpcId)
-	d.Set("owner_id", sg.OwnerId)
-	d.Set("ingress", ingressRules)
-	d.Set("tags", tagsToMap(sg.Tags))
-
-	return nil
+	return rules
 }
 
-func resourceAwsSecurityGroupUpdate(d *schema.ResourceData, meta interface{}) error {
+func resourceAwsSecurityGroupRead(d *schema.ResourceData, meta interface{}) error {
 	ec2conn := meta.(*AWSClient).ec2conn
 
 	sgRaw, _, err := SGStateRefreshFunc(ec2conn, d.Id())()
@@ -226,10 +250,26 @@ func resourceAwsSecurityGroupUpdate(d *schema.ResourceData, meta interface{}) er
 		d.SetId("")
 		return nil
 	}
-	group := sgRaw.(*ec2.SecurityGroupInfo).SecurityGroup
 
-	if d.HasChange("ingress") {
-		o, n := d.GetChange("ingress")
+	sg := sgRaw.(*ec2.SecurityGroupInfo)
+
+	ingressRules := resourceAwsSecurityGroupIPPermGather(d, sg.IPPerms)
+	egressRules := resourceAwsSecurityGroupIPPermGather(d, sg.IPPermsEgress)
+
+	d.Set("description", sg.Description)
+	d.Set("name", sg.Name)
+	d.Set("vpc_id", sg.VpcId)
+	d.Set("owner_id", sg.OwnerId)
+	d.Set("ingress", ingressRules)
+	d.Set("egress", egressRules)
+	d.Set("tags", tagsToMap(sg.Tags))
+
+	return nil
+}
+
+func resourceAwsSecurityGroupUpdateRules(d *schema.ResourceData, ruleset string, meta interface{}, group ec2.SecurityGroup) error {
+	if d.HasChange(ruleset) {
+		o, n := d.GetChange(ruleset)
 		if o == nil {
 			o = new(schema.Set)
 		}
@@ -252,28 +292,69 @@ func resourceAwsSecurityGroupUpdate(d *schema.ResourceData, meta interface{}) er
 		// adding is easier here, and Terraform should be fast enough to
 		// not have service issues.
 
-		if len(remove) > 0 {
-			// Revoke the old rules
-			_, err = ec2conn.RevokeSecurityGroup(group, remove)
-			if err != nil {
-				return fmt.Errorf("Error authorizing security group ingress rules: %s", err)
+		if len(remove) > 0 || len(add) > 0 {
+
+			ec2conn := meta.(*AWSClient).ec2conn
+
+			if len(remove) > 0 {
+				// Revoke the old rules
+				revoke := ec2conn.RevokeSecurityGroup
+				if ruleset == "egress" {
+					revoke = ec2conn.RevokeSecurityGroupEgress
+				}
+				_, err := revoke(group, remove)
+				if err != nil {
+					return fmt.Errorf("Error revoking security group %s rules: %s", ruleset, err)
+				}
+			}
+
+			if len(add) > 0 {
+				// Authorize the new rules
+				authorize := ec2conn.AuthorizeSecurityGroup
+				if ruleset == "egress" {
+					authorize = ec2conn.AuthorizeSecurityGroupEgress
+				}
+				_, err := authorize(group, add)
+				if err != nil {
+					return fmt.Errorf("Error authorizing security group %s rules: %s", ruleset, err)
+				}
 			}
 		}
+	}
 
-		if len(add) > 0 {
-			// Authorize the new rules
-			_, err := ec2conn.AuthorizeSecurityGroup(group, add)
-			if err != nil {
-				return fmt.Errorf("Error authorizing security group ingress rules: %s", err)
-			}
+	return nil
+}
+
+func resourceAwsSecurityGroupUpdate(d *schema.ResourceData, meta interface{}) error {
+	ec2conn := meta.(*AWSClient).ec2conn
+
+	sgRaw, _, err := SGStateRefreshFunc(ec2conn, d.Id())()
+	if err != nil {
+		return err
+	}
+	if sgRaw == nil {
+		d.SetId("")
+		return nil
+	}
+	group := sgRaw.(*ec2.SecurityGroupInfo).SecurityGroup
+
+	err = resourceAwsSecurityGroupUpdateRules(d, "ingress", ec2conn, group)
+	if err != nil {
+		return err
+	}
+
+	if d.Get("vpc_id") != nil {
+		err = resourceAwsSecurityGroupUpdateRules(d, "egress", ec2conn, group)
+		if err != nil {
+			return err
 		}
 	}
 
 	if err := setTags(ec2conn, d); err != nil {
 		return err
-	} else {
-		d.SetPartial("tags")
 	}
+
+	d.SetPartial("tags")
 
 	return resourceAwsSecurityGroupRead(d, meta)
 }
@@ -307,7 +388,7 @@ func resourceAwsSecurityGroupDelete(d *schema.ResourceData, meta interface{}) er
 	})
 }
 
-func resourceAwsSecurityGroupIngressHash(v interface{}) int {
+func resourceAwsSecurityGroupRuleHash(v interface{}) int {
 	var buf bytes.Buffer
 	m := v.(map[string]interface{})
 	buf.WriteString(fmt.Sprintf("%d-", m["from_port"].(int)))
