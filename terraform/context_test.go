@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"reflect"
+	"runtime"
 	"sort"
 	"strings"
 	"sync"
@@ -3818,13 +3819,21 @@ func TestContextPlan_pathVar(t *testing.T) {
 	actual := strings.TrimSpace(plan.String())
 	expected := strings.TrimSpace(testTerraformPlanPathVarStr)
 
+	module := m.Config().Dir
+	root := m.Config().Dir
+	if runtime.GOOS == "windows" {
+		// The attributes in the diff are %#v-formatted. This means
+		// that all `\` characters in the Windows paths are escaped
+		// with a `\`. We need to escape the `\` characters in cwd,
+		// module, and root before doing any comparison work.
+		cwd = strings.Replace(cwd, `\`, `\\`, -1)
+		module = strings.Replace(module, `\`, `\\`, -1)
+		root = strings.Replace(root, `\`, `\\`, -1)
+	}
+
 	// Warning: this ordering REALLY matters for this test. The
 	// order is: cwd, module, root.
-	expected = fmt.Sprintf(
-		expected,
-		cwd,
-		m.Config().Dir,
-		m.Config().Dir)
+	expected = fmt.Sprintf(expected, cwd, module, root)
 
 	if actual != expected {
 		t.Fatalf("bad:\n%s\n\nexpected:\n\n%s", actual, expected)
