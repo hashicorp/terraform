@@ -256,6 +256,7 @@ func (n *graphNodeExpandedResource) EvalTree() EvalNode {
 	var diffApply *InstanceDiff
 	var err error
 	var createNew, tainted bool
+	var createBeforeDestroyEnabled bool
 	seq.Nodes = append(seq.Nodes, &EvalOpFilter{
 		Ops: []walkOperation{walkApply},
 		Node: &EvalSequence{
@@ -285,7 +286,16 @@ func (n *graphNodeExpandedResource) EvalTree() EvalNode {
 
 				&EvalIf{
 					If: func(ctx EvalContext) (bool, error) {
-						return n.Resource.Lifecycle.CreateBeforeDestroy, nil
+						destroy := false
+						if diffApply != nil {
+							destroy = diffApply.Destroy || diffApply.RequiresNew()
+						}
+
+						createBeforeDestroyEnabled =
+							n.Resource.Lifecycle.CreateBeforeDestroy &&
+								destroy
+
+						return createBeforeDestroyEnabled, nil
 					},
 					Node: &EvalDeposeState{
 						Name: n.stateId(),
@@ -361,12 +371,12 @@ func (n *graphNodeExpandedResource) EvalTree() EvalNode {
 				},
 				&EvalIf{
 					If: func(ctx EvalContext) (bool, error) {
-						if n.Resource.Lifecycle.CreateBeforeDestroy {
+						if createBeforeDestroyEnabled {
 							tainted = err != nil
 						}
 
 						failure := tainted || err != nil
-						return n.Resource.Lifecycle.CreateBeforeDestroy && failure, nil
+						return createBeforeDestroyEnabled && failure, nil
 					},
 					Node: &EvalUndeposeState{
 						Name: n.stateId(),
