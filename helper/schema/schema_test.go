@@ -2063,6 +2063,38 @@ func TestSchemaMap_Diff(t *testing.T) {
 
 			Err: false,
 		},
+
+		// #52 - Map with empty value
+		{
+			Schema: map[string]*Schema{
+				"vars": &Schema{
+					Type: TypeMap,
+				},
+			},
+
+			State: nil,
+
+			Config: map[string]interface{}{
+				"vars": map[string]interface{}{
+					"foo": "",
+				},
+			},
+
+			Diff: &terraform.InstanceDiff{
+				Attributes: map[string]*terraform.ResourceAttrDiff{
+					"vars.#": &terraform.ResourceAttrDiff{
+						Old: "0",
+						New: "1",
+					},
+					"vars.foo": &terraform.ResourceAttrDiff{
+						Old: "",
+						New: "",
+					},
+				},
+			},
+
+			Err: false,
+		},
 	}
 
 	for i, tc := range cases {

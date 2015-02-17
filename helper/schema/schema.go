@@ -661,10 +661,10 @@ func (m schemaMap) diffMap(
 
 	// Now we compare, preferring values from the config map
 	for k, v := range configMap {
-		old := stateMap[k]
+		old, ok := stateMap[k]
 		delete(stateMap, k)
 
-		if old == v && !all {
+		if old == v && ok && !all {
 			continue
 		}
 
