@@ -702,6 +702,7 @@ func (m schemaMap) diffSet(
 		return nil
 	}
 
+	oRaw := o
 	if o == nil {
 		o = &Set{F: schema.Set}
 	}
@@ -750,7 +751,7 @@ func (m schemaMap) diffSet(
 
 	// If the counts are not the same, then record that diff
 	changed := oldLen != newLen
-	if changed || all {
+	if changed || all || oRaw == nil {
 		countSchema := &Schema{
 			Type:     TypeInt,
 			Computed: schema.Computed,
