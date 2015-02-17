@@ -144,11 +144,12 @@ func (r *DiffFieldReader) readPrimitive(
 
 func (r *DiffFieldReader) readSet(
 	address []string, schema *Schema) (FieldReadResult, error) {
+	prefix := strings.Join(address, ".") + "."
+
 	// Create the set that will be our result
 	set := &Set{F: schema.Set}
 
 	// Go through the map and find all the set items
-	prefix := strings.Join(address, ".") + "."
 	for k, _ := range r.Diff.Attributes {
 		if !strings.HasPrefix(k, prefix) {
 			continue
@@ -174,8 +175,21 @@ func (r *DiffFieldReader) readSet(
 		set.Add(raw.Value)
 	}
 
+	// Determine if the set "exists". It exists if there are items or if
+	// the diff explicitly wanted it empty.
+	exists := set.Len() > 0
+	if !exists {
+		// We could check if the diff value is "0" here but I think the
+		// existence of "#" on its own is enough to show it existed. This
+		// protects us in the future from the zero value changing from
+		// "0" to "" breaking us (if that were to happen).
+		if _, ok := r.Diff.Attributes[prefix+"#"]; ok {
+			exists = true
+		}
+	}
+
 	return FieldReadResult{
 		Value:  set,
-		Exists: set.Len() > 0,
+		Exists: exists,
 	}, nil
 }
