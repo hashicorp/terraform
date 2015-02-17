@@ -6,6 +6,8 @@ import (
 	"os"
 	"os/exec"
 	"runtime"
+
+	urlhelper "github.com/hashicorp/terraform/helper/url"
 )
 
 // HgGetter is a Getter implementation that will download a module from
@@ -17,7 +19,7 @@ func (g *HgGetter) Get(dst string, u *url.URL) error {
 		return fmt.Errorf("hg must be available and on the PATH")
 	}
 
-	newURL, err := urlParse(u.String())
+	newURL, err := urlhelper.Parse(u.String())
 	if err != nil {
 		return err
 	}
