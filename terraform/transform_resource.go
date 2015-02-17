@@ -252,7 +252,7 @@ func (n *graphNodeExpandedResource) EvalTree() EvalNode {
 		},
 	})
 
-	// Diff the resource for destruction
+	// Apply
 	var diffApply *InstanceDiff
 	var err error
 	var createNew, tainted bool
