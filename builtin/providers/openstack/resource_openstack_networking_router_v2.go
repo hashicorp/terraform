@@ -6,7 +6,7 @@ import (
 	"strconv"
 
 	"github.com/hashicorp/terraform/helper/schema"
-	"github.com/racker/perigee"
+	"github.com/rackspace/gophercloud"
 	"github.com/rackspace/gophercloud/openstack/networking/v2/extensions/layer3/routers"
 )
 
@@ -98,7 +98,7 @@ func resourceNetworkingRouterV2Read(d *schema.ResourceData, meta interface{}) er
 
 	n, err := routers.Get(networkingClient, d.Id()).Extract()
 	if err != nil {
-		httpError, ok := err.(*perigee.UnexpectedResponseCodeError)
+		httpError, ok := err.(*gophercloud.UnexpectedResponseCodeError)
 		if !ok {
 			return fmt.Errorf("Error retrieving OpenStack Neutron Router: %s", err)
 		}

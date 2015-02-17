@@ -7,7 +7,6 @@ import (
 
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
-	"github.com/racker/perigee"
 	"github.com/rackspace/gophercloud"
 	"github.com/rackspace/gophercloud/openstack/blockstorage/v1/volumes"
 )
@@ -252,7 +251,7 @@ func VolumeV1StateRefreshFunc(client *gophercloud.ServiceClient, volumeID string
 	return func() (interface{}, string, error) {
 		v, err := volumes.Get(client, volumeID).Extract()
 		if err != nil {
-			errCode, ok := err.(*perigee.UnexpectedResponseCodeError)
+			errCode, ok := err.(*gophercloud.UnexpectedResponseCodeError)
 			if !ok {
 				return nil, "", err
 			}

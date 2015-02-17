@@ -9,7 +9,6 @@ import (
 	"github.com/hashicorp/terraform/helper/hashcode"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
-	"github.com/racker/perigee"
 	"github.com/rackspace/gophercloud"
 	"github.com/rackspace/gophercloud/openstack/compute/v2/extensions/bootfromvolume"
 	"github.com/rackspace/gophercloud/openstack/compute/v2/extensions/keypairs"
@@ -513,7 +512,7 @@ func resourceComputeInstanceV2Update(d *schema.ResourceData, meta interface{}) e
 		for _, g := range secgroupsToRemove.List() {
 			err := secgroups.RemoveServerFromGroup(computeClient, d.Id(), g.(string)).ExtractErr()
 			if err != nil {
-				errCode, ok := err.(*perigee.UnexpectedResponseCodeError)
+				errCode, ok := err.(*gophercloud.UnexpectedResponseCodeError)
 				if !ok {
 					return fmt.Errorf("Error removing security group from OpenStack server (%s): %s", d.Id(), err)
 				}
@@ -683,7 +682,7 @@ func ServerV2StateRefreshFunc(client *gophercloud.ServiceClient, instanceID stri
 	return func() (interface{}, string, error) {
 		s, err := servers.Get(client, instanceID).Extract()
 		if err != nil {
-			errCode, ok := err.(*perigee.UnexpectedResponseCodeError)
+			errCode, ok := err.(*gophercloud.UnexpectedResponseCodeError)
 			if !ok {
 				return nil, "", err
 			}
