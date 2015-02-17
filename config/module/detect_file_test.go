@@ -23,8 +23,8 @@ var unixFileTests = []fileTest{
 
 var winFileTests = []fileTest{
 	{"/foo", "/pwd", "file:///pwd/foo", false},
-	{`C:\`, `/pwd`, `file:///C:/`, false},
-	{`C:\?bar=baz`, `/pwd`, `file:///C:/?bar=baz`, false},
+	{`C:\`, `/pwd`, `file://C:/`, false},
+	{`C:\?bar=baz`, `/pwd`, `file://C:/?bar=baz`, false},
 }
 
 func TestFileDetector(t *testing.T) {
@@ -61,7 +61,7 @@ var noPwdUnixFileTests = []fileTest{
 
 var noPwdWinFileTests = []fileTest{
 	{in: "/foo", pwd: "", out: "", err: true},
-	{in: `C:\`, pwd: ``, out: `file:///C:/`, err: false},
+	{in: `C:\`, pwd: ``, out: `file://C:/`, err: false},
 }
 
 func TestFileDetector_noPwd(t *testing.T) {
