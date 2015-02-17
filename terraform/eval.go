@@ -2,6 +2,7 @@ package terraform
 
 import (
 	"log"
+	"strings"
 )
 
 // EvalNode is the interface that must be implemented by graph nodes to
@@ -43,10 +44,15 @@ func Eval(n EvalNode, ctx EvalContext) (interface{}, error) {
 // EvalRaw is like Eval except that it returns all errors, even if they
 // signal something normal such as EvalEarlyExitError.
 func EvalRaw(n EvalNode, ctx EvalContext) (interface{}, error) {
-	log.Printf("[DEBUG] eval: %T", n)
+	path := "unknown"
+	if ctx != nil {
+		path = strings.Join(ctx.Path(), ".")
+	}
+
+	log.Printf("[DEBUG] %s: eval: %T", path, n)
 	output, err := n.Eval(ctx)
 	if err != nil {
-		log.Printf("[ERROR] eval: %T, err: %s", n, err)
+		log.Printf("[ERROR] %s: eval: %T, err: %s", path, n, err)
 	}
 
 	return output, err
