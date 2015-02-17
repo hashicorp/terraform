@@ -1967,7 +1967,7 @@ func TestSchemaMap_Diff(t *testing.T) {
 			Err: false,
 		},
 
-		// #42 Set - Same as #47 but for sets
+		// #49 Set - Same as #47 but for sets
 		{
 			Schema: map[string]*Schema{
 				"route": &Schema{
