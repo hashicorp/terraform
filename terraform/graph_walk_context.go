@@ -1,8 +1,10 @@
 package terraform
 
 import (
+	"fmt"
 	"sync"
 
+	"github.com/hashicorp/errwrap"
 	"github.com/hashicorp/terraform/dag"
 )
 
@@ -104,9 +106,17 @@ func (w *ContextGraphWalker) ExitEvalTree(
 		return err
 	}
 
-	// Record the validation error
-	w.ValidationWarnings = append(w.ValidationWarnings, verr.Warnings...)
-	w.ValidationErrors = append(w.ValidationErrors, verr.Errors...)
+	for _, msg := range verr.Warnings {
+		w.ValidationWarnings = append(
+			w.ValidationWarnings,
+			fmt.Sprintf("%s: %s", dag.VertexName(v), msg))
+	}
+	for _, e := range verr.Errors {
+		w.ValidationErrors = append(
+			w.ValidationErrors,
+			errwrap.Wrapf(fmt.Sprintf("%s: {{err}}", dag.VertexName(v)), e))
+	}
+
 	return nil
 }
 
