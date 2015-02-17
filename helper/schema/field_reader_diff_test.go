@@ -90,6 +90,28 @@ func TestDiffFieldReader_extra(t *testing.T) {
 				return m["index"].(int)
 			},
 		},
+
+		"setEmpty": &Schema{
+			Type:     TypeSet,
+			Optional: true,
+			Elem: &Resource{
+				Schema: map[string]*Schema{
+					"index": &Schema{
+						Type:     TypeInt,
+						Required: true,
+					},
+
+					"value": &Schema{
+						Type:     TypeString,
+						Required: true,
+					},
+				},
+			},
+			Set: func(a interface{}) int {
+				m := a.(map[string]interface{})
+				return m["index"].(int)
+			},
+		},
 	}
 
 	r := &DiffFieldReader{
@@ -114,6 +136,11 @@ func TestDiffFieldReader_extra(t *testing.T) {
 					Old: "50",
 					New: "80",
 				},
+
+				"setEmpty.#": &terraform.ResourceAttrDiff{
+					Old: "2",
+					New: "0",
+				},
 			},
 		},
 
@@ -131,6 +158,12 @@ func TestDiffFieldReader_extra(t *testing.T) {
 				"setChange.#":        "1",
 				"setChange.10.index": "10",
 				"setChange.10.value": "50",
+
+				"setEmpty.#":        "2",
+				"setEmpty.10.index": "10",
+				"setEmpty.10.value": "50",
+				"setEmpty.20.index": "20",
+				"setEmpty.20.value": "50",
 			}),
 		},
 	}
@@ -187,6 +220,15 @@ func TestDiffFieldReader_extra(t *testing.T) {
 						"value": "80",
 					},
 				},
+				Exists: true,
+			},
+			false,
+		},
+
+		"setEmpty": {
+			[]string{"setEmpty"},
+			FieldReadResult{
+				Value:  []interface{}{},
 				Exists: true,
 			},
 			false,
