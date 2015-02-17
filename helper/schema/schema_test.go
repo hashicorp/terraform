@@ -2010,7 +2010,7 @@ func TestSchemaMap_Diff(t *testing.T) {
 			Err: false,
 		},
 
-		// #50
+		// #50 - A set computed element shouldn't cause a diff
 		{
 			Schema: map[string]*Schema{
 				"active": &Schema{
