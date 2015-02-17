@@ -65,7 +65,7 @@ func (d *ResourceData) Get(key string) interface{} {
 // set and the new value is. This is common, for example, for boolean
 // fields which have a zero value of false.
 func (d *ResourceData) GetChange(key string) (interface{}, interface{}) {
-	o, n := d.getChange(key, getSourceState, getSourceDiff|getSourceExact)
+	o, n := d.getChange(key, getSourceState, getSourceDiff)
 	return o.Value, n.Value
 }
 
