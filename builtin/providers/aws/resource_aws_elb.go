@@ -79,11 +79,9 @@ func resourceAwsElb() *schema.Resource {
 				},
 			},
 
-			// TODO: could be not ForceNew
 			"listener": &schema.Schema{
 				Type:     schema.TypeSet,
 				Required: true,
-				ForceNew: false,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"instance_port": &schema.Schema{
@@ -115,7 +113,6 @@ func resourceAwsElb() *schema.Resource {
 				Set: resourceAwsElbListenerHash,
 			},
 
-			// TODO: could be not ForceNew
 			"health_check": &schema.Schema{
 				Type:     schema.TypeSet,
 				Optional: true,

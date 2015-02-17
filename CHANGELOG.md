@@ -21,6 +21,7 @@ IMPROVEMENTS:
       `map_public_ip_on_launch` is not specified in config. [GH-898]
   * provider/aws: Add `apply_method` to `aws_db_parameter_group` [GH-897]
   * provider/aws: Add `storage_type` to `aws_db_instance` [GH-896]
+  * provider/aws: ELB can update listeners without requiring new. [GH-721]
   * provider/google: Remove "client secrets file", as it's no longer necessary
       for API authentication [GH-884].
   * provider/google: Expose `self_link` on `google_compute_instance` [GH-906]
