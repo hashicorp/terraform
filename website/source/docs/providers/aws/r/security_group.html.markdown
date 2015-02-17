@@ -25,6 +25,13 @@ resource "aws_security_group" "allow_all" {
       protocol = "tcp"
       cidr_blocks = ["0.0.0.0/0"]
   }
+
+  egress {
+      from_port = 0
+      to_port = 65535
+      protocol = "tcp"
+      cidr_blocks = ["0.0.0.0/0"]
+  }
 }
 ```
 
@@ -56,6 +63,9 @@ The following arguments are supported:
 * `description` - (Required) The security group description.
 * `ingress` - (Optional) Can be specified multiple times for each
    ingress rule. Each ingress block supports fields documented below.
+* `egress` - (Optional) Can be specified multiple times for each
+      egress rule. Each egress block supports fields documented below.
+      VPC only.
 * `vpc_id` - (Optional) The VPC ID.
 * `owner_id` - (Optional) The AWS Owner ID.
 
@@ -70,6 +80,17 @@ The `ingress` block supports:
 * `to_port` - (Required) The end range port.
 * `tags` - (Optional) A mapping of tags to assign to the resource.
 
+The `egress` block supports:
+
+* `cidr_blocks` - (Optional) List of CIDR blocks. Cannot be used with `security_groups`.
+* `from_port` - (Required) The start port.
+* `protocol` - (Required) The protocol.
+* `security_groups` - (Optional) List of security group IDs. Cannot be used with `cidr_blocks`.
+* `self` - (Optional) If true, the security group itself will be added as
+     a source to this egress rule.
+* `to_port` - (Required) The end range port.
+* `tags` - (Optional) A mapping of tags to assign to the resource.
+
 ## Attributes Reference
 
 The following attributes are exported:
@@ -80,3 +101,4 @@ The following attributes are exported:
 * `name` - The name of the security group
 * `description` - The description of the security group
 * `ingress` - The ingress rules. See above for more.
+* `egress` - The egress rules. See above for more.
