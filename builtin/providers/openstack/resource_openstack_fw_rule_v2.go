@@ -110,18 +110,6 @@ func resourceFirewallRuleCreate(d *schema.ResourceData, meta interface{}) error 
 
 	d.SetId(rule.ID)
 
-	d.Set("name", rule.Name)
-	d.Set("description", rule.Description)
-	d.Set("protocol", rule.Protocol)
-	d.Set("action", rule.Action)
-	d.Set("ip_version", rule.IPVersion)
-	d.Set("source_ip_address", rule.SourceIPAddress)
-	d.Set("destination_ip_address", rule.DestinationIPAddress)
-	d.Set("source_port", rule.SourcePort)
-	d.Set("destination_port", rule.DestinationPort)
-	d.Set("enabled", rule.Enabled)
-	d.Set("tenant_id", rule.TenantID)
-
 	return nil
 }
 
