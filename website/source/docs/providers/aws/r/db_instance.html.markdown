@@ -37,6 +37,9 @@ The following arguments are supported:
 * `engine_version` - (Required) The engine version to use.
 * `identifier` - (Required) The name of the RDS instance
 * `instance_class` - (Required) The instance type of the RDS instance.
+* `storage_type` - (Optional) One of "standard" (magnetic), "gp2" (general
+	purpose SSD), or "io1" (provisioned IOPS SSD). The default is "io1" if
+	`iops` is specified, "standard" if not.
 * `final_snapshot_identifier` - (Optional) The name of your final DB snapshot
     when this DB instance is deleted. If omitted, no final snapshot will be
     made.
@@ -48,7 +51,8 @@ The following arguments are supported:
 * `availability_zone` - (Optional) The AZ for the RDS instance.
 * `backup_retention_period` - (Optional) The days to retain backups for.
 * `backup_window` - (Optional) The backup window.
-* `iops` - (Optional) The amount of provisioned IOPS
+* `iops` - (Optional) The amount of provisioned IOPS. Setting this implies a
+    storage_type of "io1".
 * `maintenance_window` - (Optional) The window to perform maintenance in.
 * `multi_az` - (Optional) Specifies if the RDS instance is multi-AZ
 * `port` - (Optional) The port on which the DB accepts connections.
