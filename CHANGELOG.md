@@ -19,6 +19,8 @@ IMPROVEMENTS:
       absence of the former now implies the latter. [GH-874]
   * provider/aws: Avoid unecessary update of `aws_subnet` when
       `map_public_ip_on_launch` is not specified in config. [GH-898]
+  * provider/aws: Add `apply_method` to `aws_db_parameter_group` [GH-897]
+  * provider/aws: Add `storage_type` to `aws_db_instance` [GH-896]
   * provider/google: Remove "client secrets file", as it's no longer necessary
       for API authentication [GH-884].
   * provider/google: Expose `self_link` on `google_compute_instance` [GH-906]
@@ -43,8 +45,7 @@ BUG FIXES:
   * provider/aws: Instance should ignore root EBS devices. [GH-877]
   * provider/aws: Fix `aws_db_instance` to not recreate each time. [GH-874]
   * provider/aws: ASG termination policies are synced with remote state. [GH-923]
-  * provider/aws: Add `apply_method` to `aws_db_parameter_group` [GH-897]
-  * provider/aws: Add `storage_type` to `aws_db_instance` [GH-896]
+  * provider/aws: No read error when subnet is manually deleted. [GH-889]
   * provider/google: Fix bug preventing instances with metadata from being
       created [GH-884].
 
