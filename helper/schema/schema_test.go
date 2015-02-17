@@ -2033,7 +2033,7 @@ func TestSchemaMap_Diff(t *testing.T) {
 			Err: false,
 		},
 
-		// #51 - A set computed element shouldn't cause a diff
+		// #51 - An empty set should show up in the diff
 		{
 			Schema: map[string]*Schema{
 				"instances": &Schema{
