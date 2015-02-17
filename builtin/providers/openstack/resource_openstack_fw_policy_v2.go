@@ -7,7 +7,7 @@ import (
 
 	"github.com/hashicorp/terraform/helper/hashcode"
 	"github.com/hashicorp/terraform/helper/schema"
-	"github.com/racker/perigee"
+	"github.com/rackspace/gophercloud"
 	"github.com/rackspace/gophercloud/openstack/networking/v2/extensions/fwaas/policies"
 )
 
@@ -119,7 +119,7 @@ func resourceFirewallPolicyRead(d *schema.ResourceData, meta interface{}) error 
 	policy, err := policies.Get(networkingClient, d.Id()).Extract()
 
 	if err != nil {
-		httpError, ok := err.(*perigee.UnexpectedResponseCodeError)
+		httpError, ok := err.(*gophercloud.UnexpectedResponseCodeError)
 		if !ok {
 			return err
 		}
@@ -150,13 +150,11 @@ func resourceFirewallPolicyUpdate(d *schema.ResourceData, meta interface{}) erro
 	opts := policies.UpdateOpts{}
 
 	if d.HasChange("name") {
-		name := d.Get("name").(string)
-		opts.Name = &name
+		opts.Name = d.Get("name").(string)
 	}
 
 	if d.HasChange("description") {
-		description := d.Get("description").(string)
-		opts.Description = &description
+		opts.Description = d.Get("description").(string)
 	}
 
 	if d.HasChange("rules") {
@@ -193,7 +191,7 @@ func resourceFirewallPolicyDelete(d *schema.ResourceData, meta interface{}) erro
 			break
 		}
 
-		httpError, ok := err.(*perigee.UnexpectedResponseCodeError)
+		httpError, ok := err.(*gophercloud.UnexpectedResponseCodeError)
 		if !ok || httpError.Actual != 409 {
 			return err
 		}
