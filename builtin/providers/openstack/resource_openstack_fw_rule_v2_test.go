@@ -8,7 +8,7 @@ import (
 
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
-	"github.com/racker/perigee"
+	"github.com/rackspace/gophercloud"
 	"github.com/rackspace/gophercloud/openstack/networking/v2/extensions/fwaas/rules"
 )
 
@@ -88,7 +88,7 @@ func testAccCheckOpenstackFirewallRuleDestroy(s *terraform.State) error {
 		if err == nil {
 			return fmt.Errorf("Firewall rule (%s) still exists.", rs.Primary.ID)
 		}
-		httpError, ok := err.(*perigee.UnexpectedResponseCodeError)
+		httpError, ok := err.(*gophercloud.UnexpectedResponseCodeError)
 		if !ok || httpError.Actual != 404 {
 			return httpError
 		}
@@ -121,7 +121,7 @@ func testAccCheckFirewallRuleExists(n string, expected *rules.Rule) resource.Tes
 			// if we get a 404 error. Fail on any other error.
 			found, err = rules.Get(networkingClient, rs.Primary.ID).Extract()
 			if err != nil {
-				httpError, ok := err.(*perigee.UnexpectedResponseCodeError)
+				httpError, ok := err.(*gophercloud.UnexpectedResponseCodeError)
 				if !ok || httpError.Actual != 404 {
 					time.Sleep(time.Second)
 					continue
@@ -149,17 +149,17 @@ func testAccCheckFirewallRuleExists(n string, expected *rules.Rule) resource.Tes
 
 const testFirewallRuleMinimalConfig = `
 resource "openstack_fw_rule_v2" "accept_test_minimal" {
-    protocol = "udp"
-    action = "deny"
+	protocol = "udp"
+	action = "deny"
 }
 `
 
 const testFirewallRuleConfig = `
 resource "openstack_fw_rule_v2" "accept_test" {
-    name = "accept_test"
+	name = "accept_test"
 	description = "Terraform accept test"
-    protocol = "udp"
-    action = "deny"
+	protocol = "udp"
+	action = "deny"
 	ip_version = 4
 	source_ip_address = "1.2.3.4"
 	destination_ip_address = "4.3.2.0/24"
@@ -171,10 +171,10 @@ resource "openstack_fw_rule_v2" "accept_test" {
 
 const testFirewallRuleUpdateAllFieldsConfig = `
 resource "openstack_fw_rule_v2" "accept_test" {
-    name = "accept_test_updated_2"
+	name = "accept_test_updated_2"
 	description = "Terraform accept test updated"
-    protocol = "tcp"
-    action = "allow"
+	protocol = "tcp"
+	action = "allow"
 	ip_version = 4
 	source_ip_address = "1.2.3.0/24"
 	destination_ip_address = "4.3.2.8"

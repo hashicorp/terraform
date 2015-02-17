@@ -5,7 +5,7 @@ import (
 	"log"
 
 	"github.com/hashicorp/terraform/helper/schema"
-	"github.com/racker/perigee"
+	"github.com/rackspace/gophercloud"
 	"github.com/rackspace/gophercloud/openstack/networking/v2/extensions/fwaas/rules"
 )
 
@@ -137,7 +137,7 @@ func resourceFirewallRuleRead(d *schema.ResourceData, meta interface{}) error {
 	rule, err := rules.Get(networkingClient, d.Id()).Extract()
 
 	if err != nil {
-		httpError, ok := err.(*perigee.UnexpectedResponseCodeError)
+		httpError, ok := err.(*gophercloud.UnexpectedResponseCodeError)
 		if !ok {
 			return err
 		}
@@ -172,12 +172,10 @@ func resourceFirewallRuleUpdate(d *schema.ResourceData, meta interface{}) error 
 	opts := rules.UpdateOpts{}
 
 	if d.HasChange("name") {
-		name := d.Get("name").(string)
-		opts.Name = &name
+		opts.Name = d.Get("name").(string)
 	}
 	if d.HasChange("description") {
-		description := d.Get("description").(string)
-		opts.Description = &description
+		opts.Description = d.Get("description").(string)
 	}
 	if d.HasChange("protocol") {
 		opts.Protocol = d.Get("protocol").(string)

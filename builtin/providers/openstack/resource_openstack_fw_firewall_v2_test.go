@@ -7,7 +7,7 @@ import (
 
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
-	"github.com/racker/perigee"
+	"github.com/rackspace/gophercloud"
 	"github.com/rackspace/gophercloud/openstack/networking/v2/extensions/fwaas/firewalls"
 )
 
@@ -51,7 +51,7 @@ func testAccCheckOpenstackFirewallDestroy(s *terraform.State) error {
 		if err == nil {
 			return fmt.Errorf("Firewall (%s) still exists.", rs.Primary.ID)
 		}
-		httpError, ok := err.(*perigee.UnexpectedResponseCodeError)
+		httpError, ok := err.(*gophercloud.UnexpectedResponseCodeError)
 		if !ok || httpError.Actual != 404 {
 			return httpError
 		}
@@ -84,7 +84,7 @@ func testAccCheckFirewallExists(n, expectedName, expectedDescription string, pol
 			// if we get a 404 error. Fail on any other error.
 			found, err = firewalls.Get(networkingClient, rs.Primary.ID).Extract()
 			if err != nil {
-				httpError, ok := err.(*perigee.UnexpectedResponseCodeError)
+				httpError, ok := err.(*gophercloud.UnexpectedResponseCodeError)
 				if !ok || httpError.Actual != 404 {
 					time.Sleep(time.Second)
 					continue
