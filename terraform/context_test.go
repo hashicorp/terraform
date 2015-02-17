@@ -2137,7 +2137,7 @@ func TestContext2Validate_provisionerConfig_good(t *testing.T) {
 		if c == nil {
 			t.Fatalf("missing resource config for provisioner")
 		}
-		return nil, nil
+		return nil, c.CheckSet([]string{"command"})
 	}
 	c := testContext2(t, &ContextOpts{
 		Module: m,
