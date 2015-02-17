@@ -59,6 +59,7 @@ type Context struct {
 	variables    map[string]string
 
 	l                   sync.Mutex // Lock acquired during any task
+	parallelSem         Semaphore
 	providerInputConfig map[string]map[string]interface{}
 	runCh               <-chan struct{}
 }
@@ -82,17 +83,27 @@ func NewContext(opts *ContextOpts) *Context {
 		state.init()
 	}
 
+	// Determine parallelism, default to 10. We do this both to limit
+	// CPU pressure but also to have an extra guard against rate throttling
+	// from providers.
+	par := opts.Parallelism
+	if par == 0 {
+		par = 10
+	}
+
 	return &Context{
-		diff:                opts.Diff,
-		hooks:               hooks,
-		module:              opts.Module,
-		providers:           opts.Providers,
+		diff:         opts.Diff,
+		hooks:        hooks,
+		module:       opts.Module,
+		providers:    opts.Providers,
+		provisioners: opts.Provisioners,
+		state:        state,
+		uiInput:      opts.UIInput,
+		variables:    opts.Variables,
+
+		parallelSem:         NewSemaphore(par),
 		providerInputConfig: make(map[string]map[string]interface{}),
-		provisioners:        opts.Provisioners,
 		sh:                  sh,
-		state:               state,
-		uiInput:             opts.UIInput,
-		variables:           opts.Variables,
 	}
 }
 
