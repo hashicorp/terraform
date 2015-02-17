@@ -1943,6 +1943,29 @@ func TestSchemaMap_Diff(t *testing.T) {
 			Diff: nil,
 			Err:  false,
 		},
+
+		// #48
+		{
+			Schema: map[string]*Schema{
+				"port": &Schema{
+					Type:     TypeBool,
+					Optional: true,
+					ForceNew: true,
+				},
+			},
+
+			State: &terraform.InstanceState{
+				Attributes: map[string]string{
+					"port": "false",
+				},
+			},
+
+			Config: map[string]interface{}{},
+
+			Diff: nil,
+
+			Err: false,
+		},
 	}
 
 	for i, tc := range cases {
