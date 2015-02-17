@@ -197,6 +197,7 @@ func resourceAwsAutoscalingGroupRead(d *schema.ResourceData, meta interface{}) e
 	d.Set("max_size", g.MaxSize)
 	d.Set("name", g.Name)
 	d.Set("vpc_zone_identifier", strings.Split(g.VPCZoneIdentifier, ","))
+	d.Set("termination_policies", g.TerminationPolicies)
 
 	return nil
 }
