@@ -2009,6 +2009,29 @@ func TestSchemaMap_Diff(t *testing.T) {
 
 			Err: false,
 		},
+
+		// #50
+		{
+			Schema: map[string]*Schema{
+				"active": &Schema{
+					Type:     TypeBool,
+					Computed: true,
+					ForceNew: true,
+				},
+			},
+
+			State: &terraform.InstanceState{
+				Attributes: map[string]string{
+					"active": "true",
+				},
+			},
+
+			Config: map[string]interface{}{},
+
+			Diff: nil,
+
+			Err: false,
+		},
 	}
 
 	for i, tc := range cases {
