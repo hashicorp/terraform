@@ -112,7 +112,7 @@ to infer dependencies based on usage of attributes of other
 resources.
 
 Using this information, Terraform builds a graph of resources.
-This tells Terraform not only what order to create resources,
+This tells Terraform not only in what order to create resources,
 but also what resources can be created in parallel. In our example,
 since the IP address depended on the EC2 instance, they could
 not be created in parallel.
