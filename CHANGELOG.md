@@ -2,10 +2,10 @@
 
 IMPROVEMENTS:
 
-  * **New resources: `google_compute_forwarding_rule`, `google_compute_http_health_check`, 
-      and `google_compute_target_pool`** - Together these provide network-level 
+  * **New resources: `google_compute_forwarding_rule`, `google_compute_http_health_check`,
+      and `google_compute_target_pool`** - Together these provide network-level
       load balancing. [GH-588]
-  * **New resource: `aws_main_route_table_association`** - Manage the main routing table 
+  * **New resource: `aws_main_route_table_association`** - Manage the main routing table
       of a VPC. [GH-918]
   * core: Formalized the syntax of interpolations and documented it
       very heavily.
@@ -17,7 +17,7 @@ IMPROVEMENTS:
   * provider/aws: The `aws_db_instance` resource no longer requires both
       `final_snapshot_identifier` and `skip_final_snapshot`; the presence or
       absence of the former now implies the latter. [GH-874]
-  * provider/aws: Avoid unecessary update of `aws_subnet` when 
+  * provider/aws: Avoid unecessary update of `aws_subnet` when
       `map_public_ip_on_launch` is not specified in config. [GH-898]
   * provider/google: Remove "client secrets file", as it's no longer necessary
       for API authentication [GH-884].
@@ -35,13 +35,14 @@ BUG FIXES:
   * command/apply: Won't try to initialize modules in some cases when
       no arguments are given. [GH-780]
   * command/apply: Fix regression where user variables weren't asked [GH-736]
-  * helper/hashcode: Update `hash.String()` to always return a positive index. 
+  * helper/hashcode: Update `hash.String()` to always return a positive index.
       Fixes issue where specific strings would convert to a negative index
       and be ommited when creating Route53 records. [GH-967]
   * provider/aws: ELB subnet change doesn't force new resource. [GH-804]
   * provider/aws: Automatically suffix the Route53 zone name on record names. [GH-312]
   * provider/aws: Instance should ignore root EBS devices. [GH-877]
   * provider/aws: Fix `aws_db_instance` to not recreate each time. [GH-874]
+  * provider/aws: ASG termination policies are synced with remote state. [GH-923]
   * provider/google: Fix bug preventing instances with metadata from being
       created [GH-884].
 
