@@ -36,6 +36,10 @@ BUG FIXES:
       installed on a system. [GH-786]
   * core: JSON TF configurations can configure provisioners. [GH-807]
   * core: Sort `depends_on` in state to prevent unnecessary file changes. [GH-928]
+  * core: State containing the zero value won't cause a diff with the
+      lack of a value. [GH-952]
+  * core: If a set type becomes empty, the state will be properly updated
+      to remove it. [GH-952]
   * command/apply: Won't try to initialize modules in some cases when
       no arguments are given. [GH-780]
   * command/apply: Fix regression where user variables weren't asked [GH-736]
