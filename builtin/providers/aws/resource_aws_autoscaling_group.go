@@ -29,7 +29,6 @@ func resourceAwsAutoscalingGroup() *schema.Resource {
 			"launch_configuration": &schema.Schema{
 				Type:     schema.TypeString,
 				Required: true,
-				ForceNew: true,
 			},
 
 			"desired_capacity": &schema.Schema{
@@ -212,6 +211,10 @@ func resourceAwsAutoscalingGroupUpdate(d *schema.ResourceData, meta interface{})
 	if d.HasChange("desired_capacity") {
 		opts.DesiredCapacity = d.Get("desired_capacity").(int)
 		opts.SetDesiredCapacity = true
+	}
+
+	if d.HasChange("launch_configuration") {
+		opts.LaunchConfigurationName = d.Get("launch_configuration").(string)
 	}
 
 	if d.HasChange("min_size") {
