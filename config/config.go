@@ -465,6 +465,13 @@ func (c *Config) rawConfigs() map[string]*RawConfig {
 		source := fmt.Sprintf("resource '%s'", rc.Id())
 		result[source+" count"] = rc.RawCount
 		result[source+" config"] = rc.RawConfig
+
+		for i, p := range rc.Provisioners {
+			subsource := fmt.Sprintf(
+				"%s provisioner %s (#%d)",
+				source, p.Type, i+1)
+			result[subsource] = p.RawConfig
+		}
 	}
 
 	for _, o := range c.Outputs {
