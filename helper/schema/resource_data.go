@@ -32,20 +32,6 @@ type ResourceData struct {
 	once        sync.Once
 }
 
-// getSource represents the level we want to get for a value (internally).
-// Any source less than or equal to the level will be loaded (whichever
-// has a value first).
-type getSource byte
-
-const (
-	getSourceState getSource = 1 << iota
-	getSourceConfig
-	getSourceDiff
-	getSourceSet
-	getSourceExact               // Only get from the _exact_ level
-	getSourceLevelMask getSource = getSourceState | getSourceConfig | getSourceDiff | getSourceSet
-)
-
 // getResult is the internal structure that is generated when a Get
 // is called that contains some extra data that might be used.
 type getResult struct {
