@@ -156,6 +156,11 @@ func (s *State) prune() {
 // sort sorts the modules
 func (s *State) sort() {
 	sort.Sort(moduleStateSort(s.Modules))
+
+	// Allow modules to be sorted
+	for _, m := range s.Modules {
+		m.sort()
+	}
 }
 
 func (s *State) GoString() string {
@@ -347,6 +352,12 @@ func (m *ModuleState) prune() {
 	}
 }
 
+func (m *ModuleState) sort() {
+	for _, v := range m.Resources {
+		v.sort()
+	}
+}
+
 func (m *ModuleState) GoString() string {
 	return fmt.Sprintf("*%#v", *m)
 }
@@ -513,6 +524,10 @@ func (r *ResourceState) prune() {
 		}
 	}
 	r.Tainted = r.Tainted[:n]
+}
+
+func (r *ResourceState) sort() {
+	sort.Strings(r.Dependencies)
 }
 
 func (s *ResourceState) GoString() string {
