@@ -44,6 +44,7 @@ BUG FIXES:
   * provider/aws: Fix `aws_db_instance` to not recreate each time. [GH-874]
   * provider/aws: ASG termination policies are synced with remote state. [GH-923]
   * provider/aws: Add `apply_method` to `aws_db_parameter_group` [GH-897]
+  * provider/aws: Add `storage_type` to `aws_db_instance` [GH-896]
   * provider/google: Fix bug preventing instances with metadata from being
       created [GH-884].
 
