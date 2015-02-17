@@ -179,7 +179,7 @@ func (c *Config) discoverSingle(glob string, m *map[string]string) error {
 			continue
 		}
 
-		log.Printf("[DEBUG] Discoverd plugin: %s = %s", parts[2], match)
+		log.Printf("[DEBUG] Discovered plugin: %s = %s", parts[2], match)
 		(*m)[parts[2]] = match
 	}
 
