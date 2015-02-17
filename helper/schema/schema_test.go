@@ -1944,7 +1944,7 @@ func TestSchemaMap_Diff(t *testing.T) {
 			Err:  false,
 		},
 
-		// #48
+		// #48 - Zero value in state shouldn't result in diff
 		{
 			Schema: map[string]*Schema{
 				"port": &Schema{
@@ -1957,6 +1957,49 @@ func TestSchemaMap_Diff(t *testing.T) {
 			State: &terraform.InstanceState{
 				Attributes: map[string]string{
 					"port": "false",
+				},
+			},
+
+			Config: map[string]interface{}{},
+
+			Diff: nil,
+
+			Err: false,
+		},
+
+		// #42 Set - Same as #47 but for sets
+		{
+			Schema: map[string]*Schema{
+				"route": &Schema{
+					Type:     TypeSet,
+					Optional: true,
+					Elem: &Resource{
+						Schema: map[string]*Schema{
+							"index": &Schema{
+								Type:     TypeInt,
+								Required: true,
+							},
+
+							"gateway": &Schema{
+								Type:     TypeSet,
+								Optional: true,
+								Elem:     &Schema{Type: TypeInt},
+								Set: func(a interface{}) int {
+									return a.(int)
+								},
+							},
+						},
+					},
+					Set: func(v interface{}) int {
+						m := v.(map[string]interface{})
+						return m["index"].(int)
+					},
+				},
+			},
+
+			State: &terraform.InstanceState{
+				Attributes: map[string]string{
+					"route.#": "0",
 				},
 			},
 
