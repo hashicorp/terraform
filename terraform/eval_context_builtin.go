@@ -78,7 +78,11 @@ func (ctx *BuiltinEvalContext) InitProvider(n string) (ResourceProvider, error) 
 		return nil, err
 	}
 
-	ctx.ProviderCache[PathCacheKey(ctx.Path())] = p
+	providerPath := make([]string, len(ctx.Path())+1)
+	copy(providerPath, ctx.Path())
+	providerPath[len(providerPath)-1] = n
+
+	ctx.ProviderCache[PathCacheKey(providerPath)] = p
 	return p, nil
 }
 
@@ -88,7 +92,11 @@ func (ctx *BuiltinEvalContext) Provider(n string) ResourceProvider {
 	ctx.ProviderLock.Lock()
 	defer ctx.ProviderLock.Unlock()
 
-	return ctx.ProviderCache[PathCacheKey(ctx.Path())]
+	providerPath := make([]string, len(ctx.Path())+1)
+	copy(providerPath, ctx.Path())
+	providerPath[len(providerPath)-1] = n
+
+	return ctx.ProviderCache[PathCacheKey(providerPath)]
 }
 
 func (ctx *BuiltinEvalContext) ConfigureProvider(

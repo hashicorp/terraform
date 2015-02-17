@@ -278,6 +278,17 @@ module.child:
     type = aws_instance
 `
 
+const testTerraformApplyMultiProviderStr = `
+aws_instance.bar:
+  ID = foo
+  foo = bar
+  type = aws_instance
+do_instance.foo:
+  ID = foo
+  num = 2
+  type = do_instance
+`
+
 const testTerraformApplyProvisionerStr = `
 aws_instance.bar:
   ID = foo

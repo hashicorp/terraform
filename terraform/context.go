@@ -2,6 +2,7 @@ package terraform
 
 import (
 	"fmt"
+	"log"
 	"sort"
 	"sync"
 
@@ -388,19 +389,7 @@ func (c *Context) walk(operation walkOperation) (*ContextGraphWalker, error) {
 	}
 
 	// Walk the graph
+	log.Printf("[INFO] Starting graph walk: %s", operation.String())
 	walker := &ContextGraphWalker{Context: c, Operation: operation}
 	return walker, graph.Walk(walker)
 }
-
-// walkOperation is an enum which tells the walkContext what to do.
-type walkOperation byte
-
-const (
-	walkInvalid walkOperation = iota
-	walkInput
-	walkApply
-	walkPlan
-	walkPlanDestroy
-	walkRefresh
-	walkValidate
-)
