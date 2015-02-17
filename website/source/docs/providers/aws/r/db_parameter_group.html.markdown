@@ -41,6 +41,9 @@ Parameter blocks support the following:
 
 * `name` - (Required) The name of the DB parameter.
 * `value` - (Required) The value of the DB parameter.
+* `apply_method` - (Optional) "immediate" (default), or "pending-reboot". Some
+    engines can't apply some parameters without a reboot, and you will need to
+    specify "pending-reboot" here.
 
 ## Attributes Reference
 
