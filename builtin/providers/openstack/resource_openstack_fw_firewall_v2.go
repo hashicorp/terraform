@@ -37,7 +37,6 @@ func resourceFWFirewallV2() *schema.Resource {
 			"policy_id": &schema.Schema{
 				Type:     schema.TypeString,
 				Required: true,
-				ForceNew: true,
 			},
 			"admin_state_up": &schema.Schema{
 				Type:     schema.TypeBool,
@@ -89,15 +88,9 @@ func resourceFirewallCreate(d *schema.ResourceData, meta interface{}) error {
 		MinTimeout: 2 * time.Second,
 	}
 
-	d.SetId(firewall.ID)
-
-	d.Set("name", firewall.Name)
-	d.Set("description", firewall.Description)
-	d.Set("policy_id", firewall.PolicyID)
-	d.Set("admin_state_up", firewall.AdminStateUp)
-	d.Set("tenant_id", firewall.TenantID)
-
 	_, err = stateConf.WaitForState()
+
+	d.SetId(firewall.ID)
 
 	return nil
 }
@@ -129,6 +122,7 @@ func resourceFirewallRead(d *schema.ResourceData, meta interface{}) error {
 	d.Set("description", firewall.Description)
 	d.Set("policy_id", firewall.PolicyID)
 	d.Set("admin_state_up", firewall.AdminStateUp)
+	d.Set("tenant_id", firewall.TenantID)
 
 	return nil
 }
@@ -155,14 +149,15 @@ func resourceFirewallUpdate(d *schema.ResourceData, meta interface{}) error {
 		opts.PolicyID = d.Get("policy_id").(string)
 	}
 
-	log.Printf("[DEBUG] Updating firewall with id %s: %#v", d.Id(), opts)
-
-	if err := firewalls.Update(networkingClient, d.Id(), opts).Err; err != nil {
-		return err
+	if d.HasChange("admin_state_up") {
+		adminStateUp := d.Get("admin_state_up").(bool)
+		opts.AdminStateUp = &adminStateUp
 	}
 
+	log.Printf("[DEBUG] Updating firewall with id %s: %#v", d.Id(), opts)
+
 	stateConf := &resource.StateChangeConf{
-		Pending:    []string{"PENDING_CREATE"},
+		Pending:    []string{"PENDING_CREATE", "PENDING_UPDATE"},
 		Target:     "ACTIVE",
 		Refresh:    WaitForFirewallActive(networkingClient, d.Id()),
 		Timeout:    30 * time.Second,
@@ -172,7 +167,7 @@ func resourceFirewallUpdate(d *schema.ResourceData, meta interface{}) error {
 
 	_, err = stateConf.WaitForState()
 
-	return err
+	return firewalls.Update(networkingClient, d.Id(), opts).Err
 }
 
 func resourceFirewallDelete(d *schema.ResourceData, meta interface{}) error {
@@ -184,13 +179,24 @@ func resourceFirewallDelete(d *schema.ResourceData, meta interface{}) error {
 		return fmt.Errorf("Error creating OpenStack networking client: %s", err)
 	}
 
+	stateConf := &resource.StateChangeConf{
+		Pending:    []string{"PENDING_CREATE", "PENDING_UPDATE"},
+		Target:     "ACTIVE",
+		Refresh:    WaitForFirewallActive(networkingClient, d.Id()),
+		Timeout:    30 * time.Second,
+		Delay:      0,
+		MinTimeout: 2 * time.Second,
+	}
+
+	_, err = stateConf.WaitForState()
+
 	err = firewalls.Delete(networkingClient, d.Id()).Err
 
 	if err != nil {
 		return err
 	}
 
-	stateConf := &resource.StateChangeConf{
+	stateConf = &resource.StateChangeConf{
 		Pending:    []string{"DELETING"},
 		Target:     "DELETED",
 		Refresh:    WaitForFirewallDeletion(networkingClient, d.Id()),

@@ -130,18 +130,6 @@ const testFirewallConfigUpdated = `
 resource "openstack_fw_firewall_v2" "accept_test" {
 	name = "accept_test"
 	description = "terraform acceptance test"
-	policy_id = "${openstack_fw_policy_v2.accept_test_policy_1.id}"
-}
-
-resource "openstack_fw_policy_v2" "accept_test_policy_1" {
-	name = "policy-1"
-}
-`
-
-const testFirewallConfigForceNew = `
-resource "openstack_fw_firewall_v2" "accept_test" {
-	name = "accept_test"
-	description = "terraform acceptance test"
 	policy_id = "${openstack_fw_policy_v2.accept_test_policy_2.id}"
 }
 
