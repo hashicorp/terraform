@@ -137,6 +137,10 @@ func (n *graphNodeExpandedResource) EvalTree() EvalNode {
 		vseq.Nodes = append(vseq.Nodes, &EvalGetProvisioner{
 			Name:   p.Type,
 			Output: &provisioner,
+		}, &EvalInterpolate{
+			Config:   p.RawConfig,
+			Resource: resource,
+			Output:   &resourceConfig,
 		}, &EvalValidateProvisioner{
 			Provisioner: &provisioner,
 			Config:      &resourceConfig,
