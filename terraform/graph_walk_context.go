@@ -84,6 +84,9 @@ func (w *ContextGraphWalker) EnterGraph(g *Graph) EvalContext {
 }
 
 func (w *ContextGraphWalker) EnterEvalTree(v dag.Vertex, n EvalNode) EvalNode {
+	// Acquire a lock on the semaphore
+	w.Context.parallelSem.Acquire()
+
 	// We want to filter the evaluation tree to only include operations
 	// that belong in this operation.
 	return EvalFilter(n, EvalNodeFilterOp(w.Operation))
@@ -91,6 +94,9 @@ func (w *ContextGraphWalker) EnterEvalTree(v dag.Vertex, n EvalNode) EvalNode {
 
 func (w *ContextGraphWalker) ExitEvalTree(
 	v dag.Vertex, output interface{}, err error) error {
+	// Release the semaphore
+	w.Context.parallelSem.Release()
+
 	if err == nil {
 		return nil
 	}
