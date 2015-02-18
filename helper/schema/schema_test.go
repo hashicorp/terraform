@@ -1967,7 +1967,7 @@ func TestSchemaMap_Diff(t *testing.T) {
 			Err: false,
 		},
 
-		// #49 Set - Same as #47 but for sets
+		// #49 Set - Same as #48 but for sets
 		{
 			Schema: map[string]*Schema{
 				"route": &Schema{
@@ -2047,14 +2047,19 @@ func TestSchemaMap_Diff(t *testing.T) {
 				},
 			},
 
-			State: nil,
+			State: &terraform.InstanceState{
+				Attributes: map[string]string{
+					"instances.#": "1",
+					"instances.3": "foo",
+				},
+			},
 
 			Config: map[string]interface{}{},
 
 			Diff: &terraform.InstanceDiff{
 				Attributes: map[string]*terraform.ResourceAttrDiff{
 					"instances.#": &terraform.ResourceAttrDiff{
-						Old:         "0",
+						Old:         "1",
 						New:         "0",
 						RequiresNew: true,
 					},
@@ -2092,6 +2097,46 @@ func TestSchemaMap_Diff(t *testing.T) {
 					},
 				},
 			},
+
+			Err: false,
+		},
+
+		// #53 - Unset bool, not in state
+		{
+			Schema: map[string]*Schema{
+				"force": &Schema{
+					Type:     TypeBool,
+					Optional: true,
+					ForceNew: true,
+				},
+			},
+
+			State: nil,
+
+			Config: map[string]interface{}{},
+
+			Diff: nil,
+
+			Err: false,
+		},
+
+		// #54 - Unset set, not in state
+		{
+			Schema: map[string]*Schema{
+				"metadata_keys": &Schema{
+					Type:     TypeSet,
+					Optional: true,
+					ForceNew: true,
+					Elem:     &Schema{Type: TypeInt},
+					Set:      func(interface{}) int { return 0 },
+				},
+			},
+
+			State: nil,
+
+			Config: map[string]interface{}{},
+
+			Diff: nil,
 
 			Err: false,
 		},
