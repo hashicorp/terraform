@@ -961,6 +961,32 @@ func TestResourceDataGetOk(t *testing.T) {
 			Value: 0,
 			Ok:    false,
 		},
+
+		{
+			Schema: map[string]*Schema{
+				"ports": &Schema{
+					Type:     TypeSet,
+					Optional: true,
+					Elem:     &Schema{Type: TypeInt},
+					Set:      func(a interface{}) int { return a.(int) },
+				},
+			},
+
+			State: nil,
+
+			Diff: &terraform.InstanceDiff{
+				Attributes: map[string]*terraform.ResourceAttrDiff{
+					"ports.#": &terraform.ResourceAttrDiff{
+						Old: "0",
+						New: "0",
+					},
+				},
+			},
+
+			Key:   "ports",
+			Value: []interface{}{},
+			Ok:    false,
+		},
 	}
 
 	for i, tc := range cases {
