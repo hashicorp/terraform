@@ -54,6 +54,8 @@ BUG FIXES:
   * provider/aws: Fix `aws_db_instance` to not recreate each time. [GH-874]
   * provider/aws: ASG termination policies are synced with remote state. [GH-923]
   * provider/aws: No read error when subnet is manually deleted. [GH-889]
+  * provider/aws: Tags with empty values (empty string) are properly
+      managed. [GH-968]
   * provider/google: Fix bug preventing instances with metadata from being
       created [GH-884].
 
