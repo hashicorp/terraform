@@ -39,8 +39,9 @@ Each route supports the following:
 * `cidr_block` - (Required) The CIDR block of the route.
 * `gateway_id` - (Optional) The Internet Gateway ID.
 * `instance_id` - (Optional) The EC2 instance ID.
+* `vpc_peering_connection_id` - (Optional) The VPC Peering ID.
 
-Each route must contain either a `gateway_id` or an `instance_id`. Note that the
+Each route must contain either a `gateway_id`, an `instance_id` or a `vpc_peering_connection_id`. Note that the
 default route, mapping the VPC's CIDR block to "local", is created implicitly and
 cannot be specified.
 
