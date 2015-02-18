@@ -108,6 +108,11 @@ func TestAccAWSInstance_blockDevices(t *testing.T) {
 						"aws_instance.foo", "root_block_device.0.device_name", "/dev/sda1"),
 					resource.TestCheckResourceAttr(
 						"aws_instance.foo", "root_block_device.0.volume_size", "11"),
+					// this one is important because it's the only root_block_device
+					// attribute that comes back from the API. so checking it verifies
+					// that we set state properly
+					resource.TestCheckResourceAttr(
+						"aws_instance.foo", "root_block_device.0.volume_type", "gp2"),
 					resource.TestCheckResourceAttr(
 						"aws_instance.foo", "block_device.#", "1"),
 					resource.TestCheckResourceAttr(
@@ -378,7 +383,6 @@ resource "aws_instance" "foo" {
 	}
 	block_device {
 		device_name = "/dev/sdb"
-		volume_type = "gp2"
 		volume_size = 9
 	}
 }
