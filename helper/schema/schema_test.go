@@ -111,7 +111,7 @@ func TestValueType_Zero(t *testing.T) {
 		{TypeString, ""},
 		{TypeList, []interface{}{}},
 		{TypeMap, map[string]interface{}{}},
-		{TypeSet, nil},
+		{TypeSet, new(Set)},
 	}
 
 	for i, tc := range cases {
