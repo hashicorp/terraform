@@ -109,11 +109,9 @@ func (c *RemoteCommand) Run(args []string) int {
 	case !haveLocal && haveNonManaged:
 		// Enable remote state management
 		return c.enableRemoteState()
-
-	default:
-		panic("unhandled case")
 	}
-	return 0
+
+	panic("unhandled case")
 }
 
 // disableRemoteState is used to disable remote state management,
