@@ -828,7 +828,7 @@ func TestResourceDataGetOk(t *testing.T) {
 
 			Key:   "availability_zone",
 			Value: "",
-			Ok:    true,
+			Ok:    false,
 		},
 
 		{
