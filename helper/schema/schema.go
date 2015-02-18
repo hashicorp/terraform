@@ -1007,19 +1007,13 @@ func (m schemaMap) validateObject(
 	}
 
 	// Detect any extra/unknown keys and report those as errors.
-	prefix := k + "."
-	for configK, _ := range c.Raw {
-		if k != "" {
-			if !strings.HasPrefix(configK, prefix) {
-				continue
+	raw, _ := c.Get(k)
+	if m, ok := raw.(map[string]interface{}); ok {
+		for subk, _ := range m {
+			if _, ok := schema[subk]; !ok {
+				es = append(es, fmt.Errorf(
+					"%s: invalid or unknown key: %s", k, subk))
 			}
-
-			configK = configK[len(prefix):]
-		}
-
-		if _, ok := schema[configK]; !ok {
-			es = append(es, fmt.Errorf(
-				"%s: invalid or unknown key: %s", k, configK))
 		}
 	}
 
