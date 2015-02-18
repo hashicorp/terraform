@@ -1104,6 +1104,38 @@ func TestResourceDataHasChange(t *testing.T) {
 
 			Change: true,
 		},
+
+		// https://github.com/hashicorp/terraform/issues/927
+		{
+			Schema: map[string]*Schema{
+				"ports": &Schema{
+					Type:     TypeSet,
+					Optional: true,
+					Elem:     &Schema{Type: TypeInt},
+					Set:      func(a interface{}) int { return a.(int) },
+				},
+			},
+
+			State: &terraform.InstanceState{
+				Attributes: map[string]string{
+					"ports.#":  "1",
+					"ports.80": "80",
+				},
+			},
+
+			Diff: &terraform.InstanceDiff{
+				Attributes: map[string]*terraform.ResourceAttrDiff{
+					"tags.foo": &terraform.ResourceAttrDiff{
+						Old: "",
+						New: "bar",
+					},
+				},
+			},
+
+			Key: "ports",
+
+			Change: false,
+		},
 	}
 
 	for i, tc := range cases {
