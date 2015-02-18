@@ -425,7 +425,7 @@ resource "aws_elb" "bar" {
 const testAccAWSELBConfigHealthCheck = `
 resource "aws_elb" "bar" {
   name = "foobar-terraform-test"
-  availability_zones = ["us-west-2a"]
+  availability_zones = ["us-west-2a", "us-west-2b", "us-west-2c"]
 
   listener {
     instance_port = 8000
