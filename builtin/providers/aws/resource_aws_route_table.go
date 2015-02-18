@@ -150,6 +150,9 @@ func resourceAwsRouteTableUpdate(d *schema.ResourceData, meta interface{}) error
 			m := route.(map[string]interface{})
 
 			// Delete the route as it no longer exists in the config
+			log.Printf(
+				"[INFO] Deleting route from %s: %s",
+				d.Id(), m["cidr_block"].(string))
 			_, err := ec2conn.DeleteRoute(
 				d.Id(), m["cidr_block"].(string))
 			if err != nil {
@@ -172,6 +175,7 @@ func resourceAwsRouteTableUpdate(d *schema.ResourceData, meta interface{}) error
 				InstanceId:           m["instance_id"].(string),
 			}
 
+			log.Printf("[INFO] Creating route for %s: %#v", d.Id(), opts)
 			_, err := ec2conn.CreateRoute(&opts)
 			if err != nil {
 				return err
