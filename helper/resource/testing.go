@@ -275,6 +275,15 @@ func TestCheckResourceAttr(name, key, value string) TestCheckFunc {
 	}
 }
 
+// TestCheckResourceAttrPtr is like TestCheckResourceAttr except the
+// value is a pointer so that it can be updated while the test is running.
+// It will only be dereferenced at the point this step is run.
+func TestCheckResourceAttrPtr(name string, key string, value *string) TestCheckFunc {
+	return func(s *terraform.State) error {
+		return TestCheckResourceAttr(name, key, *value)(s)
+	}
+}
+
 // TestT is the interface used to handle the test lifecycle of a test.
 //
 // Users should just use a *testing.T object, which implements this.

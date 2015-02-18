@@ -29,7 +29,6 @@ func resourceAwsAutoscalingGroup() *schema.Resource {
 			"launch_configuration": &schema.Schema{
 				Type:     schema.TypeString,
 				Required: true,
-				ForceNew: true,
 			},
 
 			"desired_capacity": &schema.Schema{
@@ -150,17 +149,17 @@ func resourceAwsAutoscalingGroupCreate(d *schema.ResourceData, meta interface{})
 		autoScalingGroupOpts.SetHealthCheckGracePeriod = true
 	}
 
-	if v, ok := d.GetOk("load_balancers"); ok {
+	if v, ok := d.GetOk("load_balancers"); ok && v.(*schema.Set).Len() > 0 {
 		autoScalingGroupOpts.LoadBalancerNames = expandStringList(
 			v.(*schema.Set).List())
 	}
 
-	if v, ok := d.GetOk("vpc_zone_identifier"); ok {
+	if v, ok := d.GetOk("vpc_zone_identifier"); ok && v.(*schema.Set).Len() > 0 {
 		autoScalingGroupOpts.VPCZoneIdentifier = expandStringList(
 			v.(*schema.Set).List())
 	}
 
-	if v, ok := d.GetOk("termination_policies"); ok {
+	if v, ok := d.GetOk("termination_policies"); ok && v.(*schema.Set).Len() > 0 {
 		autoScalingGroupOpts.TerminationPolicies = expandStringList(
 			v.(*schema.Set).List())
 	}
@@ -212,6 +211,10 @@ func resourceAwsAutoscalingGroupUpdate(d *schema.ResourceData, meta interface{})
 	if d.HasChange("desired_capacity") {
 		opts.DesiredCapacity = d.Get("desired_capacity").(int)
 		opts.SetDesiredCapacity = true
+	}
+
+	if d.HasChange("launch_configuration") {
+		opts.LaunchConfigurationName = d.Get("launch_configuration").(string)
 	}
 
 	if d.HasChange("min_size") {
