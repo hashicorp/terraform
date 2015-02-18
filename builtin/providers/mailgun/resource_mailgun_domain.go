@@ -171,23 +171,25 @@ func resourceMailginDomainRetrieve(id string, client *mailgun.Client, d *schema.
 	d.Set("wildcard", resp.Domain.Wildcard)
 	d.Set("spam_action", resp.Domain.SpamAction)
 
-	d.Set("receiving_records", make([]interface{}, len(resp.ReceivingRecords)))
+	receivingRecords := make([]map[string]interface{}, len(resp.ReceivingRecords))
 	for i, r := range resp.ReceivingRecords {
-		prefix := fmt.Sprintf("receiving_records.%d", i)
-		d.Set(prefix+".priority", r.Priority)
-		d.Set(prefix+".valid", r.Valid)
-		d.Set(prefix+".value", r.Value)
-		d.Set(prefix+".record_type", r.RecordType)
+		receivingRecords[i] = make(map[string]interface{})
+		receivingRecords[i]["priority"] = r.Priority
+		receivingRecords[i]["valid"] = r.Valid
+		receivingRecords[i]["value"] = r.Value
+		receivingRecords[i]["record_type"] = r.RecordType
 	}
+	d.Set("receiving_records", receivingRecords)
 
-	d.Set("sending_records", make([]interface{}, len(resp.SendingRecords)))
+	sendingRecords := make([]map[string]interface{}, len(resp.SendingRecords))
 	for i, r := range resp.SendingRecords {
-		prefix := fmt.Sprintf("sending_records.%d", i)
-		d.Set(prefix+".name", r.Name)
-		d.Set(prefix+".valid", r.Valid)
-		d.Set(prefix+".value", r.Value)
-		d.Set(prefix+".record_type", r.RecordType)
+		sendingRecords[i] = make(map[string]interface{})
+		sendingRecords[i]["name"] = r.Name
+		sendingRecords[i]["valid"] = r.Valid
+		sendingRecords[i]["value"] = r.Value
+		sendingRecords[i]["record_type"] = r.RecordType
 	}
+	d.Set("sending_records", sendingRecords)
 
 	return &resp, nil
 }
