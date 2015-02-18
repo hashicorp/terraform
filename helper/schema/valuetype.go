@@ -2,8 +2,6 @@ package schema
 
 //go:generate stringer -type=ValueType valuetype.go
 
-import "fmt"
-
 // ValueType is an enum of the type that can be represented by a schema.
 type ValueType int
 
@@ -19,28 +17,5 @@ const (
 	typeObject
 )
 
-// Zero returns the zero value for a type.
-func (t ValueType) Zero() interface{} {
-	switch t {
-	case TypeInvalid:
-		return nil
-	case TypeBool:
-		return false
-	case TypeInt:
-		return 0
-	case TypeFloat:
-		return 0.0
-	case TypeString:
-		return ""
-	case TypeList:
-		return []interface{}{}
-	case TypeMap:
-		return map[string]interface{}{}
-	case TypeSet:
-		return nil
-	case typeObject:
-		return map[string]interface{}{}
-	default:
-		panic(fmt.Sprintf("unknown type %s", t))
-	}
-}
+// NOTE: ValueType has more functions defined on it in schema.go. We can't
+// put them here because we reference other files.
