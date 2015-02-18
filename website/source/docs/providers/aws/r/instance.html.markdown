@@ -48,6 +48,8 @@ The following arguments are supported:
   launch the instance with.
 * `tags` - (Optional) A mapping of tags to assign to the resource.
 * `block_device` - (Optional) A list of block devices to add. Their keys are documented below.
+* `root_block_device` - (Optional) Customize details about the root block
+  device of the instance. Available keys are documented below.
 
 Each `block_device` supports the following:
 
@@ -58,6 +60,15 @@ Each `block_device` supports the following:
 * `volume_size` - (Optional) The size of the volume in gigabytes.
 * `delete_on_termination` - (Optional) Should the volume be destroyed on instance termination (defaults true).
 * `encrypted` - (Optional) Should encryption be enabled (defaults false).
+
+The `root_block_device` mapping supports the following:
+
+* `device_name` - The name of the root device on the target instance. Must
+  match the root device as defined in the AMI. Defaults to "/dev/sda1", which
+  is the typical root volume for Linux instances.
+* `volume_type` - (Optional) The type of volume. Can be standard, gp2, or io1. Defaults to standard.
+* `volume_size` - (Optional) The size of the volume in gigabytes.
+* `delete_on_termination` - (Optional) Should the volume be destroyed on instance termination (defaults true).
 
 ## Attributes Reference
 
