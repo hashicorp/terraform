@@ -42,7 +42,8 @@ func testAccCheckDBSubnetGroupDestroy(s *terraform.State) error {
 		}
 
 		// Try to find the resource
-		resp, err := conn.DescribeDBSubnetGroups(&rds.DescribeDBSubnetGroups{rs.Primary.ID})
+		resp, err := conn.DescribeDBSubnetGroups(
+			&rds.DescribeDBSubnetGroups{DBSubnetGroupName: rs.Primary.ID})
 		if err == nil {
 			if len(resp.DBSubnetGroups) > 0 {
 				return fmt.Errorf("still exist.")
@@ -76,7 +77,8 @@ func testAccCheckDBSubnetGroupExists(n string, v *rds.DBSubnetGroup) resource.Te
 		}
 
 		conn := testAccProvider.Meta().(*AWSClient).rdsconn
-		resp, err := conn.DescribeDBSubnetGroups(&rds.DescribeDBSubnetGroups{rs.Primary.ID})
+		resp, err := conn.DescribeDBSubnetGroups(
+			&rds.DescribeDBSubnetGroups{DBSubnetGroupName: rs.Primary.ID})
 		if err != nil {
 			return err
 		}

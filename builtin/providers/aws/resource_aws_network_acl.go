@@ -268,10 +268,10 @@ func resourceAwsNetworkAclDelete(d *schema.ResourceData, meta interface{}) error
 					return fmt.Errorf("Dependency violation: Cannot delete acl %s: %s", d.Id(), err)
 				}
 				_, err = ec2conn.ReplaceNetworkAclAssociation(association.NetworkAclAssociationId, defaultAcl.NetworkAclId)
-				return resource.RetryError{err}
+				return resource.RetryError{Err: err}
 			default:
 				// Any other error, we want to quit the retry loop immediately
-				return resource.RetryError{err}
+				return resource.RetryError{Err: err}
 			}
 		}
 		log.Printf("[Info] Deleted network ACL %s successfully", d.Id())

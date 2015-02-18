@@ -268,7 +268,7 @@ func resourceAwsSecurityGroupDelete(d *schema.ResourceData, meta interface{}) er
 				return err
 			default:
 				// Any other error, we want to quit the retry loop immediately
-				return resource.RetryError{err}
+				return resource.RetryError{Err: err}
 			}
 		}
 
