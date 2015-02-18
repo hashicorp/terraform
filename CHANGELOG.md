@@ -67,6 +67,10 @@ PLUGIN CHANGES:
   * New `helper/schema` field for resources: `Exists` must point to a function
       to check for the existence of a resource. This is used to properly
       handle the case where the resource was manually deleted. [GH-766]
+  * There is a semantic change in `GetOk` where it will return `true` as
+      long as any value is non-nil _anywhere_, not just in the config.
+      The biggest change here is that plugin authors should not assume
+      that ok means the value is _non-empty_ and should check that case as well.
 
 ## 0.3.6 (January 6, 2015)
 
