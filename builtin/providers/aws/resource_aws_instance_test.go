@@ -66,7 +66,7 @@ func TestAccAWSInstance_normal(t *testing.T) {
 	})
 }
 
-func TestAccAWSInstance_blockDevicesCheck(t *testing.T) {
+func TestAccAWSInstance_blockDevices(t *testing.T) {
 	var v ec2.Instance
 
 	testCheck := func() resource.TestCheckFunc {
@@ -76,6 +76,11 @@ func TestAccAWSInstance_blockDevicesCheck(t *testing.T) {
 			blockDevices := make(map[string]ec2.BlockDevice)
 			for _, blockDevice := range v.BlockDevices {
 				blockDevices[blockDevice.DeviceName] = blockDevice
+			}
+
+			// Check if the root block device exists.
+			if _, ok := blockDevices["/dev/sda1"]; !ok {
+				fmt.Errorf("block device doesn't exist: /dev/sda1")
 			}
 
 			// Check if the secondary block device exists.
@@ -97,11 +102,18 @@ func TestAccAWSInstance_blockDevicesCheck(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckInstanceExists(
 						"aws_instance.foo", &v),
-					// though two block devices exist in EC2, terraform state should only
-					// have the one block device we created, as terraform does not manage
-					// the root device
+					resource.TestCheckResourceAttr(
+						"aws_instance.foo", "root_block_device.#", "1"),
+					resource.TestCheckResourceAttr(
+						"aws_instance.foo", "root_block_device.0.device_name", "/dev/sda1"),
+					resource.TestCheckResourceAttr(
+						"aws_instance.foo", "root_block_device.0.volume_size", "11"),
 					resource.TestCheckResourceAttr(
 						"aws_instance.foo", "block_device.#", "1"),
+					resource.TestCheckResourceAttr(
+						"aws_instance.foo", "block_device.172787947.device_name", "/dev/sdb"),
+					resource.TestCheckResourceAttr(
+						"aws_instance.foo", "block_device.172787947.volume_size", "9"),
 					testCheck(),
 				),
 			},
@@ -359,10 +371,15 @@ resource "aws_instance" "foo" {
 	# us-west-2
 	ami = "ami-55a7ea65"
 	instance_type = "m1.small"
+	root_block_device {
+		device_name = "/dev/sda1"
+		volume_type = "gp2"
+		volume_size = 11
+	}
 	block_device {
 		device_name = "/dev/sdb"
 		volume_type = "gp2"
-		volume_size = 10
+		volume_size = 9
 	}
 }
 `
