@@ -7,6 +7,7 @@ IMPROVEMENTS:
       load balancing. [GH-588]
   * **New resource: `aws_main_route_table_association`** - Manage the main routing table
       of a VPC. [GH-918]
+  * **New resource: `aws_vpc_peering_connection`** [GH-963]
   * core: Formalized the syntax of interpolations and documented it
       very heavily.
   * core: Strings in interpolations can now contain further interpolations,
