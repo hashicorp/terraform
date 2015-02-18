@@ -44,6 +44,7 @@ BUG FIXES:
   * core: If a set type becomes empty, the state will be properly updated
       to remove it. [GH-952]
   * core: Bare "splat" variables are not allowed in provisioners. [GH-636]
+  * core: Invalid configuration keys to sub-resources are now errors. [GH-740]
   * command/apply: Won't try to initialize modules in some cases when
       no arguments are given. [GH-780]
   * command/apply: Fix regression where user variables weren't asked [GH-736]
