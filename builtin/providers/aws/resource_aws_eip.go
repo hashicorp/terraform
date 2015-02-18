@@ -219,7 +219,7 @@ func resourceAwsEipDelete(d *schema.ResourceData, meta interface{}) error {
 			return nil
 		}
 		if _, ok := err.(*ec2.Error); !ok {
-			return resource.RetryError{err}
+			return resource.RetryError{Err: err}
 		}
 
 		return err

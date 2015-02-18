@@ -124,7 +124,7 @@ func resourceAwsInternetGatewayDelete(d *schema.ResourceData, meta interface{}) 
 			return err // retry
 		}
 
-		return resource.RetryError{err}
+		return resource.RetryError{Err: err}
 	})
 }
 
