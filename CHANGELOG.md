@@ -53,6 +53,7 @@ BUG FIXES:
   * provider/aws: Instance should ignore root EBS devices. [GH-877]
   * provider/aws: Fix `aws_db_instance` to not recreate each time. [GH-874]
   * provider/aws: ASG termination policies are synced with remote state. [GH-923]
+  * provider/aws: ASG launch configuration setting can now be updated in-place. [GH-904]
   * provider/aws: No read error when subnet is manually deleted. [GH-889]
   * provider/aws: Tags with empty values (empty string) are properly
       managed. [GH-968]
