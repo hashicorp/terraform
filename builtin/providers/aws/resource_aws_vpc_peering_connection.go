@@ -13,22 +13,25 @@ import (
 func resourceAwsVpcPeeringConnection() *schema.Resource {
 	return &schema.Resource{
 		Create: resourceAwsVpcPeeringCreate,
-		Read:   resourceAwsVpcPeeringConnectionRead,
-		Update: nil,
+		Read:   resourceAwsVpcPeeringRead,
+		Update: resourceAwsVpcPeeringUpdate,
 		Delete: resourceAwsVpcPeeringDelete,
 
 		Schema: map[string]*schema.Schema{
 			"peer_owner_id": &schema.Schema{
 				Type:     schema.TypeString,
 				Required: true,
+				ForceNew: true,
 			},
 			"peer_vpc_id": &schema.Schema{
 				Type:     schema.TypeString,
 				Required: true,
+				ForceNew: true,
 			},
 			"vpc_id": &schema.Schema{
 				Type:     schema.TypeString,
 				Required: true,
+				ForceNew: true,
 			},
 			"tags": tagsSchema(),
 		},
@@ -74,7 +77,7 @@ func resourceAwsVpcPeeringCreate(d *schema.ResourceData, meta interface{}) error
 	return nil
 }
 
-func resourceAwsVpcPeeringConnectionRead(d *schema.ResourceData, meta interface{}) error {
+func resourceAwsVpcPeeringRead(d *schema.ResourceData, meta interface{}) error {
 	ec2conn := meta.(*AWSClient).ec2conn
 	pcRaw, _, err := resourceAwsVpcPeeringConnectionStateRefreshFunc(ec2conn, d.Id())()
 	if err != nil {
@@ -94,6 +97,19 @@ func resourceAwsVpcPeeringConnectionRead(d *schema.ResourceData, meta interface{
 
 	return nil
 }
+
+func resourceAwsVpcPeeringUpdate(d *schema.ResourceData, meta interface{}) error {
+	ec2conn := meta.(*AWSClient).ec2conn
+
+	if err := setTags(ec2conn, d); err != nil {
+		return err
+	} else {
+		d.SetPartial("tags")
+	}
+
+	return resourceAwsRouteTableRead(d, meta)
+}
+
 func resourceAwsVpcPeeringDelete(d *schema.ResourceData, meta interface{}) error {
 	ec2conn := meta.(*AWSClient).ec2conn
 
