@@ -25,6 +25,7 @@ IMPROVEMENTS:
   * provider/aws: ELB can update listeners without requiring new. [GH-721]
   * provider/aws: Security group support egress rules. [GH-856]
   * provider/aws: Route table supports VPC peering connection on route. [GH-963]
+  * provider/aws: Add `root_block_device` to `aws_db_instance` [GH-998]
   * provider/google: Remove "client secrets file", as it's no longer necessary
       for API authentication [GH-884].
   * provider/google: Expose `self_link` on `google_compute_instance` [GH-906]
