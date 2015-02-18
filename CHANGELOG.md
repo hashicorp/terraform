@@ -56,6 +56,8 @@ BUG FIXES:
   * provider/aws: No read error when subnet is manually deleted. [GH-889]
   * provider/aws: Tags with empty values (empty string) are properly
       managed. [GH-968]
+  * provider/aws: Fix case where route table would delete its routes
+      on an unrelated change. [GH-990]
   * provider/google: Fix bug preventing instances with metadata from being
       created [GH-884].
 
