@@ -11,6 +11,7 @@ import (
 
 func TestAccAWSAutoScalingGroup_basic(t *testing.T) {
 	var group autoscaling.AutoScalingGroup
+	var lc autoscaling.LaunchConfiguration
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -47,8 +48,11 @@ func TestAccAWSAutoScalingGroup_basic(t *testing.T) {
 				Config: testAccAWSAutoScalingGroupConfigUpdate,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSAutoScalingGroupExists("aws_autoscaling_group.bar", &group),
+					testAccCheckAWSLaunchConfigurationExists("aws_launch_configuration.new", &lc),
 					resource.TestCheckResourceAttr(
 						"aws_autoscaling_group.bar", "desired_capacity", "5"),
+					resource.TestCheckResourceAttrPtr(
+						"aws_autoscaling_group.bar", "launch_configuration", &lc.Name),
 				),
 			},
 		},
@@ -217,6 +221,12 @@ resource "aws_launch_configuration" "foobar" {
   instance_type = "t1.micro"
 }
 
+resource "aws_launch_configuration" "new" {
+  name = "foobarautoscaling-terraform-test-new"
+  image_id = "ami-21f78e11"
+  instance_type = "t1.micro"
+}
+
 resource "aws_autoscaling_group" "bar" {
   availability_zones = ["us-west-2a"]
   name = "foobar3-terraform-test"
@@ -227,7 +237,7 @@ resource "aws_autoscaling_group" "bar" {
   desired_capacity = 5
   force_delete = true
 
-  launch_configuration = "${aws_launch_configuration.foobar.name}"
+  launch_configuration = "${aws_launch_configuration.new.name}"
 }
 `
 

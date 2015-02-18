@@ -70,13 +70,14 @@ func (d *ResourceData) GetChange(key string) (interface{}, interface{}) {
 }
 
 // GetOk returns the data for the given key and whether or not the key
-// has been set.
+// has been set to a non-zero value at some point.
 //
 // The first result will not necessarilly be nil if the value doesn't exist.
 // The second result should be checked to determine this information.
 func (d *ResourceData) GetOk(key string) (interface{}, bool) {
 	r := d.getRaw(key, getSourceSet)
-	return r.Value, r.Exists && !r.Computed
+	exists := r.Exists && !r.Computed
+	return r.Value, exists
 }
 
 func (d *ResourceData) getRaw(key string, level getSource) getResult {
@@ -361,11 +362,13 @@ func (d *ResourceData) get(addr []string, source getSource) getResult {
 	}
 
 	// If the result doesn't exist, then we set the value to the zero value
-	if result.Value == nil {
-		if schemaL := addrToSchema(addr, d.schema); len(schemaL) > 0 {
-			schema := schemaL[len(schemaL)-1]
-			result.Value = result.ValueOrZero(schema)
-		}
+	var schema *Schema
+	if schemaL := addrToSchema(addr, d.schema); len(schemaL) > 0 {
+		schema = schemaL[len(schemaL)-1]
+	}
+
+	if result.Value == nil && schema != nil {
+		result.Value = result.ValueOrZero(schema)
 	}
 
 	// Transform the FieldReadResult into a getResult. It might be worth
@@ -375,5 +378,6 @@ func (d *ResourceData) get(addr []string, source getSource) getResult {
 		ValueProcessed: result.ValueProcessed,
 		Computed:       result.Computed,
 		Exists:         result.Exists,
+		Schema:         schema,
 	}
 }
