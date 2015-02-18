@@ -213,10 +213,9 @@ func (c *AtlasRemoteClient) DeleteState() error {
 		return ErrInvalidAuth
 	case http.StatusInternalServerError:
 		return ErrRemoteInternal
-	default:
-		return fmt.Errorf("Unexpected HTTP response code %d", resp.StatusCode)
 	}
-	return nil
+
+	return fmt.Errorf("Unexpected HTTP response code %d", resp.StatusCode)
 }
 
 func (c *AtlasRemoteClient) url() *url.URL {
