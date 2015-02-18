@@ -336,7 +336,7 @@ func resourceAwsAutoscalingGroupDrain(d *schema.ResourceData, meta interface{}) 
 	return resource.Retry(10*time.Minute, func() error {
 		g, err := getAwsAutoscalingGroup(d, meta)
 		if err != nil {
-			return resource.RetryError{err}
+			return resource.RetryError{Err: err}
 		}
 		if g == nil {
 			return nil
