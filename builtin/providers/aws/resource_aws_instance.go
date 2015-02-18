@@ -454,25 +454,33 @@ func resourceAwsInstanceRead(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	nonRootBlockDevices := make([]map[string]interface{}, 0)
+	rootBlockDevice := make([]interface{}, 0, 1)
 	for _, vol := range volResp.Volumes {
 		volSize, err := strconv.Atoi(vol.Size)
 		if err != nil {
 			return err
 		}
+
 		blockDevice := make(map[string]interface{})
 		blockDevice["device_name"] = blockDevices[vol.VolumeId].DeviceName
-		blockDevice["snapshot_id"] = vol.SnapshotId
 		blockDevice["volume_type"] = vol.VolumeType
 		blockDevice["volume_size"] = volSize
-		blockDevice["delete_on_termination"] = blockDevices[vol.VolumeId].DeleteOnTermination
-		blockDevice["encrypted"] = vol.Encrypted
+		blockDevice["delete_on_termination"] =
+			blockDevices[vol.VolumeId].DeleteOnTermination
+
+		// If this is the root device, save it. We stop here since we
+		// can't put invalid keys into this map.
 		if blockDevice["device_name"] == instance.RootDeviceName {
-			d.Set("root_block_device", []interface{}{blockDevice})
-		} else {
-			nonRootBlockDevices = append(nonRootBlockDevices, blockDevice)
+			rootBlockDevice = []interface{}{blockDevice}
+			continue
 		}
+
+		blockDevice["snapshot_id"] = vol.SnapshotId
+		blockDevice["encrypted"] = vol.Encrypted
+		nonRootBlockDevices = append(nonRootBlockDevices, blockDevice)
 	}
 	d.Set("block_device", nonRootBlockDevices)
+	d.Set("root_block_device", rootBlockDevice)
 
 	return nil
 }
