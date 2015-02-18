@@ -338,13 +338,13 @@ func resourceAwsSecurityGroupUpdate(d *schema.ResourceData, meta interface{}) er
 	}
 	group := sgRaw.(*ec2.SecurityGroupInfo).SecurityGroup
 
-	err = resourceAwsSecurityGroupUpdateRules(d, "ingress", ec2conn, group)
+	err = resourceAwsSecurityGroupUpdateRules(d, "ingress", meta, group)
 	if err != nil {
 		return err
 	}
 
 	if d.Get("vpc_id") != nil {
-		err = resourceAwsSecurityGroupUpdateRules(d, "egress", ec2conn, group)
+		err = resourceAwsSecurityGroupUpdateRules(d, "egress", meta, group)
 		if err != nil {
 			return err
 		}
