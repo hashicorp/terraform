@@ -249,6 +249,13 @@ func TestConfigValidate_varMultiNonSlice(t *testing.T) {
 	}
 }
 
+func TestConfigValidate_varMultiNonSliceProvisioner(t *testing.T) {
+	c := testConfig(t, "validate-var-multi-non-slice-provisioner")
+	if err := c.Validate(); err == nil {
+		t.Fatal("should not be valid")
+	}
+}
+
 func TestConfigValidate_varMultiFunctionCall(t *testing.T) {
 	c := testConfig(t, "validate-var-multi-func")
 	if err := c.Validate(); err != nil {
