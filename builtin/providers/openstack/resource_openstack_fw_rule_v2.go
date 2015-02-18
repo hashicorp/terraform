@@ -6,6 +6,7 @@ import (
 
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/rackspace/gophercloud"
+	"github.com/rackspace/gophercloud/openstack/networking/v2/extensions/fwaas/policies"
 	"github.com/rackspace/gophercloud/openstack/networking/v2/extensions/fwaas/rules"
 )
 
@@ -208,5 +209,18 @@ func resourceFirewallRuleDelete(d *schema.ResourceData, meta interface{}) error 
 	if err != nil {
 		return fmt.Errorf("Error creating OpenStack networking client: %s", err)
 	}
+
+	rule, err := rules.Get(networkingClient, d.Id()).Extract()
+	if err != nil {
+		return err
+	}
+
+	if rule.PolicyID != "" {
+		err := policies.RemoveRule(networkingClient, rule.PolicyID, rule.ID)
+		if err != nil {
+			return err
+		}
+	}
+
 	return rules.Delete(networkingClient, d.Id()).Err
 }
