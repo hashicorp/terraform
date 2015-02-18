@@ -149,17 +149,17 @@ func resourceAwsAutoscalingGroupCreate(d *schema.ResourceData, meta interface{})
 		autoScalingGroupOpts.SetHealthCheckGracePeriod = true
 	}
 
-	if v, ok := d.GetOk("load_balancers"); ok {
+	if v, ok := d.GetOk("load_balancers"); ok && v.(*schema.Set).Len() > 0 {
 		autoScalingGroupOpts.LoadBalancerNames = expandStringList(
 			v.(*schema.Set).List())
 	}
 
-	if v, ok := d.GetOk("vpc_zone_identifier"); ok {
+	if v, ok := d.GetOk("vpc_zone_identifier"); ok && v.(*schema.Set).Len() > 0 {
 		autoScalingGroupOpts.VPCZoneIdentifier = expandStringList(
 			v.(*schema.Set).List())
 	}
 
-	if v, ok := d.GetOk("termination_policies"); ok {
+	if v, ok := d.GetOk("termination_policies"); ok && v.(*schema.Set).Len() > 0 {
 		autoScalingGroupOpts.TerminationPolicies = expandStringList(
 			v.(*schema.Set).List())
 	}
