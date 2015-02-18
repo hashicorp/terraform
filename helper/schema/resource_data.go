@@ -77,6 +77,18 @@ func (d *ResourceData) GetChange(key string) (interface{}, interface{}) {
 func (d *ResourceData) GetOk(key string) (interface{}, bool) {
 	r := d.getRaw(key, getSourceSet)
 	exists := r.Exists && !r.Computed
+	if exists {
+		// If it exists, we also want to verify it is not the zero-value.
+		value := r.Value
+		zero := r.Schema.Type.Zero()
+
+		if eq, ok := value.(Equal); ok {
+			exists = !eq.Equal(zero)
+		} else {
+			exists = !reflect.DeepEqual(value, zero)
+		}
+	}
+
 	return r.Value, exists
 }
 
