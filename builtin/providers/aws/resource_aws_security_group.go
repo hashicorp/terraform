@@ -87,6 +87,7 @@ func resourceAwsSecurityGroup() *schema.Resource {
 			"egress": &schema.Schema{
 				Type:     schema.TypeSet,
 				Optional: true,
+				Computed: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"from_port": &schema.Schema{
@@ -403,6 +404,9 @@ func resourceAwsSecurityGroupUpdateRules(
 				if ruleset == "egress" {
 					revoke = ec2conn.RevokeSecurityGroupEgress
 				}
+
+				log.Printf("[DEBUG] Revoking security group %s %s rule: %#v",
+					group, ruleset, remove)
 				if _, err := revoke(group, remove); err != nil {
 					return fmt.Errorf(
 						"Error revoking security group %s rules: %s",
@@ -416,6 +420,9 @@ func resourceAwsSecurityGroupUpdateRules(
 				if ruleset == "egress" {
 					authorize = ec2conn.AuthorizeSecurityGroupEgress
 				}
+
+				log.Printf("[DEBUG] Authorizing security group %s %s rule: %#v",
+					group, ruleset, add)
 				if _, err := authorize(group, add); err != nil {
 					return fmt.Errorf(
 						"Error authorizing security group %s rules: %s",
