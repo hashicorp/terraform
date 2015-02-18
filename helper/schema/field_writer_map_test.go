@@ -120,6 +120,15 @@ func TestMapFieldWriter(t *testing.T) {
 			},
 		},
 
+		"list of resources nil": {
+			[]string{"listResource"},
+			nil,
+			false,
+			map[string]string{
+				"listResource.#": "0",
+			},
+		},
+
 		"list of strings": {
 			[]string{"list"},
 			[]interface{}{"foo", "bar"},
