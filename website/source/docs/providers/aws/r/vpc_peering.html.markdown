@@ -48,11 +48,12 @@ The following arguments are supported:
 * `vpc_id` - (Required) The ID of the requester VPC.
 * `tags` - (Optional) A mapping of tags to assign to the resource.
 
-
-Note: You still have to accept the peering with the aws console, aws-cli or goamz
-
 ## Attributes Reference
 
 The following attributes are exported:
 
-* `id` - The ID of the VPC Peering Connection
+* `id` - The ID of the VPC Peering Connectiona
+
+
+## Notes
+You still have to accept the peering with the aws console, aws-cli or goamz
