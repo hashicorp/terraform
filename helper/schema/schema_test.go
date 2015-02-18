@@ -2140,6 +2140,31 @@ func TestSchemaMap_Diff(t *testing.T) {
 
 			Err: false,
 		},
+
+		// #55 - Unset list in state, should not show up computed
+		{
+			Schema: map[string]*Schema{
+				"metadata_keys": &Schema{
+					Type:     TypeList,
+					Optional: true,
+					Computed: true,
+					ForceNew: true,
+					Elem:     &Schema{Type: TypeInt},
+				},
+			},
+
+			State: &terraform.InstanceState{
+				Attributes: map[string]string{
+					"metadata_keys.#": "0",
+				},
+			},
+
+			Config: map[string]interface{}{},
+
+			Diff: nil,
+
+			Err: false,
+		},
 	}
 
 	for i, tc := range cases {
