@@ -702,7 +702,6 @@ func (m schemaMap) diffSet(
 		return nil
 	}
 
-	oRaw := o
 	if o == nil {
 		o = &Set{F: schema.Set}
 	}
@@ -751,7 +750,7 @@ func (m schemaMap) diffSet(
 
 	// If the counts are not the same, then record that diff
 	changed := oldLen != newLen
-	if changed || all || oRaw == nil {
+	if changed || all {
 		countSchema := &Schema{
 			Type:     TypeInt,
 			Computed: schema.Computed,
@@ -812,7 +811,7 @@ func (m schemaMap) diffString(
 		n = schema.StateFunc(n)
 	}
 	nraw := n
-	if nraw == nil {
+	if nraw == nil && o != nil {
 		nraw = schema.Type.Zero()
 	}
 	if err := mapstructure.WeakDecode(o, &os); err != nil {
