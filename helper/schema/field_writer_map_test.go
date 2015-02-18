@@ -22,6 +22,19 @@ func TestMapFieldWriter(t *testing.T) {
 			Type: TypeList,
 			Elem: &Schema{Type: TypeInt},
 		},
+		"listResource": &Schema{
+			Type:     TypeList,
+			Optional: true,
+			Computed: true,
+			Elem: &Resource{
+				Schema: map[string]*Schema{
+					"value": &Schema{
+						Type:     TypeInt,
+						Optional: true,
+					},
+				},
+			},
+		},
 		"map": &Schema{Type: TypeMap},
 		"set": &Schema{
 			Type: TypeSet,
@@ -81,6 +94,29 @@ func TestMapFieldWriter(t *testing.T) {
 			false,
 			map[string]string{
 				"string": "42",
+			},
+		},
+
+		"list of resources": {
+			[]string{"listResource"},
+			[]interface{}{
+				map[string]interface{}{
+					"value": 80,
+				},
+			},
+			false,
+			map[string]string{
+				"listResource.#":       "1",
+				"listResource.0.value": "80",
+			},
+		},
+
+		"list of resources empty": {
+			[]string{"listResource"},
+			[]interface{}{},
+			false,
+			map[string]string{
+				"listResource.#": "0",
 			},
 		},
 
