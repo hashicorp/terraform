@@ -2,7 +2,6 @@ package openstack
 
 import (
 	"fmt"
-	"reflect"
 	"testing"
 	"time"
 
@@ -23,9 +22,7 @@ func TestAccOpenstackFirewallPolicy(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckFirewallPolicyExists(
 						"openstack_fw_policy_v2.accept_test",
-						&policies.Policy{
-							Rules: []string{},
-						}),
+						"", "", 0),
 				),
 			},
 			resource.TestStep{
@@ -33,14 +30,7 @@ func TestAccOpenstackFirewallPolicy(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckFirewallPolicyExists(
 						"openstack_fw_policy_v2.accept_test",
-						&policies.Policy{
-							Name:        "accept_test",
-							Description: "terraform acceptance test",
-							Rules: []string{
-								"",
-								"",
-							},
-						}),
+						"accept_test", "terraform acceptance test", 2),
 				),
 			},
 			resource.TestStep{
@@ -48,7 +38,7 @@ func TestAccOpenstackFirewallPolicy(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckFirewallPolicyExists(
 						"openstack_fw_policy_v2.accept_test",
-						&policies.Policy{}),
+						"accept_test", "terraform acceptance test", 1),
 				),
 			},
 		},
@@ -78,7 +68,7 @@ func testAccCheckOpenstackFirewallPolicyDestroy(s *terraform.State) error {
 	return nil
 }
 
-func testAccCheckFirewallPolicyExists(n string, expected *policies.Policy) resource.TestCheckFunc {
+func testAccCheckFirewallPolicyExists(n, name, description string, ruleCount int) resource.TestCheckFunc {
 
 	return func(s *terraform.State) error {
 
@@ -116,13 +106,16 @@ func testAccCheckFirewallPolicyExists(n string, expected *policies.Policy) resou
 			return err
 		}
 
-		expected.ID = found.ID
-		// Erase the tenant id because we don't want to compare
-		// it as long it is not present in the expected
-		found.TenantID = ""
+		if name != found.Name {
+			return fmt.Errorf("Expected name <%s>, but found <%s>", name, found.Name)
+		}
 
-		if !reflect.DeepEqual(expected, found) {
-			return fmt.Errorf("Expected:\n%#v\nFound:\n%#v", expected, found)
+		if description != found.Description {
+			return fmt.Errorf("Expected description <%s>, but found <%s>", description, found.Description)
+		}
+
+		if ruleCount != len(found.Rules) {
+			return fmt.Errorf("Expected rule count <%d>, but found <%d>", ruleCount, len(found.Rules))
 		}
 
 		return nil
@@ -141,8 +134,7 @@ resource "openstack_fw_policy_v2" "accept_test" {
 	description =  "terraform acceptance test"
 	rules = [
 		"${openstack_fw_rule_v2.accept_test_udp_deny.id}",
-		"${openstack_fw_rule_v2.accept_test_tcp_allow.id}",
-		"${openstack_fw_rule_v2.accept_test_icmp_allow.id}"
+		"${openstack_fw_rule_v2.accept_test_tcp_allow.id}"
 	]
 }
 
@@ -154,11 +146,6 @@ resource "openstack_fw_rule_v2" "accept_test_tcp_allow" {
 resource "openstack_fw_rule_v2" "accept_test_udp_deny" {
 	protocol = "udp"
 	action = "deny"
-}
-
-resource "openstack_fw_rule_v2" "accept_test_icmp_allow" {
-	protocol = "icmp"
-	action = "allow"
 }
 `
 
