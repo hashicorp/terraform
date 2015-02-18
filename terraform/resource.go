@@ -162,6 +162,9 @@ func (c *ResourceConfig) IsSet(k string) bool {
 func (c *ResourceConfig) get(
 	k string, raw map[string]interface{}) (interface{}, bool) {
 	parts := strings.Split(k, ".")
+	if len(parts) == 1 && parts[0] == "" {
+		parts = nil
+	}
 
 	var current interface{} = raw
 	for _, part := range parts {

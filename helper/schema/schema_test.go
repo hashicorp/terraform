@@ -2484,7 +2484,7 @@ func TestSchemaMap_Validate(t *testing.T) {
 		Warn   bool
 		Err    bool
 	}{
-		// Good
+		// #0 Good
 		{
 			Schema: map[string]*Schema{
 				"availability_zone": &Schema{
@@ -2500,7 +2500,7 @@ func TestSchemaMap_Validate(t *testing.T) {
 			},
 		},
 
-		// Good, because the var is not set and that error will come elsewhere
+		// #1 Good, because the var is not set and that error will come elsewhere
 		{
 			Schema: map[string]*Schema{
 				"size": &Schema{
@@ -2518,7 +2518,7 @@ func TestSchemaMap_Validate(t *testing.T) {
 			},
 		},
 
-		// Required field not set
+		// #2 Required field not set
 		{
 			Schema: map[string]*Schema{
 				"availability_zone": &Schema{
@@ -2532,7 +2532,7 @@ func TestSchemaMap_Validate(t *testing.T) {
 			Err: true,
 		},
 
-		// Invalid type
+		// #3 Invalid type
 		{
 			Schema: map[string]*Schema{
 				"port": &Schema{
@@ -2548,6 +2548,7 @@ func TestSchemaMap_Validate(t *testing.T) {
 			Err: true,
 		},
 
+		// #4
 		{
 			Schema: map[string]*Schema{
 				"user_data": &Schema{
@@ -2567,7 +2568,7 @@ func TestSchemaMap_Validate(t *testing.T) {
 			Err: true,
 		},
 
-		// Bad type, interpolated
+		// #5 Bad type, interpolated
 		{
 			Schema: map[string]*Schema{
 				"size": &Schema{
@@ -2587,7 +2588,7 @@ func TestSchemaMap_Validate(t *testing.T) {
 			Err: true,
 		},
 
-		// Required but has DefaultFunc
+		// #6 Required but has DefaultFunc
 		{
 			Schema: map[string]*Schema{
 				"availability_zone": &Schema{
@@ -2602,7 +2603,7 @@ func TestSchemaMap_Validate(t *testing.T) {
 			Config: nil,
 		},
 
-		// Required but has DefaultFunc return nil
+		// #7 Required but has DefaultFunc return nil
 		{
 			Schema: map[string]*Schema{
 				"availability_zone": &Schema{
@@ -2619,7 +2620,7 @@ func TestSchemaMap_Validate(t *testing.T) {
 			Err: true,
 		},
 
-		// Optional sub-resource
+		// #8 Optional sub-resource
 		{
 			Schema: map[string]*Schema{
 				"ingress": &Schema{
@@ -2640,7 +2641,7 @@ func TestSchemaMap_Validate(t *testing.T) {
 			Err: false,
 		},
 
-		// Not a list
+		// #9 Not a list
 		{
 			Schema: map[string]*Schema{
 				"ingress": &Schema{
@@ -2663,7 +2664,7 @@ func TestSchemaMap_Validate(t *testing.T) {
 			Err: true,
 		},
 
-		// Required sub-resource field
+		// #10 Required sub-resource field
 		{
 			Schema: map[string]*Schema{
 				"ingress": &Schema{
@@ -2688,7 +2689,7 @@ func TestSchemaMap_Validate(t *testing.T) {
 			Err: true,
 		},
 
-		// Good sub-resource
+		// #11 Good sub-resource
 		{
 			Schema: map[string]*Schema{
 				"ingress": &Schema{
@@ -2716,7 +2717,7 @@ func TestSchemaMap_Validate(t *testing.T) {
 			Err: false,
 		},
 
-		// Invalid/unknown field
+		// #12 Invalid/unknown field
 		{
 			Schema: map[string]*Schema{
 				"availability_zone": &Schema{
@@ -2734,7 +2735,7 @@ func TestSchemaMap_Validate(t *testing.T) {
 			Err: true,
 		},
 
-		// Computed field set
+		// #13 Computed field set
 		{
 			Schema: map[string]*Schema{
 				"availability_zone": &Schema{
@@ -2750,7 +2751,7 @@ func TestSchemaMap_Validate(t *testing.T) {
 			Err: true,
 		},
 
-		// Not a set
+		// #14 Not a set
 		{
 			Schema: map[string]*Schema{
 				"ports": &Schema{
@@ -2770,7 +2771,7 @@ func TestSchemaMap_Validate(t *testing.T) {
 			Err: true,
 		},
 
-		// Maps
+		// #15 Maps
 		{
 			Schema: map[string]*Schema{
 				"user_data": &Schema{
@@ -2786,6 +2787,7 @@ func TestSchemaMap_Validate(t *testing.T) {
 			Err: true,
 		},
 
+		// #16
 		{
 			Schema: map[string]*Schema{
 				"user_data": &Schema{
@@ -2803,6 +2805,7 @@ func TestSchemaMap_Validate(t *testing.T) {
 			},
 		},
 
+		// #17
 		{
 			Schema: map[string]*Schema{
 				"user_data": &Schema{
@@ -2818,6 +2821,7 @@ func TestSchemaMap_Validate(t *testing.T) {
 			},
 		},
 
+		// #18
 		{
 			Schema: map[string]*Schema{
 				"user_data": &Schema{
@@ -2835,6 +2839,7 @@ func TestSchemaMap_Validate(t *testing.T) {
 			Err: true,
 		},
 
+		// #19
 		{
 			Schema: map[string]*Schema{
 				"security_groups": &Schema{
@@ -2856,6 +2861,7 @@ func TestSchemaMap_Validate(t *testing.T) {
 			Err: false,
 		},
 
+		// #20
 		{
 			Schema: map[string]*Schema{
 				"security_groups": &Schema{
@@ -2869,6 +2875,63 @@ func TestSchemaMap_Validate(t *testing.T) {
 
 			Config: map[string]interface{}{
 				"security_groups": "${var.foo}",
+			},
+
+			Err: true,
+		},
+
+		// #21 Bad, subresource should not allow unknown elements
+		{
+			Schema: map[string]*Schema{
+				"ingress": &Schema{
+					Type:     TypeList,
+					Optional: true,
+					Elem: &Resource{
+						Schema: map[string]*Schema{
+							"port": &Schema{
+								Type:     TypeInt,
+								Required: true,
+							},
+						},
+					},
+				},
+			},
+
+			Config: map[string]interface{}{
+				"ingress": []interface{}{
+					map[string]interface{}{
+						"port":  80,
+						"other": "yes",
+					},
+				},
+			},
+
+			Err: true,
+		},
+
+		// #22 Bad, subresource should not allow invalid types
+		{
+			Schema: map[string]*Schema{
+				"ingress": &Schema{
+					Type:     TypeList,
+					Optional: true,
+					Elem: &Resource{
+						Schema: map[string]*Schema{
+							"port": &Schema{
+								Type:     TypeInt,
+								Required: true,
+							},
+						},
+					},
+				},
+			},
+
+			Config: map[string]interface{}{
+				"ingress": []interface{}{
+					map[string]interface{}{
+						"port": "bad",
+					},
+				},
 			},
 
 			Err: true,
