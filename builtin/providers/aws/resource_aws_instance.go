@@ -491,9 +491,9 @@ func resourceAwsInstanceUpdate(d *schema.ResourceData, meta interface{}) error {
 	modify := false
 	opts := new(ec2.ModifyInstance)
 
-	if v, ok := d.GetOk("source_dest_check"); ok {
-		opts.SourceDestCheck = v.(bool)
+	if d.HasChange("source_dest_check") {
 		opts.SetSourceDestCheck = true
+		opts.SourceDestCheck = d.Get("source_dest_check").(bool)
 		modify = true
 	}
 
