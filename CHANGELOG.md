@@ -1,5 +1,8 @@
 ## 0.4.0 (unreleased)
 
+IMPROVEMENTS:
+
+  * provider/aws: Convert AWS Route53 to awslabs/aws-sdk-go
 
 
 ## 0.3.7 (February 19, 2015)
