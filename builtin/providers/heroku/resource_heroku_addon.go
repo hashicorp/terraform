@@ -114,7 +114,12 @@ func resourceHerokuAddonRead(d *schema.ResourceData, meta interface{}) error {
 	d.Set("name", addon.Name)
 	d.Set("plan", plan)
 	d.Set("provider_id", addon.ProviderID)
-	d.Set("config_vars", []interface{}{addon.ConfigVars})
+
+	configVarsMap := make(map[string]interface{})
+	for i := range addon.ConfigVars {
+		configVarsMap[addon.ConfigVars[i]] = addon.ConfigVars[i]
+	}
+	d.Set("config_vars", []interface{}{configVarsMap})
 
 	return nil
 }
