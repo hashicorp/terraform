@@ -5,7 +5,6 @@ import (
 	"log"
 
 	"github.com/hashicorp/terraform/helper/schema"
-	"github.com/rackspace/gophercloud"
 	"github.com/rackspace/gophercloud/openstack/networking/v2/extensions/fwaas/policies"
 	"github.com/rackspace/gophercloud/openstack/networking/v2/extensions/fwaas/rules"
 )
@@ -126,15 +125,7 @@ func resourceFWRuleV1Read(d *schema.ResourceData, meta interface{}) error {
 	rule, err := rules.Get(networkingClient, d.Id()).Extract()
 
 	if err != nil {
-		httpError, ok := err.(*gophercloud.UnexpectedResponseCodeError)
-		if !ok {
-			return err
-		}
-		if httpError.Actual == 404 {
-			d.SetId("")
-			return nil
-		}
-		return err
+		return CheckDeleted(d, err, "LB pool")
 	}
 
 	d.Set("protocol", rule.Protocol)

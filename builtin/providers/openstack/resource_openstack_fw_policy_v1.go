@@ -119,15 +119,7 @@ func resourceFWPolicyV1Read(d *schema.ResourceData, meta interface{}) error {
 	policy, err := policies.Get(networkingClient, d.Id()).Extract()
 
 	if err != nil {
-		httpError, ok := err.(*gophercloud.UnexpectedResponseCodeError)
-		if !ok {
-			return err
-		}
-		if httpError.Actual == 404 {
-			d.SetId("")
-			return nil
-		}
-		return err
+		return CheckDeleted(d, err, "LB pool")
 	}
 
 	if t, exists := d.GetOk("name"); exists && t != "" {
