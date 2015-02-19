@@ -42,8 +42,8 @@ func (r *FieldReadResult) ValueOrZero(s *Schema) interface{} {
 
 	// The zero value of a set is nil, but we want it
 	// to actually be an empty set object...
-	if s.Type == TypeSet && result == nil {
-		result = &Set{F: s.Set}
+	if set, ok := result.(*Set); ok && set.F == nil {
+		set.F = s.Set
 	}
 
 	return result
