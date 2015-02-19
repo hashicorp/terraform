@@ -16,10 +16,15 @@ func Provider() terraform.ResourceProvider {
 				Required:    true,
 				DefaultFunc: envDefaultFunc("RS_AUTH_URL"),
 			},
-			"user_name": &schema.Schema{
+			"username": &schema.Schema{
 				Type:        schema.TypeString,
 				Optional:    true,
 				DefaultFunc: envDefaultFunc("RS_USERNAME"),
+			},
+			"api_key": &schema.Schema{
+				Type:        schema.TypeString,
+				Optional:    true,
+				DefaultFunc: envDefaultFunc("RS_API_KEY"),
 			},
 			"user_id": &schema.Schema{
 				Type:     schema.TypeString,
@@ -32,19 +37,14 @@ func Provider() terraform.ResourceProvider {
 				Default:  "",
 			},
 			"tenant_name": &schema.Schema{
-				Type:        schema.TypeString,
-				Optional:    true,
-				DefaultFunc: envDefaultFunc("RS_TENANT_NAME"),
+				Type:     schema.TypeString,
+				Optional: true,
+				Default:  "",
 			},
 			"password": &schema.Schema{
-				Type:        schema.TypeString,
-				Optional:    true,
-				DefaultFunc: envDefaultFunc("RS_PASSWORD"),
-			},
-			"api_key": &schema.Schema{
-				Type:        schema.TypeString,
-				Optional:    true,
-				DefaultFunc: envDefaultFunc("RS_API_KEY"),
+				Type:     schema.TypeString,
+				Optional: true,
+				Default:  "",
 			},
 			"domain_id": &schema.Schema{
 				Type:     schema.TypeString,
@@ -59,7 +59,7 @@ func Provider() terraform.ResourceProvider {
 		},
 
 		ResourcesMap: map[string]*schema.Resource{
-		//"openstack_compute_instance":            resourceComputeInstance(),
+			"rackspace_compute_instance": resourceComputeInstance(),
 		},
 
 		ConfigureFunc: configureProvider,
@@ -69,7 +69,7 @@ func Provider() terraform.ResourceProvider {
 func configureProvider(d *schema.ResourceData) (interface{}, error) {
 	config := Config{
 		IdentityEndpoint: d.Get("auth_url").(string),
-		Username:         d.Get("user_name").(string),
+		Username:         d.Get("username").(string),
 		UserID:           d.Get("user_id").(string),
 		Password:         d.Get("password").(string),
 		APIKey:           d.Get("api_key").(string),
