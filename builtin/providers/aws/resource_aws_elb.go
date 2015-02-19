@@ -73,6 +73,7 @@ func resourceAwsElb() *schema.Resource {
 				Type:     schema.TypeSet,
 				Elem:     &schema.Schema{Type: schema.TypeString},
 				Optional: true,
+				ForceNew: true,
 				Computed: true,
 				Set: func(v interface{}) int {
 					return hashcode.String(v.(string))
