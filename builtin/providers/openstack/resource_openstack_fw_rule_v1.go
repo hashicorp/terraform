@@ -110,7 +110,7 @@ func resourceFWRuleV1Create(d *schema.ResourceData, meta interface{}) error {
 
 	d.SetId(rule.ID)
 
-	return nil
+	return resourceFWRuleV1Read(d, meta)
 }
 
 func resourceFWRuleV1Read(d *schema.ResourceData, meta interface{}) error {
@@ -229,7 +229,12 @@ func resourceFWRuleV1Update(d *schema.ResourceData, meta interface{}) error {
 
 	log.Printf("[DEBUG] Updating firewall rules: %#v", opts)
 
-	return rules.Update(networkingClient, d.Id(), opts).Err
+	err = rules.Update(networkingClient, d.Id(), opts).Err
+	if err != nil {
+		return err
+	}
+
+	return resourceFWRuleV1Read(d, meta)
 }
 
 func resourceFWRuleV1Delete(d *schema.ResourceData, meta interface{}) error {

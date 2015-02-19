@@ -104,7 +104,7 @@ func resourceFWPolicyV1Create(d *schema.ResourceData, meta interface{}) error {
 
 	d.SetId(policy.ID)
 
-	return nil
+	return resourceFWPolicyV1Read(d, meta)
 }
 
 func resourceFWPolicyV1Read(d *schema.ResourceData, meta interface{}) error {
@@ -188,7 +188,12 @@ func resourceFWPolicyV1Update(d *schema.ResourceData, meta interface{}) error {
 
 	log.Printf("[DEBUG] Updating firewall policy with id %s: %#v", d.Id(), opts)
 
-	return policies.Update(networkingClient, d.Id(), opts).Err
+	err = policies.Update(networkingClient, d.Id(), opts).Err
+	if err != nil {
+		return err
+	}
+
+	return resourceFWPolicyV1Read(d, meta)
 }
 
 func resourceFWPolicyV1Delete(d *schema.ResourceData, meta interface{}) error {

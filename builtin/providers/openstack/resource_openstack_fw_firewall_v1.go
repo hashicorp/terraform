@@ -92,7 +92,7 @@ func resourceFWFirewallV1Create(d *schema.ResourceData, meta interface{}) error 
 
 	d.SetId(firewall.ID)
 
-	return nil
+	return resourceFWFirewallV1Read(d, meta)
 }
 
 func resourceFWFirewallV1Read(d *schema.ResourceData, meta interface{}) error {
@@ -183,7 +183,12 @@ func resourceFWFirewallV1Update(d *schema.ResourceData, meta interface{}) error 
 
 	_, err = stateConf.WaitForState()
 
-	return firewalls.Update(networkingClient, d.Id(), opts).Err
+	err = firewalls.Update(networkingClient, d.Id(), opts).Err
+	if err != nil {
+		return err
+	}
+
+	return resourceFWFirewallV1Read(d, meta)
 }
 
 func resourceFWFirewallV1Delete(d *schema.ResourceData, meta interface{}) error {
