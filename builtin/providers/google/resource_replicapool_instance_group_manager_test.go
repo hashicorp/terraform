@@ -2,7 +2,6 @@ package google
 
 import (
 	"fmt"
-	"log"
 	"testing"
 
 	"code.google.com/p/google-api-go-client/replicapool/v1beta2"
@@ -122,7 +121,6 @@ func testAccCheckInstanceGroupManagerUpdated(n string, size int64, targetPool st
 		if rs.Primary.ID == "" {
 			return fmt.Errorf("No ID is set")
 		}
-		log.Printf("[DEBUG] XXXXXXXXXXXXXXXXXXXXXXXX Manager Test: %#v", rs)
 
 		config := testAccProvider.Meta().(*Config)
 
@@ -133,7 +131,6 @@ func testAccCheckInstanceGroupManagerUpdated(n string, size int64, targetPool st
 		}
 
 		// check that total instance count is "size"
-		log.Printf("[DEBUG] XXXXXXXXXXXXXXXXXXXXXXXX Manager Test: %#v", manager.TargetSize)
 		if manager.CurrentSize != size {
 			return fmt.Errorf("instance count incorrect")
 		}
@@ -147,7 +144,6 @@ func testAccCheckInstanceGroupManagerUpdated(n string, size int64, targetPool st
 		if tp.Primary.ID == "" {
 			return fmt.Errorf("No ID is set")
 		}
-		log.Printf("[DEBUG] XXXXXXXXXXXXXXXXXXXXXXXX Manager Test: %#v", tp)
 
 		targetpool, err := config.clientCompute.TargetPools.Get(
 			config.Project, config.Region, tp.Primary.ID).Do()
@@ -156,7 +152,6 @@ func testAccCheckInstanceGroupManagerUpdated(n string, size int64, targetPool st
 		}
 
 		// check that total instance count is "size"
-		log.Printf("[DEBUG] XXXXXXXXXXXXXXXXXXXXXXXX Manager Test: %#v", len(targetpool.Instances))
 		if len(targetpool.Instances) == 0 {
 			return fmt.Errorf("no instance in new targetpool")
 		}
