@@ -1,14 +1,17 @@
 package openstack
 
 import (
+	"bytes"
 	"fmt"
 	"log"
 	"time"
 
+	"github.com/hashicorp/terraform/helper/hashcode"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/rackspace/gophercloud"
 	"github.com/rackspace/gophercloud/openstack/blockstorage/v1/volumes"
+	"github.com/rackspace/gophercloud/openstack/compute/v2/extensions/volumeattach"
 )
 
 func resourceBlockStorageVolumeV1() *schema.Resource {
@@ -64,6 +67,27 @@ func resourceBlockStorageVolumeV1() *schema.Resource {
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: true,
+			},
+			"attachment": &schema.Schema{
+				Type:     schema.TypeSet,
+				Computed: true,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"id": &schema.Schema{
+							Type:     schema.TypeString,
+							Computed: true,
+						},
+						"instance_id": &schema.Schema{
+							Type:     schema.TypeString,
+							Computed: true,
+						},
+						"device": &schema.Schema{
+							Type:     schema.TypeString,
+							Computed: true,
+						},
+					},
+				},
+				Set: resourceVolumeAttachmentHash,
 			},
 		},
 	}
@@ -175,6 +199,18 @@ func resourceBlockStorageVolumeV1Read(d *schema.ResourceData, meta interface{}) 
 		d.Set("metadata", "")
 	}
 
+	if len(v.Attachments) > 0 {
+		attachments := make([]map[string]interface{}, len(v.Attachments))
+		for i, attachment := range v.Attachments {
+			attachments[i] = make(map[string]interface{})
+			attachments[i]["id"] = attachment["id"]
+			attachments[i]["instance_id"] = attachment["server_id"]
+			attachments[i]["device"] = attachment["device"]
+			log.Printf("[DEBUG] attachment: %v", attachment)
+		}
+		d.Set("attachment", attachments)
+	}
+
 	return nil
 }
 
@@ -207,6 +243,42 @@ func resourceBlockStorageVolumeV1Delete(d *schema.ResourceData, meta interface{}
 	blockStorageClient, err := config.blockStorageV1Client(d.Get("region").(string))
 	if err != nil {
 		return fmt.Errorf("Error creating OpenStack block storage client: %s", err)
+	}
+
+	v, err := volumes.Get(blockStorageClient, d.Id()).Extract()
+	if err != nil {
+		return CheckDeleted(d, err, "volume")
+	}
+
+	// make sure this volume is detached from all instances before deleting
+	if len(v.Attachments) > 0 {
+		log.Printf("[DEBUG] detaching volumes")
+		if computeClient, err := config.computeV2Client(d.Get("region").(string)); err != nil {
+			return err
+		} else {
+			for _, volumeAttachment := range v.Attachments {
+				log.Printf("[DEBUG] Attachment: %v", volumeAttachment)
+				if err := volumeattach.Delete(computeClient, volumeAttachment["server_id"].(string), volumeAttachment["id"].(string)).ExtractErr(); err != nil {
+					return err
+				}
+			}
+
+			stateConf := &resource.StateChangeConf{
+				Pending:    []string{"in-use"},
+				Target:     "available",
+				Refresh:    VolumeV1StateRefreshFunc(blockStorageClient, d.Id()),
+				Timeout:    10 * time.Minute,
+				Delay:      10 * time.Second,
+				MinTimeout: 3 * time.Second,
+			}
+
+			_, err = stateConf.WaitForState()
+			if err != nil {
+				return fmt.Errorf(
+					"Error waiting for volume (%s) to become available: %s",
+					d.Id(), err)
+			}
+		}
 	}
 
 	err = volumes.Delete(blockStorageClient, d.Id()).ExtractErr()
@@ -263,4 +335,13 @@ func VolumeV1StateRefreshFunc(client *gophercloud.ServiceClient, volumeID string
 
 		return v, v.Status, nil
 	}
+}
+
+func resourceVolumeAttachmentHash(v interface{}) int {
+	var buf bytes.Buffer
+	m := v.(map[string]interface{})
+	if m["instance_id"] != nil {
+		buf.WriteString(fmt.Sprintf("%s-", m["instance_id"].(string)))
+	}
+	return hashcode.String(buf.String())
 }
