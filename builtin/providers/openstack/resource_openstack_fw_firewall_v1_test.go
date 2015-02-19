@@ -11,32 +11,32 @@ import (
 	"github.com/rackspace/gophercloud/openstack/networking/v2/extensions/fwaas/firewalls"
 )
 
-func TestAccOpenstackFirewall(t *testing.T) {
+func TestAccFWFirewallV1(t *testing.T) {
 
 	var policyID *string
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
-		CheckDestroy: testAccCheckOpenstackFirewallDestroy,
+		CheckDestroy: testAccCheckFWFirewallV1Destroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
 				Config: testFirewallConfig,
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckFirewallExists("openstack_fw_firewall_v2.accept_test", "", "", policyID),
+					testAccCheckFWFirewallV1Exists("openstack_fw_firewall_v1.accept_test", "", "", policyID),
 				),
 			},
 			resource.TestStep{
 				Config: testFirewallConfigUpdated,
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckFirewallExists("openstack_fw_firewall_v2.accept_test", "accept_test", "terraform acceptance test", policyID),
+					testAccCheckFWFirewallV1Exists("openstack_fw_firewall_v1.accept_test", "accept_test", "terraform acceptance test", policyID),
 				),
 			},
 		},
 	})
 }
 
-func testAccCheckOpenstackFirewallDestroy(s *terraform.State) error {
+func testAccCheckFWFirewallV1Destroy(s *terraform.State) error {
 
 	config := testAccProvider.Meta().(*Config)
 	networkingClient, err := config.networkingV2Client(OS_REGION_NAME)
@@ -59,7 +59,7 @@ func testAccCheckOpenstackFirewallDestroy(s *terraform.State) error {
 	return nil
 }
 
-func testAccCheckFirewallExists(n, expectedName, expectedDescription string, policyID *string) resource.TestCheckFunc {
+func testAccCheckFWFirewallV1Exists(n, expectedName, expectedDescription string, policyID *string) resource.TestCheckFunc {
 
 	return func(s *terraform.State) error {
 
@@ -117,23 +117,23 @@ func testAccCheckFirewallExists(n, expectedName, expectedDescription string, pol
 }
 
 const testFirewallConfig = `
-resource "openstack_fw_firewall_v2" "accept_test" {
-	policy_id = "${openstack_fw_policy_v2.accept_test_policy_1.id}"
+resource "openstack_fw_firewall_v1" "accept_test" {
+	policy_id = "${openstack_fw_policy_v1.accept_test_policy_1.id}"
 }
 
-resource "openstack_fw_policy_v2" "accept_test_policy_1" {
+resource "openstack_fw_policy_v1" "accept_test_policy_1" {
 	name = "policy-1"
 }
 `
 
 const testFirewallConfigUpdated = `
-resource "openstack_fw_firewall_v2" "accept_test" {
+resource "openstack_fw_firewall_v1" "accept_test" {
 	name = "accept_test"
 	description = "terraform acceptance test"
-	policy_id = "${openstack_fw_policy_v2.accept_test_policy_2.id}"
+	policy_id = "${openstack_fw_policy_v1.accept_test_policy_2.id}"
 }
 
-resource "openstack_fw_policy_v2" "accept_test_policy_2" {
+resource "openstack_fw_policy_v1" "accept_test_policy_2" {
 	name = "policy-2"
 }
 `

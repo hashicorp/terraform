@@ -11,12 +11,12 @@ import (
 	"github.com/rackspace/gophercloud/openstack/networking/v2/extensions/fwaas/policies"
 )
 
-func resourceFWPolicyV2() *schema.Resource {
+func resourceFWPolicyV1() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceFirewallPolicyCreate,
-		Read:   resourceFirewallPolicyRead,
-		Update: resourceFirewallPolicyUpdate,
-		Delete: resourceFirewallPolicyDelete,
+		Create: resourceFWPolicyV1Create,
+		Read:   resourceFWPolicyV1Read,
+		Update: resourceFWPolicyV1Update,
+		Delete: resourceFWPolicyV1Delete,
 
 		Schema: map[string]*schema.Schema{
 			"region": &schema.Schema{
@@ -60,7 +60,7 @@ func resourceFWPolicyV2() *schema.Resource {
 	}
 }
 
-func resourceFirewallPolicyCreate(d *schema.ResourceData, meta interface{}) error {
+func resourceFWPolicyV1Create(d *schema.ResourceData, meta interface{}) error {
 
 	// TODO To remove
 	time.Sleep(time.Second * 5)
@@ -107,7 +107,7 @@ func resourceFirewallPolicyCreate(d *schema.ResourceData, meta interface{}) erro
 	return nil
 }
 
-func resourceFirewallPolicyRead(d *schema.ResourceData, meta interface{}) error {
+func resourceFWPolicyV1Read(d *schema.ResourceData, meta interface{}) error {
 	log.Printf("[DEBUG] Retrieve information about firewall policy: %s", d.Id())
 
 	config := meta.(*Config)
@@ -163,7 +163,7 @@ func resourceFirewallPolicyRead(d *schema.ResourceData, meta interface{}) error 
 	return nil
 }
 
-func resourceFirewallPolicyUpdate(d *schema.ResourceData, meta interface{}) error {
+func resourceFWPolicyV1Update(d *schema.ResourceData, meta interface{}) error {
 
 	config := meta.(*Config)
 	networkingClient, err := config.networkingV2Client(d.Get("region").(string))
@@ -199,7 +199,7 @@ func resourceFirewallPolicyUpdate(d *schema.ResourceData, meta interface{}) erro
 	return policies.Update(networkingClient, d.Id(), opts).Err
 }
 
-func resourceFirewallPolicyDelete(d *schema.ResourceData, meta interface{}) error {
+func resourceFWPolicyV1Delete(d *schema.ResourceData, meta interface{}) error {
 	log.Printf("[DEBUG] Destroy firewall policy: %s", d.Id())
 
 	config := meta.(*Config)

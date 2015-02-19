@@ -10,12 +10,12 @@ import (
 	"github.com/rackspace/gophercloud/openstack/networking/v2/extensions/fwaas/rules"
 )
 
-func resourceFWRuleV2() *schema.Resource {
+func resourceFWRuleV1() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceFirewallRuleCreate,
-		Read:   resourceFirewallRuleRead,
-		Update: resourceFirewallRuleUpdate,
-		Delete: resourceFirewallRuleDelete,
+		Create: resourceFWRuleV1Create,
+		Read:   resourceFWRuleV1Read,
+		Update: resourceFWRuleV1Update,
+		Delete: resourceFWRuleV1Delete,
 
 		Schema: map[string]*schema.Schema{
 			"region": &schema.Schema{
@@ -75,7 +75,7 @@ func resourceFWRuleV2() *schema.Resource {
 	}
 }
 
-func resourceFirewallRuleCreate(d *schema.ResourceData, meta interface{}) error {
+func resourceFWRuleV1Create(d *schema.ResourceData, meta interface{}) error {
 
 	config := meta.(*Config)
 	networkingClient, err := config.networkingV2Client(d.Get("region").(string))
@@ -114,7 +114,7 @@ func resourceFirewallRuleCreate(d *schema.ResourceData, meta interface{}) error 
 	return nil
 }
 
-func resourceFirewallRuleRead(d *schema.ResourceData, meta interface{}) error {
+func resourceFWRuleV1Read(d *schema.ResourceData, meta interface{}) error {
 	log.Printf("[DEBUG] Retrieve information about firewall rule: %s", d.Id())
 
 	config := meta.(*Config)
@@ -191,7 +191,7 @@ func resourceFirewallRuleRead(d *schema.ResourceData, meta interface{}) error {
 	return nil
 }
 
-func resourceFirewallRuleUpdate(d *schema.ResourceData, meta interface{}) error {
+func resourceFWRuleV1Update(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
 	networkingClient, err := config.networkingV2Client(d.Get("region").(string))
 	if err != nil {
@@ -241,7 +241,7 @@ func resourceFirewallRuleUpdate(d *schema.ResourceData, meta interface{}) error 
 	return rules.Update(networkingClient, d.Id(), opts).Err
 }
 
-func resourceFirewallRuleDelete(d *schema.ResourceData, meta interface{}) error {
+func resourceFWRuleV1Delete(d *schema.ResourceData, meta interface{}) error {
 	log.Printf("[DEBUG] Destroy firewall rule: %s", d.Id())
 
 	config := meta.(*Config)
