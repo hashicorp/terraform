@@ -6,7 +6,61 @@ import (
 
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
+
+	"github.com/awslabs/aws-sdk-go/aws"
+	"github.com/awslabs/aws-sdk-go/gen/route53"
 )
+
+func TestCleanPrefix(t *testing.T) {
+	cases := []struct {
+		Input, Prefix, Output string
+	}{
+		{"/hostedzone/foo", "/hostedzone/", "foo"},
+		{"/change/foo", "/change/", "foo"},
+		{"/bar", "/test", "/bar"},
+	}
+
+	for _, tc := range cases {
+		actual := cleanPrefix(tc.Input, tc.Prefix)
+		if actual != tc.Output {
+			t.Fatalf("input: %s\noutput: %s", tc.Input, actual)
+		}
+	}
+}
+
+func TestCleanZoneID(t *testing.T) {
+	cases := []struct {
+		Input, Output string
+	}{
+		{"/hostedzone/foo", "foo"},
+		{"/change/foo", "/change/foo"},
+		{"/bar", "/bar"},
+	}
+
+	for _, tc := range cases {
+		actual := cleanZoneID(tc.Input)
+		if actual != tc.Output {
+			t.Fatalf("input: %s\noutput: %s", tc.Input, actual)
+		}
+	}
+}
+
+func TestCleanChangeID(t *testing.T) {
+	cases := []struct {
+		Input, Output string
+	}{
+		{"/hostedzone/foo", "/hostedzone/foo"},
+		{"/change/foo", "foo"},
+		{"/bar", "/bar"},
+	}
+
+	for _, tc := range cases {
+		actual := cleanChangeID(tc.Input)
+		if actual != tc.Output {
+			t.Fatalf("input: %s\noutput: %s", tc.Input, actual)
+		}
+	}
+}
 
 func TestAccRoute53Zone(t *testing.T) {
 	resource.Test(t, resource.TestCase{
@@ -25,13 +79,13 @@ func TestAccRoute53Zone(t *testing.T) {
 }
 
 func testAccCheckRoute53ZoneDestroy(s *terraform.State) error {
-	conn := testAccProvider.Meta().(*AWSClient).route53
+	conn := testAccProvider.Meta().(*AWSClient).r53conn
 	for _, rs := range s.RootModule().Resources {
 		if rs.Type != "aws_route53_zone" {
 			continue
 		}
 
-		_, err := conn.GetHostedZone(rs.Primary.ID)
+		_, err := conn.GetHostedZone(&route53.GetHostedZoneRequest{ID: aws.String(rs.Primary.ID)})
 		if err == nil {
 			return fmt.Errorf("Hosted zone still exists")
 		}
@@ -50,8 +104,8 @@ func testAccCheckRoute53ZoneExists(n string) resource.TestCheckFunc {
 			return fmt.Errorf("No hosted zone ID is set")
 		}
 
-		conn := testAccProvider.Meta().(*AWSClient).route53
-		_, err := conn.GetHostedZone(rs.Primary.ID)
+		conn := testAccProvider.Meta().(*AWSClient).r53conn
+		_, err := conn.GetHostedZone(&route53.GetHostedZoneRequest{ID: aws.String(rs.Primary.ID)})
 		if err != nil {
 			return fmt.Errorf("Hosted zone err: %v", err)
 		}
