@@ -105,17 +105,9 @@ func resourceFWFirewallV1Read(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	firewall, err := firewalls.Get(networkingClient, d.Id()).Extract()
-	if err != nil {
-		httpError, ok := err.(*gophercloud.UnexpectedResponseCodeError)
-		if !ok {
-			return err
-		}
 
-		if httpError.Actual == 404 {
-			d.SetId("")
-			return nil
-		}
-		return err
+	if err != nil {
+		return CheckDeleted(d, err, "LB pool")
 	}
 
 	if t, exists := d.GetOk("name"); exists && t != "" {
