@@ -62,9 +62,6 @@ func resourceFWPolicyV1() *schema.Resource {
 
 func resourceFWPolicyV1Create(d *schema.ResourceData, meta interface{}) error {
 
-	// TODO To remove
-	time.Sleep(time.Second * 5)
-
 	config := meta.(*Config)
 	networkingClient, err := config.networkingV2Client(d.Get("region").(string))
 	if err != nil {

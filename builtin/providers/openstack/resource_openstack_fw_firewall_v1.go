@@ -1,7 +1,6 @@
 package openstack
 
 import (
-	"errors"
 	"fmt"
 	"log"
 	"time"
@@ -258,7 +257,7 @@ func waitForFirewallDeletion(networkingClient *gophercloud.ServiceClient, id str
 				log.Printf("[DEBUG] Firewall %s is actually deleted", id)
 				return "", "DELETED", nil
 			}
-			return nil, "", errors.New(fmt.Sprintf("Unexpected status code %d", httpStatus.Actual))
+			return nil, "", fmt.Errorf("Unexpected status code %d", httpStatus.Actual)
 		}
 
 		log.Printf("[DEBUG] Firewall %s deletion is pending", id)
