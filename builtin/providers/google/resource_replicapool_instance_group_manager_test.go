@@ -189,8 +189,8 @@ resource "google_compute_instance_template" "foobar" {
 		boot = true
 	}
 
-	network {
-		source = "default"
+	network_interface {
+		network = "default"
 	}
 
 	metadata {
@@ -231,8 +231,8 @@ resource "google_compute_instance_template" "foobar" {
 		boot = true
 	}
 
-	network {
-		source = "default"
+	network_interface {
+		network = "default"
 	}
 
 	metadata {
@@ -256,8 +256,8 @@ resource "google_compute_instance_template" "foobaz" {
 		boot = true
 	}
 
-	network {
-		source = "default"
+	network_interface {
+		network = "default"
 	}
 
 	metadata {
@@ -304,8 +304,8 @@ resource "google_compute_instance_template" "foobar" {
 		boot = true
 	}
 
-	network {
-		source = "default"
+	network_interface {
+		network = "default"
 	}
 
 	metadata {
@@ -329,8 +329,8 @@ resource "google_compute_instance_template" "foobaz" {
 		boot = true
 	}
 
-	network {
-		source = "default"
+	network_interface {
+		network = "default"
 	}
 
 	metadata {
