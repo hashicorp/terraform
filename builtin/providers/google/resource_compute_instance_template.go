@@ -48,7 +48,6 @@ func resourceComputeInstanceTemplate() *schema.Resource {
 				ForceNew: true,
 			},
 
-			// TODO: Constraint either source or other disk params
 			"disk": &schema.Schema{
 				Type:     schema.TypeList,
 				Required: true,
