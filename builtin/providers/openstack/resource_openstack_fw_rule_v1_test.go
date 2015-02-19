@@ -12,17 +12,17 @@ import (
 	"github.com/rackspace/gophercloud/openstack/networking/v2/extensions/fwaas/rules"
 )
 
-func TestAccOpenstackFirewallRule(t *testing.T) {
+func TestAccFWRuleV1(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
-		CheckDestroy: testAccCheckOpenstackFirewallRuleDestroy,
+		CheckDestroy: testAccCheckFWRuleV1Destroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
 				Config: testFirewallRuleMinimalConfig,
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckFirewallRuleExists(
-						"openstack_fw_rule_v2.accept_test_minimal",
+					testAccCheckFWRuleV1Exists(
+						"openstack_fw_rule_v1.accept_test_minimal",
 						&rules.Rule{
 							Protocol:  "udp",
 							Action:    "deny",
@@ -34,8 +34,8 @@ func TestAccOpenstackFirewallRule(t *testing.T) {
 			resource.TestStep{
 				Config: testFirewallRuleConfig,
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckFirewallRuleExists(
-						"openstack_fw_rule_v2.accept_test",
+					testAccCheckFWRuleV1Exists(
+						"openstack_fw_rule_v1.accept_test",
 						&rules.Rule{
 							Name:                 "accept_test",
 							Protocol:             "udp",
@@ -53,8 +53,8 @@ func TestAccOpenstackFirewallRule(t *testing.T) {
 			resource.TestStep{
 				Config: testFirewallRuleUpdateAllFieldsConfig,
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckFirewallRuleExists(
-						"openstack_fw_rule_v2.accept_test",
+					testAccCheckFWRuleV1Exists(
+						"openstack_fw_rule_v1.accept_test",
 						&rules.Rule{
 							Name:                 "accept_test_updated_2",
 							Protocol:             "tcp",
@@ -73,7 +73,7 @@ func TestAccOpenstackFirewallRule(t *testing.T) {
 	})
 }
 
-func testAccCheckOpenstackFirewallRuleDestroy(s *terraform.State) error {
+func testAccCheckFWRuleV1Destroy(s *terraform.State) error {
 
 	config := testAccProvider.Meta().(*Config)
 	networkingClient, err := config.networkingV2Client(OS_REGION_NAME)
@@ -96,7 +96,7 @@ func testAccCheckOpenstackFirewallRuleDestroy(s *terraform.State) error {
 	return nil
 }
 
-func testAccCheckFirewallRuleExists(n string, expected *rules.Rule) resource.TestCheckFunc {
+func testAccCheckFWRuleV1Exists(n string, expected *rules.Rule) resource.TestCheckFunc {
 
 	return func(s *terraform.State) error {
 
@@ -148,14 +148,14 @@ func testAccCheckFirewallRuleExists(n string, expected *rules.Rule) resource.Tes
 }
 
 const testFirewallRuleMinimalConfig = `
-resource "openstack_fw_rule_v2" "accept_test_minimal" {
+resource "openstack_fw_rule_v1" "accept_test_minimal" {
 	protocol = "udp"
 	action = "deny"
 }
 `
 
 const testFirewallRuleConfig = `
-resource "openstack_fw_rule_v2" "accept_test" {
+resource "openstack_fw_rule_v1" "accept_test" {
 	name = "accept_test"
 	description = "Terraform accept test"
 	protocol = "udp"
@@ -170,7 +170,7 @@ resource "openstack_fw_rule_v2" "accept_test" {
 `
 
 const testFirewallRuleUpdateAllFieldsConfig = `
-resource "openstack_fw_rule_v2" "accept_test" {
+resource "openstack_fw_rule_v1" "accept_test" {
 	name = "accept_test_updated_2"
 	description = "Terraform accept test updated"
 	protocol = "tcp"

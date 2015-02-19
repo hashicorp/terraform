@@ -11,33 +11,33 @@ import (
 	"github.com/rackspace/gophercloud/openstack/networking/v2/extensions/fwaas/policies"
 )
 
-func TestAccOpenstackFirewallPolicy(t *testing.T) {
+func TestAccFWPolicyV1(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
-		CheckDestroy: testAccCheckOpenstackFirewallPolicyDestroy,
+		CheckDestroy: testAccCheckFWPolicyV1Destroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
 				Config: testFirewallPolicyConfig,
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckFirewallPolicyExists(
-						"openstack_fw_policy_v2.accept_test",
+					testAccCheckFWPolicyV1Exists(
+						"openstack_fw_policy_v1.accept_test",
 						"", "", 0),
 				),
 			},
 			resource.TestStep{
 				Config: testFirewallPolicyConfigAddRules,
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckFirewallPolicyExists(
-						"openstack_fw_policy_v2.accept_test",
+					testAccCheckFWPolicyV1Exists(
+						"openstack_fw_policy_v1.accept_test",
 						"accept_test", "terraform acceptance test", 2),
 				),
 			},
 			resource.TestStep{
 				Config: testFirewallPolicyUpdateDeleteRule,
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckFirewallPolicyExists(
-						"openstack_fw_policy_v2.accept_test",
+					testAccCheckFWPolicyV1Exists(
+						"openstack_fw_policy_v1.accept_test",
 						"accept_test", "terraform acceptance test", 1),
 				),
 			},
@@ -45,7 +45,7 @@ func TestAccOpenstackFirewallPolicy(t *testing.T) {
 	})
 }
 
-func testAccCheckOpenstackFirewallPolicyDestroy(s *terraform.State) error {
+func testAccCheckFWPolicyV1Destroy(s *terraform.State) error {
 
 	config := testAccProvider.Meta().(*Config)
 	networkingClient, err := config.networkingV2Client(OS_REGION_NAME)
@@ -53,7 +53,7 @@ func testAccCheckOpenstackFirewallPolicyDestroy(s *terraform.State) error {
 		return fmt.Errorf("(testAccCheckOpenstackFirewallPolicyDestroy) Error creating OpenStack networking client: %s", err)
 	}
 	for _, rs := range s.RootModule().Resources {
-		if rs.Type != "openstack_fw_policy_v2" {
+		if rs.Type != "openstack_fw_policy_v1" {
 			continue
 		}
 		_, err = policies.Get(networkingClient, rs.Primary.ID).Extract()
@@ -68,7 +68,7 @@ func testAccCheckOpenstackFirewallPolicyDestroy(s *terraform.State) error {
 	return nil
 }
 
-func testAccCheckFirewallPolicyExists(n, name, description string, ruleCount int) resource.TestCheckFunc {
+func testAccCheckFWPolicyV1Exists(n, name, description string, ruleCount int) resource.TestCheckFunc {
 
 	return func(s *terraform.State) error {
 
@@ -123,42 +123,42 @@ func testAccCheckFirewallPolicyExists(n, name, description string, ruleCount int
 }
 
 const testFirewallPolicyConfig = `
-resource "openstack_fw_policy_v2" "accept_test" {
+resource "openstack_fw_policy_v1" "accept_test" {
 
 }
 `
 
 const testFirewallPolicyConfigAddRules = `
-resource "openstack_fw_policy_v2" "accept_test" {
+resource "openstack_fw_policy_v1" "accept_test" {
 	name = "accept_test"
 	description =  "terraform acceptance test"
 	rules = [
-		"${openstack_fw_rule_v2.accept_test_udp_deny.id}",
-		"${openstack_fw_rule_v2.accept_test_tcp_allow.id}"
+		"${openstack_fw_rule_v1.accept_test_udp_deny.id}",
+		"${openstack_fw_rule_v1.accept_test_tcp_allow.id}"
 	]
 }
 
-resource "openstack_fw_rule_v2" "accept_test_tcp_allow" {
+resource "openstack_fw_rule_v1" "accept_test_tcp_allow" {
 	protocol = "tcp"
 	action = "allow"
 }
 
-resource "openstack_fw_rule_v2" "accept_test_udp_deny" {
+resource "openstack_fw_rule_v1" "accept_test_udp_deny" {
 	protocol = "udp"
 	action = "deny"
 }
 `
 
 const testFirewallPolicyUpdateDeleteRule = `
-resource "openstack_fw_policy_v2" "accept_test" {
+resource "openstack_fw_policy_v1" "accept_test" {
 	name = "accept_test"
 	description =  "terraform acceptance test"
 	rules = [
-		"${openstack_fw_rule_v2.accept_test_udp_deny.id}"
+		"${openstack_fw_rule_v1.accept_test_udp_deny.id}"
 	]
 }
 
-resource "openstack_fw_rule_v2" "accept_test_udp_deny" {
+resource "openstack_fw_rule_v1" "accept_test_udp_deny" {
 	protocol = "udp"
 	action = "deny"
 }
