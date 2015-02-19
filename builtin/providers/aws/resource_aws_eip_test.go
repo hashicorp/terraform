@@ -93,10 +93,6 @@ func testAccCheckAWSEIPAttributes(conf *ec2.Address) resource.TestCheckFunc {
 			return fmt.Errorf("empty public_ip")
 		}
 
-		if conf.PrivateIpAddress != "" {
-			return fmt.Errorf("should not have private_ip for non-vpc")
-		}
-
 		return nil
 	}
 }
