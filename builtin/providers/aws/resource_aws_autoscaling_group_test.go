@@ -2,7 +2,9 @@ package aws
 
 import (
 	"fmt"
+	"math/rand"
 	"testing"
+	"time"
 
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
@@ -241,7 +243,7 @@ resource "aws_autoscaling_group" "bar" {
 }
 `
 
-const testAccAWSAutoScalingGroupConfigWithLoadBalancer = `
+var testAccAWSAutoScalingGroupConfigWithLoadBalancer = fmt.Sprintf(`
 resource "aws_elb" "bar" {
   name = "foobar-terraform-test"
   availability_zones = ["us-west-2a"]
@@ -262,7 +264,7 @@ resource "aws_launch_configuration" "foobar" {
 
 resource "aws_autoscaling_group" "bar" {
   availability_zones = ["us-west-2a"]
-  name = "foobar3-terraform-test"
+  name = "foobar3-terraform-test-%d"
   max_size = 5
   min_size = 2
   health_check_grace_period = 300
@@ -273,4 +275,4 @@ resource "aws_autoscaling_group" "bar" {
   launch_configuration = "${aws_launch_configuration.foobar.name}"
   load_balancers = ["${aws_elb.bar.name}"]
 }
-`
+`, rand.New(rand.NewSource(time.Now().UnixNano())).Intn(64))
