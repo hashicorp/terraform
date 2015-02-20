@@ -111,6 +111,207 @@ func TestStateModuleOrphans_nilConfig(t *testing.T) {
 	}
 }
 
+func TestStateEqual(t *testing.T) {
+	cases := []struct {
+		Result   bool
+		One, Two *State
+	}{
+		// Different versions
+		{
+			false,
+			&State{Version: 5},
+			&State{Version: 2},
+		},
+
+		// Different modules
+		{
+			false,
+			&State{
+				Modules: []*ModuleState{
+					&ModuleState{
+						Path: RootModulePath,
+					},
+				},
+			},
+			&State{},
+		},
+
+		{
+			true,
+			&State{
+				Modules: []*ModuleState{
+					&ModuleState{
+						Path: RootModulePath,
+					},
+				},
+			},
+			&State{
+				Modules: []*ModuleState{
+					&ModuleState{
+						Path: RootModulePath,
+					},
+				},
+			},
+		},
+	}
+
+	for i, tc := range cases {
+		if tc.One.Equal(tc.Two) != tc.Result {
+			t.Fatalf("Bad: %d\n\n%s\n\n%s", i, tc.One.String(), tc.Two.String())
+		}
+	}
+}
+
+func TestResourceStateEqual(t *testing.T) {
+	cases := []struct {
+		Result   bool
+		One, Two *ResourceState
+	}{
+		// Different types
+		{
+			false,
+			&ResourceState{Type: "foo"},
+			&ResourceState{Type: "bar"},
+		},
+
+		// Different dependencies
+		{
+			false,
+			&ResourceState{Dependencies: []string{"foo"}},
+			&ResourceState{Dependencies: []string{"bar"}},
+		},
+
+		{
+			false,
+			&ResourceState{Dependencies: []string{"foo", "bar"}},
+			&ResourceState{Dependencies: []string{"foo"}},
+		},
+
+		{
+			true,
+			&ResourceState{Dependencies: []string{"bar", "foo"}},
+			&ResourceState{Dependencies: []string{"foo", "bar"}},
+		},
+
+		// Different primaries
+		{
+			false,
+			&ResourceState{Primary: nil},
+			&ResourceState{Primary: &InstanceState{ID: "foo"}},
+		},
+
+		{
+			true,
+			&ResourceState{Primary: &InstanceState{ID: "foo"}},
+			&ResourceState{Primary: &InstanceState{ID: "foo"}},
+		},
+
+		// Different tainted
+		{
+			false,
+			&ResourceState{
+				Tainted: nil,
+			},
+			&ResourceState{
+				Tainted: []*InstanceState{
+					&InstanceState{ID: "foo"},
+				},
+			},
+		},
+
+		{
+			true,
+			&ResourceState{
+				Tainted: []*InstanceState{
+					&InstanceState{ID: "foo"},
+				},
+			},
+			&ResourceState{
+				Tainted: []*InstanceState{
+					&InstanceState{ID: "foo"},
+				},
+			},
+		},
+
+		{
+			true,
+			&ResourceState{
+				Tainted: []*InstanceState{
+					&InstanceState{ID: "foo"},
+					nil,
+				},
+			},
+			&ResourceState{
+				Tainted: []*InstanceState{
+					&InstanceState{ID: "foo"},
+				},
+			},
+		},
+	}
+
+	for i, tc := range cases {
+		if tc.One.Equal(tc.Two) != tc.Result {
+			t.Fatalf("Bad: %d\n\n%s\n\n%s", i, tc.One.String(), tc.Two.String())
+		}
+		if tc.Two.Equal(tc.One) != tc.Result {
+			t.Fatalf("Bad: %d\n\n%s\n\n%s", i, tc.One.String(), tc.Two.String())
+		}
+	}
+}
+
+func TestInstanceStateEqual(t *testing.T) {
+	cases := []struct {
+		Result   bool
+		One, Two *InstanceState
+	}{
+		// Nils
+		{
+			false,
+			nil,
+			&InstanceState{},
+		},
+
+		{
+			false,
+			&InstanceState{},
+			nil,
+		},
+
+		// Different IDs
+		{
+			false,
+			&InstanceState{ID: "foo"},
+			&InstanceState{ID: "bar"},
+		},
+
+		// Different Attributes
+		{
+			false,
+			&InstanceState{Attributes: map[string]string{"foo": "bar"}},
+			&InstanceState{Attributes: map[string]string{"foo": "baz"}},
+		},
+
+		// Different Attribute keys
+		{
+			false,
+			&InstanceState{Attributes: map[string]string{"foo": "bar"}},
+			&InstanceState{Attributes: map[string]string{"bar": "baz"}},
+		},
+
+		{
+			false,
+			&InstanceState{Attributes: map[string]string{"bar": "baz"}},
+			&InstanceState{Attributes: map[string]string{"foo": "bar"}},
+		},
+	}
+
+	for i, tc := range cases {
+		if tc.One.Equal(tc.Two) != tc.Result {
+			t.Fatalf("Bad: %d\n\n%s\n\n%s", i, tc.One.String(), tc.Two.String())
+		}
+	}
+}
+
 func TestInstanceState_MergeDiff(t *testing.T) {
 	is := InstanceState{
 		ID: "foo",
