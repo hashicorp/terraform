@@ -106,7 +106,7 @@ func resourceComputeInstance() *schema.Resource {
 							Elem: &schema.Resource{
 								Schema: map[string]*schema.Schema{
 									"nat_ip": &schema.Schema{
-										Type: schema.TypeString,
+										Type:     schema.TypeString,
 										Computed: true,
 										Optional: true,
 									},
@@ -248,7 +248,6 @@ func resourceOperationWaitZone(
 	return nil
 }
 
-
 func resourceComputeInstanceCreate(d *schema.ResourceData, meta interface{}) error {
 	config := meta.(*Config)
 
@@ -307,7 +306,6 @@ func resourceComputeInstanceCreate(d *schema.ResourceData, meta interface{}) err
 		// Load up the image for this disk if specified
 		if v, ok := d.GetOk(prefix + ".image"); ok {
 			imageName := v.(string)
-
 
 			imageUrl, err := resolveImage(config, imageName)
 			if err != nil {
@@ -557,7 +555,6 @@ func resourceComputeInstanceRead(d *schema.ResourceData, meta interface{}) error
 				internalIP = iface.NetworkIP
 			}
 
-
 		}
 	}
 
@@ -654,7 +651,7 @@ func resourceComputeInstanceUpdate(d *schema.ResourceData, meta interface{}) err
 		for i := 0; i < networkInterfacesCount; i++ {
 			prefix := fmt.Sprintf("network_interface.%d", i)
 			instNetworkInterface := instance.NetworkInterfaces[i]
-			networkName := d.Get(prefix+".name").(string)
+			networkName := d.Get(prefix + ".name").(string)
 
 			// TODO: This sanity check is broken by #929, disabled for now (by forcing the equality)
 			networkName = instNetworkInterface.Name
@@ -663,7 +660,7 @@ func resourceComputeInstanceUpdate(d *schema.ResourceData, meta interface{}) err
 				return fmt.Errorf("Instance networkInterface had unexpected name: %s", instNetworkInterface.Name)
 			}
 
-			if d.HasChange(prefix+".access_config") {
+			if d.HasChange(prefix + ".access_config") {
 
 				// TODO: This code deletes then recreates accessConfigs.  This is bad because it may
 				// leave the machine inaccessible from either ip if the creation part fails (network
@@ -672,9 +669,9 @@ func resourceComputeInstanceUpdate(d *schema.ResourceData, meta interface{}) err
 				// necessary, and also add before removing.
 
 				// Delete any accessConfig that currently exists in instNetworkInterface
-				for _, ac := range(instNetworkInterface.AccessConfigs) {
+				for _, ac := range instNetworkInterface.AccessConfigs {
 					op, err := config.clientCompute.Instances.DeleteAccessConfig(
-						config.Project, zone, d.Id(), networkName, ac.Name).Do();
+						config.Project, zone, d.Id(), networkName, ac.Name).Do()
 					if err != nil {
 						return fmt.Errorf("Error deleting old access_config: %s", err)
 					}
@@ -693,7 +690,7 @@ func resourceComputeInstanceUpdate(d *schema.ResourceData, meta interface{}) err
 						NatIP: d.Get(acPrefix + ".nat_ip").(string),
 					}
 					op, err := config.clientCompute.Instances.AddAccessConfig(
-						config.Project, zone, d.Id(), networkName, ac).Do();
+						config.Project, zone, d.Id(), networkName, ac).Do()
 					if err != nil {
 						return fmt.Errorf("Error adding new access_config: %s", err)
 					}

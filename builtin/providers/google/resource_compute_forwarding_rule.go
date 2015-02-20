@@ -68,12 +68,12 @@ func resourceComputeForwardingRuleCreate(d *schema.ResourceData, meta interface{
 	config := meta.(*Config)
 
 	frule := &compute.ForwardingRule{
-		IPAddress:  d.Get("ip_address").(string),
-		IPProtocol: d.Get("ip_protocol").(string),
+		IPAddress:   d.Get("ip_address").(string),
+		IPProtocol:  d.Get("ip_protocol").(string),
 		Description: d.Get("description").(string),
-		Name: d.Get("name").(string),
-		PortRange: d.Get("port_range").(string),
-		Target: d.Get("target").(string),
+		Name:        d.Get("name").(string),
+		PortRange:   d.Get("port_range").(string),
+		Target:      d.Get("target").(string),
 	}
 
 	log.Printf("[DEBUG] ForwardingRule insert request: %#v", frule)
@@ -216,4 +216,3 @@ func resourceComputeForwardingRuleDelete(d *schema.ResourceData, meta interface{
 	d.SetId("")
 	return nil
 }
-

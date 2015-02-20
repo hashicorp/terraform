@@ -14,7 +14,6 @@ import (
 	"golang.org/x/oauth2/jwt"
 )
 
-
 // Config is the configuration structure used to instantiate the Google
 // provider.
 type Config struct {
