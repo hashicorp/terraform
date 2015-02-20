@@ -3298,6 +3298,35 @@ func TestContext2Apply_moduleVarResourceCount(t *testing.T) {
 	}
 }
 
+// GH-819
+func TestContext2Apply_moduleBool(t *testing.T) {
+	m := testModule(t, "apply-module-bool")
+	p := testProvider("aws")
+	p.ApplyFn = testApplyFn
+	p.DiffFn = testDiffFn
+	ctx := testContext2(t, &ContextOpts{
+		Module: m,
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+	})
+
+	if _, err := ctx.Plan(nil); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	state, err := ctx.Apply()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	actual := strings.TrimSpace(state.String())
+	expected := strings.TrimSpace(testTerraformApplyModuleBoolStr)
+	if actual != expected {
+		t.Fatalf("bad: \n%s", actual)
+	}
+}
+
 func TestContext2Apply_multiProvider(t *testing.T) {
 	m := testModule(t, "apply-multi-provider")
 	p := testProvider("aws")

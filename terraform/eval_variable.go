@@ -1,7 +1,11 @@
 package terraform
 
 import (
+	"fmt"
+
+	"github.com/hashicorp/errwrap"
 	"github.com/hashicorp/terraform/config"
+	"github.com/mitchellh/mapstructure"
 )
 
 // EvalSetVariables is an EvalNode implementation that sets the variables
@@ -34,7 +38,13 @@ func (n *EvalVariableBlock) Eval(ctx EvalContext) (interface{}, error) {
 	// Get our configuration
 	rc := *n.Config
 	for k, v := range rc.Config {
-		n.Variables[k] = v.(string)
+		var vStr string
+		if err := mapstructure.WeakDecode(v, &vStr); err != nil {
+			return nil, errwrap.Wrapf(fmt.Sprintf(
+				"%s: error reading value: {{err}}", k), err)
+		}
+
+		n.Variables[k] = vStr
 	}
 	for k, _ := range rc.Raw {
 		if _, ok := n.Variables[k]; !ok {
