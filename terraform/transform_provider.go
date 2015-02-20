@@ -111,6 +111,17 @@ func (n *graphNodeMissingProvider) ProviderName() string {
 	return n.ProviderNameValue
 }
 
+// GraphNodeDotter impl.
+func (n *graphNodeMissingProvider) Dot(name string) string {
+	return fmt.Sprintf(
+		"\"%s\" [\n"+
+			"\tlabel=\"%s\"\n"+
+			"\tshape=diamond\n"+
+			"];",
+		name,
+		n.Name())
+}
+
 func providerVertexMap(g *Graph) map[string]dag.Vertex {
 	m := make(map[string]dag.Vertex)
 	for _, v := range g.Vertices() {

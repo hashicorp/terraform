@@ -173,6 +173,17 @@ func (n *GraphNodeConfigProvider) ProviderName() string {
 	return n.Provider.Name
 }
 
+// GraphNodeDotter impl.
+func (n *GraphNodeConfigProvider) Dot(name string) string {
+	return fmt.Sprintf(
+		"\"%s\" [\n"+
+			"\tlabel=\"%s\"\n"+
+			"\tshape=diamond\n"+
+			"];",
+		name,
+		n.Name())
+}
+
 // GraphNodeConfigResource represents a resource within the config graph.
 type GraphNodeConfigResource struct {
 	Resource *config.Resource
@@ -233,6 +244,21 @@ func (n *GraphNodeConfigResource) Name() string {
 	}
 
 	return result
+}
+
+// GraphNodeDotter impl.
+func (n *GraphNodeConfigResource) Dot(name string) string {
+	if n.DestroyMode != DestroyNone {
+		return ""
+	}
+
+	return fmt.Sprintf(
+		"\"%s\" [\n"+
+			"\tlabel=\"%s\"\n"+
+			"\tshape=box\n"+
+			"];",
+		name,
+		n.Name())
 }
 
 // GraphNodeDynamicExpandable impl.
@@ -474,6 +500,17 @@ type graphNodeModuleExpanded struct {
 
 func (n *graphNodeModuleExpanded) Name() string {
 	return fmt.Sprintf("%s (expanded)", dag.VertexName(n.Original))
+}
+
+// GraphNodeDotter impl.
+func (n *graphNodeModuleExpanded) Dot(name string) string {
+	return fmt.Sprintf(
+		"\"%s\" [\n"+
+			"\tlabel=\"%s\"\n"+
+			"\tshape=component\n"+
+			"];",
+		name,
+		dag.VertexName(n.Original))
 }
 
 // GraphNodeEvalable impl.
