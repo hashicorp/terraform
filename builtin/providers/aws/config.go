@@ -69,10 +69,10 @@ func (c *Config) Client() (interface{}, error) {
 		log.Println("[INFO] Initializing RDS connection")
 		client.rdsconn = rds.New(auth, region)
 
-		log.Println("[INFO] Initializing Route53 connection")
 		// aws-sdk-go uses v4 for signing requests, which requires all global
 		// endpoints to use 'us-east-1'.
 		// See http://docs.aws.amazon.com/general/latest/gr/sigv4_changes.html
+		log.Println("[INFO] Initializing Route53 connection")
 		client.r53conn = route53.New(creds, "us-east-1", nil)
 		log.Println("[INFO] Initializing AutoScaling connection")
 		client.autoscalingconn = autoscaling.New(creds, c.Region, nil)
