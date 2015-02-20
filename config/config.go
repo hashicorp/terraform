@@ -385,6 +385,26 @@ func (c *Config) Validate() error {
 					n, d))
 			}
 		}
+
+		// Verify provisioners don't contain any splats
+		for _, p := range r.Provisioners {
+			// This validation checks that there are now splat variables
+			// referencing ourself. This currently is not allowed.
+
+			for _, v := range p.ConnInfo.Variables {
+				rv, ok := v.(*ResourceVariable)
+				if !ok {
+					continue
+				}
+
+				if rv.Multi && rv.Index == -1 && rv.Type == r.Type && rv.Name == r.Name {
+					errs = append(errs, fmt.Errorf(
+						"%s: connection info cannot contain splat variable "+
+							"referencing itself", n))
+					break
+				}
+			}
+		}
 	}
 
 	for source, vs := range vars {
