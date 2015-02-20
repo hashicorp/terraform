@@ -78,7 +78,8 @@ The supported built-in functions are:
       Example: `split(",", module.amod.server_ids)`
 
   * `lookup(map, key)` - Performs a dynamic lookup into a mapping
-      variable.
+      variable. The `map` parameter should be another variable, such
+      as `var.amis`.
 
   * `element(list, index)` - Returns a single element from a list
       at the given index. If the index is greater than the number of
