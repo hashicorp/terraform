@@ -404,6 +404,20 @@ func (c *Config) Validate() error {
 					break
 				}
 			}
+
+			for _, v := range p.RawConfig.Variables {
+				rv, ok := v.(*ResourceVariable)
+				if !ok {
+					continue
+				}
+
+				if rv.Multi && rv.Index == -1 && rv.Type == r.Type && rv.Name == r.Name {
+					errs = append(errs, fmt.Errorf(
+						"%s: connection info cannot contain splat variable "+
+							"referencing itself", n))
+					break
+				}
+			}
 		}
 	}
 
