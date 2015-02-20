@@ -231,7 +231,12 @@ func (s *State) String() string {
 
 		s := bufio.NewScanner(strings.NewReader(mStr))
 		for s.Scan() {
-			buf.WriteString(fmt.Sprintf("  %s\n", s.Text()))
+			text := s.Text()
+			if text != "" {
+				text = "  " + text
+			}
+
+			buf.WriteString(fmt.Sprintf("%s\n", text))
 		}
 	}
 
