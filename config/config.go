@@ -379,6 +379,17 @@ func (c *Config) Validate() error {
 
 		// Verify depends on points to resources that all exist
 		for _, d := range r.DependsOn {
+			// Check if we contain interpolations
+			rc, err := NewRawConfig(map[string]interface{}{
+				"value": d,
+			})
+			if err == nil && len(rc.Variables) > 0 {
+				errs = append(errs, fmt.Errorf(
+					"%s: depends on value cannot contain interpolations: %s",
+					n, d))
+				continue
+			}
+
 			if _, ok := resources[d]; !ok {
 				errs = append(errs, fmt.Errorf(
 					"%s: resource depends on non-existent resource '%s'",
