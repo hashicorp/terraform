@@ -106,9 +106,13 @@ func (ctx *BuiltinEvalContext) ConfigureProvider(
 		return fmt.Errorf("Provider '%s' not initialized", n)
 	}
 
+	providerPath := make([]string, len(ctx.Path())+1)
+	copy(providerPath, ctx.Path())
+	providerPath[len(providerPath)-1] = n
+
 	// Save the configuration
 	ctx.ProviderLock.Lock()
-	ctx.ProviderConfigCache[PathCacheKey(ctx.Path())] = cfg
+	ctx.ProviderConfigCache[PathCacheKey(providerPath)] = cfg
 	ctx.ProviderLock.Unlock()
 
 	return p.Configure(cfg)
@@ -132,9 +136,15 @@ func (ctx *BuiltinEvalContext) ParentProviderConfig(n string) *ResourceConfig {
 	ctx.ProviderLock.Lock()
 	defer ctx.ProviderLock.Unlock()
 
+	// Make a copy of the path so we can safely edit it
 	path := ctx.Path()
-	for i := len(path) - 1; i >= 1; i-- {
-		k := PathCacheKey(path[:i])
+	pathCopy := make([]string, len(path)+1)
+	copy(pathCopy, path)
+
+	// Go up the tree.
+	for i := len(path) - 1; i >= 0; i-- {
+		pathCopy[i+1] = n
+		k := PathCacheKey(pathCopy[:i+2])
 		if v, ok := ctx.ProviderConfigCache[k]; ok {
 			return v
 		}
