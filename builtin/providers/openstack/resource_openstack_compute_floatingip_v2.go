@@ -83,7 +83,7 @@ func resourceComputeFloatingIPV2Read(d *schema.ResourceData, meta interface{}) e
 
 	fip, err := floatingip.Get(computeClient, d.Id()).Extract()
 	if err != nil {
-		return fmt.Errorf("Error getting Floating IP: %s", err)
+		return CheckDeleted(d, err, "floating ip")
 	}
 
 	log.Printf("[DEBUG] Retrieved Floating IP %s: %+v", d.Id(), fip)
@@ -105,15 +105,8 @@ func resourceComputeFloatingIPV2Delete(d *schema.ResourceData, meta interface{})
 		return fmt.Errorf("Error creating OpenStack compute client: %s", err)
 	}
 
-	fip, err := floatingip.Get(computeClient, d.Id()).Extract()
-	if err != nil {
-		return fmt.Errorf("Error getting Floating IP for update: %s", err)
-	}
-
-	log.Printf("[DEBUG] Deleting Floating IP %s", fip.IP)
-
-	// Now do the actual deletion
-	if err := floatingip.Delete(computeClient, fip.ID).ExtractErr(); err != nil {
+	log.Printf("[DEBUG] Deleting Floating IP %s", d.Id())
+	if err := floatingip.Delete(computeClient, d.Id()).ExtractErr(); err != nil {
 		return fmt.Errorf("Error deleting Floating IP: %s", err)
 	}
 
