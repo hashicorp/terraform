@@ -1,6 +1,8 @@
 package terraform
 
 import (
+	"fmt"
+
 	"github.com/hashicorp/terraform/dag"
 )
 
@@ -35,4 +37,8 @@ type graphNodeRoot struct{}
 
 func (n graphNodeRoot) Name() string {
 	return "root"
+}
+
+func (n graphNodeRoot) Dot(name string) string {
+	return fmt.Sprintf("\"%s\" [shape=circle];", name)
 }
