@@ -1,8 +1,8 @@
 ## 0.4.0 (unreleased)
 
-IMPROVEMENTS:
+BUG FIXES:
 
-  * provider/aws: Convert AWS Route53 to awslabs/aws-sdk-go
+  * core: module outputs can be used as inputs to other modules [GH-822]
 
 
 ## 0.3.7 (February 19, 2015)
