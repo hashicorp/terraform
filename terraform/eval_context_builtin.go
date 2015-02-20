@@ -167,7 +167,11 @@ func (ctx *BuiltinEvalContext) InitProvisioner(
 		return nil, err
 	}
 
-	ctx.ProvisionerCache[PathCacheKey(ctx.Path())] = p
+	provPath := make([]string, len(ctx.Path())+1)
+	copy(provPath, ctx.Path())
+	provPath[len(provPath)-1] = n
+
+	ctx.ProvisionerCache[PathCacheKey(provPath)] = p
 	return p, nil
 }
 
@@ -177,7 +181,11 @@ func (ctx *BuiltinEvalContext) Provisioner(n string) ResourceProvisioner {
 	ctx.ProvisionerLock.Lock()
 	defer ctx.ProvisionerLock.Unlock()
 
-	return ctx.ProvisionerCache[PathCacheKey(ctx.Path())]
+	provPath := make([]string, len(ctx.Path())+1)
+	copy(provPath, ctx.Path())
+	provPath[len(provPath)-1] = n
+
+	return ctx.ProvisionerCache[PathCacheKey(provPath)]
 }
 
 func (ctx *BuiltinEvalContext) Interpolate(
