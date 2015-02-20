@@ -6,7 +6,9 @@ import (
 
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
-	"github.com/mitchellh/goamz/autoscaling"
+
+	_ "github.com/awslabs/aws-sdk-go/aws"
+	"github.com/awslabs/aws-sdk-go/gen/autoscaling"
 )
 
 func TestAccAWSAutoScalingGroup_basic(t *testing.T) {
