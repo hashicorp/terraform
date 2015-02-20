@@ -123,7 +123,7 @@ func resourceAwsAutoscalingGroup() *schema.Resource {
 }
 
 func resourceAwsAutoscalingGroupCreate(d *schema.ResourceData, meta interface{}) error {
-	autoscalingconn := meta.(*AWSClient).autoscalingconn
+	autoscalingconn := meta.(*AWSClient).awsAutoScalingconn
 
 	var autoScalingGroupOpts autoscaling.CreateAutoScalingGroupType
 	autoScalingGroupOpts.AutoScalingGroupName = aws.String(d.Get("name").(string))
@@ -201,7 +201,7 @@ func resourceAwsAutoscalingGroupRead(d *schema.ResourceData, meta interface{}) e
 }
 
 func resourceAwsAutoscalingGroupUpdate(d *schema.ResourceData, meta interface{}) error {
-	autoscalingconn := meta.(*AWSClient).autoscalingconn
+	autoscalingconn := meta.(*AWSClient).awsAutoScalingconn
 
 	opts := autoscaling.UpdateAutoScalingGroupType{
 		AutoScalingGroupName: aws.String(d.Id()),
@@ -234,7 +234,7 @@ func resourceAwsAutoscalingGroupUpdate(d *schema.ResourceData, meta interface{})
 }
 
 func resourceAwsAutoscalingGroupDelete(d *schema.ResourceData, meta interface{}) error {
-	autoscalingconn := meta.(*AWSClient).autoscalingconn
+	autoscalingconn := meta.(*AWSClient).awsAutoScalingconn
 
 	// Read the autoscaling group first. If it doesn't exist, we're done.
 	// We need the group in order to check if there are instances attached.
@@ -278,7 +278,7 @@ func resourceAwsAutoscalingGroupDelete(d *schema.ResourceData, meta interface{})
 func getAwsAutoscalingGroup(
 	d *schema.ResourceData,
 	meta interface{}) (*autoscaling.AutoScalingGroup, error) {
-	autoscalingconn := meta.(*AWSClient).autoscalingconn
+	autoscalingconn := meta.(*AWSClient).awsAutoScalingconn
 
 	describeOpts := autoscaling.AutoScalingGroupNamesType{
 		AutoScalingGroupNames: []string{d.Id()},
@@ -298,7 +298,7 @@ func getAwsAutoscalingGroup(
 
 	// Search for the autoscaling group
 	for idx, asc := range describeGroups.AutoScalingGroups {
-		if asc.Name == d.Id() {
+		if *asc.AutoScalingGroupName == d.Id() {
 			return &describeGroups.AutoScalingGroups[idx], nil
 		}
 	}
@@ -309,20 +309,17 @@ func getAwsAutoscalingGroup(
 }
 
 func resourceAwsAutoscalingGroupDrain(d *schema.ResourceData, meta interface{}) error {
-	autoscalingconn := meta.(*AWSClient).autoscalingconn
+	autoscalingconn := meta.(*AWSClient).awsAutoScalingconn
 
 	// First, set the capacity to zero so the group will drain
 	log.Printf("[DEBUG] Reducing autoscaling group capacity to zero")
-	opts := autoscaling.UpdateAutoScalingGroup{
-		Name:               d.Id(),
-		DesiredCapacity:    0,
-		MinSize:            0,
-		MaxSize:            0,
-		SetDesiredCapacity: true,
-		SetMinSize:         true,
-		SetMaxSize:         true,
+	opts := autoscaling.UpdateAutoScalingGroupType{
+		AutoScalingGroupName: aws.String(d.Id()),
+		DesiredCapacity:      aws.Integer(0),
+		MinSize:              aws.Integer(0),
+		MaxSize:              aws.Integer(0),
 	}
-	if _, err := autoscalingconn.UpdateAutoScalingGroup(&opts); err != nil {
+	if err := autoscalingconn.UpdateAutoScalingGroup(&opts); err != nil {
 		return fmt.Errorf("Error setting capacity to zero to drain: %s", err)
 	}
 

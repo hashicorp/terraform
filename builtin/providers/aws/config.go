@@ -7,13 +7,14 @@ import (
 	"unicode"
 
 	"github.com/hashicorp/terraform/helper/multierror"
+	"github.com/mitchellh/goamz/autoscaling"
 	"github.com/mitchellh/goamz/aws"
 	"github.com/mitchellh/goamz/ec2"
 	"github.com/mitchellh/goamz/elb"
 	"github.com/mitchellh/goamz/rds"
 
 	awsGo "github.com/awslabs/aws-sdk-go/aws"
-	"github.com/awslabs/aws-sdk-go/gen/autoscaling"
+	awsAutoScaling "github.com/awslabs/aws-sdk-go/gen/autoscaling"
 	"github.com/awslabs/aws-sdk-go/gen/route53"
 	"github.com/awslabs/aws-sdk-go/gen/s3"
 )
@@ -25,13 +26,14 @@ type Config struct {
 }
 
 type AWSClient struct {
-	ec2conn         *ec2.EC2
-	elbconn         *elb.ELB
-	autoscalingconn *autoscaling.AutoScaling
-	s3conn          *s3.S3
-	rdsconn         *rds.Rds
-	r53conn         *route53.Route53
-	region          string
+	ec2conn            *ec2.EC2
+	elbconn            *elb.ELB
+	autoscalingconn    *autoscaling.AutoScaling
+	s3conn             *s3.S3
+	rdsconn            *rds.Rds
+	r53conn            *route53.Route53
+	region             string
+	awsAutoScalingconn *awsAutoScaling.AutoScaling
 }
 
 // Client configures and returns a fully initailized AWSClient
@@ -64,6 +66,8 @@ func (c *Config) Client() (interface{}, error) {
 		client.ec2conn = ec2.New(auth, region)
 		log.Println("[INFO] Initializing ELB connection")
 		client.elbconn = elb.New(auth, region)
+		log.Println("[INFO] Initializing AutoScaling connection")
+		client.autoscalingconn = autoscaling.New(auth, region)
 		log.Println("[INFO] Initializing S3 connection")
 		client.s3conn = s3.New(creds, c.Region, nil)
 		log.Println("[INFO] Initializing RDS connection")
@@ -74,8 +78,8 @@ func (c *Config) Client() (interface{}, error) {
 		// See http://docs.aws.amazon.com/general/latest/gr/sigv4_changes.html
 		log.Println("[INFO] Initializing Route53 connection")
 		client.r53conn = route53.New(creds, "us-east-1", nil)
-		log.Println("[INFO] Initializing AutoScaling connection")
-		client.autoscalingconn = autoscaling.New(creds, c.Region, nil)
+		log.Println("[INFO] Initializing AWS Go AutoScaling connection")
+		client.awsAutoScalingconn = awsAutoScaling.New(creds, c.Region, nil)
 	}
 
 	if len(errs) > 0 {
