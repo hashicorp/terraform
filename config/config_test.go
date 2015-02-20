@@ -193,6 +193,20 @@ func TestConfigValidate_provConnSplatSelf(t *testing.T) {
 	}
 }
 
+func TestConfigValidate_provSplatOther(t *testing.T) {
+	c := testConfig(t, "validate-prov-splat-other")
+	if err := c.Validate(); err != nil {
+		t.Fatalf("should be valid: %s", err)
+	}
+}
+
+func TestConfigValidate_provSplatSelf(t *testing.T) {
+	c := testConfig(t, "validate-prov-splat-self")
+	if err := c.Validate(); err == nil {
+		t.Fatal("should not be valid")
+	}
+}
+
 func TestConfigValidate_unknownThing(t *testing.T) {
 	c := testConfig(t, "validate-unknownthing")
 	if err := c.Validate(); err == nil {
