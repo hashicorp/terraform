@@ -7,13 +7,13 @@ import (
 	"unicode"
 
 	"github.com/hashicorp/terraform/helper/multierror"
-	"github.com/mitchellh/goamz/autoscaling"
 	"github.com/mitchellh/goamz/aws"
 	"github.com/mitchellh/goamz/ec2"
 	"github.com/mitchellh/goamz/elb"
 	"github.com/mitchellh/goamz/rds"
 
 	awsGo "github.com/awslabs/aws-sdk-go/aws"
+	"github.com/awslabs/aws-sdk-go/gen/autoscaling"
 	"github.com/awslabs/aws-sdk-go/gen/route53"
 	"github.com/awslabs/aws-sdk-go/gen/s3"
 )
@@ -57,23 +57,25 @@ func (c *Config) Client() (interface{}, error) {
 		// store AWS region in client struct, for region specific operations such as
 		// bucket storage in S3
 		client.region = c.Region
+
 		creds := awsGo.Creds(c.AccessKey, c.SecretKey, "")
 
 		log.Println("[INFO] Initializing EC2 connection")
 		client.ec2conn = ec2.New(auth, region)
 		log.Println("[INFO] Initializing ELB connection")
 		client.elbconn = elb.New(auth, region)
-		log.Println("[INFO] Initializing AutoScaling connection")
-		client.autoscalingconn = autoscaling.New(auth, region)
 		log.Println("[INFO] Initializing S3 connection")
+		client.s3conn = s3.New(creds, c.Region, nil)
 		log.Println("[INFO] Initializing RDS connection")
 		client.rdsconn = rds.New(auth, region)
+
 		log.Println("[INFO] Initializing Route53 connection")
 		// aws-sdk-go uses v4 for signing requests, which requires all global
 		// endpoints to use 'us-east-1'.
 		// See http://docs.aws.amazon.com/general/latest/gr/sigv4_changes.html
 		client.r53conn = route53.New(creds, "us-east-1", nil)
-		client.s3conn = s3.New(creds, c.Region, nil)
+		log.Println("[INFO] Initializing AutoScaling connection")
+		client.autoscalingconn = autoscaling.New(creds, c.Region, nil)
 	}
 
 	if len(errs) > 0 {
