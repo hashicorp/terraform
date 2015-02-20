@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/hashicorp/terraform/config"
+	"github.com/hashicorp/terraform/config/lang/ast"
 )
 
 func TestInstanceInfo(t *testing.T) {
@@ -99,20 +100,33 @@ func TestResourceConfigGet(t *testing.T) {
 			}
 		}
 
-		rc := NewResourceConfig(rawC)
 		if tc.Vars != nil {
-			ctx := NewContext(&ContextOpts{Variables: tc.Vars})
-			err := rc.interpolate(
-				ctx.walkContext(walkInvalid, rootModulePath),
-				nil)
-			if err != nil {
+			vs := make(map[string]ast.Variable)
+			for k, v := range tc.Vars {
+				vs["var."+k] = ast.Variable{Value: v, Type: ast.TypeString}
+			}
+
+			if err := rawC.Interpolate(vs); err != nil {
 				t.Fatalf("err: %s", err)
 			}
 		}
+
+		rc := NewResourceConfig(rawC)
+		rc.interpolateForce()
 
 		v, _ := rc.Get(tc.Key)
 		if !reflect.DeepEqual(v, tc.Value) {
 			t.Fatalf("%d bad: %#v", i, v)
 		}
 	}
+}
+
+func testResourceConfig(
+	t *testing.T, c map[string]interface{}) *ResourceConfig {
+	raw, err := config.NewRawConfig(c)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	return NewResourceConfig(raw)
 }

@@ -1,5 +1,9 @@
 package terraform
 
+import (
+	"strings"
+)
+
 // Semaphore is a wrapper around a channel to provide
 // utility methods to clarify that we are treating the
 // channel as a semaphore
@@ -40,6 +44,16 @@ func (s Semaphore) Release() {
 	default:
 		panic("release without an acquire")
 	}
+}
+
+// resourceProvider returns the provider name for the given type.
+func resourceProvider(t string) string {
+	idx := strings.IndexRune(t, '_')
+	if idx == -1 {
+		return ""
+	}
+
+	return t[:idx]
 }
 
 // strSliceContains checks if a given string is contained in a slice

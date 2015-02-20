@@ -333,6 +333,10 @@ func (d *InstanceDiff) Empty() bool {
 	return !d.Destroy && len(d.Attributes) == 0
 }
 
+func (d *InstanceDiff) GoString() string {
+	return fmt.Sprintf("*%#v", *d)
+}
+
 // RequiresNew returns true if the diff requires the creation of a new
 // resource (implying the destruction of the old).
 func (d *InstanceDiff) RequiresNew() bool {

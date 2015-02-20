@@ -93,7 +93,7 @@ type ResourceConfig struct {
 // NewResourceConfig creates a new ResourceConfig from a config.RawConfig.
 func NewResourceConfig(c *config.RawConfig) *ResourceConfig {
 	result := &ResourceConfig{raw: c}
-	result.interpolate(nil, nil)
+	result.interpolateForce()
 	return result
 }
 
@@ -201,28 +201,19 @@ func (c *ResourceConfig) get(
 	return current, true
 }
 
-func (c *ResourceConfig) interpolate(
-	ctx *walkContext, r *Resource) error {
-	if c == nil {
-		return nil
-	}
-
-	if ctx != nil {
-		if err := ctx.computeVars(c.raw, r); err != nil {
-			return err
-		}
-	}
-
+// interpolateForce is a temporary thing. We want to get rid of interpolate
+// above and likewise this, but it can only be done after the f-ast-graph
+// refactor is complete.
+func (c *ResourceConfig) interpolateForce() {
 	if c.raw == nil {
 		var err error
 		c.raw, err = config.NewRawConfig(make(map[string]interface{}))
 		if err != nil {
-			return err
+			panic(err)
 		}
 	}
 
 	c.ComputedKeys = c.raw.UnknownKeys()
 	c.Raw = c.raw.Raw
 	c.Config = c.raw.Config()
-	return nil
 }
