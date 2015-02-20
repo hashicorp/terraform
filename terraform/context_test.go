@@ -2463,6 +2463,33 @@ func TestContext2Input_provider(t *testing.T) {
 	}
 }
 
+func TestContext2Input_providerOnce(t *testing.T) {
+	m := testModule(t, "input-provider-once")
+	p := testProvider("aws")
+	p.ApplyFn = testApplyFn
+	p.DiffFn = testDiffFn
+	ctx := testContext2(t, &ContextOpts{
+		Module: m,
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+	})
+
+	count := 0
+	p.InputFn = func(i UIInput, c *ResourceConfig) (*ResourceConfig, error) {
+		count++
+		return nil, nil
+	}
+
+	if err := ctx.Input(InputModeStd); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	if count != 1 {
+		t.Fatalf("should only be called once: %d", count)
+	}
+}
+
 func TestContext2Input_providerId(t *testing.T) {
 	input := new(MockUIInput)
 	m := testModule(t, "input-provider")
