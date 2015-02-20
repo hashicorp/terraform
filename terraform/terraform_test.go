@@ -285,6 +285,22 @@ module.child:
     type = aws_instance
 `
 
+const testTerraformApplyModuleBoolStr = `
+aws_instance.bar:
+  ID = foo
+  foo = 1
+  type = aws_instance
+
+  Dependencies:
+    module.child
+
+module.child:
+  <no state>
+  Outputs:
+
+  leader = 1
+`
+
 const testTerraformApplyMultiProviderStr = `
 aws_instance.bar:
   ID = foo
