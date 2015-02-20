@@ -107,6 +107,33 @@ func TestInterpolateFuncJoin(t *testing.T) {
 	})
 }
 
+func TestInterpolateFuncSplit(t *testing.T) {
+	testFunction(t, testFunctionConfig{
+		Cases: []testFunctionCase{
+			{
+				`${split(",")}`,
+				nil,
+				true,
+			},
+
+			{
+				`${split(",", "foo")}`,
+				"foo",
+				false,
+			},
+
+			{
+				`${split(".", "foo.bar.baz")}`,
+				fmt.Sprintf(
+					"foo%sbar%sbaz",
+					InterpSplitDelim,
+					InterpSplitDelim),
+				false,
+			},
+		},
+	})
+}
+
 func TestInterpolateFuncLookup(t *testing.T) {
 	testFunction(t, testFunctionConfig{
 		Vars: map[string]ast.Variable{
