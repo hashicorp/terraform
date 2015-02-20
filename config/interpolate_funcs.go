@@ -19,6 +19,7 @@ func init() {
 		"file":    interpolationFuncFile(),
 		"join":    interpolationFuncJoin(),
 		"element": interpolationFuncElement(),
+		"split":   interpolationFuncSplit(),
 	}
 }
 
@@ -74,6 +75,18 @@ func interpolationFuncJoin() ast.Function {
 			}
 
 			return strings.Join(list, args[0].(string)), nil
+		},
+	}
+}
+
+// interpolationFuncSplit implements the "split" function that allows
+// strings to split into multi-variable values
+func interpolationFuncSplit() ast.Function {
+	return ast.Function{
+		ArgTypes:   []ast.Type{ast.TypeString, ast.TypeString},
+		ReturnType: ast.TypeString,
+		Callback: func(args []interface{}) (interface{}, error) {
+			return strings.Replace(args[1].(string), args[0].(string), InterpSplitDelim, -1), nil
 		},
 	}
 }
