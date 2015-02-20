@@ -186,6 +186,13 @@ func TestConfigValidate_pathVarInvalid(t *testing.T) {
 	}
 }
 
+func TestConfigValidate_provConnSplatSelf(t *testing.T) {
+	c := testConfig(t, "validate-prov-conn-splat-self")
+	if err := c.Validate(); err == nil {
+		t.Fatal("should not be valid")
+	}
+}
+
 func TestConfigValidate_unknownThing(t *testing.T) {
 	c := testConfig(t, "validate-unknownthing")
 	if err := c.Validate(); err == nil {
