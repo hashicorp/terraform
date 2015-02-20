@@ -92,6 +92,51 @@ func (r *RawConfig) Interpolate(vs map[string]ast.Variable) error {
 	})
 }
 
+// Merge merges another RawConfig into this one (overriding any conflicting
+// values in this config) and returns a new config. The original config
+// is not modified.
+func (r *RawConfig) Merge(other *RawConfig) *RawConfig {
+	// Merge the raw configurations
+	raw := make(map[string]interface{})
+	for k, v := range r.Raw {
+		raw[k] = v
+	}
+	for k, v := range other.Raw {
+		raw[k] = v
+	}
+
+	// Create the result
+	result, err := NewRawConfig(raw)
+	if err != nil {
+		panic(err)
+	}
+
+	// Merge the interpolated results
+	result.config = make(map[string]interface{})
+	for k, v := range r.config {
+		result.config[k] = v
+	}
+	for k, v := range other.config {
+		result.config[k] = v
+	}
+
+	// Build the unknown keys
+	unknownKeys := make(map[string]struct{})
+	for _, k := range r.unknownKeys {
+		unknownKeys[k] = struct{}{}
+	}
+	for _, k := range other.unknownKeys {
+		unknownKeys[k] = struct{}{}
+	}
+
+	result.unknownKeys = make([]string, 0, len(unknownKeys))
+	for k, _ := range unknownKeys {
+		result.unknownKeys = append(result.unknownKeys, k)
+	}
+
+	return result
+}
+
 func (r *RawConfig) init() error {
 	r.config = r.Raw
 	r.Interpolations = nil

@@ -26,7 +26,7 @@ func TestGraph(t *testing.T) {
 	}
 
 	output := ui.OutputWriter.String()
-	if !strings.Contains(output, "digraph {") {
+	if !strings.Contains(output, "provider.test") {
 		t.Fatalf("doesn't look like digraph: %s", output)
 	}
 }
@@ -73,7 +73,7 @@ func TestGraph_noArgs(t *testing.T) {
 	}
 
 	output := ui.OutputWriter.String()
-	if !strings.Contains(output, "digraph {") {
+	if !strings.Contains(output, "provider.test") {
 		t.Fatalf("doesn't look like digraph: %s", output)
 	}
 }
@@ -99,7 +99,7 @@ func TestGraph_plan(t *testing.T) {
 	}
 
 	output := ui.OutputWriter.String()
-	if !strings.Contains(output, "digraph {") {
+	if !strings.Contains(output, "provider.test") {
 		t.Fatalf("doesn't look like digraph: %s", output)
 	}
 }

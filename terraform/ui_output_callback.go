@@ -1,5 +1,9 @@
 package terraform
 
 type CallbackUIOutput struct {
-	OutputFun func(string)
+	OutputFn func(string)
+}
+
+func (o *CallbackUIOutput) Output(v string) {
+	o.OutputFn(v)
 }
