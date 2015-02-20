@@ -99,9 +99,12 @@ func (n *EvalInputProvider) Eval(ctx EvalContext) (interface{}, error) {
 			"Error configuring %s: %s", n.Name, err)
 	}
 
+	// Set the input that we received so that child modules don't attempt
+	// to ask for input again.
 	if config != nil && len(config.Config) > 0 {
-		// Set the configuration
 		ctx.SetProviderInput(n.Name, config.Config)
+	} else {
+		ctx.SetProviderInput(n.Name, map[string]interface{}{})
 	}
 
 	return nil, nil
