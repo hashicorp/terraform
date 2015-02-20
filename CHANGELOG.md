@@ -1,5 +1,10 @@
 ## 0.4.0 (unreleased)
 
+IMPROVEMENTS:
+
+  * **New config function: `split`** - Split a value based on a delimiter.
+      This is useful for faking lists as parameters to modules.
+
 BUG FIXES:
 
   * core: module outputs can be used as inputs to other modules [GH-822]
