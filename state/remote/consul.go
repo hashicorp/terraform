@@ -32,6 +32,7 @@ func consulFactory(conf map[string]string) (Client, error) {
 	}, nil
 }
 
+// ConsulClient is a remote client that stores data in Consul.
 type ConsulClient struct {
 	Client *consulapi.Client
 	Path   string
