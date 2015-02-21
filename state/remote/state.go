@@ -34,9 +34,12 @@ func (s *State) RefreshState() error {
 		return err
 	}
 
-	state, err := terraform.ReadState(bytes.NewReader(payload.Data))
-	if err != nil {
-		return err
+	var state *terraform.State
+	if payload != nil {
+		state, err = terraform.ReadState(bytes.NewReader(payload.Data))
+		if err != nil {
+			return err
+		}
 	}
 
 	s.state = state
