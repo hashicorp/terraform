@@ -487,25 +487,18 @@ func resourceAwsInstanceRead(d *schema.ResourceData, meta interface{}) error {
 
 func resourceAwsInstanceUpdate(d *schema.ResourceData, meta interface{}) error {
 	ec2conn := meta.(*AWSClient).ec2conn
-
-	modify := false
 	opts := new(ec2.ModifyInstance)
 
-	if d.HasChange("source_dest_check") {
-		opts.SetSourceDestCheck = true
-		opts.SourceDestCheck = d.Get("source_dest_check").(bool)
-		modify = true
+	opts.SetSourceDestCheck = true
+	opts.SourceDestCheck = d.Get("source_dest_check").(bool)
+
+	log.Printf("[INFO] Modifying instance %s: %#v", d.Id(), opts)
+	if _, err := ec2conn.ModifyInstance(d.Id(), opts); err != nil {
+		return err
 	}
 
-	if modify {
-		log.Printf("[INFO] Modifying instance %s: %#v", d.Id(), opts)
-		if _, err := ec2conn.ModifyInstance(d.Id(), opts); err != nil {
-			return err
-		}
-
-		// TODO(mitchellh): wait for the attributes we modified to
-		// persist the change...
-	}
+	// TODO(mitchellh): wait for the attributes we modified to
+	// persist the change...
 
 	if err := setTags(ec2conn, d); err != nil {
 		return err
