@@ -163,8 +163,19 @@ func HaveLocalState() (bool, error) {
 	if err != nil {
 		return false, err
 	}
+	return ExistsFile(path)
+}
 
-	return existsFile(path)
+// ExistsFile is used to check if a given file exists
+func ExistsFile(path string) (bool, error) {
+	_, err := os.Stat(path)
+	if err == nil {
+		return true, nil
+	}
+	if os.IsNotExist(err) {
+		return false, nil
+	}
+	return false, err
 }
 
 // ValidConfig does a purely logical validation of the remote config
@@ -394,7 +405,7 @@ func Persist(r io.Reader) error {
 	backupPath := filepath.Join(cwd, LocalDirectory, BackupHiddenStateFile)
 
 	// Backup the old file if it exists
-	if err := copyFile(statePath, backupPath); err != nil {
+	if err := CopyFile(statePath, backupPath); err != nil {
 		return fmt.Errorf("Failed to backup state file '%s' to '%s': %v", statePath, backupPath, err)
 	}
 
@@ -414,9 +425,9 @@ func Persist(r io.Reader) error {
 	return nil
 }
 
-// copyFile is used to copy from a source file if it exists to a destination.
+// CopyFile is used to copy from a source file if it exists to a destination.
 // This is used to create a backup of the state file.
-func copyFile(src, dst string) error {
+func CopyFile(src, dst string) error {
 	srcFH, err := os.Open(src)
 	if err != nil {
 		if os.IsNotExist(err) {
@@ -434,16 +445,4 @@ func copyFile(src, dst string) error {
 
 	_, err = io.Copy(dstFH, srcFH)
 	return err
-}
-
-// existsFile is used to check if a given file exists
-func existsFile(path string) (bool, error) {
-	_, err := os.Stat(path)
-	if err == nil {
-		return true, nil
-	}
-	if os.IsNotExist(err) {
-		return false, nil
-	}
-	return false, err
 }
