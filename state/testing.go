@@ -1,24 +1,12 @@
 package state
 
 import (
+	"bytes"
 	"reflect"
 	"testing"
 
 	"github.com/hashicorp/terraform/terraform"
 )
-
-// TestStateInitial is the initial state that a State should have
-// for TestState.
-var TestStateInitial *terraform.State = &terraform.State{
-	Modules: []*terraform.ModuleState{
-		&terraform.ModuleState{
-			Path: []string{"root", "child"},
-			Outputs: map[string]string{
-				"foo": "bar",
-			},
-		},
-	},
-}
 
 // TestState is a helper for testing state implementations. It is expected
 // that the given implementation is pre-loaded with the TestStateInitial
@@ -37,11 +25,12 @@ func TestState(t *testing.T, s interface{}) {
 	}
 
 	// current will track our current state
-	current := TestStateInitial
+	current := TestStateInitial()
+	current.Serial++
 
 	// Check that the initial state is correct
 	if !reflect.DeepEqual(reader.State(), current) {
-		t.Fatalf("not initial: %#v", reader.State())
+		t.Fatalf("not initial: %#v\n\n%#v", reader.State(), current)
 	}
 
 	// Write a new state and verify that we have it
@@ -58,7 +47,7 @@ func TestState(t *testing.T, s interface{}) {
 		}
 
 		if actual := reader.State(); !reflect.DeepEqual(actual, current) {
-			t.Fatalf("bad: %#v", actual)
+			t.Fatalf("bad: %#v\n\n%#v", actual, current)
 		}
 	}
 
@@ -75,8 +64,30 @@ func TestState(t *testing.T, s interface{}) {
 			}
 		}
 
-		if actual := reader.State(); !reflect.DeepEqual(actual, current) {
-			t.Fatalf("bad: %#v", actual)
+		// Just set the serials the same... Then compare.
+		actual := reader.State()
+		actual.Serial = current.Serial
+		if !reflect.DeepEqual(actual, current) {
+			t.Fatalf("bad: %#v\n\n%#v", actual, current)
 		}
 	}
+}
+
+// TestStateInitial is the initial state that a State should have
+// for TestState.
+func TestStateInitial() *terraform.State {
+	initial := &terraform.State{
+		Modules: []*terraform.ModuleState{
+			&terraform.ModuleState{
+				Path: []string{"root", "child"},
+				Outputs: map[string]string{
+					"foo": "bar",
+				},
+			},
+		},
+	}
+
+	var scratch bytes.Buffer
+	terraform.WriteState(initial, &scratch)
+	return initial
 }
