@@ -1,6 +1,7 @@
 package state
 
 import (
+	"fmt"
 	"reflect"
 
 	"github.com/hashicorp/terraform/terraform"
@@ -189,3 +190,24 @@ const (
 	// (Push/Pull)
 	CacheRefreshConflict
 )
+
+func (sc CacheRefreshResult) String() string {
+	switch sc {
+	case CacheRefreshNoop:
+		return "Local and remote state in sync"
+	case CacheRefreshInit:
+		return "Local state initialized"
+	case CacheRefreshUpdateLocal:
+		return "Local state updated"
+	case CacheRefreshUpdateRemote:
+		return "Remote state updated"
+	case CacheRefreshLocalNewer:
+		return "Local state is newer than remote state, push required"
+	case CacheRefreshRemoteNewer:
+		return "Remote state is newer than local state, pull required"
+	case CacheRefreshConflict:
+		return "Local and remote state conflict, manual resolution required"
+	default:
+		return fmt.Sprintf("Unknown state change type: %d", sc)
+	}
+}
