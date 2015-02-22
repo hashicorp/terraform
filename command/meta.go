@@ -40,20 +40,23 @@ type Meta struct {
 	color bool
 	oldUi cli.Ui
 
+	// The fields below are expected to be set by the command via
+	// command line flags. See the Apply command for an example.
+	//
 	// statePath is the path to the state file. If this is empty, then
 	// no state will be loaded. It is also okay for this to be a path to
 	// a file that doesn't exist; it is assumed that this means that there
 	// is simply no state.
-	statePath string
-
+	//
 	// stateOutPath is used to override the output path for the state.
 	// If not provided, the StatePath is used causing the old state to
 	// be overriden.
-	stateOutPath string
-
+	//
 	// backupPath is used to backup the state file before writing a modified
 	// version. It defaults to stateOutPath + DefaultBackupExtention
-	backupPath string
+	statePath    string
+	stateOutPath string
+	backupPath   string
 }
 
 // initStatePaths is used to initialize the default values for
@@ -123,12 +126,10 @@ func (m *Meta) Context(copts contextOpts) (*terraform.Context, bool, error) {
 	}
 
 	// Store the loaded state
-	state, statePath, err := State(m.statePath)
+	state, err := m.State()
 	if err != nil {
 		return nil, false, err
 	}
-	m.state = state
-	m.stateOutPath = statePath
 
 	// Load the root module
 	mod, err := module.NewTreeModule("", copts.Path)
@@ -173,12 +174,17 @@ func (m *Meta) State() (state.State, error) {
 		return m.state, nil
 	}
 
-	state, _, err := State(m.statePath)
+	state, statePath, err := State(&StateOpts{
+		LocalPath:    m.statePath,
+		LocalPathOut: m.stateOutPath,
+		BackupPath:   m.backupPath,
+	})
 	if err != nil {
 		return nil, err
 	}
 
 	m.state = state
+	m.stateOutPath = statePath
 	return state, nil
 }
 
