@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/hashicorp/terraform/remote"
+	"github.com/hashicorp/terraform/state"
 )
 
 type PullCommand struct {
@@ -20,32 +20,50 @@ func (c *PullCommand) Run(args []string) int {
 		return 1
 	}
 
-	// Recover the local state if any
-	local, _, err := remote.ReadLocalState()
+	// Read out our state
+	s, err := c.State()
 	if err != nil {
-		c.Ui.Error(fmt.Sprintf("%s", err))
+		c.Ui.Error(fmt.Sprintf("Failed to read state: %s", err))
 		return 1
 	}
-	if local == nil || local.Remote == nil {
+	localState := s.State()
+
+	// If remote state isn't enabled, it is a problem.
+	if !localState.IsRemote() {
 		c.Ui.Error("Remote state not enabled!")
 		return 1
 	}
 
-	// Attempt the state refresh
-	change, err := remote.RefreshState(local.Remote)
-	if err != nil {
+	// We need the CacheState structure in order to do anything
+	var cache *state.CacheState
+	if bs, ok := s.(*state.BackupState); ok {
+		if cs, ok := bs.Real.(*state.CacheState); ok {
+			cache = cs
+		}
+	}
+	if cache == nil {
 		c.Ui.Error(fmt.Sprintf(
-			"Failed to refresh from remote state: %v", err))
+			"Failed to extract internal CacheState from remote state.\n" +
+				"This is an internal error, please report it as a bug."))
+		return 1
+	}
+
+	// Refresh the state
+	if err := cache.RefreshState(); err != nil {
+		c.Ui.Error(fmt.Sprintf(
+			"Failed to refresh from remote state: %s", err))
 		return 1
 	}
 
 	// Use an error exit code if the update was not a success
+	change := cache.RefreshResult()
 	if !change.SuccessfulPull() {
 		c.Ui.Error(fmt.Sprintf("%s", change))
 		return 1
 	} else {
 		c.Ui.Output(fmt.Sprintf("%s", change))
 	}
+
 	return 0
 }
 

@@ -7,9 +7,10 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"os"
+	"path/filepath"
 	"testing"
 
-	"github.com/hashicorp/terraform/remote"
 	"github.com/hashicorp/terraform/terraform"
 	"github.com/mitchellh/cli"
 )
@@ -46,10 +47,19 @@ func TestPull_local(t *testing.T) {
 	defer srv.Close()
 
 	// Store the local state
-	buf := bytes.NewBuffer(nil)
-	terraform.WriteState(s, buf)
-	remote.EnsureDirectory()
-	remote.Persist(buf)
+	statePath := filepath.Join(tmp, DefaultDataDir, DefaultStateFilename)
+	if err := os.MkdirAll(filepath.Dir(statePath), 0755); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	f, err := os.Create(statePath)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	err = terraform.WriteState(s, f)
+	f.Close()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
 
 	ui := new(cli.MockUi)
 	c := &PullCommand{

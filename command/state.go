@@ -70,10 +70,15 @@ func State(opts *StateOpts) (state.State, string, error) {
 			}
 		} else {
 			if result != nil {
-				// We already have a remote state... that is an error.
-				return nil, "", fmt.Errorf(
-					"Remote state found, but state file '%s' also present.",
-					opts.LocalPath)
+				if !local.State().Empty() {
+					// We already have a remote state... that is an error.
+					return nil, "", fmt.Errorf(
+						"Remote state found, but state file '%s' also present.",
+						opts.LocalPath)
+				}
+
+				// Empty state
+				local = nil
 			}
 		}
 		if err != nil {
@@ -81,10 +86,12 @@ func State(opts *StateOpts) (state.State, string, error) {
 				"Error reading local state: {{err}}", err)
 		}
 
-		result = local
-		resultPath = opts.LocalPath
-		if opts.LocalPathOut != "" {
-			resultPath = opts.LocalPathOut
+		if local != nil {
+			result = local
+			resultPath = opts.LocalPath
+			if opts.LocalPathOut != "" {
+				resultPath = opts.LocalPathOut
+			}
 		}
 	}
 
