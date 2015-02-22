@@ -5,7 +5,6 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/hashicorp/terraform/remote"
 	"github.com/hashicorp/terraform/terraform"
 	"github.com/mitchellh/cli"
 )
@@ -175,10 +174,8 @@ func TestInit_remoteState(t *testing.T) {
 		t.Fatalf("err: %s", err)
 	}
 
-	path, _ := remote.HiddenStatePath()
-	_, err := os.Stat(path)
-	if err != nil {
-		t.Fatalf("missing state")
+	if _, err := os.Stat(filepath.Join(tmp, DefaultDataDir, DefaultStateFilename)); err != nil {
+		t.Fatalf("missing state: %s", err)
 	}
 }
 
