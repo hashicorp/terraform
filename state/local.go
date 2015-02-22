@@ -44,6 +44,12 @@ func (s *LocalState) PersistState() error {
 func (s *LocalState) RefreshState() error {
 	f, err := os.Open(s.Path)
 	if err != nil {
+		// It is okay if the file doesn't exist, we treat that as a nil state
+		if os.IsNotExist(err) {
+			s.state = nil
+			return nil
+		}
+
 		return err
 	}
 	defer f.Close()
