@@ -14,6 +14,21 @@ func TestLocalState(t *testing.T) {
 	TestState(t, ls)
 }
 
+func TestLocalState_pathOut(t *testing.T) {
+	f, err := ioutil.TempFile("", "tf")
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	f.Close()
+	defer os.Remove(f.Name())
+
+	ls := testLocalState(t)
+	ls.PathOut = f.Name()
+	defer os.Remove(ls.Path)
+
+	TestState(t, ls)
+}
+
 func TestLocalState_nonExist(t *testing.T) {
 	ls := &LocalState{Path: "ishouldntexist"}
 	if err := ls.RefreshState(); err != nil {
