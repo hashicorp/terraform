@@ -125,6 +125,22 @@ func (s *State) ModuleOrphans(path []string, c *config.Config) [][]string {
 	return orphans
 }
 
+// IsRemote returns true if State represents a state that exists and is
+// remote.
+func (s *State) IsRemote() bool {
+	if s == nil {
+		return false
+	}
+	if s.Remote == nil {
+		return false
+	}
+	if s.Remote.Type == "" {
+		return false
+	}
+
+	return true
+}
+
 // RootModule returns the ModuleState for the root module
 func (s *State) RootModule() *ModuleState {
 	root := s.ModuleByPath(rootModulePath)
