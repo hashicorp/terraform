@@ -174,14 +174,16 @@ func (m *Meta) State() (state.State, error) {
 		return m.state, nil
 	}
 
-	path := m.statePath
-	if path == "" {
-		path = DefaultStateFilename
+	localPath := m.statePath
+	if localPath == "" {
+		localPath = DefaultStateFilename
 	}
+	remotePath := filepath.Join(DefaultDataDir, DefaultStateFilename)
 
 	state, statePath, err := State(&StateOpts{
-		LocalPath:    path,
+		LocalPath:    localPath,
 		LocalPathOut: m.stateOutPath,
+		RemotePath:   remotePath,
 		BackupPath:   m.backupPath,
 	})
 	if err != nil {
@@ -246,11 +248,11 @@ func (m *Meta) contextOpts() *terraform.ContextOpts {
 func (m *Meta) flagSet(n string) *flag.FlagSet {
 	f := flag.NewFlagSet(n, flag.ContinueOnError)
 	f.BoolVar(&m.input, "input", true, "input")
-	f.Var((*FlagVar)(&m.variables), "var", "variables")
-	f.Var((*FlagVarFile)(&m.variables), "var-file", "variable file")
+	f.Var((*FlagKV)(&m.variables), "var", "variables")
+	f.Var((*FlagKVFile)(&m.variables), "var-file", "variable file")
 
 	if m.autoKey != "" {
-		f.Var((*FlagVarFile)(&m.autoVariables), m.autoKey, "variable file")
+		f.Var((*FlagKVFile)(&m.autoVariables), m.autoKey, "variable file")
 	}
 
 	// Create an io.Writer that writes to our Ui properly for errors.
