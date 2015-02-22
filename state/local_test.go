@@ -14,6 +14,17 @@ func TestLocalState(t *testing.T) {
 	TestState(t, ls)
 }
 
+func TestLocalState_nonExist(t *testing.T) {
+	ls := &LocalState{Path: "ishouldntexist"}
+	if err := ls.RefreshState(); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	if state := ls.State(); state != nil {
+		t.Fatalf("bad: %#v", state)
+	}
+}
+
 func TestLocalState_impl(t *testing.T) {
 	var _ StateReader = new(LocalState)
 	var _ StateWriter = new(LocalState)
