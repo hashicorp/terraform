@@ -20,6 +20,9 @@ type StateOpts struct {
 	LocalPath    string
 	LocalPathOut string
 
+	// RemotePath is the path where the remote state cache would be.
+	RemotePath string
+
 	// BackupPath is the path where the backup will be placed. If not set,
 	// it is assumed to be the path where the state is stored locally
 	// plus the DefaultBackupExtension.
@@ -37,14 +40,15 @@ func State(opts *StateOpts) (state.State, string, error) {
 	var resultPath string
 
 	// Get the remote state cache path
-	remoteCachePath := filepath.Join(DefaultDataDir, DefaultStateFilename)
-	if _, err := os.Stat(remoteCachePath); err == nil {
-		// We have a remote state, initialize that.
-		result, err = remoteStateFromPath(remoteCachePath)
-		if err != nil {
-			return nil, "", err
+	if opts.RemotePath != "" {
+		if _, err := os.Stat(opts.RemotePath); err == nil {
+			// We have a remote state, initialize that.
+			result, err = remoteStateFromPath(opts.RemotePath)
+			if err != nil {
+				return nil, "", err
+			}
+			resultPath = opts.RemotePath
 		}
-		resultPath = remoteCachePath
 	}
 
 	// Do we have a local state?
