@@ -5,8 +5,6 @@ import (
 	"log"
 	"os"
 	"strings"
-
-	"github.com/hashicorp/terraform/remote"
 )
 
 // RefreshCommand is a cli.Command implementation that refreshes the state
@@ -44,16 +42,16 @@ func (c *RefreshCommand) Run(args []string) int {
 	}
 
 	// Check if remote state is enabled
-	remoteEnabled, err := remote.HaveLocalState()
+	state, err := c.State()
 	if err != nil {
-		c.Ui.Error(fmt.Sprintf("Failed to check for remote state: %v", err))
+		c.Ui.Error(fmt.Sprintf("Failed to load state: %s", err))
 		return 1
 	}
 
 	// Verify that the state path exists. The "ContextArg" function below
 	// will actually do this, but we want to provide a richer error message
 	// if possible.
-	if !remoteEnabled {
+	if !state.State().IsRemote() {
 		if _, err := os.Stat(c.Meta.statePath); err != nil {
 			if os.IsNotExist(err) {
 				c.Ui.Error(fmt.Sprintf(
@@ -95,14 +93,14 @@ func (c *RefreshCommand) Run(args []string) int {
 		return 1
 	}
 
-	state, err := ctx.Refresh()
+	newState, err := ctx.Refresh()
 	if err != nil {
 		c.Ui.Error(fmt.Sprintf("Error refreshing state: %s", err))
 		return 1
 	}
 
 	log.Printf("[INFO] Writing state output to: %s", c.Meta.StateOutPath())
-	if err := c.Meta.PersistState(state); err != nil {
+	if err := c.Meta.PersistState(newState); err != nil {
 		c.Ui.Error(fmt.Sprintf("Error writing state file: %s", err))
 		return 1
 	}
