@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/hashicorp/terraform/remote"
+	"github.com/hashicorp/terraform/state"
 )
 
 type PushCommand struct {
@@ -22,31 +22,52 @@ func (c *PushCommand) Run(args []string) int {
 		return 1
 	}
 
-	// Check for a remote state file
-	local, _, err := remote.ReadLocalState()
+	// Read out our state
+	s, err := c.State()
 	if err != nil {
-		c.Ui.Error(fmt.Sprintf("%s", err))
+		c.Ui.Error(fmt.Sprintf("Failed to read state: %s", err))
 		return 1
 	}
-	if local == nil || local.Remote == nil {
+	localState := s.State()
+
+	// If remote state isn't enabled, it is a problem.
+	if !localState.IsRemote() {
 		c.Ui.Error("Remote state not enabled!")
 		return 1
 	}
 
-	// Attempt to push the state
-	change, err := remote.PushState(local.Remote, force)
-	if err != nil {
-		c.Ui.Error(fmt.Sprintf("Failed to push state: %v", err))
+	// We need the CacheState structure in order to do anything
+	var cache *state.CacheState
+	if bs, ok := s.(*state.BackupState); ok {
+		if cs, ok := bs.Real.(*state.CacheState); ok {
+			cache = cs
+		}
+	}
+	if cache == nil {
+		c.Ui.Error(fmt.Sprintf(
+			"Failed to extract internal CacheState from remote state.\n" +
+				"This is an internal error, please report it as a bug."))
 		return 1
 	}
 
-	// Use an error exit code if the update was not a success
-	if !change.SuccessfulPush() {
-		c.Ui.Error(fmt.Sprintf("%s", change))
+	// Refresh the cache state
+	if err := cache.Cache.RefreshState(); err != nil {
+		c.Ui.Error(fmt.Sprintf(
+			"Failed to refresh from remote state: %s", err))
 		return 1
-	} else {
-		c.Ui.Output(fmt.Sprintf("%s", change))
 	}
+
+	// Write it to the real storage
+	remote := cache.Durable
+	if err := remote.WriteState(cache.Cache.State()); err != nil {
+		c.Ui.Error(fmt.Sprintf("Error writing state: %s", err))
+		return 1
+	}
+	if err := remote.PersistState(); err != nil {
+		c.Ui.Error(fmt.Sprintf("Error saving state: %s", err))
+		return 1
+	}
+
 	return 0
 }
 
