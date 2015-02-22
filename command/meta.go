@@ -174,8 +174,13 @@ func (m *Meta) State() (state.State, error) {
 		return m.state, nil
 	}
 
+	path := m.statePath
+	if path == "" {
+		path = DefaultStateFilename
+	}
+
 	state, statePath, err := State(&StateOpts{
-		LocalPath:    m.statePath,
+		LocalPath:    path,
 		LocalPathOut: m.stateOutPath,
 		BackupPath:   m.backupPath,
 	})
