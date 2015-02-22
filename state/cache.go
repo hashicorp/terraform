@@ -211,3 +211,23 @@ func (sc CacheRefreshResult) String() string {
 		return fmt.Sprintf("Unknown state change type: %d", sc)
 	}
 }
+
+// SuccessfulPull is used to clasify the CacheRefreshResult for
+// a refresh operation. This is different by operation, but can be used
+// to determine a proper exit code.
+func (sc CacheRefreshResult) SuccessfulPull() bool {
+	switch sc {
+	case CacheRefreshNoop:
+		return true
+	case CacheRefreshInit:
+		return true
+	case CacheRefreshUpdateLocal:
+		return true
+	case CacheRefreshLocalNewer:
+		return false
+	case CacheRefreshConflict:
+		return false
+	default:
+		return false
+	}
+}
