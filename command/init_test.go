@@ -181,3 +181,76 @@ func TestInit_remoteState(t *testing.T) {
 		t.Fatalf("missing state")
 	}
 }
+
+func TestInit_remoteStateWithLocal(t *testing.T) {
+	tmp, cwd := testCwd(t)
+	defer testFixCwd(t, tmp, cwd)
+
+	statePath := filepath.Join(tmp, DefaultStateFilename)
+
+	// Write some state
+	f, err := os.Create(statePath)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	err = terraform.WriteState(testState(), f)
+	f.Close()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	ui := new(cli.MockUi)
+	c := &InitCommand{
+		Meta: Meta{
+			ContextOpts: testCtxConfig(testProvider()),
+			Ui:          ui,
+		},
+	}
+
+	args := []string{
+		"-backend", "http",
+		"-address", "http://google.com",
+		testFixturePath("init"),
+	}
+	if code := c.Run(args); code == 0 {
+		t.Fatalf("should have failed: \n%s", ui.OutputWriter.String())
+	}
+}
+
+func TestInit_remoteStateWithRemote(t *testing.T) {
+	tmp, cwd := testCwd(t)
+	defer testFixCwd(t, tmp, cwd)
+
+	statePath := filepath.Join(tmp, DefaultDataDir, DefaultStateFilename)
+	if err := os.MkdirAll(filepath.Dir(statePath), 0755); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	// Write some state
+	f, err := os.Create(statePath)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	err = terraform.WriteState(testState(), f)
+	f.Close()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	ui := new(cli.MockUi)
+	c := &InitCommand{
+		Meta: Meta{
+			ContextOpts: testCtxConfig(testProvider()),
+			Ui:          ui,
+		},
+	}
+
+	args := []string{
+		"-backend", "http",
+		"-address", "http://google.com",
+		testFixturePath("init"),
+	}
+	if code := c.Run(args); code == 0 {
+		t.Fatalf("should have failed: \n%s", ui.OutputWriter.String())
+	}
+}
