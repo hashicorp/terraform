@@ -8,7 +8,6 @@ import (
 
 	"github.com/hashicorp/terraform/config"
 	"github.com/hashicorp/terraform/config/module"
-	"github.com/hashicorp/terraform/remote"
 	"github.com/hashicorp/terraform/terraform"
 )
 
@@ -102,27 +101,29 @@ func (c *InitCommand) Run(args []string) int {
 			"path":         remotePath,
 		}
 
-		// Ensure remote state is not already enabled
-		haveLocal, err := remote.HaveLocalState()
+		state, err := c.State()
 		if err != nil {
-			c.Ui.Error(fmt.Sprintf("Failed to check for local state: %v", err))
+			c.Ui.Error(fmt.Sprintf("Error checking for state: %s", err))
 			return 1
 		}
-		if haveLocal {
-			c.Ui.Error("Remote state is already enabled. Aborting.")
-			return 1
-		}
-
-		// Check if we have the non-managed state file
-		haveNonManaged, err := remote.ExistsFile(DefaultStateFilename)
-		if err != nil {
-			c.Ui.Error(fmt.Sprintf("Failed to check for state file: %v", err))
-			return 1
-		}
-		if haveNonManaged {
-			c.Ui.Error(fmt.Sprintf("Existing state file '%s' found. Aborting.",
-				DefaultStateFilename))
-			return 1
+		if state != nil {
+			s := state.State()
+			if !s.Empty() {
+				c.Ui.Error(fmt.Sprintf(
+					"State file already exists and is not empty! Please remove this\n" +
+						"state file before initializing. Note that removing the state file\n" +
+						"may result in a loss of information since Terraform uses this\n" +
+						"to track your infrastructure."))
+				return 1
+			}
+			if s.IsRemote() {
+				c.Ui.Error(fmt.Sprintf(
+					"State file already exists with remote state enabled! Please remove this\n" +
+						"state file before initializing. Note that removing the state file\n" +
+						"may result in a loss of information since Terraform uses this\n" +
+						"to track your infrastructure."))
+				return 1
+			}
 		}
 
 		// Initialize a blank state file with remote enabled
