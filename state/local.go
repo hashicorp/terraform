@@ -8,9 +8,14 @@ import (
 
 // LocalState manages a state storage that is local to the filesystem.
 type LocalState struct {
-	Path string
+	// Path is the path to read the state from. PathOut is the path to
+	// write the state to. If PathOut is not specified, Path will be used.
+	// If PathOut already exists, it will be overwritten.
+	Path    string
+	PathOut string
 
-	state *terraform.State
+	state   *terraform.State
+	written bool
 }
 
 // StateReader impl.
@@ -24,13 +29,23 @@ func (s *LocalState) State() *terraform.State {
 func (s *LocalState) WriteState(state *terraform.State) error {
 	s.state = state
 
-	f, err := os.Create(s.Path)
+	path := s.PathOut
+	if path == "" {
+		path = s.Path
+	}
+
+	f, err := os.Create(path)
 	if err != nil {
 		return err
 	}
 	defer f.Close()
 
-	return terraform.WriteState(s.state, f)
+	if err := terraform.WriteState(s.state, f); err != nil {
+		return err
+	}
+
+	s.written = true
+	return nil
 }
 
 // PersistState for LocalState is a no-op since WriteState always persists.
@@ -42,21 +57,30 @@ func (s *LocalState) PersistState() error {
 
 // StateRefresher impl.
 func (s *LocalState) RefreshState() error {
-	f, err := os.Open(s.Path)
+	// If we've never loaded before, read from Path, otherwise we
+	// read from PathOut.
+	path := s.Path
+	if s.written && s.PathOut != "" {
+		path = s.PathOut
+	}
+
+	f, err := os.Open(path)
 	if err != nil {
 		// It is okay if the file doesn't exist, we treat that as a nil state
-		if os.IsNotExist(err) {
-			s.state = nil
-			return nil
+		if !os.IsNotExist(err) {
+			return err
 		}
 
-		return err
+		f = nil
 	}
-	defer f.Close()
 
-	state, err := terraform.ReadState(f)
-	if err != nil {
-		return err
+	var state *terraform.State
+	if f != nil {
+		defer f.Close()
+		state, err = terraform.ReadState(f)
+		if err != nil {
+			return err
+		}
 	}
 
 	s.state = state
