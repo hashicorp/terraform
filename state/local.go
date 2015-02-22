@@ -18,6 +18,11 @@ type LocalState struct {
 	written bool
 }
 
+// SetState will force a specific state in-memory for this local state.
+func (s *LocalState) SetState(state *terraform.State) {
+	s.state = state
+}
+
 // StateReader impl.
 func (s *LocalState) State() *terraform.State {
 	return s.state
@@ -32,6 +37,16 @@ func (s *LocalState) WriteState(state *terraform.State) error {
 	path := s.PathOut
 	if path == "" {
 		path = s.Path
+	}
+
+	// If we don't have any state, we actually delete the file if it exists
+	if state == nil {
+		err := os.Remove(path)
+		if err != nil && os.IsNotExist(err) {
+			return nil
+		}
+
+		return err
 	}
 
 	f, err := os.Create(path)
