@@ -11,13 +11,28 @@ import (
 	"github.com/hashicorp/terraform/terraform"
 )
 
+// StateOpts are options to get the state for a command.
+type StateOpts struct {
+	// LocalPath is the path where the state is stored locally.
+	//
+	// LocalPathOut is the path where the local state will be saved. If this
+	// isn't set, it will be saved back to LocalPath.
+	LocalPath    string
+	LocalPathOut string
+
+	// BackupPath is the path where the backup will be placed. If not set,
+	// it is assumed to be the path where the state is stored locally
+	// plus the DefaultBackupExtension.
+	BackupPath string
+}
+
 // State returns the proper state.State implementation to represent the
 // current environment.
 //
 // localPath is the path to where state would be if stored locally.
 // dataDir is the path to the local data directory where the remote state
 // cache would be stored.
-func State(localPath string) (state.State, string, error) {
+func State(opts *StateOpts) (state.State, string, error) {
 	var result state.State
 	var resultPath string
 
@@ -33,8 +48,11 @@ func State(localPath string) (state.State, string, error) {
 	}
 
 	// Do we have a local state?
-	if localPath != "" {
-		local := &state.LocalState{Path: localPath}
+	if opts.LocalPath != "" {
+		local := &state.LocalState{
+			Path:    opts.LocalPath,
+			PathOut: opts.LocalPathOut,
+		}
 		err := local.RefreshState()
 		if err != nil {
 			isNotExist := false
@@ -51,7 +69,7 @@ func State(localPath string) (state.State, string, error) {
 				// We already have a remote state... that is an error.
 				return nil, "", fmt.Errorf(
 					"Remote state found, but state file '%s' also present.",
-					localPath)
+					opts.LocalPath)
 			}
 		}
 		if err != nil {
@@ -60,14 +78,22 @@ func State(localPath string) (state.State, string, error) {
 		}
 
 		result = local
-		resultPath = localPath
+		resultPath = opts.LocalPath
+		if opts.LocalPathOut != "" {
+			resultPath = opts.LocalPathOut
+		}
 	}
 
 	// If we have a result, make sure to back it up
 	if result != nil {
+		backupPath := resultPath + DefaultBackupExtention
+		if opts.BackupPath != "" {
+			backupPath = opts.BackupPath
+		}
+
 		result = &state.BackupState{
 			Real: result,
-			Path: resultPath + DefaultBackupExtention,
+			Path: backupPath,
 		}
 	}
 
