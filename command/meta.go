@@ -5,7 +5,6 @@ import (
 	"flag"
 	"fmt"
 	"io"
-	"log"
 	"os"
 	"path/filepath"
 
@@ -40,11 +39,6 @@ type Meta struct {
 
 	color bool
 	oldUi cli.Ui
-
-	// useRemoteState is enabled if we are using remote state storage
-	// This is set when the context is loaded if we read from a remote
-	// enabled state file.
-	useRemoteState bool
 
 	// statePath is the path to the state file. If this is empty, then
 	// no state will be loaded. It is also okay for this to be a path to
@@ -101,13 +95,15 @@ func (m *Meta) Context(copts contextOpts) (*terraform.Context, bool, error) {
 		plan, err := terraform.ReadPlan(f)
 		f.Close()
 		if err == nil {
-			// Check if remote state is enabled, but do not refresh.
-			// Since a plan is supposed to lock-in the changes, we do not
-			// attempt a state refresh.
-			if plan != nil && plan.State != nil && plan.State.Remote != nil && plan.State.Remote.Type != "" {
-				log.Printf("[INFO] Enabling remote state from plan")
-				m.useRemoteState = true
+			// Setup our state
+			state, statePath, err := StateFromPlan(m.statePath, plan)
+			if err != nil {
+				return nil, false, fmt.Errorf("Error loading plan: %s", err)
 			}
+
+			// Set our state
+			m.state = state
+			m.stateOutPath = statePath
 
 			if len(m.variables) > 0 {
 				return nil, false, fmt.Errorf(
