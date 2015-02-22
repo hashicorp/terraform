@@ -15,7 +15,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/hashicorp/terraform/remote"
 	"github.com/hashicorp/terraform/terraform"
 	"github.com/mitchellh/cli"
 )
@@ -408,8 +407,9 @@ func TestApply_plan_remoteState(t *testing.T) {
 	defer func() { test = true }()
 	tmp, cwd := testCwd(t)
 	defer testFixCwd(t, tmp, cwd)
-	if err := remote.EnsureDirectory(); err != nil {
-		t.Fatalf("err: %v", err)
+	remoteStatePath := filepath.Join(tmp, DefaultDataDir, DefaultStateFilename)
+	if err := os.MkdirAll(filepath.Dir(remoteStatePath), 0755); err != nil {
+		t.Fatalf("err: %s", err)
 	}
 
 	// Set some default reader/writers for the inputs
@@ -448,21 +448,13 @@ func TestApply_plan_remoteState(t *testing.T) {
 	}
 
 	// State file should be not be installed
-	exists, err := remote.ExistsFile(DefaultStateFilename)
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
-	if exists {
+	if _, err := os.Stat(filepath.Join(tmp, DefaultStateFilename)); err == nil {
 		t.Fatalf("State path should not exist")
 	}
 
 	// Check for remote state
-	output, _, err := remote.ReadLocalState()
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
-	if output == nil {
-		t.Fatalf("missing remote state")
+	if _, err := os.Stat(remoteStatePath); err != nil {
+		t.Fatalf("missing remote state: %s", err)
 	}
 }
 
