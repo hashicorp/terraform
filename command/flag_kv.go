@@ -9,15 +9,15 @@ import (
 	"github.com/mitchellh/go-homedir"
 )
 
-// FlagVar is a flag.Value implementation for parsing user variables
+// FlagKV is a flag.Value implementation for parsing user variables
 // from the command-line in the format of '-var key=value'.
-type FlagVar map[string]string
+type FlagKV map[string]string
 
-func (v *FlagVar) String() string {
+func (v *FlagKV) String() string {
 	return ""
 }
 
-func (v *FlagVar) Set(raw string) error {
+func (v *FlagKV) Set(raw string) error {
 	idx := strings.Index(raw, "=")
 	if idx == -1 {
 		return fmt.Errorf("No '=' value in arg: %s", raw)
@@ -32,16 +32,16 @@ func (v *FlagVar) Set(raw string) error {
 	return nil
 }
 
-// FlagVarFile is a flag.Value implementation for parsing user variables
+// FlagKVFile is a flag.Value implementation for parsing user variables
 // from the command line in the form of files. i.e. '-var-file=foo'
-type FlagVarFile map[string]string
+type FlagKVFile map[string]string
 
-func (v *FlagVarFile) String() string {
+func (v *FlagKVFile) String() string {
 	return ""
 }
 
-func (v *FlagVarFile) Set(raw string) error {
-	vs, err := loadVarFile(raw)
+func (v *FlagKVFile) Set(raw string) error {
+	vs, err := loadKVFile(raw)
 	if err != nil {
 		return err
 	}
@@ -57,7 +57,7 @@ func (v *FlagVarFile) Set(raw string) error {
 	return nil
 }
 
-func loadVarFile(rawPath string) (map[string]string, error) {
+func loadKVFile(rawPath string) (map[string]string, error) {
 	path, err := homedir.Expand(rawPath)
 	if err != nil {
 		return nil, fmt.Errorf(

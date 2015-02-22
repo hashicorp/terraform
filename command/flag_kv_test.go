@@ -7,11 +7,11 @@ import (
 	"testing"
 )
 
-func TestFlagVar_impl(t *testing.T) {
-	var _ flag.Value = new(FlagVar)
+func TestFlagKV_impl(t *testing.T) {
+	var _ flag.Value = new(FlagKV)
 }
 
-func TestFlagVar(t *testing.T) {
+func TestFlagKV(t *testing.T) {
 	cases := []struct {
 		Input  string
 		Output map[string]string
@@ -43,7 +43,7 @@ func TestFlagVar(t *testing.T) {
 	}
 
 	for _, tc := range cases {
-		f := new(FlagVar)
+		f := new(FlagKV)
 		err := f.Set(tc.Input)
 		if (err != nil) != tc.Error {
 			t.Fatalf("bad error. Input: %#v", tc.Input)
@@ -56,11 +56,11 @@ func TestFlagVar(t *testing.T) {
 	}
 }
 
-func TestFlagVarFile_impl(t *testing.T) {
-	var _ flag.Value = new(FlagVarFile)
+func TestFlagKVFile_impl(t *testing.T) {
+	var _ flag.Value = new(FlagKVFile)
 }
 
-func TestFlagVarFile(t *testing.T) {
+func TestFlagKVFile(t *testing.T) {
 	inputLibucl := `
 foo = "bar"
 `
@@ -93,7 +93,7 @@ foo = "bar"
 			t.Fatalf("err: %s", err)
 		}
 
-		f := new(FlagVarFile)
+		f := new(FlagKVFile)
 		err := f.Set(path)
 		if (err != nil) != tc.Error {
 			t.Fatalf("bad error. Input: %#v", tc.Input)
