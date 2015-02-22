@@ -10,6 +10,9 @@ import (
 // Set to true when we're testing
 var test bool = false
 
+// DefaultDataDir is the default directory for storing local data.
+const DefaultDataDir = ".terraform"
+
 // DefaultStateFilename is the default filename used for the state file.
 const DefaultStateFilename = "terraform.tfstate"
 

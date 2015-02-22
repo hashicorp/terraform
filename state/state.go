@@ -4,6 +4,14 @@ import (
 	"github.com/hashicorp/terraform/terraform"
 )
 
+// State is the collection of all state interfaces.
+type State interface {
+	StateReader
+	StateWriter
+	StateRefresher
+	StatePersister
+}
+
 // StateReader is the interface for things that can return a state. Retrieving
 // the state here must not error. Loading the state fresh (an operation that
 // can likely error) should be implemented by RefreshState. If a state hasn't
