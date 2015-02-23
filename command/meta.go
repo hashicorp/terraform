@@ -23,7 +23,8 @@ type Meta struct {
 
 	// State read when calling `Context`. This is available after calling
 	// `Context`.
-	state state.State
+	state       state.State
+	stateResult *StateResult
 
 	// This can be set by the command itself to provide extra hooks.
 	extraHooks []terraform.Hook
@@ -174,25 +175,45 @@ func (m *Meta) State() (state.State, error) {
 		return m.state, nil
 	}
 
+	result, err := State(m.StateOpts())
+	if err != nil {
+		return nil, err
+	}
+
+	m.state = result.State
+	m.stateOutPath = result.StatePath
+	m.stateResult = result
+	return m.state, nil
+}
+
+// StateRaw is used to setup the state manually.
+func (m *Meta) StateRaw(opts *StateOpts) (*StateResult, error) {
+	result, err := State(opts)
+	if err != nil {
+		return nil, err
+	}
+
+	m.state = result.State
+	m.stateOutPath = result.StatePath
+	m.stateResult = result
+	return result, nil
+}
+
+// StateOpts returns the default state options
+func (m *Meta) StateOpts() *StateOpts {
 	localPath := m.statePath
 	if localPath == "" {
 		localPath = DefaultStateFilename
 	}
 	remotePath := filepath.Join(DefaultDataDir, DefaultStateFilename)
 
-	state, statePath, err := State(&StateOpts{
-		LocalPath:    localPath,
-		LocalPathOut: m.stateOutPath,
-		RemotePath:   remotePath,
-		BackupPath:   m.backupPath,
-	})
-	if err != nil {
-		return nil, err
+	return &StateOpts{
+		LocalPath:     localPath,
+		LocalPathOut:  m.stateOutPath,
+		RemotePath:    remotePath,
+		RemoteRefresh: true,
+		BackupPath:    m.backupPath,
 	}
-
-	m.state = state
-	m.stateOutPath = statePath
-	return state, nil
 }
 
 // UIInput returns a UIInput object to be used for asking for input.
