@@ -162,7 +162,7 @@ func TestInit_remoteState(t *testing.T) {
 
 	args := []string{
 		"-backend", "http",
-		"-address", conf.Config["address"],
+		"-backend-config", "address=" + conf.Config["address"],
 		testFixturePath("init"),
 		tmp,
 	}
@@ -206,7 +206,7 @@ func TestInit_remoteStateWithLocal(t *testing.T) {
 
 	args := []string{
 		"-backend", "http",
-		"-address", "http://google.com",
+		"-backend-config", "address=http://google.com",
 		testFixturePath("init"),
 	}
 	if code := c.Run(args); code == 0 {
@@ -244,7 +244,7 @@ func TestInit_remoteStateWithRemote(t *testing.T) {
 
 	args := []string{
 		"-backend", "http",
-		"-address", "http://google.com",
+		"-backend-config", "address=http://google.com",
 		testFixturePath("init"),
 	}
 	if code := c.Run(args); code == 0 {
