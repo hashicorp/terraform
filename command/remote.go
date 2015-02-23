@@ -38,7 +38,7 @@ func (c *RemoteCommand) Run(args []string) int {
 	cmdFlags.StringVar(&c.conf.statePath, "state", DefaultStateFilename, "path")
 	cmdFlags.StringVar(&c.conf.backupPath, "backup", "", "path")
 	cmdFlags.StringVar(&c.remoteConf.Type, "backend", "atlas", "")
-	cmdFlags.Var((*FlagKV)(&config), "config", "config")
+	cmdFlags.Var((*FlagKV)(&config), "backend-config", "config")
 	cmdFlags.Usage = func() { c.Ui.Error(c.Help()) }
 	if err := cmdFlags.Parse(args); err != nil {
 		return 1
@@ -310,14 +310,11 @@ Usage: terraform remote [options]
 
 Options:
 
-  -address=url           URL of the remote storage server.
-                         Required for HTTP backend, optional for Atlas and Consul.
-
-  -access-token=token    Authentication token for state storage server.
-                         Required for Atlas backend, optional for Consul.
-
   -backend=Atlas         Specifies the type of remote backend. Must be one
                          of Atlas, Consul, or HTTP. Defaults to Atlas.
+
+  -backend-config="k=v"  Specifies configuration for the remote storage
+                         backend. This can be specified multiple times.
 
   -backup=path           Path to backup the existing state file before
                          modifying. Defaults to the "-state" path with
@@ -326,15 +323,9 @@ Options:
   -disable               Disables remote state management and migrates the state
                          to the -state path.
 
-  -name=name             Name of the state file in the state storage server.
-                         Required for Atlas backend.
-
-  -path=path             Path of the remote state in Consul. Required for the
-                         Consul backend.
-
   -pull=true             Controls if the remote state is pulled before disabling.
                          This defaults to true to ensure the latest state is cached
-						 before disabling.
+                         before disabling.
 
   -state=path            Path to read state. Defaults to "terraform.tfstate"
                          unless remote state is enabled.
