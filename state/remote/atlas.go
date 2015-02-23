@@ -98,7 +98,9 @@ func (c *AtlasClient) Get() (*Payload, error) {
 	case http.StatusInternalServerError:
 		return nil, fmt.Errorf("HTTP remote state internal server error")
 	default:
-		return nil, fmt.Errorf("Unexpected HTTP response code %d", resp.StatusCode)
+		return nil, fmt.Errorf(
+			"Unexpected HTTP response code: %d\n\nBody: %s",
+			resp.StatusCode, c.readBody(resp.Body))
 	}
 
 	// Read in the body
@@ -139,7 +141,7 @@ func (c *AtlasClient) Put(state []byte) error {
 
 	// Generate the MD5
 	hash := md5.Sum(state)
-	b64 := base64.StdEncoding.EncodeToString(hash[:md5.Size])
+	b64 := base64.StdEncoding.EncodeToString(hash[:])
 
 	/*
 		// Set the force query parameter if needed
@@ -173,7 +175,9 @@ func (c *AtlasClient) Put(state []byte) error {
 	case http.StatusOK:
 		return nil
 	default:
-		return fmt.Errorf("HTTP error: %d", resp.StatusCode)
+		return fmt.Errorf(
+			"HTTP error: %d\n\nBody: %s",
+			resp.StatusCode, c.readBody(resp.Body))
 	}
 }
 
@@ -200,10 +204,26 @@ func (c *AtlasClient) Delete() error {
 	case http.StatusNotFound:
 		return nil
 	default:
-		return fmt.Errorf("HTTP error: %d", resp.StatusCode)
+		return fmt.Errorf(
+			"HTTP error: %d\n\nBody: %s",
+			resp.StatusCode, c.readBody(resp.Body))
 	}
 
 	return fmt.Errorf("Unexpected HTTP response code %d", resp.StatusCode)
+}
+
+func (c *AtlasClient) readBody(b io.Reader) string {
+	var buf bytes.Buffer
+	if _, err := io.Copy(&buf, b); err != nil {
+		return fmt.Sprintf("Error reading body: %s", err)
+	}
+
+	result := buf.String()
+	if result == "" {
+		result = "<empty>"
+	}
+
+	return result
 }
 
 func (c *AtlasClient) url() *url.URL {
