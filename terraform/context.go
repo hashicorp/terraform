@@ -231,7 +231,6 @@ func (c *Context) Apply() (*State, error) {
 
 	// Clean out any unused things
 	c.state.prune()
-	println(fmt.Sprintf("%#v", c.state))
 
 	return c.state, err
 }
