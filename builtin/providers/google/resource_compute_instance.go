@@ -671,7 +671,7 @@ func resourceComputeInstanceUpdate(d *schema.ResourceData, meta interface{}) err
 				// Delete any accessConfig that currently exists in instNetworkInterface
 				for _, ac := range instNetworkInterface.AccessConfigs {
 					op, err := config.clientCompute.Instances.DeleteAccessConfig(
-						config.Project, zone, d.Id(), ac.Name, networkName).Do();
+						config.Project, zone, d.Id(), ac.Name, networkName).Do()
 					if err != nil {
 						return fmt.Errorf("Error deleting old access_config: %s", err)
 					}
