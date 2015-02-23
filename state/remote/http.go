@@ -70,6 +70,11 @@ func (c *HTTPClient) Get() (*Payload, error) {
 		Data: buf.Bytes(),
 	}
 
+	// If there was no data, then return nil
+	if len(payload.Data) == 0 {
+		return nil, nil
+	}
+
 	// Check for the MD5
 	if raw := resp.Header.Get("Content-MD5"); raw != "" {
 		md5, err := base64.StdEncoding.DecodeString(raw)
