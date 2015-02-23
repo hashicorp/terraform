@@ -9,6 +9,7 @@ BUG FIXES:
 
   * core: module outputs can be used as inputs to other modules [GH-822]
   * providers/aws: manually deleted VPC removes it from the state
+  * providers/aws: `source_dest_check` regression fixed (now works). [GH-1020]
 
 ## 0.3.7 (February 19, 2015)
 
