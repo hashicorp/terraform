@@ -8,7 +8,6 @@ import (
 
 	"github.com/hashicorp/terraform/config"
 	"github.com/hashicorp/terraform/config/module"
-	"github.com/hashicorp/terraform/remote"
 	"github.com/hashicorp/terraform/terraform"
 )
 
@@ -19,14 +18,12 @@ type InitCommand struct {
 }
 
 func (c *InitCommand) Run(args []string) int {
-	var remoteBackend, remoteAddress, remoteAccessToken, remoteName, remotePath string
+	var remoteBackend string
 	args = c.Meta.process(args, false)
+	remoteConfig := make(map[string]string)
 	cmdFlags := flag.NewFlagSet("init", flag.ContinueOnError)
-	cmdFlags.StringVar(&remoteBackend, "backend", "atlas", "")
-	cmdFlags.StringVar(&remoteAddress, "address", "", "")
-	cmdFlags.StringVar(&remoteAccessToken, "access-token", "", "")
-	cmdFlags.StringVar(&remoteName, "name", "", "")
-	cmdFlags.StringVar(&remotePath, "path", "", "")
+	cmdFlags.StringVar(&remoteBackend, "backend", "", "")
+	cmdFlags.Var((*FlagKV)(&remoteConfig), "backend-config", "config")
 	cmdFlags.Usage = func() { c.Ui.Error(c.Help()) }
 	if err := cmdFlags.Parse(args); err != nil {
 		return 1
@@ -92,37 +89,34 @@ func (c *InitCommand) Run(args []string) int {
 	}
 
 	// Handle remote state if configured
-	if remoteAddress != "" || remoteAccessToken != "" || remoteName != "" || remotePath != "" {
+	if remoteBackend != "" {
 		var remoteConf terraform.RemoteState
 		remoteConf.Type = remoteBackend
-		remoteConf.Config = map[string]string{
-			"address":      remoteAddress,
-			"access_token": remoteAccessToken,
-			"name":         remoteName,
-			"path":         remotePath,
-		}
+		remoteConf.Config = remoteConfig
 
-		// Ensure remote state is not already enabled
-		haveLocal, err := remote.HaveLocalState()
+		state, err := c.State()
 		if err != nil {
-			c.Ui.Error(fmt.Sprintf("Failed to check for local state: %v", err))
+			c.Ui.Error(fmt.Sprintf("Error checking for state: %s", err))
 			return 1
 		}
-		if haveLocal {
-			c.Ui.Error("Remote state is already enabled. Aborting.")
-			return 1
-		}
-
-		// Check if we have the non-managed state file
-		haveNonManaged, err := remote.ExistsFile(DefaultStateFilename)
-		if err != nil {
-			c.Ui.Error(fmt.Sprintf("Failed to check for state file: %v", err))
-			return 1
-		}
-		if haveNonManaged {
-			c.Ui.Error(fmt.Sprintf("Existing state file '%s' found. Aborting.",
-				DefaultStateFilename))
-			return 1
+		if state != nil {
+			s := state.State()
+			if !s.Empty() {
+				c.Ui.Error(fmt.Sprintf(
+					"State file already exists and is not empty! Please remove this\n" +
+						"state file before initializing. Note that removing the state file\n" +
+						"may result in a loss of information since Terraform uses this\n" +
+						"to track your infrastructure."))
+				return 1
+			}
+			if s.IsRemote() {
+				c.Ui.Error(fmt.Sprintf(
+					"State file already exists with remote state enabled! Please remove this\n" +
+						"state file before initializing. Note that removing the state file\n" +
+						"may result in a loss of information since Terraform uses this\n" +
+						"to track your infrastructure."))
+				return 1
+			}
 		}
 
 		// Initialize a blank state file with remote enabled
@@ -149,20 +143,11 @@ Usage: terraform init [options] SOURCE [PATH]
 
 Options:
 
-  -address=url           URL of the remote storage server.
-                         Required for HTTP backend, optional for Atlas and Consul.
+  -backend=atlas         Specifies the type of remote backend. If not
+                         specified, local storage will be used.
 
-  -access-token=token    Authentication token for state storage server.
-                         Required for Atlas backend, optional for Consul.
-
-  -backend=atlas         Specifies the type of remote backend. Must be one
-                         of Atlas, Consul, or HTTP. Defaults to atlas.
-
-  -name=name             Name of the state file in the state storage server.
-                         Required for Atlas backend.
-
-  -path=path             Path of the remote state in Consul. Required for the
-                         Consul backend.
+  -backend-config="k=v"  Specifies configuration for the remote storage
+                         backend. This can be specified multiple times.
 
 `
 	return strings.TrimSpace(helpText)

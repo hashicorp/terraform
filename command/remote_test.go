@@ -4,9 +4,10 @@ import (
 	"bytes"
 	"io/ioutil"
 	"os"
+	"path/filepath"
 	"testing"
 
-	"github.com/hashicorp/terraform/remote"
+	"github.com/hashicorp/terraform/state"
 	"github.com/hashicorp/terraform/terraform"
 	"github.com/mitchellh/cli"
 )
@@ -26,11 +27,15 @@ func TestRemote_disable(t *testing.T) {
 	s = terraform.NewState()
 	s.Serial = 5
 	s.Remote = conf
-	if err := remote.EnsureDirectory(); err != nil {
-		t.Fatalf("err: %v", err)
+
+	// Write the state
+	statePath := filepath.Join(tmp, DefaultDataDir, DefaultStateFilename)
+	state := &state.LocalState{Path: statePath}
+	if err := state.WriteState(s); err != nil {
+		t.Fatalf("err: %s", err)
 	}
-	if err := remote.PersistState(s); err != nil {
-		t.Fatalf("err: %v", err)
+	if err := state.PersistState(); err != nil {
+		t.Fatalf("err: %s", err)
 	}
 
 	ui := new(cli.MockUi)
@@ -45,23 +50,9 @@ func TestRemote_disable(t *testing.T) {
 		t.Fatalf("bad: \n%s", ui.ErrorWriter.String())
 	}
 
-	// Local state file should be removed
-	haveLocal, err := remote.HaveLocalState()
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
-	if haveLocal {
-		t.Fatalf("should be disabled")
-	}
-
-	// New state file should be installed
-	exists, err := remote.ExistsFile(DefaultStateFilename)
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
-	if !exists {
-		t.Fatalf("failed to make state file")
-	}
+	// Local state file should be removed and the local cache should exist
+	testRemoteLocal(t, true)
+	testRemoteLocalCache(t, false)
 
 	// Check that the state file was updated
 	raw, _ := ioutil.ReadFile(DefaultStateFilename)
@@ -71,11 +62,6 @@ func TestRemote_disable(t *testing.T) {
 	}
 
 	// Ensure we updated
-	// TODO: Should be 10, but WriteState currently
-	// increments incorrectly
-	if newState.Serial != 11 {
-		t.Fatalf("state file not updated: %#v", newState)
-	}
 	if newState.Remote != nil {
 		t.Fatalf("remote configuration not removed")
 	}
@@ -96,11 +82,15 @@ func TestRemote_disable_noPull(t *testing.T) {
 	s = terraform.NewState()
 	s.Serial = 5
 	s.Remote = conf
-	if err := remote.EnsureDirectory(); err != nil {
-		t.Fatalf("err: %v", err)
+
+	// Write the state
+	statePath := filepath.Join(tmp, DefaultDataDir, DefaultStateFilename)
+	state := &state.LocalState{Path: statePath}
+	if err := state.WriteState(s); err != nil {
+		t.Fatalf("err: %s", err)
 	}
-	if err := remote.PersistState(s); err != nil {
-		t.Fatalf("err: %v", err)
+	if err := state.PersistState(); err != nil {
+		t.Fatalf("err: %s", err)
 	}
 
 	ui := new(cli.MockUi)
@@ -115,23 +105,9 @@ func TestRemote_disable_noPull(t *testing.T) {
 		t.Fatalf("bad: \n%s", ui.ErrorWriter.String())
 	}
 
-	// Local state file should be removed
-	haveLocal, err := remote.HaveLocalState()
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
-	if haveLocal {
-		t.Fatalf("should be disabled")
-	}
-
-	// New state file should be installed
-	exists, err := remote.ExistsFile(DefaultStateFilename)
-	if err != nil {
-		t.Fatalf("err: %v", err)
-	}
-	if !exists {
-		t.Fatalf("failed to make state file")
-	}
+	// Local state file should be removed and the local cache should exist
+	testRemoteLocal(t, true)
+	testRemoteLocalCache(t, false)
 
 	// Check that the state file was updated
 	raw, _ := ioutil.ReadFile(DefaultStateFilename)
@@ -140,12 +116,6 @@ func TestRemote_disable_noPull(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 
-	// Ensure we DIDNT updated
-	// TODO: Should be 5, but WriteState currently increments
-	// this which is incorrect.
-	if newState.Serial != 7 {
-		t.Fatalf("state file updated: %#v", newState)
-	}
 	if newState.Remote != nil {
 		t.Fatalf("remote configuration not removed")
 	}
@@ -178,11 +148,15 @@ func TestRemote_disable_otherState(t *testing.T) {
 	// Persist local remote state
 	s := terraform.NewState()
 	s.Serial = 5
-	if err := remote.EnsureDirectory(); err != nil {
-		t.Fatalf("err: %v", err)
+
+	// Write the state
+	statePath := filepath.Join(tmp, DefaultDataDir, DefaultStateFilename)
+	state := &state.LocalState{Path: statePath}
+	if err := state.WriteState(s); err != nil {
+		t.Fatalf("err: %s", err)
 	}
-	if err := remote.PersistState(s); err != nil {
-		t.Fatalf("err: %v", err)
+	if err := state.PersistState(); err != nil {
+		t.Fatalf("err: %s", err)
 	}
 
 	// Also put a file at the default path
@@ -218,11 +192,15 @@ func TestRemote_managedAndNonManaged(t *testing.T) {
 	// Persist local remote state
 	s := terraform.NewState()
 	s.Serial = 5
-	if err := remote.EnsureDirectory(); err != nil {
-		t.Fatalf("err: %v", err)
+
+	// Write the state
+	statePath := filepath.Join(tmp, DefaultDataDir, DefaultStateFilename)
+	state := &state.LocalState{Path: statePath}
+	if err := state.WriteState(s); err != nil {
+		t.Fatalf("err: %s", err)
 	}
-	if err := remote.PersistState(s); err != nil {
-		t.Fatalf("err: %v", err)
+	if err := state.PersistState(); err != nil {
+		t.Fatalf("err: %s", err)
 	}
 
 	// Also put a file at the default path
@@ -265,18 +243,20 @@ func TestRemote_initBlank(t *testing.T) {
 
 	args := []string{
 		"-backend=http",
-		"-address", "http://example.com",
-		"-access-token=test",
+		"-backend-config", "address=http://example.com",
+		"-backend-config", "access_token=test",
 	}
 	if code := c.Run(args); code != 0 {
 		t.Fatalf("bad: \n%s", ui.ErrorWriter.String())
 	}
 
-	local, _, err := remote.ReadLocalState()
-	if err != nil {
-		t.Fatalf("err: %v", err)
+	remotePath := filepath.Join(DefaultDataDir, DefaultStateFilename)
+	ls := &state.LocalState{Path: remotePath}
+	if err := ls.RefreshState(); err != nil {
+		t.Fatalf("err: %s", err)
 	}
 
+	local := ls.State()
 	if local.Remote.Type != "http" {
 		t.Fatalf("Bad: %#v", local.Remote)
 	}
@@ -318,11 +298,15 @@ func TestRemote_updateRemote(t *testing.T) {
 	s.Remote = &terraform.RemoteState{
 		Type: "invalid",
 	}
-	if err := remote.EnsureDirectory(); err != nil {
-		t.Fatalf("err: %v", err)
+
+	// Write the state
+	statePath := filepath.Join(tmp, DefaultDataDir, DefaultStateFilename)
+	ls := &state.LocalState{Path: statePath}
+	if err := ls.WriteState(s); err != nil {
+		t.Fatalf("err: %s", err)
 	}
-	if err := remote.PersistState(s); err != nil {
-		t.Fatalf("err: %v", err)
+	if err := ls.PersistState(); err != nil {
+		t.Fatalf("err: %s", err)
 	}
 
 	ui := new(cli.MockUi)
@@ -335,18 +319,19 @@ func TestRemote_updateRemote(t *testing.T) {
 
 	args := []string{
 		"-backend=http",
-		"-address",
-		"http://example.com",
-		"-access-token=test",
+		"-backend-config", "address=http://example.com",
+		"-backend-config", "access_token=test",
 	}
 	if code := c.Run(args); code != 0 {
 		t.Fatalf("bad: \n%s", ui.ErrorWriter.String())
 	}
 
-	local, _, err := remote.ReadLocalState()
-	if err != nil {
-		t.Fatalf("err: %v", err)
+	remotePath := filepath.Join(DefaultDataDir, DefaultStateFilename)
+	ls = &state.LocalState{Path: remotePath}
+	if err := ls.RefreshState(); err != nil {
+		t.Fatalf("err: %s", err)
 	}
+	local := ls.State()
 
 	if local.Remote.Type != "http" {
 		t.Fatalf("Bad: %#v", local.Remote)
@@ -389,18 +374,19 @@ func TestRemote_enableRemote(t *testing.T) {
 
 	args := []string{
 		"-backend=http",
-		"-address",
-		"http://example.com",
-		"-access-token=test",
+		"-backend-config", "address=http://example.com",
+		"-backend-config", "access_token=test",
 	}
 	if code := c.Run(args); code != 0 {
 		t.Fatalf("bad: \n%s", ui.ErrorWriter.String())
 	}
 
-	local, _, err := remote.ReadLocalState()
-	if err != nil {
-		t.Fatalf("err: %v", err)
+	remotePath := filepath.Join(DefaultDataDir, DefaultStateFilename)
+	ls := &state.LocalState{Path: remotePath}
+	if err := ls.RefreshState(); err != nil {
+		t.Fatalf("err: %s", err)
 	}
+	local := ls.State()
 
 	if local.Remote.Type != "http" {
 		t.Fatalf("Bad: %#v", local.Remote)
@@ -412,21 +398,49 @@ func TestRemote_enableRemote(t *testing.T) {
 		t.Fatalf("Bad: %#v", local.Remote)
 	}
 
-	// Backup file should exist
-	exist, err := remote.ExistsFile(DefaultStateFilename + DefaultBackupExtention)
-	if err != nil {
-		t.Fatalf("err: %v", err)
+	// Backup file should exist, state file should not
+	testRemoteLocal(t, false)
+	testRemoteLocalBackup(t, true)
+}
+
+func testRemoteLocal(t *testing.T, exists bool) {
+	_, err := os.Stat(DefaultStateFilename)
+	if os.IsNotExist(err) && !exists {
+		return
 	}
-	if !exist {
-		t.Fatalf("backup should exist")
+	if err == nil && exists {
+		return
 	}
 
-	// State file should not
-	exist, err = remote.ExistsFile(DefaultStateFilename)
-	if err != nil {
-		t.Fatalf("err: %v", err)
+	t.Fatalf("bad: %#v", err)
+}
+
+func testRemoteLocalBackup(t *testing.T, exists bool) {
+	_, err := os.Stat(DefaultStateFilename + DefaultBackupExtention)
+	if os.IsNotExist(err) && !exists {
+		return
 	}
-	if exist {
-		t.Fatalf("state file should not exist")
+	if err == nil && exists {
+		return
 	}
+	if err == nil && !exists {
+		t.Fatal("expected local backup to exist")
+	}
+
+	t.Fatalf("bad: %#v", err)
+}
+
+func testRemoteLocalCache(t *testing.T, exists bool) {
+	_, err := os.Stat(filepath.Join(DefaultDataDir, DefaultStateFilename))
+	if os.IsNotExist(err) && !exists {
+		return
+	}
+	if err == nil && exists {
+		return
+	}
+	if err == nil && !exists {
+		t.Fatal("expected local cache to exist")
+	}
+
+	t.Fatalf("bad: %#v", err)
 }

@@ -5,12 +5,11 @@ import (
 	"flag"
 	"fmt"
 	"io"
-	"log"
 	"os"
 	"path/filepath"
 
 	"github.com/hashicorp/terraform/config/module"
-	"github.com/hashicorp/terraform/remote"
+	"github.com/hashicorp/terraform/state"
 	"github.com/hashicorp/terraform/terraform"
 	"github.com/mitchellh/cli"
 	"github.com/mitchellh/colorstring"
@@ -24,7 +23,8 @@ type Meta struct {
 
 	// State read when calling `Context`. This is available after calling
 	// `Context`.
-	state *terraform.State
+	state       state.State
+	stateResult *StateResult
 
 	// This can be set by the command itself to provide extra hooks.
 	extraHooks []terraform.Hook
@@ -41,25 +41,23 @@ type Meta struct {
 	color bool
 	oldUi cli.Ui
 
-	// useRemoteState is enabled if we are using remote state storage
-	// This is set when the context is loaded if we read from a remote
-	// enabled state file.
-	useRemoteState bool
-
+	// The fields below are expected to be set by the command via
+	// command line flags. See the Apply command for an example.
+	//
 	// statePath is the path to the state file. If this is empty, then
 	// no state will be loaded. It is also okay for this to be a path to
 	// a file that doesn't exist; it is assumed that this means that there
 	// is simply no state.
-	statePath string
-
+	//
 	// stateOutPath is used to override the output path for the state.
 	// If not provided, the StatePath is used causing the old state to
 	// be overriden.
-	stateOutPath string
-
+	//
 	// backupPath is used to backup the state file before writing a modified
 	// version. It defaults to stateOutPath + DefaultBackupExtention
-	backupPath string
+	statePath    string
+	stateOutPath string
+	backupPath   string
 }
 
 // initStatePaths is used to initialize the default values for
@@ -78,11 +76,6 @@ func (m *Meta) initStatePaths() {
 
 // StateOutPath returns the true output path for the state file
 func (m *Meta) StateOutPath() string {
-	m.initStatePaths()
-	if m.useRemoteState {
-		path, _ := remote.HiddenStatePath()
-		return path
-	}
 	return m.stateOutPath
 }
 
@@ -106,13 +99,15 @@ func (m *Meta) Context(copts contextOpts) (*terraform.Context, bool, error) {
 		plan, err := terraform.ReadPlan(f)
 		f.Close()
 		if err == nil {
-			// Check if remote state is enabled, but do not refresh.
-			// Since a plan is supposed to lock-in the changes, we do not
-			// attempt a state refresh.
-			if plan != nil && plan.State != nil && plan.State.Remote != nil && plan.State.Remote.Type != "" {
-				log.Printf("[INFO] Enabling remote state from plan")
-				m.useRemoteState = true
+			// Setup our state
+			state, statePath, err := StateFromPlan(m.statePath, plan)
+			if err != nil {
+				return nil, false, fmt.Errorf("Error loading plan: %s", err)
 			}
+
+			// Set our state
+			m.state = state
+			m.stateOutPath = statePath
 
 			if len(m.variables) > 0 {
 				return nil, false, fmt.Errorf(
@@ -132,11 +127,10 @@ func (m *Meta) Context(copts contextOpts) (*terraform.Context, bool, error) {
 	}
 
 	// Store the loaded state
-	state, err := m.loadState()
+	state, err := m.State()
 	if err != nil {
 		return nil, false, err
 	}
-	m.state = state
 
 	// Load the root module
 	mod, err := module.NewTreeModule("", copts.Path)
@@ -154,7 +148,7 @@ func (m *Meta) Context(copts contextOpts) (*terraform.Context, bool, error) {
 	}
 
 	opts.Module = mod
-	opts.State = state
+	opts.State = state.State()
 	ctx := terraform.NewContext(opts)
 	return ctx, false, nil
 }
@@ -175,6 +169,53 @@ func (m *Meta) InputMode() terraform.InputMode {
 	return mode
 }
 
+// State returns the state for this meta.
+func (m *Meta) State() (state.State, error) {
+	if m.state != nil {
+		return m.state, nil
+	}
+
+	result, err := State(m.StateOpts())
+	if err != nil {
+		return nil, err
+	}
+
+	m.state = result.State
+	m.stateOutPath = result.StatePath
+	m.stateResult = result
+	return m.state, nil
+}
+
+// StateRaw is used to setup the state manually.
+func (m *Meta) StateRaw(opts *StateOpts) (*StateResult, error) {
+	result, err := State(opts)
+	if err != nil {
+		return nil, err
+	}
+
+	m.state = result.State
+	m.stateOutPath = result.StatePath
+	m.stateResult = result
+	return result, nil
+}
+
+// StateOpts returns the default state options
+func (m *Meta) StateOpts() *StateOpts {
+	localPath := m.statePath
+	if localPath == "" {
+		localPath = DefaultStateFilename
+	}
+	remotePath := filepath.Join(DefaultDataDir, DefaultStateFilename)
+
+	return &StateOpts{
+		LocalPath:     localPath,
+		LocalPathOut:  m.stateOutPath,
+		RemotePath:    remotePath,
+		RemoteRefresh: true,
+		BackupPath:    m.backupPath,
+	}
+}
+
 // UIInput returns a UIInput object to be used for asking for input.
 func (m *Meta) UIInput() terraform.UIInput {
 	return &UIInput{
@@ -182,115 +223,14 @@ func (m *Meta) UIInput() terraform.UIInput {
 	}
 }
 
-// laodState is used to load the Terraform state. We give precedence
-// to a remote state if enabled, and then check the normal state path.
-func (m *Meta) loadState() (*terraform.State, error) {
-	// Check if we remote state is enabled
-	localCache, _, err := remote.ReadLocalState()
-	if err != nil {
-		return nil, fmt.Errorf("Error loading state: %s", err)
-	}
-
-	// Set the state if enabled
-	var state *terraform.State
-	if localCache != nil {
-		// Refresh the state
-		log.Printf("[INFO] Refreshing local state...")
-		changes, err := remote.RefreshState(localCache.Remote)
-		if err != nil {
-			return nil, fmt.Errorf("Failed to refresh state: %v", err)
-		}
-		switch changes {
-		case remote.StateChangeNoop:
-		case remote.StateChangeInit:
-		case remote.StateChangeLocalNewer:
-		case remote.StateChangeUpdateLocal:
-			// Reload the state since we've udpated
-			localCache, _, err = remote.ReadLocalState()
-			if err != nil {
-				return nil, fmt.Errorf("Error loading state: %s", err)
-			}
-		default:
-			return nil, fmt.Errorf("%s", changes)
-		}
-
-		state = localCache
-		m.useRemoteState = true
-	}
-
-	// Load up the state
-	if m.statePath != "" {
-		f, err := os.Open(m.statePath)
-		if err != nil && os.IsNotExist(err) {
-			// If the state file doesn't exist, it is okay, since it
-			// is probably a new infrastructure.
-			err = nil
-		} else if m.useRemoteState && err == nil {
-			err = fmt.Errorf("Remote state enabled, but state file '%s' also present.", m.statePath)
-			f.Close()
-		} else if err == nil {
-			state, err = terraform.ReadState(f)
-			f.Close()
-		}
-		if err != nil {
-			return nil, fmt.Errorf("Error loading state: %s", err)
-		}
-	}
-	return state, nil
-}
-
 // PersistState is used to write out the state, handling backup of
 // the existing state file and respecting path configurations.
 func (m *Meta) PersistState(s *terraform.State) error {
-	if m.useRemoteState {
-		return m.persistRemoteState(s)
-	}
-	return m.persistLocalState(s)
-}
-
-// persistRemoteState is used to handle persisting a state file
-// when remote state management is enabled
-func (m *Meta) persistRemoteState(s *terraform.State) error {
-	log.Printf("[INFO] Persisting state to local cache")
-	if err := remote.PersistState(s); err != nil {
+	if err := m.state.WriteState(s); err != nil {
 		return err
 	}
-	log.Printf("[INFO] Uploading state to remote store")
-	change, err := remote.PushState(s.Remote, false)
-	if err != nil {
-		return err
-	}
-	if !change.SuccessfulPush() {
-		return fmt.Errorf("Failed to upload state: %s", change)
-	}
-	return nil
-}
 
-// persistLocalState is used to handle persisting a state file
-// when remote state management is disabled.
-func (m *Meta) persistLocalState(s *terraform.State) error {
-	m.initStatePaths()
-
-	// Create a backup of the state before updating
-	if m.backupPath != "-" {
-		log.Printf("[INFO] Writing backup state to: %s", m.backupPath)
-		if err := remote.CopyFile(m.statePath, m.backupPath); err != nil {
-			return fmt.Errorf("Failed to backup state: %v", err)
-		}
-	}
-
-	// Open the new state file
-	fh, err := os.Create(m.stateOutPath)
-	if err != nil {
-		return fmt.Errorf("Failed to open state file: %v", err)
-	}
-	defer fh.Close()
-
-	// Write out the state
-	if err := terraform.WriteState(s, fh); err != nil {
-		return fmt.Errorf("Failed to encode the state: %v", err)
-	}
-	return nil
+	return m.state.PersistState()
 }
 
 // Input returns true if we should ask for input for context.
@@ -329,11 +269,11 @@ func (m *Meta) contextOpts() *terraform.ContextOpts {
 func (m *Meta) flagSet(n string) *flag.FlagSet {
 	f := flag.NewFlagSet(n, flag.ContinueOnError)
 	f.BoolVar(&m.input, "input", true, "input")
-	f.Var((*FlagVar)(&m.variables), "var", "variables")
-	f.Var((*FlagVarFile)(&m.variables), "var-file", "variable file")
+	f.Var((*FlagKV)(&m.variables), "var", "variables")
+	f.Var((*FlagKVFile)(&m.variables), "var-file", "variable file")
 
 	if m.autoKey != "" {
-		f.Var((*FlagVarFile)(&m.autoVariables), m.autoKey, "variable file")
+		f.Var((*FlagKVFile)(&m.autoVariables), m.autoKey, "variable file")
 	}
 
 	// Create an io.Writer that writes to our Ui properly for errors.

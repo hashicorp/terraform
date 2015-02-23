@@ -18,35 +18,18 @@ const (
 	defaultAtlasServer = "https://atlas.hashicorp.com/"
 )
 
-// AtlasRemoteClient implements the RemoteClient interface
-// for an Atlas compatible server.
-type AtlasRemoteClient struct {
-	server      string
-	serverURL   *url.URL
-	user        string
-	name        string
-	accessToken string
-}
+func atlasFactory(conf map[string]string) (Client, error) {
+	var client AtlasClient
 
-func NewAtlasRemoteClient(conf map[string]string) (*AtlasRemoteClient, error) {
-	client := &AtlasRemoteClient{}
-	if err := client.validateConfig(conf); err != nil {
-		return nil, err
-	}
-	return client, nil
-}
-
-func (c *AtlasRemoteClient) validateConfig(conf map[string]string) error {
 	server, ok := conf["address"]
 	if !ok || server == "" {
 		server = defaultAtlasServer
 	}
+
 	url, err := url.Parse(server)
 	if err != nil {
-		return err
+		return nil, err
 	}
-	c.server = server
-	c.serverURL = url
 
 	token, ok := conf["access_token"]
 	if token == "" {
@@ -54,26 +37,39 @@ func (c *AtlasRemoteClient) validateConfig(conf map[string]string) error {
 		ok = true
 	}
 	if !ok || token == "" {
-		return fmt.Errorf(
+		return nil, fmt.Errorf(
 			"missing 'access_token' configuration or ATLAS_TOKEN environmental variable")
 	}
-	c.accessToken = token
 
 	name, ok := conf["name"]
 	if !ok || name == "" {
-		return fmt.Errorf("missing 'name' configuration")
+		return nil, fmt.Errorf("missing 'name' configuration")
 	}
 
 	parts := strings.Split(name, "/")
 	if len(parts) != 2 {
-		return fmt.Errorf("malformed name '%s'", name)
+		return nil, fmt.Errorf("malformed name '%s'", name)
 	}
-	c.user = parts[0]
-	c.name = parts[1]
-	return nil
+
+	client.Server = server
+	client.ServerURL = url
+	client.AccessToken = token
+	client.User = parts[0]
+	client.Name = parts[1]
+
+	return &client, nil
 }
 
-func (c *AtlasRemoteClient) GetState() (*RemoteStatePayload, error) {
+// AtlasClient implements the Client interface for an Atlas compatible server.
+type AtlasClient struct {
+	Server      string
+	ServerURL   *url.URL
+	User        string
+	Name        string
+	AccessToken string
+}
+
+func (c *AtlasClient) Get() (*Payload, error) {
 	// Make the HTTP request
 	req, err := http.NewRequest("GET", c.url().String(), nil)
 	if err != nil {
@@ -96,11 +92,11 @@ func (c *AtlasRemoteClient) GetState() (*RemoteStatePayload, error) {
 	case http.StatusNotFound:
 		return nil, nil
 	case http.StatusUnauthorized:
-		return nil, ErrRequireAuth
+		return nil, fmt.Errorf("HTTP remote state endpoint requires auth")
 	case http.StatusForbidden:
-		return nil, ErrInvalidAuth
+		return nil, fmt.Errorf("HTTP remote state endpoint invalid auth")
 	case http.StatusInternalServerError:
-		return nil, ErrRemoteInternal
+		return nil, fmt.Errorf("HTTP remote state internal server error")
 	default:
 		return nil, fmt.Errorf("Unexpected HTTP response code %d", resp.StatusCode)
 	}
@@ -112,8 +108,12 @@ func (c *AtlasRemoteClient) GetState() (*RemoteStatePayload, error) {
 	}
 
 	// Create the payload
-	payload := &RemoteStatePayload{
-		State: buf.Bytes(),
+	payload := &Payload{
+		Data: buf.Bytes(),
+	}
+
+	if len(payload.Data) == 0 {
+		return nil, nil
 	}
 
 	// Check for the MD5
@@ -122,18 +122,18 @@ func (c *AtlasRemoteClient) GetState() (*RemoteStatePayload, error) {
 		if err != nil {
 			return nil, fmt.Errorf("Failed to decode Content-MD5 '%s': %v", raw, err)
 		}
-		payload.MD5 = md5
 
+		payload.MD5 = md5
 	} else {
 		// Generate the MD5
-		hash := md5.Sum(payload.State)
-		payload.MD5 = hash[:md5.Size]
+		hash := md5.Sum(payload.Data)
+		payload.MD5 = hash[:]
 	}
 
 	return payload, nil
 }
 
-func (c *AtlasRemoteClient) PutState(state []byte, force bool) error {
+func (c *AtlasClient) Put(state []byte) error {
 	// Get the target URL
 	base := c.url()
 
@@ -141,12 +141,14 @@ func (c *AtlasRemoteClient) PutState(state []byte, force bool) error {
 	hash := md5.Sum(state)
 	b64 := base64.StdEncoding.EncodeToString(hash[:md5.Size])
 
-	// Set the force query parameter if needed
-	if force {
-		values := base.Query()
-		values.Set("force", "true")
-		base.RawQuery = values.Encode()
-	}
+	/*
+		// Set the force query parameter if needed
+		if force {
+			values := base.Query()
+			values.Set("force", "true")
+			base.RawQuery = values.Encode()
+		}
+	*/
 
 	// Make the HTTP client and request
 	req, err := http.NewRequest("PUT", base.String(), bytes.NewReader(state))
@@ -170,22 +172,12 @@ func (c *AtlasRemoteClient) PutState(state []byte, force bool) error {
 	switch resp.StatusCode {
 	case http.StatusOK:
 		return nil
-	case http.StatusConflict:
-		return ErrConflict
-	case http.StatusPreconditionFailed:
-		return ErrServerNewer
-	case http.StatusUnauthorized:
-		return ErrRequireAuth
-	case http.StatusForbidden:
-		return ErrInvalidAuth
-	case http.StatusInternalServerError:
-		return ErrRemoteInternal
 	default:
-		return fmt.Errorf("Unexpected HTTP response code %d", resp.StatusCode)
+		return fmt.Errorf("HTTP error: %d", resp.StatusCode)
 	}
 }
 
-func (c *AtlasRemoteClient) DeleteState() error {
+func (c *AtlasClient) Delete() error {
 	// Make the HTTP request
 	req, err := http.NewRequest("DELETE", c.url().String(), nil)
 	if err != nil {
@@ -207,22 +199,18 @@ func (c *AtlasRemoteClient) DeleteState() error {
 		return nil
 	case http.StatusNotFound:
 		return nil
-	case http.StatusUnauthorized:
-		return ErrRequireAuth
-	case http.StatusForbidden:
-		return ErrInvalidAuth
-	case http.StatusInternalServerError:
-		return ErrRemoteInternal
+	default:
+		return fmt.Errorf("HTTP error: %d", resp.StatusCode)
 	}
 
 	return fmt.Errorf("Unexpected HTTP response code %d", resp.StatusCode)
 }
 
-func (c *AtlasRemoteClient) url() *url.URL {
+func (c *AtlasClient) url() *url.URL {
 	return &url.URL{
-		Scheme:   c.serverURL.Scheme,
-		Host:     c.serverURL.Host,
-		Path:     path.Join("api/v1/terraform/state", c.user, c.name),
-		RawQuery: fmt.Sprintf("access_token=%s", c.accessToken),
+		Scheme:   c.ServerURL.Scheme,
+		Host:     c.ServerURL.Host,
+		Path:     path.Join("api/v1/terraform/state", c.User, c.Name),
+		RawQuery: fmt.Sprintf("access_token=%s", c.AccessToken),
 	}
 }
