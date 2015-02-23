@@ -1,5 +1,10 @@
 ## 0.4.0 (unreleased)
 
+FEATURES:
+
+  * **Self-variables** can be used to reference the current resource's
+      attributes within a provisioner. Ex. `${self.private_ip_address}` [GH-1033]
+
 IMPROVEMENTS:
 
   * **New config function: `split`** - Split a value based on a delimiter.
