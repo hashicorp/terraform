@@ -10,6 +10,7 @@ BUG FIXES:
   * core: module outputs can be used as inputs to other modules [GH-822]
   * core: Self-referencing splat variables are no longer allowed in
       provisioners. [GH-795][GH-868]
+  * core: Validate that `depends_on` doesn't contain interpolations. [GH-1015]
   * providers/aws: manually deleted VPC removes it from the state
   * providers/aws: `source_dest_check` regression fixed (now works). [GH-1020]
 
