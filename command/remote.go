@@ -31,25 +31,21 @@ type RemoteCommand struct {
 
 func (c *RemoteCommand) Run(args []string) int {
 	args = c.Meta.process(args, false)
-	var address, accessToken, name, path string
+	config := make(map[string]string)
 	cmdFlags := flag.NewFlagSet("remote", flag.ContinueOnError)
 	cmdFlags.BoolVar(&c.conf.disableRemote, "disable", false, "")
 	cmdFlags.BoolVar(&c.conf.pullOnDisable, "pull", true, "")
 	cmdFlags.StringVar(&c.conf.statePath, "state", DefaultStateFilename, "path")
 	cmdFlags.StringVar(&c.conf.backupPath, "backup", "", "path")
 	cmdFlags.StringVar(&c.remoteConf.Type, "backend", "atlas", "")
-	cmdFlags.StringVar(&address, "address", "", "")
-	cmdFlags.StringVar(&accessToken, "access-token", "", "")
-	cmdFlags.StringVar(&name, "name", "", "")
-	cmdFlags.StringVar(&path, "path", "", "")
+	cmdFlags.Var((*FlagKV)(&config), "config", "config")
 	cmdFlags.Usage = func() { c.Ui.Error(c.Help()) }
 	if err := cmdFlags.Parse(args); err != nil {
 		return 1
 	}
 
 	// Show help if given no inputs
-	if !c.conf.disableRemote && c.remoteConf.Type == "atlas" &&
-		name == "" && accessToken == "" {
+	if !c.conf.disableRemote && c.remoteConf.Type == "atlas" && len(config) == 0 {
 		cmdFlags.Usage()
 		return 1
 	}
@@ -58,12 +54,7 @@ func (c *RemoteCommand) Run(args []string) int {
 	c.statePath = c.conf.statePath
 
 	// Populate the various configurations
-	c.remoteConf.Config = map[string]string{
-		"address":      address,
-		"access_token": accessToken,
-		"name":         name,
-		"path":         path,
-	}
+	c.remoteConf.Config = config
 
 	// Get the state information. We specifically request the cache only
 	// for the remote state here because it is possible the remote state
