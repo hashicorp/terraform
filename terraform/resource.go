@@ -26,6 +26,13 @@ type ResourceProvisionerConfig struct {
 // its current state, and potentially a desired diff from the state it
 // wants to reach.
 type Resource struct {
+	// These are all used by the new EvalNode stuff.
+	Name       string
+	Type       string
+	CountIndex int
+
+	// These aren't really used anymore anywhere, but we keep them around
+	// since we haven't done a proper cleanup yet.
 	Id           string
 	Info         *InstanceInfo
 	Config       *ResourceConfig
@@ -34,7 +41,6 @@ type Resource struct {
 	Provider     ResourceProvider
 	State        *InstanceState
 	Provisioners []*ResourceProvisionerConfig
-	CountIndex   int
 	Flags        ResourceFlag
 	TaintedIndex int
 }

@@ -359,6 +359,13 @@ aws_instance.bar:
   type = aws_instance
 `
 
+const testTerraformApplyProvisionerSelfRefStr = `
+aws_instance.foo:
+  ID = foo
+  foo = bar
+  type = aws_instance
+`
+
 const testTerraformApplyProvisionerDiffStr = `
 aws_instance.bar:
   ID = foo

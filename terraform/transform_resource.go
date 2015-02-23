@@ -109,7 +109,11 @@ func (n *graphNodeExpandedResource) EvalTree() EvalNode {
 	if index < 0 {
 		index = 0
 	}
-	resource := &Resource{CountIndex: index}
+	resource := &Resource{
+		Name:       n.Resource.Name,
+		Type:       n.Resource.Type,
+		CountIndex: index,
+	}
 
 	seq := &EvalSequence{Nodes: make([]EvalNode, 0, 5)}
 
