@@ -26,11 +26,12 @@ func TestState(t *testing.T, s interface{}) {
 
 	// current will track our current state
 	current := TestStateInitial()
-	current.Serial++
 
 	// Check that the initial state is correct
-	if !reflect.DeepEqual(reader.State(), current) {
-		t.Fatalf("not initial: %#v\n\n%#v", reader.State(), current)
+	state := reader.State()
+	current.Serial = state.Serial
+	if !reflect.DeepEqual(state, current) {
+		t.Fatalf("not initial: %#v\n\n%#v", state, current)
 	}
 
 	// Write a new state and verify that we have it

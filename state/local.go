@@ -2,6 +2,7 @@ package state
 
 import (
 	"os"
+	"path/filepath"
 
 	"github.com/hashicorp/terraform/terraform"
 )
@@ -46,6 +47,11 @@ func (s *LocalState) WriteState(state *terraform.State) error {
 			return nil
 		}
 
+		return err
+	}
+
+	// Create all the directories
+	if err := os.MkdirAll(filepath.Dir(path), 0755); err != nil {
 		return err
 	}
 
