@@ -32,7 +32,7 @@ type RemoteCommand struct {
 
 func (c *RemoteCommand) Run(args []string) int {
 	args = c.Meta.process(args, false)
-	var address, accessToken, name, path string
+	var address, accessToken, name, path, region, securityToken string
 	cmdFlags := flag.NewFlagSet("remote", flag.ContinueOnError)
 	cmdFlags.BoolVar(&c.conf.disableRemote, "disable", false, "")
 	cmdFlags.BoolVar(&c.conf.pullOnDisable, "pull", true, "")
@@ -41,6 +41,8 @@ func (c *RemoteCommand) Run(args []string) int {
 	cmdFlags.StringVar(&c.remoteConf.Type, "backend", "atlas", "")
 	cmdFlags.StringVar(&address, "address", "", "")
 	cmdFlags.StringVar(&accessToken, "access-token", "", "")
+	cmdFlags.StringVar(&securityToken, "security-token", "", "")
+	cmdFlags.StringVar(&region, "region", "", "")
 	cmdFlags.StringVar(&name, "name", "", "")
 	cmdFlags.StringVar(&path, "path", "", "")
 	cmdFlags.Usage = func() { c.Ui.Error(c.Help()) }
@@ -57,10 +59,12 @@ func (c *RemoteCommand) Run(args []string) int {
 
 	// Populate the various configurations
 	c.remoteConf.Config = map[string]string{
-		"address":      address,
-		"access_token": accessToken,
-		"name":         name,
-		"path":         path,
+		"address":        address,
+		"access_token":   accessToken,
+		"security_token": securityToken,
+		"name":           name,
+		"path":           path,
+		"region":         region,
 	}
 
 	// Check if have an existing local state file
@@ -322,13 +326,15 @@ Usage: terraform remote [options]
 Options:
 
   -address=url           URL of the remote storage server.
-                         Required for HTTP backend, optional for Atlas and Consul.
+                         Required for HTTP and S3 backend, optional for Atlas and Consul.
 
   -access-token=token    Authentication token for state storage server.
                          Required for Atlas backend, optional for Consul.
 
+  -security-token=token  Security token. Specific to S3 (required).
+
   -backend=Atlas         Specifies the type of remote backend. Must be one
-                         of Atlas, Consul, or HTTP. Defaults to Atlas.
+                         of Atlas, Consul,HTTP or S3. Defaults to Atlas.
 
   -backup=path           Path to backup the existing state file before
                          modifying. Defaults to the "-state" path with
@@ -341,11 +347,14 @@ Options:
                          Required for Atlas backend.
 
   -path=path             Path of the remote state in Consul. Required for the
-                         Consul backend.
+                         Consul.
 
   -pull=true             Controls if the remote state is pulled before disabling.
                          This defaults to true to ensure the latest state is cached
 						 before disabling.
+
+  -region=region         AWS region to use. Specific for S3 (not required if AWS_DEFAULT_REGION 
+                         env variable is set).
 
   -state=path            Path to read state. Defaults to "terraform.tfstate"
                          unless remote state is enabled.
