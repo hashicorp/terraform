@@ -143,20 +143,11 @@ Usage: terraform init [options] SOURCE [PATH]
 
 Options:
 
-  -address=url           URL of the remote storage server.
-                         Required for HTTP backend, optional for Atlas and Consul.
+  -backend=atlas         Specifies the type of remote backend. If not
+                         specified, local storage will be used.
 
-  -access-token=token    Authentication token for state storage server.
-                         Required for Atlas backend, optional for Consul.
-
-  -backend=atlas         Specifies the type of remote backend. Must be one
-                         of Atlas, Consul, or HTTP. Defaults to atlas.
-
-  -name=name             Name of the state file in the state storage server.
-                         Required for Atlas backend.
-
-  -path=path             Path of the remote state in Consul. Required for the
-                         Consul backend.
+  -backend-config="k=v"  Specifies configuration for the remote storage
+                         backend. This can be specified multiple times.
 
 `
 	return strings.TrimSpace(helpText)
