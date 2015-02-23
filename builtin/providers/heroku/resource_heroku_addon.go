@@ -51,7 +51,7 @@ func resourceHerokuAddon() *schema.Resource {
 			"config_vars": &schema.Schema{
 				Type:     schema.TypeList,
 				Computed: true,
-				Elem:     &schema.Schema{Type: schema.TypeMap},
+				Elem:     &schema.Schema{Type: schema.TypeString},
 			},
 		},
 	}
@@ -114,7 +114,7 @@ func resourceHerokuAddonRead(d *schema.ResourceData, meta interface{}) error {
 	d.Set("name", addon.Name)
 	d.Set("plan", plan)
 	d.Set("provider_id", addon.ProviderID)
-	d.Set("config_vars", []interface{}{addon.ConfigVars})
+	d.Set("config_vars", addon.ConfigVars)
 
 	return nil
 }
