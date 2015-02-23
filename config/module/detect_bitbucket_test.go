@@ -2,6 +2,7 @@ package module
 
 import (
 	"net/http"
+	"strings"
 	"testing"
 )
 
@@ -37,16 +38,30 @@ func TestBitBucketDetector(t *testing.T) {
 	pwd := "/pwd"
 	f := new(BitBucketDetector)
 	for i, tc := range cases {
-		output, ok, err := f.Detect(tc.Input, pwd)
-		if err != nil {
-			t.Fatalf("err: %s", err)
-		}
-		if !ok {
-			t.Fatal("not ok")
-		}
+		var err error
+		for i := 0; i < 3; i++ {
+			var output string
+			var ok bool
+			output, ok, err = f.Detect(tc.Input, pwd)
+			if err != nil {
+				if strings.Contains(err.Error(), "invalid character") {
+					continue
+				}
 
-		if output != tc.Output {
-			t.Fatalf("%d: bad: %#v", i, output)
+				t.Fatalf("err: %s", err)
+			}
+			if !ok {
+				t.Fatal("not ok")
+			}
+
+			if output != tc.Output {
+				t.Fatalf("%d: bad: %#v", i, output)
+			}
+
+			break
+		}
+		if i >= 3 {
+			t.Fatalf("failure from bitbucket: %s", err)
 		}
 	}
 }
