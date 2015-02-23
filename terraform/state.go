@@ -134,6 +134,30 @@ func (s *State) RootModule() *ModuleState {
 	return root
 }
 
+// Equal tests if one state is equal to another.
+func (s *State) Equal(other *State) bool {
+	// If the versions are different, they're certainly not equal
+	if s.Version != other.Version {
+		return false
+	}
+
+	// If any of the modules are not equal, then this state isn't equal
+	for _, m := range s.Modules {
+		// This isn't very optimal currently but works.
+		otherM := other.ModuleByPath(m.Path)
+		if otherM == nil {
+			return false
+		}
+
+		// If they're not equal, then we're not equal!
+		if !m.Equal(otherM) {
+			return false
+		}
+	}
+
+	return true
+}
+
 func (s *State) init() {
 	if s.Version == 0 {
 		s.Version = StateVersion
@@ -287,6 +311,54 @@ type ModuleState struct {
 	// overall state, then it assumes it isn't managed and doesn't
 	// worry about it.
 	Dependencies []string `json:"depends_on,omitempty"`
+}
+
+// Equal tests whether one module state is equal to another.
+func (m *ModuleState) Equal(other *ModuleState) bool {
+	// Paths must be equal
+	if !reflect.DeepEqual(m.Path, other.Path) {
+		return false
+	}
+
+	// Outputs must be equal
+	if len(m.Outputs) != len(other.Outputs) {
+		return false
+	}
+	for k, v := range m.Outputs {
+		if other.Outputs[k] != v {
+			return false
+		}
+	}
+
+	// Dependencies must be equal. This sorts these in place but
+	// this shouldn't cause any problems.
+	sort.Strings(m.Dependencies)
+	sort.Strings(other.Dependencies)
+	if len(m.Dependencies) != len(other.Dependencies) {
+		return false
+	}
+	for i, d := range m.Dependencies {
+		if other.Dependencies[i] != d {
+			return false
+		}
+	}
+
+	// Resources must be equal
+	if len(m.Resources) != len(other.Resources) {
+		return false
+	}
+	for k, r := range m.Resources {
+		otherR, ok := other.Resources[k]
+		if !ok {
+			return false
+		}
+
+		if !r.Equal(otherR) {
+			return false
+		}
+	}
+
+	return true
 }
 
 // IsRoot says whether or not this module diff is for the root module.
@@ -522,6 +594,63 @@ type ResourceState struct {
 	Tainted []*InstanceState `json:"tainted,omitempty"`
 }
 
+// Equal tests whether two ResourceStates are equal.
+func (s *ResourceState) Equal(other *ResourceState) bool {
+	if s.Type != other.Type {
+		return false
+	}
+
+	// Dependencies must be equal
+	sort.Strings(s.Dependencies)
+	sort.Strings(other.Dependencies)
+	if len(s.Dependencies) != len(other.Dependencies) {
+		return false
+	}
+	for i, d := range s.Dependencies {
+		if other.Dependencies[i] != d {
+			return false
+		}
+	}
+
+	// States must be equal
+	if !s.Primary.Equal(other.Primary) {
+		return false
+	}
+
+	// Tainted
+	taints := make(map[string]*InstanceState)
+	for _, t := range other.Tainted {
+		if t == nil {
+			continue
+		}
+
+		taints[t.ID] = t
+	}
+	for _, t := range s.Tainted {
+		if t == nil {
+			continue
+		}
+
+		otherT, ok := taints[t.ID]
+		if !ok {
+			return false
+		}
+		delete(taints, t.ID)
+
+		if !t.Equal(otherT) {
+			return false
+		}
+	}
+
+	// This means that we have stuff in other tainted that we don't
+	// have, so it is not equal.
+	if len(taints) > 0 {
+		return false
+	}
+
+	return true
+}
+
 func (r *ResourceState) init() {
 	if r.Primary == nil {
 		r.Primary = &InstanceState{}
@@ -616,6 +745,35 @@ func (i *InstanceState) deepcopy() *InstanceState {
 		}
 	}
 	return n
+}
+
+func (s *InstanceState) Equal(other *InstanceState) bool {
+	// Short circuit some nil checks
+	if s == nil || other == nil {
+		return s == other
+	}
+
+	// IDs must be equal
+	if s.ID != other.ID {
+		return false
+	}
+
+	// Attributes must be equal
+	if len(s.Attributes) != len(other.Attributes) {
+		return false
+	}
+	for k, v := range s.Attributes {
+		otherV, ok := other.Attributes[k]
+		if !ok {
+			return false
+		}
+
+		if v != otherV {
+			return false
+		}
+	}
+
+	return true
 }
 
 // MergeDiff takes a ResourceDiff and merges the attributes into
