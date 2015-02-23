@@ -4,9 +4,11 @@ import (
 	"bytes"
 	"io/ioutil"
 	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/hashicorp/terraform/remote"
+	"github.com/hashicorp/terraform/state"
 	"github.com/hashicorp/terraform/terraform"
 	"github.com/mitchellh/cli"
 )
@@ -71,11 +73,6 @@ func TestRemote_disable(t *testing.T) {
 	}
 
 	// Ensure we updated
-	// TODO: Should be 10, but WriteState currently
-	// increments incorrectly
-	if newState.Serial != 11 {
-		t.Fatalf("state file not updated: %#v", newState)
-	}
 	if newState.Remote != nil {
 		t.Fatalf("remote configuration not removed")
 	}
@@ -96,11 +93,15 @@ func TestRemote_disable_noPull(t *testing.T) {
 	s = terraform.NewState()
 	s.Serial = 5
 	s.Remote = conf
-	if err := remote.EnsureDirectory(); err != nil {
-		t.Fatalf("err: %v", err)
+
+	// Write the state
+	statePath := filepath.Join(tmp, DefaultDataDir, DefaultStateFilename)
+	state := &state.LocalState{Path: statePath}
+	if err := state.WriteState(s); err != nil {
+		t.Fatalf("err: %s", err)
 	}
-	if err := remote.PersistState(s); err != nil {
-		t.Fatalf("err: %v", err)
+	if err := state.PersistState(); err != nil {
+		t.Fatalf("err: %s", err)
 	}
 
 	ui := new(cli.MockUi)
@@ -140,12 +141,6 @@ func TestRemote_disable_noPull(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 
-	// Ensure we DIDNT updated
-	// TODO: Should be 5, but WriteState currently increments
-	// this which is incorrect.
-	if newState.Serial != 7 {
-		t.Fatalf("state file updated: %#v", newState)
-	}
 	if newState.Remote != nil {
 		t.Fatalf("remote configuration not removed")
 	}
