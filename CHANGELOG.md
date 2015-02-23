@@ -14,7 +14,6 @@ BUG FIXES:
   * core: Module inputs can be non-strings. [GH-819]
   * providers/aws: manually deleted VPC removes it from the state
   * providers/aws: `source_dest_check` regression fixed (now works). [GH-1020]
-  * providers/heroku: `config_vars` is set properly [GH-1006]
 
 ## 0.3.7 (February 19, 2015)
 
