@@ -125,6 +125,31 @@ func (s *State) ModuleOrphans(path []string, c *config.Config) [][]string {
 	return orphans
 }
 
+// Empty returns true if the state is empty.
+func (s *State) Empty() bool {
+	if s == nil {
+		return true
+	}
+
+	return len(s.Modules) == 0
+}
+
+// IsRemote returns true if State represents a state that exists and is
+// remote.
+func (s *State) IsRemote() bool {
+	if s == nil {
+		return false
+	}
+	if s.Remote == nil {
+		return false
+	}
+	if s.Remote.Type == "" {
+		return false
+	}
+
+	return true
+}
+
 // RootModule returns the ModuleState for the root module
 func (s *State) RootModule() *ModuleState {
 	root := s.ModuleByPath(rootModulePath)
@@ -266,7 +291,7 @@ func (r *RemoteState) deepcopy() *RemoteState {
 }
 
 func (r *RemoteState) Empty() bool {
-	return r.Type == "" && len(r.Config) == 0
+	return r == nil || r.Type == ""
 }
 
 func (r *RemoteState) Equals(other *RemoteState) bool {

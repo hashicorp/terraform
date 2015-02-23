@@ -312,6 +312,70 @@ func TestInstanceStateEqual(t *testing.T) {
 	}
 }
 
+func TestStateEmpty(t *testing.T) {
+	cases := []struct {
+		In     *State
+		Result bool
+	}{
+		{
+			nil,
+			true,
+		},
+		{
+			&State{},
+			true,
+		},
+		{
+			&State{
+				Remote: &RemoteState{Type: "foo"},
+			},
+			true,
+		},
+		{
+			&State{
+				Modules: []*ModuleState{
+					&ModuleState{},
+				},
+			},
+			false,
+		},
+	}
+
+	for i, tc := range cases {
+		if tc.In.Empty() != tc.Result {
+			t.Fatalf("bad %d %#v:\n\n%#v", i, tc.Result, tc.In)
+		}
+	}
+}
+
+func TestStateIsRemote(t *testing.T) {
+	cases := []struct {
+		In     *State
+		Result bool
+	}{
+		{
+			nil,
+			false,
+		},
+		{
+			&State{},
+			false,
+		},
+		{
+			&State{
+				Remote: &RemoteState{Type: "foo"},
+			},
+			true,
+		},
+	}
+
+	for i, tc := range cases {
+		if tc.In.IsRemote() != tc.Result {
+			t.Fatalf("bad %d %#v:\n\n%#v", i, tc.Result, tc.In)
+		}
+	}
+}
+
 func TestInstanceState_MergeDiff(t *testing.T) {
 	is := InstanceState{
 		ID: "foo",
