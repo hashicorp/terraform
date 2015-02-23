@@ -54,6 +54,14 @@ func TestNewInterpolatedVariable(t *testing.T) {
 			},
 			false,
 		},
+		{
+			"self.address",
+			&SelfVariable{
+				Field: "address",
+				key:   "self.address",
+			},
+			false,
+		},
 	}
 
 	for i, tc := range cases {
