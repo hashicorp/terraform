@@ -477,6 +477,22 @@ func (c *Config) Validate() error {
 		}
 	}
 
+	// Validate the self variable
+	for source, rc := range c.rawConfigs() {
+		// Ignore provisioners. This is a pretty brittle way to do this,
+		// but better than also repeating all the resources.
+		if strings.Contains(source, "provision") {
+			continue
+		}
+
+		for _, v := range rc.Variables {
+			if _, ok := v.(*SelfVariable); ok {
+				errs = append(errs, fmt.Errorf(
+					"%s: cannot contain self-reference %s", source, v.FullKey()))
+			}
+		}
+	}
+
 	if len(errs) > 0 {
 		return &multierror.Error{Errors: errs}
 	}
