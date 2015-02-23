@@ -18,14 +18,12 @@ type InitCommand struct {
 }
 
 func (c *InitCommand) Run(args []string) int {
-	var remoteBackend, remoteAddress, remoteAccessToken, remoteName, remotePath string
+	var remoteBackend string
 	args = c.Meta.process(args, false)
+	remoteConfig := make(map[string]string)
 	cmdFlags := flag.NewFlagSet("init", flag.ContinueOnError)
-	cmdFlags.StringVar(&remoteBackend, "backend", "atlas", "")
-	cmdFlags.StringVar(&remoteAddress, "address", "", "")
-	cmdFlags.StringVar(&remoteAccessToken, "access-token", "", "")
-	cmdFlags.StringVar(&remoteName, "name", "", "")
-	cmdFlags.StringVar(&remotePath, "path", "", "")
+	cmdFlags.StringVar(&remoteBackend, "backend", "", "")
+	cmdFlags.Var((*FlagKV)(&remoteConfig), "backend-config", "config")
 	cmdFlags.Usage = func() { c.Ui.Error(c.Help()) }
 	if err := cmdFlags.Parse(args); err != nil {
 		return 1
@@ -91,15 +89,10 @@ func (c *InitCommand) Run(args []string) int {
 	}
 
 	// Handle remote state if configured
-	if remoteAddress != "" || remoteAccessToken != "" || remoteName != "" || remotePath != "" {
+	if remoteBackend != "" {
 		var remoteConf terraform.RemoteState
 		remoteConf.Type = remoteBackend
-		remoteConf.Config = map[string]string{
-			"address":      remoteAddress,
-			"access_token": remoteAccessToken,
-			"name":         remoteName,
-			"path":         remotePath,
-		}
+		remoteConf.Config = remoteConfig
 
 		state, err := c.State()
 		if err != nil {
