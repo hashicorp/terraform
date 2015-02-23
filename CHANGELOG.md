@@ -11,6 +11,7 @@ BUG FIXES:
   * core: Self-referencing splat variables are no longer allowed in
       provisioners. [GH-795][GH-868]
   * core: Validate that `depends_on` doesn't contain interpolations. [GH-1015]
+  * core: Module inputs can be non-strings. [GH-819]
   * providers/aws: manually deleted VPC removes it from the state
   * providers/aws: `source_dest_check` regression fixed (now works). [GH-1020]
 
