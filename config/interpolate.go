@@ -68,6 +68,14 @@ type ResourceVariable struct {
 	key string
 }
 
+// SelfVariable is a variable that is referencing the same resource
+// it is running on: "${self.address}"
+type SelfVariable struct {
+	Field string
+
+	key string
+}
+
 // A UserVariable is a variable that is referencing a user variable
 // that is inputted from outside the configuration. This looks like
 // "${var.foo}"
@@ -83,6 +91,8 @@ func NewInterpolatedVariable(v string) (InterpolatedVariable, error) {
 		return NewCountVariable(v)
 	} else if strings.HasPrefix(v, "path.") {
 		return NewPathVariable(v)
+	} else if strings.HasPrefix(v, "self.") {
+		return NewSelfVariable(v)
 	} else if strings.HasPrefix(v, "var.") {
 		return NewUserVariable(v)
 	} else if strings.HasPrefix(v, "module.") {
@@ -197,6 +207,24 @@ func (v *ResourceVariable) ResourceId() string {
 
 func (v *ResourceVariable) FullKey() string {
 	return v.key
+}
+
+func NewSelfVariable(key string) (*SelfVariable, error) {
+	field := key[len("self."):]
+
+	return &SelfVariable{
+		Field: field,
+
+		key: key,
+	}, nil
+}
+
+func (v *SelfVariable) FullKey() string {
+	return v.key
+}
+
+func (v *SelfVariable) GoString() string {
+	return fmt.Sprintf("*%#v", *v)
 }
 
 func NewUserVariable(key string) (*UserVariable, error) {
