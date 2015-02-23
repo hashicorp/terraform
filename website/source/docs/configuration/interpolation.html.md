@@ -26,6 +26,11 @@ can reference static keys in the map with the syntax
 get the value of the `us-east-1` key within the `amis` variable
 that is a mapping.
 
+**To reference attributes of your own resource**, the syntax is
+`self.ATTRIBUTE`. For example `${self.private_ip_address}` will
+interpolate that resource's private IP address. Note that this is
+only allowed/valid within provisioners.
+
 **To reference attributes of other resources**, the syntax is
 `TYPE.NAME.ATTRIBUTE`. For example, `${aws_instance.web.id}`
 will interpolate the ID attribute from the "aws\_instance"
@@ -72,8 +77,8 @@ The supported built-in functions are:
       only possible with splat variables from resources with a count
       greater than one. Example: `join(",", aws_instance.foo.*.id)`
 
-  * `split(delim, string)` - Splits the string previously created by `join` 
-      back into a list. This is useful for pushing lists through module 
+  * `split(delim, string)` - Splits the string previously created by `join`
+      back into a list. This is useful for pushing lists through module
       outputs since they currently only support string values.
       Example: `split(",", module.amod.server_ids)`
 
