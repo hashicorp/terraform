@@ -3766,6 +3766,112 @@ func TestContext2Apply_provisionerResourceRef(t *testing.T) {
 	}
 }
 
+func TestContext2Apply_provisionerSelfRef(t *testing.T) {
+	m := testModule(t, "apply-provisioner-self-ref")
+	p := testProvider("aws")
+	pr := testProvisioner()
+	p.ApplyFn = testApplyFn
+	p.DiffFn = testDiffFn
+	pr.ApplyFn = func(rs *InstanceState, c *ResourceConfig) error {
+		val, ok := c.Config["command"]
+		if !ok || val != "bar" {
+			t.Fatalf("bad value for command: %v %#v", val, c)
+		}
+
+		return nil
+	}
+
+	ctx := testContext2(t, &ContextOpts{
+		Module: m,
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+		Provisioners: map[string]ResourceProvisionerFactory{
+			"shell": testProvisionerFuncFixed(pr),
+		},
+	})
+
+	if _, err := ctx.Plan(nil); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	state, err := ctx.Apply()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	actual := strings.TrimSpace(state.String())
+	expected := strings.TrimSpace(testTerraformApplyProvisionerSelfRefStr)
+	if actual != expected {
+		t.Fatalf("bad: \n%s", actual)
+	}
+
+	// Verify apply was invoked
+	if !pr.ApplyCalled {
+		t.Fatalf("provisioner not invoked")
+	}
+}
+
+func TestContext2Apply_provisionerMultiSelfRef(t *testing.T) {
+	var lock sync.Mutex
+	commands := make([]string, 0, 5)
+
+	m := testModule(t, "apply-provisioner-multi-self-ref")
+	p := testProvider("aws")
+	pr := testProvisioner()
+	p.ApplyFn = testApplyFn
+	p.DiffFn = testDiffFn
+	pr.ApplyFn = func(rs *InstanceState, c *ResourceConfig) error {
+		lock.Lock()
+		defer lock.Unlock()
+
+		val, ok := c.Config["command"]
+		if !ok {
+			t.Fatalf("bad value for command: %v %#v", val, c)
+		}
+
+		commands = append(commands, val.(string))
+		return nil
+	}
+
+	ctx := testContext2(t, &ContextOpts{
+		Module: m,
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+		Provisioners: map[string]ResourceProvisionerFactory{
+			"shell": testProvisionerFuncFixed(pr),
+		},
+	})
+
+	if _, err := ctx.Plan(nil); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	state, err := ctx.Apply()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	actual := strings.TrimSpace(state.String())
+	expected := strings.TrimSpace(testTerraformApplyProvisionerMultiSelfRefStr)
+	if actual != expected {
+		t.Fatalf("bad: \n%s", actual)
+	}
+
+	// Verify apply was invoked
+	if !pr.ApplyCalled {
+		t.Fatalf("provisioner not invoked")
+	}
+
+	// Verify our result
+	sort.Strings(commands)
+	expectedCommands := []string{"number 0", "number 1", "number 2"}
+	if !reflect.DeepEqual(commands, expectedCommands) {
+		t.Fatalf("bad: %#v", commands)
+	}
+}
+
 // Provisioner should NOT run on a diff, only create
 func TestContext2Apply_Provisioner_Diff(t *testing.T) {
 	m := testModule(t, "apply-provisioner-diff")

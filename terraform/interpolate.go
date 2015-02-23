@@ -62,6 +62,8 @@ func (i *Interpolater) Values(
 			err = i.valuePathVar(scope, n, v, result)
 		case *config.ResourceVariable:
 			err = i.valueResourceVar(scope, n, v, result)
+		case *config.SelfVariable:
+			err = i.valueSelfVar(scope, n, v, result)
 		case *config.UserVariable:
 			err = i.valueUserVar(scope, n, v, result)
 		default:
@@ -215,6 +217,24 @@ func (i *Interpolater) valueResourceVar(
 		Type:  ast.TypeString,
 	}
 	return nil
+}
+
+func (i *Interpolater) valueSelfVar(
+	scope *InterpolationScope,
+	n string,
+	v *config.SelfVariable,
+	result map[string]ast.Variable) error {
+	rv, err := config.NewResourceVariable(fmt.Sprintf(
+		"%s.%s.%d.%s",
+		scope.Resource.Type,
+		scope.Resource.Name,
+		scope.Resource.CountIndex,
+		v.Field))
+	if err != nil {
+		return err
+	}
+
+	return i.valueResourceVar(scope, n, rv, result)
 }
 
 func (i *Interpolater) valueUserVar(
