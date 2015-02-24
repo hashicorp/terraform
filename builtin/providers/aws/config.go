@@ -6,6 +6,8 @@ import (
 	"strings"
 	"unicode"
 
+	codaws "github.com/awslabs/aws-sdk-go/aws"
+	coec2 "github.com/awslabs/aws-sdk-go/gen/ec2"
 	"github.com/hashicorp/terraform/helper/multierror"
 	"github.com/mitchellh/goamz/autoscaling"
 	"github.com/mitchellh/goamz/aws"
@@ -14,8 +16,6 @@ import (
 	"github.com/mitchellh/goamz/rds"
 	"github.com/mitchellh/goamz/route53"
 	"github.com/mitchellh/goamz/s3"
-	codaws "github.com/stripe/aws-go/aws"
-	coec2 "github.com/stripe/aws-go/aws/gen/ec2"
 )
 
 type Config struct {
