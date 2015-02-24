@@ -104,6 +104,8 @@ func (s *CacheState) RefreshState() error {
 			s.refreshResult = CacheRefreshNoop
 			return err
 		}
+
+		cached = durable
 	}
 
 	s.state = cached
