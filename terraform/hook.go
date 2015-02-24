@@ -49,6 +49,9 @@ type Hook interface {
 	// resource state is refreshed, respectively.
 	PreRefresh(*InstanceInfo, *InstanceState) (HookAction, error)
 	PostRefresh(*InstanceInfo, *InstanceState) (HookAction, error)
+
+	// PostStateUpdate is called after the state is updated.
+	PostStateUpdate(*State) (HookAction, error)
 }
 
 // NilHook is a Hook implementation that does nothing. It exists only to
@@ -97,6 +100,10 @@ func (*NilHook) PreRefresh(*InstanceInfo, *InstanceState) (HookAction, error) {
 }
 
 func (*NilHook) PostRefresh(*InstanceInfo, *InstanceState) (HookAction, error) {
+	return HookActionContinue, nil
+}
+
+func (*NilHook) PostStateUpdate(*State) (HookAction, error) {
 	return HookActionContinue, nil
 }
 
