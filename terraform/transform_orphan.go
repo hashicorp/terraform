@@ -262,6 +262,7 @@ func (n *graphNodeOrphanResource) EvalTree() EvalNode {
 					Dependencies: n.DependentOn(),
 					State:        &state,
 				},
+				&EvalUpdateStateHook{},
 			},
 		},
 	})

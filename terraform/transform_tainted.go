@@ -163,6 +163,7 @@ func (n *graphNodeTaintedResource) EvalTree() EvalNode {
 					Tainted:      &tainted,
 					TaintedIndex: n.Index,
 				},
+				&EvalUpdateStateHook{},
 			},
 		},
 	})
