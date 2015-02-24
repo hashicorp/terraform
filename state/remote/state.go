@@ -18,7 +18,7 @@ type State struct {
 
 // StateReader impl.
 func (s *State) State() *terraform.State {
-	return s.state
+	return s.state.DeepCopy()
 }
 
 // StateWriter impl.

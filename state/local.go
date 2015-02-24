@@ -28,7 +28,7 @@ func (s *LocalState) SetState(state *terraform.State) {
 
 // StateReader impl.
 func (s *LocalState) State() *terraform.State {
-	return s.state
+	return s.state.DeepCopy()
 }
 
 // WriteState for LocalState always persists the state as well.
