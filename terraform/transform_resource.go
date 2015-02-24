@@ -400,6 +400,7 @@ func (n *graphNodeExpandedResource) EvalTree() EvalNode {
 					State: &state,
 					Error: &err,
 				},
+				&EvalUpdateStateHook{},
 			},
 		},
 	})
