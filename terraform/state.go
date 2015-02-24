@@ -188,6 +188,26 @@ func (s *State) Equal(other *State) bool {
 	return true
 }
 
+// DeepCopy performs a deep copy of the state structure and returns
+// a new structure.
+func (s *State) DeepCopy() *State {
+	if s == nil {
+		return nil
+	}
+	n := &State{
+		Version: s.Version,
+		Serial:  s.Serial,
+		Modules: make([]*ModuleState, 0, len(s.Modules)),
+	}
+	for _, mod := range s.Modules {
+		n.Modules = append(n.Modules, mod.deepcopy())
+	}
+	if s.Remote != nil {
+		n.Remote = s.Remote.deepcopy()
+	}
+	return n
+}
+
 // IncrementSerialMaybe increments the serial number of this state
 // if it different from the other state.
 func (s *State) IncrementSerialMaybe(other *State) {
@@ -207,24 +227,6 @@ func (s *State) init() {
 		root.init()
 		s.Modules = []*ModuleState{root}
 	}
-}
-
-func (s *State) deepcopy() *State {
-	if s == nil {
-		return nil
-	}
-	n := &State{
-		Version: s.Version,
-		Serial:  s.Serial,
-		Modules: make([]*ModuleState, 0, len(s.Modules)),
-	}
-	for _, mod := range s.Modules {
-		n.Modules = append(n.Modules, mod.deepcopy())
-	}
-	if s.Remote != nil {
-		n.Remote = s.Remote.deepcopy()
-	}
-	return n
 }
 
 // prune is used to remove any resources that are no longer required
