@@ -7,8 +7,11 @@ import (
 )
 
 func TestState(t *testing.T) {
-	s := &State{Client: new(InmemClient)}
-	s.WriteState(state.TestStateInitial())
+	s := &State{
+		Client:    new(InmemClient),
+		state:     state.TestStateInitial(),
+		readState: state.TestStateInitial(),
+	}
 	if err := s.PersistState(); err != nil {
 		t.Fatalf("err: %s", err)
 	}
