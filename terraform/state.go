@@ -161,6 +161,11 @@ func (s *State) RootModule() *ModuleState {
 
 // Equal tests if one state is equal to another.
 func (s *State) Equal(other *State) bool {
+	// If one is nil, we do a direct check
+	if s == nil || other == nil {
+		return s == other
+	}
+
 	// If the versions are different, they're certainly not equal
 	if s.Version != other.Version {
 		return false
@@ -181,6 +186,14 @@ func (s *State) Equal(other *State) bool {
 	}
 
 	return true
+}
+
+// IncrementSerialMaybe increments the serial number of this state
+// if it different from the other state.
+func (s *State) IncrementSerialMaybe(other *State) {
+	if !s.Equal(other) {
+		s.Serial++
+	}
 }
 
 func (s *State) init() {
@@ -950,9 +963,6 @@ func WriteState(d *State, dst io.Writer) error {
 
 	// Ensure the version is set
 	d.Version = StateVersion
-
-	// Always increment the serial number
-	d.Serial++
 
 	// Encode the data in a human-friendly way
 	data, err := json.MarshalIndent(d, "", "    ")
