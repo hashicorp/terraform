@@ -116,6 +116,19 @@ func TestStateEqual(t *testing.T) {
 		Result   bool
 		One, Two *State
 	}{
+		// Nils
+		{
+			false,
+			nil,
+			&State{Version: 2},
+		},
+
+		{
+			true,
+			nil,
+			nil,
+		},
+
 		// Different versions
 		{
 			false,
@@ -157,6 +170,9 @@ func TestStateEqual(t *testing.T) {
 
 	for i, tc := range cases {
 		if tc.One.Equal(tc.Two) != tc.Result {
+			t.Fatalf("Bad: %d\n\n%s\n\n%s", i, tc.One.String(), tc.Two.String())
+		}
+		if tc.Two.Equal(tc.One) != tc.Result {
 			t.Fatalf("Bad: %d\n\n%s\n\n%s", i, tc.One.String(), tc.Two.String())
 		}
 	}
