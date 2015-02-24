@@ -58,6 +58,28 @@ func (n *EvalReadState) Eval(ctx EvalContext) (interface{}, error) {
 	return result, nil
 }
 
+// EvalUpdateStateHook is an EvalNode implementation that calls the
+// PostStateUpdate hook with the current state.
+type EvalUpdateStateHook struct{}
+
+func (n *EvalUpdateStateHook) Eval(ctx EvalContext) (interface{}, error) {
+	state, lock := ctx.State()
+
+	// Get a read lock so it doesn't change while we're calling this
+	lock.RLock()
+	defer lock.RUnlock()
+
+	// Call the hook
+	err := ctx.Hook(func(h Hook) (HookAction, error) {
+		return h.PostStateUpdate(state)
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return nil, nil
+}
+
 // EvalWriteState is an EvalNode implementation that reads the
 // InstanceState for a specific resource out of the state.
 type EvalWriteState struct {
@@ -111,7 +133,6 @@ func (n *EvalWriteState) Eval(ctx EvalContext) (interface{}, error) {
 		// Set the primary state
 		rs.Primary = *n.State
 	}
-	println(fmt.Sprintf("%#v", rs))
 
 	return nil, nil
 }
