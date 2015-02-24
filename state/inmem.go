@@ -10,7 +10,7 @@ type InmemState struct {
 }
 
 func (s *InmemState) State() *terraform.State {
-	return s.state
+	return s.state.DeepCopy()
 }
 
 func (s *InmemState) RefreshState() error {

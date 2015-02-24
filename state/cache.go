@@ -19,7 +19,7 @@ type CacheState struct {
 
 // StateReader impl.
 func (s *CacheState) State() *terraform.State {
-	return s.state
+	return s.state.DeepCopy()
 }
 
 // WriteState will write and persist the state to the cache.
