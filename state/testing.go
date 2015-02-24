@@ -28,7 +28,7 @@ func TestState(t *testing.T, s interface{}) {
 	current := TestStateInitial()
 
 	// Check that the initial state is correct
-	if state := reader.State(); !reflect.DeepEqual(state, current) {
+	if state := reader.State(); !current.Equal(state) {
 		t.Fatalf("not initial: %#v\n\n%#v", state, current)
 	}
 
@@ -45,7 +45,7 @@ func TestState(t *testing.T, s interface{}) {
 			t.Fatalf("err: %s", err)
 		}
 
-		if actual := reader.State(); !reflect.DeepEqual(actual, current) {
+		if actual := reader.State(); !actual.Equal(current) {
 			t.Fatalf("bad: %#v\n\n%#v", actual, current)
 		}
 	}
@@ -65,7 +65,7 @@ func TestState(t *testing.T, s interface{}) {
 
 		// Just set the serials the same... Then compare.
 		actual := reader.State()
-		if !reflect.DeepEqual(actual, current) {
+		if !actual.Equal(current) {
 			t.Fatalf("bad: %#v\n\n%#v", actual, current)
 		}
 	}
@@ -106,6 +106,12 @@ func TestState(t *testing.T, s interface{}) {
 
 		if reader.State().Serial <= serial {
 			t.Fatalf("bad: expected %d, got %d", serial, reader.State().Serial)
+		}
+
+		// Check that State() returns a copy
+		reader.State().Serial++
+		if reflect.DeepEqual(reader.State(), current) {
+			t.Fatal("State() should return a copy")
 		}
 	}
 }
