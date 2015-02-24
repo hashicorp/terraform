@@ -69,6 +69,11 @@ type MockHook struct {
 	PreRefreshState  *InstanceState
 	PreRefreshReturn HookAction
 	PreRefreshError  error
+
+	PostStateUpdateCalled bool
+	PostStateUpdateState  *State
+	PostStateUpdateReturn HookAction
+	PostStateUpdateError  error
 }
 
 func (h *MockHook) PreApply(n *InstanceInfo, s *InstanceState, d *InstanceDiff) (HookAction, error) {
@@ -151,4 +156,10 @@ func (h *MockHook) PostRefresh(n *InstanceInfo, s *InstanceState) (HookAction, e
 	h.PostRefreshInfo = n
 	h.PostRefreshState = s
 	return h.PostRefreshReturn, h.PostRefreshError
+}
+
+func (h *MockHook) PostStateUpdate(s *State) (HookAction, error) {
+	h.PostStateUpdateCalled = true
+	h.PostStateUpdateState = s
+	return h.PostStateUpdateReturn, h.PostStateUpdateError
 }
