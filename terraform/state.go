@@ -172,6 +172,9 @@ func (s *State) Equal(other *State) bool {
 	}
 
 	// If any of the modules are not equal, then this state isn't equal
+	if len(s.Modules) != len(other.Modules) {
+		return false
+	}
 	for _, m := range s.Modules {
 		// This isn't very optimal currently but works.
 		otherM := other.ModuleByPath(m.Path)
