@@ -13,7 +13,7 @@ import (
 type State struct {
 	Client Client
 
-	state *terraform.State
+	state, readState *terraform.State
 }
 
 // StateReader impl.
@@ -43,11 +43,14 @@ func (s *State) RefreshState() error {
 	}
 
 	s.state = state
+	s.readState = state
 	return nil
 }
 
 // StatePersister impl.
 func (s *State) PersistState() error {
+	s.state.IncrementSerialMaybe(s.readState)
+
 	var buf bytes.Buffer
 	if err := terraform.WriteState(s.state, &buf); err != nil {
 		return err
