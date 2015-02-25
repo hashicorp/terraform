@@ -238,6 +238,38 @@ func (n *EvalDiffTainted) Eval(ctx EvalContext) (interface{}, error) {
 	return nil, nil
 }
 
+// EvalFilterDiff is an EvalNode implementation that filters the diff
+// according to some filter.
+type EvalFilterDiff struct {
+	// Input and output
+	Diff   **InstanceDiff
+	Output **InstanceDiff
+
+	// Destroy, if true, will only include a destroy diff if it is set.
+	Destroy bool
+}
+
+func (n *EvalFilterDiff) Eval(ctx EvalContext) (interface{}, error) {
+	if *n.Diff == nil {
+		return nil, nil
+	}
+
+	input := *n.Diff
+	result := new(InstanceDiff)
+
+	if n.Destroy {
+		if input.Destroy || input.RequiresNew() {
+			result.Destroy = true
+		}
+	}
+
+	if n.Output != nil {
+		*n.Output = result
+	}
+
+	return nil, nil
+}
+
 // EvalReadDiff is an EvalNode implementation that writes the diff to
 // the full diff.
 type EvalReadDiff struct {
@@ -275,7 +307,10 @@ func (n *EvalWriteDiff) Eval(ctx EvalContext) (interface{}, error) {
 	diff, lock := ctx.Diff()
 
 	// The diff to write, if its empty it should write nil
-	diffVal := *n.Diff
+	var diffVal *InstanceDiff
+	if n.Diff != nil {
+		diffVal = *n.Diff
+	}
 	if diffVal.Empty() {
 		diffVal = nil
 	}

@@ -386,6 +386,15 @@ func (n *graphNodeExpandedResource) EvalTree() EvalNode {
 						Name: n.stateId(),
 					},
 				},
+
+				// We clear the diff out here so that future nodes
+				// don't see a diff that is already complete. There
+				// is no longer a diff!
+				&EvalWriteDiff{
+					Name: n.stateId(),
+					Diff: nil,
+				},
+
 				&EvalWriteState{
 					Name:                n.stateId(),
 					ResourceType:        n.Resource.Type,
@@ -455,6 +464,13 @@ func (n *graphNodeExpandedResourceDestroy) EvalTree() EvalNode {
 					Diff: &diffApply,
 				},
 
+				// Filter the diff so we only get the destroy
+				&EvalFilterDiff{
+					Diff:    &diffApply,
+					Output:  &diffApply,
+					Destroy: true,
+				},
+
 				// If we're not destroying, then compare diffs
 				&EvalIf{
 					If: func(ctx EvalContext) (bool, error) {
@@ -476,6 +492,9 @@ func (n *graphNodeExpandedResourceDestroy) EvalTree() EvalNode {
 					Output:       &state,
 					Tainted:      n.Resource.Lifecycle.CreateBeforeDestroy,
 					TaintedIndex: -1,
+				},
+				&EvalRequireState{
+					State: &state,
 				},
 				&EvalApply{
 					Info:     info,
