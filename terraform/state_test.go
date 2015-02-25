@@ -116,6 +116,19 @@ func TestStateEqual(t *testing.T) {
 		Result   bool
 		One, Two *State
 	}{
+		// Nils
+		{
+			false,
+			nil,
+			&State{Version: 2},
+		},
+
+		{
+			true,
+			nil,
+			nil,
+		},
+
 		// Different versions
 		{
 			false,
@@ -157,6 +170,9 @@ func TestStateEqual(t *testing.T) {
 
 	for i, tc := range cases {
 		if tc.One.Equal(tc.Two) != tc.Result {
+			t.Fatalf("Bad: %d\n\n%s\n\n%s", i, tc.One.String(), tc.Two.String())
+		}
+		if tc.Two.Equal(tc.One) != tc.Result {
 			t.Fatalf("Bad: %d\n\n%s\n\n%s", i, tc.One.String(), tc.Two.String())
 		}
 	}
@@ -537,15 +553,6 @@ func TestReadWriteState(t *testing.T) {
 		t.Fatalf("bad version number: %d", state.Version)
 	}
 
-	// Verify the serial number is incremented
-	if state.Serial != 10 {
-		t.Fatalf("bad serial: %d", state.Serial)
-	}
-
-	// Remove the changes or the checksum will fail
-	state.Version = 0
-	state.Serial = 9
-
 	// Checksum after the write
 	chksumAfter := checksumStruct(t, state)
 	if chksumAfter != chksum {
@@ -556,10 +563,6 @@ func TestReadWriteState(t *testing.T) {
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
-
-	// Verify the changes came through
-	state.Version = StateVersion
-	state.Serial = 10
 
 	// ReadState should not restore sensitive information!
 	mod := state.RootModule()
