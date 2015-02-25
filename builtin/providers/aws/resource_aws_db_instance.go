@@ -201,9 +201,8 @@ func resourceAwsDbInstanceCreate(d *schema.ResourceData, meta interface{}) error
 		opts.StorageType = aws.String(attr.(string))
 	}
 
-	if attr, ok := d.GetOk("backup_retention_period"); ok {
-		opts.BackupRetentionPeriod = aws.Integer(attr.(int))
-	}
+	attr := d.Get("backup_retention_period")
+	opts.BackupRetentionPeriod = aws.Integer(attr.(int))
 
 	if attr, ok := d.GetOk("iops"); ok {
 		opts.IOPS = aws.Integer(attr.(int))
