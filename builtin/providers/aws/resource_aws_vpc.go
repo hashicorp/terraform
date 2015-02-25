@@ -5,9 +5,10 @@ import (
 	"log"
 	"time"
 
+	awsGo "github.com/awslabs/aws-sdk-go/aws"
+	"github.com/awslabs/aws-sdk-go/gen/ec2"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
-	"github.com/mitchellh/goamz/ec2"
 )
 
 func resourceAwsVpc() *schema.Resource {
@@ -57,29 +58,33 @@ func resourceAwsVpc() *schema.Resource {
 				Computed: true,
 			},
 
-			"tags": tagsSchema(),
+			//			"tags": tagsSchema(),
 		},
 	}
 }
 
 func resourceAwsVpcCreate(d *schema.ResourceData, meta interface{}) error {
-	ec2conn := meta.(*AWSClient).ec2conn
-
+	ec2conn := meta.(*AWSClient).awsEc2conn
+	cidr := d.Get("cidr_block").(string)
+	instance_tenancy := "default"
+	if v := d.Get("instance_tenancy"); v != nil {
+		instance_tenancy = v.(string)
+	}
 	// Create the VPC
-	createOpts := &ec2.CreateVpc{
-		CidrBlock:       d.Get("cidr_block").(string),
-		InstanceTenancy: d.Get("instance_tenancy").(string),
+	createOpts := &ec2.CreateVPCRequest{
+		CIDRBlock:       &cidr,
+		InstanceTenancy: &instance_tenancy,
 	}
 	log.Printf("[DEBUG] VPC create config: %#v", createOpts)
-	vpcResp, err := ec2conn.CreateVpc(createOpts)
+	vpcResp, err := ec2conn.CreateVPC(createOpts)
 	if err != nil {
 		return fmt.Errorf("Error creating VPC: %s", err)
 	}
 
 	// Get the ID and store it
-	vpc := &vpcResp.VPC
-	log.Printf("[INFO] VPC ID: %s", vpc.VpcId)
-	d.SetId(vpc.VpcId)
+	vpc := vpcResp.VPC
+	d.SetId(*vpc.VPCID)
+	log.Printf("[INFO] VPC ID: %s", d.Id())
 
 	// Set partial mode and say that we setup the cidr block
 	d.Partial(true)
@@ -106,7 +111,7 @@ func resourceAwsVpcCreate(d *schema.ResourceData, meta interface{}) error {
 }
 
 func resourceAwsVpcRead(d *schema.ResourceData, meta interface{}) error {
-	ec2conn := meta.(*AWSClient).ec2conn
+	ec2conn := meta.(*AWSClient).awsEc2conn
 
 	// Refresh the VPC state
 	vpcRaw, _, err := VPCStateRefreshFunc(ec2conn, d.Id())()
@@ -120,34 +125,53 @@ func resourceAwsVpcRead(d *schema.ResourceData, meta interface{}) error {
 
 	// VPC stuff
 	vpc := vpcRaw.(*ec2.VPC)
-	d.Set("cidr_block", vpc.CidrBlock)
+	vpcid := d.Id()
+	d.Set("cidr_block", vpc.CIDRBlock)
 
-	// Tags
-	d.Set("tags", tagsToMap(vpc.Tags))
+	// Tags - TBD rmenn
+	//d.Set("tags", tagsToMap(vpc.Tags))
 
 	// Attributes
-	resp, err := ec2conn.VpcAttribute(d.Id(), "enableDnsSupport")
+	attribute := "enableDnsSupport"
+	DescribeAttrOpts := &ec2.DescribeVPCAttributeRequest{
+		Attribute: &attribute,
+		VPCID:     &vpcid,
+	}
+	resp, err := ec2conn.DescribeVPCAttribute(DescribeAttrOpts)
 	if err != nil {
 		return err
 	}
-	d.Set("enable_dns_support", resp.EnableDnsSupport)
-
-	resp, err = ec2conn.VpcAttribute(d.Id(), "enableDnsHostnames")
+	d.Set("enable_dns_support", *resp.EnableDNSSupport)
+	attribute = "enableDnsHostnames"
+	DescribeAttrOpts = &ec2.DescribeVPCAttributeRequest{
+		Attribute: &attribute,
+		VPCID:     &vpcid,
+	}
+	resp, err = ec2conn.DescribeVPCAttribute(DescribeAttrOpts)
 	if err != nil {
 		return err
 	}
-	d.Set("enable_dns_hostnames", resp.EnableDnsHostnames)
+	d.Set("enable_dns_hostnames", *resp.EnableDNSHostnames)
 
 	// Get the main routing table for this VPC
-	filter := ec2.NewFilter()
-	filter.Add("association.main", "true")
-	filter.Add("vpc-id", d.Id())
-	routeResp, err := ec2conn.DescribeRouteTables(nil, filter)
+	// Really Ugly need to make this better - rmenn
+	filter1 := &ec2.Filter{
+		Name:   awsGo.String("association.main"),
+		Values: []string{("true")},
+	}
+	filter2 := &ec2.Filter{
+		Name:   awsGo.String("VPCID"),
+		Values: []string{(d.Id())},
+	}
+	DescribeRouteOpts := &ec2.DescribeRouteTablesRequest{
+		Filters: []ec2.Filter{*filter1, *filter2},
+	}
+	routeResp, err := ec2conn.DescribeRouteTables(DescribeRouteOpts)
 	if err != nil {
 		return err
 	}
 	if v := routeResp.RouteTables; len(v) > 0 {
-		d.Set("main_route_table_id", v[0].RouteTableId)
+		d.Set("main_route_table_id", *v[0].RouteTableID)
 	}
 
 	resourceAwsVpcSetDefaultNetworkAcl(ec2conn, d)
