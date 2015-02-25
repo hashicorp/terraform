@@ -53,6 +53,10 @@ func (h *stopHook) PostRefresh(*InstanceInfo, *InstanceState) (HookAction, error
 	return h.hook()
 }
 
+func (h *stopHook) PostStateUpdate(*State) (HookAction, error) {
+	return h.hook()
+}
+
 func (h *stopHook) hook() (HookAction, error) {
 	if h.Stopped() {
 		return HookActionHalt, nil
