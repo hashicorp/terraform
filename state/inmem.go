@@ -10,7 +10,7 @@ type InmemState struct {
 }
 
 func (s *InmemState) State() *terraform.State {
-	return s.state
+	return s.state.DeepCopy()
 }
 
 func (s *InmemState) RefreshState() error {
@@ -18,6 +18,7 @@ func (s *InmemState) RefreshState() error {
 }
 
 func (s *InmemState) WriteState(state *terraform.State) error {
+	state.IncrementSerialMaybe(s.state)
 	s.state = state
 	return nil
 }

@@ -224,7 +224,7 @@ func (c *Context) Apply() (*State, error) {
 	defer c.releaseRun(v)
 
 	// Copy our own state
-	c.state = c.state.deepcopy()
+	c.state = c.state.DeepCopy()
 
 	// Do the walk
 	_, err := c.walk(walkApply)
@@ -264,7 +264,7 @@ func (c *Context) Plan(opts *PlanOpts) (*Plan, error) {
 			c.state = &State{}
 			c.state.init()
 		} else {
-			c.state = old.deepcopy()
+			c.state = old.DeepCopy()
 		}
 		defer func() {
 			c.state = old
@@ -299,7 +299,7 @@ func (c *Context) Refresh() (*State, error) {
 	defer c.releaseRun(v)
 
 	// Copy our own state
-	c.state = c.state.deepcopy()
+	c.state = c.state.DeepCopy()
 
 	// Do the walk
 	if _, err := c.walk(walkRefresh); err != nil {

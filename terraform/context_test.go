@@ -4454,6 +4454,9 @@ func TestContext2Apply_hook(t *testing.T) {
 	if !h.PostApplyCalled {
 		t.Fatal("should be called")
 	}
+	if !h.PostStateUpdateCalled {
+		t.Fatalf("should call post state update")
+	}
 }
 
 func TestContext2Apply_idAttr(t *testing.T) {
