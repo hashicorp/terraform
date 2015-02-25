@@ -123,7 +123,7 @@ func resourceAwsAutoscalingGroup() *schema.Resource {
 }
 
 func resourceAwsAutoscalingGroupCreate(d *schema.ResourceData, meta interface{}) error {
-	autoscalingconn := meta.(*AWSClient).awsAutoScalingconn
+	autoscalingconn := meta.(*AWSClient).autoscalingconn
 
 	var autoScalingGroupOpts autoscaling.CreateAutoScalingGroupType
 	autoScalingGroupOpts.AutoScalingGroupName = aws.String(d.Get("name").(string))
@@ -199,7 +199,7 @@ func resourceAwsAutoscalingGroupRead(d *schema.ResourceData, meta interface{}) e
 }
 
 func resourceAwsAutoscalingGroupUpdate(d *schema.ResourceData, meta interface{}) error {
-	autoscalingconn := meta.(*AWSClient).awsAutoScalingconn
+	autoscalingconn := meta.(*AWSClient).autoscalingconn
 
 	opts := autoscaling.UpdateAutoScalingGroupType{
 		AutoScalingGroupName: aws.String(d.Id()),
@@ -232,7 +232,7 @@ func resourceAwsAutoscalingGroupUpdate(d *schema.ResourceData, meta interface{})
 }
 
 func resourceAwsAutoscalingGroupDelete(d *schema.ResourceData, meta interface{}) error {
-	autoscalingconn := meta.(*AWSClient).awsAutoScalingconn
+	autoscalingconn := meta.(*AWSClient).autoscalingconn
 
 	// Read the autoscaling group first. If it doesn't exist, we're done.
 	// We need the group in order to check if there are instances attached.
@@ -276,7 +276,7 @@ func resourceAwsAutoscalingGroupDelete(d *schema.ResourceData, meta interface{})
 func getAwsAutoscalingGroup(
 	d *schema.ResourceData,
 	meta interface{}) (*autoscaling.AutoScalingGroup, error) {
-	autoscalingconn := meta.(*AWSClient).awsAutoScalingconn
+	autoscalingconn := meta.(*AWSClient).autoscalingconn
 
 	describeOpts := autoscaling.AutoScalingGroupNamesType{
 		AutoScalingGroupNames: []string{d.Id()},
@@ -307,7 +307,7 @@ func getAwsAutoscalingGroup(
 }
 
 func resourceAwsAutoscalingGroupDrain(d *schema.ResourceData, meta interface{}) error {
-	autoscalingconn := meta.(*AWSClient).awsAutoScalingconn
+	autoscalingconn := meta.(*AWSClient).autoscalingconn
 
 	// First, set the capacity to zero so the group will drain
 	log.Printf("[DEBUG] Reducing autoscaling group capacity to zero")
