@@ -22,7 +22,6 @@ resource "aws_db_instance" "default" {
 	name = "mydb"
 	username = "foo"
 	password = "bar"
-	security_group_names = ["${aws_db_security_group.bar.name}"]
 	db_subnet_group_name = "my_database_subnet_group"
 	parameter_group_name = "default.mysql5.6"
 }
@@ -58,7 +57,8 @@ The following arguments are supported:
 * `port` - (Optional) The port on which the DB accepts connections.
 * `publicly_accessible` - (Optional) Bool to control if instance is publicly accessible.
 * `vpc_security_group_ids` - (Optional) List of VPC security groups to associate.
-* `security_group_names` - (Optional) List of DB Security Groups to associate.
+* `security_group_names` - (Optional/Deprecated) List of DB Security Groups to associate.
+    Only used for [DB Instances on the _EC2-Classic_ Platform](http://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/USER_VPC.html#USER_VPC.FindDefaultVPC). 
 * `db_subnet_group_name` - (Optional) Name of DB subnet group
 * `parameter_group_name` - (Optional) Name of the DB parameter group to associate.
 

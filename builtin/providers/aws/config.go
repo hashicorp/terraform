@@ -14,6 +14,7 @@ import (
 
 	awsGo "github.com/awslabs/aws-sdk-go/aws"
 	"github.com/awslabs/aws-sdk-go/gen/autoscaling"
+	awsRDS "github.com/awslabs/aws-sdk-go/gen/rds"
 	"github.com/awslabs/aws-sdk-go/gen/route53"
 	"github.com/awslabs/aws-sdk-go/gen/s3"
 )
@@ -32,6 +33,7 @@ type AWSClient struct {
 	rdsconn         *rds.Rds
 	r53conn         *route53.Route53
 	region          string
+	awsRDSconn      *awsRDS.RDS
 }
 
 // Client configures and returns a fully initailized AWSClient
@@ -76,6 +78,8 @@ func (c *Config) Client() (interface{}, error) {
 		// See http://docs.aws.amazon.com/general/latest/gr/sigv4_changes.html
 		log.Println("[INFO] Initializing Route53 connection")
 		client.r53conn = route53.New(creds, "us-east-1", nil)
+		log.Println("[INFO] Initializing AWS Go RDS connection")
+		client.awsRDSconn = awsRDS.New(creds, c.Region, nil)
 	}
 
 	if len(errs) > 0 {
