@@ -1,4 +1,4 @@
-package dnsmadeeasy
+package dme
 
 import (
 	"fmt"
@@ -7,14 +7,14 @@ import (
 
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
-	dme "github.com/soniah/dnsmadeeasy"
+	"github.com/soniah/dnsmadeeasy"
 )
 
 var _ = fmt.Sprintf("dummy") // dummy
 var _ = os.DevNull           // dummy
 
 func TestAccDMERecordA(t *testing.T) {
-	var record dme.Record
+	var record dnsmadeeasy.Record
 	domainid := os.Getenv("DME_DOMAINID")
 
 	resource.Test(t, resource.TestCase{
@@ -43,7 +43,7 @@ func TestAccDMERecordA(t *testing.T) {
 }
 
 func TestAccDMERecordCName(t *testing.T) {
-	var record dme.Record
+	var record dnsmadeeasy.Record
 	domainid := os.Getenv("DME_DOMAINID")
 
 	resource.Test(t, resource.TestCase{
@@ -77,7 +77,7 @@ ANAME can't be tested under sandbox, as the value of the ANAME must be a
 resolvable address.
 
 func TestAccDMERecordAName(t *testing.T) {
-	var record dme.Record
+	var record dnsmadeeasy.Record
 	domainid := os.Getenv("DME_DOMAINID")
 
 	resource.Test(t, resource.TestCase{
@@ -107,7 +107,7 @@ func TestAccDMERecordAName(t *testing.T) {
 */
 
 func TestAccDMERecordMX(t *testing.T) {
-	var record dme.Record
+	var record dnsmadeeasy.Record
 	domainid := os.Getenv("DME_DOMAINID")
 
 	resource.Test(t, resource.TestCase{
@@ -138,7 +138,7 @@ func TestAccDMERecordMX(t *testing.T) {
 }
 
 func TestAccDMERecordHTTPRED(t *testing.T) {
-	var record dme.Record
+	var record dnsmadeeasy.Record
 	domainid := os.Getenv("DME_DOMAINID")
 
 	resource.Test(t, resource.TestCase{
@@ -179,7 +179,7 @@ func TestAccDMERecordHTTPRED(t *testing.T) {
 }
 
 func TestAccDMERecordTXT(t *testing.T) {
-	var record dme.Record
+	var record dnsmadeeasy.Record
 	domainid := os.Getenv("DME_DOMAINID")
 
 	resource.Test(t, resource.TestCase{
@@ -208,7 +208,7 @@ func TestAccDMERecordTXT(t *testing.T) {
 }
 
 func TestAccDMERecordSPF(t *testing.T) {
-	var record dme.Record
+	var record dnsmadeeasy.Record
 	domainid := os.Getenv("DME_DOMAINID")
 
 	resource.Test(t, resource.TestCase{
@@ -237,7 +237,7 @@ func TestAccDMERecordSPF(t *testing.T) {
 }
 
 func TestAccDMERecordPTR(t *testing.T) {
-	var record dme.Record
+	var record dnsmadeeasy.Record
 	domainid := os.Getenv("DME_DOMAINID")
 
 	resource.Test(t, resource.TestCase{
@@ -266,7 +266,7 @@ func TestAccDMERecordPTR(t *testing.T) {
 }
 
 func TestAccDMERecordNS(t *testing.T) {
-	var record dme.Record
+	var record dnsmadeeasy.Record
 	domainid := os.Getenv("DME_DOMAINID")
 
 	resource.Test(t, resource.TestCase{
@@ -295,7 +295,7 @@ func TestAccDMERecordNS(t *testing.T) {
 }
 
 func TestAccDMERecordAAAA(t *testing.T) {
-	var record dme.Record
+	var record dnsmadeeasy.Record
 	domainid := os.Getenv("DME_DOMAINID")
 
 	resource.Test(t, resource.TestCase{
@@ -324,7 +324,7 @@ func TestAccDMERecordAAAA(t *testing.T) {
 }
 
 func TestAccDMERecordSRV(t *testing.T) {
-	var record dme.Record
+	var record dnsmadeeasy.Record
 	domainid := os.Getenv("DME_DOMAINID")
 
 	resource.Test(t, resource.TestCase{
@@ -359,7 +359,7 @@ func TestAccDMERecordSRV(t *testing.T) {
 }
 
 func testAccCheckDMERecordDestroy(s *terraform.State) error {
-	client := testAccProvider.Meta().(*dme.Client)
+	client := testAccProvider.Meta().(*dnsmadeeasy.Client)
 
 	for _, rs := range s.RootModule().Resources {
 		if rs.Type != "dnsmadeeasy_record" {
@@ -376,7 +376,7 @@ func testAccCheckDMERecordDestroy(s *terraform.State) error {
 	return nil
 }
 
-func testAccCheckDMERecordExists(n string, record *dme.Record) resource.TestCheckFunc {
+func testAccCheckDMERecordExists(n string, record *dnsmadeeasy.Record) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		rs, ok := s.RootModule().Resources[n]
 
@@ -388,7 +388,7 @@ func testAccCheckDMERecordExists(n string, record *dme.Record) resource.TestChec
 			return fmt.Errorf("No Record ID is set")
 		}
 
-		client := testAccProvider.Meta().(*dme.Client)
+		client := testAccProvider.Meta().(*dnsmadeeasy.Client)
 
 		foundRecord, err := client.ReadRecord(rs.Primary.Attributes["domainid"], rs.Primary.ID)
 

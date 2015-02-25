@@ -1,8 +1,8 @@
-package dnsmadeeasy
+package dme
 
 import (
 	"fmt"
-	dme "github.com/soniah/dnsmadeeasy"
+	"github.com/soniah/dnsmadeeasy"
 	"log"
 )
 
@@ -14,14 +14,14 @@ type Config struct {
 }
 
 // Client returns a new client for accessing DNSMadeEasy
-func (c *Config) Client() (*dme.Client, error) {
-	client, err := dme.NewClient(c.AKey, c.SKey)
+func (c *Config) Client() (*dnsmadeeasy.Client, error) {
+	client, err := dnsmadeeasy.NewClient(c.AKey, c.SKey)
 	if err != nil {
 		return nil, fmt.Errorf("Error setting up client: %s", err)
 	}
 
 	if c.UseSandbox {
-		client.URL = dme.SandboxURL
+		client.URL = dnsmadeeasy.SandboxURL
 	}
 
 	log.Printf("[INFO] DNSMadeEasy Client configured for AKey: %s", client.AKey)
