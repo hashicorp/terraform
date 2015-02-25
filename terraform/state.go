@@ -161,12 +161,20 @@ func (s *State) RootModule() *ModuleState {
 
 // Equal tests if one state is equal to another.
 func (s *State) Equal(other *State) bool {
+	// If one is nil, we do a direct check
+	if s == nil || other == nil {
+		return s == other
+	}
+
 	// If the versions are different, they're certainly not equal
 	if s.Version != other.Version {
 		return false
 	}
 
 	// If any of the modules are not equal, then this state isn't equal
+	if len(s.Modules) != len(other.Modules) {
+		return false
+	}
 	for _, m := range s.Modules {
 		// This isn't very optimal currently but works.
 		otherM := other.ModuleByPath(m.Path)
@@ -183,20 +191,9 @@ func (s *State) Equal(other *State) bool {
 	return true
 }
 
-func (s *State) init() {
-	if s.Version == 0 {
-		s.Version = StateVersion
-	}
-	if len(s.Modules) == 0 {
-		root := &ModuleState{
-			Path: rootModulePath,
-		}
-		root.init()
-		s.Modules = []*ModuleState{root}
-	}
-}
-
-func (s *State) deepcopy() *State {
+// DeepCopy performs a deep copy of the state structure and returns
+// a new structure.
+func (s *State) DeepCopy() *State {
 	if s == nil {
 		return nil
 	}
@@ -212,6 +209,27 @@ func (s *State) deepcopy() *State {
 		n.Remote = s.Remote.deepcopy()
 	}
 	return n
+}
+
+// IncrementSerialMaybe increments the serial number of this state
+// if it different from the other state.
+func (s *State) IncrementSerialMaybe(other *State) {
+	if !s.Equal(other) {
+		s.Serial++
+	}
+}
+
+func (s *State) init() {
+	if s.Version == 0 {
+		s.Version = StateVersion
+	}
+	if len(s.Modules) == 0 {
+		root := &ModuleState{
+			Path: rootModulePath,
+		}
+		root.init()
+		s.Modules = []*ModuleState{root}
+	}
 }
 
 // prune is used to remove any resources that are no longer required
@@ -950,9 +968,6 @@ func WriteState(d *State, dst io.Writer) error {
 
 	// Ensure the version is set
 	d.Version = StateVersion
-
-	// Always increment the serial number
-	d.Serial++
 
 	// Encode the data in a human-friendly way
 	data, err := json.MarshalIndent(d, "", "    ")
