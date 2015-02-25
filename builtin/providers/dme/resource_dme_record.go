@@ -1,4 +1,4 @@
-package dnsmadeeasy
+package dme
 
 import (
 	"fmt"
@@ -6,7 +6,7 @@ import (
 	"strings"
 
 	"github.com/hashicorp/terraform/helper/schema"
-	dme "github.com/soniah/dnsmadeeasy"
+	"github.com/soniah/dnsmadeeasy"
 )
 
 func resourceDMERecord() *schema.Resource {
@@ -79,7 +79,7 @@ func resourceDMERecord() *schema.Resource {
 }
 
 func resourceDMERecordCreate(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*dme.Client)
+	client := meta.(*dnsmadeeasy.Client)
 
 	domainid := d.Get("domainid").(string)
 	log.Printf("[INFO] Creating record for domainid: %s", domainid)
@@ -102,7 +102,7 @@ func resourceDMERecordCreate(d *schema.ResourceData, meta interface{}) error {
 }
 
 func resourceDMERecordRead(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*dme.Client)
+	client := meta.(*dnsmadeeasy.Client)
 
 	domainid := d.Get("domainid").(string)
 	recordid := d.Id()
@@ -117,7 +117,7 @@ func resourceDMERecordRead(d *schema.ResourceData, meta interface{}) error {
 }
 
 func resourceDMERecordUpdate(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*dme.Client)
+	client := meta.(*dnsmadeeasy.Client)
 
 	domainid := d.Get("domainid").(string)
 	recordid := d.Id()
@@ -136,7 +136,7 @@ func resourceDMERecordUpdate(d *schema.ResourceData, meta interface{}) error {
 }
 
 func resourceDMERecordDelete(d *schema.ResourceData, meta interface{}) error {
-	client := meta.(*dme.Client)
+	client := meta.(*dnsmadeeasy.Client)
 
 	domainid := d.Get("domainid").(string)
 	recordid := d.Id()
@@ -203,7 +203,7 @@ func getAll(d *schema.ResourceData, cr map[string]interface{}) error {
 	return nil
 }
 
-func setAll(d *schema.ResourceData, rec *dme.Record) error {
+func setAll(d *schema.ResourceData, rec *dnsmadeeasy.Record) error {
 	d.Set("type", rec.Type)
 	d.Set("name", rec.Name)
 	d.Set("ttl", rec.TTL)

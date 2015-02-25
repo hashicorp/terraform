@@ -45,24 +45,24 @@ required for some record types.
 http://help.dnsmadeeasy.com/tutorials/managed-dns/ has more
 information.
 
-### A Record
+#### A Record
 
 * `value` is the hostname
 
-### CNAME Record
+#### CNAME Record
 
 * `value` is the alias name
 
-### ANAME Record
+#### ANAME Record
 
 * `value` is the aname target
 
-### MX Record
+#### MX Record
 
 * `value` is the server
 * `mxLevel` (Integer, Required) is the MX level
 
-###  HTTPRED Record
+####  HTTPRED Record
 
 * `value` is the URL
 * `hardLink` (Boolean, Optional) If true, any request that is
@@ -80,27 +80,27 @@ information.
   of this field
 * `description` (Optional) A human-readable description.
 
-### TXT Record
+#### TXT Record
 
 * `value` is free form text
 
-### SPF Record
+#### SPF Record
 
 * `value` is the SPF definition of hosts allowed to send email
 
-###  PTR Record
+####  PTR Record
 
 * `value` is the reverse DNS for the host
 
-### NS Record
+#### NS Record
 
 * `value` is the host name of the server
 
-### AAAA Record
+#### AAAA Record
 
 * `value` is the IPv6 address
 
-### SRV Record
+#### SRV Record
 
 * `value` is the host
 * `priority` (Integer, Required). Acts the same way as MX Level
@@ -121,7 +121,7 @@ The following attributes are exported:
 Additional fields may also be exported by some record types -
 see DNS Record Types.
 
-## Record Type Examples
+#### Record Type Examples
 
 Following are examples of using each of the record types.
 
