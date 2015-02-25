@@ -13,12 +13,6 @@ import (
 	"github.com/hashicorp/terraform/helper/schema"
 )
 
-// Establish a sentinel value to allow Backup Rention to 0, disabling backups of
-// the RDS Instance. This is needed to distinguish between a zero value in the
-// configuration, or no value provided. The default on AWS is 1 (one day).
-// See http://docs.aws.amazon.com/AmazonRDS/latest/APIReference/API_CreateDBInstance.html
-const backupRetentionPeriodUnset = -1
-
 func resourceAwsDbInstance() *schema.Resource {
 	return &schema.Resource{
 		Create: resourceAwsDbInstanceCreate,
@@ -91,9 +85,8 @@ func resourceAwsDbInstance() *schema.Resource {
 			"backup_retention_period": &schema.Schema{
 				Type:     schema.TypeInt,
 				Optional: true,
-				Computed: true,
 				ForceNew: true,
-				Default:  backupRetentionPeriodUnset,
+				Default:  1,
 			},
 
 			"backup_window": &schema.Schema{
@@ -208,11 +201,8 @@ func resourceAwsDbInstanceCreate(d *schema.ResourceData, meta interface{}) error
 		opts.StorageType = aws.String(attr.(string))
 	}
 
-	// Compare the backup_retention_period value to the Default. This allows a
-	// zero value for backup_retention_period, disabling backups.
-	brp := d.Get("backup_retention_period")
-	if brp != backupRetentionPeriodUnset {
-		opts.BackupRetentionPeriod = aws.Integer(brp.(int))
+	if attr, ok := d.GetOk("backup_retention_period"); ok {
+		opts.BackupRetentionPeriod = aws.Integer(attr.(int))
 	}
 
 	if attr, ok := d.GetOk("iops"); ok {

@@ -84,11 +84,15 @@ func testAccCheckAWSDBInstanceAttributes(v *rds.DBInstance) resource.TestCheckFu
 	return func(s *terraform.State) error {
 
 		if *v.Engine != "mysql" {
-			return fmt.Errorf("bad engine: %#v", v.Engine)
+			return fmt.Errorf("bad engine: %#v", *v.Engine)
 		}
 
 		if *v.EngineVersion != "5.6.21" {
-			return fmt.Errorf("bad engine_version: %#v", v.EngineVersion)
+			return fmt.Errorf("bad engine_version: %#v", *v.EngineVersion)
+		}
+
+		if *v.BackupRetentionPeriod != 0 {
+			return fmt.Errorf("bad backup_retention_period: %#v", *v.BackupRetentionPeriod)
 		}
 
 		return nil
