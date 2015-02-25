@@ -77,7 +77,7 @@ func resourceAwsVpcCreate(d *schema.ResourceData, meta interface{}) error {
 	log.Printf("[DEBUG] VPC create config: %#v", *createOpts)
 	vpcResp, err := ec2conn.CreateVPC(createOpts)
 	if err != nil {
-		return fmt.Errorf("Error creating VPC: %s", err)
+		return fmt.Errorf("Error creating VPC: %s : %s", err)
 	}
 
 	// Get the ID and store it
