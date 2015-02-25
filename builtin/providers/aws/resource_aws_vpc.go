@@ -181,20 +181,24 @@ func resourceAwsVpcRead(d *schema.ResourceData, meta interface{}) error {
 }
 
 func resourceAwsVpcUpdate(d *schema.ResourceData, meta interface{}) error {
-	ec2conn := meta.(*AWSClient).ec2conn
+	ec2conn := meta.(*AWSClient).awsEc2conn
 
 	// Turn on partial mode
 	d.Partial(true)
-
+	vpcid := d.Id()
+	modifyOpts := &ec2.ModifyVPCAttributeRequest{
+		VPCID: &vpcid,
+	}
 	if d.HasChange("enable_dns_hostnames") {
-		options := new(ec2.ModifyVpcAttribute)
-		options.EnableDnsHostnames = d.Get("enable_dns_hostnames").(bool)
-		options.SetEnableDnsHostnames = true
+		val := d.Get("enable_dns_hostnames").(bool)
+		modifyOpts.EnableDNSHostnames = &ec2.AttributeBooleanValue{
+			Value: &val,
+		}
 
 		log.Printf(
 			"[INFO] Modifying enable_dns_hostnames vpc attribute for %s: %#v",
-			d.Id(), options)
-		if _, err := ec2conn.ModifyVpcAttribute(d.Id(), options); err != nil {
+			d.Id(), modifyOpts)
+		if err := ec2conn.ModifyVPCAttribute(modifyOpts); err != nil {
 			return err
 		}
 
@@ -202,36 +206,40 @@ func resourceAwsVpcUpdate(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	if d.HasChange("enable_dns_support") {
-		options := new(ec2.ModifyVpcAttribute)
-		options.EnableDnsSupport = d.Get("enable_dns_support").(bool)
-		options.SetEnableDnsSupport = true
+		val := d.Get("enable_dns_hostnames").(bool)
+		modifyOpts.EnableDNSSupport = &ec2.AttributeBooleanValue{
+			Value: &val,
+		}
 
 		log.Printf(
 			"[INFO] Modifying enable_dns_support vpc attribute for %s: %#v",
-			d.Id(), options)
-		if _, err := ec2conn.ModifyVpcAttribute(d.Id(), options); err != nil {
+			d.Id(), modifyOpts)
+		if err := ec2conn.ModifyVPCAttribute(modifyOpts); err != nil {
 			return err
 		}
 
 		d.SetPartial("enable_dns_support")
 	}
-
-	if err := setTags(ec2conn, d); err != nil {
-		return err
-	} else {
-		d.SetPartial("tags")
-	}
+	//Tagging Support need to be worked on - rmenn
+	//	if err := setTags(ec2conn, d); err != nil {
+	//		return err
+	//	} else {
+	//		d.SetPartial("tags")
+	//	}
 
 	d.Partial(false)
 	return resourceAwsVpcRead(d, meta)
 }
 
 func resourceAwsVpcDelete(d *schema.ResourceData, meta interface{}) error {
-	ec2conn := meta.(*AWSClient).ec2conn
-
+	ec2conn := meta.(*AWSClient).awsEc2conn
+	vpcID := d.Id()
+	DeleteVpcOpts := &ec2.DeleteVPCRequest{
+		VPCID: &vpcID,
+	}
 	log.Printf("[INFO] Deleting VPC: %s", d.Id())
-	if _, err := ec2conn.DeleteVpc(d.Id()); err != nil {
-		ec2err, ok := err.(*ec2.Error)
+	if err := ec2conn.DeleteVPC(DeleteVpcOpts); err != nil {
+		ec2err, ok := err.(*awsGo.APIError)
 		if ok && ec2err.Code == "InvalidVpcID.NotFound" {
 			return nil
 		}
@@ -246,9 +254,12 @@ func resourceAwsVpcDelete(d *schema.ResourceData, meta interface{}) error {
 // a VPC.
 func VPCStateRefreshFunc(conn *ec2.EC2, id string) resource.StateRefreshFunc {
 	return func() (interface{}, string, error) {
-		resp, err := conn.DescribeVpcs([]string{id}, ec2.NewFilter())
+		DescribeVpcOpts := &ec2.DescribeVPCsRequest{
+			VPCIDs: []string{id},
+		}
+		resp, err := conn.DescribeVPCs(DescribeVpcOpts)
 		if err != nil {
-			if ec2err, ok := err.(*ec2.Error); ok && ec2err.Code == "InvalidVpcID.NotFound" {
+			if ec2err, ok := err.(*awsGo.APIError); ok && ec2err.Code == "InvalidVpcID.NotFound" {
 				resp = nil
 			} else {
 				log.Printf("Error on VPCStateRefresh: %s", err)
@@ -263,37 +274,53 @@ func VPCStateRefreshFunc(conn *ec2.EC2, id string) resource.StateRefreshFunc {
 		}
 
 		vpc := &resp.VPCs[0]
-		return vpc, vpc.State, nil
+		return vpc, *vpc.State, nil
 	}
 }
 
 func resourceAwsVpcSetDefaultNetworkAcl(conn *ec2.EC2, d *schema.ResourceData) error {
-	filter := ec2.NewFilter()
-	filter.Add("default", "true")
-	filter.Add("vpc-id", d.Id())
-	networkAclResp, err := conn.NetworkAcls(nil, filter)
+	filter1 := &ec2.Filter{
+		Name:   awsGo.String("default"),
+		Values: []string{("true")},
+	}
+	filter2 := &ec2.Filter{
+		Name:   awsGo.String("vpc-id"),
+		Values: []string{(d.Id())},
+	}
+	DescribeNetworkACLOpts := &ec2.DescribeNetworkACLsRequest{
+		Filters: []ec2.Filter{*filter1, *filter2},
+	}
+	networkAclResp, err := conn.DescribeNetworkACLs(DescribeNetworkACLOpts)
 
 	if err != nil {
 		return err
 	}
-	if v := networkAclResp.NetworkAcls; len(v) > 0 {
-		d.Set("default_network_acl_id", v[0].NetworkAclId)
+	if v := networkAclResp.NetworkACLs; len(v) > 0 {
+		d.Set("default_network_acl_id", v[0].NetworkACLID)
 	}
 
 	return nil
 }
 
 func resourceAwsVpcSetDefaultSecurityGroup(conn *ec2.EC2, d *schema.ResourceData) error {
-	filter := ec2.NewFilter()
-	filter.Add("group-name", "default")
-	filter.Add("vpc-id", d.Id())
-	securityGroupResp, err := conn.SecurityGroups(nil, filter)
+	filter1 := &ec2.Filter{
+		Name:   awsGo.String("group-name"),
+		Values: []string{("default")},
+	}
+	filter2 := &ec2.Filter{
+		Name:   awsGo.String("vpc-id"),
+		Values: []string{(d.Id())},
+	}
+	DescribeSgOpts := &ec2.DescribeSecurityGroupsRequest{
+		Filters: []ec2.Filter{*filter1, *filter2},
+	}
+	securityGroupResp, err := conn.DescribeSecurityGroups(DescribeSgOpts)
 
 	if err != nil {
 		return err
 	}
-	if v := securityGroupResp.Groups; len(v) > 0 {
-		d.Set("default_security_group_id", v[0].Id)
+	if v := securityGroupResp.SecurityGroups; len(v) > 0 {
+		d.Set("default_security_group_id", v[0].GroupID)
 	}
 
 	return nil
