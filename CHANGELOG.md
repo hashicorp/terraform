@@ -8,6 +8,7 @@ FEATURES:
       continously updated as apply is running, meaning that the state is
       less likely to become corrupt in a catastrophic case: terraform panic
       or system killing Terraform.
+  * **New provider: `dnsmadeeasy`** [GH-855]
 
 IMPROVEMENTS:
 
