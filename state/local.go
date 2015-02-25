@@ -15,18 +15,20 @@ type LocalState struct {
 	Path    string
 	PathOut string
 
-	state   *terraform.State
-	written bool
+	state     *terraform.State
+	readState *terraform.State
+	written   bool
 }
 
 // SetState will force a specific state in-memory for this local state.
 func (s *LocalState) SetState(state *terraform.State) {
 	s.state = state
+	s.readState = state
 }
 
 // StateReader impl.
 func (s *LocalState) State() *terraform.State {
-	return s.state
+	return s.state.DeepCopy()
 }
 
 // WriteState for LocalState always persists the state as well.
@@ -60,6 +62,9 @@ func (s *LocalState) WriteState(state *terraform.State) error {
 		return err
 	}
 	defer f.Close()
+
+	s.state.IncrementSerialMaybe(s.readState)
+	s.readState = s.state
 
 	if err := terraform.WriteState(s.state, f); err != nil {
 		return err
@@ -105,5 +110,6 @@ func (s *LocalState) RefreshState() error {
 	}
 
 	s.state = state
+	s.readState = state
 	return nil
 }

@@ -19,7 +19,7 @@ type CacheState struct {
 
 // StateReader impl.
 func (s *CacheState) State() *terraform.State {
-	return s.state
+	return s.state.DeepCopy()
 }
 
 // WriteState will write and persist the state to the cache.
@@ -104,6 +104,8 @@ func (s *CacheState) RefreshState() error {
 			s.refreshResult = CacheRefreshNoop
 			return err
 		}
+
+		cached = durable
 	}
 
 	s.state = cached
