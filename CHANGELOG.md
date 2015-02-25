@@ -4,11 +4,18 @@ FEATURES:
 
   * **Self-variables** can be used to reference the current resource's
       attributes within a provisioner. Ex. `${self.private_ip_address}` [GH-1033]
+  * **Continous state** saving during `terraform apply`. The state file is
+      continously updated as apply is running, meaning that the state is
+      less likely to become corrupt in a catastrophic case: terraform panic
+      or system killing Terraform.
 
 IMPROVEMENTS:
 
   * **New config function: `split`** - Split a value based on a delimiter.
       This is useful for faking lists as parameters to modules.
+  * core: The serial of the state is only updated if there is an actual
+      change. This will lower the amount of state changing on things
+      like refresh.
 
 BUG FIXES:
 
