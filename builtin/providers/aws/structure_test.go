@@ -4,12 +4,13 @@ import (
 	"reflect"
 	"testing"
 
+	"github.com/hashicorp/aws-sdk-go/aws"
+	"github.com/hashicorp/aws-sdk-go/gen/rds"
 	"github.com/hashicorp/terraform/flatmap"
 	"github.com/hashicorp/terraform/helper/hashcode"
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/mitchellh/goamz/ec2"
 	"github.com/mitchellh/goamz/elb"
-	"github.com/mitchellh/goamz/rds"
 )
 
 // Returns test configuration
@@ -270,9 +271,9 @@ func Test_expandParameters(t *testing.T) {
 	}
 
 	expected := rds.Parameter{
-		ParameterName:  "character_set_client",
-		ParameterValue: "utf8",
-		ApplyMethod:    "immediate",
+		ParameterName:  aws.String("character_set_client"),
+		ParameterValue: aws.String("utf8"),
+		ApplyMethod:    aws.String("immediate"),
 	}
 
 	if !reflect.DeepEqual(parameters[0], expected) {
@@ -291,8 +292,8 @@ func Test_flattenParameters(t *testing.T) {
 		{
 			Input: []rds.Parameter{
 				rds.Parameter{
-					ParameterName:  "character_set_client",
-					ParameterValue: "utf8",
+					ParameterName:  aws.String("character_set_client"),
+					ParameterValue: aws.String("utf8"),
 				},
 			},
 			Output: []map[string]interface{}{
