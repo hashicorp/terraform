@@ -110,6 +110,12 @@ func init() {
 			}, nil
 		},
 
+		"taint": func() (cli.Command, error) {
+			return &command.TaintCommand{
+				Meta: meta,
+			}, nil
+		},
+
 		"version": func() (cli.Command, error) {
 			return &command.VersionCommand{
 				Meta:              meta,
