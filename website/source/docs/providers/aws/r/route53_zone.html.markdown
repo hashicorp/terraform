@@ -18,6 +18,29 @@ resource "aws_route53_zone" "primary" {
 }
 ```
 
+For use in subdomains, note that you need to create a
+`aws_route53_record` of type `NS` as well as the subdomain
+zone.
+
+```
+resource "aws_route53_zone" "main" {
+  name = "example.com"
+}
+
+resource "aws_route53_zone" "dev" {
+  name = "dev.example.com"
+  parent_route53_zone = "${aws_route53_zone.main.zone_id}"
+}
+
+resource "aws_route53_record" "dev-ns" {
+    zone_id = "${aws_route53_zone.main.zone_id}"
+    name = "dev.example.com"
+    type = "NS"
+    ttl = "30"
+    records = ["127.0.0.1", "127.0.0.27"]
+}
+```
+
 ## Argument Reference
 
 The following arguments are supported:
