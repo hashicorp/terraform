@@ -77,6 +77,8 @@ func builtinIntMath() ast.Function {
 					result *= arg
 				case ast.ArithmeticOpDiv:
 					result /= arg
+				case ast.ArithmeticOpMod:
+					result = result % arg
 				}
 			}
 

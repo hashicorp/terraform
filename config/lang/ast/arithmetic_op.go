@@ -9,4 +9,5 @@ const (
 	ArithmeticOpSub
 	ArithmeticOpMul
 	ArithmeticOpDiv
+	ArithmeticOpMod
 )
