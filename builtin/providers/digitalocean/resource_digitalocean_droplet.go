@@ -366,6 +366,11 @@ func WaitForDropletAttribute(
 		Timeout:    60 * time.Minute,
 		Delay:      10 * time.Second,
 		MinTimeout: 3 * time.Second,
+
+		// This is a hack around DO API strangeness.
+		// https://github.com/hashicorp/terraform/issues/481
+		//
+		NotFoundChecks: 60,
 	}
 
 	return stateConf.WaitForState()
