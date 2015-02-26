@@ -275,6 +275,53 @@ func TestResourceStateEqual(t *testing.T) {
 	}
 }
 
+func TestResourceStateTaint(t *testing.T) {
+	cases := map[string]struct {
+		Input  *ResourceState
+		Output *ResourceState
+	}{
+		"no primary": {
+			&ResourceState{},
+			&ResourceState{},
+		},
+
+		"primary, no tainted": {
+			&ResourceState{
+				Primary: &InstanceState{ID: "foo"},
+			},
+			&ResourceState{
+				Tainted: []*InstanceState{
+					&InstanceState{ID: "foo"},
+				},
+			},
+		},
+
+		"primary, with tainted": {
+			&ResourceState{
+				Primary: &InstanceState{ID: "foo"},
+				Tainted: []*InstanceState{
+					&InstanceState{ID: "bar"},
+				},
+			},
+			&ResourceState{
+				Tainted: []*InstanceState{
+					&InstanceState{ID: "bar"},
+					&InstanceState{ID: "foo"},
+				},
+			},
+		},
+	}
+
+	for k, tc := range cases {
+		tc.Input.Taint()
+		if !reflect.DeepEqual(tc.Input, tc.Output) {
+			t.Fatalf(
+				"Failure: %s\n\nExpected: %#v\n\nGot: %#v",
+				k, tc.Output, tc.Input)
+		}
+	}
+}
+
 func TestInstanceStateEqual(t *testing.T) {
 	cases := []struct {
 		Result   bool
