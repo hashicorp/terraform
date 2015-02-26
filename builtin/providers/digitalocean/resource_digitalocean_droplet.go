@@ -326,10 +326,18 @@ func resourceDigitalOceanDropletUpdate(d *schema.ResourceData, meta interface{})
 func resourceDigitalOceanDropletDelete(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*digitalocean.Client)
 
+	_, err := WaitForDropletAttribute(
+		d, "false", []string{"", "true"}, "locked", meta)
+
+	if err != nil {
+		return fmt.Errorf(
+			"Error waiting for droplet to be unlocked for destroy (%s): %s", d.Id(), err)
+	}
+
 	log.Printf("[INFO] Deleting droplet: %s", d.Id())
 
 	// Destroy the droplet
-	err := client.DestroyDroplet(d.Id())
+	err = client.DestroyDroplet(d.Id())
 
 	// Handle remotely destroyed droplets
 	if err != nil && strings.Contains(err.Error(), "404 Not Found") {
