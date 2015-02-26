@@ -27,6 +27,7 @@ BUG FIXES:
   * core: Module inputs can be non-strings. [GH-819]
   * providers/aws: manually deleted VPC removes it from the state
   * providers/aws: `source_dest_check` regression fixed (now works). [GH-1020]
+  * providers/digitalocean: Waits until droplet is ready to be destroyed [GH-1057]
 
 ## 0.3.7 (February 19, 2015)
 
