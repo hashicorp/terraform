@@ -22,12 +22,13 @@ type StateRefreshFunc func() (result interface{}, state string, err error)
 
 // StateChangeConf is the configuration struct used for `WaitForState`.
 type StateChangeConf struct {
-	Delay      time.Duration    // Wait this time before starting checks
-	Pending    []string         // States that are "allowed" and will continue trying
-	Refresh    StateRefreshFunc // Refreshes the current state
-	Target     string           // Target state
-	Timeout    time.Duration    // The amount of time to wait before timeout
-	MinTimeout time.Duration    // Smallest time to wait before refreshes
+	Delay          time.Duration    // Wait this time before starting checks
+	Pending        []string         // States that are "allowed" and will continue trying
+	Refresh        StateRefreshFunc // Refreshes the current state
+	Target         string           // Target state
+	Timeout        time.Duration    // The amount of time to wait before timeout
+	MinTimeout     time.Duration    // Smallest time to wait before refreshes
+	NotFoundChecks int              // Number of times to allow not found
 }
 
 // WaitForState watches an object and waits for it to achieve the state
@@ -37,6 +38,11 @@ func (conf *StateChangeConf) WaitForState() (interface{}, error) {
 	log.Printf("[DEBUG] Waiting for state to become: %s", conf.Target)
 
 	notfoundTick := 0
+
+	// Set a default for times to check for not found
+	if conf.NotFoundChecks == 0 {
+		conf.NotFoundChecks = 20
+	}
 
 	var result interface{}
 	var resulterr error
@@ -78,7 +84,7 @@ func (conf *StateChangeConf) WaitForState() (interface{}, error) {
 				// If we didn't find the resource, check if we have been
 				// not finding it for awhile, and if so, report an error.
 				notfoundTick += 1
-				if notfoundTick > 20 {
+				if notfoundTick > conf.NotFoundChecks {
 					resulterr = errors.New("couldn't find resource")
 					return
 				}
