@@ -260,6 +260,10 @@ func (s *State) GoString() string {
 }
 
 func (s *State) String() string {
+	if s == nil {
+		return "<nil>"
+	}
+
 	var buf bytes.Buffer
 	for _, m := range s.Modules {
 		mStr := m.String()
