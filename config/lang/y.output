@@ -51,22 +51,21 @@ state 5
 
 
 state 6
-	literal:  STRING.    (18)
+	literal:  STRING.    (17)
 
-	.  reduce 18 (src line 166)
+	.  reduce 17 (src line 149)
 
 
 state 7
 	interpolation:  PROGRAM_BRACKET_LEFT.expr PROGRAM_BRACKET_RIGHT 
 
 	PROGRAM_BRACKET_LEFT  shift 7
-	IDENTIFIER  shift 14
+	IDENTIFIER  shift 13
 	INTEGER  shift 11
 	FLOAT  shift 12
 	STRING  shift 6
 	.  error
 
-	arith  goto 13
 	expr  goto 9
 	interpolation  goto 5
 	literal  goto 4
@@ -81,8 +80,10 @@ state 8
 
 state 9
 	interpolation:  PROGRAM_BRACKET_LEFT expr.PROGRAM_BRACKET_RIGHT 
+	expr:  expr.ARITH_OP expr 
 
-	PROGRAM_BRACKET_RIGHT  shift 15
+	PROGRAM_BRACKET_RIGHT  shift 14
+	ARITH_OP  shift 15
 	.  error
 
 
@@ -100,9 +101,7 @@ state 10
 
 state 11
 	expr:  INTEGER.    (9)
-	arith:  INTEGER.ARITH_OP INTEGER 
 
-	ARITH_OP  shift 16
 	.  reduce 9 (src line 103)
 
 
@@ -113,110 +112,118 @@ state 12
 
 
 state 13
-	expr:  arith.    (11)
-
-	.  reduce 11 (src line 119)
-
-
-state 14
 	expr:  IDENTIFIER.    (12)
 	expr:  IDENTIFIER.PAREN_LEFT args PAREN_RIGHT 
 
-	PAREN_LEFT  shift 17
-	.  reduce 12 (src line 123)
+	PAREN_LEFT  shift 16
+	.  reduce 12 (src line 127)
 
 
-state 15
+state 14
 	interpolation:  PROGRAM_BRACKET_LEFT expr PROGRAM_BRACKET_RIGHT.    (7)
 
 	.  reduce 7 (src line 92)
 
 
-state 16
-	arith:  INTEGER ARITH_OP.INTEGER 
-
-	INTEGER  shift 18
-	.  error
-
-
-state 17
-	expr:  IDENTIFIER PAREN_LEFT.args PAREN_RIGHT 
-	args: .    (15)
+state 15
+	expr:  expr ARITH_OP.expr 
 
 	PROGRAM_BRACKET_LEFT  shift 7
-	IDENTIFIER  shift 14
+	IDENTIFIER  shift 13
 	INTEGER  shift 11
 	FLOAT  shift 12
 	STRING  shift 6
-	.  reduce 15 (src line 153)
+	.  error
 
-	arith  goto 13
-	expr  goto 20
+	expr  goto 17
 	interpolation  goto 5
 	literal  goto 4
 	literalModeTop  goto 10
 	literalModeValue  goto 3
-	args  goto 19
+
+state 16
+	expr:  IDENTIFIER PAREN_LEFT.args PAREN_RIGHT 
+	args: .    (14)
+
+	PROGRAM_BRACKET_LEFT  shift 7
+	IDENTIFIER  shift 13
+	INTEGER  shift 11
+	FLOAT  shift 12
+	STRING  shift 6
+	.  reduce 14 (src line 136)
+
+	expr  goto 19
+	interpolation  goto 5
+	literal  goto 4
+	literalModeTop  goto 10
+	literalModeValue  goto 3
+	args  goto 18
+
+17: shift/reduce conflict (shift 15(0), red'n 11(0)) on ARITH_OP
+state 17
+	expr:  expr.ARITH_OP expr 
+	expr:  expr ARITH_OP expr.    (11)
+
+	ARITH_OP  shift 15
+	.  reduce 11 (src line 119)
+
 
 state 18
-	arith:  INTEGER ARITH_OP INTEGER.    (14)
-
-	.  reduce 14 (src line 132)
-
-
-state 19
 	expr:  IDENTIFIER PAREN_LEFT args.PAREN_RIGHT 
 	args:  args.COMMA expr 
 
-	PAREN_RIGHT  shift 21
-	COMMA  shift 22
+	PAREN_RIGHT  shift 20
+	COMMA  shift 21
 	.  error
 
 
-state 20
-	args:  expr.    (17)
+state 19
+	expr:  expr.ARITH_OP expr 
+	args:  expr.    (16)
 
-	.  reduce 17 (src line 161)
+	ARITH_OP  shift 15
+	.  reduce 16 (src line 144)
+
+
+state 20
+	expr:  IDENTIFIER PAREN_LEFT args PAREN_RIGHT.    (13)
+
+	.  reduce 13 (src line 131)
 
 
 state 21
-	expr:  IDENTIFIER PAREN_LEFT args PAREN_RIGHT.    (13)
-
-	.  reduce 13 (src line 127)
-
-
-state 22
 	args:  args COMMA.expr 
 
 	PROGRAM_BRACKET_LEFT  shift 7
-	IDENTIFIER  shift 14
+	IDENTIFIER  shift 13
 	INTEGER  shift 11
 	FLOAT  shift 12
 	STRING  shift 6
 	.  error
 
-	arith  goto 13
-	expr  goto 23
+	expr  goto 22
 	interpolation  goto 5
 	literal  goto 4
 	literalModeTop  goto 10
 	literalModeValue  goto 3
 
-state 23
-	args:  args COMMA expr.    (16)
+state 22
+	expr:  expr.ARITH_OP expr 
+	args:  args COMMA expr.    (15)
 
-	.  reduce 16 (src line 157)
+	ARITH_OP  shift 15
+	.  reduce 15 (src line 140)
 
 
-15 terminals, 9 nonterminals
-19 grammar rules, 24/2000 states
-0 shift/reduce, 0 reduce/reduce conflicts reported
-58 working sets used
-memory: parser 28/30000
-19 extra closures
-27 shift entries, 1 exceptions
+15 terminals, 8 nonterminals
+18 grammar rules, 23/2000 states
+1 shift/reduce, 0 reduce/reduce conflicts reported
+57 working sets used
+memory: parser 30/30000
+18 extra closures
+34 shift entries, 1 exceptions
 13 goto entries
-17 entries saved by goto default
+19 entries saved by goto default
 Optimizer space used: output 26/30000
 26 table entries, 0 zero
-maximum spread: 15, maximum offset: 22
+maximum spread: 15, maximum offset: 21

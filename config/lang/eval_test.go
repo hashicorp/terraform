@@ -72,6 +72,30 @@ func TestEval(t *testing.T) {
 		},
 
 		{
+			"foo ${42.0+1.0}",
+			nil,
+			false,
+			"foo 43",
+			ast.TypeString,
+		},
+
+		{
+			"foo ${42.0+1}",
+			nil,
+			false,
+			"foo 43",
+			ast.TypeString,
+		},
+
+		{
+			"foo ${42+1.0}",
+			nil,
+			false,
+			"foo 43",
+			ast.TypeString,
+		},
+
+		{
 			"foo ${rand()}",
 			&ast.BasicScope{
 				FuncMap: map[string]ast.Function{

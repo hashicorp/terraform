@@ -50,7 +50,7 @@ const parserEofCode = 1
 const parserErrCode = 2
 const parserMaxDepth = 200
 
-//line lang.y:176
+//line lang.y:159
 
 //line yacctab:1
 var parserExca = []int{
@@ -59,7 +59,7 @@ var parserExca = []int{
 	-2, 0,
 }
 
-const parserNprod = 19
+const parserNprod = 18
 const parserPrivate = 57344
 
 var parserTokenNames []string
@@ -69,41 +69,41 @@ const parserLast = 26
 
 var parserAct = []int{
 
-	9, 7, 7, 18, 3, 21, 22, 8, 17, 14,
-	11, 12, 6, 6, 16, 8, 15, 1, 20, 10,
-	2, 19, 4, 23, 5, 13,
+	9, 7, 7, 15, 3, 20, 21, 8, 14, 13,
+	11, 12, 6, 6, 15, 8, 17, 19, 16, 10,
+	2, 1, 22, 18, 4, 5,
 }
 var parserPact = []int{
 
-	-2, -1000, -2, -1000, -1000, -1000, -1000, -3, -1000, 11,
-	-2, 3, -1000, -1000, 0, -1000, -10, -3, -1000, -4,
-	-1000, -1000, -3, -1000,
+	-2, -1000, -2, -1000, -1000, -1000, -1000, -3, -1000, 3,
+	-2, -1000, -1000, 10, -1000, -3, -3, -8, -4, -8,
+	-1000, -3, -8,
 }
 var parserPgo = []int{
 
-	0, 25, 0, 24, 22, 19, 4, 21, 17,
+	0, 0, 25, 24, 19, 4, 23, 21,
 }
 var parserR1 = []int{
 
-	0, 8, 8, 5, 5, 6, 6, 3, 2, 2,
-	2, 2, 2, 2, 1, 7, 7, 7, 4,
+	0, 7, 7, 4, 4, 5, 5, 2, 1, 1,
+	1, 1, 1, 1, 6, 6, 6, 3,
 }
 var parserR2 = []int{
 
 	0, 0, 1, 1, 2, 1, 1, 3, 1, 1,
-	1, 1, 1, 4, 3, 0, 3, 1, 1,
+	1, 3, 1, 4, 0, 3, 1, 1,
 }
 var parserChk = []int{
 
-	-1000, -8, -5, -6, -4, -3, 15, 4, -6, -2,
-	-5, 13, 14, -1, 12, 5, 11, 8, 13, -7,
-	-2, 9, 10, -2,
+	-1000, -7, -4, -5, -3, -2, 15, 4, -5, -1,
+	-4, 13, 14, 12, 5, 11, 8, -1, -6, -1,
+	9, 10, -1,
 }
 var parserDef = []int{
 
-	1, -2, 2, 3, 5, 6, 18, 0, 4, 0,
-	8, 9, 10, 11, 12, 7, 0, 15, 14, 0,
-	17, 13, 0, 16,
+	1, -2, 2, 3, 5, 6, 17, 0, 4, 0,
+	8, 9, 10, 12, 7, 0, 14, 11, 0, 16,
+	13, 0, 15,
 }
 var parserTok1 = []int{
 
@@ -435,55 +435,39 @@ parserdefault:
 	case 11:
 		//line lang.y:120
 		{
-			parserVAL.node = parserS[parserpt-0].node
+			parserVAL.node = &ast.Arithmetic{
+				Op:    parserS[parserpt-1].token.Value.(ast.ArithmeticOp),
+				Exprs: []ast.Node{parserS[parserpt-2].node, parserS[parserpt-0].node},
+				Posx:  parserS[parserpt-2].node.Pos(),
+			}
 		}
 	case 12:
-		//line lang.y:124
+		//line lang.y:128
 		{
 			parserVAL.node = &ast.VariableAccess{Name: parserS[parserpt-0].token.Value.(string), Posx: parserS[parserpt-0].token.Pos}
 		}
 	case 13:
-		//line lang.y:128
+		//line lang.y:132
 		{
 			parserVAL.node = &ast.Call{Func: parserS[parserpt-3].token.Value.(string), Args: parserS[parserpt-1].nodeList, Posx: parserS[parserpt-3].token.Pos}
 		}
 	case 14:
-		//line lang.y:134
-		{
-			parserVAL.node = &ast.Arithmetic{
-				Op: parserS[parserpt-1].token.Value.(ast.ArithmeticOp),
-				Exprs: []ast.Node{
-					&ast.LiteralNode{
-						Value: parserS[parserpt-2].token.Value.(int),
-						Typex: ast.TypeInt,
-						Posx:  parserS[parserpt-2].token.Pos,
-					},
-					&ast.LiteralNode{
-						Value: parserS[parserpt-0].token.Value.(int),
-						Typex: ast.TypeInt,
-						Posx:  parserS[parserpt-0].token.Pos,
-					},
-				},
-				Posx: parserS[parserpt-2].token.Pos,
-			}
-		}
-	case 15:
-		//line lang.y:154
+		//line lang.y:137
 		{
 			parserVAL.nodeList = nil
 		}
-	case 16:
-		//line lang.y:158
+	case 15:
+		//line lang.y:141
 		{
 			parserVAL.nodeList = append(parserS[parserpt-2].nodeList, parserS[parserpt-0].node)
 		}
-	case 17:
-		//line lang.y:162
+	case 16:
+		//line lang.y:145
 		{
 			parserVAL.nodeList = append(parserVAL.nodeList, parserS[parserpt-0].node)
 		}
-	case 18:
-		//line lang.y:168
+	case 17:
+		//line lang.y:151
 		{
 			parserVAL.node = &ast.LiteralNode{
 				Value: parserS[parserpt-0].token.Value.(string),

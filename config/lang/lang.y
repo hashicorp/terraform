@@ -24,7 +24,7 @@ import (
 
 %token <token> ARITH_OP IDENTIFIER INTEGER FLOAT STRING
 
-%type <node> arith expr interpolation literal literalModeTop literalModeValue
+%type <node> expr interpolation literal literalModeTop literalModeValue
 %type <nodeList> args
 
 %%
@@ -116,9 +116,13 @@ expr:
             Posx:  $1.Pos,
         }
     }
-|   arith
+|   expr ARITH_OP expr
     {
-        $$ = $1
+        $$ = &ast.Arithmetic{
+            Op:    $2.Value.(ast.ArithmeticOp),
+            Exprs: []ast.Node{$1, $3},
+            Posx:  $1.Pos(),
+        }
     }
 |   IDENTIFIER
     {
@@ -127,27 +131,6 @@ expr:
 |   IDENTIFIER PAREN_LEFT args PAREN_RIGHT
     {
         $$ = &ast.Call{Func: $1.Value.(string), Args: $3, Posx: $1.Pos}
-    }
-
-arith:
-    INTEGER ARITH_OP INTEGER
-    {
-        $$ = &ast.Arithmetic{
-            Op:    $2.Value.(ast.ArithmeticOp),
-            Exprs: []ast.Node{
-                &ast.LiteralNode{
-                    Value:  $1.Value.(int),
-                    Typex:  ast.TypeInt,
-                    Posx:   $1.Pos,
-                },
-                &ast.LiteralNode{
-                    Value:  $3.Value.(int),
-                    Typex:  ast.TypeInt,
-                    Posx:   $3.Pos,
-                },
-            },
-            Posx: $1.Pos,
-        }
     }
 
 args:
