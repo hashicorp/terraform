@@ -3,10 +3,11 @@ package aws
 import (
 	"strings"
 
+	"github.com/hashicorp/aws-sdk-go/aws"
+	"github.com/hashicorp/aws-sdk-go/gen/rds"
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/mitchellh/goamz/ec2"
 	"github.com/mitchellh/goamz/elb"
-	"github.com/mitchellh/goamz/rds"
 )
 
 // Takes the result of flatmap.Expand for an array of listeners and
@@ -99,9 +100,9 @@ func expandParameters(configured []interface{}) ([]rds.Parameter, error) {
 		data := pRaw.(map[string]interface{})
 
 		p := rds.Parameter{
-			ApplyMethod:    data["apply_method"].(string),
-			ParameterName:  data["name"].(string),
-			ParameterValue: data["value"].(string),
+			ApplyMethod:    aws.String(data["apply_method"].(string)),
+			ParameterName:  aws.String(data["name"].(string)),
+			ParameterValue: aws.String(data["value"].(string)),
 		}
 
 		parameters = append(parameters, p)
@@ -190,8 +191,8 @@ func flattenParameters(list []rds.Parameter) []map[string]interface{} {
 	result := make([]map[string]interface{}, 0, len(list))
 	for _, i := range list {
 		result = append(result, map[string]interface{}{
-			"name":  strings.ToLower(i.ParameterName),
-			"value": strings.ToLower(i.ParameterValue),
+			"name":  strings.ToLower(*i.ParameterName),
+			"value": strings.ToLower(*i.ParameterValue),
 		})
 	}
 	return result
