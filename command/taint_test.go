@@ -187,6 +187,75 @@ func TestTaint_defaultState(t *testing.T) {
 	testStateOutput(t, path, testTaintStr)
 }
 
+func TestTaint_missing(t *testing.T) {
+	state := &terraform.State{
+		Modules: []*terraform.ModuleState{
+			&terraform.ModuleState{
+				Path: []string{"root"},
+				Resources: map[string]*terraform.ResourceState{
+					"test_instance.foo": &terraform.ResourceState{
+						Type: "test_instance",
+						Primary: &terraform.InstanceState{
+							ID: "bar",
+						},
+					},
+				},
+			},
+		},
+	}
+	statePath := testStateFile(t, state)
+
+	ui := new(cli.MockUi)
+	c := &TaintCommand{
+		Meta: Meta{
+			Ui: ui,
+		},
+	}
+
+	args := []string{
+		"-state", statePath,
+		"test_instance.bar",
+	}
+	if code := c.Run(args); code == 0 {
+		t.Fatalf("bad: %d\n\n%s", code, ui.OutputWriter.String())
+	}
+}
+
+func TestTaint_missingAllow(t *testing.T) {
+	state := &terraform.State{
+		Modules: []*terraform.ModuleState{
+			&terraform.ModuleState{
+				Path: []string{"root"},
+				Resources: map[string]*terraform.ResourceState{
+					"test_instance.foo": &terraform.ResourceState{
+						Type: "test_instance",
+						Primary: &terraform.InstanceState{
+							ID: "bar",
+						},
+					},
+				},
+			},
+		},
+	}
+	statePath := testStateFile(t, state)
+
+	ui := new(cli.MockUi)
+	c := &TaintCommand{
+		Meta: Meta{
+			Ui: ui,
+		},
+	}
+
+	args := []string{
+		"-allow-missing",
+		"-state", statePath,
+		"test_instance.bar",
+	}
+	if code := c.Run(args); code != 0 {
+		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
+	}
+}
+
 func TestTaint_stateOut(t *testing.T) {
 	// Get a temp cwd
 	tmp, cwd := testCwd(t)
