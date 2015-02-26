@@ -275,9 +275,13 @@ func resourceAwsDbSecurityGroupStateRefreshFunc(
 			return nil, "", err
 		}
 
-		st := flattenEC2SecurityGroupStatuses(v.EC2SecurityGroups)
-		ip := flattenIPRangeStatuses(v.IPRanges)
-		statuses := append(st, ip...)
+		statuses := make([]string, 0, len(v.EC2SecurityGroups)+len(v.IPRanges))
+		for _, ec2g := range v.EC2SecurityGroups {
+			statuses = append(statuses, *ec2g.Status)
+		}
+		for _, ips := range v.IPRanges {
+			statuses = append(statuses, *ips.Status)
+		}
 
 		for _, stat := range statuses {
 			// Not done
