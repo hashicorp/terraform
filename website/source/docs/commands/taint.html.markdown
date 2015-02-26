@@ -40,6 +40,10 @@ The format of this argument is `TYPE.NAME`, such as `aws_instance.foo`.
 
 The command-line flags are all optional. The list of available flags are:
 
+* `-allow-missing` - If specified, the command will succeed (exit code 0)
+    even if the resource is missing. The command can still error, but only
+    in critically erroneous cases.
+
 * `-backup=path` - Path to the backup file. Defaults to `-state-out` with
   the ".backup" extension. Disabled by setting to "-".
 

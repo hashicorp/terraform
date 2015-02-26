@@ -15,8 +15,10 @@ type TaintCommand struct {
 func (c *TaintCommand) Run(args []string) int {
 	args = c.Meta.process(args, false)
 
+	var allowMissing bool
 	var module string
 	cmdFlags := c.Meta.flagSet("taint")
+	cmdFlags.BoolVar(&allowMissing, "allow-missing", false, "module")
 	cmdFlags.StringVar(&module, "module", "", "module")
 	cmdFlags.StringVar(&c.Meta.statePath, "state", DefaultStateFilename, "path")
 	cmdFlags.StringVar(&c.Meta.stateOutPath, "state-out", "", "path")
@@ -33,7 +35,13 @@ func (c *TaintCommand) Run(args []string) int {
 		cmdFlags.Usage()
 		return 1
 	}
+
 	name := args[0]
+	if module == "" {
+		module = "root"
+	} else {
+		module = "root." + module
+	}
 
 	// Get the state that we'll be modifying
 	state, err := c.State()
@@ -45,6 +53,10 @@ func (c *TaintCommand) Run(args []string) int {
 	// Get the actual state structure
 	s := state.State()
 	if s.Empty() {
+		if allowMissing {
+			return c.allowMissingExit(name, module)
+		}
+
 		c.Ui.Error(fmt.Sprintf(
 			"The state is empty. The most common reason for this is that\n" +
 				"an invalid state file path was given or Terraform has never\n " +
@@ -54,14 +66,13 @@ func (c *TaintCommand) Run(args []string) int {
 	}
 
 	// Get the proper module we want to taint
-	if module == "" {
-		module = "root"
-	} else {
-		module = "root." + module
-	}
 	modPath := strings.Split(module, ".")
 	mod := s.ModuleByPath(modPath)
 	if mod == nil {
+		if allowMissing {
+			return c.allowMissingExit(name, module)
+		}
+
 		c.Ui.Error(fmt.Sprintf(
 			"The module %s could not be found. There is nothing to taint.",
 			module))
@@ -70,6 +81,10 @@ func (c *TaintCommand) Run(args []string) int {
 
 	// If there are no resources in this module, it is an error
 	if len(mod.Resources) == 0 {
+		if allowMissing {
+			return c.allowMissingExit(name, module)
+		}
+
 		c.Ui.Error(fmt.Sprintf(
 			"The module %s has no resources. There is nothing to taint.",
 			module))
@@ -79,6 +94,10 @@ func (c *TaintCommand) Run(args []string) int {
 	// Get the resource we're looking for
 	rs, ok := mod.Resources[name]
 	if !ok {
+		if allowMissing {
+			return c.allowMissingExit(name, module)
+		}
+
 		c.Ui.Error(fmt.Sprintf(
 			"The resource %s couldn't be found in the module %s.",
 			name,
@@ -116,6 +135,9 @@ Usage: terraform taint [options] name
 
 Options:
 
+  -allow-missing      If specified, the command will succeed (exit code 0)
+                      even if the resource is missing.
+
   -backup=path        Path to backup the existing state file before
                       modifying. Defaults to the "-state-out" path with
                       ".backup" extension. Set to "-" to disable backup.
@@ -138,4 +160,12 @@ Options:
 
 func (c *TaintCommand) Synopsis() string {
 	return "Manually mark a resource for recreation"
+}
+
+func (c *TaintCommand) allowMissingExit(name, module string) int {
+	c.Ui.Output(fmt.Sprintf(
+		"The resource %s in the module %s was not found, but\n"+
+			"-allow-missing is set, so we're exiting successfully.",
+		name, module))
+	return 0
 }
