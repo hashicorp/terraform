@@ -6,11 +6,12 @@ import (
 	"log"
 	"time"
 
+	"github.com/hashicorp/aws-sdk-go/aws"
+	"github.com/hashicorp/aws-sdk-go/gen/rds"
 	"github.com/hashicorp/terraform/helper/hashcode"
 	"github.com/hashicorp/terraform/helper/multierror"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
-	"github.com/mitchellh/goamz/rds"
 )
 
 func resourceAwsDbSecurityGroup() *schema.Resource {
@@ -69,14 +70,14 @@ func resourceAwsDbSecurityGroup() *schema.Resource {
 }
 
 func resourceAwsDbSecurityGroupCreate(d *schema.ResourceData, meta interface{}) error {
-	conn := meta.(*AWSClient).rdsconn
+	conn := meta.(*AWSClient).awsRDSconn
 
 	var err error
 	var errs []error
 
-	opts := rds.CreateDBSecurityGroup{
-		DBSecurityGroupName:        d.Get("name").(string),
-		DBSecurityGroupDescription: d.Get("description").(string),
+	opts := rds.CreateDBSecurityGroupMessage{
+		DBSecurityGroupName:        aws.String(d.Get("name").(string)),
+		DBSecurityGroupDescription: aws.String(d.Get("description").(string)),
 	}
 
 	log.Printf("[DEBUG] DB Security Group create configuration: %#v", opts)
@@ -96,7 +97,7 @@ func resourceAwsDbSecurityGroupCreate(d *schema.ResourceData, meta interface{}) 
 
 	ingresses := d.Get("ingress").(*schema.Set)
 	for _, ing := range ingresses.List() {
-		err := resourceAwsDbSecurityGroupAuthorizeRule(ing, sg.Name, conn)
+		err := resourceAwsDbSecurityGroupAuthorizeRule(ing, *sg.DBSecurityGroupName, conn)
 		if err != nil {
 			errs = append(errs, err)
 		}
@@ -131,24 +132,24 @@ func resourceAwsDbSecurityGroupRead(d *schema.ResourceData, meta interface{}) er
 		return err
 	}
 
-	d.Set("name", sg.Name)
-	d.Set("description", sg.Description)
+	d.Set("name", *sg.DBSecurityGroupName)
+	d.Set("description", *sg.DBSecurityGroupDescription)
 
 	// Create an empty schema.Set to hold all ingress rules
 	rules := &schema.Set{
 		F: resourceAwsDbSecurityGroupIngressHash,
 	}
 
-	for _, v := range sg.CidrIps {
-		rule := map[string]interface{}{"cidr": v}
+	for _, v := range sg.IPRanges {
+		rule := map[string]interface{}{"cidr": *v.CIDRIP}
 		rules.Add(rule)
 	}
 
-	for i, _ := range sg.EC2SecurityGroupOwnerIds {
+	for _, g := range sg.EC2SecurityGroups {
 		rule := map[string]interface{}{
-			"security_group_name":     sg.EC2SecurityGroupNames[i],
-			"security_group_id":       sg.EC2SecurityGroupIds[i],
-			"security_group_owner_id": sg.EC2SecurityGroupOwnerIds[i],
+			"security_group_name":     *g.EC2SecurityGroupName,
+			"security_group_id":       *g.EC2SecurityGroupID,
+			"security_group_owner_id": *g.EC2SecurityGroupOwnerID,
 		}
 		rules.Add(rule)
 	}
@@ -159,17 +160,17 @@ func resourceAwsDbSecurityGroupRead(d *schema.ResourceData, meta interface{}) er
 }
 
 func resourceAwsDbSecurityGroupDelete(d *schema.ResourceData, meta interface{}) error {
-	conn := meta.(*AWSClient).rdsconn
+	conn := meta.(*AWSClient).awsRDSconn
 
 	log.Printf("[DEBUG] DB Security Group destroy: %v", d.Id())
 
-	opts := rds.DeleteDBSecurityGroup{DBSecurityGroupName: d.Id()}
+	opts := rds.DeleteDBSecurityGroupMessage{DBSecurityGroupName: aws.String(d.Id())}
 
 	log.Printf("[DEBUG] DB Security Group destroy configuration: %v", opts)
-	_, err := conn.DeleteDBSecurityGroup(&opts)
+	err := conn.DeleteDBSecurityGroup(&opts)
 
 	if err != nil {
-		newerr, ok := err.(*rds.Error)
+		newerr, ok := err.(aws.APIError)
 		if ok && newerr.Code == "InvalidDBSecurityGroup.NotFound" {
 			return nil
 		}
@@ -180,10 +181,10 @@ func resourceAwsDbSecurityGroupDelete(d *schema.ResourceData, meta interface{}) 
 }
 
 func resourceAwsDbSecurityGroupRetrieve(d *schema.ResourceData, meta interface{}) (*rds.DBSecurityGroup, error) {
-	conn := meta.(*AWSClient).rdsconn
+	conn := meta.(*AWSClient).awsRDSconn
 
-	opts := rds.DescribeDBSecurityGroups{
-		DBSecurityGroupName: d.Id(),
+	opts := rds.DescribeDBSecurityGroupsMessage{
+		DBSecurityGroupName: aws.String(d.Id()),
 	}
 
 	log.Printf("[DEBUG] DB Security Group describe configuration: %#v", opts)
@@ -195,7 +196,7 @@ func resourceAwsDbSecurityGroupRetrieve(d *schema.ResourceData, meta interface{}
 	}
 
 	if len(resp.DBSecurityGroups) != 1 ||
-		resp.DBSecurityGroups[0].Name != d.Id() {
+		*resp.DBSecurityGroups[0].DBSecurityGroupName != d.Id() {
 		if err != nil {
 			return nil, fmt.Errorf("Unable to find DB Security Group: %#v", resp.DBSecurityGroups)
 		}
@@ -207,27 +208,27 @@ func resourceAwsDbSecurityGroupRetrieve(d *schema.ResourceData, meta interface{}
 }
 
 // Authorizes the ingress rule on the db security group
-func resourceAwsDbSecurityGroupAuthorizeRule(ingress interface{}, dbSecurityGroupName string, conn *rds.Rds) error {
+func resourceAwsDbSecurityGroupAuthorizeRule(ingress interface{}, dbSecurityGroupName string, conn *rds.RDS) error {
 	ing := ingress.(map[string]interface{})
 
-	opts := rds.AuthorizeDBSecurityGroupIngress{
-		DBSecurityGroupName: dbSecurityGroupName,
+	opts := rds.AuthorizeDBSecurityGroupIngressMessage{
+		DBSecurityGroupName: aws.String(dbSecurityGroupName),
 	}
 
 	if attr, ok := ing["cidr"]; ok && attr != "" {
-		opts.Cidr = attr.(string)
+		opts.CIDRIP = aws.String(attr.(string))
 	}
 
 	if attr, ok := ing["security_group_name"]; ok && attr != "" {
-		opts.EC2SecurityGroupName = attr.(string)
+		opts.EC2SecurityGroupName = aws.String(attr.(string))
 	}
 
 	if attr, ok := ing["security_group_id"]; ok && attr != "" {
-		opts.EC2SecurityGroupId = attr.(string)
+		opts.EC2SecurityGroupID = aws.String(attr.(string))
 	}
 
 	if attr, ok := ing["security_group_owner_id"]; ok && attr != "" {
-		opts.EC2SecurityGroupOwnerId = attr.(string)
+		opts.EC2SecurityGroupOwnerID = aws.String(attr.(string))
 	}
 
 	log.Printf("[DEBUG] Authorize ingress rule configuration: %#v", opts)
@@ -274,7 +275,9 @@ func resourceAwsDbSecurityGroupStateRefreshFunc(
 			return nil, "", err
 		}
 
-		statuses := append(v.EC2SecurityGroupStatuses, v.CidrStatuses...)
+		st := flattenEC2SecurityGroupStatuses(v.EC2SecurityGroups)
+		ip := flattenIPRangeStatuses(v.IPRanges)
+		statuses := append(st, ip...)
 
 		for _, stat := range statuses {
 			// Not done
