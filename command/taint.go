@@ -6,8 +6,8 @@ import (
 	"strings"
 )
 
-// TaintCommand is a cli.Command implementation that refreshes the state
-// file.
+// TaintCommand is a cli.Command implementation that manually taints
+// a resource, marking it for recreation.
 type TaintCommand struct {
 	Meta
 }
