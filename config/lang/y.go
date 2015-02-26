@@ -24,10 +24,11 @@ const PROGRAM_STRING_END = 57349
 const PAREN_LEFT = 57350
 const PAREN_RIGHT = 57351
 const COMMA = 57352
-const IDENTIFIER = 57353
-const INTEGER = 57354
-const FLOAT = 57355
-const STRING = 57356
+const ARITH_OP = 57353
+const IDENTIFIER = 57354
+const INTEGER = 57355
+const FLOAT = 57356
+const STRING = 57357
 
 var parserToknames = []string{
 	"PROGRAM_BRACKET_LEFT",
@@ -37,6 +38,7 @@ var parserToknames = []string{
 	"PAREN_LEFT",
 	"PAREN_RIGHT",
 	"COMMA",
+	"ARITH_OP",
 	"IDENTIFIER",
 	"INTEGER",
 	"FLOAT",
@@ -48,7 +50,7 @@ const parserEofCode = 1
 const parserErrCode = 2
 const parserMaxDepth = 200
 
-//line lang.y:151
+//line lang.y:176
 
 //line yacctab:1
 var parserExca = []int{
@@ -57,51 +59,51 @@ var parserExca = []int{
 	-2, 0,
 }
 
-const parserNprod = 17
+const parserNprod = 19
 const parserPrivate = 57344
 
 var parserTokenNames []string
 var parserStates []string
 
-const parserLast = 23
+const parserLast = 26
 
 var parserAct = []int{
 
-	9, 7, 7, 3, 18, 19, 8, 15, 13, 11,
-	12, 6, 6, 14, 8, 1, 17, 10, 2, 16,
-	20, 4, 5,
+	9, 7, 7, 18, 3, 21, 22, 8, 17, 14,
+	11, 12, 6, 6, 16, 8, 15, 1, 20, 10,
+	2, 19, 4, 23, 5, 13,
 }
 var parserPact = []int{
 
-	-2, -1000, -2, -1000, -1000, -1000, -1000, -3, -1000, 8,
-	-2, -1000, -1000, -1, -1000, -3, -5, -1000, -1000, -3,
-	-1000,
+	-2, -1000, -2, -1000, -1000, -1000, -1000, -3, -1000, 11,
+	-2, 3, -1000, -1000, 0, -1000, -10, -3, -1000, -4,
+	-1000, -1000, -3, -1000,
 }
 var parserPgo = []int{
 
-	0, 0, 22, 21, 17, 3, 19, 15,
+	0, 25, 0, 24, 22, 19, 4, 21, 17,
 }
 var parserR1 = []int{
 
-	0, 7, 7, 4, 4, 5, 5, 2, 1, 1,
-	1, 1, 1, 6, 6, 6, 3,
+	0, 8, 8, 5, 5, 6, 6, 3, 2, 2,
+	2, 2, 2, 2, 1, 7, 7, 7, 4,
 }
 var parserR2 = []int{
 
 	0, 0, 1, 1, 2, 1, 1, 3, 1, 1,
-	1, 1, 4, 0, 3, 1, 1,
+	1, 1, 1, 4, 3, 0, 3, 1, 1,
 }
 var parserChk = []int{
 
-	-1000, -7, -4, -5, -3, -2, 14, 4, -5, -1,
-	-4, 12, 13, 11, 5, 8, -6, -1, 9, 10,
-	-1,
+	-1000, -8, -5, -6, -4, -3, 15, 4, -6, -2,
+	-5, 13, 14, -1, 12, 5, 11, 8, 13, -7,
+	-2, 9, 10, -2,
 }
 var parserDef = []int{
 
-	1, -2, 2, 3, 5, 6, 16, 0, 4, 0,
-	8, 9, 10, 11, 7, 13, 0, 15, 12, 0,
-	14,
+	1, -2, 2, 3, 5, 6, 18, 0, 4, 0,
+	8, 9, 10, 11, 12, 7, 0, 15, 14, 0,
+	17, 13, 0, 16,
 }
 var parserTok1 = []int{
 
@@ -110,7 +112,7 @@ var parserTok1 = []int{
 var parserTok2 = []int{
 
 	2, 3, 4, 5, 6, 7, 8, 9, 10, 11,
-	12, 13, 14,
+	12, 13, 14, 15,
 }
 var parserTok3 = []int{
 	0,
@@ -433,30 +435,55 @@ parserdefault:
 	case 11:
 		//line lang.y:120
 		{
-			parserVAL.node = &ast.VariableAccess{Name: parserS[parserpt-0].token.Value.(string), Posx: parserS[parserpt-0].token.Pos}
+			parserVAL.node = parserS[parserpt-0].node
 		}
 	case 12:
 		//line lang.y:124
 		{
-			parserVAL.node = &ast.Call{Func: parserS[parserpt-3].token.Value.(string), Args: parserS[parserpt-1].nodeList, Posx: parserS[parserpt-3].token.Pos}
+			parserVAL.node = &ast.VariableAccess{Name: parserS[parserpt-0].token.Value.(string), Posx: parserS[parserpt-0].token.Pos}
 		}
 	case 13:
-		//line lang.y:129
+		//line lang.y:128
+		{
+			parserVAL.node = &ast.Call{Func: parserS[parserpt-3].token.Value.(string), Args: parserS[parserpt-1].nodeList, Posx: parserS[parserpt-3].token.Pos}
+		}
+	case 14:
+		//line lang.y:134
+		{
+			parserVAL.node = &ast.Arithmetic{
+				Op: parserS[parserpt-1].token.Value.(ast.ArithmeticOp),
+				Exprs: []ast.Node{
+					&ast.LiteralNode{
+						Value: parserS[parserpt-2].token.Value.(int),
+						Typex: ast.TypeInt,
+						Posx:  parserS[parserpt-2].token.Pos,
+					},
+					&ast.LiteralNode{
+						Value: parserS[parserpt-0].token.Value.(int),
+						Typex: ast.TypeInt,
+						Posx:  parserS[parserpt-0].token.Pos,
+					},
+				},
+				Posx: parserS[parserpt-2].token.Pos,
+			}
+		}
+	case 15:
+		//line lang.y:154
 		{
 			parserVAL.nodeList = nil
 		}
-	case 14:
-		//line lang.y:133
+	case 16:
+		//line lang.y:158
 		{
 			parserVAL.nodeList = append(parserS[parserpt-2].nodeList, parserS[parserpt-0].node)
 		}
-	case 15:
-		//line lang.y:137
+	case 17:
+		//line lang.y:162
 		{
 			parserVAL.nodeList = append(parserVAL.nodeList, parserS[parserpt-0].node)
 		}
-	case 16:
-		//line lang.y:143
+	case 18:
+		//line lang.y:168
 		{
 			parserVAL.node = &ast.LiteralNode{
 				Value: parserS[parserpt-0].token.Value.(string),

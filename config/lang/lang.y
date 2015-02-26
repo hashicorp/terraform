@@ -22,9 +22,9 @@ import (
 %token  <str> PROGRAM_STRING_START PROGRAM_STRING_END
 %token  <str> PAREN_LEFT PAREN_RIGHT COMMA
 
-%token <token> IDENTIFIER INTEGER FLOAT STRING
+%token <token> ARITH_OP IDENTIFIER INTEGER FLOAT STRING
 
-%type <node> expr interpolation literal literalModeTop literalModeValue
+%type <node> arith expr interpolation literal literalModeTop literalModeValue
 %type <nodeList> args
 
 %%
@@ -116,6 +116,10 @@ expr:
             Posx:  $1.Pos,
         }
     }
+|   arith
+    {
+        $$ = $1
+    }
 |   IDENTIFIER
     {
         $$ = &ast.VariableAccess{Name: $1.Value.(string), Posx: $1.Pos}
@@ -123,6 +127,27 @@ expr:
 |   IDENTIFIER PAREN_LEFT args PAREN_RIGHT
     {
         $$ = &ast.Call{Func: $1.Value.(string), Args: $3, Posx: $1.Pos}
+    }
+
+arith:
+    INTEGER ARITH_OP INTEGER
+    {
+        $$ = &ast.Arithmetic{
+            Op:    $2.Value.(ast.ArithmeticOp),
+            Exprs: []ast.Node{
+                &ast.LiteralNode{
+                    Value:  $1.Value.(int),
+                    Typex:  ast.TypeInt,
+                    Posx:   $1.Pos,
+                },
+                &ast.LiteralNode{
+                    Value:  $3.Value.(int),
+                    Typex:  ast.TypeInt,
+                    Posx:   $3.Pos,
+                },
+            },
+            Posx: $1.Pos,
+        }
     }
 
 args:

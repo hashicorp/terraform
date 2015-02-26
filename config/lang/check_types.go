@@ -55,6 +55,9 @@ func (v *TypeCheck) visit(raw ast.Node) ast.Node {
 	var result ast.Node
 	var err error
 	switch n := raw.(type) {
+	case *ast.Arithmetic:
+		tc := &typeCheckArithmetic{n}
+		result, err = tc.TypeCheck(v)
 	case *ast.Call:
 		tc := &typeCheckCall{n}
 		result, err = tc.TypeCheck(v)
@@ -70,7 +73,7 @@ func (v *TypeCheck) visit(raw ast.Node) ast.Node {
 	default:
 		tc, ok := raw.(TypeCheckNode)
 		if !ok {
-			err = fmt.Errorf("unknown node: %#v", raw)
+			err = fmt.Errorf("unknown node for type check: %#v", raw)
 			break
 		}
 
@@ -84,6 +87,51 @@ func (v *TypeCheck) visit(raw ast.Node) ast.Node {
 	}
 
 	return result
+}
+
+type typeCheckArithmetic struct {
+	n *ast.Arithmetic
+}
+
+func (tc *typeCheckArithmetic) TypeCheck(v *TypeCheck) (ast.Node, error) {
+	// The arguments are on the stack in reverse order, so pop them off.
+	args := make([]ast.Type, len(tc.n.Exprs))
+	for i, _ := range tc.n.Exprs {
+		args[len(tc.n.Exprs)-1-i] = v.StackPop()
+	}
+
+	// Determine the resulting type we want
+	mathType := ast.TypeInt
+	switch v := args[0]; v {
+	case ast.TypeInt:
+		fallthrough
+	case ast.TypeFloat:
+		mathType = v
+	default:
+		return nil, fmt.Errorf(
+			"Math operations can only be done with ints and floats, got %s",
+			v)
+	}
+
+	// Verify the args
+	for i, arg := range args {
+		if arg != mathType {
+			cn := v.ImplicitConversion(args[i], mathType, tc.n.Exprs[i])
+			if cn != nil {
+				tc.n.Exprs[i] = cn
+				continue
+			}
+
+			return nil, fmt.Errorf(
+				"operand %d should be %s, got %s",
+				i+1, mathType, arg)
+		}
+	}
+
+	// Return type
+	v.StackPush(mathType)
+
+	return tc.n, nil
 }
 
 type typeCheckCall struct {
