@@ -98,7 +98,11 @@ interpolation:
     }
 
 expr:
-    literalModeTop
+    PAREN_LEFT expr PAREN_RIGHT
+    {
+        $$ = $2
+    }
+|   literalModeTop
     {
         $$ = $1
     }

@@ -96,6 +96,22 @@ func TestEval(t *testing.T) {
 		},
 
 		{
+			"foo ${42+2*2}",
+			nil,
+			false,
+			"foo 88",
+			ast.TypeString,
+		},
+
+		{
+			"foo ${42+(2*2)}",
+			nil,
+			false,
+			"foo 46",
+			ast.TypeString,
+		},
+
+		{
 			"foo ${bar+1}",
 			&ast.BasicScope{
 				VarMap: map[string]ast.Variable{
