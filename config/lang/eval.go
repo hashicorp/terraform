@@ -134,6 +134,8 @@ func (v *evalVisitor) visit(raw ast.Node) ast.Node {
 // types as well as any other EvalNode implementations.
 func evalNode(raw ast.Node) (EvalNode, error) {
 	switch n := raw.(type) {
+	case *ast.Arithmetic:
+		return &evalArithmetic{n}, nil
 	case *ast.Call:
 		return &evalCall{n}, nil
 	case *ast.Concat:
@@ -149,6 +151,69 @@ func evalNode(raw ast.Node) (EvalNode, error) {
 		}
 
 		return en, nil
+	}
+}
+
+type evalArithmetic struct{ *ast.Arithmetic }
+
+func (v *evalArithmetic) Eval(
+	s ast.Scope, stack *ast.Stack) (interface{}, ast.Type, error) {
+	// The arguments are on the stack in reverse order, so pop them off.
+	var resultType ast.Type
+	exprs := make([]interface{}, len(v.Exprs))
+	for i, _ := range v.Exprs {
+		node := stack.Pop().(*ast.LiteralNode)
+		exprs[len(v.Exprs)-1-i] = node.Value
+		resultType = node.Typex
+	}
+
+	// Do the operation
+	var result interface{}
+	var err error
+	switch resultType {
+	case ast.TypeInt:
+		result, err = v.evalInt(v.Op, exprs)
+	default:
+		return nil, resultType, fmt.Errorf(
+			"unknown math operand type: %s", resultType)
+	}
+
+	return result, resultType, err
+}
+
+func (v *evalArithmetic) evalInt(
+	op ast.ArithmeticOp, exprs []interface{}) (int, error) {
+	switch v.Op {
+	case ast.ArithmeticOpAdd:
+		result := 0
+		for _, expr := range exprs {
+			result += expr.(int)
+		}
+
+		return result, nil
+	case ast.ArithmeticOpSub:
+		result := exprs[0].(int)
+		for _, expr := range exprs[1:] {
+			result -= expr.(int)
+		}
+
+		return result, nil
+	case ast.ArithmeticOpMul:
+		result := exprs[0].(int)
+		for _, expr := range exprs[1:] {
+			result *= expr.(int)
+		}
+
+		return result, nil
+	case ast.ArithmeticOpDiv:
+		result := exprs[0].(int)
+		for _, expr := range exprs[1:] {
+			result /= expr.(int)
+		}
+
+		return result, nil
+	default:
+		return 0, fmt.Errorf("unknown math operation: %s", v.Op)
 	}
 }
 

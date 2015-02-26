@@ -51,21 +51,22 @@ state 5
 
 
 state 6
-	literal:  STRING.    (16)
+	literal:  STRING.    (18)
 
-	.  reduce 16 (src line 141)
+	.  reduce 18 (src line 166)
 
 
 state 7
 	interpolation:  PROGRAM_BRACKET_LEFT.expr PROGRAM_BRACKET_RIGHT 
 
 	PROGRAM_BRACKET_LEFT  shift 7
-	IDENTIFIER  shift 13
+	IDENTIFIER  shift 14
 	INTEGER  shift 11
 	FLOAT  shift 12
 	STRING  shift 6
 	.  error
 
+	arith  goto 13
 	expr  goto 9
 	interpolation  goto 5
 	literal  goto 4
@@ -81,7 +82,7 @@ state 8
 state 9
 	interpolation:  PROGRAM_BRACKET_LEFT expr.PROGRAM_BRACKET_RIGHT 
 
-	PROGRAM_BRACKET_RIGHT  shift 14
+	PROGRAM_BRACKET_RIGHT  shift 15
 	.  error
 
 
@@ -99,7 +100,9 @@ state 10
 
 state 11
 	expr:  INTEGER.    (9)
+	arith:  INTEGER.ARITH_OP INTEGER 
 
+	ARITH_OP  shift 16
 	.  reduce 9 (src line 103)
 
 
@@ -110,89 +113,110 @@ state 12
 
 
 state 13
-	expr:  IDENTIFIER.    (11)
-	expr:  IDENTIFIER.PAREN_LEFT args PAREN_RIGHT 
+	expr:  arith.    (11)
 
-	PAREN_LEFT  shift 15
 	.  reduce 11 (src line 119)
 
 
 state 14
+	expr:  IDENTIFIER.    (12)
+	expr:  IDENTIFIER.PAREN_LEFT args PAREN_RIGHT 
+
+	PAREN_LEFT  shift 17
+	.  reduce 12 (src line 123)
+
+
+state 15
 	interpolation:  PROGRAM_BRACKET_LEFT expr PROGRAM_BRACKET_RIGHT.    (7)
 
 	.  reduce 7 (src line 92)
 
 
-state 15
-	expr:  IDENTIFIER PAREN_LEFT.args PAREN_RIGHT 
-	args: .    (13)
-
-	PROGRAM_BRACKET_LEFT  shift 7
-	IDENTIFIER  shift 13
-	INTEGER  shift 11
-	FLOAT  shift 12
-	STRING  shift 6
-	.  reduce 13 (src line 128)
-
-	expr  goto 17
-	interpolation  goto 5
-	literal  goto 4
-	literalModeTop  goto 10
-	literalModeValue  goto 3
-	args  goto 16
-
 state 16
-	expr:  IDENTIFIER PAREN_LEFT args.PAREN_RIGHT 
-	args:  args.COMMA expr 
+	arith:  INTEGER ARITH_OP.INTEGER 
 
-	PAREN_RIGHT  shift 18
-	COMMA  shift 19
+	INTEGER  shift 18
 	.  error
 
 
 state 17
-	args:  expr.    (15)
-
-	.  reduce 15 (src line 136)
-
-
-state 18
-	expr:  IDENTIFIER PAREN_LEFT args PAREN_RIGHT.    (12)
-
-	.  reduce 12 (src line 123)
-
-
-state 19
-	args:  args COMMA.expr 
+	expr:  IDENTIFIER PAREN_LEFT.args PAREN_RIGHT 
+	args: .    (15)
 
 	PROGRAM_BRACKET_LEFT  shift 7
-	IDENTIFIER  shift 13
+	IDENTIFIER  shift 14
 	INTEGER  shift 11
 	FLOAT  shift 12
 	STRING  shift 6
-	.  error
+	.  reduce 15 (src line 153)
 
+	arith  goto 13
 	expr  goto 20
 	interpolation  goto 5
 	literal  goto 4
 	literalModeTop  goto 10
 	literalModeValue  goto 3
+	args  goto 19
 
-state 20
-	args:  args COMMA expr.    (14)
+state 18
+	arith:  INTEGER ARITH_OP INTEGER.    (14)
 
 	.  reduce 14 (src line 132)
 
 
-14 terminals, 8 nonterminals
-17 grammar rules, 21/2000 states
+state 19
+	expr:  IDENTIFIER PAREN_LEFT args.PAREN_RIGHT 
+	args:  args.COMMA expr 
+
+	PAREN_RIGHT  shift 21
+	COMMA  shift 22
+	.  error
+
+
+state 20
+	args:  expr.    (17)
+
+	.  reduce 17 (src line 161)
+
+
+state 21
+	expr:  IDENTIFIER PAREN_LEFT args PAREN_RIGHT.    (13)
+
+	.  reduce 13 (src line 127)
+
+
+state 22
+	args:  args COMMA.expr 
+
+	PROGRAM_BRACKET_LEFT  shift 7
+	IDENTIFIER  shift 14
+	INTEGER  shift 11
+	FLOAT  shift 12
+	STRING  shift 6
+	.  error
+
+	arith  goto 13
+	expr  goto 23
+	interpolation  goto 5
+	literal  goto 4
+	literalModeTop  goto 10
+	literalModeValue  goto 3
+
+state 23
+	args:  args COMMA expr.    (16)
+
+	.  reduce 16 (src line 157)
+
+
+15 terminals, 9 nonterminals
+19 grammar rules, 24/2000 states
 0 shift/reduce, 0 reduce/reduce conflicts reported
-57 working sets used
-memory: parser 25/30000
-16 extra closures
-25 shift entries, 1 exceptions
-12 goto entries
-15 entries saved by goto default
-Optimizer space used: output 23/30000
-23 table entries, 0 zero
-maximum spread: 14, maximum offset: 19
+58 working sets used
+memory: parser 28/30000
+19 extra closures
+27 shift entries, 1 exceptions
+13 goto entries
+17 entries saved by goto default
+Optimizer space used: output 26/30000
+26 table entries, 0 zero
+maximum spread: 15, maximum offset: 22
