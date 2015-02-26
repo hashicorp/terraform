@@ -81,9 +81,13 @@ func testAccCheckAWSDBSecurityGroupAttributes(group *rds.DBSecurityGroup) resour
 			return fmt.Errorf("bad cidr: %#v", group.IPRanges)
 		}
 
-		ipSt := flattenIPRangeStatuses(group.IPRanges)
-		if ipSt[0] != "authorized" {
-			return fmt.Errorf("bad status: %#v", ipSt)
+		statuses := make([]string, 0, len(group.IPRanges))
+		for _, ips := range group.IPRanges {
+			statuses = append(statuses, *ips.Status)
+		}
+
+		if statuses[0] != "authorized" {
+			return fmt.Errorf("bad status: %#v", statuses)
 		}
 
 		if *group.DBSecurityGroupName != "secgroup-terraform" {

@@ -207,21 +207,3 @@ func expandStringList(configured []interface{}) []string {
 	}
 	return vs
 }
-
-// Flattens an array of DBSecurityGroups into a []string
-func flattenEC2SecurityGroupStatuses(list []rds.EC2SecurityGroup) []string {
-	result := make([]string, 0, len(list))
-	for _, i := range list {
-		result = append(result, *i.Status)
-	}
-	return result
-}
-
-// Flattens an array of IPRanges into a []string
-func flattenIPRangeStatuses(list []rds.IPRange) []string {
-	result := make([]string, 0, len(list))
-	for _, i := range list {
-		result = append(result, *i.Status)
-	}
-	return result
-}
