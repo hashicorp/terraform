@@ -355,7 +355,7 @@ func WaitForDropletAttribute(
 		Pending:    pending,
 		Target:     target,
 		Refresh:    newDropletStateRefreshFunc(d, attribute, meta),
-		Timeout:    10 * time.Minute,
+		Timeout:    60 * time.Minute,
 		Delay:      10 * time.Second,
 		MinTimeout: 3 * time.Second,
 	}
