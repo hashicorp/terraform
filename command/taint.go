@@ -15,7 +15,9 @@ type TaintCommand struct {
 func (c *TaintCommand) Run(args []string) int {
 	args = c.Meta.process(args, false)
 
+	var module string
 	cmdFlags := c.Meta.flagSet("taint")
+	cmdFlags.StringVar(&module, "module", "", "module")
 	cmdFlags.StringVar(&c.Meta.statePath, "state", DefaultStateFilename, "path")
 	cmdFlags.StringVar(&c.Meta.stateOutPath, "state-out", "", "path")
 	cmdFlags.StringVar(&c.Meta.backupPath, "backup", "", "path")
@@ -51,13 +53,26 @@ func (c *TaintCommand) Run(args []string) int {
 		return 1
 	}
 
-	mod := s.RootModule()
+	// Get the proper module we want to taint
+	if module == "" {
+		module = "root"
+	} else {
+		module = "root." + module
+	}
+	modPath := strings.Split(module, ".")
+	mod := s.ModuleByPath(modPath)
+	if mod == nil {
+		c.Ui.Error(fmt.Sprintf(
+			"The module %s could not be found. There is nothing to taint.",
+			module))
+		return 1
+	}
 
 	// If there are no resources in this module, it is an error
 	if len(mod.Resources) == 0 {
 		c.Ui.Error(fmt.Sprintf(
 			"The module %s has no resources. There is nothing to taint.",
-			strings.Join(mod.Path, ".")))
+			module))
 		return 1
 	}
 
@@ -67,7 +82,7 @@ func (c *TaintCommand) Run(args []string) int {
 		c.Ui.Error(fmt.Sprintf(
 			"The resource %s couldn't be found in the module %s.",
 			name,
-			strings.Join(mod.Path, ".")))
+			module))
 		return 1
 	}
 
@@ -80,9 +95,9 @@ func (c *TaintCommand) Run(args []string) int {
 		return 1
 	}
 
-	c.Ui.Output(
+	c.Ui.Output(fmt.Sprintf(
 		"The resource %s in the module %s has been marked as tainted!",
-		name, strings.Join(mod.Path, "."))
+		name, module))
 	return 0
 }
 
@@ -104,6 +119,10 @@ Options:
   -backup=path        Path to backup the existing state file before
                       modifying. Defaults to the "-state-out" path with
                       ".backup" extension. Set to "-" to disable backup.
+
+  -module=path        The module path where the resource lives. By
+                      default this will be root. Child modules can be specified
+                      by names. Ex. "consul" or "consul.vpc" (nested modules).
 
   -no-color           If specified, output won't contain any color.
 

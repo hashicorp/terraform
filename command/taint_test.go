@@ -229,6 +229,54 @@ func TestTaint_stateOut(t *testing.T) {
 	testStateOutput(t, "foo", testTaintStr)
 }
 
+func TestTaint_module(t *testing.T) {
+	state := &terraform.State{
+		Modules: []*terraform.ModuleState{
+			&terraform.ModuleState{
+				Path: []string{"root"},
+				Resources: map[string]*terraform.ResourceState{
+					"test_instance.foo": &terraform.ResourceState{
+						Type: "test_instance",
+						Primary: &terraform.InstanceState{
+							ID: "bar",
+						},
+					},
+				},
+			},
+			&terraform.ModuleState{
+				Path: []string{"root", "child"},
+				Resources: map[string]*terraform.ResourceState{
+					"test_instance.blah": &terraform.ResourceState{
+						Type: "test_instance",
+						Primary: &terraform.InstanceState{
+							ID: "blah",
+						},
+					},
+				},
+			},
+		},
+	}
+	statePath := testStateFile(t, state)
+
+	ui := new(cli.MockUi)
+	c := &TaintCommand{
+		Meta: Meta{
+			Ui: ui,
+		},
+	}
+
+	args := []string{
+		"-module=child",
+		"-state", statePath,
+		"test_instance.blah",
+	}
+	if code := c.Run(args); code != 0 {
+		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
+	}
+
+	testStateOutput(t, statePath, testTaintModuleStr)
+}
+
 const testTaintStr = `
 test_instance.foo: (1 tainted)
   ID = <not created>
@@ -238,4 +286,14 @@ test_instance.foo: (1 tainted)
 const testTaintDefaultStr = `
 test_instance.foo:
   ID = bar
+`
+
+const testTaintModuleStr = `
+test_instance.foo:
+  ID = bar
+
+module.child:
+  test_instance.blah: (1 tainted)
+    ID = <not created>
+    Tainted ID 1 = blah
 `
