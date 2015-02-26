@@ -27,7 +27,7 @@ func TestAccAWSDBSecurityGroup(t *testing.T) {
 					resource.TestCheckResourceAttr(
 						"aws_db_security_group.bar", "description", "just cuz"),
 					resource.TestCheckResourceAttr(
-						"aws_db_security_group.bar", "ingress.0.cidr", "10.0.0.1/24"),
+                                                "aws_db_security_group.bar", "ingress.3363517775.cidr", "10.0.0.1/24"),
 					resource.TestCheckResourceAttr(
 						"aws_db_security_group.bar", "ingress.#", "1"),
 				),
