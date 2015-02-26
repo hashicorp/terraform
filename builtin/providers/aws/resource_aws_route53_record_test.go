@@ -8,8 +8,8 @@ import (
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
 
-	"github.com/awslabs/aws-sdk-go/aws"
-	awsr53 "github.com/awslabs/aws-sdk-go/gen/route53"
+	"github.com/hashicorp/aws-sdk-go/aws"
+	awsr53 "github.com/hashicorp/aws-sdk-go/gen/route53"
 )
 
 func TestAccRoute53Record(t *testing.T) {
