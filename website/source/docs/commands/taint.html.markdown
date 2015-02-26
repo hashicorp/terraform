@@ -43,6 +43,12 @@ The command-line flags are all optional. The list of available flags are:
 * `-backup=path` - Path to the backup file. Defaults to `-state-out` with
   the ".backup" extension. Disabled by setting to "-".
 
+* `-module=path` - The module path where the resource to taint exists.
+    By default this is the root path. Other modules can be specified by
+    a period-separated list. Example: "foo" would reference the module
+    "foo" but "foo.bar" would reference the "bar" module in the "foo"
+    module.
+
 * `-no-color` - Disables output with coloring
 
 * `-state=path` - Path to read and write the state file to. Defaults to "terraform.tfstate".
