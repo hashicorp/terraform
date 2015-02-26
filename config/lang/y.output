@@ -5,7 +5,7 @@ state 0
 
 	PROGRAM_BRACKET_LEFT  shift 7
 	STRING  shift 6
-	.  reduce 1 (src line 32)
+	.  reduce 1 (src line 34)
 
 	interpolation  goto 5
 	literal  goto 4
@@ -26,7 +26,7 @@ state 2
 
 	PROGRAM_BRACKET_LEFT  shift 7
 	STRING  shift 6
-	.  reduce 2 (src line 40)
+	.  reduce 2 (src line 42)
 
 	interpolation  goto 5
 	literal  goto 4
@@ -35,25 +35,25 @@ state 2
 state 3
 	literalModeTop:  literalModeValue.    (3)
 
-	.  reduce 3 (src line 62)
+	.  reduce 3 (src line 64)
 
 
 state 4
 	literalModeValue:  literal.    (5)
 
-	.  reduce 5 (src line 82)
+	.  reduce 5 (src line 84)
 
 
 state 5
 	literalModeValue:  interpolation.    (6)
 
-	.  reduce 6 (src line 87)
+	.  reduce 6 (src line 89)
 
 
 state 6
 	literal:  STRING.    (17)
 
-	.  reduce 17 (src line 149)
+	.  reduce 17 (src line 151)
 
 
 state 7
@@ -75,7 +75,7 @@ state 7
 state 8
 	literalModeTop:  literalModeTop literalModeValue.    (4)
 
-	.  reduce 4 (src line 67)
+	.  reduce 4 (src line 69)
 
 
 state 9
@@ -93,7 +93,7 @@ state 10
 
 	PROGRAM_BRACKET_LEFT  shift 7
 	STRING  shift 6
-	.  reduce 8 (src line 98)
+	.  reduce 8 (src line 100)
 
 	interpolation  goto 5
 	literal  goto 4
@@ -102,13 +102,13 @@ state 10
 state 11
 	expr:  INTEGER.    (9)
 
-	.  reduce 9 (src line 103)
+	.  reduce 9 (src line 105)
 
 
 state 12
 	expr:  FLOAT.    (10)
 
-	.  reduce 10 (src line 111)
+	.  reduce 10 (src line 113)
 
 
 state 13
@@ -116,13 +116,13 @@ state 13
 	expr:  IDENTIFIER.PAREN_LEFT args PAREN_RIGHT 
 
 	PAREN_LEFT  shift 16
-	.  reduce 12 (src line 127)
+	.  reduce 12 (src line 129)
 
 
 state 14
 	interpolation:  PROGRAM_BRACKET_LEFT expr PROGRAM_BRACKET_RIGHT.    (7)
 
-	.  reduce 7 (src line 92)
+	.  reduce 7 (src line 94)
 
 
 state 15
@@ -150,7 +150,7 @@ state 16
 	INTEGER  shift 11
 	FLOAT  shift 12
 	STRING  shift 6
-	.  reduce 14 (src line 136)
+	.  reduce 14 (src line 138)
 
 	expr  goto 19
 	interpolation  goto 5
@@ -159,13 +159,11 @@ state 16
 	literalModeValue  goto 3
 	args  goto 18
 
-17: shift/reduce conflict (shift 15(0), red'n 11(0)) on ARITH_OP
 state 17
 	expr:  expr.ARITH_OP expr 
 	expr:  expr ARITH_OP expr.    (11)
 
-	ARITH_OP  shift 15
-	.  reduce 11 (src line 119)
+	.  reduce 11 (src line 121)
 
 
 state 18
@@ -182,13 +180,13 @@ state 19
 	args:  expr.    (16)
 
 	ARITH_OP  shift 15
-	.  reduce 16 (src line 144)
+	.  reduce 16 (src line 146)
 
 
 state 20
 	expr:  IDENTIFIER PAREN_LEFT args PAREN_RIGHT.    (13)
 
-	.  reduce 13 (src line 131)
+	.  reduce 13 (src line 133)
 
 
 state 21
@@ -212,16 +210,16 @@ state 22
 	args:  args COMMA expr.    (15)
 
 	ARITH_OP  shift 15
-	.  reduce 15 (src line 140)
+	.  reduce 15 (src line 142)
 
 
 15 terminals, 8 nonterminals
 18 grammar rules, 23/2000 states
-1 shift/reduce, 0 reduce/reduce conflicts reported
+0 shift/reduce, 0 reduce/reduce conflicts reported
 57 working sets used
 memory: parser 30/30000
 18 extra closures
-34 shift entries, 1 exceptions
+33 shift entries, 1 exceptions
 13 goto entries
 19 entries saved by goto default
 Optimizer space used: output 26/30000

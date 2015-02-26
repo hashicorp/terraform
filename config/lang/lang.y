@@ -27,6 +27,8 @@ import (
 %type <node> expr interpolation literal literalModeTop literalModeValue
 %type <nodeList> args
 
+%left ARITH_OP
+
 %%
 
 top:
