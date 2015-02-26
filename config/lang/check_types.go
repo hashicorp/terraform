@@ -95,17 +95,20 @@ type typeCheckArithmetic struct {
 
 func (tc *typeCheckArithmetic) TypeCheck(v *TypeCheck) (ast.Node, error) {
 	// The arguments are on the stack in reverse order, so pop them off.
-	args := make([]ast.Type, len(tc.n.Exprs))
+	exprs := make([]ast.Type, len(tc.n.Exprs))
 	for i, _ := range tc.n.Exprs {
-		args[len(tc.n.Exprs)-1-i] = v.StackPop()
+		exprs[len(tc.n.Exprs)-1-i] = v.StackPop()
 	}
 
 	// Determine the resulting type we want
+	mathFunc := "__builtin_IntMath"
 	mathType := ast.TypeInt
-	switch v := args[0]; v {
+	switch v := exprs[0]; v {
 	case ast.TypeInt:
-		fallthrough
+		mathFunc = "__builtin_IntMath"
+		mathType = v
 	case ast.TypeFloat:
+		mathFunc = "__builtin_FloatMath"
 		mathType = v
 	default:
 		return nil, fmt.Errorf(
@@ -114,9 +117,9 @@ func (tc *typeCheckArithmetic) TypeCheck(v *TypeCheck) (ast.Node, error) {
 	}
 
 	// Verify the args
-	for i, arg := range args {
+	for i, arg := range exprs {
 		if arg != mathType {
-			cn := v.ImplicitConversion(args[i], mathType, tc.n.Exprs[i])
+			cn := v.ImplicitConversion(exprs[i], mathType, tc.n.Exprs[i])
 			if cn != nil {
 				tc.n.Exprs[i] = cn
 				continue
@@ -131,7 +134,20 @@ func (tc *typeCheckArithmetic) TypeCheck(v *TypeCheck) (ast.Node, error) {
 	// Return type
 	v.StackPush(mathType)
 
-	return tc.n, nil
+	// Replace our node with a call to the proper function. This isn't
+	// type checked but we already verified types.
+	args := make([]ast.Node, len(tc.n.Exprs)+1)
+	args[0] = &ast.LiteralNode{
+		Value: tc.n.Op,
+		Typex: ast.TypeInt,
+		Posx:  tc.n.Pos(),
+	}
+	copy(args[1:], tc.n.Exprs)
+	return &ast.Call{
+		Func: mathFunc,
+		Args: args,
+		Posx: tc.n.Pos(),
+	}, nil
 }
 
 type typeCheckCall struct {
