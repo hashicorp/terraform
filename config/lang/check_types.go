@@ -131,6 +131,11 @@ func (tc *typeCheckArithmetic) TypeCheck(v *TypeCheck) (ast.Node, error) {
 		}
 	}
 
+	// Modulo doesn't work for floats
+	if mathType == ast.TypeFloat && tc.n.Op == ast.ArithmeticOpMod {
+		return nil, fmt.Errorf("modulo cannot be used with floats")
+	}
+
 	// Return type
 	v.StackPush(mathType)
 

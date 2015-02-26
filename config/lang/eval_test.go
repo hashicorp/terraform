@@ -72,6 +72,14 @@ func TestEval(t *testing.T) {
 		},
 
 		{
+			"foo ${42%4}",
+			nil,
+			false,
+			"foo 2",
+			ast.TypeString,
+		},
+
+		{
 			"foo ${42.0+1.0}",
 			nil,
 			false,
