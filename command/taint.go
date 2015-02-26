@@ -80,6 +80,9 @@ func (c *TaintCommand) Run(args []string) int {
 		return 1
 	}
 
+	c.Ui.Output(
+		"The resource %s in the module %s has been marked as tainted!",
+		name, strings.Join(mod.Path, "."))
 	return 0
 }
 
