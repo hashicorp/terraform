@@ -5,10 +5,11 @@ import (
 	"log"
 	"time"
 
+	"github.com/hashicorp/aws-sdk-go/aws"
+	"github.com/hashicorp/aws-sdk-go/gen/rds"
 	"github.com/hashicorp/terraform/helper/hashcode"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
-	"github.com/mitchellh/goamz/rds"
 )
 
 func resourceAwsDbSubnetGroup() *schema.Resource {
@@ -52,10 +53,10 @@ func resourceAwsDbSubnetGroupCreate(d *schema.ResourceData, meta interface{}) er
 		subnetIds[i] = subnetId.(string)
 	}
 
-	createOpts := rds.CreateDBSubnetGroup{
-		DBSubnetGroupName:        d.Get("name").(string),
-		DBSubnetGroupDescription: d.Get("description").(string),
-		SubnetIds:                subnetIds,
+	createOpts := rds.CreateDBSubnetGroupMessage{
+		DBSubnetGroupName:        aws.String(d.Get("name").(string)),
+		DBSubnetGroupDescription: aws.String(d.Get("description").(string)),
+		SubnetIDs:                subnetIds,
 	}
 
 	log.Printf("[DEBUG] Create DB Subnet Group: %#v", createOpts)
@@ -64,7 +65,7 @@ func resourceAwsDbSubnetGroupCreate(d *schema.ResourceData, meta interface{}) er
 		return fmt.Errorf("Error creating DB Subnet Group: %s", err)
 	}
 
-	d.SetId(createOpts.DBSubnetGroupName)
+	d.SetId(*createOpts.DBSubnetGroupName)
 	log.Printf("[INFO] DB Subnet Group ID: %s", d.Id())
 	return resourceAwsDbSubnetGroupRead(d, meta)
 }
@@ -72,8 +73,8 @@ func resourceAwsDbSubnetGroupCreate(d *schema.ResourceData, meta interface{}) er
 func resourceAwsDbSubnetGroupRead(d *schema.ResourceData, meta interface{}) error {
 	rdsconn := meta.(*AWSClient).rdsconn
 
-	describeOpts := rds.DescribeDBSubnetGroups{
-		DBSubnetGroupName: d.Id(),
+	describeOpts := rds.DescribeDBSubnetGroupsMessage{
+		DBSubnetGroupName: aws.String(d.Id()),
 	}
 
 	describeResp, err := rdsconn.DescribeDBSubnetGroups(&describeOpts)
@@ -82,12 +83,20 @@ func resourceAwsDbSubnetGroupRead(d *schema.ResourceData, meta interface{}) erro
 	}
 
 	if len(describeResp.DBSubnetGroups) != 1 ||
-		describeResp.DBSubnetGroups[0].Name != d.Id() {
+		*describeResp.DBSubnetGroups[0].DBSubnetGroupName != d.Id() {
+		return fmt.Errorf("Unable to find DB Subnet Group: %#v", describeResp.DBSubnetGroups)
 	}
 
-	d.Set("name", describeResp.DBSubnetGroups[0].Name)
-	d.Set("description", describeResp.DBSubnetGroups[0].Description)
-	d.Set("subnet_ids", describeResp.DBSubnetGroups[0].SubnetIds)
+	subnetGroup := describeResp.DBSubnetGroups[0]
+
+	d.Set("name", *subnetGroup.DBSubnetGroupName)
+	d.Set("description", *subnetGroup.DBSubnetGroupDescription)
+
+	subnets := make([]string, 0, len(subnetGroup.Subnets))
+	for _, s := range subnetGroup.Subnets {
+		subnets = append(subnets, *s.SubnetIdentifier)
+	}
+	d.Set("subnet_ids", subnets)
 
 	return nil
 }
@@ -111,12 +120,12 @@ func resourceAwsDbSubnetGroupDeleteRefreshFunc(
 
 	return func() (interface{}, string, error) {
 
-		deleteOpts := rds.DeleteDBSubnetGroup{
-			DBSubnetGroupName: d.Id(),
+		deleteOpts := rds.DeleteDBSubnetGroupMessage{
+			DBSubnetGroupName: aws.String(d.Id()),
 		}
 
-		if _, err := rdsconn.DeleteDBSubnetGroup(&deleteOpts); err != nil {
-			rdserr, ok := err.(*rds.Error)
+		if err := rdsconn.DeleteDBSubnetGroup(&deleteOpts); err != nil {
+			rdserr, ok := err.(aws.APIError)
 			if !ok {
 				return d, "error", err
 			}

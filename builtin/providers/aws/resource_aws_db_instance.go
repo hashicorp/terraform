@@ -185,7 +185,7 @@ func resourceAwsDbInstance() *schema.Resource {
 }
 
 func resourceAwsDbInstanceCreate(d *schema.ResourceData, meta interface{}) error {
-	conn := meta.(*AWSClient).awsRDSconn
+	conn := meta.(*AWSClient).rdsconn
 	opts := rds.CreateDBInstanceMessage{
 		AllocatedStorage:     aws.Integer(d.Get("allocated_storage").(int)),
 		DBInstanceClass:      aws.String(d.Get("instance_class").(string)),
@@ -347,7 +347,7 @@ func resourceAwsDbInstanceRead(d *schema.ResourceData, meta interface{}) error {
 }
 
 func resourceAwsDbInstanceDelete(d *schema.ResourceData, meta interface{}) error {
-	conn := meta.(*AWSClient).awsRDSconn
+	conn := meta.(*AWSClient).rdsconn
 
 	log.Printf("[DEBUG] DB Instance destroy: %v", d.Id())
 
@@ -385,7 +385,7 @@ func resourceAwsDbInstanceDelete(d *schema.ResourceData, meta interface{}) error
 
 func resourceAwsBbInstanceRetrieve(
 	d *schema.ResourceData, meta interface{}) (*rds.DBInstance, error) {
-	conn := meta.(*AWSClient).awsRDSconn
+	conn := meta.(*AWSClient).rdsconn
 
 	opts := rds.DescribeDBInstancesMessage{
 		DBInstanceIdentifier: aws.String(d.Id()),
