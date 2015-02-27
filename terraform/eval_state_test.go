@@ -66,3 +66,84 @@ func TestEvalUpdateStateHook(t *testing.T) {
 		t.Fatalf("bad: %#v", mockHook.PostStateUpdateState)
 	}
 }
+
+func TestEvalReadState(t *testing.T) {
+	var output *InstanceState
+	cases := map[string]struct {
+		Resources          map[string]*ResourceState
+		Node               EvalNode
+		ExpectedInstanceId string
+	}{
+		"ReadState gets primary instance state": {
+			Resources: map[string]*ResourceState{
+				"aws_instance.bar": &ResourceState{
+					Primary: &InstanceState{
+						ID: "i-abc123",
+					},
+				},
+			},
+			Node: &EvalReadState{
+				Name:   "aws_instance.bar",
+				Output: &output,
+			},
+			ExpectedInstanceId: "i-abc123",
+		},
+		"ReadStateTainted gets tainted instance": {
+			Resources: map[string]*ResourceState{
+				"aws_instance.bar": &ResourceState{
+					Tainted: []*InstanceState{
+						&InstanceState{ID: "i-abc123"},
+					},
+				},
+			},
+			Node: &EvalReadStateTainted{
+				Name:         "aws_instance.bar",
+				Output:       &output,
+				TaintedIndex: 0,
+			},
+			ExpectedInstanceId: "i-abc123",
+		},
+		"ReadStateDeposed gets deposed instance": {
+			Resources: map[string]*ResourceState{
+				"aws_instance.bar": &ResourceState{
+					Deposed: &InstanceState{ID: "i-abc123"},
+				},
+			},
+			Node: &EvalReadStateDeposed{
+				Name:   "aws_instance.bar",
+				Output: &output,
+			},
+			ExpectedInstanceId: "i-abc123",
+		},
+	}
+
+	for k, c := range cases {
+		ctx := new(MockEvalContext)
+		ctx.StateState = &State{
+			Modules: []*ModuleState{
+				&ModuleState{
+					Path:      rootModulePath,
+					Resources: c.Resources,
+				},
+			},
+		}
+		ctx.StateLock = new(sync.RWMutex)
+		ctx.PathPath = rootModulePath
+
+		result, err := c.Node.Eval(ctx)
+		if err != nil {
+			t.Fatalf("[%s] Got err: %#v", k, err)
+		}
+
+		expected := c.ExpectedInstanceId
+		if !(result != nil && result.(*InstanceState).ID == expected) {
+			t.Fatalf("[%s] Expected return with ID %#v, got: %#v", k, expected, result)
+		}
+
+		if !(output != nil && output.ID == expected) {
+			t.Fatalf("[%s] Expected output with ID %#v, got: %#v", k, expected, output)
+		}
+
+		output = nil
+	}
+}
