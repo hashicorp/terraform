@@ -74,6 +74,13 @@ func resourceComputeInstance() *schema.Resource {
 							Optional: true,
 							ForceNew: true,
 						},
+
+						// TODO: Only when image is set
+						"size": &schema.Schema{
+							Type:     schema.TypeInt,
+							Optional: true,
+							ForceNew: true,
+						},
 					},
 				},
 			},
@@ -329,6 +336,15 @@ func resourceComputeInstanceCreate(d *schema.ResourceData, meta interface{}) err
 			}
 
 			disk.InitializeParams.DiskType = diskType.SelfLink
+		}
+
+		if v, ok := d.GetOk(prefix + ".size"); ok {
+			diskSize := int64(v.(int))
+
+			if disk.InitializeParams == nil {
+				return fmt.Errorf("Error: size only applies when `image` is set")
+			}
+			disk.InitializeParams.DiskSizeGb = diskSize
 		}
 
 		disks = append(disks, &disk)
