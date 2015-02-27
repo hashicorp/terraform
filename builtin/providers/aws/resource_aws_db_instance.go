@@ -273,7 +273,7 @@ func resourceAwsDbInstanceCreate(d *schema.ResourceData, meta interface{}) error
 		Pending:    []string{"creating", "backing-up", "modifying"},
 		Target:     "available",
 		Refresh:    resourceAwsDbInstanceStateRefreshFunc(d, meta),
-		Timeout:    20 * time.Minute,
+		Timeout:    40 * time.Minute,
 		MinTimeout: 10 * time.Second,
 		Delay:      30 * time.Second, // Wait 30 secs before starting
 	}
@@ -372,7 +372,7 @@ func resourceAwsDbInstanceDelete(d *schema.ResourceData, meta interface{}) error
 			"modifying", "deleting", "available"},
 		Target:     "",
 		Refresh:    resourceAwsDbInstanceStateRefreshFunc(d, meta),
-		Timeout:    20 * time.Minute,
+		Timeout:    40 * time.Minute,
 		MinTimeout: 10 * time.Second,
 		Delay:      30 * time.Second, // Wait 30 secs before starting
 	}
