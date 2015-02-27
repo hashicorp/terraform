@@ -4714,6 +4714,132 @@ func TestContext2Apply_taint(t *testing.T) {
 	}
 }
 
+func TestContext2Apply_taintDep(t *testing.T) {
+	m := testModule(t, "apply-taint-dep")
+	p := testProvider("aws")
+	p.ApplyFn = testApplyFn
+	p.DiffFn = testDiffFn
+	s := &State{
+		Modules: []*ModuleState{
+			&ModuleState{
+				Path: rootModulePath,
+				Resources: map[string]*ResourceState{
+					"aws_instance.foo": &ResourceState{
+						Type: "aws_instance",
+						Tainted: []*InstanceState{
+							&InstanceState{
+								ID: "baz",
+								Attributes: map[string]string{
+									"num":  "2",
+									"type": "aws_instance",
+								},
+							},
+						},
+					},
+					"aws_instance.bar": &ResourceState{
+						Type: "aws_instance",
+						Primary: &InstanceState{
+							ID: "bar",
+							Attributes: map[string]string{
+								"foo":  "baz",
+								"num":  "2",
+								"type": "aws_instance",
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+	ctx := testContext2(t, &ContextOpts{
+		Module: m,
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+		State: s,
+	})
+
+	if p, err := ctx.Plan(nil); err != nil {
+		t.Fatalf("err: %s", err)
+	} else {
+		t.Logf("plan: %s", p)
+	}
+
+	state, err := ctx.Apply()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	actual := strings.TrimSpace(state.String())
+	expected := strings.TrimSpace(testTerraformApplyTaintDepStr)
+	if actual != expected {
+		t.Fatalf("bad:\n%s", actual)
+	}
+}
+
+func TestContext2Apply_taintDepRequiresNew(t *testing.T) {
+	m := testModule(t, "apply-taint-dep-requires-new")
+	p := testProvider("aws")
+	p.ApplyFn = testApplyFn
+	p.DiffFn = testDiffFn
+	s := &State{
+		Modules: []*ModuleState{
+			&ModuleState{
+				Path: rootModulePath,
+				Resources: map[string]*ResourceState{
+					"aws_instance.foo": &ResourceState{
+						Type: "aws_instance",
+						Tainted: []*InstanceState{
+							&InstanceState{
+								ID: "baz",
+								Attributes: map[string]string{
+									"num":  "2",
+									"type": "aws_instance",
+								},
+							},
+						},
+					},
+					"aws_instance.bar": &ResourceState{
+						Type: "aws_instance",
+						Primary: &InstanceState{
+							ID: "bar",
+							Attributes: map[string]string{
+								"foo":  "baz",
+								"num":  "2",
+								"type": "aws_instance",
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+	ctx := testContext2(t, &ContextOpts{
+		Module: m,
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+		State: s,
+	})
+
+	if p, err := ctx.Plan(nil); err != nil {
+		t.Fatalf("err: %s", err)
+	} else {
+		t.Logf("plan: %s", p)
+	}
+
+	state, err := ctx.Apply()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	actual := strings.TrimSpace(state.String())
+	expected := strings.TrimSpace(testTerraformApplyTaintDepRequireNewStr)
+	if actual != expected {
+		t.Fatalf("bad:\n%s", actual)
+	}
+}
+
 func TestContext2Apply_unknownAttribute(t *testing.T) {
 	m := testModule(t, "apply-unknown")
 	p := testProvider("aws")
@@ -4966,7 +5092,13 @@ func testApplyFn(
 	}
 
 	result := &InstanceState{
-		ID: id,
+		ID:         id,
+		Attributes: make(map[string]string),
+	}
+
+	// Copy all the prior attributes
+	for k, v := range s.Attributes {
+		result.Attributes[k] = v
 	}
 
 	if d != nil {

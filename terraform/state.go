@@ -260,6 +260,10 @@ func (s *State) GoString() string {
 }
 
 func (s *State) String() string {
+	if s == nil {
+		return "<nil>"
+	}
+
 	var buf bytes.Buffer
 	for _, m := range s.Modules {
 		mStr := m.String()
@@ -699,6 +703,19 @@ func (s *ResourceState) Equal(other *ResourceState) bool {
 	return true
 }
 
+// Taint takes the primary state and marks it as tainted. If there is no
+// primary state, this does nothing.
+func (r *ResourceState) Taint() {
+	// If there is no primary, nothing to do
+	if r.Primary == nil {
+		return
+	}
+
+	// Shuffle to the end of the taint list and set primary to nil
+	r.Tainted = append(r.Tainted, r.Primary)
+	r.Primary = nil
+}
+
 func (r *ResourceState) init() {
 	if r.Primary == nil {
 		r.Primary = &InstanceState{}
@@ -710,16 +727,24 @@ func (r *ResourceState) deepcopy() *ResourceState {
 	if r == nil {
 		return nil
 	}
+
 	n := &ResourceState{
 		Type:         r.Type,
-		Dependencies: make([]string, len(r.Dependencies)),
+		Dependencies: nil,
 		Primary:      r.Primary.deepcopy(),
-		Tainted:      make([]*InstanceState, 0, len(r.Tainted)),
+		Tainted:      nil,
 	}
-	copy(n.Dependencies, r.Dependencies)
-	for _, inst := range r.Tainted {
-		n.Tainted = append(n.Tainted, inst.deepcopy())
+	if r.Dependencies != nil {
+		n.Dependencies = make([]string, len(r.Dependencies))
+		copy(n.Dependencies, r.Dependencies)
 	}
+	if r.Tainted != nil {
+		n.Tainted = make([]*InstanceState, 0, len(r.Tainted))
+		for _, inst := range r.Tainted {
+			n.Tainted = append(n.Tainted, inst.deepcopy())
+		}
+	}
+
 	return n
 }
 

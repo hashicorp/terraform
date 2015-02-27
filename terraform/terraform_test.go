@@ -433,6 +433,36 @@ aws_instance.bar:
   type = aws_instance
 `
 
+const testTerraformApplyTaintDepStr = `
+aws_instance.bar:
+  ID = bar
+  foo = foo
+  num = 2
+  type = aws_instance
+
+  Dependencies:
+    aws_instance.foo
+aws_instance.foo:
+  ID = foo
+  num = 2
+  type = aws_instance
+`
+
+const testTerraformApplyTaintDepRequireNewStr = `
+aws_instance.bar:
+  ID = foo
+  foo = foo
+  require_new = yes
+  type = aws_instance
+
+  Dependencies:
+    aws_instance.foo
+aws_instance.foo:
+  ID = foo
+  num = 2
+  type = aws_instance
+`
+
 const testTerraformApplyOutputStr = `
 aws_instance.bar:
   ID = foo
