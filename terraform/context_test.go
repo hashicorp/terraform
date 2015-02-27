@@ -8,7 +8,9 @@ import (
 	"sort"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"testing"
+	"time"
 )
 
 func TestContext2Plan(t *testing.T) {
@@ -4646,7 +4648,22 @@ func TestContext2Apply_outputMultiIndex(t *testing.T) {
 func TestContext2Apply_taint(t *testing.T) {
 	m := testModule(t, "apply-taint")
 	p := testProvider("aws")
-	p.ApplyFn = testApplyFn
+
+	// destroyCount tests against regression of
+	// https://github.com/hashicorp/terraform/issues/1056
+	var destroyCount = int32(0)
+	var once sync.Once
+	simulateProviderDelay := func() {
+		time.Sleep(10 * time.Millisecond)
+	}
+
+	p.ApplyFn = func(info *InstanceInfo, s *InstanceState, d *InstanceDiff) (*InstanceState, error) {
+		once.Do(simulateProviderDelay)
+		if d.Destroy {
+			atomic.AddInt32(&destroyCount, 1)
+		}
+		return testApplyFn(info, s, d)
+	}
 	p.DiffFn = testDiffFn
 	s := &State{
 		Modules: []*ModuleState{
@@ -4690,6 +4707,10 @@ func TestContext2Apply_taint(t *testing.T) {
 	expected := strings.TrimSpace(testTerraformApplyTaintStr)
 	if actual != expected {
 		t.Fatalf("bad:\n%s", actual)
+	}
+
+	if destroyCount != 1 {
+		t.Fatalf("Expected 1 destroy, got %d", destroyCount)
 	}
 }
 
