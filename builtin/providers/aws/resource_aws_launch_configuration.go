@@ -24,7 +24,8 @@ func resourceAwsLaunchConfiguration() *schema.Resource {
 		Schema: map[string]*schema.Schema{
 			"name": &schema.Schema{
 				Type:     schema.TypeString,
-				Required: true,
+				Optional: true,
+				Computed: true,
 				ForceNew: true,
 			},
 
@@ -122,13 +123,23 @@ func resourceAwsLaunchConfigurationCreate(d *schema.ResourceData, meta interface
 			v.(*schema.Set).List())
 	}
 
+	if v, ok := d.GetOk("name"); ok {
+		createLaunchConfigurationOpts.LaunchConfigurationName = aws.String(v.(string))
+		d.SetId(d.Get("name").(string))
+	} else {
+		hash := sha1.Sum([]byte(fmt.Sprintf("%#v", createLaunchConfigurationOpts)))
+		config_name := fmt.Sprintf("terraform-%s", base64.URLEncoding.EncodeToString(hash[:]))
+		log.Printf("[DEBUG] Computed Launch config name: %s", config_name)
+		createLaunchConfigurationOpts.LaunchConfigurationName = aws.String(config_name)
+		d.SetId(config_name)
+	}
+
 	log.Printf("[DEBUG] autoscaling create launch configuration: %#v", createLaunchConfigurationOpts)
 	err := autoscalingconn.CreateLaunchConfiguration(&createLaunchConfigurationOpts)
 	if err != nil {
 		return fmt.Errorf("Error creating launch configuration: %s", err)
 	}
 
-	d.SetId(d.Get("name").(string))
 	log.Printf("[INFO] launch configuration ID: %s", d.Id())
 
 	// We put a Retry here since sometimes eventual consistency bites
