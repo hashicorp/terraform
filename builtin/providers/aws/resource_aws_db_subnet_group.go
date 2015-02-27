@@ -45,7 +45,7 @@ func resourceAwsDbSubnetGroup() *schema.Resource {
 }
 
 func resourceAwsDbSubnetGroupCreate(d *schema.ResourceData, meta interface{}) error {
-	rdsconn := meta.(*AWSClient).awsRDSconn
+	rdsconn := meta.(*AWSClient).rdsconn
 
 	subnetIdsSet := d.Get("subnet_ids").(*schema.Set)
 	subnetIds := make([]string, subnetIdsSet.Len())
@@ -71,7 +71,7 @@ func resourceAwsDbSubnetGroupCreate(d *schema.ResourceData, meta interface{}) er
 }
 
 func resourceAwsDbSubnetGroupRead(d *schema.ResourceData, meta interface{}) error {
-	rdsconn := meta.(*AWSClient).awsRDSconn
+	rdsconn := meta.(*AWSClient).rdsconn
 
 	describeOpts := rds.DescribeDBSubnetGroupsMessage{
 		DBSubnetGroupName: aws.String(d.Id()),
@@ -116,7 +116,7 @@ func resourceAwsDbSubnetGroupDelete(d *schema.ResourceData, meta interface{}) er
 func resourceAwsDbSubnetGroupDeleteRefreshFunc(
 	d *schema.ResourceData,
 	meta interface{}) resource.StateRefreshFunc {
-	rdsconn := meta.(*AWSClient).awsRDSconn
+	rdsconn := meta.(*AWSClient).rdsconn
 
 	return func() (interface{}, string, error) {
 

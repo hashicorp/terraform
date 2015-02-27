@@ -38,7 +38,7 @@ func TestAccAWSDBSecurityGroup(t *testing.T) {
 }
 
 func testAccCheckAWSDBSecurityGroupDestroy(s *terraform.State) error {
-	conn := testAccProvider.Meta().(*AWSClient).awsRDSconn
+	conn := testAccProvider.Meta().(*AWSClient).rdsconn
 
 	for _, rs := range s.RootModule().Resources {
 		if rs.Type != "aws_db_security_group" {
@@ -113,7 +113,7 @@ func testAccCheckAWSDBSecurityGroupExists(n string, v *rds.DBSecurityGroup) reso
 			return fmt.Errorf("No DB Security Group ID is set")
 		}
 
-		conn := testAccProvider.Meta().(*AWSClient).awsRDSconn
+		conn := testAccProvider.Meta().(*AWSClient).rdsconn
 
 		opts := rds.DescribeDBSecurityGroupsMessage{
 			DBSecurityGroupName: aws.String(rs.Primary.ID),

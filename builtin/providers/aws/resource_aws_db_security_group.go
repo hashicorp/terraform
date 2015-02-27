@@ -70,7 +70,7 @@ func resourceAwsDbSecurityGroup() *schema.Resource {
 }
 
 func resourceAwsDbSecurityGroupCreate(d *schema.ResourceData, meta interface{}) error {
-	conn := meta.(*AWSClient).awsRDSconn
+	conn := meta.(*AWSClient).rdsconn
 
 	var err error
 	var errs []error
@@ -160,7 +160,7 @@ func resourceAwsDbSecurityGroupRead(d *schema.ResourceData, meta interface{}) er
 }
 
 func resourceAwsDbSecurityGroupDelete(d *schema.ResourceData, meta interface{}) error {
-	conn := meta.(*AWSClient).awsRDSconn
+	conn := meta.(*AWSClient).rdsconn
 
 	log.Printf("[DEBUG] DB Security Group destroy: %v", d.Id())
 
@@ -181,7 +181,7 @@ func resourceAwsDbSecurityGroupDelete(d *schema.ResourceData, meta interface{}) 
 }
 
 func resourceAwsDbSecurityGroupRetrieve(d *schema.ResourceData, meta interface{}) (*rds.DBSecurityGroup, error) {
-	conn := meta.(*AWSClient).awsRDSconn
+	conn := meta.(*AWSClient).rdsconn
 
 	opts := rds.DescribeDBSecurityGroupsMessage{
 		DBSecurityGroupName: aws.String(d.Id()),
