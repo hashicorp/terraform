@@ -40,6 +40,101 @@ func TestEval(t *testing.T) {
 		},
 
 		{
+			"foo ${42+1}",
+			nil,
+			false,
+			"foo 43",
+			ast.TypeString,
+		},
+
+		{
+			"foo ${42-1}",
+			nil,
+			false,
+			"foo 41",
+			ast.TypeString,
+		},
+
+		{
+			"foo ${42*2}",
+			nil,
+			false,
+			"foo 84",
+			ast.TypeString,
+		},
+
+		{
+			"foo ${42/2}",
+			nil,
+			false,
+			"foo 21",
+			ast.TypeString,
+		},
+
+		{
+			"foo ${42%4}",
+			nil,
+			false,
+			"foo 2",
+			ast.TypeString,
+		},
+
+		{
+			"foo ${42.0+1.0}",
+			nil,
+			false,
+			"foo 43",
+			ast.TypeString,
+		},
+
+		{
+			"foo ${42.0+1}",
+			nil,
+			false,
+			"foo 43",
+			ast.TypeString,
+		},
+
+		{
+			"foo ${42+1.0}",
+			nil,
+			false,
+			"foo 43",
+			ast.TypeString,
+		},
+
+		{
+			"foo ${42+2*2}",
+			nil,
+			false,
+			"foo 88",
+			ast.TypeString,
+		},
+
+		{
+			"foo ${42+(2*2)}",
+			nil,
+			false,
+			"foo 46",
+			ast.TypeString,
+		},
+
+		{
+			"foo ${bar+1}",
+			&ast.BasicScope{
+				VarMap: map[string]ast.Variable{
+					"bar": ast.Variable{
+						Value: 41,
+						Type:  ast.TypeInt,
+					},
+				},
+			},
+			false,
+			"foo 42",
+			ast.TypeString,
+		},
+
+		{
 			"foo ${rand()}",
 			&ast.BasicScope{
 				FuncMap: map[string]ast.Function{

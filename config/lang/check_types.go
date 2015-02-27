@@ -55,6 +55,9 @@ func (v *TypeCheck) visit(raw ast.Node) ast.Node {
 	var result ast.Node
 	var err error
 	switch n := raw.(type) {
+	case *ast.Arithmetic:
+		tc := &typeCheckArithmetic{n}
+		result, err = tc.TypeCheck(v)
 	case *ast.Call:
 		tc := &typeCheckCall{n}
 		result, err = tc.TypeCheck(v)
@@ -70,7 +73,7 @@ func (v *TypeCheck) visit(raw ast.Node) ast.Node {
 	default:
 		tc, ok := raw.(TypeCheckNode)
 		if !ok {
-			err = fmt.Errorf("unknown node: %#v", raw)
+			err = fmt.Errorf("unknown node for type check: %#v", raw)
 			break
 		}
 
@@ -84,6 +87,72 @@ func (v *TypeCheck) visit(raw ast.Node) ast.Node {
 	}
 
 	return result
+}
+
+type typeCheckArithmetic struct {
+	n *ast.Arithmetic
+}
+
+func (tc *typeCheckArithmetic) TypeCheck(v *TypeCheck) (ast.Node, error) {
+	// The arguments are on the stack in reverse order, so pop them off.
+	exprs := make([]ast.Type, len(tc.n.Exprs))
+	for i, _ := range tc.n.Exprs {
+		exprs[len(tc.n.Exprs)-1-i] = v.StackPop()
+	}
+
+	// Determine the resulting type we want
+	mathFunc := "__builtin_IntMath"
+	mathType := ast.TypeInt
+	switch v := exprs[0]; v {
+	case ast.TypeInt:
+		mathFunc = "__builtin_IntMath"
+		mathType = v
+	case ast.TypeFloat:
+		mathFunc = "__builtin_FloatMath"
+		mathType = v
+	default:
+		return nil, fmt.Errorf(
+			"Math operations can only be done with ints and floats, got %s",
+			v)
+	}
+
+	// Verify the args
+	for i, arg := range exprs {
+		if arg != mathType {
+			cn := v.ImplicitConversion(exprs[i], mathType, tc.n.Exprs[i])
+			if cn != nil {
+				tc.n.Exprs[i] = cn
+				continue
+			}
+
+			return nil, fmt.Errorf(
+				"operand %d should be %s, got %s",
+				i+1, mathType, arg)
+		}
+	}
+
+	// Modulo doesn't work for floats
+	if mathType == ast.TypeFloat && tc.n.Op == ast.ArithmeticOpMod {
+		return nil, fmt.Errorf("modulo cannot be used with floats")
+	}
+
+	// Return type
+	v.StackPush(mathType)
+
+	// Replace our node with a call to the proper function. This isn't
+	// type checked but we already verified types.
+	args := make([]ast.Node, len(tc.n.Exprs)+1)
+	args[0] = &ast.LiteralNode{
+		Value: tc.n.Op,
+		Typex: ast.TypeInt,
+		Posx:  tc.n.Pos(),
+	}
+	copy(args[1:], tc.n.Exprs)
+	return &ast.Call{
+		Func: mathFunc,
+		Args: args,
+		Posx: tc.n.Pos(),
+	}, nil
 }
 
 type typeCheckCall struct {
