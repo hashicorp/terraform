@@ -293,14 +293,16 @@ func (n *GraphNodeConfigResource) DynamicExpand(ctx EvalContext) (*Graph, error)
 			View:  n.Resource.Id(),
 		})
 
-		// If we're only destroying tainted resources, then we only
-		// want to find tainted resources and destroy them here.
-		steps = append(steps, &TaintedTransformer{
-			State:          state,
-			View:           n.Resource.Id(),
-			Deposed:        n.Resource.Lifecycle.CreateBeforeDestroy,
-			DeposedInclude: true,
-		})
+		if n.Resource.Lifecycle.CreateBeforeDestroy {
+			// If we're only destroying tainted resources, then we only
+			// want to find tainted resources and destroy them here.
+			steps = append(steps, &TaintedTransformer{
+				State:          state,
+				View:           n.Resource.Id(),
+				Deposed:        n.Resource.Lifecycle.CreateBeforeDestroy,
+				DeposedInclude: true,
+			})
+		}
 	case DestroyTainted:
 		// If we're only destroying tainted resources, then we only
 		// want to find tainted resources and destroy them here.
