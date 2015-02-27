@@ -548,7 +548,12 @@ func (m *ModuleState) String() string {
 			taintStr = fmt.Sprintf(" (%d tainted)", len(rs.Tainted))
 		}
 
-		buf.WriteString(fmt.Sprintf("%s:%s\n", k, taintStr))
+		deposedStr := ""
+		if rs.Deposed != nil {
+			deposedStr = fmt.Sprintf(" (1 deposed)")
+		}
+
+		buf.WriteString(fmt.Sprintf("%s:%s%s\n", k, taintStr, deposedStr))
 		buf.WriteString(fmt.Sprintf("  ID = %s\n", id))
 
 		var attributes map[string]string
@@ -572,6 +577,10 @@ func (m *ModuleState) String() string {
 
 		for idx, t := range rs.Tainted {
 			buf.WriteString(fmt.Sprintf("  Tainted ID %d = %s\n", idx+1, t.ID))
+		}
+
+		if rs.Deposed != nil {
+			buf.WriteString(fmt.Sprintf("  Deposed ID = %s\n", rs.Deposed.ID))
 		}
 
 		if len(rs.Dependencies) > 0 {
@@ -644,6 +653,14 @@ type ResourceState struct {
 	// However, in pathological cases, it is possible for the number
 	// of instances to accumulate.
 	Tainted []*InstanceState `json:"tainted,omitempty"`
+
+	// Deposed is used in the mechanics of CreateBeforeDestroy: the existing
+	// Primary is Deposed to get it out of the way for the replacement Primary to
+	// be created by Apply. If the replacement Primary creates successfully, the
+	// Deposed instance is cleaned up. If there were problems creating the
+	// replacement, we mark the replacement as Tainted and Undepose the former
+	// Primary.
+	Deposed *InstanceState `json:"deposed,omitempty"`
 }
 
 // Equal tests whether two ResourceStates are equal.
@@ -744,6 +761,9 @@ func (r *ResourceState) deepcopy() *ResourceState {
 			n.Tainted = append(n.Tainted, inst.deepcopy())
 		}
 	}
+	if r.Deposed != nil {
+		n.Deposed = r.Deposed.deepcopy()
+	}
 
 	return n
 }
@@ -762,6 +782,10 @@ func (r *ResourceState) prune() {
 	}
 
 	r.Tainted = r.Tainted[:n]
+
+	if r.Deposed != nil && r.Deposed.ID == "" {
+		r.Deposed = nil
+	}
 }
 
 func (r *ResourceState) sort() {
