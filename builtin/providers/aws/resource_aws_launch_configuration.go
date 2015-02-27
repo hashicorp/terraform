@@ -24,8 +24,7 @@ func resourceAwsLaunchConfiguration() *schema.Resource {
 		Schema: map[string]*schema.Schema{
 			"name": &schema.Schema{
 				Type:     schema.TypeString,
-				Computed: true,
-				Optional: true,
+				Required: true,
 				ForceNew: true,
 			},
 
@@ -98,6 +97,7 @@ func resourceAwsLaunchConfigurationCreate(d *schema.ResourceData, meta interface
 	autoscalingconn := meta.(*AWSClient).autoscalingconn
 
 	var createLaunchConfigurationOpts autoscaling.CreateLaunchConfigurationType
+	createLaunchConfigurationOpts.LaunchConfigurationName = aws.String(d.Get("name").(string))
 	createLaunchConfigurationOpts.ImageID = aws.String(d.Get("image_id").(string))
 	createLaunchConfigurationOpts.InstanceType = aws.String(d.Get("instance_type").(string))
 
@@ -120,13 +120,6 @@ func resourceAwsLaunchConfigurationCreate(d *schema.ResourceData, meta interface
 	if v, ok := d.GetOk("security_groups"); ok {
 		createLaunchConfigurationOpts.SecurityGroups = expandStringList(
 			v.(*schema.Set).List())
-	}
-
-	if v, ok := d.GetOk("name"); ok {
-		createLaunchConfigurationOpts.LaunchConfigurationName = aws.String(v.(string))
-	} else {
-		hash := sha1.Sum([]byte(fmt.Sprintf("%#v", createLaunchConfigurationOpts)))
-		createLaunchConfigurationOpts.LaunchConfigurationName = aws.String(fmt.Sprintf("terraform-%s", hex.EncodeToString(hash[:])))
 	}
 
 	log.Printf("[DEBUG] autoscaling create launch configuration: %#v", createLaunchConfigurationOpts)
