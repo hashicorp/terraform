@@ -42,6 +42,12 @@ func TestAccAWSAutoScalingGroup_basic(t *testing.T) {
 						"aws_autoscaling_group.bar", "force_delete", "true"),
 					resource.TestCheckResourceAttr(
 						"aws_autoscaling_group.bar", "termination_policies.912102603", "OldestInstance"),
+					resource.TestCheckResourceAttr(
+						"aws_autoscaling_group.bar", "tags.3469205768.name", "sometag"),
+					resource.TestCheckResourceAttr(
+						"aws_autoscaling_group.bar", "tags.3469205768.value", "bar"),
+					resource.TestCheckResourceAttr(
+						"aws_autoscaling_group.bar", "tags.3469205768.propagate", "1"),
 				),
 			},
 
@@ -52,6 +58,10 @@ func TestAccAWSAutoScalingGroup_basic(t *testing.T) {
 					testAccCheckAWSLaunchConfigurationExists("aws_launch_configuration.new", &lc),
 					resource.TestCheckResourceAttr(
 						"aws_autoscaling_group.bar", "desired_capacity", "5"),
+					resource.TestCheckResourceAttr(
+						"aws_autoscaling_group.bar", "tags.3469205768.value", "quux"),
+					resource.TestCheckResourceAttr(
+						"aws_autoscaling_group.bar", "tags.3469205768.propagate", "0"),
 					testLaunchConfigurationName("aws_autoscaling_group.bar", &lc),
 				),
 			},
@@ -226,6 +236,12 @@ resource "aws_autoscaling_group" "bar" {
   termination_policies = ["OldestInstance"]
 
   launch_configuration = "${aws_launch_configuration.foobar.name}"
+
+  tags {
+    name = "sometag"
+	value = "bar"
+	propagate = true
+  }
 }
 `
 
@@ -253,6 +269,12 @@ resource "aws_autoscaling_group" "bar" {
   force_delete = true
 
   launch_configuration = "${aws_launch_configuration.new.name}"
+
+  tags {
+	name = "sometag"
+	value = "quux"
+	propagate = false
+  }
 }
 `
 
