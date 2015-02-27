@@ -36,7 +36,7 @@ func TestAccAWSDBSubnetGroup(t *testing.T) {
 }
 
 func testAccCheckDBSubnetGroupDestroy(s *terraform.State) error {
-	conn := testAccProvider.Meta().(*AWSClient).awsRDSconn
+	conn := testAccProvider.Meta().(*AWSClient).rdsconn
 
 	for _, rs := range s.RootModule().Resources {
 		if rs.Type != "aws_db_subnet_group" {
@@ -78,7 +78,7 @@ func testAccCheckDBSubnetGroupExists(n string, v *rds.DBSubnetGroup) resource.Te
 			return fmt.Errorf("No ID is set")
 		}
 
-		conn := testAccProvider.Meta().(*AWSClient).awsRDSconn
+		conn := testAccProvider.Meta().(*AWSClient).rdsconn
 		resp, err := conn.DescribeDBSubnetGroups(
 			&rds.DescribeDBSubnetGroupsMessage{DBSubnetGroupName: aws.String(rs.Primary.ID)})
 		if err != nil {

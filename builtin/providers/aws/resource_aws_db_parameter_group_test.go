@@ -106,7 +106,7 @@ func TestAccAWSDBParameterGroupOnly(t *testing.T) {
 }
 
 func testAccCheckAWSDBParameterGroupDestroy(s *terraform.State) error {
-	conn := testAccProvider.Meta().(*AWSClient).awsRDSconn
+	conn := testAccProvider.Meta().(*AWSClient).rdsconn
 
 	for _, rs := range s.RootModule().Resources {
 		if rs.Type != "aws_db_parameter_group" {
@@ -169,7 +169,7 @@ func testAccCheckAWSDBParameterGroupExists(n string, v *rds.DBParameterGroup) re
 			return fmt.Errorf("No DB Parameter Group ID is set")
 		}
 
-		conn := testAccProvider.Meta().(*AWSClient).awsRDSconn
+		conn := testAccProvider.Meta().(*AWSClient).rdsconn
 
 		opts := rds.DescribeDBParameterGroupsMessage{
 			DBParameterGroupName: aws.String(rs.Primary.ID),

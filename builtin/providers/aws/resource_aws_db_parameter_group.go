@@ -72,7 +72,7 @@ func resourceAwsDbParameterGroup() *schema.Resource {
 }
 
 func resourceAwsDbParameterGroupCreate(d *schema.ResourceData, meta interface{}) error {
-	rdsconn := meta.(*AWSClient).awsRDSconn
+	rdsconn := meta.(*AWSClient).rdsconn
 
 	createOpts := rds.CreateDBParameterGroupMessage{
 		DBParameterGroupName:   aws.String(d.Get("name").(string)),
@@ -99,7 +99,7 @@ func resourceAwsDbParameterGroupCreate(d *schema.ResourceData, meta interface{})
 }
 
 func resourceAwsDbParameterGroupRead(d *schema.ResourceData, meta interface{}) error {
-	rdsconn := meta.(*AWSClient).awsRDSconn
+	rdsconn := meta.(*AWSClient).rdsconn
 
 	describeOpts := rds.DescribeDBParameterGroupsMessage{
 		DBParameterGroupName: aws.String(d.Id()),
@@ -136,7 +136,7 @@ func resourceAwsDbParameterGroupRead(d *schema.ResourceData, meta interface{}) e
 }
 
 func resourceAwsDbParameterGroupUpdate(d *schema.ResourceData, meta interface{}) error {
-	rdsconn := meta.(*AWSClient).awsRDSconn
+	rdsconn := meta.(*AWSClient).rdsconn
 
 	d.Partial(true)
 
@@ -193,7 +193,7 @@ func resourceAwsDbParameterGroupDelete(d *schema.ResourceData, meta interface{})
 func resourceAwsDbParameterGroupDeleteRefreshFunc(
 	d *schema.ResourceData,
 	meta interface{}) resource.StateRefreshFunc {
-	rdsconn := meta.(*AWSClient).awsRDSconn
+	rdsconn := meta.(*AWSClient).rdsconn
 
 	return func() (interface{}, string, error) {
 
