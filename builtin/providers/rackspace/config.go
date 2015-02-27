@@ -1,9 +1,14 @@
 package rackspace
 
 import (
-	"fmt"
+	"io/ioutil"
+	"log"
+	"os"
+	"path/filepath"
+	"regexp"
+	"runtime"
+	"strings"
 
-	//tf "github.com/hashicorp/terraform"
 	"github.com/rackspace/gophercloud"
 	"github.com/rackspace/gophercloud/rackspace"
 )
@@ -41,10 +46,24 @@ func (c *Config) loadAndValidate() error {
 	if err != nil {
 		return err
 	}
-	//client.UserAgent.Prepend("terraform/" + tf.Version)
-	fmt.Printf("user agent: %s\n", client.UserAgent.Join())
-
 	c.rsClient = client
+
+	version := ""
+	_, thisPath, _, _ := runtime.Caller(0)
+	versionPath := filepath.Join(strings.Split(thisPath, "terraform")[0], "terraform", "version.go")
+	versionFile, err := os.Open(versionPath)
+	if err == nil {
+		versionFileBytes, err := ioutil.ReadAll(versionFile)
+		if err == nil {
+			versionFileString := string(versionFileBytes)
+			re, err := regexp.Compile(`[0-9]\.[0-9]\.[0-9]`)
+			if err == nil {
+				version = re.FindString(versionFileString)
+			}
+		}
+	}
+	client.UserAgent.Prepend("terraform/" + version)
+	log.Printf("[DEBUG] user-agent: %s", client.UserAgent.Join())
 
 	return nil
 }
