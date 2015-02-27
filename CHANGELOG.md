@@ -9,6 +9,8 @@ FEATURES:
       less likely to become corrupt in a catastrophic case: terraform panic
       or system killing Terraform.
   * **New provider: `dme` (DNSMadeEasy)** [GH-855]
+  * **New command: `taint`** - Manually mark a resource as tainted, causing
+      a destroy and recreate on the next plan/apply.
 
 IMPROVEMENTS:
 
