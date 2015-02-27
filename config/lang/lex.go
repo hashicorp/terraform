@@ -168,6 +168,21 @@ func (x *parserLex) lexModeInterpolation(yylval *parserSymType) int {
 			return PAREN_RIGHT
 		case ',':
 			return COMMA
+		case '+':
+			yylval.token = &parserToken{Value: ast.ArithmeticOpAdd}
+			return ARITH_OP
+		case '-':
+			yylval.token = &parserToken{Value: ast.ArithmeticOpSub}
+			return ARITH_OP
+		case '*':
+			yylval.token = &parserToken{Value: ast.ArithmeticOpMul}
+			return ARITH_OP
+		case '/':
+			yylval.token = &parserToken{Value: ast.ArithmeticOpDiv}
+			return ARITH_OP
+		case '%':
+			yylval.token = &parserToken{Value: ast.ArithmeticOpMod}
+			return ARITH_OP
 		default:
 			x.backup()
 			return x.lexId(yylval)

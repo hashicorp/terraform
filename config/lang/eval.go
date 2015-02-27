@@ -32,7 +32,12 @@ func Eval(root ast.Node, config *EvalConfig) (interface{}, ast.Type, error) {
 	}
 	scope := registerBuiltins(config.GlobalScope)
 	implicitMap := map[ast.Type]map[ast.Type]string{
+		ast.TypeFloat: {
+			ast.TypeInt:    "__builtin_FloatToInt",
+			ast.TypeString: "__builtin_FloatToString",
+		},
 		ast.TypeInt: {
+			ast.TypeFloat:  "__builtin_IntToFloat",
 			ast.TypeString: "__builtin_IntToString",
 		},
 		ast.TypeString: {
@@ -47,7 +52,8 @@ func Eval(root ast.Node, config *EvalConfig) (interface{}, ast.Type, error) {
 	// Build up the semantic checks for execution
 	checks := make(
 		[]SemanticChecker,
-		len(config.SemanticChecks), len(config.SemanticChecks)+2)
+		len(config.SemanticChecks),
+		len(config.SemanticChecks)+2)
 	copy(checks, config.SemanticChecks)
 	checks = append(checks, ic.Visit)
 	checks = append(checks, tv.Visit)

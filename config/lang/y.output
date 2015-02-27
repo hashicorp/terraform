@@ -5,7 +5,7 @@ state 0
 
 	PROGRAM_BRACKET_LEFT  shift 7
 	STRING  shift 6
-	.  reduce 1 (src line 32)
+	.  reduce 1 (src line 34)
 
 	interpolation  goto 5
 	literal  goto 4
@@ -26,7 +26,7 @@ state 2
 
 	PROGRAM_BRACKET_LEFT  shift 7
 	STRING  shift 6
-	.  reduce 2 (src line 40)
+	.  reduce 2 (src line 42)
 
 	interpolation  goto 5
 	literal  goto 4
@@ -35,164 +35,229 @@ state 2
 state 3
 	literalModeTop:  literalModeValue.    (3)
 
-	.  reduce 3 (src line 62)
+	.  reduce 3 (src line 64)
 
 
 state 4
 	literalModeValue:  literal.    (5)
 
-	.  reduce 5 (src line 82)
+	.  reduce 5 (src line 84)
 
 
 state 5
 	literalModeValue:  interpolation.    (6)
 
-	.  reduce 6 (src line 87)
+	.  reduce 6 (src line 89)
 
 
 state 6
-	literal:  STRING.    (16)
+	literal:  STRING.    (18)
 
-	.  reduce 16 (src line 141)
+	.  reduce 18 (src line 155)
 
 
 state 7
 	interpolation:  PROGRAM_BRACKET_LEFT.expr PROGRAM_BRACKET_RIGHT 
 
 	PROGRAM_BRACKET_LEFT  shift 7
-	IDENTIFIER  shift 13
-	INTEGER  shift 11
-	FLOAT  shift 12
+	PAREN_LEFT  shift 10
+	IDENTIFIER  shift 14
+	INTEGER  shift 12
+	FLOAT  shift 13
 	STRING  shift 6
 	.  error
 
 	expr  goto 9
 	interpolation  goto 5
 	literal  goto 4
-	literalModeTop  goto 10
+	literalModeTop  goto 11
 	literalModeValue  goto 3
 
 state 8
 	literalModeTop:  literalModeTop literalModeValue.    (4)
 
-	.  reduce 4 (src line 67)
+	.  reduce 4 (src line 69)
 
 
 state 9
 	interpolation:  PROGRAM_BRACKET_LEFT expr.PROGRAM_BRACKET_RIGHT 
+	expr:  expr.ARITH_OP expr 
 
-	PROGRAM_BRACKET_RIGHT  shift 14
+	PROGRAM_BRACKET_RIGHT  shift 15
+	ARITH_OP  shift 16
 	.  error
 
 
 state 10
+	expr:  PAREN_LEFT.expr PAREN_RIGHT 
+
+	PROGRAM_BRACKET_LEFT  shift 7
+	PAREN_LEFT  shift 10
+	IDENTIFIER  shift 14
+	INTEGER  shift 12
+	FLOAT  shift 13
+	STRING  shift 6
+	.  error
+
+	expr  goto 17
+	interpolation  goto 5
+	literal  goto 4
+	literalModeTop  goto 11
+	literalModeValue  goto 3
+
+state 11
 	literalModeTop:  literalModeTop.literalModeValue 
-	expr:  literalModeTop.    (8)
+	expr:  literalModeTop.    (9)
 
 	PROGRAM_BRACKET_LEFT  shift 7
 	STRING  shift 6
-	.  reduce 8 (src line 98)
+	.  reduce 9 (src line 105)
 
 	interpolation  goto 5
 	literal  goto 4
 	literalModeValue  goto 8
 
-state 11
-	expr:  INTEGER.    (9)
-
-	.  reduce 9 (src line 103)
-
-
 state 12
-	expr:  FLOAT.    (10)
+	expr:  INTEGER.    (10)
 
-	.  reduce 10 (src line 111)
+	.  reduce 10 (src line 109)
 
 
 state 13
-	expr:  IDENTIFIER.    (11)
-	expr:  IDENTIFIER.PAREN_LEFT args PAREN_RIGHT 
+	expr:  FLOAT.    (11)
 
-	PAREN_LEFT  shift 15
-	.  reduce 11 (src line 119)
+	.  reduce 11 (src line 117)
 
 
 state 14
-	interpolation:  PROGRAM_BRACKET_LEFT expr PROGRAM_BRACKET_RIGHT.    (7)
+	expr:  IDENTIFIER.    (13)
+	expr:  IDENTIFIER.PAREN_LEFT args PAREN_RIGHT 
 
-	.  reduce 7 (src line 92)
+	PAREN_LEFT  shift 18
+	.  reduce 13 (src line 133)
 
 
 state 15
-	expr:  IDENTIFIER PAREN_LEFT.args PAREN_RIGHT 
-	args: .    (13)
+	interpolation:  PROGRAM_BRACKET_LEFT expr PROGRAM_BRACKET_RIGHT.    (7)
 
-	PROGRAM_BRACKET_LEFT  shift 7
-	IDENTIFIER  shift 13
-	INTEGER  shift 11
-	FLOAT  shift 12
-	STRING  shift 6
-	.  reduce 13 (src line 128)
+	.  reduce 7 (src line 94)
 
-	expr  goto 17
-	interpolation  goto 5
-	literal  goto 4
-	literalModeTop  goto 10
-	literalModeValue  goto 3
-	args  goto 16
 
 state 16
-	expr:  IDENTIFIER PAREN_LEFT args.PAREN_RIGHT 
-	args:  args.COMMA expr 
+	expr:  expr ARITH_OP.expr 
 
-	PAREN_RIGHT  shift 18
-	COMMA  shift 19
+	PROGRAM_BRACKET_LEFT  shift 7
+	PAREN_LEFT  shift 10
+	IDENTIFIER  shift 14
+	INTEGER  shift 12
+	FLOAT  shift 13
+	STRING  shift 6
 	.  error
 
+	expr  goto 19
+	interpolation  goto 5
+	literal  goto 4
+	literalModeTop  goto 11
+	literalModeValue  goto 3
 
 state 17
-	args:  expr.    (15)
+	expr:  PAREN_LEFT expr.PAREN_RIGHT 
+	expr:  expr.ARITH_OP expr 
 
-	.  reduce 15 (src line 136)
+	PAREN_RIGHT  shift 20
+	ARITH_OP  shift 16
+	.  error
 
 
 state 18
-	expr:  IDENTIFIER PAREN_LEFT args PAREN_RIGHT.    (12)
+	expr:  IDENTIFIER PAREN_LEFT.args PAREN_RIGHT 
+	args: .    (15)
 
-	.  reduce 12 (src line 123)
+	PROGRAM_BRACKET_LEFT  shift 7
+	PAREN_LEFT  shift 10
+	IDENTIFIER  shift 14
+	INTEGER  shift 12
+	FLOAT  shift 13
+	STRING  shift 6
+	.  reduce 15 (src line 142)
 
+	expr  goto 22
+	interpolation  goto 5
+	literal  goto 4
+	literalModeTop  goto 11
+	literalModeValue  goto 3
+	args  goto 21
 
 state 19
+	expr:  expr.ARITH_OP expr 
+	expr:  expr ARITH_OP expr.    (12)
+
+	.  reduce 12 (src line 125)
+
+
+state 20
+	expr:  PAREN_LEFT expr PAREN_RIGHT.    (8)
+
+	.  reduce 8 (src line 100)
+
+
+state 21
+	expr:  IDENTIFIER PAREN_LEFT args.PAREN_RIGHT 
+	args:  args.COMMA expr 
+
+	PAREN_RIGHT  shift 23
+	COMMA  shift 24
+	.  error
+
+
+state 22
+	expr:  expr.ARITH_OP expr 
+	args:  expr.    (17)
+
+	ARITH_OP  shift 16
+	.  reduce 17 (src line 150)
+
+
+state 23
+	expr:  IDENTIFIER PAREN_LEFT args PAREN_RIGHT.    (14)
+
+	.  reduce 14 (src line 137)
+
+
+state 24
 	args:  args COMMA.expr 
 
 	PROGRAM_BRACKET_LEFT  shift 7
-	IDENTIFIER  shift 13
-	INTEGER  shift 11
-	FLOAT  shift 12
+	PAREN_LEFT  shift 10
+	IDENTIFIER  shift 14
+	INTEGER  shift 12
+	FLOAT  shift 13
 	STRING  shift 6
 	.  error
 
-	expr  goto 20
+	expr  goto 25
 	interpolation  goto 5
 	literal  goto 4
-	literalModeTop  goto 10
+	literalModeTop  goto 11
 	literalModeValue  goto 3
 
-state 20
-	args:  args COMMA expr.    (14)
+state 25
+	expr:  expr.ARITH_OP expr 
+	args:  args COMMA expr.    (16)
 
-	.  reduce 14 (src line 132)
+	ARITH_OP  shift 16
+	.  reduce 16 (src line 146)
 
 
-14 terminals, 8 nonterminals
-17 grammar rules, 21/2000 states
+15 terminals, 8 nonterminals
+19 grammar rules, 26/2000 states
 0 shift/reduce, 0 reduce/reduce conflicts reported
 57 working sets used
-memory: parser 25/30000
-16 extra closures
-25 shift entries, 1 exceptions
-12 goto entries
-15 entries saved by goto default
-Optimizer space used: output 23/30000
-23 table entries, 0 zero
-maximum spread: 14, maximum offset: 19
+memory: parser 35/30000
+21 extra closures
+45 shift entries, 1 exceptions
+14 goto entries
+23 entries saved by goto default
+Optimizer space used: output 30/30000
+30 table entries, 0 zero
+maximum spread: 15, maximum offset: 24

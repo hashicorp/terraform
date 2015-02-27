@@ -22,10 +22,12 @@ import (
 %token  <str> PROGRAM_STRING_START PROGRAM_STRING_END
 %token  <str> PAREN_LEFT PAREN_RIGHT COMMA
 
-%token <token> IDENTIFIER INTEGER FLOAT STRING
+%token <token> ARITH_OP IDENTIFIER INTEGER FLOAT STRING
 
 %type <node> expr interpolation literal literalModeTop literalModeValue
 %type <nodeList> args
+
+%left ARITH_OP
 
 %%
 
@@ -96,7 +98,11 @@ interpolation:
     }
 
 expr:
-    literalModeTop
+    PAREN_LEFT expr PAREN_RIGHT
+    {
+        $$ = $2
+    }
+|   literalModeTop
     {
         $$ = $1
     }
@@ -114,6 +120,14 @@ expr:
             Value: $1.Value.(float64),
             Typex:  ast.TypeFloat,
             Posx:  $1.Pos,
+        }
+    }
+|   expr ARITH_OP expr
+    {
+        $$ = &ast.Arithmetic{
+            Op:    $2.Value.(ast.ArithmeticOp),
+            Exprs: []ast.Node{$1, $3},
+            Posx:  $1.Pos(),
         }
     }
 |   IDENTIFIER
