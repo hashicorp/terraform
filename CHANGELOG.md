@@ -31,6 +31,7 @@ BUG FIXES:
   * providers/aws: `source_dest_check` regression fixed (now works). [GH-1020]
   * providers/digitalocean: Waits until droplet is ready to be destroyed [GH-1057]
   * providers/digitalocean: More lenient about 404's while waiting [GH-1062]
+  * providers/aws: Longer wait times for DB instances
 
 ## 0.3.7 (February 19, 2015)
 
