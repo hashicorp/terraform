@@ -127,7 +127,6 @@ func resourceAwsAutoscalingGroupCreate(d *schema.ResourceData, meta interface{})
 
 	var autoScalingGroupOpts autoscaling.CreateAutoScalingGroupType
 	autoScalingGroupOpts.AutoScalingGroupName = aws.String(d.Get("name").(string))
-	autoScalingGroupOpts.HealthCheckType = aws.String(d.Get("health_check_type").(string))
 	autoScalingGroupOpts.LaunchConfigurationName = aws.String(d.Get("launch_configuration").(string))
 	autoScalingGroupOpts.MinSize = aws.Integer(d.Get("min_size").(int))
 	autoScalingGroupOpts.MaxSize = aws.Integer(d.Get("max_size").(int))
@@ -136,6 +135,10 @@ func resourceAwsAutoscalingGroupCreate(d *schema.ResourceData, meta interface{})
 
 	if v, ok := d.GetOk("default_cooldown"); ok {
 		autoScalingGroupOpts.DefaultCooldown = aws.Integer(v.(int))
+	}
+
+	if v, ok := d.GetOk("health_check"); ok && v.(string) != "" {
+		autoScalingGroupOpts.HealthCheckType = aws.String(v.(string))
 	}
 
 	if v, ok := d.GetOk("desired_capacity"); ok {
