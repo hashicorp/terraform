@@ -7,13 +7,10 @@ import (
 // EvalReadState is an EvalNode implementation that reads the
 // InstanceState for a specific resource out of the state.
 type EvalReadState struct {
-	Name         string
-	Tainted      bool
-	TaintedIndex int
-	Output       **InstanceState
+	Name   string
+	Output **InstanceState
 }
 
-// TODO: test
 func (n *EvalReadState) Eval(ctx EvalContext) (interface{}, error) {
 	state, lock := ctx.State()
 
@@ -33,20 +30,53 @@ func (n *EvalReadState) Eval(ctx EvalContext) (interface{}, error) {
 		return nil, nil
 	}
 
+	// Write the result to the output pointer
+	if n.Output != nil {
+		*n.Output = rs.Primary
+	}
+
+	return rs.Primary, nil
+}
+
+// EvalReadStateTainted is an EvalNode implementation that reads the
+// InstanceState for a specific tainted resource out of the state
+type EvalReadStateTainted struct {
+	Name   string
+	Output **InstanceState
+
+	// Tainted is a per-resource list, this index determines which item in the
+	// list we are addressing
+	TaintedIndex int
+}
+
+func (n *EvalReadStateTainted) Eval(ctx EvalContext) (interface{}, error) {
+	state, lock := ctx.State()
+
+	// Get a read lock so we can access this instance
+	lock.RLock()
+	defer lock.RUnlock()
+
+	// Look for the module state. If we don't have one, then it doesn't matter.
+	mod := state.ModuleByPath(ctx.Path())
+	if mod == nil {
+		return nil, nil
+	}
+
+	// Look for the resource state. If we don't have one, then it is okay.
+	rs := mod.Resources[n.Name]
+	if rs == nil {
+		return nil, nil
+	}
+
 	var result *InstanceState
-	if !n.Tainted {
-		// Return the primary
-		result = rs.Primary
-	} else {
-		// Get the index. If it is negative, then we get the last one
-		idx := n.TaintedIndex
-		if idx < 0 {
-			idx = len(rs.Tainted) - 1
-		}
-		if idx >= 0 && idx < len(rs.Tainted) {
-			// Return the proper tainted resource
-			result = rs.Tainted[idx]
-		}
+	// Get the index. If it is negative, then we get the last one
+	idx := n.TaintedIndex
+	if idx < 0 {
+		idx = len(rs.Tainted) - 1
+	}
+	if idx >= 0 && idx < len(rs.Tainted) {
+		// Return the proper tainted resource
+		result = rs.Tainted[idx]
 	}
 
 	// Write the result to the output pointer
@@ -55,6 +85,40 @@ func (n *EvalReadState) Eval(ctx EvalContext) (interface{}, error) {
 	}
 
 	return result, nil
+}
+
+// EvalReadStateDeposed is an EvalNode implementation that reads the
+// InstanceState for a specific deposed resource out of the state
+type EvalReadStateDeposed struct {
+	Name   string
+	Output **InstanceState
+}
+
+func (n *EvalReadStateDeposed) Eval(ctx EvalContext) (interface{}, error) {
+	state, lock := ctx.State()
+
+	// Get a read lock so we can access this instance
+	lock.RLock()
+	defer lock.RUnlock()
+
+	// Look for the module state. If we don't have one, then it doesn't matter.
+	mod := state.ModuleByPath(ctx.Path())
+	if mod == nil {
+		return nil, nil
+	}
+
+	// Look for the resource state. If we don't have one, then it is okay.
+	rs := mod.Resources[n.Name]
+	if rs == nil {
+		return nil, nil
+	}
+
+	// Write the result to the output pointer
+	if n.Output != nil {
+		*n.Output = rs.Deposed
+	}
+
+	return rs.Deposed, nil
 }
 
 // EvalRequireState is an EvalNode implementation that early exits
@@ -108,6 +172,7 @@ type EvalWriteState struct {
 	Tainted             *bool
 	TaintedIndex        int
 	TaintedClearPrimary bool
+	Deposed             bool
 }
 
 // TODO: test
@@ -147,6 +212,8 @@ func (n *EvalWriteState) Eval(ctx EvalContext) (interface{}, error) {
 		if n.TaintedClearPrimary {
 			rs.Primary = nil
 		}
+	} else if n.Deposed {
+		rs.Deposed = *n.State
 	} else {
 		// Set the primary state
 		rs.Primary = *n.State
@@ -156,7 +223,7 @@ func (n *EvalWriteState) Eval(ctx EvalContext) (interface{}, error) {
 }
 
 // EvalDeposeState is an EvalNode implementation that takes the primary
-// out of a state and makes it tainted. This is done at the beggining of
+// out of a state and makes it Deposed. This is done at the beginning of
 // create-before-destroy calls so that the create can create while preserving
 // the old state of the to-be-destroyed resource.
 type EvalDeposeState struct {
@@ -188,8 +255,8 @@ func (n *EvalDeposeState) Eval(ctx EvalContext) (interface{}, error) {
 		return nil, nil
 	}
 
-	// Depose to the tainted
-	rs.Tainted = append(rs.Tainted, rs.Primary)
+	// Depose
+	rs.Deposed = rs.Primary
 	rs.Primary = nil
 
 	return nil, nil
@@ -221,15 +288,14 @@ func (n *EvalUndeposeState) Eval(ctx EvalContext) (interface{}, error) {
 		return nil, nil
 	}
 
-	// If we don't have any tainted, then we don't have anything to do
-	if len(rs.Tainted) == 0 {
+	// If we don't have any desposed resource, then we don't have anything to do
+	if rs.Deposed == nil {
 		return nil, nil
 	}
 
-	// Undepose to the tainted
-	idx := len(rs.Tainted) - 1
-	rs.Primary = rs.Tainted[idx]
-	rs.Tainted[idx] = nil
+	// Undepose
+	rs.Primary = rs.Deposed
+	rs.Deposed = nil
 
 	return nil, nil
 }
