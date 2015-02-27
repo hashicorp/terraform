@@ -2,15 +2,17 @@
 
 FEATURES:
 
+  * **New provider: `dme` (DNSMadeEasy)** [GH-855]
+  * **New command: `taint`** - Manually mark a resource as tainted, causing
+      a destroy and recreate on the next plan/apply.
   * **Self-variables** can be used to reference the current resource's
       attributes within a provisioner. Ex. `${self.private_ip_address}` [GH-1033]
   * **Continous state** saving during `terraform apply`. The state file is
       continously updated as apply is running, meaning that the state is
       less likely to become corrupt in a catastrophic case: terraform panic
       or system killing Terraform.
-  * **New provider: `dme` (DNSMadeEasy)** [GH-855]
-  * **New command: `taint`** - Manually mark a resource as tainted, causing
-      a destroy and recreate on the next plan/apply.
+  * **Math operations** in interpolations. You can now do things like
+      `${count.index+1}`. [GH-1068]
 
 IMPROVEMENTS:
 
