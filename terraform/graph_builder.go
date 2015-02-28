@@ -109,5 +109,9 @@ func (b *BuiltinGraphBuilder) Steps() []GraphTransformer {
 
 		// Make sure we create one root
 		&RootTransformer{},
+
+		// Perform the transitive reduction to make our graph a bit
+		// more sane if possible (it usually is possible).
+		&TransitiveReductionTransformer{},
 	}
 }
