@@ -152,12 +152,12 @@ func (w *interpolationWalker) Primitive(v reflect.Value) error {
 		if w.loc == reflectwalk.SliceElem {
 			parts := strings.Split(replaceVal, InterpSplitDelim)
 			for _, p := range parts {
-				if p == UnknownVariableValue {
+				if strings.Contains(p, UnknownVariableValue) {
 					remove = true
 					break
 				}
 			}
-		} else if replaceVal == UnknownVariableValue {
+		} else if strings.Contains(replaceVal, UnknownVariableValue) {
 			remove = true
 		}
 		if remove {
