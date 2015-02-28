@@ -54,30 +54,28 @@ func (g *AcyclicGraph) Root() (Vertex, error) {
 //
 // Complexity: O(V(V+E)), or asymptotically O(VE)
 func (g *AcyclicGraph) TransitiveReduction() {
-	// Find the root-like objects to start a depthFirstWalk from.
-	frontier := make([]Vertex, 0, 5)
-	for _, v := range g.Vertices() {
-		if g.UpEdges(v).Len() == 0 {
-			frontier = append(frontier, v)
+	// For each vertex u in graph g, do a DFS starting from each vertex
+	// v such that the edge (u,v) exists (v is a direct descendant of u).
+	//
+	// For each v-prime reachable from v, remove the edge (u, v-prime).
+
+	for _, u := range g.Vertices() {
+		uTargets := g.DownEdges(u)
+		vs := make([]Vertex, uTargets.Len())
+		for i, vRaw := range uTargets.List() {
+			vs[i] = vRaw.(Vertex)
 		}
-	}
 
-	// Do a DFS
-	g.depthFirstWalk(frontier, func(v Vertex) error {
-		parents := g.UpEdges(v).List()
-		targets := g.DownEdges(v)
-
-		for _, rawParent := range parents {
-			parent := rawParent.(Vertex)
-			shared := g.DownEdges(parent).Intersection(targets)
-			for _, rawTarget := range shared.List() {
-				target := rawTarget.(Vertex)
-				g.RemoveEdge(BasicEdge(parent, target))
+		g.depthFirstWalk(vs, func(v Vertex) error {
+			shared := uTargets.Intersection(g.DownEdges(v))
+			for _, raw := range shared.List() {
+				vPrime := raw.(Vertex)
+				g.RemoveEdge(BasicEdge(u, vPrime))
 			}
-		}
 
-		return nil
-	})
+			return nil
+		})
+	}
 }
 
 // Validate validates the DAG. A DAG is valid if it has a single root
