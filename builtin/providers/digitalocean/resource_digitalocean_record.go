@@ -68,18 +68,10 @@ func resourceDigitalOceanRecord() *schema.Resource {
 func resourceDigitalOceanRecordCreate(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*digitalocean.Client)
 
-	rrValue := d.Get("value").(string)
-	// Ensure all records with domain value are absolute (ending with dot)
-	if t := d.Get("type").(string); t == "CNAME" || t == "MX" || t == "NS" || t == "SRV" {
-		if rrValue[len(rrValue)-1] != '.' {
-			rrValue += "."
-		}
-	}
-
 	newRecord := digitalocean.CreateRecord{
 		Type:     d.Get("type").(string),
 		Name:     d.Get("name").(string),
-		Data:     rrValue,
+		Data:     d.Get("value").(string),
 		Priority: d.Get("priority").(string),
 		Port:     d.Get("port").(string),
 		Weight:   d.Get("weight").(string),
@@ -99,8 +91,9 @@ func resourceDigitalOceanRecordCreate(d *schema.ResourceData, meta interface{}) 
 
 func resourceDigitalOceanRecordRead(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*digitalocean.Client)
+	domain := d.Get("domain").(string)
 
-	rec, err := client.RetrieveRecord(d.Get("domain").(string), d.Id())
+	rec, err := client.RetrieveRecord(domain, d.Id())
 	if err != nil {
 		// If the record is somehow already destroyed, mark as
 		// succesfully gone
@@ -110,6 +103,18 @@ func resourceDigitalOceanRecordRead(d *schema.ResourceData, meta interface{}) er
 		}
 
 		return err
+	}
+
+	// Update response data for records with domain value
+	if t := rec.Type; t == "CNAME" || t == "MX" || t == "NS" || t == "SRV" {
+		// Append dot to response if resource value is absolute
+		if value := d.Get("value").(string); strings.HasSuffix(value, ".") {
+			rec.Data += "."
+			// If resource value ends with current domain, make response data absolute
+			if strings.HasSuffix(value, domain+".") {
+				rec.Data += domain + "."
+			}
+		}
 	}
 
 	d.Set("name", rec.Name)
