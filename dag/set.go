@@ -36,6 +36,20 @@ func (s *Set) Include(v interface{}) bool {
 	return ok
 }
 
+// Intersection computes the set intersection with other.
+func (s *Set) Intersection(other *Set) *Set {
+	result := new(Set)
+	if other != nil {
+		for _, v := range s.m {
+			if other.Include(v) {
+				result.Add(v)
+			}
+		}
+	}
+
+	return result
+}
+
 // Len is the number of items in the set.
 func (s *Set) Len() int {
 	if s == nil {
