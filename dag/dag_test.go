@@ -3,6 +3,7 @@ package dag
 import (
 	"fmt"
 	"reflect"
+	"strings"
 	"sync"
 	"testing"
 )
@@ -45,6 +46,44 @@ func TestAcyclicGraphRoot_multiple(t *testing.T) {
 
 	if _, err := g.Root(); err == nil {
 		t.Fatal("should error")
+	}
+}
+
+func TestAyclicGraphTransReduction(t *testing.T) {
+	var g AcyclicGraph
+	g.Add(1)
+	g.Add(2)
+	g.Add(3)
+	g.Connect(BasicEdge(1, 2))
+	g.Connect(BasicEdge(1, 3))
+	g.Connect(BasicEdge(2, 3))
+	g.TransitiveReduction()
+
+	actual := strings.TrimSpace(g.String())
+	expected := strings.TrimSpace(testGraphTransReductionStr)
+	if actual != expected {
+		t.Fatalf("bad: %s", actual)
+	}
+}
+
+func TestAyclicGraphTransReduction_more(t *testing.T) {
+	var g AcyclicGraph
+	g.Add(1)
+	g.Add(2)
+	g.Add(3)
+	g.Add(4)
+	g.Connect(BasicEdge(1, 2))
+	g.Connect(BasicEdge(1, 3))
+	g.Connect(BasicEdge(1, 4))
+	g.Connect(BasicEdge(2, 3))
+	g.Connect(BasicEdge(2, 4))
+	g.Connect(BasicEdge(3, 4))
+	g.TransitiveReduction()
+
+	actual := strings.TrimSpace(g.String())
+	expected := strings.TrimSpace(testGraphTransReductionMoreStr)
+	if actual != expected {
+		t.Fatalf("bad: %s", actual)
 	}
 }
 
@@ -156,3 +195,21 @@ func TestAcyclicGraphWalk_error(t *testing.T) {
 
 	t.Fatalf("bad: %#v", visits)
 }
+
+const testGraphTransReductionStr = `
+1
+  2
+2
+  3
+3
+`
+
+const testGraphTransReductionMoreStr = `
+1
+  2
+2
+  3
+3
+  4
+4
+`
