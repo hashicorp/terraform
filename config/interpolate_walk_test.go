@@ -5,6 +5,7 @@ import (
 	"reflect"
 	"testing"
 
+	"github.com/hashicorp/terraform/config/lang"
 	"github.com/hashicorp/terraform/config/lang/ast"
 	"github.com/mitchellh/reflectwalk"
 )
@@ -124,7 +125,7 @@ func TestInterpolationWalker_replace(t *testing.T) {
 				"foo": "hello, ${var.foo}",
 			},
 			Output: map[string]interface{}{
-				"foo": "bar",
+				"foo": "hello, bar",
 			},
 			Value: "bar",
 		},
@@ -170,11 +171,38 @@ func TestInterpolationWalker_replace(t *testing.T) {
 			Output: map[string]interface{}{},
 			Value:  UnknownVariableValue + InterpSplitDelim + "baz",
 		},
+
+		{
+			Input: map[string]interface{}{
+				"foo": []interface{}{
+					"${var.foo}/32",
+					"bing",
+				},
+			},
+			Output: map[string]interface{}{},
+			Value:  UnknownVariableValue,
+		},
 	}
 
 	for i, tc := range cases {
-		fn := func(ast.Node) (string, error) {
-			return tc.Value, nil
+		config := &lang.EvalConfig{
+			GlobalScope: &ast.BasicScope{
+				VarMap: map[string]ast.Variable{
+					"var.foo": ast.Variable{
+						Value: tc.Value,
+						Type:  ast.TypeString,
+					},
+				},
+			},
+		}
+
+		fn := func(root ast.Node) (string, error) {
+			value, _, err := lang.Eval(root, config)
+			if err != nil {
+				return "", err
+			}
+
+			return value.(string), nil
 		}
 
 		w := &interpolationWalker{F: fn, Replace: true}
