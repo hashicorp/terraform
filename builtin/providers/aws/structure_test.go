@@ -5,12 +5,12 @@ import (
 	"testing"
 
 	"github.com/hashicorp/aws-sdk-go/aws"
+	"github.com/hashicorp/aws-sdk-go/gen/elb"
 	"github.com/hashicorp/aws-sdk-go/gen/rds"
 	"github.com/hashicorp/terraform/flatmap"
 	"github.com/hashicorp/terraform/helper/hashcode"
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/mitchellh/goamz/ec2"
-	"github.com/mitchellh/goamz/elb"
 )
 
 // Returns test configuration
@@ -192,10 +192,10 @@ func Test_expandListeners(t *testing.T) {
 	}
 
 	expected := elb.Listener{
-		InstancePort:     8000,
-		LoadBalancerPort: 80,
-		InstanceProtocol: "http",
-		Protocol:         "http",
+		InstancePort:     aws.Integer(8000),
+		LoadBalancerPort: aws.Integer(80),
+		InstanceProtocol: aws.String("http"),
+		Protocol:         aws.String("http"),
 	}
 
 	if !reflect.DeepEqual(listeners[0], expected) {
@@ -214,11 +214,11 @@ func Test_flattenHealthCheck(t *testing.T) {
 	}{
 		{
 			Input: elb.HealthCheck{
-				UnhealthyThreshold: 10,
-				HealthyThreshold:   10,
-				Target:             "HTTP:80/",
-				Timeout:            30,
-				Interval:           30,
+				UnhealthyThreshold: aws.Integer(10),
+				HealthyThreshold:   aws.Integer(10),
+				Target:             aws.String("HTTP:80/"),
+				Timeout:            aws.Integer(30),
+				Interval:           aws.Integer(30),
 			},
 			Output: []map[string]interface{}{
 				map[string]interface{}{
@@ -233,7 +233,7 @@ func Test_flattenHealthCheck(t *testing.T) {
 	}
 
 	for _, tc := range cases {
-		output := flattenHealthCheck(tc.Input)
+		output := flattenHealthCheck(&tc.Input)
 		if !reflect.DeepEqual(output, tc.Output) {
 			t.Fatalf("Got:\n\n%#v\n\nExpected:\n\n%#v", output, tc.Output)
 		}
