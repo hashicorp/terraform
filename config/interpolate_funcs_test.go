@@ -136,6 +136,13 @@ func TestInterpolateFuncReplace(t *testing.T) {
 				"hello",
 				false,
 			},
+
+			// Bad regexp
+			{
+				`${replace("helo", "/(l/", "$1$1")}`,
+				nil,
+				true,
+			},
 		},
 	})
 }
