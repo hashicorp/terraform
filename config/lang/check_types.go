@@ -174,6 +174,10 @@ func (tc *typeCheckCall) TypeCheck(v *TypeCheck) (ast.Node, error) {
 
 	// Verify the args
 	for i, expected := range function.ArgTypes {
+		if expected == ast.TypeAny {
+			continue
+		}
+
 		if args[i] != expected {
 			cn := v.ImplicitConversion(args[i], expected, tc.n.Args[i])
 			if cn != nil {
@@ -188,7 +192,7 @@ func (tc *typeCheckCall) TypeCheck(v *TypeCheck) (ast.Node, error) {
 	}
 
 	// If we're variadic, then verify the types there
-	if function.Variadic {
+	if function.Variadic && function.VariadicType != ast.TypeAny {
 		args = args[len(function.ArgTypes):]
 		for i, t := range args {
 			if t != function.VariadicType {

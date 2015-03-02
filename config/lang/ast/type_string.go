@@ -6,16 +6,18 @@ import "fmt"
 
 const (
 	_Type_name_0 = "TypeInvalid"
-	_Type_name_1 = "TypeString"
-	_Type_name_2 = "TypeInt"
-	_Type_name_3 = "TypeFloat"
+	_Type_name_1 = "TypeAny"
+	_Type_name_2 = "TypeString"
+	_Type_name_3 = "TypeInt"
+	_Type_name_4 = "TypeFloat"
 )
 
 var (
 	_Type_index_0 = [...]uint8{0, 11}
-	_Type_index_1 = [...]uint8{0, 10}
-	_Type_index_2 = [...]uint8{0, 7}
-	_Type_index_3 = [...]uint8{0, 9}
+	_Type_index_1 = [...]uint8{0, 7}
+	_Type_index_2 = [...]uint8{0, 10}
+	_Type_index_3 = [...]uint8{0, 7}
+	_Type_index_4 = [...]uint8{0, 9}
 )
 
 func (i Type) String() string {
@@ -28,6 +30,8 @@ func (i Type) String() string {
 		return _Type_name_2
 	case i == 8:
 		return _Type_name_3
+	case i == 16:
+		return _Type_name_4
 	default:
 		return fmt.Sprintf("Type(%d)", i)
 	}

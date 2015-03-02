@@ -17,6 +17,7 @@ var Funcs map[string]ast.Function
 func init() {
 	Funcs = map[string]ast.Function{
 		"file":    interpolationFuncFile(),
+		"format":  interpolationFuncFormat(),
 		"join":    interpolationFuncJoin(),
 		"element": interpolationFuncElement(),
 		"replace": interpolationFuncReplace(),
@@ -62,6 +63,21 @@ func interpolationFuncFile() ast.Function {
 			}
 
 			return string(data), nil
+		},
+	}
+}
+
+// interpolationFuncFormat implements the "replace" function that does
+// string replacement.
+func interpolationFuncFormat() ast.Function {
+	return ast.Function{
+		ArgTypes:     []ast.Type{ast.TypeString},
+		Variadic:     true,
+		VariadicType: ast.TypeAny,
+		ReturnType:   ast.TypeString,
+		Callback: func(args []interface{}) (interface{}, error) {
+			format := args[0].(string)
+			return fmt.Sprintf(format, args[1:]...), nil
 		},
 	}
 }
