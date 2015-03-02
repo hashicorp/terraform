@@ -97,7 +97,7 @@ func interpolationFuncReplace() ast.Function {
 
 			// We search/replace using a regexp if the string is surrounded
 			// in forward slashes.
-			if len(search) > 0 && search[0] == '/' && search[len(search)-1] == '/' {
+			if len(search) > 1 && search[0] == '/' && search[len(search)-1] == '/' {
 				re, err := regexp.Compile(search[1 : len(search)-1])
 				if err != nil {
 					return nil, err
