@@ -829,6 +829,64 @@ func TestContext2Plan_countIncreaseFromOne(t *testing.T) {
 	}
 }
 
+// https://github.com/PeoplePerHour/terraform/pull/11
+//
+// This tests a case where both a "resource" and "resource.0" are in
+// the state file, which apparently is a reasonable backwards compatibility
+// concern found in the above 3rd party repo.
+func TestContext2Plan_countIncreaseFromOneCorrupted(t *testing.T) {
+	m := testModule(t, "plan-count-inc")
+	p := testProvider("aws")
+	p.DiffFn = testDiffFn
+	s := &State{
+		Modules: []*ModuleState{
+			&ModuleState{
+				Path: rootModulePath,
+				Resources: map[string]*ResourceState{
+					"aws_instance.foo": &ResourceState{
+						Type: "aws_instance",
+						Primary: &InstanceState{
+							ID: "bar",
+							Attributes: map[string]string{
+								"foo":  "foo",
+								"type": "aws_instance",
+							},
+						},
+					},
+					"aws_instance.foo.0": &ResourceState{
+						Type: "aws_instance",
+						Primary: &InstanceState{
+							ID: "bar",
+							Attributes: map[string]string{
+								"foo":  "foo",
+								"type": "aws_instance",
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+	ctx := testContext2(t, &ContextOpts{
+		Module: m,
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+		State: s,
+	})
+
+	plan, err := ctx.Plan(nil)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	actual := strings.TrimSpace(plan.String())
+	expected := strings.TrimSpace(testTerraformPlanCountIncreaseFromOneCorruptedStr)
+	if actual != expected {
+		t.Fatalf("bad:\n%s", actual)
+	}
+}
+
 func TestContext2Plan_destroy(t *testing.T) {
 	m := testModule(t, "plan-destroy")
 	p := testProvider("aws")
@@ -3097,6 +3155,7 @@ func TestContext2Apply_countDecrease(t *testing.T) {
 func TestContext2Apply_countDecreaseToOne(t *testing.T) {
 	m := testModule(t, "apply-count-dec-one")
 	p := testProvider("aws")
+	p.ApplyFn = testApplyFn
 	p.DiffFn = testDiffFn
 	s := &State{
 		Modules: []*ModuleState{
@@ -3148,6 +3207,70 @@ func TestContext2Apply_countDecreaseToOne(t *testing.T) {
 
 	actual := strings.TrimSpace(state.String())
 	expected := strings.TrimSpace(testTerraformApplyCountDecToOneStr)
+	if actual != expected {
+		t.Fatalf("bad: \n%s", actual)
+	}
+}
+
+// https://github.com/PeoplePerHour/terraform/pull/11
+//
+// This tests a case where both a "resource" and "resource.0" are in
+// the state file, which apparently is a reasonable backwards compatibility
+// concern found in the above 3rd party repo.
+func TestContext2Apply_countDecreaseToOneCorrupted(t *testing.T) {
+	m := testModule(t, "apply-count-dec-one")
+	p := testProvider("aws")
+	p.ApplyFn = testApplyFn
+	p.DiffFn = testDiffFn
+	s := &State{
+		Modules: []*ModuleState{
+			&ModuleState{
+				Path: rootModulePath,
+				Resources: map[string]*ResourceState{
+					"aws_instance.foo": &ResourceState{
+						Type: "aws_instance",
+						Primary: &InstanceState{
+							ID: "bar",
+							Attributes: map[string]string{
+								"foo":  "foo",
+								"type": "aws_instance",
+							},
+						},
+					},
+					"aws_instance.foo.0": &ResourceState{
+						Type: "aws_instance",
+						Primary: &InstanceState{
+							ID: "baz",
+							Attributes: map[string]string{
+								"type": "aws_instance",
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+	ctx := testContext2(t, &ContextOpts{
+		Module: m,
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+		State: s,
+	})
+
+	if p, err := ctx.Plan(nil); err != nil {
+		t.Fatalf("err: %s", err)
+	} else {
+		testStringMatch(t, p, testTerraformApplyCountDecToOneCorruptedPlanStr)
+	}
+
+	state, err := ctx.Apply()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	actual := strings.TrimSpace(state.String())
+	expected := strings.TrimSpace(testTerraformApplyCountDecToOneCorruptedStr)
 	if actual != expected {
 		t.Fatalf("bad: \n%s", actual)
 	}
