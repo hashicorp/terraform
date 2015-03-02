@@ -28,7 +28,9 @@ func (b *BasicGraphBuilder) Build(path []string) (*Graph, error) {
 			return g, err
 		}
 
-		log.Printf("[TRACE] Graph after step %T:\n\n%s", step, g.String())
+		log.Printf(
+			"[TRACE] Graph after step %T:\n\n%s",
+			step, g.String())
 	}
 
 	// Validate the graph structure
