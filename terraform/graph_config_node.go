@@ -481,6 +481,14 @@ func (n *graphNodeResourceDestroy) DestroyInclude(d *ModuleDiff, s *ModuleState)
 				return true
 			}
 		}
+
+		// If we're in the state as _both_ "foo" and "foo.0", then
+		// keep it, since we treat the latter as an orphan.
+		_, okOne := s.Resources[prefix]
+		_, okTwo := s.Resources[prefix+".0"]
+		if okOne && okTwo {
+			return true
+		}
 	}
 
 	return false
