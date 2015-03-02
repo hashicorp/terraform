@@ -80,6 +80,12 @@ The supported built-in functions are:
       in this file are _not_ interpolated. The contents of the file are
       read as-is.
 
+  * `format(format, args...)` - Formats a string according to the given
+      format. The syntax for the format is standard `sprintf` syntax.
+      Good documentation for the syntax can be [found here](http://golang.org/pkg/fmt/).
+      Example to zero-prefix a count, used commonly for naming servers:
+      `format("web-%03d", count.index+1)`.
+
   * `join(delim, list)` - Joins the list with the delimiter. A list is
       only possible with splat variables from resources with a count
       greater than one. Example: `join(",", aws_instance.foo.*.id)`
