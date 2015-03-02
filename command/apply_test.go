@@ -1113,6 +1113,12 @@ func TestApply_disableBackup(t *testing.T) {
 	if err == nil || !os.IsNotExist(err) {
 		t.Fatalf("backup should not exist")
 	}
+
+	// Ensure there is no literal "-"
+	_, err = os.Stat("-")
+	if err == nil || !os.IsNotExist(err) {
+		t.Fatalf("backup should not exist")
+	}
 }
 
 func testHttpServer(t *testing.T) net.Listener {
