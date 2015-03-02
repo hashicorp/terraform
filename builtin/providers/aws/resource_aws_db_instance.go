@@ -305,7 +305,10 @@ func resourceAwsDbInstanceRead(d *schema.ResourceData, meta interface{}) error {
 		return nil
 	}
 
-	d.Set("name", *v.DBName)
+	if v.DBName != nil {
+		d.Set("name", *v.DBName)
+	}
+
 	d.Set("username", *v.MasterUsername)
 	d.Set("engine", *v.Engine)
 	d.Set("engine_version", *v.EngineVersion)
