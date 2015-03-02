@@ -147,3 +147,79 @@ func TestEvalReadState(t *testing.T) {
 		output = nil
 	}
 }
+
+func TestEvalWriteState(t *testing.T) {
+	state := &State{}
+	ctx := new(MockEvalContext)
+	ctx.StateState = state
+	ctx.StateLock = new(sync.RWMutex)
+	ctx.PathPath = rootModulePath
+
+	is := &InstanceState{ID: "i-abc123"}
+	node := &EvalWriteState{
+		Name:         "restype.resname",
+		ResourceType: "restype",
+		State:        &is,
+	}
+	_, err := node.Eval(ctx)
+	if err != nil {
+		t.Fatalf("Got err: %#v", err)
+	}
+
+	rs := state.ModuleByPath(ctx.Path()).Resources["restype.resname"]
+	if rs.Type != "restype" {
+		t.Fatalf("expected type 'restype': %#v", rs)
+	}
+	if rs.Primary.ID != "i-abc123" {
+		t.Fatalf("expected primary instance to have ID 'i-abc123': %#v", rs)
+	}
+}
+
+func TestEvalWriteStateTainted(t *testing.T) {
+	state := &State{}
+	ctx := new(MockEvalContext)
+	ctx.StateState = state
+	ctx.StateLock = new(sync.RWMutex)
+	ctx.PathPath = rootModulePath
+
+	is := &InstanceState{ID: "i-abc123"}
+	node := &EvalWriteStateTainted{
+		Name:         "restype.resname",
+		ResourceType: "restype",
+		State:        &is,
+		TaintedIndex: -1,
+	}
+	_, err := node.Eval(ctx)
+	if err != nil {
+		t.Fatalf("Got err: %#v", err)
+	}
+
+	rs := state.ModuleByPath(ctx.Path()).Resources["restype.resname"]
+	if len(rs.Tainted) == 1 && rs.Tainted[0].ID != "i-abc123" {
+		t.Fatalf("expected tainted instance to have ID 'i-abc123': %#v", rs)
+	}
+}
+
+func TestEvalWriteStateDeposed(t *testing.T) {
+	state := &State{}
+	ctx := new(MockEvalContext)
+	ctx.StateState = state
+	ctx.StateLock = new(sync.RWMutex)
+	ctx.PathPath = rootModulePath
+
+	is := &InstanceState{ID: "i-abc123"}
+	node := &EvalWriteStateDeposed{
+		Name:         "restype.resname",
+		ResourceType: "restype",
+		State:        &is,
+	}
+	_, err := node.Eval(ctx)
+	if err != nil {
+		t.Fatalf("Got err: %#v", err)
+	}
+
+	rs := state.ModuleByPath(ctx.Path()).Resources["restype.resname"]
+	if rs.Deposed == nil || rs.Deposed.ID != "i-abc123" {
+		t.Fatalf("expected deposed instance to have ID 'i-abc123': %#v", rs)
+	}
+}

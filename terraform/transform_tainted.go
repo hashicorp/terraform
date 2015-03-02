@@ -71,7 +71,6 @@ func (n *graphNodeTaintedResource) ProvidedBy() []string {
 func (n *graphNodeTaintedResource) EvalTree() EvalNode {
 	var provider ResourceProvider
 	var state *InstanceState
-	tainted := true
 
 	seq := &EvalSequence{Nodes: make([]EvalNode, 0, 5)}
 
@@ -99,11 +98,10 @@ func (n *graphNodeTaintedResource) EvalTree() EvalNode {
 					State:    &state,
 					Output:   &state,
 				},
-				&EvalWriteState{
+				&EvalWriteStateTainted{
 					Name:         n.ResourceName,
 					ResourceType: n.ResourceType,
 					State:        &state,
-					Tainted:      &tainted,
 					TaintedIndex: n.Index,
 				},
 			},
@@ -137,11 +135,10 @@ func (n *graphNodeTaintedResource) EvalTree() EvalNode {
 					Provider: &provider,
 					Output:   &state,
 				},
-				&EvalWriteState{
+				&EvalWriteStateTainted{
 					Name:         n.ResourceName,
 					ResourceType: n.ResourceType,
 					State:        &state,
-					Tainted:      &tainted,
 					TaintedIndex: n.Index,
 				},
 				&EvalUpdateStateHook{},
