@@ -81,7 +81,7 @@ func (c *Config) Client() (interface{}, error) {
 
 		//Check about using us-east-1 for all
 		log.Println("[INFO] Initializing AWS-GO EC2 Connection")
-		client.awsEc2conn = awsEc2.New(creds, "us-east-1", nil)
+		client.awsEc2conn = awsEc2.New(creds, c.Region, nil)
 	}
 
 	if len(errs) > 0 {

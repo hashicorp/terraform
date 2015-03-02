@@ -67,7 +67,7 @@ func resourceAwsVpcCreate(d *schema.ResourceData, meta interface{}) error {
 	ec2conn := meta.(*AWSClient).awsEc2conn
 	cidr := d.Get("cidr_block").(string)
 	instance_tenancy := "default"
-	if v := d.Get("instance_tenancy"); v != nil {
+	if v, ok := d.GetOk("instance_tenancy"); ok {
 		instance_tenancy = v.(string)
 	}
 	// Create the VPC
@@ -75,10 +75,10 @@ func resourceAwsVpcCreate(d *schema.ResourceData, meta interface{}) error {
 		CIDRBlock:       &cidr,
 		InstanceTenancy: &instance_tenancy,
 	}
-	log.Printf("[DEBUG] VPC create config: %#v", createOpts)
+	log.Printf("[DEBUG] VPC create config: %#v", *createOpts)
 	vpcResp, err := ec2conn.CreateVPC(createOpts)
 	if err != nil {
-		return fmt.Errorf("Error creating VPC: %s", err)
+		return fmt.Errorf("Error creating VPC: %s : %s", err)
 	}
 
 	// Get the ID and store it
@@ -160,7 +160,7 @@ func resourceAwsVpcRead(d *schema.ResourceData, meta interface{}) error {
 		Values: []string{("true")},
 	}
 	filter2 := &ec2.Filter{
-		Name:   awsGo.String("VPCID"),
+		Name:   awsGo.String("vpc-id"),
 		Values: []string{(d.Id())},
 	}
 	DescribeRouteOpts := &ec2.DescribeRouteTablesRequest{
