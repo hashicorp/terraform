@@ -4,21 +4,22 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/hashicorp/aws-sdk-go/aws"
+	"github.com/hashicorp/aws-sdk-go/gen/ec2"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
-	"github.com/mitchellh/goamz/ec2"
 )
 
 func TestAccAWSSubnet(t *testing.T) {
 	var v ec2.Subnet
 
 	testCheck := func(*terraform.State) error {
-		if v.CidrBlock != "10.1.1.0/24" {
-			return fmt.Errorf("bad cidr: %s", v.CidrBlock)
+		if *v.CIDRBlock != "10.1.1.0/24" {
+			return fmt.Errorf("bad cidr: %s", v.CIDRBlock)
 		}
 
-		if v.MapPublicIpOnLaunch != true {
-			return fmt.Errorf("bad MapPublicIpOnLaunch: %t", v.MapPublicIpOnLaunch)
+		if *v.MapPublicIPOnLaunch != true {
+			return fmt.Errorf("bad MapPublicIpOnLaunch: %t", v.MapPublicIPOnLaunch)
 		}
 
 		return nil
@@ -42,7 +43,7 @@ func TestAccAWSSubnet(t *testing.T) {
 }
 
 func testAccCheckSubnetDestroy(s *terraform.State) error {
-	conn := testAccProvider.Meta().(*AWSClient).ec2conn
+	conn := testAccProvider.Meta().(*AWSClient).awsEC2conn
 
 	for _, rs := range s.RootModule().Resources {
 		if rs.Type != "aws_subnet" {
@@ -50,8 +51,9 @@ func testAccCheckSubnetDestroy(s *terraform.State) error {
 		}
 
 		// Try to find the resource
-		resp, err := conn.DescribeSubnets(
-			[]string{rs.Primary.ID}, ec2.NewFilter())
+		resp, err := conn.DescribeSubnets(&ec2.DescribeSubnetsRequest{
+			SubnetIDs: []string{rs.Primary.ID},
+		})
 		if err == nil {
 			if len(resp.Subnets) > 0 {
 				return fmt.Errorf("still exist.")
@@ -61,7 +63,7 @@ func testAccCheckSubnetDestroy(s *terraform.State) error {
 		}
 
 		// Verify the error is what we want
-		ec2err, ok := err.(*ec2.Error)
+		ec2err, ok := err.(aws.APIError)
 		if !ok {
 			return err
 		}
@@ -84,9 +86,10 @@ func testAccCheckSubnetExists(n string, v *ec2.Subnet) resource.TestCheckFunc {
 			return fmt.Errorf("No ID is set")
 		}
 
-		conn := testAccProvider.Meta().(*AWSClient).ec2conn
-		resp, err := conn.DescribeSubnets(
-			[]string{rs.Primary.ID}, ec2.NewFilter())
+		conn := testAccProvider.Meta().(*AWSClient).awsEC2conn
+		resp, err := conn.DescribeSubnets(&ec2.DescribeSubnetsRequest{
+			SubnetIDs: []string{rs.Primary.ID},
+		})
 		if err != nil {
 			return err
 		}
