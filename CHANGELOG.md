@@ -16,6 +16,9 @@ FEATURES:
 
 IMPROVEMENTS:
 
+  * **New config function: `replace`** - Search and replace string values.
+      Search can be a regular expression. See documentation for more
+      info. [GH-1029]
   * **New config function: `split`** - Split a value based on a delimiter.
       This is useful for faking lists as parameters to modules.
   * core: The serial of the state is only updated if there is an actual
