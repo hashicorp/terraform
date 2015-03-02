@@ -41,10 +41,18 @@ func (n *EvalCountFixZeroOneBoundary) Eval(ctx EvalContext) (interface{}, error)
 	}
 
 	// Look for the resource state. If we don't have one, then it is okay.
-	if rs, ok := mod.Resources[hunt]; ok {
-		mod.Resources[replace] = rs
-		delete(mod.Resources, hunt)
+	rs, ok := mod.Resources[hunt]
+	if !ok {
+		return nil, nil
 	}
+
+	// If the replacement key exists, we just keep both
+	if _, ok := mod.Resources[replace]; ok {
+		return nil, nil
+	}
+
+	mod.Resources[replace] = rs
+	delete(mod.Resources, hunt)
 
 	return nil, nil
 }
