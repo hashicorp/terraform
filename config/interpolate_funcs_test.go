@@ -107,6 +107,39 @@ func TestInterpolateFuncJoin(t *testing.T) {
 	})
 }
 
+func TestInterpolateFuncReplace(t *testing.T) {
+	testFunction(t, testFunctionConfig{
+		Cases: []testFunctionCase{
+			// Regular search and replace
+			{
+				`${replace("hello", "hel", "bel")}`,
+				"bello",
+				false,
+			},
+
+			// Search string doesn't match
+			{
+				`${replace("hello", "nope", "bel")}`,
+				"hello",
+				false,
+			},
+
+			// Regular expression
+			{
+				`${replace("hello", "/l/", "L")}`,
+				"heLLo",
+				false,
+			},
+
+			{
+				`${replace("helo", "/(l)/", "$1$1")}`,
+				"hello",
+				false,
+			},
+		},
+	})
+}
+
 func TestInterpolateFuncSplit(t *testing.T) {
 	testFunction(t, testFunctionConfig{
 		Cases: []testFunctionCase{
@@ -225,7 +258,9 @@ func testFunction(t *testing.T, config testFunctionConfig) {
 		}
 
 		if !reflect.DeepEqual(out, tc.Result) {
-			t.Fatalf("%d: bad: %#v", i, out)
+			t.Fatalf(
+				"%d: bad output for input: %s\n\nOutput: %#v",
+				i, tc.Input, out)
 		}
 	}
 }
