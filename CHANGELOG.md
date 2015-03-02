@@ -21,6 +21,7 @@ IMPROVEMENTS:
   * core: The serial of the state is only updated if there is an actual
       change. This will lower the amount of state changing on things
       like refresh.
+  * core: Autoload `terraform.tfvars.json` as well as `terraform.tfvars` [GH-1030]
 
 BUG FIXES:
 
