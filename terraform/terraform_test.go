@@ -829,6 +829,32 @@ aws_instance.foo.0:
   type = aws_instance
 `
 
+const testTerraformPlanCountIncreaseFromOneCorruptedStr = `
+DIFF:
+
+CREATE: aws_instance.bar
+  foo:  "" => "bar"
+  type: "" => "aws_instance"
+DESTROY: aws_instance.foo
+CREATE: aws_instance.foo.1
+  foo:  "" => "foo"
+  type: "" => "aws_instance"
+CREATE: aws_instance.foo.2
+  foo:  "" => "foo"
+  type: "" => "aws_instance"
+
+STATE:
+
+aws_instance.foo:
+  ID = bar
+  foo = foo
+  type = aws_instance
+aws_instance.foo.0:
+  ID = bar
+  foo = foo
+  type = aws_instance
+`
+
 const testTerraformPlanDestroyStr = `
 DIFF:
 
