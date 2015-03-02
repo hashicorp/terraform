@@ -48,7 +48,8 @@ type Type uint32
 
 const (
 	TypeInvalid Type = 0
-	TypeString  Type = 1 << iota
+	TypeAny     Type = 1 << iota
+	TypeString
 	TypeInt
 	TypeFloat
 )
