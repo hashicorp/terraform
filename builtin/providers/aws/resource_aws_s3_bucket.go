@@ -46,9 +46,14 @@ func resourceAwsS3BucketCreate(d *schema.ResourceData, meta interface{}) error {
 	req := &s3.CreateBucketRequest{
 		Bucket: aws.String(bucket),
 		ACL:    aws.String(acl),
-		CreateBucketConfiguration: &s3.CreateBucketConfiguration{
+	}
+
+	// Special case us-east-1 region and do not set the LocationConstraint.
+	// See "Request Elements: http://docs.aws.amazon.com/AmazonS3/latest/API/RESTBucketPUT.html
+	if awsRegion != "us-east-1" {
+		req.CreateBucketConfiguration = &s3.CreateBucketConfiguration{
 			LocationConstraint: aws.String(awsRegion),
-		},
+		}
 	}
 
 	_, err := s3conn.CreateBucket(req)
