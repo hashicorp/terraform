@@ -154,9 +154,11 @@ func State(opts *StateOpts) (*StateResult, error) {
 			backupPath = opts.BackupPath
 		}
 
-		result.State = &state.BackupState{
-			Real: result.State,
-			Path: backupPath,
+		if backupPath != "-" {
+			result.State = &state.BackupState{
+				Real: result.State,
+				Path: backupPath,
+			}
 		}
 	}
 
