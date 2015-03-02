@@ -5,41 +5,20 @@ import (
 )
 
 // EvalReadState is an EvalNode implementation that reads the
-// InstanceState for a specific resource out of the state.
+// primary InstanceState for a specific resource out of the state.
 type EvalReadState struct {
 	Name   string
 	Output **InstanceState
 }
 
 func (n *EvalReadState) Eval(ctx EvalContext) (interface{}, error) {
-	state, lock := ctx.State()
-
-	// Get a read lock so we can access this instance
-	lock.RLock()
-	defer lock.RUnlock()
-
-	// Look for the module state. If we don't have one, then it doesn't matter.
-	mod := state.ModuleByPath(ctx.Path())
-	if mod == nil {
-		return nil, nil
-	}
-
-	// Look for the resource state. If we don't have one, then it is okay.
-	rs := mod.Resources[n.Name]
-	if rs == nil {
-		return nil, nil
-	}
-
-	// Write the result to the output pointer
-	if n.Output != nil {
-		*n.Output = rs.Primary
-	}
-
-	return rs.Primary, nil
+	return readInstanceFromState(ctx, n.Name, n.Output, func(rs *ResourceState) (*InstanceState, error) {
+		return rs.Primary, nil
+	})
 }
 
-// EvalReadStateTainted is an EvalNode implementation that reads the
-// InstanceState for a specific tainted resource out of the state
+// EvalReadStateTainted is an EvalNode implementation that reads a
+// tainted InstanceState for a specific resource out of the state
 type EvalReadStateTainted struct {
 	Name   string
 	Output **InstanceState
@@ -50,51 +29,39 @@ type EvalReadStateTainted struct {
 }
 
 func (n *EvalReadStateTainted) Eval(ctx EvalContext) (interface{}, error) {
-	state, lock := ctx.State()
-
-	// Get a read lock so we can access this instance
-	lock.RLock()
-	defer lock.RUnlock()
-
-	// Look for the module state. If we don't have one, then it doesn't matter.
-	mod := state.ModuleByPath(ctx.Path())
-	if mod == nil {
-		return nil, nil
-	}
-
-	// Look for the resource state. If we don't have one, then it is okay.
-	rs := mod.Resources[n.Name]
-	if rs == nil {
-		return nil, nil
-	}
-
-	var result *InstanceState
-	// Get the index. If it is negative, then we get the last one
-	idx := n.TaintedIndex
-	if idx < 0 {
-		idx = len(rs.Tainted) - 1
-	}
-	if idx >= 0 && idx < len(rs.Tainted) {
-		// Return the proper tainted resource
-		result = rs.Tainted[idx]
-	}
-
-	// Write the result to the output pointer
-	if n.Output != nil {
-		*n.Output = result
-	}
-
-	return result, nil
+	return readInstanceFromState(ctx, n.Name, n.Output, func(rs *ResourceState) (*InstanceState, error) {
+		// Get the index. If it is negative, then we get the last one
+		idx := n.TaintedIndex
+		if idx < 0 {
+			idx = len(rs.Tainted) - 1
+		}
+		if idx >= 0 && idx < len(rs.Tainted) {
+			return rs.Tainted[idx], nil
+		} else {
+			return nil, fmt.Errorf("bad tainted index: %d, for resource: %#v", idx, rs)
+		}
+	})
 }
 
 // EvalReadStateDeposed is an EvalNode implementation that reads the
-// InstanceState for a specific deposed resource out of the state
+// deposed InstanceState for a specific resource out of the state
 type EvalReadStateDeposed struct {
 	Name   string
 	Output **InstanceState
 }
 
 func (n *EvalReadStateDeposed) Eval(ctx EvalContext) (interface{}, error) {
+	return readInstanceFromState(ctx, n.Name, n.Output, func(rs *ResourceState) (*InstanceState, error) {
+		return rs.Deposed, nil
+	})
+}
+
+func readInstanceFromState(
+	ctx EvalContext,
+	resourceName string,
+	output **InstanceState,
+	f func(*ResourceState) (*InstanceState, error),
+) (*InstanceState, error) {
 	state, lock := ctx.State()
 
 	// Get a read lock so we can access this instance
@@ -108,17 +75,23 @@ func (n *EvalReadStateDeposed) Eval(ctx EvalContext) (interface{}, error) {
 	}
 
 	// Look for the resource state. If we don't have one, then it is okay.
-	rs := mod.Resources[n.Name]
+	rs := mod.Resources[resourceName]
 	if rs == nil {
 		return nil, nil
 	}
 
-	// Write the result to the output pointer
-	if n.Output != nil {
-		*n.Output = rs.Deposed
+	// Use the delegate function to get the instance state from the resource state
+	is, err := f(rs)
+	if err != nil {
+		return nil, err
 	}
 
-	return rs.Deposed, nil
+	// Write the result to the output pointer
+	if output != nil {
+		*output = is
+	}
+
+	return is, nil
 }
 
 // EvalRequireState is an EvalNode implementation that early exits
