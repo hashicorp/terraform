@@ -69,6 +69,13 @@ The supported built-in functions are:
   * `concat(args...)` - Concatenates the values of multiple arguments into
       a single string.
 
+  * `element(list, index)` - Returns a single element from a list
+      at the given index. If the index is greater than the number of
+      elements, this function will wrap using a standard mod algorithm.
+      A list is only possible with splat variables from resources with
+      a count greater than one.
+      Example: `element(aws_subnet.foo.*.id, count.index)`
+
   * `file(path)` - Reads the contents of a file into the string. Variables
       in this file are _not_ interpolated. The contents of the file are
       read as-is.
@@ -77,18 +84,19 @@ The supported built-in functions are:
       only possible with splat variables from resources with a count
       greater than one. Example: `join(",", aws_instance.foo.*.id)`
 
-  * `split(delim, string)` - Splits the string previously created by `join`
-      back into a list. This is useful for pushing lists through module
-      outputs since they currently only support string values.
-      Example: `split(",", module.amod.server_ids)`
-
   * `lookup(map, key)` - Performs a dynamic lookup into a mapping
       variable. The `map` parameter should be another variable, such
       as `var.amis`.
 
-  * `element(list, index)` - Returns a single element from a list
-      at the given index. If the index is greater than the number of
-      elements, this function will wrap using a standard mod algorithm.
-      A list is only possible with splat variables from resources with
-      a count greater than one.
-      Example: `element(aws_subnet.foo.*.id, count.index)`
+  * `replace(string, search, replace)` - Does a search and replace on the
+      given string. All instances of `search` are replaced with the value
+      of `replace`. If `search` is wrapped in forward slashes, it is treated
+      as a regular expression. If using a regular expression, `replace`
+      can reference subcaptures in the regular expression by using `$n` where
+      `n` is the index or name of the subcapture. If using a regular expression,
+      the syntax conforms to the [re2 regular expression syntax](https://code.google.com/p/re2/wiki/Syntax).
+
+  * `split(delim, string)` - Splits the string previously created by `join`
+      back into a list. This is useful for pushing lists through module
+      outputs since they currently only support string values.
+      Example: `split(",", module.amod.server_ids)`
