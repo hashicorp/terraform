@@ -40,6 +40,44 @@ func (g *AcyclicGraph) Root() (Vertex, error) {
 	return roots[0], nil
 }
 
+// TransitiveReduction performs the transitive reduction of graph g in place.
+// The transitive reduction of a graph is a graph with as few edges as
+// possible with the same reachability as the original graph. This means
+// that if there are three nodes A => B => C, and A connects to both
+// B and C, and B connects to C, then the transitive reduction is the
+// same graph with only a single edge between A and B, and a single edge
+// between B and C.
+//
+// The graph must be valid for this operation to behave properly. If
+// Validate() returns an error, the behavior is undefined and the results
+// will likely be unexpected.
+//
+// Complexity: O(V(V+E)), or asymptotically O(VE)
+func (g *AcyclicGraph) TransitiveReduction() {
+	// For each vertex u in graph g, do a DFS starting from each vertex
+	// v such that the edge (u,v) exists (v is a direct descendant of u).
+	//
+	// For each v-prime reachable from v, remove the edge (u, v-prime).
+
+	for _, u := range g.Vertices() {
+		uTargets := g.DownEdges(u)
+		vs := make([]Vertex, uTargets.Len())
+		for i, vRaw := range uTargets.List() {
+			vs[i] = vRaw.(Vertex)
+		}
+
+		g.depthFirstWalk(vs, func(v Vertex) error {
+			shared := uTargets.Intersection(g.DownEdges(v))
+			for _, raw := range shared.List() {
+				vPrime := raw.(Vertex)
+				g.RemoveEdge(BasicEdge(u, vPrime))
+			}
+
+			return nil
+		})
+	}
+}
+
 // Validate validates the DAG. A DAG is valid if it has a single root
 // with no cycles.
 func (g *AcyclicGraph) Validate() error {
@@ -160,4 +198,38 @@ func (g *AcyclicGraph) Walk(cb WalkFunc) error {
 
 	<-doneCh
 	return errs
+}
+
+// depthFirstWalk does a depth-first walk of the graph starting from
+// the vertices in start. This is not exported now but it would make sense
+// to export this publicly at some point.
+func (g *AcyclicGraph) depthFirstWalk(start []Vertex, cb WalkFunc) error {
+	seen := make(map[Vertex]struct{})
+	frontier := make([]Vertex, len(start))
+	copy(frontier, start)
+	for len(frontier) > 0 {
+		// Pop the current vertex
+		n := len(frontier)
+		current := frontier[n-1]
+		frontier = frontier[:n-1]
+
+		// Check if we've seen this already and return...
+		if _, ok := seen[current]; ok {
+			continue
+		}
+		seen[current] = struct{}{}
+
+		// Visit the current node
+		if err := cb(current); err != nil {
+			return err
+		}
+
+		// Visit targets of this in reverse order.
+		targets := g.DownEdges(current).List()
+		for i := len(targets) - 1; i >= 0; i-- {
+			frontier = append(frontier, targets[i].(Vertex))
+		}
+	}
+
+	return nil
 }
