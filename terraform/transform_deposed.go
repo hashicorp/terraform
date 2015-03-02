@@ -17,7 +17,7 @@ type DeposedTransformer struct {
 func (t *DeposedTransformer) Transform(g *Graph) error {
 	state := t.State.ModuleByPath(g.Path)
 	if state == nil {
-		// If there is no state for our module there can't be any tainted
+		// If there is no state for our module there can't be any deposed
 		// resources, since they live in the state.
 		return nil
 	}
@@ -27,7 +27,7 @@ func (t *DeposedTransformer) Transform(g *Graph) error {
 		state = state.View(t.View)
 	}
 
-	// Go through all the resources in our state to look for tainted resources
+	// Go through all the resources in our state to look for deposed resources
 	for k, rs := range state.Resources {
 		if rs.Deposed == nil {
 			continue
@@ -86,11 +86,10 @@ func (n *graphNodeDeposedResource) EvalTree() EvalNode {
 					State:    &state,
 					Output:   &state,
 				},
-				&EvalWriteState{
+				&EvalWriteStateDeposed{
 					Name:         n.ResourceName,
 					ResourceType: n.ResourceType,
 					State:        &state,
-					Deposed:      true,
 				},
 			},
 		},
@@ -100,7 +99,6 @@ func (n *graphNodeDeposedResource) EvalTree() EvalNode {
 	var diff *InstanceDiff
 	var err error
 	var emptyState *InstanceState
-	tainted := true
 	seq.Nodes = append(seq.Nodes, &EvalOpFilter{
 		Ops: []walkOperation{walkApply},
 		Node: &EvalSequence{
@@ -129,19 +127,17 @@ func (n *graphNodeDeposedResource) EvalTree() EvalNode {
 				// Always write the resource back to the state tainted... if it
 				// successfully destroyed it will be pruned. If it did not, it will
 				// remain tainted.
-				&EvalWriteState{
+				&EvalWriteStateTainted{
 					Name:         n.ResourceName,
 					ResourceType: n.ResourceType,
 					State:        &state,
-					Tainted:      &tainted,
 					TaintedIndex: -1,
 				},
 				// Then clear the deposed state.
-				&EvalWriteState{
+				&EvalWriteStateDeposed{
 					Name:         n.ResourceName,
 					ResourceType: n.ResourceType,
 					State:        &emptyState,
-					Deposed:      true,
 				},
 				&EvalReturnError{
 					Error: &err,
