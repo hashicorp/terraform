@@ -36,7 +36,7 @@ func testConf() map[string]string {
 	}
 }
 
-func Test_expandIPPerms(t *testing.T) {
+func TestExpandIPPerms(t *testing.T) {
 	hash := func(v interface{}) int {
 		return hashcode.String(v.(string))
 	}
@@ -98,7 +98,7 @@ func Test_expandIPPerms(t *testing.T) {
 
 }
 
-func Test_flattenIPPerms(t *testing.T) {
+func TestFlattenIPPerms(t *testing.T) {
 	cases := []struct {
 		Input  []ec2.IPPerm
 		Output []map[string]interface{}
@@ -177,7 +177,7 @@ func Test_flattenIPPerms(t *testing.T) {
 	}
 }
 
-func Test_expandListeners(t *testing.T) {
+func TestExpandListeners(t *testing.T) {
 	expanded := []interface{}{
 		map[string]interface{}{
 			"instance_port":     8000,
@@ -207,7 +207,7 @@ func Test_expandListeners(t *testing.T) {
 
 }
 
-func Test_flattenHealthCheck(t *testing.T) {
+func TestFlattenHealthCheck(t *testing.T) {
 	cases := []struct {
 		Input  elb.HealthCheck
 		Output []map[string]interface{}
@@ -240,7 +240,7 @@ func Test_flattenHealthCheck(t *testing.T) {
 	}
 }
 
-func Test_expandStringList(t *testing.T) {
+func TestExpandStringList(t *testing.T) {
 	expanded := flatmap.Expand(testConf(), "availability_zones").([]interface{})
 	stringList := expandStringList(expanded)
 	expected := []string{
@@ -257,7 +257,7 @@ func Test_expandStringList(t *testing.T) {
 
 }
 
-func Test_expandParameters(t *testing.T) {
+func TestExpandParameters(t *testing.T) {
 	expanded := []interface{}{
 		map[string]interface{}{
 			"name":         "character_set_client",
@@ -284,7 +284,7 @@ func Test_expandParameters(t *testing.T) {
 	}
 }
 
-func Test_flattenParameters(t *testing.T) {
+func TestFlattenParameters(t *testing.T) {
 	cases := []struct {
 		Input  []rds.Parameter
 		Output []map[string]interface{}
@@ -313,7 +313,7 @@ func Test_flattenParameters(t *testing.T) {
 	}
 }
 
-func Test_expandInstanceString(t *testing.T) {
+func TestExpandInstanceString(t *testing.T) {
 
 	expected := []elb.Instance{
 		elb.Instance{aws.String("test-one")},
