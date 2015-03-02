@@ -5,12 +5,12 @@ import (
 	"testing"
 
 	"github.com/hashicorp/aws-sdk-go/aws"
+	"github.com/hashicorp/aws-sdk-go/gen/elb"
 	"github.com/hashicorp/aws-sdk-go/gen/rds"
 	"github.com/hashicorp/terraform/flatmap"
 	"github.com/hashicorp/terraform/helper/hashcode"
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/mitchellh/goamz/ec2"
-	"github.com/mitchellh/goamz/elb"
 )
 
 // Returns test configuration
@@ -36,7 +36,7 @@ func testConf() map[string]string {
 	}
 }
 
-func Test_expandIPPerms(t *testing.T) {
+func TestExpandIPPerms(t *testing.T) {
 	hash := func(v interface{}) int {
 		return hashcode.String(v.(string))
 	}
@@ -98,7 +98,7 @@ func Test_expandIPPerms(t *testing.T) {
 
 }
 
-func Test_flattenIPPerms(t *testing.T) {
+func TestFlattenIPPerms(t *testing.T) {
 	cases := []struct {
 		Input  []ec2.IPPerm
 		Output []map[string]interface{}
@@ -177,7 +177,7 @@ func Test_flattenIPPerms(t *testing.T) {
 	}
 }
 
-func Test_expandListeners(t *testing.T) {
+func TestExpandListeners(t *testing.T) {
 	expanded := []interface{}{
 		map[string]interface{}{
 			"instance_port":     8000,
@@ -192,10 +192,10 @@ func Test_expandListeners(t *testing.T) {
 	}
 
 	expected := elb.Listener{
-		InstancePort:     8000,
-		LoadBalancerPort: 80,
-		InstanceProtocol: "http",
-		Protocol:         "http",
+		InstancePort:     aws.Integer(8000),
+		LoadBalancerPort: aws.Integer(80),
+		InstanceProtocol: aws.String("http"),
+		Protocol:         aws.String("http"),
 	}
 
 	if !reflect.DeepEqual(listeners[0], expected) {
@@ -207,18 +207,18 @@ func Test_expandListeners(t *testing.T) {
 
 }
 
-func Test_flattenHealthCheck(t *testing.T) {
+func TestFlattenHealthCheck(t *testing.T) {
 	cases := []struct {
 		Input  elb.HealthCheck
 		Output []map[string]interface{}
 	}{
 		{
 			Input: elb.HealthCheck{
-				UnhealthyThreshold: 10,
-				HealthyThreshold:   10,
-				Target:             "HTTP:80/",
-				Timeout:            30,
-				Interval:           30,
+				UnhealthyThreshold: aws.Integer(10),
+				HealthyThreshold:   aws.Integer(10),
+				Target:             aws.String("HTTP:80/"),
+				Timeout:            aws.Integer(30),
+				Interval:           aws.Integer(30),
 			},
 			Output: []map[string]interface{}{
 				map[string]interface{}{
@@ -233,14 +233,14 @@ func Test_flattenHealthCheck(t *testing.T) {
 	}
 
 	for _, tc := range cases {
-		output := flattenHealthCheck(tc.Input)
+		output := flattenHealthCheck(&tc.Input)
 		if !reflect.DeepEqual(output, tc.Output) {
 			t.Fatalf("Got:\n\n%#v\n\nExpected:\n\n%#v", output, tc.Output)
 		}
 	}
 }
 
-func Test_expandStringList(t *testing.T) {
+func TestExpandStringList(t *testing.T) {
 	expanded := flatmap.Expand(testConf(), "availability_zones").([]interface{})
 	stringList := expandStringList(expanded)
 	expected := []string{
@@ -257,7 +257,7 @@ func Test_expandStringList(t *testing.T) {
 
 }
 
-func Test_expandParameters(t *testing.T) {
+func TestExpandParameters(t *testing.T) {
 	expanded := []interface{}{
 		map[string]interface{}{
 			"name":         "character_set_client",
@@ -284,7 +284,7 @@ func Test_expandParameters(t *testing.T) {
 	}
 }
 
-func Test_flattenParameters(t *testing.T) {
+func TestFlattenParameters(t *testing.T) {
 	cases := []struct {
 		Input  []rds.Parameter
 		Output []map[string]interface{}
@@ -310,5 +310,24 @@ func Test_flattenParameters(t *testing.T) {
 		if !reflect.DeepEqual(output, tc.Output) {
 			t.Fatalf("Got:\n\n%#v\n\nExpected:\n\n%#v", output, tc.Output)
 		}
+	}
+}
+
+func TestExpandInstanceString(t *testing.T) {
+
+	expected := []elb.Instance{
+		elb.Instance{aws.String("test-one")},
+		elb.Instance{aws.String("test-two")},
+	}
+
+	ids := []interface{}{
+		"test-one",
+		"test-two",
+	}
+
+	expanded := expandInstanceString(ids)
+
+	if !reflect.DeepEqual(expanded, expected) {
+		t.Fatalf("Expand Instance String output did not match.\nGot:\n%#v\n\nexpected:\n%#v", expanded, expected)
 	}
 }
