@@ -5,9 +5,11 @@ import (
 	"crypto/sha1"
 	"encoding/gob"
 	"encoding/hex"
+	"fmt"
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"strings"
 	"sync"
 	"testing"
 
@@ -66,6 +68,14 @@ func testModule(t *testing.T, name string) *module.Tree {
 	}
 
 	return mod
+}
+
+func testStringMatch(t *testing.T, s fmt.Stringer, expected string) {
+	actual := strings.TrimSpace(s.String())
+	expected = strings.TrimSpace(expected)
+	if actual != expected {
+		t.Fatalf("Actual\n\n%s\n\nExpected:\n\n%s", actual, expected)
+	}
 }
 
 func testProviderFuncFixed(rp ResourceProvider) ResourceProviderFactory {
@@ -243,6 +253,29 @@ const testTerraformApplyCountDecToOneStr = `
 aws_instance.foo:
   ID = bar
   foo = foo
+  type = aws_instance
+`
+
+const testTerraformApplyCountDecToOneCorruptedStr = `
+aws_instance.foo:
+  ID = bar
+  foo = foo
+  type = aws_instance
+`
+
+const testTerraformApplyCountDecToOneCorruptedPlanStr = `
+DIFF:
+
+DESTROY: aws_instance.foo.0
+
+STATE:
+
+aws_instance.foo:
+  ID = bar
+  foo = foo
+  type = aws_instance
+aws_instance.foo.0:
+  ID = baz
   type = aws_instance
 `
 
