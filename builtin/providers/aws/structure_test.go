@@ -312,3 +312,22 @@ func Test_flattenParameters(t *testing.T) {
 		}
 	}
 }
+
+func Test_expandInstanceString(t *testing.T) {
+
+	expected := []elb.Instance{
+		elb.Instance{aws.String("test-one")},
+		elb.Instance{aws.String("test-two")},
+	}
+
+	ids := []interface{}{
+		"test-one",
+		"test-two",
+	}
+
+	expanded := expandInstanceString(ids)
+
+	if !reflect.DeepEqual(expanded, expected) {
+		t.Fatalf("Expand Instance String output did not match.\nGot:\n%#v\n\nexpected:\n%#v", expanded, expected)
+	}
+}
