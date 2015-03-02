@@ -483,14 +483,19 @@ func resourceComputeInstanceRead(d *schema.ResourceData, meta interface{}) error
 	d.Set("can_ip_forward", instance.CanIpForward)
 
 	// Set the service accounts
-	for i, serviceAccount := range instance.ServiceAccounts {
-		prefix := fmt.Sprintf("service_account.%d", i)
-		d.Set(prefix+".email", serviceAccount.Email)
-		d.Set(prefix+".scopes.#", len(serviceAccount.Scopes))
-		for j, scope := range serviceAccount.Scopes {
-			d.Set(fmt.Sprintf("%s.scopes.%d", prefix, j), scope)
+	serviceAccounts := make([]map[string]interface{}, 0, 1)
+	for _, serviceAccount := range instance.ServiceAccounts {
+		scopes := make([]string, len(serviceAccount.Scopes))
+		for i, scope := range serviceAccount.Scopes {
+			scopes[i] = scope
 		}
+
+		serviceAccounts = append(serviceAccounts, map[string]interface{}{
+			"email":  serviceAccount.Email,
+			"scopes": scopes,
+		})
 	}
+	d.Set("service_account", serviceAccounts)
 
 	networksCount := d.Get("network.#").(int)
 	networkInterfacesCount := d.Get("network_interface.#").(int)
@@ -506,13 +511,10 @@ func resourceComputeInstanceRead(d *schema.ResourceData, meta interface{}) error
 	// Use the first external IP found for the default connection info.
 	externalIP := ""
 	internalIP := ""
+	networks := make([]map[string]interface{}, 0, 1)
 	if networksCount > 0 {
 		// TODO: Remove this when realizing deprecation of .network
-		for i, iface := range instance.NetworkInterfaces {
-			prefix := fmt.Sprintf("network.%d", i)
-			d.Set(prefix+".name", iface.Name)
-			log.Printf(prefix+".name = %s", iface.Name)
-
+		for _, iface := range instance.NetworkInterfaces {
 			var natIP string
 			for _, config := range iface.AccessConfigs {
 				if config.Type == "ONE_TO_ONE_NAT" {
@@ -524,23 +526,28 @@ func resourceComputeInstanceRead(d *schema.ResourceData, meta interface{}) error
 			if externalIP == "" && natIP != "" {
 				externalIP = natIP
 			}
-			d.Set(prefix+".external_address", natIP)
 
-			d.Set(prefix+".internal_address", iface.NetworkIP)
+			network := make(map[string]interface{})
+			network["name"] = iface.Name
+			network["external_address"] = natIP
+			network["internal_address"] = iface.NetworkIP
+			networks = append(networks, network)
 		}
 	}
+	d.Set("network", networks)
 
+	networkInterfaces := make([]map[string]interface{}, 0, 1)
 	if networkInterfacesCount > 0 {
-		for i, iface := range instance.NetworkInterfaces {
-
-			prefix := fmt.Sprintf("network_interface.%d", i)
-			d.Set(prefix+".name", iface.Name)
-
+		for _, iface := range instance.NetworkInterfaces {
 			// The first non-empty ip is left in natIP
 			var natIP string
-			for j, config := range iface.AccessConfigs {
-				acPrefix := fmt.Sprintf("%s.access_config.%d", prefix, j)
-				d.Set(acPrefix+".nat_ip", config.NatIP)
+			accessConfigs := make(
+				[]map[string]interface{}, 0, len(iface.AccessConfigs))
+			for _, config := range iface.AccessConfigs {
+				accessConfigs = append(accessConfigs, map[string]interface{}{
+					"nat_ip": config.NatIP,
+				})
+
 				if natIP == "" {
 					natIP = config.NatIP
 				}
@@ -550,13 +557,18 @@ func resourceComputeInstanceRead(d *schema.ResourceData, meta interface{}) error
 				externalIP = natIP
 			}
 
-			d.Set(prefix+".address", iface.NetworkIP)
 			if internalIP == "" {
 				internalIP = iface.NetworkIP
 			}
 
+			networkInterfaces = append(networkInterfaces, map[string]interface{}{
+				"name":          iface.Name,
+				"address":       iface.NetworkIP,
+				"access_config": accessConfigs,
+			})
 		}
 	}
+	d.Set("network_interface", networkInterfaces)
 
 	// Fall back on internal ip if there is no external ip.  This makes sense in the situation where
 	// terraform is being used on a cloud instance and can therefore access the instances it creates
