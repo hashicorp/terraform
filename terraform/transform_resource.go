@@ -395,14 +395,35 @@ func (n *graphNodeExpandedResource) EvalTree() EvalNode {
 					Diff: nil,
 				},
 
-				&EvalWriteState{
-					Name:                n.stateId(),
-					ResourceType:        n.Resource.Type,
-					Dependencies:        n.DependentOn(),
-					State:               &state,
-					Tainted:             &tainted,
-					TaintedIndex:        -1,
-					TaintedClearPrimary: !n.Resource.Lifecycle.CreateBeforeDestroy,
+				&EvalIf{
+					If: func(ctx EvalContext) (bool, error) {
+						return tainted, nil
+					},
+					Then: &EvalSequence{
+						Nodes: []EvalNode{
+							&EvalWriteStateTainted{
+								Name:         n.stateId(),
+								ResourceType: n.Resource.Type,
+								Dependencies: n.DependentOn(),
+								State:        &state,
+								TaintedIndex: -1,
+							},
+							&EvalIf{
+								If: func(ctx EvalContext) (bool, error) {
+									return !n.Resource.Lifecycle.CreateBeforeDestroy, nil
+								},
+								Then: &EvalClearPrimaryState{
+									Name: n.stateId(),
+								},
+							},
+						},
+					},
+					Else: &EvalWriteState{
+						Name:         n.stateId(),
+						ResourceType: n.Resource.Type,
+						Dependencies: n.DependentOn(),
+						State:        &state,
+					},
 				},
 				&EvalApplyPost{
 					Info:  info,
