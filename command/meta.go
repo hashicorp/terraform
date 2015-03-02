@@ -346,6 +346,14 @@ func (m *Meta) process(args []string, vars bool) []string {
 			args[0] = "-" + m.autoKey
 			args[1] = DefaultVarsFilename
 		}
+
+		if _, err := os.Stat(DefaultVarsFilename + ".json"); err == nil {
+			m.autoKey = "var-file-default"
+			args = append(args, "", "")
+			copy(args[2:], args[0:])
+			args[0] = "-" + m.autoKey
+			args[1] = DefaultVarsFilename + ".json"
+		}
 	}
 
 	return args
