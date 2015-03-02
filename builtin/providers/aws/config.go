@@ -23,6 +23,7 @@ import (
 type Config struct {
 	AccessKey string
 	SecretKey string
+	Token     string
 	Region    string
 }
 
@@ -62,7 +63,7 @@ func (c *Config) Client() (interface{}, error) {
 		// bucket storage in S3
 		client.region = c.Region
 
-		creds := awsGo.Creds(c.AccessKey, c.SecretKey, "")
+		creds := awsGo.Creds(c.AccessKey, c.SecretKey, c.Token)
 
 		log.Println("[INFO] Initializing EC2 connection")
 		client.ec2conn = ec2.New(auth, region)
@@ -103,6 +104,7 @@ func (c *Config) AWSAuth() (aws.Auth, error) {
 		// Store the accesskey and secret that we got...
 		c.AccessKey = auth.AccessKey
 		c.SecretKey = auth.SecretKey
+		c.Token = auth.Token
 	}
 
 	return auth, err
