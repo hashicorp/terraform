@@ -9,10 +9,10 @@ import (
 	"github.com/hashicorp/terraform/helper/multierror"
 	"github.com/mitchellh/goamz/aws"
 	"github.com/mitchellh/goamz/ec2"
-	"github.com/mitchellh/goamz/elb"
 
 	awsGo "github.com/hashicorp/aws-sdk-go/aws"
 	"github.com/hashicorp/aws-sdk-go/gen/autoscaling"
+	"github.com/hashicorp/aws-sdk-go/gen/elb"
 	"github.com/hashicorp/aws-sdk-go/gen/rds"
 	"github.com/hashicorp/aws-sdk-go/gen/route53"
 	"github.com/hashicorp/aws-sdk-go/gen/s3"
@@ -63,7 +63,7 @@ func (c *Config) Client() (interface{}, error) {
 		log.Println("[INFO] Initializing EC2 connection")
 		client.ec2conn = ec2.New(auth, region)
 		log.Println("[INFO] Initializing ELB connection")
-		client.elbconn = elb.New(auth, region)
+		client.elbconn = elb.New(creds, c.Region, nil)
 		log.Println("[INFO] Initializing AutoScaling connection")
 		client.autoscalingconn = autoscaling.New(creds, c.Region, nil)
 		log.Println("[INFO] Initializing S3 connection")

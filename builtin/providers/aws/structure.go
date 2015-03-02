@@ -4,10 +4,10 @@ import (
 	"strings"
 
 	"github.com/hashicorp/aws-sdk-go/aws"
+	"github.com/hashicorp/aws-sdk-go/gen/elb"
 	"github.com/hashicorp/aws-sdk-go/gen/rds"
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/mitchellh/goamz/ec2"
-	"github.com/mitchellh/goamz/elb"
 )
 
 // Takes the result of flatmap.Expand for an array of listeners and
@@ -21,14 +21,14 @@ func expandListeners(configured []interface{}) ([]elb.Listener, error) {
 		data := lRaw.(map[string]interface{})
 
 		l := elb.Listener{
-			InstancePort:     int64(data["instance_port"].(int)),
-			InstanceProtocol: data["instance_protocol"].(string),
-			LoadBalancerPort: int64(data["lb_port"].(int)),
-			Protocol:         data["lb_protocol"].(string),
+			InstancePort:     aws.Integer(data["instance_port"].(int)),
+			InstanceProtocol: aws.String(data["instance_protocol"].(string)),
+			LoadBalancerPort: aws.Integer(data["lb_port"].(int)),
+			Protocol:         aws.String(data["lb_protocol"].(string)),
 		}
 
 		if v, ok := data["ssl_certificate_id"]; ok {
-			l.SSLCertificateId = v.(string)
+			l.SSLCertificateID = aws.String(v.(string))
 		}
 
 		listeners = append(listeners, l)
@@ -138,15 +138,15 @@ func flattenIPPerms(list []ec2.IPPerm) []map[string]interface{} {
 
 // Flattens a health check into something that flatmap.Flatten()
 // can handle
-func flattenHealthCheck(check elb.HealthCheck) []map[string]interface{} {
+func flattenHealthCheck(check *elb.HealthCheck) []map[string]interface{} {
 	result := make([]map[string]interface{}, 0, 1)
 
 	chk := make(map[string]interface{})
-	chk["unhealthy_threshold"] = int(check.UnhealthyThreshold)
-	chk["healthy_threshold"] = int(check.HealthyThreshold)
-	chk["target"] = check.Target
-	chk["timeout"] = int(check.Timeout)
-	chk["interval"] = int(check.Interval)
+	chk["unhealthy_threshold"] = *check.UnhealthyThreshold
+	chk["healthy_threshold"] = *check.HealthyThreshold
+	chk["target"] = *check.Target
+	chk["timeout"] = *check.Timeout
+	chk["interval"] = *check.Interval
 
 	result = append(result, chk)
 
@@ -166,22 +166,35 @@ func flattenSecurityGroups(list []ec2.UserSecurityGroup) []string {
 func flattenInstances(list []elb.Instance) []string {
 	result := make([]string, 0, len(list))
 	for _, i := range list {
-		result = append(result, i.InstanceId)
+		result = append(result, *i.InstanceID)
+	}
+	return result
+}
+
+// Expands an array of String Instance IDs into a []Instances
+func expandInstanceString(list []interface{}) []elb.Instance {
+	result := make([]elb.Instance, 0, len(list))
+	for _, i := range list {
+		result = append(result, elb.Instance{aws.String(i.(string))})
 	}
 	return result
 }
 
 // Flattens an array of Listeners into a []map[string]interface{}
-func flattenListeners(list []elb.Listener) []map[string]interface{} {
+func flattenListeners(list []elb.ListenerDescription) []map[string]interface{} {
 	result := make([]map[string]interface{}, 0, len(list))
 	for _, i := range list {
-		result = append(result, map[string]interface{}{
-			"instance_port":      i.InstancePort,
-			"instance_protocol":  strings.ToLower(i.InstanceProtocol),
-			"ssl_certificate_id": i.SSLCertificateId,
-			"lb_port":            i.LoadBalancerPort,
-			"lb_protocol":        strings.ToLower(i.Protocol),
-		})
+		l := map[string]interface{}{
+			"instance_port":     *i.Listener.InstancePort,
+			"instance_protocol": strings.ToLower(*i.Listener.InstanceProtocol),
+			"lb_port":           *i.Listener.LoadBalancerPort,
+			"lb_protocol":       strings.ToLower(*i.Listener.Protocol),
+		}
+		// SSLCertificateID is optional, and may be nil
+		if i.Listener.SSLCertificateID != nil {
+			l["ssl_certificate_id"] = *i.Listener.SSLCertificateID
+		}
+		result = append(result, l)
 	}
 	return result
 }
