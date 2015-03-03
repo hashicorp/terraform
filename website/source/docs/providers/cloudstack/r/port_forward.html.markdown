@@ -32,6 +32,10 @@ The following arguments are supported:
 * `ipaddress` - (Required) The IP address for which to create the port forwards.
     Changing this forces a new resource to be created.
 
+* `managed` - (Optional) USE WITH CAUTION! If enabled all the port forwards for
+    this IP address will be managed by this resource. This means it will delete
+    all port forwards that are not in your config! (defaults false)
+
 * `forward` - (Required) Can be specified multiple times. Each forward block supports
     fields documented below.
 

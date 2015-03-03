@@ -191,10 +191,10 @@ func resourceCloudStackPortForwardRead(d *schema.ResourceData, meta interface{})
 		}
 	}
 
-	// If this is a managed firewall, add all unknown rules into a single dummy rule
+	// If this is a managed resource, add all unknown forwards to dummy forwards
 	managed := d.Get("managed").(bool)
 	if managed {
-		// Get all the rules from the running environment
+		// Get all the forwards from the running environment
 		p := cs.Firewall.NewListPortForwardingRulesParams()
 		p.SetIpaddressid(d.Id())
 		p.SetListall(true)
@@ -220,7 +220,7 @@ func resourceCloudStackPortForwardRead(d *schema.ResourceData, meta interface{})
 		}
 
 		for uuid, _ := range uuids {
-			// Make a dummy forward to hold all unknown UUIDs
+			// Make a dummy forward to hold the unknown UUID
 			forward := map[string]interface{}{
 				"protocol":        "N/A",
 				"private_port":    0,
@@ -229,7 +229,7 @@ func resourceCloudStackPortForwardRead(d *schema.ResourceData, meta interface{})
 				"uuid":            uuid,
 			}
 
-			// Add the dummy forward to the rules set
+			// Add the dummy forward to the forwards set
 			forwards.Add(forward)
 		}
 	}
