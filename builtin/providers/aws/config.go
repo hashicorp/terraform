@@ -11,6 +11,7 @@ import (
 	"github.com/mitchellh/goamz/ec2"
 
 	awsGo "github.com/hashicorp/aws-sdk-go/aws"
+	awsec2 "github.com/hashicorp/aws-sdk-go/gen/ec2"
 	"github.com/hashicorp/aws-sdk-go/gen/autoscaling"
 	"github.com/hashicorp/aws-sdk-go/gen/elb"
 	"github.com/hashicorp/aws-sdk-go/gen/rds"
@@ -27,6 +28,7 @@ type Config struct {
 
 type AWSClient struct {
 	ec2conn         *ec2.EC2
+	ec2conn2		*awsec2.EC2
 	elbconn         *elb.ELB
 	autoscalingconn *autoscaling.AutoScaling
 	s3conn          *s3.S3
@@ -63,6 +65,7 @@ func (c *Config) Client() (interface{}, error) {
 
 		log.Println("[INFO] Initializing EC2 connection")
 		client.ec2conn = ec2.New(auth, region)
+		client.ec2conn2 = awsec2.New(creds, c.Region, nil)
 		log.Println("[INFO] Initializing ELB connection")
 		client.elbconn = elb.New(creds, c.Region, nil)
 		log.Println("[INFO] Initializing AutoScaling connection")
