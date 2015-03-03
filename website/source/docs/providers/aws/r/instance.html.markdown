@@ -58,6 +58,8 @@ Each `block_device` supports the following:
 * `snapshot_id` - (Optional) The Snapshot ID to mount.
 * `volume_type` - (Optional) The type of volume. Can be standard, gp2, or io1. Defaults to standard.
 * `volume_size` - (Optional) The size of the volume in gigabytes.
+* `iops` - (Optional) The amount of provisioned IOPS. Setting this implies a
+    volume_type of "io1".
 * `delete_on_termination` - (Optional) Should the volume be destroyed on instance termination (defaults true).
 * `encrypted` - (Optional) Should encryption be enabled (defaults false).
 
@@ -68,6 +70,8 @@ The `root_block_device` mapping supports the following:
   is the typical root volume for Linux instances.
 * `volume_type` - (Optional) The type of volume. Can be standard, gp2, or io1. Defaults to standard.
 * `volume_size` - (Optional) The size of the volume in gigabytes.
+* `iops` - (Optional) The amount of provisioned IOPS. Setting this implies a
+    volume_type of "io1".
 * `delete_on_termination` - (Optional) Should the volume be destroyed on instance termination (defaults true).
 
 ## Attributes Reference

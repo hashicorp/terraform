@@ -186,6 +186,13 @@ func resourceAwsInstance() *schema.Resource {
 							Computed: true,
 							ForceNew: true,
 						},
+
+						"iops": &schema.Schema{
+							Type:     schema.TypeInt,
+							Optional: true,
+							Computed: true,
+							ForceNew: true,
+						},
 					},
 				},
 				Set: resourceAwsInstanceBlockDevicesHash,
@@ -227,6 +234,13 @@ func resourceAwsInstance() *schema.Resource {
 
 						"volume_type": &schema.Schema{
 							Type:     schema.TypeString,
+							Optional: true,
+							Computed: true,
+							ForceNew: true,
+						},
+
+						"iops": &schema.Schema{
+							Type:     schema.TypeInt,
 							Optional: true,
 							Computed: true,
 							ForceNew: true,
@@ -312,6 +326,9 @@ func resourceAwsInstanceCreate(d *schema.ResourceData, meta interface{}) error {
 			}
 			if v, ok := bd["encrypted"].(bool); ok {
 				runOpts.BlockDevices[i].Encrypted = v
+			}
+			if v, ok := bd["iops"].(int); ok {
+				runOpts.BlockDevices[i].IOPS = int64(v)
 			}
 		}
 	}
@@ -477,6 +494,7 @@ func resourceAwsInstanceRead(d *schema.ResourceData, meta interface{}) error {
 
 		blockDevice["snapshot_id"] = vol.SnapshotId
 		blockDevice["encrypted"] = vol.Encrypted
+		blockDevice["iops"] = vol.IOPS
 		nonRootBlockDevices = append(nonRootBlockDevices, blockDevice)
 	}
 	d.Set("block_device", nonRootBlockDevices)
