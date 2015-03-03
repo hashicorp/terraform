@@ -118,6 +118,8 @@ func resourceAwsAutoscalingGroup() *schema.Resource {
 					return hashcode.String(v.(string))
 				},
 			},
+
+			"tag": autoscalingTagsSchema(),
 		},
 	}
 }
@@ -132,6 +134,11 @@ func resourceAwsAutoscalingGroupCreate(d *schema.ResourceData, meta interface{})
 	autoScalingGroupOpts.MaxSize = aws.Integer(d.Get("max_size").(int))
 	autoScalingGroupOpts.AvailabilityZones = expandStringList(
 		d.Get("availability_zones").(*schema.Set).List())
+
+	if v, ok := d.GetOk("tag"); ok {
+		autoScalingGroupOpts.Tags = autoscalingTagsFromMap(
+			setToMapByKey(v.(*schema.Set), "key"), d.Get("name").(string))
+	}
 
 	if v, ok := d.GetOk("default_cooldown"); ok {
 		autoScalingGroupOpts.DefaultCooldown = aws.Integer(v.(int))
@@ -195,6 +202,7 @@ func resourceAwsAutoscalingGroupRead(d *schema.ResourceData, meta interface{}) e
 	d.Set("min_size", *g.MinSize)
 	d.Set("max_size", *g.MaxSize)
 	d.Set("name", *g.AutoScalingGroupName)
+	d.Set("tag", g.Tags)
 	d.Set("vpc_zone_identifier", strings.Split(*g.VPCZoneIdentifier, ","))
 	d.Set("termination_policies", g.TerminationPolicies)
 
@@ -222,6 +230,12 @@ func resourceAwsAutoscalingGroupUpdate(d *schema.ResourceData, meta interface{})
 
 	if d.HasChange("max_size") {
 		opts.MaxSize = aws.Integer(d.Get("max_size").(int))
+	}
+
+	if err := setAutoscalingTags(autoscalingconn, d); err != nil {
+		return err
+	} else {
+		d.SetPartial("tag")
 	}
 
 	log.Printf("[DEBUG] AutoScaling Group update configuration: %#v", opts)
