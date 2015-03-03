@@ -5,9 +5,10 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/hashicorp/aws-sdk-go/aws"
+	"github.com/hashicorp/aws-sdk-go/gen/ec2"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
-	"github.com/mitchellh/goamz/ec2"
 )
 
 func TestAccAWSEIP_normal(t *testing.T) {
@@ -57,24 +58,28 @@ func TestAccAWSEIP_instance(t *testing.T) {
 }
 
 func testAccCheckAWSEIPDestroy(s *terraform.State) error {
-	conn := testAccProvider.Meta().(*AWSClient).ec2conn
+	conn := testAccProvider.Meta().(*AWSClient).awsEC2conn
 
 	for _, rs := range s.RootModule().Resources {
 		if rs.Type != "aws_eip" {
 			continue
 		}
 
-		describe, err := conn.Addresses([]string{rs.Primary.ID}, []string{}, nil)
+		req := &ec2.DescribeAddressesRequest{
+			AllocationIDs: []string{},
+			PublicIPs:     []string{rs.Primary.ID},
+		}
+		describe, err := conn.DescribeAddresses(req)
 
 		if err == nil {
 			if len(describe.Addresses) != 0 &&
-				describe.Addresses[0].PublicIp == rs.Primary.ID {
+				*describe.Addresses[0].PublicIP == rs.Primary.ID {
 				return fmt.Errorf("EIP still exists")
 			}
 		}
 
 		// Verify the error
-		providerErr, ok := err.(*ec2.Error)
+		providerErr, ok := err.(aws.APIError)
 		if !ok {
 			return err
 		}
@@ -89,7 +94,7 @@ func testAccCheckAWSEIPDestroy(s *terraform.State) error {
 
 func testAccCheckAWSEIPAttributes(conf *ec2.Address) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
-		if conf.PublicIp == "" {
+		if *conf.PublicIP == "" {
 			return fmt.Errorf("empty public_ip")
 		}
 
@@ -108,28 +113,36 @@ func testAccCheckAWSEIPExists(n string, res *ec2.Address) resource.TestCheckFunc
 			return fmt.Errorf("No EIP ID is set")
 		}
 
-		conn := testAccProvider.Meta().(*AWSClient).ec2conn
+		conn := testAccProvider.Meta().(*AWSClient).awsEC2conn
 
 		if strings.Contains(rs.Primary.ID, "eipalloc") {
-			describe, err := conn.Addresses([]string{}, []string{rs.Primary.ID}, nil)
+			req := &ec2.DescribeAddressesRequest{
+				AllocationIDs: []string{rs.Primary.ID},
+				PublicIPs:     []string{},
+			}
+			describe, err := conn.DescribeAddresses(req)
 			if err != nil {
 				return err
 			}
 
 			if len(describe.Addresses) != 1 ||
-				describe.Addresses[0].AllocationId != rs.Primary.ID {
+				*describe.Addresses[0].AllocationID != rs.Primary.ID {
 				return fmt.Errorf("EIP not found")
 			}
 			*res = describe.Addresses[0]
 
 		} else {
-			describe, err := conn.Addresses([]string{rs.Primary.ID}, []string{}, nil)
+			req := &ec2.DescribeAddressesRequest{
+				AllocationIDs: []string{},
+				PublicIPs:     []string{rs.Primary.ID},
+			}
+			describe, err := conn.DescribeAddresses(req)
 			if err != nil {
 				return err
 			}
 
 			if len(describe.Addresses) != 1 ||
-				describe.Addresses[0].PublicIp != rs.Primary.ID {
+				*describe.Addresses[0].PublicIP != rs.Primary.ID {
 				return fmt.Errorf("EIP not found")
 			}
 			*res = describe.Addresses[0]
