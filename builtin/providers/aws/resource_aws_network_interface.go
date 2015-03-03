@@ -1,7 +1,7 @@
 package aws
 
 import (
-	//"bytes"
+	"bytes"
 	//"crypto/sha1"
 	//"encoding/hex"
 	"fmt"
@@ -12,7 +12,7 @@ import (
 
 	"github.com/hashicorp/aws-sdk-go/aws"
 	"github.com/hashicorp/terraform/helper/hashcode"
-	"github.com/hashicorp/terraform/helper/resource"
+	//"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/aws-sdk-go/gen/ec2"
 )
@@ -51,7 +51,28 @@ func resourceAwsNetworkInterface() *schema.Resource {
 					return hashcode.String(v.(string))
 				},
 			},
-			
+
+			"attachment": &schema.Schema{
+				Type:     schema.TypeSet,
+				Optional: true,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"instance": &schema.Schema{
+							Type:     schema.TypeString,
+							Required: true,
+						},
+						"device_index": &schema.Schema{
+							Type:     schema.TypeInt,
+							Required: true,
+						},
+						"attachment_id": &schema.Schema{
+							Type:     schema.TypeString,							
+						},
+					},
+				},
+				Set: resourceAwsEniAttachmentHash,
+			},
+
 			"tags": tagsSchema(),			
 		},
 	}
@@ -105,6 +126,12 @@ func resourceAwsNetworkInterfaceRead(d *schema.ResourceData, meta interface{}) e
 	d.Set("subnet_id", eni.SubnetID)
 	d.Set("private_ips", convertToJustAddresses(eni.PrivateIPAddresses))
 	d.Set("security_groups", convertToGroupIds(eni.Groups))
+
+	if eni.Attachment != nil {
+		d.Set("attachment", flattenAttachment(eni.Attachment))
+	} else {
+		d.Set("attachment", nil)
+	}
 	
 	return nil
 }
@@ -112,6 +139,40 @@ func resourceAwsNetworkInterfaceRead(d *schema.ResourceData, meta interface{}) e
 func resourceAwsNetworkInterfaceUpdate(d *schema.ResourceData, meta interface{}) error {
 
 	d.Partial(true)
+
+	if d.HasChange("attachment") {
+		ec2conn := meta.(*AWSClient).ec2conn2
+		oa, na := d.GetChange("attachment")			
+		
+		// if there was an old attachment, remove it
+		if oa != nil && len(oa.(*schema.Set).List()) > 0 {			
+			old_attachment := oa.(*schema.Set).List()[0].(map[string]interface{})
+			detach_request := &ec2.DetachNetworkInterfaceRequest{
+				AttachmentID: 	aws.String(old_attachment["attachment_id"].(string)),
+				Force:			aws.Boolean(true),
+			}
+			detach_err := ec2conn.DetachNetworkInterface(detach_request)
+			if detach_err != nil {
+				return fmt.Errorf("Error detaching ENI: %s", detach_err)
+			}
+		}
+
+		// if there is a new attachment, attach it
+		if na != nil && len(na.(*schema.Set).List()) > 0 {				
+			new_attachment := na.(*schema.Set).List()[0].(map[string]interface{})
+			attach_request := &ec2.AttachNetworkInterfaceRequest{
+				DeviceIndex:		aws.Integer(new_attachment["device_index"].(int)),
+				InstanceID:			aws.String(new_attachment["instance"].(string)),
+				NetworkInterfaceID:	aws.String(d.Id()),
+			}
+			_, attach_err := ec2conn.AttachNetworkInterface(attach_request)
+			if attach_err != nil {
+				return fmt.Errorf("Error attaching ENI: %s", attach_err)
+			}
+		}
+
+		d.SetPartial("attachment")
+	}
 
 	if d.HasChange("security_groups") {
 		request := &ec2.ModifyNetworkInterfaceAttributeRequest{
@@ -148,12 +209,6 @@ func resourceAwsNetworkInterfaceDelete(d *schema.ResourceData, meta interface{})
 	return nil
 }
 
-// InstanceStateRefreshFunc returns a resource.StateRefreshFunc that is used to watch
-// an EC2 instance.
-func NetworkInterfaceStateRefreshFunc(conn *ec2.EC2, instanceID string) resource.StateRefreshFunc {
-	return nil
-}
-
 func convertToJustAddresses(dtos []ec2.NetworkInterfacePrivateIPAddress) []string {
 	ips := make([]string, 0, len(dtos))
 	for _, v := range dtos {
@@ -186,4 +241,22 @@ func convertToPrivateIPAddresses(ips []interface{}) []ec2.PrivateIPAddressSpecif
 		dtos = append(dtos, new_private_ip)
 	}
 	return dtos
+}
+
+func resourceAwsEniAttachmentHash(v interface{}) int {
+	var buf bytes.Buffer
+	m := v.(map[string]interface{})
+	buf.WriteString(fmt.Sprintf("%d-", m["instance"].(string)))
+	buf.WriteString(fmt.Sprintf("%s-", m["device_index"].(int)))
+	return hashcode.String(buf.String())
+}
+
+func flattenAttachment(a *ec2.NetworkInterfaceAttachment) []map[string]interface{} {
+	result := make([]map[string]interface{}, 0, 1)
+	att := make(map[string]interface{})	
+	att["instance"] = *a.InstanceID
+	att["device_index"] = *a.DeviceIndex
+	att["attachment_id"] = *a.AttachmentID
+	result = append(result, att)
+	return result
 }
