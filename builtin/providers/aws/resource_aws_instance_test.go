@@ -88,6 +88,11 @@ func TestAccAWSInstance_blockDevices(t *testing.T) {
 				fmt.Errorf("block device doesn't exist: /dev/sdb")
 			}
 
+			// Check if the third block device exists.
+			if _, ok := blockDevices["/dev/sdc"]; !ok {
+				fmt.Errorf("block device doesn't exist: /dev/sdc")
+			}
+
 			return nil
 		}
 	}
@@ -114,11 +119,22 @@ func TestAccAWSInstance_blockDevices(t *testing.T) {
 					resource.TestCheckResourceAttr(
 						"aws_instance.foo", "root_block_device.0.volume_type", "gp2"),
 					resource.TestCheckResourceAttr(
-						"aws_instance.foo", "block_device.#", "1"),
+						"aws_instance.foo", "block_device.#", "2"),
 					resource.TestCheckResourceAttr(
 						"aws_instance.foo", "block_device.172787947.device_name", "/dev/sdb"),
 					resource.TestCheckResourceAttr(
 						"aws_instance.foo", "block_device.172787947.volume_size", "9"),
+					resource.TestCheckResourceAttr(
+						"aws_instance.foo", "block_device.172787947.iops", "0"),
+					// Check provisioned SSD device
+					resource.TestCheckResourceAttr(
+						"aws_instance.foo", "block_device.3336996981.volume_type", "io1"),
+					resource.TestCheckResourceAttr(
+						"aws_instance.foo", "block_device.3336996981.device_name", "/dev/sdc"),
+					resource.TestCheckResourceAttr(
+						"aws_instance.foo", "block_device.3336996981.volume_size", "10"),
+					resource.TestCheckResourceAttr(
+						"aws_instance.foo", "block_device.3336996981.iops", "100"),
 					testCheck(),
 				),
 			},
@@ -390,6 +406,12 @@ resource "aws_instance" "foo" {
 	block_device {
 		device_name = "/dev/sdb"
 		volume_size = 9
+	}
+	block_device {
+		device_name = "/dev/sdc"
+		volume_size = 10
+		volume_type = "io1"
+		iops = 100
 	}
 }
 `
