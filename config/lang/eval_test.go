@@ -208,6 +208,15 @@ func TestEval(t *testing.T) {
 			"foo 42",
 			ast.TypeString,
 		},
+
+		// Multiline
+		{
+			"foo ${42+\n1.0}",
+			nil,
+			false,
+			"foo 43",
+			ast.TypeString,
+		},
 	}
 
 	for _, tc := range cases {
