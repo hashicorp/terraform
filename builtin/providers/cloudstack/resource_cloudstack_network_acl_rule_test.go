@@ -190,7 +190,6 @@ resource "cloudstack_network_acl_rule" "foo" {
   aclid = "${cloudstack_network_acl.foo.id}"
 
   rule {
-	  action = "allow"
     source_cidr = "172.16.100.0/24"
     protocol = "tcp"
     ports = ["80", "443"]

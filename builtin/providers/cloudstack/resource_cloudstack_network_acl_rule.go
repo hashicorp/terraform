@@ -455,12 +455,27 @@ func resourceCloudStackNetworkACLRuleDeleteRule(
 func resourceCloudStackNetworkACLRuleHash(v interface{}) int {
 	var buf bytes.Buffer
 	m := v.(map[string]interface{})
+
+	// This is a little ugly, but it's needed because these arguments have
+	// a default value that needs to be part of the string to hash
+	var action, trafficType string
+	if a, ok := m["action"]; ok {
+		action = a.(string)
+	} else {
+		action = "allow"
+	}
+	if t, ok := m["traffic_type"]; ok {
+		trafficType = t.(string)
+	} else {
+		trafficType = "ingress"
+	}
+
 	buf.WriteString(fmt.Sprintf(
 		"%s-%s-%s-%s-",
-		m["action"].(string),
+		action,
 		m["source_cidr"].(string),
 		m["protocol"].(string),
-		m["traffic_type"].(string)))
+		trafficType))
 
 	if v, ok := m["icmp_type"]; ok {
 		buf.WriteString(fmt.Sprintf("%d-", v.(int)))
