@@ -2,6 +2,7 @@ package aws
 
 import (
 	"fmt"
+	"reflect"
 	"testing"
 
 	"github.com/hashicorp/aws-sdk-go/aws"
@@ -53,6 +54,42 @@ func TestAccAWSAutoScalingGroup_basic(t *testing.T) {
 					resource.TestCheckResourceAttr(
 						"aws_autoscaling_group.bar", "desired_capacity", "5"),
 					testLaunchConfigurationName("aws_autoscaling_group.bar", &lc),
+					resource.TestCheckResourceAttr(
+						"aws_autoscaling_group.bar", "tag", "xxx"),
+				),
+			},
+		},
+	})
+}
+
+func TestAccAWSAutoScalingGroup_tags(t *testing.T) {
+	var group autoscaling.AutoScalingGroup
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSAutoScalingGroupDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccAWSAutoScalingGroupConfig,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSAutoScalingGroupExists("aws_autoscaling_group.bar", &group),
+					testAccCheckAutoscalingTags(&group.Tags, "foo", map[string]interface{}{
+						"value":               "bar",
+						"propagate_at_launch": true,
+					}),
+				),
+			},
+
+			resource.TestStep{
+				Config: testAccCheckInstanceConfigTagsUpdate,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSAutoScalingGroupExists("aws_autoscaling_group.bar", &group),
+					testAccCheckAutoscalingTagNotExists(&group.Tags, "foo"),
+					testAccCheckAutoscalingTags(&group.Tags, "bar", map[string]interface{}{
+						"value":               "baz",
+						"propagate_at_launch": true,
+					}),
 				),
 			},
 		},
@@ -145,6 +182,19 @@ func testAccCheckAWSAutoScalingGroupAttributes(group *autoscaling.AutoScalingGro
 			return fmt.Errorf("Bad launch configuration name: %s", *group.LaunchConfigurationName)
 		}
 
+		t := autoscaling.Tag{
+			Key:               aws.String("Name"),
+			Value:             aws.String("foo-bar"),
+			PropagateAtLaunch: aws.Boolean(true),
+		}
+
+		if !reflect.DeepEqual(group.Tags[0], t) {
+			return fmt.Errorf(
+				"Got:\n\n%#v\n\nExpected:\n\n%#v\n",
+				group.Tags[0],
+				t)
+		}
+
 		return nil
 	}
 }
@@ -226,6 +276,12 @@ resource "aws_autoscaling_group" "bar" {
   termination_policies = ["OldestInstance"]
 
   launch_configuration = "${aws_launch_configuration.foobar.name}"
+
+  tag {
+    key = "Name"
+    value = "foo-bar"
+    propagate_at_launch = true
+  }
 }
 `
 
@@ -253,6 +309,12 @@ resource "aws_autoscaling_group" "bar" {
   force_delete = true
 
   launch_configuration = "${aws_launch_configuration.new.name}"
+
+  tag {
+    key = "Name"
+    value = "bar-foo"
+    propagate_at_launch = true
+  }
 }
 `
 
