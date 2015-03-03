@@ -2,7 +2,7 @@ package aws
 
 import (
 	"fmt"
-	awsGo "github.com/awslabs/aws-sdk-go/aws"
+	"github.com/awslabs/aws-sdk-go/aws"
 	"github.com/awslabs/aws-sdk-go/gen/ec2"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
@@ -132,7 +132,7 @@ func testAccCheckVpcDestroy(s *terraform.State) error {
 		}
 
 		// Verify the error is what we want
-		ec2err, ok := err.(*awsGo.APIError)
+		ec2err, ok := err.(*aws.APIError)
 		if !ok {
 			return err
 		}
