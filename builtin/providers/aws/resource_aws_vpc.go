@@ -5,7 +5,7 @@ import (
 	"log"
 	"time"
 
-	awsGo "github.com/awslabs/aws-sdk-go/aws"
+	"github.com/awslabs/aws-sdk-go/aws"
 	"github.com/awslabs/aws-sdk-go/gen/ec2"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
@@ -65,14 +65,13 @@ func resourceAwsVpc() *schema.Resource {
 
 func resourceAwsVpcCreate(d *schema.ResourceData, meta interface{}) error {
 	ec2conn := meta.(*AWSClient).awsEc2conn
-	cidr := d.Get("cidr_block").(string)
 	instance_tenancy := "default"
 	if v, ok := d.GetOk("instance_tenancy"); ok {
 		instance_tenancy = v.(string)
 	}
 	// Create the VPC
 	createOpts := &ec2.CreateVPCRequest{
-		CIDRBlock:       &cidr,
+		CIDRBlock:       aws.String(d.Get("cidr_block").(string)),
 		InstanceTenancy: &instance_tenancy,
 	}
 	log.Printf("[DEBUG] VPC create config: %#v", *createOpts)
@@ -156,11 +155,11 @@ func resourceAwsVpcRead(d *schema.ResourceData, meta interface{}) error {
 	// Get the main routing table for this VPC
 	// Really Ugly need to make this better - rmenn
 	filter1 := &ec2.Filter{
-		Name:   awsGo.String("association.main"),
+		Name:   aws.String("association.main"),
 		Values: []string{("true")},
 	}
 	filter2 := &ec2.Filter{
-		Name:   awsGo.String("vpc-id"),
+		Name:   aws.String("vpc-id"),
 		Values: []string{(d.Id())},
 	}
 	DescribeRouteOpts := &ec2.DescribeRouteTablesRequest{
@@ -239,7 +238,7 @@ func resourceAwsVpcDelete(d *schema.ResourceData, meta interface{}) error {
 	}
 	log.Printf("[INFO] Deleting VPC: %s", d.Id())
 	if err := ec2conn.DeleteVPC(DeleteVpcOpts); err != nil {
-		ec2err, ok := err.(*awsGo.APIError)
+		ec2err, ok := err.(*aws.APIError)
 		if ok && ec2err.Code == "InvalidVpcID.NotFound" {
 			return nil
 		}
@@ -259,7 +258,7 @@ func VPCStateRefreshFunc(conn *ec2.EC2, id string) resource.StateRefreshFunc {
 		}
 		resp, err := conn.DescribeVPCs(DescribeVpcOpts)
 		if err != nil {
-			if ec2err, ok := err.(*awsGo.APIError); ok && ec2err.Code == "InvalidVpcID.NotFound" {
+			if ec2err, ok := err.(*aws.APIError); ok && ec2err.Code == "InvalidVpcID.NotFound" {
 				resp = nil
 			} else {
 				log.Printf("Error on VPCStateRefresh: %s", err)
@@ -280,11 +279,11 @@ func VPCStateRefreshFunc(conn *ec2.EC2, id string) resource.StateRefreshFunc {
 
 func resourceAwsVpcSetDefaultNetworkAcl(conn *ec2.EC2, d *schema.ResourceData) error {
 	filter1 := &ec2.Filter{
-		Name:   awsGo.String("default"),
+		Name:   aws.String("default"),
 		Values: []string{("true")},
 	}
 	filter2 := &ec2.Filter{
-		Name:   awsGo.String("vpc-id"),
+		Name:   aws.String("vpc-id"),
 		Values: []string{(d.Id())},
 	}
 	DescribeNetworkACLOpts := &ec2.DescribeNetworkACLsRequest{
@@ -304,11 +303,11 @@ func resourceAwsVpcSetDefaultNetworkAcl(conn *ec2.EC2, d *schema.ResourceData) e
 
 func resourceAwsVpcSetDefaultSecurityGroup(conn *ec2.EC2, d *schema.ResourceData) error {
 	filter1 := &ec2.Filter{
-		Name:   awsGo.String("group-name"),
+		Name:   aws.String("group-name"),
 		Values: []string{("default")},
 	}
 	filter2 := &ec2.Filter{
-		Name:   awsGo.String("vpc-id"),
+		Name:   aws.String("vpc-id"),
 		Values: []string{(d.Id())},
 	}
 	DescribeSgOpts := &ec2.DescribeSecurityGroupsRequest{
