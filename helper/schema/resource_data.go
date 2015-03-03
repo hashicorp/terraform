@@ -143,9 +143,16 @@ func (d *ResourceData) Set(key string, value interface{}) error {
 	// simplify the interface.
 	reflectVal := reflect.ValueOf(value)
 	if reflectVal.Kind() == reflect.Ptr {
-		reflectVal = reflect.Indirect(reflectVal)
-		if reflectVal.Kind() != reflect.Struct {
-			value = reflectVal.Interface()
+		if reflectVal.IsNil() {
+			// If the pointer is nil, then the value is just nil
+			value = nil
+		} else {
+			// Otherwise, we dereference the pointer as long as its not
+			// a pointer to a struct, since struct pointers are allowed.
+			reflectVal = reflect.Indirect(reflectVal)
+			if reflectVal.Kind() != reflect.Struct {
+				value = reflectVal.Interface()
+			}
 		}
 	}
 
