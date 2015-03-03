@@ -1178,6 +1178,8 @@ func TestResourceDataHasChange(t *testing.T) {
 }
 
 func TestResourceDataSet(t *testing.T) {
+	var testNilPtr *string
+
 	cases := []struct {
 		Schema   map[string]*Schema
 		State    *terraform.InstanceState
@@ -1649,7 +1651,7 @@ func TestResourceDataSet(t *testing.T) {
 			Diff: nil,
 
 			Key:   "availability_zone",
-			Value: nil,
+			Value: testNilPtr,
 
 			GetKey:   "availability_zone",
 			GetValue: "",
