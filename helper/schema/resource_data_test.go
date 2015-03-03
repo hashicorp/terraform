@@ -1588,6 +1588,72 @@ func TestResourceDataSet(t *testing.T) {
 			GetKey:   "ratios",
 			GetValue: []interface{}{1.0, 2.2, 5.5},
 		},
+
+		// #13: Basic pointer
+		{
+			Schema: map[string]*Schema{
+				"availability_zone": &Schema{
+					Type:     TypeString,
+					Optional: true,
+					Computed: true,
+					ForceNew: true,
+				},
+			},
+
+			State: nil,
+
+			Diff: nil,
+
+			Key:   "availability_zone",
+			Value: testPtrTo("foo"),
+
+			GetKey:   "availability_zone",
+			GetValue: "foo",
+		},
+
+		// #14: Basic nil value
+		{
+			Schema: map[string]*Schema{
+				"availability_zone": &Schema{
+					Type:     TypeString,
+					Optional: true,
+					Computed: true,
+					ForceNew: true,
+				},
+			},
+
+			State: nil,
+
+			Diff: nil,
+
+			Key:   "availability_zone",
+			Value: testPtrTo(nil),
+
+			GetKey:   "availability_zone",
+			GetValue: "",
+		},
+
+		// #15: Basic nil pointer
+		{
+			Schema: map[string]*Schema{
+				"availability_zone": &Schema{
+					Type:     TypeString,
+					Optional: true,
+					Computed: true,
+					ForceNew: true,
+				},
+			},
+
+			State: nil,
+
+			Diff: nil,
+
+			Key:   "availability_zone",
+			Value: nil,
+
+			GetKey:   "availability_zone",
+			GetValue: "",
+		},
 	}
 
 	for i, tc := range cases {
@@ -2787,4 +2853,8 @@ func TestResourceDataSetId_override(t *testing.T) {
 	if actual.ID != "foo" {
 		t.Fatalf("bad: %#v", actual)
 	}
+}
+
+func testPtrTo(raw interface{}) interface{} {
+	return &raw
 }
