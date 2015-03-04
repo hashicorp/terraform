@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"os"
 
+	"code.google.com/p/google-api-go-client/autoscaler/v1beta2"
 	"code.google.com/p/google-api-go-client/compute/v1"
 	"code.google.com/p/google-api-go-client/replicapool/v1beta2"
 
@@ -24,6 +25,7 @@ type Config struct {
 
 	clientCompute     *compute.Service
 	clientReplicaPool *replicapool.Service
+	clientAutoscaler  *autoscaler.Service
 }
 
 func (c *Config) loadAndValidate() error {
@@ -91,6 +93,11 @@ func (c *Config) loadAndValidate() error {
 	}
 
 	c.clientReplicaPool, err = replicapool.New(client)
+	if err != nil {
+		return err
+	}
+
+	c.clientAutoscaler, err = autoscaler.New(client)
 	if err != nil {
 		return err
 	}

@@ -29,6 +29,7 @@ func Provider() terraform.ResourceProvider {
 		},
 
 		ResourcesMap: map[string]*schema.Resource{
+			"google_autoscaler":                         resourceAutoscaler(),
 			"google_compute_address":                    resourceComputeAddress(),
 			"google_compute_disk":                       resourceComputeDisk(),
 			"google_compute_firewall":                   resourceComputeFirewall(),
