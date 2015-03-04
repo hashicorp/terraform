@@ -29,14 +29,19 @@ func (t *DeposedTransformer) Transform(g *Graph) error {
 
 	// Go through all the resources in our state to look for deposed resources
 	for k, rs := range state.Resources {
-		if rs.Deposed == nil {
+		// If we have no deposed resources, then move on
+		if len(rs.Deposed) == 0 {
 			continue
 		}
+		deposed := rs.Deposed
 
-		g.Add(&graphNodeDeposedResource{
-			ResourceName: k,
-			ResourceType: rs.Type,
-		})
+		for i, _ := range deposed {
+			g.Add(&graphNodeDeposedResource{
+				Index:        i,
+				ResourceName: k,
+				ResourceType: rs.Type,
+			})
+		}
 	}
 
 	return nil
@@ -44,12 +49,13 @@ func (t *DeposedTransformer) Transform(g *Graph) error {
 
 // graphNodeDeposedResource is the graph vertex representing a deposed resource.
 type graphNodeDeposedResource struct {
+	Index        int
 	ResourceName string
 	ResourceType string
 }
 
 func (n *graphNodeDeposedResource) Name() string {
-	return fmt.Sprintf("%s (deposed)", n.ResourceName)
+	return fmt.Sprintf("%s (deposed #%d)", n.ResourceName, n.Index)
 }
 
 func (n *graphNodeDeposedResource) ProvidedBy() []string {
@@ -79,6 +85,7 @@ func (n *graphNodeDeposedResource) EvalTree() EvalNode {
 				&EvalReadStateDeposed{
 					Name:   n.ResourceName,
 					Output: &state,
+					Index:  n.Index,
 				},
 				&EvalRefresh{
 					Info:     info,
@@ -90,6 +97,7 @@ func (n *graphNodeDeposedResource) EvalTree() EvalNode {
 					Name:         n.ResourceName,
 					ResourceType: n.ResourceType,
 					State:        &state,
+					Index:        n.Index,
 				},
 			},
 		},
@@ -98,7 +106,6 @@ func (n *graphNodeDeposedResource) EvalTree() EvalNode {
 	// Apply
 	var diff *InstanceDiff
 	var err error
-	var emptyState *InstanceState
 	seq.Nodes = append(seq.Nodes, &EvalOpFilter{
 		Ops: []walkOperation{walkApply},
 		Node: &EvalSequence{
@@ -110,6 +117,7 @@ func (n *graphNodeDeposedResource) EvalTree() EvalNode {
 				&EvalReadStateDeposed{
 					Name:   n.ResourceName,
 					Output: &state,
+					Index:  n.Index,
 				},
 				&EvalDiffDestroy{
 					Info:   info,
@@ -124,20 +132,14 @@ func (n *graphNodeDeposedResource) EvalTree() EvalNode {
 					Output:   &state,
 					Error:    &err,
 				},
-				// Always write the resource back to the state tainted... if it
-				// successfully destroyed it will be pruned. If it did not, it will
-				// remain tainted.
-				&EvalWriteStateTainted{
-					Name:         n.ResourceName,
-					ResourceType: n.ResourceType,
-					State:        &state,
-					TaintedIndex: -1,
-				},
-				// Then clear the deposed state.
+				// Always write the resource back to the state deposed... if it
+				// was successfully destroyed it will be pruned. If it was not, it will
+				// be caught on the next run.
 				&EvalWriteStateDeposed{
 					Name:         n.ResourceName,
 					ResourceType: n.ResourceType,
-					State:        &emptyState,
+					State:        &state,
+					Index:        n.Index,
 				},
 				&EvalReturnError{
 					Error: &err,
