@@ -37,6 +37,10 @@ module "child" {
 This will work. You've created your first module! You can add resources
 to the child module to see how that interaction works.
 
+Note: Prior to running the above, you'll have to run
+[the get command](/docs/commands/get.html) for Terraform to sync
+your modules. This should be instant since the module is just a local path.
+
 ## Inputs/Outputs
 
 To make modules more useful than simple isolated containers of Terraform
