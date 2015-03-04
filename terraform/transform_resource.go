@@ -406,7 +406,7 @@ func (n *graphNodeExpandedResource) EvalTree() EvalNode {
 								ResourceType: n.Resource.Type,
 								Dependencies: n.DependentOn(),
 								State:        &state,
-								TaintedIndex: -1,
+								Index:        -1,
 							},
 							&EvalIf{
 								If: func(ctx EvalContext) (bool, error) {
@@ -513,9 +513,9 @@ func (n *graphNodeExpandedResourceDestroy) EvalTree() EvalNode {
 						return n.Resource.Lifecycle.CreateBeforeDestroy, nil
 					},
 					Then: &EvalReadStateTainted{
-						Name:         n.stateId(),
-						Output:       &state,
-						TaintedIndex: -1,
+						Name:   n.stateId(),
+						Output: &state,
+						Index:  -1,
 					},
 					Else: &EvalReadState{
 						Name:   n.stateId(),
