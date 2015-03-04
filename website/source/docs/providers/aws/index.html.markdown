@@ -32,7 +32,7 @@ resource "aws_instance" "web" {
 
 ## Argument Reference
 
-The following arguments are supported:
+The following arguments are supported in the `provider` block:
 
 * `access_key` - (Required) This is the AWS access key. It must be provided, but
   it can also be sourced from the `AWS_ACCESS_KEY_ID` environment variable.
