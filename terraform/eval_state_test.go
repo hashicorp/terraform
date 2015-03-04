@@ -97,21 +97,24 @@ func TestEvalReadState(t *testing.T) {
 				},
 			},
 			Node: &EvalReadStateTainted{
-				Name:         "aws_instance.bar",
-				Output:       &output,
-				TaintedIndex: 0,
+				Name:   "aws_instance.bar",
+				Output: &output,
+				Index:  0,
 			},
 			ExpectedInstanceId: "i-abc123",
 		},
 		"ReadStateDeposed gets deposed instance": {
 			Resources: map[string]*ResourceState{
 				"aws_instance.bar": &ResourceState{
-					Deposed: &InstanceState{ID: "i-abc123"},
+					Deposed: []*InstanceState{
+						&InstanceState{ID: "i-abc123"},
+					},
 				},
 			},
 			Node: &EvalReadStateDeposed{
 				Name:   "aws_instance.bar",
 				Output: &output,
+				Index:  0,
 			},
 			ExpectedInstanceId: "i-abc123",
 		},
@@ -187,7 +190,7 @@ func TestEvalWriteStateTainted(t *testing.T) {
 		Name:         "restype.resname",
 		ResourceType: "restype",
 		State:        &is,
-		TaintedIndex: -1,
+		Index:        -1,
 	}
 	_, err := node.Eval(ctx)
 	if err != nil {
@@ -195,7 +198,7 @@ func TestEvalWriteStateTainted(t *testing.T) {
 	}
 
 	rs := state.ModuleByPath(ctx.Path()).Resources["restype.resname"]
-	if len(rs.Tainted) == 1 && rs.Tainted[0].ID != "i-abc123" {
+	if len(rs.Tainted) != 1 || rs.Tainted[0].ID != "i-abc123" {
 		t.Fatalf("expected tainted instance to have ID 'i-abc123': %#v", rs)
 	}
 }
@@ -212,6 +215,7 @@ func TestEvalWriteStateDeposed(t *testing.T) {
 		Name:         "restype.resname",
 		ResourceType: "restype",
 		State:        &is,
+		Index:        -1,
 	}
 	_, err := node.Eval(ctx)
 	if err != nil {
@@ -219,7 +223,7 @@ func TestEvalWriteStateDeposed(t *testing.T) {
 	}
 
 	rs := state.ModuleByPath(ctx.Path()).Resources["restype.resname"]
-	if rs.Deposed == nil || rs.Deposed.ID != "i-abc123" {
+	if len(rs.Deposed) != 1 || rs.Deposed[0].ID != "i-abc123" {
 		t.Fatalf("expected deposed instance to have ID 'i-abc123': %#v", rs)
 	}
 }

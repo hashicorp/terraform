@@ -12,5 +12,9 @@ type EvalReturnError struct {
 }
 
 func (n *EvalReturnError) Eval(ctx EvalContext) (interface{}, error) {
+	if n.Error == nil {
+		return nil, nil
+	}
+
 	return nil, *n.Error
 }

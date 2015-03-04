@@ -25,13 +25,13 @@ type EvalReadStateTainted struct {
 
 	// Tainted is a per-resource list, this index determines which item in the
 	// list we are addressing
-	TaintedIndex int
+	Index int
 }
 
 func (n *EvalReadStateTainted) Eval(ctx EvalContext) (interface{}, error) {
 	return readInstanceFromState(ctx, n.Name, n.Output, func(rs *ResourceState) (*InstanceState, error) {
 		// Get the index. If it is negative, then we get the last one
-		idx := n.TaintedIndex
+		idx := n.Index
 		if idx < 0 {
 			idx = len(rs.Tainted) - 1
 		}
@@ -48,11 +48,21 @@ func (n *EvalReadStateTainted) Eval(ctx EvalContext) (interface{}, error) {
 type EvalReadStateDeposed struct {
 	Name   string
 	Output **InstanceState
+	Index  int
 }
 
 func (n *EvalReadStateDeposed) Eval(ctx EvalContext) (interface{}, error) {
 	return readInstanceFromState(ctx, n.Name, n.Output, func(rs *ResourceState) (*InstanceState, error) {
-		return rs.Deposed, nil
+		// Get the index. If it is negative, then we get the last one
+		idx := n.Index
+		if idx < 0 {
+			idx = len(rs.Deposed) - 1
+		}
+		if idx >= 0 && idx < len(rs.Deposed) {
+			return rs.Deposed[idx], nil
+		} else {
+			return nil, fmt.Errorf("bad deposed index: %d, for resource: %#v", idx, rs)
+		}
 	})
 }
 
@@ -183,7 +193,7 @@ type EvalWriteStateTainted struct {
 	ResourceType string
 	Dependencies []string
 	State        **InstanceState
-	TaintedIndex int
+	Index        int
 }
 
 func (n *EvalWriteStateTainted) Eval(ctx EvalContext) (interface{}, error) {
@@ -212,10 +222,10 @@ func (n *EvalWriteStateTainted) Eval(ctx EvalContext) (interface{}, error) {
 	rs.Type = n.ResourceType
 	rs.Dependencies = n.Dependencies
 
-	if n.TaintedIndex == -1 {
+	if n.Index == -1 {
 		rs.Tainted = append(rs.Tainted, *n.State)
 	} else {
-		rs.Tainted[n.TaintedIndex] = *n.State
+		rs.Tainted[n.Index] = *n.State
 	}
 
 	return nil, nil
@@ -226,6 +236,7 @@ type EvalWriteStateDeposed struct {
 	ResourceType string
 	Dependencies []string
 	State        **InstanceState
+	Index        int
 }
 
 func (n *EvalWriteStateDeposed) Eval(ctx EvalContext) (interface{}, error) {
@@ -254,7 +265,11 @@ func (n *EvalWriteStateDeposed) Eval(ctx EvalContext) (interface{}, error) {
 	rs.Type = n.ResourceType
 	rs.Dependencies = n.Dependencies
 
-	rs.Deposed = *n.State
+	if n.Index == -1 {
+		rs.Deposed = append(rs.Deposed, *n.State)
+	} else {
+		rs.Deposed[n.Index] = *n.State
+	}
 
 	return nil, nil
 }
@@ -324,7 +339,7 @@ func (n *EvalDeposeState) Eval(ctx EvalContext) (interface{}, error) {
 	}
 
 	// Depose
-	rs.Deposed = rs.Primary
+	rs.Deposed = append(rs.Deposed, rs.Primary)
 	rs.Primary = nil
 
 	return nil, nil
@@ -357,13 +372,13 @@ func (n *EvalUndeposeState) Eval(ctx EvalContext) (interface{}, error) {
 	}
 
 	// If we don't have any desposed resource, then we don't have anything to do
-	if rs.Deposed == nil {
+	if len(rs.Deposed) == 0 {
 		return nil, nil
 	}
 
 	// Undepose
-	rs.Primary = rs.Deposed
-	rs.Deposed = nil
+	rs.Primary = rs.Deposed[len(rs.Deposed)-1]
+	rs.Deposed = rs.Deposed[:len(rs.Deposed)-1]
 
 	return nil, nil
 }

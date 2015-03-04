@@ -88,9 +88,9 @@ func (n *graphNodeTaintedResource) EvalTree() EvalNode {
 					Output: &provider,
 				},
 				&EvalReadStateTainted{
-					Name:         n.ResourceName,
-					TaintedIndex: n.Index,
-					Output:       &state,
+					Name:   n.ResourceName,
+					Index:  n.Index,
+					Output: &state,
 				},
 				&EvalRefresh{
 					Info:     info,
@@ -102,7 +102,7 @@ func (n *graphNodeTaintedResource) EvalTree() EvalNode {
 					Name:         n.ResourceName,
 					ResourceType: n.ResourceType,
 					State:        &state,
-					TaintedIndex: n.Index,
+					Index:        n.Index,
 				},
 			},
 		},
@@ -119,9 +119,9 @@ func (n *graphNodeTaintedResource) EvalTree() EvalNode {
 					Output: &provider,
 				},
 				&EvalReadStateTainted{
-					Name:         n.ResourceName,
-					TaintedIndex: n.Index,
-					Output:       &state,
+					Name:   n.ResourceName,
+					Index:  n.Index,
+					Output: &state,
 				},
 				&EvalDiffDestroy{
 					Info:   info,
@@ -139,7 +139,7 @@ func (n *graphNodeTaintedResource) EvalTree() EvalNode {
 					Name:         n.ResourceName,
 					ResourceType: n.ResourceType,
 					State:        &state,
-					TaintedIndex: n.Index,
+					Index:        n.Index,
 				},
 				&EvalUpdateStateHook{},
 			},
