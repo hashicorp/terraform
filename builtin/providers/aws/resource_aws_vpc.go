@@ -58,13 +58,13 @@ func resourceAwsVpc() *schema.Resource {
 				Computed: true,
 			},
 
-			//			"tags": tagsSchema(),
+			"tags": tagsSchema(),
 		},
 	}
 }
 
 func resourceAwsVpcCreate(d *schema.ResourceData, meta interface{}) error {
-	ec2conn := meta.(*AWSClient).awsEc2conn
+	ec2conn := meta.(*AWSClient).awsEC2conn
 	instance_tenancy := "default"
 	if v, ok := d.GetOk("instance_tenancy"); ok {
 		instance_tenancy = v.(string)
@@ -110,7 +110,7 @@ func resourceAwsVpcCreate(d *schema.ResourceData, meta interface{}) error {
 }
 
 func resourceAwsVpcRead(d *schema.ResourceData, meta interface{}) error {
-	ec2conn := meta.(*AWSClient).awsEc2conn
+	ec2conn := meta.(*AWSClient).awsEC2conn
 
 	// Refresh the VPC state
 	vpcRaw, _, err := VPCStateRefreshFunc(ec2conn, d.Id())()
@@ -127,8 +127,8 @@ func resourceAwsVpcRead(d *schema.ResourceData, meta interface{}) error {
 	vpcid := d.Id()
 	d.Set("cidr_block", vpc.CIDRBlock)
 
-	// Tags - TBD rmenn
-	//d.Set("tags", tagsToMap(vpc.Tags))
+	// Tags
+	d.Set("tags", tagsToMapSDK(vpc.Tags))
 
 	// Attributes
 	attribute := "enableDnsSupport"
@@ -180,7 +180,7 @@ func resourceAwsVpcRead(d *schema.ResourceData, meta interface{}) error {
 }
 
 func resourceAwsVpcUpdate(d *schema.ResourceData, meta interface{}) error {
-	ec2conn := meta.(*AWSClient).awsEc2conn
+	ec2conn := meta.(*AWSClient).awsEC2conn
 
 	// Turn on partial mode
 	d.Partial(true)
@@ -219,19 +219,19 @@ func resourceAwsVpcUpdate(d *schema.ResourceData, meta interface{}) error {
 
 		d.SetPartial("enable_dns_support")
 	}
-	//Tagging Support need to be worked on - rmenn
-	//	if err := setTags(ec2conn, d); err != nil {
-	//		return err
-	//	} else {
-	//		d.SetPartial("tags")
-	//	}
+
+	if err := setTagsSDK(ec2conn, d); err != nil {
+		return err
+	} else {
+		d.SetPartial("tags")
+	}
 
 	d.Partial(false)
 	return resourceAwsVpcRead(d, meta)
 }
 
 func resourceAwsVpcDelete(d *schema.ResourceData, meta interface{}) error {
-	ec2conn := meta.(*AWSClient).awsEc2conn
+	ec2conn := meta.(*AWSClient).awsEC2conn
 	vpcID := d.Id()
 	DeleteVpcOpts := &ec2.DeleteVPCRequest{
 		VPCID: &vpcID,

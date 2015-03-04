@@ -50,36 +50,36 @@ func TestAccVpc_dedicatedTenancy(t *testing.T) {
 	})
 }
 
-//func TestAccVpc_tags(t *testing.T) {
-//	var vpc ec2.VPC
-//
-//	resource.Test(t, resource.TestCase{
-//		PreCheck:     func() { testAccPreCheck(t) },
-//		Providers:    testAccProviders,
-//		CheckDestroy: testAccCheckVpcDestroy,
-//		Steps: []resource.TestStep{
-//			resource.TestStep{
-//				Config: testAccVpcConfigTags,
-//				Check: resource.ComposeTestCheckFunc(
-//					testAccCheckVpcExists("aws_vpc.foo", &vpc),
-//					testAccCheckVpcCidr(&vpc, "10.1.0.0/16"),
-//					resource.TestCheckResourceAttr(
-//						"aws_vpc.foo", "cidr_block", "10.1.0.0/16"),
-//					testAccCheckTags(&vpc.Tags, "foo", "bar"),
-//				),
-//			},
-//
-//			resource.TestStep{
-//				Config: testAccVpcConfigTagsUpdate,
-//				Check: resource.ComposeTestCheckFunc(
-//					testAccCheckVpcExists("aws_vpc.foo", &vpc),
-//					testAccCheckTags(&vpc.Tags, "foo", ""),
-//					testAccCheckTags(&vpc.Tags, "bar", "baz"),
-//				),
-//			},
-//		},
-//	})
-//}
+func TestAccVpc_tags(t *testing.T) {
+	var vpc ec2.VPC
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckVpcDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccVpcConfigTags,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckVpcExists("aws_vpc.foo", &vpc),
+					testAccCheckVpcCidr(&vpc, "10.1.0.0/16"),
+					resource.TestCheckResourceAttr(
+						"aws_vpc.foo", "cidr_block", "10.1.0.0/16"),
+					testAccCheckTagsSDK(&vpc.Tags, "foo", "bar"),
+				),
+			},
+
+			resource.TestStep{
+				Config: testAccVpcConfigTagsUpdate,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckVpcExists("aws_vpc.foo", &vpc),
+					testAccCheckTagsSDK(&vpc.Tags, "foo", ""),
+					testAccCheckTagsSDK(&vpc.Tags, "bar", "baz"),
+				),
+			},
+		},
+	})
+}
 
 func TestAccVpcUpdate(t *testing.T) {
 	var vpc ec2.VPC
@@ -111,7 +111,7 @@ func TestAccVpcUpdate(t *testing.T) {
 }
 
 func testAccCheckVpcDestroy(s *terraform.State) error {
-	conn := testAccProvider.Meta().(*AWSClient).awsEc2conn
+	conn := testAccProvider.Meta().(*AWSClient).awsEC2conn
 
 	for _, rs := range s.RootModule().Resources {
 		if rs.Type != "aws_vpc" {
@@ -166,7 +166,7 @@ func testAccCheckVpcExists(n string, vpc *ec2.VPC) resource.TestCheckFunc {
 			return fmt.Errorf("No VPC ID is set")
 		}
 
-		conn := testAccProvider.Meta().(*AWSClient).awsEc2conn
+		conn := testAccProvider.Meta().(*AWSClient).awsEC2conn
 		DescribeVpcOpts := &ec2.DescribeVPCsRequest{
 			VPCIDs: []string{rs.Primary.ID},
 		}
