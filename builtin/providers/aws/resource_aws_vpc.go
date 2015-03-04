@@ -58,7 +58,7 @@ func resourceAwsVpc() *schema.Resource {
 				Computed: true,
 			},
 
-			"tags": tagsSchema(),
+			//			"tags": tagsSchema(),
 		},
 	}
 }
