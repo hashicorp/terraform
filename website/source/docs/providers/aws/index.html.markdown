@@ -42,3 +42,6 @@ The following arguments are supported:
 
 * `region` - (Required) This is the AWS region. It must be provided, but
   it can also be sourced from the `AWS_DEFAULT_REGION` environment variables.
+
+In addition to the above parameters, the `AWS_SECURITY_TOKEN` environmental
+variable can be set to set an MFA token.
