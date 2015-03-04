@@ -72,6 +72,7 @@ func resourceComputeSecGroupV2() *schema.Resource {
 						"self": &schema.Schema{
 							Type:     schema.TypeBool,
 							Optional: true,
+							Default:  false,
 							ForceNew: false,
 						},
 					},
@@ -126,8 +127,16 @@ func resourceComputeSecGroupV2Read(d *schema.ResourceData, meta interface{}) err
 	d.Set("region", d.Get("region").(string))
 	d.Set("name", sg.Name)
 	d.Set("description", sg.Description)
-	log.Printf("[DEBUG] rulesToMap(sg.Rules): %+v", rulesToMap(sg.Rules))
-	d.Set("rule", rulesToMap(sg.Rules))
+	rtm := rulesToMap(sg.Rules)
+	for _, v := range rtm {
+		if v["group"] == d.Get("name") {
+			v["self"] = "1"
+		} else {
+			v["self"] = "0"
+		}
+	}
+	log.Printf("[DEBUG] rulesToMap(sg.Rules): %+v", rtm)
+	d.Set("rule", rtm)
 
 	return nil
 }
@@ -267,6 +276,7 @@ func rulesToMap(sgrs []secgroups.Rule) []map[string]interface{} {
 			"to_port":     sgr.ToPort,
 			"ip_protocol": sgr.IPProtocol,
 			"cidr":        sgr.IPRange.CIDR,
+			"group":       sgr.Group.Name,
 		}
 	}
 	return sgrMap
