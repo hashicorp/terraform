@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 
+	"code.google.com/p/google-api-go-client/autoscaler/v1beta2"
 	"code.google.com/p/google-api-go-client/compute/v1"
 	"code.google.com/p/google-api-go-client/replicapool/v1beta2"
 	"github.com/hashicorp/terraform/helper/resource"
@@ -117,6 +118,52 @@ func (w *ReplicaPoolOperationWaiter) Conf() *resource.StateChangeConf {
 type ReplicaPoolOperationError replicapool.OperationError
 
 func (e ReplicaPoolOperationError) Error() string {
+	var buf bytes.Buffer
+
+	for _, err := range e.Errors {
+		buf.WriteString(err.Message + "\n")
+	}
+
+	return buf.String()
+}
+
+// Autoscaler Operations
+type AutoscalerOperationWaiter struct {
+	Service *autoscaler.Service
+	Op      *autoscaler.Operation
+	Project string
+	Zone    string
+}
+
+func (w *AutoscalerOperationWaiter) RefreshFunc() resource.StateRefreshFunc {
+	return func() (interface{}, string, error) {
+		var op *autoscaler.Operation
+		var err error
+
+		op, err = w.Service.ZoneOperations.Get(
+			w.Project, w.Zone, w.Op.Name).Do()
+
+		if err != nil {
+			return nil, "", err
+		}
+
+		return op, op.Status, nil
+	}
+}
+
+func (w *AutoscalerOperationWaiter) Conf() *resource.StateChangeConf {
+	return &resource.StateChangeConf{
+		Pending: []string{"PENDING", "RUNNING"},
+		Target:  "DONE",
+		Refresh: w.RefreshFunc(),
+	}
+}
+
+// AutoscalerOperationError wraps autoscaler.OperationError and implements the
+// error interface so it can be returned.
+type AutoscalerOperationError autoscaler.OperationError
+
+func (e AutoscalerOperationError) Error() string {
 	var buf bytes.Buffer
 
 	for _, err := range e.Errors {
