@@ -35,10 +35,16 @@ resource "aws_instance" "web" {
 The following arguments are supported:
 
 * `access_key` - (Required) This is the AWS access key. It must be provided, but
-  it can also be sourced from the `AWS_ACCESS_KEY_ID` environment variable.
+  it can also be sourced from the `AWS_ACCESS_KEY_ID` environment variable, or the
+  [AWS cli credentials file](http://docs.aws.amazon.com/cli/latest/userguide/cli-chap-getting-started.html#cli-config-files).
 
 * `secret_key` - (Required) This is the AWS secret key. It must be provided, but
-  it can also be sourced from the `AWS_SECRET_ACCESS_KEY` environment variable.
+  it can also be sourced from the `AWS_SECRET_ACCESS_KEY` environment variable, or the
+  [AWS cli credentials file](http://docs.aws.amazon.com/cli/latest/userguide/cli-chap-getting-started.html#cli-config-files).
 
 * `region` - (Required) This is the AWS region. It must be provided, but
   it can also be sourced from the `AWS_DEFAULT_REGION` environment variables.
+
+It's possible to load credentials from a [specific profile](http://docs.aws.amazon.com/cli/latest/userguide/cli-chap-getting-started.html#cli-multiple-profiles)
+within the AWS cli's credentials file by setting the `AWS_PROFILE` environment variable.
+The `default` profile will be used if this variable is not set.
