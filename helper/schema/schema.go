@@ -114,12 +114,20 @@ type Schema struct {
 	// NOTE: This currently does not work.
 	ComputedWhen []string
 
-	// When Deprecated is set, this field is deprecated.
+	// When Deprecated is set, this attribute is deprecated.
 	//
 	// A deprecated field still works, but will probably stop working in near
 	// future. This string is the message shown to the user with instructions on
 	// how to address the deprecation.
 	Deprecated string
+
+	// When Removed is set, this attribute has been removed from the schema
+	//
+	// Removed attributes can be left in the Schema to generate informative error
+	// messages for the user when they show up in resource configurations.
+	// This string is the message shown to the user with instructions on
+	// what do to about the removed attribute.
+	Removed string
 }
 
 // SchemaDefaultFunc is a function called to return a default value for
@@ -1089,6 +1097,11 @@ func (m schemaMap) validateType(
 	if schema.Deprecated != "" {
 		ws = append(ws, fmt.Sprintf(
 			"%q: [DEPRECATED] %s", k, schema.Deprecated))
+	}
+
+	if schema.Removed != "" {
+		es = append(es, fmt.Errorf(
+			"%q: [REMOVED] %s", k, schema.Removed))
 	}
 
 	return ws, es
