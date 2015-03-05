@@ -4,7 +4,10 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"path/filepath"
 	"strings"
+
+	"github.com/hashicorp/atlas-go/archive"
 )
 
 type PushCommand struct {
@@ -73,6 +76,27 @@ func (c *PushCommand) Run(args []string) int {
 		c.Ui.Error(
 			"A plan file cannot be given as the path to the configuration.\n" +
 				"A path to a module (directory with configuration) must be given.")
+		return 1
+	}
+
+	// Build the archiving options, which includes everything it can
+	// by default according to VCS rules but forcing the data directory.
+	archiveOpts := &archive.ArchiveOpts{
+		Include: []string{filepath.Join(c.DataDir())},
+		VCS:     true,
+	}
+	if !moduleLock {
+		// If we're not locking modules, then exclude the modules dir.
+		archiveOpts.Exclude = append(
+			archiveOpts.Exclude,
+			filepath.Join(c.DataDir(), "modules"))
+	}
+
+	_, err = archive.CreateArchive(configPath, archiveOpts)
+	if err != nil {
+		c.Ui.Error(fmt.Sprintf(
+			"An error has occurred while archiving the module for uploading:\n"+
+				"%s", err))
 		return 1
 	}
 
