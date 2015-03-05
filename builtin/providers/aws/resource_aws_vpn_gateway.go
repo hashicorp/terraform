@@ -48,7 +48,7 @@ func resourceAwsVpnGatewayCreate(d *schema.ResourceData, meta interface{}) error
 
     createOpts := &ec2.CreateVPNGatewayRequest{
         AvailabilityZone: aws.String(d.Get("availability_zone").(string)),
-        Type:        aws.String(d.Get("type").(string)),
+        Type:             aws.String(d.Get("type").(string)),
     }
 
     // Create the VPN gateway
@@ -61,7 +61,7 @@ func resourceAwsVpnGatewayCreate(d *schema.ResourceData, meta interface{}) error
     // Get the ID and store it
     vpnGateway := resp.VPNGateway
     d.SetId(*vpnGateway.VPNGatewayID)
-    log.Printf("[INFO] VPN Gateway ID: %s", vpnGateway.VPNGatewayID)
+    log.Printf("[INFO] VPN Gateway ID: %s", *vpnGateway.VPNGatewayID)
 
     // Attach the VPN gateway to the correct VPC
     return resourceAwsVpnGatewayUpdate(d, meta)
@@ -70,29 +70,23 @@ func resourceAwsVpnGatewayCreate(d *schema.ResourceData, meta interface{}) error
 func resourceAwsVpnGatewayRead(d *schema.ResourceData, meta interface{}) error {
     ec2conn := meta.(*AWSClient).awsEC2conn
 
-    resp, err := ec2conn.DescribeVPNGateways(&ec2.DescribeVPNGatewaysRequest{
-        VPNGatewayIDs: []string{d.Id()},
-    })
+	vpnGatewayRaw, _, err := VpnGatewayStateRefreshFunc(ec2conn, d.Id())()
+	if err != nil {
+		return err
+	}
+	if vpnGatewayRaw == nil {
+		// Seems we have lost our VPN gateway
+		d.SetId("")
+		return nil
+	}
 
-    if err != nil {
-        if ec2err, ok := err.(aws.APIError); ok && ec2err.Code == "InvalidVpnGatewayID.NotFound " {
-            // Update state to indicate the subnet no longer exists.
-            d.SetId("")
-            return nil
-        }
-        return err
-    }
-    if resp == nil {
-        return nil
-    }
-
-    vpnGateway := &resp.VPNGateways[0]
-    if len(vpnGateway.VPCAttachments) == 0 {
-        // VPN gateway exists but not attached to the VPC
-        d.Set("vpc_id", "")
-    } else {
-        d.Set("vpc_id", vpnGateway.VPCAttachments[0].VPCID)
-    }
+	vpnGateway := vpnGatewayRaw.(*ec2.VPNGateway)
+	if len(vpnGateway.VPCAttachments) == 0 {
+		// Gateway exists but not attached to the VPC
+		d.Set("vpc_id", "")
+	} else {
+		d.Set("vpc_id", vpnGateway.VPCAttachments[0].VPCID)
+	}
     d.Set("availability_zone", vpnGateway.AvailabilityZone)
     d.Set("type", vpnGateway.Type)
     d.Set("tags", tagsToMapSDK(vpnGateway.Tags))
@@ -115,17 +109,13 @@ func resourceAwsVpnGatewayUpdate(d *schema.ResourceData, meta interface{}) error
 
     ec2conn := meta.(*AWSClient).awsEC2conn
 
-    d.Partial(true)
-
     if err := setTagsSDK(ec2conn, d); err != nil {
         return err
-    } else {
-        d.SetPartial("tags")
     }
 
-    d.Partial(false)
+    d.SetPartial("tags")
 
-    return resourceAwsVpnGatewayRead(d, meta)
+    return nil
 }
 
 func resourceAwsVpnGatewayDelete(d *schema.ResourceData, meta interface{}) error {
@@ -160,8 +150,6 @@ func resourceAwsVpnGatewayDelete(d *schema.ResourceData, meta interface{}) error
 
         return resource.RetryError{Err: err}
     })
-
-    return nil
 }
 
 func resourceAwsVpnGatewayAttach(d *schema.ResourceData, meta interface{}) error {
@@ -187,6 +175,12 @@ func resourceAwsVpnGatewayAttach(d *schema.ResourceData, meta interface{}) error
         return err
     }
 
+	// A note on the states below: the AWS docs (as of July, 2014) say
+	// that the states would be: attached, attaching, detached, detaching,
+	// but when running, I noticed that the state is usually "available" when
+	// it is attached.
+
+	// Wait for it to be fully attached before continuing
     log.Printf("[DEBUG] Waiting for VPN gateway (%s) to attach", d.Id())
     stateConf := &resource.StateChangeConf{
         Pending: []string{"detached", "attaching"},
