@@ -21,15 +21,15 @@ type remoteCommandConfig struct {
 	backupPath string
 }
 
-// RemoteCommand is a Command implementation that is used to
+// RemoteConfigCommand is a Command implementation that is used to
 // enable and disable remote state management
-type RemoteCommand struct {
+type RemoteConfigCommand struct {
 	Meta
 	conf       remoteCommandConfig
 	remoteConf terraform.RemoteState
 }
 
-func (c *RemoteCommand) Run(args []string) int {
+func (c *RemoteConfigCommand) Run(args []string) int {
 	args = c.Meta.process(args, false)
 	config := make(map[string]string)
 	cmdFlags := flag.NewFlagSet("remote", flag.ContinueOnError)
@@ -115,7 +115,7 @@ func (c *RemoteCommand) Run(args []string) int {
 
 // disableRemoteState is used to disable remote state management,
 // and move the state file into place.
-func (c *RemoteCommand) disableRemoteState() int {
+func (c *RemoteConfigCommand) disableRemoteState() int {
 	if c.stateResult == nil {
 		c.Ui.Error(fmt.Sprintf(
 			"Internal error. State() must be called internally before remote\n" +
@@ -173,7 +173,7 @@ func (c *RemoteCommand) disableRemoteState() int {
 
 // validateRemoteConfig is used to verify that the remote configuration
 // we have is valid
-func (c *RemoteCommand) validateRemoteConfig() error {
+func (c *RemoteConfigCommand) validateRemoteConfig() error {
 	conf := c.remoteConf
 	_, err := remote.NewClient(conf.Type, conf.Config)
 	if err != nil {
@@ -184,7 +184,7 @@ func (c *RemoteCommand) validateRemoteConfig() error {
 
 // initBlank state is used to initialize a blank state that is
 // remote enabled
-func (c *RemoteCommand) initBlankState() int {
+func (c *RemoteConfigCommand) initBlankState() int {
 	// Validate the remote configuration
 	if err := c.validateRemoteConfig(); err != nil {
 		return 1
@@ -212,7 +212,7 @@ func (c *RemoteCommand) initBlankState() int {
 
 // updateRemoteConfig is used to update the configuration of the
 // remote state store
-func (c *RemoteCommand) updateRemoteConfig() int {
+func (c *RemoteConfigCommand) updateRemoteConfig() int {
 	// Validate the remote configuration
 	if err := c.validateRemoteConfig(); err != nil {
 		return 1
@@ -240,7 +240,7 @@ func (c *RemoteCommand) updateRemoteConfig() int {
 
 // enableRemoteState is used to enable remote state management
 // and to move a state file into place
-func (c *RemoteCommand) enableRemoteState() int {
+func (c *RemoteConfigCommand) enableRemoteState() int {
 	// Validate the remote configuration
 	if err := c.validateRemoteConfig(); err != nil {
 		return 1
@@ -299,7 +299,7 @@ func (c *RemoteCommand) enableRemoteState() int {
 	return 0
 }
 
-func (c *RemoteCommand) Help() string {
+func (c *RemoteConfigCommand) Help() string {
 	helpText := `
 Usage: terraform remote [options]
 
@@ -334,6 +334,6 @@ Options:
 	return strings.TrimSpace(helpText)
 }
 
-func (c *RemoteCommand) Synopsis() string {
+func (c *RemoteConfigCommand) Synopsis() string {
 	return "Configures remote state management"
 }
