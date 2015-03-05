@@ -27,7 +27,8 @@ func resourceAwsVpnGateway() *schema.Resource {
 
 			"type": &schema.Schema{
 				Type:     schema.TypeString,
-                Required: true,
+                Default:  "ipsec.1",
+                Optional: true,
 				ForceNew: true,
 			},
 
@@ -35,6 +36,8 @@ func resourceAwsVpnGateway() *schema.Resource {
                 Type:     schema.TypeString,
                 Optional: true,
             },
+
+            "tags": tagsSchema(),
 
 		},
 	}
