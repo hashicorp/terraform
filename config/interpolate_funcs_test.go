@@ -70,6 +70,42 @@ func TestInterpolateFuncFile(t *testing.T) {
 	})
 }
 
+func TestInterpolateFuncFormat(t *testing.T) {
+	testFunction(t, testFunctionConfig{
+		Cases: []testFunctionCase{
+			{
+				`${format("hello")}`,
+				"hello",
+				false,
+			},
+
+			{
+				`${format("hello %s", "world")}`,
+				"hello world",
+				false,
+			},
+
+			{
+				`${format("hello %d", 42)}`,
+				"hello 42",
+				false,
+			},
+
+			{
+				`${format("hello %05d", 42)}`,
+				"hello 00042",
+				false,
+			},
+
+			{
+				`${format("hello %05d", 12345)}`,
+				"hello 12345",
+				false,
+			},
+		},
+	})
+}
+
 func TestInterpolateFuncJoin(t *testing.T) {
 	testFunction(t, testFunctionConfig{
 		Cases: []testFunctionCase{
