@@ -138,11 +138,7 @@ func (m *Meta) Context(copts contextOpts) (*terraform.Context, bool, error) {
 		return nil, false, fmt.Errorf("Error loading config: %s", err)
 	}
 
-	dataDir := DefaultDataDirectory
-	if m.dataDir != "" {
-		dataDir = m.dataDir
-	}
-	err = mod.Load(m.moduleStorage(dataDir), copts.GetMode)
+	err = mod.Load(m.moduleStorage(m.DataDir()), copts.GetMode)
 	if err != nil {
 		return nil, false, fmt.Errorf("Error downloading modules: %s", err)
 	}
@@ -151,6 +147,16 @@ func (m *Meta) Context(copts contextOpts) (*terraform.Context, bool, error) {
 	opts.State = state.State()
 	ctx := terraform.NewContext(opts)
 	return ctx, false, nil
+}
+
+// DataDir returns the directory where local data will be stored.
+func (m *Meta) DataDir() string {
+	dataDir := DefaultDataDirectory
+	if m.dataDir != "" {
+		dataDir = m.dataDir
+	}
+
+	return dataDir
 }
 
 // InputMode returns the type of input we should ask for in the form of
@@ -205,7 +211,7 @@ func (m *Meta) StateOpts() *StateOpts {
 	if localPath == "" {
 		localPath = DefaultStateFilename
 	}
-	remotePath := filepath.Join(DefaultDataDir, DefaultStateFilename)
+	remotePath := filepath.Join(m.DataDir(), DefaultStateFilename)
 
 	return &StateOpts{
 		LocalPath:     localPath,
