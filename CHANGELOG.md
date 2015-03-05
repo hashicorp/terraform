@@ -53,6 +53,11 @@ BUG FIXES:
   * providers/digitalocean: More lenient about 404's while waiting [GH-1062]
   * providers/google: Network data in state was not being stored. [GH-1095]
 
+PLUGIN CHANGES:
+
+  * New `helper/schema` fields for resources: `Deprecated` and `Removed` allow
+      plugins to generate warning or error messages when a given attribute is used.
+
 ## 0.3.7 (February 19, 2015)
 
 IMPROVEMENTS:
