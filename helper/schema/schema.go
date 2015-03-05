@@ -113,6 +113,13 @@ type Schema struct {
 	//
 	// NOTE: This currently does not work.
 	ComputedWhen []string
+
+	// When Deprecated is set, this field is deprecated.
+	//
+	// A deprecated field still works, but will probably stop working in near
+	// future. This string is the message shown to the user with instructions on
+	// how to address the deprecation.
+	Deprecated string
 }
 
 // SchemaDefaultFunc is a function called to return a default value for
@@ -877,7 +884,7 @@ func (m schemaMap) validate(
 		raw, err = schema.DefaultFunc()
 		if err != nil {
 			return nil, []error{fmt.Errorf(
-				"%s, error loading default: %s", k, err)}
+				"%q, error loading default: %s", k, err)}
 		}
 
 		// We're okay as long as we had a value set
@@ -886,7 +893,7 @@ func (m schemaMap) validate(
 	if !ok {
 		if schema.Required {
 			return nil, []error{fmt.Errorf(
-				"%s: required field is not set", k)}
+				"%q: required field is not set", k)}
 		}
 
 		return nil, nil
@@ -895,7 +902,7 @@ func (m schemaMap) validate(
 	if !schema.Required && !schema.Optional {
 		// This is a computed-only field
 		return nil, []error{fmt.Errorf(
-			"%s: this field cannot be set", k)}
+			"%q: this field cannot be set", k)}
 	}
 
 	return m.validateType(k, raw, schema, c)
@@ -1066,16 +1073,25 @@ func (m schemaMap) validateType(
 	raw interface{},
 	schema *Schema,
 	c *terraform.ResourceConfig) ([]string, []error) {
+	var ws []string
+	var es []error
 	switch schema.Type {
 	case TypeSet:
 		fallthrough
 	case TypeList:
-		return m.validateList(k, raw, schema, c)
+		ws, es = m.validateList(k, raw, schema, c)
 	case TypeMap:
-		return m.validateMap(k, raw, schema, c)
+		ws, es = m.validateMap(k, raw, schema, c)
 	default:
-		return m.validatePrimitive(k, raw, schema, c)
+		ws, es = m.validatePrimitive(k, raw, schema, c)
 	}
+
+	if schema.Deprecated != "" {
+		ws = append(ws, fmt.Sprintf(
+			"%q: [DEPRECATED] %s", k, schema.Deprecated))
+	}
+
+	return ws, es
 }
 
 // Zero returns the zero value for a type.
