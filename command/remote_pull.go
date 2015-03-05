@@ -8,11 +8,11 @@ import (
 	"github.com/hashicorp/terraform/state"
 )
 
-type PullCommand struct {
+type RemotePullCommand struct {
 	Meta
 }
 
-func (c *PullCommand) Run(args []string) int {
+func (c *RemotePullCommand) Run(args []string) int {
 	args = c.Meta.process(args, false)
 	cmdFlags := flag.NewFlagSet("pull", flag.ContinueOnError)
 	cmdFlags.Usage = func() { c.Ui.Error(c.Help()) }
@@ -67,7 +67,7 @@ func (c *PullCommand) Run(args []string) int {
 	return 0
 }
 
-func (c *PullCommand) Help() string {
+func (c *RemotePullCommand) Help() string {
 	helpText := `
 Usage: terraform pull [options]
 
@@ -77,6 +77,6 @@ Usage: terraform pull [options]
 	return strings.TrimSpace(helpText)
 }
 
-func (c *PullCommand) Synopsis() string {
+func (c *RemotePullCommand) Synopsis() string {
 	return "Refreshes the local state copy from the remote server"
 }
