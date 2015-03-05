@@ -114,7 +114,7 @@ func TestAccVpnGateway_tags(t *testing.T) {
 }
 
 func testAccCheckVpnGatewayDestroy(s *terraform.State) error {
-    conn := testAccProvider.Meta().(*AWSClient).awsEC2conn
+    ec2conn := testAccProvider.Meta().(*AWSClient).awsEC2conn
 
 	for _, rs := range s.RootModule().Resources {
 		if rs.Type != "aws_vpn_gateway" {
@@ -122,7 +122,7 @@ func testAccCheckVpnGatewayDestroy(s *terraform.State) error {
 		}
 
 		// Try to find the resource
-		resp, err := conn.DescribeVPNGateways(&ec2.DescribeVPNGatewaysRequest{
+		resp, err := ec2conn.DescribeVPNGateways(&ec2.DescribeVPNGatewaysRequest{
             VPNGatewayIDs: []string{rs.Primary.ID},
         })
 		if err == nil {
@@ -134,7 +134,7 @@ func testAccCheckVpnGatewayDestroy(s *terraform.State) error {
 		}
 
 		// Verify the error is what we want
-		ec2err, ok := err.(*aws.APIError)
+		ec2err, ok := err.(aws.APIError)
 		if !ok {
 			return err
 		}
@@ -157,8 +157,8 @@ func testAccCheckVpnGatewayExists(n string, ig *ec2.VPNGateway) resource.TestChe
 			return fmt.Errorf("No ID is set")
 		}
 
-        conn := testAccProvider.Meta().(*AWSClient).awsEC2conn
-		resp, err := conn.DescribeVPNGateways(&ec2.DescribeVPNGatewaysRequest{
+        ec2conn := testAccProvider.Meta().(*AWSClient).awsEC2conn
+		resp, err := ec2conn.DescribeVPNGateways(&ec2.DescribeVPNGatewaysRequest{
             VPNGatewayIDs: []string{rs.Primary.ID},
         })
 		if err != nil {
