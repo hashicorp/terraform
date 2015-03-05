@@ -658,8 +658,10 @@ type ResourceState struct {
 	// Primary is Deposed to get it out of the way for the replacement Primary to
 	// be created by Apply. If the replacement Primary creates successfully, the
 	// Deposed instance is cleaned up. If there were problems creating the
-	// replacement, we mark the replacement as Tainted and Undepose the former
-	// Primary.
+	// replacement, the instance remains in the Deposed list so it can be
+	// destroyed in a future run. Functionally, Deposed instances are very
+	// similar to Tainted instances in that Terraform is only tracking them in
+	// order to remember to destroy them.
 	Deposed []*InstanceState `json:"deposed,omitempty"`
 }
 
