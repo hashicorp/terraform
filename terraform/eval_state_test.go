@@ -66,3 +66,163 @@ func TestEvalUpdateStateHook(t *testing.T) {
 		t.Fatalf("bad: %#v", mockHook.PostStateUpdateState)
 	}
 }
+
+func TestEvalReadState(t *testing.T) {
+	var output *InstanceState
+	cases := map[string]struct {
+		Resources          map[string]*ResourceState
+		Node               EvalNode
+		ExpectedInstanceId string
+	}{
+		"ReadState gets primary instance state": {
+			Resources: map[string]*ResourceState{
+				"aws_instance.bar": &ResourceState{
+					Primary: &InstanceState{
+						ID: "i-abc123",
+					},
+				},
+			},
+			Node: &EvalReadState{
+				Name:   "aws_instance.bar",
+				Output: &output,
+			},
+			ExpectedInstanceId: "i-abc123",
+		},
+		"ReadStateTainted gets tainted instance": {
+			Resources: map[string]*ResourceState{
+				"aws_instance.bar": &ResourceState{
+					Tainted: []*InstanceState{
+						&InstanceState{ID: "i-abc123"},
+					},
+				},
+			},
+			Node: &EvalReadStateTainted{
+				Name:   "aws_instance.bar",
+				Output: &output,
+				Index:  0,
+			},
+			ExpectedInstanceId: "i-abc123",
+		},
+		"ReadStateDeposed gets deposed instance": {
+			Resources: map[string]*ResourceState{
+				"aws_instance.bar": &ResourceState{
+					Deposed: []*InstanceState{
+						&InstanceState{ID: "i-abc123"},
+					},
+				},
+			},
+			Node: &EvalReadStateDeposed{
+				Name:   "aws_instance.bar",
+				Output: &output,
+				Index:  0,
+			},
+			ExpectedInstanceId: "i-abc123",
+		},
+	}
+
+	for k, c := range cases {
+		ctx := new(MockEvalContext)
+		ctx.StateState = &State{
+			Modules: []*ModuleState{
+				&ModuleState{
+					Path:      rootModulePath,
+					Resources: c.Resources,
+				},
+			},
+		}
+		ctx.StateLock = new(sync.RWMutex)
+		ctx.PathPath = rootModulePath
+
+		result, err := c.Node.Eval(ctx)
+		if err != nil {
+			t.Fatalf("[%s] Got err: %#v", k, err)
+		}
+
+		expected := c.ExpectedInstanceId
+		if !(result != nil && result.(*InstanceState).ID == expected) {
+			t.Fatalf("[%s] Expected return with ID %#v, got: %#v", k, expected, result)
+		}
+
+		if !(output != nil && output.ID == expected) {
+			t.Fatalf("[%s] Expected output with ID %#v, got: %#v", k, expected, output)
+		}
+
+		output = nil
+	}
+}
+
+func TestEvalWriteState(t *testing.T) {
+	state := &State{}
+	ctx := new(MockEvalContext)
+	ctx.StateState = state
+	ctx.StateLock = new(sync.RWMutex)
+	ctx.PathPath = rootModulePath
+
+	is := &InstanceState{ID: "i-abc123"}
+	node := &EvalWriteState{
+		Name:         "restype.resname",
+		ResourceType: "restype",
+		State:        &is,
+	}
+	_, err := node.Eval(ctx)
+	if err != nil {
+		t.Fatalf("Got err: %#v", err)
+	}
+
+	checkStateString(t, state, `
+restype.resname:
+  ID = i-abc123
+	`)
+}
+
+func TestEvalWriteStateTainted(t *testing.T) {
+	state := &State{}
+	ctx := new(MockEvalContext)
+	ctx.StateState = state
+	ctx.StateLock = new(sync.RWMutex)
+	ctx.PathPath = rootModulePath
+
+	is := &InstanceState{ID: "i-abc123"}
+	node := &EvalWriteStateTainted{
+		Name:         "restype.resname",
+		ResourceType: "restype",
+		State:        &is,
+		Index:        -1,
+	}
+	_, err := node.Eval(ctx)
+	if err != nil {
+		t.Fatalf("Got err: %#v", err)
+	}
+
+	checkStateString(t, state, `
+restype.resname: (1 tainted)
+  ID = <not created>
+  Tainted ID 1 = i-abc123
+	`)
+}
+
+func TestEvalWriteStateDeposed(t *testing.T) {
+	state := &State{}
+	ctx := new(MockEvalContext)
+	ctx.StateState = state
+	ctx.StateLock = new(sync.RWMutex)
+	ctx.PathPath = rootModulePath
+
+	is := &InstanceState{ID: "i-abc123"}
+	node := &EvalWriteStateDeposed{
+		Name:         "restype.resname",
+		ResourceType: "restype",
+		State:        &is,
+		Index:        -1,
+	}
+	_, err := node.Eval(ctx)
+	if err != nil {
+		t.Fatalf("Got err: %#v", err)
+	}
+
+	checkStateString(t, state, `
+restype.resname: (1 deposed)
+  ID = <not created>
+  Deposed ID 1 = i-abc123
+	`)
+}

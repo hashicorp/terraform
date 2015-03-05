@@ -3845,6 +3845,136 @@ func TestContext2Apply_errorDestroy_createBeforeDestroy(t *testing.T) {
 	}
 }
 
+func TestContext2Apply_multiDepose_createBeforeDestroy(t *testing.T) {
+	m := testModule(t, "apply-multi-depose-create-before-destroy")
+	p := testProvider("aws")
+	p.DiffFn = testDiffFn
+	ps := map[string]ResourceProviderFactory{"aws": testProviderFuncFixed(p)}
+	state := &State{
+		Modules: []*ModuleState{
+			&ModuleState{
+				Path: rootModulePath,
+				Resources: map[string]*ResourceState{
+					"aws_instance.web": &ResourceState{
+						Type:    "aws_instance",
+						Primary: &InstanceState{ID: "foo"},
+					},
+				},
+			},
+		},
+	}
+
+	ctx := testContext2(t, &ContextOpts{
+		Module:    m,
+		Providers: ps,
+		State:     state,
+	})
+	createdInstanceId := "bar"
+	// Create works
+	createFunc := func(is *InstanceState) (*InstanceState, error) {
+		return &InstanceState{ID: createdInstanceId}, nil
+	}
+	// Destroy starts broken
+	destroyFunc := func(is *InstanceState) (*InstanceState, error) {
+		return is, fmt.Errorf("destroy failed")
+	}
+	p.ApplyFn = func(info *InstanceInfo, is *InstanceState, id *InstanceDiff) (*InstanceState, error) {
+		if id.Destroy {
+			return destroyFunc(is)
+		} else {
+			return createFunc(is)
+		}
+	}
+
+	if _, err := ctx.Plan(nil); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	// Destroy is broken, so even though CBD successfully replaces the instance,
+	// we'll have to save the Deposed instance to destroy later
+	state, err := ctx.Apply()
+	if err == nil {
+		t.Fatal("should have error")
+	}
+
+	checkStateString(t, state, `
+aws_instance.web: (1 deposed)
+  ID = bar
+  Deposed ID 1 = foo
+	`)
+
+	createdInstanceId = "baz"
+	ctx = testContext2(t, &ContextOpts{
+		Module:    m,
+		Providers: ps,
+		State:     state,
+	})
+
+	if _, err := ctx.Plan(nil); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	// We're replacing the primary instance once again. Destroy is _still_
+	// broken, so the Deposed list gets longer
+	state, err = ctx.Apply()
+	if err == nil {
+		t.Fatal("should have error")
+	}
+
+	checkStateString(t, state, `
+aws_instance.web: (2 deposed)
+  ID = baz
+  Deposed ID 1 = foo
+  Deposed ID 2 = bar
+	`)
+
+	// Destroy partially fixed!
+	destroyFunc = func(is *InstanceState) (*InstanceState, error) {
+		if is.ID == "foo" || is.ID == "baz" {
+			return nil, nil
+		} else {
+			return is, fmt.Errorf("destroy partially failed")
+		}
+	}
+
+	createdInstanceId = "qux"
+	if _, err := ctx.Plan(nil); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	state, err = ctx.Apply()
+	// Expect error because 1/2 of Deposed destroys failed
+	if err == nil {
+		t.Fatal("should have error")
+	}
+
+	// foo and baz are now gone, bar sticks around
+	checkStateString(t, state, `
+aws_instance.web: (1 deposed)
+  ID = qux
+  Deposed ID 1 = bar
+	`)
+
+	// Destroy working fully!
+	destroyFunc = func(is *InstanceState) (*InstanceState, error) {
+		return nil, nil
+	}
+
+	createdInstanceId = "quux"
+	if _, err := ctx.Plan(nil); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	state, err = ctx.Apply()
+	if err != nil {
+		t.Fatal("should not have error:", err)
+	}
+
+	// And finally the state is clean
+	checkStateString(t, state, `
+aws_instance.web:
+  ID = quux
+	`)
+}
+
 func TestContext2Apply_provisionerResourceRef(t *testing.T) {
 	m := testModule(t, "apply-provisioner-resource-ref")
 	p := testProvider("aws")
@@ -5341,6 +5471,15 @@ func testProvider(prefix string) *MockResourceProvider {
 func testProvisioner() *MockResourceProvisioner {
 	p := new(MockResourceProvisioner)
 	return p
+}
+
+func checkStateString(t *testing.T, state *State, expected string) {
+	actual := strings.TrimSpace(state.String())
+	expected = strings.TrimSpace(expected)
+
+	if actual != expected {
+		t.Fatalf("state does not match! actual:\n%s\n\nexpected:\n%s", actual, expected)
+	}
 }
 
 const testContextGraph = `
