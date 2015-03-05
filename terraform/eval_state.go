@@ -22,7 +22,8 @@ func (n *EvalReadState) Eval(ctx EvalContext) (interface{}, error) {
 type EvalReadStateTainted struct {
 	Name   string
 	Output **InstanceState
-	// Index indicates which instance in the Tainted list to target, or -1 for the last item.
+	// Index indicates which instance in the Tainted list to target, or -1 for
+	// the last item.
 	Index int
 }
 
@@ -46,7 +47,8 @@ func (n *EvalReadStateTainted) Eval(ctx EvalContext) (interface{}, error) {
 type EvalReadStateDeposed struct {
 	Name   string
 	Output **InstanceState
-	// Index indicates which instance in the Deposed list to target, or -1 for the last item.
+	// Index indicates which instance in the Deposed list to target, or -1 for
+	// the last item.
 	Index int
 }
 
@@ -72,7 +74,7 @@ func readInstanceFromState(
 	ctx EvalContext,
 	resourceName string,
 	output **InstanceState,
-	reader func(*ResourceState) (*InstanceState, error),
+	readerFn func(*ResourceState) (*InstanceState, error),
 ) (*InstanceState, error) {
 	state, lock := ctx.State()
 
@@ -93,7 +95,7 @@ func readInstanceFromState(
 	}
 
 	// Use the delegate function to get the instance state from the resource state
-	is, err := reader(rs)
+	is, err := readerFn(rs)
 	if err != nil {
 		return nil, err
 	}
@@ -224,7 +226,7 @@ func writeInstanceToState(
 	resourceName string,
 	resourceType string,
 	dependencies []string,
-	writer func(*ResourceState) error,
+	writerFn func(*ResourceState) error,
 ) (*InstanceState, error) {
 	state, lock := ctx.State()
 	if state == nil {
@@ -251,7 +253,7 @@ func writeInstanceToState(
 	rs.Type = resourceType
 	rs.Dependencies = dependencies
 
-	if err := writer(rs); err != nil {
+	if err := writerFn(rs); err != nil {
 		return nil, err
 	}
 
@@ -361,8 +363,9 @@ func (n *EvalUndeposeState) Eval(ctx EvalContext) (interface{}, error) {
 	}
 
 	// Undepose
-	rs.Primary = rs.Deposed[len(rs.Deposed)-1]
-	rs.Deposed = rs.Deposed[:len(rs.Deposed)-1]
+	idx := len(rs.Deposed) - 1
+	rs.Primary = rs.Deposed[idx]
+	rs.Deposed[idx] = nil
 
 	return nil, nil
 }
