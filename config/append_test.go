@@ -12,6 +12,9 @@ func TestAppend(t *testing.T) {
 	}{
 		{
 			&Config{
+				Atlas: &AtlasConfig{
+					Name: "foo",
+				},
 				Modules: []*Module{
 					&Module{Name: "foo"},
 				},
@@ -32,6 +35,9 @@ func TestAppend(t *testing.T) {
 			},
 
 			&Config{
+				Atlas: &AtlasConfig{
+					Name: "bar",
+				},
 				Modules: []*Module{
 					&Module{Name: "bar"},
 				},
@@ -52,6 +58,9 @@ func TestAppend(t *testing.T) {
 			},
 
 			&Config{
+				Atlas: &AtlasConfig{
+					Name: "bar",
+				},
 				Modules: []*Module{
 					&Module{Name: "foo"},
 					&Module{Name: "bar"},

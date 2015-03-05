@@ -49,3 +49,7 @@ resource "aws_instance" "db" {
 output "web_ip" {
     value = "${aws_instance.web.private_ip}"
 }
+
+atlas {
+    name = "mitchellh/foo"
+}
