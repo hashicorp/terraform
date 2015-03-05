@@ -5,24 +5,25 @@ import (
 	"reflect"
 	"testing"
 
+	"github.com/hashicorp/aws-sdk-go/aws"
+	"github.com/hashicorp/aws-sdk-go/gen/ec2"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/terraform"
-	"github.com/mitchellh/goamz/ec2"
 )
 
 func TestAccAWSInstance_normal(t *testing.T) {
 	var v ec2.Instance
 
 	testCheck := func(*terraform.State) error {
-		if v.AvailZone != "us-west-2a" {
-			return fmt.Errorf("bad availability zone: %#v", v.AvailZone)
+		if *v.Placement.AvailabilityZone != "us-west-2a" {
+			return fmt.Errorf("bad availability zone: %#v", *v.Placement.AvailabilityZone)
 		}
 
 		if len(v.SecurityGroups) == 0 {
 			return fmt.Errorf("no security groups: %#v", v.SecurityGroups)
 		}
-		if v.SecurityGroups[0].Name != "tf_test_foo" {
+		if *v.SecurityGroups[0].GroupName != "tf_test_foo" {
 			return fmt.Errorf("no security groups: %#v", v.SecurityGroups)
 		}
 
@@ -73,9 +74,9 @@ func TestAccAWSInstance_blockDevices(t *testing.T) {
 		return func(*terraform.State) error {
 
 			// Map out the block devices by name, which should be unique.
-			blockDevices := make(map[string]ec2.BlockDevice)
-			for _, blockDevice := range v.BlockDevices {
-				blockDevices[blockDevice.DeviceName] = blockDevice
+			blockDevices := make(map[string]ec2.InstanceBlockDeviceMapping)
+			for _, blockDevice := range v.BlockDeviceMappings {
+				blockDevices[*blockDevice.DeviceName] = blockDevice
 			}
 
 			// Check if the root block device exists.
@@ -147,8 +148,8 @@ func TestAccAWSInstance_sourceDestCheck(t *testing.T) {
 
 	testCheck := func(enabled bool) resource.TestCheckFunc {
 		return func(*terraform.State) error {
-			if v.SourceDestCheck != enabled {
-				return fmt.Errorf("bad source_dest_check: %#v", v.SourceDestCheck)
+			if *v.SourceDestCheck != enabled {
+				return fmt.Errorf("bad source_dest_check: %#v", *v.SourceDestCheck)
 			}
 
 			return nil
@@ -206,7 +207,7 @@ func TestAccAWSInstance_vpc(t *testing.T) {
 	})
 }
 
-func TestAccInstance_tags(t *testing.T) {
+func TestAccAWSInstance_tags(t *testing.T) {
 	var v ec2.Instance
 
 	resource.Test(t, resource.TestCase{
@@ -218,9 +219,9 @@ func TestAccInstance_tags(t *testing.T) {
 				Config: testAccCheckInstanceConfigTags,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckInstanceExists("aws_instance.foo", &v),
-					testAccCheckTags(&v.Tags, "foo", "bar"),
+					testAccCheckTagsSDK(&v.Tags, "foo", "bar"),
 					// Guard against regression of https://github.com/hashicorp/terraform/issues/914
-					testAccCheckTags(&v.Tags, "#", ""),
+					testAccCheckTagsSDK(&v.Tags, "#", ""),
 				),
 			},
 
@@ -228,21 +229,21 @@ func TestAccInstance_tags(t *testing.T) {
 				Config: testAccCheckInstanceConfigTagsUpdate,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckInstanceExists("aws_instance.foo", &v),
-					testAccCheckTags(&v.Tags, "foo", ""),
-					testAccCheckTags(&v.Tags, "bar", "baz"),
+					testAccCheckTagsSDK(&v.Tags, "foo", ""),
+					testAccCheckTagsSDK(&v.Tags, "bar", "baz"),
 				),
 			},
 		},
 	})
 }
 
-func TestAccInstance_privateIP(t *testing.T) {
+func TestAccAWSInstance_privateIP(t *testing.T) {
 	var v ec2.Instance
 
 	testCheckPrivateIP := func() resource.TestCheckFunc {
 		return func(*terraform.State) error {
-			if v.PrivateIpAddress != "10.1.1.42" {
-				return fmt.Errorf("bad private IP: %s", v.PrivateIpAddress)
+			if *v.PrivateIPAddress != "10.1.1.42" {
+				return fmt.Errorf("bad private IP: %s", *v.PrivateIPAddress)
 			}
 
 			return nil
@@ -265,13 +266,13 @@ func TestAccInstance_privateIP(t *testing.T) {
 	})
 }
 
-func TestAccInstance_associatePublicIPAndPrivateIP(t *testing.T) {
+func TestAccAWSInstance_associatePublicIPAndPrivateIP(t *testing.T) {
 	var v ec2.Instance
 
 	testCheckPrivateIP := func() resource.TestCheckFunc {
 		return func(*terraform.State) error {
-			if v.PrivateIpAddress != "10.1.1.42" {
-				return fmt.Errorf("bad private IP: %s", v.PrivateIpAddress)
+			if *v.PrivateIPAddress != "10.1.1.42" {
+				return fmt.Errorf("bad private IP: %s", *v.PrivateIPAddress)
 			}
 
 			return nil
@@ -295,7 +296,7 @@ func TestAccInstance_associatePublicIPAndPrivateIP(t *testing.T) {
 }
 
 func testAccCheckInstanceDestroy(s *terraform.State) error {
-	conn := testAccProvider.Meta().(*AWSClient).ec2conn
+	conn := testAccProvider.Meta().(*AWSClient).awsEC2conn
 
 	for _, rs := range s.RootModule().Resources {
 		if rs.Type != "aws_instance" {
@@ -303,8 +304,9 @@ func testAccCheckInstanceDestroy(s *terraform.State) error {
 		}
 
 		// Try to find the resource
-		resp, err := conn.Instances(
-			[]string{rs.Primary.ID}, ec2.NewFilter())
+		resp, err := conn.DescribeInstances(&ec2.DescribeInstancesRequest{
+			InstanceIDs: []string{rs.Primary.ID},
+		})
 		if err == nil {
 			if len(resp.Reservations) > 0 {
 				return fmt.Errorf("still exist.")
@@ -314,7 +316,7 @@ func testAccCheckInstanceDestroy(s *terraform.State) error {
 		}
 
 		// Verify the error is what we want
-		ec2err, ok := err.(*ec2.Error)
+		ec2err, ok := err.(aws.APIError)
 		if !ok {
 			return err
 		}
@@ -337,9 +339,10 @@ func testAccCheckInstanceExists(n string, i *ec2.Instance) resource.TestCheckFun
 			return fmt.Errorf("No ID is set")
 		}
 
-		conn := testAccProvider.Meta().(*AWSClient).ec2conn
-		resp, err := conn.Instances(
-			[]string{rs.Primary.ID}, ec2.NewFilter())
+		conn := testAccProvider.Meta().(*AWSClient).awsEC2conn
+		resp, err := conn.DescribeInstances(&ec2.DescribeInstancesRequest{
+			InstanceIDs: []string{rs.Primary.ID},
+		})
 		if err != nil {
 			return err
 		}
