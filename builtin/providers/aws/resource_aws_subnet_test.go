@@ -15,11 +15,11 @@ func TestAccAWSSubnet(t *testing.T) {
 
 	testCheck := func(*terraform.State) error {
 		if *v.CIDRBlock != "10.1.1.0/24" {
-			return fmt.Errorf("bad cidr: %s", v.CIDRBlock)
+			return fmt.Errorf("bad cidr: %s", *v.CIDRBlock)
 		}
 
 		if *v.MapPublicIPOnLaunch != true {
-			return fmt.Errorf("bad MapPublicIpOnLaunch: %t", v.MapPublicIPOnLaunch)
+			return fmt.Errorf("bad MapPublicIpOnLaunch: %t", *v.MapPublicIPOnLaunch)
 		}
 
 		return nil

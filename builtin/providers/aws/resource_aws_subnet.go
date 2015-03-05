@@ -68,10 +68,10 @@ func resourceAwsSubnetCreate(d *schema.ResourceData, meta interface{}) error {
 	// Get the ID and store it
 	subnet := resp.Subnet
 	d.SetId(*subnet.SubnetID)
-	log.Printf("[INFO] Subnet ID: %s", subnet.SubnetID)
+	log.Printf("[INFO] Subnet ID: %s", *subnet.SubnetID)
 
 	// Wait for the Subnet to become available
-	log.Printf("[DEBUG] Waiting for subnet (%s) to become available", subnet.SubnetID)
+	log.Printf("[DEBUG] Waiting for subnet (%s) to become available", *subnet.SubnetID)
 	stateConf := &resource.StateChangeConf{
 		Pending: []string{"pending"},
 		Target:  "available",
