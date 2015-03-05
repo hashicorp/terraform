@@ -22,9 +22,7 @@ func (n *EvalReadState) Eval(ctx EvalContext) (interface{}, error) {
 type EvalReadStateTainted struct {
 	Name   string
 	Output **InstanceState
-
-	// Tainted is a per-resource list, this index determines which item in the
-	// list we are addressing
+	// Index indicates which instance in the Tainted list to target, or -1 for the last item.
 	Index int
 }
 
@@ -48,7 +46,8 @@ func (n *EvalReadStateTainted) Eval(ctx EvalContext) (interface{}, error) {
 type EvalReadStateDeposed struct {
 	Name   string
 	Output **InstanceState
-	Index  int
+	// Index indicates which instance in the Deposed list to target, or -1 for the last item.
+	Index int
 }
 
 func (n *EvalReadStateDeposed) Eval(ctx EvalContext) (interface{}, error) {
@@ -67,13 +66,13 @@ func (n *EvalReadStateDeposed) Eval(ctx EvalContext) (interface{}, error) {
 }
 
 // Does the bulk of the work for the various flavors of ReadState eval nodes.
-// Each node just provides a function to get from the ResourceState to the
+// Each node just provides a reader function to get from the ResourceState to the
 // InstanceState, and this takes care of all the plumbing.
 func readInstanceFromState(
 	ctx EvalContext,
 	resourceName string,
 	output **InstanceState,
-	f func(*ResourceState) (*InstanceState, error),
+	reader func(*ResourceState) (*InstanceState, error),
 ) (*InstanceState, error) {
 	state, lock := ctx.State()
 
@@ -94,7 +93,7 @@ func readInstanceFromState(
 	}
 
 	// Use the delegate function to get the instance state from the resource state
-	is, err := f(rs)
+	is, err := reader(rs)
 	if err != nil {
 		return nil, err
 	}
@@ -148,8 +147,8 @@ func (n *EvalUpdateStateHook) Eval(ctx EvalContext) (interface{}, error) {
 	return nil, nil
 }
 
-// EvalWriteState is an EvalNode implementation that reads the
-// InstanceState for a specific resource out of the state.
+// EvalWriteState is an EvalNode implementation that writes the
+// primary InstanceState for a specific resource into the state.
 type EvalWriteState struct {
 	Name         string
 	ResourceType string
@@ -158,88 +157,75 @@ type EvalWriteState struct {
 }
 
 func (n *EvalWriteState) Eval(ctx EvalContext) (interface{}, error) {
-	state, lock := ctx.State()
-	if state == nil {
-		return nil, fmt.Errorf("cannot write state to nil state")
-	}
-
-	// Get a write lock so we can access this instance
-	lock.Lock()
-	defer lock.Unlock()
-
-	// Look for the module state. If we don't have one, create it.
-	mod := state.ModuleByPath(ctx.Path())
-	if mod == nil {
-		mod = state.AddModule(ctx.Path())
-	}
-
-	// Look for the resource state.
-	rs := mod.Resources[n.Name]
-	if rs == nil {
-		rs = &ResourceState{}
-		rs.init()
-		mod.Resources[n.Name] = rs
-	}
-	rs.Type = n.ResourceType
-	rs.Dependencies = n.Dependencies
-
-	rs.Primary = *n.State
-
-	return nil, nil
+	return writeInstanceToState(ctx, n.Name, n.ResourceType, n.Dependencies,
+		func(rs *ResourceState) error {
+			rs.Primary = *n.State
+			return nil
+		},
+	)
 }
 
+// EvalWriteStateTainted is an EvalNode implementation that writes
+// an InstanceState out to the Tainted list of a resource in the state.
 type EvalWriteStateTainted struct {
 	Name         string
 	ResourceType string
 	Dependencies []string
 	State        **InstanceState
-	Index        int
+	// Index indicates which instance in the Tainted list to target, or -1 to append.
+	Index int
 }
 
+// EvalWriteStateTainted is an EvalNode implementation that writes the
+// one of the tainted InstanceStates for a specific resource out of the state.
 func (n *EvalWriteStateTainted) Eval(ctx EvalContext) (interface{}, error) {
-	state, lock := ctx.State()
-	if state == nil {
-		return nil, fmt.Errorf("cannot write state to nil state")
-	}
-
-	// Get a write lock so we can access this instance
-	lock.Lock()
-	defer lock.Unlock()
-
-	// Look for the module state. If we don't have one, create it.
-	mod := state.ModuleByPath(ctx.Path())
-	if mod == nil {
-		mod = state.AddModule(ctx.Path())
-	}
-
-	// Look for the resource state.
-	rs := mod.Resources[n.Name]
-	if rs == nil {
-		rs = &ResourceState{}
-		rs.init()
-		mod.Resources[n.Name] = rs
-	}
-	rs.Type = n.ResourceType
-	rs.Dependencies = n.Dependencies
-
-	if n.Index == -1 {
-		rs.Tainted = append(rs.Tainted, *n.State)
-	} else {
-		rs.Tainted[n.Index] = *n.State
-	}
-
-	return nil, nil
+	return writeInstanceToState(ctx, n.Name, n.ResourceType, n.Dependencies,
+		func(rs *ResourceState) error {
+			if n.Index == -1 {
+				rs.Tainted = append(rs.Tainted, *n.State)
+			} else {
+				rs.Tainted[n.Index] = *n.State
+			}
+			return nil
+		},
+	)
 }
 
+// EvalWriteStateDeposed is an EvalNode implementation that writes
+// an InstanceState out to the Deposed list of a resource in the state.
 type EvalWriteStateDeposed struct {
 	Name         string
 	ResourceType string
 	Dependencies []string
 	State        **InstanceState
-	Index        int
+	// Index indicates which instance in the Deposed list to target, or -1 to append.
+	Index int
 }
 
 func (n *EvalWriteStateDeposed) Eval(ctx EvalContext) (interface{}, error) {
+	return writeInstanceToState(ctx, n.Name, n.ResourceType, n.Dependencies,
+		func(rs *ResourceState) error {
+			if n.Index == -1 {
+				rs.Deposed = append(rs.Deposed, *n.State)
+			} else {
+				rs.Deposed[n.Index] = *n.State
+			}
+			return nil
+		},
+	)
+}
+
+// Pulls together the common tasks of the EvalWriteState nodes.  All the args
+// are passed directly down from the EvalNode along with a `writer` function
+// which is yielded the *ResourceState and is responsible for writing an
+// InstanceState to the proper field in the ResourceState.
+func writeInstanceToState(
+	ctx EvalContext,
+	resourceName string,
+	resourceType string,
+	dependencies []string,
+	writer func(*ResourceState) error,
+) (*InstanceState, error) {
 	state, lock := ctx.State()
 	if state == nil {
 		return nil, fmt.Errorf("cannot write state to nil state")
@@ -256,19 +242,17 @@ func (n *EvalWriteStateDeposed) Eval(ctx EvalContext) (interface{}, error) {
 	}
 
 	// Look for the resource state.
-	rs := mod.Resources[n.Name]
+	rs := mod.Resources[resourceName]
 	if rs == nil {
 		rs = &ResourceState{}
 		rs.init()
-		mod.Resources[n.Name] = rs
+		mod.Resources[resourceName] = rs
 	}
-	rs.Type = n.ResourceType
-	rs.Dependencies = n.Dependencies
+	rs.Type = resourceType
+	rs.Dependencies = dependencies
 
-	if n.Index == -1 {
-		rs.Deposed = append(rs.Deposed, *n.State)
-	} else {
-		rs.Deposed[n.Index] = *n.State
+	if err := writer(rs); err != nil {
+		return nil, err
 	}
 
 	return nil, nil
