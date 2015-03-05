@@ -2584,11 +2584,12 @@ func TestSchemaMap_InternalValidate(t *testing.T) {
 
 func TestSchemaMap_Validate(t *testing.T) {
 	cases := map[string]struct {
-		Schema map[string]*Schema
-		Config map[string]interface{}
-		Vars   map[string]string
-		Warn   bool
-		Err    bool
+		Schema   map[string]*Schema
+		Config   map[string]interface{}
+		Vars     map[string]string
+		Err      bool
+		Errors   []error
+		Warnings []string
 	}{
 		"Good": {
 			Schema: map[string]*Schema{
@@ -3019,6 +3020,71 @@ func TestSchemaMap_Validate(t *testing.T) {
 
 			Err: true,
 		},
+
+		"Deprecated attribute usage generates warning, but not error": {
+			Schema: map[string]*Schema{
+				"old_news": &Schema{
+					Type:       TypeString,
+					Optional:   true,
+					Deprecated: "please use 'new_news' instead",
+				},
+			},
+
+			Config: map[string]interface{}{
+				"old_news": "extra extra!",
+			},
+
+			Err: false,
+
+			Warnings: []string{
+				"\"old_news\": [DEPRECATED] please use 'new_news' instead",
+			},
+		},
+
+		"Deprecated generates no warnings if attr not used": {
+			Schema: map[string]*Schema{
+				"old_news": &Schema{
+					Type:       TypeString,
+					Optional:   true,
+					Deprecated: "please use 'new_news' instead",
+				},
+			},
+
+			Err: false,
+
+			Warnings: nil,
+		},
+
+		"Removed attribute usage generates error": {
+			Schema: map[string]*Schema{
+				"long_gone": &Schema{
+					Type:     TypeString,
+					Optional: true,
+					Removed:  "no longer supported by Cloud API",
+				},
+			},
+
+			Config: map[string]interface{}{
+				"long_gone": "still here!",
+			},
+
+			Err: true,
+			Errors: []error{
+				fmt.Errorf("\"long_gone\": [REMOVED] no longer supported by Cloud API"),
+			},
+		},
+
+		"Removed generates no errors if attr not used": {
+			Schema: map[string]*Schema{
+				"long_gone": &Schema{
+					Type:     TypeString,
+					Optional: true,
+					Removed:  "no longer supported by Cloud API",
+				},
+			},
+
+			Err: false,
+		},
 	}
 
 	for tn, tc := range cases {
@@ -3050,8 +3116,14 @@ func TestSchemaMap_Validate(t *testing.T) {
 			t.FailNow()
 		}
 
-		if (len(ws) > 0) != tc.Warn {
-			t.Fatalf("%q: ws: %#v", tn, ws)
+		if !reflect.DeepEqual(ws, tc.Warnings) {
+			t.Fatalf("%q: warnings:\n\nexpected: %#v\ngot:%#v", tn, tc.Warnings, ws)
+		}
+
+		if tc.Errors != nil {
+			if !reflect.DeepEqual(es, tc.Errors) {
+				t.Fatalf("%q: errors:\n\nexpected: %q\ngot: %q", tn, tc.Errors, es)
+			}
 		}
 	}
 }
