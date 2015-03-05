@@ -3,6 +3,7 @@ package command
 import (
 	"flag"
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 	"strings"
@@ -12,6 +13,11 @@ import (
 
 type PushCommand struct {
 	Meta
+
+	// client is the client to use for the actual push operations.
+	// If this isn't set, then the Atlas client is used. This should
+	// really only be set for testing reasons (and is hence not exported).
+	client pushClient
 }
 
 func (c *PushCommand) Run(args []string) int {
@@ -64,7 +70,7 @@ func (c *PushCommand) Run(args []string) int {
 	}
 
 	// Build the context based on the arguments given
-	_, planned, err := c.Context(contextOpts{
+	ctx, planned, err := c.Context(contextOpts{
 		Path:      configPath,
 		StatePath: c.Meta.statePath,
 	})
@@ -76,6 +82,13 @@ func (c *PushCommand) Run(args []string) int {
 		c.Ui.Error(
 			"A plan file cannot be given as the path to the configuration.\n" +
 				"A path to a module (directory with configuration) must be given.")
+		return 1
+	}
+
+	// Ask for input
+	if err := ctx.Input(c.InputMode()); err != nil {
+		c.Ui.Error(fmt.Sprintf(
+			"Error while asking for variable input:\n\n%s", err))
 		return 1
 	}
 
@@ -92,11 +105,18 @@ func (c *PushCommand) Run(args []string) int {
 			filepath.Join(c.DataDir(), "modules"))
 	}
 
-	_, err = archive.CreateArchive(configPath, archiveOpts)
+	archiveR, err := archive.CreateArchive(configPath, archiveOpts)
 	if err != nil {
 		c.Ui.Error(fmt.Sprintf(
 			"An error has occurred while archiving the module for uploading:\n"+
 				"%s", err))
+		return 1
+	}
+
+	// Upsert!
+	if err := c.client.Upsert(archiveR, archiveR.Size); err != nil {
+		c.Ui.Error(fmt.Sprintf(
+			"An error occurred while uploading the module:\n\n%s", err))
 		return 1
 	}
 
@@ -125,4 +145,32 @@ Options:
 
 func (c *PushCommand) Synopsis() string {
 	return "Upload this Terraform module to Atlas to run"
+}
+
+// pushClient is implementd internally to control where pushes go. This is
+// either to Atlas or a mock for testing.
+type pushClient interface {
+	Upsert(io.Reader, int64) error
+}
+
+type mockPushClient struct {
+	File string
+
+	UpsertCalled bool
+	UpsertError  error
+}
+
+func (c *mockPushClient) Upsert(data io.Reader, size int64) error {
+	f, err := os.Create(c.File)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+
+	if _, err := io.CopyN(f, data, size); err != nil {
+		return err
+	}
+
+	c.UpsertCalled = true
+	return c.UpsertError
 }
