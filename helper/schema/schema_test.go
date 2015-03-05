@@ -2588,6 +2588,7 @@ func TestSchemaMap_Validate(t *testing.T) {
 		Config   map[string]interface{}
 		Vars     map[string]string
 		Err      bool
+		Errors   []error
 		Warnings []string
 	}{
 		"Good": {
@@ -3054,47 +3055,35 @@ func TestSchemaMap_Validate(t *testing.T) {
 			Warnings: nil,
 		},
 
-		"Deprecated works with set/list type": {
+		"Removed attribute usage generates error": {
 			Schema: map[string]*Schema{
-				"old_news": &Schema{
-					Type:       TypeSet,
-					Optional:   true,
-					Elem:       &Schema{Type: TypeString},
-					Deprecated: "please use 'new_news' instead",
+				"long_gone": &Schema{
+					Type:     TypeString,
+					Optional: true,
+					Removed:  "no longer supported by Cloud API",
 				},
 			},
 
 			Config: map[string]interface{}{
-				"old_news": []interface{}{"extra extra!"},
+				"long_gone": "still here!",
 			},
 
-			Err: false,
-
-			Warnings: []string{
-				"\"old_news\": [DEPRECATED] please use 'new_news' instead",
+			Err: true,
+			Errors: []error{
+				fmt.Errorf("\"long_gone\": [REMOVED] no longer supported by Cloud API"),
 			},
 		},
 
-		"Deprecated works with map type": {
+		"Removed generates no errors if attr not used": {
 			Schema: map[string]*Schema{
-				"old_news": &Schema{
-					Type:       TypeMap,
-					Optional:   true,
-					Deprecated: "please use 'new_news' instead",
-				},
-			},
-
-			Config: map[string]interface{}{
-				"old_news": map[string]interface{}{
-					"foo": "bar",
+				"long_gone": &Schema{
+					Type:     TypeString,
+					Optional: true,
+					Removed:  "no longer supported by Cloud API",
 				},
 			},
 
 			Err: false,
-
-			Warnings: []string{
-				"\"old_news\": [DEPRECATED] please use 'new_news' instead",
-			},
 		},
 	}
 
@@ -3129,6 +3118,12 @@ func TestSchemaMap_Validate(t *testing.T) {
 
 		if !reflect.DeepEqual(ws, tc.Warnings) {
 			t.Fatalf("%q: warnings:\n\nexpected: %#v\ngot:%#v", tn, tc.Warnings, ws)
+		}
+
+		if tc.Errors != nil {
+			if !reflect.DeepEqual(es, tc.Errors) {
+				t.Fatalf("%q: errors:\n\nexpected: %q\ngot: %q", tn, tc.Errors, es)
+			}
 		}
 	}
 }
