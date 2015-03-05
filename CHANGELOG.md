@@ -1,5 +1,12 @@
 ## 0.4.0 (unreleased)
 
+BACKWARDS INCOMPATIBILITIES:
+
+  * Commands `terraform push` and `terraform pull` are now nested under
+    the `remote` command: `terraform remote push` and `terraform remote pull`.
+    The old `remote` functionality is now at `terraform remote config`. This
+    consolidates all remote state management under one command.
+
 FEATURES:
 
   * **New provider: `dme` (DNSMadeEasy)** [GH-855]
