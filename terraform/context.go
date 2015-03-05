@@ -376,8 +376,6 @@ func (c *Context) Validate() ([]string, []error) {
 	return walker.ValidationWarnings, rerrs.Errors
 }
 
-<<<<<<< Updated upstream
-=======
 // Variables will return the mapping of variables that were defined
 // for this Context. If Input was called, this mapping may be different
 // than what was given.
@@ -390,7 +388,6 @@ func (c *Context) SetVariable(k, v string) {
 	c.variables[k] = v
 }
 
->>>>>>> Stashed changes
 func (c *Context) acquireRun() chan<- struct{} {
 	c.l.Lock()
 	defer c.l.Unlock()

@@ -148,6 +148,27 @@ func testStateFileDefault(t *testing.T, s *terraform.State) string {
 	return DefaultStateFilename
 }
 
+// testStateFileRemote writes the state out to the remote statefile
+// in the cwd. Use `testCwd` to change into a temp cwd.
+func testStateFileRemote(t *testing.T, s *terraform.State) string {
+	path := filepath.Join(DefaultDataDir, DefaultStateFilename)
+	if err := os.MkdirAll(filepath.Dir(path), 0755); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	f, err := os.Create(path)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	defer f.Close()
+
+	if err := terraform.WriteState(s, f); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	return path
+}
+
 // testStateOutput tests that the state at the given path contains
 // the expected state string.
 func testStateOutput(t *testing.T, path string, expected string) {
