@@ -2,7 +2,7 @@ package terraform
 
 import "fmt"
 
-// DeposedTransformer is a GraphTransformer that adds tainted resources
+// DeposedTransformer is a GraphTransformer that adds deposed resources
 // to the graph.
 type DeposedTransformer struct {
 	// State is the global state. We'll automatically find the correct
