@@ -169,13 +169,10 @@ func TestEvalWriteState(t *testing.T) {
 		t.Fatalf("Got err: %#v", err)
 	}
 
-	rs := state.ModuleByPath(ctx.Path()).Resources["restype.resname"]
-	if rs.Type != "restype" {
-		t.Fatalf("expected type 'restype': %#v", rs)
-	}
-	if rs.Primary.ID != "i-abc123" {
-		t.Fatalf("expected primary instance to have ID 'i-abc123': %#v", rs)
-	}
+	checkStateString(t, state, `
+restype.resname:
+  ID = i-abc123
+	`)
 }
 
 func TestEvalWriteStateTainted(t *testing.T) {
@@ -197,10 +194,11 @@ func TestEvalWriteStateTainted(t *testing.T) {
 		t.Fatalf("Got err: %#v", err)
 	}
 
-	rs := state.ModuleByPath(ctx.Path()).Resources["restype.resname"]
-	if len(rs.Tainted) != 1 || rs.Tainted[0].ID != "i-abc123" {
-		t.Fatalf("expected tainted instance to have ID 'i-abc123': %#v", rs)
-	}
+	checkStateString(t, state, `
+restype.resname: (1 tainted)
+  ID = <not created>
+  Tainted ID 1 = i-abc123
+	`)
 }
 
 func TestEvalWriteStateDeposed(t *testing.T) {
@@ -222,8 +220,9 @@ func TestEvalWriteStateDeposed(t *testing.T) {
 		t.Fatalf("Got err: %#v", err)
 	}
 
-	rs := state.ModuleByPath(ctx.Path()).Resources["restype.resname"]
-	if len(rs.Deposed) != 1 || rs.Deposed[0].ID != "i-abc123" {
-		t.Fatalf("expected deposed instance to have ID 'i-abc123': %#v", rs)
-	}
+	checkStateString(t, state, `
+restype.resname: (1 deposed)
+  ID = <not created>
+  Deposed ID 1 = i-abc123
+	`)
 }
