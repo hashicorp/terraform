@@ -39,4 +39,7 @@ var BuiltinClients = map[string]Factory{
 	"atlas":  atlasFactory,
 	"consul": consulFactory,
 	"http":   httpFactory,
+
+	// This is used for development purposes only.
+	"_local": fileFactory,
 }
