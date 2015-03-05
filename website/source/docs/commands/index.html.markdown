@@ -31,11 +31,10 @@ Available commands are:
     init       Initializes Terraform configuration from a module
     output     Read an output from a state file
     plan       Generate and show an execution plan
-    pull       Refreshes the local state copy from the remote server
-    push       Uploads the the local state to the remote server
     refresh    Update local state file against real resources
-    remote     Configures remote state management
+    remote     Configure remote state storage
     show       Inspect Terraform state or plan
+    taint      Manually mark a resource for recreation
     version    Prints the Terraform version
 ```
 
