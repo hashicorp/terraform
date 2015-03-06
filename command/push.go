@@ -22,11 +22,13 @@ type PushCommand struct {
 func (c *PushCommand) Run(args []string) int {
 	var atlasToken string
 	var moduleLock bool
+	var name string
 	args = c.Meta.process(args, false)
 	cmdFlags := c.Meta.flagSet("push")
 	cmdFlags.StringVar(&c.Meta.statePath, "state", DefaultStateFilename, "path")
 	cmdFlags.StringVar(&atlasToken, "token", "", "")
 	cmdFlags.BoolVar(&moduleLock, "module-lock", true, "")
+	cmdFlags.StringVar(&name, "name", "", "")
 	cmdFlags.Usage = func() { c.Ui.Error(c.Help()) }
 	if err := cmdFlags.Parse(args); err != nil {
 		return 1
@@ -86,14 +88,16 @@ func (c *PushCommand) Run(args []string) int {
 
 	// Get the configuration
 	config := ctx.Module().Config()
-	if config.Atlas == nil || config.Atlas.Name == "" {
-		c.Ui.Error(
-			"The name of this Terraform configuration in Atlas must be\n" +
-				"specified within your configuration or the command-line. To\n" +
-				"set it on the command-line, use the `-name` parameter.")
-		return 1
+	if name == "" {
+		if config.Atlas == nil || config.Atlas.Name == "" {
+			c.Ui.Error(
+				"The name of this Terraform configuration in Atlas must be\n" +
+					"specified within your configuration or the command-line. To\n" +
+					"set it on the command-line, use the `-name` parameter.")
+			return 1
+		}
+		name = config.Atlas.Name
 	}
-	name := config.Atlas.Name
 
 	// Get the variables we might already have
 	vars, err := c.client.Get(name)
@@ -163,6 +167,10 @@ Options:
   -module-lock=true    If true (default), then the modules are locked at
                        their current checkout and uploaded completely. This
                        prevents Atlas from running "terraform get".
+
+  -name=<name>         Name of the configuration in Atlas. This can also
+                       be set in the configuration itself. Format is
+                       typically: "username/name".
 
   -token=<token>       Access token to use to upload. If blank, the ATLAS_TOKEN
                        environmental variable will be used.
