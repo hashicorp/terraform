@@ -331,6 +331,7 @@ func (m *Meta) process(args []string, vars bool) []string {
 		Ui: &ColorizeUi{
 			Colorize:   m.Colorize(),
 			ErrorColor: "[red]",
+			WarnColor:  "[yellow]",
 			Ui:         m.oldUi,
 		},
 	}

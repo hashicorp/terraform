@@ -11,12 +11,13 @@ import (
 	"github.com/mitchellh/goamz/ec2"
 
 	awsGo "github.com/hashicorp/aws-sdk-go/aws"
-	awsec2 "github.com/hashicorp/aws-sdk-go/gen/ec2"
 	"github.com/hashicorp/aws-sdk-go/gen/autoscaling"
 	"github.com/hashicorp/aws-sdk-go/gen/elb"
 	"github.com/hashicorp/aws-sdk-go/gen/rds"
 	"github.com/hashicorp/aws-sdk-go/gen/route53"
 	"github.com/hashicorp/aws-sdk-go/gen/s3"
+
+	awsEC2 "github.com/hashicorp/aws-sdk-go/gen/ec2"
 )
 
 type Config struct {
@@ -28,7 +29,7 @@ type Config struct {
 
 type AWSClient struct {
 	ec2conn         *ec2.EC2
-	ec2conn2		*awsec2.EC2
+	awsEC2conn      *awsEC2.EC2
 	elbconn         *elb.ELB
 	autoscalingconn *autoscaling.AutoScaling
 	s3conn          *s3.S3
@@ -80,6 +81,8 @@ func (c *Config) Client() (interface{}, error) {
 		// See http://docs.aws.amazon.com/general/latest/gr/sigv4_changes.html
 		log.Println("[INFO] Initializing Route53 connection")
 		client.r53conn = route53.New(creds, "us-east-1", nil)
+		log.Println("[INFO] Initializing AWS-GO EC2 Connection")
+		client.awsEC2conn = awsEC2.New(creds, c.Region, nil)
 	}
 
 	if len(errs) > 0 {

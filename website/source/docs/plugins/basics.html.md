@@ -101,8 +101,7 @@ you'll have to make. The argument should be a structure implementing
 one of the plugin interfaces (depending on what sort of plugin
 you're creating).
 
-While its not strictly necessary, Terraform plugins follow specific
-naming conventions. The format of the plugin binaries are
-`terraform-TYPE-NAME`. For example, `terraform-provider-aws`.
-We recommend you follow this convention to help make it clear what
-your plugin does to users.
+Terraform plugins must follow a very specific naming convention of
+`terraform-TYPE-NAME`. For example, `terraform-provider-aws`, which
+tells Terraform that the plugin is a provider that can be referenced
+as "aws".

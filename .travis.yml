@@ -10,6 +10,7 @@ install: make updatedeps
 
 script:
   - go test ./...
+  - make vet
   #- go test -race ./...
 
 branches:

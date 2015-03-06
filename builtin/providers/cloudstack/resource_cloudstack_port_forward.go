@@ -26,6 +26,12 @@ func resourceCloudStackPortForward() *schema.Resource {
 				ForceNew: true,
 			},
 
+			"managed": &schema.Schema{
+				Type:     schema.TypeBool,
+				Optional: true,
+				Default:  false,
+			},
+
 			"forward": &schema.Schema{
 				Type:     schema.TypeSet,
 				Required: true,
@@ -73,7 +79,7 @@ func resourceCloudStackPortForwardCreate(d *schema.ResourceData, meta interface{
 	}
 
 	// We need to set this upfront in order to be able to save a partial state
-	d.SetId(d.Get("ipaddress").(string))
+	d.SetId(ipaddressid)
 
 	// Create all forwards that are configured
 	if rs := d.Get("forward").(*schema.Set); rs.Len() > 0 {
@@ -85,7 +91,7 @@ func resourceCloudStackPortForwardCreate(d *schema.ResourceData, meta interface{
 
 		for _, forward := range rs.List() {
 			// Create a single forward
-			err := resourceCloudStackPortForwardCreateForward(d, meta, ipaddressid, forward.(map[string]interface{}))
+			err := resourceCloudStackPortForwardCreateForward(d, meta, forward.(map[string]interface{}))
 
 			// We need to update this first to preserve the correct state
 			forwards.Add(forward)
@@ -101,7 +107,7 @@ func resourceCloudStackPortForwardCreate(d *schema.ResourceData, meta interface{
 }
 
 func resourceCloudStackPortForwardCreateForward(
-	d *schema.ResourceData, meta interface{}, ipaddressid string, forward map[string]interface{}) error {
+	d *schema.ResourceData, meta interface{}, forward map[string]interface{}) error {
 	cs := meta.(*cloudstack.CloudStackClient)
 
 	// Make sure all required parameters are there
@@ -110,14 +116,18 @@ func resourceCloudStackPortForwardCreateForward(
 	}
 
 	// Retrieve the virtual_machine UUID
-	virtualmachineid, e := retrieveUUID(cs, "virtual_machine", forward["virtual_machine"].(string))
-	if e != nil {
-		return e.Error()
+	vm, _, err := cs.VirtualMachine.GetVirtualMachineByName(forward["virtual_machine"].(string))
+	if err != nil {
+		return err
 	}
 
 	// Create a new parameter struct
-	p := cs.Firewall.NewCreatePortForwardingRuleParams(ipaddressid, forward["private_port"].(int),
-		forward["protocol"].(string), forward["public_port"].(int), virtualmachineid)
+	p := cs.Firewall.NewCreatePortForwardingRuleParams(d.Id(), forward["private_port"].(int),
+		forward["protocol"].(string), forward["public_port"].(int), vm.Id)
+
+	// Set the network ID of the default network, needed when public IP address
+	// is not associated with any Guest network yet (VPC case)
+	p.SetNetworkid(vm.Nic[0].Networkid)
 
 	// Do not open the firewall automatically in any case
 	p.SetOpenfirewall(false)
@@ -154,7 +164,8 @@ func resourceCloudStackPortForwardRead(d *schema.ResourceData, meta interface{})
 			r, count, err := cs.Firewall.GetPortForwardingRuleByID(id.(string))
 			// If the count == 0, there is no object found for this UUID
 			if err != nil {
-				if count != 0 {
+				if count == 0 {
+					forward["uuid"] = ""
 					continue
 				}
 
@@ -180,9 +191,52 @@ func resourceCloudStackPortForwardRead(d *schema.ResourceData, meta interface{})
 		}
 	}
 
+	// If this is a managed resource, add all unknown forwards to dummy forwards
+	managed := d.Get("managed").(bool)
+	if managed {
+		// Get all the forwards from the running environment
+		p := cs.Firewall.NewListPortForwardingRulesParams()
+		p.SetIpaddressid(d.Id())
+		p.SetListall(true)
+
+		r, err := cs.Firewall.ListPortForwardingRules(p)
+		if err != nil {
+			return err
+		}
+
+		// Add all UUIDs to the uuids map
+		uuids := make(map[string]interface{}, len(r.PortForwardingRules))
+		for _, r := range r.PortForwardingRules {
+			uuids[r.Id] = r.Id
+		}
+
+		// Delete all expected UUIDs from the uuids map
+		for _, forward := range forwards.List() {
+			forward := forward.(map[string]interface{})
+
+			for _, id := range forward["uuids"].(map[string]interface{}) {
+				delete(uuids, id.(string))
+			}
+		}
+
+		for uuid, _ := range uuids {
+			// Make a dummy forward to hold the unknown UUID
+			forward := map[string]interface{}{
+				"protocol":        "N/A",
+				"private_port":    0,
+				"public_port":     0,
+				"virtual_machine": uuid,
+				"uuid":            uuid,
+			}
+
+			// Add the dummy forward to the forwards set
+			forwards.Add(forward)
+		}
+	}
+
 	if forwards.Len() > 0 {
 		d.Set("forward", forwards)
-	} else {
+	} else if !managed {
 		d.SetId("")
 	}
 
@@ -190,14 +244,6 @@ func resourceCloudStackPortForwardRead(d *schema.ResourceData, meta interface{})
 }
 
 func resourceCloudStackPortForwardUpdate(d *schema.ResourceData, meta interface{}) error {
-	cs := meta.(*cloudstack.CloudStackClient)
-
-	// Retrieve the ipaddress UUID
-	ipaddressid, e := retrieveUUID(cs, "ipaddress", d.Get("ipaddress").(string))
-	if e != nil {
-		return e.Error()
-	}
-
 	// Check if the forward set as a whole has changed
 	if d.HasChange("forward") {
 		o, n := d.GetChange("forward")
@@ -220,7 +266,7 @@ func resourceCloudStackPortForwardUpdate(d *schema.ResourceData, meta interface{
 		// Then loop through al the currently configured forwards and create the new ones
 		for _, forward := range nrs.List() {
 			err := resourceCloudStackPortForwardCreateForward(
-				d, meta, ipaddressid, forward.(map[string]interface{}))
+				d, meta, forward.(map[string]interface{}))
 
 			// We need to update this first to preserve the correct state
 			forwards.Add(forward)

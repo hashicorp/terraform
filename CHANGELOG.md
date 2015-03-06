@@ -1,5 +1,12 @@
 ## 0.4.0 (unreleased)
 
+BACKWARDS INCOMPATIBILITIES:
+
+  * Commands `terraform push` and `terraform pull` are now nested under
+    the `remote` command: `terraform remote push` and `terraform remote pull`.
+    The old `remote` functionality is now at `terraform remote config`. This
+    consolidates all remote state management under one command.
+
 FEATURES:
 
   * **New provider: `dme` (DNSMadeEasy)** [GH-855]
@@ -16,6 +23,8 @@ FEATURES:
 
 IMPROVEMENTS:
 
+  * **New config function: `format`** - Format a string using `sprintf`
+      format. [GH-1096]
   * **New config function: `replace`** - Search and replace string values.
       Search can be a regular expression. See documentation for more
       info. [GH-1029]
@@ -39,9 +48,15 @@ BUG FIXES:
       "resource.0" would ignore the latter completely. [GH-1086]
   * providers/aws: manually deleted VPC removes it from the state
   * providers/aws: `source_dest_check` regression fixed (now works). [GH-1020]
+  * providers/aws: Longer wait times for DB instances
   * providers/digitalocean: Waits until droplet is ready to be destroyed [GH-1057]
   * providers/digitalocean: More lenient about 404's while waiting [GH-1062]
-  * providers/aws: Longer wait times for DB instances
+  * providers/google: Network data in state was not being stored. [GH-1095]
+
+PLUGIN CHANGES:
+
+  * New `helper/schema` fields for resources: `Deprecated` and `Removed` allow
+      plugins to generate warning or error messages when a given attribute is used.
 
 ## 0.3.7 (February 19, 2015)
 
