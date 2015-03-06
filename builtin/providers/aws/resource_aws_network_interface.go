@@ -1,18 +1,12 @@
 package aws
 
 import (
-	"bytes"
-	//"crypto/sha1"
-	//"encoding/hex"
+	"bytes"	
 	"fmt"
 	"log"
-	//"strconv"
-	//"strings"
-	//"time"
-
+	
 	"github.com/hashicorp/aws-sdk-go/aws"
-	"github.com/hashicorp/terraform/helper/hashcode"
-	//"github.com/hashicorp/terraform/helper/resource"
+	"github.com/hashicorp/terraform/helper/hashcode"	
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/aws-sdk-go/gen/ec2"
 )
@@ -66,7 +60,8 @@ func resourceAwsNetworkInterface() *schema.Resource {
 							Required: true,
 						},
 						"attachment_id": &schema.Schema{
-							Type:     schema.TypeString,							
+							Type:     schema.TypeString,	
+							Computed: true,						
 						},
 					},
 				},
@@ -136,6 +131,24 @@ func resourceAwsNetworkInterfaceRead(d *schema.ResourceData, meta interface{}) e
 	return nil
 }
 
+func resourceAwsNetworkInterfaceDetach(oa *schema.Set, meta interface{}) error {
+	// if there was an old attachment, remove it
+	if oa != nil && len(oa.List()) > 0 {			
+		old_attachment := oa.List()[0].(map[string]interface{})
+		detach_request := &ec2.DetachNetworkInterfaceRequest{
+			AttachmentID: 	aws.String(old_attachment["attachment_id"].(string)),
+			Force:			aws.Boolean(true),
+		}
+		ec2conn := meta.(*AWSClient).ec2conn2
+		detach_err := ec2conn.DetachNetworkInterface(detach_request)
+		if detach_err != nil {
+			return fmt.Errorf("Error detaching ENI: %s", detach_err)
+		}
+	}
+
+	return nil
+}
+
 func resourceAwsNetworkInterfaceUpdate(d *schema.ResourceData, meta interface{}) error {
 
 	d.Partial(true)
@@ -144,17 +157,9 @@ func resourceAwsNetworkInterfaceUpdate(d *schema.ResourceData, meta interface{})
 		ec2conn := meta.(*AWSClient).ec2conn2
 		oa, na := d.GetChange("attachment")			
 		
-		// if there was an old attachment, remove it
-		if oa != nil && len(oa.(*schema.Set).List()) > 0 {			
-			old_attachment := oa.(*schema.Set).List()[0].(map[string]interface{})
-			detach_request := &ec2.DetachNetworkInterfaceRequest{
-				AttachmentID: 	aws.String(old_attachment["attachment_id"].(string)),
-				Force:			aws.Boolean(true),
-			}
-			detach_err := ec2conn.DetachNetworkInterface(detach_request)
-			if detach_err != nil {
-				return fmt.Errorf("Error detaching ENI: %s", detach_err)
-			}
+		detach_err := resourceAwsNetworkInterfaceDetach(oa.(*schema.Set), meta)
+		if detach_err != nil {
+			return detach_err
 		}
 
 		// if there is a new attachment, attach it
@@ -198,6 +203,11 @@ func resourceAwsNetworkInterfaceDelete(d *schema.ResourceData, meta interface{})
 	ec2conn := meta.(*AWSClient).ec2conn2
 
 	log.Printf("[INFO] Deleting ENI: %s", d.Id())
+
+	detach_err := resourceAwsNetworkInterfaceDetach(d.Get("attachment").(*schema.Set), meta)
+	if detach_err != nil {
+		return detach_err
+	}
 
 	deleteEniOpts := ec2.DeleteNetworkInterfaceRequest{
 		NetworkInterfaceID: aws.String(d.Id()),
@@ -246,8 +256,8 @@ func convertToPrivateIPAddresses(ips []interface{}) []ec2.PrivateIPAddressSpecif
 func resourceAwsEniAttachmentHash(v interface{}) int {
 	var buf bytes.Buffer
 	m := v.(map[string]interface{})
-	buf.WriteString(fmt.Sprintf("%d-", m["instance"].(string)))
-	buf.WriteString(fmt.Sprintf("%s-", m["device_index"].(int)))
+	buf.WriteString(fmt.Sprintf("%s-", m["instance"].(string)))
+	buf.WriteString(fmt.Sprintf("%d-", m["device_index"].(int)))
 	return hashcode.String(buf.String())
 }
 
