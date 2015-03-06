@@ -84,8 +84,19 @@ func (c *PushCommand) Run(args []string) int {
 		return 1
 	}
 
+	// Get the configuration
+	config := ctx.Module().Config()
+	if config.Atlas == nil || config.Atlas.Name == "" {
+		c.Ui.Error(
+			"The name of this Terraform configuration in Atlas must be\n" +
+				"specified within your configuration or the command-line. To\n" +
+				"set it on the command-line, use the `-name` parameter.")
+		return 1
+	}
+	name := config.Atlas.Name
+
 	// Get the variables we might already have
-	vars, err := c.client.Get("")
+	vars, err := c.client.Get(name)
 	if err != nil {
 		c.Ui.Error(fmt.Sprintf(
 			"Error looking up prior pushed configuration: %s", err))
@@ -127,6 +138,7 @@ func (c *PushCommand) Run(args []string) int {
 
 	// Upsert!
 	opts := &pushUpsertOptions{
+		Name:      name,
 		Archive:   archiveR,
 		Variables: ctx.Variables(),
 	}
@@ -171,6 +183,7 @@ type pushClient interface {
 }
 
 type pushUpsertOptions struct {
+	Name      string
 	Archive   *archive.Archive
 	Variables map[string]string
 }

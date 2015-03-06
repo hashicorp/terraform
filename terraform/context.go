@@ -376,6 +376,11 @@ func (c *Context) Validate() ([]string, []error) {
 	return walker.ValidationWarnings, rerrs.Errors
 }
 
+// Module returns the module tree associated with this context.
+func (c *Context) Module() *module.Tree {
+	return c.module
+}
+
 // Variables will return the mapping of variables that were defined
 // for this Context. If Input was called, this mapping may be different
 // than what was given.

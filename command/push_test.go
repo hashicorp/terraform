@@ -64,6 +64,10 @@ func TestPush_good(t *testing.T) {
 	if !reflect.DeepEqual(client.UpsertOptions.Variables, variables) {
 		t.Fatalf("bad: %#v", client.UpsertOptions)
 	}
+
+	if client.UpsertOptions.Name != "foo" {
+		t.Fatalf("bad: %#v", client.UpsertOptions)
+	}
 }
 
 func TestPush_input(t *testing.T) {
