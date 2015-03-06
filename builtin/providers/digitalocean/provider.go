@@ -21,6 +21,7 @@ func Provider() terraform.ResourceProvider {
 			"digitalocean_domain":  resourceDigitalOceanDomain(),
 			"digitalocean_droplet": resourceDigitalOceanDroplet(),
 			"digitalocean_record":  resourceDigitalOceanRecord(),
+			"digitalocean_ssh_key": resourceDigitalOceanSSHKey(),
 		},
 
 		ConfigureFunc: providerConfigure,
