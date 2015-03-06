@@ -115,7 +115,7 @@ func resourceAwsVpnGatewayUpdate(d *schema.ResourceData, meta interface{}) error
 
     d.SetPartial("tags")
 
-    return nil
+    return resourceAwsVpnGatewayRead(d, meta)
 }
 
 func resourceAwsVpnGatewayDelete(d *schema.ResourceData, meta interface{}) error {

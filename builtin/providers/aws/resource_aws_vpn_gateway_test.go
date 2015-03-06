@@ -98,6 +98,7 @@ func TestAccVpnGateway_tags(t *testing.T) {
 				Config: testAccCheckVpnGatewayConfigTags,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckVpnGatewayExists("aws_vpn_gateway.foo", &v),
+					testAccCheckTagsSDK(&v.Tags, "foo", "bar"),
 				),
 			},
 
