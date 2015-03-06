@@ -1,7 +1,6 @@
 package command
 
 import (
-	"flag"
 	"fmt"
 	"io"
 	"os"
@@ -24,7 +23,7 @@ func (c *PushCommand) Run(args []string) int {
 	var atlasToken string
 	var moduleLock bool
 	args = c.Meta.process(args, false)
-	cmdFlags := flag.NewFlagSet("push", flag.ContinueOnError)
+	cmdFlags := c.Meta.flagSet("push")
 	cmdFlags.StringVar(&c.Meta.statePath, "state", DefaultStateFilename, "path")
 	cmdFlags.StringVar(&atlasToken, "token", "", "")
 	cmdFlags.BoolVar(&moduleLock, "module-lock", true, "")
