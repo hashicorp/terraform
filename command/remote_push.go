@@ -8,11 +8,11 @@ import (
 	"github.com/hashicorp/terraform/state"
 )
 
-type PushCommand struct {
+type RemotePushCommand struct {
 	Meta
 }
 
-func (c *PushCommand) Run(args []string) int {
+func (c *RemotePushCommand) Run(args []string) int {
 	var force bool
 	args = c.Meta.process(args, false)
 	cmdFlags := flag.NewFlagSet("push", flag.ContinueOnError)
@@ -71,7 +71,7 @@ func (c *PushCommand) Run(args []string) int {
 	return 0
 }
 
-func (c *PushCommand) Help() string {
+func (c *RemotePushCommand) Help() string {
 	helpText := `
 Usage: terraform push [options]
 
@@ -87,6 +87,6 @@ Options:
 	return strings.TrimSpace(helpText)
 }
 
-func (c *PushCommand) Synopsis() string {
+func (c *RemotePushCommand) Synopsis() string {
 	return "Uploads the the local state to the remote server"
 }

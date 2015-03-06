@@ -2583,15 +2583,15 @@ func TestSchemaMap_InternalValidate(t *testing.T) {
 }
 
 func TestSchemaMap_Validate(t *testing.T) {
-	cases := []struct {
-		Schema map[string]*Schema
-		Config map[string]interface{}
-		Vars   map[string]string
-		Warn   bool
-		Err    bool
+	cases := map[string]struct {
+		Schema   map[string]*Schema
+		Config   map[string]interface{}
+		Vars     map[string]string
+		Err      bool
+		Errors   []error
+		Warnings []string
 	}{
-		// #0 Good
-		{
+		"Good": {
 			Schema: map[string]*Schema{
 				"availability_zone": &Schema{
 					Type:     TypeString,
@@ -2606,8 +2606,7 @@ func TestSchemaMap_Validate(t *testing.T) {
 			},
 		},
 
-		// #1 Good, because the var is not set and that error will come elsewhere
-		{
+		"Good, because the var is not set and that error will come elsewhere": {
 			Schema: map[string]*Schema{
 				"size": &Schema{
 					Type:     TypeInt,
@@ -2624,8 +2623,7 @@ func TestSchemaMap_Validate(t *testing.T) {
 			},
 		},
 
-		// #2 Required field not set
-		{
+		"Required field not set": {
 			Schema: map[string]*Schema{
 				"availability_zone": &Schema{
 					Type:     TypeString,
@@ -2638,8 +2636,7 @@ func TestSchemaMap_Validate(t *testing.T) {
 			Err: true,
 		},
 
-		// #3 Invalid type
-		{
+		"Invalid basic type": {
 			Schema: map[string]*Schema{
 				"port": &Schema{
 					Type:     TypeInt,
@@ -2654,8 +2651,7 @@ func TestSchemaMap_Validate(t *testing.T) {
 			Err: true,
 		},
 
-		// #4
-		{
+		"Invalid complex type": {
 			Schema: map[string]*Schema{
 				"user_data": &Schema{
 					Type:     TypeString,
@@ -2674,8 +2670,7 @@ func TestSchemaMap_Validate(t *testing.T) {
 			Err: true,
 		},
 
-		// #5 Bad type, interpolated
-		{
+		"Bad type, interpolated": {
 			Schema: map[string]*Schema{
 				"size": &Schema{
 					Type:     TypeInt,
@@ -2694,8 +2689,7 @@ func TestSchemaMap_Validate(t *testing.T) {
 			Err: true,
 		},
 
-		// #6 Required but has DefaultFunc
-		{
+		"Required but has DefaultFunc": {
 			Schema: map[string]*Schema{
 				"availability_zone": &Schema{
 					Type:     TypeString,
@@ -2709,8 +2703,7 @@ func TestSchemaMap_Validate(t *testing.T) {
 			Config: nil,
 		},
 
-		// #7 Required but has DefaultFunc return nil
-		{
+		"Required but has DefaultFunc return nil": {
 			Schema: map[string]*Schema{
 				"availability_zone": &Schema{
 					Type:     TypeString,
@@ -2726,8 +2719,7 @@ func TestSchemaMap_Validate(t *testing.T) {
 			Err: true,
 		},
 
-		// #8 Optional sub-resource
-		{
+		"Optional sub-resource": {
 			Schema: map[string]*Schema{
 				"ingress": &Schema{
 					Type: TypeList,
@@ -2747,8 +2739,7 @@ func TestSchemaMap_Validate(t *testing.T) {
 			Err: false,
 		},
 
-		// #9 Not a list
-		{
+		"Not a list": {
 			Schema: map[string]*Schema{
 				"ingress": &Schema{
 					Type: TypeList,
@@ -2770,8 +2761,7 @@ func TestSchemaMap_Validate(t *testing.T) {
 			Err: true,
 		},
 
-		// #10 Required sub-resource field
-		{
+		"Required sub-resource field": {
 			Schema: map[string]*Schema{
 				"ingress": &Schema{
 					Type: TypeList,
@@ -2795,8 +2785,7 @@ func TestSchemaMap_Validate(t *testing.T) {
 			Err: true,
 		},
 
-		// #11 Good sub-resource
-		{
+		"Good sub-resource": {
 			Schema: map[string]*Schema{
 				"ingress": &Schema{
 					Type:     TypeList,
@@ -2823,8 +2812,7 @@ func TestSchemaMap_Validate(t *testing.T) {
 			Err: false,
 		},
 
-		// #12 Invalid/unknown field
-		{
+		"Invalid/unknown field": {
 			Schema: map[string]*Schema{
 				"availability_zone": &Schema{
 					Type:     TypeString,
@@ -2841,8 +2829,7 @@ func TestSchemaMap_Validate(t *testing.T) {
 			Err: true,
 		},
 
-		// #13 Computed field set
-		{
+		"Computed field set": {
 			Schema: map[string]*Schema{
 				"availability_zone": &Schema{
 					Type:     TypeString,
@@ -2857,8 +2844,7 @@ func TestSchemaMap_Validate(t *testing.T) {
 			Err: true,
 		},
 
-		// #14 Not a set
-		{
+		"Not a set": {
 			Schema: map[string]*Schema{
 				"ports": &Schema{
 					Type:     TypeSet,
@@ -2877,8 +2863,7 @@ func TestSchemaMap_Validate(t *testing.T) {
 			Err: true,
 		},
 
-		// #15 Maps
-		{
+		"Maps": {
 			Schema: map[string]*Schema{
 				"user_data": &Schema{
 					Type:     TypeMap,
@@ -2893,8 +2878,7 @@ func TestSchemaMap_Validate(t *testing.T) {
 			Err: true,
 		},
 
-		// #16
-		{
+		"Good map: data surrounded by extra slice": {
 			Schema: map[string]*Schema{
 				"user_data": &Schema{
 					Type:     TypeMap,
@@ -2911,8 +2895,7 @@ func TestSchemaMap_Validate(t *testing.T) {
 			},
 		},
 
-		// #17
-		{
+		"Good map": {
 			Schema: map[string]*Schema{
 				"user_data": &Schema{
 					Type:     TypeMap,
@@ -2927,8 +2910,7 @@ func TestSchemaMap_Validate(t *testing.T) {
 			},
 		},
 
-		// #18
-		{
+		"Bad map: just a slice": {
 			Schema: map[string]*Schema{
 				"user_data": &Schema{
 					Type:     TypeMap,
@@ -2945,8 +2927,7 @@ func TestSchemaMap_Validate(t *testing.T) {
 			Err: true,
 		},
 
-		// #19
-		{
+		"Good set: config has slice with single interpolated value": {
 			Schema: map[string]*Schema{
 				"security_groups": &Schema{
 					Type:     TypeSet,
@@ -2967,8 +2948,7 @@ func TestSchemaMap_Validate(t *testing.T) {
 			Err: false,
 		},
 
-		// #20
-		{
+		"Bad set: config has single interpolated value": {
 			Schema: map[string]*Schema{
 				"security_groups": &Schema{
 					Type:     TypeSet,
@@ -2986,8 +2966,7 @@ func TestSchemaMap_Validate(t *testing.T) {
 			Err: true,
 		},
 
-		// #21 Bad, subresource should not allow unknown elements
-		{
+		"Bad, subresource should not allow unknown elements": {
 			Schema: map[string]*Schema{
 				"ingress": &Schema{
 					Type:     TypeList,
@@ -3015,8 +2994,7 @@ func TestSchemaMap_Validate(t *testing.T) {
 			Err: true,
 		},
 
-		// #22 Bad, subresource should not allow invalid types
-		{
+		"Bad, subresource should not allow invalid types": {
 			Schema: map[string]*Schema{
 				"ingress": &Schema{
 					Type:     TypeList,
@@ -3042,9 +3020,74 @@ func TestSchemaMap_Validate(t *testing.T) {
 
 			Err: true,
 		},
+
+		"Deprecated attribute usage generates warning, but not error": {
+			Schema: map[string]*Schema{
+				"old_news": &Schema{
+					Type:       TypeString,
+					Optional:   true,
+					Deprecated: "please use 'new_news' instead",
+				},
+			},
+
+			Config: map[string]interface{}{
+				"old_news": "extra extra!",
+			},
+
+			Err: false,
+
+			Warnings: []string{
+				"\"old_news\": [DEPRECATED] please use 'new_news' instead",
+			},
+		},
+
+		"Deprecated generates no warnings if attr not used": {
+			Schema: map[string]*Schema{
+				"old_news": &Schema{
+					Type:       TypeString,
+					Optional:   true,
+					Deprecated: "please use 'new_news' instead",
+				},
+			},
+
+			Err: false,
+
+			Warnings: nil,
+		},
+
+		"Removed attribute usage generates error": {
+			Schema: map[string]*Schema{
+				"long_gone": &Schema{
+					Type:     TypeString,
+					Optional: true,
+					Removed:  "no longer supported by Cloud API",
+				},
+			},
+
+			Config: map[string]interface{}{
+				"long_gone": "still here!",
+			},
+
+			Err: true,
+			Errors: []error{
+				fmt.Errorf("\"long_gone\": [REMOVED] no longer supported by Cloud API"),
+			},
+		},
+
+		"Removed generates no errors if attr not used": {
+			Schema: map[string]*Schema{
+				"long_gone": &Schema{
+					Type:     TypeString,
+					Optional: true,
+					Removed:  "no longer supported by Cloud API",
+				},
+			},
+
+			Err: false,
+		},
 	}
 
-	for i, tc := range cases {
+	for tn, tc := range cases {
 		c, err := config.NewRawConfig(tc.Config)
 		if err != nil {
 			t.Fatalf("err: %s", err)
@@ -3063,18 +3106,24 @@ func TestSchemaMap_Validate(t *testing.T) {
 		ws, es := schemaMap(tc.Schema).Validate(terraform.NewResourceConfig(c))
 		if (len(es) > 0) != tc.Err {
 			if len(es) == 0 {
-				t.Errorf("%d: no errors", i)
+				t.Errorf("%q: no errors", tn)
 			}
 
 			for _, e := range es {
-				t.Errorf("%d: err: %s", i, e)
+				t.Errorf("%q: err: %s", tn, e)
 			}
 
 			t.FailNow()
 		}
 
-		if (len(ws) > 0) != tc.Warn {
-			t.Fatalf("%d: ws: %#v", i, ws)
+		if !reflect.DeepEqual(ws, tc.Warnings) {
+			t.Fatalf("%q: warnings:\n\nexpected: %#v\ngot:%#v", tn, tc.Warnings, ws)
+		}
+
+		if tc.Errors != nil {
+			if !reflect.DeepEqual(es, tc.Errors) {
+				t.Fatalf("%q: errors:\n\nexpected: %q\ngot: %q", tn, tc.Errors, es)
+			}
 		}
 	}
 }

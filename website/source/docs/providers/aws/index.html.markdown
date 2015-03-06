@@ -32,7 +32,7 @@ resource "aws_instance" "web" {
 
 ## Argument Reference
 
-The following arguments are supported:
+The following arguments are supported in the `provider` block:
 
 * `access_key` - (Required) This is the AWS access key. It must be provided, but
   it can also be sourced from the `AWS_ACCESS_KEY_ID` environment variable.
@@ -42,3 +42,6 @@ The following arguments are supported:
 
 * `region` - (Required) This is the AWS region. It must be provided, but
   it can also be sourced from the `AWS_DEFAULT_REGION` environment variables.
+
+In addition to the above parameters, the `AWS_SECURITY_TOKEN` environmental
+variable can be set to set an MFA token.
