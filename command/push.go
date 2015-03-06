@@ -21,13 +21,13 @@ type PushCommand struct {
 
 func (c *PushCommand) Run(args []string) int {
 	var atlasToken string
-	var moduleLock bool
+	var moduleUpload bool
 	var name string
 	args = c.Meta.process(args, false)
 	cmdFlags := c.Meta.flagSet("push")
 	cmdFlags.StringVar(&c.Meta.statePath, "state", DefaultStateFilename, "path")
 	cmdFlags.StringVar(&atlasToken, "token", "", "")
-	cmdFlags.BoolVar(&moduleLock, "module-lock", true, "")
+	cmdFlags.BoolVar(&moduleUpload, "module-upload", true, "")
 	cmdFlags.StringVar(&name, "name", "", "")
 	cmdFlags.Usage = func() { c.Ui.Error(c.Help()) }
 	if err := cmdFlags.Parse(args); err != nil {
@@ -125,8 +125,8 @@ func (c *PushCommand) Run(args []string) int {
 			DefaultDataDir: c.DataDir(),
 		},
 	}
-	if !moduleLock {
-		// If we're not locking modules, then exclude the modules dir.
+	if !moduleUpload {
+		// If we're not uploading modules, then exclude the modules dir.
 		archiveOpts.Exclude = append(
 			archiveOpts.Exclude,
 			filepath.Join(c.DataDir(), "modules"))
@@ -164,7 +164,7 @@ Usage: terraform push [options] [DIR]
 
 Options:
 
-  -module-lock=true    If true (default), then the modules are locked at
+  -module-upload=true  If true (default), then the modules are locked at
                        their current checkout and uploaded completely. This
                        prevents Atlas from running "terraform get".
 
