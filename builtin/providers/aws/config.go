@@ -65,8 +65,7 @@ func (c *Config) Client() (interface{}, error) {
 		creds := awsGo.Creds(c.AccessKey, c.SecretKey, c.Token)
 
 		log.Println("[INFO] Initializing EC2 connection")
-		client.ec2conn = ec2.New(auth, region)
-		client.ec2conn2 = awsec2.New(creds, c.Region, nil)
+		client.ec2conn = ec2.New(auth, region)		
 		log.Println("[INFO] Initializing ELB connection")
 		client.elbconn = elb.New(creds, c.Region, nil)
 		log.Println("[INFO] Initializing AutoScaling connection")

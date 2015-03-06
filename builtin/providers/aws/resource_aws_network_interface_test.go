@@ -71,7 +71,7 @@ func testAccCheckAWSENIExists(n string, res *ec2.NetworkInterface) resource.Test
 			return fmt.Errorf("No ENI ID is set")
 		}
 
-		ec2conn := testAccProvider.Meta().(*AWSClient).ec2conn2
+		ec2conn := testAccProvider.Meta().(*AWSClient).awsEC2conn
 		describe_network_interfaces_request := &ec2.DescribeNetworkInterfacesRequest{		
 			NetworkInterfaceIDs:	[]string{rs.Primary.ID},
 		}
@@ -148,7 +148,7 @@ func testAccCheckAWSENIDestroy(s *terraform.State) error {
 			continue
 		}
 
-		ec2conn := testAccProvider.Meta().(*AWSClient).ec2conn2
+		ec2conn := testAccProvider.Meta().(*AWSClient).awsEC2conn
 		describe_network_interfaces_request := &ec2.DescribeNetworkInterfacesRequest{		
 			NetworkInterfaceIDs:	[]string{rs.Primary.ID},
 		}
