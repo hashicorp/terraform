@@ -1,0 +1,200 @@
+go generate ./...
+TF_ACC= go test ./builtin/providers/aws/ -v -timeout=30s -parallel=4
+=== RUN Test_expandNetworkAclEntry
+--- PASS: Test_expandNetworkAclEntry (0.00s)
+=== RUN Test_flattenNetworkAclEntry
+--- PASS: Test_flattenNetworkAclEntry (0.00s)
+=== RUN TestProvider
+--- PASS: TestProvider (0.00s)
+=== RUN TestProvider_impl
+--- PASS: TestProvider_impl (0.00s)
+=== RUN TestAccAWSAutoScalingGroup_basic
+--- SKIP: TestAccAWSAutoScalingGroup_basic (0.00s)
+	testing.go:89: Acceptance tests skipped unless env 'TF_ACC' set
+=== RUN TestAccAWSAutoScalingGroupWithLoadBalancer
+--- SKIP: TestAccAWSAutoScalingGroupWithLoadBalancer (0.00s)
+	testing.go:89: Acceptance tests skipped unless env 'TF_ACC' set
+=== RUN TestAccAWSDBInstance
+--- SKIP: TestAccAWSDBInstance (0.00s)
+	testing.go:89: Acceptance tests skipped unless env 'TF_ACC' set
+=== RUN TestAccAWSDBParameterGroup
+--- SKIP: TestAccAWSDBParameterGroup (0.00s)
+	testing.go:89: Acceptance tests skipped unless env 'TF_ACC' set
+=== RUN TestAccAWSDBParameterGroupOnly
+--- SKIP: TestAccAWSDBParameterGroupOnly (0.00s)
+	testing.go:89: Acceptance tests skipped unless env 'TF_ACC' set
+=== RUN TestAccAWSDBSecurityGroup
+--- SKIP: TestAccAWSDBSecurityGroup (0.00s)
+	testing.go:89: Acceptance tests skipped unless env 'TF_ACC' set
+=== RUN TestAccAWSDBSubnetGroup
+--- SKIP: TestAccAWSDBSubnetGroup (0.00s)
+	testing.go:89: Acceptance tests skipped unless env 'TF_ACC' set
+=== RUN TestAccAWSEIP_normal
+--- SKIP: TestAccAWSEIP_normal (0.00s)
+	testing.go:89: Acceptance tests skipped unless env 'TF_ACC' set
+=== RUN TestAccAWSEIP_instance
+--- SKIP: TestAccAWSEIP_instance (0.00s)
+	testing.go:89: Acceptance tests skipped unless env 'TF_ACC' set
+=== RUN TestAccAWSELB_basic
+--- SKIP: TestAccAWSELB_basic (0.00s)
+	testing.go:89: Acceptance tests skipped unless env 'TF_ACC' set
+=== RUN TestAccAWSELB_InstanceAttaching
+--- SKIP: TestAccAWSELB_InstanceAttaching (0.00s)
+	testing.go:89: Acceptance tests skipped unless env 'TF_ACC' set
+=== RUN TestAccAWSELB_HealthCheck
+--- SKIP: TestAccAWSELB_HealthCheck (0.00s)
+	testing.go:89: Acceptance tests skipped unless env 'TF_ACC' set
+=== RUN TestAccAWSELBUpdate_HealthCheck
+--- SKIP: TestAccAWSELBUpdate_HealthCheck (0.00s)
+	testing.go:89: Acceptance tests skipped unless env 'TF_ACC' set
+=== RUN TestAccAWSInstance_normal
+--- SKIP: TestAccAWSInstance_normal (0.00s)
+	testing.go:89: Acceptance tests skipped unless env 'TF_ACC' set
+=== RUN TestAccAWSInstance_blockDevices
+--- SKIP: TestAccAWSInstance_blockDevices (0.00s)
+	testing.go:89: Acceptance tests skipped unless env 'TF_ACC' set
+=== RUN TestAccAWSInstance_sourceDestCheck
+--- SKIP: TestAccAWSInstance_sourceDestCheck (0.00s)
+	testing.go:89: Acceptance tests skipped unless env 'TF_ACC' set
+=== RUN TestAccAWSInstance_vpc
+--- SKIP: TestAccAWSInstance_vpc (0.00s)
+	testing.go:89: Acceptance tests skipped unless env 'TF_ACC' set
+=== RUN TestAccInstance_tags
+--- SKIP: TestAccInstance_tags (0.00s)
+	testing.go:89: Acceptance tests skipped unless env 'TF_ACC' set
+=== RUN TestAccInstance_privateIP
+--- SKIP: TestAccInstance_privateIP (0.00s)
+	testing.go:89: Acceptance tests skipped unless env 'TF_ACC' set
+=== RUN TestAccInstance_associatePublicIPAndPrivateIP
+--- SKIP: TestAccInstance_associatePublicIPAndPrivateIP (0.00s)
+	testing.go:89: Acceptance tests skipped unless env 'TF_ACC' set
+=== RUN TestInstanceTenancySchema
+--- PASS: TestInstanceTenancySchema (0.00s)
+=== RUN TestAccAWSInternetGateway
+--- SKIP: TestAccAWSInternetGateway (0.00s)
+	testing.go:89: Acceptance tests skipped unless env 'TF_ACC' set
+=== RUN TestAccAWSInternetGateway_delete
+--- SKIP: TestAccAWSInternetGateway_delete (0.00s)
+	testing.go:89: Acceptance tests skipped unless env 'TF_ACC' set
+=== RUN TestAccInternetGateway_tags
+--- SKIP: TestAccInternetGateway_tags (0.00s)
+	testing.go:89: Acceptance tests skipped unless env 'TF_ACC' set
+=== RUN TestAccAWSKeyPair_normal
+--- SKIP: TestAccAWSKeyPair_normal (0.00s)
+	testing.go:89: Acceptance tests skipped unless env 'TF_ACC' set
+=== RUN TestAccAWSLaunchConfiguration
+--- SKIP: TestAccAWSLaunchConfiguration (0.00s)
+	testing.go:89: Acceptance tests skipped unless env 'TF_ACC' set
+=== RUN TestAccAWSMainRouteTableAssociation
+--- SKIP: TestAccAWSMainRouteTableAssociation (0.00s)
+	testing.go:89: Acceptance tests skipped unless env 'TF_ACC' set
+=== RUN TestAccAWSNetworkAclsWithEgressAndIngressRules
+--- SKIP: TestAccAWSNetworkAclsWithEgressAndIngressRules (0.00s)
+	testing.go:89: Acceptance tests skipped unless env 'TF_ACC' set
+=== RUN TestAccAWSNetworkAclsOnlyIngressRules
+--- SKIP: TestAccAWSNetworkAclsOnlyIngressRules (0.00s)
+	testing.go:89: Acceptance tests skipped unless env 'TF_ACC' set
+=== RUN TestAccAWSNetworkAclsOnlyIngressRulesChange
+--- SKIP: TestAccAWSNetworkAclsOnlyIngressRulesChange (0.00s)
+	testing.go:89: Acceptance tests skipped unless env 'TF_ACC' set
+=== RUN TestAccAWSNetworkAclsOnlyEgressRules
+--- SKIP: TestAccAWSNetworkAclsOnlyEgressRules (0.00s)
+	testing.go:89: Acceptance tests skipped unless env 'TF_ACC' set
+=== RUN TestAccNetworkAcl_SubnetChange
+--- SKIP: TestAccNetworkAcl_SubnetChange (0.00s)
+	testing.go:89: Acceptance tests skipped unless env 'TF_ACC' set
+=== RUN TestAccAWSENI_basic
+--- SKIP: TestAccAWSENI_basic (0.00s)
+	testing.go:89: Acceptance tests skipped unless env 'TF_ACC' set
+=== RUN TestAccRoute53Record
+--- SKIP: TestAccRoute53Record (0.00s)
+	testing.go:89: Acceptance tests skipped unless env 'TF_ACC' set
+=== RUN TestAccRoute53Record_generatesSuffix
+--- SKIP: TestAccRoute53Record_generatesSuffix (0.00s)
+	testing.go:89: Acceptance tests skipped unless env 'TF_ACC' set
+=== RUN TestCleanPrefix
+--- PASS: TestCleanPrefix (0.00s)
+=== RUN TestCleanZoneID
+--- PASS: TestCleanZoneID (0.00s)
+=== RUN TestCleanChangeID
+--- PASS: TestCleanChangeID (0.00s)
+=== RUN TestAccRoute53Zone
+--- SKIP: TestAccRoute53Zone (0.00s)
+	testing.go:89: Acceptance tests skipped unless env 'TF_ACC' set
+=== RUN TestAccAWSRouteTableAssociation
+--- SKIP: TestAccAWSRouteTableAssociation (0.00s)
+	testing.go:89: Acceptance tests skipped unless env 'TF_ACC' set
+=== RUN TestAccAWSRouteTable_normal
+--- SKIP: TestAccAWSRouteTable_normal (0.00s)
+	testing.go:89: Acceptance tests skipped unless env 'TF_ACC' set
+=== RUN TestAccAWSRouteTable_instance
+--- SKIP: TestAccAWSRouteTable_instance (0.00s)
+	testing.go:89: Acceptance tests skipped unless env 'TF_ACC' set
+=== RUN TestAccAWSRouteTable_tags
+--- SKIP: TestAccAWSRouteTable_tags (0.00s)
+	testing.go:89: Acceptance tests skipped unless env 'TF_ACC' set
+=== RUN TestAccAWSRouteTable_vpcPeering
+--- SKIP: TestAccAWSRouteTable_vpcPeering (0.00s)
+	testing.go:89: Acceptance tests skipped unless env 'TF_ACC' set
+=== RUN TestAccAWSS3Bucket
+--- SKIP: TestAccAWSS3Bucket (0.00s)
+	testing.go:89: Acceptance tests skipped unless env 'TF_ACC' set
+=== RUN TestAccAWSSecurityGroup_normal
+--- SKIP: TestAccAWSSecurityGroup_normal (0.00s)
+	testing.go:89: Acceptance tests skipped unless env 'TF_ACC' set
+=== RUN TestAccAWSSecurityGroup_self
+--- SKIP: TestAccAWSSecurityGroup_self (0.00s)
+	testing.go:89: Acceptance tests skipped unless env 'TF_ACC' set
+=== RUN TestAccAWSSecurityGroup_vpc
+--- SKIP: TestAccAWSSecurityGroup_vpc (0.00s)
+	testing.go:89: Acceptance tests skipped unless env 'TF_ACC' set
+=== RUN TestAccAWSSecurityGroup_MultiIngress
+--- SKIP: TestAccAWSSecurityGroup_MultiIngress (0.00s)
+	testing.go:89: Acceptance tests skipped unless env 'TF_ACC' set
+=== RUN TestAccAWSSecurityGroup_Change
+--- SKIP: TestAccAWSSecurityGroup_Change (0.00s)
+	testing.go:89: Acceptance tests skipped unless env 'TF_ACC' set
+=== RUN TestAccAWSSecurityGroup_tags
+--- SKIP: TestAccAWSSecurityGroup_tags (0.00s)
+	testing.go:89: Acceptance tests skipped unless env 'TF_ACC' set
+=== RUN TestAccAWSSubnet
+--- SKIP: TestAccAWSSubnet (0.00s)
+	testing.go:89: Acceptance tests skipped unless env 'TF_ACC' set
+=== RUN TestAccAWSVPCPeeringConnection_normal
+--- SKIP: TestAccAWSVPCPeeringConnection_normal (0.00s)
+	testing.go:89: Acceptance tests skipped unless env 'TF_ACC' set
+=== RUN TestAccVpc_basic
+--- SKIP: TestAccVpc_basic (0.00s)
+	testing.go:89: Acceptance tests skipped unless env 'TF_ACC' set
+=== RUN TestAccVpc_dedicatedTenancy
+--- SKIP: TestAccVpc_dedicatedTenancy (0.00s)
+	testing.go:89: Acceptance tests skipped unless env 'TF_ACC' set
+=== RUN TestAccVpc_tags
+--- SKIP: TestAccVpc_tags (0.00s)
+	testing.go:89: Acceptance tests skipped unless env 'TF_ACC' set
+=== RUN TestAccVpcUpdate
+--- SKIP: TestAccVpcUpdate (0.00s)
+	testing.go:89: Acceptance tests skipped unless env 'TF_ACC' set
+=== RUN TestExpandIPPerms
+--- PASS: TestExpandIPPerms (0.00s)
+=== RUN TestFlattenIPPerms
+--- PASS: TestFlattenIPPerms (0.00s)
+=== RUN TestExpandListeners
+--- PASS: TestExpandListeners (0.00s)
+=== RUN TestFlattenHealthCheck
+--- PASS: TestFlattenHealthCheck (0.00s)
+=== RUN TestExpandStringList
+--- PASS: TestExpandStringList (0.00s)
+=== RUN TestExpandParameters
+--- PASS: TestExpandParameters (0.00s)
+=== RUN TestFlattenParameters
+--- PASS: TestFlattenParameters (0.00s)
+=== RUN TestExpandInstanceString
+--- PASS: TestExpandInstanceString (0.00s)
+=== RUN TestDiffTags
+--- PASS: TestDiffTags (0.00s)
+PASS
+ok  	github.com/hashicorp/terraform/builtin/providers/aws	0.042s
+make[1]: Entering directory `/home/peter/go/src/github.com/hashicorp/terraform'
+go tool vet -asmdecl -atomic -bool -buildtags -copylocks -methods -nilfunc -printf -rangeloops -shift -structtags -unsafeptr .
+make[1]: Leaving directory `/home/peter/go/src/github.com/hashicorp/terraform'

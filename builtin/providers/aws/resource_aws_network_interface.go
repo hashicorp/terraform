@@ -4,9 +4,12 @@ import (
 	"bytes"	
 	"fmt"
 	"log"
+	"strconv"
+	"time"
 	
 	"github.com/hashicorp/aws-sdk-go/aws"
 	"github.com/hashicorp/terraform/helper/hashcode"	
+	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/aws-sdk-go/gen/ec2"
 )
@@ -131,7 +134,27 @@ func resourceAwsNetworkInterfaceRead(d *schema.ResourceData, meta interface{}) e
 	return nil
 }
 
-func resourceAwsNetworkInterfaceDetach(oa *schema.Set, meta interface{}) error {
+func networkInterfaceAttachmentRefreshFunc(ec2conn *ec2.EC2, id string) resource.StateRefreshFunc {
+	return func() (interface{}, string, error) {
+
+		describe_network_interfaces_request := &ec2.DescribeNetworkInterfacesRequest{		
+			NetworkInterfaceIDs:	[]string{id},
+		}
+		describeResp, err := ec2conn.DescribeNetworkInterfaces(describe_network_interfaces_request)
+
+		if err != nil {			
+			log.Printf("[ERROR] Could not find network interface %s. %s", id, err)					
+			return nil, "", err
+		}
+
+		eni := describeResp.NetworkInterfaces[0]
+		hasAttachment := strconv.FormatBool(eni.Attachment != nil)		
+		log.Printf("[DEBUG] ENI %s has attachment state %s", id, hasAttachment)					
+		return eni, hasAttachment, nil
+	}
+}
+
+func resourceAwsNetworkInterfaceDetach(oa *schema.Set, meta interface{}, eniId string) error {
 	// if there was an old attachment, remove it
 	if oa != nil && len(oa.List()) > 0 {			
 		old_attachment := oa.List()[0].(map[string]interface{})
@@ -144,6 +167,18 @@ func resourceAwsNetworkInterfaceDetach(oa *schema.Set, meta interface{}) error {
 		if detach_err != nil {
 			return fmt.Errorf("Error detaching ENI: %s", detach_err)
 		}
+
+		log.Printf("[DEBUG] Waiting for ENI (%s) to become dettached", eniId)
+		stateConf := &resource.StateChangeConf{
+			Pending: []string{"true"},
+			Target:  "false",
+			Refresh: networkInterfaceAttachmentRefreshFunc(ec2conn, eniId),
+			Timeout: 10 * time.Minute,
+		}
+		if _, err := stateConf.WaitForState(); err != nil {
+		return fmt.Errorf(
+			"Error waiting for ENI (%s) to become dettached: %s", eniId, err)
+	}
 	}
 
 	return nil
@@ -157,7 +192,7 @@ func resourceAwsNetworkInterfaceUpdate(d *schema.ResourceData, meta interface{})
 		ec2conn := meta.(*AWSClient).ec2conn2
 		oa, na := d.GetChange("attachment")			
 		
-		detach_err := resourceAwsNetworkInterfaceDetach(oa.(*schema.Set), meta)
+		detach_err := resourceAwsNetworkInterfaceDetach(oa.(*schema.Set), meta, d.Id())
 		if detach_err != nil {
 			return detach_err
 		}
@@ -204,7 +239,7 @@ func resourceAwsNetworkInterfaceDelete(d *schema.ResourceData, meta interface{})
 
 	log.Printf("[INFO] Deleting ENI: %s", d.Id())
 
-	detach_err := resourceAwsNetworkInterfaceDetach(d.Get("attachment").(*schema.Set), meta)
+	detach_err := resourceAwsNetworkInterfaceDetach(d.Get("attachment").(*schema.Set), meta, d.Id())
 	if detach_err != nil {
 		return detach_err
 	}
