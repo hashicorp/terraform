@@ -1,11 +1,7 @@
 package aws
 
-import (
-	//"log"
-	"fmt"
-	//"os"
-	//"reflect"
-	//"sort"
+import (	
+	"fmt"	
 	"testing"
 
 	"github.com/hashicorp/aws-sdk-go/aws"
