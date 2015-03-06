@@ -84,6 +84,17 @@ func (c *PushCommand) Run(args []string) int {
 		return 1
 	}
 
+	// Get the variables we might already have
+	vars, err := c.client.Get("")
+	if err != nil {
+		c.Ui.Error(fmt.Sprintf(
+			"Error looking up prior pushed configuration: %s", err))
+		return 1
+	}
+	for k, v := range vars {
+		ctx.SetVariable(k, v)
+	}
+
 	// Ask for input
 	if err := ctx.Input(c.InputMode()); err != nil {
 		c.Ui.Error(fmt.Sprintf(
@@ -155,6 +166,7 @@ func (c *PushCommand) Synopsis() string {
 // pushClient is implementd internally to control where pushes go. This is
 // either to Atlas or a mock for testing.
 type pushClient interface {
+	Get(string) (map[string]string, error)
 	Upsert(*pushUpsertOptions) error
 }
 
@@ -166,9 +178,20 @@ type pushUpsertOptions struct {
 type mockPushClient struct {
 	File string
 
+	GetCalled bool
+	GetName   string
+	GetResult map[string]string
+	GetError  error
+
 	UpsertCalled  bool
 	UpsertOptions *pushUpsertOptions
 	UpsertError   error
+}
+
+func (c *mockPushClient) Get(name string) (map[string]string, error) {
+	c.GetCalled = true
+	c.GetName = name
+	return c.GetResult, c.GetError
 }
 
 func (c *mockPushClient) Upsert(opts *pushUpsertOptions) error {
