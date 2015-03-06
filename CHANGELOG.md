@@ -30,6 +30,7 @@ IMPROVEMENTS:
       info. [GH-1029]
   * **New config function: `split`** - Split a value based on a delimiter.
       This is useful for faking lists as parameters to modules.
+  * **New resource: `digitalocean_ssh_key`** [GH-1074]
   * core: The serial of the state is only updated if there is an actual
       change. This will lower the amount of state changing on things
       like refresh.
@@ -68,7 +69,6 @@ IMPROVEMENTS:
   * **New resource: `aws_main_route_table_association`** - Manage the main routing table
       of a VPC. [GH-918]
   * **New resource: `aws_vpc_peering_connection`** [GH-963]
-  * **New resource: `digitalocean_ssh_key`** [GH-1074]
   * core: Formalized the syntax of interpolations and documented it
       very heavily.
   * core: Strings in interpolations can now contain further interpolations,
