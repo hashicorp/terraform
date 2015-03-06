@@ -50,7 +50,11 @@ func TestPush_good(t *testing.T) {
 	}
 
 	actual := testArchiveStr(t, archivePath)
-	expected := []string{}
+	expected := []string{
+		".terraform/",
+		".terraform/terraform.tfstate",
+		"main.tf",
+	}
 	if !reflect.DeepEqual(actual, expected) {
 		t.Fatalf("bad: %#v", actual)
 	}

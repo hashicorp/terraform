@@ -95,8 +95,10 @@ func (c *PushCommand) Run(args []string) int {
 	// Build the archiving options, which includes everything it can
 	// by default according to VCS rules but forcing the data directory.
 	archiveOpts := &archive.ArchiveOpts{
-		Include: []string{filepath.Join(c.DataDir())},
-		VCS:     true,
+		VCS: true,
+		Extra: map[string]string{
+			DefaultDataDir: c.DataDir(),
+		},
 	}
 	if !moduleLock {
 		// If we're not locking modules, then exclude the modules dir.
