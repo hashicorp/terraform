@@ -176,6 +176,48 @@ func TestPush_inputPartial(t *testing.T) {
 	}
 }
 
+func TestPush_name(t *testing.T) {
+	tmp, cwd := testCwd(t)
+	defer testFixCwd(t, tmp, cwd)
+
+	// Create remote state file, this should be pulled
+	conf, srv := testRemoteState(t, testState(), 200)
+	defer srv.Close()
+
+	// Persist local remote state
+	s := terraform.NewState()
+	s.Serial = 5
+	s.Remote = conf
+	testStateFileRemote(t, s)
+
+	// Path where the archive will be "uploaded" to
+	archivePath := testTempFile(t)
+	defer os.Remove(archivePath)
+
+	client := &mockPushClient{File: archivePath}
+	ui := new(cli.MockUi)
+	c := &PushCommand{
+		Meta: Meta{
+			ContextOpts: testCtxConfig(testProvider()),
+			Ui:          ui,
+		},
+
+		client: client,
+	}
+
+	args := []string{
+		"-name", "bar",
+		testFixturePath("push"),
+	}
+	if code := c.Run(args); code != 0 {
+		t.Fatalf("bad: %d\n\n%s", code, ui.ErrorWriter.String())
+	}
+
+	if client.UpsertOptions.Name != "bar" {
+		t.Fatalf("bad: %#v", client.UpsertOptions)
+	}
+}
+
 func TestPush_noState(t *testing.T) {
 	tmp, cwd := testCwd(t)
 	defer testFixCwd(t, tmp, cwd)
