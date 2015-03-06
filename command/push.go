@@ -116,7 +116,11 @@ func (c *PushCommand) Run(args []string) int {
 	}
 
 	// Upsert!
-	if err := c.client.Upsert(archiveR, archiveR.Size); err != nil {
+	opts := &pushUpsertOptions{
+		Archive:   archiveR,
+		Variables: ctx.Variables(),
+	}
+	if err := c.client.Upsert(opts); err != nil {
 		c.Ui.Error(fmt.Sprintf(
 			"An error occurred while uploading the module:\n\n%s", err))
 		return 1
@@ -152,27 +156,36 @@ func (c *PushCommand) Synopsis() string {
 // pushClient is implementd internally to control where pushes go. This is
 // either to Atlas or a mock for testing.
 type pushClient interface {
-	Upsert(io.Reader, int64) error
+	Upsert(*pushUpsertOptions) error
+}
+
+type pushUpsertOptions struct {
+	Archive   *archive.Archive
+	Variables map[string]string
 }
 
 type mockPushClient struct {
 	File string
 
-	UpsertCalled bool
-	UpsertError  error
+	UpsertCalled  bool
+	UpsertOptions *pushUpsertOptions
+	UpsertError   error
 }
 
-func (c *mockPushClient) Upsert(data io.Reader, size int64) error {
+func (c *mockPushClient) Upsert(opts *pushUpsertOptions) error {
 	f, err := os.Create(c.File)
 	if err != nil {
 		return err
 	}
 	defer f.Close()
 
+	data := opts.Archive
+	size := opts.Archive.Size
 	if _, err := io.CopyN(f, data, size); err != nil {
 		return err
 	}
 
 	c.UpsertCalled = true
+	c.UpsertOptions = opts
 	return c.UpsertError
 }

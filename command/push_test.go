@@ -58,6 +58,11 @@ func TestPush_good(t *testing.T) {
 	if !reflect.DeepEqual(actual, expected) {
 		t.Fatalf("bad: %#v", actual)
 	}
+
+	variables := make(map[string]string)
+	if !reflect.DeepEqual(client.UpsertOptions.Variables, variables) {
+		t.Fatalf("bad: %#v", client.UpsertOptions)
+	}
 }
 
 func TestPush_noState(t *testing.T) {
