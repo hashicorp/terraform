@@ -156,7 +156,6 @@ func resourceAwsDbInstance() *schema.Resource {
 			"final_snapshot_identifier": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
-				ForceNew: true,
 			},
 
 			"db_subnet_group_name": &schema.Schema{
