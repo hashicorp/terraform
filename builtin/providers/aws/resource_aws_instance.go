@@ -101,7 +101,7 @@ func resourceAwsInstance() *schema.Resource {
 				},
 			},
 
-			"vpc_security_groups_ids": &schema.Schema{
+			"vpc_security_group_ids": &schema.Schema{
 				Type:     schema.TypeSet,
 				Optional: true,
 				Computed: true,
