@@ -459,7 +459,6 @@ func resourceAwsInstanceRead(d *schema.ResourceData, meta interface{}) error {
 	// we use IDs if we're in a VPC. However, if we previously had an
 	// all-name list of security groups, we use names. Or, if we had any
 	// IDs, we use IDs.
-	// TODO: check the VPC ID instead?
 	useID := instance.SubnetId != ""
 	// Deprecated: vpc security groups should be defined in vpc_security_group_ids
 	if v := d.Get("security_groups"); v != nil {
@@ -481,7 +480,12 @@ func resourceAwsInstanceRead(d *schema.ResourceData, meta interface{}) error {
 		for i, sg := range instance.SecurityGroups {
 			sgs[i] = sg.Id
 		}
-		d.Set("vpc_security_group_ids", sgs)
+		// Keep some backward compatibility. The user is warned on creation.
+		if d.Get("security_groups") != nil {
+			d.Set("security_groups", sgs)
+		} else {
+			d.Set("vpc_security_group_ids", sgs)
+		}
 	} else {
 		for i, sg := range instance.SecurityGroups {
 			sgs[i] = sg.Name
