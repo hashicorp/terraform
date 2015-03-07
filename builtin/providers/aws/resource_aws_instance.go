@@ -293,9 +293,7 @@ func resourceAwsInstanceCreate(d *schema.ResourceData, meta interface{}) error {
 
 	if v := d.Get("security_groups"); v != nil {
 		if runOpts.SubnetId != "" {
-			log.Printf(
-				"[WARN] Deprecated. Attempting to use 'security_groups' within a VPC instance. Use 'vpc_security_group_ids' instead."
-			)
+			log.Printf("[WARN] Deprecated. Attempting to use 'security_groups' within a VPC instance. Use 'vpc_security_group_ids' instead.")
 		}
 
 		for _, v := range v.(*schema.Set).List() {
