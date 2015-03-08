@@ -1,6 +1,7 @@
 package aws
 
 import (
+	"fmt"
 	"log"
 	"strings"
 	"time"
@@ -32,6 +33,18 @@ func resourceAwsRoute53Zone() *schema.Resource {
 			},
 
 			"tags": tagsSchema(),
+
+			"vpc_id": &schema.Schema{
+				Type:     schema.TypeString,
+				ForceNew: true,
+				Optional: true,
+			},
+
+			"vpc_region": &schema.Schema{
+				Type:     schema.TypeString,
+				ForceNew: true,
+				Optional: true,
+			},
 		},
 	}
 }
@@ -44,6 +57,18 @@ func resourceAwsRoute53ZoneCreate(d *schema.ResourceData, meta interface{}) erro
 		Name:             aws.String(d.Get("name").(string)),
 		HostedZoneConfig: comment,
 		CallerReference:  aws.String(time.Now().Format(time.RFC3339Nano)),
+	}
+
+	vpcId := d.Get("vpc_id")
+	vpcRegion := d.Get("vpc_region")
+
+	if vpcId != "" && vpcRegion != "" {
+		req.VPC = &route53.VPC{
+			VPCID:     aws.String(vpcId.(string)),
+			VPCRegion: aws.String(vpcRegion.(string)),
+		}
+	} else if vpcId != "" || vpcRegion != "" {
+		return fmt.Errorf("vpc_id and vpc_region must both be set for VPC zones")
 	}
 
 	log.Printf("[DEBUG] Creating Route53 hosted zone: %s", *req.Name)
