@@ -66,4 +66,4 @@ The `rule` block supports:
 
 The following attributes are exported:
 
-* `ID` - The ACL ID for which the rules are created.
+* `id` - The ACL ID for which the rules are created.

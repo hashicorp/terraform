@@ -22,7 +22,7 @@ func resourceCloudStackVPNGateway() *schema.Resource {
 				ForceNew: true,
 			},
 
-			"publicip": &schema.Schema{
+			"public_ip": &schema.Schema{
 				Type:     schema.TypeString,
 				Computed: true,
 			},
@@ -69,7 +69,7 @@ func resourceCloudStackVPNGatewayRead(d *schema.ResourceData, meta interface{}) 
 		return err
 	}
 
-	d.Set("publicip", v.Publicip)
+	d.Set("public_ip", v.Publicip)
 
 	return nil
 }
