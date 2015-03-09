@@ -112,6 +112,6 @@ resource "cloudstack_network_acl" "foo" {
   description = "terraform-acl-text"
   vpc = "${cloudstack_vpc.foobar.name}"
 }`,
-	CLOUDSTACK_VPC_CIDR,
+	CLOUDSTACK_VPC_CIDR_1,
 	CLOUDSTACK_VPC_OFFERING,
 	CLOUDSTACK_ZONE)

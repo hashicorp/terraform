@@ -132,6 +132,6 @@ resource "cloudstack_vpc" "foobar" {
 resource "cloudstack_ipaddress" "foo" {
   vpc = "${cloudstack_vpc.foobar.name}"
 }`,
-	CLOUDSTACK_VPC_CIDR,
+	CLOUDSTACK_VPC_CIDR_1,
 	CLOUDSTACK_VPC_OFFERING,
 	CLOUDSTACK_ZONE)
