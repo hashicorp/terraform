@@ -25,13 +25,6 @@ func resourceAwsVpnGateway() *schema.Resource {
 				ForceNew: true,
 			},
 
-			"type": &schema.Schema{
-				Type:     schema.TypeString,
-                Default:  "ipsec.1",
-                Optional: true,
-				ForceNew: true,
-			},
-
             "vpc_id": &schema.Schema{
                 Type:     schema.TypeString,
                 Optional: true,
@@ -48,7 +41,7 @@ func resourceAwsVpnGatewayCreate(d *schema.ResourceData, meta interface{}) error
 
     createOpts := &ec2.CreateVPNGatewayRequest{
         AvailabilityZone: aws.String(d.Get("availability_zone").(string)),
-        Type:             aws.String(d.Get("type").(string)),
+        Type:             aws.String("ipsec.1"),
     }
 
     // Create the VPN gateway
@@ -88,7 +81,6 @@ func resourceAwsVpnGatewayRead(d *schema.ResourceData, meta interface{}) error {
 		d.Set("vpc_id", vpnGateway.VPCAttachments[0].VPCID)
 	}
     d.Set("availability_zone", vpnGateway.AvailabilityZone)
-    d.Set("type", vpnGateway.Type)
     d.Set("tags", tagsToMapSDK(vpnGateway.Tags))
 
     return nil
