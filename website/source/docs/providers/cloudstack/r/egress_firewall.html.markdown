@@ -58,4 +58,4 @@ The `rule` block supports:
 
 The following attributes are exported:
 
-* `ID` - The network ID for which the egress firewall rules are created.
+* `id` - The network ID for which the egress firewall rules are created.
