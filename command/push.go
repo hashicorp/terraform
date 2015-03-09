@@ -146,12 +146,16 @@ func (c *PushCommand) Run(args []string) int {
 		Archive:   archiveR,
 		Variables: ctx.Variables(),
 	}
-	if err := c.client.Upsert(opts); err != nil {
+	vsn, err := c.client.Upsert(opts)
+	if err != nil {
 		c.Ui.Error(fmt.Sprintf(
 			"An error occurred while uploading the module:\n\n%s", err))
 		return 1
 	}
 
+	c.Ui.Output(c.Colorize().Color(fmt.Sprintf(
+		"[reset][bold][green]Configuration %s uploaded! (v%d)",
+		name, vsn)))
 	return 0
 }
 
@@ -187,7 +191,7 @@ func (c *PushCommand) Synopsis() string {
 // either to Atlas or a mock for testing.
 type pushClient interface {
 	Get(string) (map[string]string, error)
-	Upsert(*pushUpsertOptions) error
+	Upsert(*pushUpsertOptions) (int, error)
 }
 
 type pushUpsertOptions struct {
@@ -206,6 +210,7 @@ type mockPushClient struct {
 
 	UpsertCalled  bool
 	UpsertOptions *pushUpsertOptions
+	UpsertVersion int
 	UpsertError   error
 }
 
@@ -215,20 +220,20 @@ func (c *mockPushClient) Get(name string) (map[string]string, error) {
 	return c.GetResult, c.GetError
 }
 
-func (c *mockPushClient) Upsert(opts *pushUpsertOptions) error {
+func (c *mockPushClient) Upsert(opts *pushUpsertOptions) (int, error) {
 	f, err := os.Create(c.File)
 	if err != nil {
-		return err
+		return 0, err
 	}
 	defer f.Close()
 
 	data := opts.Archive
 	size := opts.Archive.Size
 	if _, err := io.CopyN(f, data, size); err != nil {
-		return err
+		return 0, err
 	}
 
 	c.UpsertCalled = true
 	c.UpsertOptions = opts
-	return c.UpsertError
+	return c.UpsertVersion, c.UpsertError
 }
