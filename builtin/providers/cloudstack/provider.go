@@ -30,7 +30,7 @@ func Provider() terraform.ResourceProvider {
 			"timeout": &schema.Schema{
 				Type:        schema.TypeInt,
 				Required:    true,
-				DefaultFunc: schema.EnvDefaultFunc("CLOUDSTACK_TIMEOUT", 180),
+				DefaultFunc: schema.EnvDefaultFunc("CLOUDSTACK_TIMEOUT", 300),
 			},
 		},
 

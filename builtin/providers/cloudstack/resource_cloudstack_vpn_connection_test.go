@@ -21,7 +21,9 @@ func TestAccCloudStackVPNConnection_basic(t *testing.T) {
 				Config: testAccCloudStackVPNConnection_basic,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckCloudStackVPNConnectionExists(
-						"cloudstack_vpn_connection.foo", &vpnConnection),
+						"cloudstack_vpn_connection.foo-bar", &vpnConnection),
+					testAccCheckCloudStackVPNConnectionExists(
+						"cloudstack_vpn_connection.bar-foo", &vpnConnection),
 				),
 			},
 		},
@@ -84,16 +86,14 @@ func testAccCheckCloudStackVPNConnectionDestroy(s *terraform.State) error {
 
 var testAccCloudStackVPNConnection_basic = fmt.Sprintf(`
 resource "cloudstack_vpc" "foo" {
-  name = "terraform-vpc"
-  display_text = "terraform-vpc-text"
+  name = "terraform-vpc-foo"
   cidr = "%s"
   vpc_offering = "%s"
   zone = "%s"
 }
 
 resource "cloudstack_vpc" "bar" {
-  name = "terraform-vpc"
-  display_text = "terraform-vpc-text"
+  name = "terraform-vpc-bar"
   cidr = "%s"
   vpc_offering = "%s"
   zone = "%s"
@@ -111,7 +111,7 @@ resource "cloudstack_vpn_customer_gateway" "foo" {
     name = "terraform-foo"
     cidr = "${cloudstack_vpc.foo.cidr}"
     esp_policy = "aes256-sha1"
-    gateway = "${cloudstack_vpn_gateway.foo.publicip}"
+    gateway = "${cloudstack_vpn_gateway.foo.public_ip}"
     ike_policy = "aes256-sha1"
     ipsec_psk = "terraform"
 }
@@ -120,7 +120,7 @@ resource "cloudstack_vpn_customer_gateway" "bar" {
     name = "terraform-bar"
     cidr = "${cloudstack_vpc.bar.cidr}"
     esp_policy = "aes256-sha1"
-    gateway = "${cloudstack_vpn_gateway.bar.publicip}"
+    gateway = "${cloudstack_vpn_gateway.bar.public_ip}"
     ike_policy = "aes256-sha1"
     ipsec_psk = "terraform"
 }
