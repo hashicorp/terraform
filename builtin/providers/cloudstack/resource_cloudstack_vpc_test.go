@@ -72,8 +72,8 @@ func testAccCheckCloudStackVPCAttributes(
 			return fmt.Errorf("Bad display text: %s", vpc.Displaytext)
 		}
 
-		if vpc.Cidr != CLOUDSTACK_VPC_CIDR {
-			return fmt.Errorf("Bad VPC offering: %s", vpc.Cidr)
+		if vpc.Cidr != CLOUDSTACK_VPC_CIDR_1 {
+			return fmt.Errorf("Bad VPC CIDR: %s", vpc.Cidr)
 		}
 
 		return nil
@@ -113,6 +113,6 @@ resource "cloudstack_vpc" "foo" {
   vpc_offering = "%s"
   zone = "%s"
 }`,
-	CLOUDSTACK_VPC_CIDR,
+	CLOUDSTACK_VPC_CIDR_1,
 	CLOUDSTACK_VPC_OFFERING,
 	CLOUDSTACK_ZONE)

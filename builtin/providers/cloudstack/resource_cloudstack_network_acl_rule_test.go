@@ -196,7 +196,7 @@ resource "cloudstack_network_acl_rule" "foo" {
     traffic_type = "ingress"
   }
 }`,
-	CLOUDSTACK_VPC_CIDR,
+	CLOUDSTACK_VPC_CIDR_1,
 	CLOUDSTACK_VPC_OFFERING,
 	CLOUDSTACK_ZONE)
 
@@ -233,6 +233,6 @@ resource "cloudstack_network_acl_rule" "foo" {
     traffic_type = "egress"
   }
 }`,
-	CLOUDSTACK_VPC_CIDR,
+	CLOUDSTACK_VPC_CIDR_1,
 	CLOUDSTACK_VPC_OFFERING,
 	CLOUDSTACK_ZONE)
