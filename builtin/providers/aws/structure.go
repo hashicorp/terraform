@@ -4,6 +4,7 @@ import (
 	"strings"
 
 	"github.com/hashicorp/aws-sdk-go/aws"
+	awsEC2 "github.com/hashicorp/aws-sdk-go/gen/ec2"
 	"github.com/hashicorp/aws-sdk-go/gen/elb"
 	"github.com/hashicorp/aws-sdk-go/gen/rds"
 	"github.com/hashicorp/terraform/helper/schema"
@@ -89,6 +90,58 @@ func expandIPPerms(id string, configured []interface{}) []ec2.IPPerm {
 	return perms
 }
 
+// Takes the result of flatmap.Expand for an array of ingress/egress
+// security group rules and returns EC2 API compatible objects
+func expandIPPermsSDK(id string, configured []interface{}) []awsEC2.IPPermission {
+	perms := make([]awsEC2.IPPermission, len(configured))
+	for i, mRaw := range configured {
+		var perm awsEC2.IPPermission
+		m := mRaw.(map[string]interface{})
+
+		perm.FromPort = aws.Integer(m["from_port"].(int))
+		perm.ToPort = aws.Integer(m["to_port"].(int))
+		perm.IPProtocol = aws.String(m["protocol"].(string))
+
+		var groups []string
+		if raw, ok := m["security_groups"]; ok {
+			list := raw.(*schema.Set).List()
+			for _, v := range list {
+				groups = append(groups, v.(string))
+			}
+		}
+		if v, ok := m["self"]; ok && v.(bool) {
+			groups = append(groups, id)
+		}
+
+		if len(groups) > 0 {
+			perm.UserIDGroupPairs = make([]awsEC2.UserIDGroupPair, len(groups))
+			for i, name := range groups {
+				ownerId, id := "", name
+				if items := strings.Split(id, "/"); len(items) > 1 {
+					ownerId, id = items[0], items[1]
+				}
+
+				perm.UserIDGroupPairs[i] = awsEC2.UserIDGroupPair{
+					GroupID: aws.String(id),
+					UserID:  aws.String(ownerId),
+				}
+			}
+		}
+
+		if raw, ok := m["cidr_blocks"]; ok {
+			list := raw.([]interface{})
+			perm.IPRanges = make([]awsEC2.IPRange, len(list))
+			for i, v := range list {
+				perm.IPRanges[i] = awsEC2.IPRange{aws.String(v.(string))}
+			}
+		}
+
+		perms[i] = perm
+	}
+
+	return perms
+}
+
 // Takes the result of flatmap.Expand for an array of parameters and
 // returns Parameter API compatible objects
 func expandParameters(configured []interface{}) ([]rds.Parameter, error) {
@@ -158,6 +211,15 @@ func flattenSecurityGroups(list []ec2.UserSecurityGroup) []string {
 	result := make([]string, 0, len(list))
 	for _, g := range list {
 		result = append(result, g.Id)
+	}
+	return result
+}
+
+// Flattens an array of UserSecurityGroups into a []string
+func flattenSecurityGroupsSDK(list []awsEC2.UserIDGroupPair) []string {
+	result := make([]string, 0, len(list))
+	for _, g := range list {
+		result = append(result, *g.GroupID)
 	}
 	return result
 }
