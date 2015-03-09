@@ -40,8 +40,6 @@ func retrieveUUID(cs *cloudstack.CloudStackClient, name, value string) (uuid str
 		uuid, err = cs.VPC.GetVPCOfferingID(value)
 	case "vpc":
 		uuid, err = cs.VPC.GetVPCID(value)
-	case "template":
-		uuid, err = cs.Template.GetTemplateID(value, "executable")
 	case "network":
 		uuid, err = cs.Network.GetNetworkID(value)
 	case "zone":
@@ -66,6 +64,22 @@ func retrieveUUID(cs *cloudstack.CloudStackClient, name, value string) (uuid str
 
 	if err != nil {
 		return uuid, &retrieveError{name: name, value: value, err: err}
+	}
+
+	return uuid, nil
+}
+
+func retrieveTemplateUUID(cs *cloudstack.CloudStackClient, zoneid, value string) (uuid string, e *retrieveError) {
+	// If the supplied value isn't a UUID, try to retrieve the UUID ourselves
+	if isUUID(value) {
+		return value, nil
+	}
+
+	log.Printf("[DEBUG] Retrieving UUID of template: %s", value)
+
+	uuid, err := cs.Template.GetTemplateID(value, "executable", zoneid)
+	if err != nil {
+		return uuid, &retrieveError{name: "template", value: value, err: err}
 	}
 
 	return uuid, nil
