@@ -35,6 +35,14 @@ func resourceAwsVpcPeeringConnection() *schema.Resource {
 				Required: true,
 				ForceNew: true,
 			},
+			"auto_accept": &schema.Schema{
+				Type:     schema.TypeBool,
+				Optional: true,
+			},
+			"accept_status": &schema.Schema{
+				Type:     schema.TypeString,
+				Computed: true,
+			},
 			"tags": tagsSchema(),
 		},
 	}
@@ -76,7 +84,6 @@ func resourceAwsVpcPeeringCreate(d *schema.ResourceData, meta interface{}) error
 			d.Id(), err)
 	}
 
-	// Update our attributes and return
 	return resourceAwsVpcPeeringUpdate(d, meta)
 }
 
@@ -93,10 +100,41 @@ func resourceAwsVpcPeeringRead(d *schema.ResourceData, meta interface{}) error {
 
 	pc := pcRaw.(*ec2.VPCPeeringConnection)
 
-	d.Set("peer_owner_id", pc.AccepterVPCInfo.OwnerID)
-	d.Set("peer_vpc_id", pc.AccepterVPCInfo.VPCID)
-	d.Set("vpc_id", pc.RequesterVPCInfo.VPCID)
-	d.Set("tags", tagsToMapSDK(pc.Tags))
+	if d.Get("auto_accept").(bool) {
+		resourceVpcPeeringConnectionAccept(ec2conn, pc, d)
+	} else {
+		d.Set("accept_status", pc.Status.Code)
+	}
+
+	d.Set("peer_owner_id", pc.AccepterVpcInfo.OwnerId)
+	d.Set("peer_vpc_id", pc.AccepterVpcInfo.VpcId)
+	d.Set("vpc_id", pc.RequesterVpcInfo.VpcId)
+	d.Set("tags", tagsToMap(pc.Tags))
+
+	return nil
+}
+
+func resourceVpcPeeringConnectionAccept(conn *ec2.EC2, oldPc *ec2.VpcPeeringConnection, d *schema.ResourceData) error {
+	if oldPc.Status.Code == "pending-acceptance" {
+		log.Printf("[INFO] Accept Vpc Peering Connection with id: %s", d.Id())
+		_, err := conn.AcceptVpcPeeringConnection(d.Id())
+		if err != nil {
+			return fmt.Errorf("Error accepting vpc peering connection: %s", err)
+		}
+
+		pcRaw, _, err := resourceAwsVpcPeeringConnectionStateRefreshFunc(conn, d.Id())()
+		if err != nil {
+			return err
+		}
+		if pcRaw == nil {
+			d.SetId("")
+			return nil
+		}
+
+		pc := pcRaw.(*ec2.VpcPeeringConnection)
+		d.Set("accept_status", pc.Status.Code)
+
+	}
 
 	return nil
 }
@@ -110,7 +148,7 @@ func resourceAwsVpcPeeringUpdate(d *schema.ResourceData, meta interface{}) error
 		d.SetPartial("tags")
 	}
 
-	return resourceAwsRouteTableRead(d, meta)
+	return resourceAwsVpcPeeringRead(d, meta)
 }
 
 func resourceAwsVpcPeeringDelete(d *schema.ResourceData, meta interface{}) error {
