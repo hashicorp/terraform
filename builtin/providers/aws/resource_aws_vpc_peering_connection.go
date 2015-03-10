@@ -19,9 +19,10 @@ func resourceAwsVpcPeeringConnection() *schema.Resource {
 
 		Schema: map[string]*schema.Schema{
 			"peer_owner_id": &schema.Schema{
-				Type:     schema.TypeString,
-				Required: true,
-				ForceNew: true,
+				Type:        schema.TypeString,
+				Required:    true,
+				ForceNew:    true,
+				DefaultFunc: schema.EnvDefaultFunc("AWS_ACCOUNT_ID", nil),
 			},
 			"peer_vpc_id": &schema.Schema{
 				Type:     schema.TypeString,
