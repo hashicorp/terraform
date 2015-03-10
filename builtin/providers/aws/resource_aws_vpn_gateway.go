@@ -128,7 +128,7 @@ func resourceAwsVpnGatewayDelete(d *schema.ResourceData, meta interface{}) error
             return nil
         }
 
-        ec2err, ok := err.(*aws.APIError)
+        ec2err, ok := err.(aws.APIError)
         if !ok {
             return err
         }
@@ -136,7 +136,7 @@ func resourceAwsVpnGatewayDelete(d *schema.ResourceData, meta interface{}) error
         switch ec2err.Code {
         case "InvalidVpnGatewayID.NotFound":
             return nil
-        case "DependencyViolation":
+        case "IncorrectState":
             return err // retry
         }
 
@@ -213,7 +213,7 @@ func resourceAwsVpnGatewayDetach(d *schema.ResourceData, meta interface{}) error
         VPCID:        aws.String(d.Get("vpc_id").(string)),
     })
     if err != nil {
-        ec2err, ok := err.(*aws.APIError)
+        ec2err, ok := err.(aws.APIError)
         if ok {
             if ec2err.Code == "InvalidVpnGatewayID.NotFound" {
                 err = nil
