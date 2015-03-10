@@ -64,7 +64,7 @@ func testAccCheckRouteTableAssociationDestroy(s *terraform.State) error {
 		rt := resp.RouteTables[0]
 		if len(rt.Associations) > 0 {
 			return fmt.Errorf(
-				"route table %s has associations", rt.RouteTableID)
+				"route table %s has associations", *rt.RouteTableID)
 
 		}
 	}
