@@ -418,7 +418,7 @@ func resourceAwsSecurityGroupUpdateRules(
 
 			var err error
 			if len(remove) > 0 {
-				log.Printf("[DEBUG] Revoking security group %s %s rule: %#v",
+				log.Printf("[DEBUG] Revoking security group %#v %s rule: %#v",
 					group, ruleset, remove)
 
 				if ruleset == "egress" {
@@ -443,7 +443,7 @@ func resourceAwsSecurityGroupUpdateRules(
 			}
 
 			if len(add) > 0 {
-				log.Printf("[DEBUG] Authorizing security group %s %s rule: %#v",
+				log.Printf("[DEBUG] Authorizing security group %#v %s rule: %#v",
 					group, ruleset, add)
 				// Authorize the new rules
 				if ruleset == "egress" {
