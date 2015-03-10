@@ -43,6 +43,11 @@ func resourceAwsInternetGatewayCreate(d *schema.ResourceData, meta interface{}) 
 	d.SetId(*ig.InternetGatewayID)
 	log.Printf("[INFO] InternetGateway ID: %s", d.Id())
 
+	err = setTagsSDK(ec2conn, d)
+	if err != nil {
+		return err
+	}
+
 	// Attach the new gateway to the correct vpc
 	return resourceAwsInternetGatewayAttach(d, meta)
 }
