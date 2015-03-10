@@ -100,11 +100,17 @@ func resourceAwsVpcPeeringRead(d *schema.ResourceData, meta interface{}) error {
 
 	pc := pcRaw.(*ec2.VPCPeeringConnection)
 
-	if d.Get("auto_accept").(bool) {
-		resourceVpcPeeringConnectionAccept(ec2conn, pc, d)
-	} else {
-		d.Set("accept_status", pc.Status.Code)
+        code := pc.Status.Code
+        if _, ok := d.GetOk("auto_accept"); ok {
+                updatedCode, err := resourceVpcPeeringConnectionAccept(ec2conn, pc, d.Id())
+                if err != nil {
+                        return fmt.Errorf("Error accepting vpc peering connection: %s", err)
+                }
+
+                code = updatedCode
 	}
+
+        d.Set("accept_status", code)
 
 	d.Set("peer_owner_id", pc.AccepterVpcInfo.OwnerId)
 	d.Set("peer_vpc_id", pc.AccepterVpcInfo.VpcId)
@@ -114,29 +120,18 @@ func resourceAwsVpcPeeringRead(d *schema.ResourceData, meta interface{}) error {
 	return nil
 }
 
-func resourceVpcPeeringConnectionAccept(conn *ec2.EC2, oldPc *ec2.VpcPeeringConnection, d *schema.ResourceData) error {
+func resourceVpcPeeringConnectionAccept(conn *ec2.EC2, oldPc *ec2.VpcPeeringConnection, id string) (string, error) {
+        //func resourceVpcPeeringConnectionAccept(conn *ec2.EC2, oldPc *ec2.VpcPeeringConnection, d *schema.ResourceData) error {
 	if oldPc.Status.Code == "pending-acceptance" {
-		log.Printf("[INFO] Accept Vpc Peering Connection with id: %s", d.Id())
-		_, err := conn.AcceptVpcPeeringConnection(d.Id())
-		if err != nil {
-			return fmt.Errorf("Error accepting vpc peering connection: %s", err)
-		}
+                log.Printf("[INFO] Accept Vpc Peering Connection with id: %s", id)
+                _, err := conn.AcceptVpcPeeringConnection(id)
 
-		pcRaw, _, err := resourceAwsVpcPeeringConnectionStateRefreshFunc(conn, d.Id())()
-		if err != nil {
-			return err
-		}
-		if pcRaw == nil {
-			d.SetId("")
-			return nil
-		}
-
+                pcRaw, _, err := resourceAwsVpcPeeringConnectionStateRefreshFunc(conn, id)()
 		pc := pcRaw.(*ec2.VpcPeeringConnection)
-		d.Set("accept_status", pc.Status.Code)
-
+                return pc.Status.Code, err
 	}
 
-	return nil
+        return oldPc.Status.Code, nil
 }
 
 func resourceAwsVpcPeeringUpdate(d *schema.ResourceData, meta interface{}) error {
