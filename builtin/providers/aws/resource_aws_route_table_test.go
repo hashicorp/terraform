@@ -208,7 +208,10 @@ func testAccCheckRouteTableExists(n string, v *ec2.RouteTable) resource.TestChec
 	}
 }
 
-func TestAccAWSRouteTable_vpcPeering(t *testing.T) {
+// TODO: re-enable this test.
+// VPC Peering connections are prefixed with pcx
+// Right now there is no VPC Peering resource
+func _TestAccAWSRouteTable_vpcPeering(t *testing.T) {
 	var v ec2.RouteTable
 
 	testCheck := func(*terraform.State) error {
@@ -345,6 +348,9 @@ resource "aws_route_table" "foo" {
 }
 `
 
+// TODO: re-enable this test.
+// VPC Peering connections are prefixed with pcx
+// Right now there is no VPC Peering resource
 const testAccRouteTableVpcPeeringConfig = `
 resource "aws_vpc" "foo" {
 	cidr_block = "10.1.0.0/16"
@@ -359,7 +365,7 @@ resource "aws_route_table" "foo" {
 
 	route {
 		cidr_block = "10.2.0.0/16"
-        vpc_peering_connection_id = "vpc-12345"
+        vpc_peering_connection_id = "pcx-12345"
 	}
 }
 `
