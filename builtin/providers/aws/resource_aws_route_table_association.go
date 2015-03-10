@@ -6,7 +6,6 @@ import (
 
 	"github.com/hashicorp/aws-sdk-go/aws"
 	"github.com/hashicorp/aws-sdk-go/gen/ec2"
-	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 )
 
@@ -136,30 +135,4 @@ func resourceAwsRouteTableAssociationDelete(d *schema.ResourceData, meta interfa
 	}
 
 	return nil
-}
-
-// TODO: remove this method when converting to aws-sdk-go
-// resourceAwsRouteTableStateRefreshFunc returns a resource.StateRefreshFunc that is used to watch
-// a RouteTable.
-func resourceAwsRouteTableStateRefreshFunc(conn *ec2.EC2, id string) resource.StateRefreshFunc {
-	return func() (interface{}, string, error) {
-		resp, err := conn.DescribeRouteTables([]string{id}, ec2.NewFilter())
-		if err != nil {
-			if ec2err, ok := err.(*ec2.Error); ok && ec2err.Code == "InvalidRouteTableID.NotFound" {
-				resp = nil
-			} else {
-				log.Printf("Error on RouteTableStateRefresh: %s", err)
-				return nil, "", err
-			}
-		}
-
-		if resp == nil {
-			// Sometimes AWS just has consistency issues and doesn't see
-			// our instance yet. Return an empty state.
-			return nil, "", nil
-		}
-
-		rt := &resp.RouteTables[0]
-		return rt, "ready", nil
-	}
 }
