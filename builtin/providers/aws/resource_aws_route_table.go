@@ -87,7 +87,7 @@ func resourceAwsRouteTableCreate(d *schema.ResourceData, meta interface{}) error
 	stateConf := &resource.StateChangeConf{
 		Pending: []string{"pending"},
 		Target:  "ready",
-		Refresh: resourceAwsRouteTableStateRefreshFuncSDK(ec2conn, d.Id()),
+		Refresh: resourceAwsRouteTableStateRefreshFunc(ec2conn, d.Id()),
 		Timeout: 1 * time.Minute,
 	}
 	if _, err := stateConf.WaitForState(); err != nil {
@@ -102,7 +102,7 @@ func resourceAwsRouteTableCreate(d *schema.ResourceData, meta interface{}) error
 func resourceAwsRouteTableRead(d *schema.ResourceData, meta interface{}) error {
 	ec2conn := meta.(*AWSClient).awsEC2conn
 
-	rtRaw, _, err := resourceAwsRouteTableStateRefreshFuncSDK(ec2conn, d.Id())()
+	rtRaw, _, err := resourceAwsRouteTableStateRefreshFunc(ec2conn, d.Id())()
 	if err != nil {
 		return err
 	}
@@ -217,7 +217,7 @@ func resourceAwsRouteTableDelete(d *schema.ResourceData, meta interface{}) error
 
 	// First request the routing table since we'll have to disassociate
 	// all the subnets first.
-	rtRaw, _, err := resourceAwsRouteTableStateRefreshFuncSDK(ec2conn, d.Id())()
+	rtRaw, _, err := resourceAwsRouteTableStateRefreshFunc(ec2conn, d.Id())()
 	if err != nil {
 		return err
 	}
@@ -259,7 +259,7 @@ func resourceAwsRouteTableDelete(d *schema.ResourceData, meta interface{}) error
 	stateConf := &resource.StateChangeConf{
 		Pending: []string{"ready"},
 		Target:  "",
-		Refresh: resourceAwsRouteTableStateRefreshFuncSDK(ec2conn, d.Id()),
+		Refresh: resourceAwsRouteTableStateRefreshFunc(ec2conn, d.Id()),
 		Timeout: 1 * time.Minute,
 	}
 	if _, err := stateConf.WaitForState(); err != nil {
@@ -291,9 +291,9 @@ func resourceAwsRouteTableHash(v interface{}) int {
 	return hashcode.String(buf.String())
 }
 
-// resourceAwsRouteTableStateRefreshFuncSDK returns a resource.StateRefreshFunc that is used to watch
+// resourceAwsRouteTableStateRefreshFunc returns a resource.StateRefreshFunc that is used to watch
 // a RouteTable.
-func resourceAwsRouteTableStateRefreshFuncSDK(conn *ec2.EC2, id string) resource.StateRefreshFunc {
+func resourceAwsRouteTableStateRefreshFunc(conn *ec2.EC2, id string) resource.StateRefreshFunc {
 	return func() (interface{}, string, error) {
 		resp, err := conn.DescribeRouteTables(&ec2.DescribeRouteTablesRequest{
 			RouteTableIDs: []string{id},
