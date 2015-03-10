@@ -51,13 +51,11 @@ func TestAccAWSSecurityGroup_self(t *testing.T) {
 	checkSelf := func(s *terraform.State) (err error) {
 		defer func() {
 			if e := recover(); e != nil {
-				log.Printf("\n\nbad here!!")
 				err = fmt.Errorf("bad: %#v", group)
 			}
 		}()
 
 		if *group.IPPermissions[0].UserIDGroupPairs[0].GroupID != *group.GroupID {
-			log.Printf("\n\n---- bad here ----\n")
 			return fmt.Errorf("bad: %#v", group)
 		}
 

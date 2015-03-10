@@ -401,8 +401,8 @@ func resourceAwsSecurityGroupUpdateRules(
 		ns := n.(*schema.Set)
 
 		// TODO: re-munge this when test is updated
-		remove := expandIPPermsSDK(d.Id(), os.Difference(ns).List())
-		add := expandIPPermsSDK(d.Id(), ns.Difference(os).List())
+		remove := expandIPPerms(d.Id(), os.Difference(ns).List())
+		add := expandIPPerms(d.Id(), ns.Difference(os).List())
 
 		// TODO: We need to handle partial state better in the in-between
 		// in this update.
