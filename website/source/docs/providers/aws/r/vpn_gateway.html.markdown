@@ -27,7 +27,6 @@ resource "aws_vpn_gateway" "vpn_gw" {
 The following arguments are supported:
 
 * `vpc_id` - (Required) The VPC ID to create in.
-* `type` - (Optional) The type of VPN connection this virtual private gateway supports.
 * `availability_zone` - (Optional) The Availability Zone for the virtual private gateway.
 * `tags` - (Optional) A mapping of tags to assign to the resource.
 
