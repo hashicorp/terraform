@@ -832,6 +832,11 @@ type InstanceState struct {
 	// that is necessary for the Terraform run to complete, but is not
 	// persisted to a state file.
 	Ephemeral EphemeralState `json:"-"`
+
+	// Meta is a simple K/V map that is persisted to the State but otherwise
+	// ignored by Terraform core. It's meant to be used for accounting by
+	// external client code.
+	Meta map[string]string `json:"meta,omitempty"`
 }
 
 func (i *InstanceState) init() {
