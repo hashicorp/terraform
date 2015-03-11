@@ -101,6 +101,16 @@ func resourceAwsInstance() *schema.Resource {
 				},
 			},
 
+			"vpc_security_group_ids": &schema.Schema{
+				Type:     schema.TypeSet,
+				Optional: true,
+				Computed: true,
+				Elem:     &schema.Schema{Type: schema.TypeString},
+				Set: func(v interface{}) int {
+					return hashcode.String(v.(string))
+				},
+			},
+
 			"public_dns": &schema.Schema{
 				Type:     schema.TypeString,
 				Computed: true,
@@ -282,15 +292,31 @@ func resourceAwsInstanceCreate(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	if v := d.Get("security_groups"); v != nil {
+		if runOpts.SubnetId != "" {
+			log.Printf("[WARN] Deprecated. Attempting to use 'security_groups' within a VPC instance. Use 'vpc_security_group_ids' instead.")
+		}
+
 		for _, v := range v.(*schema.Set).List() {
 			str := v.(string)
 
 			var g ec2.SecurityGroup
+			// Deprecated, stop using the subnet ID here
 			if runOpts.SubnetId != "" {
 				g.Id = str
 			} else {
 				g.Name = str
 			}
+
+			runOpts.SecurityGroups = append(runOpts.SecurityGroups, g)
+		}
+	}
+
+	if v := d.Get("vpc_security_group_ids"); v != nil {
+		for _, v := range v.(*schema.Set).List() {
+			str := v.(string)
+
+			var g ec2.SecurityGroup
+			g.Id = str
 
 			runOpts.SecurityGroups = append(runOpts.SecurityGroups, g)
 		}
@@ -432,6 +458,7 @@ func resourceAwsInstanceRead(d *schema.ResourceData, meta interface{}) error {
 	// all-name list of security groups, we use names. Or, if we had any
 	// IDs, we use IDs.
 	useID := instance.SubnetId != ""
+	// Deprecated: vpc security groups should be defined in vpc_security_group_ids
 	if v := d.Get("security_groups"); v != nil {
 		match := false
 		for _, v := range v.(*schema.Set).List() {
@@ -446,14 +473,23 @@ func resourceAwsInstanceRead(d *schema.ResourceData, meta interface{}) error {
 
 	// Build up the security groups
 	sgs := make([]string, len(instance.SecurityGroups))
-	for i, sg := range instance.SecurityGroups {
-		if useID {
+
+	if useID {
+		for i, sg := range instance.SecurityGroups {
 			sgs[i] = sg.Id
+		}
+		// Keep some backward compatibility. The user is warned on creation.
+		if d.Get("security_groups") != nil {
+			d.Set("security_groups", sgs)
 		} else {
+			d.Set("vpc_security_group_ids", sgs)
+		}
+	} else {
+		for i, sg := range instance.SecurityGroups {
 			sgs[i] = sg.Name
 		}
+		d.Set("security_groups", sgs)
 	}
-	d.Set("security_groups", sgs)
 
 	blockDevices := make(map[string]ec2.BlockDevice)
 	for _, bd := range instance.BlockDevices {
