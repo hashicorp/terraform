@@ -1,7 +1,6 @@
 package aws
 
 import (
-	"log"
 	"reflect"
 	"testing"
 
@@ -61,8 +60,6 @@ func TestExpandIPPerms(t *testing.T) {
 		},
 	}
 	perms := expandIPPerms("foo", expanded)
-
-	log.Printf("wtf is perms:\n%#v", perms)
 
 	expected := []awsEC2.IPPermission{
 		awsEC2.IPPermission{
