@@ -31,7 +31,7 @@ func Test_expandNetworkACLEntry(t *testing.T) {
 
 	expected := []ec2.NetworkACLEntry{
 		ec2.NetworkACLEntry{
-			Protocol: aws.String("tcp"),
+			Protocol: aws.String("6"),
 			PortRange: &ec2.PortRange{
 				From: aws.Integer(22),
 				To:   aws.Integer(22),
@@ -40,13 +40,9 @@ func Test_expandNetworkACLEntry(t *testing.T) {
 			RuleNumber: aws.Integer(1),
 			CIDRBlock:  aws.String("0.0.0.0/0"),
 			Egress:     aws.Boolean(true),
-			ICMPTypeCode: &ec2.ICMPTypeCode{
-				Code: aws.Integer(0),
-				Type: aws.Integer(0),
-			},
 		},
 		ec2.NetworkACLEntry{
-			Protocol: aws.String("tcp"),
+			Protocol: aws.String("6"),
 			PortRange: &ec2.PortRange{
 				From: aws.Integer(443),
 				To:   aws.Integer(443),
@@ -55,10 +51,6 @@ func Test_expandNetworkACLEntry(t *testing.T) {
 			RuleNumber: aws.Integer(2),
 			CIDRBlock:  aws.String("0.0.0.0/0"),
 			Egress:     aws.Boolean(true),
-			ICMPTypeCode: &ec2.ICMPTypeCode{
-				Code: aws.Integer(0),
-				Type: aws.Integer(0),
-			},
 		},
 	}
 
