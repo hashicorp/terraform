@@ -7,7 +7,7 @@ import (
 	"log"
 	"time"
 
-	"code.google.com/p/go.crypto/ssh"
+	"golang.org/x/crypto/ssh"
 	"github.com/hashicorp/terraform/terraform"
 	"github.com/mitchellh/go-homedir"
 	"github.com/mitchellh/mapstructure"
