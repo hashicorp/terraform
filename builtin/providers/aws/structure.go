@@ -4,6 +4,7 @@ import (
 	"strings"
 
 	"github.com/hashicorp/aws-sdk-go/aws"
+	awsEC2 "github.com/hashicorp/aws-sdk-go/gen/ec2"
 	"github.com/hashicorp/aws-sdk-go/gen/elb"
 	"github.com/hashicorp/aws-sdk-go/gen/rds"
 	"github.com/hashicorp/terraform/helper/schema"
@@ -39,15 +40,15 @@ func expandListeners(configured []interface{}) ([]elb.Listener, error) {
 
 // Takes the result of flatmap.Expand for an array of ingress/egress
 // security group rules and returns EC2 API compatible objects
-func expandIPPerms(id string, configured []interface{}) []ec2.IPPerm {
-	perms := make([]ec2.IPPerm, len(configured))
+func expandIPPerms(id string, configured []interface{}) []awsEC2.IPPermission {
+	perms := make([]awsEC2.IPPermission, len(configured))
 	for i, mRaw := range configured {
-		var perm ec2.IPPerm
+		var perm awsEC2.IPPermission
 		m := mRaw.(map[string]interface{})
 
-		perm.FromPort = m["from_port"].(int)
-		perm.ToPort = m["to_port"].(int)
-		perm.Protocol = m["protocol"].(string)
+		perm.FromPort = aws.Integer(m["from_port"].(int))
+		perm.ToPort = aws.Integer(m["to_port"].(int))
+		perm.IPProtocol = aws.String(m["protocol"].(string))
 
 		var groups []string
 		if raw, ok := m["security_groups"]; ok {
@@ -61,25 +62,25 @@ func expandIPPerms(id string, configured []interface{}) []ec2.IPPerm {
 		}
 
 		if len(groups) > 0 {
-			perm.SourceGroups = make([]ec2.UserSecurityGroup, len(groups))
+			perm.UserIDGroupPairs = make([]awsEC2.UserIDGroupPair, len(groups))
 			for i, name := range groups {
 				ownerId, id := "", name
 				if items := strings.Split(id, "/"); len(items) > 1 {
 					ownerId, id = items[0], items[1]
 				}
 
-				perm.SourceGroups[i] = ec2.UserSecurityGroup{
-					Id:      id,
-					OwnerId: ownerId,
+				perm.UserIDGroupPairs[i] = awsEC2.UserIDGroupPair{
+					GroupID: aws.String(id),
+					UserID:  aws.String(ownerId),
 				}
 			}
 		}
 
 		if raw, ok := m["cidr_blocks"]; ok {
 			list := raw.([]interface{})
-			perm.SourceIPs = make([]string, len(list))
+			perm.IPRanges = make([]awsEC2.IPRange, len(list))
 			for i, v := range list {
-				perm.SourceIPs[i] = v.(string)
+				perm.IPRanges[i] = awsEC2.IPRange{aws.String(v.(string))}
 			}
 		}
 
@@ -111,31 +112,6 @@ func expandParameters(configured []interface{}) ([]rds.Parameter, error) {
 	return parameters, nil
 }
 
-// Flattens an array of ipPerms into a list of primitives that
-// flatmap.Flatten() can handle
-func flattenIPPerms(list []ec2.IPPerm) []map[string]interface{} {
-	result := make([]map[string]interface{}, 0, len(list))
-
-	for _, perm := range list {
-		n := make(map[string]interface{})
-		n["from_port"] = perm.FromPort
-		n["protocol"] = perm.Protocol
-		n["to_port"] = perm.ToPort
-
-		if len(perm.SourceIPs) > 0 {
-			n["cidr_blocks"] = perm.SourceIPs
-		}
-
-		if v := flattenSecurityGroups(perm.SourceGroups); len(v) > 0 {
-			n["security_groups"] = v
-		}
-
-		result = append(result, n)
-	}
-
-	return result
-}
-
 // Flattens a health check into something that flatmap.Flatten()
 // can handle
 func flattenHealthCheck(check *elb.HealthCheck) []map[string]interface{} {
@@ -158,6 +134,15 @@ func flattenSecurityGroups(list []ec2.UserSecurityGroup) []string {
 	result := make([]string, 0, len(list))
 	for _, g := range list {
 		result = append(result, g.Id)
+	}
+	return result
+}
+
+// Flattens an array of UserSecurityGroups into a []string
+func flattenSecurityGroupsSDK(list []awsEC2.UserIDGroupPair) []string {
+	result := make([]string, 0, len(list))
+	for _, g := range list {
+		result = append(result, *g.GroupID)
 	}
 	return result
 }

@@ -58,4 +58,4 @@ The `rule` block supports:
 
 The following attributes are exported:
 
-* `ID` - The IP address ID for which the firewall rules are created.
+* `id` - The IP address ID for which the firewall rules are created.
