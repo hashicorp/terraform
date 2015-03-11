@@ -287,15 +287,12 @@ func resourceAwsInstanceCreate(d *schema.ResourceData, meta interface{}) error {
 		associatePublicIPAddress = v.(bool)
 	}
 
-	// check for non-default Subnet
-	subnet := false
-	var subnetID string
-	if v, ok := d.GetOk("subnet_id"); ok {
-		subnet = true
-		subnetID = v.(string)
-	}
+	// check for non-default Subnet, and cast it to a String
+	var hasSubnet bool
+	subnet, hasSubnet := d.GetOk("subnet_id")
+	subnetID := subnet.(string)
 
-	if subnet && associatePublicIPAddress {
+	if hasSubnet && associatePublicIPAddress {
 		// If we have a non-default VPC / Subnet specified, we can flag
 		// AssociatePublicIpAddress to get a Public IP assigned. By default these are not provided.
 		// You cannot specify both SubnetId and the NetworkInterface.0.* parameters though, otherwise
