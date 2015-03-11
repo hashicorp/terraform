@@ -65,15 +65,15 @@ func testAccCheckMainRouteTableAssociation(
 			return fmt.Errorf("Not found: %s", vpcResource)
 		}
 
-		conn := testAccProvider.Meta().(*AWSClient).ec2conn
+		conn := testAccProvider.Meta().(*AWSClient).awsEC2conn
 		mainAssociation, err := findMainRouteTableAssociation(conn, vpc.Primary.ID)
 		if err != nil {
 			return err
 		}
 
-		if mainAssociation.AssociationId != rs.Primary.ID {
+		if *mainAssociation.RouteTableAssociationID != rs.Primary.ID {
 			return fmt.Errorf("Found wrong main association: %s",
-				mainAssociation.AssociationId)
+				*mainAssociation.RouteTableAssociationID)
 		}
 
 		return nil

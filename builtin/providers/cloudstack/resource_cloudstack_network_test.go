@@ -186,7 +186,7 @@ resource "cloudstack_network" "foo" {
   aclid = "${cloudstack_network_acl.foo.id}"
   zone = "${cloudstack_vpc.foobar.zone}"
 }`,
-	CLOUDSTACK_VPC_CIDR,
+	CLOUDSTACK_VPC_CIDR_1,
 	CLOUDSTACK_VPC_OFFERING,
 	CLOUDSTACK_ZONE,
 	CLOUDSTACK_VPC_NETWORK_CIDR,
