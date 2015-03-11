@@ -2,11 +2,14 @@ package aws
 
 import (
 	"fmt"
-	"github.com/mitchellh/goamz/ec2"
+	"strconv"
+
+	"github.com/hashicorp/aws-sdk-go/aws"
+	"github.com/hashicorp/aws-sdk-go/gen/ec2"
 )
 
-func expandNetworkAclEntries(configured []interface{}, entryType string) ([]ec2.NetworkAclEntry, error) {
-	entries := make([]ec2.NetworkAclEntry, 0, len(configured))
+func expandNetworkAclEntries(configured []interface{}, entryType string) ([]ec2.NetworkACLEntry, error) {
+	entries := make([]ec2.NetworkACLEntry, 0, len(configured))
 	for _, eRaw := range configured {
 		data := eRaw.(map[string]interface{})
 		protocol := data["protocol"].(string)
@@ -15,16 +18,16 @@ func expandNetworkAclEntries(configured []interface{}, entryType string) ([]ec2.
 			return nil, fmt.Errorf("Invalid Protocol %s for rule %#v", protocol, data)
 		}
 		p := extractProtocolInteger(data["protocol"].(string))
-		e := ec2.NetworkAclEntry{
-			Protocol: p,
-			PortRange: ec2.PortRange{
-				From: data["from_port"].(int),
-				To:   data["to_port"].(int),
+		e := ec2.NetworkACLEntry{
+			Protocol: aws.String(strconv.Itoa(p)),
+			PortRange: &ec2.PortRange{
+				From: aws.Integer(data["from_port"].(int)),
+				To:   aws.Integer(data["to_port"].(int)),
 			},
-			Egress:     (entryType == "egress"),
-			RuleAction: data["action"].(string),
-			RuleNumber: data["rule_no"].(int),
-			CidrBlock:  data["cidr_block"].(string),
+			Egress:     aws.Boolean((entryType == "egress")),
+			RuleAction: aws.String(data["action"].(string)),
+			RuleNumber: aws.Integer(data["rule_no"].(int)),
+			CIDRBlock:  aws.String(data["cidr_block"].(string)),
 		}
 		entries = append(entries, e)
 	}
@@ -33,17 +36,17 @@ func expandNetworkAclEntries(configured []interface{}, entryType string) ([]ec2.
 
 }
 
-func flattenNetworkAclEntries(list []ec2.NetworkAclEntry) []map[string]interface{} {
+func flattenNetworkAclEntries(list []ec2.NetworkACLEntry) []map[string]interface{} {
 	entries := make([]map[string]interface{}, 0, len(list))
 
 	for _, entry := range list {
 		entries = append(entries, map[string]interface{}{
-			"from_port":  entry.PortRange.From,
-			"to_port":    entry.PortRange.To,
-			"action":     entry.RuleAction,
-			"rule_no":    entry.RuleNumber,
-			"protocol":   extractProtocolString(entry.Protocol),
-			"cidr_block": entry.CidrBlock,
+			"from_port":  *entry.PortRange.From,
+			"to_port":    *entry.PortRange.To,
+			"action":     *entry.RuleAction,
+			"rule_no":    *entry.RuleNumber,
+			"protocol":   *entry.Protocol,
+			"cidr_block": *entry.CIDRBlock,
 		})
 	}
 	return entries
