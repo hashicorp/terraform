@@ -540,6 +540,9 @@ func resourceAwsInstanceRead(d *schema.ResourceData, meta interface{}) error {
 		blockDevice["device_name"] = *blockDevices[*vol.VolumeID].DeviceName
 		blockDevice["volume_type"] = *vol.VolumeType
 		blockDevice["volume_size"] = *vol.Size
+		if vol.IOPS != nil {
+			blockDevice["iops"] = *vol.IOPS
+		}
 		blockDevice["delete_on_termination"] =
 			*blockDevices[*vol.VolumeID].EBS.DeleteOnTermination
 
@@ -552,9 +555,6 @@ func resourceAwsInstanceRead(d *schema.ResourceData, meta interface{}) error {
 
 		blockDevice["snapshot_id"] = *vol.SnapshotID
 		blockDevice["encrypted"] = *vol.Encrypted
-		if vol.IOPS != nil {
-			blockDevice["iops"] = *vol.IOPS
-		}
 		nonRootBlockDevices = append(nonRootBlockDevices, blockDevice)
 	}
 	d.Set("block_device", nonRootBlockDevices)
