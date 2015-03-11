@@ -4,15 +4,16 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/hashicorp/aws-sdk-go/aws"
+	"github.com/hashicorp/aws-sdk-go/gen/ec2"
 	"github.com/hashicorp/terraform/terraform"
-	"github.com/mitchellh/goamz/ec2"
 	// "github.com/hashicorp/terraform/helper/hashcode"
 	"github.com/hashicorp/terraform/helper/resource"
 	// "github.com/hashicorp/terraform/helper/schema"
 )
 
 func TestAccAWSNetworkAclsWithEgressAndIngressRules(t *testing.T) {
-	var networkAcl ec2.NetworkAcl
+	var networkAcl ec2.NetworkACL
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -54,7 +55,7 @@ func TestAccAWSNetworkAclsWithEgressAndIngressRules(t *testing.T) {
 }
 
 func TestAccAWSNetworkAclsOnlyIngressRules(t *testing.T) {
-	var networkAcl ec2.NetworkAcl
+	var networkAcl ec2.NetworkACL
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -85,7 +86,7 @@ func TestAccAWSNetworkAclsOnlyIngressRules(t *testing.T) {
 }
 
 func TestAccAWSNetworkAclsOnlyIngressRulesChange(t *testing.T) {
-	var networkAcl ec2.NetworkAcl
+	var networkAcl ec2.NetworkACL
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -139,7 +140,7 @@ func TestAccAWSNetworkAclsOnlyIngressRulesChange(t *testing.T) {
 }
 
 func TestAccAWSNetworkAclsOnlyEgressRules(t *testing.T) {
-	var networkAcl ec2.NetworkAcl
+	var networkAcl ec2.NetworkACL
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -150,7 +151,7 @@ func TestAccAWSNetworkAclsOnlyEgressRules(t *testing.T) {
 				Config: testAccAWSNetworkAclEgressConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSNetworkAclExists("aws_network_acl.bond", &networkAcl),
-					testAccCheckTags(&networkAcl.Tags, "foo", "bar"),
+					testAccCheckTagsSDK(&networkAcl.Tags, "foo", "bar"),
 				),
 			},
 		},
@@ -184,7 +185,7 @@ func TestAccAWSNetworkAcl_SubnetChange(t *testing.T) {
 
 func testAccCheckAWSNetworkAclDestroy(s *terraform.State) error {
 	// log.Printf("\n@@@\nEnter Destroy func\n@@@\n")
-	conn := testAccProvider.Meta().(*AWSClient).ec2conn
+	conn := testAccProvider.Meta().(*AWSClient).awsEC2conn
 
 	for _, rs := range s.RootModule().Resources {
 		if rs.Type != "aws_network" {
@@ -192,9 +193,11 @@ func testAccCheckAWSNetworkAclDestroy(s *terraform.State) error {
 		}
 
 		// Retrieve the network acl
-		resp, err := conn.NetworkAcls([]string{rs.Primary.ID}, ec2.NewFilter())
+		resp, err := conn.DescribeNetworkACLs(&ec2.DescribeNetworkACLsRequest{
+			NetworkACLIDs: []string{rs.Primary.ID},
+		})
 		if err == nil {
-			if len(resp.NetworkAcls) > 0 && resp.NetworkAcls[0].NetworkAclId == rs.Primary.ID {
+			if len(resp.NetworkACLs) > 0 && *resp.NetworkACLs[0].NetworkACLID == rs.Primary.ID {
 				// log.Printf("\n@@@\nDestroy func err: still exists\n@@@\n")
 				return fmt.Errorf("Network Acl (%s) still exists.", rs.Primary.ID)
 			}
@@ -203,7 +206,7 @@ func testAccCheckAWSNetworkAclDestroy(s *terraform.State) error {
 			return nil
 		}
 
-		ec2err, ok := err.(*ec2.Error)
+		ec2err, ok := err.(aws.APIError)
 		if !ok {
 			// log.Printf("\n@@@\nDestroy func err: aws err:%#v\n@@@\n", err)
 			return err
@@ -219,7 +222,7 @@ func testAccCheckAWSNetworkAclDestroy(s *terraform.State) error {
 	return nil
 }
 
-func testAccCheckAWSNetworkAclExists(n string, networkAcl *ec2.NetworkAcl) resource.TestCheckFunc {
+func testAccCheckAWSNetworkAclExists(n string, networkAcl *ec2.NetworkACL) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		rs, ok := s.RootModule().Resources[n]
 		if !ok {
@@ -229,15 +232,17 @@ func testAccCheckAWSNetworkAclExists(n string, networkAcl *ec2.NetworkAcl) resou
 		if rs.Primary.ID == "" {
 			return fmt.Errorf("No Security Group is set")
 		}
-		conn := testAccProvider.Meta().(*AWSClient).ec2conn
+		conn := testAccProvider.Meta().(*AWSClient).awsEC2conn
 
-		resp, err := conn.NetworkAcls([]string{rs.Primary.ID}, nil)
+		resp, err := conn.DescribeNetworkACLs(&ec2.DescribeNetworkACLsRequest{
+			NetworkACLIDs: []string{rs.Primary.ID},
+		})
 		if err != nil {
 			return err
 		}
 
-		if len(resp.NetworkAcls) > 0 && resp.NetworkAcls[0].NetworkAclId == rs.Primary.ID {
-			*networkAcl = resp.NetworkAcls[0]
+		if len(resp.NetworkACLs) > 0 && *resp.NetworkACLs[0].NetworkACLID == rs.Primary.ID {
+			*networkAcl = resp.NetworkACLs[0]
 			return nil
 		}
 
@@ -245,11 +250,11 @@ func testAccCheckAWSNetworkAclExists(n string, networkAcl *ec2.NetworkAcl) resou
 	}
 }
 
-func testIngressRuleLength(networkAcl *ec2.NetworkAcl, length int) resource.TestCheckFunc {
+func testIngressRuleLength(networkAcl *ec2.NetworkACL, length int) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
-		var ingressEntries []ec2.NetworkAclEntry
-		for _, e := range networkAcl.EntrySet {
-			if e.Egress == false {
+		var ingressEntries []ec2.NetworkACLEntry
+		for _, e := range networkAcl.Entries {
+			if *e.Egress == false {
 				ingressEntries = append(ingressEntries, e)
 			}
 		}
@@ -267,21 +272,26 @@ func testAccCheckSubnetIsAssociatedWithAcl(acl string, sub string) resource.Test
 		networkAcl := s.RootModule().Resources[acl]
 		subnet := s.RootModule().Resources[sub]
 
-		conn := testAccProvider.Meta().(*AWSClient).ec2conn
-		filter := ec2.NewFilter()
-		filter.Add("association.subnet-id", subnet.Primary.ID)
-		resp, err := conn.NetworkAcls([]string{networkAcl.Primary.ID}, filter)
-
+		conn := testAccProvider.Meta().(*AWSClient).awsEC2conn
+		resp, err := conn.DescribeNetworkACLs(&ec2.DescribeNetworkACLsRequest{
+			NetworkACLIDs: []string{networkAcl.Primary.ID},
+			Filters: []ec2.Filter{
+				ec2.Filter{
+					Name:   aws.String("association.subnet-id"),
+					Values: []string{subnet.Primary.ID},
+				},
+			},
+		})
 		if err != nil {
 			return err
 		}
-		if len(resp.NetworkAcls) > 0 {
+		if len(resp.NetworkACLs) > 0 {
 			return nil
 		}
 
-		r, _ := conn.NetworkAcls([]string{}, ec2.NewFilter())
-		fmt.Printf("\n\nall acls\n %#v\n\n", r.NetworkAcls)
-		conn.NetworkAcls([]string{}, filter)
+		// r, _ := conn.NetworkACLs([]string{}, ec2.NewFilter())
+		// fmt.Printf("\n\nall acls\n %#v\n\n", r.NetworkAcls)
+		// conn.NetworkAcls([]string{}, filter)
 
 		return fmt.Errorf("Network Acl %s is not associated with subnet %s", acl, sub)
 	}
@@ -292,15 +302,21 @@ func testAccCheckSubnetIsNotAssociatedWithAcl(acl string, subnet string) resourc
 		networkAcl := s.RootModule().Resources[acl]
 		subnet := s.RootModule().Resources[subnet]
 
-		conn := testAccProvider.Meta().(*AWSClient).ec2conn
-		filter := ec2.NewFilter()
-		filter.Add("association.subnet-id", subnet.Primary.ID)
-		resp, err := conn.NetworkAcls([]string{networkAcl.Primary.ID}, filter)
+		conn := testAccProvider.Meta().(*AWSClient).awsEC2conn
+		resp, err := conn.DescribeNetworkACLs(&ec2.DescribeNetworkACLsRequest{
+			NetworkACLIDs: []string{networkAcl.Primary.ID},
+			Filters: []ec2.Filter{
+				ec2.Filter{
+					Name:   aws.String("association.subnet-id"),
+					Values: []string{subnet.Primary.ID},
+				},
+			},
+		})
 
 		if err != nil {
 			return err
 		}
-		if len(resp.NetworkAcls) > 0 {
+		if len(resp.NetworkACLs) > 0 {
 			return fmt.Errorf("Network Acl %s is still associated with subnet %s", acl, subnet)
 		}
 		return nil
