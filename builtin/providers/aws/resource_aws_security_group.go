@@ -320,15 +320,11 @@ func resourceAwsSecurityGroupIPPermGather(d *schema.ResourceData, permissions []
 	ruleMap := make(map[string]map[string]interface{})
 	for _, perm := range permissions {
 		var fromPort, toPort int
-		if perm.FromPort == nil {
-			fromPort = 0
-		} else {
-			fromPort = *perm.FromPort
+		if v := perm.FromPort; v != nil {
+			fromPort = *v
 		}
-		if perm.ToPort == nil {
-			toPort = 0
-		} else {
-			toPort = *perm.ToPort
+		if v := perm.ToPort; v != nil {
+			toPort = *v
 		}
 
 		k := fmt.Sprintf("%s-%d-%d", *perm.IPProtocol, fromPort, toPort)
