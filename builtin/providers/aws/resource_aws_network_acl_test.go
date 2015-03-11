@@ -67,17 +67,17 @@ func TestAccAWSNetworkAclsOnlyIngressRules(t *testing.T) {
 					testAccCheckAWSNetworkAclExists("aws_network_acl.foos", &networkAcl),
 					// testAccCheckSubnetAssociation("aws_network_acl.foos", "aws_subnet.blob"),
 					resource.TestCheckResourceAttr(
-						"aws_network_acl.foos", "ingress.3697634361.protocol", "tcp"),
+						"aws_network_acl.foos", "ingress.2750166237.protocol", "tcp"),
 					resource.TestCheckResourceAttr(
-						"aws_network_acl.foos", "ingress.3697634361.rule_no", "1"),
+						"aws_network_acl.foos", "ingress.2750166237.rule_no", "1"),
 					resource.TestCheckResourceAttr(
-						"aws_network_acl.foos", "ingress.3697634361.from_port", "0"),
+						"aws_network_acl.foos", "ingress.2750166237.from_port", "0"),
 					resource.TestCheckResourceAttr(
-						"aws_network_acl.foos", "ingress.3697634361.to_port", "22"),
+						"aws_network_acl.foos", "ingress.2750166237.to_port", "22"),
 					resource.TestCheckResourceAttr(
-						"aws_network_acl.foos", "ingress.3697634361.action", "deny"),
+						"aws_network_acl.foos", "ingress.2750166237.action", "deny"),
 					resource.TestCheckResourceAttr(
-						"aws_network_acl.foos", "ingress.3697634361.cidr_block", "10.2.2.3/18"),
+						"aws_network_acl.foos", "ingress.2750166237.cidr_block", "10.2.2.3/18"),
 				),
 			},
 		},
@@ -98,21 +98,21 @@ func TestAccAWSNetworkAclsOnlyIngressRulesChange(t *testing.T) {
 					testAccCheckAWSNetworkAclExists("aws_network_acl.foos", &networkAcl),
 					testIngressRuleLength(&networkAcl, 2),
 					resource.TestCheckResourceAttr(
-						"aws_network_acl.foos", "ingress.3697634361.protocol", "tcp"),
+						"aws_network_acl.foos", "ingress.37211640.protocol", "tcp"),
 					resource.TestCheckResourceAttr(
-						"aws_network_acl.foos", "ingress.3697634361.rule_no", "1"),
+						"aws_network_acl.foos", "ingress.37211640.rule_no", "1"),
 					resource.TestCheckResourceAttr(
-						"aws_network_acl.foos", "ingress.3697634361.from_port", "0"),
+						"aws_network_acl.foos", "ingress.37211640.from_port", "0"),
 					resource.TestCheckResourceAttr(
-						"aws_network_acl.foos", "ingress.3697634361.to_port", "22"),
+						"aws_network_acl.foos", "ingress.37211640.to_port", "22"),
 					resource.TestCheckResourceAttr(
-						"aws_network_acl.foos", "ingress.3697634361.action", "deny"),
+						"aws_network_acl.foos", "ingress.37211640.action", "deny"),
 					resource.TestCheckResourceAttr(
-						"aws_network_acl.foos", "ingress.3697634361.cidr_block", "10.2.2.3/18"),
+						"aws_network_acl.foos", "ingress.37211640.cidr_block", "10.2.2.3/18"),
 					resource.TestCheckResourceAttr(
-						"aws_network_acl.foos", "ingress.2438803013.from_port", "443"),
+						"aws_network_acl.foos", "ingress.2750166237.from_port", "443"),
 					resource.TestCheckResourceAttr(
-						"aws_network_acl.foos", "ingress.2438803013.rule_no", "2"),
+						"aws_network_acl.foos", "ingress.2750166237.rule_no", "2"),
 				),
 			},
 			resource.TestStep{
@@ -121,17 +121,17 @@ func TestAccAWSNetworkAclsOnlyIngressRulesChange(t *testing.T) {
 					testAccCheckAWSNetworkAclExists("aws_network_acl.foos", &networkAcl),
 					testIngressRuleLength(&networkAcl, 1),
 					resource.TestCheckResourceAttr(
-						"aws_network_acl.foos", "ingress.3697634361.protocol", "tcp"),
+						"aws_network_acl.foos", "ingress.37211640.protocol", "tcp"),
 					resource.TestCheckResourceAttr(
-						"aws_network_acl.foos", "ingress.3697634361.rule_no", "1"),
+						"aws_network_acl.foos", "ingress.37211640.rule_no", "1"),
 					resource.TestCheckResourceAttr(
-						"aws_network_acl.foos", "ingress.3697634361.from_port", "0"),
+						"aws_network_acl.foos", "ingress.37211640.from_port", "0"),
 					resource.TestCheckResourceAttr(
-						"aws_network_acl.foos", "ingress.3697634361.to_port", "22"),
+						"aws_network_acl.foos", "ingress.37211640.to_port", "22"),
 					resource.TestCheckResourceAttr(
-						"aws_network_acl.foos", "ingress.3697634361.action", "deny"),
+						"aws_network_acl.foos", "ingress.37211640.action", "deny"),
 					resource.TestCheckResourceAttr(
-						"aws_network_acl.foos", "ingress.3697634361.cidr_block", "10.2.2.3/18"),
+						"aws_network_acl.foos", "ingress.37211640.cidr_block", "10.2.2.3/18"),
 				),
 			},
 		},
@@ -183,6 +183,7 @@ func TestAccAWSNetworkAcl_SubnetChange(t *testing.T) {
 }
 
 func testAccCheckAWSNetworkAclDestroy(s *terraform.State) error {
+	// log.Printf("\n@@@\nEnter Destroy func\n@@@\n")
 	conn := testAccProvider.Meta().(*AWSClient).ec2conn
 
 	for _, rs := range s.RootModule().Resources {
@@ -194,21 +195,26 @@ func testAccCheckAWSNetworkAclDestroy(s *terraform.State) error {
 		resp, err := conn.NetworkAcls([]string{rs.Primary.ID}, ec2.NewFilter())
 		if err == nil {
 			if len(resp.NetworkAcls) > 0 && resp.NetworkAcls[0].NetworkAclId == rs.Primary.ID {
+				// log.Printf("\n@@@\nDestroy func err: still exists\n@@@\n")
 				return fmt.Errorf("Network Acl (%s) still exists.", rs.Primary.ID)
 			}
 
+			// log.Printf("\n@@@\nDestroy func err: found something, but returning nil\n@@@\n")
 			return nil
 		}
 
 		ec2err, ok := err.(*ec2.Error)
 		if !ok {
+			// log.Printf("\n@@@\nDestroy func err: aws err:%#v\n@@@\n", err)
 			return err
 		}
 		// Confirm error code is what we want
 		if ec2err.Code != "InvalidNetworkAclID.NotFound" {
+			// log.Printf("\n@@@\nDestroy func err: not found aws err:%#v\n@@@\n", err)
 			return err
 		}
 	}
+	// log.Printf("\n@@@\nDestroy func err: end return\n@@@\n")
 
 	return nil
 }
