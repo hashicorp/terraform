@@ -138,7 +138,7 @@ func resourceAwsRoute53RecordCreate(d *schema.ResourceData, meta interface{}) er
 		Delay:      30 * time.Second,
 		Pending:    []string{"PENDING"},
 		Target:     "INSYNC",
-		Timeout:    10 * time.Minute,
+		Timeout:    30 * time.Minute,
 		MinTimeout: 5 * time.Second,
 		Refresh: func() (result interface{}, state string, err error) {
 			changeRequest := &route53.GetChangeRequest{
