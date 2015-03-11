@@ -14,7 +14,7 @@ import (
 	"sync"
 	"time"
 
-	"code.google.com/p/go.crypto/ssh"
+	"golang.org/x/crypto/ssh"
 )
 
 // RemoteCmd represents a remote command being prepared or run.
