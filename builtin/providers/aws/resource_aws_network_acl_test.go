@@ -184,7 +184,6 @@ func TestAccAWSNetworkAcl_SubnetChange(t *testing.T) {
 }
 
 func testAccCheckAWSNetworkAclDestroy(s *terraform.State) error {
-	// log.Printf("\n@@@\nEnter Destroy func\n@@@\n")
 	conn := testAccProvider.Meta().(*AWSClient).awsEC2conn
 
 	for _, rs := range s.RootModule().Resources {
@@ -198,26 +197,21 @@ func testAccCheckAWSNetworkAclDestroy(s *terraform.State) error {
 		})
 		if err == nil {
 			if len(resp.NetworkACLs) > 0 && *resp.NetworkACLs[0].NetworkACLID == rs.Primary.ID {
-				// log.Printf("\n@@@\nDestroy func err: still exists\n@@@\n")
 				return fmt.Errorf("Network Acl (%s) still exists.", rs.Primary.ID)
 			}
 
-			// log.Printf("\n@@@\nDestroy func err: found something, but returning nil\n@@@\n")
 			return nil
 		}
 
 		ec2err, ok := err.(aws.APIError)
 		if !ok {
-			// log.Printf("\n@@@\nDestroy func err: aws err:%#v\n@@@\n", err)
 			return err
 		}
 		// Confirm error code is what we want
 		if ec2err.Code != "InvalidNetworkAclID.NotFound" {
-			// log.Printf("\n@@@\nDestroy func err: not found aws err:%#v\n@@@\n", err)
 			return err
 		}
 	}
-	// log.Printf("\n@@@\nDestroy func err: end return\n@@@\n")
 
 	return nil
 }
