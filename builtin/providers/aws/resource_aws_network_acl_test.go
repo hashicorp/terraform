@@ -24,29 +24,29 @@ func TestAccAWSNetworkAclsWithEgressAndIngressRules(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSNetworkAclExists("aws_network_acl.bar", &networkAcl),
 					resource.TestCheckResourceAttr(
-						"aws_network_acl.bar", "ingress.580214135.protocol", "tcp"),
+						"aws_network_acl.bar", "ingress.3409203205.protocol", "tcp"),
 					resource.TestCheckResourceAttr(
-						"aws_network_acl.bar", "ingress.580214135.rule_no", "1"),
+						"aws_network_acl.bar", "ingress.3409203205.rule_no", "1"),
 					resource.TestCheckResourceAttr(
-						"aws_network_acl.bar", "ingress.580214135.from_port", "80"),
+						"aws_network_acl.bar", "ingress.3409203205.from_port", "80"),
 					resource.TestCheckResourceAttr(
-						"aws_network_acl.bar", "ingress.580214135.to_port", "80"),
+						"aws_network_acl.bar", "ingress.3409203205.to_port", "80"),
 					resource.TestCheckResourceAttr(
-						"aws_network_acl.bar", "ingress.580214135.action", "allow"),
+						"aws_network_acl.bar", "ingress.3409203205.action", "allow"),
 					resource.TestCheckResourceAttr(
-						"aws_network_acl.bar", "ingress.580214135.cidr_block", "10.3.10.3/18"),
+						"aws_network_acl.bar", "ingress.3409203205.cidr_block", "10.3.10.3/18"),
 					resource.TestCheckResourceAttr(
-						"aws_network_acl.bar", "egress.1730430240.protocol", "tcp"),
+						"aws_network_acl.bar", "egress.2579689292.protocol", "tcp"),
 					resource.TestCheckResourceAttr(
-						"aws_network_acl.bar", "egress.1730430240.rule_no", "2"),
+						"aws_network_acl.bar", "egress.2579689292.rule_no", "2"),
 					resource.TestCheckResourceAttr(
-						"aws_network_acl.bar", "egress.1730430240.from_port", "443"),
+						"aws_network_acl.bar", "egress.2579689292.from_port", "443"),
 					resource.TestCheckResourceAttr(
-						"aws_network_acl.bar", "egress.1730430240.to_port", "443"),
+						"aws_network_acl.bar", "egress.2579689292.to_port", "443"),
 					resource.TestCheckResourceAttr(
-						"aws_network_acl.bar", "egress.1730430240.cidr_block", "10.3.2.3/18"),
+						"aws_network_acl.bar", "egress.2579689292.cidr_block", "10.3.2.3/18"),
 					resource.TestCheckResourceAttr(
-						"aws_network_acl.bar", "egress.1730430240.action", "allow"),
+						"aws_network_acl.bar", "egress.2579689292.action", "allow"),
 				),
 			},
 		},
@@ -157,7 +157,7 @@ func TestAccAWSNetworkAclsOnlyEgressRules(t *testing.T) {
 	})
 }
 
-func TestAccNetworkAcl_SubnetChange(t *testing.T) {
+func TestAccAWSNetworkAcl_SubnetChange(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
