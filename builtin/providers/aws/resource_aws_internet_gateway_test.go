@@ -98,6 +98,7 @@ func TestAccInternetGateway_tags(t *testing.T) {
 				Config: testAccCheckInternetGatewayConfigTags,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckInternetGatewayExists("aws_internet_gateway.foo", &v),
+					testAccCheckTagsSDK(&v.Tags, "foo", "bar"),
 				),
 			},
 
