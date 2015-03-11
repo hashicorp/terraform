@@ -62,7 +62,7 @@ func resourceAwsVpnGatewayCreate(d *schema.ResourceData, meta interface{}) error
 func resourceAwsVpnGatewayRead(d *schema.ResourceData, meta interface{}) error {
 	ec2conn := meta.(*AWSClient).awsEC2conn
 
-	vpnGatewayRaw, _, err := VpnGatewayStateRefreshFunc(ec2conn, d.Id())()
+	vpnGatewayRaw, _, err := vpnGatewayStateRefreshFunc(ec2conn, d.Id())()
 	if err != nil {
 		return err
 	}
@@ -249,8 +249,8 @@ func resourceAwsVpnGatewayDetach(d *schema.ResourceData, meta interface{}) error
 	return nil
 }
 
-// VpnGatewayStateRefreshFunc returns a resource.StateRefreshFunc that is used to watch a VPNGateway.
-func VpnGatewayStateRefreshFunc(conn *ec2.EC2, id string) resource.StateRefreshFunc {
+// vpnGatewayStateRefreshFunc returns a resource.StateRefreshFunc that is used to watch a VPNGateway.
+func vpnGatewayStateRefreshFunc(conn *ec2.EC2, id string) resource.StateRefreshFunc {
 	return func() (interface{}, string, error) {
 		resp, err := conn.DescribeVPNGateways(&ec2.DescribeVPNGatewaysRequest{
 			VPNGatewayIDs: []string{id},
