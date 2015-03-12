@@ -443,9 +443,9 @@ aws_instance.bar:
 `
 
 const testTerraformApplyErrorDestroyCreateBeforeDestroyStr = `
-aws_instance.bar: (1 tainted)
+aws_instance.bar: (1 deposed)
   ID = foo
-  Tainted ID 1 = bar
+  Deposed ID 1 = bar
 `
 
 const testTerraformApplyErrorPartialStr = `

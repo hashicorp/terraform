@@ -498,7 +498,7 @@ func (m *ModuleState) prune() {
 	for k, v := range m.Resources {
 		v.prune()
 
-		if (v.Primary == nil || v.Primary.ID == "") && len(v.Tainted) == 0 {
+		if (v.Primary == nil || v.Primary.ID == "") && len(v.Tainted) == 0 && len(v.Deposed) == 0 {
 			delete(m.Resources, k)
 		}
 	}
@@ -548,7 +548,12 @@ func (m *ModuleState) String() string {
 			taintStr = fmt.Sprintf(" (%d tainted)", len(rs.Tainted))
 		}
 
-		buf.WriteString(fmt.Sprintf("%s:%s\n", k, taintStr))
+		deposedStr := ""
+		if len(rs.Deposed) > 0 {
+			deposedStr = fmt.Sprintf(" (%d deposed)", len(rs.Deposed))
+		}
+
+		buf.WriteString(fmt.Sprintf("%s:%s%s\n", k, taintStr, deposedStr))
 		buf.WriteString(fmt.Sprintf("  ID = %s\n", id))
 
 		var attributes map[string]string
@@ -572,6 +577,10 @@ func (m *ModuleState) String() string {
 
 		for idx, t := range rs.Tainted {
 			buf.WriteString(fmt.Sprintf("  Tainted ID %d = %s\n", idx+1, t.ID))
+		}
+
+		for idx, t := range rs.Deposed {
+			buf.WriteString(fmt.Sprintf("  Deposed ID %d = %s\n", idx+1, t.ID))
 		}
 
 		if len(rs.Dependencies) > 0 {
@@ -644,6 +653,16 @@ type ResourceState struct {
 	// However, in pathological cases, it is possible for the number
 	// of instances to accumulate.
 	Tainted []*InstanceState `json:"tainted,omitempty"`
+
+	// Deposed is used in the mechanics of CreateBeforeDestroy: the existing
+	// Primary is Deposed to get it out of the way for the replacement Primary to
+	// be created by Apply. If the replacement Primary creates successfully, the
+	// Deposed instance is cleaned up. If there were problems creating the
+	// replacement, the instance remains in the Deposed list so it can be
+	// destroyed in a future run. Functionally, Deposed instances are very
+	// similar to Tainted instances in that Terraform is only tracking them in
+	// order to remember to destroy them.
+	Deposed []*InstanceState `json:"deposed,omitempty"`
 }
 
 // Equal tests whether two ResourceStates are equal.
@@ -744,6 +763,12 @@ func (r *ResourceState) deepcopy() *ResourceState {
 			n.Tainted = append(n.Tainted, inst.deepcopy())
 		}
 	}
+	if r.Deposed != nil {
+		n.Deposed = make([]*InstanceState, 0, len(r.Deposed))
+		for _, inst := range r.Deposed {
+			n.Deposed = append(n.Deposed, inst.deepcopy())
+		}
+	}
 
 	return n
 }
@@ -762,6 +787,19 @@ func (r *ResourceState) prune() {
 	}
 
 	r.Tainted = r.Tainted[:n]
+
+	n = len(r.Deposed)
+	for i := 0; i < n; i++ {
+		inst := r.Deposed[i]
+		if inst == nil || inst.ID == "" {
+			copy(r.Deposed[i:], r.Deposed[i+1:])
+			r.Deposed[n-1] = nil
+			n--
+			i--
+		}
+	}
+
+	r.Deposed = r.Deposed[:n]
 }
 
 func (r *ResourceState) sort() {
@@ -794,6 +832,11 @@ type InstanceState struct {
 	// that is necessary for the Terraform run to complete, but is not
 	// persisted to a state file.
 	Ephemeral EphemeralState `json:"-"`
+
+	// Meta is a simple K/V map that is persisted to the State but otherwise
+	// ignored by Terraform core. It's meant to be used for accounting by
+	// external client code.
+	Meta map[string]string `json:"meta,omitempty"`
 }
 
 func (i *InstanceState) init() {
