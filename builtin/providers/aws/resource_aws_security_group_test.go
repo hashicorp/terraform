@@ -296,7 +296,7 @@ func TestAccAWSSecurityGroup_tags(t *testing.T) {
 				Config: testAccAWSSecurityGroupConfigTags,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSSecurityGroupExists("aws_security_group.foo", &group),
-					testAccCheckTagsSDK(&group.Tags, "foo", "bar"),
+					testAccCheckTags(&group.Tags, "foo", "bar"),
 				),
 			},
 
@@ -304,8 +304,8 @@ func TestAccAWSSecurityGroup_tags(t *testing.T) {
 				Config: testAccAWSSecurityGroupConfigTagsUpdate,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSSecurityGroupExists("aws_security_group.foo", &group),
-					testAccCheckTagsSDK(&group.Tags, "foo", ""),
-					testAccCheckTagsSDK(&group.Tags, "bar", "baz"),
+					testAccCheckTags(&group.Tags, "foo", ""),
+					testAccCheckTags(&group.Tags, "bar", "baz"),
 				),
 			},
 		},

@@ -161,7 +161,7 @@ func resourceAwsNetworkAclRead(d *schema.ResourceData, meta interface{}) error {
 	d.Set("vpc_id", networkAcl.VPCID)
 	d.Set("ingress", ingressEntries)
 	d.Set("egress", egressEntries)
-	d.Set("tags", tagsToMapSDK(networkAcl.Tags))
+	d.Set("tags", tagsToMap(networkAcl.Tags))
 
 	return nil
 }
@@ -202,7 +202,7 @@ func resourceAwsNetworkAclUpdate(d *schema.ResourceData, meta interface{}) error
 		}
 	}
 
-	if err := setTagsSDK(ec2conn, d); err != nil {
+	if err := setTags(ec2conn, d); err != nil {
 		return err
 	} else {
 		d.SetPartial("tags")

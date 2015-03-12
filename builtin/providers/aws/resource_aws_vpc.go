@@ -128,7 +128,7 @@ func resourceAwsVpcRead(d *schema.ResourceData, meta interface{}) error {
 	d.Set("cidr_block", vpc.CIDRBlock)
 
 	// Tags
-	d.Set("tags", tagsToMapSDK(vpc.Tags))
+	d.Set("tags", tagsToMap(vpc.Tags))
 
 	// Attributes
 	attribute := "enableDnsSupport"
@@ -220,7 +220,7 @@ func resourceAwsVpcUpdate(d *schema.ResourceData, meta interface{}) error {
 		d.SetPartial("enable_dns_support")
 	}
 
-	if err := setTagsSDK(ec2conn, d); err != nil {
+	if err := setTags(ec2conn, d); err != nil {
 		return err
 	} else {
 		d.SetPartial("tags")
