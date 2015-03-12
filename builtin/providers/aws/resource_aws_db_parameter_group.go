@@ -152,7 +152,7 @@ func resourceAwsDbParameterGroupUpdate(d *schema.ResourceData, meta interface{})
 		os := o.(*schema.Set)
 		ns := n.(*schema.Set)
 
-		// Expand the "parameter" set to goamz compat []rds.Parameter
+		// Expand the "parameter" set to aws-sdk-go compat []rds.Parameter
 		parameters, err := expandParameters(ns.Difference(os).List())
 		if err != nil {
 			return err
