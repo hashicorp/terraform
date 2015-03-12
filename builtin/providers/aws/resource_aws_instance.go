@@ -481,7 +481,7 @@ func resourceAwsInstanceRead(d *schema.ResourceData, meta interface{}) error {
 		d.Set("subnet_id", instance.SubnetID)
 	}
 	d.Set("ebs_optimized", instance.EBSOptimized)
-	d.Set("tags", tagsToMapSDK(instance.Tags))
+	d.Set("tags", tagsToMap(instance.Tags))
 	d.Set("tenancy", instance.Placement.Tenancy)
 
 	// Determine whether we're referring to security groups with
@@ -579,7 +579,7 @@ func resourceAwsInstanceUpdate(d *schema.ResourceData, meta interface{}) error {
 	// TODO(mitchellh): wait for the attributes we modified to
 	// persist the change...
 
-	if err := setTagsSDK(ec2conn, d); err != nil {
+	if err := setTags(ec2conn, d); err != nil {
 		return err
 	} else {
 		d.SetPartial("tags")

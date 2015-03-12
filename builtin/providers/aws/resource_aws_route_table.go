@@ -146,7 +146,7 @@ func resourceAwsRouteTableRead(d *schema.ResourceData, meta interface{}) error {
 	d.Set("route", route)
 
 	// Tags
-	d.Set("tags", tagsToMapSDK(rt.Tags))
+	d.Set("tags", tagsToMap(rt.Tags))
 
 	return nil
 }
@@ -203,7 +203,7 @@ func resourceAwsRouteTableUpdate(d *schema.ResourceData, meta interface{}) error
 		}
 	}
 
-	if err := setTagsSDK(ec2conn, d); err != nil {
+	if err := setTags(ec2conn, d); err != nil {
 		return err
 	} else {
 		d.SetPartial("tags")

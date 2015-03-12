@@ -5,9 +5,9 @@ import (
 	"reflect"
 	"testing"
 
+	"github.com/hashicorp/aws-sdk-go/gen/ec2"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
-	"github.com/mitchellh/goamz/ec2"
 )
 
 func TestDiffTags(t *testing.T) {

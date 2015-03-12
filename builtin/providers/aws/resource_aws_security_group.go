@@ -209,7 +209,7 @@ func resourceAwsSecurityGroupRead(d *schema.ResourceData, meta interface{}) erro
 	d.Set("owner_id", sg.OwnerID)
 	d.Set("ingress", ingressRules)
 	d.Set("egress", egressRules)
-	d.Set("tags", tagsToMapSDK(sg.Tags))
+	d.Set("tags", tagsToMap(sg.Tags))
 	return nil
 }
 
@@ -239,7 +239,7 @@ func resourceAwsSecurityGroupUpdate(d *schema.ResourceData, meta interface{}) er
 		}
 	}
 
-	if err := setTagsSDK(ec2conn, d); err != nil {
+	if err := setTags(ec2conn, d); err != nil {
 		return err
 	}
 
