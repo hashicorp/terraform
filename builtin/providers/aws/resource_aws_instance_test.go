@@ -556,10 +556,14 @@ resource "aws_instance" "foo" {
 const testAccInstanceNetworkInstanceSecurityGroups = `
 resource "aws_internet_gateway" "gw" {
   vpc_id = "${aws_vpc.foo.id}"
+	depends_on = ["aws_eip.foo_eip"]
 }
 
 resource "aws_vpc" "foo" {
   cidr_block = "10.1.0.0/16"
+	tags {
+		Name = "tf-network-test"
+	}
 }
 
 resource "aws_security_group" "tf_test_foo" {
