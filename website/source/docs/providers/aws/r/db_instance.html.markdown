@@ -61,6 +61,7 @@ The following arguments are supported:
     Only used for [DB Instances on the _EC2-Classic_ Platform](http://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/USER_VPC.html#USER_VPC.FindDefaultVPC). 
 * `db_subnet_group_name` - (Optional) Name of DB subnet group
 * `parameter_group_name` - (Optional) Name of the DB parameter group to associate.
+* `storage_encrypted` - (Optional) Specifies whether the DB instance is encrypted. The Default is `false` if not specified.
 
 ## Attributes Reference
 
@@ -82,4 +83,5 @@ The following attributes are exported:
 * `port` - The database port
 * `status` - The RDS instance status
 * `username` - The master username for the database
+* `storage_encrypted` - Specifies whether the DB instance is encrypted
 

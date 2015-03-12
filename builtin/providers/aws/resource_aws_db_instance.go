@@ -156,7 +156,6 @@ func resourceAwsDbInstance() *schema.Resource {
 			"final_snapshot_identifier": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
-				ForceNew: true,
 			},
 
 			"db_subnet_group_name": &schema.Schema{
@@ -324,7 +323,7 @@ func resourceAwsDbInstanceRead(d *schema.ResourceData, meta interface{}) error {
 		d.Set("parameter_group_name", *v.DBParameterGroups[0].DBParameterGroupName)
 	}
 
-	d.Set("address", *v.Endpoint.Port)
+	d.Set("address", *v.Endpoint.Address)
 	d.Set("endpoint", fmt.Sprintf("%s:%d", *v.Endpoint.Address, *v.Endpoint.Port))
 	d.Set("status", *v.DBInstanceStatus)
 	d.Set("storage_encrypted", *v.StorageEncrypted)

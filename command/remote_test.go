@@ -13,7 +13,7 @@ import (
 )
 
 // Test disabling remote management
-func TestRemote_disable(t *testing.T) {
+func TestRemoteConfig_disable(t *testing.T) {
 	tmp, cwd := testCwd(t)
 	defer testFixCwd(t, tmp, cwd)
 
@@ -39,7 +39,7 @@ func TestRemote_disable(t *testing.T) {
 	}
 
 	ui := new(cli.MockUi)
-	c := &RemoteCommand{
+	c := &RemoteConfigCommand{
 		Meta: Meta{
 			ContextOpts: testCtxConfig(testProvider()),
 			Ui:          ui,
@@ -68,7 +68,7 @@ func TestRemote_disable(t *testing.T) {
 }
 
 // Test disabling remote management without pulling
-func TestRemote_disable_noPull(t *testing.T) {
+func TestRemoteConfig_disable_noPull(t *testing.T) {
 	tmp, cwd := testCwd(t)
 	defer testFixCwd(t, tmp, cwd)
 
@@ -94,7 +94,7 @@ func TestRemote_disable_noPull(t *testing.T) {
 	}
 
 	ui := new(cli.MockUi)
-	c := &RemoteCommand{
+	c := &RemoteConfigCommand{
 		Meta: Meta{
 			ContextOpts: testCtxConfig(testProvider()),
 			Ui:          ui,
@@ -122,12 +122,12 @@ func TestRemote_disable_noPull(t *testing.T) {
 }
 
 // Test disabling remote management when not enabled
-func TestRemote_disable_notEnabled(t *testing.T) {
+func TestRemoteConfig_disable_notEnabled(t *testing.T) {
 	tmp, cwd := testCwd(t)
 	defer testFixCwd(t, tmp, cwd)
 
 	ui := new(cli.MockUi)
-	c := &RemoteCommand{
+	c := &RemoteConfigCommand{
 		Meta: Meta{
 			ContextOpts: testCtxConfig(testProvider()),
 			Ui:          ui,
@@ -141,7 +141,7 @@ func TestRemote_disable_notEnabled(t *testing.T) {
 }
 
 // Test disabling remote management with a state file in the way
-func TestRemote_disable_otherState(t *testing.T) {
+func TestRemoteConfig_disable_otherState(t *testing.T) {
 	tmp, cwd := testCwd(t)
 	defer testFixCwd(t, tmp, cwd)
 
@@ -171,7 +171,7 @@ func TestRemote_disable_otherState(t *testing.T) {
 	}
 
 	ui := new(cli.MockUi)
-	c := &RemoteCommand{
+	c := &RemoteConfigCommand{
 		Meta: Meta{
 			ContextOpts: testCtxConfig(testProvider()),
 			Ui:          ui,
@@ -185,7 +185,7 @@ func TestRemote_disable_otherState(t *testing.T) {
 }
 
 // Test the case where both managed and non managed state present
-func TestRemote_managedAndNonManaged(t *testing.T) {
+func TestRemoteConfig_managedAndNonManaged(t *testing.T) {
 	tmp, cwd := testCwd(t)
 	defer testFixCwd(t, tmp, cwd)
 
@@ -215,7 +215,7 @@ func TestRemote_managedAndNonManaged(t *testing.T) {
 	}
 
 	ui := new(cli.MockUi)
-	c := &RemoteCommand{
+	c := &RemoteConfigCommand{
 		Meta: Meta{
 			ContextOpts: testCtxConfig(testProvider()),
 			Ui:          ui,
@@ -229,12 +229,12 @@ func TestRemote_managedAndNonManaged(t *testing.T) {
 }
 
 // Test initializing blank state
-func TestRemote_initBlank(t *testing.T) {
+func TestRemoteConfig_initBlank(t *testing.T) {
 	tmp, cwd := testCwd(t)
 	defer testFixCwd(t, tmp, cwd)
 
 	ui := new(cli.MockUi)
-	c := &RemoteCommand{
+	c := &RemoteConfigCommand{
 		Meta: Meta{
 			ContextOpts: testCtxConfig(testProvider()),
 			Ui:          ui,
@@ -269,12 +269,12 @@ func TestRemote_initBlank(t *testing.T) {
 }
 
 // Test initializing without remote settings
-func TestRemote_initBlank_missingRemote(t *testing.T) {
+func TestRemoteConfig_initBlank_missingRemote(t *testing.T) {
 	tmp, cwd := testCwd(t)
 	defer testFixCwd(t, tmp, cwd)
 
 	ui := new(cli.MockUi)
-	c := &RemoteCommand{
+	c := &RemoteConfigCommand{
 		Meta: Meta{
 			ContextOpts: testCtxConfig(testProvider()),
 			Ui:          ui,
@@ -288,7 +288,7 @@ func TestRemote_initBlank_missingRemote(t *testing.T) {
 }
 
 // Test updating remote config
-func TestRemote_updateRemote(t *testing.T) {
+func TestRemoteConfig_updateRemote(t *testing.T) {
 	tmp, cwd := testCwd(t)
 	defer testFixCwd(t, tmp, cwd)
 
@@ -310,7 +310,7 @@ func TestRemote_updateRemote(t *testing.T) {
 	}
 
 	ui := new(cli.MockUi)
-	c := &RemoteCommand{
+	c := &RemoteConfigCommand{
 		Meta: Meta{
 			ContextOpts: testCtxConfig(testProvider()),
 			Ui:          ui,
@@ -345,7 +345,7 @@ func TestRemote_updateRemote(t *testing.T) {
 }
 
 // Test enabling remote state
-func TestRemote_enableRemote(t *testing.T) {
+func TestRemoteConfig_enableRemote(t *testing.T) {
 	tmp, cwd := testCwd(t)
 	defer testFixCwd(t, tmp, cwd)
 
@@ -365,7 +365,7 @@ func TestRemote_enableRemote(t *testing.T) {
 	}
 
 	ui := new(cli.MockUi)
-	c := &RemoteCommand{
+	c := &RemoteConfigCommand{
 		Meta: Meta{
 			ContextOpts: testCtxConfig(testProvider()),
 			Ui:          ui,

@@ -4,7 +4,7 @@ import (
 	"fmt"
 )
 
-// TraintedTransformer is a GraphTransformer that adds tainted resources
+// TaintedTransformer is a GraphTransformer that adds tainted resources
 // to the graph.
 type TaintedTransformer struct {
 	// State is the global state. We'll automatically find the correct
@@ -14,12 +14,6 @@ type TaintedTransformer struct {
 	// View, if non-empty, is the ModuleState.View used around the state
 	// to find tainted resources.
 	View string
-
-	// Deposed, if set to true, assumes that the last tainted index
-	// represents a "deposed" resource, or a resource that was previously
-	// a primary but is now tainted since it is demoted.
-	Deposed        bool
-	DeposedInclude bool
 }
 
 func (t *TaintedTransformer) Transform(g *Graph) error {
@@ -42,17 +36,6 @@ func (t *TaintedTransformer) Transform(g *Graph) error {
 			continue
 		}
 		tainted := rs.Tainted
-
-		// If we expect a deposed resource, then shuffle a bit
-		if t.Deposed {
-			if t.DeposedInclude {
-				// Only include the deposed resource
-				tainted = rs.Tainted[len(rs.Tainted)-1:]
-			} else {
-				// Exclude the deposed resource
-				tainted = rs.Tainted[:len(rs.Tainted)-1]
-			}
-		}
 
 		for i, _ := range tainted {
 			// Add the graph node and make the connection from any untainted
@@ -88,7 +71,6 @@ func (n *graphNodeTaintedResource) ProvidedBy() []string {
 func (n *graphNodeTaintedResource) EvalTree() EvalNode {
 	var provider ResourceProvider
 	var state *InstanceState
-	tainted := true
 
 	seq := &EvalSequence{Nodes: make([]EvalNode, 0, 5)}
 
@@ -105,11 +87,10 @@ func (n *graphNodeTaintedResource) EvalTree() EvalNode {
 					Name:   n.ProvidedBy()[0],
 					Output: &provider,
 				},
-				&EvalReadState{
-					Name:         n.ResourceName,
-					Tainted:      true,
-					TaintedIndex: n.Index,
-					Output:       &state,
+				&EvalReadStateTainted{
+					Name:   n.ResourceName,
+					Index:  n.Index,
+					Output: &state,
 				},
 				&EvalRefresh{
 					Info:     info,
@@ -117,12 +98,11 @@ func (n *graphNodeTaintedResource) EvalTree() EvalNode {
 					State:    &state,
 					Output:   &state,
 				},
-				&EvalWriteState{
+				&EvalWriteStateTainted{
 					Name:         n.ResourceName,
 					ResourceType: n.ResourceType,
 					State:        &state,
-					Tainted:      &tainted,
-					TaintedIndex: n.Index,
+					Index:        n.Index,
 				},
 			},
 		},
@@ -138,11 +118,10 @@ func (n *graphNodeTaintedResource) EvalTree() EvalNode {
 					Name:   n.ProvidedBy()[0],
 					Output: &provider,
 				},
-				&EvalReadState{
-					Name:         n.ResourceName,
-					Tainted:      true,
-					TaintedIndex: n.Index,
-					Output:       &state,
+				&EvalReadStateTainted{
+					Name:   n.ResourceName,
+					Index:  n.Index,
+					Output: &state,
 				},
 				&EvalDiffDestroy{
 					Info:   info,
@@ -156,12 +135,11 @@ func (n *graphNodeTaintedResource) EvalTree() EvalNode {
 					Provider: &provider,
 					Output:   &state,
 				},
-				&EvalWriteState{
+				&EvalWriteStateTainted{
 					Name:         n.ResourceName,
 					ResourceType: n.ResourceType,
 					State:        &state,
-					Tainted:      &tainted,
-					TaintedIndex: n.Index,
+					Index:        n.Index,
 				},
 				&EvalUpdateStateHook{},
 			},

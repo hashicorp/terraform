@@ -4,13 +4,14 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/hashicorp/aws-sdk-go/aws"
+	"github.com/hashicorp/aws-sdk-go/gen/ec2"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
-	"github.com/mitchellh/goamz/ec2"
 )
 
 func TestAccAWSKeyPair_normal(t *testing.T) {
-	var conf ec2.KeyPair
+	var conf ec2.KeyPairInfo
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -29,7 +30,7 @@ func TestAccAWSKeyPair_normal(t *testing.T) {
 }
 
 func testAccCheckAWSKeyPairDestroy(s *terraform.State) error {
-	conn := testAccProvider.Meta().(*AWSClient).ec2conn
+	ec2conn := testAccProvider.Meta().(*AWSClient).awsEC2conn
 
 	for _, rs := range s.RootModule().Resources {
 		if rs.Type != "aws_key_pair" {
@@ -37,17 +38,18 @@ func testAccCheckAWSKeyPairDestroy(s *terraform.State) error {
 		}
 
 		// Try to find key pair
-		resp, err := conn.KeyPairs(
-			[]string{rs.Primary.ID}, nil)
+		resp, err := ec2conn.DescribeKeyPairs(&ec2.DescribeKeyPairsRequest{
+			KeyNames: []string{rs.Primary.ID},
+		})
 		if err == nil {
-			if len(resp.Keys) > 0 {
+			if len(resp.KeyPairs) > 0 {
 				return fmt.Errorf("still exist.")
 			}
 			return nil
 		}
 
 		// Verify the error is what we want
-		ec2err, ok := err.(*ec2.Error)
+		ec2err, ok := err.(aws.APIError)
 		if !ok {
 			return err
 		}
@@ -59,16 +61,16 @@ func testAccCheckAWSKeyPairDestroy(s *terraform.State) error {
 	return nil
 }
 
-func testAccCheckAWSKeyPairFingerprint(expectedFingerprint string, conf *ec2.KeyPair) resource.TestCheckFunc {
+func testAccCheckAWSKeyPairFingerprint(expectedFingerprint string, conf *ec2.KeyPairInfo) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
-		if conf.Fingerprint != expectedFingerprint {
-			return fmt.Errorf("incorrect fingerprint. expected %s, got %s", expectedFingerprint, conf.Fingerprint)
+		if *conf.KeyFingerprint != expectedFingerprint {
+			return fmt.Errorf("incorrect fingerprint. expected %s, got %s", expectedFingerprint, *conf.KeyFingerprint)
 		}
 		return nil
 	}
 }
 
-func testAccCheckAWSKeyPairExists(n string, res *ec2.KeyPair) resource.TestCheckFunc {
+func testAccCheckAWSKeyPairExists(n string, res *ec2.KeyPairInfo) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		rs, ok := s.RootModule().Resources[n]
 		if !ok {
@@ -79,18 +81,20 @@ func testAccCheckAWSKeyPairExists(n string, res *ec2.KeyPair) resource.TestCheck
 			return fmt.Errorf("No KeyPair name is set")
 		}
 
-		conn := testAccProvider.Meta().(*AWSClient).ec2conn
+		ec2conn := testAccProvider.Meta().(*AWSClient).awsEC2conn
 
-		resp, err := conn.KeyPairs(
-			[]string{rs.Primary.ID}, nil)
+		resp, err := ec2conn.DescribeKeyPairs(&ec2.DescribeKeyPairsRequest{
+			KeyNames: []string{rs.Primary.ID},
+		})
 		if err != nil {
 			return err
 		}
-		if len(resp.Keys) != 1 ||
-			resp.Keys[0].Name != rs.Primary.ID {
+		if len(resp.KeyPairs) != 1 ||
+			*resp.KeyPairs[0].KeyName != rs.Primary.ID {
 			return fmt.Errorf("KeyPair not found")
 		}
-		*res = resp.Keys[0]
+
+		*res = resp.KeyPairs[0]
 
 		return nil
 	}
