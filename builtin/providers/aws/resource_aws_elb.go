@@ -161,7 +161,7 @@ func resourceAwsElb() *schema.Resource {
 func resourceAwsElbCreate(d *schema.ResourceData, meta interface{}) error {
 	elbconn := meta.(*AWSClient).elbconn
 
-	// Expand the "listener" set to goamz compat []elb.Listener
+	// Expand the "listener" set to aws-sdk-go compat []elb.Listener
 	listeners, err := expandListeners(d.Get("listener").(*schema.Set).List())
 	if err != nil {
 		return err
