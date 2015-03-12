@@ -72,12 +72,12 @@ func resourceAwsVpcCreate(d *schema.ResourceData, meta interface{}) error {
 	// Create the VPC
 	createOpts := &ec2.CreateVPCRequest{
 		CIDRBlock:       aws.String(d.Get("cidr_block").(string)),
-		InstanceTenancy: &instance_tenancy,
+		InstanceTenancy: aws.String(instance_tenancy),
 	}
 	log.Printf("[DEBUG] VPC create config: %#v", *createOpts)
 	vpcResp, err := ec2conn.CreateVPC(createOpts)
 	if err != nil {
-		return fmt.Errorf("Error creating VPC: %s : %s", err)
+		return fmt.Errorf("Error creating VPC: %s", err)
 	}
 
 	// Get the ID and store it
@@ -133,8 +133,8 @@ func resourceAwsVpcRead(d *schema.ResourceData, meta interface{}) error {
 	// Attributes
 	attribute := "enableDnsSupport"
 	DescribeAttrOpts := &ec2.DescribeVPCAttributeRequest{
-		Attribute: &attribute,
-		VPCID:     &vpcid,
+		Attribute: aws.String(attribute),
+		VPCID:     aws.String(vpcid),
 	}
 	resp, err := ec2conn.DescribeVPCAttribute(DescribeAttrOpts)
 	if err != nil {
