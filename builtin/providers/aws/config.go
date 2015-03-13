@@ -3,8 +3,6 @@ package aws
 import (
 	"fmt"
 	"log"
-	"strings"
-	"unicode"
 
 	"github.com/hashicorp/terraform/helper/multierror"
 
@@ -41,14 +39,9 @@ func (c *Config) Client() (interface{}, error) {
 	// Get the auth and region. This can fail if keys/regions were not
 	// specified and we're attempting to use the environment.
 	var errs []error
-	log.Println("[INFO] Building AWS auth structure")
-	auth, err := c.AWSAuth()
-	if err != nil {
-		errs = append(errs, err)
-	}
 
 	log.Println("[INFO] Building AWS region structure")
-	region, err := c.AWSRegion()
+	err := c.ValidateRegion()
 	if err != nil {
 		errs = append(errs, err)
 	}
@@ -58,6 +51,7 @@ func (c *Config) Client() (interface{}, error) {
 		// bucket storage in S3
 		client.region = c.Region
 
+		log.Println("[INFO] Building AWS auth structure")
 		creds := aws.Creds(c.AccessKey, c.SecretKey, c.Token)
 
 		log.Println("[INFO] Initializing ELB connection")
@@ -75,7 +69,7 @@ func (c *Config) Client() (interface{}, error) {
 		log.Println("[INFO] Initializing Route53 connection")
 		client.r53conn = route53.New(creds, "us-east-1", nil)
 		log.Println("[INFO] Initializing EC2 Connection")
-		client.awsEC2conn = awsEC2.New(creds, c.Region, nil)
+		client.ec2conn = ec2.New(creds, c.Region, nil)
 	}
 
 	if len(errs) > 0 {
@@ -85,54 +79,17 @@ func (c *Config) Client() (interface{}, error) {
 	return &client, nil
 }
 
-// AWSAuth returns a valid aws.Auth object for access to AWS services, or
-// an error if the authentication couldn't be resolved.
-//
-// TODO(mitchellh): Test in some way.
-func (c *Config) AWSAuth() (aws.Auth, error) {
-	auth, err := aws.GetAuth(c.AccessKey, c.SecretKey)
-	if err == nil {
-		// Store the accesskey and secret that we got...
-		c.AccessKey = auth.AccessKey
-		c.SecretKey = auth.SecretKey
-		c.Token = auth.Token
-	}
-
-	return auth, err
-}
-
 // IsValidRegion returns true if the configured region is a valid AWS
 // region and false if it's not
-func (c *Config) IsValidRegion() bool {
+func (c *Config) ValidateRegion() error {
 	var regions = [11]string{"us-east-1", "us-west-2", "us-west-1", "eu-west-1",
 		"eu-central-1", "ap-southeast-1", "ap-southeast-2", "ap-northeast-1",
 		"sa-east-1", "cn-north-1", "us-gov-west-1"}
 
 	for _, valid := range regions {
 		if c.Region == valid {
-			return true
+			return nil
 		}
 	}
-	return false
-}
-
-// AWSRegion returns the configured region.
-//
-// TODO(mitchellh): Test in some way.
-func (c *Config) AWSRegion() (aws.Region, error) {
-	if c.Region != "" {
-		if c.IsValidRegion() {
-			return aws.Regions[c.Region], nil
-		} else {
-			return aws.Region{}, fmt.Errorf("Not a valid region: %s", c.Region)
-		}
-	}
-
-	md, err := aws.GetMetaData("placement/availability-zone")
-	if err != nil {
-		return aws.Region{}, err
-	}
-
-	region := strings.TrimRightFunc(string(md), unicode.IsLetter)
-	return aws.Regions[region], nil
+	return fmt.Errorf("Not a valid region: %s", c.Region)
 }

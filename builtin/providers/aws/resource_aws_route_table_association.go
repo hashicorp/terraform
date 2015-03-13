@@ -32,7 +32,7 @@ func resourceAwsRouteTableAssociation() *schema.Resource {
 }
 
 func resourceAwsRouteTableAssociationCreate(d *schema.ResourceData, meta interface{}) error {
-	ec2conn := meta.(*AWSClient).awsEC2conn
+	ec2conn := meta.(*AWSClient).ec2conn
 
 	log.Printf(
 		"[INFO] Creating route table association: %s => %s",
@@ -56,7 +56,7 @@ func resourceAwsRouteTableAssociationCreate(d *schema.ResourceData, meta interfa
 }
 
 func resourceAwsRouteTableAssociationRead(d *schema.ResourceData, meta interface{}) error {
-	ec2conn := meta.(*AWSClient).awsEC2conn
+	ec2conn := meta.(*AWSClient).ec2conn
 
 	// Get the routing table that this association belongs to
 	rtRaw, _, err := resourceAwsRouteTableStateRefreshFunc(
@@ -88,7 +88,7 @@ func resourceAwsRouteTableAssociationRead(d *schema.ResourceData, meta interface
 }
 
 func resourceAwsRouteTableAssociationUpdate(d *schema.ResourceData, meta interface{}) error {
-	ec2conn := meta.(*AWSClient).awsEC2conn
+	ec2conn := meta.(*AWSClient).ec2conn
 
 	log.Printf(
 		"[INFO] Creating route table association: %s => %s",
@@ -119,7 +119,7 @@ func resourceAwsRouteTableAssociationUpdate(d *schema.ResourceData, meta interfa
 }
 
 func resourceAwsRouteTableAssociationDelete(d *schema.ResourceData, meta interface{}) error {
-	ec2conn := meta.(*AWSClient).awsEC2conn
+	ec2conn := meta.(*AWSClient).ec2conn
 
 	log.Printf("[INFO] Deleting route table association: %s", d.Id())
 	err := ec2conn.DisassociateRouteTable(&ec2.DisassociateRouteTableRequest{

@@ -38,7 +38,7 @@ func TestAccAWSRouteTableAssociation(t *testing.T) {
 }
 
 func testAccCheckRouteTableAssociationDestroy(s *terraform.State) error {
-	conn := testAccProvider.Meta().(*AWSClient).awsEC2conn
+	conn := testAccProvider.Meta().(*AWSClient).ec2conn
 
 	for _, rs := range s.RootModule().Resources {
 		if rs.Type != "aws_route_table_association" {
@@ -83,7 +83,7 @@ func testAccCheckRouteTableAssociationExists(n string, v *ec2.RouteTable) resour
 			return fmt.Errorf("No ID is set")
 		}
 
-		conn := testAccProvider.Meta().(*AWSClient).awsEC2conn
+		conn := testAccProvider.Meta().(*AWSClient).ec2conn
 		resp, err := conn.DescribeRouteTables(&ec2.DescribeRouteTablesRequest{
 			RouteTableIDs: []string{rs.Primary.Attributes["route_table_id"]},
 		})
