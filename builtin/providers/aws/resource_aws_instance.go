@@ -293,6 +293,17 @@ func resourceAwsInstanceCreate(d *schema.ResourceData, meta interface{}) error {
 	subnet, hasSubnet := d.GetOk("subnet_id")
 	subnetID := subnet.(string)
 
+	var groups []string
+	if v := d.Get("security_groups"); v != nil {
+		// Security group names.
+		// For a nondefault VPC, you must use security group IDs instead.
+		// See http://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_RunInstances.html
+		for _, v := range v.(*schema.Set).List() {
+			str := v.(string)
+			groups = append(groups, str)
+		}
+	}
+
 	if hasSubnet && associatePublicIPAddress {
 		// If we have a non-default VPC / Subnet specified, we can flag
 		// AssociatePublicIpAddress to get a Public IP assigned. By default these are not provided.
@@ -311,6 +322,10 @@ func resourceAwsInstanceCreate(d *schema.ResourceData, meta interface{}) error {
 			ni.PrivateIPAddress = aws.String(v.(string))
 		}
 
+		if len(groups) > 0 {
+			ni.Groups = groups
+		}
+
 		runOpts.NetworkInterfaces = []ec2.InstanceNetworkInterfaceSpecification{ni}
 	} else {
 		if subnetID != "" {
@@ -320,27 +335,16 @@ func resourceAwsInstanceCreate(d *schema.ResourceData, meta interface{}) error {
 		if v, ok := d.GetOk("private_ip"); ok {
 			runOpts.PrivateIPAddress = aws.String(v.(string))
 		}
-	}
-
-	if v, ok := d.GetOk("key_name"); ok {
-		runOpts.KeyName = aws.String(v.(string))
-	}
-
-	if v := d.Get("security_groups"); v != nil {
-		// Security group names.
-		// For a nondefault VPC, you must use security group IDs instead.
-		// See http://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_RunInstances.html
-		var groups []string
-		for _, v := range v.(*schema.Set).List() {
-			str := v.(string)
-			groups = append(groups, str)
-		}
 		if runOpts.SubnetID != nil &&
 			*runOpts.SubnetID != "" {
 			runOpts.SecurityGroupIDs = groups
 		} else {
 			runOpts.SecurityGroups = groups
 		}
+	}
+
+	if v, ok := d.GetOk("key_name"); ok {
+		runOpts.KeyName = aws.String(v.(string))
 	}
 
 	blockDevices := make([]interface{}, 0)
