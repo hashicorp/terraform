@@ -944,6 +944,7 @@ func attachVolumesToInstance(computeClient *gophercloud.ServiceClient, blockClie
 			}
 
 			stateConf := &resource.StateChangeConf{
+				Pending:    []string{"attaching", "available"},
 				Target:     "in-use",
 				Refresh:    VolumeV1StateRefreshFunc(blockClient, va["volume_id"].(string)),
 				Timeout:    30 * time.Minute,
@@ -972,6 +973,7 @@ func detachVolumesFromInstance(computeClient *gophercloud.ServiceClient, blockCl
 			}
 
 			stateConf := &resource.StateChangeConf{
+				Pending:    []string{"detaching", "in-use"},
 				Target:     "available",
 				Refresh:    VolumeV1StateRefreshFunc(blockClient, va["volume_id"].(string)),
 				Timeout:    30 * time.Minute,
