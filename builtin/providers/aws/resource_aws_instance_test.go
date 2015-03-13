@@ -556,7 +556,6 @@ resource "aws_instance" "foo" {
 const testAccInstanceNetworkInstanceSecurityGroups = `
 resource "aws_internet_gateway" "gw" {
   vpc_id = "${aws_vpc.foo.id}"
-	depends_on = ["aws_eip.foo_eip"]
 }
 
 resource "aws_vpc" "foo" {
@@ -590,10 +589,12 @@ resource "aws_instance" "foo_instance" {
   security_groups = ["${aws_security_group.tf_test_foo.id}"]
   subnet_id = "${aws_subnet.foo.id}"
   associate_public_ip_address = true
+	depends_on = ["aws_internet_gateway.gw"]
 }
 
 resource "aws_eip" "foo_eip" {
   instance = "${aws_instance.foo_instance.id}"
   vpc = true
+	depends_on = ["aws_internet_gateway.gw"]
 }
 `
