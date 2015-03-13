@@ -264,7 +264,7 @@ func resourceBlockStorageVolumeV1Delete(d *schema.ResourceData, meta interface{}
 			}
 
 			stateConf := &resource.StateChangeConf{
-				Pending:    []string{"in-use"},
+				Pending:    []string{"in-use", "attaching"},
 				Target:     "available",
 				Refresh:    VolumeV1StateRefreshFunc(blockStorageClient, d.Id()),
 				Timeout:    10 * time.Minute,
@@ -290,7 +290,7 @@ func resourceBlockStorageVolumeV1Delete(d *schema.ResourceData, meta interface{}
 	log.Printf("[DEBUG] Waiting for volume (%s) to delete", d.Id())
 
 	stateConf := &resource.StateChangeConf{
-		Pending:    []string{"deleting"},
+		Pending:    []string{"deleting", "available"},
 		Target:     "deleted",
 		Refresh:    VolumeV1StateRefreshFunc(blockStorageClient, d.Id()),
 		Timeout:    10 * time.Minute,
