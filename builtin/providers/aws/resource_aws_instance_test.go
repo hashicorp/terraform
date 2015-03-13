@@ -296,7 +296,7 @@ func TestAccAWSInstance_associatePublicIPAndPrivateIP(t *testing.T) {
 }
 
 func testAccCheckInstanceDestroy(s *terraform.State) error {
-	conn := testAccProvider.Meta().(*AWSClient).awsEC2conn
+	conn := testAccProvider.Meta().(*AWSClient).ec2conn
 
 	for _, rs := range s.RootModule().Resources {
 		if rs.Type != "aws_instance" {
@@ -339,7 +339,7 @@ func testAccCheckInstanceExists(n string, i *ec2.Instance) resource.TestCheckFun
 			return fmt.Errorf("No ID is set")
 		}
 
-		conn := testAccProvider.Meta().(*AWSClient).awsEC2conn
+		conn := testAccProvider.Meta().(*AWSClient).ec2conn
 		resp, err := conn.DescribeInstances(&ec2.DescribeInstancesRequest{
 			InstanceIDs: []string{rs.Primary.ID},
 		})

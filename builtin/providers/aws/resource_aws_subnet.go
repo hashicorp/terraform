@@ -51,7 +51,7 @@ func resourceAwsSubnet() *schema.Resource {
 }
 
 func resourceAwsSubnetCreate(d *schema.ResourceData, meta interface{}) error {
-	ec2conn := meta.(*AWSClient).awsEC2conn
+	ec2conn := meta.(*AWSClient).ec2conn
 
 	createOpts := &ec2.CreateSubnetRequest{
 		AvailabilityZone: aws.String(d.Get("availability_zone").(string)),
@@ -91,7 +91,7 @@ func resourceAwsSubnetCreate(d *schema.ResourceData, meta interface{}) error {
 }
 
 func resourceAwsSubnetRead(d *schema.ResourceData, meta interface{}) error {
-	ec2conn := meta.(*AWSClient).awsEC2conn
+	ec2conn := meta.(*AWSClient).ec2conn
 
 	resp, err := ec2conn.DescribeSubnets(&ec2.DescribeSubnetsRequest{
 		SubnetIDs: []string{d.Id()},
@@ -121,7 +121,7 @@ func resourceAwsSubnetRead(d *schema.ResourceData, meta interface{}) error {
 }
 
 func resourceAwsSubnetUpdate(d *schema.ResourceData, meta interface{}) error {
-	ec2conn := meta.(*AWSClient).awsEC2conn
+	ec2conn := meta.(*AWSClient).ec2conn
 
 	d.Partial(true)
 
@@ -154,7 +154,7 @@ func resourceAwsSubnetUpdate(d *schema.ResourceData, meta interface{}) error {
 }
 
 func resourceAwsSubnetDelete(d *schema.ResourceData, meta interface{}) error {
-	ec2conn := meta.(*AWSClient).awsEC2conn
+	ec2conn := meta.(*AWSClient).ec2conn
 
 	log.Printf("[INFO] Deleting subnet: %s", d.Id())
 

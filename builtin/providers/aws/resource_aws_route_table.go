@@ -62,7 +62,7 @@ func resourceAwsRouteTable() *schema.Resource {
 }
 
 func resourceAwsRouteTableCreate(d *schema.ResourceData, meta interface{}) error {
-	ec2conn := meta.(*AWSClient).awsEC2conn
+	ec2conn := meta.(*AWSClient).ec2conn
 
 	// Create the routing table
 	createOpts := &ec2.CreateRouteTableRequest{
@@ -100,7 +100,7 @@ func resourceAwsRouteTableCreate(d *schema.ResourceData, meta interface{}) error
 }
 
 func resourceAwsRouteTableRead(d *schema.ResourceData, meta interface{}) error {
-	ec2conn := meta.(*AWSClient).awsEC2conn
+	ec2conn := meta.(*AWSClient).ec2conn
 
 	rtRaw, _, err := resourceAwsRouteTableStateRefreshFunc(ec2conn, d.Id())()
 	if err != nil {
@@ -152,7 +152,7 @@ func resourceAwsRouteTableRead(d *schema.ResourceData, meta interface{}) error {
 }
 
 func resourceAwsRouteTableUpdate(d *schema.ResourceData, meta interface{}) error {
-	ec2conn := meta.(*AWSClient).awsEC2conn
+	ec2conn := meta.(*AWSClient).ec2conn
 
 	// Check if the route set as a whole has changed
 	if d.HasChange("route") {
@@ -213,7 +213,7 @@ func resourceAwsRouteTableUpdate(d *schema.ResourceData, meta interface{}) error
 }
 
 func resourceAwsRouteTableDelete(d *schema.ResourceData, meta interface{}) error {
-	ec2conn := meta.(*AWSClient).awsEC2conn
+	ec2conn := meta.(*AWSClient).ec2conn
 
 	// First request the routing table since we'll have to disassociate
 	// all the subnets first.
