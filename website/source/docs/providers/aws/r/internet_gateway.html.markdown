@@ -29,10 +29,17 @@ The following arguments are supported:
 * `vpc_id` - (Required) The VPC ID to create in.
 * `tags` - (Optional) A mapping of tags to assign to the resource.
 
--> **Note:** When using Internet Gateways with AWS Instances or Elastic IPs,
-it is recommended to denote that they depend on the Internet Gateway created,
-via the `depends_on` attribute:  
-`depends_on = ["aws_internet_gateway.gw"]`.
+-> **Note:** It's recommended to denote that the AWS Instance or Elastic IP depends on the Internet Gateway. For example:  
+
+
+    resource "aws_internet_gateway" "gw" {
+      vpc_id = "${aws_vpc.main.id}"
+    }
+
+    resource "aws_instance" "foo" {  
+      depends_on = ["aws_internet_gateway.gw"]  
+    }
+
 
 ## Attributes Reference
 
