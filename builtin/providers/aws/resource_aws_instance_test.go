@@ -392,7 +392,7 @@ resource "aws_instance" "foo" {
 
 	instance_type = "m1.small"
 	security_groups = ["${aws_security_group.tf_test_foo.name}"]
-	user_data = "foo"
+	user_data = "foo:-with-character's"
 }
 `
 
