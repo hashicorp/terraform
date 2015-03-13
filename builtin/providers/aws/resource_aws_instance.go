@@ -3,6 +3,7 @@ package aws
 import (
 	"bytes"
 	"crypto/sha1"
+	"encoding/base64"
 	"encoding/hex"
 	"fmt"
 	"log"
@@ -258,7 +259,7 @@ func resourceAwsInstanceCreate(d *schema.ResourceData, meta interface{}) error {
 	// Figure out user data
 	userData := ""
 	if v := d.Get("user_data"); v != nil {
-		userData = v.(string)
+		userData = base64.StdEncoding.EncodeToString([]byte(v.(string)))
 	}
 
 	placement := &ec2.Placement{
