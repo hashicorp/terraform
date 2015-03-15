@@ -46,6 +46,8 @@ The following arguments are supported:
 * `key_file` - The SSH key to use for the connection. This takes preference over the
    password if provided.
 
+* `agent` - Set to true to enable using ssh-agent to authenticate.
+
 * `host` - The address of the resource to connect to. This is provided by the provider.
 
 * `port` - The port to connect to. This defaults to 22.
