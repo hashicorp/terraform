@@ -109,7 +109,7 @@ func resourceAwsNetworkAcl() *schema.Resource {
 
 func resourceAwsNetworkAclCreate(d *schema.ResourceData, meta interface{}) error {
 
-	ec2conn := meta.(*AWSClient).awsEC2conn
+	ec2conn := meta.(*AWSClient).ec2conn
 
 	// Create the Network Acl
 	createOpts := &ec2.CreateNetworkACLRequest{
@@ -132,7 +132,7 @@ func resourceAwsNetworkAclCreate(d *schema.ResourceData, meta interface{}) error
 }
 
 func resourceAwsNetworkAclRead(d *schema.ResourceData, meta interface{}) error {
-	ec2conn := meta.(*AWSClient).awsEC2conn
+	ec2conn := meta.(*AWSClient).ec2conn
 
 	resp, err := ec2conn.DescribeNetworkACLs(&ec2.DescribeNetworkACLsRequest{
 		NetworkACLIDs: []string{d.Id()},
@@ -161,13 +161,13 @@ func resourceAwsNetworkAclRead(d *schema.ResourceData, meta interface{}) error {
 	d.Set("vpc_id", networkAcl.VPCID)
 	d.Set("ingress", ingressEntries)
 	d.Set("egress", egressEntries)
-	d.Set("tags", tagsToMapSDK(networkAcl.Tags))
+	d.Set("tags", tagsToMap(networkAcl.Tags))
 
 	return nil
 }
 
 func resourceAwsNetworkAclUpdate(d *schema.ResourceData, meta interface{}) error {
-	ec2conn := meta.(*AWSClient).awsEC2conn
+	ec2conn := meta.(*AWSClient).ec2conn
 	d.Partial(true)
 
 	if d.HasChange("ingress") {
@@ -202,7 +202,7 @@ func resourceAwsNetworkAclUpdate(d *schema.ResourceData, meta interface{}) error
 		}
 	}
 
-	if err := setTagsSDK(ec2conn, d); err != nil {
+	if err := setTags(ec2conn, d); err != nil {
 		return err
 	} else {
 		d.SetPartial("tags")
@@ -265,7 +265,7 @@ func updateNetworkAclEntries(d *schema.ResourceData, entryType string, ec2conn *
 }
 
 func resourceAwsNetworkAclDelete(d *schema.ResourceData, meta interface{}) error {
-	ec2conn := meta.(*AWSClient).awsEC2conn
+	ec2conn := meta.(*AWSClient).ec2conn
 
 	log.Printf("[INFO] Deleting Network Acl: %s", d.Id())
 	return resource.Retry(5*time.Minute, func() error {

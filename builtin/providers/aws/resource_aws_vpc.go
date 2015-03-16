@@ -64,7 +64,7 @@ func resourceAwsVpc() *schema.Resource {
 }
 
 func resourceAwsVpcCreate(d *schema.ResourceData, meta interface{}) error {
-	ec2conn := meta.(*AWSClient).awsEC2conn
+	ec2conn := meta.(*AWSClient).ec2conn
 	instance_tenancy := "default"
 	if v, ok := d.GetOk("instance_tenancy"); ok {
 		instance_tenancy = v.(string)
@@ -110,7 +110,7 @@ func resourceAwsVpcCreate(d *schema.ResourceData, meta interface{}) error {
 }
 
 func resourceAwsVpcRead(d *schema.ResourceData, meta interface{}) error {
-	ec2conn := meta.(*AWSClient).awsEC2conn
+	ec2conn := meta.(*AWSClient).ec2conn
 
 	// Refresh the VPC state
 	vpcRaw, _, err := VPCStateRefreshFunc(ec2conn, d.Id())()
@@ -128,7 +128,7 @@ func resourceAwsVpcRead(d *schema.ResourceData, meta interface{}) error {
 	d.Set("cidr_block", vpc.CIDRBlock)
 
 	// Tags
-	d.Set("tags", tagsToMapSDK(vpc.Tags))
+	d.Set("tags", tagsToMap(vpc.Tags))
 
 	// Attributes
 	attribute := "enableDnsSupport"
@@ -180,7 +180,7 @@ func resourceAwsVpcRead(d *schema.ResourceData, meta interface{}) error {
 }
 
 func resourceAwsVpcUpdate(d *schema.ResourceData, meta interface{}) error {
-	ec2conn := meta.(*AWSClient).awsEC2conn
+	ec2conn := meta.(*AWSClient).ec2conn
 
 	// Turn on partial mode
 	d.Partial(true)
@@ -220,7 +220,7 @@ func resourceAwsVpcUpdate(d *schema.ResourceData, meta interface{}) error {
 		d.SetPartial("enable_dns_support")
 	}
 
-	if err := setTagsSDK(ec2conn, d); err != nil {
+	if err := setTags(ec2conn, d); err != nil {
 		return err
 	} else {
 		d.SetPartial("tags")
@@ -231,7 +231,7 @@ func resourceAwsVpcUpdate(d *schema.ResourceData, meta interface{}) error {
 }
 
 func resourceAwsVpcDelete(d *schema.ResourceData, meta interface{}) error {
-	ec2conn := meta.(*AWSClient).awsEC2conn
+	ec2conn := meta.(*AWSClient).ec2conn
 	vpcID := d.Id()
 	DeleteVpcOpts := &ec2.DeleteVPCRequest{
 		VPCID: &vpcID,

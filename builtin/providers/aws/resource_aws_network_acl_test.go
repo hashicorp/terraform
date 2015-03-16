@@ -151,7 +151,7 @@ func TestAccAWSNetworkAclsOnlyEgressRules(t *testing.T) {
 				Config: testAccAWSNetworkAclEgressConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSNetworkAclExists("aws_network_acl.bond", &networkAcl),
-					testAccCheckTagsSDK(&networkAcl.Tags, "foo", "bar"),
+					testAccCheckTags(&networkAcl.Tags, "foo", "bar"),
 				),
 			},
 		},
@@ -184,7 +184,7 @@ func TestAccAWSNetworkAcl_SubnetChange(t *testing.T) {
 }
 
 func testAccCheckAWSNetworkAclDestroy(s *terraform.State) error {
-	conn := testAccProvider.Meta().(*AWSClient).awsEC2conn
+	conn := testAccProvider.Meta().(*AWSClient).ec2conn
 
 	for _, rs := range s.RootModule().Resources {
 		if rs.Type != "aws_network" {
@@ -226,7 +226,7 @@ func testAccCheckAWSNetworkAclExists(n string, networkAcl *ec2.NetworkACL) resou
 		if rs.Primary.ID == "" {
 			return fmt.Errorf("No Security Group is set")
 		}
-		conn := testAccProvider.Meta().(*AWSClient).awsEC2conn
+		conn := testAccProvider.Meta().(*AWSClient).ec2conn
 
 		resp, err := conn.DescribeNetworkACLs(&ec2.DescribeNetworkACLsRequest{
 			NetworkACLIDs: []string{rs.Primary.ID},
@@ -266,7 +266,7 @@ func testAccCheckSubnetIsAssociatedWithAcl(acl string, sub string) resource.Test
 		networkAcl := s.RootModule().Resources[acl]
 		subnet := s.RootModule().Resources[sub]
 
-		conn := testAccProvider.Meta().(*AWSClient).awsEC2conn
+		conn := testAccProvider.Meta().(*AWSClient).ec2conn
 		resp, err := conn.DescribeNetworkACLs(&ec2.DescribeNetworkACLsRequest{
 			NetworkACLIDs: []string{networkAcl.Primary.ID},
 			Filters: []ec2.Filter{
@@ -296,7 +296,7 @@ func testAccCheckSubnetIsNotAssociatedWithAcl(acl string, subnet string) resourc
 		networkAcl := s.RootModule().Resources[acl]
 		subnet := s.RootModule().Resources[subnet]
 
-		conn := testAccProvider.Meta().(*AWSClient).awsEC2conn
+		conn := testAccProvider.Meta().(*AWSClient).ec2conn
 		resp, err := conn.DescribeNetworkACLs(&ec2.DescribeNetworkACLsRequest{
 			NetworkACLIDs: []string{networkAcl.Primary.ID},
 			Filters: []ec2.Filter{
