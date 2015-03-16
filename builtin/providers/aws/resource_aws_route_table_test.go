@@ -134,7 +134,7 @@ func TestAccAWSRouteTable_tags(t *testing.T) {
 				Config: testAccRouteTableConfigTags,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckRouteTableExists("aws_route_table.foo", &route_table),
-					testAccCheckTagsSDK(&route_table.Tags, "foo", "bar"),
+					testAccCheckTags(&route_table.Tags, "foo", "bar"),
 				),
 			},
 
@@ -142,8 +142,8 @@ func TestAccAWSRouteTable_tags(t *testing.T) {
 				Config: testAccRouteTableConfigTagsUpdate,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckRouteTableExists("aws_route_table.foo", &route_table),
-					testAccCheckTagsSDK(&route_table.Tags, "foo", ""),
-					testAccCheckTagsSDK(&route_table.Tags, "bar", "baz"),
+					testAccCheckTags(&route_table.Tags, "foo", ""),
+					testAccCheckTags(&route_table.Tags, "bar", "baz"),
 				),
 			},
 		},
@@ -151,7 +151,7 @@ func TestAccAWSRouteTable_tags(t *testing.T) {
 }
 
 func testAccCheckRouteTableDestroy(s *terraform.State) error {
-	conn := testAccProvider.Meta().(*AWSClient).awsEC2conn
+	conn := testAccProvider.Meta().(*AWSClient).ec2conn
 
 	for _, rs := range s.RootModule().Resources {
 		if rs.Type != "aws_route_table" {
@@ -194,7 +194,7 @@ func testAccCheckRouteTableExists(n string, v *ec2.RouteTable) resource.TestChec
 			return fmt.Errorf("No ID is set")
 		}
 
-		conn := testAccProvider.Meta().(*AWSClient).awsEC2conn
+		conn := testAccProvider.Meta().(*AWSClient).ec2conn
 		resp, err := conn.DescribeRouteTables(&ec2.DescribeRouteTablesRequest{
 			RouteTableIDs: []string{rs.Primary.ID},
 		})

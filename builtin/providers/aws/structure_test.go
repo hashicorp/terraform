@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	"github.com/hashicorp/aws-sdk-go/aws"
-	awsEC2 "github.com/hashicorp/aws-sdk-go/gen/ec2"
+	ec2 "github.com/hashicorp/aws-sdk-go/gen/ec2"
 	"github.com/hashicorp/aws-sdk-go/gen/elb"
 	"github.com/hashicorp/aws-sdk-go/gen/rds"
 	"github.com/hashicorp/terraform/flatmap"
@@ -61,28 +61,28 @@ func TestExpandIPPerms(t *testing.T) {
 	}
 	perms := expandIPPerms("foo", expanded)
 
-	expected := []awsEC2.IPPermission{
-		awsEC2.IPPermission{
+	expected := []ec2.IPPermission{
+		ec2.IPPermission{
 			IPProtocol: aws.String("icmp"),
 			FromPort:   aws.Integer(1),
 			ToPort:     aws.Integer(-1),
-			IPRanges:   []awsEC2.IPRange{awsEC2.IPRange{aws.String("0.0.0.0/0")}},
-			UserIDGroupPairs: []awsEC2.UserIDGroupPair{
-				awsEC2.UserIDGroupPair{
+			IPRanges:   []ec2.IPRange{ec2.IPRange{aws.String("0.0.0.0/0")}},
+			UserIDGroupPairs: []ec2.UserIDGroupPair{
+				ec2.UserIDGroupPair{
 					UserID:  aws.String("foo"),
 					GroupID: aws.String("sg-22222"),
 				},
-				awsEC2.UserIDGroupPair{
+				ec2.UserIDGroupPair{
 					GroupID: aws.String("sg-22222"),
 				},
 			},
 		},
-		awsEC2.IPPermission{
+		ec2.IPPermission{
 			IPProtocol: aws.String("icmp"),
 			FromPort:   aws.Integer(1),
 			ToPort:     aws.Integer(-1),
-			UserIDGroupPairs: []awsEC2.UserIDGroupPair{
-				awsEC2.UserIDGroupPair{
+			UserIDGroupPairs: []ec2.UserIDGroupPair{
+				ec2.UserIDGroupPair{
 					UserID: aws.String("foo"),
 				},
 			},

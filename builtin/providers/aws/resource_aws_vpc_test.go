@@ -65,7 +65,7 @@ func TestAccVpc_tags(t *testing.T) {
 					testAccCheckVpcCidr(&vpc, "10.1.0.0/16"),
 					resource.TestCheckResourceAttr(
 						"aws_vpc.foo", "cidr_block", "10.1.0.0/16"),
-					testAccCheckTagsSDK(&vpc.Tags, "foo", "bar"),
+					testAccCheckTags(&vpc.Tags, "foo", "bar"),
 				),
 			},
 
@@ -73,8 +73,8 @@ func TestAccVpc_tags(t *testing.T) {
 				Config: testAccVpcConfigTagsUpdate,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckVpcExists("aws_vpc.foo", &vpc),
-					testAccCheckTagsSDK(&vpc.Tags, "foo", ""),
-					testAccCheckTagsSDK(&vpc.Tags, "bar", "baz"),
+					testAccCheckTags(&vpc.Tags, "foo", ""),
+					testAccCheckTags(&vpc.Tags, "bar", "baz"),
 				),
 			},
 		},
@@ -111,7 +111,7 @@ func TestAccVpcUpdate(t *testing.T) {
 }
 
 func testAccCheckVpcDestroy(s *terraform.State) error {
-	conn := testAccProvider.Meta().(*AWSClient).awsEC2conn
+	conn := testAccProvider.Meta().(*AWSClient).ec2conn
 
 	for _, rs := range s.RootModule().Resources {
 		if rs.Type != "aws_vpc" {
@@ -166,7 +166,7 @@ func testAccCheckVpcExists(n string, vpc *ec2.VPC) resource.TestCheckFunc {
 			return fmt.Errorf("No VPC ID is set")
 		}
 
-		conn := testAccProvider.Meta().(*AWSClient).awsEC2conn
+		conn := testAccProvider.Meta().(*AWSClient).ec2conn
 		DescribeVpcOpts := &ec2.DescribeVPCsRequest{
 			VPCIDs: []string{rs.Primary.ID},
 		}

@@ -186,7 +186,7 @@ func TestAccAWSSecurityGroup_Change(t *testing.T) {
 }
 
 func testAccCheckAWSSecurityGroupDestroy(s *terraform.State) error {
-	conn := testAccProvider.Meta().(*AWSClient).awsEC2conn
+	conn := testAccProvider.Meta().(*AWSClient).ec2conn
 
 	for _, rs := range s.RootModule().Resources {
 		if rs.Type != "aws_security_group" {
@@ -230,7 +230,7 @@ func testAccCheckAWSSecurityGroupExists(n string, group *ec2.SecurityGroup) reso
 			return fmt.Errorf("No Security Group is set")
 		}
 
-		conn := testAccProvider.Meta().(*AWSClient).awsEC2conn
+		conn := testAccProvider.Meta().(*AWSClient).ec2conn
 		req := &ec2.DescribeSecurityGroupsRequest{
 			GroupIDs: []string{rs.Primary.ID},
 		}
@@ -296,7 +296,7 @@ func TestAccAWSSecurityGroup_tags(t *testing.T) {
 				Config: testAccAWSSecurityGroupConfigTags,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSSecurityGroupExists("aws_security_group.foo", &group),
-					testAccCheckTagsSDK(&group.Tags, "foo", "bar"),
+					testAccCheckTags(&group.Tags, "foo", "bar"),
 				),
 			},
 
@@ -304,8 +304,8 @@ func TestAccAWSSecurityGroup_tags(t *testing.T) {
 				Config: testAccAWSSecurityGroupConfigTagsUpdate,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSSecurityGroupExists("aws_security_group.foo", &group),
-					testAccCheckTagsSDK(&group.Tags, "foo", ""),
-					testAccCheckTagsSDK(&group.Tags, "bar", "baz"),
+					testAccCheckTags(&group.Tags, "foo", ""),
+					testAccCheckTags(&group.Tags, "bar", "baz"),
 				),
 			},
 		},
