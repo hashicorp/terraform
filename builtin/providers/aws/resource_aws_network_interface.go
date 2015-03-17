@@ -78,7 +78,7 @@ func resourceAwsNetworkInterface() *schema.Resource {
 
 func resourceAwsNetworkInterfaceCreate(d *schema.ResourceData, meta interface{}) error {
 	
-	ec2conn := meta.(*AWSClient).awsEC2conn
+	ec2conn := meta.(*AWSClient).ec2conn
 
 	request := &ec2.CreateNetworkInterfaceRequest{		
 		Groups: 				expandStringList(d.Get("security_groups").(*schema.Set).List()),
@@ -101,7 +101,7 @@ func resourceAwsNetworkInterfaceCreate(d *schema.ResourceData, meta interface{})
 
 func resourceAwsNetworkInterfaceRead(d *schema.ResourceData, meta interface{}) error {
 
-	ec2conn := meta.(*AWSClient).awsEC2conn
+	ec2conn := meta.(*AWSClient).ec2conn
 	describe_network_interfaces_request := &ec2.DescribeNetworkInterfacesRequest{		
 		NetworkInterfaceIDs:	[]string{d.Id()},
 	}
@@ -162,7 +162,7 @@ func resourceAwsNetworkInterfaceDetach(oa *schema.Set, meta interface{}, eniId s
 			AttachmentID: 	aws.String(old_attachment["attachment_id"].(string)),
 			Force:			aws.Boolean(true),
 		}
-		ec2conn := meta.(*AWSClient).awsEC2conn
+		ec2conn := meta.(*AWSClient).ec2conn
 		detach_err := ec2conn.DetachNetworkInterface(detach_request)
 		if detach_err != nil {
 			return fmt.Errorf("Error detaching ENI: %s", detach_err)
@@ -189,7 +189,7 @@ func resourceAwsNetworkInterfaceUpdate(d *schema.ResourceData, meta interface{})
 	d.Partial(true)
 
 	if d.HasChange("attachment") {
-		ec2conn := meta.(*AWSClient).awsEC2conn
+		ec2conn := meta.(*AWSClient).ec2conn
 		oa, na := d.GetChange("attachment")			
 		
 		detach_err := resourceAwsNetworkInterfaceDetach(oa.(*schema.Set), meta, d.Id())
@@ -220,7 +220,7 @@ func resourceAwsNetworkInterfaceUpdate(d *schema.ResourceData, meta interface{})
 			Groups:					expandStringList(d.Get("security_groups").(*schema.Set).List()),
 		}
 
-		ec2conn := meta.(*AWSClient).awsEC2conn
+		ec2conn := meta.(*AWSClient).ec2conn
 		err := ec2conn.ModifyNetworkInterfaceAttribute(request)
 		if err != nil {
 			return fmt.Errorf("Failure updating ENI: %s", err)
@@ -235,7 +235,7 @@ func resourceAwsNetworkInterfaceUpdate(d *schema.ResourceData, meta interface{})
 }
 
 func resourceAwsNetworkInterfaceDelete(d *schema.ResourceData, meta interface{}) error {
-	ec2conn := meta.(*AWSClient).awsEC2conn
+	ec2conn := meta.(*AWSClient).ec2conn
 
 	log.Printf("[INFO] Deleting ENI: %s", d.Id())
 
