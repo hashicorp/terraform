@@ -173,7 +173,8 @@ func resourceAwsRoute53RecordRead(d *schema.ResourceData, meta interface{}) erro
 	// Scan for a matching record
 	found := false
 	for _, record := range resp.ResourceRecordSets {
-		if FQDN(*record.Name) != FQDN(*lopts.StartRecordName) {
+		name := cleanRecordName(*record.Name)
+		if FQDN(name) != FQDN(*lopts.StartRecordName) {
 			continue
 		}
 		if strings.ToUpper(*record.Type) != strings.ToUpper(*lopts.StartRecordType) {
@@ -232,15 +233,17 @@ func resourceAwsRoute53RecordDelete(d *schema.ResourceData, meta interface{}) er
 		Refresh: func() (interface{}, string, error) {
 			_, err := conn.ChangeResourceRecordSets(req)
 			if err != nil {
-				if strings.Contains(err.Error(), "PriorRequestNotComplete") {
-					// There is some pending operation, so just retry
-					// in a bit.
-					return 42, "rejected", nil
-				}
+				if r53err, ok := err.(aws.APIError); ok {
+					if r53err.Code == "PriorRequestNotComplete" {
+						// There is some pending operation, so just retry
+						// in a bit.
+						return 42, "rejected", nil
+					}
 
-				if strings.Contains(err.Error(), "InvalidChangeBatch") {
-					// This means that the record is already gone.
-					return 42, "accepted", nil
+					if r53err.Code == "InvalidChangeBatch" {
+						// This means that the record is already gone.
+						return 42, "accepted", nil
+					}
 				}
 
 				return 42, "failure", err
@@ -281,4 +284,16 @@ func FQDN(name string) string {
 	} else {
 		return name + "."
 	}
+}
+
+// Route 53 stores the "*" wildcard indicator as ASCII 42 and returns the
+// octal equivalent, "\\052". Here we look for that, and convert back to "*"
+// as needed.
+func cleanRecordName(name string) string {
+	str := name
+	if strings.HasPrefix(name, "\\052") {
+		str = strings.Replace(name, "\\052", "*", 1)
+		log.Printf("[DEBUG] Replacing octal \\052 for * in: %s", name)
+	}
+	return str
 }
