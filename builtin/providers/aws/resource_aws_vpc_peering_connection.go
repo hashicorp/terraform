@@ -74,7 +74,7 @@ func resourceAwsVpcPeeringCreate(d *schema.ResourceData, meta interface{}) error
 		d.Id())
 	stateConf := &resource.StateChangeConf{
 		Pending: []string{"pending"},
-		Target:  "ready",
+		Target:  "pending-acceptance",
 		Refresh: resourceAwsVpcPeeringConnectionStateRefreshFunc(ec2conn, d.Id()),
 		Timeout: 1 * time.Minute,
 	}
@@ -100,18 +100,7 @@ func resourceAwsVpcPeeringRead(d *schema.ResourceData, meta interface{}) error {
 
 	pc := pcRaw.(*ec2.VPCPeeringConnection)
 
-	code := *pc.Status.Code
-	if _, ok := d.GetOk("auto_accept"); ok {
-		updatedCode, err := resourceVpcPeeringConnectionAccept(ec2conn, pc, d.Id())
-		if err != nil {
-			return fmt.Errorf("Error accepting vpc peering connection: %s", err)
-		}
-
-		code = updatedCode
-	}
-
-	d.Set("accept_status", code)
-
+	d.Set("accept_status", *pc.Status.Code)
 	d.Set("peer_owner_id", pc.AccepterVPCInfo.OwnerID)
 	d.Set("peer_vpc_id", pc.AccepterVPCInfo.VPCID)
 	d.Set("vpc_id", pc.RequesterVPCInfo.VPCID)
@@ -120,22 +109,17 @@ func resourceAwsVpcPeeringRead(d *schema.ResourceData, meta interface{}) error {
 	return nil
 }
 
-func resourceVpcPeeringConnectionAccept(conn *ec2.EC2, oldPc *ec2.VPCPeeringConnection, id string) (string, error) {
+func resourceVpcPeeringConnectionAccept(conn *ec2.EC2, id string) (string, error) {
 
-	if *oldPc.Status.Code == "pending-acceptance" {
-		log.Printf("[INFO] Accept Vpc Peering Connection with id: %s", id)
+	log.Printf("[INFO] Accept Vpc Peering Connection with id: %s", id)
 
-		req := &ec2.AcceptVPCPeeringConnectionRequest{
-			VPCPeeringConnectionID: aws.String(id),
-		}
-		_, err := conn.AcceptVPCPeeringConnection(req)
-
-		pcRaw, _, err := resourceAwsVpcPeeringConnectionStateRefreshFunc(conn, id)()
-		pc := pcRaw.(*ec2.VPCPeeringConnection)
-		return *pc.Status.Code, err
+	req := &ec2.AcceptVPCPeeringConnectionRequest{
+		VPCPeeringConnectionID: aws.String(id),
 	}
 
-	return *oldPc.Status.Code, nil
+	resp, err := conn.AcceptVPCPeeringConnection(req)
+	pc := resp.VPCPeeringConnection
+	return *pc.Status.Code, err
 }
 
 func resourceAwsVpcPeeringUpdate(d *schema.ResourceData, meta interface{}) error {
@@ -145,6 +129,32 @@ func resourceAwsVpcPeeringUpdate(d *schema.ResourceData, meta interface{}) error
 		return err
 	} else {
 		d.SetPartial("tags")
+	}
+
+	if _, ok := d.GetOk("auto_accept"); ok {
+
+		pcRaw, _, err := resourceAwsVpcPeeringConnectionStateRefreshFunc(ec2conn, d.Id())()
+
+		if err != nil {
+			return err
+		}
+		if pcRaw == nil {
+			d.SetId("")
+			return nil
+		}
+		pc := pcRaw.(*ec2.VPCPeeringConnection)
+
+		if *pc.Status.Code == "pending-acceptance" {
+
+			status, err := resourceVpcPeeringConnectionAccept(ec2conn, d.Id())
+
+			log.Printf(
+				"[DEBUG] Vpc Peering connection accept status %s",
+				status)
+			if err != nil {
+				return err
+			}
+		}
 	}
 
 	return resourceAwsVpcPeeringRead(d, meta)
@@ -185,6 +195,6 @@ func resourceAwsVpcPeeringConnectionStateRefreshFunc(conn *ec2.EC2, id string) r
 
 		pc := &resp.VPCPeeringConnections[0]
 
-		return pc, "ready", nil
+		return pc, *pc.Status.Code, nil
 	}
 }
