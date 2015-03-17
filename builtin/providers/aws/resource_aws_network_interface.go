@@ -83,7 +83,7 @@ func resourceAwsNetworkInterfaceCreate(d *schema.ResourceData, meta interface{})
 	request := &ec2.CreateNetworkInterfaceRequest{		
 		Groups: 				expandStringList(d.Get("security_groups").(*schema.Set).List()),
 		SubnetID:				aws.String(d.Get("subnet_id").(string)),
-		PrivateIPAddresses:		convertToPrivateIPAddresses(d.Get("private_ips").(*schema.Set).List()),
+		PrivateIPAddresses:		expandPrivateIPAddesses(d.Get("private_ips").(*schema.Set).List()),
 	}
 	
 	log.Printf("[DEBUG] Creating network interface")
@@ -92,8 +92,7 @@ func resourceAwsNetworkInterfaceCreate(d *schema.ResourceData, meta interface{})
 		return fmt.Errorf("Error creating ENI: %s", err)
 	}
 
-	new_interface_id := *resp.NetworkInterface.NetworkInterfaceID
-	d.SetId(new_interface_id)
+	d.SetId(*resp.NetworkInterface.NetworkInterfaceID)
 	log.Printf("[INFO] ENI ID: %s", d.Id())
 
 	return resourceAwsNetworkInterfaceUpdate(d, meta)	
@@ -122,8 +121,8 @@ func resourceAwsNetworkInterfaceRead(d *schema.ResourceData, meta interface{}) e
 
 	eni := describeResp.NetworkInterfaces[0]
 	d.Set("subnet_id", eni.SubnetID)
-	d.Set("private_ips", convertToJustAddresses(eni.PrivateIPAddresses))
-	d.Set("security_groups", convertToGroupIds(eni.Groups))
+	d.Set("private_ips", flattenNetworkInterfacesPrivateIPAddesses(eni.PrivateIPAddresses))
+	d.Set("security_groups", flattenGroupIdentifiers(eni.Groups))
 
 	if eni.Attachment != nil {
 		d.Set("attachment", flattenAttachment(eni.Attachment))
@@ -254,54 +253,10 @@ func resourceAwsNetworkInterfaceDelete(d *schema.ResourceData, meta interface{})
 	return nil
 }
 
-func convertToJustAddresses(dtos []ec2.NetworkInterfacePrivateIPAddress) []string {
-	ips := make([]string, 0, len(dtos))
-	for _, v := range dtos {
-		ip := *v.PrivateIPAddress
-		ips = append(ips, ip)
-	}
-	return ips
-}
-
-func convertToGroupIds(dtos []ec2.GroupIdentifier) []string {
-	ids := make([]string, 0, len(dtos))
-	for _, v := range dtos {
-		group_id := *v.GroupID
-		ids = append(ids, group_id)
-	}
-	return ids
-}
-
-func convertToPrivateIPAddresses(ips []interface{}) []ec2.PrivateIPAddressSpecification {
-	dtos := make([]ec2.PrivateIPAddressSpecification, 0, len(ips))
-	for i, v := range ips {
-		new_private_ip := ec2.PrivateIPAddressSpecification{
-			PrivateIPAddress:	aws.String(v.(string)),
-		}	
-		
-		if i == 0 {
-			new_private_ip.Primary = aws.Boolean(true)
-		}
-
-		dtos = append(dtos, new_private_ip)
-	}
-	return dtos
-}
-
 func resourceAwsEniAttachmentHash(v interface{}) int {
 	var buf bytes.Buffer
 	m := v.(map[string]interface{})
 	buf.WriteString(fmt.Sprintf("%s-", m["instance"].(string)))
 	buf.WriteString(fmt.Sprintf("%d-", m["device_index"].(int)))
 	return hashcode.String(buf.String())
-}
-
-func flattenAttachment(a *ec2.NetworkInterfaceAttachment) []map[string]interface{} {
-	result := make([]map[string]interface{}, 0, 1)
-	att := make(map[string]interface{})	
-	att["instance"] = *a.InstanceID
-	att["device_index"] = *a.DeviceIndex
-	att["attachment_id"] = *a.AttachmentID
-	result = append(result, att)
-	return result
 }
