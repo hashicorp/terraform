@@ -207,6 +207,25 @@ func TestAccAWSInstance_vpc(t *testing.T) {
 	})
 }
 
+func TestAccInstance_NetworkInstanceSecurityGroups(t *testing.T) {
+	var v ec2.Instance
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckInstanceDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccInstanceNetworkInstanceSecurityGroups,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckInstanceExists(
+						"aws_instance.foo_instance", &v),
+				),
+			},
+		},
+	})
+}
+
 func TestAccAWSInstance_tags(t *testing.T) {
 	var v ec2.Instance
 
@@ -219,9 +238,9 @@ func TestAccAWSInstance_tags(t *testing.T) {
 				Config: testAccCheckInstanceConfigTags,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckInstanceExists("aws_instance.foo", &v),
-					testAccCheckTagsSDK(&v.Tags, "foo", "bar"),
+					testAccCheckTags(&v.Tags, "foo", "bar"),
 					// Guard against regression of https://github.com/hashicorp/terraform/issues/914
-					testAccCheckTagsSDK(&v.Tags, "#", ""),
+					testAccCheckTags(&v.Tags, "#", ""),
 				),
 			},
 
@@ -229,8 +248,8 @@ func TestAccAWSInstance_tags(t *testing.T) {
 				Config: testAccCheckInstanceConfigTagsUpdate,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckInstanceExists("aws_instance.foo", &v),
-					testAccCheckTagsSDK(&v.Tags, "foo", ""),
-					testAccCheckTagsSDK(&v.Tags, "bar", "baz"),
+					testAccCheckTags(&v.Tags, "foo", ""),
+					testAccCheckTags(&v.Tags, "bar", "baz"),
 				),
 			},
 		},
@@ -296,7 +315,7 @@ func TestAccAWSInstance_associatePublicIPAndPrivateIP(t *testing.T) {
 }
 
 func testAccCheckInstanceDestroy(s *terraform.State) error {
-	conn := testAccProvider.Meta().(*AWSClient).awsEC2conn
+	conn := testAccProvider.Meta().(*AWSClient).ec2conn
 
 	for _, rs := range s.RootModule().Resources {
 		if rs.Type != "aws_instance" {
@@ -339,7 +358,7 @@ func testAccCheckInstanceExists(n string, i *ec2.Instance) resource.TestCheckFun
 			return fmt.Errorf("No ID is set")
 		}
 
-		conn := testAccProvider.Meta().(*AWSClient).awsEC2conn
+		conn := testAccProvider.Meta().(*AWSClient).ec2conn
 		resp, err := conn.DescribeInstances(&ec2.DescribeInstancesRequest{
 			InstanceIDs: []string{rs.Primary.ID},
 		})
@@ -392,7 +411,7 @@ resource "aws_instance" "foo" {
 
 	instance_type = "m1.small"
 	security_groups = ["${aws_security_group.tf_test_foo.name}"]
-	user_data = "foo"
+	user_data = "foo:-with-character's"
 }
 `
 
@@ -531,5 +550,51 @@ resource "aws_instance" "foo" {
 	subnet_id = "${aws_subnet.foo.id}"
 	associate_public_ip_address = true
 	private_ip = "10.1.1.42"
+}
+`
+
+const testAccInstanceNetworkInstanceSecurityGroups = `
+resource "aws_internet_gateway" "gw" {
+  vpc_id = "${aws_vpc.foo.id}"
+}
+
+resource "aws_vpc" "foo" {
+  cidr_block = "10.1.0.0/16"
+	tags {
+		Name = "tf-network-test"
+	}
+}
+
+resource "aws_security_group" "tf_test_foo" {
+  name = "tf_test_foo"
+  description = "foo"
+  vpc_id="${aws_vpc.foo.id}"
+
+  ingress {
+    protocol = "icmp"
+    from_port = -1
+    to_port = -1
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+}
+
+resource "aws_subnet" "foo" {
+  cidr_block = "10.1.1.0/24"
+  vpc_id = "${aws_vpc.foo.id}"
+}
+
+resource "aws_instance" "foo_instance" {
+  ami = "ami-21f78e11"
+  instance_type = "t1.micro"
+  security_groups = ["${aws_security_group.tf_test_foo.id}"]
+  subnet_id = "${aws_subnet.foo.id}"
+  associate_public_ip_address = true
+	depends_on = ["aws_internet_gateway.gw"]
+}
+
+resource "aws_eip" "foo_eip" {
+  instance = "${aws_instance.foo_instance.id}"
+  vpc = true
+	depends_on = ["aws_internet_gateway.gw"]
 }
 `

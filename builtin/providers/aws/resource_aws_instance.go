@@ -3,6 +3,7 @@ package aws
 import (
 	"bytes"
 	"crypto/sha1"
+	"encoding/base64"
 	"encoding/hex"
 	"fmt"
 	"log"
@@ -253,12 +254,12 @@ func resourceAwsInstance() *schema.Resource {
 }
 
 func resourceAwsInstanceCreate(d *schema.ResourceData, meta interface{}) error {
-	ec2conn := meta.(*AWSClient).awsEC2conn
+	ec2conn := meta.(*AWSClient).ec2conn
 
 	// Figure out user data
 	userData := ""
 	if v := d.Get("user_data"); v != nil {
-		userData = v.(string)
+		userData = base64.StdEncoding.EncodeToString([]byte(v.(string)))
 	}
 
 	placement := &ec2.Placement{
@@ -292,6 +293,17 @@ func resourceAwsInstanceCreate(d *schema.ResourceData, meta interface{}) error {
 	subnet, hasSubnet := d.GetOk("subnet_id")
 	subnetID := subnet.(string)
 
+	var groups []string
+	if v := d.Get("security_groups"); v != nil {
+		// Security group names.
+		// For a nondefault VPC, you must use security group IDs instead.
+		// See http://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_RunInstances.html
+		for _, v := range v.(*schema.Set).List() {
+			str := v.(string)
+			groups = append(groups, str)
+		}
+	}
+
 	if hasSubnet && associatePublicIPAddress {
 		// If we have a non-default VPC / Subnet specified, we can flag
 		// AssociatePublicIpAddress to get a Public IP assigned. By default these are not provided.
@@ -310,6 +322,10 @@ func resourceAwsInstanceCreate(d *schema.ResourceData, meta interface{}) error {
 			ni.PrivateIPAddress = aws.String(v.(string))
 		}
 
+		if len(groups) > 0 {
+			ni.Groups = groups
+		}
+
 		runOpts.NetworkInterfaces = []ec2.InstanceNetworkInterfaceSpecification{ni}
 	} else {
 		if subnetID != "" {
@@ -319,27 +335,16 @@ func resourceAwsInstanceCreate(d *schema.ResourceData, meta interface{}) error {
 		if v, ok := d.GetOk("private_ip"); ok {
 			runOpts.PrivateIPAddress = aws.String(v.(string))
 		}
-	}
-
-	if v, ok := d.GetOk("key_name"); ok {
-		runOpts.KeyName = aws.String(v.(string))
-	}
-
-	if v := d.Get("security_groups"); v != nil {
-		// Security group names.
-		// For a nondefault VPC, you must use security group IDs instead.
-		// See http://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_RunInstances.html
-		var groups []string
-		for _, v := range v.(*schema.Set).List() {
-			str := v.(string)
-			groups = append(groups, str)
-		}
 		if runOpts.SubnetID != nil &&
 			*runOpts.SubnetID != "" {
 			runOpts.SecurityGroupIDs = groups
 		} else {
 			runOpts.SecurityGroups = groups
 		}
+	}
+
+	if v, ok := d.GetOk("key_name"); ok {
+		runOpts.KeyName = aws.String(v.(string))
 	}
 
 	blockDevices := make([]interface{}, 0)
@@ -437,7 +442,7 @@ func resourceAwsInstanceCreate(d *schema.ResourceData, meta interface{}) error {
 }
 
 func resourceAwsInstanceRead(d *schema.ResourceData, meta interface{}) error {
-	ec2conn := meta.(*AWSClient).awsEC2conn
+	ec2conn := meta.(*AWSClient).ec2conn
 
 	resp, err := ec2conn.DescribeInstances(&ec2.DescribeInstancesRequest{
 		InstanceIDs: []string{d.Id()},
@@ -481,7 +486,7 @@ func resourceAwsInstanceRead(d *schema.ResourceData, meta interface{}) error {
 		d.Set("subnet_id", instance.SubnetID)
 	}
 	d.Set("ebs_optimized", instance.EBSOptimized)
-	d.Set("tags", tagsToMapSDK(instance.Tags))
+	d.Set("tags", tagsToMap(instance.Tags))
 	d.Set("tenancy", instance.Placement.Tenancy)
 
 	// Determine whether we're referring to security groups with
@@ -561,7 +566,7 @@ func resourceAwsInstanceRead(d *schema.ResourceData, meta interface{}) error {
 }
 
 func resourceAwsInstanceUpdate(d *schema.ResourceData, meta interface{}) error {
-	ec2conn := meta.(*AWSClient).awsEC2conn
+	ec2conn := meta.(*AWSClient).ec2conn
 	opts := new(ec2.ModifyInstanceAttributeRequest)
 
 	log.Printf("[INFO] Modifying instance %s: %#v", d.Id(), opts)
@@ -579,7 +584,7 @@ func resourceAwsInstanceUpdate(d *schema.ResourceData, meta interface{}) error {
 	// TODO(mitchellh): wait for the attributes we modified to
 	// persist the change...
 
-	if err := setTagsSDK(ec2conn, d); err != nil {
+	if err := setTags(ec2conn, d); err != nil {
 		return err
 	} else {
 		d.SetPartial("tags")
@@ -589,7 +594,7 @@ func resourceAwsInstanceUpdate(d *schema.ResourceData, meta interface{}) error {
 }
 
 func resourceAwsInstanceDelete(d *schema.ResourceData, meta interface{}) error {
-	ec2conn := meta.(*AWSClient).awsEC2conn
+	ec2conn := meta.(*AWSClient).ec2conn
 
 	log.Printf("[INFO] Terminating instance: %s", d.Id())
 	req := &ec2.TerminateInstancesRequest{

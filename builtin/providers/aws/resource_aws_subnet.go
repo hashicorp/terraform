@@ -51,7 +51,7 @@ func resourceAwsSubnet() *schema.Resource {
 }
 
 func resourceAwsSubnetCreate(d *schema.ResourceData, meta interface{}) error {
-	ec2conn := meta.(*AWSClient).awsEC2conn
+	ec2conn := meta.(*AWSClient).ec2conn
 
 	createOpts := &ec2.CreateSubnetRequest{
 		AvailabilityZone: aws.String(d.Get("availability_zone").(string)),
@@ -91,7 +91,7 @@ func resourceAwsSubnetCreate(d *schema.ResourceData, meta interface{}) error {
 }
 
 func resourceAwsSubnetRead(d *schema.ResourceData, meta interface{}) error {
-	ec2conn := meta.(*AWSClient).awsEC2conn
+	ec2conn := meta.(*AWSClient).ec2conn
 
 	resp, err := ec2conn.DescribeSubnets(&ec2.DescribeSubnetsRequest{
 		SubnetIDs: []string{d.Id()},
@@ -115,17 +115,17 @@ func resourceAwsSubnetRead(d *schema.ResourceData, meta interface{}) error {
 	d.Set("availability_zone", subnet.AvailabilityZone)
 	d.Set("cidr_block", subnet.CIDRBlock)
 	d.Set("map_public_ip_on_launch", subnet.MapPublicIPOnLaunch)
-	d.Set("tags", tagsToMapSDK(subnet.Tags))
+	d.Set("tags", tagsToMap(subnet.Tags))
 
 	return nil
 }
 
 func resourceAwsSubnetUpdate(d *schema.ResourceData, meta interface{}) error {
-	ec2conn := meta.(*AWSClient).awsEC2conn
+	ec2conn := meta.(*AWSClient).ec2conn
 
 	d.Partial(true)
 
-	if err := setTagsSDK(ec2conn, d); err != nil {
+	if err := setTags(ec2conn, d); err != nil {
 		return err
 	} else {
 		d.SetPartial("tags")
@@ -154,7 +154,7 @@ func resourceAwsSubnetUpdate(d *schema.ResourceData, meta interface{}) error {
 }
 
 func resourceAwsSubnetDelete(d *schema.ResourceData, meta interface{}) error {
-	ec2conn := meta.(*AWSClient).awsEC2conn
+	ec2conn := meta.(*AWSClient).ec2conn
 
 	log.Printf("[INFO] Deleting subnet: %s", d.Id())
 
