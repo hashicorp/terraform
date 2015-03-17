@@ -271,9 +271,9 @@ func TestExpandInstanceString(t *testing.T) {
 }
 
 func TestFlattenNetworkInterfacesPrivateIPAddesses(t *testing.T) {
-	expanded := []ec2.NetworkInterfacePrivateIPAddress {
-		ec2.NetworkInterfacePrivateIPAddress { PrivateIPAddress: aws.String("192.168.0.1") },
-		ec2.NetworkInterfacePrivateIPAddress { PrivateIPAddress: aws.String("192.168.0.2") },
+	expanded := []ec2.NetworkInterfacePrivateIPAddress{
+		ec2.NetworkInterfacePrivateIPAddress{PrivateIPAddress: aws.String("192.168.0.1")},
+		ec2.NetworkInterfacePrivateIPAddress{PrivateIPAddress: aws.String("192.168.0.2")},
 	}
 
 	result := flattenNetworkInterfacesPrivateIPAddesses(expanded)
@@ -296,9 +296,9 @@ func TestFlattenNetworkInterfacesPrivateIPAddesses(t *testing.T) {
 }
 
 func TestFlattenGroupIdentifiers(t *testing.T) {
-	expanded := []ec2.GroupIdentifier {
-		ec2.GroupIdentifier { GroupID: aws.String("sg-001") },
-		ec2.GroupIdentifier { GroupID: aws.String("sg-002") },
+	expanded := []ec2.GroupIdentifier{
+		ec2.GroupIdentifier{GroupID: aws.String("sg-001")},
+		ec2.GroupIdentifier{GroupID: aws.String("sg-002")},
 	}
 
 	result := flattenGroupIdentifiers(expanded)
@@ -317,10 +317,10 @@ func TestFlattenGroupIdentifiers(t *testing.T) {
 }
 
 func TestExpandPrivateIPAddesses(t *testing.T) {
-	
+
 	ip1 := "192.168.0.1"
 	ip2 := "192.168.0.2"
-	flattened := []interface{} {
+	flattened := []interface{}{
 		ip1,
 		ip2,
 	}
@@ -330,7 +330,7 @@ func TestExpandPrivateIPAddesses(t *testing.T) {
 	if len(result) != 2 {
 		t.Fatalf("expected result had %d elements, but got %d", 2, len(result))
 	}
-	
+
 	if *result[0].PrivateIPAddress != "192.168.0.1" || !*result[0].Primary {
 		t.Fatalf("expected ip to be 192.168.0.1 and Primary, but got %v, %b", *result[0].PrivateIPAddress, *result[0].Primary)
 	}
@@ -342,8 +342,8 @@ func TestExpandPrivateIPAddesses(t *testing.T) {
 
 func TestFlattenAttachment(t *testing.T) {
 	expanded := &ec2.NetworkInterfaceAttachment{
-		InstanceID: aws.String("i-00001"),
-		DeviceIndex: aws.Integer(1), 
+		InstanceID:   aws.String("i-00001"),
+		DeviceIndex:  aws.Integer(1),
 		AttachmentID: aws.String("at-002"),
 	}
 

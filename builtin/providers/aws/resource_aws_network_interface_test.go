@@ -1,7 +1,7 @@
 package aws
 
-import (	
-	"fmt"	
+import (
+	"fmt"
 	"testing"
 
 	"github.com/hashicorp/aws-sdk-go/aws"
@@ -12,7 +12,7 @@ import (
 
 func TestAccAWSENI_basic(t *testing.T) {
 	var conf ec2.NetworkInterface
-	
+
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
@@ -22,7 +22,7 @@ func TestAccAWSENI_basic(t *testing.T) {
 				Config: testAccAWSENIConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSENIExists("aws_network_interface.bar", &conf),
-					testAccCheckAWSENIAttributes(&conf),					
+					testAccCheckAWSENIAttributes(&conf),
 					resource.TestCheckResourceAttr(
 						"aws_network_interface.bar", "private_ips.#", "1"),
 					resource.TestCheckResourceAttr(
@@ -35,7 +35,7 @@ func TestAccAWSENI_basic(t *testing.T) {
 
 func TestAccAWSENI_attached(t *testing.T) {
 	var conf ec2.NetworkInterface
-	
+
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
@@ -45,7 +45,7 @@ func TestAccAWSENI_attached(t *testing.T) {
 				Config: testAccAWSENIConfigWithAttachment,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSENIExists("aws_network_interface.bar", &conf),
-					testAccCheckAWSENIAttributesWithAttachment(&conf),					
+					testAccCheckAWSENIAttributesWithAttachment(&conf),
 					resource.TestCheckResourceAttr(
 						"aws_network_interface.bar", "private_ips.#", "1"),
 					resource.TestCheckResourceAttr(
@@ -57,7 +57,7 @@ func TestAccAWSENI_attached(t *testing.T) {
 }
 
 func testAccCheckAWSENIExists(n string, res *ec2.NetworkInterface) resource.TestCheckFunc {
-	return func(s *terraform.State) error {		
+	return func(s *terraform.State) error {
 		rs, ok := s.RootModule().Resources[n]
 		if !ok {
 			return fmt.Errorf("Not found: %s", n)
@@ -68,8 +68,8 @@ func testAccCheckAWSENIExists(n string, res *ec2.NetworkInterface) resource.Test
 		}
 
 		ec2conn := testAccProvider.Meta().(*AWSClient).ec2conn
-		describe_network_interfaces_request := &ec2.DescribeNetworkInterfacesRequest{		
-			NetworkInterfaceIDs:	[]string{rs.Primary.ID},
+		describe_network_interfaces_request := &ec2.DescribeNetworkInterfacesRequest{
+			NetworkInterfaceIDs: []string{rs.Primary.ID},
 		}
 		describeResp, err := ec2conn.DescribeNetworkInterfaces(describe_network_interfaces_request)
 
@@ -90,9 +90,9 @@ func testAccCheckAWSENIExists(n string, res *ec2.NetworkInterface) resource.Test
 
 func testAccCheckAWSENIAttributes(conf *ec2.NetworkInterface) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
-		
+
 		if conf.Attachment != nil {
-			return fmt.Errorf("expected attachment to be nil")	
+			return fmt.Errorf("expected attachment to be nil")
 		}
 
 		if *conf.AvailabilityZone != "us-west-2a" {
@@ -108,18 +108,18 @@ func testAccCheckAWSENIAttributes(conf *ec2.NetworkInterface) resource.TestCheck
 		}
 
 		return nil
-	}	
+	}
 }
 
 func testAccCheckAWSENIAttributesWithAttachment(conf *ec2.NetworkInterface) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
-		
+
 		if conf.Attachment == nil {
-			return fmt.Errorf("expected attachment to be set, but was nil")	
+			return fmt.Errorf("expected attachment to be set, but was nil")
 		}
 
 		if *conf.Attachment.DeviceIndex != 1 {
-			return fmt.Errorf("expected attachment device index to be 1, but was %d", *conf.Attachment.DeviceIndex)	
+			return fmt.Errorf("expected attachment device index to be 1, but was %d", *conf.Attachment.DeviceIndex)
 		}
 
 		if *conf.AvailabilityZone != "us-west-2a" {
@@ -135,7 +135,7 @@ func testAccCheckAWSENIAttributesWithAttachment(conf *ec2.NetworkInterface) reso
 		}
 
 		return nil
-	}	
+	}
 }
 
 func testAccCheckAWSENIDestroy(s *terraform.State) error {
@@ -145,8 +145,8 @@ func testAccCheckAWSENIDestroy(s *terraform.State) error {
 		}
 
 		ec2conn := testAccProvider.Meta().(*AWSClient).ec2conn
-		describe_network_interfaces_request := &ec2.DescribeNetworkInterfacesRequest{		
-			NetworkInterfaceIDs:	[]string{rs.Primary.ID},
+		describe_network_interfaces_request := &ec2.DescribeNetworkInterfacesRequest{
+			NetworkInterfaceIDs: []string{rs.Primary.ID},
 		}
 		_, err := ec2conn.DescribeNetworkInterfaces(describe_network_interfaces_request)
 
@@ -156,12 +156,11 @@ func testAccCheckAWSENIDestroy(s *terraform.State) error {
 			}
 
 			return err
-		}			
+		}
 	}
 
 	return nil
 }
-
 
 const testAccAWSENIConfig = `
 resource "aws_vpc" "foo" {

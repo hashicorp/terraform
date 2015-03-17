@@ -221,21 +221,21 @@ func expandPrivateIPAddesses(ips []interface{}) []ec2.PrivateIPAddressSpecificat
 	dtos := make([]ec2.PrivateIPAddressSpecification, 0, len(ips))
 	for i, v := range ips {
 		new_private_ip := ec2.PrivateIPAddressSpecification{
-			PrivateIPAddress:	aws.String(v.(string)),
-		}	
-		
+			PrivateIPAddress: aws.String(v.(string)),
+		}
+
 		new_private_ip.Primary = aws.Boolean(i == 0)
-		
+
 		dtos = append(dtos, new_private_ip)
 	}
 	return dtos
 }
 
 //Flattens network interface attachment into a map[string]interface
-func flattenAttachment(a *ec2.NetworkInterfaceAttachment) map[string]interface{} {	
-	att := make(map[string]interface{})	
+func flattenAttachment(a *ec2.NetworkInterfaceAttachment) map[string]interface{} {
+	att := make(map[string]interface{})
 	att["instance"] = *a.InstanceID
 	att["device_index"] = *a.DeviceIndex
-	att["attachment_id"] = *a.AttachmentID	
+	att["attachment_id"] = *a.AttachmentID
 	return att
 }
