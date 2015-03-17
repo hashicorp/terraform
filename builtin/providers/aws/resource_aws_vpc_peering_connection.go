@@ -13,10 +13,10 @@ import (
 
 func resourceAwsVpcPeeringConnection() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceAwsVpcPeeringCreate,
-		Read:   resourceAwsVpcPeeringRead,
-		Update: resourceAwsVpcPeeringUpdate,
-		Delete: resourceAwsVpcPeeringDelete,
+		Create: resourceAwsVPCPeeringCreate,
+		Read:   resourceAwsVPCPeeringRead,
+		Update: resourceAwsVPCPeeringUpdate,
+		Delete: resourceAwsVPCPeeringDelete,
 
 		Schema: map[string]*schema.Schema{
 			"peer_owner_id": &schema.Schema{
@@ -48,8 +48,8 @@ func resourceAwsVpcPeeringConnection() *schema.Resource {
 	}
 }
 
-func resourceAwsVpcPeeringCreate(d *schema.ResourceData, meta interface{}) error {
-	conn := meta.(*AWSClient).ec2conn
+func resourceAwsVPCPeeringCreate(d *schema.ResourceData, meta interface{}) error {
+	ec2conn := meta.(*AWSClient).awsEC2conn
 
 	// Create the vpc peering connection
 	createOpts := &ec2.CreateVPCPeeringConnectionInput{
@@ -57,8 +57,8 @@ func resourceAwsVpcPeeringCreate(d *schema.ResourceData, meta interface{}) error
 		PeerVPCID:   aws.String(d.Get("peer_vpc_id").(string)),
 		VPCID:       aws.String(d.Get("vpc_id").(string)),
 	}
-	log.Printf("[DEBUG] VpcPeeringCreate create config: %#v", createOpts)
-	resp, err := conn.CreateVPCPeeringConnection(createOpts)
+	log.Printf("[DEBUG] VPCPeeringCreate create config: %#v", createOpts)
+	resp, err := ec2conn.CreateVPCPeeringConnection(createOpts)
 	if err != nil {
 		return fmt.Errorf("Error creating vpc peering connection: %s", err)
 	}
@@ -66,7 +66,7 @@ func resourceAwsVpcPeeringCreate(d *schema.ResourceData, meta interface{}) error
 	// Get the ID and store it
 	rt := resp.VPCPeeringConnection
 	d.SetId(*rt.VPCPeeringConnectionID)
-	log.Printf("[INFO] Vpc Peering Connection ID: %s", d.Id())
+	log.Printf("[INFO] VPC Peering Connection ID: %s", d.Id())
 
 	// Wait for the vpc peering connection to become available
 	log.Printf(
@@ -75,7 +75,7 @@ func resourceAwsVpcPeeringCreate(d *schema.ResourceData, meta interface{}) error
 	stateConf := &resource.StateChangeConf{
 		Pending: []string{"pending"},
 		Target:  "pending-acceptance",
-		Refresh: resourceAwsVpcPeeringConnectionStateRefreshFunc(ec2conn, d.Id()),
+		Refresh: resourceAwsVPCPeeringConnectionStateRefreshFunc(ec2conn, d.Id()),
 		Timeout: 1 * time.Minute,
 	}
 	if _, err := stateConf.WaitForState(); err != nil {
@@ -84,12 +84,12 @@ func resourceAwsVpcPeeringCreate(d *schema.ResourceData, meta interface{}) error
 			d.Id(), err)
 	}
 
-	return resourceAwsVpcPeeringUpdate(d, meta)
+	return resourceAwsVPCPeeringUpdate(d, meta)
 }
 
-func resourceAwsVpcPeeringRead(d *schema.ResourceData, meta interface{}) error {
-	conn := meta.(*AWSClient).ec2conn
-	pcRaw, _, err := resourceAwsVpcPeeringConnectionStateRefreshFunc(conn, d.Id())()
+func resourceAwsVPCPeeringRead(d *schema.ResourceData, meta interface{}) error {
+	ec2conn := meta.(*AWSClient).awsEC2conn
+	pcRaw, _, err := resourceAwsVPCPeeringConnectionStateRefreshFunc(ec2conn, d.Id())()
 	if err != nil {
 		return err
 	}
@@ -109,9 +109,9 @@ func resourceAwsVpcPeeringRead(d *schema.ResourceData, meta interface{}) error {
 	return nil
 }
 
-func resourceVpcPeeringConnectionAccept(conn *ec2.EC2, id string) (string, error) {
+func resourceVPCPeeringConnectionAccept(conn *ec2.EC2, id string) (string, error) {
 
-	log.Printf("[INFO] Accept Vpc Peering Connection with id: %s", id)
+	log.Printf("[INFO] Accept VPC Peering Connection with id: %s", id)
 
 	req := &ec2.AcceptVPCPeeringConnectionRequest{
 		VPCPeeringConnectionID: aws.String(id),
@@ -122,8 +122,8 @@ func resourceVpcPeeringConnectionAccept(conn *ec2.EC2, id string) (string, error
 	return *pc.Status.Code, err
 }
 
-func resourceAwsVpcPeeringUpdate(d *schema.ResourceData, meta interface{}) error {
-	conn := meta.(*AWSClient).ec2conn
+func resourceAwsVPCPeeringUpdate(d *schema.ResourceData, meta interface{}) error {
+	ec2conn := meta.(*AWSClient).awsEC2conn
 
 	if err := setTagsSDK(conn, d); err != nil {
 		return err
@@ -133,7 +133,7 @@ func resourceAwsVpcPeeringUpdate(d *schema.ResourceData, meta interface{}) error
 
 	if _, ok := d.GetOk("auto_accept"); ok {
 
-		pcRaw, _, err := resourceAwsVpcPeeringConnectionStateRefreshFunc(ec2conn, d.Id())()
+		pcRaw, _, err := resourceAwsVPCPeeringConnectionStateRefreshFunc(ec2conn, d.Id())()
 
 		if err != nil {
 			return err
@@ -146,10 +146,10 @@ func resourceAwsVpcPeeringUpdate(d *schema.ResourceData, meta interface{}) error
 
 		if *pc.Status.Code == "pending-acceptance" {
 
-			status, err := resourceVpcPeeringConnectionAccept(ec2conn, d.Id())
+			status, err := resourceVPCPeeringConnectionAccept(ec2conn, d.Id())
 
 			log.Printf(
-				"[DEBUG] Vpc Peering connection accept status %s",
+				"[DEBUG] VPC Peering connection accept status %s",
 				status)
 			if err != nil {
 				return err
@@ -157,11 +157,11 @@ func resourceAwsVpcPeeringUpdate(d *schema.ResourceData, meta interface{}) error
 		}
 	}
 
-	return resourceAwsVpcPeeringRead(d, meta)
+	return resourceAwsVPCPeeringRead(d, meta)
 }
 
-func resourceAwsVpcPeeringDelete(d *schema.ResourceData, meta interface{}) error {
-	conn := meta.(*AWSClient).ec2conn
+func resourceAwsVPCPeeringDelete(d *schema.ResourceData, meta interface{}) error {
+	ec2conn := meta.(*AWSClient).awsEC2conn
 
 	_, err := conn.DeleteVPCPeeringConnection(
 		&ec2.DeleteVPCPeeringConnectionInput{
@@ -170,9 +170,9 @@ func resourceAwsVpcPeeringDelete(d *schema.ResourceData, meta interface{}) error
 	return err
 }
 
-// resourceAwsVpcPeeringConnectionStateRefreshFunc returns a resource.StateRefreshFunc that is used to watch
-// a VpcPeeringConnection.
-func resourceAwsVpcPeeringConnectionStateRefreshFunc(conn *ec2.EC2, id string) resource.StateRefreshFunc {
+// resourceAwsVPCPeeringConnectionStateRefreshFunc returns a resource.StateRefreshFunc that is used to watch
+// a VPCPeeringConnection.
+func resourceAwsVPCPeeringConnectionStateRefreshFunc(conn *ec2.EC2, id string) resource.StateRefreshFunc {
 	return func() (interface{}, string, error) {
 
 		resp, err := conn.DescribeVPCPeeringConnections(&ec2.DescribeVPCPeeringConnectionsInput{
@@ -182,7 +182,7 @@ func resourceAwsVpcPeeringConnectionStateRefreshFunc(conn *ec2.EC2, id string) r
 			if ec2err, ok := err.(aws.APIError); ok && ec2err.Code == "InvalidVpcPeeringConnectionID.NotFound" {
 				resp = nil
 			} else {
-				log.Printf("Error on VpcPeeringConnectionStateRefresh: %s", err)
+				log.Printf("Error on VPCPeeringConnectionStateRefresh: %s", err)
 				return nil, "", err
 			}
 		}
