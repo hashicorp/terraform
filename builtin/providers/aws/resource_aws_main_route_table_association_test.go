@@ -71,9 +71,9 @@ func testAccCheckMainRouteTableAssociation(
 			return err
 		}
 
-		if mainAssociation.AssociationId != rs.Primary.ID {
+		if *mainAssociation.RouteTableAssociationID != rs.Primary.ID {
 			return fmt.Errorf("Found wrong main association: %s",
-				mainAssociation.AssociationId)
+				*mainAssociation.RouteTableAssociationID)
 		}
 
 		return nil

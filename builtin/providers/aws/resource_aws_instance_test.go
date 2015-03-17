@@ -5,24 +5,25 @@ import (
 	"reflect"
 	"testing"
 
+	"github.com/hashicorp/aws-sdk-go/aws"
+	"github.com/hashicorp/aws-sdk-go/gen/ec2"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/terraform"
-	"github.com/mitchellh/goamz/ec2"
 )
 
 func TestAccAWSInstance_normal(t *testing.T) {
 	var v ec2.Instance
 
 	testCheck := func(*terraform.State) error {
-		if v.AvailZone != "us-west-2a" {
-			return fmt.Errorf("bad availability zone: %#v", v.AvailZone)
+		if *v.Placement.AvailabilityZone != "us-west-2a" {
+			return fmt.Errorf("bad availability zone: %#v", *v.Placement.AvailabilityZone)
 		}
 
 		if len(v.SecurityGroups) == 0 {
 			return fmt.Errorf("no security groups: %#v", v.SecurityGroups)
 		}
-		if v.SecurityGroups[0].Name != "tf_test_foo" {
+		if *v.SecurityGroups[0].GroupName != "tf_test_foo" {
 			return fmt.Errorf("no security groups: %#v", v.SecurityGroups)
 		}
 
@@ -73,9 +74,9 @@ func TestAccAWSInstance_blockDevices(t *testing.T) {
 		return func(*terraform.State) error {
 
 			// Map out the block devices by name, which should be unique.
-			blockDevices := make(map[string]ec2.BlockDevice)
-			for _, blockDevice := range v.BlockDevices {
-				blockDevices[blockDevice.DeviceName] = blockDevice
+			blockDevices := make(map[string]ec2.InstanceBlockDeviceMapping)
+			for _, blockDevice := range v.BlockDeviceMappings {
+				blockDevices[*blockDevice.DeviceName] = blockDevice
 			}
 
 			// Check if the root block device exists.
@@ -147,8 +148,8 @@ func TestAccAWSInstance_sourceDestCheck(t *testing.T) {
 
 	testCheck := func(enabled bool) resource.TestCheckFunc {
 		return func(*terraform.State) error {
-			if v.SourceDestCheck != enabled {
-				return fmt.Errorf("bad source_dest_check: %#v", v.SourceDestCheck)
+			if *v.SourceDestCheck != enabled {
+				return fmt.Errorf("bad source_dest_check: %#v", *v.SourceDestCheck)
 			}
 
 			return nil
@@ -206,7 +207,26 @@ func TestAccAWSInstance_vpc(t *testing.T) {
 	})
 }
 
-func TestAccInstance_tags(t *testing.T) {
+func TestAccInstance_NetworkInstanceSecurityGroups(t *testing.T) {
+	var v ec2.Instance
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckInstanceDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccInstanceNetworkInstanceSecurityGroups,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckInstanceExists(
+						"aws_instance.foo_instance", &v),
+				),
+			},
+		},
+	})
+}
+
+func TestAccAWSInstance_tags(t *testing.T) {
 	var v ec2.Instance
 
 	resource.Test(t, resource.TestCase{
@@ -236,13 +256,13 @@ func TestAccInstance_tags(t *testing.T) {
 	})
 }
 
-func TestAccInstance_privateIP(t *testing.T) {
+func TestAccAWSInstance_privateIP(t *testing.T) {
 	var v ec2.Instance
 
 	testCheckPrivateIP := func() resource.TestCheckFunc {
 		return func(*terraform.State) error {
-			if v.PrivateIpAddress != "10.1.1.42" {
-				return fmt.Errorf("bad private IP: %s", v.PrivateIpAddress)
+			if *v.PrivateIPAddress != "10.1.1.42" {
+				return fmt.Errorf("bad private IP: %s", *v.PrivateIPAddress)
 			}
 
 			return nil
@@ -265,13 +285,13 @@ func TestAccInstance_privateIP(t *testing.T) {
 	})
 }
 
-func TestAccInstance_associatePublicIPAndPrivateIP(t *testing.T) {
+func TestAccAWSInstance_associatePublicIPAndPrivateIP(t *testing.T) {
 	var v ec2.Instance
 
 	testCheckPrivateIP := func() resource.TestCheckFunc {
 		return func(*terraform.State) error {
-			if v.PrivateIpAddress != "10.1.1.42" {
-				return fmt.Errorf("bad private IP: %s", v.PrivateIpAddress)
+			if *v.PrivateIPAddress != "10.1.1.42" {
+				return fmt.Errorf("bad private IP: %s", *v.PrivateIPAddress)
 			}
 
 			return nil
@@ -303,8 +323,9 @@ func testAccCheckInstanceDestroy(s *terraform.State) error {
 		}
 
 		// Try to find the resource
-		resp, err := conn.Instances(
-			[]string{rs.Primary.ID}, ec2.NewFilter())
+		resp, err := conn.DescribeInstances(&ec2.DescribeInstancesRequest{
+			InstanceIDs: []string{rs.Primary.ID},
+		})
 		if err == nil {
 			if len(resp.Reservations) > 0 {
 				return fmt.Errorf("still exist.")
@@ -314,7 +335,7 @@ func testAccCheckInstanceDestroy(s *terraform.State) error {
 		}
 
 		// Verify the error is what we want
-		ec2err, ok := err.(*ec2.Error)
+		ec2err, ok := err.(aws.APIError)
 		if !ok {
 			return err
 		}
@@ -338,8 +359,9 @@ func testAccCheckInstanceExists(n string, i *ec2.Instance) resource.TestCheckFun
 		}
 
 		conn := testAccProvider.Meta().(*AWSClient).ec2conn
-		resp, err := conn.Instances(
-			[]string{rs.Primary.ID}, ec2.NewFilter())
+		resp, err := conn.DescribeInstances(&ec2.DescribeInstancesRequest{
+			InstanceIDs: []string{rs.Primary.ID},
+		})
 		if err != nil {
 			return err
 		}
@@ -389,7 +411,7 @@ resource "aws_instance" "foo" {
 
 	instance_type = "m1.small"
 	security_groups = ["${aws_security_group.tf_test_foo.name}"]
-	user_data = "foo"
+	user_data = "foo:-with-character's"
 }
 `
 
@@ -528,5 +550,51 @@ resource "aws_instance" "foo" {
 	subnet_id = "${aws_subnet.foo.id}"
 	associate_public_ip_address = true
 	private_ip = "10.1.1.42"
+}
+`
+
+const testAccInstanceNetworkInstanceSecurityGroups = `
+resource "aws_internet_gateway" "gw" {
+  vpc_id = "${aws_vpc.foo.id}"
+}
+
+resource "aws_vpc" "foo" {
+  cidr_block = "10.1.0.0/16"
+	tags {
+		Name = "tf-network-test"
+	}
+}
+
+resource "aws_security_group" "tf_test_foo" {
+  name = "tf_test_foo"
+  description = "foo"
+  vpc_id="${aws_vpc.foo.id}"
+
+  ingress {
+    protocol = "icmp"
+    from_port = -1
+    to_port = -1
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+}
+
+resource "aws_subnet" "foo" {
+  cidr_block = "10.1.1.0/24"
+  vpc_id = "${aws_vpc.foo.id}"
+}
+
+resource "aws_instance" "foo_instance" {
+  ami = "ami-21f78e11"
+  instance_type = "t1.micro"
+  security_groups = ["${aws_security_group.tf_test_foo.id}"]
+  subnet_id = "${aws_subnet.foo.id}"
+  associate_public_ip_address = true
+	depends_on = ["aws_internet_gateway.gw"]
+}
+
+resource "aws_eip" "foo_eip" {
+  instance = "${aws_instance.foo_instance.id}"
+  vpc = true
+	depends_on = ["aws_internet_gateway.gw"]
 }
 `

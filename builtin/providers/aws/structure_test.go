@@ -5,12 +5,12 @@ import (
 	"testing"
 
 	"github.com/hashicorp/aws-sdk-go/aws"
+	ec2 "github.com/hashicorp/aws-sdk-go/gen/ec2"
 	"github.com/hashicorp/aws-sdk-go/gen/elb"
 	"github.com/hashicorp/aws-sdk-go/gen/rds"
 	"github.com/hashicorp/terraform/flatmap"
 	"github.com/hashicorp/terraform/helper/hashcode"
 	"github.com/hashicorp/terraform/helper/schema"
-	"github.com/mitchellh/goamz/ec2"
 )
 
 // Returns test configuration
@@ -61,120 +61,58 @@ func TestExpandIPPerms(t *testing.T) {
 	}
 	perms := expandIPPerms("foo", expanded)
 
-	expected := []ec2.IPPerm{
-		ec2.IPPerm{
-			Protocol:  "icmp",
-			FromPort:  1,
-			ToPort:    -1,
-			SourceIPs: []string{"0.0.0.0/0"},
-			SourceGroups: []ec2.UserSecurityGroup{
-				ec2.UserSecurityGroup{
-					OwnerId: "foo",
-					Id:      "sg-22222",
+	expected := []ec2.IPPermission{
+		ec2.IPPermission{
+			IPProtocol: aws.String("icmp"),
+			FromPort:   aws.Integer(1),
+			ToPort:     aws.Integer(-1),
+			IPRanges:   []ec2.IPRange{ec2.IPRange{aws.String("0.0.0.0/0")}},
+			UserIDGroupPairs: []ec2.UserIDGroupPair{
+				ec2.UserIDGroupPair{
+					UserID:  aws.String("foo"),
+					GroupID: aws.String("sg-22222"),
 				},
-				ec2.UserSecurityGroup{
-					Id: "sg-11111",
+				ec2.UserIDGroupPair{
+					GroupID: aws.String("sg-22222"),
 				},
 			},
 		},
-		ec2.IPPerm{
-			Protocol: "icmp",
-			FromPort: 1,
-			ToPort:   -1,
-			SourceGroups: []ec2.UserSecurityGroup{
-				ec2.UserSecurityGroup{
-					Id: "foo",
+		ec2.IPPermission{
+			IPProtocol: aws.String("icmp"),
+			FromPort:   aws.Integer(1),
+			ToPort:     aws.Integer(-1),
+			UserIDGroupPairs: []ec2.UserIDGroupPair{
+				ec2.UserIDGroupPair{
+					UserID: aws.String("foo"),
 				},
 			},
 		},
 	}
 
-	if !reflect.DeepEqual(perms, expected) {
+	exp := expected[0]
+	perm := perms[0]
+
+	if *exp.FromPort != *perm.FromPort {
 		t.Fatalf(
 			"Got:\n\n%#v\n\nExpected:\n\n%#v\n",
-			perms[0],
-			expected)
+			*perm.FromPort,
+			*exp.FromPort)
 	}
 
-}
-
-func TestFlattenIPPerms(t *testing.T) {
-	cases := []struct {
-		Input  []ec2.IPPerm
-		Output []map[string]interface{}
-	}{
-		{
-			Input: []ec2.IPPerm{
-				ec2.IPPerm{
-					Protocol:  "icmp",
-					FromPort:  1,
-					ToPort:    -1,
-					SourceIPs: []string{"0.0.0.0/0"},
-					SourceGroups: []ec2.UserSecurityGroup{
-						ec2.UserSecurityGroup{
-							Id: "sg-11111",
-						},
-					},
-				},
-			},
-
-			Output: []map[string]interface{}{
-				map[string]interface{}{
-					"protocol":        "icmp",
-					"from_port":       1,
-					"to_port":         -1,
-					"cidr_blocks":     []string{"0.0.0.0/0"},
-					"security_groups": []string{"sg-11111"},
-				},
-			},
-		},
-
-		{
-			Input: []ec2.IPPerm{
-				ec2.IPPerm{
-					Protocol:     "icmp",
-					FromPort:     1,
-					ToPort:       -1,
-					SourceIPs:    []string{"0.0.0.0/0"},
-					SourceGroups: nil,
-				},
-			},
-
-			Output: []map[string]interface{}{
-				map[string]interface{}{
-					"protocol":    "icmp",
-					"from_port":   1,
-					"to_port":     -1,
-					"cidr_blocks": []string{"0.0.0.0/0"},
-				},
-			},
-		},
-		{
-			Input: []ec2.IPPerm{
-				ec2.IPPerm{
-					Protocol:  "icmp",
-					FromPort:  1,
-					ToPort:    -1,
-					SourceIPs: nil,
-				},
-			},
-
-			Output: []map[string]interface{}{
-				map[string]interface{}{
-					"protocol":  "icmp",
-					"from_port": 1,
-					"to_port":   -1,
-				},
-			},
-		},
+	if *exp.IPRanges[0].CIDRIP != *perm.IPRanges[0].CIDRIP {
+		t.Fatalf(
+			"Got:\n\n%#v\n\nExpected:\n\n%#v\n",
+			*perm.IPRanges[0].CIDRIP,
+			*exp.IPRanges[0].CIDRIP)
 	}
 
-	for _, tc := range cases {
-		output := flattenIPPerms(tc.Input)
-		if !reflect.DeepEqual(output, tc.Output) {
-			t.Fatalf("Input:\n\n%#v\n\nOutput:\n\n%#v", tc.Input, output)
-		}
+	if *exp.UserIDGroupPairs[0].UserID != *perm.UserIDGroupPairs[0].UserID {
+		t.Fatalf(
+			"Got:\n\n%#v\n\nExpected:\n\n%#v\n",
+			*perm.UserIDGroupPairs[0].UserID,
+			*exp.UserIDGroupPairs[0].UserID)
 	}
+
 }
 
 func TestExpandListeners(t *testing.T) {

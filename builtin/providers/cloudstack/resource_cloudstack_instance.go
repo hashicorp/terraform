@@ -95,16 +95,16 @@ func resourceCloudStackInstanceCreate(d *schema.ResourceData, meta interface{}) 
 		return e.Error()
 	}
 
-	// Retrieve the template UUID
-	templateid, e := retrieveUUID(cs, "template", d.Get("template").(string))
-	if e != nil {
-		return e.Error()
-	}
-
 	// Retrieve the zone object
 	zone, _, err := cs.Zone.GetZoneByName(d.Get("zone").(string))
 	if err != nil {
 		return err
+	}
+
+	// Retrieve the template UUID
+	templateid, e := retrieveTemplateUUID(cs, zone.Id, d.Get("template").(string))
+	if e != nil {
+		return e.Error()
 	}
 
 	// Create a new parameter struct

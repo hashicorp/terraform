@@ -3,11 +3,13 @@ package aws
 import (
 	"log"
 
+	"github.com/hashicorp/aws-sdk-go/aws"
+	"github.com/hashicorp/aws-sdk-go/gen/ec2"
 	"github.com/hashicorp/terraform/helper/schema"
-	"github.com/mitchellh/goamz/ec2"
 )
 
 // tagsSchema returns the schema to use for tags.
+//
 func tagsSchema() *schema.Schema {
 	return &schema.Schema{
 		Type:     schema.TypeMap,
@@ -27,13 +29,21 @@ func setTags(conn *ec2.EC2, d *schema.ResourceData) error {
 		// Set tags
 		if len(remove) > 0 {
 			log.Printf("[DEBUG] Removing tags: %#v", remove)
-			if _, err := conn.DeleteTags([]string{d.Id()}, remove); err != nil {
+			err := conn.DeleteTags(&ec2.DeleteTagsRequest{
+				Resources: []string{d.Id()},
+				Tags:      remove,
+			})
+			if err != nil {
 				return err
 			}
 		}
 		if len(create) > 0 {
 			log.Printf("[DEBUG] Creating tags: %#v", create)
-			if _, err := conn.CreateTags([]string{d.Id()}, create); err != nil {
+			err := conn.CreateTags(&ec2.CreateTagsRequest{
+				Resources: []string{d.Id()},
+				Tags:      create,
+			})
+			if err != nil {
 				return err
 			}
 		}
@@ -49,14 +59,14 @@ func diffTags(oldTags, newTags []ec2.Tag) ([]ec2.Tag, []ec2.Tag) {
 	// First, we're creating everything we have
 	create := make(map[string]interface{})
 	for _, t := range newTags {
-		create[t.Key] = t.Value
+		create[*t.Key] = *t.Value
 	}
 
 	// Build the list of what to remove
 	var remove []ec2.Tag
 	for _, t := range oldTags {
-		old, ok := create[t.Key]
-		if !ok || old != t.Value {
+		old, ok := create[*t.Key]
+		if !ok || old != *t.Value {
 			// Delete it!
 			remove = append(remove, t)
 		}
@@ -70,8 +80,8 @@ func tagsFromMap(m map[string]interface{}) []ec2.Tag {
 	result := make([]ec2.Tag, 0, len(m))
 	for k, v := range m {
 		result = append(result, ec2.Tag{
-			Key:   k,
-			Value: v.(string),
+			Key:   aws.String(k),
+			Value: aws.String(v.(string)),
 		})
 	}
 
@@ -82,7 +92,7 @@ func tagsFromMap(m map[string]interface{}) []ec2.Tag {
 func tagsToMap(ts []ec2.Tag) map[string]string {
 	result := make(map[string]string)
 	for _, t := range ts {
-		result[t.Key] = t.Value
+		result[*t.Key] = *t.Value
 	}
 
 	return result

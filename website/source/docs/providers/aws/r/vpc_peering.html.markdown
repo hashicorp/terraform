@@ -56,4 +56,4 @@ The following attributes are exported:
 
 
 ## Notes
-You still have to accept the peering with the aws console, aws-cli or goamz
+You still have to accept the peering with the aws console, aws-cli or aws-sdk-go.

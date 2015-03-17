@@ -12,6 +12,9 @@ bin: generate
 dev: generate
 	@TF_DEV=1 sh -c "'$(CURDIR)/scripts/build.sh'"
 
+quickdev: generate
+	@TF_QUICKDEV=1 TF_DEV=1 sh -c "'$(CURDIR)/scripts/build.sh'"
+
 # test runs the unit tests and vets the code
 test: generate
 	TF_ACC= go test $(TEST) $(TESTARGS) -timeout=30s -parallel=4
