@@ -3,6 +3,7 @@ package schema
 import (
 	"errors"
 	"fmt"
+	"strconv"
 
 	"github.com/hashicorp/terraform/terraform"
 )
@@ -23,6 +24,31 @@ type Resource struct {
 	// as data that might be computed in the process of creating this
 	// resource.
 	Schema map[string]*Schema
+
+	// SchemaVersion is the version number for this resource's Schema
+	// definition. The current SchemaVersion stored in the state for each
+	// resource. Provider authors can increment this version number
+	// when Schema semantics change. If the State's SchemaVersion is less than
+	// the current SchemaVersion, the InstanceState is yielded to the
+	// MigrateState callback, where the provider can make whatever changes it
+	// needs to update the state to be compatible to the latest version of the
+	// Schema.
+	//
+	// When unset, SchemaVersion defaults to 0, so provider authors can start
+	// their Versioning at any integer >= 1
+	SchemaVersion int
+
+	// MigrateState is responsible for updating an InstanceState with an old
+	// version to the format expected by the current version of the Schema.
+	//
+	// It is called during Refresh if the State's stored SchemaVersion is less
+	// than the current SchemaVersion of the Resource.
+	//
+	// The function is yielded the state's stored SchemaVersion and a pointer to
+	// the InstanceState that needs updating, as well as the configured
+	// provider's configured meta interface{}, in case the migration process
+	// needs to make any remote API calls.
+	MigrateState StateMigrateFunc
 
 	// The functions below are the CRUD operations for this resource.
 	//
@@ -68,6 +94,10 @@ type DeleteFunc func(*ResourceData, interface{}) error
 
 // See Resource documentation.
 type ExistsFunc func(*ResourceData, interface{}) (bool, error)
+
+// See Resource documentation.
+type StateMigrateFunc func(
+	int, *terraform.InstanceState, interface{}) (*terraform.InstanceState, error)
 
 // Apply creates, updates, and/or deletes a resource.
 func (r *Resource) Apply(
@@ -158,6 +188,14 @@ func (r *Resource) Refresh(
 		}
 	}
 
+	needsMigration, stateSchemaVersion := r.checkSchemaVersion(s)
+	if needsMigration && r.MigrateState != nil {
+		s, err := r.MigrateState(stateSchemaVersion, s, meta)
+		if err != nil {
+			return s, err
+		}
+	}
+
 	data, err := schemaMap(r.Schema).Data(s, nil)
 	if err != nil {
 		return s, err
@@ -167,6 +205,13 @@ func (r *Resource) Refresh(
 	state := data.State()
 	if state != nil && state.ID == "" {
 		state = nil
+	}
+
+	if state != nil && r.SchemaVersion > 0 {
+		if state.Meta == nil {
+			state.Meta = make(map[string]string)
+		}
+		state.Meta["schema_version"] = strconv.Itoa(r.SchemaVersion)
 	}
 
 	return state, err
@@ -188,4 +233,11 @@ func (r *Resource) InternalValidate() error {
 	}
 
 	return schemaMap(r.Schema).InternalValidate()
+}
+
+// Determines if a given InstanceState needs to be migrated by checking the
+// stored version number with the current SchemaVersion
+func (r *Resource) checkSchemaVersion(is *terraform.InstanceState) (bool, int) {
+	stateSchemaVersion, _ := strconv.Atoi(is.Meta["schema_version"])
+	return stateSchemaVersion < r.SchemaVersion, stateSchemaVersion
 }

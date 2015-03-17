@@ -98,6 +98,7 @@ func TestAccInternetGateway_tags(t *testing.T) {
 				Config: testAccCheckInternetGatewayConfigTags,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckInternetGatewayExists("aws_internet_gateway.foo", &v),
+					testAccCheckTags(&v.Tags, "foo", "bar"),
 				),
 			},
 
@@ -105,8 +106,8 @@ func TestAccInternetGateway_tags(t *testing.T) {
 				Config: testAccCheckInternetGatewayConfigTagsUpdate,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckInternetGatewayExists("aws_internet_gateway.foo", &v),
-					testAccCheckTagsSDK(&v.Tags, "foo", ""),
-					testAccCheckTagsSDK(&v.Tags, "bar", "baz"),
+					testAccCheckTags(&v.Tags, "foo", ""),
+					testAccCheckTags(&v.Tags, "bar", "baz"),
 				),
 			},
 		},
@@ -114,7 +115,7 @@ func TestAccInternetGateway_tags(t *testing.T) {
 }
 
 func testAccCheckInternetGatewayDestroy(s *terraform.State) error {
-	ec2conn := testAccProvider.Meta().(*AWSClient).awsEC2conn
+	ec2conn := testAccProvider.Meta().(*AWSClient).ec2conn
 
 	for _, rs := range s.RootModule().Resources {
 		if rs.Type != "aws_internet_gateway" {
@@ -157,7 +158,7 @@ func testAccCheckInternetGatewayExists(n string, ig *ec2.InternetGateway) resour
 			return fmt.Errorf("No ID is set")
 		}
 
-		ec2conn := testAccProvider.Meta().(*AWSClient).awsEC2conn
+		ec2conn := testAccProvider.Meta().(*AWSClient).ec2conn
 		resp, err := ec2conn.DescribeInternetGateways(&ec2.DescribeInternetGatewaysRequest{
 			InternetGatewayIDs: []string{rs.Primary.ID},
 		})

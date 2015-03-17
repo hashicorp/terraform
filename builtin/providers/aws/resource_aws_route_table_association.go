@@ -4,8 +4,9 @@ import (
 	"fmt"
 	"log"
 
+	"github.com/hashicorp/aws-sdk-go/aws"
+	"github.com/hashicorp/aws-sdk-go/gen/ec2"
 	"github.com/hashicorp/terraform/helper/schema"
-	"github.com/mitchellh/goamz/ec2"
 )
 
 func resourceAwsRouteTableAssociation() *schema.Resource {
@@ -38,16 +39,17 @@ func resourceAwsRouteTableAssociationCreate(d *schema.ResourceData, meta interfa
 		d.Get("subnet_id").(string),
 		d.Get("route_table_id").(string))
 
-	resp, err := ec2conn.AssociateRouteTable(
-		d.Get("route_table_id").(string),
-		d.Get("subnet_id").(string))
+	resp, err := ec2conn.AssociateRouteTable(&ec2.AssociateRouteTableRequest{
+		RouteTableID: aws.String(d.Get("route_table_id").(string)),
+		SubnetID:     aws.String(d.Get("subnet_id").(string)),
+	})
 
 	if err != nil {
 		return err
 	}
 
 	// Set the ID and return
-	d.SetId(resp.AssociationId)
+	d.SetId(*resp.AssociationID)
 	log.Printf("[INFO] Association ID: %s", d.Id())
 
 	return nil
@@ -70,9 +72,9 @@ func resourceAwsRouteTableAssociationRead(d *schema.ResourceData, meta interface
 	// Inspect that the association exists
 	found := false
 	for _, a := range rt.Associations {
-		if a.AssociationId == d.Id() {
+		if *a.RouteTableAssociationID == d.Id() {
 			found = true
-			d.Set("subnet_id", a.SubnetId)
+			d.Set("subnet_id", *a.SubnetID)
 			break
 		}
 	}
@@ -93,12 +95,14 @@ func resourceAwsRouteTableAssociationUpdate(d *schema.ResourceData, meta interfa
 		d.Get("subnet_id").(string),
 		d.Get("route_table_id").(string))
 
-	resp, err := ec2conn.ReassociateRouteTable(
-		d.Id(),
-		d.Get("route_table_id").(string))
+	req := &ec2.ReplaceRouteTableAssociationRequest{
+		AssociationID: aws.String(d.Id()),
+		RouteTableID:  aws.String(d.Get("route_table_id").(string)),
+	}
+	resp, err := ec2conn.ReplaceRouteTableAssociation(req)
 
 	if err != nil {
-		ec2err, ok := err.(*ec2.Error)
+		ec2err, ok := err.(aws.APIError)
 		if ok && ec2err.Code == "InvalidAssociationID.NotFound" {
 			// Not found, so just create a new one
 			return resourceAwsRouteTableAssociationCreate(d, meta)
@@ -108,7 +112,7 @@ func resourceAwsRouteTableAssociationUpdate(d *schema.ResourceData, meta interfa
 	}
 
 	// Update the ID
-	d.SetId(resp.AssociationId)
+	d.SetId(*resp.NewAssociationID)
 	log.Printf("[INFO] Association ID: %s", d.Id())
 
 	return nil
@@ -118,8 +122,11 @@ func resourceAwsRouteTableAssociationDelete(d *schema.ResourceData, meta interfa
 	ec2conn := meta.(*AWSClient).ec2conn
 
 	log.Printf("[INFO] Deleting route table association: %s", d.Id())
-	if _, err := ec2conn.DisassociateRouteTable(d.Id()); err != nil {
-		ec2err, ok := err.(*ec2.Error)
+	err := ec2conn.DisassociateRouteTable(&ec2.DisassociateRouteTableRequest{
+		AssociationID: aws.String(d.Id()),
+	})
+	if err != nil {
+		ec2err, ok := err.(aws.APIError)
 		if ok && ec2err.Code == "InvalidAssociationID.NotFound" {
 			return nil
 		}

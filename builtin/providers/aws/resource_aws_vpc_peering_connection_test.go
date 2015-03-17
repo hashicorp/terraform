@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/hashicorp/aws-sdk-go/gen/ec2"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
-	"github.com/mitchellh/goamz/ec2"
 )
 
 func TestAccAWSVPCPeeringConnection_normal(t *testing.T) {
@@ -35,10 +35,13 @@ func testAccCheckAWSVpcPeeringConnectionDestroy(s *terraform.State) error {
 			continue
 		}
 
-		describe, err := conn.DescribeVpcPeeringConnection([]string{rs.Primary.ID}, ec2.NewFilter())
+		describe, err := conn.DescribeVPCPeeringConnections(
+			&ec2.DescribeVPCPeeringConnectionsRequest{
+				VPCPeeringConnectionIDs: []string{rs.Primary.ID},
+			})
 
 		if err == nil {
-			if len(describe.VpcPeeringConnections) != 0 {
+			if len(describe.VPCPeeringConnections) != 0 {
 				return fmt.Errorf("vpc peering connection still exists")
 			}
 		}
@@ -68,11 +71,10 @@ resource "aws_vpc" "foo" {
 }
 
 resource "aws_vpc" "bar" {
-    cidr_block = "10.0.1.0/16"
+    cidr_block = "10.1.0.0/16"
 }
 
 resource "aws_vpc_peering_connection" "foo" {
-    peer_owner_id = "12345"
     vpc_id = "${aws_vpc.foo.id}"
     peer_vpc_id = "${aws_vpc.bar.id}"
 }

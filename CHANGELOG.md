@@ -30,6 +30,7 @@ IMPROVEMENTS:
       info. [GH-1029]
   * **New config function: `split`** - Split a value based on a delimiter.
       This is useful for faking lists as parameters to modules.
+  * **New resource: `digitalocean_ssh_key`** [GH-1074]
   * core: The serial of the state is only updated if there is an actual
       change. This will lower the amount of state changing on things
       like refresh.
@@ -48,7 +49,8 @@ BUG FIXES:
       "resource.0" would ignore the latter completely. [GH-1086]
   * providers/aws: manually deleted VPC removes it from the state
   * providers/aws: `source_dest_check` regression fixed (now works). [GH-1020]
-  * providers/aws: Longer wait times for DB instances
+  * providers/aws: Longer wait times for DB instances.
+  * providers/aws: Longer wait times for route53 records (30 mins). [GH-1164]
   * providers/digitalocean: Waits until droplet is ready to be destroyed [GH-1057]
   * providers/digitalocean: More lenient about 404's while waiting [GH-1062]
   * providers/google: Network data in state was not being stored. [GH-1095]
