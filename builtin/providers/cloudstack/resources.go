@@ -36,6 +36,19 @@ func retrieveUUID(cs *cloudstack.CloudStackClient, name, value string) (uuid str
 		uuid, err = cs.ServiceOffering.GetServiceOfferingID(value)
 	case "network_offering":
 		uuid, err = cs.NetworkOffering.GetNetworkOfferingID(value)
+	case "os_type":
+		p := cs.GuestOS.NewListOsTypesParams()
+		p.SetDescription(value)
+		o, e := cs.GuestOS.ListOsTypes(p)
+		if e != nil {
+			err = e
+			break
+		}
+		if o.Count == 1 {
+			uuid = o.OsTypes[0].Id
+			break
+		}
+		err = fmt.Errorf("Could not find UUID of OS Type: %s", value)
 	case "vpc_offering":
 		uuid, err = cs.VPC.GetVPCOfferingID(value)
 	case "vpc":
