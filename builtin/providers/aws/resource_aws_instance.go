@@ -496,7 +496,7 @@ func resourceAwsInstanceRead(d *schema.ResourceData, meta interface{}) error {
 	// we use IDs if we're in a VPC. However, if we previously had an
 	// all-name list of security groups, we use names. Or, if we had any
 	// IDs, we use IDs.
-	useID := *instance.SubnetID != ""
+	useID := instance.SubnetID != nil && *instance.SubnetID != ""
 	if v := d.Get("security_groups"); v != nil {
 		match := false
 		for _, v := range v.(*schema.Set).List() {
@@ -569,18 +569,19 @@ func resourceAwsInstanceRead(d *schema.ResourceData, meta interface{}) error {
 
 func resourceAwsInstanceUpdate(d *schema.ResourceData, meta interface{}) error {
 	ec2conn := meta.(*AWSClient).ec2conn
-	opts := new(ec2.ModifyInstanceAttributeRequest)
 
-	log.Printf("[INFO] Modifying instance %s: %#v", d.Id(), opts)
-	err := ec2conn.ModifyInstanceAttribute(&ec2.ModifyInstanceAttributeRequest{
-		InstanceID: aws.String(d.Id()),
-		SourceDestCheck: &ec2.AttributeBooleanValue{
-			Value: aws.Boolean(d.Get("source_dest_check").(bool)),
-		},
-	})
-
-	if err != nil {
-		return err
+	// SourceDestCheck can only be set on VPC instances
+	if d.Get("subnet_id").(string) != "" {
+		log.Printf("[INFO] Modifying instance %s", d.Id())
+		err := ec2conn.ModifyInstanceAttribute(&ec2.ModifyInstanceAttributeRequest{
+			InstanceID: aws.String(d.Id()),
+			SourceDestCheck: &ec2.AttributeBooleanValue{
+				Value: aws.Boolean(d.Get("source_dest_check").(bool)),
+			},
+		})
+		if err != nil {
+			return err
+		}
 	}
 
 	// TODO(mitchellh): wait for the attributes we modified to
