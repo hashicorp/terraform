@@ -285,6 +285,7 @@ func resourceAwsSecurityGroupRuleHash(v interface{}) int {
 	buf.WriteString(fmt.Sprintf("%d-", m["from_port"].(int)))
 	buf.WriteString(fmt.Sprintf("%d-", m["to_port"].(int)))
 	buf.WriteString(fmt.Sprintf("%s-", m["protocol"].(string)))
+	buf.WriteString(fmt.Sprintf("%t-", m["self"].(bool)))
 
 	// We need to make sure to sort the strings below so that we always
 	// generate the same hash code no matter what is in the set.
