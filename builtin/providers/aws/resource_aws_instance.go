@@ -264,7 +264,9 @@ func resourceAwsInstanceCreate(d *schema.ResourceData, meta interface{}) error {
 
 	placement := &ec2.Placement{
 		AvailabilityZone: aws.String(d.Get("availability_zone").(string)),
-		Tenancy:          aws.String(d.Get("tenancy").(string)),
+	}
+	if v := d.Get("tenancy").(string); v != "" {
+		placement.Tenancy = aws.String(v)
 	}
 
 	iam := &ec2.IAMInstanceProfileSpecification{
