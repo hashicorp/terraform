@@ -396,8 +396,8 @@ func resourceAwsSecurityGroupUpdateRules(
 		os := o.(*schema.Set)
 		ns := n.(*schema.Set)
 
-		remove := expandIPPerms(d.Id(), os.Difference(ns).List())
-		add := expandIPPerms(d.Id(), ns.Difference(os).List())
+		remove := expandIPPerms(group, os.Difference(ns).List())
+		add := expandIPPerms(group, ns.Difference(os).List())
 
 		// TODO: We need to handle partial state better in the in-between
 		// in this update.
@@ -452,6 +452,11 @@ func resourceAwsSecurityGroupUpdateRules(
 						GroupID:       group.GroupID,
 						IPPermissions: add,
 					}
+					if group.VPCID == nil || *group.VPCID == "" {
+						req.GroupID = nil
+						req.GroupName = group.GroupName
+					}
+
 					err = ec2conn.AuthorizeSecurityGroupIngress(req)
 				}
 

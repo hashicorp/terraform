@@ -39,7 +39,10 @@ func expandListeners(configured []interface{}) ([]elb.Listener, error) {
 
 // Takes the result of flatmap.Expand for an array of ingress/egress
 // security group rules and returns EC2 API compatible objects
-func expandIPPerms(id string, configured []interface{}) []ec2.IPPermission {
+func expandIPPerms(
+	group ec2.SecurityGroup, configured []interface{}) []ec2.IPPermission {
+	vpc := group.VPCID != nil
+
 	perms := make([]ec2.IPPermission, len(configured))
 	for i, mRaw := range configured {
 		var perm ec2.IPPermission
@@ -57,7 +60,11 @@ func expandIPPerms(id string, configured []interface{}) []ec2.IPPermission {
 			}
 		}
 		if v, ok := m["self"]; ok && v.(bool) {
-			groups = append(groups, id)
+			if vpc {
+				groups = append(groups, *group.GroupID)
+			} else {
+				groups = append(groups, *group.GroupName)
+			}
 		}
 
 		if len(groups) > 0 {
@@ -71,6 +78,11 @@ func expandIPPerms(id string, configured []interface{}) []ec2.IPPermission {
 				perm.UserIDGroupPairs[i] = ec2.UserIDGroupPair{
 					GroupID: aws.String(id),
 					UserID:  aws.String(ownerId),
+				}
+				if !vpc {
+					perm.UserIDGroupPairs[i].GroupID = nil
+					perm.UserIDGroupPairs[i].GroupName = aws.String(id)
+					perm.UserIDGroupPairs[i].UserID = nil
 				}
 			}
 		}
