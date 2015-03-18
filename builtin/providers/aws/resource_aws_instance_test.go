@@ -44,7 +44,7 @@ func TestAccAWSInstance_normal(t *testing.T) {
 					resource.TestCheckResourceAttr(
 						"aws_instance.foo",
 						"user_data",
-						"0beec7b5ea3f0fdbc95d0dd47f3c5bc275da8a33"),
+						"3dc39dda39be1205215e776bad998da361a5955d"),
 				),
 			},
 
@@ -60,7 +60,7 @@ func TestAccAWSInstance_normal(t *testing.T) {
 					resource.TestCheckResourceAttr(
 						"aws_instance.foo",
 						"user_data",
-						"0beec7b5ea3f0fdbc95d0dd47f3c5bc275da8a33"),
+						"3dc39dda39be1205215e776bad998da361a5955d"),
 				),
 			},
 		},
