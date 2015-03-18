@@ -17,7 +17,7 @@ Basic usage
 ```
 resource "aws_security_group" "allow_all" {
   name = "allow_all"
-	description = "Allow all inbound traffic"
+  description = "Allow all inbound traffic"
 
   ingress {
       from_port = 0
