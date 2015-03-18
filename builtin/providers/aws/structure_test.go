@@ -59,7 +59,11 @@ func TestExpandIPPerms(t *testing.T) {
 			"self":      true,
 		},
 	}
-	perms := expandIPPerms("foo", expanded)
+	group := ec2.SecurityGroup{
+		GroupID: aws.String("foo"),
+		VPCID:   aws.String("bar"),
+	}
+	perms := expandIPPerms(group, expanded)
 
 	expected := []ec2.IPPermission{
 		ec2.IPPermission{
@@ -113,6 +117,79 @@ func TestExpandIPPerms(t *testing.T) {
 			*exp.UserIDGroupPairs[0].UserID)
 	}
 
+}
+
+func TestExpandIPPerms_nonVPC(t *testing.T) {
+	hash := func(v interface{}) int {
+		return hashcode.String(v.(string))
+	}
+
+	expanded := []interface{}{
+		map[string]interface{}{
+			"protocol":    "icmp",
+			"from_port":   1,
+			"to_port":     -1,
+			"cidr_blocks": []interface{}{"0.0.0.0/0"},
+			"security_groups": schema.NewSet(hash, []interface{}{
+				"sg-11111",
+				"foo/sg-22222",
+			}),
+		},
+		map[string]interface{}{
+			"protocol":  "icmp",
+			"from_port": 1,
+			"to_port":   -1,
+			"self":      true,
+		},
+	}
+	group := ec2.SecurityGroup{
+		GroupName: aws.String("foo"),
+	}
+	perms := expandIPPerms(group, expanded)
+
+	expected := []ec2.IPPermission{
+		ec2.IPPermission{
+			IPProtocol: aws.String("icmp"),
+			FromPort:   aws.Integer(1),
+			ToPort:     aws.Integer(-1),
+			IPRanges:   []ec2.IPRange{ec2.IPRange{aws.String("0.0.0.0/0")}},
+			UserIDGroupPairs: []ec2.UserIDGroupPair{
+				ec2.UserIDGroupPair{
+					GroupName: aws.String("sg-22222"),
+				},
+				ec2.UserIDGroupPair{
+					GroupName: aws.String("sg-22222"),
+				},
+			},
+		},
+		ec2.IPPermission{
+			IPProtocol: aws.String("icmp"),
+			FromPort:   aws.Integer(1),
+			ToPort:     aws.Integer(-1),
+			UserIDGroupPairs: []ec2.UserIDGroupPair{
+				ec2.UserIDGroupPair{
+					GroupName: aws.String("foo"),
+				},
+			},
+		},
+	}
+
+	exp := expected[0]
+	perm := perms[0]
+
+	if *exp.FromPort != *perm.FromPort {
+		t.Fatalf(
+			"Got:\n\n%#v\n\nExpected:\n\n%#v\n",
+			*perm.FromPort,
+			*exp.FromPort)
+	}
+
+	if *exp.IPRanges[0].CIDRIP != *perm.IPRanges[0].CIDRIP {
+		t.Fatalf(
+			"Got:\n\n%#v\n\nExpected:\n\n%#v\n",
+			*perm.IPRanges[0].CIDRIP,
+			*exp.IPRanges[0].CIDRIP)
+	}
 }
 
 func TestExpandListeners(t *testing.T) {
