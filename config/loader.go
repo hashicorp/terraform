@@ -187,7 +187,7 @@ func dirFiles(dir string) ([]string, []string, error) {
 // provided file name is a temporary file for the following editors:
 // emacs or vim.
 func isTemporaryFile(name string) bool {
-	return strings.HasSuffix(name, "~") || // vim
-		strings.HasPrefix(name, ".#") || // emacs
+	return strings.HasPrefix(name, ".") || // Unix-like hidden files
+		strings.HasSuffix(name, "~") || // vim
 		(strings.HasPrefix(name, "#") && strings.HasSuffix(name, "#")) // emacs
 }
