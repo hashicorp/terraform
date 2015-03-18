@@ -4,7 +4,8 @@ import (
 	"bytes"
 	"fmt"
 
-	"code.google.com/p/google-api-go-client/compute/v1"
+	"google.golang.org/api/compute/v1"
+
 	"github.com/hashicorp/terraform/helper/resource"
 )
 
