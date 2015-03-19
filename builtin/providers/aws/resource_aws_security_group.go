@@ -142,7 +142,7 @@ func resourceAwsSecurityGroup() *schema.Resource {
 }
 
 func resourceAwsSecurityGroupCreate(d *schema.ResourceData, meta interface{}) error {
-	ec2conn := meta.(*AWSClient).awsEC2conn
+	ec2conn := meta.(*AWSClient).ec2conn
 
 	securityGroupOpts := &ec2.CreateSecurityGroupRequest{
 		GroupName: aws.String(d.Get("name").(string)),
@@ -187,7 +187,7 @@ func resourceAwsSecurityGroupCreate(d *schema.ResourceData, meta interface{}) er
 }
 
 func resourceAwsSecurityGroupRead(d *schema.ResourceData, meta interface{}) error {
-	ec2conn := meta.(*AWSClient).awsEC2conn
+	ec2conn := meta.(*AWSClient).ec2conn
 
 	sgRaw, _, err := SGStateRefreshFunc(ec2conn, d.Id())()
 	if err != nil {
@@ -209,12 +209,12 @@ func resourceAwsSecurityGroupRead(d *schema.ResourceData, meta interface{}) erro
 	d.Set("owner_id", sg.OwnerID)
 	d.Set("ingress", ingressRules)
 	d.Set("egress", egressRules)
-	d.Set("tags", tagsToMapSDK(sg.Tags))
+	d.Set("tags", tagsToMap(sg.Tags))
 	return nil
 }
 
 func resourceAwsSecurityGroupUpdate(d *schema.ResourceData, meta interface{}) error {
-	ec2conn := meta.(*AWSClient).awsEC2conn
+	ec2conn := meta.(*AWSClient).ec2conn
 
 	sgRaw, _, err := SGStateRefreshFunc(ec2conn, d.Id())()
 	if err != nil {
@@ -239,7 +239,7 @@ func resourceAwsSecurityGroupUpdate(d *schema.ResourceData, meta interface{}) er
 		}
 	}
 
-	if err := setTagsSDK(ec2conn, d); err != nil {
+	if err := setTags(ec2conn, d); err != nil {
 		return err
 	}
 
@@ -249,7 +249,7 @@ func resourceAwsSecurityGroupUpdate(d *schema.ResourceData, meta interface{}) er
 }
 
 func resourceAwsSecurityGroupDelete(d *schema.ResourceData, meta interface{}) error {
-	ec2conn := meta.(*AWSClient).awsEC2conn
+	ec2conn := meta.(*AWSClient).ec2conn
 
 	log.Printf("[DEBUG] Security Group destroy: %v", d.Id())
 
@@ -285,6 +285,7 @@ func resourceAwsSecurityGroupRuleHash(v interface{}) int {
 	buf.WriteString(fmt.Sprintf("%d-", m["from_port"].(int)))
 	buf.WriteString(fmt.Sprintf("%d-", m["to_port"].(int)))
 	buf.WriteString(fmt.Sprintf("%s-", m["protocol"].(string)))
+	buf.WriteString(fmt.Sprintf("%t-", m["self"].(bool)))
 
 	// We need to make sure to sort the strings below so that we always
 	// generate the same hash code no matter what is in the set.
@@ -354,7 +355,7 @@ func resourceAwsSecurityGroupIPPermGather(d *schema.ResourceData, permissions []
 
 		var groups []string
 		if len(perm.UserIDGroupPairs) > 0 {
-			groups = flattenSecurityGroupsSDK(perm.UserIDGroupPairs)
+			groups = flattenSecurityGroups(perm.UserIDGroupPairs)
 		}
 		for i, id := range groups {
 			if id == d.Id() {
@@ -396,9 +397,8 @@ func resourceAwsSecurityGroupUpdateRules(
 		os := o.(*schema.Set)
 		ns := n.(*schema.Set)
 
-		// TODO: re-munge this when test is updated
-		remove := expandIPPerms(d.Id(), os.Difference(ns).List())
-		add := expandIPPerms(d.Id(), ns.Difference(os).List())
+		remove := expandIPPerms(group, os.Difference(ns).List())
+		add := expandIPPerms(group, ns.Difference(os).List())
 
 		// TODO: We need to handle partial state better in the in-between
 		// in this update.
@@ -410,7 +410,7 @@ func resourceAwsSecurityGroupUpdateRules(
 		// not have service issues.
 
 		if len(remove) > 0 || len(add) > 0 {
-			ec2conn := meta.(*AWSClient).awsEC2conn
+			ec2conn := meta.(*AWSClient).ec2conn
 
 			var err error
 			if len(remove) > 0 {
@@ -453,6 +453,11 @@ func resourceAwsSecurityGroupUpdateRules(
 						GroupID:       group.GroupID,
 						IPPermissions: add,
 					}
+					if group.VPCID == nil || *group.VPCID == "" {
+						req.GroupID = nil
+						req.GroupName = group.GroupName
+					}
+
 					err = ec2conn.AuthorizeSecurityGroupIngress(req)
 				}
 
