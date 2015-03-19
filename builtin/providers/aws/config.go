@@ -3,6 +3,7 @@ package aws
 import (
 	"fmt"
 	"log"
+	"os"
 	"time"
 
 	"github.com/awslabs/aws-sdk-go/aws"
@@ -39,6 +40,7 @@ type AWSClient struct {
 }
 
 func (c *Config) loadAndValidate(providerCode string) (interface{}, error) {
+	c.tryLoadingDeprecatedEnvVars()
 	credsProvider, err := c.getCredsProvider(providerCode)
 	if err != nil {
 		return nil, err
@@ -51,6 +53,19 @@ func (c *Config) loadAndValidate(providerCode string) (interface{}, error) {
 	c.Provider = credsProvider
 
 	return c.Client()
+}
+
+func (c *Config) tryLoadingDeprecatedEnvVars() {
+	// Backward compatibility
+	if c.Token == "" {
+		c.Token = os.Getenv("AWS_SECURITY_TOKEN")
+	}
+	if c.CredentialsFilePath == "" {
+		c.CredentialsFilePath = os.Getenv("AWS_CREDENTIAL_FILE")
+	}
+	if c.CredentialsFileProfile == "" {
+		c.CredentialsFileProfile = os.Getenv("AWS_PROFILE")
+	}
 }
 
 func (c *Config) getCredsProvider(providerCode string) (aws.CredentialsProvider, error) {
