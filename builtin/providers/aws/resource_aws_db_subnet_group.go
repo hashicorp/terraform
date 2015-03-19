@@ -79,6 +79,11 @@ func resourceAwsDbSubnetGroupRead(d *schema.ResourceData, meta interface{}) erro
 
 	describeResp, err := rdsconn.DescribeDBSubnetGroups(&describeOpts)
 	if err != nil {
+		if ec2err, ok := err.(aws.APIError); ok && ec2err.Code == "DBSubnetGroupNotFoundFault" {
+			// Update state to indicate the db subnet no longer exists.
+			d.SetId("")
+			return nil
+		}
 		return err
 	}
 
