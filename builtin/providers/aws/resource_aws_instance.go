@@ -319,11 +319,21 @@ func resourceAwsInstanceCreate(d *schema.ResourceData, meta interface{}) error {
 		userData = base64.StdEncoding.EncodeToString([]byte(v.(string)))
 	}
 
+	// check for non-default Subnet, and cast it to a String
+	var hasSubnet bool
+	subnet, hasSubnet := d.GetOk("subnet_id")
+	subnetID := subnet.(string)
+
 	placement := &ec2.Placement{
 		AvailabilityZone: aws.String(d.Get("availability_zone").(string)),
 	}
-	if v := d.Get("tenancy").(string); v != "" {
-		placement.Tenancy = aws.String(v)
+
+	if hasSubnet {
+		// Tenancy is only valid inside a VPC
+		// See http://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_Placement.html
+		if v := d.Get("tenancy").(string); v != "" {
+			placement.Tenancy = aws.String(v)
+		}
 	}
 
 	iam := &ec2.IAMInstanceProfileSpecification{
@@ -346,11 +356,6 @@ func resourceAwsInstanceCreate(d *schema.ResourceData, meta interface{}) error {
 	if v := d.Get("associate_public_ip_address"); v != nil {
 		associatePublicIPAddress = v.(bool)
 	}
-
-	// check for non-default Subnet, and cast it to a String
-	var hasSubnet bool
-	subnet, hasSubnet := d.GetOk("subnet_id")
-	subnetID := subnet.(string)
 
 	var groups []string
 	if v := d.Get("security_groups"); v != nil {
@@ -570,13 +575,18 @@ func resourceAwsInstanceRead(d *schema.ResourceData, meta interface{}) error {
 		return nil
 	}
 
-	d.Set("availability_zone", instance.Placement.AvailabilityZone)
+	if instance.Placement != nil {
+		d.Set("availability_zone", instance.Placement.AvailabilityZone)
+	}
+	if instance.Placement.Tenancy != nil {
+		d.Set("tenancy", instance.Placement.Tenancy)
+	}
+
 	d.Set("key_name", instance.KeyName)
 	d.Set("public_dns", instance.PublicDNSName)
 	d.Set("public_ip", instance.PublicIPAddress)
 	d.Set("private_dns", instance.PrivateDNSName)
 	d.Set("private_ip", instance.PrivateIPAddress)
-	d.Set("subnet_id", instance.SubnetID)
 	if len(instance.NetworkInterfaces) > 0 {
 		d.Set("subnet_id", instance.NetworkInterfaces[0].SubnetID)
 	} else {
@@ -584,7 +594,6 @@ func resourceAwsInstanceRead(d *schema.ResourceData, meta interface{}) error {
 	}
 	d.Set("ebs_optimized", instance.EBSOptimized)
 	d.Set("tags", tagsToMap(instance.Tags))
-	d.Set("tenancy", instance.Placement.Tenancy)
 
 	// Determine whether we're referring to security groups with
 	// IDs or names. We use a heuristic to figure this out. By default,
