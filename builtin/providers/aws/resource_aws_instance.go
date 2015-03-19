@@ -753,6 +753,10 @@ func readBlockDevicesFromInstance(instance *ec2.Instance, ec2conn *ec2.EC2) (map
 		}
 	}
 
+	if len(instanceBlockDevices) == 0 {
+		return nil, nil
+	}
+
 	volIDs := make([]string, 0, len(instanceBlockDevices))
 	for volID := range instanceBlockDevices {
 		volIDs = append(volIDs, volID)
