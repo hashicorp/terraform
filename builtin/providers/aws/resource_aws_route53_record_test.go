@@ -45,6 +45,22 @@ func TestAccRoute53Record(t *testing.T) {
 	})
 }
 
+func TestAccRoute53Record_txtSupport(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckRoute53RecordDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccRoute53RecordConfigTXT,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckRoute53RecordExists("aws_route53_record.default"),
+				),
+			},
+		},
+	})
+}
+
 func TestAccRoute53Record_generatesSuffix(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -228,5 +244,18 @@ resource "aws_route53_record" "wildcard" {
     type = "A"
     ttl = "60"
     records = ["127.0.0.1"]
+}
+`
+const testAccRoute53RecordConfigTXT = `
+resource "aws_route53_zone" "main" {
+	name = "notexample.com"
+}
+
+resource "aws_route53_record" "default" {
+	zone_id = "${aws_route53_zone.main.zone_id}"
+	name = "subdomain"
+	type = "TXT"
+	ttl = "30"
+	records = ["lalalala"]
 }
 `
