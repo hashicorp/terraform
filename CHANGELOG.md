@@ -14,6 +14,7 @@ FEATURES:
   * **New provider: `dme` (DNSMadeEasy)** [GH-855]
   * **New command: `taint`** - Manually mark a resource as tainted, causing
       a destroy and recreate on the next plan/apply.
+  * **New resource: `aws_vpn_gateway`** [GH-1137]
   * **Self-variables** can be used to reference the current resource's
       attributes within a provisioner. Ex. `${self.private_ip_address}` [GH-1033]
   * **Continous state** saving during `terraform apply`. The state file is
