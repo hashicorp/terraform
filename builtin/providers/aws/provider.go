@@ -68,6 +68,7 @@ func Provider() terraform.ResourceProvider {
 			"aws_subnet":                       resourceAwsSubnet(),
 			"aws_vpc":                          resourceAwsVpc(),
 			"aws_vpc_peering_connection":       resourceAwsVpcPeeringConnection(),
+			"aws_customer_gateway":         	resourceAwsCustomerGateway(),
 		},
 
 		ConfigureFunc: providerConfigure,
