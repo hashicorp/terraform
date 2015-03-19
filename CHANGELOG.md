@@ -6,6 +6,8 @@ BACKWARDS INCOMPATIBILITIES:
     the `remote` command: `terraform remote push` and `terraform remote pull`.
     The old `remote` functionality is now at `terraform remote config`. This
     consolidates all remote state management under one command.
+  * Period-prefixed configuration files are now ignored. This might break
+    existing Terraform configurations if you had period-prefixed files.
 
 FEATURES:
 
@@ -35,6 +37,7 @@ IMPROVEMENTS:
       change. This will lower the amount of state changing on things
       like refresh.
   * core: Autoload `terraform.tfvars.json` as well as `terraform.tfvars` [GH-1030]
+  * core: `.tf` files that start with a period are now ignored. [GH-1227]
 
 BUG FIXES:
 
