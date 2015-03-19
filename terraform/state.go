@@ -843,6 +843,9 @@ func (i *InstanceState) init() {
 	if i.Attributes == nil {
 		i.Attributes = make(map[string]string)
 	}
+	if i.Meta == nil {
+		i.Meta = make(map[string]string)
+	}
 	i.Ephemeral.init()
 }
 
@@ -858,6 +861,12 @@ func (i *InstanceState) deepcopy() *InstanceState {
 		n.Attributes = make(map[string]string, len(i.Attributes))
 		for k, v := range i.Attributes {
 			n.Attributes[k] = v
+		}
+	}
+	if i.Meta != nil {
+		n.Meta = make(map[string]string, len(i.Meta))
+		for k, v := range i.Meta {
+			n.Meta[k] = v
 		}
 	}
 	return n
