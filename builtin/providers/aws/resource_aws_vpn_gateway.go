@@ -36,7 +36,7 @@ func resourceAwsVpnGateway() *schema.Resource {
 }
 
 func resourceAwsVpnGatewayCreate(d *schema.ResourceData, meta interface{}) error {
-	ec2conn := meta.(*AWSClient).awsEC2conn
+	ec2conn := meta.(*AWSClient).ec2conn
 
 	createOpts := &ec2.CreateVPNGatewayRequest{
 		AvailabilityZone: aws.String(d.Get("availability_zone").(string)),
@@ -60,7 +60,7 @@ func resourceAwsVpnGatewayCreate(d *schema.ResourceData, meta interface{}) error
 }
 
 func resourceAwsVpnGatewayRead(d *schema.ResourceData, meta interface{}) error {
-	ec2conn := meta.(*AWSClient).awsEC2conn
+	ec2conn := meta.(*AWSClient).ec2conn
 
 	vpnGatewayRaw, _, err := vpnGatewayStateRefreshFunc(ec2conn, d.Id())()
 	if err != nil {
@@ -80,7 +80,7 @@ func resourceAwsVpnGatewayRead(d *schema.ResourceData, meta interface{}) error {
 		d.Set("vpc_id", vpnGateway.VPCAttachments[0].VPCID)
 	}
 	d.Set("availability_zone", vpnGateway.AvailabilityZone)
-	d.Set("tags", tagsToMapSDK(vpnGateway.Tags))
+	d.Set("tags", tagsToMap(vpnGateway.Tags))
 
 	return nil
 }
@@ -98,9 +98,9 @@ func resourceAwsVpnGatewayUpdate(d *schema.ResourceData, meta interface{}) error
 		}
 	}
 
-	ec2conn := meta.(*AWSClient).awsEC2conn
+	ec2conn := meta.(*AWSClient).ec2conn
 
-	if err := setTagsSDK(ec2conn, d); err != nil {
+	if err := setTags(ec2conn, d); err != nil {
 		return err
 	}
 
@@ -110,7 +110,7 @@ func resourceAwsVpnGatewayUpdate(d *schema.ResourceData, meta interface{}) error
 }
 
 func resourceAwsVpnGatewayDelete(d *schema.ResourceData, meta interface{}) error {
-	ec2conn := meta.(*AWSClient).awsEC2conn
+	ec2conn := meta.(*AWSClient).ec2conn
 
 	// Detach if it is attached
 	if err := resourceAwsVpnGatewayDetach(d, meta); err != nil {
@@ -144,7 +144,7 @@ func resourceAwsVpnGatewayDelete(d *schema.ResourceData, meta interface{}) error
 }
 
 func resourceAwsVpnGatewayAttach(d *schema.ResourceData, meta interface{}) error {
-	ec2conn := meta.(*AWSClient).awsEC2conn
+	ec2conn := meta.(*AWSClient).ec2conn
 
 	if d.Get("vpc_id").(string) == "" {
 		log.Printf(
@@ -189,7 +189,7 @@ func resourceAwsVpnGatewayAttach(d *schema.ResourceData, meta interface{}) error
 }
 
 func resourceAwsVpnGatewayDetach(d *schema.ResourceData, meta interface{}) error {
-	ec2conn := meta.(*AWSClient).awsEC2conn
+	ec2conn := meta.(*AWSClient).ec2conn
 
 	// Get the old VPC ID to detach from
 	vpcID, _ := d.GetChange("vpc_id")

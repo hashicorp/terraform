@@ -98,7 +98,7 @@ func TestAccVpnGateway_tags(t *testing.T) {
 				Config: testAccCheckVpnGatewayConfigTags,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckVpnGatewayExists("aws_vpn_gateway.foo", &v),
-					testAccCheckTagsSDK(&v.Tags, "foo", "bar"),
+					testAccCheckTags(&v.Tags, "foo", "bar"),
 				),
 			},
 
@@ -106,8 +106,8 @@ func TestAccVpnGateway_tags(t *testing.T) {
 				Config: testAccCheckVpnGatewayConfigTagsUpdate,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckVpnGatewayExists("aws_vpn_gateway.foo", &v),
-					testAccCheckTagsSDK(&v.Tags, "foo", ""),
-					testAccCheckTagsSDK(&v.Tags, "bar", "baz"),
+					testAccCheckTags(&v.Tags, "foo", ""),
+					testAccCheckTags(&v.Tags, "bar", "baz"),
 				),
 			},
 		},
@@ -115,7 +115,7 @@ func TestAccVpnGateway_tags(t *testing.T) {
 }
 
 func testAccCheckVpnGatewayDestroy(s *terraform.State) error {
-	ec2conn := testAccProvider.Meta().(*AWSClient).awsEC2conn
+	ec2conn := testAccProvider.Meta().(*AWSClient).ec2conn
 
 	for _, rs := range s.RootModule().Resources {
 		if rs.Type != "aws_vpn_gateway" {
@@ -158,7 +158,7 @@ func testAccCheckVpnGatewayExists(n string, ig *ec2.VPNGateway) resource.TestChe
 			return fmt.Errorf("No ID is set")
 		}
 
-		ec2conn := testAccProvider.Meta().(*AWSClient).awsEC2conn
+		ec2conn := testAccProvider.Meta().(*AWSClient).ec2conn
 		resp, err := ec2conn.DescribeVPNGateways(&ec2.DescribeVPNGatewaysRequest{
 			VPNGatewayIDs: []string{rs.Primary.ID},
 		})
