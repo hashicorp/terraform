@@ -20,6 +20,9 @@ func consulFactory(conf map[string]string) (Client, error) {
 	if addr, ok := conf["address"]; ok && addr != "" {
 		config.Address = addr
 	}
+	if scheme, ok := conf["scheme"]; ok && scheme != "" {
+		config.Scheme = scheme
+	}
 
 	client, err := consulapi.NewClient(config)
 	if err != nil {

@@ -37,7 +37,7 @@ func resourceAwsKeyPair() *schema.Resource {
 }
 
 func resourceAwsKeyPairCreate(d *schema.ResourceData, meta interface{}) error {
-	ec2conn := meta.(*AWSClient).awsEC2conn
+	ec2conn := meta.(*AWSClient).ec2conn
 
 	keyName := d.Get("key_name").(string)
 	publicKey := d.Get("public_key").(string)
@@ -55,7 +55,7 @@ func resourceAwsKeyPairCreate(d *schema.ResourceData, meta interface{}) error {
 }
 
 func resourceAwsKeyPairRead(d *schema.ResourceData, meta interface{}) error {
-	ec2conn := meta.(*AWSClient).awsEC2conn
+	ec2conn := meta.(*AWSClient).ec2conn
 
 	req := &ec2.DescribeKeyPairsRequest{
 		KeyNames: []string{d.Id()},
@@ -77,7 +77,7 @@ func resourceAwsKeyPairRead(d *schema.ResourceData, meta interface{}) error {
 }
 
 func resourceAwsKeyPairDelete(d *schema.ResourceData, meta interface{}) error {
-	ec2conn := meta.(*AWSClient).awsEC2conn
+	ec2conn := meta.(*AWSClient).ec2conn
 
 	err := ec2conn.DeleteKeyPair(&ec2.DeleteKeyPairRequest{
 		KeyName: aws.String(d.Id()),
