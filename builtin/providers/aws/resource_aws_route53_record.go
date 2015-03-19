@@ -264,8 +264,15 @@ func resourceAwsRoute53RecordBuildSet(d *schema.ResourceData) (*route53.Resource
 	recs := d.Get("records").(*schema.Set).List()
 	records := make([]route53.ResourceRecord, 0, len(recs))
 
+	typeStr := d.Get("type").(string)
 	for _, r := range recs {
-		records = append(records, route53.ResourceRecord{Value: aws.String(r.(string))})
+		switch typeStr {
+		case "TXT":
+			str := fmt.Sprintf("\"%s\"", r.(string))
+			records = append(records, route53.ResourceRecord{Value: aws.String(str)})
+		default:
+			records = append(records, route53.ResourceRecord{Value: aws.String(r.(string))})
+		}
 	}
 
 	rec := &route53.ResourceRecordSet{
