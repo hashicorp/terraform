@@ -14,6 +14,7 @@ import (
 
 func TestAccAWSInstance_normal(t *testing.T) {
 	var v ec2.Instance
+	var vol *ec2.Volume
 
 	testCheck := func(*terraform.State) error {
 		if *v.Placement.AvailabilityZone != "us-west-2a" {
@@ -35,6 +36,21 @@ func TestAccAWSInstance_normal(t *testing.T) {
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckInstanceDestroy,
 		Steps: []resource.TestStep{
+			// Create a volume to cover #1249
+			resource.TestStep{
+				// Need a resource in this config so the provisioner will be available
+				Config: testAccInstanceConfig_pre,
+				Check: func(*terraform.State) error {
+					conn := testAccProvider.Meta().(*AWSClient).ec2conn
+					var err error
+					vol, err = conn.CreateVolume(&ec2.CreateVolumeRequest{
+						AvailabilityZone: aws.String("us-west-2a"),
+						Size:             aws.Integer(5),
+					})
+					return err
+				},
+			},
+
 			resource.TestStep{
 				Config: testAccInstanceConfig,
 				Check: resource.ComposeTestCheckFunc(
@@ -45,6 +61,8 @@ func TestAccAWSInstance_normal(t *testing.T) {
 						"aws_instance.foo",
 						"user_data",
 						"3dc39dda39be1205215e776bad998da361a5955d"),
+					resource.TestCheckResourceAttr(
+						"aws_instance.foo", "ebs_block_device.#", "0"),
 				),
 			},
 
@@ -61,7 +79,18 @@ func TestAccAWSInstance_normal(t *testing.T) {
 						"aws_instance.foo",
 						"user_data",
 						"3dc39dda39be1205215e776bad998da361a5955d"),
+					resource.TestCheckResourceAttr(
+						"aws_instance.foo", "ebs_block_device.#", "0"),
 				),
+			},
+
+			// Clean up volume created above
+			resource.TestStep{
+				Config: testAccInstanceConfig,
+				Check: func(*terraform.State) error {
+					conn := testAccProvider.Meta().(*AWSClient).ec2conn
+					return conn.DeleteVolume(&ec2.DeleteVolumeRequest{VolumeID: vol.VolumeID})
+				},
 			},
 		},
 	})
@@ -111,33 +140,33 @@ func TestAccAWSInstance_blockDevices(t *testing.T) {
 					resource.TestCheckResourceAttr(
 						"aws_instance.foo", "root_block_device.#", "1"),
 					resource.TestCheckResourceAttr(
-						"aws_instance.foo", "root_block_device.3018388612.device_name", "/dev/sda1"),
+						"aws_instance.foo", "root_block_device.1246122048.device_name", "/dev/sda1"),
 					resource.TestCheckResourceAttr(
-						"aws_instance.foo", "root_block_device.3018388612.volume_size", "11"),
+						"aws_instance.foo", "root_block_device.1246122048.volume_size", "11"),
 					resource.TestCheckResourceAttr(
-						"aws_instance.foo", "root_block_device.3018388612.volume_type", "gp2"),
+						"aws_instance.foo", "root_block_device.1246122048.volume_type", "gp2"),
 					resource.TestCheckResourceAttr(
 						"aws_instance.foo", "ebs_block_device.#", "2"),
 					resource.TestCheckResourceAttr(
-						"aws_instance.foo", "ebs_block_device.418220885.device_name", "/dev/sdb"),
+						"aws_instance.foo", "ebs_block_device.2225977507.device_name", "/dev/sdb"),
 					resource.TestCheckResourceAttr(
-						"aws_instance.foo", "ebs_block_device.418220885.volume_size", "9"),
+						"aws_instance.foo", "ebs_block_device.2225977507.volume_size", "9"),
 					resource.TestCheckResourceAttr(
-						"aws_instance.foo", "ebs_block_device.418220885.volume_type", "standard"),
+						"aws_instance.foo", "ebs_block_device.2225977507.volume_type", "standard"),
 					resource.TestCheckResourceAttr(
-						"aws_instance.foo", "ebs_block_device.1877654467.device_name", "/dev/sdc"),
+						"aws_instance.foo", "ebs_block_device.1977224956.device_name", "/dev/sdc"),
 					resource.TestCheckResourceAttr(
-						"aws_instance.foo", "ebs_block_device.1877654467.volume_size", "10"),
+						"aws_instance.foo", "ebs_block_device.1977224956.volume_size", "10"),
 					resource.TestCheckResourceAttr(
-						"aws_instance.foo", "ebs_block_device.1877654467.volume_type", "io1"),
+						"aws_instance.foo", "ebs_block_device.1977224956.volume_type", "io1"),
 					resource.TestCheckResourceAttr(
-						"aws_instance.foo", "ebs_block_device.1877654467.iops", "100"),
+						"aws_instance.foo", "ebs_block_device.1977224956.iops", "100"),
 					resource.TestCheckResourceAttr(
 						"aws_instance.foo", "ephemeral_block_device.#", "1"),
 					resource.TestCheckResourceAttr(
-						"aws_instance.foo", "ephemeral_block_device.2087552357.device_name", "/dev/sde"),
+						"aws_instance.foo", "ephemeral_block_device.1692014856.device_name", "/dev/sde"),
 					resource.TestCheckResourceAttr(
-						"aws_instance.foo", "ephemeral_block_device.2087552357.virtual_name", "ephemeral0"),
+						"aws_instance.foo", "ephemeral_block_device.1692014856.virtual_name", "ephemeral0"),
 					testCheck(),
 				),
 			},
@@ -392,6 +421,20 @@ func TestInstanceTenancySchema(t *testing.T) {
 			expectedSchema)
 	}
 }
+
+const testAccInstanceConfig_pre = `
+resource "aws_security_group" "tf_test_foo" {
+	name = "tf_test_foo"
+	description = "foo"
+
+	ingress {
+		protocol = "icmp"
+		from_port = -1
+		to_port = -1
+		cidr_blocks = ["0.0.0.0/0"]
+	}
+}
+`
 
 const testAccInstanceConfig = `
 resource "aws_security_group" "tf_test_foo" {
