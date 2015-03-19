@@ -54,9 +54,9 @@ func (c *Config) Client() (interface{}, error) {
 		client.region = c.Region
 
 		log.Println("[INFO] Building AWS auth structure")
-		creds := aws.DetectCreds(c.AccessKey, c.SecretKey, c.Token)
+		credsProvider := aws.DetectCreds(c.AccessKey, c.SecretKey, c.Token)
 		awsConfig := &aws.Config{
-			Credentials: creds,
+			Credentials: credsProvider,
 			Region:      c.Region,
 		}
 
@@ -82,10 +82,9 @@ func (c *Config) Client() (interface{}, error) {
 		// See http://docs.aws.amazon.com/general/latest/gr/sigv4_changes.html
 		log.Println("[INFO] Initializing Route 53 connection")
 		client.r53conn = route53.New(&aws.Config{
-			Credentials: creds,
+			Credentials: credsProvider,
 			Region:      "us-east-1",
 		})
-
 	}
 
 	if len(errs) > 0 {
