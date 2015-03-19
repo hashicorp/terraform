@@ -111,31 +111,33 @@ func TestAccAWSInstance_blockDevices(t *testing.T) {
 					resource.TestCheckResourceAttr(
 						"aws_instance.foo", "root_block_device.#", "1"),
 					resource.TestCheckResourceAttr(
-						"aws_instance.foo", "root_block_device.0.device_name", "/dev/sda1"),
+						"aws_instance.foo", "root_block_device.3018388612.device_name", "/dev/sda1"),
 					resource.TestCheckResourceAttr(
-						"aws_instance.foo", "root_block_device.0.volume_size", "11"),
-					// this one is important because it's the only root_block_device
-					// attribute that comes back from the API. so checking it verifies
-					// that we set state properly
+						"aws_instance.foo", "root_block_device.3018388612.volume_size", "11"),
 					resource.TestCheckResourceAttr(
-						"aws_instance.foo", "root_block_device.0.volume_type", "gp2"),
+						"aws_instance.foo", "root_block_device.3018388612.volume_type", "gp2"),
 					resource.TestCheckResourceAttr(
-						"aws_instance.foo", "block_device.#", "2"),
+						"aws_instance.foo", "ebs_block_device.#", "2"),
 					resource.TestCheckResourceAttr(
-						"aws_instance.foo", "block_device.172787947.device_name", "/dev/sdb"),
+						"aws_instance.foo", "ebs_block_device.418220885.device_name", "/dev/sdb"),
 					resource.TestCheckResourceAttr(
-						"aws_instance.foo", "block_device.172787947.volume_size", "9"),
+						"aws_instance.foo", "ebs_block_device.418220885.volume_size", "9"),
 					resource.TestCheckResourceAttr(
-						"aws_instance.foo", "block_device.172787947.iops", "0"),
-					// Check provisioned SSD device
+						"aws_instance.foo", "ebs_block_device.418220885.volume_type", "standard"),
 					resource.TestCheckResourceAttr(
-						"aws_instance.foo", "block_device.3336996981.volume_type", "io1"),
+						"aws_instance.foo", "ebs_block_device.1877654467.device_name", "/dev/sdc"),
 					resource.TestCheckResourceAttr(
-						"aws_instance.foo", "block_device.3336996981.device_name", "/dev/sdc"),
+						"aws_instance.foo", "ebs_block_device.1877654467.volume_size", "10"),
 					resource.TestCheckResourceAttr(
-						"aws_instance.foo", "block_device.3336996981.volume_size", "10"),
+						"aws_instance.foo", "ebs_block_device.1877654467.volume_type", "io1"),
 					resource.TestCheckResourceAttr(
-						"aws_instance.foo", "block_device.3336996981.iops", "100"),
+						"aws_instance.foo", "ebs_block_device.1877654467.iops", "100"),
+					resource.TestCheckResourceAttr(
+						"aws_instance.foo", "ephemeral_block_device.#", "1"),
+					resource.TestCheckResourceAttr(
+						"aws_instance.foo", "ephemeral_block_device.2087552357.device_name", "/dev/sde"),
+					resource.TestCheckResourceAttr(
+						"aws_instance.foo", "ephemeral_block_device.2087552357.virtual_name", "ephemeral0"),
 					testCheck(),
 				),
 			},
@@ -420,20 +422,25 @@ resource "aws_instance" "foo" {
 	# us-west-2
 	ami = "ami-55a7ea65"
 	instance_type = "m1.small"
+
 	root_block_device {
 		device_name = "/dev/sda1"
 		volume_type = "gp2"
 		volume_size = 11
 	}
-	block_device {
+	ebs_block_device {
 		device_name = "/dev/sdb"
 		volume_size = 9
 	}
-	block_device {
+	ebs_block_device {
 		device_name = "/dev/sdc"
 		volume_size = 10
 		volume_type = "io1"
 		iops = 100
+	}
+	ephemeral_block_device {
+		device_name = "/dev/sde"
+		virtual_name = "ephemeral0"
 	}
 }
 `
