@@ -448,9 +448,6 @@ func resourceAwsInstanceCreate(d *schema.ResourceData, meta interface{}) error {
 				VirtualName: aws.String(bd["virtual_name"].(string)),
 			})
 		}
-		// if err := d.Set("ephemeral_block_device", vL); err != nil {
-		// 	return err
-		// }
 	}
 
 	if v, ok := d.GetOk("root_block_device"); ok {
