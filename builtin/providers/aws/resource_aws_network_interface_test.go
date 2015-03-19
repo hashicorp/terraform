@@ -107,6 +107,10 @@ func testAccCheckAWSENIAttributes(conf *ec2.NetworkInterface) resource.TestCheck
 			return fmt.Errorf("expected private ip to be 172.16.10.100, but was %s", *conf.PrivateIPAddress)
 		}
 
+		if len(conf.TagSet) == 0 {
+			return fmt.Errorf("expected tags")
+		}
+
 		return nil
 	}
 }

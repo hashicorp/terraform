@@ -124,8 +124,11 @@ func resourceAwsNetworkInterfaceRead(d *schema.ResourceData, meta interface{}) e
 	d.Set("private_ips", flattenNetworkInterfacesPrivateIPAddesses(eni.PrivateIPAddresses))
 	d.Set("security_groups", flattenGroupIdentifiers(eni.Groups))
 
+	// Tags
+	d.Set("tags", tagsToMap(eni.TagSet))
+
 	if eni.Attachment != nil {
-		attachment := []map[string]interface{} { flattenAttachment(eni.Attachment) }
+		attachment := []map[string]interface{}{flattenAttachment(eni.Attachment)}
 		d.Set("attachment", attachment)
 	} else {
 		d.Set("attachment", nil)
@@ -185,7 +188,7 @@ func resourceAwsNetworkInterfaceDetach(oa *schema.Set, meta interface{}, eniId s
 }
 
 func resourceAwsNetworkInterfaceUpdate(d *schema.ResourceData, meta interface{}) error {
-
+	ec2conn := meta.(*AWSClient).ec2conn
 	d.Partial(true)
 
 	if d.HasChange("attachment") {
@@ -220,13 +223,18 @@ func resourceAwsNetworkInterfaceUpdate(d *schema.ResourceData, meta interface{})
 			Groups:             expandStringList(d.Get("security_groups").(*schema.Set).List()),
 		}
 
-		ec2conn := meta.(*AWSClient).ec2conn
 		err := ec2conn.ModifyNetworkInterfaceAttribute(request)
 		if err != nil {
 			return fmt.Errorf("Failure updating ENI: %s", err)
 		}
 
 		d.SetPartial("security_groups")
+	}
+
+	if err := setTags(ec2conn, d); err != nil {
+		return err
+	} else {
+		d.SetPartial("tags")
 	}
 
 	d.Partial(false)
