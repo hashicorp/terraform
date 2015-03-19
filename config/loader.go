@@ -162,7 +162,7 @@ func dirFiles(dir string) ([]string, []string, error) {
 			// Only care about files that are valid to load
 			name := fi.Name()
 			extValue := ext(name)
-			if extValue == "" || isTemporaryFile(name) {
+			if extValue == "" || isIgnoredFile(name) {
 				continue
 			}
 
@@ -183,10 +183,9 @@ func dirFiles(dir string) ([]string, []string, error) {
 	return files, overrides, nil
 }
 
-// isTemporaryFile returns true or false depending on whether the
-// provided file name is a temporary file for the following editors:
-// emacs or vim.
-func isTemporaryFile(name string) bool {
+// isIgnoredFile returns true or false depending on whether the
+// provided file name is a file that should be ignored.
+func isIgnoredFile(name string) bool {
 	return strings.HasPrefix(name, ".") || // Unix-like hidden files
 		strings.HasSuffix(name, "~") || // vim
 		(strings.HasPrefix(name, "#") && strings.HasSuffix(name, "#")) // emacs
