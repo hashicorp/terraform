@@ -238,7 +238,7 @@ func resourceAwsVpcDelete(d *schema.ResourceData, meta interface{}) error {
 	}
 	log.Printf("[INFO] Deleting VPC: %s", d.Id())
 	if err := ec2conn.DeleteVPC(DeleteVpcOpts); err != nil {
-		ec2err, ok := err.(*aws.APIError)
+		ec2err, ok := err.(aws.APIError)
 		if ok && ec2err.Code == "InvalidVpcID.NotFound" {
 			return nil
 		}
@@ -258,7 +258,7 @@ func VPCStateRefreshFunc(conn *ec2.EC2, id string) resource.StateRefreshFunc {
 		}
 		resp, err := conn.DescribeVPCs(DescribeVpcOpts)
 		if err != nil {
-			if ec2err, ok := err.(*aws.APIError); ok && ec2err.Code == "InvalidVpcID.NotFound" {
+			if ec2err, ok := err.(aws.APIError); ok && ec2err.Code == "InvalidVpcID.NotFound" {
 				resp = nil
 			} else {
 				log.Printf("Error on VPCStateRefresh: %s", err)
