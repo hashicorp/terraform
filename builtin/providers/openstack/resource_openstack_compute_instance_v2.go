@@ -2,6 +2,8 @@ package openstack
 
 import (
 	"bytes"
+	"crypto/sha1"
+	"encoding/hex"
 	"fmt"
 	"log"
 	"time"
@@ -74,6 +76,21 @@ func resourceComputeInstanceV2() *schema.Resource {
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: false,
+			},
+                        "user_data": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				ForceNew: true,
+				// just stash the hash for state & diff comparisons
+				StateFunc: func(v interface{}) string {
+					switch v.(type) {
+					case string:
+						hash := sha1.Sum([]byte(v.(string)))
+						return hex.EncodeToString(hash[:])
+					default:
+						return ""
+					}
+				},
 			},
 			"security_groups": &schema.Schema{
 				Type:     schema.TypeList,
@@ -224,6 +241,7 @@ func resourceComputeInstanceV2Create(d *schema.ResourceData, meta interface{}) e
 		Metadata:         resourceInstanceMetadataV2(d),
 		ConfigDrive:      d.Get("config_drive").(bool),
 		AdminPass:        d.Get("admin_pass").(string),
+		UserData:         []byte(d.Get("user_data").(string)),
 	}
 
 	if keyName, ok := d.Get("key_pair").(string); ok && keyName != "" {
