@@ -130,7 +130,7 @@ func testAccCheckAWSAutoScalingGroupAttributes(group *autoscaling.AutoScalingGro
 		}
 
 		if *group.HealthCheckType != "ELB" {
-			return fmt.Errorf("Bad health_check_type: %s", *group.HealthCheckType)
+			return fmt.Errorf("Bad health_check_type,\nexpected: %s\ngot: %s", "ELB", *group.HealthCheckType)
 		}
 
 		if *group.HealthCheckGracePeriod != 300 {
