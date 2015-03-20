@@ -185,29 +185,14 @@ func resourceAwsVpcUpdate(d *schema.ResourceData, meta interface{}) error {
 	// Turn on partial mode
 	d.Partial(true)
 	vpcid := d.Id()
-	modifyOpts := &ec2.ModifyVPCAttributeRequest{
-		VPCID: &vpcid,
-	}
-	if d.HasChange("enable_dns_hostnames") {
-		val := d.Get("enable_dns_hostnames").(bool)
-		modifyOpts.EnableDNSHostnames = &ec2.AttributeBooleanValue{
-			Value: &val,
-		}
-
-		log.Printf(
-			"[INFO] Modifying enable_dns_hostnames vpc attribute for %s: %#v",
-			d.Id(), modifyOpts)
-		if err := ec2conn.ModifyVPCAttribute(modifyOpts); err != nil {
-			return err
-		}
-
-		d.SetPartial("enable_dns_hostnames")
-	}
 
 	if d.HasChange("enable_dns_support") {
-		val := d.Get("enable_dns_hostnames").(bool)
-		modifyOpts.EnableDNSSupport = &ec2.AttributeBooleanValue{
-			Value: &val,
+		val := d.Get("enable_dns_support").(bool)
+		modifyOpts := &ec2.ModifyVPCAttributeRequest{
+			VPCID: &vpcid,
+			EnableDNSSupport: &ec2.AttributeBooleanValue{
+				Value: &val,
+			},
 		}
 
 		log.Printf(
@@ -218,6 +203,25 @@ func resourceAwsVpcUpdate(d *schema.ResourceData, meta interface{}) error {
 		}
 
 		d.SetPartial("enable_dns_support")
+	}
+
+	if d.HasChange("enable_dns_hostnames") {
+		val := d.Get("enable_dns_hostnames").(bool)
+		modifyOpts := &ec2.ModifyVPCAttributeRequest{
+			VPCID: &vpcid,
+			EnableDNSHostnames: &ec2.AttributeBooleanValue{
+				Value: &val,
+			},
+		}
+
+		log.Printf(
+			"[INFO] Modifying enable_dns_hostnames vpc attribute for %s: %#v",
+			d.Id(), modifyOpts)
+		if err := ec2conn.ModifyVPCAttribute(modifyOpts); err != nil {
+			return err
+		}
+
+		d.SetPartial("enable_dns_hostnames")
 	}
 
 	if err := setTags(ec2conn, d); err != nil {
