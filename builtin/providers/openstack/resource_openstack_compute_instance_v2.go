@@ -115,7 +115,11 @@ func resourceComputeInstanceV2() *schema.Resource {
 							Type:     schema.TypeString,
 							Optional: true,
 						},
-						"fixed_ip": &schema.Schema{
+						"fixed_ip_v4": &schema.Schema{
+							Type:     schema.TypeString,
+							Optional: true,
+						},
+						"fixed_ip_v6": &schema.Schema{
 							Type:     schema.TypeString,
 							Optional: true,
 						},
@@ -691,7 +695,7 @@ func resourceInstanceNetworksV2(d *schema.ResourceData) []servers.Network {
 		networks[i] = servers.Network{
 			UUID:    rawMap["uuid"].(string),
 			Port:    rawMap["port"].(string),
-			FixedIP: rawMap["fixed_ip"].(string),
+			FixedIP: rawMap["fixed_ip_v4"].(string),
 		}
 	}
 	return networks
