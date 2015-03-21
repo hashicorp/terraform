@@ -332,20 +332,6 @@ func resourceComputeInstanceV2Read(d *schema.ResourceData, meta interface{}) err
 
 	hostv4 := server.AccessIPv4
 	if hostv4 == "" {
-		if publicAddressesRaw, ok := server.Addresses["public"]; ok {
-			publicAddresses := publicAddressesRaw.([]interface{})
-			for _, paRaw := range publicAddresses {
-				pa := paRaw.(map[string]interface{})
-				if pa["version"].(float64) == 4 {
-					hostv4 = pa["addr"].(string)
-					break
-				}
-			}
-		}
-	}
-
-	// If no host found, just get the first IPv4 we find
-	if hostv4 == "" {
 		for _, networkAddresses := range server.Addresses {
 			for _, element := range networkAddresses.([]interface{}) {
 				address := element.(map[string]interface{})
@@ -360,20 +346,6 @@ func resourceComputeInstanceV2Read(d *schema.ResourceData, meta interface{}) err
 	log.Printf("hostv4: %s", hostv4)
 
 	hostv6 := server.AccessIPv6
-	if hostv6 == "" {
-		if publicAddressesRaw, ok := server.Addresses["public"]; ok {
-			publicAddresses := publicAddressesRaw.([]interface{})
-			for _, paRaw := range publicAddresses {
-				pa := paRaw.(map[string]interface{})
-				if pa["version"].(float64) == 6 {
-					hostv6 = fmt.Sprintf("[%s]", pa["addr"].(string))
-					break
-				}
-			}
-		}
-	}
-
-	// If no hostv6 found, just get the first IPv6 we find
 	if hostv6 == "" {
 		for _, networkAddresses := range server.Addresses {
 			for _, element := range networkAddresses.([]interface{}) {
