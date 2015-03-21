@@ -172,6 +172,7 @@ func (p *ResourceProvisioner) runScripts(
 	if err != nil {
 		return err
 	}
+	defer config.CleanupConfig()
 
 	o.Output(fmt.Sprintf(
 		"Connecting to remote host via SSH...\n"+
