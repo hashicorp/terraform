@@ -103,6 +103,9 @@ func safeDuration(dur string, defaultDur time.Duration) time.Duration {
 // PrepareConfig is used to turn the *SSHConfig provided into a
 // usable *Config for client initialization.
 func PrepareConfig(conf *SSHConfig) (*Config, error) {
+	var conn net.Conn
+	var err error
+
 	sshConf := &ssh.ClientConfig{
 		User: conf.User,
 	}
@@ -113,7 +116,7 @@ func PrepareConfig(conf *SSHConfig) (*Config, error) {
 			return nil, fmt.Errorf("SSH Requested but SSH_AUTH_SOCK not-specified")
 		}
 
-		conn, err := net.Dial("unix", sshAuthSock)
+		conn, err = net.Dial("unix", sshAuthSock)
 		if err != nil {
 			return nil, fmt.Errorf("Error connecting to SSH_AUTH_SOCK: %v", err)
 		}
@@ -164,8 +167,17 @@ func PrepareConfig(conf *SSHConfig) (*Config, error) {
 	}
 	host := fmt.Sprintf("%s:%d", conf.Host, conf.Port)
 	config := &Config{
-		SSHConfig:  sshConf,
-		Connection: ConnectFunc("tcp", host),
+		SSHConfig:    sshConf,
+		Connection:   ConnectFunc("tcp", host),
+		SSHAgentConn: conn,
 	}
 	return config, nil
+}
+
+func (c *Config) CleanupConfig() error {
+	if c.SSHAgentConn != nil {
+		return c.SSHAgentConn.Close()
+	}
+
+	return nil
 }
