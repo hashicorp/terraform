@@ -128,6 +128,10 @@ func resourceComputeInstanceV2() *schema.Resource {
 							Type:     schema.TypeString,
 							Optional: true,
 						},
+						"mac": &schema.Schema{
+							Type:     schema.TypeString,
+							Optional: true,
+						},
 					},
 				},
 			},
@@ -350,39 +354,83 @@ func resourceComputeInstanceV2Read(d *schema.ResourceData, meta interface{}) err
 	log.Printf("[DEBUG] Retreived Server %s: %+v", d.Id(), server)
 
 	d.Set("name", server.Name)
+
+	// begin reading the network configuration
 	d.Set("access_ip_v4", server.AccessIPv4)
 	d.Set("access_ip_v6", server.AccessIPv6)
-
 	hostv4 := server.AccessIPv4
-	if hostv4 == "" {
-		for _, networkAddresses := range server.Addresses {
-			for _, element := range networkAddresses.([]interface{}) {
-				address := element.(map[string]interface{})
-				if address["version"].(float64) == 4 {
-					hostv4 = address["addr"].(string)
-					break
-				}
-			}
-		}
-	}
-	d.Set("access_ip_v4", hostv4)
-	log.Printf("hostv4: %s", hostv4)
-
 	hostv6 := server.AccessIPv6
-	if hostv6 == "" {
-		for _, networkAddresses := range server.Addresses {
-			for _, element := range networkAddresses.([]interface{}) {
-				address := element.(map[string]interface{})
-				if address["version"].(float64) == 6 {
-					hostv6 = fmt.Sprintf("[%s]", address["addr"].(string))
-					break
+
+	addresses := resourceInstanceAddresses(server.Addresses)
+	networkDetails, err := resourceInstanceNetworks(computeClient, d)
+	if err != nil {
+		return err
+	}
+
+	// if there are no networkDetails, make networks at least a length of 1
+	networkLength := 1
+	if len(networkDetails) > 0 {
+		networkLength = len(networkDetails)
+	}
+	networks := make([]map[string]interface{}, networkLength)
+
+	// Loop through all networks and addresses,
+	// merge relevant address details.
+	if len(networkDetails) == 0 {
+		for _, n := range addresses {
+			if floatingIP, ok := n["floating_ip"]; ok {
+				hostv4 = floatingIP.(string)
+			} else {
+				if hostv4 == "" && n["fixed_ip_v4"] != nil {
+					hostv4 = n["fixed_ip_v4"].(string)
 				}
+			}
+
+			if hostv6 == "" && n["fixed_ip_v6"] != nil {
+				hostv6 = n["fixed_ip_v6"].(string)
+			}
+
+			networks[0] = map[string]interface{}{
+				"name":        n,
+				"fixed_ip_v4": n["fixed_ip_v4"],
+				"fixed_ip_v6": n["fixed_ip_v6"],
+				"mac":         n["mac"],
+			}
+		}
+	} else {
+		for i, net := range networkDetails {
+			n := addresses[net["name"].(string)]
+
+			if floatingIP, ok := n["floating_ip"]; ok {
+				hostv4 = floatingIP.(string)
+			} else {
+				if hostv4 == "" && n["fixed_ip_v4"] != nil {
+					hostv4 = n["fixed_ip_v4"].(string)
+				}
+			}
+
+			if hostv6 == "" && n["fixed_ip_v6"] != nil {
+				hostv6 = n["fixed_ip_v6"].(string)
+			}
+
+			networks[i] = map[string]interface{}{
+				"uuid":        networkDetails[i]["uuid"],
+				"name":        networkDetails[i]["name"],
+				"port":        networkDetails[i]["port"],
+				"fixed_ip_v4": n["fixed_ip_v4"],
+				"fixed_ip_v6": n["fixed_ip_v6"],
+				"mac":         n["mac"],
 			}
 		}
 	}
+
+	d.Set("network", networks)
+	d.Set("access_ip_v4", hostv4)
 	d.Set("access_ip_v6", hostv6)
+	log.Printf("hostv4: %s", hostv4)
 	log.Printf("hostv6: %s", hostv6)
 
+	// prefer the v6 address if no v4 address exists.
 	preferredv := ""
 	if hostv4 != "" {
 		preferredv = hostv4
@@ -397,6 +445,7 @@ func resourceComputeInstanceV2Read(d *schema.ResourceData, meta interface{}) err
 			"host": preferredv,
 		})
 	}
+	// end network configuration
 
 	d.Set("metadata", server.Metadata)
 
@@ -735,6 +784,7 @@ func resourceInstanceNetworks(computeClient *gophercloud.ServiceClient, d *schem
 
 		newNetworks[i] = map[string]interface{}{
 			"uuid":        tenantnet.ID,
+			"name":        tenantnet.Name,
 			"port":        rawMap["port"].(string),
 			"fixed_ip_v4": rawMap["fixed_ip_v4"].(string),
 		}
@@ -742,7 +792,34 @@ func resourceInstanceNetworks(computeClient *gophercloud.ServiceClient, d *schem
 
 	d.Set("network", newNetworks)
 
+	log.Printf("[DEBUG] networks: %+v", newNetworks)
+
 	return newNetworks, nil
+}
+
+func resourceInstanceAddresses(addresses map[string]interface{}) map[string]map[string]interface{} {
+
+	addrs := make(map[string]map[string]interface{})
+	for n, networkAddresses := range addresses {
+		addrs[n] = make(map[string]interface{})
+		for _, element := range networkAddresses.([]interface{}) {
+			address := element.(map[string]interface{})
+			if address["OS-EXT-IPS:type"] == "floating" {
+				addrs[n]["floating_ip"] = address["addr"]
+			} else {
+				if address["version"].(float64) == 4 {
+					addrs[n]["fixed_ip_v4"] = address["addr"].(string)
+				} else {
+					addrs[n]["fixed_ip_v6"] = fmt.Sprintf("[%s]", address["addr"].(string))
+				}
+			}
+			addrs[n]["mac"] = address["OS-EXT-IPS-MAC:mac_addr"].(string)
+		}
+	}
+
+	log.Printf("[DEBUG] Addresses: %+v", addresses)
+
+	return addrs
 }
 
 func resourceInstanceMetadataV2(d *schema.ResourceData) map[string]string {
