@@ -16,6 +16,7 @@ import (
 	"github.com/rackspace/gophercloud/openstack/compute/v2/extensions/floatingip"
 	"github.com/rackspace/gophercloud/openstack/compute/v2/extensions/keypairs"
 	"github.com/rackspace/gophercloud/openstack/compute/v2/extensions/secgroups"
+	"github.com/rackspace/gophercloud/openstack/compute/v2/extensions/tenantnetworks"
 	"github.com/rackspace/gophercloud/openstack/compute/v2/extensions/volumeattach"
 	"github.com/rackspace/gophercloud/openstack/compute/v2/flavors"
 	"github.com/rackspace/gophercloud/openstack/compute/v2/images"
@@ -108,6 +109,10 @@ func resourceComputeInstanceV2() *schema.Resource {
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"uuid": &schema.Schema{
+							Type:     schema.TypeString,
+							Optional: true,
+						},
+						"name": &schema.Schema{
 							Type:     schema.TypeString,
 							Optional: true,
 						},
@@ -233,13 +238,27 @@ func resourceComputeInstanceV2Create(d *schema.ResourceData, meta interface{}) e
 		return err
 	}
 
+	networkDetails, err := resourceInstanceNetworks(computeClient, d)
+	if err != nil {
+		return err
+	}
+
+	networks := make([]servers.Network, len(networkDetails))
+	for i, net := range networkDetails {
+		networks[i] = servers.Network{
+			UUID:    net["uuid"].(string),
+			Port:    net["port"].(string),
+			FixedIP: net["fixed_ip_v4"].(string),
+		}
+	}
+
 	createOpts = &servers.CreateOpts{
 		Name:             d.Get("name").(string),
 		ImageRef:         imageId,
 		FlavorRef:        flavorId,
 		SecurityGroups:   resourceInstanceSecGroupsV2(d),
 		AvailabilityZone: d.Get("availability_zone").(string),
-		Networks:         resourceInstanceNetworksV2(d),
+		Networks:         networks,
 		Metadata:         resourceInstanceMetadataV2(d),
 		ConfigDrive:      d.Get("config_drive").(bool),
 		AdminPass:        d.Get("admin_pass").(string),
@@ -687,18 +706,43 @@ func resourceInstanceSecGroupsV2(d *schema.ResourceData) []string {
 	return secgroups
 }
 
-func resourceInstanceNetworksV2(d *schema.ResourceData) []servers.Network {
+func resourceInstanceNetworks(computeClient *gophercloud.ServiceClient, d *schema.ResourceData) ([]map[string]interface{}, error) {
 	rawNetworks := d.Get("network").([]interface{})
-	networks := make([]servers.Network, len(rawNetworks))
+	newNetworks := make([]map[string]interface{}, len(rawNetworks))
+	var tenantnet tenantnetworks.Network
+
 	for i, raw := range rawNetworks {
 		rawMap := raw.(map[string]interface{})
-		networks[i] = servers.Network{
-			UUID:    rawMap["uuid"].(string),
-			Port:    rawMap["port"].(string),
-			FixedIP: rawMap["fixed_ip_v4"].(string),
+
+		allPages, err := tenantnetworks.List(computeClient).AllPages()
+		if err != nil {
+			return nil, err
+		}
+
+		networkList, err := tenantnetworks.ExtractNetworks(allPages)
+		if err != nil {
+			return nil, err
+		}
+
+		for _, network := range networkList {
+			if network.Name == rawMap["name"] {
+				tenantnet = network
+			}
+			if network.ID == rawMap["uuid"] {
+				tenantnet = network
+			}
+		}
+
+		newNetworks[i] = map[string]interface{}{
+			"uuid":        tenantnet.ID,
+			"port":        rawMap["port"].(string),
+			"fixed_ip_v4": rawMap["fixed_ip_v4"].(string),
 		}
 	}
-	return networks
+
+	d.Set("network", newNetworks)
+
+	return newNetworks, nil
 }
 
 func resourceInstanceMetadataV2(d *schema.ResourceData) map[string]string {
