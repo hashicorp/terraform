@@ -63,6 +63,7 @@ type Module struct {
 // resource provider.
 type ProviderConfig struct {
 	Name      string
+	Alias     string
 	RawConfig *RawConfig
 }
 
@@ -75,6 +76,7 @@ type Resource struct {
 	RawCount     *RawConfig
 	RawConfig    *RawConfig
 	Provisioners []*Provisioner
+	Provider     string
 	DependsOn    []string
 	Lifecycle    ResourceLifecycle
 }

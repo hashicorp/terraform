@@ -3,6 +3,7 @@ package terraform
 import (
 	"fmt"
 	"log"
+	"strings"
 	"sync"
 
 	"github.com/hashicorp/terraform/config"
@@ -68,9 +69,11 @@ func (ctx *BuiltinEvalContext) InitProvider(n string) (ResourceProvider, error) 
 	ctx.ProviderLock.Lock()
 	defer ctx.ProviderLock.Unlock()
 
-	f, ok := ctx.Providers[n]
+	typeName := strings.SplitN(n, ".", 2)[0]
+
+	f, ok := ctx.Providers[typeName]
 	if !ok {
-		return nil, fmt.Errorf("Provider '%s' not found", n)
+		return nil, fmt.Errorf("Provider '%s' not found", typeName)
 	}
 
 	p, err := f()

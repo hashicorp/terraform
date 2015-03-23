@@ -47,7 +47,11 @@ func (s Semaphore) Release() {
 }
 
 // resourceProvider returns the provider name for the given type.
-func resourceProvider(t string) string {
+func resourceProvider(t, alias string) string {
+	if alias != "" {
+		return alias
+	}
+
 	idx := strings.IndexRune(t, '_')
 	if idx == -1 {
 		return ""
