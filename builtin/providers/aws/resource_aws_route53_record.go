@@ -67,17 +67,8 @@ func resourceAwsRoute53RecordCreate(d *schema.ResourceData, meta interface{}) er
 		return err
 	}
 
-	// Check if the current record name contains the zone suffix.
-	// If it does not, add the zone name to form a fully qualified name
-	// and keep AWS happy.
-	recordName := d.Get("name").(string)
-	zoneName := strings.Trim(*zoneRecord.HostedZone.Name, ".")
-	if !strings.HasSuffix(recordName, zoneName) {
-		d.Set("name", strings.Join([]string{recordName, zoneName}, "."))
-	}
-
 	// Get the record
-	rec, err := resourceAwsRoute53RecordBuildSet(d)
+	rec, err := resourceAwsRoute53RecordBuildSet(d, *zoneRecord.HostedZone.Name)
 	if err != nil {
 		return err
 	}
@@ -101,7 +92,7 @@ func resourceAwsRoute53RecordCreate(d *schema.ResourceData, meta interface{}) er
 	}
 
 	log.Printf("[DEBUG] Creating resource records for zone: %s, name: %s",
-		zone, d.Get("name").(string))
+		zone, *rec.Name)
 
 	wait := resource.StateChangeConf{
 		Pending:    []string{"rejected"},
@@ -111,10 +102,12 @@ func resourceAwsRoute53RecordCreate(d *schema.ResourceData, meta interface{}) er
 		Refresh: func() (interface{}, string, error) {
 			resp, err := conn.ChangeResourceRecordSets(req)
 			if err != nil {
-				if strings.Contains(err.Error(), "PriorRequestNotComplete") {
-					// There is some pending operation, so just retry
-					// in a bit.
-					return nil, "rejected", nil
+				if r53err, ok := err.(aws.APIError); ok {
+					if r53err.Code == "PriorRequestNotComplete" {
+						// There is some pending operation, so just retry
+						// in a bit.
+						return nil, "rejected", nil
+					}
 				}
 
 				return nil, "failure", err
@@ -159,9 +152,17 @@ func resourceAwsRoute53RecordRead(d *schema.ResourceData, meta interface{}) erro
 	conn := meta.(*AWSClient).r53conn
 
 	zone := d.Get("zone_id").(string)
+
+	// get expanded name
+	zoneRecord, err := conn.GetHostedZone(&route53.GetHostedZoneRequest{ID: aws.String(zone)})
+	if err != nil {
+		return err
+	}
+	en := expandRecordName(d.Get("name").(string), *zoneRecord.HostedZone.Name)
+
 	lopts := &route53.ListResourceRecordSetsRequest{
 		HostedZoneID:    aws.String(cleanZoneID(zone)),
-		StartRecordName: aws.String(d.Get("name").(string)),
+		StartRecordName: aws.String(en),
 		StartRecordType: aws.String(d.Get("type").(string)),
 	}
 
@@ -202,9 +203,12 @@ func resourceAwsRoute53RecordDelete(d *schema.ResourceData, meta interface{}) er
 	zone := d.Get("zone_id").(string)
 	log.Printf("[DEBUG] Deleting resource records for zone: %s, name: %s",
 		zone, d.Get("name").(string))
-
+	zoneRecord, err := conn.GetHostedZone(&route53.GetHostedZoneRequest{ID: aws.String(zone)})
+	if err != nil {
+		return err
+	}
 	// Get the records
-	rec, err := resourceAwsRoute53RecordBuildSet(d)
+	rec, err := resourceAwsRoute53RecordBuildSet(d, *zoneRecord.HostedZone.Name)
 	if err != nil {
 		return err
 	}
@@ -260,7 +264,7 @@ func resourceAwsRoute53RecordDelete(d *schema.ResourceData, meta interface{}) er
 	return nil
 }
 
-func resourceAwsRoute53RecordBuildSet(d *schema.ResourceData) (*route53.ResourceRecordSet, error) {
+func resourceAwsRoute53RecordBuildSet(d *schema.ResourceData, zoneName string) (*route53.ResourceRecordSet, error) {
 	recs := d.Get("records").(*schema.Set).List()
 	records := make([]route53.ResourceRecord, 0, len(recs))
 
@@ -275,8 +279,15 @@ func resourceAwsRoute53RecordBuildSet(d *schema.ResourceData) (*route53.Resource
 		}
 	}
 
+	// get expanded name
+	en := expandRecordName(d.Get("name").(string), zoneName)
+
+	// Create the RecordSet request with the fully expanded name, e.g.
+	// sub.domain.com. Route 53 requires a fully qualified domain name, but does
+	// not require the trailing ".", which it will itself, so we don't call FQDN
+	// here.
 	rec := &route53.ResourceRecordSet{
-		Name:            aws.String(d.Get("name").(string)),
+		Name:            aws.String(en),
 		Type:            aws.String(d.Get("type").(string)),
 		TTL:             aws.Long(int64(d.Get("ttl").(int))),
 		ResourceRecords: records,
@@ -303,4 +314,16 @@ func cleanRecordName(name string) string {
 		log.Printf("[DEBUG] Replacing octal \\052 for * in: %s", name)
 	}
 	return str
+}
+
+// Check if the current record name contains the zone suffix.
+// If it does not, add the zone name to form a fully qualified name
+// and keep AWS happy.
+func expandRecordName(name, zone string) string {
+	rn := strings.TrimSuffix(name, ".")
+	zone = strings.TrimSuffix(zone, ".")
+	if !strings.HasSuffix(rn, zone) {
+		rn = strings.Join([]string{name, zone}, ".")
+	}
+	return rn
 }
