@@ -409,11 +409,11 @@ func TestExpandPrivateIPAddesses(t *testing.T) {
 	}
 
 	if *result[0].PrivateIPAddress != "192.168.0.1" || !*result[0].Primary {
-		t.Fatalf("expected ip to be 192.168.0.1 and Primary, but got %v, %b", *result[0].PrivateIPAddress, *result[0].Primary)
+		t.Fatalf("expected ip to be 192.168.0.1 and Primary, but got %v, %t", *result[0].PrivateIPAddress, *result[0].Primary)
 	}
 
 	if *result[1].PrivateIPAddress != "192.168.0.2" || *result[1].Primary {
-		t.Fatalf("expected ip to be 192.168.0.2 and not Primary, but got %v, %b", *result[1].PrivateIPAddress, *result[1].Primary)
+		t.Fatalf("expected ip to be 192.168.0.2 and not Primary, but got %v, %t", *result[1].PrivateIPAddress, *result[1].Primary)
 	}
 }
 
