@@ -45,6 +45,7 @@ func (t *TaintedTransformer) Transform(g *Graph) error {
 				Index:        i,
 				ResourceName: k,
 				ResourceType: rs.Type,
+				Provider:     rs.Provider,
 			})
 		}
 	}
@@ -57,6 +58,7 @@ type graphNodeTaintedResource struct {
 	Index        int
 	ResourceName string
 	ResourceType string
+	Provider     string
 }
 
 func (n *graphNodeTaintedResource) Name() string {
@@ -64,7 +66,7 @@ func (n *graphNodeTaintedResource) Name() string {
 }
 
 func (n *graphNodeTaintedResource) ProvidedBy() []string {
-	return []string{resourceProvider(n.ResourceName)}
+	return []string{resourceProvider(n.ResourceName, n.Provider)}
 }
 
 // GraphNodeEvalable impl.
@@ -101,6 +103,7 @@ func (n *graphNodeTaintedResource) EvalTree() EvalNode {
 				&EvalWriteStateTainted{
 					Name:         n.ResourceName,
 					ResourceType: n.ResourceType,
+					Provider:     n.Provider,
 					State:        &state,
 					Index:        n.Index,
 				},
@@ -138,6 +141,7 @@ func (n *graphNodeTaintedResource) EvalTree() EvalNode {
 				&EvalWriteStateTainted{
 					Name:         n.ResourceName,
 					ResourceType: n.ResourceType,
+					Provider:     n.Provider,
 					State:        &state,
 					Index:        n.Index,
 				},

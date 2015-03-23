@@ -35,7 +35,8 @@ type TestCase struct {
 	PreCheck func()
 
 	// Provider is the ResourceProvider that will be under test.
-	Providers map[string]terraform.ResourceProvider
+	Providers         map[string]terraform.ResourceProvider
+	ProviderFactories map[string]terraform.ResourceProviderFactory
 
 	// CheckDestroy is called after the resource is finally destroyed
 	// to allow the tester to test that the resource is truly gone.
@@ -102,9 +103,12 @@ func Test(t TestT, c TestCase) {
 	}
 
 	// Build our context options that we can
-	ctxProviders := make(map[string]terraform.ResourceProviderFactory)
-	for k, p := range c.Providers {
-		ctxProviders[k] = terraform.ResourceProviderFactoryFixed(p)
+	ctxProviders := c.ProviderFactories
+	if ctxProviders == nil {
+		ctxProviders = make(map[string]terraform.ResourceProviderFactory)
+		for k, p := range c.Providers {
+			ctxProviders[k] = terraform.ResourceProviderFactoryFixed(p)
+		}
 	}
 	opts := terraform.ContextOpts{Providers: ctxProviders}
 

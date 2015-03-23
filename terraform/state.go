@@ -572,6 +572,9 @@ func (m *ModuleState) String() string {
 
 		buf.WriteString(fmt.Sprintf("%s:%s%s\n", k, taintStr, deposedStr))
 		buf.WriteString(fmt.Sprintf("  ID = %s\n", id))
+		if rs.Provider != "" {
+			buf.WriteString(fmt.Sprintf("  provider = %s\n", rs.Provider))
+		}
 
 		var attributes map[string]string
 		if rs.Primary != nil {
@@ -680,11 +683,21 @@ type ResourceState struct {
 	// similar to Tainted instances in that Terraform is only tracking them in
 	// order to remember to destroy them.
 	Deposed []*InstanceState `json:"deposed,omitempty"`
+
+	// Provider is used when a resource is connected to a provider with an alias.
+	// If this string is empty, the resource is connected to the default provider,
+	// e.g. "aws_instance" goes with the "aws" provider.
+	// If the resource block contained a "provider" key, that value will be set here.
+	Provider string `json:"provider,omitempty"`
 }
 
 // Equal tests whether two ResourceStates are equal.
 func (s *ResourceState) Equal(other *ResourceState) bool {
 	if s.Type != other.Type {
+		return false
+	}
+
+	if s.Provider != other.Provider {
 		return false
 	}
 
@@ -769,6 +782,7 @@ func (r *ResourceState) deepcopy() *ResourceState {
 		Dependencies: nil,
 		Primary:      r.Primary.deepcopy(),
 		Tainted:      nil,
+		Provider:     r.Provider,
 	}
 	if r.Dependencies != nil {
 		n.Dependencies = make([]string, len(r.Dependencies))

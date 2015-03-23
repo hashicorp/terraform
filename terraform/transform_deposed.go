@@ -40,6 +40,7 @@ func (t *DeposedTransformer) Transform(g *Graph) error {
 				Index:        i,
 				ResourceName: k,
 				ResourceType: rs.Type,
+				Provider:     rs.Provider,
 			})
 		}
 	}
@@ -52,6 +53,7 @@ type graphNodeDeposedResource struct {
 	Index        int
 	ResourceName string
 	ResourceType string
+	Provider     string
 }
 
 func (n *graphNodeDeposedResource) Name() string {
@@ -59,7 +61,7 @@ func (n *graphNodeDeposedResource) Name() string {
 }
 
 func (n *graphNodeDeposedResource) ProvidedBy() []string {
-	return []string{resourceProvider(n.ResourceName)}
+	return []string{resourceProvider(n.ResourceName, n.Provider)}
 }
 
 // GraphNodeEvalable impl.
@@ -96,6 +98,7 @@ func (n *graphNodeDeposedResource) EvalTree() EvalNode {
 				&EvalWriteStateDeposed{
 					Name:         n.ResourceName,
 					ResourceType: n.ResourceType,
+					Provider:     n.Provider,
 					State:        &state,
 					Index:        n.Index,
 				},
@@ -138,6 +141,7 @@ func (n *graphNodeDeposedResource) EvalTree() EvalNode {
 				&EvalWriteStateDeposed{
 					Name:         n.ResourceName,
 					ResourceType: n.ResourceType,
+					Provider:     n.Provider,
 					State:        &state,
 					Index:        n.Index,
 				},

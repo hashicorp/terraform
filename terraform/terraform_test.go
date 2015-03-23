@@ -182,6 +182,18 @@ aws_instance.foo:
   type = aws_instance
 `
 
+const testTerraformApplyProviderAliasStr = `
+aws_instance.bar:
+  ID = foo
+  provider = aws.bar
+  foo = bar
+  type = aws_instance
+aws_instance.foo:
+  ID = foo
+  num = 2
+  type = aws_instance
+`
+
 const testTerraformApplyEmptyModuleStr = `
 <no state>
 Outputs:

@@ -58,6 +58,13 @@ func TestGraphNodeTaintedResource_ProvidedBy(t *testing.T) {
 	}
 }
 
+func TestGraphNodeTaintedResource_ProvidedBy_alias(t *testing.T) {
+	n := &graphNodeTaintedResource{ResourceName: "aws_instance.foo", Provider: "aws.bar"}
+	if v := n.ProvidedBy(); v[0] != "aws.bar" {
+		t.Fatalf("bad: %#v", v)
+	}
+}
+
 const testTransformTaintedBasicStr = `
 aws_instance.web
 aws_instance.web (tainted #1)

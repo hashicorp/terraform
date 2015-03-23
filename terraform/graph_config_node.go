@@ -110,7 +110,7 @@ func (n *GraphNodeConfigModule) ProvidedBy() []string {
 		providers[p.Name] = struct{}{}
 	}
 	for _, r := range config.Resources {
-		providers[resourceProvider(r.Type)] = struct{}{}
+		providers[resourceProvider(r.Type, r.Provider)] = struct{}{}
 	}
 
 	// Turn the map into a string. This makes sure that the list is
@@ -176,7 +176,7 @@ type GraphNodeConfigProvider struct {
 }
 
 func (n *GraphNodeConfigProvider) Name() string {
-	return fmt.Sprintf("provider.%s", n.Provider.Name)
+	return fmt.Sprintf("provider.%s", n.ProviderName())
 }
 
 func (n *GraphNodeConfigProvider) ConfigType() GraphNodeConfigType {
@@ -201,12 +201,16 @@ func (n *GraphNodeConfigProvider) DependentOn() []string {
 
 // GraphNodeEvalable impl.
 func (n *GraphNodeConfigProvider) EvalTree() EvalNode {
-	return ProviderEvalTree(n.Provider.Name, n.Provider.RawConfig)
+	return ProviderEvalTree(n.ProviderName(), n.Provider.RawConfig)
 }
 
 // GraphNodeProvider implementation
 func (n *GraphNodeConfigProvider) ProviderName() string {
-	return n.Provider.Name
+	if n.Provider.Alias == "" {
+		return n.Provider.Name
+	} else {
+		return fmt.Sprintf("%s.%s", n.Provider.Name, n.Provider.Alias)
+	}
 }
 
 // GraphNodeProvider implementation
@@ -396,7 +400,7 @@ func (n *GraphNodeConfigResource) EvalTree() EvalNode {
 
 // GraphNodeProviderConsumer
 func (n *GraphNodeConfigResource) ProvidedBy() []string {
-	return []string{resourceProvider(n.Resource.Type)}
+	return []string{resourceProvider(n.Resource.Type, n.Resource.Provider)}
 }
 
 // GraphNodeProvisionerConsumer
