@@ -140,7 +140,7 @@ func (n *graphNodeExpandedResource) DependentOn() []string {
 
 // GraphNodeProviderConsumer
 func (n *graphNodeExpandedResource) ProvidedBy() []string {
-	return []string{resourceProvider(n.Resource.Type)}
+	return []string{resourceProvider(n.Resource.Type, n.Resource.Provider)}
 }
 
 // GraphNodeEvalable impl.
@@ -230,6 +230,7 @@ func (n *graphNodeExpandedResource) EvalTree() EvalNode {
 				&EvalWriteState{
 					Name:         n.stateId(),
 					ResourceType: n.Resource.Type,
+					Provider:     n.Resource.Provider,
 					Dependencies: n.DependentOn(),
 					State:        &state,
 				},
@@ -270,6 +271,7 @@ func (n *graphNodeExpandedResource) EvalTree() EvalNode {
 				&EvalWriteState{
 					Name:         n.stateId(),
 					ResourceType: n.Resource.Type,
+					Provider:     n.Resource.Provider,
 					Dependencies: n.DependentOn(),
 					State:        &state,
 				},
@@ -416,6 +418,7 @@ func (n *graphNodeExpandedResource) EvalTree() EvalNode {
 				&EvalWriteState{
 					Name:         n.stateId(),
 					ResourceType: n.Resource.Type,
+					Provider:     n.Resource.Provider,
 					Dependencies: n.DependentOn(),
 					State:        &state,
 				},
@@ -459,6 +462,7 @@ func (n *graphNodeExpandedResource) EvalTree() EvalNode {
 							&EvalWriteStateTainted{
 								Name:         n.stateId(),
 								ResourceType: n.Resource.Type,
+								Provider:     n.Resource.Provider,
 								Dependencies: n.DependentOn(),
 								State:        &state,
 								Index:        -1,
@@ -476,6 +480,7 @@ func (n *graphNodeExpandedResource) EvalTree() EvalNode {
 					Else: &EvalWriteState{
 						Name:         n.stateId(),
 						ResourceType: n.Resource.Type,
+						Provider:     n.Resource.Provider,
 						Dependencies: n.DependentOn(),
 						State:        &state,
 					},
@@ -586,6 +591,7 @@ func (n *graphNodeExpandedResourceDestroy) EvalTree() EvalNode {
 				&EvalWriteState{
 					Name:         n.stateId(),
 					ResourceType: n.Resource.Type,
+					Provider:     n.Resource.Provider,
 					Dependencies: n.DependentOn(),
 					State:        &state,
 				},
