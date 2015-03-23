@@ -137,7 +137,7 @@ func resourceAwsAutoscalingGroupCreate(d *schema.ResourceData, meta interface{})
 		autoScalingGroupOpts.DefaultCooldown = aws.Integer(v.(int))
 	}
 
-	if v, ok := d.GetOk("health_check"); ok && v.(string) != "" {
+	if v, ok := d.GetOk("health_check_type"); ok && v.(string) != "" {
 		autoScalingGroupOpts.HealthCheckType = aws.String(v.(string))
 	}
 
