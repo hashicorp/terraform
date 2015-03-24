@@ -65,6 +65,13 @@ type BuiltinGraphBuilder struct {
 
 	// Provisioners is the list of provisioners supported.
 	Provisioners []string
+
+	// Targets is the user-specified list of resources to target.
+	Targets []string
+
+	// Destroy is set to true when we're in a `terraform destroy` or a
+	// `terraform plan -destroy`
+	Destroy bool
 }
 
 // Build builds the graph according to the steps returned by Steps.
@@ -103,6 +110,10 @@ func (b *BuiltinGraphBuilder) Steps() []GraphTransformer {
 				},
 			},
 		},
+
+		// Optionally reduces the graph to a user-specified list of targets and
+		// their dependencies.
+		&TargetsTransformer{Targets: b.Targets, Destroy: b.Destroy},
 
 		// Create the destruction nodes
 		&DestroyTransformer{},

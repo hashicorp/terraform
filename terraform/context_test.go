@@ -24,7 +24,7 @@ func TestContext2Plan(t *testing.T) {
 		},
 	})
 
-	plan, err := ctx.Plan(nil)
+	plan, err := ctx.Plan()
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -57,7 +57,7 @@ func TestContext2Plan_emptyDiff(t *testing.T) {
 		},
 	})
 
-	plan, err := ctx.Plan(nil)
+	plan, err := ctx.Plan()
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -80,7 +80,7 @@ func TestContext2Plan_minimal(t *testing.T) {
 		},
 	})
 
-	plan, err := ctx.Plan(nil)
+	plan, err := ctx.Plan()
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -103,7 +103,7 @@ func TestContext2Plan_modules(t *testing.T) {
 		},
 	})
 
-	plan, err := ctx.Plan(nil)
+	plan, err := ctx.Plan()
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -126,7 +126,7 @@ func TestContext2Plan_moduleInput(t *testing.T) {
 		},
 	})
 
-	plan, err := ctx.Plan(nil)
+	plan, err := ctx.Plan()
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -149,7 +149,7 @@ func TestContext2Plan_moduleInputComputed(t *testing.T) {
 		},
 	})
 
-	plan, err := ctx.Plan(nil)
+	plan, err := ctx.Plan()
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -175,7 +175,7 @@ func TestContext2Plan_moduleInputFromVar(t *testing.T) {
 		},
 	})
 
-	plan, err := ctx.Plan(nil)
+	plan, err := ctx.Plan()
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -198,7 +198,7 @@ func TestContext2Plan_moduleMultiVar(t *testing.T) {
 		},
 	})
 
-	plan, err := ctx.Plan(nil)
+	plan, err := ctx.Plan()
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -237,7 +237,7 @@ func TestContext2Plan_moduleOrphans(t *testing.T) {
 		State: s,
 	})
 
-	plan, err := ctx.Plan(nil)
+	plan, err := ctx.Plan()
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -282,7 +282,7 @@ func TestContext2Plan_moduleProviderInherit(t *testing.T) {
 		},
 	})
 
-	_, err := ctx.Plan(nil)
+	_, err := ctx.Plan()
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -332,7 +332,7 @@ func TestContext2Plan_moduleProviderDefaults(t *testing.T) {
 		},
 	})
 
-	_, err := ctx.Plan(nil)
+	_, err := ctx.Plan()
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -385,7 +385,7 @@ func TestContext2Plan_moduleProviderDefaultsVar(t *testing.T) {
 		},
 	})
 
-	_, err := ctx.Plan(nil)
+	_, err := ctx.Plan()
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -410,7 +410,7 @@ func TestContext2Plan_moduleVar(t *testing.T) {
 		},
 	})
 
-	plan, err := ctx.Plan(nil)
+	plan, err := ctx.Plan()
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -433,7 +433,7 @@ func TestContext2Plan_moduleVarComputed(t *testing.T) {
 		},
 	})
 
-	plan, err := ctx.Plan(nil)
+	plan, err := ctx.Plan()
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -471,7 +471,7 @@ func TestContext2Plan_nil(t *testing.T) {
 		},
 	})
 
-	plan, err := ctx.Plan(nil)
+	plan, err := ctx.Plan()
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -491,7 +491,7 @@ func TestContext2Plan_computed(t *testing.T) {
 		},
 	})
 
-	plan, err := ctx.Plan(nil)
+	plan, err := ctx.Plan()
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -514,7 +514,7 @@ func TestContext2Plan_computedList(t *testing.T) {
 		},
 	})
 
-	plan, err := ctx.Plan(nil)
+	plan, err := ctx.Plan()
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -537,7 +537,7 @@ func TestContext2Plan_count(t *testing.T) {
 		},
 	})
 
-	plan, err := ctx.Plan(nil)
+	plan, err := ctx.Plan()
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -564,7 +564,7 @@ func TestContext2Plan_countComputed(t *testing.T) {
 		},
 	})
 
-	_, err := ctx.Plan(nil)
+	_, err := ctx.Plan()
 	if err == nil {
 		t.Fatal("should error")
 	}
@@ -581,7 +581,7 @@ func TestContext2Plan_countIndex(t *testing.T) {
 		},
 	})
 
-	plan, err := ctx.Plan(nil)
+	plan, err := ctx.Plan()
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -604,7 +604,7 @@ func TestContext2Plan_countIndexZero(t *testing.T) {
 		},
 	})
 
-	plan, err := ctx.Plan(nil)
+	plan, err := ctx.Plan()
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -630,7 +630,7 @@ func TestContext2Plan_countVar(t *testing.T) {
 		},
 	})
 
-	plan, err := ctx.Plan(nil)
+	plan, err := ctx.Plan()
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -653,7 +653,7 @@ func TestContext2Plan_countZero(t *testing.T) {
 		},
 	})
 
-	plan, err := ctx.Plan(nil)
+	plan, err := ctx.Plan()
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -676,7 +676,7 @@ func TestContext2Plan_countOneIndex(t *testing.T) {
 		},
 	})
 
-	plan, err := ctx.Plan(nil)
+	plan, err := ctx.Plan()
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -731,7 +731,7 @@ func TestContext2Plan_countDecreaseToOne(t *testing.T) {
 		State: s,
 	})
 
-	plan, err := ctx.Plan(nil)
+	plan, err := ctx.Plan()
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -774,7 +774,7 @@ func TestContext2Plan_countIncreaseFromNotSet(t *testing.T) {
 		State: s,
 	})
 
-	plan, err := ctx.Plan(nil)
+	plan, err := ctx.Plan()
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -817,7 +817,7 @@ func TestContext2Plan_countIncreaseFromOne(t *testing.T) {
 		State: s,
 	})
 
-	plan, err := ctx.Plan(nil)
+	plan, err := ctx.Plan()
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -875,7 +875,7 @@ func TestContext2Plan_countIncreaseFromOneCorrupted(t *testing.T) {
 		State: s,
 	})
 
-	plan, err := ctx.Plan(nil)
+	plan, err := ctx.Plan()
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -917,10 +917,11 @@ func TestContext2Plan_destroy(t *testing.T) {
 		Providers: map[string]ResourceProviderFactory{
 			"aws": testProviderFuncFixed(p),
 		},
-		State: s,
+		State:   s,
+		Destroy: true,
 	})
 
-	plan, err := ctx.Plan(&PlanOpts{Destroy: true})
+	plan, err := ctx.Plan()
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -971,10 +972,11 @@ func TestContext2Plan_moduleDestroy(t *testing.T) {
 		Providers: map[string]ResourceProviderFactory{
 			"aws": testProviderFuncFixed(p),
 		},
-		State: s,
+		State:   s,
+		Destroy: true,
 	})
 
-	plan, err := ctx.Plan(&PlanOpts{Destroy: true})
+	plan, err := ctx.Plan()
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -1020,10 +1022,11 @@ func TestContext2Plan_moduleDestroyMultivar(t *testing.T) {
 		Providers: map[string]ResourceProviderFactory{
 			"aws": testProviderFuncFixed(p),
 		},
-		State: s,
+		State:   s,
+		Destroy: true,
 	})
 
-	plan, err := ctx.Plan(&PlanOpts{Destroy: true})
+	plan, err := ctx.Plan()
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -1051,7 +1054,7 @@ func TestContext2Plan_pathVar(t *testing.T) {
 		},
 	})
 
-	plan, err := ctx.Plan(nil)
+	plan, err := ctx.Plan()
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -1118,7 +1121,7 @@ func TestContext2Plan_diffVar(t *testing.T) {
 		}, nil
 	}
 
-	plan, err := ctx.Plan(nil)
+	plan, err := ctx.Plan()
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -1143,7 +1146,7 @@ func TestContext2Plan_hook(t *testing.T) {
 		},
 	})
 
-	_, err := ctx.Plan(nil)
+	_, err := ctx.Plan()
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -1183,7 +1186,7 @@ func TestContext2Plan_orphan(t *testing.T) {
 		State: s,
 	})
 
-	plan, err := ctx.Plan(nil)
+	plan, err := ctx.Plan()
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -1221,7 +1224,7 @@ func TestContext2Plan_state(t *testing.T) {
 		State: s,
 	})
 
-	plan, err := ctx.Plan(nil)
+	plan, err := ctx.Plan()
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -1273,7 +1276,7 @@ func TestContext2Plan_taint(t *testing.T) {
 		State: s,
 	})
 
-	plan, err := ctx.Plan(nil)
+	plan, err := ctx.Plan()
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -1324,7 +1327,7 @@ func TestContext2Plan_multiple_taint(t *testing.T) {
 		State: s,
 	})
 
-	plan, err := ctx.Plan(nil)
+	plan, err := ctx.Plan()
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -1357,7 +1360,7 @@ func TestContext2Plan_provider(t *testing.T) {
 		},
 	})
 
-	if _, err := ctx.Plan(nil); err != nil {
+	if _, err := ctx.Plan(); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 
@@ -1377,7 +1380,7 @@ func TestContext2Plan_varMultiCountOne(t *testing.T) {
 		},
 	})
 
-	plan, err := ctx.Plan(nil)
+	plan, err := ctx.Plan()
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -1399,7 +1402,7 @@ func TestContext2Plan_varListErr(t *testing.T) {
 		},
 	})
 
-	_, err := ctx.Plan(nil)
+	_, err := ctx.Plan()
 	if err == nil {
 		t.Fatal("should error")
 	}
@@ -2468,7 +2471,7 @@ func TestContext2Input(t *testing.T) {
 		t.Fatalf("err: %s", err)
 	}
 
-	if _, err := ctx.Plan(nil); err != nil {
+	if _, err := ctx.Plan(); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 
@@ -2513,7 +2516,7 @@ func TestContext2Input_provider(t *testing.T) {
 		t.Fatalf("err: %s", err)
 	}
 
-	if _, err := ctx.Plan(nil); err != nil {
+	if _, err := ctx.Plan(); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 
@@ -2590,7 +2593,7 @@ func TestContext2Input_providerId(t *testing.T) {
 		t.Fatalf("err: %s", err)
 	}
 
-	if _, err := ctx.Plan(nil); err != nil {
+	if _, err := ctx.Plan(); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 
@@ -2638,7 +2641,7 @@ func TestContext2Input_providerOnly(t *testing.T) {
 		t.Fatalf("err: %s", err)
 	}
 
-	if _, err := ctx.Plan(nil); err != nil {
+	if _, err := ctx.Plan(); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 
@@ -2693,7 +2696,7 @@ func TestContext2Input_providerVars(t *testing.T) {
 		t.Fatalf("err: %s", err)
 	}
 
-	if _, err := ctx.Plan(nil); err != nil {
+	if _, err := ctx.Plan(); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 
@@ -2741,7 +2744,7 @@ func TestContext2Input_varOnly(t *testing.T) {
 		t.Fatalf("err: %s", err)
 	}
 
-	if _, err := ctx.Plan(nil); err != nil {
+	if _, err := ctx.Plan(); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 
@@ -2787,7 +2790,7 @@ func TestContext2Input_varOnlyUnset(t *testing.T) {
 		t.Fatalf("err: %s", err)
 	}
 
-	if _, err := ctx.Plan(nil); err != nil {
+	if _, err := ctx.Plan(); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 
@@ -2815,7 +2818,7 @@ func TestContext2Apply(t *testing.T) {
 		},
 	})
 
-	if _, err := ctx.Plan(nil); err != nil {
+	if _, err := ctx.Plan(); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 
@@ -2848,7 +2851,7 @@ func TestContext2Apply_emptyModule(t *testing.T) {
 		},
 	})
 
-	if _, err := ctx.Plan(nil); err != nil {
+	if _, err := ctx.Plan(); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 
@@ -2896,7 +2899,7 @@ func TestContext2Apply_createBeforeDestroy(t *testing.T) {
 		State: state,
 	})
 
-	if p, err := ctx.Plan(nil); err != nil {
+	if p, err := ctx.Plan(); err != nil {
 		t.Fatalf("err: %s", err)
 	} else {
 		t.Logf(p.String())
@@ -2950,7 +2953,7 @@ func TestContext2Apply_createBeforeDestroyUpdate(t *testing.T) {
 		State: state,
 	})
 
-	if p, err := ctx.Plan(nil); err != nil {
+	if p, err := ctx.Plan(); err != nil {
 		t.Fatalf("err: %s", err)
 	} else {
 		t.Logf(p.String())
@@ -2985,7 +2988,7 @@ func TestContext2Apply_minimal(t *testing.T) {
 		},
 	})
 
-	if _, err := ctx.Plan(nil); err != nil {
+	if _, err := ctx.Plan(); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 
@@ -3013,7 +3016,7 @@ func TestContext2Apply_badDiff(t *testing.T) {
 		},
 	})
 
-	if _, err := ctx.Plan(nil); err != nil {
+	if _, err := ctx.Plan(); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 
@@ -3071,7 +3074,7 @@ func TestContext2Apply_cancel(t *testing.T) {
 		}, nil
 	}
 
-	if _, err := ctx.Plan(nil); err != nil {
+	if _, err := ctx.Plan(); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 
@@ -3112,7 +3115,7 @@ func TestContext2Apply_compute(t *testing.T) {
 		},
 	})
 
-	if _, err := ctx.Plan(nil); err != nil {
+	if _, err := ctx.Plan(); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 
@@ -3181,7 +3184,7 @@ func TestContext2Apply_countDecrease(t *testing.T) {
 		State: s,
 	})
 
-	if _, err := ctx.Plan(nil); err != nil {
+	if _, err := ctx.Plan(); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 
@@ -3241,7 +3244,7 @@ func TestContext2Apply_countDecreaseToOne(t *testing.T) {
 		State: s,
 	})
 
-	if _, err := ctx.Plan(nil); err != nil {
+	if _, err := ctx.Plan(); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 
@@ -3303,7 +3306,7 @@ func TestContext2Apply_countDecreaseToOneCorrupted(t *testing.T) {
 		State: s,
 	})
 
-	if p, err := ctx.Plan(nil); err != nil {
+	if p, err := ctx.Plan(); err != nil {
 		t.Fatalf("err: %s", err)
 	} else {
 		testStringMatch(t, p, testTerraformApplyCountDecToOneCorruptedPlanStr)
@@ -3354,7 +3357,7 @@ func TestContext2Apply_countTainted(t *testing.T) {
 		State: s,
 	})
 
-	if _, err := ctx.Plan(nil); err != nil {
+	if _, err := ctx.Plan(); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 
@@ -3382,7 +3385,7 @@ func TestContext2Apply_countVariable(t *testing.T) {
 		},
 	})
 
-	if _, err := ctx.Plan(nil); err != nil {
+	if _, err := ctx.Plan(); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 
@@ -3410,7 +3413,7 @@ func TestContext2Apply_module(t *testing.T) {
 		},
 	})
 
-	if _, err := ctx.Plan(nil); err != nil {
+	if _, err := ctx.Plan(); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 
@@ -3439,9 +3442,10 @@ func TestContext2Apply_moduleVarResourceCount(t *testing.T) {
 		Variables: map[string]string{
 			"count": "2",
 		},
+		Destroy: true,
 	})
 
-	if _, err := ctx.Plan(nil); err != nil {
+	if _, err := ctx.Plan(); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 
@@ -3459,7 +3463,7 @@ func TestContext2Apply_moduleVarResourceCount(t *testing.T) {
 		},
 	})
 
-	if _, err := ctx.Plan(&PlanOpts{Destroy: true}); err != nil {
+	if _, err := ctx.Plan(); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 
@@ -3481,7 +3485,7 @@ func TestContext2Apply_moduleBool(t *testing.T) {
 		},
 	})
 
-	if _, err := ctx.Plan(nil); err != nil {
+	if _, err := ctx.Plan(); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 
@@ -3515,7 +3519,7 @@ func TestContext2Apply_multiProvider(t *testing.T) {
 		},
 	})
 
-	if _, err := ctx.Plan(nil); err != nil {
+	if _, err := ctx.Plan(); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 
@@ -3548,7 +3552,7 @@ func TestContext2Apply_nilDiff(t *testing.T) {
 		},
 	})
 
-	if _, err := ctx.Plan(nil); err != nil {
+	if _, err := ctx.Plan(); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 
@@ -3588,7 +3592,7 @@ func TestContext2Apply_Provisioner_compute(t *testing.T) {
 		},
 	})
 
-	if _, err := ctx.Plan(nil); err != nil {
+	if _, err := ctx.Plan(); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 
@@ -3633,7 +3637,7 @@ func TestContext2Apply_provisionerCreateFail(t *testing.T) {
 		},
 	})
 
-	if _, err := ctx.Plan(nil); err != nil {
+	if _, err := ctx.Plan(); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 
@@ -3672,7 +3676,7 @@ func TestContext2Apply_provisionerCreateFailNoId(t *testing.T) {
 		},
 	})
 
-	if _, err := ctx.Plan(nil); err != nil {
+	if _, err := ctx.Plan(); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 
@@ -3712,7 +3716,7 @@ func TestContext2Apply_provisionerFail(t *testing.T) {
 		},
 	})
 
-	if _, err := ctx.Plan(nil); err != nil {
+	if _, err := ctx.Plan(); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 
@@ -3767,7 +3771,7 @@ func TestContext2Apply_provisionerFail_createBeforeDestroy(t *testing.T) {
 		State: state,
 	})
 
-	if _, err := ctx.Plan(nil); err != nil {
+	if _, err := ctx.Plan(); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 
@@ -3816,7 +3820,7 @@ func TestContext2Apply_error_createBeforeDestroy(t *testing.T) {
 	}
 	p.DiffFn = testDiffFn
 
-	if _, err := ctx.Plan(nil); err != nil {
+	if _, err := ctx.Plan(); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 
@@ -3874,7 +3878,7 @@ func TestContext2Apply_errorDestroy_createBeforeDestroy(t *testing.T) {
 	}
 	p.DiffFn = testDiffFn
 
-	if _, err := ctx.Plan(nil); err != nil {
+	if _, err := ctx.Plan(); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 
@@ -3931,7 +3935,7 @@ func TestContext2Apply_multiDepose_createBeforeDestroy(t *testing.T) {
 		}
 	}
 
-	if _, err := ctx.Plan(nil); err != nil {
+	if _, err := ctx.Plan(); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 
@@ -3955,7 +3959,7 @@ aws_instance.web: (1 deposed)
 		State:     state,
 	})
 
-	if _, err := ctx.Plan(nil); err != nil {
+	if _, err := ctx.Plan(); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 
@@ -3983,7 +3987,7 @@ aws_instance.web: (2 deposed)
 	}
 
 	createdInstanceId = "qux"
-	if _, err := ctx.Plan(nil); err != nil {
+	if _, err := ctx.Plan(); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 	state, err = ctx.Apply()
@@ -4005,7 +4009,7 @@ aws_instance.web: (1 deposed)
 	}
 
 	createdInstanceId = "quux"
-	if _, err := ctx.Plan(nil); err != nil {
+	if _, err := ctx.Plan(); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 	state, err = ctx.Apply()
@@ -4045,7 +4049,7 @@ func TestContext2Apply_provisionerResourceRef(t *testing.T) {
 		},
 	})
 
-	if _, err := ctx.Plan(nil); err != nil {
+	if _, err := ctx.Plan(); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 
@@ -4091,7 +4095,7 @@ func TestContext2Apply_provisionerSelfRef(t *testing.T) {
 		},
 	})
 
-	if _, err := ctx.Plan(nil); err != nil {
+	if _, err := ctx.Plan(); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 
@@ -4144,7 +4148,7 @@ func TestContext2Apply_provisionerMultiSelfRef(t *testing.T) {
 		},
 	})
 
-	if _, err := ctx.Plan(nil); err != nil {
+	if _, err := ctx.Plan(); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 
@@ -4192,7 +4196,7 @@ func TestContext2Apply_Provisioner_Diff(t *testing.T) {
 		},
 	})
 
-	if _, err := ctx.Plan(nil); err != nil {
+	if _, err := ctx.Plan(); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 
@@ -4229,7 +4233,7 @@ func TestContext2Apply_Provisioner_Diff(t *testing.T) {
 		State: state,
 	})
 
-	if _, err := ctx.Plan(nil); err != nil {
+	if _, err := ctx.Plan(); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 
@@ -4300,7 +4304,7 @@ func TestContext2Apply_outputDiffVars(t *testing.T) {
 		}, nil
 	}
 
-	if _, err := ctx.Plan(nil); err != nil {
+	if _, err := ctx.Plan(); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 	if _, err := ctx.Apply(); err != nil {
@@ -4363,7 +4367,7 @@ func TestContext2Apply_Provisioner_ConnInfo(t *testing.T) {
 		},
 	})
 
-	if _, err := ctx.Plan(nil); err != nil {
+	if _, err := ctx.Plan(); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 
@@ -4399,22 +4403,32 @@ func TestContext2Apply_destroy(t *testing.T) {
 	})
 
 	// First plan and apply a create operation
-	if _, err := ctx.Plan(nil); err != nil {
+	if _, err := ctx.Plan(); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 
-	if _, err := ctx.Apply(); err != nil {
+	state, err := ctx.Apply()
+	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
 
 	// Next, plan and apply a destroy operation
-	if _, err := ctx.Plan(&PlanOpts{Destroy: true}); err != nil {
+	h.Active = true
+	ctx = testContext2(t, &ContextOpts{
+		Destroy: true,
+		State:   state,
+		Module:  m,
+		Hooks:   []Hook{h},
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+	})
+
+	if _, err := ctx.Plan(); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 
-	h.Active = true
-
-	state, err := ctx.Apply()
+	state, err = ctx.Apply()
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -4430,7 +4444,7 @@ func TestContext2Apply_destroy(t *testing.T) {
 	expected2 := []string{"aws_instance.bar", "aws_instance.foo"}
 	actual2 := h.IDs
 	if !reflect.DeepEqual(actual2, expected2) {
-		t.Fatalf("bad: %#v", actual2)
+		t.Fatalf("expected: %#v\n\ngot:%#v", expected2, actual2)
 	}
 }
 
@@ -4449,22 +4463,33 @@ func TestContext2Apply_destroyOutputs(t *testing.T) {
 	})
 
 	// First plan and apply a create operation
-	if _, err := ctx.Plan(nil); err != nil {
+	if _, err := ctx.Plan(); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 
-	if _, err := ctx.Apply(); err != nil {
+	state, err := ctx.Apply()
+
+	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
 
 	// Next, plan and apply a destroy operation
-	if _, err := ctx.Plan(&PlanOpts{Destroy: true}); err != nil {
+	h.Active = true
+	ctx = testContext2(t, &ContextOpts{
+		Destroy: true,
+		State:   state,
+		Module:  m,
+		Hooks:   []Hook{h},
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+	})
+
+	if _, err := ctx.Plan(); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 
-	h.Active = true
-
-	state, err := ctx.Apply()
+	state, err = ctx.Apply()
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -4520,7 +4545,7 @@ func TestContext2Apply_destroyOrphan(t *testing.T) {
 		}, nil
 	}
 
-	if _, err := ctx.Plan(nil); err != nil {
+	if _, err := ctx.Plan(); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 
@@ -4577,10 +4602,11 @@ func TestContext2Apply_destroyTaintedProvisioner(t *testing.T) {
 		Provisioners: map[string]ResourceProvisionerFactory{
 			"shell": testProvisionerFuncFixed(pr),
 		},
-		State: s,
+		State:   s,
+		Destroy: true,
 	})
 
-	if _, err := ctx.Plan(&PlanOpts{Destroy: true}); err != nil {
+	if _, err := ctx.Plan(); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 
@@ -4638,7 +4664,7 @@ func TestContext2Apply_error(t *testing.T) {
 		}, nil
 	}
 
-	if _, err := ctx.Plan(nil); err != nil {
+	if _, err := ctx.Plan(); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 
@@ -4705,7 +4731,7 @@ func TestContext2Apply_errorPartial(t *testing.T) {
 		}, nil
 	}
 
-	if _, err := ctx.Plan(nil); err != nil {
+	if _, err := ctx.Plan(); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 
@@ -4740,7 +4766,7 @@ func TestContext2Apply_hook(t *testing.T) {
 		},
 	})
 
-	if _, err := ctx.Plan(nil); err != nil {
+	if _, err := ctx.Plan(); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 
@@ -4788,7 +4814,7 @@ func TestContext2Apply_idAttr(t *testing.T) {
 		}, nil
 	}
 
-	if _, err := ctx.Plan(nil); err != nil {
+	if _, err := ctx.Plan(); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 
@@ -4822,7 +4848,7 @@ func TestContext2Apply_output(t *testing.T) {
 		},
 	})
 
-	if _, err := ctx.Plan(nil); err != nil {
+	if _, err := ctx.Plan(); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 
@@ -4850,7 +4876,7 @@ func TestContext2Apply_outputInvalid(t *testing.T) {
 		},
 	})
 
-	_, err := ctx.Plan(nil)
+	_, err := ctx.Plan()
 	if err == nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -4871,7 +4897,7 @@ func TestContext2Apply_outputList(t *testing.T) {
 		},
 	})
 
-	if _, err := ctx.Plan(nil); err != nil {
+	if _, err := ctx.Plan(); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 
@@ -4899,7 +4925,7 @@ func TestContext2Apply_outputMulti(t *testing.T) {
 		},
 	})
 
-	if _, err := ctx.Plan(nil); err != nil {
+	if _, err := ctx.Plan(); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 
@@ -4927,7 +4953,7 @@ func TestContext2Apply_outputMultiIndex(t *testing.T) {
 		},
 	})
 
-	if _, err := ctx.Plan(nil); err != nil {
+	if _, err := ctx.Plan(); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 
@@ -4992,7 +5018,7 @@ func TestContext2Apply_taint(t *testing.T) {
 		State: s,
 	})
 
-	if _, err := ctx.Plan(nil); err != nil {
+	if _, err := ctx.Plan(); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 
@@ -5057,7 +5083,7 @@ func TestContext2Apply_taintDep(t *testing.T) {
 		State: s,
 	})
 
-	if p, err := ctx.Plan(nil); err != nil {
+	if p, err := ctx.Plan(); err != nil {
 		t.Fatalf("err: %s", err)
 	} else {
 		t.Logf("plan: %s", p)
@@ -5120,7 +5146,7 @@ func TestContext2Apply_taintDepRequiresNew(t *testing.T) {
 		State: s,
 	})
 
-	if p, err := ctx.Plan(nil); err != nil {
+	if p, err := ctx.Plan(); err != nil {
 		t.Fatalf("err: %s", err)
 	} else {
 		t.Logf("plan: %s", p)
@@ -5150,7 +5176,7 @@ func TestContext2Apply_unknownAttribute(t *testing.T) {
 		},
 	})
 
-	if _, err := ctx.Plan(nil); err != nil {
+	if _, err := ctx.Plan(); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 
@@ -5190,7 +5216,7 @@ func TestContext2Apply_vars(t *testing.T) {
 		t.Fatalf("bad: %s", e)
 	}
 
-	if _, err := ctx.Plan(nil); err != nil {
+	if _, err := ctx.Plan(); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 
@@ -5248,7 +5274,7 @@ func TestContext2Apply_createBefore_depends(t *testing.T) {
 		State: state,
 	})
 
-	if _, err := ctx.Plan(nil); err != nil {
+	if _, err := ctx.Plan(); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 
@@ -5357,7 +5383,7 @@ func TestContext2Apply_singleDestroy(t *testing.T) {
 		State: state,
 	})
 
-	if _, err := ctx.Plan(nil); err != nil {
+	if _, err := ctx.Plan(); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 
