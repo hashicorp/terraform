@@ -74,6 +74,12 @@ func resourceComputeInstance() *schema.Resource {
 							Optional: true,
 							ForceNew: true,
 						},
+
+						"size": &schema.Schema{
+							Type:     schema.TypeInt,
+							Optional: true,
+							ForceNew: true,
+						},
 					},
 				},
 			},
@@ -329,6 +335,11 @@ func resourceComputeInstanceCreate(d *schema.ResourceData, meta interface{}) err
 			}
 
 			disk.InitializeParams.DiskType = diskType.SelfLink
+		}
+
+		if v, ok := d.GetOk(prefix + ".size"); ok {
+			diskSizeGb := v.(int)
+			disk.InitializeParams.DiskSizeGb = int64(diskSizeGb)
 		}
 
 		disks = append(disks, &disk)
