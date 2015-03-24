@@ -112,7 +112,7 @@ func resourceLBVipV1Create(d *schema.ResourceData, meta interface{}) error {
 		createOpts.AdminStateUp = &asu
 	}
 
-	log.Printf("[INFO] Requesting lb vip creation")
+	log.Printf("[DEBUG] Create Options: %#v", createOpts)
 	p, err := vips.Create(networkingClient, createOpts).Extract()
 	if err != nil {
 		return fmt.Errorf("Error creating OpenStack LB VIP: %s", err)
@@ -138,7 +138,6 @@ func resourceLBVipV1Read(d *schema.ResourceData, meta interface{}) error {
 
 	log.Printf("[DEBUG] Retreived OpenStack LB VIP %s: %+v", d.Id(), p)
 
-	d.Set("region", d.Get("region").(string))
 	d.Set("name", p.Name)
 	d.Set("subnet_id", p.SubnetID)
 	d.Set("protocol", p.Protocol)

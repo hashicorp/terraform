@@ -97,7 +97,7 @@ func resourceFWPolicyV1Create(d *schema.ResourceData, meta interface{}) error {
 		return err
 	}
 
-	log.Printf("[DEBUG] Firewall policy craeted: %#v", policy)
+	log.Printf("[DEBUG] Firewall policy created: %#v", policy)
 
 	d.SetId(policy.ID)
 
@@ -119,36 +119,11 @@ func resourceFWPolicyV1Read(d *schema.ResourceData, meta interface{}) error {
 		return CheckDeleted(d, err, "LB pool")
 	}
 
-	if t, exists := d.GetOk("name"); exists && t != "" {
-		d.Set("name", policy.Name)
-	} else {
-		d.Set("name", "")
-	}
-
-	if t, exists := d.GetOk("description"); exists && t != "" {
-		d.Set("description", policy.Description)
-	} else {
-		d.Set("description", "")
-	}
-
-	if t, exists := d.GetOk("shared"); exists && t != "" {
-		d.Set("shared", policy.Shared)
-	} else {
-		d.Set("shared", "")
-	}
-
-	if t, exists := d.GetOk("audited"); exists && t != "" {
-		d.Set("audited", policy.Audited)
-	} else {
-		d.Set("audited", "")
-	}
-
-	if t, exists := d.GetOk("tenant_id"); exists && t != "" {
-		d.Set("tenant_id", policy.TenantID)
-	} else {
-		d.Set("tenant_id", "")
-	}
-
+	d.Set("name", policy.Name)
+	d.Set("description", policy.Description)
+	d.Set("shared", policy.Shared)
+	d.Set("audited", policy.Audited)
+	d.Set("tenant_id", policy.TenantID)
 	return nil
 }
 

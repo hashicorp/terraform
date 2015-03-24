@@ -30,12 +30,6 @@ func resourceComputeFloatingIPV2() *schema.Resource {
 				DefaultFunc: envDefaultFunc("OS_POOL_NAME"),
 			},
 
-			// exported
-			"id": &schema.Schema{
-				Type:     schema.TypeString,
-				Computed: true,
-			},
-
 			"address": &schema.Schema{
 				Type:     schema.TypeString,
 				Computed: true,
@@ -64,6 +58,7 @@ func resourceComputeFloatingIPV2Create(d *schema.ResourceData, meta interface{})
 	createOpts := &floatingip.CreateOpts{
 		Pool: d.Get("pool").(string),
 	}
+	log.Printf("[DEBUG] Create Options: %#v", createOpts)
 	newFip, err := floatingip.Create(computeClient, createOpts).Extract()
 	if err != nil {
 		return fmt.Errorf("Error creating Floating IP: %s", err)
@@ -88,8 +83,6 @@ func resourceComputeFloatingIPV2Read(d *schema.ResourceData, meta interface{}) e
 
 	log.Printf("[DEBUG] Retrieved Floating IP %s: %+v", d.Id(), fip)
 
-	d.Set("id", d.Id())
-	d.Set("region", d.Get("region").(string))
 	d.Set("pool", fip.Pool)
 	d.Set("instance_id", fip.InstanceID)
 	d.Set("address", fip.IP)

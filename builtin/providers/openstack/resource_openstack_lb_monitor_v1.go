@@ -99,7 +99,7 @@ func resourceLBMonitorV1Create(d *schema.ResourceData, meta interface{}) error {
 		createOpts.AdminStateUp = &asu
 	}
 
-	log.Printf("[INFO] Requesting lb monitor creation")
+	log.Printf("[DEBUG] Create Options: %#v", createOpts)
 	m, err := monitors.Create(networkingClient, createOpts).Extract()
 	if err != nil {
 		return fmt.Errorf("Error creating OpenStack LB Monitor: %s", err)
@@ -125,41 +125,15 @@ func resourceLBMonitorV1Read(d *schema.ResourceData, meta interface{}) error {
 
 	log.Printf("[DEBUG] Retreived OpenStack LB Monitor %s: %+v", d.Id(), m)
 
-	d.Set("region", d.Get("region").(string))
 	d.Set("type", m.Type)
 	d.Set("delay", m.Delay)
 	d.Set("timeout", m.Timeout)
 	d.Set("max_retries", m.MaxRetries)
-
-	if t, exists := d.GetOk("tenant_id"); exists && t != "" {
-		d.Set("tenant_id", m.TenantID)
-	} else {
-		d.Set("tenant_id", "")
-	}
-
-	if t, exists := d.GetOk("url_path"); exists && t != "" {
-		d.Set("url_path", m.URLPath)
-	} else {
-		d.Set("url_path", "")
-	}
-
-	if t, exists := d.GetOk("http_method"); exists && t != "" {
-		d.Set("http_method", m.HTTPMethod)
-	} else {
-		d.Set("http_method", "")
-	}
-
-	if t, exists := d.GetOk("expected_codes"); exists && t != "" {
-		d.Set("expected_codes", m.ExpectedCodes)
-	} else {
-		d.Set("expected_codes", "")
-	}
-
-	if t, exists := d.GetOk("admin_state_up"); exists && t != "" {
-		d.Set("admin_state_up", strconv.FormatBool(m.AdminStateUp))
-	} else {
-		d.Set("admin_state_up", "")
-	}
+	d.Set("tenant_id", m.TenantID)
+	d.Set("url_path", m.URLPath)
+	d.Set("http_method", m.HTTPMethod)
+	d.Set("expected_codes", m.ExpectedCodes)
+	d.Set("admin_state_up", strconv.FormatBool(m.AdminStateUp))
 
 	return nil
 }

@@ -109,35 +109,11 @@ func resourceFWFirewallV1Read(d *schema.ResourceData, meta interface{}) error {
 		return CheckDeleted(d, err, "LB pool")
 	}
 
-	if t, exists := d.GetOk("name"); exists && t != "" {
-		d.Set("name", firewall.Name)
-	} else {
-		d.Set("name", "")
-	}
-
-	if t, exists := d.GetOk("description"); exists && t != "" {
-		d.Set("description", firewall.Description)
-	} else {
-		d.Set("description", "")
-	}
-
-	if t, exists := d.GetOk("policy_id"); exists && t != "" {
-		d.Set("policy_id", firewall.PolicyID)
-	} else {
-		d.Set("policy_id", "")
-	}
-
-	if t, exists := d.GetOk("admin_state_up"); exists && t != "" {
-		d.Set("admin_state_up", firewall.AdminStateUp)
-	} else {
-		d.Set("admin_state_up", "")
-	}
-
-	if t, exists := d.GetOk("tenant_id"); exists && t != "" {
-		d.Set("tenant_id", firewall.TenantID)
-	} else {
-		d.Set("tenant_id", "")
-	}
+	d.Set("name", firewall.Name)
+	d.Set("description", firewall.Description)
+	d.Set("policy_id", firewall.PolicyID)
+	d.Set("admin_state_up", firewall.AdminStateUp)
+	d.Set("tenant_id", firewall.TenantID)
 
 	return nil
 }

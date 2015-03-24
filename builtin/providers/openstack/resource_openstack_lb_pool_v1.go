@@ -115,7 +115,7 @@ func resourceLBPoolV1Create(d *schema.ResourceData, meta interface{}) error {
 		TenantID: d.Get("tenant_id").(string),
 	}
 
-	log.Printf("[INFO] Requesting lb pool creation")
+	log.Printf("[DEBUG] Create Options: %#v", createOpts)
 	p, err := pools.Create(networkingClient, createOpts).Extract()
 	if err != nil {
 		return fmt.Errorf("Error creating OpenStack LB pool: %s", err)
@@ -159,18 +159,11 @@ func resourceLBPoolV1Read(d *schema.ResourceData, meta interface{}) error {
 
 	log.Printf("[DEBUG] Retreived OpenStack LB Pool %s: %+v", d.Id(), p)
 
-	d.Set("region", d.Get("region").(string))
 	d.Set("name", p.Name)
 	d.Set("protocol", p.Protocol)
 	d.Set("subnet_id", p.SubnetID)
 	d.Set("lb_method", p.LBMethod)
-
-	if t, exists := d.GetOk("tenant_id"); exists && t != "" {
-		d.Set("tenant_id", p.TenantID)
-	} else {
-		d.Set("tenant_id", "")
-	}
-
+	d.Set("tenant_id", p.TenantID)
 	d.Set("monitor_ids", p.MonitorIDs)
 	d.Set("member_ids", p.MemberIDs)
 

@@ -94,6 +94,7 @@ func resourceComputeSecGroupV2Create(d *schema.ResourceData, meta interface{}) e
 		Description: d.Get("description").(string),
 	}
 
+	log.Printf("[DEBUG] Create Options: %#v", createOpts)
 	sg, err := secgroups.Create(computeClient, createOpts).Extract()
 	if err != nil {
 		return fmt.Errorf("Error creating OpenStack security group: %s", err)
@@ -124,7 +125,6 @@ func resourceComputeSecGroupV2Read(d *schema.ResourceData, meta interface{}) err
 		return CheckDeleted(d, err, "security group")
 	}
 
-	d.Set("region", d.Get("region").(string))
 	d.Set("name", sg.Name)
 	d.Set("description", sg.Description)
 	rtm := rulesToMap(sg.Rules)

@@ -2,6 +2,7 @@ package openstack
 
 import (
 	"fmt"
+	"log"
 
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/rackspace/gophercloud/openstack/networking/v2/extensions/layer3/floatingips"
@@ -49,9 +50,11 @@ func resourceNetworkFloatingIPV2Create(d *schema.ResourceData, meta interface{})
 	if len(poolID) == 0 {
 		return fmt.Errorf("No network found with name: %s", d.Get("pool").(string))
 	}
-	floatingIP, err := floatingips.Create(networkClient, floatingips.CreateOpts{
+	createOpts := floatingips.CreateOpts{
 		FloatingNetworkID: poolID,
-	}).Extract()
+	}
+	log.Printf("[DEBUG] Create Options: %#v", createOpts)
+	floatingIP, err := floatingips.Create(networkClient, createOpts).Extract()
 	if err != nil {
 		return fmt.Errorf("Error allocating floating IP: %s", err)
 	}
@@ -73,7 +76,6 @@ func resourceNetworkFloatingIPV2Read(d *schema.ResourceData, meta interface{}) e
 		return CheckDeleted(d, err, "floating IP")
 	}
 
-	d.Set("region", d.Get("region").(string))
 	d.Set("address", floatingIP.FloatingIP)
 	poolName, err := getNetworkName(d, meta, floatingIP.FloatingNetworkID)
 	if err != nil {

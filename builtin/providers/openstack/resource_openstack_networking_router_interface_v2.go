@@ -48,7 +48,7 @@ func resourceNetworkingRouterInterfaceV2Create(d *schema.ResourceData, meta inte
 		SubnetID: d.Get("subnet_id").(string),
 	}
 
-	log.Printf("[INFO] Requesting router interface creation")
+	log.Printf("[DEBUG] Create Options: %#v", createOpts)
 	n, err := routers.AddInterface(networkingClient, d.Get("router_id").(string), createOpts).Extract()
 	if err != nil {
 		return fmt.Errorf("Error creating OpenStack Neutron router interface: %s", err)
@@ -82,8 +82,6 @@ func resourceNetworkingRouterInterfaceV2Read(d *schema.ResourceData, meta interf
 	}
 
 	log.Printf("[DEBUG] Retreived Router Interface %s: %+v", d.Id(), n)
-
-	d.Set("region", d.Get("region").(string))
 
 	return nil
 }

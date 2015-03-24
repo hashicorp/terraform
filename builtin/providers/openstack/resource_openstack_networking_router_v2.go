@@ -77,7 +77,7 @@ func resourceNetworkingRouterV2Create(d *schema.ResourceData, meta interface{}) 
 		createOpts.GatewayInfo = &gatewayInfo
 	}
 
-	log.Printf("[INFO] Requesting router creation")
+	log.Printf("[DEBUG] Create Options: %#v", createOpts)
 	n, err := routers.Create(networkingClient, createOpts).Extract()
 	if err != nil {
 		return fmt.Errorf("Error creating OpenStack Neutron router: %s", err)
@@ -112,31 +112,10 @@ func resourceNetworkingRouterV2Read(d *schema.ResourceData, meta interface{}) er
 
 	log.Printf("[DEBUG] Retreived Router %s: %+v", d.Id(), n)
 
-	d.Set("region", d.Get("region").(string))
-
-	if t, exists := d.GetOk("name"); exists && t != "" {
-		d.Set("name", n.Name)
-	} else {
-		d.Set("name", "")
-	}
-
-	if t, exists := d.GetOk("admin_state_up"); exists && t != "" {
-		d.Set("admin_state_up", strconv.FormatBool(n.AdminStateUp))
-	} else {
-		d.Set("admin_state_up", "")
-	}
-
-	if t, exists := d.GetOk("tenant_id"); exists && t != "" {
-		d.Set("tenant_id", n.TenantID)
-	} else {
-		d.Set("tenant_id", "")
-	}
-
-	if t, exists := d.GetOk("external_gateway"); exists && t != "" {
-		d.Set("external_gateway", n.GatewayInfo.NetworkID)
-	} else {
-		d.Set("external_gateway", "")
-	}
+	d.Set("name", n.Name)
+	d.Set("admin_state_up", strconv.FormatBool(n.AdminStateUp))
+	d.Set("tenant_id", n.TenantID)
+	d.Set("external_gateway", n.GatewayInfo.NetworkID)
 
 	return nil
 }
