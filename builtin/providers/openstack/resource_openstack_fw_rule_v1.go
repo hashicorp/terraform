@@ -131,53 +131,14 @@ func resourceFWRuleV1Read(d *schema.ResourceData, meta interface{}) error {
 	d.Set("protocol", rule.Protocol)
 	d.Set("action", rule.Action)
 
-	if t, exists := d.GetOk("name"); exists && t != "" {
-		d.Set("name", rule.Name)
-	} else {
-		d.Set("name", "")
-	}
-
-	if t, exists := d.GetOk("description"); exists && t != "" {
-		d.Set("description", rule.Description)
-	} else {
-		d.Set("description", "")
-	}
-
-	if t, exists := d.GetOk("ip_version"); exists && t != "" {
-		d.Set("ip_version", rule.IPVersion)
-	} else {
-		d.Set("ip_version", "")
-	}
-
-	if t, exists := d.GetOk("source_ip_address"); exists && t != "" {
-		d.Set("source_ip_address", rule.SourceIPAddress)
-	} else {
-		d.Set("source_ip_address", "")
-	}
-
-	if t, exists := d.GetOk("destination_ip_address"); exists && t != "" {
-		d.Set("destination_ip_address", rule.DestinationIPAddress)
-	} else {
-		d.Set("destination_ip_address", "")
-	}
-
-	if t, exists := d.GetOk("source_port"); exists && t != "" {
-		d.Set("source_port", rule.SourcePort)
-	} else {
-		d.Set("source_port", "")
-	}
-
-	if t, exists := d.GetOk("destination_port"); exists && t != "" {
-		d.Set("destination_port", rule.DestinationPort)
-	} else {
-		d.Set("destination_port", "")
-	}
-
-	if t, exists := d.GetOk("enabled"); exists && t != "" {
-		d.Set("enabled", rule.Enabled)
-	} else {
-		d.Set("enabled", "")
-	}
+	d.Set("name", rule.Name)
+	d.Set("description", rule.Description)
+	d.Set("ip_version", rule.IPVersion)
+	d.Set("source_ip_address", rule.SourceIPAddress)
+	d.Set("destination_ip_address", rule.DestinationIPAddress)
+	d.Set("source_port", rule.SourcePort)
+	d.Set("destination_port", rule.DestinationPort)
+	d.Set("enabled", rule.Enabled)
 
 	return nil
 }

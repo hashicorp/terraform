@@ -134,7 +134,7 @@ func resourceNetworkingSubnetV2Create(d *schema.ResourceData, meta interface{}) 
 		createOpts.EnableDHCP = &ed
 	}
 
-	log.Printf("[INFO] Requesting subnet creation")
+	log.Printf("[DEBUG] Create Options: %#v", createOpts)
 	s, err := subnets.Create(networkingClient, createOpts).Extract()
 	if err != nil {
 		return fmt.Errorf("Error creating OpenStack Neutron subnet: %s", err)
@@ -160,46 +160,16 @@ func resourceNetworkingSubnetV2Read(d *schema.ResourceData, meta interface{}) er
 
 	log.Printf("[DEBUG] Retreived Subnet %s: %+v", d.Id(), s)
 
-	d.Set("region", d.Get("region").(string))
 	d.Set("newtork_id", s.NetworkID)
 	d.Set("cidr", s.CIDR)
 	d.Set("ip_version", s.IPVersion)
-
-	if t, exists := d.GetOk("name"); exists && t != "" {
-		d.Set("name", s.Name)
-	} else {
-		d.Set("name", "")
-	}
-
-	if t, exists := d.GetOk("tenant_id"); exists && t != "" {
-		d.Set("tenant_id", s.TenantID)
-	} else {
-		d.Set("tenant_id", "")
-	}
-
-	if _, exists := d.GetOk("allocation_pools"); exists {
-		d.Set("allocation_pools", s.AllocationPools)
-	}
-
-	if t, exists := d.GetOk("gateway_ip"); exists && t != "" {
-		d.Set("gateway_ip", s.GatewayIP)
-	} else {
-		d.Set("gateway_ip", "")
-	}
-
-	if t, exists := d.GetOk("enable_dhcp"); exists && t != "" {
-		d.Set("enable_dhcp", strconv.FormatBool(s.EnableDHCP))
-	} else {
-		d.Set("enable_dhcp", "")
-	}
-
-	if _, exists := d.GetOk("dns_nameservers"); exists {
-		d.Set("dns_nameservers", s.DNSNameservers)
-	}
-
-	if _, exists := d.GetOk("host_routes"); exists {
-		d.Set("host_routes", s.HostRoutes)
-	}
+	d.Set("name", s.Name)
+	d.Set("tenant_id", s.TenantID)
+	d.Set("allocation_pools", s.AllocationPools)
+	d.Set("gateway_ip", s.GatewayIP)
+	d.Set("enable_dhcp", strconv.FormatBool(s.EnableDHCP))
+	d.Set("dns_nameservers", s.DNSNameservers)
+	d.Set("host_routes", s.HostRoutes)
 
 	return nil
 }

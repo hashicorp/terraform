@@ -241,7 +241,7 @@ func resourceComputeInstanceV2Create(d *schema.ResourceData, meta interface{}) e
 		}
 	}
 
-	log.Printf("[INFO] Requesting instance creation")
+	log.Printf("[DEBUG] Create Options: %#v", createOpts)
 	server, err := servers.Create(computeClient, createOpts).Extract()
 	if err != nil {
 		return fmt.Errorf("Error creating OpenStack server: %s", err)
@@ -320,7 +320,6 @@ func resourceComputeInstanceV2Read(d *schema.ResourceData, meta interface{}) err
 
 	log.Printf("[DEBUG] Retreived Server %s: %+v", d.Id(), server)
 
-	d.Set("region", d.Get("region").(string))
 	d.Set("name", server.Name)
 	d.Set("access_ip_v4", server.AccessIPv4)
 	d.Set("access_ip_v6", server.AccessIPv6)
@@ -360,7 +359,7 @@ func resourceComputeInstanceV2Read(d *schema.ResourceData, meta interface{}) err
 			publicAddresses := publicAddressesRaw.([]interface{})
 			for _, paRaw := range publicAddresses {
 				pa := paRaw.(map[string]interface{})
-				if pa["version"].(float64) == 4 {
+				if pa["version"].(float64) == 6 {
 					hostv6 = fmt.Sprintf("[%s]", pa["addr"].(string))
 					break
 				}
@@ -594,6 +593,7 @@ func resourceComputeInstanceV2Update(d *schema.ResourceData, meta interface{}) e
 		resizeOpts := &servers.ResizeOpts{
 			FlavorRef: flavorId,
 		}
+		log.Printf("[DEBUG] Resize configuration: %#v", resizeOpts)
 		err = servers.Resize(computeClient, d.Id(), resizeOpts).ExtractErr()
 		if err != nil {
 			return fmt.Errorf("Error resizing OpenStack server: %s", err)

@@ -2,6 +2,7 @@ package openstack
 
 import (
 	"fmt"
+	"log"
 
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/rackspace/gophercloud/openstack/compute/v2/extensions/keypairs"
@@ -46,6 +47,7 @@ func resourceComputeKeypairV2Create(d *schema.ResourceData, meta interface{}) er
 		PublicKey: d.Get("public_key").(string),
 	}
 
+	log.Printf("[DEBUG] Create Options: %#v", createOpts)
 	kp, err := keypairs.Create(computeClient, createOpts).Extract()
 	if err != nil {
 		return fmt.Errorf("Error creating OpenStack keypair: %s", err)
@@ -68,7 +70,6 @@ func resourceComputeKeypairV2Read(d *schema.ResourceData, meta interface{}) erro
 		return CheckDeleted(d, err, "keypair")
 	}
 
-	d.Set("region", d.Get("region").(string))
 	d.Set("name", kp.Name)
 	d.Set("public_key", kp.PublicKey)
 

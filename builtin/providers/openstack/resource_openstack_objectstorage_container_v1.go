@@ -79,7 +79,7 @@ func resourceObjectStorageContainerV1Create(d *schema.ResourceData, meta interfa
 		Metadata:         resourceContainerMetadataV2(d),
 	}
 
-	log.Printf("[INFO] Requesting container creation")
+	log.Printf("[DEBUG] Create Options: %#v", createOpts)
 	_, err = containers.Create(objectStorageClient, cn, createOpts).Extract()
 	if err != nil {
 		return fmt.Errorf("Error creating OpenStack container: %s", err)

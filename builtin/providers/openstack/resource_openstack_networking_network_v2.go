@@ -77,7 +77,7 @@ func resourceNetworkingNetworkV2Create(d *schema.ResourceData, meta interface{})
 		createOpts.Shared = &shared
 	}
 
-	log.Printf("[INFO] Requesting network creation")
+	log.Printf("[DEBUG] Create Options: %#v", createOpts)
 	n, err := networks.Create(networkingClient, createOpts).Extract()
 	if err != nil {
 		return fmt.Errorf("Error creating OpenStack Neutron network: %s", err)
@@ -103,31 +103,10 @@ func resourceNetworkingNetworkV2Read(d *schema.ResourceData, meta interface{}) e
 
 	log.Printf("[DEBUG] Retreived Network %s: %+v", d.Id(), n)
 
-	d.Set("region", d.Get("region").(string))
-
-	if t, exists := d.GetOk("name"); exists && t != "" {
-		d.Set("name", n.Name)
-	} else {
-		d.Set("name", "")
-	}
-
-	if t, exists := d.GetOk("admin_state_up"); exists && t != "" {
-		d.Set("admin_state_up", strconv.FormatBool(n.AdminStateUp))
-	} else {
-		d.Set("admin_state_up", "")
-	}
-
-	if t, exists := d.GetOk("shared"); exists && t != "" {
-		d.Set("shared", strconv.FormatBool(n.Shared))
-	} else {
-		d.Set("shared", "")
-	}
-
-	if t, exists := d.GetOk("tenant_id"); exists && t != "" {
-		d.Set("tenant_id", n.TenantID)
-	} else {
-		d.Set("tenant_id", "")
-	}
+	d.Set("name", n.Name)
+	d.Set("admin_state_up", strconv.FormatBool(n.AdminStateUp))
+	d.Set("shared", strconv.FormatBool(n.Shared))
+	d.Set("tenant_id", n.TenantID)
 
 	return nil
 }

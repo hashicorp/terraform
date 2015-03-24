@@ -111,7 +111,7 @@ func resourceBlockStorageVolumeV1Create(d *schema.ResourceData, meta interface{}
 		Metadata:    resourceContainerMetadataV2(d),
 	}
 
-	log.Printf("[INFO] Requesting volume creation")
+	log.Printf("[DEBUG] Create Options: %#v", createOpts)
 	v, err := volumes.Create(blockStorageClient, createOpts).Extract()
 	if err != nil {
 		return fmt.Errorf("Error creating OpenStack volume: %s", err)
@@ -156,48 +156,15 @@ func resourceBlockStorageVolumeV1Read(d *schema.ResourceData, meta interface{}) 
 		return CheckDeleted(d, err, "volume")
 	}
 
-	log.Printf("\n\ngot volume: %+v\n\n", v)
-
 	log.Printf("[DEBUG] Retreived volume %s: %+v", d.Id(), v)
 
-	d.Set("region", d.Get("region").(string))
 	d.Set("size", v.Size)
-
-	if t, exists := d.GetOk("description"); exists && t != "" {
-		d.Set("description", v.Description)
-	} else {
-		d.Set("description", "")
-	}
-
-	if t, exists := d.GetOk("name"); exists && t != "" {
-		d.Set("name", v.Name)
-	} else {
-		d.Set("name", "")
-	}
-
-	if t, exists := d.GetOk("snapshot_id"); exists && t != "" {
-		d.Set("snapshot_id", v.SnapshotID)
-	} else {
-		d.Set("snapshot_id", "")
-	}
-
-	if t, exists := d.GetOk("source_vol_id"); exists && t != "" {
-		d.Set("source_vol_id", v.SourceVolID)
-	} else {
-		d.Set("source_vol_id", "")
-	}
-
-	if t, exists := d.GetOk("volume_type"); exists && t != "" {
-		d.Set("volume_type", v.VolumeType)
-	} else {
-		d.Set("volume_type", "")
-	}
-
-	if t, exists := d.GetOk("metadata"); exists && t != "" {
-		d.Set("metadata", v.Metadata)
-	} else {
-		d.Set("metadata", "")
-	}
+	d.Set("description", v.Description)
+	d.Set("name", v.Name)
+	d.Set("snapshot_id", v.SnapshotID)
+	d.Set("source_vol_id", v.SourceVolID)
+	d.Set("volume_type", v.VolumeType)
+	d.Set("metadata", v.Metadata)
 
 	if len(v.Attachments) > 0 {
 		attachments := make([]map[string]interface{}, len(v.Attachments))
