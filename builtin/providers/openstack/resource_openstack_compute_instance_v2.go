@@ -111,26 +111,31 @@ func resourceComputeInstanceV2() *schema.Resource {
 						"uuid": &schema.Schema{
 							Type:     schema.TypeString,
 							Optional: true,
+							Computed: true,
 						},
 						"name": &schema.Schema{
 							Type:     schema.TypeString,
 							Optional: true,
+							Computed: true,
 						},
 						"port": &schema.Schema{
 							Type:     schema.TypeString,
 							Optional: true,
+							Computed: true,
 						},
 						"fixed_ip_v4": &schema.Schema{
 							Type:     schema.TypeString,
 							Optional: true,
+							Computed: true,
 						},
 						"fixed_ip_v6": &schema.Schema{
 							Type:     schema.TypeString,
 							Optional: true,
+							Computed: true,
 						},
 						"mac": &schema.Schema{
 							Type:     schema.TypeString,
-							Optional: true,
+							Computed: true,
 						},
 					},
 				},
@@ -361,8 +366,8 @@ func resourceComputeInstanceV2Read(d *schema.ResourceData, meta interface{}) err
 	hostv4 := server.AccessIPv4
 	hostv6 := server.AccessIPv6
 
-	addresses := resourceInstanceAddresses(server.Addresses)
 	networkDetails, err := resourceInstanceNetworks(computeClient, d)
+	addresses := resourceInstanceAddresses(server.Addresses)
 	if err != nil {
 		return err
 	}
@@ -423,6 +428,8 @@ func resourceComputeInstanceV2Read(d *schema.ResourceData, meta interface{}) err
 			}
 		}
 	}
+
+	log.Printf("[DEBUG] new networks: %+v", networks)
 
 	d.Set("network", networks)
 	d.Set("access_ip_v4", hostv4)
@@ -789,8 +796,6 @@ func resourceInstanceNetworks(computeClient *gophercloud.ServiceClient, d *schem
 			"fixed_ip_v4": rawMap["fixed_ip_v4"].(string),
 		}
 	}
-
-	d.Set("network", newNetworks)
 
 	log.Printf("[DEBUG] networks: %+v", newNetworks)
 
