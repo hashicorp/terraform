@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/hashicorp/atlas-go/archive"
+	"github.com/hashicorp/atlas-go/v1"
 )
 
 type PushCommand struct {
@@ -97,6 +98,21 @@ func (c *PushCommand) Run(args []string) int {
 			return 1
 		}
 		name = config.Atlas.Name
+	}
+
+	// Initialize the client if it isn't given.
+	if c.client == nil {
+		// Make sure to nil out our client so our token isn't sitting around
+		defer func() { c.client = nil }()
+
+		// Initialize it to the default client, we set custom settings later
+		client := atlas.DefaultClient()
+
+		if atlasToken != "" {
+			client.Token = atlasToken
+		}
+
+		c.client = &atlasPushClient{Client: client}
 	}
 
 	// Get the variables we might already have
@@ -198,6 +214,43 @@ type pushUpsertOptions struct {
 	Name      string
 	Archive   *archive.Archive
 	Variables map[string]string
+}
+
+type atlasPushClient struct {
+	Client *atlas.Client
+}
+
+func (c *atlasPushClient) Get(name string) (map[string]string, error) {
+	user, name, err := atlas.ParseSlug(name)
+	if err != nil {
+		return nil, err
+	}
+
+	version, err := c.Client.TerraformConfigLatest(user, name)
+	if err != nil {
+		return nil, err
+	}
+
+	return version.Variables, nil
+}
+
+func (c *atlasPushClient) Upsert(opts *pushUpsertOptions) (int, error) {
+	user, name, err := atlas.ParseSlug(opts.Name)
+	if err != nil {
+		return 0, err
+	}
+
+	data := &atlas.TerraformConfigVersion{
+		Variables: opts.Variables,
+	}
+
+	version, err := c.Client.CreateTerraformConfigVersion(
+		user, name, data, opts.Archive, opts.Archive.Size)
+	if err != nil {
+		return 0, err
+	}
+
+	return version, nil
 }
 
 type mockPushClient struct {
