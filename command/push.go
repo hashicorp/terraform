@@ -231,7 +231,12 @@ func (c *atlasPushClient) Get(name string) (map[string]string, error) {
 		return nil, err
 	}
 
-	return version.Variables, nil
+	var variables map[string]string
+	if version != nil {
+		variables = version.Variables
+	}
+
+	return variables, nil
 }
 
 func (c *atlasPushClient) Upsert(opts *pushUpsertOptions) (int, error) {
