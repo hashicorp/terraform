@@ -2505,6 +2505,9 @@ func TestContext2Input_provider(t *testing.T) {
 		actual = c.Config["foo"]
 		return nil
 	}
+	p.ValidateFn = func(c *ResourceConfig) ([]string, []error) {
+		return nil, c.CheckSet([]string{"foo"})
+	}
 
 	if err := ctx.Input(InputModeStd); err != nil {
 		t.Fatalf("err: %s", err)
