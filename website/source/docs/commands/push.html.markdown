@@ -50,7 +50,8 @@ The command-line flags are all optional. The list of available flags are:
 * `-no-color` - Disables output with coloring
 
 * `-token=<token>` - Atlas API token to use to authorize the upload.
-  If blank, the `ATLAS_TOKEN` environmental variable will be used.
+  If blank or unspecified, the `ATLAS_TOKEN` environmental variable
+  will be used.
 
 * `-vcs=true` - If true (default), then Terraform will detect if a VCS
   is in use, such as Git, and will only upload files that are comitted to
