@@ -202,6 +202,16 @@ func TestStateIncrementSerialMaybe(t *testing.T) {
 			},
 			1,
 		},
+		"S1 serial is higher": {
+			&State{Serial: 5},
+			&State{
+				Serial: 3,
+				Modules: []*ModuleState{
+					&ModuleState{Path: rootModulePath},
+				},
+			},
+			5,
+		},
 	}
 
 	for name, tc := range cases {
