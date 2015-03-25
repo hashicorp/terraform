@@ -150,6 +150,14 @@ aws_instance.foo:
   type = aws_instance
 `
 
+const testTerraformInputVarOnlyUnsetStr = `
+aws_instance.foo:
+  ID = foo
+  bar = baz
+  foo = foovalue
+  type = aws_instance
+`
+
 const testTerraformInputVarsStr = `
 aws_instance.bar:
   ID = foo

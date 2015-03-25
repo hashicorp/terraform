@@ -21,12 +21,18 @@ func Append(c1, c2 *Config) (*Config, error) {
 			c.unknownKeys = append(c.unknownKeys, k)
 		}
 	}
+
 	for _, k := range c2.unknownKeys {
 		_, present := unknowns[k]
 		if !present {
 			unknowns[k] = struct{}{}
 			c.unknownKeys = append(c.unknownKeys, k)
 		}
+	}
+
+	c.Atlas = c1.Atlas
+	if c2.Atlas != nil {
+		c.Atlas = c2.Atlas
 	}
 
 	if len(c1.Modules) > 0 || len(c2.Modules) > 0 {

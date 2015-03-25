@@ -16,8 +16,11 @@ import (
 type InputMode byte
 
 const (
-	// InputModeVar asks for variables
+	// InputModeVar asks for all variables
 	InputModeVar InputMode = 1 << iota
+
+	// InputModeVarUnset asks for variables which are not set yet
+	InputModeVarUnset
 
 	// InputModeProvider asks for provider variables
 	InputModeProvider
@@ -154,6 +157,14 @@ func (c *Context) Input(mode InputMode) error {
 		}
 		sort.Strings(names)
 		for _, n := range names {
+			// If we only care about unset variables, then if the variabel
+			// is set, continue on.
+			if mode&InputModeVarUnset != 0 {
+				if _, ok := c.variables[n]; ok {
+					continue
+				}
+			}
+
 			v := m[n]
 			switch v.Type() {
 			case config.VariableTypeMap:
@@ -363,6 +374,23 @@ func (c *Context) Validate() ([]string, []error) {
 	// Return the result
 	rerrs := multierror.Append(errs, walker.ValidationErrors...)
 	return walker.ValidationWarnings, rerrs.Errors
+}
+
+// Module returns the module tree associated with this context.
+func (c *Context) Module() *module.Tree {
+	return c.module
+}
+
+// Variables will return the mapping of variables that were defined
+// for this Context. If Input was called, this mapping may be different
+// than what was given.
+func (c *Context) Variables() map[string]string {
+	return c.variables
+}
+
+// SetVariable sets a variable after a context has already been built.
+func (c *Context) SetVariable(k, v string) {
+	c.variables[k] = v
 }
 
 func (c *Context) acquireRun() chan<- struct{} {

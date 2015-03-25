@@ -2758,6 +2758,48 @@ func TestContext2Input_varOnly(t *testing.T) {
 	}
 }
 
+func TestContext2Input_varOnlyUnset(t *testing.T) {
+	input := new(MockUIInput)
+	m := testModule(t, "input-vars-unset")
+	p := testProvider("aws")
+	p.ApplyFn = testApplyFn
+	p.DiffFn = testDiffFn
+	ctx := testContext2(t, &ContextOpts{
+		Module: m,
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+		Variables: map[string]string{
+			"foo": "foovalue",
+		},
+		UIInput: input,
+	})
+
+	input.InputReturnMap = map[string]string{
+		"var.foo": "nope",
+		"var.bar": "baz",
+	}
+
+	if err := ctx.Input(InputModeVar | InputModeVarUnset); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	if _, err := ctx.Plan(nil); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	state, err := ctx.Apply()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	actualStr := strings.TrimSpace(state.String())
+	expectedStr := strings.TrimSpace(testTerraformInputVarOnlyUnsetStr)
+	if actualStr != expectedStr {
+		t.Fatalf("bad: \n%s", actualStr)
+	}
+}
+
 func TestContext2Apply(t *testing.T) {
 	m := testModule(t, "apply-good")
 	p := testProvider("aws")

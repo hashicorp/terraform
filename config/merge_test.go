@@ -13,6 +13,9 @@ func TestMerge(t *testing.T) {
 		// Normal good case.
 		{
 			&Config{
+				Atlas: &AtlasConfig{
+					Name: "foo",
+				},
 				Modules: []*Module{
 					&Module{Name: "foo"},
 				},
@@ -33,6 +36,9 @@ func TestMerge(t *testing.T) {
 			},
 
 			&Config{
+				Atlas: &AtlasConfig{
+					Name: "bar",
+				},
 				Modules: []*Module{
 					&Module{Name: "bar"},
 				},
@@ -53,6 +59,9 @@ func TestMerge(t *testing.T) {
 			},
 
 			&Config{
+				Atlas: &AtlasConfig{
+					Name: "bar",
+				},
 				Modules: []*Module{
 					&Module{Name: "foo"},
 					&Module{Name: "bar"},
