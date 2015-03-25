@@ -120,7 +120,7 @@ func (c *PushCommand) Run(args []string) int {
 	vars, err := c.client.Get(name)
 	if err != nil {
 		c.Ui.Error(fmt.Sprintf(
-			"Error looking up prior pushed configuration: %s", err))
+			"Error looking up previously pushed configuration: %s", err))
 		return 1
 	}
 	for k, v := range vars {
