@@ -179,9 +179,9 @@ func (c *RemoteConfigCommand) validateRemoteConfig() error {
 	if err != nil {
 		c.Ui.Error(fmt.Sprintf(
 			"%s\n\n"+
-			"If the error message above mentions requiring or modifying configuration\n" +
-			"options, these are set using the `-backend-config` flag. Example:\n" +
-			'-backend-config="name=foo" to set the `name` configuration',
+				"If the error message above mentions requiring or modifying configuration\n"+
+				"options, these are set using the `-backend-config` flag. Example:\n"+
+				"-backend-config=\"name=foo\" to set the `name` configuration",
 			err))
 	}
 	return err
