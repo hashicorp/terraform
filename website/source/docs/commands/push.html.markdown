@@ -34,7 +34,7 @@ The `path` argument is the same as for the
 
 The command-line flags are all optional. The list of available flags are:
 
-* `-module-upload=true` - If true (default), then the
+* `-upload-modules=true` - If true (default), then the
   [modules](/docs/modules/index.html)
   being used are all locked at their current checkout and uploaded
   completely to Atlas. This prevents Atlas from running `terraform get`
