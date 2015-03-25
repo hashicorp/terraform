@@ -177,7 +177,12 @@ func (c *RemoteConfigCommand) validateRemoteConfig() error {
 	conf := c.remoteConf
 	_, err := remote.NewClient(conf.Type, conf.Config)
 	if err != nil {
-		c.Ui.Error(fmt.Sprintf("%s", err))
+		c.Ui.Error(fmt.Sprintf(
+			"%s\n\n"+
+			"If the error message above mentions requiring or modifying configuration\n" +
+			"options, these are set using the `-backend-config` flag. Example:\n" +
+			'-backend-config="name=foo" to set the `name` configuration',
+			err))
 	}
 	return err
 }
