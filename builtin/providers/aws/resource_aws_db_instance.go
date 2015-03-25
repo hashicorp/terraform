@@ -421,7 +421,7 @@ func resourceAwsDbInstanceUpdate(d *schema.ResourceData, meta interface{}) error
 	conn := meta.(*AWSClient).rdsconn
 
 	d.Partial(true)
-	if arn, err := buildRDSARN(d, meta); err != nil {
+	if arn, err := buildRDSARN(d, meta); err == nil {
 		if err := setTagsRDS(conn, d, arn); err != nil {
 			return err
 		} else {
