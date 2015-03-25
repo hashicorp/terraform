@@ -265,13 +265,6 @@ func resourceAwsInstance() *schema.Resource {
 							ForceNew: true,
 						},
 
-						"device_name": &schema.Schema{
-							Type:     schema.TypeString,
-							Optional: true,
-							ForceNew: true,
-							Default:  "/dev/sda1",
-						},
-
 						"iops": &schema.Schema{
 							Type:     schema.TypeInt,
 							Optional: true,
@@ -298,7 +291,6 @@ func resourceAwsInstance() *schema.Resource {
 					var buf bytes.Buffer
 					m := v.(map[string]interface{})
 					buf.WriteString(fmt.Sprintf("%t-", m["delete_on_termination"].(bool)))
-					buf.WriteString(fmt.Sprintf("%s-", m["device_name"].(string)))
 					// See the NOTE in "ebs_block_device" for why we skip iops here.
 					// buf.WriteString(fmt.Sprintf("%d-", m["iops"].(int)))
 					buf.WriteString(fmt.Sprintf("%d-", m["volume_size"].(int)))
@@ -478,10 +470,14 @@ func resourceAwsInstanceCreate(d *schema.ResourceData, meta interface{}) error {
 				ebs.IOPS = aws.Integer(v)
 			}
 
-			blockDevices = append(blockDevices, ec2.BlockDeviceMapping{
-				DeviceName: aws.String(bd["device_name"].(string)),
-				EBS:        ebs,
-			})
+			if dn, err := fetchRootDeviceName(d.Get("ami").(string), ec2conn); err == nil {
+				blockDevices = append(blockDevices, ec2.BlockDeviceMapping{
+					DeviceName: dn,
+					EBS:        ebs,
+				})
+			} else {
+				return err
+			}
 		}
 	}
 
@@ -778,9 +774,6 @@ func readBlockDevicesFromInstance(instance *ec2.Instance, ec2conn *ec2.EC2) (map
 		if instanceBd.EBS != nil && instanceBd.EBS.DeleteOnTermination != nil {
 			bd["delete_on_termination"] = *instanceBd.EBS.DeleteOnTermination
 		}
-		if instanceBd.DeviceName != nil {
-			bd["device_name"] = *instanceBd.DeviceName
-		}
 		if vol.Size != nil {
 			bd["volume_size"] = *vol.Size
 		}
@@ -794,6 +787,9 @@ func readBlockDevicesFromInstance(instance *ec2.Instance, ec2conn *ec2.EC2) (map
 		if blockDeviceIsRoot(instanceBd, instance) {
 			blockDevices["root"] = bd
 		} else {
+			if instanceBd.DeviceName != nil {
+				bd["device_name"] = *instanceBd.DeviceName
+			}
 			if vol.Encrypted != nil {
 				bd["encrypted"] = *vol.Encrypted
 			}
@@ -812,4 +808,22 @@ func blockDeviceIsRoot(bd ec2.InstanceBlockDeviceMapping, instance *ec2.Instance
 	return (bd.DeviceName != nil &&
 		instance.RootDeviceName != nil &&
 		*bd.DeviceName == *instance.RootDeviceName)
+}
+
+func fetchRootDeviceName(ami string, conn *ec2.EC2) (aws.StringValue, error) {
+	if ami == "" {
+		return nil, fmt.Errorf("Cannot fetch root device name for blank AMI ID.")
+	}
+
+	log.Printf("[DEBUG] Describing AMI %q to get root block device name", ami)
+	req := &ec2.DescribeImagesRequest{ImageIDs: []string{ami}}
+	if res, err := conn.DescribeImages(req); err == nil {
+		if len(res.Images) == 1 {
+			return res.Images[0].RootDeviceName, nil
+		} else {
+			return nil, fmt.Errorf("Expected 1 AMI for ID: %s, got: %#v", ami, res.Images)
+		}
+	} else {
+		return nil, err
+	}
 }
