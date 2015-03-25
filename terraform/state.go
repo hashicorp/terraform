@@ -214,6 +214,15 @@ func (s *State) DeepCopy() *State {
 // IncrementSerialMaybe increments the serial number of this state
 // if it different from the other state.
 func (s *State) IncrementSerialMaybe(other *State) {
+	if s == nil {
+		return
+	}
+	if other == nil {
+		return
+	}
+	if s.Serial > other.Serial {
+		return
+	}
 	if !s.Equal(other) {
 		s.Serial++
 	}
