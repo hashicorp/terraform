@@ -224,6 +224,10 @@ func (s *State) IncrementSerialMaybe(other *State) {
 		return
 	}
 	if !s.Equal(other) {
+		if other.Serial > s.Serial {
+			s.Serial = other.Serial
+		}
+
 		s.Serial++
 	}
 }
