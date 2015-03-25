@@ -28,7 +28,7 @@ func (c *PushCommand) Run(args []string) int {
 	cmdFlags := c.Meta.flagSet("push")
 	cmdFlags.StringVar(&c.Meta.statePath, "state", DefaultStateFilename, "path")
 	cmdFlags.StringVar(&atlasToken, "token", "", "")
-	cmdFlags.BoolVar(&moduleUpload, "module-upload", true, "")
+	cmdFlags.BoolVar(&moduleUpload, "upload-modules", true, "")
 	cmdFlags.StringVar(&name, "name", "", "")
 	cmdFlags.BoolVar(&archiveVCS, "vcs", true, "")
 	cmdFlags.Usage = func() { c.Ui.Error(c.Help()) }
@@ -185,7 +185,7 @@ Usage: terraform push [options] [DIR]
 
 Options:
 
-  -module-upload=true  If true (default), then the modules are locked at
+  -upload-modules=true If true (default), then the modules are locked at
                        their current checkout and uploaded completely. This
                        prevents Atlas from running "terraform get".
 
