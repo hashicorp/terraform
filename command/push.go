@@ -171,7 +171,7 @@ func (c *PushCommand) Run(args []string) int {
 	}
 
 	c.Ui.Output(c.Colorize().Color(fmt.Sprintf(
-		"[reset][bold][green]Configuration %s uploaded! (v%d)",
+		"[reset][bold][green]Configuration %q uploaded! (v%d)",
 		name, vsn)))
 	return 0
 }
@@ -193,8 +193,8 @@ Options:
                        be set in the configuration itself. Format is
                        typically: "username/name".
 
-  -token=<token>       Access token to use to upload. If blank, the ATLAS_TOKEN
-                       environmental variable will be used.
+  -token=<token>       Access token to use to upload. If blank or unspecified,
+                       the ATLAS_TOKEN environmental variable will be used.
 
   -vcs=true            If true (default), push will upload only files
                        comitted to your VCS, if detected.
