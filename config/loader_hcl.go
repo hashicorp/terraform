@@ -17,6 +17,7 @@ type hclConfigurable struct {
 
 func (t *hclConfigurable) Config() (*Config, error) {
 	validKeys := map[string]struct{}{
+		"atlas":    struct{}{},
 		"module":   struct{}{},
 		"output":   struct{}{},
 		"provider": struct{}{},
@@ -67,6 +68,15 @@ func (t *hclConfigurable) Config() (*Config, error) {
 			}
 
 			config.Variables = append(config.Variables, newVar)
+		}
+	}
+
+	// Get Atlas configuration
+	if atlas := t.Object.Get("atlas", false); atlas != nil {
+		var err error
+		config.Atlas, err = loadAtlasHcl(atlas)
+		if err != nil {
+			return nil, err
 		}
 	}
 
@@ -185,6 +195,19 @@ func loadFileHcl(root string) (configurable, []string, error) {
 	*/
 
 	return result, nil, nil
+}
+
+// Given a handle to a HCL object, this transforms it into the Atlas
+// configuration.
+func loadAtlasHcl(obj *hclobj.Object) (*AtlasConfig, error) {
+	var config AtlasConfig
+	if err := hcl.DecodeObject(&config, obj); err != nil {
+		return nil, fmt.Errorf(
+			"Error reading atlas config: %s",
+			err)
+	}
+
+	return &config, nil
 }
 
 // Given a handle to a HCL object, this recurses into the structure

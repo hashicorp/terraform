@@ -28,6 +28,7 @@ type Config struct {
 	// any meaningful directory.
 	Dir string
 
+	Atlas           *AtlasConfig
 	Modules         []*Module
 	ProviderConfigs []*ProviderConfig
 	Resources       []*Resource
@@ -37,6 +38,13 @@ type Config struct {
 	// The fields below can be filled in by loaders for validation
 	// purposes.
 	unknownKeys []string
+}
+
+// AtlasConfig is the configuration for building in HashiCorp's Atlas.
+type AtlasConfig struct {
+	Name    string
+	Include []string
+	Exclude []string
 }
 
 // Module is a module used within a configuration.
