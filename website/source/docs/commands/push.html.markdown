@@ -77,7 +77,7 @@ flag when pushing, or specify the `exclude` parameter in the
 ## Remote State Requirement
 
 `terraform push` requires that
-[remote state](http://localhost:4567/docs/commands/remote-config.html)
+[remote state](/docs/commands/remote-config.html)
 is enabled. The reasoning for this is simple: `terraform push` sends your
 configuration to be managed remotely. For it to keep the state in sync
 and for you to be able to easily access that state, remote state must
