@@ -45,9 +45,44 @@ The command-line flags are all optional. The list of available flags are:
   configurations not just to your account but to other accounts and
   organizations. This setting can also be set in the configuration
   in the
-  [Atlas section](#).
+  [Atlas section](/docs/configuration/atlas.html).
 
 * `-no-color` - Disables output with coloring
 
 * `-token=<token>` - Atlas API token to use to authorize the upload.
   If blank, the `ATLAS_TOKEN` environmental variable will be used.
+
+## Packaged Files
+
+The files that are uploaded and packaged with a `push` are all the
+files in the `path` given as the parameter to the command, recursively.
+By default (unless `-vcs=false` is specified), Terraform will automatically
+detect when a VCS such as Git is being used, and in that case will only
+upload the files that are comitted. Because of this built-in intelligence,
+you don't have to worry about excluding folders such as ".git" or ".hg" usually.
+
+If Terraform doesn't detect a VCS, it will upload all files.
+
+The reason Terraform uploads all of these files is because Terraform
+cannot know what is and isn't being used for provisioning, so it uploads
+all the files to be safe. To exclude certain files, specify the `-exclude`
+flag when pushing, or specify the `exclude` parameter in the
+[Atlas configuration section](/docs/configuration/atlas.html).
+
+## Remote State Requirement
+
+`terraform push` requires that
+[remote state](http://localhost:4567/docs/commands/remote-config.html)
+is enabled. The reasoning for this is simple: `terraform push` sends your
+configuration to be managed remotely. For it to keep the state in sync
+and for you to be able to easily access that state, remote state must
+be enabled instead of juggling local files.
+
+While `terraform push` sends your configuration to be managed by Atlas,
+the remote state backend _does not_ have to be Atlas. It can be anything
+as long as it is accessible by the public internet, since Atlas will need
+to be able to communicate to it.
+
+**Warning:** The credentials for accessing the remote state will be
+sent up to Atlas as well. Therefore, we recommend you use access keys
+that are restricted if possible.
