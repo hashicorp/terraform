@@ -57,20 +57,13 @@ RETURN:
 // EvalValidateProvider is an EvalNode implementation that validates
 // the configuration of a resource.
 type EvalValidateProvider struct {
-	ProviderName string
-	Provider     *ResourceProvider
-	Config       **ResourceConfig
+	Provider *ResourceProvider
+	Config   **ResourceConfig
 }
 
 func (n *EvalValidateProvider) Eval(ctx EvalContext) (interface{}, error) {
 	provider := *n.Provider
 	config := *n.Config
-
-	// Get the parent configuration if there is one
-	if parent := ctx.ParentProviderConfig(n.ProviderName); parent != nil {
-		merged := parent.raw.Merge(config.raw)
-		config = NewResourceConfig(merged)
-	}
 
 	warns, errs := provider.Validate(config)
 	if len(warns) == 0 && len(errs) == 0 {
