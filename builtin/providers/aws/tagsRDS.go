@@ -20,12 +20,13 @@ func setTagsRDS(conn *rds.RDS, d *schema.ResourceData, arn string) error {
 		// Set tags
 		if len(remove) > 0 {
 			log.Printf("[DEBUG] Removing tags: %#v", remove)
-			k := make([]string, 0, len(remove))
+			k := make([]string, len(remove), len(remove))
 			for i, t := range remove {
 				k[i] = *t.Key
 			}
+
 			err := conn.RemoveTagsFromResource(&rds.RemoveTagsFromResourceMessage{
-				ResourceName: aws.String(d.Get("name").(string)),
+				ResourceName: aws.String(arn),
 				TagKeys:      k,
 			})
 			if err != nil {
