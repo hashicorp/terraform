@@ -34,6 +34,9 @@ The `path` argument is the same as for the
 
 The command-line flags are all optional. The list of available flags are:
 
+* `-atlas-address=<url>` - An alternate address to an Atlas instance.
+  Defaults to `https://atlas.hashicorp.com`.
+
 * `-upload-modules=true` - If true (default), then the
   [modules](/docs/modules/index.html)
   being used are all locked at their current checkout and uploaded

@@ -21,11 +21,12 @@ type PushCommand struct {
 }
 
 func (c *PushCommand) Run(args []string) int {
-	var atlasToken string
+	var atlasAddress, atlasToken string
 	var archiveVCS, moduleUpload bool
 	var name string
 	args = c.Meta.process(args, false)
 	cmdFlags := c.Meta.flagSet("push")
+	cmdFlags.StringVar(&atlasAddress, "atlas-address", "", "")
 	cmdFlags.StringVar(&c.Meta.statePath, "state", DefaultStateFilename, "path")
 	cmdFlags.StringVar(&atlasToken, "token", "", "")
 	cmdFlags.BoolVar(&moduleUpload, "upload-modules", true, "")
@@ -108,6 +109,13 @@ func (c *PushCommand) Run(args []string) int {
 
 		// Initialize it to the default client, we set custom settings later
 		client := atlas.DefaultClient()
+		if atlasAddress != "" {
+			client, err = atlas.NewClient(atlasAddress)
+			if err != nil {
+				c.Ui.Error(fmt.Sprintf("Error initializing Atlas client: %s", err))
+				return 1
+			}
+		}
 
 		if atlasToken != "" {
 			client.Token = atlasToken
@@ -184,6 +192,9 @@ Usage: terraform push [options] [DIR]
   infrastructure management.
 
 Options:
+
+  -atlas-address=<url> An alternate address to an Atlas instance. Defaults
+                       to https://atlas.hashicorp.com
 
   -upload-modules=true If true (default), then the modules are locked at
                        their current checkout and uploaded completely. This
