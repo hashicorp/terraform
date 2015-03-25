@@ -818,7 +818,9 @@ func resourceInstanceAddresses(addresses map[string]interface{}) map[string]map[
 					addrs[n]["fixed_ip_v6"] = fmt.Sprintf("[%s]", address["addr"].(string))
 				}
 			}
-			addrs[n]["mac"] = address["OS-EXT-IPS-MAC:mac_addr"].(string)
+			if mac, ok := address["OS-EXT-IPS-MAC:mac_addr"]; ok {
+				addrs[n]["mac"] = mac.(string)
+			}
 		}
 	}
 
