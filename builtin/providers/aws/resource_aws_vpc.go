@@ -185,13 +185,13 @@ func resourceAwsVpcUpdate(d *schema.ResourceData, meta interface{}) error {
 	// Turn on partial mode
 	d.Partial(true)
 	vpcid := d.Id()
-	modifyOpts := &ec2.ModifyVPCAttributeRequest{
-		VPCID: &vpcid,
-	}
 	if d.HasChange("enable_dns_hostnames") {
 		val := d.Get("enable_dns_hostnames").(bool)
-		modifyOpts.EnableDNSHostnames = &ec2.AttributeBooleanValue{
-			Value: &val,
+		modifyOpts := &ec2.ModifyVPCAttributeRequest{
+			VPCID: &vpcid,
+			EnableDNSHostnames: &ec2.AttributeBooleanValue{
+				Value: &val,
+			},
 		}
 
 		log.Printf(
@@ -205,9 +205,12 @@ func resourceAwsVpcUpdate(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	if d.HasChange("enable_dns_support") {
-		val := d.Get("enable_dns_hostnames").(bool)
-		modifyOpts.EnableDNSSupport = &ec2.AttributeBooleanValue{
-			Value: &val,
+		val := d.Get("enable_dns_support").(bool)
+		modifyOpts := &ec2.ModifyVPCAttributeRequest{
+			VPCID: &vpcid,
+			EnableDNSSupport: &ec2.AttributeBooleanValue{
+				Value: &val,
+			},
 		}
 
 		log.Printf(
