@@ -52,6 +52,11 @@ The command-line flags are all optional. The list of available flags are:
 * `-token=<token>` - Atlas API token to use to authorize the upload.
   If blank, the `ATLAS_TOKEN` environmental variable will be used.
 
+* `-vcs=true` - If true (default), then Terraform will detect if a VCS
+  is in use, such as Git, and will only upload files that are comitted to
+  version control. If no version control system is detected, Terraform will
+  upload all files in `path` (parameter to the command).
+
 ## Packaged Files
 
 The files that are uploaded and packaged with a `push` are all the

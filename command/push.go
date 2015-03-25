@@ -22,7 +22,7 @@ type PushCommand struct {
 
 func (c *PushCommand) Run(args []string) int {
 	var atlasToken string
-	var moduleUpload bool
+	var archiveVCS, moduleUpload bool
 	var name string
 	args = c.Meta.process(args, false)
 	cmdFlags := c.Meta.flagSet("push")
@@ -30,6 +30,7 @@ func (c *PushCommand) Run(args []string) int {
 	cmdFlags.StringVar(&atlasToken, "token", "", "")
 	cmdFlags.BoolVar(&moduleUpload, "module-upload", true, "")
 	cmdFlags.StringVar(&name, "name", "", "")
+	cmdFlags.BoolVar(&archiveVCS, "vcs", true, "")
 	cmdFlags.Usage = func() { c.Ui.Error(c.Help()) }
 	if err := cmdFlags.Parse(args); err != nil {
 		return 1
@@ -136,7 +137,7 @@ func (c *PushCommand) Run(args []string) int {
 	// Build the archiving options, which includes everything it can
 	// by default according to VCS rules but forcing the data directory.
 	archiveOpts := &archive.ArchiveOpts{
-		VCS: true,
+		VCS: archiveVCS,
 		Extra: map[string]string{
 			DefaultDataDir: c.DataDir(),
 		},
@@ -194,6 +195,9 @@ Options:
 
   -token=<token>       Access token to use to upload. If blank, the ATLAS_TOKEN
                        environmental variable will be used.
+
+  -vcs=true            If true (default), push will upload only files
+                       comitted to your VCS, if detected.
 
 `
 	return strings.TrimSpace(helpText)
