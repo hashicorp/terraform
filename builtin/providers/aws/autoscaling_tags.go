@@ -150,8 +150,8 @@ func autoscalingTagDescriptionsToMap(ts []autoscaling.TagDescription) map[string
 	tags := make(map[string]map[string]interface{})
 	for _, t := range ts {
 		tag := map[string]interface{}{
-			"value":               t.Value,
-			"propagate_at_launch": t.PropagateAtLaunch,
+			"value":               *t.Value,
+			"propagate_at_launch": *t.PropagateAtLaunch,
 		}
 		tags[*t.Key] = tag
 	}
