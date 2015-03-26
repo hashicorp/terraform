@@ -72,13 +72,9 @@ func resourceAwsS3BucketCreate(d *schema.ResourceData, meta interface{}) error {
 
 func resourceAwsS3BucketUpdate(d *schema.ResourceData, meta interface{}) error {
 	s3conn := meta.(*AWSClient).s3conn
-	d.Partial(true)
 	if err := setTagsS3(s3conn, d); err != nil {
 		return err
-	} else {
-		d.SetPartial("tags")
 	}
-	d.Partial(false)
 	return resourceAwsS3BucketRead(d, meta)
 }
 
