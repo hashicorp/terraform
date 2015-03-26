@@ -40,6 +40,7 @@ IMPROVEMENTS:
       like refresh.
   * core: Autoload `terraform.tfvars.json` as well as `terraform.tfvars` [GH-1030]
   * core: `.tf` files that start with a period are now ignored. [GH-1227]
+  * providers/google: Add `size` option to disk blocks for instances. [GH-1284]
 
 BUG FIXES:
 
