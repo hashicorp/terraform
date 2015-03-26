@@ -40,7 +40,7 @@ The following keys can be used to configure the provider.
   are running terraform from a GCE instance with a properly-configured [Compute
   Engine Service Account](https://cloud.google.com/compute/docs/authentication).
 
-* `project` - (Required) The name of the project to apply any resources to.
+* `project` - (Required) The ID of the project to apply any resources to.
 
 * `region` - (Required) The region to operate under.
 

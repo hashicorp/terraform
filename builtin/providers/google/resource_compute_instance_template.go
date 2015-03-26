@@ -4,10 +4,10 @@ import (
 	"fmt"
 	"time"
 
-	"code.google.com/p/google-api-go-client/compute/v1"
-	"code.google.com/p/google-api-go-client/googleapi"
 	"github.com/hashicorp/terraform/helper/hashcode"
 	"github.com/hashicorp/terraform/helper/schema"
+	"google.golang.org/api/compute/v1"
+	"google.golang.org/api/googleapi"
 )
 
 func resourceComputeInstanceTemplate() *schema.Resource {
@@ -58,6 +58,7 @@ func resourceComputeInstanceTemplate() *schema.Resource {
 						"auto_delete": &schema.Schema{
 							Type:     schema.TypeBool,
 							Optional: true,
+							Default:  true,
 							ForceNew: true,
 						},
 
@@ -235,11 +236,7 @@ func buildDisks(d *schema.ResourceData, meta interface{}) []*compute.AttachedDis
 		disk.Mode = "READ_WRITE"
 		disk.Interface = "SCSI"
 		disk.Boot = i == 0
-		disk.AutoDelete = true
-
-		if v, ok := d.GetOk(prefix + ".auto_delete"); ok {
-			disk.AutoDelete = v.(bool)
-		}
+		disk.AutoDelete = d.Get(prefix + ".auto_delete").(bool)
 
 		if v, ok := d.GetOk(prefix + ".boot"); ok {
 			disk.Boot = v.(bool)

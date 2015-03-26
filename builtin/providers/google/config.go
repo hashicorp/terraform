@@ -7,11 +7,10 @@ import (
 	"net/http"
 	"os"
 
-	"code.google.com/p/google-api-go-client/compute/v1"
-
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"
 	"golang.org/x/oauth2/jwt"
+	"google.golang.org/api/compute/v1"
 )
 
 // Config is the configuration structure used to instantiate the Google
