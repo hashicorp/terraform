@@ -126,7 +126,7 @@ func TestTreeLoad_parentRef(t *testing.T) {
 	}
 
 	actual := strings.TrimSpace(tree.String())
-	expected := strings.TrimSpace(treeLoadStr)
+	expected := strings.TrimSpace(treeLoadParentStr)
 	if actual != expected {
 		t.Fatalf("bad: \n\n%s", actual)
 	}
@@ -277,6 +277,11 @@ root
   foo
 `
 
+const treeLoadParentStr = `
+root
+  a
+    b
+`
 const treeLoadSubdirStr = `
 root
   foo
