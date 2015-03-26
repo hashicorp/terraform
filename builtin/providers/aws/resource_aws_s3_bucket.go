@@ -14,6 +14,7 @@ func resourceAwsS3Bucket() *schema.Resource {
 	return &schema.Resource{
 		Create: resourceAwsS3BucketCreate,
 		Read:   resourceAwsS3BucketRead,
+		Update: resourceAwsS3BucketUpdate,
 		Delete: resourceAwsS3BucketDelete,
 
 		Schema: map[string]*schema.Schema{
@@ -29,6 +30,8 @@ func resourceAwsS3Bucket() *schema.Resource {
 				Optional: true,
 				ForceNew: true,
 			},
+
+			"tags": tagsSchema(),
 		},
 	}
 }
@@ -64,7 +67,19 @@ func resourceAwsS3BucketCreate(d *schema.ResourceData, meta interface{}) error {
 	// Assign the bucket name as the resource ID
 	d.SetId(bucket)
 
-	return nil
+	return resourceAwsS3BucketUpdate(d, meta)
+}
+
+func resourceAwsS3BucketUpdate(d *schema.ResourceData, meta interface{}) error {
+	s3conn := meta.(*AWSClient).s3conn
+	d.Partial(true)
+	if err := setTagsS3(s3conn, d); err != nil {
+		return err
+	} else {
+		d.SetPartial("tags")
+	}
+	d.Partial(false)
+	return resourceAwsS3BucketRead(d, meta)
 }
 
 func resourceAwsS3BucketRead(d *schema.ResourceData, meta interface{}) error {
