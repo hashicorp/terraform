@@ -37,6 +37,21 @@ func resourceAwsElb() *schema.Resource {
 				Optional: true,
 			},
 
+			"connection_settings": &schema.Schema{
+				Type:     schema.TypeSet,
+				Optional: true,
+				Computed: true,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"idle_timeout": &schema.Schema{
+							Type:     schema.TypeInt,
+							Required: true,
+						},
+					},
+				},
+                Set: resourceAwsElbConnectionSettingsHash,
+			},
+
 			"availability_zones": &schema.Schema{
 				Type:     schema.TypeSet,
 				Elem:     &schema.Schema{Type: schema.TypeString},
@@ -349,6 +364,22 @@ func resourceAwsElbUpdate(d *schema.ResourceData, meta interface{}) error {
 		d.SetPartial("cross_zone_load_balancing")
 	}
 
+	if d.HasChange("connection_settings") {
+		attrs := elb.ModifyLoadBalancerAttributesInput{
+			LoadBalancerName: aws.String(d.Get("name").(string)),
+			LoadBalancerAttributes: &elb.LoadBalancerAttributes{
+				ConnectionSettings: &elb.ConnectionSettings{
+					aws.Integer(d.Get("connection_settings").(int)),
+				},
+			},
+		}
+		_, err := elbconn.ModifyLoadBalancerAttributes(&attrs)
+		if err != nil {
+			return fmt.Errorf("Failure configuring connection settings: %s", err)
+		}
+		d.SetPartial("connection")
+	}
+
 	if d.HasChange("health_check") {
 		vs := d.Get("health_check").(*schema.Set).List()
 		if len(vs) > 0 {
@@ -395,6 +426,14 @@ func resourceAwsElbDelete(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	return nil
+}
+
+func resourceAwsElbConnectionSettingsHash(v interface{}) int {
+	var buf bytes.Buffer
+	m := v.(map[string]interface{})
+	buf.WriteString(fmt.Sprintf("%d-", m["idle_timeout"].(int)))
+
+	return hashcode.String(buf.String())
 }
 
 func resourceAwsElbHealthCheckHash(v interface{}) int {
