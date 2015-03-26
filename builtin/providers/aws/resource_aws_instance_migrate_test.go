@@ -115,6 +115,7 @@ func TestAWSInstanceMigrateState(t *testing.T) {
 
 	for tn, tc := range cases {
 		is := &terraform.InstanceState{
+			ID:         "i-abc123",
 			Attributes: tc.Attributes,
 		}
 		is, err := resourceAwsInstanceMigrateState(
@@ -131,5 +132,28 @@ func TestAWSInstanceMigrateState(t *testing.T) {
 					tn, k, v, k, is.Attributes[k], is.Attributes)
 			}
 		}
+	}
+}
+
+func TestAWSInstanceMigrateState_empty(t *testing.T) {
+	var is *terraform.InstanceState
+	var meta interface{}
+
+	// should handle nil
+	is, err := resourceAwsInstanceMigrateState(0, is, meta)
+
+	if err != nil {
+		t.Fatalf("err: %#v", err)
+	}
+	if is != nil {
+		t.Fatalf("expected nil instancestate, got: %#v", is)
+	}
+
+	// should handle non-nil but empty
+	is = &terraform.InstanceState{}
+	is, err = resourceAwsInstanceMigrateState(0, is, meta)
+
+	if err != nil {
+		t.Fatalf("err: %#v", err)
 	}
 }
