@@ -26,7 +26,7 @@ func TestAccAWSAutoScalingGroup_basic(t *testing.T) {
 					testAccCheckAWSAutoScalingGroupExists("aws_autoscaling_group.bar", &group),
 					testAccCheckAWSAutoScalingGroupAttributes(&group),
 					resource.TestCheckResourceAttr(
-						"aws_autoscaling_group.bar", "availability_zones.2487133097", "us-west-2a"),
+						"aws_autoscaling_group.bar", "availability_zones.1807834199", "us-west-2a"),
 					resource.TestCheckResourceAttr(
 						"aws_autoscaling_group.bar", "name", "foobar3-terraform-test"),
 					resource.TestCheckResourceAttr(
@@ -54,8 +54,10 @@ func TestAccAWSAutoScalingGroup_basic(t *testing.T) {
 					resource.TestCheckResourceAttr(
 						"aws_autoscaling_group.bar", "desired_capacity", "5"),
 					testLaunchConfigurationName("aws_autoscaling_group.bar", &lc),
-					resource.TestCheckResourceAttr(
-						"aws_autoscaling_group.bar", "tag", "xxx"),
+					testAccCheckAutoscalingTags(&group.Tags, "Bar", map[string]interface{}{
+						"value":               "bar-foo",
+						"propagate_at_launch": true,
+					}),
 				),
 			},
 		},
@@ -74,20 +76,20 @@ func TestAccAWSAutoScalingGroup_tags(t *testing.T) {
 				Config: testAccAWSAutoScalingGroupConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSAutoScalingGroupExists("aws_autoscaling_group.bar", &group),
-					testAccCheckAutoscalingTags(&group.Tags, "foo", map[string]interface{}{
-						"value":               "bar",
+					testAccCheckAutoscalingTags(&group.Tags, "Foo", map[string]interface{}{
+						"value":               "foo-bar",
 						"propagate_at_launch": true,
 					}),
 				),
 			},
 
 			resource.TestStep{
-				Config: testAccCheckInstanceConfigTagsUpdate,
+				Config: testAccAWSAutoScalingGroupConfigUpdate,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSAutoScalingGroupExists("aws_autoscaling_group.bar", &group),
-					testAccCheckAutoscalingTagNotExists(&group.Tags, "foo"),
-					testAccCheckAutoscalingTags(&group.Tags, "bar", map[string]interface{}{
-						"value":               "baz",
+					testAccCheckAutoscalingTagNotExists(&group.Tags, "Foo"),
+					testAccCheckAutoscalingTags(&group.Tags, "Bar", map[string]interface{}{
+						"value":               "bar-foo",
 						"propagate_at_launch": true,
 					}),
 				),
@@ -182,10 +184,12 @@ func testAccCheckAWSAutoScalingGroupAttributes(group *autoscaling.AutoScalingGro
 			return fmt.Errorf("Bad launch configuration name: %s", *group.LaunchConfigurationName)
 		}
 
-		t := autoscaling.Tag{
-			Key:               aws.String("Name"),
+		t := autoscaling.TagDescription{
+			Key:               aws.String("Foo"),
 			Value:             aws.String("foo-bar"),
 			PropagateAtLaunch: aws.Boolean(true),
+			ResourceType:      aws.String("auto-scaling-group"),
+			ResourceID:        group.AutoScalingGroupName,
 		}
 
 		if !reflect.DeepEqual(group.Tags[0], t) {
@@ -278,7 +282,7 @@ resource "aws_autoscaling_group" "bar" {
   launch_configuration = "${aws_launch_configuration.foobar.name}"
 
   tag {
-    key = "Name"
+    key = "Foo"
     value = "foo-bar"
     propagate_at_launch = true
   }
@@ -311,7 +315,7 @@ resource "aws_autoscaling_group" "bar" {
   launch_configuration = "${aws_launch_configuration.new.name}"
 
   tag {
-    key = "Name"
+    key = "Bar"
     value = "bar-foo"
     propagate_at_launch = true
   }
