@@ -41,6 +41,10 @@ resource "aws_elb" "bar" {
     interval = 30
   }
 
+  connection_settings {
+    idle_timeout = 60
+  }
+
   instances = ["${aws_instance.foo.id}"]
   cross_zone_load_balancing = true
 }
@@ -59,6 +63,7 @@ The following arguments are supported:
 * `listener` - (Required) A list of listener blocks. Listeners documented below.
 * `health_check` - (Optional) A health_check block. Health Check documented below.
 * `cross_zone_load_balancing` - (Optional) Enable cross-zone load balancing.
+* `connection_settings` - (Optional) A connection_settings block. Connection Settings documented below.
 
 Exactly one of `availability_zones` or `subnets` must be specified: this
 determines if the ELB exists in a VPC or in EC2-classic.
@@ -78,6 +83,9 @@ Health Check supports the following:
 * `target` - (Required) The target of the check.
 * `interval` - (Required) The interval between checks.
 * `timeout` - (Required) The length of time before the check times out.
+
+Connection Settings supports the following:
+* `idle_timeout` - (Required) The length of time before idle connections are closed.
 
 ## Attributes Reference
 
