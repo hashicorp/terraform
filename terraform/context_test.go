@@ -2961,7 +2961,7 @@ func TestContext2Input(t *testing.T) {
 		"var.foo": "us-east-1",
 	}
 
-	if err := ctx.Input(InputModeStd); err != nil {
+	if err := ctx.Input(InputModeVar); err != nil {
 		t.Fatalf("err: %s", err)
 	}
 

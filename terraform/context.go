@@ -25,9 +25,9 @@ const (
 	// InputModeProvider asks for provider variables
 	InputModeProvider
 
-	// InputModeStd is the standard operating mode and asks for both variables
-	// and providers.
-	InputModeStd = InputModeVar | InputModeProvider
+	// InputModeStd is the standard operating mode and asks for
+	// both unset variables and providers.
+	InputModeStd = InputModeVarUnset | InputModeProvider
 )
 
 // ContextOpts are the user-configurable options to create a context with
@@ -160,10 +160,11 @@ func (c *Context) Input(mode InputMode) error {
 	v := c.acquireRun()
 	defer c.releaseRun(v)
 
-	if mode&InputModeVar != 0 {
+	if mode&InputModeVar != 0 || mode&InputModeVarUnset != 0 {
 		// Walk the variables first for the root module. We walk them in
 		// alphabetical order for UX reasons.
 		rootConf := c.module.Config()
+
 		names := make([]string, len(rootConf.Variables))
 		m := make(map[string]*config.Variable)
 		for i, v := range rootConf.Variables {
@@ -172,7 +173,7 @@ func (c *Context) Input(mode InputMode) error {
 		}
 		sort.Strings(names)
 		for _, n := range names {
-			// If we only care about unset variables, then if the variabel
+			// If we only care about unset variables, then if the variable
 			// is set, continue on.
 			if mode&InputModeVarUnset != 0 {
 				if _, ok := c.variables[n]; ok {
