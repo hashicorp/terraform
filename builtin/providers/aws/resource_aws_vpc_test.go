@@ -133,7 +133,7 @@ func testAccCheckVpcDestroy(s *terraform.State) error {
 		}
 
 		// Verify the error is what we want
-		ec2err, ok := err.(*aws.APIError)
+		ec2err, ok := err.(aws.APIError)
 		if !ok {
 			return err
 		}
