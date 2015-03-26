@@ -59,6 +59,8 @@ BUG FIXES:
   * providers/aws: Longer wait times for route53 records (30 mins). [GH-1164]
   * providers/digitalocean: Waits until droplet is ready to be destroyed [GH-1057]
   * providers/digitalocean: More lenient about 404's while waiting [GH-1062]
+  * providers/digitalocean: FQDN for domain records in CNAME, MX, NS, etc.
+      Also fixes invalid updates in plans. [GH-863]
   * providers/google: Network data in state was not being stored. [GH-1095]
 
 PLUGIN CHANGES:
