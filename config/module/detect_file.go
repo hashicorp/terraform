@@ -40,8 +40,8 @@ func (d *FileDetector) Detect(src, pwd string) (string, bool, error) {
 		}
 
 		src = filepath.Join(pwd, src)
-		println(src)
 	}
+
 	return fmtFileURL(src), true, nil
 }
 
