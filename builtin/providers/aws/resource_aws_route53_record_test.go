@@ -29,6 +29,27 @@ func TestCleanRecordName(t *testing.T) {
 	}
 }
 
+func TestExpandRecordName(t *testing.T) {
+	cases := []struct {
+		Input, Output string
+	}{
+		{"www", "www.nonexample.com"},
+		{"dev.www", "dev.www.nonexample.com"},
+		{"*", "*.nonexample.com"},
+		{"nonexample.com", "nonexample.com"},
+		{"test.nonexample.com", "test.nonexample.com"},
+		{"test.nonexample.com.", "test.nonexample.com"},
+	}
+
+	zone_name := "nonexample.com"
+	for _, tc := range cases {
+		actual := expandRecordName(tc.Input, zone_name)
+		if actual != tc.Output {
+			t.Fatalf("input: %s\noutput: %s", tc.Input, actual)
+		}
+	}
+}
+
 func TestAccRoute53Record(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -151,9 +172,11 @@ func testAccCheckRoute53RecordExists(n string) resource.TestCheckFunc {
 		name := parts[1]
 		rType := parts[2]
 
+		en := expandRecordName(name, "notexample.com")
+
 		lopts := &route53.ListResourceRecordSetsRequest{
 			HostedZoneID:    aws.String(cleanZoneID(zone)),
-			StartRecordName: aws.String(name),
+			StartRecordName: aws.String(en),
 			StartRecordType: aws.String(rType),
 		}
 
@@ -167,7 +190,7 @@ func testAccCheckRoute53RecordExists(n string) resource.TestCheckFunc {
 		// rec := resp.ResourceRecordSets[0]
 		for _, rec := range resp.ResourceRecordSets {
 			recName := cleanRecordName(*rec.Name)
-			if FQDN(recName) == FQDN(name) && *rec.Type == rType {
+			if FQDN(recName) == FQDN(en) && *rec.Type == rType {
 				return nil
 			}
 		}
