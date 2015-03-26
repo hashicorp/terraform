@@ -6,10 +6,10 @@ import (
 	"sort"
 	"time"
 
-	"code.google.com/p/google-api-go-client/compute/v1"
-	"code.google.com/p/google-api-go-client/googleapi"
 	"github.com/hashicorp/terraform/helper/hashcode"
 	"github.com/hashicorp/terraform/helper/schema"
+	"google.golang.org/api/compute/v1"
+	"google.golang.org/api/googleapi"
 )
 
 func resourceComputeFirewall() *schema.Resource {
