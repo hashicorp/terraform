@@ -44,12 +44,6 @@ func (c *RemoteConfigCommand) Run(args []string) int {
 		return 1
 	}
 
-	// Show help if given no inputs
-	if !c.conf.disableRemote && c.remoteConf.Type == "atlas" && len(config) == 0 {
-		cmdFlags.Usage()
-		return 1
-	}
-
 	// Set the local state path
 	c.statePath = c.conf.statePath
 
