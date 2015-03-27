@@ -66,6 +66,7 @@ BUG FIXES:
   * providers/digitalocean: FQDN for domain records in CNAME, MX, NS, etc.
       Also fixes invalid updates in plans. [GH-863]
   * providers/google: Network data in state was not being stored. [GH-1095]
+  * providers/heroku: Fix panic when config vars block was empty. [GH-1211]
 
 PLUGIN CHANGES:
 
