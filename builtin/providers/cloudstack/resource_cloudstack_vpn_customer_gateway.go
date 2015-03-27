@@ -87,11 +87,11 @@ func resourceCloudStackVPNCustomerGatewayCreate(d *schema.ResourceData, meta int
 	}
 
 	if esplifetime, ok := d.GetOk("esp_lifetime"); ok {
-		p.SetEsplifetime(esplifetime.(int))
+		p.SetEsplifetime(int64(esplifetime.(int)))
 	}
 
 	if ikelifetime, ok := d.GetOk("ike_lifetime"); ok {
-		p.SetIkelifetime(ikelifetime.(int))
+		p.SetIkelifetime(int64(ikelifetime.(int)))
 	}
 
 	// Create the new VPN Customer Gateway
@@ -128,8 +128,8 @@ func resourceCloudStackVPNCustomerGatewayRead(d *schema.ResourceData, meta inter
 	d.Set("ike_policy", v.Ikepolicy)
 	d.Set("ipsec_psk", v.Ipsecpsk)
 	d.Set("dpd", v.Dpd)
-	d.Set("esp_lifetime", v.Esplifetime)
-	d.Set("ike_lifetime", v.Ikelifetime)
+	d.Set("esp_lifetime", int(v.Esplifetime))
+	d.Set("ike_lifetime", int(v.Ikelifetime))
 
 	return nil
 }
@@ -154,11 +154,11 @@ func resourceCloudStackVPNCustomerGatewayUpdate(d *schema.ResourceData, meta int
 	}
 
 	if esplifetime, ok := d.GetOk("esp_lifetime"); ok {
-		p.SetEsplifetime(esplifetime.(int))
+		p.SetEsplifetime(int64(esplifetime.(int)))
 	}
 
 	if ikelifetime, ok := d.GetOk("ike_lifetime"); ok {
-		p.SetIkelifetime(ikelifetime.(int))
+		p.SetIkelifetime(int64(ikelifetime.(int)))
 	}
 
 	// Update the VPN Customer Gateway

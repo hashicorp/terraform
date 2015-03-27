@@ -66,9 +66,6 @@ to understand the implications of using these attributes.
 
 The `root_block_device` mapping supports the following:
 
-* `device_name` - The name of the root device on the target instance. Must
-  match the root device as defined in the AMI. Defaults to `"/dev/sda1"`, which
-  is the typical root volume for Linux instances.
 * `volume_type` - (Optional) The type of volume. Can be `"standard"`, `"gp2"`,
   or `"io1"`. (Default: `"standard"`).
 * `volume_size` - (Optional) The size of the volume in gigabytes.

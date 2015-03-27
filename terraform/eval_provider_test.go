@@ -5,6 +5,71 @@ import (
 	"testing"
 )
 
+func TestEvalBuildProviderConfig_impl(t *testing.T) {
+	var _ EvalNode = new(EvalBuildProviderConfig)
+}
+
+func TestEvalBuildProviderConfig(t *testing.T) {
+	config := testResourceConfig(t, map[string]interface{}{})
+	provider := "foo"
+
+	n := &EvalBuildProviderConfig{
+		Provider: provider,
+		Config:   &config,
+		Output:   &config,
+	}
+
+	ctx := &MockEvalContext{
+		ParentProviderConfigConfig: testResourceConfig(t, map[string]interface{}{
+			"foo": "bar",
+		}),
+		ProviderInputConfig: map[string]interface{}{
+			"bar": "baz",
+		},
+	}
+	if _, err := n.Eval(ctx); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	expected := map[string]interface{}{
+		"foo": "bar",
+		"bar": "baz",
+	}
+	if !reflect.DeepEqual(config.Raw, expected) {
+		t.Fatalf("bad: %#v", config.Raw)
+	}
+}
+
+func TestEvalBuildProviderConfig_parentPriority(t *testing.T) {
+	config := testResourceConfig(t, map[string]interface{}{})
+	provider := "foo"
+
+	n := &EvalBuildProviderConfig{
+		Provider: provider,
+		Config:   &config,
+		Output:   &config,
+	}
+
+	ctx := &MockEvalContext{
+		ParentProviderConfigConfig: testResourceConfig(t, map[string]interface{}{
+			"foo": "bar",
+		}),
+		ProviderInputConfig: map[string]interface{}{
+			"foo": "baz",
+		},
+	}
+	if _, err := n.Eval(ctx); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	expected := map[string]interface{}{
+		"foo": "bar",
+	}
+	if !reflect.DeepEqual(config.Raw, expected) {
+		t.Fatalf("bad: %#v", config.Raw)
+	}
+}
+
 func TestEvalConfigProvider_impl(t *testing.T) {
 	var _ EvalNode = new(EvalConfigProvider)
 }

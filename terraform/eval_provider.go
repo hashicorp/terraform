@@ -6,17 +6,18 @@ import (
 	"github.com/hashicorp/terraform/config"
 )
 
-// EvalConfigProvider is an EvalNode implementation that configures
-// a provider that is already initialized and retrieved.
-type EvalConfigProvider struct {
+// EvalBuildProviderConfig outputs a *ResourceConfig that is properly
+// merged with parents and inputs on top of what is configured in the file.
+type EvalBuildProviderConfig struct {
 	Provider string
 	Config   **ResourceConfig
+	Output   **ResourceConfig
 }
 
-func (n *EvalConfigProvider) Eval(ctx EvalContext) (interface{}, error) {
+func (n *EvalBuildProviderConfig) Eval(ctx EvalContext) (interface{}, error) {
 	cfg := *n.Config
 
-	// If we have a configuration set, then use that
+	// If we have a configuration set, then merge that in
 	if input := ctx.ProviderInput(n.Provider); input != nil {
 		rc, err := config.NewRawConfig(input)
 		if err != nil {
@@ -33,7 +34,19 @@ func (n *EvalConfigProvider) Eval(ctx EvalContext) (interface{}, error) {
 		cfg = NewResourceConfig(merged)
 	}
 
-	return nil, ctx.ConfigureProvider(n.Provider, cfg)
+	*n.Output = cfg
+	return nil, nil
+}
+
+// EvalConfigProvider is an EvalNode implementation that configures
+// a provider that is already initialized and retrieved.
+type EvalConfigProvider struct {
+	Provider string
+	Config   **ResourceConfig
+}
+
+func (n *EvalConfigProvider) Eval(ctx EvalContext) (interface{}, error) {
+	return nil, ctx.ConfigureProvider(n.Provider, *n.Config)
 }
 
 // EvalInitProvider is an EvalNode implementation that initializes a provider

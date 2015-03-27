@@ -214,7 +214,20 @@ func (s *State) DeepCopy() *State {
 // IncrementSerialMaybe increments the serial number of this state
 // if it different from the other state.
 func (s *State) IncrementSerialMaybe(other *State) {
+	if s == nil {
+		return
+	}
+	if other == nil {
+		return
+	}
+	if s.Serial > other.Serial {
+		return
+	}
 	if !s.Equal(other) {
+		if other.Serial > s.Serial {
+			s.Serial = other.Serial
+		}
+
 		s.Serial++
 	}
 }
@@ -329,6 +342,10 @@ func (r *RemoteState) Equals(other *RemoteState) bool {
 		}
 	}
 	return true
+}
+
+func (r *RemoteState) GoString() string {
+	return fmt.Sprintf("*%#v", *r)
 }
 
 // ModuleState is used to track all the state relevant to a single
