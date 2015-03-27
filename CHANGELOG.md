@@ -15,6 +15,7 @@ FEATURES:
   * **New command: `taint`** - Manually mark a resource as tainted, causing
       a destroy and recreate on the next plan/apply.
   * **New resource: `aws_vpn_gateway`** [GH-1137]
+  * **New resource: `aws_elastic_network_interfaces`** [GH-1149]
   * **Self-variables** can be used to reference the current resource's
       attributes within a provisioner. Ex. `${self.private_ip_address}` [GH-1033]
   * **Continous state** saving during `terraform apply`. The state file is
@@ -23,6 +24,8 @@ FEATURES:
       or system killing Terraform.
   * **Math operations** in interpolations. You can now do things like
       `${count.index+1}`. [GH-1068]
+  * **New AWS SDK:** Move to `aws-sdk-go` (hashicorp/aws-sdk-go), 
+      a fork of the offical `awslabs` repo.
 
 IMPROVEMENTS:
 
@@ -34,7 +37,6 @@ IMPROVEMENTS:
   * **New config function: `split`** - Split a value based on a delimiter.
       This is useful for faking lists as parameters to modules.
   * **New resource: `digitalocean_ssh_key`** [GH-1074]
-  * **New resource: `aws_elastic_network_interfaces`** [GH-1149]
   * core: The serial of the state is only updated if there is an actual
       change. This will lower the amount of state changing on things
       like refresh.
@@ -43,6 +45,11 @@ IMPROVEMENTS:
   * command/remote-config: After enabling remote state, a `pull` is
       automatically done initially.
   * providers/google: Add `size` option to disk blocks for instances. [GH-1284]
+  * providers/aws: Improve support for tagging resources.
+  * providers/aws: Add a short syntax for Route 53 Record names, e.g. `www` instead of 
+    `www.example.com`.
+  * providers/aws: Improve dependency violation error handling, when deleting 
+    Internet Gateways or Auto Scaling groups [GH-1325].
 
 BUG FIXES:
 
@@ -61,6 +68,14 @@ BUG FIXES:
   * providers/aws: `source_dest_check` regression fixed (now works). [GH-1020]
   * providers/aws: Longer wait times for DB instances.
   * providers/aws: Longer wait times for route53 records (30 mins). [GH-1164]
+  * providers/aws: Fix support for TXT records in Route 53. [GH-1213]
+  * providers/aws: Fix support for wildcard records in Route 53. [GH-1222]
+  * providers/aws: Fix issue with ignoring the 'self' attribute of a Security Group rule. [GH-1223]
+  * providers/aws: Fix issue with `sql_mode` in RDS parameter group always causing an update. [GH-1225]
+  * providers/aws: Fix dependency violation with subnets and security groups [GH-1252]
+  * providers/aws: Fix issue with refreshing `db_subnet_groups` causing an error instead of updating state [GH-1254]
+  * providers/aws: Prevent empty string to be used as default health_check_type [GH-1052]
+  * providers/aws: Add tags on AWS IG creation, not just on update [GH-1176]
   * providers/digitalocean: Waits until droplet is ready to be destroyed [GH-1057]
   * providers/digitalocean: More lenient about 404's while waiting [GH-1062]
   * providers/digitalocean: FQDN for domain records in CNAME, MX, NS, etc.
