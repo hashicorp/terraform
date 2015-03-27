@@ -1,10 +1,15 @@
 package docker
 
-import dc "github.com/fsouza/go-dockerclient"
+import (
+	"path/filepath"
+
+	dc "github.com/fsouza/go-dockerclient"
+)
 
 type Config struct {
-	DockerHost string
-	SkipPull   bool
+	Host     string
+	CertPath string
+	SkipPull bool
 }
 
 type Data struct {
@@ -13,7 +18,16 @@ type Data struct {
 
 // NewClient() returns a new Docker client.
 func (c *Config) NewClient() (*dc.Client, error) {
-	return dc.NewClient(c.DockerHost)
+	// If there is no cert information, then just return the direct client
+	if c.CertPath == "" {
+		return dc.NewClient(c.Host)
+	}
+
+	// If there is cert information, load it and use it.
+	ca := filepath.Join(c.CertPath, "ca.pem")
+	cert := filepath.Join(c.CertPath, "cert.pem")
+	key := filepath.Join(c.CertPath, "key.pem")
+	return dc.NewTLSClient(c.Host, cert, key, ca)
 }
 
 // NewData() returns a new data struct.

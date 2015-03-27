@@ -8,11 +8,18 @@ import (
 func Provider() terraform.ResourceProvider {
 	return &schema.Provider{
 		Schema: map[string]*schema.Schema{
-			"docker_host": &schema.Schema{
+			"host": &schema.Schema{
 				Type:        schema.TypeString,
 				Required:    true,
 				DefaultFunc: schema.EnvDefaultFunc("DOCKER_HOST", "unix:/run/docker.sock"),
-				Description: "The Docker daemon endpoint",
+				Description: "The Docker daemon address",
+			},
+
+			"cert_path": &schema.Schema{
+				Type:        schema.TypeString,
+				Optional:    true,
+				DefaultFunc: schema.EnvDefaultFunc("DOCKER_CERT_PATH", nil),
+				Description: "Path to directory with Docker TLS config",
 			},
 		},
 
@@ -27,7 +34,8 @@ func Provider() terraform.ResourceProvider {
 
 func providerConfigure(d *schema.ResourceData) (interface{}, error) {
 	config := Config{
-		DockerHost: d.Get("docker_host").(string),
+		Host:     d.Get("host").(string),
+		CertPath: d.Get("cert_path").(string),
 	}
 
 	return &config, nil
