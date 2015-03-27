@@ -40,6 +40,8 @@ IMPROVEMENTS:
       like refresh.
   * core: Autoload `terraform.tfvars.json` as well as `terraform.tfvars` [GH-1030]
   * core: `.tf` files that start with a period are now ignored. [GH-1227]
+  * command/remote-config: After enabling remote state, a `pull` is
+      automatically done initially.
   * providers/google: Add `size` option to disk blocks for instances. [GH-1284]
 
 BUG FIXES:

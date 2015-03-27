@@ -73,8 +73,9 @@ The command-line flags are all optional. The list of available flags are:
 * `-path=path` - Path of the remote state in Consul. Required for the
   Consul backend.
 
-* `-pull=true` - Controls if the remote state is pulled before disabling.
-  This defaults to true to ensure the latest state is cached before disabling.
+* `-pull=true` - Controls if the remote state is pulled before disabling
+  or after enabling. This defaults to true to ensure the latest state
+  is available under both conditions.
 
 * `-state=path` - Path to read state. Defaults to "terraform.tfstate"
   unless remote state is enabled.

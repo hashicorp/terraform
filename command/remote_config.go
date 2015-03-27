@@ -41,14 +41,12 @@ func (c *RemoteConfigCommand) Run(args []string) int {
 	cmdFlags.Var((*FlagKV)(&config), "backend-config", "config")
 	cmdFlags.Usage = func() { c.Ui.Error(c.Help()) }
 	if err := cmdFlags.Parse(args); err != nil {
+		c.Ui.Error(fmt.Sprintf("\nError parsing CLI flags: %s", err))
 		return 1
 	}
 
-	// Show help if given no inputs
-	if !c.conf.disableRemote && c.remoteConf.Type == "atlas" && len(config) == 0 {
-		cmdFlags.Usage()
-		return 1
-	}
+	// Lowercase the type
+	c.remoteConf.Type = strings.ToLower(c.remoteConf.Type)
 
 	// Set the local state path
 	c.statePath = c.conf.statePath
@@ -88,29 +86,63 @@ func (c *RemoteConfigCommand) Run(args []string) int {
 		return c.disableRemoteState()
 	}
 
-	// Ensure there is no conflict
+	// Ensure there is no conflict, and then do the correct operation
+	var result int
 	haveCache := !remoteState.Empty()
 	haveLocal := !localState.Empty()
 	switch {
 	case haveCache && haveLocal:
 		c.Ui.Error(fmt.Sprintf("Remote state is enabled, but non-managed state file '%s' is also present!",
 			c.conf.statePath))
-		return 1
+		result = 1
 
 	case !haveCache && !haveLocal:
 		// If we don't have either state file, initialize a blank state file
-		return c.initBlankState()
+		result = c.initBlankState()
 
 	case haveCache && !haveLocal:
 		// Update the remote state target potentially
-		return c.updateRemoteConfig()
+		result = c.updateRemoteConfig()
 
 	case !haveCache && haveLocal:
 		// Enable remote state management
-		return c.enableRemoteState()
+		result = c.enableRemoteState()
 	}
 
-	panic("unhandled case")
+	// If there was an error, return right away
+	if result != 0 {
+		return result
+	}
+
+	// If we're not pulling, then do nothing
+	if !c.conf.pullOnDisable {
+		return result
+	}
+
+	// Otherwise, refresh the state
+	stateResult, err := c.StateRaw(c.StateOpts())
+	if err != nil {
+		c.Ui.Error(fmt.Sprintf(
+			"Error while performing the initial pull. The error message is shown\n"+
+				"below. Note that remote state was properly configured, so you don't\n"+
+				"need to reconfigure. You can now use `push` and `pull` directly.\n"+
+				"\n%s", err))
+		return 1
+	}
+
+	state := stateResult.State
+	if err := state.RefreshState(); err != nil {
+		c.Ui.Error(fmt.Sprintf(
+			"Error while performing the initial pull. The error message is shown\n"+
+				"below. Note that remote state was properly configured, so you don't\n"+
+				"need to reconfigure. You can now use `push` and `pull` directly.\n"+
+				"\n%s", err))
+		return 1
+	}
+
+	c.Ui.Output(c.Colorize().Color(fmt.Sprintf(
+		"[reset][bold][green]Remote state configured and pulled.")))
+	return 0
 }
 
 // disableRemoteState is used to disable remote state management,
@@ -328,9 +360,10 @@ Options:
   -disable               Disables remote state management and migrates the state
                          to the -state path.
 
-  -pull=true             Controls if the remote state is pulled before disabling.
-                         This defaults to true to ensure the latest state is cached
-                         before disabling.
+  -pull=true             If disabling, this controls if the remote state is
+                         pulled before disabling. If enabling, this controls
+                         if the remote state is pulled after enabling. This
+                         defaults to true.
 
   -state=path            Path to read state. Defaults to "terraform.tfstate"
                          unless remote state is enabled.
