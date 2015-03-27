@@ -45,6 +45,9 @@ func (c *RemoteConfigCommand) Run(args []string) int {
 		return 1
 	}
 
+	// Lowercase the type
+	c.remoteConf.Type = strings.ToLower(c.remoteConf.Type)
+
 	// Set the local state path
 	c.statePath = c.conf.statePath
 
