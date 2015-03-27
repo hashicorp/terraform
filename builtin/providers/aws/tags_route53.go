@@ -29,7 +29,8 @@ func setTagsR53(conn *route53.Route53, d *schema.ResourceData) error {
 			ResourceID:    aws.String(d.Id()),
 			ResourceType:  aws.String("hostedzone"),
 		}
-		resp, err := conn.ChangeTagsForResource(req)
+
+		_, err := conn.ChangeTagsForResource(req)
 		if err != nil {
 			return err
 		}

@@ -134,12 +134,9 @@ func testAccLoadTagsR53(zone *route53.HostedZone, td *route53.ResourceTagSet) re
 			return err
 		}
 
-		var tags []route53.Tag
 		if resp.ResourceTagSet != nil {
-			tags = resp.ResourceTagSet.Tags
+			*td = *resp.ResourceTagSet
 		}
-
-		*td = *resp.ResourceTagSet
 
 		return nil
 	}
