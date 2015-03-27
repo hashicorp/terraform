@@ -18,14 +18,16 @@ FEATURES:
   * **New resource: `aws_elastic_network_interfaces`** [GH-1149]
   * **Self-variables** can be used to reference the current resource's
       attributes within a provisioner. Ex. `${self.private_ip_address}` [GH-1033]
-  * **Continous state** saving during `terraform apply`. The state file is
-      continously updated as apply is running, meaning that the state is
+  * **Continuous state** saving during `terraform apply`. The state file is
+      continuously updated as apply is running, meaning that the state is
       less likely to become corrupt in a catastrophic case: terraform panic
       or system killing Terraform.
   * **Math operations** in interpolations. You can now do things like
       `${count.index+1}`. [GH-1068]
   * **New AWS SDK:** Move to `aws-sdk-go` (hashicorp/aws-sdk-go), 
-      a fork of the offical `awslabs` repo.
+      a fork of the offical `awslabs` repo. We forked for stability while 
+      `awslabs` refactored the library, and will move back to the officially
+      supported version in the next release.
 
 IMPROVEMENTS:
 
@@ -46,8 +48,8 @@ IMPROVEMENTS:
       automatically done initially.
   * providers/google: Add `size` option to disk blocks for instances. [GH-1284]
   * providers/aws: Improve support for tagging resources.
-  * providers/aws: Add a short syntax for Route 53 Record names, e.g. `www` instead of 
-    `www.example.com`.
+  * providers/aws: Add a short syntax for Route 53 Record names, e.g. 
+      `www` instead of `www.example.com`.
   * providers/aws: Improve dependency violation error handling, when deleting 
     Internet Gateways or Auto Scaling groups [GH-1325].
 
@@ -70,11 +72,16 @@ BUG FIXES:
   * providers/aws: Longer wait times for route53 records (30 mins). [GH-1164]
   * providers/aws: Fix support for TXT records in Route 53. [GH-1213]
   * providers/aws: Fix support for wildcard records in Route 53. [GH-1222]
-  * providers/aws: Fix issue with ignoring the 'self' attribute of a Security Group rule. [GH-1223]
-  * providers/aws: Fix issue with `sql_mode` in RDS parameter group always causing an update. [GH-1225]
-  * providers/aws: Fix dependency violation with subnets and security groups [GH-1252]
-  * providers/aws: Fix issue with refreshing `db_subnet_groups` causing an error instead of updating state [GH-1254]
-  * providers/aws: Prevent empty string to be used as default health_check_type [GH-1052]
+  * providers/aws: Fix issue with ignoring the 'self' attribute of a 
+      Security Group rule. [GH-1223]
+  * providers/aws: Fix issue with `sql_mode` in RDS parameter group always 
+      causing an update. [GH-1225]
+  * providers/aws: Fix dependency violation with subnets and security groups 
+      [GH-1252]
+  * providers/aws: Fix issue with refreshing `db_subnet_groups` causing an error 
+      instead of updating state [GH-1254]
+  * providers/aws: Prevent empty string to be used as default 
+      `health_check_type` [GH-1052]
   * providers/aws: Add tags on AWS IG creation, not just on update [GH-1176]
   * providers/digitalocean: Waits until droplet is ready to be destroyed [GH-1057]
   * providers/digitalocean: More lenient about 404's while waiting [GH-1062]
@@ -108,7 +115,7 @@ IMPROVEMENTS:
   * provider/aws: The `aws_db_instance` resource no longer requires both
       `final_snapshot_identifier` and `skip_final_snapshot`; the presence or
       absence of the former now implies the latter. [GH-874]
-  * provider/aws: Avoid unecessary update of `aws_subnet` when
+  * provider/aws: Avoid unnecessary update of `aws_subnet` when
       `map_public_ip_on_launch` is not specified in config. [GH-898]
   * provider/aws: Add `apply_method` to `aws_db_parameter_group` [GH-897]
   * provider/aws: Add `storage_type` to `aws_db_instance` [GH-896]
@@ -141,7 +148,7 @@ BUG FIXES:
   * command/apply: Fix regression where user variables weren't asked [GH-736]
   * helper/hashcode: Update `hash.String()` to always return a positive index.
       Fixes issue where specific strings would convert to a negative index
-      and be ommited when creating Route53 records. [GH-967]
+      and be omitted when creating Route53 records. [GH-967]
   * provider/aws: Automatically suffix the Route53 zone name on record names. [GH-312]
   * provider/aws: Instance should ignore root EBS devices. [GH-877]
   * provider/aws: Fix `aws_db_instance` to not recreate each time. [GH-874]
@@ -546,4 +553,5 @@ BUG FIXES:
 ## 0.1.0 (July 28, 2014)
 
   * Initial release
+
 
