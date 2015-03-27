@@ -21,3 +21,9 @@ confirmation before destroying.
 This command accepts all the flags that the
 [apply command](/docs/commands/apply.html) accepts. If `-force` is
 set, then the destroy confirmation will not be shown.
+
+The `-target` flag, instead of affecting "dependencies" will instead also
+destroy any resources that _depend on_ the target(s) specified.
+
+The behavior of any `terraform destroy` command can be previewed at any time
+with an equivalent `terraform plan -destroy` command.
