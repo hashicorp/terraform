@@ -55,6 +55,8 @@ BUG FIXES:
       a computed attribute was used as part of a set parameter. [GH-1073]
   * core: Fix edge case where state containing both "resource" and
       "resource.0" would ignore the latter completely. [GH-1086]
+  * core: Modules with a source of a relative file path moving up
+      directories work properly, i.e. "../a" [GH-1232]
   * providers/aws: manually deleted VPC removes it from the state
   * providers/aws: `source_dest_check` regression fixed (now works). [GH-1020]
   * providers/aws: Longer wait times for DB instances.
