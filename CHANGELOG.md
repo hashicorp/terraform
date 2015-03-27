@@ -40,6 +40,9 @@ IMPROVEMENTS:
       like refresh.
   * core: Autoload `terraform.tfvars.json` as well as `terraform.tfvars` [GH-1030]
   * core: `.tf` files that start with a period are now ignored. [GH-1227]
+  * command/remote-config: After enabling remote state, a `pull` is
+      automatically done initially.
+  * providers/google: Add `size` option to disk blocks for instances. [GH-1284]
 
 BUG FIXES:
 
@@ -58,6 +61,8 @@ BUG FIXES:
   * providers/aws: Longer wait times for route53 records (30 mins). [GH-1164]
   * providers/digitalocean: Waits until droplet is ready to be destroyed [GH-1057]
   * providers/digitalocean: More lenient about 404's while waiting [GH-1062]
+  * providers/digitalocean: FQDN for domain records in CNAME, MX, NS, etc.
+      Also fixes invalid updates in plans. [GH-863]
   * providers/google: Network data in state was not being stored. [GH-1095]
 
 PLUGIN CHANGES:

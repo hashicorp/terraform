@@ -1,7 +1,7 @@
 package google
 
 import (
-	"code.google.com/p/google-api-go-client/compute/v1"
+	"google.golang.org/api/compute/v1"
 )
 
 // readDiskType finds the disk type with the given name.

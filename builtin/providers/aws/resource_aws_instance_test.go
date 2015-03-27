@@ -140,11 +140,9 @@ func TestAccAWSInstance_blockDevices(t *testing.T) {
 					resource.TestCheckResourceAttr(
 						"aws_instance.foo", "root_block_device.#", "1"),
 					resource.TestCheckResourceAttr(
-						"aws_instance.foo", "root_block_device.1246122048.device_name", "/dev/sda1"),
+						"aws_instance.foo", "root_block_device.1023169747.volume_size", "11"),
 					resource.TestCheckResourceAttr(
-						"aws_instance.foo", "root_block_device.1246122048.volume_size", "11"),
-					resource.TestCheckResourceAttr(
-						"aws_instance.foo", "root_block_device.1246122048.volume_type", "gp2"),
+						"aws_instance.foo", "root_block_device.1023169747.volume_type", "gp2"),
 					resource.TestCheckResourceAttr(
 						"aws_instance.foo", "ebs_block_device.#", "2"),
 					resource.TestCheckResourceAttr(
@@ -467,7 +465,6 @@ resource "aws_instance" "foo" {
 	instance_type = "m1.small"
 
 	root_block_device {
-		device_name = "/dev/sda1"
 		volume_type = "gp2"
 		volume_size = 11
 	}

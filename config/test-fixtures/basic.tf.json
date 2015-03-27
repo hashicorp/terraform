@@ -63,5 +63,9 @@
         "web_ip": {
             "value": "${aws_instance.web.private_ip}"
         }
+    },
+
+    "atlas": {
+        "name": "mitchellh/foo"
     }
 }

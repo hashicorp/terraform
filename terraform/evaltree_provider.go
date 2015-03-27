@@ -44,10 +44,14 @@ func ProviderEvalTree(n string, config *config.RawConfig) EvalNode {
 					Config: config,
 					Output: &resourceConfig,
 				},
+				&EvalBuildProviderConfig{
+					Provider: n,
+					Config:   &resourceConfig,
+					Output:   &resourceConfig,
+				},
 				&EvalValidateProvider{
-					ProviderName: n,
-					Provider:     &provider,
-					Config:       &resourceConfig,
+					Provider: &provider,
+					Config:   &resourceConfig,
 				},
 				&EvalConfigProvider{
 					Provider: n,
