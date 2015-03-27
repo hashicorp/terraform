@@ -22,7 +22,7 @@ func setTagsR53(conn *route53.Route53, d *schema.ResourceData) error {
 		for i, t := range remove {
 			r[i] = *t.Key
 		}
-		log.Printf("[DEBUG] Changing tags: \n\tadding: %#v\n\tremoving:", create, remove)
+		log.Printf("[DEBUG] Changing tags: \n\tadding: %#v\n\tremoving:%#v", create, remove)
 		req := &route53.ChangeTagsForResourceRequest{
 			AddTags:       create,
 			RemoveTagKeys: r,
@@ -30,9 +30,7 @@ func setTagsR53(conn *route53.Route53, d *schema.ResourceData) error {
 			ResourceType:  aws.String("hostedzone"),
 		}
 		resp, err := conn.ChangeTagsForResource(req)
-		log.Printf("\n\t****\nresp:\n%#v", resp)
 		if err != nil {
-			log.Printf("\n\t****\nerror:\n%#v", err)
 			return err
 		}
 	}

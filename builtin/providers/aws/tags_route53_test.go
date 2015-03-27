@@ -5,7 +5,7 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/hashicorp/aws-sdk-go/gen/ec2"
+	"github.com/hashicorp/aws-sdk-go/gen/route53"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
 )
@@ -49,9 +49,9 @@ func TestDiffTagsR53(t *testing.T) {
 	}
 
 	for i, tc := range cases {
-		c, r := diffTags(tagsFromMap(tc.Old), tagsFromMap(tc.New))
-		cm := tagsToMap(c)
-		rm := tagsToMap(r)
+		c, r := diffTagsR53(tagsFromMapR53(tc.Old), tagsFromMapR53(tc.New))
+		cm := tagsToMapR53(c)
+		rm := tagsToMapR53(r)
 		if !reflect.DeepEqual(cm, tc.Create) {
 			t.Fatalf("%d: bad create: %#v", i, cm)
 		}
@@ -63,9 +63,9 @@ func TestDiffTagsR53(t *testing.T) {
 
 // testAccCheckTags can be used to check the tags on a resource.
 func testAccCheckTagsR53(
-	ts *[]ec2.Tag, key string, value string) resource.TestCheckFunc {
+	ts *[]route53.Tag, key string, value string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
-		m := tagsToMap(*ts)
+		m := tagsToMapR53(*ts)
 		v, ok := m[key]
 		if value != "" && !ok {
 			return fmt.Errorf("Missing tag: %s", key)
