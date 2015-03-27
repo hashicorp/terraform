@@ -199,39 +199,14 @@ func resourceAwsInternetGatewayDetach(d *schema.ResourceData, meta interface{}) 
 		d.Id(),
 		vpcID.(string))
 
-	wait := true
-	err := ec2conn.DetachInternetGateway(&ec2.DetachInternetGatewayRequest{
-		InternetGatewayID: aws.String(d.Id()),
-		VPCID:             aws.String(vpcID.(string)),
-	})
-	if err != nil {
-		ec2err, ok := err.(aws.APIError)
-		if ok {
-			if ec2err.Code == "InvalidInternetGatewayID.NotFound" {
-				err = nil
-				wait = false
-			} else if ec2err.Code == "Gateway.NotAttached" {
-				err = nil
-				wait = false
-			}
-		}
-
-		if err != nil {
-			return err
-		}
-	}
-
-	if !wait {
-		return nil
-	}
-
 	// Wait for it to be fully detached before continuing
 	log.Printf("[DEBUG] Waiting for internet gateway (%s) to detach", d.Id())
 	stateConf := &resource.StateChangeConf{
-		Pending: []string{"attached", "detaching", "available"},
+		Pending: []string{"detaching"},
 		Target:  "detached",
-		Refresh: IGAttachStateRefreshFunc(ec2conn, d.Id(), "detached"),
-		Timeout: 1 * time.Minute,
+		Refresh: detachIGStateRefreshFunc(ec2conn, d.Id(), vpcID.(string)),
+		Timeout: 2 * time.Minute,
+		Delay:   10 * time.Second,
 	}
 	if _, err := stateConf.WaitForState(); err != nil {
 		return fmt.Errorf(
@@ -240,6 +215,32 @@ func resourceAwsInternetGatewayDetach(d *schema.ResourceData, meta interface{}) 
 	}
 
 	return nil
+}
+
+// InstanceStateRefreshFunc returns a resource.StateRefreshFunc that is used to watch
+// an EC2 instance.
+func detachIGStateRefreshFunc(conn *ec2.EC2, instanceID, vpcID string) resource.StateRefreshFunc {
+	return func() (interface{}, string, error) {
+		err := conn.DetachInternetGateway(&ec2.DetachInternetGatewayRequest{
+			InternetGatewayID: aws.String(instanceID),
+			VPCID:             aws.String(vpcID),
+		})
+		if err != nil {
+			ec2err, ok := err.(aws.APIError)
+			if ok {
+				if ec2err.Code == "InvalidInternetGatewayID.NotFound" {
+					return nil, "Not Found", err
+				} else if ec2err.Code == "Gateway.NotAttached" {
+					return "detached", "detached", nil
+				} else if ec2err.Code == "DependencyViolation" {
+					return nil, "detaching", nil
+				}
+			}
+		}
+		// DetachInternetGateway only returns an error, so if it's nil, assume we're
+		// detached
+		return "detached", "detached", nil
+	}
 }
 
 // IGStateRefreshFunc returns a resource.StateRefreshFunc that is used to watch
@@ -299,10 +300,6 @@ func IGAttachStateRefreshFunc(ec2conn *ec2.EC2, id string, expected string) reso
 		}
 
 		ig := &resp.InternetGateways[0]
-
-		if time.Now().Sub(start) > 10*time.Second {
-			return ig, expected, nil
-		}
 
 		if len(ig.Attachments) == 0 {
 			// No attachments, we're detached

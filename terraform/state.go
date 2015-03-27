@@ -344,6 +344,10 @@ func (r *RemoteState) Equals(other *RemoteState) bool {
 	return true
 }
 
+func (r *RemoteState) GoString() string {
+	return fmt.Sprintf("*%#v", *r)
+}
+
 // ModuleState is used to track all the state relevant to a single
 // module. Previous to Terraform 0.3, all state belonged to the "root"
 // module.
