@@ -9,9 +9,8 @@ import (
 )
 
 func resourceDockerImageCreate(d *schema.ResourceData, meta interface{}) error {
-	config := meta.(*Config)
-
-	apiImage, err := findImage(d, config)
+	client := meta.(*dc.Client)
+	apiImage, err := findImage(d, client)
 	if err != nil {
 		return fmt.Errorf("Unable to read Docker image into resource: %s", err)
 	}
@@ -23,9 +22,8 @@ func resourceDockerImageCreate(d *schema.ResourceData, meta interface{}) error {
 }
 
 func resourceDockerImageRead(d *schema.ResourceData, meta interface{}) error {
-	config := meta.(*Config)
-
-	apiImage, err := findImage(d, config)
+	client := meta.(*dc.Client)
+	apiImage, err := findImage(d, client)
 	if err != nil {
 		return fmt.Errorf("Unable to read Docker image into resource: %s", err)
 	}
@@ -51,6 +49,10 @@ func fetchLocalImages(data *Data, client *dc.Client) error {
 	images, err := client.ListImages(dc.ListImagesOptions{All: false})
 	if err != nil {
 		return fmt.Errorf("Unable to list Docker images: %s", err)
+	}
+
+	if data.DockerImages == nil {
+		data.DockerImages = make(map[string]*dc.APIImages)
 	}
 
 	// Docker uses different nomenclatures in different places...sometimes a short
@@ -132,15 +134,9 @@ func getImageTag(image string) string {
 	return ""
 }
 
-func findImage(d *schema.ResourceData, config *Config) (*dc.APIImages, error) {
-	client, err := config.NewClient()
-	if err != nil {
-		return nil, fmt.Errorf("Unable to connect to Docker: %s", err)
-	}
-
-	data := config.NewData()
-
-	if err := fetchLocalImages(data, client); err != nil {
+func findImage(d *schema.ResourceData, client *dc.Client) (*dc.APIImages, error) {
+	var data Data
+	if err := fetchLocalImages(&data, client); err != nil {
 		return nil, err
 	}
 
@@ -163,7 +159,7 @@ func findImage(d *schema.ResourceData, config *Config) (*dc.APIImages, error) {
 	foundImage := searchLocal()
 
 	if d.Get("keep_updated").(bool) || foundImage == nil {
-		if err := pullImage(data, client, imageName); err != nil {
+		if err := pullImage(&data, client, imageName); err != nil {
 			return nil, fmt.Errorf("Unable to pull image %s: %s", imageName, err)
 		}
 	}

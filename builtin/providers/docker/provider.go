@@ -38,5 +38,5 @@ func providerConfigure(d *schema.ResourceData) (interface{}, error) {
 		CertPath: d.Get("cert_path").(string),
 	}
 
-	return &config, nil
+	return config.NewClient()
 }

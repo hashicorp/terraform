@@ -11,16 +11,11 @@ import (
 )
 
 func resourceDockerContainerCreate(d *schema.ResourceData, meta interface{}) error {
-	config := meta.(*Config)
+	var err error
+	client := meta.(*dc.Client)
 
-	client, err := config.NewClient()
-	if err != nil {
-		return fmt.Errorf("Unable to connect to Docker: %s", err)
-	}
-
-	data := config.NewData()
-
-	if err := fetchLocalImages(data, client); err != nil {
+	var data Data
+	if err := fetchLocalImages(&data, client); err != nil {
 		return err
 	}
 
@@ -116,12 +111,7 @@ func resourceDockerContainerCreate(d *schema.ResourceData, meta interface{}) err
 }
 
 func resourceDockerContainerRead(d *schema.ResourceData, meta interface{}) error {
-	config := meta.(*Config)
-
-	client, err := config.NewClient()
-	if err != nil {
-		return fmt.Errorf("Unable to connect to Docker: %s", err)
-	}
+	client := meta.(*dc.Client)
 
 	apiContainer, err := fetchDockerContainer(d.Get("name").(string), client)
 	if err != nil {
@@ -152,12 +142,7 @@ func resourceDockerContainerUpdate(d *schema.ResourceData, meta interface{}) err
 }
 
 func resourceDockerContainerDelete(d *schema.ResourceData, meta interface{}) error {
-	config := meta.(*Config)
-
-	client, err := config.NewClient()
-	if err != nil {
-		return fmt.Errorf("Unable to connect to Docker: %s", err)
-	}
+	client := meta.(*dc.Client)
 
 	removeOpts := dc.RemoveContainerOptions{
 		ID:            d.Id(),
