@@ -1,9 +1,12 @@
 package docker
 
 import (
+	"fmt"
 	"testing"
 
+	dc "github.com/fsouza/go-dockerclient"
 	"github.com/hashicorp/terraform/helper/resource"
+	"github.com/hashicorp/terraform/terraform"
 )
 
 func TestAccDockerContainer_basic(t *testing.T) {
@@ -14,14 +17,38 @@ func TestAccDockerContainer_basic(t *testing.T) {
 			resource.TestStep{
 				Config: testAccDockerContainerConfig,
 				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr(
-						"docker_image.foo",
-						"latest",
-						"d0955f21bf24f5bfffd32d2d0bb669d0564701c271bc3dfc64cfc5adfdec2d07"),
+					testAccContainerRunning("docker_container.foo"),
 				),
 			},
 		},
 	})
+}
+
+func testAccContainerRunning(n string) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		rs, ok := s.RootModule().Resources[n]
+		if !ok {
+			return fmt.Errorf("Not found: %s", n)
+		}
+
+		if rs.Primary.ID == "" {
+			return fmt.Errorf("No ID is set")
+		}
+
+		client := testAccProvider.Meta().(*dc.Client)
+		containers, err := client.ListContainers(dc.ListContainersOptions{})
+		if err != nil {
+			return err
+		}
+
+		for _, c := range containers {
+			if c.ID == rs.Primary.ID {
+				return nil
+			}
+		}
+
+		return fmt.Errorf("Container not found: %s", rs.Primary.ID)
+	}
 }
 
 const testAccDockerContainerConfig = `
