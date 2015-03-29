@@ -366,6 +366,34 @@ func TestResourceStateTaint(t *testing.T) {
 	}
 }
 
+func TestInstanceStateEmpty(t *testing.T) {
+	cases := map[string]struct {
+		In     *InstanceState
+		Result bool
+	}{
+		"nil is empty": {
+			nil,
+			true,
+		},
+		"non-nil but without ID is empty": {
+			&InstanceState{},
+			true,
+		},
+		"with ID is not empty": {
+			&InstanceState{
+				ID: "i-abc123",
+			},
+			false,
+		},
+	}
+
+	for tn, tc := range cases {
+		if tc.In.Empty() != tc.Result {
+			t.Fatalf("%q expected %#v to be empty: %#v", tn, tc.In, tc.Result)
+		}
+	}
+}
+
 func TestInstanceStateEqual(t *testing.T) {
 	cases := []struct {
 		Result   bool

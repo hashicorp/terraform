@@ -889,6 +889,10 @@ func (i *InstanceState) deepcopy() *InstanceState {
 	return n
 }
 
+func (s *InstanceState) Empty() bool {
+	return s == nil || s.ID == ""
+}
+
 func (s *InstanceState) Equal(other *InstanceState) bool {
 	// Short circuit some nil checks
 	if s == nil || other == nil {
