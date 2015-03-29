@@ -1,6 +1,8 @@
 package docker
 
 import (
+	"fmt"
+
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/terraform"
 )
@@ -38,5 +40,15 @@ func providerConfigure(d *schema.ResourceData) (interface{}, error) {
 		CertPath: d.Get("cert_path").(string),
 	}
 
-	return config.NewClient()
+	client, err := config.NewClient()
+	if err != nil {
+		return nil, fmt.Errorf("Error initializing Docker client: %s", err)
+	}
+
+	err = client.Ping()
+	if err != nil {
+		return nil, fmt.Errorf("Error pinging Docker server: %s", err)
+	}
+
+	return client, nil
 }
