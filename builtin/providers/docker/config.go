@@ -6,14 +6,11 @@ import (
 	dc "github.com/fsouza/go-dockerclient"
 )
 
+// Config is the structure that stores the configuration to talk to a
+// Docker API compatible host.
 type Config struct {
 	Host     string
 	CertPath string
-	SkipPull bool
-}
-
-type Data struct {
-	DockerImages map[string]*dc.APIImages
 }
 
 // NewClient() returns a new Docker client.
@@ -30,9 +27,7 @@ func (c *Config) NewClient() (*dc.Client, error) {
 	return dc.NewTLSClient(c.Host, cert, key, ca)
 }
 
-// NewData() returns a new data struct.
-func (c *Config) NewData() *Data {
-	return &Data{
-		DockerImages: map[string]*dc.APIImages{},
-	}
+// Data ia structure for holding data that we fetch from Docker.
+type Data struct {
+	DockerImages map[string]*dc.APIImages
 }
