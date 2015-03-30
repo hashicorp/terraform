@@ -1339,6 +1339,40 @@ func TestContext2Plan_multiple_taint(t *testing.T) {
 	}
 }
 
+func TestContext2Plan_targeted(t *testing.T) {
+	m := testModule(t, "plan-targeted")
+	p := testProvider("aws")
+	p.DiffFn = testDiffFn
+	ctx := testContext2(t, &ContextOpts{
+		Module: m,
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+		Targets: []string{"aws_instance.foo"},
+	})
+
+	plan, err := ctx.Plan()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	actual := strings.TrimSpace(plan.String())
+	expected := strings.TrimSpace(`
+DIFF:
+
+CREATE: aws_instance.foo
+  num:  "" => "2"
+  type: "" => "aws_instance"
+
+STATE:
+
+<no state>
+	`)
+	if actual != expected {
+		t.Fatalf("expected:\n%s\n\ngot:\n%s", expected, actual)
+	}
+}
+
 func TestContext2Plan_provider(t *testing.T) {
 	m := testModule(t, "plan-provider")
 	p := testProvider("aws")
@@ -1457,6 +1491,47 @@ func TestContext2Refresh(t *testing.T) {
 		if r.Type == "" {
 			t.Fatalf("no type: %#v", r)
 		}
+	}
+}
+
+func TestContext2Refresh_targeted(t *testing.T) {
+	p := testProvider("aws")
+	m := testModule(t, "refresh-targeted")
+	ctx := testContext2(t, &ContextOpts{
+		Module: m,
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+		State: &State{
+			Modules: []*ModuleState{
+				&ModuleState{
+					Path: rootModulePath,
+					Resources: map[string]*ResourceState{
+						"aws_vpc.metoo":      resourceState("aws_vpc", "vpc-abc123"),
+						"aws_instance.notme": resourceState("aws_instance", "i-bcd345"),
+						"aws_instance.me":    resourceState("aws_instance", "i-abc123"),
+						"aws_elb.meneither":  resourceState("aws_elb", "lb-abc123"),
+					},
+				},
+			},
+		},
+		Targets: []string{"aws_instance.me"},
+	})
+
+	refreshedResources := make([]string, 0, 2)
+	p.RefreshFn = func(i *InstanceInfo, is *InstanceState) (*InstanceState, error) {
+		refreshedResources = append(refreshedResources, i.Id)
+		return is, nil
+	}
+
+	_, err := ctx.Refresh()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	expected := []string{"aws_vpc.metoo", "aws_instance.me"}
+	if !reflect.DeepEqual(refreshedResources, expected) {
+		t.Fatalf("expected: %#v, got: %#v", expected, refreshedResources)
 	}
 }
 
@@ -5164,6 +5239,86 @@ func TestContext2Apply_taintDepRequiresNew(t *testing.T) {
 	}
 }
 
+func TestContext2Apply_targeted(t *testing.T) {
+	m := testModule(t, "apply-targeted")
+	p := testProvider("aws")
+	p.ApplyFn = testApplyFn
+	p.DiffFn = testDiffFn
+	ctx := testContext2(t, &ContextOpts{
+		Module: m,
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+		Targets: []string{"aws_instance.foo"},
+	})
+
+	if _, err := ctx.Plan(); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	state, err := ctx.Apply()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	mod := state.RootModule()
+	if len(mod.Resources) != 1 {
+		t.Fatalf("expected 1 resource, got: %#v", mod.Resources)
+	}
+
+	checkStateString(t, state, `
+aws_instance.foo:
+  ID = foo
+  num = 2
+  type = aws_instance
+	`)
+}
+
+func TestContext2Apply_targetedDestroy(t *testing.T) {
+	m := testModule(t, "apply-targeted")
+	p := testProvider("aws")
+	p.ApplyFn = testApplyFn
+	p.DiffFn = testDiffFn
+	ctx := testContext2(t, &ContextOpts{
+		Module: m,
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+		State: &State{
+			Modules: []*ModuleState{
+				&ModuleState{
+					Path: rootModulePath,
+					Resources: map[string]*ResourceState{
+						"aws_instance.foo": resourceState("aws_instance", "i-bcd345"),
+						"aws_instance.bar": resourceState("aws_instance", "i-abc123"),
+					},
+				},
+			},
+		},
+		Targets: []string{"aws_instance.foo"},
+		Destroy: true,
+	})
+
+	if _, err := ctx.Plan(); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	state, err := ctx.Apply()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	mod := state.RootModule()
+	if len(mod.Resources) != 1 {
+		t.Fatalf("expected 1 resource, got: %#v", mod.Resources)
+	}
+
+	checkStateString(t, state, `
+aws_instance.bar:
+  ID = i-abc123
+	`)
+}
+
 func TestContext2Apply_unknownAttribute(t *testing.T) {
 	m := testModule(t, "apply-unknown")
 	p := testProvider("aws")
@@ -5550,6 +5705,15 @@ func checkStateString(t *testing.T, state *State, expected string) {
 
 	if actual != expected {
 		t.Fatalf("state does not match! actual:\n%s\n\nexpected:\n%s", actual, expected)
+	}
+}
+
+func resourceState(resourceType, resourceID string) *ResourceState {
+	return &ResourceState{
+		Type: resourceType,
+		Primary: &InstanceState{
+			ID: resourceID,
+		},
 	}
 }
 
