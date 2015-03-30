@@ -30,15 +30,15 @@ func TestAccAWSSecurityGroup_normal(t *testing.T) {
 					resource.TestCheckResourceAttr(
 						"aws_security_group.web", "description", "Used in the terraform acceptance tests"),
 					resource.TestCheckResourceAttr(
-						"aws_security_group.web", "ingress.332851786.protocol", "tcp"),
+						"aws_security_group.web", "ingress.3629188364.protocol", "tcp"),
 					resource.TestCheckResourceAttr(
-						"aws_security_group.web", "ingress.332851786.from_port", "80"),
+						"aws_security_group.web", "ingress.3629188364.from_port", "80"),
 					resource.TestCheckResourceAttr(
-						"aws_security_group.web", "ingress.332851786.to_port", "8000"),
+						"aws_security_group.web", "ingress.3629188364.to_port", "8000"),
 					resource.TestCheckResourceAttr(
-						"aws_security_group.web", "ingress.332851786.cidr_blocks.#", "1"),
+						"aws_security_group.web", "ingress.3629188364.cidr_blocks.#", "1"),
 					resource.TestCheckResourceAttr(
-						"aws_security_group.web", "ingress.332851786.cidr_blocks.0", "10.0.0.0/8"),
+						"aws_security_group.web", "ingress.3629188364.cidr_blocks.0", "10.0.0.0/8"),
 				),
 			},
 		},
@@ -116,25 +116,25 @@ func TestAccAWSSecurityGroup_vpc(t *testing.T) {
 					resource.TestCheckResourceAttr(
 						"aws_security_group.web", "description", "Used in the terraform acceptance tests"),
 					resource.TestCheckResourceAttr(
-						"aws_security_group.web", "ingress.332851786.protocol", "tcp"),
+						"aws_security_group.web", "ingress.3629188364.protocol", "tcp"),
 					resource.TestCheckResourceAttr(
-						"aws_security_group.web", "ingress.332851786.from_port", "80"),
+						"aws_security_group.web", "ingress.3629188364.from_port", "80"),
 					resource.TestCheckResourceAttr(
-						"aws_security_group.web", "ingress.332851786.to_port", "8000"),
+						"aws_security_group.web", "ingress.3629188364.to_port", "8000"),
 					resource.TestCheckResourceAttr(
-						"aws_security_group.web", "ingress.332851786.cidr_blocks.#", "1"),
+						"aws_security_group.web", "ingress.3629188364.cidr_blocks.#", "1"),
 					resource.TestCheckResourceAttr(
-						"aws_security_group.web", "ingress.332851786.cidr_blocks.0", "10.0.0.0/8"),
+						"aws_security_group.web", "ingress.3629188364.cidr_blocks.0", "10.0.0.0/8"),
 					resource.TestCheckResourceAttr(
-						"aws_security_group.web", "egress.332851786.protocol", "tcp"),
+						"aws_security_group.web", "egress.3629188364.protocol", "tcp"),
 					resource.TestCheckResourceAttr(
-						"aws_security_group.web", "egress.332851786.from_port", "80"),
+						"aws_security_group.web", "egress.3629188364.from_port", "80"),
 					resource.TestCheckResourceAttr(
-						"aws_security_group.web", "egress.332851786.to_port", "8000"),
+						"aws_security_group.web", "egress.3629188364.to_port", "8000"),
 					resource.TestCheckResourceAttr(
-						"aws_security_group.web", "egress.332851786.cidr_blocks.#", "1"),
+						"aws_security_group.web", "egress.3629188364.cidr_blocks.#", "1"),
 					resource.TestCheckResourceAttr(
-						"aws_security_group.web", "egress.332851786.cidr_blocks.0", "10.0.0.0/8"),
+						"aws_security_group.web", "egress.3629188364.cidr_blocks.0", "10.0.0.0/8"),
 					testCheck,
 				),
 			},
