@@ -58,7 +58,6 @@ func interpolationFuncFile() ast.Function {
 		ArgTypes:   []ast.Type{ast.TypeString},
 		ReturnType: ast.TypeString,
 		Callback: func(args []interface{}) (interface{}, error) {
-			var path string
 			path, err := homedir.Expand(args[0].(string))
 			if err != nil {
 				return "", err
