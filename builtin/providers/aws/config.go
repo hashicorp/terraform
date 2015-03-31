@@ -52,7 +52,7 @@ func (c *Config) Client() (interface{}, error) {
 		client.region = c.Region
 
 		log.Println("[INFO] Building AWS auth structure")
-		creds := aws.Creds(c.AccessKey, c.SecretKey, c.Token)
+		creds := aws.DetectCreds(c.AccessKey, c.SecretKey, c.Token)
 
 		log.Println("[INFO] Initializing ELB connection")
 		client.elbconn = elb.New(creds, c.Region, nil)
