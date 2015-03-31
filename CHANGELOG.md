@@ -14,6 +14,8 @@ FEATURES:
   * **New provider: `dme` (DNSMadeEasy)** [GH-855]
   * **New provider: `docker` (Docker)** - Manage container lifecycle
       using the standard Docker API. [GH-855]
+  * **New provider: `openstack` (OpenStack)** - Interact with the many resources
+      provided by OpenStack. [GH-924]
   * **New command: `taint`** - Manually mark a resource as tainted, causing
       a destroy and recreate on the next plan/apply.
   * **New resource: `aws_vpn_gateway`** [GH-1137]
