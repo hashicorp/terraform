@@ -42,6 +42,11 @@ updatedeps:
 		| grep -v github.com/hashicorp/terraform \
 		| sort -u \
 		| xargs go get -f -u -v
+	cd $GOPATH/src/github.com/MSOpenTech/azure-sdk-for-go && git checkout v1.2
+	cd $GOPATH/src/github.com/mitchellh/cli && git checkout e3c2e3d39391e9beb9660ccd6b4bd9a2f38dd8a0
+	cd $GOPATH/src/github.com/xanzy/go-cloudstack && git checkout v1.2.0
+	cd $GOPATH/src/github.com/pearkes/digitalocean && git checkout d1e3ab42e589ee07827df1d9464dab3aba8b6faa
+
 
 cover:
 	@go tool cover 2>/dev/null; if [ $$? -eq 3 ]; then \
