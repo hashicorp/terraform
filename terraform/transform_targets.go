@@ -16,13 +16,20 @@ type TargetsTransformer struct {
 
 func (t *TargetsTransformer) Transform(g *Graph) error {
 	if len(t.Targets) > 0 {
-		targetedNodes, err := t.selectTargetedNodes(g)
+		// TODO: duplicated in OrphanTransformer; pull up parsing earlier
+		addrs, err := t.parseTargetAddresses()
+		if err != nil {
+			return err
+		}
+
+		targetedNodes, err := t.selectTargetedNodes(g, addrs)
 		if err != nil {
 			return err
 		}
 
 		for _, v := range g.Vertices() {
-			if !targetedNodes.Include(v) {
+			if targetedNodes.Include(v) {
+			} else {
 				g.Remove(v)
 			}
 		}
@@ -30,7 +37,20 @@ func (t *TargetsTransformer) Transform(g *Graph) error {
 	return nil
 }
 
-func (t *TargetsTransformer) selectTargetedNodes(g *Graph) (*dag.Set, error) {
+func (t *TargetsTransformer) parseTargetAddresses() ([]ResourceAddress, error) {
+	addrs := make([]ResourceAddress, len(t.Targets))
+	for i, target := range t.Targets {
+		ta, err := ParseResourceAddress(target)
+		if err != nil {
+			return nil, err
+		}
+		addrs[i] = *ta
+	}
+	return addrs, nil
+}
+
+func (t *TargetsTransformer) selectTargetedNodes(
+	g *Graph, addrs []ResourceAddress) (*dag.Set, error) {
 	targetedNodes := new(dag.Set)
 	for _, v := range g.Vertices() {
 		// Keep all providers; they'll be pruned later if necessary
@@ -39,14 +59,18 @@ func (t *TargetsTransformer) selectTargetedNodes(g *Graph) (*dag.Set, error) {
 			continue
 		}
 
-		// For the remaining filter, we only care about Resources and their deps
-		r, ok := v.(*GraphNodeConfigResource)
+		// For the remaining filter, we only care about addressable nodes
+		r, ok := v.(GraphNodeAddressable)
 		if !ok {
 			continue
 		}
 
-		if t.resourceIsTarget(r) {
+		if t.nodeIsTarget(r, addrs) {
 			targetedNodes.Add(r)
+			// If the node would like to know about targets, tell it.
+			if n, ok := r.(GraphNodeTargetable); ok {
+				n.SetTargets(addrs)
+			}
 
 			var deps *dag.Set
 			var err error
@@ -67,9 +91,11 @@ func (t *TargetsTransformer) selectTargetedNodes(g *Graph) (*dag.Set, error) {
 	return targetedNodes, nil
 }
 
-func (t *TargetsTransformer) resourceIsTarget(r *GraphNodeConfigResource) bool {
-	for _, target := range t.Targets {
-		if target == r.Name() {
+func (t *TargetsTransformer) nodeIsTarget(
+	r GraphNodeAddressable, addrs []ResourceAddress) bool {
+	addr := r.ResourceAddress()
+	for _, targetAddr := range addrs {
+		if targetAddr.Equals(addr) {
 			return true
 		}
 	}

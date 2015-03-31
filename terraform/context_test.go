@@ -1535,6 +1535,98 @@ func TestContext2Refresh_targeted(t *testing.T) {
 	}
 }
 
+func TestContext2Refresh_targetedCount(t *testing.T) {
+	p := testProvider("aws")
+	m := testModule(t, "refresh-targeted-count")
+	ctx := testContext2(t, &ContextOpts{
+		Module: m,
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+		State: &State{
+			Modules: []*ModuleState{
+				&ModuleState{
+					Path: rootModulePath,
+					Resources: map[string]*ResourceState{
+						"aws_vpc.metoo":      resourceState("aws_vpc", "vpc-abc123"),
+						"aws_instance.notme": resourceState("aws_instance", "i-bcd345"),
+						"aws_instance.me.0":  resourceState("aws_instance", "i-abc123"),
+						"aws_instance.me.1":  resourceState("aws_instance", "i-cde567"),
+						"aws_instance.me.2":  resourceState("aws_instance", "i-cde789"),
+						"aws_elb.meneither":  resourceState("aws_elb", "lb-abc123"),
+					},
+				},
+			},
+		},
+		Targets: []string{"aws_instance.me"},
+	})
+
+	refreshedResources := make([]string, 0, 2)
+	p.RefreshFn = func(i *InstanceInfo, is *InstanceState) (*InstanceState, error) {
+		refreshedResources = append(refreshedResources, i.Id)
+		return is, nil
+	}
+
+	_, err := ctx.Refresh()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	// Target didn't specify index, so we should get all our instances
+	expected := []string{
+		"aws_vpc.metoo",
+		"aws_instance.me.0",
+		"aws_instance.me.1",
+		"aws_instance.me.2",
+	}
+	if !reflect.DeepEqual(refreshedResources, expected) {
+		t.Fatalf("expected: %#v, got: %#v", expected, refreshedResources)
+	}
+}
+
+func TestContext2Refresh_targetedCountIndex(t *testing.T) {
+	p := testProvider("aws")
+	m := testModule(t, "refresh-targeted-count")
+	ctx := testContext2(t, &ContextOpts{
+		Module: m,
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+		State: &State{
+			Modules: []*ModuleState{
+				&ModuleState{
+					Path: rootModulePath,
+					Resources: map[string]*ResourceState{
+						"aws_vpc.metoo":      resourceState("aws_vpc", "vpc-abc123"),
+						"aws_instance.notme": resourceState("aws_instance", "i-bcd345"),
+						"aws_instance.me.0":  resourceState("aws_instance", "i-abc123"),
+						"aws_instance.me.1":  resourceState("aws_instance", "i-cde567"),
+						"aws_instance.me.2":  resourceState("aws_instance", "i-cde789"),
+						"aws_elb.meneither":  resourceState("aws_elb", "lb-abc123"),
+					},
+				},
+			},
+		},
+		Targets: []string{"aws_instance.me[0]"},
+	})
+
+	refreshedResources := make([]string, 0, 2)
+	p.RefreshFn = func(i *InstanceInfo, is *InstanceState) (*InstanceState, error) {
+		refreshedResources = append(refreshedResources, i.Id)
+		return is, nil
+	}
+
+	_, err := ctx.Refresh()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	expected := []string{"aws_vpc.metoo", "aws_instance.me.0"}
+	if !reflect.DeepEqual(refreshedResources, expected) {
+		t.Fatalf("expected: %#v, got: %#v", expected, refreshedResources)
+	}
+}
+
 func TestContext2Refresh_delete(t *testing.T) {
 	p := testProvider("aws")
 	m := testModule(t, "refresh-basic")
@@ -5274,6 +5366,66 @@ aws_instance.foo:
 	`)
 }
 
+func TestContext2Apply_targetedCount(t *testing.T) {
+	m := testModule(t, "apply-targeted-count")
+	p := testProvider("aws")
+	p.ApplyFn = testApplyFn
+	p.DiffFn = testDiffFn
+	ctx := testContext2(t, &ContextOpts{
+		Module: m,
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+		Targets: []string{"aws_instance.foo"},
+	})
+
+	if _, err := ctx.Plan(); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	state, err := ctx.Apply()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	checkStateString(t, state, `
+aws_instance.foo.0:
+  ID = foo
+aws_instance.foo.1:
+  ID = foo
+aws_instance.foo.2:
+  ID = foo
+	`)
+}
+
+func TestContext2Apply_targetedCountIndex(t *testing.T) {
+	m := testModule(t, "apply-targeted-count")
+	p := testProvider("aws")
+	p.ApplyFn = testApplyFn
+	p.DiffFn = testDiffFn
+	ctx := testContext2(t, &ContextOpts{
+		Module: m,
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+		Targets: []string{"aws_instance.foo[1]"},
+	})
+
+	if _, err := ctx.Plan(); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	state, err := ctx.Apply()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	checkStateString(t, state, `
+aws_instance.foo.1:
+  ID = foo
+	`)
+}
+
 func TestContext2Apply_targetedDestroy(t *testing.T) {
 	m := testModule(t, "apply-targeted")
 	p := testProvider("aws")
@@ -5316,6 +5468,59 @@ func TestContext2Apply_targetedDestroy(t *testing.T) {
 	checkStateString(t, state, `
 aws_instance.bar:
   ID = i-abc123
+	`)
+}
+
+func TestContext2Apply_targetedDestroyCountIndex(t *testing.T) {
+	m := testModule(t, "apply-targeted-count")
+	p := testProvider("aws")
+	p.ApplyFn = testApplyFn
+	p.DiffFn = testDiffFn
+	ctx := testContext2(t, &ContextOpts{
+		Module: m,
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+		State: &State{
+			Modules: []*ModuleState{
+				&ModuleState{
+					Path: rootModulePath,
+					Resources: map[string]*ResourceState{
+						"aws_instance.foo.0": resourceState("aws_instance", "i-bcd345"),
+						"aws_instance.foo.1": resourceState("aws_instance", "i-bcd345"),
+						"aws_instance.foo.2": resourceState("aws_instance", "i-bcd345"),
+						"aws_instance.bar.0": resourceState("aws_instance", "i-abc123"),
+						"aws_instance.bar.1": resourceState("aws_instance", "i-abc123"),
+						"aws_instance.bar.2": resourceState("aws_instance", "i-abc123"),
+					},
+				},
+			},
+		},
+		Targets: []string{
+			"aws_instance.foo[2]",
+			"aws_instance.bar[1]",
+		},
+		Destroy: true,
+	})
+
+	if _, err := ctx.Plan(); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	state, err := ctx.Apply()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	checkStateString(t, state, `
+aws_instance.bar.0:
+  ID = i-abc123
+aws_instance.bar.2:
+  ID = i-abc123
+aws_instance.foo.0:
+  ID = i-bcd345
+aws_instance.foo.1:
+  ID = i-bcd345
 	`)
 }
 

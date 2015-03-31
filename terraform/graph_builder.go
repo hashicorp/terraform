@@ -89,7 +89,11 @@ func (b *BuiltinGraphBuilder) Steps() []GraphTransformer {
 	return []GraphTransformer{
 		// Create all our resources from the configuration and state
 		&ConfigTransformer{Module: b.Root},
-		&OrphanTransformer{State: b.State, Module: b.Root},
+		&OrphanTransformer{
+			State:     b.State,
+			Module:    b.Root,
+			Targeting: (len(b.Targets) > 0),
+		},
 
 		// Provider-related transformations
 		&MissingProviderTransformer{Providers: b.Providers},
