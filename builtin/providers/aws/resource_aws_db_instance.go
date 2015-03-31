@@ -49,7 +49,6 @@ func resourceAwsDbInstance() *schema.Resource {
 			"engine_version": &schema.Schema{
 				Type:     schema.TypeString,
 				Required: true,
-				ForceNew: true,
 			},
 
 			"storage_encrypted": &schema.Schema{
@@ -121,7 +120,6 @@ func resourceAwsDbInstance() *schema.Resource {
 				Type:     schema.TypeBool,
 				Optional: true,
 				Computed: true,
-				ForceNew: true,
 			},
 
 			"port": &schema.Schema{
@@ -189,6 +187,16 @@ func resourceAwsDbInstance() *schema.Resource {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
+
+			// apply_immediately is used to determine when the update modifications
+			// take place.
+			// See http://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/Overview.DBInstance.Modifying.html
+			"apply_immediately": &schema.Schema{
+				Type:     schema.TypeBool,
+				Optional: true,
+				Computed: true,
+			},
+
 			"tags": tagsSchema(),
 		},
 	}
@@ -423,6 +431,35 @@ func resourceAwsDbInstanceUpdate(d *schema.ResourceData, meta interface{}) error
 	conn := meta.(*AWSClient).rdsconn
 
 	d.Partial(true)
+	// Change is used to determine if a ModifyDBInstanceMessage request actually
+	// gets sent.
+	change := false
+
+	req := &rds.ModifyDBInstanceMessage{
+		ApplyImmediately:     aws.Boolean(d.Get("apply_immediately").(bool)),
+		DBInstanceIdentifier: aws.String(d.Id()),
+	}
+
+	if d.HasChange("engine_version") {
+		change = true
+		d.SetPartial("engine_version")
+		req.EngineVersion = aws.String(d.Get("engine_version").(string))
+	}
+
+	if d.HasChange("multi_az") {
+		change = true
+		d.SetPartial("multi_az")
+		req.MultiAZ = aws.Boolean(d.Get("multi_az").(bool))
+	}
+
+	if change {
+		log.Printf("[DEBUG] DB Instance Modification request: %#v", req)
+		_, err := conn.ModifyDBInstance(req)
+		if err != nil {
+			return fmt.Errorf("Error mofigying DB Instance %s: %s", d.Id(), err)
+		}
+	}
+
 	if arn, err := buildRDSARN(d, meta); err == nil {
 		if err := setTagsRDS(conn, d, arn); err != nil {
 			return err
