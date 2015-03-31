@@ -39,6 +39,7 @@ IMPROVEMENTS:
   * **New config function: `split`** - Split a value based on a delimiter.
       This is useful for faking lists as parameters to modules.
   * **New resource: `digitalocean_ssh_key`** [GH-1074]
+  * config: Expand `~` with homedir in `file()` paths [GH-1338]
   * core: The serial of the state is only updated if there is an actual
       change. This will lower the amount of state changing on things
       like refresh.
