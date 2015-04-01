@@ -287,7 +287,12 @@ func resourceAwsAutoscalingGroupDelete(d *schema.ResourceData, meta interface{})
 		return err
 	}
 
-	return nil
+	return resource.Retry(5*time.Minute, func() error {
+		if g, _ = getAwsAutoscalingGroup(d, meta); g != nil {
+			return fmt.Errorf("Auto Scaling Group still exists")
+		}
+		return nil
+	})
 }
 
 func getAwsAutoscalingGroup(
