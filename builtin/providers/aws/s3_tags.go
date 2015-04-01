@@ -110,3 +110,22 @@ func tagsToMapS3(ts []s3.Tag) map[string]string {
 
 	return result
 }
+
+// return a slice of s3 tags associated with the given s3 bucket. Essentially
+// s3.GetBucketTagging, except returns an empty slice instead of an error when
+// there are no tags.
+func getTagSetS3(s3conn *s3.S3, bucket string) ([]s3.Tag, error) {
+	request := &s3.GetBucketTaggingRequest{
+		Bucket: aws.String(bucket),
+	}
+
+	response, err := s3conn.GetBucketTagging(request)
+	if ec2err, ok := err.(aws.APIError); ok && ec2err.Code == "NoSuchTagSet" {
+		// There is no tag set associated with the bucket.
+		return []s3.Tag{}, nil
+	} else if err != nil {
+		return nil, err
+	}
+
+	return response.TagSet, nil
+}

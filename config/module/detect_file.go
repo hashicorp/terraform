@@ -2,6 +2,7 @@ package module
 
 import (
 	"fmt"
+	"os"
 	"path/filepath"
 	"runtime"
 )
@@ -20,8 +21,27 @@ func (d *FileDetector) Detect(src, pwd string) (string, bool, error) {
 				"relative paths require a module with a pwd")
 		}
 
+		// Stat the pwd to determine if its a symbolic link. If it is,
+		// then the pwd becomes the original directory. Otherwise,
+		// `filepath.Join` below does some weird stuff.
+		//
+		// We just ignore if the pwd doesn't exist. That error will be
+		// caught later when we try to use the URL.
+		if fi, err := os.Lstat(pwd); !os.IsNotExist(err) {
+			if err != nil {
+				return "", true, err
+			}
+			if fi.Mode()&os.ModeSymlink != 0 {
+				pwd, err = os.Readlink(pwd)
+				if err != nil {
+					return "", true, err
+				}
+			}
+		}
+
 		src = filepath.Join(pwd, src)
 	}
+
 	return fmtFileURL(src), true, nil
 }
 

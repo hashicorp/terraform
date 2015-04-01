@@ -94,6 +94,44 @@ func TestTreeLoad_duplicate(t *testing.T) {
 	}
 }
 
+func TestTreeLoad_parentRef(t *testing.T) {
+	storage := testStorage(t)
+	tree := NewTree("", testConfig(t, "basic-parent"))
+
+	if tree.Loaded() {
+		t.Fatal("should not be loaded")
+	}
+
+	// This should error because we haven't gotten things yet
+	if err := tree.Load(storage, GetModeNone); err == nil {
+		t.Fatal("should error")
+	}
+
+	if tree.Loaded() {
+		t.Fatal("should not be loaded")
+	}
+
+	// This should get things
+	if err := tree.Load(storage, GetModeGet); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	if !tree.Loaded() {
+		t.Fatal("should be loaded")
+	}
+
+	// This should no longer error
+	if err := tree.Load(storage, GetModeNone); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	actual := strings.TrimSpace(tree.String())
+	expected := strings.TrimSpace(treeLoadParentStr)
+	if actual != expected {
+		t.Fatalf("bad: \n\n%s", actual)
+	}
+}
+
 func TestTreeLoad_subdir(t *testing.T) {
 	storage := testStorage(t)
 	tree := NewTree("", testConfig(t, "basic-subdir"))
@@ -239,6 +277,11 @@ root
   foo
 `
 
+const treeLoadParentStr = `
+root
+  a
+    b
+`
 const treeLoadSubdirStr = `
 root
   foo

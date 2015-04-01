@@ -21,6 +21,26 @@ type graphNodeConfig interface {
 	GraphNodeDependent
 }
 
+// GraphNodeAddressable is an interface that all graph nodes for the
+// configuration graph need to implement in order to be be addressed / targeted
+// properly.
+type GraphNodeAddressable interface {
+	graphNodeConfig
+
+	ResourceAddress() *ResourceAddress
+}
+
+// GraphNodeTargetable is an interface for graph nodes to implement when they
+// need to be told about incoming targets. This is useful for nodes that need
+// to respect targets as they dynamically expand. Note that the list of targets
+// provided will contain every target provided, and each implementing graph
+// node must filter this list to targets considered relevant.
+type GraphNodeTargetable interface {
+	GraphNodeAddressable
+
+	SetTargets([]ResourceAddress)
+}
+
 // GraphNodeConfigModule represents a module within the configuration graph.
 type GraphNodeConfigModule struct {
 	Path   []string
@@ -191,6 +211,9 @@ type GraphNodeConfigResource struct {
 	// If this is set to anything other than destroyModeNone, then this
 	// resource represents a resource that will be destroyed in some way.
 	DestroyMode GraphNodeDestroyMode
+
+	// Used during DynamicExpand to target indexes
+	Targets []ResourceAddress
 }
 
 func (n *GraphNodeConfigResource) DependableName() []string {
@@ -279,6 +302,7 @@ func (n *GraphNodeConfigResource) DynamicExpand(ctx EvalContext) (*Graph, error)
 		steps = append(steps, &ResourceCountTransformer{
 			Resource: n.Resource,
 			Destroy:  n.DestroyMode != DestroyNone,
+			Targets:  n.Targets,
 		})
 	}
 
@@ -289,8 +313,9 @@ func (n *GraphNodeConfigResource) DynamicExpand(ctx EvalContext) (*Graph, error)
 		// expand orphans, which have all the same semantics in a destroy
 		// as a primary.
 		steps = append(steps, &OrphanTransformer{
-			State: state,
-			View:  n.Resource.Id(),
+			State:     state,
+			View:      n.Resource.Id(),
+			Targeting: (len(n.Targets) > 0),
 		})
 
 		steps = append(steps, &DeposedTransformer{
@@ -312,6 +337,22 @@ func (n *GraphNodeConfigResource) DynamicExpand(ctx EvalContext) (*Graph, error)
 	// Build the graph
 	b := &BasicGraphBuilder{Steps: steps}
 	return b.Build(ctx.Path())
+}
+
+// GraphNodeAddressable impl.
+func (n *GraphNodeConfigResource) ResourceAddress() *ResourceAddress {
+	return &ResourceAddress{
+		// Indicates no specific index; will match on other three fields
+		Index:        -1,
+		InstanceType: TypePrimary,
+		Name:         n.Resource.Name,
+		Type:         n.Resource.Type,
+	}
+}
+
+// GraphNodeTargetable impl.
+func (n *GraphNodeConfigResource) SetTargets(targets []ResourceAddress) {
+	n.Targets = targets
 }
 
 // GraphNodeEvalable impl.
