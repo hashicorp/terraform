@@ -19,6 +19,12 @@ resource "heroku_app" "default" {
     name = "test-app"
 }
 
+# Create a database, and configure the app to use it
+resource "heroku_addon" "database" {
+  app = "${heroku_app.default.name}"
+  plan = "heroku-postgresql:hobby-basic"
+}
+
 # Add a web-hook addon for the app
 resource "heroku_addon" "webhook" {
     app = "${heroku_app.default.name}"

@@ -12,6 +12,7 @@ import (
 type ResourceCountTransformer struct {
 	Resource *config.Resource
 	Destroy  bool
+	Targets  []ResourceAddress
 }
 
 func (t *ResourceCountTransformer) Transform(g *Graph) error {
@@ -27,7 +28,7 @@ func (t *ResourceCountTransformer) Transform(g *Graph) error {
 	}
 
 	// For each count, build and add the node
-	nodes := make([]dag.Vertex, count)
+	nodes := make([]dag.Vertex, 0, count)
 	for i := 0; i < count; i++ {
 		// Set the index. If our count is 1 we special case it so that
 		// we handle the "resource.0" and "resource" boundary properly.
@@ -49,9 +50,14 @@ func (t *ResourceCountTransformer) Transform(g *Graph) error {
 			}
 		}
 
+		// Skip nodes if targeting excludes them
+		if !t.nodeIsTargeted(node) {
+			continue
+		}
+
 		// Add the node now
-		nodes[i] = node
-		g.Add(nodes[i])
+		nodes = append(nodes, node)
+		g.Add(node)
 	}
 
 	// Make the dependency connections
@@ -62,6 +68,25 @@ func (t *ResourceCountTransformer) Transform(g *Graph) error {
 	}
 
 	return nil
+}
+
+func (t *ResourceCountTransformer) nodeIsTargeted(node dag.Vertex) bool {
+	// no targets specified, everything stays in the graph
+	if len(t.Targets) == 0 {
+		return true
+	}
+	addressable, ok := node.(GraphNodeAddressable)
+	if !ok {
+		return false
+	}
+
+	addr := addressable.ResourceAddress()
+	for _, targetAddr := range t.Targets {
+		if targetAddr.Equals(addr) {
+			return true
+		}
+	}
+	return false
 }
 
 type graphNodeExpandedResource struct {
@@ -75,6 +100,23 @@ func (n *graphNodeExpandedResource) Name() string {
 	}
 
 	return fmt.Sprintf("%s #%d", n.Resource.Id(), n.Index)
+}
+
+// GraphNodeAddressable impl.
+func (n *graphNodeExpandedResource) ResourceAddress() *ResourceAddress {
+	// We want this to report the logical index properly, so we must undo the
+	// special case from the expand
+	index := n.Index
+	if index == -1 {
+		index = 0
+	}
+	return &ResourceAddress{
+		Index: index,
+		// TODO: kjkjkj
+		InstanceType: TypePrimary,
+		Name:         n.Resource.Name,
+		Type:         n.Resource.Type,
+	}
 }
 
 // GraphNodeDependable impl.
