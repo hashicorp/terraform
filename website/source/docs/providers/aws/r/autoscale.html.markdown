@@ -23,6 +23,17 @@ resource "aws_autoscaling_group" "bar" {
   desired_capacity = 4
   force_delete = true
   launch_configuration = "${aws_launch_configuration.foobar.name}"
+
+  tag {
+    key = "foo"
+    value = "bar"
+    propagate_at_launch = true
+  }
+  tag {
+    key = "lorem"
+    value = "ipsum"
+    propagate_at_launch = false
+  }
 }
 ```
 
@@ -44,6 +55,14 @@ The following arguments are supported:
    group names.
 * `vpc_zone_identifier` (Optional) A list of subnet IDs to launch resources in.
 * `termination_policies` (Optional) A list of policies to decide how the instances in the auto scale group should be terminated.
+* `tag` (Optional) A list of tag blocks. Tags documented below.
+
+Tags support the following:
+
+* `key` - (Required) Key
+* `value` - (Required) Value
+* `propagate_at_launch` - (Required) Enables propagation of the tag to
+   Amazon EC2 instances launched via this ASG
 
 ## Attributes Reference
 

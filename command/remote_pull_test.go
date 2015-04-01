@@ -80,15 +80,6 @@ func testRemoteState(t *testing.T, s *terraform.State, c int) (*terraform.Remote
 	var b64md5 string
 	buf := bytes.NewBuffer(nil)
 
-	if s != nil {
-		enc := json.NewEncoder(buf)
-		if err := enc.Encode(s); err != nil {
-			t.Fatalf("err: %v", err)
-		}
-		md5 := md5.Sum(buf.Bytes())
-		b64md5 = base64.StdEncoding.EncodeToString(md5[:16])
-	}
-
 	cb := func(resp http.ResponseWriter, req *http.Request) {
 		if req.Method == "PUT" {
 			resp.WriteHeader(c)
@@ -98,13 +89,28 @@ func testRemoteState(t *testing.T, s *terraform.State, c int) (*terraform.Remote
 			resp.WriteHeader(404)
 			return
 		}
+
 		resp.Header().Set("Content-MD5", b64md5)
 		resp.Write(buf.Bytes())
 	}
+
 	srv := httptest.NewServer(http.HandlerFunc(cb))
 	remote := &terraform.RemoteState{
 		Type:   "http",
 		Config: map[string]string{"address": srv.URL},
 	}
+
+	if s != nil {
+		// Set the remote data
+		s.Remote = remote
+
+		enc := json.NewEncoder(buf)
+		if err := enc.Encode(s); err != nil {
+			t.Fatalf("err: %v", err)
+		}
+		md5 := md5.Sum(buf.Bytes())
+		b64md5 = base64.StdEncoding.EncodeToString(md5[:16])
+	}
+
 	return remote, srv
 }

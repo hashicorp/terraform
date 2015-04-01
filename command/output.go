@@ -39,7 +39,7 @@ func (c *OutputCommand) Run(args []string) int {
 	}
 
 	state := stateStore.State()
-	if len(state.RootModule().Outputs) == 0 {
+	if state.Empty() || len(state.RootModule().Outputs) == 0 {
 		c.Ui.Error(fmt.Sprintf(
 			"The state file has no outputs defined. Define an output\n" +
 				"in your configuration with the `output` directive and re-run\n" +

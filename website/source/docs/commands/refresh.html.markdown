@@ -36,6 +36,11 @@ The command-line flags are all optional. The list of available flags are:
 * `-state-out=path` - Path to write updated state file. By default, the
   `-state` path will be used.
 
+* `-target=resource` - A [Resource
+  Address](/docs/internals/resource-addressing.html) to target. Operation will
+  be limited to this resource and its dependencies. This flag can be used
+  multiple times.
+
 * `-var 'foo=bar'` - Set a variable in the Terraform configuration. This
   flag can be set multiple times.
 

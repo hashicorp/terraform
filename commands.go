@@ -80,6 +80,12 @@ func init() {
 			}, nil
 		},
 
+		"push": func() (cli.Command, error) {
+			return &command.PushCommand{
+				Meta: meta,
+			}, nil
+		},
+
 		"refresh": func() (cli.Command, error) {
 			return &command.RefreshCommand{
 				Meta: meta,
