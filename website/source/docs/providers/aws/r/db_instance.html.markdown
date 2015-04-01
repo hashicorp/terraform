@@ -62,6 +62,9 @@ The following arguments are supported:
 * `db_subnet_group_name` - (Optional) Name of DB subnet group
 * `parameter_group_name` - (Optional) Name of the DB parameter group to associate.
 * `storage_encrypted` - (Optional) Specifies whether the DB instance is encrypted. The Default is `false` if not specified.
+* `apply_immediately` - (Optional) Specifies whether any database modifications 
+     are applied immediately, or during the next maintenance window. Default is
+     `False`. See [Amazon RDS Documentation for more for more information.](http://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/Overview.DBInstance.Modifying.html)
 
 ## Attributes Reference
 
