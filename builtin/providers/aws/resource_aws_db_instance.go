@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/hashicorp/aws-sdk-go/aws"
+	"github.com/hashicorp/aws-sdk-go/gen/iam"
 	"github.com/hashicorp/aws-sdk-go/gen/rds"
 
 	"github.com/hashicorp/terraform/helper/hashcode"
@@ -17,6 +18,7 @@ func resourceAwsDbInstance() *schema.Resource {
 	return &schema.Resource{
 		Create: resourceAwsDbInstanceCreate,
 		Read:   resourceAwsDbInstanceRead,
+		Update: resourceAwsDbInstanceUpdate,
 		Delete: resourceAwsDbInstanceDelete,
 
 		Schema: map[string]*schema.Schema{
@@ -138,6 +140,7 @@ func resourceAwsDbInstance() *schema.Resource {
 			"vpc_security_group_ids": &schema.Schema{
 				Type:     schema.TypeSet,
 				Optional: true,
+				Computed: true,
 				Elem:     &schema.Schema{Type: schema.TypeString},
 				Set: func(v interface{}) int {
 					return hashcode.String(v.(string))
@@ -162,6 +165,7 @@ func resourceAwsDbInstance() *schema.Resource {
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: true,
+				Computed: true,
 			},
 
 			"parameter_group_name": &schema.Schema{
@@ -185,12 +189,14 @@ func resourceAwsDbInstance() *schema.Resource {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
+			"tags": tagsSchema(),
 		},
 	}
 }
 
 func resourceAwsDbInstanceCreate(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).rdsconn
+	tags := tagsFromMapRDS(d.Get("tags").(map[string]interface{}))
 	opts := rds.CreateDBInstanceMessage{
 		AllocatedStorage:     aws.Integer(d.Get("allocated_storage").(int)),
 		DBInstanceClass:      aws.String(d.Get("instance_class").(string)),
@@ -201,6 +207,7 @@ func resourceAwsDbInstanceCreate(d *schema.ResourceData, meta interface{}) error
 		Engine:               aws.String(d.Get("engine").(string)),
 		EngineVersion:        aws.String(d.Get("engine_version").(string)),
 		StorageEncrypted:     aws.Boolean(d.Get("storage_encrypted").(bool)),
+		Tags:                 tags,
 	}
 
 	if attr, ok := d.GetOk("storage_type"); ok {
@@ -332,6 +339,28 @@ func resourceAwsDbInstanceRead(d *schema.ResourceData, meta interface{}) error {
 	d.Set("status", *v.DBInstanceStatus)
 	d.Set("storage_encrypted", *v.StorageEncrypted)
 
+	// list tags for resource
+	// set tags
+	conn := meta.(*AWSClient).rdsconn
+	arn, err := buildRDSARN(d, meta)
+	if err != nil {
+		log.Printf("[DEBUG] Error building ARN for DB Instance, not setting Tags for DB %s", *v.DBName)
+	} else {
+		resp, err := conn.ListTagsForResource(&rds.ListTagsForResourceMessage{
+			ResourceName: aws.String(arn),
+		})
+
+		if err != nil {
+			log.Printf("[DEBUG] Error retreiving tags for ARN: %s", arn)
+		}
+
+		var dt []rds.Tag
+		if len(resp.TagList) > 0 {
+			dt = resp.TagList
+		}
+		d.Set("tags", tagsToMapRDS(dt))
+	}
+
 	// Create an empty schema.Set to hold all vpc security group ids
 	ids := &schema.Set{
 		F: func(v interface{}) int {
@@ -394,6 +423,21 @@ func resourceAwsDbInstanceDelete(d *schema.ResourceData, meta interface{}) error
 	return nil
 }
 
+func resourceAwsDbInstanceUpdate(d *schema.ResourceData, meta interface{}) error {
+	conn := meta.(*AWSClient).rdsconn
+
+	d.Partial(true)
+	if arn, err := buildRDSARN(d, meta); err == nil {
+		if err := setTagsRDS(conn, d, arn); err != nil {
+			return err
+		} else {
+			d.SetPartial("tags")
+		}
+	}
+	d.Partial(false)
+	return resourceAwsDbInstanceRead(d, meta)
+}
+
 func resourceAwsBbInstanceRetrieve(
 	d *schema.ResourceData, meta interface{}) (*rds.DBInstance, error) {
 	conn := meta.(*AWSClient).rdsconn
@@ -442,4 +486,17 @@ func resourceAwsDbInstanceStateRefreshFunc(
 
 		return v, *v.DBInstanceStatus, nil
 	}
+}
+
+func buildRDSARN(d *schema.ResourceData, meta interface{}) (string, error) {
+	iamconn := meta.(*AWSClient).iamconn
+	region := meta.(*AWSClient).region
+	// An zero value GetUserRequest{} defers to the currently logged in user
+	resp, err := iamconn.GetUser(&iam.GetUserRequest{})
+	if err != nil {
+		return "", err
+	}
+	user := resp.User
+	arn := fmt.Sprintf("arn:aws:rds:%s:%s:db:%s", region, *user.UserID, d.Id())
+	return arn, nil
 }
