@@ -42,7 +42,7 @@ func resourceAwsSubnet() *schema.Resource {
 			"map_public_ip_on_launch": &schema.Schema{
 				Type:     schema.TypeBool,
 				Optional: true,
-				Computed: true,
+				Default:  false,
 			},
 
 			"tags": tagsSchema(),
