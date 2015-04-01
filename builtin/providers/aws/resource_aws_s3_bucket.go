@@ -88,14 +88,12 @@ func resourceAwsS3BucketRead(d *schema.ResourceData, meta interface{}) error {
 		return err
 	}
 
-	resp, err := s3conn.GetBucketTagging(&s3.GetBucketTaggingRequest{
-		Bucket: aws.String(d.Id()),
-	})
+	tagSet, err := getTagSetS3(s3conn, d.Id())
 	if err != nil {
 		return err
 	}
 
-	if err := d.Set("tags", tagsToMapS3(resp.TagSet)); err != nil {
+	if err := d.Set("tags", tagsToMapS3(tagSet)); err != nil {
 		return err
 	}
 
