@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/hashicorp/errwrap"
 	"github.com/hashicorp/terraform/state"
@@ -208,7 +209,7 @@ func remoteState(
 	}
 
 	// Initialize the remote client based on the local state
-	client, err := remote.NewClient(local.Remote.Type, local.Remote.Config)
+	client, err := remote.NewClient(strings.ToLower(local.Remote.Type), local.Remote.Config)
 	if err != nil {
 		return nil, errwrap.Wrapf(fmt.Sprintf(
 			"Error initializing remote driver '%s': {{err}}",
