@@ -105,7 +105,10 @@ func resourceAwsRoute53ZoneRead(d *schema.ResourceData, meta interface{}) error 
 	if resp.ResourceTagSet != nil {
 		tags = resp.ResourceTagSet.Tags
 	}
-	d.Set("tags", tagsToMapR53(tags))
+
+	if err := d.Set("tags", tagsToMapR53(tags)); err != nil {
+		return err
+	}
 
 	return nil
 }
