@@ -63,6 +63,9 @@ func TestCleanChangeID(t *testing.T) {
 }
 
 func TestAccRoute53Zone(t *testing.T) {
+	var zone route53.HostedZone
+	var td route53.ResourceTagSet
+
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
@@ -71,7 +74,9 @@ func TestAccRoute53Zone(t *testing.T) {
 			resource.TestStep{
 				Config: testAccRoute53ZoneConfig,
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckRoute53ZoneExists("aws_route53_zone.main"),
+					testAccCheckRoute53ZoneExists("aws_route53_zone.main", &zone),
+					testAccLoadTagsR53(&zone, &td),
+					testAccCheckTagsR53(&td.Tags, "foo", "bar"),
 				),
 			},
 		},
@@ -93,7 +98,7 @@ func testAccCheckRoute53ZoneDestroy(s *terraform.State) error {
 	return nil
 }
 
-func testAccCheckRoute53ZoneExists(n string) resource.TestCheckFunc {
+func testAccCheckRoute53ZoneExists(n string, zone *route53.HostedZone) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		rs, ok := s.RootModule().Resources[n]
 		if !ok {
@@ -105,10 +110,34 @@ func testAccCheckRoute53ZoneExists(n string) resource.TestCheckFunc {
 		}
 
 		conn := testAccProvider.Meta().(*AWSClient).r53conn
-		_, err := conn.GetHostedZone(&route53.GetHostedZoneRequest{ID: aws.String(rs.Primary.ID)})
+		resp, err := conn.GetHostedZone(&route53.GetHostedZoneRequest{ID: aws.String(rs.Primary.ID)})
 		if err != nil {
 			return fmt.Errorf("Hosted zone err: %v", err)
 		}
+		*zone = *resp.HostedZone
+		return nil
+	}
+}
+
+func testAccLoadTagsR53(zone *route53.HostedZone, td *route53.ResourceTagSet) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		conn := testAccProvider.Meta().(*AWSClient).r53conn
+
+		zone := cleanZoneID(*zone.ID)
+		req := &route53.ListTagsForResourceRequest{
+			ResourceID:   aws.String(zone),
+			ResourceType: aws.String("hostedzone"),
+		}
+
+		resp, err := conn.ListTagsForResource(req)
+		if err != nil {
+			return err
+		}
+
+		if resp.ResourceTagSet != nil {
+			*td = *resp.ResourceTagSet
+		}
+
 		return nil
 	}
 }
@@ -116,5 +145,10 @@ func testAccCheckRoute53ZoneExists(n string) resource.TestCheckFunc {
 const testAccRoute53ZoneConfig = `
 resource "aws_route53_zone" "main" {
 	name = "hashicorp.com"
+
+	tags {
+		foo = "bar"
+		Name = "tf-route53-tag-test"
+	}
 }
 `
