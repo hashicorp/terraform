@@ -16,7 +16,7 @@ type PlanCommand struct {
 }
 
 func (c *PlanCommand) Run(args []string) int {
-	var destroy, refresh bool
+	var destroy, refresh, detailed bool
 	var outPath string
 	var moduleDepth int
 
@@ -29,6 +29,7 @@ func (c *PlanCommand) Run(args []string) int {
 	cmdFlags.StringVar(&outPath, "out", "", "path")
 	cmdFlags.StringVar(&c.Meta.statePath, "state", DefaultStateFilename, "path")
 	cmdFlags.StringVar(&c.Meta.backupPath, "backup", "", "path")
+	cmdFlags.BoolVar(&detailed, "detailed-exitcode", false, "detailed-exitcode")
 	cmdFlags.Usage = func() { c.Ui.Error(c.Help()) }
 	if err := cmdFlags.Parse(args); err != nil {
 		return 1
@@ -129,6 +130,9 @@ func (c *PlanCommand) Run(args []string) int {
 		ModuleDepth: moduleDepth,
 	}))
 
+	if detailed {
+		return 2
+	}
 	return 0
 }
 
@@ -151,6 +155,12 @@ Options:
 
   -destroy            If set, a plan will be generated to destroy all resources
                       managed by the given configuration and state.
+
+  -detailed-exitcode  Return detailed exit codes when the command exits. This
+                      will change the meaning of exit codes to:
+                      0 - Succeeded, diff is empty (no changes)
+                      1 - Errored
+                      2 - Succeeded, there is a diff
 
   -input=true         Ask for input for variables if not directly set.
 
