@@ -245,6 +245,7 @@ func TestRemoteConfig_initBlank(t *testing.T) {
 		"-backend=http",
 		"-backend-config", "address=http://example.com",
 		"-backend-config", "access_token=test",
+		"-pull=false",
 	}
 	if code := c.Run(args); code != 0 {
 		t.Fatalf("bad: \n%s", ui.ErrorWriter.String())
@@ -321,6 +322,7 @@ func TestRemoteConfig_updateRemote(t *testing.T) {
 		"-backend=http",
 		"-backend-config", "address=http://example.com",
 		"-backend-config", "access_token=test",
+		"-pull=false",
 	}
 	if code := c.Run(args); code != 0 {
 		t.Fatalf("bad: \n%s", ui.ErrorWriter.String())
@@ -376,6 +378,7 @@ func TestRemoteConfig_enableRemote(t *testing.T) {
 		"-backend=http",
 		"-backend-config", "address=http://example.com",
 		"-backend-config", "access_token=test",
+		"-pull=false",
 	}
 	if code := c.Run(args); code != 0 {
 		t.Fatalf("bad: \n%s", ui.ErrorWriter.String())

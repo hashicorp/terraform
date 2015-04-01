@@ -16,8 +16,11 @@ import (
 type InputMode byte
 
 const (
-	// InputModeVar asks for variables
+	// InputModeVar asks for all variables
 	InputModeVar InputMode = 1 << iota
+
+	// InputModeVarUnset asks for variables which are not set yet
+	InputModeVarUnset
 
 	// InputModeProvider asks for provider variables
 	InputModeProvider
@@ -30,6 +33,7 @@ const (
 // ContextOpts are the user-configurable options to create a context with
 // NewContext.
 type ContextOpts struct {
+	Destroy      bool
 	Diff         *Diff
 	Hooks        []Hook
 	Module       *module.Tree
@@ -37,6 +41,7 @@ type ContextOpts struct {
 	State        *State
 	Providers    map[string]ResourceProviderFactory
 	Provisioners map[string]ResourceProvisionerFactory
+	Targets      []string
 	Variables    map[string]string
 
 	UIInput UIInput
@@ -46,6 +51,7 @@ type ContextOpts struct {
 // perform operations on infrastructure. This structure is built using
 // NewContext. See the documentation for that.
 type Context struct {
+	destroy      bool
 	diff         *Diff
 	diffLock     sync.RWMutex
 	hooks        []Hook
@@ -55,6 +61,7 @@ type Context struct {
 	sh           *stopHook
 	state        *State
 	stateLock    sync.RWMutex
+	targets      []string
 	uiInput      UIInput
 	variables    map[string]string
 
@@ -92,12 +99,14 @@ func NewContext(opts *ContextOpts) *Context {
 	}
 
 	return &Context{
+		destroy:      opts.Destroy,
 		diff:         opts.Diff,
 		hooks:        hooks,
 		module:       opts.Module,
 		providers:    opts.Providers,
 		provisioners: opts.Provisioners,
 		state:        state,
+		targets:      opts.Targets,
 		uiInput:      opts.UIInput,
 		variables:    opts.Variables,
 
@@ -132,6 +141,8 @@ func (c *Context) GraphBuilder() GraphBuilder {
 		Providers:    providers,
 		Provisioners: provisioners,
 		State:        c.state,
+		Targets:      c.targets,
+		Destroy:      c.destroy,
 	}
 }
 
@@ -154,6 +165,14 @@ func (c *Context) Input(mode InputMode) error {
 		}
 		sort.Strings(names)
 		for _, n := range names {
+			// If we only care about unset variables, then if the variabel
+			// is set, continue on.
+			if mode&InputModeVarUnset != 0 {
+				if _, ok := c.variables[n]; ok {
+					continue
+				}
+			}
+
 			v := m[n]
 			switch v.Type() {
 			case config.VariableTypeMap:
@@ -242,7 +261,7 @@ func (c *Context) Apply() (*State, error) {
 //
 // Plan also updates the diff of this context to be the diff generated
 // by the plan, so Apply can be called after.
-func (c *Context) Plan(opts *PlanOpts) (*Plan, error) {
+func (c *Context) Plan() (*Plan, error) {
 	v := c.acquireRun()
 	defer c.releaseRun(v)
 
@@ -253,7 +272,7 @@ func (c *Context) Plan(opts *PlanOpts) (*Plan, error) {
 	}
 
 	var operation walkOperation
-	if opts != nil && opts.Destroy {
+	if c.destroy {
 		operation = walkPlanDestroy
 	} else {
 		// Set our state to be something temporary. We do this so that
@@ -363,6 +382,23 @@ func (c *Context) Validate() ([]string, []error) {
 	// Return the result
 	rerrs := multierror.Append(errs, walker.ValidationErrors...)
 	return walker.ValidationWarnings, rerrs.Errors
+}
+
+// Module returns the module tree associated with this context.
+func (c *Context) Module() *module.Tree {
+	return c.module
+}
+
+// Variables will return the mapping of variables that were defined
+// for this Context. If Input was called, this mapping may be different
+// than what was given.
+func (c *Context) Variables() map[string]string {
+	return c.variables
+}
+
+// SetVariable sets a variable after a context has already been built.
+func (c *Context) SetVariable(k, v string) {
+	c.variables[k] = v
 }
 
 func (c *Context) acquireRun() chan<- struct{} {

@@ -154,6 +154,8 @@ func resourceAwsElb() *schema.Resource {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
+
+			"tags": tagsSchema(),
 		},
 	}
 }
@@ -167,11 +169,12 @@ func resourceAwsElbCreate(d *schema.ResourceData, meta interface{}) error {
 		return err
 	}
 
+	tags := tagsFromMapELB(d.Get("tags").(map[string]interface{}))
 	// Provision the elb
-
 	elbOpts := &elb.CreateAccessPointInput{
 		LoadBalancerName: aws.String(d.Get("name").(string)),
 		Listeners:        listeners,
+		Tags:             tags,
 	}
 
 	if scheme, ok := d.GetOk("internal"); ok && scheme.(bool) {
@@ -207,6 +210,8 @@ func resourceAwsElbCreate(d *schema.ResourceData, meta interface{}) error {
 	d.SetPartial("listener")
 	d.SetPartial("security_groups")
 	d.SetPartial("subnets")
+
+	d.Set("tags", tagsToMapELB(tags))
 
 	if d.HasChange("health_check") {
 		vs := d.Get("health_check").(*schema.Set).List()
@@ -267,6 +272,15 @@ func resourceAwsElbRead(d *schema.ResourceData, meta interface{}) error {
 	d.Set("security_groups", lb.SecurityGroups)
 	d.Set("subnets", lb.Subnets)
 
+	resp, err := elbconn.DescribeTags(&elb.DescribeTagsInput{
+		LoadBalancerNames: []string{*lb.LoadBalancerName},
+	})
+
+	var et []elb.Tag
+	if len(resp.TagDescriptions) > 0 {
+		et = resp.TagDescriptions[0].Tags
+	}
+	d.Set("tags", tagsToMapELB(et))
 	// There's only one health check, so save that to state as we
 	// currently can
 	if *lb.HealthCheck.Target != "" {
@@ -357,6 +371,11 @@ func resourceAwsElbUpdate(d *schema.ResourceData, meta interface{}) error {
 		}
 	}
 
+	if err := setTagsELB(elbconn, d); err != nil {
+		return err
+	} else {
+		d.SetPartial("tags")
+	}
 	d.Partial(false)
 
 	return resourceAwsElbRead(d, meta)

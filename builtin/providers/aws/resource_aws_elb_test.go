@@ -53,6 +53,61 @@ func TestAccAWSELB_basic(t *testing.T) {
 	})
 }
 
+func TestAccAWSELB_tags(t *testing.T) {
+	var conf elb.LoadBalancerDescription
+	var td elb.TagDescription
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSELBDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccAWSELBConfig,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSELBExists("aws_elb.bar", &conf),
+					testAccCheckAWSELBAttributes(&conf),
+					resource.TestCheckResourceAttr(
+						"aws_elb.bar", "name", "foobar-terraform-test"),
+					testAccLoadTags(&conf, &td),
+					testAccCheckELBTags(&td.Tags, "bar", "baz"),
+				),
+			},
+
+			resource.TestStep{
+				Config: testAccAWSELBConfig_TagUpdate,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSELBExists("aws_elb.bar", &conf),
+					testAccCheckAWSELBAttributes(&conf),
+					resource.TestCheckResourceAttr(
+						"aws_elb.bar", "name", "foobar-terraform-test"),
+					testAccLoadTags(&conf, &td),
+					testAccCheckELBTags(&td.Tags, "foo", "bar"),
+					testAccCheckELBTags(&td.Tags, "new", "type"),
+				),
+			},
+		},
+	})
+}
+
+func testAccLoadTags(conf *elb.LoadBalancerDescription, td *elb.TagDescription) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		conn := testAccProvider.Meta().(*AWSClient).elbconn
+
+		describe, err := conn.DescribeTags(&elb.DescribeTagsInput{
+			LoadBalancerNames: []string{*conf.LoadBalancerName},
+		})
+
+		if err != nil {
+			return err
+		}
+		if len(describe.TagDescriptions) > 0 {
+			*td = describe.TagDescriptions[0]
+		}
+		return nil
+	}
+}
+
 func TestAccAWSELB_InstanceAttaching(t *testing.T) {
 	var conf elb.LoadBalancerDescription
 
@@ -287,6 +342,31 @@ resource "aws_elb" "bar" {
     lb_port = 80
     lb_protocol = "http"
   }
+
+	tags {
+		bar = "baz"
+	}
+
+  cross_zone_load_balancing = true
+}
+`
+
+const testAccAWSELBConfig_TagUpdate = `
+resource "aws_elb" "bar" {
+  name = "foobar-terraform-test"
+  availability_zones = ["us-west-2a", "us-west-2b", "us-west-2c"]
+
+  listener {
+    instance_port = 8000
+    instance_protocol = "http"
+    lb_port = 80
+    lb_protocol = "http"
+  }
+
+	tags {
+		foo = "bar"
+		new = "type"
+	}
 
   cross_zone_load_balancing = true
 }

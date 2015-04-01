@@ -38,6 +38,9 @@ type Meta struct {
 	input         bool
 	variables     map[string]string
 
+	// Targets for this context (private)
+	targets []string
+
 	color bool
 	oldUi cli.Ui
 
@@ -126,6 +129,9 @@ func (m *Meta) Context(copts contextOpts) (*terraform.Context, bool, error) {
 		m.statePath = copts.StatePath
 	}
 
+	// Tell the context if we're in a destroy plan / apply
+	opts.Destroy = copts.Destroy
+
 	// Store the loaded state
 	state, err := m.State()
 	if err != nil {
@@ -138,11 +144,7 @@ func (m *Meta) Context(copts contextOpts) (*terraform.Context, bool, error) {
 		return nil, false, fmt.Errorf("Error loading config: %s", err)
 	}
 
-	dataDir := DefaultDataDirectory
-	if m.dataDir != "" {
-		dataDir = m.dataDir
-	}
-	err = mod.Load(m.moduleStorage(dataDir), copts.GetMode)
+	err = mod.Load(m.moduleStorage(m.DataDir()), copts.GetMode)
 	if err != nil {
 		return nil, false, fmt.Errorf("Error downloading modules: %s", err)
 	}
@@ -151,6 +153,16 @@ func (m *Meta) Context(copts contextOpts) (*terraform.Context, bool, error) {
 	opts.State = state.State()
 	ctx := terraform.NewContext(opts)
 	return ctx, false, nil
+}
+
+// DataDir returns the directory where local data will be stored.
+func (m *Meta) DataDir() string {
+	dataDir := DefaultDataDirectory
+	if m.dataDir != "" {
+		dataDir = m.dataDir
+	}
+
+	return dataDir
 }
 
 // InputMode returns the type of input we should ask for in the form of
@@ -164,6 +176,7 @@ func (m *Meta) InputMode() terraform.InputMode {
 	mode |= terraform.InputModeProvider
 	if len(m.variables) == 0 && m.autoKey == "" {
 		mode |= terraform.InputModeVar
+		mode |= terraform.InputModeVarUnset
 	}
 
 	return mode
@@ -205,7 +218,7 @@ func (m *Meta) StateOpts() *StateOpts {
 	if localPath == "" {
 		localPath = DefaultStateFilename
 	}
-	remotePath := filepath.Join(DefaultDataDir, DefaultStateFilename)
+	remotePath := filepath.Join(m.DataDir(), DefaultStateFilename)
 
 	return &StateOpts{
 		LocalPath:     localPath,
@@ -260,6 +273,7 @@ func (m *Meta) contextOpts() *terraform.ContextOpts {
 		vs[k] = v
 	}
 	opts.Variables = vs
+	opts.Targets = m.targets
 	opts.UIInput = m.UIInput()
 
 	return &opts
@@ -271,6 +285,7 @@ func (m *Meta) flagSet(n string) *flag.FlagSet {
 	f.BoolVar(&m.input, "input", true, "input")
 	f.Var((*FlagKV)(&m.variables), "var", "variables")
 	f.Var((*FlagKVFile)(&m.variables), "var-file", "variable file")
+	f.Var((*FlagStringSlice)(&m.targets), "target", "resource to target")
 
 	if m.autoKey != "" {
 		f.Var((*FlagKVFile)(&m.autoVariables), m.autoKey, "variable file")
@@ -381,4 +396,7 @@ type contextOpts struct {
 
 	// GetMode is the module.GetMode to use when loading the module tree.
 	GetMode module.GetMode
+
+	// Set to true when running a destroy plan/apply.
+	Destroy bool
 }

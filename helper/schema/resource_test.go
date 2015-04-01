@@ -11,6 +11,7 @@ import (
 
 func TestResourceApply_create(t *testing.T) {
 	r := &Resource{
+		SchemaVersion: 2,
 		Schema: map[string]*Schema{
 			"foo": &Schema{
 				Type:     TypeInt,
@@ -50,6 +51,9 @@ func TestResourceApply_create(t *testing.T) {
 		Attributes: map[string]string{
 			"id":  "foo",
 			"foo": "42",
+		},
+		Meta: map[string]string{
+			"schema_version": "2",
 		},
 	}
 
@@ -339,6 +343,7 @@ func TestResourceInternalValidate(t *testing.T) {
 
 func TestResourceRefresh(t *testing.T) {
 	r := &Resource{
+		SchemaVersion: 2,
 		Schema: map[string]*Schema{
 			"foo": &Schema{
 				Type:     TypeInt,
@@ -367,6 +372,9 @@ func TestResourceRefresh(t *testing.T) {
 		Attributes: map[string]string{
 			"id":  "bar",
 			"foo": "13",
+		},
+		Meta: map[string]string{
+			"schema_version": "2",
 		},
 	}
 

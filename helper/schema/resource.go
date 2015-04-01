@@ -151,7 +151,7 @@ func (r *Resource) Apply(
 		err = r.Update(data, meta)
 	}
 
-	return data.State(), err
+	return r.recordCurrentSchemaVersion(data.State()), err
 }
 
 // Diff returns a diff of this resource and is API compatible with the
@@ -207,14 +207,7 @@ func (r *Resource) Refresh(
 		state = nil
 	}
 
-	if state != nil && r.SchemaVersion > 0 {
-		if state.Meta == nil {
-			state.Meta = make(map[string]string)
-		}
-		state.Meta["schema_version"] = strconv.Itoa(r.SchemaVersion)
-	}
-
-	return state, err
+	return r.recordCurrentSchemaVersion(state), err
 }
 
 // InternalValidate should be called to validate the structure
@@ -240,4 +233,15 @@ func (r *Resource) InternalValidate() error {
 func (r *Resource) checkSchemaVersion(is *terraform.InstanceState) (bool, int) {
 	stateSchemaVersion, _ := strconv.Atoi(is.Meta["schema_version"])
 	return stateSchemaVersion < r.SchemaVersion, stateSchemaVersion
+}
+
+func (r *Resource) recordCurrentSchemaVersion(
+	state *terraform.InstanceState) *terraform.InstanceState {
+	if state != nil && r.SchemaVersion > 0 {
+		if state.Meta == nil {
+			state.Meta = make(map[string]string)
+		}
+		state.Meta["schema_version"] = strconv.Itoa(r.SchemaVersion)
+	}
+	return state
 }

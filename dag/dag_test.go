@@ -126,6 +126,68 @@ func TestAcyclicGraphValidate_cycleSelf(t *testing.T) {
 	}
 }
 
+func TestAcyclicGraphAncestors(t *testing.T) {
+	var g AcyclicGraph
+	g.Add(1)
+	g.Add(2)
+	g.Add(3)
+	g.Add(4)
+	g.Add(5)
+	g.Connect(BasicEdge(0, 1))
+	g.Connect(BasicEdge(1, 2))
+	g.Connect(BasicEdge(2, 3))
+	g.Connect(BasicEdge(3, 4))
+	g.Connect(BasicEdge(4, 5))
+
+	actual, err := g.Ancestors(2)
+	if err != nil {
+		t.Fatalf("err: %#v", err)
+	}
+
+	expected := []Vertex{3, 4, 5}
+
+	if actual.Len() != len(expected) {
+		t.Fatalf("bad length! expected %#v to have len %d", actual, len(expected))
+	}
+
+	for _, e := range expected {
+		if !actual.Include(e) {
+			t.Fatalf("expected: %#v to include: %#v", expected, actual)
+		}
+	}
+}
+
+func TestAcyclicGraphDescendents(t *testing.T) {
+	var g AcyclicGraph
+	g.Add(1)
+	g.Add(2)
+	g.Add(3)
+	g.Add(4)
+	g.Add(5)
+	g.Connect(BasicEdge(0, 1))
+	g.Connect(BasicEdge(1, 2))
+	g.Connect(BasicEdge(2, 3))
+	g.Connect(BasicEdge(3, 4))
+	g.Connect(BasicEdge(4, 5))
+
+	actual, err := g.Descendents(2)
+	if err != nil {
+		t.Fatalf("err: %#v", err)
+	}
+
+	expected := []Vertex{0, 1}
+
+	if actual.Len() != len(expected) {
+		t.Fatalf("bad length! expected %#v to have len %d", actual, len(expected))
+	}
+
+	for _, e := range expected {
+		if !actual.Include(e) {
+			t.Fatalf("expected: %#v to include: %#v", expected, actual)
+		}
+	}
+}
+
 func TestAcyclicGraphWalk(t *testing.T) {
 	var g AcyclicGraph
 	g.Add(1)
