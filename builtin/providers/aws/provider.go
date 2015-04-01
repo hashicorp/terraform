@@ -32,6 +32,16 @@ func Provider() terraform.ResourceProvider {
 				Description: descriptions["secret_key"],
 			},
 
+			"token": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				DefaultFunc: schema.MultiEnvDefaultFunc([]string{
+					"AWS_SESSION_TOKEN",
+					"AWS_SECURITY_TOKEN",
+				}, nil),
+				Description: descriptions["token"],
+			},
+
 			"region": &schema.Schema{
 				Type:     schema.TypeString,
 				Required: true,
@@ -87,6 +97,9 @@ func init() {
 
 		"secret_key": "The secret key for API operations. You can retrieve this\n" +
 			"from the 'Security & Credentials' section of the AWS console.",
+
+		"token": "The security token for API operations. Only used if you use\n" +
+			"temporary API key & secrets",
 	}
 }
 
@@ -94,6 +107,7 @@ func providerConfigure(d *schema.ResourceData) (interface{}, error) {
 	config := Config{
 		AccessKey: d.Get("access_key").(string),
 		SecretKey: d.Get("secret_key").(string),
+		Token:     d.Get("token").(string),
 		Region:    d.Get("region").(string),
 	}
 
