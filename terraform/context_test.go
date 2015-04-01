@@ -1579,6 +1579,8 @@ func TestContext2Refresh_targetedCount(t *testing.T) {
 		"aws_instance.me.1",
 		"aws_instance.me.2",
 	}
+	sort.Strings(expected)
+	sort.Strings(refreshedResources)
 	if !reflect.DeepEqual(refreshedResources, expected) {
 		t.Fatalf("expected: %#v, got: %#v", expected, refreshedResources)
 	}
