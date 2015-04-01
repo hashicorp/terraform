@@ -16,6 +16,7 @@ func resourceAwsRoute53Zone() *schema.Resource {
 	return &schema.Resource{
 		Create: resourceAwsRoute53ZoneCreate,
 		Read:   resourceAwsRoute53ZoneRead,
+		Update: resourceAwsRoute53ZoneUpdate,
 		Delete: resourceAwsRoute53ZoneDelete,
 
 		Schema: map[string]*schema.Schema{
@@ -29,6 +30,8 @@ func resourceAwsRoute53Zone() *schema.Resource {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
+
+			"tags": tagsSchema(),
 		},
 	}
 }
@@ -72,7 +75,7 @@ func resourceAwsRoute53ZoneCreate(d *schema.ResourceData, meta interface{}) erro
 	if err != nil {
 		return err
 	}
-	return nil
+	return resourceAwsRoute53ZoneUpdate(d, meta)
 }
 
 func resourceAwsRoute53ZoneRead(d *schema.ResourceData, meta interface{}) error {
@@ -87,7 +90,39 @@ func resourceAwsRoute53ZoneRead(d *schema.ResourceData, meta interface{}) error 
 		return err
 	}
 
+	// get tags
+	req := &route53.ListTagsForResourceRequest{
+		ResourceID:   aws.String(d.Id()),
+		ResourceType: aws.String("hostedzone"),
+	}
+
+	resp, err := r53.ListTagsForResource(req)
+	if err != nil {
+		return err
+	}
+
+	var tags []route53.Tag
+	if resp.ResourceTagSet != nil {
+		tags = resp.ResourceTagSet.Tags
+	}
+
+	if err := d.Set("tags", tagsToMapR53(tags)); err != nil {
+		return err
+	}
+
 	return nil
+}
+
+func resourceAwsRoute53ZoneUpdate(d *schema.ResourceData, meta interface{}) error {
+	conn := meta.(*AWSClient).r53conn
+
+	if err := setTagsR53(conn, d); err != nil {
+		return err
+	} else {
+		d.SetPartial("tags")
+	}
+
+	return resourceAwsRoute53ZoneRead(d, meta)
 }
 
 func resourceAwsRoute53ZoneDelete(d *schema.ResourceData, meta interface{}) error {
