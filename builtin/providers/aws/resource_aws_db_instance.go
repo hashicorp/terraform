@@ -170,7 +170,6 @@ func resourceAwsDbInstance() *schema.Resource {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
-				ForceNew: true,
 			},
 
 			"address": &schema.Schema{
@@ -454,6 +453,12 @@ func resourceAwsDbInstanceUpdate(d *schema.ResourceData, meta interface{}) error
 		change = true
 		d.SetPartial("multi_az")
 		req.MultiAZ = aws.Boolean(d.Get("multi_az").(bool))
+	}
+
+	if d.HasChange("parameter_group_name") {
+		change = true
+		d.SetPartial("parameter_group_name")
+		req.DBParameterGroupName = aws.String(d.Get("parameter_group_name").(string))
 	}
 
 	if change {
