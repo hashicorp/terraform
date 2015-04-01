@@ -64,8 +64,8 @@ func testAccPreCheck(t *testing.T) {
 		t.Fatal("OS_FLAVOR_ID or OS_FLAVOR_NAME must be set for acceptance tests")
 	}
 
-	v = os.Getenv("OS_NETWORK_NAME")
+	v = os.Getenv("OS_NETWORK_ID")
 	if v == "" {
-		t.Fatal("OS_NETWORK_NAME must be set for acceptance tests")
+		t.Fatal("OS_NETWORK_ID must be set for acceptance tests")
 	}
 }
