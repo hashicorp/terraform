@@ -97,6 +97,10 @@ type Config struct {
 
 	// NoPty, if true, will not request a pty from the remote end.
 	NoPty bool
+
+	// SSHAgentConn is a pointer to the UNIX connection for talking with the
+	// ssh-agent.
+	SSHAgentConn net.Conn
 }
 
 // New creates a new packer.Communicator implementation over SSH. This takes

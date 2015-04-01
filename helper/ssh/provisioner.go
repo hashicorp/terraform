@@ -5,12 +5,15 @@ import (
 	"fmt"
 	"io/ioutil"
 	"log"
+	"net"
+	"os"
 	"time"
 
-	"golang.org/x/crypto/ssh"
 	"github.com/hashicorp/terraform/terraform"
 	"github.com/mitchellh/go-homedir"
 	"github.com/mitchellh/mapstructure"
+	"golang.org/x/crypto/ssh"
+	"golang.org/x/crypto/ssh/agent"
 )
 
 const (
@@ -37,6 +40,7 @@ type SSHConfig struct {
 	KeyFile    string `mapstructure:"key_file"`
 	Host       string
 	Port       int
+	Agent      bool
 	Timeout    string
 	ScriptPath string        `mapstructure:"script_path"`
 	TimeoutVal time.Duration `mapstructure:"-"`
@@ -99,8 +103,31 @@ func safeDuration(dur string, defaultDur time.Duration) time.Duration {
 // PrepareConfig is used to turn the *SSHConfig provided into a
 // usable *Config for client initialization.
 func PrepareConfig(conf *SSHConfig) (*Config, error) {
+	var conn net.Conn
+	var err error
+
 	sshConf := &ssh.ClientConfig{
 		User: conf.User,
+	}
+	if conf.Agent {
+		sshAuthSock := os.Getenv("SSH_AUTH_SOCK")
+
+		if sshAuthSock == "" {
+			return nil, fmt.Errorf("SSH Requested but SSH_AUTH_SOCK not-specified")
+		}
+
+		conn, err = net.Dial("unix", sshAuthSock)
+		if err != nil {
+			return nil, fmt.Errorf("Error connecting to SSH_AUTH_SOCK: %v", err)
+		}
+		// I need to close this but, later after all connections have been made
+		// defer conn.Close()
+		signers, err := agent.NewClient(conn).Signers()
+		if err != nil {
+			return nil, fmt.Errorf("Error getting keys from ssh agent: %v", err)
+		}
+
+		sshConf.Auth = append(sshConf.Auth, ssh.PublicKeys(signers...))
 	}
 	if conf.KeyFile != "" {
 		fullPath, err := homedir.Expand(conf.KeyFile)
@@ -140,8 +167,17 @@ func PrepareConfig(conf *SSHConfig) (*Config, error) {
 	}
 	host := fmt.Sprintf("%s:%d", conf.Host, conf.Port)
 	config := &Config{
-		SSHConfig:  sshConf,
-		Connection: ConnectFunc("tcp", host),
+		SSHConfig:    sshConf,
+		Connection:   ConnectFunc("tcp", host),
+		SSHAgentConn: conn,
 	}
 	return config, nil
+}
+
+func (c *Config) CleanupConfig() error {
+	if c.SSHAgentConn != nil {
+		return c.SSHAgentConn.Close()
+	}
+
+	return nil
 }

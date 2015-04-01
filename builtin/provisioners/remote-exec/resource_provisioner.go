@@ -172,16 +172,20 @@ func (p *ResourceProvisioner) runScripts(
 	if err != nil {
 		return err
 	}
+	defer config.CleanupConfig()
 
 	o.Output(fmt.Sprintf(
 		"Connecting to remote host via SSH...\n"+
 			"  Host: %s\n"+
 			"  User: %s\n"+
 			"  Password: %v\n"+
-			"  Private key: %v",
+			"  Private key: %v"+
+			"  SSH Agent: %v",
 		conf.Host, conf.User,
 		conf.Password != "",
-		conf.KeyFile != ""))
+		conf.KeyFile != "",
+		conf.Agent,
+	))
 
 	// Wait and retry until we establish the SSH connection
 	var comm *helper.SSHCommunicator
