@@ -20,7 +20,6 @@ import (
 	"github.com/rackspace/gophercloud/openstack/compute/v2/images"
 	"github.com/rackspace/gophercloud/openstack/compute/v2/servers"
 	"github.com/rackspace/gophercloud/openstack/networking/v2/extensions/layer3/floatingips"
-	"github.com/rackspace/gophercloud/openstack/networking/v2/networks"
 	"github.com/rackspace/gophercloud/openstack/networking/v2/ports"
 	"github.com/rackspace/gophercloud/pagination"
 )
@@ -303,7 +302,7 @@ func resourceComputeInstanceV2Create(d *schema.ResourceData, meta interface{}) e
 		}
 		err = assignFloatingIP(networkingClient, extractFloatingIPFromIP(allFloatingIPs, floatingIP), server.ID)
 		if err != nil {
-			fmt.Errorf("Error assigning floating IP to OpenStack compute instance: %s", err)
+			return fmt.Errorf("Error assigning floating IP to OpenStack compute instance: %s", err)
 		}
 	}
 
@@ -770,44 +769,18 @@ func extractFloatingIPFromIP(ips []floatingips.FloatingIP, IP string) *floatingi
 }
 
 func assignFloatingIP(networkingClient *gophercloud.ServiceClient, floatingIP *floatingips.FloatingIP, instanceID string) error {
-	networkID, err := getFirstNetworkID(networkingClient, instanceID)
+	portID, err := getInstancePortID(networkingClient, instanceID)
 	if err != nil {
 		return err
 	}
-	portID, err := getInstancePortID(networkingClient, instanceID, networkID)
-	_, err = floatingips.Update(networkingClient, floatingIP.ID, floatingips.UpdateOpts{
+	return floatingips.Update(networkingClient, floatingIP.ID, floatingips.UpdateOpts{
 		PortID: portID,
-	}).Extract()
-	return err
+	}).Err
 }
 
-func getFirstNetworkID(networkingClient *gophercloud.ServiceClient, instanceID string) (string, error) {
-	pager := networks.List(networkingClient, networks.ListOpts{})
-
-	var networkdID string
-	err := pager.EachPage(func(page pagination.Page) (bool, error) {
-		networkList, err := networks.ExtractNetworks(page)
-		if err != nil {
-			return false, err
-		}
-
-		if len(networkList) > 0 {
-			networkdID = networkList[0].ID
-			return false, nil
-		}
-		return false, fmt.Errorf("No network found for the instance %s", instanceID)
-	})
-	if err != nil {
-		return "", err
-	}
-	return networkdID, nil
-
-}
-
-func getInstancePortID(networkingClient *gophercloud.ServiceClient, instanceID, networkID string) (string, error) {
+func getInstancePortID(networkingClient *gophercloud.ServiceClient, instanceID string) (string, error) {
 	pager := ports.List(networkingClient, ports.ListOpts{
-		DeviceID:  instanceID,
-		NetworkID: networkID,
+		DeviceID: instanceID,
 	})
 
 	var portID string
@@ -826,6 +799,11 @@ func getInstancePortID(networkingClient *gophercloud.ServiceClient, instanceID, 
 	if err != nil {
 		return "", err
 	}
+
+	if portID == "" {
+		return "", fmt.Errorf("Cannot find port for instance %s", instanceID)
+	}
+
 	return portID, nil
 }
 
