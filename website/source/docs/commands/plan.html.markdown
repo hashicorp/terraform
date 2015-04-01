@@ -28,6 +28,13 @@ The command-line flags are all optional. The list of available flags are:
 
 * `-destroy` - If set, generates a plan to destroy all the known resources.
 
+* `-detailed-exitcode` - Return a detailed exit code when the command exits.
+  When provided, this argument changes the exit codes and their meanings to
+  provide more granular information about what the resulting plan contains:
+  * 0 = Succeeded with empty diff (no changes)
+  * 1 = Error
+  * 2 = Succeeded with non-empty diff (changes present)
+
 * `-input=true` - Ask for input for variables if not directly set.
 
 * `-module-depth=n` - Specifies the depth of modules to show in the output.
