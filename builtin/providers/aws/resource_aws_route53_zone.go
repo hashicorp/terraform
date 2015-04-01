@@ -29,6 +29,12 @@ func resourceAwsRoute53Zone() *schema.Resource {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
+
+			"nameservers": &schema.Schema{
+				Type:     schema.TypeList,
+				Computed: true,
+				Elem:     &schema.Schema{Type: schema.TypeString},
+			},
 		},
 	}
 }
@@ -72,12 +78,13 @@ func resourceAwsRoute53ZoneCreate(d *schema.ResourceData, meta interface{}) erro
 	if err != nil {
 		return err
 	}
-	return nil
+
+	return resourceAwsRoute53ZoneRead(d, meta)
 }
 
 func resourceAwsRoute53ZoneRead(d *schema.ResourceData, meta interface{}) error {
 	r53 := meta.(*AWSClient).r53conn
-	_, err := r53.GetHostedZone(&route53.GetHostedZoneRequest{ID: aws.String(d.Id())})
+	rs, err := r53.GetHostedZone(&route53.GetHostedZoneRequest{ID: aws.String(d.Id())})
 	if err != nil {
 		// Handle a deleted zone
 		if strings.Contains(err.Error(), "404") {
@@ -85,6 +92,11 @@ func resourceAwsRoute53ZoneRead(d *schema.ResourceData, meta interface{}) error 
 			return nil
 		}
 		return err
+	}
+
+	if rs.DelegationSet != nil {
+		d.Set("nameservers", rs.DelegationSet.NameServers)
+		log.Printf("\t@@@DEBUG: %#v:\t%#v\n", rs.DelegationSet.NameServers)
 	}
 
 	return nil
