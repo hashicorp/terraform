@@ -768,31 +768,51 @@ func resourceInstanceNetworks(computeClient *gophercloud.ServiceClient, d *schem
 	newNetworks := make([]map[string]interface{}, len(rawNetworks))
 	var tenantnet tenantnetworks.Network
 
+	tenantNetworkExt := true
 	for i, raw := range rawNetworks {
 		rawMap := raw.(map[string]interface{})
 
 		allPages, err := tenantnetworks.List(computeClient).AllPages()
 		if err != nil {
-			return nil, err
+			errCode, ok := err.(*gophercloud.UnexpectedResponseCodeError)
+			if !ok {
+				return nil, err
+			}
+
+			if errCode.Actual == 404 {
+				tenantNetworkExt = false
+			} else {
+				return nil, err
+			}
 		}
 
-		networkList, err := tenantnetworks.ExtractNetworks(allPages)
-		if err != nil {
-			return nil, err
-		}
+		networkID := ""
+		networkName := ""
+		if tenantNetworkExt {
+			networkList, err := tenantnetworks.ExtractNetworks(allPages)
+			if err != nil {
+				return nil, err
+			}
 
-		for _, network := range networkList {
-			if network.Name == rawMap["name"] {
-				tenantnet = network
+			for _, network := range networkList {
+				if network.Name == rawMap["name"] {
+					tenantnet = network
+				}
+				if network.ID == rawMap["uuid"] {
+					tenantnet = network
+				}
 			}
-			if network.ID == rawMap["uuid"] {
-				tenantnet = network
-			}
+
+			networkID = tenantnet.ID
+			networkName = tenantnet.Name
+		} else {
+			networkID = rawMap["uuid"].(string)
+			networkName = rawMap["name"].(string)
 		}
 
 		newNetworks[i] = map[string]interface{}{
-			"uuid":        tenantnet.ID,
-			"name":        tenantnet.Name,
+			"uuid":        networkID,
+			"name":        networkName,
 			"port":        rawMap["port"].(string),
 			"fixed_ip_v4": rawMap["fixed_ip_v4"].(string),
 		}
