@@ -304,33 +304,38 @@ func resourceAwsDbInstanceRead(d *schema.ResourceData, meta interface{}) error {
 		return nil
 	}
 
-	if v.DBName != nil {
-		d.Set("name", *v.DBName)
-	} else {
-		d.Set("name", "")
+	d.Set("name", v.DBName)
+	d.Set("username", v.MasterUsername)
+	d.Set("engine", v.Engine)
+	d.Set("engine_version", v.EngineVersion)
+	d.Set("allocated_storage", v.AllocatedStorage)
+	d.Set("storage_type", v.StorageType)
+	d.Set("instance_class", v.DBInstanceClass)
+	d.Set("availability_zone", v.AvailabilityZone)
+	d.Set("backup_retention_period", v.BackupRetentionPeriod)
+	d.Set("backup_window", v.PreferredBackupWindow)
+	d.Set("maintenance_window", v.PreferredMaintenanceWindow)
+	d.Set("multi_az", v.MultiAZ)
+	if v.DBSubnetGroup != nil {
+		d.Set("db_subnet_group_name", v.DBSubnetGroup.DBSubnetGroupName)
 	}
-	d.Set("username", *v.MasterUsername)
-	d.Set("engine", *v.Engine)
-	d.Set("engine_version", *v.EngineVersion)
-	d.Set("allocated_storage", *v.AllocatedStorage)
-	d.Set("storage_type", *v.StorageType)
-	d.Set("instance_class", *v.DBInstanceClass)
-	d.Set("availability_zone", *v.AvailabilityZone)
-	d.Set("backup_retention_period", *v.BackupRetentionPeriod)
-	d.Set("backup_window", *v.PreferredBackupWindow)
-	d.Set("maintenance_window", *v.PreferredMaintenanceWindow)
-	d.Set("multi_az", *v.MultiAZ)
-	d.Set("port", *v.Endpoint.Port)
-	d.Set("db_subnet_group_name", *v.DBSubnetGroup.DBSubnetGroupName)
 
 	if len(v.DBParameterGroups) > 0 {
-		d.Set("parameter_group_name", *v.DBParameterGroups[0].DBParameterGroupName)
+		d.Set("parameter_group_name", v.DBParameterGroups[0].DBParameterGroupName)
 	}
 
-	d.Set("address", *v.Endpoint.Address)
-	d.Set("endpoint", fmt.Sprintf("%s:%d", *v.Endpoint.Address, *v.Endpoint.Port))
-	d.Set("status", *v.DBInstanceStatus)
-	d.Set("storage_encrypted", *v.StorageEncrypted)
+	if v.Endpoint != nil {
+		d.Set("port", v.Endpoint.Port)
+		d.Set("address", v.Endpoint.Address)
+
+		if v.Endpoint.Address != nil && v.Endpoint.Port != nil {
+			d.Set("endpoint",
+				fmt.Sprintf("%s:%d", *v.Endpoint.Address, *v.Endpoint.Port))
+		}
+	}
+
+	d.Set("status", v.DBInstanceStatus)
+	d.Set("storage_encrypted", v.StorageEncrypted)
 
 	// Create an empty schema.Set to hold all vpc security group ids
 	ids := &schema.Set{
