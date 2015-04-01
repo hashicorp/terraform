@@ -24,7 +24,13 @@ func resourceAwsInstanceMigrateState(
 }
 
 func migrateStateV0toV1(is *terraform.InstanceState) (*terraform.InstanceState, error) {
+	if is.Empty() {
+		log.Println("[DEBUG] Empty InstanceState; nothing to migrate.")
+		return is, nil
+	}
+
 	log.Printf("[DEBUG] Attributes before migration: %#v", is.Attributes)
+
 	// Delete old count
 	delete(is.Attributes, "block_device.#")
 

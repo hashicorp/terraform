@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/hashicorp/terraform/config/lang/ast"
+	"github.com/mitchellh/go-homedir"
 )
 
 // Funcs is the mapping of built-in functions for configuration.
@@ -57,7 +58,11 @@ func interpolationFuncFile() ast.Function {
 		ArgTypes:   []ast.Type{ast.TypeString},
 		ReturnType: ast.TypeString,
 		Callback: func(args []interface{}) (interface{}, error) {
-			data, err := ioutil.ReadFile(args[0].(string))
+			path, err := homedir.Expand(args[0].(string))
+			if err != nil {
+				return "", err
+			}
+			data, err := ioutil.ReadFile(path)
 			if err != nil {
 				return "", err
 			}
