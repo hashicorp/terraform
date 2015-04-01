@@ -33,6 +33,8 @@ resource "heroku_app" "default" {
 
 The following arguments are supported:
 
-* `api_key` - (Required) Heroku API token
-* `email` - (Required) Email to be notified by Heroku
+* `api_key` - (Required) Heroku API token. It must be provided, but it can also
+  be sourced from the `HEROKU_API_KEY` environment variable.
+* `email` - (Required) Email to be notified by Heroku. It must be provided, but
+  it can also be sourced from the `HEROKU_EMAIL` environment variable.
 

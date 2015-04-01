@@ -2,6 +2,7 @@ package terraform
 
 import (
 	"fmt"
+	"log"
 
 	"github.com/hashicorp/terraform/config"
 	"github.com/hashicorp/terraform/config/module"
@@ -25,6 +26,11 @@ type OrphanTransformer struct {
 	// using the graph path.
 	Module *module.Tree
 
+	// Targets are user-specified resources to target. We need to be aware of
+	// these so we don't improperly identify orphans when they've just been
+	// filtered out of the graph via targeting.
+	Targeting bool
+
 	// View, if non-nil will set a view on the module state.
 	View string
 }
@@ -32,6 +38,13 @@ type OrphanTransformer struct {
 func (t *OrphanTransformer) Transform(g *Graph) error {
 	if t.State == nil {
 		// If the entire state is nil, there can't be any orphans
+		return nil
+	}
+
+	if t.Targeting {
+		log.Printf("Skipping orphan transformer because we have targets.")
+		// If we are in a run where we are targeting nodes, we won't process
+		// orphans for this run.
 		return nil
 	}
 

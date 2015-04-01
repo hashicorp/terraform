@@ -1,0 +1,53 @@
+<% wrap_layout :inner do %>
+  <% content_for :sidebar do %>
+    <div class="docs-sidebar hidden-print affix-top" role="complementary">
+      <ul class="nav docs-sidenav">
+        <li<%= sidebar_current("docs-home") %>>
+          <a href="/docs/index.html">&laquo; Documentation Home</a>
+        </li>
+
+        <li<%= sidebar_current("docs-openstack-index") %>>
+          <a href="/docs/providers/openstack/index.html">OpenStack Provider</a>
+        </li>
+
+        <li<%= sidebar_current("docs-openstack-resource") %>>
+          <a href="#">Resources</a>
+          <ul class="nav nav-visible">
+            <li<%= sidebar_current("docs-openstack-resource-blockstorage-volume-v1") %>>
+              <a href="/docs/providers/openstack/r/blockstorage_volume_v1.html">openstack_blockstorage_volume_v1</a>
+            </li>
+            <li<%= sidebar_current("docs-openstack-resource-compute-instance-v2") %>>
+              <a href="/docs/providers/openstack/r/compute_instance_v2.html">openstack_compute_instance_v2</a>
+            </li>
+            <li<%= sidebar_current("docs-openstack-resource-compute-keypair-v2") %>>
+              <a href="/docs/providers/openstack/r/compute_keypair_v2.html">openstack_compute_keypair_v2</a>
+            </li>
+            <li<%= sidebar_current("docs-openstack-resource-compute-secgroup-v2") %>>
+              <a href="/docs/providers/openstack/r/compute_secgroup_v2.html">openstack_compute_secgroup_v2</a>
+            </li>
+            <li<%= sidebar_current("docs-openstack-resource-lb-monitor-v1") %>>
+              <a href="/docs/providers/openstack/r/lb_monitor_v1.html">openstack_lb_monitor_v1</a>
+            </li>
+            <li<%= sidebar_current("docs-openstack-resource-lb-pool-v1") %>>
+              <a href="/docs/providers/openstack/r/lb_pool_v1.html">openstack_lb_pool_v1</a>
+            </li>
+            <li<%= sidebar_current("docs-openstack-resource-lb-vip-v1") %>>
+              <a href="/docs/providers/openstack/r/lb_vip_v1.html">openstack_lb_vip_v1</a>
+            </li>
+            <li<%= sidebar_current("docs-openstack-resource-networking-network-v2") %>>
+              <a href="/docs/providers/openstack/r/networking_network_v2.html">openstack_networking_network_v2</a>
+            </li>
+            <li<%= sidebar_current("docs-openstack-resource-networking-subnet-v2") %>>
+              <a href="/docs/providers/openstack/r/networking_subnet_v2.html">openstack_networking_subnet_v2</a>
+            </li>
+            <li<%= sidebar_current("docs-openstack-resource-objectstorage-container-v1") %>>
+              <a href="/docs/providers/openstack/r/objectstorage_container_v1.html">openstack_objectstorage_container_v1</a>
+            </li>
+          </ul>
+        </li>
+      </ul>
+    </div>
+  <% end %>
+
+  <%= yield %>
+  <% end %>

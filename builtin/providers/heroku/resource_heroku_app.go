@@ -358,14 +358,18 @@ func updateConfigVars(
 	vars := make(map[string]*string)
 
 	for _, v := range o {
-		for k, _ := range v.(map[string]interface{}) {
-			vars[k] = nil
+		if v != nil {
+			for k, _ := range v.(map[string]interface{}) {
+				vars[k] = nil
+			}
 		}
 	}
 	for _, v := range n {
-		for k, v := range v.(map[string]interface{}) {
-			val := v.(string)
-			vars[k] = &val
+		if v != nil {
+			for k, v := range v.(map[string]interface{}) {
+				val := v.(string)
+				vars[k] = &val
+			}
 		}
 	}
 
