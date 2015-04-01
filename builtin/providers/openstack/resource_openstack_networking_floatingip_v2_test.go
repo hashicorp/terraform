@@ -81,9 +81,11 @@ func testAccCheckNetworkingV2FloatingIPExists(t *testing.T, n string, kp *floati
 	}
 }
 
-var testAccNetworkingV2FloatingIP_basic = fmt.Sprintf(`
+var testAccNetworkingV2FloatingIP_basic = `
   resource "openstack_networking_floatingip_v2" "foo" {
-    region = "%s"
-    pool = "%s"
-    }`,
-	OS_REGION_NAME, OS_POOL_NAME)
+  }
+
+  resource "openstack_compute_instance_v2" "bar" {
+	name = "terraform-acc-floating-ip-test"
+	floating_ip = "${openstack_networking_floatingip_v2.foo.address}"
+  }`
