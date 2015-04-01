@@ -67,10 +67,10 @@ func TestAccComputeV2Instance_floatingIPAttach(t *testing.T) {
 			floating_ip = "${openstack_compute_floatingip_v2.myip.address}"
 
 			network {
-				name = "%s"
+				uuid = "%s"
 			}
 		}`,
-		os.Getenv("OS_NETWORK_NAME"))
+		os.Getenv("OS_NETWORK_ID"))
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
