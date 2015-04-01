@@ -28,9 +28,10 @@ func resourceNetworkingFloatingIPV2() *schema.Resource {
 				Computed: true,
 			},
 			"pool": &schema.Schema{
-				Type:     schema.TypeString,
-				Required: true,
-				ForceNew: true,
+				Type:        schema.TypeString,
+				Required:    true,
+				ForceNew:    true,
+				DefaultFunc: envDefaultFunc("OS_POOL_NAME"),
 			},
 		},
 	}
