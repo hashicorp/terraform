@@ -17,6 +17,17 @@ import (
 
 func TestAccComputeV2Instance_basic(t *testing.T) {
 	var instance servers.Server
+	var testAccComputeV2Instance_basic = fmt.Sprintf(`
+		resource "openstack_compute_instance_v2" "foo" {
+			name = "terraform-test"
+			network {
+				uuid = "%s"
+			}
+			metadata {
+				foo = "bar"
+			}
+		}`,
+		os.Getenv("OS_NETWORK_ID"))
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -206,16 +217,6 @@ func testAccCheckComputeV2InstanceFloatingIPAttach(
 
 	}
 }
-
-var testAccComputeV2Instance_basic = fmt.Sprintf(`
-	resource "openstack_compute_instance_v2" "foo" {
-		region = "%s"
-		name = "terraform-test"
-		metadata {
-			foo = "bar"
-		}
-	}`,
-	OS_REGION_NAME)
 
 var testAccComputeV2Instance_volumeAttach = fmt.Sprintf(`
   resource "openstack_blockstorage_volume_v1" "myvol" {
