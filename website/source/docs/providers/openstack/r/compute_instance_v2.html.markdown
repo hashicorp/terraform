@@ -47,6 +47,12 @@ The following arguments are supported:
 * `flavor_name` - (Optional; Required if `flavor_id` is empty) The name of the
     desired flavor for the server. Changing this resizes the existing server.
 
+* `floating_ip` - (Optional) A Floating IP that will be associated with the
+    Instance. The Floating IP must be provisioned already.
+
+* `user_data` - (Optional) The user data to provide when launching the instance.
+    Changing this creates a new server.
+
 * `security_groups` - (Optional) An array of one or more security group names
     to associate with the server. Changing this results in adding/removing
     security groups from the existing server.
@@ -60,6 +66,9 @@ The following arguments are supported:
 
 * `metadata` - (Optional) Metadata key/value pairs to make available from
     within the instance. Changing this updates the existing server metadata.
+
+* `config_drive` - (Optional) Whether to use the config_drive feature to
+    configure the instance. Changing this creates a new server.
 
 * `admin_pass` - (Optional) The administrative password to assign to the server.
     Changing this changes the root password on the existing server.
@@ -76,13 +85,16 @@ The following arguments are supported:
 
 The `network` block supports:
 
-* `uuid` - (Required unless `port` is provided) The network UUID to attach to
-    the server.
-
-* `port` - (Required unless `uuid` is provided) The port UUID of a network to
+* `uuid` - (Required unless `port`  or `name` is provided) The network UUID to
     attach to the server.
 
-* `fixed_ip` - (Optional) Specifies a fixed IP address to be used on this
+* `name` - (Required unless `uuid` or `port` is provided) The human-readable
+    name of the network.
+
+* `port` - (Required unless `uuid` or `name` is provided) The port UUID of a
+    network to attach to the server.
+
+* `fixed_ip_v4` - (Optional) Specifies a fixed IPv4 address to be used on this
     network.
 
 The `block_device` block supports:
@@ -113,8 +125,25 @@ The following attributes are exported:
 
 * `region` - See Argument Reference above.
 * `name` - See Argument Reference above.
-* `access_ip_v4` - See Argument Reference above.
-* `access_ip_v6` - See Argument Reference above.
+* `access_ip_v4` - The first detected Fixed IPv4 address _or_ the
+    Floating IP.
+* `access_ip_v6` - The first detected Fixed IPv6 address.
 * `metadata` - See Argument Reference above.
 * `security_groups` - See Argument Reference above.
-* `flavor_ref` - See Argument Reference above.
+* `flavor_id` - See Argument Reference above.
+* `flavor_name` - See Argument Reference above.
+* `network/uuid` - See Argument Reference above.
+* `network/name` - See Argument Reference above.
+* `network/port` - See Argument Reference above.
+* `network/fixed_ip_v4` - The Fixed IPv4 address of the Instance on that
+    network.
+* `network/fixed_ip_v6` - The Fixed IPv6 address of the Instance on that
+    network.
+* `network/mac` - The MAC address of the NIC on that network.
+
+## Notes
+
+If you configure the instance to have multiple networks, be aware that only
+the first network can be associated with a Floating IP. So the first network
+in the instance resource _must_ be the network that you have configured to
+communicate with your floating IP / public network via a Neutron Router.
