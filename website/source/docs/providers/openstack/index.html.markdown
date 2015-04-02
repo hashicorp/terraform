@@ -35,13 +35,16 @@ resource "openstack_compute_instance_v2" "test-server" {
 
 The following arguments are supported:
 
-* `auth_url` - (Required)
+* `auth_url` - (Required) If omitted, the `OS_AUTH_URL` environment
+    variable is used.
 
-* `user_name` - (Optional; Required for Identity V2)
+* `user_name` - (Optional; Required for Identity V2) If omitted, the
+    `OS_USERNAME` environment variable is used.
 
 * `user_id` - (Optional)
 
-* `password` - (Optional; Required if not using `api_key`)
+* `password` - (Optional; Required if not using `api_key`) If omitted, the
+    `OS_PASSWORD` environment variable is used.
 
 * `api_key` - (Optional; Required if not using `password`)
 
@@ -51,4 +54,21 @@ The following arguments are supported:
 
 * `tenant_id` - (Optional)
 
-* `tenant_name` - (Optional)
+* `tenant_name` - (Optional) If omitted, the `OS_TENANT_NAME` environment
+    variable is used.
+
+## Testing
+
+In order to run the Acceptance Tests for development, the following environment
+variables must also be set:
+
+* `OS_REGION_NAME` - The region in which to create the server instance.
+
+* `OS_IMAGE_ID` or `OS_IMAGE_NAME` - a UUID or name of an existing image in
+    Glance.
+
+* `OS_FLAVOR_ID` or `OS_FLAVOR_NAME` - an ID or name of an existing flavor.
+
+* `OS_POOL_NAME` - The name of a Floating IP pool.
+
+* `OS_NETWORK_ID` - The UUID of a network in your test environment.
