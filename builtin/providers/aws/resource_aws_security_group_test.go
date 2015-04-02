@@ -76,13 +76,13 @@ func TestAccAWSSecurityGroup_self(t *testing.T) {
 					resource.TestCheckResourceAttr(
 						"aws_security_group.web", "description", "Used in the terraform acceptance tests"),
 					resource.TestCheckResourceAttr(
-						"aws_security_group.web", "ingress.3128515109.protocol", "tcp"),
+						"aws_security_group.web", "ingress.3971148406.protocol", "tcp"),
 					resource.TestCheckResourceAttr(
-						"aws_security_group.web", "ingress.3128515109.from_port", "80"),
+						"aws_security_group.web", "ingress.3971148406.from_port", "80"),
 					resource.TestCheckResourceAttr(
-						"aws_security_group.web", "ingress.3128515109.to_port", "8000"),
+						"aws_security_group.web", "ingress.3971148406.to_port", "8000"),
 					resource.TestCheckResourceAttr(
-						"aws_security_group.web", "ingress.3128515109.self", "true"),
+						"aws_security_group.web", "ingress.3971148406.self", "true"),
 					checkSelf,
 				),
 			},
