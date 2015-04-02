@@ -2,7 +2,6 @@ package aws
 
 import (
 	"fmt"
-	"reflect"
 	"testing"
 
 	"github.com/awslabs/aws-sdk-go/aws"
@@ -60,31 +59,6 @@ func TestAccAWSSecurityGroup_vpc(t *testing.T) {
 					resource.TestCheckResourceAttr(
 						"aws_security_group.web", "description", "Used in the terraform acceptance tests"),
 					testCheck,
-				),
-			},
-		},
-	})
-}
-
-func TestAccAWSSecurityGroup_Change(t *testing.T) {
-	var group ec2.SecurityGroup
-
-	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		Providers:    testAccProviders,
-		CheckDestroy: testAccCheckAWSSecurityGroupDestroy,
-		Steps: []resource.TestStep{
-			resource.TestStep{
-				Config: testAccAWSSecurityGroupConfig,
-				Check: resource.ComposeTestCheckFunc(
-					testAccCheckAWSSecurityGroupExists("aws_security_group.web", &group),
-				),
-			},
-			resource.TestStep{
-				Config: testAccAWSSecurityGroupConfigChange,
-				Check: resource.ComposeTestCheckFunc(
-					testAccCheckAWSSecurityGroupExists("aws_security_group.web", &group),
-					testAccCheckAWSSecurityGroupAttributesChanged(&group),
 				),
 			},
 		},
@@ -156,12 +130,6 @@ func testAccCheckAWSSecurityGroupExists(n string, group *ec2.SecurityGroup) reso
 
 func testAccCheckAWSSecurityGroupAttributes(group *ec2.SecurityGroup) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
-		p := &ec2.IPPermission{
-			FromPort:   aws.Long(80),
-			ToPort:     aws.Long(8000),
-			IPProtocol: aws.String("tcp"),
-			IPRanges:   []*ec2.IPRange{&ec2.IPRange{CIDRIP: aws.String("10.0.0.0/8")}},
-		}
 
 		if *group.GroupName != "terraform_acceptance_test_example" {
 			return fmt.Errorf("Bad name: %s", *group.GroupName)
@@ -169,18 +137,6 @@ func testAccCheckAWSSecurityGroupAttributes(group *ec2.SecurityGroup) resource.T
 
 		if *group.Description != "Used in the terraform acceptance tests" {
 			return fmt.Errorf("Bad description: %s", *group.Description)
-		}
-
-		if len(group.IPPermissions) == 0 {
-			return fmt.Errorf("No IPPerms")
-		}
-
-		// Compare our ingress
-		if !reflect.DeepEqual(group.IPPermissions[0], p) {
-			return fmt.Errorf(
-				"Got:\n\n%#v\n\nExpected:\n\n%#v\n",
-				group.IPPermissions[0],
-				p)
 		}
 
 		return nil
@@ -215,72 +171,9 @@ func TestAccAWSSecurityGroup_tags(t *testing.T) {
 	})
 }
 
-func testAccCheckAWSSecurityGroupAttributesChanged(group *ec2.SecurityGroup) resource.TestCheckFunc {
-	return func(s *terraform.State) error {
-		p := []*ec2.IPPermission{
-			&ec2.IPPermission{
-				FromPort:   aws.Long(80),
-				ToPort:     aws.Long(9000),
-				IPProtocol: aws.String("tcp"),
-				IPRanges:   []*ec2.IPRange{&ec2.IPRange{CIDRIP: aws.String("10.0.0.0/8")}},
-			},
-			&ec2.IPPermission{
-				FromPort:   aws.Long(80),
-				ToPort:     aws.Long(8000),
-				IPProtocol: aws.String("tcp"),
-				IPRanges: []*ec2.IPRange{
-					&ec2.IPRange{
-						CIDRIP: aws.String("0.0.0.0/0"),
-					},
-					&ec2.IPRange{
-						CIDRIP: aws.String("10.0.0.0/8"),
-					},
-				},
-			},
-		}
-
-		if *group.GroupName != "terraform_acceptance_test_example" {
-			return fmt.Errorf("Bad name: %s", *group.GroupName)
-		}
-
-		if *group.Description != "Used in the terraform acceptance tests" {
-			return fmt.Errorf("Bad description: %s", *group.Description)
-		}
-
-		// Compare our ingress
-		if len(group.IPPermissions) != 2 {
-			return fmt.Errorf(
-				"Got:\n\n%#v\n\nExpected:\n\n%#v\n",
-				group.IPPermissions,
-				p)
-		}
-
-		if *group.IPPermissions[0].ToPort == 8000 {
-			group.IPPermissions[1], group.IPPermissions[0] =
-				group.IPPermissions[0], group.IPPermissions[1]
-		}
-
-		if !reflect.DeepEqual(group.IPPermissions, p) {
-			return fmt.Errorf(
-				"Got:\n\n%#v\n\nExpected:\n\n%#v\n",
-				group.IPPermissions,
-				p)
-		}
-
-		return nil
-	}
-}
-
 const testAccAWSSecurityGroupConfig = `
 resource "aws_security_group" "web" {
   name = "terraform_acceptance_test_example"
-  description = "Used in the terraform acceptance tests"
-}
-`
-
-const testAccAWSSecurityGroupConfigChange = `
-resource "aws_security_group" "web" {
-  name = "terraform_acceptance_test_change_example"
   description = "Used in the terraform acceptance tests"
 }
 `
