@@ -159,38 +159,17 @@ func resourceAwsSubnetDelete(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).ec2conn
 
 	log.Printf("[INFO] Deleting subnet: %s", d.Id())
-	req := &ec2.DeleteSubnetInput{
+
+	_, err := conn.DeleteSubnet(&ec2.DeleteSubnetInput{
 		SubnetID: aws.String(d.Id()),
-	}
+	})
 
-	wait := resource.StateChangeConf{
-		Pending:    []string{"pending"},
-		Target:     "destroyed",
-		Timeout:    5 * time.Minute,
-		MinTimeout: 1 * time.Second,
-		Refresh: func() (interface{}, string, error) {
-			_, err := conn.DeleteSubnet(req)
-			if err != nil {
-				if apiErr, ok := err.(aws.APIError); ok {
-					if apiErr.Code == "DependencyViolation" {
-						// There is some pending operation, so just retry
-						// in a bit.
-						return 42, "pending", nil
-					}
+	if err != nil {
+		ec2err, ok := err.(aws.APIError)
+		if ok && ec2err.Code == "InvalidSubnetID.NotFound" {
+			return nil
+		}
 
-					if apiErr.Code == "InvalidSubnetID.NotFound" {
-						return 42, "destroyed", nil
-					}
-				}
-
-				return 42, "failure", err
-			}
-
-			return 42, "destroyed", nil
-		},
-	}
-
-	if _, err := wait.WaitForState(); err != nil {
 		return fmt.Errorf("Error deleting subnet: %s", err)
 	}
 
