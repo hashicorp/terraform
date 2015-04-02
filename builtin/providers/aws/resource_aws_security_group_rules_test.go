@@ -26,9 +26,9 @@ func TestAccAWSSecurityGroupRules_normal(t *testing.T) {
 					testAccCheckAWSSecurityGroupRulesExists("aws_security_group.web", &group),
 					testAccCheckAWSSecurityGroupRulesAttributes(&group),
 					resource.TestCheckResourceAttr(
-						"aws_security_group_rules.web", "name", "terraform_acceptance_test_example"),
+						"aws_security_group.web", "name", "terraform_acceptance_test_example"),
 					resource.TestCheckResourceAttr(
-						"aws_security_group_rules.web", "description", "Used in the terraform acceptance tests"),
+						"aws_security_group.web", "description", "Used in the terraform acceptance tests"),
 					resource.TestCheckResourceAttr(
 						"aws_security_group_rules.web", "ingress.332851786.protocol", "tcp"),
 					resource.TestCheckResourceAttr(
@@ -70,19 +70,19 @@ func TestAccAWSSecurityGroupRules_self(t *testing.T) {
 			resource.TestStep{
 				Config: testAccAWSSecurityGroupRulesConfigSelf,
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckAWSSecurityGroupRulesExists("aws_security_group_rules.web", &group),
+					testAccCheckAWSSecurityGroupExists("aws_security_group.web", &group),
 					resource.TestCheckResourceAttr(
-						"aws_security_group_rules.web", "name", "terraform_acceptance_test_example"),
+						"aws_security_group.web", "name", "terraform_acceptance_test_example"),
 					resource.TestCheckResourceAttr(
-						"aws_security_group_rules.web", "description", "Used in the terraform acceptance tests"),
+						"aws_security_group.web", "description", "Used in the terraform acceptance tests"),
 					resource.TestCheckResourceAttr(
 						"aws_security_group_rules.web", "ingress.3128515109.protocol", "tcp"),
 					resource.TestCheckResourceAttr(
-						"aws_security_group_rules.web", "ingress.3128515109.from_port", "80"),
+						"aws_security_group.web", "ingress.3128515109.from_port", "80"),
 					resource.TestCheckResourceAttr(
-						"aws_security_group_rules.web", "ingress.3128515109.to_port", "8000"),
+						"aws_security_group.web", "ingress.3128515109.to_port", "8000"),
 					resource.TestCheckResourceAttr(
-						"aws_security_group_rules.web", "ingress.3128515109.self", "true"),
+						"aws_security_group.web", "ingress.3128515109.self", "true"),
 					checkSelf,
 				),
 			},
@@ -109,14 +109,14 @@ func TestAccAWSSecurityGroupRules_vpc(t *testing.T) {
 			resource.TestStep{
 				Config: testAccAWSSecurityGroupRulesConfigVpc,
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckAWSSecurityGroupRulesExists("aws_security_group_rules.web", &group),
-					testAccCheckAWSSecurityGroupRulesAttributes(&group),
+					testAccCheckAWSSecurityGroupExists("aws_security_group.web", &group),
+					testAccCheckAWSSecurityGroupAttributes(&group),
 					resource.TestCheckResourceAttr(
-						"aws_security_group_rules.web", "name", "terraform_acceptance_test_example"),
+						"aws_security_group.web", "name", "terraform_acceptance_test_example"),
 					resource.TestCheckResourceAttr(
-						"aws_security_group_rules.web", "description", "Used in the terraform acceptance tests"),
+						"aws_security_group.web", "description", "Used in the terraform acceptance tests"),
 					resource.TestCheckResourceAttr(
-						"aws_security_group_rules.web", "ingress.332851786.protocol", "tcp"),
+						"aws_security_group.web", "ingress.332851786.protocol", "tcp"),
 					resource.TestCheckResourceAttr(
 						"aws_security_group_rules.web", "ingress.332851786.from_port", "80"),
 					resource.TestCheckResourceAttr(
@@ -153,7 +153,7 @@ func TestAccAWSSecurityGroupRules_MultiIngress(t *testing.T) {
 			resource.TestStep{
 				Config: testAccAWSSecurityGroupRulesConfigMultiIngress,
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckAWSSecurityGroupRulesExists("aws_security_group_rules.web", &group),
+					testAccCheckAWSSecurityGroupExists("aws_security_group.web", &group),
 				),
 			},
 		},
@@ -171,14 +171,14 @@ func TestAccAWSSecurityGroupRules_Change(t *testing.T) {
 			resource.TestStep{
 				Config: testAccAWSSecurityGroupRulesConfig,
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckAWSSecurityGroupRulesExists("aws_security_group_rules.web", &group),
+					testAccCheckAWSSecurityGroupExists("aws_security_group.web", &group),
 				),
 			},
 			resource.TestStep{
 				Config: testAccAWSSecurityGroupRulesConfigChange,
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckAWSSecurityGroupRulesExists("aws_security_group_rules.web", &group),
-					testAccCheckAWSSecurityGroupRulesAttributesChanged(&group),
+					testAccCheckAWSSecurityGroupExists("aws_security_group.web", &group),
+					testAccCheckAWSSecurityGroupAttributesChanged(&group),
 				),
 			},
 		},
@@ -251,6 +251,31 @@ func testAccCheckAWSSecurityGroupRulesExists(n string, group *ec2.SecurityGroup)
 	}
 }
 
+func TestAccAWSSecurityGroup_Change(t *testing.T) {
+	var group ec2.SecurityGroup
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSSecurityGroupDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccAWSSecurityGroupConfig,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSSecurityGroupExists("aws_security_group.web", &group),
+				),
+			},
+			resource.TestStep{
+				Config: testAccAWSSecurityGroupRulesConfigChange,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSSecurityGroupExists("aws_security_group.web", &group),
+					testAccCheckAWSSecurityGroupAttributesChanged(&group),
+				),
+			},
+		},
+	})
+}
+
 func testAccCheckAWSSecurityGroupRulesAttributes(group *ec2.SecurityGroup) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		p := ec2.IPPermission{
@@ -284,7 +309,7 @@ func testAccCheckAWSSecurityGroupRulesAttributes(group *ec2.SecurityGroup) resou
 	}
 }
 
-func testAccCheckAWSSecurityGroupRulesAttributesChanged(group *ec2.SecurityGroup) resource.TestCheckFunc {
+func testAccCheckAWSSecurityGroupAttributesChanged(group *ec2.SecurityGroup) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		p := []ec2.IPPermission{
 			ec2.IPPermission{
