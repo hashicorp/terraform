@@ -14,7 +14,7 @@ func Provider() terraform.ResourceProvider {
 		Schema: map[string]*schema.Schema{
 			"access_key": &schema.Schema{
 				Type:     schema.TypeString,
-				Required: false,
+				Optional: true,
 				DefaultFunc: schema.MultiEnvDefaultFunc([]string{
 					"AWS_ACCESS_KEY",
 					"AWS_ACCESS_KEY_ID",
@@ -24,7 +24,7 @@ func Provider() terraform.ResourceProvider {
 
 			"secret_key": &schema.Schema{
 				Type:     schema.TypeString,
-				Required: false,
+				Optional: true,
 				DefaultFunc: schema.MultiEnvDefaultFunc([]string{
 					"AWS_SECRET_KEY",
 					"AWS_SECRET_ACCESS_KEY",
