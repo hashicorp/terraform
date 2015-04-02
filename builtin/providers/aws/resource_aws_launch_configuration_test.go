@@ -96,6 +96,32 @@ func testAccCheckAWSLaunchConfigurationAttributes(conf *autoscaling.LaunchConfig
 			return fmt.Errorf("Bad instance_type: %s", *conf.InstanceType)
 		}
 
+		// Map out the block devices by name, which should be unique.
+		blockDevices := make(map[string]autoscaling.BlockDeviceMapping)
+		for _, blockDevice := range conf.BlockDeviceMappings {
+			blockDevices[*blockDevice.DeviceName] = blockDevice
+		}
+
+		// Check if the root block device exists.
+		if _, ok := blockDevices["/dev/sda1"]; !ok {
+			fmt.Errorf("block device doesn't exist: /dev/sda1")
+		}
+
+		// Check if the secondary block device exists.
+		if _, ok := blockDevices["/dev/sdb"]; !ok {
+			fmt.Errorf("block device doesn't exist: /dev/sdb")
+		}
+
+		// Check if the third block device exists.
+		if _, ok := blockDevices["/dev/sdc"]; !ok {
+			fmt.Errorf("block device doesn't exist: /dev/sdc")
+		}
+
+		// Check if the secondary block device exists.
+		if _, ok := blockDevices["/dev/sdb"]; !ok {
+			return fmt.Errorf("block device doesn't exist: /dev/sdb")
+		}
+
 		return nil
 	}
 }
@@ -140,6 +166,25 @@ resource "aws_launch_configuration" "bar" {
   instance_type = "t1.micro"
   user_data = "foobar-user-data"
   associate_public_ip_address = true
+
+	root_block_device {
+		volume_type = "gp2"
+		volume_size = 11
+	}
+	ebs_block_device {
+		device_name = "/dev/sdb"
+		volume_size = 9
+	}
+	ebs_block_device {
+		device_name = "/dev/sdc"
+		volume_size = 10
+		volume_type = "io1"
+		iops = 100
+	}
+	ephemeral_block_device {
+		device_name = "/dev/sde"
+		virtual_name = "ephemeral0"
+	}
 }
 `
 
