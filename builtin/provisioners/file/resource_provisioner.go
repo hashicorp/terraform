@@ -60,6 +60,7 @@ func (p *ResourceProvisioner) copyFiles(conf *helper.SSHConfig, src, dst string)
 	if err != nil {
 		return err
 	}
+	defer config.CleanupConfig()
 
 	// Wait and retry until we establish the SSH connection
 	var comm *helper.SSHCommunicator
