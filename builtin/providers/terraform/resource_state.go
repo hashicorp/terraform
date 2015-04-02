@@ -8,11 +8,11 @@ import (
 	"github.com/hashicorp/terraform/state/remote"
 )
 
-func resourceState() *schema.Resource {
+func resourceRemoteState() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceStateCreate,
-		Read:   resourceStateRead,
-		Delete: resourceStateDelete,
+		Create: resourceRemoteStateCreate,
+		Read:   resourceRemoteStateRead,
+		Delete: resourceRemoteStateDelete,
 
 		Schema: map[string]*schema.Schema{
 			"backend": &schema.Schema{
@@ -35,11 +35,11 @@ func resourceState() *schema.Resource {
 	}
 }
 
-func resourceStateCreate(d *schema.ResourceData, meta interface{}) error {
-	return resourceStateRead(d, meta)
+func resourceRemoteStateCreate(d *schema.ResourceData, meta interface{}) error {
+	return resourceRemoteStateRead(d, meta)
 }
 
-func resourceStateRead(d *schema.ResourceData, meta interface{}) error {
+func resourceRemoteStateRead(d *schema.ResourceData, meta interface{}) error {
 	backend := d.Get("backend").(string)
 	config := make(map[string]string)
 	for k, v := range d.Get("config").(map[string]interface{}) {
@@ -60,12 +60,17 @@ func resourceStateRead(d *schema.ResourceData, meta interface{}) error {
 		return err
 	}
 
+	var outputs map[string]string
+	if !state.State().Empty() {
+		outputs = state.State().RootModule().Outputs
+	}
+
 	d.SetId(time.Now().UTC().String())
-	d.Set("output", state.State().RootModule().Outputs)
+	d.Set("output", outputs)
 	return nil
 }
 
-func resourceStateDelete(d *schema.ResourceData, meta interface{}) error {
+func resourceRemoteStateDelete(d *schema.ResourceData, meta interface{}) error {
 	d.SetId("")
 	return nil
 }

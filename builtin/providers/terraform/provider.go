@@ -9,7 +9,7 @@ import (
 func Provider() terraform.ResourceProvider {
 	return &schema.Provider{
 		ResourcesMap: map[string]*schema.Resource{
-			"terraform_state": resourceState(),
+			"terraform_remote_state": resourceRemoteState(),
 		},
 	}
 }
