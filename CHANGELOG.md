@@ -16,6 +16,9 @@ FEATURES:
       using the standard Docker API. [GH-855]
   * **New provider: `openstack` (OpenStack)** - Interact with the many resources
       provided by OpenStack. [GH-924]
+  * **New feature: `terraform_remote_state` resource** - Reference remote
+      states from other Terraform runs to use Terraform outputs as inputs
+      into another Terraform run.
   * **New command: `taint`** - Manually mark a resource as tainted, causing
       a destroy and recreate on the next plan/apply.
   * **New resource: `aws_vpn_gateway`** [GH-1137]
@@ -57,8 +60,8 @@ IMPROVEMENTS:
       `www` instead of `www.example.com`.
   * providers/aws: Improve dependency violation error handling, when deleting
     Internet Gateways or Auto Scaling groups [GH-1325].
-  * provider/aws: Add non-destructive updates to AWS RDS. You can now upgrade 
-      `egine_version`, `parameter_group_name`, and `multi_az` without forcing 
+  * provider/aws: Add non-destructive updates to AWS RDS. You can now upgrade
+      `egine_version`, `parameter_group_name`, and `multi_az` without forcing
       a new database to be created.[GH-1341]
 
 BUG FIXES:
