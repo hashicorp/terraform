@@ -59,10 +59,11 @@ IMPROVEMENTS:
   * providers/aws: Add a short syntax for Route 53 Record names, e.g.
       `www` instead of `www.example.com`.
   * providers/aws: Improve dependency violation error handling, when deleting
-    Internet Gateways or Auto Scaling groups [GH-1325].
+      Internet Gateways or Auto Scaling groups [GH-1325].
   * provider/aws: Add non-destructive updates to AWS RDS. You can now upgrade
       `egine_version`, `parameter_group_name`, and `multi_az` without forcing
       a new database to be created.[GH-1341]
+  * provisioners/remote-exec: SSH agent support. [GH-1208]
 
 BUG FIXES:
 
