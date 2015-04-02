@@ -65,6 +65,7 @@ func Provider() terraform.ResourceProvider {
 			"aws_route_table_association":      resourceAwsRouteTableAssociation(),
 			"aws_s3_bucket":                    resourceAwsS3Bucket(),
 			"aws_security_group":               resourceAwsSecurityGroup(),
+			"aws_security_group_rules":         resourceAwsSecurityGroupRules(),
 			"aws_subnet":                       resourceAwsSubnet(),
 			"aws_vpc":                          resourceAwsVpc(),
 			"aws_vpc_peering_connection":       resourceAwsVpcPeeringConnection(),
