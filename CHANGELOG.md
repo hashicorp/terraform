@@ -12,6 +12,11 @@ BACKWARDS INCOMPATIBILITIES:
     consolidates all remote state management under one command.
   * Period-prefixed configuration files are now ignored. This might break
     existing Terraform configurations if you had period-prefixed files.
+  * The `block_device` attribute of `aws_instance` has been removed in favor
+    of three more specific attributes to specify block device mappings: 
+    `root_block_device`, `ebs_block_device`, and `ephemeral_block_device`.
+    Configurations using the old attribute will generate a validation error
+    indicating that they must be updated to use the new fields [GH-1045].
 
 FEATURES:
 
@@ -67,6 +72,8 @@ IMPROVEMENTS:
   * provider/aws: Add non-destructive updates to AWS RDS. You can now upgrade
       `egine_version`, `parameter_group_name`, and `multi_az` without forcing
       a new database to be created.[GH-1341]
+  * providers/aws: Full support for block device mappings on instances and
+      launch configurations [GH-1045, GH-1364]
   * provisioners/remote-exec: SSH agent support. [GH-1208]
 
 BUG FIXES:
