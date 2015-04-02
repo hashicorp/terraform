@@ -3,7 +3,7 @@ layout: "openstack"
 page_title: "OpenStack: openstack_blockstorage_volume_v1"
 sidebar_current: "docs-openstack-resource-blockstorage-volume-v1"
 description: |-
-Manages a V1 volume resource within OpenStack.
+  Manages a V1 volume resource within OpenStack.
 ---
 
 # openstack\_blockstorage\_volume_v1

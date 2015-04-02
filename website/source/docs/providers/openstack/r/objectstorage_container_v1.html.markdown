@@ -3,7 +3,7 @@ layout: "openstack"
 page_title: "OpenStack: openstack_objectstorage_container_v1"
 sidebar_current: "docs-openstack-resource-objectstorage-container-v1"
 description: |-
-Manages a V1 container resource within OpenStack.
+  Manages a V1 container resource within OpenStack.
 ---
 
 # openstack\_objectstorage\_container_v1
