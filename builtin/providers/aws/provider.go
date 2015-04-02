@@ -12,6 +12,26 @@ func Provider() terraform.ResourceProvider {
 
 	return &schema.Provider{
 		Schema: map[string]*schema.Schema{
+			"access_key": &schema.Schema{
+				Type:     schema.TypeString,
+				Required: false,
+				DefaultFunc: schema.MultiEnvDefaultFunc([]string{
+					"AWS_ACCESS_KEY",
+					"AWS_ACCESS_KEY_ID",
+				}, nil),
+				Description: descriptions["access_key"],
+			},
+
+			"secret_key": &schema.Schema{
+				Type:     schema.TypeString,
+				Required: false,
+				DefaultFunc: schema.MultiEnvDefaultFunc([]string{
+					"AWS_SECRET_KEY",
+					"AWS_SECRET_ACCESS_KEY",
+				}, nil),
+				Description: descriptions["secret_key"],
+			},
+
 			"region": &schema.Schema{
 				Type:     schema.TypeString,
 				Required: true,
@@ -61,11 +81,19 @@ func init() {
 	descriptions = map[string]string{
 		"region": "The region where AWS operations will take place. Examples\n" +
 			"are us-east-1, us-west-2, etc.",
+
+		"access_key": "The access key for API operations. You can retrieve this\n" +
+			"from the 'Security & Credentials' section of the AWS console.",
+
+		"secret_key": "The secret key for API operations. You can retrieve this\n" +
+			"from the 'Security & Credentials' section of the AWS console.",
 	}
 }
 
 func providerConfigure(d *schema.ResourceData) (interface{}, error) {
 	config := Config{
+		AccessKey: d.Get("access_key").(string),
+		SecretKey: d.Get("secret_key").(string),
 		Region:    d.Get("region").(string),
 	}
 
