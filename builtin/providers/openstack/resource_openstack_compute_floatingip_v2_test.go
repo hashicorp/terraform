@@ -2,12 +2,14 @@ package openstack
 
 import (
 	"fmt"
+	"os"
 	"testing"
 
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
 
 	"github.com/rackspace/gophercloud/openstack/compute/v2/extensions/floatingip"
+	"github.com/rackspace/gophercloud/openstack/compute/v2/servers"
 )
 
 func TestAccComputeV2FloatingIP_basic(t *testing.T) {
@@ -22,6 +24,40 @@ func TestAccComputeV2FloatingIP_basic(t *testing.T) {
 				Config: testAccComputeV2FloatingIP_basic,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckComputeV2FloatingIPExists(t, "openstack_compute_floatingip_v2.foo", &floatingIP),
+				),
+			},
+		},
+	})
+}
+
+func TestAccComputeV2FloatingIP_attach(t *testing.T) {
+	var instance servers.Server
+	var fip floatingip.FloatingIP
+	var testAccComputeV2FloatingIP_attach = fmt.Sprintf(`
+    resource "openstack_compute_floatingip_v2" "myip" {
+    }
+
+    resource "openstack_compute_instance_v2" "foo" {
+      name = "terraform-test"
+      floating_ip = "${openstack_compute_floatingip_v2.myip.address}"
+
+      network {
+        uuid = "%s"
+      }
+    }`,
+		os.Getenv("OS_NETWORK_ID"))
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckComputeV2FloatingIPDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccComputeV2FloatingIP_attach,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckComputeV2FloatingIPExists(t, "openstack_compute_floatingip_v2.myip", &fip),
+					testAccCheckComputeV2InstanceExists(t, "openstack_compute_instance_v2.foo", &instance),
+					testAccCheckComputeV2InstanceFloatingIPAttach(&instance, &fip),
 				),
 			},
 		},
@@ -83,9 +119,4 @@ func testAccCheckComputeV2FloatingIPExists(t *testing.T, n string, kp *floatingi
 
 var testAccComputeV2FloatingIP_basic = `
   resource "openstack_compute_floatingip_v2" "foo" {
-  }
-
-  resource "openstack_compute_instance_v2" "bar" {
-	name = "terraform-acc-floating-ip-test"
-	floating_ip = "${openstack_compute_floatingip_v2.foo.address}"
   }`
