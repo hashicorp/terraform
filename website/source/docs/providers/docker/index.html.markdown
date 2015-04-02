@@ -10,7 +10,7 @@ description: |-
 
 The Docker provider is used to interact with Docker containers and images.
 It uses the Docker API to manage the lifecycle of Docker containers. Because
-the Docker provider uses the Docker API, it is immediatel compatible not
+the Docker provider uses the Docker API, it is immediately compatible not
 only with single server Docker but Swarm and any additional Docker-compatible
 API hosts.
 
