@@ -1,6 +1,7 @@
 package aws
 
 import (
+	"bytes"
 	"crypto/sha1"
 	"encoding/base64"
 	"encoding/hex"
@@ -10,6 +11,7 @@ import (
 
 	"github.com/hashicorp/aws-sdk-go/aws"
 	"github.com/hashicorp/aws-sdk-go/gen/autoscaling"
+	"github.com/hashicorp/aws-sdk-go/gen/ec2"
 	"github.com/hashicorp/terraform/helper/hashcode"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
@@ -89,27 +91,181 @@ func resourceAwsLaunchConfiguration() *schema.Resource {
 				Optional: true,
 				ForceNew: true,
 			},
+
+			"ebs_block_device": &schema.Schema{
+				Type:     schema.TypeSet,
+				Optional: true,
+				Computed: true,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"delete_on_termination": &schema.Schema{
+							Type:     schema.TypeBool,
+							Optional: true,
+							Default:  true,
+							ForceNew: true,
+						},
+
+						"device_name": &schema.Schema{
+							Type:     schema.TypeString,
+							Required: true,
+							ForceNew: true,
+						},
+
+						"iops": &schema.Schema{
+							Type:     schema.TypeInt,
+							Optional: true,
+							Computed: true,
+							ForceNew: true,
+						},
+
+						"snapshot_id": &schema.Schema{
+							Type:     schema.TypeString,
+							Optional: true,
+							Computed: true,
+							ForceNew: true,
+						},
+
+						"volume_size": &schema.Schema{
+							Type:     schema.TypeInt,
+							Optional: true,
+							Computed: true,
+							ForceNew: true,
+						},
+
+						"volume_type": &schema.Schema{
+							Type:     schema.TypeString,
+							Optional: true,
+							Computed: true,
+							ForceNew: true,
+						},
+					},
+				},
+				Set: func(v interface{}) int {
+					var buf bytes.Buffer
+					m := v.(map[string]interface{})
+					buf.WriteString(fmt.Sprintf("%t-", m["delete_on_termination"].(bool)))
+					buf.WriteString(fmt.Sprintf("%s-", m["device_name"].(string)))
+					// NOTE: Not considering IOPS in hash; when using gp2, IOPS can come
+					// back set to something like "33", which throws off the set
+					// calculation and generates an unresolvable diff.
+					// buf.WriteString(fmt.Sprintf("%d-", m["iops"].(int)))
+					buf.WriteString(fmt.Sprintf("%s-", m["snapshot_id"].(string)))
+					buf.WriteString(fmt.Sprintf("%d-", m["volume_size"].(int)))
+					buf.WriteString(fmt.Sprintf("%s-", m["volume_type"].(string)))
+					return hashcode.String(buf.String())
+				},
+			},
+
+			"ephemeral_block_device": &schema.Schema{
+				Type:     schema.TypeSet,
+				Optional: true,
+				Computed: true,
+				ForceNew: true,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"device_name": &schema.Schema{
+							Type:     schema.TypeString,
+							Required: true,
+						},
+
+						"virtual_name": &schema.Schema{
+							Type:     schema.TypeString,
+							Required: true,
+						},
+					},
+				},
+				Set: func(v interface{}) int {
+					var buf bytes.Buffer
+					m := v.(map[string]interface{})
+					buf.WriteString(fmt.Sprintf("%s-", m["device_name"].(string)))
+					buf.WriteString(fmt.Sprintf("%s-", m["virtual_name"].(string)))
+					return hashcode.String(buf.String())
+				},
+			},
+
+			"root_block_device": &schema.Schema{
+				// TODO: This is a set because we don't support singleton
+				//       sub-resources today. We'll enforce that the set only ever has
+				//       length zero or one below. When TF gains support for
+				//       sub-resources this can be converted.
+				Type:     schema.TypeSet,
+				Optional: true,
+				Computed: true,
+				Elem: &schema.Resource{
+					// "You can only modify the volume size, volume type, and Delete on
+					// Termination flag on the block device mapping entry for the root
+					// device volume." - bit.ly/ec2bdmap
+					Schema: map[string]*schema.Schema{
+						"delete_on_termination": &schema.Schema{
+							Type:     schema.TypeBool,
+							Optional: true,
+							Default:  true,
+							ForceNew: true,
+						},
+
+						"iops": &schema.Schema{
+							Type:     schema.TypeInt,
+							Optional: true,
+							Computed: true,
+							ForceNew: true,
+						},
+
+						"volume_size": &schema.Schema{
+							Type:     schema.TypeInt,
+							Optional: true,
+							Computed: true,
+							ForceNew: true,
+						},
+
+						"volume_type": &schema.Schema{
+							Type:     schema.TypeString,
+							Optional: true,
+							Computed: true,
+							ForceNew: true,
+						},
+					},
+				},
+				Set: func(v interface{}) int {
+					var buf bytes.Buffer
+					m := v.(map[string]interface{})
+					buf.WriteString(fmt.Sprintf("%t-", m["delete_on_termination"].(bool)))
+					// See the NOTE in "ebs_block_device" for why we skip iops here.
+					// buf.WriteString(fmt.Sprintf("%d-", m["iops"].(int)))
+					buf.WriteString(fmt.Sprintf("%d-", m["volume_size"].(int)))
+					buf.WriteString(fmt.Sprintf("%s-", m["volume_type"].(string)))
+					return hashcode.String(buf.String())
+				},
+			},
 		},
 	}
 }
 
 func resourceAwsLaunchConfigurationCreate(d *schema.ResourceData, meta interface{}) error {
 	autoscalingconn := meta.(*AWSClient).autoscalingconn
+	ec2conn := meta.(*AWSClient).ec2conn
 
-	var createLaunchConfigurationOpts autoscaling.CreateLaunchConfigurationType
-	createLaunchConfigurationOpts.LaunchConfigurationName = aws.String(d.Get("name").(string))
-	createLaunchConfigurationOpts.ImageID = aws.String(d.Get("image_id").(string))
-	createLaunchConfigurationOpts.InstanceType = aws.String(d.Get("instance_type").(string))
-
-	if v, ok := d.GetOk("user_data"); ok {
-		createLaunchConfigurationOpts.UserData = aws.String(base64.StdEncoding.EncodeToString([]byte(v.(string))))
+	// Figure out user data
+	userData := ""
+	if v := d.Get("user_data"); v != nil {
+		userData = base64.StdEncoding.EncodeToString([]byte(v.(string)))
 	}
-	if v, ok := d.GetOk("associate_public_ip_address"); ok {
+
+	createLaunchConfigurationOpts := autoscaling.CreateLaunchConfigurationType{
+		LaunchConfigurationName: aws.String(d.Get("name").(string)),
+		ImageID:                 aws.String(d.Get("image_id").(string)),
+		InstanceType:            aws.String(d.Get("instance_type").(string)),
+		UserData:                aws.String(userData),
+		EBSOptimized:            aws.Boolean(d.Get("ebs_optimized").(bool)),
+		IAMInstanceProfile:      aws.String(d.Get("iam_instance_profile").(string)),
+		PlacementTenancy:        aws.String(d.Get("placement_tenancy").(string)),
+	}
+
+	if v := d.Get("associate_public_ip_address"); v != nil {
 		createLaunchConfigurationOpts.AssociatePublicIPAddress = aws.Boolean(v.(bool))
+	} else {
+		createLaunchConfigurationOpts.AssociatePublicIPAddress = aws.Boolean(false)
 	}
-	if v, ok := d.GetOk("iam_instance_profile"); ok {
-		createLaunchConfigurationOpts.IAMInstanceProfile = aws.String(v.(string))
-	}
+
 	if v, ok := d.GetOk("key_name"); ok {
 		createLaunchConfigurationOpts.KeyName = aws.String(v.(string))
 	}
@@ -119,7 +275,90 @@ func resourceAwsLaunchConfigurationCreate(d *schema.ResourceData, meta interface
 
 	if v, ok := d.GetOk("security_groups"); ok {
 		createLaunchConfigurationOpts.SecurityGroups = expandStringList(
-			v.(*schema.Set).List())
+			v.(*schema.Set).List(),
+		)
+	}
+
+	var blockDevices []autoscaling.BlockDeviceMapping
+
+	if v, ok := d.GetOk("ebs_block_device"); ok {
+		vL := v.(*schema.Set).List()
+		for _, v := range vL {
+			bd := v.(map[string]interface{})
+			ebs := &autoscaling.EBS{
+				DeleteOnTermination: aws.Boolean(bd["delete_on_termination"].(bool)),
+			}
+
+			if v, ok := bd["snapshot_id"].(string); ok && v != "" {
+				ebs.SnapshotID = aws.String(v)
+			}
+
+			if v, ok := bd["volume_size"].(int); ok && v != 0 {
+				ebs.VolumeSize = aws.Integer(v)
+			}
+
+			if v, ok := bd["volume_type"].(string); ok && v != "" {
+				ebs.VolumeType = aws.String(v)
+			}
+
+			if v, ok := bd["iops"].(int); ok && v > 0 {
+				ebs.IOPS = aws.Integer(v)
+			}
+
+			blockDevices = append(blockDevices, autoscaling.BlockDeviceMapping{
+				DeviceName: aws.String(bd["device_name"].(string)),
+				EBS:        ebs,
+			})
+		}
+	}
+
+	if v, ok := d.GetOk("ephemeral_block_device"); ok {
+		vL := v.(*schema.Set).List()
+		for _, v := range vL {
+			bd := v.(map[string]interface{})
+			blockDevices = append(blockDevices, autoscaling.BlockDeviceMapping{
+				DeviceName:  aws.String(bd["device_name"].(string)),
+				VirtualName: aws.String(bd["virtual_name"].(string)),
+			})
+		}
+	}
+
+	if v, ok := d.GetOk("root_block_device"); ok {
+		vL := v.(*schema.Set).List()
+		if len(vL) > 1 {
+			return fmt.Errorf("Cannot specify more than one root_block_device.")
+		}
+		for _, v := range vL {
+			bd := v.(map[string]interface{})
+			ebs := &autoscaling.EBS{
+				DeleteOnTermination: aws.Boolean(bd["delete_on_termination"].(bool)),
+			}
+
+			if v, ok := bd["volume_size"].(int); ok && v != 0 {
+				ebs.VolumeSize = aws.Integer(v)
+			}
+
+			if v, ok := bd["volume_type"].(string); ok && v != "" {
+				ebs.VolumeType = aws.String(v)
+			}
+
+			if v, ok := bd["iops"].(int); ok && v > 0 {
+				ebs.IOPS = aws.Integer(v)
+			}
+
+			if dn, err := fetchRootDeviceName(d.Get("ami").(string), ec2conn); err == nil {
+				blockDevices = append(blockDevices, autoscaling.BlockDeviceMapping{
+					DeviceName: dn,
+					EBS:        ebs,
+				})
+			} else {
+				return err
+			}
+		}
+	}
+
+	if len(blockDevices) > 0 {
+		createLaunchConfigurationOpts.BlockDeviceMappings = blockDevices
 	}
 
 	log.Printf("[DEBUG] autoscaling create launch configuration: %#v", createLaunchConfigurationOpts)
@@ -140,6 +379,7 @@ func resourceAwsLaunchConfigurationCreate(d *schema.ResourceData, meta interface
 
 func resourceAwsLaunchConfigurationRead(d *schema.ResourceData, meta interface{}) error {
 	autoscalingconn := meta.(*AWSClient).autoscalingconn
+	ec2conn := meta.(*AWSClient).ec2conn
 
 	describeOpts := autoscaling.LaunchConfigurationNamesType{
 		LaunchConfigurationNames: []string{d.Id()},
@@ -169,6 +409,17 @@ func resourceAwsLaunchConfigurationRead(d *schema.ResourceData, meta interface{}
 	d.Set("instance_type", *lc.InstanceType)
 	d.Set("name", *lc.LaunchConfigurationName)
 
+	bds := make([]map[string]interface{}, len(lc.BlockDeviceMappings))
+	for i, m := range lc.BlockDeviceMappings {
+		bds[i] = make(map[string]interface{})
+		bds[i]["device_name"] = m.DeviceName
+		bds[i]["snapshot_id"] = m.EBS.SnapshotID
+		bds[i]["volume_type"] = m.EBS.VolumeType
+		bds[i]["volume_size"] = m.EBS.VolumeSize
+		bds[i]["delete_on_termination"] = m.EBS.DeleteOnTermination
+	}
+	d.Set("block_device", bds)
+
 	if lc.IAMInstanceProfile != nil {
 		d.Set("iam_instance_profile", *lc.IAMInstanceProfile)
 	} else {
@@ -186,6 +437,11 @@ func resourceAwsLaunchConfigurationRead(d *schema.ResourceData, meta interface{}
 	} else {
 		d.Set("security_groups", nil)
 	}
+
+	if err := readLCBlockDevices(d, &lc, ec2conn); err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -205,4 +461,63 @@ func resourceAwsLaunchConfigurationDelete(d *schema.ResourceData, meta interface
 	}
 
 	return nil
+}
+
+func readLCBlockDevices(d *schema.ResourceData, lc *autoscaling.LaunchConfiguration, ec2conn *ec2.EC2) error {
+	ibds, err := readBlockDevicesFromLaunchConfiguration(d, lc, ec2conn)
+	if err != nil {
+		return err
+	}
+
+	if err := d.Set("ebs_block_device", ibds["ebs"]); err != nil {
+		return err
+	}
+	if ibds["root"] != nil {
+		if err := d.Set("root_block_device", []interface{}{ibds["root"]}); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func readBlockDevicesFromLaunchConfiguration(d *schema.ResourceData, lc *autoscaling.LaunchConfiguration, ec2conn *ec2.EC2) (
+	map[string]interface{}, error) {
+	blockDevices := make(map[string]interface{})
+	blockDevices["ebs"] = make([]map[string]interface{}, 0)
+	blockDevices["root"] = nil
+	if len(lc.BlockDeviceMappings) == 0 {
+		return nil, nil
+	}
+	rootDeviceName, err := fetchRootDeviceName(d.Get("ami").(string), ec2conn)
+	if err == nil {
+		return nil, err
+	}
+	for _, bdm := range lc.BlockDeviceMappings {
+		bd := make(map[string]interface{})
+		if bdm.EBS != nil && bdm.EBS.DeleteOnTermination != nil {
+			bd["delete_on_termination"] = *bdm.EBS.DeleteOnTermination
+		}
+		if bdm.EBS != nil && bdm.EBS.VolumeSize != nil {
+			bd["volume_size"] = bdm.EBS.VolumeSize
+		}
+		if bdm.EBS != nil && bdm.EBS.VolumeType != nil {
+			bd["volume_type"] = *bdm.EBS.VolumeType
+		}
+		if bdm.EBS != nil && bdm.EBS.IOPS != nil {
+			bd["iops"] = *bdm.EBS.IOPS
+		}
+		if bdm.DeviceName != nil && bdm.DeviceName == rootDeviceName {
+			blockDevices["root"] = bd
+		} else {
+			if bdm.DeviceName != nil {
+				bd["device_name"] = *bdm.DeviceName
+			}
+			if bdm.EBS != nil && bdm.EBS.SnapshotID != nil {
+				bd["snapshot_id"] = *bdm.EBS.SnapshotID
+			}
+			blockDevices["ebs"] = append(blockDevices["ebs"].([]map[string]interface{}), bd)
+		}
+	}
+	return blockDevices, nil
 }
