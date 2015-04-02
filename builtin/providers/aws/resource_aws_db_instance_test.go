@@ -2,7 +2,9 @@ package aws
 
 import (
 	"fmt"
+	"math/rand"
 	"testing"
+	"time"
 
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
@@ -24,8 +26,6 @@ func TestAccAWSDBInstance(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSDBInstanceExists("aws_db_instance.bar", &v),
 					testAccCheckAWSDBInstanceAttributes(&v),
-					resource.TestCheckResourceAttr(
-						"aws_db_instance.bar", "identifier", "foobarbaz-test-terraform"),
 					resource.TestCheckResourceAttr(
 						"aws_db_instance.bar", "allocated_storage", "10"),
 					resource.TestCheckResourceAttr(
@@ -133,9 +133,12 @@ func testAccCheckAWSDBInstanceExists(n string, v *rds.DBInstance) resource.TestC
 	}
 }
 
-const testAccAWSDBInstanceConfig = `
+// Database names cannot collide, and deletion takes so long, that making the
+// name a bit random helps so able we can kill a test that's just waiting for a
+// delete and not be blocked on kicking off another one.
+var testAccAWSDBInstanceConfig = fmt.Sprintf(`
 resource "aws_db_instance" "bar" {
-	identifier = "foobarbaz-test-terraform"
+	identifier = "foobarbaz-test-terraform-%d"
 
 	allocated_storage = 10
 	engine = "mysql"
@@ -148,5 +151,4 @@ resource "aws_db_instance" "bar" {
 	backup_retention_period = 0
 
 	parameter_group_name = "default.mysql5.6"
-}
-`
+}`, rand.New(rand.NewSource(time.Now().UnixNano())).Int())
