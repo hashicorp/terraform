@@ -84,6 +84,7 @@ func resourceAwsLaunchConfiguration() *schema.Resource {
 			"associate_public_ip_address": &schema.Schema{
 				Type:     schema.TypeBool,
 				Optional: true,
+				ForceNew: true,
 				Default:  false,
 			},
 
@@ -96,6 +97,7 @@ func resourceAwsLaunchConfiguration() *schema.Resource {
 			"ebs_optimized": &schema.Schema{
 				Type:     schema.TypeBool,
 				Optional: true,
+				ForceNew: true,
 				Default:  false,
 			},
 
