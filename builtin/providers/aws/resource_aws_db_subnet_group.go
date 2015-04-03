@@ -3,6 +3,7 @@ package aws
 import (
 	"fmt"
 	"log"
+	"strings"
 	"time"
 
 	"github.com/hashicorp/aws-sdk-go/aws"
@@ -87,12 +88,23 @@ func resourceAwsDbSubnetGroupRead(d *schema.ResourceData, meta interface{}) erro
 		return err
 	}
 
-	if len(describeResp.DBSubnetGroups) != 1 ||
-		*describeResp.DBSubnetGroups[0].DBSubnetGroupName != d.Id() {
+	if len(describeResp.DBSubnetGroups) == 0 {
 		return fmt.Errorf("Unable to find DB Subnet Group: %#v", describeResp.DBSubnetGroups)
 	}
 
-	subnetGroup := describeResp.DBSubnetGroups[0]
+	var subnetGroup rds.DBSubnetGroup
+	for _, s := range describeResp.DBSubnetGroups {
+		// AWS is down casing the name provided, so we compare lower case versions
+		// of the names. We lower case both our name and their name in the check,
+		// incase they change that someday.
+		if strings.ToLower(d.Id()) == strings.ToLower(*s.DBSubnetGroupName) {
+			subnetGroup = describeResp.DBSubnetGroups[0]
+		}
+	}
+
+	if subnetGroup.DBSubnetGroupName == nil {
+		return fmt.Errorf("Unable to find DB Subnet Group: %#v", describeResp.DBSubnetGroups)
+	}
 
 	d.Set("name", *subnetGroup.DBSubnetGroupName)
 	d.Set("description", *subnetGroup.DBSubnetGroupDescription)
