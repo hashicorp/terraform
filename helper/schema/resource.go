@@ -225,7 +225,29 @@ func (r *Resource) InternalValidate() error {
 		return errors.New("resource is nil")
 	}
 
+	if r.isTopLevel() {
+		// All non-Computed attributes must be ForceNew if Update is not defined
+		if r.Update == nil {
+			nonForceNewAttrs := make([]string, 0)
+			for k, v := range r.Schema {
+				if !v.ForceNew && !v.Computed {
+					nonForceNewAttrs = append(nonForceNewAttrs, k)
+				}
+			}
+			if len(nonForceNewAttrs) > 0 {
+				return fmt.Errorf(
+					"No Update defined, must set ForceNew on: %#v", nonForceNewAttrs)
+			}
+		}
+	}
+
 	return schemaMap(r.Schema).InternalValidate()
+}
+
+// Returns true if the resource is "top level" i.e. not a sub-resource.
+func (r *Resource) isTopLevel() bool {
+	// TODO: This is a heuristic; replace with a definitive attribute?
+	return r.Create != nil
 }
 
 // Determines if a given InstanceState needs to be migrated by checking the
