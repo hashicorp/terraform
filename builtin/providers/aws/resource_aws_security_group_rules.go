@@ -5,18 +5,21 @@ import (
 	"fmt"
 	"log"
 	"sort"
+	"time"
 
+	"github.com/hashicorp/aws-sdk-go/aws"
 	"github.com/hashicorp/aws-sdk-go/gen/ec2"
 	"github.com/hashicorp/terraform/helper/hashcode"
 	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/nevins-b/terraform/helper/resource"
 )
 
 func resourceAwsSecurityGroupRules() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceAwsSecurityGroupRulesUpdate,
+		Create: resourceAwsSecurityGroupRulesCreate,
 		Read:   resourceAwsSecurityGroupRulesRead,
 		Update: resourceAwsSecurityGroupRulesUpdate,
-		Delete: resourceAwsSecurityGroupRulesUpdate,
+		Delete: resourceAwsSecurityGroupRulesDelete,
 
 		Schema: map[string]*schema.Schema{
 			"security_group_id": &schema.Schema{
@@ -119,6 +122,78 @@ func resourceAwsSecurityGroupRules() *schema.Resource {
 	}
 }
 
+func resourceAwsSecurityGroupRulesCreate(d *schema.ResourceData, meta interface{}) error {
+	log.Printf("[INFO] Creating Rules for Security Group ID: %s", d.Get("security_group_id"))
+	ec2conn := meta.(*AWSClient).ec2conn
+
+	sgRaw, _, err := SGStateRefreshFunc(ec2conn, d.Get("security_group_id").(string))()
+	if err != nil {
+		return err
+	}
+	group := sgRaw.(ec2.SecurityGroup)
+
+	if group.VPCID != nil {
+		ereq := &ec2.RevokeSecurityGroupEgressRequest{
+			GroupID:       group.GroupID,
+			IPPermissions: group.IPPermissionsEgress,
+		}
+		err = ec2conn.RevokeSecurityGroupEgress(ereq)
+		if err != nil {
+			return err
+		}
+	}
+
+	id := fmt.Sprintf("%s-rules", d.Get("security_group_id").(string))
+	d.SetId(id)
+
+	return resourceAwsSecurityGroupRulesUpdate(d, meta)
+}
+
+func resourceAwsSecurityGroupRulesDelete(d *schema.ResourceData, meta interface{}) error {
+	ec2conn := meta.(*AWSClient).ec2conn
+
+	log.Printf("[DEBUG] Security Group Rules destroy: %v", d.Id())
+
+	return resource.Retry(5*time.Minute, func() error {
+
+		sgRaw, _, err := SGStateRefreshFunc(ec2conn, d.Get("security_group_id").(string))()
+		if err != nil {
+			return err
+		}
+		group := sgRaw.(ec2.SecurityGroup)
+		ereq := &ec2.RevokeSecurityGroupEgressRequest{
+			GroupID:       group.GroupID,
+			IPPermissions: group.IPPermissionsEgress,
+		}
+		err = ec2conn.RevokeSecurityGroupEgress(ereq)
+
+		ireq := &ec2.RevokeSecurityGroupIngressRequest{
+			GroupID:       group.GroupID,
+			IPPermissions: group.IPPermissions,
+		}
+		err = ec2conn.RevokeSecurityGroupIngress(ireq)
+		if err != nil {
+			ec2err, ok := err.(aws.APIError)
+			if !ok {
+				return err
+			}
+
+			switch ec2err.Code {
+			case "InvalidGroup.NotFound":
+				return nil
+			case "DependencyViolation":
+				// If it is a dependency violation, we want to retry
+				return err
+			default:
+				// Any other error, we want to quit the retry loop immediately
+				return resource.RetryError{Err: err}
+			}
+		}
+
+		return nil
+	})
+}
+
 func resourceAwsSecurityGroupRulesRead(d *schema.ResourceData, meta interface{}) error {
 	ec2conn := meta.(*AWSClient).ec2conn
 
@@ -127,6 +202,7 @@ func resourceAwsSecurityGroupRulesRead(d *schema.ResourceData, meta interface{})
 		return err
 	}
 	if sgRaw == nil {
+		d.SetId("")
 		return nil
 	}
 
@@ -148,6 +224,7 @@ func resourceAwsSecurityGroupRulesUpdate(d *schema.ResourceData, meta interface{
 		return err
 	}
 	if sgRaw == nil {
+		d.SetId("")
 		return nil
 	}
 
@@ -158,7 +235,7 @@ func resourceAwsSecurityGroupRulesUpdate(d *schema.ResourceData, meta interface{
 		return err
 	}
 
-	if d.Get("vpc_id") != nil {
+	if group.VPCID != nil {
 		err = resourceAwsSecurityGroupUpdateRules(d, "egress", meta, group)
 		if err != nil {
 			return err
