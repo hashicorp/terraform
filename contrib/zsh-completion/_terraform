@@ -13,6 +13,7 @@ _terraform_cmds=(
     'push:Uploads the the local state to the remote server'
     'refresh:Update local state file against real resources'
     'remote:Configures remote state management'
+    'taint:Manualy forcing a destroy and recreate on the next plan/apply'
     'show:Inspect Terraform state or plan'
     'version:Prints the Terraform version'
 )
@@ -95,6 +96,16 @@ __refresh() {
         '-var-file=[(path) Set variables in the Terraform configuration from a file. If "terraform.tfvars" is present, it will be automatically loaded if this flag is not specified.]'
 }
 
+__taint() {
+    _arguments \
+        '-allow-missing[If specified, the command will succeed (exit code 0) even if the resource is missing.]' \
+        '-backup=[(path) Path to backup the existing state file before modifying. Defaults to the "-state-out" path with ".backup" extension. Set to "-" to disable backup.]' \
+        '-module=[(path)  The module path where the resource lives. By default this will be root. Child modules can be specified by names. Ex. "consul" or "consul.vpc" (nested modules).]' \
+        '-no-color[If specified, output will not contain any color.]' \
+        '-state=[(path) Path to read and save state (unless state-out is  specified). Defaults to "terraform.tfstate".]' \
+        '-state-out=[(path) Path to write updated state file. By default, the "-state" path will be used.]'
+}
+
 __remote() {
     _arguments \
         '-address=[(url) URL of the remote storage server. Required for HTTP backend, optional for Atlas and Consul.]' \
@@ -104,7 +115,7 @@ __remote() {
         '-disable[Disables remote state management and migrates the state to the -state path.]' \
         '-name=[(name) Name of the state file in the state storage server. Required for Atlas backend.]' \
         '-path=[(path) Path of the remote state in Consul. Required for the Consul backend.]' \
-        '-pull=[(true) Controls if the remote state is pulled before disabling. This defaults to true to ensure the latest state is cached before disabling.]'\
+        '-pull=[(true) Controls if the remote state is pulled before disabling. This defaults to true to ensure the latest state is cached before disabling.]' \
         '-state=[(path) Path to read and save state (unless state-out is specified). Defaults to "terraform.tfstate".]'
 }
 
@@ -145,4 +156,6 @@ case "$words[1]" in
     __remote ;;
   show)
     __show ;;
+  taint)
+    __taint ;;
 esac
