@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/hashicorp/aws-sdk-go/aws"
-	"github.com/hashicorp/aws-sdk-go/gen/ec2"
+	"github.com/awslabs/aws-sdk-go/aws"
+	"github.com/awslabs/aws-sdk-go/service/ec2"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
 )
@@ -43,7 +43,7 @@ func TestAccAWSSubnet(t *testing.T) {
 }
 
 func testAccCheckSubnetDestroy(s *terraform.State) error {
-	conn := testAccProvider.Meta().(*AWSClient).ec2conn
+	conn := testAccProvider.Meta().(*AWSClient).ec2SDKconn
 
 	for _, rs := range s.RootModule().Resources {
 		if rs.Type != "aws_subnet" {
@@ -51,8 +51,8 @@ func testAccCheckSubnetDestroy(s *terraform.State) error {
 		}
 
 		// Try to find the resource
-		resp, err := conn.DescribeSubnets(&ec2.DescribeSubnetsRequest{
-			SubnetIDs: []string{rs.Primary.ID},
+		resp, err := conn.DescribeSubnets(&ec2.DescribeSubnetsInput{
+			SubnetIDs: []*string{aws.String(rs.Primary.ID)},
 		})
 		if err == nil {
 			if len(resp.Subnets) > 0 {
@@ -86,9 +86,9 @@ func testAccCheckSubnetExists(n string, v *ec2.Subnet) resource.TestCheckFunc {
 			return fmt.Errorf("No ID is set")
 		}
 
-		conn := testAccProvider.Meta().(*AWSClient).ec2conn
-		resp, err := conn.DescribeSubnets(&ec2.DescribeSubnetsRequest{
-			SubnetIDs: []string{rs.Primary.ID},
+		conn := testAccProvider.Meta().(*AWSClient).ec2SDKconn
+		resp, err := conn.DescribeSubnets(&ec2.DescribeSubnetsInput{
+			SubnetIDs: []*string{aws.String(rs.Primary.ID)},
 		})
 		if err != nil {
 			return err
@@ -97,7 +97,7 @@ func testAccCheckSubnetExists(n string, v *ec2.Subnet) resource.TestCheckFunc {
 			return fmt.Errorf("Subnet not found")
 		}
 
-		*v = resp.Subnets[0]
+		*v = *resp.Subnets[0]
 
 		return nil
 	}
@@ -112,5 +112,8 @@ resource "aws_subnet" "foo" {
 	cidr_block = "10.1.1.0/24"
 	vpc_id = "${aws_vpc.foo.id}"
 	map_public_ip_on_launch = true
+	tags {
+		Name = "tf-subnet-acc-test"
+	}
 }
 `
