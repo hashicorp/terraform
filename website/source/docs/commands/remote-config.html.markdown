@@ -67,7 +67,7 @@ The command-line flags are all optional. The list of available flags are:
 * `-disable` - Disables remote state management and migrates the state
   to the `-state` path.
 
-* `-name=name` - Name of the state file in the state storage server.
+* `-name=username/name` - Atlas username and name of the state file in the state storage server.
   Required for Atlas backend.
 
 * `-path=path` - Path of the remote state in Consul. Required for the
