@@ -506,7 +506,7 @@ func resourceAwsDbInstanceUpdate(d *schema.ResourceData, meta interface{}) error
 	log.Printf("[DEBUG] DB Instance Modification request: %#v", req)
 	_, err := conn.ModifyDBInstance(req)
 	if err != nil {
-		return fmt.Errorf("Error mofigying DB Instance %s: %s", d.Id(), err)
+		return fmt.Errorf("Error modifying DB Instance %s: %s", d.Id(), err)
 	}
 
 	if arn, err := buildRDSARN(d, meta); err == nil {
