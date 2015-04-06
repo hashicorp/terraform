@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/hashicorp/aws-sdk-go/aws"
-	"github.com/hashicorp/aws-sdk-go/gen/ec2"
+	"github.com/awslabs/aws-sdk-go/aws"
+	"github.com/awslabs/aws-sdk-go/service/ec2"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
 )
@@ -30,7 +30,7 @@ func TestAccAWSKeyPair_normal(t *testing.T) {
 }
 
 func testAccCheckAWSKeyPairDestroy(s *terraform.State) error {
-	ec2conn := testAccProvider.Meta().(*AWSClient).ec2conn
+	ec2SDKconn := testAccProvider.Meta().(*AWSClient).ec2SDKconn
 
 	for _, rs := range s.RootModule().Resources {
 		if rs.Type != "aws_key_pair" {
@@ -38,8 +38,8 @@ func testAccCheckAWSKeyPairDestroy(s *terraform.State) error {
 		}
 
 		// Try to find key pair
-		resp, err := ec2conn.DescribeKeyPairs(&ec2.DescribeKeyPairsRequest{
-			KeyNames: []string{rs.Primary.ID},
+		resp, err := ec2SDKconn.DescribeKeyPairs(&ec2.DescribeKeyPairsInput{
+			KeyNames: []*string{aws.String(rs.Primary.ID)},
 		})
 		if err == nil {
 			if len(resp.KeyPairs) > 0 {
@@ -81,10 +81,10 @@ func testAccCheckAWSKeyPairExists(n string, res *ec2.KeyPairInfo) resource.TestC
 			return fmt.Errorf("No KeyPair name is set")
 		}
 
-		ec2conn := testAccProvider.Meta().(*AWSClient).ec2conn
+		ec2SDKconn := testAccProvider.Meta().(*AWSClient).ec2SDKconn
 
-		resp, err := ec2conn.DescribeKeyPairs(&ec2.DescribeKeyPairsRequest{
-			KeyNames: []string{rs.Primary.ID},
+		resp, err := ec2SDKconn.DescribeKeyPairs(&ec2.DescribeKeyPairsInput{
+			KeyNames: []*string{aws.String(rs.Primary.ID)},
 		})
 		if err != nil {
 			return err
@@ -94,7 +94,7 @@ func testAccCheckAWSKeyPairExists(n string, res *ec2.KeyPairInfo) resource.TestC
 			return fmt.Errorf("KeyPair not found")
 		}
 
-		*res = resp.KeyPairs[0]
+		*res = *resp.KeyPairs[0]
 
 		return nil
 	}
