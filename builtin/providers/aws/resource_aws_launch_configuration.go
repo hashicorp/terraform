@@ -98,7 +98,7 @@ func resourceAwsLaunchConfiguration() *schema.Resource {
 				Type:     schema.TypeBool,
 				Optional: true,
 				ForceNew: true,
-				Default:  false,
+				Computed: true,
 			},
 
 			"placement_tenancy": &schema.Schema{
@@ -174,7 +174,6 @@ func resourceAwsLaunchConfiguration() *schema.Resource {
 			"ephemeral_block_device": &schema.Schema{
 				Type:     schema.TypeSet,
 				Optional: true,
-				Computed: true,
 				ForceNew: true,
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
@@ -433,28 +432,15 @@ func resourceAwsLaunchConfigurationRead(d *schema.ResourceData, meta interface{}
 
 	lc := describConfs.LaunchConfigurations[0]
 
-	d.Set("key_name", *lc.KeyName)
-	d.Set("image_id", *lc.ImageID)
-	d.Set("instance_type", *lc.InstanceType)
-	d.Set("name", *lc.LaunchConfigurationName)
+	d.Set("key_name", lc.KeyName)
+	d.Set("image_id", lc.ImageID)
+	d.Set("instance_type", lc.InstanceType)
+	d.Set("name", lc.LaunchConfigurationName)
 
-	if lc.IAMInstanceProfile != nil {
-		d.Set("iam_instance_profile", *lc.IAMInstanceProfile)
-	} else {
-		d.Set("iam_instance_profile", nil)
-	}
-
-	if lc.SpotPrice != nil {
-		d.Set("spot_price", *lc.SpotPrice)
-	} else {
-		d.Set("spot_price", nil)
-	}
-
-	if lc.SecurityGroups != nil {
-		d.Set("security_groups", lc.SecurityGroups)
-	} else {
-		d.Set("security_groups", nil)
-	}
+	d.Set("iam_instance_profile", lc.IAMInstanceProfile)
+	d.Set("ebs_optimized", lc.EBSOptimized)
+	d.Set("spot_price", lc.SpotPrice)
+	d.Set("security_groups", lc.SecurityGroups)
 
 	if err := readLCBlockDevices(d, &lc, ec2conn); err != nil {
 		return err
@@ -494,6 +480,8 @@ func readLCBlockDevices(d *schema.ResourceData, lc *autoscaling.LaunchConfigurat
 		if err := d.Set("root_block_device", []interface{}{ibds["root"]}); err != nil {
 			return err
 		}
+	} else {
+		d.Set("root_block_device", []interface{}{})
 	}
 
 	return nil
