@@ -59,7 +59,7 @@ func resourceAwsRoute53Record() *schema.Resource {
 
 func resourceAwsRoute53RecordUpdate(d *schema.ResourceData, meta interface{}) error {
 	// Route 53 supports CREATE, DELETE, and UPSERT actions. We use UPSERT, and
-	// AWS dynamically determins if a record should be created or updated.
+	// AWS dynamically determines if a record should be created or updated.
 	// Amazon Route 53 can update an existing resource record set only when all
 	// of the following values match: Name, Type
 	// (and SetIdentifier, which we don't use yet).
