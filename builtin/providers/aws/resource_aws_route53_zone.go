@@ -83,7 +83,7 @@ func resourceAwsRoute53ZoneRead(d *schema.ResourceData, meta interface{}) error 
 	_, err := r53.GetHostedZone(&route53.GetHostedZoneRequest{ID: aws.String(d.Id())})
 	if err != nil {
 		// Handle a deleted zone
-		if strings.Contains(err.Error(), "404") {
+		if r53err, ok := err.(aws.APIError); ok && r53err.Code == "NoSuchHostedZone" {
 			d.SetId("")
 			return nil
 		}
