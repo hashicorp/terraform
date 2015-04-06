@@ -1,13 +1,12 @@
 package aws
 
 import (
-	"encoding/base64"
 	"fmt"
 
 	"github.com/hashicorp/terraform/helper/schema"
 
-	"github.com/hashicorp/aws-sdk-go/aws"
-	"github.com/hashicorp/aws-sdk-go/gen/ec2"
+	awsSDK "github.com/awslabs/aws-sdk-go/aws"
+	awsEC2 "github.com/awslabs/aws-sdk-go/service/ec2"
 )
 
 func resourceAwsKeyPair() *schema.Resource {
@@ -37,13 +36,13 @@ func resourceAwsKeyPair() *schema.Resource {
 }
 
 func resourceAwsKeyPairCreate(d *schema.ResourceData, meta interface{}) error {
-	ec2conn := meta.(*AWSClient).ec2conn
+	ec2conn := meta.(*AWSClient).ec2SDKconn
 
 	keyName := d.Get("key_name").(string)
 	publicKey := d.Get("public_key").(string)
-	req := &ec2.ImportKeyPairRequest{
-		KeyName:           aws.String(keyName),
-		PublicKeyMaterial: []byte(base64.StdEncoding.EncodeToString([]byte(publicKey))),
+	req := &awsEC2.ImportKeyPairInput{
+		KeyName:           awsSDK.String(keyName),
+		PublicKeyMaterial: []byte(publicKey),
 	}
 	resp, err := ec2conn.ImportKeyPair(req)
 	if err != nil {
@@ -55,10 +54,9 @@ func resourceAwsKeyPairCreate(d *schema.ResourceData, meta interface{}) error {
 }
 
 func resourceAwsKeyPairRead(d *schema.ResourceData, meta interface{}) error {
-	ec2conn := meta.(*AWSClient).ec2conn
-
-	req := &ec2.DescribeKeyPairsRequest{
-		KeyNames: []string{d.Id()},
+	ec2conn := meta.(*AWSClient).ec2SDKconn
+	req := &awsEC2.DescribeKeyPairsInput{
+		KeyNames: []*string{awsSDK.String(d.Id())},
 	}
 	resp, err := ec2conn.DescribeKeyPairs(req)
 	if err != nil {
@@ -77,10 +75,10 @@ func resourceAwsKeyPairRead(d *schema.ResourceData, meta interface{}) error {
 }
 
 func resourceAwsKeyPairDelete(d *schema.ResourceData, meta interface{}) error {
-	ec2conn := meta.(*AWSClient).ec2conn
+	ec2conn := meta.(*AWSClient).ec2SDKconn
 
-	err := ec2conn.DeleteKeyPair(&ec2.DeleteKeyPairRequest{
-		KeyName: aws.String(d.Id()),
+	_, err := ec2conn.DeleteKeyPair(&awsEC2.DeleteKeyPairInput{
+		KeyName: awsSDK.String(d.Id()),
 	})
 	return err
 }
