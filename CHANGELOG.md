@@ -2,6 +2,7 @@
 
 BUG FIXES:
 
+  * command/push: don't ask for input if terraform.tfvars is present
   * command/remote-config: remove spurrious error "nil" when initializing
       remote state on a new configuration. [GH-1392]
 
