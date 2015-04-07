@@ -67,7 +67,6 @@ The following arguments are supported:
       egress rule. Each egress block supports fields documented below.
       VPC only.
 * `vpc_id` - (Optional) The VPC ID.
-* `owner_id` - (Optional) The AWS Owner ID.
 
 The `ingress` block supports:
 
