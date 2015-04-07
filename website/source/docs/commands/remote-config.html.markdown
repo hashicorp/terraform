@@ -33,32 +33,33 @@ By default, `remote config` will look for the "terraform.tfstate" file, but that
 can be specified by the `-state` flag. If no state file exists, a blank
 state will be configured.
 
+When enabling remote storage, use the `-backend-config` flag to set
+the required configuration variables as documented below. See the example
+below this section for more details.
+
 When remote storage is disabled, the existing remote state is migrated
 to a local file. This defaults to the `-state` path during restore.
 
 The following backends are supported:
 
-* Atlas - Stores the state in Atlas. Requires the `-name` and `-access-token` flag.
-  The `-address` flag can optionally be provided.
+* Atlas - Stores the state in Atlas. Requires the `name` and `access-token`
+  variables. The `address` variable can optionally be provided.
 
 * Consul - Stores the state in the KV store at a given path.
-  Requires the `path` flag. The `-address` and `-access-token`
-  flag can optionally be provided. Address is assumed to be the
+  Requires the `path` variable. The `address` and `access-token`
+  variables can optionally be provided. Address is assumed to be the
   local agent if not provided.
 
 * HTTP - Stores the state using a simple REST client. State will be fetched
-  via GET, updated via POST, and purged with DELETE. Requires the `-address` flag.
+  via GET, updated via POST, and purged with DELETE. Requires the `address` variable.
 
 The command-line flags are all optional. The list of available flags are:
 
-* `-address=url` - URL of the remote storage server. Required for HTTP backend,
-  optional for Atlas and Consul.
+* `-backend=Atlas` - The remote backend to use. Must be one of the above
+  supported backends.
 
-* `-access-token=token` - Authentication token for state storage server.
-  Required for Atlas backend, optional for Consul.
-
-* `-backend=Atlas` - Specifies the type of remote backend. Must be one
-  of Atlas, Consul, or HTTP. Defaults to Atlas.
+* `-backend-config="k=v"` - Specify a configuration variable for a backend.
+  This is how you set the required variables for the backends above.
 
 * `-backup=path` - Path to backup the existing state file before
   modifying. Defaults to the "-state" path with ".backup" extension.
@@ -67,12 +68,6 @@ The command-line flags are all optional. The list of available flags are:
 * `-disable` - Disables remote state management and migrates the state
   to the `-state` path.
 
-* `-name=name` - Name of the state file in the state storage server.
-  Required for Atlas backend.
-
-* `-path=path` - Path of the remote state in Consul. Required for the
-  Consul backend.
-
 * `-pull=true` - Controls if the remote state is pulled before disabling
   or after enabling. This defaults to true to ensure the latest state
   is available under both conditions.
@@ -80,3 +75,15 @@ The command-line flags are all optional. The list of available flags are:
 * `-state=path` - Path to read state. Defaults to "terraform.tfstate"
   unless remote state is enabled.
 
+## Example: Consul
+
+The example below will push your remote state to Consul. Note that for
+this example, it would go to the public Consul demo. In practice, you
+should use your own private Consul server:
+
+```
+$ terraform remote config \
+    -backend=consul \
+    -backend-config="address=demo.consul.io:80" \
+    -backend-config="path=tf"
+```
