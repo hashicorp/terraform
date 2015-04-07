@@ -140,25 +140,25 @@ func TestAccAWSInstance_blockDevices(t *testing.T) {
 					resource.TestCheckResourceAttr(
 						"aws_instance.foo", "root_block_device.#", "1"),
 					resource.TestCheckResourceAttr(
-						"aws_instance.foo", "root_block_device.1023169747.volume_size", "11"),
+						"aws_instance.foo", "root_block_device.0.volume_size", "11"),
 					resource.TestCheckResourceAttr(
-						"aws_instance.foo", "root_block_device.1023169747.volume_type", "gp2"),
+						"aws_instance.foo", "root_block_device.0.volume_type", "gp2"),
 					resource.TestCheckResourceAttr(
 						"aws_instance.foo", "ebs_block_device.#", "2"),
 					resource.TestCheckResourceAttr(
-						"aws_instance.foo", "ebs_block_device.2225977507.device_name", "/dev/sdb"),
+						"aws_instance.foo", "ebs_block_device.2576023345.device_name", "/dev/sdb"),
 					resource.TestCheckResourceAttr(
-						"aws_instance.foo", "ebs_block_device.2225977507.volume_size", "9"),
+						"aws_instance.foo", "ebs_block_device.2576023345.volume_size", "9"),
 					resource.TestCheckResourceAttr(
-						"aws_instance.foo", "ebs_block_device.2225977507.volume_type", "standard"),
+						"aws_instance.foo", "ebs_block_device.2576023345.volume_type", "standard"),
 					resource.TestCheckResourceAttr(
-						"aws_instance.foo", "ebs_block_device.1977224956.device_name", "/dev/sdc"),
+						"aws_instance.foo", "ebs_block_device.2554893574.device_name", "/dev/sdc"),
 					resource.TestCheckResourceAttr(
-						"aws_instance.foo", "ebs_block_device.1977224956.volume_size", "10"),
+						"aws_instance.foo", "ebs_block_device.2554893574.volume_size", "10"),
 					resource.TestCheckResourceAttr(
-						"aws_instance.foo", "ebs_block_device.1977224956.volume_type", "io1"),
+						"aws_instance.foo", "ebs_block_device.2554893574.volume_type", "io1"),
 					resource.TestCheckResourceAttr(
-						"aws_instance.foo", "ebs_block_device.1977224956.iops", "100"),
+						"aws_instance.foo", "ebs_block_device.2554893574.iops", "100"),
 					resource.TestCheckResourceAttr(
 						"aws_instance.foo", "ephemeral_block_device.#", "1"),
 					resource.TestCheckResourceAttr(

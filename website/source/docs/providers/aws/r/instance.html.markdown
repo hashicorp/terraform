@@ -109,15 +109,10 @@ list](http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/InstanceStorage.html#St
 of which ephemeral devices are available on each type. The devices are always
 identified by the `virtual_name` in the format `"ephemeral{0..N}"`.
 
-
-~> **NOTE:** Because AWS [does not expose Instance Store mapping
-details](http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/block-device-mapping-concepts.html#bdm-instance-metadata)
-via an externally accessible API, `ephemeral_block_device` configuration may
-only be applied at instance creation time, and changes to configuration of
-existing resources cannot be detected by Terraform. Updates to Instance Store
-block device configuration can be manually triggered by using the [`taint`
-command](/docs/commands/taint.html).
-
+~> **NOTE:** Currently, changes to `*_block_device` configuration of _existing_
+resources cannot be automatically detected by Terraform. After making updates
+to block device configuration, resource recreation can be manually triggered by
+using the [`taint` command](/docs/commands/taint.html).
 
 ## Attributes Reference
 
