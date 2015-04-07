@@ -52,15 +52,16 @@ func resourceAwsIamUser() *schema.Resource {
 
 func resourceAwsIamUserCreate(d *schema.ResourceData, meta interface{}) error {
 	iamconn := meta.(*AWSClient).iamconn
+	name := d.Get("name").(string)
 
 	request := &iam.CreateUserInput{
 		Path:     aws.String(d.Get("path").(string)),
-		UserName: aws.String(d.Get("name").(string)),
+		UserName: aws.String(name),
 	}
 
 	createResp, err := iamconn.CreateUser(request)
 	if err != nil {
-		return fmt.Errorf("Error creating IAM User %s: %s", request.UserName, err)
+		return fmt.Errorf("Error creating IAM User %s: %s", name, err)
 	}
 	return resourceAwsIamUserReadResult(d, createResp.User)
 }
