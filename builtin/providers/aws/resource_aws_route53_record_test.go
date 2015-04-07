@@ -275,7 +275,7 @@ resource "aws_route53_zone" "main" {
 }
 
 resource "aws_route53_record" "default" {
-	zone_id = "${aws_route53_zone.main.zone_id}"
+	zone_id = "/hostedzone/${aws_route53_zone.main.zone_id}"
 	name = "subdomain"
 	type = "TXT"
 	ttl = "30"
