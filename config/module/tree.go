@@ -23,6 +23,7 @@ type Tree struct {
 	name     string
 	config   *config.Config
 	children map[string]*Tree
+	path     []string
 	lock     sync.RWMutex
 }
 
@@ -187,6 +188,11 @@ func (t *Tree) Load(s Storage, mode GetMode) error {
 			return fmt.Errorf(
 				"module %s: %s", m.Name, err)
 		}
+
+		// Set the path of this child
+		path := make([]string, len(t.path), len(t.path)+1)
+		copy(path, t.path)
+		children[m.Name].path = append(path, m.Name)
 	}
 
 	// Go through all the children and load them.
@@ -202,10 +208,19 @@ func (t *Tree) Load(s Storage, mode GetMode) error {
 	return nil
 }
 
+// Path is the full path to this tree.
+func (t *Tree) Path() []string {
+	return t.path
+}
+
 // String gives a nice output to describe the tree.
 func (t *Tree) String() string {
 	var result bytes.Buffer
-	result.WriteString(t.Name() + "\n")
+	path := strings.Join(t.path, ", ")
+	if path != "" {
+		path = fmt.Sprintf(" (path: %s)", path)
+	}
+	result.WriteString(t.Name() + path + "\n")
 
 	cs := t.Children()
 	if cs == nil {
