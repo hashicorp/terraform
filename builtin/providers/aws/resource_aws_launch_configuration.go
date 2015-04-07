@@ -278,10 +278,8 @@ func resourceAwsLaunchConfigurationCreate(d *schema.ResourceData, meta interface
 		createLaunchConfigurationOpts.PlacementTenancy = aws.String(v.(string))
 	}
 
-	if v := d.Get("associate_public_ip_address"); v != nil {
+	if v, ok := d.GetOk("associate_public_ip_address"); ok {
 		createLaunchConfigurationOpts.AssociatePublicIPAddress = aws.Boolean(v.(bool))
-	} else {
-		createLaunchConfigurationOpts.AssociatePublicIPAddress = aws.Boolean(false)
 	}
 
 	if v, ok := d.GetOk("key_name"); ok {
