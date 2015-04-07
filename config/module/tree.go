@@ -153,6 +153,11 @@ func (t *Tree) Load(s Storage, mode GetMode) error {
 				"module %s: duplicated. module names must be unique", m.Name)
 		}
 
+		// Determine the path to this child
+		path := make([]string, len(t.path), len(t.path)+1)
+		copy(path, t.path)
+		path = append(path, m.Name)
+
 		// Split out the subdir if we have one
 		source, subDir := getDirSubdir(m.Source)
 
@@ -168,7 +173,9 @@ func (t *Tree) Load(s Storage, mode GetMode) error {
 		}
 
 		// Get the directory where this module is so we can load it
-		dir, ok, err := getStorage(s, source, mode)
+		key := strings.Join(path, ".")
+		key = "root." + key
+		dir, ok, err := getStorage(s, key, source, mode)
 		if err != nil {
 			return err
 		}
@@ -190,9 +197,7 @@ func (t *Tree) Load(s Storage, mode GetMode) error {
 		}
 
 		// Set the path of this child
-		path := make([]string, len(t.path), len(t.path)+1)
-		copy(path, t.path)
-		children[m.Name].path = append(path, m.Name)
+		children[m.Name].path = path
 	}
 
 	// Go through all the children and load them.
