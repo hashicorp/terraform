@@ -255,8 +255,8 @@ func remoteState(
 					"Error preparing remote state: {{err}}", err)
 			}
 		default:
-			return nil, errwrap.Wrapf(
-				"Error initilizing remote state: {{err}}", err)
+			return nil, fmt.Errorf(
+				"Unknown refresh result: %s", cache.RefreshResult())
 		}
 	}
 
