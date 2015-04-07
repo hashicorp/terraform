@@ -1,6 +1,9 @@
 ## 0.4.1 (unreleased)
 
+BUG FIXES:
 
+  * command/remote-config: remove spurrious error "nil" when initializing
+      remote state on a new configuration. [GH-1392]
 
 ## 0.4.0 (April 2, 2015)
 
@@ -13,7 +16,7 @@ BACKWARDS INCOMPATIBILITIES:
   * Period-prefixed configuration files are now ignored. This might break
     existing Terraform configurations if you had period-prefixed files.
   * The `block_device` attribute of `aws_instance` has been removed in favor
-    of three more specific attributes to specify block device mappings: 
+    of three more specific attributes to specify block device mappings:
     `root_block_device`, `ebs_block_device`, and `ephemeral_block_device`.
     Configurations using the old attribute will generate a validation error
     indicating that they must be updated to use the new fields [GH-1045].
