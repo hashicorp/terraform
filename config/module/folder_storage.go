@@ -39,8 +39,8 @@ func (s *FolderStorage) Dir(source string) (d string, e bool, err error) {
 }
 
 // Get implements Storage.Get
-func (s *FolderStorage) Get(source string, update bool) error {
-	dir := s.dir(source)
+func (s *FolderStorage) Get(key string, source string, update bool) error {
+	dir := s.dir(key)
 	if !update {
 		if _, err := os.Stat(dir); err == nil {
 			// If the directory already exists, then we're done since
