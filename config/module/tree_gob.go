@@ -22,6 +22,7 @@ func (t *Tree) GobDecode(bs []byte) error {
 	t.name = data.Name
 	t.config = data.Config
 	t.children = data.Children
+	t.path = data.Path
 
 	return nil
 }
@@ -31,6 +32,7 @@ func (t *Tree) GobEncode() ([]byte, error) {
 		Config:   t.config,
 		Children: t.children,
 		Name:     t.name,
+		Path:     t.path,
 	}
 
 	var buf bytes.Buffer
@@ -51,4 +53,5 @@ type treeGob struct {
 	Config   *config.Config
 	Children map[string]*Tree
 	Name     string
+	Path     []string
 }
