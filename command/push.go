@@ -24,7 +24,7 @@ func (c *PushCommand) Run(args []string) int {
 	var atlasAddress, atlasToken string
 	var archiveVCS, moduleUpload bool
 	var name string
-	args = c.Meta.process(args, false)
+	args = c.Meta.process(args, true)
 	cmdFlags := c.Meta.flagSet("push")
 	cmdFlags.StringVar(&atlasAddress, "atlas-address", "", "")
 	cmdFlags.StringVar(&c.Meta.statePath, "state", DefaultStateFilename, "path")
