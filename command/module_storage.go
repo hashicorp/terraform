@@ -14,16 +14,16 @@ type uiModuleStorage struct {
 	Ui      cli.Ui
 }
 
-func (s *uiModuleStorage) Dir(source string) (string, bool, error) {
-	return s.Storage.Dir(source)
+func (s *uiModuleStorage) Dir(key string) (string, bool, error) {
+	return s.Storage.Dir(key)
 }
 
-func (s *uiModuleStorage) Get(source string, update bool) error {
+func (s *uiModuleStorage) Get(key string, source string, update bool) error {
 	updateStr := ""
 	if update {
 		updateStr = " (update)"
 	}
 
 	s.Ui.Output(fmt.Sprintf("Get: %s%s", source, updateStr))
-	return s.Storage.Get(source, update)
+	return s.Storage.Get(key, source, update)
 }
