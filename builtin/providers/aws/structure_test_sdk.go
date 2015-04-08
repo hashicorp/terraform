@@ -14,27 +14,27 @@ import (
 )
 
 // Returns test configuration
-// func testConf() map[string]string {
-// 	return map[string]string{
-// 		"listener.#":                   "1",
-// 		"listener.0.lb_port":           "80",
-// 		"listener.0.lb_protocol":       "http",
-// 		"listener.0.instance_port":     "8000",
-// 		"listener.0.instance_protocol": "http",
-// 		"availability_zones.#":         "2",
-// 		"availability_zones.0":         "us-east-1a",
-// 		"availability_zones.1":         "us-east-1b",
-// 		"ingress.#":                    "1",
-// 		"ingress.0.protocol":           "icmp",
-// 		"ingress.0.from_port":          "1",
-// 		"ingress.0.to_port":            "-1",
-// 		"ingress.0.cidr_blocks.#":      "1",
-// 		"ingress.0.cidr_blocks.0":      "0.0.0.0/0",
-// 		"ingress.0.security_groups.#":  "2",
-// 		"ingress.0.security_groups.0":  "sg-11111",
-// 		"ingress.0.security_groups.1":  "foo/sg-22222",
-// 	}
-// }
+func testConfSDK() map[string]string {
+	return map[string]string{
+		"listener.#":                   "1",
+		"listener.0.lb_port":           "80",
+		"listener.0.lb_protocol":       "http",
+		"listener.0.instance_port":     "8000",
+		"listener.0.instance_protocol": "http",
+		"availability_zones.#":         "2",
+		"availability_zones.0":         "us-east-1a",
+		"availability_zones.1":         "us-east-1b",
+		"ingress.#":                    "1",
+		"ingress.0.protocol":           "icmp",
+		"ingress.0.from_port":          "1",
+		"ingress.0.to_port":            "-1",
+		"ingress.0.cidr_blocks.#":      "1",
+		"ingress.0.cidr_blocks.0":      "0.0.0.0/0",
+		"ingress.0.security_groups.#":  "2",
+		"ingress.0.security_groups.0":  "sg-11111",
+		"ingress.0.security_groups.1":  "foo/sg-22222",
+	}
+}
 
 func TestExpandIPPermsSDK(t *testing.T) {
 	hash := func(v interface{}) int {
@@ -256,7 +256,7 @@ func TestFlattenHealthCheckSDK(t *testing.T) {
 }
 
 func TestExpandStringListSDK(t *testing.T) {
-	expanded := flatmap.Expand(testConf(), "availability_zones").([]interface{})
+	expanded := flatmap.Expand(testConfSDK(), "availability_zones").([]interface{})
 	stringList := expandStringList(expanded)
 	expected := []string{
 		"us-east-1a",
