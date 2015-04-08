@@ -546,7 +546,7 @@ func resourceComputeInstanceRead(d *schema.ResourceData, meta interface{}) error
 
 	networkInterfaces := make([]map[string]interface{}, 0, 1)
 	if networkInterfacesCount > 0 {
-		for _, iface := range instance.NetworkInterfaces {
+		for i, iface := range instance.NetworkInterfaces {
 			// The first non-empty ip is left in natIP
 			var natIP string
 			accessConfigs := make(
@@ -572,7 +572,7 @@ func resourceComputeInstanceRead(d *schema.ResourceData, meta interface{}) error
 			networkInterfaces = append(networkInterfaces, map[string]interface{}{
 				"name":          iface.Name,
 				"address":       iface.NetworkIP,
-				"network":       iface.Network,
+				"network":       d.Get(fmt.Sprintf("network_interface.%d.network", i)),
 				"access_config": accessConfigs,
 			})
 		}
