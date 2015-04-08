@@ -1,6 +1,7 @@
 package aws
 
 import (
+	"fmt"
 	"strings"
 
 	"github.com/hashicorp/aws-sdk-go/aws"
@@ -256,7 +257,25 @@ func flattenAttachment(a *ec2.NetworkInterfaceAttachment) map[string]interface{}
 func flattenResourceRecords(recs []route53.ResourceRecord) []string {
 	strs := make([]string, 0, len(recs))
 	for _, r := range recs {
-		strs = append(strs, *r.Value)
+		if r.Value != nil {
+			s := strings.Replace(*r.Value, "\"", "", 2)
+			strs = append(strs, s)
+		}
 	}
 	return strs
+}
+
+func expandResourceRecords(recs []interface{}, typeStr string) []route53.ResourceRecord {
+	records := make([]route53.ResourceRecord, 0, len(recs))
+	for _, r := range recs {
+		s := r.(string)
+		switch typeStr {
+		case "TXT":
+			str := fmt.Sprintf("\"%s\"", s)
+			records = append(records, route53.ResourceRecord{Value: aws.String(str)})
+		default:
+			records = append(records, route53.ResourceRecord{Value: aws.String(s)})
+		}
+	}
+	return records
 }
