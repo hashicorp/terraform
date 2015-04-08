@@ -7,6 +7,7 @@ import (
 	"github.com/hashicorp/aws-sdk-go/gen/ec2"
 	"github.com/hashicorp/aws-sdk-go/gen/elb"
 	"github.com/hashicorp/aws-sdk-go/gen/rds"
+	"github.com/hashicorp/aws-sdk-go/gen/route53"
 	"github.com/hashicorp/terraform/helper/schema"
 )
 
@@ -250,4 +251,12 @@ func flattenAttachment(a *ec2.NetworkInterfaceAttachment) map[string]interface{}
 	att["device_index"] = *a.DeviceIndex
 	att["attachment_id"] = *a.AttachmentID
 	return att
+}
+
+func flattenResourceRecords(recs []route53.ResourceRecord) []string {
+	strs := make([]string, 0, len(recs))
+	for _, r := range recs {
+		strs = append(strs, *r.Value)
+	}
+	return strs
 }
