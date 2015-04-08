@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/hashicorp/aws-sdk-go/aws"
-	"github.com/hashicorp/aws-sdk-go/gen/ec2"
+	"github.com/awslabs/aws-sdk-go/aws"
+	"github.com/awslabs/aws-sdk-go/service/ec2"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
 )
@@ -67,11 +67,11 @@ func testAccCheckAWSENIExists(n string, res *ec2.NetworkInterface) resource.Test
 			return fmt.Errorf("No ENI ID is set")
 		}
 
-		ec2conn := testAccProvider.Meta().(*AWSClient).ec2conn
-		describe_network_interfaces_request := &ec2.DescribeNetworkInterfacesRequest{
-			NetworkInterfaceIDs: []string{rs.Primary.ID},
+		conn := testAccProvider.Meta().(*AWSClient).ec2SDKconn
+		describe_network_interfaces_request := &ec2.DescribeNetworkInterfacesInput{
+			NetworkInterfaceIDs: []*string{aws.String(rs.Primary.ID)},
 		}
-		describeResp, err := ec2conn.DescribeNetworkInterfaces(describe_network_interfaces_request)
+		describeResp, err := conn.DescribeNetworkInterfaces(describe_network_interfaces_request)
 
 		if err != nil {
 			return err
@@ -82,7 +82,7 @@ func testAccCheckAWSENIExists(n string, res *ec2.NetworkInterface) resource.Test
 			return fmt.Errorf("ENI not found")
 		}
 
-		*res = describeResp.NetworkInterfaces[0]
+		*res = *describeResp.NetworkInterfaces[0]
 
 		return nil
 	}
@@ -148,11 +148,11 @@ func testAccCheckAWSENIDestroy(s *terraform.State) error {
 			continue
 		}
 
-		ec2conn := testAccProvider.Meta().(*AWSClient).ec2conn
-		describe_network_interfaces_request := &ec2.DescribeNetworkInterfacesRequest{
-			NetworkInterfaceIDs: []string{rs.Primary.ID},
+		conn := testAccProvider.Meta().(*AWSClient).ec2SDKconn
+		describe_network_interfaces_request := &ec2.DescribeNetworkInterfacesInput{
+			NetworkInterfaceIDs: []*string{aws.String(rs.Primary.ID)},
 		}
-		_, err := ec2conn.DescribeNetworkInterfaces(describe_network_interfaces_request)
+		_, err := conn.DescribeNetworkInterfaces(describe_network_interfaces_request)
 
 		if err != nil {
 			if ec2err, ok := err.(aws.APIError); ok && ec2err.Code == "InvalidNetworkInterfaceID.NotFound" {
@@ -196,18 +196,27 @@ resource "aws_network_interface" "bar" {
 const testAccAWSENIConfigWithAttachment = `
 resource "aws_vpc" "foo" {
     cidr_block = "172.16.0.0/16"    
+		tags {
+			Name = "tf-eni-test"
+		}
 }
 
 resource "aws_subnet" "foo" {
     vpc_id = "${aws_vpc.foo.id}"
     cidr_block = "172.16.10.0/24"
     availability_zone = "us-west-2a"
+		tags {
+			Name = "tf-eni-test"
+		}
 }
 
 resource "aws_subnet" "bar" {
     vpc_id = "${aws_vpc.foo.id}"
     cidr_block = "172.16.11.0/24"
     availability_zone = "us-west-2a"
+		tags {
+			Name = "tf-eni-test"
+		}
 }
 
 resource "aws_security_group" "foo" {
@@ -222,6 +231,9 @@ resource "aws_instance" "foo" {
 	subnet_id = "${aws_subnet.bar.id}"
 	associate_public_ip_address = false
 	private_ip = "172.16.11.50"
+	tags {
+		Name = "tf-eni-test"
+	}
 }
 
 resource "aws_network_interface" "bar" {

@@ -7,8 +7,8 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/hashicorp/aws-sdk-go/aws"
-	"github.com/hashicorp/aws-sdk-go/gen/ec2"
+	"github.com/awslabs/aws-sdk-go/aws"
+	"github.com/awslabs/aws-sdk-go/service/ec2"
 	"github.com/hashicorp/terraform/helper/hashcode"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
@@ -78,33 +78,32 @@ func resourceAwsNetworkInterface() *schema.Resource {
 
 func resourceAwsNetworkInterfaceCreate(d *schema.ResourceData, meta interface{}) error {
 
-	ec2conn := meta.(*AWSClient).ec2conn
+	conn := meta.(*AWSClient).ec2SDKconn
 
-	request := &ec2.CreateNetworkInterfaceRequest{
-		Groups:             expandStringList(d.Get("security_groups").(*schema.Set).List()),
+	request := &ec2.CreateNetworkInterfaceInput{
+		Groups:             expandStringListSDK(d.Get("security_groups").(*schema.Set).List()),
 		SubnetID:           aws.String(d.Get("subnet_id").(string)),
-		PrivateIPAddresses: expandPrivateIPAddesses(d.Get("private_ips").(*schema.Set).List()),
+		PrivateIPAddresses: expandPrivateIPAddessesSDK(d.Get("private_ips").(*schema.Set).List()),
 	}
 
 	log.Printf("[DEBUG] Creating network interface")
-	resp, err := ec2conn.CreateNetworkInterface(request)
+	resp, err := conn.CreateNetworkInterface(request)
 	if err != nil {
 		return fmt.Errorf("Error creating ENI: %s", err)
 	}
 
 	d.SetId(*resp.NetworkInterface.NetworkInterfaceID)
 	log.Printf("[INFO] ENI ID: %s", d.Id())
-
 	return resourceAwsNetworkInterfaceUpdate(d, meta)
 }
 
 func resourceAwsNetworkInterfaceRead(d *schema.ResourceData, meta interface{}) error {
 
-	ec2conn := meta.(*AWSClient).ec2conn
-	describe_network_interfaces_request := &ec2.DescribeNetworkInterfacesRequest{
-		NetworkInterfaceIDs: []string{d.Id()},
+	conn := meta.(*AWSClient).ec2SDKconn
+	describe_network_interfaces_request := &ec2.DescribeNetworkInterfacesInput{
+		NetworkInterfaceIDs: []*string{aws.String(d.Id())},
 	}
-	describeResp, err := ec2conn.DescribeNetworkInterfaces(describe_network_interfaces_request)
+	describeResp, err := conn.DescribeNetworkInterfaces(describe_network_interfaces_request)
 
 	if err != nil {
 		if ec2err, ok := err.(aws.APIError); ok && ec2err.Code == "InvalidNetworkInterfaceID.NotFound" {
@@ -121,14 +120,14 @@ func resourceAwsNetworkInterfaceRead(d *schema.ResourceData, meta interface{}) e
 
 	eni := describeResp.NetworkInterfaces[0]
 	d.Set("subnet_id", eni.SubnetID)
-	d.Set("private_ips", flattenNetworkInterfacesPrivateIPAddesses(eni.PrivateIPAddresses))
-	d.Set("security_groups", flattenGroupIdentifiers(eni.Groups))
+	d.Set("private_ips", flattenNetworkInterfacesPrivateIPAddessesSDK(eni.PrivateIPAddresses))
+	d.Set("security_groups", flattenGroupIdentifiersSDK(eni.Groups))
 
 	// Tags
-	d.Set("tags", tagsToMap(eni.TagSet))
+	d.Set("tags", tagsToMapSDK(eni.TagSet))
 
 	if eni.Attachment != nil {
-		attachment := []map[string]interface{}{flattenAttachment(eni.Attachment)}
+		attachment := []map[string]interface{}{flattenAttachmentSDK(eni.Attachment)}
 		d.Set("attachment", attachment)
 	} else {
 		d.Set("attachment", nil)
@@ -137,13 +136,13 @@ func resourceAwsNetworkInterfaceRead(d *schema.ResourceData, meta interface{}) e
 	return nil
 }
 
-func networkInterfaceAttachmentRefreshFunc(ec2conn *ec2.EC2, id string) resource.StateRefreshFunc {
+func networkInterfaceAttachmentRefreshFunc(conn *ec2.EC2, id string) resource.StateRefreshFunc {
 	return func() (interface{}, string, error) {
 
-		describe_network_interfaces_request := &ec2.DescribeNetworkInterfacesRequest{
-			NetworkInterfaceIDs: []string{id},
+		describe_network_interfaces_request := &ec2.DescribeNetworkInterfacesInput{
+			NetworkInterfaceIDs: []*string{aws.String(id)},
 		}
-		describeResp, err := ec2conn.DescribeNetworkInterfaces(describe_network_interfaces_request)
+		describeResp, err := conn.DescribeNetworkInterfaces(describe_network_interfaces_request)
 
 		if err != nil {
 			log.Printf("[ERROR] Could not find network interface %s. %s", id, err)
@@ -161,12 +160,12 @@ func resourceAwsNetworkInterfaceDetach(oa *schema.Set, meta interface{}, eniId s
 	// if there was an old attachment, remove it
 	if oa != nil && len(oa.List()) > 0 {
 		old_attachment := oa.List()[0].(map[string]interface{})
-		detach_request := &ec2.DetachNetworkInterfaceRequest{
+		detach_request := &ec2.DetachNetworkInterfaceInput{
 			AttachmentID: aws.String(old_attachment["attachment_id"].(string)),
 			Force:        aws.Boolean(true),
 		}
-		ec2conn := meta.(*AWSClient).ec2conn
-		detach_err := ec2conn.DetachNetworkInterface(detach_request)
+		conn := meta.(*AWSClient).ec2SDKconn
+		_, detach_err := conn.DetachNetworkInterface(detach_request)
 		if detach_err != nil {
 			return fmt.Errorf("Error detaching ENI: %s", detach_err)
 		}
@@ -175,7 +174,7 @@ func resourceAwsNetworkInterfaceDetach(oa *schema.Set, meta interface{}, eniId s
 		stateConf := &resource.StateChangeConf{
 			Pending: []string{"true"},
 			Target:  "false",
-			Refresh: networkInterfaceAttachmentRefreshFunc(ec2conn, eniId),
+			Refresh: networkInterfaceAttachmentRefreshFunc(conn, eniId),
 			Timeout: 10 * time.Minute,
 		}
 		if _, err := stateConf.WaitForState(); err != nil {
@@ -188,11 +187,10 @@ func resourceAwsNetworkInterfaceDetach(oa *schema.Set, meta interface{}, eniId s
 }
 
 func resourceAwsNetworkInterfaceUpdate(d *schema.ResourceData, meta interface{}) error {
-	ec2conn := meta.(*AWSClient).ec2conn
+	conn := meta.(*AWSClient).ec2SDKconn
 	d.Partial(true)
 
 	if d.HasChange("attachment") {
-		ec2conn := meta.(*AWSClient).ec2conn
 		oa, na := d.GetChange("attachment")
 
 		detach_err := resourceAwsNetworkInterfaceDetach(oa.(*schema.Set), meta, d.Id())
@@ -203,12 +201,13 @@ func resourceAwsNetworkInterfaceUpdate(d *schema.ResourceData, meta interface{})
 		// if there is a new attachment, attach it
 		if na != nil && len(na.(*schema.Set).List()) > 0 {
 			new_attachment := na.(*schema.Set).List()[0].(map[string]interface{})
-			attach_request := &ec2.AttachNetworkInterfaceRequest{
-				DeviceIndex:        aws.Integer(new_attachment["device_index"].(int)),
+			di := new_attachment["device_index"].(int)
+			attach_request := &ec2.AttachNetworkInterfaceInput{
+				DeviceIndex:        aws.Long(int64(di)),
 				InstanceID:         aws.String(new_attachment["instance"].(string)),
 				NetworkInterfaceID: aws.String(d.Id()),
 			}
-			_, attach_err := ec2conn.AttachNetworkInterface(attach_request)
+			_, attach_err := conn.AttachNetworkInterface(attach_request)
 			if attach_err != nil {
 				return fmt.Errorf("Error attaching ENI: %s", attach_err)
 			}
@@ -218,12 +217,12 @@ func resourceAwsNetworkInterfaceUpdate(d *schema.ResourceData, meta interface{})
 	}
 
 	if d.HasChange("security_groups") {
-		request := &ec2.ModifyNetworkInterfaceAttributeRequest{
+		request := &ec2.ModifyNetworkInterfaceAttributeInput{
 			NetworkInterfaceID: aws.String(d.Id()),
-			Groups:             expandStringList(d.Get("security_groups").(*schema.Set).List()),
+			Groups:             expandStringListSDK(d.Get("security_groups").(*schema.Set).List()),
 		}
 
-		err := ec2conn.ModifyNetworkInterfaceAttribute(request)
+		_, err := conn.ModifyNetworkInterfaceAttribute(request)
 		if err != nil {
 			return fmt.Errorf("Failure updating ENI: %s", err)
 		}
@@ -231,7 +230,7 @@ func resourceAwsNetworkInterfaceUpdate(d *schema.ResourceData, meta interface{})
 		d.SetPartial("security_groups")
 	}
 
-	if err := setTags(ec2conn, d); err != nil {
+	if err := setTagsSDK(conn, d); err != nil {
 		return err
 	} else {
 		d.SetPartial("tags")
@@ -243,7 +242,7 @@ func resourceAwsNetworkInterfaceUpdate(d *schema.ResourceData, meta interface{})
 }
 
 func resourceAwsNetworkInterfaceDelete(d *schema.ResourceData, meta interface{}) error {
-	ec2conn := meta.(*AWSClient).ec2conn
+	conn := meta.(*AWSClient).ec2SDKconn
 
 	log.Printf("[INFO] Deleting ENI: %s", d.Id())
 
@@ -252,10 +251,10 @@ func resourceAwsNetworkInterfaceDelete(d *schema.ResourceData, meta interface{})
 		return detach_err
 	}
 
-	deleteEniOpts := ec2.DeleteNetworkInterfaceRequest{
+	deleteEniOpts := ec2.DeleteNetworkInterfaceInput{
 		NetworkInterfaceID: aws.String(d.Id()),
 	}
-	if err := ec2conn.DeleteNetworkInterface(&deleteEniOpts); err != nil {
+	if _, err := conn.DeleteNetworkInterface(&deleteEniOpts); err != nil {
 		return fmt.Errorf("Error deleting ENI: %s", err)
 	}
 
