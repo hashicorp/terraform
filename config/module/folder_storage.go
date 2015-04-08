@@ -16,8 +16,8 @@ type FolderStorage struct {
 }
 
 // Dir implements Storage.Dir
-func (s *FolderStorage) Dir(source string) (d string, e bool, err error) {
-	d = s.dir(source)
+func (s *FolderStorage) Dir(key string) (d string, e bool, err error) {
+	d = s.dir(key)
 	_, err = os.Stat(d)
 	if err == nil {
 		// Directory exists
@@ -59,7 +59,7 @@ func (s *FolderStorage) Get(key string, source string, update bool) error {
 
 // dir returns the directory name internally that we'll use to map to
 // internally.
-func (s *FolderStorage) dir(source string) string {
-	sum := md5.Sum([]byte(source))
+func (s *FolderStorage) dir(key string) string {
+	sum := md5.Sum([]byte(key))
 	return filepath.Join(s.StorageDir, hex.EncodeToString(sum[:]))
 }
