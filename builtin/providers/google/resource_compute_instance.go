@@ -572,7 +572,6 @@ func resourceComputeInstanceRead(d *schema.ResourceData, meta interface{}) error
 			networkInterfaces = append(networkInterfaces, map[string]interface{}{
 				"name":          iface.Name,
 				"address":       iface.NetworkIP,
-				"network":       iface.Network,
 				"access_config": accessConfigs,
 			})
 		}
