@@ -6,8 +6,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/hashicorp/aws-sdk-go/aws"
-	"github.com/hashicorp/aws-sdk-go/gen/ec2"
+	"github.com/awslabs/aws-sdk-go/aws"
+	"github.com/awslabs/aws-sdk-go/service/ec2"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 )
@@ -60,7 +60,7 @@ func resourceAwsEip() *schema.Resource {
 }
 
 func resourceAwsEipCreate(d *schema.ResourceData, meta interface{}) error {
-	ec2conn := meta.(*AWSClient).ec2conn
+	ec2conn := meta.(*AWSClient).ec2SDKconn
 
 	// By default, we're not in a VPC
 	domainOpt := ""
@@ -68,7 +68,7 @@ func resourceAwsEipCreate(d *schema.ResourceData, meta interface{}) error {
 		domainOpt = "vpc"
 	}
 
-	allocOpts := &ec2.AllocateAddressRequest{
+	allocOpts := &ec2.AllocateAddressInput{
 		Domain: aws.String(domainOpt),
 	}
 
@@ -97,24 +97,24 @@ func resourceAwsEipCreate(d *schema.ResourceData, meta interface{}) error {
 }
 
 func resourceAwsEipRead(d *schema.ResourceData, meta interface{}) error {
-	ec2conn := meta.(*AWSClient).ec2conn
+	ec2conn := meta.(*AWSClient).ec2SDKconn
 
 	domain := resourceAwsEipDomain(d)
 	id := d.Id()
 
-	assocIds := []string{}
-	publicIps := []string{}
+	assocIds := []*string{}
+	publicIps := []*string{}
 	if domain == "vpc" {
-		assocIds = []string{id}
+		assocIds = []*string{aws.String(id)}
 	} else {
-		publicIps = []string{id}
+		publicIps = []*string{aws.String(id)}
 	}
 
 	log.Printf(
 		"[DEBUG] EIP describe configuration: %#v, %#v (domain: %s)",
 		assocIds, publicIps, domain)
 
-	req := &ec2.DescribeAddressesRequest{
+	req := &ec2.DescribeAddressesInput{
 		AllocationIDs: assocIds,
 		PublicIPs:     publicIps,
 	}
@@ -148,7 +148,7 @@ func resourceAwsEipRead(d *schema.ResourceData, meta interface{}) error {
 }
 
 func resourceAwsEipUpdate(d *schema.ResourceData, meta interface{}) error {
-	ec2conn := meta.(*AWSClient).ec2conn
+	ec2conn := meta.(*AWSClient).ec2SDKconn
 
 	domain := resourceAwsEipDomain(d)
 
@@ -156,14 +156,14 @@ func resourceAwsEipUpdate(d *schema.ResourceData, meta interface{}) error {
 	if v, ok := d.GetOk("instance"); ok {
 		instanceId := v.(string)
 
-		assocOpts := &ec2.AssociateAddressRequest{
+		assocOpts := &ec2.AssociateAddressInput{
 			InstanceID: aws.String(instanceId),
 			PublicIP:   aws.String(d.Id()),
 		}
 
 		// more unique ID conditionals
 		if domain == "vpc" {
-			assocOpts = &ec2.AssociateAddressRequest{
+			assocOpts = &ec2.AssociateAddressInput{
 				InstanceID:   aws.String(instanceId),
 				AllocationID: aws.String(d.Id()),
 				PublicIP:     aws.String(""),
@@ -181,7 +181,7 @@ func resourceAwsEipUpdate(d *schema.ResourceData, meta interface{}) error {
 }
 
 func resourceAwsEipDelete(d *schema.ResourceData, meta interface{}) error {
-	ec2conn := meta.(*AWSClient).ec2conn
+	ec2conn := meta.(*AWSClient).ec2SDKconn
 
 	if err := resourceAwsEipRead(d, meta); err != nil {
 		return err
@@ -197,11 +197,11 @@ func resourceAwsEipDelete(d *schema.ResourceData, meta interface{}) error {
 		var err error
 		switch resourceAwsEipDomain(d) {
 		case "vpc":
-			err = ec2conn.DisassociateAddress(&ec2.DisassociateAddressRequest{
+			_, err = ec2conn.DisassociateAddress(&ec2.DisassociateAddressInput{
 				AssociationID: aws.String(d.Get("association_id").(string)),
 			})
 		case "standard":
-			err = ec2conn.DisassociateAddress(&ec2.DisassociateAddressRequest{
+			_, err = ec2conn.DisassociateAddress(&ec2.DisassociateAddressInput{
 				PublicIP: aws.String(d.Get("public_ip").(string)),
 			})
 		}
@@ -218,12 +218,12 @@ func resourceAwsEipDelete(d *schema.ResourceData, meta interface{}) error {
 			log.Printf(
 				"[DEBUG] EIP release (destroy) address allocation: %v",
 				d.Id())
-			err = ec2conn.ReleaseAddress(&ec2.ReleaseAddressRequest{
+			_, err = ec2conn.ReleaseAddress(&ec2.ReleaseAddressInput{
 				AllocationID: aws.String(d.Id()),
 			})
 		case "standard":
 			log.Printf("[DEBUG] EIP release (destroy) address: %v", d.Id())
-			err = ec2conn.ReleaseAddress(&ec2.ReleaseAddressRequest{
+			_, err = ec2conn.ReleaseAddress(&ec2.ReleaseAddressInput{
 				PublicIP: aws.String(d.Id()),
 			})
 		}

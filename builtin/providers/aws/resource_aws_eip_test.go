@@ -5,8 +5,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/hashicorp/aws-sdk-go/aws"
-	"github.com/hashicorp/aws-sdk-go/gen/ec2"
+	"github.com/awslabs/aws-sdk-go/aws"
+	"github.com/awslabs/aws-sdk-go/service/ec2"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
 )
@@ -58,16 +58,16 @@ func TestAccAWSEIP_instance(t *testing.T) {
 }
 
 func testAccCheckAWSEIPDestroy(s *terraform.State) error {
-	conn := testAccProvider.Meta().(*AWSClient).ec2conn
+	conn := testAccProvider.Meta().(*AWSClient).ec2SDKconn
 
 	for _, rs := range s.RootModule().Resources {
 		if rs.Type != "aws_eip" {
 			continue
 		}
 
-		req := &ec2.DescribeAddressesRequest{
-			AllocationIDs: []string{},
-			PublicIPs:     []string{rs.Primary.ID},
+		req := &ec2.DescribeAddressesInput{
+			AllocationIDs: []*string{},
+			PublicIPs:     []*string{aws.String(rs.Primary.ID)},
 		}
 		describe, err := conn.DescribeAddresses(req)
 
@@ -113,12 +113,12 @@ func testAccCheckAWSEIPExists(n string, res *ec2.Address) resource.TestCheckFunc
 			return fmt.Errorf("No EIP ID is set")
 		}
 
-		conn := testAccProvider.Meta().(*AWSClient).ec2conn
+		conn := testAccProvider.Meta().(*AWSClient).ec2SDKconn
 
 		if strings.Contains(rs.Primary.ID, "eipalloc") {
-			req := &ec2.DescribeAddressesRequest{
-				AllocationIDs: []string{rs.Primary.ID},
-				PublicIPs:     []string{},
+			req := &ec2.DescribeAddressesInput{
+				AllocationIDs: []*string{aws.String(rs.Primary.ID)},
+				PublicIPs:     []*string{},
 			}
 			describe, err := conn.DescribeAddresses(req)
 			if err != nil {
@@ -129,12 +129,12 @@ func testAccCheckAWSEIPExists(n string, res *ec2.Address) resource.TestCheckFunc
 				*describe.Addresses[0].AllocationID != rs.Primary.ID {
 				return fmt.Errorf("EIP not found")
 			}
-			*res = describe.Addresses[0]
+			*res = *describe.Addresses[0]
 
 		} else {
-			req := &ec2.DescribeAddressesRequest{
-				AllocationIDs: []string{},
-				PublicIPs:     []string{rs.Primary.ID},
+			req := &ec2.DescribeAddressesInput{
+				AllocationIDs: []*string{},
+				PublicIPs:     []*string{aws.String(rs.Primary.ID)},
 			}
 			describe, err := conn.DescribeAddresses(req)
 			if err != nil {
@@ -145,7 +145,7 @@ func testAccCheckAWSEIPExists(n string, res *ec2.Address) resource.TestCheckFunc
 				*describe.Addresses[0].PublicIP != rs.Primary.ID {
 				return fmt.Errorf("EIP not found")
 			}
-			*res = describe.Addresses[0]
+			*res = *describe.Addresses[0]
 		}
 
 		return nil
