@@ -18,6 +18,8 @@ func TestTreeChild(t *testing.T) {
 		t.Fatal("should not be nil")
 	} else if c.Name() != "root" {
 		t.Fatalf("bad: %#v", c.Name())
+	} else if !reflect.DeepEqual(c.Path(), []string(nil)) {
+		t.Fatalf("bad: %#v", c.Path())
 	}
 
 	// Should be able to get the root child
@@ -25,6 +27,8 @@ func TestTreeChild(t *testing.T) {
 		t.Fatal("should not be nil")
 	} else if c.Name() != "root" {
 		t.Fatalf("bad: %#v", c.Name())
+	} else if !reflect.DeepEqual(c.Path(), []string(nil)) {
+		t.Fatalf("bad: %#v", c.Path())
 	}
 
 	// Should be able to get the foo child
@@ -32,6 +36,8 @@ func TestTreeChild(t *testing.T) {
 		t.Fatal("should not be nil")
 	} else if c.Name() != "foo" {
 		t.Fatalf("bad: %#v", c.Name())
+	} else if !reflect.DeepEqual(c.Path(), []string{"foo"}) {
+		t.Fatalf("bad: %#v", c.Path())
 	}
 
 	// Should be able to get the nested child
@@ -39,6 +45,8 @@ func TestTreeChild(t *testing.T) {
 		t.Fatal("should not be nil")
 	} else if c.Name() != "bar" {
 		t.Fatalf("bad: %#v", c.Name())
+	} else if !reflect.DeepEqual(c.Path(), []string{"foo", "bar"}) {
+		t.Fatalf("bad: %#v", c.Path())
 	}
 }
 
@@ -274,16 +282,16 @@ func TestTreeValidate_requiredChildVar(t *testing.T) {
 
 const treeLoadStr = `
 root
-  foo
+  foo (path: foo)
 `
 
 const treeLoadParentStr = `
 root
-  a
-    b
+  a (path: a)
+    b (path: a, b)
 `
 const treeLoadSubdirStr = `
 root
-  foo
-    bar
+  foo (path: foo)
+    bar (path: foo, bar)
 `
