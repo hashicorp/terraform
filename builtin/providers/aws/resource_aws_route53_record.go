@@ -60,7 +60,7 @@ func resourceAwsRoute53Record() *schema.Resource {
 
 func resourceAwsRoute53RecordCreate(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).r53conn
-	zone := d.Get("zone_id").(string)
+	zone := cleanZoneID(d.Get("zone_id").(string))
 
 	zoneRecord, err := conn.GetHostedZone(&route53.GetHostedZoneRequest{ID: aws.String(zone)})
 	if err != nil {
@@ -151,7 +151,7 @@ func resourceAwsRoute53RecordCreate(d *schema.ResourceData, meta interface{}) er
 func resourceAwsRoute53RecordRead(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).r53conn
 
-	zone := d.Get("zone_id").(string)
+	zone := cleanZoneID(d.Get("zone_id").(string))
 
 	// get expanded name
 	zoneRecord, err := conn.GetHostedZone(&route53.GetHostedZoneRequest{ID: aws.String(zone)})
@@ -200,7 +200,7 @@ func resourceAwsRoute53RecordRead(d *schema.ResourceData, meta interface{}) erro
 func resourceAwsRoute53RecordDelete(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).r53conn
 
-	zone := d.Get("zone_id").(string)
+	zone := cleanZoneID(d.Get("zone_id").(string))
 	log.Printf("[DEBUG] Deleting resource records for zone: %s, name: %s",
 		zone, d.Get("name").(string))
 	zoneRecord, err := conn.GetHostedZone(&route53.GetHostedZoneRequest{ID: aws.String(zone)})
