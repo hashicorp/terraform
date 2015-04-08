@@ -186,7 +186,7 @@ func resourceAwsRoute53RecordRead(d *schema.ResourceData, meta interface{}) erro
 
 		err := d.Set("records", flattenResourceRecords(record.ResourceRecords))
 		if err != nil {
-			log.Printf("[DEBUG] Error setting records for: %s, error: %#v", en, err)
+			return fmt.Errorf("[DEBUG] Error setting records for: %s, error: %#v", en, err)
 		}
 		d.Set("ttl", record.TTL)
 
