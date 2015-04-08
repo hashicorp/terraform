@@ -1,13 +1,12 @@
 package aws
 
 import (
-	"encoding/base64"
 	"fmt"
 
 	"github.com/hashicorp/terraform/helper/schema"
 
-	"github.com/hashicorp/aws-sdk-go/aws"
-	"github.com/hashicorp/aws-sdk-go/gen/ec2"
+	"github.com/awslabs/aws-sdk-go/aws"
+	"github.com/awslabs/aws-sdk-go/service/ec2"
 )
 
 func resourceAwsKeyPair() *schema.Resource {
@@ -37,15 +36,15 @@ func resourceAwsKeyPair() *schema.Resource {
 }
 
 func resourceAwsKeyPairCreate(d *schema.ResourceData, meta interface{}) error {
-	ec2conn := meta.(*AWSClient).ec2conn
+	conn := meta.(*AWSClient).ec2SDKconn
 
 	keyName := d.Get("key_name").(string)
 	publicKey := d.Get("public_key").(string)
-	req := &ec2.ImportKeyPairRequest{
+	req := &ec2.ImportKeyPairInput{
 		KeyName:           aws.String(keyName),
-		PublicKeyMaterial: []byte(base64.StdEncoding.EncodeToString([]byte(publicKey))),
+		PublicKeyMaterial: []byte(publicKey),
 	}
-	resp, err := ec2conn.ImportKeyPair(req)
+	resp, err := conn.ImportKeyPair(req)
 	if err != nil {
 		return fmt.Errorf("Error import KeyPair: %s", err)
 	}
@@ -55,12 +54,11 @@ func resourceAwsKeyPairCreate(d *schema.ResourceData, meta interface{}) error {
 }
 
 func resourceAwsKeyPairRead(d *schema.ResourceData, meta interface{}) error {
-	ec2conn := meta.(*AWSClient).ec2conn
-
-	req := &ec2.DescribeKeyPairsRequest{
-		KeyNames: []string{d.Id()},
+	conn := meta.(*AWSClient).ec2SDKconn
+	req := &ec2.DescribeKeyPairsInput{
+		KeyNames: []*string{aws.String(d.Id())},
 	}
-	resp, err := ec2conn.DescribeKeyPairs(req)
+	resp, err := conn.DescribeKeyPairs(req)
 	if err != nil {
 		return fmt.Errorf("Error retrieving KeyPair: %s", err)
 	}
@@ -77,9 +75,9 @@ func resourceAwsKeyPairRead(d *schema.ResourceData, meta interface{}) error {
 }
 
 func resourceAwsKeyPairDelete(d *schema.ResourceData, meta interface{}) error {
-	ec2conn := meta.(*AWSClient).ec2conn
+	conn := meta.(*AWSClient).ec2SDKconn
 
-	err := ec2conn.DeleteKeyPair(&ec2.DeleteKeyPairRequest{
+	_, err := conn.DeleteKeyPair(&ec2.DeleteKeyPairInput{
 		KeyName: aws.String(d.Id()),
 	})
 	return err
