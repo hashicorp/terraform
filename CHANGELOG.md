@@ -2,6 +2,8 @@
 
 BUG FIXES:
 
+  * core: module paths in ".terraform" are consistent across different
+      systems so copying your ".terraform" folder works. [GH-1418]
   * command/push: don't ask for input if terraform.tfvars is present
   * command/remote-config: remove spurrious error "nil" when initializing
       remote state on a new configuration. [GH-1392]
