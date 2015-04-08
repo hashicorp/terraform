@@ -35,9 +35,19 @@ func NewSet(f SchemaSetFunc, items []interface{}) *Set {
 	return s
 }
 
+// CopySet returns a copy of another set.
+func CopySet(otherSet *Set) *Set {
+	return NewSet(otherSet.F, otherSet.List())
+}
+
 // Add adds an item to the set if it isn't already in the set.
 func (s *Set) Add(item interface{}) {
 	s.add(item)
+}
+
+// Remove removes an item if it's already in the set. Idempotent.
+func (s *Set) Remove(item interface{}) {
+	s.remove(item)
 }
 
 // Contains checks if the set has the given item.
@@ -134,6 +144,15 @@ func (s *Set) add(item interface{}) int {
 	if _, ok := s.m[code]; !ok {
 		s.m[code] = item
 	}
+
+	return code
+}
+
+func (s *Set) remove(item interface{}) int {
+	s.once.Do(s.init)
+
+	code := s.F(item)
+	delete(s.m, code)
 
 	return code
 }
