@@ -63,9 +63,9 @@ func TestDiffTagsSDK(t *testing.T) {
 
 // testAccCheckTags can be used to check the tags on a resource.
 func testAccCheckTagsSDK(
-	ts []*ec2.Tag, key string, value string) resource.TestCheckFunc {
+	ts *[]*ec2.Tag, key string, value string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
-		m := tagsToMapSDK(ts)
+		m := tagsToMapSDK(*ts)
 		v, ok := m[key]
 		if value != "" && !ok {
 			return fmt.Errorf("Missing tag: %s", key)
