@@ -34,6 +34,8 @@ The following arguments are supported:
   contraction of the form "project/name", or just a name (in which case the current project is
 used).
 
+* `snapshot` - (Optional) Name of snapshot from which to initialize this disk;
+
 * `size` - (Optional) The size of the image in gigabytes. If not specified,
     it will inherit the size of its base image.
 
