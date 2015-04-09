@@ -18,6 +18,8 @@ func init() {
 
 func TestTest(t *testing.T) {
 	mp := testProvider()
+	mp.DiffReturn = nil
+
 	mp.ApplyReturn = &terraform.InstanceState{
 		ID: "foo",
 	}
