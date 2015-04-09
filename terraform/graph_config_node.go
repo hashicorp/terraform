@@ -209,6 +209,11 @@ func (n *GraphNodeConfigProvider) ProviderName() string {
 	return n.Provider.Name
 }
 
+// GraphNodeProvider implementation
+func (n *GraphNodeConfigProvider) ProviderConfig() *config.RawConfig {
+	return n.Provider.RawConfig
+}
+
 // GraphNodeDotter impl.
 func (n *GraphNodeConfigProvider) Dot(name string) string {
 	return fmt.Sprintf(
