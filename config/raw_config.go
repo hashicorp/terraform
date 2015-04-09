@@ -3,6 +3,7 @@ package config
 import (
 	"bytes"
 	"encoding/gob"
+	"sync"
 
 	"github.com/hashicorp/terraform/config/lang"
 	"github.com/hashicorp/terraform/config/lang/ast"
@@ -31,6 +32,7 @@ type RawConfig struct {
 	Interpolations []ast.Node
 	Variables      map[string]InterpolatedVariable
 
+	lock        sync.Mutex
 	config      map[string]interface{}
 	unknownKeys []string
 }
@@ -46,6 +48,20 @@ func NewRawConfig(raw map[string]interface{}) (*RawConfig, error) {
 	return result, nil
 }
 
+// Copy returns a copy of this RawConfig, uninterpolated.
+func (r *RawConfig) Copy() *RawConfig {
+	r.lock.Lock()
+	defer r.lock.Unlock()
+
+	result, err := NewRawConfig(r.Raw)
+	if err != nil {
+		panic("copy failed: " + err.Error())
+	}
+
+	result.Key = r.Key
+	return result
+}
+
 // Value returns the value of the configuration if this configuration
 // has a Key set. If this does not have a Key set, nil will be returned.
 func (r *RawConfig) Value() interface{} {
@@ -55,6 +71,8 @@ func (r *RawConfig) Value() interface{} {
 		}
 	}
 
+	r.lock.Lock()
+	defer r.lock.Unlock()
 	return r.Raw[r.Key]
 }
 
@@ -81,6 +99,9 @@ func (r *RawConfig) Config() map[string]interface{} {
 //
 // If a variable key is missing, this will panic.
 func (r *RawConfig) Interpolate(vs map[string]ast.Variable) error {
+	r.lock.Lock()
+	defer r.lock.Unlock()
+
 	config := langEvalConfig(vs)
 	return r.interpolate(func(root ast.Node) (string, error) {
 		// We detect the variables again and check if the value of any
@@ -119,6 +140,9 @@ func (r *RawConfig) Interpolate(vs map[string]ast.Variable) error {
 // values in this config) and returns a new config. The original config
 // is not modified.
 func (r *RawConfig) Merge(other *RawConfig) *RawConfig {
+	r.lock.Lock()
+	defer r.lock.Unlock()
+
 	// Merge the raw configurations
 	raw := make(map[string]interface{})
 	for k, v := range r.Raw {
@@ -252,6 +276,9 @@ func (r *RawConfig) GobDecode(b []byte) error {
 // tree of interpolated variables is recomputed on decode, since it is
 // referentially transparent.
 func (r *RawConfig) GobEncode() ([]byte, error) {
+	r.lock.Lock()
+	defer r.lock.Unlock()
+
 	data := gobRawConfig{
 		Key: r.Key,
 		Raw: r.Raw,
