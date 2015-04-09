@@ -21,6 +21,46 @@ type GraphNodeProviderConsumer interface {
 	ProvidedBy() []string
 }
 
+// DisableProviderTransformer "disables" any providers that are only
+// depended on by modules.
+type DisableProviderTransformer struct{}
+
+func (t *DisableProviderTransformer) Transform(g *Graph) error {
+	for _, v := range g.Vertices() {
+		// We only care about providers
+		if _, ok := v.(GraphNodeProvider); !ok {
+			continue
+		}
+
+		// Go through all the up-edges (things that depend on this
+		// provider) and if any is not a module, then ignore this node.
+		nonModule := false
+		for _, sourceRaw := range g.UpEdges(v).List() {
+			source := sourceRaw.(dag.Vertex)
+			cn, ok := source.(graphNodeConfig)
+			if !ok {
+				nonModule = true
+				break
+			}
+
+			if cn.ConfigType() != GraphNodeConfigTypeModule {
+				nonModule = true
+				break
+			}
+		}
+		if nonModule {
+			// We found something that depends on this provider that
+			// isn't a module, so skip it.
+			continue
+		}
+
+		// Disable the provider by removing it from the graph.
+		g.Remove(v)
+	}
+
+	return nil
+}
+
 // ProviderTransformer is a GraphTransformer that maps resources to
 // providers within the graph. This will error if there are any resources
 // that don't map to proper resources.
