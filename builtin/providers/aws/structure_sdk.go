@@ -3,8 +3,8 @@ package aws
 import (
 	"strings"
 
+	"github.com/awslabs/aws-sdk-go/aws"
 	"github.com/awslabs/aws-sdk-go/service/ec2"
-	"github.com/hashicorp/aws-sdk-go/aws"
 	"github.com/hashicorp/aws-sdk-go/gen/elb"
 	"github.com/hashicorp/aws-sdk-go/gen/rds"
 	"github.com/hashicorp/terraform/helper/schema"
@@ -20,10 +20,12 @@ func expandListenersSDK(configured []interface{}) ([]elb.Listener, error) {
 	for _, lRaw := range configured {
 		data := lRaw.(map[string]interface{})
 
+		ip := data["instance_port"].(int)
+		lp := data["lb_port"].(int)
 		l := elb.Listener{
-			InstancePort:     aws.Integer(data["instance_port"].(int)),
+			InstancePort:     &ip,
 			InstanceProtocol: aws.String(data["instance_protocol"].(string)),
-			LoadBalancerPort: aws.Integer(data["lb_port"].(int)),
+			LoadBalancerPort: &lp,
 			Protocol:         aws.String(data["lb_protocol"].(string)),
 		}
 
@@ -40,7 +42,7 @@ func expandListenersSDK(configured []interface{}) ([]elb.Listener, error) {
 // Takes the result of flatmap.Expand for an array of ingress/egress
 // security group rules and returns EC2 API compatible objects
 func expandIPPermsSDK(
-	group ec2.SecurityGroup, configured []interface{}) []*ec2.IPPermission {
+	group *ec2.SecurityGroup, configured []interface{}) []*ec2.IPPermission {
 	vpc := group.VPCID != nil
 
 	perms := make([]*ec2.IPPermission, len(configured))
@@ -48,8 +50,8 @@ func expandIPPermsSDK(
 		var perm ec2.IPPermission
 		m := mRaw.(map[string]interface{})
 
-		perm.FromPort = aws.Long(m["from_port"].(int64))
-		perm.ToPort = aws.Long(m["to_port"].(int64))
+		perm.FromPort = aws.Long(int64(m["from_port"].(int)))
+		perm.ToPort = aws.Long(int64(m["to_port"].(int)))
 		perm.IPProtocol = aws.String(m["protocol"].(string))
 
 		var groups []string
@@ -141,7 +143,7 @@ func flattenHealthCheckSDK(check *elb.HealthCheck) []map[string]interface{} {
 }
 
 // Flattens an array of UserSecurityGroups into a []string
-func flattenSecurityGroupsSDK(list []ec2.UserIDGroupPair) []string {
+func flattenSecurityGroupsSDK(list []*ec2.UserIDGroupPair) []string {
 	result := make([]string, 0, len(list))
 	for _, g := range list {
 		result = append(result, *g.GroupID)
