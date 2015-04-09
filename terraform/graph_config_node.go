@@ -19,6 +19,10 @@ type graphNodeConfig interface {
 	// be depended on.
 	GraphNodeDependable
 	GraphNodeDependent
+
+	// ConfigType returns the type of thing in the configuration that
+	// this node represents, such as a resource, module, etc.
+	ConfigType() GraphNodeConfigType
 }
 
 // GraphNodeAddressable is an interface that all graph nodes for the
@@ -46,6 +50,10 @@ type GraphNodeConfigModule struct {
 	Path   []string
 	Module *config.Module
 	Tree   *module.Tree
+}
+
+func (n *GraphNodeConfigModule) ConfigType() GraphNodeConfigType {
+	return GraphNodeConfigTypeModule
 }
 
 func (n *GraphNodeConfigModule) DependableName() []string {
@@ -125,6 +133,10 @@ func (n *GraphNodeConfigOutput) Name() string {
 	return fmt.Sprintf("output.%s", n.Output.Name)
 }
 
+func (n *GraphNodeConfigOutput) ConfigType() GraphNodeConfigType {
+	return GraphNodeConfigTypeOutput
+}
+
 func (n *GraphNodeConfigOutput) DependableName() []string {
 	return []string{n.Name()}
 }
@@ -165,6 +177,10 @@ type GraphNodeConfigProvider struct {
 
 func (n *GraphNodeConfigProvider) Name() string {
 	return fmt.Sprintf("provider.%s", n.Provider.Name)
+}
+
+func (n *GraphNodeConfigProvider) ConfigType() GraphNodeConfigType {
+	return GraphNodeConfigTypeProvider
 }
 
 func (n *GraphNodeConfigProvider) DependableName() []string {
@@ -214,6 +230,10 @@ type GraphNodeConfigResource struct {
 
 	// Used during DynamicExpand to target indexes
 	Targets []ResourceAddress
+}
+
+func (n *GraphNodeConfigResource) ConfigType() GraphNodeConfigType {
+	return GraphNodeConfigTypeResource
 }
 
 func (n *GraphNodeConfigResource) DependableName() []string {
@@ -543,6 +563,10 @@ type graphNodeModuleExpanded struct {
 
 func (n *graphNodeModuleExpanded) Name() string {
 	return fmt.Sprintf("%s (expanded)", dag.VertexName(n.Original))
+}
+
+func (n *graphNodeModuleExpanded) ConfigType() GraphNodeConfigType {
+	return GraphNodeConfigTypeModule
 }
 
 // GraphNodeDotter impl.
