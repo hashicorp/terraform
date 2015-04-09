@@ -38,6 +38,10 @@ type MockEvalContext struct {
 	ConfigureProviderConfig *ResourceConfig
 	ConfigureProviderError  error
 
+	SetProviderConfigCalled bool
+	SetProviderConfigName   string
+	SetProviderConfigConfig *ResourceConfig
+
 	ParentProviderConfigCalled bool
 	ParentProviderConfigName   string
 	ParentProviderConfigConfig *ResourceConfig
@@ -105,6 +109,14 @@ func (c *MockEvalContext) ConfigureProvider(n string, cfg *ResourceConfig) error
 	c.ConfigureProviderName = n
 	c.ConfigureProviderConfig = cfg
 	return c.ConfigureProviderError
+}
+
+func (c *MockEvalContext) SetProviderConfig(
+	n string, cfg *ResourceConfig) error {
+	c.SetProviderConfigCalled = true
+	c.SetProviderConfigName = n
+	c.SetProviderConfigConfig = cfg
+	return nil
 }
 
 func (c *MockEvalContext) ParentProviderConfig(n string) *ResourceConfig {
