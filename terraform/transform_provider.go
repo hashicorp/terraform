@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/hashicorp/go-multierror"
+	"github.com/hashicorp/terraform/config"
 	"github.com/hashicorp/terraform/dag"
 )
 
@@ -12,6 +13,7 @@ import (
 // they satisfy.
 type GraphNodeProvider interface {
 	ProviderName() string
+	ProviderConfig() *config.RawConfig
 }
 
 // GraphNodeProviderConsumer is an interface that nodes that require
@@ -28,7 +30,8 @@ type DisableProviderTransformer struct{}
 func (t *DisableProviderTransformer) Transform(g *Graph) error {
 	for _, v := range g.Vertices() {
 		// We only care about providers
-		if _, ok := v.(GraphNodeProvider); !ok {
+		pn, ok := v.(GraphNodeProvider)
+		if !ok {
 			continue
 		}
 
@@ -54,8 +57,13 @@ func (t *DisableProviderTransformer) Transform(g *Graph) error {
 			continue
 		}
 
-		// Disable the provider by removing it from the graph.
-		g.Remove(v)
+		// Disable the provider by replacing it with a "disabled" provider
+		disabled := &graphNodeDisabledProvider{GraphNodeProvider: pn}
+		if !g.Replace(v, disabled) {
+			panic(fmt.Sprintf(
+				"vertex disappeared from under us: %s",
+				dag.VertexName(v)))
+		}
 	}
 
 	return nil
@@ -134,6 +142,36 @@ func (t *PruneProviderTransformer) Transform(g *Graph) error {
 	return nil
 }
 
+type graphNodeDisabledProvider struct {
+	GraphNodeProvider
+}
+
+// GraphNodeEvalable impl.
+func (n *graphNodeDisabledProvider) EvalTree() EvalNode {
+	var resourceConfig *ResourceConfig
+
+	return &EvalOpFilter{
+		Ops: []walkOperation{walkValidate, walkRefresh, walkPlan, walkApply},
+		Node: &EvalSequence{
+			Nodes: []EvalNode{
+				&EvalInterpolate{
+					Config: n.ProviderConfig(),
+					Output: &resourceConfig,
+				},
+				&EvalBuildProviderConfig{
+					Provider: n.ProviderName(),
+					Config:   &resourceConfig,
+					Output:   &resourceConfig,
+				},
+				&EvalSetProviderConfig{
+					Provider: n.ProviderName(),
+					Config:   &resourceConfig,
+				},
+			},
+		},
+	}
+}
+
 type graphNodeMissingProvider struct {
 	ProviderNameValue string
 }
@@ -149,6 +187,10 @@ func (n *graphNodeMissingProvider) EvalTree() EvalNode {
 
 func (n *graphNodeMissingProvider) ProviderName() string {
 	return n.ProviderNameValue
+}
+
+func (n *graphNodeMissingProvider) ProviderConfig() *config.RawConfig {
+	return nil
 }
 
 // GraphNodeDotter impl.

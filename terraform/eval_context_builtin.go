@@ -106,6 +106,15 @@ func (ctx *BuiltinEvalContext) ConfigureProvider(
 		return fmt.Errorf("Provider '%s' not initialized", n)
 	}
 
+	if err := ctx.SetProviderConfig(n, cfg); err != nil {
+		return nil
+	}
+
+	return p.Configure(cfg)
+}
+
+func (ctx *BuiltinEvalContext) SetProviderConfig(
+	n string, cfg *ResourceConfig) error {
 	providerPath := make([]string, len(ctx.Path())+1)
 	copy(providerPath, ctx.Path())
 	providerPath[len(providerPath)-1] = n
@@ -115,7 +124,7 @@ func (ctx *BuiltinEvalContext) ConfigureProvider(
 	ctx.ProviderConfigCache[PathCacheKey(providerPath)] = cfg
 	ctx.ProviderLock.Unlock()
 
-	return p.Configure(cfg)
+	return nil
 }
 
 func (ctx *BuiltinEvalContext) ProviderInput(n string) map[string]interface{} {

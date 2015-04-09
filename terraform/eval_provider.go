@@ -6,6 +6,17 @@ import (
 	"github.com/hashicorp/terraform/config"
 )
 
+// EvalSetProviderConfig sets the parent configuration for a provider
+// without configuring that provider, validating it, etc.
+type EvalSetProviderConfig struct {
+	Provider string
+	Config   **ResourceConfig
+}
+
+func (n *EvalSetProviderConfig) Eval(ctx EvalContext) (interface{}, error) {
+	return nil, ctx.SetProviderConfig(n.Provider, *n.Config)
+}
+
 // EvalBuildProviderConfig outputs a *ResourceConfig that is properly
 // merged with parents and inputs on top of what is configured in the file.
 type EvalBuildProviderConfig struct {
