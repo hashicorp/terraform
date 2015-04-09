@@ -17,14 +17,9 @@ import (
 // Rackspace endpoing
 type Config struct {
 	Username         string
-	UserID           string
 	Password         string
 	APIKey           string
 	IdentityEndpoint string
-	TenantID         string
-	TenantName       string
-	DomainID         string
-	DomainName       string
 
 	rsClient *gophercloud.ProviderClient
 }
@@ -32,14 +27,9 @@ type Config struct {
 func (c *Config) loadAndValidate() error {
 	ao := gophercloud.AuthOptions{
 		Username:         c.Username,
-		UserID:           c.UserID,
 		Password:         c.Password,
 		APIKey:           c.APIKey,
 		IdentityEndpoint: c.IdentityEndpoint,
-		TenantID:         c.TenantID,
-		TenantName:       c.TenantName,
-		DomainID:         c.DomainID,
-		DomainName:       c.DomainName,
 	}
 
 	client, err := rackspace.AuthenticatedClient(ao)
@@ -82,6 +72,12 @@ func (c *Config) computeClient(region string) (*gophercloud.ServiceClient, error
 
 func (c *Config) networkingClient(region string) (*gophercloud.ServiceClient, error) {
 	return rackspace.NewNetworkV2(c.rsClient, gophercloud.EndpointOpts{
+		Region: region,
+	})
+}
+
+func (c *Config) lbClient(region string) (*gophercloud.ServiceClient, error) {
+	return rackspace.NewLBV1(c.rsClient, gophercloud.EndpointOpts{
 		Region: region,
 	})
 }
