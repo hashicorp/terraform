@@ -58,7 +58,7 @@ func (c *Config) Client() (interface{}, error) {
 		client.region = c.Region
 
 		log.Println("[INFO] Building AWS auth structure")
-		creds := aws.Creds(c.AccessKey, c.SecretKey, c.Token)
+		creds := aws.DetectCreds(c.AccessKey, c.SecretKey, c.Token)
 
 		log.Println("[INFO] Initializing ELB connection")
 		client.elbconn = elb.New(creds, c.Region, nil)
@@ -76,9 +76,13 @@ func (c *Config) Client() (interface{}, error) {
 		client.r53conn = route53.New(creds, "us-east-1", nil)
 		log.Println("[INFO] Initializing EC2 Connection")
 		client.ec2conn = ec2.New(creds, c.Region, nil)
-
 		client.iamconn = iam.New(creds, c.Region, nil)
-		client.ec2SDKconn = awsEC2.New(&awsSDK.Config{Region: c.Region})
+
+		sdkCreds := awsSDK.DetectCreds(c.AccessKey, c.SecretKey, c.Token)
+		client.ec2SDKconn = awsEC2.New(&awsSDK.Config{
+			Credentials: sdkCreds,
+			Region:      c.Region,
+		})
 	}
 
 	if len(errs) > 0 {
