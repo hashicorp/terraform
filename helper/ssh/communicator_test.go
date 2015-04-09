@@ -4,10 +4,11 @@ package ssh
 
 import (
 	"bytes"
-	"golang.org/x/crypto/ssh"
 	"fmt"
 	"net"
 	"testing"
+
+	"golang.org/x/crypto/ssh"
 )
 
 // private key for mock server
@@ -75,17 +76,27 @@ func newMockLineServer(t *testing.T) string {
 			t.Logf("Handshaking error: %v", err)
 		}
 		t.Log("Accepted SSH connection")
+
 		for newChannel := range chans {
-			channel, _, err := newChannel.Accept()
+			channel, requests, err := newChannel.Accept()
 			if err != nil {
 				t.Errorf("Unable to accept channel.")
 			}
 			t.Log("Accepted channel")
 
+			go func(in <-chan *ssh.Request) {
+				for req := range in {
+					if req.WantReply {
+						req.Reply(true, nil)
+					}
+				}
+			}(requests)
+
 			go func(newChannel ssh.NewChannel) {
-				defer channel.Close()
 				conn.OpenChannel(newChannel.ChannelType(), nil)
 			}(newChannel)
+
+			defer channel.Close()
 		}
 		conn.Close()
 	}()
@@ -153,5 +164,8 @@ func TestStart(t *testing.T) {
 	cmd.Command = "echo foo"
 	cmd.Stdout = stdout
 
-	client.Start(&cmd)
+	err = client.Start(&cmd)
+	if err != nil {
+		t.Fatalf("error executing command: %s", err)
+	}
 }
