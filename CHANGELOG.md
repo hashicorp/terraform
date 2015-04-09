@@ -29,6 +29,7 @@ BUG FIXES:
       causing unresolvable diffs [GH-1444]
   * provider/aws: Fix issue preventing launch configurations from being valid
       in EC2 Classic [GH-1412]
+  * provider/aws: Fix issue in updating Route 53 records on refresh/read. [GH-1430]
   * provider/docker: Don't ask for `cert_path` input on every run [GH-1432]
   * provider/google: Fix issue causing unresolvable diff on instances with
       `network_interface` [GH-1427]
