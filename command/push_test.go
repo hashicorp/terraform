@@ -44,6 +44,7 @@ func TestPush_good(t *testing.T) {
 	}
 
 	args := []string{
+		"-vcs=false",
 		testFixturePath("push"),
 	}
 	if code := c.Run(args); code != 0 {
@@ -107,6 +108,7 @@ func TestPush_input(t *testing.T) {
 	defaultInputWriter = new(bytes.Buffer)
 
 	args := []string{
+		"-vcs=false",
 		testFixturePath("push-input"),
 	}
 	if code := c.Run(args); code != 0 {
@@ -161,6 +163,7 @@ func TestPush_inputPartial(t *testing.T) {
 	defaultInputWriter = new(bytes.Buffer)
 
 	args := []string{
+		"-vcs=false",
 		testFixturePath("push-input-partial"),
 	}
 	if code := c.Run(args); code != 0 {
@@ -215,6 +218,7 @@ func TestPush_inputTfvars(t *testing.T) {
 	path := testFixturePath("push-tfvars")
 	args := []string{
 		"-var-file", path + "/terraform.tfvars",
+		"-vcs=false",
 		path,
 	}
 	if code := c.Run(args); code != 0 {
@@ -276,6 +280,7 @@ func TestPush_name(t *testing.T) {
 
 	args := []string{
 		"-name", "bar",
+		"-vcs=false",
 		testFixturePath("push"),
 	}
 	if code := c.Run(args); code != 0 {
