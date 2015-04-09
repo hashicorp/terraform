@@ -5,7 +5,15 @@ import (
 	"reflect"
 	"sort"
 	"sync"
+
+	"github.com/hashicorp/terraform/helper/hashcode"
 )
+
+// HashString hashes strings. If you want a Set of strings, this is the
+// SchemaSetFunc you want.
+func HashString(v interface{}) int {
+	return hashcode.String(v.(string))
+}
 
 // Set is a set data structure that is returned for elements of type
 // TypeSet.

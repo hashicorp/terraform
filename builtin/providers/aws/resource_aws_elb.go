@@ -43,9 +43,7 @@ func resourceAwsElb() *schema.Resource {
 				Optional: true,
 				ForceNew: true,
 				Computed: true,
-				Set: func(v interface{}) int {
-					return hashcode.String(v.(string))
-				},
+				Set:      schema.HashString,
 			},
 
 			"instances": &schema.Schema{
@@ -53,9 +51,7 @@ func resourceAwsElb() *schema.Resource {
 				Elem:     &schema.Schema{Type: schema.TypeString},
 				Optional: true,
 				Computed: true,
-				Set: func(v interface{}) int {
-					return hashcode.String(v.(string))
-				},
+				Set:      schema.HashString,
 			},
 
 			// TODO: could be not ForceNew
@@ -65,9 +61,7 @@ func resourceAwsElb() *schema.Resource {
 				Optional: true,
 				ForceNew: true,
 				Computed: true,
-				Set: func(v interface{}) int {
-					return hashcode.String(v.(string))
-				},
+				Set:      schema.HashString,
 			},
 
 			"subnets": &schema.Schema{
@@ -76,9 +70,7 @@ func resourceAwsElb() *schema.Resource {
 				Optional: true,
 				ForceNew: true,
 				Computed: true,
-				Set: func(v interface{}) int {
-					return hashcode.String(v.(string))
-				},
+				Set:      schema.HashString,
 			},
 
 			"listener": &schema.Schema{
