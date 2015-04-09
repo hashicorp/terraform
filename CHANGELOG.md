@@ -1,5 +1,11 @@
 ## 0.4.1 (unreleased)
 
+IMPROVEMENTS:
+  * provider/aws: Route 53 records can now update `ttl` and `records` attributes 
+      without destroying/creating the record [GH-1396]
+  * provider/aws: Support changing additional attributes of RDS databases 
+      without forcing a new resource  [GH-1382]
+
 BUG FIXES:
 
   * core: module paths in ".terraform" are consistent across different
@@ -8,6 +14,10 @@ BUG FIXES:
   * command/push: don't ask for input if terraform.tfvars is present
   * command/remote-config: remove spurrious error "nil" when initializing
       remote state on a new configuration. [GH-1392]
+  * provider/aws: Fix issue with Route 53 and pre-existing Hosted Zones [GH-1415]
+  * provider/aws: Fix refresh issue in Route 53 hosted zone [GH-1384]
+  * provider/aws: Fix issue when changing map-public-ip in Subnets #1234
+  * provider/aws: Fix issue finding db subnets [GH-1377]
 
 ## 0.4.0 (April 2, 2015)
 
