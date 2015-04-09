@@ -1,3 +1,9 @@
+## 0.4.2 (unreleased)
+
+BUG FIXES:
+
+  * provider/aws: fix panic possibility if RDS DB name is empty [GH-1460]
+
 ## 0.4.1 (April 9, 2015)
 
 IMPROVEMENTS:
