@@ -20,7 +20,7 @@ func Provider() terraform.ResourceProvider {
 			"cert_path": &schema.Schema{
 				Type:        schema.TypeString,
 				Optional:    true,
-				DefaultFunc: schema.EnvDefaultFunc("DOCKER_CERT_PATH", nil),
+				DefaultFunc: schema.EnvDefaultFunc("DOCKER_CERT_PATH", ""),
 				Description: "Path to directory with Docker TLS config",
 			},
 		},
