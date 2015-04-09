@@ -70,11 +70,11 @@ func TestAccAWSNetworkAclsOnlyIngressRules(t *testing.T) {
 					resource.TestCheckResourceAttr(
 						"aws_network_acl.foos", "ingress.2750166237.protocol", "tcp"),
 					resource.TestCheckResourceAttr(
-						"aws_network_acl.foos", "ingress.2750166237.rule_no", "1"),
+						"aws_network_acl.foos", "ingress.2750166237.rule_no", "2"),
 					resource.TestCheckResourceAttr(
-						"aws_network_acl.foos", "ingress.2750166237.from_port", "0"),
+						"aws_network_acl.foos", "ingress.2750166237.from_port", "443"),
 					resource.TestCheckResourceAttr(
-						"aws_network_acl.foos", "ingress.2750166237.to_port", "22"),
+						"aws_network_acl.foos", "ingress.2750166237.to_port", "443"),
 					resource.TestCheckResourceAttr(
 						"aws_network_acl.foos", "ingress.2750166237.action", "deny"),
 					resource.TestCheckResourceAttr(
