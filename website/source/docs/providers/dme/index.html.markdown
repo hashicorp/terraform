@@ -35,7 +35,10 @@ resource "dme_record" "www" {
 
 The following arguments are supported:
 
-* `akey` - (Required) The DNSMadeEasy API key
-* `skey` - (Required) The DNSMadeEasy Secret key
+* `akey` - (Required) The DNSMadeEasy API key. This can also be specified with
+  the `DME_AKEY` shell environment variable.
+* `skey` - (Required) The DNSMadeEasy Secret key. This can also be specified
+  with the `DME_SKEY` shell environment variable.
 * `usesandbox` - (Optional) If true, the DNSMadeEasy sandbox will be
-  used
+  used. This can also be specified with the `DME_USESANDBOX` shell environment
+  variable.

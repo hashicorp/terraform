@@ -33,7 +33,7 @@ resource "cloudflare_record" "www" {
 
 The following arguments are supported:
 
-* `email` - (Required) The email associated with the account
-* `token` - (Required) The Cloudflare API token
-
-
+* `email` - (Required) The email associated with the account. This can also be
+  specified with the `CLOUDFLARE_EMAIL` shell environment variable.
+* `token` - (Required) The Cloudflare API token. This can also be specified
+  with the `CLOUDFLARE_TOKEN` shell environment variable.
