@@ -88,9 +88,7 @@ func resourceAwsRoute53Record() *schema.Resource {
 				ConflictsWith: []string{"alias"},
 				Elem:          &schema.Schema{Type: schema.TypeString},
 				Optional:      true,
-				Set: func(v interface{}) int {
-					return hashcode.String(v.(string))
-				},
+				Set:           schema.HashString,
 			},
 		},
 	}
