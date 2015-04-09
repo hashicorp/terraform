@@ -204,16 +204,8 @@ func resourceAwsInstance() *schema.Resource {
 				Set: func(v interface{}) int {
 					var buf bytes.Buffer
 					m := v.(map[string]interface{})
-					buf.WriteString(fmt.Sprintf("%t-", m["delete_on_termination"].(bool)))
 					buf.WriteString(fmt.Sprintf("%s-", m["device_name"].(string)))
-					buf.WriteString(fmt.Sprintf("%t-", m["encrypted"].(bool)))
-					// NOTE: Not considering IOPS in hash; when using gp2, IOPS can come
-					// back set to something like "33", which throws off the set
-					// calculation and generates an unresolvable diff.
-					// buf.WriteString(fmt.Sprintf("%d-", m["iops"].(int)))
 					buf.WriteString(fmt.Sprintf("%s-", m["snapshot_id"].(string)))
-					buf.WriteString(fmt.Sprintf("%d-", m["volume_size"].(int)))
-					buf.WriteString(fmt.Sprintf("%s-", m["volume_type"].(string)))
 					return hashcode.String(buf.String())
 				},
 			},
@@ -288,14 +280,8 @@ func resourceAwsInstance() *schema.Resource {
 					},
 				},
 				Set: func(v interface{}) int {
-					var buf bytes.Buffer
-					m := v.(map[string]interface{})
-					buf.WriteString(fmt.Sprintf("%t-", m["delete_on_termination"].(bool)))
-					// See the NOTE in "ebs_block_device" for why we skip iops here.
-					// buf.WriteString(fmt.Sprintf("%d-", m["iops"].(int)))
-					buf.WriteString(fmt.Sprintf("%d-", m["volume_size"].(int)))
-					buf.WriteString(fmt.Sprintf("%s-", m["volume_type"].(string)))
-					return hashcode.String(buf.String())
+					// there can be only one root device; no need to hash anything
+					return 0
 				},
 			},
 		},
