@@ -163,10 +163,13 @@ func resourceAwsSubnetDelete(d *schema.ResourceData, meta interface{}) error {
 		SubnetID: aws.String(d.Id()),
 	}
 
+	// Retry Count: the number of retry attempts allowed in the event of a
+	// dependency violation.
+	rC := 0
 	wait := resource.StateChangeConf{
 		Pending:    []string{"pending"},
 		Target:     "destroyed",
-		Timeout:    5 * time.Minute,
+		Timeout:    1 * time.Minute,
 		MinTimeout: 1 * time.Second,
 		Refresh: func() (interface{}, string, error) {
 			_, err := conn.DeleteSubnet(req)
@@ -174,8 +177,14 @@ func resourceAwsSubnetDelete(d *schema.ResourceData, meta interface{}) error {
 				if apiErr, ok := err.(aws.APIError); ok {
 					if apiErr.Code == "DependencyViolation" {
 						// There is some pending operation, so just retry
-						// in a bit.
-						return 42, "pending", nil
+						// in a bit, unless we've exceeded 10 tries.
+						if rC < 10 {
+							rC++
+							log.Printf("[DEBUG] Dependency violation, retrying: %s", err)
+							return 42, "pending", nil
+						}
+						log.Printf("[DEBUG] Dependency violation retries exhausted, aborting")
+						return 42, "failure", err
 					}
 
 					if apiErr.Code == "InvalidSubnetID.NotFound" {
