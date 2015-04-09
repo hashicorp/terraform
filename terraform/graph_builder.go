@@ -99,6 +99,7 @@ func (b *BuiltinGraphBuilder) Steps() []GraphTransformer {
 		&MissingProviderTransformer{Providers: b.Providers},
 		&ProviderTransformer{},
 		&PruneProviderTransformer{},
+		&DisableProviderTransformer{},
 
 		// Provisioner-related transformations
 		&MissingProvisionerTransformer{Provisioners: b.Provisioners},

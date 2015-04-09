@@ -1,9 +1,9 @@
+variable "foo" {}
+
 module "child" {
     source = "./child"
-}
 
-provider "aws" {
-    from = "${var.foo}"
+    value = "${var.foo}"
 }
 
 resource "aws_instance" "foo" {}
