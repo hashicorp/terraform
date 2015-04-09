@@ -119,6 +119,11 @@ func (n *graphNodeExpandedResource) ResourceAddress() *ResourceAddress {
 	}
 }
 
+// graphNodeConfig impl.
+func (n *graphNodeExpandedResource) ConfigType() GraphNodeConfigType {
+	return GraphNodeConfigTypeResource
+}
+
 // GraphNodeDependable impl.
 func (n *graphNodeExpandedResource) DependableName() []string {
 	return []string{
@@ -507,6 +512,11 @@ type graphNodeExpandedResourceDestroy struct {
 
 func (n *graphNodeExpandedResourceDestroy) Name() string {
 	return fmt.Sprintf("%s (destroy)", n.graphNodeExpandedResource.Name())
+}
+
+// graphNodeConfig impl.
+func (n *graphNodeExpandedResourceDestroy) ConfigType() GraphNodeConfigType {
+	return GraphNodeConfigTypeResource
 }
 
 // GraphNodeEvalable impl.
