@@ -2,6 +2,7 @@ package aws
 
 import (
 	"fmt"
+	"os"
 	"testing"
 
 	"github.com/hashicorp/aws-sdk-go/gen/ec2"
@@ -13,7 +14,12 @@ func TestAccAWSVPCPeeringConnection_normal(t *testing.T) {
 	var conf ec2.Address
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
+		PreCheck: func() {
+			testAccPreCheck(t)
+			if os.Getenv("AWS_ACCOUNT_ID") == "" {
+				t.Fatal("AWS_ACCOUNT_ID must be set")
+			}
+		},
 		Providers:    testAccProviders,
 		CheckDestroy: testAccCheckAWSVpcPeeringConnectionDestroy,
 		Steps: []resource.TestStep{
