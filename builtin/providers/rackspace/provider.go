@@ -26,32 +26,7 @@ func Provider() terraform.ResourceProvider {
 				Optional:    true,
 				DefaultFunc: envDefaultFunc("RS_API_KEY"),
 			},
-			"user_id": &schema.Schema{
-				Type:     schema.TypeString,
-				Optional: true,
-				Default:  "",
-			},
-			"tenant_id": &schema.Schema{
-				Type:     schema.TypeString,
-				Optional: true,
-				Default:  "",
-			},
-			"tenant_name": &schema.Schema{
-				Type:     schema.TypeString,
-				Optional: true,
-				Default:  "",
-			},
 			"password": &schema.Schema{
-				Type:     schema.TypeString,
-				Optional: true,
-				Default:  "",
-			},
-			"domain_id": &schema.Schema{
-				Type:     schema.TypeString,
-				Optional: true,
-				Default:  "",
-			},
-			"domain_name": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
 				Default:  "",
@@ -70,13 +45,8 @@ func configureProvider(d *schema.ResourceData) (interface{}, error) {
 	config := Config{
 		IdentityEndpoint: d.Get("auth_url").(string),
 		Username:         d.Get("username").(string),
-		UserID:           d.Get("user_id").(string),
 		Password:         d.Get("password").(string),
 		APIKey:           d.Get("api_key").(string),
-		TenantID:         d.Get("tenant_id").(string),
-		TenantName:       d.Get("tenant_name").(string),
-		DomainID:         d.Get("domain_id").(string),
-		DomainName:       d.Get("domain_name").(string),
 	}
 
 	if err := config.loadAndValidate(); err != nil {
