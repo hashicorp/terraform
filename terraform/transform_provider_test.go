@@ -138,6 +138,52 @@ func TestDisableProviderTransformer(t *testing.T) {
 	}
 }
 
+func TestDisableProviderTransformer_keep(t *testing.T) {
+	mod := testModule(t, "transform-provider-disable-keep")
+
+	g := Graph{Path: RootModulePath}
+	{
+		tf := &ConfigTransformer{Module: mod}
+		if err := tf.Transform(&g); err != nil {
+			t.Fatalf("err: %s", err)
+		}
+	}
+
+	{
+		transform := &MissingProviderTransformer{Providers: []string{"aws"}}
+		if err := transform.Transform(&g); err != nil {
+			t.Fatalf("err: %s", err)
+		}
+	}
+
+	{
+		transform := &ProviderTransformer{}
+		if err := transform.Transform(&g); err != nil {
+			t.Fatalf("err: %s", err)
+		}
+	}
+
+	{
+		transform := &PruneProviderTransformer{}
+		if err := transform.Transform(&g); err != nil {
+			t.Fatalf("err: %s", err)
+		}
+	}
+
+	{
+		transform := &DisableProviderTransformer{}
+		if err := transform.Transform(&g); err != nil {
+			t.Fatalf("err: %s", err)
+		}
+	}
+
+	actual := strings.TrimSpace(g.String())
+	expected := strings.TrimSpace(testTransformDisableProviderKeepStr)
+	if actual != expected {
+		t.Fatalf("bad:\n\n%s", actual)
+	}
+}
+
 func TestGraphNodeMissingProvider_impl(t *testing.T) {
 	var _ dag.Vertex = new(graphNodeMissingProvider)
 	var _ dag.NamedVertex = new(graphNodeMissingProvider)
@@ -171,4 +217,12 @@ provider.foo
 
 const testTransformDisableProviderBasicStr = `
 module.child
+`
+
+const testTransformDisableProviderKeepStr = `
+aws_instance.foo
+  provider.aws
+module.child
+  provider.aws
+provider.aws
 `
