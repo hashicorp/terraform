@@ -78,7 +78,7 @@ func (c *Config) Client() (interface{}, error) {
 		client.ec2conn = ec2.New(creds, c.Region, nil)
 
 		client.iamconn = iam.New(creds, c.Region, nil)
-		client.ec2SDKconn = awsEC2.New(&awsSDK.Config{Region: "us-west-2"})
+		client.ec2SDKconn = awsEC2.New(&awsSDK.Config{Region: c.Region})
 	}
 
 	if len(errs) > 0 {
