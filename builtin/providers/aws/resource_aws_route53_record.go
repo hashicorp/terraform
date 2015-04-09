@@ -196,7 +196,10 @@ func resourceAwsRoute53RecordRead(d *schema.ResourceData, meta interface{}) erro
 
 		found = true
 
-		d.Set("records", record.ResourceRecords)
+		err := d.Set("records", flattenResourceRecords(record.ResourceRecords))
+		if err != nil {
+			return fmt.Errorf("[DEBUG] Error setting records for: %s, error: %#v", en, err)
+		}
 		d.Set("ttl", record.TTL)
 
 		break
@@ -278,18 +281,8 @@ func resourceAwsRoute53RecordDelete(d *schema.ResourceData, meta interface{}) er
 
 func resourceAwsRoute53RecordBuildSet(d *schema.ResourceData, zoneName string) (*route53.ResourceRecordSet, error) {
 	recs := d.Get("records").(*schema.Set).List()
-	records := make([]route53.ResourceRecord, 0, len(recs))
 
-	typeStr := d.Get("type").(string)
-	for _, r := range recs {
-		switch typeStr {
-		case "TXT":
-			str := fmt.Sprintf("\"%s\"", r.(string))
-			records = append(records, route53.ResourceRecord{Value: aws.String(str)})
-		default:
-			records = append(records, route53.ResourceRecord{Value: aws.String(r.(string))})
-		}
-	}
+	records := expandResourceRecords(recs, d.Get("type").(string))
 
 	// get expanded name
 	en := expandRecordName(d.Get("name").(string), zoneName)

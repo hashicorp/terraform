@@ -1,12 +1,14 @@
 package aws
 
 import (
+	"fmt"
 	"strings"
 
 	"github.com/hashicorp/aws-sdk-go/aws"
 	"github.com/hashicorp/aws-sdk-go/gen/ec2"
 	"github.com/hashicorp/aws-sdk-go/gen/elb"
 	"github.com/hashicorp/aws-sdk-go/gen/rds"
+	"github.com/hashicorp/aws-sdk-go/gen/route53"
 	"github.com/hashicorp/terraform/helper/schema"
 )
 
@@ -250,4 +252,30 @@ func flattenAttachment(a *ec2.NetworkInterfaceAttachment) map[string]interface{}
 	att["device_index"] = *a.DeviceIndex
 	att["attachment_id"] = *a.AttachmentID
 	return att
+}
+
+func flattenResourceRecords(recs []route53.ResourceRecord) []string {
+	strs := make([]string, 0, len(recs))
+	for _, r := range recs {
+		if r.Value != nil {
+			s := strings.Replace(*r.Value, "\"", "", 2)
+			strs = append(strs, s)
+		}
+	}
+	return strs
+}
+
+func expandResourceRecords(recs []interface{}, typeStr string) []route53.ResourceRecord {
+	records := make([]route53.ResourceRecord, 0, len(recs))
+	for _, r := range recs {
+		s := r.(string)
+		switch typeStr {
+		case "TXT":
+			str := fmt.Sprintf("\"%s\"", s)
+			records = append(records, route53.ResourceRecord{Value: aws.String(str)})
+		default:
+			records = append(records, route53.ResourceRecord{Value: aws.String(s)})
+		}
+	}
+	return records
 }
