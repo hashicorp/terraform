@@ -99,7 +99,7 @@ func TestClient_Stderr(t *testing.T) {
 
 func TestClient_Stdin(t *testing.T) {
 	// Overwrite stdin for this test with a temporary file
-	tf, err := ioutil.TempFile("", "packer")
+	tf, err := ioutil.TempFile("", "terraform")
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}

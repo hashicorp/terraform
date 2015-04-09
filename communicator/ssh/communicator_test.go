@@ -6,8 +6,11 @@ import (
 	"bytes"
 	"fmt"
 	"net"
+	"strings"
 	"testing"
 
+	"github.com/hashicorp/terraform/communicator/remote"
+	"github.com/hashicorp/terraform/terraform"
 	"golang.org/x/crypto/ssh"
 )
 
@@ -105,67 +108,62 @@ func newMockLineServer(t *testing.T) string {
 }
 
 func TestNew_Invalid(t *testing.T) {
-	clientConfig := &ssh.ClientConfig{
-		User: "user",
-		Auth: []ssh.AuthMethod{
-			ssh.Password("i-am-invalid"),
+	address := newMockLineServer(t)
+	parts := strings.Split(address, ":")
+
+	r := &terraform.InstanceState{
+		Ephemeral: terraform.EphemeralState{
+			ConnInfo: map[string]string{
+				"type":     "ssh",
+				"user":     "user",
+				"password": "i-am-invalid",
+				"host":     parts[0],
+				"port":     parts[1],
+				"timeout":  "30s",
+			},
 		},
 	}
 
-	address := newMockLineServer(t)
-	conn := func() (net.Conn, error) {
-		conn, err := net.Dial("tcp", address)
-		if err != nil {
-			t.Errorf("Unable to accept incoming connection: %v", err)
-		}
-		return conn, err
+	c, err := New(r)
+	if err != nil {
+		t.Fatalf("error creating communicator: %s", err)
 	}
 
-	config := &Config{
-		Connection: conn,
-		SSHConfig:  clientConfig,
-	}
-
-	_, err := New(address, config)
+	err = c.Connect(nil)
 	if err == nil {
 		t.Fatal("should have had an error connecting")
 	}
 }
 
 func TestStart(t *testing.T) {
-	clientConfig := &ssh.ClientConfig{
-		User: "user",
-		Auth: []ssh.AuthMethod{
-			ssh.Password("pass"),
+	address := newMockLineServer(t)
+	parts := strings.Split(address, ":")
+
+	r := &terraform.InstanceState{
+		Ephemeral: terraform.EphemeralState{
+			ConnInfo: map[string]string{
+				"type":     "ssh",
+				"user":     "user",
+				"password": "pass",
+				"host":     parts[0],
+				"port":     parts[1],
+				"timeout":  "30s",
+			},
 		},
 	}
 
-	address := newMockLineServer(t)
-	conn := func() (net.Conn, error) {
-		conn, err := net.Dial("tcp", address)
-		if err != nil {
-			t.Fatalf("unable to dial to remote side: %s", err)
-		}
-		return conn, err
-	}
-
-	config := &Config{
-		Connection: conn,
-		SSHConfig:  clientConfig,
-	}
-
-	client, err := New(address, config)
+	c, err := New(r)
 	if err != nil {
-		t.Fatalf("error connecting to SSH: %s", err)
+		t.Fatalf("error creating communicator: %s", err)
 	}
 
-	var cmd RemoteCmd
+	var cmd remote.Cmd
 	stdout := new(bytes.Buffer)
 	cmd.Command = "echo foo"
 	cmd.Stdout = stdout
 
-	err = client.Start(&cmd)
+	err = c.Start(&cmd)
 	if err != nil {
-		t.Fatalf("error executing command: %s", err)
+		t.Fatalf("error executing remote command: %s", err)
 	}
 }
