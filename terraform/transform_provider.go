@@ -172,6 +172,10 @@ func (n *graphNodeDisabledProvider) EvalTree() EvalNode {
 	}
 }
 
+func (n *graphNodeDisabledProvider) Name() string {
+	return fmt.Sprintf("%s (disabled)", dag.VertexName(n.GraphNodeProvider))
+}
+
 type graphNodeMissingProvider struct {
 	ProviderNameValue string
 }
