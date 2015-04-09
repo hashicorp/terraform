@@ -348,7 +348,12 @@ func resourceAwsDbInstanceRead(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).rdsconn
 	arn, err := buildRDSARN(d, meta)
 	if err != nil {
-		log.Printf("[DEBUG] Error building ARN for DB Instance, not setting Tags for DB %s", *v.DBName)
+		name := "<empty>"
+		if v.DBName != "" {
+			name = *v.DBName
+		}
+
+		log.Printf("[DEBUG] Error building ARN for DB Instance, not setting Tags for DB %s", name)
 	} else {
 		resp, err := conn.ListTagsForResource(&rds.ListTagsForResourceMessage{
 			ResourceName: aws.String(arn),
