@@ -58,6 +58,7 @@ func (r *RawConfig) Copy() *RawConfig {
 		panic("copy failed: " + err.Error())
 	}
 
+	result.Key = r.Key
 	return result
 }
 
