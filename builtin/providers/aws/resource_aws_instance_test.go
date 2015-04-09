@@ -236,7 +236,7 @@ func TestAccAWSInstance_vpc(t *testing.T) {
 	})
 }
 
-func TestAccInstance_NetworkInstanceSecurityGroups(t *testing.T) {
+func TestAccAWSInstance_NetworkInstanceSecurityGroups(t *testing.T) {
 	var v ec2.Instance
 
 	resource.Test(t, resource.TestCase{
