@@ -11,18 +11,19 @@ import (
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/rackspace/gophercloud"
 	osBootfromvolume "github.com/rackspace/gophercloud/openstack/compute/v2/extensions/bootfromvolume"
-	"github.com/rackspace/gophercloud/openstack/compute/v2/extensions/volumeattach"
+	osVolumeAttach "github.com/rackspace/gophercloud/openstack/compute/v2/extensions/volumeattach"
+	osFlavors "github.com/rackspace/gophercloud/openstack/compute/v2/flavors"
 	osImages "github.com/rackspace/gophercloud/openstack/compute/v2/images"
 	osServers "github.com/rackspace/gophercloud/openstack/compute/v2/servers"
 	osNetworks "github.com/rackspace/gophercloud/openstack/networking/v2/networks"
 	osPorts "github.com/rackspace/gophercloud/openstack/networking/v2/ports"
 	"github.com/rackspace/gophercloud/pagination"
-	//"github.com/rackspace/gophercloud/rackspace/compute/v2/extensions/volumeattach"
-	"github.com/rackspace/gophercloud/rackspace/compute/v2/flavors"
-	"github.com/rackspace/gophercloud/rackspace/compute/v2/images"
-	"github.com/rackspace/gophercloud/rackspace/compute/v2/servers"
-	"github.com/rackspace/gophercloud/rackspace/networking/v2/networks"
-	"github.com/rackspace/gophercloud/rackspace/networking/v2/ports"
+	rsFlavors "github.com/rackspace/gophercloud/rackspace/compute/v2/flavors"
+	rsImages "github.com/rackspace/gophercloud/rackspace/compute/v2/images"
+	rsServers "github.com/rackspace/gophercloud/rackspace/compute/v2/servers"
+	rsVolumeAttach "github.com/rackspace/gophercloud/rackspace/compute/v2/volumeattach"
+	rsNetworks "github.com/rackspace/gophercloud/rackspace/networking/v2/networks"
+	rsPorts "github.com/rackspace/gophercloud/rackspace/networking/v2/ports"
 )
 
 func resourceComputeInstance() *schema.Resource {
@@ -108,10 +109,26 @@ func resourceComputeInstance() *schema.Resource {
 				Optional: true,
 				ForceNew: false,
 			},
-			"key_pair": &schema.Schema{
+			"keypair": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: true,
+			},
+			"user_data": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				ForceNew: true,
+			},
+			"personality": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				ForceNew: true,
+			},
+			"security_groups": &schema.Schema{
+				Type:     schema.TypeList,
+				Optional: true,
+				ForceNew: false,
+				Elem:     &schema.Schema{Type: schema.TypeString},
 			},
 			"block_device": &schema.Schema{
 				Type:     schema.TypeList,
@@ -186,26 +203,21 @@ func resourceComputeInstanceCreate(d *schema.ResourceData, meta interface{}) err
 		return err
 	}
 
-	createOpts := &servers.CreateOpts{
-		Name:        d.Get("name").(string),
-		ImageRef:    imageID,
-		FlavorRef:   flavorID,
-		Networks:    resourceInstanceNetworks(d),
-		Metadata:    resourceInstanceMetadata(d),
-		ConfigDrive: d.Get("config_drive").(bool),
-	}
-
-	if kp, ok := d.Get("keypair").(string); ok {
-		createOpts.KeyPair = kp
-	}
-
-	if blockDeviceRaw, ok := d.Get("block_device").(map[string]interface{}); ok && blockDeviceRaw != nil {
-		blockDevice := resourceInstanceBlockDevice(d, blockDeviceRaw)
-		createOpts.BlockDevice = blockDevice
+	createOpts := &rsServers.CreateOpts{
+		Name:           d.Get("name").(string),
+		ImageRef:       imageID,
+		FlavorRef:      flavorID,
+		Networks:       resourceInstanceNetworks(d),
+		Metadata:       resourceInstanceMetadata(d),
+		SecurityGroups: resourceInstanceSecGroups(d),
+		ConfigDrive:    d.Get("config_drive").(bool),
+		AdminPass:      d.Get("admin_pass").(string),
+		KeyPair:        d.Get("keypair").(string),
+		BlockDevice:    resourceInstanceBlockDevice(d),
 	}
 
 	log.Printf("[INFO] Requesting instance creation")
-	server, err := servers.Create(computeClient, createOpts).Extract()
+	server, err := rsServers.Create(computeClient, createOpts).Extract()
 	if err != nil {
 		return fmt.Errorf("Error creating Rackspace server: %s", err)
 	}
@@ -260,7 +272,7 @@ func resourceComputeInstanceRead(d *schema.ResourceData, meta interface{}) error
 		return fmt.Errorf("Error creating Rackspace compute client: %s", err)
 	}
 
-	server, err := servers.Get(computeClient, d.Id()).Extract()
+	server, err := rsServers.Get(computeClient, d.Id()).Extract()
 	if err != nil {
 		return CheckDeleted(d, err, "server")
 	}
@@ -353,7 +365,7 @@ func resourceComputeInstanceRead(d *schema.ResourceData, meta interface{}) error
 	}
 	d.Set("flavor_id", flavorID)
 
-	flavor, err := flavors.Get(computeClient, flavorID).Extract()
+	flavor, err := rsFlavors.Get(computeClient, flavorID).Extract()
 	if err != nil {
 		return err
 	}
@@ -365,7 +377,7 @@ func resourceComputeInstanceRead(d *schema.ResourceData, meta interface{}) error
 	}
 	d.Set("image_id", imageID)
 
-	image, err := images.Get(computeClient, imageID).Extract()
+	image, err := rsImages.Get(computeClient, imageID).Extract()
 	if err != nil {
 		return err
 	}
@@ -396,7 +408,7 @@ func resourceComputeInstanceUpdate(d *schema.ResourceData, meta interface{}) err
 	config := meta.(*Config)
 	computeClient, err := config.computeClient(d.Get("region").(string))
 	if err != nil {
-		return fmt.Errorf("Error creating OpenStack compute client: %s", err)
+		return fmt.Errorf("Error creating Rackspace compute client: %s", err)
 	}
 
 	var updateOpts osServers.UpdateOpts
@@ -411,7 +423,7 @@ func resourceComputeInstanceUpdate(d *schema.ResourceData, meta interface{}) err
 	}
 
 	if updateOpts != (osServers.UpdateOpts{}) {
-		_, err := servers.Update(computeClient, d.Id(), updateOpts).Extract()
+		_, err := rsServers.Update(computeClient, d.Id(), updateOpts).Extract()
 		if err != nil {
 			return fmt.Errorf("Error updating OpenStack server: %s", err)
 		}
@@ -425,7 +437,7 @@ func resourceComputeInstanceUpdate(d *schema.ResourceData, meta interface{}) err
 			metadataOpts[k] = v.(string)
 		}
 
-		_, err := osServers.UpdateMetadata(computeClient, d.Id(), metadataOpts).Extract()
+		_, err := rsServers.UpdateMetadata(computeClient, d.Id(), metadataOpts).Extract()
 		if err != nil {
 			return fmt.Errorf("Error updating OpenStack server (%s) metadata: %s", d.Id(), err)
 		}
@@ -433,9 +445,9 @@ func resourceComputeInstanceUpdate(d *schema.ResourceData, meta interface{}) err
 
 	if d.HasChange("admin_pass") {
 		if newPwd, ok := d.Get("admin_pass").(string); ok {
-			err := servers.ChangeAdminPassword(computeClient, d.Id(), newPwd).ExtractErr()
+			err := rsServers.ChangeAdminPassword(computeClient, d.Id(), newPwd).ExtractErr()
 			if err != nil {
-				return fmt.Errorf("Error changing admin password of OpenStack server (%s): %s", d.Id(), err)
+				return fmt.Errorf("Error changing admin password of Rackspace server (%s): %s", d.Id(), err)
 			}
 		}
 	}
@@ -479,9 +491,9 @@ func resourceComputeInstanceUpdate(d *schema.ResourceData, meta interface{}) err
 		resizeOpts := &osServers.ResizeOpts{
 			FlavorRef: flavorID,
 		}
-		err = osServers.Resize(computeClient, d.Id(), resizeOpts).ExtractErr()
+		err = rsServers.Resize(computeClient, d.Id(), resizeOpts).ExtractErr()
 		if err != nil {
-			return fmt.Errorf("Error resizing OpenStack server: %s", err)
+			return fmt.Errorf("Error resizing Rackspace server: %s", err)
 		}
 
 		// Wait for the instance to finish resizing.
@@ -503,7 +515,7 @@ func resourceComputeInstanceUpdate(d *schema.ResourceData, meta interface{}) err
 
 		// Confirm resize.
 		log.Printf("[DEBUG] Confirming resize")
-		err = osServers.ConfirmResize(computeClient, d.Id()).ExtractErr()
+		err = rsServers.ConfirmResize(computeClient, d.Id()).ExtractErr()
 		if err != nil {
 			return fmt.Errorf("Error confirming resize of Rackspace server: %s", err)
 		}
@@ -534,7 +546,7 @@ func resourceComputeInstanceDelete(d *schema.ResourceData, meta interface{}) err
 		return fmt.Errorf("Error creating Rackspace compute client: %s", err)
 	}
 
-	err = servers.Delete(computeClient, d.Id()).ExtractErr()
+	err = rsServers.Delete(computeClient, d.Id()).ExtractErr()
 	if err != nil {
 		return fmt.Errorf("Error deleting Rackspace server: %s", err)
 	}
@@ -566,7 +578,7 @@ func resourceComputeInstanceDelete(d *schema.ResourceData, meta interface{}) err
 // an OpenStack instance.
 func ServerStateRefreshFunc(client *gophercloud.ServiceClient, instanceID string) resource.StateRefreshFunc {
 	return func() (interface{}, string, error) {
-		s, err := servers.Get(client, instanceID).Extract()
+		s, err := rsServers.Get(client, instanceID).Extract()
 		if err != nil {
 			errCode, ok := err.(*gophercloud.UnexpectedResponseCodeError)
 			if !ok {
@@ -580,6 +592,15 @@ func ServerStateRefreshFunc(client *gophercloud.ServiceClient, instanceID string
 
 		return s, s.Status, nil
 	}
+}
+
+func resourceInstanceSecGroups(d *schema.ResourceData) []string {
+	rawSecGroups := d.Get("security_groups").([]interface{})
+	secgroups := make([]string, len(rawSecGroups))
+	for i, raw := range rawSecGroups {
+		secgroups[i] = raw.(string)
+	}
+	return secgroups
 }
 
 func resourceInstanceNetworks(d *schema.ResourceData) []osServers.Network {
@@ -604,7 +625,8 @@ func resourceInstanceMetadata(d *schema.ResourceData) map[string]string {
 	return m
 }
 
-func resourceInstanceBlockDevice(d *schema.ResourceData, bd map[string]interface{}) []osBootfromvolume.BlockDevice {
+func resourceInstanceBlockDevice(d *schema.ResourceData) []osBootfromvolume.BlockDevice {
+	bd := d.Get("block_device").(map[string]interface{})
 	sourceType := osBootfromvolume.SourceType(bd["source_type"].(string))
 	bfvOpts := []osBootfromvolume.BlockDevice{
 		osBootfromvolume.BlockDevice{
@@ -620,7 +642,7 @@ func resourceInstanceBlockDevice(d *schema.ResourceData, bd map[string]interface
 }
 
 func getFirstNetworkID(networkingClient *gophercloud.ServiceClient, instanceID string) (string, error) {
-	pager := networks.List(networkingClient, osNetworks.ListOpts{})
+	pager := rsNetworks.List(networkingClient, osNetworks.ListOpts{})
 
 	var networkdID string
 	err := pager.EachPage(func(page pagination.Page) (bool, error) {
@@ -643,7 +665,7 @@ func getFirstNetworkID(networkingClient *gophercloud.ServiceClient, instanceID s
 }
 
 func getInstancePortID(networkingClient *gophercloud.ServiceClient, instanceID, networkID string) (string, error) {
-	pager := ports.List(networkingClient, osPorts.ListOpts{
+	pager := rsPorts.List(networkingClient, osPorts.ListOpts{
 		DeviceID:  instanceID,
 		NetworkID: networkID,
 	})
@@ -677,11 +699,11 @@ func getImageID(client *gophercloud.ServiceClient, d *schema.ResourceData) (stri
 	imageCount := 0
 	imageName := d.Get("image_name").(string)
 	if imageName != "" {
-		pager := images.ListDetail(client, &osImages.ListOpts{
+		pager := rsImages.ListDetail(client, &osImages.ListOpts{
 			Name: imageName,
 		})
 		pager.EachPage(func(page pagination.Page) (bool, error) {
-			imageList, err := images.ExtractImages(page)
+			imageList, err := osImages.ExtractImages(page)
 			if err != nil {
 				return false, err
 			}
@@ -717,9 +739,9 @@ func getFlavorID(client *gophercloud.ServiceClient, d *schema.ResourceData) (str
 	flavorCount := 0
 	flavorName := d.Get("flavor_name").(string)
 	if flavorName != "" {
-		pager := flavors.ListDetail(client, nil)
+		pager := rsFlavors.ListDetail(client, nil)
 		pager.EachPage(func(page pagination.Page) (bool, error) {
-			flavorList, err := flavors.ExtractFlavors(page)
+			flavorList, err := osFlavors.ExtractFlavors(page)
 			if err != nil {
 				return false, err
 			}
@@ -769,12 +791,12 @@ func attachVolumesToInstance(computeClient *gophercloud.ServiceClient, blockClie
 				return fmt.Errorf("Unable to determine server ID to attach volume.")
 			}
 
-			vaOpts := &volumeattach.CreateOpts{
+			vaOpts := &osVolumeAttach.CreateOpts{
 				Device:   device,
 				VolumeID: volumeID,
 			}
 
-			if _, err := volumeattach.Create(computeClient, s, vaOpts).Extract(); err != nil {
+			if _, err := rsVolumeAttach.Create(computeClient, s, vaOpts).Extract(); err != nil {
 				return err
 			}
 
@@ -802,7 +824,7 @@ func detachVolumesFromInstance(computeClient *gophercloud.ServiceClient, blockCl
 			va := v.(map[string]interface{})
 			aID := va["id"].(string)
 
-			if err := volumeattach.Delete(computeClient, serverID, aID).ExtractErr(); err != nil {
+			if err := rsVolumeAttach.Delete(computeClient, serverID, aID).ExtractErr(); err != nil {
 				return err
 			}
 
@@ -824,10 +846,10 @@ func detachVolumesFromInstance(computeClient *gophercloud.ServiceClient, blockCl
 	return nil
 }
 
-func getVolumeAttachments(computeClient *gophercloud.ServiceClient, serverID string) ([]volumeattach.VolumeAttachment, error) {
-	var attachments []volumeattach.VolumeAttachment
-	err := volumeattach.List(computeClient, serverID).EachPage(func(page pagination.Page) (bool, error) {
-		actual, err := volumeattach.ExtractVolumeAttachments(page)
+func getVolumeAttachments(computeClient *gophercloud.ServiceClient, serverID string) ([]osVolumeAttach.VolumeAttachment, error) {
+	var attachments []osVolumeAttach.VolumeAttachment
+	err := rsVolumeAttach.List(computeClient, serverID).EachPage(func(page pagination.Page) (bool, error) {
+		actual, err := osVolumeAttach.ExtractVolumeAttachments(page)
 		if err != nil {
 			return false, err
 		}
