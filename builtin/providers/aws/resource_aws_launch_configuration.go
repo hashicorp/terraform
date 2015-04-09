@@ -461,6 +461,9 @@ func readLCBlockDevices(d *schema.ResourceData, lc *autoscaling.LaunchConfigurat
 	if err := d.Set("ebs_block_device", ibds["ebs"]); err != nil {
 		return err
 	}
+	if err := d.Set("ephemeral_block_device", ibds["ephemeral"]); err != nil {
+		return err
+	}
 	if ibds["root"] != nil {
 		if err := d.Set("root_block_device", []interface{}{ibds["root"]}); err != nil {
 			return err
@@ -476,12 +479,13 @@ func readBlockDevicesFromLaunchConfiguration(d *schema.ResourceData, lc *autosca
 	map[string]interface{}, error) {
 	blockDevices := make(map[string]interface{})
 	blockDevices["ebs"] = make([]map[string]interface{}, 0)
+	blockDevices["ephemeral"] = make([]map[string]interface{}, 0)
 	blockDevices["root"] = nil
 	if len(lc.BlockDeviceMappings) == 0 {
 		return nil, nil
 	}
 	rootDeviceName, err := fetchRootDeviceName(d.Get("image_id").(string), ec2conn)
-	if err == nil {
+	if err != nil {
 		return nil, err
 	}
 	for _, bdm := range lc.BlockDeviceMappings {
@@ -490,7 +494,7 @@ func readBlockDevicesFromLaunchConfiguration(d *schema.ResourceData, lc *autosca
 			bd["delete_on_termination"] = *bdm.EBS.DeleteOnTermination
 		}
 		if bdm.EBS != nil && bdm.EBS.VolumeSize != nil {
-			bd["volume_size"] = bdm.EBS.VolumeSize
+			bd["volume_size"] = *bdm.EBS.VolumeSize
 		}
 		if bdm.EBS != nil && bdm.EBS.VolumeType != nil {
 			bd["volume_type"] = *bdm.EBS.VolumeType
@@ -498,16 +502,21 @@ func readBlockDevicesFromLaunchConfiguration(d *schema.ResourceData, lc *autosca
 		if bdm.EBS != nil && bdm.EBS.IOPS != nil {
 			bd["iops"] = *bdm.EBS.IOPS
 		}
-		if bdm.DeviceName != nil && bdm.DeviceName == rootDeviceName {
+		if bdm.DeviceName != nil && *bdm.DeviceName == *rootDeviceName {
 			blockDevices["root"] = bd
 		} else {
 			if bdm.DeviceName != nil {
 				bd["device_name"] = *bdm.DeviceName
 			}
-			if bdm.EBS != nil && bdm.EBS.SnapshotID != nil {
-				bd["snapshot_id"] = *bdm.EBS.SnapshotID
+			if bdm.VirtualName != nil {
+				bd["virtual_name"] = *bdm.VirtualName
+				blockDevices["ephemeral"] = append(blockDevices["ephemeral"].([]map[string]interface{}), bd)
+			} else {
+				if bdm.EBS != nil && bdm.EBS.SnapshotID != nil {
+					bd["snapshot_id"] = *bdm.EBS.SnapshotID
+				}
+				blockDevices["ebs"] = append(blockDevices["ebs"].([]map[string]interface{}), bd)
 			}
-			blockDevices["ebs"] = append(blockDevices["ebs"].([]map[string]interface{}), bd)
 		}
 	}
 	return blockDevices, nil
