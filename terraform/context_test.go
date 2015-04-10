@@ -1845,6 +1845,54 @@ func TestContext2Refresh_noState(t *testing.T) {
 	}
 }
 
+func TestContext2Refresh_output(t *testing.T) {
+	p := testProvider("aws")
+	m := testModule(t, "refresh-output")
+	ctx := testContext2(t, &ContextOpts{
+		Module: m,
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+		State: &State{
+			Modules: []*ModuleState{
+				&ModuleState{
+					Path: rootModulePath,
+					Resources: map[string]*ResourceState{
+						"aws_instance.web": &ResourceState{
+							Type: "aws_instance",
+							Primary: &InstanceState{
+								ID: "foo",
+								Attributes: map[string]string{
+									"foo": "bar",
+								},
+							},
+						},
+					},
+
+					Outputs: map[string]string{
+						"foo": "foo",
+					},
+				},
+			},
+		},
+	})
+
+	p.RefreshFn = func(info *InstanceInfo, s *InstanceState) (*InstanceState, error) {
+		return s, nil
+	}
+
+	s, err := ctx.Refresh()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	actual := strings.TrimSpace(s.String())
+	expected := strings.TrimSpace(testContextRefreshOutputStr)
+	if actual != expected {
+		t.Fatalf("bad:\n\n%s\n\n%s", actual, expected)
+	}
+}
+
 func TestContext2Refresh_outputPartial(t *testing.T) {
 	p := testProvider("aws")
 	m := testModule(t, "refresh-output-partial")
@@ -5993,6 +6041,16 @@ aws_instance.web: (1 tainted)
 module.child:
   aws_instance.web:
     ID = new
+`
+
+const testContextRefreshOutputStr = `
+aws_instance.web:
+  ID = foo
+  foo = bar
+
+Outputs:
+
+foo = bar
 `
 
 const testContextRefreshOutputPartialStr = `
