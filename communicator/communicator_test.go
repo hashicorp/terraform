@@ -17,7 +17,13 @@ func TestCommunicator_new(t *testing.T) {
 	if _, err := New(r); err == nil {
 		t.Fatalf("expected error with telnet")
 	}
+
 	r.Ephemeral.ConnInfo["type"] = "ssh"
+	if _, err := New(r); err != nil {
+		t.Fatalf("err: %v", err)
+	}
+
+	r.Ephemeral.ConnInfo["type"] = "winrm"
 	if _, err := New(r); err != nil {
 		t.Fatalf("err: %v", err)
 	}
