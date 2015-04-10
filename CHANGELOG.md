@@ -3,6 +3,7 @@
 BUG FIXES:
 
   * core: refresh won't remove outputs from state file [GH-1369]
+  * core: clarify "unknown variable" error [GH-1480]
   * provider/aws: fix panic possibility if RDS DB name is empty [GH-1460]
   * provider/aws: fix issue detecting credentials for some resources [GH-1470]
   * provider/google: fix issue causing unresolvable diffs when using legacy

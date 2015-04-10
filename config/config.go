@@ -207,7 +207,7 @@ func (c *Config) Validate() error {
 
 			if _, ok := varMap[uv.Name]; !ok {
 				errs = append(errs, fmt.Errorf(
-					"%s: unknown variable referenced: %s",
+					"%s: unknown variable referenced: '%s'. define it with 'variable' blocks",
 					source,
 					uv.Name))
 			}
