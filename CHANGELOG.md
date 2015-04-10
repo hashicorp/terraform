@@ -3,6 +3,8 @@
 BUG FIXES:
 
   * provider/aws: fix panic possibility if RDS DB name is empty [GH-1460]
+  * provider/google: fix issue causing unresolvable diffs when using legacy
+      `network` field on `google_compute_instance` [GH-1458]
 
 ## 0.4.1 (April 9, 2015)
 
