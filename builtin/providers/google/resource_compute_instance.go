@@ -522,7 +522,7 @@ func resourceComputeInstanceRead(d *schema.ResourceData, meta interface{}) error
 	networks := make([]map[string]interface{}, 0, 1)
 	if networksCount > 0 {
 		// TODO: Remove this when realizing deprecation of .network
-		for _, iface := range instance.NetworkInterfaces {
+		for i, iface := range instance.NetworkInterfaces {
 			var natIP string
 			for _, config := range iface.AccessConfigs {
 				if config.Type == "ONE_TO_ONE_NAT" {
@@ -539,6 +539,7 @@ func resourceComputeInstanceRead(d *schema.ResourceData, meta interface{}) error
 			network["name"] = iface.Name
 			network["external_address"] = natIP
 			network["internal_address"] = iface.NetworkIP
+			network["source"] = d.Get(fmt.Sprintf("network.%d.source", i))
 			networks = append(networks, network)
 		}
 	}
