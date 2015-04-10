@@ -21,7 +21,7 @@ func TestProvisioner_connInfo(t *testing.T) {
 		},
 	}
 
-	conf, err := ParseConnectionInfo(r)
+	conf, err := parseConnectionInfo(r)
 	if err != nil {
 		t.Fatalf("err: %v", err)
 	}

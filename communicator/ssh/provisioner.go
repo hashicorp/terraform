@@ -17,7 +17,7 @@ import (
 )
 
 const (
-	// DefaultUser is used if there is no default user given
+	// DefaultUser is used if there is no user given
 	DefaultUser = "root"
 
 	// DefaultPort is used if there is no port given
@@ -31,10 +31,10 @@ const (
 	DefaultTimeout = 5 * time.Minute
 )
 
-// ConnectionInfo is decoded from the ConnInfo of the resource. These are the
+// connectionInfo is decoded from the ConnInfo of the resource. These are the
 // only keys we look at. If a KeyFile is given, that is used instead
 // of a password.
-type ConnectionInfo struct {
+type connectionInfo struct {
 	User       string
 	Password   string
 	KeyFile    string `mapstructure:"key_file"`
@@ -46,10 +46,10 @@ type ConnectionInfo struct {
 	TimeoutVal time.Duration `mapstructure:"-"`
 }
 
-// ParseConnectionInfo is used to convert the ConnInfo of the InstanceState into
+// parseConnectionInfo is used to convert the ConnInfo of the InstanceState into
 // a ConnectionInfo struct
-func ParseConnectionInfo(s *terraform.InstanceState) (*ConnectionInfo, error) {
-	connInfo := &ConnectionInfo{}
+func parseConnectionInfo(s *terraform.InstanceState) (*connectionInfo, error) {
+	connInfo := &connectionInfo{}
 	decConf := &mapstructure.DecoderConfig{
 		WeaklyTypedInput: true,
 		Result:           connInfo,
@@ -88,9 +88,9 @@ func safeDuration(dur string, defaultDur time.Duration) time.Duration {
 	return d
 }
 
-// PrepareSSHConfig is used to turn the *ConnectionInfo provided into a
+// prepareSSHConfig is used to turn the *ConnectionInfo provided into a
 // usable *SSHConfig for client initialization.
-func PrepareSSHConfig(connInfo *ConnectionInfo) (*SSHConfig, error) {
+func prepareSSHConfig(connInfo *connectionInfo) (*sshConfig, error) {
 	var conn net.Conn
 	var err error
 
@@ -154,10 +154,10 @@ func PrepareSSHConfig(connInfo *ConnectionInfo) (*SSHConfig, error) {
 			ssh.KeyboardInteractive(PasswordKeyboardInteractive(connInfo.Password)))
 	}
 	host := fmt.Sprintf("%s:%d", connInfo.Host, connInfo.Port)
-	config := &SSHConfig{
-		Config:       sshConf,
-		Connection:   ConnectFunc("tcp", host),
-		SSHAgentConn: conn,
+	config := &sshConfig{
+		config:       sshConf,
+		connection:   ConnectFunc("tcp", host),
+		sshAgentConn: conn,
 	}
 	return config, nil
 }

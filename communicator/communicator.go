@@ -7,6 +7,7 @@ import (
 
 	"github.com/hashicorp/terraform/communicator/remote"
 	"github.com/hashicorp/terraform/communicator/ssh"
+	"github.com/hashicorp/terraform/communicator/winrm"
 	"github.com/hashicorp/terraform/terraform"
 )
 
@@ -35,7 +36,7 @@ type Communicator interface {
 	UploadScript(string, io.Reader) error
 
 	// UploadDir is used to upload a directory
-	UploadDir(string, string, []string) error
+	UploadDir(string, string) error
 }
 
 // New returns a configured Communicator or an error if the connection type is not supported
@@ -44,9 +45,9 @@ func New(s *terraform.InstanceState) (Communicator, error) {
 	switch connType {
 	case "ssh", "": // The default connection type is ssh, so if connType is empty use ssh
 		return ssh.New(s)
-	//case "winrm":
-	//	return winrm.New()
+	case "winrm":
+		return winrm.New(s)
 	default:
-		return nil, fmt.Errorf("Connection type '%s' not supported", connType)
+		return nil, fmt.Errorf("connection type '%s' not supported", connType)
 	}
 }

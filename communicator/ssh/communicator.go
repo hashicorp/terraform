@@ -23,47 +23,54 @@ const (
 	DefaultShebang = "#!/bin/sh\n"
 )
 
-type communicator struct {
-	connInfo *ConnectionInfo
-	config   *SSHConfig
+// Communicator represents the SSH communicator
+type Communicator struct {
+	connInfo *connectionInfo
 	client   *ssh.Client
+	config   *sshConfig
 	conn     net.Conn
 	address  string
 }
 
-// SSHConfig is the structure used to configure the SSH communicator.
-type SSHConfig struct {
+type sshConfig struct {
 	// The configuration of the Go SSH connection
-	Config *ssh.ClientConfig
+	config *ssh.ClientConfig
 
-	// Connection returns a new connection. The current connection
+	// connection returns a new connection. The current connection
 	// in use will be closed as part of the Close method, or in the
 	// case an error occurs.
-	Connection func() (net.Conn, error)
+	connection func() (net.Conn, error)
 
-	// NoPty, if true, will not request a pty from the remote end.
-	NoPty bool
+	// noPty, if true, will not request a pty from the remote end.
+	noPty bool
 
-	// SSHAgentConn is a pointer to the UNIX connection for talking with the
+	// sshAgentConn is a pointer to the UNIX connection for talking with the
 	// ssh-agent.
-	SSHAgentConn net.Conn
+	sshAgentConn net.Conn
 }
 
-// New creates a new communicator implementation over SSH. This takes
-// an already existing TCP connection and SSH configuration.
-func New(s *terraform.InstanceState) (*communicator, error) {
-	connInfo, err := ParseConnectionInfo(s)
+// New creates a new communicator implementation over SSH.
+func New(s *terraform.InstanceState) (*Communicator, error) {
+	connInfo, err := parseConnectionInfo(s)
 	if err != nil {
 		return nil, err
 	}
 
-	comm := &communicator{connInfo: connInfo}
+	config, err := prepareSSHConfig(connInfo)
+	if err != nil {
+		return nil, err
+	}
+
+	comm := &Communicator{
+		connInfo: connInfo,
+		config:   config,
+	}
 
 	return comm, nil
 }
 
 // Connect implementation of communicator.Communicator interface
-func (c *communicator) Connect(o terraform.UIOutput) (err error) {
+func (c *Communicator) Connect(o terraform.UIOutput) (err error) {
 	if c.conn != nil {
 		c.conn.Close()
 	}
@@ -72,19 +79,14 @@ func (c *communicator) Connect(o terraform.UIOutput) (err error) {
 	c.conn = nil
 	c.client = nil
 
-	c.config, err = PrepareSSHConfig(c.connInfo)
-	if err != nil {
-		return err
-	}
-
 	if o != nil {
 		o.Output(fmt.Sprintf(
 			"Connecting to remote host via SSH...\n"+
 				"  Host: %s\n"+
 				"  User: %s\n"+
-				"  Password: %v\n"+
-				"  Private key: %v"+
-				"  SSH Agent: %v",
+				"  Password: %t\n"+
+				"  Private key: %t\n"+
+				"  SSH Agent: %t",
 			c.connInfo.Host, c.connInfo.User,
 			c.connInfo.Password != "",
 			c.connInfo.KeyFile != "",
@@ -93,7 +95,7 @@ func (c *communicator) Connect(o terraform.UIOutput) (err error) {
 	}
 
 	log.Printf("connecting to TCP connection for SSH")
-	c.conn, err = c.config.Connection()
+	c.conn, err = c.config.connection()
 	if err != nil {
 		// Explicitly set this to the REAL nil. Connection() can return
 		// a nil implementation of net.Conn which will make the
@@ -109,7 +111,7 @@ func (c *communicator) Connect(o terraform.UIOutput) (err error) {
 
 	log.Printf("handshaking with SSH")
 	host := fmt.Sprintf("%s:%d", c.connInfo.Host, c.connInfo.Port)
-	sshConn, sshChan, req, err := ssh.NewClientConn(c.conn, host, c.config.Config)
+	sshConn, sshChan, req, err := ssh.NewClientConn(c.conn, host, c.config.config)
 	if err != nil {
 		log.Printf("handshake error: %s", err)
 		return err
@@ -125,26 +127,26 @@ func (c *communicator) Connect(o terraform.UIOutput) (err error) {
 }
 
 // Disconnect implementation of communicator.Communicator interface
-func (c *communicator) Disconnect() error {
-	if c.config.SSHAgentConn != nil {
-		return c.config.SSHAgentConn.Close()
+func (c *Communicator) Disconnect() error {
+	if c.config.sshAgentConn != nil {
+		return c.config.sshAgentConn.Close()
 	}
 
 	return nil
 }
 
 // Timeout implementation of communicator.Communicator interface
-func (c *communicator) Timeout() time.Duration {
+func (c *Communicator) Timeout() time.Duration {
 	return c.connInfo.TimeoutVal
 }
 
-// Timeout implementation of communicator.Communicator interface
-func (c *communicator) ScriptPath() string {
+// ScriptPath implementation of communicator.Communicator interface
+func (c *Communicator) ScriptPath() string {
 	return c.connInfo.ScriptPath
 }
 
 // Start implementation of communicator.Communicator interface
-func (c *communicator) Start(cmd *remote.Cmd) error {
+func (c *Communicator) Start(cmd *remote.Cmd) error {
 	session, err := c.newSession()
 	if err != nil {
 		return err
@@ -155,7 +157,7 @@ func (c *communicator) Start(cmd *remote.Cmd) error {
 	session.Stdout = cmd.Stdout
 	session.Stderr = cmd.Stderr
 
-	if !c.config.NoPty {
+	if !c.config.noPty {
 		// Request a PTY
 		termModes := ssh.TerminalModes{
 			ssh.ECHO:          0,     // do not echo
@@ -196,7 +198,7 @@ func (c *communicator) Start(cmd *remote.Cmd) error {
 }
 
 // Upload implementation of communicator.Communicator interface
-func (c *communicator) Upload(path string, input io.Reader) error {
+func (c *Communicator) Upload(path string, input io.Reader) error {
 	// The target directory and file for talking the SCP protocol
 	targetDir := filepath.Dir(path)
 	targetFile := filepath.Base(path)
@@ -214,7 +216,7 @@ func (c *communicator) Upload(path string, input io.Reader) error {
 }
 
 // UploadScript implementation of communicator.Communicator interface
-func (c *communicator) UploadScript(path string, input io.Reader) error {
+func (c *Communicator) UploadScript(path string, input io.Reader) error {
 	script := bytes.NewBufferString(DefaultShebang)
 	script.ReadFrom(input)
 
@@ -236,7 +238,7 @@ func (c *communicator) UploadScript(path string, input io.Reader) error {
 }
 
 // UploadDir implementation of communicator.Communicator interface
-func (c *communicator) UploadDir(dst string, src string, excl []string) error {
+func (c *Communicator) UploadDir(dst string, src string) error {
 	log.Printf("Upload dir '%s' to '%s'", src, dst)
 	scpFunc := func(w io.Writer, r *bufio.Reader) error {
 		uploadEntries := func() error {
@@ -265,12 +267,7 @@ func (c *communicator) UploadDir(dst string, src string, excl []string) error {
 	return c.scpSession("scp -rvt "+dst, scpFunc)
 }
 
-// Download implementation of communicator.Communicator interface
-func (c *communicator) Download(string, io.Writer) error {
-	panic("not implemented yet")
-}
-
-func (c *communicator) newSession() (session *ssh.Session, err error) {
+func (c *Communicator) newSession() (session *ssh.Session, err error) {
 	log.Println("opening new ssh session")
 	if c.client == nil {
 		err = errors.New("client not available")
@@ -290,7 +287,7 @@ func (c *communicator) newSession() (session *ssh.Session, err error) {
 	return session, nil
 }
 
-func (c *communicator) scpSession(scpCommand string, f func(io.Writer, *bufio.Reader) error) error {
+func (c *Communicator) scpSession(scpCommand string, f func(io.Writer, *bufio.Reader) error) error {
 	session, err := c.newSession()
 	if err != nil {
 		return err

@@ -76,7 +76,7 @@ func (p *ResourceProvisioner) copyFiles(comm communicator.Communicator, src, dst
 
 	// If we're uploading a directory, short circuit and do that
 	if info.IsDir() {
-		if err := comm.UploadDir(dst, src, nil); err != nil {
+		if err := comm.UploadDir(dst, src); err != nil {
 			return fmt.Errorf("Upload failed: %v", err)
 		}
 		return nil
