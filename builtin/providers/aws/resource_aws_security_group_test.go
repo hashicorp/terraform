@@ -2,12 +2,11 @@ package aws
 
 import (
 	"fmt"
-	"log"
 	"reflect"
 	"testing"
 
-	"github.com/hashicorp/aws-sdk-go/aws"
-	"github.com/hashicorp/aws-sdk-go/gen/ec2"
+	"github.com/awslabs/aws-sdk-go/aws"
+	"github.com/awslabs/aws-sdk-go/service/ec2"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
 )
@@ -186,7 +185,7 @@ func TestAccAWSSecurityGroup_Change(t *testing.T) {
 }
 
 func testAccCheckAWSSecurityGroupDestroy(s *terraform.State) error {
-	conn := testAccProvider.Meta().(*AWSClient).ec2conn
+	conn := testAccProvider.Meta().(*AWSClient).ec2SDKconn
 
 	for _, rs := range s.RootModule().Resources {
 		if rs.Type != "aws_security_group" {
@@ -194,8 +193,8 @@ func testAccCheckAWSSecurityGroupDestroy(s *terraform.State) error {
 		}
 
 		// Retrieve our group
-		req := &ec2.DescribeSecurityGroupsRequest{
-			GroupIDs: []string{rs.Primary.ID},
+		req := &ec2.DescribeSecurityGroupsInput{
+			GroupIDs: []*string{aws.String(rs.Primary.ID)},
 		}
 		resp, err := conn.DescribeSecurityGroups(req)
 		if err == nil {
@@ -230,9 +229,9 @@ func testAccCheckAWSSecurityGroupExists(n string, group *ec2.SecurityGroup) reso
 			return fmt.Errorf("No Security Group is set")
 		}
 
-		conn := testAccProvider.Meta().(*AWSClient).ec2conn
-		req := &ec2.DescribeSecurityGroupsRequest{
-			GroupIDs: []string{rs.Primary.ID},
+		conn := testAccProvider.Meta().(*AWSClient).ec2SDKconn
+		req := &ec2.DescribeSecurityGroupsInput{
+			GroupIDs: []*string{aws.String(rs.Primary.ID)},
 		}
 		resp, err := conn.DescribeSecurityGroups(req)
 		if err != nil {
@@ -240,10 +239,7 @@ func testAccCheckAWSSecurityGroupExists(n string, group *ec2.SecurityGroup) reso
 		}
 
 		if len(resp.SecurityGroups) > 0 && *resp.SecurityGroups[0].GroupID == rs.Primary.ID {
-
-			log.Printf("\n==\n===\nfound group\n===\n==\n")
-			*group = resp.SecurityGroups[0]
-
+			*group = *resp.SecurityGroups[0]
 			return nil
 		}
 
@@ -253,11 +249,11 @@ func testAccCheckAWSSecurityGroupExists(n string, group *ec2.SecurityGroup) reso
 
 func testAccCheckAWSSecurityGroupAttributes(group *ec2.SecurityGroup) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
-		p := ec2.IPPermission{
-			FromPort:   aws.Integer(80),
-			ToPort:     aws.Integer(8000),
+		p := &ec2.IPPermission{
+			FromPort:   aws.Long(80),
+			ToPort:     aws.Long(8000),
 			IPProtocol: aws.String("tcp"),
-			IPRanges:   []ec2.IPRange{ec2.IPRange{aws.String("10.0.0.0/8")}},
+			IPRanges:   []*ec2.IPRange{&ec2.IPRange{CIDRIP: aws.String("10.0.0.0/8")}},
 		}
 
 		if *group.GroupName != "terraform_acceptance_test_example" {
@@ -296,7 +292,7 @@ func TestAccAWSSecurityGroup_tags(t *testing.T) {
 				Config: testAccAWSSecurityGroupConfigTags,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSSecurityGroupExists("aws_security_group.foo", &group),
-					testAccCheckTags(&group.Tags, "foo", "bar"),
+					testAccCheckTagsSDK(&group.Tags, "foo", "bar"),
 				),
 			},
 
@@ -304,8 +300,8 @@ func TestAccAWSSecurityGroup_tags(t *testing.T) {
 				Config: testAccAWSSecurityGroupConfigTagsUpdate,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSSecurityGroupExists("aws_security_group.foo", &group),
-					testAccCheckTags(&group.Tags, "foo", ""),
-					testAccCheckTags(&group.Tags, "bar", "baz"),
+					testAccCheckTagsSDK(&group.Tags, "foo", ""),
+					testAccCheckTagsSDK(&group.Tags, "bar", "baz"),
 				),
 			},
 		},
@@ -314,18 +310,25 @@ func TestAccAWSSecurityGroup_tags(t *testing.T) {
 
 func testAccCheckAWSSecurityGroupAttributesChanged(group *ec2.SecurityGroup) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
-		p := []ec2.IPPermission{
-			ec2.IPPermission{
-				FromPort:   aws.Integer(80),
-				ToPort:     aws.Integer(9000),
+		p := []*ec2.IPPermission{
+			&ec2.IPPermission{
+				FromPort:   aws.Long(80),
+				ToPort:     aws.Long(9000),
 				IPProtocol: aws.String("tcp"),
-				IPRanges:   []ec2.IPRange{ec2.IPRange{aws.String("10.0.0.0/8")}},
+				IPRanges:   []*ec2.IPRange{&ec2.IPRange{CIDRIP: aws.String("10.0.0.0/8")}},
 			},
-			ec2.IPPermission{
-				FromPort:   aws.Integer(80),
-				ToPort:     aws.Integer(8000),
+			&ec2.IPPermission{
+				FromPort:   aws.Long(80),
+				ToPort:     aws.Long(8000),
 				IPProtocol: aws.String("tcp"),
-				IPRanges:   []ec2.IPRange{ec2.IPRange{aws.String("0.0.0.0/0")}, ec2.IPRange{aws.String("10.0.0.0/8")}},
+				IPRanges: []*ec2.IPRange{
+					&ec2.IPRange{
+						CIDRIP: aws.String("0.0.0.0/0"),
+					},
+					&ec2.IPRange{
+						CIDRIP: aws.String("10.0.0.0/8"),
+					},
+				},
 			},
 		}
 
@@ -372,6 +375,10 @@ resource "aws_security_group" "web" {
     to_port = 8000
     cidr_blocks = ["10.0.0.0/8"]
   }
+
+	tags {
+		Name = "tf-acc-test"
+	}
 }
 `
 

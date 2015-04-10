@@ -59,7 +59,7 @@ func TestExpandIPPermsSDK(t *testing.T) {
 			"self":      true,
 		},
 	}
-	group := ec2.SecurityGroup{
+	group := &ec2.SecurityGroup{
 		GroupID: aws.String("foo"),
 		VPCID:   aws.String("bar"),
 	}
@@ -142,7 +142,7 @@ func TestExpandIPPerms_nonVPCSDK(t *testing.T) {
 			"self":      true,
 		},
 	}
-	group := ec2.SecurityGroup{
+	group := &ec2.SecurityGroup{
 		GroupName: aws.String("foo"),
 	}
 	perms := expandIPPermsSDK(group, expanded)
@@ -434,7 +434,7 @@ func TestFlattenAttachmentSDK(t *testing.T) {
 		t.Fatalf("expected instance to be i-00001, but got %s", result["instance"])
 	}
 
-	if result["device_index"] != 1 {
+	if result["device_index"] != int64(1) {
 		t.Fatalf("expected device_index to be 1, but got %d", result["device_index"])
 	}
 
