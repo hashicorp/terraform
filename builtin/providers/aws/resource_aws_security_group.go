@@ -7,8 +7,8 @@ import (
 	"sort"
 	"time"
 
-	"github.com/hashicorp/aws-sdk-go/aws"
-	"github.com/hashicorp/aws-sdk-go/gen/ec2"
+	"github.com/awslabs/aws-sdk-go/aws"
+	"github.com/awslabs/aws-sdk-go/service/ec2"
 	"github.com/hashicorp/terraform/helper/hashcode"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
@@ -142,9 +142,9 @@ func resourceAwsSecurityGroup() *schema.Resource {
 }
 
 func resourceAwsSecurityGroupCreate(d *schema.ResourceData, meta interface{}) error {
-	ec2conn := meta.(*AWSClient).ec2conn
+	conn := meta.(*AWSClient).ec2SDKconn
 
-	securityGroupOpts := &ec2.CreateSecurityGroupRequest{
+	securityGroupOpts := &ec2.CreateSecurityGroupInput{
 		GroupName: aws.String(d.Get("name").(string)),
 	}
 
@@ -158,7 +158,7 @@ func resourceAwsSecurityGroupCreate(d *schema.ResourceData, meta interface{}) er
 
 	log.Printf(
 		"[DEBUG] Security Group create configuration: %#v", securityGroupOpts)
-	createResp, err := ec2conn.CreateSecurityGroup(securityGroupOpts)
+	createResp, err := conn.CreateSecurityGroup(securityGroupOpts)
 	if err != nil {
 		return fmt.Errorf("Error creating Security Group: %s", err)
 	}
@@ -174,7 +174,7 @@ func resourceAwsSecurityGroupCreate(d *schema.ResourceData, meta interface{}) er
 	stateConf := &resource.StateChangeConf{
 		Pending: []string{""},
 		Target:  "exists",
-		Refresh: SGStateRefreshFunc(ec2conn, d.Id()),
+		Refresh: SGStateRefreshFunc(conn, d.Id()),
 		Timeout: 1 * time.Minute,
 	}
 	if _, err := stateConf.WaitForState(); err != nil {
@@ -187,9 +187,9 @@ func resourceAwsSecurityGroupCreate(d *schema.ResourceData, meta interface{}) er
 }
 
 func resourceAwsSecurityGroupRead(d *schema.ResourceData, meta interface{}) error {
-	ec2conn := meta.(*AWSClient).ec2conn
+	conn := meta.(*AWSClient).ec2SDKconn
 
-	sgRaw, _, err := SGStateRefreshFunc(ec2conn, d.Id())()
+	sgRaw, _, err := SGStateRefreshFunc(conn, d.Id())()
 	if err != nil {
 		return err
 	}
@@ -198,7 +198,7 @@ func resourceAwsSecurityGroupRead(d *schema.ResourceData, meta interface{}) erro
 		return nil
 	}
 
-	sg := sgRaw.(ec2.SecurityGroup)
+	sg := sgRaw.(*ec2.SecurityGroup)
 
 	ingressRules := resourceAwsSecurityGroupIPPermGather(d, sg.IPPermissions)
 	egressRules := resourceAwsSecurityGroupIPPermGather(d, sg.IPPermissionsEgress)
@@ -209,14 +209,14 @@ func resourceAwsSecurityGroupRead(d *schema.ResourceData, meta interface{}) erro
 	d.Set("owner_id", sg.OwnerID)
 	d.Set("ingress", ingressRules)
 	d.Set("egress", egressRules)
-	d.Set("tags", tagsToMap(sg.Tags))
+	d.Set("tags", tagsToMapSDK(sg.Tags))
 	return nil
 }
 
 func resourceAwsSecurityGroupUpdate(d *schema.ResourceData, meta interface{}) error {
-	ec2conn := meta.(*AWSClient).ec2conn
+	conn := meta.(*AWSClient).ec2SDKconn
 
-	sgRaw, _, err := SGStateRefreshFunc(ec2conn, d.Id())()
+	sgRaw, _, err := SGStateRefreshFunc(conn, d.Id())()
 	if err != nil {
 		return err
 	}
@@ -225,7 +225,7 @@ func resourceAwsSecurityGroupUpdate(d *schema.ResourceData, meta interface{}) er
 		return nil
 	}
 
-	group := sgRaw.(ec2.SecurityGroup)
+	group := sgRaw.(*ec2.SecurityGroup)
 
 	err = resourceAwsSecurityGroupUpdateRules(d, "ingress", meta, group)
 	if err != nil {
@@ -239,7 +239,7 @@ func resourceAwsSecurityGroupUpdate(d *schema.ResourceData, meta interface{}) er
 		}
 	}
 
-	if err := setTags(ec2conn, d); err != nil {
+	if err := setTagsSDK(conn, d); err != nil {
 		return err
 	}
 
@@ -249,12 +249,12 @@ func resourceAwsSecurityGroupUpdate(d *schema.ResourceData, meta interface{}) er
 }
 
 func resourceAwsSecurityGroupDelete(d *schema.ResourceData, meta interface{}) error {
-	ec2conn := meta.(*AWSClient).ec2conn
+	conn := meta.(*AWSClient).ec2SDKconn
 
 	log.Printf("[DEBUG] Security Group destroy: %v", d.Id())
 
 	return resource.Retry(5*time.Minute, func() error {
-		err := ec2conn.DeleteSecurityGroup(&ec2.DeleteSecurityGroupRequest{
+		_, err := conn.DeleteSecurityGroup(&ec2.DeleteSecurityGroupInput{
 			GroupID: aws.String(d.Id()),
 		})
 		if err != nil {
@@ -317,15 +317,15 @@ func resourceAwsSecurityGroupRuleHash(v interface{}) int {
 	return hashcode.String(buf.String())
 }
 
-func resourceAwsSecurityGroupIPPermGather(d *schema.ResourceData, permissions []ec2.IPPermission) []map[string]interface{} {
+func resourceAwsSecurityGroupIPPermGather(d *schema.ResourceData, permissions []*ec2.IPPermission) []map[string]interface{} {
 	ruleMap := make(map[string]map[string]interface{})
 	for _, perm := range permissions {
-		var fromPort, toPort int
+		var fromPort, toPort *int64
 		if v := perm.FromPort; v != nil {
-			fromPort = *v
+			fromPort = v
 		}
 		if v := perm.ToPort; v != nil {
-			toPort = *v
+			toPort = v
 		}
 
 		k := fmt.Sprintf("%s-%d-%d", *perm.IPProtocol, fromPort, toPort)
@@ -355,7 +355,7 @@ func resourceAwsSecurityGroupIPPermGather(d *schema.ResourceData, permissions []
 
 		var groups []string
 		if len(perm.UserIDGroupPairs) > 0 {
-			groups = flattenSecurityGroups(perm.UserIDGroupPairs)
+			groups = flattenSecurityGroupsSDK(perm.UserIDGroupPairs)
 		}
 		for i, id := range groups {
 			if id == d.Id() {
@@ -384,7 +384,8 @@ func resourceAwsSecurityGroupIPPermGather(d *schema.ResourceData, permissions []
 
 func resourceAwsSecurityGroupUpdateRules(
 	d *schema.ResourceData, ruleset string,
-	meta interface{}, group ec2.SecurityGroup) error {
+	meta interface{}, group *ec2.SecurityGroup) error {
+
 	if d.HasChange(ruleset) {
 		o, n := d.GetChange(ruleset)
 		if o == nil {
@@ -397,8 +398,8 @@ func resourceAwsSecurityGroupUpdateRules(
 		os := o.(*schema.Set)
 		ns := n.(*schema.Set)
 
-		remove := expandIPPerms(group, os.Difference(ns).List())
-		add := expandIPPerms(group, ns.Difference(os).List())
+		remove := expandIPPermsSDK(group, os.Difference(ns).List())
+		add := expandIPPermsSDK(group, ns.Difference(os).List())
 
 		// TODO: We need to handle partial state better in the in-between
 		// in this update.
@@ -410,7 +411,7 @@ func resourceAwsSecurityGroupUpdateRules(
 		// not have service issues.
 
 		if len(remove) > 0 || len(add) > 0 {
-			ec2conn := meta.(*AWSClient).ec2conn
+			conn := meta.(*AWSClient).ec2SDKconn
 
 			var err error
 			if len(remove) > 0 {
@@ -418,17 +419,17 @@ func resourceAwsSecurityGroupUpdateRules(
 					group, ruleset, remove)
 
 				if ruleset == "egress" {
-					req := &ec2.RevokeSecurityGroupEgressRequest{
+					req := &ec2.RevokeSecurityGroupEgressInput{
 						GroupID:       group.GroupID,
 						IPPermissions: remove,
 					}
-					err = ec2conn.RevokeSecurityGroupEgress(req)
+					_, err = conn.RevokeSecurityGroupEgress(req)
 				} else {
-					req := &ec2.RevokeSecurityGroupIngressRequest{
+					req := &ec2.RevokeSecurityGroupIngressInput{
 						GroupID:       group.GroupID,
 						IPPermissions: remove,
 					}
-					err = ec2conn.RevokeSecurityGroupIngress(req)
+					_, err = conn.RevokeSecurityGroupIngress(req)
 				}
 
 				if err != nil {
@@ -443,13 +444,13 @@ func resourceAwsSecurityGroupUpdateRules(
 					group, ruleset, add)
 				// Authorize the new rules
 				if ruleset == "egress" {
-					req := &ec2.AuthorizeSecurityGroupEgressRequest{
+					req := &ec2.AuthorizeSecurityGroupEgressInput{
 						GroupID:       group.GroupID,
 						IPPermissions: add,
 					}
-					err = ec2conn.AuthorizeSecurityGroupEgress(req)
+					_, err = conn.AuthorizeSecurityGroupEgress(req)
 				} else {
-					req := &ec2.AuthorizeSecurityGroupIngressRequest{
+					req := &ec2.AuthorizeSecurityGroupIngressInput{
 						GroupID:       group.GroupID,
 						IPPermissions: add,
 					}
@@ -458,7 +459,7 @@ func resourceAwsSecurityGroupUpdateRules(
 						req.GroupName = group.GroupName
 					}
 
-					err = ec2conn.AuthorizeSecurityGroupIngress(req)
+					_, err = conn.AuthorizeSecurityGroupIngress(req)
 				}
 
 				if err != nil {
@@ -476,8 +477,8 @@ func resourceAwsSecurityGroupUpdateRules(
 // a security group.
 func SGStateRefreshFunc(conn *ec2.EC2, id string) resource.StateRefreshFunc {
 	return func() (interface{}, string, error) {
-		req := &ec2.DescribeSecurityGroupsRequest{
-			GroupIDs: []string{id},
+		req := &ec2.DescribeSecurityGroupsInput{
+			GroupIDs: []*string{aws.String(id)},
 		}
 		resp, err := conn.DescribeSecurityGroups(req)
 		if err != nil {
