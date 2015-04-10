@@ -67,6 +67,7 @@ The following arguments are supported:
       egress rule. Each egress block supports fields documented below.
       VPC only.
 * `vpc_id` - (Optional) The VPC ID.
+* `tags` - (Optional) A mapping of tags to assign to the resource.
 
 The `ingress` block supports:
 
@@ -77,7 +78,6 @@ The `ingress` block supports:
 * `self` - (Optional) If true, the security group itself will be added as
      a source to this ingress rule.
 * `to_port` - (Required) The end range port.
-* `tags` - (Optional) A mapping of tags to assign to the resource.
 
 The `egress` block supports:
 
@@ -88,7 +88,6 @@ The `egress` block supports:
 * `self` - (Optional) If true, the security group itself will be added as
      a source to this egress rule.
 * `to_port` - (Required) The end range port.
-* `tags` - (Optional) A mapping of tags to assign to the resource.
 
 ## Attributes Reference
 
