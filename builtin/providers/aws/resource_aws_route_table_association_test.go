@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/hashicorp/aws-sdk-go/aws"
-	"github.com/hashicorp/aws-sdk-go/gen/ec2"
+	"github.com/awslabs/aws-sdk-go/aws"
+	"github.com/awslabs/aws-sdk-go/service/ec2"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
 )
@@ -38,7 +38,7 @@ func TestAccAWSRouteTableAssociation(t *testing.T) {
 }
 
 func testAccCheckRouteTableAssociationDestroy(s *terraform.State) error {
-	conn := testAccProvider.Meta().(*AWSClient).ec2conn
+	conn := testAccProvider.Meta().(*AWSClient).ec2SDKconn
 
 	for _, rs := range s.RootModule().Resources {
 		if rs.Type != "aws_route_table_association" {
@@ -46,8 +46,8 @@ func testAccCheckRouteTableAssociationDestroy(s *terraform.State) error {
 		}
 
 		// Try to find the resource
-		resp, err := conn.DescribeRouteTables(&ec2.DescribeRouteTablesRequest{
-			RouteTableIDs: []string{rs.Primary.Attributes["route_table_id"]},
+		resp, err := conn.DescribeRouteTables(&ec2.DescribeRouteTablesInput{
+			RouteTableIDs: []*string{aws.String(rs.Primary.Attributes["route_table_id"])},
 		})
 		if err != nil {
 			// Verify the error is what we want
@@ -83,9 +83,9 @@ func testAccCheckRouteTableAssociationExists(n string, v *ec2.RouteTable) resour
 			return fmt.Errorf("No ID is set")
 		}
 
-		conn := testAccProvider.Meta().(*AWSClient).ec2conn
-		resp, err := conn.DescribeRouteTables(&ec2.DescribeRouteTablesRequest{
-			RouteTableIDs: []string{rs.Primary.Attributes["route_table_id"]},
+		conn := testAccProvider.Meta().(*AWSClient).ec2SDKconn
+		resp, err := conn.DescribeRouteTables(&ec2.DescribeRouteTablesInput{
+			RouteTableIDs: []*string{aws.String(rs.Primary.Attributes["route_table_id"])},
 		})
 		if err != nil {
 			return err
@@ -94,7 +94,7 @@ func testAccCheckRouteTableAssociationExists(n string, v *ec2.RouteTable) resour
 			return fmt.Errorf("RouteTable not found")
 		}
 
-		*v = resp.RouteTables[0]
+		*v = *resp.RouteTables[0]
 
 		if len(v.Associations) == 0 {
 			return fmt.Errorf("no associations")
