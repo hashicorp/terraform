@@ -2975,6 +2975,35 @@ func TestContext2Input_providerVars(t *testing.T) {
 	}
 }
 
+func TestContext2Input_providerVarsModuleInherit(t *testing.T) {
+	input := new(MockUIInput)
+	m := testModule(t, "input-provider-with-vars-and-module")
+	p := testProvider("aws")
+	p.ApplyFn = testApplyFn
+	p.DiffFn = testDiffFn
+	ctx := testContext2(t, &ContextOpts{
+		Module: m,
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+		UIInput: input,
+	})
+
+	p.InputFn = func(i UIInput, c *ResourceConfig) (*ResourceConfig, error) {
+		if errs := c.CheckSet([]string{"access_key"}); len(errs) > 0 {
+			return c, errs[0]
+		}
+		return c, nil
+	}
+	p.ConfigureFn = func(c *ResourceConfig) error {
+		return nil
+	}
+
+	if err := ctx.Input(InputModeStd); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+}
+
 func TestContext2Input_varOnly(t *testing.T) {
 	input := new(MockUIInput)
 	m := testModule(t, "input-provider-vars")
