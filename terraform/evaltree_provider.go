@@ -22,10 +22,19 @@ func ProviderEvalTree(n string, config *config.RawConfig) EvalNode {
 					Name:   n,
 					Output: &provider,
 				},
+				&EvalInterpolate{
+					Config: config,
+					Output: &resourceConfig,
+				},
+				&EvalBuildProviderConfig{
+					Provider: n,
+					Config:   &resourceConfig,
+					Output:   &resourceConfig,
+				},
 				&EvalInputProvider{
 					Name:     n,
 					Provider: &provider,
-					Config:   config,
+					Config:   &resourceConfig,
 				},
 			},
 		},

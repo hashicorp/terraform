@@ -96,7 +96,7 @@ func (n *EvalGetProvider) Eval(ctx EvalContext) (interface{}, error) {
 type EvalInputProvider struct {
 	Name     string
 	Provider *ResourceProvider
-	Config   *config.RawConfig
+	Config   **ResourceConfig
 }
 
 func (n *EvalInputProvider) Eval(ctx EvalContext) (interface{}, error) {
@@ -105,8 +105,7 @@ func (n *EvalInputProvider) Eval(ctx EvalContext) (interface{}, error) {
 		return nil, nil
 	}
 
-	rc := NewResourceConfig(n.Config)
-	rc.Config = make(map[string]interface{})
+	rc := *n.Config
 
 	// Wrap the input into a namespace
 	input := &PrefixUIInput{
