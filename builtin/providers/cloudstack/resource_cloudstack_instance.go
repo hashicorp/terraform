@@ -156,6 +156,12 @@ func resourceCloudStackInstanceCreate(d *schema.ResourceData, meta interface{}) 
 
 	d.SetId(r.Id)
 
+	// Set the connection info for any configured provisioners
+	d.SetConnInfo(map[string]string{
+		"host":     r.Nic[0].Ipaddress,
+		"password": r.Password,
+	})
+
 	return resourceCloudStackInstanceRead(d, meta)
 }
 
