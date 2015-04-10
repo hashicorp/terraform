@@ -39,10 +39,14 @@ The following keys can be used to configure the provider.
   retrieving this file are below.  The _account file_ can be "" if you
   are running terraform from a GCE instance with a properly-configured [Compute
   Engine Service Account](https://cloud.google.com/compute/docs/authentication).
+  This can also be specified with the `GOOGLE_ACCOUNT_FILE` shell environment
+  variable.
 
-* `project` - (Required) The ID of the project to apply any resources to.
+* `project` - (Required) The ID of the project to apply any resources to.  This
+  can also be specified with the `GOOGLE_PROJECT` shell environment variable.
 
-* `region` - (Required) The region to operate under.
+* `region` - (Required) The region to operate under. This can also be specified
+  with the `GOOGLE_REGION` shell environment variable.
 
 ## Authentication JSON File
 
