@@ -36,19 +36,6 @@ func retrieveUUID(cs *cloudstack.CloudStackClient, name, value string) (uuid str
 		uuid, err = cs.ServiceOffering.GetServiceOfferingID(value)
 	case "network_offering":
 		uuid, err = cs.NetworkOffering.GetNetworkOfferingID(value)
-	case "os_type":
-		p := cs.GuestOS.NewListOsTypesParams()
-		p.SetDescription(value)
-		o, e := cs.GuestOS.ListOsTypes(p)
-		if e != nil {
-			err = e
-			break
-		}
-		if o.Count == 1 {
-			uuid = o.OsTypes[0].Id
-			break
-		}
-		err = fmt.Errorf("Could not find UUID of OS Type: %s", value)
 	case "vpc_offering":
 		uuid, err = cs.VPC.GetVPCOfferingID(value)
 	case "vpc":
@@ -70,6 +57,19 @@ func retrieveUUID(cs *cloudstack.CloudStackClient, name, value string) (uuid str
 			break
 		}
 		err = fmt.Errorf("Could not find UUID of IP address: %s", value)
+	case "os_type":
+		p := cs.GuestOS.NewListOsTypesParams()
+		p.SetDescription(value)
+		l, e := cs.GuestOS.ListOsTypes(p)
+		if e != nil {
+			err = e
+			break
+		}
+		if l.Count == 1 {
+			uuid = l.OsTypes[0].Id
+			break
+		}
+		err = fmt.Errorf("Could not find UUID of OS Type: %s", value)
 	default:
 		return uuid, &retrieveError{name: name, value: value,
 			err: fmt.Errorf("Unknown request: %s", name)}
