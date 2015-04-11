@@ -162,15 +162,14 @@ func resourceCloudStackNetworkUpdate(d *schema.ResourceData, meta interface{}) e
 	// Create a new parameter struct
 	p := cs.Network.NewUpdateNetworkParams(d.Id())
 
-	// Check if the name or display text is changed
-	if d.HasChange("name") || d.HasChange("display_text") {
+	// Check if the name is changed
+	if d.HasChange("name") {
 		p.SetName(name)
+	}
 
-		// Compute/set the display text
-		displaytext := d.Get("display_text").(string)
-		if displaytext == "" {
-			displaytext = name
-		}
+	// Check if the display text is changed
+	if d.HasChange("display_text") {
+		p.SetDisplaytext(d.Get("display_text").(string))
 	}
 
 	// Check if the cidr is changed
