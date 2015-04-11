@@ -9,7 +9,7 @@ import (
 	"github.com/xanzy/go-cloudstack/cloudstack"
 )
 
-func TestAccCloudStackTemplate_full(t *testing.T) {
+func TestAccCloudStackTemplate_basic(t *testing.T) {
 	var template cloudstack.Template
 
 	resource.Test(t, resource.TestCase{
@@ -18,18 +18,50 @@ func TestAccCloudStackTemplate_full(t *testing.T) {
 		CheckDestroy: testAccCheckCloudStackTemplateDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccCloudStackTemplate_options,
+				Config: testAccCloudStackTemplate_basic,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckCloudStackTemplateExists("cloudstack_template.foo", &template),
 					testAccCheckCloudStackTemplateBasicAttributes(&template),
-					testAccCheckCloudStackTemplateOptionalAttributes(&template),
+					resource.TestCheckResourceAttr(
+						"cloudstack_template.foo", "display_text", "terraform-test"),
 				),
 			},
 		},
 	})
 }
 
-func testAccCheckCloudStackTemplateExists(n string, template *cloudstack.Template) resource.TestCheckFunc {
+func TestAccCloudStackTemplate_update(t *testing.T) {
+	var template cloudstack.Template
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckCloudStackTemplateDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccCloudStackTemplate_basic,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckCloudStackTemplateExists("cloudstack_template.foo", &template),
+					testAccCheckCloudStackTemplateBasicAttributes(&template),
+				),
+			},
+
+			resource.TestStep{
+				Config: testAccCloudStackTemplate_update,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckCloudStackTemplateExists(
+						"cloudstack_template.foo", &template),
+					testAccCheckCloudStackTemplateUpdatedAttributes(&template),
+					resource.TestCheckResourceAttr(
+						"cloudstack_template.foo", "display_text", "terraform-updated"),
+				),
+			},
+		},
+	})
+}
+
+func testAccCheckCloudStackTemplateExists(
+	n string, template *cloudstack.Template) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		rs, ok := s.RootModule().Resources[n]
 		if !ok {
@@ -41,7 +73,7 @@ func testAccCheckCloudStackTemplateExists(n string, template *cloudstack.Templat
 		}
 
 		cs := testAccProvider.Meta().(*cloudstack.CloudStackClient)
-		tmpl, _, err := cs.Template.GetTemplateByID(rs.Primary.ID, "all")
+		tmpl, _, err := cs.Template.GetTemplateByID(rs.Primary.ID, "executable")
 
 		if err != nil {
 			return err
@@ -52,6 +84,54 @@ func testAccCheckCloudStackTemplateExists(n string, template *cloudstack.Templat
 		}
 
 		*template = *tmpl
+
+		return nil
+	}
+}
+
+func testAccCheckCloudStackTemplateBasicAttributes(
+	template *cloudstack.Template) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+
+		if template.Name != "terraform-test" {
+			return fmt.Errorf("Bad name: %s", template.Name)
+		}
+
+		if template.Format != CLOUDSTACK_TEMPLATE_FORMAT {
+			return fmt.Errorf("Bad format: %s", template.Format)
+		}
+
+		if template.Hypervisor != CLOUDSTACK_HYPERVISOR {
+			return fmt.Errorf("Bad hypervisor: %s", template.Hypervisor)
+		}
+
+		if template.Ostypename != CLOUDSTACK_TEMPLATE_OS_TYPE {
+			return fmt.Errorf("Bad os type: %s", template.Ostypename)
+		}
+
+		if template.Zonename != CLOUDSTACK_ZONE {
+			return fmt.Errorf("Bad zone: %s", template.Zonename)
+		}
+
+		return nil
+	}
+}
+
+func testAccCheckCloudStackTemplateUpdatedAttributes(
+	template *cloudstack.Template) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+
+		if template.Displaytext != "terraform-updated" {
+			return fmt.Errorf("Bad name: %s", template.Displaytext)
+		}
+
+		if !template.Isdynamicallyscalable {
+			return fmt.Errorf("Bad is_dynamically_scalable: %t", template.Isdynamicallyscalable)
+		}
+
+		if !template.Passwordenabled {
+			return fmt.Errorf("Bad password_enabled: %t", template.Passwordenabled)
+		}
 
 		return nil
 	}
@@ -84,100 +164,35 @@ func testAccCheckCloudStackTemplateDestroy(s *terraform.State) error {
 
 var testAccCloudStackTemplate_basic = fmt.Sprintf(`
 resource "cloudstack_template" "foo" {
-  name = "terraform-acc-test"
-  url = "%s"
+  name = "terraform-test"
+	format = "%s"
   hypervisor = "%s"
-  os_type = "%s"
-  format = "%s"
+	os_type = "%s"
+	url = "%s"
   zone = "%s"
 }
 `,
-	CLOUDSTACK_TEMPLATE_URL,
+	CLOUDSTACK_TEMPLATE_FORMAT,
 	CLOUDSTACK_HYPERVISOR,
 	CLOUDSTACK_TEMPLATE_OS_TYPE,
-	CLOUDSTACK_TEMPLATE_FORMAT,
+	CLOUDSTACK_TEMPLATE_URL,
 	CLOUDSTACK_ZONE)
 
-func testAccCheckCloudStackTemplateBasicAttributes(template *cloudstack.Template) resource.TestCheckFunc {
-	return func(s *terraform.State) error {
-
-		if template.Name != "terraform-acc-test" {
-			return fmt.Errorf("Bad name: %s", template.Name)
-		}
-
-		//todo: could add size to schema and check that, would assure we downloaded/initialize the image properly
-
-		if template.Hypervisor != CLOUDSTACK_HYPERVISOR {
-			return fmt.Errorf("Bad hypervisor: %s", template.Hypervisor)
-		}
-
-		if template.Ostypename != CLOUDSTACK_TEMPLATE_OS_TYPE {
-			return fmt.Errorf("Bad os type: %s", template.Ostypename)
-		}
-
-		if template.Format != CLOUDSTACK_TEMPLATE_FORMAT {
-			return fmt.Errorf("Bad format: %s", template.Format)
-		}
-
-		if template.Zonename != CLOUDSTACK_ZONE {
-			return fmt.Errorf("Bad zone: %s", template.Zonename)
-		}
-
-		return nil
-	}
-}
-
-//may prove difficult to test isrouting, isfeatured, ispublic, bits so not set here
-var testAccCloudStackTemplate_options = fmt.Sprintf(`
+var testAccCloudStackTemplate_update = fmt.Sprintf(`
 resource "cloudstack_template" "foo" {
-  name = "terraform-acc-test"
-  url = "%s"
+	name = "terraform-test"
+  display_text = "terraform-updated"
+	format = "%s"
   hypervisor = "%s"
   os_type = "%s"
-  format = "%s"
+	url = "%s"
   zone = "%s"
-  password_enabled = true
-  template_tag = "acctest"
-  ssh_key_enabled = true
-  is_extractable = true
   is_dynamically_scalable = true
-  checksum = "%s" 
+	password_enabled = true
 }
 `,
-	CLOUDSTACK_TEMPLATE_URL,
+	CLOUDSTACK_TEMPLATE_FORMAT,
 	CLOUDSTACK_HYPERVISOR,
 	CLOUDSTACK_TEMPLATE_OS_TYPE,
-	CLOUDSTACK_TEMPLATE_FORMAT,
-	CLOUDSTACK_ZONE,
-	CLOUDSTACK_TEMPLATE_CHECKSUM)
-
-func testAccCheckCloudStackTemplateOptionalAttributes(template *cloudstack.Template) resource.TestCheckFunc {
-	return func(s *terraform.State) error {
-
-		if !template.Passwordenabled {
-			return fmt.Errorf("Bad password_enabled: %s", template.Passwordenabled)
-		}
-
-		if template.Templatetag != "acctest" {
-			return fmt.Errorf("Bad template_tag: %s", template.Templatetag)
-		}
-
-		if !template.Sshkeyenabled {
-			return fmt.Errorf("Bad ssh_key_enabled: %s", template.Sshkeyenabled)
-		}
-
-		if !template.Isextractable {
-			return fmt.Errorf("Bad is_extractable: %s", template.Isextractable)
-		}
-
-		if !template.Isdynamicallyscalable {
-			return fmt.Errorf("Bad is_dynamically_scalable: %s", template.Isdynamicallyscalable)
-		}
-
-		if template.Checksum != CLOUDSTACK_TEMPLATE_CHECKSUM {
-			return fmt.Errorf("Bad checksum: %s", template.Checksum)
-		}
-
-		return nil
-	}
-}
+	CLOUDSTACK_TEMPLATE_URL,
+	CLOUDSTACK_ZONE)
