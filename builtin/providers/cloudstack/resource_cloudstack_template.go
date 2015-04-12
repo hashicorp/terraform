@@ -167,7 +167,6 @@ func resourceCloudStackTemplateCreate(d *schema.ResourceData, meta interface{}) 
 
 	// Wait until the template is ready to use, or timeout with an error...
 	currentTime := time.Now().Unix()
-	timeout := int64(d.Get("is_ready_timeout").(int))
 	for {
 		err := resourceCloudStackTemplateRead(d, meta)
 		if err != nil {
@@ -178,7 +177,7 @@ func resourceCloudStackTemplateCreate(d *schema.ResourceData, meta interface{}) 
 			return nil
 		}
 
-		if time.Now().Unix()-currentTime > timeout {
+		if time.Now().Unix()-currentTime > d.Get("is_ready_timeout").(int) {
 			return fmt.Errorf("Timeout while waiting for template to become ready")
 		}
 		time.Sleep(5 * time.Second)
