@@ -183,6 +183,66 @@ func TestInterpolateFuncReplace(t *testing.T) {
 	})
 }
 
+func TestInterpolateFuncLength(t *testing.T) {
+	testFunction(t, testFunctionConfig{
+		Cases: []testFunctionCase{
+			// Raw strings
+			{
+				`${length("")}`,
+				"0",
+				false,
+			},
+			{
+				`${length("a")}`,
+				"1",
+				false,
+			},
+			{
+				`${length(" ")}`,
+				"1",
+				false,
+			},
+			{
+				`${length(" a ,")}`,
+				"4",
+				false,
+			},
+			{
+				`${length("aaa")}`,
+				"3",
+				false,
+			},
+
+			// Lists
+			{
+				`${length(split(",", "a"))}`,
+				"1",
+				false,
+			},
+			{
+				`${length(split(",", "foo,"))}`,
+				"2",
+				false,
+			},
+			{
+				`${length(split(",", ",foo,"))}`,
+				"3",
+				false,
+			},
+			{
+				`${length(split(",", "foo,bar"))}`,
+				"2",
+				false,
+			},
+			{
+				`${length(split(".", "one.two.three.four.five"))}`,
+				"5",
+				false,
+			},
+		},
+	})
+}
+
 func TestInterpolateFuncSplit(t *testing.T) {
 	testFunction(t, testFunctionConfig{
 		Cases: []testFunctionCase{
@@ -195,6 +255,35 @@ func TestInterpolateFuncSplit(t *testing.T) {
 			{
 				`${split(",", "foo")}`,
 				"foo",
+				false,
+			},
+
+			{
+				`${split(",", ",,,")}`,
+				fmt.Sprintf(
+					"%s%s%s",
+					InterpSplitDelim,
+					InterpSplitDelim,
+					InterpSplitDelim),
+				false,
+			},
+
+			{
+				`${split(",", "foo,")}`,
+				fmt.Sprintf(
+					"%s%s",
+					"foo",
+					InterpSplitDelim),
+				false,
+			},
+
+			{
+				`${split(",", ",foo,")}`,
+				fmt.Sprintf(
+					"%s%s%s",
+					InterpSplitDelim,
+					"foo",
+					InterpSplitDelim),
 				false,
 			},
 
