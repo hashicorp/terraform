@@ -407,6 +407,12 @@ func (d *InstanceDiff) Same(d2 *InstanceDiff) (bool, string) {
 
 		_, ok := d2.Attributes[k]
 		if !ok {
+			// If there's no new attribute, and the old diff expected the attribute
+			// to be removed, that's just fine.
+			if diffOld.NewRemoved {
+				continue
+			}
+
 			// No exact match, but maybe this is a set containing computed
 			// values. So check if there is an approximate hash in the key
 			// and if so, try to match the key.
