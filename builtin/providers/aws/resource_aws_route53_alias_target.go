@@ -187,7 +187,7 @@ func resourceAwsRoute53AliasTargetRead(d *schema.ResourceData, meta interface{})
 		found = true
 
 		aliasTarget := record.AliasTarget
-		d.Set("target", aliasTarget.DNSName)
+		d.Set("target", strings.TrimSuffix(string(*aliasTarget.DNSName), "."))
 		d.Set("target_zone_id", aliasTarget.HostedZoneID)
 
 		break
@@ -271,7 +271,7 @@ func resourceAwsRoute53AliasTargetBuildSet(d *schema.ResourceData, zoneName stri
 
 	// Get expanded name
 	en := expandRecordName(d.Get("name").(string), zoneName)
-	target := d.Get("target").(string)
+	target := strings.TrimSuffix(d.Get("target").(string), ".") + "."
 
 	// Expand the name if it's in the same view
 	if d.Get("zone_id").(string) == d.Get("target_zone_id").(string) {
