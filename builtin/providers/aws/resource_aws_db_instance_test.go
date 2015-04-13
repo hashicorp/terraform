@@ -9,8 +9,8 @@ import (
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
 
-        "github.com/awslabs/aws-sdk-go/aws"
-        "github.com/awslabs/aws-sdk-go/service/rds"
+	"github.com/awslabs/aws-sdk-go/aws"
+	"github.com/awslabs/aws-sdk-go/service/rds"
 )
 
 func TestAccAWSDBInstance(t *testing.T) {
@@ -47,7 +47,7 @@ func TestAccAWSDBInstance(t *testing.T) {
 }
 
 func testAccCheckAWSDBInstanceDestroy(s *terraform.State) error {
-        conn := testAccProvider.Meta().(*AWSClient).rdsSDKconn
+	conn := testAccProvider.Meta().(*AWSClient).rdsconn
 
 	for _, rs := range s.RootModule().Resources {
 		if rs.Type != "aws_db_instance" {
@@ -56,7 +56,7 @@ func testAccCheckAWSDBInstanceDestroy(s *terraform.State) error {
 
 		// Try to find the Group
 		resp, err := conn.DescribeDBInstances(
-                        &rds.DescribeDBInstancesInput{
+			&rds.DescribeDBInstancesInput{
 				DBInstanceIdentifier: aws.String(rs.Primary.ID),
 			})
 
@@ -110,9 +110,9 @@ func testAccCheckAWSDBInstanceExists(n string, v *rds.DBInstance) resource.TestC
 			return fmt.Errorf("No DB Instance ID is set")
 		}
 
-                conn := testAccProvider.Meta().(*AWSClient).rdsSDKconn
+		conn := testAccProvider.Meta().(*AWSClient).rdsconn
 
-                opts := rds.DescribeDBInstancesInput{
+		opts := rds.DescribeDBInstancesInput{
 			DBInstanceIdentifier: aws.String(rs.Primary.ID),
 		}
 
@@ -127,7 +127,7 @@ func testAccCheckAWSDBInstanceExists(n string, v *rds.DBInstance) resource.TestC
 			return fmt.Errorf("DB Instance not found")
 		}
 
-                *v = *resp.DBInstances[0]
+		*v = *resp.DBInstances[0]
 
 		return nil
 	}
