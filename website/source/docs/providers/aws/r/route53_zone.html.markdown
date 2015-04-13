@@ -55,6 +55,8 @@ The following arguments are supported:
 
 * `name` - (Required) This is the name of the hosted zone.
 * `tags` - (Optional) A mapping of tags to assign to the zone.
+* `vpc_id` - (Optional) The VPC to associate with a private hosted zone. Specifying `vpc_id` will create a private hosted zone.
+* `vpc_region` - (Optional) The VPC's region. Defaults to the region of the AWS provider.
 
 ## Attributes Reference
 
