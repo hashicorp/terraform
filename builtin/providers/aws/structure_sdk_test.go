@@ -6,8 +6,8 @@ import (
 
 	"github.com/awslabs/aws-sdk-go/service/ec2"
 	"github.com/awslabs/aws-sdk-go/service/elb"
+	"github.com/awslabs/aws-sdk-go/service/rds"
 	"github.com/hashicorp/aws-sdk-go/aws"
-	"github.com/hashicorp/aws-sdk-go/gen/rds"
 	"github.com/hashicorp/terraform/flatmap"
 	"github.com/hashicorp/terraform/helper/hashcode"
 	"github.com/hashicorp/terraform/helper/schema"
@@ -285,7 +285,7 @@ func TestExpandParametersSDK(t *testing.T) {
 		t.Fatalf("bad: %#v", err)
 	}
 
-	expected := rds.Parameter{
+	expected := &rds.Parameter{
 		ParameterName:  aws.String("character_set_client"),
 		ParameterValue: aws.String("utf8"),
 		ApplyMethod:    aws.String("immediate"),
@@ -301,12 +301,12 @@ func TestExpandParametersSDK(t *testing.T) {
 
 func TestFlattenParametersSDK(t *testing.T) {
 	cases := []struct {
-		Input  []rds.Parameter
+		Input  []*rds.Parameter
 		Output []map[string]interface{}
 	}{
 		{
-			Input: []rds.Parameter{
-				rds.Parameter{
+			Input: []*rds.Parameter{
+				&rds.Parameter{
 					ParameterName:  aws.String("character_set_client"),
 					ParameterValue: aws.String("utf8"),
 				},

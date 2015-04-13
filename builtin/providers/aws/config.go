@@ -11,14 +11,13 @@ import (
 	"github.com/hashicorp/aws-sdk-go/gen/autoscaling"
 	"github.com/hashicorp/aws-sdk-go/gen/ec2"
 	"github.com/hashicorp/aws-sdk-go/gen/iam"
-	"github.com/hashicorp/aws-sdk-go/gen/rds"
 	"github.com/hashicorp/aws-sdk-go/gen/route53"
 	"github.com/hashicorp/aws-sdk-go/gen/s3"
 
 	awsSDK "github.com/awslabs/aws-sdk-go/aws"
 	awsIAM "github.com/awslabs/aws-sdk-go/service/IAM"
 	awsEC2 "github.com/awslabs/aws-sdk-go/service/ec2"
-	awsRDS "github.com/awslabs/aws-sdk-go/service/rds"
+	"github.com/awslabs/aws-sdk-go/service/rds"
 )
 
 type Config struct {
@@ -38,7 +37,6 @@ type AWSClient struct {
 	rdsconn         *rds.RDS
 	iamconn         *iam.IAM
 	ec2SDKconn      *awsEC2.EC2
-	rdsSDKconn      *awsRDS.RDS
 	iamSDKconn      *awsIAM.IAM
 }
 
@@ -78,8 +76,6 @@ func (c *Config) Client() (interface{}, error) {
 		client.autoscalingconn = autoscaling.New(creds, c.Region, nil)
 		log.Println("[INFO] Initializing S3 connection")
 		client.s3conn = s3.New(creds, c.Region, nil)
-		log.Println("[INFO] Initializing RDS connection")
-		client.rdsconn = rds.New(creds, c.Region, nil)
 
 		// aws-sdk-go uses v4 for signing requests, which requires all global
 		// endpoints to use 'us-east-1'.
@@ -93,7 +89,7 @@ func (c *Config) Client() (interface{}, error) {
 		client.ec2SDKconn = awsEC2.New(awsConfig)
 
 		log.Println("[INFO] Initializing RDS SDK Connection")
-		client.rdsSDKconn = awsRDS.New(awsConfig)
+		client.rdsconn = rds.New(awsConfig)
 
 		log.Println("[INFO] Initializing IAM SDK Connection")
 		client.iamSDKconn = awsIAM.New(awsConfig)
