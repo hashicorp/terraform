@@ -57,6 +57,19 @@ func retrieveUUID(cs *cloudstack.CloudStackClient, name, value string) (uuid str
 			break
 		}
 		err = fmt.Errorf("Could not find UUID of IP address: %s", value)
+	case "os_type":
+		p := cs.GuestOS.NewListOsTypesParams()
+		p.SetDescription(value)
+		l, e := cs.GuestOS.ListOsTypes(p)
+		if e != nil {
+			err = e
+			break
+		}
+		if l.Count == 1 {
+			uuid = l.OsTypes[0].Id
+			break
+		}
+		err = fmt.Errorf("Could not find UUID of OS Type: %s", value)
 	default:
 		return uuid, &retrieveError{name: name, value: value,
 			err: fmt.Errorf("Unknown request: %s", name)}
