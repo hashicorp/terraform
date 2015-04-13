@@ -28,6 +28,18 @@ func resourceAwsRoute53Zone() *schema.Resource {
 				ForceNew: true,
 			},
 
+			"vpc_id": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				ForceNew: true,
+			},
+
+			"vpc_region": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				ForceNew: true,
+			},
+
 			"zone_id": &schema.Schema{
 				Type:     schema.TypeString,
 				Computed: true,
@@ -52,6 +64,15 @@ func resourceAwsRoute53ZoneCreate(d *schema.ResourceData, meta interface{}) erro
 		Name:             aws.String(d.Get("name").(string)),
 		HostedZoneConfig: comment,
 		CallerReference:  aws.String(time.Now().Format(time.RFC3339Nano)),
+	}
+	if v := d.Get("vpc_id"); v != nil {
+		req.VPC = &route53.VPC{
+			VPCID:     aws.String(v.(string)),
+			VPCRegion: aws.String(meta.(*AWSClient).region),
+		}
+		if w := d.Get("vpc_region"); w != nil {
+			req.VPC.VPCRegion = aws.String(w.(string))
+		}
 	}
 
 	log.Printf("[DEBUG] Creating Route53 hosted zone: %s", *req.Name)

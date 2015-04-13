@@ -84,6 +84,24 @@ func TestAccRoute53Zone(t *testing.T) {
 	})
 }
 
+func TestAccRoute53PrivateZone(t *testing.T) {
+	var zone route53.HostedZone
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckRoute53ZoneDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccRoute53PrivateZoneConfig,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckRoute53ZoneExists("aws_route53_zone.main", &zone),
+				),
+			},
+		},
+	})
+}
+
 func testAccCheckRoute53ZoneDestroy(s *terraform.State) error {
 	conn := testAccProvider.Meta().(*AWSClient).r53conn
 	for _, rs := range s.RootModule().Resources {
@@ -165,5 +183,19 @@ resource "aws_route53_zone" "main" {
 		foo = "bar"
 		Name = "tf-route53-tag-test"
 	}
+}
+`
+
+const testAccRoute53PrivateZoneConfig = `
+resource "aws_vpc" "main" {
+	cidr_block = "172.29.0.0/24"
+	instance_tenancy = "default"
+	enable_dns_support = true
+	enable_dns_hostnames = true
+}
+
+resource "aws_route53_zone" "main" {
+	name = "hashicorp.com"
+	vpc_id = "${aws_vpc.main.id}"
 }
 `
