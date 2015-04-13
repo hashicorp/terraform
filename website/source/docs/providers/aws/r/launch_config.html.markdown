@@ -24,7 +24,8 @@ resource "aws_launch_configuration" "as_conf" {
 
 The following arguments are supported:
 
-* `name` - (Required) The name of the launch configuration.
+* `name` - (Optional) The name of the launch configuration. If you leave
+  this blank, Terraform will auto-generate it.
 * `image_id` - (Required) The EC2 image ID to launch.
 * `instance_type` - (Required) The size of instance to launch.
 * `iam_instance_profile` - (Optional) The IAM instance profile to associate
