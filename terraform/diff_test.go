@@ -361,29 +361,34 @@ func TestInstanceDiffSame(t *testing.T) {
 	cases := []struct {
 		One, Two *InstanceDiff
 		Same     bool
+		Reason   string
 	}{
 		{
 			&InstanceDiff{},
 			&InstanceDiff{},
 			true,
+			"",
 		},
 
 		{
 			nil,
 			nil,
 			true,
+			"",
 		},
 
 		{
 			&InstanceDiff{Destroy: false},
 			&InstanceDiff{Destroy: true},
 			false,
+			"diff: Destroy; old: false, new: true",
 		},
 
 		{
 			&InstanceDiff{Destroy: true},
 			&InstanceDiff{Destroy: true},
 			true,
+			"",
 		},
 
 		{
@@ -398,6 +403,7 @@ func TestInstanceDiffSame(t *testing.T) {
 				},
 			},
 			true,
+			"",
 		},
 
 		{
@@ -412,6 +418,7 @@ func TestInstanceDiffSame(t *testing.T) {
 				},
 			},
 			false,
+			"attribute mismatch: bar",
 		},
 
 		// Extra attributes
@@ -428,6 +435,7 @@ func TestInstanceDiffSame(t *testing.T) {
 				},
 			},
 			false,
+			"extra attributes: bar",
 		},
 
 		{
@@ -442,6 +450,7 @@ func TestInstanceDiffSame(t *testing.T) {
 				},
 			},
 			false,
+			"diff RequiresNew; old: true, new: false",
 		},
 
 		{
@@ -463,6 +472,7 @@ func TestInstanceDiffSame(t *testing.T) {
 				},
 			},
 			true,
+			"",
 		},
 
 		{
@@ -491,6 +501,7 @@ func TestInstanceDiffSame(t *testing.T) {
 				},
 			},
 			true,
+			"",
 		},
 
 		{
@@ -506,13 +517,18 @@ func TestInstanceDiffSame(t *testing.T) {
 				Attributes: map[string]*ResourceAttrDiff{},
 			},
 			true,
+			"",
 		},
 	}
 
 	for i, tc := range cases {
-		actual := tc.One.Same(tc.Two)
-		if actual != tc.Same {
+		same, reason := tc.One.Same(tc.Two)
+		if same != tc.Same {
 			t.Fatalf("%d:\n\n%#v\n\n%#v", i, tc.One, tc.Two)
+		}
+		if reason != tc.Reason {
+			t.Fatalf(
+				"%d: bad reason\n\nexpected: %#v\n\ngot: %#v", i, tc.Reason, reason)
 		}
 	}
 }
