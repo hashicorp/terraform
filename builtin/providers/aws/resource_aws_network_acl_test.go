@@ -12,7 +12,7 @@ import (
 	// "github.com/hashicorp/terraform/helper/schema"
 )
 
-func TestAccAWSNetworkAclsWithEgressAndIngressRules(t *testing.T) {
+func TestAccAWSNetworkAcl_EgressAndIngressRules(t *testing.T) {
 	var networkAcl ec2.NetworkACL
 
 	resource.Test(t, resource.TestCase{
@@ -54,7 +54,7 @@ func TestAccAWSNetworkAclsWithEgressAndIngressRules(t *testing.T) {
 	})
 }
 
-func TestAccAWSNetworkAclsOnlyIngressRules(t *testing.T) {
+func TestAccAWSNetworkAcl_OnlyIngressRules(t *testing.T) {
 	var networkAcl ec2.NetworkACL
 
 	resource.Test(t, resource.TestCase{
@@ -85,7 +85,7 @@ func TestAccAWSNetworkAclsOnlyIngressRules(t *testing.T) {
 	})
 }
 
-func TestAccAWSNetworkAclsOnlyIngressRulesChange(t *testing.T) {
+func TestAccAWSNetworkAcl_OnlyIngressRulesChange(t *testing.T) {
 	var networkAcl ec2.NetworkACL
 
 	resource.Test(t, resource.TestCase{
@@ -139,7 +139,7 @@ func TestAccAWSNetworkAclsOnlyIngressRulesChange(t *testing.T) {
 	})
 }
 
-func TestAccAWSNetworkAclsOnlyEgressRules(t *testing.T) {
+func TestAccAWSNetworkAcl_OnlyEgressRules(t *testing.T) {
 	var networkAcl ec2.NetworkACL
 
 	resource.Test(t, resource.TestCase{
