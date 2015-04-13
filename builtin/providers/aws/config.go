@@ -16,7 +16,9 @@ import (
 	"github.com/hashicorp/aws-sdk-go/gen/s3"
 
 	awsSDK "github.com/awslabs/aws-sdk-go/aws"
+	awsIAM "github.com/awslabs/aws-sdk-go/service/IAM"
 	awsEC2 "github.com/awslabs/aws-sdk-go/service/ec2"
+	awsRDS "github.com/awslabs/aws-sdk-go/service/rds"
 )
 
 type Config struct {
@@ -36,6 +38,8 @@ type AWSClient struct {
 	rdsconn         *rds.RDS
 	iamconn         *iam.IAM
 	ec2SDKconn      *awsEC2.EC2
+	rdsSDKconn      *awsRDS.RDS
+	iamSDKconn      *awsIAM.IAM
 }
 
 // Client configures and returns a fully initailized AWSClient
@@ -60,12 +64,15 @@ func (c *Config) Client() (interface{}, error) {
 		log.Println("[INFO] Building AWS auth structure")
 		creds := aws.DetectCreds(c.AccessKey, c.SecretKey, c.Token)
 
+		log.Println("[INFO] Building AWS SDK auth structure")
 		sdkCreds := awsSDK.DetectCreds(c.AccessKey, c.SecretKey, c.Token)
-		log.Println("[INFO] Initializing ELB connection")
-		client.elbconn = elb.New(&awsSDK.Config{
+		awsConfig := &awsSDK.Config{
 			Credentials: sdkCreds,
 			Region:      c.Region,
-		})
+		}
+
+		log.Println("[INFO] Initializing ELB SDK connection")
+		client.elbconn = elb.New(awsConfig)
 
 		log.Println("[INFO] Initializing AutoScaling connection")
 		client.autoscalingconn = autoscaling.New(creds, c.Region, nil)
@@ -81,12 +88,15 @@ func (c *Config) Client() (interface{}, error) {
 		client.r53conn = route53.New(creds, "us-east-1", nil)
 		log.Println("[INFO] Initializing EC2 Connection")
 		client.ec2conn = ec2.New(creds, c.Region, nil)
-		client.iamconn = iam.New(creds, c.Region, nil)
 
-		client.ec2SDKconn = awsEC2.New(&awsSDK.Config{
-			Credentials: sdkCreds,
-			Region:      c.Region,
-		})
+		log.Println("[INFO] Initializing EC2 SDK Connection")
+		client.ec2SDKconn = awsEC2.New(awsConfig)
+
+		log.Println("[INFO] Initializing RDS SDK Connection")
+		client.rdsSDKconn = awsRDS.New(awsConfig)
+
+		log.Println("[INFO] Initializing IAM SDK Connection")
+		client.iamSDKconn = awsIAM.New(awsConfig)
 	}
 
 	if len(errs) > 0 {
