@@ -9,8 +9,8 @@ import (
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
 
-	"github.com/hashicorp/aws-sdk-go/aws"
-	"github.com/hashicorp/aws-sdk-go/gen/s3"
+	"github.com/awslabs/aws-sdk-go/aws"
+	"github.com/awslabs/aws-sdk-go/service/s3"
 )
 
 func TestAccAWSS3Bucket(t *testing.T) {
@@ -37,7 +37,7 @@ func testAccCheckAWSS3BucketDestroy(s *terraform.State) error {
 		if rs.Type != "aws_s3_bucket" {
 			continue
 		}
-		err := conn.DeleteBucket(&s3.DeleteBucketRequest{
+		_, err := conn.DeleteBucket(&s3.DeleteBucketInput{
 			Bucket: aws.String(rs.Primary.ID),
 		})
 		if err != nil {
@@ -59,7 +59,7 @@ func testAccCheckAWSS3BucketExists(n string) resource.TestCheckFunc {
 		}
 
 		conn := testAccProvider.Meta().(*AWSClient).s3conn
-		err := conn.HeadBucket(&s3.HeadBucketRequest{
+		_, err := conn.HeadBucket(&s3.HeadBucketInput{
 			Bucket: aws.String(rs.Primary.ID),
 		})
 
