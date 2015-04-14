@@ -22,7 +22,7 @@ func resourceNetworkingSubnetV2() *schema.Resource {
 				Type:        schema.TypeString,
 				Required:    true,
 				ForceNew:    true,
-				DefaultFunc: envDefaultFunc("OS_REGION_NAME"),
+				DefaultFunc: envDefaultFuncAllowMissing("OS_REGION_NAME"),
 			},
 			"network_id": &schema.Schema{
 				Type:     schema.TypeString,
