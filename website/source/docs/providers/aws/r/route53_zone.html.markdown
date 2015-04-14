@@ -29,7 +29,6 @@ resource "aws_route53_zone" "main" {
 
 resource "aws_route53_zone" "dev" {
   name = "dev.example.com"
-  parent_route53_zone = "${aws_route53_zone.main.zone_id}"
 }
 
 resource "aws_route53_record" "dev-ns" {
@@ -37,7 +36,12 @@ resource "aws_route53_record" "dev-ns" {
     name = "dev.example.com"
     type = "NS"
     ttl = "30"
-    records = ["127.0.0.1", "127.0.0.27"]
+    records = [
+        "${aws_route53_zone.dev.delegation_set_name_servers.0}",
+        "${aws_route53_zone.dev.delegation_set_name_servers.1}",
+        "${aws_route53_zone.dev.delegation_set_name_servers.2}",
+        "${aws_route53_zone.dev.delegation_set_name_servers.3}"
+    ]
 }
 ```
 
