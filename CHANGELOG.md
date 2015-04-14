@@ -12,6 +12,8 @@ BUG FIXES:
       graph if there are no tainted resources [GH-1475]
   * core: fix issue where destroy nodes weren't pruned in specific
       edge cases around matching prefixes, which could cause cycles [GH-1527]
+  * core: fix issue causing diff mismatch errors in certain scenarios during
+      resource replacement [GH-1515]
   * command: remote states with uppercase types work [GH-1356]
   * provider/aws: launch configuration ID set after create success [GH-1518]
   * provider/openstack: region config is not required [GH-1441]
