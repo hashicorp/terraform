@@ -135,6 +135,40 @@ func TestEval(t *testing.T) {
 		},
 
 		{
+			"foo ${bar+1}",
+			&ast.BasicScope{
+				VarMap: map[string]ast.Variable{
+					"bar": ast.Variable{
+						Value: "41",
+						Type:  ast.TypeString,
+					},
+				},
+			},
+			false,
+			"foo 42",
+			ast.TypeString,
+		},
+
+		{
+			"foo ${bar+baz}",
+			&ast.BasicScope{
+				VarMap: map[string]ast.Variable{
+					"bar": ast.Variable{
+						Value: "41",
+						Type:  ast.TypeString,
+					},
+					"baz": ast.Variable{
+						Value: "1",
+						Type:  ast.TypeString,
+					},
+				},
+			},
+			false,
+			"foo 42",
+			ast.TypeString,
+		},
+
+		{
 			"foo ${rand()}",
 			&ast.BasicScope{
 				FuncMap: map[string]ast.Function{
