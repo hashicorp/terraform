@@ -5,24 +5,24 @@ import (
 
 	"github.com/awslabs/aws-sdk-go/aws"
 	"github.com/awslabs/aws-sdk-go/service/ec2"
-	"github.com/hashicorp/aws-sdk-go/gen/elb"
+	"github.com/awslabs/aws-sdk-go/service/elb"
 	"github.com/hashicorp/aws-sdk-go/gen/rds"
 	"github.com/hashicorp/terraform/helper/schema"
 )
 
 // Takes the result of flatmap.Expand for an array of listeners and
 // returns ELB API compatible objects
-func expandListenersSDK(configured []interface{}) ([]elb.Listener, error) {
-	listeners := make([]elb.Listener, 0, len(configured))
+func expandListenersSDK(configured []interface{}) ([]*elb.Listener, error) {
+	listeners := make([]*elb.Listener, 0, len(configured))
 
 	// Loop over our configured listeners and create
 	// an array of aws-sdk-go compatabile objects
 	for _, lRaw := range configured {
 		data := lRaw.(map[string]interface{})
 
-		ip := data["instance_port"].(int)
-		lp := data["lb_port"].(int)
-		l := elb.Listener{
+		ip := int64(data["instance_port"].(int))
+		lp := int64(data["lb_port"].(int))
+		l := &elb.Listener{
 			InstancePort:     &ip,
 			InstanceProtocol: aws.String(data["instance_protocol"].(string)),
 			LoadBalancerPort: &lp,
@@ -152,7 +152,7 @@ func flattenSecurityGroupsSDK(list []*ec2.UserIDGroupPair) []string {
 }
 
 // Flattens an array of Instances into a []string
-func flattenInstancesSDK(list []elb.Instance) []string {
+func flattenInstancesSDK(list []*elb.Instance) []string {
 	result := make([]string, 0, len(list))
 	for _, i := range list {
 		result = append(result, *i.InstanceID)
@@ -161,16 +161,16 @@ func flattenInstancesSDK(list []elb.Instance) []string {
 }
 
 // Expands an array of String Instance IDs into a []Instances
-func expandInstanceStringSDK(list []interface{}) []elb.Instance {
-	result := make([]elb.Instance, 0, len(list))
+func expandInstanceStringSDK(list []interface{}) []*elb.Instance {
+	result := make([]*elb.Instance, 0, len(list))
 	for _, i := range list {
-		result = append(result, elb.Instance{aws.String(i.(string))})
+		result = append(result, &elb.Instance{InstanceID: aws.String(i.(string))})
 	}
 	return result
 }
 
 // Flattens an array of Listeners into a []map[string]interface{}
-func flattenListenersSDK(list []elb.ListenerDescription) []map[string]interface{} {
+func flattenListenersSDK(list []*elb.ListenerDescription) []map[string]interface{} {
 	result := make([]map[string]interface{}, 0, len(list))
 	for _, i := range list {
 		l := map[string]interface{}{
