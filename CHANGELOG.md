@@ -1,5 +1,9 @@
 ## 0.5.0 (unreleased)
 
+IMPROVEMENTS:
+
+ * core: Improve error message on diff mismatch [GH-1501]
+
 BUG FIXES:
 
   * core: math on arbitrary variables works if first operand isn't a
