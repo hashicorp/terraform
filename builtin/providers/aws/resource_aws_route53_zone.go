@@ -31,6 +31,12 @@ func resourceAwsRoute53Zone() *schema.Resource {
 				Computed: true,
 			},
 
+			"delegation_set_name_servers": &schema.Schema{
+				Type:     schema.TypeList,
+				Elem:     &schema.Schema{Type: schema.TypeString},
+				Computed: true,
+			},
+
 			"tags": tagsSchema(),
 		},
 	}
@@ -80,7 +86,7 @@ func resourceAwsRoute53ZoneCreate(d *schema.ResourceData, meta interface{}) erro
 
 func resourceAwsRoute53ZoneRead(d *schema.ResourceData, meta interface{}) error {
 	r53 := meta.(*AWSClient).r53conn
-	_, err := r53.GetHostedZone(&route53.GetHostedZoneRequest{ID: aws.String(d.Id())})
+	zone, err := r53.GetHostedZone(&route53.GetHostedZoneRequest{ID: aws.String(d.Id())})
 	if err != nil {
 		// Handle a deleted zone
 		if r53err, ok := err.(aws.APIError); ok && r53err.Code == "NoSuchHostedZone" {
@@ -89,6 +95,8 @@ func resourceAwsRoute53ZoneRead(d *schema.ResourceData, meta interface{}) error 
 		}
 		return err
 	}
+
+	d.Set("delegation_set_name_servers", zone.DelegationSet.NameServers)
 
 	// get tags
 	req := &route53.ListTagsForResourceRequest{
