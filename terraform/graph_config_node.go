@@ -573,7 +573,6 @@ func (n *graphNodeResourceDestroy) destroyIncludePrimary(
 			}
 
 			if v.Primary != nil {
-				println("FUCK: " + prefix + " ; " + k)
 				return true
 			}
 		}
