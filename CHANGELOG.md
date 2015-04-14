@@ -6,6 +6,8 @@ BUG FIXES:
       numeric primitive. [GH-1381]
   * core: avoid unnecessary cycles by pruning tainted destroys from
       graph if there are no tainted resources [GH-1475]
+  * core: fix issue where destroy nodes weren't pruned in specific
+      edge cases around matching prefixes, which could cause cycles [GH-1527]
   * command: remote states with uppercase types work [GH-1356]
   * provider/aws: launch configuration ID set after create success [GH-1518]
   * provider/openstack: region config is not required [GH-1441]
