@@ -555,20 +555,25 @@ func (n *graphNodeResourceDestroy) destroyIncludePrimary(
 	// decreases to "1".
 	if s != nil {
 		for k, v := range s.Resources {
-			if !strings.HasPrefix(k, prefix) {
+			// Ignore exact matches
+			if k == prefix {
+				continue
+			}
+
+			// Ignore anything that doesn't have a "." afterwards so that
+			// we only get our own resource and any counts on it.
+			if !strings.HasPrefix(k, prefix+".") {
 				continue
 			}
 
 			// Ignore exact matches and the 0'th index. We only care
 			// about if there is a decrease in count.
-			if k == prefix {
-				continue
-			}
 			if k == prefix+".0" {
 				continue
 			}
 
 			if v.Primary != nil {
+				println("FUCK: " + prefix + " ; " + k)
 				return true
 			}
 		}
