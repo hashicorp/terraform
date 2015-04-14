@@ -230,6 +230,16 @@ func testStep(
 		}
 	}
 
+	// Verify that Plan is now empty and we don't have a perpetual diff issue
+	if p, err := ctx.Plan(); err != nil {
+		return state, fmt.Errorf("Error on follow-up plan: %s", err)
+	} else {
+		if p.Diff != nil && !p.Diff.Empty() {
+			return state, fmt.Errorf(
+				"After applying this step, the plan was not empty:\n\n%s", p)
+		}
+	}
+
 	return state, err
 }
 
