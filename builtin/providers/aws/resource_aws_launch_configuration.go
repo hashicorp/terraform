@@ -366,15 +366,14 @@ func resourceAwsLaunchConfigurationCreate(d *schema.ResourceData, meta interface
 
 	var id string
 	if v, ok := d.GetOk("name"); ok {
-		createLaunchConfigurationOpts.LaunchConfigurationName = aws.String(v.(string))
 		id = v.(string)
 	} else {
 		hash := sha1.Sum([]byte(fmt.Sprintf("%#v", createLaunchConfigurationOpts)))
 		configName := fmt.Sprintf("terraform-%s", base64.URLEncoding.EncodeToString(hash[:]))
 		log.Printf("[DEBUG] Computed Launch config name: %s", configName)
-		createLaunchConfigurationOpts.LaunchConfigurationName = aws.String(configName)
 		id = configName
 	}
+	createLaunchConfigurationOpts.LaunchConfigurationName = aws.String(id)
 
 	log.Printf(
 		"[DEBUG] autoscaling create launch configuration: %#v", createLaunchConfigurationOpts)
