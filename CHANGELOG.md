@@ -1,3 +1,9 @@
+## 0.5.0 (unreleased)
+
+BUG FIXES:
+
+  * provider/aws: launch configuration ID set after create success [GH-1518]
+
 ## 0.4.2 (April 10, 2015)
 
 BUG FIXES:
