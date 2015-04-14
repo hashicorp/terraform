@@ -23,7 +23,7 @@ func resourceFWFirewallV1() *schema.Resource {
 				Type:        schema.TypeString,
 				Required:    true,
 				ForceNew:    true,
-				DefaultFunc: envDefaultFunc("OS_REGION_NAME"),
+				DefaultFunc: envDefaultFuncAllowMissing("OS_REGION_NAME"),
 			},
 			"name": &schema.Schema{
 				Type:     schema.TypeString,

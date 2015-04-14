@@ -111,3 +111,10 @@ func envDefaultFunc(k string) schema.SchemaDefaultFunc {
 		return nil, nil
 	}
 }
+
+func envDefaultFuncAllowMissing(k string) schema.SchemaDefaultFunc {
+	return func() (interface{}, error) {
+		v := os.Getenv(k)
+		return v, nil
+	}
+}
