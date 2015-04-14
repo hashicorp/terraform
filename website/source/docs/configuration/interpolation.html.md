@@ -109,3 +109,7 @@ The supported built-in functions are:
       back into a list. This is useful for pushing lists through module
       outputs since they currently only support string values.
       Example: `split(",", module.amod.server_ids)`
+
+  * `to_int(string)` - Turns a string into an integer. This is useful for
+     passing integer values (for example the max_size_ of an ASG) from
+     variables or calls to the lookup() function which return string values.
