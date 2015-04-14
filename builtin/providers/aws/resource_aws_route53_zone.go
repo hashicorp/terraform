@@ -99,7 +99,7 @@ func resourceAwsRoute53ZoneRead(d *schema.ResourceData, meta interface{}) error 
 
 	ns := zone.DelegationSet.NameServers
 	if err := d.Set("delegation_set_name_servers", ns); err != nil {
-		return fmt.Errorf("[DEBUG] Error setting name servers for: %s, error: %#v", zone, err)
+		return fmt.Errorf("[DEBUG] Error setting name servers for: %s, error: %#v", d.Id(), err)
 	}
 
 	// get tags
