@@ -1,6 +1,7 @@
 package aws
 
 import (
+	"fmt"
 	"log"
 	"strings"
 	"time"
@@ -96,7 +97,10 @@ func resourceAwsRoute53ZoneRead(d *schema.ResourceData, meta interface{}) error 
 		return err
 	}
 
-	d.Set("delegation_set_name_servers", zone.DelegationSet.NameServers)
+	ns := zone.DelegationSet.NameServers
+	if err := d.Set("delegation_set_name_servers", ns); err != nil {
+		return fmt.Errorf("[DEBUG] Error setting name servers for: %s, error: %#v", zone, err)
+	}
 
 	// get tags
 	req := &route53.ListTagsForResourceRequest{
