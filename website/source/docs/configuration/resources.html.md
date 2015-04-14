@@ -118,7 +118,7 @@ variable "instance_ips" {
 
 resource "aws_instance" "app" {
   count = "3"
-  private_ip = "${lookup(instance_ips, count.index)}"
+  private_ip = "${lookup(var.instance_ips, count.index)}"
   # ...
 }
 ```
