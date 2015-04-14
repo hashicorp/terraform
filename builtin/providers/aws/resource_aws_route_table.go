@@ -29,6 +29,15 @@ func resourceAwsRouteTable() *schema.Resource {
 
 			"tags": tagsSchema(),
 
+			"propagating_vgws": &schema.Schema{
+				Type:     schema.TypeSet,
+				Optional: true,
+				Elem:     &schema.Schema{Type: schema.TypeString},
+				Set: func(v interface{}) int {
+					return hashcode.String(v.(string))
+				},
+			},
+
 			"route": &schema.Schema{
 				Type:     schema.TypeSet,
 				Optional: true,
@@ -114,6 +123,12 @@ func resourceAwsRouteTableRead(d *schema.ResourceData, meta interface{}) error {
 	rt := rtRaw.(*ec2.RouteTable)
 	d.Set("vpc_id", rt.VPCID)
 
+	propagatingVGWs := make([]string, 0, len(rt.PropagatingVGWs))
+	for _, vgw := range rt.PropagatingVGWs {
+		propagatingVGWs = append(propagatingVGWs, *vgw.GatewayID)
+	}
+	d.Set("propagating_vgws", propagatingVGWs)
+
 	// Create an empty schema.Set to hold all routes
 	route := &schema.Set{F: resourceAwsRouteTableHash}
 
@@ -154,6 +169,52 @@ func resourceAwsRouteTableRead(d *schema.ResourceData, meta interface{}) error {
 
 func resourceAwsRouteTableUpdate(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).ec2conn
+
+	if d.HasChange("propagating_vgws") {
+		o, n := d.GetChange("propagating_vgws")
+		os := o.(*schema.Set)
+		ns := n.(*schema.Set)
+		remove := os.Difference(ns).List()
+		add := ns.Difference(os).List()
+
+		// Now first loop through all the old propagations and disable any obsolete ones
+		for _, vgw := range remove {
+			id := vgw.(string)
+
+			// Disable the propagation as it no longer exists in the config
+			log.Printf(
+				"[INFO] Deleting VGW propagation from %s: %s",
+				d.Id(), id)
+			_, err := conn.DisableVGWRoutePropagation(&ec2.DisableVGWRoutePropagationInput{
+				RouteTableID: aws.String(d.Id()),
+				GatewayID:    aws.String(id),
+			})
+			if err != nil {
+				return err
+			}
+		}
+
+		// Make sure we save the state of the currently configured rules
+		propagatingVGWs := os.Intersection(ns)
+		d.Set("propagating_vgws", propagatingVGWs)
+
+		// Then loop through all the newly configured propagations and enable them
+		for _, vgw := range add {
+			id := vgw.(string)
+
+			log.Printf("[INFO] Enabling VGW propagation for %s: %s", d.Id(), id)
+			_, err := conn.EnableVGWRoutePropagation(&ec2.EnableVGWRoutePropagationInput{
+				RouteTableID: aws.String(d.Id()),
+				GatewayID:    aws.String(id),
+			})
+			if err != nil {
+				return err
+			}
+
+			propagatingVGWs.Add(vgw)
+			d.Set("propagating_vgws", propagatingVGWs)
+		}
+	}
 
 	// Check if the route set as a whole has changed
 	if d.HasChange("route") {

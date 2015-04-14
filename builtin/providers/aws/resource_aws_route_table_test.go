@@ -253,6 +253,49 @@ func _TestAccAWSRouteTable_vpcPeering(t *testing.T) {
 	})
 }
 
+func TestAccAWSRouteTable_vgwRoutePropagation(t *testing.T) {
+	var v ec2.RouteTable
+	var vgw ec2.VPNGateway
+
+	testCheck := func(*terraform.State) error {
+		if len(v.PropagatingVGWs) != 1 {
+			return fmt.Errorf("bad propagating vgws: %#v", v.PropagatingVGWs)
+		}
+
+		propagatingVGWs := make(map[string]*ec2.PropagatingVGW)
+		for _, gw := range v.PropagatingVGWs {
+			propagatingVGWs[*gw.GatewayID] = gw
+		}
+
+		if _, ok := propagatingVGWs[*vgw.VPNGatewayID]; !ok {
+			return fmt.Errorf("bad propagating vgws: %#v", v.PropagatingVGWs)
+		}
+
+		return nil
+
+	}
+	resource.Test(t, resource.TestCase{
+		PreCheck:  func() { testAccPreCheck(t) },
+		Providers: testAccProviders,
+		CheckDestroy: resource.ComposeTestCheckFunc(
+			testAccCheckVpnGatewayDestroy,
+			testAccCheckRouteTableDestroy,
+		),
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccRouteTableVgwRoutePropagationConfig,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckRouteTableExists(
+						"aws_route_table.foo", &v),
+					testAccCheckVpnGatewayExists(
+						"aws_vpn_gateway.foo", &vgw),
+					testCheck,
+				),
+			},
+		},
+	})
+}
+
 const testAccRouteTableConfig = `
 resource "aws_vpc" "foo" {
 	cidr_block = "10.1.0.0/16"
@@ -370,5 +413,21 @@ resource "aws_route_table" "foo" {
 		cidr_block = "10.2.0.0/16"
         vpc_peering_connection_id = "pcx-12345"
 	}
+}
+`
+
+const testAccRouteTableVgwRoutePropagationConfig = `
+resource "aws_vpc" "foo" {
+	cidr_block = "10.1.0.0/16"
+}
+
+resource "aws_vpn_gateway" "foo" {
+	vpc_id = "${aws_vpc.foo.id}"
+}
+
+resource "aws_route_table" "foo" {
+	vpc_id = "${aws_vpc.foo.id}"
+
+	propagating_vgws = ["${aws_vpn_gateway.foo.id}"]
 }
 `
