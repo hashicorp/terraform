@@ -114,6 +114,15 @@ func testAccCheckRoute53ZoneExists(n string, zone *route53.HostedZone) resource.
 		if err != nil {
 			return fmt.Errorf("Hosted zone err: %v", err)
 		}
+
+		for i, ns := range resp.DelegationSet.NameServers {
+			attribute := fmt.Sprintf("delegation_set_name_servers.%d", i)
+			dsns := rs.Primary.Attributes[attribute]
+			if dsns != ns {
+				return fmt.Errorf("Got: %v for %v, Expected: %v", dsns, attribute, ns)
+			}
+		}
+
 		*zone = *resp.HostedZone
 		return nil
 	}
