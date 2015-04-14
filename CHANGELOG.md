@@ -3,6 +3,7 @@
 BUG FIXES:
 
   * provider/aws: launch configuration ID set after create success [GH-1518]
+  * provider/openstack: region config is not required [GH-1441]
 
 ## 0.4.2 (April 10, 2015)
 
