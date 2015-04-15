@@ -472,6 +472,13 @@ func (c *Config) Validate() error {
 			errs = append(errs, fmt.Errorf(
 				"%s: output should only have 'value' field", o.Name))
 		}
+
+		for _, v := range o.RawConfig.Variables {
+			if _, ok := v.(*CountVariable); ok {
+				errs = append(errs, fmt.Errorf(
+					"%s: count variables are only valid within resources", o.Name))
+			}
+		}
 	}
 
 	// Check that all variables are in the proper context

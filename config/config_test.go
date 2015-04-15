@@ -3,6 +3,7 @@ package config
 import (
 	"path/filepath"
 	"reflect"
+	"strings"
 	"testing"
 )
 
@@ -57,6 +58,15 @@ func TestConfigValidate_countInt(t *testing.T) {
 	c := testConfig(t, "validate-count-int")
 	if err := c.Validate(); err != nil {
 		t.Fatalf("err: %s", err)
+	}
+}
+
+func TestConfigValidate_countBadContext(t *testing.T) {
+	c := testConfig(t, "validate-count-bad-context")
+	expected := "count variables are only valid within resources"
+	err := c.Validate()
+	if !strings.Contains(err.Error(), expected) {
+		t.Fatalf("expected: %q,\nto contain: %q", err, expected)
 	}
 }
 
