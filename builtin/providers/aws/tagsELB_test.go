@@ -5,7 +5,7 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/hashicorp/aws-sdk-go/gen/elb"
+	"github.com/awslabs/aws-sdk-go/service/elb"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
 )
@@ -63,7 +63,7 @@ func TestDiffELBTags(t *testing.T) {
 
 // testAccCheckTags can be used to check the tags on a resource.
 func testAccCheckELBTags(
-	ts *[]elb.Tag, key string, value string) resource.TestCheckFunc {
+	ts *[]*elb.Tag, key string, value string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		m := tagsToMapELB(*ts)
 		v, ok := m[key]
