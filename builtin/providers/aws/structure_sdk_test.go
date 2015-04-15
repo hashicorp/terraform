@@ -206,7 +206,7 @@ func TestExpandListenersSDK(t *testing.T) {
 		t.Fatalf("bad: %#v", err)
 	}
 
-	expected := elb.Listener{
+	expected := &elb.Listener{
 		InstancePort:     aws.Long(int64(8000)),
 		LoadBalancerPort: aws.Long(int64(80)),
 		InstanceProtocol: aws.String("http"),
@@ -237,11 +237,11 @@ func TestFlattenHealthCheckSDK(t *testing.T) {
 			},
 			Output: []map[string]interface{}{
 				map[string]interface{}{
-					"unhealthy_threshold": 10,
-					"healthy_threshold":   10,
+					"unhealthy_threshold": int64(10),
+					"healthy_threshold":   int64(10),
 					"target":              "HTTP:80/",
-					"timeout":             30,
-					"interval":            30,
+					"timeout":             int64(30),
+					"interval":            int64(30),
 				},
 			},
 		},
