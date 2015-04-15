@@ -1,6 +1,7 @@
 package terraform
 
 import (
+	"fmt"
 	"os"
 	"reflect"
 	"sync"
@@ -22,6 +23,31 @@ func TestInterpolater_countIndex(t *testing.T) {
 		Value: 42,
 		Type:  ast.TypeInt,
 	})
+}
+
+func TestInterpolater_countIndexInWrongContext(t *testing.T) {
+	i := &Interpolater{}
+
+	scope := &InterpolationScope{
+		Path: rootModulePath,
+	}
+
+	n := "count.index"
+
+	v, err := config.NewInterpolatedVariable(n)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	expectedErr := fmt.Errorf("foo: count.index is only valid within resources")
+
+	_, err = i.Values(scope, map[string]config.InterpolatedVariable{
+		"foo": v,
+	})
+
+	if !reflect.DeepEqual(expectedErr, err) {
+		t.Fatalf("expected: %#v, got %#v", expectedErr, err)
+	}
 }
 
 func TestInterpolater_moduleVariable(t *testing.T) {
