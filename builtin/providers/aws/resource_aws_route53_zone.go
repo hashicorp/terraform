@@ -32,7 +32,7 @@ func resourceAwsRoute53Zone() *schema.Resource {
 				Computed: true,
 			},
 
-			"delegation_set_name_servers": &schema.Schema{
+			"name_servers": &schema.Schema{
 				Type:     schema.TypeList,
 				Elem:     &schema.Schema{Type: schema.TypeString},
 				Computed: true,
@@ -98,7 +98,7 @@ func resourceAwsRoute53ZoneRead(d *schema.ResourceData, meta interface{}) error 
 	}
 
 	ns := zone.DelegationSet.NameServers
-	if err := d.Set("delegation_set_name_servers", ns); err != nil {
+	if err := d.Set("name_servers", ns); err != nil {
 		return fmt.Errorf("[DEBUG] Error setting name servers for: %s, error: %#v", d.Id(), err)
 	}
 
