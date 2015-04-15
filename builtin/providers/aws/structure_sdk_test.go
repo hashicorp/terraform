@@ -5,8 +5,8 @@ import (
 	"testing"
 
 	"github.com/awslabs/aws-sdk-go/service/ec2"
+	"github.com/awslabs/aws-sdk-go/service/elb"
 	"github.com/hashicorp/aws-sdk-go/aws"
-	"github.com/hashicorp/aws-sdk-go/gen/elb"
 	"github.com/hashicorp/aws-sdk-go/gen/rds"
 	"github.com/hashicorp/terraform/flatmap"
 	"github.com/hashicorp/terraform/helper/hashcode"
@@ -68,8 +68,8 @@ func TestExpandIPPermsSDK(t *testing.T) {
 	expected := []ec2.IPPermission{
 		ec2.IPPermission{
 			IPProtocol: aws.String("icmp"),
-			FromPort:   aws.Long(1),
-			ToPort:     aws.Long(-1),
+			FromPort:   aws.Long(int64(1)),
+			ToPort:     aws.Long(int64(-1)),
 			IPRanges:   []*ec2.IPRange{&ec2.IPRange{CIDRIP: aws.String("0.0.0.0/0")}},
 			UserIDGroupPairs: []*ec2.UserIDGroupPair{
 				&ec2.UserIDGroupPair{
@@ -83,8 +83,8 @@ func TestExpandIPPermsSDK(t *testing.T) {
 		},
 		ec2.IPPermission{
 			IPProtocol: aws.String("icmp"),
-			FromPort:   aws.Long(1),
-			ToPort:     aws.Long(-1),
+			FromPort:   aws.Long(int64(1)),
+			ToPort:     aws.Long(int64(-1)),
 			UserIDGroupPairs: []*ec2.UserIDGroupPair{
 				&ec2.UserIDGroupPair{
 					UserID: aws.String("foo"),
@@ -150,8 +150,8 @@ func TestExpandIPPerms_nonVPCSDK(t *testing.T) {
 	expected := []ec2.IPPermission{
 		ec2.IPPermission{
 			IPProtocol: aws.String("icmp"),
-			FromPort:   aws.Long(1),
-			ToPort:     aws.Long(-1),
+			FromPort:   aws.Long(int64(1)),
+			ToPort:     aws.Long(int64(-1)),
 			IPRanges:   []*ec2.IPRange{&ec2.IPRange{CIDRIP: aws.String("0.0.0.0/0")}},
 			UserIDGroupPairs: []*ec2.UserIDGroupPair{
 				&ec2.UserIDGroupPair{
@@ -164,8 +164,8 @@ func TestExpandIPPerms_nonVPCSDK(t *testing.T) {
 		},
 		ec2.IPPermission{
 			IPProtocol: aws.String("icmp"),
-			FromPort:   aws.Long(1),
-			ToPort:     aws.Long(-1),
+			FromPort:   aws.Long(int64(1)),
+			ToPort:     aws.Long(int64(-1)),
 			UserIDGroupPairs: []*ec2.UserIDGroupPair{
 				&ec2.UserIDGroupPair{
 					GroupName: aws.String("foo"),
@@ -206,9 +206,9 @@ func TestExpandListenersSDK(t *testing.T) {
 		t.Fatalf("bad: %#v", err)
 	}
 
-	expected := elb.Listener{
-		InstancePort:     aws.Integer(8000),
-		LoadBalancerPort: aws.Integer(80),
+	expected := &elb.Listener{
+		InstancePort:     aws.Long(int64(8000)),
+		LoadBalancerPort: aws.Long(int64(80)),
 		InstanceProtocol: aws.String("http"),
 		Protocol:         aws.String("http"),
 	}
@@ -224,31 +224,31 @@ func TestExpandListenersSDK(t *testing.T) {
 
 func TestFlattenHealthCheckSDK(t *testing.T) {
 	cases := []struct {
-		Input  elb.HealthCheck
+		Input  *elb.HealthCheck
 		Output []map[string]interface{}
 	}{
 		{
-			Input: elb.HealthCheck{
-				UnhealthyThreshold: aws.Integer(10),
-				HealthyThreshold:   aws.Integer(10),
+			Input: &elb.HealthCheck{
+				UnhealthyThreshold: aws.Long(int64(10)),
+				HealthyThreshold:   aws.Long(int64(10)),
 				Target:             aws.String("HTTP:80/"),
-				Timeout:            aws.Integer(30),
-				Interval:           aws.Integer(30),
+				Timeout:            aws.Long(int64(30)),
+				Interval:           aws.Long(int64(30)),
 			},
 			Output: []map[string]interface{}{
 				map[string]interface{}{
-					"unhealthy_threshold": 10,
-					"healthy_threshold":   10,
+					"unhealthy_threshold": int64(10),
+					"healthy_threshold":   int64(10),
 					"target":              "HTTP:80/",
-					"timeout":             30,
-					"interval":            30,
+					"timeout":             int64(30),
+					"interval":            int64(30),
 				},
 			},
 		},
 	}
 
 	for _, tc := range cases {
-		output := flattenHealthCheckSDK(&tc.Input)
+		output := flattenHealthCheckSDK(tc.Input)
 		if !reflect.DeepEqual(output, tc.Output) {
 			t.Fatalf("Got:\n\n%#v\n\nExpected:\n\n%#v", output, tc.Output)
 		}
@@ -330,9 +330,9 @@ func TestFlattenParametersSDK(t *testing.T) {
 
 func TestExpandInstanceStringSDK(t *testing.T) {
 
-	expected := []elb.Instance{
-		elb.Instance{aws.String("test-one")},
-		elb.Instance{aws.String("test-two")},
+	expected := []*elb.Instance{
+		&elb.Instance{InstanceID: aws.String("test-one")},
+		&elb.Instance{InstanceID: aws.String("test-two")},
 	}
 
 	ids := []interface{}{
@@ -420,7 +420,7 @@ func TestExpandPrivateIPAddessesSDK(t *testing.T) {
 func TestFlattenAttachmentSDK(t *testing.T) {
 	expanded := &ec2.NetworkInterfaceAttachment{
 		InstanceID:   aws.String("i-00001"),
-		DeviceIndex:  aws.Long(1),
+		DeviceIndex:  aws.Long(int64(1)),
 		AttachmentID: aws.String("at-002"),
 	}
 
