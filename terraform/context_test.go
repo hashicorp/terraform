@@ -2688,6 +2688,48 @@ func TestContext2Validate_tainted(t *testing.T) {
 	}
 }
 
+func TestContext2Validate_targetedDestroy(t *testing.T) {
+	m := testModule(t, "validate-targeted")
+	p := testProvider("aws")
+	pr := testProvisioner()
+	p.ApplyFn = testApplyFn
+	p.DiffFn = testDiffFn
+	ctx := testContext2(t, &ContextOpts{
+		Module: m,
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+		Provisioners: map[string]ResourceProvisionerFactory{
+			"shell": testProvisionerFuncFixed(pr),
+		},
+		State: &State{
+			Modules: []*ModuleState{
+				&ModuleState{
+					Path: rootModulePath,
+					Resources: map[string]*ResourceState{
+						"aws_instance.foo": resourceState("aws_instance", "i-bcd345"),
+						"aws_instance.bar": resourceState("aws_instance", "i-abc123"),
+					},
+				},
+			},
+		},
+		Targets: []string{"aws_instance.foo"},
+		Destroy: true,
+	})
+
+	w, e := ctx.Validate()
+	if len(w) > 0 {
+		warnStr := ""
+		for _, v := range w {
+			warnStr = warnStr + " " + v
+		}
+		t.Fatalf("bad: %s", warnStr)
+	}
+	if len(e) > 0 {
+		t.Fatalf("bad: %s", e)
+	}
+}
+
 func TestContext2Validate_varRef(t *testing.T) {
 	m := testModule(t, "validate-variable-ref")
 	p := testProvider("aws")
