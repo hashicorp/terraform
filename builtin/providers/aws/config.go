@@ -10,12 +10,11 @@ import (
 	"github.com/hashicorp/aws-sdk-go/aws"
 	"github.com/hashicorp/aws-sdk-go/gen/autoscaling"
 	"github.com/hashicorp/aws-sdk-go/gen/ec2"
-	"github.com/hashicorp/aws-sdk-go/gen/iam"
 	"github.com/hashicorp/aws-sdk-go/gen/route53"
 	"github.com/hashicorp/aws-sdk-go/gen/s3"
 
 	awsSDK "github.com/awslabs/aws-sdk-go/aws"
-	awsIAM "github.com/awslabs/aws-sdk-go/service/IAM"
+	"github.com/awslabs/aws-sdk-go/service/IAM"
 	awsEC2 "github.com/awslabs/aws-sdk-go/service/ec2"
 	"github.com/awslabs/aws-sdk-go/service/rds"
 )
@@ -37,7 +36,6 @@ type AWSClient struct {
 	rdsconn         *rds.RDS
 	iamconn         *iam.IAM
 	ec2SDKconn      *awsEC2.EC2
-	iamSDKconn      *awsIAM.IAM
 }
 
 // Client configures and returns a fully initailized AWSClient
@@ -92,7 +90,7 @@ func (c *Config) Client() (interface{}, error) {
 		client.rdsconn = rds.New(awsConfig)
 
 		log.Println("[INFO] Initializing IAM SDK Connection")
-		client.iamSDKconn = awsIAM.New(awsConfig)
+		client.iamconn = iam.New(awsConfig)
 	}
 
 	if len(errs) > 0 {
