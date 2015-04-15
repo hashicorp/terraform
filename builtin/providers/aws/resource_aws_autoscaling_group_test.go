@@ -154,7 +154,7 @@ func testAccCheckAWSAutoScalingGroupDestroy(s *terraform.State) error {
 func testAccCheckAWSAutoScalingGroupAttributes(group *autoscaling.AutoScalingGroup) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		if *group.AvailabilityZones[0] != "us-west-2a" {
-			return fmt.Errorf("Bad availability_zones: %s", group.AvailabilityZones[0])
+			return fmt.Errorf("Bad availability_zones: %#v", group.AvailabilityZones[0])
 		}
 
 		if *group.AutoScalingGroupName != "foobar3-terraform-test" {
@@ -207,7 +207,7 @@ func testAccCheckAWSAutoScalingGroupAttributes(group *autoscaling.AutoScalingGro
 func testAccCheckAWSAutoScalingGroupAttributesLoadBalancer(group *autoscaling.AutoScalingGroup) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		if *group.LoadBalancerNames[0] != "foobar-terraform-test" {
-			return fmt.Errorf("Bad load_balancers: %s", group.LoadBalancerNames[0])
+			return fmt.Errorf("Bad load_balancers: %#v", group.LoadBalancerNames[0])
 		}
 
 		return nil
