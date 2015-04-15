@@ -5,10 +5,10 @@ import (
 	"log"
 	"time"
 
-	"code.google.com/p/google-api-go-client/compute/v1"
-	"code.google.com/p/google-api-go-client/googleapi"
 	"github.com/hashicorp/terraform/helper/hashcode"
 	"github.com/hashicorp/terraform/helper/schema"
+	"google.golang.org/api/compute/v1"
+	"google.golang.org/api/googleapi"
 )
 
 func resourceComputeInstance() *schema.Resource {
@@ -71,6 +71,13 @@ func resourceComputeInstance() *schema.Resource {
 
 						"auto_delete": &schema.Schema{
 							Type:     schema.TypeBool,
+							Optional: true,
+							Default:  true,
+							ForceNew: true,
+						},
+
+						"size": &schema.Schema{
+							Type:     schema.TypeInt,
 							Optional: true,
 							ForceNew: true,
 						},
@@ -283,11 +290,7 @@ func resourceComputeInstanceCreate(d *schema.ResourceData, meta interface{}) err
 		disk.Type = "PERSISTENT"
 		disk.Mode = "READ_WRITE"
 		disk.Boot = i == 0
-		disk.AutoDelete = true
-
-		if v, ok := d.GetOk(prefix + ".auto_delete"); ok {
-			disk.AutoDelete = v.(bool)
-		}
+		disk.AutoDelete = d.Get(prefix + ".auto_delete").(bool)
 
 		// Load up the disk for this disk if specified
 		if v, ok := d.GetOk(prefix + ".disk"); ok {
@@ -329,6 +332,11 @@ func resourceComputeInstanceCreate(d *schema.ResourceData, meta interface{}) err
 			}
 
 			disk.InitializeParams.DiskType = diskType.SelfLink
+		}
+
+		if v, ok := d.GetOk(prefix + ".size"); ok {
+			diskSizeGb := v.(int)
+			disk.InitializeParams.DiskSizeGb = int64(diskSizeGb)
 		}
 
 		disks = append(disks, &disk)
@@ -514,7 +522,7 @@ func resourceComputeInstanceRead(d *schema.ResourceData, meta interface{}) error
 	networks := make([]map[string]interface{}, 0, 1)
 	if networksCount > 0 {
 		// TODO: Remove this when realizing deprecation of .network
-		for _, iface := range instance.NetworkInterfaces {
+		for i, iface := range instance.NetworkInterfaces {
 			var natIP string
 			for _, config := range iface.AccessConfigs {
 				if config.Type == "ONE_TO_ONE_NAT" {
@@ -531,6 +539,7 @@ func resourceComputeInstanceRead(d *schema.ResourceData, meta interface{}) error
 			network["name"] = iface.Name
 			network["external_address"] = natIP
 			network["internal_address"] = iface.NetworkIP
+			network["source"] = d.Get(fmt.Sprintf("network.%d.source", i))
 			networks = append(networks, network)
 		}
 	}
@@ -538,7 +547,7 @@ func resourceComputeInstanceRead(d *schema.ResourceData, meta interface{}) error
 
 	networkInterfaces := make([]map[string]interface{}, 0, 1)
 	if networkInterfacesCount > 0 {
-		for _, iface := range instance.NetworkInterfaces {
+		for i, iface := range instance.NetworkInterfaces {
 			// The first non-empty ip is left in natIP
 			var natIP string
 			accessConfigs := make(
@@ -564,6 +573,7 @@ func resourceComputeInstanceRead(d *schema.ResourceData, meta interface{}) error
 			networkInterfaces = append(networkInterfaces, map[string]interface{}{
 				"name":          iface.Name,
 				"address":       iface.NetworkIP,
+				"network":       d.Get(fmt.Sprintf("network_interface.%d.network", i)),
 				"access_config": accessConfigs,
 			})
 		}

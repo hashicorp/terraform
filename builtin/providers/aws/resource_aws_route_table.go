@@ -6,10 +6,11 @@ import (
 	"log"
 	"time"
 
+	"github.com/awslabs/aws-sdk-go/aws"
+	"github.com/awslabs/aws-sdk-go/service/ec2"
 	"github.com/hashicorp/terraform/helper/hashcode"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
-	"github.com/mitchellh/goamz/ec2"
 )
 
 func resourceAwsRouteTable() *schema.Resource {
@@ -61,22 +62,22 @@ func resourceAwsRouteTable() *schema.Resource {
 }
 
 func resourceAwsRouteTableCreate(d *schema.ResourceData, meta interface{}) error {
-	ec2conn := meta.(*AWSClient).ec2conn
+	conn := meta.(*AWSClient).ec2SDKconn
 
 	// Create the routing table
-	createOpts := &ec2.CreateRouteTable{
-		VpcId: d.Get("vpc_id").(string),
+	createOpts := &ec2.CreateRouteTableInput{
+		VPCID: aws.String(d.Get("vpc_id").(string)),
 	}
 	log.Printf("[DEBUG] RouteTable create config: %#v", createOpts)
 
-	resp, err := ec2conn.CreateRouteTable(createOpts)
+	resp, err := conn.CreateRouteTable(createOpts)
 	if err != nil {
 		return fmt.Errorf("Error creating route table: %s", err)
 	}
 
 	// Get the ID and store it
-	rt := &resp.RouteTable
-	d.SetId(rt.RouteTableId)
+	rt := resp.RouteTable
+	d.SetId(*rt.RouteTableID)
 	log.Printf("[INFO] Route Table ID: %s", d.Id())
 
 	// Wait for the route table to become available
@@ -86,7 +87,7 @@ func resourceAwsRouteTableCreate(d *schema.ResourceData, meta interface{}) error
 	stateConf := &resource.StateChangeConf{
 		Pending: []string{"pending"},
 		Target:  "ready",
-		Refresh: resourceAwsRouteTableStateRefreshFunc(ec2conn, d.Id()),
+		Refresh: resourceAwsRouteTableStateRefreshFunc(conn, d.Id()),
 		Timeout: 1 * time.Minute,
 	}
 	if _, err := stateConf.WaitForState(); err != nil {
@@ -99,51 +100,60 @@ func resourceAwsRouteTableCreate(d *schema.ResourceData, meta interface{}) error
 }
 
 func resourceAwsRouteTableRead(d *schema.ResourceData, meta interface{}) error {
-	ec2conn := meta.(*AWSClient).ec2conn
+	conn := meta.(*AWSClient).ec2SDKconn
 
-	rtRaw, _, err := resourceAwsRouteTableStateRefreshFunc(ec2conn, d.Id())()
+	rtRaw, _, err := resourceAwsRouteTableStateRefreshFunc(conn, d.Id())()
 	if err != nil {
 		return err
 	}
 	if rtRaw == nil {
+		d.SetId("")
 		return nil
 	}
 
 	rt := rtRaw.(*ec2.RouteTable)
-	d.Set("vpc_id", rt.VpcId)
+	d.Set("vpc_id", rt.VPCID)
 
 	// Create an empty schema.Set to hold all routes
 	route := &schema.Set{F: resourceAwsRouteTableHash}
 
 	// Loop through the routes and add them to the set
 	for _, r := range rt.Routes {
-		if r.GatewayId == "local" {
+		if r.GatewayID != nil && *r.GatewayID == "local" {
 			continue
 		}
 
-		if r.Origin == "EnableVgwRoutePropagation" {
+		if r.Origin != nil && *r.Origin == "EnableVgwRoutePropagation" {
 			continue
 		}
 
 		m := make(map[string]interface{})
-		m["cidr_block"] = r.DestinationCidrBlock
 
-		m["gateway_id"] = r.GatewayId
-		m["instance_id"] = r.InstanceId
-		m["vpc_peering_connection_id"] = r.VpcPeeringConnectionId
+		if r.DestinationCIDRBlock != nil {
+			m["cidr_block"] = *r.DestinationCIDRBlock
+		}
+		if r.GatewayID != nil {
+			m["gateway_id"] = *r.GatewayID
+		}
+		if r.InstanceID != nil {
+			m["instance_id"] = *r.InstanceID
+		}
+		if r.VPCPeeringConnectionID != nil {
+			m["vpc_peering_connection_id"] = *r.VPCPeeringConnectionID
+		}
 
 		route.Add(m)
 	}
 	d.Set("route", route)
 
 	// Tags
-	d.Set("tags", tagsToMap(rt.Tags))
+	d.Set("tags", tagsToMapSDK(rt.Tags))
 
 	return nil
 }
 
 func resourceAwsRouteTableUpdate(d *schema.ResourceData, meta interface{}) error {
-	ec2conn := meta.(*AWSClient).ec2conn
+	conn := meta.(*AWSClient).ec2SDKconn
 
 	// Check if the route set as a whole has changed
 	if d.HasChange("route") {
@@ -159,8 +169,10 @@ func resourceAwsRouteTableUpdate(d *schema.ResourceData, meta interface{}) error
 			log.Printf(
 				"[INFO] Deleting route from %s: %s",
 				d.Id(), m["cidr_block"].(string))
-			_, err := ec2conn.DeleteRoute(
-				d.Id(), m["cidr_block"].(string))
+			_, err := conn.DeleteRoute(&ec2.DeleteRouteInput{
+				RouteTableID:         aws.String(d.Id()),
+				DestinationCIDRBlock: aws.String(m["cidr_block"].(string)),
+			})
 			if err != nil {
 				return err
 			}
@@ -174,17 +186,16 @@ func resourceAwsRouteTableUpdate(d *schema.ResourceData, meta interface{}) error
 		for _, route := range nrs.List() {
 			m := route.(map[string]interface{})
 
-			opts := ec2.CreateRoute{
-				RouteTableId:           d.Id(),
-				DestinationCidrBlock:   m["cidr_block"].(string),
-				GatewayId:              m["gateway_id"].(string),
-				InstanceId:             m["instance_id"].(string),
-				VpcPeeringConnectionId: m["vpc_peering_connection_id"].(string),
+			opts := ec2.CreateRouteInput{
+				RouteTableID:           aws.String(d.Id()),
+				DestinationCIDRBlock:   aws.String(m["cidr_block"].(string)),
+				GatewayID:              aws.String(m["gateway_id"].(string)),
+				InstanceID:             aws.String(m["instance_id"].(string)),
+				VPCPeeringConnectionID: aws.String(m["vpc_peering_connection_id"].(string)),
 			}
 
 			log.Printf("[INFO] Creating route for %s: %#v", d.Id(), opts)
-			_, err := ec2conn.CreateRoute(&opts)
-			if err != nil {
+			if _, err := conn.CreateRoute(&opts); err != nil {
 				return err
 			}
 
@@ -193,7 +204,7 @@ func resourceAwsRouteTableUpdate(d *schema.ResourceData, meta interface{}) error
 		}
 	}
 
-	if err := setTags(ec2conn, d); err != nil {
+	if err := setTagsSDK(conn, d); err != nil {
 		return err
 	} else {
 		d.SetPartial("tags")
@@ -203,11 +214,11 @@ func resourceAwsRouteTableUpdate(d *schema.ResourceData, meta interface{}) error
 }
 
 func resourceAwsRouteTableDelete(d *schema.ResourceData, meta interface{}) error {
-	ec2conn := meta.(*AWSClient).ec2conn
+	conn := meta.(*AWSClient).ec2SDKconn
 
 	// First request the routing table since we'll have to disassociate
 	// all the subnets first.
-	rtRaw, _, err := resourceAwsRouteTableStateRefreshFunc(ec2conn, d.Id())()
+	rtRaw, _, err := resourceAwsRouteTableStateRefreshFunc(conn, d.Id())()
 	if err != nil {
 		return err
 	}
@@ -218,16 +229,22 @@ func resourceAwsRouteTableDelete(d *schema.ResourceData, meta interface{}) error
 
 	// Do all the disassociations
 	for _, a := range rt.Associations {
-		log.Printf("[INFO] Disassociating association: %s", a.AssociationId)
-		if _, err := ec2conn.DisassociateRouteTable(a.AssociationId); err != nil {
+		log.Printf("[INFO] Disassociating association: %s", *a.RouteTableAssociationID)
+		_, err := conn.DisassociateRouteTable(&ec2.DisassociateRouteTableInput{
+			AssociationID: a.RouteTableAssociationID,
+		})
+		if err != nil {
 			return err
 		}
 	}
 
 	// Delete the route table
 	log.Printf("[INFO] Deleting Route Table: %s", d.Id())
-	if _, err := ec2conn.DeleteRouteTable(d.Id()); err != nil {
-		ec2err, ok := err.(*ec2.Error)
+	_, err = conn.DeleteRouteTable(&ec2.DeleteRouteTableInput{
+		RouteTableID: aws.String(d.Id()),
+	})
+	if err != nil {
+		ec2err, ok := err.(aws.APIError)
 		if ok && ec2err.Code == "InvalidRouteTableID.NotFound" {
 			return nil
 		}
@@ -243,7 +260,7 @@ func resourceAwsRouteTableDelete(d *schema.ResourceData, meta interface{}) error
 	stateConf := &resource.StateChangeConf{
 		Pending: []string{"ready"},
 		Target:  "",
-		Refresh: resourceAwsRouteTableStateRefreshFunc(ec2conn, d.Id()),
+		Refresh: resourceAwsRouteTableStateRefreshFunc(conn, d.Id()),
 		Timeout: 1 * time.Minute,
 	}
 	if _, err := stateConf.WaitForState(); err != nil {
@@ -279,9 +296,11 @@ func resourceAwsRouteTableHash(v interface{}) int {
 // a RouteTable.
 func resourceAwsRouteTableStateRefreshFunc(conn *ec2.EC2, id string) resource.StateRefreshFunc {
 	return func() (interface{}, string, error) {
-		resp, err := conn.DescribeRouteTables([]string{id}, ec2.NewFilter())
+		resp, err := conn.DescribeRouteTables(&ec2.DescribeRouteTablesInput{
+			RouteTableIDs: []*string{aws.String(id)},
+		})
 		if err != nil {
-			if ec2err, ok := err.(*ec2.Error); ok && ec2err.Code == "InvalidRouteTableID.NotFound" {
+			if ec2err, ok := err.(aws.APIError); ok && ec2err.Code == "InvalidRouteTableID.NotFound" {
 				resp = nil
 			} else {
 				log.Printf("Error on RouteTableStateRefresh: %s", err)
@@ -295,7 +314,7 @@ func resourceAwsRouteTableStateRefreshFunc(conn *ec2.EC2, id string) resource.St
 			return nil, "", nil
 		}
 
-		rt := &resp.RouteTables[0]
+		rt := resp.RouteTables[0]
 		return rt, "ready", nil
 	}
 }

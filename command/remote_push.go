@@ -68,6 +68,8 @@ func (c *RemotePushCommand) Run(args []string) int {
 		return 1
 	}
 
+	c.Ui.Output(c.Colorize().Color(
+		"[reset][bold][green]State successfully pushed!"))
 	return 0
 }
 

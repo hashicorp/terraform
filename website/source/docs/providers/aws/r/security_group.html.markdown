@@ -17,7 +17,7 @@ Basic usage
 ```
 resource "aws_security_group" "allow_all" {
   name = "allow_all"
-	description = "Allow all inbound traffic"
+  description = "Allow all inbound traffic"
 
   ingress {
       from_port = 0
@@ -67,29 +67,31 @@ The following arguments are supported:
       egress rule. Each egress block supports fields documented below.
       VPC only.
 * `vpc_id` - (Optional) The VPC ID.
-* `owner_id` - (Optional) The AWS Owner ID.
+* `tags` - (Optional) A mapping of tags to assign to the resource.
 
 The `ingress` block supports:
 
 * `cidr_blocks` - (Optional) List of CIDR blocks. Cannot be used with `security_groups`.
 * `from_port` - (Required) The start port.
 * `protocol` - (Required) The protocol.
-* `security_groups` - (Optional) List of security group IDs. Cannot be used with `cidr_blocks`.
+* `security_groups` - (Optional) List of security group Group Names if using
+    EC2-Classic or the default VPC, or Group IDs if using a non-default VPC.
+    Cannot be used with `cidr_blocks`.
 * `self` - (Optional) If true, the security group itself will be added as
      a source to this ingress rule.
 * `to_port` - (Required) The end range port.
-* `tags` - (Optional) A mapping of tags to assign to the resource.
 
 The `egress` block supports:
 
 * `cidr_blocks` - (Optional) List of CIDR blocks. Cannot be used with `security_groups`.
 * `from_port` - (Required) The start port.
 * `protocol` - (Required) The protocol.
-* `security_groups` - (Optional) List of security group IDs. Cannot be used with `cidr_blocks`.
+* `security_groups` - (Optional) List of security group Group Names if using
+    EC2-Classic or the default VPC, or Group IDs if using a non-default VPC.
+    Cannot be used with `cidr_blocks`.
 * `self` - (Optional) If true, the security group itself will be added as
      a source to this egress rule.
 * `to_port` - (Required) The end range port.
-* `tags` - (Optional) A mapping of tags to assign to the resource.
 
 ## Attributes Reference
 

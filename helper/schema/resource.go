@@ -3,6 +3,7 @@ package schema
 import (
 	"errors"
 	"fmt"
+	"strconv"
 
 	"github.com/hashicorp/terraform/terraform"
 )
@@ -23,6 +24,31 @@ type Resource struct {
 	// as data that might be computed in the process of creating this
 	// resource.
 	Schema map[string]*Schema
+
+	// SchemaVersion is the version number for this resource's Schema
+	// definition. The current SchemaVersion stored in the state for each
+	// resource. Provider authors can increment this version number
+	// when Schema semantics change. If the State's SchemaVersion is less than
+	// the current SchemaVersion, the InstanceState is yielded to the
+	// MigrateState callback, where the provider can make whatever changes it
+	// needs to update the state to be compatible to the latest version of the
+	// Schema.
+	//
+	// When unset, SchemaVersion defaults to 0, so provider authors can start
+	// their Versioning at any integer >= 1
+	SchemaVersion int
+
+	// MigrateState is responsible for updating an InstanceState with an old
+	// version to the format expected by the current version of the Schema.
+	//
+	// It is called during Refresh if the State's stored SchemaVersion is less
+	// than the current SchemaVersion of the Resource.
+	//
+	// The function is yielded the state's stored SchemaVersion and a pointer to
+	// the InstanceState that needs updating, as well as the configured
+	// provider's configured meta interface{}, in case the migration process
+	// needs to make any remote API calls.
+	MigrateState StateMigrateFunc
 
 	// The functions below are the CRUD operations for this resource.
 	//
@@ -68,6 +94,10 @@ type DeleteFunc func(*ResourceData, interface{}) error
 
 // See Resource documentation.
 type ExistsFunc func(*ResourceData, interface{}) (bool, error)
+
+// See Resource documentation.
+type StateMigrateFunc func(
+	int, *terraform.InstanceState, interface{}) (*terraform.InstanceState, error)
 
 // Apply creates, updates, and/or deletes a resource.
 func (r *Resource) Apply(
@@ -121,7 +151,7 @@ func (r *Resource) Apply(
 		err = r.Update(data, meta)
 	}
 
-	return data.State(), err
+	return r.recordCurrentSchemaVersion(data.State()), err
 }
 
 // Diff returns a diff of this resource and is API compatible with the
@@ -158,6 +188,14 @@ func (r *Resource) Refresh(
 		}
 	}
 
+	needsMigration, stateSchemaVersion := r.checkSchemaVersion(s)
+	if needsMigration && r.MigrateState != nil {
+		s, err := r.MigrateState(stateSchemaVersion, s, meta)
+		if err != nil {
+			return s, err
+		}
+	}
+
 	data, err := schemaMap(r.Schema).Data(s, nil)
 	if err != nil {
 		return s, err
@@ -169,7 +207,7 @@ func (r *Resource) Refresh(
 		state = nil
 	}
 
-	return state, err
+	return r.recordCurrentSchemaVersion(state), err
 }
 
 // InternalValidate should be called to validate the structure
@@ -187,5 +225,45 @@ func (r *Resource) InternalValidate() error {
 		return errors.New("resource is nil")
 	}
 
+	if r.isTopLevel() {
+		// All non-Computed attributes must be ForceNew if Update is not defined
+		if r.Update == nil {
+			nonForceNewAttrs := make([]string, 0)
+			for k, v := range r.Schema {
+				if !v.ForceNew && !v.Computed {
+					nonForceNewAttrs = append(nonForceNewAttrs, k)
+				}
+			}
+			if len(nonForceNewAttrs) > 0 {
+				return fmt.Errorf(
+					"No Update defined, must set ForceNew on: %#v", nonForceNewAttrs)
+			}
+		}
+	}
+
 	return schemaMap(r.Schema).InternalValidate()
+}
+
+// Returns true if the resource is "top level" i.e. not a sub-resource.
+func (r *Resource) isTopLevel() bool {
+	// TODO: This is a heuristic; replace with a definitive attribute?
+	return r.Create != nil
+}
+
+// Determines if a given InstanceState needs to be migrated by checking the
+// stored version number with the current SchemaVersion
+func (r *Resource) checkSchemaVersion(is *terraform.InstanceState) (bool, int) {
+	stateSchemaVersion, _ := strconv.Atoi(is.Meta["schema_version"])
+	return stateSchemaVersion < r.SchemaVersion, stateSchemaVersion
+}
+
+func (r *Resource) recordCurrentSchemaVersion(
+	state *terraform.InstanceState) *terraform.InstanceState {
+	if state != nil && r.SchemaVersion > 0 {
+		if state.Meta == nil {
+			state.Meta = make(map[string]string)
+		}
+		state.Meta["schema_version"] = strconv.Itoa(r.SchemaVersion)
+	}
+	return state
 }

@@ -2,7 +2,6 @@ package state
 
 import (
 	"fmt"
-	"reflect"
 
 	"github.com/hashicorp/terraform/terraform"
 )
@@ -77,7 +76,7 @@ func (s *CacheState) RefreshState() error {
 		s.refreshResult = CacheRefreshUpdateLocal
 	case durable.Serial == cached.Serial:
 		// They're supposedly equal, verify.
-		if reflect.DeepEqual(cached, durable) {
+		if cached.Equal(durable) {
 			// Hashes are the same, everything is great
 			s.refreshResult = CacheRefreshNoop
 			break

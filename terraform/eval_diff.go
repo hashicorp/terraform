@@ -38,8 +38,9 @@ func (n *EvalCompareDiff) Eval(ctx EvalContext) (interface{}, error) {
 		}
 	}()
 
-	if !one.Same(two) {
-		log.Printf("[ERROR] %s: diff's didn't match", n.Info.Id)
+	if same, reason := one.Same(two); !same {
+		log.Printf("[ERROR] %s: diffs didn't match", n.Info.Id)
+		log.Printf("[ERROR] %s: reason: %s", n.Info.Id, reason)
 		log.Printf("[ERROR] %s: diff one: %#v", n.Info.Id, one)
 		log.Printf("[ERROR] %s: diff two: %#v", n.Info.Id, two)
 		return nil, fmt.Errorf(

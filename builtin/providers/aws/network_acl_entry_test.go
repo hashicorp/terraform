@@ -4,10 +4,11 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/mitchellh/goamz/ec2"
+	"github.com/awslabs/aws-sdk-go/aws"
+	"github.com/awslabs/aws-sdk-go/service/ec2"
 )
 
-func Test_expandNetworkAclEntry(t *testing.T) {
+func Test_expandNetworkACLEntry(t *testing.T) {
 	input := []interface{}{
 		map[string]interface{}{
 			"protocol":   "tcp",
@@ -28,30 +29,28 @@ func Test_expandNetworkAclEntry(t *testing.T) {
 	}
 	expanded, _ := expandNetworkAclEntries(input, "egress")
 
-	expected := []ec2.NetworkAclEntry{
-		ec2.NetworkAclEntry{
-			Protocol: 6,
-			PortRange: ec2.PortRange{
-				From: 22,
-				To:   22,
+	expected := []*ec2.NetworkACLEntry{
+		&ec2.NetworkACLEntry{
+			Protocol: aws.String("6"),
+			PortRange: &ec2.PortRange{
+				From: aws.Long(22),
+				To:   aws.Long(22),
 			},
-			RuleAction: "deny",
-			RuleNumber: 1,
-			CidrBlock:  "0.0.0.0/0",
-			Egress:     true,
-			IcmpCode:   ec2.IcmpCode{Code: 0, Type: 0},
+			RuleAction: aws.String("deny"),
+			RuleNumber: aws.Long(1),
+			CIDRBlock:  aws.String("0.0.0.0/0"),
+			Egress:     aws.Boolean(true),
 		},
-		ec2.NetworkAclEntry{
-			Protocol: 6,
-			PortRange: ec2.PortRange{
-				From: 443,
-				To:   443,
+		&ec2.NetworkACLEntry{
+			Protocol: aws.String("6"),
+			PortRange: &ec2.PortRange{
+				From: aws.Long(443),
+				To:   aws.Long(443),
 			},
-			RuleAction: "deny",
-			RuleNumber: 2,
-			CidrBlock:  "0.0.0.0/0",
-			Egress:     true,
-			IcmpCode:   ec2.IcmpCode{Code: 0, Type: 0},
+			RuleAction: aws.String("deny"),
+			RuleNumber: aws.Long(2),
+			CIDRBlock:  aws.String("0.0.0.0/0"),
+			Egress:     aws.Boolean(true),
 		},
 	}
 
@@ -64,28 +63,28 @@ func Test_expandNetworkAclEntry(t *testing.T) {
 
 }
 
-func Test_flattenNetworkAclEntry(t *testing.T) {
+func Test_flattenNetworkACLEntry(t *testing.T) {
 
-	apiInput := []ec2.NetworkAclEntry{
-		ec2.NetworkAclEntry{
-			Protocol: 6,
-			PortRange: ec2.PortRange{
-				From: 22,
-				To:   22,
+	apiInput := []*ec2.NetworkACLEntry{
+		&ec2.NetworkACLEntry{
+			Protocol: aws.String("tcp"),
+			PortRange: &ec2.PortRange{
+				From: aws.Long(22),
+				To:   aws.Long(22),
 			},
-			RuleAction: "deny",
-			RuleNumber: 1,
-			CidrBlock:  "0.0.0.0/0",
+			RuleAction: aws.String("deny"),
+			RuleNumber: aws.Long(1),
+			CIDRBlock:  aws.String("0.0.0.0/0"),
 		},
-		ec2.NetworkAclEntry{
-			Protocol: 6,
-			PortRange: ec2.PortRange{
-				From: 443,
-				To:   443,
+		&ec2.NetworkACLEntry{
+			Protocol: aws.String("tcp"),
+			PortRange: &ec2.PortRange{
+				From: aws.Long(443),
+				To:   aws.Long(443),
 			},
-			RuleAction: "deny",
-			RuleNumber: 2,
-			CidrBlock:  "0.0.0.0/0",
+			RuleAction: aws.String("deny"),
+			RuleNumber: aws.Long(2),
+			CIDRBlock:  aws.String("0.0.0.0/0"),
 		},
 	}
 	flattened := flattenNetworkAclEntries(apiInput)
@@ -93,26 +92,26 @@ func Test_flattenNetworkAclEntry(t *testing.T) {
 	expected := []map[string]interface{}{
 		map[string]interface{}{
 			"protocol":   "tcp",
-			"from_port":  22,
-			"to_port":    22,
+			"from_port":  int64(22),
+			"to_port":    int64(22),
 			"cidr_block": "0.0.0.0/0",
 			"action":     "deny",
-			"rule_no":    1,
+			"rule_no":    int64(1),
 		},
 		map[string]interface{}{
 			"protocol":   "tcp",
-			"from_port":  443,
-			"to_port":    443,
+			"from_port":  int64(443),
+			"to_port":    int64(443),
 			"cidr_block": "0.0.0.0/0",
 			"action":     "deny",
-			"rule_no":    2,
+			"rule_no":    int64(2),
 		},
 	}
 
 	if !reflect.DeepEqual(flattened, expected) {
 		t.Fatalf(
 			"Got:\n\n%#v\n\nExpected:\n\n%#v\n",
-			flattened[0],
+			flattened,
 			expected)
 	}
 

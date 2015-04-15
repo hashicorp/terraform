@@ -45,7 +45,7 @@ func TestDetect(t *testing.T) {
 			t.Fatalf("%d: bad err: %s", i, err)
 		}
 		if output != tc.Output {
-			t.Fatalf("%d: bad output: %s", i, output)
+			t.Fatalf("%d: bad output: %s\nexpected: %s", i, output, tc.Output)
 		}
 	}
 }

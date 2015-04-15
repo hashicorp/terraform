@@ -214,7 +214,20 @@ func (s *State) DeepCopy() *State {
 // IncrementSerialMaybe increments the serial number of this state
 // if it different from the other state.
 func (s *State) IncrementSerialMaybe(other *State) {
+	if s == nil {
+		return
+	}
+	if other == nil {
+		return
+	}
+	if s.Serial > other.Serial {
+		return
+	}
 	if !s.Equal(other) {
+		if other.Serial > s.Serial {
+			s.Serial = other.Serial
+		}
+
 		s.Serial++
 	}
 }
@@ -329,6 +342,10 @@ func (r *RemoteState) Equals(other *RemoteState) bool {
 		}
 	}
 	return true
+}
+
+func (r *RemoteState) GoString() string {
+	return fmt.Sprintf("*%#v", *r)
 }
 
 // ModuleState is used to track all the state relevant to a single
@@ -832,11 +849,19 @@ type InstanceState struct {
 	// that is necessary for the Terraform run to complete, but is not
 	// persisted to a state file.
 	Ephemeral EphemeralState `json:"-"`
+
+	// Meta is a simple K/V map that is persisted to the State but otherwise
+	// ignored by Terraform core. It's meant to be used for accounting by
+	// external client code.
+	Meta map[string]string `json:"meta,omitempty"`
 }
 
 func (i *InstanceState) init() {
 	if i.Attributes == nil {
 		i.Attributes = make(map[string]string)
+	}
+	if i.Meta == nil {
+		i.Meta = make(map[string]string)
 	}
 	i.Ephemeral.init()
 }
@@ -855,7 +880,17 @@ func (i *InstanceState) deepcopy() *InstanceState {
 			n.Attributes[k] = v
 		}
 	}
+	if i.Meta != nil {
+		n.Meta = make(map[string]string, len(i.Meta))
+		for k, v := range i.Meta {
+			n.Meta[k] = v
+		}
+	}
 	return n
+}
+
+func (s *InstanceState) Empty() bool {
+	return s == nil || s.ID == ""
 }
 
 func (s *InstanceState) Equal(other *InstanceState) bool {

@@ -178,6 +178,50 @@ func TestStateEqual(t *testing.T) {
 	}
 }
 
+func TestStateIncrementSerialMaybe(t *testing.T) {
+	cases := map[string]struct {
+		S1, S2 *State
+		Serial int64
+	}{
+		"S2 is nil": {
+			&State{},
+			nil,
+			0,
+		},
+		"S2 is identical": {
+			&State{},
+			&State{},
+			0,
+		},
+		"S2 is different": {
+			&State{},
+			&State{
+				Modules: []*ModuleState{
+					&ModuleState{Path: rootModulePath},
+				},
+			},
+			1,
+		},
+		"S1 serial is higher": {
+			&State{Serial: 5},
+			&State{
+				Serial: 3,
+				Modules: []*ModuleState{
+					&ModuleState{Path: rootModulePath},
+				},
+			},
+			5,
+		},
+	}
+
+	for name, tc := range cases {
+		tc.S1.IncrementSerialMaybe(tc.S2)
+		if tc.S1.Serial != tc.Serial {
+			t.Fatalf("Bad: %s\nGot: %d", name, tc.S1.Serial)
+		}
+	}
+}
+
 func TestResourceStateEqual(t *testing.T) {
 	cases := []struct {
 		Result   bool
@@ -318,6 +362,34 @@ func TestResourceStateTaint(t *testing.T) {
 			t.Fatalf(
 				"Failure: %s\n\nExpected: %#v\n\nGot: %#v",
 				k, tc.Output, tc.Input)
+		}
+	}
+}
+
+func TestInstanceStateEmpty(t *testing.T) {
+	cases := map[string]struct {
+		In     *InstanceState
+		Result bool
+	}{
+		"nil is empty": {
+			nil,
+			true,
+		},
+		"non-nil but without ID is empty": {
+			&InstanceState{},
+			true,
+		},
+		"with ID is not empty": {
+			&InstanceState{
+				ID: "i-abc123",
+			},
+			false,
+		},
+	}
+
+	for tn, tc := range cases {
+		if tc.In.Empty() != tc.Result {
+			t.Fatalf("%q expected %#v to be empty: %#v", tn, tc.In, tc.Result)
 		}
 	}
 }

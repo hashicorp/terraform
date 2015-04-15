@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/hashicorp/go-multierror"
+	"github.com/hashicorp/terraform/config"
 	"github.com/hashicorp/terraform/dag"
 )
 
@@ -12,6 +13,7 @@ import (
 // they satisfy.
 type GraphNodeProvider interface {
 	ProviderName() string
+	ProviderConfig() *config.RawConfig
 }
 
 // GraphNodeProviderConsumer is an interface that nodes that require
@@ -19,6 +21,52 @@ type GraphNodeProvider interface {
 // to use.
 type GraphNodeProviderConsumer interface {
 	ProvidedBy() []string
+}
+
+// DisableProviderTransformer "disables" any providers that are only
+// depended on by modules.
+type DisableProviderTransformer struct{}
+
+func (t *DisableProviderTransformer) Transform(g *Graph) error {
+	for _, v := range g.Vertices() {
+		// We only care about providers
+		pn, ok := v.(GraphNodeProvider)
+		if !ok {
+			continue
+		}
+
+		// Go through all the up-edges (things that depend on this
+		// provider) and if any is not a module, then ignore this node.
+		nonModule := false
+		for _, sourceRaw := range g.UpEdges(v).List() {
+			source := sourceRaw.(dag.Vertex)
+			cn, ok := source.(graphNodeConfig)
+			if !ok {
+				nonModule = true
+				break
+			}
+
+			if cn.ConfigType() != GraphNodeConfigTypeModule {
+				nonModule = true
+				break
+			}
+		}
+		if nonModule {
+			// We found something that depends on this provider that
+			// isn't a module, so skip it.
+			continue
+		}
+
+		// Disable the provider by replacing it with a "disabled" provider
+		disabled := &graphNodeDisabledProvider{GraphNodeProvider: pn}
+		if !g.Replace(v, disabled) {
+			panic(fmt.Sprintf(
+				"vertex disappeared from under us: %s",
+				dag.VertexName(v)))
+		}
+	}
+
+	return nil
 }
 
 // ProviderTransformer is a GraphTransformer that maps resources to
@@ -94,6 +142,40 @@ func (t *PruneProviderTransformer) Transform(g *Graph) error {
 	return nil
 }
 
+type graphNodeDisabledProvider struct {
+	GraphNodeProvider
+}
+
+// GraphNodeEvalable impl.
+func (n *graphNodeDisabledProvider) EvalTree() EvalNode {
+	var resourceConfig *ResourceConfig
+
+	return &EvalOpFilter{
+		Ops: []walkOperation{walkInput, walkValidate, walkRefresh, walkPlan, walkApply},
+		Node: &EvalSequence{
+			Nodes: []EvalNode{
+				&EvalInterpolate{
+					Config: n.ProviderConfig(),
+					Output: &resourceConfig,
+				},
+				&EvalBuildProviderConfig{
+					Provider: n.ProviderName(),
+					Config:   &resourceConfig,
+					Output:   &resourceConfig,
+				},
+				&EvalSetProviderConfig{
+					Provider: n.ProviderName(),
+					Config:   &resourceConfig,
+				},
+			},
+		},
+	}
+}
+
+func (n *graphNodeDisabledProvider) Name() string {
+	return fmt.Sprintf("%s (disabled)", dag.VertexName(n.GraphNodeProvider))
+}
+
 type graphNodeMissingProvider struct {
 	ProviderNameValue string
 }
@@ -109,6 +191,10 @@ func (n *graphNodeMissingProvider) EvalTree() EvalNode {
 
 func (n *graphNodeMissingProvider) ProviderName() string {
 	return n.ProviderNameValue
+}
+
+func (n *graphNodeMissingProvider) ProviderConfig() *config.RawConfig {
+	return nil
 }
 
 // GraphNodeDotter impl.

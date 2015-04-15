@@ -28,6 +28,13 @@ The command-line flags are all optional. The list of available flags are:
 
 * `-destroy` - If set, generates a plan to destroy all the known resources.
 
+* `-detailed-exitcode` - Return a detailed exit code when the command exits.
+  When provided, this argument changes the exit codes and their meanings to
+  provide more granular information about what the resulting plan contains:
+  * 0 = Succeeded with empty diff (no changes)
+  * 1 = Error
+  * 2 = Succeeded with non-empty diff (changes present)
+
 * `-input=true` - Ask for input for variables if not directly set.
 
 * `-module-depth=n` - Specifies the depth of modules to show in the output.
@@ -44,6 +51,11 @@ The command-line flags are all optional. The list of available flags are:
 * `-refresh=true` - Update the state prior to checking for differences.
 
 * `-state=path` - Path to the state file. Defaults to "terraform.tfstate".
+
+* `-target=resource` - A [Resource
+  Address](/docs/internals/resource-addressing.html) to target. Operation will
+  be limited to this resource and its dependencies. This flag can be used
+  multiple times.
 
 * `-var 'foo=bar'` - Set a variable in the Terraform configuration. This
   flag can be set multiple times.

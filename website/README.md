@@ -4,7 +4,7 @@ This subdirectory contains the entire source for the [Terraform Website](http://
 This is a [Middleman](http://middlemanapp.com) project, which builds a static
 site from these source files.
 
-## Contributions Welcome!
+## Contributions Welcome
 
 If you find a typo or you feel like you can improve the HTML, CSS, or
 JavaScript, we welcome contributions. Feel free to open issues or pull

@@ -61,7 +61,8 @@ func (c *RemotePullCommand) Run(args []string) int {
 		c.Ui.Error(fmt.Sprintf("%s", change))
 		return 1
 	} else {
-		c.Ui.Output(fmt.Sprintf("%s", change))
+		c.Ui.Output(c.Colorize().Color(fmt.Sprintf(
+			"[reset][bold][green]%s", change)))
 	}
 
 	return 0

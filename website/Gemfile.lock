@@ -1,6 +1,6 @@
 GIT
   remote: https://github.com/hashicorp/middleman-hashicorp
-  revision: 783fe9517dd02badb85e5ddfeda4d8e35bbd05a8
+  revision: fb03b8e60efc96f68c2dded0f49632fcd6eb6482
   specs:
     middleman-hashicorp (0.1.0)
       bootstrap-sass (~> 3.3)
@@ -20,16 +20,16 @@ GIT
 GEM
   remote: https://rubygems.org/
   specs:
-    activesupport (4.1.9)
+    activesupport (4.1.10)
       i18n (~> 0.6, >= 0.6.9)
       json (~> 1.7, >= 1.7.7)
       minitest (~> 5.1)
       thread_safe (~> 0.1)
       tzinfo (~> 1.1)
-    autoprefixer-rails (5.1.7)
+    autoprefixer-rails (5.1.8)
       execjs
       json
-    bootstrap-sass (3.3.3)
+    bootstrap-sass (3.3.4.1)
       autoprefixer-rails (>= 5.0.0.1)
       sass (>= 3.2.19)
     builder (3.2.2)
@@ -53,14 +53,14 @@ GEM
       sass (>= 3.3.0, < 3.5)
     compass-import-once (1.0.5)
       sass (>= 3.2, < 3.5)
-    daemons (1.1.9)
+    daemons (1.2.2)
     em-websocket (0.5.1)
       eventmachine (>= 0.12.9)
       http_parser.rb (~> 0.6.0)
     erubis (2.7.0)
     eventmachine (1.0.7)
     execjs (2.4.0)
-    ffi (1.9.6)
+    ffi (1.9.8)
     haml (4.0.6)
       tilt
     hike (1.2.3)
@@ -75,8 +75,8 @@ GEM
     less (2.6.0)
       commonjs (~> 0.2.7)
     libv8 (3.16.14.7)
-    listen (2.8.5)
-      celluloid (>= 0.15.2)
+    listen (2.10.0)
+      celluloid (~> 0.16.0)
       rb-fsevent (>= 0.9.3)
       rb-inotify (>= 0.9)
     middleman (3.3.10)
@@ -159,7 +159,7 @@ GEM
       eventmachine (~> 1.0)
       rack (~> 1.0)
     thor (0.19.1)
-    thread_safe (0.3.4)
+    thread_safe (0.3.5)
     tilt (1.4.1)
     timers (4.0.1)
       hitimes

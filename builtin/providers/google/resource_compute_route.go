@@ -5,10 +5,10 @@ import (
 	"log"
 	"time"
 
-	"code.google.com/p/google-api-go-client/compute/v1"
-	"code.google.com/p/google-api-go-client/googleapi"
 	"github.com/hashicorp/terraform/helper/hashcode"
 	"github.com/hashicorp/terraform/helper/schema"
+	"google.golang.org/api/compute/v1"
+	"google.golang.org/api/googleapi"
 )
 
 func resourceComputeRoute() *schema.Resource {
@@ -75,6 +75,7 @@ func resourceComputeRoute() *schema.Resource {
 			"tags": &schema.Schema{
 				Type:     schema.TypeSet,
 				Optional: true,
+				ForceNew: true,
 				Elem:     &schema.Schema{Type: schema.TypeString},
 				Set: func(v interface{}) int {
 					return hashcode.String(v.(string))

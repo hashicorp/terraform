@@ -190,6 +190,7 @@ func testStep(
 	// Build the context
 	opts.Module = mod
 	opts.State = state
+	opts.Destroy = step.Destroy
 	ctx := terraform.NewContext(&opts)
 	if ws, es := ctx.Validate(); len(ws) > 0 || len(es) > 0 {
 		estrs := make([]string, len(es))
@@ -209,7 +210,7 @@ func testStep(
 	}
 
 	// Plan!
-	if p, err := ctx.Plan(&terraform.PlanOpts{Destroy: step.Destroy}); err != nil {
+	if p, err := ctx.Plan(); err != nil {
 		return state, fmt.Errorf(
 			"Error planning: %s", err)
 	} else {
@@ -226,6 +227,16 @@ func testStep(
 	if step.Check != nil {
 		if err = step.Check(state); err != nil {
 			err = fmt.Errorf("Check failed: %s", err)
+		}
+	}
+
+	// Verify that Plan is now empty and we don't have a perpetual diff issue
+	if p, err := ctx.Plan(); err != nil {
+		return state, fmt.Errorf("Error on follow-up plan: %s", err)
+	} else {
+		if p.Diff != nil && !p.Diff.Empty() {
+			return state, fmt.Errorf(
+				"After applying this step, the plan was not empty:\n\n%s", p)
 		}
 	}
 

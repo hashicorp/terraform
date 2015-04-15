@@ -357,18 +357,20 @@ func (d *InstanceDiff) RequiresNew() bool {
 // we say "same", it is not necessarily exactly equal. Instead, it is
 // just checking that the same attributes are changing, a destroy
 // isn't suddenly happening, etc.
-func (d *InstanceDiff) Same(d2 *InstanceDiff) bool {
+func (d *InstanceDiff) Same(d2 *InstanceDiff) (bool, string) {
 	if d == nil && d2 == nil {
-		return true
+		return true, ""
 	} else if d == nil || d2 == nil {
-		return false
+		return false, "both nil"
 	}
 
 	if d.Destroy != d2.Destroy {
-		return false
+		return false, fmt.Sprintf(
+			"diff: Destroy; old: %t, new: %t", d.Destroy, d2.Destroy)
 	}
 	if d.RequiresNew() != d2.RequiresNew() {
-		return false
+		return false, fmt.Sprintf(
+			"diff RequiresNew; old: %t, new: %t", d.RequiresNew(), d2.RequiresNew())
 	}
 
 	// Go through the old diff and make sure the new diff has all the
@@ -405,6 +407,12 @@ func (d *InstanceDiff) Same(d2 *InstanceDiff) bool {
 
 		_, ok := d2.Attributes[k]
 		if !ok {
+			// If there's no new attribute, and the old diff expected the attribute
+			// to be removed, that's just fine.
+			if diffOld.NewRemoved {
+				continue
+			}
+
 			// No exact match, but maybe this is a set containing computed
 			// values. So check if there is an approximate hash in the key
 			// and if so, try to match the key.
@@ -420,7 +428,7 @@ func (d *InstanceDiff) Same(d2 *InstanceDiff) bool {
 				}
 				re, err := regexp.Compile("^" + strings.Join(parts2, `\.`) + "$")
 				if err != nil {
-					return false
+					return false, fmt.Sprintf("regexp failed to compile; err: %#v", err)
 				}
 				for k2, _ := range checkNew {
 					if re.MatchString(k2) {
@@ -452,7 +460,7 @@ func (d *InstanceDiff) Same(d2 *InstanceDiff) bool {
 			}
 
 			if !ok {
-				return false
+				return false, fmt.Sprintf("attribute mismatch: %s", k)
 			}
 		}
 
@@ -477,8 +485,13 @@ func (d *InstanceDiff) Same(d2 *InstanceDiff) bool {
 
 	// Check for leftover attributes
 	if len(checkNew) > 0 {
-		return false
+		extras := make([]string, 0, len(checkNew))
+		for attr, _ := range checkNew {
+			extras = append(extras, attr)
+		}
+		return false,
+			fmt.Sprintf("extra attributes: %s", strings.Join(extras, ", "))
 	}
 
-	return true
+	return true, ""
 }

@@ -6,10 +6,11 @@ import (
 	"log"
 	"time"
 
+	"github.com/awslabs/aws-sdk-go/aws"
+	"github.com/awslabs/aws-sdk-go/service/ec2"
 	"github.com/hashicorp/terraform/helper/hashcode"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
-	"github.com/mitchellh/goamz/ec2"
 )
 
 func resourceAwsNetworkAcl() *schema.Resource {
@@ -108,32 +109,34 @@ func resourceAwsNetworkAcl() *schema.Resource {
 
 func resourceAwsNetworkAclCreate(d *schema.ResourceData, meta interface{}) error {
 
-	ec2conn := meta.(*AWSClient).ec2conn
+	conn := meta.(*AWSClient).ec2SDKconn
 
 	// Create the Network Acl
-	createOpts := &ec2.CreateNetworkAcl{
-		VpcId: d.Get("vpc_id").(string),
+	createOpts := &ec2.CreateNetworkACLInput{
+		VPCID: aws.String(d.Get("vpc_id").(string)),
 	}
 
 	log.Printf("[DEBUG] Network Acl create config: %#v", createOpts)
-	resp, err := ec2conn.CreateNetworkAcl(createOpts)
+	resp, err := conn.CreateNetworkACL(createOpts)
 	if err != nil {
 		return fmt.Errorf("Error creating network acl: %s", err)
 	}
 
 	// Get the ID and store it
-	networkAcl := &resp.NetworkAcl
-	d.SetId(networkAcl.NetworkAclId)
-	log.Printf("[INFO] Network Acl ID: %s", networkAcl.NetworkAclId)
+	networkAcl := resp.NetworkACL
+	d.SetId(*networkAcl.NetworkACLID)
+	log.Printf("[INFO] Network Acl ID: %s", *networkAcl.NetworkACLID)
 
 	// Update rules and subnet association once acl is created
 	return resourceAwsNetworkAclUpdate(d, meta)
 }
 
 func resourceAwsNetworkAclRead(d *schema.ResourceData, meta interface{}) error {
-	ec2conn := meta.(*AWSClient).ec2conn
+	conn := meta.(*AWSClient).ec2SDKconn
 
-	resp, err := ec2conn.NetworkAcls([]string{d.Id()}, ec2.NewFilter())
+	resp, err := conn.DescribeNetworkACLs(&ec2.DescribeNetworkACLsInput{
+		NetworkACLIDs: []*string{aws.String(d.Id())},
+	})
 
 	if err != nil {
 		return err
@@ -142,40 +145,40 @@ func resourceAwsNetworkAclRead(d *schema.ResourceData, meta interface{}) error {
 		return nil
 	}
 
-	networkAcl := &resp.NetworkAcls[0]
-	var ingressEntries []ec2.NetworkAclEntry
-	var egressEntries []ec2.NetworkAclEntry
+	networkAcl := resp.NetworkACLs[0]
+	var ingressEntries []*ec2.NetworkACLEntry
+	var egressEntries []*ec2.NetworkACLEntry
 
 	// separate the ingress and egress rules
-	for _, e := range networkAcl.EntrySet {
-		if e.Egress == true {
+	for _, e := range networkAcl.Entries {
+		if *e.Egress == true {
 			egressEntries = append(egressEntries, e)
 		} else {
 			ingressEntries = append(ingressEntries, e)
 		}
 	}
 
-	d.Set("vpc_id", networkAcl.VpcId)
+	d.Set("vpc_id", networkAcl.VPCID)
 	d.Set("ingress", ingressEntries)
 	d.Set("egress", egressEntries)
-	d.Set("tags", tagsToMap(networkAcl.Tags))
+	d.Set("tags", tagsToMapSDK(networkAcl.Tags))
 
 	return nil
 }
 
 func resourceAwsNetworkAclUpdate(d *schema.ResourceData, meta interface{}) error {
-	ec2conn := meta.(*AWSClient).ec2conn
+	conn := meta.(*AWSClient).ec2SDKconn
 	d.Partial(true)
 
 	if d.HasChange("ingress") {
-		err := updateNetworkAclEntries(d, "ingress", ec2conn)
+		err := updateNetworkAclEntries(d, "ingress", conn)
 		if err != nil {
 			return err
 		}
 	}
 
 	if d.HasChange("egress") {
-		err := updateNetworkAclEntries(d, "egress", ec2conn)
+		err := updateNetworkAclEntries(d, "egress", conn)
 		if err != nil {
 			return err
 		}
@@ -186,17 +189,20 @@ func resourceAwsNetworkAclUpdate(d *schema.ResourceData, meta interface{}) error
 		//associate new subnet with the acl.
 		_, n := d.GetChange("subnet_id")
 		newSubnet := n.(string)
-		association, err := findNetworkAclAssociation(newSubnet, ec2conn)
+		association, err := findNetworkAclAssociation(newSubnet, conn)
 		if err != nil {
 			return fmt.Errorf("Failed to update acl %s with subnet %s: %s", d.Id(), newSubnet, err)
 		}
-		_, err = ec2conn.ReplaceNetworkAclAssociation(association.NetworkAclAssociationId, d.Id())
+		_, err = conn.ReplaceNetworkACLAssociation(&ec2.ReplaceNetworkACLAssociationInput{
+			AssociationID: association.NetworkACLAssociationID,
+			NetworkACLID:  aws.String(d.Id()),
+		})
 		if err != nil {
 			return err
 		}
 	}
 
-	if err := setTags(ec2conn, d); err != nil {
+	if err := setTagsSDK(conn, d); err != nil {
 		return err
 	} else {
 		d.SetPartial("tags")
@@ -206,7 +212,7 @@ func resourceAwsNetworkAclUpdate(d *schema.ResourceData, meta interface{}) error
 	return resourceAwsNetworkAclRead(d, meta)
 }
 
-func updateNetworkAclEntries(d *schema.ResourceData, entryType string, ec2conn *ec2.EC2) error {
+func updateNetworkAclEntries(d *schema.ResourceData, entryType string, conn *ec2.EC2) error {
 
 	o, n := d.GetChange(entryType)
 
@@ -226,7 +232,11 @@ func updateNetworkAclEntries(d *schema.ResourceData, entryType string, ec2conn *
 	}
 	for _, remove := range toBeDeleted {
 		// Delete old Acl
-		_, err := ec2conn.DeleteNetworkAclEntry(d.Id(), remove.RuleNumber, remove.Egress)
+		_, err := conn.DeleteNetworkACLEntry(&ec2.DeleteNetworkACLEntryInput{
+			NetworkACLID: aws.String(d.Id()),
+			RuleNumber:   remove.RuleNumber,
+			Egress:       remove.Egress,
+		})
 		if err != nil {
 			return fmt.Errorf("Error deleting %s entry: %s", entryType, err)
 		}
@@ -238,7 +248,15 @@ func updateNetworkAclEntries(d *schema.ResourceData, entryType string, ec2conn *
 	}
 	for _, add := range toBeCreated {
 		// Add new Acl entry
-		_, err := ec2conn.CreateNetworkAclEntry(d.Id(), &add)
+		_, err := conn.CreateNetworkACLEntry(&ec2.CreateNetworkACLEntryInput{
+			NetworkACLID: aws.String(d.Id()),
+			CIDRBlock:    add.CIDRBlock,
+			Egress:       add.Egress,
+			PortRange:    add.PortRange,
+			Protocol:     add.Protocol,
+			RuleAction:   add.RuleAction,
+			RuleNumber:   add.RuleNumber,
+		})
 		if err != nil {
 			return fmt.Errorf("Error creating %s entry: %s", entryType, err)
 		}
@@ -247,27 +265,33 @@ func updateNetworkAclEntries(d *schema.ResourceData, entryType string, ec2conn *
 }
 
 func resourceAwsNetworkAclDelete(d *schema.ResourceData, meta interface{}) error {
-	ec2conn := meta.(*AWSClient).ec2conn
+	conn := meta.(*AWSClient).ec2SDKconn
 
 	log.Printf("[INFO] Deleting Network Acl: %s", d.Id())
 	return resource.Retry(5*time.Minute, func() error {
-		if _, err := ec2conn.DeleteNetworkAcl(d.Id()); err != nil {
-			ec2err := err.(*ec2.Error)
+		_, err := conn.DeleteNetworkACL(&ec2.DeleteNetworkACLInput{
+			NetworkACLID: aws.String(d.Id()),
+		})
+		if err != nil {
+			ec2err := err.(aws.APIError)
 			switch ec2err.Code {
 			case "InvalidNetworkAclID.NotFound":
 				return nil
 			case "DependencyViolation":
 				// In case of dependency violation, we remove the association between subnet and network acl.
 				// This means the subnet is attached to default acl of vpc.
-				association, err := findNetworkAclAssociation(d.Get("subnet_id").(string), ec2conn)
+				association, err := findNetworkAclAssociation(d.Get("subnet_id").(string), conn)
 				if err != nil {
 					return fmt.Errorf("Dependency violation: Cannot delete acl %s: %s", d.Id(), err)
 				}
-				defaultAcl, err := getDefaultNetworkAcl(d.Get("vpc_id").(string), ec2conn)
+				defaultAcl, err := getDefaultNetworkAcl(d.Get("vpc_id").(string), conn)
 				if err != nil {
 					return fmt.Errorf("Dependency violation: Cannot delete acl %s: %s", d.Id(), err)
 				}
-				_, err = ec2conn.ReplaceNetworkAclAssociation(association.NetworkAclAssociationId, defaultAcl.NetworkAclId)
+				_, err = conn.ReplaceNetworkACLAssociation(&ec2.ReplaceNetworkACLAssociationInput{
+					AssociationID: association.NetworkACLAssociationID,
+					NetworkACLID:  defaultAcl.NetworkACLID,
+				})
 				return resource.RetryError{Err: err}
 			default:
 				// Any other error, we want to quit the retry loop immediately
@@ -296,31 +320,44 @@ func resourceAwsNetworkAclEntryHash(v interface{}) int {
 	return hashcode.String(buf.String())
 }
 
-func getDefaultNetworkAcl(vpc_id string, ec2conn *ec2.EC2) (defaultAcl *ec2.NetworkAcl, err error) {
-	filter := ec2.NewFilter()
-	filter.Add("default", "true")
-	filter.Add("vpc-id", vpc_id)
-
-	resp, err := ec2conn.NetworkAcls([]string{}, filter)
+func getDefaultNetworkAcl(vpc_id string, conn *ec2.EC2) (defaultAcl *ec2.NetworkACL, err error) {
+	resp, err := conn.DescribeNetworkACLs(&ec2.DescribeNetworkACLsInput{
+		NetworkACLIDs: []*string{},
+		Filters: []*ec2.Filter{
+			&ec2.Filter{
+				Name:   aws.String("default"),
+				Values: []*string{aws.String("true")},
+			},
+			&ec2.Filter{
+				Name:   aws.String("vpc-id"),
+				Values: []*string{aws.String(vpc_id)},
+			},
+		},
+	})
 
 	if err != nil {
 		return nil, err
 	}
-	return &resp.NetworkAcls[0], nil
+	return resp.NetworkACLs[0], nil
 }
 
-func findNetworkAclAssociation(subnetId string, ec2conn *ec2.EC2) (networkAclAssociation *ec2.NetworkAclAssociation, err error) {
-	filter := ec2.NewFilter()
-	filter.Add("association.subnet-id", subnetId)
-
-	resp, err := ec2conn.NetworkAcls([]string{}, filter)
+func findNetworkAclAssociation(subnetId string, conn *ec2.EC2) (networkAclAssociation *ec2.NetworkACLAssociation, err error) {
+	resp, err := conn.DescribeNetworkACLs(&ec2.DescribeNetworkACLsInput{
+		NetworkACLIDs: []*string{},
+		Filters: []*ec2.Filter{
+			&ec2.Filter{
+				Name:   aws.String("association.subnet-id"),
+				Values: []*string{aws.String(subnetId)},
+			},
+		},
+	})
 
 	if err != nil {
 		return nil, err
 	}
-	for _, association := range resp.NetworkAcls[0].AssociationSet {
-		if association.SubnetId == subnetId {
-			return &association, nil
+	for _, association := range resp.NetworkACLs[0].Associations {
+		if *association.SubnetID == subnetId {
+			return association, nil
 		}
 	}
 	return nil, fmt.Errorf("could not find association for subnet %s ", subnetId)

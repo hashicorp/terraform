@@ -25,6 +25,13 @@ func Merge(c1, c2 *Config) (*Config, error) {
 		}
 	}
 
+	// Merge Atlas configuration. This is a dumb one overrides the other
+	// sort of merge.
+	c.Atlas = c1.Atlas
+	if c2.Atlas != nil {
+		c.Atlas = c2.Atlas
+	}
+
 	// NOTE: Everything below is pretty gross. Due to the lack of generics
 	// in Go, there is some hoop-jumping involved to make this merging a
 	// little more test-friendly and less repetitive. Ironically, making it

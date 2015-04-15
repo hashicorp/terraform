@@ -19,6 +19,30 @@ type graphNodeConfig interface {
 	// be depended on.
 	GraphNodeDependable
 	GraphNodeDependent
+
+	// ConfigType returns the type of thing in the configuration that
+	// this node represents, such as a resource, module, etc.
+	ConfigType() GraphNodeConfigType
+}
+
+// GraphNodeAddressable is an interface that all graph nodes for the
+// configuration graph need to implement in order to be be addressed / targeted
+// properly.
+type GraphNodeAddressable interface {
+	graphNodeConfig
+
+	ResourceAddress() *ResourceAddress
+}
+
+// GraphNodeTargetable is an interface for graph nodes to implement when they
+// need to be told about incoming targets. This is useful for nodes that need
+// to respect targets as they dynamically expand. Note that the list of targets
+// provided will contain every target provided, and each implementing graph
+// node must filter this list to targets considered relevant.
+type GraphNodeTargetable interface {
+	GraphNodeAddressable
+
+	SetTargets([]ResourceAddress)
 }
 
 // GraphNodeConfigModule represents a module within the configuration graph.
@@ -26,6 +50,10 @@ type GraphNodeConfigModule struct {
 	Path   []string
 	Module *config.Module
 	Tree   *module.Tree
+}
+
+func (n *GraphNodeConfigModule) ConfigType() GraphNodeConfigType {
+	return GraphNodeConfigTypeModule
 }
 
 func (n *GraphNodeConfigModule) DependableName() []string {
@@ -105,6 +133,10 @@ func (n *GraphNodeConfigOutput) Name() string {
 	return fmt.Sprintf("output.%s", n.Output.Name)
 }
 
+func (n *GraphNodeConfigOutput) ConfigType() GraphNodeConfigType {
+	return GraphNodeConfigTypeOutput
+}
+
 func (n *GraphNodeConfigOutput) DependableName() []string {
 	return []string{n.Name()}
 }
@@ -147,6 +179,10 @@ func (n *GraphNodeConfigProvider) Name() string {
 	return fmt.Sprintf("provider.%s", n.Provider.Name)
 }
 
+func (n *GraphNodeConfigProvider) ConfigType() GraphNodeConfigType {
+	return GraphNodeConfigTypeProvider
+}
+
 func (n *GraphNodeConfigProvider) DependableName() []string {
 	return []string{n.Name()}
 }
@@ -173,6 +209,11 @@ func (n *GraphNodeConfigProvider) ProviderName() string {
 	return n.Provider.Name
 }
 
+// GraphNodeProvider implementation
+func (n *GraphNodeConfigProvider) ProviderConfig() *config.RawConfig {
+	return n.Provider.RawConfig
+}
+
 // GraphNodeDotter impl.
 func (n *GraphNodeConfigProvider) Dot(name string) string {
 	return fmt.Sprintf(
@@ -191,6 +232,13 @@ type GraphNodeConfigResource struct {
 	// If this is set to anything other than destroyModeNone, then this
 	// resource represents a resource that will be destroyed in some way.
 	DestroyMode GraphNodeDestroyMode
+
+	// Used during DynamicExpand to target indexes
+	Targets []ResourceAddress
+}
+
+func (n *GraphNodeConfigResource) ConfigType() GraphNodeConfigType {
+	return GraphNodeConfigTypeResource
 }
 
 func (n *GraphNodeConfigResource) DependableName() []string {
@@ -279,6 +327,7 @@ func (n *GraphNodeConfigResource) DynamicExpand(ctx EvalContext) (*Graph, error)
 		steps = append(steps, &ResourceCountTransformer{
 			Resource: n.Resource,
 			Destroy:  n.DestroyMode != DestroyNone,
+			Targets:  n.Targets,
 		})
 	}
 
@@ -289,8 +338,9 @@ func (n *GraphNodeConfigResource) DynamicExpand(ctx EvalContext) (*Graph, error)
 		// expand orphans, which have all the same semantics in a destroy
 		// as a primary.
 		steps = append(steps, &OrphanTransformer{
-			State: state,
-			View:  n.Resource.Id(),
+			State:     state,
+			View:      n.Resource.Id(),
+			Targeting: (len(n.Targets) > 0),
 		})
 
 		steps = append(steps, &DeposedTransformer{
@@ -312,6 +362,22 @@ func (n *GraphNodeConfigResource) DynamicExpand(ctx EvalContext) (*Graph, error)
 	// Build the graph
 	b := &BasicGraphBuilder{Steps: steps}
 	return b.Build(ctx.Path())
+}
+
+// GraphNodeAddressable impl.
+func (n *GraphNodeConfigResource) ResourceAddress() *ResourceAddress {
+	return &ResourceAddress{
+		// Indicates no specific index; will match on other three fields
+		Index:        -1,
+		InstanceType: TypePrimary,
+		Name:         n.Resource.Name,
+		Type:         n.Resource.Type,
+	}
+}
+
+// GraphNodeTargetable impl.
+func (n *GraphNodeConfigResource) SetTargets(targets []ResourceAddress) {
+	n.Targets = targets
 }
 
 // GraphNodeEvalable impl.
@@ -381,11 +447,44 @@ func (n *graphNodeResourceDestroy) CreateNode() dag.Vertex {
 }
 
 func (n *graphNodeResourceDestroy) DestroyInclude(d *ModuleDiff, s *ModuleState) bool {
-	// Always include anything other than the primary destroy
-	if n.DestroyMode != DestroyPrimary {
+	switch n.DestroyMode {
+	case DestroyPrimary:
+		return n.destroyIncludePrimary(d, s)
+	case DestroyTainted:
+		return n.destroyIncludeTainted(d, s)
+	default:
 		return true
 	}
+}
 
+func (n *graphNodeResourceDestroy) destroyIncludeTainted(
+	d *ModuleDiff, s *ModuleState) bool {
+	// If there is no state, there can't by any tainted.
+	if s == nil {
+		return false
+	}
+
+	// Grab the ID which is the prefix (in the case count > 0 at some point)
+	prefix := n.Original.Resource.Id()
+
+	// Go through the resources and find any with our prefix. If there
+	// are any tainted, we need to keep it.
+	for k, v := range s.Resources {
+		if !strings.HasPrefix(k, prefix) {
+			continue
+		}
+
+		if len(v.Tainted) > 0 {
+			return true
+		}
+	}
+
+	// We didn't find any tainted nodes, return
+	return false
+}
+
+func (n *graphNodeResourceDestroy) destroyIncludePrimary(
+	d *ModuleDiff, s *ModuleState) bool {
 	// Get the count, and specifically the raw value of the count
 	// (with interpolations and all). If the count is NOT a static "1",
 	// then we keep the destroy node no matter what.
@@ -456,15 +555,19 @@ func (n *graphNodeResourceDestroy) DestroyInclude(d *ModuleDiff, s *ModuleState)
 	// decreases to "1".
 	if s != nil {
 		for k, v := range s.Resources {
-			if !strings.HasPrefix(k, prefix) {
+			// Ignore exact matches
+			if k == prefix {
+				continue
+			}
+
+			// Ignore anything that doesn't have a "." afterwards so that
+			// we only get our own resource and any counts on it.
+			if !strings.HasPrefix(k, prefix+".") {
 				continue
 			}
 
 			// Ignore exact matches and the 0'th index. We only care
 			// about if there is a decrease in count.
-			if k == prefix {
-				continue
-			}
 			if k == prefix+".0" {
 				continue
 			}
@@ -502,6 +605,10 @@ type graphNodeModuleExpanded struct {
 
 func (n *graphNodeModuleExpanded) Name() string {
 	return fmt.Sprintf("%s (expanded)", dag.VertexName(n.Original))
+}
+
+func (n *graphNodeModuleExpanded) ConfigType() GraphNodeConfigType {
+	return GraphNodeConfigTypeModule
 }
 
 // GraphNodeDotter impl.

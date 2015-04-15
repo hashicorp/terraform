@@ -100,20 +100,29 @@ func (tc *typeCheckArithmetic) TypeCheck(v *TypeCheck) (ast.Node, error) {
 		exprs[len(tc.n.Exprs)-1-i] = v.StackPop()
 	}
 
-	// Determine the resulting type we want
+	// Determine the resulting type we want. We do this by going over
+	// every expression until we find one with a type we recognize.
+	// We do this because the first expr might be a string ("var.foo")
+	// and we need to know what to implicit to.
 	mathFunc := "__builtin_IntMath"
 	mathType := ast.TypeInt
-	switch v := exprs[0]; v {
-	case ast.TypeInt:
-		mathFunc = "__builtin_IntMath"
-		mathType = v
-	case ast.TypeFloat:
-		mathFunc = "__builtin_FloatMath"
-		mathType = v
-	default:
-		return nil, fmt.Errorf(
-			"Math operations can only be done with ints and floats, got %s",
-			v)
+	for _, v := range exprs {
+		exit := true
+		switch v {
+		case ast.TypeInt:
+			mathFunc = "__builtin_IntMath"
+			mathType = v
+		case ast.TypeFloat:
+			mathFunc = "__builtin_FloatMath"
+			mathType = v
+		default:
+			exit = false
+		}
+
+		// We found the type, so leave
+		if exit {
+			break
+		}
 	}
 
 	// Verify the args
