@@ -86,6 +86,20 @@ func TestConfigTransformer_outputs(t *testing.T) {
 	}
 }
 
+func TestConfigTransformer_providerAlias(t *testing.T) {
+	g := Graph{Path: RootModulePath}
+	tf := &ConfigTransformer{Module: testModule(t, "graph-provider-alias")}
+	if err := tf.Transform(&g); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	actual := strings.TrimSpace(g.String())
+	expected := strings.TrimSpace(testGraphProviderAliasStr)
+	if actual != expected {
+		t.Fatalf("bad:\n\n%s", actual)
+	}
+}
+
 func TestConfigTransformer_errMissingDeps(t *testing.T) {
 	g := Graph{Path: RootModulePath}
 	tf := &ConfigTransformer{Module: testModule(t, "graph-missing-deps")}
@@ -125,4 +139,10 @@ const testGraphOutputsStr = `
 aws_instance.foo
 output.foo
   aws_instance.foo
+`
+
+const testGraphProviderAliasStr = `
+provider.aws
+provider.aws.bar
+provider.aws.foo
 `

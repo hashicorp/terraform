@@ -154,12 +154,13 @@ func (n *EvalUpdateStateHook) Eval(ctx EvalContext) (interface{}, error) {
 type EvalWriteState struct {
 	Name         string
 	ResourceType string
+	Provider     string
 	Dependencies []string
 	State        **InstanceState
 }
 
 func (n *EvalWriteState) Eval(ctx EvalContext) (interface{}, error) {
-	return writeInstanceToState(ctx, n.Name, n.ResourceType, n.Dependencies,
+	return writeInstanceToState(ctx, n.Name, n.ResourceType, n.Provider, n.Dependencies,
 		func(rs *ResourceState) error {
 			rs.Primary = *n.State
 			return nil
@@ -172,6 +173,7 @@ func (n *EvalWriteState) Eval(ctx EvalContext) (interface{}, error) {
 type EvalWriteStateTainted struct {
 	Name         string
 	ResourceType string
+	Provider     string
 	Dependencies []string
 	State        **InstanceState
 	// Index indicates which instance in the Tainted list to target, or -1 to append.
@@ -181,7 +183,7 @@ type EvalWriteStateTainted struct {
 // EvalWriteStateTainted is an EvalNode implementation that writes the
 // one of the tainted InstanceStates for a specific resource out of the state.
 func (n *EvalWriteStateTainted) Eval(ctx EvalContext) (interface{}, error) {
-	return writeInstanceToState(ctx, n.Name, n.ResourceType, n.Dependencies,
+	return writeInstanceToState(ctx, n.Name, n.ResourceType, n.Provider, n.Dependencies,
 		func(rs *ResourceState) error {
 			if n.Index == -1 {
 				rs.Tainted = append(rs.Tainted, *n.State)
@@ -198,6 +200,7 @@ func (n *EvalWriteStateTainted) Eval(ctx EvalContext) (interface{}, error) {
 type EvalWriteStateDeposed struct {
 	Name         string
 	ResourceType string
+	Provider     string
 	Dependencies []string
 	State        **InstanceState
 	// Index indicates which instance in the Deposed list to target, or -1 to append.
@@ -205,7 +208,7 @@ type EvalWriteStateDeposed struct {
 }
 
 func (n *EvalWriteStateDeposed) Eval(ctx EvalContext) (interface{}, error) {
-	return writeInstanceToState(ctx, n.Name, n.ResourceType, n.Dependencies,
+	return writeInstanceToState(ctx, n.Name, n.ResourceType, n.Provider, n.Dependencies,
 		func(rs *ResourceState) error {
 			if n.Index == -1 {
 				rs.Deposed = append(rs.Deposed, *n.State)
@@ -225,6 +228,7 @@ func writeInstanceToState(
 	ctx EvalContext,
 	resourceName string,
 	resourceType string,
+	provider string,
 	dependencies []string,
 	writerFn func(*ResourceState) error,
 ) (*InstanceState, error) {
@@ -252,6 +256,7 @@ func writeInstanceToState(
 	}
 	rs.Type = resourceType
 	rs.Dependencies = dependencies
+	rs.Provider = provider
 
 	if err := writerFn(rs); err != nil {
 		return nil, err
