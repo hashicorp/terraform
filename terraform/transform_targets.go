@@ -28,9 +28,10 @@ func (t *TargetsTransformer) Transform(g *Graph) error {
 		}
 
 		for _, v := range g.Vertices() {
-			if targetedNodes.Include(v) {
-			} else {
-				g.Remove(v)
+			if _, ok := v.(GraphNodeAddressable); ok {
+				if !targetedNodes.Include(v) {
+					g.Remove(v)
+				}
 			}
 		}
 	}
@@ -49,35 +50,29 @@ func (t *TargetsTransformer) parseTargetAddresses() ([]ResourceAddress, error) {
 	return addrs, nil
 }
 
+// Returns the list of targeted nodes. A targeted node is either addressed
+// directly, or is an Ancestor of a targeted node. Destroy mode keeps
+// Descendents instead of Ancestors.
 func (t *TargetsTransformer) selectTargetedNodes(
 	g *Graph, addrs []ResourceAddress) (*dag.Set, error) {
 	targetedNodes := new(dag.Set)
 	for _, v := range g.Vertices() {
-		// Keep all providers; they'll be pruned later if necessary
-		if r, ok := v.(GraphNodeProvider); ok {
-			targetedNodes.Add(r)
-			continue
-		}
+		if t.nodeIsTarget(v, addrs) {
+			targetedNodes.Add(v)
 
-		// For the remaining filter, we only care about addressable nodes
-		r, ok := v.(GraphNodeAddressable)
-		if !ok {
-			continue
-		}
-
-		if t.nodeIsTarget(r, addrs) {
-			targetedNodes.Add(r)
-			// If the node would like to know about targets, tell it.
-			if n, ok := r.(GraphNodeTargetable); ok {
-				n.SetTargets(addrs)
+			// We inform nodes that ask about the list of targets - helps for nodes
+			// that need to dynamically expand. Note that this only occurs for nodes
+			// that are already directly targeted.
+			if tn, ok := v.(GraphNodeTargetable); ok {
+				tn.SetTargets(addrs)
 			}
 
 			var deps *dag.Set
 			var err error
 			if t.Destroy {
-				deps, err = g.Descendents(r)
+				deps, err = g.Descendents(v)
 			} else {
-				deps, err = g.Ancestors(r)
+				deps, err = g.Ancestors(v)
 			}
 			if err != nil {
 				return nil, err
@@ -92,7 +87,11 @@ func (t *TargetsTransformer) selectTargetedNodes(
 }
 
 func (t *TargetsTransformer) nodeIsTarget(
-	r GraphNodeAddressable, addrs []ResourceAddress) bool {
+	v dag.Vertex, addrs []ResourceAddress) bool {
+	r, ok := v.(GraphNodeAddressable)
+	if !ok {
+		return false
+	}
 	addr := r.ResourceAddress()
 	for _, targetAddr := range addrs {
 		if targetAddr.Equals(addr) {
