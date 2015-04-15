@@ -57,6 +57,9 @@ The following arguments are supported:
 * `tenant_name` - (Optional) If omitted, the `OS_TENANT_NAME` environment
     variable is used.
 
+* `insecure` - (Optional) Explicitly allow the provider to perform
+    "insecure" SSL requests. If omitted, default value is `false`
+
 ## Testing
 
 In order to run the Acceptance Tests for development, the following environment
