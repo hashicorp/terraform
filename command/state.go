@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/hashicorp/errwrap"
 	"github.com/hashicorp/terraform/state"
@@ -208,7 +209,7 @@ func remoteState(
 	}
 
 	// Initialize the remote client based on the local state
-	client, err := remote.NewClient(local.Remote.Type, local.Remote.Config)
+	client, err := remote.NewClient(strings.ToLower(local.Remote.Type), local.Remote.Config)
 	if err != nil {
 		return nil, errwrap.Wrapf(fmt.Sprintf(
 			"Error initializing remote driver '%s': {{err}}",
@@ -231,10 +232,20 @@ func remoteState(
 				"Error reloading remote state: {{err}}", err)
 		}
 		switch cache.RefreshResult() {
+		// All the results below can be safely ignored since it means the
+		// pull was successful in some way. Noop = nothing happened.
+		// Init = both are empty. UpdateLocal = local state was older and
+		// updated.
+		//
+		// We don't have to do anything, the pull was successful.
 		case state.CacheRefreshNoop:
 		case state.CacheRefreshInit:
-		case state.CacheRefreshLocalNewer:
 		case state.CacheRefreshUpdateLocal:
+
+		// Our local state has a higher serial number than remote, so we
+		// want to explicitly sync the remote side with our local so that
+		// the remote gets the latest serial number.
+		case state.CacheRefreshLocalNewer:
 			// Write our local state out to the durable storage to start.
 			if err := cache.WriteState(local); err != nil {
 				return nil, errwrap.Wrapf(
@@ -245,8 +256,8 @@ func remoteState(
 					"Error preparing remote state: {{err}}", err)
 			}
 		default:
-			return nil, errwrap.Wrapf(
-				"Error initilizing remote state: {{err}}", err)
+			return nil, fmt.Errorf(
+				"Unknown refresh result: %s", cache.RefreshResult())
 		}
 	}
 

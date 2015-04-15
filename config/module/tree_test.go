@@ -18,6 +18,8 @@ func TestTreeChild(t *testing.T) {
 		t.Fatal("should not be nil")
 	} else if c.Name() != "root" {
 		t.Fatalf("bad: %#v", c.Name())
+	} else if !reflect.DeepEqual(c.Path(), []string(nil)) {
+		t.Fatalf("bad: %#v", c.Path())
 	}
 
 	// Should be able to get the root child
@@ -25,6 +27,8 @@ func TestTreeChild(t *testing.T) {
 		t.Fatal("should not be nil")
 	} else if c.Name() != "root" {
 		t.Fatalf("bad: %#v", c.Name())
+	} else if !reflect.DeepEqual(c.Path(), []string(nil)) {
+		t.Fatalf("bad: %#v", c.Path())
 	}
 
 	// Should be able to get the foo child
@@ -32,6 +36,8 @@ func TestTreeChild(t *testing.T) {
 		t.Fatal("should not be nil")
 	} else if c.Name() != "foo" {
 		t.Fatalf("bad: %#v", c.Name())
+	} else if !reflect.DeepEqual(c.Path(), []string{"foo"}) {
+		t.Fatalf("bad: %#v", c.Path())
 	}
 
 	// Should be able to get the nested child
@@ -39,6 +45,8 @@ func TestTreeChild(t *testing.T) {
 		t.Fatal("should not be nil")
 	} else if c.Name() != "bar" {
 		t.Fatalf("bad: %#v", c.Name())
+	} else if !reflect.DeepEqual(c.Path(), []string{"foo", "bar"}) {
+		t.Fatalf("bad: %#v", c.Path())
 	}
 }
 
@@ -91,6 +99,44 @@ func TestTreeLoad_duplicate(t *testing.T) {
 	// This should get things
 	if err := tree.Load(storage, GetModeGet); err == nil {
 		t.Fatalf("should error")
+	}
+}
+
+func TestTreeLoad_parentRef(t *testing.T) {
+	storage := testStorage(t)
+	tree := NewTree("", testConfig(t, "basic-parent"))
+
+	if tree.Loaded() {
+		t.Fatal("should not be loaded")
+	}
+
+	// This should error because we haven't gotten things yet
+	if err := tree.Load(storage, GetModeNone); err == nil {
+		t.Fatal("should error")
+	}
+
+	if tree.Loaded() {
+		t.Fatal("should not be loaded")
+	}
+
+	// This should get things
+	if err := tree.Load(storage, GetModeGet); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	if !tree.Loaded() {
+		t.Fatal("should be loaded")
+	}
+
+	// This should no longer error
+	if err := tree.Load(storage, GetModeNone); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	actual := strings.TrimSpace(tree.String())
+	expected := strings.TrimSpace(treeLoadParentStr)
+	if actual != expected {
+		t.Fatalf("bad: \n\n%s", actual)
 	}
 }
 
@@ -236,11 +282,16 @@ func TestTreeValidate_requiredChildVar(t *testing.T) {
 
 const treeLoadStr = `
 root
-  foo
+  foo (path: foo)
 `
 
+const treeLoadParentStr = `
+root
+  a (path: a)
+    b (path: a, b)
+`
 const treeLoadSubdirStr = `
 root
-  foo
-    bar
+  foo (path: foo)
+    bar (path: foo, bar)
 `

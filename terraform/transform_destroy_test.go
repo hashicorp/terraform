@@ -299,6 +299,104 @@ func TestPruneDestroyTransformer_countState(t *testing.T) {
 	}
 }
 
+func TestPruneDestroyTransformer_prefixMatch(t *testing.T) {
+	mod := testModule(t, "transform-destroy-prefix")
+
+	diff := &Diff{}
+	state := &State{
+		Modules: []*ModuleState{
+			&ModuleState{
+				Path: RootModulePath,
+				Resources: map[string]*ResourceState{
+					"aws_instance.foo-bar.0": &ResourceState{
+						Primary: &InstanceState{ID: "foo"},
+					},
+
+					"aws_instance.foo-bar.1": &ResourceState{
+						Primary: &InstanceState{ID: "foo"},
+					},
+				},
+			},
+		},
+	}
+
+	g := Graph{Path: RootModulePath}
+	{
+		tf := &ConfigTransformer{Module: mod}
+		if err := tf.Transform(&g); err != nil {
+			t.Fatalf("err: %s", err)
+		}
+	}
+
+	{
+		tf := &DestroyTransformer{}
+		if err := tf.Transform(&g); err != nil {
+			t.Fatalf("err: %s", err)
+		}
+	}
+
+	{
+		tf := &PruneDestroyTransformer{Diff: diff, State: state}
+		if err := tf.Transform(&g); err != nil {
+			t.Fatalf("err: %s", err)
+		}
+	}
+
+	actual := strings.TrimSpace(g.String())
+	expected := strings.TrimSpace(testTransformPruneDestroyPrefixStr)
+	if actual != expected {
+		t.Fatalf("bad:\n\n%s", actual)
+	}
+}
+
+func TestPruneDestroyTransformer_tainted(t *testing.T) {
+	mod := testModule(t, "transform-destroy-basic")
+
+	diff := &Diff{}
+	state := &State{
+		Modules: []*ModuleState{
+			&ModuleState{
+				Path: RootModulePath,
+				Resources: map[string]*ResourceState{
+					"aws_instance.bar": &ResourceState{
+						Tainted: []*InstanceState{
+							&InstanceState{ID: "foo"},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	g := Graph{Path: RootModulePath}
+	{
+		tf := &ConfigTransformer{Module: mod}
+		if err := tf.Transform(&g); err != nil {
+			t.Fatalf("err: %s", err)
+		}
+	}
+
+	{
+		tf := &DestroyTransformer{}
+		if err := tf.Transform(&g); err != nil {
+			t.Fatalf("err: %s", err)
+		}
+	}
+
+	{
+		tf := &PruneDestroyTransformer{Diff: diff, State: state}
+		if err := tf.Transform(&g); err != nil {
+			t.Fatalf("err: %s", err)
+		}
+	}
+
+	actual := strings.TrimSpace(g.String())
+	expected := strings.TrimSpace(testTransformPruneDestroyTaintedStr)
+	if actual != expected {
+		t.Fatalf("bad:\n\n%s", actual)
+	}
+}
+
 const testTransformDestroyBasicStr = `
 aws_instance.bar
   aws_instance.bar (destroy tainted)
@@ -317,63 +415,53 @@ aws_instance.foo (destroy)
 
 const testTransformPruneDestroyBasicStr = `
 aws_instance.bar
-  aws_instance.bar (destroy tainted)
   aws_instance.foo
-aws_instance.bar (destroy tainted)
 aws_instance.foo
-  aws_instance.foo (destroy tainted)
-aws_instance.foo (destroy tainted)
-  aws_instance.bar (destroy tainted)
 `
 
 const testTransformPruneDestroyBasicDiffStr = `
 aws_instance.bar
-  aws_instance.bar (destroy tainted)
   aws_instance.bar (destroy)
   aws_instance.foo
-aws_instance.bar (destroy tainted)
 aws_instance.bar (destroy)
 aws_instance.foo
-  aws_instance.foo (destroy tainted)
-aws_instance.foo (destroy tainted)
-  aws_instance.bar (destroy tainted)
 `
 
 const testTransformPruneDestroyCountStr = `
 aws_instance.bar
-  aws_instance.bar (destroy tainted)
   aws_instance.bar (destroy)
   aws_instance.foo
-aws_instance.bar (destroy tainted)
 aws_instance.bar (destroy)
 aws_instance.foo
-  aws_instance.foo (destroy tainted)
-aws_instance.foo (destroy tainted)
-  aws_instance.bar (destroy tainted)
 `
 
 const testTransformPruneDestroyCountDecStr = `
 aws_instance.bar
-  aws_instance.bar (destroy tainted)
   aws_instance.bar (destroy)
   aws_instance.foo
-aws_instance.bar (destroy tainted)
 aws_instance.bar (destroy)
 aws_instance.foo
-  aws_instance.foo (destroy tainted)
-aws_instance.foo (destroy tainted)
-  aws_instance.bar (destroy tainted)
 `
 
 const testTransformPruneDestroyCountStateStr = `
+aws_instance.bar
+  aws_instance.foo
+aws_instance.foo
+`
+
+const testTransformPruneDestroyPrefixStr = `
+aws_instance.foo
+aws_instance.foo-bar
+  aws_instance.foo-bar (destroy)
+aws_instance.foo-bar (destroy)
+`
+
+const testTransformPruneDestroyTaintedStr = `
 aws_instance.bar
   aws_instance.bar (destroy tainted)
   aws_instance.foo
 aws_instance.bar (destroy tainted)
 aws_instance.foo
-  aws_instance.foo (destroy tainted)
-aws_instance.foo (destroy tainted)
-  aws_instance.bar (destroy tainted)
 `
 
 const testTransformCreateBeforeDestroyBasicStr = `

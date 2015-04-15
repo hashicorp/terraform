@@ -93,6 +93,9 @@ The `disk` block supports:
 
 * `type` - (Optional) The GCE disk type.
 
+* `size` - (Optional) The size of the image in gigabytes. If not specified,
+    it will inherit the size of its base image.
+
 The `network_interface` block supports:
 
 * `network` - (Required) The name of the network to attach this interface to.

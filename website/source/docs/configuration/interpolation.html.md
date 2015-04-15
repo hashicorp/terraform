@@ -16,6 +16,9 @@ into strings. These interpolations are wrapped in `${}`, such as
 The interpolation syntax is powerful and allows you to reference
 variables, attributes of resources, call functions, etc.
 
+You can also perform simple math in interpolations, allowing
+you to write expressions such as `${count.index+1}`.
+
 ## Available Variables
 
 **To reference user variables**, use the `var.` prefix followed by the

@@ -1,4 +1,72 @@
-## 0.4.0 (unreleased)
+## 0.5.0 (unreleased)
+
+IMPROVEMENTS:
+
+ * core: Improve error message on diff mismatch [GH-1501]
+
+BUG FIXES:
+
+  * core: math on arbitrary variables works if first operand isn't a
+      numeric primitive. [GH-1381]
+  * core: avoid unnecessary cycles by pruning tainted destroys from
+      graph if there are no tainted resources [GH-1475]
+  * core: fix issue where destroy nodes weren't pruned in specific
+      edge cases around matching prefixes, which could cause cycles [GH-1527]
+  * core: fix issue causing diff mismatch errors in certain scenarios during
+      resource replacement [GH-1515]
+  * command: remote states with uppercase types work [GH-1356]
+  * provider/aws: launch configuration ID set after create success [GH-1518]
+  * provider/openstack: region config is not required [GH-1441]
+
+## 0.4.2 (April 10, 2015)
+
+BUG FIXES:
+
+  * core: refresh won't remove outputs from state file [GH-1369]
+  * core: clarify "unknown variable" error [GH-1480]
+  * core: properly merge parent provider configs when asking for input
+  * provider/aws: fix panic possibility if RDS DB name is empty [GH-1460]
+  * provider/aws: fix issue detecting credentials for some resources [GH-1470]
+  * provider/google: fix issue causing unresolvable diffs when using legacy
+      `network` field on `google_compute_instance` [GH-1458]
+
+## 0.4.1 (April 9, 2015)
+
+IMPROVEMENTS:
+
+  * provider/aws: Route 53 records can now update `ttl` and `records` attributes
+      without destroying/creating the record [GH-1396]
+  * provider/aws: Support changing additional attributes of RDS databases
+      without forcing a new resource  [GH-1382]
+
+BUG FIXES:
+
+  * core: module paths in ".terraform" are consistent across different
+      systems so copying your ".terraform" folder works. [GH-1418]
+  * core: don't validate providers too early when nested in a module [GH-1380]
+  * core: fix race condition in `count.index` interpolation [GH-1454]
+  * command/push: don't ask for input if terraform.tfvars is present
+  * command/remote-config: remove spurrious error "nil" when initializing
+      remote state on a new configuration. [GH-1392]
+  * provider/aws: Fix issue with Route 53 and pre-existing Hosted Zones [GH-1415]
+  * provider/aws: Fix refresh issue in Route 53 hosted zone [GH-1384]
+  * provider/aws: Fix issue when changing map-public-ip in Subnets #1234
+  * provider/aws: Fix issue finding db subnets [GH-1377]
+  * provider/aws: Fix issues with `*_block_device` attributes on instances and
+      launch configs creating unresolvable diffs when certain optional
+      parameters were omitted from the config [GH-1445]
+  * provider/aws: Fix issue with `aws_launch_configuration` causing an
+      unnecessary diff for pre-0.4 environments [GH-1371]
+  * provider/aws: Fix several related issues with `aws_launch_configuration`
+      causing unresolvable diffs [GH-1444]
+  * provider/aws: Fix issue preventing launch configurations from being valid
+      in EC2 Classic [GH-1412]
+  * provider/aws: Fix issue in updating Route 53 records on refresh/read. [GH-1430]
+  * provider/docker: Don't ask for `cert_path` input on every run [GH-1432]
+  * provider/google: Fix issue causing unresolvable diff on instances with
+      `network_interface` [GH-1427]
+
+## 0.4.0 (April 2, 2015)
 
 BACKWARDS INCOMPATIBILITIES:
 
@@ -6,20 +74,40 @@ BACKWARDS INCOMPATIBILITIES:
     the `remote` command: `terraform remote push` and `terraform remote pull`.
     The old `remote` functionality is now at `terraform remote config`. This
     consolidates all remote state management under one command.
+  * Period-prefixed configuration files are now ignored. This might break
+    existing Terraform configurations if you had period-prefixed files.
+  * The `block_device` attribute of `aws_instance` has been removed in favor
+    of three more specific attributes to specify block device mappings:
+    `root_block_device`, `ebs_block_device`, and `ephemeral_block_device`.
+    Configurations using the old attribute will generate a validation error
+    indicating that they must be updated to use the new fields [GH-1045].
 
 FEATURES:
 
   * **New provider: `dme` (DNSMadeEasy)** [GH-855]
+  * **New provider: `docker` (Docker)** - Manage container lifecycle
+      using the standard Docker API. [GH-855]
+  * **New provider: `openstack` (OpenStack)** - Interact with the many resources
+      provided by OpenStack. [GH-924]
+  * **New feature: `terraform_remote_state` resource** - Reference remote
+      states from other Terraform runs to use Terraform outputs as inputs
+      into another Terraform run.
   * **New command: `taint`** - Manually mark a resource as tainted, causing
       a destroy and recreate on the next plan/apply.
+  * **New resource: `aws_vpn_gateway`** [GH-1137]
+  * **New resource: `aws_elastic_network_interfaces`** [GH-1149]
   * **Self-variables** can be used to reference the current resource's
       attributes within a provisioner. Ex. `${self.private_ip_address}` [GH-1033]
-  * **Continous state** saving during `terraform apply`. The state file is
-      continously updated as apply is running, meaning that the state is
+  * **Continuous state** saving during `terraform apply`. The state file is
+      continuously updated as apply is running, meaning that the state is
       less likely to become corrupt in a catastrophic case: terraform panic
       or system killing Terraform.
   * **Math operations** in interpolations. You can now do things like
       `${count.index+1}`. [GH-1068]
+  * **New AWS SDK:** Move to `aws-sdk-go` (hashicorp/aws-sdk-go),
+      a fork of the offical `awslabs` repo. We forked for stability while
+      `awslabs` refactored the library, and will move back to the officially
+      supported version in the next release.
 
 IMPROVEMENTS:
 
@@ -31,10 +119,26 @@ IMPROVEMENTS:
   * **New config function: `split`** - Split a value based on a delimiter.
       This is useful for faking lists as parameters to modules.
   * **New resource: `digitalocean_ssh_key`** [GH-1074]
+  * config: Expand `~` with homedir in `file()` paths [GH-1338]
   * core: The serial of the state is only updated if there is an actual
       change. This will lower the amount of state changing on things
       like refresh.
   * core: Autoload `terraform.tfvars.json` as well as `terraform.tfvars` [GH-1030]
+  * core: `.tf` files that start with a period are now ignored. [GH-1227]
+  * command/remote-config: After enabling remote state, a `pull` is
+      automatically done initially.
+  * providers/google: Add `size` option to disk blocks for instances. [GH-1284]
+  * providers/aws: Improve support for tagging resources.
+  * providers/aws: Add a short syntax for Route 53 Record names, e.g.
+      `www` instead of `www.example.com`.
+  * providers/aws: Improve dependency violation error handling, when deleting
+      Internet Gateways or Auto Scaling groups [GH-1325].
+  * provider/aws: Add non-destructive updates to AWS RDS. You can now upgrade
+      `egine_version`, `parameter_group_name`, and `multi_az` without forcing
+      a new database to be created.[GH-1341]
+  * providers/aws: Full support for block device mappings on instances and
+      launch configurations [GH-1045, GH-1364]
+  * provisioners/remote-exec: SSH agent support. [GH-1208]
 
 BUG FIXES:
 
@@ -47,12 +151,31 @@ BUG FIXES:
       a computed attribute was used as part of a set parameter. [GH-1073]
   * core: Fix edge case where state containing both "resource" and
       "resource.0" would ignore the latter completely. [GH-1086]
+  * core: Modules with a source of a relative file path moving up
+      directories work properly, i.e. "../a" [GH-1232]
   * providers/aws: manually deleted VPC removes it from the state
   * providers/aws: `source_dest_check` regression fixed (now works). [GH-1020]
-  * providers/aws: Longer wait times for DB instances
+  * providers/aws: Longer wait times for DB instances.
+  * providers/aws: Longer wait times for route53 records (30 mins). [GH-1164]
+  * providers/aws: Fix support for TXT records in Route 53. [GH-1213]
+  * providers/aws: Fix support for wildcard records in Route 53. [GH-1222]
+  * providers/aws: Fix issue with ignoring the 'self' attribute of a
+      Security Group rule. [GH-1223]
+  * providers/aws: Fix issue with `sql_mode` in RDS parameter group always
+      causing an update. [GH-1225]
+  * providers/aws: Fix dependency violation with subnets and security groups
+      [GH-1252]
+  * providers/aws: Fix issue with refreshing `db_subnet_groups` causing an error
+      instead of updating state [GH-1254]
+  * providers/aws: Prevent empty string to be used as default
+      `health_check_type` [GH-1052]
+  * providers/aws: Add tags on AWS IG creation, not just on update [GH-1176]
   * providers/digitalocean: Waits until droplet is ready to be destroyed [GH-1057]
   * providers/digitalocean: More lenient about 404's while waiting [GH-1062]
+  * providers/digitalocean: FQDN for domain records in CNAME, MX, NS, etc.
+      Also fixes invalid updates in plans. [GH-863]
   * providers/google: Network data in state was not being stored. [GH-1095]
+  * providers/heroku: Fix panic when config vars block was empty. [GH-1211]
 
 PLUGIN CHANGES:
 
@@ -79,7 +202,7 @@ IMPROVEMENTS:
   * provider/aws: The `aws_db_instance` resource no longer requires both
       `final_snapshot_identifier` and `skip_final_snapshot`; the presence or
       absence of the former now implies the latter. [GH-874]
-  * provider/aws: Avoid unecessary update of `aws_subnet` when
+  * provider/aws: Avoid unnecessary update of `aws_subnet` when
       `map_public_ip_on_launch` is not specified in config. [GH-898]
   * provider/aws: Add `apply_method` to `aws_db_parameter_group` [GH-897]
   * provider/aws: Add `storage_type` to `aws_db_instance` [GH-896]
@@ -112,7 +235,7 @@ BUG FIXES:
   * command/apply: Fix regression where user variables weren't asked [GH-736]
   * helper/hashcode: Update `hash.String()` to always return a positive index.
       Fixes issue where specific strings would convert to a negative index
-      and be ommited when creating Route53 records. [GH-967]
+      and be omitted when creating Route53 records. [GH-967]
   * provider/aws: Automatically suffix the Route53 zone name on record names. [GH-312]
   * provider/aws: Instance should ignore root EBS devices. [GH-877]
   * provider/aws: Fix `aws_db_instance` to not recreate each time. [GH-874]
@@ -517,4 +640,5 @@ BUG FIXES:
 ## 0.1.0 (July 28, 2014)
 
   * Initial release
+
 

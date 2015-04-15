@@ -171,6 +171,7 @@ func resourceCloudStackNetworkUpdate(d *schema.ResourceData, meta interface{}) e
 		if displaytext == "" {
 			displaytext = name
 		}
+		p.SetDisplaytext(displaytext)
 	}
 
 	// Check if the cidr is changed

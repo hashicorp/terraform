@@ -18,6 +18,7 @@ func resourceAwsRoute53Record() *schema.Resource {
 	return &schema.Resource{
 		Create: resourceAwsRoute53RecordCreate,
 		Read:   resourceAwsRoute53RecordRead,
+		Update: resourceAwsRoute53RecordUpdate,
 		Delete: resourceAwsRoute53RecordDelete,
 
 		Schema: map[string]*schema.Schema{
@@ -42,14 +43,12 @@ func resourceAwsRoute53Record() *schema.Resource {
 			"ttl": &schema.Schema{
 				Type:     schema.TypeInt,
 				Required: true,
-				ForceNew: true,
 			},
 
 			"records": &schema.Schema{
 				Type:     schema.TypeSet,
 				Elem:     &schema.Schema{Type: schema.TypeString},
 				Required: true,
-				ForceNew: true,
 				Set: func(v interface{}) int {
 					return hashcode.String(v.(string))
 				},
@@ -58,26 +57,30 @@ func resourceAwsRoute53Record() *schema.Resource {
 	}
 }
 
+func resourceAwsRoute53RecordUpdate(d *schema.ResourceData, meta interface{}) error {
+	// Route 53 supports CREATE, DELETE, and UPSERT actions. We use UPSERT, and
+	// AWS dynamically determines if a record should be created or updated.
+	// Amazon Route 53 can update an existing resource record set only when all
+	// of the following values match: Name, Type
+	// (and SetIdentifier, which we don't use yet).
+	// See http://docs.aws.amazon.com/Route53/latest/APIReference/API_ChangeResourceRecordSets_Requests.html#change-rrsets-request-action
+	//
+	// Because we use UPSERT, for resouce update here we simply fall through to
+	// our resource create function.
+	return resourceAwsRoute53RecordCreate(d, meta)
+}
+
 func resourceAwsRoute53RecordCreate(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).r53conn
-	zone := d.Get("zone_id").(string)
+	zone := cleanZoneID(d.Get("zone_id").(string))
 
 	zoneRecord, err := conn.GetHostedZone(&route53.GetHostedZoneRequest{ID: aws.String(zone)})
 	if err != nil {
 		return err
 	}
 
-	// Check if the current record name contains the zone suffix.
-	// If it does not, add the zone name to form a fully qualified name
-	// and keep AWS happy.
-	recordName := d.Get("name").(string)
-	zoneName := strings.Trim(*zoneRecord.HostedZone.Name, ".")
-	if !strings.HasSuffix(recordName, zoneName) {
-		d.Set("name", strings.Join([]string{recordName, zoneName}, "."))
-	}
-
 	// Get the record
-	rec, err := resourceAwsRoute53RecordBuildSet(d)
+	rec, err := resourceAwsRoute53RecordBuildSet(d, *zoneRecord.HostedZone.Name)
 	if err != nil {
 		return err
 	}
@@ -101,7 +104,7 @@ func resourceAwsRoute53RecordCreate(d *schema.ResourceData, meta interface{}) er
 	}
 
 	log.Printf("[DEBUG] Creating resource records for zone: %s, name: %s",
-		zone, d.Get("name").(string))
+		zone, *rec.Name)
 
 	wait := resource.StateChangeConf{
 		Pending:    []string{"rejected"},
@@ -111,10 +114,12 @@ func resourceAwsRoute53RecordCreate(d *schema.ResourceData, meta interface{}) er
 		Refresh: func() (interface{}, string, error) {
 			resp, err := conn.ChangeResourceRecordSets(req)
 			if err != nil {
-				if strings.Contains(err.Error(), "PriorRequestNotComplete") {
-					// There is some pending operation, so just retry
-					// in a bit.
-					return nil, "rejected", nil
+				if r53err, ok := err.(aws.APIError); ok {
+					if r53err.Code == "PriorRequestNotComplete" {
+						// There is some pending operation, so just retry
+						// in a bit.
+						return nil, "rejected", nil
+					}
 				}
 
 				return nil, "failure", err
@@ -138,7 +143,7 @@ func resourceAwsRoute53RecordCreate(d *schema.ResourceData, meta interface{}) er
 		Delay:      30 * time.Second,
 		Pending:    []string{"PENDING"},
 		Target:     "INSYNC",
-		Timeout:    10 * time.Minute,
+		Timeout:    30 * time.Minute,
 		MinTimeout: 5 * time.Second,
 		Refresh: func() (result interface{}, state string, err error) {
 			changeRequest := &route53.GetChangeRequest{
@@ -158,10 +163,18 @@ func resourceAwsRoute53RecordCreate(d *schema.ResourceData, meta interface{}) er
 func resourceAwsRoute53RecordRead(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).r53conn
 
-	zone := d.Get("zone_id").(string)
+	zone := cleanZoneID(d.Get("zone_id").(string))
+
+	// get expanded name
+	zoneRecord, err := conn.GetHostedZone(&route53.GetHostedZoneRequest{ID: aws.String(zone)})
+	if err != nil {
+		return err
+	}
+	en := expandRecordName(d.Get("name").(string), *zoneRecord.HostedZone.Name)
+
 	lopts := &route53.ListResourceRecordSetsRequest{
 		HostedZoneID:    aws.String(cleanZoneID(zone)),
-		StartRecordName: aws.String(d.Get("name").(string)),
+		StartRecordName: aws.String(en),
 		StartRecordType: aws.String(d.Get("type").(string)),
 	}
 
@@ -173,7 +186,8 @@ func resourceAwsRoute53RecordRead(d *schema.ResourceData, meta interface{}) erro
 	// Scan for a matching record
 	found := false
 	for _, record := range resp.ResourceRecordSets {
-		if FQDN(*record.Name) != FQDN(*lopts.StartRecordName) {
+		name := cleanRecordName(*record.Name)
+		if FQDN(name) != FQDN(*lopts.StartRecordName) {
 			continue
 		}
 		if strings.ToUpper(*record.Type) != strings.ToUpper(*lopts.StartRecordType) {
@@ -182,7 +196,10 @@ func resourceAwsRoute53RecordRead(d *schema.ResourceData, meta interface{}) erro
 
 		found = true
 
-		d.Set("records", record.ResourceRecords)
+		err := d.Set("records", flattenResourceRecords(record.ResourceRecords))
+		if err != nil {
+			return fmt.Errorf("[DEBUG] Error setting records for: %s, error: %#v", en, err)
+		}
 		d.Set("ttl", record.TTL)
 
 		break
@@ -198,12 +215,15 @@ func resourceAwsRoute53RecordRead(d *schema.ResourceData, meta interface{}) erro
 func resourceAwsRoute53RecordDelete(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).r53conn
 
-	zone := d.Get("zone_id").(string)
+	zone := cleanZoneID(d.Get("zone_id").(string))
 	log.Printf("[DEBUG] Deleting resource records for zone: %s, name: %s",
 		zone, d.Get("name").(string))
-
+	zoneRecord, err := conn.GetHostedZone(&route53.GetHostedZoneRequest{ID: aws.String(zone)})
+	if err != nil {
+		return err
+	}
 	// Get the records
-	rec, err := resourceAwsRoute53RecordBuildSet(d)
+	rec, err := resourceAwsRoute53RecordBuildSet(d, *zoneRecord.HostedZone.Name)
 	if err != nil {
 		return err
 	}
@@ -232,15 +252,17 @@ func resourceAwsRoute53RecordDelete(d *schema.ResourceData, meta interface{}) er
 		Refresh: func() (interface{}, string, error) {
 			_, err := conn.ChangeResourceRecordSets(req)
 			if err != nil {
-				if strings.Contains(err.Error(), "PriorRequestNotComplete") {
-					// There is some pending operation, so just retry
-					// in a bit.
-					return 42, "rejected", nil
-				}
+				if r53err, ok := err.(aws.APIError); ok {
+					if r53err.Code == "PriorRequestNotComplete" {
+						// There is some pending operation, so just retry
+						// in a bit.
+						return 42, "rejected", nil
+					}
 
-				if strings.Contains(err.Error(), "InvalidChangeBatch") {
-					// This means that the record is already gone.
-					return 42, "accepted", nil
+					if r53err.Code == "InvalidChangeBatch" {
+						// This means that the record is already gone.
+						return 42, "accepted", nil
+					}
 				}
 
 				return 42, "failure", err
@@ -257,16 +279,20 @@ func resourceAwsRoute53RecordDelete(d *schema.ResourceData, meta interface{}) er
 	return nil
 }
 
-func resourceAwsRoute53RecordBuildSet(d *schema.ResourceData) (*route53.ResourceRecordSet, error) {
+func resourceAwsRoute53RecordBuildSet(d *schema.ResourceData, zoneName string) (*route53.ResourceRecordSet, error) {
 	recs := d.Get("records").(*schema.Set).List()
-	records := make([]route53.ResourceRecord, 0, len(recs))
 
-	for _, r := range recs {
-		records = append(records, route53.ResourceRecord{Value: aws.String(r.(string))})
-	}
+	records := expandResourceRecords(recs, d.Get("type").(string))
 
+	// get expanded name
+	en := expandRecordName(d.Get("name").(string), zoneName)
+
+	// Create the RecordSet request with the fully expanded name, e.g.
+	// sub.domain.com. Route 53 requires a fully qualified domain name, but does
+	// not require the trailing ".", which it will itself, so we don't call FQDN
+	// here.
 	rec := &route53.ResourceRecordSet{
-		Name:            aws.String(d.Get("name").(string)),
+		Name:            aws.String(en),
 		Type:            aws.String(d.Get("type").(string)),
 		TTL:             aws.Long(int64(d.Get("ttl").(int))),
 		ResourceRecords: records,
@@ -281,4 +307,28 @@ func FQDN(name string) string {
 	} else {
 		return name + "."
 	}
+}
+
+// Route 53 stores the "*" wildcard indicator as ASCII 42 and returns the
+// octal equivalent, "\\052". Here we look for that, and convert back to "*"
+// as needed.
+func cleanRecordName(name string) string {
+	str := name
+	if strings.HasPrefix(name, "\\052") {
+		str = strings.Replace(name, "\\052", "*", 1)
+		log.Printf("[DEBUG] Replacing octal \\052 for * in: %s", name)
+	}
+	return str
+}
+
+// Check if the current record name contains the zone suffix.
+// If it does not, add the zone name to form a fully qualified name
+// and keep AWS happy.
+func expandRecordName(name, zone string) string {
+	rn := strings.TrimSuffix(name, ".")
+	zone = strings.TrimSuffix(zone, ".")
+	if !strings.HasSuffix(rn, zone) {
+		rn = strings.Join([]string{name, zone}, ".")
+	}
+	return rn
 }

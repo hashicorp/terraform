@@ -5,8 +5,8 @@ import (
 	"log"
 	"time"
 
-	"github.com/hashicorp/aws-sdk-go/aws"
-	"github.com/hashicorp/aws-sdk-go/gen/ec2"
+	"github.com/awslabs/aws-sdk-go/aws"
+	"github.com/awslabs/aws-sdk-go/service/ec2"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 )
@@ -29,28 +29,33 @@ func resourceAwsInternetGateway() *schema.Resource {
 }
 
 func resourceAwsInternetGatewayCreate(d *schema.ResourceData, meta interface{}) error {
-	ec2conn := meta.(*AWSClient).awsEC2conn
+	conn := meta.(*AWSClient).ec2SDKconn
 
 	// Create the gateway
 	log.Printf("[DEBUG] Creating internet gateway")
-	resp, err := ec2conn.CreateInternetGateway(nil)
+	resp, err := conn.CreateInternetGateway(nil)
 	if err != nil {
 		return fmt.Errorf("Error creating internet gateway: %s", err)
 	}
 
 	// Get the ID and store it
-	ig := resp.InternetGateway
+	ig := *resp.InternetGateway
 	d.SetId(*ig.InternetGatewayID)
 	log.Printf("[INFO] InternetGateway ID: %s", d.Id())
+
+	err = setTagsSDK(conn, d)
+	if err != nil {
+		return err
+	}
 
 	// Attach the new gateway to the correct vpc
 	return resourceAwsInternetGatewayAttach(d, meta)
 }
 
 func resourceAwsInternetGatewayRead(d *schema.ResourceData, meta interface{}) error {
-	ec2conn := meta.(*AWSClient).awsEC2conn
+	conn := meta.(*AWSClient).ec2SDKconn
 
-	igRaw, _, err := IGStateRefreshFunc(ec2conn, d.Id())()
+	igRaw, _, err := IGStateRefreshFunc(conn, d.Id())()
 	if err != nil {
 		return err
 	}
@@ -86,9 +91,9 @@ func resourceAwsInternetGatewayUpdate(d *schema.ResourceData, meta interface{}) 
 		}
 	}
 
-	ec2conn := meta.(*AWSClient).awsEC2conn
+	conn := meta.(*AWSClient).ec2SDKconn
 
-	if err := setTagsSDK(ec2conn, d); err != nil {
+	if err := setTagsSDK(conn, d); err != nil {
 		return err
 	}
 
@@ -98,7 +103,7 @@ func resourceAwsInternetGatewayUpdate(d *schema.ResourceData, meta interface{}) 
 }
 
 func resourceAwsInternetGatewayDelete(d *schema.ResourceData, meta interface{}) error {
-	ec2conn := meta.(*AWSClient).awsEC2conn
+	conn := meta.(*AWSClient).ec2SDKconn
 
 	// Detach if it is attached
 	if err := resourceAwsInternetGatewayDetach(d, meta); err != nil {
@@ -108,7 +113,7 @@ func resourceAwsInternetGatewayDelete(d *schema.ResourceData, meta interface{}) 
 	log.Printf("[INFO] Deleting Internet Gateway: %s", d.Id())
 
 	return resource.Retry(5*time.Minute, func() error {
-		err := ec2conn.DeleteInternetGateway(&ec2.DeleteInternetGatewayRequest{
+		_, err := conn.DeleteInternetGateway(&ec2.DeleteInternetGatewayInput{
 			InternetGatewayID: aws.String(d.Id()),
 		})
 		if err == nil {
@@ -132,7 +137,7 @@ func resourceAwsInternetGatewayDelete(d *schema.ResourceData, meta interface{}) 
 }
 
 func resourceAwsInternetGatewayAttach(d *schema.ResourceData, meta interface{}) error {
-	ec2conn := meta.(*AWSClient).awsEC2conn
+	conn := meta.(*AWSClient).ec2SDKconn
 
 	if d.Get("vpc_id").(string) == "" {
 		log.Printf(
@@ -146,7 +151,7 @@ func resourceAwsInternetGatewayAttach(d *schema.ResourceData, meta interface{}) 
 		d.Id(),
 		d.Get("vpc_id").(string))
 
-	err := ec2conn.AttachInternetGateway(&ec2.AttachInternetGatewayRequest{
+	_, err := conn.AttachInternetGateway(&ec2.AttachInternetGatewayInput{
 		InternetGatewayID: aws.String(d.Id()),
 		VPCID:             aws.String(d.Get("vpc_id").(string)),
 	})
@@ -164,7 +169,7 @@ func resourceAwsInternetGatewayAttach(d *schema.ResourceData, meta interface{}) 
 	stateConf := &resource.StateChangeConf{
 		Pending: []string{"detached", "attaching"},
 		Target:  "available",
-		Refresh: IGAttachStateRefreshFunc(ec2conn, d.Id(), "available"),
+		Refresh: IGAttachStateRefreshFunc(conn, d.Id(), "available"),
 		Timeout: 1 * time.Minute,
 	}
 	if _, err := stateConf.WaitForState(); err != nil {
@@ -177,7 +182,7 @@ func resourceAwsInternetGatewayAttach(d *schema.ResourceData, meta interface{}) 
 }
 
 func resourceAwsInternetGatewayDetach(d *schema.ResourceData, meta interface{}) error {
-	ec2conn := meta.(*AWSClient).awsEC2conn
+	conn := meta.(*AWSClient).ec2SDKconn
 
 	// Get the old VPC ID to detach from
 	vpcID, _ := d.GetChange("vpc_id")
@@ -194,39 +199,14 @@ func resourceAwsInternetGatewayDetach(d *schema.ResourceData, meta interface{}) 
 		d.Id(),
 		vpcID.(string))
 
-	wait := true
-	err := ec2conn.DetachInternetGateway(&ec2.DetachInternetGatewayRequest{
-		InternetGatewayID: aws.String(d.Id()),
-		VPCID:             aws.String(vpcID.(string)),
-	})
-	if err != nil {
-		ec2err, ok := err.(aws.APIError)
-		if ok {
-			if ec2err.Code == "InvalidInternetGatewayID.NotFound" {
-				err = nil
-				wait = false
-			} else if ec2err.Code == "Gateway.NotAttached" {
-				err = nil
-				wait = false
-			}
-		}
-
-		if err != nil {
-			return err
-		}
-	}
-
-	if !wait {
-		return nil
-	}
-
 	// Wait for it to be fully detached before continuing
 	log.Printf("[DEBUG] Waiting for internet gateway (%s) to detach", d.Id())
 	stateConf := &resource.StateChangeConf{
-		Pending: []string{"attached", "detaching", "available"},
+		Pending: []string{"detaching"},
 		Target:  "detached",
-		Refresh: IGAttachStateRefreshFunc(ec2conn, d.Id(), "detached"),
-		Timeout: 1 * time.Minute,
+		Refresh: detachIGStateRefreshFunc(conn, d.Id(), vpcID.(string)),
+		Timeout: 2 * time.Minute,
+		Delay:   10 * time.Second,
 	}
 	if _, err := stateConf.WaitForState(); err != nil {
 		return fmt.Errorf(
@@ -237,12 +217,38 @@ func resourceAwsInternetGatewayDetach(d *schema.ResourceData, meta interface{}) 
 	return nil
 }
 
+// InstanceStateRefreshFunc returns a resource.StateRefreshFunc that is used to watch
+// an EC2 instance.
+func detachIGStateRefreshFunc(conn *ec2.EC2, instanceID, vpcID string) resource.StateRefreshFunc {
+	return func() (interface{}, string, error) {
+		_, err := conn.DetachInternetGateway(&ec2.DetachInternetGatewayInput{
+			InternetGatewayID: aws.String(instanceID),
+			VPCID:             aws.String(vpcID),
+		})
+		if err != nil {
+			ec2err, ok := err.(aws.APIError)
+			if ok {
+				if ec2err.Code == "InvalidInternetGatewayID.NotFound" {
+					return nil, "Not Found", err
+				} else if ec2err.Code == "Gateway.NotAttached" {
+					return "detached", "detached", nil
+				} else if ec2err.Code == "DependencyViolation" {
+					return nil, "detaching", nil
+				}
+			}
+		}
+		// DetachInternetGateway only returns an error, so if it's nil, assume we're
+		// detached
+		return "detached", "detached", nil
+	}
+}
+
 // IGStateRefreshFunc returns a resource.StateRefreshFunc that is used to watch
 // an internet gateway.
-func IGStateRefreshFunc(ec2conn *ec2.EC2, id string) resource.StateRefreshFunc {
+func IGStateRefreshFunc(conn *ec2.EC2, id string) resource.StateRefreshFunc {
 	return func() (interface{}, string, error) {
-		resp, err := ec2conn.DescribeInternetGateways(&ec2.DescribeInternetGatewaysRequest{
-			InternetGatewayIDs: []string{id},
+		resp, err := conn.DescribeInternetGateways(&ec2.DescribeInternetGatewaysInput{
+			InternetGatewayIDs: []*string{aws.String(id)},
 		})
 		if err != nil {
 			ec2err, ok := err.(aws.APIError)
@@ -260,22 +266,22 @@ func IGStateRefreshFunc(ec2conn *ec2.EC2, id string) resource.StateRefreshFunc {
 			return nil, "", nil
 		}
 
-		ig := &resp.InternetGateways[0]
+		ig := resp.InternetGateways[0]
 		return ig, "available", nil
 	}
 }
 
 // IGAttachStateRefreshFunc returns a resource.StateRefreshFunc that is used
 // watch the state of an internet gateway's attachment.
-func IGAttachStateRefreshFunc(ec2conn *ec2.EC2, id string, expected string) resource.StateRefreshFunc {
+func IGAttachStateRefreshFunc(conn *ec2.EC2, id string, expected string) resource.StateRefreshFunc {
 	var start time.Time
 	return func() (interface{}, string, error) {
 		if start.IsZero() {
 			start = time.Now()
 		}
 
-		resp, err := ec2conn.DescribeInternetGateways(&ec2.DescribeInternetGatewaysRequest{
-			InternetGatewayIDs: []string{id},
+		resp, err := conn.DescribeInternetGateways(&ec2.DescribeInternetGatewaysInput{
+			InternetGatewayIDs: []*string{aws.String(id)},
 		})
 		if err != nil {
 			ec2err, ok := err.(aws.APIError)
@@ -293,11 +299,7 @@ func IGAttachStateRefreshFunc(ec2conn *ec2.EC2, id string, expected string) reso
 			return nil, "", nil
 		}
 
-		ig := &resp.InternetGateways[0]
-
-		if time.Now().Sub(start) > 10*time.Second {
-			return ig, expected, nil
-		}
+		ig := resp.InternetGateways[0]
 
 		if len(ig.Attachments) == 0 {
 			// No attachments, we're detached

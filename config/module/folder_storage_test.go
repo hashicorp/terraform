@@ -24,14 +24,16 @@ func TestFolderStorage(t *testing.T) {
 		t.Fatal("should not exist")
 	}
 
+	key := "foo"
+
 	// We can get it
-	err = s.Get(module, false)
+	err = s.Get(key, module, false)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
 
 	// Now the module exists
-	dir, ok, err := s.Dir(module)
+	dir, ok, err := s.Dir(key)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}

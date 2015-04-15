@@ -2322,6 +2322,24 @@ func TestSchemaMap_Input(t *testing.T) {
 			Err: false,
 		},
 
+		"input ignored when default function returns an empty string": {
+			Schema: map[string]*Schema{
+				"availability_zone": &Schema{
+					Type:     TypeString,
+					Default:  "",
+					Optional: true,
+				},
+			},
+
+			Input: map[string]string{
+				"availability_zone": "bar",
+			},
+
+			Result: map[string]interface{}{},
+
+			Err: false,
+		},
+
 		"input used when default function returns nil": {
 			Schema: map[string]*Schema{
 				"availability_zone": &Schema{

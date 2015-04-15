@@ -2,6 +2,7 @@ package config
 
 import (
 	"path/filepath"
+	"reflect"
 	"strings"
 	"testing"
 )
@@ -55,6 +56,11 @@ func TestLoadBasic(t *testing.T) {
 
 	if c.Dir != "" {
 		t.Fatalf("bad: %#v", c.Dir)
+	}
+
+	expectedAtlas := &AtlasConfig{Name: "mitchellh/foo"}
+	if !reflect.DeepEqual(c.Atlas, expectedAtlas) {
+		t.Fatalf("bad: %#v", c.Atlas)
 	}
 
 	actual := variablesStr(c.Variables)
@@ -130,6 +136,11 @@ func TestLoadBasic_json(t *testing.T) {
 
 	if c.Dir != "" {
 		t.Fatalf("bad: %#v", c.Dir)
+	}
+
+	expectedAtlas := &AtlasConfig{Name: "mitchellh/foo"}
+	if !reflect.DeepEqual(c.Atlas, expectedAtlas) {
+		t.Fatalf("bad: %#v", c.Atlas)
 	}
 
 	actual := variablesStr(c.Variables)

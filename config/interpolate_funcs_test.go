@@ -302,8 +302,8 @@ func testFunction(t *testing.T, config testFunctionConfig) {
 
 		if !reflect.DeepEqual(out, tc.Result) {
 			t.Fatalf(
-				"%d: bad output for input: %s\n\nOutput: %#v",
-				i, tc.Input, out)
+				"%d: bad output for input: %s\n\nOutput: %#v\nExpected: %#v",
+				i, tc.Input, out, tc.Result)
 		}
 	}
 }
