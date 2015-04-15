@@ -6,8 +6,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/hashicorp/aws-sdk-go/aws"
-	"github.com/hashicorp/aws-sdk-go/gen/rds"
+	"github.com/awslabs/aws-sdk-go/aws"
+	"github.com/awslabs/aws-sdk-go/service/rds"
 	"github.com/hashicorp/terraform/helper/hashcode"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
@@ -49,12 +49,12 @@ func resourceAwsDbSubnetGroupCreate(d *schema.ResourceData, meta interface{}) er
 	rdsconn := meta.(*AWSClient).rdsconn
 
 	subnetIdsSet := d.Get("subnet_ids").(*schema.Set)
-	subnetIds := make([]string, subnetIdsSet.Len())
+	subnetIds := make([]*string, subnetIdsSet.Len())
 	for i, subnetId := range subnetIdsSet.List() {
-		subnetIds[i] = subnetId.(string)
+		subnetIds[i] = aws.String(subnetId.(string))
 	}
 
-	createOpts := rds.CreateDBSubnetGroupMessage{
+	createOpts := rds.CreateDBSubnetGroupInput{
 		DBSubnetGroupName:        aws.String(d.Get("name").(string)),
 		DBSubnetGroupDescription: aws.String(d.Get("description").(string)),
 		SubnetIDs:                subnetIds,
@@ -74,7 +74,7 @@ func resourceAwsDbSubnetGroupCreate(d *schema.ResourceData, meta interface{}) er
 func resourceAwsDbSubnetGroupRead(d *schema.ResourceData, meta interface{}) error {
 	rdsconn := meta.(*AWSClient).rdsconn
 
-	describeOpts := rds.DescribeDBSubnetGroupsMessage{
+	describeOpts := rds.DescribeDBSubnetGroupsInput{
 		DBSubnetGroupName: aws.String(d.Id()),
 	}
 
@@ -92,7 +92,7 @@ func resourceAwsDbSubnetGroupRead(d *schema.ResourceData, meta interface{}) erro
 		return fmt.Errorf("Unable to find DB Subnet Group: %#v", describeResp.DBSubnetGroups)
 	}
 
-	var subnetGroup rds.DBSubnetGroup
+	var subnetGroup *rds.DBSubnetGroup
 	for _, s := range describeResp.DBSubnetGroups {
 		// AWS is down casing the name provided, so we compare lower case versions
 		// of the names. We lower case both our name and their name in the check,
@@ -137,11 +137,11 @@ func resourceAwsDbSubnetGroupDeleteRefreshFunc(
 
 	return func() (interface{}, string, error) {
 
-		deleteOpts := rds.DeleteDBSubnetGroupMessage{
+		deleteOpts := rds.DeleteDBSubnetGroupInput{
 			DBSubnetGroupName: aws.String(d.Id()),
 		}
 
-		if err := rdsconn.DeleteDBSubnetGroup(&deleteOpts); err != nil {
+		if _, err := rdsconn.DeleteDBSubnetGroup(&deleteOpts); err != nil {
 			rdserr, ok := err.(aws.APIError)
 			if !ok {
 				return d, "error", err

@@ -6,7 +6,7 @@ import (
 	"github.com/awslabs/aws-sdk-go/aws"
 	"github.com/awslabs/aws-sdk-go/service/ec2"
 	"github.com/awslabs/aws-sdk-go/service/elb"
-	"github.com/hashicorp/aws-sdk-go/gen/rds"
+	"github.com/awslabs/aws-sdk-go/service/rds"
 	"github.com/hashicorp/terraform/helper/schema"
 )
 
@@ -105,15 +105,15 @@ func expandIPPermsSDK(
 
 // Takes the result of flatmap.Expand for an array of parameters and
 // returns Parameter API compatible objects
-func expandParametersSDK(configured []interface{}) ([]rds.Parameter, error) {
-	parameters := make([]rds.Parameter, 0, len(configured))
+func expandParametersSDK(configured []interface{}) ([]*rds.Parameter, error) {
+	parameters := make([]*rds.Parameter, 0, len(configured))
 
 	// Loop over our configured parameters and create
 	// an array of aws-sdk-go compatabile objects
 	for _, pRaw := range configured {
 		data := pRaw.(map[string]interface{})
 
-		p := rds.Parameter{
+		p := &rds.Parameter{
 			ApplyMethod:    aws.String(data["apply_method"].(string)),
 			ParameterName:  aws.String(data["name"].(string)),
 			ParameterValue: aws.String(data["value"].(string)),
@@ -189,7 +189,7 @@ func flattenListenersSDK(list []*elb.ListenerDescription) []map[string]interface
 }
 
 // Flattens an array of Parameters into a []map[string]interface{}
-func flattenParametersSDK(list []rds.Parameter) []map[string]interface{} {
+func flattenParametersSDK(list []*rds.Parameter) []map[string]interface{} {
 	result := make([]map[string]interface{}, 0, len(list))
 	for _, i := range list {
 		result = append(result, map[string]interface{}{

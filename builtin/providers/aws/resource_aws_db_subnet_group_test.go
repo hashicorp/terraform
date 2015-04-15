@@ -7,8 +7,8 @@ import (
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
 
-	"github.com/hashicorp/aws-sdk-go/aws"
-	"github.com/hashicorp/aws-sdk-go/gen/rds"
+	"github.com/awslabs/aws-sdk-go/aws"
+	"github.com/awslabs/aws-sdk-go/service/rds"
 )
 
 func TestAccAWSDBSubnetGroup(t *testing.T) {
@@ -45,7 +45,7 @@ func testAccCheckDBSubnetGroupDestroy(s *terraform.State) error {
 
 		// Try to find the resource
 		resp, err := conn.DescribeDBSubnetGroups(
-			&rds.DescribeDBSubnetGroupsMessage{DBSubnetGroupName: aws.String(rs.Primary.ID)})
+			&rds.DescribeDBSubnetGroupsInput{DBSubnetGroupName: aws.String(rs.Primary.ID)})
 		if err == nil {
 			if len(resp.DBSubnetGroups) > 0 {
 				return fmt.Errorf("still exist.")
@@ -80,7 +80,7 @@ func testAccCheckDBSubnetGroupExists(n string, v *rds.DBSubnetGroup) resource.Te
 
 		conn := testAccProvider.Meta().(*AWSClient).rdsconn
 		resp, err := conn.DescribeDBSubnetGroups(
-			&rds.DescribeDBSubnetGroupsMessage{DBSubnetGroupName: aws.String(rs.Primary.ID)})
+			&rds.DescribeDBSubnetGroupsInput{DBSubnetGroupName: aws.String(rs.Primary.ID)})
 		if err != nil {
 			return err
 		}
@@ -88,7 +88,7 @@ func testAccCheckDBSubnetGroupExists(n string, v *rds.DBSubnetGroup) resource.Te
 			return fmt.Errorf("DbSubnetGroup not found")
 		}
 
-		*v = resp.DBSubnetGroups[0]
+		*v = *resp.DBSubnetGroups[0]
 
 		return nil
 	}

@@ -5,7 +5,7 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/hashicorp/aws-sdk-go/gen/rds"
+	"github.com/awslabs/aws-sdk-go/service/rds"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
 )
@@ -63,9 +63,9 @@ func TestDiffRDSTags(t *testing.T) {
 
 // testAccCheckTags can be used to check the tags on a resource.
 func testAccCheckRDSTags(
-	ts *[]rds.Tag, key string, value string) resource.TestCheckFunc {
+	ts []*rds.Tag, key string, value string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
-		m := tagsToMapRDS(*ts)
+		m := tagsToMapRDS(ts)
 		v, ok := m[key]
 		if value != "" && !ok {
 			return fmt.Errorf("Missing tag: %s", key)
