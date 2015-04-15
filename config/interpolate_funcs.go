@@ -23,6 +23,7 @@ func init() {
 		"element": interpolationFuncElement(),
 		"replace": interpolationFuncReplace(),
 		"split":   interpolationFuncSplit(),
+		"length":  interpolationFuncLength(),
 
 		// Concat is a little useless now since we supported embeddded
 		// interpolations but we keep it around for backwards compat reasons.
@@ -128,6 +129,28 @@ func interpolationFuncReplace() ast.Function {
 			}
 
 			return strings.Replace(s, search, replace, -1), nil
+		},
+	}
+}
+
+func interpolationFuncLength() ast.Function {
+	return ast.Function{
+		ArgTypes:   []ast.Type{ast.TypeString},
+		ReturnType: ast.TypeInt,
+		Variadic:   false,
+		Callback: func(args []interface{}) (interface{}, error) {
+			if !strings.Contains(args[0].(string), InterpSplitDelim) {
+				return len(args[0].(string)), nil
+			}
+
+			var list []string
+			for _, arg := range args {
+				parts := strings.Split(arg.(string), InterpSplitDelim)
+				for _, part := range parts {
+					list = append(list, part)
+				}
+			}
+			return len(list), nil
 		},
 	}
 }
