@@ -5,7 +5,7 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/hashicorp/aws-sdk-go/gen/autoscaling"
+	"github.com/awslabs/aws-sdk-go/service/autoscaling"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
 )
@@ -93,9 +93,9 @@ func TestDiffAutoscalingTags(t *testing.T) {
 
 // testAccCheckTags can be used to check the tags on a resource.
 func testAccCheckAutoscalingTags(
-	ts *[]autoscaling.TagDescription, key string, expected map[string]interface{}) resource.TestCheckFunc {
+	ts *[]*autoscaling.TagDescription, key string, expected map[string]interface{}) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
-		m := autoscalingTagDescriptionsToMap(*ts)
+		m := autoscalingTagDescriptionsToMap(ts)
 		v, ok := m[key]
 		if !ok {
 			return fmt.Errorf("Missing tag: %s", key)
@@ -110,9 +110,9 @@ func testAccCheckAutoscalingTags(
 	}
 }
 
-func testAccCheckAutoscalingTagNotExists(ts *[]autoscaling.TagDescription, key string) resource.TestCheckFunc {
+func testAccCheckAutoscalingTagNotExists(ts *[]*autoscaling.TagDescription, key string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
-		m := autoscalingTagDescriptionsToMap(*ts)
+		m := autoscalingTagDescriptionsToMap(ts)
 		if _, ok := m[key]; ok {
 			return fmt.Errorf("Tag exists when it should not: %s", key)
 		}
