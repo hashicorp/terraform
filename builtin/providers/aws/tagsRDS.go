@@ -3,8 +3,8 @@ package aws
 import (
 	"log"
 
-        "github.com/awslabs/aws-sdk-go/aws"
-        "github.com/awslabs/aws-sdk-go/service/rds"
+	"github.com/awslabs/aws-sdk-go/aws"
+	"github.com/awslabs/aws-sdk-go/service/rds"
 	"github.com/hashicorp/terraform/helper/schema"
 )
 
@@ -20,12 +20,12 @@ func setTagsRDS(conn *rds.RDS, d *schema.ResourceData, arn string) error {
 		// Set tags
 		if len(remove) > 0 {
 			log.Printf("[DEBUG] Removing tags: %#v", remove)
-                        k := make([]*string, len(remove), len(remove))
+			k := make([]*string, len(remove), len(remove))
 			for i, t := range remove {
-                                k[i] = t.Key
+				k[i] = t.Key
 			}
 
-                        _, err := conn.RemoveTagsFromResource(&rds.RemoveTagsFromResourceInput{
+			_, err := conn.RemoveTagsFromResource(&rds.RemoveTagsFromResourceInput{
 				ResourceName: aws.String(arn),
 				TagKeys:      k,
 			})
@@ -35,7 +35,7 @@ func setTagsRDS(conn *rds.RDS, d *schema.ResourceData, arn string) error {
 		}
 		if len(create) > 0 {
 			log.Printf("[DEBUG] Creating tags: %#v", create)
-                        _, err := conn.AddTagsToResource(&rds.AddTagsToResourceInput{
+			_, err := conn.AddTagsToResource(&rds.AddTagsToResourceInput{
 				ResourceName: aws.String(arn),
 				Tags:         create,
 			})
@@ -59,7 +59,7 @@ func diffTagsRDS(oldTags, newTags []*rds.Tag) ([]*rds.Tag, []*rds.Tag) {
 	}
 
 	// Build the list of what to remove
-        var remove []*rds.Tag
+	var remove []*rds.Tag
 	for _, t := range oldTags {
 		old, ok := create[*t.Key]
 		if !ok || old != *t.Value {
@@ -73,9 +73,9 @@ func diffTagsRDS(oldTags, newTags []*rds.Tag) ([]*rds.Tag, []*rds.Tag) {
 
 // tagsFromMap returns the tags for the given map of data.
 func tagsFromMapRDS(m map[string]interface{}) []*rds.Tag {
-        result := make([]*rds.Tag, 0, len(m))
+	result := make([]*rds.Tag, 0, len(m))
 	for k, v := range m {
-                result = append(result, &rds.Tag{
+		result = append(result, &rds.Tag{
 			Key:   aws.String(k),
 			Value: aws.String(v.(string)),
 		})
