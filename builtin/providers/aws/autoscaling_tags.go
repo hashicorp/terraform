@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/hashicorp/aws-sdk-go/aws"
-	"github.com/hashicorp/aws-sdk-go/gen/autoscaling"
+	"github.com/awslabs/aws-sdk-go/aws"
+	"github.com/awslabs/aws-sdk-go/service/autoscaling"
 	"github.com/hashicorp/terraform/helper/hashcode"
 	"github.com/hashicorp/terraform/helper/schema"
 )
@@ -61,23 +61,23 @@ func setAutoscalingTags(conn *autoscaling.AutoScaling, d *schema.ResourceData) e
 			autoscalingTagsFromMap(o, resourceID),
 			autoscalingTagsFromMap(n, resourceID),
 			resourceID)
-		create := autoscaling.CreateOrUpdateTagsType{
+		create := autoscaling.CreateOrUpdateTagsInput{
 			Tags: c,
 		}
-		remove := autoscaling.DeleteTagsType{
+		remove := autoscaling.DeleteTagsInput{
 			Tags: r,
 		}
 
 		// Set tags
 		if len(r) > 0 {
 			log.Printf("[DEBUG] Removing autoscaling tags: %#v", r)
-			if err := conn.DeleteTags(&remove); err != nil {
+			if _, err := conn.DeleteTags(&remove); err != nil {
 				return err
 			}
 		}
 		if len(c) > 0 {
 			log.Printf("[DEBUG] Creating autoscaling tags: %#v", c)
-			if err := conn.CreateOrUpdateTags(&create); err != nil {
+			if _, err := conn.CreateOrUpdateTags(&create); err != nil {
 				return err
 			}
 		}
@@ -89,7 +89,7 @@ func setAutoscalingTags(conn *autoscaling.AutoScaling, d *schema.ResourceData) e
 // diffTags takes our tags locally and the ones remotely and returns
 // the set of tags that must be created, and the set of tags that must
 // be destroyed.
-func diffAutoscalingTags(oldTags, newTags []autoscaling.Tag, resourceID string) ([]autoscaling.Tag, []autoscaling.Tag) {
+func diffAutoscalingTags(oldTags, newTags []*autoscaling.Tag, resourceID string) ([]*autoscaling.Tag, []*autoscaling.Tag) {
 	// First, we're creating everything we have
 	create := make(map[string]interface{})
 	for _, t := range newTags {
@@ -101,7 +101,7 @@ func diffAutoscalingTags(oldTags, newTags []autoscaling.Tag, resourceID string) 
 	}
 
 	// Build the list of what to remove
-	var remove []autoscaling.Tag
+	var remove []*autoscaling.Tag
 	for _, t := range oldTags {
 		old, ok := create[*t.Key].(map[string]interface{})
 
@@ -115,11 +115,11 @@ func diffAutoscalingTags(oldTags, newTags []autoscaling.Tag, resourceID string) 
 }
 
 // tagsFromMap returns the tags for the given map of data.
-func autoscalingTagsFromMap(m map[string]interface{}, resourceID string) []autoscaling.Tag {
-	result := make([]autoscaling.Tag, 0, len(m))
+func autoscalingTagsFromMap(m map[string]interface{}, resourceID string) []*autoscaling.Tag {
+	result := make([]*autoscaling.Tag, 0, len(m))
 	for k, v := range m {
 		attr := v.(map[string]interface{})
-		result = append(result, autoscaling.Tag{
+		result = append(result, &autoscaling.Tag{
 			Key:               aws.String(k),
 			Value:             aws.String(attr["value"].(string)),
 			PropagateAtLaunch: aws.Boolean(attr["propagate_at_launch"].(bool)),
@@ -132,7 +132,7 @@ func autoscalingTagsFromMap(m map[string]interface{}, resourceID string) []autos
 }
 
 // autoscalingTagsToMap turns the list of tags into a map.
-func autoscalingTagsToMap(ts []autoscaling.Tag) map[string]interface{} {
+func autoscalingTagsToMap(ts []*autoscaling.Tag) map[string]interface{} {
 	tags := make(map[string]interface{})
 	for _, t := range ts {
 		tag := map[string]interface{}{
@@ -146,9 +146,9 @@ func autoscalingTagsToMap(ts []autoscaling.Tag) map[string]interface{} {
 }
 
 // autoscalingTagDescriptionsToMap turns the list of tags into a map.
-func autoscalingTagDescriptionsToMap(ts []autoscaling.TagDescription) map[string]map[string]interface{} {
+func autoscalingTagDescriptionsToMap(ts *[]*autoscaling.TagDescription) map[string]map[string]interface{} {
 	tags := make(map[string]map[string]interface{})
-	for _, t := range ts {
+	for _, t := range *ts {
 		tag := map[string]interface{}{
 			"value":               *t.Value,
 			"propagate_at_launch": *t.PropagateAtLaunch,
