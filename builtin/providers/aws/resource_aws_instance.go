@@ -105,6 +105,16 @@ func resourceAwsInstance() *schema.Resource {
 				},
 			},
 
+			"vpc_security_group_ids": &schema.Schema{
+				Type:     schema.TypeSet,
+				Optional: true,
+				Computed: true,
+				Elem:     &schema.Schema{Type: schema.TypeString},
+				Set: func(v interface{}) int {
+					return hashcode.String(v.(string))
+				},
+			},
+
 			"public_dns": &schema.Schema{
 				Type:     schema.TypeString,
 				Computed: true,
@@ -340,6 +350,9 @@ func resourceAwsInstanceCreate(d *schema.ResourceData, meta interface{}) error {
 		// Security group names.
 		// For a nondefault VPC, you must use security group IDs instead.
 		// See http://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_RunInstances.html
+		if hasSubnet {
+			log.Printf("[WARN] Deprecated. Attempting to use 'security_groups' within a VPC instance. Use 'vpc_security_group_ids' instead.")
+		}
 		for _, v := range v.(*schema.Set).List() {
 			str := v.(string)
 			groups = append(groups, str)
@@ -364,8 +377,10 @@ func resourceAwsInstanceCreate(d *schema.ResourceData, meta interface{}) error {
 			ni.PrivateIPAddress = aws.String(v.(string))
 		}
 
-		if len(groups) > 0 {
-			ni.Groups = groups
+		if v := d.Get("vpc_security_group_ids"); v != nil {
+			for _, v := range v.(*schema.Set).List() {
+				ni.Groups = append(ni.Groups, v.(string))
+			}
 		}
 
 		runOpts.NetworkInterfaces = []ec2.InstanceNetworkInterfaceSpecification{ni}
@@ -382,6 +397,12 @@ func resourceAwsInstanceCreate(d *schema.ResourceData, meta interface{}) error {
 			runOpts.SecurityGroupIDs = groups
 		} else {
 			runOpts.SecurityGroups = groups
+		}
+
+		if v := d.Get("vpc_security_group_ids"); v != nil {
+			for _, v := range v.(*schema.Set).List() {
+				runOpts.SecurityGroupIDs = append(runOpts.SecurityGroupIDs, v.(string))
+			}
 		}
 	}
 
@@ -596,15 +617,24 @@ func resourceAwsInstanceRead(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	// Build up the security groups
-	sgs := make([]string, len(instance.SecurityGroups))
-	for i, sg := range instance.SecurityGroups {
-		if useID {
-			sgs[i] = *sg.GroupID
-		} else {
-			sgs[i] = *sg.GroupName
+	sgs := make([]string, 0, len(instance.SecurityGroups))
+	if useID {
+		for _, sg := range instance.SecurityGroups {
+			sgs = append(sgs, *sg.GroupID)
+		}
+		log.Printf("[DEBUG] Setting Security Group IDs: %#v", sgs)
+		if err := d.Set("vpc_security_group_ids", sgs); err != nil {
+			return err
+		}
+	} else {
+		for _, sg := range instance.SecurityGroups {
+			sgs = append(sgs, *sg.GroupName)
+		}
+		log.Printf("[DEBUG] Setting Security Group Names: %#v", sgs)
+		if err := d.Set("security_groups", sgs); err != nil {
+			return err
 		}
 	}
-	d.Set("security_groups", sgs)
 
 	if err := readBlockDevices(d, instance, ec2conn); err != nil {
 		return err
