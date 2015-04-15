@@ -126,5 +126,5 @@ The following attributes are exported:
 * `public_dns` - The public DNS name of the instance
 * `public_ip` - The public IP address.
 * `security_groups` - The associated security groups.
-* `vpc_security_group_ids` - The associated security groups in non-default VPC.
+* `vpc_security_group_ids` - The associated security groups in non-default VPC
 * `subnet_id` - The VPC subnet ID.
