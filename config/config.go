@@ -290,6 +290,14 @@ func (c *Config) Validate() error {
 			raw[k] = strVal
 		}
 
+		// Check for invalid count variables
+		for _, v := range m.RawConfig.Variables {
+			if _, ok := v.(*CountVariable); ok {
+				errs = append(errs, fmt.Errorf(
+					"%s: count variables are only valid within resources", m.Name))
+			}
+		}
+
 		// Update the raw configuration to only contain the string values
 		m.RawConfig, err = NewRawConfig(raw)
 		if err != nil {
