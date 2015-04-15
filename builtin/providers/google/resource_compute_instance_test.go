@@ -47,6 +47,7 @@ func TestAccComputeInstance_basic(t *testing.T) {
 						"google_compute_instance.foobar", &instance),
 					testAccCheckComputeInstanceTag(&instance, "foo"),
 					testAccCheckComputeInstanceMetadata(&instance, "foo", "bar"),
+					testAccCheckComputeInstanceMetadata(&instance, "baz", "qux"),
 					testAccCheckComputeInstanceDisk(&instance, "terraform-test", true, true),
 				),
 			},
@@ -414,6 +415,9 @@ resource "google_compute_instance" "foobar" {
 
 	metadata {
 		foo = "bar"
+	}
+	metadata {
+		baz = "qux"
 	}
 }`
 
