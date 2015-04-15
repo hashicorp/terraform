@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/hashicorp/aws-sdk-go/aws"
-	"github.com/hashicorp/aws-sdk-go/gen/rds"
+	"github.com/awslabs/aws-sdk-go/aws"
+	"github.com/awslabs/aws-sdk-go/service/rds"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
 )
@@ -115,7 +115,7 @@ func testAccCheckAWSDBParameterGroupDestroy(s *terraform.State) error {
 
 		// Try to find the Group
 		resp, err := conn.DescribeDBParameterGroups(
-			&rds.DescribeDBParameterGroupsMessage{
+			&rds.DescribeDBParameterGroupsInput{
 				DBParameterGroupName: aws.String(rs.Primary.ID),
 			})
 
@@ -171,7 +171,7 @@ func testAccCheckAWSDBParameterGroupExists(n string, v *rds.DBParameterGroup) re
 
 		conn := testAccProvider.Meta().(*AWSClient).rdsconn
 
-		opts := rds.DescribeDBParameterGroupsMessage{
+		opts := rds.DescribeDBParameterGroupsInput{
 			DBParameterGroupName: aws.String(rs.Primary.ID),
 		}
 
@@ -186,7 +186,7 @@ func testAccCheckAWSDBParameterGroupExists(n string, v *rds.DBParameterGroup) re
 			return fmt.Errorf("DB Parameter Group not found")
 		}
 
-		*v = resp.DBParameterGroups[0]
+		*v = *resp.DBParameterGroups[0]
 
 		return nil
 	}
