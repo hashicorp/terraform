@@ -3,6 +3,8 @@
 IMPROVEMENTS:
 
  * core: Improve error message on diff mismatch [GH-1501]
+ * **New config function: `length`** - Get the length of a string or a list.
+      Useful in conjunction with `split`. [GH-1495]
 
 BUG FIXES:
 
