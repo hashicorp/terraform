@@ -10,7 +10,7 @@ import (
 	"github.com/hashicorp/terraform/terraform"
 )
 
-func TestAccAWSVpnGateway(t *testing.T) {
+func TestAccAWSVpnGateway_basic(t *testing.T) {
 	var v, v2 ec2.VPNGateway
 
 	testNotEqual := func(*terraform.State) error {

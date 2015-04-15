@@ -62,17 +62,26 @@ func resourceAwsVpnGatewayCreate(d *schema.ResourceData, meta interface{}) error
 func resourceAwsVpnGatewayRead(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).ec2SDKconn
 
-	vpnGatewayRaw, _, err := vpnGatewayStateRefreshFunc(conn, d.Id())()
+	resp, err := conn.DescribeVPNGateways(&ec2.DescribeVPNGatewaysInput{
+		VPNGatewayIDs: []*string{aws.String(d.Id())},
+	})
 	if err != nil {
-		return err
+		if ec2err, ok := err.(aws.APIError); ok && ec2err.Code == "InvalidVpnGatewayID.NotFound" {
+			d.SetId("")
+			return nil
+		} else {
+			log.Printf("[ERROR] Error finding VpnGateway: %s", err)
+			return err
+		}
 	}
-	if vpnGatewayRaw == nil {
+
+	vpnGateway := resp.VPNGateways[0]
+	if vpnGateway == nil {
 		// Seems we have lost our VPN gateway
 		d.SetId("")
 		return nil
 	}
 
-	vpnGateway := vpnGatewayRaw.(*ec2.VPNGateway)
 	if len(vpnGateway.VPCAttachments) == 0 {
 		// Gateway exists but not attached to the VPC
 		d.Set("vpc_id", "")
@@ -176,7 +185,7 @@ func resourceAwsVpnGatewayAttach(d *schema.ResourceData, meta interface{}) error
 	stateConf := &resource.StateChangeConf{
 		Pending: []string{"detached", "attaching"},
 		Target:  "available",
-		Refresh: VpnGatewayAttachStateRefreshFunc(conn, d.Id(), "available"),
+		Refresh: vpnGatewayAttachStateRefreshFunc(conn, d.Id(), "available"),
 		Timeout: 1 * time.Minute,
 	}
 	if _, err := stateConf.WaitForState(); err != nil {
@@ -237,7 +246,7 @@ func resourceAwsVpnGatewayDetach(d *schema.ResourceData, meta interface{}) error
 	stateConf := &resource.StateChangeConf{
 		Pending: []string{"attached", "detaching", "available"},
 		Target:  "detached",
-		Refresh: VpnGatewayAttachStateRefreshFunc(conn, d.Id(), "detached"),
+		Refresh: vpnGatewayAttachStateRefreshFunc(conn, d.Id(), "detached"),
 		Timeout: 1 * time.Minute,
 	}
 	if _, err := stateConf.WaitForState(); err != nil {
@@ -249,35 +258,9 @@ func resourceAwsVpnGatewayDetach(d *schema.ResourceData, meta interface{}) error
 	return nil
 }
 
-// vpnGatewayStateRefreshFunc returns a resource.StateRefreshFunc that is used to watch a VPNGateway.
-func vpnGatewayStateRefreshFunc(conn *ec2.EC2, id string) resource.StateRefreshFunc {
-	return func() (interface{}, string, error) {
-		resp, err := conn.DescribeVPNGateways(&ec2.DescribeVPNGatewaysInput{
-			VPNGatewayIDs: []*string{aws.String(id)},
-		})
-		if err != nil {
-			if ec2err, ok := err.(aws.APIError); ok && ec2err.Code == "InvalidVpnGatewayID.NotFound" {
-				resp = nil
-			} else {
-				log.Printf("[ERROR] Error on VpnGatewayStateRefresh: %s", err)
-				return nil, "", err
-			}
-		}
-
-		if resp == nil {
-			// Sometimes AWS just has consistency issues and doesn't see
-			// our instance yet. Return an empty state.
-			return nil, "", nil
-		}
-
-		vpnGateway := resp.VPNGateways[0]
-		return vpnGateway, "", nil
-	}
-}
-
-// VpnGatewayAttachStateRefreshFunc returns a resource.StateRefreshFunc that is used to watch
+// vpnGatewayAttachStateRefreshFunc returns a resource.StateRefreshFunc that is used to watch
 // the state of a VPN gateway's attachment
-func VpnGatewayAttachStateRefreshFunc(conn *ec2.EC2, id string, expected string) resource.StateRefreshFunc {
+func vpnGatewayAttachStateRefreshFunc(conn *ec2.EC2, id string, expected string) resource.StateRefreshFunc {
 	var start time.Time
 	return func() (interface{}, string, error) {
 		if start.IsZero() {
