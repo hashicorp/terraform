@@ -574,7 +574,7 @@ func resourceAwsDbInstanceStateRefreshFunc(
 }
 
 func buildRDSARN(d *schema.ResourceData, meta interface{}) (string, error) {
-	iamconn := meta.(*AWSClient).iamSDKconn
+	iamconn := meta.(*AWSClient).iamconn
 	region := meta.(*AWSClient).region
 	// An zero value GetUserInput{} defers to the currently logged in user
 	resp, err := iamconn.GetUser(&iam.GetUserInput{})
