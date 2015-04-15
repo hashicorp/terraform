@@ -65,6 +65,12 @@ OLDIFS=$IFS
 IFS=: MAIN_GOPATH=($GOPATH)
 IFS=$OLDIFS
 
+# Create GOPATH/bin if it's doesn't exists
+if [ ! -d $MAIN_GOPATH/bin ]; then
+    echo "==> Creating GOPATH/bin directory..."
+    mkdir -p $MAIN_GOPATH/bin
+fi
+
 # Copy our OS/Arch to the bin/ directory
 DEV_PLATFORM="./pkg/$(go env GOOS)_$(go env GOARCH)"
 for F in $(find ${DEV_PLATFORM} -mindepth 1 -maxdepth 1 -type f); do
