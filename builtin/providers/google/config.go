@@ -6,7 +6,10 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"runtime"
 
+	// TODO(dcunnin): Use version code from version.go
+	// "github.com/hashicorp/terraform"
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"
 	"golang.org/x/oauth2/jwt"
@@ -83,6 +86,17 @@ func (c *Config) loadAndValidate() error {
 	log.Printf("[INFO] Instantiating GCE client...")
 	var err error
 	c.clientCompute, err = compute.New(client)
+
+	// Set UserAgent
+	versionString := "0.0.0"
+	// TODO(dcunnin): Use Terraform's version code from version.go
+	// versionString := main.Version
+	// if main.VersionPrerelease != "" {
+	// 	versionString = fmt.Sprintf("%s-%s", versionString, main.VersionPrerelease)
+	// }
+	c.clientCompute.UserAgent = fmt.Sprintf(
+		"(%s %s) Terraform/%s", runtime.GOOS, runtime.GOARCH, versionString)
+
 	if err != nil {
 		return err
 	}
