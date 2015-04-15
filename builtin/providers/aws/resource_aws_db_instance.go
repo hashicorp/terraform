@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/awslabs/aws-sdk-go/aws"
-	"github.com/awslabs/aws-sdk-go/service/IAM"
+	"github.com/awslabs/aws-sdk-go/service/iam"
 	"github.com/awslabs/aws-sdk-go/service/rds"
 
 	"github.com/hashicorp/terraform/helper/hashcode"

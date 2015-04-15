@@ -14,8 +14,8 @@ import (
 	"github.com/hashicorp/aws-sdk-go/gen/s3"
 
 	awsSDK "github.com/awslabs/aws-sdk-go/aws"
-	"github.com/awslabs/aws-sdk-go/service/IAM"
 	awsEC2 "github.com/awslabs/aws-sdk-go/service/ec2"
+	"github.com/awslabs/aws-sdk-go/service/iam"
 	"github.com/awslabs/aws-sdk-go/service/rds"
 )
 
