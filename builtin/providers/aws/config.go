@@ -25,7 +25,6 @@ type Config struct {
 
 type AWSClient struct {
 	ec2conn         *ec2.EC2
-	ec2SDKconn      *ec2.EC2
 	elbconn         *elb.ELB
 	autoscalingconn *autoscaling.AutoScaling
 	s3conn          *s3.S3
@@ -77,7 +76,6 @@ func (c *Config) Client() (interface{}, error) {
 
 		log.Println("[INFO] Initializing EC2 Connection")
 		client.ec2conn = ec2.New(awsConfig)
-		client.ec2SDKconn = ec2.New(awsConfig)
 
 		// aws-sdk-go uses v4 for signing requests, which requires all global
 		// endpoints to use 'us-east-1'.

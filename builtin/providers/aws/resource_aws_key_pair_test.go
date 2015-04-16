@@ -30,7 +30,7 @@ func TestAccAWSKeyPair_normal(t *testing.T) {
 }
 
 func testAccCheckAWSKeyPairDestroy(s *terraform.State) error {
-	ec2SDKconn := testAccProvider.Meta().(*AWSClient).ec2SDKconn
+	ec2conn := testAccProvider.Meta().(*AWSClient).ec2conn
 
 	for _, rs := range s.RootModule().Resources {
 		if rs.Type != "aws_key_pair" {
@@ -38,7 +38,7 @@ func testAccCheckAWSKeyPairDestroy(s *terraform.State) error {
 		}
 
 		// Try to find key pair
-		resp, err := ec2SDKconn.DescribeKeyPairs(&ec2.DescribeKeyPairsInput{
+		resp, err := ec2conn.DescribeKeyPairs(&ec2.DescribeKeyPairsInput{
 			KeyNames: []*string{aws.String(rs.Primary.ID)},
 		})
 		if err == nil {
@@ -81,9 +81,9 @@ func testAccCheckAWSKeyPairExists(n string, res *ec2.KeyPairInfo) resource.TestC
 			return fmt.Errorf("No KeyPair name is set")
 		}
 
-		ec2SDKconn := testAccProvider.Meta().(*AWSClient).ec2SDKconn
+		ec2conn := testAccProvider.Meta().(*AWSClient).ec2conn
 
-		resp, err := ec2SDKconn.DescribeKeyPairs(&ec2.DescribeKeyPairsInput{
+		resp, err := ec2conn.DescribeKeyPairs(&ec2.DescribeKeyPairsInput{
 			KeyNames: []*string{aws.String(rs.Primary.ID)},
 		})
 		if err != nil {

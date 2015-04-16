@@ -142,7 +142,7 @@ func resourceAwsSecurityGroup() *schema.Resource {
 }
 
 func resourceAwsSecurityGroupCreate(d *schema.ResourceData, meta interface{}) error {
-	conn := meta.(*AWSClient).ec2SDKconn
+	conn := meta.(*AWSClient).ec2conn
 
 	securityGroupOpts := &ec2.CreateSecurityGroupInput{
 		GroupName: aws.String(d.Get("name").(string)),
@@ -187,7 +187,7 @@ func resourceAwsSecurityGroupCreate(d *schema.ResourceData, meta interface{}) er
 }
 
 func resourceAwsSecurityGroupRead(d *schema.ResourceData, meta interface{}) error {
-	conn := meta.(*AWSClient).ec2SDKconn
+	conn := meta.(*AWSClient).ec2conn
 
 	sgRaw, _, err := SGStateRefreshFunc(conn, d.Id())()
 	if err != nil {
@@ -214,7 +214,7 @@ func resourceAwsSecurityGroupRead(d *schema.ResourceData, meta interface{}) erro
 }
 
 func resourceAwsSecurityGroupUpdate(d *schema.ResourceData, meta interface{}) error {
-	conn := meta.(*AWSClient).ec2SDKconn
+	conn := meta.(*AWSClient).ec2conn
 
 	sgRaw, _, err := SGStateRefreshFunc(conn, d.Id())()
 	if err != nil {
@@ -249,7 +249,7 @@ func resourceAwsSecurityGroupUpdate(d *schema.ResourceData, meta interface{}) er
 }
 
 func resourceAwsSecurityGroupDelete(d *schema.ResourceData, meta interface{}) error {
-	conn := meta.(*AWSClient).ec2SDKconn
+	conn := meta.(*AWSClient).ec2conn
 
 	log.Printf("[DEBUG] Security Group destroy: %v", d.Id())
 
@@ -411,7 +411,7 @@ func resourceAwsSecurityGroupUpdateRules(
 		// not have service issues.
 
 		if len(remove) > 0 || len(add) > 0 {
-			conn := meta.(*AWSClient).ec2SDKconn
+			conn := meta.(*AWSClient).ec2conn
 
 			var err error
 			if len(remove) > 0 {
