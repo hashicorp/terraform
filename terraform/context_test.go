@@ -504,6 +504,112 @@ func TestContext2Plan_nil(t *testing.T) {
 	}
 }
 
+func TestContext2Plan_preventDestroy_bad(t *testing.T) {
+	m := testModule(t, "plan-prevent-destroy-bad")
+	p := testProvider("aws")
+	p.DiffFn = testDiffFn
+	ctx := testContext2(t, &ContextOpts{
+		Module: m,
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+		State: &State{
+			Modules: []*ModuleState{
+				&ModuleState{
+					Path: rootModulePath,
+					Resources: map[string]*ResourceState{
+						"aws_instance.foo": &ResourceState{
+							Type: "aws_instance",
+							Primary: &InstanceState{
+								ID: "i-abc123",
+							},
+						},
+					},
+				},
+			},
+		},
+	})
+
+	plan, err := ctx.Plan()
+
+	expectedErr := "aws_instance.foo: plan would destroy"
+	if !strings.Contains(fmt.Sprintf("%s", err), expectedErr) {
+		t.Fatalf("expected err would contain %q\nerr: %s\nplan: %s",
+			expectedErr, err, plan)
+	}
+}
+
+func TestContext2Plan_preventDestroy_good(t *testing.T) {
+	m := testModule(t, "plan-prevent-destroy-good")
+	p := testProvider("aws")
+	p.DiffFn = testDiffFn
+	ctx := testContext2(t, &ContextOpts{
+		Module: m,
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+		State: &State{
+			Modules: []*ModuleState{
+				&ModuleState{
+					Path: rootModulePath,
+					Resources: map[string]*ResourceState{
+						"aws_instance.foo": &ResourceState{
+							Type: "aws_instance",
+							Primary: &InstanceState{
+								ID: "i-abc123",
+							},
+						},
+					},
+				},
+			},
+		},
+	})
+
+	plan, err := ctx.Plan()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+	if !plan.Diff.Empty() {
+		t.Fatalf("Expected empty plan, got %s", plan.String())
+	}
+}
+
+func TestContext2Plan_preventDestroy_destroyPlan(t *testing.T) {
+	m := testModule(t, "plan-prevent-destroy-good")
+	p := testProvider("aws")
+	p.DiffFn = testDiffFn
+	ctx := testContext2(t, &ContextOpts{
+		Module: m,
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+		State: &State{
+			Modules: []*ModuleState{
+				&ModuleState{
+					Path: rootModulePath,
+					Resources: map[string]*ResourceState{
+						"aws_instance.foo": &ResourceState{
+							Type: "aws_instance",
+							Primary: &InstanceState{
+								ID: "i-abc123",
+							},
+						},
+					},
+				},
+			},
+		},
+		Destroy: true,
+	})
+
+	plan, err := ctx.Plan()
+
+	expectedErr := "aws_instance.foo: plan would destroy"
+	if !strings.Contains(fmt.Sprintf("%s", err), expectedErr) {
+		t.Fatalf("expected err would contain %q\nerr: %s\nplan: %s",
+			expectedErr, err, plan)
+	}
+}
+
 func TestContext2Plan_computed(t *testing.T) {
 	m := testModule(t, "plan-computed")
 	p := testProvider("aws")
