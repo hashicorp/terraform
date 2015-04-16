@@ -4,17 +4,18 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/hashicorp/aws-sdk-go/aws"
-	ec2 "github.com/hashicorp/aws-sdk-go/gen/ec2"
-	"github.com/hashicorp/aws-sdk-go/gen/elb"
-	"github.com/hashicorp/aws-sdk-go/gen/rds"
+	"github.com/awslabs/aws-sdk-go/aws"
+	"github.com/awslabs/aws-sdk-go/service/ec2"
+	"github.com/awslabs/aws-sdk-go/service/elb"
+	"github.com/awslabs/aws-sdk-go/service/rds"
+	"github.com/awslabs/aws-sdk-go/service/route53"
 	"github.com/hashicorp/terraform/flatmap"
 	"github.com/hashicorp/terraform/helper/hashcode"
 	"github.com/hashicorp/terraform/helper/schema"
 )
 
 // Returns test configuration
-func testConf() map[string]string {
+func testConfSDK() map[string]string {
 	return map[string]string{
 		"listener.#":                   "1",
 		"listener.0.lb_port":           "80",
@@ -36,7 +37,7 @@ func testConf() map[string]string {
 	}
 }
 
-func TestExpandIPPerms(t *testing.T) {
+func TestExpandIPPermsSDK(t *testing.T) {
 	hash := func(v interface{}) int {
 		return hashcode.String(v.(string))
 	}
@@ -59,34 +60,34 @@ func TestExpandIPPerms(t *testing.T) {
 			"self":      true,
 		},
 	}
-	group := ec2.SecurityGroup{
+	group := &ec2.SecurityGroup{
 		GroupID: aws.String("foo"),
 		VPCID:   aws.String("bar"),
 	}
-	perms := expandIPPerms(group, expanded)
+	perms := expandIPPermsSDK(group, expanded)
 
 	expected := []ec2.IPPermission{
 		ec2.IPPermission{
 			IPProtocol: aws.String("icmp"),
-			FromPort:   aws.Integer(1),
-			ToPort:     aws.Integer(-1),
-			IPRanges:   []ec2.IPRange{ec2.IPRange{aws.String("0.0.0.0/0")}},
-			UserIDGroupPairs: []ec2.UserIDGroupPair{
-				ec2.UserIDGroupPair{
+			FromPort:   aws.Long(int64(1)),
+			ToPort:     aws.Long(int64(-1)),
+			IPRanges:   []*ec2.IPRange{&ec2.IPRange{CIDRIP: aws.String("0.0.0.0/0")}},
+			UserIDGroupPairs: []*ec2.UserIDGroupPair{
+				&ec2.UserIDGroupPair{
 					UserID:  aws.String("foo"),
 					GroupID: aws.String("sg-22222"),
 				},
-				ec2.UserIDGroupPair{
+				&ec2.UserIDGroupPair{
 					GroupID: aws.String("sg-22222"),
 				},
 			},
 		},
 		ec2.IPPermission{
 			IPProtocol: aws.String("icmp"),
-			FromPort:   aws.Integer(1),
-			ToPort:     aws.Integer(-1),
-			UserIDGroupPairs: []ec2.UserIDGroupPair{
-				ec2.UserIDGroupPair{
+			FromPort:   aws.Long(int64(1)),
+			ToPort:     aws.Long(int64(-1)),
+			UserIDGroupPairs: []*ec2.UserIDGroupPair{
+				&ec2.UserIDGroupPair{
 					UserID: aws.String("foo"),
 				},
 			},
@@ -119,7 +120,7 @@ func TestExpandIPPerms(t *testing.T) {
 
 }
 
-func TestExpandIPPerms_nonVPC(t *testing.T) {
+func TestExpandIPPerms_nonVPCSDK(t *testing.T) {
 	hash := func(v interface{}) int {
 		return hashcode.String(v.(string))
 	}
@@ -142,32 +143,32 @@ func TestExpandIPPerms_nonVPC(t *testing.T) {
 			"self":      true,
 		},
 	}
-	group := ec2.SecurityGroup{
+	group := &ec2.SecurityGroup{
 		GroupName: aws.String("foo"),
 	}
-	perms := expandIPPerms(group, expanded)
+	perms := expandIPPermsSDK(group, expanded)
 
 	expected := []ec2.IPPermission{
 		ec2.IPPermission{
 			IPProtocol: aws.String("icmp"),
-			FromPort:   aws.Integer(1),
-			ToPort:     aws.Integer(-1),
-			IPRanges:   []ec2.IPRange{ec2.IPRange{aws.String("0.0.0.0/0")}},
-			UserIDGroupPairs: []ec2.UserIDGroupPair{
-				ec2.UserIDGroupPair{
+			FromPort:   aws.Long(int64(1)),
+			ToPort:     aws.Long(int64(-1)),
+			IPRanges:   []*ec2.IPRange{&ec2.IPRange{CIDRIP: aws.String("0.0.0.0/0")}},
+			UserIDGroupPairs: []*ec2.UserIDGroupPair{
+				&ec2.UserIDGroupPair{
 					GroupName: aws.String("sg-22222"),
 				},
-				ec2.UserIDGroupPair{
+				&ec2.UserIDGroupPair{
 					GroupName: aws.String("sg-22222"),
 				},
 			},
 		},
 		ec2.IPPermission{
 			IPProtocol: aws.String("icmp"),
-			FromPort:   aws.Integer(1),
-			ToPort:     aws.Integer(-1),
-			UserIDGroupPairs: []ec2.UserIDGroupPair{
-				ec2.UserIDGroupPair{
+			FromPort:   aws.Long(int64(1)),
+			ToPort:     aws.Long(int64(-1)),
+			UserIDGroupPairs: []*ec2.UserIDGroupPair{
+				&ec2.UserIDGroupPair{
 					GroupName: aws.String("foo"),
 				},
 			},
@@ -192,7 +193,7 @@ func TestExpandIPPerms_nonVPC(t *testing.T) {
 	}
 }
 
-func TestExpandListeners(t *testing.T) {
+func TestExpandListenersSDK(t *testing.T) {
 	expanded := []interface{}{
 		map[string]interface{}{
 			"instance_port":     8000,
@@ -201,14 +202,14 @@ func TestExpandListeners(t *testing.T) {
 			"lb_protocol":       "http",
 		},
 	}
-	listeners, err := expandListeners(expanded)
+	listeners, err := expandListenersSDK(expanded)
 	if err != nil {
 		t.Fatalf("bad: %#v", err)
 	}
 
-	expected := elb.Listener{
-		InstancePort:     aws.Integer(8000),
-		LoadBalancerPort: aws.Integer(80),
+	expected := &elb.Listener{
+		InstancePort:     aws.Long(int64(8000)),
+		LoadBalancerPort: aws.Long(int64(80)),
 		InstanceProtocol: aws.String("http"),
 		Protocol:         aws.String("http"),
 	}
@@ -222,41 +223,41 @@ func TestExpandListeners(t *testing.T) {
 
 }
 
-func TestFlattenHealthCheck(t *testing.T) {
+func TestFlattenHealthCheckSDK(t *testing.T) {
 	cases := []struct {
-		Input  elb.HealthCheck
+		Input  *elb.HealthCheck
 		Output []map[string]interface{}
 	}{
 		{
-			Input: elb.HealthCheck{
-				UnhealthyThreshold: aws.Integer(10),
-				HealthyThreshold:   aws.Integer(10),
+			Input: &elb.HealthCheck{
+				UnhealthyThreshold: aws.Long(int64(10)),
+				HealthyThreshold:   aws.Long(int64(10)),
 				Target:             aws.String("HTTP:80/"),
-				Timeout:            aws.Integer(30),
-				Interval:           aws.Integer(30),
+				Timeout:            aws.Long(int64(30)),
+				Interval:           aws.Long(int64(30)),
 			},
 			Output: []map[string]interface{}{
 				map[string]interface{}{
-					"unhealthy_threshold": 10,
-					"healthy_threshold":   10,
+					"unhealthy_threshold": int64(10),
+					"healthy_threshold":   int64(10),
 					"target":              "HTTP:80/",
-					"timeout":             30,
-					"interval":            30,
+					"timeout":             int64(30),
+					"interval":            int64(30),
 				},
 			},
 		},
 	}
 
 	for _, tc := range cases {
-		output := flattenHealthCheck(&tc.Input)
+		output := flattenHealthCheckSDK(tc.Input)
 		if !reflect.DeepEqual(output, tc.Output) {
 			t.Fatalf("Got:\n\n%#v\n\nExpected:\n\n%#v", output, tc.Output)
 		}
 	}
 }
 
-func TestExpandStringList(t *testing.T) {
-	expanded := flatmap.Expand(testConf(), "availability_zones").([]interface{})
+func TestExpandStringListSDK(t *testing.T) {
+	expanded := flatmap.Expand(testConfSDK(), "availability_zones").([]interface{})
 	stringList := expandStringList(expanded)
 	expected := []string{
 		"us-east-1a",
@@ -272,7 +273,7 @@ func TestExpandStringList(t *testing.T) {
 
 }
 
-func TestExpandParameters(t *testing.T) {
+func TestExpandParametersSDK(t *testing.T) {
 	expanded := []interface{}{
 		map[string]interface{}{
 			"name":         "character_set_client",
@@ -280,12 +281,12 @@ func TestExpandParameters(t *testing.T) {
 			"apply_method": "immediate",
 		},
 	}
-	parameters, err := expandParameters(expanded)
+	parameters, err := expandParametersSDK(expanded)
 	if err != nil {
 		t.Fatalf("bad: %#v", err)
 	}
 
-	expected := rds.Parameter{
+	expected := &rds.Parameter{
 		ParameterName:  aws.String("character_set_client"),
 		ParameterValue: aws.String("utf8"),
 		ApplyMethod:    aws.String("immediate"),
@@ -299,14 +300,14 @@ func TestExpandParameters(t *testing.T) {
 	}
 }
 
-func TestFlattenParameters(t *testing.T) {
+func TestFlattenParametersSDK(t *testing.T) {
 	cases := []struct {
-		Input  []rds.Parameter
+		Input  []*rds.Parameter
 		Output []map[string]interface{}
 	}{
 		{
-			Input: []rds.Parameter{
-				rds.Parameter{
+			Input: []*rds.Parameter{
+				&rds.Parameter{
 					ParameterName:  aws.String("character_set_client"),
 					ParameterValue: aws.String("utf8"),
 				},
@@ -321,18 +322,18 @@ func TestFlattenParameters(t *testing.T) {
 	}
 
 	for _, tc := range cases {
-		output := flattenParameters(tc.Input)
+		output := flattenParametersSDK(tc.Input)
 		if !reflect.DeepEqual(output, tc.Output) {
 			t.Fatalf("Got:\n\n%#v\n\nExpected:\n\n%#v", output, tc.Output)
 		}
 	}
 }
 
-func TestExpandInstanceString(t *testing.T) {
+func TestExpandInstanceStringSDK(t *testing.T) {
 
-	expected := []elb.Instance{
-		elb.Instance{aws.String("test-one")},
-		elb.Instance{aws.String("test-two")},
+	expected := []*elb.Instance{
+		&elb.Instance{InstanceID: aws.String("test-one")},
+		&elb.Instance{InstanceID: aws.String("test-two")},
 	}
 
 	ids := []interface{}{
@@ -340,20 +341,20 @@ func TestExpandInstanceString(t *testing.T) {
 		"test-two",
 	}
 
-	expanded := expandInstanceString(ids)
+	expanded := expandInstanceStringSDK(ids)
 
 	if !reflect.DeepEqual(expanded, expected) {
 		t.Fatalf("Expand Instance String output did not match.\nGot:\n%#v\n\nexpected:\n%#v", expanded, expected)
 	}
 }
 
-func TestFlattenNetworkInterfacesPrivateIPAddesses(t *testing.T) {
-	expanded := []ec2.NetworkInterfacePrivateIPAddress{
-		ec2.NetworkInterfacePrivateIPAddress{PrivateIPAddress: aws.String("192.168.0.1")},
-		ec2.NetworkInterfacePrivateIPAddress{PrivateIPAddress: aws.String("192.168.0.2")},
+func TestFlattenNetworkInterfacesPrivateIPAddessesSDK(t *testing.T) {
+	expanded := []*ec2.NetworkInterfacePrivateIPAddress{
+		&ec2.NetworkInterfacePrivateIPAddress{PrivateIPAddress: aws.String("192.168.0.1")},
+		&ec2.NetworkInterfacePrivateIPAddress{PrivateIPAddress: aws.String("192.168.0.2")},
 	}
 
-	result := flattenNetworkInterfacesPrivateIPAddesses(expanded)
+	result := flattenNetworkInterfacesPrivateIPAddessesSDK(expanded)
 
 	if result == nil {
 		t.Fatal("result was nil")
@@ -372,13 +373,13 @@ func TestFlattenNetworkInterfacesPrivateIPAddesses(t *testing.T) {
 	}
 }
 
-func TestFlattenGroupIdentifiers(t *testing.T) {
-	expanded := []ec2.GroupIdentifier{
-		ec2.GroupIdentifier{GroupID: aws.String("sg-001")},
-		ec2.GroupIdentifier{GroupID: aws.String("sg-002")},
+func TestFlattenGroupIdentifiersSDK(t *testing.T) {
+	expanded := []*ec2.GroupIdentifier{
+		&ec2.GroupIdentifier{GroupID: aws.String("sg-001")},
+		&ec2.GroupIdentifier{GroupID: aws.String("sg-002")},
 	}
 
-	result := flattenGroupIdentifiers(expanded)
+	result := flattenGroupIdentifiersSDK(expanded)
 
 	if len(result) != 2 {
 		t.Fatalf("expected result had %d elements, but got %d", 2, len(result))
@@ -393,7 +394,7 @@ func TestFlattenGroupIdentifiers(t *testing.T) {
 	}
 }
 
-func TestExpandPrivateIPAddesses(t *testing.T) {
+func TestExpandPrivateIPAddessesSDK(t *testing.T) {
 
 	ip1 := "192.168.0.1"
 	ip2 := "192.168.0.2"
@@ -402,7 +403,7 @@ func TestExpandPrivateIPAddesses(t *testing.T) {
 		ip2,
 	}
 
-	result := expandPrivateIPAddesses(flattened)
+	result := expandPrivateIPAddessesSDK(flattened)
 
 	if len(result) != 2 {
 		t.Fatalf("expected result had %d elements, but got %d", 2, len(result))
@@ -417,14 +418,14 @@ func TestExpandPrivateIPAddesses(t *testing.T) {
 	}
 }
 
-func TestFlattenAttachment(t *testing.T) {
+func TestFlattenAttachmentSDK(t *testing.T) {
 	expanded := &ec2.NetworkInterfaceAttachment{
 		InstanceID:   aws.String("i-00001"),
-		DeviceIndex:  aws.Integer(1),
+		DeviceIndex:  aws.Long(int64(1)),
 		AttachmentID: aws.String("at-002"),
 	}
 
-	result := flattenAttachment(expanded)
+	result := flattenAttachmentSDK(expanded)
 
 	if result == nil {
 		t.Fatal("expected result to have value, but got nil")
@@ -434,11 +435,32 @@ func TestFlattenAttachment(t *testing.T) {
 		t.Fatalf("expected instance to be i-00001, but got %s", result["instance"])
 	}
 
-	if result["device_index"] != 1 {
+	if result["device_index"] != int64(1) {
 		t.Fatalf("expected device_index to be 1, but got %d", result["device_index"])
 	}
 
 	if result["attachment_id"] != "at-002" {
 		t.Fatalf("expected attachment_id to be at-002, but got %s", result["attachment_id"])
+	}
+}
+
+func TestFlattenResourceRecords(t *testing.T) {
+	expanded := []*route53.ResourceRecord{
+		&route53.ResourceRecord{
+			Value: aws.String("127.0.0.1"),
+		},
+		&route53.ResourceRecord{
+			Value: aws.String("127.0.0.3"),
+		},
+	}
+
+	result := flattenResourceRecords(expanded)
+
+	if result == nil {
+		t.Fatal("expected result to have value, but got nil")
+	}
+
+	if len(result) != 2 {
+		t.Fatal("expected result to have value, but got nil")
 	}
 }

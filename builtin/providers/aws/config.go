@@ -80,7 +80,7 @@ func (c *Config) Client() (interface{}, error) {
 		// aws-sdk-go uses v4 for signing requests, which requires all global
 		// endpoints to use 'us-east-1'.
 		// See http://docs.aws.amazon.com/general/latest/gr/sigv4_changes.html
-		log.Println("[INFO] Initializing Route 53 SDK connection")
+		log.Println("[INFO] Initializing Route 53 connection")
 		client.r53conn = route53.New(&aws.Config{
 			Credentials: creds,
 			Region:      "us-east-1",
