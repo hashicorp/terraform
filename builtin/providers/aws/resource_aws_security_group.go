@@ -355,7 +355,7 @@ func resourceAwsSecurityGroupIPPermGather(d *schema.ResourceData, permissions []
 
 		var groups []string
 		if len(perm.UserIDGroupPairs) > 0 {
-			groups = flattenSecurityGroupsSDK(perm.UserIDGroupPairs)
+			groups = flattenSecurityGroups(perm.UserIDGroupPairs)
 		}
 		for i, id := range groups {
 			if id == d.Id() {
@@ -398,8 +398,8 @@ func resourceAwsSecurityGroupUpdateRules(
 		os := o.(*schema.Set)
 		ns := n.(*schema.Set)
 
-		remove := expandIPPermsSDK(group, os.Difference(ns).List())
-		add := expandIPPermsSDK(group, ns.Difference(os).List())
+		remove := expandIPPerms(group, os.Difference(ns).List())
+		add := expandIPPerms(group, ns.Difference(os).List())
 
 		// TODO: We need to handle partial state better in the in-between
 		// in this update.

@@ -14,7 +14,7 @@ import (
 
 // Takes the result of flatmap.Expand for an array of listeners and
 // returns ELB API compatible objects
-func expandListenersSDK(configured []interface{}) ([]*elb.Listener, error) {
+func expandListeners(configured []interface{}) ([]*elb.Listener, error) {
 	listeners := make([]*elb.Listener, 0, len(configured))
 
 	// Loop over our configured listeners and create
@@ -43,7 +43,7 @@ func expandListenersSDK(configured []interface{}) ([]*elb.Listener, error) {
 
 // Takes the result of flatmap.Expand for an array of ingress/egress
 // security group rules and returns EC2 API compatible objects
-func expandIPPermsSDK(
+func expandIPPerms(
 	group *ec2.SecurityGroup, configured []interface{}) []*ec2.IPPermission {
 	vpc := group.VPCID != nil
 
@@ -107,7 +107,7 @@ func expandIPPermsSDK(
 
 // Takes the result of flatmap.Expand for an array of parameters and
 // returns Parameter API compatible objects
-func expandParametersSDK(configured []interface{}) ([]*rds.Parameter, error) {
+func expandParameters(configured []interface{}) ([]*rds.Parameter, error) {
 	parameters := make([]*rds.Parameter, 0, len(configured))
 
 	// Loop over our configured parameters and create
@@ -129,7 +129,7 @@ func expandParametersSDK(configured []interface{}) ([]*rds.Parameter, error) {
 
 // Flattens a health check into something that flatmap.Flatten()
 // can handle
-func flattenHealthCheckSDK(check *elb.HealthCheck) []map[string]interface{} {
+func flattenHealthCheck(check *elb.HealthCheck) []map[string]interface{} {
 	result := make([]map[string]interface{}, 0, 1)
 
 	chk := make(map[string]interface{})
@@ -145,7 +145,7 @@ func flattenHealthCheckSDK(check *elb.HealthCheck) []map[string]interface{} {
 }
 
 // Flattens an array of UserSecurityGroups into a []string
-func flattenSecurityGroupsSDK(list []*ec2.UserIDGroupPair) []string {
+func flattenSecurityGroups(list []*ec2.UserIDGroupPair) []string {
 	result := make([]string, 0, len(list))
 	for _, g := range list {
 		result = append(result, *g.GroupID)
@@ -154,7 +154,7 @@ func flattenSecurityGroupsSDK(list []*ec2.UserIDGroupPair) []string {
 }
 
 // Flattens an array of Instances into a []string
-func flattenInstancesSDK(list []*elb.Instance) []string {
+func flattenInstances(list []*elb.Instance) []string {
 	result := make([]string, 0, len(list))
 	for _, i := range list {
 		result = append(result, *i.InstanceID)
@@ -163,7 +163,7 @@ func flattenInstancesSDK(list []*elb.Instance) []string {
 }
 
 // Expands an array of String Instance IDs into a []Instances
-func expandInstanceStringSDK(list []interface{}) []*elb.Instance {
+func expandInstanceString(list []interface{}) []*elb.Instance {
 	result := make([]*elb.Instance, 0, len(list))
 	for _, i := range list {
 		result = append(result, &elb.Instance{InstanceID: aws.String(i.(string))})
@@ -172,7 +172,7 @@ func expandInstanceStringSDK(list []interface{}) []*elb.Instance {
 }
 
 // Flattens an array of Listeners into a []map[string]interface{}
-func flattenListenersSDK(list []*elb.ListenerDescription) []map[string]interface{} {
+func flattenListeners(list []*elb.ListenerDescription) []map[string]interface{} {
 	result := make([]map[string]interface{}, 0, len(list))
 	for _, i := range list {
 		l := map[string]interface{}{
@@ -191,7 +191,7 @@ func flattenListenersSDK(list []*elb.ListenerDescription) []map[string]interface
 }
 
 // Flattens an array of Parameters into a []map[string]interface{}
-func flattenParametersSDK(list []*rds.Parameter) []map[string]interface{} {
+func flattenParameters(list []*rds.Parameter) []map[string]interface{} {
 	result := make([]map[string]interface{}, 0, len(list))
 	for _, i := range list {
 		result = append(result, map[string]interface{}{
@@ -204,7 +204,7 @@ func flattenParametersSDK(list []*rds.Parameter) []map[string]interface{} {
 
 // Takes the result of flatmap.Expand for an array of strings
 // and returns a []string
-func expandStringListSDK(configured []interface{}) []*string {
+func expandStringList(configured []interface{}) []*string {
 	vs := make([]*string, 0, len(configured))
 	for _, v := range configured {
 		vs = append(vs, aws.String(v.(string)))
@@ -213,7 +213,7 @@ func expandStringListSDK(configured []interface{}) []*string {
 }
 
 //Flattens an array of private ip addresses into a []string, where the elements returned are the IP strings e.g. "192.168.0.0"
-func flattenNetworkInterfacesPrivateIPAddessesSDK(dtos []*ec2.NetworkInterfacePrivateIPAddress) []string {
+func flattenNetworkInterfacesPrivateIPAddesses(dtos []*ec2.NetworkInterfacePrivateIPAddress) []string {
 	ips := make([]string, 0, len(dtos))
 	for _, v := range dtos {
 		ip := *v.PrivateIPAddress
@@ -223,7 +223,7 @@ func flattenNetworkInterfacesPrivateIPAddessesSDK(dtos []*ec2.NetworkInterfacePr
 }
 
 //Flattens security group identifiers into a []string, where the elements returned are the GroupIDs
-func flattenGroupIdentifiersSDK(dtos []*ec2.GroupIdentifier) []string {
+func flattenGroupIdentifiers(dtos []*ec2.GroupIdentifier) []string {
 	ids := make([]string, 0, len(dtos))
 	for _, v := range dtos {
 		group_id := *v.GroupID
@@ -233,7 +233,7 @@ func flattenGroupIdentifiersSDK(dtos []*ec2.GroupIdentifier) []string {
 }
 
 //Expands an array of IPs into a ec2 Private IP Address Spec
-func expandPrivateIPAddessesSDK(ips []interface{}) []*ec2.PrivateIPAddressSpecification {
+func expandPrivateIPAddesses(ips []interface{}) []*ec2.PrivateIPAddressSpecification {
 	dtos := make([]*ec2.PrivateIPAddressSpecification, 0, len(ips))
 	for i, v := range ips {
 		new_private_ip := &ec2.PrivateIPAddressSpecification{
@@ -248,7 +248,7 @@ func expandPrivateIPAddessesSDK(ips []interface{}) []*ec2.PrivateIPAddressSpecif
 }
 
 //Flattens network interface attachment into a map[string]interface
-func flattenAttachmentSDK(a *ec2.NetworkInterfaceAttachment) map[string]interface{} {
+func flattenAttachment(a *ec2.NetworkInterfaceAttachment) map[string]interface{} {
 	att := make(map[string]interface{})
 	att["instance"] = *a.InstanceID
 	att["device_index"] = *a.DeviceIndex
