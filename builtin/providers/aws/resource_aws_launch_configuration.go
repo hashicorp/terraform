@@ -11,7 +11,7 @@ import (
 
 	"github.com/awslabs/aws-sdk-go/aws"
 	"github.com/awslabs/aws-sdk-go/service/autoscaling"
-	"github.com/hashicorp/aws-sdk-go/gen/ec2"
+	"github.com/awslabs/aws-sdk-go/service/ec2"
 	"github.com/hashicorp/terraform/helper/hashcode"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
@@ -243,7 +243,7 @@ func resourceAwsLaunchConfiguration() *schema.Resource {
 
 func resourceAwsLaunchConfigurationCreate(d *schema.ResourceData, meta interface{}) error {
 	autoscalingconn := meta.(*AWSClient).autoscalingconn
-	ec2conn := meta.(*AWSClient).ec2conn
+	ec2conn := meta.(*AWSClient).ec2SDKconn
 
 	createLaunchConfigurationOpts := autoscaling.CreateLaunchConfigurationInput{
 		LaunchConfigurationName: aws.String(d.Get("name").(string)),
@@ -394,7 +394,7 @@ func resourceAwsLaunchConfigurationCreate(d *schema.ResourceData, meta interface
 
 func resourceAwsLaunchConfigurationRead(d *schema.ResourceData, meta interface{}) error {
 	autoscalingconn := meta.(*AWSClient).autoscalingconn
-	ec2conn := meta.(*AWSClient).ec2conn
+	ec2conn := meta.(*AWSClient).ec2SDKconn
 
 	describeOpts := autoscaling.DescribeLaunchConfigurationsInput{
 		LaunchConfigurationNames: []*string{aws.String(d.Id())},
