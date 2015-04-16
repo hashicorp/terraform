@@ -15,7 +15,7 @@ import (
 )
 
 // Returns test configuration
-func testConfSDK() map[string]string {
+func testConf() map[string]string {
 	return map[string]string{
 		"listener.#":                   "1",
 		"listener.0.lb_port":           "80",
@@ -37,7 +37,7 @@ func testConfSDK() map[string]string {
 	}
 }
 
-func TestExpandIPPermsSDK(t *testing.T) {
+func TestexpandIPPerms(t *testing.T) {
 	hash := func(v interface{}) int {
 		return hashcode.String(v.(string))
 	}
@@ -64,7 +64,7 @@ func TestExpandIPPermsSDK(t *testing.T) {
 		GroupID: aws.String("foo"),
 		VPCID:   aws.String("bar"),
 	}
-	perms := expandIPPermsSDK(group, expanded)
+	perms := expandIPPerms(group, expanded)
 
 	expected := []ec2.IPPermission{
 		ec2.IPPermission{
@@ -120,7 +120,7 @@ func TestExpandIPPermsSDK(t *testing.T) {
 
 }
 
-func TestExpandIPPerms_nonVPCSDK(t *testing.T) {
+func TestExpandIPPerms_nonVPC(t *testing.T) {
 	hash := func(v interface{}) int {
 		return hashcode.String(v.(string))
 	}
@@ -146,7 +146,7 @@ func TestExpandIPPerms_nonVPCSDK(t *testing.T) {
 	group := &ec2.SecurityGroup{
 		GroupName: aws.String("foo"),
 	}
-	perms := expandIPPermsSDK(group, expanded)
+	perms := expandIPPerms(group, expanded)
 
 	expected := []ec2.IPPermission{
 		ec2.IPPermission{
@@ -193,7 +193,7 @@ func TestExpandIPPerms_nonVPCSDK(t *testing.T) {
 	}
 }
 
-func TestExpandListenersSDK(t *testing.T) {
+func TestexpandListeners(t *testing.T) {
 	expanded := []interface{}{
 		map[string]interface{}{
 			"instance_port":     8000,
@@ -202,7 +202,7 @@ func TestExpandListenersSDK(t *testing.T) {
 			"lb_protocol":       "http",
 		},
 	}
-	listeners, err := expandListenersSDK(expanded)
+	listeners, err := expandListeners(expanded)
 	if err != nil {
 		t.Fatalf("bad: %#v", err)
 	}
@@ -223,7 +223,7 @@ func TestExpandListenersSDK(t *testing.T) {
 
 }
 
-func TestFlattenHealthCheckSDK(t *testing.T) {
+func TestflattenHealthCheck(t *testing.T) {
 	cases := []struct {
 		Input  *elb.HealthCheck
 		Output []map[string]interface{}
@@ -249,19 +249,19 @@ func TestFlattenHealthCheckSDK(t *testing.T) {
 	}
 
 	for _, tc := range cases {
-		output := flattenHealthCheckSDK(tc.Input)
+		output := flattenHealthCheck(tc.Input)
 		if !reflect.DeepEqual(output, tc.Output) {
 			t.Fatalf("Got:\n\n%#v\n\nExpected:\n\n%#v", output, tc.Output)
 		}
 	}
 }
 
-func TestExpandStringListSDK(t *testing.T) {
-	expanded := flatmap.Expand(testConfSDK(), "availability_zones").([]interface{})
+func TestExpandStringList(t *testing.T) {
+	expanded := flatmap.Expand(testConf(), "availability_zones").([]interface{})
 	stringList := expandStringList(expanded)
-	expected := []string{
-		"us-east-1a",
-		"us-east-1b",
+	expected := []*string{
+		aws.String("us-east-1a"),
+		aws.String("us-east-1b"),
 	}
 
 	if !reflect.DeepEqual(stringList, expected) {
@@ -273,7 +273,7 @@ func TestExpandStringListSDK(t *testing.T) {
 
 }
 
-func TestExpandParametersSDK(t *testing.T) {
+func TestexpandParameters(t *testing.T) {
 	expanded := []interface{}{
 		map[string]interface{}{
 			"name":         "character_set_client",
@@ -281,7 +281,7 @@ func TestExpandParametersSDK(t *testing.T) {
 			"apply_method": "immediate",
 		},
 	}
-	parameters, err := expandParametersSDK(expanded)
+	parameters, err := expandParameters(expanded)
 	if err != nil {
 		t.Fatalf("bad: %#v", err)
 	}
@@ -300,7 +300,7 @@ func TestExpandParametersSDK(t *testing.T) {
 	}
 }
 
-func TestFlattenParametersSDK(t *testing.T) {
+func TestflattenParameters(t *testing.T) {
 	cases := []struct {
 		Input  []*rds.Parameter
 		Output []map[string]interface{}
@@ -322,14 +322,14 @@ func TestFlattenParametersSDK(t *testing.T) {
 	}
 
 	for _, tc := range cases {
-		output := flattenParametersSDK(tc.Input)
+		output := flattenParameters(tc.Input)
 		if !reflect.DeepEqual(output, tc.Output) {
 			t.Fatalf("Got:\n\n%#v\n\nExpected:\n\n%#v", output, tc.Output)
 		}
 	}
 }
 
-func TestExpandInstanceStringSDK(t *testing.T) {
+func TestexpandInstanceString(t *testing.T) {
 
 	expected := []*elb.Instance{
 		&elb.Instance{InstanceID: aws.String("test-one")},
@@ -341,20 +341,20 @@ func TestExpandInstanceStringSDK(t *testing.T) {
 		"test-two",
 	}
 
-	expanded := expandInstanceStringSDK(ids)
+	expanded := expandInstanceString(ids)
 
 	if !reflect.DeepEqual(expanded, expected) {
 		t.Fatalf("Expand Instance String output did not match.\nGot:\n%#v\n\nexpected:\n%#v", expanded, expected)
 	}
 }
 
-func TestFlattenNetworkInterfacesPrivateIPAddessesSDK(t *testing.T) {
+func TestflattenNetworkInterfacesPrivateIPAddesses(t *testing.T) {
 	expanded := []*ec2.NetworkInterfacePrivateIPAddress{
 		&ec2.NetworkInterfacePrivateIPAddress{PrivateIPAddress: aws.String("192.168.0.1")},
 		&ec2.NetworkInterfacePrivateIPAddress{PrivateIPAddress: aws.String("192.168.0.2")},
 	}
 
-	result := flattenNetworkInterfacesPrivateIPAddessesSDK(expanded)
+	result := flattenNetworkInterfacesPrivateIPAddesses(expanded)
 
 	if result == nil {
 		t.Fatal("result was nil")
@@ -373,13 +373,13 @@ func TestFlattenNetworkInterfacesPrivateIPAddessesSDK(t *testing.T) {
 	}
 }
 
-func TestFlattenGroupIdentifiersSDK(t *testing.T) {
+func TestflattenGroupIdentifiers(t *testing.T) {
 	expanded := []*ec2.GroupIdentifier{
 		&ec2.GroupIdentifier{GroupID: aws.String("sg-001")},
 		&ec2.GroupIdentifier{GroupID: aws.String("sg-002")},
 	}
 
-	result := flattenGroupIdentifiersSDK(expanded)
+	result := flattenGroupIdentifiers(expanded)
 
 	if len(result) != 2 {
 		t.Fatalf("expected result had %d elements, but got %d", 2, len(result))
@@ -394,7 +394,7 @@ func TestFlattenGroupIdentifiersSDK(t *testing.T) {
 	}
 }
 
-func TestExpandPrivateIPAddessesSDK(t *testing.T) {
+func TestexpandPrivateIPAddesses(t *testing.T) {
 
 	ip1 := "192.168.0.1"
 	ip2 := "192.168.0.2"
@@ -403,7 +403,7 @@ func TestExpandPrivateIPAddessesSDK(t *testing.T) {
 		ip2,
 	}
 
-	result := expandPrivateIPAddessesSDK(flattened)
+	result := expandPrivateIPAddesses(flattened)
 
 	if len(result) != 2 {
 		t.Fatalf("expected result had %d elements, but got %d", 2, len(result))
@@ -418,14 +418,14 @@ func TestExpandPrivateIPAddessesSDK(t *testing.T) {
 	}
 }
 
-func TestFlattenAttachmentSDK(t *testing.T) {
+func TestflattenAttachment(t *testing.T) {
 	expanded := &ec2.NetworkInterfaceAttachment{
 		InstanceID:   aws.String("i-00001"),
 		DeviceIndex:  aws.Long(int64(1)),
 		AttachmentID: aws.String("at-002"),
 	}
 
-	result := flattenAttachmentSDK(expanded)
+	result := flattenAttachment(expanded)
 
 	if result == nil {
 		t.Fatal("expected result to have value, but got nil")

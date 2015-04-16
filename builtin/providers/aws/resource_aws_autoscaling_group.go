@@ -132,7 +132,7 @@ func resourceAwsAutoscalingGroupCreate(d *schema.ResourceData, meta interface{})
 	autoScalingGroupOpts.LaunchConfigurationName = aws.String(d.Get("launch_configuration").(string))
 	autoScalingGroupOpts.MinSize = aws.Long(int64(d.Get("min_size").(int)))
 	autoScalingGroupOpts.MaxSize = aws.Long(int64(d.Get("max_size").(int)))
-	autoScalingGroupOpts.AvailabilityZones = expandStringListSDK(
+	autoScalingGroupOpts.AvailabilityZones = expandStringList(
 		d.Get("availability_zones").(*schema.Set).List())
 
 	if v, ok := d.GetOk("tag"); ok {
@@ -157,12 +157,12 @@ func resourceAwsAutoscalingGroupCreate(d *schema.ResourceData, meta interface{})
 	}
 
 	if v, ok := d.GetOk("load_balancers"); ok && v.(*schema.Set).Len() > 0 {
-		autoScalingGroupOpts.LoadBalancerNames = expandStringListSDK(
+		autoScalingGroupOpts.LoadBalancerNames = expandStringList(
 			v.(*schema.Set).List())
 	}
 
 	if v, ok := d.GetOk("vpc_zone_identifier"); ok && v.(*schema.Set).Len() > 0 {
-		exp := expandStringListSDK(v.(*schema.Set).List())
+		exp := expandStringList(v.(*schema.Set).List())
 		strs := make([]string, len(exp))
 		for _, s := range exp {
 			strs = append(strs, *s)
@@ -171,7 +171,7 @@ func resourceAwsAutoscalingGroupCreate(d *schema.ResourceData, meta interface{})
 	}
 
 	if v, ok := d.GetOk("termination_policies"); ok && v.(*schema.Set).Len() > 0 {
-		autoScalingGroupOpts.TerminationPolicies = expandStringListSDK(
+		autoScalingGroupOpts.TerminationPolicies = expandStringList(
 			v.(*schema.Set).List())
 	}
 

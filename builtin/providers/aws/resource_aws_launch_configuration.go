@@ -277,7 +277,7 @@ func resourceAwsLaunchConfigurationCreate(d *schema.ResourceData, meta interface
 	}
 
 	if v, ok := d.GetOk("security_groups"); ok {
-		createLaunchConfigurationOpts.SecurityGroups = expandStringListSDK(
+		createLaunchConfigurationOpts.SecurityGroups = expandStringList(
 			v.(*schema.Set).List(),
 		)
 	}

@@ -131,7 +131,7 @@ func resourceAwsDbParameterGroupRead(d *schema.ResourceData, meta interface{}) e
 		return err
 	}
 
-	d.Set("parameter", flattenParametersSDK(describeParametersResp.Parameters))
+	d.Set("parameter", flattenParameters(describeParametersResp.Parameters))
 
 	return nil
 }
@@ -154,7 +154,7 @@ func resourceAwsDbParameterGroupUpdate(d *schema.ResourceData, meta interface{})
 		ns := n.(*schema.Set)
 
 		// Expand the "parameter" set to aws-sdk-go compat []rds.Parameter
-		parameters, err := expandParametersSDK(ns.Difference(os).List())
+		parameters, err := expandParameters(ns.Difference(os).List())
 		if err != nil {
 			return err
 		}

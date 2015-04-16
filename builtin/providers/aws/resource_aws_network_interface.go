@@ -81,9 +81,9 @@ func resourceAwsNetworkInterfaceCreate(d *schema.ResourceData, meta interface{})
 	conn := meta.(*AWSClient).ec2conn
 
 	request := &ec2.CreateNetworkInterfaceInput{
-		Groups:             expandStringListSDK(d.Get("security_groups").(*schema.Set).List()),
+		Groups:             expandStringList(d.Get("security_groups").(*schema.Set).List()),
 		SubnetID:           aws.String(d.Get("subnet_id").(string)),
-		PrivateIPAddresses: expandPrivateIPAddessesSDK(d.Get("private_ips").(*schema.Set).List()),
+		PrivateIPAddresses: expandPrivateIPAddesses(d.Get("private_ips").(*schema.Set).List()),
 	}
 
 	log.Printf("[DEBUG] Creating network interface")
@@ -120,14 +120,14 @@ func resourceAwsNetworkInterfaceRead(d *schema.ResourceData, meta interface{}) e
 
 	eni := describeResp.NetworkInterfaces[0]
 	d.Set("subnet_id", eni.SubnetID)
-	d.Set("private_ips", flattenNetworkInterfacesPrivateIPAddessesSDK(eni.PrivateIPAddresses))
-	d.Set("security_groups", flattenGroupIdentifiersSDK(eni.Groups))
+	d.Set("private_ips", flattenNetworkInterfacesPrivateIPAddesses(eni.PrivateIPAddresses))
+	d.Set("security_groups", flattenGroupIdentifiers(eni.Groups))
 
 	// Tags
 	d.Set("tags", tagsToMapSDK(eni.TagSet))
 
 	if eni.Attachment != nil {
-		attachment := []map[string]interface{}{flattenAttachmentSDK(eni.Attachment)}
+		attachment := []map[string]interface{}{flattenAttachment(eni.Attachment)}
 		d.Set("attachment", attachment)
 	} else {
 		d.Set("attachment", nil)
@@ -219,7 +219,7 @@ func resourceAwsNetworkInterfaceUpdate(d *schema.ResourceData, meta interface{})
 	if d.HasChange("security_groups") {
 		request := &ec2.ModifyNetworkInterfaceAttributeInput{
 			NetworkInterfaceID: aws.String(d.Id()),
-			Groups:             expandStringListSDK(d.Get("security_groups").(*schema.Set).List()),
+			Groups:             expandStringList(d.Get("security_groups").(*schema.Set).List()),
 		}
 
 		_, err := conn.ModifyNetworkInterfaceAttribute(request)
