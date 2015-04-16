@@ -2,7 +2,9 @@ package config
 
 import (
 	"fmt"
+	"io"
 	"io/ioutil"
+	"os"
 
 	"github.com/hashicorp/hcl"
 	hclobj "github.com/hashicorp/hcl/hcl"
@@ -11,7 +13,6 @@ import (
 // hclConfigurable is an implementation of configurable that knows
 // how to turn HCL configuration into a *Config object.
 type hclConfigurable struct {
-	File   string
 	Object *hclobj.Object
 }
 
@@ -129,28 +130,25 @@ func (t *hclConfigurable) Config() (*Config, error) {
 	return config, nil
 }
 
-// loadFileHcl is a fileLoaderFunc that knows how to read HCL
+// loadReaderHcl
 // files and turn them into hclConfigurables.
-func loadFileHcl(root string) (configurable, []string, error) {
+func loadReaderHcl(r io.Reader) (configurable, error) {
 	var obj *hclobj.Object = nil
 
-	// Read the HCL file and prepare for parsing
-	d, err := ioutil.ReadFile(root)
+	// Read the HCL content and prepare for parsing
+	d, err := ioutil.ReadAll(r)
 	if err != nil {
-		return nil, nil, fmt.Errorf(
-			"Error reading %s: %s", root, err)
+		return nil, fmt.Errorf("Error reading: %s", err)
 	}
 
 	// Parse it
 	obj, err = hcl.Parse(string(d))
 	if err != nil {
-		return nil, nil, fmt.Errorf(
-			"Error parsing %s: %s", root, err)
+		return nil, fmt.Errorf("Error parsing: %s", err)
 	}
 
 	// Start building the result
 	result := &hclConfigurable{
-		File:   root,
 		Object: obj,
 	}
 
@@ -163,17 +161,14 @@ func loadFileHcl(root string) (configurable, []string, error) {
 			result.Object.Ref()
 			return result, nil, nil
 		}
-
 		if imports.Type() != libucl.ObjectTypeString {
 			imports.Close()
-
 			return nil, nil, fmt.Errorf(
 				"Error in %s: all 'import' declarations should be in the format\n"+
 					"`import \"foo\"` (Got type %s)",
 				root,
 				imports.Type())
 		}
-
 		// Gather all the import paths
 		importPaths := make([]string, 0, imports.Len())
 		iter := imports.Iterate(false)
@@ -184,17 +179,27 @@ func loadFileHcl(root string) (configurable, []string, error) {
 				dir := filepath.Dir(root)
 				path = filepath.Join(dir, path)
 			}
-
 			importPaths = append(importPaths, path)
 			imp.Close()
 		}
 		iter.Close()
 		imports.Close()
-
 		result.Object.Ref()
 	*/
 
-	return result, nil, nil
+	return result, nil
+}
+
+// loadFileHcl is a fileLoaderFunc that knows how to read HCL
+// files and turn them into hclConfigurables.
+func loadFileHcl(root string) (configurable, error) {
+	f, err := os.Open(root)
+	if err != nil {
+		return nil, err
+	}
+	defer f.Close()
+
+	return loadReaderHcl(f)
 }
 
 // Given a handle to a HCL object, this transforms it into the Atlas
