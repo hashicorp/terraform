@@ -29,7 +29,7 @@ func resourceAwsInternetGateway() *schema.Resource {
 }
 
 func resourceAwsInternetGatewayCreate(d *schema.ResourceData, meta interface{}) error {
-	conn := meta.(*AWSClient).ec2SDKconn
+	conn := meta.(*AWSClient).ec2conn
 
 	// Create the gateway
 	log.Printf("[DEBUG] Creating internet gateway")
@@ -53,7 +53,7 @@ func resourceAwsInternetGatewayCreate(d *schema.ResourceData, meta interface{}) 
 }
 
 func resourceAwsInternetGatewayRead(d *schema.ResourceData, meta interface{}) error {
-	conn := meta.(*AWSClient).ec2SDKconn
+	conn := meta.(*AWSClient).ec2conn
 
 	igRaw, _, err := IGStateRefreshFunc(conn, d.Id())()
 	if err != nil {
@@ -91,7 +91,7 @@ func resourceAwsInternetGatewayUpdate(d *schema.ResourceData, meta interface{}) 
 		}
 	}
 
-	conn := meta.(*AWSClient).ec2SDKconn
+	conn := meta.(*AWSClient).ec2conn
 
 	if err := setTagsSDK(conn, d); err != nil {
 		return err
@@ -103,7 +103,7 @@ func resourceAwsInternetGatewayUpdate(d *schema.ResourceData, meta interface{}) 
 }
 
 func resourceAwsInternetGatewayDelete(d *schema.ResourceData, meta interface{}) error {
-	conn := meta.(*AWSClient).ec2SDKconn
+	conn := meta.(*AWSClient).ec2conn
 
 	// Detach if it is attached
 	if err := resourceAwsInternetGatewayDetach(d, meta); err != nil {
@@ -137,7 +137,7 @@ func resourceAwsInternetGatewayDelete(d *schema.ResourceData, meta interface{}) 
 }
 
 func resourceAwsInternetGatewayAttach(d *schema.ResourceData, meta interface{}) error {
-	conn := meta.(*AWSClient).ec2SDKconn
+	conn := meta.(*AWSClient).ec2conn
 
 	if d.Get("vpc_id").(string) == "" {
 		log.Printf(
@@ -182,7 +182,7 @@ func resourceAwsInternetGatewayAttach(d *schema.ResourceData, meta interface{}) 
 }
 
 func resourceAwsInternetGatewayDetach(d *schema.ResourceData, meta interface{}) error {
-	conn := meta.(*AWSClient).ec2SDKconn
+	conn := meta.(*AWSClient).ec2conn
 
 	// Get the old VPC ID to detach from
 	vpcID, _ := d.GetChange("vpc_id")

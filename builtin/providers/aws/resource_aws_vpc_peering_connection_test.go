@@ -35,7 +35,7 @@ func TestAccAWSVPCPeeringConnection_normal(t *testing.T) {
 }
 
 func testAccCheckAWSVpcPeeringConnectionDestroy(s *terraform.State) error {
-	conn := testAccProvider.Meta().(*AWSClient).ec2SDKconn
+	conn := testAccProvider.Meta().(*AWSClient).ec2conn
 
 	for _, rs := range s.RootModule().Resources {
 		if rs.Type != "aws_vpc_peering_connection" {

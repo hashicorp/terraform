@@ -41,7 +41,7 @@ func resourceAwsVpcPeeringConnection() *schema.Resource {
 }
 
 func resourceAwsVpcPeeringCreate(d *schema.ResourceData, meta interface{}) error {
-	conn := meta.(*AWSClient).ec2SDKconn
+	conn := meta.(*AWSClient).ec2conn
 
 	// Create the vpc peering connection
 	createOpts := &ec2.CreateVPCPeeringConnectionInput{
@@ -80,7 +80,7 @@ func resourceAwsVpcPeeringCreate(d *schema.ResourceData, meta interface{}) error
 }
 
 func resourceAwsVpcPeeringRead(d *schema.ResourceData, meta interface{}) error {
-	conn := meta.(*AWSClient).ec2SDKconn
+	conn := meta.(*AWSClient).ec2conn
 	pcRaw, _, err := resourceAwsVpcPeeringConnectionStateRefreshFunc(conn, d.Id())()
 	if err != nil {
 		return err
@@ -101,7 +101,7 @@ func resourceAwsVpcPeeringRead(d *schema.ResourceData, meta interface{}) error {
 }
 
 func resourceAwsVpcPeeringUpdate(d *schema.ResourceData, meta interface{}) error {
-	conn := meta.(*AWSClient).ec2SDKconn
+	conn := meta.(*AWSClient).ec2conn
 
 	if err := setTagsSDK(conn, d); err != nil {
 		return err
@@ -113,7 +113,7 @@ func resourceAwsVpcPeeringUpdate(d *schema.ResourceData, meta interface{}) error
 }
 
 func resourceAwsVpcPeeringDelete(d *schema.ResourceData, meta interface{}) error {
-	conn := meta.(*AWSClient).ec2SDKconn
+	conn := meta.(*AWSClient).ec2conn
 
 	_, err := conn.DeleteVPCPeeringConnection(
 		&ec2.DeleteVPCPeeringConnectionInput{
