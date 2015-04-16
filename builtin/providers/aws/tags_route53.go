@@ -3,8 +3,8 @@ package aws
 import (
 	"log"
 
-        "github.com/awslabs/aws-sdk-go/aws"
-        "github.com/awslabs/aws-sdk-go/service/route53"
+	"github.com/awslabs/aws-sdk-go/aws"
+	"github.com/awslabs/aws-sdk-go/service/route53"
 	"github.com/hashicorp/terraform/helper/schema"
 )
 
@@ -18,21 +18,21 @@ func setTagsR53(conn *route53.Route53, d *schema.ResourceData) error {
 		create, remove := diffTagsR53(tagsFromMapR53(o), tagsFromMapR53(n))
 
 		// Set tags
-                r := make([]*string, len(remove))
+		r := make([]*string, len(remove))
 		for i, t := range remove {
-                        r[i] = t.Key
+			r[i] = t.Key
 		}
 		log.Printf("[DEBUG] Changing tags: \n\tadding: %#v\n\tremoving:%#v", create, remove)
-                req := &route53.ChangeTagsForResourceInput{
-                        ResourceID:   aws.String(d.Id()),
-                        ResourceType: aws.String("hostedzone"),
-                }
+		req := &route53.ChangeTagsForResourceInput{
+			ResourceID:   aws.String(d.Id()),
+			ResourceType: aws.String("hostedzone"),
+		}
 
-                if len(create) > 0 {
-                        req.AddTags = create
-                }
-                if len(r) > 0 {
-                        req.RemoveTagKeys = r
+		if len(create) > 0 {
+			req.AddTags = create
+		}
+		if len(r) > 0 {
+			req.RemoveTagKeys = r
 		}
 
 		_, err := conn.ChangeTagsForResource(req)
@@ -55,7 +55,7 @@ func diffTagsR53(oldTags, newTags []*route53.Tag) ([]*route53.Tag, []*route53.Ta
 	}
 
 	// Build the list of what to remove
-        var remove []*route53.Tag
+	var remove []*route53.Tag
 	for _, t := range oldTags {
 		old, ok := create[*t.Key]
 		if !ok || old != *t.Value {
@@ -69,9 +69,9 @@ func diffTagsR53(oldTags, newTags []*route53.Tag) ([]*route53.Tag, []*route53.Ta
 
 // tagsFromMap returns the tags for the given map of data.
 func tagsFromMapR53(m map[string]interface{}) []*route53.Tag {
-        result := make([]*route53.Tag, 0, len(m))
+	result := make([]*route53.Tag, 0, len(m))
 	for k, v := range m {
-                result = append(result, &route53.Tag{
+		result = append(result, &route53.Tag{
 			Key:   aws.String(k),
 			Value: aws.String(v.(string)),
 		})
