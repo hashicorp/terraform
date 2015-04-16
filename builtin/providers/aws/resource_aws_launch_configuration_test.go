@@ -7,8 +7,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/hashicorp/aws-sdk-go/aws"
-	"github.com/hashicorp/aws-sdk-go/gen/autoscaling"
+	"github.com/awslabs/aws-sdk-go/aws"
+	"github.com/awslabs/aws-sdk-go/service/autoscaling"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
 )
@@ -107,8 +107,8 @@ func testAccCheckAWSLaunchConfigurationDestroy(s *terraform.State) error {
 		}
 
 		describe, err := conn.DescribeLaunchConfigurations(
-			&autoscaling.LaunchConfigurationNamesType{
-				LaunchConfigurationNames: []string{rs.Primary.ID},
+			&autoscaling.DescribeLaunchConfigurationsInput{
+				LaunchConfigurationNames: []*string{aws.String(rs.Primary.ID)},
 			})
 
 		if err == nil {
@@ -146,7 +146,7 @@ func testAccCheckAWSLaunchConfigurationAttributes(conf *autoscaling.LaunchConfig
 		}
 
 		// Map out the block devices by name, which should be unique.
-		blockDevices := make(map[string]autoscaling.BlockDeviceMapping)
+		blockDevices := make(map[string]*autoscaling.BlockDeviceMapping)
 		for _, blockDevice := range conf.BlockDeviceMappings {
 			blockDevices[*blockDevice.DeviceName] = blockDevice
 		}
@@ -188,8 +188,8 @@ func testAccCheckAWSLaunchConfigurationExists(n string, res *autoscaling.LaunchC
 
 		conn := testAccProvider.Meta().(*AWSClient).autoscalingconn
 
-		describeOpts := autoscaling.LaunchConfigurationNamesType{
-			LaunchConfigurationNames: []string{rs.Primary.ID},
+		describeOpts := autoscaling.DescribeLaunchConfigurationsInput{
+			LaunchConfigurationNames: []*string{aws.String(rs.Primary.ID)},
 		}
 		describe, err := conn.DescribeLaunchConfigurations(&describeOpts)
 
@@ -202,7 +202,7 @@ func testAccCheckAWSLaunchConfigurationExists(n string, res *autoscaling.LaunchC
 			return fmt.Errorf("Launch Configuration Group not found")
 		}
 
-		*res = describe.LaunchConfigurations[0]
+		*res = *describe.LaunchConfigurations[0]
 
 		return nil
 	}
