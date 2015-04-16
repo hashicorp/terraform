@@ -8,13 +8,12 @@ import (
 
 	"github.com/awslabs/aws-sdk-go/service/elb"
 	"github.com/hashicorp/aws-sdk-go/aws"
-	"github.com/hashicorp/aws-sdk-go/gen/autoscaling"
 	"github.com/hashicorp/aws-sdk-go/gen/ec2"
 	"github.com/hashicorp/aws-sdk-go/gen/route53"
 	"github.com/hashicorp/aws-sdk-go/gen/s3"
 
 	awsSDK "github.com/awslabs/aws-sdk-go/aws"
-	awsASG "github.com/awslabs/aws-sdk-go/service/autoscaling"
+	"github.com/awslabs/aws-sdk-go/service/autoscaling"
 	awsEC2 "github.com/awslabs/aws-sdk-go/service/ec2"
 	"github.com/awslabs/aws-sdk-go/service/iam"
 	"github.com/awslabs/aws-sdk-go/service/rds"
@@ -31,7 +30,6 @@ type AWSClient struct {
 	ec2conn         *ec2.EC2
 	elbconn         *elb.ELB
 	autoscalingconn *autoscaling.AutoScaling
-	asgconn         *awsASG.AutoScaling
 	s3conn          *s3.S3
 	r53conn         *route53.Route53
 	region          string
@@ -72,8 +70,6 @@ func (c *Config) Client() (interface{}, error) {
 		log.Println("[INFO] Initializing ELB SDK connection")
 		client.elbconn = elb.New(awsConfig)
 
-		log.Println("[INFO] Initializing AutoScaling connection")
-		client.autoscalingconn = autoscaling.New(creds, c.Region, nil)
 		log.Println("[INFO] Initializing S3 connection")
 		client.s3conn = s3.New(creds, c.Region, nil)
 
@@ -94,7 +90,7 @@ func (c *Config) Client() (interface{}, error) {
 		log.Println("[INFO] Initializing IAM SDK Connection")
 		client.iamconn = iam.New(awsConfig)
 		log.Println("[INFO] Initializing AutoScaling SDK connection")
-		client.asgconn = awsASG.New(awsConfig)
+		client.autoscalingconn = autoscaling.New(awsConfig)
 	}
 
 	if len(errs) > 0 {
