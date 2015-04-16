@@ -8,9 +8,9 @@ import (
 
 	"github.com/awslabs/aws-sdk-go/service/elb"
 	"github.com/awslabs/aws-sdk-go/service/route53"
+	"github.com/awslabs/aws-sdk-go/service/s3"
 	"github.com/hashicorp/aws-sdk-go/aws"
 	"github.com/hashicorp/aws-sdk-go/gen/ec2"
-	"github.com/hashicorp/aws-sdk-go/gen/s3"
 
 	awsSDK "github.com/awslabs/aws-sdk-go/aws"
 	"github.com/awslabs/aws-sdk-go/service/autoscaling"
@@ -71,7 +71,7 @@ func (c *Config) Client() (interface{}, error) {
 		client.elbconn = elb.New(awsConfig)
 
 		log.Println("[INFO] Initializing S3 connection")
-		client.s3conn = s3.New(creds, c.Region, nil)
+		client.s3conn = s3.New(awsConfig)
 
 		log.Println("[INFO] Initializing EC2 Connection")
 		client.ec2conn = ec2.New(creds, c.Region, nil)
