@@ -7,9 +7,9 @@ import (
 	"github.com/hashicorp/terraform/helper/multierror"
 
 	"github.com/awslabs/aws-sdk-go/service/elb"
+	"github.com/awslabs/aws-sdk-go/service/route53"
 	"github.com/hashicorp/aws-sdk-go/aws"
 	"github.com/hashicorp/aws-sdk-go/gen/ec2"
-	"github.com/hashicorp/aws-sdk-go/gen/route53"
 	"github.com/hashicorp/aws-sdk-go/gen/s3"
 
 	awsSDK "github.com/awslabs/aws-sdk-go/aws"
@@ -73,16 +73,8 @@ func (c *Config) Client() (interface{}, error) {
 		log.Println("[INFO] Initializing S3 connection")
 		client.s3conn = s3.New(creds, c.Region, nil)
 
-		// aws-sdk-go uses v4 for signing requests, which requires all global
-		// endpoints to use 'us-east-1'.
-		// See http://docs.aws.amazon.com/general/latest/gr/sigv4_changes.html
-		log.Println("[INFO] Initializing Route53 connection")
-		client.r53conn = route53.New(creds, "us-east-1", nil)
 		log.Println("[INFO] Initializing EC2 Connection")
 		client.ec2conn = ec2.New(creds, c.Region, nil)
-
-		log.Println("[INFO] Initializing EC2 SDK Connection")
-		client.ec2SDKconn = awsEC2.New(awsConfig)
 
 		log.Println("[INFO] Initializing RDS SDK Connection")
 		client.rdsconn = rds.New(awsConfig)
@@ -91,6 +83,19 @@ func (c *Config) Client() (interface{}, error) {
 		client.iamconn = iam.New(awsConfig)
 		log.Println("[INFO] Initializing AutoScaling SDK connection")
 		client.autoscalingconn = autoscaling.New(awsConfig)
+
+		log.Println("[INFO] Initializing EC2 SDK Connection")
+		client.ec2SDKconn = awsEC2.New(awsConfig)
+
+		// aws-sdk-go uses v4 for signing requests, which requires all global
+		// endpoints to use 'us-east-1'.
+		// See http://docs.aws.amazon.com/general/latest/gr/sigv4_changes.html
+		log.Println("[INFO] Initializing Route 53 SDK connection")
+		client.r53conn = route53.New(&awsSDK.Config{
+			Credentials: sdkCreds,
+			Region:      "us-east-1",
+		})
+
 	}
 
 	if len(errs) > 0 {

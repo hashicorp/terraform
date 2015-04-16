@@ -8,8 +8,8 @@ import (
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
 
-	"github.com/hashicorp/aws-sdk-go/aws"
-	route53 "github.com/hashicorp/aws-sdk-go/gen/route53"
+	"github.com/awslabs/aws-sdk-go/aws"
+	"github.com/awslabs/aws-sdk-go/service/route53"
 )
 
 func TestCleanRecordName(t *testing.T) {
@@ -134,7 +134,7 @@ func testAccCheckRoute53RecordDestroy(s *terraform.State) error {
 		name := parts[1]
 		rType := parts[2]
 
-		lopts := &route53.ListResourceRecordSetsRequest{
+		lopts := &route53.ListResourceRecordSetsInput{
 			HostedZoneID:    aws.String(cleanZoneID(zone)),
 			StartRecordName: aws.String(name),
 			StartRecordType: aws.String(rType),
@@ -174,7 +174,7 @@ func testAccCheckRoute53RecordExists(n string) resource.TestCheckFunc {
 
 		en := expandRecordName(name, "notexample.com")
 
-		lopts := &route53.ListResourceRecordSetsRequest{
+		lopts := &route53.ListResourceRecordSetsInput{
 			HostedZoneID:    aws.String(cleanZoneID(zone)),
 			StartRecordName: aws.String(en),
 			StartRecordType: aws.String(rType),
