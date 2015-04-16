@@ -5,7 +5,7 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/hashicorp/aws-sdk-go/gen/s3"
+	"github.com/awslabs/aws-sdk-go/service/s3"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
 )
@@ -63,7 +63,7 @@ func TestDiffTagsS3(t *testing.T) {
 
 // testAccCheckTags can be used to check the tags on a resource.
 func testAccCheckTagsS3(
-	ts *[]s3.Tag, key string, value string) resource.TestCheckFunc {
+	ts *[]*s3.Tag, key string, value string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		m := tagsToMapS3(*ts)
 		v, ok := m[key]
