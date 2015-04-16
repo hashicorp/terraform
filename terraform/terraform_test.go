@@ -48,7 +48,7 @@ func tempDir(t *testing.T) string {
 }
 
 func testConfig(t *testing.T, name string) *config.Config {
-	c, err := config.Load(filepath.Join(fixtureDir, name, "main.tf"))
+	c, err := config.LoadFile(filepath.Join(fixtureDir, name, "main.tf"))
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}

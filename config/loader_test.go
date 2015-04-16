@@ -38,24 +38,96 @@ func TestIsEmptyDir_noConfigs(t *testing.T) {
 }
 
 func TestLoad_badType(t *testing.T) {
-	_, err := Load(filepath.Join(fixtureDir, "bad_type.tf.nope"))
+	_, err := LoadFile(filepath.Join(fixtureDir, "bad_type.tf.nope"))
 	if err == nil {
 		t.Fatal("should have error")
 	}
 }
 
-func TestLoadBasic(t *testing.T) {
-	c, err := Load(filepath.Join(fixtureDir, "basic.tf"))
+func TestLoadReaderBasic(t *testing.T) {
+	const basicTf = `
+variable "foo" {
+    default = "bar"
+    description = "bar"
+}
+
+provider "aws" {
+  access_key = "foo"
+  secret_key = "bar"
+}
+
+provider "do" {
+  api_key = "${var.foo}"
+}
+
+resource "aws_security_group" "firewall" {
+    count = 5
+}
+
+resource aws_instance "web" {
+    ami = "${var.foo}"
+    security_groups = [
+        "foo",
+        "${aws_security_group.firewall.foo}"
+    ]
+
+    network_interface {
+        device_index = 0
+        description = "Main network interface"
+    }
+
+    provisioner "file" {
+        source = "foo"
+        destination = "bar"
+    }
+}
+
+resource "aws_instance" "db" {
+    security_groups = "${aws_security_group.firewall.*.id}"
+    VPC = "foo"
+
+    depends_on = ["aws_instance.web"]
+
+    provisioner "file" {
+        source = "foo"
+        destination = "bar"
+    }
+}
+
+output "web_ip" {
+    value = "${aws_instance.web.private_ip}"
+}
+
+atlas {
+    name = "mitchellh/foo"
+}
+	`
+
+	r := strings.NewReader(basicTf)
+	c, err := LoadReader(r)
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
 
-	if c == nil {
-		t.Fatal("config should not be nil")
+	loadBasic(c, t)
+}
+
+func TestLoadBasic(t *testing.T) {
+	c, err := LoadFile(filepath.Join(fixtureDir, "basic.tf"))
+	if err != nil {
+		t.Fatalf("err: %s", err)
 	}
 
-	if c.Dir != "" {
+	if c != nil && c.Dir != "" {
 		t.Fatalf("bad: %#v", c.Dir)
+	}
+
+	loadBasic(c, t)
+}
+
+func loadBasic(c *Config, t *testing.T) {
+	if c == nil {
+		t.Fatal("config should not be nil")
 	}
 
 	expectedAtlas := &AtlasConfig{Name: "mitchellh/foo"}
@@ -82,10 +154,11 @@ func TestLoadBasic(t *testing.T) {
 	if actual != strings.TrimSpace(basicOutputsStr) {
 		t.Fatalf("bad:\n%s", actual)
 	}
+
 }
 
 func TestLoadBasic_empty(t *testing.T) {
-	c, err := Load(filepath.Join(fixtureDir, "empty.tf"))
+	c, err := LoadFile(filepath.Join(fixtureDir, "empty.tf"))
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -99,7 +172,7 @@ func TestLoadBasic_import(t *testing.T) {
 	// Skip because we disabled importing
 	t.Skip()
 
-	c, err := Load(filepath.Join(fixtureDir, "import.tf"))
+	c, err := LoadFile(filepath.Join(fixtureDir, "import.tf"))
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -125,7 +198,7 @@ func TestLoadBasic_import(t *testing.T) {
 }
 
 func TestLoadBasic_json(t *testing.T) {
-	c, err := Load(filepath.Join(fixtureDir, "basic.tf.json"))
+	c, err := LoadFile(filepath.Join(fixtureDir, "basic.tf.json"))
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -165,7 +238,7 @@ func TestLoadBasic_json(t *testing.T) {
 }
 
 func TestLoadBasic_modules(t *testing.T) {
-	c, err := Load(filepath.Join(fixtureDir, "modules.tf"))
+	c, err := LoadFile(filepath.Join(fixtureDir, "modules.tf"))
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -185,7 +258,7 @@ func TestLoadBasic_modules(t *testing.T) {
 }
 
 func TestLoad_variables(t *testing.T) {
-	c, err := Load(filepath.Join(fixtureDir, "variables.tf"))
+	c, err := LoadFile(filepath.Join(fixtureDir, "variables.tf"))
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -304,7 +377,7 @@ func TestLoadDir_override(t *testing.T) {
 }
 
 func TestLoad_provisioners(t *testing.T) {
-	c, err := Load(filepath.Join(fixtureDir, "provisioners.tf"))
+	c, err := LoadFile(filepath.Join(fixtureDir, "provisioners.tf"))
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -320,7 +393,7 @@ func TestLoad_provisioners(t *testing.T) {
 }
 
 func TestLoad_connections(t *testing.T) {
-	c, err := Load(filepath.Join(fixtureDir, "connection.tf"))
+	c, err := LoadFile(filepath.Join(fixtureDir, "connection.tf"))
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}
@@ -358,7 +431,7 @@ func TestLoad_connections(t *testing.T) {
 }
 
 func TestLoad_createBeforeDestroy(t *testing.T) {
-	c, err := Load(filepath.Join(fixtureDir, "create-before-destroy.tf"))
+	c, err := LoadFile(filepath.Join(fixtureDir, "create-before-destroy.tf"))
 	if err != nil {
 		t.Fatalf("err: %s", err)
 	}

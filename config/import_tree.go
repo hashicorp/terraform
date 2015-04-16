@@ -17,20 +17,21 @@ type configurable interface {
 //
 // An importTree can be turned into a configTree.
 type importTree struct {
-	Path     string
-	Raw      configurable
+	Path string
+	Raw  configurable
+
+	// not used currently, just here for possible future features
 	Children []*importTree
 }
 
 // This is the function type that must be implemented by the configuration
-// file loader to turn a single file into a configurable and any additional
-// imports.
-type fileLoaderFunc func(path string) (configurable, []string, error)
+// file loader to turn a single file into a configurable.
+type fileLoaderFunc func(path string) (configurable, error)
 
-// loadTree takes a single file and loads the entire importTree for that
-// file. This function detects what kind of configuration file it is an
+// loadTreeFromFile takes a single file and loads the entire importTree for
+// that file. This function detects what kind of configuration file it is an
 // executes the proper fileLoaderFunc.
-func loadTree(root string) (*importTree, error) {
+func loadTreeFromFile(root string) (*importTree, error) {
 	var f fileLoaderFunc
 	switch ext(root) {
 	case ".tf":
@@ -46,25 +47,14 @@ func loadTree(root string) (*importTree, error) {
 			root)
 	}
 
-	c, imps, err := f(root)
+	c, err := f(root)
 	if err != nil {
 		return nil, err
 	}
 
-	children := make([]*importTree, len(imps))
-	for i, imp := range imps {
-		t, err := loadTree(imp)
-		if err != nil {
-			return nil, err
-		}
-
-		children[i] = t
-	}
-
 	return &importTree{
-		Path:     root,
-		Raw:      c,
-		Children: children,
+		Path: root,
+		Raw:  c,
 	}, nil
 }
 
