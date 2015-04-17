@@ -1,17 +1,17 @@
 package aws
 
-//import(
-//    "fmt"
+import(
+    "fmt"
 //    "math/rand"
 //    "strings"
-//    "testing"
+    "testing"
 //    "time"
 //
-//    "github.com/awslabs/aws-sdk-go/aws"
-//    "github.com/awslabs/aws-sdk-go/service/autoscaling"
-//    "github.com/hashicorp/terraform/help/resource"
-//    "github.com/hashicorp/terraform/terraform"
-//)
+    "github.com/awslabs/aws-sdk-go/aws"
+    "github.com/awslabs/aws-sdk-go/service/cloudwatch"
+    "github.com/hashicorp/terraform/helper/resource"
+    "github.com/hashicorp/terraform/terraform"
+)
 
 func TestAccAWSCloudWatchMetricAlarm_basic(t* testing.T) {
     var alarm cloudwatch.MetricAlarm
@@ -41,8 +41,8 @@ func testAccCheckCloudWatchMetricAlarmExists(n string, alarm *cloudwatch.MetricA
         }
 
         conn := testAccProvider.Meta().(*AWSClient).cloudwatchconn
-        params := cloudwatch.DeleteAlarmsInput{
-            AlarmNames: []*string{aws.String(rs.Primary.ID)}
+        params := cloudwatch.DescribeAlarmsInput{
+            AlarmNames: []*string{aws.String(rs.Primary.ID)},
         }
         resp, err := conn.DescribeAlarms(&params)
         if err != nil {
