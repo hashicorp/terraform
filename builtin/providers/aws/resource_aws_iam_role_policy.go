@@ -5,8 +5,8 @@ import (
 	"net/url"
 	"strings"
 
-	"github.com/hashicorp/aws-sdk-go/aws"
-	"github.com/hashicorp/aws-sdk-go/gen/iam"
+	"github.com/awslabs/aws-sdk-go/aws"
+	"github.com/awslabs/aws-sdk-go/service/iam"
 
 	"github.com/hashicorp/terraform/helper/schema"
 )
@@ -42,13 +42,13 @@ func resourceAwsIamRolePolicy() *schema.Resource {
 func resourceAwsIamRolePolicyPut(d *schema.ResourceData, meta interface{}) error {
 	iamconn := meta.(*AWSClient).iamconn
 
-	request := &iam.PutRolePolicyRequest{
+	request := &iam.PutRolePolicyInput{
 		RoleName:       aws.String(d.Get("role").(string)),
 		PolicyName:     aws.String(d.Get("name").(string)),
 		PolicyDocument: aws.String(d.Get("policy").(string)),
 	}
 
-	if err := iamconn.PutRolePolicy(request); err != nil {
+	if _, err := iamconn.PutRolePolicy(request); err != nil {
 		return fmt.Errorf("Error putting IAM role policy %s: %s", request.PolicyName, err)
 	}
 
@@ -61,7 +61,7 @@ func resourceAwsIamRolePolicyRead(d *schema.ResourceData, meta interface{}) erro
 
 	role, name := resourceAwsIamRolePolicyParseId(d)
 
-	request := &iam.GetRolePolicyRequest{
+	request := &iam.GetRolePolicyInput{
 		PolicyName: aws.String(name),
 		RoleName:   aws.String(role),
 	}
@@ -91,12 +91,12 @@ func resourceAwsIamRolePolicyDelete(d *schema.ResourceData, meta interface{}) er
 
 	role, name := resourceAwsIamRolePolicyParseId(d)
 
-	request := &iam.DeleteRolePolicyRequest{
+	request := &iam.DeleteRolePolicyInput{
 		PolicyName: aws.String(name),
 		RoleName:   aws.String(role),
 	}
 
-	if err := iamconn.DeleteRolePolicy(request); err != nil {
+	if _, err := iamconn.DeleteRolePolicy(request); err != nil {
 		return fmt.Errorf("Error deleting IAM role policy %s: %s", d.Id(), err)
 	}
 	return nil

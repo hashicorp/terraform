@@ -3,8 +3,8 @@ package aws
 import (
 	"fmt"
 
-	"github.com/hashicorp/aws-sdk-go/aws"
-	"github.com/hashicorp/aws-sdk-go/gen/iam"
+	"github.com/awslabs/aws-sdk-go/aws"
+	"github.com/awslabs/aws-sdk-go/service/iam"
 
 	"github.com/hashicorp/terraform/helper/schema"
 )
@@ -54,7 +54,7 @@ func resourceAwsIamInstanceProfileCreate(d *schema.ResourceData, meta interface{
 	iamconn := meta.(*AWSClient).iamconn
 	name := d.Get("name").(string)
 
-	request := &iam.CreateInstanceProfileRequest{
+	request := &iam.CreateInstanceProfileInput{
 		InstanceProfileName: aws.String(name),
 		Path:                aws.String(d.Get("path").(string)),
 	}
@@ -71,21 +71,23 @@ func resourceAwsIamInstanceProfileCreate(d *schema.ResourceData, meta interface{
 }
 
 func instanceProfileAddRole(iamconn *iam.IAM, profileName, roleName string) error {
-	request := &iam.AddRoleToInstanceProfileRequest{
+	request := &iam.AddRoleToInstanceProfileInput{
 		InstanceProfileName: aws.String(profileName),
 		RoleName:            aws.String(roleName),
 	}
 
-	return iamconn.AddRoleToInstanceProfile(request)
+	_, err := iamconn.AddRoleToInstanceProfile(request)
+	return err
 }
 
 func instanceProfileRemoveRole(iamconn *iam.IAM, profileName, roleName string) error {
-	request := &iam.RemoveRoleFromInstanceProfileRequest{
+	request := &iam.RemoveRoleFromInstanceProfileInput{
 		InstanceProfileName: aws.String(profileName),
 		RoleName:            aws.String(roleName),
 	}
 
-	return iamconn.RemoveRoleFromInstanceProfile(request)
+	_, err := iamconn.RemoveRoleFromInstanceProfile(request)
+	return err
 }
 
 func instanceProfileSetRoles(d *schema.ResourceData, iamconn *iam.IAM) error {
@@ -135,7 +137,7 @@ func resourceAwsIamInstanceProfileUpdate(d *schema.ResourceData, meta interface{
 func resourceAwsIamInstanceProfileRead(d *schema.ResourceData, meta interface{}) error {
 	iamconn := meta.(*AWSClient).iamconn
 
-	request := &iam.GetInstanceProfileRequest{
+	request := &iam.GetInstanceProfileInput{
 		InstanceProfileName: aws.String(d.Id()),
 	}
 
@@ -154,10 +156,10 @@ func resourceAwsIamInstanceProfileRead(d *schema.ResourceData, meta interface{})
 func resourceAwsIamInstanceProfileDelete(d *schema.ResourceData, meta interface{}) error {
 	iamconn := meta.(*AWSClient).iamconn
 
-	request := &iam.DeleteInstanceProfileRequest{
+	request := &iam.DeleteInstanceProfileInput{
 		InstanceProfileName: aws.String(d.Id()),
 	}
-	err := iamconn.DeleteInstanceProfile(request)
+	_, err := iamconn.DeleteInstanceProfile(request)
 	if err != nil {
 		return fmt.Errorf("Error deleting IAM instance profile %s: %s", d.Id(), err)
 	}

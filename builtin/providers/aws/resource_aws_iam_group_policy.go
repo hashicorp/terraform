@@ -5,8 +5,8 @@ import (
 	"net/url"
 	"strings"
 
-	"github.com/hashicorp/aws-sdk-go/aws"
-	"github.com/hashicorp/aws-sdk-go/gen/iam"
+	"github.com/awslabs/aws-sdk-go/aws"
+	"github.com/awslabs/aws-sdk-go/service/iam"
 
 	"github.com/hashicorp/terraform/helper/schema"
 )
@@ -42,13 +42,13 @@ func resourceAwsIamGroupPolicy() *schema.Resource {
 func resourceAwsIamGroupPolicyPut(d *schema.ResourceData, meta interface{}) error {
 	iamconn := meta.(*AWSClient).iamconn
 
-	request := &iam.PutGroupPolicyRequest{
+	request := &iam.PutGroupPolicyInput{
 		GroupName:      aws.String(d.Get("group").(string)),
 		PolicyName:     aws.String(d.Get("name").(string)),
 		PolicyDocument: aws.String(d.Get("policy").(string)),
 	}
 
-	if err := iamconn.PutGroupPolicy(request); err != nil {
+	if _, err := iamconn.PutGroupPolicy(request); err != nil {
 		return fmt.Errorf("Error putting IAM group policy %s: %s", request.PolicyName, err)
 	}
 
@@ -61,7 +61,7 @@ func resourceAwsIamGroupPolicyRead(d *schema.ResourceData, meta interface{}) err
 
 	group, name := resourceAwsIamGroupPolicyParseId(d)
 
-	request := &iam.GetGroupPolicyRequest{
+	request := &iam.GetGroupPolicyInput{
 		PolicyName: aws.String(name),
 		GroupName:  aws.String(group),
 	}
@@ -91,12 +91,12 @@ func resourceAwsIamGroupPolicyDelete(d *schema.ResourceData, meta interface{}) e
 
 	group, name := resourceAwsIamGroupPolicyParseId(d)
 
-	request := &iam.DeleteGroupPolicyRequest{
+	request := &iam.DeleteGroupPolicyInput{
 		PolicyName: aws.String(name),
 		GroupName:  aws.String(group),
 	}
 
-	if err := iamconn.DeleteGroupPolicy(request); err != nil {
+	if _, err := iamconn.DeleteGroupPolicy(request); err != nil {
 		return fmt.Errorf("Error deleting IAM group policy %s: %s", d.Id(), err)
 	}
 	return nil

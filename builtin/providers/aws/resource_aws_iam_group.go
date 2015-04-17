@@ -3,8 +3,8 @@ package aws
 import (
 	"fmt"
 
-	"github.com/hashicorp/aws-sdk-go/aws"
-	"github.com/hashicorp/aws-sdk-go/gen/iam"
+	"github.com/awslabs/aws-sdk-go/aws"
+	"github.com/awslabs/aws-sdk-go/service/iam"
 
 	"github.com/hashicorp/terraform/helper/schema"
 )
@@ -45,7 +45,7 @@ func resourceAwsIamGroupCreate(d *schema.ResourceData, meta interface{}) error {
 	iamconn := meta.(*AWSClient).iamconn
 	name := d.Get("name").(string)
 
-	request := &iam.CreateGroupRequest{
+	request := &iam.CreateGroupInput{
 		Path:      aws.String(d.Get("path").(string)),
 		GroupName: aws.String(name),
 	}
@@ -60,7 +60,7 @@ func resourceAwsIamGroupCreate(d *schema.ResourceData, meta interface{}) error {
 func resourceAwsIamGroupRead(d *schema.ResourceData, meta interface{}) error {
 	iamconn := meta.(*AWSClient).iamconn
 
-	request := &iam.GetGroupRequest{
+	request := &iam.GetGroupInput{
 		GroupName: aws.String(d.Id()),
 	}
 
@@ -95,11 +95,11 @@ func resourceAwsIamGroupReadResult(d *schema.ResourceData, group *iam.Group) err
 func resourceAwsIamGroupDelete(d *schema.ResourceData, meta interface{}) error {
 	iamconn := meta.(*AWSClient).iamconn
 
-	request := &iam.DeleteGroupRequest{
+	request := &iam.DeleteGroupInput{
 		GroupName: aws.String(d.Id()),
 	}
 
-	if err := iamconn.DeleteGroup(request); err != nil {
+	if _, err := iamconn.DeleteGroup(request); err != nil {
 		return fmt.Errorf("Error deleting IAM Group %s: %s", d.Id(), err)
 	}
 	return nil
