@@ -89,36 +89,35 @@ func testAccCheckAWSAutoscalingScalingPolicyDestroy(s *terraform.State) error {
 }
 
 var testAccAWSAutoscalingScalingPolicyConfig = fmt.Sprintf(`
-    resource "aws_launch_configuration" "foobar" {
-        name = "terraform-test-foobar5"
-        image_id = "ami-21f78e11"
-        instance_type = "t1.micro"
-    }
+resource "aws_launch_configuration" "foobar" {
+    name = "terraform-test-foobar5"
+    image_id = "ami-21f78e11"
+    instance_type = "t1.micro"
+}
 
-    resource "aws_autoscaling_group" "foobar" {
-        availability_zones = ["us-west-2a"]
-        name = "terraform-test-foobar5"
-        max_size = 5
-        min_size = 2
-        health_check_grace_period = 300
-        health_check_type = "ELB"
-        desired_capacity = 4
-        force_delete = true
-        termination_policies = ["OldestInstance"]
-        launch_configuration = "${aws_launch_configuration.foobar.name}"
-        tag {
-            key = "Foo"
-            value = "foo-bar"
-            propagate_at_launch = true
-        }
+resource "aws_autoscaling_group" "foobar" {
+    availability_zones = ["us-west-2a"]
+    name = "terraform-test-foobar5"
+    max_size = 5
+    min_size = 2
+    health_check_grace_period = 300
+    health_check_type = "ELB"
+    desired_capacity = 4
+    force_delete = true
+    termination_policies = ["OldestInstance"]
+    launch_configuration = "${aws_launch_configuration.foobar.name}"
+    tag {
+        key = "Foo"
+        value = "foo-bar"
+        propagate_at_launch = true
     }
+}
 
-    resource "aws_autoscaling_scaling_policy" "foobar" {
-        policy_name = "foobar"
-        scaling_adjustment = 4
-        adjustment_type = "ChangeInCapacity"
-        cooldown = 300
-        autoscaling_group_name = "${aws_autoscaling_group.foobar.name}"
-    }
-
+resource "aws_autoscaling_scaling_policy" "foobar" {
+    policy_name = "foobar"
+    scaling_adjustment = 4
+    adjustment_type = "ChangeInCapacity"
+    cooldown = 300
+    autoscaling_group_name = "${aws_autoscaling_group.foobar.name}"
+}
 `)
