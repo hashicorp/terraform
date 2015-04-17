@@ -25,8 +25,8 @@ func TestAccAWSCloudWatchMetricAlarm_basic(t* testing.T) {
                 Config: testAccAWSCloudWatchMetricAlarmConfig,
                 Check:  resource.ComposeTestCheckFunc(
                     testAccCheckCloudWatchMetricAlarmExists("aws_cloudwatch_metric_alarm.foobar", &alarm),
-                    resource.TestCheckResourceAttr("aws_cloudwatch_metric_alarm.foobar", "", ""),
-                    resource.TestCheckResourceAttr("aws_cloudwatch_metric_alarm.foobar", "", ""),
+                    resource.TestCheckResourceAttr("aws_cloudwatch_metric_alarm.foobar", "metric_name", "CPUUtilization"),
+                    resource.TestCheckResourceAttr("aws_cloudwatch_metric_alarm.foobar", "statistic", "Average"),
                 ),
             },
         },
