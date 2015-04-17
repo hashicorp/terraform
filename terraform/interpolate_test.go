@@ -136,6 +136,53 @@ func TestInterpolater_pathRoot(t *testing.T) {
 	})
 }
 
+func TestInterpolater_multiAttribute(t *testing.T) {
+	lock := new(sync.RWMutex)
+	state := &State{
+		Modules: []*ModuleState{
+			&ModuleState{
+				Path: rootModulePath,
+				Resources: map[string]*ResourceState{
+					"resource.name": &ResourceState{
+						Type: "resource",
+						Primary: &InstanceState{
+							ID: "qux",
+							Attributes: map[string]string{
+								"foo.#": "4",
+								"foo.298374.bar": "baz1",
+								"foo.233489.bar": "baz2",
+								"foo.872348.bar": "baz3",
+								"foo.348573.bar": "baz4",
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	mod := testModule(t, "resource-multi-attribute")
+	i := &Interpolater{
+		Module:    mod,
+		State:     state,
+		StateLock: lock,
+	}
+
+	scope := &InterpolationScope{
+		Path: rootModulePath,
+	}
+
+	testInterpolate(t, i, scope, "resource.name.foo.#", ast.Variable{
+		Value: "4",
+		Type:  ast.TypeString,
+	})
+
+	testInterpolate(t, i, scope, "resource.name.foo.*.bar", ast.Variable{
+		Value: []string{"baz1", "baz2", "baz3", "baz4"},
+		Type:  ast.TypeAny,
+	})
+}
+
 func testInterpolate(
 	t *testing.T, i *Interpolater,
 	scope *InterpolationScope,
@@ -155,6 +202,7 @@ func testInterpolate(
 	expected := map[string]ast.Variable{
 		"foo": expectedVar,
 	}
+
 	if !reflect.DeepEqual(actual, expected) {
 		t.Fatalf("bad: %#v", actual)
 	}
