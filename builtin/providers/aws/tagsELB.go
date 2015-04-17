@@ -72,7 +72,7 @@ func diffTagsELB(oldTags, newTags []*elb.Tag) ([]*elb.Tag, []*elb.Tag) {
 
 // tagsFromMap returns the tags for the given map of data.
 func tagsFromMapELB(m map[string]interface{}) []*elb.Tag {
-	result := make([]*elb.Tag, 0, len(m))
+	var result []*elb.Tag
 	for k, v := range m {
 		result = append(result, &elb.Tag{
 			Key:   aws.String(k),
