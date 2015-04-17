@@ -15,6 +15,7 @@ import (
 
 	awsSDK "github.com/awslabs/aws-sdk-go/aws"
 	awsASG "github.com/awslabs/aws-sdk-go/service/autoscaling"
+	"github.com/awslabs/aws-sdk-go/service/cloudwatch"
 	awsEC2 "github.com/awslabs/aws-sdk-go/service/ec2"
 	"github.com/awslabs/aws-sdk-go/service/iam"
 	"github.com/awslabs/aws-sdk-go/service/rds"
@@ -38,6 +39,7 @@ type AWSClient struct {
 	rdsconn         *rds.RDS
 	iamconn         *iam.IAM
 	ec2SDKconn      *awsEC2.EC2
+	cloudwatchconn  *cloudwatch.CloudWatch
 }
 
 // Client configures and returns a fully initailized AWSClient
@@ -95,6 +97,8 @@ func (c *Config) Client() (interface{}, error) {
 		client.iamconn = iam.New(awsConfig)
 		log.Println("[INFO] Initializing AutoScaling SDK connection")
 		client.asgconn = awsASG.New(awsConfig)
+		log.Println("[INFO] Initializing CloudWatch SDK connection")
+		client.cloudwatchconn = cloudwatch.New(awsConfig)
 	}
 
 	if len(errs) > 0 {

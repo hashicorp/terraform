@@ -46,7 +46,8 @@ func Provider() terraform.ResourceProvider {
 
 		ResourcesMap: map[string]*schema.Resource{
 			"aws_autoscaling_group":            resourceAwsAutoscalingGroup(),
-            "aws_autoscaling_scaling_policy":   resourceAwsAutoscalingScalingPolicy(),
+			"aws_autoscaling_scaling_policy":   resourceAwsAutoscalingScalingPolicy(),
+			"aws_cloudwatch_metric_alarm":      resourceAwsCloudWatchMetricAlarm(),
 			"aws_db_instance":                  resourceAwsDbInstance(),
 			"aws_db_parameter_group":           resourceAwsDbParameterGroup(),
 			"aws_db_security_group":            resourceAwsDbSecurityGroup(),
