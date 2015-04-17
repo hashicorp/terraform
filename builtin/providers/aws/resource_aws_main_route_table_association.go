@@ -40,7 +40,7 @@ func resourceAwsMainRouteTableAssociation() *schema.Resource {
 }
 
 func resourceAwsMainRouteTableAssociationCreate(d *schema.ResourceData, meta interface{}) error {
-	conn := meta.(*AWSClient).ec2SDKconn
+	conn := meta.(*AWSClient).ec2conn
 	vpcId := d.Get("vpc_id").(string)
 	routeTableId := d.Get("route_table_id").(string)
 
@@ -67,7 +67,7 @@ func resourceAwsMainRouteTableAssociationCreate(d *schema.ResourceData, meta int
 }
 
 func resourceAwsMainRouteTableAssociationRead(d *schema.ResourceData, meta interface{}) error {
-	conn := meta.(*AWSClient).ec2SDKconn
+	conn := meta.(*AWSClient).ec2conn
 
 	mainAssociation, err := findMainRouteTableAssociation(
 		conn,
@@ -88,7 +88,7 @@ func resourceAwsMainRouteTableAssociationRead(d *schema.ResourceData, meta inter
 // original_route_table_id - this needs to stay recorded as the AWS-created
 // table from VPC creation.
 func resourceAwsMainRouteTableAssociationUpdate(d *schema.ResourceData, meta interface{}) error {
-	conn := meta.(*AWSClient).ec2SDKconn
+	conn := meta.(*AWSClient).ec2conn
 	vpcId := d.Get("vpc_id").(string)
 	routeTableId := d.Get("route_table_id").(string)
 
@@ -109,7 +109,7 @@ func resourceAwsMainRouteTableAssociationUpdate(d *schema.ResourceData, meta int
 }
 
 func resourceAwsMainRouteTableAssociationDelete(d *schema.ResourceData, meta interface{}) error {
-	conn := meta.(*AWSClient).ec2SDKconn
+	conn := meta.(*AWSClient).ec2conn
 	vpcId := d.Get("vpc_id").(string)
 	originalRouteTableId := d.Get("original_route_table_id").(string)
 

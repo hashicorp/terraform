@@ -1,13 +1,10 @@
 package aws
 
 import (
-	"crypto/md5"
-	"encoding/base64"
-	"encoding/xml"
 	"log"
 
-	"github.com/hashicorp/aws-sdk-go/aws"
-	"github.com/hashicorp/aws-sdk-go/gen/s3"
+	"github.com/awslabs/aws-sdk-go/aws"
+	"github.com/awslabs/aws-sdk-go/service/s3"
 	"github.com/hashicorp/terraform/helper/schema"
 )
 
@@ -23,7 +20,7 @@ func setTagsS3(conn *s3.S3, d *schema.ResourceData) error {
 		// Set tags
 		if len(remove) > 0 {
 			log.Printf("[DEBUG] Removing tags: %#v", remove)
-			err := conn.DeleteBucketTagging(&s3.DeleteBucketTaggingRequest{
+			_, err := conn.DeleteBucketTagging(&s3.DeleteBucketTaggingInput{
 				Bucket: aws.String(d.Get("bucket").(string)),
 			})
 			if err != nil {
@@ -32,30 +29,14 @@ func setTagsS3(conn *s3.S3, d *schema.ResourceData) error {
 		}
 		if len(create) > 0 {
 			log.Printf("[DEBUG] Creating tags: %#v", create)
-			tagging := s3.Tagging{
-				TagSet: create,
-				XMLName: xml.Name{
-					Space: "http://s3.amazonaws.com/doc/2006-03-01/",
-					Local: "Tagging",
+			req := &s3.PutBucketTaggingInput{
+				Bucket: aws.String(d.Get("bucket").(string)),
+				Tagging: &s3.Tagging{
+					TagSet: create,
 				},
 			}
-			// AWS S3 API requires us to send a base64 encoded md5 hash of the
-			// content, which we need to build ourselves since aws-sdk-go does not.
-			b, err := xml.Marshal(tagging)
-			if err != nil {
-				return err
-			}
-			h := md5.New()
-			h.Write(b)
-			base := base64.StdEncoding.EncodeToString(h.Sum(nil))
 
-			req := &s3.PutBucketTaggingRequest{
-				Bucket:     aws.String(d.Get("bucket").(string)),
-				ContentMD5: aws.String(base),
-				Tagging:    &tagging,
-			}
-
-			err = conn.PutBucketTagging(req)
+			_, err := conn.PutBucketTagging(req)
 			if err != nil {
 				return err
 			}
@@ -68,7 +49,7 @@ func setTagsS3(conn *s3.S3, d *schema.ResourceData) error {
 // diffTags takes our tags locally and the ones remotely and returns
 // the set of tags that must be created, and the set of tags that must
 // be destroyed.
-func diffTagsS3(oldTags, newTags []s3.Tag) ([]s3.Tag, []s3.Tag) {
+func diffTagsS3(oldTags, newTags []*s3.Tag) ([]*s3.Tag, []*s3.Tag) {
 	// First, we're creating everything we have
 	create := make(map[string]interface{})
 	for _, t := range newTags {
@@ -76,7 +57,7 @@ func diffTagsS3(oldTags, newTags []s3.Tag) ([]s3.Tag, []s3.Tag) {
 	}
 
 	// Build the list of what to remove
-	var remove []s3.Tag
+	var remove []*s3.Tag
 	for _, t := range oldTags {
 		old, ok := create[*t.Key]
 		if !ok || old != *t.Value {
@@ -89,10 +70,10 @@ func diffTagsS3(oldTags, newTags []s3.Tag) ([]s3.Tag, []s3.Tag) {
 }
 
 // tagsFromMap returns the tags for the given map of data.
-func tagsFromMapS3(m map[string]interface{}) []s3.Tag {
-	result := make([]s3.Tag, 0, len(m))
+func tagsFromMapS3(m map[string]interface{}) []*s3.Tag {
+	result := make([]*s3.Tag, 0, len(m))
 	for k, v := range m {
-		result = append(result, s3.Tag{
+		result = append(result, &s3.Tag{
 			Key:   aws.String(k),
 			Value: aws.String(v.(string)),
 		})
@@ -102,7 +83,7 @@ func tagsFromMapS3(m map[string]interface{}) []s3.Tag {
 }
 
 // tagsToMap turns the list of tags into a map.
-func tagsToMapS3(ts []s3.Tag) map[string]string {
+func tagsToMapS3(ts []*s3.Tag) map[string]string {
 	result := make(map[string]string)
 	for _, t := range ts {
 		result[*t.Key] = *t.Value
@@ -114,15 +95,15 @@ func tagsToMapS3(ts []s3.Tag) map[string]string {
 // return a slice of s3 tags associated with the given s3 bucket. Essentially
 // s3.GetBucketTagging, except returns an empty slice instead of an error when
 // there are no tags.
-func getTagSetS3(s3conn *s3.S3, bucket string) ([]s3.Tag, error) {
-	request := &s3.GetBucketTaggingRequest{
+func getTagSetS3(s3conn *s3.S3, bucket string) ([]*s3.Tag, error) {
+	request := &s3.GetBucketTaggingInput{
 		Bucket: aws.String(bucket),
 	}
 
 	response, err := s3conn.GetBucketTagging(request)
 	if ec2err, ok := err.(aws.APIError); ok && ec2err.Code == "NoSuchTagSet" {
 		// There is no tag set associated with the bucket.
-		return []s3.Tag{}, nil
+		return []*s3.Tag{}, nil
 	} else if err != nil {
 		return nil, err
 	}

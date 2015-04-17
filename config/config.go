@@ -83,6 +83,7 @@ type Resource struct {
 // to allow customized behavior
 type ResourceLifecycle struct {
 	CreateBeforeDestroy bool `hcl:"create_before_destroy"`
+	PreventDestroy      bool `hcl:"prevent_destroy"`
 }
 
 // Provisioner is a configured provisioner step on a resource.

@@ -164,7 +164,7 @@ func resourceAwsElbCreate(d *schema.ResourceData, meta interface{}) error {
 	elbconn := meta.(*AWSClient).elbconn
 
 	// Expand the "listener" set to aws-sdk-go compat []*elb.Listener
-	listeners, err := expandListenersSDK(d.Get("listener").(*schema.Set).List())
+	listeners, err := expandListeners(d.Get("listener").(*schema.Set).List())
 	if err != nil {
 		return err
 	}
@@ -182,15 +182,15 @@ func resourceAwsElbCreate(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	if v, ok := d.GetOk("availability_zones"); ok {
-		elbOpts.AvailabilityZones = expandStringListSDK(v.(*schema.Set).List())
+		elbOpts.AvailabilityZones = expandStringList(v.(*schema.Set).List())
 	}
 
 	if v, ok := d.GetOk("security_groups"); ok {
-		elbOpts.SecurityGroups = expandStringListSDK(v.(*schema.Set).List())
+		elbOpts.SecurityGroups = expandStringList(v.(*schema.Set).List())
 	}
 
 	if v, ok := d.GetOk("subnets"); ok {
-		elbOpts.Subnets = expandStringListSDK(v.(*schema.Set).List())
+		elbOpts.Subnets = expandStringList(v.(*schema.Set).List())
 	}
 
 	log.Printf("[DEBUG] ELB create configuration: %#v", elbOpts)
@@ -267,8 +267,8 @@ func resourceAwsElbRead(d *schema.ResourceData, meta interface{}) error {
 	d.Set("dns_name", *lb.DNSName)
 	d.Set("internal", *lb.Scheme == "internal")
 	d.Set("availability_zones", lb.AvailabilityZones)
-	d.Set("instances", flattenInstancesSDK(lb.Instances))
-	d.Set("listener", flattenListenersSDK(lb.ListenerDescriptions))
+	d.Set("instances", flattenInstances(lb.Instances))
+	d.Set("listener", flattenListeners(lb.ListenerDescriptions))
 	d.Set("security_groups", lb.SecurityGroups)
 	d.Set("subnets", lb.Subnets)
 
@@ -284,7 +284,7 @@ func resourceAwsElbRead(d *schema.ResourceData, meta interface{}) error {
 	// There's only one health check, so save that to state as we
 	// currently can
 	if *lb.HealthCheck.Target != "" {
-		d.Set("health_check", flattenHealthCheckSDK(lb.HealthCheck))
+		d.Set("health_check", flattenHealthCheck(lb.HealthCheck))
 	}
 
 	return nil
@@ -302,8 +302,8 @@ func resourceAwsElbUpdate(d *schema.ResourceData, meta interface{}) error {
 		o, n := d.GetChange("instances")
 		os := o.(*schema.Set)
 		ns := n.(*schema.Set)
-		remove := expandInstanceStringSDK(os.Difference(ns).List())
-		add := expandInstanceStringSDK(ns.Difference(os).List())
+		remove := expandInstanceString(os.Difference(ns).List())
+		add := expandInstanceString(ns.Difference(os).List())
 
 		if len(add) > 0 {
 			registerInstancesOpts := elb.RegisterInstancesWithLoadBalancerInput{

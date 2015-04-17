@@ -93,6 +93,11 @@ The supported built-in functions are:
       only possible with splat variables from resources with a count
       greater than one. Example: `join(",", aws_instance.foo.*.id)`
 
+  * `length(list)` - Returns a number of members in a given list
+      or a number of characters in a given string.
+      * `${length(split(",", "a,b,c"))}` = 3
+      * `${length("a,b,c")}` = 5
+
   * `lookup(map, key)` - Performs a dynamic lookup into a mapping
       variable. The `map` parameter should be another variable, such
       as `var.amis`.
