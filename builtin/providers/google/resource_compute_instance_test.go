@@ -47,6 +47,7 @@ func TestAccComputeInstance_basic(t *testing.T) {
 						"google_compute_instance.foobar", &instance),
 					testAccCheckComputeInstanceTag(&instance, "foo"),
 					testAccCheckComputeInstanceMetadata(&instance, "foo", "bar"),
+					testAccCheckComputeInstanceMetadata(&instance, "baz", "qux"),
 					testAccCheckComputeInstanceDisk(&instance, "terraform-test", true, true),
 				),
 			},
@@ -162,6 +163,34 @@ func TestAccComputeInstance_update_deprecated_network(t *testing.T) {
 					testAccCheckComputeInstanceMetadata(
 						&instance, "bar", "baz"),
 					testAccCheckComputeInstanceTag(&instance, "baz"),
+				),
+			},
+		},
+	})
+}
+
+func TestAccComputeInstance_forceNewAndChangeMetadata(t *testing.T) {
+	var instance compute.Instance
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckComputeInstanceDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccComputeInstance_basic,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckComputeInstanceExists(
+						"google_compute_instance.foobar", &instance),
+				),
+			},
+			resource.TestStep{
+				Config: testAccComputeInstance_forceNewAndChangeMetadata,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckComputeInstanceExists(
+						"google_compute_instance.foobar", &instance),
+					testAccCheckComputeInstanceMetadata(
+						&instance, "qux", "true"),
 				),
 			},
 		},
@@ -387,6 +416,9 @@ resource "google_compute_instance" "foobar" {
 	metadata {
 		foo = "bar"
 	}
+	metadata {
+		baz = "qux"
+	}
 }`
 
 const testAccComputeInstance_basic2 = `
@@ -429,6 +461,30 @@ resource "google_compute_instance" "foobar" {
 
 	metadata {
 		foo = "bar"
+	}
+}`
+
+// Update zone to ForceNew, and change metadata k/v entirely
+// Generates diff mismatch
+const testAccComputeInstance_forceNewAndChangeMetadata = `
+resource "google_compute_instance" "foobar" {
+	name = "terraform-test"
+	machine_type = "n1-standard-1"
+	zone = "us-central1-a"
+	zone = "us-central1-b"
+	tags = ["baz"]
+
+	disk {
+		image = "debian-7-wheezy-v20140814"
+	}
+
+	network_interface {
+		network = "default"
+		access_config { }
+	}
+
+	metadata {
+		qux = "true"
 	}
 }`
 

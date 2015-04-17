@@ -58,7 +58,7 @@ func TestAccAWSEIP_instance(t *testing.T) {
 }
 
 func testAccCheckAWSEIPDestroy(s *terraform.State) error {
-	conn := testAccProvider.Meta().(*AWSClient).ec2SDKconn
+	conn := testAccProvider.Meta().(*AWSClient).ec2conn
 
 	for _, rs := range s.RootModule().Resources {
 		if rs.Type != "aws_eip" {
@@ -113,7 +113,7 @@ func testAccCheckAWSEIPExists(n string, res *ec2.Address) resource.TestCheckFunc
 			return fmt.Errorf("No EIP ID is set")
 		}
 
-		conn := testAccProvider.Meta().(*AWSClient).ec2SDKconn
+		conn := testAccProvider.Meta().(*AWSClient).ec2conn
 
 		if strings.Contains(rs.Primary.ID, "eipalloc") {
 			req := &ec2.DescribeAddressesInput{

@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/hashicorp/aws-sdk-go/aws"
-	"github.com/hashicorp/aws-sdk-go/gen/ec2"
+	"github.com/awslabs/aws-sdk-go/aws"
+	"github.com/awslabs/aws-sdk-go/service/ec2"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
 )
@@ -66,7 +66,7 @@ func TestAccVpc_tags(t *testing.T) {
 					testAccCheckVpcCidr(&vpc, "10.1.0.0/16"),
 					resource.TestCheckResourceAttr(
 						"aws_vpc.foo", "cidr_block", "10.1.0.0/16"),
-					testAccCheckTags(&vpc.Tags, "foo", "bar"),
+					testAccCheckTagsSDK(&vpc.Tags, "foo", "bar"),
 				),
 			},
 
@@ -74,8 +74,8 @@ func TestAccVpc_tags(t *testing.T) {
 				Config: testAccVpcConfigTagsUpdate,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckVpcExists("aws_vpc.foo", &vpc),
-					testAccCheckTags(&vpc.Tags, "foo", ""),
-					testAccCheckTags(&vpc.Tags, "bar", "baz"),
+					testAccCheckTagsSDK(&vpc.Tags, "foo", ""),
+					testAccCheckTagsSDK(&vpc.Tags, "bar", "baz"),
 				),
 			},
 		},
@@ -120,8 +120,8 @@ func testAccCheckVpcDestroy(s *terraform.State) error {
 		}
 
 		// Try to find the VPC
-		DescribeVpcOpts := &ec2.DescribeVPCsRequest{
-			VPCIDs: []string{rs.Primary.ID},
+		DescribeVpcOpts := &ec2.DescribeVPCsInput{
+			VPCIDs: []*string{aws.String(rs.Primary.ID)},
 		}
 		resp, err := conn.DescribeVPCs(DescribeVpcOpts)
 		if err == nil {
@@ -168,8 +168,8 @@ func testAccCheckVpcExists(n string, vpc *ec2.VPC) resource.TestCheckFunc {
 		}
 
 		conn := testAccProvider.Meta().(*AWSClient).ec2conn
-		DescribeVpcOpts := &ec2.DescribeVPCsRequest{
-			VPCIDs: []string{rs.Primary.ID},
+		DescribeVpcOpts := &ec2.DescribeVPCsInput{
+			VPCIDs: []*string{aws.String(rs.Primary.ID)},
 		}
 		resp, err := conn.DescribeVPCs(DescribeVpcOpts)
 		if err != nil {
@@ -179,7 +179,7 @@ func testAccCheckVpcExists(n string, vpc *ec2.VPC) resource.TestCheckFunc {
 			return fmt.Errorf("VPC not found")
 		}
 
-		*vpc = resp.VPCs[0]
+		*vpc = *resp.VPCs[0]
 
 		return nil
 	}

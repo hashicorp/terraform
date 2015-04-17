@@ -35,9 +35,9 @@ The following arguments are supported:
      EBS-optimized.
 * `instance_type` - (Required) The type of instance to start
 * `key_name` - (Optional) The key name to use for the instance.
-* `security_groups` - (Optional) A list of security group IDs or names to associate with.
-   If you are within a non-default VPC, you'll need to use the security group ID. Otherwise,
-   for EC2 and the default VPC, use the security group name.
+* `security_groups` - (Optional) A list of security group names to associate with.
+   If you are within a non-default VPC, you'll need to use `vpc_security_group_ids` instead.
+* `vpc_security_group_ids` - (Optional) A list of security group IDs to associate with.
 * `subnet_id` - (Optional) The VPC Subnet ID to launch in.
 * `associate_public_ip_address` - (Optional) Associate a public ip address with an instance in a VPC.
 * `private_ip` - (Optional) Private IP address to associate with the
@@ -126,4 +126,5 @@ The following attributes are exported:
 * `public_dns` - The public DNS name of the instance
 * `public_ip` - The public IP address.
 * `security_groups` - The associated security groups.
+* `vpc_security_group_ids` - The associated security groups in non-default VPC
 * `subnet_id` - The VPC subnet ID.

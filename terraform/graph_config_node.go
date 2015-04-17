@@ -447,11 +447,44 @@ func (n *graphNodeResourceDestroy) CreateNode() dag.Vertex {
 }
 
 func (n *graphNodeResourceDestroy) DestroyInclude(d *ModuleDiff, s *ModuleState) bool {
-	// Always include anything other than the primary destroy
-	if n.DestroyMode != DestroyPrimary {
+	switch n.DestroyMode {
+	case DestroyPrimary:
+		return n.destroyIncludePrimary(d, s)
+	case DestroyTainted:
+		return n.destroyIncludeTainted(d, s)
+	default:
 		return true
 	}
+}
 
+func (n *graphNodeResourceDestroy) destroyIncludeTainted(
+	d *ModuleDiff, s *ModuleState) bool {
+	// If there is no state, there can't by any tainted.
+	if s == nil {
+		return false
+	}
+
+	// Grab the ID which is the prefix (in the case count > 0 at some point)
+	prefix := n.Original.Resource.Id()
+
+	// Go through the resources and find any with our prefix. If there
+	// are any tainted, we need to keep it.
+	for k, v := range s.Resources {
+		if !strings.HasPrefix(k, prefix) {
+			continue
+		}
+
+		if len(v.Tainted) > 0 {
+			return true
+		}
+	}
+
+	// We didn't find any tainted nodes, return
+	return false
+}
+
+func (n *graphNodeResourceDestroy) destroyIncludePrimary(
+	d *ModuleDiff, s *ModuleState) bool {
 	// Get the count, and specifically the raw value of the count
 	// (with interpolations and all). If the count is NOT a static "1",
 	// then we keep the destroy node no matter what.
@@ -522,15 +555,19 @@ func (n *graphNodeResourceDestroy) DestroyInclude(d *ModuleDiff, s *ModuleState)
 	// decreases to "1".
 	if s != nil {
 		for k, v := range s.Resources {
-			if !strings.HasPrefix(k, prefix) {
+			// Ignore exact matches
+			if k == prefix {
+				continue
+			}
+
+			// Ignore anything that doesn't have a "." afterwards so that
+			// we only get our own resource and any counts on it.
+			if !strings.HasPrefix(k, prefix+".") {
 				continue
 			}
 
 			// Ignore exact matches and the 0'th index. We only care
 			// about if there is a decrease in count.
-			if k == prefix {
-				continue
-			}
 			if k == prefix+".0" {
 				continue
 			}

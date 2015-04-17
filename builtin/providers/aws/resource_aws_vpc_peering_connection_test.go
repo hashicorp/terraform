@@ -5,7 +5,8 @@ import (
 	"os"
 	"testing"
 
-	"github.com/hashicorp/aws-sdk-go/gen/ec2"
+	"github.com/awslabs/aws-sdk-go/aws"
+	"github.com/awslabs/aws-sdk-go/service/ec2"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
 )
@@ -42,8 +43,8 @@ func testAccCheckAWSVpcPeeringConnectionDestroy(s *terraform.State) error {
 		}
 
 		describe, err := conn.DescribeVPCPeeringConnections(
-			&ec2.DescribeVPCPeeringConnectionsRequest{
-				VPCPeeringConnectionIDs: []string{rs.Primary.ID},
+			&ec2.DescribeVPCPeeringConnectionsInput{
+				VPCPeeringConnectionIDs: []*string{aws.String(rs.Primary.ID)},
 			})
 
 		if err == nil {

@@ -6,8 +6,8 @@ import (
 
 	"github.com/hashicorp/terraform/helper/schema"
 
-	"github.com/hashicorp/aws-sdk-go/aws"
-	"github.com/hashicorp/aws-sdk-go/gen/s3"
+	"github.com/awslabs/aws-sdk-go/aws"
+	"github.com/awslabs/aws-sdk-go/service/s3"
 )
 
 func resourceAwsS3Bucket() *schema.Resource {
@@ -46,7 +46,7 @@ func resourceAwsS3BucketCreate(d *schema.ResourceData, meta interface{}) error {
 
 	log.Printf("[DEBUG] S3 bucket create: %s, ACL: %s", bucket, acl)
 
-	req := &s3.CreateBucketRequest{
+	req := &s3.CreateBucketInput{
 		Bucket: aws.String(bucket),
 		ACL:    aws.String(acl),
 	}
@@ -81,7 +81,7 @@ func resourceAwsS3BucketUpdate(d *schema.ResourceData, meta interface{}) error {
 func resourceAwsS3BucketRead(d *schema.ResourceData, meta interface{}) error {
 	s3conn := meta.(*AWSClient).s3conn
 
-	err := s3conn.HeadBucket(&s3.HeadBucketRequest{
+	_, err := s3conn.HeadBucket(&s3.HeadBucketInput{
 		Bucket: aws.String(d.Id()),
 	})
 	if err != nil {
@@ -104,7 +104,7 @@ func resourceAwsS3BucketDelete(d *schema.ResourceData, meta interface{}) error {
 	s3conn := meta.(*AWSClient).s3conn
 
 	log.Printf("[DEBUG] S3 Delete Bucket: %s", d.Id())
-	err := s3conn.DeleteBucket(&s3.DeleteBucketRequest{
+	_, err := s3conn.DeleteBucket(&s3.DeleteBucketInput{
 		Bucket: aws.String(d.Id()),
 	})
 	if err != nil {

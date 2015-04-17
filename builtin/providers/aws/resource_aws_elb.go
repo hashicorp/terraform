@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/hashicorp/aws-sdk-go/aws"
-	"github.com/hashicorp/aws-sdk-go/gen/elb"
+	"github.com/awslabs/aws-sdk-go/aws"
+	"github.com/awslabs/aws-sdk-go/service/elb"
 	"github.com/hashicorp/terraform/helper/hashcode"
 	"github.com/hashicorp/terraform/helper/schema"
 )
@@ -163,7 +163,7 @@ func resourceAwsElb() *schema.Resource {
 func resourceAwsElbCreate(d *schema.ResourceData, meta interface{}) error {
 	elbconn := meta.(*AWSClient).elbconn
 
-	// Expand the "listener" set to aws-sdk-go compat []elb.Listener
+	// Expand the "listener" set to aws-sdk-go compat []*elb.Listener
 	listeners, err := expandListeners(d.Get("listener").(*schema.Set).List())
 	if err != nil {
 		return err
@@ -171,7 +171,7 @@ func resourceAwsElbCreate(d *schema.ResourceData, meta interface{}) error {
 
 	tags := tagsFromMapELB(d.Get("tags").(map[string]interface{}))
 	// Provision the elb
-	elbOpts := &elb.CreateAccessPointInput{
+	elbOpts := &elb.CreateLoadBalancerInput{
 		LoadBalancerName: aws.String(d.Get("name").(string)),
 		Listeners:        listeners,
 		Tags:             tags,
@@ -221,11 +221,11 @@ func resourceAwsElbCreate(d *schema.ResourceData, meta interface{}) error {
 			configureHealthCheckOpts := elb.ConfigureHealthCheckInput{
 				LoadBalancerName: aws.String(d.Id()),
 				HealthCheck: &elb.HealthCheck{
-					HealthyThreshold:   aws.Integer(check["healthy_threshold"].(int)),
-					UnhealthyThreshold: aws.Integer(check["unhealthy_threshold"].(int)),
-					Interval:           aws.Integer(check["interval"].(int)),
+					HealthyThreshold:   aws.Long(int64(check["healthy_threshold"].(int))),
+					UnhealthyThreshold: aws.Long(int64(check["unhealthy_threshold"].(int))),
+					Interval:           aws.Long(int64(check["interval"].(int))),
 					Target:             aws.String(check["target"].(string)),
-					Timeout:            aws.Integer(check["timeout"].(int)),
+					Timeout:            aws.Long(int64(check["timeout"].(int))),
 				},
 			}
 
@@ -243,8 +243,8 @@ func resourceAwsElbRead(d *schema.ResourceData, meta interface{}) error {
 	elbconn := meta.(*AWSClient).elbconn
 
 	// Retrieve the ELB properties for updating the state
-	describeElbOpts := &elb.DescribeAccessPointsInput{
-		LoadBalancerNames: []string{d.Id()},
+	describeElbOpts := &elb.DescribeLoadBalancersInput{
+		LoadBalancerNames: []*string{aws.String(d.Id())},
 	}
 
 	describeResp, err := elbconn.DescribeLoadBalancers(describeElbOpts)
@@ -273,10 +273,10 @@ func resourceAwsElbRead(d *schema.ResourceData, meta interface{}) error {
 	d.Set("subnets", lb.Subnets)
 
 	resp, err := elbconn.DescribeTags(&elb.DescribeTagsInput{
-		LoadBalancerNames: []string{*lb.LoadBalancerName},
+		LoadBalancerNames: []*string{lb.LoadBalancerName},
 	})
 
-	var et []elb.Tag
+	var et []*elb.Tag
 	if len(resp.TagDescriptions) > 0 {
 		et = resp.TagDescriptions[0].Tags
 	}
@@ -306,7 +306,7 @@ func resourceAwsElbUpdate(d *schema.ResourceData, meta interface{}) error {
 		add := expandInstanceString(ns.Difference(os).List())
 
 		if len(add) > 0 {
-			registerInstancesOpts := elb.RegisterEndPointsInput{
+			registerInstancesOpts := elb.RegisterInstancesWithLoadBalancerInput{
 				LoadBalancerName: aws.String(d.Id()),
 				Instances:        add,
 			}
@@ -317,7 +317,7 @@ func resourceAwsElbUpdate(d *schema.ResourceData, meta interface{}) error {
 			}
 		}
 		if len(remove) > 0 {
-			deRegisterInstancesOpts := elb.DeregisterEndPointsInput{
+			deRegisterInstancesOpts := elb.DeregisterInstancesFromLoadBalancerInput{
 				LoadBalancerName: aws.String(d.Id()),
 				Instances:        remove,
 			}
@@ -338,7 +338,7 @@ func resourceAwsElbUpdate(d *schema.ResourceData, meta interface{}) error {
 			LoadBalancerName: aws.String(d.Get("name").(string)),
 			LoadBalancerAttributes: &elb.LoadBalancerAttributes{
 				CrossZoneLoadBalancing: &elb.CrossZoneLoadBalancing{
-					aws.Boolean(d.Get("cross_zone_load_balancing").(bool)),
+					Enabled: aws.Boolean(d.Get("cross_zone_load_balancing").(bool)),
 				},
 			},
 		}
@@ -356,11 +356,11 @@ func resourceAwsElbUpdate(d *schema.ResourceData, meta interface{}) error {
 			configureHealthCheckOpts := elb.ConfigureHealthCheckInput{
 				LoadBalancerName: aws.String(d.Id()),
 				HealthCheck: &elb.HealthCheck{
-					HealthyThreshold:   aws.Integer(check["healthy_threshold"].(int)),
-					UnhealthyThreshold: aws.Integer(check["unhealthy_threshold"].(int)),
-					Interval:           aws.Integer(check["interval"].(int)),
+					HealthyThreshold:   aws.Long(int64(check["healthy_threshold"].(int))),
+					UnhealthyThreshold: aws.Long(int64(check["unhealthy_threshold"].(int))),
+					Interval:           aws.Long(int64(check["interval"].(int))),
 					Target:             aws.String(check["target"].(string)),
-					Timeout:            aws.Integer(check["timeout"].(int)),
+					Timeout:            aws.Long(int64(check["timeout"].(int))),
 				},
 			}
 			_, err := elbconn.ConfigureHealthCheck(&configureHealthCheckOpts)
@@ -387,7 +387,7 @@ func resourceAwsElbDelete(d *schema.ResourceData, meta interface{}) error {
 	log.Printf("[INFO] Deleting ELB: %s", d.Id())
 
 	// Destroy the load balancer
-	deleteElbOpts := elb.DeleteAccessPointInput{
+	deleteElbOpts := elb.DeleteLoadBalancerInput{
 		LoadBalancerName: aws.String(d.Id()),
 	}
 	if _, err := elbconn.DeleteLoadBalancer(&deleteElbOpts); err != nil {

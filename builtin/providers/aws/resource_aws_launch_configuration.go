@@ -9,9 +9,9 @@ import (
 	"log"
 	"time"
 
-	"github.com/hashicorp/aws-sdk-go/aws"
-	"github.com/hashicorp/aws-sdk-go/gen/autoscaling"
-	"github.com/hashicorp/aws-sdk-go/gen/ec2"
+	"github.com/awslabs/aws-sdk-go/aws"
+	"github.com/awslabs/aws-sdk-go/service/autoscaling"
+	"github.com/awslabs/aws-sdk-go/service/ec2"
 	"github.com/hashicorp/terraform/helper/hashcode"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
@@ -245,7 +245,7 @@ func resourceAwsLaunchConfigurationCreate(d *schema.ResourceData, meta interface
 	autoscalingconn := meta.(*AWSClient).autoscalingconn
 	ec2conn := meta.(*AWSClient).ec2conn
 
-	createLaunchConfigurationOpts := autoscaling.CreateLaunchConfigurationType{
+	createLaunchConfigurationOpts := autoscaling.CreateLaunchConfigurationInput{
 		LaunchConfigurationName: aws.String(d.Get("name").(string)),
 		ImageID:                 aws.String(d.Get("image_id").(string)),
 		InstanceType:            aws.String(d.Get("instance_type").(string)),
@@ -282,7 +282,7 @@ func resourceAwsLaunchConfigurationCreate(d *schema.ResourceData, meta interface
 		)
 	}
 
-	var blockDevices []autoscaling.BlockDeviceMapping
+	var blockDevices []*autoscaling.BlockDeviceMapping
 
 	if v, ok := d.GetOk("ebs_block_device"); ok {
 		vL := v.(*schema.Set).List()
@@ -297,7 +297,7 @@ func resourceAwsLaunchConfigurationCreate(d *schema.ResourceData, meta interface
 			}
 
 			if v, ok := bd["volume_size"].(int); ok && v != 0 {
-				ebs.VolumeSize = aws.Integer(v)
+				ebs.VolumeSize = aws.Long(int64(v))
 			}
 
 			if v, ok := bd["volume_type"].(string); ok && v != "" {
@@ -305,10 +305,10 @@ func resourceAwsLaunchConfigurationCreate(d *schema.ResourceData, meta interface
 			}
 
 			if v, ok := bd["iops"].(int); ok && v > 0 {
-				ebs.IOPS = aws.Integer(v)
+				ebs.IOPS = aws.Long(int64(v))
 			}
 
-			blockDevices = append(blockDevices, autoscaling.BlockDeviceMapping{
+			blockDevices = append(blockDevices, &autoscaling.BlockDeviceMapping{
 				DeviceName: aws.String(bd["device_name"].(string)),
 				EBS:        ebs,
 			})
@@ -319,7 +319,7 @@ func resourceAwsLaunchConfigurationCreate(d *schema.ResourceData, meta interface
 		vL := v.(*schema.Set).List()
 		for _, v := range vL {
 			bd := v.(map[string]interface{})
-			blockDevices = append(blockDevices, autoscaling.BlockDeviceMapping{
+			blockDevices = append(blockDevices, &autoscaling.BlockDeviceMapping{
 				DeviceName:  aws.String(bd["device_name"].(string)),
 				VirtualName: aws.String(bd["virtual_name"].(string)),
 			})
@@ -338,7 +338,7 @@ func resourceAwsLaunchConfigurationCreate(d *schema.ResourceData, meta interface
 			}
 
 			if v, ok := bd["volume_size"].(int); ok && v != 0 {
-				ebs.VolumeSize = aws.Integer(v)
+				ebs.VolumeSize = aws.Long(int64(v))
 			}
 
 			if v, ok := bd["volume_type"].(string); ok && v != "" {
@@ -346,11 +346,11 @@ func resourceAwsLaunchConfigurationCreate(d *schema.ResourceData, meta interface
 			}
 
 			if v, ok := bd["iops"].(int); ok && v > 0 {
-				ebs.IOPS = aws.Integer(v)
+				ebs.IOPS = aws.Long(int64(v))
 			}
 
 			if dn, err := fetchRootDeviceName(d.Get("image_id").(string), ec2conn); err == nil {
-				blockDevices = append(blockDevices, autoscaling.BlockDeviceMapping{
+				blockDevices = append(blockDevices, &autoscaling.BlockDeviceMapping{
 					DeviceName: dn,
 					EBS:        ebs,
 				})
@@ -364,23 +364,25 @@ func resourceAwsLaunchConfigurationCreate(d *schema.ResourceData, meta interface
 		createLaunchConfigurationOpts.BlockDeviceMappings = blockDevices
 	}
 
+	var id string
 	if v, ok := d.GetOk("name"); ok {
-		createLaunchConfigurationOpts.LaunchConfigurationName = aws.String(v.(string))
-		d.SetId(d.Get("name").(string))
+		id = v.(string)
 	} else {
 		hash := sha1.Sum([]byte(fmt.Sprintf("%#v", createLaunchConfigurationOpts)))
-		config_name := fmt.Sprintf("terraform-%s", base64.URLEncoding.EncodeToString(hash[:]))
-		log.Printf("[DEBUG] Computed Launch config name: %s", config_name)
-		createLaunchConfigurationOpts.LaunchConfigurationName = aws.String(config_name)
-		d.SetId(config_name)
+		configName := fmt.Sprintf("terraform-%s", base64.URLEncoding.EncodeToString(hash[:]))
+		log.Printf("[DEBUG] Computed Launch config name: %s", configName)
+		id = configName
 	}
+	createLaunchConfigurationOpts.LaunchConfigurationName = aws.String(id)
 
-	log.Printf("[DEBUG] autoscaling create launch configuration: %#v", createLaunchConfigurationOpts)
-	err := autoscalingconn.CreateLaunchConfiguration(&createLaunchConfigurationOpts)
+	log.Printf(
+		"[DEBUG] autoscaling create launch configuration: %#v", createLaunchConfigurationOpts)
+	_, err := autoscalingconn.CreateLaunchConfiguration(&createLaunchConfigurationOpts)
 	if err != nil {
 		return fmt.Errorf("Error creating launch configuration: %s", err)
 	}
 
+	d.SetId(id)
 	log.Printf("[INFO] launch configuration ID: %s", d.Id())
 
 	// We put a Retry here since sometimes eventual consistency bites
@@ -394,8 +396,8 @@ func resourceAwsLaunchConfigurationRead(d *schema.ResourceData, meta interface{}
 	autoscalingconn := meta.(*AWSClient).autoscalingconn
 	ec2conn := meta.(*AWSClient).ec2conn
 
-	describeOpts := autoscaling.LaunchConfigurationNamesType{
-		LaunchConfigurationNames: []string{d.Id()},
+	describeOpts := autoscaling.DescribeLaunchConfigurationsInput{
+		LaunchConfigurationNames: []*string{aws.String(d.Id())},
 	}
 
 	log.Printf("[DEBUG] launch configuration describe configuration: %#v", describeOpts)
@@ -427,7 +429,7 @@ func resourceAwsLaunchConfigurationRead(d *schema.ResourceData, meta interface{}
 	d.Set("spot_price", lc.SpotPrice)
 	d.Set("security_groups", lc.SecurityGroups)
 
-	if err := readLCBlockDevices(d, &lc, ec2conn); err != nil {
+	if err := readLCBlockDevices(d, lc, ec2conn); err != nil {
 		return err
 	}
 
@@ -438,8 +440,10 @@ func resourceAwsLaunchConfigurationDelete(d *schema.ResourceData, meta interface
 	autoscalingconn := meta.(*AWSClient).autoscalingconn
 
 	log.Printf("[DEBUG] Launch Configuration destroy: %v", d.Id())
-	err := autoscalingconn.DeleteLaunchConfiguration(
-		&autoscaling.LaunchConfigurationNameType{LaunchConfigurationName: aws.String(d.Id())})
+	_, err := autoscalingconn.DeleteLaunchConfiguration(
+		&autoscaling.DeleteLaunchConfigurationInput{
+			LaunchConfigurationName: aws.String(d.Id()),
+		})
 	if err != nil {
 		autoscalingerr, ok := err.(aws.APIError)
 		if ok && autoscalingerr.Code == "InvalidConfiguration.NotFound" {

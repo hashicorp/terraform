@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/hashicorp/aws-sdk-go/aws"
-	"github.com/hashicorp/aws-sdk-go/gen/ec2"
+	"github.com/awslabs/aws-sdk-go/aws"
+	"github.com/awslabs/aws-sdk-go/service/ec2"
 	"github.com/hashicorp/terraform/helper/schema"
 )
 
@@ -32,14 +32,14 @@ func resourceAwsRouteTableAssociation() *schema.Resource {
 }
 
 func resourceAwsRouteTableAssociationCreate(d *schema.ResourceData, meta interface{}) error {
-	ec2conn := meta.(*AWSClient).ec2conn
+	conn := meta.(*AWSClient).ec2conn
 
 	log.Printf(
 		"[INFO] Creating route table association: %s => %s",
 		d.Get("subnet_id").(string),
 		d.Get("route_table_id").(string))
 
-	resp, err := ec2conn.AssociateRouteTable(&ec2.AssociateRouteTableRequest{
+	resp, err := conn.AssociateRouteTable(&ec2.AssociateRouteTableInput{
 		RouteTableID: aws.String(d.Get("route_table_id").(string)),
 		SubnetID:     aws.String(d.Get("subnet_id").(string)),
 	})
@@ -56,11 +56,11 @@ func resourceAwsRouteTableAssociationCreate(d *schema.ResourceData, meta interfa
 }
 
 func resourceAwsRouteTableAssociationRead(d *schema.ResourceData, meta interface{}) error {
-	ec2conn := meta.(*AWSClient).ec2conn
+	conn := meta.(*AWSClient).ec2conn
 
 	// Get the routing table that this association belongs to
 	rtRaw, _, err := resourceAwsRouteTableStateRefreshFunc(
-		ec2conn, d.Get("route_table_id").(string))()
+		conn, d.Get("route_table_id").(string))()
 	if err != nil {
 		return err
 	}
@@ -88,18 +88,18 @@ func resourceAwsRouteTableAssociationRead(d *schema.ResourceData, meta interface
 }
 
 func resourceAwsRouteTableAssociationUpdate(d *schema.ResourceData, meta interface{}) error {
-	ec2conn := meta.(*AWSClient).ec2conn
+	conn := meta.(*AWSClient).ec2conn
 
 	log.Printf(
 		"[INFO] Creating route table association: %s => %s",
 		d.Get("subnet_id").(string),
 		d.Get("route_table_id").(string))
 
-	req := &ec2.ReplaceRouteTableAssociationRequest{
+	req := &ec2.ReplaceRouteTableAssociationInput{
 		AssociationID: aws.String(d.Id()),
 		RouteTableID:  aws.String(d.Get("route_table_id").(string)),
 	}
-	resp, err := ec2conn.ReplaceRouteTableAssociation(req)
+	resp, err := conn.ReplaceRouteTableAssociation(req)
 
 	if err != nil {
 		ec2err, ok := err.(aws.APIError)
@@ -119,10 +119,10 @@ func resourceAwsRouteTableAssociationUpdate(d *schema.ResourceData, meta interfa
 }
 
 func resourceAwsRouteTableAssociationDelete(d *schema.ResourceData, meta interface{}) error {
-	ec2conn := meta.(*AWSClient).ec2conn
+	conn := meta.(*AWSClient).ec2conn
 
 	log.Printf("[INFO] Deleting route table association: %s", d.Id())
-	err := ec2conn.DisassociateRouteTable(&ec2.DisassociateRouteTableRequest{
+	_, err := conn.DisassociateRouteTable(&ec2.DisassociateRouteTableInput{
 		AssociationID: aws.String(d.Id()),
 	})
 	if err != nil {

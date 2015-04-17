@@ -10,8 +10,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/hashicorp/aws-sdk-go/aws"
-	"github.com/hashicorp/aws-sdk-go/gen/ec2"
+	"github.com/awslabs/aws-sdk-go/aws"
+	"github.com/awslabs/aws-sdk-go/service/ec2"
 	"github.com/hashicorp/terraform/helper/hashcode"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
@@ -99,6 +99,16 @@ func resourceAwsInstance() *schema.Resource {
 				Optional: true,
 				Computed: true,
 				ForceNew: true,
+				Elem:     &schema.Schema{Type: schema.TypeString},
+				Set: func(v interface{}) int {
+					return hashcode.String(v.(string))
+				},
+			},
+
+			"vpc_security_group_ids": &schema.Schema{
+				Type:     schema.TypeSet,
+				Optional: true,
+				Computed: true,
 				Elem:     &schema.Schema{Type: schema.TypeString},
 				Set: func(v interface{}) int {
 					return hashcode.String(v.(string))
@@ -289,7 +299,7 @@ func resourceAwsInstance() *schema.Resource {
 }
 
 func resourceAwsInstanceCreate(d *schema.ResourceData, meta interface{}) error {
-	ec2conn := meta.(*AWSClient).ec2conn
+	conn := meta.(*AWSClient).ec2conn
 
 	// Figure out user data
 	userData := ""
@@ -319,12 +329,12 @@ func resourceAwsInstanceCreate(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	// Build the creation struct
-	runOpts := &ec2.RunInstancesRequest{
+	runOpts := &ec2.RunInstancesInput{
 		ImageID:            aws.String(d.Get("ami").(string)),
 		Placement:          placement,
 		InstanceType:       aws.String(d.Get("instance_type").(string)),
-		MaxCount:           aws.Integer(1),
-		MinCount:           aws.Integer(1),
+		MaxCount:           aws.Long(int64(1)),
+		MinCount:           aws.Long(int64(1)),
 		UserData:           aws.String(userData),
 		EBSOptimized:       aws.Boolean(d.Get("ebs_optimized").(bool)),
 		IAMInstanceProfile: iam,
@@ -335,14 +345,17 @@ func resourceAwsInstanceCreate(d *schema.ResourceData, meta interface{}) error {
 		associatePublicIPAddress = v.(bool)
 	}
 
-	var groups []string
+	var groups []*string
 	if v := d.Get("security_groups"); v != nil {
 		// Security group names.
 		// For a nondefault VPC, you must use security group IDs instead.
 		// See http://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_RunInstances.html
+		if hasSubnet {
+			log.Printf("[WARN] Deprecated. Attempting to use 'security_groups' within a VPC instance. Use 'vpc_security_group_ids' instead.")
+		}
 		for _, v := range v.(*schema.Set).List() {
 			str := v.(string)
-			groups = append(groups, str)
+			groups = append(groups, aws.String(str))
 		}
 	}
 
@@ -354,9 +367,9 @@ func resourceAwsInstanceCreate(d *schema.ResourceData, meta interface{}) error {
 		// You also need to attach Security Groups to the NetworkInterface instead of the instance,
 		// to avoid: Network interfaces and an instance-level security groups may not be specified on
 		// the same request
-		ni := ec2.InstanceNetworkInterfaceSpecification{
+		ni := &ec2.InstanceNetworkInterfaceSpecification{
 			AssociatePublicIPAddress: aws.Boolean(associatePublicIPAddress),
-			DeviceIndex:              aws.Integer(0),
+			DeviceIndex:              aws.Long(int64(0)),
 			SubnetID:                 aws.String(subnetID),
 		}
 
@@ -364,11 +377,13 @@ func resourceAwsInstanceCreate(d *schema.ResourceData, meta interface{}) error {
 			ni.PrivateIPAddress = aws.String(v.(string))
 		}
 
-		if len(groups) > 0 {
-			ni.Groups = groups
+		if v := d.Get("vpc_security_group_ids"); v != nil {
+			for _, v := range v.(*schema.Set).List() {
+				ni.Groups = append(ni.Groups, aws.String(v.(string)))
+			}
 		}
 
-		runOpts.NetworkInterfaces = []ec2.InstanceNetworkInterfaceSpecification{ni}
+		runOpts.NetworkInterfaces = []*ec2.InstanceNetworkInterfaceSpecification{ni}
 	} else {
 		if subnetID != "" {
 			runOpts.SubnetID = aws.String(subnetID)
@@ -383,13 +398,19 @@ func resourceAwsInstanceCreate(d *schema.ResourceData, meta interface{}) error {
 		} else {
 			runOpts.SecurityGroups = groups
 		}
+
+		if v := d.Get("vpc_security_group_ids"); v != nil {
+			for _, v := range v.(*schema.Set).List() {
+				runOpts.SecurityGroupIDs = append(runOpts.SecurityGroupIDs, aws.String(v.(string)))
+			}
+		}
 	}
 
 	if v, ok := d.GetOk("key_name"); ok {
 		runOpts.KeyName = aws.String(v.(string))
 	}
 
-	blockDevices := make([]ec2.BlockDeviceMapping, 0)
+	blockDevices := make([]*ec2.BlockDeviceMapping, 0)
 
 	if v, ok := d.GetOk("ebs_block_device"); ok {
 		vL := v.(*schema.Set).List()
@@ -404,7 +425,7 @@ func resourceAwsInstanceCreate(d *schema.ResourceData, meta interface{}) error {
 			}
 
 			if v, ok := bd["volume_size"].(int); ok && v != 0 {
-				ebs.VolumeSize = aws.Integer(v)
+				ebs.VolumeSize = aws.Long(int64(v))
 			}
 
 			if v, ok := bd["volume_type"].(string); ok && v != "" {
@@ -412,10 +433,10 @@ func resourceAwsInstanceCreate(d *schema.ResourceData, meta interface{}) error {
 			}
 
 			if v, ok := bd["iops"].(int); ok && v > 0 {
-				ebs.IOPS = aws.Integer(v)
+				ebs.IOPS = aws.Long(int64(v))
 			}
 
-			blockDevices = append(blockDevices, ec2.BlockDeviceMapping{
+			blockDevices = append(blockDevices, &ec2.BlockDeviceMapping{
 				DeviceName: aws.String(bd["device_name"].(string)),
 				EBS:        ebs,
 			})
@@ -426,7 +447,7 @@ func resourceAwsInstanceCreate(d *schema.ResourceData, meta interface{}) error {
 		vL := v.(*schema.Set).List()
 		for _, v := range vL {
 			bd := v.(map[string]interface{})
-			blockDevices = append(blockDevices, ec2.BlockDeviceMapping{
+			blockDevices = append(blockDevices, &ec2.BlockDeviceMapping{
 				DeviceName:  aws.String(bd["device_name"].(string)),
 				VirtualName: aws.String(bd["virtual_name"].(string)),
 			})
@@ -445,7 +466,7 @@ func resourceAwsInstanceCreate(d *schema.ResourceData, meta interface{}) error {
 			}
 
 			if v, ok := bd["volume_size"].(int); ok && v != 0 {
-				ebs.VolumeSize = aws.Integer(v)
+				ebs.VolumeSize = aws.Long(int64(v))
 			}
 
 			if v, ok := bd["volume_type"].(string); ok && v != "" {
@@ -453,11 +474,11 @@ func resourceAwsInstanceCreate(d *schema.ResourceData, meta interface{}) error {
 			}
 
 			if v, ok := bd["iops"].(int); ok && v > 0 {
-				ebs.IOPS = aws.Integer(v)
+				ebs.IOPS = aws.Long(int64(v))
 			}
 
-			if dn, err := fetchRootDeviceName(d.Get("ami").(string), ec2conn); err == nil {
-				blockDevices = append(blockDevices, ec2.BlockDeviceMapping{
+			if dn, err := fetchRootDeviceName(d.Get("ami").(string), conn); err == nil {
+				blockDevices = append(blockDevices, &ec2.BlockDeviceMapping{
 					DeviceName: dn,
 					EBS:        ebs,
 				})
@@ -473,12 +494,12 @@ func resourceAwsInstanceCreate(d *schema.ResourceData, meta interface{}) error {
 
 	// Create the instance
 	log.Printf("[DEBUG] Run configuration: %#v", runOpts)
-	runResp, err := ec2conn.RunInstances(runOpts)
+	runResp, err := conn.RunInstances(runOpts)
 	if err != nil {
 		return fmt.Errorf("Error launching source instance: %s", err)
 	}
 
-	instance := &runResp.Instances[0]
+	instance := runResp.Instances[0]
 	log.Printf("[INFO] Instance ID: %s", *instance.InstanceID)
 
 	// Store the resulting ID so we can look this up later
@@ -493,7 +514,7 @@ func resourceAwsInstanceCreate(d *schema.ResourceData, meta interface{}) error {
 	stateConf := &resource.StateChangeConf{
 		Pending:    []string{"pending"},
 		Target:     "running",
-		Refresh:    InstanceStateRefreshFunc(ec2conn, *instance.InstanceID),
+		Refresh:    InstanceStateRefreshFunc(conn, *instance.InstanceID),
 		Timeout:    10 * time.Minute,
 		Delay:      10 * time.Second,
 		MinTimeout: 3 * time.Second,
@@ -526,10 +547,10 @@ func resourceAwsInstanceCreate(d *schema.ResourceData, meta interface{}) error {
 }
 
 func resourceAwsInstanceRead(d *schema.ResourceData, meta interface{}) error {
-	ec2conn := meta.(*AWSClient).ec2conn
+	conn := meta.(*AWSClient).ec2conn
 
-	resp, err := ec2conn.DescribeInstances(&ec2.DescribeInstancesRequest{
-		InstanceIDs: []string{d.Id()},
+	resp, err := conn.DescribeInstances(&ec2.DescribeInstancesInput{
+		InstanceIDs: []*string{aws.String(d.Id())},
 	})
 	if err != nil {
 		// If the instance was not found, return nil so that we can show
@@ -549,7 +570,7 @@ func resourceAwsInstanceRead(d *schema.ResourceData, meta interface{}) error {
 		return nil
 	}
 
-	instance := &resp.Reservations[0].Instances[0]
+	instance := resp.Reservations[0].Instances[0]
 
 	// If the instance is terminated, then it is gone
 	if *instance.State.Name == "terminated" {
@@ -575,7 +596,7 @@ func resourceAwsInstanceRead(d *schema.ResourceData, meta interface{}) error {
 		d.Set("subnet_id", instance.SubnetID)
 	}
 	d.Set("ebs_optimized", instance.EBSOptimized)
-	d.Set("tags", tagsToMap(instance.Tags))
+	d.Set("tags", tagsToMapSDK(instance.Tags))
 
 	// Determine whether we're referring to security groups with
 	// IDs or names. We use a heuristic to figure this out. By default,
@@ -596,17 +617,26 @@ func resourceAwsInstanceRead(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	// Build up the security groups
-	sgs := make([]string, len(instance.SecurityGroups))
-	for i, sg := range instance.SecurityGroups {
-		if useID {
-			sgs[i] = *sg.GroupID
-		} else {
-			sgs[i] = *sg.GroupName
+	sgs := make([]string, 0, len(instance.SecurityGroups))
+	if useID {
+		for _, sg := range instance.SecurityGroups {
+			sgs = append(sgs, *sg.GroupID)
+		}
+		log.Printf("[DEBUG] Setting Security Group IDs: %#v", sgs)
+		if err := d.Set("vpc_security_group_ids", sgs); err != nil {
+			return err
+		}
+	} else {
+		for _, sg := range instance.SecurityGroups {
+			sgs = append(sgs, *sg.GroupName)
+		}
+		log.Printf("[DEBUG] Setting Security Group Names: %#v", sgs)
+		if err := d.Set("security_groups", sgs); err != nil {
+			return err
 		}
 	}
-	d.Set("security_groups", sgs)
 
-	if err := readBlockDevices(d, instance, ec2conn); err != nil {
+	if err := readBlockDevices(d, instance, conn); err != nil {
 		return err
 	}
 
@@ -614,12 +644,14 @@ func resourceAwsInstanceRead(d *schema.ResourceData, meta interface{}) error {
 }
 
 func resourceAwsInstanceUpdate(d *schema.ResourceData, meta interface{}) error {
-	ec2conn := meta.(*AWSClient).ec2conn
+	conn := meta.(*AWSClient).ec2conn
+
+	d.Partial(true)
 
 	// SourceDestCheck can only be set on VPC instances
 	if d.Get("subnet_id").(string) != "" {
 		log.Printf("[INFO] Modifying instance %s", d.Id())
-		err := ec2conn.ModifyInstanceAttribute(&ec2.ModifyInstanceAttributeRequest{
+		_, err := conn.ModifyInstanceAttribute(&ec2.ModifyInstanceAttributeInput{
 			InstanceID: aws.String(d.Id()),
 			SourceDestCheck: &ec2.AttributeBooleanValue{
 				Value: aws.Boolean(d.Get("source_dest_check").(bool)),
@@ -633,23 +665,24 @@ func resourceAwsInstanceUpdate(d *schema.ResourceData, meta interface{}) error {
 	// TODO(mitchellh): wait for the attributes we modified to
 	// persist the change...
 
-	if err := setTags(ec2conn, d); err != nil {
+	if err := setTagsSDK(conn, d); err != nil {
 		return err
 	} else {
 		d.SetPartial("tags")
 	}
+	d.Partial(false)
 
-	return nil
+	return resourceAwsInstanceRead(d, meta)
 }
 
 func resourceAwsInstanceDelete(d *schema.ResourceData, meta interface{}) error {
-	ec2conn := meta.(*AWSClient).ec2conn
+	conn := meta.(*AWSClient).ec2conn
 
 	log.Printf("[INFO] Terminating instance: %s", d.Id())
-	req := &ec2.TerminateInstancesRequest{
-		InstanceIDs: []string{d.Id()},
+	req := &ec2.TerminateInstancesInput{
+		InstanceIDs: []*string{aws.String(d.Id())},
 	}
-	if _, err := ec2conn.TerminateInstances(req); err != nil {
+	if _, err := conn.TerminateInstances(req); err != nil {
 		return fmt.Errorf("Error terminating instance: %s", err)
 	}
 
@@ -660,7 +693,7 @@ func resourceAwsInstanceDelete(d *schema.ResourceData, meta interface{}) error {
 	stateConf := &resource.StateChangeConf{
 		Pending:    []string{"pending", "running", "shutting-down", "stopped", "stopping"},
 		Target:     "terminated",
-		Refresh:    InstanceStateRefreshFunc(ec2conn, d.Id()),
+		Refresh:    InstanceStateRefreshFunc(conn, d.Id()),
 		Timeout:    10 * time.Minute,
 		Delay:      10 * time.Second,
 		MinTimeout: 3 * time.Second,
@@ -681,8 +714,8 @@ func resourceAwsInstanceDelete(d *schema.ResourceData, meta interface{}) error {
 // an EC2 instance.
 func InstanceStateRefreshFunc(conn *ec2.EC2, instanceID string) resource.StateRefreshFunc {
 	return func() (interface{}, string, error) {
-		resp, err := conn.DescribeInstances(&ec2.DescribeInstancesRequest{
-			InstanceIDs: []string{instanceID},
+		resp, err := conn.DescribeInstances(&ec2.DescribeInstancesInput{
+			InstanceIDs: []*string{aws.String(instanceID)},
 		})
 		if err != nil {
 			if ec2err, ok := err.(aws.APIError); ok && ec2err.Code == "InvalidInstanceID.NotFound" {
@@ -700,13 +733,13 @@ func InstanceStateRefreshFunc(conn *ec2.EC2, instanceID string) resource.StateRe
 			return nil, "", nil
 		}
 
-		i := &resp.Reservations[0].Instances[0]
+		i := resp.Reservations[0].Instances[0]
 		return i, *i.State.Name, nil
 	}
 }
 
-func readBlockDevices(d *schema.ResourceData, instance *ec2.Instance, ec2conn *ec2.EC2) error {
-	ibds, err := readBlockDevicesFromInstance(instance, ec2conn)
+func readBlockDevices(d *schema.ResourceData, instance *ec2.Instance, conn *ec2.EC2) error {
+	ibds, err := readBlockDevicesFromInstance(instance, conn)
 	if err != nil {
 		return err
 	}
@@ -723,12 +756,12 @@ func readBlockDevices(d *schema.ResourceData, instance *ec2.Instance, ec2conn *e
 	return nil
 }
 
-func readBlockDevicesFromInstance(instance *ec2.Instance, ec2conn *ec2.EC2) (map[string]interface{}, error) {
+func readBlockDevicesFromInstance(instance *ec2.Instance, conn *ec2.EC2) (map[string]interface{}, error) {
 	blockDevices := make(map[string]interface{})
 	blockDevices["ebs"] = make([]map[string]interface{}, 0)
 	blockDevices["root"] = nil
 
-	instanceBlockDevices := make(map[string]ec2.InstanceBlockDeviceMapping)
+	instanceBlockDevices := make(map[string]*ec2.InstanceBlockDeviceMapping)
 	for _, bd := range instance.BlockDeviceMappings {
 		if bd.EBS != nil {
 			instanceBlockDevices[*(bd.EBS.VolumeID)] = bd
@@ -739,14 +772,14 @@ func readBlockDevicesFromInstance(instance *ec2.Instance, ec2conn *ec2.EC2) (map
 		return nil, nil
 	}
 
-	volIDs := make([]string, 0, len(instanceBlockDevices))
+	volIDs := make([]*string, 0, len(instanceBlockDevices))
 	for volID := range instanceBlockDevices {
-		volIDs = append(volIDs, volID)
+		volIDs = append(volIDs, aws.String(volID))
 	}
 
 	// Need to call DescribeVolumes to get volume_size and volume_type for each
 	// EBS block device
-	volResp, err := ec2conn.DescribeVolumes(&ec2.DescribeVolumesRequest{
+	volResp, err := conn.DescribeVolumes(&ec2.DescribeVolumesInput{
 		VolumeIDs: volIDs,
 	})
 	if err != nil {
@@ -790,19 +823,19 @@ func readBlockDevicesFromInstance(instance *ec2.Instance, ec2conn *ec2.EC2) (map
 	return blockDevices, nil
 }
 
-func blockDeviceIsRoot(bd ec2.InstanceBlockDeviceMapping, instance *ec2.Instance) bool {
+func blockDeviceIsRoot(bd *ec2.InstanceBlockDeviceMapping, instance *ec2.Instance) bool {
 	return (bd.DeviceName != nil &&
 		instance.RootDeviceName != nil &&
 		*bd.DeviceName == *instance.RootDeviceName)
 }
 
-func fetchRootDeviceName(ami string, conn *ec2.EC2) (aws.StringValue, error) {
+func fetchRootDeviceName(ami string, conn *ec2.EC2) (*string, error) {
 	if ami == "" {
 		return nil, fmt.Errorf("Cannot fetch root device name for blank AMI ID.")
 	}
 
 	log.Printf("[DEBUG] Describing AMI %q to get root block device name", ami)
-	req := &ec2.DescribeImagesRequest{ImageIDs: []string{ami}}
+	req := &ec2.DescribeImagesInput{ImageIDs: []*string{aws.String(ami)}}
 	if res, err := conn.DescribeImages(req); err == nil {
 		if len(res.Images) == 1 {
 			return res.Images[0].RootDeviceName, nil

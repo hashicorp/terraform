@@ -56,6 +56,11 @@ func Provider() terraform.ResourceProvider {
 				Optional: true,
 				Default:  "",
 			},
+			"insecure": &schema.Schema{
+				Type:     schema.TypeBool,
+				Optional: true,
+				Default:  false,
+			},
 		},
 
 		ResourcesMap: map[string]*schema.Resource{
@@ -93,6 +98,7 @@ func configureProvider(d *schema.ResourceData) (interface{}, error) {
 		TenantName:       d.Get("tenant_name").(string),
 		DomainID:         d.Get("domain_id").(string),
 		DomainName:       d.Get("domain_name").(string),
+		Insecure:         d.Get("insecure").(bool),
 	}
 
 	if err := config.loadAndValidate(); err != nil {
@@ -109,5 +115,12 @@ func envDefaultFunc(k string) schema.SchemaDefaultFunc {
 		}
 
 		return nil, nil
+	}
+}
+
+func envDefaultFuncAllowMissing(k string) schema.SchemaDefaultFunc {
+	return func() (interface{}, error) {
+		v := os.Getenv(k)
+		return v, nil
 	}
 }

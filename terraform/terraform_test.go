@@ -924,6 +924,19 @@ STATE:
 <no state>
 `
 
+const testTerraformPlanModuleCycleStr = `
+DIFF:
+
+CREATE: aws_instance.b
+CREATE: aws_instance.c
+  some_input: "" => "<computed>"
+  type:       "" => "aws_instance"
+
+STATE:
+
+<no state>
+`
+
 const testTerraformPlanModuleDestroyStr = `
 DIFF:
 

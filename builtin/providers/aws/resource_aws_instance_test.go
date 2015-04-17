@@ -5,8 +5,8 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/hashicorp/aws-sdk-go/aws"
-	"github.com/hashicorp/aws-sdk-go/gen/ec2"
+	"github.com/awslabs/aws-sdk-go/aws"
+	"github.com/awslabs/aws-sdk-go/service/ec2"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/terraform"
@@ -43,9 +43,9 @@ func TestAccAWSInstance_normal(t *testing.T) {
 				Check: func(*terraform.State) error {
 					conn := testAccProvider.Meta().(*AWSClient).ec2conn
 					var err error
-					vol, err = conn.CreateVolume(&ec2.CreateVolumeRequest{
+					vol, err = conn.CreateVolume(&ec2.CreateVolumeInput{
 						AvailabilityZone: aws.String("us-west-2a"),
-						Size:             aws.Integer(5),
+						Size:             aws.Long(int64(5)),
 					})
 					return err
 				},
@@ -89,7 +89,8 @@ func TestAccAWSInstance_normal(t *testing.T) {
 				Config: testAccInstanceConfig,
 				Check: func(*terraform.State) error {
 					conn := testAccProvider.Meta().(*AWSClient).ec2conn
-					return conn.DeleteVolume(&ec2.DeleteVolumeRequest{VolumeID: vol.VolumeID})
+					_, err := conn.DeleteVolume(&ec2.DeleteVolumeInput{VolumeID: vol.VolumeID})
+					return err
 				},
 			},
 		},
@@ -103,7 +104,7 @@ func TestAccAWSInstance_blockDevices(t *testing.T) {
 		return func(*terraform.State) error {
 
 			// Map out the block devices by name, which should be unique.
-			blockDevices := make(map[string]ec2.InstanceBlockDeviceMapping)
+			blockDevices := make(map[string]*ec2.InstanceBlockDeviceMapping)
 			for _, blockDevice := range v.BlockDeviceMappings {
 				blockDevices[*blockDevice.DeviceName] = blockDevice
 			}
@@ -255,6 +256,25 @@ func TestAccAWSInstance_NetworkInstanceSecurityGroups(t *testing.T) {
 	})
 }
 
+func TestAccAWSInstance_NetworkInstanceVPCSecurityGroupIDs(t *testing.T) {
+	var v ec2.Instance
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckInstanceDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccInstanceNetworkInstanceVPCSecurityGroupIDs,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckInstanceExists(
+						"aws_instance.foo_instance", &v),
+				),
+			},
+		},
+	})
+}
+
 func TestAccAWSInstance_tags(t *testing.T) {
 	var v ec2.Instance
 
@@ -267,9 +287,9 @@ func TestAccAWSInstance_tags(t *testing.T) {
 				Config: testAccCheckInstanceConfigTags,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckInstanceExists("aws_instance.foo", &v),
-					testAccCheckTags(&v.Tags, "foo", "bar"),
+					testAccCheckTagsSDK(&v.Tags, "foo", "bar"),
 					// Guard against regression of https://github.com/hashicorp/terraform/issues/914
-					testAccCheckTags(&v.Tags, "#", ""),
+					testAccCheckTagsSDK(&v.Tags, "#", ""),
 				),
 			},
 
@@ -277,8 +297,8 @@ func TestAccAWSInstance_tags(t *testing.T) {
 				Config: testAccCheckInstanceConfigTagsUpdate,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckInstanceExists("aws_instance.foo", &v),
-					testAccCheckTags(&v.Tags, "foo", ""),
-					testAccCheckTags(&v.Tags, "bar", "baz"),
+					testAccCheckTagsSDK(&v.Tags, "foo", ""),
+					testAccCheckTagsSDK(&v.Tags, "bar", "baz"),
 				),
 			},
 		},
@@ -352,8 +372,8 @@ func testAccCheckInstanceDestroy(s *terraform.State) error {
 		}
 
 		// Try to find the resource
-		resp, err := conn.DescribeInstances(&ec2.DescribeInstancesRequest{
-			InstanceIDs: []string{rs.Primary.ID},
+		resp, err := conn.DescribeInstances(&ec2.DescribeInstancesInput{
+			InstanceIDs: []*string{aws.String(rs.Primary.ID)},
 		})
 		if err == nil {
 			if len(resp.Reservations) > 0 {
@@ -388,8 +408,8 @@ func testAccCheckInstanceExists(n string, i *ec2.Instance) resource.TestCheckFun
 		}
 
 		conn := testAccProvider.Meta().(*AWSClient).ec2conn
-		resp, err := conn.DescribeInstances(&ec2.DescribeInstancesRequest{
-			InstanceIDs: []string{rs.Primary.ID},
+		resp, err := conn.DescribeInstances(&ec2.DescribeInstancesInput{
+			InstanceIDs: []*string{aws.String(rs.Primary.ID)},
 		})
 		if err != nil {
 			return err
@@ -398,7 +418,7 @@ func testAccCheckInstanceExists(n string, i *ec2.Instance) resource.TestCheckFun
 			return fmt.Errorf("Instance not found")
 		}
 
-		*i = resp.Reservations[0].Instances[0]
+		*i = *resp.Reservations[0].Instances[0]
 
 		return nil
 	}
@@ -636,6 +656,51 @@ resource "aws_instance" "foo_instance" {
   security_groups = ["${aws_security_group.tf_test_foo.id}"]
   subnet_id = "${aws_subnet.foo.id}"
   associate_public_ip_address = true
+	depends_on = ["aws_internet_gateway.gw"]
+}
+
+resource "aws_eip" "foo_eip" {
+  instance = "${aws_instance.foo_instance.id}"
+  vpc = true
+	depends_on = ["aws_internet_gateway.gw"]
+}
+`
+
+const testAccInstanceNetworkInstanceVPCSecurityGroupIDs = `
+resource "aws_internet_gateway" "gw" {
+  vpc_id = "${aws_vpc.foo.id}"
+}
+
+resource "aws_vpc" "foo" {
+  cidr_block = "10.1.0.0/16"
+	tags {
+		Name = "tf-network-test"
+	}
+}
+
+resource "aws_security_group" "tf_test_foo" {
+  name = "tf_test_foo"
+  description = "foo"
+  vpc_id="${aws_vpc.foo.id}"
+
+  ingress {
+    protocol = "icmp"
+    from_port = -1
+    to_port = -1
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+}
+
+resource "aws_subnet" "foo" {
+  cidr_block = "10.1.1.0/24"
+  vpc_id = "${aws_vpc.foo.id}"
+}
+
+resource "aws_instance" "foo_instance" {
+  ami = "ami-21f78e11"
+  instance_type = "t1.micro"
+  vpc_security_group_ids = ["${aws_security_group.tf_test_foo.id}"]
+  subnet_id = "${aws_subnet.foo.id}"
 	depends_on = ["aws_internet_gateway.gw"]
 }
 

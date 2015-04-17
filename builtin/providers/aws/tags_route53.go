@@ -3,8 +3,8 @@ package aws
 import (
 	"log"
 
-	"github.com/hashicorp/aws-sdk-go/aws"
-	"github.com/hashicorp/aws-sdk-go/gen/route53"
+	"github.com/awslabs/aws-sdk-go/aws"
+	"github.com/awslabs/aws-sdk-go/service/route53"
 	"github.com/hashicorp/terraform/helper/schema"
 )
 
@@ -18,16 +18,21 @@ func setTagsR53(conn *route53.Route53, d *schema.ResourceData) error {
 		create, remove := diffTagsR53(tagsFromMapR53(o), tagsFromMapR53(n))
 
 		// Set tags
-		r := make([]string, len(remove))
+		r := make([]*string, len(remove))
 		for i, t := range remove {
-			r[i] = *t.Key
+			r[i] = t.Key
 		}
 		log.Printf("[DEBUG] Changing tags: \n\tadding: %#v\n\tremoving:%#v", create, remove)
-		req := &route53.ChangeTagsForResourceRequest{
-			AddTags:       create,
-			RemoveTagKeys: r,
-			ResourceID:    aws.String(d.Id()),
-			ResourceType:  aws.String("hostedzone"),
+		req := &route53.ChangeTagsForResourceInput{
+			ResourceID:   aws.String(d.Id()),
+			ResourceType: aws.String("hostedzone"),
+		}
+
+		if len(create) > 0 {
+			req.AddTags = create
+		}
+		if len(r) > 0 {
+			req.RemoveTagKeys = r
 		}
 
 		_, err := conn.ChangeTagsForResource(req)
@@ -42,7 +47,7 @@ func setTagsR53(conn *route53.Route53, d *schema.ResourceData) error {
 // diffTags takes our tags locally and the ones remotely and returns
 // the set of tags that must be created, and the set of tags that must
 // be destroyed.
-func diffTagsR53(oldTags, newTags []route53.Tag) ([]route53.Tag, []route53.Tag) {
+func diffTagsR53(oldTags, newTags []*route53.Tag) ([]*route53.Tag, []*route53.Tag) {
 	// First, we're creating everything we have
 	create := make(map[string]interface{})
 	for _, t := range newTags {
@@ -50,7 +55,7 @@ func diffTagsR53(oldTags, newTags []route53.Tag) ([]route53.Tag, []route53.Tag) 
 	}
 
 	// Build the list of what to remove
-	var remove []route53.Tag
+	var remove []*route53.Tag
 	for _, t := range oldTags {
 		old, ok := create[*t.Key]
 		if !ok || old != *t.Value {
@@ -63,10 +68,10 @@ func diffTagsR53(oldTags, newTags []route53.Tag) ([]route53.Tag, []route53.Tag) 
 }
 
 // tagsFromMap returns the tags for the given map of data.
-func tagsFromMapR53(m map[string]interface{}) []route53.Tag {
-	result := make([]route53.Tag, 0, len(m))
+func tagsFromMapR53(m map[string]interface{}) []*route53.Tag {
+	result := make([]*route53.Tag, 0, len(m))
 	for k, v := range m {
-		result = append(result, route53.Tag{
+		result = append(result, &route53.Tag{
 			Key:   aws.String(k),
 			Value: aws.String(v.(string)),
 		})
@@ -76,7 +81,7 @@ func tagsFromMapR53(m map[string]interface{}) []route53.Tag {
 }
 
 // tagsToMap turns the list of tags into a map.
-func tagsToMapR53(ts []route53.Tag) map[string]string {
+func tagsToMapR53(ts []*route53.Tag) map[string]string {
 	result := make(map[string]string)
 	for _, t := range ts {
 		result[*t.Key] = *t.Value
