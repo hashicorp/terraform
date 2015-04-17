@@ -5,8 +5,8 @@ import (
 	"log"
 	"time"
 
-	"github.com/hashicorp/aws-sdk-go/aws"
-	"github.com/hashicorp/aws-sdk-go/gen/ec2"
+	"github.com/awslabs/aws-sdk-go/aws"
+	"github.com/awslabs/aws-sdk-go/service/ec2"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 )
@@ -41,16 +41,16 @@ func resourceAwsVpcPeeringConnection() *schema.Resource {
 }
 
 func resourceAwsVpcPeeringCreate(d *schema.ResourceData, meta interface{}) error {
-	ec2conn := meta.(*AWSClient).ec2conn
+	conn := meta.(*AWSClient).ec2conn
 
 	// Create the vpc peering connection
-	createOpts := &ec2.CreateVPCPeeringConnectionRequest{
+	createOpts := &ec2.CreateVPCPeeringConnectionInput{
 		PeerOwnerID: aws.String(d.Get("peer_owner_id").(string)),
 		PeerVPCID:   aws.String(d.Get("peer_vpc_id").(string)),
 		VPCID:       aws.String(d.Get("vpc_id").(string)),
 	}
 	log.Printf("[DEBUG] VpcPeeringCreate create config: %#v", createOpts)
-	resp, err := ec2conn.CreateVPCPeeringConnection(createOpts)
+	resp, err := conn.CreateVPCPeeringConnection(createOpts)
 	if err != nil {
 		return fmt.Errorf("Error creating vpc peering connection: %s", err)
 	}
@@ -67,7 +67,7 @@ func resourceAwsVpcPeeringCreate(d *schema.ResourceData, meta interface{}) error
 	stateConf := &resource.StateChangeConf{
 		Pending: []string{"pending"},
 		Target:  "ready",
-		Refresh: resourceAwsVpcPeeringConnectionStateRefreshFunc(ec2conn, d.Id()),
+		Refresh: resourceAwsVpcPeeringConnectionStateRefreshFunc(conn, d.Id()),
 		Timeout: 1 * time.Minute,
 	}
 	if _, err := stateConf.WaitForState(); err != nil {
@@ -80,8 +80,8 @@ func resourceAwsVpcPeeringCreate(d *schema.ResourceData, meta interface{}) error
 }
 
 func resourceAwsVpcPeeringRead(d *schema.ResourceData, meta interface{}) error {
-	ec2conn := meta.(*AWSClient).ec2conn
-	pcRaw, _, err := resourceAwsVpcPeeringConnectionStateRefreshFunc(ec2conn, d.Id())()
+	conn := meta.(*AWSClient).ec2conn
+	pcRaw, _, err := resourceAwsVpcPeeringConnectionStateRefreshFunc(conn, d.Id())()
 	if err != nil {
 		return err
 	}
@@ -95,15 +95,15 @@ func resourceAwsVpcPeeringRead(d *schema.ResourceData, meta interface{}) error {
 	d.Set("peer_owner_id", pc.AccepterVPCInfo.OwnerID)
 	d.Set("peer_vpc_id", pc.AccepterVPCInfo.VPCID)
 	d.Set("vpc_id", pc.RequesterVPCInfo.VPCID)
-	d.Set("tags", tagsToMap(pc.Tags))
+	d.Set("tags", tagsToMapSDK(pc.Tags))
 
 	return nil
 }
 
 func resourceAwsVpcPeeringUpdate(d *schema.ResourceData, meta interface{}) error {
-	ec2conn := meta.(*AWSClient).ec2conn
+	conn := meta.(*AWSClient).ec2conn
 
-	if err := setTags(ec2conn, d); err != nil {
+	if err := setTagsSDK(conn, d); err != nil {
 		return err
 	} else {
 		d.SetPartial("tags")
@@ -113,10 +113,10 @@ func resourceAwsVpcPeeringUpdate(d *schema.ResourceData, meta interface{}) error
 }
 
 func resourceAwsVpcPeeringDelete(d *schema.ResourceData, meta interface{}) error {
-	ec2conn := meta.(*AWSClient).ec2conn
+	conn := meta.(*AWSClient).ec2conn
 
-	_, err := ec2conn.DeleteVPCPeeringConnection(
-		&ec2.DeleteVPCPeeringConnectionRequest{
+	_, err := conn.DeleteVPCPeeringConnection(
+		&ec2.DeleteVPCPeeringConnectionInput{
 			VPCPeeringConnectionID: aws.String(d.Id()),
 		})
 	return err
@@ -127,8 +127,8 @@ func resourceAwsVpcPeeringDelete(d *schema.ResourceData, meta interface{}) error
 func resourceAwsVpcPeeringConnectionStateRefreshFunc(conn *ec2.EC2, id string) resource.StateRefreshFunc {
 	return func() (interface{}, string, error) {
 
-		resp, err := conn.DescribeVPCPeeringConnections(&ec2.DescribeVPCPeeringConnectionsRequest{
-			VPCPeeringConnectionIDs: []string{id},
+		resp, err := conn.DescribeVPCPeeringConnections(&ec2.DescribeVPCPeeringConnectionsInput{
+			VPCPeeringConnectionIDs: []*string{aws.String(id)},
 		})
 		if err != nil {
 			if ec2err, ok := err.(aws.APIError); ok && ec2err.Code == "InvalidVpcPeeringConnectionID.NotFound" {
@@ -145,7 +145,7 @@ func resourceAwsVpcPeeringConnectionStateRefreshFunc(conn *ec2.EC2, id string) r
 			return nil, "", nil
 		}
 
-		pc := &resp.VPCPeeringConnections[0]
+		pc := resp.VPCPeeringConnections[0]
 
 		return pc, "ready", nil
 	}

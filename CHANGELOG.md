@@ -1,3 +1,26 @@
+## 0.5.0 (unreleased)
+
+IMPROVEMENTS:
+
+ * **New config function: `length`** - Get the length of a string or a list.
+      Useful in conjunction with `split`. [GH-1495]
+ * core: Improve error message on diff mismatch [GH-1501]
+ * provisioner/file: expand `~` in source path [GH-1569]
+
+BUG FIXES:
+
+  * core: math on arbitrary variables works if first operand isn't a
+      numeric primitive. [GH-1381]
+  * core: avoid unnecessary cycles by pruning tainted destroys from
+      graph if there are no tainted resources [GH-1475]
+  * core: fix issue where destroy nodes weren't pruned in specific
+      edge cases around matching prefixes, which could cause cycles [GH-1527]
+  * core: fix issue causing diff mismatch errors in certain scenarios during
+      resource replacement [GH-1515]
+  * command: remote states with uppercase types work [GH-1356]
+  * provider/aws: launch configuration ID set after create success [GH-1518]
+  * provider/openstack: region config is not required [GH-1441]
+
 ## 0.4.2 (April 10, 2015)
 
 BUG FIXES:

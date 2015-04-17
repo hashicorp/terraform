@@ -5,9 +5,9 @@ import (
 	"log"
 	"time"
 
-	"github.com/hashicorp/aws-sdk-go/aws"
-	"github.com/hashicorp/aws-sdk-go/gen/iam"
-	"github.com/hashicorp/aws-sdk-go/gen/rds"
+	"github.com/awslabs/aws-sdk-go/aws"
+	"github.com/awslabs/aws-sdk-go/service/iam"
+	"github.com/awslabs/aws-sdk-go/service/rds"
 
 	"github.com/hashicorp/terraform/helper/hashcode"
 	"github.com/hashicorp/terraform/helper/resource"
@@ -196,8 +196,8 @@ func resourceAwsDbInstance() *schema.Resource {
 func resourceAwsDbInstanceCreate(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).rdsconn
 	tags := tagsFromMapRDS(d.Get("tags").(map[string]interface{}))
-	opts := rds.CreateDBInstanceMessage{
-		AllocatedStorage:     aws.Integer(d.Get("allocated_storage").(int)),
+	opts := rds.CreateDBInstanceInput{
+		AllocatedStorage:     aws.Long(int64(d.Get("allocated_storage").(int))),
 		DBInstanceClass:      aws.String(d.Get("instance_class").(string)),
 		DBInstanceIdentifier: aws.String(d.Get("identifier").(string)),
 		DBName:               aws.String(d.Get("name").(string)),
@@ -214,14 +214,14 @@ func resourceAwsDbInstanceCreate(d *schema.ResourceData, meta interface{}) error
 	}
 
 	attr := d.Get("backup_retention_period")
-	opts.BackupRetentionPeriod = aws.Integer(attr.(int))
+	opts.BackupRetentionPeriod = aws.Long(int64(attr.(int)))
 
 	if attr, ok := d.GetOk("iops"); ok {
-		opts.IOPS = aws.Integer(attr.(int))
+		opts.IOPS = aws.Long(int64(attr.(int)))
 	}
 
 	if attr, ok := d.GetOk("port"); ok {
-		opts.Port = aws.Integer(attr.(int))
+		opts.Port = aws.Long(int64(attr.(int)))
 	}
 
 	if attr, ok := d.GetOk("multi_az"); ok {
@@ -253,17 +253,17 @@ func resourceAwsDbInstanceCreate(d *schema.ResourceData, meta interface{}) error
 	}
 
 	if attr := d.Get("vpc_security_group_ids").(*schema.Set); attr.Len() > 0 {
-		var s []string
+		var s []*string
 		for _, v := range attr.List() {
-			s = append(s, v.(string))
+			s = append(s, aws.String(v.(string)))
 		}
 		opts.VPCSecurityGroupIDs = s
 	}
 
 	if attr := d.Get("security_group_names").(*schema.Set); attr.Len() > 0 {
-		var s []string
+		var s []*string
 		for _, v := range attr.List() {
-			s = append(s, v.(string))
+			s = append(s, aws.String(v.(string)))
 		}
 		opts.DBSecurityGroups = s
 	}
@@ -355,7 +355,7 @@ func resourceAwsDbInstanceRead(d *schema.ResourceData, meta interface{}) error {
 
 		log.Printf("[DEBUG] Error building ARN for DB Instance, not setting Tags for DB %s", name)
 	} else {
-		resp, err := conn.ListTagsForResource(&rds.ListTagsForResourceMessage{
+		resp, err := conn.ListTagsForResource(&rds.ListTagsForResourceInput{
 			ResourceName: aws.String(arn),
 		})
 
@@ -363,7 +363,7 @@ func resourceAwsDbInstanceRead(d *schema.ResourceData, meta interface{}) error {
 			log.Printf("[DEBUG] Error retreiving tags for ARN: %s", arn)
 		}
 
-		var dt []rds.Tag
+		var dt []*rds.Tag
 		if len(resp.TagList) > 0 {
 			dt = resp.TagList
 		}
@@ -400,7 +400,7 @@ func resourceAwsDbInstanceDelete(d *schema.ResourceData, meta interface{}) error
 
 	log.Printf("[DEBUG] DB Instance destroy: %v", d.Id())
 
-	opts := rds.DeleteDBInstanceMessage{DBInstanceIdentifier: aws.String(d.Id())}
+	opts := rds.DeleteDBInstanceInput{DBInstanceIdentifier: aws.String(d.Id())}
 
 	finalSnapshot := d.Get("final_snapshot_identifier").(string)
 	if finalSnapshot == "" {
@@ -437,7 +437,7 @@ func resourceAwsDbInstanceUpdate(d *schema.ResourceData, meta interface{}) error
 
 	d.Partial(true)
 
-	req := &rds.ModifyDBInstanceMessage{
+	req := &rds.ModifyDBInstanceInput{
 		ApplyImmediately:     aws.Boolean(d.Get("apply_immediately").(bool)),
 		DBInstanceIdentifier: aws.String(d.Id()),
 	}
@@ -445,11 +445,11 @@ func resourceAwsDbInstanceUpdate(d *schema.ResourceData, meta interface{}) error
 
 	if d.HasChange("allocated_storage") {
 		d.SetPartial("allocated_storage")
-		req.AllocatedStorage = aws.Integer(d.Get("allocated_storage").(int))
+		req.AllocatedStorage = aws.Long(int64(d.Get("allocated_storage").(int)))
 	}
 	if d.HasChange("backup_retention_period") {
 		d.SetPartial("backup_retention_period")
-		req.BackupRetentionPeriod = aws.Integer(d.Get("backup_retention_period").(int))
+		req.BackupRetentionPeriod = aws.Long(int64(d.Get("backup_retention_period").(int)))
 	}
 	if d.HasChange("instance_class") {
 		d.SetPartial("instance_class")
@@ -465,7 +465,7 @@ func resourceAwsDbInstanceUpdate(d *schema.ResourceData, meta interface{}) error
 	}
 	if d.HasChange("iops") {
 		d.SetPartial("iops")
-		req.IOPS = aws.Integer(d.Get("iops").(int))
+		req.IOPS = aws.Long(int64(d.Get("iops").(int)))
 	}
 	if d.HasChange("backup_window") {
 		d.SetPartial("backup_window")
@@ -490,9 +490,9 @@ func resourceAwsDbInstanceUpdate(d *schema.ResourceData, meta interface{}) error
 
 	if d.HasChange("vpc_security_group_ids") {
 		if attr := d.Get("vpc_security_group_ids").(*schema.Set); attr.Len() > 0 {
-			var s []string
+			var s []*string
 			for _, v := range attr.List() {
-				s = append(s, v.(string))
+				s = append(s, aws.String(v.(string)))
 			}
 			req.VPCSecurityGroupIDs = s
 		}
@@ -500,9 +500,9 @@ func resourceAwsDbInstanceUpdate(d *schema.ResourceData, meta interface{}) error
 
 	if d.HasChange("vpc_security_group_ids") {
 		if attr := d.Get("security_group_names").(*schema.Set); attr.Len() > 0 {
-			var s []string
+			var s []*string
 			for _, v := range attr.List() {
-				s = append(s, v.(string))
+				s = append(s, aws.String(v.(string)))
 			}
 			req.DBSecurityGroups = s
 		}
@@ -529,7 +529,7 @@ func resourceAwsBbInstanceRetrieve(
 	d *schema.ResourceData, meta interface{}) (*rds.DBInstance, error) {
 	conn := meta.(*AWSClient).rdsconn
 
-	opts := rds.DescribeDBInstancesMessage{
+	opts := rds.DescribeDBInstancesInput{
 		DBInstanceIdentifier: aws.String(d.Id()),
 	}
 
@@ -552,9 +552,7 @@ func resourceAwsBbInstanceRetrieve(
 		}
 	}
 
-	v := resp.DBInstances[0]
-
-	return &v, nil
+	return resp.DBInstances[0], nil
 }
 
 func resourceAwsDbInstanceStateRefreshFunc(
@@ -578,8 +576,8 @@ func resourceAwsDbInstanceStateRefreshFunc(
 func buildRDSARN(d *schema.ResourceData, meta interface{}) (string, error) {
 	iamconn := meta.(*AWSClient).iamconn
 	region := meta.(*AWSClient).region
-	// An zero value GetUserRequest{} defers to the currently logged in user
-	resp, err := iamconn.GetUser(&iam.GetUserRequest{})
+	// An zero value GetUserInput{} defers to the currently logged in user
+	resp, err := iamconn.GetUser(&iam.GetUserInput{})
 	if err != nil {
 		return "", err
 	}

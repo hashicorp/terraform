@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/hashicorp/aws-sdk-go/aws"
-	"github.com/hashicorp/aws-sdk-go/gen/ec2"
+	"github.com/awslabs/aws-sdk-go/aws"
+	"github.com/awslabs/aws-sdk-go/service/ec2"
 	"github.com/hashicorp/terraform/helper/schema"
 )
 
@@ -40,18 +40,18 @@ func resourceAwsMainRouteTableAssociation() *schema.Resource {
 }
 
 func resourceAwsMainRouteTableAssociationCreate(d *schema.ResourceData, meta interface{}) error {
-	ec2conn := meta.(*AWSClient).ec2conn
+	conn := meta.(*AWSClient).ec2conn
 	vpcId := d.Get("vpc_id").(string)
 	routeTableId := d.Get("route_table_id").(string)
 
 	log.Printf("[INFO] Creating main route table association: %s => %s", vpcId, routeTableId)
 
-	mainAssociation, err := findMainRouteTableAssociation(ec2conn, vpcId)
+	mainAssociation, err := findMainRouteTableAssociation(conn, vpcId)
 	if err != nil {
 		return err
 	}
 
-	resp, err := ec2conn.ReplaceRouteTableAssociation(&ec2.ReplaceRouteTableAssociationRequest{
+	resp, err := conn.ReplaceRouteTableAssociation(&ec2.ReplaceRouteTableAssociationInput{
 		AssociationID: mainAssociation.RouteTableAssociationID,
 		RouteTableID:  aws.String(routeTableId),
 	})
@@ -67,10 +67,10 @@ func resourceAwsMainRouteTableAssociationCreate(d *schema.ResourceData, meta int
 }
 
 func resourceAwsMainRouteTableAssociationRead(d *schema.ResourceData, meta interface{}) error {
-	ec2conn := meta.(*AWSClient).ec2conn
+	conn := meta.(*AWSClient).ec2conn
 
 	mainAssociation, err := findMainRouteTableAssociation(
-		ec2conn,
+		conn,
 		d.Get("vpc_id").(string))
 	if err != nil {
 		return err
@@ -88,13 +88,13 @@ func resourceAwsMainRouteTableAssociationRead(d *schema.ResourceData, meta inter
 // original_route_table_id - this needs to stay recorded as the AWS-created
 // table from VPC creation.
 func resourceAwsMainRouteTableAssociationUpdate(d *schema.ResourceData, meta interface{}) error {
-	ec2conn := meta.(*AWSClient).ec2conn
+	conn := meta.(*AWSClient).ec2conn
 	vpcId := d.Get("vpc_id").(string)
 	routeTableId := d.Get("route_table_id").(string)
 
 	log.Printf("[INFO] Updating main route table association: %s => %s", vpcId, routeTableId)
 
-	resp, err := ec2conn.ReplaceRouteTableAssociation(&ec2.ReplaceRouteTableAssociationRequest{
+	resp, err := conn.ReplaceRouteTableAssociation(&ec2.ReplaceRouteTableAssociationInput{
 		AssociationID: aws.String(d.Id()),
 		RouteTableID:  aws.String(routeTableId),
 	})
@@ -109,7 +109,7 @@ func resourceAwsMainRouteTableAssociationUpdate(d *schema.ResourceData, meta int
 }
 
 func resourceAwsMainRouteTableAssociationDelete(d *schema.ResourceData, meta interface{}) error {
-	ec2conn := meta.(*AWSClient).ec2conn
+	conn := meta.(*AWSClient).ec2conn
 	vpcId := d.Get("vpc_id").(string)
 	originalRouteTableId := d.Get("original_route_table_id").(string)
 
@@ -117,7 +117,7 @@ func resourceAwsMainRouteTableAssociationDelete(d *schema.ResourceData, meta int
 		vpcId,
 		originalRouteTableId)
 
-	resp, err := ec2conn.ReplaceRouteTableAssociation(&ec2.ReplaceRouteTableAssociationRequest{
+	resp, err := conn.ReplaceRouteTableAssociation(&ec2.ReplaceRouteTableAssociationInput{
 		AssociationID: aws.String(d.Id()),
 		RouteTableID:  aws.String(originalRouteTableId),
 	})
@@ -130,31 +130,31 @@ func resourceAwsMainRouteTableAssociationDelete(d *schema.ResourceData, meta int
 	return nil
 }
 
-func findMainRouteTableAssociation(ec2conn *ec2.EC2, vpcId string) (*ec2.RouteTableAssociation, error) {
-	mainRouteTable, err := findMainRouteTable(ec2conn, vpcId)
+func findMainRouteTableAssociation(conn *ec2.EC2, vpcId string) (*ec2.RouteTableAssociation, error) {
+	mainRouteTable, err := findMainRouteTable(conn, vpcId)
 	if err != nil {
 		return nil, err
 	}
 
 	for _, a := range mainRouteTable.Associations {
 		if *a.Main {
-			return &a, nil
+			return a, nil
 		}
 	}
 	return nil, fmt.Errorf("Could not find main routing table association for VPC: %s", vpcId)
 }
 
-func findMainRouteTable(ec2conn *ec2.EC2, vpcId string) (*ec2.RouteTable, error) {
-	mainFilter := ec2.Filter{
-		aws.String("association.main"),
-		[]string{"true"},
+func findMainRouteTable(conn *ec2.EC2, vpcId string) (*ec2.RouteTable, error) {
+	mainFilter := &ec2.Filter{
+		Name:   aws.String("association.main"),
+		Values: []*string{aws.String("true")},
 	}
-	vpcFilter := ec2.Filter{
-		aws.String("vpc-id"),
-		[]string{vpcId},
+	vpcFilter := &ec2.Filter{
+		Name:   aws.String("vpc-id"),
+		Values: []*string{aws.String(vpcId)},
 	}
-	routeResp, err := ec2conn.DescribeRouteTables(&ec2.DescribeRouteTablesRequest{
-		Filters: []ec2.Filter{mainFilter, vpcFilter},
+	routeResp, err := conn.DescribeRouteTables(&ec2.DescribeRouteTablesInput{
+		Filters: []*ec2.Filter{mainFilter, vpcFilter},
 	})
 	if err != nil {
 		return nil, err
@@ -165,5 +165,5 @@ func findMainRouteTable(ec2conn *ec2.EC2, vpcId string) (*ec2.RouteTable, error)
 			len(routeResp.RouteTables))
 	}
 
-	return &routeResp.RouteTables[0], nil
+	return routeResp.RouteTables[0], nil
 }

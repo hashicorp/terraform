@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/hashicorp/aws-sdk-go/aws"
-	"github.com/hashicorp/aws-sdk-go/gen/ec2"
+	"github.com/awslabs/aws-sdk-go/aws"
+	"github.com/awslabs/aws-sdk-go/service/ec2"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
 )
@@ -18,7 +18,7 @@ func TestAccAWSRouteTable_normal(t *testing.T) {
 			return fmt.Errorf("bad routes: %#v", v.Routes)
 		}
 
-		routes := make(map[string]ec2.Route)
+		routes := make(map[string]*ec2.Route)
 		for _, r := range v.Routes {
 			routes[*r.DestinationCIDRBlock] = r
 		}
@@ -38,7 +38,7 @@ func TestAccAWSRouteTable_normal(t *testing.T) {
 			return fmt.Errorf("bad routes: %#v", v.Routes)
 		}
 
-		routes := make(map[string]ec2.Route)
+		routes := make(map[string]*ec2.Route)
 		for _, r := range v.Routes {
 			routes[*r.DestinationCIDRBlock] = r
 		}
@@ -90,7 +90,7 @@ func TestAccAWSRouteTable_instance(t *testing.T) {
 			return fmt.Errorf("bad routes: %#v", v.Routes)
 		}
 
-		routes := make(map[string]ec2.Route)
+		routes := make(map[string]*ec2.Route)
 		for _, r := range v.Routes {
 			routes[*r.DestinationCIDRBlock] = r
 		}
@@ -134,7 +134,7 @@ func TestAccAWSRouteTable_tags(t *testing.T) {
 				Config: testAccRouteTableConfigTags,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckRouteTableExists("aws_route_table.foo", &route_table),
-					testAccCheckTags(&route_table.Tags, "foo", "bar"),
+					testAccCheckTagsSDK(&route_table.Tags, "foo", "bar"),
 				),
 			},
 
@@ -142,8 +142,8 @@ func TestAccAWSRouteTable_tags(t *testing.T) {
 				Config: testAccRouteTableConfigTagsUpdate,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckRouteTableExists("aws_route_table.foo", &route_table),
-					testAccCheckTags(&route_table.Tags, "foo", ""),
-					testAccCheckTags(&route_table.Tags, "bar", "baz"),
+					testAccCheckTagsSDK(&route_table.Tags, "foo", ""),
+					testAccCheckTagsSDK(&route_table.Tags, "bar", "baz"),
 				),
 			},
 		},
@@ -159,8 +159,8 @@ func testAccCheckRouteTableDestroy(s *terraform.State) error {
 		}
 
 		// Try to find the resource
-		resp, err := conn.DescribeRouteTables(&ec2.DescribeRouteTablesRequest{
-			RouteTableIDs: []string{rs.Primary.ID},
+		resp, err := conn.DescribeRouteTables(&ec2.DescribeRouteTablesInput{
+			RouteTableIDs: []*string{aws.String(rs.Primary.ID)},
 		})
 		if err == nil {
 			if len(resp.RouteTables) > 0 {
@@ -195,8 +195,8 @@ func testAccCheckRouteTableExists(n string, v *ec2.RouteTable) resource.TestChec
 		}
 
 		conn := testAccProvider.Meta().(*AWSClient).ec2conn
-		resp, err := conn.DescribeRouteTables(&ec2.DescribeRouteTablesRequest{
-			RouteTableIDs: []string{rs.Primary.ID},
+		resp, err := conn.DescribeRouteTables(&ec2.DescribeRouteTablesInput{
+			RouteTableIDs: []*string{aws.String(rs.Primary.ID)},
 		})
 		if err != nil {
 			return err
@@ -205,7 +205,7 @@ func testAccCheckRouteTableExists(n string, v *ec2.RouteTable) resource.TestChec
 			return fmt.Errorf("RouteTable not found")
 		}
 
-		*v = resp.RouteTables[0]
+		*v = *resp.RouteTables[0]
 
 		return nil
 	}
@@ -222,7 +222,7 @@ func _TestAccAWSRouteTable_vpcPeering(t *testing.T) {
 			return fmt.Errorf("bad routes: %#v", v.Routes)
 		}
 
-		routes := make(map[string]ec2.Route)
+		routes := make(map[string]*ec2.Route)
 		for _, r := range v.Routes {
 			routes[*r.DestinationCIDRBlock] = r
 		}

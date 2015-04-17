@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/hashicorp/aws-sdk-go/aws"
-	"github.com/hashicorp/aws-sdk-go/gen/rds"
+	"github.com/awslabs/aws-sdk-go/aws"
+	"github.com/awslabs/aws-sdk-go/service/rds"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
 )
@@ -47,7 +47,7 @@ func testAccCheckAWSDBSecurityGroupDestroy(s *terraform.State) error {
 
 		// Try to find the Group
 		resp, err := conn.DescribeDBSecurityGroups(
-			&rds.DescribeDBSecurityGroupsMessage{
+			&rds.DescribeDBSecurityGroupsInput{
 				DBSecurityGroupName: aws.String(rs.Primary.ID),
 			})
 
@@ -115,7 +115,7 @@ func testAccCheckAWSDBSecurityGroupExists(n string, v *rds.DBSecurityGroup) reso
 
 		conn := testAccProvider.Meta().(*AWSClient).rdsconn
 
-		opts := rds.DescribeDBSecurityGroupsMessage{
+		opts := rds.DescribeDBSecurityGroupsInput{
 			DBSecurityGroupName: aws.String(rs.Primary.ID),
 		}
 
@@ -130,13 +130,17 @@ func testAccCheckAWSDBSecurityGroupExists(n string, v *rds.DBSecurityGroup) reso
 			return fmt.Errorf("DB Security Group not found")
 		}
 
-		*v = resp.DBSecurityGroups[0]
+		*v = *resp.DBSecurityGroups[0]
 
 		return nil
 	}
 }
 
 const testAccAWSDBSecurityGroupConfig = `
+provider "aws" {
+        region = "us-east-1"
+}
+
 resource "aws_db_security_group" "bar" {
     name = "secgroup-terraform"
     description = "just cuz"

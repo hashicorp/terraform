@@ -5,7 +5,7 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/hashicorp/aws-sdk-go/gen/route53"
+	"github.com/awslabs/aws-sdk-go/service/route53"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
 )
@@ -63,7 +63,7 @@ func TestDiffTagsR53(t *testing.T) {
 
 // testAccCheckTags can be used to check the tags on a resource.
 func testAccCheckTagsR53(
-	ts *[]route53.Tag, key string, value string) resource.TestCheckFunc {
+	ts *[]*route53.Tag, key string, value string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		m := tagsToMapR53(*ts)
 		v, ok := m[key]

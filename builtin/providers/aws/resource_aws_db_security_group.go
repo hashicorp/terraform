@@ -6,8 +6,8 @@ import (
 	"log"
 	"time"
 
-	"github.com/hashicorp/aws-sdk-go/aws"
-	"github.com/hashicorp/aws-sdk-go/gen/rds"
+	"github.com/awslabs/aws-sdk-go/aws"
+	"github.com/awslabs/aws-sdk-go/service/rds"
 	"github.com/hashicorp/terraform/helper/hashcode"
 	"github.com/hashicorp/terraform/helper/multierror"
 	"github.com/hashicorp/terraform/helper/resource"
@@ -75,7 +75,7 @@ func resourceAwsDbSecurityGroupCreate(d *schema.ResourceData, meta interface{}) 
 	var err error
 	var errs []error
 
-	opts := rds.CreateDBSecurityGroupMessage{
+	opts := rds.CreateDBSecurityGroupInput{
 		DBSecurityGroupName:        aws.String(d.Get("name").(string)),
 		DBSecurityGroupDescription: aws.String(d.Get("description").(string)),
 	}
@@ -164,10 +164,10 @@ func resourceAwsDbSecurityGroupDelete(d *schema.ResourceData, meta interface{}) 
 
 	log.Printf("[DEBUG] DB Security Group destroy: %v", d.Id())
 
-	opts := rds.DeleteDBSecurityGroupMessage{DBSecurityGroupName: aws.String(d.Id())}
+	opts := rds.DeleteDBSecurityGroupInput{DBSecurityGroupName: aws.String(d.Id())}
 
 	log.Printf("[DEBUG] DB Security Group destroy configuration: %v", opts)
-	err := conn.DeleteDBSecurityGroup(&opts)
+	_, err := conn.DeleteDBSecurityGroup(&opts)
 
 	if err != nil {
 		newerr, ok := err.(aws.APIError)
@@ -183,7 +183,7 @@ func resourceAwsDbSecurityGroupDelete(d *schema.ResourceData, meta interface{}) 
 func resourceAwsDbSecurityGroupRetrieve(d *schema.ResourceData, meta interface{}) (*rds.DBSecurityGroup, error) {
 	conn := meta.(*AWSClient).rdsconn
 
-	opts := rds.DescribeDBSecurityGroupsMessage{
+	opts := rds.DescribeDBSecurityGroupsInput{
 		DBSecurityGroupName: aws.String(d.Id()),
 	}
 
@@ -200,16 +200,14 @@ func resourceAwsDbSecurityGroupRetrieve(d *schema.ResourceData, meta interface{}
 		return nil, fmt.Errorf("Unable to find DB Security Group: %#v", resp.DBSecurityGroups)
 	}
 
-	v := resp.DBSecurityGroups[0]
-
-	return &v, nil
+	return resp.DBSecurityGroups[0], nil
 }
 
 // Authorizes the ingress rule on the db security group
 func resourceAwsDbSecurityGroupAuthorizeRule(ingress interface{}, dbSecurityGroupName string, conn *rds.RDS) error {
 	ing := ingress.(map[string]interface{})
 
-	opts := rds.AuthorizeDBSecurityGroupIngressMessage{
+	opts := rds.AuthorizeDBSecurityGroupIngressInput{
 		DBSecurityGroupName: aws.String(dbSecurityGroupName),
 	}
 

@@ -1,6 +1,9 @@
 package openstack
 
 import (
+	"crypto/tls"
+	"net/http"
+
 	"github.com/rackspace/gophercloud"
 	"github.com/rackspace/gophercloud/openstack"
 )
@@ -15,6 +18,7 @@ type Config struct {
 	TenantName       string
 	DomainID         string
 	DomainName       string
+	Insecure         bool
 
 	osClient *gophercloud.ProviderClient
 }
@@ -32,7 +36,19 @@ func (c *Config) loadAndValidate() error {
 		DomainName:       c.DomainName,
 	}
 
-	client, err := openstack.AuthenticatedClient(ao)
+	client, err := openstack.NewClient(ao.IdentityEndpoint)
+	if err != nil {
+		return err
+	}
+
+	if c.Insecure {
+		// Configure custom TLS settings.
+		config := &tls.Config{InsecureSkipVerify: true}
+		transport := &http.Transport{TLSClientConfig: config}
+		client.HTTPClient.Transport = transport
+	}
+
+	err = openstack.Authenticate(client, ao)
 	if err != nil {
 		return err
 	}

@@ -4,28 +4,30 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/hashicorp/aws-sdk-go/aws"
-	"github.com/hashicorp/aws-sdk-go/gen/ec2"
-	"github.com/hashicorp/aws-sdk-go/gen/elb"
-	"github.com/hashicorp/aws-sdk-go/gen/rds"
-	"github.com/hashicorp/aws-sdk-go/gen/route53"
+	"github.com/awslabs/aws-sdk-go/aws"
+	"github.com/awslabs/aws-sdk-go/service/ec2"
+	"github.com/awslabs/aws-sdk-go/service/elb"
+	"github.com/awslabs/aws-sdk-go/service/rds"
+	"github.com/awslabs/aws-sdk-go/service/route53"
 	"github.com/hashicorp/terraform/helper/schema"
 )
 
 // Takes the result of flatmap.Expand for an array of listeners and
 // returns ELB API compatible objects
-func expandListeners(configured []interface{}) ([]elb.Listener, error) {
-	listeners := make([]elb.Listener, 0, len(configured))
+func expandListeners(configured []interface{}) ([]*elb.Listener, error) {
+	listeners := make([]*elb.Listener, 0, len(configured))
 
 	// Loop over our configured listeners and create
 	// an array of aws-sdk-go compatabile objects
 	for _, lRaw := range configured {
 		data := lRaw.(map[string]interface{})
 
-		l := elb.Listener{
-			InstancePort:     aws.Integer(data["instance_port"].(int)),
+		ip := int64(data["instance_port"].(int))
+		lp := int64(data["lb_port"].(int))
+		l := &elb.Listener{
+			InstancePort:     &ip,
 			InstanceProtocol: aws.String(data["instance_protocol"].(string)),
-			LoadBalancerPort: aws.Integer(data["lb_port"].(int)),
+			LoadBalancerPort: &lp,
 			Protocol:         aws.String(data["lb_protocol"].(string)),
 		}
 
@@ -42,16 +44,16 @@ func expandListeners(configured []interface{}) ([]elb.Listener, error) {
 // Takes the result of flatmap.Expand for an array of ingress/egress
 // security group rules and returns EC2 API compatible objects
 func expandIPPerms(
-	group ec2.SecurityGroup, configured []interface{}) []ec2.IPPermission {
+	group *ec2.SecurityGroup, configured []interface{}) []*ec2.IPPermission {
 	vpc := group.VPCID != nil
 
-	perms := make([]ec2.IPPermission, len(configured))
+	perms := make([]*ec2.IPPermission, len(configured))
 	for i, mRaw := range configured {
 		var perm ec2.IPPermission
 		m := mRaw.(map[string]interface{})
 
-		perm.FromPort = aws.Integer(m["from_port"].(int))
-		perm.ToPort = aws.Integer(m["to_port"].(int))
+		perm.FromPort = aws.Long(int64(m["from_port"].(int)))
+		perm.ToPort = aws.Long(int64(m["to_port"].(int)))
 		perm.IPProtocol = aws.String(m["protocol"].(string))
 
 		var groups []string
@@ -70,14 +72,14 @@ func expandIPPerms(
 		}
 
 		if len(groups) > 0 {
-			perm.UserIDGroupPairs = make([]ec2.UserIDGroupPair, len(groups))
+			perm.UserIDGroupPairs = make([]*ec2.UserIDGroupPair, len(groups))
 			for i, name := range groups {
 				ownerId, id := "", name
 				if items := strings.Split(id, "/"); len(items) > 1 {
 					ownerId, id = items[0], items[1]
 				}
 
-				perm.UserIDGroupPairs[i] = ec2.UserIDGroupPair{
+				perm.UserIDGroupPairs[i] = &ec2.UserIDGroupPair{
 					GroupID: aws.String(id),
 					UserID:  aws.String(ownerId),
 				}
@@ -91,13 +93,13 @@ func expandIPPerms(
 
 		if raw, ok := m["cidr_blocks"]; ok {
 			list := raw.([]interface{})
-			perm.IPRanges = make([]ec2.IPRange, len(list))
+			perm.IPRanges = make([]*ec2.IPRange, len(list))
 			for i, v := range list {
-				perm.IPRanges[i] = ec2.IPRange{aws.String(v.(string))}
+				perm.IPRanges[i] = &ec2.IPRange{CIDRIP: aws.String(v.(string))}
 			}
 		}
 
-		perms[i] = perm
+		perms[i] = &perm
 	}
 
 	return perms
@@ -105,15 +107,15 @@ func expandIPPerms(
 
 // Takes the result of flatmap.Expand for an array of parameters and
 // returns Parameter API compatible objects
-func expandParameters(configured []interface{}) ([]rds.Parameter, error) {
-	parameters := make([]rds.Parameter, 0, len(configured))
+func expandParameters(configured []interface{}) ([]*rds.Parameter, error) {
+	parameters := make([]*rds.Parameter, 0, len(configured))
 
 	// Loop over our configured parameters and create
 	// an array of aws-sdk-go compatabile objects
 	for _, pRaw := range configured {
 		data := pRaw.(map[string]interface{})
 
-		p := rds.Parameter{
+		p := &rds.Parameter{
 			ApplyMethod:    aws.String(data["apply_method"].(string)),
 			ParameterName:  aws.String(data["name"].(string)),
 			ParameterValue: aws.String(data["value"].(string)),
@@ -143,7 +145,7 @@ func flattenHealthCheck(check *elb.HealthCheck) []map[string]interface{} {
 }
 
 // Flattens an array of UserSecurityGroups into a []string
-func flattenSecurityGroups(list []ec2.UserIDGroupPair) []string {
+func flattenSecurityGroups(list []*ec2.UserIDGroupPair) []string {
 	result := make([]string, 0, len(list))
 	for _, g := range list {
 		result = append(result, *g.GroupID)
@@ -152,7 +154,7 @@ func flattenSecurityGroups(list []ec2.UserIDGroupPair) []string {
 }
 
 // Flattens an array of Instances into a []string
-func flattenInstances(list []elb.Instance) []string {
+func flattenInstances(list []*elb.Instance) []string {
 	result := make([]string, 0, len(list))
 	for _, i := range list {
 		result = append(result, *i.InstanceID)
@@ -161,16 +163,16 @@ func flattenInstances(list []elb.Instance) []string {
 }
 
 // Expands an array of String Instance IDs into a []Instances
-func expandInstanceString(list []interface{}) []elb.Instance {
-	result := make([]elb.Instance, 0, len(list))
+func expandInstanceString(list []interface{}) []*elb.Instance {
+	result := make([]*elb.Instance, 0, len(list))
 	for _, i := range list {
-		result = append(result, elb.Instance{aws.String(i.(string))})
+		result = append(result, &elb.Instance{InstanceID: aws.String(i.(string))})
 	}
 	return result
 }
 
 // Flattens an array of Listeners into a []map[string]interface{}
-func flattenListeners(list []elb.ListenerDescription) []map[string]interface{} {
+func flattenListeners(list []*elb.ListenerDescription) []map[string]interface{} {
 	result := make([]map[string]interface{}, 0, len(list))
 	for _, i := range list {
 		l := map[string]interface{}{
@@ -189,7 +191,7 @@ func flattenListeners(list []elb.ListenerDescription) []map[string]interface{} {
 }
 
 // Flattens an array of Parameters into a []map[string]interface{}
-func flattenParameters(list []rds.Parameter) []map[string]interface{} {
+func flattenParameters(list []*rds.Parameter) []map[string]interface{} {
 	result := make([]map[string]interface{}, 0, len(list))
 	for _, i := range list {
 		result = append(result, map[string]interface{}{
@@ -202,16 +204,16 @@ func flattenParameters(list []rds.Parameter) []map[string]interface{} {
 
 // Takes the result of flatmap.Expand for an array of strings
 // and returns a []string
-func expandStringList(configured []interface{}) []string {
-	vs := make([]string, 0, len(configured))
+func expandStringList(configured []interface{}) []*string {
+	vs := make([]*string, 0, len(configured))
 	for _, v := range configured {
-		vs = append(vs, v.(string))
+		vs = append(vs, aws.String(v.(string)))
 	}
 	return vs
 }
 
 //Flattens an array of private ip addresses into a []string, where the elements returned are the IP strings e.g. "192.168.0.0"
-func flattenNetworkInterfacesPrivateIPAddesses(dtos []ec2.NetworkInterfacePrivateIPAddress) []string {
+func flattenNetworkInterfacesPrivateIPAddesses(dtos []*ec2.NetworkInterfacePrivateIPAddress) []string {
 	ips := make([]string, 0, len(dtos))
 	for _, v := range dtos {
 		ip := *v.PrivateIPAddress
@@ -221,7 +223,7 @@ func flattenNetworkInterfacesPrivateIPAddesses(dtos []ec2.NetworkInterfacePrivat
 }
 
 //Flattens security group identifiers into a []string, where the elements returned are the GroupIDs
-func flattenGroupIdentifiers(dtos []ec2.GroupIdentifier) []string {
+func flattenGroupIdentifiers(dtos []*ec2.GroupIdentifier) []string {
 	ids := make([]string, 0, len(dtos))
 	for _, v := range dtos {
 		group_id := *v.GroupID
@@ -231,10 +233,10 @@ func flattenGroupIdentifiers(dtos []ec2.GroupIdentifier) []string {
 }
 
 //Expands an array of IPs into a ec2 Private IP Address Spec
-func expandPrivateIPAddesses(ips []interface{}) []ec2.PrivateIPAddressSpecification {
-	dtos := make([]ec2.PrivateIPAddressSpecification, 0, len(ips))
+func expandPrivateIPAddesses(ips []interface{}) []*ec2.PrivateIPAddressSpecification {
+	dtos := make([]*ec2.PrivateIPAddressSpecification, 0, len(ips))
 	for i, v := range ips {
-		new_private_ip := ec2.PrivateIPAddressSpecification{
+		new_private_ip := &ec2.PrivateIPAddressSpecification{
 			PrivateIPAddress: aws.String(v.(string)),
 		}
 
@@ -254,7 +256,7 @@ func flattenAttachment(a *ec2.NetworkInterfaceAttachment) map[string]interface{}
 	return att
 }
 
-func flattenResourceRecords(recs []route53.ResourceRecord) []string {
+func flattenResourceRecords(recs []*route53.ResourceRecord) []string {
 	strs := make([]string, 0, len(recs))
 	for _, r := range recs {
 		if r.Value != nil {
@@ -265,16 +267,16 @@ func flattenResourceRecords(recs []route53.ResourceRecord) []string {
 	return strs
 }
 
-func expandResourceRecords(recs []interface{}, typeStr string) []route53.ResourceRecord {
-	records := make([]route53.ResourceRecord, 0, len(recs))
+func expandResourceRecords(recs []interface{}, typeStr string) []*route53.ResourceRecord {
+	records := make([]*route53.ResourceRecord, 0, len(recs))
 	for _, r := range recs {
 		s := r.(string)
 		switch typeStr {
 		case "TXT":
 			str := fmt.Sprintf("\"%s\"", s)
-			records = append(records, route53.ResourceRecord{Value: aws.String(str)})
+			records = append(records, &route53.ResourceRecord{Value: aws.String(str)})
 		default:
-			records = append(records, route53.ResourceRecord{Value: aws.String(s)})
+			records = append(records, &route53.ResourceRecord{Value: aws.String(s)})
 		}
 	}
 	return records

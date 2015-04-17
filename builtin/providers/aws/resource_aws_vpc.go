@@ -5,8 +5,8 @@ import (
 	"log"
 	"time"
 
-	"github.com/hashicorp/aws-sdk-go/aws"
-	"github.com/hashicorp/aws-sdk-go/gen/ec2"
+	"github.com/awslabs/aws-sdk-go/aws"
+	"github.com/awslabs/aws-sdk-go/service/ec2"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 )
@@ -64,18 +64,18 @@ func resourceAwsVpc() *schema.Resource {
 }
 
 func resourceAwsVpcCreate(d *schema.ResourceData, meta interface{}) error {
-	ec2conn := meta.(*AWSClient).ec2conn
+	conn := meta.(*AWSClient).ec2conn
 	instance_tenancy := "default"
 	if v, ok := d.GetOk("instance_tenancy"); ok {
 		instance_tenancy = v.(string)
 	}
 	// Create the VPC
-	createOpts := &ec2.CreateVPCRequest{
+	createOpts := &ec2.CreateVPCInput{
 		CIDRBlock:       aws.String(d.Get("cidr_block").(string)),
 		InstanceTenancy: aws.String(instance_tenancy),
 	}
 	log.Printf("[DEBUG] VPC create config: %#v", *createOpts)
-	vpcResp, err := ec2conn.CreateVPC(createOpts)
+	vpcResp, err := conn.CreateVPC(createOpts)
 	if err != nil {
 		return fmt.Errorf("Error creating VPC: %s", err)
 	}
@@ -96,7 +96,7 @@ func resourceAwsVpcCreate(d *schema.ResourceData, meta interface{}) error {
 	stateConf := &resource.StateChangeConf{
 		Pending: []string{"pending"},
 		Target:  "available",
-		Refresh: VPCStateRefreshFunc(ec2conn, d.Id()),
+		Refresh: VPCStateRefreshFunc(conn, d.Id()),
 		Timeout: 10 * time.Minute,
 	}
 	if _, err := stateConf.WaitForState(); err != nil {
@@ -110,10 +110,10 @@ func resourceAwsVpcCreate(d *schema.ResourceData, meta interface{}) error {
 }
 
 func resourceAwsVpcRead(d *schema.ResourceData, meta interface{}) error {
-	ec2conn := meta.(*AWSClient).ec2conn
+	conn := meta.(*AWSClient).ec2conn
 
 	// Refresh the VPC state
-	vpcRaw, _, err := VPCStateRefreshFunc(ec2conn, d.Id())()
+	vpcRaw, _, err := VPCStateRefreshFunc(conn, d.Id())()
 	if err != nil {
 		return err
 	}
@@ -128,25 +128,25 @@ func resourceAwsVpcRead(d *schema.ResourceData, meta interface{}) error {
 	d.Set("cidr_block", vpc.CIDRBlock)
 
 	// Tags
-	d.Set("tags", tagsToMap(vpc.Tags))
+	d.Set("tags", tagsToMapSDK(vpc.Tags))
 
 	// Attributes
 	attribute := "enableDnsSupport"
-	DescribeAttrOpts := &ec2.DescribeVPCAttributeRequest{
+	DescribeAttrOpts := &ec2.DescribeVPCAttributeInput{
 		Attribute: aws.String(attribute),
 		VPCID:     aws.String(vpcid),
 	}
-	resp, err := ec2conn.DescribeVPCAttribute(DescribeAttrOpts)
+	resp, err := conn.DescribeVPCAttribute(DescribeAttrOpts)
 	if err != nil {
 		return err
 	}
 	d.Set("enable_dns_support", *resp.EnableDNSSupport)
 	attribute = "enableDnsHostnames"
-	DescribeAttrOpts = &ec2.DescribeVPCAttributeRequest{
+	DescribeAttrOpts = &ec2.DescribeVPCAttributeInput{
 		Attribute: &attribute,
 		VPCID:     &vpcid,
 	}
-	resp, err = ec2conn.DescribeVPCAttribute(DescribeAttrOpts)
+	resp, err = conn.DescribeVPCAttribute(DescribeAttrOpts)
 	if err != nil {
 		return err
 	}
@@ -156,16 +156,16 @@ func resourceAwsVpcRead(d *schema.ResourceData, meta interface{}) error {
 	// Really Ugly need to make this better - rmenn
 	filter1 := &ec2.Filter{
 		Name:   aws.String("association.main"),
-		Values: []string{("true")},
+		Values: []*string{aws.String("true")},
 	}
 	filter2 := &ec2.Filter{
 		Name:   aws.String("vpc-id"),
-		Values: []string{(d.Id())},
+		Values: []*string{aws.String(d.Id())},
 	}
-	DescribeRouteOpts := &ec2.DescribeRouteTablesRequest{
-		Filters: []ec2.Filter{*filter1, *filter2},
+	DescribeRouteOpts := &ec2.DescribeRouteTablesInput{
+		Filters: []*ec2.Filter{filter1, filter2},
 	}
-	routeResp, err := ec2conn.DescribeRouteTables(DescribeRouteOpts)
+	routeResp, err := conn.DescribeRouteTables(DescribeRouteOpts)
 	if err != nil {
 		return err
 	}
@@ -173,21 +173,21 @@ func resourceAwsVpcRead(d *schema.ResourceData, meta interface{}) error {
 		d.Set("main_route_table_id", *v[0].RouteTableID)
 	}
 
-	resourceAwsVpcSetDefaultNetworkAcl(ec2conn, d)
-	resourceAwsVpcSetDefaultSecurityGroup(ec2conn, d)
+	resourceAwsVpcSetDefaultNetworkAcl(conn, d)
+	resourceAwsVpcSetDefaultSecurityGroup(conn, d)
 
 	return nil
 }
 
 func resourceAwsVpcUpdate(d *schema.ResourceData, meta interface{}) error {
-	ec2conn := meta.(*AWSClient).ec2conn
+	conn := meta.(*AWSClient).ec2conn
 
 	// Turn on partial mode
 	d.Partial(true)
 	vpcid := d.Id()
 	if d.HasChange("enable_dns_hostnames") {
 		val := d.Get("enable_dns_hostnames").(bool)
-		modifyOpts := &ec2.ModifyVPCAttributeRequest{
+		modifyOpts := &ec2.ModifyVPCAttributeInput{
 			VPCID: &vpcid,
 			EnableDNSHostnames: &ec2.AttributeBooleanValue{
 				Value: &val,
@@ -197,7 +197,7 @@ func resourceAwsVpcUpdate(d *schema.ResourceData, meta interface{}) error {
 		log.Printf(
 			"[INFO] Modifying enable_dns_support vpc attribute for %s: %#v",
 			d.Id(), modifyOpts)
-		if err := ec2conn.ModifyVPCAttribute(modifyOpts); err != nil {
+		if _, err := conn.ModifyVPCAttribute(modifyOpts); err != nil {
 			return err
 		}
 
@@ -206,7 +206,7 @@ func resourceAwsVpcUpdate(d *schema.ResourceData, meta interface{}) error {
 
 	if d.HasChange("enable_dns_support") {
 		val := d.Get("enable_dns_support").(bool)
-		modifyOpts := &ec2.ModifyVPCAttributeRequest{
+		modifyOpts := &ec2.ModifyVPCAttributeInput{
 			VPCID: &vpcid,
 			EnableDNSSupport: &ec2.AttributeBooleanValue{
 				Value: &val,
@@ -216,14 +216,14 @@ func resourceAwsVpcUpdate(d *schema.ResourceData, meta interface{}) error {
 		log.Printf(
 			"[INFO] Modifying enable_dns_support vpc attribute for %s: %#v",
 			d.Id(), modifyOpts)
-		if err := ec2conn.ModifyVPCAttribute(modifyOpts); err != nil {
+		if _, err := conn.ModifyVPCAttribute(modifyOpts); err != nil {
 			return err
 		}
 
 		d.SetPartial("enable_dns_support")
 	}
 
-	if err := setTags(ec2conn, d); err != nil {
+	if err := setTagsSDK(conn, d); err != nil {
 		return err
 	} else {
 		d.SetPartial("tags")
@@ -234,13 +234,13 @@ func resourceAwsVpcUpdate(d *schema.ResourceData, meta interface{}) error {
 }
 
 func resourceAwsVpcDelete(d *schema.ResourceData, meta interface{}) error {
-	ec2conn := meta.(*AWSClient).ec2conn
+	conn := meta.(*AWSClient).ec2conn
 	vpcID := d.Id()
-	DeleteVpcOpts := &ec2.DeleteVPCRequest{
+	DeleteVpcOpts := &ec2.DeleteVPCInput{
 		VPCID: &vpcID,
 	}
 	log.Printf("[INFO] Deleting VPC: %s", d.Id())
-	if err := ec2conn.DeleteVPC(DeleteVpcOpts); err != nil {
+	if _, err := conn.DeleteVPC(DeleteVpcOpts); err != nil {
 		ec2err, ok := err.(aws.APIError)
 		if ok && ec2err.Code == "InvalidVpcID.NotFound" {
 			return nil
@@ -256,8 +256,8 @@ func resourceAwsVpcDelete(d *schema.ResourceData, meta interface{}) error {
 // a VPC.
 func VPCStateRefreshFunc(conn *ec2.EC2, id string) resource.StateRefreshFunc {
 	return func() (interface{}, string, error) {
-		DescribeVpcOpts := &ec2.DescribeVPCsRequest{
-			VPCIDs: []string{id},
+		DescribeVpcOpts := &ec2.DescribeVPCsInput{
+			VPCIDs: []*string{aws.String(id)},
 		}
 		resp, err := conn.DescribeVPCs(DescribeVpcOpts)
 		if err != nil {
@@ -275,7 +275,7 @@ func VPCStateRefreshFunc(conn *ec2.EC2, id string) resource.StateRefreshFunc {
 			return nil, "", nil
 		}
 
-		vpc := &resp.VPCs[0]
+		vpc := resp.VPCs[0]
 		return vpc, *vpc.State, nil
 	}
 }
@@ -283,14 +283,14 @@ func VPCStateRefreshFunc(conn *ec2.EC2, id string) resource.StateRefreshFunc {
 func resourceAwsVpcSetDefaultNetworkAcl(conn *ec2.EC2, d *schema.ResourceData) error {
 	filter1 := &ec2.Filter{
 		Name:   aws.String("default"),
-		Values: []string{("true")},
+		Values: []*string{aws.String("true")},
 	}
 	filter2 := &ec2.Filter{
 		Name:   aws.String("vpc-id"),
-		Values: []string{(d.Id())},
+		Values: []*string{aws.String(d.Id())},
 	}
-	DescribeNetworkACLOpts := &ec2.DescribeNetworkACLsRequest{
-		Filters: []ec2.Filter{*filter1, *filter2},
+	DescribeNetworkACLOpts := &ec2.DescribeNetworkACLsInput{
+		Filters: []*ec2.Filter{filter1, filter2},
 	}
 	networkAclResp, err := conn.DescribeNetworkACLs(DescribeNetworkACLOpts)
 
@@ -307,14 +307,14 @@ func resourceAwsVpcSetDefaultNetworkAcl(conn *ec2.EC2, d *schema.ResourceData) e
 func resourceAwsVpcSetDefaultSecurityGroup(conn *ec2.EC2, d *schema.ResourceData) error {
 	filter1 := &ec2.Filter{
 		Name:   aws.String("group-name"),
-		Values: []string{("default")},
+		Values: []*string{aws.String("default")},
 	}
 	filter2 := &ec2.Filter{
 		Name:   aws.String("vpc-id"),
-		Values: []string{(d.Id())},
+		Values: []*string{aws.String(d.Id())},
 	}
-	DescribeSgOpts := &ec2.DescribeSecurityGroupsRequest{
-		Filters: []ec2.Filter{*filter1, *filter2},
+	DescribeSgOpts := &ec2.DescribeSecurityGroupsInput{
+		Filters: []*ec2.Filter{filter1, filter2},
 	}
 	securityGroupResp, err := conn.DescribeSecurityGroups(DescribeSgOpts)
 

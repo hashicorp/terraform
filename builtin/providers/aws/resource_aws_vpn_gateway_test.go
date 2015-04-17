@@ -4,13 +4,13 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/hashicorp/aws-sdk-go/aws"
-	"github.com/hashicorp/aws-sdk-go/gen/ec2"
+	"github.com/awslabs/aws-sdk-go/aws"
+	"github.com/awslabs/aws-sdk-go/service/ec2"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
 )
 
-func TestAccAWSVpnGateway(t *testing.T) {
+func TestAccAWSVpnGateway_basic(t *testing.T) {
 	var v, v2 ec2.VPNGateway
 
 	testNotEqual := func(*terraform.State) error {
@@ -98,7 +98,7 @@ func TestAccVpnGateway_tags(t *testing.T) {
 				Config: testAccCheckVpnGatewayConfigTags,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckVpnGatewayExists("aws_vpn_gateway.foo", &v),
-					testAccCheckTags(&v.Tags, "foo", "bar"),
+					testAccCheckTagsSDK(&v.Tags, "foo", "bar"),
 				),
 			},
 
@@ -106,8 +106,8 @@ func TestAccVpnGateway_tags(t *testing.T) {
 				Config: testAccCheckVpnGatewayConfigTagsUpdate,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckVpnGatewayExists("aws_vpn_gateway.foo", &v),
-					testAccCheckTags(&v.Tags, "foo", ""),
-					testAccCheckTags(&v.Tags, "bar", "baz"),
+					testAccCheckTagsSDK(&v.Tags, "foo", ""),
+					testAccCheckTagsSDK(&v.Tags, "bar", "baz"),
 				),
 			},
 		},
@@ -123,8 +123,8 @@ func testAccCheckVpnGatewayDestroy(s *terraform.State) error {
 		}
 
 		// Try to find the resource
-		resp, err := ec2conn.DescribeVPNGateways(&ec2.DescribeVPNGatewaysRequest{
-			VPNGatewayIDs: []string{rs.Primary.ID},
+		resp, err := ec2conn.DescribeVPNGateways(&ec2.DescribeVPNGatewaysInput{
+			VPNGatewayIDs: []*string{aws.String(rs.Primary.ID)},
 		})
 		if err == nil {
 			if len(resp.VPNGateways) > 0 {
@@ -159,8 +159,8 @@ func testAccCheckVpnGatewayExists(n string, ig *ec2.VPNGateway) resource.TestChe
 		}
 
 		ec2conn := testAccProvider.Meta().(*AWSClient).ec2conn
-		resp, err := ec2conn.DescribeVPNGateways(&ec2.DescribeVPNGatewaysRequest{
-			VPNGatewayIDs: []string{rs.Primary.ID},
+		resp, err := ec2conn.DescribeVPNGateways(&ec2.DescribeVPNGatewaysInput{
+			VPNGatewayIDs: []*string{aws.String(rs.Primary.ID)},
 		})
 		if err != nil {
 			return err
@@ -169,7 +169,7 @@ func testAccCheckVpnGatewayExists(n string, ig *ec2.VPNGateway) resource.TestChe
 			return fmt.Errorf("VPNGateway not found")
 		}
 
-		*ig = resp.VPNGateways[0]
+		*ig = *resp.VPNGateways[0]
 
 		return nil
 	}

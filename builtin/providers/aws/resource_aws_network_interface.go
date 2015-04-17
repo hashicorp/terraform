@@ -78,12 +78,12 @@ func resourceAwsNetworkInterface() *schema.Resource {
 
 func resourceAwsNetworkInterfaceCreate(d *schema.ResourceData, meta interface{}) error {
 
-	conn := meta.(*AWSClient).ec2SDKconn
+	conn := meta.(*AWSClient).ec2conn
 
 	request := &ec2.CreateNetworkInterfaceInput{
-		Groups:             expandStringListSDK(d.Get("security_groups").(*schema.Set).List()),
+		Groups:             expandStringList(d.Get("security_groups").(*schema.Set).List()),
 		SubnetID:           aws.String(d.Get("subnet_id").(string)),
-		PrivateIPAddresses: expandPrivateIPAddessesSDK(d.Get("private_ips").(*schema.Set).List()),
+		PrivateIPAddresses: expandPrivateIPAddesses(d.Get("private_ips").(*schema.Set).List()),
 	}
 
 	log.Printf("[DEBUG] Creating network interface")
@@ -99,7 +99,7 @@ func resourceAwsNetworkInterfaceCreate(d *schema.ResourceData, meta interface{})
 
 func resourceAwsNetworkInterfaceRead(d *schema.ResourceData, meta interface{}) error {
 
-	conn := meta.(*AWSClient).ec2SDKconn
+	conn := meta.(*AWSClient).ec2conn
 	describe_network_interfaces_request := &ec2.DescribeNetworkInterfacesInput{
 		NetworkInterfaceIDs: []*string{aws.String(d.Id())},
 	}
@@ -120,14 +120,14 @@ func resourceAwsNetworkInterfaceRead(d *schema.ResourceData, meta interface{}) e
 
 	eni := describeResp.NetworkInterfaces[0]
 	d.Set("subnet_id", eni.SubnetID)
-	d.Set("private_ips", flattenNetworkInterfacesPrivateIPAddessesSDK(eni.PrivateIPAddresses))
-	d.Set("security_groups", flattenGroupIdentifiersSDK(eni.Groups))
+	d.Set("private_ips", flattenNetworkInterfacesPrivateIPAddesses(eni.PrivateIPAddresses))
+	d.Set("security_groups", flattenGroupIdentifiers(eni.Groups))
 
 	// Tags
 	d.Set("tags", tagsToMapSDK(eni.TagSet))
 
 	if eni.Attachment != nil {
-		attachment := []map[string]interface{}{flattenAttachmentSDK(eni.Attachment)}
+		attachment := []map[string]interface{}{flattenAttachment(eni.Attachment)}
 		d.Set("attachment", attachment)
 	} else {
 		d.Set("attachment", nil)
@@ -164,7 +164,7 @@ func resourceAwsNetworkInterfaceDetach(oa *schema.Set, meta interface{}, eniId s
 			AttachmentID: aws.String(old_attachment["attachment_id"].(string)),
 			Force:        aws.Boolean(true),
 		}
-		conn := meta.(*AWSClient).ec2SDKconn
+		conn := meta.(*AWSClient).ec2conn
 		_, detach_err := conn.DetachNetworkInterface(detach_request)
 		if detach_err != nil {
 			return fmt.Errorf("Error detaching ENI: %s", detach_err)
@@ -187,7 +187,7 @@ func resourceAwsNetworkInterfaceDetach(oa *schema.Set, meta interface{}, eniId s
 }
 
 func resourceAwsNetworkInterfaceUpdate(d *schema.ResourceData, meta interface{}) error {
-	conn := meta.(*AWSClient).ec2SDKconn
+	conn := meta.(*AWSClient).ec2conn
 	d.Partial(true)
 
 	if d.HasChange("attachment") {
@@ -219,7 +219,7 @@ func resourceAwsNetworkInterfaceUpdate(d *schema.ResourceData, meta interface{})
 	if d.HasChange("security_groups") {
 		request := &ec2.ModifyNetworkInterfaceAttributeInput{
 			NetworkInterfaceID: aws.String(d.Id()),
-			Groups:             expandStringListSDK(d.Get("security_groups").(*schema.Set).List()),
+			Groups:             expandStringList(d.Get("security_groups").(*schema.Set).List()),
 		}
 
 		_, err := conn.ModifyNetworkInterfaceAttribute(request)
@@ -242,7 +242,7 @@ func resourceAwsNetworkInterfaceUpdate(d *schema.ResourceData, meta interface{})
 }
 
 func resourceAwsNetworkInterfaceDelete(d *schema.ResourceData, meta interface{}) error {
-	conn := meta.(*AWSClient).ec2SDKconn
+	conn := meta.(*AWSClient).ec2conn
 
 	log.Printf("[INFO] Deleting ENI: %s", d.Id())
 

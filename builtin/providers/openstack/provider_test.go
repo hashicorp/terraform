@@ -40,10 +40,9 @@ func testAccPreCheck(t *testing.T) {
 	}
 
 	v = os.Getenv("OS_REGION_NAME")
-	if v == "" {
-		t.Fatal("OS_REGION_NAME must be set for acceptance tests")
+	if v != "" {
+		OS_REGION_NAME = v
 	}
-	OS_REGION_NAME = v
 
 	v1 := os.Getenv("OS_IMAGE_ID")
 	v2 := os.Getenv("OS_IMAGE_NAME")

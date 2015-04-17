@@ -8,6 +8,7 @@ func canonicalizeServiceScope(scope string) string {
 		"compute-ro":     "https://www.googleapis.com/auth/compute.readonly",
 		"compute-rw":     "https://www.googleapis.com/auth/compute",
 		"datastore":      "https://www.googleapis.com/auth/datastore",
+		"logging-write":  "https://www.googleapis.com/auth/logging.write",
 		"sql":            "https://www.googleapis.com/auth/sqlservice",
 		"sql-admin":      "https://www.googleapis.com/auth/sqlservice.admin",
 		"storage-full":   "https://www.googleapis.com/auth/devstorage.full_control",

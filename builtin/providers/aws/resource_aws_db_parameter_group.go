@@ -11,8 +11,8 @@ import (
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 
-	"github.com/hashicorp/aws-sdk-go/aws"
-	"github.com/hashicorp/aws-sdk-go/gen/rds"
+	"github.com/awslabs/aws-sdk-go/aws"
+	"github.com/awslabs/aws-sdk-go/service/rds"
 )
 
 func resourceAwsDbParameterGroup() *schema.Resource {
@@ -75,7 +75,7 @@ func resourceAwsDbParameterGroup() *schema.Resource {
 func resourceAwsDbParameterGroupCreate(d *schema.ResourceData, meta interface{}) error {
 	rdsconn := meta.(*AWSClient).rdsconn
 
-	createOpts := rds.CreateDBParameterGroupMessage{
+	createOpts := rds.CreateDBParameterGroupInput{
 		DBParameterGroupName:   aws.String(d.Get("name").(string)),
 		DBParameterGroupFamily: aws.String(d.Get("family").(string)),
 		Description:            aws.String(d.Get("description").(string)),
@@ -102,7 +102,7 @@ func resourceAwsDbParameterGroupCreate(d *schema.ResourceData, meta interface{})
 func resourceAwsDbParameterGroupRead(d *schema.ResourceData, meta interface{}) error {
 	rdsconn := meta.(*AWSClient).rdsconn
 
-	describeOpts := rds.DescribeDBParameterGroupsMessage{
+	describeOpts := rds.DescribeDBParameterGroupsInput{
 		DBParameterGroupName: aws.String(d.Id()),
 	}
 
@@ -121,7 +121,7 @@ func resourceAwsDbParameterGroupRead(d *schema.ResourceData, meta interface{}) e
 	d.Set("description", describeResp.DBParameterGroups[0].Description)
 
 	// Only include user customized parameters as there's hundreds of system/default ones
-	describeParametersOpts := rds.DescribeDBParametersMessage{
+	describeParametersOpts := rds.DescribeDBParametersInput{
 		DBParameterGroupName: aws.String(d.Id()),
 		Source:               aws.String("user"),
 	}
@@ -160,7 +160,7 @@ func resourceAwsDbParameterGroupUpdate(d *schema.ResourceData, meta interface{})
 		}
 
 		if len(parameters) > 0 {
-			modifyOpts := rds.ModifyDBParameterGroupMessage{
+			modifyOpts := rds.ModifyDBParameterGroupInput{
 				DBParameterGroupName: aws.String(d.Get("name").(string)),
 				Parameters:           parameters,
 			}
@@ -198,11 +198,11 @@ func resourceAwsDbParameterGroupDeleteRefreshFunc(
 
 	return func() (interface{}, string, error) {
 
-		deleteOpts := rds.DeleteDBParameterGroupMessage{
+		deleteOpts := rds.DeleteDBParameterGroupInput{
 			DBParameterGroupName: aws.String(d.Id()),
 		}
 
-		if err := rdsconn.DeleteDBParameterGroup(&deleteOpts); err != nil {
+		if _, err := rdsconn.DeleteDBParameterGroup(&deleteOpts); err != nil {
 			rdserr, ok := err.(aws.APIError)
 			if !ok {
 				return d, "error", err
