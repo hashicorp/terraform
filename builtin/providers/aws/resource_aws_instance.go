@@ -371,6 +371,7 @@ func resourceAwsInstanceCreate(d *schema.ResourceData, meta interface{}) error {
 			AssociatePublicIPAddress: aws.Boolean(associatePublicIPAddress),
 			DeviceIndex:              aws.Long(int64(0)),
 			SubnetID:                 aws.String(subnetID),
+			Groups:                   groups,
 		}
 
 		if v, ok := d.GetOk("private_ip"); ok {
