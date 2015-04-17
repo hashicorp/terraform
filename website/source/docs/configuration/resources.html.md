@@ -64,6 +64,10 @@ The `lifecycle` block allows the following keys to be set:
       instance is destroyed. As an example, this can be used to
       create an new DNS record before removing an old record.
 
+  * `prevent_destroy` (bool) - This flag provides extra protection against the
+      destruction of a given resource. When this is set to `true`, any plan
+      that includes a destroy of this resource will return an error message.
+
 -------------
 
 Within a resource, you can optionally have a **connection block**.
