@@ -187,7 +187,7 @@ func resourceAwsRoute53AliasTargetRead(d *schema.ResourceData, meta interface{})
 		found = true
 
 		aliasTarget := record.AliasTarget
-		d.Set("target", strings.TrimSuffix(string(*aliasTarget.DNSName), "."))
+		d.Set("target", strings.ToLower(strings.TrimSuffix(string(*aliasTarget.DNSName), ".")))
 		d.Set("target_zone_id", aliasTarget.HostedZoneID)
 
 		break
