@@ -243,7 +243,7 @@ func resourceAwsLaunchConfiguration() *schema.Resource {
 
 func resourceAwsLaunchConfigurationCreate(d *schema.ResourceData, meta interface{}) error {
 	autoscalingconn := meta.(*AWSClient).autoscalingconn
-	ec2conn := meta.(*AWSClient).ec2SDKconn
+	ec2conn := meta.(*AWSClient).ec2conn
 
 	createLaunchConfigurationOpts := autoscaling.CreateLaunchConfigurationInput{
 		LaunchConfigurationName: aws.String(d.Get("name").(string)),
@@ -277,7 +277,7 @@ func resourceAwsLaunchConfigurationCreate(d *schema.ResourceData, meta interface
 	}
 
 	if v, ok := d.GetOk("security_groups"); ok {
-		createLaunchConfigurationOpts.SecurityGroups = expandStringListSDK(
+		createLaunchConfigurationOpts.SecurityGroups = expandStringList(
 			v.(*schema.Set).List(),
 		)
 	}
@@ -394,7 +394,7 @@ func resourceAwsLaunchConfigurationCreate(d *schema.ResourceData, meta interface
 
 func resourceAwsLaunchConfigurationRead(d *schema.ResourceData, meta interface{}) error {
 	autoscalingconn := meta.(*AWSClient).autoscalingconn
-	ec2conn := meta.(*AWSClient).ec2SDKconn
+	ec2conn := meta.(*AWSClient).ec2conn
 
 	describeOpts := autoscaling.DescribeLaunchConfigurationsInput{
 		LaunchConfigurationNames: []*string{aws.String(d.Id())},

@@ -109,7 +109,7 @@ func resourceAwsNetworkAcl() *schema.Resource {
 
 func resourceAwsNetworkAclCreate(d *schema.ResourceData, meta interface{}) error {
 
-	conn := meta.(*AWSClient).ec2SDKconn
+	conn := meta.(*AWSClient).ec2conn
 
 	// Create the Network Acl
 	createOpts := &ec2.CreateNetworkACLInput{
@@ -132,7 +132,7 @@ func resourceAwsNetworkAclCreate(d *schema.ResourceData, meta interface{}) error
 }
 
 func resourceAwsNetworkAclRead(d *schema.ResourceData, meta interface{}) error {
-	conn := meta.(*AWSClient).ec2SDKconn
+	conn := meta.(*AWSClient).ec2conn
 
 	resp, err := conn.DescribeNetworkACLs(&ec2.DescribeNetworkACLsInput{
 		NetworkACLIDs: []*string{aws.String(d.Id())},
@@ -167,7 +167,7 @@ func resourceAwsNetworkAclRead(d *schema.ResourceData, meta interface{}) error {
 }
 
 func resourceAwsNetworkAclUpdate(d *schema.ResourceData, meta interface{}) error {
-	conn := meta.(*AWSClient).ec2SDKconn
+	conn := meta.(*AWSClient).ec2conn
 	d.Partial(true)
 
 	if d.HasChange("ingress") {
@@ -265,7 +265,7 @@ func updateNetworkAclEntries(d *schema.ResourceData, entryType string, conn *ec2
 }
 
 func resourceAwsNetworkAclDelete(d *schema.ResourceData, meta interface{}) error {
-	conn := meta.(*AWSClient).ec2SDKconn
+	conn := meta.(*AWSClient).ec2conn
 
 	log.Printf("[INFO] Deleting Network Acl: %s", d.Id())
 	return resource.Retry(5*time.Minute, func() error {

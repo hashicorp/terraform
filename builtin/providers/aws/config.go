@@ -6,17 +6,14 @@ import (
 
 	"github.com/hashicorp/terraform/helper/multierror"
 
-	"github.com/awslabs/aws-sdk-go/service/elb"
-	"github.com/awslabs/aws-sdk-go/service/route53"
-	"github.com/awslabs/aws-sdk-go/service/s3"
-	"github.com/hashicorp/aws-sdk-go/aws"
-	"github.com/hashicorp/aws-sdk-go/gen/ec2"
-
-	awsSDK "github.com/awslabs/aws-sdk-go/aws"
+	"github.com/awslabs/aws-sdk-go/aws"
 	"github.com/awslabs/aws-sdk-go/service/autoscaling"
-	awsEC2 "github.com/awslabs/aws-sdk-go/service/ec2"
+	"github.com/awslabs/aws-sdk-go/service/ec2"
+	"github.com/awslabs/aws-sdk-go/service/elb"
 	"github.com/awslabs/aws-sdk-go/service/iam"
 	"github.com/awslabs/aws-sdk-go/service/rds"
+	"github.com/awslabs/aws-sdk-go/service/route53"
+	"github.com/awslabs/aws-sdk-go/service/s3"
 )
 
 type Config struct {
@@ -35,7 +32,6 @@ type AWSClient struct {
 	region          string
 	rdsconn         *rds.RDS
 	iamconn         *iam.IAM
-	ec2SDKconn      *awsEC2.EC2
 }
 
 // Client configures and returns a fully initailized AWSClient
@@ -59,40 +55,34 @@ func (c *Config) Client() (interface{}, error) {
 
 		log.Println("[INFO] Building AWS auth structure")
 		creds := aws.DetectCreds(c.AccessKey, c.SecretKey, c.Token)
-
-		log.Println("[INFO] Building AWS SDK auth structure")
-		sdkCreds := awsSDK.DetectCreds(c.AccessKey, c.SecretKey, c.Token)
-		awsConfig := &awsSDK.Config{
-			Credentials: sdkCreds,
+		awsConfig := &aws.Config{
+			Credentials: creds,
 			Region:      c.Region,
 		}
 
-		log.Println("[INFO] Initializing ELB SDK connection")
+		log.Println("[INFO] Initializing ELB connection")
 		client.elbconn = elb.New(awsConfig)
 
 		log.Println("[INFO] Initializing S3 connection")
 		client.s3conn = s3.New(awsConfig)
 
-		log.Println("[INFO] Initializing EC2 Connection")
-		client.ec2conn = ec2.New(creds, c.Region, nil)
-
-		log.Println("[INFO] Initializing RDS SDK Connection")
+		log.Println("[INFO] Initializing RDS Connection")
 		client.rdsconn = rds.New(awsConfig)
 
-		log.Println("[INFO] Initializing IAM SDK Connection")
+		log.Println("[INFO] Initializing IAM Connection")
 		client.iamconn = iam.New(awsConfig)
-		log.Println("[INFO] Initializing AutoScaling SDK connection")
+		log.Println("[INFO] Initializing AutoScaling connection")
 		client.autoscalingconn = autoscaling.New(awsConfig)
 
-		log.Println("[INFO] Initializing EC2 SDK Connection")
-		client.ec2SDKconn = awsEC2.New(awsConfig)
+		log.Println("[INFO] Initializing EC2 Connection")
+		client.ec2conn = ec2.New(awsConfig)
 
 		// aws-sdk-go uses v4 for signing requests, which requires all global
 		// endpoints to use 'us-east-1'.
 		// See http://docs.aws.amazon.com/general/latest/gr/sigv4_changes.html
-		log.Println("[INFO] Initializing Route 53 SDK connection")
-		client.r53conn = route53.New(&awsSDK.Config{
-			Credentials: sdkCreds,
+		log.Println("[INFO] Initializing Route 53 connection")
+		client.r53conn = route53.New(&aws.Config{
+			Credentials: creds,
 			Region:      "us-east-1",
 		})
 
