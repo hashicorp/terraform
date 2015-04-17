@@ -41,7 +41,7 @@ func TestAccAWSInstance_normal(t *testing.T) {
 				// Need a resource in this config so the provisioner will be available
 				Config: testAccInstanceConfig_pre,
 				Check: func(*terraform.State) error {
-					conn := testAccProvider.Meta().(*AWSClient).ec2SDKconn
+					conn := testAccProvider.Meta().(*AWSClient).ec2conn
 					var err error
 					vol, err = conn.CreateVolume(&ec2.CreateVolumeInput{
 						AvailabilityZone: aws.String("us-west-2a"),
@@ -88,7 +88,7 @@ func TestAccAWSInstance_normal(t *testing.T) {
 			resource.TestStep{
 				Config: testAccInstanceConfig,
 				Check: func(*terraform.State) error {
-					conn := testAccProvider.Meta().(*AWSClient).ec2SDKconn
+					conn := testAccProvider.Meta().(*AWSClient).ec2conn
 					_, err := conn.DeleteVolume(&ec2.DeleteVolumeInput{VolumeID: vol.VolumeID})
 					return err
 				},
@@ -364,7 +364,7 @@ func TestAccAWSInstance_associatePublicIPAndPrivateIP(t *testing.T) {
 }
 
 func testAccCheckInstanceDestroy(s *terraform.State) error {
-	conn := testAccProvider.Meta().(*AWSClient).ec2SDKconn
+	conn := testAccProvider.Meta().(*AWSClient).ec2conn
 
 	for _, rs := range s.RootModule().Resources {
 		if rs.Type != "aws_instance" {
@@ -407,7 +407,7 @@ func testAccCheckInstanceExists(n string, i *ec2.Instance) resource.TestCheckFun
 			return fmt.Errorf("No ID is set")
 		}
 
-		conn := testAccProvider.Meta().(*AWSClient).ec2SDKconn
+		conn := testAccProvider.Meta().(*AWSClient).ec2conn
 		resp, err := conn.DescribeInstances(&ec2.DescribeInstancesInput{
 			InstanceIDs: []*string{aws.String(rs.Primary.ID)},
 		})
