@@ -40,10 +40,11 @@ Each route supports the following:
 * `gateway_id` - (Optional) The Internet Gateway ID.
 * `instance_id` - (Optional) The EC2 instance ID.
 * `vpc_peering_connection_id` - (Optional) The VPC Peering ID.
+* `network_interface_id` - (Optional) The ID of the elastic network interface (eni) to use.
 
-Each route must contain either a `gateway_id`, an `instance_id` or a `vpc_peering_connection_id`. Note that the
-default route, mapping the VPC's CIDR block to "local", is created implicitly and
-cannot be specified.
+Each route must contain either a `gateway_id`, an `instance_id` or a `vpc_peering_connection_id`
+or a `network_interface_id`. Note that the default route, mapping the VPC's CIDR block to "local",
+is created implicitly and cannot be specified.
 
 ## Attributes Reference
 
