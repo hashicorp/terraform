@@ -6,6 +6,7 @@ import (
 	"reflect"
 	"sync"
 	"testing"
+	"strings"
 
 	"github.com/hashicorp/terraform/config"
 	"github.com/hashicorp/terraform/config/lang/ast"
@@ -149,10 +150,14 @@ func TestInterpolater_multiAttribute(t *testing.T) {
 							ID: "qux",
 							Attributes: map[string]string{
 								"foo.#": "4",
-								"foo.298374.bar": "baz1",
-								"foo.233489.bar": "baz2",
-								"foo.872348.bar": "baz3",
-								"foo.348573.bar": "baz4",
+								"foo.298374.bar1": "baz1",
+								"foo.298374.bar2": "baz12",
+								"foo.233489.bar1": "baz2",
+								"foo.233489.bar2": "baz22",
+								"foo.872348.bar1": "baz3",
+								"foo.872348.bar2": "baz32",
+								"foo.348573.bar1": "baz4",
+								"foo.348573.bar2": "baz42",
 							},
 						},
 					},
@@ -177,9 +182,20 @@ func TestInterpolater_multiAttribute(t *testing.T) {
 		Type:  ast.TypeString,
 	})
 
-	testInterpolate(t, i, scope, "resource.name.foo.*.bar", ast.Variable{
-		Value: []string{"baz1", "baz2", "baz3", "baz4"},
-		Type:  ast.TypeAny,
+	expectedValues := []string{"baz1", "baz2", "baz3", "baz4"}
+	testInterpolate(t, i, scope, "resource.name.foo.*.bar1", ast.Variable{
+		Value: strings.Join(expectedValues, config.InterpSplitDelim),
+		Type:  ast.TypeString,
+	})
+
+	testInterpolate(t, i, scope, "resource.name.foo.0.bar1", ast.Variable{
+		Value: "baz1",
+		Type:  ast.TypeString,
+	})
+
+	testInterpolate(t, i, scope, "resource.name.foo.4.bar1", ast.Variable{
+		Value: "",
+		Type:  ast.TypeString,
 	})
 }
 

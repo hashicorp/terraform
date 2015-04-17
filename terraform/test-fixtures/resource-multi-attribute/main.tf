@@ -1,17 +1,21 @@
 resource "resource" "name" {
   foo {
-    bar = "baz1"
+    bar1 = "baz1"
+    bar2 = "baz12"
   }
 
   foo {
-    bar = "baz2"
+    bar1 = "baz2"
+    bar2 = "baz22"
   }
 
   foo {
-    bar = "baz3"
+    bar1 = "baz3"
+    bar2 = "baz32"
   }
 
   foo {
-    bar = "baz4"
+    bar1 = "baz4"
+    bar2 = "baz42"
   }
 }
