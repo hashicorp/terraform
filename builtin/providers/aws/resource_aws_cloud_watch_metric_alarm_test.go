@@ -72,9 +72,9 @@ func testAccCheckAWSCloudWatchMetricAlarmDestroy(s *terraform.State) error {
         resp, err := conn.DescribeAlarms(&params)
 
         if err == nil {
-            if len(resp.ScalingPolicies) != 0 &&
-                *resp.ScalingPolicies[0].AlarmName == rs.Primary.ID {
-                return fmt.Errorf("Alarm Still Exists: %s". rs.Primary.ID)
+            if len(resp.MetricAlarms) != 0 &&
+                *resp.MetricAlarms[0].AlarmName == rs.Primary.ID {
+                return fmt.Errorf("Alarm Still Exists: %s", rs.Primary.ID)
             }
         }
     }
