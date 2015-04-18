@@ -19,6 +19,7 @@ BUG FIXES:
       resource replacement [GH-1515]
   * command: remote states with uppercase types work [GH-1356]
   * provider/aws: launch configuration ID set after create success [GH-1518]
+  * provider/aws: manually deleted S3 buckets are refreshed properly [GH-1574]
   * provider/openstack: region config is not required [GH-1441]
 
 ## 0.4.2 (April 10, 2015)
