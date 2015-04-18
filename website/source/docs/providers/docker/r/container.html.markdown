@@ -38,6 +38,8 @@ The following arguments are supported:
     container.
 * `dns` - (Optional, set of strings) Set of DNS servers.
 * `env` - (Optional, set of strings) Environmental variables to set.
+* `links` - (Optional, set of strings) Set of links for link based
+  connectivity between containers that are running on the same host.
 * `hostname` - (Optional, string) Hostname of the container.
 * `domainname` - (Optional, string) Domain name of the container.
 * `must_run` - (Optional, bool) If true, then the Docker container will be
