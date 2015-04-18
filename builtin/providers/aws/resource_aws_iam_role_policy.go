@@ -59,7 +59,7 @@ func resourceAwsIamRolePolicyPut(d *schema.ResourceData, meta interface{}) error
 func resourceAwsIamRolePolicyRead(d *schema.ResourceData, meta interface{}) error {
 	iamconn := meta.(*AWSClient).iamconn
 
-	role, name := resourceAwsIamRolePolicyParseId(d)
+	role, name := resourceAwsIamRolePolicyParseId(d.Id())
 
 	request := &iam.GetRolePolicyInput{
 		PolicyName: aws.String(name),
@@ -89,7 +89,7 @@ func resourceAwsIamRolePolicyRead(d *schema.ResourceData, meta interface{}) erro
 func resourceAwsIamRolePolicyDelete(d *schema.ResourceData, meta interface{}) error {
 	iamconn := meta.(*AWSClient).iamconn
 
-	role, name := resourceAwsIamRolePolicyParseId(d)
+	role, name := resourceAwsIamRolePolicyParseId(d.Id())
 
 	request := &iam.DeleteRolePolicyInput{
 		PolicyName: aws.String(name),
@@ -102,9 +102,9 @@ func resourceAwsIamRolePolicyDelete(d *schema.ResourceData, meta interface{}) er
 	return nil
 }
 
-func resourceAwsIamRolePolicyParseId(d *schema.ResourceData) (userName, policyName string) {
-	parts := strings.SplitN(d.Id(), ":", 2)
-	userName = parts[0]
+func resourceAwsIamRolePolicyParseId(id string) (roleName, policyName string) {
+	parts := strings.SplitN(id, ":", 2)
+	roleName = parts[0]
 	policyName = parts[1]
 	return
 }
