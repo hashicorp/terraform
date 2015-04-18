@@ -60,13 +60,13 @@ func testAccCheckCloudWatchMetricAlarmExists(n string, alarm *cloudwatch.MetricA
 func testAccCheckAWSCloudWatchMetricAlarmDestroy(s *terraform.State) error {
     conn := testAccProvider.Meta().(*AWSClient).cloudwatchconn
 
-    for _, rs := s.RootModule().Resources {
+    for _, rs := range s.RootModule().Resources {
         if rs.Type != "aws_cloudwatch_metric_alarm" {
             continue
         }
 
         params := cloudwatch.DescribeAlarmsInput{
-            AlarmNames: []*string{aws.String(rs.Primary.ID)}
+            AlarmNames: []*string{aws.String(rs.Primary.ID)},
         }
 
         resp, err := conn.DescribeAlarms(&params)
