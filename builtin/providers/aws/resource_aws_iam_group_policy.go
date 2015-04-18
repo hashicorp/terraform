@@ -49,7 +49,7 @@ func resourceAwsIamGroupPolicyPut(d *schema.ResourceData, meta interface{}) erro
 	}
 
 	if _, err := iamconn.PutGroupPolicy(request); err != nil {
-		return fmt.Errorf("Error putting IAM group policy %s: %s", request.PolicyName, err)
+		return fmt.Errorf("Error putting IAM group policy %s: %s", *request.PolicyName, err)
 	}
 
 	d.SetId(fmt.Sprintf("%s:%s", *request.GroupName, *request.PolicyName))

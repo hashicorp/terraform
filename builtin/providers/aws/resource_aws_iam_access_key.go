@@ -46,7 +46,7 @@ func resourceAwsIamAccessKeyCreate(d *schema.ResourceData, meta interface{}) err
 	if err != nil {
 		return fmt.Errorf(
 			"Error creating access key for user %s: %s",
-			request.UserName,
+			*request.UserName,
 			err,
 		)
 	}

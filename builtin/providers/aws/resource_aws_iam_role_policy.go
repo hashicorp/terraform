@@ -49,7 +49,7 @@ func resourceAwsIamRolePolicyPut(d *schema.ResourceData, meta interface{}) error
 	}
 
 	if _, err := iamconn.PutRolePolicy(request); err != nil {
-		return fmt.Errorf("Error putting IAM role policy %s: %s", request.PolicyName, err)
+		return fmt.Errorf("Error putting IAM role policy %s: %s", *request.PolicyName, err)
 	}
 
 	d.SetId(fmt.Sprintf("%s:%s", *request.RoleName, *request.PolicyName))
