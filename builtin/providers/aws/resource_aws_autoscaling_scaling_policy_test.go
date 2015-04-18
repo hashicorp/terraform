@@ -65,25 +65,27 @@ func testAccCheckScalingPolicyExists(n string, policy *autoscaling.ScalingPolicy
 }
 
 func testAccCheckAWSAutoscalingScalingPolicyDestroy(s *terraform.State) error {
-    //conn := testAccProvider.Meta().(*AWSClient).autoscalingconn
+    conn := testAccProvider.Meta().(*AWSClient).autoscalingconn
 
-    //for _, rs := range s.RootModule().Resources {
-    //    if rs.Type != "aws_autoscaling_group" {
-    //        continue
-    //    }
+    for _, rs := range s.RootModule().Resources {
+        if rs.Type != "aws_autoscaling_group" {
+            continue
+        }
 
-    //    describeGroups, err := conn.DescribeAutoScalingGroups(
-    //        &autoscaling.DescribeAutoScalingGroupsInput{
-    //            AutoScalingGroupNames: []*string{aws.String(rs.Primary.ID)},
-    //        })
+        params := autoscaling.DescribePoliciesInput{
+            AutoScalingGroupName:  aws.String(rs.Primary.Attributes["autoscaling_group_name"]),
+            PolicyNames: []*string{aws.String(rs.Primary.ID)},
+        }
 
-    //    if err == nil {
-    //        if len(describeGroups.AutoScalingGroups) != 0 &&
-    //            *describeGRoups.AutoScalingGroups[0].AutoScalingGroupName == rs.Primary.ID {
-    //            return fmt.Errorf("AutoScaling Group still exists")
-    //        }
-    //    }
-    //}
+        resp, err := conn.DescribePolicies(&params)
+
+        if err == nil {
+            if len(resp.ScalingPolicies) != 0 &&
+                *resp.ScalingPolicies[0].PolicyName == rs.Primary.ID {
+                return fmt.Errorf("Scaling Policy Still Exists: %s", rs.Primary.ID)
+            }
+        }
+    }
 
     return nil
 }

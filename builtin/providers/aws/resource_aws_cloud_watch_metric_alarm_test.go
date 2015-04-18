@@ -58,6 +58,27 @@ func testAccCheckCloudWatchMetricAlarmExists(n string, alarm *cloudwatch.MetricA
 }
 
 func testAccCheckAWSCloudWatchMetricAlarmDestroy(s *terraform.State) error {
+    conn := testAccProvider.Meta().(*AWSClient).cloudwatchconn
+
+    for _, rs := s.RootModule().Resources {
+        if rs.Type != "aws_cloudwatch_metric_alarm" {
+            continue
+        }
+
+        params := cloudwatch.DescribeAlarmsInput{
+            AlarmNames: []*string{aws.String(rs.Primary.ID)}
+        }
+
+        resp, err := conn.DescribeAlarms(&params)
+
+        if err == nil {
+            if len(resp.ScalingPolicies) != 0 &&
+                *resp.ScalingPolicies[0].AlarmName == rs.Primary.ID {
+                return fmt.Errorf("Alarm Still Exists: %s". rs.Primary.ID)
+            }
+        }
+    }
+
     return nil
 }
 
