@@ -279,6 +279,25 @@ func (n *GraphNodeConfigResource) DependentOn() []string {
 	return result
 }
 
+// VarWalk calls a callback for all the variables that this resource
+// depends on.
+func (n *GraphNodeConfigResource) VarWalk(fn func(config.InterpolatedVariable)) {
+	for _, v := range n.Resource.RawCount.Variables {
+		fn(v)
+	}
+	for _, v := range n.Resource.RawConfig.Variables {
+		fn(v)
+	}
+	for _, p := range n.Resource.Provisioners {
+		for _, v := range p.ConnInfo.Variables {
+			fn(v)
+		}
+		for _, v := range p.RawConfig.Variables {
+			fn(v)
+		}
+	}
+}
+
 func (n *GraphNodeConfigResource) Name() string {
 	result := n.Resource.Id()
 	switch n.DestroyMode {
