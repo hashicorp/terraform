@@ -5,8 +5,11 @@ import (
 	"fmt"
 	"io/ioutil"
 	"log"
+	"math/rand"
 	"net"
 	"os"
+	"strconv"
+	"strings"
 	"time"
 
 	"github.com/hashicorp/terraform/terraform"
@@ -25,7 +28,7 @@ const (
 
 	// DefaultScriptPath is used as the path to copy the file to
 	// for remote execution if not provided otherwise.
-	DefaultScriptPath = "/tmp/script.sh"
+	DefaultScriptPath = "/tmp/script_%RAND%.sh"
 
 	// DefaultTimeout is used if there is no timeout given
 	DefaultTimeout = 5 * time.Minute
@@ -44,6 +47,12 @@ type SSHConfig struct {
 	Timeout    string
 	ScriptPath string        `mapstructure:"script_path"`
 	TimeoutVal time.Duration `mapstructure:"-"`
+}
+
+func (c *SSHConfig) RemotePath() string {
+	return strings.Replace(
+		c.ScriptPath, "%RAND%",
+		strconv.FormatInt(int64(rand.Int31()), 10), -1)
 }
 
 // VerifySSH is used to verify the ConnInfo is usable by remote-exec
