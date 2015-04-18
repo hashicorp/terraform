@@ -3,13 +3,8 @@ package aws
 import (
 	"fmt"
 	"log"
-	//"strings"
-	//"time"
 
-	//"github.com/hashicorp/terraform/helper/hashcode"
-	//"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
-
 	"github.com/awslabs/aws-sdk-go/aws"
 	"github.com/awslabs/aws-sdk-go/service/autoscaling"
 )
@@ -69,7 +64,7 @@ func resourceAwsAutoscalingScalingPolicyCreate(d *schema.ResourceData, meta inte
 
     d.Set("policy_arn", resp.PolicyARN)
     d.SetId(d.Get("policy_name").(string))
-    log.Printf("[INFO] AutoScaling Scaling Policy ARN: %s", d.Get("policy_arn").(string))
+    log.Printf("[INFO] AutoScaling Scaling PolicyARN: %s", d.Get("policy_arn").(string))
 
     return resourceAwsAutoscalingScalingPolicyRead(d, meta)
 }
@@ -102,12 +97,10 @@ func resourceAwsAutoscalingScalingPolicyUpdate(d *schema.ResourceData, meta inte
     params := getAwsAutoscalingPutScalingPolicyInput(d)
 
     log.Printf("[DEBUG] Autoscaling Update Scaling Policy: %#v", params)
-    resp, err := autoscalingconn.PutScalingPolicy(&params)
+    _, err := autoscalingconn.PutScalingPolicy(&params)
     if err != nil {
         return err
     }
-
-    d.Set("policy_arn", resp.PolicyARN)
 
     return resourceAwsAutoscalingScalingPolicyRead(d, meta)
 }
@@ -121,18 +114,13 @@ func resourceAwsAutoscalingScalingPolicyDelete(d *schema.ResourceData, meta inte
     if p == nil {
         return nil
     }
-    log.Printf("[DEBUG] Autoscaling Scaling Policy: %#v", d.Get("policy_name"))
+
     params := autoscaling.DeletePolicyInput{
         AutoScalingGroupName:   aws.String(d.Get("autoscaling_group_name").(string)),
         PolicyName:             aws.String(d.Get("policy_name").(string)),
     }
     if _, err := autoscalingconn.DeletePolicy(&params); err != nil {
-        autoscalingerr, ok := err.(aws.APIError)
-        if ok && autoscalingerr.Code != "" {
-            fmt.Println("Error: ", autoscalingerr.Code, autoscalingerr.Message)
-            return nil
-        }
-        return err
+        return fmt.Errorf("Autoscaling Scaling Policy: %s ", err)
     }
 
     d.SetId("")
@@ -177,23 +165,13 @@ func getAwsAutoscalingScalingPolicy(d *schema.ResourceData, meta interface{}) (*
     log.Printf("[DEBUG] AutoScaling Scaling Policy Describe Params: %#v", params)
     resp, err := autoscalingconn.DescribePolicies(&params)
     if err != nil {
-        fmt.Errorf("Error retrieving scaling policy: %#v", params)
-        _, ok := err.(aws.APIError)
-        //autoscalingerr, ok := err.(aws.APIError)
-        if ok {
-            d.SetId("")
-            return nil, nil
-        }
-
         return nil, fmt.Errorf("Error retrieving scaling policies: %s", err)
     }
 
     // find scaling policy
-    var policy_name = d.Get("policy_name")
+    policy_name := d.Get("policy_name")
     for idx, sp := range resp.ScalingPolicies{
-        log.Printf("[DEBUG] %s, %s", *sp.PolicyName, policy_name)
         if *sp.PolicyName == policy_name {
-            log.Printf("[DEBUG] They were equal: %#v", resp.ScalingPolicies[idx])
             return resp.ScalingPolicies[idx], nil
         }
     }

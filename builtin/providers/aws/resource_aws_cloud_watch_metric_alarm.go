@@ -3,11 +3,8 @@ package aws
 import (
 	"fmt"
 	"log"
-	//"strings"
-	//"time"
 
 	"github.com/hashicorp/terraform/helper/hashcode"
-	//"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 
 	"github.com/awslabs/aws-sdk-go/aws"
@@ -173,12 +170,7 @@ func resourceAwsCloudWatchMetricAlarmDelete(d *schema.ResourceData, meta interfa
 	}
 
 	if _, err := conn.DeleteAlarms(&params); err != nil {
-		cloudwatcherr, ok := err.(aws.APIError)
-		if ok && cloudwatcherr.Code != "" {
-			fmt.Println("Error: ", cloudwatcherr.Code, cloudwatcherr.Message)
-			return nil
-		}
-		return err
+		return fmt.Errorf("Error deleting alarm: %s", err)
 	}
 
 	d.SetId("")
@@ -258,19 +250,16 @@ func getAwsCloudWatchMetricAlarm(d *schema.ResourceData, meta interface{}) (*clo
 
 	resp, err := conn.DescribeAlarms(&params)
 	if err != nil {
-		fmt.Errorf("Error retrieve metric alarm: %#v", params)
-		_, ok := err.(aws.APIError)
-		if ok {
-			d.SetId("")
-			return nil, nil
-		}
 		return nil, nil
 	}
+
+    // Find it and return it
 	for idx, ma := range resp.MetricAlarms {
 		if *ma.AlarmName == d.Id() {
 			return resp.MetricAlarms[idx], nil
 		}
 	}
+
 	d.SetId("")
 	return nil, nil
 }
