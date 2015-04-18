@@ -2,10 +2,11 @@
 
 IMPROVEMENTS:
 
- * **New config function: `length`** - Get the length of a string or a list.
+  * **New config function: `length`** - Get the length of a string or a list.
       Useful in conjunction with `split`. [GH-1495]
- * core: Improve error message on diff mismatch [GH-1501]
- * provisioner/file: expand `~` in source path [GH-1569]
+  * core: Improve error message on diff mismatch [GH-1501]
+  * provisioner/file: expand `~` in source path [GH-1569]
+  * provider/docker: `docker_container` can specify links [GH-1564]
 
 BUG FIXES:
 
