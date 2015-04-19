@@ -90,7 +90,7 @@ func resourceAwsS3BucketRead(d *schema.ResourceData, meta interface{}) error {
 		} else {
 			// some of the AWS SDK's errors can be empty strings, so let's add
 			// some additional context.
-			return fmt.Errorf("error reading S3 bucket \"%s\": %#v", d.Id())
+			return fmt.Errorf("error reading S3 bucket \"%s\": %#v", d.Id(), err)
 		}
 	}
 
