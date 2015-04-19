@@ -59,7 +59,7 @@ func resourceAwsIamGroupPolicyPut(d *schema.ResourceData, meta interface{}) erro
 func resourceAwsIamGroupPolicyRead(d *schema.ResourceData, meta interface{}) error {
 	iamconn := meta.(*AWSClient).iamconn
 
-	group, name := resourceAwsIamGroupPolicyParseId(d)
+	group, name := resourceAwsIamGroupPolicyParseId(d.Id())
 
 	request := &iam.GetGroupPolicyInput{
 		PolicyName: aws.String(name),
@@ -89,7 +89,7 @@ func resourceAwsIamGroupPolicyRead(d *schema.ResourceData, meta interface{}) err
 func resourceAwsIamGroupPolicyDelete(d *schema.ResourceData, meta interface{}) error {
 	iamconn := meta.(*AWSClient).iamconn
 
-	group, name := resourceAwsIamGroupPolicyParseId(d)
+	group, name := resourceAwsIamGroupPolicyParseId(d.Id())
 
 	request := &iam.DeleteGroupPolicyInput{
 		PolicyName: aws.String(name),
@@ -102,8 +102,8 @@ func resourceAwsIamGroupPolicyDelete(d *schema.ResourceData, meta interface{}) e
 	return nil
 }
 
-func resourceAwsIamGroupPolicyParseId(d *schema.ResourceData) (groupName, policyName string) {
-	parts := strings.SplitN(d.Id(), ":", 2)
+func resourceAwsIamGroupPolicyParseId(id string) (groupName, policyName string) {
+	parts := strings.SplitN(id, ":", 2)
 	groupName = parts[0]
 	policyName = parts[1]
 	return
