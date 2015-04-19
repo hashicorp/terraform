@@ -6,7 +6,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/hashicorp/terraform/helper/hashcode"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 
@@ -49,9 +48,7 @@ func resourceAwsRoute53Record() *schema.Resource {
 				Type:     schema.TypeSet,
 				Elem:     &schema.Schema{Type: schema.TypeString},
 				Required: true,
-				Set: func(v interface{}) int {
-					return hashcode.String(v.(string))
-				},
+				Set:      schema.HashString,
 			},
 		},
 	}

@@ -76,9 +76,7 @@ func resourceAwsLaunchConfiguration() *schema.Resource {
 				Optional: true,
 				ForceNew: true,
 				Elem:     &schema.Schema{Type: schema.TypeString},
-				Set: func(v interface{}) int {
-					return hashcode.String(v.(string))
-				},
+				Set:      schema.HashString,
 			},
 
 			"associate_public_ip_address": &schema.Schema{
