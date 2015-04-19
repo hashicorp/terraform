@@ -100,7 +100,7 @@ func testAccCheckAWSGroupAttributes(group *iam.GetGroupOutput) resource.TestChec
 
 const testAccAWSGroupConfig = `
 resource "aws_iam_group" "group" {
-	name   = "test-group"
-  path = "/"
+	name = "test-group"
+	path = "/"
 }
 `

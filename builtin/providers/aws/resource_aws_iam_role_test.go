@@ -104,7 +104,7 @@ func testAccCheckAWSRoleAttributes(role *iam.GetRoleOutput) resource.TestCheckFu
 const testAccAWSRoleConfig = `
 resource "aws_iam_role" "role" {
 	name   = "test-role"
-  path = "/"
+	path = "/"
 	assume_role_policy = "{\"Version\":\"2012-10-17\",\"Statement\":[{\"Effect\":\"Allow\",\"Principal\":{\"Service\":[\"ec2.amazonaws.com\"]},\"Action\":[\"sts:AssumeRole\"]}]}"
 }
 `
