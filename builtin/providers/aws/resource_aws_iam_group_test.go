@@ -37,7 +37,7 @@ func testAccCheckAWSGroupDestroy(s *terraform.State) error {
 			continue
 		}
 
-		// Try to get role
+		// Try to get group
 		_, err := iamconn.GetGroup(&iam.GetGroupInput{
 			GroupName: aws.String(rs.Primary.ID),
 		})
