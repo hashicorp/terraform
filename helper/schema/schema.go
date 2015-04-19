@@ -114,6 +114,9 @@ type Schema struct {
 	// NOTE: This currently does not work.
 	ComputedWhen []string
 
+	// ConflictsWith is a set of schema keys that conflict with this schema
+	ConflictsWith []string
+
 	// When Deprecated is set, this attribute is deprecated.
 	//
 	// A deprecated field still works, but will probably stop working in near
@@ -434,6 +437,22 @@ func (m schemaMap) InternalValidate() error {
 
 		if len(v.ComputedWhen) > 0 && !v.Computed {
 			return fmt.Errorf("%s: ComputedWhen can only be set with Computed", k)
+		}
+
+		if len(v.ConflictsWith) > 0 && v.Required {
+			return fmt.Errorf("%s: ConflictsWith cannot be set with Required", k)
+		}
+
+		if len(v.ConflictsWith) > 0 {
+			for _, key := range v.ConflictsWith {
+				if m[key].Required {
+					return fmt.Errorf("%s: ConflictsWith cannot contain Required attribute (%s)", k, key)
+				}
+
+				if m[key].Computed || len(m[key].ComputedWhen) > 0 {
+					return fmt.Errorf("%s: ConflictsWith cannot contain Computed(When) attribute (%s)", k, key)
+				}
+			}
 		}
 
 		if v.Type == TypeList || v.Type == TypeSet {
@@ -913,7 +932,31 @@ func (m schemaMap) validate(
 			"%q: this field cannot be set", k)}
 	}
 
+	err := m.validateConflictingAttributes(k, schema, c)
+	if err != nil {
+		return nil, []error{err}
+	}
+
 	return m.validateType(k, raw, schema, c)
+}
+
+func (m schemaMap) validateConflictingAttributes(
+	k string,
+	schema *Schema,
+	c *terraform.ResourceConfig) error {
+
+	if len(schema.ConflictsWith) == 0 {
+		return nil
+	}
+
+	for _, conflicting_key := range schema.ConflictsWith {
+		if value, ok := c.Get(conflicting_key); ok {
+			return fmt.Errorf(
+				"%q: conflicts with %s (%#v)", k, conflicting_key, value)
+		}
+	}
+
+	return nil
 }
 
 func (m schemaMap) validateList(
