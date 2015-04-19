@@ -384,6 +384,8 @@ func (m schemaMap) Input(
 			fallthrough
 		case TypeFloat:
 			fallthrough
+		case TypeSet:
+			continue
 		case TypeString:
 			value, err = m.inputString(input, k, v)
 		default:
