@@ -1,3 +1,5 @@
+variable "foo" {}
+
 module "child" {
     source = "./child"
 }

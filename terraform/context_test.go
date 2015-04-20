@@ -11,6 +11,8 @@ import (
 	"sync/atomic"
 	"testing"
 	"time"
+
+	"github.com/mitchellh/mapstructure"
 )
 
 func TestContext2Plan(t *testing.T) {
@@ -2252,25 +2254,6 @@ func TestContext2Validate(t *testing.T) {
 	}
 }
 
-func TestContext2Validate_badVar(t *testing.T) {
-	p := testProvider("aws")
-	m := testModule(t, "validate-bad-var")
-	c := testContext2(t, &ContextOpts{
-		Module: m,
-		Providers: map[string]ResourceProviderFactory{
-			"aws": testProviderFuncFixed(p),
-		},
-	})
-
-	w, e := c.Validate()
-	if len(w) > 0 {
-		t.Fatalf("bad: %#v", w)
-	}
-	if len(e) == 0 {
-		t.Fatalf("bad: %#v", e)
-	}
-}
-
 func TestContext2Validate_countNegative(t *testing.T) {
 	p := testProvider("aws")
 	m := testModule(t, "validate-count-negative")
@@ -2717,25 +2700,6 @@ func TestContext2Validate_selfRef(t *testing.T) {
 func TestContext2Validate_selfRefMulti(t *testing.T) {
 	p := testProvider("aws")
 	m := testModule(t, "validate-self-ref-multi")
-	c := testContext2(t, &ContextOpts{
-		Module: m,
-		Providers: map[string]ResourceProviderFactory{
-			"aws": testProviderFuncFixed(p),
-		},
-	})
-
-	w, e := c.Validate()
-	if len(w) > 0 {
-		t.Fatalf("bad: %#v", w)
-	}
-	if len(e) == 0 {
-		t.Fatalf("bad: %#v", e)
-	}
-}
-
-func TestContext2Validate_selfRefMultiAll(t *testing.T) {
-	p := testProvider("aws")
-	m := testModule(t, "validate-self-ref-multi-all")
 	c := testContext2(t, &ContextOpts{
 		Module: m,
 		Providers: map[string]ResourceProviderFactory{
@@ -6057,8 +6021,14 @@ func testDiffFn(
 	diff.Attributes = make(map[string]*ResourceAttrDiff)
 
 	for k, v := range c.Raw {
-		if _, ok := v.(string); !ok {
-			continue
+		var value string
+		if err := mapstructure.WeakDecode(v, &value); err != nil {
+			var list []string
+			if err := mapstructure.WeakDecode(v, &list); err == nil {
+				value = strings.Join(list, ",")
+			} else {
+				continue
+			}
 		}
 
 		if k == "nil" {
@@ -6080,11 +6050,11 @@ func testDiffFn(
 			if cv, ok := c.Config["compute_value"]; ok {
 				if cv.(string) == "1" {
 					attrDiff.NewComputed = false
-					attrDiff.New = fmt.Sprintf("computed_%s", v.(string))
+					attrDiff.New = fmt.Sprintf("computed_%s", value)
 				}
 			}
 
-			diff.Attributes[v.(string)] = attrDiff
+			diff.Attributes[value] = attrDiff
 			continue
 		}
 
@@ -6099,11 +6069,19 @@ func testDiffFn(
 		}
 		if !found {
 			v = c.Config[k]
+			if err := mapstructure.WeakDecode(v, &value); err != nil {
+				var list []string
+				if err := mapstructure.WeakDecode(v, &list); err == nil {
+					value = strings.Join(list, ",")
+				} else {
+					continue
+				}
+			}
 		}
 
 		attrDiff := &ResourceAttrDiff{
 			Old: "",
-			New: v.(string),
+			New: value,
 		}
 
 		if k == "require_new" {
