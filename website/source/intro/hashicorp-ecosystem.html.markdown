@@ -14,8 +14,11 @@ If you are using Terraform to create, combine, and modify infrastructure, it’s
 
 Below are summaries of HashiCorp’s open source projects and a graphic showing how Atlas connects them to create a full application delivery workflow. 
 
-
 # HashiCorp Ecosystem
+![Atlas Workflow](docs/atlas-workflow.png)
+
+[Atlas](https://atlas.hashicorp.com) is HashiCorp's only commercial product. It unites Packer, Terraform, and Consul to make application delivery a versioned, auditable, repeatable, and collaborative process.
+
 [Packer](https://packer.io) is a HashiCorp tool for creating machine images and deployable artifacts such as AMIs, OpenStack images, Docker containers, etc. 
 
 [Terraform](https://terraform.io) is a HashiCorp tool for creating, combining, and modifying infrastructure. In the Atlas workflow Terraform reads from the artifact registry and provisions infrastructure. 
@@ -25,5 +28,3 @@ Below are summaries of HashiCorp’s open source projects and a graphic showing 
 [Serf](https://serfdom.io) is a HashiCorp tool for cluster membership and failure detection. Consul uses Serf’s gossip protocol as the foundation for service discovery.
 
 [Vagrant](https://www.vagrantup.com) is a HashiCorp tool for managing development environments that mirror production. Vagrant environments reduce the friction of developing a project and reduce the risk of unexpected behavior appearing after deployment. Vagrant boxes can be built in parallel with production artifacts with Packer to maintain parity between development and production.
-
-[Atlas](https://atlas.hashicorp.com) is HashiCorp's only commercial product. It unites Packer, Terraform, and Consul to make application delivery a versioned, auditable, repeatable, and collaborative process.
