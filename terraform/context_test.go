@@ -610,6 +610,43 @@ func TestContext2Plan_preventDestroy_destroyPlan(t *testing.T) {
 	}
 }
 
+func TestContext2Plan_providerAliasMissing(t *testing.T) {
+	m := testModule(t, "apply-provider-alias-missing")
+	p := testProvider("aws")
+	p.ApplyFn = testApplyFn
+	p.DiffFn = testDiffFn
+	state := &State{
+		Modules: []*ModuleState{
+			&ModuleState{
+				Path: rootModulePath,
+				Resources: map[string]*ResourceState{
+					"aws_instance.foo": &ResourceState{
+						Type:     "aws_instance",
+						Provider: "aws.foo",
+						Primary: &InstanceState{
+							ID: "bar",
+							Attributes: map[string]string{
+								"require_new": "abc",
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+	ctx := testContext2(t, &ContextOpts{
+		Module: m,
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+		State: state,
+	})
+
+	if _, err := ctx.Plan(); err == nil {
+		t.Fatal("should err")
+	}
+}
+
 func TestContext2Plan_computed(t *testing.T) {
 	m := testModule(t, "plan-computed")
 	p := testProvider("aws")
