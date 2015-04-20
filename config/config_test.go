@@ -203,6 +203,34 @@ func TestConfigValidate_pathVarInvalid(t *testing.T) {
 	}
 }
 
+func TestConfigValidate_providerMulti(t *testing.T) {
+	c := testConfig(t, "validate-provider-multi")
+	if err := c.Validate(); err == nil {
+		t.Fatal("should not be valid")
+	}
+}
+
+func TestConfigValidate_providerMultiGood(t *testing.T) {
+	c := testConfig(t, "validate-provider-multi-good")
+	if err := c.Validate(); err != nil {
+		t.Fatalf("should be valid: %s", err)
+	}
+}
+
+func TestConfigValidate_providerMultiRefGood(t *testing.T) {
+	c := testConfig(t, "validate-provider-multi-ref-good")
+	if err := c.Validate(); err != nil {
+		t.Fatalf("should be valid: %s", err)
+	}
+}
+
+func TestConfigValidate_providerMultiRefBad(t *testing.T) {
+	c := testConfig(t, "validate-provider-multi-ref-bad")
+	if err := c.Validate(); err == nil {
+		t.Fatal("should not be valid")
+	}
+}
+
 func TestConfigValidate_provConnSplatOther(t *testing.T) {
 	c := testConfig(t, "validate-prov-conn-splat-other")
 	if err := c.Validate(); err != nil {
