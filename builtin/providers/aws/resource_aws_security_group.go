@@ -110,7 +110,7 @@ func resourceAwsSecurityGroupRead(d *schema.ResourceData, meta interface{}) erro
 	d.Set("name", sg.GroupName)
 	d.Set("vpc_id", sg.VPCID)
 	d.Set("owner_id", sg.OwnerID)
-	d.Set("tags", tagsToMap(sg.Tags))
+	d.Set("tags", tagsToMapSDK(sg.Tags))
 	return nil
 }
 
@@ -126,7 +126,7 @@ func resourceAwsSecurityGroupUpdate(d *schema.ResourceData, meta interface{}) er
 		return nil
 	}
 
-	if err := setTagsSDK(ec2conn, d); err != nil {
+	if err := setTagsSDK(conn, d); err != nil {
 		return err
 	}
 

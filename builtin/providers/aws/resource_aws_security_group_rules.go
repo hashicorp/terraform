@@ -7,8 +7,8 @@ import (
 	"sort"
 	"time"
 
+	"github.com/awslabs/aws-sdk-go/service/ec2"
 	"github.com/hashicorp/aws-sdk-go/aws"
-	"github.com/hashicorp/aws-sdk-go/gen/ec2"
 	"github.com/hashicorp/terraform/helper/hashcode"
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/nevins-b/terraform/helper/resource"
@@ -130,14 +130,14 @@ func resourceAwsSecurityGroupRulesCreate(d *schema.ResourceData, meta interface{
 	if err != nil {
 		return err
 	}
-	group := sgRaw.(ec2.SecurityGroup)
+	group := sgRaw.(*ec2.SecurityGroup)
 
 	if group.VPCID != nil {
-		ereq := &ec2.RevokeSecurityGroupEgressRequest{
+		ereq := &ec2.RevokeSecurityGroupEgressInput{
 			GroupID:       group.GroupID,
 			IPPermissions: group.IPPermissionsEgress,
 		}
-		err = ec2conn.RevokeSecurityGroupEgress(ereq)
+		_, err = ec2conn.RevokeSecurityGroupEgress(ereq)
 		if err != nil {
 			return err
 		}
@@ -160,18 +160,18 @@ func resourceAwsSecurityGroupRulesDelete(d *schema.ResourceData, meta interface{
 		if err != nil {
 			return err
 		}
-		group := sgRaw.(ec2.SecurityGroup)
-		ereq := &ec2.RevokeSecurityGroupEgressRequest{
+		group := sgRaw.(*ec2.SecurityGroup)
+		ereq := &ec2.RevokeSecurityGroupEgressInput{
 			GroupID:       group.GroupID,
 			IPPermissions: group.IPPermissionsEgress,
 		}
-		err = ec2conn.RevokeSecurityGroupEgress(ereq)
+		_, err = ec2conn.RevokeSecurityGroupEgress(ereq)
 
-		ireq := &ec2.RevokeSecurityGroupIngressRequest{
+		ireq := &ec2.RevokeSecurityGroupIngressInput{
 			GroupID:       group.GroupID,
 			IPPermissions: group.IPPermissions,
 		}
-		err = ec2conn.RevokeSecurityGroupIngress(ireq)
+		_, err = ec2conn.RevokeSecurityGroupIngress(ireq)
 		if err != nil {
 			ec2err, ok := err.(aws.APIError)
 			if !ok {
@@ -206,7 +206,7 @@ func resourceAwsSecurityGroupRulesRead(d *schema.ResourceData, meta interface{})
 		return nil
 	}
 
-	sg := sgRaw.(ec2.SecurityGroup)
+	sg := sgRaw.(*ec2.SecurityGroup)
 
 	ingressRules := resourceAwsSecurityGroupIPPermGather(d, sg.IPPermissions)
 	egressRules := resourceAwsSecurityGroupIPPermGather(d, sg.IPPermissionsEgress)
@@ -228,7 +228,7 @@ func resourceAwsSecurityGroupRulesUpdate(d *schema.ResourceData, meta interface{
 		return nil
 	}
 
-	group := sgRaw.(ec2.SecurityGroup)
+	group := sgRaw.(*ec2.SecurityGroup)
 
 	err = resourceAwsSecurityGroupUpdateRules(d, "ingress", meta, group)
 	if err != nil {
@@ -283,10 +283,10 @@ func resourceAwsSecurityGroupRuleHash(v interface{}) int {
 	return hashcode.String(buf.String())
 }
 
-func resourceAwsSecurityGroupIPPermGather(d *schema.ResourceData, permissions []ec2.IPPermission) []map[string]interface{} {
+func resourceAwsSecurityGroupIPPermGather(d *schema.ResourceData, permissions []*ec2.IPPermission) []map[string]interface{} {
 	ruleMap := make(map[string]map[string]interface{})
 	for _, perm := range permissions {
-		var fromPort, toPort int
+		var fromPort, toPort int64
 		if v := perm.FromPort; v != nil {
 			fromPort = *v
 		}
@@ -343,6 +343,7 @@ func resourceAwsSecurityGroupIPPermGather(d *schema.ResourceData, permissions []
 	}
 	rules := make([]map[string]interface{}, 0, len(ruleMap))
 	for _, m := range ruleMap {
+		log.Printf("[DEBUG] Rule %v", m)
 		rules = append(rules, m)
 	}
 	return rules
@@ -350,7 +351,8 @@ func resourceAwsSecurityGroupIPPermGather(d *schema.ResourceData, permissions []
 
 func resourceAwsSecurityGroupUpdateRules(
 	d *schema.ResourceData, ruleset string,
-	meta interface{}, group ec2.SecurityGroup) error {
+	meta interface{}, group *ec2.SecurityGroup) error {
+
 	if d.HasChange(ruleset) {
 		o, n := d.GetChange(ruleset)
 		if o == nil {
@@ -376,7 +378,7 @@ func resourceAwsSecurityGroupUpdateRules(
 		// not have service issues.
 
 		if len(remove) > 0 || len(add) > 0 {
-			ec2conn := meta.(*AWSClient).ec2conn
+			conn := meta.(*AWSClient).ec2conn
 
 			var err error
 			if len(remove) > 0 {
@@ -384,22 +386,22 @@ func resourceAwsSecurityGroupUpdateRules(
 					group, ruleset, remove)
 
 				if ruleset == "egress" {
-					req := &ec2.RevokeSecurityGroupEgressRequest{
+					req := &ec2.RevokeSecurityGroupEgressInput{
 						GroupID:       group.GroupID,
 						IPPermissions: remove,
 					}
-					err = ec2conn.RevokeSecurityGroupEgress(req)
+					_, err = conn.RevokeSecurityGroupEgress(req)
 				} else {
-					req := &ec2.RevokeSecurityGroupIngressRequest{
+					req := &ec2.RevokeSecurityGroupIngressInput{
 						GroupID:       group.GroupID,
 						IPPermissions: remove,
 					}
-					err = ec2conn.RevokeSecurityGroupIngress(req)
+					_, err = conn.RevokeSecurityGroupIngress(req)
 				}
 
 				if err != nil {
 					return fmt.Errorf(
-						"Error authorizing security group %s rules: %s",
+						"Error revoking security group %s rule: %s",
 						ruleset, err)
 				}
 			}
@@ -409,13 +411,13 @@ func resourceAwsSecurityGroupUpdateRules(
 					group, ruleset, add)
 				// Authorize the new rules
 				if ruleset == "egress" {
-					req := &ec2.AuthorizeSecurityGroupEgressRequest{
+					req := &ec2.AuthorizeSecurityGroupEgressInput{
 						GroupID:       group.GroupID,
 						IPPermissions: add,
 					}
-					err = ec2conn.AuthorizeSecurityGroupEgress(req)
+					_, err = conn.AuthorizeSecurityGroupEgress(req)
 				} else {
-					req := &ec2.AuthorizeSecurityGroupIngressRequest{
+					req := &ec2.AuthorizeSecurityGroupIngressInput{
 						GroupID:       group.GroupID,
 						IPPermissions: add,
 					}
@@ -424,12 +426,12 @@ func resourceAwsSecurityGroupUpdateRules(
 						req.GroupName = group.GroupName
 					}
 
-					err = ec2conn.AuthorizeSecurityGroupIngress(req)
+					_, err = conn.AuthorizeSecurityGroupIngress(req)
 				}
 
 				if err != nil {
 					return fmt.Errorf(
-						"Error authorizing security group %s rules: %s",
+						"Error authorizing security group %s rule: %s",
 						ruleset, err)
 				}
 			}
