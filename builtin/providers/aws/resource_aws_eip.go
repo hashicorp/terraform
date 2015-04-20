@@ -104,20 +104,20 @@ func resourceAwsEipRead(d *schema.ResourceData, meta interface{}) error {
 
 	assocIds := []*string{}
 	publicIps := []*string{}
+	req := &ec2.DescribeAddressesInput{}
+
 	if domain == "vpc" {
 		assocIds = []*string{aws.String(id)}
+		req = &ec2.DescribeAddressesInput{AllocationIDs: assocIds}
 	} else {
 		publicIps = []*string{aws.String(id)}
+		req = &ec2.DescribeAddressesInput{PublicIPs: publicIps}
 	}
 
 	log.Printf(
 		"[DEBUG] EIP describe configuration: %#v, %#v (domain: %s)",
 		assocIds, publicIps, domain)
 
-	req := &ec2.DescribeAddressesInput{
-		AllocationIDs: assocIds,
-		PublicIPs:     publicIps,
-	}
 	describeAddresses, err := ec2conn.DescribeAddresses(req)
 	if err != nil {
 		if ec2err, ok := err.(aws.APIError); ok && ec2err.Code == "InvalidAllocationID.NotFound" {
