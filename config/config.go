@@ -430,6 +430,15 @@ func (c *Config) Validate() error {
 			}
 		}
 
+		// Verify provider points to a provider that is configured
+		if r.Provider != "" {
+			if _, ok := providerSet[r.Provider]; !ok {
+				errs = append(errs, fmt.Errorf(
+					"%s: resource depends on non-configured provider '%s'",
+					n, r.Provider))
+			}
+		}
+
 		// Verify provisioners don't contain any splats
 		for _, p := range r.Provisioners {
 			// This validation checks that there are now splat variables
