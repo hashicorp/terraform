@@ -2883,6 +2883,28 @@ func TestContext2Input(t *testing.T) {
 	}
 }
 
+func TestContext2Input_badVarDefault(t *testing.T) {
+	m := testModule(t, "input-bad-var-default")
+	p := testProvider("aws")
+	p.ApplyFn = testApplyFn
+	p.DiffFn = testDiffFn
+	ctx := testContext2(t, &ContextOpts{
+		Module: m,
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+	})
+
+	p.InputFn = func(i UIInput, c *ResourceConfig) (*ResourceConfig, error) {
+		c.Config["foo"] = "bar"
+		return c, nil
+	}
+
+	if err := ctx.Input(InputModeStd); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+}
+
 func TestContext2Input_provider(t *testing.T) {
 	m := testModule(t, "input-provider")
 	p := testProvider("aws")
