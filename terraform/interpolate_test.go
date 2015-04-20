@@ -137,7 +137,7 @@ func TestInterpolater_pathRoot(t *testing.T) {
 	})
 }
 
-func TestInterpolater_multiAttributeSet(t *testing.T) {
+func TestInterpolater_computedSet(t *testing.T) {
 	lock := new(sync.RWMutex)
 	state := &State{
 		Modules: []*ModuleState{
@@ -166,7 +166,7 @@ func TestInterpolater_multiAttributeSet(t *testing.T) {
 		},
 	}
 
-	mod := testModule(t, "resource-multi-attribute-set")
+	mod := testModule(t, "resource-computed-set")
 	i := &Interpolater{
 		Module:    mod,
 		State:     state,
@@ -205,7 +205,7 @@ func TestInterpolater_multiAttributeSet(t *testing.T) {
 	})
 }
 
-func TestInterpolater_multiAttributeList(t *testing.T) {
+func TestInterpolater_computedList(t *testing.T) {
 	lock := new(sync.RWMutex)
 	state := &State{
 		Modules: []*ModuleState{
@@ -230,7 +230,7 @@ func TestInterpolater_multiAttributeList(t *testing.T) {
 		},
 	}
 
-	mod := testModule(t, "resource-multi-attribute-list")
+	mod := testModule(t, "resource-computed-list")
 	i := &Interpolater{
 		Module:    mod,
 		State:     state,
