@@ -216,36 +216,36 @@ func TestAccAWSSecurityGroup_generatedName(t *testing.T) {
 
 func TestAccAWSSecurityGroup_DefaultEgress(t *testing.T) {
 
-        // VPC
-        resource.Test(t, resource.TestCase{
-                PreCheck:     func() { testAccPreCheck(t) },
-                Providers:    testAccProviders,
-                CheckDestroy: testAccCheckAWSSecurityGroupDestroy,
-                Steps: []resource.TestStep{
-                        resource.TestStep{
-                                Config: testAccAWSSecurityGroupConfigDefaultEgress,
-                                Check: resource.ComposeTestCheckFunc(
-                                        testAccCheckAWSSecurityGroupExistsWithoutDefault("aws_security_group.worker"),
-                                ),
-                        },
-                },
-        })
+	// VPC
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSSecurityGroupDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccAWSSecurityGroupConfigDefaultEgress,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSSecurityGroupExistsWithoutDefault("aws_security_group.worker"),
+				),
+			},
+		},
+	})
 
-        // Classic
-        var group ec2.SecurityGroup
-        resource.Test(t, resource.TestCase{
-                PreCheck:     func() { testAccPreCheck(t) },
-                Providers:    testAccProviders,
-                CheckDestroy: testAccCheckAWSSecurityGroupDestroy,
-                Steps: []resource.TestStep{
-                        resource.TestStep{
-                                Config: testAccAWSSecurityGroupConfigClassic,
-                                Check: resource.ComposeTestCheckFunc(
-                                        testAccCheckAWSSecurityGroupExists("aws_security_group.web", &group),
-                                ),
-                        },
-                },
-        })
+	// Classic
+	var group ec2.SecurityGroup
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSSecurityGroupDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccAWSSecurityGroupConfigClassic,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSSecurityGroupExists("aws_security_group.web", &group),
+				),
+			},
+		},
+	})
 }
 
 func testAccCheckAWSSecurityGroupDestroy(s *terraform.State) error {
@@ -429,35 +429,35 @@ func testAccCheckAWSSecurityGroupAttributesChanged(group *ec2.SecurityGroup) res
 }
 
 func testAccCheckAWSSecurityGroupExistsWithoutDefault(n string) resource.TestCheckFunc {
-        return func(s *terraform.State) error {
-                rs, ok := s.RootModule().Resources[n]
-                if !ok {
-                        return fmt.Errorf("Not found: %s", n)
-                }
+	return func(s *terraform.State) error {
+		rs, ok := s.RootModule().Resources[n]
+		if !ok {
+			return fmt.Errorf("Not found: %s", n)
+		}
 
-                if rs.Primary.ID == "" {
-                        return fmt.Errorf("No Security Group is set")
-                }
+		if rs.Primary.ID == "" {
+			return fmt.Errorf("No Security Group is set")
+		}
 
-                conn := testAccProvider.Meta().(*AWSClient).ec2conn
-                req := &ec2.DescribeSecurityGroupsInput{
-                        GroupIDs: []*string{aws.String(rs.Primary.ID)},
-                }
-                resp, err := conn.DescribeSecurityGroups(req)
-                if err != nil {
-                        return err
-                }
+		conn := testAccProvider.Meta().(*AWSClient).ec2conn
+		req := &ec2.DescribeSecurityGroupsInput{
+			GroupIDs: []*string{aws.String(rs.Primary.ID)},
+		}
+		resp, err := conn.DescribeSecurityGroups(req)
+		if err != nil {
+			return err
+		}
 
-                if len(resp.SecurityGroups) > 0 && *resp.SecurityGroups[0].GroupID == rs.Primary.ID {
-                        group := *resp.SecurityGroups[0]
+		if len(resp.SecurityGroups) > 0 && *resp.SecurityGroups[0].GroupID == rs.Primary.ID {
+			group := *resp.SecurityGroups[0]
 
-                        if len(group.IPPermissionsEgress) != 1 {
-                                return fmt.Errorf("Security Group should have only 1 egress rule, got %d", len(group.IPPermissionsEgress))
-                        }
-                }
+			if len(group.IPPermissionsEgress) != 1 {
+				return fmt.Errorf("Security Group should have only 1 egress rule, got %d", len(group.IPPermissionsEgress))
+			}
+		}
 
-                return nil
-        }
+		return nil
+	}
 }
 
 const testAccAWSSecurityGroupConfig = `
