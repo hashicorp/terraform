@@ -2984,6 +2984,52 @@ func TestContext2Input_provider(t *testing.T) {
 	}
 }
 
+func TestContext2Input_providerMulti(t *testing.T) {
+	m := testModule(t, "input-provider-multi")
+	p := testProvider("aws")
+	p.ApplyFn = testApplyFn
+	p.DiffFn = testDiffFn
+	ctx := testContext2(t, &ContextOpts{
+		Module: m,
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+	})
+
+	var actual []interface{}
+	var lock sync.Mutex
+	p.InputFn = func(i UIInput, c *ResourceConfig) (*ResourceConfig, error) {
+		c.Config["foo"] = "bar"
+		return c, nil
+	}
+	p.ConfigureFn = func(c *ResourceConfig) error {
+		lock.Lock()
+		defer lock.Unlock()
+		actual = append(actual, c.Config["foo"])
+		return nil
+	}
+	p.ValidateFn = func(c *ResourceConfig) ([]string, []error) {
+		return nil, c.CheckSet([]string{"foo"})
+	}
+
+	if err := ctx.Input(InputModeStd); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	if _, err := ctx.Plan(); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	if _, err := ctx.Apply(); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	expected := []interface{}{"bar", "bar"}
+	if !reflect.DeepEqual(actual, expected) {
+		t.Fatalf("bad: %#v", actual)
+	}
+}
+
 func TestContext2Input_providerOnce(t *testing.T) {
 	m := testModule(t, "input-provider-once")
 	p := testProvider("aws")
