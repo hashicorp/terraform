@@ -395,11 +395,14 @@ func computeValuesFromParts(parts []string, attributes map[string]string) []stri
 
 	attributeName := parts[0]
 	attributeIndex := parts[1]
-	nestedAttribute := parts[2]
 
 	for attribute, value := range attributes {
-		if attributeParts := strings.Split(attribute, "."); attributeParts[0] == attributeName && attributeParts[1] != "#" && attributeParts[2] == nestedAttribute {
-			values = append(values, value)
+		if attributeParts := strings.Split(attribute, "."); attributeParts[0] == attributeName && attributeParts[1] != "#" {
+			if len(parts) <= 2 {
+				values = append(values, value)
+			} else if nestedAttribute := parts[2]; attributeParts[2] == nestedAttribute {
+				values = append(values, value)
+			}
 		}
 	}
 

@@ -137,7 +137,7 @@ func TestInterpolater_pathRoot(t *testing.T) {
 	})
 }
 
-func TestInterpolater_multiAttribute(t *testing.T) {
+func TestInterpolater_multiAttributeSet(t *testing.T) {
 	lock := new(sync.RWMutex)
 	state := &State{
 		Modules: []*ModuleState{
@@ -166,7 +166,7 @@ func TestInterpolater_multiAttribute(t *testing.T) {
 		},
 	}
 
-	mod := testModule(t, "resource-multi-attribute")
+	mod := testModule(t, "resource-multi-attribute-set")
 	i := &Interpolater{
 		Module:    mod,
 		State:     state,
@@ -188,6 +188,12 @@ func TestInterpolater_multiAttribute(t *testing.T) {
 		Type:  ast.TypeString,
 	})
 
+	expectedValues = []string{"baz12", "baz22", "baz32", "baz42"}
+	testInterpolate(t, i, scope, "resource.name.foo.*.bar2", ast.Variable{
+		Value: strings.Join(expectedValues, config.InterpSplitDelim),
+		Type:  ast.TypeString,
+	})
+
 	testInterpolate(t, i, scope, "resource.name.foo.0.bar1", ast.Variable{
 		Value: "baz1",
 		Type:  ast.TypeString,
@@ -195,6 +201,54 @@ func TestInterpolater_multiAttribute(t *testing.T) {
 
 	testInterpolate(t, i, scope, "resource.name.foo.4.bar1", ast.Variable{
 		Value: "",
+		Type:  ast.TypeString,
+	})
+}
+
+func TestInterpolater_multiAttributeList(t *testing.T) {
+	lock := new(sync.RWMutex)
+	state := &State{
+		Modules: []*ModuleState{
+			&ModuleState{
+				Path: rootModulePath,
+				Resources: map[string]*ResourceState{
+					"resource.name": &ResourceState{
+						Type: "resource",
+						Primary: &InstanceState{
+							ID: "qux",
+							Attributes: map[string]string{
+								"foo.#": "4",
+								"foo.298374": "bar1",
+								"foo.233489": "bar2",
+								"foo.872348": "bar3",
+								"foo.348573": "bar4",
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	mod := testModule(t, "resource-multi-attribute-list")
+	i := &Interpolater{
+		Module:    mod,
+		State:     state,
+		StateLock: lock,
+	}
+
+	scope := &InterpolationScope{
+		Path: rootModulePath,
+	}
+
+	testInterpolate(t, i, scope, "resource.name.foo.#", ast.Variable{
+		Value: "4",
+		Type:  ast.TypeString,
+	})
+
+	expectedValues := []string{"bar1", "bar2", "bar3", "bar4"}
+	testInterpolate(t, i, scope, "resource.name.foo.*", ast.Variable{
+		Value: strings.Join(expectedValues, config.InterpSplitDelim),
 		Type:  ast.TypeString,
 	})
 }
