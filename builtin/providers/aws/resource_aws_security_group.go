@@ -110,7 +110,7 @@ func resourceAwsSecurityGroupRead(d *schema.ResourceData, meta interface{}) erro
 	d.Set("name", sg.GroupName)
 	d.Set("vpc_id", sg.VPCID)
 	d.Set("owner_id", sg.OwnerID)
-	d.Set("tags", tagsToMapSDK(sg.Tags))
+	d.Set("tags", tagsToMap(sg.Tags))
 	return nil
 }
 
