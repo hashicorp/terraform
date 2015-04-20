@@ -14,5 +14,5 @@ resource "aws_instance" "metoo" {
 }
 
 resource "aws_elb" "me" {
-  instances = "${aws_instance.me.*.id}"
+  instances = ["${aws_instance.me.*.id}"]
 }

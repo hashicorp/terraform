@@ -102,6 +102,22 @@ func TestTreeLoad_duplicate(t *testing.T) {
 	}
 }
 
+func TestTreeLoad_invalid(t *testing.T) {
+	storage := testStorage(t)
+	tree := NewTree("", testConfig(t, "invalid"))
+
+	if tree.Loaded() {
+		t.Fatal("should not be loaded")
+	}
+
+	// This should get things
+	if err := tree.Load(storage, GetModeGet); err == nil {
+		t.Fatalf("should error")
+	} else if !strings.Contains(err.Error(), "interpolations") {
+		t.Fatalf("bad: %s", err)
+	}
+}
+
 func TestTreeLoad_parentRef(t *testing.T) {
 	storage := testStorage(t)
 	tree := NewTree("", testConfig(t, "basic-parent"))
@@ -200,18 +216,6 @@ func TestTreeName(t *testing.T) {
 	}
 }
 
-func TestTreeValidate_badChild(t *testing.T) {
-	tree := NewTree("", testConfig(t, "validate-child-bad"))
-
-	if err := tree.Load(testStorage(t), GetModeGet); err != nil {
-		t.Fatalf("err: %s", err)
-	}
-
-	if err := tree.Validate(); err == nil {
-		t.Fatal("should error")
-	}
-}
-
 func TestTreeValidate_badChildOutput(t *testing.T) {
 	tree := NewTree("", testConfig(t, "validate-bad-output"))
 
@@ -226,18 +230,6 @@ func TestTreeValidate_badChildOutput(t *testing.T) {
 
 func TestTreeValidate_badChildVar(t *testing.T) {
 	tree := NewTree("", testConfig(t, "validate-bad-var"))
-
-	if err := tree.Load(testStorage(t), GetModeGet); err != nil {
-		t.Fatalf("err: %s", err)
-	}
-
-	if err := tree.Validate(); err == nil {
-		t.Fatal("should error")
-	}
-}
-
-func TestTreeValidate_badRoot(t *testing.T) {
-	tree := NewTree("", testConfig(t, "validate-root-bad"))
 
 	if err := tree.Load(testStorage(t), GetModeGet); err != nil {
 		t.Fatalf("err: %s", err)

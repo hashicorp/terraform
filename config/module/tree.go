@@ -140,6 +140,12 @@ func (t *Tree) Load(s Storage, mode GetMode) error {
 	t.lock.Lock()
 	defer t.lock.Unlock()
 
+	// The configuration must be valid to load modules
+	if err := t.config.Validate(); err != nil {
+		return fmt.Errorf(
+			"configuration must be valid to load modules. error: %s", err)
+	}
+
 	// Reset the children if we have any
 	t.children = nil
 
