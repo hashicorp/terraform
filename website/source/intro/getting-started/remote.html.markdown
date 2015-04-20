@@ -11,16 +11,25 @@ We've now seen how to build, change, and destroy infrastructure
 from a local machine. This is great for testing and development,
 however in production environments it is more responsible to run
 Terraform remotely and store a master Terraform state remotely.
-Otherwise it's possible for multiple different Terraform states
-to be stored on developer machines, which could lead to conflicts.
-Additionally by running Terraform remotely, you can move access
-credentials off of developer machines, release local machines from
-long-running Terraform processes, and store a history of
-infrastructure changes to help with auditing and collaboration.
+
+[Atlas](https://atlas.hashicorp.com/?utm_source=oss&utm_medium=getting-started&utm_campaign=terraform)
+is HashiCorp's solution for Terraform remote runs and
+infrastructure version control. Running Terraform
+in Atlas allows teams to easily version, audit, and collaborate
+on infrastructure changes. Each proposed change generates
+a Terraform plan which can be reviewed and collaborated on as a team.
+When a proposed change is accepted, the Terraform logs are stored
+in Atlas, resulting in a linear history of infrastructure states to
+help with auditing and policy enforcement. Additional benefits to
+running Terraform remotely include moving access
+credentials off of developer machines and releasing local machines
+from long-running Terraform processes.
 
 # How to Use Terraform Remotely
-Using Terraform remotely is straightforward with [Atlas by HashiCorp](https://atlas.hashicorp.com/?utm_source=oss&utm_medium=getting-started&utm_campaign=terraform).
-You first need to configure [Terraform remote state storage](/docs/commands/remote.html)
+You can learn how to use Terraform remotely with our [interactive tutorial](https://atlas.hashicorp.com/tutorial/terraform/?utm_source=oss&utm_medium=getting-started&utm_campaign=terraform),
+or you can follow the outlined steps below.
+
+First, configure [Terraform remote state storage](/docs/commands/remote.html)
 with the command:
 
 ```
