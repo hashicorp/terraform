@@ -57,6 +57,46 @@ Within the block (the `{ }`) is configuration for the resource.
 The configuration is dependent on the type, and is documented
 [for each provider](/docs/providers/index.html).
 
+## Multiple Provider Instances
+
+You can define multiple instances of the same provider in order to support
+multiple regions, multiple hosts, etc. The primary use case for this for
+multiple cloud regions. Other use cases including targeting multiple
+Docker hosts, multiple Consul hosts, etc.
+
+To define multiple provider instances, repeat the provider configuration
+multiple times, but set the `alias` field and name the provider. For
+example:
+
+```
+# The default provider
+provider "aws" {
+	# ...
+}
+
+# West coast region
+provider "aws" {
+	alias = "west"
+
+	region = "us-west-2"
+}
+```
+
+After naming a provider, you reference it in resources with the `provider`
+field:
+
+```
+resource "aws_instance" "foo" {
+	provider = "aws.west"
+
+	# ...
+}
+```
+
+If a provider isn't specified, then the default provider configuration
+is used (the provider configuration with no `alias` set). The value of the
+`provider` field is `TYPE.ALIAS`, such as "aws.west" above.
+
 ## Syntax
 
 The full syntax is:
@@ -64,6 +104,7 @@ The full syntax is:
 ```
 provider NAME {
 	CONFIG ...
+	[alias = ALIAS]
 }
 ```
 
