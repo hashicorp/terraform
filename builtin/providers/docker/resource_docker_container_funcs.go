@@ -138,11 +138,13 @@ func resourceDockerContainerRead(d *schema.ResourceData, meta interface{}) error
 		return resourceDockerContainerDelete(d, meta)
 	}
 
-  // Read Network Settings
-  d.Set("ip_address", container.NetworkSettings.IPAddress)
-  d.Set("ip_prefix_length", container.NetworkSettings.IPPrefixLen)
-  d.Set("gateway", container.NetworkSettings.Gateway)
-  d.Set("bridge", container.NetworkSettings.Bridge)
+	// Read Network Settings
+	if container.NetworkSettings != nil {
+		d.Set("ip_address", container.NetworkSettings.IPAddress)
+		d.Set("ip_prefix_length", container.NetworkSettings.IPPrefixLen)
+		d.Set("gateway", container.NetworkSettings.Gateway)
+		d.Set("bridge", container.NetworkSettings.Bridge)
+	}
 
 	return nil
 }
