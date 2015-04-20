@@ -77,3 +77,16 @@ the following:
   is coming from.
 * `read_only` - (Optinal, bool) If true, this volume will be readonly.
   Defaults to false.
+
+## Attributes Reference
+
+The following attributes are exported:
+
+ * `ip_address` - The IP address of the container as read from its
+   NetworkSettings.
+ * `ip_prefix_length` - The IP prefix length of the container as read from its
+   NetworkSettings.
+ * `gateway` - The network gateway of the container as read from its
+   NetworkSettings.
+ * `bridge` - The network bridge of the container as read from its
+   NetworkSettings.
