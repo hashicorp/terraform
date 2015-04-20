@@ -120,6 +120,7 @@ func Provider() terraform.ResourceProvider {
 			"aws_route_table":                  resourceAwsRouteTable(),
 			"aws_s3_bucket":                    resourceAwsS3Bucket(),
 			"aws_security_group":               resourceAwsSecurityGroup(),
+			"aws_security_group_rule":          resourceAwsSecurityGroupRule(),
 			"aws_subnet":                       resourceAwsSubnet(),
 			"aws_vpc_dhcp_options_association": resourceAwsVpcDhcpOptionsAssociation(),
 			"aws_vpc_dhcp_options":             resourceAwsVpcDhcpOptions(),
