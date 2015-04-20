@@ -239,6 +239,20 @@ func (c *Config) Validate() error {
 		}
 	}
 
+	// Check that providers aren't declared multiple times.
+	providerSet := make(map[string]struct{})
+	for _, p := range c.ProviderConfigs {
+		name := p.FullName()
+		if _, ok := providerSet[name]; ok {
+			errs = append(errs, fmt.Errorf(
+				"provider.%s: declared multiple times, you can only declare a provider once",
+				name))
+			continue
+		}
+
+		providerSet[name] = struct{}{}
+	}
+
 	// Check that all references to modules are valid
 	modules := make(map[string]*Module)
 	dupped := make(map[string]struct{})
@@ -649,6 +663,14 @@ func (o *Output) mergerMerge(m merger) merger {
 	result.RawConfig = result.RawConfig.merge(o2.RawConfig)
 
 	return &result
+}
+
+func (c *ProviderConfig) FullName() string {
+	if c.Alias == "" {
+		return c.Name
+	}
+
+	return fmt.Sprintf("%s.%s", c.Name, c.Alias)
 }
 
 func (c *ProviderConfig) mergerName() string {
