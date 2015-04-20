@@ -1,5 +1,11 @@
 ## 0.5.0 (unreleased)
 
+FEATURES:
+
+  * **Multi-provider (a.k.a multi-region)**: Multiple instances of a single
+     provider can be configured so resources can apply to different settings.
+     As an example, this allows Terraform to manage multiple regions with AWS.
+
 IMPROVEMENTS:
 
   * **New config function: `length`** - Get the length of a string or a list.
