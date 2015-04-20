@@ -3,8 +3,8 @@ package aws
 import (
 	"fmt"
 	"log"
-
-	"github.com/hashicorp/terraform/helper/multierror"
+	"os"
+	"time"
 
 	"github.com/awslabs/aws-sdk-go/aws"
 	"github.com/awslabs/aws-sdk-go/service/autoscaling"
@@ -14,13 +14,18 @@ import (
 	"github.com/awslabs/aws-sdk-go/service/rds"
 	"github.com/awslabs/aws-sdk-go/service/route53"
 	"github.com/awslabs/aws-sdk-go/service/s3"
+
+	"github.com/hashicorp/terraform/helper/multierror"
 )
 
 type Config struct {
-	AccessKey string
-	SecretKey string
-	Token     string
-	Region    string
+	AccessKey              string
+	SecretKey              string
+	Token                  string
+	CredentialsFilePath    string
+	CredentialsFileProfile string
+	Region                 string
+	Provider               aws.CredentialsProvider
 }
 
 type AWSClient struct {
@@ -32,6 +37,61 @@ type AWSClient struct {
 	region          string
 	rdsconn         *rds.RDS
 	iamconn         *iam.IAM
+}
+
+func (c *Config) loadAndValidate(providerCode string) (interface{}, error) {
+	c.tryLoadingDeprecatedEnvVars()
+	credsProvider, err := c.getCredsProvider(providerCode)
+	if err != nil {
+		return nil, err
+	}
+
+	if _, err := credsProvider.Credentials(); err != nil {
+		return nil, err
+	}
+
+	c.Provider = credsProvider
+
+	return c.Client()
+}
+
+func (c *Config) tryLoadingDeprecatedEnvVars() {
+	// Backward compatibility
+	if c.Token == "" {
+		c.Token = os.Getenv("AWS_SECURITY_TOKEN")
+	}
+	if c.CredentialsFilePath == "" {
+		c.CredentialsFilePath = os.Getenv("AWS_CREDENTIAL_FILE")
+	}
+	if c.CredentialsFileProfile == "" {
+		c.CredentialsFileProfile = os.Getenv("AWS_PROFILE")
+	}
+}
+
+func (c *Config) getCredsProvider(providerCode string) (aws.CredentialsProvider, error) {
+	switch providerCode {
+	case "static":
+		log.Println("[INFO] Loading static credentials")
+		return aws.Creds(c.AccessKey, c.SecretKey, c.Token), nil
+	case "iam":
+		log.Println("[INFO] Loading credentials via IAM")
+		return aws.IAMCreds(), nil
+	case "env":
+		log.Println("[INFO] Loading credentials from ENV variables")
+		return aws.EnvCreds()
+	case "file":
+		log.Printf("[INFO] Loading credentials from config file at %s",
+			c.CredentialsFilePath)
+		// TODO: Could be a variable but there's no standardized name for it
+		// More importantly, what is really the point of this variable??
+		expiry := 10 * time.Minute
+
+		return aws.ProfileCreds(
+			c.CredentialsFilePath, c.CredentialsFileProfile, expiry)
+	}
+
+	log.Println("[INFO] Loading credentials automagically via AWS library")
+	return aws.DetectCreds(c.AccessKey, c.SecretKey, c.Token), nil
 }
 
 // Client configures and returns a fully initailized AWSClient
@@ -54,9 +114,8 @@ func (c *Config) Client() (interface{}, error) {
 		client.region = c.Region
 
 		log.Println("[INFO] Building AWS auth structure")
-		creds := aws.DetectCreds(c.AccessKey, c.SecretKey, c.Token)
 		awsConfig := &aws.Config{
-			Credentials: creds,
+			Credentials: c.Provider,
 			Region:      c.Region,
 		}
 
@@ -82,10 +141,9 @@ func (c *Config) Client() (interface{}, error) {
 		// See http://docs.aws.amazon.com/general/latest/gr/sigv4_changes.html
 		log.Println("[INFO] Initializing Route 53 connection")
 		client.r53conn = route53.New(&aws.Config{
-			Credentials: creds,
+			Credentials: c.Provider,
 			Region:      "us-east-1",
 		})
-
 	}
 
 	if len(errs) > 0 {

@@ -13,32 +13,47 @@ func Provider() terraform.ResourceProvider {
 	return &schema.Provider{
 		Schema: map[string]*schema.Schema{
 			"access_key": &schema.Schema{
-				Type:     schema.TypeString,
-				Required: true,
-				DefaultFunc: schema.MultiEnvDefaultFunc([]string{
-					"AWS_ACCESS_KEY",
-					"AWS_ACCESS_KEY_ID",
-				}, nil),
+				Type:        schema.TypeString,
+				Optional:    true,
 				Description: descriptions["access_key"],
 			},
 
 			"secret_key": &schema.Schema{
-				Type:     schema.TypeString,
-				Required: true,
-				DefaultFunc: schema.MultiEnvDefaultFunc([]string{
-					"AWS_SECRET_KEY",
-					"AWS_SECRET_ACCESS_KEY",
-				}, nil),
+				Type:        schema.TypeString,
+				Optional:    true,
 				Description: descriptions["secret_key"],
 			},
 
+			"security_token": &schema.Schema{
+				Type:        schema.TypeString,
+				Optional:    true,
+				Description: descriptions["security_token"],
+			},
+
+			"credentials_provider": &schema.Schema{
+				Type:         schema.TypeString,
+				Optional:     true,
+				InputDefault: "detect",
+				Description:  descriptions["credentials_provider"],
+			},
+
+			"credentials_file_path": &schema.Schema{
+				Type:         schema.TypeString,
+				Optional:     true,
+				InputDefault: "",
+				Description:  descriptions["credentials_file_path"],
+			},
+
+			"credentials_file_profile": &schema.Schema{
+				Type:         schema.TypeString,
+				Optional:     true,
+				InputDefault: "",
+				Description:  descriptions["credentials_file_profile"],
+			},
+
 			"region": &schema.Schema{
-				Type:     schema.TypeString,
-				Required: true,
-				DefaultFunc: schema.MultiEnvDefaultFunc([]string{
-					"AWS_REGION",
-					"AWS_DEFAULT_REGION",
-				}, nil),
+				Type:         schema.TypeString,
+				Optional:     true,
 				Description:  descriptions["region"],
 				InputDefault: "us-east-1",
 			},
@@ -87,15 +102,29 @@ func init() {
 
 		"secret_key": "The secret key for API operations. You can retrieve this\n" +
 			"from the 'Security & Credentials' section of the AWS console.",
+
+		"security_token": "The temporary token from AWS STS service (if applicable)",
+
+		"credentials_provider": "How to load credentials (static | iam | env | file)\n" +
+			"Defaults to detect",
+
+		"credentials_file_path": "Path to a file with credentials. Default\n" +
+			"is ~/.aws/credentials. Implies credentials_provider=file",
+
+		"credentials_file_profile": "Profile name in a credentials file." +
+			"Default is 'default'. Implies credentials_provider=file",
 	}
 }
 
 func providerConfigure(d *schema.ResourceData) (interface{}, error) {
 	config := Config{
-		AccessKey: d.Get("access_key").(string),
-		SecretKey: d.Get("secret_key").(string),
-		Region:    d.Get("region").(string),
+		AccessKey:              d.Get("access_key").(string),
+		SecretKey:              d.Get("secret_key").(string),
+		Token:                  d.Get("security_token").(string),
+		CredentialsFilePath:    d.Get("credentials_file_path").(string),
+		CredentialsFileProfile: d.Get("credentials_file_profile").(string),
+		Region:                 d.Get("region").(string),
 	}
 
-	return config.Client()
+	return config.loadAndValidate(d.Get("credentials_provider").(string))
 }
