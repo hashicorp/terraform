@@ -175,6 +175,8 @@ func (c *Context) Input(mode InputMode) error {
 
 			v := m[n]
 			switch v.Type() {
+			case config.VariableTypeUnknown:
+				continue
 			case config.VariableTypeMap:
 				continue
 			case config.VariableTypeString:
