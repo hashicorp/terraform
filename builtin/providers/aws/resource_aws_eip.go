@@ -185,7 +185,7 @@ func resourceAwsEipDelete(d *schema.ResourceData, meta interface{}) error {
 
 	// If we are attached to an instance, detach first.
 	if d.Get("instance").(string) != "" {
-		log.Printf("[DEBUG] Disassociating EIP: %s", d.Id())
+		log.Printf("[DEBUG] Disassociating EIP %s from %s", d.Id(), d.Get("instance"))
 		var err error
 		switch resourceAwsEipDomain(d) {
 		case "vpc":
@@ -224,9 +224,11 @@ func resourceAwsEipDelete(d *schema.ResourceData, meta interface{}) error {
 			return nil
 		}
 		if _, ok := err.(aws.APIError); !ok {
+			log.Printf("[DEBUG] AWS error when releasing EIP: %#v", err)
 			return resource.RetryError{Err: err}
 		}
 
+		log.Printf("[DEBUG] Error when releasing EIP: %#v", err)
 		return err
 	})
 }
