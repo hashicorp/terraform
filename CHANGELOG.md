@@ -12,6 +12,7 @@ IMPROVEMENTS:
       Useful in conjunction with `split`. [GH-1495]
   * core: Improve error message on diff mismatch [GH-1501]
   * provisioner/file: expand `~` in source path [GH-1569]
+  * provider/aws: Can specify a `token` via the config file [GH-1601]
   * provider/docker: `docker_container` can specify links [GH-1564]
 
 BUG FIXES:
