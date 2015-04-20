@@ -66,8 +66,7 @@ func testAccCheckAWSEIPDestroy(s *terraform.State) error {
 		}
 
 		req := &ec2.DescribeAddressesInput{
-			AllocationIDs: []*string{},
-			PublicIPs:     []*string{aws.String(rs.Primary.ID)},
+			PublicIPs: []*string{aws.String(rs.Primary.ID)},
 		}
 		describe, err := conn.DescribeAddresses(req)
 
@@ -118,7 +117,6 @@ func testAccCheckAWSEIPExists(n string, res *ec2.Address) resource.TestCheckFunc
 		if strings.Contains(rs.Primary.ID, "eipalloc") {
 			req := &ec2.DescribeAddressesInput{
 				AllocationIDs: []*string{aws.String(rs.Primary.ID)},
-				PublicIPs:     []*string{},
 			}
 			describe, err := conn.DescribeAddresses(req)
 			if err != nil {
@@ -133,8 +131,7 @@ func testAccCheckAWSEIPExists(n string, res *ec2.Address) resource.TestCheckFunc
 
 		} else {
 			req := &ec2.DescribeAddressesInput{
-				AllocationIDs: []*string{},
-				PublicIPs:     []*string{aws.String(rs.Primary.ID)},
+				PublicIPs: []*string{aws.String(rs.Primary.ID)},
 			}
 			describe, err := conn.DescribeAddresses(req)
 			if err != nil {
