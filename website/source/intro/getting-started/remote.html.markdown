@@ -19,7 +19,7 @@ long-running Terraform processes, and store a history of
 infrastructure changes to help with auditing and collaboration.
 
 # How to Use Terraform Remotely
-Using Terraform remotely is straightforward with [Atlas by HashiCorp](https://atlas.hashicorp.com).
+Using Terraform remotely is straightforward with [Atlas by HashiCorp](https://atlas.hashicorp.com/?utm_source=oss&utm_medium=getting-started&utm_campaign=terraform).
 You first need to configure [Terraform remote state storage](/docs/commands/remote.html)
 with the command:
 
