@@ -134,6 +134,15 @@ func (c *ResourceConfig) Get(k string) (interface{}, bool) {
 	return c.get(k, c.Raw)
 }
 
+// GetRaw looks up a configuration value by key and returns the value,
+// from the raw, uninterpolated config.
+//
+// The second return value is true if the get was successful. Get will
+// not succeed if the value is being computed.
+func (c *ResourceConfig) GetRaw(k string) (interface{}, bool) {
+	return c.get(k, c.Raw)
+}
+
 // IsComputed returns whether the given key is computed or not.
 func (c *ResourceConfig) IsComputed(k string) bool {
 	_, ok := c.get(k, c.Config)
