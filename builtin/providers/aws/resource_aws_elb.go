@@ -295,6 +295,46 @@ func resourceAwsElbUpdate(d *schema.ResourceData, meta interface{}) error {
 
 	d.Partial(true)
 
+	if d.HasChange("listener") {
+		o, n := d.GetChange("listener")
+		os := o.(*schema.Set)
+		ns := n.(*schema.Set)
+
+		remove, _ := expandListeners(os.Difference(ns).List())
+		add, _ := expandListeners(ns.Difference(os).List())
+
+		if len(remove) > 0 {
+			ports := make([]*int64, 0, len(remove))
+			for _, listener := range remove {
+				ports = append(ports, listener.LoadBalancerPort)
+			}
+
+			deleteListenersOpts := &elb.DeleteLoadBalancerListenersInput{
+				LoadBalancerName:  aws.String(d.Id()),
+				LoadBalancerPorts: ports,
+			}
+
+			_, err := elbconn.DeleteLoadBalancerListeners(deleteListenersOpts)
+			if err != nil {
+				return fmt.Errorf("Failure removing outdated listeners: %s", err)
+			}
+		}
+
+		if len(add) > 0 {
+			createListenersOpts := &elb.CreateLoadBalancerListenersInput{
+				LoadBalancerName: aws.String(d.Id()),
+				Listeners:        add,
+			}
+
+			_, err := elbconn.CreateLoadBalancerListeners(createListenersOpts)
+			if err != nil {
+				return fmt.Errorf("Failure adding new or updated listeners: %s", err)
+			}
+		}
+
+		d.SetPartial("listener")
+	}
+
 	// If we currently have instances, or did have instances,
 	// we want to figure out what to add and remove from the load
 	// balancer

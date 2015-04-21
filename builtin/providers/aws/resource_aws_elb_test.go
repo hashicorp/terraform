@@ -144,6 +144,36 @@ func TestAccAWSELB_InstanceAttaching(t *testing.T) {
 	})
 }
 
+func TestAccAWSELBUpdate_Listener(t *testing.T) {
+	var conf elb.LoadBalancerDescription
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSELBDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccAWSELBConfig,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSELBExists("aws_elb.bar", &conf),
+					testAccCheckAWSELBAttributes(&conf),
+					resource.TestCheckResourceAttr(
+						"aws_elb.bar", "listener.206423021.instance_port", "8000"),
+				),
+			},
+
+			resource.TestStep{
+				Config: testAccAWSELBConfigListener_update,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSELBExists("aws_elb.bar", &conf),
+					resource.TestCheckResourceAttr(
+						"aws_elb.bar", "listener.3931999347.instance_port", "8080"),
+				),
+			},
+		},
+	})
+}
+
 func TestAccAWSELB_HealthCheck(t *testing.T) {
 	var conf elb.LoadBalancerDescription
 
@@ -457,6 +487,20 @@ resource "aws_elb" "bar" {
     target = "HTTP:8000/"
     interval = 60
     timeout = 30
+  }
+}
+`
+
+const testAccAWSELBConfigListener_update = `
+resource "aws_elb" "bar" {
+  name = "foobar-terraform-test"
+  availability_zones = ["us-west-2a", "us-west-2b", "us-west-2c"]
+
+  listener {
+    instance_port = 8080
+    instance_protocol = "http"
+    lb_port = 80
+    lb_protocol = "http"
   }
 }
 `
