@@ -136,6 +136,18 @@ func TestInterpolater_pathRoot(t *testing.T) {
 	})
 }
 
+func TestInterpolater_environmentVar(t *testing.T) {
+	i := &Interpolater{}
+	scope := &InterpolationScope{}
+
+	expected := os.Getenv("PATH")
+
+	testInterpolate(t, i, scope, "env.PATH", ast.Variable{
+		Value: expected,
+		Type:  ast.TypeString,
+	})
+}
+
 func testInterpolate(
 	t *testing.T, i *Interpolater,
 	scope *InterpolationScope,

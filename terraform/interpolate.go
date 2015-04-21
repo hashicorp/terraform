@@ -66,6 +66,8 @@ func (i *Interpolater) Values(
 			err = i.valueSelfVar(scope, n, v, result)
 		case *config.UserVariable:
 			err = i.valueUserVar(scope, n, v, result)
+		case *config.EnvironmentVariable:
+			err = i.valueEnvironmentVar(n, v, result)
 		default:
 			err = fmt.Errorf("%s: unknown variable type: %T", n, rawV)
 		}
@@ -273,6 +275,18 @@ func (i *Interpolater) valueUserVar(
 		}
 	}
 
+	return nil
+}
+
+func (i *Interpolater) valueEnvironmentVar(
+	n string,
+	v *config.EnvironmentVariable,
+	result map[string]ast.Variable) error {
+
+	result[n] = ast.Variable{
+		Value: os.Getenv(v.Name),
+		Type:  ast.TypeString,
+	}
 	return nil
 }
 
