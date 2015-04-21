@@ -2201,6 +2201,29 @@ func TestSchemaMap_Diff(t *testing.T) {
 
 			Err: false,
 		},
+
+		// #57 - Computed map without config that's known to be empty does not
+		//       generate diff
+		{
+			Schema: map[string]*Schema{
+				"tags": &Schema{
+					Type:     TypeMap,
+					Computed: true,
+				},
+			},
+
+			Config: nil,
+
+			State: &terraform.InstanceState{
+				Attributes: map[string]string{
+					"tags.#": "0",
+				},
+			},
+
+			Diff: nil,
+
+			Err: false,
+		},
 	}
 
 	for i, tc := range cases {

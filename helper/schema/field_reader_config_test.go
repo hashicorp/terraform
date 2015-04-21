@@ -135,6 +135,79 @@ func TestConfigFieldReader_DefaultHandling(t *testing.T) {
 	}
 }
 
+func TestConfigFieldReader_ComputedMap(t *testing.T) {
+	schema := map[string]*Schema{
+		"map": &Schema{
+			Type:     TypeMap,
+			Computed: true,
+		},
+	}
+
+	cases := map[string]struct {
+		Addr   []string
+		Result FieldReadResult
+		Config *terraform.ResourceConfig
+		Err    bool
+	}{
+		"set, normal": {
+			[]string{"map"},
+			FieldReadResult{
+				Value: map[string]interface{}{
+					"foo": "bar",
+				},
+				Exists:   true,
+				Computed: false,
+			},
+			testConfig(t, map[string]interface{}{
+				"map": map[string]interface{}{
+					"foo": "bar",
+				},
+			}),
+			false,
+		},
+
+		"computed element": {
+			[]string{"map"},
+			FieldReadResult{
+				Exists:   true,
+				Computed: true,
+			},
+			testConfigInterpolate(t, map[string]interface{}{
+				"map": map[string]interface{}{
+					"foo": "${var.foo}",
+				},
+			}, map[string]ast.Variable{
+				"var.foo": ast.Variable{
+					Value: config.UnknownVariableValue,
+					Type:  ast.TypeString,
+				},
+			}),
+			false,
+		},
+	}
+
+	for name, tc := range cases {
+		r := &ConfigFieldReader{
+			Schema: schema,
+			Config: tc.Config,
+		}
+		out, err := r.ReadField(tc.Addr)
+		if (err != nil) != tc.Err {
+			t.Fatalf("%s: err: %s", name, err)
+		}
+		if s, ok := out.Value.(*Set); ok {
+			// If it is a set, convert to the raw map
+			out.Value = s.m
+			if len(s.m) == 0 {
+				out.Value = nil
+			}
+		}
+		if !reflect.DeepEqual(tc.Result, out) {
+			t.Fatalf("%s: bad: %#v", name, out)
+		}
+	}
+}
+
 func TestConfigFieldReader_ComputedSet(t *testing.T) {
 	schema := map[string]*Schema{
 		"strSet": &Schema{
