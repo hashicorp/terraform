@@ -26,7 +26,36 @@ func resourceAwsS3Bucket() *schema.Resource {
 
 			"acl": &schema.Schema{
 				Type:     schema.TypeString,
-				Default:  "private",
+				Optional: true,
+				ForceNew: true,
+			},
+
+			"grant_full_control": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				ForceNew: true,
+			},
+
+			"grant_read": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				ForceNew: true,
+			},
+
+			"grant_read_acp": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				ForceNew: true,
+			},
+
+			"grant_write": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				ForceNew: true,
+			},
+
+			"grant_write_acp": &schema.Schema{
+				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: true,
 			},
@@ -40,15 +69,40 @@ func resourceAwsS3BucketCreate(d *schema.ResourceData, meta interface{}) error {
 	s3conn := meta.(*AWSClient).s3conn
 	awsRegion := meta.(*AWSClient).region
 
-	// Get the bucket and acl
+	// Get the bucket, acl and grants
 	bucket := d.Get("bucket").(string)
 	acl := d.Get("acl").(string)
+	grant_full_control := d.Get("grant_full_control").(string)
+	grant_read := d.Get("grant_read").(string)
+	grant_read_acp := d.Get("grant_read_acp").(string)
+	grant_write := d.Get("grant_write").(string)
+	grant_write_acp := d.Get("grant_write_acp").(string)
 
 	log.Printf("[DEBUG] S3 bucket create: %s, ACL: %s", bucket, acl)
 
 	req := &s3.CreateBucketInput{
 		Bucket: aws.String(bucket),
 		ACL:    aws.String(acl),
+	}
+
+	if grant_full_control != "" {
+		req.GrantFullControl = aws.String(grant_full_control)
+	}
+
+	if grant_read != "" {
+		req.GrantRead = aws.String(grant_read)
+	}
+
+	if grant_read_acp != "" {
+		req.GrantReadACP = aws.String(grant_read_acp)
+	}
+
+	if grant_write != "" {
+		req.GrantWrite = aws.String(grant_write)
+	}
+
+	if grant_write_acp != "" {
+		req.GrantWriteACP = aws.String(grant_write_acp)
 	}
 
 	// Special case us-east-1 region and do not set the LocationConstraint.
