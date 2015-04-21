@@ -93,9 +93,8 @@ func expandIPPerms(
 
 		if raw, ok := m["cidr_blocks"]; ok {
 			list := raw.([]interface{})
-			perm.IPRanges = make([]*ec2.IPRange, len(list))
-			for i, v := range list {
-				perm.IPRanges[i] = &ec2.IPRange{CIDRIP: aws.String(v.(string))}
+			for _, v := range list {
+				perm.IPRanges = append(perm.IPRanges, &ec2.IPRange{CIDRIP: aws.String(v.(string))})
 			}
 		}
 
