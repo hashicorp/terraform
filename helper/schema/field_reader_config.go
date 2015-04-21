@@ -105,34 +105,67 @@ func (r *ConfigFieldReader) readField(
 }
 
 func (r *ConfigFieldReader) readMap(k string) (FieldReadResult, error) {
-	mraw, ok := r.Config.Get(k)
+	// We want both the raw value and the interpolated. We use the interpolated
+	// to store actual values and we use the raw one to check for
+	// computed keys.
+	mraw, ok := r.Config.GetRaw(k)
 	if !ok {
 		return FieldReadResult{}, nil
 	}
 
 	result := make(map[string]interface{})
+	computed := false
 	switch m := mraw.(type) {
 	case []interface{}:
-		for _, innerRaw := range m {
-			for k, v := range innerRaw.(map[string]interface{}) {
-				result[k] = v
+		for i, innerRaw := range m {
+			for ik, _ := range innerRaw.(map[string]interface{}) {
+				key := fmt.Sprintf("%s.%d.%s", k, i, ik)
+				if r.Config.IsComputed(key) {
+					computed = true
+					break
+				}
+
+				v, _ := r.Config.Get(key)
+				result[ik] = v
 			}
 		}
 	case []map[string]interface{}:
-		for _, innerRaw := range m {
-			for k, v := range innerRaw {
-				result[k] = v
+		for i, innerRaw := range m {
+			for ik, _ := range innerRaw {
+				key := fmt.Sprintf("%s.%d.%s", k, i, ik)
+				if r.Config.IsComputed(key) {
+					computed = true
+					break
+				}
+
+				v, _ := r.Config.Get(key)
+				result[ik] = v
 			}
 		}
 	case map[string]interface{}:
-		result = m
+		for ik, _ := range m {
+			key := fmt.Sprintf("%s.%s", k, ik)
+			if r.Config.IsComputed(key) {
+				computed = true
+				break
+			}
+
+			v, _ := r.Config.Get(key)
+			result[ik] = v
+		}
 	default:
 		panic(fmt.Sprintf("unknown type: %#v", mraw))
 	}
 
+	var value interface{}
+	if !computed {
+		value = result
+	}
+
 	return FieldReadResult{
-		Value:  result,
-		Exists: true,
+		Value:    value,
+		Exists:   true,
+		Computed: computed,
 	}, nil
 }
 
