@@ -47,6 +47,8 @@ func TestAccAWSELB_basic(t *testing.T) {
 						"aws_elb.bar", "listener.206423021.lb_protocol", "http"),
 					resource.TestCheckResourceAttr(
 						"aws_elb.bar", "cross_zone_load_balancing", "true"),
+					resource.TestCheckResourceAttr(
+						"aws_elb.bar", "connection_settings", "120"),
 				),
 			},
 		},
@@ -356,6 +358,10 @@ resource "aws_elb" "bar" {
 	}
 
   cross_zone_load_balancing = true
+
+  connection_settings {
+      idle_timeout = 120
+  }
 }
 `
 
@@ -377,6 +383,10 @@ resource "aws_elb" "bar" {
 	}
 
   cross_zone_load_balancing = true
+
+  connection_settings {
+      idle_timeout = 120
+  }
 }
 `
 
