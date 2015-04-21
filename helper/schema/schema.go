@@ -626,7 +626,7 @@ func (m schemaMap) diffMap(
 
 	// First get all the values from the state
 	var stateMap, configMap map[string]string
-	o, n, _, _ := d.diffChange(k)
+	o, n, _, nComputed := d.diffChange(k)
 	if err := mapstructure.WeakDecode(o, &stateMap); err != nil {
 		return fmt.Errorf("%s: %s", k, err)
 	}
@@ -634,28 +634,40 @@ func (m schemaMap) diffMap(
 		return fmt.Errorf("%s: %s", k, err)
 	}
 
+	// Keep track of whether the state _exists_ at all prior to clearing it
+	stateExists := o != nil
+
 	// Delete any count values, since we don't use those
 	delete(configMap, "#")
 	delete(stateMap, "#")
 
-	// Check if the number of elements has changed. If we're computing
-	// a list and there isn't a config, then it hasn't changed.
+	// Check if the number of elements has changed.
 	oldLen, newLen := len(stateMap), len(configMap)
 	changed := oldLen != newLen
 	if oldLen != 0 && newLen == 0 && schema.Computed {
 		changed = false
 	}
-	computed := oldLen == 0 && newLen == 0 && schema.Computed
-	if changed || computed {
+
+	// It is computed if we have no old value, no new value, the schema
+	// says it is computed, and it didn't exist in the state before. The
+	// last point means: if it existed in the state, even empty, then it
+	// has already been computed.
+	computed := oldLen == 0 && newLen == 0 && schema.Computed && !stateExists
+
+	// If the count has changed or we're computed, then add a diff for the
+	// count. "nComputed" means that the new value _contains_ a value that
+	// is computed. We don't do granular diffs for this yet, so we mark the
+	// whole map as computed.
+	if changed || computed || nComputed {
 		countSchema := &Schema{
 			Type:     TypeInt,
-			Computed: schema.Computed,
+			Computed: schema.Computed || nComputed,
 			ForceNew: schema.ForceNew,
 		}
 
 		oldStr := strconv.FormatInt(int64(oldLen), 10)
 		newStr := ""
-		if !computed {
+		if !computed && !nComputed {
 			newStr = strconv.FormatInt(int64(newLen), 10)
 		} else {
 			oldStr = ""
