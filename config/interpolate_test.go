@@ -62,6 +62,14 @@ func TestNewInterpolatedVariable(t *testing.T) {
 			},
 			false,
 		},
+		{
+			"env.PATH",
+			&EnvironmentVariable{
+				Name: "PATH",
+				key:  "env.PATH",
+			},
+			false,
+		},
 	}
 
 	for i, tc := range cases {
@@ -109,6 +117,20 @@ func TestNewUserVariable(t *testing.T) {
 		t.Fatalf("bad: %#v", v.Name)
 	}
 	if v.FullKey() != "var.bar" {
+		t.Fatalf("bad: %#v", v)
+	}
+}
+
+func TestNewEnvironmentVariable(t *testing.T) {
+	v, err := NewEnvironmentVariable("env.PATH")
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	if v.Name != "PATH" {
+		t.Fatalf("bad: %#v", v.Name)
+	}
+	if v.FullKey() != "env.PATH" {
 		t.Fatalf("bad: %#v", v)
 	}
 }

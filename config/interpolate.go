@@ -86,6 +86,14 @@ type UserVariable struct {
 	key string
 }
 
+// An EnvironmentVariable is a variable that is referencing an
+// environment variable. This looks like "${env.PATH}"
+type EnvironmentVariable struct {
+	Name string
+
+	key string
+}
+
 func NewInterpolatedVariable(v string) (InterpolatedVariable, error) {
 	if strings.HasPrefix(v, "count.") {
 		return NewCountVariable(v)
@@ -97,6 +105,8 @@ func NewInterpolatedVariable(v string) (InterpolatedVariable, error) {
 		return NewUserVariable(v)
 	} else if strings.HasPrefix(v, "module.") {
 		return NewModuleVariable(v)
+	} else if strings.HasPrefix(v, "env.") {
+		return NewEnvironmentVariable(v)
 	} else {
 		return NewResourceVariable(v)
 	}
@@ -244,6 +254,17 @@ func NewUserVariable(key string) (*UserVariable, error) {
 }
 
 func (v *UserVariable) FullKey() string {
+	return v.key
+}
+
+func NewEnvironmentVariable(key string) (*EnvironmentVariable, error) {
+	return &EnvironmentVariable{
+		key:  key,
+		Name: key[len("env."):],
+	}, nil
+}
+
+func (v *EnvironmentVariable) FullKey() string {
 	return v.key
 }
 
