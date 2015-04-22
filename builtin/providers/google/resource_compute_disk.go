@@ -47,6 +47,12 @@ func resourceComputeDisk() *schema.Resource {
 				ForceNew: true,
 			},
 
+			"snapshot": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				ForceNew: true,
+			},
+
 			"self_link": &schema.Schema{
 				Type:     schema.TypeString,
 				Computed: true,
@@ -98,6 +104,21 @@ func resourceComputeDiskCreate(d *schema.ResourceData, meta interface{}) error {
 		disk.Type = diskType.SelfLink
 	}
 
+	if v, ok := d.GetOk("snapshot"); ok {
+		snapshotName := v.(string)
+		log.Printf("[DEBUG] Loading snapshot: %s", snapshotName)
+		snapshotData, err := config.clientCompute.Snapshots.Get(
+			config.Project, snapshotName).Do()
+
+		if err != nil {
+			return fmt.Errorf(
+				"Error loading snapshot '%s': %s",
+				snapshotName, err)
+		}
+
+		disk.SourceSnapshot = snapshotData.SelfLink
+	}
+
 	op, err := config.clientCompute.Disks.Insert(
 		config.Project, d.Get("zone").(string), disk).Do()
 	if err != nil {
@@ -116,7 +137,14 @@ func resourceComputeDiskCreate(d *schema.ResourceData, meta interface{}) error {
 		Type:    OperationWaitZone,
 	}
 	state := w.Conf()
-	state.Timeout = 2 * time.Minute
+
+	if disk.SourceSnapshot != "" {
+		//creating disk from snapshot takes some time
+		state.Timeout = 10 * time.Minute
+	} else {
+		state.Timeout = 2 * time.Minute
+	}
+
 	state.MinTimeout = 1 * time.Second
 	opRaw, err := state.WaitForState()
 	if err != nil {
