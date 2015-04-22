@@ -396,11 +396,11 @@ func resourceAwsElbUpdate(d *schema.ResourceData, meta interface{}) error {
 					Enabled: aws.Boolean(d.Get("cross_zone_load_balancing").(bool)),
 				},
 				ConnectionSettings: &elb.ConnectionSettings{
-					IdleTimeout: aws.Integer(d.Get("idle_timeout").(int)),
+					IdleTimeout: aws.Long(int64(d.Get("idle_timeout").(int))),
 				},
 				ConnectionDraining: &elb.ConnectionDraining{
 					Enabled: aws.Boolean(d.Get("connection_draining").(bool)),
-					Timeout: aws.Integer(d.Get("connection_draining_timeout").(int)),
+					Timeout: aws.Long(int64(d.Get("connection_draining_timeout").(int))),
 				},
 			},
 		}
