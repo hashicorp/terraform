@@ -96,6 +96,9 @@ The `disk` block supports:
 * `size` - (Optional) The size of the image in gigabytes. If not specified,
     it will inherit the size of its base image.
 
+* `device_name` - (Optional) Name with which attached disk will be accessible
+    under `/dev/disk/by-id/`
+
 The `network_interface` block supports:
 
 * `network` - (Required) The name of the network to attach this interface to.
