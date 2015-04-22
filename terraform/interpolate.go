@@ -11,6 +11,12 @@ import (
 	"github.com/hashicorp/terraform/config/module"
 )
 
+const (
+	// VarEnvPrefix is the prefix of variables that are read from
+	// the environment to set variables here.
+	VarEnvPrefix = "TF_VAR_"
+)
+
 // Interpolater is the structure responsible for determining the values
 // for interpolations such as `aws_instance.foo.bar`.
 type Interpolater struct {
@@ -43,6 +49,11 @@ func (i *Interpolater) Values(
 		}
 		for _, v := range mod.Config().Variables {
 			for k, val := range v.DefaultsMap() {
+				envKey := VarEnvPrefix + strings.TrimPrefix(k, "var.")
+				if v := os.Getenv(envKey); v != "" {
+					val = v
+				}
+
 				result[k] = ast.Variable{
 					Value: val,
 					Type:  ast.TypeString,

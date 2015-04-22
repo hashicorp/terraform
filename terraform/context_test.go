@@ -5988,6 +5988,46 @@ func TestContext2Apply_vars(t *testing.T) {
 	}
 }
 
+func TestContext2Apply_varsEnv(t *testing.T) {
+	m := testModule(t, "apply-vars-env")
+	p := testProvider("aws")
+	p.ApplyFn = testApplyFn
+	p.DiffFn = testDiffFn
+	ctx := testContext2(t, &ContextOpts{
+		Module: m,
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+	})
+
+	// Set the env var
+	old := tempEnv(t, "TF_VAR_ami", "baz")
+	defer os.Setenv("TF_VAR_ami", old)
+
+	w, e := ctx.Validate()
+	if len(w) > 0 {
+		t.Fatalf("bad: %#v", w)
+	}
+	if len(e) > 0 {
+		t.Fatalf("bad: %s", e)
+	}
+
+	if _, err := ctx.Plan(); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	state, err := ctx.Apply()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	actual := strings.TrimSpace(state.String())
+	expected := strings.TrimSpace(testTerraformApplyVarsEnvStr)
+	if actual != expected {
+		t.Fatalf("bad: \n%s", actual)
+	}
+}
+
 func TestContext2Apply_createBefore_depends(t *testing.T) {
 	m := testModule(t, "apply-depends-create-before")
 	h := new(HookRecordApplyOrder)
