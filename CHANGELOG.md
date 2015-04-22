@@ -20,6 +20,9 @@ IMPROVEMENTS:
   * provider/aws: `aws_elb` supports connecion draining settings [GH-1502]
   * provider/aws: `aws_route53_record` supports weighted sets [GH-1578]
   * provider/docker: `docker_container` can specify links [GH-1564]
+  * provider/google: `resource_compute_disk` supports snapshots [GH-1426]
+  * provider/google: `resource_compute_instance` supports specifying the
+      device name [GH-1426]
   * provider/openstack: Floating IP support for LBaaS [GH-1550]
 
 BUG FIXES:
