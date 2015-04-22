@@ -48,7 +48,7 @@ The following arguments are supported:
 ## Script Arguments
 
 You cannot pass any arguments to scripts using the `script` or
-`scripts` argumets to this provisioner. If you want to specify arguments,
+`scripts` arguments to this provisioner. If you want to specify arguments,
 upload the script with the
 [file provisioner](/docs/provisioners/file.html)
 and then use `inline` to call it. Example:
