@@ -19,6 +19,7 @@ IMPROVEMENTS:
   * provider/aws: `aws_elb` supports in-place changing of listeners [GH-1619]
   * provider/aws: `aws_elb` supports connecion draining settings [GH-1502]
   * provider/aws: `aws_route53_record` supports weighted sets [GH-1578]
+  * provider/aws: `aws_route53_zone` exports nameservers [GH-1525]
   * provider/docker: `docker_container` can specify links [GH-1564]
   * provider/google: `resource_compute_disk` supports snapshots [GH-1426]
   * provider/google: `resource_compute_instance` supports specifying the
