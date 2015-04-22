@@ -24,7 +24,8 @@ func resourceAwsSecurityGroup() *schema.Resource {
 		Schema: map[string]*schema.Schema{
 			"name": &schema.Schema{
 				Type:     schema.TypeString,
-				Required: true,
+				Optional: true,
+				Computed: true,
 				ForceNew: true,
 			},
 
@@ -144,9 +145,7 @@ func resourceAwsSecurityGroup() *schema.Resource {
 func resourceAwsSecurityGroupCreate(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).ec2conn
 
-	securityGroupOpts := &ec2.CreateSecurityGroupInput{
-		GroupName: aws.String(d.Get("name").(string)),
-	}
+	securityGroupOpts := &ec2.CreateSecurityGroupInput{}
 
 	if v := d.Get("vpc_id"); v != nil {
 		securityGroupOpts.VPCID = aws.String(v.(string))
@@ -155,6 +154,14 @@ func resourceAwsSecurityGroupCreate(d *schema.ResourceData, meta interface{}) er
 	if v := d.Get("description"); v != nil {
 		securityGroupOpts.Description = aws.String(v.(string))
 	}
+
+	var groupName string
+	if v, ok := d.GetOk("name"); ok {
+		groupName = v.(string)
+	} else {
+		groupName = resource.UniqueId()
+	}
+	securityGroupOpts.GroupName = aws.String(groupName)
 
 	log.Printf(
 		"[DEBUG] Security Group create configuration: %#v", securityGroupOpts)
