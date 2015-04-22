@@ -27,6 +27,8 @@ BUG FIXES:
       edge cases around matching prefixes, which could cause cycles [GH-1527]
   * core: fix issue causing diff mismatch errors in certain scenarios during
       resource replacement [GH-1515]
+  * core: dependencies on resources with a different index work when
+      count > 1 [GH-1540]
   * core: don't panic if variable default type is invalid [GH-1344]
   * core: fix perpetual diff issue for computed maps that are empty [GH-1607]
   * command: remote states with uppercase types work [GH-1356]
