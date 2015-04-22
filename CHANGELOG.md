@@ -16,6 +16,7 @@ IMPROVEMENTS:
   * provider/aws: White or blacklist account IDs that can be used to
       protect against accidents. [GH-1595]
   * provider/aws: `aws_instance` supports placement groups [GH-1358]
+  * provider/aws: `aws_elb` supports in-place changing of listeners [GH-1619]
   * provider/docker: `docker_container` can specify links [GH-1564]
   * provider/openstack: Floating IP support for LBaaS [GH-1550]
 
