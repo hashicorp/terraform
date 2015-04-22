@@ -31,6 +31,7 @@ The following arguments are supported:
 
 * `ami` - (Required) The AMI to use for the instance.
 * `availability_zone` - (Optional) The AZ to start the instance in.
+* `placement_group` - (Optional) The Placement Group to start the instance in.
 * `ebs_optimized` - (Optional) If true, the launched EC2 instance will be
      EBS-optimized.
 * `instance_type` - (Required) The type of instance to start
@@ -120,6 +121,7 @@ The following attributes are exported:
 
 * `id` - The instance ID.
 * `availability_zone` - The availability zone of the instance.
+* `placement_group` - The placement group of the instance.
 * `key_name` - The key name of the instance
 * `private_dns` - The Private DNS name of the instance
 * `private_ip` - The private IP address.
