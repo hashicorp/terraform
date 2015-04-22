@@ -2933,6 +2933,27 @@ func TestSchemaMap_Validate(t *testing.T) {
 			Err: true,
 		},
 
+		"Invalid/unknown field with computed value": {
+			Schema: map[string]*Schema{
+				"availability_zone": &Schema{
+					Type:     TypeString,
+					Optional: true,
+					Computed: true,
+					ForceNew: true,
+				},
+			},
+
+			Config: map[string]interface{}{
+				"foo": "${var.foo}",
+			},
+
+			Vars: map[string]string{
+				"var.foo": config.UnknownVariableValue,
+			},
+
+			Err: true,
+		},
+
 		"Computed field set": {
 			Schema: map[string]*Schema{
 				"availability_zone": &Schema{
