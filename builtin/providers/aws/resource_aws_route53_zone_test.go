@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/hashicorp/terraform/helper/hashcode"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
 
@@ -114,6 +115,15 @@ func testAccCheckRoute53ZoneExists(n string, zone *route53.HostedZone) resource.
 		if err != nil {
 			return fmt.Errorf("Hosted zone err: %v", err)
 		}
+
+		for _, ns := range resp.DelegationSet.NameServers {
+			attribute := fmt.Sprintf("name_servers.%d", hashcode.String(*ns))
+			dsns := rs.Primary.Attributes[attribute]
+			if dsns != *ns {
+				return fmt.Errorf("Got: %v for %v, Expected: %v", dsns, attribute, ns)
+			}
+		}
+
 		*zone = *resp.HostedZone
 		return nil
 	}
