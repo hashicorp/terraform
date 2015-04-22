@@ -2578,6 +2578,66 @@ func TestSchemaMap_InternalValidate(t *testing.T) {
 			true,
 		},
 
+		// Conflicting attributes cannot be required
+		{
+			map[string]*Schema{
+				"blacklist": &Schema{
+					Type:     TypeBool,
+					Required: true,
+				},
+				"whitelist": &Schema{
+					Type:          TypeBool,
+					Optional:      true,
+					ConflictsWith: []string{"blacklist"},
+				},
+			},
+			true,
+		},
+
+		// Attribute with conflicts cannot be required
+		{
+			map[string]*Schema{
+				"whitelist": &Schema{
+					Type:          TypeBool,
+					Required:      true,
+					ConflictsWith: []string{"blacklist"},
+				},
+			},
+			true,
+		},
+
+		// ConflictsWith cannot be used w/ Computed
+		{
+			map[string]*Schema{
+				"blacklist": &Schema{
+					Type:     TypeBool,
+					Computed: true,
+				},
+				"whitelist": &Schema{
+					Type:          TypeBool,
+					Optional:      true,
+					ConflictsWith: []string{"blacklist"},
+				},
+			},
+			true,
+		},
+
+		// ConflictsWith cannot be used w/ ComputedWhen
+		{
+			map[string]*Schema{
+				"blacklist": &Schema{
+					Type:         TypeBool,
+					ComputedWhen: []string{"foor"},
+				},
+				"whitelist": &Schema{
+					Type:          TypeBool,
+					Required:      true,
+					ConflictsWith: []string{"blacklist"},
+				},
+			},
+			true,
+		},
+
 		// Sub-resource invalid
 		{
 			map[string]*Schema{
@@ -2617,7 +2677,10 @@ func TestSchemaMap_InternalValidate(t *testing.T) {
 	for i, tc := range cases {
 		err := schemaMap(tc.In).InternalValidate()
 		if (err != nil) != tc.Err {
-			t.Fatalf("%d: bad: %s\n\n%#v", i, err, tc.In)
+			if tc.Err {
+				t.Fatalf("%d: Expected error did not occur:\n\n%#v", i, tc.In)
+			}
+			t.Fatalf("%d: Unexpected error occured:\n\n%#v", i, tc.In)
 		}
 	}
 
@@ -3125,6 +3188,74 @@ func TestSchemaMap_Validate(t *testing.T) {
 			},
 
 			Err: false,
+		},
+
+		"Conflicting attributes generate error": {
+			Schema: map[string]*Schema{
+				"whitelist": &Schema{
+					Type:     TypeString,
+					Optional: true,
+				},
+				"blacklist": &Schema{
+					Type:          TypeString,
+					Optional:      true,
+					ConflictsWith: []string{"whitelist"},
+				},
+			},
+
+			Config: map[string]interface{}{
+				"whitelist": "white-val",
+				"blacklist": "black-val",
+			},
+
+			Err: true,
+			Errors: []error{
+				fmt.Errorf("\"blacklist\": conflicts with whitelist (\"white-val\")"),
+			},
+		},
+
+		"Required attribute & undefined conflicting optional are good": {
+			Schema: map[string]*Schema{
+				"required_att": &Schema{
+					Type:     TypeString,
+					Required: true,
+				},
+				"optional_att": &Schema{
+					Type:          TypeString,
+					Optional:      true,
+					ConflictsWith: []string{"required_att"},
+				},
+			},
+
+			Config: map[string]interface{}{
+				"required_att": "required-val",
+			},
+
+			Err: false,
+		},
+
+		"Required conflicting attribute & defined optional generate error": {
+			Schema: map[string]*Schema{
+				"required_att": &Schema{
+					Type:     TypeString,
+					Required: true,
+				},
+				"optional_att": &Schema{
+					Type:          TypeString,
+					Optional:      true,
+					ConflictsWith: []string{"required_att"},
+				},
+			},
+
+			Config: map[string]interface{}{
+				"required_att": "required-val",
+				"optional_att": "optional-val",
+			},
+
+			Err: true,
+			Errors: []error{
+				fmt.Errorf("\"optional_att\": conflicts with required_att (\"required-val\")"),
+			},
 		},
 	}
 
