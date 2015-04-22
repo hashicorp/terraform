@@ -48,7 +48,7 @@ func atlasFactory(conf map[string]string) (Client, error) {
 
 	parts := strings.Split(name, "/")
 	if len(parts) != 2 {
-		return nil, fmt.Errorf("malformed name '%s'", name)
+		return nil, fmt.Errorf("malformed name '%s', expected format '<account>/<name>'", name)
 	}
 
 	client.Server = server
