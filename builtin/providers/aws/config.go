@@ -3,6 +3,7 @@ package aws
 import (
 	"fmt"
 	"log"
+	"strings"
 
 	"github.com/hashicorp/terraform/helper/multierror"
 
@@ -21,6 +22,9 @@ type Config struct {
 	SecretKey string
 	Token     string
 	Region    string
+
+	AllowedAccountIds   []interface{}
+	ForbiddenAccountIds []interface{}
 }
 
 type AWSClient struct {
@@ -71,6 +75,12 @@ func (c *Config) Client() (interface{}, error) {
 
 		log.Println("[INFO] Initializing IAM Connection")
 		client.iamconn = iam.New(awsConfig)
+
+		err := c.ValidateAccountId(client.iamconn)
+		if err != nil {
+			errs = append(errs, err)
+		}
+
 		log.Println("[INFO] Initializing AutoScaling connection")
 		client.autoscalingconn = autoscaling.New(awsConfig)
 
@@ -108,4 +118,38 @@ func (c *Config) ValidateRegion() error {
 		}
 	}
 	return fmt.Errorf("Not a valid region: %s", c.Region)
+}
+
+func (c *Config) ValidateAccountId(iamconn *iam.IAM) error {
+	if c.AllowedAccountIds == nil && c.ForbiddenAccountIds == nil {
+		return nil
+	}
+
+	log.Printf("[INFO] Validating account ID")
+
+	out, err := iamconn.GetUser(nil)
+	if err != nil {
+		return fmt.Errorf("Failed getting account ID from IAM: %s", err)
+	}
+
+	account_id := strings.Split(*out.User.ARN, ":")[4]
+
+	if c.ForbiddenAccountIds != nil {
+		for _, id := range c.ForbiddenAccountIds {
+			if id == account_id {
+				return fmt.Errorf("Forbidden account ID (%s)", id)
+			}
+		}
+	}
+
+	if c.AllowedAccountIds != nil {
+		for _, id := range c.AllowedAccountIds {
+			if id == account_id {
+				return nil
+			}
+		}
+		return fmt.Errorf("Account ID not allowed (%s)", account_id)
+	}
+
+	return nil
 }
