@@ -114,6 +114,24 @@ resources cannot be automatically detected by Terraform. After making updates
 to block device configuration, resource recreation can be manually triggered by
 using the [`taint` command](/docs/commands/taint.html).
 
+<a id="volumes"></a>
+## Volumes
+
+Each `volume` attribute mounts an existing AWS volume to the instance. Volumes
+must exist in the same availability zone as the instance.
+
+The `volume` mapping supports the following:
+
+* `device_name` - The name of the block device to mount on the instance.
+* `volume_id` - The id of the volume.
+
+Modifying any of the `volume` settings requires resource replacement.
+
+~> **NOTE:** Currently, changes to `volume` configuration of _existing_
+resources cannot be automatically detected by Terraform. After making updates
+to block device configuration, resource recreation can be manually triggered by
+using the [`taint` command](/docs/commands/taint.html).
+
 ## Attributes Reference
 
 The following attributes are exported:
