@@ -23,6 +23,8 @@ IMPROVEMENTS:
   * provider/aws: `aws_elb` supports connecion draining settings [GH-1502]
   * provider/aws: `aws_route53_record` supports weighted sets [GH-1578]
   * provider/aws: `aws_route53_zone` exports nameservers [GH-1525]
+  * provider/aws: automatically set the private IP as the SSH address
+      if not specified and no public IP is available [GH-1623]
   * provider/docker: `docker_container` can specify links [GH-1564]
   * provider/google: `resource_compute_disk` supports snapshots [GH-1426]
   * provider/google: `resource_compute_instance` supports specifying the
@@ -44,10 +46,13 @@ BUG FIXES:
   * core: don't panic if variable default type is invalid [GH-1344]
   * core: fix perpetual diff issue for computed maps that are empty [GH-1607]
   * core: validation added to check for `self` variables in modules [GH-1609]
+  * core: fix edge case where validation didn't pick up unknown fields
+      if the value was computed [GH-1507]
   * command: remote states with uppercase types work [GH-1356]
   * provider/aws: launch configuration ID set after create success [GH-1518]
   * provider/aws: manually deleted S3 buckets are refreshed properly [GH-1574]
   * provider/aws: only check for EIP allocation ID in VPC [GH-1555]
+  * provider/aws: raw protocol numbers work in `aws_network_acl` [GH-1435]
   * provider/openstack: region config is not required [GH-1441]
   * provisioner/remote-exec: add random number to uploaded script path so
       that parallel provisions work [GH-1588]
