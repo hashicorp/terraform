@@ -13,6 +13,8 @@ IMPROVEMENTS:
   * core: Improve error message on diff mismatch [GH-1501]
   * provisioner/file: expand `~` in source path [GH-1569]
   * provider/aws: Can specify a `token` via the config file [GH-1601]
+  * provider/aws: White or blacklist account IDs that can be used to
+      protect against accidents. [GH-1595]
   * provider/docker: `docker_container` can specify links [GH-1564]
 
 BUG FIXES:
