@@ -122,6 +122,23 @@ func TestAccRoute53Record_wildcard(t *testing.T) {
 	})
 }
 
+func TestAccRoute53Record_weighted(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckRoute53RecordDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccRoute53WeightedCNAMERecord,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckRoute53RecordExists("aws_route53_record.www-dev"),
+					testAccCheckRoute53RecordExists("aws_route53_record.www-live"),
+				),
+			},
+		},
+	})
+}
+
 func testAccCheckRoute53RecordDestroy(s *terraform.State) error {
 	conn := testAccProvider.Meta().(*AWSClient).r53conn
 	for _, rs := range s.RootModule().Resources {
@@ -280,5 +297,31 @@ resource "aws_route53_record" "default" {
 	type = "TXT"
 	ttl = "30"
 	records = ["lalalala"]
+}
+`
+
+const testAccRoute53WeightedCNAMERecord = `
+resource "aws_route53_zone" "main" {
+	name = "notexample.com"
+}
+
+resource "aws_route53_record" "www-dev" {
+  zone_id = "${aws_route53_zone.main.zone_id}"
+  name = "www"
+  type = "CNAME"
+  ttl = "5"
+  weight = 10
+  set_identifier = "dev"
+  records = ["dev.notexample.com"]
+}
+
+resource "aws_route53_record" "www-live" {
+  zone_id = "${aws_route53_zone.main.zone_id}"
+  name = "www"
+  type = "CNAME"
+  ttl = "5"
+  weight = 90
+  set_identifier = "live"
+  records = ["dev.notexample.com"]
 }
 `
