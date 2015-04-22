@@ -90,6 +90,25 @@ The usage of maps, strings, etc. is documented fully in the
 [interpolation syntax](/docs/configuration/interpolation.html)
 page.
 
+## Environment Variables
+
+Environment variables can be used to set the value of a variable.
+The key of the environment variable must be `TF_VAR_name` and the value
+is the value of the variable.
+
+For example, given the configuration below:
+
+```
+variable "image" {}
+```
+
+The variable can be set via an environment variable:
+
+```
+$ TF_VAR_image=foo terraform apply
+...
+```
+
 ## Syntax
 
 The full syntax is:
