@@ -197,6 +197,8 @@ func TestAccAWSSecurityGroup_generatedName(t *testing.T) {
 				Config: testAccAWSSecurityGroupConfig_generatedName,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSSecurityGroupExists("aws_security_group.web", &group),
+					resource.TestCheckResourceAttr(
+						"aws_security_group.web", "description", "Managed by Terraform"),
 					func(s *terraform.State) error {
 						if group.GroupName == nil {
 							return fmt.Errorf("bad: No SG name")
@@ -549,8 +551,6 @@ resource "aws_security_group" "foo" {
 
 const testAccAWSSecurityGroupConfig_generatedName = `
 resource "aws_security_group" "web" {
-  description = "Used in the terraform acceptance tests"
-
   ingress {
     protocol = "tcp"
     from_port = 80

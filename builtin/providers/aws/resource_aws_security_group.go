@@ -31,7 +31,8 @@ func resourceAwsSecurityGroup() *schema.Resource {
 
 			"description": &schema.Schema{
 				Type:     schema.TypeString,
-				Required: true,
+				Optional: true,
+				Default:  "Managed by Terraform",
 			},
 
 			"vpc_id": &schema.Schema{
