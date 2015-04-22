@@ -185,7 +185,6 @@ func resourceAwsNetworkAclUpdate(d *schema.ResourceData, meta interface{}) error
 	}
 
 	if d.HasChange("subnet_id") {
-
 		//associate new subnet with the acl.
 		_, n := d.GetChange("subnet_id")
 		newSubnet := n.(string)
@@ -355,9 +354,11 @@ func findNetworkAclAssociation(subnetId string, conn *ec2.EC2) (networkAclAssoci
 	if err != nil {
 		return nil, err
 	}
-	for _, association := range resp.NetworkACLs[0].Associations {
-		if *association.SubnetID == subnetId {
-			return association, nil
+	if resp.NetworkACLs != nil && len(resp.NetworkACLs) > 0 {
+		for _, association := range resp.NetworkACLs[0].Associations {
+			if *association.SubnetID == subnetId {
+				return association, nil
+			}
 		}
 	}
 	return nil, fmt.Errorf("could not find association for subnet %s ", subnetId)
