@@ -26,6 +26,14 @@ func Test_expandNetworkACLEntry(t *testing.T) {
 			"action":     "deny",
 			"rule_no":    2,
 		},
+		map[string]interface{}{
+			"protocol":   "-1",
+			"from_port":  443,
+			"to_port":    443,
+			"cidr_block": "0.0.0.0/0",
+			"action":     "deny",
+			"rule_no":    2,
+		},
 	}
 	expanded, _ := expandNetworkAclEntries(input, "egress")
 
@@ -43,6 +51,17 @@ func Test_expandNetworkACLEntry(t *testing.T) {
 		},
 		&ec2.NetworkACLEntry{
 			Protocol: aws.String("6"),
+			PortRange: &ec2.PortRange{
+				From: aws.Long(443),
+				To:   aws.Long(443),
+			},
+			RuleAction: aws.String("deny"),
+			RuleNumber: aws.Long(2),
+			CIDRBlock:  aws.String("0.0.0.0/0"),
+			Egress:     aws.Boolean(true),
+		},
+		&ec2.NetworkACLEntry{
+			Protocol: aws.String("-1"),
 			PortRange: &ec2.PortRange{
 				From: aws.Long(443),
 				To:   aws.Long(443),
