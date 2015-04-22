@@ -5,6 +5,9 @@ FEATURES:
   * **Multi-provider (a.k.a multi-region)**: Multiple instances of a single
      provider can be configured so resources can apply to different settings.
      As an example, this allows Terraform to manage multiple regions with AWS.
+  * **Environmental variables to set variables**: Environment variables can be
+     used to set variables. The environment variables must be in the format
+     `TF_VAR_name` and this will be checked last for a value.
 
 IMPROVEMENTS:
 
