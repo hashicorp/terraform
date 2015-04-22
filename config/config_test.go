@@ -175,6 +175,13 @@ func TestConfigValidate_moduleVarMap(t *testing.T) {
 	}
 }
 
+func TestConfigValidate_moduleVarSelf(t *testing.T) {
+	c := testConfig(t, "validate-module-var-self")
+	if err := c.Validate(); err == nil {
+		t.Fatal("should be invalid")
+	}
+}
+
 func TestConfigValidate_nil(t *testing.T) {
 	var c Config
 	if err := c.Validate(); err != nil {
