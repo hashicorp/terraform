@@ -264,10 +264,10 @@ func resourceAwsInstance() *schema.Resource {
 							Required: true,
 						},
 
-            "attached": &schema.Schema{
-              Type:     schema.TypeBool,
-              Computed: true,
-            },
+						"attached": &schema.Schema{
+							Type:     schema.TypeBool,
+							Computed: true,
+						},
 					},
 				},
 				Set: func(v interface{}) int {
@@ -571,34 +571,34 @@ func resourceAwsInstanceCreate(d *schema.ResourceData, meta interface{}) error {
 		})
 	}
 
-  // Attach volumes
+	// Attach volumes
 	if v, ok := d.GetOk("volume"); ok {
 		vL := v.(*schema.Set).List()
 		for _, v := range vL {
 			vol := v.(map[string]interface{})
 
 			if v, ok := vol["attached"].(bool); ok && v {
-        // Already attached
-        break
+				// Already attached
+				break
 			}
 
 			attach := &ec2.AttachVolumeInput {
 				InstanceID: instance.InstanceID,
-        Device: aws.String(vol["device_name"].(string)),
-        VolumeID: aws.String(vol["volume_id"].(string)),
+				Device: aws.String(vol["device_name"].(string)),
+				VolumeID: aws.String(vol["volume_id"].(string)),
 			}
 
-      _, err := conn.AttachVolume(attach)
-      if err != nil {
-        return fmt.Errorf("Error attaching volume: %s", err)
-      }
+			_, err := conn.AttachVolume(attach)
+			if err != nil {
+				return fmt.Errorf("Error attaching volume: %s", err)
+			}
 
-	    vol["attached"] = true 
+			vol["attached"] = true
 
 		}
-    if err := d.Set("volume", v); err != nil {
-      return err
-    }
+		if err := d.Set("volume", v); err != nil {
+			return err
+		}
 	}
 
 	// Set our attributes
