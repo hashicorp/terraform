@@ -16,6 +16,7 @@ IMPROVEMENTS:
   * provider/aws: White or blacklist account IDs that can be used to
       protect against accidents. [GH-1595]
   * provider/docker: `docker_container` can specify links [GH-1564]
+  * provider/openstack: Floating IP support for LBaaS [GH-1550]
 
 BUG FIXES:
 
