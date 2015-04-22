@@ -227,7 +227,7 @@ func TestAccAWSELBUpdate_HealthCheck(t *testing.T) {
 	})
 }
 
-func testAccAWSELB_Timeout(t *testing.T) {
+func TestAccAWSELB_Timeout(t *testing.T) {
 	var conf elb.LoadBalancerDescription
 
 	resource.Test(t, resource.TestCase{
@@ -248,7 +248,7 @@ func testAccAWSELB_Timeout(t *testing.T) {
 	})
 }
 
-func testAccAWSELBUpdate_Timeout(t *testing.T) {
+func TestAccAWSELBUpdate_Timeout(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
@@ -274,7 +274,7 @@ func testAccAWSELBUpdate_Timeout(t *testing.T) {
 	})
 }
 
-func testAccAWSELB_ConnectionDraining(t *testing.T) {
+func TestAccAWSELB_ConnectionDraining(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
@@ -295,7 +295,7 @@ func testAccAWSELB_ConnectionDraining(t *testing.T) {
 	})
 }
 
-func testAccAWSELBUpdate_ConnectionDraining(t *testing.T) {
+func TestAccAWSELBUpdate_ConnectionDraining(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
