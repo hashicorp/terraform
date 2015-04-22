@@ -47,6 +47,14 @@ func tempDir(t *testing.T) string {
 	return dir
 }
 
+// tempEnv lets you temporarily set an environment variable. It returns
+// the old value that should be set via a defer.
+func tempEnv(t *testing.T, k string, v string) string {
+	old := os.Getenv(k)
+	os.Setenv(k, v)
+	return old
+}
+
 func testConfig(t *testing.T, name string) *config.Config {
 	c, err := config.Load(filepath.Join(fixtureDir, name, "main.tf"))
 	if err != nil {
@@ -618,6 +626,13 @@ aws_instance.foo:
   ID = foo
   bar = baz
   num = 2
+  type = aws_instance
+`
+
+const testTerraformApplyVarsEnvStr = `
+aws_instance.bar:
+  ID = foo
+  foo = baz
   type = aws_instance
 `
 
