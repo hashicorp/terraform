@@ -1,6 +1,7 @@
 package aws
 
 import (
+	"github.com/hashicorp/terraform/helper/hashcode"
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/terraform"
 )
@@ -50,6 +51,26 @@ func Provider() terraform.ResourceProvider {
 				}, nil),
 				Description:  descriptions["region"],
 				InputDefault: "us-east-1",
+			},
+
+			"allowed_account_ids": &schema.Schema{
+				Type:          schema.TypeSet,
+				Elem:          &schema.Schema{Type: schema.TypeString},
+				Optional:      true,
+				ConflictsWith: []string{"forbidden_account_ids"},
+				Set: func(v interface{}) int {
+					return hashcode.String(v.(string))
+				},
+			},
+
+			"forbidden_account_ids": &schema.Schema{
+				Type:          schema.TypeSet,
+				Elem:          &schema.Schema{Type: schema.TypeString},
+				Optional:      true,
+				ConflictsWith: []string{"allowed_account_ids"},
+				Set: func(v interface{}) int {
+					return hashcode.String(v.(string))
+				},
 			},
 		},
 
@@ -108,6 +129,14 @@ func providerConfigure(d *schema.ResourceData) (interface{}, error) {
 		SecretKey: d.Get("secret_key").(string),
 		Token:     d.Get("token").(string),
 		Region:    d.Get("region").(string),
+	}
+
+	if v, ok := d.GetOk("allowed_account_ids"); ok {
+		config.AllowedAccountIds = v.(*schema.Set).List()
+	}
+
+	if v, ok := d.GetOk("forbidden_account_ids"); ok {
+		config.ForbiddenAccountIds = v.(*schema.Set).List()
 	}
 
 	return config.Client()
