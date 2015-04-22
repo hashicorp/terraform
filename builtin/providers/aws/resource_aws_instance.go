@@ -544,6 +544,11 @@ func resourceAwsInstanceCreate(d *schema.ResourceData, meta interface{}) error {
 			"type": "ssh",
 			"host": *instance.PublicIPAddress,
 		})
+	} else if instance.PrivateIPAddress != nil {
+		d.SetConnInfo(map[string]string{
+			"type": "ssh",
+			"host": *instance.PrivateIPAddress,
+		})
 	}
 
 	// Set our attributes
