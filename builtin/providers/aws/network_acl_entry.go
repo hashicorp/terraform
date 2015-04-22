@@ -13,11 +13,15 @@ func expandNetworkAclEntries(configured []interface{}, entryType string) ([]*ec2
 	for _, eRaw := range configured {
 		data := eRaw.(map[string]interface{})
 		protocol := data["protocol"].(string)
-		_, ok := protocolIntegers()[protocol]
-		if !ok {
-			return nil, fmt.Errorf("Invalid Protocol %s for rule %#v", protocol, data)
+		p, err := strconv.Atoi(protocol)
+		if err != nil {
+			var ok bool
+			p, ok = protocolIntegers()[protocol]
+			if !ok {
+				return nil, fmt.Errorf("Invalid Protocol %s for rule %#v", protocol, data)
+			}
 		}
-		p := extractProtocolInteger(data["protocol"].(string))
+
 		e := &ec2.NetworkACLEntry{
 			Protocol: aws.String(strconv.Itoa(p)),
 			PortRange: &ec2.PortRange{
@@ -50,19 +54,6 @@ func flattenNetworkAclEntries(list []*ec2.NetworkACLEntry) []map[string]interfac
 
 	return entries
 
-}
-
-func extractProtocolInteger(protocol string) int {
-	return protocolIntegers()[protocol]
-}
-
-func extractProtocolString(protocol int) string {
-	for key, value := range protocolIntegers() {
-		if value == protocol {
-			return key
-		}
-	}
-	return ""
 }
 
 func protocolIntegers() map[string]int {
