@@ -5,6 +5,8 @@ import (
 	"os"
 	"strings"
 	"sync"
+	"strconv"
+	"sort"
 
 	"github.com/hashicorp/terraform/config"
 	"github.com/hashicorp/terraform/config/lang/ast"
@@ -324,6 +326,27 @@ func (i *Interpolater) computeResourceVariable(
 		return attr, nil
 	}
 
+	// Check sets and lists for attributes
+	if parts := strings.Split(v.Field, "."); len(parts) > 1 {
+		for i := 1; i < len(parts); i++ {
+
+			// Sets and lists have an attribute that is their size
+			// so use that to check if it has been computed or not yet
+			key := fmt.Sprintf("%s.#", strings.Join(parts[:i], "."))
+			if attr, ok := r.Primary.Attributes[key]; ok {
+
+				// If the number of instances has not been computed yet, don't try
+				// to find the values
+				if _, err := strconv.ParseInt(attr, 0, 0); err != nil {
+					return attr, nil
+				}
+
+				values := computeValuesFromParts(parts, r.Primary.Attributes)
+				return strings.Join(values, config.InterpSplitDelim), nil
+			}
+		}
+	}
+
 	// At apply time, we can't do the "maybe has it" check below
 	// that we need for plans since parent elements might be computed.
 	// Therefore, it is an error and we're missing the key.
@@ -341,14 +364,9 @@ func (i *Interpolater) computeResourceVariable(
 	// a computed list. If so, then the whole thing is computed.
 	if parts := strings.Split(v.Field, "."); len(parts) > 1 {
 		for i := 1; i < len(parts); i++ {
-			// Lists and sets make this
-			key := fmt.Sprintf("%s.#", strings.Join(parts[:i], "."))
-			if attr, ok := r.Primary.Attributes[key]; ok {
-				return attr, nil
-			}
 
 			// Maps make this
-			key = fmt.Sprintf("%s", strings.Join(parts[:i], "."))
+			key := fmt.Sprintf("%s", strings.Join(parts[:i], "."))
 			if attr, ok := r.Primary.Attributes[key]; ok {
 				return attr, nil
 			}
@@ -370,6 +388,35 @@ MISSING:
 		id,
 		v.Field,
 		v.FullKey())
+}
+
+func computeValuesFromParts(parts []string, attributes map[string]string) []string {
+	var values []string
+
+	attributeName := parts[0]
+	attributeIndex := parts[1]
+
+	for attribute, value := range attributes {
+		if attributeParts := strings.Split(attribute, "."); attributeParts[0] == attributeName && attributeParts[1] != "#" {
+			if len(parts) <= 2 {
+				values = append(values, value)
+			} else if nestedAttribute := parts[2]; attributeParts[2] == nestedAttribute {
+				values = append(values, value)
+			}
+		}
+	}
+
+	sort.StringSlice(values).Sort()
+
+	if index, err := strconv.ParseInt(attributeIndex, 0, 0); err == nil {
+		if int(index) < len(values) {
+			values = []string{values[int(index)]}
+		} else {
+			values = []string{}
+		}
+	}
+
+	return values
 }
 
 func (i *Interpolater) computeResourceMultiVariable(

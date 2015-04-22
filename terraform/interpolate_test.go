@@ -6,6 +6,7 @@ import (
 	"reflect"
 	"sync"
 	"testing"
+	"strings"
 
 	"github.com/hashicorp/terraform/config"
 	"github.com/hashicorp/terraform/config/lang/ast"
@@ -136,6 +137,122 @@ func TestInterpolater_pathRoot(t *testing.T) {
 	})
 }
 
+func TestInterpolater_computedSet(t *testing.T) {
+	lock := new(sync.RWMutex)
+	state := &State{
+		Modules: []*ModuleState{
+			&ModuleState{
+				Path: rootModulePath,
+				Resources: map[string]*ResourceState{
+					"resource.name": &ResourceState{
+						Type: "resource",
+						Primary: &InstanceState{
+							ID: "qux",
+							Attributes: map[string]string{
+								"foo.#": "4",
+								"foo.298374.bar1": "baz1",
+								"foo.298374.bar2": "baz12",
+								"foo.233489.bar1": "baz2",
+								"foo.233489.bar2": "baz22",
+								"foo.872348.bar1": "baz3",
+								"foo.872348.bar2": "baz32",
+								"foo.348573.bar1": "baz4",
+								"foo.348573.bar2": "baz42",
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	mod := testModule(t, "resource-computed-set")
+	i := &Interpolater{
+		Module:    mod,
+		State:     state,
+		StateLock: lock,
+	}
+
+	scope := &InterpolationScope{
+		Path: rootModulePath,
+	}
+
+	testInterpolate(t, i, scope, "resource.name.foo.#", ast.Variable{
+		Value: "4",
+		Type:  ast.TypeString,
+	})
+
+	expectedValues := []string{"baz1", "baz2", "baz3", "baz4"}
+	testInterpolate(t, i, scope, "resource.name.foo.*.bar1", ast.Variable{
+		Value: strings.Join(expectedValues, config.InterpSplitDelim),
+		Type:  ast.TypeString,
+	})
+
+	expectedValues = []string{"baz12", "baz22", "baz32", "baz42"}
+	testInterpolate(t, i, scope, "resource.name.foo.*.bar2", ast.Variable{
+		Value: strings.Join(expectedValues, config.InterpSplitDelim),
+		Type:  ast.TypeString,
+	})
+
+	testInterpolate(t, i, scope, "resource.name.foo.0.bar1", ast.Variable{
+		Value: "baz1",
+		Type:  ast.TypeString,
+	})
+
+	testInterpolate(t, i, scope, "resource.name.foo.4.bar1", ast.Variable{
+		Value: "",
+		Type:  ast.TypeString,
+	})
+}
+
+func TestInterpolater_computedList(t *testing.T) {
+	lock := new(sync.RWMutex)
+	state := &State{
+		Modules: []*ModuleState{
+			&ModuleState{
+				Path: rootModulePath,
+				Resources: map[string]*ResourceState{
+					"resource.name": &ResourceState{
+						Type: "resource",
+						Primary: &InstanceState{
+							ID: "qux",
+							Attributes: map[string]string{
+								"foo.#": "4",
+								"foo.298374": "bar1",
+								"foo.233489": "bar2",
+								"foo.872348": "bar3",
+								"foo.348573": "bar4",
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	mod := testModule(t, "resource-computed-list")
+	i := &Interpolater{
+		Module:    mod,
+		State:     state,
+		StateLock: lock,
+	}
+
+	scope := &InterpolationScope{
+		Path: rootModulePath,
+	}
+
+	testInterpolate(t, i, scope, "resource.name.foo.#", ast.Variable{
+		Value: "4",
+		Type:  ast.TypeString,
+	})
+
+	expectedValues := []string{"bar1", "bar2", "bar3", "bar4"}
+	testInterpolate(t, i, scope, "resource.name.foo.*", ast.Variable{
+		Value: strings.Join(expectedValues, config.InterpSplitDelim),
+		Type:  ast.TypeString,
+	})
+}
+
 func testInterpolate(
 	t *testing.T, i *Interpolater,
 	scope *InterpolationScope,
@@ -155,6 +272,7 @@ func testInterpolate(
 	expected := map[string]ast.Variable{
 		"foo": expectedVar,
 	}
+
 	if !reflect.DeepEqual(actual, expected) {
 		t.Fatalf("bad: %#v", actual)
 	}
