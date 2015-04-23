@@ -364,16 +364,13 @@ func resourceAwsLaunchConfigurationCreate(d *schema.ResourceData, meta interface
 		createLaunchConfigurationOpts.BlockDeviceMappings = blockDevices
 	}
 
-	var id string
+	var lcName string
 	if v, ok := d.GetOk("name"); ok {
-		id = v.(string)
+		lcName = v.(string)
 	} else {
-		hash := sha1.Sum([]byte(fmt.Sprintf("%#v", createLaunchConfigurationOpts)))
-		configName := fmt.Sprintf("terraform-%s", base64.URLEncoding.EncodeToString(hash[:]))
-		log.Printf("[DEBUG] Computed Launch config name: %s", configName)
-		id = configName
+		lcName = resource.UniqueId()
 	}
-	createLaunchConfigurationOpts.LaunchConfigurationName = aws.String(id)
+	createLaunchConfigurationOpts.LaunchConfigurationName = aws.String(lcName)
 
 	log.Printf(
 		"[DEBUG] autoscaling create launch configuration: %#v", createLaunchConfigurationOpts)
@@ -382,7 +379,7 @@ func resourceAwsLaunchConfigurationCreate(d *schema.ResourceData, meta interface
 		return fmt.Errorf("Error creating launch configuration: %s", err)
 	}
 
-	d.SetId(id)
+	d.SetId(lcName)
 	log.Printf("[INFO] launch configuration ID: %s", d.Id())
 
 	// We put a Retry here since sometimes eventual consistency bites
