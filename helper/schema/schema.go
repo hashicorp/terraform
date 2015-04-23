@@ -17,7 +17,6 @@ import (
 	"reflect"
 	"sort"
 	"strconv"
-	"strings"
 
 	"github.com/hashicorp/terraform/terraform"
 	"github.com/mitchellh/mapstructure"
@@ -812,12 +811,18 @@ func (m schemaMap) diffSet(
 	}
 
 	for _, code := range ns.listCode() {
+		// If the code is negative (first character is -) then
+		// replace it with "~" for our computed set stuff.
+		codeStr := strconv.Itoa(code)
+		if codeStr[0] == '-' {
+			codeStr = string('~') + codeStr[1:]
+		}
+
 		switch t := schema.Elem.(type) {
 		case *Resource:
 			// This is a complex resource
 			for k2, schema := range t.Schema {
-				subK := fmt.Sprintf("%s.%d.%s", k, code, k2)
-				subK = strings.Replace(subK, "-", "~", -1)
+				subK := fmt.Sprintf("%s.%s.%s", k, codeStr, k2)
 				err := m.diff(subK, schema, diff, d, true)
 				if err != nil {
 					return err
@@ -831,8 +836,7 @@ func (m schemaMap) diffSet(
 
 			// This is just a primitive element, so go through each and
 			// just diff each.
-			subK := fmt.Sprintf("%s.%d", k, code)
-			subK = strings.Replace(subK, "-", "~", -1)
+			subK := fmt.Sprintf("%s.%s", k, codeStr)
 			err := m.diff(subK, &t2, diff, d, true)
 			if err != nil {
 				return err

@@ -2224,6 +2224,63 @@ func TestSchemaMap_Diff(t *testing.T) {
 
 			Err: false,
 		},
+
+		// #58 Set with hyphen keys
+		{
+			Schema: map[string]*Schema{
+				"route": &Schema{
+					Type:     TypeSet,
+					Optional: true,
+					Elem: &Resource{
+						Schema: map[string]*Schema{
+							"index": &Schema{
+								Type:     TypeInt,
+								Required: true,
+							},
+
+							"gateway-name": &Schema{
+								Type:     TypeString,
+								Optional: true,
+							},
+						},
+					},
+					Set: func(v interface{}) int {
+						m := v.(map[string]interface{})
+						return m["index"].(int)
+					},
+				},
+			},
+
+			State: nil,
+
+			Config: map[string]interface{}{
+				"route": []map[string]interface{}{
+					map[string]interface{}{
+						"index":        "1",
+						"gateway-name": "hello",
+					},
+				},
+			},
+
+			Diff: &terraform.InstanceDiff{
+				Attributes: map[string]*terraform.ResourceAttrDiff{
+					"route.#": &terraform.ResourceAttrDiff{
+						Old: "0",
+						New: "1",
+					},
+					"route.1.index": &terraform.ResourceAttrDiff{
+						Old: "",
+						New: "1",
+					},
+					"route.1.gateway-name": &terraform.ResourceAttrDiff{
+						Old: "",
+						New: "hello",
+					},
+				},
+			},
+
+			Err: false,
+		},
 	}
 
 	for i, tc := range cases {
