@@ -118,40 +118,49 @@ func (r *ConfigFieldReader) readMap(k string) (FieldReadResult, error) {
 	switch m := mraw.(type) {
 	case []interface{}:
 		for i, innerRaw := range m {
-			for ik, _ := range innerRaw.(map[string]interface{}) {
+			for ik, iv := range innerRaw.(map[string]interface{}) {
 				key := fmt.Sprintf("%s.%d.%s", k, i, ik)
 				if r.Config.IsComputed(key) {
 					computed = true
 					break
 				}
 
-				v, _ := r.Config.Get(key)
-				result[ik] = v
+				if v, ok := r.Config.Get(key); ok {
+					result[ik] = v
+				} else {
+					result[ik] = iv
+				}
 			}
 		}
 	case []map[string]interface{}:
 		for i, innerRaw := range m {
-			for ik, _ := range innerRaw {
+			for ik, iv := range innerRaw {
 				key := fmt.Sprintf("%s.%d.%s", k, i, ik)
 				if r.Config.IsComputed(key) {
 					computed = true
 					break
 				}
 
-				v, _ := r.Config.Get(key)
-				result[ik] = v
+				if v, ok := r.Config.Get(key); ok {
+					result[ik] = v
+				} else {
+					result[ik] = iv
+				}
 			}
 		}
 	case map[string]interface{}:
-		for ik, _ := range m {
+		for ik, iv := range m {
 			key := fmt.Sprintf("%s.%s", k, ik)
 			if r.Config.IsComputed(key) {
 				computed = true
 				break
 			}
 
-			v, _ := r.Config.Get(key)
-			result[ik] = v
+			if v, ok := r.Config.Get(key); ok {
+				result[ik] = v
+			} else {
+				result[ik] = iv
+			}
 		}
 	default:
 		panic(fmt.Sprintf("unknown type: %#v", mraw))
