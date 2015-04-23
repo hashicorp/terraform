@@ -54,6 +54,7 @@ The following arguments are supported:
 The following attributes are exported:
 
 * `id` - The access key ID.
+* `user` - The IAM user associated with this access key.
 * `secret` - The secret access key. Note that this will be written to the state file.
 * `status` - "Active" or "Inactive". Keys are initially active, but can be made
 	inactive by other means.
