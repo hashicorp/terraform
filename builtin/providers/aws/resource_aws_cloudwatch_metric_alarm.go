@@ -67,7 +67,7 @@ func resourceAwsCloudWatchMetricAlarm() *schema.Resource {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
-			"dimension": &schema.Schema{
+			"dimensions": &schema.Schema{
 				Type:     schema.TypeMap,
 				Optional: true,
 			},
@@ -228,7 +228,7 @@ func getAwsCloudWatchPutMetricAlarmInput(d *schema.ResourceData) cloudwatch.PutM
 		params.OKActions = okActions
 	}
 
-	a := d.Get("dimension").(map[string]interface{})
+	a := d.Get("dimensions").(map[string]interface{})
 	dimensions := make([]*cloudwatch.Dimension, 0, len(a))
 	for k, v := range a {
 		dimensions = append(dimensions, &cloudwatch.Dimension{
