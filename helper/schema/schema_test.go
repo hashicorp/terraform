@@ -1675,6 +1675,11 @@ func TestSchemaMap_Diff(t *testing.T) {
 								Type:     TypeString,
 								Optional: true,
 							},
+
+							"foo-bar": &Schema{
+								Type:     TypeString,
+								Optional: true,
+							},
 						},
 					},
 					Set: func(v interface{}) int {
@@ -1691,6 +1696,7 @@ func TestSchemaMap_Diff(t *testing.T) {
 					map[string]interface{}{
 						"index":   "1",
 						"gateway": "${var.foo}",
+						"foo-bar": "baz",
 					},
 				},
 			},
@@ -1712,6 +1718,10 @@ func TestSchemaMap_Diff(t *testing.T) {
 					"route.~1.gateway": &terraform.ResourceAttrDiff{
 						Old: "",
 						New: "${var.foo}",
+					},
+					"route.~1.foo-bar": &terraform.ResourceAttrDiff{
+						Old: "",
+						New: "baz",
 					},
 				},
 			},

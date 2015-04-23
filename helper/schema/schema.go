@@ -17,7 +17,6 @@ import (
 	"reflect"
 	"sort"
 	"strconv"
-	"strings"
 
 	"github.com/hashicorp/terraform/terraform"
 	"github.com/mitchellh/mapstructure"
@@ -817,7 +816,11 @@ func (m schemaMap) diffSet(
 			// This is a complex resource
 			for k2, schema := range t.Schema {
 				subK := fmt.Sprintf("%s.%d.%s", k, code, k2)
-				subK = strings.Replace(subK, "-", "~", -1)
+				// Replace a negative hashcode (computed) with a tilde. The
+				// tilde is used as a marker when diffing computed keys.
+				if code < 0 {
+					subK = fmt.Sprintf("%s.~%d.%s", k, -code, k2)
+				}
 				err := m.diff(subK, schema, diff, d, true)
 				if err != nil {
 					return err
@@ -832,7 +835,11 @@ func (m schemaMap) diffSet(
 			// This is just a primitive element, so go through each and
 			// just diff each.
 			subK := fmt.Sprintf("%s.%d", k, code)
-			subK = strings.Replace(subK, "-", "~", -1)
+			// Replace a negative hashcode (computed) with a tilde. The
+			// tilde is used as a marker when diffing computed keys.
+			if code < 0 {
+				subK = fmt.Sprintf("%s.~%d", k, -code)
+			}
 			err := m.diff(subK, &t2, diff, d, true)
 			if err != nil {
 				return err
