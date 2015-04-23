@@ -34,7 +34,7 @@ func (s *Set) Add(item interface{}) {
 
 // Contains checks if the set has the given item.
 func (s *Set) Contains(item interface{}) bool {
-	_, ok := s.m[s.F(item)]
+	_, ok := s.m[s.hash(item)]
 	return ok
 }
 
@@ -122,10 +122,7 @@ func (s *Set) init() {
 func (s *Set) add(item interface{}) int {
 	s.once.Do(s.init)
 
-	code := s.F(item)
-	if code < 0 {
-		code *= -1
-	}
+	code := s.hash(item)
 	if _, ok := s.m[code]; !ok {
 		s.m[code] = item
 	}
@@ -133,8 +130,17 @@ func (s *Set) add(item interface{}) int {
 	return code
 }
 
+func (s *Set) hash(item interface{}) int {
+	code := s.F(item)
+	// Always return a nonnegative hashcode.
+	if code < 0 {
+		return -code
+	}
+	return code
+}
+
 func (s *Set) index(item interface{}) int {
-	return sort.SearchInts(s.listCode(), s.F(item))
+	return sort.SearchInts(s.listCode(), s.hash(item))
 }
 
 func (s *Set) listCode() []int {
