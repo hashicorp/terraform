@@ -62,7 +62,7 @@ The following arguments are supported:
 * `listener` - (Required) A list of listener blocks. Listeners documented below.
 * `health_check` - (Optional) A health_check block. Health Check documented below.
 * `cross_zone_load_balancing` - (Optional) Enable cross-zone load balancing.
-* `idle_timeout` - (Optional) The time in seconds that the connection is allowed to be idle. Default: 300.
+* `idle_timeout` - (Optional) The time in seconds that the connection is allowed to be idle. Default: 60.
 * `connection_draining` - (Optional) Boolean to enable connection draining.
 * `connection_draining_timeout` - (Optional) The time in seconds to allow for connections to drain. 
 

@@ -84,7 +84,7 @@ func resourceAwsElb() *schema.Resource {
 			"idle_timeout": &schema.Schema{
 				Type:     schema.TypeInt,
 				Optional: true,
-				Default:  30,
+				Default:  60,
 			},
 
 			"connection_draining": &schema.Schema{
