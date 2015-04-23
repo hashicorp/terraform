@@ -54,6 +54,8 @@ BUG FIXES:
   * core: validation added to check for `self` variables in modules [GH-1609]
   * core: fix edge case where validation didn't pick up unknown fields
       if the value was computed [GH-1507]
+  * core: Fix issue where values in sets on resources couldn't contain
+      hyphens. [GH-1641]
   * command: remote states with uppercase types work [GH-1356]
   * provider/aws: launch configuration ID set after create success [GH-1518]
   * provider/aws: manually deleted S3 buckets are refreshed properly [GH-1574]
