@@ -123,6 +123,9 @@ func (s *Set) add(item interface{}) int {
 	s.once.Do(s.init)
 
 	code := s.F(item)
+	if code < 0 {
+		code *= -1
+	}
 	if _, ok := s.m[code]; !ok {
 		s.m[code] = item
 	}
