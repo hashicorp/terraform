@@ -153,14 +153,16 @@ func TestConfigFieldReader_ComputedMap(t *testing.T) {
 			[]string{"map"},
 			FieldReadResult{
 				Value: map[string]interface{}{
-					"foo": "bar",
+					"foo":     "bar",
+					"bam.bam": "baz",
 				},
 				Exists:   true,
 				Computed: false,
 			},
 			testConfig(t, map[string]interface{}{
 				"map": map[string]interface{}{
-					"foo": "bar",
+					"foo":     "bar",
+					"bam.bam": "baz",
 				},
 			}),
 			false,
