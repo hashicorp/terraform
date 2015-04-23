@@ -52,7 +52,10 @@ func (c *GraphCommand) Run(args []string) int {
 		return 1
 	}
 
-	g, err := ctx.Graph()
+	g, err := ctx.Graph(&terraform.ContextGraphOpts{
+		Validate: true,
+		Verbose:  false,
+	})
 	if err != nil {
 		c.Ui.Error(fmt.Sprintf("Error creating graph: %s", err))
 		return 1
