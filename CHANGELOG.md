@@ -20,9 +20,14 @@ IMPROVEMENTS:
       protect against accidents. [GH-1595]
   * provider/aws: `aws_instance` supports placement groups [GH-1358]
   * provider/aws: `aws_elb` supports in-place changing of listeners [GH-1619]
-  * provider/aws: `aws_elb` supports connecion draining settings [GH-1502]
+  * provider/aws: `aws_elb` supports connection draining settings [GH-1502]
   * provider/aws: `aws_route53_record` supports weighted sets [GH-1578]
   * provider/aws: `aws_route53_zone` exports nameservers [GH-1525]
+  * provider/aws: `aws_security_group` name becomes optional and can be
+      automatically set to a unique identifier; this helps with
+      `create_before_destroy` scenarios [GH-1632]
+  * provider/aws: `aws_security_group` description becomes optional with a
+      static default value [GH-1632]
   * provider/aws: automatically set the private IP as the SSH address
       if not specified and no public IP is available [GH-1623]
   * provider/docker: `docker_container` can specify links [GH-1564]
