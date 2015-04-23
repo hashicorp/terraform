@@ -26,6 +26,7 @@ resource "aws_route53_record" "www" {
 
 ### Weighted routing policy
 See [AWS Route53 Developer Guide](http://docs.aws.amazon.com/Route53/latest/DeveloperGuide/routing-policy.html#routing-policy-weighted) for details.
+
 ```
 resource "aws_route53_record" "www-dev" {
   zone_id = "${aws_route53_zone.primary.zone_id}"

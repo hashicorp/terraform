@@ -29,6 +29,10 @@ resource "aws_route53_zone" "main" {
 
 resource "aws_route53_zone" "dev" {
   name = "dev.example.com"
+
+  tags {
+    Environment = "dev"
+  }
 }
 
 resource "aws_route53_record" "dev-ns" {
@@ -37,10 +41,10 @@ resource "aws_route53_record" "dev-ns" {
     type = "NS"
     ttl = "30"
     records = [
-        "${aws_route53_zone.dev.delegation_set_name_servers.0}",
-        "${aws_route53_zone.dev.delegation_set_name_servers.1}",
-        "${aws_route53_zone.dev.delegation_set_name_servers.2}",
-        "${aws_route53_zone.dev.delegation_set_name_servers.3}"
+        "${aws_route53_zone.dev.name_servers.0}",
+        "${aws_route53_zone.dev.name_servers.1}",
+        "${aws_route53_zone.dev.name_servers.2}",
+        "${aws_route53_zone.dev.name_servers.3}"
     ]
 }
 ```
@@ -50,10 +54,12 @@ resource "aws_route53_record" "dev-ns" {
 The following arguments are supported:
 
 * `name` - (Required) This is the name of the hosted zone.
+* `tags` - (Optional) A mapping of tags to assign to the zone.
 
 ## Attributes Reference
 
 The following attributes are exported:
 
 * `zone_id` - The Hosted Zone ID. This can be referenced by zone records.
-
+* `name_servers` - A list of name servers in a default delegation set.
+  Find more about delegation sets in [AWS docs](http://docs.aws.amazon.com/Route53/latest/APIReference/actions-on-reusable-delegation-sets.html).
