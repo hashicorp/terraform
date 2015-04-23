@@ -335,6 +335,32 @@ func TestAccAWSELBUpdate_ConnectionDraining(t *testing.T) {
 	})
 }
 
+func TestAccAWSELB_SecurityGroups(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSELBDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccAWSELBConfig,
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr(
+						"aws_elb.bar", "security_groups.#", "0",
+					),
+				),
+			},
+			resource.TestStep{
+				Config: testAccAWSELBConfigSecurityGroups,
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr(
+						"aws_elb.bar", "security_groups.#", "1",
+					),
+				),
+			},
+		},
+	})
+}
+
 func testAccCheckAWSELBDestroy(s *terraform.State) error {
 	conn := testAccProvider.Meta().(*AWSClient).elbconn
 
@@ -692,5 +718,33 @@ resource "aws_elb" "bar" {
 	}
 
 	connection_draining = false
+}
+`
+
+const testAccAWSELBConfigSecurityGroups = `
+resource "aws_elb" "bar" {
+  name = "foobar-terraform-test"
+  availability_zones = ["us-west-2a", "us-west-2b", "us-west-2c"]
+
+  listener {
+    instance_port = 8000
+    instance_protocol = "http"
+    lb_port = 80
+    lb_protocol = "http"
+  }
+
+  security_groups = ["${aws_security_group.bar.id}"]
+}
+
+resource "aws_security_group" "bar" {
+  name = "terraform-elb-acceptance-test"
+  description = "Used in the terraform acceptance tests for the elb resource"
+
+  ingress {
+    protocol = "tcp"
+    from_port = 80
+    to_port = 80
+    cidr_blocks = ["0.0.0.0/0"]
+  }
 }
 `
