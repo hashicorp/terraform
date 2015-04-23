@@ -22,6 +22,7 @@ func resourceAwsCloudWatchMetricAlarm() *schema.Resource {
 			"alarm_name": &schema.Schema{
 				Type:     schema.TypeString,
 				Required: true,
+				ForceNew: true,
 			},
 			"comparison_operator": &schema.Schema{
 				Type:     schema.TypeString,
