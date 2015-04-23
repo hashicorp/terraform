@@ -21,6 +21,7 @@ IMPROVEMENTS:
   * provider/aws: `aws_instance` supports placement groups [GH-1358]
   * provider/aws: `aws_elb` supports in-place changing of listeners [GH-1619]
   * provider/aws: `aws_elb` supports connection draining settings [GH-1502]
+  * provider/aws: `aws_elb` increase default idle timeout to 60s [GH-1646]
   * provider/aws: `aws_route53_record` supports weighted sets [GH-1578]
   * provider/aws: `aws_route53_zone` exports nameservers [GH-1525]
   * provider/aws: `aws_security_group` name becomes optional and can be
