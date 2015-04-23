@@ -24,7 +24,12 @@ resource "aws_s3_bucket" "b" {
 The following arguments are supported:
 
 * `bucket` - (Required) The name of the bucket.
-* `acl` - (Optional) The canned ACL to apply. Defaults to "private".
+* `acl` - (Optional) The canned ACL to apply.
+* `grant_full_control` - (Optional) The grantee which has full controll permission.
+* `grant_read` - (Optional) The grantee which has read permission.
+* `grant_read_acp` - (Optional) The grantee which has read ACP permission.
+* `grant_write` - (Optional) The grantee which has write permission.
+* `grant_write_acp` - (Optional) The grantee which has write ACP permission.
 
 ## Attributes Reference
 
