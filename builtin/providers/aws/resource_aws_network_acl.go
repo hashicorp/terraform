@@ -342,7 +342,6 @@ func getDefaultNetworkAcl(vpc_id string, conn *ec2.EC2) (defaultAcl *ec2.Network
 
 func findNetworkAclAssociation(subnetId string, conn *ec2.EC2) (networkAclAssociation *ec2.NetworkACLAssociation, err error) {
 	resp, err := conn.DescribeNetworkACLs(&ec2.DescribeNetworkACLsInput{
-		NetworkACLIDs: []*string{},
 		Filters: []*ec2.Filter{
 			&ec2.Filter{
 				Name:   aws.String("association.subnet-id"),
