@@ -16,7 +16,7 @@ to your security groups in order to add an additional layer of security to your 
 ```
 resource "aws_network_acl" "main" {
 	vpc_id = "${aws_vpc.main.id}"
-	egress = {
+	egress {
 		protocol = "tcp"
 		rule_no = 2
 		action = "allow"
@@ -25,7 +25,7 @@ resource "aws_network_acl" "main" {
 		to_port = 443
 	}
 
-	ingress = {
+	ingress {
 		protocol = "tcp"
 		rule_no = 1
 		action = "allow"
@@ -34,7 +34,7 @@ resource "aws_network_acl" "main" {
 		to_port = 80
 	}
 
-	tags = {
+	tags {
 		Name = "main"
 	}
 }
