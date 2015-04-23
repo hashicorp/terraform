@@ -3,6 +3,7 @@ package aws
 import (
 	"fmt"
 	"log"
+	"sort"
 	"strings"
 	"time"
 
@@ -101,6 +102,7 @@ func resourceAwsRoute53ZoneRead(d *schema.ResourceData, meta interface{}) error 
 	for i := range zone.DelegationSet.NameServers {
 		ns[i] = *zone.DelegationSet.NameServers[i]
 	}
+	sort.Strings(ns)
 	if err := d.Set("name_servers", ns); err != nil {
 		return fmt.Errorf("[DEBUG] Error setting name servers for: %s, error: %#v", d.Id(), err)
 	}
