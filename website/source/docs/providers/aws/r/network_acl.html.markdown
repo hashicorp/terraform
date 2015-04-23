@@ -33,6 +33,10 @@ resource "aws_network_acl" "main" {
 		from_port = 80
 		to_port = 80
 	}
+
+	tags = {
+		Name = "main"
+	}
 }
 ```
 
@@ -44,6 +48,7 @@ The following arguments are supported:
 * `subnet_id` - (Optional) The ID of the associated subnet.
 * `ingress` - (Optional) Specifies an ingress rule. Parameters defined below.
 * `egress` - (Optional) Specifies an egress rule. Parameters defined below.
+* `tags` - (Optional) A mapping of tags to assign to the resource.
 
 Both `egress` and `ingress` support the following keys:
 
