@@ -34,21 +34,27 @@ func GraphDot(g *Graph, opts *GraphDotOpts) string {
 	vertices := g.Vertices()
 	dotVertices := make(map[dag.Vertex]struct{}, len(vertices))
 	for _, v := range vertices {
-		if dn, ok := v.(GraphNodeDotter); !ok {
-			continue
-		} else if dn.Dot("fake") == "" {
-			continue
-		}
-
 		dotVertices[v] = struct{}{}
 	}
 
 	for v, _ := range dotVertices {
-		dn := v.(GraphNodeDotter)
-		scanner := bufio.NewScanner(strings.NewReader(
-			dn.Dot(dag.VertexName(v))))
-		for scanner.Scan() {
-			buf.WriteString("\t" + scanner.Text() + "\n")
+		vertexName := dag.VertexName(v)
+		if dn, ok := v.(GraphNodeDotter); ok {
+			if dn.Dot("fake") == "" {
+				buf.WriteString(fmt.Sprintf(
+					"\t\"%s\" [color=grey];\n",
+					vertexName))
+			} else {
+				scanner := bufio.NewScanner(strings.NewReader(
+					dn.Dot(vertexName)))
+				for scanner.Scan() {
+					buf.WriteString("\t" + scanner.Text() + "\n")
+				}
+			}
+		} else {
+			buf.WriteString(fmt.Sprintf(
+				"\t\n\"%s\" [color=red];\n",
+				vertexName))
 		}
 
 		// Draw all the edges
@@ -60,7 +66,7 @@ func GraphDot(g *Graph, opts *GraphDotOpts) string {
 
 			buf.WriteString(fmt.Sprintf(
 				"\t\"%s\" -> \"%s\";\n",
-				dag.VertexName(v),
+				vertexName,
 				dag.VertexName(target)))
 		}
 	}
