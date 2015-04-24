@@ -182,7 +182,7 @@ func resourceAwsRouteTableUpdate(d *schema.ResourceData, meta interface{}) error
 		routes := o.(*schema.Set).Intersection(n.(*schema.Set))
 		d.Set("route", routes)
 
-		// Then loop through al the newly configured routes and create them
+		// Then loop through all the newly configured routes and create them
 		for _, route := range nrs.List() {
 			m := route.(map[string]interface{})
 
