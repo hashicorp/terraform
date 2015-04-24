@@ -5,8 +5,8 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/hashicorp/aws-sdk-go/aws"
-	"github.com/hashicorp/aws-sdk-go/gen/ec2"
+	"github.com/awslabs/aws-sdk-go/aws"
+	"github.com/awslabs/aws-sdk-go/service/ec2"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/terraform"
@@ -43,9 +43,9 @@ func TestAccAWSInstance_normal(t *testing.T) {
 				Check: func(*terraform.State) error {
 					conn := testAccProvider.Meta().(*AWSClient).ec2conn
 					var err error
-					vol, err = conn.CreateVolume(&ec2.CreateVolumeRequest{
+					vol, err = conn.CreateVolume(&ec2.CreateVolumeInput{
 						AvailabilityZone: aws.String("us-west-2a"),
-						Size:             aws.Integer(5),
+						Size:             aws.Long(int64(5)),
 					})
 					return err
 				},
@@ -89,7 +89,8 @@ func TestAccAWSInstance_normal(t *testing.T) {
 				Config: testAccInstanceConfig,
 				Check: func(*terraform.State) error {
 					conn := testAccProvider.Meta().(*AWSClient).ec2conn
-					return conn.DeleteVolume(&ec2.DeleteVolumeRequest{VolumeID: vol.VolumeID})
+					_, err := conn.DeleteVolume(&ec2.DeleteVolumeInput{VolumeID: vol.VolumeID})
+					return err
 				},
 			},
 		},
@@ -103,7 +104,7 @@ func TestAccAWSInstance_blockDevices(t *testing.T) {
 		return func(*terraform.State) error {
 
 			// Map out the block devices by name, which should be unique.
-			blockDevices := make(map[string]ec2.InstanceBlockDeviceMapping)
+			blockDevices := make(map[string]*ec2.InstanceBlockDeviceMapping)
 			for _, blockDevice := range v.BlockDeviceMappings {
 				blockDevices[*blockDevice.DeviceName] = blockDevice
 			}
@@ -286,9 +287,9 @@ func TestAccAWSInstance_tags(t *testing.T) {
 				Config: testAccCheckInstanceConfigTags,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckInstanceExists("aws_instance.foo", &v),
-					testAccCheckTags(&v.Tags, "foo", "bar"),
+					testAccCheckTagsSDK(&v.Tags, "foo", "bar"),
 					// Guard against regression of https://github.com/hashicorp/terraform/issues/914
-					testAccCheckTags(&v.Tags, "#", ""),
+					testAccCheckTagsSDK(&v.Tags, "#", ""),
 				),
 			},
 
@@ -296,8 +297,8 @@ func TestAccAWSInstance_tags(t *testing.T) {
 				Config: testAccCheckInstanceConfigTagsUpdate,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckInstanceExists("aws_instance.foo", &v),
-					testAccCheckTags(&v.Tags, "foo", ""),
-					testAccCheckTags(&v.Tags, "bar", "baz"),
+					testAccCheckTagsSDK(&v.Tags, "foo", ""),
+					testAccCheckTagsSDK(&v.Tags, "bar", "baz"),
 				),
 			},
 		},
@@ -371,8 +372,8 @@ func testAccCheckInstanceDestroy(s *terraform.State) error {
 		}
 
 		// Try to find the resource
-		resp, err := conn.DescribeInstances(&ec2.DescribeInstancesRequest{
-			InstanceIDs: []string{rs.Primary.ID},
+		resp, err := conn.DescribeInstances(&ec2.DescribeInstancesInput{
+			InstanceIDs: []*string{aws.String(rs.Primary.ID)},
 		})
 		if err == nil {
 			if len(resp.Reservations) > 0 {
@@ -407,8 +408,8 @@ func testAccCheckInstanceExists(n string, i *ec2.Instance) resource.TestCheckFun
 		}
 
 		conn := testAccProvider.Meta().(*AWSClient).ec2conn
-		resp, err := conn.DescribeInstances(&ec2.DescribeInstancesRequest{
-			InstanceIDs: []string{rs.Primary.ID},
+		resp, err := conn.DescribeInstances(&ec2.DescribeInstancesInput{
+			InstanceIDs: []*string{aws.String(rs.Primary.ID)},
 		})
 		if err != nil {
 			return err
@@ -417,7 +418,7 @@ func testAccCheckInstanceExists(n string, i *ec2.Instance) resource.TestCheckFun
 			return fmt.Errorf("Instance not found")
 		}
 
-		*i = resp.Reservations[0].Instances[0]
+		*i = *resp.Reservations[0].Instances[0]
 
 		return nil
 	}

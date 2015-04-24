@@ -7,14 +7,13 @@ import (
 
 	"github.com/awslabs/aws-sdk-go/aws"
 	"github.com/awslabs/aws-sdk-go/service/autoscaling"
-	hashiASG "github.com/hashicorp/aws-sdk-go/gen/autoscaling"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
 )
 
 func TestAccAWSAutoScalingGroup_basic(t *testing.T) {
 	var group autoscaling.AutoScalingGroup
-	var lc hashiASG.LaunchConfiguration
+	var lc autoscaling.LaunchConfiguration
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -118,7 +117,7 @@ func TestAccAWSAutoScalingGroup_WithLoadBalancer(t *testing.T) {
 	})
 }
 func testAccCheckAWSAutoScalingGroupDestroy(s *terraform.State) error {
-	conn := testAccProvider.Meta().(*AWSClient).asgconn
+	conn := testAccProvider.Meta().(*AWSClient).autoscalingconn
 
 	for _, rs := range s.RootModule().Resources {
 		if rs.Type != "aws_autoscaling_group" {
@@ -225,7 +224,7 @@ func testAccCheckAWSAutoScalingGroupExists(n string, group *autoscaling.AutoScal
 			return fmt.Errorf("No AutoScaling Group ID is set")
 		}
 
-		conn := testAccProvider.Meta().(*AWSClient).asgconn
+		conn := testAccProvider.Meta().(*AWSClient).autoscalingconn
 
 		describeGroups, err := conn.DescribeAutoScalingGroups(
 			&autoscaling.DescribeAutoScalingGroupsInput{
@@ -247,7 +246,7 @@ func testAccCheckAWSAutoScalingGroupExists(n string, group *autoscaling.AutoScal
 	}
 }
 
-func testLaunchConfigurationName(n string, lc *hashiASG.LaunchConfiguration) resource.TestCheckFunc {
+func testLaunchConfigurationName(n string, lc *autoscaling.LaunchConfiguration) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		rs, ok := s.RootModule().Resources[n]
 		if !ok {

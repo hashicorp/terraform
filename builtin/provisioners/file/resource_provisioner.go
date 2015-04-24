@@ -9,6 +9,7 @@ import (
 	"github.com/hashicorp/terraform/helper/config"
 	helper "github.com/hashicorp/terraform/helper/ssh"
 	"github.com/hashicorp/terraform/terraform"
+	"github.com/mitchellh/go-homedir"
 )
 
 type ResourceProvisioner struct{}
@@ -33,6 +34,11 @@ func (p *ResourceProvisioner) Apply(
 	src, ok := sRaw.(string)
 	if !ok {
 		return fmt.Errorf("Unsupported 'source' type! Must be string.")
+	}
+
+	src, err = homedir.Expand(src)
+	if err != nil {
+		return err
 	}
 
 	dRaw := c.Config["destination"]
