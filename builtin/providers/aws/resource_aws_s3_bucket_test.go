@@ -23,7 +23,13 @@ func TestAccAWSS3Bucket(t *testing.T) {
 			resource.TestStep{
 				Config: testAccAWSS3BucketConfig,
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckAWSS3BucketExists("aws_s3_bucket.bar"),
+					testAccCheckAWSS3BucketExists("aws_s3_bucket.bucket"),
+				),
+			},
+			resource.TestStep{
+				Config: testAccAWSS3BucketWebsiteConfig,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSS3BucketExists("aws_s3_bucket.website"),
 				),
 			},
 		},
@@ -70,11 +76,21 @@ func testAccCheckAWSS3BucketExists(n string) resource.TestCheckFunc {
 	}
 }
 
-// This needs a bit of randoness as the name can only be
-// used once globally within AWS
+// These need a bit of randoness as the name can only be used once globally
+// within AWS
 var testAccAWSS3BucketConfig = fmt.Sprintf(`
-resource "aws_s3_bucket" "bar" {
+resource "aws_s3_bucket" "bucket" {
 	bucket = "tf-test-bucket-%d"
 	acl = "public-read"
+}
+`, rand.New(rand.NewSource(time.Now().UnixNano())).Int())
+
+var testAccAWSS3BucketWebsiteConfig = fmt.Sprintf(`
+resource "aws_s3_bucket" "website" {
+	bucket = "tf-test-bucket-website-%d"
+	acl = "public-read"
+
+	website = true
+	index_document = "index.html"
 }
 `, rand.New(rand.NewSource(time.Now().UnixNano())).Int())
