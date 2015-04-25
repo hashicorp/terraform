@@ -31,6 +31,19 @@ func resourceAwsS3Bucket() *schema.Resource {
 				ForceNew: true,
 			},
 
+			"website": &schema.Schema{
+				Type:     schema.TypeBool,
+				Default:  false,
+				Optional: true,
+				ForceNew: false,
+			},
+
+			"index_document": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				ForceNew: false,
+			},
+
 			"tags": tagsSchema(),
 		},
 	}
@@ -75,6 +88,11 @@ func resourceAwsS3BucketUpdate(d *schema.ResourceData, meta interface{}) error {
 	if err := setTagsS3(s3conn, d); err != nil {
 		return err
 	}
+
+	if err := updateWebsite(s3conn, d); err != nil {
+		return err
+	}
+
 	return resourceAwsS3BucketRead(d, meta)
 }
 
@@ -116,5 +134,40 @@ func resourceAwsS3BucketDelete(d *schema.ResourceData, meta interface{}) error {
 	if err != nil {
 		return err
 	}
+	return nil
+}
+
+func updateWebsite(s3conn *s3.S3, d *schema.ResourceData) error {
+	website := d.Get("website").(bool)
+	bucket := d.Get("bucket").(string)
+	indexDocument := d.Get("index_document").(string)
+
+	websiteConfiguration := &s3.WebsiteConfiguration{
+		IndexDocument: &s3.IndexDocument{Suffix: aws.String(indexDocument)},
+	}
+
+	if website {
+		input := &s3.PutBucketWebsiteInput{
+			Bucket:               aws.String(bucket),
+			WebsiteConfiguration: websiteConfiguration,
+		}
+
+		log.Printf("[DEBUG] S3 put bucket website: %s", input)
+
+		_, err := s3conn.PutBucketWebsite(input)
+		if err != nil {
+			return fmt.Errorf("Error putting S3 website: %s", err)
+		}
+	} else {
+		deleteInput := &s3.DeleteBucketWebsiteInput{Bucket: aws.String(bucket)}
+
+		log.Printf("[DEBUG] S3 delete bucket website: %s", deleteInput)
+
+		_, err := s3conn.DeleteBucketWebsite(deleteInput)
+		if err != nil {
+			return fmt.Errorf("Error deleting S3 website: %s", err)
+		}
+	}
+
 	return nil
 }
