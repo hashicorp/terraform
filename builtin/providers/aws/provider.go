@@ -86,6 +86,7 @@ func Provider() terraform.ResourceProvider {
 			"aws_internet_gateway":             resourceAwsInternetGateway(),
 			"aws_key_pair":                     resourceAwsKeyPair(),
 			"aws_launch_configuration":         resourceAwsLaunchConfiguration(),
+			"aws_lb_cookie_stickiness_policy":  resourceAwsLBCookieStickinessPolicy(),
 			"aws_main_route_table_association": resourceAwsMainRouteTableAssociation(),
 			"aws_network_acl":                  resourceAwsNetworkAcl(),
 			"aws_network_interface":            resourceAwsNetworkInterface(),
