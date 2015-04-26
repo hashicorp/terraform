@@ -102,22 +102,17 @@ func resourceAwsEipRead(d *schema.ResourceData, meta interface{}) error {
 	domain := resourceAwsEipDomain(d)
 	id := d.Id()
 
-	assocIds := []*string{}
-	publicIps := []*string{}
+	req := &ec2.DescribeAddressesInput{}
 	if domain == "vpc" {
-		assocIds = []*string{aws.String(id)}
+		req.AllocationIDs = []*string{aws.String(id)}
 	} else {
-		publicIps = []*string{aws.String(id)}
+		req.PublicIPs = []*string{aws.String(id)}
 	}
 
 	log.Printf(
 		"[DEBUG] EIP describe configuration: %#v, %#v (domain: %s)",
-		assocIds, publicIps, domain)
+		req.AllocationIDs, req.PublicIPs, domain)
 
-	req := &ec2.DescribeAddressesInput{
-		AllocationIDs: assocIds,
-		PublicIPs:     publicIps,
-	}
 	describeAddresses, err := ec2conn.DescribeAddresses(req)
 	if err != nil {
 		if ec2err, ok := err.(aws.APIError); ok && ec2err.Code == "InvalidAllocationID.NotFound" {
@@ -158,16 +153,13 @@ func resourceAwsEipUpdate(d *schema.ResourceData, meta interface{}) error {
 
 		assocOpts := &ec2.AssociateAddressInput{
 			InstanceID: aws.String(instanceId),
-			PublicIP:   aws.String(d.Id()),
 		}
 
 		// more unique ID conditionals
 		if domain == "vpc" {
-			assocOpts = &ec2.AssociateAddressInput{
-				InstanceID:   aws.String(instanceId),
-				AllocationID: aws.String(d.Id()),
-				PublicIP:     aws.String(""),
-			}
+			assocOpts.AllocationID = aws.String(d.Id())
+		} else {
+			assocOpts.PublicIP = aws.String(d.Id())
 		}
 
 		log.Printf("[DEBUG] EIP associate configuration: %#v (domain: %v)", assocOpts, domain)
@@ -193,7 +185,7 @@ func resourceAwsEipDelete(d *schema.ResourceData, meta interface{}) error {
 
 	// If we are attached to an instance, detach first.
 	if d.Get("instance").(string) != "" {
-		log.Printf("[DEBUG] Disassociating EIP: %s", d.Id())
+		log.Printf("[DEBUG] Disassociating EIP %s from %s", d.Id(), d.Get("instance"))
 		var err error
 		switch resourceAwsEipDomain(d) {
 		case "vpc":
@@ -232,9 +224,11 @@ func resourceAwsEipDelete(d *schema.ResourceData, meta interface{}) error {
 			return nil
 		}
 		if _, ok := err.(aws.APIError); !ok {
+			log.Printf("[DEBUG] AWS error when releasing EIP: %#v", err)
 			return resource.RetryError{Err: err}
 		}
 
+		log.Printf("[DEBUG] Error when releasing EIP: %#v", err)
 		return err
 	})
 }
