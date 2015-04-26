@@ -10,6 +10,7 @@ import (
 	"github.com/awslabs/aws-sdk-go/aws"
 	"github.com/awslabs/aws-sdk-go/service/autoscaling"
 	"github.com/awslabs/aws-sdk-go/service/ec2"
+	"github.com/awslabs/aws-sdk-go/service/elasticache"
 	"github.com/awslabs/aws-sdk-go/service/elb"
 	"github.com/awslabs/aws-sdk-go/service/iam"
 	"github.com/awslabs/aws-sdk-go/service/rds"
@@ -36,6 +37,7 @@ type AWSClient struct {
 	region          string
 	rdsconn         *rds.RDS
 	iamconn         *iam.IAM
+	elasticacheconn *elasticache.ElastiCache
 }
 
 // Client configures and returns a fully initailized AWSClient
@@ -96,6 +98,8 @@ func (c *Config) Client() (interface{}, error) {
 			Region:      "us-east-1",
 		})
 
+		log.Println("[INFO] Initializing Elasticache Connection")
+		client.elasticacheconn = elasticache.New(awsConfig)
 	}
 
 	if len(errs) > 0 {
