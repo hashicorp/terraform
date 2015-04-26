@@ -67,7 +67,6 @@ func resourceAwsAutoscalingGroup() *schema.Resource {
 				Type:     schema.TypeInt,
 				Optional: true,
 				Computed: true,
-				ForceNew: true,
 			},
 
 			"health_check_type": &schema.Schema{
