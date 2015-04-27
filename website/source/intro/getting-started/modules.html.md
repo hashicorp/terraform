@@ -32,7 +32,7 @@ started guide, use `terraform destroy` to destroy them, and remove all
 configuration files.
 
 As an example, we're going to use the
-[Consul Terraform module](#)
+[Consul Terraform module](https://github.com/hashicorp/consul/tree/master/terraform)
 which will setup a complete [Consul](https://www.consul.io) cluster
 for us.
 
