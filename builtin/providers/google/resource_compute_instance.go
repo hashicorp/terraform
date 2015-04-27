@@ -195,7 +195,7 @@ func resourceComputeInstance() *schema.Resource {
 						},
 
 						"scopes": &schema.Schema{
-							Type:     schema.TypeList,
+							Type:     schema.TypeSet,
 							Required: true,
 							ForceNew: true,
 							Elem: &schema.Schema{
@@ -203,6 +203,9 @@ func resourceComputeInstance() *schema.Resource {
 								StateFunc: func(v interface{}) string {
 									return canonicalizeServiceScope(v.(string))
 								},
+							},
+							Set: func(v interface{}) int {
+								return hashcode.String(canonicalizeServiceScope(v.(string)))
 							},
 						},
 					},
@@ -434,11 +437,10 @@ func resourceComputeInstanceCreate(d *schema.ResourceData, meta interface{}) err
 	for i := 0; i < serviceAccountsCount; i++ {
 		prefix := fmt.Sprintf("service_account.%d", i)
 
-		scopesCount := d.Get(prefix + ".scopes.#").(int)
-		scopes := make([]string, 0, scopesCount)
-		for j := 0; j < scopesCount; j++ {
-			scope := d.Get(fmt.Sprintf(prefix+".scopes.%d", j)).(string)
-			scopes = append(scopes, canonicalizeServiceScope(scope))
+		scopeSet := d.Get(prefix + ".scopes").(*schema.Set)
+		scopes := make([]string, scopeSet.Len())
+		for i, v := range scopeSet.List() {
+			scopes[i] = canonicalizeServiceScope(v.(string))
 		}
 
 		serviceAccount := &compute.ServiceAccount{
