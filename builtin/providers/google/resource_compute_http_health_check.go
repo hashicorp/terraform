@@ -98,7 +98,7 @@ func resourceComputeHttpHealthCheckCreate(d *schema.ResourceData, meta interface
 	if v, ok := d.GetOk("check_interval_sec"); ok {
 		hchk.CheckIntervalSec = int64(v.(int))
 	}
-	if v, ok := d.GetOk("health_threshold"); ok {
+	if v, ok := d.GetOk("healthy_threshold"); ok {
 		hchk.HealthyThreshold = int64(v.(int))
 	}
 	if v, ok := d.GetOk("port"); ok {
@@ -167,7 +167,7 @@ func resourceComputeHttpHealthCheckUpdate(d *schema.ResourceData, meta interface
 	if v, ok := d.GetOk("check_interval_sec"); ok {
 		hchk.CheckIntervalSec = int64(v.(int))
 	}
-	if v, ok := d.GetOk("health_threshold"); ok {
+	if v, ok := d.GetOk("healthy_threshold"); ok {
 		hchk.HealthyThreshold = int64(v.(int))
 	}
 	if v, ok := d.GetOk("port"); ok {
