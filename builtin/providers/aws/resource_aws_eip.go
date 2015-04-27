@@ -123,7 +123,6 @@ func resourceAwsEipRead(d *schema.ResourceData, meta interface{}) error {
 	describeAddresses, err := ec2conn.DescribeAddresses(req)
 	if err != nil {
 		if ec2err, ok := err.(aws.APIError); ok && ec2err.Code == "InvalidAllocationID.NotFound" {
-			log.Printf("[DEBUG] EIP describe configuration: %#v", req)
 			d.SetId("")
 			return nil
 		}
