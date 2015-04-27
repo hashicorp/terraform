@@ -105,8 +105,8 @@ func (c *Config) Client() (interface{}, error) {
 	return &client, nil
 }
 
-// IsValidRegion returns true if the configured region is a valid AWS
-// region and false if it's not
+// ValidateRegion returns an error if the configured region is not a
+// valid aws region and nil otherwise.
 func (c *Config) ValidateRegion() error {
 	var regions = [11]string{"us-east-1", "us-west-2", "us-west-1", "eu-west-1",
 		"eu-central-1", "ap-southeast-1", "ap-southeast-2", "ap-northeast-1",
@@ -120,6 +120,8 @@ func (c *Config) ValidateRegion() error {
 	return fmt.Errorf("Not a valid region: %s", c.Region)
 }
 
+// ValidateAccountId returns a context-specific error if the configured account
+// id is explicitly forbidden or not authorised; and nil if it is authorised.
 func (c *Config) ValidateAccountId(iamconn *iam.IAM) error {
 	if c.AllowedAccountIds == nil && c.ForbiddenAccountIds == nil {
 		return nil
