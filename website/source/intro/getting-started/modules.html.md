@@ -39,6 +39,12 @@ for us.
 Create a configuration file with the following contents:
 
 ```
+provider "aws" {
+	access_key = "AWS ACCESS KEY"
+	secret_key = "AWS SECRET KEY"
+	region = "AWS REGION"
+}
+
 module "consul" {
 	source = "github.com/hashicorp/consul/terraform/aws"
 
@@ -48,6 +54,10 @@ module "consul" {
 	servers = "3"
 }
 ```
+
+(Note that the `provider` block can be omitted in favor of environment
+variables. See the [AWS Provider docs](/docs/providers/aws/index.html)
+for details.)
 
 The `module` block tells Terraform to create and manage a module. It is
 very similar to the `resource` block. It has a logical name -- in this
