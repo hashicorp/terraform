@@ -23,20 +23,20 @@ func resourceAwsRoute53HealthCheck() *schema.Resource {
 
 		Schema: map[string]*schema.Schema{
 			"type": &schema.Schema{
-				Type:     schema.TypeString, // can be {HTTP | HTTPS | HTTP_STR_MATCH | HTTPS_STR_MATCH | TCP}
+				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
 			"failure_threshold": &schema.Schema{
-				Type:     schema.TypeInt, // Valid Ints 1 - 10
+				Type:     schema.TypeInt,
 				Required: true,
 			},
 			"request_interval": &schema.Schema{
-				Type:     schema.TypeInt, // valid values { 10 | 30 }
+				Type:     schema.TypeInt,
 				Required: true,
 				ForceNew: true, // todo this should be updateable but the awslabs route53 service doesnt have the ability
 			},
-			"ip_address": &schema.Schema{ // if not supplied it will send a health check to FullyQualifiedDomainName
+			"ip_address": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: true,
@@ -45,16 +45,16 @@ func resourceAwsRoute53HealthCheck() *schema.Resource {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
-			"port": &schema.Schema{ // required for any type other than TCP
+			"port": &schema.Schema{
 				Type:     schema.TypeInt,
 				Optional: true,
 			},
 
-			"resource_path": &schema.Schema{ // must start with a '/'
-				Type:     schema.TypeString, // required for everything except TCP
+			"resource_path": &schema.Schema{
+				Type:     schema.TypeString,
 				Optional: true,
 			},
-			"search_string": &schema.Schema{ // only used for *_STR_MATCH
+			"search_string": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
 			},
