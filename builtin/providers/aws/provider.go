@@ -105,6 +105,8 @@ func Provider() terraform.ResourceProvider {
 			"aws_subnet":                       resourceAwsSubnet(),
 			"aws_vpc":                          resourceAwsVpc(),
 			"aws_vpc_peering_connection":       resourceAwsVpcPeeringConnection(),
+			"aws_vpc_dhcp_options":             resourceAwsVpcDhcpOptions(),
+			"aws_vpc_dhcp_options_association": resourceAwsVpcDhcpOptionsAssociation(),
 			"aws_vpn_gateway":                  resourceAwsVpnGateway(),
 		},
 
