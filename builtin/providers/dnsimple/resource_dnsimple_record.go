@@ -49,6 +49,7 @@ func resourceDNSimpleRecord() *schema.Resource {
 			"ttl": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
+				Default:  "3600",
 			},
 
 			"priority": &schema.Schema{
