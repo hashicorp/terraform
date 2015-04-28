@@ -89,6 +89,16 @@ func resourceAwsRoute53Record() *schema.Resource {
 				Set: resourceAwsRoute53AliasRecordHash,
 			},
 
+			"failover": &schema.Schema{ // PRIMARY | SECONDARY
+				Type:     schema.TypeString,
+				Optional: true,
+			},
+
+			"health_check_id": &schema.Schema{ // ID of health check
+				Type:     schema.TypeString,
+				Optional: true,
+			},
+
 			"records": &schema.Schema{
 				Type:          schema.TypeSet,
 				ConflictsWith: []string{"alias"},
@@ -232,10 +242,6 @@ func resourceAwsRoute53RecordRead(d *schema.ResourceData, meta interface{}) erro
 		StartRecordType: aws.String(d.Get("type").(string)),
 	}
 
-	if v, ok := d.GetOk("set_identifier"); ok {
-		lopts.StartRecordIdentifier = aws.String(v.(string))
-	}
-
 	resp, err := conn.ListResourceRecordSets(lopts)
 	if err != nil {
 		return err
@@ -252,7 +258,7 @@ func resourceAwsRoute53RecordRead(d *schema.ResourceData, meta interface{}) erro
 			continue
 		}
 
-		if lopts.StartRecordIdentifier != nil && *record.SetIdentifier != *lopts.StartRecordIdentifier {
+		if record.SetIdentifier != nil && *record.SetIdentifier != d.Get("set_identifier") {
 			continue
 		}
 
@@ -262,9 +268,12 @@ func resourceAwsRoute53RecordRead(d *schema.ResourceData, meta interface{}) erro
 		if err != nil {
 			return fmt.Errorf("[DEBUG] Error setting records for: %s, error: %#v", en, err)
 		}
+
 		d.Set("ttl", record.TTL)
 		d.Set("weight", record.Weight)
 		d.Set("set_identifier", record.SetIdentifier)
+		d.Set("failover", record.Failover)
+		d.Set("health_check_id", record.HealthCheckID)
 
 		break
 	}
@@ -388,6 +397,14 @@ func resourceAwsRoute53RecordBuildSet(d *schema.ResourceData, zoneName string) (
 		if _, ok := d.GetOk("records"); !ok {
 			return nil, fmt.Errorf(`provider.aws: aws_route53_record: %s: "records": required field is not set`, d.Get("name").(string))
 		}
+	}
+
+	if v, ok := d.GetOk("failover"); ok {
+		rec.Failover = aws.String(v.(string))
+	}
+
+	if v, ok := d.GetOk("health_check_id"); ok {
+		rec.HealthCheckID = aws.String(v.(string))
 	}
 
 	if v, ok := d.GetOk("weight"); ok {
