@@ -53,6 +53,11 @@ func resourceAwsVpc() *schema.Resource {
 				Computed: true,
 			},
 
+			"dhcp_options_id": &schema.Schema{
+				Type:     schema.TypeString,
+				Computed: true,
+			},
+
 			"default_security_group_id": &schema.Schema{
 				Type:     schema.TypeString,
 				Computed: true,
@@ -126,6 +131,7 @@ func resourceAwsVpcRead(d *schema.ResourceData, meta interface{}) error {
 	vpc := vpcRaw.(*ec2.VPC)
 	vpcid := d.Id()
 	d.Set("cidr_block", vpc.CIDRBlock)
+	d.Set("dhcp_options_id", vpc.DHCPOptionsID)
 
 	// Tags
 	d.Set("tags", tagsToMapSDK(vpc.Tags))
