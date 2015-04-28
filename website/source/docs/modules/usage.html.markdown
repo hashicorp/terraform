@@ -104,3 +104,15 @@ But if we set `-module-depth=-1`, the graph will look like this:
 Other commands work similarly with modules. Note that the `-module-depth`
 flag is purely a formatting flag; it doesn't affect what modules are created
 or not.
+
+
+## Tainting resources within a module
+
+The [taint command](/docs/commands/taint.html) can be used to _taint_
+specific resources within a module:
+
+```
+terraform taint -module=salt_master aws_instance.salt_master
+```
+
+It is not (yet) possible to taint an entire module.
