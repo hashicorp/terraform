@@ -161,7 +161,7 @@ func resourceAwsRoute53HealthCheckCreate(d *schema.ResourceData, meta interface{
 func resourceAwsRoute53HealthCheckRead(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).r53conn
 
-	check, err := conn.GetHealthCheck(&route53.GetHealthCheckInput{HealthCheckID: aws.String(d.Id())})
+	read, err := conn.GetHealthCheck(&route53.GetHealthCheckInput{HealthCheckID: aws.String(d.Id())})
 	if err != nil {
 		if r53err, ok := err.(aws.APIError); ok && r53err.Code == "NoSuchHealthCheck" {
 			d.SetId("")
@@ -170,10 +170,20 @@ func resourceAwsRoute53HealthCheckRead(d *schema.ResourceData, meta interface{})
 		}
 		return err
 	}
+	if read == nil {
+		return nil
+	}
 
-	// todo update the internal values based on what is coming back from the get
+	updated := read.HealthCheck.HealthCheckConfig
+	d.Set("type", updated.Type)
+	d.Set("failure_threshold",  updated.FailureThreshold)
+	d.Set("request_interval", updated.RequestInterval)
+	d.Set("fully_qualified_domain_name",  updated.FullyQualifiedDomainName)
+	d.Set("search_string",  updated.SearchString)
+	d.Set("ip_address", updated.IPAddress)
+	d.Set("port", updated.Port)
+	d.Set("resource_path", updated.ResourcePath)
 
-	log.Printf("[INFO] Check coming back from amazon %s", check)
 	return nil
 }
 
