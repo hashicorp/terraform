@@ -123,6 +123,11 @@ func TestAccAWSInstance_blockDevices(t *testing.T) {
 				fmt.Errorf("block device doesn't exist: /dev/sdc")
 			}
 
+			// Check if the encrypted block device exists
+			if _, ok := blockDevices["/dev/sdd"]; !ok {
+				fmt.Errorf("block device doesn't exist: /dev/sdd")
+			}
+
 			return nil
 		}
 	}
@@ -144,7 +149,7 @@ func TestAccAWSInstance_blockDevices(t *testing.T) {
 					resource.TestCheckResourceAttr(
 						"aws_instance.foo", "root_block_device.0.volume_type", "gp2"),
 					resource.TestCheckResourceAttr(
-						"aws_instance.foo", "ebs_block_device.#", "2"),
+						"aws_instance.foo", "ebs_block_device.#", "3"),
 					resource.TestCheckResourceAttr(
 						"aws_instance.foo", "ebs_block_device.2576023345.device_name", "/dev/sdb"),
 					resource.TestCheckResourceAttr(
@@ -159,6 +164,12 @@ func TestAccAWSInstance_blockDevices(t *testing.T) {
 						"aws_instance.foo", "ebs_block_device.2554893574.volume_type", "io1"),
 					resource.TestCheckResourceAttr(
 						"aws_instance.foo", "ebs_block_device.2554893574.iops", "100"),
+					resource.TestCheckResourceAttr(
+						"aws_instance.foo", "ebs_block_device.2634515331.device_name", "/dev/sdd"),
+					resource.TestCheckResourceAttr(
+						"aws_instance.foo", "ebs_block_device.2634515331.encrypted", "true"),
+					resource.TestCheckResourceAttr(
+						"aws_instance.foo", "ebs_block_device.2634515331.volume_size", "12"),
 					resource.TestCheckResourceAttr(
 						"aws_instance.foo", "ephemeral_block_device.#", "1"),
 					resource.TestCheckResourceAttr(
@@ -462,7 +473,7 @@ const testAccInstanceConfigBlockDevices = `
 resource "aws_instance" "foo" {
 	# us-west-2
 	ami = "ami-55a7ea65"
-	instance_type = "m1.small"
+	instance_type = "m3.medium"
 
 	root_block_device {
 		volume_type = "gp2"
@@ -478,6 +489,14 @@ resource "aws_instance" "foo" {
 		volume_type = "io1"
 		iops = 100
 	}
+
+	# Encrypted ebs block device
+	ebs_block_device {
+		device_name = "/dev/sdd"
+		volume_size = 12
+		encrypted = true
+	}
+
 	ephemeral_block_device {
 		device_name = "/dev/sde"
 		virtual_name = "ephemeral0"
