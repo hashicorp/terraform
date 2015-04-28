@@ -22,6 +22,12 @@ resource "openstack_compute_secgroup_v2" "secgroup_1" {
     ip_protocol = "tcp"
     cidr = "0.0.0.0/0"
   }
+  rule {
+    from_port = 80
+    to_port = 80
+    ip_protocol = "tcp"
+    cidr = "0.0.0.0/0"
+  }
 }
 ```
 
@@ -42,7 +48,8 @@ The following arguments are supported:
 
 * `rule` - (Optional) A rule describing how the security group operates. The
     rule object structure is documented below. Changing this updates the
-    security group rules.
+    security group rules. As shown in the example above, multiple rule blocks
+    may be used.
 
 The `rule` block supports:
 
