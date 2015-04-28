@@ -93,3 +93,6 @@ The following attributes are exported:
 * `name` - The name of the ELB
 * `dns_name` - The DNS name of the ELB
 * `instances` - The list of instances in the ELB
+* `source_security_group` - The name of the security group that you can use as
+  part of your inbound rules for your load balancer's back-end application
+  instances.
