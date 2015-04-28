@@ -24,8 +24,8 @@ func Provider() terraform.ResourceProvider {
 			"user": &schema.Schema{
 				Type:        schema.TypeString,
 				Optional:    true,
-				DefaultFunc: schema.EnvDefaultFunc("SDC_USER", nil),
-				Description: "The username is you are using RBAC.",
+				DefaultFunc: schema.EnvDefaultFunc("SDC_USER", ""),
+				Description: "The sub-user's username if you are using RBAC.",
 			},
 			"key_id": &schema.Schema{
 				Type:        schema.TypeString,
@@ -36,7 +36,7 @@ func Provider() terraform.ResourceProvider {
 			"key": &schema.Schema{
 				Type:        schema.TypeString,
 				Optional:    true,
-				DefaultFunc: schema.EnvDefaultFunc("SDC_KEY", nil),
+				DefaultFunc: schema.EnvDefaultFunc("SDC_KEY", ""),
 				Description: "The path to your SSH key. Default is '$HOME/.ssh/id_rsa'.",
 			},
 		},

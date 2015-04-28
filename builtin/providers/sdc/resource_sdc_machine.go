@@ -181,6 +181,11 @@ func resourceSDCMachineUpdate(d *schema.ResourceData, meta interface{}) error {
 func resourceSDCMachineDelete(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*sdc.Client)
 
+	// If machine is already deleted, we have nothing left to do
+	if d.Get("state").(string) == "deleted" {
+		return nil
+	}
+
 	// Start by stopping the machine as SDC doesn't allow deleting a running
 	// machine
 	err := client.StopMachine(d.Id())
