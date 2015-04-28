@@ -176,7 +176,7 @@ func resourceAwsRoute53ZoneRead(d *schema.ResourceData, meta interface{}) error 
 func resourceAwsRoute53ZoneUpdate(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).r53conn
 
-	if err := setTagsR53(conn, d); err != nil {
+	if err := setTagsR53(conn, d, "hostedzone"); err != nil {
 		return err
 	} else {
 		d.SetPartial("tags")

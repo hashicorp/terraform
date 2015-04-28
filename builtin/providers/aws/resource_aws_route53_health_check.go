@@ -58,6 +58,7 @@ func resourceAwsRoute53HealthCheck() *schema.Resource {
 				Type:     schema.TypeString,
 				Optional: true,
 			},
+			"tags": tagsSchema(),
 		},
 	}
 }
@@ -93,6 +94,11 @@ func resourceAwsRoute53HealthCheckUpdate(d *schema.ResourceData, meta interface{
 	if err != nil {
 		return err
 	}
+
+	if err := setTagsR53(conn, d, "healthcheck"); err != nil {
+		return err
+	}
+
 
 	return resourceAwsRoute53HealthCheckRead(d, meta)
 }
@@ -146,14 +152,19 @@ func resourceAwsRoute53HealthCheckCreate(d *schema.ResourceData, meta interface{
 		},
 	}
 
-	// we get the health check itself and the url of the new health check back
 	respRaw, err := wait.WaitForState()
 	if err != nil {
 		return err
 	}
 
 	resp := respRaw.(*route53.CreateHealthCheckOutput)
-	d.SetId(*resp.HealthCheck.ID) // set the id of the health check before calling the read to confirm the rest of the
+	d.SetId(*resp.HealthCheck.ID)
+
+
+	if err := setTagsR53(conn, d, "healthcheck"); err != nil {
+		return err
+	}
+
 
 	return resourceAwsRoute53HealthCheckRead(d, meta)
 }
@@ -170,6 +181,7 @@ func resourceAwsRoute53HealthCheckRead(d *schema.ResourceData, meta interface{})
 		}
 		return err
 	}
+
 	if read == nil {
 		return nil
 	}
@@ -183,6 +195,28 @@ func resourceAwsRoute53HealthCheckRead(d *schema.ResourceData, meta interface{})
 	d.Set("ip_address", updated.IPAddress)
 	d.Set("port", updated.Port)
 	d.Set("resource_path", updated.ResourcePath)
+
+
+	// read the tags
+		req := &route53.ListTagsForResourceInput{
+		ResourceID:   aws.String(d.Id()),
+		ResourceType: aws.String("healthcheck"),
+	}
+
+	resp, err := conn.ListTagsForResource(req)
+	if err != nil {
+		return err
+	}
+
+	var tags []*route53.Tag
+	if resp.ResourceTagSet != nil {
+		tags = resp.ResourceTagSet.Tags
+	}
+
+	if err := d.Set("tags", tagsToMapR53(tags)); err != nil {
+		return err
+	}
+
 
 	return nil
 }
