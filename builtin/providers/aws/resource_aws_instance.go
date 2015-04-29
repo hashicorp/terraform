@@ -427,6 +427,7 @@ func resourceAwsInstanceCreate(d *schema.ResourceData, meta interface{}) error {
 			bd := v.(map[string]interface{})
 			ebs := &ec2.EBSBlockDevice{
 				DeleteOnTermination: aws.Boolean(bd["delete_on_termination"].(bool)),
+				Encrypted:           aws.Boolean(bd["encrypted"].(bool)),
 			}
 
 			if v, ok := bd["snapshot_id"].(string); ok && v != "" {
