@@ -35,19 +35,22 @@ func resourceAwsS3Bucket() *schema.Resource {
 				Type:     schema.TypeBool,
 				Default:  false,
 				Optional: true,
-				ForceNew: false,
 			},
 
 			"index_document": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
-				ForceNew: false,
 			},
 
 			"error_document": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
-				ForceNew: false,
+			},
+
+			"website_endpoint": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				Computed: true,
 			},
 
 			"tags": tagsSchema(),
@@ -118,6 +121,15 @@ func resourceAwsS3BucketRead(d *schema.ResourceData, meta interface{}) error {
 		}
 	}
 
+	// Add website_endpoint as an output
+	endpoint, err := websiteEndpoint(s3conn, d)
+	if err != nil {
+		return err
+	}
+	if err := d.Set("website_endpoint", endpoint); err != nil {
+		return err
+	}
+
 	tagSet, err := getTagSetS3(s3conn, d.Id())
 	if err != nil {
 		return err
@@ -183,4 +195,32 @@ func updateWebsite(s3conn *s3.S3, d *schema.ResourceData) error {
 	}
 
 	return nil
+}
+
+func websiteEndpoint(s3conn *s3.S3, d *schema.ResourceData) (endpoint string, err error) {
+	// If the bucket doess't have a website configuration, return an empty endpoint
+	if !d.Get("website").(bool) {
+		return
+	}
+
+	bucket := d.Get("bucket").(string)
+
+	// Lookup the region for this bucket
+	location, err := s3conn.GetBucketLocation(&s3.GetBucketLocationInput{Bucket: aws.String(bucket)})
+	if err != nil {
+		return
+	}
+	var region string
+	if location.LocationConstraint != nil {
+		region = *location.LocationConstraint
+	}
+
+	// Default to us-east-1 if the bucket doesn't have a region
+	if region == "" {
+		region = "us-east-1"
+	}
+
+	endpoint = fmt.Sprintf("%s.s3-website-%s.amazonaws.com", bucket, region)
+
+	return
 }
