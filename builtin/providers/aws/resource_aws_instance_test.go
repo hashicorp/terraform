@@ -316,6 +316,10 @@ func TestAccAWSInstance_NetworkInstanceVPCSecurityGroupIDs(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckInstanceExists(
 						"aws_instance.foo_instance", &v),
+					resource.TestCheckResourceAttr(
+						"aws_instance.foo_instance", "security_groups.#", "0"),
+					resource.TestCheckResourceAttr(
+						"aws_instance.foo_instance", "vpc_security_group_ids.#", "1"),
 				),
 			},
 		},
