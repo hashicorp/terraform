@@ -57,3 +57,12 @@ type graphNodeOrphanOutput struct {
 func (n *graphNodeOrphanOutput) Name() string {
 	return fmt.Sprintf("output.%s (orphan)", n.OutputName)
 }
+
+func (n *graphNodeOrphanOutput) EvalTree() EvalNode {
+	return &EvalOpFilter{
+		Ops: []walkOperation{walkApply, walkRefresh},
+		Node: &EvalDeleteOutput{
+			Name: n.OutputName,
+		},
+	}
+}
