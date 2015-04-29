@@ -184,11 +184,12 @@ func resourceCloudStackInstanceRead(d *schema.ResourceData, meta interface{}) er
 	// Update the config
 	d.Set("name", vm.Name)
 	d.Set("display_name", vm.Displayname)
-	d.Set("service_offering", vm.Serviceofferingname)
-	d.Set("network", vm.Nic[0].Networkname)
 	d.Set("ipaddress", vm.Nic[0].Ipaddress)
-	d.Set("template", vm.Templatename)
 	d.Set("zone", vm.Zonename)
+
+	setValueOrUUID(d, "network", vm.Nic[0].Networkname, vm.Nic[0].Networkid)
+	setValueOrUUID(d, "service_offering", vm.Serviceofferingname, vm.Serviceofferingid)
+	setValueOrUUID(d, "template", vm.Templatename, vm.Templateid)
 
 	return nil
 }

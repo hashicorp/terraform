@@ -34,10 +34,10 @@ The following arguments are supported:
 * `cidr` - (Required) The CIDR block for the VPC. Changing this forces a new
     resource to be created.
 
-* `vpc_offering` - (Required) The name of the VPC offering to use for this VPC.
+* `vpc_offering` - (Required) The name or ID of the VPC offering to use for this VPC.
     Changing this forces a new resource to be created.
 
-* `zone` - (Required) The name of the zone where this disk volume will be
+* `zone` - (Required) The name or ID of the zone where this disk volume will be
     available. Changing this forces a new resource to be created.
 
 ## Attributes Reference

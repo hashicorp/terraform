@@ -43,7 +43,7 @@ The following arguments are supported:
 * `url` - (Required) The URL of where the template is hosted. Changing this
     forces a new resource to be created.
 
-* `zone` - (Required) The name of the zone where this template will be created.
+* `zone` - (Required) The name or ID of the zone where this template will be created.
     Changing this forces a new resource to be created.
 
 * `is_dynamically_scalable` - (Optional) Set to indicate if the template contains
