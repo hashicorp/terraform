@@ -44,6 +44,12 @@ func resourceAwsS3Bucket() *schema.Resource {
 				ForceNew: false,
 			},
 
+			"error_document": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				ForceNew: false,
+			},
+
 			"tags": tagsSchema(),
 		},
 	}
@@ -141,20 +147,27 @@ func updateWebsite(s3conn *s3.S3, d *schema.ResourceData) error {
 	website := d.Get("website").(bool)
 	bucket := d.Get("bucket").(string)
 	indexDocument := d.Get("index_document").(string)
-
-	websiteConfiguration := &s3.WebsiteConfiguration{
-		IndexDocument: &s3.IndexDocument{Suffix: aws.String(indexDocument)},
-	}
+	errorDocument := d.Get("error_document").(string)
 
 	if website {
-		input := &s3.PutBucketWebsiteInput{
+		websiteConfiguration := &s3.WebsiteConfiguration{}
+
+		if indexDocument != "" {
+			websiteConfiguration.IndexDocument = &s3.IndexDocument{Suffix: aws.String(indexDocument)}
+		}
+
+		if errorDocument != "" {
+			websiteConfiguration.ErrorDocument = &s3.ErrorDocument{Key: aws.String(errorDocument)}
+		}
+
+		putInput := &s3.PutBucketWebsiteInput{
 			Bucket:               aws.String(bucket),
 			WebsiteConfiguration: websiteConfiguration,
 		}
 
-		log.Printf("[DEBUG] S3 put bucket website: %s", input)
+		log.Printf("[DEBUG] S3 put bucket website: %s", putInput)
 
-		_, err := s3conn.PutBucketWebsite(input)
+		_, err := s3conn.PutBucketWebsite(putInput)
 		if err != nil {
 			return fmt.Errorf("Error putting S3 website: %s", err)
 		}
