@@ -91,7 +91,7 @@ func resourceCloudFlareRecordRead(d *schema.ResourceData, meta interface{}) erro
 
 	rec, err := client.RetrieveRecord(d.Get("domain").(string), d.Id())
 	if err != nil {
-		return fmt.Errorf("Couldn't find record: %s", err)
+		return fmt.Errorf("Couldn't find record ID (%s) for domain (%s): %s", d.Id(), d.Get("domain").(string), err)
 	}
 
 	d.Set("name", rec.Name)
