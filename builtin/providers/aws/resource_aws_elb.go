@@ -58,12 +58,10 @@ func resourceAwsElb() *schema.Resource {
 				},
 			},
 
-			// TODO: could be not ForceNew
 			"security_groups": &schema.Schema{
 				Type:     schema.TypeSet,
 				Elem:     &schema.Schema{Type: schema.TypeString},
 				Optional: true,
-				ForceNew: true,
 				Computed: true,
 				Set: func(v interface{}) int {
 					return hashcode.String(v.(string))
@@ -434,6 +432,22 @@ func resourceAwsElbUpdate(d *schema.ResourceData, meta interface{}) error {
 			}
 			d.SetPartial("health_check")
 		}
+	}
+
+	if d.HasChange("security_groups") {
+		groups := d.Get("security_groups").(*schema.Set).List()
+
+		applySecurityGroupsOpts := elb.ApplySecurityGroupsToLoadBalancerInput{
+			LoadBalancerName: aws.String(d.Id()),
+			SecurityGroups:   expandStringList(groups),
+		}
+
+		_, err := elbconn.ApplySecurityGroupsToLoadBalancer(&applySecurityGroupsOpts)
+		if err != nil {
+			return fmt.Errorf("Failure applying security groups: %s", err)
+		}
+
+		d.SetPartial("security_groups")
 	}
 
 	if err := setTagsELB(elbconn, d); err != nil {
