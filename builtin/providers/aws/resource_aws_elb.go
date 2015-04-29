@@ -243,7 +243,7 @@ func resourceAwsElbRead(d *schema.ResourceData, meta interface{}) error {
 
 	describeResp, err := elbconn.DescribeLoadBalancers(describeElbOpts)
 	if err != nil {
-		if ec2err, ok := err.(aws.APIError); ok && ec2err.Code == "LoadBalancerNotFound" {
+		if isLoadBalancerNotFound(err) {
 			// The ELB is gone now, so just remove it from the state
 			d.SetId("")
 			return nil
@@ -260,7 +260,7 @@ func resourceAwsElbRead(d *schema.ResourceData, meta interface{}) error {
 	}
 	describeAttrsResp, err := elbconn.DescribeLoadBalancerAttributes(describeAttrsOpts)
 	if err != nil {
-		if ec2err, ok := err.(aws.APIError); ok && ec2err.Code == "LoadBalancerNotFound" {
+		if isLoadBalancerNotFound(err) {
 			// The ELB is gone now, so just remove it from the state
 			d.SetId("")
 			return nil
@@ -501,4 +501,9 @@ func resourceAwsElbListenerHash(v interface{}) int {
 	}
 
 	return hashcode.String(buf.String())
+}
+
+func isLoadBalancerNotFound(err error) bool {
+	elberr, ok := err.(aws.APIError)
+	return ok && elberr.Code == "LoadBalancerNotFound"
 }
