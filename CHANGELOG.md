@@ -65,6 +65,7 @@ BUG FIXES:
   * provider/aws: raw protocol numbers work in `aws_network_acl` [GH-1435]
   * provider/aws: Block devices can be encrypted [GH-1718]
   * provider/aws: ASG health check grace period can be updated in-place [GH-1682]
+  * provider/aws: ELB security groups can be updated in-place [GH-1662]
   * provider/openstack: region config is not required [GH-1441]
   * provisioner/remote-exec: add random number to uploaded script path so
       that parallel provisions work [GH-1588]
