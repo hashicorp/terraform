@@ -67,7 +67,6 @@ func resourceAwsAutoscalingGroup() *schema.Resource {
 				Type:     schema.TypeInt,
 				Optional: true,
 				Computed: true,
-				ForceNew: true,
 			},
 
 			"health_check_type": &schema.Schema{
@@ -235,6 +234,10 @@ func resourceAwsAutoscalingGroupUpdate(d *schema.ResourceData, meta interface{})
 	if d.HasChange("max_size") {
 		opts.MaxSize = aws.Long(int64(d.Get("max_size").(int)))
 	}
+	
+	if d.HasChange("health_check_grace_period") {
+                opts.HealthCheckGracePeriod = aws.Long(int64(d.Get("health_check_grace_period").(int)))
+        }
 
 	if err := setAutoscalingTags(autoscalingconn, d); err != nil {
 		return err
