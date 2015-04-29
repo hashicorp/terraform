@@ -81,7 +81,7 @@ func resourceAwsProxyProtocolPolicyRead(d *schema.ResourceData, meta interface{}
 	}
 	resp, err := elbconn.DescribeLoadBalancers(req)
 	if err != nil {
-		if ec2err, ok := err.(aws.APIError); ok && ec2err.Code == "LoadBalancerNotFound" {
+		if isLoadBalancerNotFound(err) {
 			// The ELB is gone now, so just remove it from the state
 			d.SetId("")
 			return nil
@@ -111,7 +111,7 @@ func resourceAwsProxyProtocolPolicyUpdate(d *schema.ResourceData, meta interface
 	}
 	resp, err := elbconn.DescribeLoadBalancers(req)
 	if err != nil {
-		if ec2err, ok := err.(aws.APIError); ok && ec2err.Code == "LoadBalancerNotFound" {
+		if isLoadBalancerNotFound(err) {
 			// The ELB is gone now, so just remove it from the state
 			d.SetId("")
 			return nil
@@ -167,7 +167,7 @@ func resourceAwsProxyProtocolPolicyDelete(d *schema.ResourceData, meta interface
 	}
 	resp, err := elbconn.DescribeLoadBalancers(req)
 	if err != nil {
-		if ec2err, ok := err.(aws.APIError); ok && ec2err.Code == "LoadBalancerNotFound" {
+		if isLoadBalancerNotFound(err) {
 			// The ELB is gone now, so just remove it from the state
 			d.SetId("")
 			return nil
