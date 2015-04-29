@@ -127,6 +127,32 @@ resource "aws_instance" "app" {
 }
 ```
 
+## Multiple Provider Instances
+
+By default, a resource targets the resource based on its type. For example
+an `aws_instance` resource will target the "aws" provider. As of Terraform
+0.5.0, a resource can target any provider by name.
+
+The primary use case for this is to target a specific configuration of
+a provider that is configured multiple times to support multiple regions, etc.
+
+To target another provider, set the `provider` field:
+
+```
+resource "aws_instance" "foo" {
+	provider = "aws.west"
+
+	# ...
+}
+```
+
+The value of the field should be `TYPE` or `TYPE.ALIAS`. The `ALIAS` value
+comes from the `alias` field value when configuring the
+[provider](/docs/configuration/providers.html).
+
+If no `provider` field is specified, the default (provider with no alias)
+provider is used.
+
 ## Syntax
 
 The full syntax is:
@@ -135,7 +161,9 @@ The full syntax is:
 resource TYPE NAME {
 	CONFIG ...
 	[count = COUNT]
-    [depends_on = [RESOURCE NAME, ...]]
+	[depends_on = [RESOURCE NAME, ...]]
+	[provider = PROVIDER]
+
     [LIFECYCLE]
 
 	[CONNECTION]

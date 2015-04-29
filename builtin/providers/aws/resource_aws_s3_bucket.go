@@ -85,7 +85,13 @@ func resourceAwsS3BucketRead(d *schema.ResourceData, meta interface{}) error {
 		Bucket: aws.String(d.Id()),
 	})
 	if err != nil {
-		return err
+		if awsError, ok := err.(aws.APIError); ok && awsError.StatusCode == 404 {
+			d.SetId("")
+		} else {
+			// some of the AWS SDK's errors can be empty strings, so let's add
+			// some additional context.
+			return fmt.Errorf("error reading S3 bucket \"%s\": %s", d.Id(), err)
+		}
 	}
 
 	tagSet, err := getTagSetS3(s3conn, d.Id())

@@ -165,8 +165,18 @@ func resourceCloudStackNetworkACLRuleCreateRule(
 		rule["uuids"] = uuids
 	}
 
-	// If protocol is not ICMP, loop through all ports
-	if rule["protocol"].(string) != "icmp" {
+	// If the protocol is ALL set the needed parameters
+	if rule["protocol"].(string) == "all" {
+		r, err := cs.NetworkACL.CreateNetworkACL(p)
+		if err != nil {
+			return err
+		}
+		uuids["all"] = r.Id
+		rule["uuids"] = uuids
+	}
+
+	// If protocol is TCP or UDP, loop through all ports
+	if rule["protocol"].(string) == "tcp" || rule["protocol"].(string) == "udp" {
 		if ps := rule["ports"].(*schema.Set); ps.Len() > 0 {
 
 			// Create an empty schema.Set to hold all processed ports
@@ -246,17 +256,43 @@ func resourceCloudStackNetworkACLRuleRead(d *schema.ResourceData, meta interface
 				}
 
 				// Update the values
-				rule["action"] = r.Action
+				rule["action"] = strings.ToLower(r.Action)
 				rule["source_cidr"] = r.Cidrlist
 				rule["protocol"] = r.Protocol
 				rule["icmp_type"] = r.Icmptype
 				rule["icmp_code"] = r.Icmpcode
-				rule["traffic_type"] = r.Traffictype
+				rule["traffic_type"] = strings.ToLower(r.Traffictype)
 				rules.Add(rule)
 			}
 
-			// If protocol is not ICMP, loop through all ports
-			if rule["protocol"].(string) != "icmp" {
+			if rule["protocol"].(string) == "all" {
+				id, ok := uuids["all"]
+				if !ok {
+					continue
+				}
+
+				// Get the rule
+				r, count, err := cs.NetworkACL.GetNetworkACLByID(id.(string))
+				// If the count == 0, there is no object found for this UUID
+				if err != nil {
+					if count == 0 {
+						delete(uuids, "all")
+						continue
+					}
+
+					return err
+				}
+
+				// Update the values
+				rule["action"] = strings.ToLower(r.Action)
+				rule["source_cidr"] = r.Cidrlist
+				rule["protocol"] = r.Protocol
+				rule["traffic_type"] = strings.ToLower(r.Traffictype)
+				rules.Add(rule)
+			}
+
+			// If protocol is tcp or udp, loop through all ports
+			if rule["protocol"].(string) == "tcp" || rule["protocol"].(string) == "udp" {
 				if ps := rule["ports"].(*schema.Set); ps.Len() > 0 {
 
 					// Create an empty schema.Set to hold all ports
@@ -377,7 +413,7 @@ func resourceCloudStackNetworkACLRuleUpdate(d *schema.ResourceData, meta interfa
 		rules := o.(*schema.Set).Intersection(n.(*schema.Set))
 		d.Set("rule", rules)
 
-		// Then loop through al the currently configured rules and create the new ones
+		// Then loop through all the currently configured rules and create the new ones
 		for _, rule := range nrs.List() {
 			// When succesfully deleted, re-create it again if it still exists
 			err := resourceCloudStackNetworkACLRuleCreateRule(d, meta, rule.(map[string]interface{}))
@@ -523,7 +559,8 @@ func verifyNetworkACLRuleParams(d *schema.ResourceData, rule map[string]interfac
 	}
 
 	protocol := rule["protocol"].(string)
-	if protocol == "icmp" {
+	switch protocol {
+	case "icmp":
 		if _, ok := rule["icmp_type"]; !ok {
 			return fmt.Errorf(
 				"Parameter icmp_type is a required parameter when using protocol 'icmp'")
@@ -532,18 +569,19 @@ func verifyNetworkACLRuleParams(d *schema.ResourceData, rule map[string]interfac
 			return fmt.Errorf(
 				"Parameter icmp_code is a required parameter when using protocol 'icmp'")
 		}
-	} else {
-		if protocol != "tcp" && protocol != "udp" && protocol != "all" {
-			_, err := strconv.ParseInt(protocol, 0, 0)
-			if err != nil {
-				return fmt.Errorf(
-					"%s is not a valid protocol. Valid options are 'tcp', 'udp', "+
-						"'icmp', 'all' or a valid protocol number", protocol)
-			}
-		}
+	case "all":
+		// No additional test are needed, so just leave this empty...
+	case "tcp", "udp":
 		if _, ok := rule["ports"]; !ok {
 			return fmt.Errorf(
 				"Parameter ports is a required parameter when *not* using protocol 'icmp'")
+		}
+	default:
+		_, err := strconv.ParseInt(protocol, 0, 0)
+		if err != nil {
+			return fmt.Errorf(
+				"%s is not a valid protocol. Valid options are 'tcp', 'udp', "+
+					"'icmp', 'all' or a valid protocol number", protocol)
 		}
 	}
 

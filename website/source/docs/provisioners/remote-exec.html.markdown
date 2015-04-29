@@ -45,3 +45,25 @@ The following arguments are supported:
   that will be copied to the remote resource and then executed. They are executed
   in the order they are provided. This cannot be provided with `inline` or `script`.
 
+## Script Arguments
+
+You cannot pass any arguments to scripts using the `script` or
+`scripts` arguments to this provisioner. If you want to specify arguments,
+upload the script with the
+[file provisioner](/docs/provisioners/file.html)
+and then use `inline` to call it. Example:
+
+```
+resource "aws_instance" "web" {
+    ...
+
+    provisioner "file" {
+        source = "script.sh"
+        destination = "/tmp/script.sh"
+    }
+
+    provisioner "remote-exec" {
+        inline = ["/tmp/script.sh args"]
+    }
+}
+```

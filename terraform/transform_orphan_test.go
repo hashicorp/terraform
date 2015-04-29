@@ -342,6 +342,13 @@ func TestGraphNodeOrphanResource_ProvidedBy(t *testing.T) {
 	}
 }
 
+func TestGraphNodeOrphanResource_ProvidedBy_alias(t *testing.T) {
+	n := &graphNodeOrphanResource{ResourceName: "aws_instance.foo", Provider: "aws.bar"}
+	if v := n.ProvidedBy(); v[0] != "aws.bar" {
+		t.Fatalf("bad: %#v", v)
+	}
+}
+
 const testTransformOrphanBasicStr = `
 aws_instance.db (orphan)
 aws_instance.web

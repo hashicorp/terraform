@@ -7,6 +7,7 @@ import (
 
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/rackspace/gophercloud"
+	"github.com/rackspace/gophercloud/openstack/networking/v2/extensions/layer3/floatingips"
 	"github.com/rackspace/gophercloud/openstack/networking/v2/extensions/lbaas/vips"
 )
 
@@ -74,6 +75,16 @@ func resourceLBVipV1() *schema.Resource {
 				Optional: true,
 				ForceNew: false,
 			},
+			"port_id": &schema.Schema{
+				Type:     schema.TypeString,
+				Computed: true,
+				ForceNew: false,
+			},
+			"floating_ip": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				ForceNew: false,
+			},
 			"admin_state_up": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
@@ -119,6 +130,11 @@ func resourceLBVipV1Create(d *schema.ResourceData, meta interface{}) error {
 	}
 	log.Printf("[INFO] LB VIP ID: %s", p.ID)
 
+	floatingIP := d.Get("floating_ip").(string)
+	if floatingIP != "" {
+		lbVipV1AssignFloatingIP(floatingIP, p.PortID, networkingClient)
+	}
+
 	d.SetId(p.ID)
 
 	return resourceLBVipV1Read(d, meta)
@@ -143,6 +159,7 @@ func resourceLBVipV1Read(d *schema.ResourceData, meta interface{}) error {
 	d.Set("protocol", p.Protocol)
 	d.Set("port", p.ProtocolPort)
 	d.Set("pool_id", p.PoolID)
+	d.Set("port_id", p.PortID)
 
 	if t, exists := d.GetOk("tenant_id"); exists && t != "" {
 		d.Set("tenant_id", p.TenantID)
@@ -204,6 +221,39 @@ func resourceLBVipV1Update(d *schema.ResourceData, meta interface{}) error {
 	if d.HasChange("conn_limit") {
 		updateOpts.ConnLimit = gophercloud.MaybeInt(d.Get("conn_limit").(int))
 	}
+	if d.HasChange("floating_ip") {
+		portID := d.Get("port_id").(string)
+
+		// Searching for a floating IP assigned to the VIP
+		listOpts := floatingips.ListOpts{
+			PortID: portID,
+		}
+		page, err := floatingips.List(networkingClient, listOpts).AllPages()
+		if err != nil {
+			return err
+		}
+
+		fips, err := floatingips.ExtractFloatingIPs(page)
+		if err != nil {
+			return err
+		}
+
+		// If a floating IP is found we unassign it
+		if len(fips) == 1 {
+			updateOpts := floatingips.UpdateOpts{
+				PortID: "",
+			}
+			if err = floatingips.Update(networkingClient, fips[0].ID, updateOpts).Err; err != nil {
+				return err
+			}
+		}
+
+		// Assign the updated floating IP
+		floatingIP := d.Get("floating_ip").(string)
+		if floatingIP != "" {
+			lbVipV1AssignFloatingIP(floatingIP, portID, networkingClient)
+		}
+	}
 	if d.HasChange("admin_state_up") {
 		asuRaw := d.Get("admin_state_up").(string)
 		if asuRaw != "" {
@@ -254,5 +304,34 @@ func resourceVipPersistenceV1(d *schema.ResourceData) *vips.SessionPersistence {
 		}
 		return &p
 	}
+	return nil
+}
+
+func lbVipV1AssignFloatingIP(floatingIP, portID string, networkingClient *gophercloud.ServiceClient) error {
+	log.Printf("[DEBUG] Assigning floating IP %s to VIP %s", floatingIP, portID)
+
+	listOpts := floatingips.ListOpts{
+		FloatingIP: floatingIP,
+	}
+	page, err := floatingips.List(networkingClient, listOpts).AllPages()
+	if err != nil {
+		return err
+	}
+
+	fips, err := floatingips.ExtractFloatingIPs(page)
+	if err != nil {
+		return err
+	}
+	if len(fips) != 1 {
+		return fmt.Errorf("Unable to retrieve floating IP '%s'", floatingIP)
+	}
+
+	updateOpts := floatingips.UpdateOpts{
+		PortID: portID,
+	}
+	if err = floatingips.Update(networkingClient, fips[0].ID, updateOpts).Err; err != nil {
+		return err
+	}
+
 	return nil
 }

@@ -108,6 +108,34 @@ func resourceDockerContainer() *schema.Resource {
 				Elem:     &schema.Schema{Type: schema.TypeString},
 				Set:      stringSetHash,
 			},
+
+			"links": &schema.Schema{
+				Type:     schema.TypeSet,
+				Optional: true,
+				ForceNew: true,
+				Elem:     &schema.Schema{Type: schema.TypeString},
+				Set:      stringSetHash,
+			},
+
+			"ip_address": &schema.Schema{
+				Type:     schema.TypeString,
+				Computed: true,
+			},
+
+			"ip_prefix_length": &schema.Schema{
+				Type:     schema.TypeInt,
+				Computed: true,
+			},
+
+			"gateway": &schema.Schema{
+				Type:     schema.TypeString,
+				Computed: true,
+			},
+
+			"bridge": &schema.Schema{
+				Type:     schema.TypeString,
+				Computed: true,
+			},
 		},
 	}
 }

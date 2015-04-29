@@ -38,6 +38,8 @@ The following arguments are supported:
     container.
 * `dns` - (Optional, set of strings) Set of DNS servers.
 * `env` - (Optional, set of strings) Environmental variables to set.
+* `links` - (Optional, set of strings) Set of links for link based
+  connectivity between containers that are running on the same host.
 * `hostname` - (Optional, string) Hostname of the container.
 * `domainname` - (Optional, string) Domain name of the container.
 * `must_run` - (Optional, bool) If true, then the Docker container will be
@@ -75,3 +77,16 @@ the following:
   is coming from.
 * `read_only` - (Optinal, bool) If true, this volume will be readonly.
   Defaults to false.
+
+## Attributes Reference
+
+The following attributes are exported:
+
+ * `ip_address` - The IP address of the container as read from its
+   NetworkSettings.
+ * `ip_prefix_length` - The IP prefix length of the container as read from its
+   NetworkSettings.
+ * `gateway` - The network gateway of the container as read from its
+   NetworkSettings.
+ * `bridge` - The network bridge of the container as read from its
+   NetworkSettings.

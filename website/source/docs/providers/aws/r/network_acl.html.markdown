@@ -16,7 +16,7 @@ to your security groups in order to add an additional layer of security to your 
 ```
 resource "aws_network_acl" "main" {
 	vpc_id = "${aws_vpc.main.id}"
-	egress = {
+	egress {
 		protocol = "tcp"
 		rule_no = 2
 		action = "allow"
@@ -25,13 +25,17 @@ resource "aws_network_acl" "main" {
 		to_port = 443
 	}
 
-	ingress = {
+	ingress {
 		protocol = "tcp"
 		rule_no = 1
 		action = "allow"
 		cidr_block =  "10.3.10.3/18"
 		from_port = 80
 		to_port = 80
+	}
+
+	tags {
+		Name = "main"
 	}
 }
 ```
@@ -44,6 +48,7 @@ The following arguments are supported:
 * `subnet_id` - (Optional) The ID of the associated subnet.
 * `ingress` - (Optional) Specifies an ingress rule. Parameters defined below.
 * `egress` - (Optional) Specifies an egress rule. Parameters defined below.
+* `tags` - (Optional) A mapping of tags to assign to the resource.
 
 Both `egress` and `ingress` support the following keys:
 

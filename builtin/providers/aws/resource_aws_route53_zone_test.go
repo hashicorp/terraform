@@ -2,6 +2,7 @@ package aws
 
 import (
 	"fmt"
+	"sort"
 	"testing"
 
 	"github.com/hashicorp/terraform/helper/resource"
@@ -114,6 +115,20 @@ func testAccCheckRoute53ZoneExists(n string, zone *route53.HostedZone) resource.
 		if err != nil {
 			return fmt.Errorf("Hosted zone err: %v", err)
 		}
+
+		sorted_ns := make([]string, len(resp.DelegationSet.NameServers))
+		for i, ns := range resp.DelegationSet.NameServers {
+			sorted_ns[i] = *ns
+		}
+		sort.Strings(sorted_ns)
+		for idx, ns := range sorted_ns {
+			attribute := fmt.Sprintf("name_servers.%d", idx)
+			dsns := rs.Primary.Attributes[attribute]
+			if dsns != ns {
+				return fmt.Errorf("Got: %v for %v, Expected: %v", dsns, attribute, ns)
+			}
+		}
+
 		*zone = *resp.HostedZone
 		return nil
 	}

@@ -58,6 +58,36 @@ func TestGraphNodeConfigProvider_ProviderName(t *testing.T) {
 	}
 }
 
+func TestGraphNodeConfigProvider_ProviderName_alias(t *testing.T) {
+	n := &GraphNodeConfigProvider{
+		Provider: &config.ProviderConfig{Name: "foo", Alias: "bar"},
+	}
+
+	if v := n.ProviderName(); v != "foo.bar" {
+		t.Fatalf("bad: %#v", v)
+	}
+}
+
+func TestGraphNodeConfigProvider_Name(t *testing.T) {
+	n := &GraphNodeConfigProvider{
+		Provider: &config.ProviderConfig{Name: "foo"},
+	}
+
+	if v := n.Name(); v != "provider.foo" {
+		t.Fatalf("bad: %#v", v)
+	}
+}
+
+func TestGraphNodeConfigProvider_Name_alias(t *testing.T) {
+	n := &GraphNodeConfigProvider{
+		Provider: &config.ProviderConfig{Name: "foo", Alias: "bar"},
+	}
+
+	if v := n.Name(); v != "provider.foo.bar" {
+		t.Fatalf("bad: %#v", v)
+	}
+}
+
 func TestGraphNodeConfigResource_impl(t *testing.T) {
 	var _ dag.Vertex = new(GraphNodeConfigResource)
 	var _ dag.NamedVertex = new(GraphNodeConfigResource)
@@ -72,6 +102,16 @@ func TestGraphNodeConfigResource_ProvidedBy(t *testing.T) {
 	}
 
 	if v := n.ProvidedBy(); v[0] != "aws" {
+		t.Fatalf("bad: %#v", v)
+	}
+}
+
+func TestGraphNodeConfigResource_ProvidedBy_alias(t *testing.T) {
+	n := &GraphNodeConfigResource{
+		Resource: &config.Resource{Type: "aws_instance", Provider: "aws.bar"},
+	}
+
+	if v := n.ProvidedBy(); v[0] != "aws.bar" {
 		t.Fatalf("bad: %#v", v)
 	}
 }

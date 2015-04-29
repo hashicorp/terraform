@@ -1,7 +1,9 @@
 package aws
 
 import (
+	"fmt"
 	"log"
+	"sort"
 	"strings"
 	"time"
 
@@ -28,6 +30,12 @@ func resourceAwsRoute53Zone() *schema.Resource {
 
 			"zone_id": &schema.Schema{
 				Type:     schema.TypeString,
+				Computed: true,
+			},
+
+			"name_servers": &schema.Schema{
+				Type:     schema.TypeList,
+				Elem:     &schema.Schema{Type: schema.TypeString},
 				Computed: true,
 			},
 
@@ -80,7 +88,7 @@ func resourceAwsRoute53ZoneCreate(d *schema.ResourceData, meta interface{}) erro
 
 func resourceAwsRoute53ZoneRead(d *schema.ResourceData, meta interface{}) error {
 	r53 := meta.(*AWSClient).r53conn
-	_, err := r53.GetHostedZone(&route53.GetHostedZoneInput{ID: aws.String(d.Id())})
+	zone, err := r53.GetHostedZone(&route53.GetHostedZoneInput{ID: aws.String(d.Id())})
 	if err != nil {
 		// Handle a deleted zone
 		if r53err, ok := err.(aws.APIError); ok && r53err.Code == "NoSuchHostedZone" {
@@ -88,6 +96,15 @@ func resourceAwsRoute53ZoneRead(d *schema.ResourceData, meta interface{}) error 
 			return nil
 		}
 		return err
+	}
+
+	ns := make([]string, len(zone.DelegationSet.NameServers))
+	for i := range zone.DelegationSet.NameServers {
+		ns[i] = *zone.DelegationSet.NameServers[i]
+	}
+	sort.Strings(ns)
+	if err := d.Set("name_servers", ns); err != nil {
+		return fmt.Errorf("[DEBUG] Error setting name servers for: %s, error: %#v", d.Id(), err)
 	}
 
 	// get tags

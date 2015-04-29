@@ -65,6 +65,9 @@ The following arguments are supported:
     vip. Default is -1, meaning no limit. Changing this updates the conn_limit
     of the existing vip.
 
+* `floating_ip` - (Optional) A Floating IP that will be associated with the
+    vip. The Floating IP must be provisioned already.
+
 * `admin_state_up` - (Optional) The administrative state of the vip.
     Acceptable values are "true" and "false". Changing this value updates the
     state of the existing vip.

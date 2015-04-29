@@ -34,8 +34,15 @@ type TestCase struct {
 	// acceptance tests, such as verifying that keys are setup.
 	PreCheck func()
 
-	// Provider is the ResourceProvider that will be under test.
-	Providers map[string]terraform.ResourceProvider
+	// Providers is the ResourceProvider that will be under test.
+	//
+	// Alternately, ProviderFactories can be specified for the providers
+	// that are valid. This takes priority over Providers.
+	//
+	// The end effect of each is the same: specifying the providers that
+	// are used within the tests.
+	Providers         map[string]terraform.ResourceProvider
+	ProviderFactories map[string]terraform.ResourceProviderFactory
 
 	// CheckDestroy is called after the resource is finally destroyed
 	// to allow the tester to test that the resource is truly gone.
@@ -102,9 +109,12 @@ func Test(t TestT, c TestCase) {
 	}
 
 	// Build our context options that we can
-	ctxProviders := make(map[string]terraform.ResourceProviderFactory)
-	for k, p := range c.Providers {
-		ctxProviders[k] = terraform.ResourceProviderFactoryFixed(p)
+	ctxProviders := c.ProviderFactories
+	if ctxProviders == nil {
+		ctxProviders = make(map[string]terraform.ResourceProviderFactory)
+		for k, p := range c.Providers {
+			ctxProviders[k] = terraform.ResourceProviderFactoryFixed(p)
+		}
 	}
 	opts := terraform.ContextOpts{Providers: ctxProviders}
 

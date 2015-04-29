@@ -43,6 +43,9 @@ resource "aws_elb" "bar" {
 
   instances = ["${aws_instance.foo.id}"]
   cross_zone_load_balancing = true
+  idle_timeout = 400
+  connection_draining = true
+  connection_draining_timeout = 400
 }
 ```
 
@@ -59,6 +62,9 @@ The following arguments are supported:
 * `listener` - (Required) A list of listener blocks. Listeners documented below.
 * `health_check` - (Optional) A health_check block. Health Check documented below.
 * `cross_zone_load_balancing` - (Optional) Enable cross-zone load balancing.
+* `idle_timeout` - (Optional) The time in seconds that the connection is allowed to be idle. Default: 60.
+* `connection_draining` - (Optional) Boolean to enable connection draining.
+* `connection_draining_timeout` - (Optional) The time in seconds to allow for connections to drain. 
 
 Exactly one of `availability_zones` or `subnets` must be specified: this
 determines if the ELB exists in a VPC or in EC2-classic.

@@ -47,6 +47,13 @@ func resourceAwsInstance() *schema.Resource {
 				ForceNew: true,
 			},
 
+			"placement_group": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				Computed: true,
+				ForceNew: true,
+			},
+
 			"instance_type": &schema.Schema{
 				Type:     schema.TypeString,
 				Required: true,
@@ -314,6 +321,7 @@ func resourceAwsInstanceCreate(d *schema.ResourceData, meta interface{}) error {
 
 	placement := &ec2.Placement{
 		AvailabilityZone: aws.String(d.Get("availability_zone").(string)),
+		GroupName:        aws.String(d.Get("placement_group").(string)),
 	}
 
 	if hasSubnet {
@@ -350,10 +358,11 @@ func resourceAwsInstanceCreate(d *schema.ResourceData, meta interface{}) error {
 		// Security group names.
 		// For a nondefault VPC, you must use security group IDs instead.
 		// See http://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_RunInstances.html
-		if hasSubnet {
+		sgs := v.(*schema.Set).List()
+		if len(sgs) > 0 && hasSubnet {
 			log.Printf("[WARN] Deprecated. Attempting to use 'security_groups' within a VPC instance. Use 'vpc_security_group_ids' instead.")
 		}
-		for _, v := range v.(*schema.Set).List() {
+		for _, v := range sgs {
 			str := v.(string)
 			groups = append(groups, aws.String(str))
 		}
@@ -419,6 +428,7 @@ func resourceAwsInstanceCreate(d *schema.ResourceData, meta interface{}) error {
 			bd := v.(map[string]interface{})
 			ebs := &ec2.EBSBlockDevice{
 				DeleteOnTermination: aws.Boolean(bd["delete_on_termination"].(bool)),
+				Encrypted:           aws.Boolean(bd["encrypted"].(bool)),
 			}
 
 			if v, ok := bd["snapshot_id"].(string); ok && v != "" {
@@ -536,6 +546,11 @@ func resourceAwsInstanceCreate(d *schema.ResourceData, meta interface{}) error {
 			"type": "ssh",
 			"host": *instance.PublicIPAddress,
 		})
+	} else if instance.PrivateIPAddress != nil {
+		d.SetConnInfo(map[string]string{
+			"type": "ssh",
+			"host": *instance.PrivateIPAddress,
+		})
 	}
 
 	// Set our attributes
@@ -606,11 +621,15 @@ func resourceAwsInstanceRead(d *schema.ResourceData, meta interface{}) error {
 	// IDs, we use IDs.
 	useID := instance.SubnetID != nil && *instance.SubnetID != ""
 	if v := d.Get("security_groups"); v != nil {
-		match := false
-		for _, v := range v.(*schema.Set).List() {
-			if strings.HasPrefix(v.(string), "sg-") {
-				match = true
-				break
+		match := useID
+		sgs := v.(*schema.Set).List()
+		if len(sgs) > 0 {
+			match = false
+			for _, v := range v.(*schema.Set).List() {
+				if strings.HasPrefix(v.(string), "sg-") {
+					match = true
+					break
+				}
 			}
 		}
 
@@ -661,6 +680,23 @@ func resourceAwsInstanceUpdate(d *schema.ResourceData, meta interface{}) error {
 		if err != nil {
 			return err
 		}
+	}
+
+	if d.HasChange("vpc_security_group_ids") {
+		var groups []*string
+		if v := d.Get("vpc_security_group_ids"); v != nil {
+			for _, v := range v.(*schema.Set).List() {
+				groups = append(groups, aws.String(v.(string)))
+			}
+		}
+		_, err := conn.ModifyInstanceAttribute(&ec2.ModifyInstanceAttributeInput{
+			InstanceID: aws.String(d.Id()),
+			Groups:     groups,
+		})
+		if err != nil {
+			return err
+		}
+
 	}
 
 	// TODO(mitchellh): wait for the attributes we modified to

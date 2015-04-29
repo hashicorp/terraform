@@ -263,7 +263,7 @@ func resourceCloudStackPortForwardUpdate(d *schema.ResourceData, meta interface{
 		forwards := o.(*schema.Set).Intersection(n.(*schema.Set))
 		d.Set("forward", forwards)
 
-		// Then loop through al the currently configured forwards and create the new ones
+		// Then loop through all the currently configured forwards and create the new ones
 		for _, forward := range nrs.List() {
 			err := resourceCloudStackPortForwardCreateForward(
 				d, meta, forward.(map[string]interface{}))

@@ -3,6 +3,7 @@ package aws
 import (
 	"fmt"
 	"log"
+	"strings"
 
 	"github.com/hashicorp/terraform/helper/multierror"
 
@@ -10,6 +11,7 @@ import (
 	"github.com/awslabs/aws-sdk-go/service/autoscaling"
 	"github.com/awslabs/aws-sdk-go/service/cloudwatch"
 	"github.com/awslabs/aws-sdk-go/service/ec2"
+	"github.com/awslabs/aws-sdk-go/service/elasticache"
 	"github.com/awslabs/aws-sdk-go/service/elb"
 	"github.com/awslabs/aws-sdk-go/service/iam"
 	"github.com/awslabs/aws-sdk-go/service/rds"
@@ -22,6 +24,9 @@ type Config struct {
 	SecretKey string
 	Token     string
 	Region    string
+
+	AllowedAccountIds   []interface{}
+	ForbiddenAccountIds []interface{}
 }
 
 type AWSClient struct {
@@ -34,6 +39,7 @@ type AWSClient struct {
 	rdsconn         *rds.RDS
 	iamconn         *iam.IAM
 	cloudwatchconn  *cloudwatch.CloudWatch
+	elasticacheconn *elasticache.ElastiCache
 }
 
 // Client configures and returns a fully initailized AWSClient
@@ -73,6 +79,12 @@ func (c *Config) Client() (interface{}, error) {
 
 		log.Println("[INFO] Initializing IAM Connection")
 		client.iamconn = iam.New(awsConfig)
+
+		err := c.ValidateAccountId(client.iamconn)
+		if err != nil {
+			errs = append(errs, err)
+		}
+
 		log.Println("[INFO] Initializing AutoScaling connection")
 		client.autoscalingconn = autoscaling.New(awsConfig)
 
@@ -90,6 +102,8 @@ func (c *Config) Client() (interface{}, error) {
 
 		log.Println("[INFO] Initializing CloudWatch SDK connection")
 		client.cloudwatchconn = cloudwatch.New(awsConfig)
+		log.Println("[INFO] Initializing Elasticache Connection")
+		client.elasticacheconn = elasticache.New(awsConfig)
 	}
 
 	if len(errs) > 0 {
@@ -99,8 +113,8 @@ func (c *Config) Client() (interface{}, error) {
 	return &client, nil
 }
 
-// IsValidRegion returns true if the configured region is a valid AWS
-// region and false if it's not
+// ValidateRegion returns an error if the configured region is not a
+// valid aws region and nil otherwise.
 func (c *Config) ValidateRegion() error {
 	var regions = [11]string{"us-east-1", "us-west-2", "us-west-1", "eu-west-1",
 		"eu-central-1", "ap-southeast-1", "ap-southeast-2", "ap-northeast-1",
@@ -112,4 +126,40 @@ func (c *Config) ValidateRegion() error {
 		}
 	}
 	return fmt.Errorf("Not a valid region: %s", c.Region)
+}
+
+// ValidateAccountId returns a context-specific error if the configured account
+// id is explicitly forbidden or not authorised; and nil if it is authorised.
+func (c *Config) ValidateAccountId(iamconn *iam.IAM) error {
+	if c.AllowedAccountIds == nil && c.ForbiddenAccountIds == nil {
+		return nil
+	}
+
+	log.Printf("[INFO] Validating account ID")
+
+	out, err := iamconn.GetUser(nil)
+	if err != nil {
+		return fmt.Errorf("Failed getting account ID from IAM: %s", err)
+	}
+
+	account_id := strings.Split(*out.User.ARN, ":")[4]
+
+	if c.ForbiddenAccountIds != nil {
+		for _, id := range c.ForbiddenAccountIds {
+			if id == account_id {
+				return fmt.Errorf("Forbidden account ID (%s)", id)
+			}
+		}
+	}
+
+	if c.AllowedAccountIds != nil {
+		for _, id := range c.AllowedAccountIds {
+			if id == account_id {
+				return nil
+			}
+		}
+		return fmt.Errorf("Account ID not allowed (%s)", account_id)
+	}
+
+	return nil
 }

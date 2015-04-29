@@ -84,6 +84,11 @@ func resourceComputeInstance() *schema.Resource {
 							Optional: true,
 							ForceNew: true,
 						},
+
+						"device_name": &schema.Schema{
+							Type: schema.TypeString,
+							Optional: true,
+						},
 					},
 				},
 			},
@@ -131,6 +136,7 @@ func resourceComputeInstance() *schema.Resource {
 				Type:     schema.TypeList,
 				Optional: true,
 				ForceNew: true,
+				Deprecated: "Please use network_interface",
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"source": &schema.Schema{
@@ -338,6 +344,10 @@ func resourceComputeInstanceCreate(d *schema.ResourceData, meta interface{}) err
 		if v, ok := d.GetOk(prefix + ".size"); ok {
 			diskSizeGb := v.(int)
 			disk.InitializeParams.DiskSizeGb = int64(diskSizeGb)
+		}
+
+		if v, ok := d.GetOk(prefix  + ".device_name"); ok {
+			disk.DeviceName = v.(string)
 		}
 
 		disks = append(disks, &disk)

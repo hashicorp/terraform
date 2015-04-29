@@ -53,14 +53,16 @@ the AWS provider with the given variables.
 
 ## Assigning Variables
 
-There are three ways to assign variables.
+There are multiple ways to assign variables. Below is also the order
+in which variable values are chosen. If they're found in an option first
+below, then the options below are ignored.
 
-First, if you execute `terraform plan` or apply without doing
+**UI Input:** If you execute `terraform plan` or apply without doing
 anything, Terraform will ask you to input the variables interactively.
 These variables are not saved, but provides a nice user experience for
 getting started with Terraform.
 
-For another option, you can set it directly on the command-line with the
+**Command-line flags:** You can set it directly on the command-line with the
 `-var` flag. Any command in Terraform that inspects the configuration
 accepts this flag, such as `apply`, `plan`, and `refresh`:
 
@@ -74,7 +76,7 @@ $ terraform plan \
 Once again, setting variables this way will not save them, and they'll
 have to be input repeatedly as commands are executed.
 
-The third way, and the way to persist variable values, is to create
+**From a file:** To persist variable values, create
 a file and assign variables within this file. Create a file named
 "terraform.tfvars" with the following contents:
 
@@ -88,6 +90,10 @@ Terraform automatically loads it to populate variables. If the file is
 named something else, you can use the `-var-file` flag directly to
 specify a file. These files are the same syntax as Terraform configuration
 files. And like Terraform configuration files, these files can also be JSON.
+
+**From environment variables:** Terraform will read environment variables
+in the form of `TF_VAR_name` to find the value for a variable. For example,
+the `TF_VAR_access_key` variable can be set to set the `access_key` variable.
 
 We recommend using the "terraform.tfvars" file, and ignoring it from
 version control.

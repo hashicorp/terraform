@@ -76,7 +76,8 @@ func resourceAwsVpcPeeringCreate(d *schema.ResourceData, meta interface{}) error
 			d.Id(), err)
 	}
 
-	return nil
+	// Update our attributes and return
+	return resourceAwsVpcPeeringUpdate(d, meta)
 }
 
 func resourceAwsVpcPeeringRead(d *schema.ResourceData, meta interface{}) error {

@@ -21,6 +21,10 @@ func TestAccAWSInstance_normal(t *testing.T) {
 			return fmt.Errorf("bad availability zone: %#v", *v.Placement.AvailabilityZone)
 		}
 
+		if *v.Placement.GroupName != "terraform-placement-group" {
+			return fmt.Errorf("bad placement group name: %#v", *v.Placement.GroupName)
+		}
+
 		if len(v.SecurityGroups) == 0 {
 			return fmt.Errorf("no security groups: %#v", v.SecurityGroups)
 		}
@@ -124,6 +128,11 @@ func TestAccAWSInstance_blockDevices(t *testing.T) {
 				fmt.Errorf("block device doesn't exist: /dev/sdc")
 			}
 
+			// Check if the encrypted block device exists
+			if _, ok := blockDevices["/dev/sdd"]; !ok {
+				fmt.Errorf("block device doesn't exist: /dev/sdd")
+			}
+
 			return nil
 		}
 	}
@@ -145,7 +154,7 @@ func TestAccAWSInstance_blockDevices(t *testing.T) {
 					resource.TestCheckResourceAttr(
 						"aws_instance.foo", "root_block_device.0.volume_type", "gp2"),
 					resource.TestCheckResourceAttr(
-						"aws_instance.foo", "ebs_block_device.#", "2"),
+						"aws_instance.foo", "ebs_block_device.#", "3"),
 					resource.TestCheckResourceAttr(
 						"aws_instance.foo", "ebs_block_device.2576023345.device_name", "/dev/sdb"),
 					resource.TestCheckResourceAttr(
@@ -160,6 +169,12 @@ func TestAccAWSInstance_blockDevices(t *testing.T) {
 						"aws_instance.foo", "ebs_block_device.2554893574.volume_type", "io1"),
 					resource.TestCheckResourceAttr(
 						"aws_instance.foo", "ebs_block_device.2554893574.iops", "100"),
+					resource.TestCheckResourceAttr(
+						"aws_instance.foo", "ebs_block_device.2634515331.device_name", "/dev/sdd"),
+					resource.TestCheckResourceAttr(
+						"aws_instance.foo", "ebs_block_device.2634515331.encrypted", "true"),
+					resource.TestCheckResourceAttr(
+						"aws_instance.foo", "ebs_block_device.2634515331.volume_size", "12"),
 					resource.TestCheckResourceAttr(
 						"aws_instance.foo", "ephemeral_block_device.#", "1"),
 					resource.TestCheckResourceAttr(
@@ -237,6 +252,38 @@ func TestAccAWSInstance_vpc(t *testing.T) {
 	})
 }
 
+func TestAccAWSInstance_multipleRegions(t *testing.T) {
+	var v ec2.Instance
+
+	// record the initialized providers so that we can use them to
+	// check for the instances in each region
+	var providers []*schema.Provider
+	providerFactories := map[string]terraform.ResourceProviderFactory{
+		"aws": func() (terraform.ResourceProvider, error) {
+			p := Provider()
+			providers = append(providers, p.(*schema.Provider))
+			return p, nil
+		},
+	}
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:          func() { testAccPreCheck(t) },
+		ProviderFactories: providerFactories,
+		CheckDestroy:      testAccCheckInstanceDestroyWithProviders(&providers),
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccInstanceConfigMultipleRegions,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckInstanceExistsWithProviders(
+						"aws_instance.foo", &v, &providers),
+					testAccCheckInstanceExistsWithProviders(
+						"aws_instance.bar", &v, &providers),
+				),
+			},
+		},
+	})
+}
+
 func TestAccAWSInstance_NetworkInstanceSecurityGroups(t *testing.T) {
 	var v ec2.Instance
 
@@ -269,6 +316,10 @@ func TestAccAWSInstance_NetworkInstanceVPCSecurityGroupIDs(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckInstanceExists(
 						"aws_instance.foo_instance", &v),
+					resource.TestCheckResourceAttr(
+						"aws_instance.foo_instance", "security_groups.#", "0"),
+					resource.TestCheckResourceAttr(
+						"aws_instance.foo_instance", "vpc_security_group_ids.#", "1"),
 				),
 			},
 		},
@@ -364,7 +415,25 @@ func TestAccAWSInstance_associatePublicIPAndPrivateIP(t *testing.T) {
 }
 
 func testAccCheckInstanceDestroy(s *terraform.State) error {
-	conn := testAccProvider.Meta().(*AWSClient).ec2conn
+	return testAccCheckInstanceDestroyWithProvider(s, testAccProvider)
+}
+
+func testAccCheckInstanceDestroyWithProviders(providers *[]*schema.Provider) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		for _, provider := range *providers {
+			if provider.Meta() == nil {
+				continue
+			}
+			if err := testAccCheckInstanceDestroyWithProvider(s, provider); err != nil {
+				return err
+			}
+		}
+		return nil
+	}
+}
+
+func testAccCheckInstanceDestroyWithProvider(s *terraform.State, provider *schema.Provider) error {
+	conn := provider.Meta().(*AWSClient).ec2conn
 
 	for _, rs := range s.RootModule().Resources {
 		if rs.Type != "aws_instance" {
@@ -397,6 +466,11 @@ func testAccCheckInstanceDestroy(s *terraform.State) error {
 }
 
 func testAccCheckInstanceExists(n string, i *ec2.Instance) resource.TestCheckFunc {
+	providers := []*schema.Provider{testAccProvider}
+	return testAccCheckInstanceExistsWithProviders(n, i, &providers)
+}
+
+func testAccCheckInstanceExistsWithProviders(n string, i *ec2.Instance, providers *[]*schema.Provider) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		rs, ok := s.RootModule().Resources[n]
 		if !ok {
@@ -406,21 +480,25 @@ func testAccCheckInstanceExists(n string, i *ec2.Instance) resource.TestCheckFun
 		if rs.Primary.ID == "" {
 			return fmt.Errorf("No ID is set")
 		}
+		for _, provider := range *providers {
+			conn := provider.Meta().(*AWSClient).ec2conn
+			resp, err := conn.DescribeInstances(&ec2.DescribeInstancesInput{
+				InstanceIDs: []*string{aws.String(rs.Primary.ID)},
+			})
+			if ec2err, ok := err.(aws.APIError); ok && ec2err.Code == "InvalidInstanceID.NotFound" {
+				continue
+			}
+			if err != nil {
+				return err
+			}
 
-		conn := testAccProvider.Meta().(*AWSClient).ec2conn
-		resp, err := conn.DescribeInstances(&ec2.DescribeInstancesInput{
-			InstanceIDs: []*string{aws.String(rs.Primary.ID)},
-		})
-		if err != nil {
-			return err
+			if len(resp.Reservations) > 0 {
+				*i = *resp.Reservations[0].Instances[0]
+				return nil
+			}
 		}
-		if len(resp.Reservations) == 0 {
-			return fmt.Errorf("Instance not found")
-		}
 
-		*i = *resp.Reservations[0].Instances[0]
-
-		return nil
+		return fmt.Errorf("Instance not found")
 	}
 }
 
@@ -471,6 +549,7 @@ resource "aws_instance" "foo" {
 	# us-west-2
 	ami = "ami-4fccb37f"
 	availability_zone = "us-west-2a"
+	placement_group = "terraform-placement-group"
 
 	instance_type = "m1.small"
 	security_groups = ["${aws_security_group.tf_test_foo.name}"]
@@ -482,7 +561,11 @@ const testAccInstanceConfigBlockDevices = `
 resource "aws_instance" "foo" {
 	# us-west-2
 	ami = "ami-55a7ea65"
-	instance_type = "m1.small"
+
+	# In order to attach an encrypted volume to an instance you need to have an
+	# m3.medium or larger. See "Supported Instance Types" in:
+	# http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/EBSEncryption.html
+	instance_type = "m3.medium"
 
 	root_block_device {
 		volume_type = "gp2"
@@ -498,6 +581,14 @@ resource "aws_instance" "foo" {
 		volume_type = "io1"
 		iops = 100
 	}
+
+	# Encrypted ebs block device
+	ebs_block_device {
+		device_name = "/dev/sdd"
+		volume_size = 12
+		encrypted = true
+	}
+
 	ephemeral_block_device {
 		device_name = "/dev/sde"
 		virtual_name = "ephemeral0"
@@ -560,6 +651,32 @@ resource "aws_instance" "foo" {
 	subnet_id = "${aws_subnet.foo.id}"
 	associate_public_ip_address = true
 	tenancy = "dedicated"
+}
+`
+
+const testAccInstanceConfigMultipleRegions = `
+provider "aws" {
+	alias = "west"
+	region = "us-west-2"
+}
+
+provider "aws" {
+	alias = "east"
+	region = "us-east-1"
+}
+
+resource "aws_instance" "foo" {
+	# us-west-2
+	provider = "aws.west"
+	ami = "ami-4fccb37f"
+	instance_type = "m1.small"
+}
+
+resource "aws_instance" "bar" {
+	# us-east-1
+	provider = "aws.east"
+	ami = "ami-8c6ea9e4"
+	instance_type = "m1.small"
 }
 `
 

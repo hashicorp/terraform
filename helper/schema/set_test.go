@@ -18,14 +18,32 @@ func TestSetAdd(t *testing.T) {
 	}
 }
 
+func TestSetAdd_negative(t *testing.T) {
+	// Since we don't allow negative hashes, this should just hash to the
+	// same thing...
+	s := &Set{F: testSetInt}
+	s.Add(-1)
+	s.Add(1)
+
+	expected := []interface{}{-1}
+	actual := s.List()
+	if !reflect.DeepEqual(actual, expected) {
+		t.Fatalf("bad: %#v", actual)
+	}
+}
+
 func TestSetContains(t *testing.T) {
 	s := &Set{F: testSetInt}
 	s.Add(5)
+	s.Add(-5)
 
 	if s.Contains(2) {
 		t.Fatal("should not contain")
 	}
 	if !s.Contains(5) {
+		t.Fatal("should contain")
+	}
+	if !s.Contains(-5) {
 		t.Fatal("should contain")
 	}
 }

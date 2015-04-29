@@ -89,6 +89,7 @@ func (t *OrphanTransformer) Transform(g *Graph) error {
 			resourceVertexes[i] = g.Add(&graphNodeOrphanResource{
 				ResourceName: k,
 				ResourceType: rs.Type,
+				Provider:     rs.Provider,
 				dependentOn:  rs.Dependencies,
 			})
 		}
@@ -162,6 +163,7 @@ func (n *graphNodeOrphanModule) Expand(b GraphBuilder) (GraphNodeSubgraph, error
 type graphNodeOrphanResource struct {
 	ResourceName string
 	ResourceType string
+	Provider     string
 
 	dependentOn []string
 }
@@ -179,7 +181,7 @@ func (n *graphNodeOrphanResource) Name() string {
 }
 
 func (n *graphNodeOrphanResource) ProvidedBy() []string {
-	return []string{resourceProvider(n.ResourceName)}
+	return []string{resourceProvider(n.ResourceName, n.Provider)}
 }
 
 // GraphNodeEvalable impl.
@@ -215,6 +217,7 @@ func (n *graphNodeOrphanResource) EvalTree() EvalNode {
 				&EvalWriteState{
 					Name:         n.ResourceName,
 					ResourceType: n.ResourceType,
+					Provider:     n.Provider,
 					Dependencies: n.DependentOn(),
 					State:        &state,
 				},
@@ -272,6 +275,7 @@ func (n *graphNodeOrphanResource) EvalTree() EvalNode {
 				&EvalWriteState{
 					Name:         n.ResourceName,
 					ResourceType: n.ResourceType,
+					Provider:     n.Provider,
 					Dependencies: n.DependentOn(),
 					State:        &state,
 				},

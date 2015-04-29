@@ -3,6 +3,7 @@ package aws
 import (
 	"fmt"
 	"reflect"
+	"strings"
 	"testing"
 
 	"github.com/awslabs/aws-sdk-go/aws"
@@ -178,6 +179,35 @@ func TestAccAWSSecurityGroup_Change(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSSecurityGroupExists("aws_security_group.web", &group),
 					testAccCheckAWSSecurityGroupAttributesChanged(&group),
+				),
+			},
+		},
+	})
+}
+
+func TestAccAWSSecurityGroup_generatedName(t *testing.T) {
+	var group ec2.SecurityGroup
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSSecurityGroupDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccAWSSecurityGroupConfig_generatedName,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSSecurityGroupExists("aws_security_group.web", &group),
+					resource.TestCheckResourceAttr(
+						"aws_security_group.web", "description", "Managed by Terraform"),
+					func(s *terraform.State) error {
+						if group.GroupName == nil {
+							return fmt.Errorf("bad: No SG name")
+						}
+						if !strings.HasPrefix(*group.GroupName, "terraform-") {
+							return fmt.Errorf("No terraform- prefix: %s", *group.GroupName)
+						}
+						return nil
+					},
 				),
 			},
 		},
@@ -516,5 +546,20 @@ resource "aws_security_group" "foo" {
   tags {
     bar = "baz"
   }
+}
+`
+
+const testAccAWSSecurityGroupConfig_generatedName = `
+resource "aws_security_group" "web" {
+  ingress {
+    protocol = "tcp"
+    from_port = 80
+    to_port = 8000
+    cidr_blocks = ["10.0.0.0/8"]
+  }
+
+	tags {
+		Name = "tf-acc-test"
+	}
 }
 `

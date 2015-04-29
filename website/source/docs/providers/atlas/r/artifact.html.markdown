@@ -16,6 +16,10 @@ of resources.
 
 ## Example Usage
 
+An artifact can be created that has metadata representing
+an AMI in AWS. This AMI can be used to configure an instance. Any changes
+to this artifact will trigger a change to that instance.
+
 ```
 # Read the AMI
 resource "atlas_artifact" "web" {
@@ -43,14 +47,15 @@ The following arguments are supported:
 
 * `type` - (Required) The type of artifact to query for.
 
-* `build` - (Optional) The build to filter on. This can be "latest",
+* `build` - (Optional) The build number responsible for creating
+  the version of the artifact to filter on. This can be "latest",
   to find a matching artifact in the latest build, "any" to find a
   matching artifact in any build, or a specific number to pin to that
   build. If `build` and `version` are unspecified, `version` will default
   to "latest". Cannot be specified with `version`.
 
-* `version` - (Optional)  The version to filter on. This can be "latest",
-  to match against the latest version, "any" to find a matching artifact
+* `version` - (Optional)  The version of the artifact to filter on. This can
+  be "latest", to match against the latest version, "any" to find a matching artifact
   in any version, or a specific number to pin to that version. Defaults to
   "latest" if neither `build` or `version` is specified. Cannot be specified
   with `build`.

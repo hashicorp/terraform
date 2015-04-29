@@ -32,13 +32,19 @@ started guide, use `terraform destroy` to destroy them, and remove all
 configuration files.
 
 As an example, we're going to use the
-[Consul Terraform module](#)
+[Consul Terraform module](https://github.com/hashicorp/consul/tree/master/terraform)
 which will setup a complete [Consul](https://www.consul.io) cluster
 for us.
 
 Create a configuration file with the following contents:
 
 ```
+provider "aws" {
+	access_key = "AWS ACCESS KEY"
+	secret_key = "AWS SECRET KEY"
+	region = "AWS REGION"
+}
+
 module "consul" {
 	source = "github.com/hashicorp/consul/terraform/aws"
 
@@ -48,6 +54,10 @@ module "consul" {
 	servers = "3"
 }
 ```
+
+(Note that the `provider` block can be omitted in favor of environment
+variables. See the [AWS Provider docs](/docs/providers/aws/index.html)
+for details.)
 
 The `module` block tells Terraform to create and manage a module. It is
 very similar to the `resource` block. It has a logical name -- in this

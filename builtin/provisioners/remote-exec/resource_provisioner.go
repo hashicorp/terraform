@@ -213,11 +213,13 @@ func (p *ResourceProvisioner) runScripts(
 		go p.copyOutput(o, errR, errDoneCh)
 
 		err := retryFunc(conf.TimeoutVal, func() error {
-			if err := comm.Upload(conf.ScriptPath, script); err != nil {
+			remotePath := conf.RemotePath()
+
+			if err := comm.Upload(remotePath, script); err != nil {
 				return fmt.Errorf("Failed to upload script: %v", err)
 			}
 			cmd = &helper.RemoteCmd{
-				Command: fmt.Sprintf("chmod 0777 %s", conf.ScriptPath),
+				Command: fmt.Sprintf("chmod 0777 %s", remotePath),
 			}
 			if err := comm.Start(cmd); err != nil {
 				return fmt.Errorf(
@@ -227,7 +229,7 @@ func (p *ResourceProvisioner) runScripts(
 			cmd.Wait()
 
 			cmd = &helper.RemoteCmd{
-				Command: conf.ScriptPath,
+				Command: remotePath,
 				Stdout:  outW,
 				Stderr:  errW,
 			}

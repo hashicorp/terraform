@@ -6,7 +6,7 @@ an ELB serving traffic.
 
 To simplify the example, this intentionally ignores deploying and
 getting your application onto the servers. However, you could do so either via
-[provisioners](/docs/provisioners/index.html) and a configuration
+[provisioners](https://www.terraform.io/docs/provisioners/) and a configuration
 management tool, or by pre-baking configured AMIs with
 [Packer](http://www.packer.io).
 
