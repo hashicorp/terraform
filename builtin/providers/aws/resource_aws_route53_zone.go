@@ -3,10 +3,10 @@ package aws
 import (
 	"fmt"
 	"log"
+	"sort"
 	"strings"
 	"time"
 
-	"github.com/hashicorp/terraform/helper/hashcode"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 
@@ -34,12 +34,9 @@ func resourceAwsRoute53Zone() *schema.Resource {
 			},
 
 			"name_servers": &schema.Schema{
-				Type:     schema.TypeSet,
+				Type:     schema.TypeList,
 				Elem:     &schema.Schema{Type: schema.TypeString},
 				Computed: true,
-				Set: func(v interface{}) int {
-					return hashcode.String(v.(string))
-				},
 			},
 
 			"tags": tagsSchema(),
@@ -105,6 +102,7 @@ func resourceAwsRoute53ZoneRead(d *schema.ResourceData, meta interface{}) error 
 	for i := range zone.DelegationSet.NameServers {
 		ns[i] = *zone.DelegationSet.NameServers[i]
 	}
+	sort.Strings(ns)
 	if err := d.Set("name_servers", ns); err != nil {
 		return fmt.Errorf("[DEBUG] Error setting name servers for: %s, error: %#v", d.Id(), err)
 	}
