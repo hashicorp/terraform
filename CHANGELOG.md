@@ -13,6 +13,8 @@ IMPROVEMENTS:
 
   * **New config function: `length`** - Get the length of a string or a list.
       Useful in conjunction with `split`. [GH-1495]
+  * **New resource: `aws_app_cookie_stickiness_policy`**
+  * **New resource: `aws_lb_cookie_stickiness_policy`**
   * core: Improve error message on diff mismatch [GH-1501]
   * provisioner/file: expand `~` in source path [GH-1569]
   * provider/aws: Can specify a `token` via the config file [GH-1601]
@@ -61,6 +63,7 @@ BUG FIXES:
   * provider/aws: manually deleted S3 buckets are refreshed properly [GH-1574]
   * provider/aws: only check for EIP allocation ID in VPC [GH-1555]
   * provider/aws: raw protocol numbers work in `aws_network_acl` [GH-1435]
+  * provider/aws: Block devices can be encrypted [GH-1718]
   * provider/openstack: region config is not required [GH-1441]
   * provisioner/remote-exec: add random number to uploaded script path so
       that parallel provisions work [GH-1588]
