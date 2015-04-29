@@ -205,14 +205,15 @@ func resourceCloudStackTemplateRead(d *schema.ResourceData, meta interface{}) er
 	d.Set("display_text", t.Displaytext)
 	d.Set("format", t.Format)
 	d.Set("hypervisor", t.Hypervisor)
-	d.Set("os_type", t.Ostypename)
-	d.Set("zone", t.Zonename)
 	d.Set("is_dynamically_scalable", t.Isdynamicallyscalable)
 	d.Set("is_extractable", t.Isextractable)
 	d.Set("is_featured", t.Isfeatured)
 	d.Set("is_public", t.Ispublic)
 	d.Set("password_enabled", t.Passwordenabled)
 	d.Set("is_ready", t.Isready)
+
+	setValueOrUUID(d, "os_type", t.Ostypename, t.Ostypeid)
+	setValueOrUUID(d, "zone", t.Zonename, t.Zoneid)
 
 	return nil
 }

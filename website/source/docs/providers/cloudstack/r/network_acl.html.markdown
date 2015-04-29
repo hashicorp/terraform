@@ -27,8 +27,8 @@ The following arguments are supported:
     to be created.
 * `description` - (Optional) The description of the ACL. Changing this forces a
     new resource to be created.
-* `vpc` - (Required) The name of the VPC to create this ACL for. Changing this
-    forces a new resource to be created.
+* `vpc` - (Required) The name or ID of the VPC to create this ACL for. Changing
+    this forces a new resource to be created.
 
 ## Attributes Reference
 
