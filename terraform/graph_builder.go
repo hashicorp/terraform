@@ -95,6 +95,9 @@ func (b *BuiltinGraphBuilder) Steps() []GraphTransformer {
 			Targeting: (len(b.Targets) > 0),
 		},
 
+		// Output-related transformations
+		&AddOutputOrphanTransformer{State: b.State},
+
 		// Provider-related transformations
 		&MissingProviderTransformer{Providers: b.Providers},
 		&ProviderTransformer{},
