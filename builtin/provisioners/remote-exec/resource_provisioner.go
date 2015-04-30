@@ -181,12 +181,14 @@ func (p *ResourceProvisioner) runScripts(
 		go p.copyOutput(o, errR, errDoneCh)
 
 		err = retryFunc(comm.Timeout(), func() error {
-			if err := comm.UploadScript(comm.ScriptPath(), script); err != nil {
+			remotePath := comm.ScriptPath()
+
+			if err := comm.UploadScript(remotePath, script); err != nil {
 				return fmt.Errorf("Failed to upload script: %v", err)
 			}
 
 			cmd = &remote.Cmd{
-				Command: comm.ScriptPath(),
+				Command: remotePath,
 				Stdout:  outW,
 				Stderr:  errW,
 			}

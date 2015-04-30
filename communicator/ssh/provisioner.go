@@ -25,7 +25,7 @@ const (
 
 	// DefaultScriptPath is used as the path to copy the file to
 	// for remote execution if not provided otherwise.
-	DefaultScriptPath = "/tmp/script_%RAND%.sh"
+	DefaultScriptPath = "/tmp/terraform_%RAND%.sh"
 
 	// DefaultTimeout is used if there is no timeout given
 	DefaultTimeout = 5 * time.Minute
@@ -61,6 +61,7 @@ func parseConnectionInfo(s *terraform.InstanceState) (*connectionInfo, error) {
 	if err := dec.Decode(s.Ephemeral.ConnInfo); err != nil {
 		return nil, err
 	}
+
 	if connInfo.User == "" {
 		connInfo.User = DefaultUser
 	}
@@ -75,6 +76,7 @@ func parseConnectionInfo(s *terraform.InstanceState) (*connectionInfo, error) {
 	} else {
 		connInfo.TimeoutVal = DefaultTimeout
 	}
+
 	return connInfo, nil
 }
 
