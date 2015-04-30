@@ -5,8 +5,8 @@ import (
 	"log"
 	"strconv"
 
-	"github.com/MSOpenTech/azure-sdk-for-go/management"
-	"github.com/MSOpenTech/azure-sdk-for-go/management/networksecuritygroup"
+	"github.com/Azure/azure-sdk-for-go/management"
+	"github.com/Azure/azure-sdk-for-go/management/networksecuritygroup"
 	"github.com/hashicorp/terraform/helper/schema"
 )
 
@@ -55,7 +55,7 @@ func resourceAzureSecurityGroup() *schema.Resource {
 						"type": &schema.Schema{
 							Type:     schema.TypeString,
 							Optional: true,
-							Default:  "inbound",
+							Default:  "Inbound",
 						},
 
 						"priority": &schema.Schema{
@@ -66,7 +66,7 @@ func resourceAzureSecurityGroup() *schema.Resource {
 						"action": &schema.Schema{
 							Type:     schema.TypeString,
 							Optional: true,
-							Default:  "allow",
+							Default:  "Allow",
 						},
 
 						"source_cidr": &schema.Schema{
@@ -92,7 +92,7 @@ func resourceAzureSecurityGroup() *schema.Resource {
 						"protocol": &schema.Schema{
 							Type:     schema.TypeString,
 							Optional: true,
-							Default:  "tcp",
+							Default:  "TCP",
 						},
 					},
 				},
@@ -196,6 +196,30 @@ func resourceAzureSecurityGroupRead(d *schema.ResourceData, meta interface{}) er
 	d.Set("label", sg.Label)
 	d.Set("location", sg.Location)
 
+	// Create an empty schema.Set to hold all rules
+	rules := &schema.Set{
+		F: resourceAzureSecurityGroupRuleHash,
+	}
+
+	for _, r := range sg.Rules {
+		if !r.IsDefault {
+			rule := map[string]interface{}{
+				"name":             r.Name,
+				"type":             r.Type,
+				"priority":         r.Priority,
+				"action":           r.Action,
+				"source_cidr":      r.SourceAddressPrefix,
+				"source_port":      r.SourcePortRange,
+				"destination_cidr": r.DestinationAddressPrefix,
+				"destination_port": r.DestinationPortRange,
+				"protocol":         r.Protocol,
+			}
+			rules.Add(rule)
+		}
+	}
+
+	d.Set("rule", rules)
+
 	return nil
 }
 
@@ -282,21 +306,21 @@ func resourceAzureSecurityGroupRuleHash(v interface{}) int {
 
 func verifySecurityGroupRuleParams(rule map[string]interface{}) error {
 	typ := rule["type"].(string)
-	if typ != "inbound" && typ != "outbound" {
-		return fmt.Errorf("Parameter type only accepts 'inbound' or 'outbound' as values")
+	if typ != "Inbound" && typ != "Outbound" {
+		return fmt.Errorf("Parameter type only accepts 'Inbound' or 'Outbound' as values")
 	}
 
 	action := rule["action"].(string)
-	if action != "allow" && action != "deny" {
-		return fmt.Errorf("Parameter action only accepts 'allow' or 'deny' as values")
+	if action != "Allow" && action != "Deny" {
+		return fmt.Errorf("Parameter action only accepts 'Allow' or 'Deny' as values")
 	}
 
 	protocol := rule["protocol"].(string)
-	if protocol != "tcp" && protocol != "udp" && protocol != "*" {
+	if protocol != "TCP" && protocol != "UDP" && protocol != "*" {
 		_, err := strconv.ParseInt(protocol, 0, 0)
 		if err != nil {
 			return fmt.Errorf(
-				"Parameter type only accepts 'tcp', 'udp' or '*' as values")
+				"Parameter type only accepts 'TCP', 'UDP' or '*' as values")
 		}
 	}
 
