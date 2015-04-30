@@ -149,6 +149,10 @@ func resourceAwsSecurityGroupCreate(d *schema.ResourceData, meta interface{}) er
 	securityGroupOpts := &ec2.CreateSecurityGroupInput{}
 
 	if v := d.Get("vpc_id"); v != nil {
+                if len(d.Get("egress").(*schema.Set).List()) == 0 {
+                        return fmt.Errorf("Error creating Security Group: Security groups inside a VPC require an egress rule. See https://terraform.io/why.html")
+                }
+
 		securityGroupOpts.VPCID = aws.String(v.(string))
 	}
 
@@ -407,6 +411,23 @@ func resourceAwsSecurityGroupUpdateRules(
 		ns := n.(*schema.Set)
 
 		remove := expandIPPerms(group, os.Difference(ns).List())
+
+                if len(remove) == 0 && len(os.List()) == 0 && ruleset == "egress" {
+                        // For new Security groups, a default Egress rule is created. Here we add
+                        // the equivelent IPPermission struct for removal, so that only the
+                        // supplied egress rules exist in the security group.
+                        remove = append(remove, &ec2.IPPermission{
+                                FromPort: aws.Long(int64(0)),
+                                ToPort:   aws.Long(int64(0)),
+                                IPRanges: []*ec2.IPRange{
+                                        &ec2.IPRange{
+                                                CIDRIP: aws.String("0.0.0.0/0"),
+                                        },
+                                },
+                                IPProtocol: aws.String("-1"),
+                        })
+                }
+
 		add := expandIPPerms(group, ns.Difference(os).List())
 
 		// TODO: We need to handle partial state better in the in-between
