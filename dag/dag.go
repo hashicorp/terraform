@@ -2,6 +2,7 @@ package dag
 
 import (
 	"fmt"
+	"sort"
 	"strings"
 	"sync"
 
@@ -17,17 +18,21 @@ type AcyclicGraph struct {
 // WalkFunc is the callback used for walking the graph.
 type WalkFunc func(Vertex) error
 
+// DepthWalkFunc is a walk function that also receives the current depth of the
+// walk as an argument
+type DepthWalkFunc func(Vertex, int) error
+
 // Returns a Set that includes every Vertex yielded by walking down from the
 // provided starting Vertex v.
 func (g *AcyclicGraph) Ancestors(v Vertex) (*Set, error) {
 	s := new(Set)
-	start := asVertexList(g.DownEdges(v))
-	memoFunc := func(v Vertex) error {
+	start := AsVertexList(g.DownEdges(v))
+	memoFunc := func(v Vertex, d int) error {
 		s.Add(v)
 		return nil
 	}
 
-	if err := g.depthFirstWalk(start, memoFunc); err != nil {
+	if err := g.DepthFirstWalk(start, memoFunc); err != nil {
 		return nil, err
 	}
 
@@ -38,13 +43,13 @@ func (g *AcyclicGraph) Ancestors(v Vertex) (*Set, error) {
 // provided starting Vertex v.
 func (g *AcyclicGraph) Descendents(v Vertex) (*Set, error) {
 	s := new(Set)
-	start := asVertexList(g.UpEdges(v))
-	memoFunc := func(v Vertex) error {
+	start := AsVertexList(g.UpEdges(v))
+	memoFunc := func(v Vertex, d int) error {
 		s.Add(v)
 		return nil
 	}
 
-	if err := g.reverseDepthFirstWalk(start, memoFunc); err != nil {
+	if err := g.ReverseDepthFirstWalk(start, memoFunc); err != nil {
 		return nil, err
 	}
 
@@ -92,14 +97,13 @@ func (g *AcyclicGraph) TransitiveReduction() {
 	// v such that the edge (u,v) exists (v is a direct descendant of u).
 	//
 	// For each v-prime reachable from v, remove the edge (u, v-prime).
-
 	for _, u := range g.Vertices() {
 		uTargets := g.DownEdges(u)
-		vs := asVertexList(g.DownEdges(u))
+		vs := AsVertexList(g.DownEdges(u))
 
-		g.depthFirstWalk(vs, func(v Vertex) error {
+		g.DepthFirstWalk(vs, func(v Vertex, d int) error {
 			shared := uTargets.Intersection(g.DownEdges(v))
-			for _, vPrime := range asVertexList(shared) {
+			for _, vPrime := range AsVertexList(shared) {
 				g.RemoveEdge(BasicEdge(u, vPrime))
 			}
 
@@ -117,12 +121,7 @@ func (g *AcyclicGraph) Validate() error {
 
 	// Look for cycles of more than 1 component
 	var err error
-	var cycles [][]Vertex
-	for _, cycle := range StronglyConnected(&g.Graph) {
-		if len(cycle) > 1 {
-			cycles = append(cycles, cycle)
-		}
-	}
+	cycles := g.Cycles()
 	if len(cycles) > 0 {
 		for _, cycle := range cycles {
 			cycleStr := make([]string, len(cycle))
@@ -144,6 +143,16 @@ func (g *AcyclicGraph) Validate() error {
 	}
 
 	return err
+}
+
+func (g *AcyclicGraph) Cycles() [][]Vertex {
+	var cycles [][]Vertex
+	for _, cycle := range StronglyConnected(&g.Graph) {
+		if len(cycle) > 1 {
+			cycles = append(cycles, cycle)
+		}
+	}
+	return cycles
 }
 
 // Walk walks the graph, calling your callback as each node is visited.
@@ -175,7 +184,7 @@ func (g *AcyclicGraph) Walk(cb WalkFunc) error {
 	for _, v := range vertices {
 		// Build our list of dependencies and the list of channels to
 		// wait on until we start executing for this vertex.
-		deps := asVertexList(g.DownEdges(v))
+		deps := AsVertexList(g.DownEdges(v))
 		depChs := make([]<-chan struct{}, len(deps))
 		for i, dep := range deps {
 			depChs[i] = vertMap[dep]
@@ -229,7 +238,7 @@ func (g *AcyclicGraph) Walk(cb WalkFunc) error {
 }
 
 // simple convenience helper for converting a dag.Set to a []Vertex
-func asVertexList(s *Set) []Vertex {
+func AsVertexList(s *Set) []Vertex {
 	rawList := s.List()
 	vertexList := make([]Vertex, len(rawList))
 	for i, raw := range rawList {
@@ -238,13 +247,23 @@ func asVertexList(s *Set) []Vertex {
 	return vertexList
 }
 
+type vertexAtDepth struct {
+	Vertex Vertex
+	Depth  int
+}
+
 // depthFirstWalk does a depth-first walk of the graph starting from
 // the vertices in start. This is not exported now but it would make sense
 // to export this publicly at some point.
-func (g *AcyclicGraph) depthFirstWalk(start []Vertex, cb WalkFunc) error {
+func (g *AcyclicGraph) DepthFirstWalk(start []Vertex, f DepthWalkFunc) error {
 	seen := make(map[Vertex]struct{})
-	frontier := make([]Vertex, len(start))
-	copy(frontier, start)
+	frontier := make([]*vertexAtDepth, len(start))
+	for i, v := range start {
+		frontier[i] = &vertexAtDepth{
+			Vertex: v,
+			Depth:  0,
+		}
+	}
 	for len(frontier) > 0 {
 		// Pop the current vertex
 		n := len(frontier)
@@ -252,20 +271,24 @@ func (g *AcyclicGraph) depthFirstWalk(start []Vertex, cb WalkFunc) error {
 		frontier = frontier[:n-1]
 
 		// Check if we've seen this already and return...
-		if _, ok := seen[current]; ok {
+		if _, ok := seen[current.Vertex]; ok {
 			continue
 		}
-		seen[current] = struct{}{}
+		seen[current.Vertex] = struct{}{}
 
 		// Visit the current node
-		if err := cb(current); err != nil {
+		if err := f(current.Vertex, current.Depth); err != nil {
 			return err
 		}
 
-		// Visit targets of this in reverse order.
-		targets := g.DownEdges(current).List()
-		for i := len(targets) - 1; i >= 0; i-- {
-			frontier = append(frontier, targets[i].(Vertex))
+		// Visit targets of this in a consistent order.
+		targets := AsVertexList(g.DownEdges(current.Vertex))
+		sort.Sort(byVertexName(targets))
+		for _, t := range targets {
+			frontier = append(frontier, &vertexAtDepth{
+				Vertex: t,
+				Depth:  current.Depth + 1,
+			})
 		}
 	}
 
@@ -274,10 +297,15 @@ func (g *AcyclicGraph) depthFirstWalk(start []Vertex, cb WalkFunc) error {
 
 // reverseDepthFirstWalk does a depth-first walk _up_ the graph starting from
 // the vertices in start.
-func (g *AcyclicGraph) reverseDepthFirstWalk(start []Vertex, cb WalkFunc) error {
+func (g *AcyclicGraph) ReverseDepthFirstWalk(start []Vertex, f DepthWalkFunc) error {
 	seen := make(map[Vertex]struct{})
-	frontier := make([]Vertex, len(start))
-	copy(frontier, start)
+	frontier := make([]*vertexAtDepth, len(start))
+	for i, v := range start {
+		frontier[i] = &vertexAtDepth{
+			Vertex: v,
+			Depth:  0,
+		}
+	}
 	for len(frontier) > 0 {
 		// Pop the current vertex
 		n := len(frontier)
@@ -285,22 +313,36 @@ func (g *AcyclicGraph) reverseDepthFirstWalk(start []Vertex, cb WalkFunc) error 
 		frontier = frontier[:n-1]
 
 		// Check if we've seen this already and return...
-		if _, ok := seen[current]; ok {
+		if _, ok := seen[current.Vertex]; ok {
 			continue
 		}
-		seen[current] = struct{}{}
+		seen[current.Vertex] = struct{}{}
 
 		// Visit the current node
-		if err := cb(current); err != nil {
+		if err := f(current.Vertex, current.Depth); err != nil {
 			return err
 		}
 
-		// Visit targets of this in reverse order.
-		targets := g.UpEdges(current).List()
-		for i := len(targets) - 1; i >= 0; i-- {
-			frontier = append(frontier, targets[i].(Vertex))
+		// Visit targets of this in a consistent order.
+		targets := AsVertexList(g.UpEdges(current.Vertex))
+		sort.Sort(byVertexName(targets))
+		for _, t := range targets {
+			frontier = append(frontier, &vertexAtDepth{
+				Vertex: t,
+				Depth:  current.Depth + 1,
+			})
 		}
 	}
 
 	return nil
+}
+
+// byVertexName implements sort.Interface so a list of Vertices can be sorted
+// consistently by their VertexName
+type byVertexName []Vertex
+
+func (b byVertexName) Len() int      { return len(b) }
+func (b byVertexName) Swap(i, j int) { b[i], b[j] = b[j], b[i] }
+func (b byVertexName) Less(i, j int) bool {
+	return VertexName(b[i]) < VertexName(b[j])
 }
