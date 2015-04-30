@@ -70,6 +70,40 @@ func TestMetaInputMode(t *testing.T) {
 	}
 }
 
+func TestMetaInputMode_envVar(t *testing.T) {
+	test = false
+	defer func() { test = true }()
+	old := os.Getenv(InputModeEnvVar)
+	defer os.Setenv(InputModeEnvVar, old)
+
+	m := new(Meta)
+	args := []string{}
+
+	fs := m.flagSet("foo")
+	if err := fs.Parse(args); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	off := terraform.InputMode(0)
+	on := terraform.InputModeStd | terraform.InputModeVarUnset
+	cases := []struct {
+		EnvVar   string
+		Expected terraform.InputMode
+	}{
+		{"false", off},
+		{"0", off},
+		{"true", on},
+		{"1", on},
+	}
+
+	for _, tc := range cases {
+		os.Setenv(InputModeEnvVar, tc.EnvVar)
+		if m.InputMode() != tc.Expected {
+			t.Fatalf("expected InputMode: %#v, got: %#v", tc.Expected, m.InputMode())
+		}
+	}
+}
+
 func TestMetaInputMode_disable(t *testing.T) {
 	test = false
 	defer func() { test = true }()
