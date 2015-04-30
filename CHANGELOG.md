@@ -19,9 +19,18 @@ IMPROVEMENTS:
   * **New resource: `aws_lb_cookie_stickiness_policy`**
   * **New resource: `google_dns_managed_zone`**
   * **New resource: `google_dns_record_set`**
+  * **New (New) AWS SDK:** Move to 
+      [awslabs/aws-sdk-go](https://github.com/awslabs/aws-sdk-go), 
+      the offical `awslabs` library. Previously we had forked the library for 
+      stability while `awslabs` refactored. That work has completed, and we've
+      migrated back to the upstream version. 
   * core: Improve error message on diff mismatch [GH-1501]
   * provisioner/file: expand `~` in source path [GH-1569]
+  * provider/aws: Improved credential detection [GH-1470]
   * provider/aws: Can specify a `token` via the config file [GH-1601]
+  * provider/aws: Added new `vpc_security_group_ids` attribute for AWS
+      Instances. If using a VPC, you can now modify the security groups for that
+      Instance without destroying it [GH-1539]
   * provider/aws: White or blacklist account IDs that can be used to
       protect against accidents. [GH-1595]
   * provider/aws: `aws_instance` supports placement groups [GH-1358]
@@ -65,6 +74,8 @@ BUG FIXES:
       hyphens. [GH-1641]
   * command: remote states with uppercase types work [GH-1356]
   * provider/aws: launch configuration ID set after create success [GH-1518]
+  * provider/aws: Fixed an issue with creating ELBs without any tags [GH-1580]
+  * provider/aws: Fix issue in Security Groups with empty IPRanges [GH-1612]
   * provider/aws: manually deleted S3 buckets are refreshed properly [GH-1574]
   * provider/aws: only check for EIP allocation ID in VPC [GH-1555]
   * provider/aws: raw protocol numbers work in `aws_network_acl` [GH-1435]
