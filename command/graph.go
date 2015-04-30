@@ -23,7 +23,7 @@ func (c *GraphCommand) Run(args []string) int {
 	args = c.Meta.process(args, false)
 
 	cmdFlags := flag.NewFlagSet("graph", flag.ContinueOnError)
-	cmdFlags.IntVar(&moduleDepth, "module-depth", 0, "module-depth")
+	c.addModuleDepthFlag(cmdFlags, &moduleDepth)
 	cmdFlags.BoolVar(&verbose, "verbose", false, "verbose")
 	cmdFlags.BoolVar(&drawCycles, "draw-cycles", false, "draw-cycles")
 	cmdFlags.Usage = func() { c.Ui.Error(c.Help()) }
