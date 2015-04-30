@@ -14,6 +14,7 @@ IMPROVEMENTS:
   * **New config function: `length`** - Get the length of a string or a list.
       Useful in conjunction with `split`. [GH-1495]
   * **New resource: `aws_app_cookie_stickiness_policy`**
+  * **New resource: `aws_customer_gateway`**
   * **New resource: `aws_ebs_volume`**
   * **New resource: `aws_lb_cookie_stickiness_policy`**
   * core: Improve error message on diff mismatch [GH-1501]
