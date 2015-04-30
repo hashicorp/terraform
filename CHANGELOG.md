@@ -8,6 +8,8 @@ FEATURES:
   * **Environmental variables to set variables**: Environment variables can be
      used to set variables. The environment variables must be in the format
      `TF_VAR_name` and this will be checked last for a value.
+  * **New remote state backend: `s3`**: You can now store remote state in
+     an S3 bucket. [GH-1723]
 
 IMPROVEMENTS:
 
@@ -19,11 +21,11 @@ IMPROVEMENTS:
   * **New resource: `aws_lb_cookie_stickiness_policy`**
   * **New resource: `google_dns_managed_zone`**
   * **New resource: `google_dns_record_set`**
-  * **Migrate to upstream AWS SDK:** Migrate the AWS provider to 
-      [awslabs/aws-sdk-go](https://github.com/awslabs/aws-sdk-go), 
-      the offical `awslabs` library. Previously we had forked the library for 
+  * **Migrate to upstream AWS SDK:** Migrate the AWS provider to
+      [awslabs/aws-sdk-go](https://github.com/awslabs/aws-sdk-go),
+      the offical `awslabs` library. Previously we had forked the library for
       stability while `awslabs` refactored. Now that work has completed, and we've
-      migrated back to the upstream version. 
+      migrated back to the upstream version.
   * core: Improve error message on diff mismatch [GH-1501]
   * provisioner/file: expand `~` in source path [GH-1569]
   * provider/aws: Improved credential detection [GH-1470]
