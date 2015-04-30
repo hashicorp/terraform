@@ -2365,6 +2365,25 @@ func TestContext2Validate_countVariableNoDefault(t *testing.T) {
 	}
 }
 
+func TestContext2Validate_cycle(t *testing.T) {
+	p := testProvider("aws")
+	m := testModule(t, "validate-cycle")
+	c := testContext2(t, &ContextOpts{
+		Module: m,
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+	})
+
+	w, e := c.Validate()
+	if len(w) > 0 {
+		t.Fatalf("expected no warns, got: %#v", w)
+	}
+	if len(e) != 1 {
+		t.Fatalf("expected 1 err, got: %s", e)
+	}
+}
+
 func TestContext2Validate_moduleBadOutput(t *testing.T) {
 	p := testProvider("aws")
 	m := testModule(t, "validate-bad-module-output")

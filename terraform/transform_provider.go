@@ -6,6 +6,7 @@ import (
 	"github.com/hashicorp/go-multierror"
 	"github.com/hashicorp/terraform/config"
 	"github.com/hashicorp/terraform/dag"
+	"github.com/hashicorp/terraform/dot"
 )
 
 // GraphNodeProvider is an interface that nodes that can be a provider
@@ -176,6 +177,19 @@ func (n *graphNodeDisabledProvider) Name() string {
 	return fmt.Sprintf("%s (disabled)", dag.VertexName(n.GraphNodeProvider))
 }
 
+// GraphNodeDotter impl.
+func (n *graphNodeDisabledProvider) DotNode(name string, opts *GraphDotOpts) *dot.Node {
+	return dot.NewNode(name, map[string]string{
+		"label": n.Name(),
+		"shape": "diamond",
+	})
+}
+
+// GraphNodeDotterOrigin impl.
+func (n *graphNodeDisabledProvider) DotOrigin() bool {
+	return true
+}
+
 type graphNodeMissingProvider struct {
 	ProviderNameValue string
 }
@@ -198,14 +212,16 @@ func (n *graphNodeMissingProvider) ProviderConfig() *config.RawConfig {
 }
 
 // GraphNodeDotter impl.
-func (n *graphNodeMissingProvider) Dot(name string) string {
-	return fmt.Sprintf(
-		"\"%s\" [\n"+
-			"\tlabel=\"%s\"\n"+
-			"\tshape=diamond\n"+
-			"];",
-		name,
-		n.Name())
+func (n *graphNodeMissingProvider) DotNode(name string, opts *GraphDotOpts) *dot.Node {
+	return dot.NewNode(name, map[string]string{
+		"label": n.Name(),
+		"shape": "diamond",
+	})
+}
+
+// GraphNodeDotterOrigin impl.
+func (n *graphNodeMissingProvider) DotOrigin() bool {
+	return true
 }
 
 func providerVertexMap(g *Graph) map[string]dag.Vertex {

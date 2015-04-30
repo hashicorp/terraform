@@ -116,14 +116,19 @@ func NewContext(opts *ContextOpts) *Context {
 	}
 }
 
+type ContextGraphOpts struct {
+	Validate bool
+	Verbose  bool
+}
+
 // Graph returns the graph for this config.
-func (c *Context) Graph() (*Graph, error) {
-	return c.GraphBuilder().Build(RootModulePath)
+func (c *Context) Graph(g *ContextGraphOpts) (*Graph, error) {
+	return c.graphBuilder(g).Build(RootModulePath)
 }
 
 // GraphBuilder returns the GraphBuilder that will be used to create
 // the graphs for this context.
-func (c *Context) GraphBuilder() GraphBuilder {
+func (c *Context) graphBuilder(g *ContextGraphOpts) GraphBuilder {
 	// TODO test
 	providers := make([]string, 0, len(c.providers))
 	for k, _ := range c.providers {
@@ -143,6 +148,8 @@ func (c *Context) GraphBuilder() GraphBuilder {
 		State:        c.state,
 		Targets:      c.targets,
 		Destroy:      c.destroy,
+		Validate:     g.Validate,
+		Verbose:      g.Verbose,
 	}
 }
 
@@ -226,8 +233,14 @@ func (c *Context) Input(mode InputMode) error {
 	}
 
 	if mode&InputModeProvider != 0 {
+		// Build the graph
+		graph, err := c.Graph(&ContextGraphOpts{Validate: true})
+		if err != nil {
+			return err
+		}
+
 		// Do the walk
-		if _, err := c.walk(walkInput); err != nil {
+		if _, err := c.walk(graph, walkInput); err != nil {
 			return err
 		}
 	}
@@ -247,8 +260,14 @@ func (c *Context) Apply() (*State, error) {
 	// Copy our own state
 	c.state = c.state.DeepCopy()
 
+	// Build the graph
+	graph, err := c.Graph(&ContextGraphOpts{Validate: true})
+	if err != nil {
+		return nil, err
+	}
+
 	// Do the walk
-	_, err := c.walk(walkApply)
+	_, err = c.walk(graph, walkApply)
 
 	// Clean out any unused things
 	c.state.prune()
@@ -300,8 +319,14 @@ func (c *Context) Plan() (*Plan, error) {
 	c.diff.init()
 	c.diffLock.Unlock()
 
+	// Build the graph
+	graph, err := c.Graph(&ContextGraphOpts{Validate: true})
+	if err != nil {
+		return nil, err
+	}
+
 	// Do the walk
-	if _, err := c.walk(operation); err != nil {
+	if _, err := c.walk(graph, operation); err != nil {
 		return nil, err
 	}
 	p.Diff = c.diff
@@ -322,8 +347,14 @@ func (c *Context) Refresh() (*State, error) {
 	// Copy our own state
 	c.state = c.state.DeepCopy()
 
+	// Build the graph
+	graph, err := c.Graph(&ContextGraphOpts{Validate: true})
+	if err != nil {
+		return nil, err
+	}
+
 	// Do the walk
-	if _, err := c.walk(walkRefresh); err != nil {
+	if _, err := c.walk(graph, walkRefresh); err != nil {
 		return nil, err
 	}
 
@@ -375,8 +406,18 @@ func (c *Context) Validate() ([]string, []error) {
 		}
 	}
 
+	// Build a Verbose version of the graph so we can catch any potential cycles
+	// in the validate stage
+	graph, err := c.Graph(&ContextGraphOpts{
+		Validate: true,
+		Verbose:  true,
+	})
+	if err != nil {
+		return nil, []error{err}
+	}
+
 	// Walk
-	walker, err := c.walk(walkValidate)
+	walker, err := c.walk(graph, walkValidate)
 	if err != nil {
 		return nil, multierror.Append(errs, err).Errors
 	}
@@ -429,13 +470,8 @@ func (c *Context) releaseRun(ch chan<- struct{}) {
 	c.sh.Reset()
 }
 
-func (c *Context) walk(operation walkOperation) (*ContextGraphWalker, error) {
-	// Build the graph
-	graph, err := c.GraphBuilder().Build(RootModulePath)
-	if err != nil {
-		return nil, err
-	}
-
+func (c *Context) walk(
+	graph *Graph, operation walkOperation) (*ContextGraphWalker, error) {
 	// Walk the graph
 	log.Printf("[INFO] Starting graph walk: %s", operation.String())
 	walker := &ContextGraphWalker{Context: c, Operation: operation}
