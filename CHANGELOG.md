@@ -117,6 +117,8 @@ BUG FIXES:
       systems so copying your ".terraform" folder works. [GH-1418]
   * core: don't validate providers too early when nested in a module [GH-1380]
   * core: fix race condition in `count.index` interpolation [GH-1454]
+  * core: properly initialize provisioners, fixing resource targeting
+      during destroy [GH-1544]
   * command/push: don't ask for input if terraform.tfvars is present
   * command/remote-config: remove spurrious error "nil" when initializing
       remote state on a new configuration. [GH-1392]
