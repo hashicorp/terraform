@@ -17,6 +17,8 @@ IMPROVEMENTS:
   * **New resource: `aws_customer_gateway`**
   * **New resource: `aws_ebs_volume`**
   * **New resource: `aws_lb_cookie_stickiness_policy`**
+  * **New resource: `google_dns_managed_zone`**
+  * **New resource: `google_dns_record_set`**
   * core: Improve error message on diff mismatch [GH-1501]
   * provisioner/file: expand `~` in source path [GH-1569]
   * provider/aws: Can specify a `token` via the config file [GH-1601]
