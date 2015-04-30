@@ -106,7 +106,7 @@ func resourceAwsDbSubnetGroupRead(d *schema.ResourceData, meta interface{}) erro
 		return fmt.Errorf("Unable to find DB Subnet Group: %#v", describeResp.DBSubnetGroups)
 	}
 
-	d.Set("name", *subnetGroup.DBSubnetGroupName)
+	d.Set("name", d.Id())
 	d.Set("description", *subnetGroup.DBSubnetGroupDescription)
 
 	subnets := make([]string, 0, len(subnetGroup.Subnets))
