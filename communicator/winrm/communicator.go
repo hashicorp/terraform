@@ -4,6 +4,9 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"math/rand"
+	"strconv"
+	"strings"
 	"time"
 
 	"github.com/hashicorp/terraform/communicator/remote"
@@ -113,7 +116,9 @@ func (c *Communicator) Timeout() time.Duration {
 
 // ScriptPath implementation of communicator.Communicator interface
 func (c *Communicator) ScriptPath() string {
-	return c.connInfo.ScriptPath
+	return strings.Replace(
+		c.connInfo.ScriptPath, "%RAND%",
+		strconv.FormatInt(int64(rand.Int31()), 10), -1)
 }
 
 // Start implementation of communicator.Communicator interface

@@ -3,6 +3,7 @@ package winrm
 import (
 	"fmt"
 	"log"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -19,7 +20,7 @@ const (
 
 	// DefaultScriptPath is used as the path to copy the file to
 	// for remote execution if not provided otherwise.
-	DefaultScriptPath = "C:/Temp/script.cmd"
+	DefaultScriptPath = "C:/Temp/terraform_%RAND%.cmd"
 
 	// DefaultTimeout is used if there is no timeout given
 	DefaultTimeout = 5 * time.Minute
@@ -56,19 +57,25 @@ func parseConnectionInfo(s *terraform.InstanceState) (*connectionInfo, error) {
 	if err := dec.Decode(s.Ephemeral.ConnInfo); err != nil {
 		return nil, err
 	}
+
+	// Check on script paths which point to the default Windows TEMP folder because files
+	// which are put in there very early in the boot process could get cleaned/deleted
+	// before you had the change to execute them.
+	//
+	// TODO (SvH) Needs some more debugging to fully understand the exact sequence of events
+	// causing this...
+	if strings.HasPrefix(filepath.ToSlash(connInfo.ScriptPath), "C:/Windows/Temp") {
+		return nil, fmt.Errorf(
+			`Using the C:\Windows\Temp folder is not supported. Please use a different 'script_path'.`)
+	}
+
 	if connInfo.User == "" {
 		connInfo.User = DefaultUser
 	}
 	if connInfo.Port == 0 {
 		connInfo.Port = DefaultPort
 	}
-	// We also check on script paths which point to the default Windows TEMP folder because
-	// files which are put in there very early in the boot process could get cleaned/deleted
-	// before you had the change to execute them.
-	//
-	// TODO (SvH) Needs some more debugging to fully understand the exact sequence of events
-	// causing this...
-	if connInfo.ScriptPath == "" || strings.HasPrefix(connInfo.ScriptPath, "C:/Windows/Temp") {
+	if connInfo.ScriptPath == "" {
 		connInfo.ScriptPath = DefaultScriptPath
 	}
 	if connInfo.Timeout != "" {
@@ -76,6 +83,7 @@ func parseConnectionInfo(s *terraform.InstanceState) (*connectionInfo, error) {
 	} else {
 		connInfo.TimeoutVal = DefaultTimeout
 	}
+
 	return connInfo, nil
 }
 
