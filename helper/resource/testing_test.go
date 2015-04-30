@@ -3,6 +3,7 @@ package resource
 import (
 	"fmt"
 	"os"
+	"sync/atomic"
 	"testing"
 
 	"github.com/hashicorp/terraform/terraform"
@@ -22,6 +23,15 @@ func TestTest(t *testing.T) {
 
 	mp.ApplyReturn = &terraform.InstanceState{
 		ID: "foo",
+	}
+	var refreshCount int32
+	mp.RefreshFn = func(*terraform.InstanceInfo, *terraform.InstanceState) (*terraform.InstanceState, error) {
+		atomic.AddInt32(&refreshCount, 1)
+		if atomic.LoadInt32(&refreshCount) == 1 {
+			return &terraform.InstanceState{ID: "foo"}, nil
+		} else {
+			return nil, nil
+		}
 	}
 
 	checkDestroy := false
