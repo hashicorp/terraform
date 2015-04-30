@@ -7,6 +7,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"strconv"
 
 	"github.com/hashicorp/terraform/config/module"
 	"github.com/hashicorp/terraform/state"
@@ -165,11 +166,26 @@ func (m *Meta) DataDir() string {
 	return dataDir
 }
 
+const (
+	// InputModeEnvVar is the environment variable that, if set to "false" or
+	// "0", causes terraform commands to behave as if the `-input=false` flag was
+	// specified.
+	InputModeEnvVar = "TF_INPUT"
+)
+
 // InputMode returns the type of input we should ask for in the form of
 // terraform.InputMode which is passed directly to Context.Input.
 func (m *Meta) InputMode() terraform.InputMode {
 	if test || !m.input {
 		return 0
+	}
+
+	if envVar := os.Getenv(InputModeEnvVar); envVar != "" {
+		if v, err := strconv.ParseBool(envVar); err == nil {
+			if !v {
+				return 0
+			}
+		}
 	}
 
 	var mode terraform.InputMode
