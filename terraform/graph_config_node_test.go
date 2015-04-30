@@ -141,6 +141,12 @@ func TestGraphNodeConfigResource_ProvisionedBy(t *testing.T) {
 	}
 }
 
+func TestGraphNodeConfigVariable_impl(t *testing.T) {
+	var _ dag.Vertex = new(GraphNodeConfigVariable)
+	var _ dag.NamedVertex = new(GraphNodeConfigVariable)
+	var _ graphNodeConfig = new(GraphNodeConfigVariable)
+}
+
 const testGraphNodeModuleExpandStr = `
 aws_instance.bar
   aws_instance.foo

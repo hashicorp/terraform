@@ -218,7 +218,9 @@ provider.foo
 const testTransformDisableProviderBasicStr = `
 module.child
   provider.aws (disabled)
+  var.foo
 provider.aws (disabled)
+var.foo
 `
 
 const testTransformDisableProviderKeepStr = `
@@ -226,5 +228,7 @@ aws_instance.foo
   provider.aws
 module.child
   provider.aws
+  var.foo
 provider.aws
+var.foo
 `

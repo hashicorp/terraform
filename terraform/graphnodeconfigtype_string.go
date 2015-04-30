@@ -4,9 +4,9 @@ package terraform
 
 import "fmt"
 
-const _GraphNodeConfigType_name = "GraphNodeConfigTypeInvalidGraphNodeConfigTypeResourceGraphNodeConfigTypeProviderGraphNodeConfigTypeModuleGraphNodeConfigTypeOutput"
+const _GraphNodeConfigType_name = "GraphNodeConfigTypeInvalidGraphNodeConfigTypeResourceGraphNodeConfigTypeProviderGraphNodeConfigTypeModuleGraphNodeConfigTypeOutputGraphNodeConfigTypeVariable"
 
-var _GraphNodeConfigType_index = [...]uint8{0, 26, 53, 80, 105, 130}
+var _GraphNodeConfigType_index = [...]uint8{0, 26, 53, 80, 105, 130, 157}
 
 func (i GraphNodeConfigType) String() string {
 	if i < 0 || i+1 >= GraphNodeConfigType(len(_GraphNodeConfigType_index)) {
