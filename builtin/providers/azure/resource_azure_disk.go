@@ -4,10 +4,10 @@ import "github.com/hashicorp/terraform/helper/schema"
 
 func resourceAzureDisk() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceAzureNetworkCreate,
-		Read:   resourceAzureNetworkRead,
-		Update: resourceAzureNetworkUpdate,
-		Delete: resourceAzureNetworkDelete,
+		Create: resourceAzureDiskCreate,
+		Read:   resourceAzureDiskRead,
+		Update: resourceAzureDiskUpdate,
+		Delete: resourceAzureDiskDelete,
 
 		Schema: map[string]*schema.Schema{
 			"name": &schema.Schema{
@@ -19,7 +19,7 @@ func resourceAzureDisk() *schema.Resource {
 	}
 }
 
-func resourceAzureDiskCreate(d *schema.ResourceData, meta interface{}) (err error) {
+func resourceAzureDiskCreate(d *schema.ResourceData, meta interface{}) error {
 	//mc := meta.(*management.Client)
 
 	return resourceAzureDiskRead(d, meta)
