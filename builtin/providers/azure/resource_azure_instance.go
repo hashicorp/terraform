@@ -52,7 +52,13 @@ func resourceAzureInstance() *schema.Resource {
 				Required: true,
 			},
 
-			"network": &schema.Schema{
+			"subnet": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				ForceNew: true,
+			},
+
+			"virtual_network": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: true,
@@ -84,18 +90,6 @@ func resourceAzureInstance() *schema.Resource {
 
 			"time_zone": &schema.Schema{
 				Type:     schema.TypeString,
-				Optional: true,
-				ForceNew: true,
-			},
-
-			"public_rdp": &schema.Schema{
-				Type:     schema.TypeBool,
-				Optional: true,
-				ForceNew: true,
-			},
-
-			"public_ssh": &schema.Schema{
-				Type:     schema.TypeBool,
 				Optional: true,
 				ForceNew: true,
 			},
@@ -134,18 +128,28 @@ func resourceAzureInstance() *schema.Resource {
 							Required: true,
 						},
 
-						"port": &schema.Schema{
+						"public_port": &schema.Schema{
 							Type:     schema.TypeInt,
 							Required: true,
 						},
 
-						"local_port": &schema.Schema{
+						"private_port": &schema.Schema{
 							Type:     schema.TypeInt,
 							Required: true,
 						},
 					},
 				},
 				Set: resourceAzureEndpointHash,
+			},
+
+			"security_groups": &schema.Schema{
+				Type:     schema.TypeSet,
+				Optional: true,
+				Computed: true,
+				Elem:     &schema.Schema{Type: schema.TypeString},
+				Set: func(v interface{}) int {
+					return hashcode.String(v.(string))
+				},
 			},
 
 			"ip_address": &schema.Schema{
@@ -162,177 +166,165 @@ func resourceAzureInstance() *schema.Resource {
 }
 
 func resourceAzureInstanceCreate(d *schema.ResourceData, meta interface{}) (err error) {
-	mc := meta.(*management.Client)
+	/*
+		mc := meta.(*management.Client)
 
-	name := d.Get("name").(string)
+		name := d.Get("name").(string)
 
-	// Compute/set the description
-	description := d.Get("description").(string)
-	if description == "" {
-		description = name
-	}
-
-	// Retrieve the needed details of the image
-	imageName, imageURL, osType, err := retrieveImageDetails(mc, d.Get("image").(string))
-	if err != nil {
-		return err
-	}
-
-	if imageURL == "" {
-		storage, ok := d.GetOk("storage")
-		if !ok {
-			return fmt.Errorf("When using a platform image, the 'storage' parameter is required")
+		// Compute/set the description
+		description := d.Get("description").(string)
+		if description == "" {
+			description = name
 		}
-		imageURL = fmt.Sprintf("http://%s.blob.core.windows.net/vhds/%s.vhd", storage, name)
-	}
 
-	// Verify if we have all parameters required for the image OS type
-	if err := verifyParameters(d, osType); err != nil {
-		return err
-	}
-
-	log.Printf("[DEBUG] Creating Cloud Service for instance: %s", name)
-	req, err := hostedservice.NewClient(*mc).
-		CreateHostedService(
-		name,
-		d.Get("location").(string),
-		d.Get("reverse_dns").(string),
-		name,
-		fmt.Sprintf("Cloud Service created automatically for instance %s", name),
-	)
-	if err != nil {
-		return fmt.Errorf("Error creating Cloud Service for instance %s: %s", name, err)
-	}
-
-	// Wait until the Cloud Service is created
-	if err := mc.WaitAsyncOperation(req); err != nil {
-		return fmt.Errorf(
-			"Error waiting for Cloud Service of instance %s to be created: %s", name, err)
-	}
-
-	// Put in this defer here, so we are sure to cleanup already created parts
-	// when we exit with an error
-	defer func(mc *management.Client) {
+		// Retrieve the needed details of the image
+		imageName, imageURL, osType, err := retrieveImageDetails(mc, d.Get("image").(string))
 		if err != nil {
-			req, err := hostedservice.NewClient(*mc).DeleteHostedService(name, true)
-			if err != nil {
-				log.Printf("[DEBUG] Error cleaning up Cloud Service of instance %s: %s", name, err)
+			return err
+		}
+
+		if imageURL == "" {
+			storage, ok := d.GetOk("storage")
+			if !ok {
+				return fmt.Errorf("When using a platform image, the 'storage' parameter is required")
 			}
-
-			// Wait until the Cloud Service is deleted
-			if err := mc.WaitAsyncOperation(req); err != nil {
-				log.Printf(
-					"[DEBUG] Error waiting for Cloud Service of instance %s to be deleted : %s", name, err)
-			}
-		}
-	}(mc)
-
-	// Create a new role for the instance
-	role := vmutils.NewVmConfiguration(name, d.Get("size").(string))
-
-	log.Printf("[DEBUG] Configuring deployment from image...")
-	err = vmutils.ConfigureDeploymentFromPlatformImage(
-		&role,
-		imageName,
-		imageURL,
-		d.Get("image").(string),
-	)
-	if err != nil {
-		return fmt.Errorf("Error configuring the deployment for %s: %s", name, err)
-	}
-
-	if osType == linux {
-		// This is pretty ugly, but the Azure SDK leaves me no other choice...
-		if tp, ok := d.GetOk("ssh_key_thumbprint"); ok {
-			err = vmutils.ConfigureForLinux(
-				&role,
-				name,
-				d.Get("username").(string),
-				d.Get("password").(string),
-				tp.(string),
-			)
-		} else {
-			err = vmutils.ConfigureForLinux(
-				&role,
-				name,
-				d.Get("username").(string),
-				d.Get("password").(string),
-			)
-		}
-		if err != nil {
-			return fmt.Errorf("Error configuring %s for Linux: %s", name, err)
+			imageURL = fmt.Sprintf("http://%s.blob.core.windows.net/vhds/%s.vhd", storage, name)
 		}
 
-		if d.Get("public_ssh").(bool) {
-			if err := vmutils.ConfigureWithPublicSSH(&role); err != nil {
-				return fmt.Errorf("Error configuring %s for public SSH: %s", name, err)
-			}
+		// Verify if we have all parameters required for the image OS type
+		if err := verifyParameters(d, osType); err != nil {
+			return err
 		}
-	}
 
-	if osType == windows {
-		err = vmutils.ConfigureForWindows(
-			&role,
+		log.Printf("[DEBUG] Creating Cloud Service for instance: %s", name)
+		req, err := hostedservice.NewClient(*mc).
+			CreateHostedService(
 			name,
-			d.Get("username").(string),
-			d.Get("password").(string),
-			d.Get("automatic_updates").(bool),
-			d.Get("time_zone").(string),
+			d.Get("location").(string),
+			d.Get("reverse_dns").(string),
+			name,
+			fmt.Sprintf("Cloud Service created automatically for instance %s", name),
 		)
 		if err != nil {
-			return fmt.Errorf("Error configuring %s for Windows: %s", name, err)
+			return fmt.Errorf("Error creating Cloud Service for instance %s: %s", name, err)
 		}
 
-		if d.Get("public_rdp").(bool) {
-			if err := vmutils.ConfigureWithPublicRDP(&role); err != nil {
-				return fmt.Errorf("Error configuring %s for public RDP: %s", name, err)
-			}
+		// Wait until the Cloud Service is created
+		if err := mc.WaitAsyncOperation(req); err != nil {
+			return fmt.Errorf(
+				"Error waiting for Cloud Service of instance %s to be created: %s", name, err)
 		}
-	}
 
-	log.Printf("[DEBUG] Creating the new instance...")
-	req, err = virtualmachine.NewClient(*mc).CreateDeployment(role, name)
-	if err != nil {
-		return fmt.Errorf("Error creating instance %s: %s", name, err)
-	}
-
-	log.Printf("[DEBUG] Waiting for the new instance to be created...")
-	if err := mc.WaitAsyncOperation(req); err != nil {
-		return fmt.Errorf(
-			"Error waiting for instance %s to be created: %s", name, err)
-	}
-
-	/*
-		if v := d.Get("endpoint").(*schema.Set); v.Len() > 0 {
-			log.Printf("[DEBUG] Adding Endpoints to the Azure Virtual Machine...")
-			endpoints := make([]vmClient.InputEndpoint, v.Len())
-			for i, v := range v.List() {
-				m := v.(map[string]interface{})
-				endpoint := vmClient.InputEndpoint{}
-				endpoint.Name = m["name"].(string)
-				endpoint.Protocol = m["protocol"].(string)
-				endpoint.Port = m["port"].(int)
-				endpoint.LocalPort = m["local_port"].(int)
-				endpoints[i] = endpoint
-			}
-
-			configSets := vmConfig.ConfigurationSets.ConfigurationSet
-			if len(configSets) == 0 {
-				return fmt.Errorf("Azure virtual machine does not have configuration sets")
-			}
-			for i := 0; i < len(configSets); i++ {
-				if configSets[i].ConfigurationSetType != "NetworkConfiguration" {
-					continue
+		// Put in this defer here, so we are sure to cleanup already created parts
+		// when we exit with an error
+		defer func(mc *management.Client) {
+			if err != nil {
+				req, err := hostedservice.NewClient(*mc).DeleteHostedService(name, true)
+				if err != nil {
+					log.Printf("[DEBUG] Error cleaning up Cloud Service of instance %s: %s", name, err)
 				}
-				configSets[i].InputEndpoints.InputEndpoint =
-					append(configSets[i].InputEndpoints.InputEndpoint, endpoints...)
+
+				// Wait until the Cloud Service is deleted
+				if err := mc.WaitAsyncOperation(req); err != nil {
+					log.Printf(
+						"[DEBUG] Error waiting for Cloud Service of instance %s to be deleted : %s", name, err)
+				}
+			}
+		}(mc)
+
+		// Create a new role for the instance
+		role := vmutils.NewVmConfiguration(name, d.Get("size").(string))
+
+		log.Printf("[DEBUG] Configuring deployment from image...")
+		err = vmutils.ConfigureDeploymentFromPlatformImage(
+			&role,
+			imageName,
+			imageURL,
+			d.Get("image").(string),
+		)
+		if err != nil {
+			return fmt.Errorf("Error configuring the deployment for %s: %s", name, err)
+		}
+
+		if osType == linux {
+			// This is pretty ugly, but the Azure SDK leaves me no other choice...
+			if tp, ok := d.GetOk("ssh_key_thumbprint"); ok {
+				err = vmutils.ConfigureForLinux(
+					&role,
+					name,
+					d.Get("username").(string),
+					d.Get("password").(string),
+					tp.(string),
+				)
+			} else {
+				err = vmutils.ConfigureForLinux(
+					&role,
+					name,
+					d.Get("username").(string),
+					d.Get("password").(string),
+				)
+			}
+			if err != nil {
+				return fmt.Errorf("Error configuring %s for Linux: %s", name, err)
 			}
 		}
 
+		if osType == windows {
+			err = vmutils.ConfigureForWindows(
+				&role,
+				name,
+				d.Get("username").(string),
+				d.Get("password").(string),
+				d.Get("automatic_updates").(bool),
+				d.Get("time_zone").(string),
+			)
+			if err != nil {
+				return fmt.Errorf("Error configuring %s for Windows: %s", name, err)
+			}
+		}
+
+		if s := d.Get("endpoint").(*schema.Set); s.Len() > 0 {
+			for _, v := range s.List() {
+				m := v.(map[string]interface{})
+				err := vmutils.ConfigureWithExternalPort(
+					&role,
+					m["name"].(string),
+					m["private_port"].(int),
+					m["public_port"].(int),
+					endpointProtocol(m["protocol"].(string)),
+				)
+				if err != nil {
+					return fmt.Errorf(
+						"Error adding endpoint %s for instance %s: %s", m["name"].(string), name, err)
+				}
+			}
+		}
+
+		err = vmutils.ConfigureForSubnet(&role, d.Get("subnet").(string))
+		if err != nil {
+			return fmt.Errorf(
+				"Error adding role to subnet %s for instance %s: %s", d.Get("subnet").(string), name, err)
+		}
+
+		options := &virtualmachine.CreateDeploymentOptions{
+			Subnet:             d.Get("subnet").(string),
+			VirtualNetworkName: d.Get("virtual_network").(string),
+		}
+
+		log.Printf("[DEBUG] Creating the new instance...")
+		req, err = virtualmachine.NewClient(*mc).CreateDeployment(role, name, options)
+		if err != nil {
+			return fmt.Errorf("Error creating instance %s: %s", name, err)
+		}
+
+		log.Printf("[DEBUG] Waiting for the new instance to be created...")
+		if err := mc.WaitAsyncOperation(req); err != nil {
+			return fmt.Errorf(
+				"Error waiting for instance %s to be created: %s", name, err)
+		}
+
+		d.SetId(name)
 	*/
-
-	d.SetId(name)
-
 	return resourceAzureInstanceRead(d, meta)
 }
 
@@ -349,37 +341,59 @@ func resourceAzureInstanceRead(d *schema.ResourceData, meta interface{}) error {
 	d.Set("location", cs.Location)
 
 	log.Printf("[DEBUG] Retrieving instance: %s", d.Id())
-	wi, err := virtualmachine.NewClient(*mc).GetDeployment(d.Id(), d.Id())
+	dpmt, err := virtualmachine.NewClient(*mc).GetDeployment(d.Id(), d.Id())
 	if err != nil {
 		return fmt.Errorf("Error retrieving instance %s: %s", d.Id(), err)
 	}
 
-	if len(wi.RoleList) == 0 {
-		return fmt.Errorf("Instance %s does not have VIP addresses", d.Id())
+	if len(dpmt.RoleList) != 1 {
+		return fmt.Errorf(
+			"Instance %s has an unexpected number of roles: %d", d.Id(), len(dpmt.RoleList))
 	}
-	role := wi.RoleList[0]
+	d.Set("size", dpmt.RoleList[0].RoleSize)
 
-	d.Set("size", role.RoleSize)
-
-	if len(wi.RoleInstanceList) == 0 {
-		return fmt.Errorf("Instance %s does not have IP addresses", d.Id())
+	if len(dpmt.RoleInstanceList) != 1 {
+		return fmt.Errorf(
+			"Instance %s has an unexpected number of role instances %d", d.Id(), len(dpmt.RoleInstanceList))
 	}
-	d.Set("ip_address", wi.RoleInstanceList[0].IpAddress)
+	d.Set("ip_address", dpmt.RoleInstanceList[0].IpAddress)
 
-	if len(wi.VirtualIPs) == 0 {
-		return fmt.Errorf("Instance %s does not have VIP addresses", d.Id())
+	if len(dpmt.RoleInstanceList[0].InstanceEndpoints) > 0 {
+		d.Set("vip_address", dpmt.RoleInstanceList[0].InstanceEndpoints[0].Vip)
 	}
-	d.Set("vip_address", wi.VirtualIPs[0].Address)
+
+	// Create a new set to hold all configured endpoints
+	endpoints := &schema.Set{
+		F: resourceAzureEndpointHash,
+	}
+
+	// Loop through all endpoints and add them to the set
+	for _, c := range *dpmt.RoleList[0].ConfigurationSets {
+		if c.ConfigurationSetType == virtualmachine.ConfigurationSetTypeNetwork {
+			for _, ep := range *c.InputEndpoints {
+				endpoint := map[string]interface{}{}
+
+				// Update the values
+				endpoint["name"] = ep.Name
+				endpoint["protocol"] = string(ep.Protocol)
+				endpoint["public_port"] = ep.Port
+				endpoint["private_port"] = ep.LocalPort
+				endpoints.Add(endpoint)
+			}
+
+			d.Set("endpoint", endpoints)
+		}
+	}
 
 	connType := "ssh"
-	if role.OSVirtualHardDisk.OS == windows {
+	if dpmt.RoleList[0].OSVirtualHardDisk.OS == windows {
 		connType = windows
 	}
 
 	// Set the connection info for any configured provisioners
 	d.SetConnInfo(map[string]string{
 		"type": connType,
-		"host": wi.VirtualIPs[0].Address,
+		"host": dpmt.VirtualIPs[0].Address,
 		"user": d.Get("username").(string),
 	})
 
@@ -389,27 +403,65 @@ func resourceAzureInstanceRead(d *schema.ResourceData, meta interface{}) error {
 func resourceAzureInstanceUpdate(d *schema.ResourceData, meta interface{}) error {
 	mc := meta.(*management.Client)
 
+	// First check if anything we can update changed, and if not just return
+	if !d.HasChange("size") && !d.HasChange("endpoint") {
+		return nil
+	}
+
+	// Get the current role
+	role, err := virtualmachine.NewClient(*mc).GetRole(d.Id(), d.Id(), d.Id())
+	if err != nil {
+		return fmt.Errorf("Error retrieving role of instance %s: %s", d.Id(), err)
+	}
+
+	// Verify if we have all parameters required for the image OS type
+	if err := verifyParameters(d, role.OSVirtualHardDisk.OS); err != nil {
+		return err
+	}
+
 	if d.HasChange("size") {
-		role, err := virtualmachine.NewClient(*mc).GetRole(d.Id(), d.Id(), d.Id())
-		if err != nil {
-			return fmt.Errorf("Error retrieving role of instance %s: %s", d.Id(), err)
-		}
-
 		role.RoleSize = d.Get("size").(string)
-
-		req, err := virtualmachine.NewClient(*mc).UpdateRole(d.Id(), d.Id(), d.Id(), *role)
-		if err != nil {
-			return fmt.Errorf("Error updating role of instance %s: %s", d.Id(), err)
-		}
-
-		if err := mc.WaitAsyncOperation(req); err != nil {
-			return fmt.Errorf(
-				"Error waiting for role of instance %s to be updated: %s", d.Id(), err)
-		}
 	}
 
 	if d.HasChange("endpoint") {
+		_, n := d.GetChange("endpoint")
 
+		// Delete the existing endpoints
+		for i, c := range *role.ConfigurationSets {
+			if c.ConfigurationSetType == virtualmachine.ConfigurationSetTypeNetwork {
+				c.InputEndpoints = nil
+				(*role.ConfigurationSets)[i] = c
+			}
+		}
+
+		// And add the ones we still want
+		if s := n.(*schema.Set); s.Len() > 0 {
+			for _, v := range s.List() {
+				m := v.(map[string]interface{})
+				err := vmutils.ConfigureWithExternalPort(
+					role,
+					m["name"].(string),
+					m["private_port"].(int),
+					m["public_port"].(int),
+					endpointProtocol(m["protocol"].(string)),
+				)
+				if err != nil {
+					return fmt.Errorf(
+						"Error adding endpoint %s for instance %s: %s", m["name"].(string), d.Id(), err)
+				}
+			}
+		}
+	}
+
+	// Update the adjusted role
+	req, err := virtualmachine.NewClient(*mc).UpdateRole(d.Id(), d.Id(), d.Id(), *role)
+	if err != nil {
+		return fmt.Errorf("Error updating role of instance %s: %s", d.Id(), err)
+	}
+
+	if err := mc.WaitAsyncOperation(req); err != nil {
+		return fmt.Errorf(
+			"Error waiting for role of instance %s to be updated: %s", d.Id(), err)
 	}
 
 	return resourceAzureInstanceRead(d, meta)
@@ -440,8 +492,8 @@ func resourceAzureEndpointHash(v interface{}) int {
 	m := v.(map[string]interface{})
 	buf.WriteString(fmt.Sprintf("%s-", m["name"].(string)))
 	buf.WriteString(fmt.Sprintf("%s-", m["protocol"].(string)))
-	buf.WriteString(fmt.Sprintf("%d-", m["port"].(int)))
-	buf.WriteString(fmt.Sprintf("%d-", m["local_port"].(int)))
+	buf.WriteString(fmt.Sprintf("%d-", m["public_port"].(int)))
+	buf.WriteString(fmt.Sprintf("%d-", m["private_port"].(int)))
 
 	return hashcode.String(buf.String())
 }
@@ -468,6 +520,14 @@ func retrieveImageDetails(mc *management.Client, label string) (string, string, 
 			label, strings.Join(labels, ","))
 }
 
+func endpointProtocol(p string) virtualmachine.InputEndpointProtocol {
+	if p == "tcp" {
+		return virtualmachine.InputEndpointProtocolTcp
+	}
+
+	return virtualmachine.InputEndpointProtocolUdp
+}
+
 func verifyParameters(d *schema.ResourceData, osType string) error {
 	if osType == linux {
 		_, pass := d.GetOk("password")
@@ -476,10 +536,6 @@ func verifyParameters(d *schema.ResourceData, osType string) error {
 		if !pass && !key {
 			return fmt.Errorf(
 				"You must supply a 'password' and/or a 'ssh_key_thumbprint' when using a Linux image")
-		}
-
-		if key {
-			// check if it's a file of a string containing the key
 		}
 	}
 
@@ -490,6 +546,23 @@ func verifyParameters(d *schema.ResourceData, osType string) error {
 
 		if _, ok := d.GetOk("time_zone"); !ok {
 			return fmt.Errorf("You must supply a 'time_zone' when using a Windows image")
+		}
+	}
+
+	if _, ok := d.GetOk("subnet"); ok {
+		if _, ok := d.GetOk("virtual_network"); !ok {
+			return fmt.Errorf("You must also supply a 'virtual_network' when supplying a 'subnet'")
+		}
+	}
+
+	if s := d.Get("endpoint").(*schema.Set); s.Len() > 0 {
+		for _, v := range s.List() {
+			protocol := v.(map[string]interface{})["protocol"].(string)
+
+			if protocol != "tcp" && protocol != "udp" {
+				return fmt.Errorf(
+					"Invalid endpoint protocol %s! Valid options are 'tcp' and 'udp'.", protocol)
+			}
 		}
 	}
 
