@@ -137,6 +137,10 @@ func (n *GraphNodeConfigOutput) ConfigType() GraphNodeConfigType {
 	return GraphNodeConfigTypeOutput
 }
 
+func (n *GraphNodeConfigOutput) OutputName() string {
+	return n.Output.Name
+}
+
 func (n *GraphNodeConfigOutput) DependableName() []string {
 	return []string{n.Name()}
 }
