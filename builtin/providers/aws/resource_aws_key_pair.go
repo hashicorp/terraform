@@ -3,6 +3,7 @@ package aws
 import (
 	"fmt"
 
+	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 
 	"github.com/awslabs/aws-sdk-go/aws"
@@ -19,7 +20,8 @@ func resourceAwsKeyPair() *schema.Resource {
 		Schema: map[string]*schema.Schema{
 			"key_name": &schema.Schema{
 				Type:     schema.TypeString,
-				Required: true,
+				Optional: true,
+				Computed: true,
 				ForceNew: true,
 			},
 			"public_key": &schema.Schema{
@@ -39,6 +41,9 @@ func resourceAwsKeyPairCreate(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).ec2conn
 
 	keyName := d.Get("key_name").(string)
+	if keyName == "" {
+		keyName = resource.UniqueId()
+	}
 	publicKey := d.Get("public_key").(string)
 	req := &ec2.ImportKeyPairInput{
 		KeyName:           aws.String(keyName),
