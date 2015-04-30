@@ -77,9 +77,9 @@ func tokenizeResourceAddress(s string) (map[string]string, error) {
 	// string "aws_instance.web.tainted[1]"
 	re := regexp.MustCompile(`\A` +
 		// "aws_instance"
-		`(?P<type>\w+)\.` +
+		`(?P<type>[^.]+)\.` +
 		// "web"
-		`(?P<name>\w+)` +
+		`(?P<name>[^.[]+)` +
 		// "tainted" (optional, omission implies: "primary")
 		`(?:\.(?P<instance_type>\w+))?` +
 		// "1" (optional, omission implies: "0")
