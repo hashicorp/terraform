@@ -75,6 +75,7 @@ BUG FIXES:
       if the value was computed [GH-1507]
   * core: Fix issue where values in sets on resources couldn't contain
       hyphens. [GH-1641]
+  * core: Outputs removed from the config are removed from the state [GH-1714]
   * command: remote states with uppercase types work [GH-1356]
   * provider/aws: launch configuration ID set after create success [GH-1518]
   * provider/aws: Fixed an issue with creating ELBs without any tags [GH-1580]
