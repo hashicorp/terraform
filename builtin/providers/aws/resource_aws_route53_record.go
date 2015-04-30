@@ -85,6 +85,24 @@ func resourceAwsRoute53Record() *schema.Resource {
 						},
 					},
 				},
+			},
+			"failover": &schema.Schema{ // PRIMARY | SECONDARY
+				Type:     schema.TypeString,
+				Optional: true,
+			},
+
+			"health_check_id": &schema.Schema{ // ID of health check
+				Type:     schema.TypeString,
+				Optional: true,
+			},
+
+			"records": &schema.Schema{
+				Type:     schema.TypeSet,
+				Elem:     &schema.Schema{Type: schema.TypeString},
+				Required: true,
+				Set: func(v interface{}) int {
+					return hashcode.String(v.(string))
+				},
 				Set: resourceAwsRoute53AliasRecordHash,
 			},
 
@@ -260,9 +278,12 @@ func resourceAwsRoute53RecordRead(d *schema.ResourceData, meta interface{}) erro
 		if err != nil {
 			return fmt.Errorf("[DEBUG] Error setting records for: %s, error: %#v", en, err)
 		}
+
 		d.Set("ttl", record.TTL)
 		d.Set("weight", record.Weight)
 		d.Set("set_identifier", record.SetIdentifier)
+		d.Set("failover", record.Failover)
+		d.Set("health_check_id", record.HealthCheckID)
 
 		break
 	}
@@ -377,6 +398,14 @@ func resourceAwsRoute53RecordBuildSet(d *schema.ResourceData, zoneName string) (
 			HostedZoneID:         aws.String(alias["zone_id"].(string)),
 		}
 		log.Printf("[DEBUG] Creating alias: %#v", alias)
+	}
+
+	if v, ok := d.GetOk("failover"); ok {
+		rec.Failover = aws.String(v.(string))
+	}
+
+	if v, ok := d.GetOk("health_check_id"); ok {
+		rec.HealthCheckID = aws.String(v.(string))
 	}
 
 	if v, ok := d.GetOk("weight"); ok {
