@@ -5,8 +5,8 @@ import (
 	"log"
 	"strings"
 
-	"github.com/MSOpenTech/azure-sdk-for-go/management"
-	"github.com/MSOpenTech/azure-sdk-for-go/management/virtualnetwork"
+	"github.com/Azure/azure-sdk-for-go/management"
+	"github.com/Azure/azure-sdk-for-go/management/virtualnetwork"
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/mitchellh/mapstructure"
 )

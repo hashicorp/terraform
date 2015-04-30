@@ -6,11 +6,11 @@ import (
 	"log"
 	"strings"
 
-	"github.com/MSOpenTech/azure-sdk-for-go/management"
-	"github.com/MSOpenTech/azure-sdk-for-go/management/hostedservice"
-	"github.com/MSOpenTech/azure-sdk-for-go/management/osimage"
-	"github.com/MSOpenTech/azure-sdk-for-go/management/virtualmachine"
-	"github.com/MSOpenTech/azure-sdk-for-go/management/vmutils"
+	"github.com/Azure/azure-sdk-for-go/management"
+	"github.com/Azure/azure-sdk-for-go/management/hostedservice"
+	"github.com/Azure/azure-sdk-for-go/management/osimage"
+	"github.com/Azure/azure-sdk-for-go/management/virtualmachine"
+	"github.com/Azure/azure-sdk-for-go/management/vmutils"
 	"github.com/hashicorp/terraform/helper/hashcode"
 	"github.com/hashicorp/terraform/helper/schema"
 )
