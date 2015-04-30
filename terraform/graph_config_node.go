@@ -7,6 +7,7 @@ import (
 	"github.com/hashicorp/terraform/config"
 	"github.com/hashicorp/terraform/config/module"
 	"github.com/hashicorp/terraform/dag"
+	"github.com/hashicorp/terraform/dot"
 )
 
 // graphNodeConfig is an interface that all graph nodes for the
@@ -219,14 +220,16 @@ func (n *GraphNodeConfigProvider) ProviderConfig() *config.RawConfig {
 }
 
 // GraphNodeDotter impl.
-func (n *GraphNodeConfigProvider) Dot(name string) string {
-	return fmt.Sprintf(
-		"\"%s\" [\n"+
-			"\tlabel=\"%s\"\n"+
-			"\tshape=diamond\n"+
-			"];",
-		name,
-		n.Name())
+func (n *GraphNodeConfigProvider) DotNode(name string, opts *GraphDotOpts) *dot.Node {
+	return dot.NewNode(name, map[string]string{
+		"label": n.Name(),
+		"shape": "diamond",
+	})
+}
+
+// GraphNodeDotterOrigin impl.
+func (n *GraphNodeConfigProvider) DotOrigin() bool {
+	return true
 }
 
 // GraphNodeConfigResource represents a resource within the config graph.
@@ -318,18 +321,14 @@ func (n *GraphNodeConfigResource) Name() string {
 }
 
 // GraphNodeDotter impl.
-func (n *GraphNodeConfigResource) Dot(name string) string {
-	if n.DestroyMode != DestroyNone {
-		return ""
+func (n *GraphNodeConfigResource) DotNode(name string, opts *GraphDotOpts) *dot.Node {
+	if n.DestroyMode != DestroyNone && !opts.Verbose {
+		return nil
 	}
-
-	return fmt.Sprintf(
-		"\"%s\" [\n"+
-			"\tlabel=\"%s\"\n"+
-			"\tshape=box\n"+
-			"];",
-		name,
-		n.Name())
+	return dot.NewNode(name, map[string]string{
+		"label": n.Name(),
+		"shape": "box",
+	})
 }
 
 // GraphNodeDynamicExpandable impl.
@@ -635,14 +634,11 @@ func (n *graphNodeModuleExpanded) ConfigType() GraphNodeConfigType {
 }
 
 // GraphNodeDotter impl.
-func (n *graphNodeModuleExpanded) Dot(name string) string {
-	return fmt.Sprintf(
-		"\"%s\" [\n"+
-			"\tlabel=\"%s\"\n"+
-			"\tshape=component\n"+
-			"];",
-		name,
-		dag.VertexName(n.Original))
+func (n *graphNodeModuleExpanded) DotNode(name string, opts *GraphDotOpts) *dot.Node {
+	return dot.NewNode(name, map[string]string{
+		"label": dag.VertexName(n.Original),
+		"shape": "component",
+	})
 }
 
 // GraphNodeEvalable impl.

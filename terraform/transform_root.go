@@ -1,10 +1,6 @@
 package terraform
 
-import (
-	"fmt"
-
-	"github.com/hashicorp/terraform/dag"
-)
+import "github.com/hashicorp/terraform/dag"
 
 // RootTransformer is a GraphTransformer that adds a root to the graph.
 type RootTransformer struct{}
@@ -37,8 +33,4 @@ type graphNodeRoot struct{}
 
 func (n graphNodeRoot) Name() string {
 	return "root"
-}
-
-func (n graphNodeRoot) Dot(name string) string {
-	return fmt.Sprintf("\"%s\" [shape=circle];", name)
 }
