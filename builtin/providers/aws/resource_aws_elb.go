@@ -171,6 +171,11 @@ func resourceAwsElb() *schema.Resource {
 				Computed: true,
 			},
 
+			"hosted_zone_id": &schema.Schema{
+				Type:     schema.TypeString,
+				Computed: true,
+			},
+
 			"tags": tagsSchema(),
 		},
 	}
@@ -275,6 +280,7 @@ func resourceAwsElbRead(d *schema.ResourceData, meta interface{}) error {
 
 	d.Set("name", *lb.LoadBalancerName)
 	d.Set("dns_name", *lb.DNSName)
+	d.Set("hosted_zone_id", *lb.CanonicalHostedZoneNameID)
 	d.Set("internal", *lb.Scheme == "internal")
 	d.Set("availability_zones", lb.AvailabilityZones)
 	d.Set("instances", flattenInstances(lb.Instances))

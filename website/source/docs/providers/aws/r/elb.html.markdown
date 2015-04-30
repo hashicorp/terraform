@@ -93,3 +93,4 @@ The following attributes are exported:
 * `name` - The name of the ELB
 * `dns_name` - The DNS name of the ELB
 * `instances` - The list of instances in the ELB
+* `hosted_zone_id` - The ID of the canonical hosted zone of the ELB. (For CloudFront, use Z2FDTNDATAQYW2)
