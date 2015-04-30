@@ -79,6 +79,7 @@ BUG FIXES:
   * core: Outputs removed from the config are removed from the state [GH-1714]
   * core: Validate against the worst-case graph during plan phase to catch cycles
       that would previously only show up during apply [GH-1655]
+  * core: Referencing invalid module output in module validates [GH-1448]
   * command: remote states with uppercase types work [GH-1356]
   * provider/aws: launch configuration ID set after create success [GH-1518]
   * provider/aws: Fixed an issue with creating ELBs without any tags [GH-1580]
