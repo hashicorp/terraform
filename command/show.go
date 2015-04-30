@@ -22,7 +22,7 @@ func (c *ShowCommand) Run(args []string) int {
 	args = c.Meta.process(args, false)
 
 	cmdFlags := flag.NewFlagSet("show", flag.ContinueOnError)
-	cmdFlags.IntVar(&moduleDepth, "module-depth", 0, "module-depth")
+	c.addModuleDepthFlag(cmdFlags, &moduleDepth)
 	cmdFlags.Usage = func() { c.Ui.Error(c.Help()) }
 	if err := cmdFlags.Parse(args); err != nil {
 		return 1
