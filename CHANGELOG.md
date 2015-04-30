@@ -39,6 +39,7 @@ IMPROVEMENTS:
   * provider/google: `resource_compute_instance` supports specifying the
       device name [GH-1426]
   * provider/openstack: Floating IP support for LBaaS [GH-1550]
+  * provider/openstack: Add AZ to `openstack_blockstorage_volume_v1` [GH-1726]
 
 BUG FIXES:
 
