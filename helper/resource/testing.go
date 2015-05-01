@@ -266,7 +266,8 @@ func testStep(
 		}
 	}
 
-	return state, err
+	// Made it here? Good job test step!
+	return state, nil
 }
 
 // ComposeTestCheckFunc lets you compose multiple TestCheckFuncs into
