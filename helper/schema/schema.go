@@ -92,6 +92,13 @@ type Schema struct {
 	ForceNew  bool
 	StateFunc SchemaStateFunc
 
+	// If the following field is set to `true`, this attribute can't be set
+	// in the configuration file by the user. It can only be set by
+	// terraform itself after reading a remote API. This is an appropriate
+	// setting for data coming back from a provider that users might want
+	// to output, but which they cannot change.
+	ReadOnly bool
+
 	// The following fields are only set for a TypeList or TypeSet Type.
 	//
 	// Elem must be either a *Schema or a *Resource only if the Type is
@@ -1153,6 +1160,11 @@ func (m schemaMap) validateType(
 		ws, es = m.validateMap(k, raw, schema, c)
 	default:
 		ws, es = m.validatePrimitive(k, raw, schema, c)
+	}
+
+	if schema.ReadOnly {
+		es = append(es, fmt.Errorf(
+			"%q: This field is readonly and cannot be set by users", k))
 	}
 
 	if schema.Deprecated != "" {
