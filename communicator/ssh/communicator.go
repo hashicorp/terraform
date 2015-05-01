@@ -8,122 +8,153 @@ import (
 	"io"
 	"io/ioutil"
 	"log"
+	"math/rand"
 	"net"
 	"os"
 	"path/filepath"
-	"sync"
+	"strconv"
+	"strings"
 	"time"
 
+	"github.com/hashicorp/terraform/communicator/remote"
+	"github.com/hashicorp/terraform/terraform"
 	"golang.org/x/crypto/ssh"
 )
 
-// RemoteCmd represents a remote command being prepared or run.
-type RemoteCmd struct {
-	// Command is the command to run remotely. This is executed as if
-	// it were a shell command, so you are expected to do any shell escaping
-	// necessary.
-	Command string
+const (
+	// DefaultShebang is added at the top of a SSH script file
+	DefaultShebang = "#!/bin/sh\n"
+)
 
-	// Stdin specifies the process's standard input. If Stdin is
-	// nil, the process reads from an empty bytes.Buffer.
-	Stdin io.Reader
-
-	// Stdout and Stderr represent the process's standard output and
-	// error.
-	//
-	// If either is nil, it will be set to ioutil.Discard.
-	Stdout io.Writer
-	Stderr io.Writer
-
-	// This will be set to true when the remote command has exited. It
-	// shouldn't be set manually by the user, but there is no harm in
-	// doing so.
-	Exited bool
-
-	// Once Exited is true, this will contain the exit code of the process.
-	ExitStatus int
-
-	// Internal fields
-	exitCh chan struct{}
-
-	// This thing is a mutex, lock when making modifications concurrently
-	sync.Mutex
+// Communicator represents the SSH communicator
+type Communicator struct {
+	connInfo *connectionInfo
+	client   *ssh.Client
+	config   *sshConfig
+	conn     net.Conn
+	address  string
 }
 
-// SetExited is a helper for setting that this process is exited. This
-// should be called by communicators who are running a remote command in
-// order to set that the command is done.
-func (r *RemoteCmd) SetExited(status int) {
-	r.Lock()
-	defer r.Unlock()
-
-	if r.exitCh == nil {
-		r.exitCh = make(chan struct{})
-	}
-
-	r.Exited = true
-	r.ExitStatus = status
-	close(r.exitCh)
-}
-
-// Wait waits for the remote command to complete.
-func (r *RemoteCmd) Wait() {
-	// Make sure our condition variable is initialized.
-	r.Lock()
-	if r.exitCh == nil {
-		r.exitCh = make(chan struct{})
-	}
-	r.Unlock()
-
-	<-r.exitCh
-}
-
-type SSHCommunicator struct {
-	client  *ssh.Client
-	config  *Config
-	conn    net.Conn
-	address string
-}
-
-// Config is the structure used to configure the SSH communicator.
-type Config struct {
+type sshConfig struct {
 	// The configuration of the Go SSH connection
-	SSHConfig *ssh.ClientConfig
+	config *ssh.ClientConfig
 
-	// Connection returns a new connection. The current connection
+	// connection returns a new connection. The current connection
 	// in use will be closed as part of the Close method, or in the
 	// case an error occurs.
-	Connection func() (net.Conn, error)
+	connection func() (net.Conn, error)
 
-	// NoPty, if true, will not request a pty from the remote end.
-	NoPty bool
+	// noPty, if true, will not request a pty from the remote end.
+	noPty bool
 
-	// SSHAgentConn is a pointer to the UNIX connection for talking with the
+	// sshAgentConn is a pointer to the UNIX connection for talking with the
 	// ssh-agent.
-	SSHAgentConn net.Conn
+	sshAgentConn net.Conn
 }
 
-// New creates a new packer.Communicator implementation over SSH. This takes
-// an already existing TCP connection and SSH configuration.
-func New(address string, config *Config) (result *SSHCommunicator, err error) {
-	// Establish an initial connection and connect
-	result = &SSHCommunicator{
-		config:  config,
-		address: address,
+// New creates a new communicator implementation over SSH.
+func New(s *terraform.InstanceState) (*Communicator, error) {
+	connInfo, err := parseConnectionInfo(s)
+	if err != nil {
+		return nil, err
 	}
 
-	if err = result.reconnect(); err != nil {
-		result = nil
-		return
+	config, err := prepareSSHConfig(connInfo)
+	if err != nil {
+		return nil, err
 	}
 
-	return
+	comm := &Communicator{
+		connInfo: connInfo,
+		config:   config,
+	}
+
+	return comm, nil
 }
 
-func (c *SSHCommunicator) Start(cmd *RemoteCmd) (err error) {
+// Connect implementation of communicator.Communicator interface
+func (c *Communicator) Connect(o terraform.UIOutput) (err error) {
+	if c.conn != nil {
+		c.conn.Close()
+	}
+
+	// Set the conn and client to nil since we'll recreate it
+	c.conn = nil
+	c.client = nil
+
+	if o != nil {
+		o.Output(fmt.Sprintf(
+			"Connecting to remote host via SSH...\n"+
+				"  Host: %s\n"+
+				"  User: %s\n"+
+				"  Password: %t\n"+
+				"  Private key: %t\n"+
+				"  SSH Agent: %t",
+			c.connInfo.Host, c.connInfo.User,
+			c.connInfo.Password != "",
+			c.connInfo.KeyFile != "",
+			c.connInfo.Agent,
+		))
+	}
+
+	log.Printf("connecting to TCP connection for SSH")
+	c.conn, err = c.config.connection()
+	if err != nil {
+		// Explicitly set this to the REAL nil. Connection() can return
+		// a nil implementation of net.Conn which will make the
+		// "if c.conn == nil" check fail above. Read here for more information
+		// on this psychotic language feature:
+		//
+		// http://golang.org/doc/faq#nil_error
+		c.conn = nil
+
+		log.Printf("connection error: %s", err)
+		return err
+	}
+
+	log.Printf("handshaking with SSH")
+	host := fmt.Sprintf("%s:%d", c.connInfo.Host, c.connInfo.Port)
+	sshConn, sshChan, req, err := ssh.NewClientConn(c.conn, host, c.config.config)
+	if err != nil {
+		log.Printf("handshake error: %s", err)
+		return err
+	}
+
+	c.client = ssh.NewClient(sshConn, sshChan, req)
+
+	if o != nil {
+		o.Output("Connected!")
+	}
+
+	return err
+}
+
+// Disconnect implementation of communicator.Communicator interface
+func (c *Communicator) Disconnect() error {
+	if c.config.sshAgentConn != nil {
+		return c.config.sshAgentConn.Close()
+	}
+
+	return nil
+}
+
+// Timeout implementation of communicator.Communicator interface
+func (c *Communicator) Timeout() time.Duration {
+	return c.connInfo.TimeoutVal
+}
+
+// ScriptPath implementation of communicator.Communicator interface
+func (c *Communicator) ScriptPath() string {
+	return strings.Replace(
+		c.connInfo.ScriptPath, "%RAND%",
+		strconv.FormatInt(int64(rand.Int31()), 10), -1)
+}
+
+// Start implementation of communicator.Communicator interface
+func (c *Communicator) Start(cmd *remote.Cmd) error {
 	session, err := c.newSession()
 	if err != nil {
-		return
+		return err
 	}
 
 	// Setup our session
@@ -131,7 +162,7 @@ func (c *SSHCommunicator) Start(cmd *RemoteCmd) (err error) {
 	session.Stdout = cmd.Stdout
 	session.Stderr = cmd.Stderr
 
-	if !c.config.NoPty {
+	if !c.config.noPty {
 		// Request a PTY
 		termModes := ssh.TerminalModes{
 			ssh.ECHO:          0,     // do not echo
@@ -139,15 +170,15 @@ func (c *SSHCommunicator) Start(cmd *RemoteCmd) (err error) {
 			ssh.TTY_OP_OSPEED: 14400, // output speed = 14.4kbaud
 		}
 
-		if err = session.RequestPty("xterm", 80, 40, termModes); err != nil {
-			return
+		if err := session.RequestPty("xterm", 80, 40, termModes); err != nil {
+			return err
 		}
 	}
 
 	log.Printf("starting remote command: %s", cmd.Command)
 	err = session.Start(cmd.Command + "\n")
 	if err != nil {
-		return
+		return err
 	}
 
 	// Start a goroutine to wait for the session to end and set the
@@ -168,10 +199,11 @@ func (c *SSHCommunicator) Start(cmd *RemoteCmd) (err error) {
 		cmd.SetExited(exitStatus)
 	}()
 
-	return
+	return nil
 }
 
-func (c *SSHCommunicator) Upload(path string, input io.Reader) error {
+// Upload implementation of communicator.Communicator interface
+func (c *Communicator) Upload(path string, input io.Reader) error {
 	// The target directory and file for talking the SCP protocol
 	targetDir := filepath.Dir(path)
 	targetFile := filepath.Base(path)
@@ -188,7 +220,30 @@ func (c *SSHCommunicator) Upload(path string, input io.Reader) error {
 	return c.scpSession("scp -vt "+targetDir, scpFunc)
 }
 
-func (c *SSHCommunicator) UploadDir(dst string, src string, excl []string) error {
+// UploadScript implementation of communicator.Communicator interface
+func (c *Communicator) UploadScript(path string, input io.Reader) error {
+	script := bytes.NewBufferString(DefaultShebang)
+	script.ReadFrom(input)
+
+	if err := c.Upload(path, script); err != nil {
+		return err
+	}
+
+	cmd := &remote.Cmd{
+		Command: fmt.Sprintf("chmod 0777 %s", c.connInfo.ScriptPath),
+	}
+	if err := c.Start(cmd); err != nil {
+		return fmt.Errorf(
+			"Error chmodding script file to 0777 in remote "+
+				"machine: %s", err)
+	}
+	cmd.Wait()
+
+	return nil
+}
+
+// UploadDir implementation of communicator.Communicator interface
+func (c *Communicator) UploadDir(dst string, src string) error {
 	log.Printf("Upload dir '%s' to '%s'", src, dst)
 	scpFunc := func(w io.Writer, r *bufio.Reader) error {
 		uploadEntries := func() error {
@@ -217,11 +272,7 @@ func (c *SSHCommunicator) UploadDir(dst string, src string, excl []string) error
 	return c.scpSession("scp -rvt "+dst, scpFunc)
 }
 
-func (c *SSHCommunicator) Download(string, io.Writer) error {
-	panic("not implemented yet")
-}
-
-func (c *SSHCommunicator) newSession() (session *ssh.Session, err error) {
+func (c *Communicator) newSession() (session *ssh.Session, err error) {
 	log.Println("opening new ssh session")
 	if c.client == nil {
 		err = errors.New("client not available")
@@ -231,7 +282,7 @@ func (c *SSHCommunicator) newSession() (session *ssh.Session, err error) {
 
 	if err != nil {
 		log.Printf("ssh session open error: '%s', attempting reconnect", err)
-		if err := c.reconnect(); err != nil {
+		if err := c.Connect(nil); err != nil {
 			return nil, err
 		}
 
@@ -241,43 +292,7 @@ func (c *SSHCommunicator) newSession() (session *ssh.Session, err error) {
 	return session, nil
 }
 
-func (c *SSHCommunicator) reconnect() (err error) {
-	if c.conn != nil {
-		c.conn.Close()
-	}
-
-	// Set the conn and client to nil since we'll recreate it
-	c.conn = nil
-	c.client = nil
-
-	log.Printf("reconnecting to TCP connection for SSH")
-	c.conn, err = c.config.Connection()
-	if err != nil {
-		// Explicitly set this to the REAL nil. Connection() can return
-		// a nil implementation of net.Conn which will make the
-		// "if c.conn == nil" check fail above. Read here for more information
-		// on this psychotic language feature:
-		//
-		// http://golang.org/doc/faq#nil_error
-		c.conn = nil
-
-		log.Printf("reconnection error: %s", err)
-		return
-	}
-
-	log.Printf("handshaking with SSH")
-	sshConn, sshChan, req, err := ssh.NewClientConn(c.conn, c.address, c.config.SSHConfig)
-	if err != nil {
-		log.Printf("handshake error: %s", err)
-	}
-	if sshConn != nil {
-		c.client = ssh.NewClient(sshConn, sshChan, req)
-	}
-
-	return
-}
-
-func (c *SSHCommunicator) scpSession(scpCommand string, f func(io.Writer, *bufio.Reader) error) error {
+func (c *Communicator) scpSession(scpCommand string, f func(io.Writer, *bufio.Reader) error) error {
 	session, err := c.newSession()
 	if err != nil {
 		return err
@@ -382,7 +397,7 @@ func checkSCPStatus(r *bufio.Reader) error {
 func scpUploadFile(dst string, src io.Reader, w io.Writer, r *bufio.Reader) error {
 	// Create a temporary file where we can copy the contents of the src
 	// so that we can determine the length, since SCP is length-prefixed.
-	tf, err := ioutil.TempFile("", "packer-upload")
+	tf, err := ioutil.TempFile("", "terraform-upload")
 	if err != nil {
 		return fmt.Errorf("Error creating temporary file for upload: %s", err)
 	}
