@@ -6,12 +6,12 @@ type GraphNodeFlattenable interface {
 	FlattenGraph() *Graph
 }
 
-// FlattenTransform is a transformer that goes through the graph, finds
+// FlattenTransformer is a transformer that goes through the graph, finds
 // subgraphs that can be flattened, and flattens them into this graph,
 // removing the prior subgraph node.
-type FlattenTransform struct{}
+type FlattenTransformer struct{}
 
-func (t *FlattenTransform) Transform(g *Graph) error {
+func (t *FlattenTransformer) Transform(g *Graph) error {
 	for _, v := range g.Vertices() {
 		fn, ok := v.(GraphNodeFlattenable)
 		if !ok {
@@ -35,6 +35,12 @@ func (t *FlattenTransform) Transform(g *Graph) error {
 
 		// Remove the old node
 		g.Remove(v)
+
+		// Connect the dependencies for all the new nodes that we added.
+		// This will properly connect variables to their sources, for example.
+		for _, sv := range subgraph.Vertices() {
+			g.ConnectDependent(sv)
+		}
 	}
 
 	return nil
