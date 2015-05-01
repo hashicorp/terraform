@@ -214,6 +214,23 @@ func TestAccAWSSecurityGroup_generatedName(t *testing.T) {
 	})
 }
 
+func TestAccAWSSecurityGroup_DefaultEgress(t *testing.T) {
+
+        resource.Test(t, resource.TestCase{
+                PreCheck:     func() { testAccPreCheck(t) },
+                Providers:    testAccProviders,
+                CheckDestroy: testAccCheckAWSSecurityGroupDestroy,
+                Steps: []resource.TestStep{
+                        resource.TestStep{
+                                Config: testAccAWSSecurityGroupConfigDefaultEgress,
+                                Check: resource.ComposeTestCheckFunc(
+                                        testAccCheckAWSSecurityGroupExistsWithoutDefault("aws_security_group.worker"),
+                                ),
+                        },
+                },
+        })
+}
+
 func testAccCheckAWSSecurityGroupDestroy(s *terraform.State) error {
 	conn := testAccProvider.Meta().(*AWSClient).ec2conn
 
@@ -394,6 +411,38 @@ func testAccCheckAWSSecurityGroupAttributesChanged(group *ec2.SecurityGroup) res
 	}
 }
 
+func testAccCheckAWSSecurityGroupExistsWithoutDefault(n string) resource.TestCheckFunc {
+        return func(s *terraform.State) error {
+                rs, ok := s.RootModule().Resources[n]
+                if !ok {
+                        return fmt.Errorf("Not found: %s", n)
+                }
+
+                if rs.Primary.ID == "" {
+                        return fmt.Errorf("No Security Group is set")
+                }
+
+                conn := testAccProvider.Meta().(*AWSClient).ec2conn
+                req := &ec2.DescribeSecurityGroupsInput{
+                        GroupIDs: []*string{aws.String(rs.Primary.ID)},
+                }
+                resp, err := conn.DescribeSecurityGroups(req)
+                if err != nil {
+                        return err
+                }
+
+                if len(resp.SecurityGroups) > 0 && *resp.SecurityGroups[0].GroupID == rs.Primary.ID {
+                        group := *resp.SecurityGroups[0]
+
+                        if len(group.IPPermissionsEgress) != 1 {
+                                return fmt.Errorf("Security Group should have only 1 egress rule, got %d", len(group.IPPermissionsEgress))
+                        }
+                }
+
+                return nil
+        }
+}
+
 const testAccAWSSecurityGroupConfig = `
 resource "aws_security_group" "web" {
   name = "terraform_acceptance_test_example"
@@ -561,5 +610,19 @@ resource "aws_security_group" "web" {
 	tags {
 		Name = "tf-acc-test"
 	}
+}
+`
+
+const testAccAWSSecurityGroupConfigDefaultEgress = `
+resource "aws_security_group" "worker" {
+  name = "terraform_acceptance_test_example_1"
+  description = "Used in the terraform acceptance tests"
+
+  egress {
+    protocol = "tcp"
+    from_port = 80
+    to_port = 8000
+    cidr_blocks = ["10.0.0.0/8"]
+  }
 }
 `
