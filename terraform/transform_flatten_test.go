@@ -37,8 +37,12 @@ func TestFlattenTransformer(t *testing.T) {
 
 const testTransformFlattenStr = `
 aws_instance.parent
+aws_instance.parent-output
+  module.child.output.output
 module.child.aws_instance.child
   module.child.var.var
+module.child.output.output
+  module.child.aws_instance.child
 module.child.var.var
   aws_instance.parent
 `
