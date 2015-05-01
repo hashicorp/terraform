@@ -113,11 +113,3 @@ func TestGraphNodeConfigVariable_impl(t *testing.T) {
 	var _ dag.NamedVertex = new(GraphNodeConfigVariable)
 	var _ graphNodeConfig = new(GraphNodeConfigVariable)
 }
-
-const testGraphNodeModuleExpandStr = `
-aws_instance.bar
-  aws_instance.foo
-aws_instance.foo
-  module inputs
-module inputs
-`

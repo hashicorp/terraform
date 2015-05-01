@@ -45,3 +45,8 @@ func (n *graphNodeModuleInput) Name() string {
 func (n *graphNodeModuleInput) EvalTree() EvalNode {
 	return &EvalSetVariables{Variables: n.Variables}
 }
+
+// graphNodeModuleSkippable impl.
+func (n *graphNodeModuleInput) FlattenSkip() bool {
+	return true
+}
