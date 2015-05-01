@@ -1,9 +1,127 @@
 package winrm
 
 import (
+	"bytes"
+	"io"
 	"regexp"
+	"strconv"
 	"testing"
+
+	"github.com/dylanmei/winrmtest"
+	"github.com/hashicorp/terraform/communicator/remote"
+	"github.com/hashicorp/terraform/terraform"
 )
+
+func newMockWinRMServer(t *testing.T) *winrmtest.Remote {
+	wrm := winrmtest.NewRemote()
+
+	wrm.CommandFunc(
+		"echo foo",
+		"",
+		func(out, err io.Writer) int {
+			out.Write([]byte("foo"))
+			return 0
+		})
+
+	wrm.CommandFunc(
+		"file-copy",
+		`^echo c29tZXRoaW5n >> ".*"$`,
+		func(out, err io.Writer) int {
+			return 0
+		})
+
+	wrm.CommandFunc(
+		"file-encode",
+		`^powershell.exe -EncodedCommand .*$`,
+		func(out, err io.Writer) int {
+			return 0
+		})
+
+	wrm.CommandFunc(
+		"powershell",
+		"",
+		func(out, err io.Writer) int {
+			return 0
+		})
+
+	return wrm
+}
+
+func TestStart(t *testing.T) {
+	wrm := newMockWinRMServer(t)
+	defer wrm.Close()
+
+	r := &terraform.InstanceState{
+		Ephemeral: terraform.EphemeralState{
+			ConnInfo: map[string]string{
+				"type":     "winrm",
+				"user":     "user",
+				"password": "pass",
+				"host":     wrm.Host,
+				"port":     strconv.Itoa(wrm.Port),
+				"timeout":  "30000s",
+			},
+		},
+	}
+
+	//time.Sleep(time.Duration(30000 * time.Second))
+
+	c, err := New(r)
+	if err != nil {
+		t.Fatalf("error creating communicator: %s", err)
+	}
+
+	var cmd remote.Cmd
+	stdout := new(bytes.Buffer)
+	cmd.Command = "echo foo"
+	cmd.Stdout = stdout
+
+	err = c.Start(&cmd)
+	if err != nil {
+		t.Fatalf("error executing remote command: %s", err)
+	}
+	cmd.Wait()
+
+	if stdout.String() != "foo" {
+		t.Fatalf("bad command response: expected %q, got %q", "foo", stdout.String())
+	}
+}
+
+func TestUpload(t *testing.T) {
+	t.Skip()
+
+	wrm := newMockWinRMServer(t)
+	defer wrm.Close()
+
+	r := &terraform.InstanceState{
+		Ephemeral: terraform.EphemeralState{
+			ConnInfo: map[string]string{
+				"type":     "winrm",
+				"user":     "user",
+				"password": "pass",
+				"host":     wrm.Host,
+				"port":     strconv.Itoa(wrm.Port),
+				"timeout":  "30s",
+			},
+		},
+	}
+
+	c, err := New(r)
+	if err != nil {
+		t.Fatalf("error creating communicator: %s", err)
+	}
+
+	err = c.Connect(nil)
+	if err != nil {
+		t.Fatalf("error connecting communicator: %s", err)
+	}
+	defer c.Disconnect()
+
+	err = c.Upload("C:/Temp/terraform.cmd", bytes.NewReader([]byte("something")))
+	if err != nil {
+		t.Fatalf("error uploading file: %s", err)
+	}
+}
 
 func TestScriptPath(t *testing.T) {
 	cases := []struct {
