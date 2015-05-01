@@ -14,7 +14,7 @@ import (
 	"github.com/masterzen/winrm/winrm"
 	"github.com/packer-community/winrmcp/winrmcp"
 
-	// This import is a bit strange, but it's needed so `make updatedeps` can see and
+	// This import is a bit strange, but it's needed so `make updatedeps` can see and download it
 	_ "github.com/dylanmei/winrmtest"
 )
 
