@@ -32,19 +32,21 @@ func resourceAwsS3Bucket() *schema.Resource {
 			},
 
 			"website": &schema.Schema{
-				Type:     schema.TypeBool,
-				Default:  false,
+				Type:     schema.TypeList,
 				Optional: true,
-			},
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"index_document": &schema.Schema{
+							Type:     schema.TypeString,
+							Required: true,
+						},
 
-			"index_document": &schema.Schema{
-				Type:     schema.TypeString,
-				Optional: true,
-			},
-
-			"error_document": &schema.Schema{
-				Type:     schema.TypeString,
-				Optional: true,
+						"error_document": &schema.Schema{
+							Type:     schema.TypeString,
+							Optional: true,
+						},
+					},
+				},
 			},
 
 			"website_endpoint": &schema.Schema{
@@ -98,7 +100,7 @@ func resourceAwsS3BucketUpdate(d *schema.ResourceData, meta interface{}) error {
 		return err
 	}
 
-	if err := updateWebsite(s3conn, d); err != nil {
+	if err := resourceAwsS3BucketWebsiteUpdate(s3conn, d); err != nil {
 		return err
 	}
 
@@ -155,58 +157,81 @@ func resourceAwsS3BucketDelete(d *schema.ResourceData, meta interface{}) error {
 	return nil
 }
 
-func updateWebsite(s3conn *s3.S3, d *schema.ResourceData) error {
-	website := d.Get("website").(bool)
-	bucket := d.Get("bucket").(string)
-	indexDocument := d.Get("index_document").(string)
-	errorDocument := d.Get("error_document").(string)
+func resourceAwsS3BucketWebsiteUpdate(s3conn *s3.S3, d *schema.ResourceData) error {
+	if !d.HasChange("website") {
+		return nil
+	}
 
-	if website {
-		websiteConfiguration := &s3.WebsiteConfiguration{}
+	ws := d.Get("website").([]interface{})
 
-		if indexDocument != "" {
-			websiteConfiguration.IndexDocument = &s3.IndexDocument{Suffix: aws.String(indexDocument)}
-		}
-
-		if errorDocument != "" {
-			websiteConfiguration.ErrorDocument = &s3.ErrorDocument{Key: aws.String(errorDocument)}
-		}
-
-		putInput := &s3.PutBucketWebsiteInput{
-			Bucket:               aws.String(bucket),
-			WebsiteConfiguration: websiteConfiguration,
-		}
-
-		log.Printf("[DEBUG] S3 put bucket website: %s", putInput)
-
-		_, err := s3conn.PutBucketWebsite(putInput)
-		if err != nil {
-			return fmt.Errorf("Error putting S3 website: %s", err)
-		}
+	if len(ws) == 1 {
+		w := ws[0].(map[string]interface{})
+		return resourceAwsS3BucketWebsitePut(s3conn, d, w)
+	} else if len(ws) == 0 {
+		return resourceAwsS3BucketWebsiteDelete(s3conn, d)
 	} else {
-		deleteInput := &s3.DeleteBucketWebsiteInput{Bucket: aws.String(bucket)}
+		return fmt.Errorf("Cannot specify more than one website.")
+	}
+}
 
-		log.Printf("[DEBUG] S3 delete bucket website: %s", deleteInput)
+func resourceAwsS3BucketWebsitePut(s3conn *s3.S3, d *schema.ResourceData, website map[string]interface{}) error {
+	bucket := d.Get("bucket").(string)
 
-		_, err := s3conn.DeleteBucketWebsite(deleteInput)
-		if err != nil {
-			return fmt.Errorf("Error deleting S3 website: %s", err)
-		}
+	indexDocument := website["index_document"].(string)
+	errorDocument := website["error_document"].(string)
+
+	websiteConfiguration := &s3.WebsiteConfiguration{}
+
+	websiteConfiguration.IndexDocument = &s3.IndexDocument{Suffix: aws.String(indexDocument)}
+
+	if errorDocument != "" {
+		websiteConfiguration.ErrorDocument = &s3.ErrorDocument{Key: aws.String(errorDocument)}
+	}
+
+	putInput := &s3.PutBucketWebsiteInput{
+		Bucket:               aws.String(bucket),
+		WebsiteConfiguration: websiteConfiguration,
+	}
+
+	log.Printf("[DEBUG] S3 put bucket website: %s", putInput)
+
+	_, err := s3conn.PutBucketWebsite(putInput)
+	if err != nil {
+		return fmt.Errorf("Error putting S3 website: %s", err)
+	}
+
+	return nil
+}
+
+func resourceAwsS3BucketWebsiteDelete(s3conn *s3.S3, d *schema.ResourceData) error {
+	bucket := d.Get("bucket").(string)
+	deleteInput := &s3.DeleteBucketWebsiteInput{Bucket: aws.String(bucket)}
+
+	log.Printf("[DEBUG] S3 delete bucket website: %s", deleteInput)
+
+	_, err := s3conn.DeleteBucketWebsite(deleteInput)
+	if err != nil {
+		return fmt.Errorf("Error deleting S3 website: %s", err)
 	}
 
 	return nil
 }
 
 func websiteEndpoint(s3conn *s3.S3, d *schema.ResourceData) (endpoint string, err error) {
-	// If the bucket doess't have a website configuration, return an empty endpoint
-	if !d.Get("website").(bool) {
+	// If the bucket doesn't have a website configuration, return an empty
+	// endpoint
+	if len(d.Get("website").([]interface{})) == 0 {
 		return
 	}
 
 	bucket := d.Get("bucket").(string)
 
 	// Lookup the region for this bucket
-	location, err := s3conn.GetBucketLocation(&s3.GetBucketLocationInput{Bucket: aws.String(bucket)})
+	location, err := s3conn.GetBucketLocation(
+		&s3.GetBucketLocationInput{
+			Bucket: aws.String(bucket),
+		},
+	)
 	if err != nil {
 		return
 	}
