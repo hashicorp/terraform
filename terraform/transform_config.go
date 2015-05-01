@@ -55,7 +55,10 @@ func (t *ConfigTransformer) Transform(g *Graph) error {
 
 	// Write all the resources out
 	for _, r := range config.Resources {
-		nodes = append(nodes, &GraphNodeConfigResource{Resource: r})
+		nodes = append(nodes, &GraphNodeConfigResource{
+			Resource: r,
+			Path:     g.Path,
+		})
 	}
 
 	// Write all the modules out
