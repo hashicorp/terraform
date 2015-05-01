@@ -3,12 +3,12 @@ layout: "aws"
 page_title: "AWS: aws_proxy_protocol_policy"
 sidebar_current: "docs-aws-proxy-protocol-policy"
 description: |-
-  Provides an proxy protocol policy, which allows an ELB to carry a client connection information to a backend.
+  Provides a proxy protocol policy, which allows an ELB to carry a client connection information to a backend.
 ---
 
 # aws\_proxy\_protocol\_policy
 
-Provides an proxy protocol policy, which allows an ELB to carry a client connection information to a backend.
+Provides a proxy protocol policy, which allows an ELB to carry a client connection information to a backend.
 
 ## Example Usage
 
