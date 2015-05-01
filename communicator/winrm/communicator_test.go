@@ -16,30 +16,26 @@ func newMockWinRMServer(t *testing.T) *winrmtest.Remote {
 	wrm := winrmtest.NewRemote()
 
 	wrm.CommandFunc(
-		"echo foo",
-		"",
+		winrmtest.MatchText("echo foo"),
 		func(out, err io.Writer) int {
 			out.Write([]byte("foo"))
 			return 0
 		})
 
 	wrm.CommandFunc(
-		"file-copy",
-		`^echo c29tZXRoaW5n >> ".*"$`,
+		winrmtest.MatchPattern(`^echo c29tZXRoaW5n >> ".*"$`),
 		func(out, err io.Writer) int {
 			return 0
 		})
 
 	wrm.CommandFunc(
-		"file-encode",
-		`^powershell.exe -EncodedCommand .*$`,
+		winrmtest.MatchPattern(`^powershell.exe -EncodedCommand .*$`),
 		func(out, err io.Writer) int {
 			return 0
 		})
 
 	wrm.CommandFunc(
-		"powershell",
-		"",
+		winrmtest.MatchText("powershell"),
 		func(out, err io.Writer) int {
 			return 0
 		})
