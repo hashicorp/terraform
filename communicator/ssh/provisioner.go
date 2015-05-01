@@ -5,11 +5,8 @@ import (
 	"fmt"
 	"io/ioutil"
 	"log"
-	"math/rand"
 	"net"
 	"os"
-	"strconv"
-	"strings"
 	"time"
 
 	"github.com/hashicorp/terraform/terraform"
@@ -20,7 +17,7 @@ import (
 )
 
 const (
-	// DefaultUser is used if there is no default user given
+	// DefaultUser is used if there is no user given
 	DefaultUser = "root"
 
 	// DefaultPort is used if there is no port given
@@ -28,16 +25,16 @@ const (
 
 	// DefaultScriptPath is used as the path to copy the file to
 	// for remote execution if not provided otherwise.
-	DefaultScriptPath = "/tmp/script_%RAND%.sh"
+	DefaultScriptPath = "/tmp/terraform_%RAND%.sh"
 
 	// DefaultTimeout is used if there is no timeout given
 	DefaultTimeout = 5 * time.Minute
 )
 
-// SSHConfig is decoded from the ConnInfo of the resource. These
-// are the only keys we look at. If a KeyFile is given, that is used
-// instead of a password.
-type SSHConfig struct {
+// connectionInfo is decoded from the ConnInfo of the resource. These are the
+// only keys we look at. If a KeyFile is given, that is used instead
+// of a password.
+type connectionInfo struct {
 	User       string
 	Password   string
 	KeyFile    string `mapstructure:"key_file"`
@@ -49,31 +46,13 @@ type SSHConfig struct {
 	TimeoutVal time.Duration `mapstructure:"-"`
 }
 
-func (c *SSHConfig) RemotePath() string {
-	return strings.Replace(
-		c.ScriptPath, "%RAND%",
-		strconv.FormatInt(int64(rand.Int31()), 10), -1)
-}
-
-// VerifySSH is used to verify the ConnInfo is usable by remote-exec
-func VerifySSH(s *terraform.InstanceState) error {
-	connType := s.Ephemeral.ConnInfo["type"]
-	switch connType {
-	case "":
-	case "ssh":
-	default:
-		return fmt.Errorf("Connection type '%s' not supported", connType)
-	}
-	return nil
-}
-
-// ParseSSHConfig is used to convert the ConnInfo of the InstanceState into
-// a SSHConfig struct
-func ParseSSHConfig(s *terraform.InstanceState) (*SSHConfig, error) {
-	sshConf := &SSHConfig{}
+// parseConnectionInfo is used to convert the ConnInfo of the InstanceState into
+// a ConnectionInfo struct
+func parseConnectionInfo(s *terraform.InstanceState) (*connectionInfo, error) {
+	connInfo := &connectionInfo{}
 	decConf := &mapstructure.DecoderConfig{
 		WeaklyTypedInput: true,
-		Result:           sshConf,
+		Result:           connInfo,
 	}
 	dec, err := mapstructure.NewDecoder(decConf)
 	if err != nil {
@@ -82,21 +61,23 @@ func ParseSSHConfig(s *terraform.InstanceState) (*SSHConfig, error) {
 	if err := dec.Decode(s.Ephemeral.ConnInfo); err != nil {
 		return nil, err
 	}
-	if sshConf.User == "" {
-		sshConf.User = DefaultUser
+
+	if connInfo.User == "" {
+		connInfo.User = DefaultUser
 	}
-	if sshConf.Port == 0 {
-		sshConf.Port = DefaultPort
+	if connInfo.Port == 0 {
+		connInfo.Port = DefaultPort
 	}
-	if sshConf.ScriptPath == "" {
-		sshConf.ScriptPath = DefaultScriptPath
+	if connInfo.ScriptPath == "" {
+		connInfo.ScriptPath = DefaultScriptPath
 	}
-	if sshConf.Timeout != "" {
-		sshConf.TimeoutVal = safeDuration(sshConf.Timeout, DefaultTimeout)
+	if connInfo.Timeout != "" {
+		connInfo.TimeoutVal = safeDuration(connInfo.Timeout, DefaultTimeout)
 	} else {
-		sshConf.TimeoutVal = DefaultTimeout
+		connInfo.TimeoutVal = DefaultTimeout
 	}
-	return sshConf, nil
+
+	return connInfo, nil
 }
 
 // safeDuration returns either the parsed duration or a default value
@@ -109,16 +90,16 @@ func safeDuration(dur string, defaultDur time.Duration) time.Duration {
 	return d
 }
 
-// PrepareConfig is used to turn the *SSHConfig provided into a
-// usable *Config for client initialization.
-func PrepareConfig(conf *SSHConfig) (*Config, error) {
+// prepareSSHConfig is used to turn the *ConnectionInfo provided into a
+// usable *SSHConfig for client initialization.
+func prepareSSHConfig(connInfo *connectionInfo) (*sshConfig, error) {
 	var conn net.Conn
 	var err error
 
 	sshConf := &ssh.ClientConfig{
-		User: conf.User,
+		User: connInfo.User,
 	}
-	if conf.Agent {
+	if connInfo.Agent {
 		sshAuthSock := os.Getenv("SSH_AUTH_SOCK")
 
 		if sshAuthSock == "" {
@@ -138,14 +119,14 @@ func PrepareConfig(conf *SSHConfig) (*Config, error) {
 
 		sshConf.Auth = append(sshConf.Auth, ssh.PublicKeys(signers...))
 	}
-	if conf.KeyFile != "" {
-		fullPath, err := homedir.Expand(conf.KeyFile)
+	if connInfo.KeyFile != "" {
+		fullPath, err := homedir.Expand(connInfo.KeyFile)
 		if err != nil {
 			return nil, fmt.Errorf("Failed to expand home directory: %v", err)
 		}
 		key, err := ioutil.ReadFile(fullPath)
 		if err != nil {
-			return nil, fmt.Errorf("Failed to read key file '%s': %v", conf.KeyFile, err)
+			return nil, fmt.Errorf("Failed to read key file '%s': %v", connInfo.KeyFile, err)
 		}
 
 		// We parse the private key on our own first so that we can
@@ -153,40 +134,32 @@ func PrepareConfig(conf *SSHConfig) (*Config, error) {
 		block, _ := pem.Decode(key)
 		if block == nil {
 			return nil, fmt.Errorf(
-				"Failed to read key '%s': no key found", conf.KeyFile)
+				"Failed to read key '%s': no key found", connInfo.KeyFile)
 		}
 		if block.Headers["Proc-Type"] == "4,ENCRYPTED" {
 			return nil, fmt.Errorf(
 				"Failed to read key '%s': password protected keys are\n"+
-					"not supported. Please decrypt the key prior to use.", conf.KeyFile)
+					"not supported. Please decrypt the key prior to use.", connInfo.KeyFile)
 		}
 
 		signer, err := ssh.ParsePrivateKey(key)
 		if err != nil {
-			return nil, fmt.Errorf("Failed to parse key file '%s': %v", conf.KeyFile, err)
+			return nil, fmt.Errorf("Failed to parse key file '%s': %v", connInfo.KeyFile, err)
 		}
 
 		sshConf.Auth = append(sshConf.Auth, ssh.PublicKeys(signer))
 	}
-	if conf.Password != "" {
+	if connInfo.Password != "" {
 		sshConf.Auth = append(sshConf.Auth,
-			ssh.Password(conf.Password))
+			ssh.Password(connInfo.Password))
 		sshConf.Auth = append(sshConf.Auth,
-			ssh.KeyboardInteractive(PasswordKeyboardInteractive(conf.Password)))
+			ssh.KeyboardInteractive(PasswordKeyboardInteractive(connInfo.Password)))
 	}
-	host := fmt.Sprintf("%s:%d", conf.Host, conf.Port)
-	config := &Config{
-		SSHConfig:    sshConf,
-		Connection:   ConnectFunc("tcp", host),
-		SSHAgentConn: conn,
+	host := fmt.Sprintf("%s:%d", connInfo.Host, connInfo.Port)
+	config := &sshConfig{
+		config:       sshConf,
+		connection:   ConnectFunc("tcp", host),
+		sshAgentConn: conn,
 	}
 	return config, nil
-}
-
-func (c *Config) CleanupConfig() error {
-	if c.SSHAgentConn != nil {
-		return c.SSHAgentConn.Close()
-	}
-
-	return nil
 }

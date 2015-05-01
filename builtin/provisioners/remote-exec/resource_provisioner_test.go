@@ -41,6 +41,11 @@ func TestResourceProvider_Validate_bad(t *testing.T) {
 	}
 }
 
+var expectedScriptOut = `cd /tmp
+wget http://foobar
+exit 0
+`
+
 func TestResourceProvider_generateScript(t *testing.T) {
 	p := new(ResourceProvisioner)
 	conf := testConfig(t, map[string]interface{}{
@@ -59,12 +64,6 @@ func TestResourceProvider_generateScript(t *testing.T) {
 		t.Fatalf("bad: %v", out)
 	}
 }
-
-var expectedScriptOut = `#!/bin/sh
-cd /tmp
-wget http://foobar
-exit 0
-`
 
 func TestResourceProvider_CollectScripts_inline(t *testing.T) {
 	p := new(ResourceProvisioner)
@@ -91,8 +90,8 @@ func TestResourceProvider_CollectScripts_inline(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 
-	if string(out.Bytes()) != expectedScriptOut {
-		t.Fatalf("bad: %v", out.Bytes())
+	if out.String() != expectedScriptOut {
+		t.Fatalf("bad: %v", out.String())
 	}
 }
 
@@ -117,8 +116,8 @@ func TestResourceProvider_CollectScripts_script(t *testing.T) {
 		t.Fatalf("err: %v", err)
 	}
 
-	if string(out.Bytes()) != expectedScriptOut {
-		t.Fatalf("bad: %v", out.Bytes())
+	if out.String() != expectedScriptOut {
+		t.Fatalf("bad: %v", out.String())
 	}
 }
 
@@ -148,8 +147,8 @@ func TestResourceProvider_CollectScripts_scripts(t *testing.T) {
 			t.Fatalf("err: %v", err)
 		}
 
-		if string(out.Bytes()) != expectedScriptOut {
-			t.Fatalf("bad: %v", out.Bytes())
+		if out.String() != expectedScriptOut {
+			t.Fatalf("bad: %v", out.String())
 		}
 	}
 }
