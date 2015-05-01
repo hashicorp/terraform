@@ -162,7 +162,7 @@ func (g *Graph) walk(walker GraphWalker) error {
 		// is normally the context of our graph but can be overridden
 		// with a GraphNodeSubPath impl.
 		vertexCtx := ctx
-		if pn, ok := v.(GraphNodeSubPath); ok {
+		if pn, ok := v.(GraphNodeSubPath); ok && len(pn.Path()) > 0 {
 			vertexCtx = walker.EnterPath(pn.Path())
 			defer walker.ExitPath(pn.Path())
 		}

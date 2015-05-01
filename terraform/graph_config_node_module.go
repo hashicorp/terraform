@@ -177,7 +177,7 @@ func (n *graphNodeModuleExpanded) FlattenGraph() *Graph {
 
 		// If this is a variable, then look it up in the raw configuration.
 		// If it exists in the raw configuration, set the value of it.
-		if vn, ok := v.(GraphNodeVariable); ok && input != nil {
+		if vn, ok := v.(*GraphNodeConfigVariable); ok && input != nil {
 			key := vn.VariableName()
 			if v, ok := input.Raw[key]; ok {
 				config, err := config.NewRawConfig(map[string]interface{}{
@@ -189,8 +189,10 @@ func (n *graphNodeModuleExpanded) FlattenGraph() *Graph {
 					panic(err)
 				}
 
-				// Set the variable value so it is interpolated properly
-				vn.SetVariableValue(config)
+				// Set the variable value so it is interpolated properly.
+				// Also set the module so we set the value on it properly.
+				vn.Module = graph.Path[len(graph.Path)-1]
+				vn.Value = config
 			}
 		}
 	}
@@ -208,32 +210,6 @@ func (n *graphNodeModuleExpanded) Subgraph() *Graph {
 type graphNodeModuleSkippable interface {
 	FlattenSkip() bool
 }
-
-/*
-// graphNodeModuleFlatWrap wraps elements of the module graph
-// when they are flattened so that the dependency information is
-// correct.
-type graphNodeModuleFlatWrap struct {
-	Vertex            dag.Vertex
-	PathValue         []string
-	NamePrefix        string
-	DependentOnPrefix string
-}
-
-// GraphNodeProviderConsumer impl.
-func (n *graphNodeModuleFlatWrap) ProvidedBy() []string {
-	pn, ok := n.Vertex.(GraphNodeProviderConsumer)
-	if !ok {
-		return nil
-	}
-
-	result := make([]string, 0, 2)
-	for _, v := range pn.ProvidedBy() {
-		result = append(result, fmt.Sprintf("%s.%s", n.NamePrefix, v))
-	}
-	return result
-}
-*/
 
 func modulePrefixStr(p []string) string {
 	parts := make([]string, 0, len(p)*2)

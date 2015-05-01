@@ -7,20 +7,16 @@ import (
 	"github.com/hashicorp/terraform/dag"
 )
 
-// GraphNodeVariable is the interface that must be implemented by anything
-// that is a variable.
-type GraphNodeVariable interface {
-	VariableName() string
-	SetVariableValue(*config.RawConfig)
-}
-
 // GraphNodeConfigVariable represents a Variable in the config.
 type GraphNodeConfigVariable struct {
 	Variable *config.Variable
 
 	// Value, if non-nil, will be used to set the value of the variable
 	// during evaluation. If this is nil, evaluation will do nothing.
-	Value *config.RawConfig
+	//
+	// Module is the name of the module to set the variables on.
+	Module string
+	Value  *config.RawConfig
 
 	depPrefix string
 }
@@ -55,14 +51,8 @@ func (n *GraphNodeConfigVariable) DependentOn() []string {
 	return result
 }
 
-// GraphNodeVariable impl.
 func (n *GraphNodeConfigVariable) VariableName() string {
 	return n.Variable.Name
-}
-
-// GraphNodeVariable impl.
-func (n *GraphNodeConfigVariable) SetVariableValue(v *config.RawConfig) {
-	n.Value = v
 }
 
 // GraphNodeProxy impl.
@@ -94,6 +84,7 @@ func (n *GraphNodeConfigVariable) EvalTree() EvalNode {
 			},
 
 			&EvalSetVariables{
+				Module:    &n.Module,
 				Variables: variables,
 			},
 		},
@@ -128,7 +119,7 @@ func (n *GraphNodeConfigVariableFlat) DependentOn() []string {
 	// longer than 2 elements (root, child, more). This is because when
 	// flattened, variables can point outside the graph.
 	prefix := ""
-	if len(n.PathValue) <= 2 {
+	if len(n.PathValue) > 2 {
 		prefix = modulePrefixStr(n.PathValue[:len(n.PathValue)-1])
 	}
 
@@ -138,5 +129,9 @@ func (n *GraphNodeConfigVariableFlat) DependentOn() []string {
 }
 
 func (n *GraphNodeConfigVariableFlat) Path() []string {
-	return n.PathValue
+	if len(n.PathValue) > 2 {
+		return n.PathValue[:len(n.PathValue)-1]
+	}
+
+	return nil
 }

@@ -58,10 +58,10 @@ type EvalContext interface {
 	// that is currently being acted upon.
 	Interpolate(*config.RawConfig, *Resource) (*ResourceConfig, error)
 
-	// SetVariables sets the variables for interpolation. These variables
-	// should not have a "var." prefix. For example: "var.foo" should be
-	// "foo" as the key.
-	SetVariables(map[string]string)
+	// SetVariables sets the variables for the module within
+	// this context with the name n. This function call is additive:
+	// the second parameter is merged with any previous call.
+	SetVariables(string, map[string]string)
 
 	// Diff returns the global diff as well as the lock that should
 	// be used to modify that diff.

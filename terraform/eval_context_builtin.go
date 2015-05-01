@@ -14,6 +14,8 @@ import (
 type BuiltinEvalContext struct {
 	PathValue           []string
 	Interpolater        *Interpolater
+	InterpolaterVars    map[string]map[string]string
+	InterpolaterVarLock *sync.Mutex
 	Hooks               []Hook
 	InputValue          UIInput
 	Providers           map[string]ResourceProviderFactory
@@ -29,8 +31,7 @@ type BuiltinEvalContext struct {
 	StateValue          *State
 	StateLock           *sync.RWMutex
 
-	once    sync.Once
-	varLock sync.Mutex
+	once sync.Once
 }
 
 func (ctx *BuiltinEvalContext) Hook(fn func(Hook) (HookAction, error)) error {
@@ -238,12 +239,23 @@ func (ctx *BuiltinEvalContext) Path() []string {
 	return ctx.PathValue
 }
 
-func (ctx *BuiltinEvalContext) SetVariables(vs map[string]string) {
-	ctx.varLock.Lock()
-	defer ctx.varLock.Unlock()
+func (ctx *BuiltinEvalContext) SetVariables(n string, vs map[string]string) {
+	ctx.InterpolaterVarLock.Lock()
+	defer ctx.InterpolaterVarLock.Unlock()
+
+	path := make([]string, len(ctx.Path())+1)
+	copy(path, ctx.Path())
+	path[len(path)-1] = n
+	key := PathCacheKey(path)
+
+	vars := ctx.InterpolaterVars[key]
+	if vars == nil {
+		vars = make(map[string]string)
+		ctx.InterpolaterVars[key] = vars
+	}
 
 	for k, v := range vs {
-		ctx.Interpolater.Variables[k] = v
+		vars[k] = v
 	}
 }
 
