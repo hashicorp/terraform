@@ -217,11 +217,11 @@ func resourceAwsS3BucketWebsiteDelete(s3conn *s3.S3, d *schema.ResourceData) err
 	return nil
 }
 
-func websiteEndpoint(s3conn *s3.S3, d *schema.ResourceData) (endpoint string, err error) {
+func websiteEndpoint(s3conn *s3.S3, d *schema.ResourceData) (string, error) {
 	// If the bucket doesn't have a website configuration, return an empty
 	// endpoint
 	if len(d.Get("website").([]interface{})) == 0 {
-		return
+		return "", nil
 	}
 
 	bucket := d.Get("bucket").(string)
@@ -233,7 +233,7 @@ func websiteEndpoint(s3conn *s3.S3, d *schema.ResourceData) (endpoint string, er
 		},
 	)
 	if err != nil {
-		return
+		return "", err
 	}
 	var region string
 	if location.LocationConstraint != nil {
@@ -245,7 +245,7 @@ func websiteEndpoint(s3conn *s3.S3, d *schema.ResourceData) (endpoint string, er
 		region = "us-east-1"
 	}
 
-	endpoint = fmt.Sprintf("%s.s3-website-%s.amazonaws.com", bucket, region)
+	endpoint := fmt.Sprintf("%s.s3-website-%s.amazonaws.com", bucket, region)
 
-	return
+	return endpoint, nil
 }
