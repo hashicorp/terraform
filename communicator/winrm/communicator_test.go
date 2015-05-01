@@ -55,12 +55,10 @@ func TestStart(t *testing.T) {
 				"password": "pass",
 				"host":     wrm.Host,
 				"port":     strconv.Itoa(wrm.Port),
-				"timeout":  "30000s",
+				"timeout":  "30s",
 			},
 		},
 	}
-
-	//time.Sleep(time.Duration(30000 * time.Second))
 
 	c, err := New(r)
 	if err != nil {
@@ -84,8 +82,6 @@ func TestStart(t *testing.T) {
 }
 
 func TestUpload(t *testing.T) {
-	t.Skip()
-
 	wrm := newMockWinRMServer(t)
 	defer wrm.Close()
 
