@@ -39,3 +39,42 @@ func TestGraphNodeConfigModuleExpand(t *testing.T) {
 		t.Fatalf("bad:\n\n%s", actual)
 	}
 }
+
+func TestGraphNodeConfigModuleExpandFlatten(t *testing.T) {
+	mod := testModule(t, "graph-node-module-flatten")
+
+	node := &GraphNodeConfigModule{
+		Path:   []string{RootModuleName, "child"},
+		Module: &config.Module{},
+		Tree:   nil,
+	}
+
+	g, err := node.Expand(&BasicGraphBuilder{
+		Steps: []GraphTransformer{
+			&ConfigTransformer{Module: mod},
+		},
+	})
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	fg := g.(GraphNodeFlattenable)
+
+	actual := strings.TrimSpace(fg.FlattenGraph().String())
+	expected := strings.TrimSpace(testGraphNodeModuleExpandFlattenStr)
+	if actual != expected {
+		t.Fatalf("bad:\n\n%s", actual)
+	}
+}
+
+const testGraphNodeModuleExpandStr = `
+aws_instance.bar
+  aws_instance.foo
+aws_instance.foo
+  module inputs
+module inputs
+`
+
+const testGraphNodeModuleExpandFlattenStr = `
+module.child.aws_instance.foo
+`
