@@ -165,7 +165,10 @@ func TestTest_stepError(t *testing.T) {
 	if !mt.failed() {
 		t.Fatal("test should've failed")
 	}
-	t.Logf("Fail message: %s", mt.failMessage())
+	expected := "Step 0 error: Check failed: error"
+	if mt.failMessage() != expected {
+		t.Fatalf("Expected message: %s\n\ngot:\n\n%s", expected, mt.failMessage())
+	}
 
 	if !checkDestroy {
 		t.Fatal("didn't call check for destroy")
