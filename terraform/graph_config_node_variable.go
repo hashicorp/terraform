@@ -66,3 +66,33 @@ func (n *GraphNodeConfigVariable) SetVariableValue(v *config.RawConfig) {
 func (n *GraphNodeConfigVariable) Proxy() bool {
 	return true
 }
+
+// GraphNodeEvalable impl.
+func (n *GraphNodeConfigVariable) EvalTree() EvalNode {
+	// If we have no value, do nothing
+	if n.Value == nil {
+		return &EvalNoop{}
+	}
+
+	// Otherwise, interpolate the value of this variable and set it
+	// within the variables mapping.
+	var config *ResourceConfig
+	variables := make(map[string]string)
+	return &EvalSequence{
+		Nodes: []EvalNode{
+			&EvalInterpolate{
+				Config: n.Value,
+				Output: &config,
+			},
+
+			&EvalVariableBlock{
+				Config:    &config,
+				Variables: variables,
+			},
+
+			&EvalSetVariables{
+				Variables: variables,
+			},
+		},
+	}
+}
