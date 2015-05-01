@@ -220,16 +220,6 @@ type graphNodeModuleFlatWrap struct {
 	DependentOnPrefix string
 }
 
-// GraphNodeProvider impl.
-func (n *graphNodeModuleFlatWrap) ProviderName() string {
-	pn, ok := n.Vertex.(GraphNodeProvider)
-	if !ok {
-		return ""
-	}
-
-	return fmt.Sprintf("%s.%s", n.NamePrefix, pn.ProviderName())
-}
-
 // GraphNodeProviderConsumer impl.
 func (n *graphNodeModuleFlatWrap) ProvidedBy() []string {
 	pn, ok := n.Vertex.(GraphNodeProviderConsumer)
