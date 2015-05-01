@@ -1,6 +1,7 @@
 package terraform
 
 import (
+	"reflect"
 	"strings"
 	"testing"
 
@@ -65,6 +66,73 @@ func TestGraphNodeConfigModuleExpandFlatten(t *testing.T) {
 	if actual != expected {
 		t.Fatalf("bad:\n\n%s", actual)
 	}
+}
+
+func TestGraphNodeModulFlatWrap_Name(t *testing.T) {
+	n := &graphNodeModuleFlatWrap{
+		graphNodeModuleWrappable: &testGraphNodeModuleWrappable{
+			NameValue: "foo",
+		},
+
+		NamePrefix: "module.bar",
+	}
+
+	if v := n.Name(); v != "module.bar.foo" {
+		t.Fatalf("bad: %s", v)
+	}
+}
+
+func TestGraphNodeModulFlatWrap_DependentOn(t *testing.T) {
+	n := &graphNodeModuleFlatWrap{
+		graphNodeModuleWrappable: &testGraphNodeModuleWrappable{
+			NameValue: "foo",
+		},
+
+		NamePrefix:        "module.bar",
+		DependentOnPrefix: "module.bar",
+	}
+
+	actual := n.DependentOn()
+	expected := []string{"module.bar.foo"}
+	if !reflect.DeepEqual(actual, expected) {
+		t.Fatalf("bad: %#v", actual)
+	}
+}
+
+func TestGraphNodeModulFlatWrap_DependableName(t *testing.T) {
+	n := &graphNodeModuleFlatWrap{
+		graphNodeModuleWrappable: &testGraphNodeModuleWrappable{
+			NameValue: "foo",
+		},
+
+		NamePrefix: "module.bar",
+	}
+
+	actual := n.DependableName()
+	expected := []string{"module.bar.foo"}
+	if !reflect.DeepEqual(actual, expected) {
+		t.Fatalf("bad: %#v", actual)
+	}
+}
+
+type testGraphNodeModuleWrappable struct {
+	NameValue string
+}
+
+func (n *testGraphNodeModuleWrappable) ConfigType() GraphNodeConfigType {
+	return GraphNodeConfigTypeInvalid
+}
+
+func (n *testGraphNodeModuleWrappable) Name() string {
+	return n.NameValue
+}
+
+func (n *testGraphNodeModuleWrappable) DependableName() []string {
+	return []string{"foo"}
+}
+
+func (n *testGraphNodeModuleWrappable) DependentOn() []string {
+	return []string{"foo"}
 }
 
 const testGraphNodeModuleExpandStr = `
