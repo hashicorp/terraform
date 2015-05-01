@@ -46,10 +46,17 @@ func (t *ProxyTransformer) Transform(g *Graph) error {
 		// a visual explanation.
 		for _, s := range g.UpEdges(v).List() {
 			for _, t := range g.DownEdges(v).List() {
-				g.Connect(dag.BasicEdge(s, t))
+				g.Connect(GraphProxyEdge{
+					Edge: dag.BasicEdge(s, t),
+				})
 			}
 		}
 	}
 
 	return nil
+}
+
+// GraphProxyEdge is the edge that is used for proxied edges.
+type GraphProxyEdge struct {
+	dag.Edge
 }
