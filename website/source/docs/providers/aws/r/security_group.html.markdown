@@ -63,9 +63,8 @@ The following arguments are supported:
 * `description` - (Required) The security group description.
 * `ingress` - (Optional) Can be specified multiple times for each
    ingress rule. Each ingress block supports fields documented below.
-* `egress` - (Optional) Can be specified multiple times for each
+* `egress` - (Required, VPC only) Can be specified multiple times for each
       egress rule. Each egress block supports fields documented below.
-      VPC only.
 * `vpc_id` - (Optional) The VPC ID.
 * `tags` - (Optional) A mapping of tags to assign to the resource.
 
@@ -92,6 +91,20 @@ The `egress` block supports:
 * `self` - (Optional) If true, the security group itself will be added as
      a source to this egress rule.
 * `to_port` - (Required) The end range port.
+
+~> **NOTE on Egress rules:** By default, AWS creates an `ALLOW ALL` egress rule when creating a
+new Security Group inside of a VPC. When creating a new Security
+Group inside a VPC, **Terraform will remove this default rule**, and require you
+specifically re-create it if you desire that rule. We feel this leads to fewer
+surprises in terms of controlling your egress rules. If you desire this rule to
+be in place, you can use this `egress` block:
+
+    egress {
+      from_port = 0
+      to_port = 0
+      protocol = "-1"
+      cidr_block = "0.0.0.0/0"
+    }
 
 ## Attributes Reference
 
