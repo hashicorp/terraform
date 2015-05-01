@@ -3,10 +3,7 @@ package terraform
 // GraphNodeFlattenable must be implemented by nodes that can be flattened
 // into the graph.
 type GraphNodeFlattenable interface {
-	GraphNodeSubgraph
-
-	// Flatten should return true if this should be flattened.
-	Flatten() bool
+	FlattenGraph() *Graph
 }
 
 // FlattenTransform is a transformer that goes through the graph, finds
@@ -22,12 +19,13 @@ func (t *FlattenTransform) Transform(g *Graph) error {
 		}
 
 		// If we don't want to be flattened, don't do it
-		if !fn.Flatten() {
+		subgraph := fn.FlattenGraph()
+		if subgraph == nil {
 			continue
 		}
 
-		// Get the subgraph and flatten it into this one
-		subgraph := fn.Subgraph()
+		// Flatten the subgraph into this one. Keep any existing
+		// connections that existed.
 		for _, sv := range subgraph.Vertices() {
 			g.Add(sv)
 		}
