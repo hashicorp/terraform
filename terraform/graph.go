@@ -144,8 +144,8 @@ func (g *Graph) init() {
 
 func (g *Graph) walk(walker GraphWalker) error {
 	// The callbacks for enter/exiting a graph
-	ctx := walker.EnterGraph(g)
-	defer walker.ExitGraph(g)
+	ctx := walker.EnterPath(g.Path)
+	defer walker.ExitPath(g.Path)
 
 	// Get the path for logs
 	path := strings.Join(ctx.Path(), ".")
@@ -157,6 +157,15 @@ func (g *Graph) walk(walker GraphWalker) error {
 
 		walker.EnterVertex(v)
 		defer func() { walker.ExitVertex(v, rerr) }()
+
+		// vertexCtx is the context that we use when evaluating. This
+		// is normally the context of our graph but can be overridden
+		// with a GraphNodeSubPath impl.
+		vertexCtx := ctx
+		if pn, ok := v.(GraphNodeSubPath); ok {
+			vertexCtx = walker.EnterPath(pn.Path())
+			defer walker.ExitPath(pn.Path())
+		}
 
 		// If the node is eval-able, then evaluate it.
 		if ev, ok := v.(GraphNodeEvalable); ok {
@@ -170,7 +179,7 @@ func (g *Graph) walk(walker GraphWalker) error {
 			// then callback with the output.
 			log.Printf("[DEBUG] vertex %s.%s: evaluating", path, dag.VertexName(v))
 			tree = walker.EnterEvalTree(v, tree)
-			output, err := Eval(tree, ctx)
+			output, err := Eval(tree, vertexCtx)
 			if rerr = walker.ExitEvalTree(v, output, err); rerr != nil {
 				return
 			}
@@ -182,7 +191,7 @@ func (g *Graph) walk(walker GraphWalker) error {
 				"[DEBUG] vertex %s.%s: expanding/walking dynamic subgraph",
 				path,
 				dag.VertexName(v))
-			g, err := ev.DynamicExpand(ctx)
+			g, err := ev.DynamicExpand(vertexCtx)
 			if err != nil {
 				rerr = err
 				return

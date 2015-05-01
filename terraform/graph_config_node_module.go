@@ -227,7 +227,7 @@ func (n *graphNodeModuleExpanded) FlattenGraph() *Graph {
 		graph.Replace(v, &graphNodeModuleFlatWrap{
 			graphNodeModuleWrappable: wn,
 
-			Path:              graph.Path,
+			PathValue:         graph.Path,
 			NamePrefix:        pathStr,
 			DependentOnPrefix: depPrefix,
 		})
@@ -259,13 +259,18 @@ type graphNodeModuleWrappable interface {
 type graphNodeModuleFlatWrap struct {
 	graphNodeModuleWrappable
 
-	Path              []string
+	PathValue         []string
 	NamePrefix        string
 	DependentOnPrefix string
 }
 
 func (n *graphNodeModuleFlatWrap) Name() string {
 	return fmt.Sprintf("%s.%s", n.NamePrefix, n.graphNodeModuleWrappable.Name())
+}
+
+// GraphNodeSubPath impl.
+func (n *graphNodeModuleFlatWrap) Path() []string {
+	return n.PathValue
 }
 
 func (n *graphNodeModuleFlatWrap) DependableName() []string {
