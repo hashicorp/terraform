@@ -49,6 +49,39 @@ resource "aws_route53_record" "www-live" {
 }
 ```
 
+### Alias record
+See [related part of AWS Route53 Developer Guide](http://docs.aws.amazon.com/Route53/latest/DeveloperGuide/resource-record-sets-choosing-alias-non-alias.html)
+to understand differences between alias and non-alias records.
+
+TTL for all alias records is [60 seconds](http://aws.amazon.com/route53/faqs/#dns_failover_do_i_need_to_adjust),
+you cannot change this, therefore `ttl` has to be ommitted in alias records.
+
+```
+resource "aws_elb" "main" {
+  name = "foobar-terraform-elb"
+  availability_zones = ["us-east-1c"]
+
+  listener {
+    instance_port = 80
+    instance_protocol = "http"
+    lb_port = 80
+    lb_protocol = "http"
+  }
+}
+
+resource "aws_route53_record" "www" {
+  zone_id = "${aws_route53_zone.primary.zone_id}"
+  name = "example.com"
+  type = "A"
+
+  alias {
+    name = "${aws_elb.main.dns_name}"
+    zone_id = "${aws_elb.main.zone_id}"
+    evaluate_target_health = true
+  }
+}
+```
+
 ## Argument Reference
 
 The following arguments are supported:
@@ -61,6 +94,15 @@ The following arguments are supported:
 * `weight` - (Optional) The weight of weighted record (0-255).
 * `set_identifier` - (Optional) Unique identifier to differentiate weighted
   record from one another. Required for each weighted record.
+* `alias` - (Optional) An alias block. Alias record documented below.
+
+Exactly one of `records` or `alias` must be specified: this determines whether it's an alias record.
+
+Alias records support the following:
+
+* `name` - (Required) DNS domain name for a CloudFront distribution, S3 bucket, ELB, or another resource record set in this hosted zone.
+* `zone_id` - (Required) Hosted zone ID for a CloudFront distribution, S3 bucket, ELB, or Route 53 hosted zone. See [`resource_elb.zone_id`](/docs/providers/aws/r/elb.html#zone_id) for example.
+* `evaluate_target_health` - (Required) Set to `true` if you want Route 53 to determine whether to respond to DNS queries using this resource record set by checking the health of the resource record set. Some resources have special requirements, see [related part of documentation](http://docs.aws.amazon.com/Route53/latest/DeveloperGuide/resource-record-sets-values.html#rrsets-values-alias-evaluate-target-health).
 
 ## Attributes Reference
 

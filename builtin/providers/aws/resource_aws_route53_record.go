@@ -1,6 +1,7 @@
 package aws
 
 import (
+	"bytes"
 	"fmt"
 	"log"
 	"strings"
@@ -41,8 +42,9 @@ func resourceAwsRoute53Record() *schema.Resource {
 			},
 
 			"ttl": &schema.Schema{
-				Type:     schema.TypeInt,
-				Required: true,
+				Type:          schema.TypeInt,
+				Optional:      true,
+				ConflictsWith: []string{"alias"},
 			},
 
 			"weight": &schema.Schema{
@@ -56,10 +58,36 @@ func resourceAwsRoute53Record() *schema.Resource {
 				ForceNew: true,
 			},
 
+			"alias": &schema.Schema{
+				Type:          schema.TypeSet,
+				Optional:      true,
+				ConflictsWith: []string{"records", "ttl"},
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"zone_id": &schema.Schema{
+							Type:     schema.TypeString,
+							Required: true,
+						},
+
+						"name": &schema.Schema{
+							Type:     schema.TypeString,
+							Required: true,
+						},
+
+						"evaluate_target_health": &schema.Schema{
+							Type:     schema.TypeBool,
+							Required: true,
+						},
+					},
+				},
+				Set: resourceAwsRoute53AliasRecordHash,
+			},
+
 			"records": &schema.Schema{
-				Type:     schema.TypeSet,
-				Elem:     &schema.Schema{Type: schema.TypeString},
-				Required: true,
+				Type:          schema.TypeSet,
+				ConflictsWith: []string{"alias"},
+				Elem:          &schema.Schema{Type: schema.TypeString},
+				Optional:      true,
 				Set: func(v interface{}) int {
 					return hashcode.String(v.(string))
 				},
@@ -309,10 +337,6 @@ func resourceAwsRoute53RecordDelete(d *schema.ResourceData, meta interface{}) er
 }
 
 func resourceAwsRoute53RecordBuildSet(d *schema.ResourceData, zoneName string) (*route53.ResourceRecordSet, error) {
-	recs := d.Get("records").(*schema.Set).List()
-
-	records := expandResourceRecords(recs, d.Get("type").(string))
-
 	// get expanded name
 	en := expandRecordName(d.Get("name").(string), zoneName)
 
@@ -321,10 +345,33 @@ func resourceAwsRoute53RecordBuildSet(d *schema.ResourceData, zoneName string) (
 	// not require the trailing ".", which it will itself, so we don't call FQDN
 	// here.
 	rec := &route53.ResourceRecordSet{
-		Name:            aws.String(en),
-		Type:            aws.String(d.Get("type").(string)),
-		TTL:             aws.Long(int64(d.Get("ttl").(int))),
-		ResourceRecords: records,
+		Name: aws.String(en),
+		Type: aws.String(d.Get("type").(string)),
+	}
+
+	if v, ok := d.GetOk("ttl"); ok {
+		rec.TTL = aws.Long(int64(v.(int)))
+	}
+
+	// Resource records
+	if v, ok := d.GetOk("records"); ok {
+		recs := v.(*schema.Set).List()
+		rec.ResourceRecords = expandResourceRecords(recs, d.Get("type").(string))
+	}
+
+	// Alias record
+	if v, ok := d.GetOk("alias"); ok {
+		aliases := v.(*schema.Set).List()
+		if len(aliases) > 1 {
+			return nil, fmt.Errorf("You can only define a single alias target per record")
+		}
+		alias := aliases[0].(map[string]interface{})
+		rec.AliasTarget = &route53.AliasTarget{
+			DNSName:              aws.String(alias["name"].(string)),
+			EvaluateTargetHealth: aws.Boolean(alias["evaluate_target_health"].(bool)),
+			HostedZoneID:         aws.String(alias["zone_id"].(string)),
+		}
+		log.Printf("[DEBUG] Creating alias: %#v", alias)
 	}
 
 	if v, ok := d.GetOk("weight"); ok {
@@ -369,4 +416,14 @@ func expandRecordName(name, zone string) string {
 		rn = strings.Join([]string{name, zone}, ".")
 	}
 	return rn
+}
+
+func resourceAwsRoute53AliasRecordHash(v interface{}) int {
+	var buf bytes.Buffer
+	m := v.(map[string]interface{})
+	buf.WriteString(fmt.Sprintf("%s-", m["name"].(string)))
+	buf.WriteString(fmt.Sprintf("%s-", m["zone_id"].(string)))
+	buf.WriteString(fmt.Sprintf("%t-", m["evaluate_target_health"].(bool)))
+
+	return hashcode.String(buf.String())
 }
