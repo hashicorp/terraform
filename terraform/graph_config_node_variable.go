@@ -61,3 +61,8 @@ func (n *GraphNodeConfigVariable) VariableName() string {
 func (n *GraphNodeConfigVariable) SetVariableValue(v *config.RawConfig) {
 	n.Value = v
 }
+
+// GraphNodeProxy impl.
+func (n *GraphNodeConfigVariable) Proxy() bool {
+	return true
+}

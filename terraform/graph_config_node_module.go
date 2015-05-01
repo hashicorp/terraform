@@ -283,6 +283,15 @@ func (n *graphNodeModuleFlatWrap) DependentOn() []string {
 	return result
 }
 
+func (n *graphNodeModuleFlatWrap) Proxy() bool {
+	pn, ok := n.graphNodeModuleWrappable.(GraphNodeProxy)
+	if !ok {
+		return false
+	}
+
+	return pn.Proxy()
+}
+
 func (n *graphNodeModuleFlatWrap) prefixList(result []string, prefix string) {
 	for i, v := range result {
 		result[i] = fmt.Sprintf("%s.%s", prefix, v)

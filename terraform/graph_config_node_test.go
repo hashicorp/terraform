@@ -13,6 +13,7 @@ func TestGraphNodeConfigOutput_impl(t *testing.T) {
 	var _ dag.NamedVertex = new(GraphNodeConfigOutput)
 	var _ graphNodeConfig = new(GraphNodeConfigOutput)
 	var _ GraphNodeOutput = new(GraphNodeConfigOutput)
+	var _ GraphNodeProxy = new(GraphNodeConfigOutput)
 }
 
 func TestGraphNodeConfigProvider_impl(t *testing.T) {
@@ -113,4 +114,5 @@ func TestGraphNodeConfigVariable_impl(t *testing.T) {
 	var _ dag.NamedVertex = new(GraphNodeConfigVariable)
 	var _ graphNodeConfig = new(GraphNodeConfigVariable)
 	var _ GraphNodeVariable = new(GraphNodeConfigVariable)
+	var _ GraphNodeProxy = new(GraphNodeConfigVariable)
 }
