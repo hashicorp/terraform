@@ -54,6 +54,21 @@ func (g *Graph) Add(v dag.Vertex) dag.Vertex {
 	return v
 }
 
+// Remove is the same as dag.Graph.Remove
+func (g *Graph) Remove(v dag.Vertex) dag.Vertex {
+	g.once.Do(g.init)
+
+	// If this is a depend-able node, then remove the lookaside info
+	if dv, ok := v.(GraphNodeDependable); ok {
+		for _, n := range dv.DependableName() {
+			delete(g.dependableMap, n)
+		}
+	}
+
+	// Call upwards to remove it from the actual graph
+	return g.Graph.Remove(v)
+}
+
 // ConnectDependent connects a GraphNodeDependent to all of its
 // GraphNodeDependables. It returns the list of dependents it was
 // unable to connect to.
