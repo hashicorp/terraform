@@ -220,7 +220,7 @@ func resourceAwsS3BucketWebsiteDelete(s3conn *s3.S3, d *schema.ResourceData) err
 func websiteEndpoint(s3conn *s3.S3, d *schema.ResourceData) (string, error) {
 	// If the bucket doesn't have a website configuration, return an empty
 	// endpoint
-	if len(d.Get("website").([]interface{})) == 0 {
+	if _, ok := d.GetOk("website"); !ok {
 		return "", nil
 	}
 
