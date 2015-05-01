@@ -27,7 +27,7 @@ func (n *GraphNodeConfigModule) DependableName() []string {
 	result := make([]string, 1, len(config.Outputs)+1)
 	result[0] = n.Name()
 	for _, o := range config.Outputs {
-		result = append(result, fmt.Sprintf("%s.%s", n.Name(), o.Name))
+		result = append(result, fmt.Sprintf("%s.output.%s", n.Name(), o.Name))
 	}
 
 	return result
@@ -114,6 +114,16 @@ func (n *graphNodeModuleExpanded) Name() string {
 
 func (n *graphNodeModuleExpanded) ConfigType() GraphNodeConfigType {
 	return GraphNodeConfigTypeModule
+}
+
+// GraphNodeDependable
+func (n *graphNodeModuleExpanded) DependableName() []string {
+	return n.Original.DependableName()
+}
+
+// GraphNodeDependent
+func (n *graphNodeModuleExpanded) DependentOn() []string {
+	return n.Original.DependentOn()
 }
 
 // GraphNodeDotter impl.
