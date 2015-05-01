@@ -94,6 +94,11 @@ func (n *GraphNodeConfigOutput) EvalTree() EvalNode {
 	}
 }
 
+// GraphNodeProxy impl.
+func (n *GraphNodeConfigOutput) Proxy() bool {
+	return true
+}
+
 // GraphNodeConfigProvider represents a configured provider within the
 // configuration graph. These are only immediately in the graph when an
 // explicit `provider` configuration block is in the configuration.
