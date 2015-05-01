@@ -90,7 +90,8 @@ resource "aws_s3_bucket" "website" {
 	bucket = "tf-test-bucket-website-%d"
 	acl = "public-read"
 
-	website = true
-	index_document = "index.html"
+	website {
+		index_document = "index.html"
+	}
 }
 `, rand.New(rand.NewSource(time.Now().UnixNano())).Int())
