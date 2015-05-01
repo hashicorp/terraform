@@ -35,7 +35,21 @@ func (n *GraphNodeConfigVariable) DependableName() []string {
 }
 
 func (n *GraphNodeConfigVariable) DependentOn() []string {
-	return nil
+	// If we don't have any value set, we don't depend on anything
+	if n.Value == nil {
+		return nil
+	}
+
+	// Get what we depend on based on our value
+	vars := n.Value.Variables
+	result := make([]string, 0, len(vars))
+	for _, v := range vars {
+		if vn := varNameForVar(v); vn != "" {
+			result = append(result, vn)
+		}
+	}
+
+	return result
 }
 
 // GraphNodeVariable impl.
