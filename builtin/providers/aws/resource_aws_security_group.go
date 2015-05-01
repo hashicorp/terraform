@@ -146,9 +146,9 @@ func resourceAwsSecurityGroup() *schema.Resource {
 func resourceAwsSecurityGroupCreate(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).ec2conn
 
-	securityGroupOpts := &ec2.CreateSecurityGroupInput{}
+        securityGroupOpts := &ec2.CreateSecurityGroupInput{}
 
-        if v := d.Get("vpc_id"); v != nil {
+        if v, ok := d.GetOk("vpc_id"); ok {
                 if len(d.Get("egress").(*schema.Set).List()) == 0 {
                         return fmt.Errorf("Error creating Security Group: Security groups inside a VPC require an egress rule. See http://terraform.io/docs/providers/aws/r/security_group.html for more information.")
                 }
@@ -189,7 +189,9 @@ func resourceAwsSecurityGroupCreate(d *schema.ResourceData, meta interface{}) er
 		Refresh: SGStateRefreshFunc(conn, d.Id()),
 		Timeout: 1 * time.Minute,
 	}
-	if _, err := stateConf.WaitForState(); err != nil {
+
+        resp, err := stateConf.WaitForState()
+        if err != nil {
 		return fmt.Errorf(
 			"Error waiting for Security Group (%s) to become available: %s",
 			d.Id(), err)
@@ -197,7 +199,8 @@ func resourceAwsSecurityGroupCreate(d *schema.ResourceData, meta interface{}) er
 
         // AWS defaults all Security Groups to have an ALLOW ALL egress rule. Here we
         // revoke that rule, so users don't unknowningly have/use it.
-        if v := d.Get("vpc_id"); v != nil {
+        group := resp.(*ec2.SecurityGroup)
+        if group.VPCID != nil && *group.VPCID != "" {
                 log.Printf("[DEBUG] Revoking default egress rule for Security Group for %s", d.Id())
 
                 req := &ec2.RevokeSecurityGroupEgressInput{
