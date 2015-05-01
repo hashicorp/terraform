@@ -13,6 +13,9 @@ import (
 	"github.com/hashicorp/terraform/terraform"
 	"github.com/masterzen/winrm/winrm"
 	"github.com/packer-community/winrmcp/winrmcp"
+
+	// This import is a bit strange, but it's needed so `make updatedeps` can see and
+	_ "github.com/dylanmei/winrmtest"
 )
 
 // Communicator represents the WinRM communicator
@@ -23,7 +26,6 @@ type Communicator struct {
 }
 
 // New creates a new communicator implementation over WinRM.
-//func New(endpoint *winrm.Endpoint, user string, password string, timeout time.Duration) (*communicator, error) {
 func New(s *terraform.InstanceState) (*Communicator, error) {
 	connInfo, err := parseConnectionInfo(s)
 	if err != nil {
