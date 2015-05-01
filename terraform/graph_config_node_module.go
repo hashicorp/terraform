@@ -65,10 +65,9 @@ func (n *GraphNodeConfigModule) Expand(b GraphBuilder) (GraphNodeSubgraph, error
 
 	// Build the actual subgraph node
 	return &graphNodeModuleExpanded{
-		Original:    n,
-		Graph:       graph,
-		InputConfig: n.Module.RawConfig,
-		Variables:   t.Variables,
+		Original:  n,
+		Graph:     graph,
+		Variables: t.Variables,
 	}, nil
 }
 
@@ -100,9 +99,8 @@ func (n *GraphNodeConfigModule) ProvidedBy() []string {
 // been expanded. It stores the graph of the module as well as a reference
 // to the map of variables.
 type graphNodeModuleExpanded struct {
-	Original    dag.Vertex
-	Graph       *Graph
-	InputConfig *config.RawConfig
+	Original *GraphNodeConfigModule
+	Graph    *Graph
 
 	// Variables is a map of the input variables. This reference should
 	// be shared with ModuleInputTransformer in order to create a connection
@@ -132,7 +130,7 @@ func (n *graphNodeModuleExpanded) EvalTree() EvalNode {
 	return &EvalSequence{
 		Nodes: []EvalNode{
 			&EvalInterpolate{
-				Config: n.InputConfig,
+				Config: n.Original.Module.RawConfig,
 				Output: &resourceConfig,
 			},
 
@@ -156,11 +154,12 @@ func (n *graphNodeModuleExpanded) EvalTree() EvalNode {
 // GraphNodeFlattenable impl.
 func (n *graphNodeModuleExpanded) FlattenGraph() *Graph {
 	graph := n.Subgraph()
+	input := n.Original.Module.RawConfig
 
 	// Build the string that represents the path. We do this once here
 	// so that we only have to compute it once. The block below is in {}
 	// so that parts drops out of scope immediately.
-	var pathStr string
+	var pathStr, parentPathStr string
 	{
 		parts := make([]string, 0, len(graph.Path)*2)
 		for _, p := range graph.Path[1:] {
@@ -168,6 +167,9 @@ func (n *graphNodeModuleExpanded) FlattenGraph() *Graph {
 		}
 
 		pathStr = strings.Join(parts, ".")
+		if len(parts) > 2 {
+			parentPathStr = strings.Join(parts[0:len(parts)-2], ".")
+		}
 	}
 
 	// Go over each vertex in the graph and wrap the configuration
@@ -184,11 +186,40 @@ func (n *graphNodeModuleExpanded) FlattenGraph() *Graph {
 			panic("unwrappable node: " + dag.VertexName(v))
 		}
 
+		// Prefix for dependencies. We set this to blank for variables
+		// (see below).
+		depPrefix := pathStr
+
+		// If this is a variable, then look it up in the raw configuration.
+		// If it exists in the raw configuration, set the value of it.
+		if vn, ok := v.(GraphNodeVariable); ok && input != nil {
+			key := vn.VariableName()
+			if v, ok := input.Raw[key]; ok {
+				config, err := config.NewRawConfig(map[string]interface{}{
+					key: v,
+				})
+				if err != nil {
+					// This shouldn't happen because it is already in
+					// a RawConfig above meaning it worked once before.
+					panic(err)
+				}
+
+				// Set the variable value so it is interpolated properly
+				vn.SetVariableValue(config)
+			}
+
+			// We set the dependency prefix to the parent path
+			// since variables can reference outside of our own graph
+			// to the parent graph.
+			depPrefix = parentPathStr
+		}
+
 		graph.Replace(v, &graphNodeModuleFlatWrap{
 			graphNodeModuleWrappable: wn,
 
-			Path:       graph.Path,
-			PathString: pathStr,
+			Path:              graph.Path,
+			NamePrefix:        pathStr,
+			DependentOnPrefix: depPrefix,
 		})
 	}
 
@@ -218,10 +249,32 @@ type graphNodeModuleWrappable interface {
 type graphNodeModuleFlatWrap struct {
 	graphNodeModuleWrappable
 
-	Path       []string
-	PathString string
+	Path              []string
+	NamePrefix        string
+	DependentOnPrefix string
 }
 
 func (n *graphNodeModuleFlatWrap) Name() string {
-	return fmt.Sprintf("%s.%s", n.PathString, n.graphNodeModuleWrappable.Name())
+	return fmt.Sprintf("%s.%s", n.NamePrefix, n.graphNodeModuleWrappable.Name())
+}
+
+func (n *graphNodeModuleFlatWrap) DependableName() []string {
+	result := n.graphNodeModuleWrappable.DependableName()
+	n.prefixList(result, n.NamePrefix)
+	return result
+}
+
+func (n *graphNodeModuleFlatWrap) DependentOn() []string {
+	result := n.graphNodeModuleWrappable.DependentOn()
+	if n.DependentOnPrefix != "" {
+		n.prefixList(result, n.DependentOnPrefix)
+	}
+
+	return result
+}
+
+func (n *graphNodeModuleFlatWrap) prefixList(result []string, prefix string) {
+	for i, v := range result {
+		result[i] = fmt.Sprintf("%s.%s", prefix, v)
+	}
 }
