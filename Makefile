@@ -38,7 +38,8 @@ updatedeps:
 	go get -u github.com/mitchellh/gox
 	go get -u golang.org/x/tools/cmd/stringer
 	go list ./... \
-		| xargs go list -f '{{join .Deps "\n"}}' \
+		| xargs go list -f '{{join .Deps "\n"}}' -f '{{ join .TestImports "\n" }}' \
+		| xargs go list -f '{{if not .Standard}}{{.ImportPath}}{{end}}' \
 		| grep -v github.com/hashicorp/terraform \
 		| sort -u \
 		| xargs go get -f -u -v
