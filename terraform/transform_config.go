@@ -105,7 +105,7 @@ func (t *ConfigTransformer) Transform(g *Graph) error {
 func varNameForVar(raw config.InterpolatedVariable) string {
 	switch v := raw.(type) {
 	case *config.ModuleVariable:
-		return fmt.Sprintf("module.%s", v.Name)
+		return fmt.Sprintf("module.%s.%s", v.Name, v.Field)
 	case *config.ResourceVariable:
 		return v.ResourceId()
 	case *config.UserVariable:
