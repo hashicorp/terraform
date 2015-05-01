@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/hashicorp/terraform/config"
+	"github.com/hashicorp/terraform/dag"
 )
 
 // GraphNodeVariable is the interface that must be implemented by anything
@@ -20,6 +21,8 @@ type GraphNodeConfigVariable struct {
 	// Value, if non-nil, will be used to set the value of the variable
 	// during evaluation. If this is nil, evaluation will do nothing.
 	Value *config.RawConfig
+
+	depPrefix string
 }
 
 func (n *GraphNodeConfigVariable) Name() string {
@@ -95,4 +98,45 @@ func (n *GraphNodeConfigVariable) EvalTree() EvalNode {
 			},
 		},
 	}
+}
+
+// GraphNodeFlattenable impl.
+func (n *GraphNodeConfigVariable) Flatten(p []string) (dag.Vertex, error) {
+	return &GraphNodeConfigVariableFlat{
+		GraphNodeConfigVariable: n,
+		PathValue:               p,
+	}, nil
+}
+
+type GraphNodeConfigVariableFlat struct {
+	*GraphNodeConfigVariable
+
+	PathValue []string
+}
+
+func (n *GraphNodeConfigVariableFlat) Name() string {
+	return fmt.Sprintf(
+		"%s.%s", modulePrefixStr(n.PathValue), n.GraphNodeConfigVariable.Name())
+}
+
+func (n *GraphNodeConfigVariableFlat) DependableName() []string {
+	return []string{n.Name()}
+}
+
+func (n *GraphNodeConfigVariableFlat) DependentOn() []string {
+	// We only wrap the dependencies and such if we have a path that is
+	// longer than 2 elements (root, child, more). This is because when
+	// flattened, variables can point outside the graph.
+	prefix := ""
+	if len(n.PathValue) <= 2 {
+		prefix = modulePrefixStr(n.PathValue[:len(n.PathValue)-1])
+	}
+
+	return modulePrefixList(
+		n.GraphNodeConfigVariable.DependentOn(),
+		prefix)
+}
+
+func (n *GraphNodeConfigVariableFlat) Path() []string {
+	return n.PathValue
 }

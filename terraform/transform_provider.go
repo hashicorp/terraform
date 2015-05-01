@@ -32,7 +32,7 @@ func (t *DisableProviderTransformer) Transform(g *Graph) error {
 	for _, v := range g.Vertices() {
 		// We only care about providers
 		pn, ok := v.(GraphNodeProvider)
-		if !ok {
+		if !ok || pn.ProviderName() == "" {
 			continue
 		}
 
@@ -130,7 +130,7 @@ type PruneProviderTransformer struct{}
 func (t *PruneProviderTransformer) Transform(g *Graph) error {
 	for _, v := range g.Vertices() {
 		// We only care about the providers
-		if _, ok := v.(GraphNodeProvider); !ok {
+		if pn, ok := v.(GraphNodeProvider); !ok || pn.ProviderName() == "" {
 			continue
 		}
 

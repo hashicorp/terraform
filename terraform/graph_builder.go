@@ -134,6 +134,12 @@ func (b *BuiltinGraphBuilder) Steps() []GraphTransformer {
 			},
 		},
 
+		// Flatten stuff
+		&FlattenTransformer{},
+
+		// Make sure all the connections that are proxies are connected through
+		&ProxyTransformer{},
+
 		// Optionally reduces the graph to a user-specified list of targets and
 		// their dependencies.
 		&TargetsTransformer{Targets: b.Targets, Destroy: b.Destroy},

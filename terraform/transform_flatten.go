@@ -1,13 +1,25 @@
 package terraform
 
 import (
+	"fmt"
+
 	"github.com/hashicorp/terraform/dag"
 )
 
-// GraphNodeFlattenable must be implemented by nodes that can be flattened
-// into the graph.
-type GraphNodeFlattenable interface {
+// GraphNodeFlatGraph must be implemented by nodes that have subgraphs
+// that they want flattened into the graph.
+type GraphNodeFlatGraph interface {
 	FlattenGraph() *Graph
+}
+
+// GraphNodeFlattenable must be implemented by all nodes that can be
+// flattened. If a FlattenGraph returns any nodes that can't be flattened,
+// it will be an error.
+//
+// If Flatten returns nil for the Vertex along with a nil error, it will
+// removed from the graph.
+type GraphNodeFlattenable interface {
+	Flatten(path []string) (dag.Vertex, error)
 }
 
 // FlattenTransformer is a transformer that goes through the graph, finds
@@ -17,7 +29,7 @@ type FlattenTransformer struct{}
 
 func (t *FlattenTransformer) Transform(g *Graph) error {
 	for _, v := range g.Vertices() {
-		fn, ok := v.(GraphNodeFlattenable)
+		fn, ok := v.(GraphNodeFlatGraph)
 		if !ok {
 			continue
 		}
@@ -39,8 +51,31 @@ func (t *FlattenTransformer) Transform(g *Graph) error {
 		// Remove the old node
 		g.Remove(v)
 
-		// Flatten the subgraph into this one. Keep any existing
-		// connections that existed.
+		// Go through the subgraph and flatten all the nodes
+		for _, sv := range subgraph.Vertices() {
+			fn, ok := sv.(GraphNodeFlattenable)
+			if !ok {
+				return fmt.Errorf(
+					"unflattenable node: %s %T",
+					dag.VertexName(sv), sv)
+			}
+
+			v, err := fn.Flatten(subgraph.Path)
+			if err != nil {
+				return fmt.Errorf(
+					"error flattening %s (%T): %s",
+					dag.VertexName(sv), sv, err)
+			}
+
+			if v == nil {
+				subgraph.Remove(v)
+			} else {
+				subgraph.Replace(sv, v)
+			}
+		}
+
+		// Now that we've handled any changes to the graph that are
+		// needed, we can add them all to our graph along with their edges.
 		for _, sv := range subgraph.Vertices() {
 			g.Add(sv)
 		}
