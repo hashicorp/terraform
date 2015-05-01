@@ -112,4 +112,5 @@ func TestGraphNodeConfigVariable_impl(t *testing.T) {
 	var _ dag.Vertex = new(GraphNodeConfigVariable)
 	var _ dag.NamedVertex = new(GraphNodeConfigVariable)
 	var _ graphNodeConfig = new(GraphNodeConfigVariable)
+	var _ GraphNodeVariable = new(GraphNodeConfigVariable)
 }
