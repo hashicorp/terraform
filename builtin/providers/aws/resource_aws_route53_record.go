@@ -248,9 +248,6 @@ func resourceAwsRoute53RecordRead(d *schema.ResourceData, meta interface{}) erro
 		StartRecordType: aws.String(d.Get("type").(string)),
 	}
 
-	if v, ok := d.GetOk("set_identifier"); ok {
-		lopts.StartRecordIdentifier = aws.String(v.(string))
-	}
 
 	resp, err := conn.ListResourceRecordSets(lopts)
 	if err != nil {
@@ -268,7 +265,7 @@ func resourceAwsRoute53RecordRead(d *schema.ResourceData, meta interface{}) erro
 			continue
 		}
 
-		if lopts.StartRecordIdentifier != nil && *record.SetIdentifier != *lopts.StartRecordIdentifier {
+		if record.SetIdentifier != nil && *record.SetIdentifier != d.Get("set_identifier") {
 			continue
 		}
 
