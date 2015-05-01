@@ -102,10 +102,26 @@ func (n *GraphNodeConfigProviderFlat) DependableName() []string {
 }
 
 func (n *GraphNodeConfigProviderFlat) DependentOn() []string {
-	prefix := modulePrefixStr(n.PathValue)
-	return modulePrefixList(
+	prefixed := modulePrefixList(
 		n.GraphNodeConfigProvider.DependentOn(),
-		prefix)
+		modulePrefixStr(n.PathValue))
+
+	result := make([]string, len(prefixed), len(prefixed)+1)
+	copy(result, prefixed)
+
+	// If we're in a module, then depend on our parent's provider
+	if len(n.PathValue) > 1 {
+		prefix := modulePrefixStr(n.PathValue[:len(n.PathValue)-1])
+		if prefix != "" {
+			prefix += "."
+		}
+
+		result = append(result, fmt.Sprintf(
+			"%s%s",
+			prefix, n.GraphNodeConfigProvider.Name()))
+	}
+
+	return result
 }
 
 func (n *GraphNodeConfigProviderFlat) ProviderName() string {
