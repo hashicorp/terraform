@@ -29,7 +29,8 @@ type BuiltinEvalContext struct {
 	StateValue          *State
 	StateLock           *sync.RWMutex
 
-	once sync.Once
+	once    sync.Once
+	varLock sync.Mutex
 }
 
 func (ctx *BuiltinEvalContext) Hook(fn func(Hook) (HookAction, error)) error {
@@ -238,6 +239,9 @@ func (ctx *BuiltinEvalContext) Path() []string {
 }
 
 func (ctx *BuiltinEvalContext) SetVariables(vs map[string]string) {
+	ctx.varLock.Lock()
+	defer ctx.varLock.Unlock()
+
 	for k, v := range vs {
 		ctx.Interpolater.Variables[k] = v
 	}
