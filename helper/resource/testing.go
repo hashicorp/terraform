@@ -235,8 +235,8 @@ func testStep(
 
 	// Check! Excitement!
 	if step.Check != nil {
-		if err = step.Check(state); err != nil {
-			err = fmt.Errorf("Check failed: %s", err)
+		if err := step.Check(state); err != nil {
+			return state, fmt.Errorf("Check failed: %s", err)
 		}
 	}
 
