@@ -174,9 +174,18 @@ func (n *graphNodeExpandedResource) StateDependencies() []string {
 	depsRaw := n.DependentOn()
 	deps := make([]string, 0, len(depsRaw))
 	for _, d := range depsRaw {
-		if !strings.HasPrefix(d, "var.") {
-			deps = append(deps, d)
+		// Ignore any variable dependencies
+		if strings.HasPrefix(d, "var.") {
+			continue
 		}
+
+		// This is sad. The dependencies are currently in the format of
+		// "module.foo.bar" (the full field). This strips the field off.
+		if strings.HasPrefix(d, "module.") {
+			parts := strings.SplitN(d, ".", 3)
+			d = strings.Join(parts[0:2], ".")
+		}
+		deps = append(deps, d)
 	}
 
 	return deps

@@ -58,7 +58,15 @@ func (n *GraphNodeConfigModule) ConfigType() GraphNodeConfigType {
 }
 
 func (n *GraphNodeConfigModule) DependableName() []string {
-	return []string{n.Name()}
+	config := n.Tree.Config()
+
+	result := make([]string, 1, len(config.Outputs)+1)
+	result[0] = n.Name()
+	for _, o := range config.Outputs {
+		result = append(result, fmt.Sprintf("%s.%s", n.Name(), o.Name))
+	}
+
+	return result
 }
 
 func (n *GraphNodeConfigModule) DependentOn() []string {
