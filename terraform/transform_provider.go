@@ -224,6 +224,14 @@ func (n *graphNodeMissingProvider) DotOrigin() bool {
 	return true
 }
 
+// GraphNodeFlattenable impl.
+func (n *graphNodeMissingProvider) Flatten(p []string) (dag.Vertex, error) {
+	return &graphNodeMissingProviderFlat{
+		graphNodeMissingProvider: n,
+		PathValue:                p,
+	}, nil
+}
+
 func providerVertexMap(g *Graph) map[string]dag.Vertex {
 	m := make(map[string]dag.Vertex)
 	for _, v := range g.Vertices() {
@@ -233,4 +241,26 @@ func providerVertexMap(g *Graph) map[string]dag.Vertex {
 	}
 
 	return m
+}
+
+// Same as graphNodeMissingProvider, but for flattening
+type graphNodeMissingProviderFlat struct {
+	*graphNodeMissingProvider
+
+	PathValue []string
+}
+
+func (n *graphNodeMissingProviderFlat) Name() string {
+	return fmt.Sprintf(
+		"%s.%s", modulePrefixStr(n.PathValue), n.graphNodeMissingProvider.Name())
+}
+
+func (n *graphNodeMissingProviderFlat) Path() []string {
+	return n.PathValue
+}
+
+func (n *graphNodeMissingProviderFlat) ProviderName() string {
+	return fmt.Sprintf(
+		"%s.%s", modulePrefixStr(n.PathValue),
+		n.graphNodeMissingProvider.ProviderName())
 }
