@@ -14,7 +14,6 @@ import (
 )
 
 func TestAccAWSS3Bucket(t *testing.T) {
-
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
@@ -26,10 +25,22 @@ func TestAccAWSS3Bucket(t *testing.T) {
 					testAccCheckAWSS3BucketExists("aws_s3_bucket.bucket"),
 				),
 			},
+		},
+	})
+}
+
+func TestAccAWSS3BucketWebsite(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSS3BucketDestroy,
+		Steps: []resource.TestStep{
 			resource.TestStep{
 				Config: testAccAWSS3BucketWebsiteConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSS3BucketExists("aws_s3_bucket.website"),
+					testAccCheckAWSS3BucketWebsite(
+						"aws_s3_bucket.website", "index.html", "error.html"),
 				),
 			},
 		},
@@ -76,6 +87,31 @@ func testAccCheckAWSS3BucketExists(n string) resource.TestCheckFunc {
 	}
 }
 
+func testAccCheckAWSS3BucketWebsite(n string, indexDoc string, errorDoc string) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		rs, _ := s.RootModule().Resources[n]
+		conn := testAccProvider.Meta().(*AWSClient).s3conn
+
+		out, err := conn.GetBucketWebsite(&s3.GetBucketWebsiteInput{
+			Bucket: aws.String(rs.Primary.ID),
+		})
+
+		if err != nil {
+			return fmt.Errorf("S3BucketWebsite error: %v", err)
+		}
+
+		if *out.IndexDocument.Suffix != indexDoc {
+			return fmt.Errorf("bad: %s", out.IndexDocument)
+		}
+
+		if *out.ErrorDocument.Key != errorDoc {
+			return fmt.Errorf("bad: %s", out.ErrorDocument)
+		}
+
+		return nil
+	}
+}
+
 // These need a bit of randoness as the name can only be used once globally
 // within AWS
 var testAccAWSS3BucketConfig = fmt.Sprintf(`
@@ -92,6 +128,7 @@ resource "aws_s3_bucket" "website" {
 
 	website {
 		index_document = "index.html"
+		error_document = "error.html"
 	}
 }
 `, rand.New(rand.NewSource(time.Now().UnixNano())).Int())
