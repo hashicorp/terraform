@@ -190,6 +190,21 @@ func (n *graphNodeDisabledProvider) DotOrigin() bool {
 	return true
 }
 
+// GraphNodeDependable impl.
+func (n *graphNodeDisabledProvider) DependableName() []string {
+	return []string{"provider." + n.ProviderName()}
+}
+
+// GraphNodeProvider impl.
+func (n *graphNodeDisabledProvider) ProviderName() string {
+	return n.GraphNodeProvider.ProviderName()
+}
+
+// GraphNodeProvider impl.
+func (n *graphNodeDisabledProvider) ProviderConfig() *config.RawConfig {
+	return n.GraphNodeProvider.ProviderConfig()
+}
+
 type graphNodeMissingProvider struct {
 	ProviderNameValue string
 }
@@ -263,4 +278,22 @@ func (n *graphNodeMissingProviderFlat) ProviderName() string {
 	return fmt.Sprintf(
 		"%s.%s", modulePrefixStr(n.PathValue),
 		n.graphNodeMissingProvider.ProviderName())
+}
+
+func (n *graphNodeMissingProviderFlat) DependentOn() []string {
+	var result []string
+
+	// If we're in a module, then depend on our parent's provider
+	if len(n.PathValue) > 1 {
+		prefix := modulePrefixStr(n.PathValue[:len(n.PathValue)-1])
+		if prefix != "" {
+			prefix += "."
+		}
+
+		result = append(result, fmt.Sprintf(
+			"%s%s",
+			prefix, n.graphNodeMissingProvider.Name()))
+	}
+
+	return result
 }
