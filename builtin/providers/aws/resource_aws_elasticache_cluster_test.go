@@ -12,35 +12,45 @@ import (
 	"github.com/hashicorp/terraform/terraform"
 )
 
-func TestAccAWSElasticache(t *testing.T) {
+func TestAccAWSElasticacheCluster(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
-		CheckDestroy: testAccCheckAWSElasticacheDestroy,
+		CheckDestroy: testAccCheckAWSElasticacheClusterDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccAWSElasticacheConfig,
+				Config: testAccAWSElasticacheClusterConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSEcacheSecurityGroupExists("aws_elasticache_security_group.bar"),
-					testAccCheckAWSElasticacheExists("aws_elasticache.bar"),
-				),
-			},
-			resource.TestStep{
-				Config: testAccAWSElasticacheInVPCConfig,
-				Check: resource.ComposeTestCheckFunc(
-					testAccCheckAWSEcacheSubnetGroupExists("aws_elasticache_subnet_group.bar"),
-					testAccCheckAWSElasticacheExists("aws_elasticache.bar"),
+					testAccCheckAWSElasticacheClusterExists("aws_elasticache_cluster.bar"),
 				),
 			},
 		},
 	})
 }
 
-func testAccCheckAWSElasticacheDestroy(s *terraform.State) error {
+func TestAccAWSElasticacheCluster_vpc(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSElasticacheClusterDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccAWSElasticacheClusterInVPCConfig,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSEcacheSubnetGroupExists("aws_elasticache_subnet_group.bar"),
+					testAccCheckAWSElasticacheClusterExists("aws_elasticache_cluster.bar"),
+				),
+			},
+		},
+	})
+}
+
+func testAccCheckAWSElasticacheClusterDestroy(s *terraform.State) error {
 	conn := testAccProvider.Meta().(*AWSClient).elasticacheconn
 
 	for _, rs := range s.RootModule().Resources {
-		if rs.Type != "aws_elasticache" {
+		if rs.Type != "aws_elasticache_cluster" {
 			continue
 		}
 		res, err := conn.DescribeCacheClusters(&elasticache.DescribeCacheClustersInput{
@@ -56,7 +66,7 @@ func testAccCheckAWSElasticacheDestroy(s *terraform.State) error {
 	return nil
 }
 
-func testAccCheckAWSElasticacheExists(n string) resource.TestCheckFunc {
+func testAccCheckAWSElasticacheClusterExists(n string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		rs, ok := s.RootModule().Resources[n]
 		if !ok {
@@ -82,7 +92,7 @@ func genRandInt() int {
 	return rand.New(rand.NewSource(time.Now().UnixNano())).Int() % 1000
 }
 
-var testAccAWSElasticacheConfig = fmt.Sprintf(`
+var testAccAWSElasticacheClusterConfig = fmt.Sprintf(`
 resource "aws_security_group" "bar" {
     name = "tf-test-security-group-%03d"
     description = "tf-test-security-group-descr"
@@ -100,7 +110,7 @@ resource "aws_elasticache_security_group" "bar" {
     security_group_names = ["${aws_security_group.bar.name}"]
 }
 
-resource "aws_elasticache" "bar" {
+resource "aws_elasticache_cluster" "bar" {
     cluster_id = "tf-test-%03d"
     engine = "memcached"
     node_type = "cache.m1.small"
@@ -110,7 +120,7 @@ resource "aws_elasticache" "bar" {
 }
 `, genRandInt(), genRandInt(), genRandInt())
 
-var testAccAWSElasticacheInVPCConfig = fmt.Sprintf(`
+var testAccAWSElasticacheClusterInVPCConfig = fmt.Sprintf(`
 resource "aws_vpc" "foo" {
     cidr_block = "192.168.0.0/16"
     tags {
@@ -145,7 +155,7 @@ resource "aws_security_group" "bar" {
     }
 }
 
-resource "aws_elasticache" "bar" {
+resource "aws_elasticache_cluster" "bar" {
     cluster_id = "tf-test-%03d"
     node_type = "cache.m1.small"
     num_cache_nodes = 1
