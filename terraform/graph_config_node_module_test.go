@@ -73,8 +73,10 @@ aws_instance.bar
 aws_instance.foo
   module inputs
 module inputs
+plan-destroy
 `
 
 const testGraphNodeModuleExpandFlattenStr = `
 aws_instance.foo
+plan-destroy
 `

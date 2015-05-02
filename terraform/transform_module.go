@@ -1,6 +1,7 @@
 package terraform
 
 import (
+	"fmt"
 	"github.com/hashicorp/terraform/dag"
 )
 
@@ -42,20 +43,9 @@ func (t *ModuleDestroyTransformer) Transform(g *Graph) error {
 	// Create the node
 	n := &graphNodeModuleDestroy{Path: g.Path}
 
-	// Add it to the graph
+	// Add it to the graph. We don't need any edges because
+	// it can happen whenever.
 	g.Add(n)
-
-	// Connect the inputs to the bottom of the graph so that it happens
-	// first.
-	for _, v := range g.Vertices() {
-		if v == n {
-			continue
-		}
-
-		if g.DownEdges(v).Len() == 0 {
-			g.Connect(dag.BasicEdge(v, n))
-		}
-	}
 
 	return nil
 }
@@ -65,7 +55,7 @@ type graphNodeModuleDestroy struct {
 }
 
 func (n *graphNodeModuleDestroy) Name() string {
-	return "module destroy (for plan)"
+	return "plan-destroy"
 }
 
 // GraphNodeEvalable impl.
@@ -74,6 +64,29 @@ func (n *graphNodeModuleDestroy) EvalTree() EvalNode {
 		Ops:  []walkOperation{walkPlanDestroy},
 		Node: &EvalDiffDestroyModule{Path: n.Path},
 	}
+}
+
+// GraphNodeFlattenable impl.
+func (n *graphNodeModuleDestroy) Flatten(p []string) (dag.Vertex, error) {
+	return &graphNodeModuleDestroyFlat{
+		graphNodeModuleDestroy: n,
+		PathValue:              p,
+	}, nil
+}
+
+type graphNodeModuleDestroyFlat struct {
+	*graphNodeModuleDestroy
+
+	PathValue []string
+}
+
+func (n *graphNodeModuleDestroyFlat) Name() string {
+	return fmt.Sprintf(
+		"%s.%s", modulePrefixStr(n.PathValue), n.graphNodeModuleDestroy.Name())
+}
+
+func (n *graphNodeModuleDestroyFlat) Path() []string {
+	return n.PathValue
 }
 
 type graphNodeModuleInput struct {
