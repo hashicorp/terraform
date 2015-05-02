@@ -218,6 +218,11 @@ func (n *graphNodeMissingProvider) EvalTree() EvalNode {
 	return ProviderEvalTree(n.ProviderNameValue, nil)
 }
 
+// GraphNodeDependable impl.
+func (n *graphNodeMissingProvider) DependableName() []string {
+	return []string{n.Name()}
+}
+
 func (n *graphNodeMissingProvider) ProviderName() string {
 	return n.ProviderNameValue
 }
@@ -278,6 +283,11 @@ func (n *graphNodeMissingProviderFlat) ProviderName() string {
 	return fmt.Sprintf(
 		"%s.%s", modulePrefixStr(n.PathValue),
 		n.graphNodeMissingProvider.ProviderName())
+}
+
+// GraphNodeDependable impl.
+func (n *graphNodeMissingProviderFlat) DependableName() []string {
+	return []string{n.Name()}
 }
 
 func (n *graphNodeMissingProviderFlat) DependentOn() []string {
