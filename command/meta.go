@@ -399,6 +399,20 @@ func (m *Meta) uiHook() *UiHook {
 	}
 }
 
+const (
+	// The name of the environment variable that can be used to set module depth.
+	ModuleDepthEnvVar = "TF_MODULE_DEPTH"
+)
+
+func (m *Meta) addModuleDepthFlag(flags *flag.FlagSet, moduleDepth *int) {
+	flags.IntVar(moduleDepth, "module-depth", 0, "module-depth")
+	if envVar := os.Getenv(ModuleDepthEnvVar); envVar != "" {
+		if md, err := strconv.Atoi(envVar); err == nil {
+			*moduleDepth = md
+		}
+	}
+}
+
 // contextOpts are the options used to load a context from a command.
 type contextOpts struct {
 	// Path to the directory where the root module is.
