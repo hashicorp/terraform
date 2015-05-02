@@ -267,6 +267,13 @@ func (n *GraphNodeConfigResourceFlat) ProvidedBy() []string {
 		prefix)
 }
 
+// GraphNodeDestroyable impl.
+func (n *GraphNodeConfigResourceFlat) DestroyNode(GraphNodeDestroyMode) GraphNodeDestroy {
+	// Disable destroy mode for flattened resources since we already
+	// did this within the original subgraph.
+	return nil
+}
+
 // graphNodeResourceDestroy represents the logical destruction of a
 // resource. This node doesn't mean it will be destroyed for sure, but
 // instead that if a destroy were to happen, it must happen at this point.
