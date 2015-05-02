@@ -12,24 +12,24 @@ import (
 	"github.com/hashicorp/terraform/terraform"
 )
 
-func TestAccCloudFront(t *testing.T) {
+func TestAccCloudFrontWebDistribution(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
-		CheckDestroy: testAccCheckCloudFrontDestroy,
+		CheckDestroy: testAccCheckCloudFrontWebDistributionDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccAWSCloudFrontConfig,
+				Config: testAccAWSCloudFrontWebDistributionConfig,
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckCloudfrontInitial(
+					testAccCheckCloudFrontWebDistributionInitial(
 						"aws_cloudfront.main",
 					),
 				),
 			},
 			resource.TestStep{
-				Config: testAccAWSCloudFrontUpdate,
+				Config: testAccAWSCloudFrontWebDistributionUpdate,
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckCloudfrontSecondary(
+					testAccCheckCloudFrontWebDistributionSecondary(
 						"aws_cloudfront.main",
 					),
 				),
@@ -38,7 +38,7 @@ func TestAccCloudFront(t *testing.T) {
 	})
 }
 
-func testAccCheckCloudFrontDestroy(s *terraform.State) error {
+func testAccCheckCloudFrontWebDistributionDestroy(s *terraform.State) error {
 	if len(s.RootModule().Resources) > 0 {
 		return fmt.Errorf("Expected all resources to be gone, but found: %#v", s.RootModule().Resources)
 	}
@@ -46,7 +46,7 @@ func testAccCheckCloudFrontDestroy(s *terraform.State) error {
 	return nil
 }
 
-func testAccCheckCloudfrontInitial(cloudFrontResource string) resource.TestCheckFunc {
+func testAccCheckCloudFrontWebDistributionInitial(cloudFrontResource string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		cloudFront, ok := s.RootModule().Resources[cloudFrontResource]
 		if !ok {
@@ -72,7 +72,7 @@ func testAccCheckCloudfrontInitial(cloudFrontResource string) resource.TestCheck
 	}
 }
 
-func testAccCheckCloudfrontSecondary(cloudFrontResource string) resource.TestCheckFunc {
+func testAccCheckCloudFrontWebDistributionSecondary(cloudFrontResource string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		cloudFront, ok := s.RootModule().Resources[cloudFrontResource]
 		if !ok {
@@ -102,14 +102,14 @@ func testAccCheckCloudfrontSecondary(cloudFrontResource string) resource.TestChe
 	}
 }
 
-const testAccAWSCloudFrontConfig = `
+const testAccAWSCloudFrontWebDistributionConfig = `
 resource "aws_cloudfront" "main" {
   origin_domain_name = "fileserver.example.com"
 }
 `
 
 // CloudFront does not allow CNAME conflicts on the same account
-var testAccAWSCloudFrontUpdate = fmt.Sprintf(`
+var testAccAWSCloudFrontWebDistributionUpdate = fmt.Sprintf(`
 resource "aws_cloudfront" "main" {
 	enabled = false
   origin_domain_name = "fileserver.example.com"

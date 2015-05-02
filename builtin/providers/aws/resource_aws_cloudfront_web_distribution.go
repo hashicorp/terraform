@@ -12,12 +12,12 @@ import (
 	"github.com/hashicorp/terraform/helper/schema"
 )
 
-func resourceAwsCloudFront() *schema.Resource {
+func resourceAwsCloudFrontWebDistribution() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceAwsCloudFrontCreate,
-		Read:   resourceAwsCloudFrontRead,
-		Update: resourceAwsCloudFrontUpdate,
-		Delete: resourceAwsCloudFrontDelete,
+		Create: resourceAwsCloudFrontWebDistributionCreate,
+		Read:   resourceAwsCloudFrontWebDistributionRead,
+		Update: resourceAwsCloudFrontWebDistributionUpdate,
+		Delete: resourceAwsCloudFrontWebDistributionDelete,
 
 		Schema: map[string]*schema.Schema{
 			"enabled": &schema.Schema{
@@ -157,12 +157,12 @@ func resourceAwsCloudFront() *schema.Resource {
 	}
 }
 
-func resourceAwsCloudFrontCreate(d *schema.ResourceData, meta interface{}) error {
+func resourceAwsCloudFrontWebDistributionCreate(d *schema.ResourceData, meta interface{}) error {
 	cloudfrontconn := meta.(*AWSClient).cloudfrontconn
 
 	// CloudFront distribution configurations require a unique Caller Reference
 	callerReference := time.Now().Format(time.RFC3339Nano)
-	c, err := resourceAwsCloudFrontDistributionConfig(d, meta, &callerReference)
+	c, err := resourceAwsCloudFrontWebDistributionDistributionConfig(d, meta, &callerReference)
 	if err != nil {
 		return err
 	}
@@ -178,16 +178,16 @@ func resourceAwsCloudFrontCreate(d *schema.ResourceData, meta interface{}) error
 
 	d.SetId(*res.Distribution.ID)
 
-	err = resourceAwsCloudFrontWaitUntilDeployed(d, meta)
+	err = resourceAwsCloudFrontWebDistributionWaitUntilDeployed(d, meta)
 	if err != nil {
 		return err
 	}
 
-	return resourceAwsCloudFrontRead(d, meta)
+	return resourceAwsCloudFrontWebDistributionRead(d, meta)
 }
 
-func resourceAwsCloudFrontRead(d *schema.ResourceData, meta interface{}) error {
-	v, err := resourceAwsCloudFrontDistributionRetrieve(d, meta)
+func resourceAwsCloudFrontWebDistributionRead(d *schema.ResourceData, meta interface{}) error {
+	v, err := resourceAwsCloudFrontWebDistributionDistributionRetrieve(d, meta)
 	if err != nil {
 		return err
 	}
@@ -225,16 +225,16 @@ func resourceAwsCloudFrontRead(d *schema.ResourceData, meta interface{}) error {
 	return nil
 }
 
-func resourceAwsCloudFrontUpdate(d *schema.ResourceData, meta interface{}) error {
+func resourceAwsCloudFrontWebDistributionUpdate(d *schema.ResourceData, meta interface{}) error {
 	cloudfrontconn := meta.(*AWSClient).cloudfrontconn
 
 	// CloudFront configuration changes requires the ETag of the latest changeset
-	v, err := resourceAwsCloudFrontDistributionRetrieve(d, meta)
+	v, err := resourceAwsCloudFrontWebDistributionDistributionRetrieve(d, meta)
 	if err != nil {
 		return err
 	}
 
-	c, err := resourceAwsCloudFrontDistributionConfig(d, meta, v.Distribution.DistributionConfig.CallerReference)
+	c, err := resourceAwsCloudFrontWebDistributionDistributionConfig(d, meta, v.Distribution.DistributionConfig.CallerReference)
 	if err != nil {
 		return err
 	}
@@ -252,19 +252,19 @@ func resourceAwsCloudFrontUpdate(d *schema.ResourceData, meta interface{}) error
 		return fmt.Errorf("Error updating CloudFront distribution: %s", aerr)
 	}
 
-	err = resourceAwsCloudFrontWaitUntilDeployed(d, meta)
+	err = resourceAwsCloudFrontWebDistributionWaitUntilDeployed(d, meta)
 	if err != nil {
 		return err
 	}
 
-	return resourceAwsCloudFrontRead(d, meta)
+	return resourceAwsCloudFrontWebDistributionRead(d, meta)
 }
 
-func resourceAwsCloudFrontDelete(d *schema.ResourceData, meta interface{}) error {
+func resourceAwsCloudFrontWebDistributionDelete(d *schema.ResourceData, meta interface{}) error {
 	cloudfrontconn := meta.(*AWSClient).cloudfrontconn
 
 	// TODO: Fail quietly if resource no longer exists?
-	v, err := resourceAwsCloudFrontDistributionRetrieve(d, meta)
+	v, err := resourceAwsCloudFrontWebDistributionDistributionRetrieve(d, meta)
 	if err != nil {
 		return err
 	}
@@ -273,13 +273,13 @@ func resourceAwsCloudFrontDelete(d *schema.ResourceData, meta interface{}) error
 	if d.Get("enabled") == true {
 		d.Set("enabled", false)
 
-		err := resourceAwsCloudFrontUpdate(d, meta)
+		err := resourceAwsCloudFrontWebDistributionUpdate(d, meta)
 		if err != nil {
 			return err
 		}
 
 		// Retrieve the latest ETag
-		v, err = resourceAwsCloudFrontDistributionRetrieve(d, meta)
+		v, err = resourceAwsCloudFrontWebDistributionDistributionRetrieve(d, meta)
 		if err != nil {
 			return err
 		}
@@ -300,7 +300,7 @@ func resourceAwsCloudFrontDelete(d *schema.ResourceData, meta interface{}) error
 	return nil
 }
 
-func resourceAwsCloudFrontDistributionConfig(
+func resourceAwsCloudFrontWebDistributionDistributionConfig(
 	d *schema.ResourceData, meta interface{},
 	callerReference *string) (*cloudfront.DistributionConfig, error) {
 
@@ -422,7 +422,7 @@ func resourceAwsCloudFrontDistributionConfig(
 	}, nil
 }
 
-func resourceAwsCloudFrontDistributionRetrieve(
+func resourceAwsCloudFrontWebDistributionDistributionRetrieve(
 	d *schema.ResourceData, meta interface{}) (*cloudfront.GetDistributionOutput, error) {
 	cloudfrontconn := meta.(*AWSClient).cloudfrontconn
 
@@ -438,15 +438,15 @@ func resourceAwsCloudFrontDistributionRetrieve(
 	return res, nil
 }
 
-// resourceAwsCloudFrontWaitUntilDeployed blocks until the distribution is deployed.
+// resourceAwsCloudFrontWebDistributionWaitUntilDeployed blocks until the distribution is deployed.
 // It currently takes exactly 15 minutes to deploy but that might change in the
 // future.
-func resourceAwsCloudFrontWaitUntilDeployed(d *schema.ResourceData,
-	meta interface{}) error {
+func resourceAwsCloudFrontWebDistributionWaitUntilDeployed(
+	d *schema.ResourceData, meta interface{}) error {
 	stateConf := &resource.StateChangeConf{
 		Pending:    []string{"InProgress", "Deployed"},
 		Target:     "Deployed",
-		Refresh:    resourceAwsCloudFrontStateRefreshFunc(d, meta),
+		Refresh:    resourceAwsCloudFrontWebDistributionStateRefreshFunc(d, meta),
 		Timeout:    40 * time.Minute,
 		MinTimeout: 15 * time.Second,
 		Delay:      10 * time.Minute,
@@ -456,10 +456,10 @@ func resourceAwsCloudFrontWaitUntilDeployed(d *schema.ResourceData,
 	return err
 }
 
-func resourceAwsCloudFrontStateRefreshFunc(
+func resourceAwsCloudFrontWebDistributionStateRefreshFunc(
 	d *schema.ResourceData, meta interface{}) resource.StateRefreshFunc {
 	return func() (interface{}, string, error) {
-		v, err := resourceAwsCloudFrontDistributionRetrieve(d, meta)
+		v, err := resourceAwsCloudFrontWebDistributionDistributionRetrieve(d, meta)
 
 		if err != nil {
 			log.Printf("Error on retrieving CloudFront distribution when waiting: %s", err)

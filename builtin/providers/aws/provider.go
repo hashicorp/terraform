@@ -78,7 +78,7 @@ func Provider() terraform.ResourceProvider {
 			"aws_autoscaling_group":            resourceAwsAutoscalingGroup(),
 			"aws_app_cookie_stickiness_policy": resourceAwsAppCookieStickinessPolicy(),
 			"aws_customer_gateway":             resourceAwsCustomerGateway(),
-			"aws_cloudfront":                   resourceAwsCloudFront(),
+			"aws_cloudfront_web_distribution":  resourceAwsCloudFrontWebDistribution(),
 			"aws_db_instance":                  resourceAwsDbInstance(),
 			"aws_db_parameter_group":           resourceAwsDbParameterGroup(),
 			"aws_db_security_group":            resourceAwsDbSecurityGroup(),
