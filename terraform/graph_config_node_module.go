@@ -63,6 +63,14 @@ func (n *GraphNodeConfigModule) Expand(b GraphBuilder) (GraphNodeSubgraph, error
 		return nil, err
 	}
 
+	{
+		// Add the destroy marker to the graph
+		t := &ModuleDestroyTransformer{}
+		if err := t.Transform(graph); err != nil {
+			return nil, err
+		}
+	}
+
 	// Build the actual subgraph node
 	return &graphNodeModuleExpanded{
 		Original:  n,
@@ -147,15 +155,6 @@ func (n *graphNodeModuleExpanded) EvalTree() EvalNode {
 			&EvalVariableBlock{
 				Config:    &resourceConfig,
 				Variables: n.Variables,
-			},
-
-			&EvalOpFilter{
-				Ops: []walkOperation{walkPlanDestroy},
-				Node: &EvalSequence{
-					Nodes: []EvalNode{
-						&EvalDiffDestroyModule{Path: n.Graph.Path},
-					},
-				},
 			},
 		},
 	}

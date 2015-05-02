@@ -74,6 +74,7 @@ module.child.aws_instance.child
   module.child.var.var
 module.child.output.output
   module.child.aws_instance.child
+module.child.plan-destroy
 module.child.var.var
   aws_instance.parent
 `
@@ -88,6 +89,7 @@ module.child.aws_instance.child
   module.child.var.var
 module.child.output.output
   module.child.aws_instance.child
+module.child.plan-destroy
 module.child.var.var
   aws_instance.parent
 `
