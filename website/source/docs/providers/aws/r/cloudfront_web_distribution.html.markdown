@@ -1,12 +1,12 @@
 ---
 layout: "aws"
-page_title: "AWS: aws_cloudfront"
-sidebar_current: "docs-aws-resource-cloudfront"
+page_title: "AWS: cloudfront_web_distribution"
+sidebar_current: "docs-aws-resource-cloudfront-web-distribution"
 description: |-
-  Provides a CloudFront distribution resource.
+  Provides a CloudFront web distribution resource.
 ---
 
-# aws\_cloudfront
+# cloudfront\_web\_distribution
 
 Provides a CloudFront distribution resource. Distributions takes approximately
 15 minutes to deploy.
@@ -14,7 +14,7 @@ Provides a CloudFront distribution resource. Distributions takes approximately
 ## Example Usage
 
 ```
-resource "aws_cloudfront" "web" {
+resource "aws_cloudfront_web_distribution" "static" {
   origin_domain_name = "bucket.s3.amazonaws.com"
 }
 ```
