@@ -227,6 +227,31 @@ func TestAccComputeInstance_update(t *testing.T) {
 	})
 }
 
+func TestAccComputeInstance_service_account(t *testing.T) {
+	var instance compute.Instance
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckComputeInstanceDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccComputeInstance_service_account,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckComputeInstanceExists(
+						"google_compute_instance.foobar", &instance),
+					testAccCheckComputeInstanceServiceAccount(&instance,
+						"https://www.googleapis.com/auth/compute.readonly"),
+					testAccCheckComputeInstanceServiceAccount(&instance,
+						"https://www.googleapis.com/auth/devstorage.read_only"),
+					testAccCheckComputeInstanceServiceAccount(&instance,
+						"https://www.googleapis.com/auth/userinfo.email"),
+				),
+			},
+		},
+	})
+}
+
 func testAccCheckComputeInstanceDestroy(s *terraform.State) error {
 	config := testAccProvider.Meta().(*Config)
 
@@ -353,6 +378,22 @@ func testAccCheckComputeInstanceTag(instance *compute.Instance, n string) resour
 		}
 
 		return fmt.Errorf("tag not found: %s", n)
+	}
+}
+
+func testAccCheckComputeInstanceServiceAccount(instance *compute.Instance, scope string) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		if count := len(instance.ServiceAccounts); count != 1 {
+			return fmt.Errorf("Wrong number of ServiceAccounts: expected 1, got %d", count)
+		}
+
+		for _, val := range instance.ServiceAccounts[0].Scopes {
+			if val == scope {
+				return nil
+			}
+		}
+
+		return fmt.Errorf("Scope not found: %s", scope)
 	}
 }
 
@@ -565,5 +606,28 @@ resource "google_compute_instance" "foobar" {
 
 	metadata {
 		foo = "bar"
+	}
+}`
+
+const testAccComputeInstance_service_account = `
+resource "google_compute_instance" "foobar" {
+	name = "terraform-test"
+	machine_type = "n1-standard-1"
+	zone = "us-central1-a"
+
+	disk {
+		image = "debian-7-wheezy-v20140814"
+	}
+
+	network_interface {
+		network = "default"
+	}
+
+	service_account {
+		scopes = [
+			"userinfo-email",
+			"compute-ro",
+			"storage-ro",
+		]
 	}
 }`
