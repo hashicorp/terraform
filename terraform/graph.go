@@ -69,6 +69,18 @@ func (g *Graph) Remove(v dag.Vertex) dag.Vertex {
 	return g.Graph.Remove(v)
 }
 
+// Replace is the same as dag.Graph.Replace
+func (g *Graph) Replace(o, n dag.Vertex) bool {
+	// Go through and update our lookaside to point to the new vertex
+	for k, v := range g.dependableMap {
+		if v == o {
+			g.dependableMap[k] = n
+		}
+	}
+
+	return g.Graph.Replace(o, n)
+}
+
 // ConnectDependent connects a GraphNodeDependent to all of its
 // GraphNodeDependables. It returns the list of dependents it was
 // unable to connect to.

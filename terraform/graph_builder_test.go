@@ -136,6 +136,22 @@ func TestBuiltinGraphBuilder_cbdDepNonCbd_errorsWhenVerbose(t *testing.T) {
 	}
 }
 
+func TestBuiltinGraphBuilder_fuck(t *testing.T) {
+	b := &BuiltinGraphBuilder{
+		Providers: []string{"aws"},
+		Root:      testModule(t, "validate-module-pc-inherit-unused"),
+		Validate:  true,
+	}
+
+	g, err := b.Build(RootModulePath)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	println(g.String())
+	t.FailNow()
+}
+
 /*
 TODO: This exposes a really bad bug we need to fix after we merge
 the f-ast-branch. This bug still exists in master.
