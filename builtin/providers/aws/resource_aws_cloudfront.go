@@ -148,6 +148,11 @@ func resourceAwsCloudFront() *schema.Resource {
 					return hashcode.String(v.(string))
 				},
 			},
+
+			"zone_id": &schema.Schema{
+				Type:     schema.TypeString,
+				Computed: true,
+			},
 		},
 	}
 }
@@ -205,6 +210,7 @@ func resourceAwsCloudFrontRead(d *schema.ResourceData, meta interface{}) error {
 	d.Set("minimum_ttl", c.DefaultCacheBehavior.MinTTL)
 	d.Set("geo_restriction_type", c.Restrictions.GeoRestriction.RestrictionType)
 	d.Set("geo_restrictions", c.Restrictions.GeoRestriction.Items)
+	d.Set("zone_id", "Z2FDTNDATAQYW2")
 
 	// CloudFront distributions supports multiple origins. However most of the above
 	// configuration options also apply to a single origin which would result in

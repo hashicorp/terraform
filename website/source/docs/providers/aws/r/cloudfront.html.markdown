@@ -50,3 +50,4 @@ The following attributes are exported:
 
 * `id` - The unique identifier of the distribution.
 * `domain_name` - Unique domain of the resource.
+* `zone_id` - The canonical hosted zone ID of CloudFront(to be used in a Route 53 Alias record)
