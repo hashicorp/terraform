@@ -45,6 +45,13 @@ type GraphNodeDestroyPrunable interface {
 	DestroyInclude(*ModuleDiff, *ModuleState) bool
 }
 
+// GraphNodeEdgeInclude can be implemented to not include something
+// as an edge within the destroy graph. This is usually done because it
+// might cause unnecessary cycles.
+type GraphNodeDestroyEdgeInclude interface {
+	DestroyEdgeInclude() bool
+}
+
 // DestroyTransformer is a GraphTransformer that creates the destruction
 // nodes for things that _might_ be destroyed.
 type DestroyTransformer struct{}
@@ -102,11 +109,9 @@ func (t *DestroyTransformer) transform(
 		// Inherit all the edges from the old node
 		downEdges := g.DownEdges(v).List()
 		for _, edgeRaw := range downEdges {
-			// Don't inherit proxies. These are currently variables and
-			// outputs and don't affect destroys. In the future we should
-			// probably make this more obvious somehow (another interface?).
-			// Right now I'm not sure how.
-			if _, ok := edgeRaw.(GraphNodeProxy); ok {
+			// If this thing specifically requests to not be depended on
+			// by destroy nodes, then don't.
+			if i, ok := edgeRaw.(GraphNodeDestroyEdgeInclude); ok && !i.DestroyEdgeInclude() {
 				continue
 			}
 

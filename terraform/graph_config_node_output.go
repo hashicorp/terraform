@@ -61,6 +61,11 @@ func (n *GraphNodeConfigOutput) Proxy() bool {
 	return true
 }
 
+// GraphNodeDestroyEdgeInclude impl.
+func (n *GraphNodeConfigOutput) DestroyEdgeInclude() bool {
+	return false
+}
+
 // GraphNodeFlattenable impl.
 func (n *GraphNodeConfigOutput) Flatten(p []string) (dag.Vertex, error) {
 	return &GraphNodeConfigOutputFlat{
