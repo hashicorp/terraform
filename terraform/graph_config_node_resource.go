@@ -268,10 +268,38 @@ func (n *GraphNodeConfigResourceFlat) ProvidedBy() []string {
 }
 
 // GraphNodeDestroyable impl.
-func (n *GraphNodeConfigResourceFlat) DestroyNode(GraphNodeDestroyMode) GraphNodeDestroy {
-	// Disable destroy mode for flattened resources since we already
-	// did this within the original subgraph.
-	return nil
+func (n *GraphNodeConfigResourceFlat) DestroyNode(mode GraphNodeDestroyMode) GraphNodeDestroy {
+	// Get our parent destroy node. If we don't have any, just return
+	raw := n.GraphNodeConfigResource.DestroyNode(mode)
+	if raw == nil {
+		return nil
+	}
+
+	node, ok := raw.(*graphNodeResourceDestroy)
+	if !ok {
+		panic(fmt.Sprintf("unknown destroy node: %s %T", dag.VertexName(raw), raw))
+	}
+
+	// Otherwise, wrap it so that it gets the proper module treatment.
+	return &graphNodeResourceDestroyFlat{
+		graphNodeResourceDestroy: node,
+		PathValue:                n.PathValue,
+	}
+}
+
+type graphNodeResourceDestroyFlat struct {
+	*graphNodeResourceDestroy
+
+	PathValue []string
+}
+
+func (n *graphNodeResourceDestroyFlat) Name() string {
+	return fmt.Sprintf(
+		"%s.%s", modulePrefixStr(n.PathValue), n.graphNodeResourceDestroy.Name())
+}
+
+func (n *graphNodeResourceDestroyFlat) Path() []string {
+	return n.PathValue
 }
 
 // graphNodeResourceDestroy represents the logical destruction of a

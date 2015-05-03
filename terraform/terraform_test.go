@@ -362,6 +362,12 @@ module.child:
   leader = 1
 `
 
+const testTerraformApplyModuleDestroyOrderStr = `
+<no state>
+module.child:
+  <no state>
+`
+
 const testTerraformApplyMultiProviderStr = `
 aws_instance.bar:
   ID = foo

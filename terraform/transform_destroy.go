@@ -102,6 +102,14 @@ func (t *DestroyTransformer) transform(
 		// Inherit all the edges from the old node
 		downEdges := g.DownEdges(v).List()
 		for _, edgeRaw := range downEdges {
+			// Don't inherit proxies. These are currently variables and
+			// outputs and don't affect destroys. In the future we should
+			// probably make this more obvious somehow (another interface?).
+			// Right now I'm not sure how.
+			if _, ok := edgeRaw.(GraphNodeProxy); ok {
+				continue
+			}
+
 			g.Connect(dag.BasicEdge(n, edgeRaw.(dag.Vertex)))
 		}
 
@@ -204,20 +212,25 @@ type PruneDestroyTransformer struct {
 }
 
 func (t *PruneDestroyTransformer) Transform(g *Graph) error {
-	var modDiff *ModuleDiff
-	var modState *ModuleState
-	if t.Diff != nil {
-		modDiff = t.Diff.ModuleByPath(g.Path)
-	}
-	if t.State != nil {
-		modState = t.State.ModuleByPath(g.Path)
-	}
-
 	for _, v := range g.Vertices() {
 		// If it is not a destroyer, we don't care
 		dn, ok := v.(GraphNodeDestroyPrunable)
 		if !ok {
 			continue
+		}
+
+		path := g.Path
+		if pn, ok := v.(GraphNodeSubPath); ok {
+			path = pn.Path()
+		}
+
+		var modDiff *ModuleDiff
+		var modState *ModuleState
+		if t.Diff != nil {
+			modDiff = t.Diff.ModuleByPath(path)
+		}
+		if t.State != nil {
+			modState = t.State.ModuleByPath(path)
 		}
 
 		// Remove it if we should
