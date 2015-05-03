@@ -19,14 +19,14 @@ var Funcs map[string]ast.Function
 
 func init() {
 	Funcs = map[string]ast.Function{
+		"element":    interpolationFuncElement(),
 		"file":       interpolationFuncFile(),
 		"format":     interpolationFuncFormat(),
 		"formatlist": interpolationFuncFormatList(),
 		"join":       interpolationFuncJoin(),
-		"element":    interpolationFuncElement(),
+		"length":     interpolationFuncLength(),
 		"replace":    interpolationFuncReplace(),
 		"split":      interpolationFuncSplit(),
-		"length":     interpolationFuncLength(),
 
 		// Concat is a little useless now since we supported embeddded
 		// interpolations but we keep it around for backwards compat reasons.
