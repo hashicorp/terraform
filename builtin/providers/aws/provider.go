@@ -53,6 +53,13 @@ func Provider() terraform.ResourceProvider {
 				InputDefault: "us-east-1",
 			},
 
+			"max_retries": &schema.Schema{
+				Type:        schema.TypeInt,
+				Optional:    true,
+				Default:     11,
+				Description: descriptions["max_retries"],
+			},
+
 			"allowed_account_ids": &schema.Schema{
 				Type:          schema.TypeSet,
 				Elem:          &schema.Schema{Type: schema.TypeString},
@@ -130,15 +137,20 @@ func init() {
 
 		"token": "session token. A session token is only required if you are\n" +
 			"using temporary security credentials.",
+
+		"max_retries": "The maximum number of times an AWS API request is\n" +
+			"being executed. If the API request still fails, an error is\n" +
+			"thrown.",
 	}
 }
 
 func providerConfigure(d *schema.ResourceData) (interface{}, error) {
 	config := Config{
-		AccessKey: d.Get("access_key").(string),
-		SecretKey: d.Get("secret_key").(string),
-		Token:     d.Get("token").(string),
-		Region:    d.Get("region").(string),
+		AccessKey:  d.Get("access_key").(string),
+		SecretKey:  d.Get("secret_key").(string),
+		Token:      d.Get("token").(string),
+		Region:     d.Get("region").(string),
+		MaxRetries: d.Get("max_retries").(int),
 	}
 
 	if v, ok := d.GetOk("allowed_account_ids"); ok {
