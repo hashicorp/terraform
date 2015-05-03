@@ -72,8 +72,8 @@ are documented below.
 
 The supported built-in functions are:
 
-  * `concat(args...)` - Concatenates the values of multiple arguments into
-      a single string.
+  * `concat(list1, list2)` - Combines two or more lists into a single list.
+     Example: `combine(aws_instance.db.*.tags.Name, aws_instance.web.*.tags.Name)`
 
   * `element(list, index)` - Returns a single element from a list
       at the given index. If the index is greater than the number of
