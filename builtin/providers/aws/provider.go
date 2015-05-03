@@ -38,6 +38,7 @@ func Provider() terraform.ResourceProvider {
 				Optional: true,
 				DefaultFunc: schema.MultiEnvDefaultFunc([]string{
 					"AWS_SESSION_TOKEN",
+					"AWS_SECURITY_TOKEN",
 				}, ""),
 				Description: descriptions["token"],
 			},
