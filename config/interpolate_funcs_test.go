@@ -532,12 +532,12 @@ func testFunction(t *testing.T, config testFunctionConfig) {
 	for i, tc := range config.Cases {
 		ast, err := lang.Parse(tc.Input)
 		if err != nil {
-			t.Fatalf("%d: err: %s", i, err)
+			t.Fatalf("Case #%d: input: %#v\nerr: %s", i, tc.Input, err)
 		}
 
 		out, _, err := lang.Eval(ast, langEvalConfig(config.Vars))
 		if (err != nil) != tc.Error {
-			t.Fatalf("%d: err: %s", i, err)
+			t.Fatalf("Case #%d:\ninput: %#v\nerr: %s", i, tc.Input, err)
 		}
 
 		if !reflect.DeepEqual(out, tc.Result) {
