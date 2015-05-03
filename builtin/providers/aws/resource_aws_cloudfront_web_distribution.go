@@ -1,11 +1,14 @@
 package aws
 
 import (
+	"bytes"
 	"fmt"
 	"log"
+	"sort"
 	"time"
 
 	"github.com/awslabs/aws-sdk-go/aws"
+	"github.com/awslabs/aws-sdk-go/aws/awsutil"
 	"github.com/awslabs/aws-sdk-go/service/cloudfront"
 	"github.com/hashicorp/terraform/helper/hashcode"
 	"github.com/hashicorp/terraform/helper/resource"
@@ -52,50 +55,56 @@ func resourceAwsCloudFrontWebDistribution() *schema.Resource {
 				Computed: true,
 			},
 
-			"origin_domain_name": &schema.Schema{
-				Type:     schema.TypeString,
-				Required: true,
-			},
-
-			"origin_path": &schema.Schema{
-				Type:     schema.TypeString,
-				Optional: true,
-			},
-
-			"http_port": &schema.Schema{
-				Type:     schema.TypeInt,
-				Optional: true,
-				Default:  80,
-			},
-
-			"https_port": &schema.Schema{
-				Type:     schema.TypeInt,
-				Optional: true,
-				Default:  443,
-			},
-
-			"origin_protocol_policy": &schema.Schema{
-				Type:     schema.TypeString,
-				Optional: true,
-				Default:  "http-only",
-			},
-
-			"viewer_protocol_policy": &schema.Schema{
+			"default_viewer_protocol_policy": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
 				Default:  "allow-all",
 			},
 
-			"forward_cookie": &schema.Schema{
+			"default_forward_cookie": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
 				Default:  "none",
 			},
 
-			"forward_query_string": &schema.Schema{
+			"default_whitelisted_cookies": &schema.Schema{
+				Type:     schema.TypeList,
+				Elem:     &schema.Schema{Type: schema.TypeString},
+				Optional: true,
+			},
+
+			"default_forward_query_string": &schema.Schema{
 				Type:     schema.TypeBool,
 				Optional: true,
 				Default:  false,
+			},
+
+			"default_minimum_ttl": &schema.Schema{
+				Type:     schema.TypeInt,
+				Optional: true,
+			},
+
+			"default_smooth_streaming": &schema.Schema{
+				Type:     schema.TypeBool,
+				Optional: true,
+			},
+
+			"default_allowed_methods": &schema.Schema{
+				Type:     schema.TypeList,
+				Elem:     &schema.Schema{Type: schema.TypeString},
+				Optional: true,
+			},
+
+			"default_cached_methods": &schema.Schema{
+				Type:     schema.TypeList,
+				Elem:     &schema.Schema{Type: schema.TypeString},
+				Optional: true,
+			},
+
+			"default_forwarded_headers": &schema.Schema{
+				Type:     schema.TypeList,
+				Elem:     &schema.Schema{Type: schema.TypeString},
+				Optional: true,
 			},
 
 			"logging_enabled": &schema.Schema{
@@ -120,18 +129,21 @@ func resourceAwsCloudFrontWebDistribution() *schema.Resource {
 				Optional: true,
 			},
 
-			"minimum_ttl": &schema.Schema{
-				Type:     schema.TypeInt,
+			"default_origin": &schema.Schema{
+				Type:     schema.TypeString,
+				Required: true,
+			},
+
+			"minimum_ssl": &schema.Schema{
+				Type:     schema.TypeString,
 				Optional: true,
+				Default:  "SSLv3",
 			},
 
 			"aliases": &schema.Schema{
-				Type:     schema.TypeSet,
+				Type:     schema.TypeList,
 				Elem:     &schema.Schema{Type: schema.TypeString},
 				Optional: true,
-				Set: func(v interface{}) int {
-					return hashcode.String(v.(string))
-				},
 			},
 
 			"geo_restriction_type": &schema.Schema{
@@ -141,17 +153,122 @@ func resourceAwsCloudFrontWebDistribution() *schema.Resource {
 			},
 
 			"geo_restrictions": &schema.Schema{
-				Type:     schema.TypeSet,
+				Type:     schema.TypeList,
 				Elem:     &schema.Schema{Type: schema.TypeString},
 				Optional: true,
-				Set: func(v interface{}) int {
-					return hashcode.String(v.(string))
-				},
 			},
 
 			"zone_id": &schema.Schema{
 				Type:     schema.TypeString,
 				Computed: true,
+			},
+
+			"origin": &schema.Schema{
+				Type:     schema.TypeSet,
+				Required: true,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"domain_name": &schema.Schema{
+							Type:     schema.TypeString,
+							Required: true,
+						},
+
+						"id": &schema.Schema{
+							Type:     schema.TypeString,
+							Required: true,
+						},
+
+						"http_port": &schema.Schema{
+							Type:     schema.TypeInt,
+							Optional: true,
+							Default:  80,
+						},
+
+						"https_port": &schema.Schema{
+							Type:     schema.TypeInt,
+							Optional: true,
+							Default:  443,
+						},
+
+						"origin_protocol_policy": &schema.Schema{
+							Type:     schema.TypeString,
+							Optional: true,
+							Default:  "http-only",
+						},
+
+						"origin_path": &schema.Schema{
+							Type:     schema.TypeString,
+							Optional: true,
+							Default:  "",
+						},
+					},
+				},
+				Set: resourceAwsCloudFrontWebDistributionOriginHash,
+			},
+
+			"behavior": &schema.Schema{
+				Type:     schema.TypeSet,
+				Required: true,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"pattern": &schema.Schema{
+							Type:     schema.TypeString,
+							Required: true,
+						},
+
+						"origin": &schema.Schema{
+							Type:     schema.TypeString,
+							Required: true,
+						},
+
+						"smooth_streaming": &schema.Schema{
+							Type:     schema.TypeBool,
+							Optional: true,
+						},
+
+						"viewer_protocol_policy": &schema.Schema{
+							Type:     schema.TypeString,
+							Optional: true,
+							Default:  "allow-all",
+						},
+
+						"minimum_ttl": &schema.Schema{
+							Type:     schema.TypeInt,
+							Optional: true,
+						},
+
+						"allowed_methods": &schema.Schema{
+							Type:     schema.TypeList,
+							Elem:     &schema.Schema{Type: schema.TypeString},
+							Optional: true,
+						},
+
+						"cached_methods": &schema.Schema{
+							Type:     schema.TypeList,
+							Elem:     &schema.Schema{Type: schema.TypeString},
+							Optional: true,
+						},
+
+						"forwarded_headers": &schema.Schema{
+							Type:     schema.TypeList,
+							Elem:     &schema.Schema{Type: schema.TypeString},
+							Optional: true,
+						},
+
+						"forward_cookie": &schema.Schema{
+							Type:     schema.TypeString,
+							Optional: true,
+							Default:  "none",
+						},
+
+						"whitelisted_cookies": &schema.Schema{
+							Type:     schema.TypeList,
+							Elem:     &schema.Schema{Type: schema.TypeString},
+							Optional: true,
+						},
+					},
+				},
+				Set: resourceAwsCloudFrontWebDistributionBehaviorHash,
 			},
 		},
 	}
@@ -193,34 +310,53 @@ func resourceAwsCloudFrontWebDistributionRead(d *schema.ResourceData, meta inter
 	}
 
 	c := v.Distribution.DistributionConfig
-	d.Set("domain_name", v.Distribution.DomainName)
-	d.Set("status", v.Distribution.Status)
 	d.Set("enabled", c.Enabled)
 	d.Set("comment", c.Comment)
 	d.Set("price_class", c.PriceClass)
 	d.Set("default_root_object", c.DefaultRootObject)
-	d.Set("aliases", c.Aliases.Items)
-	d.Set("viewer_protocol_policy", c.DefaultCacheBehavior.ViewerProtocolPolicy)
-	d.Set("forward_cookie", c.DefaultCacheBehavior.ForwardedValues.Cookies)
-	d.Set("forward_query_string", c.DefaultCacheBehavior.ForwardedValues.QueryString)
+	d.Set("domain_name", v.Distribution.DomainName)
+	d.Set("status", v.Distribution.Status)
+	d.Set("default_viewer_protocol_policy", c.DefaultCacheBehavior.ViewerProtocolPolicy)
+	d.Set("default_forward_cookie", c.DefaultCacheBehavior.ForwardedValues.Cookies)
+	d.Set("default_whitelisted_cookies", c.DefaultCacheBehavior.ForwardedValues.Cookies.WhitelistedNames.Items) // This might need a check?
+	d.Set("default_forward_query_string", c.DefaultCacheBehavior.ForwardedValues.QueryString)
+	d.Set("default_minimum_ttl", c.DefaultCacheBehavior.MinTTL)
+	d.Set("default_smooth_streaming", c.DefaultCacheBehavior.SmoothStreaming)
+	d.Set("default_allowed_methods", c.DefaultCacheBehavior.AllowedMethods.Items)
+	d.Set("default_allowed_methods", c.DefaultCacheBehavior.AllowedMethods.CachedMethods.Items)
+	d.Set("default_forwarded_headers", c.DefaultCacheBehavior.ForwardedValues.Headers.Items)
 	d.Set("logging_enabled", c.Logging.Enabled)
 	d.Set("logging_include_cookies", c.Logging.IncludeCookies)
 	d.Set("logging_prefix", c.Logging.Prefix)
 	d.Set("logging_bucket", c.Logging.Bucket)
-	d.Set("minimum_ttl", c.DefaultCacheBehavior.MinTTL)
+	d.Set("default_origin", c.DefaultCacheBehavior.TargetOriginID)
+	d.Set("minimum_ssl", c.ViewerCertificate.MinimumProtocolVersion)
+	d.Set("aliases", c.Aliases.Items)
 	d.Set("geo_restriction_type", c.Restrictions.GeoRestriction.RestrictionType)
 	d.Set("geo_restrictions", c.Restrictions.GeoRestriction.Items)
 	d.Set("zone_id", "Z2FDTNDATAQYW2")
 
-	// CloudFront distributions supports multiple origins. However most of the above
-	// configuration options also apply to a single origin which would result in
-	// an overwhelming API
-	o := c.Origins.Items[0]
-	d.Set("origin_domain_name", o.DomainName)
-	d.Set("origin_path", o.OriginPath)
-	d.Set("http_port", o.CustomOriginConfig.HTTPPort)
-	d.Set("https_port", o.CustomOriginConfig.HTTPSPort)
-	d.Set("origin_protocol_policy", o.CustomOriginConfig.OriginProtocolPolicy)
+	// TODO: Collect the following values
+
+	// origin
+	// - domain_name
+	// - id
+	// - http_port
+	// - https_port
+	// - origin_protocol_policy
+	// - origin_path
+
+	// behavior
+	// - pattern
+	// - origin
+	// - smooth_streaming
+	// - viewer_protocol_policy
+	// - minimum_ttl
+	// - allowed_methods
+	// - cached_methods
+	// - forwarded_headers
+	// - forward_cookie
+	// - whitelisted_cookies
 
 	return nil
 }
@@ -304,122 +440,95 @@ func resourceAwsCloudFrontWebDistributionDistributionConfig(
 	d *schema.ResourceData, meta interface{},
 	callerReference *string) (*cloudfront.DistributionConfig, error) {
 
-	enabled := d.Get("enabled").(bool)
-	comment := d.Get("comment").(string)
-	priceClass := d.Get("price_class").(string)
-	defaultRootObject := d.Get("default_root_object").(string)
-	originDomainName := d.Get("origin_domain_name").(string)
-	originID := fmt.Sprintf("%s-origin", originDomainName)
-	originPath := d.Get("origin_path").(string)
-	originProtocolPolicy := d.Get("origin_protocol_policy").(string)
-	originHTTPPort := d.Get("http_port").(int)
-	originHTTPSPort := d.Get("https_port").(int)
-	viewerProtocolPolicy := d.Get("viewer_protocol_policy").(string)
-	forwardCookie := d.Get("forward_cookie").(string)
-	forwardQueryString := d.Get("forward_query_string").(bool)
-	loggingEnabled := d.Get("logging_enabled").(bool)
-	loggingIncludeCookies := d.Get("logging_include_cookies").(bool)
-	loggingPrefix := d.Get("logging_prefix").(string)
-	loggingBucket := d.Get("logging_bucket").(string)
-	minimumTTL := d.Get("minimum_ttl").(int)
-	geoRestrictionType := d.Get("geo_restriction_type").(string)
+	aliases := resourceAwsCloudFrontWebDistributionAwsStringLists(
+		d.Get("aliases"))
+	geoRestrictions := resourceAwsCloudFrontWebDistributionAwsStringLists(
+		d.Get("geo_restrictions"))
+	defaultAllowedMethods := resourceAwsCloudFrontWebDistributionHandleMethods(
+		d.Get("default_allowed_methods"))
+	defaultCachedMethods := resourceAwsCloudFrontWebDistributionHandleMethods(
+		d.Get("default_cached_methods"))
+	defaultForwardedHeaders := resourceAwsCloudFrontWebDistributionAwsStringLists(
+		d.Get("default_forwarded_headers"))
 
-	aliasesList := d.Get("aliases").(*schema.Set).List()
-	aliases := make([]*string, 0, len(aliasesList))
-	for _, r := range aliasesList {
-		s := r.(string)
-		aliases = append(aliases, aws.String(s))
-	}
-
-	geoRestrictionsList := d.Get("geo_restrictions").(*schema.Set).List()
-	geoRestrictions := make([]*string, 0, len(geoRestrictionsList))
-	for _, r := range geoRestrictionsList {
-		s := r.(string)
-		geoRestrictions = append(geoRestrictions, aws.String(s))
-	}
+	originsList := d.Get("origin").(*schema.Set).List()
+	origins := resourceAwsCloudFrontWebDistributionExpandOrigins(originsList)
+	behaviorsList := d.Get("behavior").(*schema.Set).List()
+	behaviors := resourceAwsCloudFrontWebDistributionExpandBehaviors(behaviorsList)
+	cookies := resourceAwsCloudFrontWebDistributionCookies(
+		d.Get("default_forward_cookie"), d.Get("default_whitelisted_cookies"))
 
 	// PUT DistributionConfig requires, unlike POST, EVERY possible option to be set.
 	// Except for the configurable options, these are the defaults options.
-	return &cloudfront.DistributionConfig{
+	x := &cloudfront.DistributionConfig{
 		CallerReference:   callerReference,
-		Enabled:           aws.Boolean(enabled),
-		Comment:           aws.String(comment),
-		PriceClass:        aws.String(priceClass),
-		DefaultRootObject: aws.String(defaultRootObject),
+		Enabled:           aws.Boolean(d.Get("enabled").(bool)),
+		Comment:           aws.String(d.Get("comment").(string)),
+		PriceClass:        aws.String(d.Get("price_class").(string)),
+		DefaultRootObject: aws.String(d.Get("default_root_object").(string)),
 		Aliases: &cloudfront.Aliases{
 			Quantity: aws.Long(int64(len(aliases))),
 			Items:    aliases,
 		},
 		Origins: &cloudfront.Origins{
-			Quantity: aws.Long(1),
-			Items: []*cloudfront.Origin{
-				&cloudfront.Origin{
-					DomainName: aws.String(originDomainName),
-					ID:         aws.String(originID),
-					OriginPath: aws.String(originPath),
-					CustomOriginConfig: &cloudfront.CustomOriginConfig{
-						HTTPPort:             aws.Long(int64(originHTTPPort)),
-						HTTPSPort:            aws.Long(int64(originHTTPSPort)),
-						OriginProtocolPolicy: aws.String(originProtocolPolicy),
-					},
-				},
-			},
+			Quantity: aws.Long(int64(len(origins))),
+			Items:    origins,
 		},
 		ViewerCertificate: &cloudfront.ViewerCertificate{
 			CloudFrontDefaultCertificate: aws.Boolean(true),
-			MinimumProtocolVersion:       aws.String("SSLv3"),
+			MinimumProtocolVersion:       aws.String(d.Get("minimum_ssl").(string)),
 		},
 		Logging: &cloudfront.LoggingConfig{
-			Enabled:        aws.Boolean(loggingEnabled),
-			IncludeCookies: aws.Boolean(loggingIncludeCookies),
-			Prefix:         aws.String(loggingPrefix),
-			Bucket:         aws.String(loggingBucket),
+			Enabled:        aws.Boolean(d.Get("logging_enabled").(bool)),
+			IncludeCookies: aws.Boolean(d.Get("logging_include_cookies").(bool)),
+			Prefix:         aws.String(d.Get("logging_prefix").(string)),
+			Bucket:         aws.String(d.Get("logging_bucket").(string)),
 		},
 		Restrictions: &cloudfront.Restrictions{
 			GeoRestriction: &cloudfront.GeoRestriction{
 				Quantity:        aws.Long(int64(len(geoRestrictions))),
-				RestrictionType: aws.String(geoRestrictionType),
+				RestrictionType: aws.String(d.Get("geo_restriction_type").(string)),
 				Items:           geoRestrictions,
 			},
 		},
-		CacheBehaviors: &cloudfront.CacheBehaviors{
-			Quantity: aws.Long(0),
-		},
-		CustomErrorResponses: &cloudfront.CustomErrorResponses{
-			Quantity: aws.Long(0),
-		},
 		DefaultCacheBehavior: &cloudfront.DefaultCacheBehavior{
 			ForwardedValues: &cloudfront.ForwardedValues{
-				Cookies:     &cloudfront.CookiePreference{Forward: aws.String(forwardCookie)},
-				QueryString: aws.Boolean(forwardQueryString),
+				Cookies:     cookies,
+				QueryString: aws.Boolean(d.Get("default_forward_query_string").(bool)),
 				Headers: &cloudfront.Headers{
-					Quantity: aws.Long(0),
+					Quantity: aws.Long(int64(len(defaultForwardedHeaders))),
+					Items:    defaultForwardedHeaders,
 				},
 			},
-			TargetOriginID:       aws.String(originID),
-			ViewerProtocolPolicy: aws.String(viewerProtocolPolicy),
-			MinTTL:               aws.Long(int64(minimumTTL)),
+			TargetOriginID:       aws.String(d.Get("default_origin").(string)),
+			ViewerProtocolPolicy: aws.String(d.Get("default_viewer_protocol_policy").(string)),
+			MinTTL:               aws.Long(int64(d.Get("default_minimum_ttl").(int))),
 			TrustedSigners: &cloudfront.TrustedSigners{
 				Enabled:  aws.Boolean(false),
 				Quantity: aws.Long(0),
 			},
-			SmoothStreaming: aws.Boolean(false),
+			SmoothStreaming: aws.Boolean(d.Get("default_smooth_streaming").(bool)),
 			AllowedMethods: &cloudfront.AllowedMethods{
-				Quantity: aws.Long(2),
-				Items: []*string{
-					aws.String("GET"),
-					aws.String("HEAD"),
-				},
+				Quantity: aws.Long(int64(len(defaultAllowedMethods))),
+				Items:    defaultAllowedMethods,
 				CachedMethods: &cloudfront.CachedMethods{
-					Quantity: aws.Long(2),
-					Items: []*string{
-						aws.String("GET"),
-						aws.String("HEAD"),
-					},
+					Quantity: aws.Long(int64(len(defaultCachedMethods))),
+					Items:    defaultCachedMethods,
 				},
 			},
 		},
-	}, nil
+		CacheBehaviors: &cloudfront.CacheBehaviors{
+			Quantity: aws.Long(int64(len(behaviors))),
+			Items:    behaviors,
+		},
+		CustomErrorResponses: &cloudfront.CustomErrorResponses{
+			Quantity: aws.Long(0),
+		},
+	}
+
+	log.Println(awsutil.StringValue(x))
+
+	return x, nil
 }
 
 func resourceAwsCloudFrontWebDistributionDistributionRetrieve(
@@ -471,5 +580,160 @@ func resourceAwsCloudFrontWebDistributionStateRefreshFunc(
 		}
 
 		return v.Distribution, *v.Distribution.Status, nil
+	}
+}
+
+func resourceAwsCloudFrontWebDistributionOriginHash(v interface{}) int {
+	var buf bytes.Buffer
+	m := v.(map[string]interface{})
+	buf.WriteString(fmt.Sprintf("%s-", m["domain_name"].(string)))
+	buf.WriteString(fmt.Sprintf("%s-", m["id"].(string)))
+	buf.WriteString(fmt.Sprintf("%d-", m["http_port"].(int)))
+	buf.WriteString(fmt.Sprintf("%d-", m["https_port"].(int)))
+	buf.WriteString(fmt.Sprintf("%s-", m["origin_protocol_policy"].(string)))
+	buf.WriteString(fmt.Sprintf("%s-", m["origin_path"].(string)))
+
+	return hashcode.String(buf.String())
+}
+
+func resourceAwsCloudFrontWebDistributionBehaviorHash(v interface{}) int {
+	var buf bytes.Buffer
+	m := v.(map[string]interface{})
+	buf.WriteString(fmt.Sprintf("%s-", m["pattern"].(string)))
+	buf.WriteString(fmt.Sprintf("%s-", m["origin"].(string)))
+	buf.WriteString(fmt.Sprintf("%v-", m["smooth_streaming"].(bool)))
+	buf.WriteString(fmt.Sprintf("%s-", m["viewer_protocol_policy"].(string)))
+	buf.WriteString(fmt.Sprintf("%d-", m["minimum_ttl"].(int)))
+	buf.WriteString(fmt.Sprintf("%v-", m["forward_cookie"].(string)))
+	resourceAwsCloudFrontWebDistributionHashStringList(m, "allowed_methods", &buf)
+	resourceAwsCloudFrontWebDistributionHashStringList(m, "cached_methods", &buf)
+	resourceAwsCloudFrontWebDistributionHashStringList(m, "forwarded_headers", &buf)
+	resourceAwsCloudFrontWebDistributionHashStringList(m, "whitelisted_cookies", &buf)
+
+	return hashcode.String(buf.String())
+}
+
+func resourceAwsCloudFrontWebDistributionHashStringList(m map[string]interface{}, key string, buf *bytes.Buffer) {
+	if v, ok := m[key]; ok {
+		vs := v.([]interface{})
+		s := make([]string, len(vs))
+		for i, raw := range vs {
+			s[i] = raw.(string)
+		}
+		sort.Strings(s)
+
+		for _, v := range s {
+			buf.WriteString(fmt.Sprintf("%s-", v))
+		}
+	}
+}
+
+func resourceAwsCloudFrontWebDistributionExpandOrigins(configured []interface{}) []*cloudfront.Origin {
+	origins := make([]*cloudfront.Origin, 0, len(configured))
+
+	for _, raw := range configured {
+		data := raw.(map[string]interface{})
+
+		o := &cloudfront.Origin{
+			DomainName: aws.String(data["domain_name"].(string)),
+			ID:         aws.String(data["id"].(string)),
+			OriginPath: aws.String(data["origin_path"].(string)),
+			CustomOriginConfig: &cloudfront.CustomOriginConfig{
+				HTTPPort:             aws.Long(int64(data["http_port"].(int))),
+				HTTPSPort:            aws.Long(int64(data["https_port"].(int))),
+				OriginProtocolPolicy: aws.String(data["origin_protocol_policy"].(string)),
+			},
+		}
+
+		origins = append(origins, o)
+	}
+
+	return origins
+}
+
+func resourceAwsCloudFrontWebDistributionExpandBehaviors(configured []interface{}) []*cloudfront.CacheBehavior {
+	behaviors := make([]*cloudfront.CacheBehavior, 0, len(configured))
+
+	for _, raw := range configured {
+		data := raw.(map[string]interface{})
+
+		allowedMethods := resourceAwsCloudFrontWebDistributionHandleMethods(data["allowed_methods"])
+		cachedMethods := resourceAwsCloudFrontWebDistributionHandleMethods(data["cached_methods"])
+		forwardedHeaders := resourceAwsCloudFrontWebDistributionAwsStringLists(data["forwarded_headers"])
+		cookies := resourceAwsCloudFrontWebDistributionCookies(
+			data["forward_cookie"], data["whitelisted_cookies"])
+
+		o := &cloudfront.CacheBehavior{
+			PathPattern:    aws.String(data["pattern"].(string)),
+			TargetOriginID: aws.String(data["origin"].(string)),
+			ForwardedValues: &cloudfront.ForwardedValues{
+				Cookies:     cookies,
+				QueryString: aws.Boolean(false),
+				Headers: &cloudfront.Headers{
+					Quantity: aws.Long(int64(len(forwardedHeaders))),
+					Items:    forwardedHeaders,
+				},
+			},
+			MinTTL: aws.Long(int64(data["minimum_ttl"].(int))),
+			TrustedSigners: &cloudfront.TrustedSigners{
+				Enabled:  aws.Boolean(false),
+				Quantity: aws.Long(0),
+			},
+			ViewerProtocolPolicy: aws.String(data["viewer_protocol_policy"].(string)),
+			SmoothStreaming:      aws.Boolean(data["smooth_streaming"].(bool)),
+			AllowedMethods: &cloudfront.AllowedMethods{
+				Quantity: aws.Long(int64(len(allowedMethods))),
+				Items:    allowedMethods,
+				CachedMethods: &cloudfront.CachedMethods{
+					Quantity: aws.Long(int64(len(cachedMethods))),
+					Items:    cachedMethods,
+				},
+			},
+		}
+
+		behaviors = append(behaviors, o)
+	}
+
+	return behaviors
+}
+
+func resourceAwsCloudFrontWebDistributionHandleMethods(in interface{}) []*string {
+	if len(in.([]interface{})) == 0 {
+		return []*string{
+			aws.String("GET"),
+			aws.String("HEAD"),
+		}
+	}
+
+	return resourceAwsCloudFrontWebDistributionAwsStringLists(in)
+}
+
+func resourceAwsCloudFrontWebDistributionAwsStringLists(in interface{}) []*string {
+	list := in.([]interface{})
+	out := make([]*string, 0, len(list))
+	for _, r := range list {
+		s := r.(string)
+		out = append(out, aws.String(s))
+	}
+	return out
+}
+
+func resourceAwsCloudFrontWebDistributionCookies(a, b interface{}) *cloudfront.CookiePreference {
+	forwardCookie := a.(string)
+
+	if forwardCookie != "whitelist" {
+		return &cloudfront.CookiePreference{
+			Forward: aws.String(forwardCookie),
+		}
+	}
+
+	whitelist := resourceAwsCloudFrontWebDistributionAwsStringLists(b)
+
+	return &cloudfront.CookiePreference{
+		Forward: aws.String(forwardCookie),
+		WhitelistedNames: &cloudfront.CookieNames{
+			Quantity: aws.Long(int64(len(whitelist))),
+			Items:    whitelist,
+		},
 	}
 }

@@ -103,16 +103,45 @@ func testAccCheckCloudFrontWebDistributionSecondary(cloudFrontResource string) r
 }
 
 const testAccAWSCloudFrontWebDistributionConfig = `
-resource "aws_cloudfront" "main" {
-  origin_domain_name = "fileserver.example.com"
+resource "aws_cloudfront_web_distribution" "main" {
+	default_origin = "main"
+
+	origin {
+    domain_name = "web.s3.amazonaws.com"
+    id = "main"
+  }
 }
 `
 
 // CloudFront does not allow CNAME conflicts on the same account
 var testAccAWSCloudFrontWebDistributionUpdate = fmt.Sprintf(`
-resource "aws_cloudfront" "main" {
-	enabled = false
-  origin_domain_name = "fileserver.example.com"
-	aliases = ["static-%d.example.com"]
+resource "aws_cloudfront_web_distribution" "main" {
+  enabled = false
+  default_origin = "main"
+  default_forward_cookie = "whitelist"
+  default_whitelisted_cookies = ["session"]
+  aliases = ["static-%d.example.com"]
+
+  origin {
+    domain_name = "web.s3.amazonaws.com"
+    id = "main"
+  }
+
+  origin {
+    domain_name = "images.s3.amazonaws.com"
+    id = "images"
+  }
+
+  behavior {
+    pattern = "images/*.jpg"
+    origin = "images"
+    precedence = 0
+  }
+
+  behavior {
+    pattern = "images/*.png"
+    origin = "images"
+    precedence = 1
+  }
 }
 `, rand.New(rand.NewSource(time.Now().UnixNano())).Int())
