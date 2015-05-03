@@ -35,7 +35,7 @@ func TestAccAwsVpnConnection(t *testing.T) {
 						"aws_vpc.vpc",
 						"aws_vpn_gateway.vpn_gateway",
 						"aws_customer_gateway.customer_gateway",
-						"aws_vpn_connection.bar",
+						"aws_vpn_connection.foo",
 					),
 				),
 			},
@@ -85,18 +85,16 @@ func testAccAwsVpnConnection(
 }
 
 const testAccAwsVpnConnectionConfig = `
-resource "aws_vpc" "vpc" {
-	cidr_block = "10.0.0.0/16"
-}
-
 resource "aws_vpn_gateway" "vpn_gateway" {
-	vpc_id = "${aws_vpc.vpc.id}"
+	tags {
+		Name = "vpn_gateway"
+	}
 }
 
 resource "aws_customer_gateway" "customer_gateway" {
 	bgp_asn = 60000
-	ip_address = "172.0.0.1"
-	type = ipsec.1
+	ip_address = "178.0.0.1"
+	type = "ipsec.1"
 }
 
 resource "aws_vpn_connection" "foo" {
@@ -107,29 +105,21 @@ resource "aws_vpn_connection" "foo" {
 }
 `
 
+// Change static_routes_only to be false, forcing a refresh.
 const testAccAwsVpnConnectionConfigUpdate = `
-resource "aws_vpc" "vpc" {
-	cidr_block = "10.0.0.0/16"
-}
-
 resource "aws_vpn_gateway" "vpn_gateway" {
-	vpc_id = "${aws_vpc.vpc.id}"
+	tags {
+		Name = "vpn_gateway"
+	}
 }
 
 resource "aws_customer_gateway" "customer_gateway" {
 	bgp_asn = 60000
-	ip_address = "172.0.0.1"
-	type = ipsec.1
+	ip_address = "178.0.0.1"
+	type = "ipsec.1"
 }
 
 resource "aws_vpn_connection" "foo" {
-	vpn_gateway_id = "${aws_vpn_gateway.vpn_gateway.id}"
-	customer_gateway_id = "${aws_customer_gateway.customer_gateway.id}"
-	type = "ipsec.1"
-	static_routes_only = true
-}
-
-resource "aws_vpn_connection" "bar" {
 	vpn_gateway_id = "${aws_vpn_gateway.vpn_gateway.id}"
 	customer_gateway_id = "${aws_customer_gateway.customer_gateway.id}"
 	type = "ipsec.1"
