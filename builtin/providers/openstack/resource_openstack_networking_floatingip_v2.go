@@ -14,6 +14,7 @@ func resourceNetworkingFloatingIPV2() *schema.Resource {
 	return &schema.Resource{
 		Create: resourceNetworkFloatingIPV2Create,
 		Read:   resourceNetworkFloatingIPV2Read,
+		Update: resourceNetworkFloatingIPV2Update,
 		Delete: resourceNetworkFloatingIPV2Delete,
 
 		Schema: map[string]*schema.Schema{
@@ -32,6 +33,11 @@ func resourceNetworkingFloatingIPV2() *schema.Resource {
 				Required:    true,
 				ForceNew:    true,
 				DefaultFunc: envDefaultFunc("OS_POOL_NAME"),
+			},
+			"port_id": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				Default:  "",
 			},
 		},
 	}
@@ -53,6 +59,7 @@ func resourceNetworkFloatingIPV2Create(d *schema.ResourceData, meta interface{})
 	}
 	createOpts := floatingips.CreateOpts{
 		FloatingNetworkID: poolID,
+		PortID:            d.Get("port_id").(string),
 	}
 	log.Printf("[DEBUG] Create Options: %#v", createOpts)
 	floatingIP, err := floatingips.Create(networkClient, createOpts).Extract()
@@ -78,6 +85,7 @@ func resourceNetworkFloatingIPV2Read(d *schema.ResourceData, meta interface{}) e
 	}
 
 	d.Set("address", floatingIP.FloatingIP)
+	d.Set("port_id", floatingIP.PortID)
 	poolName, err := getNetworkName(d, meta, floatingIP.FloatingNetworkID)
 	if err != nil {
 		return fmt.Errorf("Error retrieving floating IP pool name: %s", err)
@@ -85,6 +93,29 @@ func resourceNetworkFloatingIPV2Read(d *schema.ResourceData, meta interface{}) e
 	d.Set("pool", poolName)
 
 	return nil
+}
+
+func resourceNetworkFloatingIPV2Update(d *schema.ResourceData, meta interface{}) error {
+	config := meta.(*Config)
+	networkClient, err := config.networkingV2Client(d.Get("region").(string))
+	if err != nil {
+		return fmt.Errorf("Error creating OpenStack network client: %s", err)
+	}
+
+	var updateOpts floatingips.UpdateOpts
+
+	if d.HasChange("port_id") {
+		updateOpts.PortID = d.Get("port_id").(string)
+	}
+
+	log.Printf("[DEBUG] Update Options: %#v", updateOpts)
+
+	_, err = floatingips.Update(networkClient, d.Id(), updateOpts).Extract()
+	if err != nil {
+		return fmt.Errorf("Error updating floating IP: %s", err)
+	}
+
+	return resourceNetworkFloatingIPV2Read(d, meta)
 }
 
 func resourceNetworkFloatingIPV2Delete(d *schema.ResourceData, meta interface{}) error {
