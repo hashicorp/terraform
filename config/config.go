@@ -570,6 +570,11 @@ func (c *Config) InterpolatedVariables() map[string][]InterpolatedVariable {
 // a human-friendly source.
 func (c *Config) rawConfigs() map[string]*RawConfig {
 	result := make(map[string]*RawConfig)
+	for _, m := range c.Modules {
+		source := fmt.Sprintf("module '%s'", m.Name)
+		result[source] = m.RawConfig
+	}
+
 	for _, pc := range c.ProviderConfigs {
 		source := fmt.Sprintf("provider config '%s'", pc.Name)
 		result[source] = pc.RawConfig

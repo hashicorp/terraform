@@ -68,6 +68,12 @@ func resourceAwsElb() *schema.Resource {
 				},
 			},
 
+			"source_security_group": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				Computed: true,
+			},
+
 			"subnets": &schema.Schema{
 				Type:     schema.TypeSet,
 				Elem:     &schema.Schema{Type: schema.TypeString},
@@ -280,6 +286,9 @@ func resourceAwsElbRead(d *schema.ResourceData, meta interface{}) error {
 	d.Set("instances", flattenInstances(lb.Instances))
 	d.Set("listener", flattenListeners(lb.ListenerDescriptions))
 	d.Set("security_groups", lb.SecurityGroups)
+	if lb.SourceSecurityGroup != nil {
+		d.Set("source_security_group", lb.SourceSecurityGroup.GroupName)
+	}
 	d.Set("subnets", lb.Subnets)
 	d.Set("idle_timeout", lbAttrs.ConnectionSettings.IdleTimeout)
 	d.Set("connection_draining", lbAttrs.ConnectionDraining.Enabled)

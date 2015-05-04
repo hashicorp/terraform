@@ -8,23 +8,40 @@ FEATURES:
   * **Environmental variables to set variables**: Environment variables can be
      used to set variables. The environment variables must be in the format
      `TF_VAR_name` and this will be checked last for a value.
+  * **New remote state backend: `s3`**: You can now store remote state in
+     an S3 bucket. [GH-1723]
 
 IMPROVEMENTS:
 
   * **New config function: `length`** - Get the length of a string or a list.
       Useful in conjunction with `split`. [GH-1495]
   * **New resource: `aws_app_cookie_stickiness_policy`**
+  * **New resource: `aws_customer_gateway`**
   * **New resource: `aws_ebs_volume`**
   * **New resource: `aws_lb_cookie_stickiness_policy`**
+  * **New resource: `aws_vpc_dhcp_options`**
+  * **New resource: `aws_vpc_dhcp_options_association`**
+  * **New resource: `google_dns_managed_zone`**
+  * **New resource: `google_dns_record_set`**
+  * **Migrate to upstream AWS SDK:** Migrate the AWS provider to
+      [awslabs/aws-sdk-go](https://github.com/awslabs/aws-sdk-go),
+      the offical `awslabs` library. Previously we had forked the library for
+      stability while `awslabs` refactored. Now that work has completed, and we've
+      migrated back to the upstream version.
   * core: Improve error message on diff mismatch [GH-1501]
   * provisioner/file: expand `~` in source path [GH-1569]
+  * provider/aws: Improved credential detection [GH-1470]
   * provider/aws: Can specify a `token` via the config file [GH-1601]
+  * provider/aws: Added new `vpc_security_group_ids` attribute for AWS
+      Instances. If using a VPC, you can now modify the security groups for that
+      Instance without destroying it [GH-1539]
   * provider/aws: White or blacklist account IDs that can be used to
       protect against accidents. [GH-1595]
   * provider/aws: `aws_instance` supports placement groups [GH-1358]
   * provider/aws: `aws_elb` supports in-place changing of listeners [GH-1619]
   * provider/aws: `aws_elb` supports connection draining settings [GH-1502]
   * provider/aws: `aws_elb` increase default idle timeout to 60s [GH-1646]
+  * provider/aws: `aws_key_pair` name can be omitted and generated [GH-1751]
   * provider/aws: `aws_route53_record` supports weighted sets [GH-1578]
   * provider/aws: `aws_route53_zone` exports nameservers [GH-1525]
   * provider/aws: `aws_security_group` name becomes optional and can be
@@ -34,11 +51,13 @@ IMPROVEMENTS:
       static default value [GH-1632]
   * provider/aws: automatically set the private IP as the SSH address
       if not specified and no public IP is available [GH-1623]
+  * provider/aws: `aws_elb` exports `source_security_group` field [GH-1708]
   * provider/docker: `docker_container` can specify links [GH-1564]
   * provider/google: `resource_compute_disk` supports snapshots [GH-1426]
   * provider/google: `resource_compute_instance` supports specifying the
       device name [GH-1426]
   * provider/openstack: Floating IP support for LBaaS [GH-1550]
+  * provider/openstack: Add AZ to `openstack_blockstorage_volume_v1` [GH-1726]
 
 BUG FIXES:
 
@@ -59,8 +78,14 @@ BUG FIXES:
       if the value was computed [GH-1507]
   * core: Fix issue where values in sets on resources couldn't contain
       hyphens. [GH-1641]
+  * core: Outputs removed from the config are removed from the state [GH-1714]
+  * core: Validate against the worst-case graph during plan phase to catch cycles
+      that would previously only show up during apply [GH-1655]
+  * core: Referencing invalid module output in module validates [GH-1448]
   * command: remote states with uppercase types work [GH-1356]
   * provider/aws: launch configuration ID set after create success [GH-1518]
+  * provider/aws: Fixed an issue with creating ELBs without any tags [GH-1580]
+  * provider/aws: Fix issue in Security Groups with empty IPRanges [GH-1612]
   * provider/aws: manually deleted S3 buckets are refreshed properly [GH-1574]
   * provider/aws: only check for EIP allocation ID in VPC [GH-1555]
   * provider/aws: raw protocol numbers work in `aws_network_acl` [GH-1435]
@@ -68,6 +93,7 @@ BUG FIXES:
   * provider/aws: ASG health check grace period can be updated in-place [GH-1682]
   * provider/aws: ELB security groups can be updated in-place [GH-1662]
   * provider/openstack: region config is not required [GH-1441]
+  * provider/openstack: `enable_dhcp` for networking subnet should be bool [GH-1741]
   * provisioner/remote-exec: add random number to uploaded script path so
       that parallel provisions work [GH-1588]
 
@@ -98,6 +124,8 @@ BUG FIXES:
       systems so copying your ".terraform" folder works. [GH-1418]
   * core: don't validate providers too early when nested in a module [GH-1380]
   * core: fix race condition in `count.index` interpolation [GH-1454]
+  * core: properly initialize provisioners, fixing resource targeting
+      during destroy [GH-1544]
   * command/push: don't ask for input if terraform.tfvars is present
   * command/remote-config: remove spurrious error "nil" when initializing
       remote state on a new configuration. [GH-1392]

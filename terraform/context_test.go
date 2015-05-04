@@ -2365,6 +2365,25 @@ func TestContext2Validate_countVariableNoDefault(t *testing.T) {
 	}
 }
 
+func TestContext2Validate_cycle(t *testing.T) {
+	p := testProvider("aws")
+	m := testModule(t, "validate-cycle")
+	c := testContext2(t, &ContextOpts{
+		Module: m,
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+	})
+
+	w, e := c.Validate()
+	if len(w) > 0 {
+		t.Fatalf("expected no warns, got: %#v", w)
+	}
+	if len(e) != 1 {
+		t.Fatalf("expected 1 err, got: %s", e)
+	}
+}
+
 func TestContext2Validate_moduleBadOutput(t *testing.T) {
 	p := testProvider("aws")
 	m := testModule(t, "validate-bad-module-output")
@@ -2828,6 +2847,48 @@ func TestContext2Validate_tainted(t *testing.T) {
 	}
 	if len(e) > 0 {
 		t.Fatalf("bad: %#v", e)
+	}
+}
+
+func TestContext2Validate_targetedDestroy(t *testing.T) {
+	m := testModule(t, "validate-targeted")
+	p := testProvider("aws")
+	pr := testProvisioner()
+	p.ApplyFn = testApplyFn
+	p.DiffFn = testDiffFn
+	ctx := testContext2(t, &ContextOpts{
+		Module: m,
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+		Provisioners: map[string]ResourceProvisionerFactory{
+			"shell": testProvisionerFuncFixed(pr),
+		},
+		State: &State{
+			Modules: []*ModuleState{
+				&ModuleState{
+					Path: rootModulePath,
+					Resources: map[string]*ResourceState{
+						"aws_instance.foo": resourceState("aws_instance", "i-bcd345"),
+						"aws_instance.bar": resourceState("aws_instance", "i-abc123"),
+					},
+				},
+			},
+		},
+		Targets: []string{"aws_instance.foo"},
+		Destroy: true,
+	})
+
+	w, e := ctx.Validate()
+	if len(w) > 0 {
+		warnStr := ""
+		for _, v := range w {
+			warnStr = warnStr + " " + v
+		}
+		t.Fatalf("bad: %s", warnStr)
+	}
+	if len(e) > 0 {
+		t.Fatalf("bad: %s", e)
 	}
 }
 
@@ -4125,6 +4186,48 @@ func TestContext2Apply_nilDiff(t *testing.T) {
 
 	if _, err := ctx.Apply(); err == nil {
 		t.Fatal("should error")
+	}
+}
+
+func TestContext2Apply_outputOrphan(t *testing.T) {
+	m := testModule(t, "apply-output-orphan")
+	p := testProvider("aws")
+	p.ApplyFn = testApplyFn
+	p.DiffFn = testDiffFn
+
+	state := &State{
+		Modules: []*ModuleState{
+			&ModuleState{
+				Path: rootModulePath,
+				Outputs: map[string]string{
+					"foo": "bar",
+					"bar": "baz",
+				},
+			},
+		},
+	}
+
+	ctx := testContext2(t, &ContextOpts{
+		Module: m,
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+		State: state,
+	})
+
+	if _, err := ctx.Plan(); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	state, err := ctx.Apply()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	actual := strings.TrimSpace(state.String())
+	expected := strings.TrimSpace(testTerraformApplyOutputOrphanStr)
+	if actual != expected {
+		t.Fatalf("bad: \n%s", actual)
 	}
 }
 

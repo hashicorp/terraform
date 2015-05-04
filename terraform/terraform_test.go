@@ -373,6 +373,13 @@ do_instance.foo:
   type = do_instance
 `
 
+const testTerraformApplyOutputOrphanStr = `
+<no state>
+Outputs:
+
+foo = bar
+`
+
 const testTerraformApplyProvisionerStr = `
 aws_instance.bar:
   ID = foo

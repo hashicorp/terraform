@@ -235,12 +235,13 @@ func testStep(
 
 	// Check! Excitement!
 	if step.Check != nil {
-		if err = step.Check(state); err != nil {
-			err = fmt.Errorf("Check failed: %s", err)
+		if err := step.Check(state); err != nil {
+			return state, fmt.Errorf("Check failed: %s", err)
 		}
 	}
 
-	// Verify that Plan is now empty and we don't have a perpetual diff issue
+	// Now, verify that Plan is now empty and we don't have a perpetual diff issue
+	// We do this with TWO plans. One without a refresh.
 	if p, err := ctx.Plan(); err != nil {
 		return state, fmt.Errorf("Error on follow-up plan: %s", err)
 	} else {
@@ -250,7 +251,23 @@ func testStep(
 		}
 	}
 
-	return state, err
+	// And another after a Refresh.
+	state, err = ctx.Refresh()
+	if err != nil {
+		return state, fmt.Errorf(
+			"Error on follow-up refresh: %s", err)
+	}
+	if p, err := ctx.Plan(); err != nil {
+		return state, fmt.Errorf("Error on second follow-up plan: %s", err)
+	} else {
+		if p.Diff != nil && !p.Diff.Empty() {
+			return state, fmt.Errorf(
+				"After applying this step and refreshing, the plan was not empty:\n\n%s", p)
+		}
+	}
+
+	// Made it here? Good job test step!
+	return state, nil
 }
 
 // ComposeTestCheckFunc lets you compose multiple TestCheckFuncs into

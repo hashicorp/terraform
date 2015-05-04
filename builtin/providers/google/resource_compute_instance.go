@@ -11,6 +11,15 @@ import (
 	"google.golang.org/api/googleapi"
 )
 
+func stringHashcode(v interface{}) int {
+	return hashcode.String(v.(string))
+}
+
+func stringScopeHashcode(v interface{}) int {
+	v = canonicalizeServiceScope(v.(string))
+	return hashcode.String(v.(string))
+}
+
 func resourceComputeInstance() *schema.Resource {
 	return &schema.Resource{
 		Create: resourceComputeInstanceCreate,
@@ -18,7 +27,7 @@ func resourceComputeInstance() *schema.Resource {
 		Update: resourceComputeInstanceUpdate,
 		Delete: resourceComputeInstanceDelete,
 
-		SchemaVersion: 1,
+		SchemaVersion: 2,
 		MigrateState:  resourceComputeInstanceMigrateState,
 
 		Schema: map[string]*schema.Schema{
@@ -195,7 +204,7 @@ func resourceComputeInstance() *schema.Resource {
 						},
 
 						"scopes": &schema.Schema{
-							Type:     schema.TypeList,
+							Type:     schema.TypeSet,
 							Required: true,
 							ForceNew: true,
 							Elem: &schema.Schema{
@@ -204,6 +213,7 @@ func resourceComputeInstance() *schema.Resource {
 									return canonicalizeServiceScope(v.(string))
 								},
 							},
+							Set: stringScopeHashcode,
 						},
 					},
 				},
@@ -213,9 +223,7 @@ func resourceComputeInstance() *schema.Resource {
 				Type:     schema.TypeSet,
 				Optional: true,
 				Elem:     &schema.Schema{Type: schema.TypeString},
-				Set: func(v interface{}) int {
-					return hashcode.String(v.(string))
-				},
+				Set: stringHashcode,
 			},
 
 			"metadata_fingerprint": &schema.Schema{
@@ -434,11 +442,10 @@ func resourceComputeInstanceCreate(d *schema.ResourceData, meta interface{}) err
 	for i := 0; i < serviceAccountsCount; i++ {
 		prefix := fmt.Sprintf("service_account.%d", i)
 
-		scopesCount := d.Get(prefix + ".scopes.#").(int)
-		scopes := make([]string, 0, scopesCount)
-		for j := 0; j < scopesCount; j++ {
-			scope := d.Get(fmt.Sprintf(prefix+".scopes.%d", j)).(string)
-			scopes = append(scopes, canonicalizeServiceScope(scope))
+		scopesSet := d.Get(prefix + ".scopes").(*schema.Set)
+		scopes := make([]string, scopesSet.Len())
+		for i, v := range scopesSet.List() {
+			scopes[i] = canonicalizeServiceScope(v.(string))
 		}
 
 		serviceAccount := &compute.ServiceAccount{
@@ -504,14 +511,13 @@ func resourceComputeInstanceRead(d *schema.ResourceData, meta interface{}) error
 	// Set the service accounts
 	serviceAccounts := make([]map[string]interface{}, 0, 1)
 	for _, serviceAccount := range instance.ServiceAccounts {
-		scopes := make([]string, len(serviceAccount.Scopes))
+		scopes := make([]interface{}, len(serviceAccount.Scopes))
 		for i, scope := range serviceAccount.Scopes {
 			scopes[i] = scope
 		}
-
 		serviceAccounts = append(serviceAccounts, map[string]interface{}{
 			"email":  serviceAccount.Email,
-			"scopes": scopes,
+			"scopes": schema.NewSet(stringScopeHashcode, scopes),
 		})
 	}
 	d.Set("service_account", serviceAccounts)

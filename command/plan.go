@@ -25,7 +25,7 @@ func (c *PlanCommand) Run(args []string) int {
 	cmdFlags := c.Meta.flagSet("plan")
 	cmdFlags.BoolVar(&destroy, "destroy", false, "destroy")
 	cmdFlags.BoolVar(&refresh, "refresh", true, "refresh")
-	cmdFlags.IntVar(&moduleDepth, "module-depth", 0, "module-depth")
+	c.addModuleDepthFlag(cmdFlags, &moduleDepth)
 	cmdFlags.StringVar(&outPath, "out", "", "path")
 	cmdFlags.StringVar(&c.Meta.statePath, "state", DefaultStateFilename, "path")
 	cmdFlags.StringVar(&c.Meta.backupPath, "backup", "", "path")

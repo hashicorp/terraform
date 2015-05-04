@@ -55,6 +55,15 @@ func TestParseResourceAddress(t *testing.T) {
 				Index:        -1,
 			},
 		},
+		"with a hyphen": {
+			Input: "aws_instance.foo-bar",
+			Expected: &ResourceAddress{
+				Type:         "aws_instance",
+				Name:         "foo-bar",
+				InstanceType: TypePrimary,
+				Index:        -1,
+			},
+		},
 	}
 
 	for tn, tc := range cases {

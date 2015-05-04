@@ -12,11 +12,11 @@ import (
 	"github.com/hashicorp/terraform/helper/schema"
 )
 
-func resourceAwsElasticache() *schema.Resource {
+func resourceAwsElasticacheCluster() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceAwsElasticacheCreate,
-		Read:   resourceAwsElasticacheRead,
-		Delete: resourceAwsElasticacheDelete,
+		Create: resourceAwsElasticacheClusterCreate,
+		Read:   resourceAwsElasticacheClusterRead,
+		Delete: resourceAwsElasticacheClusterDelete,
 
 		Schema: map[string]*schema.Schema{
 			"cluster_id": &schema.Schema{
@@ -84,7 +84,7 @@ func resourceAwsElasticache() *schema.Resource {
 	}
 }
 
-func resourceAwsElasticacheCreate(d *schema.ResourceData, meta interface{}) error {
+func resourceAwsElasticacheClusterCreate(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).elasticacheconn
 
 	clusterId := d.Get("cluster_id").(string)
@@ -140,7 +140,7 @@ func resourceAwsElasticacheCreate(d *schema.ResourceData, meta interface{}) erro
 	return nil
 }
 
-func resourceAwsElasticacheRead(d *schema.ResourceData, meta interface{}) error {
+func resourceAwsElasticacheClusterRead(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).elasticacheconn
 	req := &elasticache.DescribeCacheClustersInput{
 		CacheClusterID: aws.String(d.Id()),
@@ -170,7 +170,7 @@ func resourceAwsElasticacheRead(d *schema.ResourceData, meta interface{}) error 
 	return nil
 }
 
-func resourceAwsElasticacheDelete(d *schema.ResourceData, meta interface{}) error {
+func resourceAwsElasticacheClusterDelete(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).elasticacheconn
 
 	req := &elasticache.DeleteCacheClusterInput{
