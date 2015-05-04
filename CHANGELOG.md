@@ -31,6 +31,8 @@ IMPROVEMENTS:
       migrated back to the upstream version.
   * core: Improve error message on diff mismatch [GH-1501]
   * provisioner/file: expand `~` in source path [GH-1569]
+  * provider/aws: Better retry logic, now retries up to 11 times by default
+      with exponentional backoff. This number is configurable. [GH-1787]
   * provider/aws: Improved credential detection [GH-1470]
   * provider/aws: Can specify a `token` via the config file [GH-1601]
   * provider/aws: Added new `vpc_security_group_ids` attribute for AWS
