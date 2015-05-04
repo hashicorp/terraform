@@ -238,6 +238,11 @@ func (c *Communicator) UploadScript(path string, input io.Reader) error {
 				"machine: %s", err)
 	}
 	cmd.Wait()
+	if cmd.ExitStatus != 0 {
+		return fmt.Errorf(
+			"Error chmodding script file to 0777 in remote "+
+				"machine: exit status=%s", cmd.ExitStatus)
+	}
 
 	return nil
 }
