@@ -207,6 +207,7 @@ IMPROVEMENTS:
       change. This will lower the amount of state changing on things
       like refresh.
   * core: Autoload `terraform.tfvars.json` as well as `terraform.tfvars` [GH-1030]
+  * providers/aws: private route53 zone support [GH-607]
   * core: `.tf` files that start with a period are now ignored. [GH-1227]
   * command/remote-config: After enabling remote state, a `pull` is
       automatically done initially.
