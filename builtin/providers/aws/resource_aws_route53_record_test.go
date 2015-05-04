@@ -190,6 +190,30 @@ func TestAccRoute53Record_weighted_alias(t *testing.T) {
 	})
 }
 
+func TestAccRoute53Record_TypeChange(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckRoute53RecordDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccRoute53RecordTypeChangePre,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckRoute53RecordExists("aws_route53_record.sample"),
+				),
+			},
+
+			// Cause a change, which will trigger a refresh
+			resource.TestStep{
+				Config: testAccRoute53RecordTypeChangePost,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckRoute53RecordExists("aws_route53_record.sample"),
+				),
+			},
+		},
+	})
+}
+
 func testAccCheckRoute53RecordDestroy(s *terraform.State) error {
 	conn := testAccProvider.Meta().(*AWSClient).r53conn
 	for _, rs := range s.RootModule().Resources {
@@ -542,5 +566,33 @@ resource "aws_route53_record" "r53_weighted_alias_dev" {
     name = "${aws_route53_record.green_origin.name}.${aws_route53_zone.main.name}"
     evaluate_target_health = false
   }
+}
+`
+
+const testAccRoute53RecordTypeChangePre = `
+resource "aws_route53_zone" "main" {
+	name = "notexample.com"
+}
+
+resource "aws_route53_record" "sample" {
+	zone_id = "${aws_route53_zone.main.zone_id}"
+  name = "sample"
+  type = "CNAME"
+  ttl = "30"
+  records = ["www.terraform.io"]
+}
+`
+
+const testAccRoute53RecordTypeChangePost = `
+resource "aws_route53_zone" "main" {
+	name = "notexample.com"
+}
+
+resource "aws_route53_record" "sample" {
+  zone_id = "${aws_route53_zone.main.zone_id}"
+  name = "sample"
+  type = "A"
+  ttl = "30"
+  records = ["127.0.0.1", "8.8.8.8"]
 }
 `
