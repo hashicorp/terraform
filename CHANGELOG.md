@@ -24,6 +24,7 @@ IMPROVEMENTS:
   * **New resource: `aws_vpn_connection_route`**
   * **New resource: `google_dns_managed_zone`**
   * **New resource: `google_dns_record_set`**
+  * **New resource: `aws_proxy_protocol_policy`**
   * **Migrate to upstream AWS SDK:** Migrate the AWS provider to
       [awslabs/aws-sdk-go](https://github.com/awslabs/aws-sdk-go),
       the offical `awslabs` library. Previously we had forked the library for
