@@ -177,6 +177,11 @@ func resourceAwsElb() *schema.Resource {
 				Computed: true,
 			},
 
+			"zone_id": &schema.Schema{
+				Type:     schema.TypeString,
+				Computed: true,
+			},
+
 			"tags": tagsSchema(),
 		},
 	}
@@ -249,7 +254,7 @@ func resourceAwsElbRead(d *schema.ResourceData, meta interface{}) error {
 
 	describeResp, err := elbconn.DescribeLoadBalancers(describeElbOpts)
 	if err != nil {
-		if ec2err, ok := err.(aws.APIError); ok && ec2err.Code == "LoadBalancerNotFound" {
+		if isLoadBalancerNotFound(err) {
 			// The ELB is gone now, so just remove it from the state
 			d.SetId("")
 			return nil
@@ -266,7 +271,7 @@ func resourceAwsElbRead(d *schema.ResourceData, meta interface{}) error {
 	}
 	describeAttrsResp, err := elbconn.DescribeLoadBalancerAttributes(describeAttrsOpts)
 	if err != nil {
-		if ec2err, ok := err.(aws.APIError); ok && ec2err.Code == "LoadBalancerNotFound" {
+		if isLoadBalancerNotFound(err) {
 			// The ELB is gone now, so just remove it from the state
 			d.SetId("")
 			return nil
@@ -281,6 +286,7 @@ func resourceAwsElbRead(d *schema.ResourceData, meta interface{}) error {
 
 	d.Set("name", *lb.LoadBalancerName)
 	d.Set("dns_name", *lb.DNSName)
+	d.Set("zone_id", *lb.CanonicalHostedZoneNameID)
 	d.Set("internal", *lb.Scheme == "internal")
 	d.Set("availability_zones", lb.AvailabilityZones)
 	d.Set("instances", flattenInstances(lb.Instances))
@@ -510,4 +516,9 @@ func resourceAwsElbListenerHash(v interface{}) int {
 	}
 
 	return hashcode.String(buf.String())
+}
+
+func isLoadBalancerNotFound(err error) bool {
+	elberr, ok := err.(aws.APIError)
+	return ok && elberr.Code == "LoadBalancerNotFound"
 }

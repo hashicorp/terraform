@@ -38,6 +38,7 @@ func Provider() terraform.ResourceProvider {
 				Optional: true,
 				DefaultFunc: schema.MultiEnvDefaultFunc([]string{
 					"AWS_SESSION_TOKEN",
+					"AWS_SECURITY_TOKEN",
 				}, ""),
 				Description: descriptions["token"],
 			},
@@ -51,6 +52,13 @@ func Provider() terraform.ResourceProvider {
 				}, nil),
 				Description:  descriptions["region"],
 				InputDefault: "us-east-1",
+			},
+
+			"max_retries": &schema.Schema{
+				Type:        schema.TypeInt,
+				Optional:    true,
+				Default:     11,
+				Description: descriptions["max_retries"],
 			},
 
 			"allowed_account_ids": &schema.Schema{
@@ -98,6 +106,7 @@ func Provider() terraform.ResourceProvider {
 			"aws_main_route_table_association": resourceAwsMainRouteTableAssociation(),
 			"aws_network_acl":                  resourceAwsNetworkAcl(),
 			"aws_network_interface":            resourceAwsNetworkInterface(),
+			"aws_proxy_protocol_policy":        resourceAwsProxyProtocolPolicy(),
 			"aws_route53_record":               resourceAwsRoute53Record(),
 			"aws_route53_zone":                 resourceAwsRoute53Zone(),
 			"aws_route_table":                  resourceAwsRouteTable(),
@@ -110,6 +119,7 @@ func Provider() terraform.ResourceProvider {
 			"aws_vpc_dhcp_options":             resourceAwsVpcDhcpOptions(),
 			"aws_vpc_dhcp_options_association": resourceAwsVpcDhcpOptionsAssociation(),
 			"aws_vpn_connection":               resourceAwsVpnConnection(),
+			"aws_vpn_connection_route":         resourceAwsVpnConnectionRoute(),
 			"aws_vpn_gateway":                  resourceAwsVpnGateway(),
 		},
 
@@ -132,15 +142,20 @@ func init() {
 
 		"token": "session token. A session token is only required if you are\n" +
 			"using temporary security credentials.",
+
+		"max_retries": "The maximum number of times an AWS API request is\n" +
+			"being executed. If the API request still fails, an error is\n" +
+			"thrown.",
 	}
 }
 
 func providerConfigure(d *schema.ResourceData) (interface{}, error) {
 	config := Config{
-		AccessKey: d.Get("access_key").(string),
-		SecretKey: d.Get("secret_key").(string),
-		Token:     d.Get("token").(string),
-		Region:    d.Get("region").(string),
+		AccessKey:  d.Get("access_key").(string),
+		SecretKey:  d.Get("secret_key").(string),
+		Token:      d.Get("token").(string),
+		Region:     d.Get("region").(string),
+		MaxRetries: d.Get("max_retries").(int),
 	}
 
 	if v, ok := d.GetOk("allowed_account_ids"); ok {

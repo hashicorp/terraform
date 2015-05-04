@@ -20,10 +20,11 @@ import (
 )
 
 type Config struct {
-	AccessKey string
-	SecretKey string
-	Token     string
-	Region    string
+	AccessKey  string
+	SecretKey  string
+	Token      string
+	Region     string
+	MaxRetries int
 
 	AllowedAccountIds   []interface{}
 	ForbiddenAccountIds []interface{}
@@ -66,6 +67,7 @@ func (c *Config) Client() (interface{}, error) {
 		awsConfig := &aws.Config{
 			Credentials: creds,
 			Region:      c.Region,
+			MaxRetries:  c.MaxRetries,
 		}
 
 		log.Println("[INFO] Initializing ELB connection")
@@ -98,6 +100,7 @@ func (c *Config) Client() (interface{}, error) {
 		client.r53conn = route53.New(&aws.Config{
 			Credentials: creds,
 			Region:      "us-east-1",
+			MaxRetries:  c.MaxRetries,
 		})
 
 		log.Println("[INFO] Initializing CloudWatch SDK connection")

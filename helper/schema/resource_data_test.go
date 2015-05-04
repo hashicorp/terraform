@@ -987,6 +987,33 @@ func TestResourceDataGetOk(t *testing.T) {
 			Value: []interface{}{},
 			Ok:    false,
 		},
+
+		// Further illustrates and clarifiies the GetOk semantics from #933, and
+		// highlights the limitation that zero-value config is currently
+		// indistinguishable from unset config.
+		{
+			Schema: map[string]*Schema{
+				"from_port": &Schema{
+					Type:     TypeInt,
+					Optional: true,
+				},
+			},
+
+			State: nil,
+
+			Diff: &terraform.InstanceDiff{
+				Attributes: map[string]*terraform.ResourceAttrDiff{
+					"from_port": &terraform.ResourceAttrDiff{
+						Old: "",
+						New: "0",
+					},
+				},
+			},
+
+			Key:   "from_port",
+			Value: 0,
+			Ok:    false,
+		},
 	}
 
 	for i, tc := range cases {
@@ -1004,7 +1031,7 @@ func TestResourceDataGetOk(t *testing.T) {
 			t.Fatalf("Bad: %d\n\n%#v", i, v)
 		}
 		if ok != tc.Ok {
-			t.Fatalf("Bad: %d\n\n%#v", i, ok)
+			t.Fatalf("%d: expected ok: %t, got: %t", i, tc.Ok, ok)
 		}
 	}
 }

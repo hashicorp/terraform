@@ -96,3 +96,4 @@ The following attributes are exported:
 * `source_security_group` - The name of the security group that you can use as
   part of your inbound rules for your load balancer's back-end application
   instances.
+* `zone_id` - The canonical hosted zone ID of the ELB (to be used in a Route 53 Alias record)

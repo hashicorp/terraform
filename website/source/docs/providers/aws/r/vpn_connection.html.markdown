@@ -1,7 +1,7 @@
 ---
 layout: "aws"
 page_title: "AWS: aws_vpn_connection"
-sidebar_current: "docs-aws-vpn-connection"
+sidebar_current: "docs-aws-resource-vpn-connection"
 description: |-
   Provides a VPN connection connected to a VPC. These objects can be connected to customer gateways, and allow you to establish tunnels between your network and the VPC.
 ---

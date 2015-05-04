@@ -6,6 +6,7 @@ import (
 
 	"github.com/awslabs/aws-sdk-go/aws"
 	"github.com/awslabs/aws-sdk-go/service/elb"
+
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
 )
@@ -30,7 +31,7 @@ func TestAccAWSAppCookieStickinessPolicy(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAppCookieStickinessPolicy(
 						"aws_elb.lb",
-						"aws_app_cookie_stickiness_policy.bar",
+						"aws_app_cookie_stickiness_policy.foo",
 					),
 				),
 			},
@@ -80,7 +81,7 @@ func testAccCheckAppCookieStickinessPolicy(elbResource string, policyResource st
 const testAccAppCookieStickinessPolicyConfig = `
 resource "aws_elb" "lb" {
 	name = "test-lb"
-	availability_zones = ["us-east-1a"]
+	availability_zones = ["us-west-2a"]
 	listener {
 		instance_port = 8000
 		instance_protocol = "http"
@@ -90,17 +91,18 @@ resource "aws_elb" "lb" {
 }
 
 resource "aws_app_cookie_stickiness_policy" "foo" {
-	name = "foo_policy"
-	load_balancer = "${aws_elb.lb}"
+	name = "foo-policy"
+	load_balancer = "${aws_elb.lb.id}"
 	lb_port = 80
 	cookie_name = "MyAppCookie"
 }
 `
 
+// Change the cookie_name to "MyOtherAppCookie".
 const testAccAppCookieStickinessPolicyConfigUpdate = `
 resource "aws_elb" "lb" {
 	name = "test-lb"
-	availability_zones = ["us-east-1a"]
+	availability_zones = ["us-west-2a"]
 	listener {
 		instance_port = 8000
 		instance_protocol = "http"
@@ -110,16 +112,9 @@ resource "aws_elb" "lb" {
 }
 
 resource "aws_app_cookie_stickiness_policy" "foo" {
-	name = "foo_policy"
-	load_balancer = "${aws_elb.lb}"
+	name = "foo-policy"
+	load_balancer = "${aws_elb.lb.id}"
 	lb_port = 80
-	cookie_name = "MyAppCookie"
-}
-
-resource "aws_app_cookie_stickiness_policy" "bar" {
-	name = "bar_policy"
-	load_balancer = "${aws_elb.lb}"
-	lb_port = 80
-	cookie_name = "MyAppCookie"
+	cookie_name = "MyOtherAppCookie"
 }
 `

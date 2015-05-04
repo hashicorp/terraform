@@ -21,8 +21,10 @@ IMPROVEMENTS:
   * **New resource: `aws_lb_cookie_stickiness_policy`**
   * **New resource: `aws_vpc_dhcp_options`**
   * **New resource: `aws_vpc_dhcp_options_association`**
+  * **New resource: `aws_vpn_connection_route`**
   * **New resource: `google_dns_managed_zone`**
   * **New resource: `google_dns_record_set`**
+  * **New resource: `aws_proxy_protocol_policy`**
   * **Migrate to upstream AWS SDK:** Migrate the AWS provider to
       [awslabs/aws-sdk-go](https://github.com/awslabs/aws-sdk-go),
       the offical `awslabs` library. Previously we had forked the library for
@@ -30,6 +32,8 @@ IMPROVEMENTS:
       migrated back to the upstream version.
   * core: Improve error message on diff mismatch [GH-1501]
   * provisioner/file: expand `~` in source path [GH-1569]
+  * provider/aws: Better retry logic, now retries up to 11 times by default
+      with exponentional backoff. This number is configurable. [GH-1787]
   * provider/aws: Improved credential detection [GH-1470]
   * provider/aws: Can specify a `token` via the config file [GH-1601]
   * provider/aws: Added new `vpc_security_group_ids` attribute for AWS
@@ -52,6 +56,7 @@ IMPROVEMENTS:
   * provider/aws: automatically set the private IP as the SSH address
       if not specified and no public IP is available [GH-1623]
   * provider/aws: `aws_elb` exports `source_security_group` field [GH-1708]
+  * provider/aws: `aws_route53_record` supports alias targeting [GH-1775]
   * provider/docker: `docker_container` can specify links [GH-1564]
   * provider/google: `resource_compute_disk` supports snapshots [GH-1426]
   * provider/google: `resource_compute_instance` supports specifying the
@@ -83,6 +88,8 @@ BUG FIXES:
       that would previously only show up during apply [GH-1655]
   * core: Referencing invalid module output in module validates [GH-1448]
   * command: remote states with uppercase types work [GH-1356]
+  * provider/aws: Support `AWS_SECURITY_TOKEN` env var again [GH-1785]
+  * provider/aws: Don't save "instance" for EIP if association fails [GH-1776]
   * provider/aws: launch configuration ID set after create success [GH-1518]
   * provider/aws: Fixed an issue with creating ELBs without any tags [GH-1580]
   * provider/aws: Fix issue in Security Groups with empty IPRanges [GH-1612]
