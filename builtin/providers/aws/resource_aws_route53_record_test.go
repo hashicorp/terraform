@@ -139,6 +139,57 @@ func TestAccRoute53Record_weighted(t *testing.T) {
 	})
 }
 
+func TestAccRoute53Record_alias(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckRoute53RecordDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccRoute53ElbAliasRecord,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckRoute53RecordExists("aws_route53_record.elb_alias"),
+				),
+			},
+
+			resource.TestStep{
+				Config: testAccRoute53AliasRecord,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckRoute53RecordExists("aws_route53_record.origin"),
+					testAccCheckRoute53RecordExists("aws_route53_record.alias"),
+				),
+			},
+		},
+	})
+}
+
+func TestAccRoute53Record_weighted_alias(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckRoute53RecordDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccRoute53WeightedElbAliasRecord,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckRoute53RecordExists("aws_route53_record.elb_weighted_alias_live"),
+					testAccCheckRoute53RecordExists("aws_route53_record.elb_weighted_alias_dev"),
+				),
+			},
+
+			resource.TestStep{
+				Config: testAccRoute53WeightedR53AliasRecord,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckRoute53RecordExists("aws_route53_record.green_origin"),
+					testAccCheckRoute53RecordExists("aws_route53_record.r53_weighted_alias_live"),
+					testAccCheckRoute53RecordExists("aws_route53_record.blue_origin"),
+					testAccCheckRoute53RecordExists("aws_route53_record.r53_weighted_alias_dev"),
+				),
+			},
+		},
+	})
+}
+
 func testAccCheckRoute53RecordDestroy(s *terraform.State) error {
 	conn := testAccProvider.Meta().(*AWSClient).r53conn
 	for _, rs := range s.RootModule().Resources {
@@ -323,5 +374,173 @@ resource "aws_route53_record" "www-live" {
   weight = 90
   set_identifier = "live"
   records = ["dev.notexample.com"]
+}
+`
+
+const testAccRoute53ElbAliasRecord = `
+resource "aws_route53_zone" "main" {
+  name = "notexample.com"
+}
+
+resource "aws_route53_record" "alias" {
+  zone_id = "${aws_route53_zone.main.zone_id}"
+  name = "www"
+  type = "A"
+
+  alias {
+  	zone_id = "${aws_elb.main.zone_id}"
+  	name = "${aws_elb.main.dns_name}"
+  	evaluate_target_health = true
+  }
+}
+
+resource "aws_elb" "main" {
+  name = "foobar-terraform-elb"
+  availability_zones = ["us-west-2a"]
+
+  listener {
+    instance_port = 80
+    instance_protocol = "http"
+    lb_port = 80
+    lb_protocol = "http"
+  }
+}
+`
+
+const testAccRoute53AliasRecord = `
+resource "aws_route53_zone" "main" {
+  name = "notexample.com"
+}
+
+resource "aws_route53_record" "origin" {
+  zone_id = "${aws_route53_zone.main.zone_id}"
+  name = "origin"
+  type = "A"
+  ttl = 5
+  records = ["127.0.0.1"]
+}
+
+resource "aws_route53_record" "alias" {
+  zone_id = "${aws_route53_zone.main.zone_id}"
+  name = "www"
+  type = "A"
+
+  alias {
+    zone_id = "${aws_route53_zone.main.zone_id}"
+    name = "${aws_route53_record.origin.name}.${aws_route53_zone.main.name}"
+    evaluate_target_health = true
+  }
+}
+`
+
+const testAccRoute53WeightedElbAliasRecord = `
+resource "aws_route53_zone" "main" {
+  name = "notexample.com"
+}
+
+resource "aws_elb" "live" {
+  name = "foobar-terraform-elb-live"
+  availability_zones = ["us-west-2a"]
+
+  listener {
+    instance_port = 80
+    instance_protocol = "http"
+    lb_port = 80
+    lb_protocol = "http"
+  }
+}
+
+resource "aws_route53_record" "elb_weighted_alias_live" {
+  zone_id = "${aws_route53_zone.main.zone_id}"
+  name = "www"
+  type = "A"
+
+  weight = 90
+  set_identifier = "live"
+
+  alias {
+    zone_id = "${aws_elb.live.zone_id}"
+    name = "${aws_elb.live.dns_name}"
+    evaluate_target_health = true
+  }
+}
+
+resource "aws_elb" "dev" {
+  name = "foobar-terraform-elb-dev"
+  availability_zones = ["us-west-2a"]
+
+  listener {
+    instance_port = 80
+    instance_protocol = "http"
+    lb_port = 80
+    lb_protocol = "http"
+  }
+}
+
+resource "aws_route53_record" "elb_weighted_alias_dev" {
+  zone_id = "${aws_route53_zone.main.zone_id}"
+  name = "www"
+  type = "A"
+
+  weight = 10
+  set_identifier = "dev"
+
+  alias {
+    zone_id = "${aws_elb.dev.zone_id}"
+    name = "${aws_elb.dev.dns_name}"
+    evaluate_target_health = true
+  }
+}
+`
+
+const testAccRoute53WeightedR53AliasRecord = `
+resource "aws_route53_zone" "main" {
+  name = "notexample.com"
+}
+
+resource "aws_route53_record" "blue_origin" {
+  zone_id = "${aws_route53_zone.main.zone_id}"
+  name = "blue-origin"
+  type = "CNAME"
+  ttl = 5
+  records = ["v1.terraform.io"]
+}
+
+resource "aws_route53_record" "r53_weighted_alias_live" {
+  zone_id = "${aws_route53_zone.main.zone_id}"
+  name = "www"
+  type = "CNAME"
+
+  weight = 90
+  set_identifier = "blue"
+
+  alias {
+    zone_id = "${aws_route53_zone.main.zone_id}"
+    name = "${aws_route53_record.blue_origin.name}.${aws_route53_zone.main.name}"
+    evaluate_target_health = false
+  }
+}
+
+resource "aws_route53_record" "green_origin" {
+  zone_id = "${aws_route53_zone.main.zone_id}"
+  name = "green-origin"
+  type = "CNAME"
+  ttl = 5
+  records = ["v2.terraform.io"]
+}
+
+resource "aws_route53_record" "r53_weighted_alias_dev" {
+  zone_id = "${aws_route53_zone.main.zone_id}"
+  name = "www"
+  type = "CNAME"
+
+  weight = 10
+  set_identifier = "green"
+
+  alias {
+    zone_id = "${aws_route53_zone.main.zone_id}"
+    name = "${aws_route53_record.green_origin.name}.${aws_route53_zone.main.name}"
+    evaluate_target_health = false
+  }
 }
 `
