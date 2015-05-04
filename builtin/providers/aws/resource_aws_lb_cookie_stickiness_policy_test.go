@@ -6,11 +6,12 @@ import (
 
 	"github.com/awslabs/aws-sdk-go/aws"
 	"github.com/awslabs/aws-sdk-go/service/elb"
+
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
 )
 
-func TestAccAWSLBCookieStickinessPolicy(t *testing.T) {
+func TestAccAwsLBCookieStickinessPolicy(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
@@ -30,7 +31,7 @@ func TestAccAWSLBCookieStickinessPolicy(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckLBCookieStickinessPolicy(
 						"aws_elb.lb",
-						"aws_lb_cookie_stickiness_policy.bar",
+						"aws_lb_cookie_stickiness_policy.foo",
 					),
 				),
 			},
@@ -80,7 +81,7 @@ func testAccCheckLBCookieStickinessPolicy(elbResource string, policyResource str
 const testAccLBCookieStickinessPolicyConfig = `
 resource "aws_elb" "lb" {
 	name = "test-lb"
-	availability_zones = ["us-east-1a"]
+	availability_zones = ["us-west-2a"]
 	listener {
 		instance_port = 8000
 		instance_protocol = "http"
@@ -90,17 +91,18 @@ resource "aws_elb" "lb" {
 }
 
 resource "aws_lb_cookie_stickiness_policy" "foo" {
-	name = "foo_policy"
-	load_balancer = "${aws_elb.lb}"
+	name = "foo-policy"
+	load_balancer = "${aws_elb.lb.id}"
 	lb_port = 80
 	cookie_expiration_period = 600
 }
 `
 
+// Sets the cookie_expiration_period to 300s.
 const testAccLBCookieStickinessPolicyConfigUpdate = `
 resource "aws_elb" "lb" {
 	name = "test-lb"
-	availability_zones = ["us-east-1a"]
+	availability_zones = ["us-west-2a"]
 	listener {
 		instance_port = 8000
 		instance_protocol = "http"
@@ -110,16 +112,9 @@ resource "aws_elb" "lb" {
 }
 
 resource "aws_lb_cookie_stickiness_policy" "foo" {
-	name = "foo_policy"
-	load_balancer = "${aws_elb.lb}"
+	name = "foo-policy"
+	load_balancer = "${aws_elb.lb.id}"
 	lb_port = 80
-	cookie_expiration_period = 600
-}
-
-resource "aws_lb_cookie_stickiness_policy" "bar" {
-	name = "bar_policy"
-	load_balancer = "${aws_elb.lb}"
-	lb_port = 80
-	cookie_expiration_period = 600
+	cookie_expiration_period = 300
 }
 `
