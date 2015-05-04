@@ -165,9 +165,9 @@ func (n *graphNodeModuleExpanded) FlattenGraph() *Graph {
 	graph := n.Subgraph()
 	input := n.Original.Module.RawConfig
 
-	// Go over each vertex in the graph and wrap the configuration
-	// items so that the dependencies properly map to the modules.
-	// See the docs for graphNodeModuleWrappable for more info.
+	// Go over each vertex and do some modifications to the graph for
+	// flattening. We have to skip some nodes (graphNodeModuleSkippable)
+	// as well as setup the variable values.
 	for _, v := range graph.Vertices() {
 		if sn, ok := v.(graphNodeModuleSkippable); ok && sn.FlattenSkip() {
 			graph.Remove(v)
