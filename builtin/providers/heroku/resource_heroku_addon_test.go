@@ -2,6 +2,7 @@ package heroku
 
 import (
 	"fmt"
+	"strconv"
 	"testing"
 
 	"github.com/cyberdelia/heroku-go/v3"
@@ -52,6 +53,7 @@ func TestAccHerokuAddon_noPlan(t *testing.T) {
 						"heroku_addon.foobar", "app", "terraform-test-app"),
 					resource.TestCheckResourceAttr(
 						"heroku_addon.foobar", "plan", "memcachier"),
+					testAccCheckHerokuAddonConfigVars("heroku_addon.foobar", []string{"MEMCACHIER_SERVERS", "MEMCACHIER_USERNAME", "MEMCACHIER_PASSWORD"}),
 				),
 			},
 			resource.TestStep{
@@ -63,10 +65,35 @@ func TestAccHerokuAddon_noPlan(t *testing.T) {
 						"heroku_addon.foobar", "app", "terraform-test-app"),
 					resource.TestCheckResourceAttr(
 						"heroku_addon.foobar", "plan", "memcachier"),
+					testAccCheckHerokuAddonConfigVars("heroku_addon.foobar", []string{"MEMCACHIER_SERVERS", "MEMCACHIER_USERNAME", "MEMCACHIER_PASSWORD"}),
 				),
 			},
 		},
 	})
+}
+
+func testAccCheckHerokuAddonConfigVars(addonName string, vars []string) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		instanceState := s.RootModule().Resources[addonName].Primary
+		definedVarsMap := make(map[string]bool)
+		for i := range vars {
+			definedVarsMap[vars[i]] = false
+		}
+
+		size, _ := strconv.Atoi(instanceState.Attributes["config_vars.#"])
+		for i := 0; i < size; i++ {
+			configVar := instanceState.Attributes["config_vars."+fmt.Sprintf("%d", i)]
+			definedVarsMap[configVar] = true
+		}
+
+		for k := range definedVarsMap {
+			if !definedVarsMap[k] {
+				return fmt.Errorf("Desired config variable %s not set in addon state", k)
+			}
+		}
+
+		return nil
+	}
 }
 
 func testAccCheckHerokuAddonDestroy(s *terraform.State) error {
@@ -87,10 +114,10 @@ func testAccCheckHerokuAddonDestroy(s *terraform.State) error {
 	return nil
 }
 
-func testAccCheckHerokuAddonAttributes(addon *heroku.Addon, n string) resource.TestCheckFunc {
+func testAccCheckHerokuAddonAttributes(addon *heroku.Addon, plan string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 
-		if addon.Plan.Name != n {
+		if addon.Plan.Name != plan {
 			return fmt.Errorf("Bad plan: %s", addon.Plan.Name)
 		}
 
