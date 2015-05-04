@@ -83,6 +83,8 @@ BUG FIXES:
       that would previously only show up during apply [GH-1655]
   * core: Referencing invalid module output in module validates [GH-1448]
   * command: remote states with uppercase types work [GH-1356]
+  * provider/aws: Support `AWS_SECURITY_TOKEN` env var again [GH-1785]
+  * provider/aws: Don't save "instance" for EIP if association fails [GH-1776]
   * provider/aws: launch configuration ID set after create success [GH-1518]
   * provider/aws: Fixed an issue with creating ELBs without any tags [GH-1580]
   * provider/aws: Fix issue in Security Groups with empty IPRanges [GH-1612]
