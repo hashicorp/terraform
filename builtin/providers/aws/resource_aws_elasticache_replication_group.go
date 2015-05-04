@@ -2,9 +2,12 @@ package aws
 
 import (
 	"fmt"
+	"log"
+	"time"
 
 	"github.com/awslabs/aws-sdk-go/aws"
 	"github.com/awslabs/aws-sdk-go/service/elasticache"
+	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 )
 
@@ -59,12 +62,14 @@ func resourceAwsElasticacheReplicationGroup() *schema.Resource {
 func resourceAwsElasticacheReplicationGroupCreate(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).elasticacheconn
 
+	var hasParameterGroup bool
+
 	replicationGroupId := d.Get("replication_group_id").(string)
 	description := d.Get("description").(string)
 	cacheNodeType := d.Get("cache_node_type").(string)
 	automaticFailover := d.Get("automatic_failover").(bool)
 	numCacheClusters := d.Get("num_cache_clusters").(int)
-	parameterGroupName := d.Get("parameter_group_name").(string)
+	parameterGroupName, hasParameterGroup := d.GetOk("parameter_group_name")
 	engine := d.Get("engine").(string)
 	engineVersion := d.Get("engine_version").(string)
 
@@ -74,14 +79,33 @@ func resourceAwsElasticacheReplicationGroupCreate(d *schema.ResourceData, meta i
 		CacheNodeType:            	aws.String(cacheNodeType),
 		AutomaticFailoverEnabled: 	aws.Boolean(automaticFailover),
 		NumCacheClusters:         	aws.Long(int64(numCacheClusters)),
-		CacheParameterGroupName:	aws.String(parameterGroupName),
 		Engine:				aws.String(engine),
 		EngineVersion:			aws.String(engineVersion),
+	}
+
+	if hasParameterGroup {
+		req.CacheParameterGroupName = aws.String(parameterGroupName.(string))
 	}
 
 	_, err := conn.CreateReplicationGroup(req)
 	if err != nil {
 		return fmt.Errorf("Error creating Elasticache replication group: %s", err)
+	}
+
+	pending := []string{"creating"}
+	stateConf := &resource.StateChangeConf{
+		Pending:    pending,
+		Target:     "available",
+		Refresh:    ReplicationGroupStateRefreshFunc(conn, d.Id(), "available", pending),
+		Timeout:    20 * time.Minute,
+		Delay:      10 * time.Second,
+		MinTimeout: 3 * time.Second,
+	}
+
+	log.Printf("[DEBUG] Waiting for state to become available: %v", d.Id())
+	_, sterr := stateConf.WaitForState()
+	if sterr != nil {
+		return fmt.Errorf("Error waiting for elasticache (%s) to be created: %s", d.Id(), sterr)
 	}
 
 	d.SetId(replicationGroupId)
@@ -144,10 +168,64 @@ func resourceAwsElasticacheReplicationGroupDelete(d *schema.ResourceData, meta i
 		ReplicationGroupID: aws.String(d.Id()),
 	}
 
-	_, err := conn.DeleteReplicationGroupRequest(req)
+	_, err := conn.DeleteReplicationGroup(req)
 	if err != nil {
 		return fmt.Errorf("Error deleting Elasticache replication group: %s", err)
 	}
 
+	log.Printf("[DEBUG] Waiting for deletion: %v", d.Id())
+	stateConf := &resource.StateChangeConf{
+		Pending:    []string{"creating", "available", "deleting"},
+		Target:     "",
+		Refresh:    ReplicationGroupStateRefreshFunc(conn, d.Id(), "", []string{}),
+		Timeout:    20 * time.Minute,
+		Delay:      10 * time.Second,
+		MinTimeout: 3 * time.Second,
+	}
+
+	_, sterr := stateConf.WaitForState()
+	if sterr != nil {
+		return fmt.Errorf("Error waiting for replication group (%s) to delete: %s", d.Id(), sterr)
+	}
+
 	return nil
+}
+
+func ReplicationGroupStateRefreshFunc(conn *elasticache.ElastiCache, replicationGroupID, givenState string, pending []string) resource.StateRefreshFunc {
+	return func() (interface{}, string, error) {
+		// log.Printf("[XXX] Given state: %s", givenState)
+		resp, err := conn.DescribeReplicationGroups(&elasticache.DescribeReplicationGroupsInput{
+			ReplicationGroupID: aws.String(replicationGroupID),
+		})
+		if err != nil {
+			apierr := err.(aws.APIError)
+			log.Printf("[DEBUG] message: %v, code: %v", apierr.Message, apierr.Code)
+			if apierr.Message == fmt.Sprintf("ReplicationGroup not found: %v", replicationGroupID) {
+				log.Printf("[DEBUG] Detect deletion")
+				return nil, "", nil
+			}
+
+			log.Printf("[ERROR] ReplicationGroupStateRefreshFunc: %s", err)
+			return nil, "", err
+		}
+
+		c := resp.ReplicationGroups[0]
+		log.Printf("[DEBUG] status: %v", *c.Status)
+
+		// return the current state if it's in the pending array
+		for _, p := range pending {
+			s := *c.Status
+			if p == s {
+				log.Printf("[DEBUG] Return with status: %v", *c.Status)
+				return c, p, nil
+			}
+		}
+
+		// return given state if it's not in pending
+		if givenState != "" {
+			return c, givenState, nil
+		}
+		log.Printf("[DEBUG] current status: %v", *c.Status)
+		return c, *c.Status, nil
+	}
 }
