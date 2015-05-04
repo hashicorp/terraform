@@ -81,6 +81,28 @@ func expandEcsContainerDefinitions(rawDefinitions string) ([]*ecs.ContainerDefin
 	return definitions, nil
 }
 
+// Takes the result of flatmap. Expand for an array of load balancers and
+// returns ecs.LoadBalancer compatible objects
+func expandEcsLoadBalancers(configured []interface{}) []*ecs.LoadBalancer {
+	loadBalancers := make([]*ecs.LoadBalancer, 0, len(configured))
+
+	// Loop over our configured load balancers and create
+	// an array of aws-sdk-go compatible objects
+	for _, lRaw := range configured {
+		data := lRaw.(map[string]interface{})
+
+		l := &ecs.LoadBalancer{
+			ContainerName:    aws.String(data["container_name"].(string)),
+			ContainerPort:    aws.Long(int64(data["container_port"].(int))),
+			LoadBalancerName: aws.String(data["elb_name"].(string)),
+		}
+
+		loadBalancers = append(loadBalancers, l)
+	}
+
+	return loadBalancers
+}
+
 // Takes the result of flatmap.Expand for an array of ingress/egress security
 // group rules and returns EC2 API compatible objects. This function will error
 // if it finds invalid permissions input, namely a protocol of "-1" with either
