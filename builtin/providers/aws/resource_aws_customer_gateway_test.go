@@ -6,6 +6,7 @@ import (
 
 	"github.com/awslabs/aws-sdk-go/aws"
 	"github.com/awslabs/aws-sdk-go/service/ec2"
+
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
 )
@@ -25,10 +26,18 @@ func TestAccCustomerGateway(t *testing.T) {
 				),
 			},
 			resource.TestStep{
-				Config: testAccCustomerGatewayUpdate,
+				Config: testAccCustomerGatewayConfigUpdateTags,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckCustomerGateway(
-						"aws_customer_gateway.bar",
+						"aws_customer_gateway.foo",
+					),
+				),
+			},
+			resource.TestStep{
+				Config: testAccCustomerGatewayConfigForceReplace,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckCustomerGateway(
+						"aws_customer_gateway.foo",
 					),
 				),
 			},
@@ -82,29 +91,35 @@ const testAccCustomerGatewayConfig = `
 resource "aws_customer_gateway" "foo" {
 	bgp_asn = 60000
 	ip_address = "172.0.0.1"
-	type = ipsec.1
+	type = "ipsec.1"
 	tags {
 		Name = "foo-gateway"
 	}
 }
 `
 
-const testAccCustomerGatewayUpdate = `
+// Add the Another: "tag" tag.
+const testAccCustomerGatewayConfigUpdateTags = `
 resource "aws_customer_gateway" "foo" {
 	bgp_asn = 60000
 	ip_address = "172.0.0.1"
-	type = ipsec.1
+	type = "ipsec.1"
 	tags {
 		Name = "foo-gateway"
+		Another = "tag"
 	}
 }
+`
 
-resource "aws_customer_gateway" "bar" {
+// Change the ip_address.
+const testAccCustomerGatewayConfigForceReplace = `
+resource "aws_customer_gateway" "foo" {
 	bgp_asn = 60000
-	ip_address = "172.0.0.1"
-	type = ipsec.1
+	ip_address = "172.10.10.1"
+	type = "ipsec.1"
 	tags {
 		Name = "foo-gateway"
+		Another = "tag"
 	}
 }
 `
