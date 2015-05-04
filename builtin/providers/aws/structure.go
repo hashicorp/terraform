@@ -2,6 +2,7 @@ package aws
 
 import (
 	"fmt"
+	"sort"
 	"strings"
 
 	"github.com/awslabs/aws-sdk-go/aws"
@@ -168,6 +169,18 @@ func expandInstanceString(list []interface{}) []*elb.Instance {
 		result = append(result, &elb.Instance{InstanceID: aws.String(i.(string))})
 	}
 	return result
+}
+
+// Flattens an array of Backend Descriptions into a a map of instance_port to policy names.
+func flattenBackendPolicies(backends []*elb.BackendServerDescription) map[int64][]string {
+	policies := make(map[int64][]string)
+	for _, i := range backends {
+		for _, p := range i.PolicyNames {
+			policies[*i.InstancePort] = append(policies[*i.InstancePort], *p)
+		}
+		sort.Strings(policies[*i.InstancePort])
+	}
+	return policies
 }
 
 // Flattens an array of Listeners into a []map[string]interface{}
