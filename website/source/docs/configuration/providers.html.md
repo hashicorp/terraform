@@ -9,7 +9,7 @@ description: |-
 # Provider Configuration
 
 Providers are responsible in Terraform for managing the lifecycle
-of a [resource](/docs/configuration/resource.html): create,
+of a [resource](/docs/configuration/resources.html): create,
 read, update, delete.
 
 Every resource in Terraform is mapped to a provider based
