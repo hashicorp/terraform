@@ -2443,6 +2443,26 @@ func TestContext2Validate_moduleBadResource(t *testing.T) {
 	}
 }
 
+func TestContext2Validate_moduleDepsShouldNotCycle(t *testing.T) {
+	m := testModule(t, "validate-module-deps-cycle")
+	p := testProvider("aws")
+	ctx := testContext2(t, &ContextOpts{
+		Module: m,
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+	})
+
+	w, e := ctx.Validate()
+
+	if len(w) > 0 {
+		t.Fatalf("expected no warnings, got: %s", w)
+	}
+	if len(e) > 0 {
+		t.Fatalf("expected no errors, got: %s", e)
+	}
+}
+
 func TestContext2Validate_moduleProviderInherit(t *testing.T) {
 	m := testModule(t, "validate-module-pc-inherit")
 	p := testProvider("aws")
