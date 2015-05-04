@@ -108,6 +108,7 @@ func Provider() terraform.ResourceProvider {
 			"aws_vpc_dhcp_options":             resourceAwsVpcDhcpOptions(),
 			"aws_vpc_dhcp_options_association": resourceAwsVpcDhcpOptionsAssociation(),
 			"aws_vpn_connection":               resourceAwsVpnConnection(),
+			"aws_vpn_connection_route":         resourceAwsVpnConnectionRoute(),
 			"aws_vpn_gateway":                  resourceAwsVpnGateway(),
 		},
 
