@@ -10,6 +10,7 @@ import (
 	"github.com/hashicorp/terraform/config/lang"
 	"github.com/hashicorp/terraform/config/lang/ast"
 	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/mitchellh/go-homedir"
 )
 
 func resource() *schema.Resource {
@@ -35,7 +36,6 @@ func resource() *schema.Resource {
 			"rendered": &schema.Schema{
 				Type:        schema.TypeString,
 				Computed:    true,
-				Default:     nil,
 				Description: "rendered template",
 			},
 		},
@@ -55,11 +55,18 @@ func Exists(d *schema.ResourceData, meta interface{}) (bool, error) {
 	return false, nil
 }
 
+var readfile func(string) ([]byte, error) = ioutil.ReadFile // testing hook
+
 func eval(d *schema.ResourceData) error {
 	filename := d.Get("filename").(string)
 	vars := d.Get("vars").(map[string]interface{})
 
-	buf, err := ioutil.ReadFile(filename)
+	path, err := homedir.Expand(filename)
+	if err != nil {
+		return err
+	}
+
+	buf, err := readfile(path)
 	if err != nil {
 		return err
 	}
