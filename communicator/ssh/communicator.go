@@ -230,7 +230,7 @@ func (c *Communicator) UploadScript(path string, input io.Reader) error {
 	}
 
 	cmd := &remote.Cmd{
-		Command: fmt.Sprintf("chmod 0777 %s", c.connInfo.ScriptPath),
+		Command: fmt.Sprintf("chmod 0777 %s", path),
 	}
 	if err := c.Start(cmd); err != nil {
 		return fmt.Errorf(
