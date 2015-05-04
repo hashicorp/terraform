@@ -91,6 +91,7 @@ func Provider() terraform.ResourceProvider {
 			"aws_db_security_group":            resourceAwsDbSecurityGroup(),
 			"aws_db_subnet_group":              resourceAwsDbSubnetGroup(),
 			"aws_ebs_volume":                   resourceAwsEbsVolume(),
+			"aws_ecs_cluster":                  resourceAwsEcsCluster(),
 			"aws_eip":                          resourceAwsEip(),
 			"aws_elasticache_cluster":          resourceAwsElasticacheCluster(),
 			"aws_elasticache_security_group":   resourceAwsElasticacheSecurityGroup(),
