@@ -73,7 +73,8 @@ The `ingress` block supports:
 
 * `cidr_blocks` - (Optional) List of CIDR blocks. Cannot be used with `security_groups`.
 * `from_port` - (Required) The start port.
-* `protocol` - (Required) The protocol.
+* `protocol` - (Required) The protocol. If you select a protocol of
+"-1", you must specify a "from_port" and "to_port" equal to 0.
 * `security_groups` - (Optional) List of security group Group Names if using
     EC2-Classic or the default VPC, or Group IDs if using a non-default VPC.
     Cannot be used with `cidr_blocks`.
@@ -85,7 +86,8 @@ The `egress` block supports:
 
 * `cidr_blocks` - (Optional) List of CIDR blocks. Cannot be used with `security_groups`.
 * `from_port` - (Required) The start port.
-* `protocol` - (Required) The protocol.
+* `protocol` - (Required) The protocol. If you select a protocol of
+"-1", you must specify a "from_port" and "to_port" equal to 0.
 * `security_groups` - (Optional) List of security group Group Names if using
     EC2-Classic or the default VPC, or Group IDs if using a non-default VPC.
     Cannot be used with `cidr_blocks`.
