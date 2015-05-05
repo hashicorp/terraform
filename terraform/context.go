@@ -410,7 +410,7 @@ func (c *Context) Validate() ([]string, []error) {
 	// in the validate stage
 	graph, err := c.Graph(&ContextGraphOpts{
 		Validate: true,
-		Verbose:  true,
+		Verbose:  false,
 	})
 	if err != nil {
 		return nil, []error{err}
