@@ -166,7 +166,7 @@ func resourceAwsSubnetDelete(d *schema.ResourceData, meta interface{}) error {
 	wait := resource.StateChangeConf{
 		Pending:    []string{"pending"},
 		Target:     "destroyed",
-		Timeout:    5 * time.Minute,
+		Timeout:    2 * time.Minute,
 		MinTimeout: 1 * time.Second,
 		Refresh: func() (interface{}, string, error) {
 			_, err := conn.DeleteSubnet(req)
