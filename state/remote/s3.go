@@ -7,6 +7,7 @@ import (
 	"os"
 
 	"github.com/awslabs/aws-sdk-go/aws"
+	"github.com/awslabs/aws-sdk-go/aws/credentials"
 	"github.com/awslabs/aws-sdk-go/service/s3"
 )
 
@@ -32,10 +33,10 @@ func s3Factory(conf map[string]string) (Client, error) {
 	accessKeyId := conf["access_key"]
 	secretAccessKey := conf["secret_key"]
 
-	credentialsProvider := aws.DetectCreds(accessKeyId, secretAccessKey, "")
+	credentialsProvider := credentials.NewStaticCredentials(accessKeyId, secretAccessKey, "")
 
 	// Make sure we got some sort of working credentials.
-	_, err := credentialsProvider.Credentials()
+	_, err := credentialsProvider.Get()
 	if err != nil {
 		return nil, fmt.Errorf("Unable to determine AWS credentials. Set the AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY environment variables.\n(error was: %s)", err)
 	}
