@@ -61,6 +61,7 @@ IMPROVEMENTS:
   * provider/aws: `aws_elb` increase default idle timeout to 60s [GH-1646]
   * provider/aws: `aws_key_pair` name can be omitted and generated [GH-1751]
   * provider/aws: `aws_route_table` can target network interfaces [GH-968]
+  * provider/aws: `aws_route_table` can specify propogating VGWs [GH-1516]
   * provider/aws: `aws_route53_record` supports weighted sets [GH-1578]
   * provider/aws: `aws_route53_zone` exports nameservers [GH-1525]
   * provider/aws: `aws_security_group` name becomes optional and can be
