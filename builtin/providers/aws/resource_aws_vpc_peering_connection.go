@@ -49,7 +49,7 @@ func resourceAwsVpcPeeringConnection() *schema.Resource {
 }
 
 func resourceAwsVPCPeeringCreate(d *schema.ResourceData, meta interface{}) error {
-	ec2conn := meta.(*AWSClient).awsEC2conn
+	conn := meta.(*AWSClient).ec2conn
 
 	// Create the vpc peering connection
 	createOpts := &ec2.CreateVPCPeeringConnectionInput{
@@ -58,7 +58,7 @@ func resourceAwsVPCPeeringCreate(d *schema.ResourceData, meta interface{}) error
 		VPCID:       aws.String(d.Get("vpc_id").(string)),
 	}
 	log.Printf("[DEBUG] VPCPeeringCreate create config: %#v", createOpts)
-	resp, err := ec2conn.CreateVPCPeeringConnection(createOpts)
+	resp, err := conn.CreateVPCPeeringConnection(createOpts)
 	if err != nil {
 		return fmt.Errorf("Error creating vpc peering connection: %s", err)
 	}
@@ -75,7 +75,7 @@ func resourceAwsVPCPeeringCreate(d *schema.ResourceData, meta interface{}) error
 	stateConf := &resource.StateChangeConf{
 		Pending: []string{"pending"},
 		Target:  "pending-acceptance",
-		Refresh: resourceAwsVPCPeeringConnectionStateRefreshFunc(ec2conn, d.Id()),
+		Refresh: resourceAwsVPCPeeringConnectionStateRefreshFunc(conn, d.Id()),
 		Timeout: 1 * time.Minute,
 	}
 	if _, err := stateConf.WaitForState(); err != nil {
@@ -88,8 +88,8 @@ func resourceAwsVPCPeeringCreate(d *schema.ResourceData, meta interface{}) error
 }
 
 func resourceAwsVPCPeeringRead(d *schema.ResourceData, meta interface{}) error {
-	ec2conn := meta.(*AWSClient).awsEC2conn
-	pcRaw, _, err := resourceAwsVPCPeeringConnectionStateRefreshFunc(ec2conn, d.Id())()
+	conn := meta.(*AWSClient).ec2conn
+	pcRaw, _, err := resourceAwsVPCPeeringConnectionStateRefreshFunc(conn, d.Id())()
 	if err != nil {
 		return err
 	}
@@ -113,7 +113,7 @@ func resourceVPCPeeringConnectionAccept(conn *ec2.EC2, id string) (string, error
 
 	log.Printf("[INFO] Accept VPC Peering Connection with id: %s", id)
 
-	req := &ec2.AcceptVPCPeeringConnectionRequest{
+	req := &ec2.AcceptVPCPeeringConnectionInput{
 		VPCPeeringConnectionID: aws.String(id),
 	}
 
@@ -123,7 +123,7 @@ func resourceVPCPeeringConnectionAccept(conn *ec2.EC2, id string) (string, error
 }
 
 func resourceAwsVPCPeeringUpdate(d *schema.ResourceData, meta interface{}) error {
-	ec2conn := meta.(*AWSClient).awsEC2conn
+	conn := meta.(*AWSClient).ec2conn
 
 	if err := setTagsSDK(conn, d); err != nil {
 		return err
@@ -133,7 +133,7 @@ func resourceAwsVPCPeeringUpdate(d *schema.ResourceData, meta interface{}) error
 
 	if _, ok := d.GetOk("auto_accept"); ok {
 
-		pcRaw, _, err := resourceAwsVPCPeeringConnectionStateRefreshFunc(ec2conn, d.Id())()
+		pcRaw, _, err := resourceAwsVPCPeeringConnectionStateRefreshFunc(conn, d.Id())()
 
 		if err != nil {
 			return err
@@ -146,7 +146,7 @@ func resourceAwsVPCPeeringUpdate(d *schema.ResourceData, meta interface{}) error
 
 		if *pc.Status.Code == "pending-acceptance" {
 
-			status, err := resourceVPCPeeringConnectionAccept(ec2conn, d.Id())
+			status, err := resourceVPCPeeringConnectionAccept(conn, d.Id())
 
 			log.Printf(
 				"[DEBUG] VPC Peering connection accept status %s",
@@ -161,7 +161,7 @@ func resourceAwsVPCPeeringUpdate(d *schema.ResourceData, meta interface{}) error
 }
 
 func resourceAwsVPCPeeringDelete(d *schema.ResourceData, meta interface{}) error {
-	ec2conn := meta.(*AWSClient).awsEC2conn
+	conn := meta.(*AWSClient).ec2conn
 
 	_, err := conn.DeleteVPCPeeringConnection(
 		&ec2.DeleteVPCPeeringConnectionInput{
