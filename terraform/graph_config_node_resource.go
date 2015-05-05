@@ -267,6 +267,13 @@ func (n *GraphNodeConfigResourceFlat) ProvidedBy() []string {
 		prefix)
 }
 
+func (n *GraphNodeConfigResourceFlat) ProvisionedBy() []string {
+	prefix := modulePrefixStr(n.PathValue)
+	return modulePrefixList(
+		n.GraphNodeConfigResource.ProvisionedBy(),
+		prefix)
+}
+
 // GraphNodeDestroyable impl.
 func (n *GraphNodeConfigResourceFlat) DestroyNode(mode GraphNodeDestroyMode) GraphNodeDestroy {
 	// Get our parent destroy node. If we don't have any, just return
