@@ -42,10 +42,12 @@ func expandListeners(configured []interface{}) ([]*elb.Listener, error) {
 	return listeners, nil
 }
 
-// Takes the result of flatmap.Expand for an array of ingress/egress
-// security group rules and returns EC2 API compatible objects
+// Takes the result of flatmap.Expand for an array of ingress/egress security
+// group rules and returns EC2 API compatible objects. This function will error
+// if it finds invalid permissions input, namely a protocol of "-1" with either
+// to_port or from_port set to a non-zero value.
 func expandIPPerms(
-	group *ec2.SecurityGroup, configured []interface{}) []*ec2.IPPermission {
+	group *ec2.SecurityGroup, configured []interface{}) ([]*ec2.IPPermission, error) {
 	vpc := group.VPCID != nil
 
 	perms := make([]*ec2.IPPermission, len(configured))
@@ -56,6 +58,17 @@ func expandIPPerms(
 		perm.FromPort = aws.Long(int64(m["from_port"].(int)))
 		perm.ToPort = aws.Long(int64(m["to_port"].(int)))
 		perm.IPProtocol = aws.String(m["protocol"].(string))
+
+		// When protocol is "-1", AWS won't store any ports for the
+		// rule, but also won't error if the user specifies ports other
+		// than '0'. Force the user to make a deliberate '0' port
+		// choice when specifying a "-1" protocol, and tell them about
+		// AWS's behavior in the error message.
+		if *perm.IPProtocol == "-1" && (*perm.FromPort != 0 || *perm.ToPort != 0) {
+			return nil, fmt.Errorf(
+				"from_port (%d) and to_port (%d) must both be 0 to use the the 'ALL' \"-1\" protocol!",
+				*perm.FromPort, *perm.ToPort)
+		}
 
 		var groups []string
 		if raw, ok := m["security_groups"]; ok {
@@ -102,7 +115,7 @@ func expandIPPerms(
 		perms[i] = &perm
 	}
 
-	return perms
+	return perms, nil
 }
 
 // Takes the result of flatmap.Expand for an array of parameters and

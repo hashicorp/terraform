@@ -406,8 +406,14 @@ func resourceAwsSecurityGroupUpdateRules(
 		os := o.(*schema.Set)
 		ns := n.(*schema.Set)
 
-		remove := expandIPPerms(group, os.Difference(ns).List())
-		add := expandIPPerms(group, ns.Difference(os).List())
+		remove, err := expandIPPerms(group, os.Difference(ns).List())
+		if err != nil {
+			return err
+		}
+		add, err := expandIPPerms(group, ns.Difference(os).List())
+		if err != nil {
+			return err
+		}
 
 		// TODO: We need to handle partial state better in the in-between
 		// in this update.
