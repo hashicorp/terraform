@@ -116,7 +116,7 @@ func resourceFWPolicyV1Read(d *schema.ResourceData, meta interface{}) error {
 	policy, err := policies.Get(networkingClient, d.Id()).Extract()
 
 	if err != nil {
-		return CheckDeleted(d, err, "LB pool")
+		return CheckDeleted(d, err, "FW policy")
 	}
 
 	d.Set("name", policy.Name)
