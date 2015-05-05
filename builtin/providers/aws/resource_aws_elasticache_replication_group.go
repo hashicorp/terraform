@@ -97,9 +97,9 @@ func resourceAwsElasticacheReplicationGroupCreate(d *schema.ResourceData, meta i
 		Pending:    pending,
 		Target:     "available",
 		Refresh:    ReplicationGroupStateRefreshFunc(conn, d.Id(), "available", pending),
-		Timeout:    20 * time.Minute,
-		Delay:      10 * time.Second,
-		MinTimeout: 3 * time.Second,
+		Timeout:    15 * time.Minute,
+		Delay:      20 * time.Second,
+		MinTimeout: 5 * time.Second,
 	}
 
 	log.Printf("[DEBUG] Waiting for state to become available: %v", d.Id())
@@ -178,9 +178,9 @@ func resourceAwsElasticacheReplicationGroupDelete(d *schema.ResourceData, meta i
 		Pending:    []string{"creating", "available", "deleting"},
 		Target:     "",
 		Refresh:    ReplicationGroupStateRefreshFunc(conn, d.Id(), "", []string{}),
-		Timeout:    20 * time.Minute,
-		Delay:      10 * time.Second,
-		MinTimeout: 3 * time.Second,
+		Timeout:    15 * time.Minute,
+		Delay:      20 * time.Second,
+		MinTimeout: 5 * time.Second,
 	}
 
 	_, sterr := stateConf.WaitForState()
@@ -200,7 +200,7 @@ func ReplicationGroupStateRefreshFunc(conn *elasticache.ElastiCache, replication
 		if err != nil {
 			apierr := err.(aws.APIError)
 			log.Printf("[DEBUG] message: %v, code: %v", apierr.Message, apierr.Code)
-			if apierr.Message == fmt.Sprintf("ReplicationGroup not found: %v", replicationGroupID) {
+			if apierr.Code == "ReplicationGroupNotFoundFault" {
 				log.Printf("[DEBUG] Detect deletion")
 				return nil, "", nil
 			}
