@@ -8,6 +8,7 @@ import (
 	"github.com/hashicorp/terraform/helper/multierror"
 
 	"github.com/awslabs/aws-sdk-go/aws"
+	"github.com/awslabs/aws-sdk-go/aws/credentials"
 	"github.com/awslabs/aws-sdk-go/service/autoscaling"
 	"github.com/awslabs/aws-sdk-go/service/ec2"
 	"github.com/awslabs/aws-sdk-go/service/elasticache"
@@ -61,7 +62,7 @@ func (c *Config) Client() (interface{}, error) {
 		client.region = c.Region
 
 		log.Println("[INFO] Building AWS auth structure")
-		creds := aws.DetectCreds(c.AccessKey, c.SecretKey, c.Token)
+		creds := credentials.NewStaticCredentials(c.AccessKey, c.SecretKey, c.Token)
 		awsConfig := &aws.Config{
 			Credentials: creds,
 			Region:      c.Region,
