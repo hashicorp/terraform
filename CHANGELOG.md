@@ -103,6 +103,7 @@ BUG FIXES:
   * provider/openstack: `enable_dhcp` for networking subnet should be bool [GH-1741]
   * provisioner/remote-exec: add random number to uploaded script path so
       that parallel provisions work [GH-1588]
+  * provisioner/remote-exec: chmod the script to 0755 properly [GH-1796]
 
 ## 0.4.2 (April 10, 2015)
 
