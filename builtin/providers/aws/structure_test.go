@@ -10,7 +10,6 @@ import (
 	"github.com/awslabs/aws-sdk-go/service/rds"
 	"github.com/awslabs/aws-sdk-go/service/route53"
 	"github.com/hashicorp/terraform/flatmap"
-	"github.com/hashicorp/terraform/helper/hashcode"
 	"github.com/hashicorp/terraform/helper/schema"
 )
 
@@ -38,9 +37,7 @@ func testConf() map[string]string {
 }
 
 func TestexpandIPPerms(t *testing.T) {
-	hash := func(v interface{}) int {
-		return hashcode.String(v.(string))
-	}
+	hash := schema.HashString
 
 	expanded := []interface{}{
 		map[string]interface{}{
@@ -121,9 +118,7 @@ func TestexpandIPPerms(t *testing.T) {
 }
 
 func TestExpandIPPerms_nonVPC(t *testing.T) {
-	hash := func(v interface{}) int {
-		return hashcode.String(v.(string))
-	}
+	hash := schema.HashString
 
 	expanded := []interface{}{
 		map[string]interface{}{
