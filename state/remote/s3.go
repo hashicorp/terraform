@@ -41,6 +41,8 @@ func s3Factory(conf map[string]string) (Client, error) {
 			SessionToken:    "",
 		}},
 		&credentials.EnvProvider{},
+		&credentials.SharedCredentialsProvider{Filename: "", Profile: ""},
+		&credentials.EC2RoleProvider{},
 	})
 
 	// Make sure we got some sort of working credentials.
