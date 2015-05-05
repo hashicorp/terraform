@@ -148,13 +148,9 @@ func resourceAwsSecurityGroupCreate(d *schema.ResourceData, meta interface{}) er
 
         securityGroupOpts := &ec2.CreateSecurityGroupInput{}
 
-        if v, ok := d.GetOk("vpc_id"); ok {
-                if len(d.Get("egress").(*schema.Set).List()) == 0 {
-                        return fmt.Errorf("Error creating Security Group: Security groups inside a VPC require an egress rule. See http://terraform.io/docs/providers/aws/r/security_group.html for more information.")
-                }
-
+        if v := d.Get("vpc_id"); v != nil {
                 securityGroupOpts.VPCID = aws.String(v.(string))
-	}
+        }
 
 	if v := d.Get("description"); v != nil {
 		securityGroupOpts.Description = aws.String(v.(string))
