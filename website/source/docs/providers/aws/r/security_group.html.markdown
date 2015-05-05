@@ -63,7 +63,7 @@ The following arguments are supported:
 * `description` - (Required) The security group description.
 * `ingress` - (Optional) Can be specified multiple times for each
    ingress rule. Each ingress block supports fields documented below.
-* `egress` - (Required, VPC only) Can be specified multiple times for each
+* `egress` - (Optional, VPC only) Can be specified multiple times for each
       egress rule. Each egress block supports fields documented below.
 * `vpc_id` - (Optional) The VPC ID.
 * `tags` - (Optional) A mapping of tags to assign to the resource.
