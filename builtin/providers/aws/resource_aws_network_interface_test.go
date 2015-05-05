@@ -181,6 +181,13 @@ resource "aws_security_group" "foo" {
   vpc_id = "${aws_vpc.foo.id}"
   description = "foo"
   name = "foo"  
+
+        egress {
+                from_port = 0
+                to_port = 0
+                protocol = "tcp"
+                cidr_blocks = ["10.0.0.0/16"]
+        }
 }
 
 resource "aws_network_interface" "bar" {
