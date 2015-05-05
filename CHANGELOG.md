@@ -25,6 +25,15 @@ IMPROVEMENTS:
   * **New resource: `google_dns_managed_zone`**
   * **New resource: `google_dns_record_set`**
   * **New resource: `aws_proxy_protocol_policy`**
+  * **New resource: `aws_iam_access_key`**        
+  * **New resource: `aws_iam_group_policy`** 
+  * **New resource: `aws_iam_group`** 
+  * **New resource: `aws_iam_instance_profile`** 
+  * **New resource: `aws_iam_policy`** 
+  * **New resource: `aws_iam_role_policy`** 
+  * **New resource: `aws_iam_role`** 
+  * **New resource: `aws_iam_user_policy`** 
+  * **New resource: `aws_iam_user`** 
   * **Migrate to upstream AWS SDK:** Migrate the AWS provider to
       [awslabs/aws-sdk-go](https://github.com/awslabs/aws-sdk-go),
       the offical `awslabs` library. Previously we had forked the library for
@@ -41,6 +50,7 @@ IMPROVEMENTS:
       Instance without destroying it [GH-1539]
   * provider/aws: White or blacklist account IDs that can be used to
       protect against accidents. [GH-1595]
+  * provider/aws: Add a subset of IAM resources [GH-939]
   * provider/aws: `aws_instance` supports placement groups [GH-1358]
   * provider/aws: `aws_elb` supports in-place changing of listeners [GH-1619]
   * provider/aws: `aws_elb` supports connection draining settings [GH-1502]
