@@ -95,4 +95,6 @@ The following attributes are exported:
 * `description` - See Argument Reference above.
 * `persistence` - See Argument Reference above.
 * `conn_limit` - See Argument Reference above.
+* `floating_ip` - See Argument Reference above.
 * `admin_state_up` - See Argument Reference above.
+* `port_id` - Port UUID for this VIP at associated floating IP (if any).
