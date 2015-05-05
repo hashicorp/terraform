@@ -47,8 +47,8 @@ The following arguments are supported:
 * `flavor_name` - (Optional; Required if `flavor_id` is empty) The name of the
     desired flavor for the server. Changing this resizes the existing server.
 
-* `floating_ip` - (Optional) A Floating IP that will be associated with the
-    Instance. The Floating IP must be provisioned already.
+* `floating_ip` - (Optional) A *Compute* Floating IP that will be associated
+    with the Instance. The Floating IP must be provisioned already.
 
 * `user_data` - (Optional) The user data to provide when launching the instance.
     Changing this creates a new server.
