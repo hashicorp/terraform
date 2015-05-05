@@ -37,7 +37,16 @@ func (t *ConfigTransformer) Transform(g *Graph) error {
 
 	// Create the node list we'll use for the graph
 	nodes := make([]graphNodeConfig, 0,
-		(len(config.ProviderConfigs)+len(config.Modules)+len(config.Resources))*2)
+		(len(config.Variables)+
+			len(config.ProviderConfigs)+
+			len(config.Modules)+
+			len(config.Resources)+
+			len(config.Outputs))*2)
+
+	// Write all the variables out
+	for _, v := range config.Variables {
+		nodes = append(nodes, &GraphNodeConfigVariable{Variable: v})
+	}
 
 	// Write all the provider configs out
 	for _, pc := range config.ProviderConfigs {
@@ -96,9 +105,11 @@ func (t *ConfigTransformer) Transform(g *Graph) error {
 func varNameForVar(raw config.InterpolatedVariable) string {
 	switch v := raw.(type) {
 	case *config.ModuleVariable:
-		return fmt.Sprintf("module.%s", v.Name)
+		return fmt.Sprintf("module.%s.output.%s", v.Name, v.Field)
 	case *config.ResourceVariable:
 		return v.ResourceId()
+	case *config.UserVariable:
+		return fmt.Sprintf("var.%s", v.Name)
 	default:
 		return ""
 	}

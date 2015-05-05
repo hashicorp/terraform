@@ -111,6 +111,14 @@ func (n *graphNodeMissingProvisioner) ProvisionerName() string {
 	return n.ProvisionerNameValue
 }
 
+// GraphNodeFlattenable impl.
+func (n *graphNodeMissingProvisioner) Flatten(p []string) (dag.Vertex, error) {
+	return &graphNodeMissingProvisionerFlat{
+		graphNodeMissingProvisioner: n,
+		PathValue:                   p,
+	}, nil
+}
+
 func provisionerVertexMap(g *Graph) map[string]dag.Vertex {
 	m := make(map[string]dag.Vertex)
 	for _, v := range g.Vertices() {
@@ -120,4 +128,26 @@ func provisionerVertexMap(g *Graph) map[string]dag.Vertex {
 	}
 
 	return m
+}
+
+// Same as graphNodeMissingProvisioner, but for flattening
+type graphNodeMissingProvisionerFlat struct {
+	*graphNodeMissingProvisioner
+
+	PathValue []string
+}
+
+func (n *graphNodeMissingProvisionerFlat) Name() string {
+	return fmt.Sprintf(
+		"%s.%s", modulePrefixStr(n.PathValue), n.graphNodeMissingProvisioner.Name())
+}
+
+func (n *graphNodeMissingProvisionerFlat) Path() []string {
+	return n.PathValue
+}
+
+func (n *graphNodeMissingProvisionerFlat) ProvisionerName() string {
+	return fmt.Sprintf(
+		"%s.%s", modulePrefixStr(n.PathValue),
+		n.graphNodeMissingProvisioner.ProvisionerName())
 }

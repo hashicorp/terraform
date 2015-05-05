@@ -11,12 +11,13 @@ import (
 // EvalSetVariables is an EvalNode implementation that sets the variables
 // explicitly for interpolation later.
 type EvalSetVariables struct {
+	Module    *string
 	Variables map[string]string
 }
 
 // TODO: test
 func (n *EvalSetVariables) Eval(ctx EvalContext) (interface{}, error) {
-	ctx.SetVariables(n.Variables)
+	ctx.SetVariables(*n.Module, n.Variables)
 	return nil, nil
 }
 

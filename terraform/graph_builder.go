@@ -91,7 +91,7 @@ type BuiltinGraphBuilder struct {
 // Build builds the graph according to the steps returned by Steps.
 func (b *BuiltinGraphBuilder) Build(path []string) (*Graph, error) {
 	basic := &BasicGraphBuilder{
-		Steps:    b.Steps(),
+		Steps:    b.Steps(path),
 		Validate: b.Validate,
 	}
 
@@ -100,7 +100,7 @@ func (b *BuiltinGraphBuilder) Build(path []string) (*Graph, error) {
 
 // Steps returns the ordered list of GraphTransformers that must be executed
 // to build a complete graph.
-func (b *BuiltinGraphBuilder) Steps() []GraphTransformer {
+func (b *BuiltinGraphBuilder) Steps(path []string) []GraphTransformer {
 	steps := []GraphTransformer{
 		// Create all our resources from the configuration and state
 		&ConfigTransformer{Module: b.Root},
@@ -134,24 +134,41 @@ func (b *BuiltinGraphBuilder) Steps() []GraphTransformer {
 			},
 		},
 
+		// Flatten stuff
+		&FlattenTransformer{},
+
+		// Make sure all the connections that are proxies are connected through
+		&ProxyTransformer{},
+
 		// Optionally reduces the graph to a user-specified list of targets and
 		// their dependencies.
 		&TargetsTransformer{Targets: b.Targets, Destroy: b.Destroy},
 
-		// Create the destruction nodes
-		&DestroyTransformer{},
-		&CreateBeforeDestroyTransformer{},
-		b.conditional(&conditionalOpts{
-			If:   func() bool { return !b.Verbose },
-			Then: &PruneDestroyTransformer{Diff: b.Diff, State: b.State},
-		}),
-
-		// Make sure we create one root
+		// Make sure we have a single root
 		&RootTransformer{},
+	}
 
-		// Perform the transitive reduction to make our graph a bit
-		// more sane if possible (it usually is possible).
-		&TransitiveReductionTransformer{},
+	// If we're on the root path, then we do a bunch of other stuff.
+	// We don't do the following for modules.
+	if len(path) <= 1 {
+		steps = append(steps,
+			// Create the destruction nodes
+			&DestroyTransformer{},
+			&CreateBeforeDestroyTransformer{},
+			b.conditional(&conditionalOpts{
+				If:   func() bool { return !b.Verbose },
+				Then: &PruneDestroyTransformer{Diff: b.Diff, State: b.State},
+			}),
+
+			// Make sure we have a single root after the above changes.
+			// This is the 2nd root transformer. In practice this shouldn't
+			// actually matter as the RootTransformer is idempotent.
+			&RootTransformer{},
+
+			// Perform the transitive reduction to make our graph a bit
+			// more sane if possible (it usually is possible).
+			&TransitiveReductionTransformer{},
+		)
 	}
 
 	// Remove nils
