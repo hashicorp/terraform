@@ -51,7 +51,7 @@ func TestS3Factory(t *testing.T) {
 		t.Fatalf("Incorrect keyName was populated")
 	}
 
-	credentials, err := s3Client.nativeClient.Config.Credentials.Credentials()
+	credentials, err := s3Client.nativeClient.Config.Credentials.Get()
 	if err != nil {
 		t.Fatalf("Error when requesting credentials")
 	}
@@ -105,7 +105,7 @@ func TestS3Client(t *testing.T) {
 	if err != nil {
 		t.Skipf("Failed to create test S3 bucket, so skipping")
 	}
-	defer func () {
+	defer func() {
 		deleteBucketReq := &s3.DeleteBucketInput{
 			Bucket: &bucketName,
 		}
