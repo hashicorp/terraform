@@ -57,6 +57,26 @@ func TestAccAWSEIP_instance(t *testing.T) {
 	})
 }
 
+func TestAccAWSEIP_network_interface(t *testing.T) {
+	var conf ec2.Address
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSEIPDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccAWSEIPNetworkInterfaceConfig,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSEIPExists("aws_eip.bar", &conf),
+					testAccCheckAWSEIPAttributes(&conf),
+					testAccCheckAWSEIPAssociated(&conf),
+				),
+			},
+		},
+	})
+}
+
 func testAccCheckAWSEIPDestroy(s *terraform.State) error {
 	conn := testAccProvider.Meta().(*AWSClient).ec2conn
 
@@ -95,6 +115,16 @@ func testAccCheckAWSEIPAttributes(conf *ec2.Address) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		if *conf.PublicIP == "" {
 			return fmt.Errorf("empty public_ip")
+		}
+
+		return nil
+	}
+}
+
+func testAccCheckAWSEIPAssociated(conf *ec2.Address) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		if *conf.AssociationID == "" {
+			return fmt.Errorf("empty association_id")
 		}
 
 		return nil
@@ -175,5 +205,27 @@ resource "aws_instance" "bar" {
 
 resource "aws_eip" "bar" {
 	instance = "${aws_instance.bar.id}"
+}
+`
+const testAccAWSEIPNetworkInterfaceConfig = `
+resource "aws_vpc" "bar" {
+	cidr_block = "10.0.0.0/24"
+}
+resource "aws_internet_gateway" "bar" {
+	vpc_id = "${aws_vpc.bar.id}"
+}
+resource "aws_subnet" "bar" {
+  vpc_id = "${aws_vpc.bar.id}"
+  availability_zone = "us-west-2a"
+  cidr_block = "10.0.0.0/24"
+}
+resource "aws_network_interface" "bar" {
+  subnet_id = "${aws_subnet.bar.id}"
+	private_ips = ["10.0.0.10"]
+  security_groups = [ "${aws_vpc.bar.default_security_group_id}" ]
+}
+resource "aws_eip" "bar" {
+	vpc = "true"
+	network_interface = "${aws_network_interface.bar.id}"
 }
 `
