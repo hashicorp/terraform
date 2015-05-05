@@ -244,7 +244,7 @@ func (c *Communicator) UploadScript(path string, input io.Reader) error {
 	if cmd.ExitStatus != 0 {
 		return fmt.Errorf(
 			"Error chmodding script file to 0777 in remote "+
-				"machine: %s %s", stdout.String(), stderr.String())
+				"machine %d: %s %s", cmd.ExitStatus, stdout.String(), stderr.String())
 	}
 
 	return nil
