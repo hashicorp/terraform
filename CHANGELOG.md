@@ -37,6 +37,7 @@ IMPROVEMENTS:
   * **New resource: `aws_iam_role`**
   * **New resource: `aws_iam_user_policy`**
   * **New resource: `aws_iam_user`**
+  * **New resource: `aws_security_group_rule`**
   * **Migrate to upstream AWS SDK:** Migrate the AWS provider to
       [awslabs/aws-sdk-go](https://github.com/awslabs/aws-sdk-go),
       the offical `awslabs` library. Previously we had forked the library for
