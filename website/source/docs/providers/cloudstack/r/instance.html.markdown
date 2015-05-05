@@ -32,15 +32,15 @@ The following arguments are supported:
 
 * `display_name` - (Optional) The display name of the instance.
 
-* `service_offering` - (Required) The service offering used for this instance.
+* `service_offering` - (Required) The name or ID of the service offering used for this instance.
 
-* `network` - (Optional) The name of the network to connect this instance to.
+* `network` - (Optional) The name or ID of the network to connect this instance to.
     Changing this forces a new resource to be created.
 
 * `ipaddress` - (Optional) The IP address to assign to this instance. Changing
     this forces a new resource to be created.
 
-* `template` - (Required) The name of the template used for this instance.
+* `template` - (Required) The name or ID of the template used for this instance.
     Changing this forces a new resource to be created.
 
 * `zone` - (Required) The name of the zone where this instance will be created.

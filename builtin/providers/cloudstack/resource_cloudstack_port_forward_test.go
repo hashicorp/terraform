@@ -204,7 +204,6 @@ resource "cloudstack_port_forward" "foo" {
     public_port = 8080
     virtual_machine = "${cloudstack_instance.foobar.name}"
   }
-
 }`,
 	CLOUDSTACK_SERVICE_OFFERING_1,
 	CLOUDSTACK_NETWORK_1,
