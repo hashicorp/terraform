@@ -261,7 +261,7 @@ func resourceAwsSecurityGroupDelete(d *schema.ResourceData, meta interface{}) er
 
 	log.Printf("[DEBUG] Security Group destroy: %v", d.Id())
 
-	return resource.Retry(5*time.Minute, func() error {
+	return resource.Retry(2*time.Minute, func() error {
 		_, err := conn.DeleteSecurityGroup(&ec2.DeleteSecurityGroupInput{
 			GroupID: aws.String(d.Id()),
 		})
