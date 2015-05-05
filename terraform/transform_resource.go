@@ -2,6 +2,7 @@ package terraform
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/hashicorp/terraform/config"
 	"github.com/hashicorp/terraform/dag"
@@ -169,6 +170,27 @@ func (n *graphNodeExpandedResource) ProvidedBy() []string {
 	return []string{resourceProvider(n.Resource.Type, n.Resource.Provider)}
 }
 
+func (n *graphNodeExpandedResource) StateDependencies() []string {
+	depsRaw := n.DependentOn()
+	deps := make([]string, 0, len(depsRaw))
+	for _, d := range depsRaw {
+		// Ignore any variable dependencies
+		if strings.HasPrefix(d, "var.") {
+			continue
+		}
+
+		// This is sad. The dependencies are currently in the format of
+		// "module.foo.bar" (the full field). This strips the field off.
+		if strings.HasPrefix(d, "module.") {
+			parts := strings.SplitN(d, ".", 3)
+			d = strings.Join(parts[0:2], ".")
+		}
+		deps = append(deps, d)
+	}
+
+	return deps
+}
+
 // GraphNodeEvalable impl.
 func (n *graphNodeExpandedResource) EvalTree() EvalNode {
 	var diff *InstanceDiff
@@ -257,7 +279,7 @@ func (n *graphNodeExpandedResource) EvalTree() EvalNode {
 					Name:         n.stateId(),
 					ResourceType: n.Resource.Type,
 					Provider:     n.Resource.Provider,
-					Dependencies: n.DependentOn(),
+					Dependencies: n.StateDependencies(),
 					State:        &state,
 				},
 			},
@@ -298,7 +320,7 @@ func (n *graphNodeExpandedResource) EvalTree() EvalNode {
 					Name:         n.stateId(),
 					ResourceType: n.Resource.Type,
 					Provider:     n.Resource.Provider,
-					Dependencies: n.DependentOn(),
+					Dependencies: n.StateDependencies(),
 					State:        &state,
 				},
 				&EvalDiffTainted{
@@ -445,7 +467,7 @@ func (n *graphNodeExpandedResource) EvalTree() EvalNode {
 					Name:         n.stateId(),
 					ResourceType: n.Resource.Type,
 					Provider:     n.Resource.Provider,
-					Dependencies: n.DependentOn(),
+					Dependencies: n.StateDependencies(),
 					State:        &state,
 				},
 				&EvalApplyProvisioners{
@@ -489,7 +511,7 @@ func (n *graphNodeExpandedResource) EvalTree() EvalNode {
 								Name:         n.stateId(),
 								ResourceType: n.Resource.Type,
 								Provider:     n.Resource.Provider,
-								Dependencies: n.DependentOn(),
+								Dependencies: n.StateDependencies(),
 								State:        &state,
 								Index:        -1,
 							},
@@ -507,7 +529,7 @@ func (n *graphNodeExpandedResource) EvalTree() EvalNode {
 						Name:         n.stateId(),
 						ResourceType: n.Resource.Type,
 						Provider:     n.Resource.Provider,
-						Dependencies: n.DependentOn(),
+						Dependencies: n.StateDependencies(),
 						State:        &state,
 					},
 				},
@@ -618,7 +640,7 @@ func (n *graphNodeExpandedResourceDestroy) EvalTree() EvalNode {
 					Name:         n.stateId(),
 					ResourceType: n.Resource.Type,
 					Provider:     n.Resource.Provider,
-					Dependencies: n.DependentOn(),
+					Dependencies: n.StateDependencies(),
 					State:        &state,
 				},
 				&EvalApplyPost{

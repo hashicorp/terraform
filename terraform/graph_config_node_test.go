@@ -2,50 +2,18 @@ package terraform
 
 import (
 	"reflect"
-	"strings"
 	"testing"
 
 	"github.com/hashicorp/terraform/config"
 	"github.com/hashicorp/terraform/dag"
 )
 
-func TestGraphNodeConfigModule_impl(t *testing.T) {
-	var _ dag.Vertex = new(GraphNodeConfigModule)
-	var _ dag.NamedVertex = new(GraphNodeConfigModule)
-	var _ graphNodeConfig = new(GraphNodeConfigModule)
-	var _ GraphNodeExpandable = new(GraphNodeConfigModule)
-}
-
-func TestGraphNodeConfigModuleExpand(t *testing.T) {
-	mod := testModule(t, "graph-node-module-expand")
-
-	node := &GraphNodeConfigModule{
-		Path:   []string{RootModuleName, "child"},
-		Module: &config.Module{},
-		Tree:   nil,
-	}
-
-	g, err := node.Expand(&BasicGraphBuilder{
-		Steps: []GraphTransformer{
-			&ConfigTransformer{Module: mod},
-		},
-	})
-	if err != nil {
-		t.Fatalf("err: %s", err)
-	}
-
-	actual := strings.TrimSpace(g.Subgraph().String())
-	expected := strings.TrimSpace(testGraphNodeModuleExpandStr)
-	if actual != expected {
-		t.Fatalf("bad:\n\n%s", actual)
-	}
-}
-
 func TestGraphNodeConfigOutput_impl(t *testing.T) {
 	var _ dag.Vertex = new(GraphNodeConfigOutput)
 	var _ dag.NamedVertex = new(GraphNodeConfigOutput)
 	var _ graphNodeConfig = new(GraphNodeConfigOutput)
 	var _ GraphNodeOutput = new(GraphNodeConfigOutput)
+	var _ GraphNodeProxy = new(GraphNodeConfigOutput)
 }
 
 func TestGraphNodeConfigProvider_impl(t *testing.T) {
@@ -140,11 +108,3 @@ func TestGraphNodeConfigResource_ProvisionedBy(t *testing.T) {
 		t.Fatalf("bad: %#v", actual)
 	}
 }
-
-const testGraphNodeModuleExpandStr = `
-aws_instance.bar
-  aws_instance.foo
-aws_instance.foo
-  module inputs
-module inputs
-`
