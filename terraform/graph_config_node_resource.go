@@ -426,10 +426,13 @@ func (n *graphNodeResourceDestroy) destroyIncludePrimary(
 	// to include this resource.
 	prefix := n.Original.Resource.Id()
 
-	// If we're present in the diff proper, then keep it.
+	// If we're present in the diff proper, then keep it. We're looking
+	// only for resources in the diff that match our resource or a count-index
+	// of our resource that are marked for destroy.
 	if d != nil {
-		for k, _ := range d.Resources {
-			if strings.HasPrefix(k, prefix) {
+		for k, d := range d.Resources {
+			match := k == prefix || strings.HasPrefix(k, prefix+".")
+			if match && d.Destroy {
 				return true
 			}
 		}
