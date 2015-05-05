@@ -62,7 +62,16 @@ func (c *Config) Client() (interface{}, error) {
 		client.region = c.Region
 
 		log.Println("[INFO] Building AWS auth structure")
-		creds := credentials.NewStaticCredentials(c.AccessKey, c.SecretKey, c.Token)
+		creds := credentials.NewChainCredentials([]credentials.Provider{
+			&credentials.StaticProvider{Value: credentials.Value{
+				AccessKeyID:     c.AccessKey,
+				SecretAccessKey: c.SecretKey,
+				SessionToken:    c.Token,
+			}},
+			&credentials.EnvProvider{},
+			&credentials.SharedCredentialsProvider{Filename: "", Profile: ""},
+			&credentials.EC2RoleProvider{},
+		})
 		awsConfig := &aws.Config{
 			Credentials: creds,
 			Region:      c.Region,
