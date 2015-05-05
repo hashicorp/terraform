@@ -10,6 +10,9 @@ FEATURES:
      `TF_VAR_name` and this will be checked last for a value.
   * **New remote state backend: `s3`**: You can now store remote state in
      an S3 bucket. [GH-1723]
+  * **Automatic AWS retries**: This release includes a lot of improvement
+     around automatic retries of transient errors in AWS. The number of
+     retry attempts is also configurable.
 
 IMPROVEMENTS:
 
@@ -78,6 +81,7 @@ IMPROVEMENTS:
 
 BUG FIXES:
 
+  * core: Fix graph cycle issues surrounding modules [GH-1582] [GH-1637]
   * core: math on arbitrary variables works if first operand isn't a
       numeric primitive. [GH-1381]
   * core: avoid unnecessary cycles by pruning tainted destroys from
