@@ -159,9 +159,14 @@ func resourceAwsNetworkAclRead(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	d.Set("vpc_id", networkAcl.VPCID)
-	d.Set("ingress", ingressEntries)
-	d.Set("egress", egressEntries)
 	d.Set("tags", tagsToMapSDK(networkAcl.Tags))
+
+	if err := d.Set("ingress", networkAclEntriesToMapList(ingressEntries)); err != nil {
+		return err
+	}
+	if err := d.Set("egress", networkAclEntriesToMapList(egressEntries)); err != nil {
+		return err
+	}
 
 	return nil
 }
@@ -360,4 +365,26 @@ func findNetworkAclAssociation(subnetId string, conn *ec2.EC2) (networkAclAssoci
 		}
 	}
 	return nil, fmt.Errorf("could not find association for subnet %s ", subnetId)
+}
+
+// networkAclEntriesToMapList turns ingress/egress rules read from AWS into a list
+// of maps.
+func networkAclEntriesToMapList(networkAcls []*ec2.NetworkACLEntry) []map[string]interface{} {
+	result := make([]map[string]interface{}, 0, len(networkAcls))
+	for _, entry := range networkAcls {
+		acl := make(map[string]interface{})
+		acl["rule_no"] = *entry.RuleNumber
+		acl["action"] = *entry.RuleAction
+		acl["protocol"] = *entry.Protocol
+		acl["cidr_block"] = *entry.CIDRBlock
+
+		if entry.PortRange != nil {
+			acl["from_port"] = *entry.PortRange.From
+			acl["to_port"] = *entry.PortRange.To
+		}
+
+		result = append(result, acl)
+	}
+
+	return result
 }
