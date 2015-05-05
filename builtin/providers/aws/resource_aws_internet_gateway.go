@@ -128,8 +128,6 @@ func resourceAwsInternetGatewayDelete(d *schema.ResourceData, meta interface{}) 
 		switch ec2err.Code {
 		case "InvalidInternetGatewayID.NotFound":
 			return nil
-		case "DependencyViolation":
-			return err // retry
 		}
 
 		return resource.RetryError{Err: err}
@@ -232,10 +230,11 @@ func detachIGStateRefreshFunc(conn *ec2.EC2, instanceID, vpcID string) resource.
 					return nil, "Not Found", err
 				} else if ec2err.Code == "Gateway.NotAttached" {
 					return "detached", "detached", nil
-				} else if ec2err.Code == "DependencyViolation" {
-					return nil, "detaching", nil
 				}
 			}
+
+			log.Printf("Error on detachIGStateRefreshFunc: %#v", err)
+			return nil, "", err
 		}
 		// DetachInternetGateway only returns an error, so if it's nil, assume we're
 		// detached
