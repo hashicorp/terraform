@@ -94,7 +94,7 @@ resource "cloudstack_vpc" "foo" {
 }
 
 resource "cloudstack_vpn_gateway" "foo" {
-    vpc = "${cloudstack_vpc.foo.name}"
+  vpc = "${cloudstack_vpc.foo.name}"
 }`,
 	CLOUDSTACK_VPC_CIDR_1,
 	CLOUDSTACK_VPC_OFFERING,

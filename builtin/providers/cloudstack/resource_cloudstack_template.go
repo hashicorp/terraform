@@ -106,6 +106,10 @@ func resourceCloudStackTemplate() *schema.Resource {
 func resourceCloudStackTemplateCreate(d *schema.ResourceData, meta interface{}) error {
 	cs := meta.(*cloudstack.CloudStackClient)
 
+	if err := verifyTemplateParams(d); err != nil {
+		return err
+	}
+
 	name := d.Get("name").(string)
 
 	// Compute/set the display text
@@ -169,6 +173,10 @@ func resourceCloudStackTemplateCreate(d *schema.ResourceData, meta interface{}) 
 	currentTime := time.Now().Unix()
 	timeout := int64(d.Get("is_ready_timeout").(int))
 	for {
+		// Start with the sleep so the register action has a few seconds
+		// to process the registration correctly. Without this wait
+		time.Sleep(10 * time.Second)
+
 		err := resourceCloudStackTemplateRead(d, meta)
 		if err != nil {
 			return err
@@ -181,7 +189,6 @@ func resourceCloudStackTemplateCreate(d *schema.ResourceData, meta interface{}) 
 		if time.Now().Unix()-currentTime > timeout {
 			return fmt.Errorf("Timeout while waiting for template to become ready")
 		}
-		time.Sleep(5 * time.Second)
 	}
 }
 
@@ -280,5 +287,15 @@ func resourceCloudStackTemplateDelete(d *schema.ResourceData, meta interface{}) 
 
 		return fmt.Errorf("Error deleting template %s: %s", d.Get("name").(string), err)
 	}
+	return nil
+}
+
+func verifyTemplateParams(d *schema.ResourceData) error {
+	format := d.Get("format").(string)
+	if format != "QCOW2" && format != "RAW" && format != "VHD" && format != "VMDK" {
+		return fmt.Errorf(
+			"%s is not a valid format. Valid options are 'QCOW2', 'RAW', 'VHD' and 'VMDK'", format)
+	}
+
 	return nil
 }
