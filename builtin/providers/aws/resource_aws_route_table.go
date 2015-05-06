@@ -351,7 +351,9 @@ func resourceAwsRouteTableHash(v interface{}) int {
 		buf.WriteString(fmt.Sprintf("%s-", v.(string)))
 	}
 
+	instanceSet := false
 	if v, ok := m["instance_id"]; ok {
+		instanceSet = v.(string) != ""
 		buf.WriteString(fmt.Sprintf("%s-", v.(string)))
 	}
 
@@ -359,7 +361,7 @@ func resourceAwsRouteTableHash(v interface{}) int {
 		buf.WriteString(fmt.Sprintf("%s-", v.(string)))
 	}
 
-	if v, ok := m["network_interface_id"]; ok {
+	if v, ok := m["network_interface_id"]; ok && !instanceSet {
 		buf.WriteString(fmt.Sprintf("%s-", v.(string)))
 	}
 
