@@ -114,3 +114,33 @@ The supported built-in functions are:
       back into a list. This is useful for pushing lists through module
       outputs since they currently only support string values.
       Example: `split(",", module.amod.server_ids)`
+
+## Templates
+
+Long strings can be managed using templates. Templates are [resources](/docs/configuration/resources.html) defined by a filename and some variables to use during interpolation. They have a computed `rendered` attribute containing the result.
+
+A template resource looks like:
+
+```
+resource "template_file" "example" {
+    filename = "template.txt"
+    vars {
+        hello = "goodnight"
+        world = "moon"
+    }
+}
+
+output "rendered" {
+    value = "${template_file.example.rendered}"
+}
+```
+
+Assuming `template.txt` looks like this:
+
+```
+${hello} ${world}!
+```
+
+Then the rendered value would be `goodnight moon!`.
+
+You may use any of the built-in functions in your template.
