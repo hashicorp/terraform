@@ -10,7 +10,7 @@ import (
 	"github.com/hashicorp/terraform/terraform"
 )
 
-func TestAccAWSGroup_normal(t *testing.T) {
+func TestAccAWSIAMGroup_normal(t *testing.T) {
 	var conf iam.GetGroupOutput
 
 	resource.Test(t, resource.TestCase{
