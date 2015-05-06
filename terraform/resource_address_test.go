@@ -64,6 +64,46 @@ func TestParseResourceAddress(t *testing.T) {
 				Index:        -1,
 			},
 		},
+		"in a module": {
+			Input: "module.child.aws_instance.foo",
+			Expected: &ResourceAddress{
+				Path:         []string{"child"},
+				Type:         "aws_instance",
+				Name:         "foo",
+				InstanceType: TypePrimary,
+				Index:        -1,
+			},
+		},
+		"nested modules": {
+			Input: "module.a.module.b.module.forever.aws_instance.foo",
+			Expected: &ResourceAddress{
+				Path:         []string{"a", "b", "forever"},
+				Type:         "aws_instance",
+				Name:         "foo",
+				InstanceType: TypePrimary,
+				Index:        -1,
+			},
+		},
+		"just a module": {
+			Input: "module.a",
+			Expected: &ResourceAddress{
+				Path:         []string{"a"},
+				Type:         "",
+				Name:         "",
+				InstanceType: TypePrimary,
+				Index:        -1,
+			},
+		},
+		"just a nested module": {
+			Input: "module.a.module.b",
+			Expected: &ResourceAddress{
+				Path:         []string{"a", "b"},
+				Type:         "",
+				Name:         "",
+				InstanceType: TypePrimary,
+				Index:        -1,
+			},
+		},
 	}
 
 	for tn, tc := range cases {
@@ -203,6 +243,57 @@ func TestResourceAddressEquals(t *testing.T) {
 				Index:        1,
 			},
 			Expect: false,
+		},
+		"module address matches address of resource inside module": {
+			Address: &ResourceAddress{
+				Path:         []string{"a", "b"},
+				Type:         "",
+				Name:         "",
+				InstanceType: TypePrimary,
+				Index:        -1,
+			},
+			Other: &ResourceAddress{
+				Path:         []string{"a", "b"},
+				Type:         "aws_instance",
+				Name:         "foo",
+				InstanceType: TypePrimary,
+				Index:        0,
+			},
+			Expect: true,
+		},
+		"module address doesn't match resource outside module": {
+			Address: &ResourceAddress{
+				Path:         []string{"a", "b"},
+				Type:         "",
+				Name:         "",
+				InstanceType: TypePrimary,
+				Index:        -1,
+			},
+			Other: &ResourceAddress{
+				Path:         []string{"a"},
+				Type:         "aws_instance",
+				Name:         "foo",
+				InstanceType: TypePrimary,
+				Index:        0,
+			},
+			Expect: false,
+		},
+		"nil path vs empty path should match": {
+			Address: &ResourceAddress{
+				Path:         []string{},
+				Type:         "aws_instance",
+				Name:         "foo",
+				InstanceType: TypePrimary,
+				Index:        -1,
+			},
+			Other: &ResourceAddress{
+				Path:         nil,
+				Type:         "aws_instance",
+				Name:         "foo",
+				InstanceType: TypePrimary,
+				Index:        0,
+			},
+			Expect: true,
 		},
 	}
 

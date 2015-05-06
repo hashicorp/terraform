@@ -44,6 +44,7 @@ func (t *ResourceCountTransformer) Transform(g *Graph) error {
 		var node dag.Vertex = &graphNodeExpandedResource{
 			Index:    index,
 			Resource: t.Resource,
+			Path:     g.Path,
 		}
 		if t.Destroy {
 			node = &graphNodeExpandedResourceDestroy{
@@ -93,6 +94,7 @@ func (t *ResourceCountTransformer) nodeIsTargeted(node dag.Vertex) bool {
 type graphNodeExpandedResource struct {
 	Index    int
 	Resource *config.Resource
+	Path     []string
 }
 
 func (n *graphNodeExpandedResource) Name() string {
@@ -112,8 +114,8 @@ func (n *graphNodeExpandedResource) ResourceAddress() *ResourceAddress {
 		index = 0
 	}
 	return &ResourceAddress{
-		Index: index,
-		// TODO: kjkjkj
+		Path:         n.Path[1:],
+		Index:        index,
 		InstanceType: TypePrimary,
 		Name:         n.Resource.Name,
 		Type:         n.Resource.Type,
