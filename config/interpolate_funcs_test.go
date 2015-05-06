@@ -106,6 +106,59 @@ func TestInterpolateFuncFormat(t *testing.T) {
 	})
 }
 
+func TestInterpolateFuncFormatList(t *testing.T) {
+	testFunction(t, testFunctionConfig{
+		Cases: []testFunctionCase{
+			// formatlist requires at least one list
+			{
+				`${formatlist("hello")}`,
+				nil,
+				true,
+			},
+			{
+				`${formatlist("hello %s", "world")}`,
+				nil,
+				true,
+			},
+			// formatlist applies to each list element in turn
+			{
+				`${formatlist("<%s>", split(",", "A,B"))}`,
+				"<A>" + InterpSplitDelim + "<B>",
+				false,
+			},
+			// formatlist repeats scalar elements
+			{
+				`${join(", ", formatlist("%s=%s", "x", split(",", "A,B,C")))}`,
+				"x=A, x=B, x=C",
+				false,
+			},
+			// Multiple lists are walked in parallel
+			{
+				`${join(", ", formatlist("%s=%s", split(",", "A,B,C"), split(",", "1,2,3")))}`,
+				"A=1, B=2, C=3",
+				false,
+			},
+			// formatlist of lists of length zero/one are repeated, just as scalars are
+			{
+				`${join(", ", formatlist("%s=%s", split(",", ""), split(",", "1,2,3")))}`,
+				"=1, =2, =3",
+				false,
+			},
+			{
+				`${join(", ", formatlist("%s=%s", split(",", "A"), split(",", "1,2,3")))}`,
+				"A=1, A=2, A=3",
+				false,
+			},
+			// Mismatched list lengths generate an error
+			{
+				`${formatlist("%s=%2s", split(",", "A,B,C,D"), split(",", "1,2,3"))}`,
+				nil,
+				true,
+			},
+		},
+	})
+}
+
 func TestInterpolateFuncJoin(t *testing.T) {
 	testFunction(t, testFunctionConfig{
 		Cases: []testFunctionCase{
