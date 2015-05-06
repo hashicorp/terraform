@@ -118,6 +118,8 @@ BUG FIXES:
   * provider/aws: Block devices can be encrypted [GH-1718]
   * provider/aws: ASG health check grace period can be updated in-place [GH-1682]
   * provider/aws: ELB security groups can be updated in-place [GH-1662]
+  * provider/aws: `aws_main_route_table_association` can be deleted
+      manually [GH-1806]
   * provider/openstack: region config is not required [GH-1441]
   * provider/openstack: `enable_dhcp` for networking subnet should be bool [GH-1741]
   * provisioner/remote-exec: add random number to uploaded script path so
