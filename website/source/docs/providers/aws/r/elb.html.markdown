@@ -72,7 +72,7 @@ determines if the ELB exists in a VPC or in EC2-classic.
 Listeners support the following:
 
 * `instance_port` - (Required) The port on the instance to route to
-* `instance_protocol` - (Required) The the protocol to use to the instance.
+* `instance_protocol` - (Required) The protocol to use to the instance.
 * `lb_port` - (Required) The port to listen on for the load balancer
 * `lb_protocol` - (Required) The protocol to listen on.
 * `ssl_certificate_id` - (Optional) The id of an SSL certificate you have uploaded to AWS IAM.
