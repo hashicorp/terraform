@@ -20,7 +20,7 @@ func TestAccAWSEBSVolume(t *testing.T) {
 
 const testAccAwsEbsVolumeConfig = `
 resource "aws_ebs_volume" "test" {
-	availability_zone = "us-east-1d"
+	availability_zone = "us-west-2a"
 	size = 1
 }
 `
