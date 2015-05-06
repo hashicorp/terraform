@@ -331,6 +331,12 @@ func (c *Context) Plan() (*Plan, error) {
 	}
 	p.Diff = c.diff
 
+	// Now that we have a diff, we can build the exact graph that Apply will use
+	// and catch any possible cycles during the Plan phase.
+	if _, err := c.Graph(&ContextGraphOpts{Validate: true}); err != nil {
+		return nil, err
+	}
+
 	return p, nil
 }
 
@@ -406,12 +412,11 @@ func (c *Context) Validate() ([]string, []error) {
 		}
 	}
 
-	// Build a Verbose version of the graph so we can catch any potential cycles
-	// in the validate stage
-	graph, err := c.Graph(&ContextGraphOpts{
-		Validate: true,
-		Verbose:  false,
-	})
+	// Build the graph so we can walk it and run Validate on nodes.
+	// We also validate the graph generated here, but this graph doesn't
+	// necessarily match the graph that Plan will generate, so we'll validate the
+	// graph again later after Planning.
+	graph, err := c.Graph(&ContextGraphOpts{Validate: true})
 	if err != nil {
 		return nil, []error{err}
 	}
