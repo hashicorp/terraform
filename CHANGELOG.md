@@ -120,6 +120,8 @@ BUG FIXES:
   * provider/aws: ELB security groups can be updated in-place [GH-1662]
   * provider/aws: `aws_main_route_table_association` can be deleted
       manually [GH-1806]
+  * provider/docker: image can reference more complex image addresses,
+      such as with private repos with ports [GH-1818]
   * provider/openstack: region config is not required [GH-1441]
   * provider/openstack: `enable_dhcp` for networking subnet should be bool [GH-1741]
   * provisioner/remote-exec: add random number to uploaded script path so

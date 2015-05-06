@@ -21,10 +21,6 @@ func TestAccAWSInstance_normal(t *testing.T) {
 			return fmt.Errorf("bad availability zone: %#v", *v.Placement.AvailabilityZone)
 		}
 
-		if *v.Placement.GroupName != "terraform-placement-group" {
-			return fmt.Errorf("bad placement group name: %#v", *v.Placement.GroupName)
-		}
-
 		if len(v.SecurityGroups) == 0 {
 			return fmt.Errorf("no security groups: %#v", v.SecurityGroups)
 		}
@@ -549,7 +545,6 @@ resource "aws_instance" "foo" {
 	# us-west-2
 	ami = "ami-4fccb37f"
 	availability_zone = "us-west-2a"
-	placement_group = "terraform-placement-group"
 
 	instance_type = "m1.small"
 	security_groups = ["${aws_security_group.tf_test_foo.name}"]
