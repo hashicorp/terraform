@@ -103,7 +103,7 @@ func addrToSchema(addr []string, schemaMap map[string]*Schema) []*Schema {
 				return nil
 			}
 
-			// If we only have one more thing and the the next thing
+			// If we only have one more thing and the next thing
 			// is a #, then we're accessing the index which is always
 			// an int.
 			if len(addr) > 0 && addr[0] == "#" {
