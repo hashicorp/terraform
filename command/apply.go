@@ -39,6 +39,7 @@ func (c *ApplyCommand) Run(args []string) int {
 		cmdFlags.BoolVar(&destroyForce, "force", false, "force")
 	}
 	cmdFlags.BoolVar(&refresh, "refresh", true, "refresh")
+	cmdFlags.IntVar(&c.Meta.parallelism, "parallelism", 0, "parallelism")
 	cmdFlags.StringVar(&c.Meta.statePath, "state", DefaultStateFilename, "path")
 	cmdFlags.StringVar(&c.Meta.stateOutPath, "state-out", "", "path")
 	cmdFlags.StringVar(&c.Meta.backupPath, "backup", "", "path")
@@ -94,9 +95,10 @@ func (c *ApplyCommand) Run(args []string) int {
 
 	// Build the context based on the arguments given
 	ctx, planned, err := c.Context(contextOpts{
-		Destroy:   c.Destroy,
-		Path:      configPath,
-		StatePath: c.Meta.statePath,
+		Destroy:     c.Destroy,
+		Path:        configPath,
+		StatePath:   c.Meta.statePath,
+		Parallelism: c.Meta.parallelism,
 	})
 	if err != nil {
 		c.Ui.Error(err.Error())
@@ -277,6 +279,8 @@ Options:
   -input=true            Ask for input for variables if not directly set.
 
   -no-color              If specified, output won't contain any color.
+
+  -parallelism=#         Limit the number of concurrent operations.
 
   -refresh=true          Update state prior to checking for differences. This
                          has no effect if a plan file is given to apply.
