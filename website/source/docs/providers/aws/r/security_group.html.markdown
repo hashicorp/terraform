@@ -3,7 +3,7 @@ layout: "aws"
 page_title: "AWS: aws_security_group"
 sidebar_current: "docs-aws-resource-security-group"
 description: |-
-  Provides an security group resource.
+  Provides a security group resource.
 ---
 
 # aws\_security\_group
@@ -67,7 +67,7 @@ resource "aws_security_group" "allow_all" {
 The following arguments are supported:
 
 * `name` - (Required) The name of the security group
-* `description` - (Required) The security group description.
+* `description` - (Optional) The security group description. Defaults to "Managed by Terraform". Cannot be "".
 * `ingress` - (Optional) Can be specified multiple times for each
    ingress rule. Each ingress block supports fields documented below.
 * `egress` - (Optional, VPC only) Can be specified multiple times for each
