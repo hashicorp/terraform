@@ -59,7 +59,7 @@ func resourceAwsRoute53ZoneAssociationCreate(d *schema.ResourceData, meta interf
 	}
 
 	// Store association id
-	association_id := *resp.ChangeInfo.ID
+	association_id := cleanChangeID(*resp.ChangeInfo.ID)
 	d.Set("association_id", association_id)
 	d.SetId(association_id)
 
