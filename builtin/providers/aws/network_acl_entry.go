@@ -66,3 +66,19 @@ func protocolIntegers() map[string]int {
 	}
 	return protocolIntegers
 }
+
+// expectedPortPair stores a pair of ports we expect to see together.
+type expectedPortPair struct {
+	to_port   int64
+	from_port int64
+}
+
+// validatePorts ensures the ports and protocol match expected
+// values.
+func validatePorts(to int64, from int64, expected expectedPortPair) bool {
+	if to != expected.to_port || from != expected.from_port {
+		return false
+	}
+
+	return true
+}

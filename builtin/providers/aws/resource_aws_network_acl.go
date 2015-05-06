@@ -266,6 +266,24 @@ func updateNetworkAclEntries(d *schema.ResourceData, entryType string, conn *ec2
 		return err
 	}
 	for _, add := range toBeCreated {
+		// Protocol -1 rules don't store ports in AWS. Thus, they'll always
+		// hash differently when being read out of the API. Force the user
+		// to set from_port and to_port to 0 for these rules, to keep the
+		// hashing consistent.
+		if *add.Protocol == "-1" {
+			to := *add.PortRange.To
+			from := *add.PortRange.From
+			expected := &expectedPortPair{
+				to_port:   0,
+				from_port: 0,
+			}
+			if ok := validatePorts(to, from, *expected); !ok {
+				return fmt.Errorf(
+					"to_port (%d) and from_port (%d) must both be 0 to use the the 'all' \"-1\" protocol!",
+					to, from)
+			}
+		}
+
 		// Add new Acl entry
 		_, err := conn.CreateNetworkACLEntry(&ec2.CreateNetworkACLEntryInput{
 			NetworkACLID: aws.String(d.Id()),
