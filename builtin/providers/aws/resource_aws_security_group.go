@@ -149,7 +149,7 @@ func resourceAwsSecurityGroupCreate(d *schema.ResourceData, meta interface{}) er
 
 	securityGroupOpts := &ec2.CreateSecurityGroupInput{}
 
-	if v := d.Get("vpc_id"); v != nil {
+	if v, ok := d.GetOk("vpc_id"); ok {
 		securityGroupOpts.VPCID = aws.String(v.(string))
 	}
 
