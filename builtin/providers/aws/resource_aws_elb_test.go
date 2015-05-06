@@ -701,7 +701,7 @@ resource "aws_elb" "bar" {
 	}
 
 	connection_draining = true
-	connection_draining_timeout = 400
+	connection_draining_timeout = 600
 }
 `
 
