@@ -126,12 +126,9 @@ func resourceComputeInstanceTemplate() *schema.Resource {
 			},
 
 			"metadata": &schema.Schema{
-				Type:     schema.TypeList,
+				Type:     schema.TypeMap,
 				Optional: true,
 				ForceNew: true,
-				Elem: &schema.Schema{
-					Type: schema.TypeMap,
-				},
 			},
 
 			"network": &schema.Schema{
