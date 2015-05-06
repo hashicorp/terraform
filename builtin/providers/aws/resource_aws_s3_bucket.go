@@ -129,10 +129,15 @@ func resourceAwsS3BucketRead(d *schema.ResourceData, meta interface{}) error {
 	})
 	var websites []map[string]interface{}
 	if err == nil {
-		websites = append(websites, map[string]interface{}{
-			"index_document": *ws.IndexDocument.Suffix,
-			"error_document": *ws.ErrorDocument.Key,
-		})
+		w := make(map[string]interface{})
+
+		w["index_document"] = *ws.IndexDocument.Suffix
+
+		if v := ws.ErrorDocument; v != nil {
+			w["error_document"] = *v.Key
+		}
+
+		websites = append(websites, w)
 	}
 	if err := d.Set("website", websites); err != nil {
 		return err

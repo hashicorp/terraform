@@ -40,6 +40,14 @@ func TestAccAWSS3BucketWebsite(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSS3BucketExists("aws_s3_bucket.bucket"),
 					testAccCheckAWSS3BucketWebsite(
+						"aws_s3_bucket.bucket", "index.html", ""),
+				),
+			},
+			resource.TestStep{
+				Config: testAccAWSS3BucketWebsiteConfigWithError,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSS3BucketExists("aws_s3_bucket.bucket"),
+					testAccCheckAWSS3BucketWebsite(
 						"aws_s3_bucket.bucket", "index.html", "error.html"),
 				),
 			},
@@ -118,8 +126,14 @@ func testAccCheckAWSS3BucketWebsite(n string, indexDoc string, errorDoc string) 
 			return fmt.Errorf("bad: %s", out.IndexDocument)
 		}
 
-		if *out.ErrorDocument.Key != errorDoc {
-			return fmt.Errorf("bad: %s", out.ErrorDocument)
+		if v := out.ErrorDocument; v == nil {
+			if errorDoc != "" {
+				return fmt.Errorf("bad: %s", out.ErrorDocument)
+			}
+		} else {
+			if *v.Key != errorDoc {
+				return fmt.Errorf("bad: %s", out.ErrorDocument)
+			}
 		}
 
 		return nil
@@ -137,6 +151,17 @@ resource "aws_s3_bucket" "bucket" {
 `, d)
 
 var testAccAWSS3BucketWebsiteConfig = fmt.Sprintf(`
+resource "aws_s3_bucket" "bucket" {
+	bucket = "tf-test-bucket-%d"
+	acl = "public-read"
+
+	website {
+		index_document = "index.html"
+	}
+}
+`, d)
+
+var testAccAWSS3BucketWebsiteConfigWithError = fmt.Sprintf(`
 resource "aws_s3_bucket" "bucket" {
 	bucket = "tf-test-bucket-%d"
 	acl = "public-read"
