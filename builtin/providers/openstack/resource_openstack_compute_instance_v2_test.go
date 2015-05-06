@@ -76,6 +76,7 @@ func TestAccComputeV2Instance_floatingIPAttach(t *testing.T) {
 
 		resource "openstack_compute_instance_v2" "foo" {
 			name = "terraform-test"
+			security_groups = ["default"]
 			floating_ip = "${openstack_compute_floatingip_v2.myip.address}"
 
 			network {
