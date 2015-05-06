@@ -192,10 +192,6 @@ resource "aws_vpn_gateway" "foo" {
 `
 
 const testAccVpnGatewayConfigChangeVPC = `
-resource "aws_vpc" "foo" {
-	cidr_block = "10.1.0.0/16"
-}
-
 resource "aws_vpc" "bar" {
 	cidr_block = "10.2.0.0/16"
 }
