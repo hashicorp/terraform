@@ -10,23 +10,23 @@ import (
 	"github.com/hashicorp/terraform/terraform"
 )
 
-func TestAccAWSEcacheSecurityGroup(t *testing.T) {
+func TestAccAWSElasticacheSecurityGroup(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
-		CheckDestroy: testAccCheckAWSEcacheSecurityGroupDestroy,
+		CheckDestroy: testAccCheckAWSElasticacheSecurityGroupDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccAWSEcacheSecurityGroupConfig,
+				Config: testAccAWSElasticacheSecurityGroupConfig,
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckAWSEcacheSecurityGroupExists("aws_elasticache_security_group.bar"),
+					testAccCheckAWSElasticacheSecurityGroupExists("aws_elasticache_security_group.bar"),
 				),
 			},
 		},
 	})
 }
 
-func testAccCheckAWSEcacheSecurityGroupDestroy(s *terraform.State) error {
+func testAccCheckAWSElasticacheSecurityGroupDestroy(s *terraform.State) error {
 	conn := testAccProvider.Meta().(*AWSClient).elasticacheconn
 
 	for _, rs := range s.RootModule().Resources {
@@ -46,7 +46,7 @@ func testAccCheckAWSEcacheSecurityGroupDestroy(s *terraform.State) error {
 	return nil
 }
 
-func testAccCheckAWSEcacheSecurityGroupExists(n string) resource.TestCheckFunc {
+func testAccCheckAWSElasticacheSecurityGroupExists(n string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		rs, ok := s.RootModule().Resources[n]
 		if !ok {
@@ -68,7 +68,7 @@ func testAccCheckAWSEcacheSecurityGroupExists(n string) resource.TestCheckFunc {
 	}
 }
 
-var testAccAWSEcacheSecurityGroupConfig = fmt.Sprintf(`
+var testAccAWSElasticacheSecurityGroupConfig = fmt.Sprintf(`
 resource "aws_security_group" "bar" {
     name = "tf-test-security-group-%03d"
     description = "tf-test-security-group-descr"
