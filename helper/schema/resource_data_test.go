@@ -2513,7 +2513,7 @@ func TestResourceDataState(t *testing.T) {
 			},
 		},
 
-		// #20
+		// #20 empty computed map
 		{
 			Schema: map[string]*Schema{
 				"tags": &Schema{
