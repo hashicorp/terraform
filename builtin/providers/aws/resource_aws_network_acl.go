@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"log"
+	"strconv"
 	"time"
 
 	"github.com/awslabs/aws-sdk-go/aws"
@@ -355,7 +356,18 @@ func resourceAwsNetworkAclEntryHash(v interface{}) int {
 	buf.WriteString(fmt.Sprintf("%d-", m["to_port"].(int)))
 	buf.WriteString(fmt.Sprintf("%d-", m["rule_no"].(int)))
 	buf.WriteString(fmt.Sprintf("%s-", m["action"].(string)))
-	buf.WriteString(fmt.Sprintf("%s-", m["protocol"].(string)))
+
+	// The AWS network ACL API only speaks protocol numbers, and that's
+	// all we store. Never hash a protocol name.
+	protocol := m["protocol"].(string)
+	if _, err := strconv.Atoi(m["protocol"].(string)); err != nil {
+		// We're a protocol name. Look up the number.
+		buf.WriteString(fmt.Sprintf("%d-", protocolIntegers()[protocol]))
+	} else {
+		// We're a protocol number. Pass the value through.
+		buf.WriteString(fmt.Sprintf("%s-", protocol))
+	}
+
 	buf.WriteString(fmt.Sprintf("%s-", m["cidr_block"].(string)))
 
 	if v, ok := m["ssl_certificate_id"]; ok {
@@ -416,9 +428,19 @@ func networkAclEntriesToMapList(networkAcls []*ec2.NetworkACLEntry) []map[string
 		acl := make(map[string]interface{})
 		acl["rule_no"] = *entry.RuleNumber
 		acl["action"] = *entry.RuleAction
-		acl["protocol"] = *entry.Protocol
 		acl["cidr_block"] = *entry.CIDRBlock
 
+		// The AWS network ACL API only speaks protocol numbers, and
+		// that's all we record.
+		if _, err := strconv.Atoi(*entry.Protocol); err != nil {
+			// We're a protocol name. Look up the number.
+			acl["protocol"] = protocolIntegers()[*entry.Protocol]
+		} else {
+			// We're a protocol number. Pass through.
+			acl["protocol"] = *entry.Protocol
+		}
+
+		acl["protocol"] = *entry.Protocol
 		if entry.PortRange != nil {
 			acl["from_port"] = *entry.PortRange.From
 			acl["to_port"] = *entry.PortRange.To
