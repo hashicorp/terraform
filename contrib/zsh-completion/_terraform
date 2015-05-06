@@ -10,7 +10,7 @@ _terraform_cmds=(
     'output:Read an output from a state file'
     'plan:Generate and show an execution plan'
     'pull:Refreshes the local state copy from the remote server'
-    'push:Uploads the the local state to the remote server'
+    'push:Uploads the local state to the remote server'
     'refresh:Update local state file against real resources'
     'remote:Configures remote state management'
     'taint:Manualy forcing a destroy and recreate on the next plan/apply'
