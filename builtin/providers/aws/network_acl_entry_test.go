@@ -135,3 +135,20 @@ func Test_flattenNetworkACLEntry(t *testing.T) {
 	}
 
 }
+
+func Test_validatePorts(t *testing.T) {
+	for _, ts := range []struct {
+		to       int64
+		from     int64
+		expected *expectedPortPair
+		wanted   bool
+	}{
+		{0, 0, &expectedPortPair{0, 0}, true},
+		{0, 1, &expectedPortPair{0, 0}, false},
+	} {
+		got := validatePorts(ts.to, ts.from, *ts.expected)
+		if got != ts.wanted {
+			t.Fatalf("Got: %t; Expected: %t\n", got, ts.wanted)
+		}
+	}
+}
