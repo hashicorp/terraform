@@ -123,6 +123,21 @@ func resourceAwsS3BucketRead(d *schema.ResourceData, meta interface{}) error {
 		}
 	}
 
+	// Read the website configuration
+	ws, err := s3conn.GetBucketWebsite(&s3.GetBucketWebsiteInput{
+		Bucket: aws.String(d.Id()),
+	})
+	var websites []map[string]interface{}
+	if err == nil {
+		websites = append(websites, map[string]interface{}{
+			"index_document": *ws.IndexDocument.Suffix,
+			"error_document": *ws.ErrorDocument.Key,
+		})
+	}
+	if err := d.Set("website", websites); err != nil {
+		return err
+	}
+
 	// Add website_endpoint as an output
 	endpoint, err := websiteEndpoint(s3conn, d)
 	if err != nil {
