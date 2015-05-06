@@ -73,8 +73,8 @@ func interpolationFuncFile() ast.Function {
 	}
 }
 
-// interpolationFuncFormat implements the "replace" function that does
-// string replacement.
+// interpolationFuncFormat implements the "format" function that does
+// string formatting.
 func interpolationFuncFormat() ast.Function {
 	return ast.Function{
 		ArgTypes:     []ast.Type{ast.TypeString},
