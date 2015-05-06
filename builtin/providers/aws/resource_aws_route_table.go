@@ -210,11 +210,26 @@ func resourceAwsRouteTableUpdate(d *schema.ResourceData, meta interface{}) error
 		for _, vgw := range add {
 			id := vgw.(string)
 
-			log.Printf("[INFO] Enabling VGW propagation for %s: %s", d.Id(), id)
-			_, err := conn.EnableVGWRoutePropagation(&ec2.EnableVGWRoutePropagationInput{
-				RouteTableID: aws.String(d.Id()),
-				GatewayID:    aws.String(id),
-			})
+			var err error
+			for i := 0; i < 5; i++ {
+				log.Printf("[INFO] Enabling VGW propagation for %s: %s", d.Id(), id)
+				_, err = conn.EnableVGWRoutePropagation(&ec2.EnableVGWRoutePropagationInput{
+					RouteTableID: aws.String(d.Id()),
+					GatewayID:    aws.String(id),
+				})
+				if err == nil {
+					break
+				}
+
+				// If we get a Gateway.NotAttached, it is usually some
+				// eventually consistency stuff. So we have to just wait a
+				// bit...
+				ec2err, ok := err.(aws.APIError)
+				if ok && ec2err.Code == "Gateway.NotAttached" {
+					time.Sleep(20 * time.Second)
+					continue
+				}
+			}
 			if err != nil {
 				return err
 			}
