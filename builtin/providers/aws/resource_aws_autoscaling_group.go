@@ -174,6 +174,10 @@ func resourceAwsAutoscalingGroupCreate(d *schema.ResourceData, meta interface{})
 	d.SetId(d.Get("name").(string))
 	log.Printf("[INFO] AutoScaling Group ID: %s", d.Id())
 
+	if err := waitForASGCapacity(d, meta); err != nil {
+		return err
+	}
+
 	return resourceAwsAutoscalingGroupRead(d, meta)
 }
 
@@ -225,10 +229,10 @@ func resourceAwsAutoscalingGroupUpdate(d *schema.ResourceData, meta interface{})
 	if d.HasChange("max_size") {
 		opts.MaxSize = aws.Long(int64(d.Get("max_size").(int)))
 	}
-	
+
 	if d.HasChange("health_check_grace_period") {
-                opts.HealthCheckGracePeriod = aws.Long(int64(d.Get("health_check_grace_period").(int)))
-        }
+		opts.HealthCheckGracePeriod = aws.Long(int64(d.Get("health_check_grace_period").(int)))
+	}
 
 	if err := setAutoscalingTags(autoscalingconn, d); err != nil {
 		return err
@@ -357,5 +361,47 @@ func resourceAwsAutoscalingGroupDrain(d *schema.ResourceData, meta interface{}) 
 		}
 
 		return fmt.Errorf("group still has %d instances", len(g.Instances))
+	})
+}
+
+var waitForASGCapacityTimeout = 10 * time.Minute
+
+// Waits for a minimum number of healthy instances to show up as healthy in the
+// ASG before continuing. Waits up to `waitForASGCapacityTimeout` for
+// "desired_capacity", or "min_size" if desired capacity is not specified.
+func waitForASGCapacity(d *schema.ResourceData, meta interface{}) error {
+	waitFor := d.Get("min_size").(int)
+	if v := d.Get("desired_capacity").(int); v > 0 {
+		waitFor = v
+	}
+
+	log.Printf("[DEBUG] Waiting for group to have %d healthy instances", waitFor)
+	return resource.Retry(waitForASGCapacityTimeout, func() error {
+		g, err := getAwsAutoscalingGroup(d, meta)
+		if err != nil {
+			return resource.RetryError{Err: err}
+		}
+		if g == nil {
+			return nil
+		}
+
+		healthy := 0
+		for _, i := range g.Instances {
+			if i.HealthStatus == nil {
+				continue
+			}
+			if strings.EqualFold(*i.HealthStatus, "Healthy") {
+				healthy++
+			}
+		}
+
+		log.Printf(
+			"[DEBUG] %q has %d/%d healthy instances", d.Id(), healthy, waitFor)
+
+		if healthy >= waitFor {
+			return nil
+		}
+
+		return fmt.Errorf("Waiting for healthy instances: %d/%d", healthy, waitFor)
 	})
 }
