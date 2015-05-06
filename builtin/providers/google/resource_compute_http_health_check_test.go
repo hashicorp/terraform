@@ -72,14 +72,14 @@ func testAccCheckComputeHttpHealthCheckExists(n string) resource.TestCheckFunc {
 
 const testAccComputeHttpHealthCheck_basic = `
 resource "google_compute_http_health_check" "foobar" {
-    check_interval_sec = 3
+	check_interval_sec = 3
 	description = "Resource created for Terraform acceptance testing"
 	healthy_threshold = 3
 	host = "foobar"
-    name = "terraform-test"
+	name = "terraform-test"
 	port = "80"
-    request_path = "/health_check"
-    timeout_sec = 2
+	request_path = "/health_check"
+	timeout_sec = 2
 	unhealthy_threshold = 3
 }
 `
