@@ -281,11 +281,11 @@ func resourceAwsNetworkAclDelete(d *schema.ResourceData, meta interface{}) error
 				// This means the subnet is attached to default acl of vpc.
 				association, err := findNetworkAclAssociation(d.Get("subnet_id").(string), conn)
 				if err != nil {
-					return fmt.Errorf("Dependency violation: Cannot delete acl %s: %s", d.Id(), err)
+					return resource.RetryError{Err: fmt.Errorf("Dependency violation: Cannot delete acl %s: %s", d.Id(), err)}
 				}
 				defaultAcl, err := getDefaultNetworkAcl(d.Get("vpc_id").(string), conn)
 				if err != nil {
-					return fmt.Errorf("Dependency violation: Cannot delete acl %s: %s", d.Id(), err)
+					return resource.RetryError{Err: fmt.Errorf("Dependency violation: Cannot delete acl %s: %s", d.Id(), err)}
 				}
 				_, err = conn.ReplaceNetworkACLAssociation(&ec2.ReplaceNetworkACLAssociationInput{
 					AssociationID: association.NetworkACLAssociationID,
@@ -321,7 +321,6 @@ func resourceAwsNetworkAclEntryHash(v interface{}) int {
 
 func getDefaultNetworkAcl(vpc_id string, conn *ec2.EC2) (defaultAcl *ec2.NetworkACL, err error) {
 	resp, err := conn.DescribeNetworkACLs(&ec2.DescribeNetworkACLsInput{
-		NetworkACLIDs: []*string{},
 		Filters: []*ec2.Filter{
 			&ec2.Filter{
 				Name:   aws.String("default"),
