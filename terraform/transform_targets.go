@@ -1,6 +1,10 @@
 package terraform
 
-import "github.com/hashicorp/terraform/dag"
+import (
+	"log"
+
+	"github.com/hashicorp/terraform/dag"
+)
 
 // TargetsTransformer is a GraphTransformer that, when the user specifies a
 // list of resources to target, limits the graph to only those resources and
@@ -30,6 +34,7 @@ func (t *TargetsTransformer) Transform(g *Graph) error {
 		for _, v := range g.Vertices() {
 			if _, ok := v.(GraphNodeAddressable); ok {
 				if !targetedNodes.Include(v) {
+					log.Printf("[DEBUG] Removing %s, filtered by targeting.", v)
 					g.Remove(v)
 				}
 			}

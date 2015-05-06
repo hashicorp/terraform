@@ -3,6 +3,7 @@ package docker
 import (
 	"fmt"
 	"strings"
+	"regexp"
 
 	dc "github.com/fsouza/go-dockerclient"
 	"github.com/hashicorp/terraform/helper/schema"
@@ -75,35 +76,28 @@ func pullImage(data *Data, client *dc.Client, image string) error {
 
 	pullOpts := dc.PullImageOptions{}
 
-	splitImageName := strings.Split(image, ":")
-	switch {
+	// 
+	// Breaks apart an image string into host:port, repo, and tag components
+	regex := "^(?:(?P<host>(?:[\\w-]+(?:\\.[\\w-]+)+)(?::[\\d]+)?)/)?(?P<repo>[\\w.-]+(?:/[\\w.-]*)*)*(?::(?P<tag>[\\w.-]*))?"
+	r, _ := regexp.Compile(regex)
 
-	// It's in registry:port/repo:tag format
-	case len(splitImageName) == 3:
-		splitPortRepo := strings.Split(splitImageName[1], "/")
-		pullOpts.Registry = splitImageName[0] + ":" + splitPortRepo[0]
-		pullOpts.Repository = splitPortRepo[1]
-		pullOpts.Tag = splitImageName[2]
+	// Result is in form [[image, host, repo, tag]], so we get the head of the 
+	// outer list to pass the inner list to result
+	result := r.FindAllStringSubmatch(image, -1)[0]
 
-	// It's either registry:port/repo or repo:tag with default registry
-	case len(splitImageName) == 2:
-		splitPortRepo := strings.Split(splitImageName[1], "/")
-		switch len(splitPortRepo) {
+	// If the host is not an empty string, then the image is using a private registry
+	if (result[1] != "") {
+		pullOpts.Registry = result[1]
+		// The repository for a private registry should take the form of host/repo rather than just repo
+		pullOpts.Repository = result[1] + "/" + result[2]
+	} else if (result[2] != "") {
+		// Local registries, or the main docker registry will have an image named as just 'repo'
+		pullOpts.Repository = result[2]
+	}
 
-		// registry:port/repo
-		case 2:
-			pullOpts.Registry = splitImageName[0] + ":" + splitPortRepo[0]
-			pullOpts.Repository = splitPortRepo[1]
-			pullOpts.Tag = "latest"
-
-		// repo:tag
-		case 1:
-			pullOpts.Repository = splitImageName[0]
-			pullOpts.Tag = splitImageName[1]
-		}
-
-	default:
-		pullOpts.Repository = image
+	// If there was a tag specified, then set it
+	if (result[3] != "") {
+		pullOpts.Tag = result[3]
 	}
 
 	if err := client.PullImage(pullOpts, dc.AuthConfiguration{}); err != nil {
