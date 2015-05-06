@@ -21,13 +21,9 @@ IMPROVEMENTS:
   * **New resource: `aws_app_cookie_stickiness_policy`**
   * **New resource: `aws_customer_gateway`**
   * **New resource: `aws_ebs_volume`**
-  * **New resource: `aws_lb_cookie_stickiness_policy`**
-  * **New resource: `aws_vpc_dhcp_options`**
-  * **New resource: `aws_vpc_dhcp_options_association`**
-  * **New resource: `aws_vpn_connection_route`**
-  * **New resource: `google_dns_managed_zone`**
-  * **New resource: `google_dns_record_set`**
-  * **New resource: `aws_proxy_protocol_policy`**
+  * **New resource: `aws_elasticache_cluster`**
+  * **New resource: `aws_elasticache_security_group`**
+  * **New resource: `aws_elasticache_subnet_group`**
   * **New resource: `aws_iam_access_key`**
   * **New resource: `aws_iam_group_policy`**
   * **New resource: `aws_iam_group`**
@@ -37,7 +33,14 @@ IMPROVEMENTS:
   * **New resource: `aws_iam_role`**
   * **New resource: `aws_iam_user_policy`**
   * **New resource: `aws_iam_user`**
+  * **New resource: `aws_lb_cookie_stickiness_policy`**
+  * **New resource: `aws_proxy_protocol_policy`**
   * **New resource: `aws_security_group_rule`**
+  * **New resource: `aws_vpc_dhcp_options_association`**
+  * **New resource: `aws_vpc_dhcp_options`**
+  * **New resource: `aws_vpn_connection_route`**
+  * **New resource: `google_dns_managed_zone`**
+  * **New resource: `google_dns_record_set`**
   * **Migrate to upstream AWS SDK:** Migrate the AWS provider to
       [awslabs/aws-sdk-go](https://github.com/awslabs/aws-sdk-go),
       the offical `awslabs` library. Previously we had forked the library for
