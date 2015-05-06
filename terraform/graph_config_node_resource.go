@@ -19,6 +19,8 @@ type GraphNodeConfigResource struct {
 
 	// Used during DynamicExpand to target indexes
 	Targets []ResourceAddress
+
+	Path []string
 }
 
 func (n *GraphNodeConfigResource) ConfigType() GraphNodeConfigType {
@@ -174,7 +176,7 @@ func (n *GraphNodeConfigResource) DynamicExpand(ctx EvalContext) (*Graph, error)
 // GraphNodeAddressable impl.
 func (n *GraphNodeConfigResource) ResourceAddress() *ResourceAddress {
 	return &ResourceAddress{
-		// Indicates no specific index; will match on other three fields
+		Path:         n.Path[1:],
 		Index:        -1,
 		InstanceType: TypePrimary,
 		Name:         n.Resource.Name,
