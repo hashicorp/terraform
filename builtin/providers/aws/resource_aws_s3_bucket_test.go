@@ -38,9 +38,17 @@ func TestAccAWSS3BucketWebsite(t *testing.T) {
 			resource.TestStep{
 				Config: testAccAWSS3BucketWebsiteConfig,
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckAWSS3BucketExists("aws_s3_bucket.website"),
+					testAccCheckAWSS3BucketExists("aws_s3_bucket.bucket"),
 					testAccCheckAWSS3BucketWebsite(
-						"aws_s3_bucket.website", "index.html", "error.html"),
+						"aws_s3_bucket.bucket", "index.html", "error.html"),
+				),
+			},
+			resource.TestStep{
+				Config: testAccAWSS3BucketConfig,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSS3BucketExists("aws_s3_bucket.bucket"),
+					testAccCheckAWSS3BucketWebsite(
+						"aws_s3_bucket.bucket", "", ""),
 				),
 			},
 		},
@@ -97,7 +105,13 @@ func testAccCheckAWSS3BucketWebsite(n string, indexDoc string, errorDoc string) 
 		})
 
 		if err != nil {
-			return fmt.Errorf("S3BucketWebsite error: %v", err)
+			if indexDoc == "" {
+				// If we want to assert that the website is not there, than
+				// this error is expected
+				return nil
+			} else {
+				return fmt.Errorf("S3BucketWebsite error: %v", err)
+			}
 		}
 
 		if *out.IndexDocument.Suffix != indexDoc {
@@ -112,18 +126,19 @@ func testAccCheckAWSS3BucketWebsite(n string, indexDoc string, errorDoc string) 
 	}
 }
 
-// These need a bit of randoness as the name can only be used once globally
+// These need a bit of randomness as the name can only be used once globally
 // within AWS
+var d = rand.New(rand.NewSource(time.Now().UnixNano())).Int()
 var testAccAWSS3BucketConfig = fmt.Sprintf(`
 resource "aws_s3_bucket" "bucket" {
 	bucket = "tf-test-bucket-%d"
 	acl = "public-read"
 }
-`, rand.New(rand.NewSource(time.Now().UnixNano())).Int())
+`, d)
 
 var testAccAWSS3BucketWebsiteConfig = fmt.Sprintf(`
-resource "aws_s3_bucket" "website" {
-	bucket = "tf-test-bucket-website-%d"
+resource "aws_s3_bucket" "bucket" {
+	bucket = "tf-test-bucket-%d"
 	acl = "public-read"
 
 	website {
@@ -131,4 +146,4 @@ resource "aws_s3_bucket" "website" {
 		error_document = "error.html"
 	}
 }
-`, rand.New(rand.NewSource(time.Now().UnixNano())).Int())
+`, d)
