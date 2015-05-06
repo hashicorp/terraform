@@ -34,6 +34,7 @@ func resourceAwsEip() *schema.Resource {
 			"network_interface": &schema.Schema{
 				Type:          schema.TypeString,
 				Optional:      true,
+				Computed:      true,
 				ConflictsWith: []string{"instance"},
 			},
 
