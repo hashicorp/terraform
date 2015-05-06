@@ -3,6 +3,7 @@ package aws
 import (
 	"fmt"
 	"reflect"
+	"strings"
 	"testing"
 
 	"github.com/awslabs/aws-sdk-go/aws"
@@ -24,6 +25,7 @@ func TestAccAWSAutoScalingGroup_basic(t *testing.T) {
 				Config: testAccAWSAutoScalingGroupConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSAutoScalingGroupExists("aws_autoscaling_group.bar", &group),
+					testAccCheckAWSAutoScalingGroupHealthyCapacity(&group, 2),
 					testAccCheckAWSAutoScalingGroupAttributes(&group),
 					resource.TestCheckResourceAttr(
 						"aws_autoscaling_group.bar", "availability_zones.2487133097", "us-west-2a"),
@@ -116,6 +118,7 @@ func TestAccAWSAutoScalingGroup_WithLoadBalancer(t *testing.T) {
 		},
 	})
 }
+
 func testAccCheckAWSAutoScalingGroupDestroy(s *terraform.State) error {
 	conn := testAccProvider.Meta().(*AWSClient).autoscalingconn
 
@@ -257,6 +260,25 @@ func testLaunchConfigurationName(n string, lc *autoscaling.LaunchConfiguration) 
 			return fmt.Errorf("Launch configuration names do not match")
 		}
 
+		return nil
+	}
+}
+
+func testAccCheckAWSAutoScalingGroupHealthyCapacity(
+	g *autoscaling.AutoScalingGroup, exp int) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		healthy := 0
+		for _, i := range g.Instances {
+			if i.HealthStatus == nil {
+				continue
+			}
+			if strings.EqualFold(*i.HealthStatus, "Healthy") {
+				healthy++
+			}
+		}
+		if healthy < exp {
+			return fmt.Errorf("Expected at least %d healthy, got %d.", exp, healthy)
+		}
 		return nil
 	}
 }
