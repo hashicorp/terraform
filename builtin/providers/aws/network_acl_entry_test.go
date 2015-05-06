@@ -152,3 +152,23 @@ func Test_validatePorts(t *testing.T) {
 		}
 	}
 }
+
+func Test_validateCIDRBlock(t *testing.T) {
+	for _, ts := range []struct {
+		cidr      string
+		shouldErr bool
+	}{
+		{"10.2.2.0/24", false},
+		{"10.2.2.0/1234", true},
+		{"10/24", true},
+		{"10.2.2.2/24", true},
+	} {
+		err := validateCIDRBlock(ts.cidr)
+		if ts.shouldErr && err == nil {
+			t.Fatalf("Input '%s' should error but didn't!", ts.cidr)
+		}
+		if !ts.shouldErr && err != nil {
+			t.Fatalf("Got unexpected error for '%s' input: %s", ts.cidr, err)
+		}
+	}
+}

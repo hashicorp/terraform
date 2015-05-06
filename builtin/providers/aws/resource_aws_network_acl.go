@@ -284,8 +284,16 @@ func updateNetworkAclEntries(d *schema.ResourceData, entryType string, conn *ec2
 			}
 		}
 
+		// AWS mutates the CIDR block into a network implied by the IP and
+		// mask provided. This results in hashing inconsistencies between
+		// the local config file and the state returned by the API. Error
+		// if the user provides a CIDR block with an inappropriate mask
+		if err := validateCIDRBlock(*add.CIDRBlock); err != nil {
+			return err
+		}
+
 		// Add new Acl entry
-		_, err := conn.CreateNetworkACLEntry(&ec2.CreateNetworkACLEntryInput{
+		_, connErr := conn.CreateNetworkACLEntry(&ec2.CreateNetworkACLEntryInput{
 			NetworkACLID: aws.String(d.Id()),
 			CIDRBlock:    add.CIDRBlock,
 			Egress:       add.Egress,
@@ -294,7 +302,7 @@ func updateNetworkAclEntries(d *schema.ResourceData, entryType string, conn *ec2
 			RuleAction:   add.RuleAction,
 			RuleNumber:   add.RuleNumber,
 		})
-		if err != nil {
+		if connErr != nil {
 			return fmt.Errorf("Error creating %s entry: %s", entryType, err)
 		}
 	}
