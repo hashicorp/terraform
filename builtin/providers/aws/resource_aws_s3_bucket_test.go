@@ -23,6 +23,8 @@ func TestAccAWSS3Bucket(t *testing.T) {
 				Config: testAccAWSS3BucketConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSS3BucketExists("aws_s3_bucket.bucket"),
+					resource.TestCheckResourceAttr(
+						"aws_s3_bucket.bucket", "website_endpoint", ""),
 				),
 			},
 		},
@@ -41,6 +43,8 @@ func TestAccAWSS3BucketWebsite(t *testing.T) {
 					testAccCheckAWSS3BucketExists("aws_s3_bucket.bucket"),
 					testAccCheckAWSS3BucketWebsite(
 						"aws_s3_bucket.bucket", "index.html", ""),
+					resource.TestCheckResourceAttr(
+						"aws_s3_bucket.bucket", "website_endpoint", testAccWebsiteEndpoint),
 				),
 			},
 			resource.TestStep{
@@ -49,6 +53,8 @@ func TestAccAWSS3BucketWebsite(t *testing.T) {
 					testAccCheckAWSS3BucketExists("aws_s3_bucket.bucket"),
 					testAccCheckAWSS3BucketWebsite(
 						"aws_s3_bucket.bucket", "index.html", "error.html"),
+					resource.TestCheckResourceAttr(
+						"aws_s3_bucket.bucket", "website_endpoint", testAccWebsiteEndpoint),
 				),
 			},
 			resource.TestStep{
@@ -57,6 +63,8 @@ func TestAccAWSS3BucketWebsite(t *testing.T) {
 					testAccCheckAWSS3BucketExists("aws_s3_bucket.bucket"),
 					testAccCheckAWSS3BucketWebsite(
 						"aws_s3_bucket.bucket", "", ""),
+					resource.TestCheckResourceAttr(
+						"aws_s3_bucket.bucket", "website_endpoint", ""),
 				),
 			},
 		},
@@ -142,13 +150,14 @@ func testAccCheckAWSS3BucketWebsite(n string, indexDoc string, errorDoc string) 
 
 // These need a bit of randomness as the name can only be used once globally
 // within AWS
-var d = rand.New(rand.NewSource(time.Now().UnixNano())).Int()
+var randInt = rand.New(rand.NewSource(time.Now().UnixNano())).Int()
+var testAccWebsiteEndpoint = fmt.Sprintf("tf-test-bucket-%d.s3-website-us-east-1.amazonaws.com", randInt)
 var testAccAWSS3BucketConfig = fmt.Sprintf(`
 resource "aws_s3_bucket" "bucket" {
 	bucket = "tf-test-bucket-%d"
 	acl = "public-read"
 }
-`, d)
+`, randInt)
 
 var testAccAWSS3BucketWebsiteConfig = fmt.Sprintf(`
 resource "aws_s3_bucket" "bucket" {
@@ -159,7 +168,7 @@ resource "aws_s3_bucket" "bucket" {
 		index_document = "index.html"
 	}
 }
-`, d)
+`, randInt)
 
 var testAccAWSS3BucketWebsiteConfigWithError = fmt.Sprintf(`
 resource "aws_s3_bucket" "bucket" {
@@ -171,4 +180,4 @@ resource "aws_s3_bucket" "bucket" {
 		error_document = "error.html"
 	}
 }
-`, d)
+`, randInt)
