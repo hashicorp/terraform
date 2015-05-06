@@ -218,7 +218,7 @@ func resourceAwsVpnGatewayDetach(d *schema.ResourceData, meta interface{}) error
 	wait := true
 	_, err := conn.DetachVPNGateway(&ec2.DetachVPNGatewayInput{
 		VPNGatewayID: aws.String(d.Id()),
-		VPCID:        aws.String(d.Get("vpc_id").(string)),
+		VPCID:        aws.String(vpcID.(string)),
 	})
 	if err != nil {
 		ec2err, ok := err.(aws.APIError)
