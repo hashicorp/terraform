@@ -260,13 +260,15 @@ func websiteEndpoint(s3conn *s3.S3, d *schema.ResourceData) (string, error) {
 		region = *location.LocationConstraint
 	}
 
+	return WebsiteEndpointUrl(bucket, region), nil
+}
+
+func WebsiteEndpointUrl(bucket string, region string) string {
 	// Default to us-east-1 if the bucket doesn't have a region:
 	// http://docs.aws.amazon.com/AmazonS3/latest/API/RESTBucketGETlocation.html
 	if region == "" {
 		region = "us-east-1"
 	}
 
-	endpoint := fmt.Sprintf("%s.s3-website-%s.amazonaws.com", bucket, region)
-
-	return endpoint, nil
+	return fmt.Sprintf("%s.s3-website-%s.amazonaws.com", bucket, region)
 }
