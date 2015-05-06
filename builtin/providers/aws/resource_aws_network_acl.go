@@ -151,6 +151,12 @@ func resourceAwsNetworkAclRead(d *schema.ResourceData, meta interface{}) error {
 
 	// separate the ingress and egress rules
 	for _, e := range networkAcl.Entries {
+		// Skip the default rules added by AWS. They can be neither
+		// configured or deleted by users.
+		if *e.RuleNumber == 32767 {
+			continue
+		}
+
 		if *e.Egress == true {
 			egressEntries = append(egressEntries, e)
 		} else {
@@ -235,6 +241,15 @@ func updateNetworkAclEntries(d *schema.ResourceData, entryType string, conn *ec2
 		return err
 	}
 	for _, remove := range toBeDeleted {
+
+		// AWS includes default rules with all network ACLs that can be
+		// neither modified nor destroyed. They have a custom rule
+		// number that is out of bounds for any other rule. If we
+		// encounter it, just continue. There's no work to be done.
+		if *remove.RuleNumber == 32767 {
+			continue
+		}
+
 		// Delete old Acl
 		_, err := conn.DeleteNetworkACLEntry(&ec2.DeleteNetworkACLEntryInput{
 			NetworkACLID: aws.String(d.Id()),
