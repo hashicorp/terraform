@@ -391,7 +391,7 @@ func resourceAwsElbUpdate(d *schema.ResourceData, meta interface{}) error {
 		d.SetPartial("instances")
 	}
 
-	if d.HasChange("cross_zone_load_balancing") || d.HasChange("idle_timeout") || d.HasChange("connection_draining") || d.HasChange("connection_draining_timeout") {
+	if d.HasChange("cross_zone_load_balancing") || d.HasChange("idle_timeout") {
 		attrs := elb.ModifyLoadBalancerAttributesInput{
 			LoadBalancerName: aws.String(d.Get("name").(string)),
 			LoadBalancerAttributes: &elb.LoadBalancerAttributes{
@@ -400,10 +400,6 @@ func resourceAwsElbUpdate(d *schema.ResourceData, meta interface{}) error {
 				},
 				ConnectionSettings: &elb.ConnectionSettings{
 					IdleTimeout: aws.Long(int64(d.Get("idle_timeout").(int))),
-				},
-				ConnectionDraining: &elb.ConnectionDraining{
-					Enabled: aws.Boolean(true),
-					Timeout: aws.Long(int64(d.Get("connection_draining_timeout").(int))),
 				},
 			},
 		}
@@ -418,10 +414,35 @@ func resourceAwsElbUpdate(d *schema.ResourceData, meta interface{}) error {
 		d.SetPartial("connection_draining_timeout")
 	}
 
-	// We have to set connection draining changes after any change to
-	// timeout. And we have to do this _separately_ from above since we can't
-	// set the timeout and the enabled setting at the same time.
+	// We have to do these changes separately from everything else since
+	// they have some weird undocumented rules. You can't set the timeout
+	// without having connection draining to true, so we set that to true,
+	// set the timeout, then reset it to false if requested.
 	if d.HasChange("connection_draining") || d.HasChange("connection_draining_timeout") {
+		// We do timeout changes first since they require us to set draining
+		// to true for a hot second.
+		if d.HasChange("connection_draining_timeout") {
+			attrs := elb.ModifyLoadBalancerAttributesInput{
+				LoadBalancerName: aws.String(d.Get("name").(string)),
+				LoadBalancerAttributes: &elb.LoadBalancerAttributes{
+					ConnectionDraining: &elb.ConnectionDraining{
+						Enabled: aws.Boolean(true),
+						Timeout: aws.Long(int64(d.Get("connection_draining_timeout").(int))),
+					},
+				},
+			}
+
+			_, err := elbconn.ModifyLoadBalancerAttributes(&attrs)
+			if err != nil {
+				return fmt.Errorf("Failure configuring elb attributes: %s", err)
+			}
+
+			d.SetPartial("connection_draining_timeout")
+		}
+
+		// Then we always set connection draining even if there is no change.
+		// This lets us reset to "false" if requested even with a timeout
+		// change.
 		attrs := elb.ModifyLoadBalancerAttributesInput{
 			LoadBalancerName: aws.String(d.Get("name").(string)),
 			LoadBalancerAttributes: &elb.LoadBalancerAttributes{
