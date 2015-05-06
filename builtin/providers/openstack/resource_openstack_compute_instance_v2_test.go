@@ -20,6 +20,7 @@ func TestAccComputeV2Instance_basic(t *testing.T) {
 	var testAccComputeV2Instance_basic = fmt.Sprintf(`
 		resource "openstack_compute_instance_v2" "foo" {
 			name = "terraform-test"
+			security_groups = ["default"]
 			network {
 				uuid = "%s"
 			}
