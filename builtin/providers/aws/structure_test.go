@@ -121,9 +121,7 @@ func TestexpandIPPerms(t *testing.T) {
 }
 
 func TestExpandIPPerms_NegOneProtocol(t *testing.T) {
-	hash := func(v interface{}) int {
-		return hashcode.String(v.(string))
-	}
+	hash := schema.HashString
 
 	expanded := []interface{}{
 		map[string]interface{}{
