@@ -213,7 +213,7 @@ func resourceAwsS3BucketWebsitePut(s3conn *s3.S3, d *schema.ResourceData, websit
 		WebsiteConfiguration: websiteConfiguration,
 	}
 
-	log.Printf("[DEBUG] S3 put bucket website: %s", putInput)
+	log.Printf("[DEBUG] S3 put bucket website: %#v", putInput)
 
 	_, err := s3conn.PutBucketWebsite(putInput)
 	if err != nil {
@@ -227,7 +227,7 @@ func resourceAwsS3BucketWebsiteDelete(s3conn *s3.S3, d *schema.ResourceData) err
 	bucket := d.Get("bucket").(string)
 	deleteInput := &s3.DeleteBucketWebsiteInput{Bucket: aws.String(bucket)}
 
-	log.Printf("[DEBUG] S3 delete bucket website: %s", deleteInput)
+	log.Printf("[DEBUG] S3 delete bucket website: %#v", deleteInput)
 
 	_, err := s3conn.DeleteBucketWebsite(deleteInput)
 	if err != nil {
