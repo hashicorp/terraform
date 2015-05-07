@@ -9,6 +9,12 @@ import (
 	"github.com/hashicorp/terraform/dot"
 )
 
+// GraphNodeCountDependent is implemented by resources for giving only
+// the dependencies they have from the "count" field.
+type GraphNodeCountDependent interface {
+	CountDependentOn() []string
+}
+
 // GraphNodeConfigResource represents a resource within the config graph.
 type GraphNodeConfigResource struct {
 	Resource *config.Resource
@@ -29,6 +35,18 @@ func (n *GraphNodeConfigResource) ConfigType() GraphNodeConfigType {
 
 func (n *GraphNodeConfigResource) DependableName() []string {
 	return []string{n.Resource.Id()}
+}
+
+// GraphNodeCountDependent impl.
+func (n *GraphNodeConfigResource) CountDependentOn() []string {
+	result := make([]string, 0, len(n.Resource.RawCount.Variables))
+	for _, v := range n.Resource.RawCount.Variables {
+		if vn := varNameForVar(v); vn != "" {
+			result = append(result, vn)
+		}
+	}
+
+	return result
 }
 
 // GraphNodeDependent impl.

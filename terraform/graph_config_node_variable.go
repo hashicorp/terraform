@@ -56,14 +56,23 @@ func (n *GraphNodeConfigVariable) VariableName() string {
 }
 
 // GraphNodeDestroyEdgeInclude impl.
-func (n *GraphNodeConfigVariable) DestroyEdgeInclude(full bool) bool {
-	// Don't include variables as dependencies in destroy nodes.
-	// Destroy nodes don't interpolate anyways and this has a possibility
-	// to create cycles. See GH-1835
-	//
-	// We include the variable on non-full destroys because it might
-	// be used for count interpolation.
-	return !full
+func (n *GraphNodeConfigVariable) DestroyEdgeInclude(v dag.Vertex) bool {
+	// Only include this variable in a destroy edge if the source vertex
+	// "v" has a count dependency on this variable.
+	cv, ok := v.(GraphNodeCountDependent)
+	if !ok {
+		return false
+	}
+
+	for _, d := range cv.CountDependentOn() {
+		for _, d2 := range n.DependableName() {
+			if d == d2 {
+				return true
+			}
+		}
+	}
+
+	return false
 }
 
 // GraphNodeProxy impl.

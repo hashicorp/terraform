@@ -49,7 +49,7 @@ type GraphNodeDestroyPrunable interface {
 // as an edge within the destroy graph. This is usually done because it
 // might cause unnecessary cycles.
 type GraphNodeDestroyEdgeInclude interface {
-	DestroyEdgeInclude(bool) bool
+	DestroyEdgeInclude(dag.Vertex) bool
 }
 
 // DestroyTransformer is a GraphTransformer that creates the destruction
@@ -114,7 +114,7 @@ func (t *DestroyTransformer) transform(
 			// If this thing specifically requests to not be depended on
 			// by destroy nodes, then don't.
 			if i, ok := edgeRaw.(GraphNodeDestroyEdgeInclude); ok &&
-				!i.DestroyEdgeInclude(t.FullDestroy) {
+				!i.DestroyEdgeInclude(v) {
 				continue
 			}
 
