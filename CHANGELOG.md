@@ -19,6 +19,8 @@ FEATURES:
      retry attempts is also configurable.
   * **Templates**: A new `template_file` resource allows long strings needing
      variable interpolation to be moved into files. [GH-1778]
+  * **Provision with WinRM**: Provisioners can now run remote commands on
+     Windows hosts. [GH-1483]
 
 IMPROVEMENTS:
 
