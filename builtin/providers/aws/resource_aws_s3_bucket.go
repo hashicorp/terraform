@@ -49,6 +49,12 @@ func resourceAwsS3Bucket() *schema.Resource {
 				},
 			},
 
+			"hosted_zone_id": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				Computed: true,
+			},
+
 			"website_endpoint": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
@@ -143,7 +149,27 @@ func resourceAwsS3BucketRead(d *schema.ResourceData, meta interface{}) error {
 		return err
 	}
 
-	// Add website_endpoint as an output
+	// Fetch the region
+	location, err := s3conn.GetBucketLocation(
+		&s3.GetBucketLocationInput{
+			Bucket: aws.String(d.Id()),
+		},
+	)
+	if err != nil {
+		return err
+	}
+	var region string
+	if location.LocationConstraint != nil {
+		region = *location.LocationConstraint
+	}
+
+	// Add the hosted zone ID for this bucket's region as an attribute
+	hostedZoneID := s3.HostedZoneIDForRegion(region)
+	if err := d.Set("hosted_zone_id", hostedZoneID); err != nil {
+		return err
+	}
+
+	// Add website_endpoint as an attribute
 	endpoint, err := websiteEndpoint(s3conn, d)
 	if err != nil {
 		return err
