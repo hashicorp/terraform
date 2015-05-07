@@ -142,6 +142,47 @@ func TestAccAWSSecurityGroup_vpc(t *testing.T) {
 	})
 }
 
+func TestAccAWSSecurityGroup_vpcNegOneIngress(t *testing.T) {
+	var group ec2.SecurityGroup
+
+	testCheck := func(*terraform.State) error {
+		if *group.VPCID == "" {
+			return fmt.Errorf("should have vpc ID")
+		}
+
+		return nil
+	}
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSSecurityGroupDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccAWSSecurityGroupConfigVpcNegOneIngress,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSSecurityGroupExists("aws_security_group.web", &group),
+					testAccCheckAWSSecurityGroupAttributesNegOneProtocol(&group),
+					resource.TestCheckResourceAttr(
+						"aws_security_group.web", "name", "terraform_acceptance_test_example"),
+					resource.TestCheckResourceAttr(
+						"aws_security_group.web", "description", "Used in the terraform acceptance tests"),
+					resource.TestCheckResourceAttr(
+						"aws_security_group.web", "ingress.956249133.protocol", "-1"),
+					resource.TestCheckResourceAttr(
+						"aws_security_group.web", "ingress.956249133.from_port", "0"),
+					resource.TestCheckResourceAttr(
+						"aws_security_group.web", "ingress.956249133.to_port", "0"),
+					resource.TestCheckResourceAttr(
+						"aws_security_group.web", "ingress.956249133.cidr_blocks.#", "1"),
+					resource.TestCheckResourceAttr(
+						"aws_security_group.web", "ingress.956249133.cidr_blocks.0", "10.0.0.0/8"),
+					testCheck,
+				),
+			},
+		},
+	})
+}
 func TestAccAWSSecurityGroup_MultiIngress(t *testing.T) {
 	var group ec2.SecurityGroup
 
@@ -317,6 +358,37 @@ func testAccCheckAWSSecurityGroupAttributes(group *ec2.SecurityGroup) resource.T
 			FromPort:   aws.Long(80),
 			ToPort:     aws.Long(8000),
 			IPProtocol: aws.String("tcp"),
+			IPRanges:   []*ec2.IPRange{&ec2.IPRange{CIDRIP: aws.String("10.0.0.0/8")}},
+		}
+
+		if *group.GroupName != "terraform_acceptance_test_example" {
+			return fmt.Errorf("Bad name: %s", *group.GroupName)
+		}
+
+		if *group.Description != "Used in the terraform acceptance tests" {
+			return fmt.Errorf("Bad description: %s", *group.Description)
+		}
+
+		if len(group.IPPermissions) == 0 {
+			return fmt.Errorf("No IPPerms")
+		}
+
+		// Compare our ingress
+		if !reflect.DeepEqual(group.IPPermissions[0], p) {
+			return fmt.Errorf(
+				"Got:\n\n%#v\n\nExpected:\n\n%#v\n",
+				group.IPPermissions[0],
+				p)
+		}
+
+		return nil
+	}
+}
+
+func testAccCheckAWSSecurityGroupAttributesNegOneProtocol(group *ec2.SecurityGroup) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		p := &ec2.IPPermission{
+			IPProtocol: aws.String("-1"),
 			IPRanges:   []*ec2.IPRange{&ec2.IPRange{CIDRIP: aws.String("10.0.0.0/8")}},
 		}
 
@@ -560,6 +632,24 @@ resource "aws_security_group" "web" {
 }
 `
 
+const testAccAWSSecurityGroupConfigVpcNegOneIngress = `
+resource "aws_vpc" "foo" {
+	cidr_block = "10.1.0.0/16"
+}
+
+resource "aws_security_group" "web" {
+	name = "terraform_acceptance_test_example"
+	description = "Used in the terraform acceptance tests"
+	vpc_id = "${aws_vpc.foo.id}"
+
+	ingress {
+		protocol = "-1"
+		from_port = 0
+		to_port = 0
+		cidr_blocks = ["10.0.0.0/8"]
+	}
+}
+`
 const testAccAWSSecurityGroupConfigMultiIngress = `
 resource "aws_security_group" "worker" {
   name = "terraform_acceptance_test_example_1"
