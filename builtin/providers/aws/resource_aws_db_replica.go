@@ -111,75 +111,50 @@ func resourceAwsDbReplicaCreate(d *schema.ResourceData, meta interface{}) error 
 	conn := meta.(*AWSClient).rdsconn
 	tags := tagsFromMapRDS(d.Get("tags").(map[string]interface{}))
 	opts := rds.CreateDBReplicaInput{
-		AllocatedStorage:           aws.Long(int64(d.Get("allocated_storage").(int))),
 		DBInstanceIdentifier:       aws.String(d.Get("identifier").(string)),
 		SourceDBInstanceIdentifier: aws.String(d.Get("instance_class").(string)),
 		Tags: tags,
 	}
-
-	if attr, ok := d.GetOk("storage_type"); ok {
-		opts.StorageType = aws.String(attr.(string))
-	}
-
-	attr := d.Get("backup_retention_period")
-	opts.BackupRetentionPeriod = aws.Long(int64(attr.(int)))
-
-	if attr, ok := d.GetOk("iops"); ok {
-		opts.IOPS = aws.Long(int64(attr.(int)))
-	}
-
-	if attr, ok := d.GetOk("port"); ok {
-		opts.Port = aws.Long(int64(attr.(int)))
-	}
-
-	if attr, ok := d.GetOk("multi_az"); ok {
-		opts.MultiAZ = aws.Boolean(attr.(bool))
+	if attr, ok := d.GetOk("auto_minor_version_upgrade"); ok {
+		opts.AutoMinorVersionUpgrade = aws.Boolean(attr.(bool))
 	}
 
 	if attr, ok := d.GetOk("availability_zone"); ok {
 		opts.AvailabilityZone = aws.String(attr.(string))
 	}
 
-	if attr, ok := d.GetOk("maintenance_window"); ok {
-		opts.PreferredMaintenanceWindow = aws.String(attr.(string))
-	}
-
-	if attr, ok := d.GetOk("backup_window"); ok {
-		opts.PreferredBackupWindow = aws.String(attr.(string))
-	}
-
-	if attr, ok := d.GetOk("publicly_accessible"); ok {
-		opts.PubliclyAccessible = aws.Boolean(attr.(bool))
+	if attr, ok := d.GetOk("db_instance_class"); ok {
+		opts.DBInstanceClass = aws.String(attr.(string))
 	}
 
 	if attr, ok := d.GetOk("db_subnet_group_name"); ok {
 		opts.DBSubnetGroupName = aws.String(attr.(string))
 	}
 
-	if attr, ok := d.GetOk("parameter_group_name"); ok {
-		opts.DBParameterGroupName = aws.String(attr.(string))
+	if attr, ok := d.GetOk("iops"); ok {
+		opts.IOPS = aws.Long(int64(attr.(int)))
 	}
 
-	if attr := d.Get("vpc_security_group_ids").(*schema.Set); attr.Len() > 0 {
-		var s []*string
-		for _, v := range attr.List() {
-			s = append(s, aws.String(v.(string)))
-		}
-		opts.VPCSecurityGroupIDs = s
+	if attr, ok := d.GetOk("option_group_name"); ok {
+		opts.OptionGroupName = aws.String(attr.(string))
 	}
 
-	if attr := d.Get("security_group_names").(*schema.Set); attr.Len() > 0 {
-		var s []*string
-		for _, v := range attr.List() {
-			s = append(s, aws.String(v.(string)))
-		}
-		opts.DBSecurityGroups = s
+	if attr, ok := d.GetOk("port"); ok {
+		opts.Port = aws.Long(int64(attr.(int)))
 	}
 
-	log.Printf("[DEBUG] DB Instance create configuration: %#v", opts)
-	_, err := conn.CreateDBInstance(&opts)
+	if attr, ok := d.GetOk("publicly_accessible"); ok {
+		opts.PubliclyAccessible = aws.String(attr.(string))
+	}
+
+	if attr, ok := d.GetOk("storage_type"); ok {
+		opts.StorageType = aws.String(attr.(string))
+	}
+
+	log.Printf("[DEBUG] DB Replica create configuration: %#v", opts)
+	_, err := conn.CreateDBReplica(&opts)
 	if err != nil {
-		return fmt.Errorf("Error creating DB Instance: %s", err)
+		return fmt.Errorf("Error creating DB Replica: %s", err)
 	}
 
 	d.SetId(d.Get("identifier").(string))
@@ -187,12 +162,12 @@ func resourceAwsDbReplicaCreate(d *schema.ResourceData, meta interface{}) error 
 	log.Printf("[INFO] DB Instance ID: %s", d.Id())
 
 	log.Println(
-		"[INFO] Waiting for DB Instance to be available")
+		"[INFO] Waiting for DB Replica to be available")
 
 	stateConf := &resource.StateChangeConf{
 		Pending:    []string{"creating", "backing-up", "modifying"},
 		Target:     "available",
-		Refresh:    resourceAwsDbInstanceStateRefreshFunc(d, meta),
+		Refresh:    resourceAwsDbReplicaStateRefreshFunc(d, meta),
 		Timeout:    40 * time.Minute,
 		MinTimeout: 10 * time.Second,
 		Delay:      30 * time.Second, // Wait 30 secs before starting
@@ -204,10 +179,10 @@ func resourceAwsDbReplicaCreate(d *schema.ResourceData, meta interface{}) error 
 		return err
 	}
 
-	return resourceAwsDbInstanceRead(d, meta)
+	return resourceAwsDbReplicaRead(d, meta)
 }
 
-func resourceAwsDbInstanceRead(d *schema.ResourceData, meta interface{}) error {
+func resourceAwsDbReplicaRead(d *schema.ResourceData, meta interface{}) error {
 	v, err := resourceAwsBbInstanceRetrieve(d, meta)
 
 	if err != nil {
