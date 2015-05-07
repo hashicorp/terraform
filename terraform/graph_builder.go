@@ -153,7 +153,7 @@ func (b *BuiltinGraphBuilder) Steps(path []string) []GraphTransformer {
 	if len(path) <= 1 {
 		steps = append(steps,
 			// Create the destruction nodes
-			&DestroyTransformer{},
+			&DestroyTransformer{FullDestroy: b.Destroy},
 			&CreateBeforeDestroyTransformer{},
 			b.conditional(&conditionalOpts{
 				If:   func() bool { return !b.Verbose },
