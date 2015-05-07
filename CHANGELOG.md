@@ -70,6 +70,8 @@ IMPROVEMENTS:
   * provider/aws: `aws_elb` supports connection draining settings [GH-1502]
   * provider/aws: `aws_elb` increase default idle timeout to 60s [GH-1646]
   * provider/aws: `aws_key_pair` name can be omitted and generated [GH-1751]
+  * provider/aws: `aws_network_acl` improved validation for network ACL ports
+      and protocols [GH-1798] [GH-1808]
   * provider/aws: `aws_route_table` can target network interfaces [GH-968]
   * provider/aws: `aws_route_table` can specify propogating VGWs [GH-1516]
   * provider/aws: `aws_route53_record` supports weighted sets [GH-1578]
