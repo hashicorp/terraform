@@ -92,10 +92,13 @@ func resourceComputeInstanceV2() *schema.Resource {
 				},
 			},
 			"security_groups": &schema.Schema{
-				Type:     schema.TypeList,
+				Type:     schema.TypeSet,
 				Optional: true,
 				ForceNew: false,
 				Elem:     &schema.Schema{Type: schema.TypeString},
+				Set: 	  func(v interface{}) int {
+					return hashcode.String(v.(string))
+				},
 			},
 			"availability_zone": &schema.Schema{
 				Type:     schema.TypeString,
@@ -551,9 +554,9 @@ func resourceComputeInstanceV2Update(d *schema.ResourceData, meta interface{}) e
 		oldSGSlice, newSGSlice := oldSGRaw.([]interface{}), newSGRaw.([]interface{})
 		oldSGSet := schema.NewSet(func(v interface{}) int { return hashcode.String(v.(string)) }, oldSGSlice)
 		newSGSet := schema.NewSet(func(v interface{}) int { return hashcode.String(v.(string)) }, newSGSlice)
+
 		secgroupsToAdd := newSGSet.Difference(oldSGSet)
 		secgroupsToRemove := oldSGSet.Difference(newSGSet)
-
 		log.Printf("[DEBUG] Security groups to add: %v", secgroupsToAdd)
 
 		log.Printf("[DEBUG] Security groups to remove: %v", secgroupsToRemove)
