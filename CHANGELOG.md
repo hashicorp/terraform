@@ -68,6 +68,7 @@ IMPROVEMENTS:
   * provider/aws: `aws_route_table` can specify propogating VGWs [GH-1516]
   * provider/aws: `aws_route53_record` supports weighted sets [GH-1578]
   * provider/aws: `aws_route53_zone` exports nameservers [GH-1525]
+  * provider/aws: `aws_s3_bucket` website support [GH-1738]
   * provider/aws: `aws_security_group` name becomes optional and can be
       automatically set to a unique identifier; this helps with
       `create_before_destroy` scenarios [GH-1632]
