@@ -26,6 +26,8 @@ func TestAccAWSS3Bucket_basic(t *testing.T) {
 					resource.TestCheckResourceAttr(
 						"aws_s3_bucket.bucket", "hosted_zone_id", s3.HostedZoneIDForRegion("us-west-2")),
 					resource.TestCheckResourceAttr(
+						"aws_s3_bucket.bucket", "region", "us-west-2"),
+					resource.TestCheckResourceAttr(
 						"aws_s3_bucket.bucket", "website_endpoint", ""),
 				),
 			},
