@@ -6,9 +6,12 @@ import (
 
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
+	"google.golang.org/api/compute/v1"
 )
 
 func TestAccComputeHttpHealthCheck_basic(t *testing.T) {
+	var healthCheck compute.HttpHealthCheck
+
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
@@ -18,7 +21,9 @@ func TestAccComputeHttpHealthCheck_basic(t *testing.T) {
 				Config: testAccComputeHttpHealthCheck_basic,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckComputeHttpHealthCheckExists(
-						"google_compute_http_health_check.foobar"),
+						"google_compute_http_health_check.foobar", &healthCheck),
+					testAccCheckComputeHttpHealthCheckThresholds(
+						3, 3, &healthCheck),
 				),
 			},
 		},
@@ -43,7 +48,7 @@ func testAccCheckComputeHttpHealthCheckDestroy(s *terraform.State) error {
 	return nil
 }
 
-func testAccCheckComputeHttpHealthCheckExists(n string) resource.TestCheckFunc {
+func testAccCheckComputeHttpHealthCheckExists(n string, healthCheck *compute.HttpHealthCheck) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		rs, ok := s.RootModule().Resources[n]
 		if !ok {
@@ -64,6 +69,22 @@ func testAccCheckComputeHttpHealthCheckExists(n string) resource.TestCheckFunc {
 
 		if found.Name != rs.Primary.ID {
 			return fmt.Errorf("HttpHealthCheck not found")
+		}
+
+		*healthCheck = *found
+
+		return nil
+	}
+}
+
+func testAccCheckComputeHttpHealthCheckThresholds(healthy, unhealthy int64, healthCheck *compute.HttpHealthCheck) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		if healthCheck.HealthyThreshold != healthy {
+			return fmt.Errorf("HealthyThreshold doesn't match: expected %d, got %d", healthy, healthCheck.HealthyThreshold)
+		}
+
+		if healthCheck.UnhealthyThreshold != unhealthy {
+			return fmt.Errorf("UnhealthyThreshold doesn't match: expected %d, got %d", unhealthy, healthCheck.UnhealthyThreshold)
 		}
 
 		return nil
