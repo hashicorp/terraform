@@ -18,6 +18,7 @@ func (c *RefreshCommand) Run(args []string) int {
 
 	cmdFlags := c.Meta.flagSet("refresh")
 	cmdFlags.StringVar(&c.Meta.statePath, "state", DefaultStateFilename, "path")
+	cmdFlags.IntVar(&c.Meta.parallelism, "parallelism", 0, "parallelism")
 	cmdFlags.StringVar(&c.Meta.stateOutPath, "state-out", "", "path")
 	cmdFlags.StringVar(&c.Meta.backupPath, "backup", "", "path")
 	cmdFlags.Usage = func() { c.Ui.Error(c.Help()) }
@@ -78,8 +79,9 @@ func (c *RefreshCommand) Run(args []string) int {
 
 	// Build the context based on the arguments given
 	ctx, _, err := c.Context(contextOpts{
-		Path:      configPath,
-		StatePath: c.Meta.statePath,
+		Path:        configPath,
+		StatePath:   c.Meta.statePath,
+		Parallelism: c.Meta.parallelism,
 	})
 	if err != nil {
 		c.Ui.Error(err.Error())
