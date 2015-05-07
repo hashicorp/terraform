@@ -53,6 +53,10 @@ func (t *FlattenTransformer) Transform(g *Graph) error {
 
 		// Go through the subgraph and flatten all the nodes
 		for _, sv := range subgraph.Vertices() {
+			if _, ok := sv.(GraphNodeSubPath); ok {
+				continue
+			}
+
 			fn, ok := sv.(GraphNodeFlattenable)
 			if !ok {
 				return fmt.Errorf(
