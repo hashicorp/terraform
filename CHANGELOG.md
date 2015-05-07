@@ -78,6 +78,7 @@ IMPROVEMENTS:
   * provider/aws: `aws_elb` exports `source_security_group` field [GH-1708]
   * provider/aws: `aws_route53_record` supports alias targeting [GH-1775]
   * provider/aws: Remove default AWS egress rule for newly created Security Groups [GH-1765]
+  * provider/consul: add `scheme` configuration argument [GH-1838]
   * provider/docker: `docker_container` can specify links [GH-1564]
   * provider/google: `resource_compute_disk` supports snapshots [GH-1426]
   * provider/google: `resource_compute_instance` supports specifying the
