@@ -13,6 +13,8 @@ FEATURES:
   * **Automatic AWS retries**: This release includes a lot of improvement
      around automatic retries of transient errors in AWS. The number of
      retry attempts is also configurable.
+  * **Templates**: A new `template_file` resource allows long strings needing
+     variable interpolation to be moved into files. [GH-1778]
 
 IMPROVEMENTS:
 
