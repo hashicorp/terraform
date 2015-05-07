@@ -22,61 +22,76 @@ func resourceAwsDbReplica() *schema.Resource {
 		Delete: resourceAwsDbReplicaDelete,
 
 		Schema: map[string]*schema.Schema{
-			"DBInstanceIdentifier": &schema.Schema{
+			"db_instance_identifier": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: false,
 				ForceNew: true,
 			},
 
-			"SourceDBInstanceIdentifier": &schema.Schema{
+			"source_db_instance_identifier": &schema.Schema{
 				Type:     schema.TypeString,
 				Required: true,
 			},
 
-			"AutoMinorVersionUpgrade": &schema.Schema{
+			"auto_minor_version_upgrade": &schema.Schema{
 				Type:     schema.TypeBool,
 				Optional: true,
 			},
 
-			"AvailabilityZone": &schema.Schema{
+			"availability_zone": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
 			},
 
-			"DBInstanceClass": &schema.Schema{
+			"db_instance_class": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
 			},
 
-			"DBSubnetGroupName": &schema.Schema{
+			"db_subnet_group_name": &schema.Schema{
 				Type:     schema.TypeBool,
 				Optional: true,
 			},
 
-			"IOPS": &schema.Schema{
-				Type:     schema.TypeLong,
+			"iops": &schema.Schema{
+				Type:     schema.TypeInt,
 				Optional: true,
 			},
 
-			"OptionGroupName": &schema.Schema{
+			"option_group_name": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
 			},
 
-			"Port": &schema.Schema{
-				Type:     schema.TypeLong,
+			"port": &schema.Schema{
+				Type:     schema.TypeInt,
 				Required: true,
 				ForceNew: true,
 			},
 
-			"PubliclyAccessible": &schema.Schema{
+			"publicly_accessible": &schema.Schema{
 				Type:     schema.TypeBool,
 				Optional: true,
 			},
 
-			"StorageType": &schema.Schema{
+			"storage_type": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
+			},
+
+			"address": &schema.Schema{
+				Type:     schema.TypeString,
+				Computed: true,
+			},
+
+			"endpoint": &schema.Schema{
+				Type:     schema.TypeString,
+				Computed: true,
+			},
+
+			"status": &schema.Schema{
+				Type:     schema.TypeString,
+				Computed: true,
 			},
 			// apply_immediately is used to determine when the update modifications
 			// take place.
@@ -96,16 +111,10 @@ func resourceAwsDbReplicaCreate(d *schema.ResourceData, meta interface{}) error 
 	conn := meta.(*AWSClient).rdsconn
 	tags := tagsFromMapRDS(d.Get("tags").(map[string]interface{}))
 	opts := rds.CreateDBReplicaInput{
-		AllocatedStorage:     aws.Long(int64(d.Get("allocated_storage").(int))),
-		DBInstanceClass:      aws.String(d.Get("instance_class").(string)),
-		DBInstanceIdentifier: aws.String(d.Get("identifier").(string)),
-		DBName:               aws.String(d.Get("name").(string)),
-		MasterUsername:       aws.String(d.Get("username").(string)),
-		MasterUserPassword:   aws.String(d.Get("password").(string)),
-		Engine:               aws.String(d.Get("engine").(string)),
-		EngineVersion:        aws.String(d.Get("engine_version").(string)),
-		StorageEncrypted:     aws.Boolean(d.Get("storage_encrypted").(bool)),
-		Tags:                 tags,
+		AllocatedStorage:           aws.Long(int64(d.Get("allocated_storage").(int))),
+		DBInstanceIdentifier:       aws.String(d.Get("identifier").(string)),
+		SourceDBInstanceIdentifier: aws.String(d.Get("instance_class").(string)),
+		Tags: tags,
 	}
 
 	if attr, ok := d.GetOk("storage_type"); ok {
