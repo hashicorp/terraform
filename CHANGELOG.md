@@ -58,6 +58,10 @@ IMPROVEMENTS:
   * provider/aws: White or blacklist account IDs that can be used to
       protect against accidents. [GH-1595]
   * provider/aws: Add a subset of IAM resources [GH-939]
+  * provider/aws: `aws_autoscaling_group` retries deletes through "in progress"
+      errors [GH-1840]
+  * provider/aws: `aws_autoscaling_group` waits for healthy capacity during
+      ASG creation [GH-1839]
   * provider/aws: `aws_instance` supports placement groups [GH-1358]
   * provider/aws: `aws_eip` supports network interface attachment [GH-1681]
   * provider/aws: `aws_elb` supports in-place changing of listeners [GH-1619]
