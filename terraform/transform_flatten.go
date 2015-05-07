@@ -53,6 +53,8 @@ func (t *FlattenTransformer) Transform(g *Graph) error {
 
 		// Go through the subgraph and flatten all the nodes
 		for _, sv := range subgraph.Vertices() {
+			// If the vertex already has a subpath then we assume it has
+			// already been flattened. Ignore it.
 			if _, ok := sv.(GraphNodeSubPath); ok {
 				continue
 			}
