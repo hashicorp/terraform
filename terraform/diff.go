@@ -80,7 +80,18 @@ func (d *Diff) Empty() bool {
 
 func (d *Diff) String() string {
 	var buf bytes.Buffer
+
+	keys := make([]string, 0, len(d.Modules))
+	lookup := make(map[string]*ModuleDiff)
 	for _, m := range d.Modules {
+		key := fmt.Sprintf("module.%s", strings.Join(m.Path[1:], "."))
+		keys = append(keys, key)
+		lookup[key] = m
+	}
+	sort.Strings(keys)
+
+	for _, key := range keys {
+		m := lookup[key]
 		mStr := m.String()
 
 		// If we're the root module, we just write the output directly.
@@ -89,7 +100,7 @@ func (d *Diff) String() string {
 			continue
 		}
 
-		buf.WriteString(fmt.Sprintf("module.%s:\n", strings.Join(m.Path[1:], ".")))
+		buf.WriteString(fmt.Sprintf("%s:\n", key))
 
 		s := bufio.NewScanner(strings.NewReader(mStr))
 		for s.Scan() {
