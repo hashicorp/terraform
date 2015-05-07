@@ -30,6 +30,36 @@ func TestAccComputeHttpHealthCheck_basic(t *testing.T) {
 	})
 }
 
+func TestAccComputeHttpHealthCheck_update(t *testing.T) {
+	var healthCheck compute.HttpHealthCheck
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckComputeHttpHealthCheckDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccComputeHttpHealthCheck_update1,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckComputeHttpHealthCheckExists(
+						"google_compute_http_health_check.foobar", &healthCheck),
+					testAccCheckComputeHttpHealthCheckThresholds(
+						0, 0, &healthCheck),
+				),
+			},
+			resource.TestStep{
+				Config: testAccComputeHttpHealthCheck_update2,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckComputeHttpHealthCheckExists(
+						"google_compute_http_health_check.foobar", &healthCheck),
+					testAccCheckComputeHttpHealthCheckThresholds(
+						10, 10, &healthCheck),
+				),
+			},
+		},
+	})
+}
+
 func testAccCheckComputeHttpHealthCheckDestroy(s *terraform.State) error {
 	config := testAccProvider.Meta().(*Config)
 
@@ -102,5 +132,22 @@ resource "google_compute_http_health_check" "foobar" {
 	request_path = "/health_check"
 	timeout_sec = 2
 	unhealthy_threshold = 3
+}
+`
+
+const testAccComputeHttpHealthCheck_update1 = `
+resource "google_compute_http_health_check" "foobar" {
+	name = "terraform-test"
+	description = "Resource created for Terraform acceptance testing"
+}
+`
+
+/* Change one existing param and set two new params */
+const testAccComputeHttpHealthCheck_update2 = `
+resource "google_compute_http_health_check" "foobar" {
+	name = "terraform-test"
+	description = "Resource updated for Terraform acceptance testing"
+	healthy_threshold = 10
+	unhealthy_threshold = 10
 }
 `
