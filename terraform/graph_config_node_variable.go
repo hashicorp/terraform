@@ -55,6 +55,14 @@ func (n *GraphNodeConfigVariable) VariableName() string {
 	return n.Variable.Name
 }
 
+// GraphNodeDestroyEdgeInclude impl.
+func (n *GraphNodeConfigVariable) DestroyEdgeInclude() bool {
+	// Don't include variables as dependencies in destroy nodes.
+	// Destroy nodes don't interpolate anyways and this has a possibility
+	// to create cycles. See GH-1835
+	return false
+}
+
 // GraphNodeProxy impl.
 func (n *GraphNodeConfigVariable) Proxy() bool {
 	return true
