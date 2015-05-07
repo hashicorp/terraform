@@ -62,7 +62,7 @@ func (n *GraphNodeConfigOutput) Proxy() bool {
 }
 
 // GraphNodeDestroyEdgeInclude impl.
-func (n *GraphNodeConfigOutput) DestroyEdgeInclude() bool {
+func (n *GraphNodeConfigOutput) DestroyEdgeInclude(dag.Vertex) bool {
 	return false
 }
 

@@ -55,6 +55,26 @@ func (n *GraphNodeConfigVariable) VariableName() string {
 	return n.Variable.Name
 }
 
+// GraphNodeDestroyEdgeInclude impl.
+func (n *GraphNodeConfigVariable) DestroyEdgeInclude(v dag.Vertex) bool {
+	// Only include this variable in a destroy edge if the source vertex
+	// "v" has a count dependency on this variable.
+	cv, ok := v.(GraphNodeCountDependent)
+	if !ok {
+		return false
+	}
+
+	for _, d := range cv.CountDependentOn() {
+		for _, d2 := range n.DependableName() {
+			if d == d2 {
+				return true
+			}
+		}
+	}
+
+	return false
+}
+
 // GraphNodeProxy impl.
 func (n *GraphNodeConfigVariable) Proxy() bool {
 	return true
