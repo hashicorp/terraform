@@ -27,6 +27,10 @@ func TestAccCloudStackInstance_basic(t *testing.T) {
 						"cloudstack_instance.foobar",
 						"user_data",
 						"0cf3dcdc356ec8369494cb3991985ecd5296cdd5"),
+					resource.TestCheckResourceAttr(
+						"cloudstack_instance.foobar",
+						"keypair",
+						CLOUDSTACK_SSH_KEYPAIR),
 				),
 			},
 		},
@@ -47,6 +51,14 @@ func TestAccCloudStackInstance_update(t *testing.T) {
 					testAccCheckCloudStackInstanceExists(
 						"cloudstack_instance.foobar", &instance),
 					testAccCheckCloudStackInstanceAttributes(&instance),
+					resource.TestCheckResourceAttr(
+						"cloudstack_instance.foobar",
+						"user_data",
+						"0cf3dcdc356ec8369494cb3991985ecd5296cdd5"),
+					resource.TestCheckResourceAttr(
+						"cloudstack_instance.foobar",
+						"keypair",
+						CLOUDSTACK_SSH_KEYPAIR),
 				),
 			},
 
@@ -193,13 +205,15 @@ resource "cloudstack_instance" "foobar" {
   network = "%s"
   template = "%s"
   zone = "%s"
+  keypair = "%s"
   user_data = "foobar\nfoo\nbar"
   expunge = true
 }`,
 	CLOUDSTACK_SERVICE_OFFERING_1,
 	CLOUDSTACK_NETWORK_1,
 	CLOUDSTACK_TEMPLATE,
-	CLOUDSTACK_ZONE)
+	CLOUDSTACK_ZONE,
+	CLOUDSTACK_SSH_KEYPAIR)
 
 var testAccCloudStackInstance_renameAndResize = fmt.Sprintf(`
 resource "cloudstack_instance" "foobar" {
@@ -209,13 +223,15 @@ resource "cloudstack_instance" "foobar" {
   network = "%s"
   template = "%s"
   zone = "%s"
+  keypair = "%s"
   user_data = "foobar\nfoo\nbar"
   expunge = true
 }`,
 	CLOUDSTACK_SERVICE_OFFERING_2,
 	CLOUDSTACK_NETWORK_1,
 	CLOUDSTACK_TEMPLATE,
-	CLOUDSTACK_ZONE)
+	CLOUDSTACK_ZONE,
+	CLOUDSTACK_SSH_KEYPAIR)
 
 var testAccCloudStackInstance_fixedIP = fmt.Sprintf(`
 resource "cloudstack_instance" "foobar" {
