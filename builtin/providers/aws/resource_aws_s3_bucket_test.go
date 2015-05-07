@@ -13,7 +13,7 @@ import (
 	"github.com/awslabs/aws-sdk-go/service/s3"
 )
 
-func TestAccAWSS3Bucket(t *testing.T) {
+func TestAccAWSS3Bucket_basic(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
@@ -31,7 +31,7 @@ func TestAccAWSS3Bucket(t *testing.T) {
 	})
 }
 
-func TestAccAWSS3BucketWebsite(t *testing.T) {
+func TestAccAWSS3Bucket_Website(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
@@ -154,7 +154,7 @@ func testAccCheckAWSS3BucketWebsite(n string, indexDoc string, errorDoc string) 
 // These need a bit of randomness as the name can only be used once globally
 // within AWS
 var randInt = rand.New(rand.NewSource(time.Now().UnixNano())).Int()
-var testAccWebsiteEndpoint = fmt.Sprintf("tf-test-bucket-%d.s3-website-us-east-1.amazonaws.com", randInt)
+var testAccWebsiteEndpoint = fmt.Sprintf("tf-test-bucket-%d.s3-website-us-west-2.amazonaws.com", randInt)
 var testAccAWSS3BucketConfig = fmt.Sprintf(`
 resource "aws_s3_bucket" "bucket" {
 	bucket = "tf-test-bucket-%d"
