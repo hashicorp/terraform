@@ -14,7 +14,6 @@ import (
 )
 
 func TestAccAWSS3Bucket(t *testing.T) {
-
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
@@ -23,7 +22,49 @@ func TestAccAWSS3Bucket(t *testing.T) {
 			resource.TestStep{
 				Config: testAccAWSS3BucketConfig,
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckAWSS3BucketExists("aws_s3_bucket.bar"),
+					testAccCheckAWSS3BucketExists("aws_s3_bucket.bucket"),
+					resource.TestCheckResourceAttr(
+						"aws_s3_bucket.bucket", "website_endpoint", ""),
+				),
+			},
+		},
+	})
+}
+
+func TestAccAWSS3BucketWebsite(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSS3BucketDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccAWSS3BucketWebsiteConfig,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSS3BucketExists("aws_s3_bucket.bucket"),
+					testAccCheckAWSS3BucketWebsite(
+						"aws_s3_bucket.bucket", "index.html", ""),
+					resource.TestCheckResourceAttr(
+						"aws_s3_bucket.bucket", "website_endpoint", testAccWebsiteEndpoint),
+				),
+			},
+			resource.TestStep{
+				Config: testAccAWSS3BucketWebsiteConfigWithError,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSS3BucketExists("aws_s3_bucket.bucket"),
+					testAccCheckAWSS3BucketWebsite(
+						"aws_s3_bucket.bucket", "index.html", "error.html"),
+					resource.TestCheckResourceAttr(
+						"aws_s3_bucket.bucket", "website_endpoint", testAccWebsiteEndpoint),
+				),
+			},
+			resource.TestStep{
+				Config: testAccAWSS3BucketConfig,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSS3BucketExists("aws_s3_bucket.bucket"),
+					testAccCheckAWSS3BucketWebsite(
+						"aws_s3_bucket.bucket", "", ""),
+					resource.TestCheckResourceAttr(
+						"aws_s3_bucket.bucket", "website_endpoint", ""),
 				),
 			},
 		},
@@ -70,11 +111,73 @@ func testAccCheckAWSS3BucketExists(n string) resource.TestCheckFunc {
 	}
 }
 
-// This needs a bit of randoness as the name can only be
-// used once globally within AWS
+func testAccCheckAWSS3BucketWebsite(n string, indexDoc string, errorDoc string) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		rs, _ := s.RootModule().Resources[n]
+		conn := testAccProvider.Meta().(*AWSClient).s3conn
+
+		out, err := conn.GetBucketWebsite(&s3.GetBucketWebsiteInput{
+			Bucket: aws.String(rs.Primary.ID),
+		})
+
+		if err != nil {
+			if indexDoc == "" {
+				// If we want to assert that the website is not there, than
+				// this error is expected
+				return nil
+			} else {
+				return fmt.Errorf("S3BucketWebsite error: %v", err)
+			}
+		}
+
+		if *out.IndexDocument.Suffix != indexDoc {
+			return fmt.Errorf("bad: %s", out.IndexDocument)
+		}
+
+		if v := out.ErrorDocument; v == nil {
+			if errorDoc != "" {
+				return fmt.Errorf("bad: %s", out.ErrorDocument)
+			}
+		} else {
+			if *v.Key != errorDoc {
+				return fmt.Errorf("bad: %s", out.ErrorDocument)
+			}
+		}
+
+		return nil
+	}
+}
+
+// These need a bit of randomness as the name can only be used once globally
+// within AWS
+var randInt = rand.New(rand.NewSource(time.Now().UnixNano())).Int()
+var testAccWebsiteEndpoint = fmt.Sprintf("tf-test-bucket-%d.s3-website-us-east-1.amazonaws.com", randInt)
 var testAccAWSS3BucketConfig = fmt.Sprintf(`
-resource "aws_s3_bucket" "bar" {
+resource "aws_s3_bucket" "bucket" {
 	bucket = "tf-test-bucket-%d"
 	acl = "public-read"
 }
-`, rand.New(rand.NewSource(time.Now().UnixNano())).Int())
+`, randInt)
+
+var testAccAWSS3BucketWebsiteConfig = fmt.Sprintf(`
+resource "aws_s3_bucket" "bucket" {
+	bucket = "tf-test-bucket-%d"
+	acl = "public-read"
+
+	website {
+		index_document = "index.html"
+	}
+}
+`, randInt)
+
+var testAccAWSS3BucketWebsiteConfigWithError = fmt.Sprintf(`
+resource "aws_s3_bucket" "bucket" {
+	bucket = "tf-test-bucket-%d"
+	acl = "public-read"
+
+	website {
+		index_document = "index.html"
+		error_document = "error.html"
+	}
+}
+`, randInt)
