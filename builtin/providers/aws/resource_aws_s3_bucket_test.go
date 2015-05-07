@@ -131,16 +131,19 @@ func testAccCheckAWSS3BucketWebsite(n string, indexDoc string, errorDoc string) 
 		}
 
 		if *out.IndexDocument.Suffix != indexDoc {
-			return fmt.Errorf("bad: %s", out.IndexDocument)
+			if out.IndexDocument.Suffix != nil {
+				return fmt.Errorf("bad index document suffix: %s", *out.IndexDocument.Suffix)
+			}
+			return fmt.Errorf("bad index document suffix, is nil")
 		}
 
 		if v := out.ErrorDocument; v == nil {
 			if errorDoc != "" {
-				return fmt.Errorf("bad: %s", out.ErrorDocument)
+				return fmt.Errorf("bad error doc, found nil, expected: %s", errorDoc)
 			}
 		} else {
 			if *v.Key != errorDoc {
-				return fmt.Errorf("bad: %s", out.ErrorDocument)
+				return fmt.Errorf("bad error doc, expected: %s, got %#v", errorDoc, out.ErrorDocument)
 			}
 		}
 
