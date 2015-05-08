@@ -66,14 +66,18 @@ desirable to parameterize a module's resource with an attribute that is of the
 list type, for example `aws_instance.security_groups`. 
 
 Until a future release broadens the functionality of variables to include list
-types, the way to work around this limitation is to use the [`split` and
-`join`](/docs/configuration/interpolation.html) string interpolation functions
-to pass a delimited string as a module parameter, and then "unpack" that
-parameter using `split` within the module definition. 
+types, the way to work around this limitation is to pass a delimited string as
+a module parameter, and then "unpack" that parameter using
+[`split`](/docs/configuration/interpolation.html) interpolation function within
+the module definition. 
 
 Depending on the resource parameter in question, you may have to 
-indicate that the unpacked string is actually a list but using the 
-`resource_param = ["${split(",", var.CSV_STRING)}"]` notation.
+indicate that the unpacked string is actually a list by using list notation.
+For example:
+
+```
+resource_param = ["${split(",", var.CSV_STRING)}"]
+```
 
 ## Outputs
 
