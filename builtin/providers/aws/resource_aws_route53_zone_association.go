@@ -34,6 +34,7 @@ func resourceAwsRoute53ZoneAssociation() *schema.Resource {
 			"vpc_region": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
+				Computed: true,
 			},
 
 		},
@@ -55,7 +56,7 @@ func resourceAwsRoute53ZoneAssociationCreate(d *schema.ResourceData, meta interf
 		req.VPC.VPCRegion = aws.String(w.(string))
 	}
 
-	log.Printf("[DEBUG] Associating Route53 Private Zone %s with VPC %s", *req.HostedZoneID, *req.VPC.VPCID)
+	log.Printf("[DEBUG] Associating Route53 Private Zone %s with VPC %s with region %s", *req.HostedZoneID, *req.VPC.VPCID, *req.VPC.VPCRegion)
 	resp, err := r53.AssociateVPCWithHostedZone(req)
 	if err != nil {
 		return err
