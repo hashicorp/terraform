@@ -75,12 +75,6 @@ type TestStep struct {
 
 	// Destroy will create a destroy plan if set to true.
 	Destroy bool
-
-	// TransientResource indicates that resources created as part
-	// of this test step are temporary and might be recreated anew
-	// with every planning step. This should only be set for
-	// pseudo-resources, like the null resource or templates.
-	TransientResource bool
 }
 
 // Test performs an acceptance test on a resource.
@@ -269,7 +263,7 @@ func testStep(
 	if p, err := ctx.Plan(); err != nil {
 		return state, fmt.Errorf("Error on second follow-up plan: %s", err)
 	} else {
-		if p.Diff != nil && !p.Diff.Empty() && !step.TransientResource {
+		if p.Diff != nil && !p.Diff.Empty() {
 			return state, fmt.Errorf(
 				"After applying this step and refreshing, the plan was not empty:\n\n%s", p)
 		}
