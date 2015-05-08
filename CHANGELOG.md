@@ -15,6 +15,7 @@ IMPROVEMENTS:
   * provider/aws: `aws_elasticache_cluster` add support for Tags [GH-1965]
   * provider/aws: `aws_s3_bucket` exports `hosted_zone_id` and `region` [GH-1865]
   * provider/aws: `aws_route53_record` exports `fqdn` [GH-1847]
+  * provider/aws: `aws_route53_hosted_zone` can create private hosted zones [GH-1526]
   * provider/google: `google_compute_instance` `scratch` attribute added [GH-1920]
 
 BUG FIXES:

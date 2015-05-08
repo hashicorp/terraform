@@ -49,6 +49,10 @@ resource "aws_route53_record" "dev-ns" {
 }
 ```
 
+~> **NOTE:** The `name_servers` set is populated only for public Hosted Zones.
+Private Zones will contain any empty set since AWS does not return a `DelegationSet`
+for private Hosted Zones.
+
 ## Argument Reference
 
 The following arguments are supported:
@@ -63,5 +67,5 @@ The following arguments are supported:
 The following attributes are exported:
 
 * `zone_id` - The Hosted Zone ID. This can be referenced by zone records.
-* `name_servers` - A list of name servers in a default delegation set.
+* `name_servers` - A list of name servers in a default delegation set. Support only for Public Hosted Zones.
   Find more about delegation sets in [AWS docs](http://docs.aws.amazon.com/Route53/latest/APIReference/actions-on-reusable-delegation-sets.html).
