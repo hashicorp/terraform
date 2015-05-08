@@ -1,7 +1,7 @@
 ---
 layout: "openstack"
 page_title: "OpenStack: openstack_networking_router_v2"
-sidebar_current: "docs-openstack-resource-networking-router-2"
+sidebar_current: "docs-openstack-resource-networking-router-v2"
 description: |-
   Manages a V2 router resource within OpenStack.
 ---
