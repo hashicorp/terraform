@@ -106,5 +106,5 @@ Alias records support the following:
 
 ## Attributes Reference
 
-No attributes are exported.
+* `fqdn` - [FQDN](http://en.wikipedia.org/wiki/Fully_qualified_domain_name) built using the zone domain and `name`
 
