@@ -59,6 +59,22 @@ for a module by inspecting the source of it very easily.
 Additionally, because these map directly to variables, they're always simple
 key/value pairs. Modules can't have complex variable inputs.
 
+## Dealing with parameters of the list type
+
+Variables are currently unable to hold the list type. Sometimes, though, it's
+desirable to parameterize a module's resource with an attribute that is of the
+list type, for example `aws_instance.security_groups`. 
+
+Until a future release broadens the functionality of variables to include list
+types, the way to work around this limitation is to use the [`split` and
+`join`](/docs/configuration/interpolation.html) string interpolation functions
+to pass a delimited string as a module parameter, and then "unpack" that
+parameter using `split` within the module definition. 
+
+Depending on the resource parameter in question, you may have to 
+indicate that the unpacked string is actually a list but using the 
+`resource_param = ["${split(",", var.CSV_STRING)}"]` notation.
+
 ## Outputs
 
 Modules can also specify their own [outputs](/docs/configuration/outputs.html).
