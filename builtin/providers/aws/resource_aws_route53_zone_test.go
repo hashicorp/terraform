@@ -64,7 +64,7 @@ func TestCleanChangeID(t *testing.T) {
 }
 
 func TestAccRoute53Zone(t *testing.T) {
-	var zone route53.HostedZone
+	var zone route53.GetHostedZoneOutput
 	var td route53.ResourceTagSet
 
 	resource.Test(t, resource.TestCase{
@@ -85,7 +85,7 @@ func TestAccRoute53Zone(t *testing.T) {
 }
 
 func TestAccRoute53PrivateZone(t *testing.T) {
-	var zone route53.HostedZone
+	var zone route53.GetHostedZoneOutput
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -96,6 +96,7 @@ func TestAccRoute53PrivateZone(t *testing.T) {
 				Config: testAccRoute53PrivateZoneConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckRoute53ZoneExists("aws_route53_zone.main", &zone),
+					testAccCheckRoute53ZoneAssociationExists("aws_vpc.main", &zone),
 				),
 			},
 		},
@@ -117,7 +118,7 @@ func testAccCheckRoute53ZoneDestroy(s *terraform.State) error {
 	return nil
 }
 
-func testAccCheckRoute53ZoneExists(n string, zone *route53.HostedZone) resource.TestCheckFunc {
+func testAccCheckRoute53ZoneExists(n string, zone *route53.GetHostedZoneOutput) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		rs, ok := s.RootModule().Resources[n]
 		if !ok {
@@ -134,7 +135,7 @@ func testAccCheckRoute53ZoneExists(n string, zone *route53.HostedZone) resource.
 			return fmt.Errorf("Hosted zone err: %v", err)
 		}
 
-		if resp.DelegationSet != nil {
+		if ! *resp.HostedZone.Config.PrivateZone {
 			sorted_ns := make([]string, len(resp.DelegationSet.NameServers))
 			for i, ns := range resp.DelegationSet.NameServers {
 				sorted_ns[i] = *ns
@@ -149,16 +150,40 @@ func testAccCheckRoute53ZoneExists(n string, zone *route53.HostedZone) resource.
 			}
 		}
 
-		*zone = *resp.HostedZone
+		*zone = *resp
 		return nil
 	}
 }
 
-func testAccLoadTagsR53(zone *route53.HostedZone, td *route53.ResourceTagSet) resource.TestCheckFunc {
+func testAccCheckRoute53ZoneAssociationExists(n string, zone *route53.GetHostedZoneOutput) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		rs, ok := s.RootModule().Resources[n]
+		if !ok {
+			return fmt.Errorf("Not found: %s", n)
+		}
+
+		if rs.Primary.ID == "" {
+			return fmt.Errorf("No VPC ID is set")
+		}
+
+		var associatedVPC *route53.VPC
+		for _, vpc := range zone.VPCs {
+			if *vpc.VPCID == rs.Primary.ID {
+				associatedVPC = vpc
+			}
+		}
+		if associatedVPC == nil {
+			return fmt.Errorf("VPC: %v is not associated to Zone: %v")
+		}
+		return nil
+	}
+}
+
+func testAccLoadTagsR53(zone *route53.GetHostedZoneOutput, td *route53.ResourceTagSet) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		conn := testAccProvider.Meta().(*AWSClient).r53conn
 
-		zone := cleanZoneID(*zone.ID)
+		zone := cleanZoneID(*zone.HostedZone.ID)
 		req := &route53.ListTagsForResourceInput{
 			ResourceID:   aws.String(zone),
 			ResourceType: aws.String("hostedzone"),

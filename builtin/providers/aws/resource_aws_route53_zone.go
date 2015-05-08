@@ -119,7 +119,7 @@ func resourceAwsRoute53ZoneRead(d *schema.ResourceData, meta interface{}) error 
 		return err
 	}
 
-	if zone.DelegationSet != nil {
+	if ! *zone.HostedZone.Config.PrivateZone {
 		ns := make([]string, len(zone.DelegationSet.NameServers))
 		for i := range zone.DelegationSet.NameServers {
 			ns[i] = *zone.DelegationSet.NameServers[i]
@@ -130,6 +130,7 @@ func resourceAwsRoute53ZoneRead(d *schema.ResourceData, meta interface{}) error 
 		}
 	} else {
 		d.Set("name_servers", nil);
+		//TODO Verify that the configure VPC is still associated
 	}
 
 	// get tags
