@@ -12,11 +12,6 @@ func TestHostedZoneIDForRegion(t *testing.T) {
 		t.Fatalf("bad: %s", r)
 	}
 
-	// Empty string should default to us-east-1
-	if r := HostedZoneIDForRegion(""); r != "Z3AQBSTGFYJSTF" {
-		t.Fatalf("bad: %s", r)
-	}
-
 	// Bad input should be empty string
 	if r := HostedZoneIDForRegion("not-a-region"); r != "" {
 		t.Fatalf("bad: %s", r)
