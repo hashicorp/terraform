@@ -1,7 +1,7 @@
 ---
 layout: "openstack"
 page_title: "OpenStack: openstack_fw_policy_v1"
-sidebar_current: "docs-openstack-resource-fw-policy-1"
+sidebar_current: "docs-openstack-resource-fw-policy-v1"
 description: |-
   Manages a v1 firewall policy resource within OpenStack.
 ---

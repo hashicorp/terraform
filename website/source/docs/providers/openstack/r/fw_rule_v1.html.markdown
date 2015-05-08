@@ -1,7 +1,7 @@
 ---
 layout: "openstack"
 page_title: "OpenStack: openstack_fw_rule_v1"
-sidebar_current: "docs-openstack-resource-fw-rule-1"
+sidebar_current: "docs-openstack-resource-fw-rule-v1"
 description: |-
   Manages a v1 firewall rule resource within OpenStack.
 ---
