@@ -173,7 +173,7 @@ func testAccCheckRoute53ZoneAssociationExists(n string, zone *route53.GetHostedZ
 			}
 		}
 		if associatedVPC == nil {
-			return fmt.Errorf("VPC: %v is not associated to Zone: %v")
+			return fmt.Errorf("VPC: %v is not associated to Zone: %v", n, cleanZoneID(*zone.HostedZone.ID))
 		}
 		return nil
 	}

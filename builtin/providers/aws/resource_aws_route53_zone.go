@@ -65,7 +65,7 @@ func resourceAwsRoute53ZoneCreate(d *schema.ResourceData, meta interface{}) erro
 		HostedZoneConfig: comment,
 		CallerReference:  aws.String(time.Now().Format(time.RFC3339Nano)),
 	}
-	if v := d.Get("vpc_id"); v != nil {
+	if v := d.Get("vpc_id"); v != "" {
 		req.VPC = &route53.VPC{
 			VPCID:     aws.String(v.(string)),
 			VPCRegion: aws.String(meta.(*AWSClient).region),
@@ -130,7 +130,15 @@ func resourceAwsRoute53ZoneRead(d *schema.ResourceData, meta interface{}) error 
 		}
 	} else {
 		d.Set("name_servers", nil);
-		//TODO Verify that the configure VPC is still associated
+		var associatedVPC *route53.VPC
+		for _, vpc := range zone.VPCs {
+			if (*vpc.VPCID == d.Get("vpc_id")) {
+				associatedVPC = vpc
+			}
+		}
+		if associatedVPC == nil {
+			return fmt.Errorf("[DEBUG] VPC: %v is not associated with Zone: %v", d.Get("vpc_id"), d.Id())
+		}
 	}
 
 	// get tags
