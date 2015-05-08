@@ -38,6 +38,7 @@ func resourceAwsRoute53Zone() *schema.Resource {
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: true,
+				Computed: true,
 			},
 
 			"zone_id": &schema.Schema{
@@ -85,6 +86,7 @@ func resourceAwsRoute53ZoneCreate(d *schema.ResourceData, meta interface{}) erro
 	zone := cleanZoneID(*resp.HostedZone.ID)
 	d.Set("zone_id", zone)
 	d.SetId(zone)
+	d.Set("vpc_region", req.VPC.VPCRegion)
 
 	// Wait until we are done initializing
 	wait := resource.StateChangeConf{
