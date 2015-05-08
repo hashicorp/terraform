@@ -51,7 +51,7 @@ func resourceAwsRoute53ZoneAssociationCreate(d *schema.ResourceData, meta interf
 		},
 		Comment: aws.String("Managed by Terraform"),
 	}
-	if w := d.Get("vpc_region"); w != nil {
+	if w := d.Get("vpc_region"); w != "" {
 		req.VPC.VPCRegion = aws.String(w.(string))
 	}
 
@@ -113,7 +113,7 @@ func resourceAwsRoute53ZoneAssociationDelete(d *schema.ResourceData, meta interf
 		},
 		Comment: aws.String("Managed by Terraform"),
 	}
-	if w := d.Get("vpc_region"); w != nil {
+	if w := d.Get("vpc_region"); w != "" {
 		req.VPC.VPCRegion = aws.String(w.(string))
 	}
 
