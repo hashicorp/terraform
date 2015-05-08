@@ -70,7 +70,7 @@ func resourceAwsRoute53ZoneCreate(d *schema.ResourceData, meta interface{}) erro
 			VPCID:     aws.String(v.(string)),
 			VPCRegion: aws.String(meta.(*AWSClient).region),
 		}
-		if w := d.Get("vpc_region"); w != nil {
+		if w := d.Get("vpc_region"); w != "" {
 			req.VPC.VPCRegion = aws.String(w.(string))
 		}
 	}
@@ -119,13 +119,17 @@ func resourceAwsRoute53ZoneRead(d *schema.ResourceData, meta interface{}) error 
 		return err
 	}
 
-	ns := make([]string, len(zone.DelegationSet.NameServers))
-	for i := range zone.DelegationSet.NameServers {
-		ns[i] = *zone.DelegationSet.NameServers[i]
-	}
-	sort.Strings(ns)
-	if err := d.Set("name_servers", ns); err != nil {
-		return fmt.Errorf("[DEBUG] Error setting name servers for: %s, error: %#v", d.Id(), err)
+	if zone.DelegationSet != nil {
+		ns := make([]string, len(zone.DelegationSet.NameServers))
+		for i := range zone.DelegationSet.NameServers {
+			ns[i] = *zone.DelegationSet.NameServers[i]
+		}
+		sort.Strings(ns)
+		if err := d.Set("name_servers", ns); err != nil {
+			return fmt.Errorf("[DEBUG] Error setting name servers for: %s, error: %#v", d.Id(), err)
+		}
+	} else {
+		d.Set("name_servers", nil);
 	}
 
 	// get tags
