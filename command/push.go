@@ -132,6 +132,10 @@ func (c *PushCommand) Run(args []string) int {
 		return 1
 	}
 	for k, v := range vars {
+		// Local variables override remote ones
+		if _, exists := ctx.Variables()[k]; exists {
+			continue
+		}
 		ctx.SetVariable(k, v)
 	}
 
