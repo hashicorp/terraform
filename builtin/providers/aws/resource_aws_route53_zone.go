@@ -66,11 +66,12 @@ func resourceAwsRoute53ZoneCreate(d *schema.ResourceData, meta interface{}) erro
 		CallerReference:  aws.String(time.Now().Format(time.RFC3339Nano)),
 	}
 	if v := d.Get("vpc_id"); v != nil {
+
 		req.VPC = &route53.VPC{
 			VPCID:     aws.String(v.(string)),
 			VPCRegion: aws.String(meta.(*AWSClient).region),
 		}
-		if w := d.Get("vpc_region"); w != nil {
+		if w := d.Get("vpc_region"); w != "" {
 			req.VPC.VPCRegion = aws.String(w.(string))
 		}
 	}
