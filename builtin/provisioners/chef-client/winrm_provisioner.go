@@ -49,7 +49,7 @@ Start-Process -FilePath msiexec -ArgumentList /qn, /i, $dest -Wait
 func (p *Provisioner) winrmInstallChefClient(
 	o terraform.UIOutput,
 	comm communicator.Communicator) error {
-	script := path.Join(path.Dir(comm.ScriptPath()), "chefclient.ps1")
+	script := path.Join(path.Dir(comm.ScriptPath()), "ChefClient.ps1")
 	content := fmt.Sprintf(installScript, p.Version, p.HTTPProxy, strings.Join(p.NOProxy, ","))
 
 	// Copy the script to the new instance

@@ -2,7 +2,6 @@ package chefclient
 
 import (
 	"bytes"
-	"fmt"
 	"strings"
 
 	"github.com/hashicorp/terraform/communicator"
@@ -30,7 +29,11 @@ func (p *Provisioner) sshInstallChefClient(
 	if p.Version != "" {
 		installCmd.WriteString(" -v " + p.Version)
 	}
-	installCmd.WriteString(" && rm -f install.sh")
+	installCmd.WriteString(" &&")
+	if !p.PreventSudo {
+		installCmd.WriteString(" sudo")
+	}
+	installCmd.WriteString(" rm -f install.sh")
 
 	// Execute the command to install Chef Client
 	return p.runCommand(o, comm, installCmd.String())
@@ -40,8 +43,7 @@ func (p *Provisioner) sshCreateConfigFiles(
 	o terraform.UIOutput,
 	comm communicator.Communicator) error {
 	// Make sure the config directory exists
-	cmd := fmt.Sprintf("mkdir -p %q", linuxConfDir)
-	if err := p.runCommand(o, comm, cmd); err != nil {
+	if err := p.runCommand(o, comm, "mkdir -p "+linuxConfDir); err != nil {
 		return err
 	}
 
