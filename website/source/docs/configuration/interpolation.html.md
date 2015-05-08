@@ -112,7 +112,10 @@ The supported built-in functions are:
 
   * `split(delim, string)` - Splits the string previously created by `join`
       back into a list. This is useful for pushing lists through module
-      outputs since they currently only support string values.
+      outputs since they currently only support string values. Depending on the
+      use, the string this is being performed within may need to be wrapped 
+      in brackets to indicate that the output is actually a list, e.g.
+      `a_resource_param = ["${split(",", var.CSV_STRING)}"]`.
       Example: `split(",", module.amod.server_ids)`
 
 ## Templates
