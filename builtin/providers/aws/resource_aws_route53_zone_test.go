@@ -96,7 +96,7 @@ func TestAccRoute53PrivateZone(t *testing.T) {
 				Config: testAccRoute53PrivateZoneConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckRoute53ZoneExists("aws_route53_zone.main", &zone),
-					testAccCheckRoute53ZoneAssociationExists("aws_vpc.main", &zone),
+					testAccCheckRoute53ZoneAssociatesWithVpc("aws_vpc.main", &zone),
 				),
 			},
 		},
@@ -155,7 +155,7 @@ func testAccCheckRoute53ZoneExists(n string, zone *route53.GetHostedZoneOutput) 
 	}
 }
 
-func testAccCheckRoute53ZoneAssociationExists(n string, zone *route53.GetHostedZoneOutput) resource.TestCheckFunc {
+func testAccCheckRoute53ZoneAssociatesWithVpc(n string, zone *route53.GetHostedZoneOutput) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		rs, ok := s.RootModule().Resources[n]
 		if !ok {

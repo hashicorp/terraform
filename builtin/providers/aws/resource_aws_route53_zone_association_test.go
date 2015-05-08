@@ -62,8 +62,8 @@ func testAccCheckRoute53ZoneAssociationExists(n string, zone *route53.HostedZone
 		}
 
 		exists := false
-		for i := range resp.VPCs {
-			if rs.Primary.Meta["vpc_id"] == *resp.VPCs[i].VPCID {
+		for _, vpc := range resp.VPCs {
+			if rs.Primary.Meta["vpc_id"] == *vpc.VPCID {
 				exists = true
 			}
 		}
