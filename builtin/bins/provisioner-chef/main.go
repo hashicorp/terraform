@@ -1,7 +1,7 @@
 package main
 
 import (
-	"github.com/hashicorp/terraform/builtin/provisioners/chef-client"
+	"github.com/hashicorp/terraform/builtin/provisioners/chef"
 	"github.com/hashicorp/terraform/plugin"
 	"github.com/hashicorp/terraform/terraform"
 )
@@ -9,7 +9,7 @@ import (
 func main() {
 	plugin.Serve(&plugin.ServeOpts{
 		ProvisionerFunc: func() terraform.ResourceProvisioner {
-			return new(chefclient.ResourceProvisioner)
+			return new(chef.ResourceProvisioner)
 		},
 	})
 }

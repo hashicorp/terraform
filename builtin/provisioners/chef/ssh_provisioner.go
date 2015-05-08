@@ -1,42 +1,44 @@
-package chefclient
+package chef
 
 import (
-	"bytes"
+	"fmt"
 	"strings"
 
 	"github.com/hashicorp/terraform/communicator"
 	"github.com/hashicorp/terraform/terraform"
 )
 
+const (
+	installURL = "https://www.chef.io/chef/install.sh"
+)
+
 func (p *Provisioner) sshInstallChefClient(
 	o terraform.UIOutput,
 	comm communicator.Communicator) error {
-	var installCmd bytes.Buffer
 
-	// Build up a single command based on the given config options
-	installCmd.WriteString("curl")
+	// Build up the command prefix
+	prefix := ""
 	if p.HTTPProxy != "" {
-		installCmd.WriteString(" --proxy " + p.HTTPProxy)
+		prefix += fmt.Sprintf("proxy_http='%s' ", p.HTTPProxy)
 	}
 	if p.NOProxy != nil {
-		installCmd.WriteString(" --noproxy " + strings.Join(p.NOProxy, ","))
+		prefix += fmt.Sprintf("no_proxy='%s' ", strings.Join(p.NOProxy, ","))
 	}
-	installCmd.WriteString(" -LO https://www.chef.io/chef/install.sh 2>/dev/null &&")
-	if !p.PreventSudo {
-		installCmd.WriteString(" sudo")
-	}
-	installCmd.WriteString(" bash ./install.sh")
-	if p.Version != "" {
-		installCmd.WriteString(" -v " + p.Version)
-	}
-	installCmd.WriteString(" &&")
-	if !p.PreventSudo {
-		installCmd.WriteString(" sudo")
-	}
-	installCmd.WriteString(" rm -f install.sh")
 
-	// Execute the command to install Chef Client
-	return p.runCommand(o, comm, installCmd.String())
+	// First download the install.sh script from Chef
+	err := p.runCommand(o, comm, fmt.Sprintf("%scurl -LO %s", prefix, installURL))
+	if err != nil {
+		return err
+	}
+
+	// Then execute the install.sh scrip to download and install Chef Client
+	err = p.runCommand(o, comm, fmt.Sprintf("%sbash ./install.sh -v %s", prefix, p.Version))
+	if err != nil {
+		return err
+	}
+
+	// And finally cleanup the install.sh script again
+	return p.runCommand(o, comm, fmt.Sprintf("%srm -f install.sh", prefix))
 }
 
 func (p *Provisioner) sshCreateConfigFiles(
