@@ -1,7 +1,7 @@
 ---
 layout: "openstack"
 page_title: "OpenStack: openstack_networking_floatingip_v2"
-sidebar_current: "docs-openstack-resource-networking-floatingip-2"
+sidebar_current: "docs-openstack-resource-networking-floatingip-v2"
 description: |-
   Manages a V2 floating IP resource within OpenStack Neutron (networking).
 ---

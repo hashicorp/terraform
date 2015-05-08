@@ -1,7 +1,7 @@
 ---
 layout: "openstack"
 page_title: "OpenStack: openstack_compute_floatingip_v2"
-sidebar_current: "docs-openstack-resource-compute-floatingip-2"
+sidebar_current: "docs-openstack-resource-compute-floatingip-v2"
 description: |-
   Manages a V2 floating IP resource within OpenStack Nova (compute).
 ---
