@@ -49,6 +49,18 @@ func resourceAwsS3Bucket() *schema.Resource {
 				},
 			},
 
+			"hosted_zone_id": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				Computed: true,
+			},
+
+			"region": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				Computed: true,
+			},
+
 			"website_endpoint": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
@@ -143,7 +155,31 @@ func resourceAwsS3BucketRead(d *schema.ResourceData, meta interface{}) error {
 		return err
 	}
 
-	// Add website_endpoint as an output
+	// Add the region as an attribute
+	location, err := s3conn.GetBucketLocation(
+		&s3.GetBucketLocationInput{
+			Bucket: aws.String(d.Id()),
+		},
+	)
+	if err != nil {
+		return err
+	}
+	var region string
+	if location.LocationConstraint != nil {
+		region = *location.LocationConstraint
+	}
+	region = normalizeRegion(region)
+	if err := d.Set("region", region); err != nil {
+		return err
+	}
+
+	// Add the hosted zone ID for this bucket's region as an attribute
+	hostedZoneID := HostedZoneIDForRegion(region)
+	if err := d.Set("hosted_zone_id", hostedZoneID); err != nil {
+		return err
+	}
+
+	// Add website_endpoint as an attribute
 	endpoint, err := websiteEndpoint(s3conn, d)
 	if err != nil {
 		return err
@@ -260,13 +296,20 @@ func websiteEndpoint(s3conn *s3.S3, d *schema.ResourceData) (string, error) {
 		region = *location.LocationConstraint
 	}
 
+	return WebsiteEndpointUrl(bucket, region), nil
+}
+
+func WebsiteEndpointUrl(bucket string, region string) string {
+	region = normalizeRegion(region)
+	return fmt.Sprintf("%s.s3-website-%s.amazonaws.com", bucket, region)
+}
+
+func normalizeRegion(region string) string {
 	// Default to us-east-1 if the bucket doesn't have a region:
 	// http://docs.aws.amazon.com/AmazonS3/latest/API/RESTBucketGETlocation.html
 	if region == "" {
 		region = "us-east-1"
 	}
 
-	endpoint := fmt.Sprintf("%s.s3-website-%s.amazonaws.com", bucket, region)
-
-	return endpoint, nil
+	return region
 }
