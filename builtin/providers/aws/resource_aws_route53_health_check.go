@@ -1,12 +1,9 @@
 package aws
 
 import (
-	// "fmt"
 	"log"
-	// "strings"
 	"time"
 
-	// "github.com/hashicorp/terraform/helper/hashcode"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 
@@ -99,7 +96,6 @@ func resourceAwsRoute53HealthCheckUpdate(d *schema.ResourceData, meta interface{
 		return err
 	}
 
-
 	return resourceAwsRoute53HealthCheckRead(d, meta)
 }
 
@@ -160,11 +156,9 @@ func resourceAwsRoute53HealthCheckCreate(d *schema.ResourceData, meta interface{
 	resp := respRaw.(*route53.CreateHealthCheckOutput)
 	d.SetId(*resp.HealthCheck.ID)
 
-
 	if err := setTagsR53(conn, d, "healthcheck"); err != nil {
 		return err
 	}
-
 
 	return resourceAwsRoute53HealthCheckRead(d, meta)
 }
@@ -188,17 +182,16 @@ func resourceAwsRoute53HealthCheckRead(d *schema.ResourceData, meta interface{})
 
 	updated := read.HealthCheck.HealthCheckConfig
 	d.Set("type", updated.Type)
-	d.Set("failure_threshold",  updated.FailureThreshold)
+	d.Set("failure_threshold", updated.FailureThreshold)
 	d.Set("request_interval", updated.RequestInterval)
-	d.Set("fully_qualified_domain_name",  updated.FullyQualifiedDomainName)
-	d.Set("search_string",  updated.SearchString)
+	d.Set("fully_qualified_domain_name", updated.FullyQualifiedDomainName)
+	d.Set("search_string", updated.SearchString)
 	d.Set("ip_address", updated.IPAddress)
 	d.Set("port", updated.Port)
 	d.Set("resource_path", updated.ResourcePath)
 
-
 	// read the tags
-		req := &route53.ListTagsForResourceInput{
+	req := &route53.ListTagsForResourceInput{
 		ResourceID:   aws.String(d.Id()),
 		ResourceType: aws.String("healthcheck"),
 	}
@@ -216,7 +209,6 @@ func resourceAwsRoute53HealthCheckRead(d *schema.ResourceData, meta interface{})
 	if err := d.Set("tags", tagsToMapR53(tags)); err != nil {
 		return err
 	}
-
 
 	return nil
 }
