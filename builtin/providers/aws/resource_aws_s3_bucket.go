@@ -176,7 +176,7 @@ func resourceAwsS3BucketRead(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	// Add the hosted zone ID for this bucket's region as an attribute
-	hostedZoneID := s3.HostedZoneIDForRegion(region)
+	hostedZoneID := HostedZoneIDForRegion(region)
 	if err := d.Set("hosted_zone_id", hostedZoneID); err != nil {
 		return err
 	}
