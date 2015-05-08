@@ -27,9 +27,9 @@ func resourceAwsRoute53ZoneAssociation() *schema.Resource {
 				Required: true,
 			},
 
-			"region": &schema.Schema{
+			"vpc_region": &schema.Schema{
 				Type:     schema.TypeString,
-				Required: true,
+				Optional: true,
 			},
 
 			"association_id": &schema.Schema{
@@ -47,9 +47,12 @@ func resourceAwsRoute53ZoneAssociationCreate(d *schema.ResourceData, meta interf
 		HostedZoneID: aws.String(d.Get("zone_id").(string)),
 		VPC: &route53.VPC{
 			VPCID:     aws.String(d.Get("vpc_id").(string)),
-			VPCRegion: aws.String(d.Get("region").(string)),
+			VPCRegion: aws.String(meta.(*AWSClient).region),
 		},
 		Comment: aws.String("Managed by Terraform"),
+	}
+	if w := d.Get("vpc_region"); w != nil {
+		req.VPC.VPCRegion = aws.String(w.(string))
 	}
 
 	log.Printf("[DEBUG] Associating Route53 Private Zone %s with VPC %s", *req.HostedZoneID, *req.VPC.VPCID)
@@ -106,9 +109,12 @@ func resourceAwsRoute53ZoneAssociationDelete(d *schema.ResourceData, meta interf
 		HostedZoneID: aws.String(d.Get("zone_id").(string)),
 		VPC: &route53.VPC{
 			VPCID:     aws.String(d.Get("vpc_id").(string)),
-			VPCRegion: aws.String(d.Get("region").(string)),
+			VPCRegion: aws.String(meta.(*AWSClient).region),
 		},
 		Comment: aws.String("Managed by Terraform"),
+	}
+	if w := d.Get("vpc_region"); w != nil {
+		req.VPC.VPCRegion = aws.String(w.(string))
 	}
 
 	_, err := r53.DisassociateVPCFromHostedZone(req)
