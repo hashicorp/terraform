@@ -9,6 +9,7 @@ import (
 	"log"
 	"os"
 	"path"
+	"regexp"
 	"strings"
 	"text/template"
 	"time"
@@ -269,7 +270,13 @@ func (p *Provisioner) Output(output string) {
 	}
 	defer f.Close()
 
+	// These steps are needed to remove any ANSI escape codes used to colorize
+	// the output and to make sure we have proper line endings before writing
+	// the string to the logfile.
+	re := regexp.MustCompile(`\x1b\[[0-9;]+m`)
+	output = re.ReplaceAllString(output, "")
 	output = strings.Replace(output, "\r", "\n", -1)
+
 	if _, err := f.WriteString(output); err != nil {
 		log.Printf("Error writing output to logfile %s: %v", logFile, err)
 	}
