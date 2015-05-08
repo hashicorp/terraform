@@ -1,16 +1,22 @@
 ---
 layout: "docs"
-page_title: "Provisioner: chef-client"
-sidebar_current: "docs-provisioners-chef-client"
+page_title: "Provisioner: chef"
+sidebar_current: "docs-provisioners-chef"
 description: |-
-  The `chef-client` provisioner invokes a Chef Client run on a remote resource after first installing and configuring Chef Client on the remote resource. The `chef-client` provisioner supports both `ssh` and `winrm` type connections.
+  The `chef` provisioner invokes a Chef Client run on a remote resource after first installing and configuring Chef Client on the remote resource. The `chef` provisioner supports both `ssh` and `winrm` type connections.
 ---
 
-# chef Provisioner
+# Chef Provisioner
 
-The `chef-client` provisioner invokes a Chef Client run on a remote resource after first
-installing and configuring Chef Client on the remote resource. The `chef-client` provisioner
-supports both `ssh` and `winrm` type [connections](/docs/provisioners/connection.html).
+The `chef` provisioner invokes a Chef Client run on a remote resource after first installing
+and configuring Chef Client on the remote resource. The `chef` provisioner supports both `ssh`
+and `winrm` type [connections](/docs/provisioners/connection.html).
+
+## Requirements
+
+In order for the `chef` provisioner to work properly, you need either `cURL` (when using
+a `ssh` type connection) or `PowerShell 2.0` (when using a `winrm` type connection) to be
+available on the target machine.
 
 ## Example usage
 
@@ -18,7 +24,7 @@ supports both `ssh` and `winrm` type [connections](/docs/provisioners/connection
 # Start a initial chef run on a resource
 resource "aws_instance" "web" {
     ...
-    provisioner "chef-client"  {
+    provisioner "chef"  {
         attributes {
             "key" = "value"
             "app" {
@@ -73,7 +79,7 @@ The following arguments are supported:
   the organization. See the example.
 
 * `skip_install (boolean)` - (Optional) Skip the installation of Chef Client on the remote
-  machine. This assumes Chef Client is already installed when you run the `chef-client`
+  machine. This assumes Chef Client is already installed when you run the `chef`
   provisioner.
 
 * `ssl_verify_mode (string)` - (Optional) Use to set the verify mode for Chef Client HTTPS

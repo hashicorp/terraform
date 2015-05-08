@@ -1,4 +1,4 @@
-package chefclient
+package chef
 
 import (
 	"bytes"
@@ -22,9 +22,12 @@ import (
 )
 
 const (
+	clienrb        = "client.rb"
+	defaultChefEnv = "_default"
 	firstBoot      = "first-boot.json"
 	logfileDir     = "logfiles"
 	linuxConfDir   = "/etc/chef"
+	validationKey  = "validation.pem"
 	windowsConfDir = "C:/chef"
 )
 
@@ -52,7 +55,7 @@ ENV['HTTPS_PROXY'] = "{{ .HTTPSProxy }}"
 
 // Provisioner represents a specificly configured chef provisioner
 type Provisioner struct {
-	Attributes           interface{} `mapstructure:"-"`
+	Attributes           interface{} `mapstructure:"attributes"`
 	Environment          string      `mapstructure:"environment"`
 	LogToFile            bool        `mapstructure:"log_to_file"`
 	HTTPProxy            string      `mapstructure:"http_proxy"`
@@ -169,6 +172,7 @@ func (r *ResourceProvisioner) decodeConfig(c *terraform.ResourceConfig) (*Provis
 	p := new(Provisioner)
 
 	decConf := &mapstructure.DecoderConfig{
+		ErrorUnused:      true,
 		WeaklyTypedInput: true,
 		Result:           p,
 	}
@@ -182,7 +186,7 @@ func (r *ResourceProvisioner) decodeConfig(c *terraform.ResourceConfig) (*Provis
 	}
 
 	if p.Environment == "" {
-		p.Environment = "_default"
+		p.Environment = defaultChefEnv
 	}
 
 	if attrs, ok := c.Raw["attributes"]; ok {
@@ -241,7 +245,7 @@ func (p *Provisioner) runChefClientFunc(
 		cmd := fmt.Sprintf("chef-client -j %q -E %q", fb, p.Environment)
 
 		if p.LogToFile {
-			if err := os.MkdirAll(logfileDir, 0777); err != nil {
+			if err := os.MkdirAll(logfileDir, 0755); err != nil {
 				return fmt.Errorf("Error creating logfile directory %s: %v", logfileDir, err)
 			}
 
@@ -290,16 +294,16 @@ func (p *Provisioner) deployConfigFiles(
 	o terraform.UIOutput,
 	comm communicator.Communicator,
 	confDir string) error {
-	// Open the validation .pem file
+	// Open the validation  key file
 	f, err := os.Open(p.ValidationKeyPath)
 	if err != nil {
 		return err
 	}
 	defer f.Close()
 
-	// Copy the validation .pem to the new instance
-	if err := comm.Upload(path.Join(confDir, "validation.pem"), f); err != nil {
-		return fmt.Errorf("Uploading validation.pem failed: %v", err)
+	// Copy the validation key to the new instance
+	if err := comm.Upload(path.Join(confDir, validationKey), f); err != nil {
+		return fmt.Errorf("Uploading %s failed: %v", validationKey, err)
 	}
 
 	// Make strings.Join available for use within the template
@@ -307,24 +311,31 @@ func (p *Provisioner) deployConfigFiles(
 		"join": strings.Join,
 	}
 
-	// Create a new template and parse the client.rb into it
-	t := template.Must(template.New("client.rb").Funcs(funcMap).Parse(clientConf))
+	// Create a new template and parse the client config into it
+	t := template.Must(template.New(clienrb).Funcs(funcMap).Parse(clientConf))
 
 	var buf bytes.Buffer
 	err = t.Execute(&buf, p)
 	if err != nil {
-		return fmt.Errorf("Error executing client.rb template: %s", err)
+		return fmt.Errorf("Error executing %s template: %s", clienrb, err)
 	}
 
-	// Copy the client.rb to the new instance
-	if err := comm.Upload(path.Join(confDir, "client.rb"), &buf); err != nil {
-		return fmt.Errorf("Uploading client.rb failed: %v", err)
+	// Copy the client config to the new instance
+	if err := comm.Upload(path.Join(confDir, clienrb), &buf); err != nil {
+		return fmt.Errorf("Uploading %s failed: %v", clienrb, err)
 	}
 
 	// Create a map with first boot settings
 	fb := make(map[string]interface{})
 	if p.Attributes != nil {
 		fb = p.Attributes.(map[string]interface{})
+	}
+
+	// Check if the run_list was also in the attributes and if so log a warning
+	// that it will be overwritten with the value of the run_list argument.
+	if _, found := fb["run_list"]; found {
+		log.Printf("[WARNING] Found a 'run_list' specified in the configured attributes! " +
+			"This value will be overwritten by the value of the `run_list` argument!")
 	}
 
 	// Add the initial runlist to the first boot settings
@@ -338,7 +349,7 @@ func (p *Provisioner) deployConfigFiles(
 
 	// Copy the first-boot.json to the new instance
 	if err := comm.Upload(path.Join(confDir, firstBoot), bytes.NewReader(d)); err != nil {
-		return fmt.Errorf("Uploading first-boot.json failed: %v", err)
+		return fmt.Errorf("Uploading %s failed: %v", firstBoot, err)
 	}
 
 	return nil
@@ -369,6 +380,7 @@ func (p *Provisioner) runCommand(
 		Stderr:  errW,
 	}
 
+	log.Printf("[DEBUG] Executing remote command: %q", cmd.Command)
 	if err := comm.Start(cmd); err != nil {
 		return fmt.Errorf("Error executing command %q: %v", cmd.Command, err)
 	}

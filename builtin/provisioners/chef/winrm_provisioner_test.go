@@ -1,4 +1,4 @@
-package chefclient
+package chef
 
 import (
 	"fmt"
