@@ -1,8 +1,12 @@
 package aws
 
 import (
+	"fmt"
 	"log"
+	"strings"
+	"time"
 
+	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 
 	"github.com/awslabs/aws-sdk-go/aws"
@@ -32,10 +36,6 @@ func resourceAwsRoute53ZoneAssociation() *schema.Resource {
 				Optional: true,
 			},
 
-			"association_id": &schema.Schema{
-				Type:     schema.TypeString,
-				Computed: true,
-			},
 		},
 	}
 }
@@ -62,16 +62,35 @@ func resourceAwsRoute53ZoneAssociationCreate(d *schema.ResourceData, meta interf
 	}
 
 	// Store association id
-	association_id := cleanChangeID(*resp.ChangeInfo.ID)
-	d.Set("association_id", association_id)
-	d.SetId(association_id)
+	d.SetId(fmt.Sprintf("%s:%s", *req.HostedZoneID, *req.VPC.VPCID))
+	d.Set("vpc_region", req.VPC.VPCRegion)
+
+	// Wait until we are done initializing
+	wait := resource.StateChangeConf{
+		Delay:      30 * time.Second,
+		Pending:    []string{"PENDING"},
+		Target:     "INSYNC",
+		Timeout:    10 * time.Minute,
+		MinTimeout: 2 * time.Second,
+		Refresh: func() (result interface{}, state string, err error) {
+			changeRequest := &route53.GetChangeInput{
+				ID: aws.String(cleanChangeID(*resp.ChangeInfo.ID)),
+			}
+			return resourceAwsGoRoute53Wait(r53, changeRequest)
+		},
+	}
+	_, err = wait.WaitForState()
+	if err != nil {
+		return err
+	}
 
 	return resourceAwsRoute53ZoneAssociationUpdate(d, meta)
 }
 
 func resourceAwsRoute53ZoneAssociationRead(d *schema.ResourceData, meta interface{}) error {
 	r53 := meta.(*AWSClient).r53conn
-	zone, err := r53.GetHostedZone(&route53.GetHostedZoneInput{ID: aws.String(d.Id())})
+	zone_id, vpc_id := resourceAwsRoute53ZoneAssociationParseId(d.Id())
+	zone, err := r53.GetHostedZone(&route53.GetHostedZoneInput{ID: aws.String(zone_id)})
 	if err != nil {
 		// Handle a deleted zone
 		if r53err, ok := err.(aws.APIError); ok && r53err.Code == "NoSuchHostedZone" {
@@ -81,10 +100,8 @@ func resourceAwsRoute53ZoneAssociationRead(d *schema.ResourceData, meta interfac
 		return err
 	}
 
-	vpc_id := d.Get("vpc_id")
-
-	for i := range zone.VPCs {
-		if vpc_id == *zone.VPCs[i].VPCID {
+	for _, vpc := range zone.VPCs {
+		if vpc_id == *vpc.VPCID {
 			// association is there, return
 			return nil
 		}
@@ -101,20 +118,17 @@ func resourceAwsRoute53ZoneAssociationUpdate(d *schema.ResourceData, meta interf
 
 func resourceAwsRoute53ZoneAssociationDelete(d *schema.ResourceData, meta interface{}) error {
 	r53 := meta.(*AWSClient).r53conn
-
-	log.Printf("[DEBUG] Deleting Route53 Private Zone (%s) association (ID: %s)",
-		d.Get("zone_id").(string), d.Id())
+	zone_id, vpc_id := resourceAwsRoute53ZoneAssociationParseId(d.Id())
+	log.Printf("[DEBUG] Deleting Route53 Private Zone (%s) association (VPC: %s)",
+		zone_id, vpc_id)
 
 	req := &route53.DisassociateVPCFromHostedZoneInput{
-		HostedZoneID: aws.String(d.Get("zone_id").(string)),
+		HostedZoneID: aws.String(zone_id),
 		VPC: &route53.VPC{
-			VPCID:     aws.String(d.Get("vpc_id").(string)),
-			VPCRegion: aws.String(meta.(*AWSClient).region),
+			VPCID:     aws.String(vpc_id),
+			VPCRegion: aws.String(d.Get("vpc_region").(string)),
 		},
 		Comment: aws.String("Managed by Terraform"),
-	}
-	if w := d.Get("vpc_region"); w != "" {
-		req.VPC.VPCRegion = aws.String(w.(string))
 	}
 
 	_, err := r53.DisassociateVPCFromHostedZone(req)
@@ -123,4 +137,11 @@ func resourceAwsRoute53ZoneAssociationDelete(d *schema.ResourceData, meta interf
 	}
 
 	return nil
+}
+
+func resourceAwsRoute53ZoneAssociationParseId(id string) (zone_id, vpc_id string) {
+	parts := strings.SplitN(id, ":", 2)
+	zone_id = parts[0]
+	vpc_id = parts[1]
+	return
 }
