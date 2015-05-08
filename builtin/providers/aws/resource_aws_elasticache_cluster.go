@@ -59,6 +59,7 @@ func resourceAwsElasticacheCluster() *schema.Resource {
 			"subnet_group_name": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
+				Computed: true,
 				ForceNew: true,
 			},
 			"security_group_names": &schema.Schema{
