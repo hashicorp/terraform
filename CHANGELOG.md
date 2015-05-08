@@ -3,6 +3,7 @@
 IMPROVEMENTS:
 
   * provider/aws: `aws_s3_bucket` exports `hosted_zone_id` and `region` [GH-1865]
+  * provider/aws: `aws_route53_record` exports `fqdn` [GH-1847]
 
 BUG FIXES:
 
