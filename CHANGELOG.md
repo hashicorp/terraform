@@ -1,5 +1,9 @@
 ## 0.5.1 (unreleased)
 
+IMPROVEMENTS:
+
+  * provider/aws: `aws_s3_bucket` exports `hosted_zone_id` and `region` [GH-1865]
+
 BUG FIXES:
 
   * provider/aws: Mark `aws_security_group` description as `ForceNew` [GH-1871]
