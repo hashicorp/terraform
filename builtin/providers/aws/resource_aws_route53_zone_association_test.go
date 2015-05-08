@@ -77,25 +77,25 @@ func testAccCheckRoute53ZoneAssociationExists(n string, zone *route53.HostedZone
 }
 
 const testAccRoute53ZoneAssociationConfig = `
-resource "aws_vpc" "mosakos" {
+resource "aws_vpc" "foo" {
 	cidr_block = "10.6.0.0/16"
-
 	enable_dns_hostnames = true
 	enable_dns_support = true
 }
 
-resource "aws_route53_zone" "main" {
-	name = "mosakos.com"
-
-	tags {
-		foo  = "bar"
-		Name = "tf-route53-tag-test"
-	}
+resource "aws_vpc" "bar" {
+	cidr_block = "10.7.0.0/16"
+	enable_dns_hostnames = true
+	enable_dns_support = true
 }
 
-resource "aws_route53_zone_association" "main" {
-	vpc_id  = "${aws_vpc.mosakos.id}"
-	zone_id = "${aws_route53_zone.main.id}"
-	region  = "us-west-2"
+resource "aws_route53_zone" "foo" {
+	name = "foo.com"
+	vpc_id = "${aws_vpc.foo.id}"
+}
+
+resource "aws_route53_zone_association" "foobar" {
+	zone_id = "${aws_route53_zone.foo.id}"
+	vpc_id  = "${aws_vpc.bar.id}"
 }
 `
