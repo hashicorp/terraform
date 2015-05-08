@@ -23,7 +23,7 @@ import (
 
 const (
 	clienrb        = "client.rb"
-	defaultChefEnv = "_default"
+	defaultEnv     = "_default"
 	firstBoot      = "first-boot.json"
 	logfileDir     = "logfiles"
 	linuxConfDir   = "/etc/chef"
@@ -186,7 +186,7 @@ func (r *ResourceProvisioner) decodeConfig(c *terraform.ResourceConfig) (*Provis
 	}
 
 	if p.Environment == "" {
-		p.Environment = defaultChefEnv
+		p.Environment = defaultEnv
 	}
 
 	if attrs, ok := c.Raw["attributes"]; ok {
