@@ -58,7 +58,7 @@ resource "aws_instance" "web" {
     key_file = "${var.key_path}"
   }
 
-  instance_type = "t1.micro"
+  instance_type = "m1.small"
 
   # Lookup the correct AMI based on the region
   # we specified

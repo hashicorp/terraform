@@ -1,6 +1,8 @@
 # Specify the provider and access details
 provider "aws" {
     region = "${var.aws_region}"
+    access_key = "${var.access_key}"
+    secret_key = "${var.secret_key}" 
 }
 
 resource "aws_elb" "web" {
@@ -26,5 +28,5 @@ resource "aws_instance" "web" {
   ami = "${lookup(var.aws_amis, var.aws_region)}"
 
   # This will create 4 instances
-  count = 4
+  count = 2
 }
