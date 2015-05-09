@@ -45,9 +45,9 @@ func TestAccRoute53ZoneAssociationWithRegion(t *testing.T) {
 	}
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
+		PreCheck:          func() { testAccPreCheck(t) },
 		ProviderFactories: providerFactories,
-		CheckDestroy: testAccCheckRoute53ZoneAssociationDestroyWithProviders(&providers),
+		CheckDestroy:      testAccCheckRoute53ZoneAssociationDestroyWithProviders(&providers),
 		Steps: []resource.TestStep{
 			resource.TestStep{
 				Config: testAccRoute53ZoneAssociationRegionConfig,
