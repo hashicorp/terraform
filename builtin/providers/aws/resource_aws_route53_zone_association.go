@@ -36,7 +36,6 @@ func resourceAwsRoute53ZoneAssociation() *schema.Resource {
 				Optional: true,
 				Computed: true,
 			},
-
 		},
 	}
 }

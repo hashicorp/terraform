@@ -119,9 +119,9 @@ func TestAccRoute53PrivateZoneWithRegion(t *testing.T) {
 	}
 
 	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
+		PreCheck:          func() { testAccPreCheck(t) },
 		ProviderFactories: providerFactories,
-		CheckDestroy: testAccCheckRoute53ZoneDestroyWithProviders(&providers),
+		CheckDestroy:      testAccCheckRoute53ZoneDestroyWithProviders(&providers),
 		Steps: []resource.TestStep{
 			resource.TestStep{
 				Config: testAccRoute53PrivateZoneRegionConfig,
@@ -203,7 +203,7 @@ func testAccCheckRoute53ZoneExistsWithProvider(s *terraform.State, n string, zon
 		return fmt.Errorf("Hosted zone err: %v", err)
 	}
 
-	if ! *resp.HostedZone.Config.PrivateZone {
+	if !*resp.HostedZone.Config.PrivateZone {
 		sorted_ns := make([]string, len(resp.DelegationSet.NameServers))
 		for i, ns := range resp.DelegationSet.NameServers {
 			sorted_ns[i] = *ns

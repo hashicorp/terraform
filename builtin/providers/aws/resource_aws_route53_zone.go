@@ -121,7 +121,7 @@ func resourceAwsRoute53ZoneRead(d *schema.ResourceData, meta interface{}) error 
 		return err
 	}
 
-	if ! *zone.HostedZone.Config.PrivateZone {
+	if !*zone.HostedZone.Config.PrivateZone {
 		ns := make([]string, len(zone.DelegationSet.NameServers))
 		for i := range zone.DelegationSet.NameServers {
 			ns[i] = *zone.DelegationSet.NameServers[i]
@@ -131,10 +131,10 @@ func resourceAwsRoute53ZoneRead(d *schema.ResourceData, meta interface{}) error 
 			return fmt.Errorf("[DEBUG] Error setting name servers for: %s, error: %#v", d.Id(), err)
 		}
 	} else {
-		d.Set("name_servers", nil);
+		d.Set("name_servers", nil)
 		var associatedVPC *route53.VPC
 		for _, vpc := range zone.VPCs {
-			if (*vpc.VPCID == d.Get("vpc_id")) {
+			if *vpc.VPCID == d.Get("vpc_id") {
 				associatedVPC = vpc
 			}
 		}
