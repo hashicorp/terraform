@@ -1,6 +1,8 @@
 # Specify the provider and access details
 provider "aws" {
     region = "${var.aws_region}"
+    access_key = "${var.access_key}"
+    secret_key = "${var.secret_key}" 
 }
 
 # Our default security group to access
@@ -56,7 +58,7 @@ resource "aws_instance" "web" {
     key_file = "${var.key_path}"
   }
 
-  instance_type = "m1.small"
+  instance_type = "t1.micro"
 
   # Lookup the correct AMI based on the region
   # we specified
