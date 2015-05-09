@@ -42,6 +42,7 @@ func resourceNetworkingSubnetV2() *schema.Resource {
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: true,
+				Computed: true,
 			},
 			"allocation_pools": &schema.Schema{
 				Type:     schema.TypeList,
@@ -64,6 +65,7 @@ func resourceNetworkingSubnetV2() *schema.Resource {
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: false,
+				Computed: true,
 			},
 			"ip_version": &schema.Schema{
 				Type:     schema.TypeInt,
@@ -74,6 +76,7 @@ func resourceNetworkingSubnetV2() *schema.Resource {
 				Type:     schema.TypeBool,
 				Optional: true,
 				ForceNew: false,
+				Computed: true,
 			},
 			"dns_nameservers": &schema.Schema{
 				Type:     schema.TypeSet,
