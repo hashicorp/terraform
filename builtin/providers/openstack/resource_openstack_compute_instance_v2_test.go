@@ -46,7 +46,7 @@ func TestAccComputeV2Instance_basic(t *testing.T) {
 	})
 }
 
-func TestAccComputeV2Instance_volumeAttach(t *testing.T) {
+func _TestAccComputeV2Instance_volumeAttach(t *testing.T) {
 	var instance servers.Server
 	var volume volumes.Volume
 
