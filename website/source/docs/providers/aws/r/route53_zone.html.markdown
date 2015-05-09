@@ -67,5 +67,5 @@ The following arguments are supported:
 The following attributes are exported:
 
 * `zone_id` - The Hosted Zone ID. This can be referenced by zone records.
-* `name_servers` - A list of name servers in a default delegation set. Support only for Public Hosted Zones.
+* `name_servers` - A list of name servers in a default delegation set. Supported only for Public Hosted Zones.
   Find more about delegation sets in [AWS docs](http://docs.aws.amazon.com/Route53/latest/APIReference/actions-on-reusable-delegation-sets.html).
