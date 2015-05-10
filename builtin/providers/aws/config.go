@@ -106,6 +106,16 @@ func (c *Config) Client() (interface{}, error) {
 			MaxRetries:  aws.Int(c.MaxRetries),
 			Endpoint:    aws.String(c.DynamoDBEndpoint),
 		}
+		// Some services exist only in us-east-1, e.g. because they manage
+		// resources that can span across multiple regions, or because
+		// signature format v4 requires region to be us-east-1 for global
+		// endpoints:
+		// http://docs.aws.amazon.com/general/latest/gr/sigv4_changes.html
+		usEast1AwsConfig := &aws.Config{
+			Credentials: creds,
+			Region:      aws.String("us-east-1"),
+			MaxRetries:  aws.Int(c.MaxRetries),
+		}
 
 		log.Println("[INFO] Initializing DynamoDB connection")
 		client.dynamodbconn = dynamodb.New(awsDynamoDBConfig)
@@ -145,15 +155,8 @@ func (c *Config) Client() (interface{}, error) {
 		log.Println("[INFO] Initializing EFS Connection")
 		client.efsconn = efs.New(awsConfig)
 
-		// aws-sdk-go uses v4 for signing requests, which requires all global
-		// endpoints to use 'us-east-1'.
-		// See http://docs.aws.amazon.com/general/latest/gr/sigv4_changes.html
 		log.Println("[INFO] Initializing Route 53 connection")
-		client.r53conn = route53.New(&aws.Config{
-			Credentials: creds,
-			Region:      aws.String("us-east-1"),
-			MaxRetries:  aws.Int(c.MaxRetries),
-		})
+		client.r53conn = route53.New(usEast1AwsConfig)
 
 		log.Println("[INFO] Initializing Elasticache Connection")
 		client.elasticacheconn = elasticache.New(awsConfig)
