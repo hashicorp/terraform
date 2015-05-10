@@ -88,6 +88,7 @@ func resourceAwsSQSRead(d *schema.ResourceData, meta interface{}) error {
 		return err
 	}
 
+	d.Set("queue_url", d.Id())
 
 	return nil
 }
