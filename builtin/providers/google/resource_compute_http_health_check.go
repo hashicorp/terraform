@@ -180,11 +180,11 @@ func resourceComputeHttpHealthCheckUpdate(d *schema.ResourceData, meta interface
 		hchk.UnhealthyThreshold = int64(v.(int))
 	}
 
-	log.Printf("[DEBUG] HttpHealthCheck patch request: %#v", hchk)
-	op, err := config.clientCompute.HttpHealthChecks.Patch(
+	log.Printf("[DEBUG] HttpHealthCheck update request: %#v", hchk)
+	op, err := config.clientCompute.HttpHealthChecks.Update(
 		config.Project, hchk.Name, hchk).Do()
 	if err != nil {
-		return fmt.Errorf("Error patching HttpHealthCheck: %s", err)
+		return fmt.Errorf("Error updating HttpHealthCheck: %s", err)
 	}
 
 	// It probably maybe worked, so store the ID now
@@ -202,7 +202,7 @@ func resourceComputeHttpHealthCheckUpdate(d *schema.ResourceData, meta interface
 	state.MinTimeout = 1 * time.Second
 	opRaw, err := state.WaitForState()
 	if err != nil {
-		return fmt.Errorf("Error waiting for HttpHealthCheck to patch: %s", err)
+		return fmt.Errorf("Error waiting for HttpHealthCheck to update: %s", err)
 	}
 	op = opRaw.(*compute.Operation)
 	if op.Error != nil {
