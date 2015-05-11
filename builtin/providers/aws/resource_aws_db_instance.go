@@ -434,49 +434,61 @@ func resourceAwsDbInstanceUpdate(d *schema.ResourceData, meta interface{}) error
 	}
 	d.SetPartial("apply_immediately")
 
+	requestUpdate := false
 	if d.HasChange("allocated_storage") {
 		d.SetPartial("allocated_storage")
 		req.AllocatedStorage = aws.Long(int64(d.Get("allocated_storage").(int)))
+		requestUpdate = true
 	}
 	if d.HasChange("backup_retention_period") {
 		d.SetPartial("backup_retention_period")
 		req.BackupRetentionPeriod = aws.Long(int64(d.Get("backup_retention_period").(int)))
+		requestUpdate = true
 	}
 	if d.HasChange("instance_class") {
 		d.SetPartial("instance_class")
 		req.DBInstanceClass = aws.String(d.Get("instance_class").(string))
+		requestUpdate = true
 	}
 	if d.HasChange("parameter_group_name") {
 		d.SetPartial("parameter_group_name")
 		req.DBParameterGroupName = aws.String(d.Get("parameter_group_name").(string))
+		requestUpdate = true
 	}
 	if d.HasChange("engine_version") {
 		d.SetPartial("engine_version")
 		req.EngineVersion = aws.String(d.Get("engine_version").(string))
+		requestUpdate = true
 	}
 	if d.HasChange("iops") {
 		d.SetPartial("iops")
 		req.IOPS = aws.Long(int64(d.Get("iops").(int)))
+		requestUpdate = true
 	}
 	if d.HasChange("backup_window") {
 		d.SetPartial("backup_window")
 		req.PreferredBackupWindow = aws.String(d.Get("backup_window").(string))
+		requestUpdate = true
 	}
 	if d.HasChange("maintenance_window") {
 		d.SetPartial("maintenance_window")
 		req.PreferredMaintenanceWindow = aws.String(d.Get("maintenance_window").(string))
+		requestUpdate = true
 	}
 	if d.HasChange("password") {
 		d.SetPartial("password")
 		req.MasterUserPassword = aws.String(d.Get("password").(string))
+		requestUpdate = true
 	}
 	if d.HasChange("multi_az") {
 		d.SetPartial("multi_az")
 		req.MultiAZ = aws.Boolean(d.Get("multi_az").(bool))
+		requestUpdate = true
 	}
 	if d.HasChange("storage_type") {
 		d.SetPartial("storage_type")
 		req.StorageType = aws.String(d.Get("storage_type").(string))
+		requestUpdate = true
 	}
 
 	if d.HasChange("vpc_security_group_ids") {
@@ -487,6 +499,7 @@ func resourceAwsDbInstanceUpdate(d *schema.ResourceData, meta interface{}) error
 			}
 			req.VPCSecurityGroupIDs = s
 		}
+		requestUpdate = true
 	}
 
 	if d.HasChange("vpc_security_group_ids") {
@@ -497,12 +510,16 @@ func resourceAwsDbInstanceUpdate(d *schema.ResourceData, meta interface{}) error
 			}
 			req.DBSecurityGroups = s
 		}
+		requestUpdate = true
 	}
 
-	log.Printf("[DEBUG] DB Instance Modification request: %#v", req)
-	_, err := conn.ModifyDBInstance(req)
-	if err != nil {
-		return fmt.Errorf("Error modifying DB Instance %s: %s", d.Id(), err)
+	log.Printf("[DEBUG] Send DB Instance Modification request: %#v", requestUpdate)
+	if requestUpdate {
+		log.Printf("[DEBUG] DB Instance Modification request: %#v", req)
+		_, err := conn.ModifyDBInstance(req)
+		if err != nil {
+			return fmt.Errorf("Error modifying DB Instance %s: %s", d.Id(), err)
+		}
 	}
 
 	if arn, err := buildRDSARN(d, meta); err == nil {
