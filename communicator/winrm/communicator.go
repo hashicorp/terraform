@@ -125,8 +125,6 @@ func (c *Communicator) ScriptPath() string {
 
 // Start implementation of communicator.Communicator interface
 func (c *Communicator) Start(rc *remote.Cmd) error {
-	log.Printf("starting remote command: %s", rc.Command)
-
 	err := c.Connect(nil)
 	if err != nil {
 		return err
@@ -137,6 +135,7 @@ func (c *Communicator) Start(rc *remote.Cmd) error {
 		return err
 	}
 
+	log.Printf("starting remote command: %s", rc.Command)
 	cmd, err := shell.Execute(rc.Command)
 	if err != nil {
 		return err
@@ -162,6 +161,7 @@ func (c *Communicator) Upload(path string, input io.Reader) error {
 	if err != nil {
 		return err
 	}
+	log.Printf("Uploading file to '%s'", path)
 	return wcp.Write(path, input)
 }
 
@@ -172,7 +172,7 @@ func (c *Communicator) UploadScript(path string, input io.Reader) error {
 
 // UploadDir implementation of communicator.Communicator interface
 func (c *Communicator) UploadDir(dst string, src string) error {
-	log.Printf("Upload dir '%s' to '%s'", src, dst)
+	log.Printf("Uploading dir '%s' to '%s'", src, dst)
 	wcp, err := c.newCopyClient()
 	if err != nil {
 		return err
