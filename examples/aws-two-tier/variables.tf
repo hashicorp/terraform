@@ -1,9 +1,13 @@
+
+# variables have two properties.  description & default.  If the default property is not set, then terraform plan will error.
 variable "key_name" {
-    description = "Name of the SSH keypair to use in AWS."
+    description = "Name of the SSH keypair to use in AWS.",
+    default = "REPLACE_WITH_AWS_KEYPAIR_NAME"
 }
 
 variable "key_path" {
-    description = "Path to the private portion of the SSH key specified."
+    description = "Path to the private portion of the SSH key specified.",
+    default = "REPLACE_WITH_AWS_KEYPAIR_PATH"
 }
 
 variable "aws_region" {
