@@ -22,6 +22,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/iam"
 	"github.com/aws/aws-sdk-go/service/kinesis"
 	"github.com/aws/aws-sdk-go/service/lambda"
+	"github.com/aws/aws-sdk-go/service/opsworks"
 	"github.com/aws/aws-sdk-go/service/rds"
 	"github.com/aws/aws-sdk-go/service/route53"
 	"github.com/aws/aws-sdk-go/service/s3"
@@ -61,6 +62,7 @@ type AWSClient struct {
 	kinesisconn        *kinesis.Kinesis
 	elasticacheconn    *elasticache.ElastiCache
 	lambdaconn         *lambda.Lambda
+	opsworksconn    *opsworks.OpsWorks
 }
 
 // Client configures and returns a fully initialized AWSClient
@@ -169,6 +171,9 @@ func (c *Config) Client() (interface{}, error) {
 
 		log.Println("[INFO] Initializing CloudWatch Logs connection")
 		client.cloudwatchlogsconn = cloudwatchlogs.New(awsConfig)
+
+		log.Println("[INFO] Initializing OpsWorks Connection")
+		client.opsworksconn = opsworks.New(usEast1AwsConfig)
 	}
 
 	if len(errs) > 0 {
