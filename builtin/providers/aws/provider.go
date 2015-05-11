@@ -207,6 +207,7 @@ func Provider() terraform.ResourceProvider {
 			"aws_main_route_table_association": resourceAwsMainRouteTableAssociation(),
 			"aws_network_acl":                  resourceAwsNetworkAcl(),
 			"aws_network_interface":            resourceAwsNetworkInterface(),
+			"aws_opsworks_stack":               resourceAwsOpsworksStack(),
 			"aws_proxy_protocol_policy":        resourceAwsProxyProtocolPolicy(),
 			"aws_route53_delegation_set":       resourceAwsRoute53DelegationSet(),
 			"aws_route53_record":               resourceAwsRoute53Record(),
