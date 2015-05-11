@@ -50,7 +50,6 @@ output "rendered" {
 						}
 						return nil
 					},
-					TransientResource: true,
 				},
 			},
 		})
