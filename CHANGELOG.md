@@ -12,6 +12,11 @@ BUG FIXES:
 
 ## 0.5.0 (May 7, 2015)
 
+BACKWARDS INCOMPATIBILITIES:
+
+  * provider/aws: Terraform now remove the default egress rule created by AWS in
+    a new security group.
+
 FEATURES:
 
   * **Multi-provider (a.k.a multi-region)**: Multiple instances of a single
