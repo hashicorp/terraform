@@ -74,6 +74,7 @@ func resourceAwsRoute53ZoneCreate(d *schema.ResourceData, meta interface{}) erro
 		if w := d.Get("vpc_region"); w != "" {
 			req.VPC.VPCRegion = aws.String(w.(string))
 		}
+		d.Set("vpc_region", req.VPC.VPCRegion)
 	}
 
 	log.Printf("[DEBUG] Creating Route53 hosted zone: %s", *req.Name)
@@ -86,7 +87,6 @@ func resourceAwsRoute53ZoneCreate(d *schema.ResourceData, meta interface{}) erro
 	zone := cleanZoneID(*resp.HostedZone.ID)
 	d.Set("zone_id", zone)
 	d.SetId(zone)
-	d.Set("vpc_region", req.VPC.VPCRegion)
 
 	// Wait until we are done initializing
 	wait := resource.StateChangeConf{
