@@ -11,7 +11,7 @@ import (
 	"github.com/rackspace/gophercloud/openstack/networking/v2/extensions/fwaas/policies"
 )
 
-func TestAccFWPolicyV1(t *testing.T) {
+func TestAccFWPolicyV1_basic(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
@@ -25,6 +25,16 @@ func TestAccFWPolicyV1(t *testing.T) {
 						"", "", 0),
 				),
 			},
+		},
+	})
+}
+
+func TestAccFWPolicyV1_addRules(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckFWPolicyV1Destroy,
+		Steps: []resource.TestStep{
 			resource.TestStep{
 				Config: testFirewallPolicyConfigAddRules,
 				Check: resource.ComposeTestCheckFunc(
@@ -33,6 +43,16 @@ func TestAccFWPolicyV1(t *testing.T) {
 						"accept_test", "terraform acceptance test", 2),
 				),
 			},
+		},
+	})
+}
+
+func TestAccFWPolicyV1_deleteRules(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckFWPolicyV1Destroy,
+		Steps: []resource.TestStep{
 			resource.TestStep{
 				Config: testFirewallPolicyUpdateDeleteRule,
 				Check: resource.ComposeTestCheckFunc(

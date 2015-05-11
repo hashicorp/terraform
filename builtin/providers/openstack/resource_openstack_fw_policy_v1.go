@@ -47,6 +47,7 @@ func resourceFWPolicyV1() *schema.Resource {
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: true,
+				Computed: true,
 			},
 			"rules": &schema.Schema{
 				Type:     schema.TypeSet,

@@ -47,6 +47,7 @@ func resourceBlockStorageVolumeV1() *schema.Resource {
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: true,
+				Computed: true,
 			},
 			"metadata": &schema.Schema{
 				Type:     schema.TypeMap,
@@ -72,6 +73,7 @@ func resourceBlockStorageVolumeV1() *schema.Resource {
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: true,
+				Computed: true,
 			},
 			"attachment": &schema.Schema{
 				Type:     schema.TypeSet,
