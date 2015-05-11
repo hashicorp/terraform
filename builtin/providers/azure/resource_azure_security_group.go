@@ -161,16 +161,16 @@ func resourceAzureSecurityGroupRuleCreate(
 
 	// Create the rule
 	req, err := networksecuritygroup.NewClient(*mc).SetNetworkSecurityGroupRule(d.Id(),
-		&networksecuritygroup.Rule{
+		networksecuritygroup.RuleRequest{
 			Name:                     name,
-			Type:                     rule["type"].(string),
+			Type:                     networksecuritygroup.RuleType(rule["type"].(string)),
 			Priority:                 rule["priority"].(int),
-			Action:                   rule["action"].(string),
+			Action:                   networksecuritygroup.RuleAction(rule["action"].(string)),
 			SourceAddressPrefix:      rule["source_cidr"].(string),
 			SourcePortRange:          rule["source_port"].(string),
 			DestinationAddressPrefix: rule["destination_cidr"].(string),
 			DestinationPortRange:     rule["destination_port"].(string),
-			Protocol:                 rule["protocol"].(string),
+			Protocol:                 networksecuritygroup.RuleProtocol(rule["protocol"].(string)),
 		},
 	)
 	if err != nil {
@@ -205,14 +205,14 @@ func resourceAzureSecurityGroupRead(d *schema.ResourceData, meta interface{}) er
 		if !r.IsDefault {
 			rule := map[string]interface{}{
 				"name":             r.Name,
-				"type":             r.Type,
+				"type":             string(r.Type),
 				"priority":         r.Priority,
-				"action":           r.Action,
+				"action":           string(r.Action),
 				"source_cidr":      r.SourceAddressPrefix,
 				"source_port":      r.SourcePortRange,
 				"destination_cidr": r.DestinationAddressPrefix,
 				"destination_port": r.DestinationPortRange,
-				"protocol":         r.Protocol,
+				"protocol":         string(r.Protocol),
 			}
 			rules.Add(rule)
 		}
