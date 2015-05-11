@@ -131,7 +131,14 @@ func resourceAwsRoute53ZoneRead(d *schema.ResourceData, meta interface{}) error 
 			return fmt.Errorf("[DEBUG] Error setting name servers for: %s, error: %#v", d.Id(), err)
 		}
 	} else {
-		d.Set("name_servers", nil)
+		ns, err := getNameServers(d.Id(), d.Get("name").(string), r53)
+		if err != nil {
+			return err
+		}
+		if err := d.Set("name_servers", ns); err != nil {
+			return fmt.Errorf("[DEBUG] Error setting name servers for: %s, error: %#v", d.Id(), err)
+		}
+
 		var associatedVPC *route53.VPC
 		for _, vpc := range zone.VPCs {
 			if *vpc.VPCID == d.Get("vpc_id") {
@@ -216,4 +223,24 @@ func cleanPrefix(ID, prefix string) string {
 		ID = strings.TrimPrefix(ID, prefix)
 	}
 	return ID
+}
+
+func getNameServers(zoneId string, zoneName string, r53 *route53.Route53) ([]string, error) {
+	resp, err := r53.ListResourceRecordSets(&route53.ListResourceRecordSetsInput{
+		HostedZoneID:    aws.String(zoneId),
+		StartRecordName: aws.String(zoneName),
+		StartRecordType: aws.String("NS"),
+	})
+	if err != nil {
+		return nil, err
+	}
+	if len(resp.ResourceRecordSets) == 0 {
+		return nil, nil
+	}
+	ns := make([]string, len(resp.ResourceRecordSets[0].ResourceRecords))
+	for i := range resp.ResourceRecordSets[0].ResourceRecords {
+		ns[i] = *resp.ResourceRecordSets[0].ResourceRecords[i].Value
+	}
+	sort.Strings(ns)
+	return ns, nil
 }
