@@ -3,6 +3,7 @@ package aws
 import (
 	"fmt"
 	"log"
+	"strings"
 	"time"
 
 	"github.com/awslabs/aws-sdk-go/aws"
@@ -572,7 +573,8 @@ func buildRDSARN(d *schema.ResourceData, meta interface{}) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	user := resp.User
-	arn := fmt.Sprintf("arn:aws:rds:%s:%s:db:%s", region, *user.UserID, d.Id())
+	userARN := *resp.User.ARN
+	accountID := strings.Split(userARN, ":")[4]
+	arn := fmt.Sprintf("arn:aws:rds:%s:%s:db:%s", region, accountID, d.Id())
 	return arn, nil
 }
