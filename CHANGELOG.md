@@ -11,6 +11,8 @@ BUG FIXES:
   * command/push: local vars override remote ones [GH-1881]
   * provider/aws: Mark `aws_security_group` description as `ForceNew` [GH-1871]
   * provider/aws: `aws_db_instance` ARN value is correct [GH-1910]
+  * provider/aws: `aws_db_instance` only submit modify request if there
+      is a change. [GH-1906]
   * provider/template: Fix infinite diff [GH-1898]
 
 ## 0.5.0 (May 7, 2015)
