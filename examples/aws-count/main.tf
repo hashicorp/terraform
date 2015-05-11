@@ -28,5 +28,5 @@ resource "aws_instance" "web" {
   ami = "${lookup(var.aws_amis, var.aws_region)}"
 
   # This will create 4 instances
-  count = 2
+  count = 4
 }
