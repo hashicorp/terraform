@@ -380,7 +380,6 @@ func (p *Provisioner) runCommand(
 		Stderr:  errW,
 	}
 
-	log.Printf("[DEBUG] Executing remote command: %q", cmd.Command)
 	if err := comm.Start(cmd); err != nil {
 		return fmt.Errorf("Error executing command %q: %v", cmd.Command, err)
 	}
