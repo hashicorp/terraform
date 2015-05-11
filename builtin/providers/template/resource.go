@@ -16,22 +16,23 @@ import (
 func resource() *schema.Resource {
 	return &schema.Resource{
 		Create: Create,
-		Read:   Read,
-		Update: Update,
 		Delete: Delete,
 		Exists: Exists,
+		Read:   Read,
 
 		Schema: map[string]*schema.Schema{
 			"filename": &schema.Schema{
 				Type:        schema.TypeString,
 				Required:    true,
 				Description: "file to read template from",
+				ForceNew:    true,
 			},
 			"vars": &schema.Schema{
 				Type:        schema.TypeMap,
 				Optional:    true,
 				Default:     make(map[string]interface{}),
 				Description: "variables to substitute",
+				ForceNew:    true,
 			},
 			"rendered": &schema.Schema{
 				Type:        schema.TypeString,
@@ -42,43 +43,58 @@ func resource() *schema.Resource {
 	}
 }
 
-func Create(d *schema.ResourceData, meta interface{}) error { return eval(d) }
-func Update(d *schema.ResourceData, meta interface{}) error { return eval(d) }
-func Read(d *schema.ResourceData, meta interface{}) error   { return nil }
+func Create(d *schema.ResourceData, meta interface{}) error {
+	rendered, err := render(d)
+	if err != nil {
+		return err
+	}
+	d.Set("rendered", rendered)
+	d.SetId(hash(rendered))
+	return nil
+}
+
 func Delete(d *schema.ResourceData, meta interface{}) error {
 	d.SetId("")
 	return nil
 }
+
 func Exists(d *schema.ResourceData, meta interface{}) (bool, error) {
-	// Reload every time in case something has changed.
-	// This should be cheap, and cache invalidation is hard.
-	return false, nil
+	rendered, err := render(d)
+	if err != nil {
+		return false, err
+	}
+	return hash(rendered) == d.Id(), nil
+}
+
+func Read(d *schema.ResourceData, meta interface{}) error {
+	// Logic is handled in Exists, which only returns true if the rendered
+	// contents haven't changed. That means if we get here there's nothing to
+	// do.
+	return nil
 }
 
 var readfile func(string) ([]byte, error) = ioutil.ReadFile // testing hook
 
-func eval(d *schema.ResourceData) error {
+func render(d *schema.ResourceData) (string, error) {
 	filename := d.Get("filename").(string)
 	vars := d.Get("vars").(map[string]interface{})
 
 	path, err := homedir.Expand(filename)
 	if err != nil {
-		return err
+		return "", err
 	}
 
 	buf, err := readfile(path)
 	if err != nil {
-		return err
+		return "", err
 	}
 
 	rendered, err := execute(string(buf), vars)
 	if err != nil {
-		return fmt.Errorf("failed to render %v: %v", filename, err)
+		return "", fmt.Errorf("failed to render %v: %v", filename, err)
 	}
 
-	d.Set("rendered", rendered)
-	d.SetId(hash(rendered))
-	return nil
+	return rendered, nil
 }
 
 // execute parses and executes a template using vars.
@@ -122,5 +138,5 @@ func execute(s string, vars map[string]interface{}) (string, error) {
 
 func hash(s string) string {
 	sha := sha256.Sum256([]byte(s))
-	return hex.EncodeToString(sha[:])[:20]
+	return hex.EncodeToString(sha[:])
 }
