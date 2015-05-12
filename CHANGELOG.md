@@ -1,5 +1,10 @@
 ## 0.5.1 (unreleased)
 
+FEATURES:
+
+  * **Chef provisioning**: You can now provision new hosts (both Linux and
+     Windows) with [Chef](https://chef.io) using a native provisioner [GH-1868]
+
 IMPROVEMENTS:
 
   * provider/aws: `aws_s3_bucket` exports `hosted_zone_id` and `region` [GH-1865]
@@ -797,5 +802,3 @@ BUG FIXES:
 ## 0.1.0 (July 28, 2014)
 
   * Initial release
-
-
