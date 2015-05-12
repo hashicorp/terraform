@@ -8,6 +8,7 @@ IMPROVEMENTS:
 BUG FIXES:
 
   * core: fix "resource not found" for interpolation issues with modules
+  * core: fix unflattenable error for orphans [GH-1922]
   * command/push: local vars override remote ones [GH-1881]
   * provider/aws: Mark `aws_security_group` description as `ForceNew` [GH-1871]
   * provider/aws: `aws_db_instance` ARN value is correct [GH-1910]
