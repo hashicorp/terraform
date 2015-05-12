@@ -104,7 +104,7 @@ func resourceAwsVPCPeeringRead(d *schema.ResourceData, meta interface{}) error {
 	d.Set("peer_owner_id", pc.AccepterVPCInfo.OwnerID)
 	d.Set("peer_vpc_id", pc.AccepterVPCInfo.VPCID)
 	d.Set("vpc_id", pc.RequesterVPCInfo.VPCID)
-	d.Set("tags", tagsToMapSDK(pc.Tags))
+	d.Set("tags", tagsToMap(pc.Tags))
 
 	return nil
 }
@@ -125,7 +125,7 @@ func resourceVPCPeeringConnectionAccept(conn *ec2.EC2, id string) (string, error
 func resourceAwsVPCPeeringUpdate(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).ec2conn
 
-	if err := setTagsSDK(conn, d); err != nil {
+	if err := setTags(conn, d); err != nil {
 		return err
 	} else {
 		d.SetPartial("tags")

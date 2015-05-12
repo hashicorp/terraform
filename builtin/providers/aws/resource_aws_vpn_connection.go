@@ -185,7 +185,7 @@ func resourceAwsVpnConnectionCreate(d *schema.ResourceData, meta interface{}) er
 	}
 
 	// Create tags.
-	if err := setTagsSDK(conn, d); err != nil {
+	if err := setTags(conn, d); err != nil {
 		return err
 	}
 
@@ -243,7 +243,7 @@ func resourceAwsVpnConnectionRead(d *schema.ResourceData, meta interface{}) erro
 	d.Set("vpn_gateway_id", vpnConnection.VPNGatewayID)
 	d.Set("customer_gateway_id", vpnConnection.CustomerGatewayID)
 	d.Set("type", vpnConnection.Type)
-	d.Set("tags", tagsToMapSDK(vpnConnection.Tags))
+	d.Set("tags", tagsToMap(vpnConnection.Tags))
 
 	if vpnConnection.Options != nil {
 		if err := d.Set("static_routes_only", vpnConnection.Options.StaticRoutesOnly); err != nil {
@@ -269,7 +269,7 @@ func resourceAwsVpnConnectionUpdate(d *schema.ResourceData, meta interface{}) er
 	conn := meta.(*AWSClient).ec2conn
 
 	// Update tags if required.
-	if err := setTagsSDK(conn, d); err != nil {
+	if err := setTags(conn, d); err != nil {
 		return err
 	}
 
