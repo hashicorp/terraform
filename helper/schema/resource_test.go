@@ -334,7 +334,7 @@ func TestResourceInternalValidate(t *testing.T) {
 	}
 
 	for i, tc := range cases {
-		err := tc.In.InternalValidate()
+		err := tc.In.InternalValidate(schemaMap{})
 		if (err != nil) != tc.Err {
 			t.Fatalf("%d: bad: %s", i, err)
 		}
