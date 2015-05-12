@@ -74,6 +74,7 @@ type Provisioner struct {
 	installChefClient func(terraform.UIOutput, communicator.Communicator) error
 	createConfigFiles func(terraform.UIOutput, communicator.Communicator) error
 	runChefClient     func(terraform.UIOutput, communicator.Communicator) error
+	useSudo           bool
 }
 
 // ResourceProvisioner represents a generic chef provisioner
@@ -93,15 +94,15 @@ func (r *ResourceProvisioner) Apply(
 	// Set some values based on the targeted OS
 	switch s.Ephemeral.ConnInfo["type"] {
 	case "ssh", "": // The default connection type is ssh, so if the type is empty use ssh
-		p.PreventSudo = p.PreventSudo || s.Ephemeral.ConnInfo["user"] == "root"
 		p.installChefClient = p.sshInstallChefClient
 		p.createConfigFiles = p.sshCreateConfigFiles
 		p.runChefClient = p.runChefClientFunc(linuxConfDir)
+		p.useSudo = !p.PreventSudo && s.Ephemeral.ConnInfo["user"] != "root"
 	case "winrm":
-		p.PreventSudo = true
 		p.installChefClient = p.winrmInstallChefClient
 		p.createConfigFiles = p.winrmCreateConfigFiles
 		p.runChefClient = p.runChefClientFunc(windowsConfDir)
+		p.useSudo = false
 	default:
 		return fmt.Errorf("Unsupported connection type: %s", s.Ephemeral.ConnInfo["type"])
 	}
@@ -363,7 +364,7 @@ func (p *Provisioner) runCommand(
 	var err error
 
 	// Unless prevented, prefix the command with sudo
-	if !p.PreventSudo {
+	if p.useSudo {
 		command = "sudo " + command
 	}
 

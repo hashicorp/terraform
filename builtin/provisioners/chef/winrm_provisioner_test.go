@@ -17,7 +17,6 @@ func TestResourceProvider_winrmInstallChefClient(t *testing.T) {
 		"Default": {
 			Config: testConfig(t, map[string]interface{}{
 				"node_name":              "nodename1",
-				"prevent_sudo":           true, // Needs to be set for ALL WinRM tests!
 				"run_list":               []interface{}{"cookbook::recipe"},
 				"server_url":             "https://chef.local",
 				"validation_client_name": "validator",
@@ -38,7 +37,6 @@ func TestResourceProvider_winrmInstallChefClient(t *testing.T) {
 				"http_proxy":             "http://proxy.local",
 				"no_proxy":               []interface{}{"http://local.local", "http://local.org"},
 				"node_name":              "nodename1",
-				"prevent_sudo":           true, // Needs to be set for ALL WinRM tests!
 				"run_list":               []interface{}{"cookbook::recipe"},
 				"server_url":             "https://chef.local",
 				"validation_client_name": "validator",
@@ -57,7 +55,6 @@ func TestResourceProvider_winrmInstallChefClient(t *testing.T) {
 		"Version": {
 			Config: testConfig(t, map[string]interface{}{
 				"node_name":              "nodename1",
-				"prevent_sudo":           true, // Needs to be set for ALL WinRM tests!
 				"run_list":               []interface{}{"cookbook::recipe"},
 				"server_url":             "https://chef.local",
 				"validation_client_name": "validator",
@@ -88,6 +85,8 @@ func TestResourceProvider_winrmInstallChefClient(t *testing.T) {
 			t.Fatalf("Error: %v", err)
 		}
 
+		p.useSudo = false
+
 		err = p.winrmInstallChefClient(o, c)
 		if err != nil {
 			t.Fatalf("Test %q failed: %v", k, err)
@@ -104,7 +103,6 @@ func TestResourceProvider_winrmCreateConfigFiles(t *testing.T) {
 		"Default": {
 			Config: testConfig(t, map[string]interface{}{
 				"node_name":              "nodename1",
-				"prevent_sudo":           true, // Needs to be set for ALL WinRM tests!
 				"run_list":               []interface{}{"cookbook::recipe"},
 				"server_url":             "https://chef.local",
 				"validation_client_name": "validator",
@@ -128,7 +126,6 @@ func TestResourceProvider_winrmCreateConfigFiles(t *testing.T) {
 				"https_proxy":            "https://proxy.local",
 				"no_proxy":               []interface{}{"http://local.local", "https://local.local"},
 				"node_name":              "nodename1",
-				"prevent_sudo":           true, // Needs to be set for ALL WinRM tests!
 				"run_list":               []interface{}{"cookbook::recipe"},
 				"server_url":             "https://chef.local",
 				"validation_client_name": "validator",
@@ -170,7 +167,6 @@ func TestResourceProvider_winrmCreateConfigFiles(t *testing.T) {
 					},
 				},
 				"node_name":              "nodename1",
-				"prevent_sudo":           true, // Needs to be set for ALL WinRM tests!
 				"run_list":               []interface{}{"cookbook::recipe"},
 				"server_url":             "https://chef.local",
 				"validation_client_name": "validator",
@@ -202,6 +198,8 @@ func TestResourceProvider_winrmCreateConfigFiles(t *testing.T) {
 		if err != nil {
 			t.Fatalf("Error: %v", err)
 		}
+
+		p.useSudo = false
 
 		err = p.winrmCreateConfigFiles(o, c)
 		if err != nil {

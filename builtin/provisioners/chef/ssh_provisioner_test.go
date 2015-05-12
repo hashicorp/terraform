@@ -116,6 +116,8 @@ func TestResourceProvider_sshInstallChefClient(t *testing.T) {
 			t.Fatalf("Error: %v", err)
 		}
 
+		p.useSudo = !p.PreventSudo
+
 		err = p.sshInstallChefClient(o, c)
 		if err != nil {
 			t.Fatalf("Test %q failed: %v", k, err)
@@ -253,6 +255,8 @@ func TestResourceProvider_sshCreateConfigFiles(t *testing.T) {
 		if err != nil {
 			t.Fatalf("Error: %v", err)
 		}
+
+		p.useSudo = !p.PreventSudo
 
 		err = p.sshCreateConfigFiles(o, c)
 		if err != nil {
