@@ -23,6 +23,8 @@ func TestAccAWSElasticacheCluster(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSElasticacheSecurityGroupExists("aws_elasticache_security_group.bar"),
 					testAccCheckAWSElasticacheClusterExists("aws_elasticache_cluster.bar"),
+					resource.TestCheckResourceAttr(
+						"aws_elasticache_cluster.bar", "cache_nodes.0.id", "001"),
 				),
 			},
 		},
