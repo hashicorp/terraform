@@ -27,6 +27,12 @@ resource "google_compute_instance" "default" {
 		image = "debian-7-wheezy-v20140814"
 	}
 
+	// Local SSD disk
+	disk {
+		type = "local-ssd"
+		scratch = true
+	}
+
 	network_interface {
 		network = "default"
         access_config {
@@ -79,22 +85,27 @@ The following arguments are supported:
 
 * `tags` - (Optional) Tags to attach to the instance.
 
-The `disk` block supports:
+The `disk` block supports: (Note that either disk or image is required, unless
+the type is "local-ssd", in which case scratch must be true).
 
-* `disk` - (Required if image not set) The name of the disk (such as
-     those managed by `google_compute_disk`) to attach.
+* `disk` - The name of the existing disk (such as those managed by
+  `google_compute_disk`) to attach.
 
-* `image` - (Required if disk not set) The image from which to initialize this
-  disk.  Either the full URL, a contraction of the form "project/name", or just
-  a name (in which case the current project is used).
+* `image` - The image from which to initialize this
+    disk.  Either the full URL, a contraction of the form "project/name", or just
+    a name (in which case the current project is used).
 
 * `auto_delete` - (Optional) Whether or not the disk should be auto-deleted.
-    This defaults to true.
+    This defaults to true.  Leave true for local SSDs.
 
-* `type` - (Optional) The GCE disk type.
+* `type` - (Optional) The GCE disk type, e.g. pd-standard, pd-ssd, or local-ssd.
 
-* `size` - (Optional) The size of the image in gigabytes. If not specified,
-    it will inherit the size of its base image.
+* `scratch` - (Optional) Whether the disk is a scratch disk as opposed to a
+    persistent disk (required for local-ssd).
+
+* `size` - (Optional) The size of the image in gigabytes. If not specified, it
+    will inherit the size of its base image.  Do not specify for local SSDs as
+    their size is fixed.
 
 * `device_name` - (Optional) Name with which attached disk will be accessible
     under `/dev/disk/by-id/`
