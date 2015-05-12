@@ -89,7 +89,7 @@ func resourceAwsVpnGatewayRead(d *schema.ResourceData, meta interface{}) error {
 		d.Set("vpc_id", vpnGateway.VPCAttachments[0].VPCID)
 	}
 	d.Set("availability_zone", vpnGateway.AvailabilityZone)
-	d.Set("tags", tagsToMapSDK(vpnGateway.Tags))
+	d.Set("tags", tagsToMap(vpnGateway.Tags))
 
 	return nil
 }
@@ -109,7 +109,7 @@ func resourceAwsVpnGatewayUpdate(d *schema.ResourceData, meta interface{}) error
 
 	conn := meta.(*AWSClient).ec2conn
 
-	if err := setTagsSDK(conn, d); err != nil {
+	if err := setTags(conn, d); err != nil {
 		return err
 	}
 

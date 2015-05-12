@@ -149,7 +149,7 @@ func TestAccAWSNetworkAcl_OnlyEgressRules(t *testing.T) {
 				Config: testAccAWSNetworkAclEgressConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSNetworkAclExists("aws_network_acl.bond", &networkAcl),
-					testAccCheckTagsSDK(&networkAcl.Tags, "foo", "bar"),
+					testAccCheckTags(&networkAcl.Tags, "foo", "bar"),
 				),
 			},
 		},

@@ -134,7 +134,7 @@ func TestAccAWSRouteTable_tags(t *testing.T) {
 				Config: testAccRouteTableConfigTags,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckRouteTableExists("aws_route_table.foo", &route_table),
-					testAccCheckTagsSDK(&route_table.Tags, "foo", "bar"),
+					testAccCheckTags(&route_table.Tags, "foo", "bar"),
 				),
 			},
 
@@ -142,8 +142,8 @@ func TestAccAWSRouteTable_tags(t *testing.T) {
 				Config: testAccRouteTableConfigTagsUpdate,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckRouteTableExists("aws_route_table.foo", &route_table),
-					testAccCheckTagsSDK(&route_table.Tags, "foo", ""),
-					testAccCheckTagsSDK(&route_table.Tags, "bar", "baz"),
+					testAccCheckTags(&route_table.Tags, "foo", ""),
+					testAccCheckTags(&route_table.Tags, "bar", "baz"),
 				),
 			},
 		},
