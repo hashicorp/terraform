@@ -5,9 +5,9 @@ import (
 	"log"
 	"strconv"
 
-	"github.com/Azure/azure-sdk-for-go/management"
-	"github.com/Azure/azure-sdk-for-go/management/networksecuritygroup"
 	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/svanharmelen/azure-sdk-for-go/management"
+	"github.com/svanharmelen/azure-sdk-for-go/management/networksecuritygroup"
 )
 
 func resourceAzureSecurityGroup() *schema.Resource {

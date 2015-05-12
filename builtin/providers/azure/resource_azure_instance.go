@@ -6,13 +6,13 @@ import (
 	"log"
 	"strings"
 
-	"github.com/Azure/azure-sdk-for-go/management"
-	"github.com/Azure/azure-sdk-for-go/management/hostedservice"
-	"github.com/Azure/azure-sdk-for-go/management/osimage"
-	"github.com/Azure/azure-sdk-for-go/management/virtualmachine"
-	"github.com/Azure/azure-sdk-for-go/management/vmutils"
 	"github.com/hashicorp/terraform/helper/hashcode"
 	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/svanharmelen/azure-sdk-for-go/management"
+	"github.com/svanharmelen/azure-sdk-for-go/management/hostedservice"
+	"github.com/svanharmelen/azure-sdk-for-go/management/osimage"
+	"github.com/svanharmelen/azure-sdk-for-go/management/virtualmachine"
+	"github.com/svanharmelen/azure-sdk-for-go/management/vmutils"
 )
 
 const (
@@ -166,165 +166,164 @@ func resourceAzureInstance() *schema.Resource {
 }
 
 func resourceAzureInstanceCreate(d *schema.ResourceData, meta interface{}) (err error) {
-	/*
-		mc := meta.(*management.Client)
+	mc := meta.(*management.Client)
 
-		name := d.Get("name").(string)
+	name := d.Get("name").(string)
 
-		// Compute/set the description
-		description := d.Get("description").(string)
-		if description == "" {
-			description = name
+	// Compute/set the description
+	description := d.Get("description").(string)
+	if description == "" {
+		description = name
+	}
+
+	// Retrieve the needed details of the image
+	imageName, imageURL, osType, err := retrieveImageDetails(mc, d.Get("image").(string))
+	if err != nil {
+		return err
+	}
+
+	if imageURL == "" {
+		storage, ok := d.GetOk("storage")
+		if !ok {
+			return fmt.Errorf("When using a platform image, the 'storage' parameter is required")
 		}
+		imageURL = fmt.Sprintf("http://%s.blob.core.windows.net/vhds/%s.vhd", storage, name)
+	}
 
-		// Retrieve the needed details of the image
-		imageName, imageURL, osType, err := retrieveImageDetails(mc, d.Get("image").(string))
+	// Verify if we have all parameters required for the image OS type
+	if err := verifyParameters(d, osType); err != nil {
+		return err
+	}
+
+	log.Printf("[DEBUG] Creating Cloud Service for instance: %s", name)
+	req, err := hostedservice.NewClient(*mc).
+		CreateHostedService(
+		name,
+		d.Get("location").(string),
+		d.Get("reverse_dns").(string),
+		name,
+		fmt.Sprintf("Cloud Service created automatically for instance %s", name),
+	)
+	if err != nil {
+		return fmt.Errorf("Error creating Cloud Service for instance %s: %s", name, err)
+	}
+
+	// Wait until the Cloud Service is created
+	if err := mc.WaitAsyncOperation(req); err != nil {
+		return fmt.Errorf(
+			"Error waiting for Cloud Service of instance %s to be created: %s", name, err)
+	}
+
+	// Put in this defer here, so we are sure to cleanup already created parts
+	// when we exit with an error
+	defer func(mc *management.Client) {
 		if err != nil {
-			return err
-		}
-
-		if imageURL == "" {
-			storage, ok := d.GetOk("storage")
-			if !ok {
-				return fmt.Errorf("When using a platform image, the 'storage' parameter is required")
-			}
-			imageURL = fmt.Sprintf("http://%s.blob.core.windows.net/vhds/%s.vhd", storage, name)
-		}
-
-		// Verify if we have all parameters required for the image OS type
-		if err := verifyParameters(d, osType); err != nil {
-			return err
-		}
-
-		log.Printf("[DEBUG] Creating Cloud Service for instance: %s", name)
-		req, err := hostedservice.NewClient(*mc).
-			CreateHostedService(
-			name,
-			d.Get("location").(string),
-			d.Get("reverse_dns").(string),
-			name,
-			fmt.Sprintf("Cloud Service created automatically for instance %s", name),
-		)
-		if err != nil {
-			return fmt.Errorf("Error creating Cloud Service for instance %s: %s", name, err)
-		}
-
-		// Wait until the Cloud Service is created
-		if err := mc.WaitAsyncOperation(req); err != nil {
-			return fmt.Errorf(
-				"Error waiting for Cloud Service of instance %s to be created: %s", name, err)
-		}
-
-		// Put in this defer here, so we are sure to cleanup already created parts
-		// when we exit with an error
-		defer func(mc *management.Client) {
+			req, err := hostedservice.NewClient(*mc).DeleteHostedService(name, true)
 			if err != nil {
-				req, err := hostedservice.NewClient(*mc).DeleteHostedService(name, true)
-				if err != nil {
-					log.Printf("[DEBUG] Error cleaning up Cloud Service of instance %s: %s", name, err)
-				}
-
-				// Wait until the Cloud Service is deleted
-				if err := mc.WaitAsyncOperation(req); err != nil {
-					log.Printf(
-						"[DEBUG] Error waiting for Cloud Service of instance %s to be deleted : %s", name, err)
-				}
+				log.Printf("[DEBUG] Error cleaning up Cloud Service of instance %s: %s", name, err)
 			}
-		}(mc)
 
-		// Create a new role for the instance
-		role := vmutils.NewVmConfiguration(name, d.Get("size").(string))
-
-		log.Printf("[DEBUG] Configuring deployment from image...")
-		err = vmutils.ConfigureDeploymentFromPlatformImage(
-			&role,
-			imageName,
-			imageURL,
-			d.Get("image").(string),
-		)
-		if err != nil {
-			return fmt.Errorf("Error configuring the deployment for %s: %s", name, err)
-		}
-
-		if osType == linux {
-			// This is pretty ugly, but the Azure SDK leaves me no other choice...
-			if tp, ok := d.GetOk("ssh_key_thumbprint"); ok {
-				err = vmutils.ConfigureForLinux(
-					&role,
-					name,
-					d.Get("username").(string),
-					d.Get("password").(string),
-					tp.(string),
-				)
-			} else {
-				err = vmutils.ConfigureForLinux(
-					&role,
-					name,
-					d.Get("username").(string),
-					d.Get("password").(string),
-				)
-			}
-			if err != nil {
-				return fmt.Errorf("Error configuring %s for Linux: %s", name, err)
+			// Wait until the Cloud Service is deleted
+			if err := mc.WaitAsyncOperation(req); err != nil {
+				log.Printf(
+					"[DEBUG] Error waiting for Cloud Service of instance %s to be deleted : %s", name, err)
 			}
 		}
+	}(mc)
 
-		if osType == windows {
-			err = vmutils.ConfigureForWindows(
+	// Create a new role for the instance
+	role := vmutils.NewVmConfiguration(name, d.Get("size").(string))
+
+	log.Printf("[DEBUG] Configuring deployment from image...")
+	err = vmutils.ConfigureDeploymentFromPlatformImage(
+		&role,
+		imageName,
+		imageURL,
+		d.Get("image").(string),
+	)
+	if err != nil {
+		return fmt.Errorf("Error configuring the deployment for %s: %s", name, err)
+	}
+
+	if osType == linux {
+		// This is pretty ugly, but the Azure SDK leaves me no other choice...
+		if tp, ok := d.GetOk("ssh_key_thumbprint"); ok {
+			err = vmutils.ConfigureForLinux(
 				&role,
 				name,
 				d.Get("username").(string),
 				d.Get("password").(string),
-				d.Get("automatic_updates").(bool),
-				d.Get("time_zone").(string),
+				tp.(string),
+			)
+		} else {
+			err = vmutils.ConfigureForLinux(
+				&role,
+				name,
+				d.Get("username").(string),
+				d.Get("password").(string),
+			)
+		}
+		if err != nil {
+			return fmt.Errorf("Error configuring %s for Linux: %s", name, err)
+		}
+	}
+
+	if osType == windows {
+		err = vmutils.ConfigureForWindows(
+			&role,
+			name,
+			d.Get("username").(string),
+			d.Get("password").(string),
+			d.Get("automatic_updates").(bool),
+			d.Get("time_zone").(string),
+		)
+		if err != nil {
+			return fmt.Errorf("Error configuring %s for Windows: %s", name, err)
+		}
+	}
+
+	if s := d.Get("endpoint").(*schema.Set); s.Len() > 0 {
+		for _, v := range s.List() {
+			m := v.(map[string]interface{})
+			err := vmutils.ConfigureWithExternalPort(
+				&role,
+				m["name"].(string),
+				m["private_port"].(int),
+				m["public_port"].(int),
+				endpointProtocol(m["protocol"].(string)),
 			)
 			if err != nil {
-				return fmt.Errorf("Error configuring %s for Windows: %s", name, err)
+				return fmt.Errorf(
+					"Error adding endpoint %s for instance %s: %s", m["name"].(string), name, err)
 			}
 		}
+	}
 
-		if s := d.Get("endpoint").(*schema.Set); s.Len() > 0 {
-			for _, v := range s.List() {
-				m := v.(map[string]interface{})
-				err := vmutils.ConfigureWithExternalPort(
-					&role,
-					m["name"].(string),
-					m["private_port"].(int),
-					m["public_port"].(int),
-					endpointProtocol(m["protocol"].(string)),
-				)
-				if err != nil {
-					return fmt.Errorf(
-						"Error adding endpoint %s for instance %s: %s", m["name"].(string), name, err)
-				}
-			}
-		}
+	err = vmutils.ConfigureForSubnet(&role, d.Get("subnet").(string))
+	if err != nil {
+		return fmt.Errorf(
+			"Error adding role to subnet %s for instance %s: %s", d.Get("subnet").(string), name, err)
+	}
 
-		err = vmutils.ConfigureForSubnet(&role, d.Get("subnet").(string))
-		if err != nil {
-			return fmt.Errorf(
-				"Error adding role to subnet %s for instance %s: %s", d.Get("subnet").(string), name, err)
-		}
+	options := virtualmachine.CreateDeploymentOptions{
+		Subnet:             d.Get("subnet").(string),
+		VirtualNetworkName: d.Get("virtual_network").(string),
+	}
 
-		options := &virtualmachine.CreateDeploymentOptions{
-			Subnet:             d.Get("subnet").(string),
-			VirtualNetworkName: d.Get("virtual_network").(string),
-		}
+	log.Printf("[DEBUG] Creating the new instance...")
+	req, err = virtualmachine.NewClient(*mc).CreateDeployment(role, name, options)
+	if err != nil {
+		return fmt.Errorf("Error creating instance %s: %s", name, err)
+	}
 
-		log.Printf("[DEBUG] Creating the new instance...")
-		req, err = virtualmachine.NewClient(*mc).CreateDeployment(role, name, options)
-		if err != nil {
-			return fmt.Errorf("Error creating instance %s: %s", name, err)
-		}
+	log.Printf("[DEBUG] Waiting for the new instance to be created...")
+	if err := mc.WaitAsyncOperation(req); err != nil {
+		return fmt.Errorf(
+			"Error waiting for instance %s to be created: %s", name, err)
+	}
 
-		log.Printf("[DEBUG] Waiting for the new instance to be created...")
-		if err := mc.WaitAsyncOperation(req); err != nil {
-			return fmt.Errorf(
-				"Error waiting for instance %s to be created: %s", name, err)
-		}
+	d.SetId(name)
 
-		d.SetId(name)
-	*/
 	return resourceAzureInstanceRead(d, meta)
 }
 
