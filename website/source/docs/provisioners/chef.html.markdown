@@ -48,7 +48,7 @@ resource "aws_instance" "web" {
 
 The following arguments are supported:
 
-* `attributes (hash)` - (Optional) A hash with initial node attributes for the new node.
+* `attributes (map)` - (Optional) A map with initial node attributes for the new node.
   See example.
 
 * `environment (string)` - (Optional) The Chef environment the new node will be joining

@@ -126,6 +126,7 @@ func TestResourceProvider_runChefClient(t *testing.T) {
 		}
 
 		p.runChefClient = p.runChefClientFunc(tc.ConfDir)
+		p.useSudo = !p.PreventSudo
 
 		err = p.runChefClient(o, c)
 		if err != nil {

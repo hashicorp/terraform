@@ -50,7 +50,7 @@ func (p *Provisioner) sshCreateConfigFiles(
 	}
 
 	// Make sure we have enough rights to upload the files if using sudo
-	if !p.PreventSudo {
+	if p.useSudo {
 		if err := p.runCommand(o, comm, "chmod 777 "+linuxConfDir); err != nil {
 			return err
 		}
@@ -61,7 +61,7 @@ func (p *Provisioner) sshCreateConfigFiles(
 	}
 
 	// When done copying the files restore the rights and make sure root is owner
-	if !p.PreventSudo {
+	if p.useSudo {
 		if err := p.runCommand(o, comm, "chmod 755 "+linuxConfDir); err != nil {
 			return err
 		}
