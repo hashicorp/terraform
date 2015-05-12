@@ -55,6 +55,10 @@ func resourceAwsS3Bucket() *schema.Resource {
 				Computed: true,
 			},
 
+			"policy": &schema.Schema{
+				Type: schema.TypeString,
+				Optional: true,
+			},
 			"tags": tagsSchema(),
 		},
 	}
