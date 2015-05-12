@@ -176,6 +176,13 @@ func (n *graphNodeOrphanResource) DependentOn() []string {
 	return n.dependentOn
 }
 
+func (n *graphNodeOrphanResource) Flatten(p []string) (dag.Vertex, error) {
+	return &graphNodeOrphanResourceFlat{
+		graphNodeOrphanResource: n,
+		PathValue:               p,
+	}, nil
+}
+
 func (n *graphNodeOrphanResource) Name() string {
 	return fmt.Sprintf("%s (orphan)", n.ResourceName)
 }
@@ -289,4 +296,20 @@ func (n *graphNodeOrphanResource) EvalTree() EvalNode {
 
 func (n *graphNodeOrphanResource) dependableName() string {
 	return n.ResourceName
+}
+
+// Same as graphNodeOrphanResource, but for flattening
+type graphNodeOrphanResourceFlat struct {
+	*graphNodeOrphanResource
+
+	PathValue []string
+}
+
+func (n *graphNodeOrphanResourceFlat) Name() string {
+	return fmt.Sprintf(
+		"%s.%s", modulePrefixStr(n.PathValue), n.graphNodeOrphanResource.Name())
+}
+
+func (n *graphNodeOrphanResourceFlat) Path() []string {
+	return n.PathValue
 }
