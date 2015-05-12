@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"log"
+	"sort"
 	"strconv"
 	"time"
 
@@ -30,10 +31,17 @@ func resourceAwsNetworkAcl() *schema.Resource {
 				Computed: false,
 			},
 			"subnet_id": &schema.Schema{
-				Type:     schema.TypeString,
+				Type:       schema.TypeString,
+				Optional:   true,
+				ForceNew:   true,
+				Computed:   false,
+				Deprecated: "Attribute subnet_id is deprecated on network_acl resources. Use subnet_ids instead",
+			},
+			"subnet_ids": &schema.Schema{
+				Type:     schema.TypeList,
 				Optional: true,
-				ForceNew: true,
-				Computed: false,
+				// Computed: true,
+				Elem: &schema.Schema{Type: schema.TypeString},
 			},
 			"ingress": &schema.Schema{
 				Type:     schema.TypeSet,
@@ -168,6 +176,15 @@ func resourceAwsNetworkAclRead(d *schema.ResourceData, meta interface{}) error {
 	d.Set("vpc_id", networkAcl.VPCID)
 	d.Set("tags", tagsToMapSDK(networkAcl.Tags))
 
+	var s []string
+	for _, a := range networkAcl.Associations {
+		s = append(s, *a.SubnetID)
+	}
+	sort.Strings(s)
+	if err := d.Set("subnet_ids", s); err != nil {
+		return err
+	}
+
 	if err := d.Set("ingress", networkAclEntriesToMapList(ingressEntries)); err != nil {
 		return err
 	}
@@ -211,6 +228,64 @@ func resourceAwsNetworkAclUpdate(d *schema.ResourceData, meta interface{}) error
 		if err != nil {
 			return err
 		}
+	}
+
+	if d.HasChange("subnet_ids") {
+		o, n := d.GetChange("subnet_ids")
+
+		ol := o.([]interface{})
+		var pre []string
+		for _, x := range ol {
+			pre = append(pre, x.(string))
+		}
+
+		nl := n.([]interface{})
+		var post []string
+		for _, x := range nl {
+			post = append(post, x.(string))
+		}
+
+		remove := diffSubnets(pre, post)
+		add := diffSubnets(post, pre)
+
+		if len(remove) > 0 {
+			// A Network ACL is required for each subnet. In order to disassociate a
+			// subnet from this ACL, we must associate it with the default ACL.
+			defaultAcl, err := getDefaultNetworkAcl(d.Get("vpc_id").(string), conn)
+			if err != nil {
+				return fmt.Errorf("Failed to find Default ACL for VPC %s", d.Get("vpc_id").(string))
+			}
+			for _, r := range remove {
+				association, err := findNetworkAclAssociation(r, conn)
+				if err != nil {
+					return fmt.Errorf("Failed to find acl association: acl %s with subnet %s: %s", d.Id(), r, err)
+				}
+				_, err = conn.ReplaceNetworkACLAssociation(&ec2.ReplaceNetworkACLAssociationInput{
+					AssociationID: association.NetworkACLAssociationID,
+					NetworkACLID:  defaultAcl.NetworkACLID,
+				})
+				if err != nil {
+					return err
+				}
+			}
+		}
+
+		if len(add) > 0 {
+			for _, a := range add {
+				association, err := findNetworkAclAssociation(a, conn)
+				if err != nil {
+					return fmt.Errorf("Failed to find acl association: acl %s with subnet %s: %s", d.Id(), a, err)
+				}
+				_, err = conn.ReplaceNetworkACLAssociation(&ec2.ReplaceNetworkACLAssociationInput{
+					AssociationID: association.NetworkACLAssociationID,
+					NetworkACLID:  aws.String(d.Id()),
+				})
+				if err != nil {
+					return err
+				}
+			}
+		}
+
 	}
 
 	if err := setTagsSDK(conn, d); err != nil {
@@ -326,18 +401,36 @@ func resourceAwsNetworkAclDelete(d *schema.ResourceData, meta interface{}) error
 			case "DependencyViolation":
 				// In case of dependency violation, we remove the association between subnet and network acl.
 				// This means the subnet is attached to default acl of vpc.
-				association, err := findNetworkAclAssociation(d.Get("subnet_id").(string), conn)
-				if err != nil {
-					return resource.RetryError{Err: fmt.Errorf("Dependency violation: Cannot delete acl %s: %s", d.Id(), err)}
+				var associations []*ec2.NetworkACLAssociation
+				if v, ok := d.GetOk("subnet_id"); ok {
+					a, err := findNetworkAclAssociation(v.(string), conn)
+					if err != nil {
+						return resource.RetryError{Err: fmt.Errorf("Dependency violation: Cannot delete acl %s: %s", d.Id(), err)}
+					}
+					associations = append(associations, a)
+				}
+
+				if v, ok := d.GetOk("subnet_ids"); ok {
+					ids := v.([]interface{})
+					for _, i := range ids {
+						a, err := findNetworkAclAssociation(i.(string), conn)
+						if err != nil {
+							return resource.RetryError{Err: fmt.Errorf("Dependency violation: Cannot delete acl %s: %s", d.Id(), err)}
+						}
+						associations = append(associations, a)
+					}
 				}
 				defaultAcl, err := getDefaultNetworkAcl(d.Get("vpc_id").(string), conn)
 				if err != nil {
 					return resource.RetryError{Err: fmt.Errorf("Dependency violation: Cannot delete acl %s: %s", d.Id(), err)}
 				}
-				_, err = conn.ReplaceNetworkACLAssociation(&ec2.ReplaceNetworkACLAssociationInput{
-					AssociationID: association.NetworkACLAssociationID,
-					NetworkACLID:  defaultAcl.NetworkACLID,
-				})
+
+				for _, a := range associations {
+					_, err = conn.ReplaceNetworkACLAssociation(&ec2.ReplaceNetworkACLAssociationInput{
+						AssociationID: a.NetworkACLAssociationID,
+						NetworkACLID:  defaultAcl.NetworkACLID,
+					})
+				}
 				return resource.RetryError{Err: err}
 			default:
 				// Any other error, we want to quit the retry loop immediately
@@ -417,7 +510,7 @@ func findNetworkAclAssociation(subnetId string, conn *ec2.EC2) (networkAclAssoci
 			}
 		}
 	}
-	return nil, fmt.Errorf("could not find association for subnet %s ", subnetId)
+	return nil, fmt.Errorf("could not find association for subnet: %s ", subnetId)
 }
 
 // networkAclEntriesToMapList turns ingress/egress rules read from AWS into a list
@@ -450,4 +543,23 @@ func networkAclEntriesToMapList(networkAcls []*ec2.NetworkACLEntry) []map[string
 	}
 
 	return result
+}
+
+func diffSubnets(o, n []string) []string {
+	m := make(map[string]int)
+
+	for _, y := range n {
+		m[y]++
+	}
+
+	var ret []string
+	for _, x := range o {
+		if m[x] > 0 {
+			m[x]--
+			continue
+		}
+		ret = append(ret, x)
+	}
+
+	return ret
 }

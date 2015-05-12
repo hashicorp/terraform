@@ -10,6 +10,72 @@ import (
 	"github.com/hashicorp/terraform/terraform"
 )
 
+func TestDiffSubnets(t *testing.T) {
+	removal := []struct {
+		First  []string
+		Second []string
+		Output []string
+	}{
+		{[]string{"old"}, []string{"new"}, []string{"old"}},
+		{[]string{"new"}, []string{"old"}, []string{"new"}},
+		{[]string{"one", "two"}, []string{"two"}, []string{"one"}},
+		{
+			[]string{"subnet-1234", "subnet-5667", "subnet-897"},
+			[]string{"subnet-1234", "subnet-897"},
+			[]string{"subnet-5667"},
+		},
+		{
+			[]string{"subnet-1234", "subnet-897"},
+			[]string{"subnet-1234", "subnet-5667", "subnet-897"},
+			[]string{},
+		},
+	}
+	for _, tc := range removal {
+		actual := diffSubnets(tc.First, tc.Second)
+		if len(actual) != len(tc.Output) {
+			t.Fatalf("\n\texpected: %#v \n\tactual: %#v\n", tc.Output, actual)
+		}
+
+		for i, x := range tc.Output {
+			if x != actual[i] {
+				t.Fatalf("Network ACL diff does not match, expected %#v, got %#v", x, actual[i])
+			}
+		}
+	}
+
+	addition := []struct {
+		First  []string
+		Second []string
+		Output []string
+	}{
+		{[]string{"old"}, []string{"new"}, []string{"new"}},
+		{[]string{"new"}, []string{"old"}, []string{"old"}},
+		{[]string{"one", "two"}, []string{"two"}, []string{}},
+		{
+			[]string{"subnet-1234", "subnet-5667", "subnet-897"},
+			[]string{"subnet-1234", "subnet-897"},
+			[]string{},
+		},
+		{
+			[]string{"subnet-1234", "subnet-897"},
+			[]string{"subnet-1234", "subnet-5667", "subnet-897"},
+			[]string{"subnet-5667"},
+		},
+	}
+	for _, tc := range addition {
+		actual := diffSubnets(tc.Second, tc.First)
+		if len(actual) != len(tc.Output) {
+			t.Fatalf("\n\texpected: %#v \n\tactual: %#v\n", tc.Output, actual)
+		}
+
+		for i, x := range tc.Output {
+			if x != actual[i] {
+				t.Fatalf("Network ACL diff does not match, expected %#v, got %#v", x, actual[i])
+			}
+		}
+	}
+}
+
 func TestAccAWSNetworkAcl_EgressAndIngressRules(t *testing.T) {
 	var networkAcl ec2.NetworkACL
 
@@ -181,6 +247,24 @@ func TestAccAWSNetworkAcl_SubnetChange(t *testing.T) {
 
 }
 
+func TestAccAWSNetworkAcl_Subnets(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSNetworkAclDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccAWSNetworkAclSubnet_SubnetIds,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckSubnetIsAssociatedWithAcl("aws_network_acl.bar", "aws_subnet.one"),
+					testAccCheckSubnetIsAssociatedWithAcl("aws_network_acl.bar", "aws_subnet.two"),
+				),
+			},
+		},
+	})
+
+}
+
 func testAccCheckAWSNetworkAclDestroy(s *terraform.State) error {
 	conn := testAccProvider.Meta().(*AWSClient).ec2conn
 
@@ -280,10 +364,6 @@ func testAccCheckSubnetIsAssociatedWithAcl(acl string, sub string) resource.Test
 		if len(resp.NetworkACLs) > 0 {
 			return nil
 		}
-
-		// r, _ := conn.NetworkACLs([]string{}, ec2.NewFilter())
-		// fmt.Printf("\n\nall acls\n %#v\n\n", r.NetworkAcls)
-		// conn.NetworkAcls([]string{}, filter)
 
 		return fmt.Errorf("Network Acl %s is not associated with subnet %s", acl, sub)
 	}
@@ -492,5 +572,26 @@ resource "aws_subnet" "new" {
 resource "aws_network_acl" "bar" {
 	vpc_id = "${aws_vpc.foo.id}"
 	subnet_id = "${aws_subnet.new.id}"
+}
+`
+
+const testAccAWSNetworkAclSubnet_SubnetIds = `
+resource "aws_vpc" "foo" {
+	cidr_block = "10.1.0.0/16"
+	tags {
+		Name = "acl-subnets-test"
+	}
+}
+resource "aws_subnet" "one" {
+	cidr_block = "10.1.111.0/24"
+	vpc_id = "${aws_vpc.foo.id}"
+}
+resource "aws_subnet" "two" {
+	cidr_block = "10.1.1.0/24"
+	vpc_id = "${aws_vpc.foo.id}"
+}
+resource "aws_network_acl" "bar" {
+	vpc_id = "${aws_vpc.foo.id}"
+	subnet_ids = ["${aws_subnet.one.id}", "${aws_subnet.two.id}"]
 }
 `
