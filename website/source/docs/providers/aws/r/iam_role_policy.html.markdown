@@ -29,6 +29,7 @@ resource "aws_iam_role_policy" "test_policy" {
     }
   ]
 }
+EOF
 
 resource "aws_iam_role" "test_role" {
     name = "test_role"
