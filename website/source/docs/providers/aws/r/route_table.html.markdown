@@ -33,7 +33,7 @@ The following arguments are supported:
 * `vpc_id` - (Required) The ID of the routing table.
 * `route` - (Optional) A list of route objects. Their keys are documented below.
 * `tags` - (Optional) A mapping of tags to assign to the resource.
-* `propogating_vgws` - (Optional) A list of virtual gateways for propogation.
+* `propagating_vgws` - (Optional) A list of virtual gateways for propagation.
 
 Each route supports the following:
 
