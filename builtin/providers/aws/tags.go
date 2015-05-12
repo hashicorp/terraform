@@ -19,12 +19,12 @@ func tagsSchema() *schema.Schema {
 
 // setTags is a helper to set the tags for a resource. It expects the
 // tags field to be named "tags"
-func setTagsSDK(conn *ec2.EC2, d *schema.ResourceData) error {
+func setTags(conn *ec2.EC2, d *schema.ResourceData) error {
 	if d.HasChange("tags") {
 		oraw, nraw := d.GetChange("tags")
 		o := oraw.(map[string]interface{})
 		n := nraw.(map[string]interface{})
-		create, remove := diffTagsSDK(tagsFromMapSDK(o), tagsFromMapSDK(n))
+		create, remove := diffTags(tagsFromMap(o), tagsFromMap(n))
 
 		// Set tags
 		if len(remove) > 0 {
@@ -55,7 +55,7 @@ func setTagsSDK(conn *ec2.EC2, d *schema.ResourceData) error {
 // diffTags takes our tags locally and the ones remotely and returns
 // the set of tags that must be created, and the set of tags that must
 // be destroyed.
-func diffTagsSDK(oldTags, newTags []*ec2.Tag) ([]*ec2.Tag, []*ec2.Tag) {
+func diffTags(oldTags, newTags []*ec2.Tag) ([]*ec2.Tag, []*ec2.Tag) {
 	// First, we're creating everything we have
 	create := make(map[string]interface{})
 	for _, t := range newTags {
@@ -72,11 +72,11 @@ func diffTagsSDK(oldTags, newTags []*ec2.Tag) ([]*ec2.Tag, []*ec2.Tag) {
 		}
 	}
 
-	return tagsFromMapSDK(create), remove
+	return tagsFromMap(create), remove
 }
 
 // tagsFromMap returns the tags for the given map of data.
-func tagsFromMapSDK(m map[string]interface{}) []*ec2.Tag {
+func tagsFromMap(m map[string]interface{}) []*ec2.Tag {
 	result := make([]*ec2.Tag, 0, len(m))
 	for k, v := range m {
 		result = append(result, &ec2.Tag{
@@ -89,7 +89,7 @@ func tagsFromMapSDK(m map[string]interface{}) []*ec2.Tag {
 }
 
 // tagsToMap turns the list of tags into a map.
-func tagsToMapSDK(ts []*ec2.Tag) map[string]string {
+func tagsToMap(ts []*ec2.Tag) map[string]string {
 	result := make(map[string]string)
 	for _, t := range ts {
 		result[*t.Key] = *t.Value

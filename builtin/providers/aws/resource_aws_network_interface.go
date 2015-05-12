@@ -120,7 +120,7 @@ func resourceAwsNetworkInterfaceRead(d *schema.ResourceData, meta interface{}) e
 	d.Set("security_groups", flattenGroupIdentifiers(eni.Groups))
 
 	// Tags
-	d.Set("tags", tagsToMapSDK(eni.TagSet))
+	d.Set("tags", tagsToMap(eni.TagSet))
 
 	if eni.Attachment != nil {
 		attachment := []map[string]interface{}{flattenAttachment(eni.Attachment)}
@@ -226,7 +226,7 @@ func resourceAwsNetworkInterfaceUpdate(d *schema.ResourceData, meta interface{})
 		d.SetPartial("security_groups")
 	}
 
-	if err := setTagsSDK(conn, d); err != nil {
+	if err := setTags(conn, d); err != nil {
 		return err
 	} else {
 		d.SetPartial("tags")

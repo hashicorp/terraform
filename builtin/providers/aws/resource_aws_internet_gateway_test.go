@@ -98,7 +98,7 @@ func TestAccAWSInternetGateway_tags(t *testing.T) {
 				Config: testAccCheckInternetGatewayConfigTags,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckInternetGatewayExists("aws_internet_gateway.foo", &v),
-					testAccCheckTagsSDK(&v.Tags, "foo", "bar"),
+					testAccCheckTags(&v.Tags, "foo", "bar"),
 				),
 			},
 
@@ -106,8 +106,8 @@ func TestAccAWSInternetGateway_tags(t *testing.T) {
 				Config: testAccCheckInternetGatewayConfigTagsUpdate,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckInternetGatewayExists("aws_internet_gateway.foo", &v),
-					testAccCheckTagsSDK(&v.Tags, "foo", ""),
-					testAccCheckTagsSDK(&v.Tags, "bar", "baz"),
+					testAccCheckTags(&v.Tags, "foo", ""),
+					testAccCheckTags(&v.Tags, "bar", "baz"),
 				),
 			},
 		},

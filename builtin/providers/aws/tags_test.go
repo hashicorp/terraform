@@ -10,7 +10,7 @@ import (
 	"github.com/hashicorp/terraform/terraform"
 )
 
-func TestDiffTagsSDK(t *testing.T) {
+func TestDiffTags(t *testing.T) {
 	cases := []struct {
 		Old, New       map[string]interface{}
 		Create, Remove map[string]string
@@ -49,9 +49,9 @@ func TestDiffTagsSDK(t *testing.T) {
 	}
 
 	for i, tc := range cases {
-		c, r := diffTagsSDK(tagsFromMapSDK(tc.Old), tagsFromMapSDK(tc.New))
-		cm := tagsToMapSDK(c)
-		rm := tagsToMapSDK(r)
+		c, r := diffTags(tagsFromMap(tc.Old), tagsFromMap(tc.New))
+		cm := tagsToMap(c)
+		rm := tagsToMap(r)
 		if !reflect.DeepEqual(cm, tc.Create) {
 			t.Fatalf("%d: bad create: %#v", i, cm)
 		}
@@ -62,10 +62,10 @@ func TestDiffTagsSDK(t *testing.T) {
 }
 
 // testAccCheckTags can be used to check the tags on a resource.
-func testAccCheckTagsSDK(
+func testAccCheckTags(
 	ts *[]*ec2.Tag, key string, value string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
-		m := tagsToMapSDK(*ts)
+		m := tagsToMap(*ts)
 		v, ok := m[key]
 		if value != "" && !ok {
 			return fmt.Errorf("Missing tag: %s", key)
