@@ -134,7 +134,7 @@ func resourceAwsVpcRead(d *schema.ResourceData, meta interface{}) error {
 	d.Set("dhcp_options_id", vpc.DHCPOptionsID)
 
 	// Tags
-	d.Set("tags", tagsToMapSDK(vpc.Tags))
+	d.Set("tags", tagsToMap(vpc.Tags))
 
 	// Attributes
 	attribute := "enableDnsSupport"
@@ -229,7 +229,7 @@ func resourceAwsVpcUpdate(d *schema.ResourceData, meta interface{}) error {
 		d.SetPartial("enable_dns_support")
 	}
 
-	if err := setTagsSDK(conn, d); err != nil {
+	if err := setTags(conn, d); err != nil {
 		return err
 	} else {
 		d.SetPartial("tags")
