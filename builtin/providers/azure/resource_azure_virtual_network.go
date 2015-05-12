@@ -5,10 +5,10 @@ import (
 	"log"
 	"strings"
 
-	"github.com/Azure/azure-sdk-for-go/management"
-	"github.com/Azure/azure-sdk-for-go/management/virtualnetwork"
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/mitchellh/mapstructure"
+	"github.com/svanharmelen/azure-sdk-for-go/management"
+	"github.com/svanharmelen/azure-sdk-for-go/management/virtualnetwork"
 )
 
 const (
