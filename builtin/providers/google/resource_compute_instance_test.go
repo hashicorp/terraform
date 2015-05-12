@@ -140,6 +140,26 @@ func TestAccComputeInstance_disks(t *testing.T) {
 	})
 }
 
+func TestAccComputeInstance_local_ssd(t *testing.T) {
+	var instance compute.Instance
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckComputeInstanceDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccComputeInstance_local_ssd,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckComputeInstanceExists(
+						"google_compute_instance.local-ssd", &instance),
+					testAccCheckComputeInstanceDisk(&instance, "terraform-test", true, true),
+				),
+			},
+		},
+	})
+}
+
 func TestAccComputeInstance_update_deprecated_network(t *testing.T) {
 	var instance compute.Instance
 
@@ -607,6 +627,27 @@ resource "google_compute_instance" "foobar" {
 	metadata {
 		foo = "bar"
 	}
+}`
+
+const testAccComputeInstance_local_ssd = `
+resource "google_compute_instance" "local-ssd" {
+	name = "terraform-test"
+	machine_type = "n1-standard-1"
+	zone = "us-central1-a"
+
+	disk {
+		image = "debian-7-wheezy-v20140814"
+	}
+
+	disk {
+        type = "local-ssd"
+        scratch = true
+	}
+
+	network_interface {
+		network = "default"
+	}
+
 }`
 
 const testAccComputeInstance_service_account = `
