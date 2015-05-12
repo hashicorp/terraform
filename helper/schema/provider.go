@@ -61,12 +61,13 @@ func (p *Provider) InternalValidate() error {
 		return errors.New("provider is nil")
 	}
 
-	if err := schemaMap(p.Schema).InternalValidate(); err != nil {
+	sm := schemaMap(p.Schema)
+	if err := sm.InternalValidate(sm); err != nil {
 		return err
 	}
 
 	for k, r := range p.ResourcesMap {
-		if err := r.InternalValidate(); err != nil {
+		if err := r.InternalValidate(nil); err != nil {
 			return fmt.Errorf("%s: %s", k, err)
 		}
 	}

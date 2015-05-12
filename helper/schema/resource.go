@@ -220,10 +220,11 @@ func (r *Resource) Refresh(
 // Provider.InternalValidate() will automatically call this for all of
 // the resources it manages, so you don't need to call this manually if it
 // is part of a Provider.
-func (r *Resource) InternalValidate() error {
+func (r *Resource) InternalValidate(topSchemaMap schemaMap) error {
 	if r == nil {
 		return errors.New("resource is nil")
 	}
+	tsm := topSchemaMap
 
 	if r.isTopLevel() {
 		// All non-Computed attributes must be ForceNew if Update is not defined
@@ -239,9 +240,10 @@ func (r *Resource) InternalValidate() error {
 					"No Update defined, must set ForceNew on: %#v", nonForceNewAttrs)
 			}
 		}
+		tsm = schemaMap(r.Schema)
 	}
 
-	return schemaMap(r.Schema).InternalValidate()
+	return schemaMap(r.Schema).InternalValidate(tsm)
 }
 
 // Returns true if the resource is "top level" i.e. not a sub-resource.
