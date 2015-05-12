@@ -81,6 +81,12 @@ func resourceComputeInstance() *schema.Resource {
 							ForceNew: true,
 						},
 
+						"scratch": &schema.Schema{
+							Type:     schema.TypeBool,
+							Optional: true,
+							ForceNew: true,
+						},
+
 						"auto_delete": &schema.Schema{
 							Type:     schema.TypeBool,
 							Optional: true,
@@ -319,6 +325,15 @@ func resourceComputeInstanceCreate(d *schema.ResourceData, meta interface{}) err
 			}
 
 			disk.Source = diskData.SelfLink
+		} else {
+			// Create a new disk
+			disk.InitializeParams = &compute.AttachedDiskInitializeParams{ }
+		}
+
+		if v, ok := d.GetOk(prefix + ".scratch"); ok {
+			if v.(bool) {
+				disk.Type = "SCRATCH"
+			}
 		}
 
 		// Load up the image for this disk if specified
@@ -332,9 +347,7 @@ func resourceComputeInstanceCreate(d *schema.ResourceData, meta interface{}) err
 					imageName, err)
 			}
 
-			disk.InitializeParams = &compute.AttachedDiskInitializeParams{
-				SourceImage: imageUrl,
-			}
+			disk.InitializeParams.SourceImage = imageUrl
 		}
 
 		if v, ok := d.GetOk(prefix + ".type"); ok {
