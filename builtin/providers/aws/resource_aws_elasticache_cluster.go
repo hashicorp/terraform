@@ -3,6 +3,7 @@ package aws
 import (
 	"fmt"
 	"log"
+	"sort"
 	"time"
 
 	"github.com/awslabs/aws-sdk-go/aws"
@@ -80,6 +81,27 @@ func resourceAwsElasticacheCluster() *schema.Resource {
 				Elem:     &schema.Schema{Type: schema.TypeString},
 				Set: func(v interface{}) int {
 					return hashcode.String(v.(string))
+				},
+			},
+			// Exported Attributes
+			"cache_nodes": &schema.Schema{
+				Type:     schema.TypeList,
+				Computed: true,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"id": &schema.Schema{
+							Type:     schema.TypeString,
+							Computed: true,
+						},
+						"address": &schema.Schema{
+							Type:     schema.TypeString,
+							Computed: true,
+						},
+						"port": &schema.Schema{
+							Type:     schema.TypeInt,
+							Computed: true,
+						},
+					},
 				},
 			},
 		},
@@ -167,9 +189,43 @@ func resourceAwsElasticacheClusterRead(d *schema.ResourceData, meta interface{})
 		d.Set("security_group_names", c.CacheSecurityGroups)
 		d.Set("security_group_ids", c.SecurityGroups)
 		d.Set("parameter_group_name", c.CacheParameterGroup)
+
+		if err := setCacheNodeData(d, c); err != nil {
+			return err
+		}
 	}
 
 	return nil
+}
+
+func setCacheNodeData(d *schema.ResourceData, c *elasticache.CacheCluster) error {
+	sortedCacheNodes := make([]*elasticache.CacheNode, len(c.CacheNodes))
+	copy(sortedCacheNodes, c.CacheNodes)
+	sort.Sort(byCacheNodeId(sortedCacheNodes))
+
+	cacheNodeData := make([]map[string]interface{}, 0, len(sortedCacheNodes))
+
+	for _, node := range sortedCacheNodes {
+		if node.CacheNodeID == nil || node.Endpoint == nil || node.Endpoint.Address == nil || node.Endpoint.Port == nil {
+			return fmt.Errorf("Unexpected nil pointer in: %#v", node)
+		}
+		cacheNodeData = append(cacheNodeData, map[string]interface{}{
+			"id":      node.CacheNodeID,
+			"address": node.Endpoint.Address,
+			"port":    node.Endpoint.Port,
+		})
+	}
+
+	return d.Set("cache_nodes", cacheNodeData)
+}
+
+type byCacheNodeId []*elasticache.CacheNode
+
+func (b byCacheNodeId) Len() int      { return len(b) }
+func (b byCacheNodeId) Swap(i, j int) { b[i], b[j] = b[j], b[i] }
+func (b byCacheNodeId) Less(i, j int) bool {
+	return b[i].CacheNodeID != nil && b[j].CacheNodeID != nil &&
+		*b[i].CacheNodeID < *b[j].CacheNodeID
 }
 
 func resourceAwsElasticacheClusterDelete(d *schema.ResourceData, meta interface{}) error {
