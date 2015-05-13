@@ -92,6 +92,19 @@ func resourceAwsS3BucketCreate(d *schema.ResourceData, meta interface{}) error {
 		return fmt.Errorf("Error creating S3 bucket: %s", err)
 	}
 
+	policy := d.Get("policy").(string)
+	if policy != "" {
+		log.Printf("[DEBUG] S3 bucket optional policy was specified: %s", policy)
+		_, err := s3conn.PutBucketPolicy(
+			&s3.PutBucketPolicyInput{
+				Bucket: aws.String(bucket),
+				Policy: aws.String(policy),
+			})
+		if err != nil {
+			return fmt.Errorf("Error adding policy to S3 bucket: %s", err)
+		}
+	}
+
 	// Assign the bucket name as the resource ID
 	d.SetId(bucket)
 
