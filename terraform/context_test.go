@@ -40,6 +40,43 @@ func TestContext2Plan(t *testing.T) {
 	}
 }
 
+func TestContext2Plan_createBefore_maintainRoot(t *testing.T) {
+	m := testModule(t, "plan-cbd-maintain-root")
+	p := testProvider("aws")
+	p.DiffFn = testDiffFn
+	ctx := testContext2(t, &ContextOpts{
+		Module: m,
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+		Variables: map[string]string{
+			"in": "a,b,c",
+		},
+	})
+
+	plan, err := ctx.Plan()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	actual := strings.TrimSpace(plan.String())
+	expected := strings.TrimSpace(`
+DIFF:
+
+CREATE: aws_instance.bar.0
+CREATE: aws_instance.bar.1
+CREATE: aws_instance.foo.0
+CREATE: aws_instance.foo.1
+
+STATE:
+
+<no state>
+		`)
+	if actual != expected {
+		t.Fatalf("expected:\n%s, got:\n%s", expected, actual)
+	}
+}
+
 func TestContext2Plan_emptyDiff(t *testing.T) {
 	m := testModule(t, "plan-empty")
 	p := testProvider("aws")
