@@ -17,6 +17,7 @@ import (
 	"github.com/awslabs/aws-sdk-go/service/rds"
 	"github.com/awslabs/aws-sdk-go/service/route53"
 	"github.com/awslabs/aws-sdk-go/service/s3"
+	"github.com/awslabs/aws-sdk-go/service/sns"
 )
 
 type Config struct {
@@ -40,6 +41,7 @@ type AWSClient struct {
 	rdsconn         *rds.RDS
 	iamconn         *iam.IAM
 	elasticacheconn *elasticache.ElastiCache
+	snsconn         *sns.SNS
 }
 
 // Client configures and returns a fully initailized AWSClient
@@ -113,6 +115,9 @@ func (c *Config) Client() (interface{}, error) {
 
 		log.Println("[INFO] Initializing Elasticache Connection")
 		client.elasticacheconn = elasticache.New(awsConfig)
+
+		log.Println("[INFO] Initializing SNS connection")
+		client.snsconn = sns.New(awsConfig)
 	}
 
 	if len(errs) > 0 {
