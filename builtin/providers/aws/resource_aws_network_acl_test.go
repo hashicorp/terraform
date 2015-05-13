@@ -260,6 +260,15 @@ func TestAccAWSNetworkAcl_Subnets(t *testing.T) {
 					testAccCheckSubnetIsAssociatedWithAcl("aws_network_acl.bar", "aws_subnet.two"),
 				),
 			},
+
+			resource.TestStep{
+				Config: testAccAWSNetworkAclSubnet_SubnetIdsUpdate,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckSubnetIsAssociatedWithAcl("aws_network_acl.bar", "aws_subnet.one"),
+					testAccCheckSubnetIsAssociatedWithAcl("aws_network_acl.bar", "aws_subnet.three"),
+					testAccCheckSubnetIsAssociatedWithAcl("aws_network_acl.bar", "aws_subnet.four"),
+				),
+			},
 		},
 	})
 
@@ -593,5 +602,39 @@ resource "aws_subnet" "two" {
 resource "aws_network_acl" "bar" {
 	vpc_id = "${aws_vpc.foo.id}"
 	subnet_ids = ["${aws_subnet.one.id}", "${aws_subnet.two.id}"]
+}
+`
+
+const testAccAWSNetworkAclSubnet_SubnetIdsUpdate = `
+resource "aws_vpc" "foo" {
+	cidr_block = "10.1.0.0/16"
+	tags {
+		Name = "acl-subnets-test"
+	}
+}
+resource "aws_subnet" "one" {
+	cidr_block = "10.1.111.0/24"
+	vpc_id = "${aws_vpc.foo.id}"
+}
+resource "aws_subnet" "two" {
+	cidr_block = "10.1.1.0/24"
+	vpc_id = "${aws_vpc.foo.id}"
+}
+
+resource "aws_subnet" "three" {
+	cidr_block = "10.1.222.0/24"
+	vpc_id = "${aws_vpc.foo.id}"
+}
+resource "aws_subnet" "four" {
+	cidr_block = "10.1.4.0/24"
+	vpc_id = "${aws_vpc.foo.id}"
+}
+resource "aws_network_acl" "bar" {
+	vpc_id = "${aws_vpc.foo.id}"
+	subnet_ids = [
+		"${aws_subnet.one.id}", 
+		"${aws_subnet.three.id}",
+		"${aws_subnet.four.id}",
+	]
 }
 `
