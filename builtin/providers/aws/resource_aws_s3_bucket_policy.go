@@ -3,6 +3,7 @@ package aws
 import (
 	"fmt"
 	"log"
+
 	"github.com/hashicorp/terraform/helper/schema"
 
 	"github.com/awslabs/aws-sdk-go/aws"
@@ -26,6 +27,10 @@ func resourceAwsS3BucketPolicy() *schema.Resource {
 				Type:     schema.TypeString,
 				Required: true,
 			},
+			"name": &schema.Schema{
+				Type:     schema.TypeString,
+				Required: true,
+			},
 		},
 	}
 }
@@ -35,6 +40,7 @@ func resourceAwsS3BucketPolicyPut(d *schema.ResourceData, meta interface{}) erro
 	s3conn := meta.(*AWSClient).s3conn
 	bucket := d.Get("bucket").(string)
 	policy := d.Get("policy").(string)
+	name   := d.Get("name").(string)
 
 	resp, err := s3conn.PutBucketPolicy(
 		&s3.PutBucketPolicyInput{
@@ -48,6 +54,7 @@ func resourceAwsS3BucketPolicyPut(d *schema.ResourceData, meta interface{}) erro
 		return fmt.Errorf("Error adding policy to S3 bucket: %s", err)
 	}
 
+	d.SetId(fmt.Sprintf("%s:%s", bucket, ))
 	return nil
 }
 
