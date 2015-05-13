@@ -49,6 +49,35 @@ func TestAccAWSDBInstance(t *testing.T) {
 	})
 }
 
+func TestAccAWSDBInstanceReplica(t *testing.T) {
+	// var v rds.DBInstance
+	var r rds.DBInstance
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSDBInstanceDestroy,
+		Steps: []resource.TestStep{
+			// resource.TestStep{
+			// 	Config: testAccAWSDBInstanceConfig,
+			// 	Check: resource.ComposeTestCheckFunc(
+			// 		testAccCheckAWSDBInstanceExists("aws_db_instance.bar", &v),
+			// 	),
+			// },
+
+			resource.TestStep{
+				Config: testAccAWSDBInstanceReplicaConfig,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSDBInstanceExists("aws_db_instance.replica", &r),
+					resource.TestCheckResourceAttr(
+						"aws_db_instance.replica", "replicate_source_db", "tf-update-more"),
+					testAccCheckAWSDBInstanceReplicaAttributes(&r),
+				),
+			},
+		},
+	})
+}
+
 func testAccCheckAWSDBInstanceDestroy(s *terraform.State) error {
 	conn := testAccProvider.Meta().(*AWSClient).rdsconn
 
@@ -97,6 +126,29 @@ func testAccCheckAWSDBInstanceAttributes(v *rds.DBInstance) resource.TestCheckFu
 
 		if *v.BackupRetentionPeriod != 0 {
 			return fmt.Errorf("bad backup_retention_period: %#v", *v.BackupRetentionPeriod)
+		}
+
+		return nil
+	}
+}
+
+func testAccCheckAWSDBInstanceReplicaAttributes(r *rds.DBInstance) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+
+		// if *v.Engine != "mysql" {
+		// 	return fmt.Errorf("bad engine: %#v", *v.Engine)
+		// }
+
+		// if *v.EngineVersion != "5.6.21" {
+		// 	return fmt.Errorf("bad engine_version: %#v", *v.EngineVersion)
+		// }
+
+		// if *v.BackupRetentionPeriod != 0 {
+		// 	return fmt.Errorf("bad backup_retention_period: %#v", *v.BackupRetentionPeriod)
+		// }
+
+		if r.ReadReplicaSourceDBInstanceIdentifier != nil && *r.ReadReplicaSourceDBInstanceIdentifier != "tf-update-more" {
+			return fmt.Errorf("bad source identifier for replica, got: %#v, expected: 'tf-update-more'", *r.ReadReplicaSourceDBInstanceIdentifier)
 		}
 
 		return nil
@@ -155,4 +207,19 @@ resource "aws_db_instance" "bar" {
 	backup_retention_period = 0
 
 	parameter_group_name = "default.mysql5.6"
+}`, rand.New(rand.NewSource(time.Now().UnixNano())).Int())
+
+var testAccAWSDBInstanceReplicaConfig = fmt.Sprintf(`
+resource "aws_db_instance" "replica" {
+  identifier = "tf-replica-db-%d"
+  replicate_source_db = "tf-update-more"
+  allocated_storage = 5
+  engine = "mysql"
+  engine_version = "5.6.19b"
+  instance_class = "db.t1.micro"
+  password = "fofofofxx"
+  username = "foo"
+  tags {
+    Name = "tf-replica-db"
+  }
 }`, rand.New(rand.NewSource(time.Now().UnixNano())).Int())
