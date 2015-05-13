@@ -10,6 +10,8 @@ IMPROVEMENTS:
   * provider/aws: `aws_s3_bucket` exports `hosted_zone_id` and `region` [GH-1865]
   * provider/aws: `aws_route53_record` exports `fqdn` [GH-1847]
   * provider/google: `google_compute_instance` `scratch` attribute added [GH-1920]
+  * **New config function: `formatlist`** - Format lists in a similar way to `format`.
+    Useful for creating URLs from a list of IPs. [GH-1829]
 
 BUG FIXES:
 
@@ -20,6 +22,8 @@ BUG FIXES:
   * provider/aws: `aws_db_instance` ARN value is correct [GH-1910]
   * provider/aws: `aws_db_instance` only submit modify request if there
       is a change. [GH-1906]
+  * provider/aws: `aws_security_group` + `aws_subnet` - destroy timeout increased
+    to prevent DependencyViolation errors. [GH-1886]
   * provider/google: `google_compute_instance` Local SSDs no-longer cause crash
       [GH-1088]
   * provider/google: `google_http_health_check` Defaults now driven from Terraform,
