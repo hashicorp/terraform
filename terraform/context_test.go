@@ -139,6 +139,56 @@ func TestContext2Plan_moduleCycle(t *testing.T) {
 	}
 }
 
+func TestContext2Plan_moduleDeadlock(t *testing.T) {
+	m := testModule(t, "plan-module-deadlock")
+	p := testProvider("aws")
+	p.DiffFn = testDiffFn
+	timeout := make(chan bool, 1)
+	done := make(chan bool, 1)
+	go func() {
+		time.Sleep(3 * time.Second)
+		timeout <- true
+	}()
+	go func() {
+		ctx := testContext2(t, &ContextOpts{
+			Module: m,
+			Providers: map[string]ResourceProviderFactory{
+				"aws": testProviderFuncFixed(p),
+			},
+		})
+
+		plan, err := ctx.Plan()
+		done <- true
+		if err != nil {
+			t.Fatalf("err: %s", err)
+		}
+
+		actual := strings.TrimSpace(plan.String())
+		expected := strings.TrimSpace(`
+DIFF:
+
+module.child:
+  CREATE: aws_instance.foo.0
+  CREATE: aws_instance.foo.1
+  CREATE: aws_instance.foo.2
+
+STATE:
+
+<no state>
+		`)
+		if actual != expected {
+			t.Fatalf("expected:\n%sgot:\n%s", expected, actual)
+		}
+	}()
+
+	select {
+	case <-timeout:
+		t.Fatalf("timed out! probably deadlock")
+	case <-done:
+		// ok
+	}
+}
+
 func TestContext2Plan_moduleInput(t *testing.T) {
 	m := testModule(t, "plan-module-input")
 	p := testProvider("aws")
