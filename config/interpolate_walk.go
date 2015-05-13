@@ -11,8 +11,7 @@ import (
 )
 
 // InterpSplitDelim is the delimeter that is looked for to split when
-// it is returned. This is a comma right now but should eventually become
-// a value that a user is very unlikely to use (such as UUID).
+// it is returned.
 const InterpSplitDelim = `B780FFEC-B661-4EB8-9236-A01737AD98B6`
 
 // interpolationWalker implements interfaces for the reflectwalk package
