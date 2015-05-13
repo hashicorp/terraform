@@ -91,7 +91,6 @@ func resourceAwsDbInstance() *schema.Resource {
 				Type:     schema.TypeInt,
 				Optional: true,
 				Computed: true,
-				Default:  1,
 			},
 
 			"backup_window": &schema.Schema{
