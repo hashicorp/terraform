@@ -1,18 +1,28 @@
-package main
+package aws
 
 import (
+	"fmt"
+	"log"
 	"github.com/hashicorp/terraform/helper/schema"
+
+	"github.com/awslabs/aws-sdk-go/aws"
+	"github.com/awslabs/aws-sdk-go/service/s3"
+	"github.com/awslabs/aws-sdk-go/aws/awsutil"
 )
 
 func resourceAwsS3BucketPolicy() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceAwsS3BucketPolicyCreate,
+		Create: resourceAwsS3BucketPolicyPut,
+		Update: resourceAwsS3BucketPolicyPut,
 		Read:   resourceAwsS3BucketPolicyRead,
-		Update: resourceAwsS3BucketPolicyUpdate,
 		Delete: resourceAwsS3BucketPolicyDelete,
 
 		Schema: map[string]*schema.Schema{
-			"address": &schema.Schema{
+			"bucket": &schema.Schema{
+				Type:     schema.TypeString,
+				Required: true,
+			},
+			"policy": &schema.Schema{
 				Type:     schema.TypeString,
 				Required: true,
 			},
@@ -20,7 +30,24 @@ func resourceAwsS3BucketPolicy() *schema.Resource {
 	}
 }
 
-func resourceAwsS3BucketPolicyCreate(d *schema.ResourceData, m interface{}) error {
+func resourceAwsS3BucketPolicyPut(d *schema.ResourceData, meta interface{}) error {
+
+	s3conn := meta.(*AWSClient).s3conn
+	bucket := d.Get("bucket").(string)
+	policy := d.Get("policy").(string)
+
+	resp, err := s3conn.PutBucketPolicy(
+		&s3.PutBucketPolicyInput{
+			Bucket: aws.String(bucket),
+			Policy: aws.String(policy),
+		})
+
+	log.Printf("[DEBUG] S3 bucket policy set (response): %s", awsutil.StringValue(resp));
+
+	if err != nil {
+		return fmt.Errorf("Error adding policy to S3 bucket: %s", err)
+	}
+
 	return nil
 }
 
