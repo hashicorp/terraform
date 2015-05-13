@@ -173,6 +173,14 @@ func (n *graphNodeDisabledProvider) EvalTree() EvalNode {
 	}
 }
 
+// GraphNodeFlattenable impl.
+func (n *graphNodeDisabledProvider) Flatten(p []string) (dag.Vertex, error) {
+	return &graphNodeDisabledProviderFlat{
+		graphNodeDisabledProvider: n,
+		PathValue:                 p,
+	}, nil
+}
+
 func (n *graphNodeDisabledProvider) Name() string {
 	return fmt.Sprintf("%s (disabled)", dag.VertexName(n.GraphNodeProvider))
 }
@@ -203,6 +211,51 @@ func (n *graphNodeDisabledProvider) ProviderName() string {
 // GraphNodeProvider impl.
 func (n *graphNodeDisabledProvider) ProviderConfig() *config.RawConfig {
 	return n.GraphNodeProvider.ProviderConfig()
+}
+
+// Same as graphNodeDisabledProvider, but for flattening
+type graphNodeDisabledProviderFlat struct {
+	*graphNodeDisabledProvider
+
+	PathValue []string
+}
+
+func (n *graphNodeDisabledProviderFlat) Name() string {
+	return fmt.Sprintf(
+		"%s.%s", modulePrefixStr(n.PathValue), n.graphNodeDisabledProvider.Name())
+}
+
+func (n *graphNodeDisabledProviderFlat) Path() []string {
+	return n.PathValue
+}
+
+func (n *graphNodeDisabledProviderFlat) ProviderName() string {
+	return fmt.Sprintf(
+		"%s.%s", modulePrefixStr(n.PathValue),
+		n.graphNodeDisabledProvider.ProviderName())
+}
+
+// GraphNodeDependable impl.
+func (n *graphNodeDisabledProviderFlat) DependableName() []string {
+	return []string{n.Name()}
+}
+
+func (n *graphNodeDisabledProviderFlat) DependentOn() []string {
+	var result []string
+
+	// If we're in a module, then depend on our parent's provider
+	if len(n.PathValue) > 1 {
+		prefix := modulePrefixStr(n.PathValue[:len(n.PathValue)-1])
+		if prefix != "" {
+			prefix += "."
+		}
+
+		result = append(result, fmt.Sprintf(
+			"%s%s",
+			prefix, n.graphNodeDisabledProvider.Name()))
+	}
+
+	return result
 }
 
 type graphNodeMissingProvider struct {
