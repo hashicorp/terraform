@@ -1,4 +1,43 @@
-## 0.5.0 (unreleased)
+## 0.5.1 (unreleased)
+
+FEATURES:
+
+  * **Chef provisioning**: You can now provision new hosts (both Linux and
+     Windows) with [Chef](https://chef.io) using a native provisioner [GH-1868]
+
+IMPROVEMENTS:
+
+  * provider/aws: `aws_s3_bucket` exports `hosted_zone_id` and `region` [GH-1865]
+  * provider/aws: `aws_route53_record` exports `fqdn` [GH-1847]
+  * provider/google: `google_compute_instance` `scratch` attribute added [GH-1920]
+  * **New config function: `formatlist`** - Format lists in a similar way to `format`.
+    Useful for creating URLs from a list of IPs. [GH-1829]
+
+BUG FIXES:
+
+  * core: fix "resource not found" for interpolation issues with modules
+  * core: fix unflattenable error for orphans [GH-1922]
+  * command/push: local vars override remote ones [GH-1881]
+  * provider/aws: Mark `aws_security_group` description as `ForceNew` [GH-1871]
+  * provider/aws: `aws_db_instance` ARN value is correct [GH-1910]
+  * provider/aws: `aws_db_instance` only submit modify request if there
+      is a change. [GH-1906]
+  * provider/aws: `aws_security_group` + `aws_subnet` - destroy timeout increased
+    to prevent DependencyViolation errors. [GH-1886]
+  * provider/google: `google_compute_instance` Local SSDs no-longer cause crash
+      [GH-1088]
+  * provider/google: `google_http_health_check` Defaults now driven from Terraform,
+      avoids errors on update [GH-1894]
+  * provider/google: `google_compute_template` Update Instance Template network
+      definition to match changes to Instance [GH-980]
+  * provider/template: Fix infinite diff [GH-1898]
+
+## 0.5.0 (May 7, 2015)
+
+BACKWARDS INCOMPATIBILITIES:
+
+  * provider/aws: Terraform now remove the default egress rule created by AWS in
+    a new security group.
 
 FEATURES:
 
@@ -15,6 +54,8 @@ FEATURES:
      retry attempts is also configurable.
   * **Templates**: A new `template_file` resource allows long strings needing
      variable interpolation to be moved into files. [GH-1778]
+  * **Provision with WinRM**: Provisioners can now run remote commands on
+     Windows hosts. [GH-1483]
 
 IMPROVEMENTS:
 
@@ -70,6 +111,8 @@ IMPROVEMENTS:
   * provider/aws: `aws_elb` supports connection draining settings [GH-1502]
   * provider/aws: `aws_elb` increase default idle timeout to 60s [GH-1646]
   * provider/aws: `aws_key_pair` name can be omitted and generated [GH-1751]
+  * provider/aws: `aws_network_acl` improved validation for network ACL ports
+      and protocols [GH-1798] [GH-1808]
   * provider/aws: `aws_route_table` can target network interfaces [GH-968]
   * provider/aws: `aws_route_table` can specify propogating VGWs [GH-1516]
   * provider/aws: `aws_route53_record` supports weighted sets [GH-1578]
@@ -763,5 +806,3 @@ BUG FIXES:
 ## 0.1.0 (July 28, 2014)
 
   * Initial release
-
-

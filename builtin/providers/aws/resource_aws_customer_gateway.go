@@ -82,7 +82,7 @@ func resourceAwsCustomerGatewayCreate(d *schema.ResourceData, meta interface{}) 
 	}
 
 	// Create tags.
-	if err := setTagsSDK(conn, d); err != nil {
+	if err := setTags(conn, d); err != nil {
 		return err
 	}
 
@@ -147,7 +147,7 @@ func resourceAwsCustomerGatewayRead(d *schema.ResourceData, meta interface{}) er
 	d.Set("bgp_asn", customerGateway.BGPASN)
 	d.Set("ip_address", customerGateway.IPAddress)
 	d.Set("type", customerGateway.Type)
-	d.Set("tags", tagsToMapSDK(customerGateway.Tags))
+	d.Set("tags", tagsToMap(customerGateway.Tags))
 
 	return nil
 }
@@ -156,7 +156,7 @@ func resourceAwsCustomerGatewayUpdate(d *schema.ResourceData, meta interface{}) 
 	conn := meta.(*AWSClient).ec2conn
 
 	// Update tags if required.
-	if err := setTagsSDK(conn, d); err != nil {
+	if err := setTags(conn, d); err != nil {
 		return err
 	}
 

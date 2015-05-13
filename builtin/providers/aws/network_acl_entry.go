@@ -2,6 +2,7 @@ package aws
 
 import (
 	"fmt"
+	"net"
 	"strconv"
 
 	"github.com/awslabs/aws-sdk-go/aws"
@@ -65,4 +66,34 @@ func protocolIntegers() map[string]int {
 		"all":  -1,
 	}
 	return protocolIntegers
+}
+
+// expectedPortPair stores a pair of ports we expect to see together.
+type expectedPortPair struct {
+	to_port   int64
+	from_port int64
+}
+
+// validatePorts ensures the ports and protocol match expected
+// values.
+func validatePorts(to int64, from int64, expected expectedPortPair) bool {
+	if to != expected.to_port || from != expected.from_port {
+		return false
+	}
+
+	return true
+}
+
+// validateCIDRBlock ensures the passed CIDR block represents an implied
+// network, and not an overly-specified IP address.
+func validateCIDRBlock(cidr string) error {
+	_, ipnet, err := net.ParseCIDR(cidr)
+	if err != nil {
+		return err
+	}
+	if ipnet.String() != cidr {
+		return fmt.Errorf("%s is not a valid mask; did you mean %s?", cidr, ipnet)
+	}
+
+	return nil
 }

@@ -17,6 +17,7 @@ import (
 	"reflect"
 	"sort"
 	"strconv"
+	"strings"
 
 	"github.com/hashicorp/terraform/terraform"
 	"github.com/mitchellh/mapstructure"
@@ -410,7 +411,10 @@ func (m schemaMap) Validate(c *terraform.ResourceConfig) ([]string, []error) {
 // InternalValidate validates the format of this schema. This should be called
 // from a unit test (and not in user-path code) to verify that a schema
 // is properly built.
-func (m schemaMap) InternalValidate() error {
+func (m schemaMap) InternalValidate(topSchemaMap schemaMap) error {
+	if topSchemaMap == nil {
+		topSchemaMap = m
+	}
 	for k, v := range m {
 		if v.Type == TypeInvalid {
 			return fmt.Errorf("%s: Type must be specified", k)
@@ -446,11 +450,32 @@ func (m schemaMap) InternalValidate() error {
 
 		if len(v.ConflictsWith) > 0 {
 			for _, key := range v.ConflictsWith {
-				if m[key].Required {
+				parts := strings.Split(key, ".")
+				sm := topSchemaMap
+				var target *Schema
+				for _, part := range parts {
+					// Skip index fields
+					if _, err := strconv.Atoi(part); err == nil {
+						continue
+					}
+
+					var ok bool
+					if target, ok = sm[part]; !ok {
+						return fmt.Errorf("%s: ConflictsWith references unknown attribute (%s)", k, key)
+					}
+
+					if subResource, ok := target.Elem.(*Resource); ok {
+						sm = schemaMap(subResource.Schema)
+					}
+				}
+				if target == nil {
+					return fmt.Errorf("%s: ConflictsWith cannot find target attribute (%s), sm: %#v", k, key, sm)
+				}
+				if target.Required {
 					return fmt.Errorf("%s: ConflictsWith cannot contain Required attribute (%s)", k, key)
 				}
 
-				if m[key].Computed || len(m[key].ComputedWhen) > 0 {
+				if target.Computed || len(target.ComputedWhen) > 0 {
 					return fmt.Errorf("%s: ConflictsWith cannot contain Computed(When) attribute (%s)", k, key)
 				}
 			}
@@ -473,7 +498,7 @@ func (m schemaMap) InternalValidate() error {
 
 			switch t := v.Elem.(type) {
 			case *Resource:
-				if err := t.InternalValidate(); err != nil {
+				if err := t.InternalValidate(topSchemaMap); err != nil {
 					return err
 				}
 			case *Schema:

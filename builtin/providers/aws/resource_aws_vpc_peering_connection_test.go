@@ -46,7 +46,7 @@ func TestAccAWSVPCPeeringConnection_tags(t *testing.T) {
 				Config: testAccVpcPeeringConfigTags,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSVpcPeeringConnectionExists("aws_vpc_peering_connection.foo", &connection),
-					testAccCheckTagsSDK(&connection.Tags, "foo", "bar"),
+					testAccCheckTags(&connection.Tags, "foo", "bar"),
 				),
 			},
 		},

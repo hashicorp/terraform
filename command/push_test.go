@@ -205,6 +205,10 @@ func TestPush_inputTfvars(t *testing.T) {
 	defer os.Remove(archivePath)
 
 	client := &mockPushClient{File: archivePath}
+	// Provided vars should override existing ones
+	client.GetResult = map[string]string{
+		"foo": "old",
+	}
 	ui := new(cli.MockUi)
 	c := &PushCommand{
 		Meta: Meta{

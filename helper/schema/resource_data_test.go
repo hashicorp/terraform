@@ -2513,7 +2513,7 @@ func TestResourceDataState(t *testing.T) {
 			},
 		},
 
-		// #20
+		// #20 empty computed map
 		{
 			Schema: map[string]*Schema{
 				"tags": &Schema{
@@ -2539,7 +2539,9 @@ func TestResourceDataState(t *testing.T) {
 			},
 
 			Result: &terraform.InstanceState{
-				Attributes: map[string]string{},
+				Attributes: map[string]string{
+					"tags.#": "0",
+				},
 			},
 		},
 

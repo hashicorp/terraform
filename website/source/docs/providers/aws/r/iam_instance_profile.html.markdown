@@ -13,10 +13,15 @@ Provides an IAM instance profile.
 ## Example Usage
 
 ```
+resource "aws_iam_instance_profile" "test_profile" {
+    name = "test_profile"
+    roles = ["${aws_iam_role.role.name}"]
+}
+
 resource "aws_iam_role" "role" {
     name = "test_role"
     path = "/"
-    policy = <<EOF
+    assume_role_policy = <<EOF
 {
   "Version": "2012-10-17",
   "Statement": [
@@ -30,11 +35,6 @@ resource "aws_iam_role" "role" {
   ]
 }
 EOF
-}
-
-resource "aws_iam_instance_profile" "test_profile" {
-    name = "test_profile"
-    roles = ["${aws_iam_role.role.name}"]
 }
 ```
 

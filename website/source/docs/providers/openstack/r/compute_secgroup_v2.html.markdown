@@ -1,7 +1,7 @@
 ---
 layout: "openstack"
 page_title: "OpenStack: openstack_compute_secgroup_v2"
-sidebar_current: "docs-openstack-resource-compute-secgroup-2"
+sidebar_current: "docs-openstack-resource-compute-secgroup-v2"
 description: |-
   Manages a V2 security group resource within OpenStack.
 ---

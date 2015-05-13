@@ -252,7 +252,7 @@ func (c *Communicator) UploadScript(path string, input io.Reader) error {
 
 // UploadDir implementation of communicator.Communicator interface
 func (c *Communicator) UploadDir(dst string, src string) error {
-	log.Printf("Upload dir '%s' to '%s'", src, dst)
+	log.Printf("Uploading dir '%s' to '%s'", src, dst)
 	scpFunc := func(w io.Writer, r *bufio.Reader) error {
 		uploadEntries := func() error {
 			f, err := os.Open(src)

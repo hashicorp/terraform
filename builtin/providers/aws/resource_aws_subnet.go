@@ -115,7 +115,7 @@ func resourceAwsSubnetRead(d *schema.ResourceData, meta interface{}) error {
 	d.Set("availability_zone", subnet.AvailabilityZone)
 	d.Set("cidr_block", subnet.CIDRBlock)
 	d.Set("map_public_ip_on_launch", subnet.MapPublicIPOnLaunch)
-	d.Set("tags", tagsToMapSDK(subnet.Tags))
+	d.Set("tags", tagsToMap(subnet.Tags))
 
 	return nil
 }
@@ -125,7 +125,7 @@ func resourceAwsSubnetUpdate(d *schema.ResourceData, meta interface{}) error {
 
 	d.Partial(true)
 
-	if err := setTagsSDK(conn, d); err != nil {
+	if err := setTags(conn, d); err != nil {
 		return err
 	} else {
 		d.SetPartial("tags")
@@ -166,7 +166,7 @@ func resourceAwsSubnetDelete(d *schema.ResourceData, meta interface{}) error {
 	wait := resource.StateChangeConf{
 		Pending:    []string{"pending"},
 		Target:     "destroyed",
-		Timeout:    2 * time.Minute,
+		Timeout:    5 * time.Minute,
 		MinTimeout: 1 * time.Second,
 		Refresh: func() (interface{}, string, error) {
 			_, err := conn.DeleteSubnet(req)

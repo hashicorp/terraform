@@ -1,7 +1,7 @@
 ---
 layout: "openstack"
 page_title: "OpenStack: openstack_networking_router_interface_v2"
-sidebar_current: "docs-openstack-resource-networking-router-interface-2"
+sidebar_current: "docs-openstack-resource-networking-router-interface-v2"
 description: |-
   Manages a V2 router interface resource within OpenStack.
 ---

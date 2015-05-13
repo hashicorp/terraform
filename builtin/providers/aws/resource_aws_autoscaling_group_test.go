@@ -285,7 +285,6 @@ func testAccCheckAWSAutoScalingGroupHealthyCapacity(
 
 const testAccAWSAutoScalingGroupConfig = `
 resource "aws_launch_configuration" "foobar" {
-  name = "foobarautoscaling-terraform-test"
   image_id = "ami-21f78e11"
   instance_type = "t1.micro"
 }
@@ -313,13 +312,11 @@ resource "aws_autoscaling_group" "bar" {
 
 const testAccAWSAutoScalingGroupConfigUpdate = `
 resource "aws_launch_configuration" "foobar" {
-  name = "foobarautoscaling-terraform-test"
   image_id = "ami-21f78e11"
   instance_type = "t1.micro"
 }
 
 resource "aws_launch_configuration" "new" {
-  name = "foobarautoscaling-terraform-test-new"
   image_id = "ami-21f78e11"
   instance_type = "t1.micro"
 }
@@ -358,7 +355,6 @@ resource "aws_elb" "bar" {
 }
 
 resource "aws_launch_configuration" "foobar" {
-  name = "foobarautoscaling-terraform-test"
   image_id = "ami-21f78e11"
   instance_type = "t1.micro"
 }

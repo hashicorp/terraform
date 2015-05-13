@@ -136,6 +136,24 @@ func TestBuiltinGraphBuilder_cbdDepNonCbd_errorsWhenVerbose(t *testing.T) {
 	}
 }
 
+func TestBuiltinGraphBuilder_multiLevelModule(t *testing.T) {
+	b := &BuiltinGraphBuilder{
+		Root:     testModule(t, "graph-builder-multi-level-module"),
+		Validate: true,
+	}
+
+	g, err := b.Build(RootModulePath)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	actual := strings.TrimSpace(g.String())
+	expected := strings.TrimSpace(testBuiltinGraphBuilderMultiLevelStr)
+	if actual != expected {
+		t.Fatalf("bad: %s", actual)
+	}
+}
+
 /*
 TODO: This exposes a really bad bug we need to fix after we merge
 the f-ast-branch. This bug still exists in master.
@@ -212,4 +230,18 @@ module.consul (expanded)
   aws_security_group.firewall
   provider.aws
 provider.aws
+`
+
+const testBuiltinGraphBuilderMultiLevelStr = `
+module.foo.module.bar.output.value
+  module.foo.module.bar.var.bar
+module.foo.module.bar.plan-destroy
+module.foo.module.bar.var.bar
+  module.foo.var.foo
+module.foo.plan-destroy
+module.foo.var.foo
+root
+  module.foo.module.bar.output.value
+  module.foo.module.bar.plan-destroy
+  module.foo.plan-destroy
 `
