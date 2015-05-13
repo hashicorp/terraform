@@ -233,15 +233,13 @@ func resourceAwsNetworkAclUpdate(d *schema.ResourceData, meta interface{}) error
 	if d.HasChange("subnet_ids") {
 		o, n := d.GetChange("subnet_ids")
 
-		ol := o.([]interface{})
 		var pre []string
-		for _, x := range ol {
+		for _, x := range o.([]interface{}) {
 			pre = append(pre, x.(string))
 		}
 
-		nl := n.([]interface{})
 		var post []string
-		for _, x := range nl {
+		for _, x := range n.([]interface{}) {
 			post = append(post, x.(string))
 		}
 
