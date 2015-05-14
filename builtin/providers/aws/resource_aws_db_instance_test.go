@@ -33,6 +33,8 @@ func TestAccAWSDBInstance(t *testing.T) {
 					resource.TestCheckResourceAttr(
 						"aws_db_instance.bar", "engine_version", "5.6.21"),
 					resource.TestCheckResourceAttr(
+						"aws_db_instance.bar", "license_model", "general-public-license"),
+					resource.TestCheckResourceAttr(
 						"aws_db_instance.bar", "instance_class", "db.t1.micro"),
 					resource.TestCheckResourceAttr(
 						"aws_db_instance.bar", "name", "baz"),
