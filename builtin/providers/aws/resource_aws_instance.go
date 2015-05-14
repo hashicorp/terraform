@@ -487,6 +487,12 @@ func resourceAwsInstanceCreate(d *schema.ResourceData, meta interface{}) error {
 			}
 
 			if dn, err := fetchRootDeviceName(d.Get("ami").(string), conn); err == nil {
+				if dn == nil {
+					return fmt.Errorf(
+						"Expected 1 AMI for ID: %s, got none",
+						d.Get("ami").(string))
+				}
+
 				blockDevices = append(blockDevices, &ec2.BlockDeviceMapping{
 					DeviceName: dn,
 					EBS:        ebs,
@@ -874,6 +880,8 @@ func fetchRootDeviceName(ami string, conn *ec2.EC2) (*string, error) {
 	if res, err := conn.DescribeImages(req); err == nil {
 		if len(res.Images) == 1 {
 			return res.Images[0].RootDeviceName, nil
+		} else if len(res.Images) == 0 {
+			return nil, nil
 		} else {
 			return nil, fmt.Errorf("Expected 1 AMI for ID: %s, got: %#v", ami, res.Images)
 		}
