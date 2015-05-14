@@ -161,13 +161,14 @@ func resourceAwsElasticacheClusterCreate(d *schema.ResourceData, meta interface{
 
 	d.SetId(clusterId)
 
-	return nil
+        return resourceAwsElasticacheClusterRead(d, meta)
 }
 
 func resourceAwsElasticacheClusterRead(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).elasticacheconn
 	req := &elasticache.DescribeCacheClustersInput{
-		CacheClusterID: aws.String(d.Id()),
+                CacheClusterID:    aws.String(d.Id()),
+                ShowCacheNodeInfo: aws.Boolean(true),
 	}
 
 	res, err := conn.DescribeCacheClusters(req)
@@ -210,9 +211,9 @@ func setCacheNodeData(d *schema.ResourceData, c *elasticache.CacheCluster) error
 			return fmt.Errorf("Unexpected nil pointer in: %#v", node)
 		}
 		cacheNodeData = append(cacheNodeData, map[string]interface{}{
-			"id":      node.CacheNodeID,
-			"address": node.Endpoint.Address,
-			"port":    node.Endpoint.Port,
+                        "id":      *node.CacheNodeID,
+                        "address": *node.Endpoint.Address,
+                        "port":    int(*node.Endpoint.Port),
 		})
 	}
 
