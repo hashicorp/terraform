@@ -9,6 +9,8 @@ IMPROVEMENTS:
 
   * **New config function: `formatlist`** - Format lists in a similar way to `format`.
     Useful for creating URLs from a list of IPs. [GH-1829]
+  * provider/aws: `aws_autoscaling_group` can wait for capacity in ELB
+      via `min_elb_capacity` [GH-1970]
   * provider/aws: `aws_db_instances` supports `license_model` [GH-1966]
   * provider/aws: `aws_elasticache_cluster` add support for Tags [GH-1965]
   * provider/aws: `aws_s3_bucket` exports `hosted_zone_id` and `region` [GH-1865]
