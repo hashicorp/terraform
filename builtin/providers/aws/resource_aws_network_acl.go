@@ -31,17 +31,19 @@ func resourceAwsNetworkAcl() *schema.Resource {
 				Computed: false,
 			},
 			"subnet_id": &schema.Schema{
-				Type:       schema.TypeString,
-				Optional:   true,
-				ForceNew:   true,
-				Computed:   false,
-				Deprecated: "Attribute subnet_id is deprecated on network_acl resources. Use subnet_ids instead",
+				Type:          schema.TypeString,
+				Optional:      true,
+				ForceNew:      true,
+				Computed:      false,
+				ConflictsWith: []string{"subnet_ids"},
+				Deprecated:    "Attribute subnet_id is deprecated on network_acl resources. Use subnet_ids instead",
 			},
 			"subnet_ids": &schema.Schema{
-				Type:     schema.TypeList,
-				Optional: true,
-				// Computed: true,
-				Elem: &schema.Schema{Type: schema.TypeString},
+				Type:          schema.TypeSet,
+				Optional:      true,
+				ConflictsWith: []string{"subnet_id"},
+				Elem:          &schema.Schema{Type: schema.TypeString},
+				Set:           schema.HashString,
 			},
 			"ingress": &schema.Schema{
 				Type:     schema.TypeSet,
@@ -232,19 +234,18 @@ func resourceAwsNetworkAclUpdate(d *schema.ResourceData, meta interface{}) error
 
 	if d.HasChange("subnet_ids") {
 		o, n := d.GetChange("subnet_ids")
-
-		var pre []string
-		for _, x := range o.([]interface{}) {
-			pre = append(pre, x.(string))
+		if o == nil {
+			o = new(schema.Set)
+		}
+		if n == nil {
+			n = new(schema.Set)
 		}
 
-		var post []string
-		for _, x := range n.([]interface{}) {
-			post = append(post, x.(string))
-		}
+		os := o.(*schema.Set)
+		ns := n.(*schema.Set)
 
-		remove := diffSubnets(pre, post)
-		add := diffSubnets(post, pre)
+		remove := os.Difference(ns).List()
+		add := ns.Difference(os).List()
 
 		if len(remove) > 0 {
 			// A Network ACL is required for each subnet. In order to disassociate a
@@ -254,7 +255,7 @@ func resourceAwsNetworkAclUpdate(d *schema.ResourceData, meta interface{}) error
 				return fmt.Errorf("Failed to find Default ACL for VPC %s", d.Get("vpc_id").(string))
 			}
 			for _, r := range remove {
-				association, err := findNetworkAclAssociation(r, conn)
+				association, err := findNetworkAclAssociation(r.(string), conn)
 				if err != nil {
 					return fmt.Errorf("Failed to find acl association: acl %s with subnet %s: %s", d.Id(), r, err)
 				}
@@ -270,7 +271,7 @@ func resourceAwsNetworkAclUpdate(d *schema.ResourceData, meta interface{}) error
 
 		if len(add) > 0 {
 			for _, a := range add {
-				association, err := findNetworkAclAssociation(a, conn)
+				association, err := findNetworkAclAssociation(a.(string), conn)
 				if err != nil {
 					return fmt.Errorf("Failed to find acl association: acl %s with subnet %s: %s", d.Id(), a, err)
 				}
@@ -409,7 +410,7 @@ func resourceAwsNetworkAclDelete(d *schema.ResourceData, meta interface{}) error
 				}
 
 				if v, ok := d.GetOk("subnet_ids"); ok {
-					ids := v.([]interface{})
+					ids := v.(*schema.Set).List()
 					for _, i := range ids {
 						a, err := findNetworkAclAssociation(i.(string), conn)
 						if err != nil {
@@ -541,23 +542,4 @@ func networkAclEntriesToMapList(networkAcls []*ec2.NetworkACLEntry) []map[string
 	}
 
 	return result
-}
-
-func diffSubnets(o, n []string) []string {
-	m := make(map[string]int)
-
-	for _, y := range n {
-		m[y]++
-	}
-
-	var ret []string
-	for _, x := range o {
-		if m[x] > 0 {
-			m[x]--
-			continue
-		}
-		ret = append(ret, x)
-	}
-
-	return ret
 }
