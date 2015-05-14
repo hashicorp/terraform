@@ -53,6 +53,7 @@ func resourceBlockStorageVolumeV1() *schema.Resource {
 				Type:     schema.TypeMap,
 				Optional: true,
 				ForceNew: false,
+				Computed: true,
 			},
 			"snapshot_id": &schema.Schema{
 				Type:     schema.TypeString,

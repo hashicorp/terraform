@@ -46,7 +46,7 @@ func TestAccComputeV2Instance_basic(t *testing.T) {
 	})
 }
 
-func _TestAccComputeV2Instance_volumeAttach(t *testing.T) {
+func TestAccComputeV2Instance_volumeAttach(t *testing.T) {
 	var instance servers.Server
 	var volume volumes.Volume
 
@@ -229,6 +229,7 @@ var testAccComputeV2Instance_volumeAttach = fmt.Sprintf(`
   resource "openstack_compute_instance_v2" "foo" {
     region = "%s"
     name = "terraform-test"
+    security_groups = ["default"]
     volume {
       volume_id = "${openstack_blockstorage_volume_v1.myvol.id}"
     }
