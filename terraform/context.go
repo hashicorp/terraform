@@ -103,9 +103,6 @@ func NewContext(opts *ContextOpts) *Context {
 	// Setup the variables. We first take the variables given to us.
 	// We then merge in the variables set in the environment.
 	variables := make(map[string]string)
-	for k, v := range opts.Variables {
-		variables[k] = v
-	}
 	for _, v := range os.Environ() {
 		if !strings.HasPrefix(v, VarEnvPrefix) {
 			continue
@@ -117,6 +114,9 @@ func NewContext(opts *ContextOpts) *Context {
 		v = v[idx+1:]
 
 		// Override the command-line set variable
+		variables[k] = v
+	}
+	for k, v := range opts.Variables {
 		variables[k] = v
 	}
 
