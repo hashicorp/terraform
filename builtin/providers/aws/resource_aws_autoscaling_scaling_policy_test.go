@@ -2,10 +2,7 @@ package aws
 
 import(
     "fmt"
-    //"math/rand"
-    //"strings"
     "testing"
-    //"time"
 
     "github.com/awslabs/aws-sdk-go/aws"
     "github.com/awslabs/aws-sdk-go/service/autoscaling"
@@ -15,8 +12,6 @@ import(
 
 func TestAccAWSAutoscalingScalingPolicy_basic(t *testing.T) {
     var policy autoscaling.ScalingPolicy
-    //var group autoscaling.AutoScalingGroup
-    //var lc autoscaling.LaunchConfiguration
 
     resource.Test(t, resource.TestCase{
         PreCheck:       func () { testAccPreCheck(t) },
@@ -37,9 +32,7 @@ func TestAccAWSAutoscalingScalingPolicy_basic(t *testing.T) {
 
 func testAccCheckScalingPolicyExists(n string, policy *autoscaling.ScalingPolicy) resource.TestCheckFunc {
     return func(s *terraform.State) error {
-        fmt.Printf("[DEBUG] alex %s", n)
         rs, ok := s.RootModule().Resources[n]
-        fmt.Printf("[DEBUG] alex %#v", rs)
         if !ok {
             rs = rs
             return fmt.Errorf("Not found: %s", n)

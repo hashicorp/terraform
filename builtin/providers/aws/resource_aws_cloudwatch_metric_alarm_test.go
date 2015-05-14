@@ -2,11 +2,8 @@ package aws
 
 import(
     "fmt"
-//    "math/rand"
-//    "strings"
     "testing"
-//    "time"
-//
+
     "github.com/awslabs/aws-sdk-go/aws"
     "github.com/awslabs/aws-sdk-go/service/cloudwatch"
     "github.com/hashicorp/terraform/helper/resource"

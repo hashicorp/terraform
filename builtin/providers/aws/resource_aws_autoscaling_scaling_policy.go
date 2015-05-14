@@ -75,6 +75,7 @@ func resourceAwsAutoscalingScalingPolicyRead(d *schema.ResourceData, meta interf
         return err
     }
     if p == nil {
+        d.SetId("")
         return nil
     }
 
@@ -177,6 +178,5 @@ func getAwsAutoscalingScalingPolicy(d *schema.ResourceData, meta interface{}) (*
     }
 
     // policy not found
-    d.SetId("")
     return nil, nil
 }
