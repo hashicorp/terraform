@@ -43,6 +43,7 @@ func resourceAwsElasticacheCluster() *schema.Resource {
 			"parameter_group_name": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
+				Computed: true,
 				ForceNew: true,
 			},
 			"port": &schema.Schema{
@@ -120,7 +121,6 @@ func resourceAwsElasticacheClusterCreate(d *schema.ResourceData, meta interface{
 	subnetGroupName := d.Get("subnet_group_name").(string)
 	securityNameSet := d.Get("security_group_names").(*schema.Set)
 	securityIdSet := d.Get("security_group_ids").(*schema.Set)
-	paramGroupName := d.Get("parameter_group_name").(string) // default.memcached1.4
 
 	securityNames := expandStringList(securityNameSet.List())
 	securityIds := expandStringList(securityIdSet.List())
@@ -135,7 +135,11 @@ func resourceAwsElasticacheClusterCreate(d *schema.ResourceData, meta interface{
 		CacheSubnetGroupName:    aws.String(subnetGroupName),
 		CacheSecurityGroupNames: securityNames,
 		SecurityGroupIDs:        securityIds,
-		CacheParameterGroupName: aws.String(paramGroupName),
+	}
+
+	// parameter groups are optional and can be defaulted by AWS
+	if v, ok := d.GetOk("parameter_group_name"); ok {
+		req.CacheParameterGroupName = aws.String(v.(string))
 	}
 
 	_, err := conn.CreateCacheCluster(req)
@@ -161,14 +165,14 @@ func resourceAwsElasticacheClusterCreate(d *schema.ResourceData, meta interface{
 
 	d.SetId(clusterId)
 
-        return resourceAwsElasticacheClusterRead(d, meta)
+	return resourceAwsElasticacheClusterRead(d, meta)
 }
 
 func resourceAwsElasticacheClusterRead(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).elasticacheconn
 	req := &elasticache.DescribeCacheClustersInput{
-                CacheClusterID:    aws.String(d.Id()),
-                ShowCacheNodeInfo: aws.Boolean(true),
+		CacheClusterID:    aws.String(d.Id()),
+		ShowCacheNodeInfo: aws.Boolean(true),
 	}
 
 	res, err := conn.DescribeCacheClusters(req)
@@ -211,9 +215,9 @@ func setCacheNodeData(d *schema.ResourceData, c *elasticache.CacheCluster) error
 			return fmt.Errorf("Unexpected nil pointer in: %#v", node)
 		}
 		cacheNodeData = append(cacheNodeData, map[string]interface{}{
-                        "id":      *node.CacheNodeID,
-                        "address": *node.Endpoint.Address,
-                        "port":    int(*node.Endpoint.Port),
+			"id":      *node.CacheNodeID,
+			"address": *node.Endpoint.Address,
+			"port":    int(*node.Endpoint.Port),
 		})
 	}
 
