@@ -6417,6 +6417,10 @@ func TestContext2Apply_vars(t *testing.T) {
 }
 
 func TestContext2Apply_varsEnv(t *testing.T) {
+	// Set the env var
+	old := tempEnv(t, "TF_VAR_ami", "baz")
+	defer os.Setenv("TF_VAR_ami", old)
+
 	m := testModule(t, "apply-vars-env")
 	p := testProvider("aws")
 	p.ApplyFn = testApplyFn
@@ -6427,10 +6431,6 @@ func TestContext2Apply_varsEnv(t *testing.T) {
 			"aws": testProviderFuncFixed(p),
 		},
 	})
-
-	// Set the env var
-	old := tempEnv(t, "TF_VAR_ami", "baz")
-	defer os.Setenv("TF_VAR_ami", old)
 
 	w, e := ctx.Validate()
 	if len(w) > 0 {

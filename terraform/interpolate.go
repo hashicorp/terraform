@@ -49,11 +49,6 @@ func (i *Interpolater) Values(
 		}
 		for _, v := range mod.Config().Variables {
 			for k, val := range v.DefaultsMap() {
-				envKey := VarEnvPrefix + strings.TrimPrefix(k, "var.")
-				if v := os.Getenv(envKey); v != "" {
-					val = v
-				}
-
 				result[k] = ast.Variable{
 					Value: val,
 					Type:  ast.TypeString,
