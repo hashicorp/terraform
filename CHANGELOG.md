@@ -10,6 +10,7 @@ IMPROVEMENTS:
   * **New config function: `formatlist`** - Format lists in a similar way to `format`.
     Useful for creating URLs from a list of IPs. [GH-1829]
   * provider/aws: `aws_db_instances` supports `license_model` [GH-1966]
+  * provider/aws: `aws_elasticache_cluster` add support for Tags [GH-1965]
   * provider/aws: `aws_s3_bucket` exports `hosted_zone_id` and `region` [GH-1865]
   * provider/aws: `aws_route53_record` exports `fqdn` [GH-1847]
   * provider/google: `google_compute_instance` `scratch` attribute added [GH-1920]
@@ -28,6 +29,7 @@ BUG FIXES:
   * provider/aws: `aws_db_instance` ARN value is correct [GH-1910]
   * provider/aws: `aws_db_instance` only submit modify request if there
       is a change. [GH-1906]
+  * provider/aws: `aws_elasticache_cluster` export missing information on cluster nodes [GH-1965]
   * provider/aws: bad AMI on a launch configuration won't block refresh [GH-1901]
   * provider/aws: `aws_security_group` + `aws_subnet` - destroy timeout increased
     to prevent DependencyViolation errors. [GH-1886]
