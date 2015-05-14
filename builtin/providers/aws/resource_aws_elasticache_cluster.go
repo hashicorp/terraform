@@ -234,7 +234,7 @@ func resourceAwsElasticacheClusterUpdate(d *schema.ResourceData, meta interface{
 	conn := meta.(*AWSClient).elasticacheconn
 	arn, err := buildECARN(d, meta)
 	if err != nil {
-		log.Printf("[DEBUG] Error building ARN for ElastiCache Cluster, not updating Tags for cluster %s", *c.CacheClusterID)
+		log.Printf("[DEBUG] Error building ARN for ElastiCache Cluster, not updating Tags for cluster %s", d.Id())
 	} else {
 		if err := setTagsEC(conn, d, arn); err != nil {
 			return err
