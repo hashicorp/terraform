@@ -102,6 +102,12 @@ func resourceAwsDbInstance() *schema.Resource {
 				Optional: true,
 			},
 
+			"license_model": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				Computed: true,
+			},
+
 			"maintenance_window": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
@@ -228,6 +234,10 @@ func resourceAwsDbInstanceCreate(d *schema.ResourceData, meta interface{}) error
 		opts.AvailabilityZone = aws.String(attr.(string))
 	}
 
+	if attr, ok := d.GetOk("license_model"); ok {
+		opts.LicenseModel = aws.String(attr.(string))
+	}
+
 	if attr, ok := d.GetOk("maintenance_window"); ok {
 		opts.PreferredMaintenanceWindow = aws.String(attr.(string))
 	}
@@ -316,6 +326,7 @@ func resourceAwsDbInstanceRead(d *schema.ResourceData, meta interface{}) error {
 	d.Set("availability_zone", v.AvailabilityZone)
 	d.Set("backup_retention_period", v.BackupRetentionPeriod)
 	d.Set("backup_window", v.PreferredBackupWindow)
+	d.Set("license_model", v.LicenseModel)
 	d.Set("maintenance_window", v.PreferredMaintenanceWindow)
 	d.Set("multi_az", v.MultiAZ)
 	if v.DBSubnetGroup != nil {
