@@ -209,7 +209,6 @@ func resourceComputeInstanceV2() *schema.Resource {
 					Schema: map[string]*schema.Schema{
 						"id": &schema.Schema{
 							Type:     schema.TypeString,
-							Optional: true,
 							Computed: true,
 						},
 						"volume_id": &schema.Schema{
@@ -955,7 +954,6 @@ func resourceComputeVolumeAttachmentHash(v interface{}) int {
 	var buf bytes.Buffer
 	m := v.(map[string]interface{})
 	buf.WriteString(fmt.Sprintf("%s-", m["volume_id"].(string)))
-	buf.WriteString(fmt.Sprintf("%s-", m["device"].(string)))
 	return hashcode.String(buf.String())
 }
 
