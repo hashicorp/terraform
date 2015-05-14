@@ -3,7 +3,9 @@ package terraform
 import (
 	"fmt"
 	"log"
+	"os"
 	"sort"
+	"strings"
 	"sync"
 
 	"github.com/hashicorp/go-multierror"
@@ -98,6 +100,26 @@ func NewContext(opts *ContextOpts) *Context {
 		par = 10
 	}
 
+	// Setup the variables. We first take the variables given to us.
+	// We then merge in the variables set in the environment.
+	variables := make(map[string]string)
+	for k, v := range opts.Variables {
+		variables[k] = v
+	}
+	for _, v := range os.Environ() {
+		if !strings.HasPrefix(v, VarEnvPrefix) {
+			continue
+		}
+
+		// Strip off the prefix and get the value after the first "="
+		idx := strings.Index(v, "=")
+		k := v[len(VarEnvPrefix):idx]
+		v = v[idx+1:]
+
+		// Override the command-line set variable
+		variables[k] = v
+	}
+
 	return &Context{
 		destroy:      opts.Destroy,
 		diff:         opts.Diff,
@@ -108,7 +130,7 @@ func NewContext(opts *ContextOpts) *Context {
 		state:        state,
 		targets:      opts.Targets,
 		uiInput:      opts.UIInput,
-		variables:    opts.Variables,
+		variables:    variables,
 
 		parallelSem:         NewSemaphore(par),
 		providerInputConfig: make(map[string]map[string]interface{}),
