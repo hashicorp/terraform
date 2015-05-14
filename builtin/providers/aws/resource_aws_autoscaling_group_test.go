@@ -347,26 +347,36 @@ resource "aws_elb" "bar" {
   availability_zones = ["us-west-2a"]
 
   listener {
-    instance_port = 8000
+    instance_port = 80
     instance_protocol = "http"
     lb_port = 80
     lb_protocol = "http"
   }
+
+  health_check {
+    healthy_threshold = 2
+    unhealthy_threshold = 2
+    target = "HTTP:80/"
+    interval = 5
+    timeout = 2
+  }
 }
 
 resource "aws_launch_configuration" "foobar" {
-  image_id = "ami-21f78e11"
-  instance_type = "t1.micro"
+  // need an AMI that listens on :80 at boot, this is:
+  // bitnami-nginxstack-1.6.1-0-linux-ubuntu-14.04.1-x86_64-hvm-ebs-ami-99f5b1a9-3
+  image_id = "ami-b5b3fc85"
+  instance_type = "t2.micro"
 }
 
 resource "aws_autoscaling_group" "bar" {
   availability_zones = ["us-west-2a"]
   name = "foobar3-terraform-test"
-  max_size = 5
+  max_size = 2
   min_size = 2
   health_check_grace_period = 300
   health_check_type = "ELB"
-  desired_capacity = 4
+  min_elb_capacity = 1
   force_delete = true
 
   launch_configuration = "${aws_launch_configuration.foobar.name}"
