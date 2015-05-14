@@ -171,6 +171,11 @@ func (r *Resource) Validate(c *terraform.ResourceConfig) ([]string, []error) {
 func (r *Resource) Refresh(
 	s *terraform.InstanceState,
 	meta interface{}) (*terraform.InstanceState, error) {
+	// If the ID is already somehow blank, it doesn't exist
+	if s.ID == "" {
+		return nil, nil
+	}
+
 	if r.Exists != nil {
 		// Make a copy of data so that if it is modified it doesn't
 		// affect our Read later.
