@@ -54,11 +54,31 @@ func resourceAwsS3BucketPolicyPut(d *schema.ResourceData, meta interface{}) erro
 		return fmt.Errorf("Error adding policy to S3 bucket: %s", err)
 	}
 
-	d.SetId(fmt.Sprintf("%s:%s", bucket, ))
+	d.SetId(fmt.Sprintf("%s:%s", bucket, name))
 	return nil
 }
 
-func resourceAwsS3BucketPolicyRead(d *schema.ResourceData, m interface{}) error {
+func resourceAwsS3BucketPolicyRead(d *schema.ResourceData, meta interface{}) error {
+
+	s3conn := meta.(*AWSClient).s3conn
+	bucket := d.Get("bucket").(string)
+
+	params := &s3.GetBucketPolicyInput{
+		Bucket: aws.String(bucket),
+	}
+
+	resp, err := s3conn.GetBucketPolicy(params)
+
+	if awserr := aws.Error(err); awserr != nil {
+		log.Printf("[ERROR] Aws Service Error: %s", awserr.Message)
+		d.SetId("")
+		return nil
+	} else if err != nil {
+		return fmt.Errorf("Error getting policy for S3 bucket (%s): %s", bucket, err)	
+	}
+
+	log.Printf("[!!!!] %s", awsutil.StringValue(resp))
+	//TODO: GetBucketPolicy does not seem to be working. (possibly related to region?)
 	return nil
 }
 
