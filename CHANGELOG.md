@@ -9,6 +9,7 @@ IMPROVEMENTS:
 
   * **New config function: `formatlist`** - Format lists in a similar way to `format`.
     Useful for creating URLs from a list of IPs. [GH-1829]
+  * provider/aws: `aws_db_instances` supports `license_model` [GH-1966]
   * provider/aws: `aws_s3_bucket` exports `hosted_zone_id` and `region` [GH-1865]
   * provider/aws: `aws_route53_record` exports `fqdn` [GH-1847]
   * provider/google: `google_compute_instance` `scratch` attribute added [GH-1920]
