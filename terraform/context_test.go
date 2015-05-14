@@ -40,6 +40,43 @@ func TestContext2Plan(t *testing.T) {
 	}
 }
 
+func TestContext2Plan_createBefore_maintainRoot(t *testing.T) {
+	m := testModule(t, "plan-cbd-maintain-root")
+	p := testProvider("aws")
+	p.DiffFn = testDiffFn
+	ctx := testContext2(t, &ContextOpts{
+		Module: m,
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+		Variables: map[string]string{
+			"in": "a,b,c",
+		},
+	})
+
+	plan, err := ctx.Plan()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	actual := strings.TrimSpace(plan.String())
+	expected := strings.TrimSpace(`
+DIFF:
+
+CREATE: aws_instance.bar.0
+CREATE: aws_instance.bar.1
+CREATE: aws_instance.foo.0
+CREATE: aws_instance.foo.1
+
+STATE:
+
+<no state>
+		`)
+	if actual != expected {
+		t.Fatalf("expected:\n%s, got:\n%s", expected, actual)
+	}
+}
+
 func TestContext2Plan_emptyDiff(t *testing.T) {
 	m := testModule(t, "plan-empty")
 	p := testProvider("aws")
@@ -136,6 +173,56 @@ func TestContext2Plan_moduleCycle(t *testing.T) {
 	expected := strings.TrimSpace(testTerraformPlanModuleCycleStr)
 	if actual != expected {
 		t.Fatalf("bad:\n%s", actual)
+	}
+}
+
+func TestContext2Plan_moduleDeadlock(t *testing.T) {
+	m := testModule(t, "plan-module-deadlock")
+	p := testProvider("aws")
+	p.DiffFn = testDiffFn
+	timeout := make(chan bool, 1)
+	done := make(chan bool, 1)
+	go func() {
+		time.Sleep(3 * time.Second)
+		timeout <- true
+	}()
+	go func() {
+		ctx := testContext2(t, &ContextOpts{
+			Module: m,
+			Providers: map[string]ResourceProviderFactory{
+				"aws": testProviderFuncFixed(p),
+			},
+		})
+
+		plan, err := ctx.Plan()
+		done <- true
+		if err != nil {
+			t.Fatalf("err: %s", err)
+		}
+
+		actual := strings.TrimSpace(plan.String())
+		expected := strings.TrimSpace(`
+DIFF:
+
+module.child:
+  CREATE: aws_instance.foo.0
+  CREATE: aws_instance.foo.1
+  CREATE: aws_instance.foo.2
+
+STATE:
+
+<no state>
+		`)
+		if actual != expected {
+			t.Fatalf("expected:\n%sgot:\n%s", expected, actual)
+		}
+	}()
+
+	select {
+	case <-timeout:
+		t.Fatalf("timed out! probably deadlock")
+	case <-done:
+		// ok
 	}
 }
 

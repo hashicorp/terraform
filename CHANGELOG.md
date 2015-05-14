@@ -7,16 +7,18 @@ FEATURES:
 
 IMPROVEMENTS:
 
+  * **New config function: `formatlist`** - Format lists in a similar way to `format`.
+    Useful for creating URLs from a list of IPs. [GH-1829]
   * provider/aws: `aws_s3_bucket` exports `hosted_zone_id` and `region` [GH-1865]
   * provider/aws: `aws_route53_record` exports `fqdn` [GH-1847]
   * provider/google: `google_compute_instance` `scratch` attribute added [GH-1920]
-  * **New config function: `formatlist`** - Format lists in a similar way to `format`.
-    Useful for creating URLs from a list of IPs. [GH-1829]
 
 BUG FIXES:
 
   * core: fix "resource not found" for interpolation issues with modules
   * core: fix unflattenable error for orphans [GH-1922]
+  * core: fix deadlock with create-before-destroy + modules [GH-1949]
+  * core: fix "no roots found" error with create-before-destroy [GH-1953]
   * command/push: local vars override remote ones [GH-1881]
   * provider/aws: Mark `aws_security_group` description as `ForceNew` [GH-1871]
   * provider/aws: `aws_db_instance` ARN value is correct [GH-1910]

@@ -19,6 +19,9 @@ variables, attributes of resources, call functions, etc.
 You can also perform simple math in interpolations, allowing
 you to write expressions such as `${count.index+1}`.
 
+You can escape interpolation with double dollar signs: `$${foo}`
+will be rendered as a literal `${foo}`.
+
 ## Available Variables
 
 **To reference user variables**, use the `var.` prefix followed by the
@@ -123,7 +126,7 @@ The supported built-in functions are:
   * `split(delim, string)` - Splits the string previously created by `join`
       back into a list. This is useful for pushing lists through module
       outputs since they currently only support string values. Depending on the
-      use, the string this is being performed within may need to be wrapped 
+      use, the string this is being performed within may need to be wrapped
       in brackets to indicate that the output is actually a list, e.g.
       `a_resource_param = ["${split(",", var.CSV_STRING)}"]`.
       Example: `split(",", module.amod.server_ids)`

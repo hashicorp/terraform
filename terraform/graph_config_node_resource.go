@@ -311,6 +311,7 @@ func (n *GraphNodeConfigResourceFlat) DestroyNode(mode GraphNodeDestroyMode) Gra
 	return &graphNodeResourceDestroyFlat{
 		graphNodeResourceDestroy: node,
 		PathValue:                n.PathValue,
+		FlatCreateNode:           n,
 	}
 }
 
@@ -318,6 +319,9 @@ type graphNodeResourceDestroyFlat struct {
 	*graphNodeResourceDestroy
 
 	PathValue []string
+
+	// Needs to be able to properly yield back a flattened create node to prevent
+	FlatCreateNode *GraphNodeConfigResourceFlat
 }
 
 func (n *graphNodeResourceDestroyFlat) Name() string {
@@ -327,6 +331,10 @@ func (n *graphNodeResourceDestroyFlat) Name() string {
 
 func (n *graphNodeResourceDestroyFlat) Path() []string {
 	return n.PathValue
+}
+
+func (n *graphNodeResourceDestroyFlat) CreateNode() dag.Vertex {
+	return n.FlatCreateNode
 }
 
 // graphNodeResourceDestroy represents the logical destruction of a
