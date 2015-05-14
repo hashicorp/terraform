@@ -118,7 +118,7 @@ func resourceAwsCloudWatchMetricAlarmRead(d *schema.ResourceData, meta interface
 		return err
 	}
 	if a == nil {
-        d.SetId("")
+		d.SetId("")
 		return nil
 	}
 
@@ -255,7 +255,7 @@ func getAwsCloudWatchMetricAlarm(d *schema.ResourceData, meta interface{}) (*clo
 		return nil, nil
 	}
 
-    // Find it and return it
+	// Find it and return it
 	for idx, ma := range resp.MetricAlarms {
 		if *ma.AlarmName == d.Id() {
 			return resp.MetricAlarms[idx], nil

@@ -1,86 +1,86 @@
 package aws
 
-import(
-    "fmt"
-    "testing"
+import (
+	"fmt"
+	"testing"
 
-    "github.com/awslabs/aws-sdk-go/aws"
-    "github.com/awslabs/aws-sdk-go/service/autoscaling"
-    "github.com/hashicorp/terraform/helper/resource"
-    "github.com/hashicorp/terraform/terraform"
+	"github.com/awslabs/aws-sdk-go/aws"
+	"github.com/awslabs/aws-sdk-go/service/autoscaling"
+	"github.com/hashicorp/terraform/helper/resource"
+	"github.com/hashicorp/terraform/terraform"
 )
 
 func TestAccAWSAutoscalingScalingPolicy_basic(t *testing.T) {
-    var policy autoscaling.ScalingPolicy
+	var policy autoscaling.ScalingPolicy
 
-    resource.Test(t, resource.TestCase{
-        PreCheck:       func () { testAccPreCheck(t) },
-        Providers:      testAccProviders,
-        CheckDestroy:   testAccCheckAWSAutoscalingScalingPolicyDestroy,
-        Steps:          []resource.TestStep{
-            resource.TestStep{
-                Config: testAccAWSAutoscalingScalingPolicyConfig,
-                Check: resource.ComposeTestCheckFunc(
-                    testAccCheckScalingPolicyExists("aws_autoscaling_scaling_policy.foobar", &policy),
-                    resource.TestCheckResourceAttr("aws_autoscaling_scaling_policy.foobar", "adjustment_type", "ChangeInCapacity"),
-                    resource.TestCheckResourceAttr("aws_autoscaling_scaling_policy.foobar", "cooldown", "300"),
-                ),
-            },
-        },
-    })
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSAutoscalingScalingPolicyDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccAWSAutoscalingScalingPolicyConfig,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckScalingPolicyExists("aws_autoscaling_scaling_policy.foobar", &policy),
+					resource.TestCheckResourceAttr("aws_autoscaling_scaling_policy.foobar", "adjustment_type", "ChangeInCapacity"),
+					resource.TestCheckResourceAttr("aws_autoscaling_scaling_policy.foobar", "cooldown", "300"),
+				),
+			},
+		},
+	})
 }
 
 func testAccCheckScalingPolicyExists(n string, policy *autoscaling.ScalingPolicy) resource.TestCheckFunc {
-    return func(s *terraform.State) error {
-        rs, ok := s.RootModule().Resources[n]
-        if !ok {
-            rs = rs
-            return fmt.Errorf("Not found: %s", n)
-        }
+	return func(s *terraform.State) error {
+		rs, ok := s.RootModule().Resources[n]
+		if !ok {
+			rs = rs
+			return fmt.Errorf("Not found: %s", n)
+		}
 
-        conn := testAccProvider.Meta().(*AWSClient).autoscalingconn
-        params := &autoscaling.DescribePoliciesInput{
-            AutoScalingGroupName: aws.String(rs.Primary.Attributes["autoscaling_group_name"]),
-            PolicyNames: []*string{aws.String(rs.Primary.ID)},
-        }
-        resp, err := conn.DescribePolicies(params)
-        if err != nil {
-            return err
-        }
-        if len(resp.ScalingPolicies) == 0 {
-            return fmt.Errorf("ScalingPolicy not found")
-        }
+		conn := testAccProvider.Meta().(*AWSClient).autoscalingconn
+		params := &autoscaling.DescribePoliciesInput{
+			AutoScalingGroupName: aws.String(rs.Primary.Attributes["autoscaling_group_name"]),
+			PolicyNames:          []*string{aws.String(rs.Primary.ID)},
+		}
+		resp, err := conn.DescribePolicies(params)
+		if err != nil {
+			return err
+		}
+		if len(resp.ScalingPolicies) == 0 {
+			return fmt.Errorf("ScalingPolicy not found")
+		}
 
-        *policy = *resp.ScalingPolicies[0]
+		*policy = *resp.ScalingPolicies[0]
 
-        return nil
-    }
+		return nil
+	}
 }
 
 func testAccCheckAWSAutoscalingScalingPolicyDestroy(s *terraform.State) error {
-    conn := testAccProvider.Meta().(*AWSClient).autoscalingconn
+	conn := testAccProvider.Meta().(*AWSClient).autoscalingconn
 
-    for _, rs := range s.RootModule().Resources {
-        if rs.Type != "aws_autoscaling_group" {
-            continue
-        }
+	for _, rs := range s.RootModule().Resources {
+		if rs.Type != "aws_autoscaling_group" {
+			continue
+		}
 
-        params := autoscaling.DescribePoliciesInput{
-            AutoScalingGroupName:  aws.String(rs.Primary.Attributes["autoscaling_group_name"]),
-            PolicyNames: []*string{aws.String(rs.Primary.ID)},
-        }
+		params := autoscaling.DescribePoliciesInput{
+			AutoScalingGroupName: aws.String(rs.Primary.Attributes["autoscaling_group_name"]),
+			PolicyNames:          []*string{aws.String(rs.Primary.ID)},
+		}
 
-        resp, err := conn.DescribePolicies(&params)
+		resp, err := conn.DescribePolicies(&params)
 
-        if err == nil {
-            if len(resp.ScalingPolicies) != 0 &&
-                *resp.ScalingPolicies[0].PolicyName == rs.Primary.ID {
-                return fmt.Errorf("Scaling Policy Still Exists: %s", rs.Primary.ID)
-            }
-        }
-    }
+		if err == nil {
+			if len(resp.ScalingPolicies) != 0 &&
+				*resp.ScalingPolicies[0].PolicyName == rs.Primary.ID {
+				return fmt.Errorf("Scaling Policy Still Exists: %s", rs.Primary.ID)
+			}
+		}
+	}
 
-    return nil
+	return nil
 }
 
 var testAccAWSAutoscalingScalingPolicyConfig = fmt.Sprintf(`
