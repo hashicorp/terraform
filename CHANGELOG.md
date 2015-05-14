@@ -20,11 +20,15 @@ BUG FIXES:
   * core: fix unflattenable error for orphans [GH-1922]
   * core: fix deadlock with create-before-destroy + modules [GH-1949]
   * core: fix "no roots found" error with create-before-destroy [GH-1953]
+  * core: variables set with environment variables won't validate as
+      not set without a default [GH-1930]
+  * core: resources with a blank ID in the state are now assumed to not exist [GH-1905]
   * command/push: local vars override remote ones [GH-1881]
   * provider/aws: Mark `aws_security_group` description as `ForceNew` [GH-1871]
   * provider/aws: `aws_db_instance` ARN value is correct [GH-1910]
   * provider/aws: `aws_db_instance` only submit modify request if there
       is a change. [GH-1906]
+  * provider/aws: bad AMI on a launch configuration won't block refresh [GH-1901]
   * provider/aws: `aws_security_group` + `aws_subnet` - destroy timeout increased
     to prevent DependencyViolation errors. [GH-1886]
   * provider/google: `google_compute_instance` Local SSDs no-longer cause crash
