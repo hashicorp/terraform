@@ -63,11 +63,11 @@ func resourceAwsS3BucketPolicyRead(d *schema.ResourceData, meta interface{}) err
 	s3conn := meta.(*AWSClient).s3conn
 	bucket := d.Get("bucket").(string)
 
-	params := &s3.GetBucketPolicyInput{
-		Bucket: aws.String(bucket),
-	}
-
-	resp, err := s3conn.GetBucketPolicy(params)
+	resp, err := s3conn.GetBucketPolicy(
+		&s3.GetBucketPolicyInput{
+			Bucket: aws.String(bucket),
+		},
+	)
 
 	if awserr := aws.Error(err); awserr != nil {
 		log.Printf("[ERROR] Aws Service Error: %s", awserr.Message)
@@ -82,10 +82,25 @@ func resourceAwsS3BucketPolicyRead(d *schema.ResourceData, meta interface{}) err
 	return nil
 }
 
-func resourceAwsS3BucketPolicyUpdate(d *schema.ResourceData, m interface{}) error {
-	return nil
-}
+func resourceAwsS3BucketPolicyDelete(d *schema.ResourceData, meta interface{}) error {
 
-func resourceAwsS3BucketPolicyDelete(d *schema.ResourceData, m interface{}) error {
+	s3conn := meta.(*AWSClient).s3conn
+	bucket := d.Get("bucket").(string)
+
+	resp, err := s3conn.DeleteBucketPolicy(
+		&s3.DeleteBucketPolicyInput {
+			Bucket: aws.String(bucket),
+		},
+	)
+
+	if awserr := aws.Error(err); awserr != nil {
+		log.Printf("[ERROR] Aws Service Error: %s", awserr.Message)
+		//TODO handle service error?
+		return nil;
+	} else if err != nil {
+		return fmt.Errorf("Error deleting policy for S3 bucket (%s): %s", bucket, err)
+	}
+
+	log.Printf("[!!!!] %s", awsutil.StringValue(resp))
 	return nil
 }
