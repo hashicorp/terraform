@@ -362,6 +362,12 @@ module.child:
   leader = 1
 `
 
+const testTerraformApplyModuleDestroyOrderStr = `
+<no state>
+module.child:
+  <no state>
+`
+
 const testTerraformApplyMultiProviderStr = `
 aws_instance.bar:
   ID = foo
@@ -988,6 +994,26 @@ aws_instance.foo:
 module.child:
   aws_instance.foo:
     ID = bar
+`
+
+const testTerraformPlanModuleDestroyCycleStr = `
+DIFF:
+
+module.a_module:
+  DESTROY MODULE
+  DESTROY: aws_instance.a
+module.b_module:
+  DESTROY MODULE
+  DESTROY: aws_instance.b
+
+STATE:
+
+module.a_module:
+  aws_instance.a:
+    ID = a
+module.b_module:
+  aws_instance.b:
+    ID = b
 `
 
 const testTerraformPlanModuleDestroyMultivarStr = `

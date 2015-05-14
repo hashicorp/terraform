@@ -34,9 +34,7 @@ func resourceAwsNetworkInterface() *schema.Resource {
 				Optional: true,
 				ForceNew: true,
 				Elem:     &schema.Schema{Type: schema.TypeString},
-				Set: func(v interface{}) int {
-					return hashcode.String(v.(string))
-				},
+				Set:      schema.HashString,
 			},
 
 			"security_groups": &schema.Schema{
@@ -44,9 +42,7 @@ func resourceAwsNetworkInterface() *schema.Resource {
 				Optional: true,
 				Computed: true,
 				Elem:     &schema.Schema{Type: schema.TypeString},
-				Set: func(v interface{}) int {
-					return hashcode.String(v.(string))
-				},
+				Set:      schema.HashString,
 			},
 
 			"attachment": &schema.Schema{
@@ -124,7 +120,7 @@ func resourceAwsNetworkInterfaceRead(d *schema.ResourceData, meta interface{}) e
 	d.Set("security_groups", flattenGroupIdentifiers(eni.Groups))
 
 	// Tags
-	d.Set("tags", tagsToMapSDK(eni.TagSet))
+	d.Set("tags", tagsToMap(eni.TagSet))
 
 	if eni.Attachment != nil {
 		attachment := []map[string]interface{}{flattenAttachment(eni.Attachment)}
@@ -230,7 +226,7 @@ func resourceAwsNetworkInterfaceUpdate(d *schema.ResourceData, meta interface{})
 		d.SetPartial("security_groups")
 	}
 
-	if err := setTagsSDK(conn, d); err != nil {
+	if err := setTags(conn, d); err != nil {
 		return err
 	} else {
 		d.SetPartial("tags")

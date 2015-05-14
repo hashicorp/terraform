@@ -36,8 +36,8 @@ The following arguments are supported:
 
 * `device` - (Optional) The device to map the disk volume to within the guest OS.
 
-* `disk_offering` - (Required) The name of the disk offering to use for this
-    disk volume.
+* `disk_offering` - (Required) The name or ID of the disk offering to use for
+    this disk volume.
 
 * `size` - (Optional) The size of the disk volume in gigabytes.
 
@@ -47,7 +47,7 @@ The following arguments are supported:
 * `virtual_machine` - (Optional) The name of the virtual machine to which you
     want to attach the disk volume.
 
-* `zone` - (Required) The name of the zone where this disk volume will be available.
+* `zone` - (Required) The name or ID of the zone where this disk volume will be available.
     Changing this forces a new resource to be created.
 
 ## Attributes Reference

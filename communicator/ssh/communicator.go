@@ -229,8 +229,11 @@ func (c *Communicator) UploadScript(path string, input io.Reader) error {
 		return err
 	}
 
+	var stdout, stderr bytes.Buffer
 	cmd := &remote.Cmd{
-		Command: fmt.Sprintf("chmod 0777 %s", c.connInfo.ScriptPath),
+		Command: fmt.Sprintf("chmod 0777 %s", path),
+		Stdout:  &stdout,
+		Stderr:  &stderr,
 	}
 	if err := c.Start(cmd); err != nil {
 		return fmt.Errorf(
@@ -238,13 +241,18 @@ func (c *Communicator) UploadScript(path string, input io.Reader) error {
 				"machine: %s", err)
 	}
 	cmd.Wait()
+	if cmd.ExitStatus != 0 {
+		return fmt.Errorf(
+			"Error chmodding script file to 0777 in remote "+
+				"machine %d: %s %s", cmd.ExitStatus, stdout.String(), stderr.String())
+	}
 
 	return nil
 }
 
 // UploadDir implementation of communicator.Communicator interface
 func (c *Communicator) UploadDir(dst string, src string) error {
-	log.Printf("Upload dir '%s' to '%s'", src, dst)
+	log.Printf("Uploading dir '%s' to '%s'", src, dst)
 	scpFunc := func(w io.Writer, r *bufio.Reader) error {
 		uploadEntries := func() error {
 			f, err := os.Open(src)

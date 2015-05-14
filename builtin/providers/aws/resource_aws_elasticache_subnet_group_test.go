@@ -10,23 +10,23 @@ import (
 	"github.com/hashicorp/terraform/terraform"
 )
 
-func TestAccAWSEcacheSubnetGroup(t *testing.T) {
+func TestAccAWSElasticacheSubnetGroup(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
-		CheckDestroy: testAccCheckAWSEcacheSubnetGroupDestroy,
+		CheckDestroy: testAccCheckAWSElasticacheSubnetGroupDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccAWSEcacheSubnetGroupConfig,
+				Config: testAccAWSElasticacheSubnetGroupConfig,
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckAWSEcacheSubnetGroupExists("aws_elasticache_subnet_group.bar"),
+					testAccCheckAWSElasticacheSubnetGroupExists("aws_elasticache_subnet_group.bar"),
 				),
 			},
 		},
 	})
 }
 
-func testAccCheckAWSEcacheSubnetGroupDestroy(s *terraform.State) error {
+func testAccCheckAWSElasticacheSubnetGroupDestroy(s *terraform.State) error {
 	conn := testAccProvider.Meta().(*AWSClient).elasticacheconn
 
 	for _, rs := range s.RootModule().Resources {
@@ -46,7 +46,7 @@ func testAccCheckAWSEcacheSubnetGroupDestroy(s *terraform.State) error {
 	return nil
 }
 
-func testAccCheckAWSEcacheSubnetGroupExists(n string) resource.TestCheckFunc {
+func testAccCheckAWSElasticacheSubnetGroupExists(n string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		rs, ok := s.RootModule().Resources[n]
 		if !ok {
@@ -68,9 +68,9 @@ func testAccCheckAWSEcacheSubnetGroupExists(n string) resource.TestCheckFunc {
 	}
 }
 
-var testAccAWSEcacheSubnetGroupConfig = fmt.Sprintf(`
+var testAccAWSElasticacheSubnetGroupConfig = fmt.Sprintf(`
 resource "aws_vpc" "foo" {
-    cidr_block = "192.168.1.1/16"
+    cidr_block = "192.168.0.0/16"
     tags {
             Name = "tf-test"
     }
@@ -78,7 +78,7 @@ resource "aws_vpc" "foo" {
 
 resource "aws_subnet" "foo" {
     vpc_id = "${aws_vpc.foo.id}"
-    cidr_block = "192.168.1.1/20"
+    cidr_block = "192.168.0.0/20"
     availability_zone = "us-west-2a"
     tags {
             Name = "tf-test"

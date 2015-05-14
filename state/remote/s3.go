@@ -7,6 +7,7 @@ import (
 	"os"
 
 	"github.com/awslabs/aws-sdk-go/aws"
+	"github.com/awslabs/aws-sdk-go/aws/credentials"
 	"github.com/awslabs/aws-sdk-go/service/s3"
 )
 
@@ -25,19 +26,30 @@ func s3Factory(conf map[string]string) (Client, error) {
 	if !ok {
 		regionName = os.Getenv("AWS_DEFAULT_REGION")
 		if regionName == "" {
-			return nil, fmt.Errorf("missing 'region' configuration or AWS_DEFAULT_REGION environment variable")
+			return nil, fmt.Errorf(
+				"missing 'region' configuration or AWS_DEFAULT_REGION environment variable")
 		}
 	}
 
 	accessKeyId := conf["access_key"]
 	secretAccessKey := conf["secret_key"]
 
-	credentialsProvider := aws.DetectCreds(accessKeyId, secretAccessKey, "")
+	credentialsProvider := credentials.NewChainCredentials([]credentials.Provider{
+		&credentials.StaticProvider{Value: credentials.Value{
+			AccessKeyID:     accessKeyId,
+			SecretAccessKey: secretAccessKey,
+			SessionToken:    "",
+		}},
+		&credentials.EnvProvider{},
+		&credentials.SharedCredentialsProvider{Filename: "", Profile: ""},
+		&credentials.EC2RoleProvider{},
+	})
 
 	// Make sure we got some sort of working credentials.
-	_, err := credentialsProvider.Credentials()
+	_, err := credentialsProvider.Get()
 	if err != nil {
-		return nil, fmt.Errorf("Unable to determine AWS credentials. Set the AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY environment variables.\n(error was: %s)", err)
+		return nil, fmt.Errorf("Unable to determine AWS credentials. Set the AWS_ACCESS_KEY_ID and "+
+			"AWS_SECRET_ACCESS_KEY environment variables.\n(error was: %s)", err)
 	}
 
 	awsConfig := &aws.Config{

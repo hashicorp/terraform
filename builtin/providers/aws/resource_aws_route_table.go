@@ -29,6 +29,15 @@ func resourceAwsRouteTable() *schema.Resource {
 
 			"tags": tagsSchema(),
 
+			"propagating_vgws": &schema.Schema{
+				Type:     schema.TypeSet,
+				Optional: true,
+				Elem:     &schema.Schema{Type: schema.TypeString},
+				Set: func(v interface{}) int {
+					return hashcode.String(v.(string))
+				},
+			},
+
 			"route": &schema.Schema{
 				Type:     schema.TypeSet,
 				Optional: true,
@@ -50,6 +59,11 @@ func resourceAwsRouteTable() *schema.Resource {
 						},
 
 						"vpc_peering_connection_id": &schema.Schema{
+							Type:     schema.TypeString,
+							Optional: true,
+						},
+
+						"network_interface_id": &schema.Schema{
 							Type:     schema.TypeString,
 							Optional: true,
 						},
@@ -114,6 +128,12 @@ func resourceAwsRouteTableRead(d *schema.ResourceData, meta interface{}) error {
 	rt := rtRaw.(*ec2.RouteTable)
 	d.Set("vpc_id", rt.VPCID)
 
+	propagatingVGWs := make([]string, 0, len(rt.PropagatingVGWs))
+	for _, vgw := range rt.PropagatingVGWs {
+		propagatingVGWs = append(propagatingVGWs, *vgw.GatewayID)
+	}
+	d.Set("propagating_vgws", propagatingVGWs)
+
 	// Create an empty schema.Set to hold all routes
 	route := &schema.Set{F: resourceAwsRouteTableHash}
 
@@ -141,19 +161,83 @@ func resourceAwsRouteTableRead(d *schema.ResourceData, meta interface{}) error {
 		if r.VPCPeeringConnectionID != nil {
 			m["vpc_peering_connection_id"] = *r.VPCPeeringConnectionID
 		}
+		if r.NetworkInterfaceID != nil {
+			m["network_interface_id"] = *r.NetworkInterfaceID
+		}
 
 		route.Add(m)
 	}
 	d.Set("route", route)
 
 	// Tags
-	d.Set("tags", tagsToMapSDK(rt.Tags))
+	d.Set("tags", tagsToMap(rt.Tags))
 
 	return nil
 }
 
 func resourceAwsRouteTableUpdate(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).ec2conn
+
+	if d.HasChange("propagating_vgws") {
+		o, n := d.GetChange("propagating_vgws")
+		os := o.(*schema.Set)
+		ns := n.(*schema.Set)
+		remove := os.Difference(ns).List()
+		add := ns.Difference(os).List()
+
+		// Now first loop through all the old propagations and disable any obsolete ones
+		for _, vgw := range remove {
+			id := vgw.(string)
+
+			// Disable the propagation as it no longer exists in the config
+			log.Printf(
+				"[INFO] Deleting VGW propagation from %s: %s",
+				d.Id(), id)
+			_, err := conn.DisableVGWRoutePropagation(&ec2.DisableVGWRoutePropagationInput{
+				RouteTableID: aws.String(d.Id()),
+				GatewayID:    aws.String(id),
+			})
+			if err != nil {
+				return err
+			}
+		}
+
+		// Make sure we save the state of the currently configured rules
+		propagatingVGWs := os.Intersection(ns)
+		d.Set("propagating_vgws", propagatingVGWs)
+
+		// Then loop through all the newly configured propagations and enable them
+		for _, vgw := range add {
+			id := vgw.(string)
+
+			var err error
+			for i := 0; i < 5; i++ {
+				log.Printf("[INFO] Enabling VGW propagation for %s: %s", d.Id(), id)
+				_, err = conn.EnableVGWRoutePropagation(&ec2.EnableVGWRoutePropagationInput{
+					RouteTableID: aws.String(d.Id()),
+					GatewayID:    aws.String(id),
+				})
+				if err == nil {
+					break
+				}
+
+				// If we get a Gateway.NotAttached, it is usually some
+				// eventually consistency stuff. So we have to just wait a
+				// bit...
+				ec2err, ok := err.(aws.APIError)
+				if ok && ec2err.Code == "Gateway.NotAttached" {
+					time.Sleep(20 * time.Second)
+					continue
+				}
+			}
+			if err != nil {
+				return err
+			}
+
+			propagatingVGWs.Add(vgw)
+			d.Set("propagating_vgws", propagatingVGWs)
+		}
+	}
 
 	// Check if the route set as a whole has changed
 	if d.HasChange("route") {
@@ -192,6 +276,7 @@ func resourceAwsRouteTableUpdate(d *schema.ResourceData, meta interface{}) error
 				GatewayID:              aws.String(m["gateway_id"].(string)),
 				InstanceID:             aws.String(m["instance_id"].(string)),
 				VPCPeeringConnectionID: aws.String(m["vpc_peering_connection_id"].(string)),
+				NetworkInterfaceID:     aws.String(m["network_interface_id"].(string)),
 			}
 
 			log.Printf("[INFO] Creating route for %s: %#v", d.Id(), opts)
@@ -204,7 +289,7 @@ func resourceAwsRouteTableUpdate(d *schema.ResourceData, meta interface{}) error
 		}
 	}
 
-	if err := setTagsSDK(conn, d); err != nil {
+	if err := setTags(conn, d); err != nil {
 		return err
 	} else {
 		d.SetPartial("tags")
@@ -281,11 +366,17 @@ func resourceAwsRouteTableHash(v interface{}) int {
 		buf.WriteString(fmt.Sprintf("%s-", v.(string)))
 	}
 
+	instanceSet := false
 	if v, ok := m["instance_id"]; ok {
+		instanceSet = v.(string) != ""
 		buf.WriteString(fmt.Sprintf("%s-", v.(string)))
 	}
 
 	if v, ok := m["vpc_peering_connection_id"]; ok {
+		buf.WriteString(fmt.Sprintf("%s-", v.(string)))
+	}
+
+	if v, ok := m["network_interface_id"]; ok && !instanceSet {
 		buf.WriteString(fmt.Sprintf("%s-", v.(string)))
 	}
 

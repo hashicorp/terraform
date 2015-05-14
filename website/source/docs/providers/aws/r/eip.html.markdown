@@ -25,6 +25,7 @@ The following arguments are supported:
 
 * `vpc` - (Optional) Boolean if the EIP is in a VPC or not.
 * `instance` - (Optional) EC2 instance ID.
+* `network_interface` - (Optional) Network interface ID to associate with.
 
 ## Attributes Reference
 
@@ -33,4 +34,5 @@ The following attributes are exported:
 * `private_ip` - Contains the private IP address (if in VPC).
 * `public_ip` - Contains the public IP address.
 * `instance` - Contains the ID of the attached instance.
+* `network_interface` - Contains the ID of the attached network interface.
 

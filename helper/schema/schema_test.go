@@ -2799,7 +2799,7 @@ func TestSchemaMap_InternalValidate(t *testing.T) {
 	}
 
 	for i, tc := range cases {
-		err := schemaMap(tc.In).InternalValidate()
+		err := schemaMap(tc.In).InternalValidate(schemaMap{})
 		if (err != nil) != tc.Err {
 			if tc.Err {
 				t.Fatalf("%d: Expected error did not occur:\n\n%#v", i, tc.In)

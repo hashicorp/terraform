@@ -46,6 +46,7 @@ func resourceFWFirewallV1() *schema.Resource {
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: true,
+				Computed: true,
 			},
 		},
 	}
@@ -106,7 +107,7 @@ func resourceFWFirewallV1Read(d *schema.ResourceData, meta interface{}) error {
 	firewall, err := firewalls.Get(networkingClient, d.Id()).Extract()
 
 	if err != nil {
-		return CheckDeleted(d, err, "LB pool")
+		return CheckDeleted(d, err, "firewall")
 	}
 
 	d.Set("name", firewall.Name)

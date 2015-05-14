@@ -21,10 +21,6 @@ func TestAccAWSInstance_normal(t *testing.T) {
 			return fmt.Errorf("bad availability zone: %#v", *v.Placement.AvailabilityZone)
 		}
 
-		if *v.Placement.GroupName != "terraform-placement-group" {
-			return fmt.Errorf("bad placement group name: %#v", *v.Placement.GroupName)
-		}
-
 		if len(v.SecurityGroups) == 0 {
 			return fmt.Errorf("no security groups: %#v", v.SecurityGroups)
 		}
@@ -338,9 +334,9 @@ func TestAccAWSInstance_tags(t *testing.T) {
 				Config: testAccCheckInstanceConfigTags,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckInstanceExists("aws_instance.foo", &v),
-					testAccCheckTagsSDK(&v.Tags, "foo", "bar"),
+					testAccCheckTags(&v.Tags, "foo", "bar"),
 					// Guard against regression of https://github.com/hashicorp/terraform/issues/914
-					testAccCheckTagsSDK(&v.Tags, "#", ""),
+					testAccCheckTags(&v.Tags, "#", ""),
 				),
 			},
 
@@ -348,8 +344,8 @@ func TestAccAWSInstance_tags(t *testing.T) {
 				Config: testAccCheckInstanceConfigTagsUpdate,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckInstanceExists("aws_instance.foo", &v),
-					testAccCheckTagsSDK(&v.Tags, "foo", ""),
-					testAccCheckTagsSDK(&v.Tags, "bar", "baz"),
+					testAccCheckTags(&v.Tags, "foo", ""),
+					testAccCheckTags(&v.Tags, "bar", "baz"),
 				),
 			},
 		},
@@ -549,7 +545,6 @@ resource "aws_instance" "foo" {
 	# us-west-2
 	ami = "ami-4fccb37f"
 	availability_zone = "us-west-2a"
-	placement_group = "terraform-placement-group"
 
 	instance_type = "m1.small"
 	security_groups = ["${aws_security_group.tf_test_foo.name}"]

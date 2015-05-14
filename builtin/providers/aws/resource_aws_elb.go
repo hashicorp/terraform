@@ -43,9 +43,7 @@ func resourceAwsElb() *schema.Resource {
 				Optional: true,
 				ForceNew: true,
 				Computed: true,
-				Set: func(v interface{}) int {
-					return hashcode.String(v.(string))
-				},
+				Set:      schema.HashString,
 			},
 
 			"instances": &schema.Schema{
@@ -53,9 +51,7 @@ func resourceAwsElb() *schema.Resource {
 				Elem:     &schema.Schema{Type: schema.TypeString},
 				Optional: true,
 				Computed: true,
-				Set: func(v interface{}) int {
-					return hashcode.String(v.(string))
-				},
+				Set:      schema.HashString,
 			},
 
 			"security_groups": &schema.Schema{
@@ -63,9 +59,7 @@ func resourceAwsElb() *schema.Resource {
 				Elem:     &schema.Schema{Type: schema.TypeString},
 				Optional: true,
 				Computed: true,
-				Set: func(v interface{}) int {
-					return hashcode.String(v.(string))
-				},
+				Set:      schema.HashString,
 			},
 
 			"source_security_group": &schema.Schema{
@@ -80,9 +74,7 @@ func resourceAwsElb() *schema.Resource {
 				Optional: true,
 				ForceNew: true,
 				Computed: true,
-				Set: func(v interface{}) int {
-					return hashcode.String(v.(string))
-				},
+				Set:      schema.HashString,
 			},
 
 			"idle_timeout": &schema.Schema{
@@ -399,9 +391,7 @@ func resourceAwsElbUpdate(d *schema.ResourceData, meta interface{}) error {
 		d.SetPartial("instances")
 	}
 
-	log.Println("[INFO] outside modify attributes")
-	if d.HasChange("cross_zone_load_balancing") || d.HasChange("idle_timeout") || d.HasChange("connection_draining") || d.HasChange("connection_draining_timeout") {
-		log.Println("[INFO] inside modify attributes")
+	if d.HasChange("cross_zone_load_balancing") || d.HasChange("idle_timeout") {
 		attrs := elb.ModifyLoadBalancerAttributesInput{
 			LoadBalancerName: aws.String(d.Get("name").(string)),
 			LoadBalancerAttributes: &elb.LoadBalancerAttributes{
@@ -411,20 +401,63 @@ func resourceAwsElbUpdate(d *schema.ResourceData, meta interface{}) error {
 				ConnectionSettings: &elb.ConnectionSettings{
 					IdleTimeout: aws.Long(int64(d.Get("idle_timeout").(int))),
 				},
-				ConnectionDraining: &elb.ConnectionDraining{
-					Enabled: aws.Boolean(d.Get("connection_draining").(bool)),
-					Timeout: aws.Long(int64(d.Get("connection_draining_timeout").(int))),
-				},
 			},
 		}
+
 		_, err := elbconn.ModifyLoadBalancerAttributes(&attrs)
 		if err != nil {
 			return fmt.Errorf("Failure configuring elb attributes: %s", err)
 		}
+
 		d.SetPartial("cross_zone_load_balancing")
 		d.SetPartial("idle_timeout")
-		d.SetPartial("connection_draining")
 		d.SetPartial("connection_draining_timeout")
+	}
+
+	// We have to do these changes separately from everything else since
+	// they have some weird undocumented rules. You can't set the timeout
+	// without having connection draining to true, so we set that to true,
+	// set the timeout, then reset it to false if requested.
+	if d.HasChange("connection_draining") || d.HasChange("connection_draining_timeout") {
+		// We do timeout changes first since they require us to set draining
+		// to true for a hot second.
+		if d.HasChange("connection_draining_timeout") {
+			attrs := elb.ModifyLoadBalancerAttributesInput{
+				LoadBalancerName: aws.String(d.Get("name").(string)),
+				LoadBalancerAttributes: &elb.LoadBalancerAttributes{
+					ConnectionDraining: &elb.ConnectionDraining{
+						Enabled: aws.Boolean(true),
+						Timeout: aws.Long(int64(d.Get("connection_draining_timeout").(int))),
+					},
+				},
+			}
+
+			_, err := elbconn.ModifyLoadBalancerAttributes(&attrs)
+			if err != nil {
+				return fmt.Errorf("Failure configuring elb attributes: %s", err)
+			}
+
+			d.SetPartial("connection_draining_timeout")
+		}
+
+		// Then we always set connection draining even if there is no change.
+		// This lets us reset to "false" if requested even with a timeout
+		// change.
+		attrs := elb.ModifyLoadBalancerAttributesInput{
+			LoadBalancerName: aws.String(d.Get("name").(string)),
+			LoadBalancerAttributes: &elb.LoadBalancerAttributes{
+				ConnectionDraining: &elb.ConnectionDraining{
+					Enabled: aws.Boolean(d.Get("connection_draining").(bool)),
+				},
+			},
+		}
+
+		_, err := elbconn.ModifyLoadBalancerAttributes(&attrs)
+		if err != nil {
+			return fmt.Errorf("Failure configuring elb attributes: %s", err)
+		}
+
+		d.SetPartial("connection_draining")
 	}
 
 	if d.HasChange("health_check") {

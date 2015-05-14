@@ -53,11 +53,13 @@ func resourceAwsElasticacheCluster() *schema.Resource {
 			"engine_version": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
+				Computed: true,
 				ForceNew: true,
 			},
 			"subnet_group_name": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
+				Computed: true,
 				ForceNew: true,
 			},
 			"security_group_names": &schema.Schema{

@@ -31,6 +31,13 @@ func resourceAwsEip() *schema.Resource {
 				Optional: true,
 			},
 
+			"network_interface": &schema.Schema{
+				Type:          schema.TypeString,
+				Optional:      true,
+				Computed:      true,
+				ConflictsWith: []string{"instance"},
+			},
+
 			"allocation_id": &schema.Schema{
 				Type:     schema.TypeString,
 				Computed: true,
@@ -102,22 +109,18 @@ func resourceAwsEipRead(d *schema.ResourceData, meta interface{}) error {
 	domain := resourceAwsEipDomain(d)
 	id := d.Id()
 
-	var assocIds []*string
-	var publicIps []*string
+	req := &ec2.DescribeAddressesInput{}
+
 	if domain == "vpc" {
-		assocIds = []*string{aws.String(id)}
+		req.AllocationIDs = []*string{aws.String(id)}
 	} else {
-		publicIps = []*string{aws.String(id)}
+		req.PublicIPs = []*string{aws.String(id)}
 	}
 
 	log.Printf(
-		"[DEBUG] EIP describe configuration: %#v, %#v (domain: %s)",
-		assocIds, publicIps, domain)
+		"[DEBUG] EIP describe configuration: %#v (domain: %s)",
+		req, domain)
 
-	req := &ec2.DescribeAddressesInput{
-		AllocationIDs: assocIds,
-		PublicIPs:     publicIps,
-	}
 	describeAddresses, err := ec2conn.DescribeAddresses(req)
 	if err != nil {
 		if ec2err, ok := err.(aws.APIError); ok && ec2err.Code == "InvalidAllocationID.NotFound" {
@@ -143,6 +146,9 @@ func resourceAwsEipRead(d *schema.ResourceData, meta interface{}) error {
 	if address.InstanceID != nil {
 		d.Set("instance", address.InstanceID)
 	}
+	if address.NetworkInterfaceID != nil {
+		d.Set("network_interface", address.NetworkInterfaceID)
+	}
 	d.Set("private_ip", address.PrivateIPAddress)
 	d.Set("public_ip", address.PublicIP)
 
@@ -154,9 +160,13 @@ func resourceAwsEipUpdate(d *schema.ResourceData, meta interface{}) error {
 
 	domain := resourceAwsEipDomain(d)
 
-	// Only register with an instance if we have one
-	if v, ok := d.GetOk("instance"); ok {
-		instanceId := v.(string)
+	// Associate to instance or interface if specified
+	v_instance, ok_instance := d.GetOk("instance")
+	v_interface, ok_interface := d.GetOk("network_interface")
+
+	if ok_instance || ok_interface {
+		instanceId := v_instance.(string)
+		networkInterfaceId := v_interface.(string)
 
 		assocOpts := &ec2.AssociateAddressInput{
 			InstanceID: aws.String(instanceId),
@@ -166,9 +176,9 @@ func resourceAwsEipUpdate(d *schema.ResourceData, meta interface{}) error {
 		// more unique ID conditionals
 		if domain == "vpc" {
 			assocOpts = &ec2.AssociateAddressInput{
-				InstanceID:   aws.String(instanceId),
-				AllocationID: aws.String(d.Id()),
-				PublicIP:     aws.String(""),
+				NetworkInterfaceID: aws.String(networkInterfaceId),
+				InstanceID:         aws.String(instanceId),
+				AllocationID:       aws.String(d.Id()),
 			}
 		}
 
@@ -178,7 +188,8 @@ func resourceAwsEipUpdate(d *schema.ResourceData, meta interface{}) error {
 			// Prevent saving instance if association failed
 			// e.g. missing internet gateway in VPC
 			d.Set("instance", "")
-			return fmt.Errorf("Failure associating instances: %s", err)
+			d.Set("network_interface", "")
+			return fmt.Errorf("Failure associating EIP: %s", err)
 		}
 	}
 
@@ -196,8 +207,8 @@ func resourceAwsEipDelete(d *schema.ResourceData, meta interface{}) error {
 		return nil
 	}
 
-	// If we are attached to an instance, detach first.
-	if d.Get("instance").(string) != "" {
+	// If we are attached to an instance or interface, detach first.
+	if d.Get("instance").(string) != "" || d.Get("association_id").(string) != "" {
 		log.Printf("[DEBUG] Disassociating EIP: %s", d.Id())
 		var err error
 		switch resourceAwsEipDomain(d) {

@@ -40,6 +40,43 @@ func TestContext2Plan(t *testing.T) {
 	}
 }
 
+func TestContext2Plan_createBefore_maintainRoot(t *testing.T) {
+	m := testModule(t, "plan-cbd-maintain-root")
+	p := testProvider("aws")
+	p.DiffFn = testDiffFn
+	ctx := testContext2(t, &ContextOpts{
+		Module: m,
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+		Variables: map[string]string{
+			"in": "a,b,c",
+		},
+	})
+
+	plan, err := ctx.Plan()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	actual := strings.TrimSpace(plan.String())
+	expected := strings.TrimSpace(`
+DIFF:
+
+CREATE: aws_instance.bar.0
+CREATE: aws_instance.bar.1
+CREATE: aws_instance.foo.0
+CREATE: aws_instance.foo.1
+
+STATE:
+
+<no state>
+		`)
+	if actual != expected {
+		t.Fatalf("expected:\n%s, got:\n%s", expected, actual)
+	}
+}
+
 func TestContext2Plan_emptyDiff(t *testing.T) {
 	m := testModule(t, "plan-empty")
 	p := testProvider("aws")
@@ -136,6 +173,56 @@ func TestContext2Plan_moduleCycle(t *testing.T) {
 	expected := strings.TrimSpace(testTerraformPlanModuleCycleStr)
 	if actual != expected {
 		t.Fatalf("bad:\n%s", actual)
+	}
+}
+
+func TestContext2Plan_moduleDeadlock(t *testing.T) {
+	m := testModule(t, "plan-module-deadlock")
+	p := testProvider("aws")
+	p.DiffFn = testDiffFn
+	timeout := make(chan bool, 1)
+	done := make(chan bool, 1)
+	go func() {
+		time.Sleep(3 * time.Second)
+		timeout <- true
+	}()
+	go func() {
+		ctx := testContext2(t, &ContextOpts{
+			Module: m,
+			Providers: map[string]ResourceProviderFactory{
+				"aws": testProviderFuncFixed(p),
+			},
+		})
+
+		plan, err := ctx.Plan()
+		done <- true
+		if err != nil {
+			t.Fatalf("err: %s", err)
+		}
+
+		actual := strings.TrimSpace(plan.String())
+		expected := strings.TrimSpace(`
+DIFF:
+
+module.child:
+  CREATE: aws_instance.foo.0
+  CREATE: aws_instance.foo.1
+  CREATE: aws_instance.foo.2
+
+STATE:
+
+<no state>
+		`)
+		if actual != expected {
+			t.Fatalf("expected:\n%sgot:\n%s", expected, actual)
+		}
+	}()
+
+	select {
+	case <-timeout:
+		t.Fatalf("timed out! probably deadlock")
+	case <-done:
+		// ok
 	}
 }
 
@@ -1150,6 +1237,58 @@ func TestContext2Plan_moduleDestroy(t *testing.T) {
 
 	actual := strings.TrimSpace(plan.String())
 	expected := strings.TrimSpace(testTerraformPlanModuleDestroyStr)
+	if actual != expected {
+		t.Fatalf("bad:\n%s", actual)
+	}
+}
+
+// GH-1835
+func TestContext2Plan_moduleDestroyCycle(t *testing.T) {
+	m := testModule(t, "plan-module-destroy-gh-1835")
+	p := testProvider("aws")
+	p.DiffFn = testDiffFn
+	s := &State{
+		Modules: []*ModuleState{
+			&ModuleState{
+				Path: []string{"root", "a_module"},
+				Resources: map[string]*ResourceState{
+					"aws_instance.a": &ResourceState{
+						Type: "aws_instance",
+						Primary: &InstanceState{
+							ID: "a",
+						},
+					},
+				},
+			},
+			&ModuleState{
+				Path: []string{"root", "b_module"},
+				Resources: map[string]*ResourceState{
+					"aws_instance.b": &ResourceState{
+						Type: "aws_instance",
+						Primary: &InstanceState{
+							ID: "b",
+						},
+					},
+				},
+			},
+		},
+	}
+	ctx := testContext2(t, &ContextOpts{
+		Module: m,
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+		State:   s,
+		Destroy: true,
+	})
+
+	plan, err := ctx.Plan()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	actual := strings.TrimSpace(plan.String())
+	expected := strings.TrimSpace(testTerraformPlanModuleDestroyCycleStr)
 	if actual != expected {
 		t.Fatalf("bad:\n%s", actual)
 	}
@@ -2365,6 +2504,8 @@ func TestContext2Validate_countVariableNoDefault(t *testing.T) {
 	}
 }
 
+/*
+TODO: What should we do here?
 func TestContext2Validate_cycle(t *testing.T) {
 	p := testProvider("aws")
 	m := testModule(t, "validate-cycle")
@@ -2383,6 +2524,7 @@ func TestContext2Validate_cycle(t *testing.T) {
 		t.Fatalf("expected 1 err, got: %s", e)
 	}
 }
+*/
 
 func TestContext2Validate_moduleBadOutput(t *testing.T) {
 	p := testProvider("aws")
@@ -2440,6 +2582,26 @@ func TestContext2Validate_moduleBadResource(t *testing.T) {
 	}
 	if len(e) == 0 {
 		t.Fatalf("bad: %#v", e)
+	}
+}
+
+func TestContext2Validate_moduleDepsShouldNotCycle(t *testing.T) {
+	m := testModule(t, "validate-module-deps-cycle")
+	p := testProvider("aws")
+	ctx := testContext2(t, &ContextOpts{
+		Module: m,
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+	})
+
+	w, e := ctx.Validate()
+
+	if len(w) > 0 {
+		t.Fatalf("expected no warnings, got: %s", w)
+	}
+	if len(e) > 0 {
+		t.Fatalf("expected no errors, got: %s", e)
 	}
 }
 
@@ -4050,6 +4212,88 @@ func TestContext2Apply_module(t *testing.T) {
 	expected := strings.TrimSpace(testTerraformApplyModuleStr)
 	if actual != expected {
 		t.Fatalf("bad: \n%s", actual)
+	}
+}
+
+func TestContext2Apply_moduleDestroyOrder(t *testing.T) {
+	m := testModule(t, "apply-module-destroy-order")
+	p := testProvider("aws")
+	p.DiffFn = testDiffFn
+
+	// Create a custom apply function to track the order they were destroyed
+	var order []string
+	var orderLock sync.Mutex
+	p.ApplyFn = func(
+		info *InstanceInfo,
+		is *InstanceState,
+		id *InstanceDiff) (*InstanceState, error) {
+		orderLock.Lock()
+		defer orderLock.Unlock()
+
+		order = append(order, is.ID)
+		return nil, nil
+	}
+
+	state := &State{
+		Modules: []*ModuleState{
+			&ModuleState{
+				Path: rootModulePath,
+				Resources: map[string]*ResourceState{
+					"aws_instance.b": &ResourceState{
+						Type: "aws_instance",
+						Primary: &InstanceState{
+							ID: "b",
+						},
+					},
+				},
+			},
+
+			&ModuleState{
+				Path: []string{"root", "child"},
+				Resources: map[string]*ResourceState{
+					"aws_instance.a": &ResourceState{
+						Type: "aws_instance",
+						Primary: &InstanceState{
+							ID: "a",
+						},
+					},
+				},
+				Outputs: map[string]string{
+					"a_output": "a",
+				},
+			},
+		},
+	}
+
+	ctx := testContext2(t, &ContextOpts{
+		Module: m,
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+		State:   state,
+		Destroy: true,
+	})
+
+	if _, err := ctx.Plan(); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	state, err := ctx.Apply()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	expected := []string{"b", "a"}
+	if !reflect.DeepEqual(order, expected) {
+		t.Fatalf("bad: %#v", order)
+	}
+
+	{
+		actual := strings.TrimSpace(state.String())
+		expected := strings.TrimSpace(testTerraformApplyModuleDestroyOrderStr)
+		if actual != expected {
+			t.Fatalf("bad: \n%s", actual)
+		}
 	}
 }
 
@@ -6020,6 +6264,87 @@ aws_instance.foo.0:
   ID = i-bcd345
 aws_instance.foo.1:
   ID = i-bcd345
+	`)
+}
+
+func TestContext2Apply_targetedModule(t *testing.T) {
+	m := testModule(t, "apply-targeted-module")
+	p := testProvider("aws")
+	p.ApplyFn = testApplyFn
+	p.DiffFn = testDiffFn
+	ctx := testContext2(t, &ContextOpts{
+		Module: m,
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+		Targets: []string{"module.child"},
+	})
+
+	if _, err := ctx.Plan(); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	state, err := ctx.Apply()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	mod := state.ModuleByPath([]string{"root", "child"})
+	if mod == nil {
+		t.Fatalf("no child module found in the state!\n\n%#v", state)
+	}
+	if len(mod.Resources) != 2 {
+		t.Fatalf("expected 2 resources, got: %#v", mod.Resources)
+	}
+
+	checkStateString(t, state, `
+<no state>
+module.child:
+  aws_instance.bar:
+    ID = foo
+    num = 2
+    type = aws_instance
+  aws_instance.foo:
+    ID = foo
+    num = 2
+    type = aws_instance
+	`)
+}
+
+func TestContext2Apply_targetedModuleResource(t *testing.T) {
+	m := testModule(t, "apply-targeted-module-resource")
+	p := testProvider("aws")
+	p.ApplyFn = testApplyFn
+	p.DiffFn = testDiffFn
+	ctx := testContext2(t, &ContextOpts{
+		Module: m,
+		Providers: map[string]ResourceProviderFactory{
+			"aws": testProviderFuncFixed(p),
+		},
+		Targets: []string{"module.child.aws_instance.foo"},
+	})
+
+	if _, err := ctx.Plan(); err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	state, err := ctx.Apply()
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	mod := state.ModuleByPath([]string{"root", "child"})
+	if len(mod.Resources) != 1 {
+		t.Fatalf("expected 1 resource, got: %#v", mod.Resources)
+	}
+
+	checkStateString(t, state, `
+<no state>
+module.child:
+  aws_instance.foo:
+    ID = foo
+    num = 2
+    type = aws_instance
 	`)
 }
 

@@ -111,12 +111,14 @@ func TestConfigTransformer_errMissingDeps(t *testing.T) {
 const testGraphBasicStr = `
 aws_instance.web
   aws_security_group.firewall
+  var.foo
 aws_load_balancer.weblb
   aws_instance.web
 aws_security_group.firewall
 openstack_floating_ip.random
 provider.aws
   openstack_floating_ip.random
+var.foo
 `
 
 const testGraphDependsOnStr = `

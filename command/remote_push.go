@@ -90,5 +90,5 @@ Options:
 }
 
 func (c *RemotePushCommand) Synopsis() string {
-	return "Uploads the the local state to the remote server"
+	return "Uploads the local state to the remote server"
 }

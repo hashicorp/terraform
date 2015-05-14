@@ -6,7 +6,7 @@ import (
 	"github.com/hashicorp/terraform/helper/resource"
 )
 
-func TestAccAwsEbsVolume(t *testing.T) {
+func TestAccAWSEBSVolume(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck:  func() { testAccPreCheck(t) },
 		Providers: testAccProviders,
@@ -20,7 +20,7 @@ func TestAccAwsEbsVolume(t *testing.T) {
 
 const testAccAwsEbsVolumeConfig = `
 resource "aws_ebs_volume" "test" {
-	availability_zone = "us-east-1d"
+	availability_zone = "us-west-2a"
 	size = 1
 }
 `

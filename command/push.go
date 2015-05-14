@@ -132,6 +132,10 @@ func (c *PushCommand) Run(args []string) int {
 		return 1
 	}
 	for k, v := range vars {
+		// Local variables override remote ones
+		if _, exists := ctx.Variables()[k]; exists {
+			continue
+		}
 		ctx.SetVariable(k, v)
 	}
 
@@ -206,6 +210,13 @@ Options:
 
   -token=<token>       Access token to use to upload. If blank or unspecified,
                        the ATLAS_TOKEN environmental variable will be used.
+
+  -var 'foo=bar'       Set a variable in the Terraform configuration. This
+                       flag can be set multiple times.
+
+  -var-file=foo        Set variables in the Terraform configuration from
+                       a file. If "terraform.tfvars" is present, it will be
+                       automatically loaded if this flag is not specified.
 
   -vcs=true            If true (default), push will upload only files
                        comitted to your VCS, if detected.

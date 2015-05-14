@@ -19,6 +19,9 @@ variables, attributes of resources, call functions, etc.
 You can also perform simple math in interpolations, allowing
 you to write expressions such as `${count.index+1}`.
 
+You can escape interpolation with double dollar signs: `$${foo}`
+will be rendered as a literal `${foo}`.
+
 ## Available Variables
 
 **To reference user variables**, use the `var.` prefix followed by the
@@ -89,6 +92,16 @@ The supported built-in functions are:
       Example to zero-prefix a count, used commonly for naming servers:
       `format("web-%03d", count.index+1)`.
 
+  * `formatlist(format, args...)` - Formats each element of a list
+      according to the given format, similarly to `format`, and returns a list.
+      Non-list arguments are repeated for each list element.
+      For example, to convert a list of DNS addresses to a list of URLs, you might use:
+      `formatlist("https://%s:%s/", aws_instance.foo.*.public_dns, var.port)`.
+      If multiple args are lists, and they have the same number of elements, then the formatting is applied to the elements of the lists in parallel.
+      Example:
+      `formatlist("instance %v has private ip %v", aws_instance.foo.*.id, aws_instance.foo.*.private_ip)`.
+      Passing lists with different lengths to formatlist results in an error.
+
   * `join(delim, list)` - Joins the list with the delimiter. A list is
       only possible with splat variables from resources with a count
       greater than one. Example: `join(",", aws_instance.foo.*.id)`
@@ -112,5 +125,38 @@ The supported built-in functions are:
 
   * `split(delim, string)` - Splits the string previously created by `join`
       back into a list. This is useful for pushing lists through module
-      outputs since they currently only support string values.
+      outputs since they currently only support string values. Depending on the
+      use, the string this is being performed within may need to be wrapped
+      in brackets to indicate that the output is actually a list, e.g.
+      `a_resource_param = ["${split(",", var.CSV_STRING)}"]`.
       Example: `split(",", module.amod.server_ids)`
+
+## Templates
+
+Long strings can be managed using templates. Templates are [resources](/docs/configuration/resources.html) defined by a filename and some variables to use during interpolation. They have a computed `rendered` attribute containing the result.
+
+A template resource looks like:
+
+```
+resource "template_file" "example" {
+    filename = "template.txt"
+    vars {
+        hello = "goodnight"
+        world = "moon"
+    }
+}
+
+output "rendered" {
+    value = "${template_file.example.rendered}"
+}
+```
+
+Assuming `template.txt` looks like this:
+
+```
+${hello} ${world}!
+```
+
+Then the rendered value would be `goodnight moon!`.
+
+You may use any of the built-in functions in your template.

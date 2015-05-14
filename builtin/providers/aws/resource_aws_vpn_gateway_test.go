@@ -98,7 +98,7 @@ func TestAccVpnGateway_tags(t *testing.T) {
 				Config: testAccCheckVpnGatewayConfigTags,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckVpnGatewayExists("aws_vpn_gateway.foo", &v),
-					testAccCheckTagsSDK(&v.Tags, "foo", "bar"),
+					testAccCheckTags(&v.Tags, "foo", "bar"),
 				),
 			},
 
@@ -106,8 +106,8 @@ func TestAccVpnGateway_tags(t *testing.T) {
 				Config: testAccCheckVpnGatewayConfigTagsUpdate,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckVpnGatewayExists("aws_vpn_gateway.foo", &v),
-					testAccCheckTagsSDK(&v.Tags, "foo", ""),
-					testAccCheckTagsSDK(&v.Tags, "bar", "baz"),
+					testAccCheckTags(&v.Tags, "foo", ""),
+					testAccCheckTags(&v.Tags, "bar", "baz"),
 				),
 			},
 		},
@@ -192,10 +192,6 @@ resource "aws_vpn_gateway" "foo" {
 `
 
 const testAccVpnGatewayConfigChangeVPC = `
-resource "aws_vpc" "foo" {
-	cidr_block = "10.1.0.0/16"
-}
-
 resource "aws_vpc" "bar" {
 	cidr_block = "10.2.0.0/16"
 }

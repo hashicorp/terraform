@@ -321,10 +321,7 @@ func (i *Interpolater) computeResourceVariable(
 		r = nil
 	}
 	if r == nil {
-		return "", fmt.Errorf(
-			"Resource '%s' not found for variable '%s'",
-			id,
-			v.FullKey())
+		goto MISSING
 	}
 
 	if r.Primary == nil {
@@ -367,6 +364,13 @@ func (i *Interpolater) computeResourceVariable(
 	}
 
 MISSING:
+	// Validation for missing interpolations should happen at a higher
+	// semantic level. If we reached this point and don't have variables,
+	// just return the computed value.
+	if scope == nil || scope.Resource == nil {
+		return config.UnknownVariableValue, nil
+	}
+
 	// If the operation is refresh, it isn't an error for a value to
 	// be unknown. Instead, we return that the value is computed so
 	// that the graph can continue to refresh other nodes. It doesn't
