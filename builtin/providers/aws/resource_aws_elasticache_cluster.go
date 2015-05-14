@@ -3,10 +3,13 @@ package aws
 import (
 	"fmt"
 	"log"
+	"sort"
+	"strings"
 	"time"
 
 	"github.com/awslabs/aws-sdk-go/aws"
 	"github.com/awslabs/aws-sdk-go/service/elasticache"
+	"github.com/awslabs/aws-sdk-go/service/iam"
 	"github.com/hashicorp/terraform/helper/hashcode"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
@@ -16,6 +19,7 @@ func resourceAwsElasticacheCluster() *schema.Resource {
 	return &schema.Resource{
 		Create: resourceAwsElasticacheClusterCreate,
 		Read:   resourceAwsElasticacheClusterRead,
+		Update: resourceAwsElasticacheClusterUpdate,
 		Delete: resourceAwsElasticacheClusterDelete,
 
 		Schema: map[string]*schema.Schema{
@@ -42,6 +46,7 @@ func resourceAwsElasticacheCluster() *schema.Resource {
 			"parameter_group_name": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
+				Computed: true,
 				ForceNew: true,
 			},
 			"port": &schema.Schema{
@@ -82,6 +87,29 @@ func resourceAwsElasticacheCluster() *schema.Resource {
 					return hashcode.String(v.(string))
 				},
 			},
+			// Exported Attributes
+			"cache_nodes": &schema.Schema{
+				Type:     schema.TypeList,
+				Computed: true,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"id": &schema.Schema{
+							Type:     schema.TypeString,
+							Computed: true,
+						},
+						"address": &schema.Schema{
+							Type:     schema.TypeString,
+							Computed: true,
+						},
+						"port": &schema.Schema{
+							Type:     schema.TypeInt,
+							Computed: true,
+						},
+					},
+				},
+			},
+
+			"tags": tagsSchema(),
 		},
 	}
 }
@@ -98,11 +126,11 @@ func resourceAwsElasticacheClusterCreate(d *schema.ResourceData, meta interface{
 	subnetGroupName := d.Get("subnet_group_name").(string)
 	securityNameSet := d.Get("security_group_names").(*schema.Set)
 	securityIdSet := d.Get("security_group_ids").(*schema.Set)
-	paramGroupName := d.Get("parameter_group_name").(string) // default.memcached1.4
 
 	securityNames := expandStringList(securityNameSet.List())
 	securityIds := expandStringList(securityIdSet.List())
 
+	tags := tagsFromMapEC(d.Get("tags").(map[string]interface{}))
 	req := &elasticache.CreateCacheClusterInput{
 		CacheClusterID:          aws.String(clusterId),
 		CacheNodeType:           aws.String(nodeType),
@@ -113,7 +141,12 @@ func resourceAwsElasticacheClusterCreate(d *schema.ResourceData, meta interface{
 		CacheSubnetGroupName:    aws.String(subnetGroupName),
 		CacheSecurityGroupNames: securityNames,
 		SecurityGroupIDs:        securityIds,
-		CacheParameterGroupName: aws.String(paramGroupName),
+		Tags:                    tags,
+	}
+
+	// parameter groups are optional and can be defaulted by AWS
+	if v, ok := d.GetOk("parameter_group_name"); ok {
+		req.CacheParameterGroupName = aws.String(v.(string))
 	}
 
 	_, err := conn.CreateCacheCluster(req)
@@ -139,13 +172,14 @@ func resourceAwsElasticacheClusterCreate(d *schema.ResourceData, meta interface{
 
 	d.SetId(clusterId)
 
-	return nil
+	return resourceAwsElasticacheClusterRead(d, meta)
 }
 
 func resourceAwsElasticacheClusterRead(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).elasticacheconn
 	req := &elasticache.DescribeCacheClustersInput{
-		CacheClusterID: aws.String(d.Id()),
+		CacheClusterID:    aws.String(d.Id()),
+		ShowCacheNodeInfo: aws.Boolean(true),
 	}
 
 	res, err := conn.DescribeCacheClusters(req)
@@ -167,9 +201,76 @@ func resourceAwsElasticacheClusterRead(d *schema.ResourceData, meta interface{})
 		d.Set("security_group_names", c.CacheSecurityGroups)
 		d.Set("security_group_ids", c.SecurityGroups)
 		d.Set("parameter_group_name", c.CacheParameterGroup)
+
+		if err := setCacheNodeData(d, c); err != nil {
+			return err
+		}
+		// list tags for resource
+		// set tags
+		arn, err := buildECARN(d, meta)
+		if err != nil {
+			log.Printf("[DEBUG] Error building ARN for ElastiCache Cluster, not setting Tags for cluster %s", *c.CacheClusterID)
+		} else {
+			resp, err := conn.ListTagsForResource(&elasticache.ListTagsForResourceInput{
+				ResourceName: aws.String(arn),
+			})
+
+			if err != nil {
+				log.Printf("[DEBUG] Error retreiving tags for ARN: %s", arn)
+			}
+
+			var et []*elasticache.Tag
+			if len(resp.TagList) > 0 {
+				et = resp.TagList
+			}
+			d.Set("tags", tagsToMapEC(et))
+		}
 	}
 
 	return nil
+}
+
+func resourceAwsElasticacheClusterUpdate(d *schema.ResourceData, meta interface{}) error {
+	conn := meta.(*AWSClient).elasticacheconn
+	arn, err := buildECARN(d, meta)
+	if err != nil {
+		log.Printf("[DEBUG] Error building ARN for ElastiCache Cluster, not updating Tags for cluster %s", d.Id())
+	} else {
+		if err := setTagsEC(conn, d, arn); err != nil {
+			return err
+		}
+	}
+	return resourceAwsElasticacheClusterRead(d, meta)
+}
+
+func setCacheNodeData(d *schema.ResourceData, c *elasticache.CacheCluster) error {
+	sortedCacheNodes := make([]*elasticache.CacheNode, len(c.CacheNodes))
+	copy(sortedCacheNodes, c.CacheNodes)
+	sort.Sort(byCacheNodeId(sortedCacheNodes))
+
+	cacheNodeData := make([]map[string]interface{}, 0, len(sortedCacheNodes))
+
+	for _, node := range sortedCacheNodes {
+		if node.CacheNodeID == nil || node.Endpoint == nil || node.Endpoint.Address == nil || node.Endpoint.Port == nil {
+			return fmt.Errorf("Unexpected nil pointer in: %#v", node)
+		}
+		cacheNodeData = append(cacheNodeData, map[string]interface{}{
+			"id":      *node.CacheNodeID,
+			"address": *node.Endpoint.Address,
+			"port":    int(*node.Endpoint.Port),
+		})
+	}
+
+	return d.Set("cache_nodes", cacheNodeData)
+}
+
+type byCacheNodeId []*elasticache.CacheNode
+
+func (b byCacheNodeId) Len() int      { return len(b) }
+func (b byCacheNodeId) Swap(i, j int) { b[i], b[j] = b[j], b[i] }
+func (b byCacheNodeId) Less(i, j int) bool {
+	return b[i].CacheNodeID != nil && b[j].CacheNodeID != nil &&
+		*b[i].CacheNodeID < *b[j].CacheNodeID
 }
 
 func resourceAwsElasticacheClusterDelete(d *schema.ResourceData, meta interface{}) error {
@@ -239,4 +340,18 @@ func CacheClusterStateRefreshFunc(conn *elasticache.ElastiCache, clusterID, give
 		log.Printf("[DEBUG] current status: %v", *c.CacheClusterStatus)
 		return c, *c.CacheClusterStatus, nil
 	}
+}
+
+func buildECARN(d *schema.ResourceData, meta interface{}) (string, error) {
+	iamconn := meta.(*AWSClient).iamconn
+	region := meta.(*AWSClient).region
+	// An zero value GetUserInput{} defers to the currently logged in user
+	resp, err := iamconn.GetUser(&iam.GetUserInput{})
+	if err != nil {
+		return "", err
+	}
+	userARN := *resp.User.ARN
+	accountID := strings.Split(userARN, ":")[4]
+	arn := fmt.Sprintf("arn:aws:elasticache:%s:%s:cluster:%s", region, accountID, d.Id())
+	return arn, nil
 }
