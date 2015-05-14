@@ -487,6 +487,11 @@ func readBlockDevicesFromLaunchConfiguration(d *schema.ResourceData, lc *autosca
 	if err != nil {
 		return nil, err
 	}
+	if rootDeviceName == nil {
+		// We do this so the value is empty so we don't have to do nil checks later
+		var blank string
+		rootDeviceName = &blank
+	}
 	for _, bdm := range lc.BlockDeviceMappings {
 		bd := make(map[string]interface{})
 		if bdm.EBS != nil && bdm.EBS.DeleteOnTermination != nil {
