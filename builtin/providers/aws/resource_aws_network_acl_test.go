@@ -182,6 +182,18 @@ func TestAccAWSNetworkAcl_SubnetChange(t *testing.T) {
 }
 
 func TestAccAWSNetworkAcl_Subnets(t *testing.T) {
+	var networkAcl ec2.NetworkACL
+
+	checkACLSubnets := func(acl *ec2.NetworkACL, count int) resource.TestCheckFunc {
+		return func(*terraform.State) (err error) {
+			if count != len(acl.Associations) {
+				return fmt.Errorf("ACL association count does not match, expected %d, got %d", count, len(acl.Associations))
+			}
+
+			return nil
+		}
+	}
+
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
@@ -190,17 +202,21 @@ func TestAccAWSNetworkAcl_Subnets(t *testing.T) {
 			resource.TestStep{
 				Config: testAccAWSNetworkAclSubnet_SubnetIds,
 				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSNetworkAclExists("aws_network_acl.bar", &networkAcl),
 					testAccCheckSubnetIsAssociatedWithAcl("aws_network_acl.bar", "aws_subnet.one"),
 					testAccCheckSubnetIsAssociatedWithAcl("aws_network_acl.bar", "aws_subnet.two"),
+					checkACLSubnets(&networkAcl, 2),
 				),
 			},
 
 			resource.TestStep{
 				Config: testAccAWSNetworkAclSubnet_SubnetIdsUpdate,
 				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSNetworkAclExists("aws_network_acl.bar", &networkAcl),
 					testAccCheckSubnetIsAssociatedWithAcl("aws_network_acl.bar", "aws_subnet.one"),
 					testAccCheckSubnetIsAssociatedWithAcl("aws_network_acl.bar", "aws_subnet.three"),
 					testAccCheckSubnetIsAssociatedWithAcl("aws_network_acl.bar", "aws_subnet.four"),
+					checkACLSubnets(&networkAcl, 3),
 				),
 			},
 		},
