@@ -17,6 +17,7 @@ import (
 	"github.com/awslabs/aws-sdk-go/service/rds"
 	"github.com/awslabs/aws-sdk-go/service/route53"
 	"github.com/awslabs/aws-sdk-go/service/s3"
+	"github.com/awslabs/aws-sdk-go/service/sqs"
 )
 
 type Config struct {
@@ -35,6 +36,7 @@ type AWSClient struct {
 	elbconn         *elb.ELB
 	autoscalingconn *autoscaling.AutoScaling
 	s3conn          *s3.S3
+	sqsconn		*sqs.SQS
 	r53conn         *route53.Route53
 	region          string
 	rdsconn         *rds.RDS
@@ -83,6 +85,9 @@ func (c *Config) Client() (interface{}, error) {
 
 		log.Println("[INFO] Initializing S3 connection")
 		client.s3conn = s3.New(awsConfig)
+
+		log.Println("[INFO] Initializing SQS connection")
+		client.sqsconn = sqs.New(awsConfig)
 
 		log.Println("[INFO] Initializing RDS Connection")
 		client.rdsconn = rds.New(awsConfig)
