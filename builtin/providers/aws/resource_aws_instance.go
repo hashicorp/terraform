@@ -140,6 +140,11 @@ func resourceAwsInstance() *schema.Resource {
 				Optional: true,
 			},
 
+			"disable_api_termination": &schema.Schema{
+				Type:     schema.TypeBool,
+				Optional: true,
+			},
+
 			"iam_instance_profile": &schema.Schema{
 				Type:     schema.TypeString,
 				ForceNew: true,
@@ -336,14 +341,15 @@ func resourceAwsInstanceCreate(d *schema.ResourceData, meta interface{}) error {
 
 	// Build the creation struct
 	runOpts := &ec2.RunInstancesInput{
-		ImageID:            aws.String(d.Get("ami").(string)),
-		Placement:          placement,
-		InstanceType:       aws.String(d.Get("instance_type").(string)),
-		MaxCount:           aws.Long(int64(1)),
-		MinCount:           aws.Long(int64(1)),
-		UserData:           aws.String(userData),
-		EBSOptimized:       aws.Boolean(d.Get("ebs_optimized").(bool)),
-		IAMInstanceProfile: iam,
+		ImageID:               aws.String(d.Get("ami").(string)),
+		Placement:             placement,
+		InstanceType:          aws.String(d.Get("instance_type").(string)),
+		MaxCount:              aws.Long(int64(1)),
+		MinCount:              aws.Long(int64(1)),
+		UserData:              aws.String(userData),
+		EBSOptimized:          aws.Boolean(d.Get("ebs_optimized").(bool)),
+		DisableAPITermination: aws.Boolean(d.Get("disable_api_termination").(bool)),
+		IAMInstanceProfile:    iam,
 	}
 
 	associatePublicIPAddress := false
@@ -700,7 +706,18 @@ func resourceAwsInstanceUpdate(d *schema.ResourceData, meta interface{}) error {
 		if err != nil {
 			return err
 		}
+	}
 
+	if d.HasChange("disable_api_termination") {
+		_, err := conn.ModifyInstanceAttribute(&ec2.ModifyInstanceAttributeInput{
+			InstanceID: aws.String(d.Id()),
+			DisableAPITermination: &ec2.AttributeBooleanValue{
+				Value: aws.Boolean(d.Get("disable_api_termination").(bool)),
+			},
+		})
+		if err != nil {
+			return err
+		}
 	}
 
 	// TODO(mitchellh): wait for the attributes we modified to
