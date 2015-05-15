@@ -229,6 +229,51 @@ func TestAccAWSInstance_sourceDestCheck(t *testing.T) {
 	})
 }
 
+func TestAccAWSInstance_disableApiTermination(t *testing.T) {
+	var v ec2.Instance
+
+	checkDisableApiTermination := func(expected bool) resource.TestCheckFunc {
+		return func(*terraform.State) error {
+			conn := testAccProvider.Meta().(*AWSClient).ec2conn
+			r, err := conn.DescribeInstanceAttribute(&ec2.DescribeInstanceAttributeInput{
+				InstanceID: v.InstanceID,
+				Attribute:  aws.String("disableApiTermination"),
+			})
+			if err != nil {
+				return err
+			}
+			got := *r.DisableAPITermination.Value
+			if got != expected {
+				return fmt.Errorf("expected: %t, got: %t", expected, got)
+			}
+			return nil
+		}
+	}
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckInstanceDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccInstanceConfigDisableAPITermination(true),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckInstanceExists("aws_instance.foo", &v),
+					checkDisableApiTermination(true),
+				),
+			},
+
+			resource.TestStep{
+				Config: testAccInstanceConfigDisableAPITermination(false),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckInstanceExists("aws_instance.foo", &v),
+					checkDisableApiTermination(false),
+				),
+			},
+		},
+	})
+}
+
 func TestAccAWSInstance_vpc(t *testing.T) {
 	var v ec2.Instance
 
@@ -628,6 +673,27 @@ resource "aws_instance" "foo" {
 	source_dest_check = false
 }
 `
+
+func testAccInstanceConfigDisableAPITermination(val bool) string {
+	return fmt.Sprintf(`
+	resource "aws_vpc" "foo" {
+		cidr_block = "10.1.0.0/16"
+	}
+
+	resource "aws_subnet" "foo" {
+		cidr_block = "10.1.1.0/24"
+		vpc_id = "${aws_vpc.foo.id}"
+	}
+
+	resource "aws_instance" "foo" {
+		# us-west-2
+		ami = "ami-4fccb37f"
+		instance_type = "m1.small"
+		subnet_id = "${aws_subnet.foo.id}"
+		disable_api_termination = %t
+	}
+	`, val)
+}
 
 const testAccInstanceConfigVPC = `
 resource "aws_vpc" "foo" {
