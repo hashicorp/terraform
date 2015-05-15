@@ -85,7 +85,9 @@ func resourceAwsRoute53Record() *schema.Resource {
 						},
 					},
 				},
+				Set: resourceAwsRoute53AliasRecordHash,
 			},
+
 			"failover": &schema.Schema{ // PRIMARY | SECONDARY
 				Type:     schema.TypeString,
 				Optional: true,
@@ -97,21 +99,13 @@ func resourceAwsRoute53Record() *schema.Resource {
 			},
 
 			"records": &schema.Schema{
-				Type:     schema.TypeSet,
-				Elem:     &schema.Schema{Type: schema.TypeString},
-				Required: true,
+				Type: schema.TypeSet,
+				Elem: &schema.Schema{Type: schema.TypeString},
 				Set: func(v interface{}) int {
 					return hashcode.String(v.(string))
 				},
-				Set: resourceAwsRoute53AliasRecordHash,
-			},
-
-			"records": &schema.Schema{
-				Type:          schema.TypeSet,
 				ConflictsWith: []string{"alias"},
-				Elem:          &schema.Schema{Type: schema.TypeString},
 				Optional:      true,
-				Set:           schema.HashString,
 			},
 		},
 	}
@@ -247,7 +241,6 @@ func resourceAwsRoute53RecordRead(d *schema.ResourceData, meta interface{}) erro
 		StartRecordName: aws.String(en),
 		StartRecordType: aws.String(d.Get("type").(string)),
 	}
-
 
 	resp, err := conn.ListResourceRecordSets(lopts)
 	if err != nil {
