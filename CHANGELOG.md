@@ -15,6 +15,7 @@ IMPROVEMENTS:
   * provider/aws: `aws_db_instances` supports `license_model` [GH-1966]
   * provider/aws: `aws_elasticache_cluster` add support for Tags [GH-1965]
   * provider/aws: `aws_s3_bucket` exports `hosted_zone_id` and `region` [GH-1865]
+  * provider/aws: `aws_s3_bucket` add support for website `redirect_all_requests_to` [GH-1909]
   * provider/aws: `aws_route53_record` exports `fqdn` [GH-1847]
   * provider/aws: `aws_route53_zone` can create private hosted zones [GH-1526]
   * provider/google: `google_compute_instance` `scratch` attribute added [GH-1920]
