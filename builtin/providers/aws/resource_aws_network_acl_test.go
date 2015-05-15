@@ -52,7 +52,7 @@ func TestAccAWSNetworkAcl_EgressAndIngressRules(t *testing.T) {
 	})
 }
 
-func TestAccAWSNetworkAcl_OnlyIngressRules(t *testing.T) {
+func TestAccAWSNetworkAcl_OnlyIngressRules_basic(t *testing.T) {
 	var networkAcl ec2.NetworkACL
 
 	resource.Test(t, resource.TestCase{
@@ -83,7 +83,7 @@ func TestAccAWSNetworkAcl_OnlyIngressRules(t *testing.T) {
 	})
 }
 
-func TestAccAWSNetworkAcl_OnlyIngressRulesChange(t *testing.T) {
+func TestAccAWSNetworkAcl_OnlyIngressRules_update(t *testing.T) {
 	var networkAcl ec2.NetworkACL
 
 	resource.Test(t, resource.TestCase{

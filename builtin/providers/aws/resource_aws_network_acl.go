@@ -41,6 +41,7 @@ func resourceAwsNetworkAcl() *schema.Resource {
 			"subnet_ids": &schema.Schema{
 				Type:          schema.TypeSet,
 				Optional:      true,
+				Computed:      true,
 				ConflictsWith: []string{"subnet_id"},
 				Elem:          &schema.Schema{Type: schema.TypeString},
 				Set:           schema.HashString,
@@ -402,14 +403,13 @@ func resourceAwsNetworkAclDelete(d *schema.ResourceData, meta interface{}) error
 				// This means the subnet is attached to default acl of vpc.
 				var associations []*ec2.NetworkACLAssociation
 				if v, ok := d.GetOk("subnet_id"); ok {
+
 					a, err := findNetworkAclAssociation(v.(string), conn)
 					if err != nil {
-						return resource.RetryError{Err: fmt.Errorf("Dependency violation: Cannot delete acl %s: %s", d.Id(), err)}
+						return resource.RetryError{Err: fmt.Errorf("Dependency violation: Cannot find ACL %s: %s", d.Id(), err)}
 					}
 					associations = append(associations, a)
-				}
-
-				if v, ok := d.GetOk("subnet_ids"); ok {
+				} else if v, ok := d.GetOk("subnet_ids"); ok {
 					ids := v.(*schema.Set).List()
 					for _, i := range ids {
 						a, err := findNetworkAclAssociation(i.(string), conn)
