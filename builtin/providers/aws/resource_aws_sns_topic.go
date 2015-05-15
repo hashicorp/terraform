@@ -33,18 +33,18 @@ func resourceAwsSnsTopic() *schema.Resource {
 			},
 			"display_name": &schema.Schema{
 				Type:      schema.TypeString,
-				Required:  false,
+				Optional:  true,
 				ForceNew:  false,
 			},
 			"policy": &schema.Schema{
 				Type:      schema.TypeString,
-				Required:  false,
+				Optional:  true,
 				ForceNew:  false,
 				Computed:  true,
 			},
 			"delivery_policy": &schema.Schema{
 				Type:      schema.TypeString,
-				Required:  false,
+				Optional:  true,
 				ForceNew:  false,
 			},
 		},
