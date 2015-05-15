@@ -34,6 +34,8 @@ The following arguments are supported:
 * `placement_group` - (Optional) The Placement Group to start the instance in.
 * `ebs_optimized` - (Optional) If true, the launched EC2 instance will be
      EBS-optimized.
+* `disable_api_termination` - (Optional) If true, enables [EC2 Instance
+     Termination Protection](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/terminating-instances.html#Using_ChangingDisableAPITermination)
 * `instance_type` - (Required) The type of instance to start
 * `key_name` - (Optional) The key name to use for the instance.
 * `security_groups` - (Optional) A list of security group names to associate with.
