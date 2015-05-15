@@ -38,11 +38,20 @@ func resourceAwsS3Bucket() *schema.Resource {
 					Schema: map[string]*schema.Schema{
 						"index_document": &schema.Schema{
 							Type:     schema.TypeString,
-							Required: true,
+							Optional: true,
 						},
 
 						"error_document": &schema.Schema{
 							Type:     schema.TypeString,
+							Optional: true,
+						},
+
+						"redirect_all_requests_to": &schema.Schema{
+							Type: schema.TypeString,
+							ConflictsWith: []string{
+								"website.0.index_document",
+								"website.0.error_document",
+							},
 							Optional: true,
 						},
 					},
@@ -143,10 +152,16 @@ func resourceAwsS3BucketRead(d *schema.ResourceData, meta interface{}) error {
 	if err == nil {
 		w := make(map[string]interface{})
 
-		w["index_document"] = *ws.IndexDocument.Suffix
+		if v := ws.IndexDocument; v != nil {
+			w["index_document"] = *v.Suffix
+		}
 
 		if v := ws.ErrorDocument; v != nil {
 			w["error_document"] = *v.Key
+		}
+
+		if v := ws.RedirectAllRequestsTo; v != nil {
+			w["redirect_all_requests_to"] = *v.HostName
 		}
 
 		websites = append(websites, w)
@@ -235,13 +250,24 @@ func resourceAwsS3BucketWebsitePut(s3conn *s3.S3, d *schema.ResourceData, websit
 
 	indexDocument := website["index_document"].(string)
 	errorDocument := website["error_document"].(string)
+	redirectAllRequestsTo := website["redirect_all_requests_to"].(string)
+
+	if indexDocument == "" && redirectAllRequestsTo == "" {
+		return fmt.Errorf("Must specify either index_document or redirect_all_requests_to.")
+	}
 
 	websiteConfiguration := &s3.WebsiteConfiguration{}
 
-	websiteConfiguration.IndexDocument = &s3.IndexDocument{Suffix: aws.String(indexDocument)}
+	if indexDocument != "" {
+		websiteConfiguration.IndexDocument = &s3.IndexDocument{Suffix: aws.String(indexDocument)}
+	}
 
 	if errorDocument != "" {
 		websiteConfiguration.ErrorDocument = &s3.ErrorDocument{Key: aws.String(errorDocument)}
+	}
+
+	if redirectAllRequestsTo != "" {
+		websiteConfiguration.RedirectAllRequestsTo = &s3.RedirectAllRequestsTo{HostName: aws.String(redirectAllRequestsTo)}
 	}
 
 	putInput := &s3.PutBucketWebsiteInput{
