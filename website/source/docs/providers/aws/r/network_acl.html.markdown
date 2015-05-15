@@ -45,7 +45,9 @@ resource "aws_network_acl" "main" {
 The following arguments are supported:
 
 * `vpc_id` - (Required) The ID of the associated VPC.
-* `subnet_id` - (Optional) The ID of the associated subnet.
+* `subnet_ids` - (Optional) A list of Subnet IDs to apply the ACL to
+* `subnet_id` - (Optional, Deprecated) The ID of the associated Subnet. This
+attribute is deprecated, please use the `subnet_ids` attribute instead
 * `ingress` - (Optional) Specifies an ingress rule. Parameters defined below.
 * `egress` - (Optional) Specifies an egress rule. Parameters defined below.
 * `tags` - (Optional) A mapping of tags to assign to the resource.
