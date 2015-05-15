@@ -1,7 +1,6 @@
 package terraform
 
 import (
-	"fmt"
 	"log"
 
 	"github.com/hashicorp/terraform/dag"
@@ -61,25 +60,6 @@ func (n *GraphNodeBasicSubgraph) Subgraph() *Graph {
 	return n.Graph
 }
 
-func (n *GraphNodeBasicSubgraph) Flatten(p []string) (dag.Vertex, error) {
-	return &graphNodeBasicSubgraphFlat{
-		GraphNodeBasicSubgraph: n,
-		PathValue:              p,
-	}, nil
-}
-
-// Same as GraphNodeBasicSubgraph, but for flattening
-type graphNodeBasicSubgraphFlat struct {
-	*GraphNodeBasicSubgraph
-
-	PathValue []string
-}
-
-func (n *graphNodeBasicSubgraphFlat) Name() string {
-	return fmt.Sprintf(
-		"%s.%s", modulePrefixStr(n.PathValue), n.GraphNodeBasicSubgraph.Name())
-}
-
-func (n *graphNodeBasicSubgraphFlat) Path() []string {
-	return n.PathValue
+func (n *GraphNodeBasicSubgraph) FlattenGraph() *Graph {
+	return n.Graph
 }
