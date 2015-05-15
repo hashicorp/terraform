@@ -7,8 +7,8 @@ import (
 	"github.com/hashicorp/terraform/helper/schema"
 
 	"github.com/awslabs/aws-sdk-go/aws"
-	"github.com/awslabs/aws-sdk-go/service/s3"
 	"github.com/awslabs/aws-sdk-go/aws/awsutil"
+	"github.com/awslabs/aws-sdk-go/service/s3"
 )
 
 func resourceAwsS3BucketPolicy() *schema.Resource {
@@ -40,7 +40,7 @@ func resourceAwsS3BucketPolicyPut(d *schema.ResourceData, meta interface{}) erro
 	s3conn := meta.(*AWSClient).s3conn
 	bucket := d.Get("bucket").(string)
 	policy := d.Get("policy").(string)
-	name   := d.Get("name").(string)
+	name := d.Get("name").(string)
 
 	resp, err := s3conn.PutBucketPolicy(
 		&s3.PutBucketPolicyInput{
@@ -48,7 +48,7 @@ func resourceAwsS3BucketPolicyPut(d *schema.ResourceData, meta interface{}) erro
 			Policy: aws.String(policy),
 		})
 
-	log.Printf("[DEBUG] S3 bucket policy set (response): %s", awsutil.StringValue(resp));
+	log.Printf("[DEBUG] S3 bucket policy set (response): %s", awsutil.StringValue(resp))
 
 	if err != nil {
 		return fmt.Errorf("Error adding policy to S3 bucket: %s", err)
@@ -69,16 +69,15 @@ func resourceAwsS3BucketPolicyRead(d *schema.ResourceData, meta interface{}) err
 		},
 	)
 
-	if awserr := aws.Error(err); awserr != nil {
-		log.Printf("[ERROR] Aws Service Error: %s", awserr.Message)
-		d.SetId("")
-		return nil
-	} else if err != nil {
-		return fmt.Errorf("Error getting policy for S3 bucket (%s): %s", bucket, err)	
+	if resp != nil {
+		if resp.Policy != nil {
+			d.Set("policy", resp.Policy)
+		}
 	}
 
-	log.Printf("[!!!!] %s", awsutil.StringValue(resp))
-	//TODO: GetBucketPolicy does not seem to be working. (possibly related to region?)
+	if err != nil {
+		return fmt.Errorf("Error getting policy for S3 bucket (%s): %s", bucket, err)
+	}
 	return nil
 }
 
@@ -87,20 +86,15 @@ func resourceAwsS3BucketPolicyDelete(d *schema.ResourceData, meta interface{}) e
 	s3conn := meta.(*AWSClient).s3conn
 	bucket := d.Get("bucket").(string)
 
-	resp, err := s3conn.DeleteBucketPolicy(
-		&s3.DeleteBucketPolicyInput {
+	_, err := s3conn.DeleteBucketPolicy(
+		&s3.DeleteBucketPolicyInput{
 			Bucket: aws.String(bucket),
 		},
 	)
 
-	if awserr := aws.Error(err); awserr != nil {
-		log.Printf("[ERROR] Aws Service Error: %s", awserr.Message)
-		//TODO handle service error?
-		return nil;
-	} else if err != nil {
+	if err != nil {
 		return fmt.Errorf("Error deleting policy for S3 bucket (%s): %s", bucket, err)
 	}
 
-	log.Printf("[!!!!] %s", awsutil.StringValue(resp))
 	return nil
 }
