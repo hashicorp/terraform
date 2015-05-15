@@ -26,6 +26,29 @@ resource "aws_cloudwatch_metric_alarm" "foobar" {
 }
 ```
 
+## Example in Conjuction with Scaling Policies
+```
+resource "aws_autoscaling_scaling_policy" "bat" {
+    policy_name = "foobar3-terraform-test"
+    scaling_adjustment = 4
+    adjustment_type = "ChangeInCapacity"
+    cooldown = 300
+    autoscaling_group_name = "${aws_autoscaling_group.bar.name}"
+}
+
+resource "aws_cloudwatch_metric_alarm" "bat" {
+    alarm_name = "terraform-test-foobar5"
+    comparison_operator = "GreaterThanOrEqualToThreshold"
+    evaluation_periods = "2"
+    metric_name = "CPUUtilization"
+    namespace = "AWS/EC2"
+    period = "120"
+    statistic = "Average"
+    threshold = "80"
+    alarm_description = "This metric monitor ec2 cpu utilization"
+    alarm_actions = ["${aws_autoscaling_scaling_policy.bat.policy_arn}"]
+}
+```
 ## Argument Reference
 
 The following arguments are supported:
