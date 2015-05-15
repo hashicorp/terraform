@@ -1,4 +1,4 @@
-## 0.5.1 (unreleased)
+## 0.5.1 (May 15, 2015)
 
 FEATURES:
 
