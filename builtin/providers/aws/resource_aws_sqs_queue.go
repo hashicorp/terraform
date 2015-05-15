@@ -22,6 +22,9 @@ var AttributeMap = map[string]string{
 }
 
 
+// A number of these are marked as computed because if you don't
+// provide a value, SQS will provide you with defaults (which are the
+// default values specified below)
 func resourceAwsSqsQueue() *schema.Resource {
 	return &schema.Resource{
 		Create: resourceAwsSqsQueueCreate,
@@ -30,7 +33,7 @@ func resourceAwsSqsQueue() *schema.Resource {
 		Delete: resourceAwsSqsQueueDelete,
 
 		Schema: map[string]*schema.Schema{
-			"queue": &schema.Schema{
+			"name": &schema.Schema{
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
@@ -38,22 +41,27 @@ func resourceAwsSqsQueue() *schema.Resource {
 			"delay_seconds": &schema.Schema{
 				Type: 	  schema.TypeInt,
 				Optional: true,
+				Computed: true,
 			},
 			"max_message_size": &schema.Schema{
 				Type:	  schema.TypeInt,
 				Optional: true,
+				Computed: true,
 			},
 			"message_retention_seconds": &schema.Schema{
 				Type:     schema.TypeInt,
 				Optional: true,
+				Computed: true,
 			},
 			"receive_wait_time_seconds": &schema.Schema{
 				Type:     schema.TypeInt,
 				Optional: true,
+				Computed: true,
 			},
 			"visibility_timeout_seconds": &schema.Schema{
 				Type:     schema.TypeInt,
 				Optional: true,
+				Computed: true,
 			},
 			"policy": &schema.Schema{
 				Type:     schema.TypeString,
@@ -70,12 +78,12 @@ func resourceAwsSqsQueue() *schema.Resource {
 func resourceAwsSqsQueueCreate(d *schema.ResourceData, meta interface{}) error {
 	sqsconn := meta.(*AWSClient).sqsconn
 
-	queue := d.Get("queue").(string)
+	name := d.Get("name").(string)
  
-	log.Printf("[DEBUG] SQS queue create: %s", queue)
+	log.Printf("[DEBUG] SQS queue create: %s", name)
 
 	req := &sqs.CreateQueueInput{
-		QueueName: aws.String(queue),
+		QueueName: aws.String(name),
 	}
 
 	attributes := make(map[string]*string) 
@@ -145,6 +153,7 @@ func resourceAwsSqsQueueRead(d *schema.ResourceData, meta interface{}) error {
 
 	attributeOutput, err := sqsconn.GetQueueAttributes(&sqs.GetQueueAttributesInput{
 		QueueURL: aws.String(d.Id()),
+		AttributeNames: []*string{aws.String("All")},
 	})
 	if err != nil {
 		return err
