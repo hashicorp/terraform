@@ -1,3 +1,9 @@
+## 0.5.2 (Unreleased)
+
+IMPROVEMENTS:
+
+  * provider/aws: support ec2 termination protection [GH-1988]
+
 ## 0.5.1 (May 15, 2015)
 
 FEATURES:
