@@ -1,6 +1,7 @@
 package aws
 
 import (
+	"encoding/json"
 	"fmt"
 	"log"
 
@@ -32,8 +33,9 @@ func resourceAwsS3Bucket() *schema.Resource {
 			},
 
 			"policy": &schema.Schema{
-				Type:     schema.TypeString,
-				Optional: true,
+				Type:      schema.TypeString,
+				Optional:  true,
+				StateFunc: normalizeJson,
 			},
 
 			"website": &schema.Schema{
@@ -161,7 +163,7 @@ func resourceAwsS3BucketRead(d *schema.ResourceData, meta interface{}) error {
 	pol, err := s3conn.GetBucketPolicy(&s3.GetBucketPolicyInput{
 		Bucket: aws.String(d.Id()),
 	})
-	log.Printf("[DEBUG] S3 bucket: %s, read policy: %s", d.Id(), pol)
+	log.Printf("[DEBUG] S3 bucket: %s, read policy: %v", d.Id(), pol)
 	if err != nil {
 		if err := d.Set("policy", ""); err != nil {
 			return err
@@ -171,7 +173,7 @@ func resourceAwsS3BucketRead(d *schema.ResourceData, meta interface{}) error {
 			if err := d.Set("policy", ""); err != nil {
 				return err
 			}
-		} else if err := d.Set("policy", *v); err != nil {
+		} else if err := d.Set("policy", normalizeJson(*v)); err != nil {
 			return err
 		}
 	}
@@ -385,6 +387,19 @@ func websiteEndpoint(s3conn *s3.S3, d *schema.ResourceData) (string, error) {
 func WebsiteEndpointUrl(bucket string, region string) string {
 	region = normalizeRegion(region)
 	return fmt.Sprintf("%s.s3-website-%s.amazonaws.com", bucket, region)
+}
+
+func normalizeJson(jsonString interface{}) string {
+	if jsonString == nil {
+		return ""
+	}
+	j := make(map[string]interface{})
+	err := json.Unmarshal([]byte(jsonString.(string)), &j)
+	if err != nil {
+		return fmt.Sprintf("Error parsing JSON: %s", err)
+	}
+	b, _ := json.Marshal(j)
+	return string(b[:])
 }
 
 func normalizeRegion(region string) string {
