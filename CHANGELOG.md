@@ -1,10 +1,10 @@
-## 0.5.2 (Unreleased)
+## 0.5.3 (Unreleased)
 
 IMPROVEMENTS:
 
   * provider/aws: support ec2 termination protection [GH-1988]
 
-## 0.5.1 (May 15, 2015)
+## 0.5.2 (May 15, 2015)
 
 FEATURES:
 
@@ -52,6 +52,10 @@ BUG FIXES:
   * provider/google: `google_compute_template` Update Instance Template network
       definition to match changes to Instance [GH-980]
   * provider/template: Fix infinite diff [GH-1898]
+
+## 0.5.1 (never released)
+
+This version was never released since we accidentally skipped it!
 
 ## 0.5.0 (May 7, 2015)
 
