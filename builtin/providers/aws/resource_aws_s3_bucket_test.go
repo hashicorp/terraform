@@ -271,7 +271,7 @@ func testAccCheckAWSS3BucketWebsite(n string, indexDoc string, errorDoc string, 
 // within AWS
 var randInt = rand.New(rand.NewSource(time.Now().UnixNano())).Int()
 var testAccWebsiteEndpoint = fmt.Sprintf("tf-test-bucket-%d.s3-website-us-west-2.amazonaws.com", randInt)
-var testAccAWSS3BucketPolicy = fmt.Sprintf(`{"Version":"2008-10-17","Statement":[{"Sid":"","Effect":"Allow","Principal":{"AWS":"*"},"Action":"s3:GetObject","Resource":"arn:aws:s3:::tf-test-bucket-%d/*"}]}`, randInt)
+var testAccAWSS3BucketPolicy = fmt.Sprintf(`{ "Version": "2008-10-17", "Statement": [ { "Sid": "", "Effect": "Allow", "Principal": { "AWS": "*" }, "Action": "s3:GetObject", "Resource": "arn:aws:s3:::tf-test-bucket-%d/*" } ] }`, randInt)
 
 var testAccAWSS3BucketConfig = fmt.Sprintf(`
 resource "aws_s3_bucket" "bucket" {
