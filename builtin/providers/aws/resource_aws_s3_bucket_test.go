@@ -1,8 +1,10 @@
 package aws
 
 import (
+	"encoding/json"
 	"fmt"
 	"math/rand"
+	"reflect"
 	"strconv"
 	"testing"
 	"time"
@@ -195,8 +197,17 @@ func testAccCheckAWSS3BucketPolicy(n string, policy string) resource.TestCheckFu
 				return fmt.Errorf("bad policy, found nil, expected: %s", policy)
 			}
 		} else {
-			if *v != policy {
-				return fmt.Errorf("bad policy, expected: %s, got %#v", policy, *v)
+			expected := make(map[string]interface{})
+			if err := json.Unmarshal([]byte(policy), &expected); err != nil {
+				return err
+			}
+			actual := make(map[string]interface{})
+			if err := json.Unmarshal([]byte(*v), &actual); err != nil {
+				return err
+			}
+
+			if !reflect.DeepEqual(expected, actual) {
+				return fmt.Errorf("bad policy, expected: %#v, got %#v", expected, actual)
 			}
 		}
 
@@ -260,7 +271,7 @@ func testAccCheckAWSS3BucketWebsite(n string, indexDoc string, errorDoc string, 
 // within AWS
 var randInt = rand.New(rand.NewSource(time.Now().UnixNano())).Int()
 var testAccWebsiteEndpoint = fmt.Sprintf("tf-test-bucket-%d.s3-website-us-west-2.amazonaws.com", randInt)
-var testAccAWSS3BucketPolicy = fmt.Sprintf(`{ "Version": "2008-10-17", "Statement": [ { "Sid": "", "Effect": "Allow", "Principal": { "AWS": "*" }, "Action": "s3:GetObject", "Resource": "arn:aws:s3:::tf-test-bucket-%d/*" } ] }`, randInt)
+var testAccAWSS3BucketPolicy = fmt.Sprintf(`{"Version":"2008-10-17","Statement":[{"Sid":"","Effect":"Allow","Principal":{"AWS":"*"},"Action":"s3:GetObject","Resource":"arn:aws:s3:::tf-test-bucket-%d/*"}]}`, randInt)
 
 var testAccAWSS3BucketConfig = fmt.Sprintf(`
 resource "aws_s3_bucket" "bucket" {
