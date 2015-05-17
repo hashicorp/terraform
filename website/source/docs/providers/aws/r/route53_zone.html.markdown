@@ -58,11 +58,12 @@ The following arguments are supported:
 * `tags` - (Optional) A mapping of tags to assign to the zone.
 * `vpc_id` - (Optional) The VPC to associate with a private hosted zone. Specifying `vpc_id` will create a private hosted zone.
 * `vpc_region` - (Optional) The VPC's region. Defaults to the region of the AWS provider.
+* `delegation_set_id` - (Optional) The ID of the reusable delgation set whose NS records you want to assign to the hosted zone.
 
 ## Attributes Reference
 
 The following attributes are exported:
 
 * `zone_id` - The Hosted Zone ID. This can be referenced by zone records.
-* `name_servers` - A list of name servers in a default delegation set.
+* `name_servers` - A list of name servers in associated (or default) delegation set.
   Find more about delegation sets in [AWS docs](http://docs.aws.amazon.com/Route53/latest/APIReference/actions-on-reusable-delegation-sets.html).
