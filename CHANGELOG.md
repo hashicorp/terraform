@@ -19,6 +19,8 @@ BUG FIXES:
       [GH-1088]
   * provider/google: `google_http_health_check` Defaults now driven from Terraform,
       avoids errors on update [GH-1894]
+  * provider/google: `google_compute_template` Update Instance Template network
+      definition to match changes to Instance [GH-980]
   * provider/template: Fix infinite diff [GH-1898]
 
 ## 0.5.0 (May 7, 2015)
