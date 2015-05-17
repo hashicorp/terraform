@@ -8,13 +8,16 @@ import (
 	"os"
 	"runtime"
 
+
 	// TODO(dcunnin): Use version code from version.go
 	// "github.com/hashicorp/terraform"
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"
 	"golang.org/x/oauth2/jwt"
+	"google.golang.org/api/autoscaler/v1beta2"
 	"google.golang.org/api/compute/v1"
 	"google.golang.org/api/dns/v1"
+	"google.golang.org/api/replicapool/v1beta2"
 )
 
 // Config is the configuration structure used to instantiate the Google
@@ -26,6 +29,8 @@ type Config struct {
 
 	clientCompute *compute.Service
 	clientDns *dns.Service
+	clientReplicaPool *replicapool.Service
+	clientAutoscaler *autoscaler.Service
 }
 
 func (c *Config) loadAndValidate() error {
@@ -113,6 +118,20 @@ func (c *Config) loadAndValidate() error {
 		return err
 	}
 	c.clientDns.UserAgent = userAgent
+
+	log.Printf("[INFO] Instantiating Google Replica Pool client...")
+	c.clientReplicaPool, err = replicapool.New(client)
+	if err != nil {
+		return err
+	}
+	c.clientReplicaPool.UserAgent = userAgent
+
+	log.Printf("[INFO] Instantiating Google Autoscaler client...")
+	c.clientAutoscaler, err = autoscaler.New(client)
+	if err != nil {
+		return err
+	}
+	c.clientAutoscaler.UserAgent = userAgent
 
 	return nil
 }
