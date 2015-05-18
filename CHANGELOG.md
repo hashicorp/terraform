@@ -4,6 +4,7 @@ IMPROVEMENTS:
 
   * **New resource: `aws_sqs_queue`** [GH-1939]
   * provider/aws: support ec2 termination protection [GH-1988]
+  * provider/aws: `aws_s3_bucket` add support for `policy` [GH-1992]
 
 ## 0.5.2 (May 15, 2015)
 
