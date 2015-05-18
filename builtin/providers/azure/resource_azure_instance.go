@@ -174,7 +174,11 @@ func resourceAzureInstanceCreate(d *schema.ResourceData, meta interface{}) (err 
 	}
 
 	// Retrieve the needed details of the image
-	configForImage, osType, err := retrieveImageDetails(mc, d.Get("image").(string))
+	configureForImage, osType, err := retrieveImageDetails(
+		mc,
+		d.Get("image").(string),
+		d.Get("storage").(string),
+	)
 	if err != nil {
 		return err
 	}
@@ -221,15 +225,10 @@ func resourceAzureInstanceCreate(d *schema.ResourceData, meta interface{}) (err 
 	}(mc)
 
 	// Create a new role for the instance
-	role := vmutils.NewVmConfiguration(name, d.Get("size").(string))
+	role := vmutils.NewVMConfiguration(name, d.Get("size").(string))
 
 	log.Printf("[DEBUG] Configuring deployment from image...")
-	err = vmutils.ConfigureDeploymentFromPlatformImage(
-		&role,
-		imageName,
-		imageURL,
-		d.Get("image").(string),
-	)
+	err = configureForImage(&role)
 	if err != nil {
 		return fmt.Errorf("Error configuring the deployment for %s: %s", name, err)
 	}
@@ -334,7 +333,7 @@ func resourceAzureInstanceRead(d *schema.ResourceData, meta interface{}) error {
 		return fmt.Errorf("Error retrieving Cloud Service of instance %s: %s", d.Id(), err)
 	}
 
-	d.Set("reverse_dns", cs.ReverseDnsFqdn)
+	d.Set("reverse_dns", cs.ReverseDNSFqdn)
 	d.Set("location", cs.Location)
 
 	log.Printf("[DEBUG] Retrieving instance: %s", d.Id())
@@ -348,7 +347,6 @@ func resourceAzureInstanceRead(d *schema.ResourceData, meta interface{}) error {
 			"Instance %s has an unexpected number of roles: %d", d.Id(), len(dpmt.RoleList))
 	}
 
-	d.Set("image", dpmt.RoleList[0].VMImageName)
 	d.Set("size", dpmt.RoleList[0].RoleSize)
 
 	if len(dpmt.RoleInstanceList) != 1 {
@@ -356,7 +354,7 @@ func resourceAzureInstanceRead(d *schema.ResourceData, meta interface{}) error {
 			"Instance %s has an unexpected number of role instances: %d",
 			d.Id(), len(dpmt.RoleInstanceList))
 	}
-	d.Set("ip_address", dpmt.RoleInstanceList[0].IpAddress)
+	d.Set("ip_address", dpmt.RoleInstanceList[0].IPAddress)
 
 	if len(dpmt.RoleInstanceList[0].InstanceEndpoints) > 0 {
 		d.Set("vip_address", dpmt.RoleInstanceList[0].InstanceEndpoints[0].Vip)
@@ -522,25 +520,27 @@ func resourceAzureEndpointHash(v interface{}) int {
 	return hashcode.String(buf.String())
 }
 
-func retrieveImageDetails(mc *management.Client, id, storage string) (func() error, string, error) {
-	imageName, imageURL, osType, err := retrieveOSImageDetails(mc, id)
+func retrieveImageDetails(
+	mc *management.Client,
+	label string,
+	storage string) (func(*virtualmachine.Role) error, string, error) {
+	configureForImage, osType, err := retrieveOSImageDetails(mc, label, storage)
 	if err == nil {
-
-		return imageName, imageURL, osType, nil
+		return configureForImage, osType, nil
 	}
 
-	imageName, imageURL, osType, err = retrieveVMImageDetails(mc, id)
+	configureForImage, osType, err = retrieveVMImageDetails(mc, label)
 	if err == nil {
-		return imageName, imageURL, osType, nil
+		return configureForImage, osType, nil
 	}
 
-	return "", "", "", fmt.Errorf("Could not find image with label or name '%s'", id)
+	return nil, "", fmt.Errorf("Could not find image with label '%s'", label)
 }
 
 func retrieveOSImageDetails(
 	mc *management.Client,
 	label,
-	storage string) (func() error, string, error) {
+	storage string) (func(*virtualmachine.Role) error, string, error) {
 	imgs, err := osimage.NewClient(*mc).GetImageList()
 	if err != nil {
 		return nil, "", fmt.Errorf("Error retrieving image details: %s", err)
@@ -556,39 +556,61 @@ func retrieveOSImageDetails(
 					return nil, "",
 						fmt.Errorf("When using a platform image, the 'storage' parameter is required")
 				}
-				imageURL = fmt.Sprintf("http://%s.blob.core.windows.net/vhds/%s.vhd", storage, id)
+				img.MediaLink = fmt.Sprintf("http://%s.blob.core.windows.net/vhds/%s.vhd", storage, label)
 			}
-			return img.Name, img.MediaLink, img.OS, nil
+
+			configureForImage := func(role *virtualmachine.Role) error {
+				return vmutils.ConfigureDeploymentFromPlatformImage(
+					role,
+					img.Name,
+					img.MediaLink,
+					label,
+				)
+			}
+
+			return configureForImage, img.OS, nil
 		}
 	}
 
-	return "", "", "", fmt.Errorf("Could not find image with label '%s'", label)
+	return nil, "", fmt.Errorf("Could not find image with label '%s'", label)
 }
 
-func retrieveVMImageDetails(mc *management.Client, name string) (string, string, string, error) {
+func retrieveVMImageDetails(
+	mc *management.Client,
+	label string) (func(*virtualmachine.Role) error, string, error) {
 	imgs, err := virtualmachineimage.NewClient(*mc).GetImageList()
 	if err != nil {
-		return "", "", "", fmt.Errorf("Error retrieving image details: %s", err)
+		return nil, "", fmt.Errorf("Error retrieving image details: %s", err)
 	}
 
 	for _, img := range imgs {
-		if img.Name == name {
+		if img.Label == label {
 			if img.OSDiskConfiguration.OS != linux && img.OSDiskConfiguration.OS != windows {
-				return "", "", "", fmt.Errorf("Unsupported image OS: %s", img.OSDiskConfiguration.OS)
+				return nil, "", fmt.Errorf("Unsupported image OS: %s", img.OSDiskConfiguration.OS)
 			}
-			return img.Name, img.OSDiskConfiguration.MediaLink, img.OSDiskConfiguration.OS, nil
+
+			configureForImage := func(role *virtualmachine.Role) error {
+				return vmutils.ConfigureDeploymentFromVMImage(
+					role,
+					img.Name,
+					"",
+					true,
+				)
+			}
+
+			return configureForImage, img.OSDiskConfiguration.OS, nil
 		}
 	}
 
-	return "", "", "", fmt.Errorf("Could not find image with name '%s'", name)
+	return nil, "", fmt.Errorf("Could not find image with label '%s'", label)
 }
 
 func endpointProtocol(p string) virtualmachine.InputEndpointProtocol {
 	if p == "tcp" {
-		return virtualmachine.InputEndpointProtocolTcp
+		return virtualmachine.InputEndpointProtocolTCP
 	}
 
-	return virtualmachine.InputEndpointProtocolUdp
+	return virtualmachine.InputEndpointProtocolUDP
 }
 
 func verifyParameters(d *schema.ResourceData, osType string) error {
