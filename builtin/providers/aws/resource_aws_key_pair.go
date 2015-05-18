@@ -65,6 +65,11 @@ func resourceAwsKeyPairRead(d *schema.ResourceData, meta interface{}) error {
 	}
 	resp, err := conn.DescribeKeyPairs(req)
 	if err != nil {
+		awsErr, ok := err.(aws.APIError)
+		if ok && awsErr.Code == "InvalidKeyPair.NotFound" {
+			d.SetId("")
+			return nil
+		}
 		return fmt.Errorf("Error retrieving KeyPair: %s", err)
 	}
 
