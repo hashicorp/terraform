@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"fmt"
 	"log"
-	"strings"
 
 	"github.com/hashicorp/terraform/helper/hashcode"
 	"github.com/hashicorp/terraform/helper/schema"
@@ -12,6 +11,7 @@ import (
 	"github.com/svanharmelen/azure-sdk-for-go/management/hostedservice"
 	"github.com/svanharmelen/azure-sdk-for-go/management/osimage"
 	"github.com/svanharmelen/azure-sdk-for-go/management/virtualmachine"
+	"github.com/svanharmelen/azure-sdk-for-go/management/virtualmachineimage"
 	"github.com/svanharmelen/azure-sdk-for-go/management/vmutils"
 )
 
@@ -55,6 +55,7 @@ func resourceAzureInstance() *schema.Resource {
 			"subnet": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
+				Computed: true,
 				ForceNew: true,
 			},
 
@@ -142,14 +143,10 @@ func resourceAzureInstance() *schema.Resource {
 				Set: resourceAzureEndpointHash,
 			},
 
-			"security_groups": &schema.Schema{
-				Type:     schema.TypeSet,
+			"security_group": &schema.Schema{
+				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
-				Elem:     &schema.Schema{Type: schema.TypeString},
-				Set: func(v interface{}) int {
-					return hashcode.String(v.(string))
-				},
 			},
 
 			"ip_address": &schema.Schema{
@@ -177,17 +174,9 @@ func resourceAzureInstanceCreate(d *schema.ResourceData, meta interface{}) (err 
 	}
 
 	// Retrieve the needed details of the image
-	imageName, imageURL, osType, err := retrieveImageDetails(mc, d.Get("image").(string))
+	configForImage, osType, err := retrieveImageDetails(mc, d.Get("image").(string))
 	if err != nil {
 		return err
-	}
-
-	if imageURL == "" {
-		storage, ok := d.GetOk("storage")
-		if !ok {
-			return fmt.Errorf("When using a platform image, the 'storage' parameter is required")
-		}
-		imageURL = fmt.Sprintf("http://%s.blob.core.windows.net/vhds/%s.vhd", storage, name)
 	}
 
 	// Verify if we have all parameters required for the image OS type
@@ -299,14 +288,23 @@ func resourceAzureInstanceCreate(d *schema.ResourceData, meta interface{}) (err 
 		}
 	}
 
-	err = vmutils.ConfigureForSubnet(&role, d.Get("subnet").(string))
-	if err != nil {
-		return fmt.Errorf(
-			"Error adding role to subnet %s for instance %s: %s", d.Get("subnet").(string), name, err)
+	if subnet, ok := d.GetOk("subnet"); ok {
+		err = vmutils.ConfigureWithSubnet(&role, subnet.(string))
+		if err != nil {
+			return fmt.Errorf(
+				"Error associating subnet %s with instance %s: %s", d.Get("subnet").(string), name, err)
+		}
+	}
+
+	if sg, ok := d.GetOk("security_group"); ok {
+		err = vmutils.ConfigureWithSecurityGroup(&role, sg.(string))
+		if err != nil {
+			return fmt.Errorf(
+				"Error associating security group %s with instance %s: %s", sg.(string), name, err)
+		}
 	}
 
 	options := virtualmachine.CreateDeploymentOptions{
-		Subnet:             d.Get("subnet").(string),
 		VirtualNetworkName: d.Get("virtual_network").(string),
 	}
 
@@ -349,11 +347,14 @@ func resourceAzureInstanceRead(d *schema.ResourceData, meta interface{}) error {
 		return fmt.Errorf(
 			"Instance %s has an unexpected number of roles: %d", d.Id(), len(dpmt.RoleList))
 	}
+
+	d.Set("image", dpmt.RoleList[0].VMImageName)
 	d.Set("size", dpmt.RoleList[0].RoleSize)
 
 	if len(dpmt.RoleInstanceList) != 1 {
 		return fmt.Errorf(
-			"Instance %s has an unexpected number of role instances %d", d.Id(), len(dpmt.RoleInstanceList))
+			"Instance %s has an unexpected number of role instances: %d",
+			d.Id(), len(dpmt.RoleInstanceList))
 	}
 	d.Set("ip_address", dpmt.RoleInstanceList[0].IpAddress)
 
@@ -361,15 +362,16 @@ func resourceAzureInstanceRead(d *schema.ResourceData, meta interface{}) error {
 		d.Set("vip_address", dpmt.RoleInstanceList[0].InstanceEndpoints[0].Vip)
 	}
 
-	// Create a new set to hold all configured endpoints
-	endpoints := &schema.Set{
-		F: resourceAzureEndpointHash,
-	}
-
-	// Loop through all endpoints and add them to the set
-	for _, c := range *dpmt.RoleList[0].ConfigurationSets {
+	// Find the network configuration set
+	for _, c := range dpmt.RoleList[0].ConfigurationSets {
 		if c.ConfigurationSetType == virtualmachine.ConfigurationSetTypeNetwork {
-			for _, ep := range *c.InputEndpoints {
+			// Create a new set to hold all configured endpoints
+			endpoints := &schema.Set{
+				F: resourceAzureEndpointHash,
+			}
+
+			// Loop through all endpoints
+			for _, ep := range c.InputEndpoints {
 				endpoint := map[string]interface{}{}
 
 				// Update the values
@@ -379,8 +381,22 @@ func resourceAzureInstanceRead(d *schema.ResourceData, meta interface{}) error {
 				endpoint["private_port"] = ep.LocalPort
 				endpoints.Add(endpoint)
 			}
-
 			d.Set("endpoint", endpoints)
+
+			// Update the subnet
+			switch len(c.SubnetNames) {
+			case 1:
+				d.Set("subnet", c.SubnetNames[0])
+			case 0:
+				d.Set("subnet", "")
+			default:
+				return fmt.Errorf(
+					"Instance %s has an unexpected number of associated subnets %d",
+					d.Id(), len(dpmt.RoleInstanceList))
+			}
+
+			// Update the security group
+			d.Set("security_group", c.NetworkSecurityGroup)
 		}
 	}
 
@@ -403,7 +419,7 @@ func resourceAzureInstanceUpdate(d *schema.ResourceData, meta interface{}) error
 	mc := meta.(*management.Client)
 
 	// First check if anything we can update changed, and if not just return
-	if !d.HasChange("size") && !d.HasChange("endpoint") {
+	if !d.HasChange("size") && !d.HasChange("endpoint") && !d.HasChange("security_group") {
 		return nil
 	}
 
@@ -426,10 +442,10 @@ func resourceAzureInstanceUpdate(d *schema.ResourceData, meta interface{}) error
 		_, n := d.GetChange("endpoint")
 
 		// Delete the existing endpoints
-		for i, c := range *role.ConfigurationSets {
+		for i, c := range role.ConfigurationSets {
 			if c.ConfigurationSetType == virtualmachine.ConfigurationSetTypeNetwork {
 				c.InputEndpoints = nil
-				(*role.ConfigurationSets)[i] = c
+				role.ConfigurationSets[i] = c
 			}
 		}
 
@@ -449,6 +465,15 @@ func resourceAzureInstanceUpdate(d *schema.ResourceData, meta interface{}) error
 						"Error adding endpoint %s for instance %s: %s", m["name"].(string), d.Id(), err)
 				}
 			}
+		}
+	}
+
+	if d.HasChange("security_group") {
+		sg := d.Get("security_group").(string)
+		err := vmutils.ConfigureWithSecurityGroup(role, sg)
+		if err != nil {
+			return fmt.Errorf(
+				"Error associating security group %s with instance %s: %s", sg, d.Id(), err)
 		}
 	}
 
@@ -497,26 +522,65 @@ func resourceAzureEndpointHash(v interface{}) int {
 	return hashcode.String(buf.String())
 }
 
-func retrieveImageDetails(mc *management.Client, label string) (string, string, string, error) {
+func retrieveImageDetails(mc *management.Client, id, storage string) (func() error, string, error) {
+	imageName, imageURL, osType, err := retrieveOSImageDetails(mc, id)
+	if err == nil {
+
+		return imageName, imageURL, osType, nil
+	}
+
+	imageName, imageURL, osType, err = retrieveVMImageDetails(mc, id)
+	if err == nil {
+		return imageName, imageURL, osType, nil
+	}
+
+	return "", "", "", fmt.Errorf("Could not find image with label or name '%s'", id)
+}
+
+func retrieveOSImageDetails(
+	mc *management.Client,
+	label,
+	storage string) (func() error, string, error) {
 	imgs, err := osimage.NewClient(*mc).GetImageList()
+	if err != nil {
+		return nil, "", fmt.Errorf("Error retrieving image details: %s", err)
+	}
+
+	for _, img := range imgs {
+		if img.Label == label {
+			if img.OS != linux && img.OS != windows {
+				return nil, "", fmt.Errorf("Unsupported image OS: %s", img.OS)
+			}
+			if img.MediaLink == "" {
+				if storage == "" {
+					return nil, "",
+						fmt.Errorf("When using a platform image, the 'storage' parameter is required")
+				}
+				imageURL = fmt.Sprintf("http://%s.blob.core.windows.net/vhds/%s.vhd", storage, id)
+			}
+			return img.Name, img.MediaLink, img.OS, nil
+		}
+	}
+
+	return "", "", "", fmt.Errorf("Could not find image with label '%s'", label)
+}
+
+func retrieveVMImageDetails(mc *management.Client, name string) (string, string, string, error) {
+	imgs, err := virtualmachineimage.NewClient(*mc).GetImageList()
 	if err != nil {
 		return "", "", "", fmt.Errorf("Error retrieving image details: %s", err)
 	}
 
-	var labels []string
 	for _, img := range imgs {
-		if img.Label == label {
-			if img.OS != linux && img.OS != windows {
-				return "", "", "", fmt.Errorf("Unsupported image OS: %s", img.OS)
+		if img.Name == name {
+			if img.OSDiskConfiguration.OS != linux && img.OSDiskConfiguration.OS != windows {
+				return "", "", "", fmt.Errorf("Unsupported image OS: %s", img.OSDiskConfiguration.OS)
 			}
-			return img.Name, img.MediaLink, img.OS, nil
+			return img.Name, img.OSDiskConfiguration.MediaLink, img.OSDiskConfiguration.OS, nil
 		}
-		labels = append(labels, img.Label)
 	}
 
-	return "", "", "",
-		fmt.Errorf("Could not find image with label '%s', available labels are: %s",
-			label, strings.Join(labels, ","))
+	return "", "", "", fmt.Errorf("Could not find image with name '%s'", name)
 }
 
 func endpointProtocol(p string) virtualmachine.InputEndpointProtocol {
