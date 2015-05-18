@@ -1,4 +1,12 @@
-## 0.5.1 (unreleased)
+## 0.5.3 (Unreleased)
+
+IMPROVEMENTS:
+
+  * **New resource: `aws_sqs_queue`** [GH-1939]
+  * provider/aws: support ec2 termination protection [GH-1988]
+  * provider/aws: `aws_s3_bucket` add support for `policy` [GH-1992]
+
+## 0.5.2 (May 15, 2015)
 
 FEATURES:
 
@@ -14,6 +22,7 @@ IMPROVEMENTS:
       via `min_elb_capacity` [GH-1970]
   * provider/aws: `aws_db_instances` supports `license_model` [GH-1966]
   * provider/aws: `aws_elasticache_cluster` add support for Tags [GH-1965]
+  * provider/aws: `aws_network_acl` Network ACLs can be applied to multiple subnets [GH-1931]
   * provider/aws: `aws_s3_bucket` exports `hosted_zone_id` and `region` [GH-1865]
   * provider/aws: `aws_s3_bucket` add support for website `redirect_all_requests_to` [GH-1909]
   * provider/aws: `aws_route53_record` exports `fqdn` [GH-1847]
@@ -45,6 +54,10 @@ BUG FIXES:
   * provider/google: `google_compute_template` Update Instance Template network
       definition to match changes to Instance [GH-980]
   * provider/template: Fix infinite diff [GH-1898]
+
+## 0.5.1 (never released)
+
+This version was never released since we accidentally skipped it!
 
 ## 0.5.0 (May 7, 2015)
 

@@ -32,6 +32,7 @@ resource "aws_s3_bucket" "b" {
 resource "aws_s3_bucket" "b" {
     bucket = "s3-website-test.hashicorp.com"
     acl = "public-read"
+    policy = "#{file("policy.json")}"
 
     website {
         index_document = "index.html"
@@ -46,6 +47,7 @@ The following arguments are supported:
 
 * `bucket` - (Required) The name of the bucket.
 * `acl` - (Optional) The [canned ACL](http://docs.aws.amazon.com/AmazonS3/latest/dev/acl-overview.html#canned-acl) to apply. Defaults to "private".
+* `policy` - (Optional) A valid [bucket policy](http://docs.aws.amazon.com/AmazonS3/latest/dev/example-bucket-policies.html) JSON document.
 * `tags` - (Optional) A mapping of tags to assign to the bucket.
 * `website` - (Optional) A website object (documented below).
 
