@@ -128,23 +128,11 @@ func resourceAwsRoute53HealthCheckCreate(d *schema.ResourceData, meta interface{
 		healthConfig.ResourcePath = aws.String(v.(string))
 	}
 
-	input := &route53.CreateHealthCheckInput{
-		CallerReference:   aws.String(time.Now().Format(time.RFC3339Nano)),
-		HealthCheckConfig: healthConfig,
-	}
-
 	wait := resource.StateChangeConf{
 		Pending:    []string{"rejected"},
 		Target:     "accepted",
 		Timeout:    5 * time.Minute,
 		MinTimeout: 1 * time.Second,
-		Refresh: func() (interface{}, string, error) {
-			resp, err := conn.CreateHealthCheck(input)
-			if err != nil {
-				return nil, "failure", err
-			}
-			return resp, "accepted", nil
-		},
 	}
 
 	respRaw, err := wait.WaitForState()
