@@ -72,16 +72,16 @@ func resourceCloudFlareRecordCreate(d *schema.ResourceData, meta interface{}) er
 		newRecord.Priority = priority.(string)
 	}
 
-	log.Printf("[DEBUG] record create configuration: %#v", newRecord)
+	log.Printf("[DEBUG] CloudFlare Record create configuration: %#v", newRecord)
 
 	rec, err := client.CreateRecord(d.Get("domain").(string), newRecord)
 
 	if err != nil {
-		return fmt.Errorf("Failed to create record: %s", err)
+		return fmt.Errorf("Failed to create CloudFlare Record: %s", err)
 	}
 
 	d.SetId(rec.Id)
-	log.Printf("[INFO] record ID: %s", d.Id())
+	log.Printf("[INFO] CloudFlare Record ID: %s", d.Id())
 
 	return resourceCloudFlareRecordRead(d, meta)
 }
@@ -91,7 +91,7 @@ func resourceCloudFlareRecordRead(d *schema.ResourceData, meta interface{}) erro
 
 	rec, err := client.RetrieveRecord(d.Get("domain").(string), d.Id())
 	if err != nil {
-		return fmt.Errorf("Couldn't find record ID (%s) for domain (%s): %s", d.Id(), d.Get("domain").(string), err)
+		return fmt.Errorf("Couldn't find CloudFlare Record ID (%s) for domain (%s): %s", d.Id(), d.Get("domain").(string), err)
 	}
 
 	d.Set("name", rec.Name)
@@ -122,11 +122,11 @@ func resourceCloudFlareRecordUpdate(d *schema.ResourceData, meta interface{}) er
 		updateRecord.Priority = priority.(string)
 	}
 
-	log.Printf("[DEBUG] record update configuration: %#v", updateRecord)
+	log.Printf("[DEBUG] CloudFlare Record update configuration: %#v", updateRecord)
 
 	err := client.UpdateRecord(d.Get("domain").(string), d.Id(), updateRecord)
 	if err != nil {
-		return fmt.Errorf("Failed to update record: %s", err)
+		return fmt.Errorf("Failed to update CloudFlare Record: %s", err)
 	}
 
 	return resourceCloudFlareRecordRead(d, meta)
@@ -135,12 +135,12 @@ func resourceCloudFlareRecordUpdate(d *schema.ResourceData, meta interface{}) er
 func resourceCloudFlareRecordDelete(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*cloudflare.Client)
 
-	log.Printf("[INFO] Deleting record: %s, %s", d.Get("domain").(string), d.Id())
+	log.Printf("[INFO] Deleting CloudFlare Record: %s, %s", d.Get("domain").(string), d.Id())
 
 	err := client.DestroyRecord(d.Get("domain").(string), d.Id())
 
 	if err != nil {
-		return fmt.Errorf("Error deleting record: %s", err)
+		return fmt.Errorf("Error deleting CloudFlare Record: %s", err)
 	}
 
 	return nil
