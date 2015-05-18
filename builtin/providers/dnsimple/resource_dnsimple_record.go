@@ -74,12 +74,12 @@ func resourceDNSimpleRecordCreate(d *schema.ResourceData, meta interface{}) erro
 		newRecord.Ttl = ttl.(string)
 	}
 
-	log.Printf("[DEBUG] record create configuration: %#v", newRecord)
+	log.Printf("[DEBUG] DNS Simple Record create configuration: %#v", newRecord)
 
 	recId, err := client.CreateRecord(d.Get("domain").(string), newRecord)
 
 	if err != nil {
-		return fmt.Errorf("Failed to create record: %s", err)
+		return fmt.Errorf("Failed to create DNS Simple Record: %s", err)
 	}
 
 	d.SetId(recId)
@@ -93,7 +93,7 @@ func resourceDNSimpleRecordRead(d *schema.ResourceData, meta interface{}) error 
 
 	rec, err := client.RetrieveRecord(d.Get("domain").(string), d.Id())
 	if err != nil {
-		return fmt.Errorf("Couldn't find record: %s", err)
+		return fmt.Errorf("Couldn't find DNS Simple Record: %s", err)
 	}
 
 	d.Set("domain_id", rec.StringDomainId())
@@ -133,11 +133,11 @@ func resourceDNSimpleRecordUpdate(d *schema.ResourceData, meta interface{}) erro
 		updateRecord.Ttl = attr.(string)
 	}
 
-	log.Printf("[DEBUG] record update configuration: %#v", updateRecord)
+	log.Printf("[DEBUG] DNS Simple Record update configuration: %#v", updateRecord)
 
 	_, err := client.UpdateRecord(d.Get("domain").(string), d.Id(), updateRecord)
 	if err != nil {
-		return fmt.Errorf("Failed to update record: %s", err)
+		return fmt.Errorf("Failed to update DNS Simple Record: %s", err)
 	}
 
 	return resourceDNSimpleRecordRead(d, meta)
@@ -146,12 +146,12 @@ func resourceDNSimpleRecordUpdate(d *schema.ResourceData, meta interface{}) erro
 func resourceDNSimpleRecordDelete(d *schema.ResourceData, meta interface{}) error {
 	client := meta.(*dnsimple.Client)
 
-	log.Printf("[INFO] Deleting record: %s, %s", d.Get("domain").(string), d.Id())
+	log.Printf("[INFO] Deleting DNS Simple Record: %s, %s", d.Get("domain").(string), d.Id())
 
 	err := client.DestroyRecord(d.Get("domain").(string), d.Id())
 
 	if err != nil {
-		return fmt.Errorf("Error deleting record: %s", err)
+		return fmt.Errorf("Error deleting DNS Simple Record: %s", err)
 	}
 
 	return nil

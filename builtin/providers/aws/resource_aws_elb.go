@@ -336,7 +336,7 @@ func resourceAwsElbUpdate(d *schema.ResourceData, meta interface{}) error {
 
 			_, err := elbconn.DeleteLoadBalancerListeners(deleteListenersOpts)
 			if err != nil {
-				return fmt.Errorf("Failure removing outdated listeners: %s", err)
+				return fmt.Errorf("Failure removing outdated ELB listeners: %s", err)
 			}
 		}
 
@@ -348,7 +348,7 @@ func resourceAwsElbUpdate(d *schema.ResourceData, meta interface{}) error {
 
 			_, err := elbconn.CreateLoadBalancerListeners(createListenersOpts)
 			if err != nil {
-				return fmt.Errorf("Failure adding new or updated listeners: %s", err)
+				return fmt.Errorf("Failure adding new or updated ELB listeners: %s", err)
 			}
 		}
 
@@ -373,7 +373,7 @@ func resourceAwsElbUpdate(d *schema.ResourceData, meta interface{}) error {
 
 			_, err := elbconn.RegisterInstancesWithLoadBalancer(&registerInstancesOpts)
 			if err != nil {
-				return fmt.Errorf("Failure registering instances: %s", err)
+				return fmt.Errorf("Failure registering instances with ELB: %s", err)
 			}
 		}
 		if len(remove) > 0 {
@@ -384,7 +384,7 @@ func resourceAwsElbUpdate(d *schema.ResourceData, meta interface{}) error {
 
 			_, err := elbconn.DeregisterInstancesFromLoadBalancer(&deRegisterInstancesOpts)
 			if err != nil {
-				return fmt.Errorf("Failure deregistering instances: %s", err)
+				return fmt.Errorf("Failure deregistering instances from ELB: %s", err)
 			}
 		}
 
@@ -406,7 +406,7 @@ func resourceAwsElbUpdate(d *schema.ResourceData, meta interface{}) error {
 
 		_, err := elbconn.ModifyLoadBalancerAttributes(&attrs)
 		if err != nil {
-			return fmt.Errorf("Failure configuring elb attributes: %s", err)
+			return fmt.Errorf("Failure configuring ELB attributes: %s", err)
 		}
 
 		d.SetPartial("cross_zone_load_balancing")
@@ -434,7 +434,7 @@ func resourceAwsElbUpdate(d *schema.ResourceData, meta interface{}) error {
 
 			_, err := elbconn.ModifyLoadBalancerAttributes(&attrs)
 			if err != nil {
-				return fmt.Errorf("Failure configuring elb attributes: %s", err)
+				return fmt.Errorf("Failure configuring ELB attributes: %s", err)
 			}
 
 			d.SetPartial("connection_draining_timeout")
@@ -454,7 +454,7 @@ func resourceAwsElbUpdate(d *schema.ResourceData, meta interface{}) error {
 
 		_, err := elbconn.ModifyLoadBalancerAttributes(&attrs)
 		if err != nil {
-			return fmt.Errorf("Failure configuring elb attributes: %s", err)
+			return fmt.Errorf("Failure configuring ELB attributes: %s", err)
 		}
 
 		d.SetPartial("connection_draining")
@@ -476,7 +476,7 @@ func resourceAwsElbUpdate(d *schema.ResourceData, meta interface{}) error {
 			}
 			_, err := elbconn.ConfigureHealthCheck(&configureHealthCheckOpts)
 			if err != nil {
-				return fmt.Errorf("Failure configuring health check: %s", err)
+				return fmt.Errorf("Failure configuring health check for ELB: %s", err)
 			}
 			d.SetPartial("health_check")
 		}
@@ -492,7 +492,7 @@ func resourceAwsElbUpdate(d *schema.ResourceData, meta interface{}) error {
 
 		_, err := elbconn.ApplySecurityGroupsToLoadBalancer(&applySecurityGroupsOpts)
 		if err != nil {
-			return fmt.Errorf("Failure applying security groups: %s", err)
+			return fmt.Errorf("Failure applying security groups to ELB: %s", err)
 		}
 
 		d.SetPartial("security_groups")
