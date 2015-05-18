@@ -1,10 +1,12 @@
 package azure
 
 import (
+	"bytes"
 	"fmt"
 	"log"
 	"strconv"
 
+	"github.com/hashicorp/terraform/helper/hashcode"
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/svanharmelen/azure-sdk-for-go/management"
 	"github.com/svanharmelen/azure-sdk-for-go/management/networksecuritygroup"
@@ -107,9 +109,15 @@ func resourceAzureSecurityGroupCreate(d *schema.ResourceData, meta interface{}) 
 
 	name := d.Get("name").(string)
 
+	// Compute/set the label
+	label := d.Get("label").(string)
+	if label == "" {
+		label = name
+	}
+
 	req, err := networksecuritygroup.NewClient(*mc).CreateNetworkSecurityGroup(
 		name,
-		d.Get("label").(string),
+		label,
 		d.Get("location").(string),
 	)
 	if err != nil {
@@ -301,7 +309,20 @@ func resourceAzureSecurityGroupRuleDelete(
 }
 
 func resourceAzureSecurityGroupRuleHash(v interface{}) int {
-	return 0
+	var buf bytes.Buffer
+	m := v.(map[string]interface{})
+	buf.WriteString(fmt.Sprintf(
+		"%s-%d-%s-%s-%s-%s-%s-%s",
+		m["type"].(string),
+		m["priority"].(int),
+		m["action"].(string),
+		m["source_cidr"].(string),
+		m["source_port"].(string),
+		m["destination_cidr"].(string),
+		m["destination_port"].(string),
+		m["protocol"].(string)))
+
+	return hashcode.String(buf.String())
 }
 
 func verifySecurityGroupRuleParams(rule map[string]interface{}) error {
