@@ -1,6 +1,7 @@
 package aws
 
 import (
+	"encoding/json"
 	"fmt"
 	"log"
 
@@ -29,6 +30,12 @@ func resourceAwsS3Bucket() *schema.Resource {
 				Default:  "private",
 				Optional: true,
 				ForceNew: true,
+			},
+
+			"policy": &schema.Schema{
+				Type:      schema.TypeString,
+				Optional:  true,
+				StateFunc: normalizeJson,
 			},
 
 			"website": &schema.Schema{
@@ -121,8 +128,16 @@ func resourceAwsS3BucketUpdate(d *schema.ResourceData, meta interface{}) error {
 		return err
 	}
 
-	if err := resourceAwsS3BucketWebsiteUpdate(s3conn, d); err != nil {
-		return err
+	if d.HasChange("policy") {
+		if err := resourceAwsS3BucketPolicyUpdate(s3conn, d); err != nil {
+			return err
+		}
+	}
+
+	if d.HasChange("website") {
+		if err := resourceAwsS3BucketWebsiteUpdate(s3conn, d); err != nil {
+			return err
+		}
 	}
 
 	return resourceAwsS3BucketRead(d, meta)
@@ -141,6 +156,25 @@ func resourceAwsS3BucketRead(d *schema.ResourceData, meta interface{}) error {
 			// some of the AWS SDK's errors can be empty strings, so let's add
 			// some additional context.
 			return fmt.Errorf("error reading S3 bucket \"%s\": %s", d.Id(), err)
+		}
+	}
+
+	// Read the policy
+	pol, err := s3conn.GetBucketPolicy(&s3.GetBucketPolicyInput{
+		Bucket: aws.String(d.Id()),
+	})
+	log.Printf("[DEBUG] S3 bucket: %s, read policy: %v", d.Id(), pol)
+	if err != nil {
+		if err := d.Set("policy", ""); err != nil {
+			return err
+		}
+	} else {
+		if v := pol.Policy; v == nil {
+			if err := d.Set("policy", ""); err != nil {
+				return err
+			}
+		} else if err := d.Set("policy", normalizeJson(*v)); err != nil {
+			return err
 		}
 	}
 
@@ -228,11 +262,36 @@ func resourceAwsS3BucketDelete(d *schema.ResourceData, meta interface{}) error {
 	return nil
 }
 
-func resourceAwsS3BucketWebsiteUpdate(s3conn *s3.S3, d *schema.ResourceData) error {
-	if !d.HasChange("website") {
-		return nil
+func resourceAwsS3BucketPolicyUpdate(s3conn *s3.S3, d *schema.ResourceData) error {
+	bucket := d.Get("bucket").(string)
+	policy := d.Get("policy").(string)
+
+	if policy != "" {
+		log.Printf("[DEBUG] S3 bucket: %s, put policy: %s", bucket, policy)
+
+		_, err := s3conn.PutBucketPolicy(&s3.PutBucketPolicyInput{
+			Bucket: aws.String(bucket),
+			Policy: aws.String(policy),
+		})
+
+		if err != nil {
+			return fmt.Errorf("Error putting S3 policy: %s", err)
+		}
+	} else {
+		log.Printf("[DEBUG] S3 bucket: %s, delete policy: %s", bucket, policy)
+		_, err := s3conn.DeleteBucketPolicy(&s3.DeleteBucketPolicyInput{
+			Bucket: aws.String(bucket),
+		})
+
+		if err != nil {
+			return fmt.Errorf("Error deleting S3 policy: %s", err)
+		}
 	}
 
+	return nil
+}
+
+func resourceAwsS3BucketWebsiteUpdate(s3conn *s3.S3, d *schema.ResourceData) error {
 	ws := d.Get("website").([]interface{})
 
 	if len(ws) == 1 {
@@ -328,6 +387,19 @@ func websiteEndpoint(s3conn *s3.S3, d *schema.ResourceData) (string, error) {
 func WebsiteEndpointUrl(bucket string, region string) string {
 	region = normalizeRegion(region)
 	return fmt.Sprintf("%s.s3-website-%s.amazonaws.com", bucket, region)
+}
+
+func normalizeJson(jsonString interface{}) string {
+	if jsonString == nil {
+		return ""
+	}
+	j := make(map[string]interface{})
+	err := json.Unmarshal([]byte(jsonString.(string)), &j)
+	if err != nil {
+		return fmt.Sprintf("Error parsing JSON: %s", err)
+	}
+	b, _ := json.Marshal(j)
+	return string(b[:])
 }
 
 func normalizeRegion(region string) string {
