@@ -102,7 +102,6 @@ func resourceAwsRoute53HealthCheckUpdate(d *schema.ResourceData, meta interface{
 func resourceAwsRoute53HealthCheckCreate(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).r53conn
 
-	// do we need to check if the optional fields existf before adding them?
 	healthConfig := &route53.HealthCheckConfig{
 		Type:             aws.String(d.Get("type").(string)),
 		FailureThreshold: aws.Long(int64(d.Get("failure_threshold").(int))),
