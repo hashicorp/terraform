@@ -10,7 +10,7 @@ import (
 	"github.com/awslabs/aws-sdk-go/service/route53"
 )
 
-func TestAccRoute53HealthCheck(t *testing.T) {
+func TestAccRoute53HealthCheck_basic(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
@@ -49,7 +49,6 @@ func TestAccRoute53HealthCheck_IpConfig(t *testing.T) {
 		},
 	})
 }
-
 
 func testAccCheckRoute53HealthCheckDestroy(s *terraform.State) error {
 	conn := testAccProvider.Meta().(*AWSClient).r53conn
@@ -112,7 +111,6 @@ func testAccCheckRoute53HealthCheckExists(n string) resource.TestCheckFunc {
 		return fmt.Errorf("Health Check does not exist")
 	}
 }
-
 
 func testUpdateHappened(n string) resource.TestCheckFunc {
 	return nil
