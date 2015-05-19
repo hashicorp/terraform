@@ -589,6 +589,16 @@ func resourceAwsDbInstanceStateRefreshFunc(
 			return nil, "", nil
 		}
 
+		if v.DBInstanceStatus != nil {
+			log.Printf("[DEBUG] DB Instance status for instance %s: %s", d.Id(), *v.DBInstanceStatus)
+		}
+
+		if a, ok := d.GetOk("backup_retention_period"); ok {
+			if a.(int) > 0 && v.DBInstanceStatus != nil && *v.DBInstanceStatus == "backing-up" {
+				return v, "available", nil
+			}
+		}
+
 		return v, *v.DBInstanceStatus, nil
 	}
 }
