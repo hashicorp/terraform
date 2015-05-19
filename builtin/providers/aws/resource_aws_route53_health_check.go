@@ -4,7 +4,6 @@ import (
 	"log"
 	"time"
 
-	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 
 	"github.com/awslabs/aws-sdk-go/aws"
@@ -128,19 +127,17 @@ func resourceAwsRoute53HealthCheckCreate(d *schema.ResourceData, meta interface{
 		healthConfig.ResourcePath = aws.String(v.(string))
 	}
 
-	wait := resource.StateChangeConf{
-		Pending:    []string{"rejected"},
-		Target:     "accepted",
-		Timeout:    5 * time.Minute,
-		MinTimeout: 1 * time.Second,
+	input := &route53.CreateHealthCheckInput{
+		CallerReference:   aws.String(time.Now().Format(time.RFC3339Nano)),
+		HealthCheckConfig: healthConfig,
 	}
 
-	respRaw, err := wait.WaitForState()
+	resp, err := conn.CreateHealthCheck(input)
+
 	if err != nil {
 		return err
 	}
 
-	resp := respRaw.(*route53.CreateHealthCheckOutput)
 	d.SetId(*resp.HealthCheck.ID)
 
 	if err := setTagsR53(conn, d, "healthcheck"); err != nil {
