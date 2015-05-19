@@ -99,13 +99,11 @@ func resourceAwsRoute53Record() *schema.Resource {
 			},
 
 			"records": &schema.Schema{
-				Type: schema.TypeSet,
-				Elem: &schema.Schema{Type: schema.TypeString},
-				Set: func(v interface{}) int {
-					return hashcode.String(v.(string))
-				},
+				Type:          schema.TypeSet,
 				ConflictsWith: []string{"alias"},
+				Elem:          &schema.Schema{Type: schema.TypeString},
 				Optional:      true,
+				Set:           schema.HashString,
 			},
 		},
 	}
