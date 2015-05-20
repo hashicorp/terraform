@@ -8,6 +8,7 @@ import (
 	"github.com/hashicorp/terraform/helper/schema"
 
 	"github.com/awslabs/aws-sdk-go/aws"
+	"github.com/awslabs/aws-sdk-go/aws/awserr"
 	"github.com/awslabs/aws-sdk-go/service/s3"
 )
 
@@ -146,11 +147,12 @@ func resourceAwsS3BucketUpdate(d *schema.ResourceData, meta interface{}) error {
 func resourceAwsS3BucketRead(d *schema.ResourceData, meta interface{}) error {
 	s3conn := meta.(*AWSClient).s3conn
 
-	_, err := s3conn.HeadBucket(&s3.HeadBucketInput{
+	var err error
+	_, err = s3conn.HeadBucket(&s3.HeadBucketInput{
 		Bucket: aws.String(d.Id()),
 	})
 	if err != nil {
-		if awsError, ok := err.(aws.APIError); ok && awsError.StatusCode == 404 {
+		if awsError, ok := err.(awserr.RequestFailure); ok && awsError.StatusCode() == 404 {
 			d.SetId("")
 		} else {
 			// some of the AWS SDK's errors can be empty strings, so let's add

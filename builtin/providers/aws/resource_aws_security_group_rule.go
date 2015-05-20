@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/awslabs/aws-sdk-go/aws"
+	"github.com/awslabs/aws-sdk-go/aws/awserr"
 	"github.com/awslabs/aws-sdk-go/service/ec2"
 	"github.com/hashicorp/terraform/helper/hashcode"
 	"github.com/hashicorp/terraform/helper/schema"
@@ -244,9 +245,9 @@ func findResourceSecurityGroup(conn *ec2.EC2, id string) (*ec2.SecurityGroup, er
 	}
 	resp, err := conn.DescribeSecurityGroups(req)
 	if err != nil {
-		if ec2err, ok := err.(aws.APIError); ok {
-			if ec2err.Code == "InvalidSecurityGroupID.NotFound" ||
-				ec2err.Code == "InvalidGroup.NotFound" {
+		if ec2err, ok := err.(awserr.Error); ok {
+			if ec2err.Code() == "InvalidSecurityGroupID.NotFound" ||
+				ec2err.Code() == "InvalidGroup.NotFound" {
 				resp = nil
 				err = nil
 			}

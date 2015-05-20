@@ -12,6 +12,7 @@ import (
 	"github.com/hashicorp/terraform/helper/schema"
 
 	"github.com/awslabs/aws-sdk-go/aws"
+	"github.com/awslabs/aws-sdk-go/aws/awserr"
 	"github.com/awslabs/aws-sdk-go/service/route53"
 )
 
@@ -116,6 +117,7 @@ func resourceAwsRoute53RecordCreate(d *schema.ResourceData, meta interface{}) er
 	conn := meta.(*AWSClient).r53conn
 	zone := cleanZoneID(d.Get("zone_id").(string))
 
+	var err error
 	zoneRecord, err := conn.GetHostedZone(&route53.GetHostedZoneInput{ID: aws.String(zone)})
 	if err != nil {
 		return err
@@ -156,8 +158,8 @@ func resourceAwsRoute53RecordCreate(d *schema.ResourceData, meta interface{}) er
 		Refresh: func() (interface{}, string, error) {
 			resp, err := conn.ChangeResourceRecordSets(req)
 			if err != nil {
-				if r53err, ok := err.(aws.APIError); ok {
-					if r53err.Code == "PriorRequestNotComplete" {
+				if r53err, ok := err.(awserr.Error); ok {
+					if r53err.Code() == "PriorRequestNotComplete" {
 						// There is some pending operation, so just retry
 						// in a bit.
 						return nil, "rejected", nil
@@ -280,6 +282,7 @@ func resourceAwsRoute53RecordDelete(d *schema.ResourceData, meta interface{}) er
 	zone := cleanZoneID(d.Get("zone_id").(string))
 	log.Printf("[DEBUG] Deleting resource records for zone: %s, name: %s",
 		zone, d.Get("name").(string))
+	var err error
 	zoneRecord, err := conn.GetHostedZone(&route53.GetHostedZoneInput{ID: aws.String(zone)})
 	if err != nil {
 		return err
@@ -314,14 +317,14 @@ func resourceAwsRoute53RecordDelete(d *schema.ResourceData, meta interface{}) er
 		Refresh: func() (interface{}, string, error) {
 			_, err := conn.ChangeResourceRecordSets(req)
 			if err != nil {
-				if r53err, ok := err.(aws.APIError); ok {
-					if r53err.Code == "PriorRequestNotComplete" {
+				if r53err, ok := err.(awserr.Error); ok {
+					if r53err.Code() == "PriorRequestNotComplete" {
 						// There is some pending operation, so just retry
 						// in a bit.
 						return 42, "rejected", nil
 					}
 
-					if r53err.Code == "InvalidChangeBatch" {
+					if r53err.Code() == "InvalidChangeBatch" {
 						// This means that the record is already gone.
 						return 42, "accepted", nil
 					}

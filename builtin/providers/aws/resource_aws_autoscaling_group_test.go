@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/awslabs/aws-sdk-go/aws"
+	"github.com/awslabs/aws-sdk-go/aws/awserr"
 	"github.com/awslabs/aws-sdk-go/service/autoscaling"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
@@ -141,11 +142,11 @@ func testAccCheckAWSAutoScalingGroupDestroy(s *terraform.State) error {
 		}
 
 		// Verify the error
-		ec2err, ok := err.(aws.APIError)
+		ec2err, ok := err.(awserr.Error)
 		if !ok {
 			return err
 		}
-		if ec2err.Code != "InvalidGroup.NotFound" {
+		if ec2err.Code() != "InvalidGroup.NotFound" {
 			return err
 		}
 	}
