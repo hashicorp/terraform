@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/awslabs/aws-sdk-go/aws"
+	"github.com/awslabs/aws-sdk-go/aws/awserr"
 	"github.com/awslabs/aws-sdk-go/service/ec2"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
@@ -191,12 +192,12 @@ func resourceAwsVpcDhcpOptionsDelete(d *schema.ResourceData, meta interface{}) e
 
 		log.Printf("[WARN] %s", err)
 
-		ec2err, ok := err.(aws.APIError)
+		ec2err, ok := err.(awserr.Error)
 		if !ok {
 			return err
 		}
 
-		switch ec2err.Code {
+		switch ec2err.Code() {
 		case "InvalidDhcpOptionsID.NotFound":
 			return nil
 		case "DependencyViolation":
@@ -241,7 +242,7 @@ func findVPCsByDHCPOptionsID(conn *ec2.EC2, id string) ([]*ec2.VPC, error) {
 
 	resp, err := conn.DescribeVPCs(req)
 	if err != nil {
-		if ec2err, ok := err.(aws.APIError); ok && ec2err.Code == "InvalidVpcID.NotFound" {
+		if ec2err, ok := err.(awserr.Error); ok && ec2err.Code() == "InvalidVpcID.NotFound" {
 			return nil, nil
 		}
 		return nil, err
@@ -260,7 +261,7 @@ func DHCPOptionsStateRefreshFunc(conn *ec2.EC2, id string) resource.StateRefresh
 
 		resp, err := conn.DescribeDHCPOptions(DescribeDhcpOpts)
 		if err != nil {
-			if ec2err, ok := err.(aws.APIError); ok && ec2err.Code == "InvalidDhcpOptionsID.NotFound" {
+			if ec2err, ok := err.(awserr.Error); ok && ec2err.Code() == "InvalidDhcpOptionsID.NotFound" {
 				resp = nil
 			} else {
 				log.Printf("Error on DHCPOptionsStateRefresh: %s", err)

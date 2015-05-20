@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/awslabs/aws-sdk-go/aws"
+	"github.com/awslabs/aws-sdk-go/aws/awserr"
 	"github.com/awslabs/aws-sdk-go/service/ec2"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
@@ -179,7 +180,7 @@ func resourceAwsVPCPeeringConnectionStateRefreshFunc(conn *ec2.EC2, id string) r
 			VPCPeeringConnectionIDs: []*string{aws.String(id)},
 		})
 		if err != nil {
-			if ec2err, ok := err.(aws.APIError); ok && ec2err.Code == "InvalidVpcPeeringConnectionID.NotFound" {
+			if ec2err, ok := err.(awserr.Error); ok && ec2err.Code() == "InvalidVpcPeeringConnectionID.NotFound" {
 				resp = nil
 			} else {
 				log.Printf("Error on VPCPeeringConnectionStateRefresh: %s", err)

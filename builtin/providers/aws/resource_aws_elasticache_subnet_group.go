@@ -5,6 +5,7 @@ import (
 	"log"
 	"time"
 
+	"github.com/awslabs/aws-sdk-go/aws/awserr"
 	"github.com/awslabs/aws-sdk-go/service/elasticache"
 	"github.com/hashicorp/aws-sdk-go/aws"
 	"github.com/hashicorp/terraform/helper/hashcode"
@@ -119,12 +120,12 @@ func resourceAwsElasticacheSubnetGroupDelete(d *schema.ResourceData, meta interf
 			CacheSubnetGroupName: aws.String(d.Id()),
 		})
 		if err != nil {
-			apierr, ok := err.(aws.APIError)
+			apierr, ok := err.(awserr.Error)
 			if !ok {
 				return err
 			}
 			log.Printf("[DEBUG] APIError.Code: %v", apierr.Code)
-			switch apierr.Code {
+			switch apierr.Code() {
 			case "DependencyViolation":
 				// If it is a dependency violation, we want to retry
 				return err

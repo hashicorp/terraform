@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/awslabs/aws-sdk-go/aws"
+	"github.com/awslabs/aws-sdk-go/aws/awserr"
 	"github.com/awslabs/aws-sdk-go/service/iam"
 
 	"github.com/hashicorp/terraform/helper/schema"
@@ -73,7 +74,7 @@ func resourceAwsIamPolicyRead(d *schema.ResourceData, meta interface{}) error {
 
 	response, err := iamconn.GetPolicy(request)
 	if err != nil {
-		if iamerr, ok := err.(aws.APIError); ok && iamerr.Code == "NoSuchEntity" {
+		if iamerr, ok := err.(awserr.Error); ok && iamerr.Code() == "NoSuchEntity" {
 			d.SetId("")
 			return nil
 		}
@@ -118,7 +119,7 @@ func resourceAwsIamPolicyDelete(d *schema.ResourceData, meta interface{}) error 
 
 	_, err := iamconn.DeletePolicy(request)
 	if err != nil {
-		if iamerr, ok := err.(aws.APIError); ok && iamerr.Code == "NoSuchEntity" {
+		if iamerr, ok := err.(awserr.Error); ok && iamerr.Code() == "NoSuchEntity" {
 			return nil
 		}
 		return fmt.Errorf("Error reading IAM policy %s: %#v", d.Id(), err)

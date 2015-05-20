@@ -165,6 +165,7 @@ func resourceAwsProxyProtocolPolicyDelete(d *schema.ResourceData, meta interface
 	req := &elb.DescribeLoadBalancersInput{
 		LoadBalancerNames: []*string{elbname},
 	}
+	var err error
 	resp, err := elbconn.DescribeLoadBalancers(req)
 	if err != nil {
 		if isLoadBalancerNotFound(err) {

@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/awslabs/aws-sdk-go/aws"
+	"github.com/awslabs/aws-sdk-go/aws/awserr"
 	"github.com/awslabs/aws-sdk-go/service/elb"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
@@ -381,12 +382,12 @@ func testAccCheckAWSELBDestroy(s *terraform.State) error {
 		}
 
 		// Verify the error
-		providerErr, ok := err.(aws.APIError)
+		providerErr, ok := err.(awserr.Error)
 		if !ok {
 			return err
 		}
 
-		if providerErr.Code != "InvalidLoadBalancerName.NotFound" {
+		if providerErr.Code() != "InvalidLoadBalancerName.NotFound" {
 			return fmt.Errorf("Unexpected error: %s", err)
 		}
 	}

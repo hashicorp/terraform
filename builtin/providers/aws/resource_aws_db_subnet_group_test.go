@@ -8,6 +8,7 @@ import (
 	"github.com/hashicorp/terraform/terraform"
 
 	"github.com/awslabs/aws-sdk-go/aws"
+	"github.com/awslabs/aws-sdk-go/aws/awserr"
 	"github.com/awslabs/aws-sdk-go/service/rds"
 )
 
@@ -55,11 +56,11 @@ func testAccCheckDBSubnetGroupDestroy(s *terraform.State) error {
 		}
 
 		// Verify the error is what we want
-		rdserr, ok := err.(aws.APIError)
+		rdserr, ok := err.(awserr.Error)
 		if !ok {
 			return err
 		}
-		if rdserr.Code != "DBSubnetGroupNotFoundFault" {
+		if rdserr.Code() != "DBSubnetGroupNotFoundFault" {
 			return err
 		}
 	}

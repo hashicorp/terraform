@@ -10,6 +10,7 @@ import (
 	"github.com/hashicorp/terraform/helper/schema"
 
 	"github.com/awslabs/aws-sdk-go/aws"
+	"github.com/awslabs/aws-sdk-go/aws/awserr"
 	"github.com/awslabs/aws-sdk-go/service/route53"
 )
 
@@ -56,6 +57,7 @@ func resourceAwsRoute53ZoneAssociationCreate(d *schema.ResourceData, meta interf
 	}
 
 	log.Printf("[DEBUG] Associating Route53 Private Zone %s with VPC %s with region %s", *req.HostedZoneID, *req.VPC.VPCID, *req.VPC.VPCRegion)
+	var err error
 	resp, err := r53.AssociateVPCWithHostedZone(req)
 	if err != nil {
 		return err
@@ -93,7 +95,7 @@ func resourceAwsRoute53ZoneAssociationRead(d *schema.ResourceData, meta interfac
 	zone, err := r53.GetHostedZone(&route53.GetHostedZoneInput{ID: aws.String(zone_id)})
 	if err != nil {
 		// Handle a deleted zone
-		if r53err, ok := err.(aws.APIError); ok && r53err.Code == "NoSuchHostedZone" {
+		if r53err, ok := err.(awserr.Error); ok && r53err.Code() == "NoSuchHostedZone" {
 			d.SetId("")
 			return nil
 		}

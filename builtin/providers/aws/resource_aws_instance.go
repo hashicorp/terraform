@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/awslabs/aws-sdk-go/aws"
+	"github.com/awslabs/aws-sdk-go/aws/awserr"
 	"github.com/awslabs/aws-sdk-go/service/ec2"
 	"github.com/hashicorp/terraform/helper/hashcode"
 	"github.com/hashicorp/terraform/helper/resource"
@@ -515,6 +516,7 @@ func resourceAwsInstanceCreate(d *schema.ResourceData, meta interface{}) error {
 
 	// Create the instance
 	log.Printf("[DEBUG] Run configuration: %#v", runOpts)
+	var err error
 	runResp, err := conn.RunInstances(runOpts)
 	if err != nil {
 		return fmt.Errorf("Error launching source instance: %s", err)
@@ -581,7 +583,7 @@ func resourceAwsInstanceRead(d *schema.ResourceData, meta interface{}) error {
 	if err != nil {
 		// If the instance was not found, return nil so that we can show
 		// that the instance is gone.
-		if ec2err, ok := err.(aws.APIError); ok && ec2err.Code == "InvalidInstanceID.NotFound" {
+		if ec2err, ok := err.(awserr.Error); ok && ec2err.Code() == "InvalidInstanceID.NotFound" {
 			d.SetId("")
 			return nil
 		}
@@ -776,7 +778,7 @@ func InstanceStateRefreshFunc(conn *ec2.EC2, instanceID string) resource.StateRe
 			InstanceIDs: []*string{aws.String(instanceID)},
 		})
 		if err != nil {
-			if ec2err, ok := err.(aws.APIError); ok && ec2err.Code == "InvalidInstanceID.NotFound" {
+			if ec2err, ok := err.(awserr.Error); ok && ec2err.Code() == "InvalidInstanceID.NotFound" {
 				// Set this to nil as if we didn't find anything.
 				resp = nil
 			} else {

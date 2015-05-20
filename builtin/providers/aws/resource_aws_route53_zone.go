@@ -11,6 +11,7 @@ import (
 	"github.com/hashicorp/terraform/helper/schema"
 
 	"github.com/awslabs/aws-sdk-go/aws"
+	"github.com/awslabs/aws-sdk-go/aws/awserr"
 	"github.com/awslabs/aws-sdk-go/service/route53"
 )
 
@@ -78,6 +79,7 @@ func resourceAwsRoute53ZoneCreate(d *schema.ResourceData, meta interface{}) erro
 	}
 
 	log.Printf("[DEBUG] Creating Route53 hosted zone: %s", *req.Name)
+	var err error
 	resp, err := r53.CreateHostedZone(req)
 	if err != nil {
 		return err
@@ -114,7 +116,7 @@ func resourceAwsRoute53ZoneRead(d *schema.ResourceData, meta interface{}) error 
 	zone, err := r53.GetHostedZone(&route53.GetHostedZoneInput{ID: aws.String(d.Id())})
 	if err != nil {
 		// Handle a deleted zone
-		if r53err, ok := err.(aws.APIError); ok && r53err.Code == "NoSuchHostedZone" {
+		if r53err, ok := err.(awserr.Error); ok && r53err.Code() == "NoSuchHostedZone" {
 			d.SetId("")
 			return nil
 		}
