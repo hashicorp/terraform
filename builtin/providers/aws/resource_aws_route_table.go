@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/awslabs/aws-sdk-go/aws"
+	"github.com/awslabs/aws-sdk-go/aws/awserr"
 	"github.com/awslabs/aws-sdk-go/service/ec2"
 	"github.com/hashicorp/terraform/helper/hashcode"
 	"github.com/hashicorp/terraform/helper/resource"
@@ -224,8 +225,8 @@ func resourceAwsRouteTableUpdate(d *schema.ResourceData, meta interface{}) error
 				// If we get a Gateway.NotAttached, it is usually some
 				// eventually consistency stuff. So we have to just wait a
 				// bit...
-				ec2err, ok := err.(aws.APIError)
-				if ok && ec2err.Code == "Gateway.NotAttached" {
+				ec2err, ok := err.(awserr.Error)
+				if ok && ec2err.Code() == "Gateway.NotAttached" {
 					time.Sleep(20 * time.Second)
 					continue
 				}
@@ -329,8 +330,8 @@ func resourceAwsRouteTableDelete(d *schema.ResourceData, meta interface{}) error
 		RouteTableID: aws.String(d.Id()),
 	})
 	if err != nil {
-		ec2err, ok := err.(aws.APIError)
-		if ok && ec2err.Code == "InvalidRouteTableID.NotFound" {
+		ec2err, ok := err.(awserr.Error)
+		if ok && ec2err.Code() == "InvalidRouteTableID.NotFound" {
 			return nil
 		}
 
@@ -391,7 +392,7 @@ func resourceAwsRouteTableStateRefreshFunc(conn *ec2.EC2, id string) resource.St
 			RouteTableIDs: []*string{aws.String(id)},
 		})
 		if err != nil {
-			if ec2err, ok := err.(aws.APIError); ok && ec2err.Code == "InvalidRouteTableID.NotFound" {
+			if ec2err, ok := err.(awserr.Error); ok && ec2err.Code() == "InvalidRouteTableID.NotFound" {
 				resp = nil
 			} else {
 				log.Printf("Error on RouteTableStateRefresh: %s", err)

@@ -10,6 +10,7 @@ import (
 	"github.com/hashicorp/terraform/terraform"
 
 	"github.com/awslabs/aws-sdk-go/aws"
+	"github.com/awslabs/aws-sdk-go/aws/awserr"
 	"github.com/awslabs/aws-sdk-go/service/rds"
 )
 
@@ -57,6 +58,7 @@ func testAccCheckAWSDBInstanceDestroy(s *terraform.State) error {
 		}
 
 		// Try to find the Group
+		var err error
 		resp, err := conn.DescribeDBInstances(
 			&rds.DescribeDBInstancesInput{
 				DBInstanceIdentifier: aws.String(rs.Primary.ID),
@@ -70,11 +72,11 @@ func testAccCheckAWSDBInstanceDestroy(s *terraform.State) error {
 		}
 
 		// Verify the error
-		newerr, ok := err.(*aws.APIError)
+		newerr, ok := err.(awserr.Error)
 		if !ok {
 			return err
 		}
-		if newerr.Code != "InvalidDBInstance.NotFound" {
+		if newerr.Code() != "InvalidDBInstance.NotFound" {
 			return err
 		}
 	}

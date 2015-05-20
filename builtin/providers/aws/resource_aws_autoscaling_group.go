@@ -10,6 +10,7 @@ import (
 	"github.com/hashicorp/terraform/helper/schema"
 
 	"github.com/awslabs/aws-sdk-go/aws"
+	"github.com/awslabs/aws-sdk-go/aws/awserr"
 	"github.com/awslabs/aws-sdk-go/service/autoscaling"
 	"github.com/awslabs/aws-sdk-go/service/elb"
 )
@@ -292,8 +293,8 @@ func resourceAwsAutoscalingGroupDelete(d *schema.ResourceData, meta interface{})
 	// scaling operations within 5m.
 	err = resource.Retry(5*time.Minute, func() error {
 		if _, err := conn.DeleteAutoScalingGroup(&deleteopts); err != nil {
-			if awserr, ok := err.(aws.APIError); ok {
-				switch awserr.Code {
+			if awserr, ok := err.(awserr.Error); ok {
+				switch awserr.Code() {
 				case "InvalidGroup.NotFound":
 					// Already gone? Sure!
 					return nil
@@ -332,8 +333,8 @@ func getAwsAutoscalingGroup(
 	log.Printf("[DEBUG] AutoScaling Group describe configuration: %#v", describeOpts)
 	describeGroups, err := conn.DescribeAutoScalingGroups(&describeOpts)
 	if err != nil {
-		autoscalingerr, ok := err.(aws.APIError)
-		if ok && autoscalingerr.Code == "InvalidGroup.NotFound" {
+		autoscalingerr, ok := err.(awserr.Error)
+		if ok && autoscalingerr.Code() == "InvalidGroup.NotFound" {
 			d.SetId("")
 			return nil, nil
 		}

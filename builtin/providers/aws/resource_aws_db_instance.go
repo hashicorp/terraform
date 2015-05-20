@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/awslabs/aws-sdk-go/aws"
+	"github.com/awslabs/aws-sdk-go/aws/awserr"
 	"github.com/awslabs/aws-sdk-go/service/iam"
 	"github.com/awslabs/aws-sdk-go/service/rds"
 
@@ -275,7 +276,8 @@ func resourceAwsDbInstanceCreate(d *schema.ResourceData, meta interface{}) error
 	}
 
 	log.Printf("[DEBUG] DB Instance create configuration: %#v", opts)
-	_, err := conn.CreateDBInstance(&opts)
+	var err error
+	_, err = conn.CreateDBInstance(&opts)
 	if err != nil {
 		return fmt.Errorf("Error creating DB Instance: %s", err)
 	}
@@ -558,8 +560,8 @@ func resourceAwsDbInstanceRetrieve(
 	resp, err := conn.DescribeDBInstances(&opts)
 
 	if err != nil {
-		dbinstanceerr, ok := err.(aws.APIError)
-		if ok && dbinstanceerr.Code == "DBInstanceNotFound" {
+		dbinstanceerr, ok := err.(awserr.Error)
+		if ok && dbinstanceerr.Code() == "DBInstanceNotFound" {
 			return nil, nil
 		}
 		return nil, fmt.Errorf("Error retrieving DB Instances: %s", err)

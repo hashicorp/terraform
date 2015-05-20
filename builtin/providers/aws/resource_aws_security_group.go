@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/awslabs/aws-sdk-go/aws"
+	"github.com/awslabs/aws-sdk-go/aws/awserr"
 	"github.com/awslabs/aws-sdk-go/service/ec2"
 	"github.com/hashicorp/terraform/helper/hashcode"
 	"github.com/hashicorp/terraform/helper/resource"
@@ -166,6 +167,7 @@ func resourceAwsSecurityGroupCreate(d *schema.ResourceData, meta interface{}) er
 	}
 	securityGroupOpts.GroupName = aws.String(groupName)
 
+	var err error
 	log.Printf(
 		"[DEBUG] Security Group create configuration: %#v", securityGroupOpts)
 	createResp, err := conn.CreateSecurityGroup(securityGroupOpts)
@@ -300,12 +302,12 @@ func resourceAwsSecurityGroupDelete(d *schema.ResourceData, meta interface{}) er
 			GroupID: aws.String(d.Id()),
 		})
 		if err != nil {
-			ec2err, ok := err.(aws.APIError)
+			ec2err, ok := err.(awserr.Error)
 			if !ok {
 				return err
 			}
 
-			switch ec2err.Code {
+			switch ec2err.Code() {
 			case "InvalidGroup.NotFound":
 				return nil
 			case "DependencyViolation":
@@ -530,9 +532,9 @@ func SGStateRefreshFunc(conn *ec2.EC2, id string) resource.StateRefreshFunc {
 		}
 		resp, err := conn.DescribeSecurityGroups(req)
 		if err != nil {
-			if ec2err, ok := err.(aws.APIError); ok {
-				if ec2err.Code == "InvalidSecurityGroupID.NotFound" ||
-					ec2err.Code == "InvalidGroup.NotFound" {
+			if ec2err, ok := err.(awserr.Error); ok {
+				if ec2err.Code() == "InvalidSecurityGroupID.NotFound" ||
+					ec2err.Code() == "InvalidGroup.NotFound" {
 					resp = nil
 					err = nil
 				}

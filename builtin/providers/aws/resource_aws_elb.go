@@ -6,6 +6,7 @@ import (
 	"log"
 
 	"github.com/awslabs/aws-sdk-go/aws"
+	"github.com/awslabs/aws-sdk-go/aws/awserr"
 	"github.com/awslabs/aws-sdk-go/service/elb"
 	"github.com/hashicorp/terraform/helper/hashcode"
 	"github.com/hashicorp/terraform/helper/schema"
@@ -552,6 +553,6 @@ func resourceAwsElbListenerHash(v interface{}) int {
 }
 
 func isLoadBalancerNotFound(err error) bool {
-	elberr, ok := err.(aws.APIError)
-	return ok && elberr.Code == "LoadBalancerNotFound"
+	elberr, ok := err.(awserr.Error)
+	return ok && elberr.Code() == "LoadBalancerNotFound"
 }

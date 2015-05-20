@@ -36,7 +36,7 @@ type AWSClient struct {
 	elbconn         *elb.ELB
 	autoscalingconn *autoscaling.AutoScaling
 	s3conn          *s3.S3
-	sqsconn		*sqs.SQS
+	sqsconn         *sqs.SQS
 	r53conn         *route53.Route53
 	region          string
 	rdsconn         *rds.RDS
