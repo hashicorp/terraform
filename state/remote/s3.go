@@ -79,7 +79,7 @@ func (c *S3Client) Get() (*Payload, error) {
 	})
 
 	if err != nil {
-		if awserr := awserr.Error(err); awserr != nil {
+		if awserr := err.(awserr.Error); awserr != nil {
 			if awserr.Code() == "NoSuchKey" {
 				return nil, nil
 			} else {
