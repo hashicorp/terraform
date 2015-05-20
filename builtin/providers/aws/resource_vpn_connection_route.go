@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/awslabs/aws-sdk-go/aws"
+	"github.com/awslabs/aws-sdk-go/aws/awserr"
 	"github.com/awslabs/aws-sdk-go/service/ec2"
 
 	"github.com/hashicorp/terraform/helper/schema"
@@ -82,7 +83,7 @@ func resourceAwsVpnConnectionRouteRead(d *schema.ResourceData, meta interface{})
 		Filters: routeFilters,
 	})
 	if err != nil {
-		if ec2err, ok := err.(aws.APIError); ok && ec2err.Code == "InvalidVpnConnectionID.NotFound" {
+		if ec2err, ok := err.(awserr.Error); ok && ec2err.Code() == "InvalidVpnConnectionID.NotFound" {
 			d.SetId("")
 			return nil
 		} else {
@@ -117,7 +118,7 @@ func resourceAwsVpnConnectionRouteDelete(d *schema.ResourceData, meta interface{
 		VPNConnectionID:      aws.String(d.Get("vpn_connection_id").(string)),
 	})
 	if err != nil {
-		if ec2err, ok := err.(aws.APIError); ok && ec2err.Code == "InvalidVpnConnectionID.NotFound" {
+		if ec2err, ok := err.(awserr.Error); ok && ec2err.Code() == "InvalidVpnConnectionID.NotFound" {
 			d.SetId("")
 			return nil
 		} else {

@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/awslabs/aws-sdk-go/aws"
+	"github.com/awslabs/aws-sdk-go/aws/awserr"
 	"github.com/awslabs/aws-sdk-go/service/ec2"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
@@ -59,6 +60,7 @@ func resourceAwsSubnetCreate(d *schema.ResourceData, meta interface{}) error {
 		VPCID:            aws.String(d.Get("vpc_id").(string)),
 	}
 
+	var err error
 	resp, err := conn.CreateSubnet(createOpts)
 
 	if err != nil {
@@ -98,7 +100,7 @@ func resourceAwsSubnetRead(d *schema.ResourceData, meta interface{}) error {
 	})
 
 	if err != nil {
-		if ec2err, ok := err.(aws.APIError); ok && ec2err.Code == "InvalidSubnetID.NotFound" {
+		if ec2err, ok := err.(awserr.Error); ok && ec2err.Code() == "InvalidSubnetID.NotFound" {
 			// Update state to indicate the subnet no longer exists.
 			d.SetId("")
 			return nil
@@ -171,14 +173,14 @@ func resourceAwsSubnetDelete(d *schema.ResourceData, meta interface{}) error {
 		Refresh: func() (interface{}, string, error) {
 			_, err := conn.DeleteSubnet(req)
 			if err != nil {
-				if apiErr, ok := err.(aws.APIError); ok {
-					if apiErr.Code == "DependencyViolation" {
+				if apiErr, ok := err.(awserr.Error); ok {
+					if apiErr.Code() == "DependencyViolation" {
 						// There is some pending operation, so just retry
 						// in a bit.
 						return 42, "pending", nil
 					}
 
-					if apiErr.Code == "InvalidSubnetID.NotFound" {
+					if apiErr.Code() == "InvalidSubnetID.NotFound" {
 						return 42, "destroyed", nil
 					}
 				}
@@ -204,7 +206,7 @@ func SubnetStateRefreshFunc(conn *ec2.EC2, id string) resource.StateRefreshFunc 
 			SubnetIDs: []*string{aws.String(id)},
 		})
 		if err != nil {
-			if ec2err, ok := err.(aws.APIError); ok && ec2err.Code == "InvalidSubnetID.NotFound" {
+			if ec2err, ok := err.(awserr.Error); ok && ec2err.Code() == "InvalidSubnetID.NotFound" {
 				resp = nil
 			} else {
 				log.Printf("Error on SubnetStateRefresh: %s", err)

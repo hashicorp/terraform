@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/awslabs/aws-sdk-go/aws"
+	"github.com/awslabs/aws-sdk-go/aws/awserr"
 	"github.com/awslabs/aws-sdk-go/service/sqs"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
@@ -32,7 +33,6 @@ func TestAccAWSSQSQueue(t *testing.T) {
 	})
 }
 
-
 func testAccCheckAWSSQSQueueDestroy(s *terraform.State) error {
 	conn := testAccProvider.Meta().(*AWSClient).sqsconn
 
@@ -51,7 +51,7 @@ func testAccCheckAWSSQSQueueDestroy(s *terraform.State) error {
 		}
 
 		// Verify the error is what we want
-		_, ok := err.(aws.APIError)
+		_, ok := err.(awserr.Error)
 		if !ok {
 			return err
 		}
@@ -59,7 +59,6 @@ func testAccCheckAWSSQSQueueDestroy(s *terraform.State) error {
 
 	return nil
 }
-
 
 func testAccCheckAWSSQSExistsWithDefaults(n string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
@@ -75,7 +74,7 @@ func testAccCheckAWSSQSExistsWithDefaults(n string) resource.TestCheckFunc {
 		conn := testAccProvider.Meta().(*AWSClient).sqsconn
 
 		params := &sqs.GetQueueAttributesInput{
-			QueueURL: aws.String(rs.Primary.ID),
+			QueueURL:       aws.String(rs.Primary.ID),
 			AttributeNames: []*string{aws.String("All")},
 		}
 		resp, err := conn.GetQueueAttributes(params)
@@ -125,7 +124,7 @@ func testAccCheckAWSSQSExistsWithOverrides(n string) resource.TestCheckFunc {
 		conn := testAccProvider.Meta().(*AWSClient).sqsconn
 
 		params := &sqs.GetQueueAttributesInput{
-			QueueURL: aws.String(rs.Primary.ID),
+			QueueURL:       aws.String(rs.Primary.ID),
 			AttributeNames: []*string{aws.String("All")},
 		}
 		resp, err := conn.GetQueueAttributes(params)

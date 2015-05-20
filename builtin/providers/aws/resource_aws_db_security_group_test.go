@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/awslabs/aws-sdk-go/aws"
+	"github.com/awslabs/aws-sdk-go/aws/awserr"
 	"github.com/awslabs/aws-sdk-go/service/rds"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
@@ -59,11 +60,11 @@ func testAccCheckAWSDBSecurityGroupDestroy(s *terraform.State) error {
 		}
 
 		// Verify the error
-		newerr, ok := err.(aws.APIError)
+		newerr, ok := err.(awserr.Error)
 		if !ok {
 			return err
 		}
-		if newerr.Code != "InvalidDBSecurityGroup.NotFound" {
+		if newerr.Code() != "InvalidDBSecurityGroup.NotFound" {
 			return err
 		}
 	}

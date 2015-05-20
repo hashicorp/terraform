@@ -12,15 +12,14 @@ import (
 )
 
 var AttributeMap = map[string]string{
-	"delay_seconds" : "DelaySeconds",
-	"max_message_size" : "MaximumMessageSize",
-	"message_retention_seconds" : "MessageRetentionPeriod",
-	"receive_wait_time_seconds" : "ReceiveMessageWaitTimeSeconds",
-	"visibility_timeout_seconds" : "VisibilityTimeout",
-	"policy" : "Policy",
-	"redrive_policy": "RedrivePolicy",
+	"delay_seconds":              "DelaySeconds",
+	"max_message_size":           "MaximumMessageSize",
+	"message_retention_seconds":  "MessageRetentionPeriod",
+	"receive_wait_time_seconds":  "ReceiveMessageWaitTimeSeconds",
+	"visibility_timeout_seconds": "VisibilityTimeout",
+	"policy":                     "Policy",
+	"redrive_policy":             "RedrivePolicy",
 }
-
 
 // A number of these are marked as computed because if you don't
 // provide a value, SQS will provide you with defaults (which are the
@@ -39,12 +38,12 @@ func resourceAwsSqsQueue() *schema.Resource {
 				ForceNew: true,
 			},
 			"delay_seconds": &schema.Schema{
-				Type: 	  schema.TypeInt,
+				Type:     schema.TypeInt,
 				Optional: true,
 				Computed: true,
 			},
 			"max_message_size": &schema.Schema{
-				Type:	  schema.TypeInt,
+				Type:     schema.TypeInt,
 				Optional: true,
 				Computed: true,
 			},
@@ -79,14 +78,14 @@ func resourceAwsSqsQueueCreate(d *schema.ResourceData, meta interface{}) error {
 	sqsconn := meta.(*AWSClient).sqsconn
 
 	name := d.Get("name").(string)
- 
+
 	log.Printf("[DEBUG] SQS queue create: %s", name)
 
 	req := &sqs.CreateQueueInput{
 		QueueName: aws.String(name),
 	}
 
-	attributes := make(map[string]*string) 
+	attributes := make(map[string]*string)
 
 	resource := *resourceAwsSqsQueue()
 
@@ -139,11 +138,11 @@ func resourceAwsSqsQueueUpdate(d *schema.ResourceData, meta interface{}) error {
 
 	if len(attributes) > 0 {
 		req := &sqs.SetQueueAttributesInput{
-			QueueURL: aws.String(d.Id()), 
+			QueueURL:   aws.String(d.Id()),
 			Attributes: &attributes,
 		}
 		sqsconn.SetQueueAttributes(req)
-	} 
+	}
 
 	return resourceAwsSqsQueueRead(d, meta)
 }
@@ -152,7 +151,7 @@ func resourceAwsSqsQueueRead(d *schema.ResourceData, meta interface{}) error {
 	sqsconn := meta.(*AWSClient).sqsconn
 
 	attributeOutput, err := sqsconn.GetQueueAttributes(&sqs.GetQueueAttributesInput{
-		QueueURL: aws.String(d.Id()),
+		QueueURL:       aws.String(d.Id()),
 		AttributeNames: []*string{aws.String("All")},
 	})
 	if err != nil {
@@ -167,7 +166,7 @@ func resourceAwsSqsQueueRead(d *schema.ResourceData, meta interface{}) error {
 			if attrmap[oKey] != nil {
 				if resource.Schema[iKey].Type == schema.TypeInt {
 					value, err := strconv.Atoi(*attrmap[oKey])
-					if  err != nil {
+					if err != nil {
 						return err
 					}
 					d.Set(iKey, value)
@@ -193,5 +192,3 @@ func resourceAwsSqsQueueDelete(d *schema.ResourceData, meta interface{}) error {
 	}
 	return nil
 }
-
-
