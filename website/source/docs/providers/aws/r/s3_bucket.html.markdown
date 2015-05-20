@@ -49,6 +49,7 @@ The following arguments are supported:
 * `acl` - (Optional) The [canned ACL](http://docs.aws.amazon.com/AmazonS3/latest/dev/acl-overview.html#canned-acl) to apply. Defaults to "private".
 * `policy` - (Optional) A valid [bucket policy](http://docs.aws.amazon.com/AmazonS3/latest/dev/example-bucket-policies.html) JSON document.
 * `tags` - (Optional) A mapping of tags to assign to the bucket.
+* `force_destroy` - (Optional, Default:false ) A boolean that indicates all objects should be deleted from the bucket so that the bucket can be destroyed without error. These objects are *not* recoverable.
 * `website` - (Optional) A website object (documented below).
 
 The website object supports the following:
