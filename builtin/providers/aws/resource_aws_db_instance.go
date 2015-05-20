@@ -670,6 +670,10 @@ func resourceAwsDbInstanceStateRefreshFunc(
 			return nil, "", nil
 		}
 
+		if v.DBInstanceStatus != nil {
+			log.Printf("[DEBUG] DB Instance status for instance %s: %s", d.Id(), *v.DBInstanceStatus)
+		}
+
 		return v, *v.DBInstanceStatus, nil
 	}
 }
