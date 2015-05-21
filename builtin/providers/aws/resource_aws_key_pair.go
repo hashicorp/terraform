@@ -7,6 +7,7 @@ import (
 	"github.com/hashicorp/terraform/helper/schema"
 
 	"github.com/awslabs/aws-sdk-go/aws"
+	"github.com/awslabs/aws-sdk-go/aws/awserr"
 	"github.com/awslabs/aws-sdk-go/service/ec2"
 )
 
@@ -65,8 +66,8 @@ func resourceAwsKeyPairRead(d *schema.ResourceData, meta interface{}) error {
 	}
 	resp, err := conn.DescribeKeyPairs(req)
 	if err != nil {
-		awsErr, ok := err.(aws.APIError)
-		if ok && awsErr.Code == "InvalidKeyPair.NotFound" {
+		awsErr, ok := err.(awserr.Error)
+		if ok && awsErr.Code() == "InvalidKeyPair.NotFound" {
 			d.SetId("")
 			return nil
 		}
