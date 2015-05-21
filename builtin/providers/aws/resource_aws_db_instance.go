@@ -445,11 +445,6 @@ func resourceAwsDbInstanceRead(d *schema.ResourceData, meta interface{}) error {
 		return fmt.Errorf("[DEBUG] Error setting replicas attribute: %#v, error: %#v", replicas, err)
 	}
 
-	if v.ReadReplicaSourceDBInstanceIdentifier != nil {
-		log.Printf("\n\n------\nread replica instance identifier: %#v", *v.ReadReplicaSourceDBInstanceIdentifier)
-	} else {
-		log.Printf("\n\n------\nno replica identifier")
-	}
 	d.Set("replicate_source_db", v.ReadReplicaSourceDBInstanceIdentifier)
 
 	return nil
@@ -493,7 +488,6 @@ func resourceAwsDbInstanceDelete(d *schema.ResourceData, meta interface{}) error
 }
 
 func resourceAwsDbInstanceUpdate(d *schema.ResourceData, meta interface{}) error {
-	log.Printf("\n\n-------- ENTER UPDATE -------\n\n")
 	conn := meta.(*AWSClient).rdsconn
 
 	d.Partial(true)
@@ -622,7 +616,6 @@ func resourceAwsDbInstanceUpdate(d *schema.ResourceData, meta interface{}) error
 		}
 	}
 	d.Partial(false)
-	log.Printf("\n\n-------- EXIT UPDATE -------\n\n")
 	return resourceAwsDbInstanceRead(d, meta)
 }
 
