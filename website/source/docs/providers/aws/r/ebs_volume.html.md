@@ -30,3 +30,12 @@ The following arguments are supported:
 * `snapshot_id` (Optinal) A snapshot to base the EBS volume off of.
 * `type` - (Optional) The type of EBS volume.
 * `kms_key_id` - (Optional) The KMS key ID for the volume.
+
+
+## Attributes Reference
+
+The following attributes are exported:
+
+* `id` - The volume ID (e.g. vol-59fcb34e).
+
+
