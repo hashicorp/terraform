@@ -29,15 +29,15 @@ func resourceAwsRoute53Zone() *schema.Resource {
 				ForceNew: true,
 			},
 
+			"comment": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+			},
+
 			"vpc_id": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: true,
-			},
-
-			"comment": &schema.Schema{
-				Type:     schema.TypeString,
-				Optional: true,
 			},
 
 			"vpc_region": &schema.Schema{
