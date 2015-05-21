@@ -8,7 +8,9 @@ $script = <<SCRIPT
 # Install Go and prerequisites
 apt-get -qq update
 apt-get -qq install build-essential curl git-core libpcre3-dev mercurial pkg-config zip
-hg clone -u release https://code.google.com/p/go /opt/go
+git clone https://go.googlesource.com/go /opt/go
+cd /opt/go
+git checkout release-branch.go1.4
 cd /opt/go/src && ./all.bash
 
 # Setup the GOPATH
