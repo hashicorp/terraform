@@ -66,7 +66,7 @@ The following arguments are supported:
 * `apply_immediately` - (Optional) Specifies whether any database modifications
      are applied immediately, or during the next maintenance window. Default is
      `false`. See [Amazon RDS Documentation for more for more information.](http://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/Overview.DBInstance.Modifying.html)
-* `replicate_source` - (Optional) Specifies that this resource is a Replicate
+* `replicate_source_db` - (Optional) Specifies that this resource is a Replicate
 database, and to use this value as the source database. This correlates to the
 `identifier` of another Amazon RDS Database to replicate. See
 [DB Instance Replication][1] and
@@ -74,7 +74,7 @@ database, and to use this value as the source database. This correlates to the
  more information on using Replication.
 
 
-~> **NOTE:** Removing the `replicate_source` attribute from an existing RDS
+~> **NOTE:** Removing the `replicate_source_db` attribute from an existing RDS
 Replicate database managed by Terraform will promote the database to a fully
 standalone database.
 
