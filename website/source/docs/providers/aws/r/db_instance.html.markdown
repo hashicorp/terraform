@@ -49,7 +49,7 @@ The following arguments are supported:
 * `username` - (Required) Username for the master DB user.
 * `availability_zone` - (Optional) The AZ for the RDS instance.
 * `backup_retention_period` - (Optional) The days to retain backups for. Must be
-`1` or greater to be a source for a [Read Replicate][1].
+`1` or greater to be a source for a [Read Replica][1].
 * `backup_window` - (Optional) The backup window.
 * `iops` - (Optional) The amount of provisioned IOPS. Setting this implies a
     storage_type of "io1".
@@ -74,7 +74,7 @@ database, and to use this value as the source database. This correlates to the
  more information on using Replication.
 
 
-~> **NOTE:** Removing the `relicate_source` attribute from an existing RDS
+~> **NOTE:** Removing the `replicate_source` attribute from an existing RDS
 Replicate database managed by Terraform will promote the database to a fully
 standalone database.
 
