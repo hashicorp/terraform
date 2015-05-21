@@ -66,10 +66,10 @@ func resourceAwsRoute53Zone() *schema.Resource {
 func resourceAwsRoute53ZoneCreate(d *schema.ResourceData, meta interface{}) error {
 	r53 := meta.(*AWSClient).r53conn
 
-  comment := "Managed by Terraform"
-  if c := d.Get("comment"); c != "" {
-    comment = c.(string)
-  }
+	comment := "Managed by Terraform"
+	if c := d.Get("comment"); c != "" {
+		comment = c.(string)
+	}
 	req := &route53.CreateHostedZoneInput{
 		Name:             aws.String(d.Get("name").(string)),
 		HostedZoneConfig: &route53.HostedZoneConfig{Comment: aws.String(comment)},
