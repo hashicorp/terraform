@@ -26,6 +26,7 @@ func resourceAwsDbInstance() *schema.Resource {
 			"name": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
+				Computed: true,
 				ForceNew: true,
 			},
 
@@ -89,7 +90,7 @@ func resourceAwsDbInstance() *schema.Resource {
 			"backup_retention_period": &schema.Schema{
 				Type:     schema.TypeInt,
 				Optional: true,
-				Default:  1,
+				Computed: true,
 			},
 
 			"backup_window": &schema.Schema{
@@ -191,6 +192,17 @@ func resourceAwsDbInstance() *schema.Resource {
 				Computed: true,
 			},
 
+			"replicate_source_db": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+			},
+
+			"replicas": &schema.Schema{
+				Type:     schema.TypeList,
+				Computed: true,
+				Elem:     &schema.Schema{Type: schema.TypeString},
+			},
+
 			"tags": tagsSchema(),
 		},
 	}
@@ -199,87 +211,113 @@ func resourceAwsDbInstance() *schema.Resource {
 func resourceAwsDbInstanceCreate(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).rdsconn
 	tags := tagsFromMapRDS(d.Get("tags").(map[string]interface{}))
-	opts := rds.CreateDBInstanceInput{
-		AllocatedStorage:     aws.Long(int64(d.Get("allocated_storage").(int))),
-		DBInstanceClass:      aws.String(d.Get("instance_class").(string)),
-		DBInstanceIdentifier: aws.String(d.Get("identifier").(string)),
-		DBName:               aws.String(d.Get("name").(string)),
-		MasterUsername:       aws.String(d.Get("username").(string)),
-		MasterUserPassword:   aws.String(d.Get("password").(string)),
-		Engine:               aws.String(d.Get("engine").(string)),
-		EngineVersion:        aws.String(d.Get("engine_version").(string)),
-		StorageEncrypted:     aws.Boolean(d.Get("storage_encrypted").(bool)),
-		Tags:                 tags,
-	}
 
-	if attr, ok := d.GetOk("storage_type"); ok {
-		opts.StorageType = aws.String(attr.(string))
-	}
-
-	attr := d.Get("backup_retention_period")
-	opts.BackupRetentionPeriod = aws.Long(int64(attr.(int)))
-
-	if attr, ok := d.GetOk("iops"); ok {
-		opts.IOPS = aws.Long(int64(attr.(int)))
-	}
-
-	if attr, ok := d.GetOk("port"); ok {
-		opts.Port = aws.Long(int64(attr.(int)))
-	}
-
-	if attr, ok := d.GetOk("multi_az"); ok {
-		opts.MultiAZ = aws.Boolean(attr.(bool))
-	}
-
-	if attr, ok := d.GetOk("availability_zone"); ok {
-		opts.AvailabilityZone = aws.String(attr.(string))
-	}
-
-	if attr, ok := d.GetOk("license_model"); ok {
-		opts.LicenseModel = aws.String(attr.(string))
-	}
-
-	if attr, ok := d.GetOk("maintenance_window"); ok {
-		opts.PreferredMaintenanceWindow = aws.String(attr.(string))
-	}
-
-	if attr, ok := d.GetOk("backup_window"); ok {
-		opts.PreferredBackupWindow = aws.String(attr.(string))
-	}
-
-	if attr, ok := d.GetOk("publicly_accessible"); ok {
-		opts.PubliclyAccessible = aws.Boolean(attr.(bool))
-	}
-
-	if attr, ok := d.GetOk("db_subnet_group_name"); ok {
-		opts.DBSubnetGroupName = aws.String(attr.(string))
-	}
-
-	if attr, ok := d.GetOk("parameter_group_name"); ok {
-		opts.DBParameterGroupName = aws.String(attr.(string))
-	}
-
-	if attr := d.Get("vpc_security_group_ids").(*schema.Set); attr.Len() > 0 {
-		var s []*string
-		for _, v := range attr.List() {
-			s = append(s, aws.String(v.(string)))
+	if v, ok := d.GetOk("replicate_source_db"); ok {
+		opts := rds.CreateDBInstanceReadReplicaInput{
+			SourceDBInstanceIdentifier: aws.String(v.(string)),
+			DBInstanceClass:            aws.String(d.Get("instance_class").(string)),
+			DBInstanceIdentifier:       aws.String(d.Get("identifier").(string)),
+			Tags:                       tags,
 		}
-		opts.VPCSecurityGroupIDs = s
-	}
-
-	if attr := d.Get("security_group_names").(*schema.Set); attr.Len() > 0 {
-		var s []*string
-		for _, v := range attr.List() {
-			s = append(s, aws.String(v.(string)))
+		if attr, ok := d.GetOk("iops"); ok {
+			opts.IOPS = aws.Long(int64(attr.(int)))
 		}
-		opts.DBSecurityGroups = s
-	}
 
-	log.Printf("[DEBUG] DB Instance create configuration: %#v", opts)
-	var err error
-	_, err = conn.CreateDBInstance(&opts)
-	if err != nil {
-		return fmt.Errorf("Error creating DB Instance: %s", err)
+		if attr, ok := d.GetOk("port"); ok {
+			opts.Port = aws.Long(int64(attr.(int)))
+		}
+
+		if attr, ok := d.GetOk("availability_zone"); ok {
+			opts.AvailabilityZone = aws.String(attr.(string))
+		}
+
+		if attr, ok := d.GetOk("publicly_accessible"); ok {
+			opts.PubliclyAccessible = aws.Boolean(attr.(bool))
+		}
+		_, err := conn.CreateDBInstanceReadReplica(&opts)
+		if err != nil {
+			return fmt.Errorf("Error creating DB Instance: %s", err)
+		}
+	} else {
+		opts := rds.CreateDBInstanceInput{
+			AllocatedStorage:     aws.Long(int64(d.Get("allocated_storage").(int))),
+			DBName:               aws.String(d.Get("name").(string)),
+			DBInstanceClass:      aws.String(d.Get("instance_class").(string)),
+			DBInstanceIdentifier: aws.String(d.Get("identifier").(string)),
+			MasterUsername:       aws.String(d.Get("username").(string)),
+			MasterUserPassword:   aws.String(d.Get("password").(string)),
+			Engine:               aws.String(d.Get("engine").(string)),
+			EngineVersion:        aws.String(d.Get("engine_version").(string)),
+			StorageEncrypted:     aws.Boolean(d.Get("storage_encrypted").(bool)),
+			Tags:                 tags,
+		}
+
+		attr := d.Get("backup_retention_period")
+		opts.BackupRetentionPeriod = aws.Long(int64(attr.(int)))
+		if attr, ok := d.GetOk("multi_az"); ok {
+			opts.MultiAZ = aws.Boolean(attr.(bool))
+		}
+
+		if attr, ok := d.GetOk("maintenance_window"); ok {
+			opts.PreferredMaintenanceWindow = aws.String(attr.(string))
+		}
+
+		if attr, ok := d.GetOk("backup_window"); ok {
+			opts.PreferredBackupWindow = aws.String(attr.(string))
+		}
+
+		if attr, ok := d.GetOk("license_model"); ok {
+			opts.LicenseModel = aws.String(attr.(string))
+		}
+		if attr, ok := d.GetOk("parameter_group_name"); ok {
+			opts.DBParameterGroupName = aws.String(attr.(string))
+		}
+
+		if attr := d.Get("vpc_security_group_ids").(*schema.Set); attr.Len() > 0 {
+			var s []*string
+			for _, v := range attr.List() {
+				s = append(s, aws.String(v.(string)))
+			}
+			opts.VPCSecurityGroupIDs = s
+		}
+
+		if attr := d.Get("security_group_names").(*schema.Set); attr.Len() > 0 {
+			var s []*string
+			for _, v := range attr.List() {
+				s = append(s, aws.String(v.(string)))
+			}
+			opts.DBSecurityGroups = s
+		}
+		if attr, ok := d.GetOk("storage_type"); ok {
+			opts.StorageType = aws.String(attr.(string))
+		}
+
+		if attr, ok := d.GetOk("db_subnet_group_name"); ok {
+			opts.DBSubnetGroupName = aws.String(attr.(string))
+		}
+
+		if attr, ok := d.GetOk("iops"); ok {
+			opts.IOPS = aws.Long(int64(attr.(int)))
+		}
+
+		if attr, ok := d.GetOk("port"); ok {
+			opts.Port = aws.Long(int64(attr.(int)))
+		}
+
+		if attr, ok := d.GetOk("availability_zone"); ok {
+			opts.AvailabilityZone = aws.String(attr.(string))
+		}
+
+		if attr, ok := d.GetOk("publicly_accessible"); ok {
+			opts.PubliclyAccessible = aws.Boolean(attr.(bool))
+		}
+
+		log.Printf("[DEBUG] DB Instance create configuration: %#v", opts)
+		var err error
+		_, err = conn.CreateDBInstance(&opts)
+		if err != nil {
+			return fmt.Errorf("Error creating DB Instance: %s", err)
+		}
 	}
 
 	d.SetId(d.Get("identifier").(string))
@@ -299,7 +337,7 @@ func resourceAwsDbInstanceCreate(d *schema.ResourceData, meta interface{}) error
 	}
 
 	// Wait, catching any errors
-	_, err = stateConf.WaitForState()
+	_, err := stateConf.WaitForState()
 	if err != nil {
 		return err
 	}
@@ -396,6 +434,18 @@ func resourceAwsDbInstanceRead(d *schema.ResourceData, meta interface{}) error {
 		sgn.Add(*v.DBSecurityGroupName)
 	}
 	d.Set("security_group_names", sgn)
+
+	// replica things
+
+	var replicas []string
+	for _, v := range v.ReadReplicaDBInstanceIdentifiers {
+		replicas = append(replicas, *v)
+	}
+	if err := d.Set("replicas", replicas); err != nil {
+		return fmt.Errorf("[DEBUG] Error setting replicas attribute: %#v, error: %#v", replicas, err)
+	}
+
+	d.Set("replicate_source_db", v.ReadReplicaSourceDBInstanceIdentifier)
 
 	return nil
 }
@@ -536,6 +586,28 @@ func resourceAwsDbInstanceUpdate(d *schema.ResourceData, meta interface{}) error
 		}
 	}
 
+	// seperate request to promote a database
+	if d.HasChange("replicate_source_db") {
+		if d.Get("replicate_source_db").(string) == "" {
+			// promote
+			opts := rds.PromoteReadReplicaInput{
+				DBInstanceIdentifier: aws.String(d.Id()),
+			}
+			attr := d.Get("backup_retention_period")
+			opts.BackupRetentionPeriod = aws.Long(int64(attr.(int)))
+			if attr, ok := d.GetOk("backup_window"); ok {
+				opts.PreferredBackupWindow = aws.String(attr.(string))
+			}
+			_, err := conn.PromoteReadReplica(&opts)
+			if err != nil {
+				return fmt.Errorf("Error promoting database: %#v", err)
+			}
+			d.Set("replicate_source_db", "")
+		} else {
+			return fmt.Errorf("cannot elect new source database for replication")
+		}
+	}
+
 	if arn, err := buildRDSARN(d, meta); err == nil {
 		if err := setTagsRDS(conn, d, arn); err != nil {
 			return err
@@ -589,6 +661,10 @@ func resourceAwsDbInstanceStateRefreshFunc(
 
 		if v == nil {
 			return nil, "", nil
+		}
+
+		if v.DBInstanceStatus != nil {
+			log.Printf("[DEBUG] DB Instance status for instance %s: %s", d.Id(), *v.DBInstanceStatus)
 		}
 
 		return v, *v.DBInstanceStatus, nil
