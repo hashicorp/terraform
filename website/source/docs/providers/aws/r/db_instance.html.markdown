@@ -48,7 +48,8 @@ The following arguments are supported:
     show up in logs, and it will be stored in the state file.
 * `username` - (Required) Username for the master DB user.
 * `availability_zone` - (Optional) The AZ for the RDS instance.
-* `backup_retention_period` - (Optional) The days to retain backups for.
+* `backup_retention_period` - (Optional) The days to retain backups for. Must be
+`1` or greater to be a source for a [Read Replica][1].
 * `backup_window` - (Optional) The backup window.
 * `iops` - (Optional) The amount of provisioned IOPS. Setting this implies a
     storage_type of "io1".
@@ -65,6 +66,17 @@ The following arguments are supported:
 * `apply_immediately` - (Optional) Specifies whether any database modifications
      are applied immediately, or during the next maintenance window. Default is
      `false`. See [Amazon RDS Documentation for more for more information.](http://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/Overview.DBInstance.Modifying.html)
+* `replicate_source_db` - (Optional) Specifies that this resource is a Replicate
+database, and to use this value as the source database. This correlates to the
+`identifier` of another Amazon RDS Database to replicate. See
+[DB Instance Replication][1] and
+[Working with PostgreSQL and MySQL Read Replicas](http://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/USER_ReadRepl.html) for
+ more information on using Replication.
+
+
+~> **NOTE:** Removing the `replicate_source_db` attribute from an existing RDS
+Replicate database managed by Terraform will promote the database to a fully
+standalone database.
 
 ## Attributes Reference
 
@@ -88,3 +100,5 @@ The following attributes are exported:
 * `username` - The master username for the database
 * `storage_encrypted` - Specifies whether the DB instance is encrypted
 
+
+[1]: http://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/Overview.Replication.html
