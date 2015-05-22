@@ -693,6 +693,11 @@ func resourceAwsInstanceUpdate(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).ec2conn
 
 	d.Partial(true)
+	if err := setTags(conn, d); err != nil {
+		return err
+	} else {
+		d.SetPartial("tags")
+	}
 
 	// SourceDestCheck can only be set on VPC instances
 	if d.Get("subnet_id").(string) != "" {
@@ -739,11 +744,6 @@ func resourceAwsInstanceUpdate(d *schema.ResourceData, meta interface{}) error {
 	// TODO(mitchellh): wait for the attributes we modified to
 	// persist the change...
 
-	if err := setTags(conn, d); err != nil {
-		return err
-	} else {
-		d.SetPartial("tags")
-	}
 	d.Partial(false)
 
 	return resourceAwsInstanceRead(d, meta)
