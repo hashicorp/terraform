@@ -165,7 +165,7 @@ func resourceAzureInstance() *schema.Resource {
 }
 
 func resourceAzureInstanceCreate(d *schema.ResourceData, meta interface{}) (err error) {
-	mc := meta.(*management.Client)
+	mc := meta.(management.Client)
 
 	name := d.Get("name").(string)
 
@@ -199,16 +199,16 @@ func resourceAzureInstanceCreate(d *schema.ResourceData, meta interface{}) (err 
 	}
 
 	log.Printf("[DEBUG] Creating Cloud Service for instance: %s", name)
-	err = hostedservice.NewClient(*mc).CreateHostedService(p)
+	err = hostedservice.NewClient(mc).CreateHostedService(p)
 	if err != nil {
 		return fmt.Errorf("Error creating Cloud Service for instance %s: %s", name, err)
 	}
 
 	// Put in this defer here, so we are sure to cleanup already created parts
 	// when we exit with an error
-	defer func(mc *management.Client) {
+	defer func(mc management.Client) {
 		if err != nil {
-			req, err := hostedservice.NewClient(*mc).DeleteHostedService(name, true)
+			req, err := hostedservice.NewClient(mc).DeleteHostedService(name, true)
 			if err != nil {
 				log.Printf("[DEBUG] Error cleaning up Cloud Service of instance %s: %s", name, err)
 			}
@@ -305,7 +305,7 @@ func resourceAzureInstanceCreate(d *schema.ResourceData, meta interface{}) (err 
 	}
 
 	log.Printf("[DEBUG] Creating the new instance...")
-	req, err := virtualmachine.NewClient(*mc).CreateDeployment(role, name, options)
+	req, err := virtualmachine.NewClient(mc).CreateDeployment(role, name, options)
 	if err != nil {
 		return fmt.Errorf("Error creating instance %s: %s", name, err)
 	}
@@ -322,10 +322,10 @@ func resourceAzureInstanceCreate(d *schema.ResourceData, meta interface{}) (err 
 }
 
 func resourceAzureInstanceRead(d *schema.ResourceData, meta interface{}) error {
-	mc := meta.(*management.Client)
+	mc := meta.(management.Client)
 
 	log.Printf("[DEBUG] Retrieving Cloud Service for instance: %s", d.Id())
-	cs, err := hostedservice.NewClient(*mc).GetHostedService(d.Id())
+	cs, err := hostedservice.NewClient(mc).GetHostedService(d.Id())
 	if err != nil {
 		return fmt.Errorf("Error retrieving Cloud Service of instance %s: %s", d.Id(), err)
 	}
@@ -334,7 +334,7 @@ func resourceAzureInstanceRead(d *schema.ResourceData, meta interface{}) error {
 	d.Set("location", cs.Location)
 
 	log.Printf("[DEBUG] Retrieving instance: %s", d.Id())
-	dpmt, err := virtualmachine.NewClient(*mc).GetDeployment(d.Id(), d.Id())
+	dpmt, err := virtualmachine.NewClient(mc).GetDeployment(d.Id(), d.Id())
 	if err != nil {
 		return fmt.Errorf("Error retrieving instance %s: %s", d.Id(), err)
 	}
@@ -412,7 +412,7 @@ func resourceAzureInstanceRead(d *schema.ResourceData, meta interface{}) error {
 }
 
 func resourceAzureInstanceUpdate(d *schema.ResourceData, meta interface{}) error {
-	mc := meta.(*management.Client)
+	mc := meta.(management.Client)
 
 	// First check if anything we can update changed, and if not just return
 	if !d.HasChange("size") && !d.HasChange("endpoint") && !d.HasChange("security_group") {
@@ -420,7 +420,7 @@ func resourceAzureInstanceUpdate(d *schema.ResourceData, meta interface{}) error
 	}
 
 	// Get the current role
-	role, err := virtualmachine.NewClient(*mc).GetRole(d.Id(), d.Id(), d.Id())
+	role, err := virtualmachine.NewClient(mc).GetRole(d.Id(), d.Id(), d.Id())
 	if err != nil {
 		return fmt.Errorf("Error retrieving role of instance %s: %s", d.Id(), err)
 	}
@@ -474,7 +474,7 @@ func resourceAzureInstanceUpdate(d *schema.ResourceData, meta interface{}) error
 	}
 
 	// Update the adjusted role
-	req, err := virtualmachine.NewClient(*mc).UpdateRole(d.Id(), d.Id(), d.Id(), *role)
+	req, err := virtualmachine.NewClient(mc).UpdateRole(d.Id(), d.Id(), d.Id(), *role)
 	if err != nil {
 		return fmt.Errorf("Error updating role of instance %s: %s", d.Id(), err)
 	}
@@ -488,10 +488,10 @@ func resourceAzureInstanceUpdate(d *schema.ResourceData, meta interface{}) error
 }
 
 func resourceAzureInstanceDelete(d *schema.ResourceData, meta interface{}) error {
-	mc := meta.(*management.Client)
+	mc := meta.(management.Client)
 
 	log.Printf("[DEBUG] Deleting instance: %s", d.Id())
-	req, err := hostedservice.NewClient(*mc).DeleteHostedService(d.Id(), true)
+	req, err := hostedservice.NewClient(mc).DeleteHostedService(d.Id(), true)
 	if err != nil {
 		return fmt.Errorf("Error deleting instance %s: %s", d.Id(), err)
 	}
@@ -519,7 +519,7 @@ func resourceAzureEndpointHash(v interface{}) int {
 }
 
 func retrieveImageDetails(
-	mc *management.Client,
+	mc management.Client,
 	label string,
 	storage string) (func(*virtualmachine.Role) error, string, error) {
 	configureForImage, osType, err := retrieveVMImageDetails(mc, label)
@@ -536,9 +536,9 @@ func retrieveImageDetails(
 }
 
 func retrieveVMImageDetails(
-	mc *management.Client,
+	mc management.Client,
 	label string) (func(*virtualmachine.Role) error, string, error) {
-	imgs, err := virtualmachineimage.NewClient(*mc).ListVirtualMachineImages()
+	imgs, err := virtualmachineimage.NewClient(mc).ListVirtualMachineImages()
 	if err != nil {
 		return nil, "", fmt.Errorf("Error retrieving image details: %s", err)
 	}
@@ -566,10 +566,10 @@ func retrieveVMImageDetails(
 }
 
 func retrieveOSImageDetails(
-	mc *management.Client,
+	mc management.Client,
 	label,
 	storage string) (func(*virtualmachine.Role) error, string, error) {
-	imgs, err := osimage.NewClient(*mc).ListOSImages()
+	imgs, err := osimage.NewClient(mc).ListOSImages()
 	if err != nil {
 		return nil, "", fmt.Errorf("Error retrieving image details: %s", err)
 	}

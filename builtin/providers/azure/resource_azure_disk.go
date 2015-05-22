@@ -70,7 +70,7 @@ func resourceAzureDataDisk() *schema.Resource {
 }
 
 func resourceAzureDataDiskCreate(d *schema.ResourceData, meta interface{}) error {
-	mc := meta.(*management.Client)
+	mc := meta.(management.Client)
 
 	if err := verifyDataDiskParameters(d); err != nil {
 		return err
@@ -92,7 +92,7 @@ func resourceAzureDataDiskCreate(d *schema.ResourceData, meta interface{}) error
 	}
 
 	log.Printf("[DEBUG] Adding data disk %d to instance: %s", lun, vm)
-	req, err := virtualmachinedisk.NewClient(*mc).AddDataDisk(vm, vm, vm, p)
+	req, err := virtualmachinedisk.NewClient(mc).AddDataDisk(vm, vm, vm, p)
 	if err != nil {
 		return fmt.Errorf("Error adding data disk %d to instance %s: %s", lun, vm, err)
 	}
@@ -104,7 +104,7 @@ func resourceAzureDataDiskCreate(d *schema.ResourceData, meta interface{}) error
 	}
 
 	log.Printf("[DEBUG] Retrieving data disk %d from instance %s", lun, vm)
-	disk, err := virtualmachinedisk.NewClient(*mc).GetDataDisk(vm, vm, vm, lun)
+	disk, err := virtualmachinedisk.NewClient(mc).GetDataDisk(vm, vm, vm, lun)
 	if err != nil {
 		return fmt.Errorf("Error retrieving data disk %d from instance %s: %s", lun, vm, err)
 	}
@@ -115,13 +115,13 @@ func resourceAzureDataDiskCreate(d *schema.ResourceData, meta interface{}) error
 }
 
 func resourceAzureDataDiskRead(d *schema.ResourceData, meta interface{}) error {
-	mc := meta.(*management.Client)
+	mc := meta.(management.Client)
 
 	lun := d.Get("lun").(int)
 	vm := d.Get("virtual_machine").(string)
 
 	log.Printf("[DEBUG] Retrieving data disk: %s", d.Id())
-	datadisk, err := virtualmachinedisk.NewClient(*mc).GetDataDisk(vm, vm, vm, lun)
+	datadisk, err := virtualmachinedisk.NewClient(mc).GetDataDisk(vm, vm, vm, lun)
 	if err != nil {
 		return fmt.Errorf("Error retrieving data disk %s: %s", d.Id(), err)
 	}
@@ -133,7 +133,7 @@ func resourceAzureDataDiskRead(d *schema.ResourceData, meta interface{}) error {
 	d.Set("media_link", datadisk.MediaLink)
 
 	log.Printf("[DEBUG] Retrieving disk: %s", d.Id())
-	disk, err := virtualmachinedisk.NewClient(*mc).GetDisk(d.Id())
+	disk, err := virtualmachinedisk.NewClient(mc).GetDisk(d.Id())
 	if err != nil {
 		return fmt.Errorf("Error retrieving disk %s: %s", d.Id(), err)
 	}
@@ -144,7 +144,7 @@ func resourceAzureDataDiskRead(d *schema.ResourceData, meta interface{}) error {
 }
 
 func resourceAzureDataDiskUpdate(d *schema.ResourceData, meta interface{}) error {
-	mc := meta.(*management.Client)
+	mc := meta.(management.Client)
 	lun := d.Get("lun").(int)
 	vm := d.Get("virtual_machine").(string)
 
@@ -158,7 +158,7 @@ func resourceAzureDataDiskUpdate(d *schema.ResourceData, meta interface{}) error
 		}
 
 		log.Printf("[DEBUG] Updating disk: %s", d.Id())
-		req, err := virtualmachinedisk.NewClient(*mc).UpdateDisk(d.Id(), p)
+		req, err := virtualmachinedisk.NewClient(mc).UpdateDisk(d.Id(), p)
 		if err != nil {
 			return fmt.Errorf("Error updating disk %s: %s", d.Id(), err)
 		}
@@ -172,7 +172,7 @@ func resourceAzureDataDiskUpdate(d *schema.ResourceData, meta interface{}) error
 
 	if d.HasChange("virtual_machine") {
 		log.Printf("[DEBUG] Detaching data disk: %s", d.Id())
-		req, err := virtualmachinedisk.NewClient(*mc).DeleteDataDisk(vm, vm, vm, lun, false)
+		req, err := virtualmachinedisk.NewClient(mc).DeleteDataDisk(vm, vm, vm, lun, false)
 		if err != nil {
 			return fmt.Errorf("Error detaching data disk %s: %s", d.Id(), err)
 		}
@@ -191,7 +191,7 @@ func resourceAzureDataDiskUpdate(d *schema.ResourceData, meta interface{}) error
 		}
 
 		log.Printf("[DEBUG] Attaching data disk: %s", d.Id())
-		req, err = virtualmachinedisk.NewClient(*mc).AddDataDisk(vm, vm, vm, p)
+		req, err = virtualmachinedisk.NewClient(mc).AddDataDisk(vm, vm, vm, p)
 		if err != nil {
 			return fmt.Errorf("Error attaching data disk %s to instance %s: %s", d.Id(), vm, err)
 		}
@@ -216,7 +216,7 @@ func resourceAzureDataDiskUpdate(d *schema.ResourceData, meta interface{}) error
 		}
 
 		log.Printf("[DEBUG] Updating data disk: %s", d.Id())
-		req, err := virtualmachinedisk.NewClient(*mc).UpdateDataDisk(vm, vm, vm, lun, p)
+		req, err := virtualmachinedisk.NewClient(mc).UpdateDataDisk(vm, vm, vm, lun, p)
 		if err != nil {
 			return fmt.Errorf("Error updating data disk %s: %s", d.Id(), err)
 		}
@@ -232,7 +232,7 @@ func resourceAzureDataDiskUpdate(d *schema.ResourceData, meta interface{}) error
 }
 
 func resourceAzureDataDiskDelete(d *schema.ResourceData, meta interface{}) error {
-	mc := meta.(*management.Client)
+	mc := meta.(management.Client)
 	lun := d.Get("lun").(int)
 	vm := d.Get("virtual_machine").(string)
 
@@ -241,7 +241,7 @@ func resourceAzureDataDiskDelete(d *schema.ResourceData, meta interface{}) error
 	_, removeBlob := d.GetOk("name")
 
 	log.Printf("[DEBUG] Detaching data disk %s with removeBlob = %t", d.Id(), removeBlob)
-	req, err := virtualmachinedisk.NewClient(*mc).DeleteDataDisk(vm, vm, vm, lun, removeBlob)
+	req, err := virtualmachinedisk.NewClient(mc).DeleteDataDisk(vm, vm, vm, lun, removeBlob)
 	if err != nil {
 		return fmt.Errorf(
 			"Error detaching data disk %s with removeBlob = %t: %s", d.Id(), removeBlob, err)
