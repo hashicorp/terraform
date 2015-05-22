@@ -222,10 +222,19 @@ func (c *Communicator) Upload(path string, input io.Reader) error {
 
 // UploadScript implementation of communicator.Communicator interface
 func (c *Communicator) UploadScript(path string, input io.Reader) error {
-	script := bytes.NewBufferString(DefaultShebang)
-	script.ReadFrom(input)
+	reader := bufio.NewReader(input)
+	prefix, err := reader.Peek(2)
+	if err != nil {
+		return fmt.Errorf("Error reading script: %s", err)
+	}
 
-	if err := c.Upload(path, script); err != nil {
+	var script bytes.Buffer
+	if string(prefix) != "#!" {
+		script.WriteString(DefaultShebang)
+	}
+
+	script.ReadFrom(reader)
+	if err := c.Upload(path, &script); err != nil {
 		return err
 	}
 
