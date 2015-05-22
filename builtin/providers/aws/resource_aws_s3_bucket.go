@@ -8,6 +8,7 @@ import (
 	"github.com/hashicorp/terraform/helper/schema"
 
 	"github.com/awslabs/aws-sdk-go/aws"
+	"github.com/awslabs/aws-sdk-go/aws/awserr"
 	"github.com/awslabs/aws-sdk-go/service/s3"
 )
 
@@ -84,6 +85,12 @@ func resourceAwsS3Bucket() *schema.Resource {
 			},
 
 			"tags": tagsSchema(),
+
+			"force_destroy": &schema.Schema{
+				Type:     schema.TypeBool,
+				Optional: true,
+				Default:  false,
+			},
 		},
 	}
 }
@@ -146,11 +153,12 @@ func resourceAwsS3BucketUpdate(d *schema.ResourceData, meta interface{}) error {
 func resourceAwsS3BucketRead(d *schema.ResourceData, meta interface{}) error {
 	s3conn := meta.(*AWSClient).s3conn
 
-	_, err := s3conn.HeadBucket(&s3.HeadBucketInput{
+	var err error
+	_, err = s3conn.HeadBucket(&s3.HeadBucketInput{
 		Bucket: aws.String(d.Id()),
 	})
 	if err != nil {
-		if awsError, ok := err.(aws.APIError); ok && awsError.StatusCode == 404 {
+		if awsError, ok := err.(awserr.RequestFailure); ok && awsError.StatusCode() == 404 {
 			d.SetId("")
 		} else {
 			// some of the AWS SDK's errors can be empty strings, so let's add
@@ -257,7 +265,46 @@ func resourceAwsS3BucketDelete(d *schema.ResourceData, meta interface{}) error {
 		Bucket: aws.String(d.Id()),
 	})
 	if err != nil {
-		return err
+		ec2err, ok := err.(awserr.Error)
+		if ok && ec2err.Code() == "BucketNotEmpty" {
+			if d.Get("force_destroy").(bool) {
+				// bucket may have things delete them
+				log.Printf("[DEBUG] S3 Bucket attempting to forceDestroy %+v", err)
+
+				bucket := d.Get("bucket").(string)
+				resp, err := s3conn.ListObjects(
+					&s3.ListObjectsInput{
+						Bucket: aws.String(bucket),
+					},
+				)
+
+				if err != nil {
+					return fmt.Errorf("Error S3 Bucket list Objects err: %s", err)
+				}
+
+				objectsToDelete := make([]*s3.ObjectIdentifier, len(resp.Contents))
+				for i, v := range resp.Contents {
+					objectsToDelete[i] = &s3.ObjectIdentifier{
+						Key: v.Key,
+					}
+				}
+				_, err = s3conn.DeleteObjects(
+					&s3.DeleteObjectsInput{
+						Bucket: aws.String(bucket),
+						Delete: &s3.Delete{
+							Objects: objectsToDelete,
+						},
+					},
+				)
+				if err != nil {
+					return fmt.Errorf("Error S3 Bucket force_destroy error deleting: %s", err)
+				}
+
+				// this line recurses until all objects are deleted or an error is returned
+				return resourceAwsS3BucketDelete(d, meta)
+			}
+		}
+		return fmt.Errorf("Error deleting S3 Bucket: %s", err)
 	}
 	return nil
 }

@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/awslabs/aws-sdk-go/aws"
+	"github.com/awslabs/aws-sdk-go/aws/awserr"
 	"github.com/awslabs/aws-sdk-go/service/elasticache"
 	"github.com/awslabs/aws-sdk-go/service/iam"
 	"github.com/hashicorp/terraform/helper/hashcode"
@@ -310,9 +311,9 @@ func CacheClusterStateRefreshFunc(conn *elasticache.ElastiCache, clusterID, give
 			CacheClusterID: aws.String(clusterID),
 		})
 		if err != nil {
-			apierr := err.(aws.APIError)
-			log.Printf("[DEBUG] message: %v, code: %v", apierr.Message, apierr.Code)
-			if apierr.Message == fmt.Sprintf("CacheCluster not found: %v", clusterID) {
+			apierr := err.(awserr.Error)
+			log.Printf("[DEBUG] message: %v, code: %v", apierr.Message(), apierr.Code())
+			if apierr.Message() == fmt.Sprintf("CacheCluster not found: %v", clusterID) {
 				log.Printf("[DEBUG] Detect deletion")
 				return nil, "", nil
 			}

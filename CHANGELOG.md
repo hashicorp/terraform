@@ -4,7 +4,16 @@ IMPROVEMENTS:
 
   * **New resource: `aws_sqs_queue`** [GH-1939]
   * provider/aws: support ec2 termination protection [GH-1988]
+  * provider/aws: support for RDS Read Replicas [GH-1946]
   * provider/aws: `aws_s3_bucket` add support for `policy` [GH-1992]
+  * provider/aws: New `force_destroy` parameter for S3 buckets, to destroy 
+      Buckets that contain objects [GH-2007]
+
+BUG FIXES:
+
+  * provider/aws: Correctly handle AWS keypairs which no longer exist [GH-2032]
+  * provisioner/remote-exec: Don't prepend shebang on scripts that already
+      have one [GH-2041]
 
 ## 0.5.2 (May 15, 2015)
 

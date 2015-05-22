@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/awslabs/aws-sdk-go/aws"
+	"github.com/awslabs/aws-sdk-go/aws/awserr"
 	"github.com/awslabs/aws-sdk-go/service/ec2"
 	"github.com/hashicorp/terraform/helper/hashcode"
 	"github.com/hashicorp/terraform/helper/resource"
@@ -393,8 +394,8 @@ func resourceAwsNetworkAclDelete(d *schema.ResourceData, meta interface{}) error
 			NetworkACLID: aws.String(d.Id()),
 		})
 		if err != nil {
-			ec2err := err.(aws.APIError)
-			switch ec2err.Code {
+			ec2err := err.(awserr.Error)
+			switch ec2err.Code() {
 			case "InvalidNetworkAclID.NotFound":
 				return nil
 			case "DependencyViolation":

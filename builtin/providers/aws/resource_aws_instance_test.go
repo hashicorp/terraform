@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/awslabs/aws-sdk-go/aws"
+	"github.com/awslabs/aws-sdk-go/aws/awserr"
 	"github.com/awslabs/aws-sdk-go/service/ec2"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
@@ -482,6 +483,7 @@ func testAccCheckInstanceDestroyWithProvider(s *terraform.State, provider *schem
 		}
 
 		// Try to find the resource
+		var err error
 		resp, err := conn.DescribeInstances(&ec2.DescribeInstancesInput{
 			InstanceIDs: []*string{aws.String(rs.Primary.ID)},
 		})
@@ -494,11 +496,11 @@ func testAccCheckInstanceDestroyWithProvider(s *terraform.State, provider *schem
 		}
 
 		// Verify the error is what we want
-		ec2err, ok := err.(aws.APIError)
+		ec2err, ok := err.(awserr.Error)
 		if !ok {
 			return err
 		}
-		if ec2err.Code != "InvalidInstanceID.NotFound" {
+		if ec2err.Code() != "InvalidInstanceID.NotFound" {
 			return err
 		}
 	}
@@ -526,7 +528,7 @@ func testAccCheckInstanceExistsWithProviders(n string, i *ec2.Instance, provider
 			resp, err := conn.DescribeInstances(&ec2.DescribeInstancesInput{
 				InstanceIDs: []*string{aws.String(rs.Primary.ID)},
 			})
-			if ec2err, ok := err.(aws.APIError); ok && ec2err.Code == "InvalidInstanceID.NotFound" {
+			if ec2err, ok := err.(awserr.Error); ok && ec2err.Code() == "InvalidInstanceID.NotFound" {
 				continue
 			}
 			if err != nil {

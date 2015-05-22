@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/awslabs/aws-sdk-go/aws"
+	"github.com/awslabs/aws-sdk-go/aws/awserr"
 	"github.com/awslabs/aws-sdk-go/service/ec2"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
@@ -216,12 +217,12 @@ func testAccCheckAWSSecurityGroupRuleDestroy(s *terraform.State) error {
 			return nil
 		}
 
-		ec2err, ok := err.(aws.APIError)
+		ec2err, ok := err.(awserr.Error)
 		if !ok {
 			return err
 		}
 		// Confirm error code is what we want
-		if ec2err.Code != "InvalidGroup.NotFound" {
+		if ec2err.Code() != "InvalidGroup.NotFound" {
 			return err
 		}
 	}

@@ -203,6 +203,12 @@ func testAccCheckRoute53ZoneExistsWithProvider(s *terraform.State, n string, zon
 		return fmt.Errorf("Hosted zone err: %v", err)
 	}
 
+	aws_comment := *resp.HostedZone.Config.Comment
+	rs_comment := rs.Primary.Attributes["comment"]
+	if rs_comment != "" && rs_comment != aws_comment {
+		return fmt.Errorf("Hosted zone with comment '%s' found but does not match '%s'", aws_comment, rs_comment)
+	}
+
 	if !*resp.HostedZone.Config.PrivateZone {
 		sorted_ns := make([]string, len(resp.DelegationSet.NameServers))
 		for i, ns := range resp.DelegationSet.NameServers {
@@ -272,6 +278,7 @@ func testAccLoadTagsR53(zone *route53.GetHostedZoneOutput, td *route53.ResourceT
 const testAccRoute53ZoneConfig = `
 resource "aws_route53_zone" "main" {
 	name = "hashicorp.com"
+	comment = "Custom comment"
 
 	tags {
 		foo = "bar"

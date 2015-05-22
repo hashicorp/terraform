@@ -11,6 +11,7 @@ import (
 	"github.com/hashicorp/terraform/helper/schema"
 
 	"github.com/awslabs/aws-sdk-go/aws"
+	"github.com/awslabs/aws-sdk-go/aws/awserr"
 	"github.com/awslabs/aws-sdk-go/service/route53"
 )
 
@@ -26,6 +27,12 @@ func resourceAwsRoute53Zone() *schema.Resource {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
+			},
+
+			"comment": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				Default: "Managed by Terraform",
 			},
 
 			"vpc_id": &schema.Schema{
@@ -60,10 +67,9 @@ func resourceAwsRoute53Zone() *schema.Resource {
 func resourceAwsRoute53ZoneCreate(d *schema.ResourceData, meta interface{}) error {
 	r53 := meta.(*AWSClient).r53conn
 
-	comment := &route53.HostedZoneConfig{Comment: aws.String("Managed by Terraform")}
 	req := &route53.CreateHostedZoneInput{
 		Name:             aws.String(d.Get("name").(string)),
-		HostedZoneConfig: comment,
+		HostedZoneConfig: &route53.HostedZoneConfig{Comment: aws.String(d.Get("comment").(string))},
 		CallerReference:  aws.String(time.Now().Format(time.RFC3339Nano)),
 	}
 	if v := d.Get("vpc_id"); v != "" {
@@ -78,6 +84,7 @@ func resourceAwsRoute53ZoneCreate(d *schema.ResourceData, meta interface{}) erro
 	}
 
 	log.Printf("[DEBUG] Creating Route53 hosted zone: %s", *req.Name)
+	var err error
 	resp, err := r53.CreateHostedZone(req)
 	if err != nil {
 		return err
@@ -114,7 +121,7 @@ func resourceAwsRoute53ZoneRead(d *schema.ResourceData, meta interface{}) error 
 	zone, err := r53.GetHostedZone(&route53.GetHostedZoneInput{ID: aws.String(d.Id())})
 	if err != nil {
 		// Handle a deleted zone
-		if r53err, ok := err.(aws.APIError); ok && r53err.Code == "NoSuchHostedZone" {
+		if r53err, ok := err.(awserr.Error); ok && r53err.Code() == "NoSuchHostedZone" {
 			d.SetId("")
 			return nil
 		}

@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/awslabs/aws-sdk-go/aws"
+	"github.com/awslabs/aws-sdk-go/aws/awserr"
 	"github.com/awslabs/aws-sdk-go/service/ec2"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
@@ -33,6 +34,7 @@ func resourceAwsInternetGatewayCreate(d *schema.ResourceData, meta interface{}) 
 
 	// Create the gateway
 	log.Printf("[DEBUG] Creating internet gateway")
+	var err error
 	resp, err := conn.CreateInternetGateway(nil)
 	if err != nil {
 		return fmt.Errorf("Error creating internet gateway: %s", err)
@@ -120,12 +122,12 @@ func resourceAwsInternetGatewayDelete(d *schema.ResourceData, meta interface{}) 
 			return nil
 		}
 
-		ec2err, ok := err.(aws.APIError)
+		ec2err, ok := err.(awserr.Error)
 		if !ok {
 			return err
 		}
 
-		switch ec2err.Code {
+		switch ec2err.Code() {
 		case "InvalidInternetGatewayID.NotFound":
 			return nil
 		case "DependencyViolation":
@@ -226,13 +228,13 @@ func detachIGStateRefreshFunc(conn *ec2.EC2, instanceID, vpcID string) resource.
 			VPCID:             aws.String(vpcID),
 		})
 		if err != nil {
-			ec2err, ok := err.(aws.APIError)
+			ec2err, ok := err.(awserr.Error)
 			if ok {
-				if ec2err.Code == "InvalidInternetGatewayID.NotFound" {
+				if ec2err.Code() == "InvalidInternetGatewayID.NotFound" {
 					return nil, "Not Found", err
-				} else if ec2err.Code == "Gateway.NotAttached" {
+				} else if ec2err.Code() == "Gateway.NotAttached" {
 					return "detached", "detached", nil
-				} else if ec2err.Code == "DependencyViolation" {
+				} else if ec2err.Code() == "DependencyViolation" {
 					return nil, "detaching", nil
 				}
 			}
@@ -251,8 +253,8 @@ func IGStateRefreshFunc(conn *ec2.EC2, id string) resource.StateRefreshFunc {
 			InternetGatewayIDs: []*string{aws.String(id)},
 		})
 		if err != nil {
-			ec2err, ok := err.(aws.APIError)
-			if ok && ec2err.Code == "InvalidInternetGatewayID.NotFound" {
+			ec2err, ok := err.(awserr.Error)
+			if ok && ec2err.Code() == "InvalidInternetGatewayID.NotFound" {
 				resp = nil
 			} else {
 				log.Printf("[ERROR] Error on IGStateRefresh: %s", err)
@@ -284,8 +286,8 @@ func IGAttachStateRefreshFunc(conn *ec2.EC2, id string, expected string) resourc
 			InternetGatewayIDs: []*string{aws.String(id)},
 		})
 		if err != nil {
-			ec2err, ok := err.(aws.APIError)
-			if ok && ec2err.Code == "InvalidInternetGatewayID.NotFound" {
+			ec2err, ok := err.(awserr.Error)
+			if ok && ec2err.Code() == "InvalidInternetGatewayID.NotFound" {
 				resp = nil
 			} else {
 				log.Printf("[ERROR] Error on IGStateRefresh: %s", err)
