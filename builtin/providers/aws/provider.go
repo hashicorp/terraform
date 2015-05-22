@@ -124,6 +124,7 @@ func Provider() terraform.ResourceProvider {
 			"aws_security_group_rule":          resourceAwsSecurityGroupRule(),
 			"aws_sqs_queue":                    resourceAwsSqsQueue(),
 			"aws_subnet":                       resourceAwsSubnet(),
+			"aws_volume_attachment":            resourceAwsVolumeAttachment(),
 			"aws_vpc_dhcp_options_association": resourceAwsVpcDhcpOptionsAssociation(),
 			"aws_vpc_dhcp_options":             resourceAwsVpcDhcpOptions(),
 			"aws_vpc_peering_connection":       resourceAwsVpcPeeringConnection(),
