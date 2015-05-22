@@ -124,7 +124,7 @@ func resourceAzureSecurityGroupCreate(d *schema.ResourceData, meta interface{}) 
 		return fmt.Errorf("Error creating Network Security Group %s: %s", name, err)
 	}
 
-	if err := mc.WaitAsyncOperation(req); err != nil {
+	if err := mc.WaitForOperation(req, nil); err != nil {
 		return fmt.Errorf(
 			"Error waiting for Network Security Group %s to be created: %s", name, err)
 	}
@@ -185,7 +185,7 @@ func resourceAzureSecurityGroupRuleCreate(
 		return fmt.Errorf("Error creating Network Security Group rule %s: %s", name, err)
 	}
 
-	if err := mc.WaitAsyncOperation(req); err != nil {
+	if err := mc.WaitForOperation(req, nil); err != nil {
 		return fmt.Errorf(
 			"Error waiting for Network Security Group rule %s to be created: %s", name, err)
 	}
@@ -278,7 +278,7 @@ func resourceAzureSecurityGroupDelete(d *schema.ResourceData, meta interface{}) 
 	}
 
 	// Wait until the network security group is deleted
-	if err := mc.WaitAsyncOperation(req); err != nil {
+	if err := mc.WaitForOperation(req, nil); err != nil {
 		return fmt.Errorf(
 			"Error waiting for Network Security Group %s to be deleted: %s", d.Id(), err)
 	}
@@ -300,7 +300,7 @@ func resourceAzureSecurityGroupRuleDelete(
 		return fmt.Errorf("Error deleting Network Security Group rule %s: %s", name, err)
 	}
 
-	if err := mc.WaitAsyncOperation(req); err != nil {
+	if err := mc.WaitForOperation(req, nil); err != nil {
 		return fmt.Errorf(
 			"Error waiting for Network Security Group rule %s to be deleted: %s", name, err)
 	}

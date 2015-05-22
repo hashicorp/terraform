@@ -2,6 +2,7 @@ package azure
 
 import (
 	"bytes"
+	"encoding/base64"
 	"fmt"
 	"log"
 
@@ -16,8 +17,9 @@ import (
 )
 
 const (
-	linux   = "Linux"
-	windows = "Windows"
+	linux                = "Linux"
+	windows              = "Windows"
+	osDiskBlobStorageURL = "http://%s.blob.core.windows.net/vhds/%s.vhd"
 )
 
 func resourceAzureInstance() *schema.Resource {
@@ -183,28 +185,23 @@ func resourceAzureInstanceCreate(d *schema.ResourceData, meta interface{}) (err 
 		return err
 	}
 
-	// Verify if we have all parameters required for the image OS type
-	if err := verifyParameters(d, osType); err != nil {
+	// Verify if we have all required parameters
+	if err := verifyInstanceParameters(d, osType); err != nil {
 		return err
 	}
 
-	log.Printf("[DEBUG] Creating Cloud Service for instance: %s", name)
-	req, err := hostedservice.NewClient(*mc).
-		CreateHostedService(
-		name,
-		d.Get("location").(string),
-		d.Get("reverse_dns").(string),
-		name,
-		fmt.Sprintf("Cloud Service created automatically for instance %s", name),
-	)
-	if err != nil {
-		return fmt.Errorf("Error creating Cloud Service for instance %s: %s", name, err)
+	p := hostedservice.CreateHostedServiceParameters{
+		ServiceName:    name,
+		Label:          base64.StdEncoding.EncodeToString([]byte(name)),
+		Description:    fmt.Sprintf("Cloud Service created automatically for instance %s", name),
+		Location:       d.Get("location").(string),
+		ReverseDNSFqdn: d.Get("reverse_dns").(string),
 	}
 
-	// Wait until the Cloud Service is created
-	if err := mc.WaitAsyncOperation(req); err != nil {
-		return fmt.Errorf(
-			"Error waiting for Cloud Service of instance %s to be created: %s", name, err)
+	log.Printf("[DEBUG] Creating Cloud Service for instance: %s", name)
+	err = hostedservice.NewClient(*mc).CreateHostedService(p)
+	if err != nil {
+		return fmt.Errorf("Error creating Cloud Service for instance %s: %s", name, err)
 	}
 
 	// Put in this defer here, so we are sure to cleanup already created parts
@@ -217,9 +214,9 @@ func resourceAzureInstanceCreate(d *schema.ResourceData, meta interface{}) (err 
 			}
 
 			// Wait until the Cloud Service is deleted
-			if err := mc.WaitAsyncOperation(req); err != nil {
+			if err := mc.WaitForOperation(req, nil); err != nil {
 				log.Printf(
-					"[DEBUG] Error waiting for Cloud Service of instance %s to be deleted : %s", name, err)
+					"[DEBUG] Error waiting for Cloud Service of instance %s to be deleted: %s", name, err)
 			}
 		}
 	}(mc)
@@ -308,13 +305,13 @@ func resourceAzureInstanceCreate(d *schema.ResourceData, meta interface{}) (err 
 	}
 
 	log.Printf("[DEBUG] Creating the new instance...")
-	req, err = virtualmachine.NewClient(*mc).CreateDeployment(role, name, options)
+	req, err := virtualmachine.NewClient(*mc).CreateDeployment(role, name, options)
 	if err != nil {
 		return fmt.Errorf("Error creating instance %s: %s", name, err)
 	}
 
 	log.Printf("[DEBUG] Waiting for the new instance to be created...")
-	if err := mc.WaitAsyncOperation(req); err != nil {
+	if err := mc.WaitForOperation(req, nil); err != nil {
 		return fmt.Errorf(
 			"Error waiting for instance %s to be created: %s", name, err)
 	}
@@ -400,14 +397,15 @@ func resourceAzureInstanceRead(d *schema.ResourceData, meta interface{}) error {
 
 	connType := "ssh"
 	if dpmt.RoleList[0].OSVirtualHardDisk.OS == windows {
-		connType = windows
+		connType = "winrm"
 	}
 
 	// Set the connection info for any configured provisioners
 	d.SetConnInfo(map[string]string{
-		"type": connType,
-		"host": dpmt.VirtualIPs[0].Address,
-		"user": d.Get("username").(string),
+		"type":     connType,
+		"host":     dpmt.VirtualIPs[0].Address,
+		"user":     d.Get("username").(string),
+		"password": d.Get("password").(string),
 	})
 
 	return nil
@@ -427,8 +425,8 @@ func resourceAzureInstanceUpdate(d *schema.ResourceData, meta interface{}) error
 		return fmt.Errorf("Error retrieving role of instance %s: %s", d.Id(), err)
 	}
 
-	// Verify if we have all parameters required for the image OS type
-	if err := verifyParameters(d, role.OSVirtualHardDisk.OS); err != nil {
+	// Verify if we have all required parameters
+	if err := verifyInstanceParameters(d, role.OSVirtualHardDisk.OS); err != nil {
 		return err
 	}
 
@@ -481,7 +479,7 @@ func resourceAzureInstanceUpdate(d *schema.ResourceData, meta interface{}) error
 		return fmt.Errorf("Error updating role of instance %s: %s", d.Id(), err)
 	}
 
-	if err := mc.WaitAsyncOperation(req); err != nil {
+	if err := mc.WaitForOperation(req, nil); err != nil {
 		return fmt.Errorf(
 			"Error waiting for role of instance %s to be updated: %s", d.Id(), err)
 	}
@@ -499,7 +497,7 @@ func resourceAzureInstanceDelete(d *schema.ResourceData, meta interface{}) error
 	}
 
 	// Wait until the instance is deleted
-	if err := mc.WaitAsyncOperation(req); err != nil {
+	if err := mc.WaitForOperation(req, nil); err != nil {
 		return fmt.Errorf(
 			"Error waiting for instance %s to be deleted: %s", d.Id(), err)
 	}
@@ -524,52 +522,14 @@ func retrieveImageDetails(
 	mc *management.Client,
 	label string,
 	storage string) (func(*virtualmachine.Role) error, string, error) {
-	configureForImage, osType, err := retrieveOSImageDetails(mc, label, storage)
+	configureForImage, osType, err := retrieveVMImageDetails(mc, label)
 	if err == nil {
 		return configureForImage, osType, nil
 	}
 
-	configureForImage, osType, err = retrieveVMImageDetails(mc, label)
+	configureForImage, osType, err = retrieveOSImageDetails(mc, label, storage)
 	if err == nil {
 		return configureForImage, osType, nil
-	}
-
-	return nil, "", fmt.Errorf("Could not find image with label '%s'", label)
-}
-
-func retrieveOSImageDetails(
-	mc *management.Client,
-	label,
-	storage string) (func(*virtualmachine.Role) error, string, error) {
-	imgs, err := osimage.NewClient(*mc).GetImageList()
-	if err != nil {
-		return nil, "", fmt.Errorf("Error retrieving image details: %s", err)
-	}
-
-	for _, img := range imgs {
-		if img.Label == label {
-			if img.OS != linux && img.OS != windows {
-				return nil, "", fmt.Errorf("Unsupported image OS: %s", img.OS)
-			}
-			if img.MediaLink == "" {
-				if storage == "" {
-					return nil, "",
-						fmt.Errorf("When using a platform image, the 'storage' parameter is required")
-				}
-				img.MediaLink = fmt.Sprintf("http://%s.blob.core.windows.net/vhds/%s.vhd", storage, label)
-			}
-
-			configureForImage := func(role *virtualmachine.Role) error {
-				return vmutils.ConfigureDeploymentFromPlatformImage(
-					role,
-					img.Name,
-					img.MediaLink,
-					label,
-				)
-			}
-
-			return configureForImage, img.OS, nil
-		}
 	}
 
 	return nil, "", fmt.Errorf("Could not find image with label '%s'", label)
@@ -578,12 +538,12 @@ func retrieveOSImageDetails(
 func retrieveVMImageDetails(
 	mc *management.Client,
 	label string) (func(*virtualmachine.Role) error, string, error) {
-	imgs, err := virtualmachineimage.NewClient(*mc).GetImageList()
+	imgs, err := virtualmachineimage.NewClient(*mc).ListVirtualMachineImages()
 	if err != nil {
 		return nil, "", fmt.Errorf("Error retrieving image details: %s", err)
 	}
 
-	for _, img := range imgs {
+	for _, img := range imgs.VMImages {
 		if img.Label == label {
 			if img.OSDiskConfiguration.OS != linux && img.OSDiskConfiguration.OS != windows {
 				return nil, "", fmt.Errorf("Unsupported image OS: %s", img.OSDiskConfiguration.OS)
@@ -605,6 +565,44 @@ func retrieveVMImageDetails(
 	return nil, "", fmt.Errorf("Could not find image with label '%s'", label)
 }
 
+func retrieveOSImageDetails(
+	mc *management.Client,
+	label,
+	storage string) (func(*virtualmachine.Role) error, string, error) {
+	imgs, err := osimage.NewClient(*mc).ListOSImages()
+	if err != nil {
+		return nil, "", fmt.Errorf("Error retrieving image details: %s", err)
+	}
+
+	for _, img := range imgs.OSImages {
+		if img.Label == label {
+			if img.OS != linux && img.OS != windows {
+				return nil, "", fmt.Errorf("Unsupported image OS: %s", img.OS)
+			}
+			if img.MediaLink == "" {
+				if storage == "" {
+					return nil, "",
+						fmt.Errorf("When using a platform image, the 'storage' parameter is required")
+				}
+				img.MediaLink = fmt.Sprintf(osDiskBlobStorageURL, storage, label)
+			}
+
+			configureForImage := func(role *virtualmachine.Role) error {
+				return vmutils.ConfigureDeploymentFromPlatformImage(
+					role,
+					img.Name,
+					img.MediaLink,
+					label,
+				)
+			}
+
+			return configureForImage, img.OS, nil
+		}
+	}
+
+	return nil, "", fmt.Errorf("Could not find image with label '%s'", label)
+}
+
 func endpointProtocol(p string) virtualmachine.InputEndpointProtocol {
 	if p == "tcp" {
 		return virtualmachine.InputEndpointProtocolTCP
@@ -613,7 +611,7 @@ func endpointProtocol(p string) virtualmachine.InputEndpointProtocol {
 	return virtualmachine.InputEndpointProtocolUDP
 }
 
-func verifyParameters(d *schema.ResourceData, osType string) error {
+func verifyInstanceParameters(d *schema.ResourceData, osType string) error {
 	if osType == linux {
 		_, pass := d.GetOk("password")
 		_, key := d.GetOk("ssh_key_thumbprint")
