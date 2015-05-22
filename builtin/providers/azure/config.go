@@ -15,7 +15,7 @@ type Config struct {
 }
 
 // NewClient returns a new Azure management client
-func (c *Config) NewClient() (*management.Client, error) {
+func (c *Config) NewClient() (management.Client, error) {
 	if _, err := os.Stat(c.SettingsFile); os.IsNotExist(err) {
 		return nil, fmt.Errorf("Publish Settings file %q does not exist!", c.SettingsFile)
 	}
@@ -25,5 +25,5 @@ func (c *Config) NewClient() (*management.Client, error) {
 		return nil, fmt.Errorf("Error creating management client: %s", err)
 	}
 
-	return &mc, nil
+	return mc, nil
 }
