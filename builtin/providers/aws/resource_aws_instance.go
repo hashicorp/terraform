@@ -517,7 +517,21 @@ func resourceAwsInstanceCreate(d *schema.ResourceData, meta interface{}) error {
 	// Create the instance
 	log.Printf("[DEBUG] Run configuration: %#v", runOpts)
 	var err error
-	runResp, err := conn.RunInstances(runOpts)
+
+	var runResp *ec2.Reservation
+	for i := 0; i < 5; i++ {
+		runResp, err = conn.RunInstances(runOpts)
+		if awsErr, ok := err.(awserr.Error); ok {
+			// IAM profiles can take ~10 seconds to propagate in AWS:
+			//  http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/iam-roles-for-amazon-ec2.html#launch-instance-with-role-console
+			if awsErr.Code() == "InvalidParameterValue" && strings.Contains(awsErr.Message(), "Invalid IAM Instance Profile") {
+				log.Printf("[DEBUG] Invalid IAM Instance Profile referenced, retrying...")
+				time.Sleep(2 * time.Second)
+				continue
+			}
+		}
+		break
+	}
 	if err != nil {
 		return fmt.Errorf("Error launching source instance: %s", err)
 	}
