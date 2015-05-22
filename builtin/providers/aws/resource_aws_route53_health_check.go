@@ -7,6 +7,7 @@ import (
 	"github.com/hashicorp/terraform/helper/schema"
 
 	"github.com/awslabs/aws-sdk-go/aws"
+	"github.com/awslabs/aws-sdk-go/aws/awserr"
 	"github.com/awslabs/aws-sdk-go/service/route53"
 )
 
@@ -152,7 +153,7 @@ func resourceAwsRoute53HealthCheckRead(d *schema.ResourceData, meta interface{})
 
 	read, err := conn.GetHealthCheck(&route53.GetHealthCheckInput{HealthCheckID: aws.String(d.Id())})
 	if err != nil {
-		if r53err, ok := err.(aws.APIError); ok && r53err.Code == "NoSuchHealthCheck" {
+		if r53err, ok := err.(awserr.Error); ok && r53err.Code() == "NoSuchHealthCheck" {
 			d.SetId("")
 			return nil
 
