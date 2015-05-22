@@ -105,7 +105,7 @@ func resourceAzureSecurityGroup() *schema.Resource {
 }
 
 func resourceAzureSecurityGroupCreate(d *schema.ResourceData, meta interface{}) (err error) {
-	mc := meta.(*management.Client)
+	mc := meta.(management.Client)
 
 	name := d.Get("name").(string)
 
@@ -115,7 +115,7 @@ func resourceAzureSecurityGroupCreate(d *schema.ResourceData, meta interface{}) 
 		label = name
 	}
 
-	req, err := networksecuritygroup.NewClient(*mc).CreateNetworkSecurityGroup(
+	req, err := networksecuritygroup.NewClient(mc).CreateNetworkSecurityGroup(
 		name,
 		label,
 		d.Get("location").(string),
@@ -158,7 +158,7 @@ func resourceAzureSecurityGroupCreate(d *schema.ResourceData, meta interface{}) 
 
 func resourceAzureSecurityGroupRuleCreate(
 	d *schema.ResourceData, meta interface{}, rule map[string]interface{}) error {
-	mc := meta.(*management.Client)
+	mc := meta.(management.Client)
 
 	// Make sure all required parameters are there
 	if err := verifySecurityGroupRuleParams(rule); err != nil {
@@ -168,7 +168,7 @@ func resourceAzureSecurityGroupRuleCreate(
 	name := rule["name"].(string)
 
 	// Create the rule
-	req, err := networksecuritygroup.NewClient(*mc).SetNetworkSecurityGroupRule(d.Id(),
+	req, err := networksecuritygroup.NewClient(mc).SetNetworkSecurityGroupRule(d.Id(),
 		networksecuritygroup.RuleRequest{
 			Name:                     name,
 			Type:                     networksecuritygroup.RuleType(rule["type"].(string)),
@@ -194,9 +194,9 @@ func resourceAzureSecurityGroupRuleCreate(
 }
 
 func resourceAzureSecurityGroupRead(d *schema.ResourceData, meta interface{}) error {
-	mc := meta.(*management.Client)
+	mc := meta.(management.Client)
 
-	sg, err := networksecuritygroup.NewClient(*mc).GetNetworkSecurityGroup(d.Id())
+	sg, err := networksecuritygroup.NewClient(mc).GetNetworkSecurityGroup(d.Id())
 	if err != nil {
 		return fmt.Errorf("Error retrieving Network Security Group %s: %s", d.Id(), err)
 	}
@@ -269,10 +269,10 @@ func resourceAzureSecurityGroupUpdate(d *schema.ResourceData, meta interface{}) 
 }
 
 func resourceAzureSecurityGroupDelete(d *schema.ResourceData, meta interface{}) error {
-	mc := meta.(*management.Client)
+	mc := meta.(management.Client)
 
 	log.Printf("[DEBUG] Deleting Network Security Group: %s", d.Id())
-	req, err := networksecuritygroup.NewClient(*mc).DeleteNetworkSecurityGroup(d.Id())
+	req, err := networksecuritygroup.NewClient(mc).DeleteNetworkSecurityGroup(d.Id())
 	if err != nil {
 		return fmt.Errorf("Error deleting Network Security Group %s: %s", d.Id(), err)
 	}
@@ -290,12 +290,12 @@ func resourceAzureSecurityGroupDelete(d *schema.ResourceData, meta interface{}) 
 
 func resourceAzureSecurityGroupRuleDelete(
 	d *schema.ResourceData, meta interface{}, rule map[string]interface{}) error {
-	mc := meta.(*management.Client)
+	mc := meta.(management.Client)
 
 	name := rule["name"].(string)
 
 	// Delete the rule
-	req, err := networksecuritygroup.NewClient(*mc).DeleteNetworkSecurityGroupRule(d.Id(), name)
+	req, err := networksecuritygroup.NewClient(mc).DeleteNetworkSecurityGroupRule(d.Id(), name)
 	if err != nil {
 		return fmt.Errorf("Error deleting Network Security Group rule %s: %s", name, err)
 	}

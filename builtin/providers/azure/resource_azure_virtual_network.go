@@ -50,11 +50,11 @@ func resourceAzureVirtualNetwork() *schema.Resource {
 }
 
 func resourceAzureVirtualNetworkCreate(d *schema.ResourceData, meta interface{}) error {
-	mc := meta.(*management.Client)
+	mc := meta.(management.Client)
 
 	name := d.Get("name").(string)
 
-	nc, err := virtualnetwork.NewClient(*mc).GetVirtualNetworkConfiguration()
+	nc, err := virtualnetwork.NewClient(mc).GetVirtualNetworkConfiguration()
 	if err != nil {
 		if strings.Contains(err.Error(), "ResourceNotFound") {
 			nc = virtualnetwork.NetworkConfiguration{}
@@ -76,7 +76,7 @@ func resourceAzureVirtualNetworkCreate(d *schema.ResourceData, meta interface{})
 
 	nc.Configuration.VirtualNetworkSites = append(nc.Configuration.VirtualNetworkSites, network)
 
-	req, err := virtualnetwork.NewClient(*mc).SetVirtualNetworkConfiguration(nc)
+	req, err := virtualnetwork.NewClient(mc).SetVirtualNetworkConfiguration(nc)
 	if err != nil {
 		return fmt.Errorf("Error creating Virtual Network %s: %s", name, err)
 	}
@@ -93,9 +93,9 @@ func resourceAzureVirtualNetworkCreate(d *schema.ResourceData, meta interface{})
 }
 
 func resourceAzureVirtualNetworkRead(d *schema.ResourceData, meta interface{}) error {
-	mc := meta.(*management.Client)
+	mc := meta.(management.Client)
 
-	nc, err := virtualnetwork.NewClient(*mc).GetVirtualNetworkConfiguration()
+	nc, err := virtualnetwork.NewClient(mc).GetVirtualNetworkConfiguration()
 	if err != nil {
 		return fmt.Errorf(virtualNetworkRetrievalError, err)
 	}
@@ -123,9 +123,9 @@ func resourceAzureVirtualNetworkRead(d *schema.ResourceData, meta interface{}) e
 }
 
 func resourceAzureVirtualNetworkUpdate(d *schema.ResourceData, meta interface{}) error {
-	mc := meta.(*management.Client)
+	mc := meta.(management.Client)
 
-	nc, err := virtualnetwork.NewClient(*mc).GetVirtualNetworkConfiguration()
+	nc, err := virtualnetwork.NewClient(mc).GetVirtualNetworkConfiguration()
 	if err != nil {
 		return fmt.Errorf(virtualNetworkRetrievalError, err)
 	}
@@ -148,7 +148,7 @@ func resourceAzureVirtualNetworkUpdate(d *schema.ResourceData, meta interface{})
 		return fmt.Errorf("Virtual Network %s does not exists!", d.Id())
 	}
 
-	req, err := virtualnetwork.NewClient(*mc).SetVirtualNetworkConfiguration(nc)
+	req, err := virtualnetwork.NewClient(mc).SetVirtualNetworkConfiguration(nc)
 	if err != nil {
 		return fmt.Errorf("Error updating Virtual Network %s: %s", d.Id(), err)
 	}
@@ -163,9 +163,9 @@ func resourceAzureVirtualNetworkUpdate(d *schema.ResourceData, meta interface{})
 }
 
 func resourceAzureVirtualNetworkDelete(d *schema.ResourceData, meta interface{}) error {
-	mc := meta.(*management.Client)
+	mc := meta.(management.Client)
 
-	nc, err := virtualnetwork.NewClient(*mc).GetVirtualNetworkConfiguration()
+	nc, err := virtualnetwork.NewClient(mc).GetVirtualNetworkConfiguration()
 	if err != nil {
 		return fmt.Errorf(virtualNetworkRetrievalError, err)
 	}
@@ -179,7 +179,7 @@ func resourceAzureVirtualNetworkDelete(d *schema.ResourceData, meta interface{})
 
 	nc.Configuration.VirtualNetworkSites = filtered
 
-	req, err := virtualnetwork.NewClient(*mc).SetVirtualNetworkConfiguration(nc)
+	req, err := virtualnetwork.NewClient(mc).SetVirtualNetworkConfiguration(nc)
 	if err != nil {
 		return fmt.Errorf("Error deleting Virtual Network %s: %s", d.Id(), err)
 	}
