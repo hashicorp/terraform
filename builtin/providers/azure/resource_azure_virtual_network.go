@@ -76,9 +76,15 @@ func resourceAzureVirtualNetworkCreate(d *schema.ResourceData, meta interface{})
 
 	nc.Configuration.VirtualNetworkSites = append(nc.Configuration.VirtualNetworkSites, network)
 
-	err = virtualnetwork.NewClient(*mc).SetVirtualNetworkConfiguration(nc)
+	req, err := virtualnetwork.NewClient(*mc).SetVirtualNetworkConfiguration(nc)
 	if err != nil {
 		return fmt.Errorf("Error creating Virtual Network %s: %s", name, err)
+	}
+
+	// Wait until the virtual network is created
+	if err := mc.WaitForOperation(req, nil); err != nil {
+		log.Printf(
+			"[DEBUG] Error waiting for Virtual Network %s to be created: %s", name, err)
 	}
 
 	d.SetId(name)
@@ -142,9 +148,15 @@ func resourceAzureVirtualNetworkUpdate(d *schema.ResourceData, meta interface{})
 		return fmt.Errorf("Virtual Network %s does not exists!", d.Id())
 	}
 
-	err = virtualnetwork.NewClient(*mc).SetVirtualNetworkConfiguration(nc)
+	req, err := virtualnetwork.NewClient(*mc).SetVirtualNetworkConfiguration(nc)
 	if err != nil {
 		return fmt.Errorf("Error updating Virtual Network %s: %s", d.Id(), err)
+	}
+
+	// Wait until the virtual network is updated
+	if err := mc.WaitForOperation(req, nil); err != nil {
+		log.Printf(
+			"[DEBUG] Error waiting for Virtual Network %s to be updated: %s", d.Id(), err)
 	}
 
 	return resourceAzureVirtualNetworkRead(d, meta)
@@ -167,9 +179,15 @@ func resourceAzureVirtualNetworkDelete(d *schema.ResourceData, meta interface{})
 
 	nc.Configuration.VirtualNetworkSites = filtered
 
-	err = virtualnetwork.NewClient(*mc).SetVirtualNetworkConfiguration(nc)
+	req, err := virtualnetwork.NewClient(*mc).SetVirtualNetworkConfiguration(nc)
 	if err != nil {
 		return fmt.Errorf("Error deleting Virtual Network %s: %s", d.Id(), err)
+	}
+
+	// Wait until the virtual network is deleted
+	if err := mc.WaitForOperation(req, nil); err != nil {
+		log.Printf(
+			"[DEBUG] Error waiting for Virtual Network %s to be deleted: %s", d.Id(), err)
 	}
 
 	d.SetId("")
