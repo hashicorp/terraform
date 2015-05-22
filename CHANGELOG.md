@@ -12,6 +12,8 @@ IMPROVEMENTS:
 BUG FIXES:
 
   * provider/aws: Correctly handle AWS keypairs which no longer exist [GH-2032]
+  * provisioner/remote-exec: Don't prepend shebang on scripts that already
+      have one [GH-2041]
 
 ## 0.5.2 (May 15, 2015)
 
