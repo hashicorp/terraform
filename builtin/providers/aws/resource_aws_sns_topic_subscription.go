@@ -45,6 +45,10 @@ func resourceAwsSnsTopicSubscription() *schema.Resource {
 				ForceNew:  false,
 				Default:   false,
 			},
+			"arn": &schema.Schema{
+				Type:      schema.TypeString,
+				Computed:  true,
+			},
 		},
 	}
 }
@@ -64,6 +68,9 @@ func resourceAwsSnsTopicSubscriptionCreate(d *schema.ResourceData, meta interfac
 
 	log.Printf("New subscription ARN: %s", *output.SubscriptionARN)
 	d.SetId(*output.SubscriptionARN)
+
+	// Write the ARN to the 'arn' field for export
+	d.Set("arn", *output.SubscriptionARN)
 
 	return resourceAwsSnsTopicSubscriptionUpdate(d, meta)
 }

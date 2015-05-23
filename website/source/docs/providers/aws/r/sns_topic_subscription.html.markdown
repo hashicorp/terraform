@@ -15,34 +15,34 @@ probably be SQS queues.
 
 ## Example Usage
 
-You can directly supply a topic ARN by hand in the `topic_arn` property:
+You can directly supply a topic and ARN by hand in the `topic_arn` property along with the queue ARN:
 
 ```
 resource "aws_sns_topic_subscription" "user_updates_sqs_target" {
     topic_arn = "arn:aws:sns:us-west-2:432981146916:user-updates-topic"
-    topic_arn = "${aws_sns_topic.user_updates.id}"
     protocol = "sqs"
     endpoint = "arn:aws:sqs:us-west-2:432981146916:terraform-queue-too"
 }
 ```
 
-Alternatively you can use the identifier of a previously created SNS topic:
+Alternatively you can use the ARN properties of a managed SNS topic and SQS queue:
 
 ```
 resource "aws_sns_topic" "user_updates" {
   name = "user-updates-topic"
 }
 
+resource "aws_sqs_queue" "user_updates_queue" {
+	name = "user-updates-queue"
+}
+
 resource "aws_sns_topic_subscription" "user_updates_sqs_target" {
-    topic_arn = "${aws_sns_topic.user_updates.id}"
-    protocol = "sqs"
-    endpoint = "arn:aws:sqs:us-west-2:432981146916:terraform-queue-too"
+    topic_arn = "${aws_sns_topic.user_updates.arn}"
+    protocol  = "sqs"
+    endpoint  = "${aws_sqs_queue.user_updates_queue.arn}"
 }
 ```
 
-
-Currently there is no SQS support, so you need to know the queue ARN ahead of time, however it would make sense to be
-able to populate the endpoint from an SQS resource in your JSON file.
 
 ## Argument Reference
 
@@ -51,6 +51,7 @@ The following arguments are supported:
 * `topic_arn` - (Required) The ARN of the SNS topic to subscribe to
 * `protocol` - (Required) The protocol to use. The possible values for this are: `sqs`, `http`, `https`, `sms`, or `application`. (`email` is an option but unsupported, see below)
 * `endpoint` - (Required) The endpoint to send data to, the contents will vary with the protocol. (see below for more information)
+* `raw_message_delivery` - (Optional) Boolean indicating whether or not to enable raw message delivery (the original message is directly passed, not wrapped in JSON with the original message in the message property).
 
 ### Protocols supported
 
@@ -88,4 +89,5 @@ The following attributes are exported:
 * `topic_arn` - The ARN of the topic the subscription belongs to
 * `protocol` - The protocol being used
 * `endpoint` - The full endpoint to send data to (SQS ARN, HTTP(S) URL, Application ARN, SMS number, etc.)
+* `arn` - The ARN of the subscription stored as a more user-friendly property
 

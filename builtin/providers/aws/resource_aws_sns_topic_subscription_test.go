@@ -8,6 +8,7 @@ import (
 	"github.com/awslabs/aws-sdk-go/service/sns"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
+	"github.com/awslabs/aws-sdk-go/aws/awserr"
 )
 
 func TestAccAWSSNSTopicSubscription(t *testing.T) {
@@ -49,7 +50,7 @@ func testAccCheckAWSSNSTopicSubscriptionDestroy(s *terraform.State) error {
 		}
 
 		// Verify the error is an API error, not something else
-		_, ok := err.(aws.APIError)
+		_, ok := err.(awserr.Error)
 		if !ok {
 			return err
 		}
@@ -90,9 +91,13 @@ resource "aws_sns_topic" "test_topic" {
     name = "terraform-test-topic"
 }
 
+resource "aws_sqs_queue" "test_queue" {
+	name = "terraform-subscription-test-queue"
+}
+
 resource "aws_sns_topic_subscription" "test_subscription" {
-    topic_arn = "${aws_sns_topic.test_topic.id}"
+    topic_arn = "${aws_sns_topic.test_topic.arn}"
     protocol = "sqs"
-    endpoint = "arn:aws:sqs:us-west-2:432981146916:terraform-queue-too"
+    endpoint = "${aws_sqs_queue.test_queue.arn}"
 }
 `

@@ -47,6 +47,10 @@ func resourceAwsSnsTopic() *schema.Resource {
 				Optional:  true,
 				ForceNew:  false,
 			},
+			"arn": &schema.Schema{
+				Type:     schema.TypeString,
+				Computed: true,
+			},
 		},
 	}
 }
@@ -68,6 +72,9 @@ func resourceAwsSnsTopicCreate(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	d.SetId(*output.TopicARN)
+
+	// Write the ARN to the 'arn' field for export
+	d.Set("arn", *output.TopicARN)
 
 	return resourceAwsSnsTopicUpdate(d, meta)
 }
@@ -105,6 +112,7 @@ func resourceAwsSnsTopicRead(d *schema.ResourceData, meta interface{}) error {
 	attributeOutput, err := snsconn.GetTopicAttributes(&sns.GetTopicAttributesInput{
 		TopicARN: aws.String(d.Id()),
 	})
+
 	if err != nil {
 		return err
 	}
@@ -123,7 +131,6 @@ func resourceAwsSnsTopicRead(d *schema.ResourceData, meta interface{}) error {
 					value := *attrmap[oKey]
 					log.Printf("[DEBUG] Updating %s => %s -> %s", iKey, oKey, value)
 					d.Set(iKey, *attrmap[oKey])
-
 				}
 			}
 		}
