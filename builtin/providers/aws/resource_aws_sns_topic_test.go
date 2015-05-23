@@ -8,6 +8,7 @@ import (
 	"github.com/awslabs/aws-sdk-go/service/sns"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
+	"github.com/awslabs/aws-sdk-go/aws/awserr"
 )
 
 func TestAccAWSSNSTopic(t *testing.T) {
@@ -45,7 +46,7 @@ func testAccCheckAWSSNSTopicDestroy(s *terraform.State) error {
 		}
 
 		// Verify the error is an API error, not something else
-		_, ok := err.(aws.APIError)
+		_, ok := err.(awserr.Error)
 		if !ok {
 			return err
 		}

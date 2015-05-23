@@ -31,6 +31,5 @@ The following arguments are supported:
 The following attributes are exported:
 
 * `id` - The ARN of the SNS topic
-* `policy` - The fully-formed AWS policy as JSON
-* `delivery_policy` - The SNS delivery policy
+* `arn` - The ARN of the SNS topic, as a more obvious property (clone of id)
 
