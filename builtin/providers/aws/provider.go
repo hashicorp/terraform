@@ -87,6 +87,7 @@ func Provider() terraform.ResourceProvider {
 			"aws_autoscaling_group":            resourceAwsAutoscalingGroup(),
 			"aws_customer_gateway":             resourceAwsCustomerGateway(),
 			"aws_db_instance":                  resourceAwsDbInstance(),
+			"aws_db_from_snapshot":             resourceAwsDbFromSnapshot(),
 			"aws_db_parameter_group":           resourceAwsDbParameterGroup(),
 			"aws_db_security_group":            resourceAwsDbSecurityGroup(),
 			"aws_db_subnet_group":              resourceAwsDbSubnetGroup(),
