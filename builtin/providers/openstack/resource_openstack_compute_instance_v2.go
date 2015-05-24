@@ -758,7 +758,7 @@ func ServerV2StateRefreshFunc(client *gophercloud.ServiceClient, instanceID stri
 }
 
 func resourceInstanceSecGroupsV2(d *schema.ResourceData) []string {
-	rawSecGroups := d.Get("security_groups").([]interface{})
+	rawSecGroups := d.Get("security_groups").(*schema.Set).List()
 	secgroups := make([]string, len(rawSecGroups))
 	for i, raw := range rawSecGroups {
 		secgroups[i] = raw.(string)
