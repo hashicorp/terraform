@@ -203,6 +203,13 @@ func resourceAwsDbInstance() *schema.Resource {
 				Elem:     &schema.Schema{Type: schema.TypeString},
 			},
 
+			"snapshot_identifier": &schema.Schema{
+				Type:     schema.TypeString,
+				Computed: false,
+				Optional: true,
+				Elem:     &schema.Schema{Type: schema.TypeString},
+			},
+
 			"tags": tagsSchema(),
 		},
 	}
@@ -235,6 +242,18 @@ func resourceAwsDbInstanceCreate(d *schema.ResourceData, meta interface{}) error
 			opts.PubliclyAccessible = aws.Boolean(attr.(bool))
 		}
 		_, err := conn.CreateDBInstanceReadReplica(&opts)
+		if err != nil {
+			return fmt.Errorf("Error creating DB Instance: %s", err)
+		}
+	} else if _, ok := d.GetOk("snapshot_identifier"); ok {
+		opts := rds.RestoreDBInstanceFromDBSnapshotInput{
+			AutoMinorVersionUpgrade: aws.Boolean(d.Get("auto_minor_version_upgrade").(bool)),
+			DBInstanceClass:         aws.String(d.Get("instance_class").(string)),
+			DBInstanceIdentifier:    aws.String(d.Get("identifier").(string)),
+			DBSnapshotIdentifier:    aws.String(d.Get("snapshot_identifier").(string)),
+			Tags:                    tags,
+		}
+		_, err := conn.RestoreDBInstanceFromDBSnapshot(&opts)
 		if err != nil {
 			return fmt.Errorf("Error creating DB Instance: %s", err)
 		}
