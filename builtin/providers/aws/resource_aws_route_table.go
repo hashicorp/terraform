@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"time"
+	"regexp"
 
 	"github.com/awslabs/aws-sdk-go/aws"
 	"github.com/awslabs/aws-sdk-go/aws/awserr"
@@ -139,9 +140,20 @@ func resourceAwsRouteTableRead(d *schema.ResourceData, meta interface{}) error {
 	route := &schema.Set{F: resourceAwsRouteTableHash}
 
 	// Loop through the routes and add them to the set
+	s3VpcEndpointRegExp := regexp.MustCompile("^vpce-.*")
+
 	for _, r := range rt.Routes {
-		if r.GatewayID != nil && *r.GatewayID == "local" {
-			continue
+		if r.GatewayID != nil {
+			if *r.GatewayID == "local" {
+				continue
+			}
+
+			// VPC endpoints are special;  They will not have a DestinationCidrBlock,
+			// The result is an object that will choke aws.resourceAwsRouteTableHash
+			// skip it is supported.
+			if s3VpcEndpointRegExp.MatchString(*r.GatewayID) {
+				continue
+			}
 		}
 
 		if r.Origin != nil && *r.Origin == "EnableVgwRoutePropagation" {
