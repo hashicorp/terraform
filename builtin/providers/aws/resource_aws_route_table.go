@@ -148,9 +148,9 @@ func resourceAwsRouteTableRead(d *schema.ResourceData, meta interface{}) error {
 				continue
 			}
 
-			// VPC endpoints are special;  They will not have a DestinationCidrBlock,
-			// The result is an object that will choke aws.resourceAwsRouteTableHash
-			// skip it is supported.
+			// VPC endpoint routes are special as they will not have a DestinationCidrBlock.
+			// This results in an object that will choke aws.resourceAwsRouteTableHash,
+			// skip this until support has been added.
 			if s3VpcEndpointRegExp.MatchString(*r.GatewayID) {
 				continue
 			}
