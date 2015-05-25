@@ -551,7 +551,7 @@ func resourceComputeInstanceV2Update(d *schema.ResourceData, meta interface{}) e
 
 	if d.HasChange("security_groups") {
 		oldSGRaw, newSGRaw := d.GetChange("security_groups")
-		oldSGSlice, newSGSlice := oldSGRaw.([]interface{}), newSGRaw.([]interface{})
+		oldSGSlice, newSGSlice := oldSGRaw.(*schema.Set).List(), newSGRaw.(*schema.Set).List()
 		oldSGSet := schema.NewSet(func(v interface{}) int { return hashcode.String(v.(string)) }, oldSGSlice)
 		newSGSet := schema.NewSet(func(v interface{}) int { return hashcode.String(v.(string)) }, newSGSlice)
 
