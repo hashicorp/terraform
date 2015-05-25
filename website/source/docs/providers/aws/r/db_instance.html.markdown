@@ -65,7 +65,7 @@ The following arguments are supported:
 * `storage_encrypted` - (Optional) Specifies whether the DB instance is encrypted. The default is `false` if not specified.
 * `apply_immediately` - (Optional) Specifies whether any database modifications
      are applied immediately, or during the next maintenance window. Default is
-     `false`. See [Amazon RDS Documentation for more for more information.](http://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/Overview.DBInstance.Modifying.html)
+     `false`. See [Amazon RDS Documentation for more information.](http://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/Overview.DBInstance.Modifying.html)
 * `replicate_source_db` - (Optional) Specifies that this resource is a Replicate
 database, and to use this value as the source database. This correlates to the
 `identifier` of another Amazon RDS Database to replicate. See
