@@ -29,6 +29,9 @@ resource "aws_db_instance" "default" {
 
 ## Argument Reference
 
+For a more detailed documentation about the each argument refer to
+the [AWS official documentation](http://docs.aws.amazon.com/AmazonRDS/latest/CommandLineReference/CLIReference-cmd-ModifyDBInstance.html).
+
 The following arguments are supported:
 
 * `allocated_storage` - (Required) The allocated storage in gigabytes.
@@ -99,9 +102,5 @@ The following attributes are exported:
 * `status` - The RDS instance status
 * `username` - The master username for the database
 * `storage_encrypted` - Specifies whether the DB instance is encrypted
-
-
-~> For a more detailed documentation about the different parameters please refer to
-the [AWS official documentation](http://docs.aws.amazon.com/AmazonRDS/latest/CommandLineReference/CLIReference-cmd-ModifyDBInstance.html)
 
 [1]: http://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/Overview.Replication.html
