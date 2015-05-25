@@ -101,4 +101,7 @@ The following attributes are exported:
 * `storage_encrypted` - Specifies whether the DB instance is encrypted
 
 
+~> For a more detailed documentation about the different parameters please refer to
+the [AWS official documentation](http://docs.aws.amazon.com/AmazonRDS/latest/CommandLineReference/CLIReference-cmd-ModifyDBInstance.html)
+
 [1]: http://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/Overview.Replication.html
