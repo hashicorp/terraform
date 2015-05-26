@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/awslabs/aws-sdk-go/aws"
+	"github.com/awslabs/aws-sdk-go/aws/awserr"
 	"github.com/awslabs/aws-sdk-go/service/autoscaling"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
@@ -119,11 +120,11 @@ func testAccCheckAWSLaunchConfigurationDestroy(s *terraform.State) error {
 		}
 
 		// Verify the error
-		providerErr, ok := err.(aws.APIError)
+		providerErr, ok := err.(awserr.Error)
 		if !ok {
 			return err
 		}
-		if providerErr.Code != "InvalidLaunchConfiguration.NotFound" {
+		if providerErr.Code() != "InvalidLaunchConfiguration.NotFound" {
 			return err
 		}
 	}

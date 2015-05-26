@@ -10,7 +10,9 @@ import (
 	"github.com/hashicorp/terraform/helper/schema"
 
 	"github.com/awslabs/aws-sdk-go/aws"
+	"github.com/awslabs/aws-sdk-go/aws/awserr"
 	"github.com/awslabs/aws-sdk-go/service/autoscaling"
+	"github.com/awslabs/aws-sdk-go/service/elb"
 )
 
 func resourceAwsAutoscalingGroup() *schema.Resource {
@@ -36,6 +38,11 @@ func resourceAwsAutoscalingGroup() *schema.Resource {
 				Type:     schema.TypeInt,
 				Optional: true,
 				Computed: true,
+			},
+
+			"min_elb_capacity": &schema.Schema{
+				Type:     schema.TypeInt,
+				Optional: true,
 			},
 
 			"min_size": &schema.Schema{
@@ -286,8 +293,8 @@ func resourceAwsAutoscalingGroupDelete(d *schema.ResourceData, meta interface{})
 	// scaling operations within 5m.
 	err = resource.Retry(5*time.Minute, func() error {
 		if _, err := conn.DeleteAutoScalingGroup(&deleteopts); err != nil {
-			if awserr, ok := err.(aws.APIError); ok {
-				switch awserr.Code {
+			if awserr, ok := err.(awserr.Error); ok {
+				switch awserr.Code() {
 				case "InvalidGroup.NotFound":
 					// Already gone? Sure!
 					return nil
@@ -326,8 +333,8 @@ func getAwsAutoscalingGroup(
 	log.Printf("[DEBUG] AutoScaling Group describe configuration: %#v", describeOpts)
 	describeGroups, err := conn.DescribeAutoScalingGroups(&describeOpts)
 	if err != nil {
-		autoscalingerr, ok := err.(aws.APIError)
-		if ok && autoscalingerr.Code == "InvalidGroup.NotFound" {
+		autoscalingerr, ok := err.(awserr.Error)
+		if ok && autoscalingerr.Code() == "InvalidGroup.NotFound" {
 			d.SetId("")
 			return nil, nil
 		}
@@ -386,13 +393,19 @@ var waitForASGCapacityTimeout = 10 * time.Minute
 // Waits for a minimum number of healthy instances to show up as healthy in the
 // ASG before continuing. Waits up to `waitForASGCapacityTimeout` for
 // "desired_capacity", or "min_size" if desired capacity is not specified.
+//
+// If "min_elb_capacity" is specified, will also wait for that number of
+// instances to show up InService in all attached ELBs. See "Waiting for
+// Capacity" in docs for more discussion of the feature.
 func waitForASGCapacity(d *schema.ResourceData, meta interface{}) error {
-	waitFor := d.Get("min_size").(int)
+	wantASG := d.Get("min_size").(int)
 	if v := d.Get("desired_capacity").(int); v > 0 {
-		waitFor = v
+		wantASG = v
 	}
+	wantELB := d.Get("min_elb_capacity").(int)
 
-	log.Printf("[DEBUG] Waiting for group to have %d healthy instances", waitFor)
+	log.Printf("[DEBUG] Wanting for capacity: %d ASG, %d ELB", wantASG, wantELB)
+
 	return resource.Retry(waitForASGCapacityTimeout, func() error {
 		g, err := getAwsAutoscalingGroup(d, meta)
 		if err != nil {
@@ -401,24 +414,76 @@ func waitForASGCapacity(d *schema.ResourceData, meta interface{}) error {
 		if g == nil {
 			return nil
 		}
+		lbis, err := getLBInstanceStates(g, meta)
+		if err != nil {
+			return resource.RetryError{Err: err}
+		}
 
-		healthy := 0
+		haveASG := 0
+		haveELB := 0
+
 		for _, i := range g.Instances {
-			if i.HealthStatus == nil {
+			if i.HealthStatus == nil || i.InstanceID == nil || i.LifecycleState == nil {
 				continue
 			}
-			if strings.EqualFold(*i.HealthStatus, "Healthy") {
-				healthy++
+
+			if !strings.EqualFold(*i.HealthStatus, "Healthy") {
+				continue
+			}
+
+			if !strings.EqualFold(*i.LifecycleState, "InService") {
+				continue
+			}
+
+			haveASG++
+
+			if wantELB > 0 {
+				inAllLbs := true
+				for _, states := range lbis {
+					state, ok := states[*i.InstanceID]
+					if !ok || !strings.EqualFold(state, "InService") {
+						inAllLbs = false
+					}
+				}
+				if inAllLbs {
+					haveELB++
+				}
 			}
 		}
 
-		log.Printf(
-			"[DEBUG] %q has %d/%d healthy instances", d.Id(), healthy, waitFor)
+		log.Printf("[DEBUG] %q Capacity: %d/%d ASG, %d/%d ELB",
+			d.Id(), haveASG, wantASG, haveELB, wantELB)
 
-		if healthy >= waitFor {
+		if haveASG >= wantASG && haveELB >= wantELB {
 			return nil
 		}
 
-		return fmt.Errorf("Waiting for healthy instances: %d/%d", healthy, waitFor)
+		return fmt.Errorf("Still need to wait for more healthy instances.")
 	})
+}
+
+// Returns a mapping of the instance states of all the ELBs attached to the
+// provided ASG.
+//
+// Nested like: lbName -> instanceId -> instanceState
+func getLBInstanceStates(g *autoscaling.AutoScalingGroup, meta interface{}) (map[string]map[string]string, error) {
+	lbInstanceStates := make(map[string]map[string]string)
+	elbconn := meta.(*AWSClient).elbconn
+
+	for _, lbName := range g.LoadBalancerNames {
+		lbInstanceStates[*lbName] = make(map[string]string)
+		opts := &elb.DescribeInstanceHealthInput{LoadBalancerName: lbName}
+		r, err := elbconn.DescribeInstanceHealth(opts)
+		if err != nil {
+			return nil, err
+		}
+		for _, is := range r.InstanceStates {
+			if is.InstanceID == nil || is.State == nil {
+				continue
+			}
+			lbInstanceStates[*lbName][*is.InstanceID] = *is.State
+		}
+	}
+
+	return lbInstanceStates, nil
 }

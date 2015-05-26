@@ -29,7 +29,7 @@ resource "aws_instance" "web" {
             "key" = "value"
             "app" {
                 "cluster1" {
-                    "nodes" = ["webserver1", webserver2]
+                    "nodes" = ["webserver1", "webserver2"]
                 }
             }
         }

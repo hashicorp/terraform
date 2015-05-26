@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/awslabs/aws-sdk-go/aws"
+	"github.com/awslabs/aws-sdk-go/aws/awserr"
 	"github.com/awslabs/aws-sdk-go/service/ec2"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
@@ -123,7 +124,7 @@ func resourceAwsEipRead(d *schema.ResourceData, meta interface{}) error {
 
 	describeAddresses, err := ec2conn.DescribeAddresses(req)
 	if err != nil {
-		if ec2err, ok := err.(aws.APIError); ok && ec2err.Code == "InvalidAllocationID.NotFound" {
+		if ec2err, ok := err.(awserr.Error); ok && ec2err.Code() == "InvalidAllocationID.NotFound" {
 			d.SetId("")
 			return nil
 		}
@@ -247,7 +248,7 @@ func resourceAwsEipDelete(d *schema.ResourceData, meta interface{}) error {
 		if err == nil {
 			return nil
 		}
-		if _, ok := err.(aws.APIError); !ok {
+		if _, ok := err.(awserr.Error); !ok {
 			return resource.RetryError{Err: err}
 		}
 

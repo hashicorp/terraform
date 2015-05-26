@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/awslabs/aws-sdk-go/aws"
+	"github.com/awslabs/aws-sdk-go/aws/awserr"
 	"github.com/awslabs/aws-sdk-go/service/autoscaling"
 	"github.com/awslabs/aws-sdk-go/service/ec2"
 	"github.com/hashicorp/terraform/helper/hashcode"
@@ -440,8 +441,8 @@ func resourceAwsLaunchConfigurationDelete(d *schema.ResourceData, meta interface
 			LaunchConfigurationName: aws.String(d.Id()),
 		})
 	if err != nil {
-		autoscalingerr, ok := err.(aws.APIError)
-		if ok && autoscalingerr.Code == "InvalidConfiguration.NotFound" {
+		autoscalingerr, ok := err.(awserr.Error)
+		if ok && autoscalingerr.Code() == "InvalidConfiguration.NotFound" {
 			return nil
 		}
 
@@ -486,6 +487,11 @@ func readBlockDevicesFromLaunchConfiguration(d *schema.ResourceData, lc *autosca
 	rootDeviceName, err := fetchRootDeviceName(d.Get("image_id").(string), ec2conn)
 	if err != nil {
 		return nil, err
+	}
+	if rootDeviceName == nil {
+		// We do this so the value is empty so we don't have to do nil checks later
+		var blank string
+		rootDeviceName = &blank
 	}
 	for _, bdm := range lc.BlockDeviceMappings {
 		bd := make(map[string]interface{})

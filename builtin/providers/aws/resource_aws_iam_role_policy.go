@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/awslabs/aws-sdk-go/aws"
+	"github.com/awslabs/aws-sdk-go/aws/awserr"
 	"github.com/awslabs/aws-sdk-go/service/iam"
 
 	"github.com/hashicorp/terraform/helper/schema"
@@ -66,9 +67,10 @@ func resourceAwsIamRolePolicyRead(d *schema.ResourceData, meta interface{}) erro
 		RoleName:   aws.String(role),
 	}
 
+	var err error
 	getResp, err := iamconn.GetRolePolicy(request)
 	if err != nil {
-		if iamerr, ok := err.(aws.APIError); ok && iamerr.Code == "NoSuchEntity" { // XXX test me
+		if iamerr, ok := err.(awserr.Error); ok && iamerr.Code() == "NoSuchEntity" { // XXX test me
 			d.SetId("")
 			return nil
 		}
