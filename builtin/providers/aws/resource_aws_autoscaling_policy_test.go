@@ -10,20 +10,20 @@ import (
 	"github.com/hashicorp/terraform/terraform"
 )
 
-func TestAccAWSAutoscalingScalingPolicy_basic(t *testing.T) {
+func TestAccAWSAutoscalingPolicy_basic(t *testing.T) {
 	var policy autoscaling.ScalingPolicy
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
-		CheckDestroy: testAccCheckAWSAutoscalingScalingPolicyDestroy,
+		CheckDestroy: testAccCheckAWSAutoscalingPolicyDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccAWSAutoscalingScalingPolicyConfig,
+				Config: testAccAWSAutoscalingPolicyConfig,
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckScalingPolicyExists("aws_autoscaling_scaling_policy.foobar", &policy),
-					resource.TestCheckResourceAttr("aws_autoscaling_scaling_policy.foobar", "adjustment_type", "ChangeInCapacity"),
-					resource.TestCheckResourceAttr("aws_autoscaling_scaling_policy.foobar", "cooldown", "300"),
+					testAccCheckScalingPolicyExists("aws_autoscaling_policy.foobar", &policy),
+					resource.TestCheckResourceAttr("aws_autoscaling_policy.foobar", "adjustment_type", "ChangeInCapacity"),
+					resource.TestCheckResourceAttr("aws_autoscaling_policy.foobar", "cooldown", "300"),
 				),
 			},
 		},
@@ -57,7 +57,7 @@ func testAccCheckScalingPolicyExists(n string, policy *autoscaling.ScalingPolicy
 	}
 }
 
-func testAccCheckAWSAutoscalingScalingPolicyDestroy(s *terraform.State) error {
+func testAccCheckAWSAutoscalingPolicyDestroy(s *terraform.State) error {
 	conn := testAccProvider.Meta().(*AWSClient).autoscalingconn
 
 	for _, rs := range s.RootModule().Resources {
@@ -83,7 +83,7 @@ func testAccCheckAWSAutoscalingScalingPolicyDestroy(s *terraform.State) error {
 	return nil
 }
 
-var testAccAWSAutoscalingScalingPolicyConfig = fmt.Sprintf(`
+var testAccAWSAutoscalingPolicyConfig = fmt.Sprintf(`
 resource "aws_launch_configuration" "foobar" {
     name = "terraform-test-foobar5"
     image_id = "ami-21f78e11"
@@ -108,8 +108,8 @@ resource "aws_autoscaling_group" "foobar" {
     }
 }
 
-resource "aws_autoscaling_scaling_policy" "foobar" {
-    policy_name = "foobar"
+resource "aws_autoscaling_policy" "foobar" {
+    name = "foobar"
     scaling_adjustment = 4
     adjustment_type = "ChangeInCapacity"
     cooldown = 300
