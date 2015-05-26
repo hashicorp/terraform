@@ -41,24 +41,7 @@ teams to run their own infrastructure. As a more specific example with AWS:
 you can expose things such as VPC IDs, subnets, NAT instance IDs, etc. through
 remote state and have other Terraform states consume that.
 
-An example is shown below:
-
-```
-resource "terraform_remote_state" "vpc" {
-    backend = "atlas"
-    config {
-        name = "hashicorp/vpc-prod"
-    }
-}
-
-resource "aws_instance" "foo" {
-    # ...
-    subnet_id = "${terraform_remote_state.vpc.output.subnet_id}"
-}
-```
-
-This makes teamwork and componentization of infrastructure frictionless
-within your infrastructure.
+For example usage see refer to the [terraform_remote_state](/docs/providers/terraform/r/remote_state.html) resource.
 
 ## Locking and Teamwork
 
@@ -73,4 +56,3 @@ locking for you.
 In the future, we'd like to extend the remote state system to allow some
 minimal locking functionality, but it is a difficult problem without a
 central system that we currently aren't focused on solving.
-
