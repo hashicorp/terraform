@@ -103,6 +103,7 @@ func Provider() terraform.ResourceProvider {
 			"aws_iam_policy":                   resourceAwsIamPolicy(),
 			"aws_iam_role_policy":              resourceAwsIamRolePolicy(),
 			"aws_iam_role":                     resourceAwsIamRole(),
+			"aws_iam_server_certificate":       resourceAwsIAMServerCertificate(),
 			"aws_iam_user_policy":              resourceAwsIamUserPolicy(),
 			"aws_iam_user":                     resourceAwsIamUser(),
 			"aws_instance":                     resourceAwsInstance(),
