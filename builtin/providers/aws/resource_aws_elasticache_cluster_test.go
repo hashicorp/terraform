@@ -12,7 +12,7 @@ import (
 	"github.com/hashicorp/terraform/terraform"
 )
 
-func TestAccAWSElasticacheCluster(t *testing.T) {
+func TestAccAWSElasticacheCluster_basic(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
@@ -23,6 +23,8 @@ func TestAccAWSElasticacheCluster(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSElasticacheSecurityGroupExists("aws_elasticache_security_group.bar"),
 					testAccCheckAWSElasticacheClusterExists("aws_elasticache_cluster.bar"),
+					resource.TestCheckResourceAttr(
+						"aws_elasticache_cluster.bar", "cache_nodes.0.id", "0001"),
 				),
 			},
 		},
@@ -93,6 +95,9 @@ func genRandInt() int {
 }
 
 var testAccAWSElasticacheClusterConfig = fmt.Sprintf(`
+provider "aws" { 
+	region = "us-east-1"
+}
 resource "aws_security_group" "bar" {
     name = "tf-test-security-group-%03d"
     description = "tf-test-security-group-descr"

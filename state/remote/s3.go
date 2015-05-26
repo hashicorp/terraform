@@ -7,6 +7,7 @@ import (
 	"os"
 
 	"github.com/awslabs/aws-sdk-go/aws"
+	"github.com/awslabs/aws-sdk-go/aws/awserr"
 	"github.com/awslabs/aws-sdk-go/aws/credentials"
 	"github.com/awslabs/aws-sdk-go/service/s3"
 )
@@ -78,8 +79,8 @@ func (c *S3Client) Get() (*Payload, error) {
 	})
 
 	if err != nil {
-		if awserr := aws.Error(err); awserr != nil {
-			if awserr.Code == "NoSuchKey" {
+		if awserr := err.(awserr.Error); awserr != nil {
+			if awserr.Code() == "NoSuchKey" {
 				return nil, nil
 			} else {
 				return nil, err

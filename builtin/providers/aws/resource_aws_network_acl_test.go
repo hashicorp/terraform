@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/awslabs/aws-sdk-go/aws"
+	"github.com/awslabs/aws-sdk-go/aws/awserr"
 	"github.com/awslabs/aws-sdk-go/service/ec2"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
@@ -52,7 +53,7 @@ func TestAccAWSNetworkAcl_EgressAndIngressRules(t *testing.T) {
 	})
 }
 
-func TestAccAWSNetworkAcl_OnlyIngressRules(t *testing.T) {
+func TestAccAWSNetworkAcl_OnlyIngressRules_basic(t *testing.T) {
 	var networkAcl ec2.NetworkACL
 
 	resource.Test(t, resource.TestCase{
@@ -83,7 +84,7 @@ func TestAccAWSNetworkAcl_OnlyIngressRules(t *testing.T) {
 	})
 }
 
-func TestAccAWSNetworkAcl_OnlyIngressRulesChange(t *testing.T) {
+func TestAccAWSNetworkAcl_OnlyIngressRules_update(t *testing.T) {
 	var networkAcl ec2.NetworkACL
 
 	resource.Test(t, resource.TestCase{
@@ -181,6 +182,49 @@ func TestAccAWSNetworkAcl_SubnetChange(t *testing.T) {
 
 }
 
+func TestAccAWSNetworkAcl_Subnets(t *testing.T) {
+	var networkAcl ec2.NetworkACL
+
+	checkACLSubnets := func(acl *ec2.NetworkACL, count int) resource.TestCheckFunc {
+		return func(*terraform.State) (err error) {
+			if count != len(acl.Associations) {
+				return fmt.Errorf("ACL association count does not match, expected %d, got %d", count, len(acl.Associations))
+			}
+
+			return nil
+		}
+	}
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSNetworkAclDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccAWSNetworkAclSubnet_SubnetIds,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSNetworkAclExists("aws_network_acl.bar", &networkAcl),
+					testAccCheckSubnetIsAssociatedWithAcl("aws_network_acl.bar", "aws_subnet.one"),
+					testAccCheckSubnetIsAssociatedWithAcl("aws_network_acl.bar", "aws_subnet.two"),
+					checkACLSubnets(&networkAcl, 2),
+				),
+			},
+
+			resource.TestStep{
+				Config: testAccAWSNetworkAclSubnet_SubnetIdsUpdate,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSNetworkAclExists("aws_network_acl.bar", &networkAcl),
+					testAccCheckSubnetIsAssociatedWithAcl("aws_network_acl.bar", "aws_subnet.one"),
+					testAccCheckSubnetIsAssociatedWithAcl("aws_network_acl.bar", "aws_subnet.three"),
+					testAccCheckSubnetIsAssociatedWithAcl("aws_network_acl.bar", "aws_subnet.four"),
+					checkACLSubnets(&networkAcl, 3),
+				),
+			},
+		},
+	})
+
+}
+
 func testAccCheckAWSNetworkAclDestroy(s *terraform.State) error {
 	conn := testAccProvider.Meta().(*AWSClient).ec2conn
 
@@ -201,12 +245,12 @@ func testAccCheckAWSNetworkAclDestroy(s *terraform.State) error {
 			return nil
 		}
 
-		ec2err, ok := err.(aws.APIError)
+		ec2err, ok := err.(awserr.Error)
 		if !ok {
 			return err
 		}
 		// Confirm error code is what we want
-		if ec2err.Code != "InvalidNetworkAclID.NotFound" {
+		if ec2err.Code() != "InvalidNetworkAclID.NotFound" {
 			return err
 		}
 	}
@@ -280,10 +324,6 @@ func testAccCheckSubnetIsAssociatedWithAcl(acl string, sub string) resource.Test
 		if len(resp.NetworkACLs) > 0 {
 			return nil
 		}
-
-		// r, _ := conn.NetworkACLs([]string{}, ec2.NewFilter())
-		// fmt.Printf("\n\nall acls\n %#v\n\n", r.NetworkAcls)
-		// conn.NetworkAcls([]string{}, filter)
 
 		return fmt.Errorf("Network Acl %s is not associated with subnet %s", acl, sub)
 	}
@@ -492,5 +532,60 @@ resource "aws_subnet" "new" {
 resource "aws_network_acl" "bar" {
 	vpc_id = "${aws_vpc.foo.id}"
 	subnet_id = "${aws_subnet.new.id}"
+}
+`
+
+const testAccAWSNetworkAclSubnet_SubnetIds = `
+resource "aws_vpc" "foo" {
+	cidr_block = "10.1.0.0/16"
+	tags {
+		Name = "acl-subnets-test"
+	}
+}
+resource "aws_subnet" "one" {
+	cidr_block = "10.1.111.0/24"
+	vpc_id = "${aws_vpc.foo.id}"
+}
+resource "aws_subnet" "two" {
+	cidr_block = "10.1.1.0/24"
+	vpc_id = "${aws_vpc.foo.id}"
+}
+resource "aws_network_acl" "bar" {
+	vpc_id = "${aws_vpc.foo.id}"
+	subnet_ids = ["${aws_subnet.one.id}", "${aws_subnet.two.id}"]
+}
+`
+
+const testAccAWSNetworkAclSubnet_SubnetIdsUpdate = `
+resource "aws_vpc" "foo" {
+	cidr_block = "10.1.0.0/16"
+	tags {
+		Name = "acl-subnets-test"
+	}
+}
+resource "aws_subnet" "one" {
+	cidr_block = "10.1.111.0/24"
+	vpc_id = "${aws_vpc.foo.id}"
+}
+resource "aws_subnet" "two" {
+	cidr_block = "10.1.1.0/24"
+	vpc_id = "${aws_vpc.foo.id}"
+}
+
+resource "aws_subnet" "three" {
+	cidr_block = "10.1.222.0/24"
+	vpc_id = "${aws_vpc.foo.id}"
+}
+resource "aws_subnet" "four" {
+	cidr_block = "10.1.4.0/24"
+	vpc_id = "${aws_vpc.foo.id}"
+}
+resource "aws_network_acl" "bar" {
+	vpc_id = "${aws_vpc.foo.id}"
+	subnet_ids = [
+		"${aws_subnet.one.id}", 
+		"${aws_subnet.three.id}",
+		"${aws_subnet.four.id}",
+	]
 }
 `

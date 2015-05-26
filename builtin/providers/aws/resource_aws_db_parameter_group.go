@@ -12,6 +12,7 @@ import (
 	"github.com/hashicorp/terraform/helper/schema"
 
 	"github.com/awslabs/aws-sdk-go/aws"
+	"github.com/awslabs/aws-sdk-go/aws/awserr"
 	"github.com/awslabs/aws-sdk-go/service/rds"
 )
 
@@ -203,12 +204,12 @@ func resourceAwsDbParameterGroupDeleteRefreshFunc(
 		}
 
 		if _, err := rdsconn.DeleteDBParameterGroup(&deleteOpts); err != nil {
-			rdserr, ok := err.(aws.APIError)
+			rdserr, ok := err.(awserr.Error)
 			if !ok {
 				return d, "error", err
 			}
 
-			if rdserr.Code != "DBParameterGroupNotFoundFault" {
+			if rdserr.Code() != "DBParameterGroupNotFoundFault" {
 				return d, "error", err
 			}
 		}

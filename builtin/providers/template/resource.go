@@ -5,6 +5,8 @@ import (
 	"encoding/hex"
 	"fmt"
 	"io/ioutil"
+	"os"
+	"path/filepath"
 
 	"github.com/hashicorp/terraform/config"
 	"github.com/hashicorp/terraform/config/lang"
@@ -26,6 +28,18 @@ func resource() *schema.Resource {
 				Required:    true,
 				Description: "file to read template from",
 				ForceNew:    true,
+				// Make a "best effort" attempt to relativize the file path.
+				StateFunc: func(v interface{}) string {
+					pwd, err := os.Getwd()
+					if err != nil {
+						return v.(string)
+					}
+					rel, err := filepath.Rel(pwd, v.(string))
+					if err != nil {
+						return v.(string)
+					}
+					return rel
+				},
 			},
 			"vars": &schema.Schema{
 				Type:        schema.TypeMap,

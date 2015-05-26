@@ -53,7 +53,7 @@ resource "terraform_remote_state" "vpc" {
 
 resource "aws_instance" "foo" {
     # ...
-    subnet_id = "${terraform_state.vpc.output.subnet_id}"
+    subnet_id = "${terraform_remote_state.vpc.output.subnet_id}"
 }
 ```
 

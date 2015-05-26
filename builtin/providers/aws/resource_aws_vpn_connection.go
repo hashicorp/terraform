@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/awslabs/aws-sdk-go/aws"
+	"github.com/awslabs/aws-sdk-go/aws/awserr"
 	"github.com/awslabs/aws-sdk-go/service/ec2"
 
 	"github.com/hashicorp/terraform/helper/hashcode"
@@ -200,7 +201,7 @@ func vpnConnectionRefreshFunc(conn *ec2.EC2, connectionId string) resource.State
 		})
 
 		if err != nil {
-			if ec2err, ok := err.(aws.APIError); ok && ec2err.Code == "InvalidVpnConnectionID.NotFound" {
+			if ec2err, ok := err.(awserr.Error); ok && ec2err.Code() == "InvalidVpnConnectionID.NotFound" {
 				resp = nil
 			} else {
 				log.Printf("Error on VPNConnectionRefresh: %s", err)
@@ -224,7 +225,7 @@ func resourceAwsVpnConnectionRead(d *schema.ResourceData, meta interface{}) erro
 		VPNConnectionIDs: []*string{aws.String(d.Id())},
 	})
 	if err != nil {
-		if ec2err, ok := err.(aws.APIError); ok && ec2err.Code == "InvalidVpnConnectionID.NotFound" {
+		if ec2err, ok := err.(awserr.Error); ok && ec2err.Code() == "InvalidVpnConnectionID.NotFound" {
 			d.SetId("")
 			return nil
 		} else {
@@ -285,7 +286,7 @@ func resourceAwsVpnConnectionDelete(d *schema.ResourceData, meta interface{}) er
 		VPNConnectionID: aws.String(d.Id()),
 	})
 	if err != nil {
-		if ec2err, ok := err.(aws.APIError); ok && ec2err.Code == "InvalidVpnConnectionID.NotFound" {
+		if ec2err, ok := err.(awserr.Error); ok && ec2err.Code() == "InvalidVpnConnectionID.NotFound" {
 			d.SetId("")
 			return nil
 		} else {
