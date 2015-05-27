@@ -5,6 +5,7 @@ import (
 	"encoding/base64"
 	"fmt"
 	"log"
+	"strings"
 
 	"github.com/hashicorp/terraform/helper/hashcode"
 	"github.com/hashicorp/terraform/helper/schema"
@@ -179,6 +180,7 @@ func resourceAzureInstanceCreate(d *schema.ResourceData, meta interface{}) (err 
 	configureForImage, osType, err := retrieveImageDetails(
 		mc,
 		d.Get("image").(string),
+		name,
 		d.Get("storage").(string),
 	)
 	if err != nil {
@@ -521,32 +523,35 @@ func resourceAzureEndpointHash(v interface{}) int {
 func retrieveImageDetails(
 	mc management.Client,
 	label string,
+	name string,
 	storage string) (func(*virtualmachine.Role) error, string, error) {
-	configureForImage, osType, err := retrieveVMImageDetails(mc, label)
+	configureForImage, osType, VMLabels, err := retrieveVMImageDetails(mc, label)
 	if err == nil {
 		return configureForImage, osType, nil
 	}
 
-	configureForImage, osType, err = retrieveOSImageDetails(mc, label, storage)
+	configureForImage, osType, OSLabels, err := retrieveOSImageDetails(mc, label, name, storage)
 	if err == nil {
 		return configureForImage, osType, nil
 	}
 
-	return nil, "", fmt.Errorf("Could not find image with label '%s'", label)
+	return nil, "", fmt.Errorf("Could not find image with label '%s'. Available images are: %s",
+		label, strings.Join(append(VMLabels, OSLabels...), ", "))
 }
 
 func retrieveVMImageDetails(
 	mc management.Client,
-	label string) (func(*virtualmachine.Role) error, string, error) {
+	label string) (func(*virtualmachine.Role) error, string, []string, error) {
 	imgs, err := virtualmachineimage.NewClient(mc).ListVirtualMachineImages()
 	if err != nil {
-		return nil, "", fmt.Errorf("Error retrieving image details: %s", err)
+		return nil, "", nil, fmt.Errorf("Error retrieving image details: %s", err)
 	}
 
+	var labels []string
 	for _, img := range imgs.VMImages {
 		if img.Label == label {
 			if img.OSDiskConfiguration.OS != linux && img.OSDiskConfiguration.OS != windows {
-				return nil, "", fmt.Errorf("Unsupported image OS: %s", img.OSDiskConfiguration.OS)
+				return nil, "", nil, fmt.Errorf("Unsupported image OS: %s", img.OSDiskConfiguration.OS)
 			}
 
 			configureForImage := func(role *virtualmachine.Role) error {
@@ -558,33 +563,37 @@ func retrieveVMImageDetails(
 				)
 			}
 
-			return configureForImage, img.OSDiskConfiguration.OS, nil
+			return configureForImage, img.OSDiskConfiguration.OS, nil, nil
 		}
+
+		labels = append(labels, img.Label)
 	}
 
-	return nil, "", fmt.Errorf("Could not find image with label '%s'", label)
+	return nil, "", labels, fmt.Errorf("Could not find image with label '%s'", label)
 }
 
 func retrieveOSImageDetails(
 	mc management.Client,
-	label,
-	storage string) (func(*virtualmachine.Role) error, string, error) {
+	label string,
+	name string,
+	storage string) (func(*virtualmachine.Role) error, string, []string, error) {
 	imgs, err := osimage.NewClient(mc).ListOSImages()
 	if err != nil {
-		return nil, "", fmt.Errorf("Error retrieving image details: %s", err)
+		return nil, "", nil, fmt.Errorf("Error retrieving image details: %s", err)
 	}
 
+	var labels []string
 	for _, img := range imgs.OSImages {
 		if img.Label == label {
 			if img.OS != linux && img.OS != windows {
-				return nil, "", fmt.Errorf("Unsupported image OS: %s", img.OS)
+				return nil, "", nil, fmt.Errorf("Unsupported image OS: %s", img.OS)
 			}
 			if img.MediaLink == "" {
 				if storage == "" {
-					return nil, "",
+					return nil, "", nil,
 						fmt.Errorf("When using a platform image, the 'storage' parameter is required")
 				}
-				img.MediaLink = fmt.Sprintf(osDiskBlobStorageURL, storage, label)
+				img.MediaLink = fmt.Sprintf(osDiskBlobStorageURL, storage, name)
 			}
 
 			configureForImage := func(role *virtualmachine.Role) error {
@@ -596,11 +605,13 @@ func retrieveOSImageDetails(
 				)
 			}
 
-			return configureForImage, img.OS, nil
+			return configureForImage, img.OS, nil, nil
 		}
+
+		labels = append(labels, img.Label)
 	}
 
-	return nil, "", fmt.Errorf("Could not find image with label '%s'", label)
+	return nil, "", labels, fmt.Errorf("Could not find image with label '%s'", label)
 }
 
 func endpointProtocol(p string) virtualmachine.InputEndpointProtocol {
