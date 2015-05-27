@@ -58,36 +58,18 @@ func resourceAwsVolumeAttachmentCreate(d *schema.ResourceData, meta interface{})
 		InstanceID: aws.String(iID),
 		VolumeID:   aws.String(vID),
 	}
-	stateConf := &resource.StateChangeConf{
-		Pending:    []string{"pending"},
-		Target:     "attaching",
-		Refresh:    attachVolumeFunc(conn, opts),
-		Timeout:    1 * time.Minute,
-		Delay:      5 * time.Second,
-		MinTimeout: 3 * time.Second,
-	}
 
-	_, err := stateConf.WaitForState()
+	_, err := conn.AttachVolume(opts)
 	if err != nil {
-		return fmt.Errorf("Error attaching volume %s to instance %s: %s", vID, iID, err)
+		if awsErr, ok := err.(awserr.Error); ok {
+			return fmt.Errorf("[WARN] Error attaching volume (%s) to instance (%s), message: \"%s\", code: \"%s\"",
+				vID, iID, awsErr.Message(), awsErr.Code())
+		}
+		return err
 	}
 
 	d.SetId(volumeAttachmentID(name, vID, iID))
 	return resourceAwsVolumeAttachmentRead(d, meta)
-}
-
-func attachVolumeFunc(conn *ec2.EC2, opts *ec2.AttachVolumeInput) resource.StateRefreshFunc {
-	return func() (interface{}, string, error) {
-		va, err := conn.AttachVolume(opts)
-		if err != nil {
-			awsErr, ok := err.(awserr.Error)
-			if ok && awsErr.Code() == "VolumeInUse" && *va.InstanceID == *opts.InstanceID {
-				return nil, "attaching", nil
-			}
-			return nil, "error", err
-		}
-		return va, *va.State, nil
-	}
 }
 
 func resourceAwsVolumeAttachmentRead(d *schema.ResourceData, meta interface{}) error {
@@ -127,7 +109,7 @@ func resourceAwsVolumeAttachmentDelete(d *schema.ResourceData, meta interface{})
 		Force:      aws.Boolean(d.Get("force_detach").(bool)),
 	}
 
-	return resource.Retry(1*time.Minute, func() error {
+	return resource.Retry(3*time.Minute, func() error {
 		resp, err := conn.DetachVolume(opts)
 		if err != nil {
 			awsErr, ok := err.(awserr.Error)
