@@ -378,13 +378,7 @@ func (m schemaMap) Input(
 
 		var value interface{}
 		switch v.Type {
-		case TypeBool:
-			fallthrough
-		case TypeInt:
-			fallthrough
-		case TypeFloat:
-			fallthrough
-		case TypeSet:
+		case TypeBool, TypeInt, TypeFloat, TypeSet:
 			continue
 		case TypeString:
 			value, err = m.inputString(input, k, v)
@@ -522,13 +516,7 @@ func (m schemaMap) diff(
 	all bool) error {
 	var err error
 	switch schema.Type {
-	case TypeBool:
-		fallthrough
-	case TypeInt:
-		fallthrough
-	case TypeFloat:
-		fallthrough
-	case TypeString:
+	case TypeBool, TypeInt, TypeFloat, TypeString:
 		err = m.diffString(k, schema, diff, d, all)
 	case TypeList:
 		err = m.diffList(k, schema, diff, d, all)
@@ -1170,9 +1158,7 @@ func (m schemaMap) validateType(
 	var ws []string
 	var es []error
 	switch schema.Type {
-	case TypeSet:
-		fallthrough
-	case TypeList:
+	case TypeSet, TypeList:
 		ws, es = m.validateList(k, raw, schema, c)
 	case TypeMap:
 		ws, es = m.validateMap(k, raw, schema, c)

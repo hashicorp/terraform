@@ -74,13 +74,7 @@ func (w *MapFieldWriter) set(addr []string, value interface{}) error {
 
 	schema := schemaList[len(schemaList)-1]
 	switch schema.Type {
-	case TypeBool:
-		fallthrough
-	case TypeInt:
-		fallthrough
-	case TypeFloat:
-		fallthrough
-	case TypeString:
+	case TypeBool, TypeInt, TypeFloat, TypeString:
 		return w.setPrimitive(addr, value, schema)
 	case TypeList:
 		return w.setList(addr, value, schema)
