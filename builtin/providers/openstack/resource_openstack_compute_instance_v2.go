@@ -550,7 +550,7 @@ func resourceComputeInstanceV2Update(d *schema.ResourceData, meta interface{}) e
 
 	if d.HasChange("security_groups") {
 		oldSGRaw, newSGRaw := d.GetChange("security_groups")
-		oldSGSlice, newSGSlice := oldSGRaw.([]interface{}), newSGRaw.([]interface{})
+		oldSGSlice, newSGSlice := oldSGRaw.(*schema.Set).List(), newSGRaw.(*schema.Set).List()
 		oldSGSet := schema.NewSet(func(v interface{}) int { return hashcode.String(v.(string)) }, oldSGSlice)
 		newSGSet := schema.NewSet(func(v interface{}) int { return hashcode.String(v.(string)) }, newSGSlice)
 
@@ -757,7 +757,7 @@ func ServerV2StateRefreshFunc(client *gophercloud.ServiceClient, instanceID stri
 }
 
 func resourceInstanceSecGroupsV2(d *schema.ResourceData) []string {
-	rawSecGroups := d.Get("security_groups").([]interface{})
+	rawSecGroups := d.Get("security_groups").(*schema.Set).List()
 	secgroups := make([]string, len(rawSecGroups))
 	for i, raw := range rawSecGroups {
 		secgroups[i] = raw.(string)
