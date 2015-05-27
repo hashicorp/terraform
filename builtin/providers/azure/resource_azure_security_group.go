@@ -33,11 +33,6 @@ func resourceAzureSecurityGroup() *schema.Resource {
 				ForceNew: true,
 			},
 
-			"subnet": &schema.Schema{
-				Type:     schema.TypeString,
-				Optional: true,
-			},
-
 			"location": &schema.Schema{
 				Type:     schema.TypeString,
 				Required: true,

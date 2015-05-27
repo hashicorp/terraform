@@ -5,9 +5,11 @@ import (
 	"log"
 	"strings"
 
+	"github.com/hashicorp/terraform/helper/hashcode"
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/mitchellh/mapstructure"
 	"github.com/svanharmelen/azure-sdk-for-go/management"
+	"github.com/svanharmelen/azure-sdk-for-go/management/networksecuritygroup"
 	"github.com/svanharmelen/azure-sdk-for-go/management/virtualnetwork"
 )
 
@@ -36,8 +38,25 @@ func resourceAzureVirtualNetwork() *schema.Resource {
 			},
 
 			"subnet": &schema.Schema{
-				Type:     schema.TypeMap,
+				Type:     schema.TypeSet,
 				Required: true,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"name": &schema.Schema{
+							Type:     schema.TypeString,
+							Required: true,
+						},
+						"address_prefix": &schema.Schema{
+							Type:     schema.TypeString,
+							Required: true,
+						},
+						"security_group": &schema.Schema{
+							Type:     schema.TypeString,
+							Optional: true,
+						},
+					},
+				},
+				Set: resourceAzureSubnetHash,
 			},
 
 			"location": &schema.Schema{
@@ -83,11 +102,14 @@ func resourceAzureVirtualNetworkCreate(d *schema.ResourceData, meta interface{})
 
 	// Wait until the virtual network is created
 	if err := mc.WaitForOperation(req, nil); err != nil {
-		log.Printf(
-			"[DEBUG] Error waiting for Virtual Network %s to be created: %s", name, err)
+		return fmt.Errorf("Error waiting for Virtual Network %s to be created: %s", name, err)
 	}
 
 	d.SetId(name)
+
+	if err := associateSecurityGroups(d, meta); err != nil {
+		return err
+	}
 
 	return resourceAzureVirtualNetworkRead(d, meta)
 }
@@ -105,9 +127,29 @@ func resourceAzureVirtualNetworkRead(d *schema.ResourceData, meta interface{}) e
 			d.Set("address_space", n.AddressSpace.AddressPrefix)
 			d.Set("location", n.Location)
 
-			subnets := map[string]interface{}{}
+			// Create a new set to hold all configured subnets
+			subnets := &schema.Set{
+				F: resourceAzureSubnetHash,
+			}
+
+			// Loop through all endpoints
 			for _, s := range n.Subnets {
-				subnets[s.Name] = s.AddressPrefix
+				subnet := map[string]interface{}{}
+
+				// Get the associated (if any) security group
+				sg, err := networksecuritygroup.NewClient(mc).
+					GetNetworkSecurityGroupForSubnet(s.Name, d.Id())
+				if err != nil && !management.IsResourceNotFoundError(err) {
+					return fmt.Errorf(
+						"Error retrieving Network Security Group associations of subnet %s: %s", s.Name, err)
+				}
+
+				// Update the values
+				subnet["name"] = s.Name
+				subnet["address_prefix"] = s.AddressPrefix
+				subnet["security_group"] = sg.Name
+
+				subnets.Add(subnet)
 			}
 
 			d.Set("subnet", subnets)
@@ -155,8 +197,11 @@ func resourceAzureVirtualNetworkUpdate(d *schema.ResourceData, meta interface{})
 
 	// Wait until the virtual network is updated
 	if err := mc.WaitForOperation(req, nil); err != nil {
-		log.Printf(
-			"[DEBUG] Error waiting for Virtual Network %s to be updated: %s", d.Id(), err)
+		return fmt.Errorf("Error waiting for Virtual Network %s to be updated: %s", d.Id(), err)
+	}
+
+	if err := associateSecurityGroups(d, meta); err != nil {
+		return err
 	}
 
 	return resourceAzureVirtualNetworkRead(d, meta)
@@ -186,13 +231,18 @@ func resourceAzureVirtualNetworkDelete(d *schema.ResourceData, meta interface{})
 
 	// Wait until the virtual network is deleted
 	if err := mc.WaitForOperation(req, nil); err != nil {
-		log.Printf(
-			"[DEBUG] Error waiting for Virtual Network %s to be deleted: %s", d.Id(), err)
+		return fmt.Errorf("Error waiting for Virtual Network %s to be deleted: %s", d.Id(), err)
 	}
 
 	d.SetId("")
 
 	return nil
+}
+
+func resourceAzureSubnetHash(v interface{}) int {
+	m := v.(map[string]interface{})
+	subnet := m["name"].(string) + m["address_prefix"].(string) + m["security_group"].(string)
+	return hashcode.String(subnet)
 }
 
 func createVirtualNetwork(d *schema.ResourceData) (virtualnetwork.VirtualNetworkSite, error) {
@@ -206,12 +256,16 @@ func createVirtualNetwork(d *schema.ResourceData) (virtualnetwork.VirtualNetwork
 		AddressPrefix: addressPrefix,
 	}
 
-	subnets := []virtualnetwork.Subnet{}
-	for n, p := range d.Get("subnet").(map[string]interface{}) {
-		subnets = append(subnets, virtualnetwork.Subnet{
-			Name:          n,
-			AddressPrefix: p.(string),
-		})
+	// Add all subnets that are configured
+	var subnets []virtualnetwork.Subnet
+	if rs := d.Get("subnet").(*schema.Set); rs.Len() > 0 {
+		for _, subnet := range rs.List() {
+			subnet := subnet.(map[string]interface{})
+			subnets = append(subnets, virtualnetwork.Subnet{
+				Name:          subnet["name"].(string),
+				AddressPrefix: subnet["address_prefix"].(string),
+			})
+		}
 	}
 
 	return virtualnetwork.VirtualNetworkSite{
@@ -220,4 +274,68 @@ func createVirtualNetwork(d *schema.ResourceData) (virtualnetwork.VirtualNetwork
 		AddressSpace: addressSpace,
 		Subnets:      subnets,
 	}, nil
+}
+
+func associateSecurityGroups(d *schema.ResourceData, meta interface{}) error {
+	mc := meta.(management.Client)
+
+	virtualNetwork := d.Get("name").(string)
+
+	if rs := d.Get("subnet").(*schema.Set); rs.Len() > 0 {
+		for _, subnet := range rs.List() {
+			subnet := subnet.(map[string]interface{})
+			securityGroup := subnet["security_group"].(string)
+			subnetName := subnet["name"].(string)
+
+			// Get the associated (if any) security group
+			sg, err := networksecuritygroup.NewClient(mc).
+				GetNetworkSecurityGroupForSubnet(subnetName, d.Id())
+			if err != nil && !management.IsResourceNotFoundError(err) {
+				return fmt.Errorf(
+					"Error retrieving Network Security Group associations of subnet %s: %s", subnetName, err)
+			}
+
+			// If the desired and actual security group are the same, were done so can just continue
+			if sg.Name == securityGroup {
+				continue
+			}
+
+			// If there is an associated security group, make sure we first remove it from the subnet
+			if sg.Name != "" {
+				req, err := networksecuritygroup.NewClient(mc).
+					RemoveNetworkSecurityGroupFromSubnet(sg.Name, subnetName, virtualNetwork)
+				if err != nil {
+					return fmt.Errorf("Error removing Network Security Group %s from subnet %s: %s",
+						securityGroup, subnetName, err)
+				}
+
+				// Wait until the security group is associated
+				if err := mc.WaitForOperation(req, nil); err != nil {
+					return fmt.Errorf(
+						"Error waiting for Network Security Group %s to be removed from subnet %s: %s",
+						securityGroup, subnetName, err)
+				}
+			}
+
+			// If the desired security group is not empty, assign the security group to the subnet
+			if securityGroup != "" {
+				req, err := networksecuritygroup.NewClient(mc).
+					AddNetworkSecurityToSubnet(securityGroup, subnetName, virtualNetwork)
+				if err != nil {
+					return fmt.Errorf("Error associating Network Security Group %s to subnet %s: %s",
+						securityGroup, subnetName, err)
+				}
+
+				// Wait until the security group is associated
+				if err := mc.WaitForOperation(req, nil); err != nil {
+					return fmt.Errorf(
+						"Error waiting for Network Security Group %s to be associated with subnet %s: %s",
+						securityGroup, subnetName, err)
+				}
+			}
+
+		}
+	}
+
+	return nil
 }

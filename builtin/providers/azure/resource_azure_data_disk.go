@@ -3,6 +3,7 @@ package azure
 import (
 	"fmt"
 	"log"
+	"time"
 
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/svanharmelen/azure-sdk-for-go/management"
@@ -20,6 +21,13 @@ func resourceAzureDataDisk() *schema.Resource {
 
 		Schema: map[string]*schema.Schema{
 			"name": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				Computed: true,
+				ForceNew: true,
+			},
+
+			"label": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
@@ -79,7 +87,13 @@ func resourceAzureDataDiskCreate(d *schema.ResourceData, meta interface{}) error
 	lun := d.Get("lun").(int)
 	vm := d.Get("virtual_machine").(string)
 
+	label := d.Get("label").(string)
+	if label == "" {
+		label = fmt.Sprintf("%s-%d", vm, lun)
+	}
+
 	p := virtualmachinedisk.CreateDataDiskParameters{
+		DiskLabel:           label,
 		Lun:                 lun,
 		LogicalDiskSizeInGB: d.Get("size").(int),
 		HostCaching:         hostCaching(d),
@@ -123,10 +137,15 @@ func resourceAzureDataDiskRead(d *schema.ResourceData, meta interface{}) error {
 	log.Printf("[DEBUG] Retrieving data disk: %s", d.Id())
 	datadisk, err := virtualmachinedisk.NewClient(mc).GetDataDisk(vm, vm, vm, lun)
 	if err != nil {
+		if management.IsResourceNotFoundError(err) {
+			d.SetId("")
+			return nil
+		}
 		return fmt.Errorf("Error retrieving data disk %s: %s", d.Id(), err)
 	}
 
 	d.Set("name", datadisk.DiskName)
+	d.Set("label", datadisk.DiskLabel)
 	d.Set("lun", datadisk.Lun)
 	d.Set("size", datadisk.LogicalDiskSizeInGB)
 	d.Set("caching", datadisk.HostCaching)
@@ -148,31 +167,13 @@ func resourceAzureDataDiskUpdate(d *schema.ResourceData, meta interface{}) error
 	lun := d.Get("lun").(int)
 	vm := d.Get("virtual_machine").(string)
 
-	if d.HasChange("size") {
-		p := virtualmachinedisk.UpdateDiskParameters{
-			Name: d.Id(),
-		}
+	if d.HasChange("lun") || d.HasChange("size") || d.HasChange("virtual_machine") {
+		olun, _ := d.GetChange("lun")
+		ovm, _ := d.GetChange("virtual_machine")
 
-		if d.HasChange("size") {
-			p.ResizedSizeInGB = d.Get("size").(int)
-		}
-
-		log.Printf("[DEBUG] Updating disk: %s", d.Id())
-		req, err := virtualmachinedisk.NewClient(mc).UpdateDisk(d.Id(), p)
-		if err != nil {
-			return fmt.Errorf("Error updating disk %s: %s", d.Id(), err)
-		}
-
-		// Wait until the disk is updated
-		if err := mc.WaitForOperation(req, nil); err != nil {
-			return fmt.Errorf(
-				"Error waiting for disk %s to be updated: %s", d.Id(), err)
-		}
-	}
-
-	if d.HasChange("virtual_machine") {
 		log.Printf("[DEBUG] Detaching data disk: %s", d.Id())
-		req, err := virtualmachinedisk.NewClient(mc).DeleteDataDisk(vm, vm, vm, lun, false)
+		req, err := virtualmachinedisk.NewClient(mc).
+			DeleteDataDisk(ovm.(string), ovm.(string), ovm.(string), olun.(int), false)
 		if err != nil {
 			return fmt.Errorf("Error detaching data disk %s: %s", d.Id(), err)
 		}
@@ -181,6 +182,42 @@ func resourceAzureDataDiskUpdate(d *schema.ResourceData, meta interface{}) error
 		if err := mc.WaitForOperation(req, nil); err != nil {
 			return fmt.Errorf(
 				"Error waiting for data disk %s to be detached: %s", d.Id(), err)
+		}
+
+		log.Printf("[DEBUG] Verifying data disk %s is properly detached...", d.Id())
+		for i := 0; i < 6; i++ {
+			disk, err := virtualmachinedisk.NewClient(mc).GetDisk(d.Id())
+			if err != nil {
+				return fmt.Errorf("Error retrieving disk %s: %s", d.Id(), err)
+			}
+
+			// Check if the disk is really detached
+			if disk.AttachedTo.RoleName == "" {
+				break
+			}
+
+			// If not, wait 30 seconds and try it again...
+			time.Sleep(time.Duration(30 * time.Second))
+		}
+
+		if d.HasChange("size") {
+			p := virtualmachinedisk.UpdateDiskParameters{
+				DiskName:        d.Id(),
+				Label:           d.Get("label").(string),
+				ResizedSizeInGB: d.Get("size").(int),
+			}
+
+			log.Printf("[DEBUG] Updating disk: %s", d.Id())
+			req, err := virtualmachinedisk.NewClient(mc).UpdateDisk(d.Id(), p)
+			if err != nil {
+				return fmt.Errorf("Error updating disk %s: %s", d.Id(), err)
+			}
+
+			// Wait until the disk is updated
+			if err := mc.WaitForOperation(req, nil); err != nil {
+				return fmt.Errorf(
+					"Error waiting for disk %s to be updated: %s", d.Id(), err)
+			}
 		}
 
 		p := virtualmachinedisk.CreateDataDiskParameters{
@@ -207,7 +244,7 @@ func resourceAzureDataDiskUpdate(d *schema.ResourceData, meta interface{}) error
 		return nil
 	}
 
-	if d.HasChange("caching") || d.HasChange("lun") {
+	if d.HasChange("caching") {
 		p := virtualmachinedisk.UpdateDataDiskParameters{
 			DiskName:    d.Id(),
 			Lun:         lun,

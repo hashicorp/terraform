@@ -12,18 +12,34 @@ import (
 type Config struct {
 	SettingsFile   string
 	SubscriptionID string
+	Certificate    []byte
+	ManagementURL  string
 }
 
-// NewClient returns a new Azure management client
+// NewClient returns a new Azure management client which is created
+// using different functions depending on the supplied settings
 func (c *Config) NewClient() (management.Client, error) {
-	if _, err := os.Stat(c.SettingsFile); os.IsNotExist(err) {
-		return nil, fmt.Errorf("Publish Settings file %q does not exist!", c.SettingsFile)
+	if c.SettingsFile != "" {
+		if _, err := os.Stat(c.SettingsFile); os.IsNotExist(err) {
+			return nil, fmt.Errorf("Publish Settings file %q does not exist!", c.SettingsFile)
+		}
+
+		return management.ClientFromPublishSettingsFile(c.SettingsFile, c.SubscriptionID)
 	}
 
-	mc, err := management.ClientFromPublishSettingsFile(c.SettingsFile, c.SubscriptionID)
-	if err != nil {
-		return nil, fmt.Errorf("Error creating management client: %s", err)
+	if c.ManagementURL != "" {
+		return management.NewClientFromConfig(
+			c.SubscriptionID,
+			c.Certificate,
+			management.ClientConfig{ManagementURL: c.ManagementURL},
+		)
 	}
 
-	return mc, nil
+	if c.SubscriptionID != "" && len(c.Certificate) > 0 {
+		return management.NewClient(c.SubscriptionID, c.Certificate)
+	}
+
+	return nil, fmt.Errorf(
+		"Insufficient configuration data. Please specify either a 'settings_file'\n" +
+			"or both a 'subscription_id' and 'certificate' with an optional 'management_url'.")
 }
