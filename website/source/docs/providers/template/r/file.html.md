@@ -41,3 +41,6 @@ The following attributes are exported:
 * `vars` - See Argument Reference above.
 * `rendered` - The final rendered template.
 
+## Template files syntax
+
+The syntax of the template files is [documented here](/docs/configuration/interpolation.html), under the "Templates" section.
