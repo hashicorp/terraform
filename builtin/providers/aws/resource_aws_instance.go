@@ -68,6 +68,17 @@ func resourceAwsInstance() *schema.Resource {
 				Computed: true,
 			},
 
+			// Fallback to on demand if spot bid fails
+			"spot_fallback": &schema.Schema{
+				Type:     schema.TypeBool,
+				Optional: true,
+			},
+
+			"spot_price": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+			},
+
 			"subnet_id": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
@@ -119,6 +130,11 @@ func resourceAwsInstance() *schema.Resource {
 				Set: func(v interface{}) int {
 					return hashcode.String(v.(string))
 				},
+			},
+
+			"spot_request_id": &schema.Schema{
+				Type:     schema.TypeString,
+				Computed: true,
 			},
 
 			"public_dns": &schema.Schema{
@@ -514,44 +530,130 @@ func resourceAwsInstanceCreate(d *schema.ResourceData, meta interface{}) error {
 		runOpts.BlockDeviceMappings = blockDevices
 	}
 
-	// Create the instance
-	log.Printf("[DEBUG] Run configuration: %#v", runOpts)
-	var err error
+	instanceID := ""
+	onDemand := true
 
-	var runResp *ec2.Reservation
-	for i := 0; i < 5; i++ {
-		runResp, err = conn.RunInstances(runOpts)
-		if awsErr, ok := err.(awserr.Error); ok {
-			// IAM profiles can take ~10 seconds to propagate in AWS:
-			//  http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/iam-roles-for-amazon-ec2.html#launch-instance-with-role-console
-			if awsErr.Code() == "InvalidParameterValue" && strings.Contains(awsErr.Message(), "Invalid IAM Instance Profile") {
-				log.Printf("[DEBUG] Invalid IAM Instance Profile referenced, retrying...")
-				time.Sleep(2 * time.Second)
-				continue
-			}
+	if sp := d.Get("spot_price").(string); sp != "" {
+		// FIXME: check that instance type is not t2.micro, t2.small, or t2.medium
+
+		onDemand = false
+		// FIXME: validate spot price casts to a sensible decimal
+
+		spotPlacement := &ec2.SpotPlacement{
+			AvailabilityZone: aws.String(d.Get("availability_zone").(string)),
+			GroupName:        aws.String(d.Get("placement_group").(string)),
 		}
-		break
-	}
-	if err != nil {
-		return fmt.Errorf("Error launching source instance: %s", err)
+
+		launchSpec := &ec2.RequestSpotLaunchSpecification{
+			Placement:           spotPlacement,
+			BlockDeviceMappings: runOpts.BlockDeviceMappings,
+			ImageID:             runOpts.ImageID,
+			InstanceType:        runOpts.InstanceType,
+			UserData:            runOpts.UserData,
+			EBSOptimized:        runOpts.EBSOptimized,
+			IAMInstanceProfile:  runOpts.IAMInstanceProfile,
+			NetworkInterfaces:   runOpts.NetworkInterfaces,
+		}
+
+		if runOpts.SubnetID != nil {
+			launchSpec.SubnetID = runOpts.SubnetID
+		}
+
+		if runOpts.SecurityGroupIDs != nil {
+			launchSpec.SecurityGroupIDs = runOpts.SecurityGroupIDs
+		}
+
+		if runOpts.SecurityGroups != nil {
+			launchSpec.SecurityGroups = runOpts.SecurityGroups
+		}
+
+		if runOpts.KeyName != nil {
+			launchSpec.KeyName = runOpts.KeyName
+		}
+
+		// Build the spot instance struct
+		spotOpts := &ec2.RequestSpotInstancesInput{
+			SpotPrice:           aws.String(sp), // Required
+			InstanceCount:       aws.Long(1),
+			LaunchSpecification: launchSpec,
+		}
+
+		// Make the spot instance request
+		var spotResp *ec2.RequestSpotInstancesOutput
+		spotResp, err := conn.RequestSpotInstances(spotOpts)
+
+		request_id := *spotResp.SpotInstanceRequests[0].SpotInstanceRequestID
+		d.Set("spot_request_id", request_id)
+
+		spotStateConf := &resource.StateChangeConf{
+			// http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/spot-bid-status.html
+			Pending:    []string{"start", "pending-evaluation", "pending-fulfillment"},
+			Target:     "fulfilled",
+			Refresh:    SpotInstanceStateRefreshFunc(conn, request_id),
+			Timeout:    10 * time.Minute,
+			Delay:      10 * time.Second,
+			MinTimeout: 3 * time.Second,
+		}
+
+		log.Printf("[DEBUG] waiting for spot bid to resolve... this may take several minutes.")
+		spotRequestRaw, err := spotStateConf.WaitForState()
+		spotRequest := spotRequestRaw.(*ec2.SpotInstanceRequest)
+
+		fallback := d.Get("spot_fallback").(bool)
+
+		if err != nil && !fallback {
+			return fmt.Errorf("Error while waiting for spot request (%s) to resolve: %s", request_id, err)
+		} else if fallback {
+			log.Printf("[DEBUG] unable to fulfill spot request (%s) because %s", request_id, err)
+			// FIXME cancel the spot request before falling back to on demand
+			onDemand = true
+		} else {
+			instanceID = *spotRequest.InstanceID
+		}
 	}
 
-	instance := runResp.Instances[0]
-	log.Printf("[INFO] Instance ID: %s", *instance.InstanceID)
+	if onDemand {
+		// Create the instance
+		log.Printf("[DEBUG] Run configuration: %#v", runOpts)
+		var err error
+
+		var runResp *ec2.Reservation
+		for i := 0; i < 5; i++ {
+			runResp, err = conn.RunInstances(runOpts)
+			if awsErr, ok := err.(awserr.Error); ok {
+				// IAM profiles can take ~10 seconds to propagate in AWS:
+				//  http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/iam-roles-for-amazon-ec2.html#launch-instance-with-role-console
+				if awsErr.Code() == "InvalidParameterValue" && strings.Contains(awsErr.Message(), "Invalid IAM Instance Profile") {
+					log.Printf("[DEBUG] Invalid IAM Instance Profile referenced, retrying...")
+					time.Sleep(2 * time.Second)
+					continue
+				}
+			}
+			break
+		}
+		if err != nil {
+			return fmt.Errorf("Error launching source instance: %s", err)
+		}
+
+		instance := runResp.Instances[0]
+		log.Printf("[INFO] Instance ID: %s", *instance.InstanceID)
+
+		// Wait for the instance to become running so we can get some attributes
+		// that aren't available until later.
+		log.Printf(
+			"[DEBUG] Waiting for instance (%s) to become running",
+			*instance.InstanceID)
+
+		instanceID = *instance.InstanceID
+	}
 
 	// Store the resulting ID so we can look this up later
-	d.SetId(*instance.InstanceID)
-
-	// Wait for the instance to become running so we can get some attributes
-	// that aren't available until later.
-	log.Printf(
-		"[DEBUG] Waiting for instance (%s) to become running",
-		*instance.InstanceID)
+	d.SetId(instanceID)
 
 	stateConf := &resource.StateChangeConf{
 		Pending:    []string{"pending"},
 		Target:     "running",
-		Refresh:    InstanceStateRefreshFunc(conn, *instance.InstanceID),
+		Refresh:    InstanceStateRefreshFunc(conn, instanceID),
 		Timeout:    10 * time.Minute,
 		Delay:      10 * time.Second,
 		MinTimeout: 3 * time.Second,
@@ -561,10 +663,10 @@ func resourceAwsInstanceCreate(d *schema.ResourceData, meta interface{}) error {
 	if err != nil {
 		return fmt.Errorf(
 			"Error waiting for instance (%s) to become ready: %s",
-			*instance.InstanceID, err)
+			instanceID, err)
 	}
 
-	instance = instanceRaw.(*ec2.Instance)
+	instance := instanceRaw.(*ec2.Instance)
 
 	// Initialize the connection info
 	if instance.PublicIPAddress != nil {
@@ -756,6 +858,8 @@ func resourceAwsInstanceDelete(d *schema.ResourceData, meta interface{}) error {
 	req := &ec2.TerminateInstancesInput{
 		InstanceIDs: []*string{aws.String(d.Id())},
 	}
+
+	// FIXME cancel spot instance request on termination
 	if _, err := conn.TerminateInstances(req); err != nil {
 		return fmt.Errorf("Error terminating instance: %s", err)
 	}
@@ -782,6 +886,41 @@ func resourceAwsInstanceDelete(d *schema.ResourceData, meta interface{}) error {
 
 	d.SetId("")
 	return nil
+}
+
+// SpotInstanceStateRefreshFunc returns a resource.StateRefreshFunc that is used to watch
+// an EC2 spot instance request
+func SpotInstanceStateRefreshFunc(conn *ec2.EC2, reqID string) resource.StateRefreshFunc {
+
+	//SpotInstanceRequests
+
+	return func() (interface{}, string, error) {
+		resp, err := conn.DescribeSpotInstanceRequests(&ec2.DescribeSpotInstanceRequestsInput{
+			SpotInstanceRequestIDs: []*string{aws.String(reqID)},
+		})
+
+		// FIXME: actually do error handling instead of happy path
+		if err != nil {
+			/*
+			   if ec2err, ok := err.(awserr.Error); ok && ec2err.Code() == "InvalidInstanceID.NotFound" {
+			     // Set this to nil as if we didn't find anything.
+			     resp = nil
+			   } else {
+			     log.Printf("Error on InstanceStateRefresh: %s", err)
+			     return nil, "", err
+			   }
+			*/
+		}
+
+		if resp == nil || len(resp.SpotInstanceRequests) == 0 {
+			// Sometimes AWS just has consistency issues and doesn't see
+			// our instance yet. Return an empty state.
+			return nil, "", nil
+		}
+
+		req := resp.SpotInstanceRequests[0]
+		return req, *req.Status.Code, nil
+	}
 }
 
 // InstanceStateRefreshFunc returns a resource.StateRefreshFunc that is used to watch
