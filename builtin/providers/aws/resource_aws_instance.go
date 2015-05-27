@@ -74,6 +74,11 @@ func resourceAwsInstance() *schema.Resource {
 				Optional: true,
 			},
 
+			"spot_persist": &schema.Schema{
+				Type:     schema.TypeBool,
+				Optional: true,
+			},
+
 			"spot_price": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
@@ -571,9 +576,15 @@ func resourceAwsInstanceCreate(d *schema.ResourceData, meta interface{}) error {
 			launchSpec.KeyName = runOpts.KeyName
 		}
 
+		spotType := "one-time"
+
+		if d.Get("spot_persist").(bool) {
+			spotType = "persistent"
+		}
 		// Build the spot instance struct
 		spotOpts := &ec2.RequestSpotInstancesInput{
-			SpotPrice:           aws.String(sp), // Required
+			SpotPrice:           aws.String(sp),
+			Type:                aws.String(spotType),
 			InstanceCount:       aws.Long(1),
 			LaunchSpecification: launchSpec,
 		}
