@@ -133,7 +133,7 @@ The supported built-in functions are:
 
 ## Templates
 
-Long strings can be managed using templates. Templates are [resources](/docs/configuration/resources.html) defined by a filename and some variables to use during interpolation. They have a computed `rendered` attribute containing the result.
+Long strings can be managed using templates. [Templates](/docs/providers/template/index.html) are [resources](/docs/configuration/resources.html) defined by a filename and some variables to use during interpolation. They have a computed `rendered` attribute containing the result.
 
 A template resource looks like:
 
