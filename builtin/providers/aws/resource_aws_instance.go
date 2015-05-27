@@ -627,9 +627,7 @@ func resourceAwsInstanceCreate(d *schema.ResourceData, meta interface{}) error {
 		spotRequestRaw, err := spotStateConf.WaitForState()
 		spotRequest := spotRequestRaw.(*ec2.SpotInstanceRequest)
 
-		fallback := d.Get("spot_fallback").(bool)
-
-		if err != nil && !fallback {
+		if err != nil {
 			return fmt.Errorf("Error while waiting for spot request (%s) to resolve: %s", request_id, err)
 		} else {
 			instanceID = *spotRequest.InstanceID
@@ -900,14 +898,20 @@ func resourceAwsInstanceDelete(d *schema.ResourceData, meta interface{}) error {
 
 	if reqID := d.Get("spot_request_id").(string); reqID != "" {
 		log.Printf("[INFO] Cancelling spot request: %s", reqID)
-		_, output := conn.CancelSpotInstanceRequestsRequest(&ec2.CancelSpotInstanceRequestsInput{
+		output, err := conn.CancelSpotInstanceRequests(&ec2.CancelSpotInstanceRequestsInput{
 			SpotInstanceRequestIDs: []*string{aws.String(reqID)},
 		})
+
+		if err != nil {
+			return fmt.Errorf(
+				"Error cancelling spot reservation (%s): %s",
+				reqID, err)
+		}
 
 		if output != nil {
 			cancelled := output.CancelledSpotInstanceRequests
 			if len(cancelled) != 1 || *cancelled[0].SpotInstanceRequestID != reqID {
-				return nil
+				return fmt.Errorf("Error cancelling reservation: %s %s", reqID, len(cancelled))
 			}
 		}
 		d.Set("spot_request_id", "")
