@@ -35,6 +35,33 @@ func TestInterpolateFuncConcat(t *testing.T) {
 	})
 }
 
+func TestInterpolateFuncConcatLists(t *testing.T) {
+	testFunction(t, testFunctionConfig{
+		Cases: []testFunctionCase{
+			{
+				`${join(",", concatlist(split(",", "A,B"), split(",", "C,D")))}`,
+				"A,B,C,D",
+				false,
+			},
+			{
+				`${join(",", concatlist(split(",", "A,B"), split(",", "C,D"), split(",", "E")))}`,
+				"A,B,C,D,E",
+				false,
+			},
+			{
+				`${join(",", concatlist(split(",", "A,B"), "C"))}`,
+				"A,B,C",
+				false,
+			},
+			{
+				`${join(",", concatlist("A", "B"))}`,
+				"A,B",
+				false,
+			},
+		},
+	})
+}
+
 func TestInterpolateFuncFile(t *testing.T) {
 	tf, err := ioutil.TempFile("", "tf")
 	if err != nil {

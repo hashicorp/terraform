@@ -18,6 +18,7 @@ var Funcs map[string]ast.Function
 
 func init() {
 	Funcs = map[string]ast.Function{
+		"concatlist": interpolationFuncConcatlist(),
 		"file":       interpolationFuncFile(),
 		"format":     interpolationFuncFormat(),
 		"formatlist": interpolationFuncFormatList(),
@@ -50,6 +51,27 @@ func interpolationFuncConcat() ast.Function {
 			}
 
 			return b.String(), nil
+		},
+	}
+}
+
+// interpolationFuncConcatList implements the "concatlist" function that
+// concatenates multiple lists together.
+func interpolationFuncConcatlist() ast.Function {
+	return ast.Function{
+		ArgTypes:     []ast.Type{ast.TypeAny},
+		ReturnType:   ast.TypeString,
+		Variadic:     true,
+		VariadicType: ast.TypeAny,
+		Callback: func(args []interface{}) (interface{}, error) {
+			var list []string
+			for _, arg := range args {
+				parts := strings.Split(arg.(string), InterpSplitDelim)
+				if len(parts) > 0 {
+					list = append(list, parts...)
+				}
+			}
+			return strings.Join(list, InterpSplitDelim), nil
 		},
 	}
 }
