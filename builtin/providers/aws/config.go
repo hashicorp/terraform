@@ -14,11 +14,12 @@ import (
 	"github.com/awslabs/aws-sdk-go/service/elasticache"
 	"github.com/awslabs/aws-sdk-go/service/elb"
 	"github.com/awslabs/aws-sdk-go/service/iam"
+	"github.com/awslabs/aws-sdk-go/service/kinesis"
 	"github.com/awslabs/aws-sdk-go/service/rds"
 	"github.com/awslabs/aws-sdk-go/service/route53"
 	"github.com/awslabs/aws-sdk-go/service/s3"
-	"github.com/awslabs/aws-sdk-go/service/sqs"
 	"github.com/awslabs/aws-sdk-go/service/sns"
+	"github.com/awslabs/aws-sdk-go/service/sqs"
 )
 
 type Config struct {
@@ -43,6 +44,7 @@ type AWSClient struct {
 	region          string
 	rdsconn         *rds.RDS
 	iamconn         *iam.IAM
+	kinesisconn     *kinesis.Kinesis
 	elasticacheconn *elasticache.ElastiCache
 }
 
@@ -99,6 +101,9 @@ func (c *Config) Client() (interface{}, error) {
 
 		log.Println("[INFO] Initializing IAM Connection")
 		client.iamconn = iam.New(awsConfig)
+
+		log.Println("[INFO] Initializing Kinesis Connection")
+		client.kinesisconn = kinesis.New(awsConfig)
 
 		err := c.ValidateAccountId(client.iamconn)
 		if err != nil {
