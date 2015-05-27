@@ -11,7 +11,7 @@ func Provider() terraform.ResourceProvider {
 		Schema: map[string]*schema.Schema{
 			"settings_file": &schema.Schema{
 				Type:        schema.TypeString,
-				Required:    true,
+				Optional:    true,
 				DefaultFunc: schema.EnvDefaultFunc("AZURE_SETTINGS_FILE", nil),
 			},
 
@@ -19,6 +19,18 @@ func Provider() terraform.ResourceProvider {
 				Type:        schema.TypeString,
 				Optional:    true,
 				DefaultFunc: schema.EnvDefaultFunc("AZURE_SUBSCRIPTION_ID", ""),
+			},
+
+			"certificate": &schema.Schema{
+				Type:        schema.TypeString,
+				Optional:    true,
+				DefaultFunc: schema.EnvDefaultFunc("AZURE_CERTIFICATE", ""),
+			},
+
+			"management_url": &schema.Schema{
+				Type:        schema.TypeString,
+				Optional:    true,
+				DefaultFunc: schema.EnvDefaultFunc("AZURE_MANAGEMENT_URL", ""),
 			},
 		},
 
@@ -37,6 +49,8 @@ func providerConfigure(d *schema.ResourceData) (interface{}, error) {
 	config := Config{
 		SettingsFile:   d.Get("settings_file").(string),
 		SubscriptionID: d.Get("subscription_id").(string),
+		Certificate:    []byte(d.Get("certificate").(string)),
+		ManagementURL:  d.Get("management_url").(string),
 	}
 
 	return config.NewClient()
