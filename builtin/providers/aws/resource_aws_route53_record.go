@@ -380,6 +380,14 @@ func resourceAwsRoute53RecordBuildSet(d *schema.ResourceData, zoneName string) (
 			HostedZoneID:         aws.String(alias["zone_id"].(string)),
 		}
 		log.Printf("[DEBUG] Creating alias: %#v", alias)
+	} else {
+		if _, ok := d.GetOk("ttl"); !ok {
+			return nil, fmt.Errorf(`provider.aws: aws_route53_record: %s: "ttl": required field is not set`, d.Get("name").(string))
+		}
+
+		if _, ok := d.GetOk("records"); !ok {
+			return nil, fmt.Errorf(`provider.aws: aws_route53_record: %s: "records": required field is not set`, d.Get("name").(string))
+		}
 	}
 
 	if v, ok := d.GetOk("weight"); ok {
