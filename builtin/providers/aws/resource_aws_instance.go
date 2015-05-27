@@ -317,7 +317,7 @@ func resourceAwsInstance() *schema.Resource {
 func resourceAwsInstanceCreate(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).ec2conn
 
-	if d.Get("spot_request").(string) != "" {
+	if spot_request := d.Get("spot_request").(string); spot_request == "" {
 
 		// Figure out user data
 		userData := ""
@@ -549,54 +549,8 @@ func resourceAwsInstanceCreate(d *schema.ResourceData, meta interface{}) error {
 		// Store the resulting ID so we can look this up later
 		d.SetId(*instance.InstanceID)
 
-		err = waitForInstance(conn, *instance.InstanceID)
-		if err != nil {
-			return err
-		}
-	}
+	} else {
 
-	// Set our attributes
-	if err := resourceAwsInstanceRead(d, meta); err != nil {
-		return err
-	}
-
-	// Update if we need to
-	return resourceAwsInstanceUpdate(d, meta)
-}
-
-func waitForInstance(conn *ec2.EC2, instanceID string) error {
-
-	// Wait for the instance to become running so we can get some attributes
-	// that aren't available until later.
-	log.Printf(
-		"[DEBUG] Waiting for instance (%s) to become running",
-		instanceID)
-
-	stateConf := &resource.StateChangeConf{
-		Pending:    []string{"pending"},
-		Target:     "running",
-		Refresh:    InstanceStateRefreshFunc(conn, instanceID),
-		Timeout:    10 * time.Minute,
-		Delay:      10 * time.Second,
-		MinTimeout: 3 * time.Second,
-	}
-
-	_, err := stateConf.WaitForState()
-	if err != nil {
-		return fmt.Errorf(
-			"Error waiting for instance (%s) to become ready: %s",
-			instanceID, err)
-	}
-
-	return nil
-}
-
-func resourceAwsInstanceRead(d *schema.ResourceData, meta interface{}) error {
-	conn := meta.(*AWSClient).ec2conn
-
-	spot_request := d.Get("spot_request").(string)
-
-	if spot_request == "" && d.Id() == "" {
 		resp, _ := conn.DescribeSpotInstanceRequests(&ec2.DescribeSpotInstanceRequestsInput{
 			SpotInstanceRequestIDs: []*string{aws.String(spot_request)},
 		})
@@ -608,9 +562,42 @@ func resourceAwsInstanceRead(d *schema.ResourceData, meta interface{}) error {
 			return nil
 		}
 
-		waitForInstance(conn, *instanceID)
 		d.SetId(*instanceID)
 	}
+
+	// Wait for the instance to become running so we can get some attributes
+	// that aren't available until later.
+	log.Printf(
+		"[DEBUG] Waiting for instance (%s) to become running",
+		d.Id())
+
+	stateConf := &resource.StateChangeConf{
+		Pending:    []string{"pending"},
+		Target:     "running",
+		Refresh:    InstanceStateRefreshFunc(conn, d.Id()),
+		Timeout:    10 * time.Minute,
+		Delay:      10 * time.Second,
+		MinTimeout: 3 * time.Second,
+	}
+
+	_, err := stateConf.WaitForState()
+	if err != nil {
+		return fmt.Errorf(
+			"Error waiting for instance (%s) to become ready: %s",
+			d.Id(), err)
+	}
+
+	// Set our attributes
+	if err := resourceAwsInstanceRead(d, meta); err != nil {
+		return err
+	}
+
+	// Update if we need to
+	return resourceAwsInstanceUpdate(d, meta)
+}
+
+func resourceAwsInstanceRead(d *schema.ResourceData, meta interface{}) error {
+	conn := meta.(*AWSClient).ec2conn
 
 	resp, err := conn.DescribeInstances(&ec2.DescribeInstancesInput{
 		InstanceIDs: []*string{aws.String(d.Id())},
