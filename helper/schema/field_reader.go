@@ -78,19 +78,11 @@ func addrToSchema(addr []string, schemaMap map[string]*Schema) []*Schema {
 		}
 
 		switch t := current.Type; t {
-		case TypeBool:
-			fallthrough
-		case TypeInt:
-			fallthrough
-		case TypeFloat:
-			fallthrough
-		case TypeString:
+		case TypeBool, TypeInt, TypeFloat, TypeString:
 			if len(addr) > 0 {
 				return nil
 			}
-		case TypeList:
-			fallthrough
-		case TypeSet:
+		case TypeList, TypeSet:
 			switch v := current.Elem.(type) {
 			case *Resource:
 				current = &Schema{
