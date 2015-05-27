@@ -7,6 +7,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"log"
+	"strconv"
 	"strings"
 	"time"
 
@@ -66,12 +67,6 @@ func resourceAwsInstance() *schema.Resource {
 				Optional: true,
 				ForceNew: true,
 				Computed: true,
-			},
-
-			// Fallback to on demand if spot bid fails
-			"spot_fallback": &schema.Schema{
-				Type:     schema.TypeBool,
-				Optional: true,
 			},
 
 			"spot_persist": &schema.Schema{
@@ -138,6 +133,11 @@ func resourceAwsInstance() *schema.Resource {
 			},
 
 			"spot_request_id": &schema.Schema{
+				Type:     schema.TypeString,
+				Computed: true,
+			},
+
+			"spot_request_status": &schema.Schema{
 				Type:     schema.TypeString,
 				Computed: true,
 			},
@@ -539,10 +539,27 @@ func resourceAwsInstanceCreate(d *schema.ResourceData, meta interface{}) error {
 	onDemand := true
 
 	if sp := d.Get("spot_price").(string); sp != "" {
-		// FIXME: check that instance type is not t2.micro, t2.small, or t2.medium
+
+		// FIXME: Write tests for invalid instance type assert rejected
+		instance_type := d.Get("instance_type").(string)
+		if instance_type == "t2.micro" ||
+			instance_type == "t2.small" ||
+			instance_type == "t2.medium" {
+			return fmt.Errorf("Instance type (%s) cannot be used for a spot instance request", instance_type)
+		}
+
+		// FIXME: Write tests for negative bid assert rejected
+		// FIXME: Write tests for non decimal bid assert rejected
+		bid, err := strconv.ParseFloat(sp, 32)
+		if err == nil {
+			if bid < 0 {
+				return fmt.Errorf("Spot bid (%s) must be positive", sp)
+			}
+		} else {
+			return fmt.Errorf("Spot bid (%s) is not a valid decimal", sp)
+		}
 
 		onDemand = false
-		// FIXME: validate spot price casts to a sensible decimal
 
 		spotPlacement := &ec2.SpotPlacement{
 			AvailabilityZone: aws.String(d.Get("availability_zone").(string)),
@@ -591,7 +608,7 @@ func resourceAwsInstanceCreate(d *schema.ResourceData, meta interface{}) error {
 
 		// Make the spot instance request
 		var spotResp *ec2.RequestSpotInstancesOutput
-		spotResp, err := conn.RequestSpotInstances(spotOpts)
+		spotResp, err = conn.RequestSpotInstances(spotOpts)
 
 		request_id := *spotResp.SpotInstanceRequests[0].SpotInstanceRequestID
 		d.Set("spot_request_id", request_id)
@@ -614,10 +631,6 @@ func resourceAwsInstanceCreate(d *schema.ResourceData, meta interface{}) error {
 
 		if err != nil && !fallback {
 			return fmt.Errorf("Error while waiting for spot request (%s) to resolve: %s", request_id, err)
-		} else if fallback {
-			log.Printf("[DEBUG] unable to fulfill spot request (%s) because %s", request_id, err)
-			// FIXME cancel the spot request before falling back to on demand
-			onDemand = true
 		} else {
 			instanceID = *spotRequest.InstanceID
 		}
@@ -703,6 +716,25 @@ func resourceAwsInstanceCreate(d *schema.ResourceData, meta interface{}) error {
 
 func resourceAwsInstanceRead(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).ec2conn
+
+	if reqID := d.Get("spot_request_id").(string); reqID != "" {
+		resp, err := conn.DescribeSpotInstanceRequests(&ec2.DescribeSpotInstanceRequestsInput{
+			SpotInstanceRequestIDs: []*string{aws.String(reqID)},
+		})
+
+		if err != nil {
+			// If the instance was not found, return nil so that we can show
+			// that the instance is gone.
+			if ec2err, ok := err.(awserr.Error); ok && ec2err.Code() == "InvalidSpotInstanceRequestID.NotFound" {
+				d.Set("spot_request_id", "")
+				return nil
+			}
+
+			// Some other error, report it
+			return err
+		}
+		d.Set("spot_request_status", resp.SpotInstanceRequests[0].Status.Code)
+	}
 
 	resp, err := conn.DescribeInstances(&ec2.DescribeInstancesInput{
 		InstanceIDs: []*string{aws.String(d.Id())},
@@ -862,15 +894,30 @@ func resourceAwsInstanceUpdate(d *schema.ResourceData, meta interface{}) error {
 	return resourceAwsInstanceRead(d, meta)
 }
 
+// FIXME add test to ensure spot instances are deleted
 func resourceAwsInstanceDelete(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).ec2conn
+
+	if reqID := d.Get("spot_request_id").(string); reqID != "" {
+		log.Printf("[INFO] Cancelling spot request: %s", reqID)
+		_, output := conn.CancelSpotInstanceRequestsRequest(&ec2.CancelSpotInstanceRequestsInput{
+			SpotInstanceRequestIDs: []*string{aws.String(reqID)},
+		})
+
+		if output != nil {
+			cancelled := output.CancelledSpotInstanceRequests
+			if len(cancelled) != 1 || *cancelled[0].SpotInstanceRequestID != reqID {
+				return nil
+			}
+		}
+		d.Set("spot_request_id", "")
+	}
 
 	log.Printf("[INFO] Terminating instance: %s", d.Id())
 	req := &ec2.TerminateInstancesInput{
 		InstanceIDs: []*string{aws.String(d.Id())},
 	}
 
-	// FIXME cancel spot instance request on termination
 	if _, err := conn.TerminateInstances(req); err != nil {
 		return fmt.Errorf("Error terminating instance: %s", err)
 	}
@@ -903,24 +950,20 @@ func resourceAwsInstanceDelete(d *schema.ResourceData, meta interface{}) error {
 // an EC2 spot instance request
 func SpotInstanceStateRefreshFunc(conn *ec2.EC2, reqID string) resource.StateRefreshFunc {
 
-	//SpotInstanceRequests
-
 	return func() (interface{}, string, error) {
 		resp, err := conn.DescribeSpotInstanceRequests(&ec2.DescribeSpotInstanceRequestsInput{
 			SpotInstanceRequestIDs: []*string{aws.String(reqID)},
 		})
 
-		// FIXME: actually do error handling instead of happy path
 		if err != nil {
-			/*
-			   if ec2err, ok := err.(awserr.Error); ok && ec2err.Code() == "InvalidInstanceID.NotFound" {
-			     // Set this to nil as if we didn't find anything.
-			     resp = nil
-			   } else {
-			     log.Printf("Error on InstanceStateRefresh: %s", err)
-			     return nil, "", err
-			   }
-			*/
+			// If the instance was not found, return nil so that we can show
+			// that the instance is gone.
+			if ec2err, ok := err.(awserr.Error); ok && ec2err.Code() == "InvalidSpotInstanceRequestID.NotFound" {
+				resp = nil
+			} else {
+				log.Printf("Error on InstanceStateRefresh: %s", err)
+				return nil, "", err
+			}
 		}
 
 		if resp == nil || len(resp.SpotInstanceRequests) == 0 {
