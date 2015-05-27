@@ -68,6 +68,11 @@ func resourceAwsInstance() *schema.Resource {
 				Computed: true,
 			},
 
+			"spot_request": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+			},
+
 			"subnet_id": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
@@ -312,271 +317,274 @@ func resourceAwsInstance() *schema.Resource {
 func resourceAwsInstanceCreate(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).ec2conn
 
-	// Figure out user data
-	userData := ""
-	if v := d.Get("user_data"); v != nil {
-		userData = base64.StdEncoding.EncodeToString([]byte(v.(string)))
-	}
+	if spot_request := d.Get("spot_request").(string); spot_request == "" {
 
-	// check for non-default Subnet, and cast it to a String
-	var hasSubnet bool
-	subnet, hasSubnet := d.GetOk("subnet_id")
-	subnetID := subnet.(string)
-
-	placement := &ec2.Placement{
-		AvailabilityZone: aws.String(d.Get("availability_zone").(string)),
-		GroupName:        aws.String(d.Get("placement_group").(string)),
-	}
-
-	if hasSubnet {
-		// Tenancy is only valid inside a VPC
-		// See http://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_Placement.html
-		if v := d.Get("tenancy").(string); v != "" {
-			placement.Tenancy = aws.String(v)
-		}
-	}
-
-	iam := &ec2.IAMInstanceProfileSpecification{
-		Name: aws.String(d.Get("iam_instance_profile").(string)),
-	}
-
-	// Build the creation struct
-	runOpts := &ec2.RunInstancesInput{
-		ImageID:               aws.String(d.Get("ami").(string)),
-		Placement:             placement,
-		InstanceType:          aws.String(d.Get("instance_type").(string)),
-		MaxCount:              aws.Long(int64(1)),
-		MinCount:              aws.Long(int64(1)),
-		UserData:              aws.String(userData),
-		EBSOptimized:          aws.Boolean(d.Get("ebs_optimized").(bool)),
-		DisableAPITermination: aws.Boolean(d.Get("disable_api_termination").(bool)),
-		IAMInstanceProfile:    iam,
-	}
-
-	associatePublicIPAddress := false
-	if v := d.Get("associate_public_ip_address"); v != nil {
-		associatePublicIPAddress = v.(bool)
-	}
-
-	var groups []*string
-	if v := d.Get("security_groups"); v != nil {
-		// Security group names.
-		// For a nondefault VPC, you must use security group IDs instead.
-		// See http://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_RunInstances.html
-		sgs := v.(*schema.Set).List()
-		if len(sgs) > 0 && hasSubnet {
-			log.Printf("[WARN] Deprecated. Attempting to use 'security_groups' within a VPC instance. Use 'vpc_security_group_ids' instead.")
-		}
-		for _, v := range sgs {
-			str := v.(string)
-			groups = append(groups, aws.String(str))
-		}
-	}
-
-	if hasSubnet && associatePublicIPAddress {
-		// If we have a non-default VPC / Subnet specified, we can flag
-		// AssociatePublicIpAddress to get a Public IP assigned. By default these are not provided.
-		// You cannot specify both SubnetId and the NetworkInterface.0.* parameters though, otherwise
-		// you get: Network interfaces and an instance-level subnet ID may not be specified on the same request
-		// You also need to attach Security Groups to the NetworkInterface instead of the instance,
-		// to avoid: Network interfaces and an instance-level security groups may not be specified on
-		// the same request
-		ni := &ec2.InstanceNetworkInterfaceSpecification{
-			AssociatePublicIPAddress: aws.Boolean(associatePublicIPAddress),
-			DeviceIndex:              aws.Long(int64(0)),
-			SubnetID:                 aws.String(subnetID),
-			Groups:                   groups,
+		// Figure out user data
+		userData := ""
+		if v := d.Get("user_data"); v != nil {
+			userData = base64.StdEncoding.EncodeToString([]byte(v.(string)))
 		}
 
-		if v, ok := d.GetOk("private_ip"); ok {
-			ni.PrivateIPAddress = aws.String(v.(string))
+		// check for non-default Subnet, and cast it to a String
+		var hasSubnet bool
+		subnet, hasSubnet := d.GetOk("subnet_id")
+		subnetID := subnet.(string)
+
+		placement := &ec2.Placement{
+			AvailabilityZone: aws.String(d.Get("availability_zone").(string)),
+			GroupName:        aws.String(d.Get("placement_group").(string)),
 		}
 
-		if v := d.Get("vpc_security_group_ids"); v != nil {
-			for _, v := range v.(*schema.Set).List() {
-				ni.Groups = append(ni.Groups, aws.String(v.(string)))
+		if hasSubnet {
+			// Tenancy is only valid inside a VPC
+			// See http://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_Placement.html
+			if v := d.Get("tenancy").(string); v != "" {
+				placement.Tenancy = aws.String(v)
 			}
 		}
 
-		runOpts.NetworkInterfaces = []*ec2.InstanceNetworkInterfaceSpecification{ni}
-	} else {
-		if subnetID != "" {
-			runOpts.SubnetID = aws.String(subnetID)
+		iam := &ec2.IAMInstanceProfileSpecification{
+			Name: aws.String(d.Get("iam_instance_profile").(string)),
 		}
 
-		if v, ok := d.GetOk("private_ip"); ok {
-			runOpts.PrivateIPAddress = aws.String(v.(string))
+		// Build the creation struct
+		runOpts := &ec2.RunInstancesInput{
+			ImageID:               aws.String(d.Get("ami").(string)),
+			Placement:             placement,
+			InstanceType:          aws.String(d.Get("instance_type").(string)),
+			MaxCount:              aws.Long(int64(1)),
+			MinCount:              aws.Long(int64(1)),
+			UserData:              aws.String(userData),
+			EBSOptimized:          aws.Boolean(d.Get("ebs_optimized").(bool)),
+			DisableAPITermination: aws.Boolean(d.Get("disable_api_termination").(bool)),
+			IAMInstanceProfile:    iam,
 		}
-		if runOpts.SubnetID != nil &&
-			*runOpts.SubnetID != "" {
-			runOpts.SecurityGroupIDs = groups
+
+		associatePublicIPAddress := false
+		if v := d.Get("associate_public_ip_address"); v != nil {
+			associatePublicIPAddress = v.(bool)
+		}
+
+		var groups []*string
+		if v := d.Get("security_groups"); v != nil {
+			// Security group names.
+			// For a nondefault VPC, you must use security group IDs instead.
+			// See http://docs.aws.amazon.com/AWSEC2/latest/APIReference/API_RunInstances.html
+			sgs := v.(*schema.Set).List()
+			if len(sgs) > 0 && hasSubnet {
+				log.Printf("[WARN] Deprecated. Attempting to use 'security_groups' within a VPC instance. Use 'vpc_security_group_ids' instead.")
+			}
+			for _, v := range sgs {
+				str := v.(string)
+				groups = append(groups, aws.String(str))
+			}
+		}
+
+		if hasSubnet && associatePublicIPAddress {
+			// If we have a non-default VPC / Subnet specified, we can flag
+			// AssociatePublicIpAddress to get a Public IP assigned. By default these are not provided.
+			// You cannot specify both SubnetId and the NetworkInterface.0.* parameters though, otherwise
+			// you get: Network interfaces and an instance-level subnet ID may not be specified on the same request
+			// You also need to attach Security Groups to the NetworkInterface instead of the instance,
+			// to avoid: Network interfaces and an instance-level security groups may not be specified on
+			// the same request
+			ni := &ec2.InstanceNetworkInterfaceSpecification{
+				AssociatePublicIPAddress: aws.Boolean(associatePublicIPAddress),
+				DeviceIndex:              aws.Long(int64(0)),
+				SubnetID:                 aws.String(subnetID),
+				Groups:                   groups,
+			}
+
+			if v, ok := d.GetOk("private_ip"); ok {
+				ni.PrivateIPAddress = aws.String(v.(string))
+			}
+
+			if v := d.Get("vpc_security_group_ids"); v != nil {
+				for _, v := range v.(*schema.Set).List() {
+					ni.Groups = append(ni.Groups, aws.String(v.(string)))
+				}
+			}
+
+			runOpts.NetworkInterfaces = []*ec2.InstanceNetworkInterfaceSpecification{ni}
 		} else {
-			runOpts.SecurityGroups = groups
-		}
+			if subnetID != "" {
+				runOpts.SubnetID = aws.String(subnetID)
+			}
 
-		if v := d.Get("vpc_security_group_ids"); v != nil {
-			for _, v := range v.(*schema.Set).List() {
-				runOpts.SecurityGroupIDs = append(runOpts.SecurityGroupIDs, aws.String(v.(string)))
+			if v, ok := d.GetOk("private_ip"); ok {
+				runOpts.PrivateIPAddress = aws.String(v.(string))
+			}
+			if runOpts.SubnetID != nil &&
+				*runOpts.SubnetID != "" {
+				runOpts.SecurityGroupIDs = groups
+			} else {
+				runOpts.SecurityGroups = groups
+			}
+
+			if v := d.Get("vpc_security_group_ids"); v != nil {
+				for _, v := range v.(*schema.Set).List() {
+					runOpts.SecurityGroupIDs = append(runOpts.SecurityGroupIDs, aws.String(v.(string)))
+				}
 			}
 		}
-	}
 
-	if v, ok := d.GetOk("key_name"); ok {
-		runOpts.KeyName = aws.String(v.(string))
-	}
-
-	blockDevices := make([]*ec2.BlockDeviceMapping, 0)
-
-	if v, ok := d.GetOk("ebs_block_device"); ok {
-		vL := v.(*schema.Set).List()
-		for _, v := range vL {
-			bd := v.(map[string]interface{})
-			ebs := &ec2.EBSBlockDevice{
-				DeleteOnTermination: aws.Boolean(bd["delete_on_termination"].(bool)),
-				Encrypted:           aws.Boolean(bd["encrypted"].(bool)),
-			}
-
-			if v, ok := bd["snapshot_id"].(string); ok && v != "" {
-				ebs.SnapshotID = aws.String(v)
-			}
-
-			if v, ok := bd["volume_size"].(int); ok && v != 0 {
-				ebs.VolumeSize = aws.Long(int64(v))
-			}
-
-			if v, ok := bd["volume_type"].(string); ok && v != "" {
-				ebs.VolumeType = aws.String(v)
-			}
-
-			if v, ok := bd["iops"].(int); ok && v > 0 {
-				ebs.IOPS = aws.Long(int64(v))
-			}
-
-			blockDevices = append(blockDevices, &ec2.BlockDeviceMapping{
-				DeviceName: aws.String(bd["device_name"].(string)),
-				EBS:        ebs,
-			})
+		if v, ok := d.GetOk("key_name"); ok {
+			runOpts.KeyName = aws.String(v.(string))
 		}
-	}
 
-	if v, ok := d.GetOk("ephemeral_block_device"); ok {
-		vL := v.(*schema.Set).List()
-		for _, v := range vL {
-			bd := v.(map[string]interface{})
-			blockDevices = append(blockDevices, &ec2.BlockDeviceMapping{
-				DeviceName:  aws.String(bd["device_name"].(string)),
-				VirtualName: aws.String(bd["virtual_name"].(string)),
-			})
-		}
-	}
+		blockDevices := make([]*ec2.BlockDeviceMapping, 0)
 
-	if v, ok := d.GetOk("root_block_device"); ok {
-		vL := v.(*schema.Set).List()
-		if len(vL) > 1 {
-			return fmt.Errorf("Cannot specify more than one root_block_device.")
-		}
-		for _, v := range vL {
-			bd := v.(map[string]interface{})
-			ebs := &ec2.EBSBlockDevice{
-				DeleteOnTermination: aws.Boolean(bd["delete_on_termination"].(bool)),
-			}
+		if v, ok := d.GetOk("ebs_block_device"); ok {
+			vL := v.(*schema.Set).List()
+			for _, v := range vL {
+				bd := v.(map[string]interface{})
+				ebs := &ec2.EBSBlockDevice{
+					DeleteOnTermination: aws.Boolean(bd["delete_on_termination"].(bool)),
+					Encrypted:           aws.Boolean(bd["encrypted"].(bool)),
+				}
 
-			if v, ok := bd["volume_size"].(int); ok && v != 0 {
-				ebs.VolumeSize = aws.Long(int64(v))
-			}
+				if v, ok := bd["snapshot_id"].(string); ok && v != "" {
+					ebs.SnapshotID = aws.String(v)
+				}
 
-			if v, ok := bd["volume_type"].(string); ok && v != "" {
-				ebs.VolumeType = aws.String(v)
-			}
+				if v, ok := bd["volume_size"].(int); ok && v != 0 {
+					ebs.VolumeSize = aws.Long(int64(v))
+				}
 
-			if v, ok := bd["iops"].(int); ok && v > 0 {
-				ebs.IOPS = aws.Long(int64(v))
-			}
+				if v, ok := bd["volume_type"].(string); ok && v != "" {
+					ebs.VolumeType = aws.String(v)
+				}
 
-			if dn, err := fetchRootDeviceName(d.Get("ami").(string), conn); err == nil {
-				if dn == nil {
-					return fmt.Errorf(
-						"Expected 1 AMI for ID: %s, got none",
-						d.Get("ami").(string))
+				if v, ok := bd["iops"].(int); ok && v > 0 {
+					ebs.IOPS = aws.Long(int64(v))
 				}
 
 				blockDevices = append(blockDevices, &ec2.BlockDeviceMapping{
-					DeviceName: dn,
+					DeviceName: aws.String(bd["device_name"].(string)),
 					EBS:        ebs,
 				})
-			} else {
-				return err
 			}
 		}
-	}
 
-	if len(blockDevices) > 0 {
-		runOpts.BlockDeviceMappings = blockDevices
-	}
-
-	// Create the instance
-	log.Printf("[DEBUG] Run configuration: %#v", runOpts)
-	var err error
-
-	var runResp *ec2.Reservation
-	for i := 0; i < 5; i++ {
-		runResp, err = conn.RunInstances(runOpts)
-		if awsErr, ok := err.(awserr.Error); ok {
-			// IAM profiles can take ~10 seconds to propagate in AWS:
-			//  http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/iam-roles-for-amazon-ec2.html#launch-instance-with-role-console
-			if awsErr.Code() == "InvalidParameterValue" && strings.Contains(awsErr.Message(), "Invalid IAM Instance Profile") {
-				log.Printf("[DEBUG] Invalid IAM Instance Profile referenced, retrying...")
-				time.Sleep(2 * time.Second)
-				continue
+		if v, ok := d.GetOk("ephemeral_block_device"); ok {
+			vL := v.(*schema.Set).List()
+			for _, v := range vL {
+				bd := v.(map[string]interface{})
+				blockDevices = append(blockDevices, &ec2.BlockDeviceMapping{
+					DeviceName:  aws.String(bd["device_name"].(string)),
+					VirtualName: aws.String(bd["virtual_name"].(string)),
+				})
 			}
 		}
-		break
-	}
-	if err != nil {
-		return fmt.Errorf("Error launching source instance: %s", err)
-	}
 
-	instance := runResp.Instances[0]
-	log.Printf("[INFO] Instance ID: %s", *instance.InstanceID)
+		if v, ok := d.GetOk("root_block_device"); ok {
+			vL := v.(*schema.Set).List()
+			if len(vL) > 1 {
+				return fmt.Errorf("Cannot specify more than one root_block_device.")
+			}
+			for _, v := range vL {
+				bd := v.(map[string]interface{})
+				ebs := &ec2.EBSBlockDevice{
+					DeleteOnTermination: aws.Boolean(bd["delete_on_termination"].(bool)),
+				}
 
-	// Store the resulting ID so we can look this up later
-	d.SetId(*instance.InstanceID)
+				if v, ok := bd["volume_size"].(int); ok && v != 0 {
+					ebs.VolumeSize = aws.Long(int64(v))
+				}
+
+				if v, ok := bd["volume_type"].(string); ok && v != "" {
+					ebs.VolumeType = aws.String(v)
+				}
+
+				if v, ok := bd["iops"].(int); ok && v > 0 {
+					ebs.IOPS = aws.Long(int64(v))
+				}
+
+				if dn, err := fetchRootDeviceName(d.Get("ami").(string), conn); err == nil {
+					if dn == nil {
+						return fmt.Errorf(
+							"Expected 1 AMI for ID: %s, got none",
+							d.Get("ami").(string))
+					}
+
+					blockDevices = append(blockDevices, &ec2.BlockDeviceMapping{
+						DeviceName: dn,
+						EBS:        ebs,
+					})
+				} else {
+					return err
+				}
+			}
+		}
+
+		if len(blockDevices) > 0 {
+			runOpts.BlockDeviceMappings = blockDevices
+		}
+
+		// Create the instance
+		log.Printf("[DEBUG] Run configuration: %#v", runOpts)
+		var err error
+
+		var runResp *ec2.Reservation
+		for i := 0; i < 5; i++ {
+			runResp, err = conn.RunInstances(runOpts)
+			if awsErr, ok := err.(awserr.Error); ok {
+				// IAM profiles can take ~10 seconds to propagate in AWS:
+				//  http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/iam-roles-for-amazon-ec2.html#launch-instance-with-role-console
+				if awsErr.Code() == "InvalidParameterValue" && strings.Contains(awsErr.Message(), "Invalid IAM Instance Profile") {
+					log.Printf("[DEBUG] Invalid IAM Instance Profile referenced, retrying...")
+					time.Sleep(2 * time.Second)
+					continue
+				}
+			}
+			break
+		}
+		if err != nil {
+			return fmt.Errorf("Error launching source instance: %s", err)
+		}
+
+		instance := runResp.Instances[0]
+		log.Printf("[INFO] Instance ID: %s", *instance.InstanceID)
+
+		// Store the resulting ID so we can look this up later
+		d.SetId(*instance.InstanceID)
+
+	} else {
+
+		resp, _ := conn.DescribeSpotInstanceRequests(&ec2.DescribeSpotInstanceRequestsInput{
+			SpotInstanceRequestIDs: []*string{aws.String(spot_request)},
+		})
+
+		req := resp.SpotInstanceRequests[0]
+		instanceID := req.InstanceID
+
+		if instanceID == nil || *instanceID == "" {
+			return nil
+		}
+
+		d.SetId(*instanceID)
+	}
 
 	// Wait for the instance to become running so we can get some attributes
 	// that aren't available until later.
 	log.Printf(
 		"[DEBUG] Waiting for instance (%s) to become running",
-		*instance.InstanceID)
+		d.Id())
 
 	stateConf := &resource.StateChangeConf{
 		Pending:    []string{"pending"},
 		Target:     "running",
-		Refresh:    InstanceStateRefreshFunc(conn, *instance.InstanceID),
+		Refresh:    InstanceStateRefreshFunc(conn, d.Id()),
 		Timeout:    10 * time.Minute,
 		Delay:      10 * time.Second,
 		MinTimeout: 3 * time.Second,
 	}
 
-	instanceRaw, err := stateConf.WaitForState()
+	_, err := stateConf.WaitForState()
 	if err != nil {
 		return fmt.Errorf(
 			"Error waiting for instance (%s) to become ready: %s",
-			*instance.InstanceID, err)
-	}
-
-	instance = instanceRaw.(*ec2.Instance)
-
-	// Initialize the connection info
-	if instance.PublicIPAddress != nil {
-		d.SetConnInfo(map[string]string{
-			"type": "ssh",
-			"host": *instance.PublicIPAddress,
-		})
-	} else if instance.PrivateIPAddress != nil {
-		d.SetConnInfo(map[string]string{
-			"type": "ssh",
-			"host": *instance.PrivateIPAddress,
-		})
+			d.Id(), err)
 	}
 
 	// Set our attributes
@@ -613,6 +621,19 @@ func resourceAwsInstanceRead(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	instance := resp.Reservations[0].Instances[0]
+
+	// Initialize the connection info
+	if instance.PublicIPAddress != nil {
+		d.SetConnInfo(map[string]string{
+			"type": "ssh",
+			"host": *instance.PublicIPAddress,
+		})
+	} else if instance.PrivateIPAddress != nil {
+		d.SetConnInfo(map[string]string{
+			"type": "ssh",
+			"host": *instance.PrivateIPAddress,
+		})
+	}
 
 	// If the instance is terminated, then it is gone
 	if *instance.State.Name == "terminated" {

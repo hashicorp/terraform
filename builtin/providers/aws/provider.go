@@ -106,6 +106,7 @@ func Provider() terraform.ResourceProvider {
 			"aws_iam_server_certificate":       resourceAwsIAMServerCertificate(),
 			"aws_iam_user_policy":              resourceAwsIamUserPolicy(),
 			"aws_iam_user":                     resourceAwsIamUser(),
+			"aws_spot_bid":                     resourceAwsSpotBid(),
 			"aws_instance":                     resourceAwsInstance(),
 			"aws_internet_gateway":             resourceAwsInternetGateway(),
 			"aws_key_pair":                     resourceAwsKeyPair(),
