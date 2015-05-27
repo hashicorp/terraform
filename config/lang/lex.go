@@ -299,9 +299,7 @@ func (x *parserLex) lexString(yylval *parserSymType, quoted bool) (int, bool) {
 			// Let's check to see if we're escaping anything.
 			if c == '\\' {
 				switch n := x.next(); n {
-				case '\\':
-					fallthrough
-				case '"':
+				case '\\', '"':
 					c = n
 				case 'n':
 					c = '\n'
