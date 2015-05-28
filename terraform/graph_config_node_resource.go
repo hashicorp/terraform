@@ -148,9 +148,7 @@ func (n *GraphNodeConfigResource) DynamicExpand(ctx EvalContext) (*Graph, error)
 	// Primary and non-destroy modes are responsible for creating/destroying
 	// all the nodes, expanding counts.
 	switch n.DestroyMode {
-	case DestroyNone:
-		fallthrough
-	case DestroyPrimary:
+	case DestroyNone, DestroyPrimary:
 		steps = append(steps, &ResourceCountTransformer{
 			Resource: n.Resource,
 			Destroy:  n.DestroyMode != DestroyNone,

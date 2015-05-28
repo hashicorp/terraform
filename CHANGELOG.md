@@ -2,7 +2,10 @@
 
 IMPROVEMENTS:
 
+  * **New resource: `aws_iam_server_certificate`** [GH-2086]
   * **New resource: `aws_sqs_queue`** [GH-1939]
+  * **New resource: `aws_sns_topic`** [GH-1974]
+  * **New resource: `aws_sns_topic_subscription`** [GH-1974]
   * provider/aws: support ec2 termination protection [GH-1988]
   * provider/aws: support for RDS Read Replicas [GH-1946]
   * provider/aws: `aws_s3_bucket` add support for `policy` [GH-1992]

@@ -11,7 +11,7 @@ description: |-
 ## Example Usage
 
 ```
-resource "aws_sqs_queue" "terrform_queue" {
+resource "aws_sqs_queue" "terraform_queue" {
   name = "terraform-example-queue"
   delay_seconds = 90
   max_message_size = 2048
@@ -36,3 +36,4 @@ The following arguments are supported:
 The following attributes are exported:
 
 * `id` - The URL for the created Amazon SQS queue.
+* `arn` - The ARN of the SQS queue
