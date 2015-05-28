@@ -6,7 +6,6 @@ import (
 
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
-	"github.com/svanharmelen/azure-sdk-for-go/management"
 	"github.com/svanharmelen/azure-sdk-for-go/management/virtualnetwork"
 )
 
@@ -138,7 +137,7 @@ func testAccCheckAzureVirtualNetworkExists(
 			return fmt.Errorf("No Virtual Network ID is set")
 		}
 
-		mc := testAccProvider.Meta().(management.Client)
+		mc := testAccProvider.Meta().(*Client).mgmtClient
 		nc, err := virtualnetwork.NewClient(mc).GetVirtualNetworkConfiguration()
 		if err != nil {
 			return err
@@ -173,7 +172,7 @@ func testAccCheckAzureVirtualNetworkAttributes(
 }
 
 func testAccCheckAzureVirtualNetworkDestroy(s *terraform.State) error {
-	mc := testAccProvider.Meta().(management.Client)
+	mc := testAccProvider.Meta().(*Client).mgmtClient
 
 	for _, rs := range s.RootModule().Resources {
 		if rs.Type != "azure_virtual_network" {

@@ -7,7 +7,6 @@ import (
 
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
-	"github.com/svanharmelen/azure-sdk-for-go/management"
 	"github.com/svanharmelen/azure-sdk-for-go/management/hostedservice"
 	"github.com/svanharmelen/azure-sdk-for-go/management/virtualmachine"
 )
@@ -132,7 +131,7 @@ func testAccCheckAzureInstanceExists(
 			return fmt.Errorf("No instance ID is set")
 		}
 
-		mc := testAccProvider.Meta().(management.Client)
+		mc := testAccProvider.Meta().(*Client).mgmtClient
 		vm, err := virtualmachine.NewClient(mc).GetDeployment(rs.Primary.ID, rs.Primary.ID)
 		if err != nil {
 			return err
@@ -284,7 +283,7 @@ func testAccCheckAzureInstanceUpdatedAttributes(
 }
 
 func testAccCheckAzureInstanceDestroy(s *terraform.State) error {
-	mc := testAccProvider.Meta().(management.Client)
+	mc := testAccProvider.Meta().(*Client).mgmtClient
 
 	for _, rs := range s.RootModule().Resources {
 		if rs.Type != "azure_instance" {
