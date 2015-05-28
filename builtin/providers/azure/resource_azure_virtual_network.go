@@ -69,9 +69,15 @@ func resourceAzureVirtualNetwork() *schema.Resource {
 }
 
 func resourceAzureVirtualNetworkCreate(d *schema.ResourceData, meta interface{}) error {
-	mc := meta.(management.Client)
+	ac := meta.(*Client)
+	mc := ac.mgmtClient
 
 	name := d.Get("name").(string)
+
+	// Lock the client just before we get the virtual network configuration and immediately
+	// set an defer to unlock the client again whenever this function exits
+	ac.mutex.Lock()
+	defer ac.mutex.Unlock()
 
 	nc, err := virtualnetwork.NewClient(mc).GetVirtualNetworkConfiguration()
 	if err != nil {
@@ -115,7 +121,7 @@ func resourceAzureVirtualNetworkCreate(d *schema.ResourceData, meta interface{})
 }
 
 func resourceAzureVirtualNetworkRead(d *schema.ResourceData, meta interface{}) error {
-	mc := meta.(management.Client)
+	mc := meta.(*Client).mgmtClient
 
 	nc, err := virtualnetwork.NewClient(mc).GetVirtualNetworkConfiguration()
 	if err != nil {
@@ -165,7 +171,13 @@ func resourceAzureVirtualNetworkRead(d *schema.ResourceData, meta interface{}) e
 }
 
 func resourceAzureVirtualNetworkUpdate(d *schema.ResourceData, meta interface{}) error {
-	mc := meta.(management.Client)
+	ac := meta.(*Client)
+	mc := ac.mgmtClient
+
+	// Lock the client just before we get the virtual network configuration and immediately
+	// set an defer to unlock the client again whenever this function exits
+	ac.mutex.Lock()
+	defer ac.mutex.Unlock()
 
 	nc, err := virtualnetwork.NewClient(mc).GetVirtualNetworkConfiguration()
 	if err != nil {
@@ -208,7 +220,13 @@ func resourceAzureVirtualNetworkUpdate(d *schema.ResourceData, meta interface{})
 }
 
 func resourceAzureVirtualNetworkDelete(d *schema.ResourceData, meta interface{}) error {
-	mc := meta.(management.Client)
+	ac := meta.(*Client)
+	mc := ac.mgmtClient
+
+	// Lock the client just before we get the virtual network configuration and immediately
+	// set an defer to unlock the client again whenever this function exits
+	ac.mutex.Lock()
+	defer ac.mutex.Unlock()
 
 	nc, err := virtualnetwork.NewClient(mc).GetVirtualNetworkConfiguration()
 	if err != nil {
@@ -277,7 +295,8 @@ func createVirtualNetwork(d *schema.ResourceData) (virtualnetwork.VirtualNetwork
 }
 
 func associateSecurityGroups(d *schema.ResourceData, meta interface{}) error {
-	mc := meta.(management.Client)
+	mc := meta.(*Client).mgmtClient
+	nsgClient := networksecuritygroup.NewClient(mc)
 
 	virtualNetwork := d.Get("name").(string)
 
@@ -288,8 +307,7 @@ func associateSecurityGroups(d *schema.ResourceData, meta interface{}) error {
 			subnetName := subnet["name"].(string)
 
 			// Get the associated (if any) security group
-			sg, err := networksecuritygroup.NewClient(mc).
-				GetNetworkSecurityGroupForSubnet(subnetName, d.Id())
+			sg, err := nsgClient.GetNetworkSecurityGroupForSubnet(subnetName, d.Id())
 			if err != nil && !management.IsResourceNotFoundError(err) {
 				return fmt.Errorf(
 					"Error retrieving Network Security Group associations of subnet %s: %s", subnetName, err)
@@ -302,8 +320,7 @@ func associateSecurityGroups(d *schema.ResourceData, meta interface{}) error {
 
 			// If there is an associated security group, make sure we first remove it from the subnet
 			if sg.Name != "" {
-				req, err := networksecuritygroup.NewClient(mc).
-					RemoveNetworkSecurityGroupFromSubnet(sg.Name, subnetName, virtualNetwork)
+				req, err := nsgClient.RemoveNetworkSecurityGroupFromSubnet(sg.Name, subnetName, virtualNetwork)
 				if err != nil {
 					return fmt.Errorf("Error removing Network Security Group %s from subnet %s: %s",
 						securityGroup, subnetName, err)
@@ -319,8 +336,7 @@ func associateSecurityGroups(d *schema.ResourceData, meta interface{}) error {
 
 			// If the desired security group is not empty, assign the security group to the subnet
 			if securityGroup != "" {
-				req, err := networksecuritygroup.NewClient(mc).
-					AddNetworkSecurityToSubnet(securityGroup, subnetName, virtualNetwork)
+				req, err := nsgClient.AddNetworkSecurityToSubnet(securityGroup, subnetName, virtualNetwork)
 				if err != nil {
 					return fmt.Errorf("Error associating Network Security Group %s to subnet %s: %s",
 						securityGroup, subnetName, err)

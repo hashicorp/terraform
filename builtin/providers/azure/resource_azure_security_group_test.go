@@ -6,7 +6,6 @@ import (
 
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
-	"github.com/svanharmelen/azure-sdk-for-go/management"
 	"github.com/svanharmelen/azure-sdk-for-go/management/networksecuritygroup"
 )
 
@@ -104,7 +103,7 @@ func testAccCheckAzureSecurityGroupExists(
 			return fmt.Errorf("No Network Security Group ID is set")
 		}
 
-		mc := testAccProvider.Meta().(management.Client)
+		mc := testAccProvider.Meta().(*Client).mgmtClient
 		sg, err := networksecuritygroup.NewClient(mc).GetNetworkSecurityGroup(rs.Primary.ID)
 		if err != nil {
 			return err
@@ -204,7 +203,7 @@ func testAccCheckAzureSecurityGroupUpdatedAttributes(
 }
 
 func testAccCheckAzureSecurityGroupDestroy(s *terraform.State) error {
-	mc := testAccProvider.Meta().(management.Client)
+	mc := testAccProvider.Meta().(*Client).mgmtClient
 
 	for _, rs := range s.RootModule().Resources {
 		if rs.Type != "azure_security_group" {

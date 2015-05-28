@@ -33,11 +33,16 @@ resource "azure_instance" "web" {
 
 The following arguments are supported:
 
-* `settings_file` - (Required) The path to a publish settings file used to
+* `settings_file` - (Optional) The path to a publish settings file used to
   authenticate with the Azure API. You can download the settings file here:
-  https://manage.windowsazure.com/publishsettings. It must be provided, but
-  it can also be sourced from the `AZURE_SETTINGS_FILE` environment variable.
+  https://manage.windowsazure.com/publishsettings. You must either provide
+  (or source from the `AZURE_SETTINGS_FILE` environment variable) a settings
+  file or both a `subscription_id` and `certificate`.
 
-* `subscription_id` - (Optional) The subscription ID to use. If not provided
-  the first subscription ID in publish settings file will be used. It can
-  also be sourced from the `AZURE_SUBSCRIPTION_ID` environment variable.
+* `subscription_id` - (Optional) The subscription ID to use. If a
+  `settings_file` is not provided `subscription_id` is required. It can also
+  be sourced from the `AZURE_SUBSCRIPTION_ID` environment variable.
+
+* `certificate` - (Optional) The certificate used to authenticate with the
+  Azure API. If a `settings_file` is not provided `certificate` is required.
+  It can also be sourced from the `AZURE_CERTIFICATE` environment variable.

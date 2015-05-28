@@ -1,28 +1,32 @@
 ---
-layout: "cloudstack"
-page_title: "CloudStack: cloudstack_network_acl_rule"
-sidebar_current: "docs-cloudstack-resource-network-acl-rule"
+layout: "azure"
+page_title: "Azure: azure_security_group"
+sidebar_current: "docs-azure-resource-security-group"
 description: |-
-  Creates network ACL rules for a given network ACL.
+  Creates a new network security group within the context of the specified subscription.
 ---
 
-# cloudstack\_network\_acl\_rule
+# azure\_security\_group
 
-Creates network ACL rules for a given network ACL.
+Creates a new network security group within the context of the specified
+subscription.
 
 ## Example Usage
 
 ```
-resource "cloudstack_network_acl_rule" "default" {
-  aclid = "f3843ce0-334c-4586-bbd3-0c2e2bc946c6"
+resource "azure_security_group" "web" {
+    name = "webservers"
+    location = "West US"
 
-  rule {
-    action = "allow"
-    source_cidr = "10.0.0.0/8"
-    protocol = "tcp"
-    ports = ["80", "1000-2000"]
-    traffic_type = "ingress"
-  }
+    rule {
+        name = "HTTPS"
+        priority = 101
+        source_cidr = "*"
+        source_port = "*"
+        destination_cidr = "*"
+        destination_port = "443"
+        protocol = "TCP"
+    }
 }
 ```
 
@@ -30,40 +34,51 @@ resource "cloudstack_network_acl_rule" "default" {
 
 The following arguments are supported:
 
-* `aclid` - (Required) The network ACL ID for which to create the rules.
-    Changing this forces a new resource to be created.
+* `name` - (Required) The name of the security group. Changing this forces a
+    new resource to be created.
 
-* `managed` - (Optional) USE WITH CAUTION! If enabled all the firewall rules for
-    this network ACL will be managed by this resource. This means it will delete
-    all firewall rules that are not in your config! (defaults false)
+* `label` - (Optional) The identifier for the security group. The label can be
+    up to 1024 characters long. Changing this forces a new resource to be
+    created (defaults to the security group name)
 
-* `rule` - (Optional) Can be specified multiple times. Each rule block supports
-    fields documented below. If `managed = false` at least one rule is required!
+* `location` - (Required) The location/region where the security group is
+    created. Changing this forces a new resource to be created.
+
+* `rule` - (Required) Can be specified multiple times to define multiple
+    rules. Each `rule` block supports fields documented below.
 
 The `rule` block supports:
 
-* `action` - (Optional) The action for the rule. Valid options are: `allow` and
-    `deny` (defaults allow).
+* `name` - (Required) The name of the security rule.
 
-* `source_cidr` - (Required) The source CIDR to allow access to the given ports.
+* `type ` - (Optional) The type of the security rule. Valid options are:
+    `Inbound` and `Outbound` (defaults `Inbound`)
 
-* `protocol` - (Required) The name of the protocol to allow. Valid options are:
-    `tcp`, `udp`, `icmp`, `all` or a valid protocol number.
+* `priority` - (Required) The priority of the network security rule. Rules with
+    lower priority are evaluated first. This value can be between 100 and 4096.
 
-* `icmp_type` - (Optional) The ICMP type to allow. This can only be specified if
-    the protocol is ICMP.
+* `action` - (Optional) The action that is performed when the security rule is
+    matched. Valid options are: `Allow` and `Deny` (defaults `Allow`)
 
-* `icmp_code` - (Optional) The ICMP code to allow. This can only be specified if
-    the protocol is ICMP.
+* `source_cidr` - (Required) The CIDR or source IP range. An asterisk (\*) can
+    also be used to match all source IPs.
 
-* `ports` - (Optional) List of ports and/or port ranges to allow. This can only
-    be specified if the protocol is TCP, UDP, ALL or a valid protocol number.
+* `source_port` - (Required) The source port or range. This value can be
+    between 0 and 65535. An asterisk (\*) can also be used to match all ports.
 
-* `traffic_type` - (Optional) The traffic type for the rule. Valid options are:
-    `ingress` or `egress` (defaults ingress).
+* `destination_cidr` - (Required) The CIDR or destination IP range. An asterisk
+    (\*) can also be used to match all destination IPs.
+
+* `destination_port` - (Required) The destination port or range. This value can
+    be between 0 and 65535. An asterisk (\*) can also be used to match all
+    ports.
+
+* `protocol` - (Optional) The protocol of the security rule. Valid options are:
+    `TCP`, `UDP` and `*` (defaults `TCP`)
 
 ## Attributes Reference
 
 The following attributes are exported:
 
-* `id` - The ACL ID for which the rules are created.
+* `id` - The security group ID.
+* `label` - The identifier for the security group.

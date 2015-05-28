@@ -8,7 +8,6 @@ import (
 
 	"github.com/hashicorp/terraform/helper/hashcode"
 	"github.com/hashicorp/terraform/helper/schema"
-	"github.com/svanharmelen/azure-sdk-for-go/management"
 	"github.com/svanharmelen/azure-sdk-for-go/management/networksecuritygroup"
 )
 
@@ -100,7 +99,7 @@ func resourceAzureSecurityGroup() *schema.Resource {
 }
 
 func resourceAzureSecurityGroupCreate(d *schema.ResourceData, meta interface{}) (err error) {
-	mc := meta.(management.Client)
+	mc := meta.(*Client).mgmtClient
 
 	name := d.Get("name").(string)
 
@@ -152,8 +151,10 @@ func resourceAzureSecurityGroupCreate(d *schema.ResourceData, meta interface{}) 
 }
 
 func resourceAzureSecurityGroupRuleCreate(
-	d *schema.ResourceData, meta interface{}, rule map[string]interface{}) error {
-	mc := meta.(management.Client)
+	d *schema.ResourceData,
+	meta interface{},
+	rule map[string]interface{}) error {
+	mc := meta.(*Client).mgmtClient
 
 	// Make sure all required parameters are there
 	if err := verifySecurityGroupRuleParams(rule); err != nil {
@@ -189,7 +190,7 @@ func resourceAzureSecurityGroupRuleCreate(
 }
 
 func resourceAzureSecurityGroupRead(d *schema.ResourceData, meta interface{}) error {
-	mc := meta.(management.Client)
+	mc := meta.(*Client).mgmtClient
 
 	sg, err := networksecuritygroup.NewClient(mc).GetNetworkSecurityGroup(d.Id())
 	if err != nil {
@@ -264,7 +265,7 @@ func resourceAzureSecurityGroupUpdate(d *schema.ResourceData, meta interface{}) 
 }
 
 func resourceAzureSecurityGroupDelete(d *schema.ResourceData, meta interface{}) error {
-	mc := meta.(management.Client)
+	mc := meta.(*Client).mgmtClient
 
 	log.Printf("[DEBUG] Deleting Network Security Group: %s", d.Id())
 	req, err := networksecuritygroup.NewClient(mc).DeleteNetworkSecurityGroup(d.Id())
@@ -285,7 +286,7 @@ func resourceAzureSecurityGroupDelete(d *schema.ResourceData, meta interface{}) 
 
 func resourceAzureSecurityGroupRuleDelete(
 	d *schema.ResourceData, meta interface{}, rule map[string]interface{}) error {
-	mc := meta.(management.Client)
+	mc := meta.(*Client).mgmtClient
 
 	name := rule["name"].(string)
 

@@ -1,6 +1,8 @@
 package azure
 
 import (
+	"fmt"
+
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/terraform"
 )
@@ -26,12 +28,6 @@ func Provider() terraform.ResourceProvider {
 				Optional:    true,
 				DefaultFunc: schema.EnvDefaultFunc("AZURE_CERTIFICATE", ""),
 			},
-
-			"management_url": &schema.Schema{
-				Type:        schema.TypeString,
-				Optional:    true,
-				DefaultFunc: schema.EnvDefaultFunc("AZURE_MANAGEMENT_URL", ""),
-			},
 		},
 
 		ResourcesMap: map[string]*schema.Resource{
@@ -50,8 +46,17 @@ func providerConfigure(d *schema.ResourceData) (interface{}, error) {
 		SettingsFile:   d.Get("settings_file").(string),
 		SubscriptionID: d.Get("subscription_id").(string),
 		Certificate:    []byte(d.Get("certificate").(string)),
-		ManagementURL:  d.Get("management_url").(string),
 	}
 
-	return config.NewClient()
+	if config.SettingsFile != "" {
+		return config.NewClientFromSettingsFile()
+	}
+
+	if config.SubscriptionID != "" && len(config.Certificate) > 0 {
+		return config.NewClient()
+	}
+
+	return nil, fmt.Errorf(
+		"Insufficient configuration data. Please specify either a 'settings_file'\n" +
+			"or both a 'subscription_id' and 'certificate'.")
 }

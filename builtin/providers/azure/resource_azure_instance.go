@@ -89,6 +89,7 @@ func resourceAzureInstance() *schema.Resource {
 			"automatic_updates": &schema.Schema{
 				Type:     schema.TypeBool,
 				Optional: true,
+				Default:  false,
 				ForceNew: true,
 			},
 
@@ -129,7 +130,8 @@ func resourceAzureInstance() *schema.Resource {
 
 						"protocol": &schema.Schema{
 							Type:     schema.TypeString,
-							Required: true,
+							Optional: true,
+							Default:  "tcp",
 						},
 
 						"public_port": &schema.Schema{
@@ -166,7 +168,7 @@ func resourceAzureInstance() *schema.Resource {
 }
 
 func resourceAzureInstanceCreate(d *schema.ResourceData, meta interface{}) (err error) {
-	mc := meta.(management.Client)
+	mc := meta.(*Client).mgmtClient
 
 	name := d.Get("name").(string)
 
@@ -324,7 +326,7 @@ func resourceAzureInstanceCreate(d *schema.ResourceData, meta interface{}) (err 
 }
 
 func resourceAzureInstanceRead(d *schema.ResourceData, meta interface{}) error {
-	mc := meta.(management.Client)
+	mc := meta.(*Client).mgmtClient
 
 	log.Printf("[DEBUG] Retrieving Cloud Service for instance: %s", d.Id())
 	cs, err := hostedservice.NewClient(mc).GetHostedService(d.Id())
@@ -414,7 +416,7 @@ func resourceAzureInstanceRead(d *schema.ResourceData, meta interface{}) error {
 }
 
 func resourceAzureInstanceUpdate(d *schema.ResourceData, meta interface{}) error {
-	mc := meta.(management.Client)
+	mc := meta.(*Client).mgmtClient
 
 	// First check if anything we can update changed, and if not just return
 	if !d.HasChange("size") && !d.HasChange("endpoint") && !d.HasChange("security_group") {
@@ -490,7 +492,7 @@ func resourceAzureInstanceUpdate(d *schema.ResourceData, meta interface{}) error
 }
 
 func resourceAzureInstanceDelete(d *schema.ResourceData, meta interface{}) error {
-	mc := meta.(management.Client)
+	mc := meta.(*Client).mgmtClient
 
 	log.Printf("[DEBUG] Deleting instance: %s", d.Id())
 	req, err := hostedservice.NewClient(mc).DeleteHostedService(d.Id(), true)
