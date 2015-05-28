@@ -53,9 +53,9 @@ The following arguments are supported:
 
 The following attributes are exported:
 
-* `id` - The ID of the VPC Peering Connectiona
+* `id` - The ID of the VPC Peering Connections
 * `accept_status` - The Status of the VPC peering connection request.
 
 
 ## Notes
-You still have to accept the peering with the aws console, aws-cli or aws-sdk-go.
+You still have to accept the peering with the AWS Console, aws-cli or aws-sdk-go.
