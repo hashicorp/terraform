@@ -3,6 +3,7 @@ package aws
 import (
 	"bytes"
 	"fmt"
+	"log"
 	"time"
 
 	"github.com/awslabs/aws-sdk-go/aws"
@@ -59,6 +60,7 @@ func resourceAwsVolumeAttachmentCreate(d *schema.ResourceData, meta interface{})
 		VolumeID:   aws.String(vID),
 	}
 
+	log.Printf("[DEBUG] Attaching Volume (%s) to Instance (%s)", vID, iID)
 	_, err := conn.AttachVolume(opts)
 	if err != nil {
 		if awsErr, ok := err.(awserr.Error); ok {
@@ -68,10 +70,59 @@ func resourceAwsVolumeAttachmentCreate(d *schema.ResourceData, meta interface{})
 		return err
 	}
 
+	stateConf := &resource.StateChangeConf{
+		Pending:    []string{"attaching"},
+		Target:     "attached",
+		Refresh:    volumeAttachmentStateRefreshFunc(conn, vID, iID),
+		Timeout:    5 * time.Minute,
+		Delay:      10 * time.Second,
+		MinTimeout: 3 * time.Second,
+	}
+
+	_, err = stateConf.WaitForState()
+	if err != nil {
+		return fmt.Errorf(
+			"Error waiting for Volume (%s) to attach to Instance: %s, error:",
+			vID, iID, err)
+	}
+
 	d.SetId(volumeAttachmentID(name, vID, iID))
 	return resourceAwsVolumeAttachmentRead(d, meta)
 }
 
+func volumeAttachmentStateRefreshFunc(conn *ec2.EC2, volumeID, instanceID string) resource.StateRefreshFunc {
+	return func() (interface{}, string, error) {
+
+		request := &ec2.DescribeVolumesInput{
+			VolumeIDs: []*string{aws.String(volumeID)},
+			Filters: []*ec2.Filter{
+				&ec2.Filter{
+					Name:   aws.String("attachment.instance-id"),
+					Values: []*string{aws.String(instanceID)},
+				},
+			},
+		}
+
+		resp, err := conn.DescribeVolumes(request)
+		if err != nil {
+			if awsErr, ok := err.(awserr.Error); ok {
+				return nil, "failed", fmt.Errorf("code: %s, message: %s", awsErr.Code(), awsErr.Message())
+			}
+			return nil, "failed", err
+		}
+
+		if len(resp.Volumes) > 0 {
+			v := resp.Volumes[0]
+			for _, a := range v.Attachments {
+				if a.InstanceID != nil && *a.InstanceID == instanceID {
+					return a, *a.State, nil
+				}
+			}
+		}
+		// assume detached if volume count is 0
+		return 42, "detached", nil
+	}
+}
 func resourceAwsVolumeAttachmentRead(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).ec2conn
 
@@ -99,35 +150,35 @@ func resourceAwsVolumeAttachmentRead(d *schema.ResourceData, meta interface{}) e
 func resourceAwsVolumeAttachmentDelete(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).ec2conn
 
-	volume := d.Get("volume_id").(string)
-	instance := d.Get("instance_id").(string)
+	vID := d.Get("volume_id").(string)
+	iID := d.Get("instance_id").(string)
 
 	opts := &ec2.DetachVolumeInput{
 		Device:     aws.String(d.Get("device_name").(string)),
-		InstanceID: aws.String(instance),
-		VolumeID:   aws.String(volume),
+		InstanceID: aws.String(iID),
+		VolumeID:   aws.String(vID),
 		Force:      aws.Boolean(d.Get("force_detach").(bool)),
 	}
 
-	return resource.Retry(3*time.Minute, func() error {
-		resp, err := conn.DetachVolume(opts)
-		if err != nil {
-			awsErr, ok := err.(awserr.Error)
-			if ok && (awsErr.Code() == "IncorrectState" || awsErr.Code() == "InvalidVolume.NotFound") {
-				// volume attachment is not in a valid "attachment state"
-				return nil
-			}
+	_, err := conn.DetachVolume(opts)
+	stateConf := &resource.StateChangeConf{
+		Pending:    []string{"detaching"},
+		Target:     "detached",
+		Refresh:    volumeAttachmentStateRefreshFunc(conn, vID, iID),
+		Timeout:    5 * time.Minute,
+		Delay:      10 * time.Second,
+		MinTimeout: 3 * time.Second,
+	}
 
-			return err
-		}
-
-		if resp.State != nil && *resp.State == "detaching" {
-			return fmt.Errorf("waiting for volume %s to detach from instance %s", volume, instance)
-		} else if *resp.State == "detached" {
-			return nil
-		}
-		return fmt.Errorf("Error detaching volume %s from instance %s", volume, instance)
-	})
+	log.Printf("[DEBUG] Detaching Volume (%s) from Instance (%s)", vID, iID)
+	_, err = stateConf.WaitForState()
+	if err != nil {
+		return fmt.Errorf(
+			"Error waiting for Volume (%s) to detach from Instance: %s",
+			vID, iID)
+	}
+	d.SetId("")
+	return nil
 }
 
 func volumeAttachmentID(name, volumeID, instanceID string) string {

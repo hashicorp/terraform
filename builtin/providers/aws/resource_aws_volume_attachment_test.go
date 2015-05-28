@@ -82,7 +82,7 @@ resource "aws_instance" "web" {
 
 resource "aws_ebs_volume" "example" {
   availability_zone = "us-west-2a"
-	size = 5
+	size = 1
 }
 
 resource "aws_volume_attachment" "ebs_att" {
