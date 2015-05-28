@@ -46,7 +46,7 @@ The following arguments are supported:
 * `peer_owner_id` - (Required) The AWS account ID of the owner of the peer VPC.
 * `peer_vpc_id` - (Required) The ID of the VPC with which you are creating the VPC peering connection.
 * `vpc_id` - (Required) The ID of the requester VPC.
-* `auto_accept` - (Optional) Accept the peering ( you need to be the owner of both vpc)
+* `auto_accept` - (Optional) Accept the peering (you need to be the owner of both VPCs).
 * `tags` - (Optional) A mapping of tags to assign to the resource.
 
 ## Attributes Reference
