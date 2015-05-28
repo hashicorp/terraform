@@ -82,6 +82,11 @@ func resourceCloudStackInstance() *schema.Resource {
 				Optional: true,
 				Default:  false,
 			},
+			"project_name": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				Default:  nil,
+			},
 		},
 	}
 }
@@ -146,6 +151,17 @@ func resourceCloudStackInstanceCreate(d *schema.ResourceData, meta interface{}) 
 					"this exeeds the limit of 2048 bytes", len(ud))
 		}
 		p.SetUserdata(ud)
+	}
+
+	// If the project_name contains any info, we retreive the project_id
+	if projectName, ok := d.GetOk("project_name"); ok {
+		project, _, err := cs.Project.GetProjectByName(projectName.(string))
+		if err != nil {
+			return err
+		}
+		log.Printf("[DEBUG] project id %s", project.Id)
+		p.SetProjectid(project.Id)
+		d.Set("project_id", project.Id)
 	}
 
 	// Create the new instance
