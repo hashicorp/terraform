@@ -3,6 +3,7 @@ package azure
 import (
 	"fmt"
 	"os"
+	"sync"
 
 	"github.com/svanharmelen/azure-sdk-for-go/management"
 )
@@ -16,30 +17,42 @@ type Config struct {
 	ManagementURL  string
 }
 
-// NewClient returns a new Azure management client which is created
-// using different functions depending on the supplied settings
-func (c *Config) NewClient() (management.Client, error) {
-	if c.SettingsFile != "" {
-		if _, err := os.Stat(c.SettingsFile); os.IsNotExist(err) {
-			return nil, fmt.Errorf("Publish Settings file %q does not exist!", c.SettingsFile)
-		}
+// Client contains all the handles required for managing Azure services.
+type Client struct {
+	// unfortunately; because of how Azure's network API works; doing networking operations
+	// concurrently is very hazardous, and we need a mutex to guard the management.Client.
+	mutex      *sync.Mutex
+	mgmtClient management.Client
+}
 
-		return management.ClientFromPublishSettingsFile(c.SettingsFile, c.SubscriptionID)
+// NewClientFromSettingsFile returns a new Azure management
+// client created using a publish settings file.
+func (c *Config) NewClientFromSettingsFile() (*Client, error) {
+	if _, err := os.Stat(c.SettingsFile); os.IsNotExist(err) {
+		return nil, fmt.Errorf("Publish Settings file %q does not exist!", c.SettingsFile)
 	}
 
-	if c.ManagementURL != "" {
-		return management.NewClientFromConfig(
-			c.SubscriptionID,
-			c.Certificate,
-			management.ClientConfig{ManagementURL: c.ManagementURL},
-		)
+	mc, err := management.ClientFromPublishSettingsFile(c.SettingsFile, c.SubscriptionID)
+	if err != nil {
+		return nil, nil
 	}
 
-	if c.SubscriptionID != "" && len(c.Certificate) > 0 {
-		return management.NewClient(c.SubscriptionID, c.Certificate)
+	return &Client{
+		mutex:      &sync.Mutex{},
+		mgmtClient: mc,
+	}, nil
+}
+
+// NewClient returns a new Azure management client created
+// using a subscription ID and certificate.
+func (c *Config) NewClient() (*Client, error) {
+	mc, err := management.NewClient(c.SubscriptionID, c.Certificate)
+	if err != nil {
+		return nil, nil
 	}
 
-	return nil, fmt.Errorf(
-		"Insufficient configuration data. Please specify either a 'settings_file'\n" +
-			"or both a 'subscription_id' and 'certificate' with an optional 'management_url'.")
+	return &Client{
+		mutex:      &sync.Mutex{},
+		mgmtClient: mc,
+	}, nil
 }

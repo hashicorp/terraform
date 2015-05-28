@@ -8,7 +8,6 @@ import (
 
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
-	"github.com/svanharmelen/azure-sdk-for-go/management"
 	"github.com/svanharmelen/azure-sdk-for-go/management/virtualmachinedisk"
 )
 
@@ -102,7 +101,7 @@ func testAccCheckAzureDataDiskExists(
 			return err
 		}
 
-		mc := testAccProvider.Meta().(management.Client)
+		mc := testAccProvider.Meta().(*Client).mgmtClient
 		d, err := virtualmachinedisk.NewClient(mc).GetDataDisk(vm, vm, vm, lun)
 		if err != nil {
 			return err
@@ -139,7 +138,7 @@ func testAccCheckAzureDataDiskAttributes(
 }
 
 func testAccCheckAzureDataDiskDestroy(s *terraform.State) error {
-	mc := testAccProvider.Meta().(management.Client)
+	mc := testAccProvider.Meta().(*Client).mgmtClient
 
 	for _, rs := range s.RootModule().Resources {
 		if rs.Type != "azure_data_disk" {

@@ -1,25 +1,28 @@
 ---
-layout: "cloudstack"
-page_title: "CloudStack: cloudstack_network"
-sidebar_current: "docs-cloudstack-resource-network"
+layout: "azure"
+page_title: "Azure: azure_virtual_network"
+sidebar_current: "docs-azure-resource-virtual-network"
 description: |-
-  Creates a network.
+  Creates a new virtual network including any configured subnets. Each subnet can optionally be configured with a security group to be associated with the subnet.
 ---
 
-# cloudstack\_network
+# azure\_virtual\_network
 
-Creates a network.
+Creates a new virtual network including any configured subnets. Each subnet can
+optionally be configured with a security group to be associated with the subnet.
 
 ## Example Usage
 
-Basic usage:
-
 ```
-resource "cloudstack_network" "default" {
+resource "azure_virtual_network" "default" {
     name = "test-network"
-    cidr = "10.0.0.0/16"
-    network_offering = "Default Network"
-    zone = "zone-1"
+    address_space = ["10.1.2.0/24"]
+    location = "West US"
+
+    subnet {
+        name = "subnet1"
+        address_prefix = "10.1.2.0/25"
+    }
 }
 ```
 
@@ -27,28 +30,30 @@ resource "cloudstack_network" "default" {
 
 The following arguments are supported:
 
-* `name` - (Required) The name of the network.
+* `name` - (Required) The name of the virtual network. Changing this forces a
+    new resource to be created.
 
-* `display_text` - (Optional) The display text of the network.
+* `address_space` - (Required) The address space that is used the virtual
+    network. You can supply more than one address space. Changing this forces
+    a new resource to be created.
 
-* `cidr` - (Required) The CIDR block for the network. Changing this forces a new
-    resource to be created.
+* `location` - (Required) The location/region where the virtual network is
+    created. Changing this forces a new resource to be created.
 
-* `network_offering` - (Required) The name or ID of the network offering to use
-    for this network.
+* `subnet` - (Required) Can be specified multiple times to define multiple
+    subnets. Each `subnet` block supports fields documented below.
 
-* `vpc` - (Optional) The name of the VPC to create this network for. Changing
-    this forces a new resource to be created.
+The `subnet` block supports:
 
-* `aclid` - (Optional) The ID of a network ACL that should be attached to the
-    network. Changing this forces a new resource to be created.
+* `name` - (Required) The name of the subnet.
 
-* `zone` - (Required) The name or ID of the zone where this disk volume will be
-    available. Changing this forces a new resource to be created.
+* `address_prefix` - (Required) The address prefix to use for the subnet.
+
+* `security_group` - (Optional) The Network Security Group to associate with
+    the subnet.
 
 ## Attributes Reference
 
 The following attributes are exported:
 
-* `id` - The ID of the network.
-* `display_text` - The display text of the network.
+* `id` - The virtual NetworkConfiguration ID.
