@@ -540,7 +540,6 @@ func resourceAwsInstanceCreate(d *schema.ResourceData, meta interface{}) error {
 
 	if sp := d.Get("spot_price").(string); sp != "" {
 
-		// FIXME: Write tests for invalid instance type assert rejected
 		instance_type := d.Get("instance_type").(string)
 		if instance_type == "t2.micro" ||
 			instance_type == "t2.small" ||
@@ -548,8 +547,6 @@ func resourceAwsInstanceCreate(d *schema.ResourceData, meta interface{}) error {
 			return fmt.Errorf("Instance type (%s) cannot be used for a spot instance request", instance_type)
 		}
 
-		// FIXME: Write tests for negative bid assert rejected
-		// FIXME: Write tests for non decimal bid assert rejected
 		bid, err := strconv.ParseFloat(sp, 32)
 		if err == nil {
 			if bid < 0 {
@@ -618,7 +615,7 @@ func resourceAwsInstanceCreate(d *schema.ResourceData, meta interface{}) error {
 			Pending:    []string{"start", "pending-evaluation", "pending-fulfillment"},
 			Target:     "fulfilled",
 			Refresh:    SpotInstanceStateRefreshFunc(conn, request_id),
-			Timeout:    10 * time.Minute,
+			Timeout:    30 * time.Minute,
 			Delay:      10 * time.Second,
 			MinTimeout: 3 * time.Second,
 		}
@@ -892,29 +889,47 @@ func resourceAwsInstanceUpdate(d *schema.ResourceData, meta interface{}) error {
 	return resourceAwsInstanceRead(d, meta)
 }
 
-// FIXME add test to ensure spot instances are deleted
 func resourceAwsInstanceDelete(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).ec2conn
 
 	if reqID := d.Get("spot_request_id").(string); reqID != "" {
-		log.Printf("[INFO] Cancelling spot request: %s", reqID)
-		output, err := conn.CancelSpotInstanceRequests(&ec2.CancelSpotInstanceRequestsInput{
+
+		resp, err := conn.DescribeSpotInstanceRequests(&ec2.DescribeSpotInstanceRequestsInput{
 			SpotInstanceRequestIDs: []*string{aws.String(reqID)},
 		})
 
 		if err != nil {
-			return fmt.Errorf(
-				"Error cancelling spot reservation (%s): %s",
-				reqID, err)
-		}
-
-		if output != nil {
-			cancelled := output.CancelledSpotInstanceRequests
-			if len(cancelled) != 1 || *cancelled[0].SpotInstanceRequestID != reqID {
-				return fmt.Errorf("Error cancelling reservation: %s %s", reqID, len(cancelled))
+			if ec2err, ok := err.(awserr.Error); ok && ec2err.Code() == "InvalidSpotInstanceRequestID.NotFound" {
+				return fmt.Errorf("Error cancelling spot reservation (%s): %s", reqID, err)
 			}
 		}
-		d.Set("spot_request_id", "")
+
+		status := *resp.SpotInstanceRequests[0].Status.Code
+
+		if status == "start" ||
+			status == "pending-evaluation" ||
+			status == "pending-fulfillment" ||
+			status == "fulfilled" {
+
+			log.Printf("[INFO] Cancelling spot request: %s", reqID)
+			output, err := conn.CancelSpotInstanceRequests(&ec2.CancelSpotInstanceRequestsInput{
+				SpotInstanceRequestIDs: []*string{aws.String(reqID)},
+			})
+
+			if err != nil {
+				return fmt.Errorf(
+					"Error cancelling spot reservation (%s): %s",
+					reqID, err)
+			}
+
+			if output != nil {
+				cancelled := output.CancelledSpotInstanceRequests
+				if len(cancelled) != 1 || *cancelled[0].SpotInstanceRequestID != reqID {
+					return fmt.Errorf("Error cancelling reservation: %s %s", reqID, len(cancelled))
+				}
+			}
+			d.Set("spot_request_id", "")
+		}
 	}
 
 	log.Printf("[INFO] Terminating instance: %s", d.Id())
