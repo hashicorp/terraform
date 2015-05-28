@@ -76,11 +76,21 @@ func resourceAwsNetworkInterface() *schema.Resource {
 func resourceAwsNetworkInterfaceCreate(d *schema.ResourceData, meta interface{}) error {
 
 	conn := meta.(*AWSClient).ec2conn
+	var request *ec2.CreateNetworkInterfaceInput
 
-	request := &ec2.CreateNetworkInterfaceInput{
-		Groups:             expandStringList(d.Get("security_groups").(*schema.Set).List()),
-		SubnetID:           aws.String(d.Get("subnet_id").(string)),
-		PrivateIPAddresses: expandPrivateIPAddesses(d.Get("private_ips").(*schema.Set).List()),
+	if (len(d.Get("private_ips").(*schema.Set).List()) > 0) {
+		log.Printf("[DEBUG] Using provided Private IP Address(es)")
+		request = &ec2.CreateNetworkInterfaceInput{
+			Groups:             expandStringList(d.Get("security_groups").(*schema.Set).List()),
+			SubnetID:           aws.String(d.Get("subnet_id").(string)),
+			PrivateIPAddresses: expandPrivateIPAddesses(d.Get("private_ips").(*schema.Set).List()),
+		}
+	} else {
+		log.Printf("[DEBUG] Auto-assigning IP Address")
+		request = &ec2.CreateNetworkInterfaceInput{
+			Groups:             expandStringList(d.Get("security_groups").(*schema.Set).List()),
+			SubnetID:           aws.String(d.Get("subnet_id").(string)),
+		}
 	}
 
 	log.Printf("[DEBUG] Creating network interface")
