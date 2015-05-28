@@ -29,6 +29,9 @@ resource "aws_db_instance" "default" {
 
 ## Argument Reference
 
+For a more detailed documentation about the each argument refer to
+the [AWS official documentation](http://docs.aws.amazon.com/AmazonRDS/latest/CommandLineReference/CLIReference-cmd-ModifyDBInstance.html).
+
 The following arguments are supported:
 
 * `allocated_storage` - (Required) The allocated storage in gigabytes.
@@ -65,7 +68,7 @@ The following arguments are supported:
 * `storage_encrypted` - (Optional) Specifies whether the DB instance is encrypted. The default is `false` if not specified.
 * `apply_immediately` - (Optional) Specifies whether any database modifications
      are applied immediately, or during the next maintenance window. Default is
-     `false`. See [Amazon RDS Documentation for more for more information.](http://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/Overview.DBInstance.Modifying.html)
+     `false`. See [Amazon RDS Documentation for more information.](http://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/Overview.DBInstance.Modifying.html)
 * `replicate_source_db` - (Optional) Specifies that this resource is a Replicate
 database, and to use this value as the source database. This correlates to the
 `identifier` of another Amazon RDS Database to replicate. See
@@ -99,6 +102,5 @@ The following attributes are exported:
 * `status` - The RDS instance status
 * `username` - The master username for the database
 * `storage_encrypted` - Specifies whether the DB instance is encrypted
-
 
 [1]: http://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/Overview.Replication.html

@@ -19,6 +19,7 @@ var AttributeMap = map[string]string{
 	"visibility_timeout_seconds": "VisibilityTimeout",
 	"policy":                     "Policy",
 	"redrive_policy":             "RedrivePolicy",
+	"arn":                        "QueueArn",
 }
 
 // A number of these are marked as computed because if you don't
@@ -69,6 +70,10 @@ func resourceAwsSqsQueue() *schema.Resource {
 			"redrive_policy": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
+			},
+			"arn": &schema.Schema{
+				Type:     schema.TypeString,
+				Computed: true,
 			},
 		},
 	}
@@ -154,6 +159,7 @@ func resourceAwsSqsQueueRead(d *schema.ResourceData, meta interface{}) error {
 		QueueURL:       aws.String(d.Id()),
 		AttributeNames: []*string{aws.String("All")},
 	})
+
 	if err != nil {
 		return err
 	}
