@@ -54,7 +54,7 @@ See [related part of AWS Route53 Developer Guide](http://docs.aws.amazon.com/Rou
 to understand differences between alias and non-alias records.
 
 TTL for all alias records is [60 seconds](http://aws.amazon.com/route53/faqs/#dns_failover_do_i_need_to_adjust),
-you cannot change this, therefore `ttl` has to be ommitted in alias records.
+you cannot change this, therefore `ttl` has to be omitted in alias records.
 
 ```
 resource "aws_elb" "main" {

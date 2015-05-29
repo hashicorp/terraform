@@ -13,7 +13,7 @@ _terraform_cmds=(
     'push:Uploads the local state to the remote server'
     'refresh:Update local state file against real resources'
     'remote:Configures remote state management'
-    'taint:Manualy forcing a destroy and recreate on the next plan/apply'
+    'taint:Manually forcing a destroy and recreate on the next plan/apply'
     'show:Inspect Terraform state or plan'
     'version:Prints the Terraform version'
 )
@@ -82,7 +82,7 @@ __plan() {
 
 __push() {
     _arguments \
-        '-force[Forces the upload of the local state, ignoring any conflits. This should be used carefully, as force pushing can cause remote state information to be lost.]'
+        '-force[Forces the upload of the local state, ignoring any conflicts. This should be used carefully, as force pushing can cause remote state information to be lost.]'
 }
 
 __refresh() {
