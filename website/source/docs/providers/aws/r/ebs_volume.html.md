@@ -16,6 +16,9 @@ Manages a single EBS volume.
 resource "aws_ebs_volume" "example" {
     availability_zone = "us-west-1a"
     size = 40
+    tags {
+        Name = "HelloWorld"
+    }
 }
 ```
 
@@ -30,7 +33,7 @@ The following arguments are supported:
 * `snapshot_id` (Optional) A snapshot to base the EBS volume off of.
 * `type` - (Optional) The type of EBS volume.
 * `kms_key_id` - (Optional) The KMS key ID for the volume.
-
+* `tags` - (Optional) A mapping of tags to assign to the resource.
 
 ## Attributes Reference
 

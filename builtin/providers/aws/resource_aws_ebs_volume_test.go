@@ -26,6 +26,22 @@ func TestAccAWSEBSVolume(t *testing.T) {
 	})
 }
 
+func TestAccAWSEBSVolume_withTags(t *testing.T) {
+	var v ec2.Volume
+	resource.Test(t, resource.TestCase{
+		PreCheck:  func() { testAccPreCheck(t) },
+		Providers: testAccProviders,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccAwsEbsVolumeConfigWithTags,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckVolumeExists("aws_ebs_volume.tags_test", &v),
+				),
+			},
+		},
+	})
+}
+
 func testAccCheckVolumeExists(n string, v *ec2.Volume) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		rs, ok := s.RootModule().Resources[n]
@@ -58,5 +74,15 @@ const testAccAwsEbsVolumeConfig = `
 resource "aws_ebs_volume" "test" {
 	availability_zone = "us-west-2a"
 	size = 1
+}
+`
+
+const testAccAwsEbsVolumeConfigWithTags = `
+resource "aws_ebs_volume" "tags_test" {
+	availability_zone = "us-west-2a"
+	size = 1
+	tags {
+		Name = "TerraformTest"
+	}
 }
 `
