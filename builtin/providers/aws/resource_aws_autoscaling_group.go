@@ -79,7 +79,6 @@ func resourceAwsAutoscalingGroup() *schema.Resource {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
-				ForceNew: true,
 			},
 
 			"availability_zones": &schema.Schema{
