@@ -23,7 +23,8 @@ test: generate
 # testacc runs acceptance tests
 testacc: generate
 	@if [ "$(TEST)" = "./..." ]; then \
-		echo "ERROR: Set TEST to a specific package"; \
+		echo "ERROR: Set TEST to a specific package. For example,"; \
+		echo "  make TEST=builtin/providers/aws/resource_aws_instance.go testacc"; \
 		exit 1; \
 	fi
 	TF_ACC=1 go test $(TEST) -v $(TESTARGS) -timeout 45m
@@ -61,7 +62,7 @@ vet:
 	@go tool vet $(VETARGS) . ; if [ $$? -eq 1 ]; then \
 		echo ""; \
 		echo "Vet found suspicious constructs. Please check the reported constructs"; \
-		echo "and fix them if necessary before submitting the code for reviewal."; \
+		echo "and fix them if necessary before submitting the code for review."; \
 	fi
 
 # generate runs `go generate` to build the dynamically generated
