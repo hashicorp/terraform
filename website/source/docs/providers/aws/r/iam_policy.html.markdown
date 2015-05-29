@@ -39,7 +39,7 @@ The following arguments are supported:
 * `description` - (Optional) Description of the IAM policy.
 * `path` - (Optional, default "/") Path in which to create the policy.
 * `policy` - (Required) The policy document. This is a JSON formatted string.
-  The heredoc syntax or `file` funciton is helpful here.
+  The heredoc syntax or `file` function is helpful here.
 * `name` (Required) - The name of the policy.
 
 ## Attributes Reference
