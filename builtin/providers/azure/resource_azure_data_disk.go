@@ -204,7 +204,7 @@ func resourceAzureDataDiskUpdate(d *schema.ResourceData, meta interface{}) error
 
 		if d.HasChange("size") {
 			p := virtualmachinedisk.UpdateDiskParameters{
-				DiskName:        d.Id(),
+				Name:            d.Id(),
 				Label:           d.Get("label").(string),
 				ResizedSizeInGB: d.Get("size").(int),
 			}
