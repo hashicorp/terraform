@@ -24,7 +24,7 @@ test: generate
 testacc: generate
 	@if [ "$(TEST)" = "./..." ]; then \
 		echo "ERROR: Set TEST to a specific package. For example,"; \
-		echo "  make TEST=builtin/providers/aws/resource_aws_instance.go testacc"; \
+		echo "  make TEST=./builtin/providers/aws testacc"; \
 		exit 1; \
 	fi
 	TF_ACC=1 go test $(TEST) -v $(TESTARGS) -timeout 45m
