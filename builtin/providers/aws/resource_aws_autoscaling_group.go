@@ -323,7 +323,7 @@ func resourceAwsAutoscalingGroupDelete(d *schema.ResourceData, meta interface{})
 
 func getAwsAutoscalingGroup(
 	d *schema.ResourceData,
-	meta interface{}) (*autoscaling.AutoScalingGroup, error) {
+	meta interface{}) (*autoscaling.Group, error) {
 	conn := meta.(*AWSClient).autoscalingconn
 
 	describeOpts := autoscaling.DescribeAutoScalingGroupsInput{
@@ -466,7 +466,7 @@ func waitForASGCapacity(d *schema.ResourceData, meta interface{}) error {
 // provided ASG.
 //
 // Nested like: lbName -> instanceId -> instanceState
-func getLBInstanceStates(g *autoscaling.AutoScalingGroup, meta interface{}) (map[string]map[string]string, error) {
+func getLBInstanceStates(g *autoscaling.Group, meta interface{}) (map[string]map[string]string, error) {
 	lbInstanceStates := make(map[string]map[string]string)
 	elbconn := meta.(*AWSClient).elbconn
 
