@@ -62,6 +62,10 @@ Both `egress` and `ingress` support the following keys:
 protocol, you must specify a from and to port of 0.
 * `cidr_block` - (Optional) The CIDR block to match. This must be a
 valid network mask.
+* `icmp_type` - (Optional) The ICMP type to be used. Default 0.
+* `icmp_code` - (Optional) The ICMP type code to be used. Default 0.
+
+~> Note: For more information on ICMP types and codes, see here: http://www.nthelp.com/icmp.html
 
 ## Attributes Reference
 
