@@ -82,7 +82,7 @@ func resourceAwsVolumeAttachmentCreate(d *schema.ResourceData, meta interface{})
 	_, err = stateConf.WaitForState()
 	if err != nil {
 		return fmt.Errorf(
-			"Error waiting for Volume (%s) to attach to Instance: %s, error:",
+			"Error waiting for Volume (%s) to attach to Instance: %s, error: %s",
 			vID, iID, err)
 	}
 
