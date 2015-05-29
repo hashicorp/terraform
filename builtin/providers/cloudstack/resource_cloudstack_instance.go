@@ -82,11 +82,13 @@ func resourceCloudStackInstance() *schema.Resource {
 				Optional: true,
 				Default:  false,
 			},
-			"project_name": &schema.Schema{
+			
+			"project": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
-				Default:  nil,
+				ForceNew: true,
 			},
+			
 		},
 	}
 }
@@ -153,15 +155,14 @@ func resourceCloudStackInstanceCreate(d *schema.ResourceData, meta interface{}) 
 		p.SetUserdata(ud)
 	}
 
-	// If the project_name contains any info, we retreive the project_id
-	if projectName, ok := d.GetOk("project_name"); ok {
-		project, _, err := cs.Project.GetProjectByName(projectName.(string))
-		if err != nil {
-			return err
+	// If project contains any info, we retreive the project id
+	if project, ok := d.GetOk("project"); ok {
+		projectid, e :=  retrieveUUID(cs, "project", project.(string))
+		if e != nil {
+			return e.Error()
 		}
-		log.Printf("[DEBUG] project id %s", project.Id)
-		p.SetProjectid(project.Id)
-		d.Set("project_id", project.Id)
+		log.Printf("[DEBUG] project id %s", projectid)
+		p.SetProjectid(projectid)
 	}
 
 	// Create the new instance
@@ -206,7 +207,8 @@ func resourceCloudStackInstanceRead(d *schema.ResourceData, meta interface{}) er
 	setValueOrUUID(d, "network", vm.Nic[0].Networkname, vm.Nic[0].Networkid)
 	setValueOrUUID(d, "service_offering", vm.Serviceofferingname, vm.Serviceofferingid)
 	setValueOrUUID(d, "template", vm.Templatename, vm.Templateid)
-
+	setValueOrUUID(d, "project", vm.Project, vm.Projectid)
+	
 	return nil
 }
 
