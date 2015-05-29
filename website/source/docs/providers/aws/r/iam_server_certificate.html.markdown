@@ -9,7 +9,7 @@ description: |-
 # aws\_iam\_server\_certificate
 
 Provides an IAM Server Certificate resource to upload Server Certificates.
-Certs uploated to IAM can easily work with other AWS services such as:
+Certs uploaded to IAM can easily work with other AWS services such as:
 
 - AWS Elastic Beanstalk
 - Elastic Load Balancing
