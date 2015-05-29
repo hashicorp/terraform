@@ -30,7 +30,7 @@ resource "aws_route53_zone" "example" {
   vpc_id = "${aws_vpc.primary.id}"
 }
 
-resource "aws_route53_zone_assocation" "secondary" {
+resource "aws_route53_zone_association" "secondary" {
   zone_id = "${aws_route53_zone.example.id}"
   vpc_id = "${aws_vpc.secondary.id}"
 }

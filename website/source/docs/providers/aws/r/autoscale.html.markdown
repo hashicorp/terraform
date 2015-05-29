@@ -110,7 +110,7 @@ Docs](https://docs.aws.amazon.com/AutoScaling/latest/DeveloperGuide/AutoScalingG
 for more information on an ASG's lifecycle.
 
 Terraform will wait for healthy instances for up to 10 minutes. If ASG creation
-is taking more than a few minutes, it's worth investigating for scaling actvity
+is taking more than a few minutes, it's worth investigating for scaling activity
 errors, which can be caused by problems with the selected Launch Configuration.
 
 #### Waiting for ELB Capacity
