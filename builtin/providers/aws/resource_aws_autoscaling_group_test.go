@@ -14,7 +14,7 @@ import (
 )
 
 func TestAccAWSAutoScalingGroup_basic(t *testing.T) {
-	var group autoscaling.AutoScalingGroup
+	var group autoscaling.Group
 	var lc autoscaling.LaunchConfiguration
 
 	resource.Test(t, resource.TestCase{
@@ -68,7 +68,7 @@ func TestAccAWSAutoScalingGroup_basic(t *testing.T) {
 }
 
 func TestAccAWSAutoScalingGroup_tags(t *testing.T) {
-	var group autoscaling.AutoScalingGroup
+	var group autoscaling.Group
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -102,7 +102,7 @@ func TestAccAWSAutoScalingGroup_tags(t *testing.T) {
 }
 
 func TestAccAWSAutoScalingGroup_WithLoadBalancer(t *testing.T) {
-	var group autoscaling.AutoScalingGroup
+	var group autoscaling.Group
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -154,7 +154,7 @@ func testAccCheckAWSAutoScalingGroupDestroy(s *terraform.State) error {
 	return nil
 }
 
-func testAccCheckAWSAutoScalingGroupAttributes(group *autoscaling.AutoScalingGroup) resource.TestCheckFunc {
+func testAccCheckAWSAutoScalingGroupAttributes(group *autoscaling.Group) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		if *group.AvailabilityZones[0] != "us-west-2a" {
 			return fmt.Errorf("Bad availability_zones: %#v", group.AvailabilityZones[0])
@@ -207,7 +207,7 @@ func testAccCheckAWSAutoScalingGroupAttributes(group *autoscaling.AutoScalingGro
 	}
 }
 
-func testAccCheckAWSAutoScalingGroupAttributesLoadBalancer(group *autoscaling.AutoScalingGroup) resource.TestCheckFunc {
+func testAccCheckAWSAutoScalingGroupAttributesLoadBalancer(group *autoscaling.Group) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		if *group.LoadBalancerNames[0] != "foobar-terraform-test" {
 			return fmt.Errorf("Bad load_balancers: %#v", group.LoadBalancerNames[0])
@@ -217,7 +217,7 @@ func testAccCheckAWSAutoScalingGroupAttributesLoadBalancer(group *autoscaling.Au
 	}
 }
 
-func testAccCheckAWSAutoScalingGroupExists(n string, group *autoscaling.AutoScalingGroup) resource.TestCheckFunc {
+func testAccCheckAWSAutoScalingGroupExists(n string, group *autoscaling.Group) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		rs, ok := s.RootModule().Resources[n]
 		if !ok {
@@ -266,7 +266,7 @@ func testLaunchConfigurationName(n string, lc *autoscaling.LaunchConfiguration) 
 }
 
 func testAccCheckAWSAutoScalingGroupHealthyCapacity(
-	g *autoscaling.AutoScalingGroup, exp int) resource.TestCheckFunc {
+	g *autoscaling.Group, exp int) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		healthy := 0
 		for _, i := range g.Instances {
