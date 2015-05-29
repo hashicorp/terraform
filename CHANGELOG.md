@@ -10,6 +10,7 @@ IMPROVEMENTS:
   * provider/aws: support ec2 termination protection [GH-1988]
   * provider/aws: support for RDS Read Replicas [GH-1946]
   * provider/aws: `aws_s3_bucket` add support for `policy` [GH-1992]
+  * provider/aws: `aws_ebs_volume` add support for `tags` [GH-2135]
   * provider/aws: New `force_destroy` parameter for S3 buckets, to destroy 
       Buckets that contain objects [GH-2007]
 
