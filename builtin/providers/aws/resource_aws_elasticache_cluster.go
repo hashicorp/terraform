@@ -308,7 +308,8 @@ func resourceAwsElasticacheClusterDelete(d *schema.ResourceData, meta interface{
 func CacheClusterStateRefreshFunc(conn *elasticache.ElastiCache, clusterID, givenState string, pending []string) resource.StateRefreshFunc {
 	return func() (interface{}, string, error) {
 		resp, err := conn.DescribeCacheClusters(&elasticache.DescribeCacheClustersInput{
-			CacheClusterID: aws.String(clusterID),
+			CacheClusterID:    aws.String(clusterID),
+			ShowCacheNodeInfo: aws.Boolean(true),
 		})
 		if err != nil {
 			apierr := err.(awserr.Error)
@@ -336,6 +337,18 @@ func CacheClusterStateRefreshFunc(conn *elasticache.ElastiCache, clusterID, give
 
 		// return given state if it's not in pending
 		if givenState != "" {
+			// check to make sure we have the node count we're expecting
+			if int64(len(c.CacheNodes)) != *c.NumCacheNodes {
+				log.Printf("[DEBUG] Node count is not what is expected: %d found, %d expected", len(c.CacheNodes), *c.NumCacheNodes)
+				return nil, "creating", nil
+			}
+			// loop the nodes and check their status as well
+			for _, n := range c.CacheNodes {
+				if n.CacheNodeStatus != nil && *n.CacheNodeStatus != "available" {
+					log.Printf("[DEBUG] Node (%s) is not yet available, status: %s", *n.CacheNodeID, *n.CacheNodeStatus)
+					return nil, "creating", nil
+				}
+			}
 			return c, givenState, nil
 		}
 		log.Printf("[DEBUG] current status: %v", *c.CacheClusterStatus)
