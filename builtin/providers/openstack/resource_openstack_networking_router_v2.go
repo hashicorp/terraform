@@ -3,7 +3,6 @@ package openstack
 import (
 	"fmt"
 	"log"
-	"strconv"
 
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/rackspace/gophercloud"
@@ -30,7 +29,7 @@ func resourceNetworkingRouterV2() *schema.Resource {
 				ForceNew: false,
 			},
 			"admin_state_up": &schema.Schema{
-				Type:     schema.TypeString,
+				Type:     schema.TypeBool,
 				Optional: true,
 				ForceNew: false,
 			},
@@ -61,12 +60,8 @@ func resourceNetworkingRouterV2Create(d *schema.ResourceData, meta interface{}) 
 		TenantID: d.Get("tenant_id").(string),
 	}
 
-	asuRaw := d.Get("admin_state_up").(string)
-	if asuRaw != "" {
-		asu, err := strconv.ParseBool(asuRaw)
-		if err != nil {
-			return fmt.Errorf("admin_state_up, if provided, must be either 'true' or 'false'")
-		}
+	if asuRaw, ok := d.GetOk("admin_state_up"); ok {
+		asu := asuRaw.(bool)
 		createOpts.AdminStateUp = &asu
 	}
 
@@ -114,7 +109,7 @@ func resourceNetworkingRouterV2Read(d *schema.ResourceData, meta interface{}) er
 	log.Printf("[DEBUG] Retreived Router %s: %+v", d.Id(), n)
 
 	d.Set("name", n.Name)
-	d.Set("admin_state_up", strconv.FormatBool(n.AdminStateUp))
+	d.Set("admin_state_up", n.AdminStateUp)
 	d.Set("tenant_id", n.TenantID)
 	d.Set("external_gateway", n.GatewayInfo.NetworkID)
 
@@ -133,14 +128,8 @@ func resourceNetworkingRouterV2Update(d *schema.ResourceData, meta interface{}) 
 		updateOpts.Name = d.Get("name").(string)
 	}
 	if d.HasChange("admin_state_up") {
-		asuRaw := d.Get("admin_state_up").(string)
-		if asuRaw != "" {
-			asu, err := strconv.ParseBool(asuRaw)
-			if err != nil {
-				return fmt.Errorf("admin_state_up, if provided, must be either 'true' or 'false'")
-			}
-			updateOpts.AdminStateUp = &asu
-		}
+		asu := d.Get("admin_state_up").(bool)
+		updateOpts.AdminStateUp = &asu
 	}
 
 	log.Printf("[DEBUG] Updating Router %s with options: %+v", d.Id(), updateOpts)
