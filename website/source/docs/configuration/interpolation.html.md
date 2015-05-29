@@ -160,3 +160,42 @@ ${hello} ${world}!
 Then the rendered value would be `goodnight moon!`.
 
 You may use any of the built-in functions in your template.
+
+
+### Using Templates with Count
+
+Here is an example that combines the capabilities of templates with the interpolation
+from `count` to give us a parametized template, unique to each resource instance:
+
+```
+variable "count" {
+  default = 2
+}
+
+variable "hostnames" {
+  default = {
+    "0" = "example1.org"
+    "1" = "example2.net"
+  }
+}
+
+resource "template_file" "web_init" {
+  // here we expand multiple template_files - the same number as we have instances
+  count = "${var.count}"
+  filename = "templates/web_init.tpl"
+  vars {
+    // that gives us access to use count.index to do the lookup
+    hostname = "${lookup(var.hostnames, count.index)}"
+  }
+}
+
+resource "aws_instance" "web" {
+  // ...
+  count = "${var.count}"
+  // here we link each web instance to the proper template_file
+  user_data = "${element(template_file.web_init.*.rendered, count.index)}"
+}
+```
+
+With this, we will build a list of `template_file.web_init` resources which we can
+use in combination with our list of `aws_instance.web` resources.
