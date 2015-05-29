@@ -55,9 +55,6 @@ func resourceAwsKinesisStreamCreate(d *schema.ResourceData, meta interface{}) er
 		return err
 	}
 
-	// set name as ID for now. Kinesis stream names are unique per account+region
-	d.SetId(sn)
-
 	stateConf := &resource.StateChangeConf{
 		Pending:    []string{"CREATING"},
 		Target:     "ACTIVE",
@@ -75,7 +72,8 @@ func resourceAwsKinesisStreamCreate(d *schema.ResourceData, meta interface{}) er
 	}
 
 	s := streamRaw.(*kinesis.StreamDescription)
-	d.Set("arn", *s.StreamARN)
+	d.SetId(*s.StreamARN)
+	d.Set("arn", s.StreamARN)
 
 	return nil
 }
@@ -83,7 +81,7 @@ func resourceAwsKinesisStreamCreate(d *schema.ResourceData, meta interface{}) er
 func resourceAwsKinesisStreamRead(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).kinesisconn
 	describeOpts := &kinesis.DescribeStreamInput{
-		StreamName: aws.String(d.Id()),
+		StreamName: aws.String(d.Get("name").(string)),
 		Limit:      aws.Long(1),
 	}
 	resp, err := conn.DescribeStream(describeOpts)
@@ -107,8 +105,9 @@ func resourceAwsKinesisStreamRead(d *schema.ResourceData, meta interface{}) erro
 
 func resourceAwsKinesisStreamDelete(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).kinesisconn
+	sn := d.Get("name").(string)
 	_, err := conn.DeleteStream(&kinesis.DeleteStreamInput{
-		StreamName: aws.String(d.Id()),
+		StreamName: aws.String(sn),
 	})
 
 	if err != nil {
@@ -118,7 +117,7 @@ func resourceAwsKinesisStreamDelete(d *schema.ResourceData, meta interface{}) er
 	stateConf := &resource.StateChangeConf{
 		Pending:    []string{"DELETING"},
 		Target:     "DESTROYED",
-		Refresh:    streamStateRefreshFunc(conn, d.Id()),
+		Refresh:    streamStateRefreshFunc(conn, sn),
 		Timeout:    5 * time.Minute,
 		Delay:      10 * time.Second,
 		MinTimeout: 3 * time.Second,
@@ -128,17 +127,17 @@ func resourceAwsKinesisStreamDelete(d *schema.ResourceData, meta interface{}) er
 	if err != nil {
 		return fmt.Errorf(
 			"Error waiting for Stream (%s) to be destroyed: %s",
-			d.Id(), err)
+			sn, err)
 	}
 
 	d.SetId("")
 	return nil
 }
 
-func streamStateRefreshFunc(conn *kinesis.Kinesis, streamName string) resource.StateRefreshFunc {
+func streamStateRefreshFunc(conn *kinesis.Kinesis, sn string) resource.StateRefreshFunc {
 	return func() (interface{}, string, error) {
 		describeOpts := &kinesis.DescribeStreamInput{
-			StreamName: aws.String(streamName),
+			StreamName: aws.String(sn),
 			Limit:      aws.Long(1),
 		}
 		resp, err := conn.DescribeStream(describeOpts)
