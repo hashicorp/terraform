@@ -2,6 +2,7 @@
 
 IMPROVEMENTS:
 
+  * **New resource: `aws_kinesis_stream`** [GH-2110]
   * **New resource: `aws_iam_server_certificate`** [GH-2086]
   * **New resource: `aws_sqs_queue`** [GH-1939]
   * **New resource: `aws_sns_topic`** [GH-1974]
