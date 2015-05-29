@@ -337,6 +337,11 @@ func CacheClusterStateRefreshFunc(conn *elasticache.ElastiCache, clusterID, give
 
 		// return given state if it's not in pending
 		if givenState != "" {
+			// check to make sure we have the node count we're expecting
+			if int64(len(c.CacheNodes)) != *c.NumCacheNodes {
+				log.Printf("[DEBUG] Node count is not what is expected: %d found, %d expected", len(c.CacheNodes), *c.NumCacheNodes)
+				return nil, "creating", nil
+			}
 			// loop the nodes and check their status as well
 			for _, n := range c.CacheNodes {
 				if n.CacheNodeStatus != nil && *n.CacheNodeStatus != "available" {
