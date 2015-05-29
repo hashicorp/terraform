@@ -17,6 +17,7 @@ func resourceAwsEbsVolume() *schema.Resource {
 	return &schema.Resource{
 		Create: resourceAwsEbsVolumeCreate,
 		Read:   resourceAwsEbsVolumeRead,
+		Update: resourceAWSEbsVolumeUpdate,
 		Delete: resourceAwsEbsVolumeDelete,
 
 		Schema: map[string]*schema.Schema{
@@ -61,6 +62,7 @@ func resourceAwsEbsVolume() *schema.Resource {
 				Computed: true,
 				ForceNew: true,
 			},
+			"tags": tagsSchema(),
 		},
 	}
 }
@@ -115,7 +117,21 @@ func resourceAwsEbsVolumeCreate(d *schema.ResourceData, meta interface{}) error 
 			*result.VolumeID, err)
 	}
 
+	d.SetId(*result.VolumeID)
+
+	if _, ok := d.GetOk("tags"); ok {
+		setTags(conn, d)
+	}
+
 	return readVolume(d, result)
+}
+
+func resourceAWSEbsVolumeUpdate(d *schema.ResourceData, meta interface{}) error {
+	conn := meta.(*AWSClient).ec2conn
+	if _, ok := d.GetOk("tags"); ok {
+		setTags(conn, d)
+	}
+	return resourceAwsEbsVolumeRead(d, meta)
 }
 
 // volumeStateRefreshFunc returns a resource.StateRefreshFunc that is used to watch
@@ -197,6 +213,9 @@ func readVolume(d *schema.ResourceData, volume *ec2.Volume) error {
 	}
 	if volume.VolumeType != nil {
 		d.Set("type", *volume.VolumeType)
+	}
+	if volume.Tags != nil {
+		d.Set("tags", tagsToMap(volume.Tags))
 	}
 
 	return nil
