@@ -10,6 +10,7 @@ import (
 	"github.com/awslabs/aws-sdk-go/aws"
 	"github.com/awslabs/aws-sdk-go/aws/credentials"
 	"github.com/awslabs/aws-sdk-go/service/autoscaling"
+	"github.com/awslabs/aws-sdk-go/service/cloudwatch"
 	"github.com/awslabs/aws-sdk-go/service/ec2"
 	"github.com/awslabs/aws-sdk-go/service/elasticache"
 	"github.com/awslabs/aws-sdk-go/service/elb"
@@ -43,6 +44,7 @@ type AWSClient struct {
 	region          string
 	rdsconn         *rds.RDS
 	iamconn         *iam.IAM
+	cloudwatchconn  *cloudwatch.CloudWatch
 	elasticacheconn *elasticache.ElastiCache
 }
 
@@ -121,6 +123,8 @@ func (c *Config) Client() (interface{}, error) {
 			MaxRetries:  c.MaxRetries,
 		})
 
+		log.Println("[INFO] Initializing CloudWatch SDK connection")
+		client.cloudwatchconn = cloudwatch.New(awsConfig)
 		log.Println("[INFO] Initializing Elasticache Connection")
 		client.elasticacheconn = elasticache.New(awsConfig)
 	}
