@@ -13,8 +13,8 @@
 				<li<%= sidebar_current(/^docs-aws-resource/) %>>
 					<a href="#">Resources</a>
 					<ul class="nav nav-visible">
-						<li<%= sidebar_current("docs-aws-resource-autoscale") %>>
-							<a href="/docs/providers/aws/r/autoscale.html">aws_autoscaling_group</a>
+						<li<%= sidebar_current("docs-aws-resource-autoscaling-group") %>>
+							<a href="/docs/providers/aws/r/autoscaling_group.html">aws_autoscaling_group</a>
 						</li>
 
 						<li<%= sidebar_current("docs-aws-resource-customer-gateway") %>>
@@ -25,16 +25,16 @@
 							<a href="/docs/providers/aws/r/db_instance.html">aws_db_instance</a>
 						</li>
 
+						<li<%= sidebar_current("docs-aws-resource-db-parameter-group") %>>
+							<a href="/docs/providers/aws/r/db_parameter_group.html">aws_db_parameter_group</a>
+						</li>
+
 						<li<%= sidebar_current("docs-aws-resource-db-security-group") %>>
 							<a href="/docs/providers/aws/r/db_security_group.html">aws_db_security_group</a>
 						</li>
 
 						<li<%= sidebar_current("docs-aws-resource-db-subnet-group") %>>
 							<a href="/docs/providers/aws/r/db_subnet_group.html">aws_db_subnet_group</a>
-						</li>
-
-						<li<%= sidebar_current("docs-aws-resource-db-parameter-group") %>>
-							<a href="/docs/providers/aws/r/db_parameter_group.html">aws_db_parameter_group</a>
 						</li>
 
 						<li<%= sidebar_current("docs-aws-resource-ebs-volume") %>>
@@ -101,10 +101,6 @@
 							<a href="/docs/providers/aws/r/iam_user_policy.html">aws_iam_user_policy</a>
 						</li>
 
-						<li<%= sidebar_current("docs-aws-resource-kinesis-stream") %>>
-							<a href="/docs/providers/aws/r/kinesis_stream.html">aws_kinesis_stream</a>
-						</li>
-
 						<li<%= sidebar_current("docs-aws-resource-instance") %>>
 							<a href="/docs/providers/aws/r/instance.html">aws_instance</a>
 						</li>
@@ -113,8 +109,16 @@
 							<a href="/docs/providers/aws/r/internet_gateway.html">aws_internet_gateway</a>
 						</li>
 
-						<li<%= sidebar_current("docs-aws-resource-launch-config") %>>
-							<a href="/docs/providers/aws/r/launch_config.html">aws_launch_configuration</a>
+						<li<%= sidebar_current("docs-aws-resource-key-pair") %>>
+							<a href="/docs/providers/aws/r/key_pair.html">aws_key_pair</a>
+						</li>
+
+						<li<%= sidebar_current("docs-aws-resource-kinesis-stream") %>>
+							<a href="/docs/providers/aws/r/kinesis_stream.html">aws_kinesis_stream</a>
+						</li>
+
+						<li<%= sidebar_current("docs-aws-resource-launch-configuration") %>>
+							<a href="/docs/providers/aws/r/launch_configuration.html">aws_launch_configuration</a>
 						</li>
 
 						<li<%= sidebar_current("docs-aws-resource-lb-cookie-stickiness-policy") %>>
@@ -128,20 +132,9 @@
 						<li<%= sidebar_current("docs-aws-resource-network-acl") %>>
 							<a href="/docs/providers/aws/r/network_acl.html">aws_network_acl</a>
 						</li>
-						<li<%= sidebar_current("docs-aws-resource-key-pair") %>>
-							<a href="/docs/providers/aws/r/key_pair.html">aws_key_pair</a>
-						</li>
 
 						<li<%= sidebar_current("docs-aws-resource-proxy-protocol-policy") %>>
 							<a href="/docs/providers/aws/r/proxy_protocol_policy.html">aws_proxy_protocol_policy</a>
-						</li>
-
-						<li<%= sidebar_current("docs-aws-resource-route-table|") %>>
-							<a href="/docs/providers/aws/r/route_table.html">aws_route_table</a>
-						</li>
-
-						<li<%= sidebar_current("docs-aws-resource-route-table-assoc") %>>
-							<a href="/docs/providers/aws/r/route_table_assoc.html">aws_route_table_association</a>
 						</li>
 
 						<li<%= sidebar_current("docs-aws-resource-route53-record") %>>
@@ -156,16 +149,16 @@
 							<a href="/docs/providers/aws/r/route53_zone_association.html">aws_route53_zone_association</a>
 						</li>
 
+						<li<%= sidebar_current("docs-aws-resource-route-table|") %>>
+							<a href="/docs/providers/aws/r/route_table.html">aws_route_table</a>
+						</li>
+
+						<li<%= sidebar_current("docs-aws-resource-route-table-association") %>>
+							<a href="/docs/providers/aws/r/route_table_association.html">aws_route_table_association</a>
+						</li>
+
 						<li<%= sidebar_current("docs-aws-resource-s3-bucket") %>>
 							<a href="/docs/providers/aws/r/s3_bucket.html">aws_s3_bucket</a>
-						</li>
-
-						<li<%= sidebar_current("docs-aws-resource-sns-topic") %>>
-							<a href="/docs/providers/aws/r/sns_topic.html">aws_sns_topic</a>
-						</li>
-
-						<li<%= sidebar_current("docs-aws-resource-sns-topic-subscription") %>>
-							<a href="/docs/providers/aws/r/sns_topic_subscription.html">aws_sns_topic_subscription</a>
 						</li>
 
 						<li<%= sidebar_current("docs-aws-resource-security-group") %>>
@@ -174,6 +167,14 @@
 
 						<li<%= sidebar_current("docs-aws-resource-security-group-rule") %>>
 							<a href="/docs/providers/aws/r/security_group_rule.html">aws_security_group_rule</a>
+						</li>
+
+						<li<%= sidebar_current("docs-aws-resource-sns-topic") %>>
+							<a href="/docs/providers/aws/r/sns_topic.html">aws_sns_topic</a>
+						</li>
+
+						<li<%= sidebar_current("docs-aws-resource-sns-topic-subscription") %>>
+							<a href="/docs/providers/aws/r/sns_topic_subscription.html">aws_sns_topic_subscription</a>
 						</li>
 
 						<li<%= sidebar_current("docs-aws-resource-sqs-queue") %>>
@@ -192,16 +193,17 @@
 							<a href="/docs/providers/aws/r/vpc.html">aws_vpc</a>
 						</li>
 
-						<li<%= sidebar_current("docs-aws-resource-vpc-peering") %>>
-							<a href="/docs/providers/aws/r/vpc_peering.html">aws_vpc_peering</a>
-						</li>
-
 						<li<%= sidebar_current("docs-aws-resource-vpc-dhcp-options") %>>
 							<a href="/docs/providers/aws/r/vpc_dhcp_options.html">aws_vpc_dhcp_options</a>
 						</li>
 
 						<li<%= sidebar_current("docs-aws-resource-vpc-dhcp-options-association") %>>
 							<a href="/docs/providers/aws/r/vpc_dhcp_options_association.html">aws_vpc_dhcp_options_association</a>
+
+
+						<li<%= sidebar_current("docs-aws-resource-vpc-peering") %>>
+							<a href="/docs/providers/aws/r/vpc_peering.html">aws_vpc_peering</a>
+						</li>
 
 						<li<%= sidebar_current("docs-aws-resource-vpn-connection") %>>
 							<a href="/docs/providers/aws/r/vpn_connection.html">aws_vpn_connection</a>
