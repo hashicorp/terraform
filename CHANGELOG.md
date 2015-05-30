@@ -13,6 +13,8 @@ IMPROVEMENTS:
   * provider/aws: `aws_ebs_volume` add support for `tags` [GH-2135]
   * provider/aws: New `force_destroy` parameter for S3 buckets, to destroy 
       Buckets that contain objects [GH-2007]
+  * provider/aws: switching `health_check_type` on ASGs no longer requires
+      resource refresh [GH-2147]
 
 BUG FIXES:
 
