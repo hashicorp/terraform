@@ -79,7 +79,6 @@ func resourceAwsAutoscalingGroup() *schema.Resource {
 				Type:     schema.TypeString,
 				Optional: true,
 				Computed: true,
-				ForceNew: true,
 			},
 
 			"availability_zones": &schema.Schema{
@@ -239,6 +238,11 @@ func resourceAwsAutoscalingGroupUpdate(d *schema.ResourceData, meta interface{})
 
 	if d.HasChange("health_check_grace_period") {
 		opts.HealthCheckGracePeriod = aws.Long(int64(d.Get("health_check_grace_period").(int)))
+	}
+
+	if d.HasChange("health_check_type") {
+		opts.HealthCheckGracePeriod = aws.Long(int64(d.Get("health_check_grace_period").(int)))
+		opts.HealthCheckType = aws.String(d.Get("health_check_type").(string))
 	}
 
 	if err := setAutoscalingTags(conn, d); err != nil {
