@@ -124,8 +124,14 @@ to Terraform (using the forced source type syntax documented below) to use
 Git:
 
 ```
+// force https source
 module "consul" {
 	source = "git::https://hashicorp.com/module.git"
+}
+
+// force ssh source
+module "ami" {
+	source = "git::ssh://git@github.com/owner/repo.git"
 }
 ```
 
