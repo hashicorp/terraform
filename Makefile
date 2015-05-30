@@ -63,6 +63,7 @@ vet:
 		echo ""; \
 		echo "Vet found suspicious constructs. Please check the reported constructs"; \
 		echo "and fix them if necessary before submitting the code for review."; \
+		exit 1; \
 	fi
 
 # generate runs `go generate` to build the dynamically generated
