@@ -27,7 +27,7 @@ testacc: generate
 		echo "  make testacc TEST=./builtin/providers/aws"; \
 		exit 1; \
 	fi
-	TF_ACC=1 go test $(TEST) -v $(TESTARGS) -timeout 45m
+	TF_ACC=1 go test $(TEST) -v $(TESTARGS) -timeout 90m
 
 # testrace runs the race checker
 testrace: generate
