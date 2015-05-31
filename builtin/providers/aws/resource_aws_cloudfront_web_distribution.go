@@ -284,13 +284,12 @@ func resourceAwsCloudFrontWebDistributionCreate(d *schema.ResourceData, meta int
 		return err
 	}
 
-	res, serr := cloudfrontconn.CreateDistribution(&cloudfront.CreateDistributionInput{
+	res, err := cloudfrontconn.CreateDistribution(&cloudfront.CreateDistributionInput{
 		DistributionConfig: c,
 	})
 
-	aerr := aws.Error(serr)
-	if aerr != nil {
-		return fmt.Errorf("Error creating CloudFront distribution: %s", aerr)
+	if err != nil {
+		return fmt.Errorf("Error creating CloudFront distribution: %s", err)
 	}
 
 	d.SetId(*res.Distribution.ID)
@@ -381,11 +380,10 @@ func resourceAwsCloudFrontWebDistributionUpdate(d *schema.ResourceData, meta int
 		IfMatch:            v.ETag,
 	}
 
-	_, serr := cloudfrontconn.UpdateDistribution(params)
+	_, err = cloudfrontconn.UpdateDistribution(params)
 
-	aerr := aws.Error(serr)
-	if aerr != nil {
-		return fmt.Errorf("Error updating CloudFront distribution: %s", aerr)
+	if err != nil {
+		return fmt.Errorf("Error updating CloudFront distribution: %s", err)
 	}
 
 	err = resourceAwsCloudFrontWebDistributionWaitUntilDeployed(d, meta)
@@ -426,11 +424,10 @@ func resourceAwsCloudFrontWebDistributionDelete(d *schema.ResourceData, meta int
 		IfMatch: v.ETag,
 	}
 
-	_, serr := cloudfrontconn.DeleteDistribution(params)
+	_, err = cloudfrontconn.DeleteDistribution(params)
 
-	aerr := aws.Error(serr)
-	if aerr != nil {
-		return fmt.Errorf("Error deleting CloudFront distribution: %s", aerr)
+	if err != nil {
+		return fmt.Errorf("Error deleting CloudFront distribution: %s", err)
 	}
 
 	return nil
