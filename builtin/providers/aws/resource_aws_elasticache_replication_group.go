@@ -32,6 +32,7 @@ func resourceAwsElasticacheReplicationGroup() *schema.Resource {
 			"cache_node_type": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
+				ForceNew: true,
 			},
 			"automatic_failover": &schema.Schema{
 				Type:     schema.TypeBool,
@@ -46,6 +47,25 @@ func resourceAwsElasticacheReplicationGroup() *schema.Resource {
 			"parameter_group_name": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
+			},
+			"subnet_group_name": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				ForceNew: true,
+			},
+			"security_group_names": &schema.Schema{
+				Type:     schema.TypeSet,
+				Optional: true,
+				Computed: true,
+				Elem:     &schema.Schema{Type: schema.TypeString},
+				Set:      schema.HashString,
+			},
+			"security_group_ids": &schema.Schema{
+				Type:     schema.TypeSet,
+				Optional: true,
+				Computed: true,
+				Elem:     &schema.Schema{Type: schema.TypeString},
+				Set:      schema.HashString,
 			},
 			"engine": &schema.Schema{
 				Type:     schema.TypeString,
@@ -71,6 +91,11 @@ func resourceAwsElasticacheReplicationGroupCreate(d *schema.ResourceData, meta i
 	numCacheClusters := d.Get("num_cache_clusters").(int)
 	engine := d.Get("engine").(string)
 	engineVersion := d.Get("engine_version").(string)
+	securityNameSet := d.Get("security_group_names").(*schema.Set)
+	securityIdSet := d.Get("security_group_ids").(*schema.Set)
+
+	securityNames := expandStringList(securityNameSet.List())
+	securityIds := expandStringList(securityIdSet.List())
 
 	req := &elasticache.CreateReplicationGroupInput{
 		ReplicationGroupID:		aws.String(replicationGroupId),
@@ -80,6 +105,8 @@ func resourceAwsElasticacheReplicationGroupCreate(d *schema.ResourceData, meta i
 		NumCacheClusters:         	aws.Long(int64(numCacheClusters)),
 		Engine:				aws.String(engine),
 		EngineVersion:			aws.String(engineVersion),
+		CacheSecurityGroupNames:	securityNames,
+		SecurityGroupIDs:		securityIds,
 	}
 
 	if v, ok := d.GetOk("parameter_group_name"); ok {
@@ -135,6 +162,7 @@ func resourceAwsElasticacheReplicationGroupRead(d *schema.ResourceData, meta int
 		d.Set("replication_group_id", c.ReplicationGroupID)
 		d.Set("description", c.Description)
 		d.Set("automatic_failover", c.AutomaticFailover)
+		d.Set("num_cache_clusters", len(c.MemberClusters))
 	}
 
 	return nil
@@ -161,6 +189,18 @@ func resourceAwsElasticacheReplicationGroupUpdate(d *schema.ResourceData, meta i
 	if d.HasChange("engine_version") {
 		engine_version := d.Get("engine_version").(string)
 		req.EngineVersion = aws.String(engine_version)
+	}
+
+	if d.HasChange("security_group_ids") {
+		securityIdSet := d.Get("security_group_ids").(*schema.Set)
+		securityIds := expandStringList(securityIdSet.List())
+		req.SecurityGroupIDs = securityIds
+	}
+
+	if d.HasChange("security_group_names") {
+		securityNameSet := d.Get("security_group_names").(*schema.Set)
+		securityNames := expandStringList(securityNameSet.List())
+		req.CacheSecurityGroupNames = securityNames
 	}
 
 	_, err := conn.ModifyReplicationGroup(req)
