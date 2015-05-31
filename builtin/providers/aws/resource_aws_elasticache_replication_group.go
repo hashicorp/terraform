@@ -40,6 +40,7 @@ func resourceAwsElasticacheReplicationGroup() *schema.Resource {
 				Type:     schema.TypeInt,
 				Optional: true,
 				Default:  1,
+				ForceNew: true,
 			},
 			"parameter_group_name": &schema.Schema{
 				Type:     schema.TypeString,
@@ -141,14 +142,9 @@ func resourceAwsElasticacheReplicationGroupRead(d *schema.ResourceData, meta int
 func resourceAwsElasticacheReplicationGroupUpdate(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).elasticacheconn
 
-	req := &elasticache.ModifyReplicationGroupInput{
+	req := &elasticache.ModifyReplicationGroupInput {
 		ApplyImmediately:   aws.Boolean(true),
 		ReplicationGroupID: aws.String(d.Id()),
-	}
-
-	if d.HasChange("description") {
-		description := d.Get("description").(string)
-		req.ReplicationGroupDescription = aws.String(description)
 	}
 
 	if d.HasChange("automatic_failover") {
@@ -156,9 +152,18 @@ func resourceAwsElasticacheReplicationGroupUpdate(d *schema.ResourceData, meta i
 		req.AutomaticFailoverEnabled = aws.Boolean(automaticFailover)
 	}
 
+	if d.HasChange("description") {
+		description := d.Get("description").(string)
+		req.ReplicationGroupDescription = aws.String(description)
+	}
+
+	if d.HasChange("engine_version") {
+		engine_version := d.Get("engine_version").(string)
+		req.EngineVersion = aws.String(engine_version)
+	}
+
 	_, err := conn.ModifyReplicationGroup(req)
 	if err != nil {
-		d.Partial(true)
 		return fmt.Errorf("Error updating Elasticache replication group: %s", err)
 	}
 
