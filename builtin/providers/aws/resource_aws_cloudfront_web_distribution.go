@@ -137,7 +137,18 @@ func resourceAwsCloudFrontWebDistribution() *schema.Resource {
 			"minimum_ssl": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
-				Default:  "SSLv3",
+				Default:  "TLSv1",
+			},
+
+			"certificate_id": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+			},
+
+			"ssl_support_method": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				Default:  "vip",
 			},
 
 			"aliases": &schema.Schema{
@@ -455,6 +466,16 @@ func resourceAwsCloudFrontWebDistributionDistributionConfig(
 	cookies := resourceAwsCloudFrontWebDistributionCookies(
 		d.Get("default_forward_cookie"), d.Get("default_whitelisted_cookies"))
 
+	viewerCertificate := &cloudfront.ViewerCertificate{
+		MinimumProtocolVersion: aws.String(d.Get("minimum_ssl").(string)),
+		SSLSupportMethod:       aws.String(d.Get("ssl_support_method").(string)),
+	}
+	if d.Get("certificate_id") == "" {
+		viewerCertificate.CloudFrontDefaultCertificate = aws.Boolean(true)
+	} else {
+		viewerCertificate.IAMCertificateID = aws.String(d.Get("certificate_id").(string))
+	}
+
 	// PUT DistributionConfig requires, unlike POST, EVERY possible option to be set.
 	// Except for the configurable options, these are the defaults options.
 	x := &cloudfront.DistributionConfig{
@@ -471,10 +492,7 @@ func resourceAwsCloudFrontWebDistributionDistributionConfig(
 			Quantity: aws.Long(int64(len(origins))),
 			Items:    origins,
 		},
-		ViewerCertificate: &cloudfront.ViewerCertificate{
-			CloudFrontDefaultCertificate: aws.Boolean(true),
-			MinimumProtocolVersion:       aws.String(d.Get("minimum_ssl").(string)),
-		},
+		ViewerCertificate: viewerCertificate,
 		Logging: &cloudfront.LoggingConfig{
 			Enabled:        aws.Boolean(d.Get("logging_enabled").(bool)),
 			IncludeCookies: aws.Boolean(d.Get("logging_include_cookies").(bool)),

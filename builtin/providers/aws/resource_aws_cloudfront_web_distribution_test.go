@@ -135,13 +135,11 @@ resource "aws_cloudfront_web_distribution" "main" {
   behavior {
     pattern = "images/*.jpg"
     origin = "images"
-    precedence = 0
   }
 
   behavior {
     pattern = "images/*.png"
     origin = "images"
-    precedence = 1
   }
 }
 `, rand.New(rand.NewSource(time.Now().UnixNano())).Int())
