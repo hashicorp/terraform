@@ -74,7 +74,7 @@ To run the acceptance tests, invoke `make testacc`:
 ```sh
 $ make testacc TEST=./builtin/providers/aws TESTARGS='-run=Vpc'
 go generate ./...
-TF_ACC=1 go test ./builtin/providers/aws -v -run=Vpc -timeout 45m
+TF_ACC=1 go test ./builtin/providers/aws -v -run=Vpc -timeout 90m
 === RUN TestAccVpc_basic
 2015/02/10 14:11:17 [INFO] Test: Using us-west-2 as test region
 [...]
