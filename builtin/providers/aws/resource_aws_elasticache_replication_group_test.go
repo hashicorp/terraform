@@ -54,7 +54,6 @@ func testAccCheckAWSEcacheReplicationGroupExists(n string) resource.TestCheckFun
 			return fmt.Errorf("Not found: %s", n)
 		}
 
-		log.Printf("[???] Checking for: %s", rs.Primary.ID)
 		conn := testAccProvider.Meta().(*AWSClient).elasticacheconn
 		res, err := conn.DescribeReplicationGroups(&elasticache.DescribeReplicationGroupsInput{
 			ReplicationGroupID: aws.String(rs.Primary.ID),
@@ -66,10 +65,9 @@ func testAccCheckAWSEcacheReplicationGroupExists(n string) resource.TestCheckFun
 
 		if len(res.ReplicationGroups) != 1 ||
 			*res.ReplicationGroups[0].ReplicationGroupID != rs.Primary.ID {
-				log.Printf("[???] Rep group not found %s", res)
 			return fmt.Errorf("Replication group not found")
 		}
-		log.Printf("[???] Rep group found")
+		log.Printf("[DEBUG] Rep group found")
 		return nil
 	}
 }

@@ -62,14 +62,11 @@ func resourceAwsElasticacheReplicationGroup() *schema.Resource {
 func resourceAwsElasticacheReplicationGroupCreate(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).elasticacheconn
 
-	var hasParameterGroup bool
-
 	replicationGroupId := d.Get("replication_group_id").(string)
 	description := d.Get("description").(string)
 	cacheNodeType := d.Get("cache_node_type").(string)
 	automaticFailover := d.Get("automatic_failover").(bool)
 	numCacheClusters := d.Get("num_cache_clusters").(int)
-	parameterGroupName, hasParameterGroup := d.GetOk("parameter_group_name")
 	engine := d.Get("engine").(string)
 	engineVersion := d.Get("engine_version").(string)
 
@@ -83,8 +80,8 @@ func resourceAwsElasticacheReplicationGroupCreate(d *schema.ResourceData, meta i
 		EngineVersion:			aws.String(engineVersion),
 	}
 
-	if hasParameterGroup {
-		req.CacheParameterGroupName = aws.String(parameterGroupName.(string))
+	if v, ok := d.GetOk("parameter_group_name"); ok {
+		req.CacheParameterGroupName = aws.String(v.(string))
 	}
 
 	_, err := conn.CreateReplicationGroup(req)
@@ -115,12 +112,19 @@ func resourceAwsElasticacheReplicationGroupCreate(d *schema.ResourceData, meta i
 
 func resourceAwsElasticacheReplicationGroupRead(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).elasticacheconn
+
 	req := &elasticache.DescribeReplicationGroupsInput{
 		ReplicationGroupID: aws.String(d.Id()),
 	}
 
 	res, err := conn.DescribeReplicationGroups(req)
 	if err != nil {
+		if ec2err, ok := err.(awserr.Error); ok && ec2err.Code() == "ReplicationGroupNotFound" {
+			// Update state to indicate the replication group no longer exists.
+			d.SetId("")
+			return nil
+		}
+
 		return err
 	}
 
@@ -170,6 +174,12 @@ func resourceAwsElasticacheReplicationGroupDelete(d *schema.ResourceData, meta i
 
 	_, err := conn.DeleteReplicationGroup(req)
 	if err != nil {
+		if ec2err, ok := err.(awserr.Error); ok && ec2err.Code() == "ReplicationGroupNotFound" {
+			// Update state to indicate the replication group no longer exists.
+			d.SetId("")
+			return nil
+		}
+
 		return fmt.Errorf("Error deleting Elasticache replication group: %s", err)
 	}
 
@@ -193,7 +203,6 @@ func resourceAwsElasticacheReplicationGroupDelete(d *schema.ResourceData, meta i
 
 func ReplicationGroupStateRefreshFunc(conn *elasticache.ElastiCache, replicationGroupID, givenState string, pending []string) resource.StateRefreshFunc {
 	return func() (interface{}, string, error) {
-		// log.Printf("[XXX] Given state: %s", givenState)
 		resp, err := conn.DescribeReplicationGroups(&elasticache.DescribeReplicationGroupsInput{
 			ReplicationGroupID: aws.String(replicationGroupID),
 		})
