@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/awslabs/aws-sdk-go/aws"
+	"github.com/awslabs/aws-sdk-go/aws/awserr"
 	"github.com/awslabs/aws-sdk-go/service/elasticache"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
@@ -120,7 +121,7 @@ func resourceAwsElasticacheReplicationGroupRead(d *schema.ResourceData, meta int
 
 	res, err := conn.DescribeReplicationGroups(req)
 	if err != nil {
-		if ec2err, ok := err.(awserr.Error); ok && ec2err.Code() == "ReplicationGroupNotFound" {
+		if ec2err, ok := err.(awserr.Error); ok && ec2err.Code() == "ReplicationGroupNotFoundFault" {
 			// Update state to indicate the replication group no longer exists.
 			d.SetId("")
 			return nil
@@ -179,7 +180,7 @@ func resourceAwsElasticacheReplicationGroupDelete(d *schema.ResourceData, meta i
 
 	_, err := conn.DeleteReplicationGroup(req)
 	if err != nil {
-		if ec2err, ok := err.(awserr.Error); ok && ec2err.Code() == "ReplicationGroupNotFound" {
+		if ec2err, ok := err.(awserr.Error); ok && ec2err.Code() == "ReplicationGroupNotFoundFault" {
 			// Update state to indicate the replication group no longer exists.
 			d.SetId("")
 			return nil
@@ -212,11 +213,14 @@ func ReplicationGroupStateRefreshFunc(conn *elasticache.ElastiCache, replication
 			ReplicationGroupID: aws.String(replicationGroupID),
 		})
 		if err != nil {
-			apierr := err.(aws.APIError)
-			log.Printf("[DEBUG] message: %v, code: %v", apierr.Message, apierr.Code)
-			if apierr.Code == "ReplicationGroupNotFoundFault" {
-				log.Printf("[DEBUG] Detect deletion")
-				return nil, "", nil
+			ec2err, ok := err.(awserr.Error)
+
+			if ok {
+				log.Printf("[DEBUG] message: %v, code: %v", ec2err.Message(), ec2err.Code())
+				if ec2err.Code() == "ReplicationGroupNotFoundFault" {
+					log.Printf("[DEBUG] Detect deletion")
+					return nil, "", nil
+				}
 			}
 
 			log.Printf("[ERROR] ReplicationGroupStateRefreshFunc: %s", err)
