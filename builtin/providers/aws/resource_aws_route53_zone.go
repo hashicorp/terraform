@@ -32,7 +32,7 @@ func resourceAwsRoute53Zone() *schema.Resource {
 			"comment": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
-				Default: "Managed by Terraform",
+				Default:  "Managed by Terraform",
 			},
 
 			"vpc_id": &schema.Schema{
@@ -51,6 +51,12 @@ func resourceAwsRoute53Zone() *schema.Resource {
 			"zone_id": &schema.Schema{
 				Type:     schema.TypeString,
 				Computed: true,
+			},
+
+			"delegation_set_id": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				ForceNew: true,
 			},
 
 			"name_servers": &schema.Schema{
@@ -81,6 +87,10 @@ func resourceAwsRoute53ZoneCreate(d *schema.ResourceData, meta interface{}) erro
 			req.VPC.VPCRegion = aws.String(w.(string))
 		}
 		d.Set("vpc_region", req.VPC.VPCRegion)
+	}
+
+	if v, ok := d.GetOk("delegation_set_id"); ok {
+		req.DelegationSetID = aws.String(v.(string))
 	}
 
 	log.Printf("[DEBUG] Creating Route53 hosted zone: %s", *req.Name)
@@ -155,6 +165,10 @@ func resourceAwsRoute53ZoneRead(d *schema.ResourceData, meta interface{}) error 
 		if associatedVPC == nil {
 			return fmt.Errorf("[DEBUG] VPC: %v is not associated with Zone: %v", d.Get("vpc_id"), d.Id())
 		}
+	}
+
+	if zone.DelegationSet != nil && zone.DelegationSet.ID != nil {
+		d.Set("delegation_set_id", cleanDelegationSetId(*zone.DelegationSet.ID))
 	}
 
 	// get tags
