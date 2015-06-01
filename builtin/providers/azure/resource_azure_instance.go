@@ -340,6 +340,10 @@ func resourceAzureInstanceRead(d *schema.ResourceData, meta interface{}) error {
 	log.Printf("[DEBUG] Retrieving instance: %s", d.Id())
 	dpmt, err := virtualmachine.NewClient(mc).GetDeployment(d.Id(), d.Id())
 	if err != nil {
+		if management.IsResourceNotFoundError(err) {
+			d.SetId("")
+			return nil
+		}
 		return fmt.Errorf("Error retrieving instance %s: %s", d.Id(), err)
 	}
 
