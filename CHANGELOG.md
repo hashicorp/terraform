@@ -7,11 +7,15 @@ IMPROVEMENTS:
   * **New resource: `aws_sqs_queue`** [GH-1939]
   * **New resource: `aws_sns_topic`** [GH-1974]
   * **New resource: `aws_sns_topic_subscription`** [GH-1974]
+  * **New resource: `aws_volume_attachment`** [GH-2050]
   * **New resource: `google_storage_bucket`** [GH-2060]
   * provider/aws: support ec2 termination protection [GH-1988]
   * provider/aws: support for RDS Read Replicas [GH-1946]
   * provider/aws: `aws_s3_bucket` add support for `policy` [GH-1992]
   * provider/aws: `aws_ebs_volume` add support for `tags` [GH-2135]
+  * provider/aws: `aws_elasticache_cluster` Confirm node status before reporting
+      available
+  * provider/aws: `aws_network_acl` Add support for ICMP Protocol [GH-2148]
   * provider/aws: New `force_destroy` parameter for S3 buckets, to destroy
       Buckets that contain objects [GH-2007]
   * provider/aws: switching `health_check_type` on ASGs no longer requires
@@ -20,6 +24,8 @@ IMPROVEMENTS:
 BUG FIXES:
 
   * provider/aws: Correctly handle AWS keypairs which no longer exist [GH-2032]
+  * provider/aws: Fix issue with restoring an Instance from snapshot ID
+    [GH-2120]
   * provisioner/chef: fix interpolation in the Chef provisioner [GH-2168]
   * provisioner/remote-exec: Don't prepend shebang on scripts that already
       have one [GH-2041]
