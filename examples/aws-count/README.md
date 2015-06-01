@@ -6,22 +6,10 @@ and let you scale resources by simply incrementing a number.
 Additionally, variables can be used to expand a list of resources
 for use elsewhere.
 
-A typical execution will be as below
+To run, set the environment variables as below with correct values
 
-Replace the following with appropriate values, refer to variables.tf for description of each variable
+export AWS_ACCESS_KEY_ID="..."
+export AWS_SECRET_ACCESS_KEY="..."
+export AWS_DEFAULT_REGION="..."
 
-{your_region e.g. us-east-1}
-{your_access_key}
-{your_secret_key}   
-
-Run the plan first and inspect the output.  
-
-terraform plan -var 'aws_region={your_region}' -var 'access_key={your_access_key}}' -var 'secret_key={your_secret_key}}'
-
-Once you are satisfied with plan, run the apply
-
-terraform apply -var 'aws_region={your_region}' -var 'access_key={your_access_key}}' -var 'secret_key={your_secret_key}}'
-
-To destroy the stack run
-
-terraform destroy -var 'aws_region={your_region}' -var 'access_key={your_access_key}}' -var 'secret_key={your_secret_key}}'
+run `terraform apply` to see it work.

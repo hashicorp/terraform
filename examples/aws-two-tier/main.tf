@@ -1,8 +1,6 @@
 # Specify the provider and access details
 provider "aws" {
     region = "${var.aws_region}"
-    access_key = "${var.access_key}"
-    secret_key = "${var.secret_key}" 
 }
 
 # Our default security group to access
@@ -24,6 +22,14 @@ resource "aws_security_group" "default" {
         from_port = 80
         to_port = 80
         protocol = "tcp"
+        cidr_blocks = ["0.0.0.0/0"]
+    }
+
+    # outbound internet access
+    egress {
+        from_port = 0
+        to_port = 0
+        protocol = "-1"
         cidr_blocks = ["0.0.0.0/0"]
     }
 }
