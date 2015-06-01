@@ -19,6 +19,7 @@ IMPROVEMENTS:
 BUG FIXES:
 
   * provider/aws: Correctly handle AWS keypairs which no longer exist [GH-2032]
+  * provisioner/chef: fix interpolation in the Chef provisioner [GH-2168]
   * provisioner/remote-exec: Don't prepend shebang on scripts that already
       have one [GH-2041]
 
