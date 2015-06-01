@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/awslabs/aws-sdk-go/aws"
+	"github.com/awslabs/aws-sdk-go/aws/awserr"
 	"github.com/awslabs/aws-sdk-go/aws/awsutil"
 	"github.com/awslabs/aws-sdk-go/service/cloudfront"
 	"github.com/hashicorp/terraform/helper/hashcode"
@@ -137,7 +138,7 @@ func resourceAwsCloudFrontWebDistribution() *schema.Resource {
 			"minimum_ssl": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
-				Default:  "TLSv1",
+				Default:  "SSLv3",
 			},
 
 			"certificate_id": &schema.Schema{
@@ -148,7 +149,7 @@ func resourceAwsCloudFrontWebDistribution() *schema.Resource {
 			"ssl_support_method": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
-				Default:  "vip",
+				Default:  "sni-only",
 			},
 
 			"aliases": &schema.Schema{
@@ -316,6 +317,11 @@ func resourceAwsCloudFrontWebDistributionCreate(d *schema.ResourceData, meta int
 func resourceAwsCloudFrontWebDistributionRead(d *schema.ResourceData, meta interface{}) error {
 	v, err := resourceAwsCloudFrontWebDistributionDistributionRetrieve(d, meta)
 	if err != nil {
+		if cferr, ok := err.(awserr.Error); ok && cferr.Code() == "NoSuchDistribution" {
+			// Fail quietly if resource no longer exists
+			d.SetId("")
+			return nil
+		}
 		return err
 	}
 
@@ -328,7 +334,7 @@ func resourceAwsCloudFrontWebDistributionRead(d *schema.ResourceData, meta inter
 	d.Set("status", v.Distribution.Status)
 	d.Set("default_viewer_protocol_policy", c.DefaultCacheBehavior.ViewerProtocolPolicy)
 	d.Set("default_forward_cookie", c.DefaultCacheBehavior.ForwardedValues.Cookies)
-	d.Set("default_whitelisted_cookies", c.DefaultCacheBehavior.ForwardedValues.Cookies.WhitelistedNames.Items) // This might need a check?
+	d.Set("default_whitelisted_cookies", c.DefaultCacheBehavior.ForwardedValues.Cookies.WhitelistedNames.Items)
 	d.Set("default_forward_query_string", c.DefaultCacheBehavior.ForwardedValues.QueryString)
 	d.Set("default_minimum_ttl", c.DefaultCacheBehavior.MinTTL)
 	d.Set("default_smooth_streaming", c.DefaultCacheBehavior.SmoothStreaming)
@@ -340,33 +346,26 @@ func resourceAwsCloudFrontWebDistributionRead(d *schema.ResourceData, meta inter
 	d.Set("logging_prefix", c.Logging.Prefix)
 	d.Set("logging_bucket", c.Logging.Bucket)
 	d.Set("default_origin", c.DefaultCacheBehavior.TargetOriginID)
-	d.Set("minimum_ssl", c.ViewerCertificate.MinimumProtocolVersion)
 	d.Set("aliases", c.Aliases.Items)
 	d.Set("geo_restriction_type", c.Restrictions.GeoRestriction.RestrictionType)
 	d.Set("geo_restrictions", c.Restrictions.GeoRestriction.Items)
 	d.Set("zone_id", "Z2FDTNDATAQYW2")
 
-	// TODO: Collect the following values
+	d.Set("minimum_ssl", c.ViewerCertificate.MinimumProtocolVersion)
+	d.Set("ssl_support_method", c.ViewerCertificate.SSLSupportMethod)
+	if *c.ViewerCertificate.CloudFrontDefaultCertificate == true {
+		d.Set("certificate_id", "")
+	} else {
+		d.Set("certificate_id", c.ViewerCertificate.IAMCertificateID)
+	}
 
-	// origin
-	// - domain_name
-	// - id
-	// - http_port
-	// - https_port
-	// - origin_protocol_policy
-	// - origin_path
+	if err := d.Set("origin", resourceAwsCloudFrontOriginGather(c.Origins)); err != nil {
+		return err
+	}
 
-	// behavior
-	// - pattern
-	// - origin
-	// - smooth_streaming
-	// - viewer_protocol_policy
-	// - minimum_ttl
-	// - allowed_methods
-	// - cached_methods
-	// - forwarded_headers
-	// - forward_cookie
-	// - whitelisted_cookies
+	if err := d.Set("behavior", resourceAwsCloudFrontBehaviorGather(c.CacheBehaviors)); err != nil {
+		return err
+	}
 
 	return nil
 }
@@ -408,10 +407,14 @@ func resourceAwsCloudFrontWebDistributionUpdate(d *schema.ResourceData, meta int
 func resourceAwsCloudFrontWebDistributionDelete(d *schema.ResourceData, meta interface{}) error {
 	cloudfrontconn := meta.(*AWSClient).cloudfrontconn
 
-	// TODO: Fail quietly if resource no longer exists?
 	v, err := resourceAwsCloudFrontWebDistributionDistributionRetrieve(d, meta)
 	if err != nil {
 		return err
+	}
+
+	// Do nothing if resource no longer exists
+	if v == nil {
+		return nil
 	}
 
 	// CloudFront distributions must be disabled in order to be deleted
@@ -751,4 +754,60 @@ func resourceAwsCloudFrontWebDistributionCookies(a, b interface{}) *cloudfront.C
 			Items:    whitelist,
 		},
 	}
+}
+
+func resourceAwsCloudFrontOriginGather(d *cloudfront.Origins) []map[string]interface{} {
+	origins := make([]map[string]interface{}, *d.Quantity)
+
+	for i, cd := range d.Items {
+		m := make(map[string]interface{})
+
+		m["domain_name"] = *cd.DomainName
+		m["id"] = *cd.ID
+		if cd.CustomOriginConfig != nil {
+			m["http_port"] = *cd.CustomOriginConfig.HTTPPort
+			m["https_port"] = *cd.CustomOriginConfig.HTTPSPort
+			m["origin_protocol_policy"] = *cd.CustomOriginConfig.OriginProtocolPolicy
+		}
+		m["origin_path"] = *cd.OriginPath
+
+		origins[i] = m
+	}
+
+	return origins
+}
+
+func resourceAwsCloudFrontBehaviorGather(d *cloudfront.CacheBehaviors) []map[string]interface{} {
+	behaviors := make([]map[string]interface{}, *d.Quantity)
+
+	log.Println(awsutil.StringValue(d))
+
+	for i, cd := range d.Items {
+		m := make(map[string]interface{})
+
+		m["pattern"] = *cd.PathPattern
+		m["origin"] = *cd.TargetOriginID
+		m["smooth_streaming"] = *cd.SmoothStreaming
+		m["viewer_protocol_policy"] = *cd.ViewerProtocolPolicy
+		m["minimum_ttl"] = int(*cd.MinTTL)
+		m["allowed_methods"] = resourceAwsCloudFrontCopyItems(cd.AllowedMethods.Items)
+		m["cached_methods"] = resourceAwsCloudFrontCopyItems(cd.AllowedMethods.CachedMethods.Items)
+		m["forwarded_headers"] = resourceAwsCloudFrontCopyItems(cd.ForwardedValues.Headers.Items)
+		m["forward_cookie"] = *cd.ForwardedValues.Cookies.Forward
+		if cd.ForwardedValues.Cookies.WhitelistedNames != nil {
+			m["whitelisted_cookies"] = resourceAwsCloudFrontCopyItems(cd.ForwardedValues.Cookies.WhitelistedNames.Items)
+		}
+
+		behaviors[i] = m
+	}
+
+	return behaviors
+}
+
+func resourceAwsCloudFrontCopyItems(d []*string) []string {
+	list := make([]string, 0, len(d))
+	for _, item := range d {
+		list = append(list, *item)
+	}
+	return list
 }

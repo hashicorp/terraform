@@ -117,7 +117,7 @@ resource "aws_cloudfront_web_distribution" "main" {
 var testAccAWSCloudFrontWebDistributionUpdate = fmt.Sprintf(`
 resource "aws_cloudfront_web_distribution" "main" {
   enabled = false
-  default_origin = "main"
+	default_origin = "main"
   default_forward_cookie = "whitelist"
   default_whitelisted_cookies = ["session"]
   aliases = ["static-%d.example.com"]
@@ -130,6 +130,7 @@ resource "aws_cloudfront_web_distribution" "main" {
   origin {
     domain_name = "images.s3.amazonaws.com"
     id = "images"
+    origin_path = "/photos"
   }
 
   behavior {
@@ -140,6 +141,8 @@ resource "aws_cloudfront_web_distribution" "main" {
   behavior {
     pattern = "images/*.png"
     origin = "images"
+    minimum_ttl = 100
+    whitelisted_cookies = ["test"]
   }
 }
 `, rand.New(rand.NewSource(time.Now().UnixNano())).Int())
