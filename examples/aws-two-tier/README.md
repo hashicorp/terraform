@@ -14,22 +14,9 @@ After you run `terraform apply` on this configuration, it will
 automatically output the DNS address of the ELB. After your instance
 registers, this should respond with the default nginx web page.
 
-To run, set the environment variables as below with correct values
+To run, configure your AWS provider as described in 
 
-export AWS_ACCESS_KEY_ID="..."
-export AWS_SECRET_ACCESS_KEY="..."
-export AWS_DEFAULT_REGION="..."
-
-Alternatively, you can configure the provider configuration where you invoke the module.
-
-For example, you can use section similar to below.
-
-# Specify the provider and access details
-provider "aws" {
-    region = "${var.aws_region}"
-    access_key = "${var.access_key}"
-    secret_key = "${var.secret_key}" 
-}
+https://www.terraform.io/docs/providers/aws/index.html
 
 Running the example
 
