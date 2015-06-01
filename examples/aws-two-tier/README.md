@@ -38,3 +38,4 @@ run `terraform apply -var 'key_name={your_aws_Key_name}' -var 'key_path={locatio
 example
 
 terraform apply -var 'key_name=terraform' -var 'key_path=/Users/jsmith/.ssh/terraform.pem
+
