@@ -26,6 +26,7 @@ BUG FIXES:
   * provider/aws: Correctly handle AWS keypairs which no longer exist [GH-2032]
   * provider/aws: Fix issue with restoring an Instance from snapshot ID
     [GH-2120]
+  * provider/template: store relative path in the state [GH-2038]
   * provisioner/chef: fix interpolation in the Chef provisioner [GH-2168]
   * provisioner/remote-exec: Don't prepend shebang on scripts that already
       have one [GH-2041]
