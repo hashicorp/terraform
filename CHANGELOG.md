@@ -1,3 +1,5 @@
+## 0.6.0 (Unreleased)
+
 ## 0.5.3 (June 1, 2015)
 
 IMPROVEMENTS:
