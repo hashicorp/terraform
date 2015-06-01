@@ -182,7 +182,7 @@ func (r *ResourceProvisioner) decodeConfig(c *terraform.ResourceConfig) (*Provis
 		return nil, err
 	}
 
-	if err := dec.Decode(c.Raw); err != nil {
+	if err := dec.Decode(c.Config); err != nil {
 		return nil, err
 	}
 
@@ -190,7 +190,7 @@ func (r *ResourceProvisioner) decodeConfig(c *terraform.ResourceConfig) (*Provis
 		p.Environment = defaultEnv
 	}
 
-	if attrs, ok := c.Raw["attributes"]; ok {
+	if attrs, ok := c.Config["attributes"]; ok {
 		p.Attributes, err = rawToJSON(attrs)
 		if err != nil {
 			return nil, fmt.Errorf("Error parsing the attributes: %v", err)
