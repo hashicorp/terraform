@@ -15,6 +15,10 @@ dev: generate
 quickdev: generate
 	@TF_QUICKDEV=1 TF_DEV=1 sh -c "'$(CURDIR)/scripts/build.sh'"
 
+release: updatedeps
+	gox -build-toolchain
+	@$(MAKE) bin
+
 # test runs the unit tests and vets the code
 test: generate
 	TF_ACC= go test $(TEST) $(TESTARGS) -timeout=30s -parallel=4
