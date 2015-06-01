@@ -7,11 +7,12 @@ IMPROVEMENTS:
   * **New resource: `aws_sqs_queue`** [GH-1939]
   * **New resource: `aws_sns_topic`** [GH-1974]
   * **New resource: `aws_sns_topic_subscription`** [GH-1974]
+  * **New resource: `google_storage_bucket`** [GH-2060]
   * provider/aws: support ec2 termination protection [GH-1988]
   * provider/aws: support for RDS Read Replicas [GH-1946]
   * provider/aws: `aws_s3_bucket` add support for `policy` [GH-1992]
   * provider/aws: `aws_ebs_volume` add support for `tags` [GH-2135]
-  * provider/aws: New `force_destroy` parameter for S3 buckets, to destroy 
+  * provider/aws: New `force_destroy` parameter for S3 buckets, to destroy
       Buckets that contain objects [GH-2007]
   * provider/aws: switching `health_check_type` on ASGs no longer requires
       resource refresh [GH-2147]
