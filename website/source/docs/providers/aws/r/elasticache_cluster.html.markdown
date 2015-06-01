@@ -59,6 +59,8 @@ names to associate with this cache cluster
 * `security_group_ids` – (Optional, VPC only) One or more VPC security groups associated
  with the cache cluster
 
+* `tags` - (Optional) A mapping of tags to assign to the resource.
+
 
 ## Attributes Reference
 
