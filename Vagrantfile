@@ -8,14 +8,16 @@ $script = <<SCRIPT
 # Install Go and prerequisites
 apt-get -qq update
 apt-get -qq install build-essential curl git-core libpcre3-dev mercurial pkg-config zip
-hg clone -u release https://code.google.com/p/go /opt/go
+git clone https://go.googlesource.com/go /opt/go
+cd /opt/go
+git checkout release-branch.go1.4
 cd /opt/go/src && ./all.bash
 
 # Setup the GOPATH
 mkdir -p /opt/gopath
-cat <<EOF >/etc/profile.d/gopath.sh
+cat << 'EOF' >/etc/profile.d/gopath.sh
 export GOPATH="/opt/gopath"
-export PATH="/opt/go/bin:\$GOPATH/bin:\$PATH"
+export PATH="/opt/go/bin:$GOPATH/bin:$PATH"
 EOF
 
 # Make sure the GOPATH is usable by vagrant
@@ -24,7 +26,7 @@ chown -R vagrant:vagrant /opt/gopath
 SCRIPT
 
 Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
-  config.vm.box = "chef/ubuntu-12.04"
+  config.vm.box = "chef/ubuntu-14.04"
 
   config.vm.provision "shell", inline: $script
 
