@@ -8,6 +8,7 @@ import (
 
 	"github.com/hashicorp/terraform/helper/hashcode"
 	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/svanharmelen/azure-sdk-for-go/management"
 	"github.com/svanharmelen/azure-sdk-for-go/management/networksecuritygroup"
 )
 
@@ -194,6 +195,10 @@ func resourceAzureSecurityGroupRead(d *schema.ResourceData, meta interface{}) er
 
 	sg, err := networksecuritygroup.NewClient(mc).GetNetworkSecurityGroup(d.Id())
 	if err != nil {
+		if management.IsResourceNotFoundError(err) {
+			d.SetId("")
+			return nil
+		}
 		return fmt.Errorf("Error retrieving Network Security Group %s: %s", d.Id(), err)
 	}
 
@@ -293,6 +298,9 @@ func resourceAzureSecurityGroupRuleDelete(
 	// Delete the rule
 	req, err := networksecuritygroup.NewClient(mc).DeleteNetworkSecurityGroupRule(d.Id(), name)
 	if err != nil {
+		if management.IsResourceNotFoundError(err) {
+			return nil
+		}
 		return fmt.Errorf("Error deleting Network Security Group rule %s: %s", name, err)
 	}
 
