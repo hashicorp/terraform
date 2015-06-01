@@ -50,6 +50,9 @@ This will put the example files within your working directory. You can then
 use your own editor to read and browse the configurations. This command will
 not _run_ any code.
 
+~> If you want to browse the files before downloading them, you can [view
+them on GitHub](https://github.com/hashicorp/terraform/tree/master/examples/aws-two-tier).
+
 If you want to run the example, just run `terraform apply`:
 
 ```
