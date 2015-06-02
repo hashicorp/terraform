@@ -304,6 +304,8 @@ func langEvalConfig(vs map[string]ast.Variable) *lang.EvalConfig {
 		funcMap[k] = v
 	}
 	funcMap["lookup"] = interpolationFuncLookup(vs)
+	funcMap["keys"] = interpolationFuncKeys(vs)
+	funcMap["values"] = interpolationFuncValues(vs)
 
 	return &lang.EvalConfig{
 		GlobalScope: &ast.BasicScope{
