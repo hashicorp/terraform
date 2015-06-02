@@ -5,6 +5,7 @@ import (
 
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/terraform"
+	"github.com/mitchellh/go-homedir"
 )
 
 // Provider returns a terraform.ResourceProvider.
@@ -42,8 +43,13 @@ func Provider() terraform.ResourceProvider {
 }
 
 func providerConfigure(d *schema.ResourceData) (interface{}, error) {
+	settingsFile, err := homedir.Expand(d.Get("settings_file").(string))
+	if err != nil {
+		return nil, err
+	}
+
 	config := Config{
-		SettingsFile:   d.Get("settings_file").(string),
+		SettingsFile:   settingsFile,
 		SubscriptionID: d.Get("subscription_id").(string),
 		Certificate:    []byte(d.Get("certificate").(string)),
 	}
