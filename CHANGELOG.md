@@ -3,6 +3,7 @@
 FEATURES:
 
   * **New provider: `azure`** [GH-2053]
+  * core: keys() and values() funcs for map variables [GH-2198]
 
 IMPROVEMENTS:
 
