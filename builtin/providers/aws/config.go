@@ -10,6 +10,7 @@ import (
 	"github.com/awslabs/aws-sdk-go/aws"
 	"github.com/awslabs/aws-sdk-go/aws/credentials"
 	"github.com/awslabs/aws-sdk-go/service/autoscaling"
+	"github.com/awslabs/aws-sdk-go/service/cloudfront"
 	"github.com/awslabs/aws-sdk-go/service/ec2"
 	"github.com/awslabs/aws-sdk-go/service/elasticache"
 	"github.com/awslabs/aws-sdk-go/service/elb"
@@ -40,6 +41,7 @@ type AWSClient struct {
 	s3conn          *s3.S3
 	sqsconn         *sqs.SQS
 	snsconn         *sns.SNS
+	cloudfrontconn  *cloudfront.CloudFront
 	r53conn         *route53.Route53
 	region          string
 	rdsconn         *rds.RDS
@@ -95,6 +97,9 @@ func (c *Config) Client() (interface{}, error) {
 
 		log.Println("[INFO] Initializing SNS connection")
 		client.snsconn = sns.New(awsConfig)
+
+		log.Println("[INFO] Initializing Cloudfront connection")
+		client.cloudfrontconn = cloudfront.New(awsConfig)
 
 		log.Println("[INFO] Initializing RDS Connection")
 		client.rdsconn = rds.New(awsConfig)
