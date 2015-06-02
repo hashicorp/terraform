@@ -140,7 +140,7 @@ IMPROVEMENTS:
   * **New resource: `google_dns_record_set`**
   * **Migrate to upstream AWS SDK:** Migrate the AWS provider to
       [awslabs/aws-sdk-go](https://github.com/awslabs/aws-sdk-go),
-      the offical `awslabs` library. Previously we had forked the library for
+      the official `awslabs` library. Previously we had forked the library for
       stability while `awslabs` refactored. Now that work has completed, and we've
       migrated back to the upstream version.
   * core: Improve error message on diff mismatch [GH-1501]
@@ -168,7 +168,7 @@ IMPROVEMENTS:
   * provider/aws: `aws_network_acl` improved validation for network ACL ports
       and protocols [GH-1798] [GH-1808]
   * provider/aws: `aws_route_table` can target network interfaces [GH-968]
-  * provider/aws: `aws_route_table` can specify propogating VGWs [GH-1516]
+  * provider/aws: `aws_route_table` can specify propagating VGWs [GH-1516]
   * provider/aws: `aws_route53_record` supports weighted sets [GH-1578]
   * provider/aws: `aws_route53_zone` exports nameservers [GH-1525]
   * provider/aws: `aws_s3_bucket` website support [GH-1738]
@@ -325,7 +325,7 @@ FEATURES:
   * **Math operations** in interpolations. You can now do things like
       `${count.index+1}`. [GH-1068]
   * **New AWS SDK:** Move to `aws-sdk-go` (hashicorp/aws-sdk-go),
-      a fork of the offical `awslabs` repo. We forked for stability while
+      a fork of the official `awslabs` repo. We forked for stability while
       `awslabs` refactored the library, and will move back to the officially
       supported version in the next release.
 
@@ -354,7 +354,7 @@ IMPROVEMENTS:
   * providers/aws: Improve dependency violation error handling, when deleting
       Internet Gateways or Auto Scaling groups [GH-1325].
   * provider/aws: Add non-destructive updates to AWS RDS. You can now upgrade
-      `egine_version`, `parameter_group_name`, and `multi_az` without forcing
+      `engine_version`, `parameter_group_name`, and `multi_az` without forcing
       a new database to be created.[GH-1341]
   * providers/aws: Full support for block device mappings on instances and
       launch configurations [GH-1045, GH-1364]
