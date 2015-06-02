@@ -108,6 +108,27 @@ func TestAccCloudStackInstance_Projectname(t *testing.T) {
 	})
 }
 
+func TestAccCloudStackInstance_Projectid(t *testing.T) {
+	var instance cloudstack.VirtualMachine
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckCloudStackInstanceDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccCloudStackInstance_projectid,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckCloudStackInstanceExists(
+						"cloudstack_instance.foobar", &instance),
+					resource.TestCheckResourceAttr(
+						"cloudstack_instance.foobar", "project", CLOUDSTACK_PROJECT_ID),
+				),
+			},
+		},
+	})
+}
+
 func testAccCheckCloudStackInstanceExists(
 	n string, instance *cloudstack.VirtualMachine) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
@@ -272,3 +293,20 @@ resource "cloudstack_instance" "foobar" {
 	CLOUDSTACK_TEMPLATE,
 	CLOUDSTACK_ZONE,
 	CLOUDSTACK_PROJECT_NAME)
+
+var testAccCloudStackInstance_projectid = fmt.Sprintf(`
+resource "cloudstack_instance" "foobar" {
+  name = "terraform-test"
+  display_name = "terraform"
+  service_offering= "%s"
+  network = "%s"
+  template = "%s"
+  zone = "%s"
+  expunge = true
+  project = "%s"
+}`,
+	CLOUDSTACK_SERVICE_OFFERING_1,
+	CLOUDSTACK_NETWORK_1,
+	CLOUDSTACK_TEMPLATE,
+	CLOUDSTACK_ZONE,
+	CLOUDSTACK_PROJECT_id)
