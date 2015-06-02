@@ -94,12 +94,14 @@ func resourceAwsCloudFrontWebDistribution() *schema.Resource {
 				Type:     schema.TypeList,
 				Elem:     &schema.Schema{Type: schema.TypeString},
 				Optional: true,
+				Computed: true,
 			},
 
 			"default_cached_methods": &schema.Schema{
 				Type:     schema.TypeList,
 				Elem:     &schema.Schema{Type: schema.TypeString},
 				Optional: true,
+				Computed: true,
 			},
 
 			"default_forwarded_headers": &schema.Schema{
@@ -334,13 +336,13 @@ func resourceAwsCloudFrontWebDistributionRead(d *schema.ResourceData, meta inter
 	d.Set("status", v.Distribution.Status)
 	d.Set("default_viewer_protocol_policy", c.DefaultCacheBehavior.ViewerProtocolPolicy)
 	d.Set("default_forward_cookie", c.DefaultCacheBehavior.ForwardedValues.Cookies)
-	d.Set("default_whitelisted_cookies", c.DefaultCacheBehavior.ForwardedValues.Cookies.WhitelistedNames.Items)
+	d.Set("default_whitelisted_cookies", resourceAwsCloudFrontCopyItems(c.DefaultCacheBehavior.ForwardedValues.Cookies.WhitelistedNames.Items))
 	d.Set("default_forward_query_string", c.DefaultCacheBehavior.ForwardedValues.QueryString)
 	d.Set("default_minimum_ttl", c.DefaultCacheBehavior.MinTTL)
 	d.Set("default_smooth_streaming", c.DefaultCacheBehavior.SmoothStreaming)
-	d.Set("default_allowed_methods", c.DefaultCacheBehavior.AllowedMethods.Items)
-	d.Set("default_allowed_methods", c.DefaultCacheBehavior.AllowedMethods.CachedMethods.Items)
-	d.Set("default_forwarded_headers", c.DefaultCacheBehavior.ForwardedValues.Headers.Items)
+	d.Set("default_allowed_methods", resourceAwsCloudFrontCopyItems(c.DefaultCacheBehavior.AllowedMethods.Items))
+	d.Set("default_cached_methods", resourceAwsCloudFrontCopyItems(c.DefaultCacheBehavior.AllowedMethods.CachedMethods.Items))
+	d.Set("default_forwarded_headers", resourceAwsCloudFrontCopyItems(c.DefaultCacheBehavior.ForwardedValues.Headers.Items))
 	d.Set("logging_enabled", c.Logging.Enabled)
 	d.Set("logging_include_cookies", c.Logging.IncludeCookies)
 	d.Set("logging_prefix", c.Logging.Prefix)
@@ -348,7 +350,7 @@ func resourceAwsCloudFrontWebDistributionRead(d *schema.ResourceData, meta inter
 	d.Set("default_origin", c.DefaultCacheBehavior.TargetOriginID)
 	d.Set("aliases", c.Aliases.Items)
 	d.Set("geo_restriction_type", c.Restrictions.GeoRestriction.RestrictionType)
-	d.Set("geo_restrictions", c.Restrictions.GeoRestriction.Items)
+	d.Set("geo_restrictions", resourceAwsCloudFrontCopyItems(c.Restrictions.GeoRestriction.Items))
 	d.Set("zone_id", "Z2FDTNDATAQYW2")
 
 	d.Set("minimum_ssl", c.ViewerCertificate.MinimumProtocolVersion)
@@ -623,10 +625,22 @@ func resourceAwsCloudFrontWebDistributionBehaviorHash(v interface{}) int {
 	buf.WriteString(fmt.Sprintf("%s-", m["viewer_protocol_policy"].(string)))
 	buf.WriteString(fmt.Sprintf("%d-", m["minimum_ttl"].(int)))
 	buf.WriteString(fmt.Sprintf("%v-", m["forward_cookie"].(string)))
-	resourceAwsCloudFrontWebDistributionHashStringList(m, "allowed_methods", &buf)
-	resourceAwsCloudFrontWebDistributionHashStringList(m, "cached_methods", &buf)
 	resourceAwsCloudFrontWebDistributionHashStringList(m, "forwarded_headers", &buf)
 	resourceAwsCloudFrontWebDistributionHashStringList(m, "whitelisted_cookies", &buf)
+
+	// Since defaults does not work with lists and the following values does not
+	// necessarily match the actual values the following is enough to uniquely
+	// distinguish the accepted values.
+	methods := len(m["allowed_methods"].([]interface{}))
+	if methods == 0 {
+		methods = 2
+	}
+	buf.WriteString(fmt.Sprintf("%d-", methods))
+	methods = len(m["cached_methods"].([]interface{}))
+	if methods == 0 {
+		methods = 2
+	}
+	buf.WriteString(fmt.Sprintf("%d-", methods))
 
 	return hashcode.String(buf.String())
 }
@@ -800,6 +814,8 @@ func resourceAwsCloudFrontBehaviorGather(d *cloudfront.CacheBehaviors) []map[str
 
 		behaviors[i] = m
 	}
+
+	log.Println("resourceAwsCloudFrontBehaviorGather:", behaviors)
 
 	return behaviors
 }
