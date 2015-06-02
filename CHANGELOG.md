@@ -1,5 +1,11 @@
 ## 0.6.0 (Unreleased)
 
+IMPROVEMENTS:
+
+  * provider/aws: ElastiCache Subnet Groups can be updated
+      without destroying first [GH-#2191]
+
+
 ## 0.5.3 (June 1, 2015)
 
 IMPROVEMENTS:
