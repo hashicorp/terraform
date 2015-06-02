@@ -32,6 +32,7 @@ func TestAccAWSElasticacheCluster_basic(t *testing.T) {
 }
 
 func TestAccAWSElasticacheCluster_vpc(t *testing.T) {
+	var csg elasticache.CacheSubnetGroup
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
@@ -40,7 +41,7 @@ func TestAccAWSElasticacheCluster_vpc(t *testing.T) {
 			resource.TestStep{
 				Config: testAccAWSElasticacheClusterInVPCConfig,
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckAWSElasticacheSubnetGroupExists("aws_elasticache_subnet_group.bar"),
+					testAccCheckAWSElasticacheSubnetGroupExists("aws_elasticache_subnet_group.bar", &csg),
 					testAccCheckAWSElasticacheClusterExists("aws_elasticache_cluster.bar"),
 				),
 			},
