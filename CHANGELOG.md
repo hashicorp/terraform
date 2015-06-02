@@ -1,5 +1,9 @@
 ## 0.6.0 (Unreleased)
 
+FEATURES:
+
+  * **New provider: `azure`** [GH-2053]
+
 IMPROVEMENTS:
 
   * provider/aws: ElastiCache Subnet Groups can be updated
