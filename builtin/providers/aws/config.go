@@ -16,6 +16,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/aws/aws-sdk-go/service/ecs"
+	"github.com/aws/aws-sdk-go/service/efs"
 	"github.com/aws/aws-sdk-go/service/elasticache"
 	"github.com/aws/aws-sdk-go/service/elb"
 	"github.com/aws/aws-sdk-go/service/iam"
@@ -47,6 +48,7 @@ type AWSClient struct {
 	dynamodbconn       *dynamodb.DynamoDB
 	ec2conn            *ec2.EC2
 	ecsconn            *ecs.ECS
+	efsconn            *efs.EFS
 	elbconn            *elb.ELB
 	autoscalingconn    *autoscaling.AutoScaling
 	s3conn             *s3.S3
@@ -139,6 +141,9 @@ func (c *Config) Client() (interface{}, error) {
 
 		log.Println("[INFO] Initializing ECS Connection")
 		client.ecsconn = ecs.New(awsConfig)
+
+		log.Println("[INFO] Initializing EFS Connection")
+		client.efsconn = efs.New(awsConfig)
 
 		// aws-sdk-go uses v4 for signing requests, which requires all global
 		// endpoints to use 'us-east-1'.
