@@ -384,6 +384,104 @@ func TestInterpolateFuncLookup(t *testing.T) {
 	})
 }
 
+func TestInterpolateFuncKeys(t *testing.T) {
+	testFunction(t, testFunctionConfig{
+		Vars: map[string]ast.Variable{
+			"var.foo.bar": ast.Variable{
+				Value: "baz",
+				Type:  ast.TypeString,
+			},
+			"var.foo.qux": ast.Variable{
+				Value: "quack",
+				Type:  ast.TypeString,
+			},
+			"var.str": ast.Variable{
+				Value: "astring",
+				Type:  ast.TypeString,
+			},
+		},
+		Cases: []testFunctionCase{
+			{
+				`${keys("foo")}`,
+				fmt.Sprintf(
+					"bar%squx",
+					InterpSplitDelim),
+				false,
+			},
+
+			// Invalid key
+			{
+				`${keys("not")}`,
+				nil,
+				true,
+			},
+
+			// Too many args
+			{
+				`${keys("foo", "bar")}`,
+				nil,
+				true,
+			},
+
+			// Not a map
+			{
+				`${keys("str")}`,
+				nil,
+				true,
+			},
+		},
+	})
+}
+
+func TestInterpolateFuncValues(t *testing.T) {
+	testFunction(t, testFunctionConfig{
+		Vars: map[string]ast.Variable{
+			"var.foo.bar": ast.Variable{
+				Value: "quack",
+				Type:  ast.TypeString,
+			},
+			"var.foo.qux": ast.Variable{
+				Value: "baz",
+				Type:  ast.TypeString,
+			},
+			"var.str": ast.Variable{
+				Value: "astring",
+				Type:  ast.TypeString,
+			},
+		},
+		Cases: []testFunctionCase{
+			{
+				`${values("foo")}`,
+				fmt.Sprintf(
+					"quack%sbaz",
+					InterpSplitDelim),
+				false,
+			},
+
+			// Invalid key
+			{
+				`${values("not")}`,
+				nil,
+				true,
+			},
+
+			// Too many args
+			{
+				`${values("foo", "bar")}`,
+				nil,
+				true,
+			},
+
+			// Not a map
+			{
+				`${values("str")}`,
+				nil,
+				true,
+			},
+		},
+	})
+}
+
 func TestInterpolateFuncElement(t *testing.T) {
 	testFunction(t, testFunctionConfig{
 		Cases: []testFunctionCase{
