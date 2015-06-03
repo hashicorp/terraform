@@ -84,7 +84,7 @@ func testAccCheckAWSSQSExistsWithDefaults(n string) resource.TestCheckFunc {
 		}
 
 		// checking if attributes are defaults
-		for k, v := range *resp.Attributes {
+		for k, v := range resp.Attributes {
 			if k == "VisibilityTimeout" && *v != "30" {
 				return fmt.Errorf("VisibilityTimeout (%s) was not set to 30", *v)
 			}
@@ -134,7 +134,7 @@ func testAccCheckAWSSQSExistsWithOverrides(n string) resource.TestCheckFunc {
 		}
 
 		// checking if attributes match our overrides
-		for k, v := range *resp.Attributes {
+		for k, v := range resp.Attributes {
 			if k == "VisibilityTimeout" && *v != "60" {
 				return fmt.Errorf("VisibilityTimeout (%s) was not set to 60", *v)
 			}
