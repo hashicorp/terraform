@@ -15,6 +15,7 @@ import (
 	"github.com/awslabs/aws-sdk-go/service/elb"
 	"github.com/awslabs/aws-sdk-go/service/iam"
 	"github.com/awslabs/aws-sdk-go/service/kinesis"
+	"github.com/awslabs/aws-sdk-go/service/opsworks"
 	"github.com/awslabs/aws-sdk-go/service/rds"
 	"github.com/awslabs/aws-sdk-go/service/route53"
 	"github.com/awslabs/aws-sdk-go/service/s3"
@@ -46,6 +47,7 @@ type AWSClient struct {
 	iamconn         *iam.IAM
 	kinesisconn     *kinesis.Kinesis
 	elasticacheconn *elasticache.ElastiCache
+	opsworksconn    *opsworks.OpsWorks
 }
 
 // Client configures and returns a fully initailized AWSClient
@@ -83,6 +85,16 @@ func (c *Config) Client() (interface{}, error) {
 			Region:      c.Region,
 			MaxRetries:  c.MaxRetries,
 		}
+		// Some services exist only in us-east-1, e.g. because they manage
+		// resources that can span across multiple regions, or because
+		// signature format v4 requires region to be us-east-1 for global
+		// endpoints:
+		// http://docs.aws.amazon.com/general/latest/gr/sigv4_changes.html
+		usEast1AwsConfig := &aws.Config{
+			Credentials: creds,
+			Region:      "us-east-1",
+			MaxRetries:  c.MaxRetries,
+		}
 
 		log.Println("[INFO] Initializing ELB connection")
 		client.elbconn = elb.New(awsConfig)
@@ -116,18 +128,14 @@ func (c *Config) Client() (interface{}, error) {
 		log.Println("[INFO] Initializing EC2 Connection")
 		client.ec2conn = ec2.New(awsConfig)
 
-		// aws-sdk-go uses v4 for signing requests, which requires all global
-		// endpoints to use 'us-east-1'.
-		// See http://docs.aws.amazon.com/general/latest/gr/sigv4_changes.html
 		log.Println("[INFO] Initializing Route 53 connection")
-		client.r53conn = route53.New(&aws.Config{
-			Credentials: creds,
-			Region:      "us-east-1",
-			MaxRetries:  c.MaxRetries,
-		})
+		client.r53conn = route53.New(usEast1AwsConfig)
 
 		log.Println("[INFO] Initializing Elasticache Connection")
 		client.elasticacheconn = elasticache.New(awsConfig)
+
+		log.Println("[INFO] Initializing OpsWorks Connection")
+		client.opsworksconn = opsworks.New(usEast1AwsConfig)
 	}
 
 	if len(errs) > 0 {
