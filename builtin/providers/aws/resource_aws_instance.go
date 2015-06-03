@@ -642,7 +642,6 @@ func resourceAwsInstanceRead(d *schema.ResourceData, meta interface{}) error {
 		d.Set("subnet_id", instance.SubnetID)
 	}
 	d.Set("ebs_optimized", instance.EBSOptimized)
-	d.Set("source_dest_check", instance.SourceDestCheck)
 	d.Set("tags", tagsToMap(instance.Tags))
 
 	// Determine whether we're referring to security groups with
