@@ -292,9 +292,9 @@ func resourceCloudStackTemplateDelete(d *schema.ResourceData, meta interface{}) 
 
 func verifyTemplateParams(d *schema.ResourceData) error {
 	format := d.Get("format").(string)
-	if format != "QCOW2" && format != "RAW" && format != "VHD" && format != "VMDK" {
+	if format != "OVA" && format != "QCOW2" && format != "RAW" && format != "VHD" && format != "VMDK" {
 		return fmt.Errorf(
-			"%s is not a valid format. Valid options are 'QCOW2', 'RAW', 'VHD' and 'VMDK'", format)
+			"%s is not a valid format. Valid options are 'OVA','QCOW2', 'RAW', 'VHD' and 'VMDK'", format)
 	}
 
 	return nil
