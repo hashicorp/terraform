@@ -7,8 +7,8 @@ import (
 
 	"github.com/hashicorp/terraform/helper/schema"
 
-	"github.com/awslabs/aws-sdk-go/aws"
-	"github.com/awslabs/aws-sdk-go/service/sqs"
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/service/sqs"
 )
 
 var AttributeMap = map[string]string{
