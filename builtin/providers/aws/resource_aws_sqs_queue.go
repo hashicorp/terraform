@@ -108,7 +108,7 @@ func resourceAwsSqsQueueCreate(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	if len(attributes) > 0 {
-		req.Attributes = &attributes
+		req.Attributes = attributes
 	}
 
 	output, err := sqsconn.CreateQueue(req)
@@ -144,7 +144,7 @@ func resourceAwsSqsQueueUpdate(d *schema.ResourceData, meta interface{}) error {
 	if len(attributes) > 0 {
 		req := &sqs.SetQueueAttributesInput{
 			QueueURL:   aws.String(d.Id()),
-			Attributes: &attributes,
+			Attributes: attributes,
 		}
 		sqsconn.SetQueueAttributes(req)
 	}
@@ -164,8 +164,8 @@ func resourceAwsSqsQueueRead(d *schema.ResourceData, meta interface{}) error {
 		return err
 	}
 
-	if attributeOutput.Attributes != nil && len(*attributeOutput.Attributes) > 0 {
-		attrmap := *attributeOutput.Attributes
+	if attributeOutput.Attributes != nil && len(attributeOutput.Attributes) > 0 {
+		attrmap := attributeOutput.Attributes
 		resource := *resourceAwsSqsQueue()
 		// iKey = internal struct key, oKey = AWS Attribute Map key
 		for iKey, oKey := range AttributeMap {
