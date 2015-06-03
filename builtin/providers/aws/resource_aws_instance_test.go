@@ -653,7 +653,6 @@ resource "aws_instance" "foo" {
 	ami = "ami-4fccb37f"
 	instance_type = "m1.small"
 	subnet_id = "${aws_subnet.foo.id}"
-	source_dest_check = true
 }
 `
 
