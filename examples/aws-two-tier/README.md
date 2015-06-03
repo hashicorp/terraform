@@ -18,11 +18,15 @@ To run, configure your AWS provider as described in
 
 https://www.terraform.io/docs/providers/aws/index.html
 
-Running the example
+Run with a command like this:
 
-run `terraform apply -var 'key_name={your_aws_Key_name}' -var 'key_path={location_of_your_key_in_your_local_machine}'` 
+```
+terraform apply -var 'key_name={your_aws_key_name}' \
+   -var 'key_path={location_of_your_key_in_your_local_machine}'` 
+```
 
-example
+For example:
 
-terraform apply -var 'key_name=terraform' -var 'key_path=/Users/jsmith/.ssh/terraform.pem
-
+```
+terraform apply -var 'key_name=terraform' -var 'key_path=/Users/jsmith/.ssh/terraform.pem'
+```
