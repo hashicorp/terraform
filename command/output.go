@@ -55,7 +55,7 @@ func (c *OutputCommand) Run(args []string) int {
 
 	if mod == nil {
 		c.Ui.Error(fmt.Sprintf(
-			"The module %s could not be found. There is nothing to taint.",
+			"The module %s could not be found. There is nothing to output.",
 			module))
 		return 1
 	}
