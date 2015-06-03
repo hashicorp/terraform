@@ -45,7 +45,7 @@ func Provider() terraform.ResourceProvider {
 func providerConfigure(d *schema.ResourceData) (interface{}, error) {
 	settingsFile, err := homedir.Expand(d.Get("settings_file").(string))
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("Error expanding the settings file path: %s", err)
 	}
 
 	config := Config{
