@@ -361,7 +361,10 @@ func resourceAwsRouteTableDelete(d *schema.ResourceData, meta interface{}) error
 func resourceAwsRouteTableHash(v interface{}) int {
 	var buf bytes.Buffer
 	m := v.(map[string]interface{})
-	buf.WriteString(fmt.Sprintf("%s-", m["cidr_block"].(string)))
+
+	if v, ok := m["cidr_block"]; ok {
+		buf.WriteString(fmt.Sprintf("%s-", v.(string)))
+	}
 
 	if v, ok := m["gateway_id"]; ok {
 		buf.WriteString(fmt.Sprintf("%s-", v.(string)))
