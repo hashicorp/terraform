@@ -3,6 +3,7 @@
 FEATURES:
 
   * **New provider: `azure`** [GH-2053]
+  * command/output: support display of module outputs [GH-2102]
   * core: keys() and values() funcs for map variables [GH-2198]
 
 IMPROVEMENTS:
