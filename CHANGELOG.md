@@ -11,6 +11,9 @@ IMPROVEMENTS:
   * provider/aws: ElastiCache Subnet Groups can be updated
       without destroying first [GH-2191]
 
+BUG FIXES:
+
+  * provider/aws: fix panic when route has no cidr_block [GH-2215]
 
 ## 0.5.3 (June 1, 2015)
 
