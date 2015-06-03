@@ -85,6 +85,7 @@ func resourceAwsInstance() *schema.Resource {
 			"source_dest_check": &schema.Schema{
 				Type:     schema.TypeBool,
 				Optional: true,
+				Default:  true,
 			},
 
 			"user_data": &schema.Schema{
