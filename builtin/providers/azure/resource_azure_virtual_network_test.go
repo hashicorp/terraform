@@ -188,23 +188,10 @@ func testAccCheckAzureVirtualNetworkDestroy(s *terraform.State) error {
 			return fmt.Errorf("Error retrieving Virtual Network Configuration: %s", err)
 		}
 
-		filtered := nc.Configuration.VirtualNetworkSites[:0]
 		for _, n := range nc.Configuration.VirtualNetworkSites {
-			if n.Name != rs.Primary.ID {
-				filtered = append(filtered, n)
+			if n.Name == rs.Primary.ID {
+				return fmt.Errorf("Resource %s still exists", rs.Primary.ID)
 			}
-		}
-
-		nc.Configuration.VirtualNetworkSites = filtered
-
-		req, err := virtualnetwork.NewClient(mc).SetVirtualNetworkConfiguration(nc)
-		if err != nil {
-			return fmt.Errorf("Error deleting Virtual Network %s: %s", rs.Primary.ID, err)
-		}
-
-		// Wait until the virtual network is deleted
-		if err := mc.WaitForOperation(req, nil); err != nil {
-			return fmt.Errorf("Error waiting for Virtual Network %s to be deleted: %s", rs.Primary.ID, err)
 		}
 	}
 
