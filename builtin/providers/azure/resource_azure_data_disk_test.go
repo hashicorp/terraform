@@ -8,6 +8,7 @@ import (
 
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
+	"github.com/svanharmelen/azure-sdk-for-go/management"
 	"github.com/svanharmelen/azure-sdk-for-go/management/virtualmachinedisk"
 )
 
@@ -155,15 +156,13 @@ func testAccCheckAzureDataDiskDestroy(s *terraform.State) error {
 			return err
 		}
 
-		req, err := virtualmachinedisk.NewClient(mc).DeleteDataDisk(vm, vm, vm, lun, true)
-		if err != nil {
-			return fmt.Errorf("Error deleting Data Disk (%s): %s", rs.Primary.ID, err)
+		_, err = virtualmachinedisk.NewClient(mc).GetDataDisk(vm, vm, vm, lun)
+		if err == nil {
+			return fmt.Errorf("Resource %s still exists", rs.Primary.ID)
 		}
 
-		// Wait until the data disk is deleted
-		if err := mc.WaitForOperation(req, nil); err != nil {
-			return fmt.Errorf(
-				"Error deleting Data Disk (%s): %s", rs.Primary.ID, err)
+		if !management.IsResourceNotFoundError(err) {
+			return err
 		}
 	}
 
