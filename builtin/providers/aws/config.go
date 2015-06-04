@@ -7,19 +7,20 @@ import (
 
 	"github.com/hashicorp/terraform/helper/multierror"
 
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/credentials"
-	"github.com/aws/aws-sdk-go/service/autoscaling"
-	"github.com/aws/aws-sdk-go/service/ec2"
-	"github.com/aws/aws-sdk-go/service/elasticache"
-	"github.com/aws/aws-sdk-go/service/elb"
-	"github.com/aws/aws-sdk-go/service/iam"
-	"github.com/aws/aws-sdk-go/service/kinesis"
-	"github.com/aws/aws-sdk-go/service/rds"
-	"github.com/aws/aws-sdk-go/service/route53"
-	"github.com/aws/aws-sdk-go/service/s3"
-	"github.com/aws/aws-sdk-go/service/sns"
-	"github.com/aws/aws-sdk-go/service/sqs"
+	"github.com/awslabs/aws-sdk-go/aws"
+	"github.com/awslabs/aws-sdk-go/aws/credentials"
+	"github.com/awslabs/aws-sdk-go/service/autoscaling"
+	"github.com/awslabs/aws-sdk-go/service/ec2"
+	"github.com/awslabs/aws-sdk-go/service/elasticache"
+	"github.com/awslabs/aws-sdk-go/service/elb"
+	"github.com/awslabs/aws-sdk-go/service/iam"
+	"github.com/awslabs/aws-sdk-go/service/kinesis"
+	"github.com/awslabs/aws-sdk-go/service/rds"
+	"github.com/awslabs/aws-sdk-go/service/route53"
+	"github.com/awslabs/aws-sdk-go/service/s3"
+	"github.com/awslabs/aws-sdk-go/service/sns"
+	"github.com/awslabs/aws-sdk-go/service/sqs"
+	"github.com/awslabs/aws-sdk-go/service/dynamodb"
 )
 
 type Config struct {
@@ -34,6 +35,7 @@ type Config struct {
 }
 
 type AWSClient struct {
+	dynamodbconn    *dynamodb.DynamoDB
 	ec2conn         *ec2.EC2
 	elbconn         *elb.ELB
 	autoscalingconn *autoscaling.AutoScaling
@@ -83,6 +85,9 @@ func (c *Config) Client() (interface{}, error) {
 			Region:      c.Region,
 			MaxRetries:  c.MaxRetries,
 		}
+
+		log.Println("[INFO] Initializing DynamoDB connection")
+		client.dynamodbconn = dynamodb.New(awsConfig)
 
 		log.Println("[INFO] Initializing ELB connection")
 		client.elbconn = elb.New(awsConfig)
