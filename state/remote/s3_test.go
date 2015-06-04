@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/awslabs/aws-sdk-go/service/s3"
+	"github.com/aws/aws-sdk-go/service/s3"
 )
 
 func TestS3Client_impl(t *testing.T) {
