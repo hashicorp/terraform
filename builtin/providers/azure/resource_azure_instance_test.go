@@ -7,6 +7,7 @@ import (
 
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
+	"github.com/svanharmelen/azure-sdk-for-go/management"
 	"github.com/svanharmelen/azure-sdk-for-go/management/hostedservice"
 	"github.com/svanharmelen/azure-sdk-for-go/management/virtualmachine"
 )
@@ -294,15 +295,13 @@ func testAccCheckAzureInstanceDestroy(s *terraform.State) error {
 			return fmt.Errorf("No instance ID is set")
 		}
 
-		req, err := hostedservice.NewClient(mc).DeleteHostedService(rs.Primary.ID, true)
-		if err != nil {
-			return fmt.Errorf("Error deleting instance (%s): %s", rs.Primary.ID, err)
+		_, err := hostedservice.NewClient(mc).GetHostedService(rs.Primary.ID)
+		if err == nil {
+			return fmt.Errorf("Resource %s still exists", rs.Primary.ID)
 		}
 
-		// Wait until the instance is deleted
-		if err := mc.WaitForOperation(req, nil); err != nil {
-			return fmt.Errorf(
-				"Error deleting instance (%s): %s", rs.Primary.ID, err)
+		if !management.IsResourceNotFoundError(err) {
+			return err
 		}
 	}
 

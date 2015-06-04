@@ -6,6 +6,7 @@ import (
 
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
+	"github.com/svanharmelen/azure-sdk-for-go/management"
 	"github.com/svanharmelen/azure-sdk-for-go/management/networksecuritygroup"
 )
 
@@ -214,15 +215,13 @@ func testAccCheckAzureSecurityGroupDestroy(s *terraform.State) error {
 			return fmt.Errorf("No Network Security Group ID is set")
 		}
 
-		req, err := networksecuritygroup.NewClient(mc).DeleteNetworkSecurityGroup(rs.Primary.ID)
-		if err != nil {
-			return fmt.Errorf("Error deleting Network Security Group (%s): %s", rs.Primary.ID, err)
+		_, err := networksecuritygroup.NewClient(mc).GetNetworkSecurityGroup(rs.Primary.ID)
+		if err == nil {
+			return fmt.Errorf("Resource %s still exists", rs.Primary.ID)
 		}
 
-		// Wait until the instance is deleted
-		if err := mc.WaitForOperation(req, nil); err != nil {
-			return fmt.Errorf(
-				"Error deleting Network Security Group (%s): %s", rs.Primary.ID, err)
+		if !management.IsResourceNotFoundError(err) {
+			return err
 		}
 	}
 
