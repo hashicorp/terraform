@@ -3,12 +3,12 @@ package remote
 import (
 	"bytes"
 	"crypto/md5"
+	"crypto/tls"
 	"encoding/base64"
 	"fmt"
 	"io"
 	"net/http"
 	"net/url"
-	"crypto/tls"
 	"strconv"
 )
 
@@ -40,14 +40,14 @@ func httpFactory(conf map[string]string) (Client, error) {
 	}
 
 	return &HTTPClient{
-		URL: url,
+		URL:            url,
 		skipCertVerify: skip_cert_verification,
 	}, nil
 }
 
 // HTTPClient is a remote client that stores data in Consul or HTTP REST.
 type HTTPClient struct {
-	URL *url.URL
+	URL            *url.URL
 	skipCertVerify bool
 }
 
