@@ -8,7 +8,9 @@ description: |-
 
 # aws\_vpc
 
-Provides an AutoScaling Group with Notification support, via SNS Topics
+Provides an AutoScaling Group with Notification support, via SNS Topics. Each of
+the `notifications` map to a [Notification Configuration][2] inside Amazon Web
+Services, and are applied to each AutoScaling Group you supply.
 
 ## Example Usage
 
@@ -63,3 +65,4 @@ The following attributes are exported:
 
 
 [1]: http://docs.aws.amazon.com/AutoScaling/latest/APIReference/API_NotificationConfiguration.html
+[2]: http://docs.aws.amazon.com/AutoScaling/latest/APIReference/API_DescribeNotificationConfigurations.html 
