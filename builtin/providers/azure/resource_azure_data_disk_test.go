@@ -2,14 +2,13 @@ package azure
 
 import (
 	"fmt"
-	"os"
 	"strconv"
 	"testing"
 
+	"github.com/Azure/azure-sdk-for-go/management"
+	"github.com/Azure/azure-sdk-for-go/management/virtualmachinedisk"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
-	"github.com/svanharmelen/azure-sdk-for-go/management"
-	"github.com/svanharmelen/azure-sdk-for-go/management/virtualmachinedisk"
 )
 
 func TestAccAzureDataDisk_basic(t *testing.T) {
@@ -174,7 +173,7 @@ resource "azure_instance" "foo" {
     name = "terraform-test"
     image = "Ubuntu Server 14.04 LTS"
     size = "Basic_A1"
-    storage = "%s"
+    storage_service_name = "%s"
     location = "West US"
     username = "terraform"
     password = "Pass!admin123"
@@ -183,16 +182,16 @@ resource "azure_instance" "foo" {
 resource "azure_data_disk" "foo" {
     lun = 0
     size = 10
-    storage = "${azure_instance.foo.storage}"
+    storage_service_name = "${azure_instance.foo.storage}"
     virtual_machine = "${azure_instance.foo.id}"
-}`, os.Getenv("AZURE_STORAGE"))
+}`, testAccStorageServiceName)
 
 var testAccAzureDataDisk_advanced = fmt.Sprintf(`
 resource "azure_instance" "foo" {
     name = "terraform-test1"
     image = "Ubuntu Server 14.04 LTS"
     size = "Basic_A1"
-    storage = "%s"
+    storage_service_name = "%s"
     location = "West US"
     username = "terraform"
     password = "Pass!admin123"
@@ -202,16 +201,16 @@ resource "azure_data_disk" "foo" {
     lun = 1
     size = 10
     caching = "ReadOnly"
-    storage = "${azure_instance.foo.storage}"
+    storage_service_name = "${azure_instance.foo.storage}"
     virtual_machine = "${azure_instance.foo.id}"
-}`, os.Getenv("AZURE_STORAGE"))
+}`, testAccStorageServiceName)
 
 var testAccAzureDataDisk_update = fmt.Sprintf(`
 resource "azure_instance" "foo" {
     name = "terraform-test1"
     image = "Ubuntu Server 14.04 LTS"
     size = "Basic_A1"
-    storage = "%s"
+    storage_service_name = "%s"
     location = "West US"
     username = "terraform"
     password = "Pass!admin123"
@@ -221,7 +220,7 @@ resource "azure_instance" "bar" {
     name = "terraform-test2"
     image = "Ubuntu Server 14.04 LTS"
     size = "Basic_A1"
-    storage = "${azure_instance.foo.storage}"
+    storage_service_name = "${azure_instance.foo.storage}"
     location = "West US"
     username = "terraform"
     password = "Pass!admin123"
@@ -231,6 +230,6 @@ resource "azure_data_disk" "foo" {
     lun = 2
     size = 20
     caching = "ReadWrite"
-    storage = "${azure_instance.bar.storage}"
+    storage_service_name = "${azure_instance.bar.storage}"
     virtual_machine = "${azure_instance.bar.id}"
-}`, os.Getenv("AZURE_STORAGE"))
+}`, testAccStorageServiceName)
