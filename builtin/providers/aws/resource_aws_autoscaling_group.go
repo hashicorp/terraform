@@ -462,7 +462,7 @@ func waitForASGCapacity(d *schema.ResourceData, meta interface{}) error {
 			return nil
 		}
 
-		return fmt.Errorf("Still need to wait for more healthy instances.")
+		return fmt.Errorf("Still need to wait for more healthy instances. This could mean instances failed to launch. See Scaling History for more information.")
 	})
 }
 
