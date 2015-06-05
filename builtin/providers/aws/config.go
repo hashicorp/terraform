@@ -11,6 +11,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/aws/aws-sdk-go/service/autoscaling"
 	"github.com/aws/aws-sdk-go/service/ec2"
+	"github.com/aws/aws-sdk-go/service/ecs"
 	"github.com/aws/aws-sdk-go/service/elasticache"
 	"github.com/aws/aws-sdk-go/service/elb"
 	"github.com/aws/aws-sdk-go/service/iam"
@@ -35,6 +36,7 @@ type Config struct {
 
 type AWSClient struct {
 	ec2conn         *ec2.EC2
+	ecsconn         *ecs.ECS
 	elbconn         *elb.ELB
 	autoscalingconn *autoscaling.AutoScaling
 	s3conn          *s3.S3
@@ -115,6 +117,9 @@ func (c *Config) Client() (interface{}, error) {
 
 		log.Println("[INFO] Initializing EC2 Connection")
 		client.ec2conn = ec2.New(awsConfig)
+
+		log.Println("[INFO] Initializing ECS Connection")
+		client.ecsconn = ecs.New(awsConfig)
 
 		// aws-sdk-go uses v4 for signing requests, which requires all global
 		// endpoints to use 'us-east-1'.
