@@ -11,28 +11,6 @@ import (
 	"github.com/hashicorp/terraform/terraform"
 )
 
-func TestBuildNotificationSlice(t *testing.T) {
-	a := "autoscaling:one"
-	b := "autoscaling:two"
-
-	cases := []struct {
-		Input  []string
-		Output []*string
-	}{
-		{[]string{"one", "two"}, []*string{&a, &b}},
-		{[]string{"autoscaling:one", "two"}, []*string{&a, &b}},
-	}
-
-	for _, tc := range cases {
-		actual := buildNotificationTypesSlice(tc.Input)
-		for i, a := range actual {
-			if *tc.Output[i] != *a {
-				t.Fatalf("bad converstion:\n\tinput: %s\n\toutput: %s", *tc.Output[i], *a)
-			}
-		}
-	}
-}
-
 func TestAccASGNotification_basic(t *testing.T) {
 	var asgn autoscaling.DescribeNotificationConfigurationsOutput
 
@@ -44,7 +22,7 @@ func TestAccASGNotification_basic(t *testing.T) {
 			resource.TestStep{
 				Config: testAccASGNotificationConfig_basic,
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckASGNotificationExists("aws_autoscaling_notification.example", &asgn),
+					testAccCheckASGNotificationExists("aws_autoscaling_notification.example", []string{"foobar1-terraform-test"}, &asgn),
 					testAccCheckAWSASGNotificationAttributes("aws_autoscaling_notification.example", &asgn),
 				),
 			},
@@ -63,7 +41,7 @@ func TestAccASGNotification_update(t *testing.T) {
 			resource.TestStep{
 				Config: testAccASGNotificationConfig_basic,
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckASGNotificationExists("aws_autoscaling_notification.example", &asgn),
+					testAccCheckASGNotificationExists("aws_autoscaling_notification.example", []string{"foobar1-terraform-test"}, &asgn),
 					testAccCheckAWSASGNotificationAttributes("aws_autoscaling_notification.example", &asgn),
 				),
 			},
@@ -71,7 +49,7 @@ func TestAccASGNotification_update(t *testing.T) {
 			resource.TestStep{
 				Config: testAccASGNotificationConfig_update,
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckASGNotificationExists("aws_autoscaling_notification.example", &asgn),
+					testAccCheckASGNotificationExists("aws_autoscaling_notification.example", []string{"foobar1-terraform-test", "barfoo-terraform-test"}, &asgn),
 					testAccCheckAWSASGNotificationAttributes("aws_autoscaling_notification.example", &asgn),
 				),
 			},
@@ -79,7 +57,7 @@ func TestAccASGNotification_update(t *testing.T) {
 	})
 }
 
-func testAccCheckASGNotificationExists(n string, asgn *autoscaling.DescribeNotificationConfigurationsOutput) resource.TestCheckFunc {
+func testAccCheckASGNotificationExists(n string, groups []string, asgn *autoscaling.DescribeNotificationConfigurationsOutput) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		rs, ok := s.RootModule().Resources[n]
 		if !ok {
@@ -90,17 +68,14 @@ func testAccCheckASGNotificationExists(n string, asgn *autoscaling.DescribeNotif
 			return fmt.Errorf("No ASG Notification ID is set")
 		}
 
-		// var groups []*string
-		// groupCount, _ := strconv.Atoi(rs.Primary.Attributes["group_names.#"])
-		// for i := 0; i < groupCount; i++ {
-		// 	key := fmt.Sprintf("group_names.%d", i)
-		// 	groups = append(groups, aws.String(rs.Primary.Attributes[key]))
-		// }
-		groups := []*string{aws.String("foobar1-terraform-test")}
+		var gl []*string
+		for _, g := range groups {
+			gl = append(gl, aws.String(g))
+		}
 
 		conn := testAccProvider.Meta().(*AWSClient).autoscalingconn
 		opts := &autoscaling.DescribeNotificationConfigurationsInput{
-			AutoScalingGroupNames: groups,
+			AutoScalingGroupNames: gl,
 		}
 
 		resp, err := conn.DescribeNotificationConfigurations(opts)
@@ -154,17 +129,38 @@ func testAccCheckAWSASGNotificationAttributes(n string, asgn *autoscaling.Descri
 			return fmt.Errorf("Error: no ASG Notifications found")
 		}
 
-		var notifications []*autoscaling.NotificationConfiguration
+		// build a unique list of groups, notification types
+		gRaw := make(map[string]bool)
+		nRaw := make(map[string]bool)
 		for _, n := range asgn.NotificationConfigurations {
 			if *n.TopicARN == rs.Primary.Attributes["topic_arn"] {
-				notifications = append(notifications, n)
+				gRaw[*n.AutoScalingGroupName] = true
+				nRaw[*n.NotificationType] = true
 			}
+		}
+
+		// Grab the keys here as the list of Groups
+		var gList []string
+		for k, _ := range gRaw {
+			gList = append(gList, k)
+		}
+
+		// Grab the keys here as the list of Types
+		var nList []string
+		for k, _ := range nRaw {
+			nList = append(nList, k)
 		}
 
 		typeCount, _ := strconv.Atoi(rs.Primary.Attributes["notifications.#"])
 
-		if len(notifications) != typeCount {
-			return fmt.Errorf("Error: Bad ASG Notification count, expected (%d), got (%d)", typeCount, len(notifications))
+		if len(nList) != typeCount {
+			return fmt.Errorf("Error: Bad ASG Notification count, expected (%d), got (%d)", typeCount, len(nList))
+		}
+
+		groupCount, _ := strconv.Atoi(rs.Primary.Attributes["group_names.#"])
+
+		if len(gList) != groupCount {
+			return fmt.Errorf("Error: Bad ASG Group count, expected (%d), got (%d)", typeCount, len(gList))
 		}
 
 		return nil
@@ -243,14 +239,14 @@ resource "aws_autoscaling_group" "foo" {
 }
 
 resource "aws_autoscaling_notification" "example" {
-  group_names     = [
+	group_names     = [
 	"${aws_autoscaling_group.bar.name}",
 	"${aws_autoscaling_group.foo.name}",
 	]
-  notifications  = [
-    "EC2_INSTANCE_LAUNCH", 
-    "EC2_INSTANCE_TERMINATE",
-    "EC2_INSTANCE_LAUNCH_ERROR"
-  ]
-  topic_arn = "${aws_sns_topic.user_updates.arn}"
+	notifications  = [
+		"autoscaling:EC2_INSTANCE_LAUNCH", 
+		"autoscaling:EC2_INSTANCE_TERMINATE",
+		"autoscaling:EC2_INSTANCE_LAUNCH_ERROR"
+	]
+	topic_arn = "${aws_sns_topic.user_updates.arn}"
 }`
