@@ -1,12 +1,12 @@
 ---
 layout: "aws"
-page_title: "AWS: aws_vpc"
+page_title: "AWS: aws_autoscaling_notification"
 sidebar_current: "docs-aws-resource-autoscaling-notification"
 description: |-
   Provides an AutoScaling Group with Notification support
 ---
 
-# aws\_vpc
+# aws\_autoscaling\_notification
 
 Provides an AutoScaling Group with Notification support, via SNS Topics. Each of
 the `notifications` map to a [Notification Configuration][2] inside Amazon Web
