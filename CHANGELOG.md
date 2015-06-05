@@ -16,6 +16,8 @@ IMPROVEMENTS:
 BUG FIXES:
 
   * provider/aws: fix panic when route has no cidr_block [GH-2215]
+  * provider/aws: fix issue causing perpetual diff on ELB listeners
+      when non-lowercase protocol strings were used [GH-2246]
 
 ## 0.5.3 (June 1, 2015)
 
