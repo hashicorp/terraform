@@ -5,11 +5,11 @@ import (
 	"os"
 	"testing"
 
+	"github.com/Azure/azure-sdk-for-go/management"
+	"github.com/Azure/azure-sdk-for-go/management/hostedservice"
+	"github.com/Azure/azure-sdk-for-go/management/virtualmachine"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
-	"github.com/svanharmelen/azure-sdk-for-go/management"
-	"github.com/svanharmelen/azure-sdk-for-go/management/hostedservice"
-	"github.com/svanharmelen/azure-sdk-for-go/management/virtualmachine"
 )
 
 func TestAccAzureInstance_basic(t *testing.T) {
@@ -313,7 +313,7 @@ resource "azure_instance" "foo" {
     name = "terraform-test"
     image = "Ubuntu Server 14.04 LTS"
     size = "Basic_A1"
-    storage = "%s"
+    storage_service_name = "%s"
     location = "West US"
     username = "terraform"
     password = "Pass!admin123"
@@ -324,7 +324,7 @@ resource "azure_instance" "foo" {
         public_port = 22
         private_port = 22
     }
-}`, os.Getenv("AZURE_STORAGE"))
+}`, testAccStorageServiceName)
 
 var testAccAzureInstance_advanced = fmt.Sprintf(`
 resource "azure_virtual_network" "foo" {
@@ -346,23 +346,24 @@ resource "azure_virtual_network" "foo" {
 resource "azure_security_group" "foo" {
     name = "terraform-security-group1"
     location = "West US"
+}
 
-    rule {
-        name = "rdp"
-        priority = 101
-        source_cidr = "*"
-        source_port = "*"
-        destination_cidr = "*"
-        destination_port = 3389
-        protocol = "TCP"
-    }
+resource "azure_security_group_rule" "foo" {
+    name = "rdp"
+    security_group_name = "${azure_security_group.foo.name}"
+    priority = 101
+    source_address_prefix = "*"
+    source_port_range = "*"
+    destination_address_prefix = "*"
+    destination_port_range = "3389"
+    protocol = "TCP"
 }
 
 resource "azure_instance" "foo" {
     name = "terraform-test1"
     image = "Windows Server 2012 R2 Datacenter, April 2015"
     size = "Basic_A1"
-    storage = "%s"
+    storage_service_name = "%s"
     location = "West US"
     time_zone = "America/Los_Angeles"
     subnet = "subnet1"
@@ -377,7 +378,7 @@ resource "azure_instance" "foo" {
         public_port = 3389
         private_port = 3389
     }
-}`, os.Getenv("AZURE_STORAGE"))
+}`, testAccStorageServiceName)
 
 var testAccAzureInstance_update = fmt.Sprintf(`
 resource "azure_virtual_network" "foo" {
@@ -385,52 +386,54 @@ resource "azure_virtual_network" "foo" {
     address_space = ["10.1.2.0/24"]
 		location = "West US"
 
-		subnet {
+    subnet {
         name = "subnet1"
-				address_prefix = "10.1.2.0/25"
-		}
+		address_prefix = "10.1.2.0/25"
+	}
 
-		subnet {
+    subnet {
         name = "subnet2"
-				address_prefix = "10.1.2.128/25"
+		address_prefix = "10.1.2.128/25"
     }
 }
 
 resource "azure_security_group" "foo" {
     name = "terraform-security-group1"
     location = "West US"
+}
 
-    rule {
-        name = "rdp"
-        priority = 101
-        source_cidr = "*"
-        source_port = "*"
-        destination_cidr = "*"
-        destination_port = 3389
-        protocol = "TCP"
-    }
+resource "azure_security_group_rule" "foo" {
+    name = "rdp"
+    security_group_name = "${azure_security_group.foo.name}"
+    priority = 101
+    source_address_prefix = "*"
+    source_port_range = "*"
+    destination_address_prefix = "*"
+    destination_port_range = "3389"
+    protocol = "TCP"
 }
 
 resource "azure_security_group" "bar" {
     name = "terraform-security-group2"
     location = "West US"
+}
 
-    rule {
-        name = "rdp"
-        priority = 101
-        source_cidr = "192.168.0.0/24"
-        source_port = "*"
-        destination_cidr = "*"
-        destination_port = 3389
-        protocol = "TCP"
-    }
+resource "azure_security_group_rule" "bar" {
+    name = "rdp"
+    security_group_name = "${azure_security_group.bar.name}"
+    priority = 101
+    source_address_prefix = "192.168.0.0/24"
+    source_port_range = "*"
+    destination_address_prefix = "*"
+    destination_port_range = "3389"
+    protocol = "TCP"
 }
 
 resource "azure_instance" "foo" {
     name = "terraform-test1"
     image = "Windows Server 2012 R2 Datacenter, April 2015"
     size = "Basic_A2"
-    storage = "%s"
+    storage_service_name = "%s"
     location = "West US"
     time_zone = "America/Los_Angeles"
     subnet = "subnet1"
@@ -452,4 +455,4 @@ resource "azure_instance" "foo" {
         public_port = 5985
         private_port = 5985
     }
-}`, os.Getenv("AZURE_STORAGE"))
+}`, testAccStorageServiceName)

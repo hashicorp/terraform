@@ -32,10 +32,17 @@ func Provider() terraform.ResourceProvider {
 		},
 
 		ResourcesMap: map[string]*schema.Resource{
-			"azure_data_disk":       resourceAzureDataDisk(),
-			"azure_instance":        resourceAzureInstance(),
-			"azure_security_group":  resourceAzureSecurityGroup(),
-			"azure_virtual_network": resourceAzureVirtualNetwork(),
+			"azure_instance":                 resourceAzureInstance(),
+			"azure_data_disk":                resourceAzureDataDisk(),
+			"azure_hosted_service":           resourceAzureHostedService(),
+			"azure_storage_service":          resourceAzureStorageService(),
+			"azure_storage_container":        resourceAzureStorageContainer(),
+			"azure_storage_blob":             resourceAzureStorageBlob(),
+			"azure_virtual_network":          resourceAzureVirtualNetwork(),
+			"azure_dns_server":               resourceAzureDnsServer(),
+			"azure_local_network_connection": resourceAzureLocalNetworkConnection(),
+			"azure_security_group":           resourceAzureSecurityGroup(),
+			"azure_security_group_rule":      resourceAzureSecurityGroupRule(),
 		},
 
 		ConfigureFunc: providerConfigure,
