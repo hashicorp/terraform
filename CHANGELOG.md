@@ -12,6 +12,8 @@ IMPROVEMENTS:
       without destroying first [GH-2191]
   * provider/docker: `docker_container` has the `privileged`
       option. [GH-2227]
+  * provider/openstack: allow `OS_AUTH_TOKEN` environment variable
+      to set the openstack `api_key` field [GH-2234]
 
 BUG FIXES:
 
