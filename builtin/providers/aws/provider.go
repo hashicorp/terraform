@@ -85,6 +85,7 @@ func Provider() terraform.ResourceProvider {
 		ResourcesMap: map[string]*schema.Resource{
 			"aws_app_cookie_stickiness_policy": resourceAwsAppCookieStickinessPolicy(),
 			"aws_autoscaling_group":            resourceAwsAutoscalingGroup(),
+			"aws_autoscaling_notification":     resourceAwsAutoscalingNotification(),
 			"aws_customer_gateway":             resourceAwsCustomerGateway(),
 			"aws_db_instance":                  resourceAwsDbInstance(),
 			"aws_db_parameter_group":           resourceAwsDbParameterGroup(),
