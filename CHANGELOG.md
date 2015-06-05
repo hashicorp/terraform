@@ -3,6 +3,9 @@
 FEATURES:
 
   * **New provider: `azure`** [GH-2053]
+  * **New resource: `aws_ecs_cluster`** [GH-1803]
+  * **New resource: `aws_ecs_service`** [GH-1803]
+  * **New resource: `aws_ecs_task_definition`** [GH-1803]
   * command/output: support display of module outputs [GH-2102]
   * core: keys() and values() funcs for map variables [GH-2198]
 
