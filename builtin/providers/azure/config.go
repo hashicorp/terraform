@@ -5,7 +5,7 @@ import (
 	"os"
 	"sync"
 
-	"github.com/svanharmelen/azure-sdk-for-go/management"
+	"github.com/Azure/azure-sdk-for-go/management"
 )
 
 // Config is the configuration structure used to instantiate a

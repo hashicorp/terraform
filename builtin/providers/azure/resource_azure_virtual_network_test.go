@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/Azure/azure-sdk-for-go/management/virtualnetwork"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
-	"github.com/svanharmelen/azure-sdk-for-go/management/virtualnetwork"
 )
 
 func TestAccAzureVirtualNetwork_basic(t *testing.T) {
@@ -214,16 +214,19 @@ const testAccAzureVirtualNetwork_advanced = `
 resource "azure_security_group" "foo" {
     name = "terraform-security-group1"
     location = "West US"
+}
 
-    rule {
-        name = "RDP"
-        priority = 101
-        source_cidr = "*"
-        source_port = "*"
-        destination_cidr = "*"
-        destination_port = "3389"
-        protocol = "TCP"
-    }
+resource "azure_security_group_rule" "foo" {
+	name = "terraform-secgroup-rule"
+	security_group_name = "${azure_security_group.foo.name}"
+	type = "Inbound"
+	action = "Deny"
+	priority = 200
+	source_address_prefix = "100.0.0.0/32"
+	source_port_range = "1000"
+	destination_address_prefix = "10.0.0.0/32"
+	destination_port_range = "1000"
+	protocol = "TCP"
 }
 
 resource "azure_virtual_network" "foo" {
@@ -242,31 +245,24 @@ const testAccAzureVirtualNetwork_update = `
 resource "azure_security_group" "foo" {
     name = "terraform-security-group1"
     location = "West US"
+}
 
-    rule {
-        name = "RDP"
-        priority = 101
-        source_cidr = "*"
-        source_port = "*"
-        destination_cidr = "*"
-        destination_port = "3389"
-        protocol = "TCP"
-    }
+resource "azure_security_group_rule" "foo" {
+	name = "terraform-secgroup-rule"
+	security_group_name = "${azure_security_group.foo.name}"
+	type = "Inbound"
+	action = "Deny"
+	priority = 200
+	source_address_prefix = "100.0.0.0/32"
+	source_port_range = "1000"
+	destination_address_prefix = "10.0.0.0/32"
+	destination_port_range = "1000"
+	protocol = "TCP"
 }
 
 resource "azure_security_group" "bar" {
     name = "terraform-security-group2"
     location = "West US"
-
-    rule {
-        name = "SSH"
-        priority = 101
-        source_cidr = "*"
-        source_port = "*"
-        destination_cidr = "*"
-        destination_port = "22"
-        protocol = "TCP"
-    }
 }
 
 resource "azure_virtual_network" "foo" {

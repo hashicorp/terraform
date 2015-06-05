@@ -5,9 +5,9 @@ import (
 	"log"
 	"time"
 
+	"github.com/Azure/azure-sdk-for-go/management"
+	"github.com/Azure/azure-sdk-for-go/management/virtualmachinedisk"
 	"github.com/hashicorp/terraform/helper/schema"
-	"github.com/svanharmelen/azure-sdk-for-go/management"
-	"github.com/svanharmelen/azure-sdk-for-go/management/virtualmachinedisk"
 )
 
 const dataDiskBlobStorageURL = "http://%s.blob.core.windows.net/disks/%s.vhd"
@@ -50,7 +50,7 @@ func resourceAzureDataDisk() *schema.Resource {
 				Default:  "None",
 			},
 
-			"storage": &schema.Schema{
+			"storage_service_name": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: true,
@@ -321,7 +321,7 @@ func mediaLink(d *schema.ResourceData) string {
 		name = fmt.Sprintf("%s-%d", d.Get("virtual_machine").(string), d.Get("lun").(int))
 	}
 
-	return fmt.Sprintf(dataDiskBlobStorageURL, d.Get("storage").(string), name.(string))
+	return fmt.Sprintf(dataDiskBlobStorageURL, d.Get("storage_service_name").(string), name.(string))
 }
 
 func verifyDataDiskParameters(d *schema.ResourceData) error {
@@ -332,7 +332,7 @@ func verifyDataDiskParameters(d *schema.ResourceData) error {
 	}
 
 	if _, ok := d.GetOk("media_link"); !ok {
-		if _, ok := d.GetOk("storage"); !ok {
+		if _, ok := d.GetOk("storage_service_name"); !ok {
 			return fmt.Errorf("If not supplying 'media_link', you must supply 'storage'.")
 		}
 	}

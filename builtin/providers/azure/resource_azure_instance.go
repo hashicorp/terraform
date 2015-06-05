@@ -7,14 +7,14 @@ import (
 	"log"
 	"strings"
 
+	"github.com/Azure/azure-sdk-for-go/management"
+	"github.com/Azure/azure-sdk-for-go/management/hostedservice"
+	"github.com/Azure/azure-sdk-for-go/management/osimage"
+	"github.com/Azure/azure-sdk-for-go/management/virtualmachine"
+	"github.com/Azure/azure-sdk-for-go/management/virtualmachineimage"
+	"github.com/Azure/azure-sdk-for-go/management/vmutils"
 	"github.com/hashicorp/terraform/helper/hashcode"
 	"github.com/hashicorp/terraform/helper/schema"
-	"github.com/svanharmelen/azure-sdk-for-go/management"
-	"github.com/svanharmelen/azure-sdk-for-go/management/hostedservice"
-	"github.com/svanharmelen/azure-sdk-for-go/management/osimage"
-	"github.com/svanharmelen/azure-sdk-for-go/management/virtualmachine"
-	"github.com/svanharmelen/azure-sdk-for-go/management/virtualmachineimage"
-	"github.com/svanharmelen/azure-sdk-for-go/management/vmutils"
 )
 
 const (
@@ -68,7 +68,7 @@ func resourceAzureInstance() *schema.Resource {
 				ForceNew: true,
 			},
 
-			"storage": &schema.Schema{
+			"storage_service_name": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: true,
@@ -183,7 +183,7 @@ func resourceAzureInstanceCreate(d *schema.ResourceData, meta interface{}) (err 
 		mc,
 		d.Get("image").(string),
 		name,
-		d.Get("storage").(string),
+		d.Get("storage_service_name").(string),
 	)
 	if err != nil {
 		return err
