@@ -3,6 +3,7 @@ package remote
 import (
 	"net/http"
 	"testing"
+	"os"
 )
 
 func TestSwiftClient_impl(t *testing.T) {
@@ -10,8 +11,13 @@ func TestSwiftClient_impl(t *testing.T) {
 }
 
 func TestSwiftClient(t *testing.T) {
-	if _, err := http.Get("http://google.com"); err != nil {
-		t.Skipf("skipping, internet seems to not be available: %s", err)
+	os_auth_url := os.Getenv("OS_AUTH_URL")
+	if os_auth_url == "" {
+		t.Skipf("skipping, OS_AUTH_URL and friends must be set")
+	}
+
+	if _, err := http.Get(os_auth_url); err != nil {
+		t.Skipf("skipping, unable to reach %s: %s", os_auth_url, err)
 	}
 
 	client, err := swiftFactory(map[string]string{
