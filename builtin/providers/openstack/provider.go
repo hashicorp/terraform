@@ -61,6 +61,11 @@ func Provider() terraform.ResourceProvider {
 				Optional: true,
 				Default:  false,
 			},
+			"endpoint_type": &schema.Schema{
+				Type:        schema.TypeString,
+				Optional:    true,
+				DefaultFunc: envDefaultFunc("OS_ENDPOINT_TYPE"),
+			},
 		},
 
 		ResourcesMap: map[string]*schema.Resource{
@@ -99,6 +104,7 @@ func configureProvider(d *schema.ResourceData) (interface{}, error) {
 		DomainID:         d.Get("domain_id").(string),
 		DomainName:       d.Get("domain_name").(string),
 		Insecure:         d.Get("insecure").(bool),
+		EndpointType:     d.Get("endpoint_type").(string),
 	}
 
 	if err := config.loadAndValidate(); err != nil {
