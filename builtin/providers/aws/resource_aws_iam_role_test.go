@@ -11,7 +11,7 @@ import (
 	"github.com/hashicorp/terraform/terraform"
 )
 
-func TestAccAWSRole_normal(t *testing.T) {
+func TestAccAWSRole_basic(t *testing.T) {
 	var conf iam.GetRoleOutput
 
 	resource.Test(t, resource.TestCase{

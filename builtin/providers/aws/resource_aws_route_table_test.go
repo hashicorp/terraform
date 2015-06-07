@@ -11,7 +11,7 @@ import (
 	"github.com/hashicorp/terraform/terraform"
 )
 
-func TestAccAWSRouteTable_normal(t *testing.T) {
+func TestAccAWSRouteTable_basic(t *testing.T) {
 	var v ec2.RouteTable
 
 	testCheck := func(*terraform.State) error {

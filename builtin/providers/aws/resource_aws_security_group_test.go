@@ -13,7 +13,7 @@ import (
 	"github.com/hashicorp/terraform/terraform"
 )
 
-func TestAccAWSSecurityGroup_normal(t *testing.T) {
+func TestAccAWSSecurityGroup_basic(t *testing.T) {
 	var group ec2.SecurityGroup
 
 	resource.Test(t, resource.TestCase{

@@ -11,7 +11,7 @@ import (
 	"github.com/hashicorp/terraform/terraform"
 )
 
-func TestAccAWSAccessKey_normal(t *testing.T) {
+func TestAccAWSAccessKey_basic(t *testing.T) {
 	var conf iam.AccessKeyMetadata
 
 	resource.Test(t, resource.TestCase{

@@ -11,7 +11,7 @@ import (
 	"github.com/hashicorp/terraform/terraform"
 )
 
-func TestAccAWSUser_normal(t *testing.T) {
+func TestAccAWSUser_basic(t *testing.T) {
 	var conf iam.GetUserOutput
 
 	resource.Test(t, resource.TestCase{
