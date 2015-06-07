@@ -55,6 +55,7 @@ func resourceAwsCloudWatchMetricAlarm() *schema.Resource {
 			"actions_enabled": &schema.Schema{
 				Type:     schema.TypeBool,
 				Optional: true,
+				Default:  true,
 			},
 			"alarm_actions": &schema.Schema{
 				Type:     schema.TypeSet,

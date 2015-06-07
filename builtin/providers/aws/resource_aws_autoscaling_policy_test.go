@@ -51,8 +51,6 @@ func testAccCheckScalingPolicyExists(n string, policy *autoscaling.ScalingPolicy
 			return fmt.Errorf("ScalingPolicy not found")
 		}
 
-		*policy = *resp.ScalingPolicies[0]
-
 		return nil
 	}
 }
@@ -97,7 +95,6 @@ resource "aws_autoscaling_group" "foobar" {
     min_size = 2
     health_check_grace_period = 300
     health_check_type = "ELB"
-    desired_capacity = 4
     force_delete = true
     termination_policies = ["OldestInstance"]
     launch_configuration = "${aws_launch_configuration.foobar.name}"
