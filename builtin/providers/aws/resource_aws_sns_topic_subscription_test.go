@@ -11,7 +11,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws/awserr"
 )
 
-func TestAccAWSSNSTopicSubscription(t *testing.T) {
+func TestAccAWSSNSTopicSubscription_basic(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,

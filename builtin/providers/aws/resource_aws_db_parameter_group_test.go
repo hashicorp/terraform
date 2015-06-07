@@ -11,7 +11,7 @@ import (
 	"github.com/hashicorp/terraform/terraform"
 )
 
-func TestAccAWSDBParameterGroup(t *testing.T) {
+func TestAccAWSDBParameterGroup_basic(t *testing.T) {
 	var v rds.DBParameterGroup
 
 	resource.Test(t, resource.TestCase{

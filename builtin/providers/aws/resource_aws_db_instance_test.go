@@ -14,7 +14,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/rds"
 )
 
-func TestAccAWSDBInstance(t *testing.T) {
+func TestAccAWSDBInstance_basic(t *testing.T) {
 	var v rds.DBInstance
 
 	resource.Test(t, resource.TestCase{
