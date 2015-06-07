@@ -9,7 +9,7 @@ import (
 	"github.com/hashicorp/terraform/terraform"
 )
 
-func TestAccAWSDHCPOptionsAssociation(t *testing.T) {
+func TestAccAWSDHCPOptionsAssociation_basic(t *testing.T) {
 	var v ec2.VPC
 	var d ec2.DHCPOptions
 

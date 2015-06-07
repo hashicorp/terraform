@@ -12,7 +12,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/rds"
 )
 
-func TestAccAWSDBSubnetGroup(t *testing.T) {
+func TestAccAWSDBSubnetGroup_basic(t *testing.T) {
 	var v rds.DBSubnetGroup
 
 	testCheck := func(*terraform.State) error {

@@ -11,7 +11,7 @@ import (
 	"github.com/hashicorp/terraform/terraform"
 )
 
-func TestAccAWSSubnet(t *testing.T) {
+func TestAccAWSSubnet_basic(t *testing.T) {
 	var v ec2.Subnet
 
 	testCheck := func(*terraform.State) error {

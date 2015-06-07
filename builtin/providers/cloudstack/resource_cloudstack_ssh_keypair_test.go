@@ -11,7 +11,7 @@ import (
 	"github.com/xanzy/go-cloudstack/cloudstack"
 )
 
-func TestAccCloudStackSSHKeyPair_create(t *testing.T) {
+func TestAccCloudStackSSHKeyPair_basic(t *testing.T) {
 	var sshkey cloudstack.SSHKeyPair
 
 	resource.Test(t, resource.TestCase{
