@@ -11,7 +11,7 @@ import (
 	"github.com/hashicorp/terraform/terraform"
 )
 
-func TestAccAWSVPCPeeringConnection_normal(t *testing.T) {
+func TestAccAWSVPCPeeringConnection_basic(t *testing.T) {
 	var connection ec2.VPCPeeringConnection
 
 	resource.Test(t, resource.TestCase{

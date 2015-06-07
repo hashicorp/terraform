@@ -12,7 +12,7 @@ import (
 	"github.com/hashicorp/terraform/terraform"
 )
 
-func TestAccAWSEIP_normal(t *testing.T) {
+func TestAccAWSEIP_basic(t *testing.T) {
 	var conf ec2.Address
 
 	resource.Test(t, resource.TestCase{
