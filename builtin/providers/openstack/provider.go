@@ -42,8 +42,8 @@ func Provider() terraform.ResourceProvider {
 				DefaultFunc: envDefaultFunc("OS_PASSWORD"),
 			},
 			"api_key": &schema.Schema{
-				Type:     schema.TypeString,
-				Optional: true,
+				Type:        schema.TypeString,
+				Optional:    true,
 				DefaultFunc: envDefaultFunc("OS_AUTH_TOKEN"),
 			},
 			"domain_id": &schema.Schema{
