@@ -39,3 +39,4 @@ variable "asg_desired" {
     description = "Desired numbers of servers in ASG"
     default = "1"
 }
+
