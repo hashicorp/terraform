@@ -1,6 +1,6 @@
 ---
 layout: "aws"
-page_title: "AWS: aws_subnet"
+page_title: "AWS: aws_elasticache_cluster"
 sidebar_current: "docs-aws-resource-elasticache-cluster"
 description: |-
   Provides an VPC subnet resource.
