@@ -11,7 +11,7 @@ import (
 	"github.com/hashicorp/terraform/terraform"
 )
 
-func TestAccDHCPOptions(t *testing.T) {
+func TestAccDHCPOptions_basic(t *testing.T) {
 	var d ec2.DHCPOptions
 
 	resource.Test(t, resource.TestCase{

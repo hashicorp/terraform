@@ -10,7 +10,7 @@ import (
 	"github.com/hashicorp/terraform/terraform"
 )
 
-func TestAccAWSEBSVolume(t *testing.T) {
+func TestAccAWSEBSVolume_basic(t *testing.T) {
 	var v ec2.Volume
 	resource.Test(t, resource.TestCase{
 		PreCheck:  func() { testAccPreCheck(t) },

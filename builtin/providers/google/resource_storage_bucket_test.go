@@ -1,9 +1,9 @@
 package google
 
 import (
+	"bytes"
 	"fmt"
 	"math/rand"
-	"bytes"
 	"testing"
 	"time"
 
@@ -14,7 +14,7 @@ import (
 	storage "google.golang.org/api/storage/v1"
 )
 
-func TestAccStorageDefaults(t *testing.T) {
+func TestAccStorage_basic(t *testing.T) {
 	var bucketName string
 
 	resource.Test(t, resource.TestCase{
