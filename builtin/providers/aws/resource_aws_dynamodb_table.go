@@ -279,25 +279,6 @@ func resourceAwsDynamoDbTableUpdate(d *schema.ResourceData, meta interface{}) er
 		return fmt.Errorf("Range key can only be specified at creation, you cannot modify it.")
 	}
 
-	if d.HasChange("attribute") {
-		req := &dynamodb.UpdateTableInput{
-			TableName: aws.String(d.Id()),
-		}
-
-		newAttributes := []*dynamodb.AttributeDefinition{}
-		_, n := d.GetChange("attribute")
-		newAttributeSet := n.(*schema.Set)
-		for _, attribute := range newAttributeSet.List() {
-			attr := attribute.(map[string]interface{})
-			newAttributes = append(newAttributes, &dynamodb.AttributeDefinition{
-				AttributeName: aws.String(attr["name"].(string)),
-				AttributeType: aws.String(attr["type"].(string)),
-			})
-		}
-
-		req.AttributeDefinitions = newAttributes
-	}
-
 	if d.HasChange("read_capacity") || d.HasChange("write_capacity") {
 		req := &dynamodb.UpdateTableInput{
 			TableName: aws.String(d.Id()),
