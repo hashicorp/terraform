@@ -31,6 +31,7 @@ BUG FIXES:
   * provider/aws: fix issue causing perpetual diff on ELB listeners
       when non-lowercase protocol strings were used [GH-2246]
   * provider/aws: corrected frankfurt S3 website region [GH-2259]
+  * provider/aws: `aws_elasticache_cluster` port is required [GH-2160]
 
 ## 0.5.3 (June 1, 2015)
 
