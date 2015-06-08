@@ -11,7 +11,7 @@ import (
 )
 
 func TestAccAWSGroupMembership_basic(t *testing.T) {
-	var group iam.Group
+	var group iam.GetGroupOutput
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -22,7 +22,15 @@ func TestAccAWSGroupMembership_basic(t *testing.T) {
 				Config: testAccAWSGroupMemberConfig,
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSGroupMembershipExists("aws_iam_group_membership.team", &group),
-					testAccCheckAWSGroupMembershipAttributes(&group),
+					testAccCheckAWSGroupMembershipAttributes(&group, []string{"test-user"}),
+				),
+			},
+
+			resource.TestStep{
+				Config: testAccAWSGroupMemberConfigUpdate,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSGroupMembershipExists("aws_iam_group_membership.team", &group),
+					testAccCheckAWSGroupMembershipAttributes(&group, []string{"test-user-two", "test-user-three"}),
 				),
 			},
 		},
@@ -37,7 +45,6 @@ func testAccCheckAWSGroupMembershipDestroy(s *terraform.State) error {
 			continue
 		}
 
-		// Try to get user
 		group := rs.Primary.Attributes["group"]
 
 		_, err := conn.GetGroup(&iam.GetGroupInput{
@@ -55,7 +62,7 @@ func testAccCheckAWSGroupMembershipDestroy(s *terraform.State) error {
 	return nil
 }
 
-func testAccCheckAWSGroupMembershipExists(n string, g *iam.Group) resource.TestCheckFunc {
+func testAccCheckAWSGroupMembershipExists(n string, g *iam.GetGroupOutput) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		rs, ok := s.RootModule().Resources[n]
 		if !ok {
@@ -77,16 +84,29 @@ func testAccCheckAWSGroupMembershipExists(n string, g *iam.Group) resource.TestC
 			return fmt.Errorf("Error: Group (%s) not found", gn)
 		}
 
-		*g = *resp.Group
+		*g = *resp
 
 		return nil
 	}
 }
 
-func testAccCheckAWSGroupMembershipAttributes(group *iam.Group) resource.TestCheckFunc {
+func testAccCheckAWSGroupMembershipAttributes(group *iam.GetGroupOutput, users []string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
-		if *group.GroupName != "test-group" {
-			return fmt.Errorf("Bad group membership: expected %s, got %s", "test-group-update", *group.GroupName)
+		if *group.Group.GroupName != "test-group" {
+			return fmt.Errorf("Bad group membership: expected %s, got %s", "test-group-update", *group.Group.GroupName)
+		}
+
+		uc := len(users)
+		for _, u := range users {
+			for _, gu := range group.Users {
+				if u == *gu.UserName {
+					uc--
+				}
+			}
+		}
+
+		if uc > 0 {
+			return fmt.Errorf("Bad group membership count, expected (%d), but only (%d) found", len(users), uc)
 		}
 		return nil
 	}
@@ -106,6 +126,37 @@ resource "aws_iam_user" "user" {
 resource "aws_iam_group_membership" "team" {
 	name = "tf-testing-group-membership"
 	users = ["${aws_iam_user.user.name}"]
+	group = "${aws_iam_group.group.name}"
+}
+`
+
+const testAccAWSGroupMemberConfigUpdate = `
+resource "aws_iam_group" "group" {
+	name = "test-group"
+	path = "/"
+}
+
+resource "aws_iam_user" "user" {
+	name = "test-user"
+	path = "/"
+}
+
+resource "aws_iam_user" "user_two" {
+	name = "test-user-two"
+	path = "/"
+}
+
+resource "aws_iam_user" "user_three" {
+	name = "test-user-three"
+	path = "/"
+}
+
+resource "aws_iam_group_membership" "team" {
+	name = "tf-testing-group-membership"
+	users = [
+		"${aws_iam_user.user_two.name}",
+		"${aws_iam_user.user_three.name}",
+	]
 	group = "${aws_iam_group.group.name}"
 }
 `

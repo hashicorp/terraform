@@ -2,7 +2,6 @@ package aws
 
 import (
 	"fmt"
-	"log"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
@@ -14,7 +13,7 @@ func resourceAwsIamGroupMembership() *schema.Resource {
 	return &schema.Resource{
 		Create: resourceAwsIamGroupMembershipCreate,
 		Read:   resourceAwsIamGroupMembershipRead,
-		//Update: resourceAwsIamGroupMembershipUpdate,
+		Update: resourceAwsIamGroupMembershipUpdate,
 		Delete: resourceAwsIamGroupMembershipDelete,
 
 		Schema: map[string]*schema.Schema{
@@ -43,18 +42,11 @@ func resourceAwsIamGroupMembership() *schema.Resource {
 func resourceAwsIamGroupMembershipCreate(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).iamconn
 
-	userList := expandStringList(d.Get("users").(*schema.Set).List())
 	group := d.Get("group").(string)
+	userList := expandStringList(d.Get("users").(*schema.Set).List())
 
-	for _, u := range userList {
-		_, err := conn.AddUserToGroup(&iam.AddUserToGroupInput{
-			UserName:  u,
-			GroupName: aws.String(group),
-		})
-
-		if err != nil {
-			return err
-		}
+	if err := addUsersToGroup(conn, userList, group); err != nil {
+		return err
 	}
 
 	d.SetId(d.Get("name").(string))
@@ -63,16 +55,19 @@ func resourceAwsIamGroupMembershipCreate(d *schema.ResourceData, meta interface{
 
 func resourceAwsIamGroupMembershipRead(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).iamconn
+	group := d.Get("group").(string)
 	resp, err := conn.GetGroup(&iam.GetGroupInput{
-		GroupName: aws.String(d.Get("group").(string)),
+		GroupName: aws.String(group),
 	})
 
 	if err != nil {
 		if awsErr, ok := err.(awserr.Error); ok {
 			// aws specific error
-			log.Printf("\n\n------\n AWS Error: %s :::: %s", awsErr.Code(), awsErr.Message())
-			// group not found
-			d.SetId("")
+			if awsErr.Code() == "NoSuchEntity" {
+				// group not found
+				d.SetId("")
+				return nil
+			}
 		}
 		return err
 	}
@@ -83,10 +78,41 @@ func resourceAwsIamGroupMembershipRead(d *schema.ResourceData, meta interface{})
 	}
 
 	if err := d.Set("users", ul); err != nil {
-		return fmt.Errorf("[WARN] Error setting user list from IAM Group Membership (%s), error: %s", err)
+		return fmt.Errorf("[WARN] Error setting user list from IAM Group Membership (%s), error: %s", group, err)
 	}
 
 	return nil
+}
+
+func resourceAwsIamGroupMembershipUpdate(d *schema.ResourceData, meta interface{}) error {
+	conn := meta.(*AWSClient).iamconn
+
+	if d.HasChange("users") {
+		group := d.Get("group").(string)
+
+		o, n := d.GetChange("users")
+		if o == nil {
+			o = new(schema.Set)
+		}
+		if n == nil {
+			n = new(schema.Set)
+		}
+
+		os := o.(*schema.Set)
+		ns := n.(*schema.Set)
+		remove := expandStringList(os.Difference(ns).List())
+		add := expandStringList(ns.Difference(os).List())
+
+		if err := removeUsersFromGroup(conn, remove, group); err != nil {
+			return err
+		}
+
+		if err := addUsersToGroup(conn, add, group); err != nil {
+			return err
+		}
+	}
+
+	return resourceAwsIamGroupMembershipRead(d, meta)
 }
 
 func resourceAwsIamGroupMembershipDelete(d *schema.ResourceData, meta interface{}) error {
@@ -94,7 +120,16 @@ func resourceAwsIamGroupMembershipDelete(d *schema.ResourceData, meta interface{
 	userList := expandStringList(d.Get("users").(*schema.Set).List())
 	group := d.Get("group").(string)
 
-	for _, u := range userList {
+	if err := removeUsersFromGroup(conn, userList, group); err != nil {
+		return err
+	}
+
+	d.SetId("")
+	return nil
+}
+
+func removeUsersFromGroup(conn *iam.IAM, users []*string, group string) error {
+	for _, u := range users {
 		_, err := conn.RemoveUserFromGroup(&iam.RemoveUserFromGroupInput{
 			UserName:  u,
 			GroupName: aws.String(group),
@@ -104,7 +139,19 @@ func resourceAwsIamGroupMembershipDelete(d *schema.ResourceData, meta interface{
 			return err
 		}
 	}
+	return nil
+}
 
-	d.SetId("")
+func addUsersToGroup(conn *iam.IAM, users []*string, group string) error {
+	for _, u := range users {
+		_, err := conn.AddUserToGroup(&iam.AddUserToGroupInput{
+			UserName:  u,
+			GroupName: aws.String(group),
+		})
+
+		if err != nil {
+			return err
+		}
+	}
 	return nil
 }
