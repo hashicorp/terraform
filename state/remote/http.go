@@ -26,41 +26,38 @@ func httpFactory(conf map[string]string) (Client, error) {
 		return nil, fmt.Errorf("address must be HTTP or HTTPS")
 	}
 
-	skip_cert_verification := false
-	skip_cert_config_string, ok := conf["skip_cert_verification"]
-	if !ok {
-		// config wasn't specified
-		// use the default - check cert validity
-	} else {
-		skip_cert_verification, err = strconv.ParseBool(skip_cert_config_string)
+	client := &http.Client{}
+	if skipRaw, ok := conf["skip_cert_verification"]; ok {
+		skip, err := strconv.ParseBool(skipRaw)
 		if err != nil {
-			return nil, fmt.Errorf("skip_cert_verification must be boolean (true/false)")
+			return nil, fmt.Errorf("skip_cert_verification must be boolean")
 		}
-		// skip_cert_verification should now be set to true or false
+		if skip {
+			// Replace the client with one that ignores TLS verification
+			client = &http.Client{
+				Transport: &http.Transport{
+					TLSClientConfig: &tls.Config{
+						InsecureSkipVerify: true,
+					},
+				},
+			}
+		}
 	}
 
 	return &HTTPClient{
-		URL:            url,
-		skipCertVerify: skip_cert_verification,
+		URL:    url,
+		Client: client,
 	}, nil
 }
 
 // HTTPClient is a remote client that stores data in Consul or HTTP REST.
 type HTTPClient struct {
-	URL            *url.URL
-	skipCertVerify bool
+	URL    *url.URL
+	Client *http.Client
 }
 
 func (c *HTTPClient) Get() (*Payload, error) {
-
-	// Build the HTTP client
-	tr := &http.Transport{
-		TLSClientConfig: &tls.Config{InsecureSkipVerify: c.skipCertVerify},
-	}
-
-	client := &http.Client{Transport: tr}
-
-	resp, err := client.Get(c.URL.String())
+	resp, err := c.Client.Get(c.URL.String())
 	if err != nil {
 		return nil, err
 	}
@@ -135,13 +132,6 @@ func (c *HTTPClient) Put(data []byte) error {
 		}
 	*/
 
-	// Build the HTTP client and request
-	tr := &http.Transport{
-		TLSClientConfig: &tls.Config{InsecureSkipVerify: c.skipCertVerify},
-	}
-
-	client := &http.Client{Transport: tr}
-
 	req, err := http.NewRequest("POST", base.String(), bytes.NewReader(data))
 	if err != nil {
 		return fmt.Errorf("Failed to make HTTP request: %s", err)
@@ -153,7 +143,7 @@ func (c *HTTPClient) Put(data []byte) error {
 	req.ContentLength = int64(len(data))
 
 	// Make the request
-	resp, err := client.Do(req)
+	resp, err := c.Client.Do(req)
 	if err != nil {
 		return fmt.Errorf("Failed to upload state: %v", err)
 	}
@@ -169,19 +159,13 @@ func (c *HTTPClient) Put(data []byte) error {
 }
 
 func (c *HTTPClient) Delete() error {
-	// Build the HTTP request
-	tr := &http.Transport{
-		TLSClientConfig: &tls.Config{InsecureSkipVerify: c.skipCertVerify},
-	}
-
-	client := &http.Client{Transport: tr}
 	req, err := http.NewRequest("DELETE", c.URL.String(), nil)
 	if err != nil {
 		return fmt.Errorf("Failed to make HTTP request: %s", err)
 	}
 
 	// Make the request
-	resp, err := client.Do(req)
+	resp, err := c.Client.Do(req)
 	if err != nil {
 		return fmt.Errorf("Failed to delete state: %s", err)
 	}
