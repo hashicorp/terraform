@@ -8,7 +8,7 @@ import (
 	"github.com/hashicorp/terraform/terraform"
 )
 
-func TestAccAWSMainRouteTableAssociation(t *testing.T) {
+func TestAccAWSMainRouteTableAssociation_basic(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,

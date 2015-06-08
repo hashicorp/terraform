@@ -11,7 +11,7 @@ import (
 	"github.com/hashicorp/terraform/terraform"
 )
 
-func TestAccCustomerGateway(t *testing.T) {
+func TestAccCustomerGateway_basic(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,

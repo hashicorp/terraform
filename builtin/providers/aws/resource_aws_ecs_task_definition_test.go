@@ -10,7 +10,7 @@ import (
 	"github.com/hashicorp/terraform/terraform"
 )
 
-func TestAccAWSEcsTaskDefinition(t *testing.T) {
+func TestAccAWSEcsTaskDefinition_basic(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
