@@ -7,6 +7,7 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/hashicorp/go-multierror"
 	"github.com/hashicorp/terraform/config/module"
 	"github.com/hashicorp/terraform/terraform"
 )
@@ -207,7 +208,7 @@ func (c *ApplyCommand) Run(args []string) int {
 				"Instead, your Terraform state file has been partially updated with\n"+
 				"any resources that successfully completed. Please address the error\n"+
 				"above and apply again to incrementally change your infrastructure.",
-			applyErr))
+			multierror.Flatten(applyErr)))
 		return 1
 	}
 
