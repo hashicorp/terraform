@@ -42,9 +42,9 @@ func Provider() terraform.ResourceProvider {
 				DefaultFunc: envDefaultFunc("OS_PASSWORD"),
 			},
 			"api_key": &schema.Schema{
-				Type:     schema.TypeString,
-				Optional: true,
-				Default:  "",
+				Type:        schema.TypeString,
+				Optional:    true,
+				DefaultFunc: envDefaultFunc("OS_AUTH_TOKEN"),
 			},
 			"domain_id": &schema.Schema{
 				Type:     schema.TypeString,
@@ -60,6 +60,11 @@ func Provider() terraform.ResourceProvider {
 				Type:     schema.TypeBool,
 				Optional: true,
 				Default:  false,
+			},
+			"endpoint_type": &schema.Schema{
+				Type:        schema.TypeString,
+				Optional:    true,
+				DefaultFunc: envDefaultFunc("OS_ENDPOINT_TYPE"),
 			},
 		},
 
@@ -99,6 +104,7 @@ func configureProvider(d *schema.ResourceData) (interface{}, error) {
 		DomainID:         d.Get("domain_id").(string),
 		DomainName:       d.Get("domain_name").(string),
 		Insecure:         d.Get("insecure").(bool),
+		EndpointType:     d.Get("endpoint_type").(string),
 	}
 
 	if err := config.loadAndValidate(); err != nil {

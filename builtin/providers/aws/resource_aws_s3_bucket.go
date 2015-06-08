@@ -7,9 +7,9 @@ import (
 
 	"github.com/hashicorp/terraform/helper/schema"
 
-	"github.com/awslabs/aws-sdk-go/aws"
-	"github.com/awslabs/aws-sdk-go/aws/awserr"
-	"github.com/awslabs/aws-sdk-go/service/s3"
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/awserr"
+	"github.com/aws/aws-sdk-go/service/s3"
 )
 
 func resourceAwsS3Bucket() *schema.Resource {
@@ -433,6 +433,13 @@ func websiteEndpoint(s3conn *s3.S3, d *schema.ResourceData) (string, error) {
 
 func WebsiteEndpointUrl(bucket string, region string) string {
 	region = normalizeRegion(region)
+
+	// Frankfurt(and probably future) regions uses different syntax for website endpoints
+	// http://docs.aws.amazon.com/AmazonS3/latest/dev/WebsiteEndpoints.html
+	if region == "eu-central-1" {
+		return fmt.Sprintf("%s.s3-website.%s.amazonaws.com", bucket, region)
+	}
+
 	return fmt.Sprintf("%s.s3-website-%s.amazonaws.com", bucket, region)
 }
 

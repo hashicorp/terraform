@@ -17,6 +17,7 @@ import (
 	"github.com/hashicorp/terraform/communicator"
 	"github.com/hashicorp/terraform/communicator/remote"
 	"github.com/hashicorp/terraform/terraform"
+	"github.com/mitchellh/go-homedir"
 	"github.com/mitchellh/go-linereader"
 	"github.com/mitchellh/mapstructure"
 )
@@ -182,12 +183,29 @@ func (r *ResourceProvisioner) decodeConfig(c *terraform.ResourceConfig) (*Provis
 		return nil, err
 	}
 
+	// We need to decode this twice. Once for the Raw config and once
+	// for the parsed Config. This makes sure that all values are there
+	// even if some still need to be interpolated later on.
+	// Without this the validation will fail when using a variable for
+	// a required parameter (the node_name for example).
+	if err := dec.Decode(c.Raw); err != nil {
+		return nil, err
+	}
+
 	if err := dec.Decode(c.Config); err != nil {
 		return nil, err
 	}
 
 	if p.Environment == "" {
 		p.Environment = defaultEnv
+	}
+
+	if p.ValidationKeyPath != "" {
+		keyPath, err := homedir.Expand(p.ValidationKeyPath)
+		if err != nil {
+			return nil, fmt.Errorf("Error expanding the validation key path: %v", err)
+		}
+		p.ValidationKeyPath = keyPath
 	}
 
 	if attrs, ok := c.Config["attributes"]; ok {
