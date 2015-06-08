@@ -96,7 +96,7 @@ func genRandInt() int {
 }
 
 var testAccAWSElasticacheClusterConfig = fmt.Sprintf(`
-provider "aws" { 
+provider "aws" {
 	region = "us-east-1"
 }
 resource "aws_security_group" "bar" {
@@ -121,6 +121,7 @@ resource "aws_elasticache_cluster" "bar" {
     engine = "memcached"
     node_type = "cache.m1.small"
     num_cache_nodes = 1
+    port = 11211
     parameter_group_name = "default.memcached1.4"
     security_group_names = ["${aws_elasticache_security_group.bar.name}"]
 }
