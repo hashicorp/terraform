@@ -87,6 +87,13 @@ func resourceCloudStackInstance() *schema.Resource {
 				Optional: true,
 				Default:  false,
 			},
+			
+			"project": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				ForceNew: true,
+			},
+			
 		},
 	}
 }
@@ -157,6 +164,16 @@ func resourceCloudStackInstanceCreate(d *schema.ResourceData, meta interface{}) 
 		p.SetUserdata(ud)
 	}
 
+	// If project contains any info, we retreive the project id
+	if project, ok := d.GetOk("project"); ok {
+		projectid, e :=  retrieveUUID(cs, "project", project.(string))
+		if e != nil {
+			return e.Error()
+		}
+		log.Printf("[DEBUG] project id %s", projectid)
+		p.SetProjectid(projectid)
+	}
+
 	// Create the new instance
 	r, err := cs.VirtualMachine.DeployVirtualMachine(p)
 	if err != nil {
@@ -200,7 +217,8 @@ func resourceCloudStackInstanceRead(d *schema.ResourceData, meta interface{}) er
 	setValueOrUUID(d, "network", vm.Nic[0].Networkname, vm.Nic[0].Networkid)
 	setValueOrUUID(d, "service_offering", vm.Serviceofferingname, vm.Serviceofferingid)
 	setValueOrUUID(d, "template", vm.Templatename, vm.Templateid)
-
+	setValueOrUUID(d, "project", vm.Project, vm.Projectid)
+	
 	return nil
 }
 
