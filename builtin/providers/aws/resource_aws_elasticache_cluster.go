@@ -52,8 +52,7 @@ func resourceAwsElasticacheCluster() *schema.Resource {
 			},
 			"port": &schema.Schema{
 				Type:     schema.TypeInt,
-				Default:  11211,
-				Optional: true,
+				Required: true,
 				ForceNew: true,
 			},
 			"engine_version": &schema.Schema{
@@ -123,7 +122,7 @@ func resourceAwsElasticacheClusterCreate(d *schema.ResourceData, meta interface{
 	numNodes := int64(d.Get("num_cache_nodes").(int)) // 2
 	engine := d.Get("engine").(string)                // memcached
 	engineVersion := d.Get("engine_version").(string) // 1.4.14
-	port := int64(d.Get("port").(int))                // 11211
+	port := int64(d.Get("port").(int))                // e.g) 11211
 	subnetGroupName := d.Get("subnet_group_name").(string)
 	securityNameSet := d.Get("security_group_names").(*schema.Set)
 	securityIdSet := d.Get("security_group_ids").(*schema.Set)
