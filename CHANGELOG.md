@@ -18,6 +18,8 @@ IMPROVEMENTS:
       option. [GH-2227]
   * provider/openstack: allow `OS_AUTH_TOKEN` environment variable
       to set the openstack `api_key` field [GH-2234]
+  * provider/openstack: Can now configure endpoint type (public, admin,
+      internal) [GH-2262]
 
 BUG FIXES:
 
