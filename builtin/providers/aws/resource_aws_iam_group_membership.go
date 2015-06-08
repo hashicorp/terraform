@@ -1,11 +1,12 @@
 package aws
 
 import (
+	"fmt"
 	"log"
 
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/iam"
-	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 )
 
@@ -17,12 +18,20 @@ func resourceAwsIamGroupMembership() *schema.Resource {
 		Delete: resourceAwsIamGroupMembershipDelete,
 
 		Schema: map[string]*schema.Schema{
-			"user_name": &schema.Schema{
+			"name": &schema.Schema{
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
-			"group_name": &schema.Schema{
+
+			"users": &schema.Schema{
+				Type:     schema.TypeSet,
+				Required: true,
+				Elem:     &schema.Schema{Type: schema.TypeString},
+				Set:      schema.HashString,
+			},
+
+			"group": &schema.Schema{
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
@@ -34,44 +43,47 @@ func resourceAwsIamGroupMembership() *schema.Resource {
 func resourceAwsIamGroupMembershipCreate(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).iamconn
 
-	_, err := conn.AddUserToGroup(&iam.AddUserToGroupInput{
-		UserName:  aws.String(d.Get("user_name").(string)),
-		GroupName: aws.String(d.Get("group_name").(string)),
-	})
+	userList := expandStringList(d.Get("users").(*schema.Set).List())
+	group := d.Get("group").(string)
 
-	if err != nil {
-		return err
+	for _, u := range userList {
+		_, err := conn.AddUserToGroup(&iam.AddUserToGroupInput{
+			UserName:  u,
+			GroupName: aws.String(group),
+		})
+
+		if err != nil {
+			return err
+		}
 	}
 
-	d.SetId(resource.UniqueId())
+	d.SetId(d.Get("name").(string))
 	return resourceAwsIamGroupMembershipRead(d, meta)
 }
 
 func resourceAwsIamGroupMembershipRead(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).iamconn
-	u := d.Get("user_name").(string)
-	resp, err := conn.ListGroupsForUser(&iam.ListGroupsForUserInput{
-		UserName: aws.String(u),
+	resp, err := conn.GetGroup(&iam.GetGroupInput{
+		GroupName: aws.String(d.Get("group").(string)),
 	})
 
 	if err != nil {
+		if awsErr, ok := err.(awserr.Error); ok {
+			// aws specific error
+			log.Printf("\n\n------\n AWS Error: %s :::: %s", awsErr.Code(), awsErr.Message())
+			// group not found
+			d.SetId("")
+		}
 		return err
 	}
 
-	d.Set("user_name", u)
-
-	gn := d.Get("group_name").(string)
-	var group *iam.Group
-	for _, g := range resp.Groups {
-		if gn == *g.GroupName {
-			group = g
-		}
+	ul := make([]string, 0, len(resp.Users))
+	for _, u := range resp.Users {
+		ul = append(ul, *u.UserName)
 	}
 
-	if group == nil {
-		// if not found, set to ""
-		log.Printf("[DEBUG] Group (%s) not found for User (%s)", u, gn)
-		d.SetId("")
+	if err := d.Set("users", ul); err != nil {
+		return fmt.Errorf("[WARN] Error setting user list from IAM Group Membership (%s), error: %s", err)
 	}
 
 	return nil
@@ -79,13 +91,18 @@ func resourceAwsIamGroupMembershipRead(d *schema.ResourceData, meta interface{})
 
 func resourceAwsIamGroupMembershipDelete(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).iamconn
-	_, err := conn.RemoveUserFromGroup(&iam.RemoveUserFromGroupInput{
-		UserName:  aws.String(d.Get("user_name").(string)),
-		GroupName: aws.String(d.Get("group_name").(string)),
-	})
+	userList := expandStringList(d.Get("users").(*schema.Set).List())
+	group := d.Get("group").(string)
 
-	if err != nil {
-		return err
+	for _, u := range userList {
+		_, err := conn.RemoveUserFromGroup(&iam.RemoveUserFromGroupInput{
+			UserName:  u,
+			GroupName: aws.String(group),
+		})
+
+		if err != nil {
+			return err
+		}
 	}
 
 	d.SetId("")

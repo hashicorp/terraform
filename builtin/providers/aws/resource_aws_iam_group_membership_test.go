@@ -30,7 +30,7 @@ func TestAccAWSGroupMembership_basic(t *testing.T) {
 }
 
 func testAccCheckAWSGroupMembershipDestroy(s *terraform.State) error {
-	iamconn := testAccProvider.Meta().(*AWSClient).iamconn
+	conn := testAccProvider.Meta().(*AWSClient).iamconn
 
 	for _, rs := range s.RootModule().Resources {
 		if rs.Type != "aws_iam_group_membership" {
@@ -38,22 +38,17 @@ func testAccCheckAWSGroupMembershipDestroy(s *terraform.State) error {
 		}
 
 		// Try to get user
-		user := rs.Primary.Attributes["user_name"]
-		group := rs.Primary.Attributes["group_name"]
+		group := rs.Primary.Attributes["group"]
 
-		resp, err := iamconn.ListGroupsForUser(&iam.ListGroupsForUserInput{
-			UserName: aws.String(user),
+		_, err := conn.GetGroup(&iam.GetGroupInput{
+			GroupName: aws.String(group),
 		})
 		if err != nil {
 			// might error here
 			return err
 		}
 
-		for _, g := range resp.Groups {
-			if group == *g.GroupName {
-				return fmt.Errorf("Error: User (%s) is still a memeber of Group (%s)", user, group)
-			}
-		}
+		return fmt.Errorf("Error: Group (%s) still exists", group)
 
 	}
 
@@ -71,25 +66,20 @@ func testAccCheckAWSGroupMembershipExists(n string, g *iam.Group) resource.TestC
 			return fmt.Errorf("No User name is set")
 		}
 
-		iamconn := testAccProvider.Meta().(*AWSClient).iamconn
-		user := rs.Primary.Attributes["user_name"]
-		gn := rs.Primary.Attributes["group_name"]
+		conn := testAccProvider.Meta().(*AWSClient).iamconn
+		gn := rs.Primary.Attributes["group"]
 
-		resp, err := iamconn.ListGroupsForUser(&iam.ListGroupsForUserInput{
-			UserName: aws.String(user),
+		resp, err := conn.GetGroup(&iam.GetGroupInput{
+			GroupName: aws.String(gn),
 		})
+
 		if err != nil {
-			return err
+			return fmt.Errorf("Error: Group (%s) not found", gn)
 		}
 
-		for _, i := range resp.Groups {
-			if gn == *i.GroupName {
-				*g = *i
-				return nil
-			}
-		}
+		*g = *resp.Group
 
-		return fmt.Errorf("Error: User (%s) not a member of Group (%s)", user, gn)
+		return nil
 	}
 }
 
@@ -114,7 +104,8 @@ resource "aws_iam_user" "user" {
 }
 
 resource "aws_iam_group_membership" "team" {
-	user_name = "${aws_iam_user.user.name}"
-	group_name = "${aws_iam_group.group.name}"
+	name = "tf-testing-group-membership"
+	users = ["${aws_iam_user.user.name}"]
+	group = "${aws_iam_group.group.name}"
 }
 `
