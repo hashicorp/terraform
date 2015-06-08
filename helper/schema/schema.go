@@ -132,7 +132,10 @@ type Schema struct {
 	// what do to about the removed attribute.
 	Removed string
 
-	// ValidateFunc allows individual fields to validate
+	// ValidateFunc allows individual fields to define arbitrary validation
+	// logic. It is yielded the provided config value as an interface{} that is
+	// guaranteed to be of the proper Schema type, and it can yield warnings or
+	// errors based on inspection of that value.
 	ValidateFunc SchemaValidateFunc
 }
 
@@ -1183,7 +1186,7 @@ func (m schemaMap) validateType(
 			"%q: [REMOVED] %s", k, schema.Removed))
 	}
 
-	if schema.ValidateFunc != nil {
+	if len(es) == 0 && schema.ValidateFunc != nil {
 		ws2, es2 := schema.ValidateFunc(raw)
 		for _, w := range ws2 {
 			ws = append(ws, fmt.Sprintf("%q: %s", k, w))
