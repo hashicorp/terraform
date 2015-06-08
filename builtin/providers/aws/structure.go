@@ -10,6 +10,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/aws/aws-sdk-go/service/ecs"
+	"github.com/aws/aws-sdk-go/service/elasticache"
 	"github.com/aws/aws-sdk-go/service/elb"
 	"github.com/aws/aws-sdk-go/service/rds"
 	"github.com/aws/aws-sdk-go/service/route53"
@@ -201,6 +202,27 @@ func expandParameters(configured []interface{}) ([]*rds.Parameter, error) {
 	return parameters, nil
 }
 
+// Takes the result of flatmap.Expand for an array of parameters and
+// returns Parameter API compatible objects
+func expandElastiCacheParameters(configured []interface{}) ([]*elasticache.ParameterNameValue, error) {
+	parameters := make([]*elasticache.ParameterNameValue, 0, len(configured))
+
+	// Loop over our configured parameters and create
+	// an array of aws-sdk-go compatabile objects
+	for _, pRaw := range configured {
+		data := pRaw.(map[string]interface{})
+
+		p := &elasticache.ParameterNameValue{
+			ParameterName:  aws.String(data["name"].(string)),
+			ParameterValue: aws.String(data["value"].(string)),
+		}
+
+		parameters = append(parameters, p)
+	}
+
+	return parameters, nil
+}
+
 // Flattens a health check into something that flatmap.Flatten()
 // can handle
 func flattenHealthCheck(check *elb.HealthCheck) []map[string]interface{} {
@@ -316,6 +338,18 @@ func flattenEcsContainerDefinitions(definitions []*ecs.ContainerDefinition) (str
 
 // Flattens an array of Parameters into a []map[string]interface{}
 func flattenParameters(list []*rds.Parameter) []map[string]interface{} {
+	result := make([]map[string]interface{}, 0, len(list))
+	for _, i := range list {
+		result = append(result, map[string]interface{}{
+			"name":  strings.ToLower(*i.ParameterName),
+			"value": strings.ToLower(*i.ParameterValue),
+		})
+	}
+	return result
+}
+
+// Flattens an array of Parameters into a []map[string]interface{}
+func flattenElastiCacheParameters(list []*elasticache.Parameter) []map[string]interface{} {
 	result := make([]map[string]interface{}, 0, len(list))
 	for _, i := range list {
 		result = append(result, map[string]interface{}{
