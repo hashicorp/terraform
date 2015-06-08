@@ -6,6 +6,7 @@ import (
 
 	"github.com/hashicorp/hcl"
 	hclobj "github.com/hashicorp/hcl/hcl"
+	"github.com/mitchellh/mapstructure"
 )
 
 // hclConfigurable is an implementation of configurable that knows
@@ -521,8 +522,16 @@ func loadResourcesHcl(os *hclobj.Object) ([]*Resource, error) {
 			// destroying the existing instance
 			var lifecycle ResourceLifecycle
 			if o := obj.Get("lifecycle", false); o != nil {
-				err = hcl.DecodeObject(&lifecycle, o)
-				if err != nil {
+				var raw map[string]interface{}
+				if err = hcl.DecodeObject(&raw, o); err != nil {
+					return nil, fmt.Errorf(
+						"Error parsing lifecycle for %s[%s]: %s",
+						t.Key,
+						k,
+						err)
+				}
+
+				if err := mapstructure.WeakDecode(raw, &lifecycle); err != nil {
 					return nil, fmt.Errorf(
 						"Error parsing lifecycle for %s[%s]: %s",
 						t.Key,
