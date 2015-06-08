@@ -79,6 +79,8 @@ func retrieveUUID(cs *cloudstack.CloudStackClient, name, value string) (uuid str
 			break
 		}
 		err = fmt.Errorf("Could not find UUID of OS Type: %s", value)
+	case "project":
+		uuid, err = cs.Project.GetProjectID(value)
 	default:
 		return uuid, &retrieveError{name: name, value: value,
 			err: fmt.Errorf("Unknown request: %s", name)}
