@@ -3438,6 +3438,23 @@ func TestSchemaMap_Validate(t *testing.T) {
 				fmt.Errorf(`"validate_me": something is not right here`),
 			},
 		},
+
+		"ValidateFunc not called when type does not match": {
+			Schema: map[string]*Schema{
+				"number": &Schema{
+					Type:     TypeInt,
+					Required: true,
+					ValidateFunc: func(v interface{}) (ws []string, es []error) {
+						t.Fatalf("Should not have gotten validate call")
+						return
+					},
+				},
+			},
+			Config: map[string]interface{}{
+				"number": "NaN",
+			},
+			Err: true,
+		},
 	}
 
 	for tn, tc := range cases {
