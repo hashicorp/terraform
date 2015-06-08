@@ -1,5 +1,38 @@
 ## 0.6.0 (Unreleased)
 
+FEATURES:
+
+  * **New provider: `azure`** [GH-2053]
+  * **New resource: `aws_autoscaling_notification`** [GH-2197]
+  * **New resource: `aws_ecs_cluster`** [GH-1803]
+  * **New resource: `aws_ecs_service`** [GH-1803]
+  * **New resource: `aws_ecs_task_definition`** [GH-1803]
+  * **New remote state backend: `swift`**: You can now store remote state in
+     a OpenStack Swift. [GH-2254]
+  * command/output: support display of module outputs [GH-2102]
+  * core: keys() and values() funcs for map variables [GH-2198]
+
+IMPROVEMENTS:
+
+  * core: HTTP remote state now accepts `skip_cert_verification`
+      option to ignore TLS cert verification. [GH-2214]
+  * provider/aws: ElastiCache Subnet Groups can be updated
+      without destroying first [GH-2191]
+  * provider/docker: `docker_container` has the `privileged`
+      option. [GH-2227]
+  * provider/openstack: allow `OS_AUTH_TOKEN` environment variable
+      to set the openstack `api_key` field [GH-2234]
+  * provider/openstack: Can now configure endpoint type (public, admin,
+      internal) [GH-2262]
+
+BUG FIXES:
+
+  * provider/aws: fix panic when route has no cidr_block [GH-2215]
+  * provider/aws: fix issue causing perpetual diff on ELB listeners
+      when non-lowercase protocol strings were used [GH-2246]
+  * provider/aws: corrected frankfurt S3 website region [GH-2259]
+  * provider/aws: `aws_elasticache_cluster` port is required [GH-2160]
+
 ## 0.5.3 (June 1, 2015)
 
 IMPROVEMENTS:
@@ -140,7 +173,7 @@ IMPROVEMENTS:
   * **New resource: `google_dns_record_set`**
   * **Migrate to upstream AWS SDK:** Migrate the AWS provider to
       [awslabs/aws-sdk-go](https://github.com/awslabs/aws-sdk-go),
-      the offical `awslabs` library. Previously we had forked the library for
+      the official `awslabs` library. Previously we had forked the library for
       stability while `awslabs` refactored. Now that work has completed, and we've
       migrated back to the upstream version.
   * core: Improve error message on diff mismatch [GH-1501]
@@ -168,7 +201,7 @@ IMPROVEMENTS:
   * provider/aws: `aws_network_acl` improved validation for network ACL ports
       and protocols [GH-1798] [GH-1808]
   * provider/aws: `aws_route_table` can target network interfaces [GH-968]
-  * provider/aws: `aws_route_table` can specify propogating VGWs [GH-1516]
+  * provider/aws: `aws_route_table` can specify propagating VGWs [GH-1516]
   * provider/aws: `aws_route53_record` supports weighted sets [GH-1578]
   * provider/aws: `aws_route53_zone` exports nameservers [GH-1525]
   * provider/aws: `aws_s3_bucket` website support [GH-1738]
@@ -325,7 +358,7 @@ FEATURES:
   * **Math operations** in interpolations. You can now do things like
       `${count.index+1}`. [GH-1068]
   * **New AWS SDK:** Move to `aws-sdk-go` (hashicorp/aws-sdk-go),
-      a fork of the offical `awslabs` repo. We forked for stability while
+      a fork of the official `awslabs` repo. We forked for stability while
       `awslabs` refactored the library, and will move back to the officially
       supported version in the next release.
 
@@ -354,7 +387,7 @@ IMPROVEMENTS:
   * providers/aws: Improve dependency violation error handling, when deleting
       Internet Gateways or Auto Scaling groups [GH-1325].
   * provider/aws: Add non-destructive updates to AWS RDS. You can now upgrade
-      `egine_version`, `parameter_group_name`, and `multi_az` without forcing
+      `engine_version`, `parameter_group_name`, and `multi_az` without forcing
       a new database to be created.[GH-1341]
   * providers/aws: Full support for block device mappings on instances and
       launch configurations [GH-1045, GH-1364]

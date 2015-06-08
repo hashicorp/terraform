@@ -48,6 +48,8 @@ The following arguments are supported:
 
 * `user_data` - (Optional) The user data to provide when launching the instance.
 
+* `keypair` - (Optional) The name of the SSH keypair that will be used to access this instance.
+
 * `expunge` - (Optional) This determines if the instance is expunged when it is
     destroyed (defaults false)
 
