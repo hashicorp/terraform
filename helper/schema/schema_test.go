@@ -3399,7 +3399,43 @@ func TestSchemaMap_Validate(t *testing.T) {
 
 			Err: true,
 			Errors: []error{
-				fmt.Errorf("\"optional_att\": conflicts with required_att (\"required-val\")"),
+				fmt.Errorf(`"optional_att": conflicts with required_att ("required-val")`),
+			},
+		},
+
+		"Good with ValidateFunc": {
+			Schema: map[string]*Schema{
+				"validate_me": &Schema{
+					Type:     TypeString,
+					Required: true,
+					ValidateFunc: func(v interface{}) (ws []string, es []error) {
+						return
+					},
+				},
+			},
+			Config: map[string]interface{}{
+				"validate_me": "valid",
+			},
+			Err: false,
+		},
+
+		"Bad with ValidateFunc": {
+			Schema: map[string]*Schema{
+				"validate_me": &Schema{
+					Type:     TypeString,
+					Required: true,
+					ValidateFunc: func(v interface{}) (ws []string, es []error) {
+						es = append(es, fmt.Errorf("something is not right here"))
+						return
+					},
+				},
+			},
+			Config: map[string]interface{}{
+				"validate_me": "invalid",
+			},
+			Err: true,
+			Errors: []error{
+				fmt.Errorf(`"validate_me": something is not right here`),
 			},
 		},
 	}
