@@ -7,6 +7,8 @@ FEATURES:
   * **New resource: `aws_ecs_cluster`** [GH-1803]
   * **New resource: `aws_ecs_service`** [GH-1803]
   * **New resource: `aws_ecs_task_definition`** [GH-1803]
+  * **New remote state backend: `swift`**: You can now store remote state in
+     a OpenStack Swift. [GH-2254]
   * command/output: support display of module outputs [GH-2102]
   * core: keys() and values() funcs for map variables [GH-2198]
 
