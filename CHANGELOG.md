@@ -14,6 +14,8 @@ FEATURES:
 
 IMPROVEMENTS:
 
+  * core: HTTP remote state now accepts `skip_cert_verification`
+      option to ignore TLS cert verification. [GH-2214]
   * provider/aws: ElastiCache Subnet Groups can be updated
       without destroying first [GH-2191]
   * provider/docker: `docker_container` has the `privileged`
