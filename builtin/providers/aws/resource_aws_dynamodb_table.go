@@ -549,8 +549,8 @@ func waitForGSIToBeActive(tableName string, gsiName string, meta interface{}) er
 			activeIndex = *targetGSI.IndexStatus == "ACTIVE"
 
 			if !activeIndex {
-				log.Printf("[DEBUG] Sleeping for 3 seconds for %s GSI to become active", gsiName)
-				time.Sleep(3 * time.Second)
+				log.Printf("[DEBUG] Sleeping for 5 seconds for %s GSI to become active", gsiName)
+				time.Sleep(5 * time.Second)
 			}
 		} else {
 			log.Printf("[DEBUG] GSI %s did not exist, giving up", gsiName)
