@@ -93,7 +93,7 @@ func testAccCheckAWSGroupMembershipExists(n string, g *iam.GetGroupOutput) resou
 func testAccCheckAWSGroupMembershipAttributes(group *iam.GetGroupOutput, users []string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		if *group.Group.GroupName != "test-group" {
-			return fmt.Errorf("Bad group membership: expected %s, got %s", "test-group-update", *group.Group.GroupName)
+			return fmt.Errorf("Bad group membership: expected %s, got %s", "test-group", *group.Group.GroupName)
 		}
 
 		uc := len(users)
