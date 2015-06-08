@@ -131,6 +131,9 @@ type Schema struct {
 	// This string is the message shown to the user with instructions on
 	// what do to about the removed attribute.
 	Removed string
+
+	// ValidateFunc allows individual fields to validate
+	ValidateFunc SchemaValidateFunc
 }
 
 // SchemaDefaultFunc is a function called to return a default value for
@@ -172,6 +175,10 @@ type SchemaSetFunc func(interface{}) int
 // SchemaStateFunc is a function used to convert some type to a string
 // to be stored in the state.
 type SchemaStateFunc func(interface{}) string
+
+// SchemaValidateFunc is a function used to validate a single field in the
+// schema.
+type SchemaValidateFunc func(interface{}) ([]string, []error)
 
 func (s *Schema) GoString() string {
 	return fmt.Sprintf("*%#v", *s)
@@ -1174,6 +1181,16 @@ func (m schemaMap) validateType(
 	if schema.Removed != "" {
 		es = append(es, fmt.Errorf(
 			"%q: [REMOVED] %s", k, schema.Removed))
+	}
+
+	if schema.ValidateFunc != nil {
+		ws2, es2 := schema.ValidateFunc(raw)
+		for _, w := range ws2 {
+			ws = append(ws, fmt.Sprintf("%q: %s", k, w))
+		}
+		for _, e := range es2 {
+			es = append(es, fmt.Errorf("%q: %s", k, e))
+		}
 	}
 
 	return ws, es
