@@ -8,4 +8,4 @@ Running the example
 
 run `terraform apply -var 'key_name={your_key_name}}'` 
 
-Give couple of mins for userdata to insatll nginx, and then type the Elastic IP from outputs in your browser and see tegh nginx welcome page
+Give couple of mins for userdata to insatll nginx, and then type the Elastic IP from outputs in your browser and see the nginx welcome page
