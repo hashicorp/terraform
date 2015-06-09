@@ -2,7 +2,6 @@ package cloudstack
 
 import (
 	"fmt"
-	"log"
 	"strings"
 	"testing"
 
@@ -24,7 +23,7 @@ func TestAccCloudStackSSHKeyPair_basic(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckCloudStackSSHKeyPairExists("cloudstack_ssh_keypair.foo", &sshkey),
 					testAccCheckCloudStackSSHKeyPairAttributes(&sshkey),
-					testAccCheckCloudStackSSHKeyPairCreateAttributes("cloudstack_ssh_keypair.foo"),
+					testAccCheckCloudStackSSHKeyPairCreateAttributes("terraform-test-keypair"),
 				),
 			},
 		},
@@ -61,64 +60,69 @@ func testAccCheckCloudStackSSHKeyPairExists(n string, sshkey *cloudstack.SSHKeyP
 			return fmt.Errorf("Not found: %s", n)
 		}
 
-		if rs.Primary.Attributes["name"] == "" {
-			return fmt.Errorf("No ssh key name is set")
+		if rs.Primary.ID == "" {
+			return fmt.Errorf("No key pair ID is set")
 		}
 
 		cs := testAccProvider.Meta().(*cloudstack.CloudStackClient)
 		p := cs.SSH.NewListSSHKeyPairsParams()
-		p.SetName(rs.Primary.Attributes["name"])
-		list, err := cs.SSH.ListSSHKeyPairs(p)
+		p.SetName(rs.Primary.ID)
 
+		list, err := cs.SSH.ListSSHKeyPairs(p)
 		if err != nil {
 			return err
 		}
 
-		if list.Count == 1 && list.SSHKeyPairs[0].Name == rs.Primary.Attributes["name"] {
-			//ssh key exists
-			*sshkey = *list.SSHKeyPairs[0]
-			return nil
+		if list.Count != 1 || list.SSHKeyPairs[0].Name != rs.Primary.ID {
+			return fmt.Errorf("Key pair not found")
 		}
 
-		return fmt.Errorf("SSH key not found")
+		*sshkey = *list.SSHKeyPairs[0]
+
+		return nil
 	}
 }
 
 func testAccCheckCloudStackSSHKeyPairAttributes(
-	sshkey *cloudstack.SSHKeyPair) resource.TestCheckFunc {
+	keypair *cloudstack.SSHKeyPair) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 
-		fingerprintLen := len(sshkey.Fingerprint)
-		if fingerprintLen != 47 {
-			return fmt.Errorf(
-				"SSH key: Attribute private_key expected length 47, got %d",
-				fingerprintLen)
+		fpLen := len(keypair.Fingerprint)
+		if fpLen != 47 {
+			return fmt.Errorf("SSH key: Attribute private_key expected length 47, got %d", fpLen)
 		}
 
 		return nil
 	}
 }
 
-func testAccCheckCloudStackSSHKeyPairCreateAttributes(
-	name string) resource.TestCheckFunc {
+func testAccCheckCloudStackSSHKeyPairCreateAttributes(name string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
-		ms := s.RootModule()
-		rs, ok := ms.Resources[name]
-		if !ok {
-			return fmt.Errorf("Not found: %s", name)
+		found := false
+
+		for _, rs := range s.RootModule().Resources {
+			if rs.Type != "cloudstack_ssh_keypair" {
+				continue
+			}
+
+			if rs.Primary.ID != name {
+				continue
+			}
+
+			if !strings.Contains(rs.Primary.Attributes["private_key"], "PRIVATE KEY") {
+				return fmt.Errorf(
+					"SSH key: Attribute private_key expected 'PRIVATE KEY' to be present, got %s",
+					rs.Primary.Attributes["private_key"])
+			}
+
+			found = true
+			break
 		}
 
-		is := rs.Primary
-		if is == nil {
-			return fmt.Errorf("No primary instance: %s", name)
+		if !found {
+			return fmt.Errorf("Could not find key pair %s", name)
 		}
 
-		log.Printf("Private key calculated: %s", is.Attributes["private_key"])
-		if !strings.Contains(is.Attributes["private_key"], "PRIVATE KEY") {
-			return fmt.Errorf(
-				"SSH key: Attribute private_key expected 'PRIVATE KEY' to be present, got %s",
-				is.Attributes["private_key"])
-		}
 		return nil
 	}
 }
@@ -131,17 +135,23 @@ func testAccCheckCloudStackSSHKeyPairDestroy(s *terraform.State) error {
 			continue
 		}
 
-		if rs.Primary.Attributes["name"] == "" {
-			return fmt.Errorf("No ssh key name is set")
+		if rs.Primary.ID == "" {
+			return fmt.Errorf("No key pair ID is set")
 		}
 
-		p := cs.SSH.NewDeleteSSHKeyPairParams(rs.Primary.Attributes["name"])
-		_, err := cs.SSH.DeleteSSHKeyPair(p)
+		p := cs.SSH.NewListSSHKeyPairsParams()
+		p.SetName(rs.Primary.ID)
 
+		list, err := cs.SSH.ListSSHKeyPairs(p)
 		if err != nil {
-			return fmt.Errorf(
-				"Error deleting ssh key (%s): %s",
-				rs.Primary.Attributes["name"], err)
+			return err
+		}
+		if list.Count != 1 {
+			return fmt.Errorf("Found more Key pair %s still exists", rs.Primary.ID)
+		}
+
+		if list.SSHKeyPairs[0].Name == rs.Primary.ID {
+			return fmt.Errorf("Key pair %s still exists", rs.Primary.ID)
 		}
 	}
 
@@ -150,11 +160,11 @@ func testAccCheckCloudStackSSHKeyPairDestroy(s *terraform.State) error {
 
 var testAccCloudStackSSHKeyPair_create = fmt.Sprintf(`
 resource "cloudstack_ssh_keypair" "foo" {
-  name = "terraform-testacc"
+  name = "terraform-test-keypair"
 }`)
 
 var testAccCloudStackSSHKeyPair_register = fmt.Sprintf(`
 resource "cloudstack_ssh_keypair" "foo" {
-  name = "terraform-testacc"
+  name = "terraform-test-keypair"
   public_key = "%s"
 }`, CLOUDSTACK_SSH_PUBLIC_KEY)

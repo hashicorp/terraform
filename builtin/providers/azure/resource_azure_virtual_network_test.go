@@ -190,7 +190,7 @@ func testAccCheckAzureVirtualNetworkDestroy(s *terraform.State) error {
 
 		for _, n := range nc.Configuration.VirtualNetworkSites {
 			if n.Name == rs.Primary.ID {
-				return fmt.Errorf("Resource %s still exists", rs.Primary.ID)
+				return fmt.Errorf("Virtual Network %s still exists", rs.Primary.ID)
 			}
 		}
 	}
