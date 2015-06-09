@@ -148,6 +148,10 @@ func resourceAwsRouteTableRead(d *schema.ResourceData, meta interface{}) error {
 			continue
 		}
 
+		if r.DestinationPrefixListID != nil {
+			continue
+		}
+
 		m := make(map[string]interface{})
 
 		if r.DestinationCIDRBlock != nil {
