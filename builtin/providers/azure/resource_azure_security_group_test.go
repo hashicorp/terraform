@@ -217,7 +217,7 @@ func testAccCheckAzureSecurityGroupDestroy(s *terraform.State) error {
 
 		_, err := networksecuritygroup.NewClient(mc).GetNetworkSecurityGroup(rs.Primary.ID)
 		if err == nil {
-			return fmt.Errorf("Resource %s still exists", rs.Primary.ID)
+			return fmt.Errorf("Network Security Group %s still exists", rs.Primary.ID)
 		}
 
 		if !management.IsResourceNotFoundError(err) {
