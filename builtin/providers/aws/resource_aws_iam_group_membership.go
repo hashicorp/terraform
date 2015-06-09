@@ -124,7 +124,6 @@ func resourceAwsIamGroupMembershipDelete(d *schema.ResourceData, meta interface{
 		return err
 	}
 
-	d.SetId("")
 	return nil
 }
 

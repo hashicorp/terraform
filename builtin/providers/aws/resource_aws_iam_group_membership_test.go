@@ -47,7 +47,7 @@ func testAccCheckAWSGroupMembershipDestroy(s *terraform.State) error {
 
 		group := rs.Primary.Attributes["group"]
 
-		_, err := conn.GetGroup(&iam.GetGroupInput{
+		resp, err := conn.GetGroup(&iam.GetGroupInput{
 			GroupName: aws.String(group),
 		})
 		if err != nil {
@@ -55,7 +55,14 @@ func testAccCheckAWSGroupMembershipDestroy(s *terraform.State) error {
 			return err
 		}
 
-		return fmt.Errorf("Error: Group (%s) still exists", group)
+		users := []string{"test-user", "test-user-two", "test-user-three"}
+		for _, u := range resp.Users {
+			for _, i := range users {
+				if i == *u.UserName {
+					return fmt.Errorf("Error: User (s) still a member of Group (%s)", i, *resp.Group.GroupName)
+				}
+			}
+		}
 
 	}
 
