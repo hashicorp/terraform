@@ -24,7 +24,7 @@ func TestHTTPClient(t *testing.T) {
 		t.Fatalf("err: %s", err)
 	}
 
-	client := &HTTPClient{URL: url}
+	client := &HTTPClient{URL: url, Client: http.DefaultClient}
 	testClient(t, client)
 }
 

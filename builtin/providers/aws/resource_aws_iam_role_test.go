@@ -4,14 +4,14 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/awslabs/aws-sdk-go/aws"
-	"github.com/awslabs/aws-sdk-go/aws/awserr"
-	"github.com/awslabs/aws-sdk-go/service/iam"
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/awserr"
+	"github.com/aws/aws-sdk-go/service/iam"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
 )
 
-func TestAccAWSRole_normal(t *testing.T) {
+func TestAccAWSRole_basic(t *testing.T) {
 	var conf iam.GetRoleOutput
 
 	resource.Test(t, resource.TestCase{
@@ -24,6 +24,31 @@ func TestAccAWSRole_normal(t *testing.T) {
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckAWSRoleExists("aws_iam_role.role", &conf),
 					testAccCheckAWSRoleAttributes(&conf),
+				),
+			},
+		},
+	})
+}
+
+func TestAccAWSRole_testNameChange(t *testing.T) {
+	var conf iam.GetRoleOutput
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSRoleDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccAWSRolePre,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSRoleExists("aws_iam_role.role_update_test", &conf),
+				),
+			},
+
+			resource.TestStep{
+				Config: testAccAWSRolePost,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSRoleExists("aws_iam_role.role_update_test", &conf),
 				),
 			},
 		},
@@ -104,4 +129,102 @@ resource "aws_iam_role" "role" {
 	path = "/"
 	assume_role_policy = "{\"Version\":\"2012-10-17\",\"Statement\":[{\"Effect\":\"Allow\",\"Principal\":{\"Service\":[\"ec2.amazonaws.com\"]},\"Action\":[\"sts:AssumeRole\"]}]}"
 }
+`
+
+const testAccAWSRolePre = `
+resource "aws_iam_role" "role_update_test" {
+  name = "tf_old_name"
+  path = "/test/"
+  assume_role_policy = <<EOF
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Action": "sts:AssumeRole",
+      "Principal": {
+        "Service": "ec2.amazonaws.com"
+      },
+      "Effect": "Allow",
+      "Sid": ""
+    }
+  ]
+}
+EOF
+}
+
+resource "aws_iam_role_policy" "role_update_test" {
+  name = "role_update_test"
+  role = "${aws_iam_role.role_update_test.id}"
+  policy = <<EOF
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": [
+        "s3:GetBucketLocation",
+        "s3:ListAllMyBuckets"
+      ],
+      "Resource": "arn:aws:s3:::*"
+    }
+  ]
+}
+EOF
+}
+
+resource "aws_iam_instance_profile" "role_update_test" {
+  name = "role_update_test"
+  path = "/test/"
+  roles = ["${aws_iam_role.role_update_test.name}"]
+}
+
+`
+
+const testAccAWSRolePost = `
+resource "aws_iam_role" "role_update_test" {
+  name = "tf_new_name"
+  path = "/test/"
+  assume_role_policy = <<EOF
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Action": "sts:AssumeRole",
+      "Principal": {
+        "Service": "ec2.amazonaws.com"
+      },
+      "Effect": "Allow",
+      "Sid": ""
+    }
+  ]
+}
+EOF
+}
+
+resource "aws_iam_role_policy" "role_update_test" {
+  name = "role_update_test"
+  role = "${aws_iam_role.role_update_test.id}"
+  policy = <<EOF
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": [
+        "s3:GetBucketLocation",
+        "s3:ListAllMyBuckets"
+      ],
+      "Resource": "arn:aws:s3:::*"
+    }
+  ]
+}
+EOF
+}
+
+resource "aws_iam_instance_profile" "role_update_test" {
+  name = "role_update_test"
+  path = "/test/"
+  roles = ["${aws_iam_role.role_update_test.name}"]
+}
+
 `

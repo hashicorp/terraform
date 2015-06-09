@@ -7,20 +7,21 @@ import (
 
 	"github.com/hashicorp/terraform/helper/multierror"
 
-	"github.com/awslabs/aws-sdk-go/aws"
-	"github.com/awslabs/aws-sdk-go/aws/credentials"
-	"github.com/awslabs/aws-sdk-go/service/autoscaling"
-	"github.com/awslabs/aws-sdk-go/service/ec2"
-	"github.com/awslabs/aws-sdk-go/service/elasticache"
-	"github.com/awslabs/aws-sdk-go/service/elb"
-	"github.com/awslabs/aws-sdk-go/service/iam"
-	"github.com/awslabs/aws-sdk-go/service/kinesis"
-	"github.com/awslabs/aws-sdk-go/service/lambda"
-	"github.com/awslabs/aws-sdk-go/service/rds"
-	"github.com/awslabs/aws-sdk-go/service/route53"
-	"github.com/awslabs/aws-sdk-go/service/s3"
-	"github.com/awslabs/aws-sdk-go/service/sns"
-	"github.com/awslabs/aws-sdk-go/service/sqs"
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/credentials"
+	"github.com/aws/aws-sdk-go/service/autoscaling"
+	"github.com/aws/aws-sdk-go/service/ec2"
+	"github.com/aws/aws-sdk-go/service/ecs"
+	"github.com/aws/aws-sdk-go/service/elasticache"
+	"github.com/aws/aws-sdk-go/service/elb"
+	"github.com/aws/aws-sdk-go/service/iam"
+	"github.com/aws/aws-sdk-go/service/kinesis"
+	"github.com/aws/aws-sdk-go/service/lambda"
+	"github.com/aws/aws-sdk-go/service/rds"
+	"github.com/aws/aws-sdk-go/service/route53"
+	"github.com/aws/aws-sdk-go/service/s3"
+	"github.com/aws/aws-sdk-go/service/sns"
+	"github.com/aws/aws-sdk-go/service/sqs"
 )
 
 type Config struct {
@@ -36,6 +37,7 @@ type Config struct {
 
 type AWSClient struct {
 	ec2conn         *ec2.EC2
+	ecsconn         *ecs.ECS
 	elbconn         *elb.ELB
 	autoscalingconn *autoscaling.AutoScaling
 	s3conn          *s3.S3
@@ -117,6 +119,9 @@ func (c *Config) Client() (interface{}, error) {
 
 		log.Println("[INFO] Initializing EC2 Connection")
 		client.ec2conn = ec2.New(awsConfig)
+
+		log.Println("[INFO] Initializing ECS Connection")
+		client.ecsconn = ecs.New(awsConfig)
 
 		// aws-sdk-go uses v4 for signing requests, which requires all global
 		// endpoints to use 'us-east-1'.

@@ -7,9 +7,9 @@ import (
 	"sort"
 	"testing"
 
-	"github.com/awslabs/aws-sdk-go/aws"
-	"github.com/awslabs/aws-sdk-go/aws/awserr"
-	"github.com/awslabs/aws-sdk-go/service/elb"
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/awserr"
+	"github.com/aws/aws-sdk-go/service/elb"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
 )
@@ -362,6 +362,39 @@ func TestAccAWSELB_SecurityGroups(t *testing.T) {
 	})
 }
 
+// Unit test for listeners hash
+func TestResourceAwsElbListenerHash(t *testing.T) {
+	cases := map[string]struct {
+		Left  map[string]interface{}
+		Right map[string]interface{}
+		Match bool
+	}{
+		"protocols are case insensitive": {
+			map[string]interface{}{
+				"instance_port":     80,
+				"instance_protocol": "TCP",
+				"lb_port":           80,
+				"lb_protocol":       "TCP",
+			},
+			map[string]interface{}{
+				"instance_port":     80,
+				"instance_protocol": "Tcp",
+				"lb_port":           80,
+				"lb_protocol":       "tcP",
+			},
+			true,
+		},
+	}
+
+	for tn, tc := range cases {
+		leftHash := resourceAwsElbListenerHash(tc.Left)
+		rightHash := resourceAwsElbListenerHash(tc.Right)
+		if (leftHash == rightHash) != tc.Match {
+			t.Fatalf("%s: expected match: %t, but did not get it", tn, tc.Match)
+		}
+	}
+}
+
 func testAccCheckAWSELBDestroy(s *terraform.State) error {
 	conn := testAccProvider.Meta().(*AWSClient).elbconn
 
@@ -513,7 +546,8 @@ resource "aws_elb" "bar" {
     instance_port = 8000
     instance_protocol = "http"
     lb_port = 80
-    lb_protocol = "http"
+    // Protocol should be case insensitive
+    lb_protocol = "HttP"
   }
 
 	tags {

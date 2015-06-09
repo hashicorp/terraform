@@ -4,14 +4,14 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/awslabs/aws-sdk-go/aws"
-	"github.com/awslabs/aws-sdk-go/service/sns"
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/service/sns"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
-	"github.com/awslabs/aws-sdk-go/aws/awserr"
+	"github.com/aws/aws-sdk-go/aws/awserr"
 )
 
-func TestAccAWSSNSTopic(t *testing.T) {
+func TestAccAWSSNSTopic_basic(t *testing.T) {
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,

@@ -5,14 +5,14 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/awslabs/aws-sdk-go/aws"
-	"github.com/awslabs/aws-sdk-go/aws/awserr"
-	"github.com/awslabs/aws-sdk-go/service/ec2"
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/awserr"
+	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
 )
 
-func TestAccAWSEIP_normal(t *testing.T) {
+func TestAccAWSEIP_basic(t *testing.T) {
 	var conf ec2.Address
 
 	resource.Test(t, resource.TestCase{
