@@ -154,11 +154,9 @@ func testAccCheckCloudStackEgressFirewallDestroy(s *terraform.State) error {
 				continue
 			}
 
-			p := cs.Firewall.NewDeleteEgressFirewallRuleParams(uuid)
-			_, err := cs.Firewall.DeleteEgressFirewallRule(p)
-
-			if err != nil {
-				return err
+			_, _, err := cs.Firewall.GetEgressFirewallRuleByID(uuid)
+			if err == nil {
+				return fmt.Errorf("Egress rule %s still exists", rs.Primary.ID)
 			}
 		}
 	}

@@ -56,6 +56,12 @@ func resourceCloudStackInstance() *schema.Resource {
 				ForceNew: true,
 			},
 
+			"project": &schema.Schema{
+				Type:     schema.TypeString,
+				Optional: true,
+				ForceNew: true,
+			},
+
 			"zone": &schema.Schema{
 				Type:     schema.TypeString,
 				Required: true,
@@ -87,13 +93,6 @@ func resourceCloudStackInstance() *schema.Resource {
 				Optional: true,
 				Default:  false,
 			},
-			
-			"project": &schema.Schema{
-				Type:     schema.TypeString,
-				Optional: true,
-				ForceNew: true,
-			},
-			
 		},
 	}
 }
@@ -148,6 +147,18 @@ func resourceCloudStackInstanceCreate(d *schema.ResourceData, meta interface{}) 
 		p.SetIpaddress(ipaddres.(string))
 	}
 
+	// If there is a project supplied, we retreive and set the project id
+	if project, ok := d.GetOk("project"); ok {
+		// Retrieve the project UUID
+		projectid, e := retrieveUUID(cs, "project", project.(string))
+		if e != nil {
+			return e.Error()
+		}
+		// Set the default project ID
+		p.SetProjectid(projectid)
+	}
+
+	// If a keypair is supplied, add it to the parameter struct
 	if keypair, ok := d.GetOk("keypair"); ok {
 		p.SetKeypair(keypair.(string))
 	}
@@ -162,16 +173,6 @@ func resourceCloudStackInstanceCreate(d *schema.ResourceData, meta interface{}) 
 					"this exeeds the limit of 2048 bytes", len(ud))
 		}
 		p.SetUserdata(ud)
-	}
-
-	// If project contains any info, we retreive the project id
-	if project, ok := d.GetOk("project"); ok {
-		projectid, e :=  retrieveUUID(cs, "project", project.(string))
-		if e != nil {
-			return e.Error()
-		}
-		log.Printf("[DEBUG] project id %s", projectid)
-		p.SetProjectid(projectid)
 	}
 
 	// Create the new instance
@@ -218,7 +219,7 @@ func resourceCloudStackInstanceRead(d *schema.ResourceData, meta interface{}) er
 	setValueOrUUID(d, "service_offering", vm.Serviceofferingname, vm.Serviceofferingid)
 	setValueOrUUID(d, "template", vm.Templatename, vm.Templateid)
 	setValueOrUUID(d, "project", vm.Project, vm.Projectid)
-	
+
 	return nil
 }
 
