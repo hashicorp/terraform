@@ -158,7 +158,7 @@ func testAccCheckAzureDataDiskDestroy(s *terraform.State) error {
 
 		_, err = virtualmachinedisk.NewClient(mc).GetDataDisk(vm, vm, vm, lun)
 		if err == nil {
-			return fmt.Errorf("Resource %s still exists", rs.Primary.ID)
+			return fmt.Errorf("Data disk %s still exists", rs.Primary.ID)
 		}
 
 		if !management.IsResourceNotFoundError(err) {

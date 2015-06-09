@@ -297,7 +297,7 @@ func testAccCheckAzureInstanceDestroy(s *terraform.State) error {
 
 		_, err := hostedservice.NewClient(mc).GetHostedService(rs.Primary.ID)
 		if err == nil {
-			return fmt.Errorf("Resource %s still exists", rs.Primary.ID)
+			return fmt.Errorf("Instance %s still exists", rs.Primary.ID)
 		}
 
 		if !management.IsResourceNotFoundError(err) {
