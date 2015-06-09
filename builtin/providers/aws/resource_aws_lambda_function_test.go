@@ -3,7 +3,6 @@ package aws
 import (
 	"fmt"
 	"testing"
-	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/lambda"
@@ -54,7 +53,6 @@ func testAccCheckLambdaFunctionDestroy(s *terraform.State) error {
 
 func testAccCheckAwsLambdaFunctionExists(n string, function *lambda.GetFunctionOutput) resource.TestCheckFunc {
 	// Wait for IAM role
-	time.Sleep(100 * time.Millisecond)
 	return func(s *terraform.State) error {
 		rs, ok := s.RootModule().Resources[n]
 		if !ok {
