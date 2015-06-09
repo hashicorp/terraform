@@ -8,9 +8,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/awslabs/aws-sdk-go/aws"
-	"github.com/awslabs/aws-sdk-go/aws/awserr"
-	"github.com/awslabs/aws-sdk-go/service/lambda"
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/awserr"
+	"github.com/aws/aws-sdk-go/service/lambda"
 
 	"github.com/hashicorp/terraform/helper/schema"
 )
@@ -131,7 +131,6 @@ func resourceAwsLambdaFunctionCreate(d *schema.ResourceData, meta interface{}) e
 	if err != nil {
 		return fmt.Errorf("Error creating Lambda function: %s", err)
 	}
-	// Add retry wrapper around this
 
 	d.SetId(d.Get("function_name").(string))
 

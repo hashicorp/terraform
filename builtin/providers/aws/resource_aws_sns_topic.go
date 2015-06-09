@@ -6,17 +6,16 @@ import (
 
 	"github.com/hashicorp/terraform/helper/schema"
 
-	"github.com/awslabs/aws-sdk-go/aws"
-	"github.com/awslabs/aws-sdk-go/service/sns"
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/service/sns"
 )
 
 // Mutable attributes
 var SNSAttributeMap = map[string]string{
-	"display_name" : "DisplayName",
-	"policy" : "Policy",
+	"display_name":    "DisplayName",
+	"policy":          "Policy",
 	"delivery_policy": "DeliveryPolicy",
 }
-
 
 func resourceAwsSnsTopic() *schema.Resource {
 	return &schema.Resource{
@@ -32,20 +31,20 @@ func resourceAwsSnsTopic() *schema.Resource {
 				ForceNew: true,
 			},
 			"display_name": &schema.Schema{
-				Type:      schema.TypeString,
-				Optional:  true,
-				ForceNew:  false,
+				Type:     schema.TypeString,
+				Optional: true,
+				ForceNew: false,
 			},
 			"policy": &schema.Schema{
-				Type:      schema.TypeString,
-				Optional:  true,
-				ForceNew:  false,
-				Computed:  true,
+				Type:     schema.TypeString,
+				Optional: true,
+				ForceNew: false,
+				Computed: true,
 			},
 			"delivery_policy": &schema.Schema{
-				Type:      schema.TypeString,
-				Optional:  true,
-				ForceNew:  false,
+				Type:     schema.TypeString,
+				Optional: true,
+				ForceNew: false,
 			},
 			"arn": &schema.Schema{
 				Type:     schema.TypeString,
@@ -93,8 +92,8 @@ func resourceAwsSnsTopicUpdate(d *schema.ResourceData, meta interface{}) error {
 				if !(k == "policy" && n == "") {
 					// Make API call to update attributes
 					req := &sns.SetTopicAttributesInput{
-						TopicARN: aws.String(d.Id()),
-						AttributeName: aws.String(attrKey),
+						TopicARN:       aws.String(d.Id()),
+						AttributeName:  aws.String(attrKey),
 						AttributeValue: aws.String(n.(string)),
 					}
 					snsconn.SetTopicAttributes(req)
@@ -117,8 +116,8 @@ func resourceAwsSnsTopicRead(d *schema.ResourceData, meta interface{}) error {
 		return err
 	}
 
-	if attributeOutput.Attributes != nil && len(*attributeOutput.Attributes) > 0 {
-		attrmap := *attributeOutput.Attributes
+	if attributeOutput.Attributes != nil && len(attributeOutput.Attributes) > 0 {
+		attrmap := attributeOutput.Attributes
 		resource := *resourceAwsSnsTopic()
 		// iKey = internal struct key, oKey = AWS Attribute Map key
 		for iKey, oKey := range SNSAttributeMap {

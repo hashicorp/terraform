@@ -5,13 +5,13 @@ import (
 	"os"
 	"testing"
 
-	"github.com/awslabs/aws-sdk-go/aws"
-	"github.com/awslabs/aws-sdk-go/service/ec2"
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
 )
 
-func TestAccAWSVPCPeeringConnection_normal(t *testing.T) {
+func TestAccAWSVPCPeeringConnection_basic(t *testing.T) {
 	var connection ec2.VPCPeeringConnection
 
 	resource.Test(t, resource.TestCase{

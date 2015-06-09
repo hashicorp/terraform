@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"regexp"
+	"sort"
 	"strconv"
 	"strings"
 
@@ -275,6 +276,76 @@ func interpolationFuncElement() ast.Function {
 
 			v := list[index%len(list)]
 			return v, nil
+		},
+	}
+}
+
+// interpolationFuncKeys implements the "keys" function that yields a list of
+// keys of map types within a Terraform configuration.
+func interpolationFuncKeys(vs map[string]ast.Variable) ast.Function {
+	return ast.Function{
+		ArgTypes:   []ast.Type{ast.TypeString},
+		ReturnType: ast.TypeString,
+		Callback: func(args []interface{}) (interface{}, error) {
+			// Prefix must include ending dot to be a map
+			prefix := fmt.Sprintf("var.%s.", args[0].(string))
+			keys := make([]string, 0, len(vs))
+			for k, _ := range vs {
+				if !strings.HasPrefix(k, prefix) {
+					continue
+				}
+				keys = append(keys, k[len(prefix):])
+			}
+
+			if len(keys) <= 0 {
+				return "", fmt.Errorf(
+					"failed to find map '%s'",
+					args[0].(string))
+			}
+
+			sort.Strings(keys)
+
+			return strings.Join(keys, InterpSplitDelim), nil
+		},
+	}
+}
+
+// interpolationFuncValues implements the "values" function that yields a list of
+// keys of map types within a Terraform configuration.
+func interpolationFuncValues(vs map[string]ast.Variable) ast.Function {
+	return ast.Function{
+		ArgTypes:   []ast.Type{ast.TypeString},
+		ReturnType: ast.TypeString,
+		Callback: func(args []interface{}) (interface{}, error) {
+			// Prefix must include ending dot to be a map
+			prefix := fmt.Sprintf("var.%s.", args[0].(string))
+			keys := make([]string, 0, len(vs))
+			for k, _ := range vs {
+				if !strings.HasPrefix(k, prefix) {
+					continue
+				}
+				keys = append(keys, k)
+			}
+
+			if len(keys) <= 0 {
+				return "", fmt.Errorf(
+					"failed to find map '%s'",
+					args[0].(string))
+			}
+
+			sort.Strings(keys)
+
+			vals := make([]string, 0, len(keys))
+
+			for _, k := range keys {
+				v := vs[k]
+				if v.Type != ast.TypeString {
+					return "", fmt.Errorf("values(): %q has bad type %s", k, v.Type)
+				}
+				vals = append(vals, vs[k].Value.(string))
+			}
+
+			return strings.Join(vals, InterpSplitDelim), nil
 		},
 	}
 }

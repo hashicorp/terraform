@@ -23,6 +23,7 @@ resource "aws_sqs_queue" "terraform_queue" {
 ## Argument Reference
 
 The following arguments are supported:
+
 * `name` - (Required) This is the human-readable name of the queue
 * `visibility_timeout_seconds` - (Optional) The time in seconds that the delivery of all messages in the queue will be delayed. An integer from 0 to 900 (15 minutes). The default for this attribute is 30 seconds
 * `message_retention_seconds` - (Optional) The number of seconds Amazon SQS retains a message. Integer representing seconds, from 60 (1 minute) to 1209600 (14 days). The default for this attribute is 345600 (4 days).

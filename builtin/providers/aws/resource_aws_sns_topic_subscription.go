@@ -6,10 +6,9 @@ import (
 
 	"github.com/hashicorp/terraform/helper/schema"
 
-	"github.com/awslabs/aws-sdk-go/aws"
-	"github.com/awslabs/aws-sdk-go/service/sns"
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/service/sns"
 )
-
 
 func resourceAwsSnsTopicSubscription() *schema.Resource {
 	return &schema.Resource{
@@ -25,29 +24,29 @@ func resourceAwsSnsTopicSubscription() *schema.Resource {
 				ForceNew: false,
 			},
 			"endpoint": &schema.Schema{
-				Type: 	   schema.TypeString,
-				Required:  true,
-				ForceNew:  false,
+				Type:     schema.TypeString,
+				Required: true,
+				ForceNew: false,
 			},
 			"topic_arn": &schema.Schema{
-				Type:      schema.TypeString,
-				Required:  true,
-				ForceNew:  false,
+				Type:     schema.TypeString,
+				Required: true,
+				ForceNew: false,
 			},
 			"delivery_policy": &schema.Schema{
-				Type:      schema.TypeString,
-				Optional:  true,
-				ForceNew:  false,
+				Type:     schema.TypeString,
+				Optional: true,
+				ForceNew: false,
 			},
 			"raw_message_delivery": &schema.Schema{
-				Type:      schema.TypeBool,
-				Optional:  true,
-				ForceNew:  false,
-				Default:   false,
+				Type:     schema.TypeBool,
+				Optional: true,
+				ForceNew: false,
+				Default:  false,
 			},
 			"arn": &schema.Schema{
-				Type:      schema.TypeString,
-				Computed:  true,
+				Type:     schema.TypeString,
+				Computed: true,
 			},
 		},
 	}
@@ -56,7 +55,7 @@ func resourceAwsSnsTopicSubscription() *schema.Resource {
 func resourceAwsSnsTopicSubscriptionCreate(d *schema.ResourceData, meta interface{}) error {
 	snsconn := meta.(*AWSClient).snsconn
 
-	if(d.Get("protocol") == "email") {
+	if d.Get("protocol") == "email" {
 		return fmt.Errorf("Email endpoints are not supported!")
 	}
 
@@ -107,8 +106,8 @@ func resourceAwsSnsTopicSubscriptionUpdate(d *schema.ResourceData, meta interfac
 
 		req := &sns.SetSubscriptionAttributesInput{
 			SubscriptionARN: aws.String(d.Id()),
-			AttributeName: aws.String("RawMessageDelivery"),
-			AttributeValue: aws.String(attrValue),
+			AttributeName:   aws.String("RawMessageDelivery"),
+			AttributeValue:  aws.String(attrValue),
 		}
 		_, err := snsconn.SetSubscriptionAttributes(req)
 
@@ -132,8 +131,8 @@ func resourceAwsSnsTopicSubscriptionRead(d *schema.ResourceData, meta interface{
 		return err
 	}
 
-	if attributeOutput.Attributes != nil && len(*attributeOutput.Attributes) > 0 {
-		attrHash := *attributeOutput.Attributes
+	if attributeOutput.Attributes != nil && len(attributeOutput.Attributes) > 0 {
+		attrHash := attributeOutput.Attributes
 		log.Printf("[DEBUG] raw message delivery: %s", *attrHash["RawMessageDelivery"])
 		if *attrHash["RawMessageDelivery"] == "true" {
 			d.Set("raw_message_delivery", true)
@@ -158,7 +157,7 @@ func resourceAwsSnsTopicSubscriptionDelete(d *schema.ResourceData, meta interfac
 	return nil
 }
 
-func subscribeToSNSTopic(d *schema.ResourceData, snsconn *sns.SNS) (output *sns.SubscribeOutput, err error)  {
+func subscribeToSNSTopic(d *schema.ResourceData, snsconn *sns.SNS) (output *sns.SubscribeOutput, err error) {
 	protocol := d.Get("protocol").(string)
 	endpoint := d.Get("endpoint").(string)
 	topic_arn := d.Get("topic_arn").(string)

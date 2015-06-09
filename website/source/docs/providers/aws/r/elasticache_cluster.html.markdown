@@ -1,6 +1,6 @@
 ---
 layout: "aws"
-page_title: "AWS: aws_subnet"
+page_title: "AWS: aws_elasticache_cluster"
 sidebar_current: "docs-aws-resource-elasticache-cluster"
 description: |-
   Provides an VPC subnet resource.
@@ -17,6 +17,7 @@ resource "aws_elasticache_cluster" "bar" {
     cluster_id = "cluster-example"
     engine = "memcached"
     node_type = "cache.m1.small"
+    port = 11211
     num_cache_nodes = 1
     parameter_group_name = "default.memcached1.4"
 }
@@ -47,8 +48,8 @@ value must be between 1 and 20
 * `parameter_group_name` – (Required) Name of the parameter group to associate
 with this cache cluster
 
-* `port` – (Optional) The port number on which each of the cache nodes will
-accept connections. Default 11211.
+* `port` – (Required) The port number on which each of the cache nodes will
+accept connections. For Memcache the default is 11211, and for Redis the default port is 6379.
 
 * `subnet_group_name` – (Optional, VPC only) Name of the subnet group to be used
 for the cache cluster.
@@ -58,6 +59,8 @@ names to associate with this cache cluster
 
 * `security_group_ids` – (Optional, VPC only) One or more VPC security groups associated
  with the cache cluster
+
+* `tags` - (Optional) A mapping of tags to assign to the resource.
 
 
 ## Attributes Reference

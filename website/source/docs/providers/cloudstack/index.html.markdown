@@ -43,3 +43,8 @@ The following arguments are supported:
 
 * `secret_key` - (Required) This is the CloudStack secret key. It must be provided,
   but it can also be sourced from the `CLOUDSTACK_SECRET_KEY` environment variable.
+
+* `timeout` - (Optional) A value in seconds. This is the time allowed for Cloudstack 
+  to complete each asynchronous job triggered. If unset, this can be sourced from the
+  `CLOUDSTACK_TIMEOUT` environment variable. Otherwise, this will default to 300 
+  seconds.

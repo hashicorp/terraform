@@ -13,7 +13,7 @@ import (
 var _ = fmt.Sprintf("dummy") // dummy
 var _ = os.DevNull           // dummy
 
-func TestAccDMERecordA(t *testing.T) {
+func TestAccDMERecord_basic(t *testing.T) {
 	var record dnsmadeeasy.Record
 	domainid := os.Getenv("DME_DOMAINID")
 

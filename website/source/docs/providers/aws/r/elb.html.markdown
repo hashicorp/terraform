@@ -46,6 +46,10 @@ resource "aws_elb" "bar" {
   idle_timeout = 400
   connection_draining = true
   connection_draining_timeout = 400
+
+  tags {
+    Name = "foobar-terraform-elb"
+  }
 }
 ```
 
@@ -65,6 +69,7 @@ The following arguments are supported:
 * `idle_timeout` - (Optional) The time in seconds that the connection is allowed to be idle. Default: 60.
 * `connection_draining` - (Optional) Boolean to enable connection draining.
 * `connection_draining_timeout` - (Optional) The time in seconds to allow for connections to drain. 
+* `tags` - (Optional) A mapping of tags to assign to the resource.
 
 Exactly one of `availability_zones` or `subnets` must be specified: this
 determines if the ELB exists in a VPC or in EC2-classic.

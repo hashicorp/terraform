@@ -86,13 +86,9 @@ func testAccCheckCloudStackNetworkACLDestroy(s *terraform.State) error {
 			return fmt.Errorf("No network ACL ID is set")
 		}
 
-		p := cs.NetworkACL.NewDeleteNetworkACLListParams(rs.Primary.ID)
-		_, err := cs.NetworkACL.DeleteNetworkACLList(p)
-
-		if err != nil {
-			return fmt.Errorf(
-				"Error deleting network ACL (%s): %s",
-				rs.Primary.ID, err)
+		_, _, err := cs.NetworkACL.GetNetworkACLListByID(rs.Primary.ID)
+		if err == nil {
+			return fmt.Errorf("Network ACl list %s still exists", rs.Primary.ID)
 		}
 	}
 
