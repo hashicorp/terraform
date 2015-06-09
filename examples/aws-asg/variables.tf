@@ -3,7 +3,7 @@ variable "aws_region" {
     default = "us-east-1"
 }
 
-# Ubuntu Precise 12.04 LTS (x64)
+# ubuntu-trusty-14.04 (x64)
 variable "aws_amis" {
     default = {
         "us-east-1" = "ami-5f709f34"
