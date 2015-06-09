@@ -10,15 +10,14 @@ variable "subnet_2_cidr" {
 
 variable "az_1" {
 	default = "us-east-1b"
-    description = "Your AZ"
+    description = "Your Az1, use AWS CLI to find your account specific"
 }
 
 variable "az_2" {
 	default = "us-east-1c"
-    description = "Your AZ"
+    description = "Your Az2, use AWS CLI to find your account specific"
 }
 
 variable "vpc_id" {
-	default = "vpc-b6090dd3"
     description = "Your VPC ID"
 }

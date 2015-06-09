@@ -9,17 +9,20 @@ variable "storage" {
 }
 
 variable "engine" {
-	default = "mysql"
-    description = "Engine type, supported values mysql"
+	default = "postgres"
+    description = "Engine type, example values mysql, postgres"
 }
 
 variable "engine_version" {
-	default = "5.6.17"
     description = "Engine version"
+    default = {
+        mysql = "5.6.22"
+        postgres = "9.4.1"
+    }
 }
 
 variable "instance_class" {
-	default = "db.t1.micro"
+	default = "db.t2.micro"
     description = "Instance class"
 }
 
@@ -29,7 +32,7 @@ variable "db_name" {
 }
 
 variable "username" {
-	default = "user"
+	default = "myuser"
     description = "User name"
 }
 
