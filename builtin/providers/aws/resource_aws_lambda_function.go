@@ -11,6 +11,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/lambda"
+	"github.com/mitchellh/go-homedir"
 
 	"github.com/hashicorp/terraform/helper/schema"
 )
@@ -92,7 +93,11 @@ func resourceAwsLambdaFunctionCreate(d *schema.ResourceData, meta interface{}) e
 
 	log.Printf("[DEBUG] Creating Lambda Function %s with role %s", functionName, iamRole)
 
-	zipfile, err := ioutil.ReadFile(d.Get("filename").(string))
+	filename, err := homedir.Expand(d.Get("filename").(string))
+	if err != nil {
+		return err
+	}
+	zipfile, err := ioutil.ReadFile(filename)
 	if err != nil {
 		return err
 	}
