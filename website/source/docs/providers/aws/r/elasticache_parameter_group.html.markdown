@@ -16,14 +16,14 @@ resource "aws_elasticache_parameter_group" "default" {
     family = "redis2.8"
     description = "Cache cluster default param group"
 
-  	parameter {
-   	  name = "activerehashing"
-   	  value = "yes"
-   	}
+    parameter {
+        name = "activerehashing"
+        value = "yes"
+    }
 
-   	parameter {
-      name = "min-slaves-to-write"
-      value = "2"
+    parameter {
+        name = "min-slaves-to-write"
+        value = "2"
     }
 }
 ```
