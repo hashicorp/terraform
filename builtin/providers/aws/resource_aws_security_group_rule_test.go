@@ -196,6 +196,24 @@ func TestAccAWSSecurityGroupRule_Egress(t *testing.T) {
 	})
 }
 
+func TestAccAWSSecurityGroupRule_SelfReference(t *testing.T) {
+	var group ec2.SecurityGroup
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSSecurityGroupRuleDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccAWSSecurityGroupRuleConfigSelfReference,
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSSecurityGroupRuleExists("aws_security_group.web", &group),
+				),
+			},
+		},
+	})
+}
+
 func testAccCheckAWSSecurityGroupRuleDestroy(s *terraform.State) error {
 	conn := testAccProvider.Meta().(*AWSClient).ec2conn
 
@@ -387,6 +405,37 @@ resource "aws_security_group_rule" "ingress_2" {
   to_port = 8000
         self = true
 
+  security_group_id = "${aws_security_group.web.id}"
+}
+`
+
+// check for GH-1985 regression
+const testAccAWSSecurityGroupRuleConfigSelfReference = `
+provider "aws" {
+  region = "us-west-2"
+}
+
+resource "aws_vpc" "main" {
+  cidr_block = "10.0.0.0/16"
+  tags {
+    Name = "sg-self-test"
+  }
+}
+
+resource "aws_security_group" "web" {
+  name = "main"
+  vpc_id = "${aws_vpc.main.id}"
+  tags {
+    Name = "sg-self-test"
+  }
+}
+
+resource "aws_security_group_rule" "self" {
+  type = "ingress"
+  protocol = "-1"
+  from_port = 0
+  to_port = 0
+  self = true
   security_group_id = "${aws_security_group.web.id}"
 }
 `
