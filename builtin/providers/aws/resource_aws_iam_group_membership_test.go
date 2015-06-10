@@ -59,7 +59,7 @@ func testAccCheckAWSGroupMembershipDestroy(s *terraform.State) error {
 		for _, u := range resp.Users {
 			for _, i := range users {
 				if i == *u.UserName {
-					return fmt.Errorf("Error: User (s) still a member of Group (%s)", i, *resp.Group.GroupName)
+					return fmt.Errorf("Error: User (%s) still a member of Group (%s)", i, *resp.Group.GroupName)
 				}
 			}
 		}
