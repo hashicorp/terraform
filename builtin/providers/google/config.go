@@ -14,6 +14,7 @@ import (
 	"golang.org/x/oauth2/google"
 	"golang.org/x/oauth2/jwt"
 	"google.golang.org/api/compute/v1"
+	computeBeta "google.golang.org/api/compute/v0.beta"
 	"google.golang.org/api/dns/v1"
 	"google.golang.org/api/storage/v1"
 )
@@ -26,6 +27,7 @@ type Config struct {
 	Region      string
 
 	clientCompute *compute.Service
+	clientComputeBeta *computeBeta.Service
 	clientDns     *dns.Service
 	clientStorage *storage.Service
 }
@@ -109,6 +111,13 @@ func (c *Config) loadAndValidate() error {
 		return err
 	}
 	c.clientCompute.UserAgent = userAgent
+
+	log.Printf("[INFO] Instantiating Beta GCE client...")
+	c.clientComputeBeta, err = computeBeta.New(client)
+	if err != nil {
+		return err
+	}
+	c.clientComputeBeta.UserAgent = userAgent
 
 	log.Printf("[INFO] Instantiating Google Cloud DNS client...")
 	c.clientDns, err = dns.New(client)
