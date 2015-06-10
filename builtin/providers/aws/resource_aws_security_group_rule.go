@@ -9,6 +9,7 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
+	"github.com/aws/aws-sdk-go/aws/awsutil"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/hashicorp/terraform/helper/hashcode"
 	"github.com/hashicorp/terraform/helper/schema"
@@ -91,8 +92,8 @@ func resourceAwsSecurityGroupRuleCreate(d *schema.ResourceData, meta interface{}
 
 	switch ruleType {
 	case "ingress":
-		log.Printf("[DEBUG] Authorizing security group %s %s rule: %#v",
-			sg_id, "Ingress", perm)
+		log.Printf("[DEBUG] Authorizing security group %s %s rule: %s",
+			sg_id, "Ingress", awsutil.StringValue(perm))
 
 		req := &ec2.AuthorizeSecurityGroupIngressInput{
 			GroupID:       sg.GroupID,
@@ -202,8 +203,8 @@ func resourceAwsSecurityGroupRuleDelete(d *schema.ResourceData, meta interface{}
 	ruleType := d.Get("type").(string)
 	switch ruleType {
 	case "ingress":
-		log.Printf("[DEBUG] Revoking security group %#v %s rule: %#v",
-			sg_id, "ingress", perm)
+		log.Printf("[DEBUG] Revoking rule (%s) from security group %s:\n%s",
+			"ingress", sg_id, awsutil.StringValue(perm))
 		req := &ec2.RevokeSecurityGroupIngressInput{
 			GroupID:       sg.GroupID,
 			IPPermissions: []*ec2.IPPermission{perm},
@@ -297,22 +298,29 @@ func expandIPPerm(d *schema.ResourceData, sg *ec2.SecurityGroup) *ec2.IPPermissi
 	perm.ToPort = aws.Long(int64(d.Get("to_port").(int)))
 	perm.IPProtocol = aws.String(d.Get("protocol").(string))
 
-	var groups []string
+	// build a group map that behaves like a set
+	groups := make(map[string]bool)
 	if raw, ok := d.GetOk("source_security_group_id"); ok {
-		groups = append(groups, raw.(string))
+		groups[raw.(string)] = true
 	}
 
 	if v, ok := d.GetOk("self"); ok && v.(bool) {
 		if sg.VPCID != nil && *sg.VPCID != "" {
-			groups = append(groups, *sg.GroupID)
+			groups[*sg.GroupID] = true
 		} else {
-			groups = append(groups, *sg.GroupName)
+			groups[*sg.GroupName] = true
 		}
 	}
 
 	if len(groups) > 0 {
 		perm.UserIDGroupPairs = make([]*ec2.UserIDGroupPair, len(groups))
-		for i, name := range groups {
+		// build string list of group name/ids
+		var gl []string
+		for k, _ := range groups {
+			gl = append(gl, k)
+		}
+
+		for i, name := range gl {
 			ownerId, id := "", name
 			if items := strings.Split(id, "/"); len(items) > 1 {
 				ownerId, id = items[0], items[1]
