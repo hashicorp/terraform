@@ -157,7 +157,7 @@ func TestInterpolationWalker_replace(t *testing.T) {
 					"bing",
 				},
 			},
-			Value: "bar" + InterpSplitDelim + "baz",
+			Value: "bar" + StringListDelim + "baz",
 		},
 
 		{
@@ -168,7 +168,7 @@ func TestInterpolationWalker_replace(t *testing.T) {
 				},
 			},
 			Output: map[string]interface{}{},
-			Value:  UnknownVariableValue + InterpSplitDelim + "baz",
+			Value:  UnknownVariableValue + StringListDelim + "baz",
 		},
 	}
 
