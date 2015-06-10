@@ -327,6 +327,7 @@ func resourceAwsInstanceCreate(d *schema.ResourceData, meta interface{}) error {
 		IAMInstanceProfile:    instanceOpts.IAMInstanceProfile,
 		ImageID:               instanceOpts.ImageID,
 		InstanceType:          instanceOpts.InstanceType,
+		KeyName:               instanceOpts.KeyName,
 		MaxCount:              aws.Long(int64(1)),
 		MinCount:              aws.Long(int64(1)),
 		NetworkInterfaces:     instanceOpts.NetworkInterfaces,
