@@ -10,10 +10,6 @@ import (
 	"github.com/mitchellh/reflectwalk"
 )
 
-// InterpSplitDelim is the delimeter that is looked for to split when
-// it is returned.
-const InterpSplitDelim = `B780FFEC-B661-4EB8-9236-A01737AD98B6`
-
 // interpolationWalker implements interfaces for the reflectwalk package
 // (github.com/mitchellh/reflectwalk) that can be used to automatically
 // execute a callback for an interpolation.
@@ -149,7 +145,7 @@ func (w *interpolationWalker) Primitive(v reflect.Value) error {
 		// splitting (in a SliceElem) or not.
 		remove := false
 		if w.loc == reflectwalk.SliceElem {
-			parts := strings.Split(replaceVal, InterpSplitDelim)
+			parts := StringList(replaceVal).Slice()
 			for _, p := range parts {
 				if p == UnknownVariableValue {
 					remove = true
@@ -247,7 +243,7 @@ func (w *interpolationWalker) splitSlice() {
 		if !ok {
 			continue
 		}
-		if idx := strings.Index(sv, InterpSplitDelim); idx >= 0 {
+		if IsStringList(sv) {
 			split = true
 			break
 		}
@@ -270,7 +266,7 @@ func (w *interpolationWalker) splitSlice() {
 		}
 
 		// Split on the delimiter
-		for _, p := range strings.Split(sv, InterpSplitDelim) {
+		for _, p := range StringList(sv).Slice() {
 			result = append(result, p)
 		}
 	}
