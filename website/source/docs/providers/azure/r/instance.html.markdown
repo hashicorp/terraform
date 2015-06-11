@@ -18,7 +18,7 @@ resource "azure_instance" "web" {
     name = "terraform-test"
     image = "Ubuntu Server 14.04 LTS"
     size = "Basic_A1"
-    storage = "yourstorage"
+    storage_service_name = "yourstorage"
     location = "West US"
     username = "terraform"
     password = "Pass!admin123"
@@ -56,9 +56,9 @@ The following arguments are supported:
     belongs to. If a value is supplied `subnet` is required. Changing this
     forces a new resource to be created.
 
-* `storage` - (Optional) The name of an existing storage account within the
-    subscription which will be used to store the VHDs of this instance.
-    Changing this forces a new resource to be created.
+* `storage_service_name` - (Optional) The name of an existing storage account
+    within the subscription which will be used to store the VHDs of this
+    instance. Changing this forces a new resource to be created.
 
 * `reverse_dns` - (Optional) The DNS address to which the IP address of the
     hosted service resolves when queried using a reverse DNS query. Changing

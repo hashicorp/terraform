@@ -40,6 +40,9 @@ The following arguments are supported:
 * `location` - (Required) The location/region where the virtual network is
     created. Changing this forces a new resource to be created.
 
+* `dns_servers` - (Optional) List of names of DNS servers previously registered
+    on Azure.
+
 * `subnet` - (Required) Can be specified multiple times to define multiple
     subnets. Each `subnet` block supports fields documented below.
 
