@@ -2,30 +2,49 @@ package azure
 
 import (
 	"fmt"
-	"log"
 
 	"github.com/Azure/azure-sdk-for-go/management"
 	"github.com/Azure/azure-sdk-for-go/management/storageservice"
 	"github.com/Azure/azure-sdk-for-go/storage"
 )
 
-// getStorageServiceBlobClient is a helper function which returns the
-// storage.BlobStorageClient associated to the given storage account name.
-func getStorageServiceBlobClient(mgmtClient management.Client, serviceName string) (storage.BlobStorageClient, error) {
-	log.Println("[INFO] Begun generating Azure Storage Service Blob client.")
-	var blobClient storage.BlobStorageClient
-
+// getStorageClientForStorageService is helper function which returns the
+// storage.Client associated to the given storage service name.
+func getStorageClientForStorageService(mgmtClient management.Client, serviceName string) (storage.Client, error) {
+	var storageClient storage.Client
 	storageServiceClient := storageservice.NewClient(mgmtClient)
 
 	keys, err := storageServiceClient.GetStorageServiceKeys(serviceName)
 	if err != nil {
-		return blobClient, fmt.Errorf("Error reading Storage Service %s's keys from Azure: %s", serviceName, err)
+		return storageClient, fmt.Errorf("Failed getting Storage Service keys for %s: %s", serviceName, err)
 	}
 
-	storageClient, err := storage.NewBasicClient(serviceName, keys.PrimaryKey)
+	storageClient, err = storage.NewBasicClient(serviceName, keys.PrimaryKey)
 	if err != nil {
-		return blobClient, fmt.Errorf("Error creating Storage Service Client for %s: %s", serviceName, err)
+		return storageClient, fmt.Errorf("Failed creating Storage Service client for %s: %s", serviceName, err)
+	}
+
+	return storageClient, err
+}
+
+// getStorageServiceBlobClient is a helper function which returns the
+// storage.BlobStorageClient associated to the given storage service name.
+func getStorageServiceBlobClient(mgmtClient management.Client, serviceName string) (storage.BlobStorageClient, error) {
+	storageClient, err := getStorageClientForStorageService(mgmtClient, serviceName)
+	if err != nil {
+		return storage.BlobStorageClient{}, err
 	}
 
 	return storageClient.GetBlobService(), nil
+}
+
+// getStorageServiceQueueClient is a helper function which returns the
+// storage.QueueServiceClient associated to the given storage service name.
+func getStorageServiceQueueClient(mgmtClient management.Client, serviceName string) (storage.QueueServiceClient, error) {
+	storageClient, err := getStorageClientForStorageService(mgmtClient, serviceName)
+	if err != nil {
+		return storage.QueueServiceClient{}, err
+	}
+
+	return storageClient.GetQueueService(), err
 }
