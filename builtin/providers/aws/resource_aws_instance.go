@@ -539,8 +539,8 @@ func resourceAwsInstanceUpdate(d *schema.ResourceData, meta interface{}) error {
 
 	if d.HasChange("vpc_security_group_ids") {
 		var groups []*string
-		if v := d.Get("vpc_security_group_ids"); v != nil {
-			for _, v := range v.(*schema.Set).List() {
+		if v := d.Get("vpc_security_group_ids").(*schema.Set); v.Len() > 0 {
+			for _, v := range v.List() {
 				groups = append(groups, aws.String(v.(string)))
 			}
 		}
@@ -908,8 +908,8 @@ func buildAwsInstanceOpts(
 			ni.PrivateIPAddress = aws.String(v.(string))
 		}
 
-		if v := d.Get("vpc_security_group_ids"); v != nil {
-			for _, v := range v.(*schema.Set).List() {
+		if v := d.Get("vpc_security_group_ids").(*schema.Set); v.Len() > 0 {
+			for _, v := range v.List() {
 				ni.Groups = append(ni.Groups, aws.String(v.(string)))
 			}
 		}
@@ -930,8 +930,8 @@ func buildAwsInstanceOpts(
 			opts.SecurityGroups = groups
 		}
 
-		if v := d.Get("vpc_security_group_ids"); v != nil {
-			for _, v := range v.(*schema.Set).List() {
+		if v := d.Get("vpc_security_group_ids").(*schema.Set); v.Len() > 0 {
+			for _, v := range v.List() {
 				opts.SecurityGroupIDs = append(opts.SecurityGroupIDs, aws.String(v.(string)))
 			}
 		}
