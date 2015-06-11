@@ -44,6 +44,46 @@ func TestIpPermissionIDHash(t *testing.T) {
 		},
 	}
 
+	vpc_security_group_source := &ec2.IPPermission{
+		IPProtocol: aws.String("tcp"),
+		FromPort:   aws.Long(int64(80)),
+		ToPort:     aws.Long(int64(8000)),
+		UserIDGroupPairs: []*ec2.UserIDGroupPair{
+			&ec2.UserIDGroupPair{
+				UserID:  aws.String("987654321"),
+				GroupID: aws.String("sg-12345678"),
+			},
+			&ec2.UserIDGroupPair{
+				UserID:  aws.String("123456789"),
+				GroupID: aws.String("sg-987654321"),
+			},
+			&ec2.UserIDGroupPair{
+				UserID:  aws.String("123456789"),
+				GroupID: aws.String("sg-12345678"),
+			},
+		},
+	}
+
+	security_group_source := &ec2.IPPermission{
+		IPProtocol: aws.String("tcp"),
+		FromPort:   aws.Long(int64(80)),
+		ToPort:     aws.Long(int64(8000)),
+		UserIDGroupPairs: []*ec2.UserIDGroupPair{
+			&ec2.UserIDGroupPair{
+				UserID:    aws.String("987654321"),
+				GroupName: aws.String("my-security-group"),
+			},
+			&ec2.UserIDGroupPair{
+				UserID:    aws.String("123456789"),
+				GroupName: aws.String("my-security-group"),
+			},
+			&ec2.UserIDGroupPair{
+				UserID:    aws.String("123456789"),
+				GroupName: aws.String("my-other-security-group"),
+			},
+		},
+	}
+
 	// hardcoded hashes, to detect future change
 	cases := []struct {
 		Input  *ec2.IPPermission
@@ -53,12 +93,14 @@ func TestIpPermissionIDHash(t *testing.T) {
 		{simple, "ingress", "sg-82613597"},
 		{egress, "egress", "sg-363054720"},
 		{egress_all, "egress", "sg-857124156"},
+		{vpc_security_group_source, "egress", "sg-1900174468"},
+		{security_group_source, "egress", "sg-1409919872"},
 	}
 
 	for _, tc := range cases {
 		actual := ipPermissionIDHash(tc.Type, tc.Input)
 		if actual != tc.Output {
-			t.Fatalf("input: %s - %#v\noutput: %s", tc.Type, tc.Input, actual)
+			t.Errorf("input: %s - %#v\noutput: %s", tc.Type, tc.Input, actual)
 		}
 	}
 }
