@@ -8,6 +8,8 @@ For AWS provider, set up your AWS environment as outlined in https://www.terrafo
 
 If you need to use existing security groups and subnets, remove the sg.tf and subnets.tf files and replace the corresponidng sections in main.tf under aws_db_instance
 
+Pass the password variable through your ENV variable.
+
 Several paraneters are externalized, review the different variables.tf files and change them to fit your needs. Carefully review the CIDR blocks, egress/ingress rules, availability zones that are very specific to your account.
 
 Once ready run 'terraform plan' to review. At the minimum, provide the vpc_id as input variable.
