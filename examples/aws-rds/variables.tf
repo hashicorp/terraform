@@ -37,6 +37,5 @@ variable "username" {
 }
 
 variable "password" {
-	default = "abcd1234"
-    description = "password"
+    description = "password, provide through your ENV variables"
 }
