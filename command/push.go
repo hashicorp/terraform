@@ -152,8 +152,9 @@ func (c *PushCommand) Run(args []string) int {
 		v, err := c.UIInput().Input(&terraform.InputOpts{
 			Id:    "overwrite",
 			Query: "Overwrite the remote Terraform variables stored in Atlas?",
-			Description: "Terraform will overwrite the following remote Terraform\n" +
-				"variables stored in Atlas:",
+			Description: fmt.Sprintf(
+				"Pushing will overwrite the following remote Terraform variables\n"+
+					"stored in Atlas:\n\n  %s", strings.Join(mismatchedVars, ", ")),
 		})
 		if err != nil {
 			c.Ui.Error(fmt.Sprintf("Error asking for confirmation: %s", err))
