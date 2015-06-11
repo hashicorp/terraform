@@ -61,6 +61,7 @@ IMPROVEMENTS:
       Buckets that contain objects [GH-2007]
   * provider/aws: switching `health_check_type` on ASGs no longer requires
       resource refresh [GH-2147]
+  * provider/aws: ignore empty `vpc_security_group_ids` on `aws_instance` [GH-2311]
 
 BUG FIXES:
 
