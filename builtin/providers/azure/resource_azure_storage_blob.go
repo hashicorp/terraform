@@ -25,12 +25,9 @@ func resourceAzureStorageBlob() *schema.Resource {
 				Description: parameterDescriptions["name"],
 			},
 			"type": &schema.Schema{
-				Type:     schema.TypeString,
-				Required: true,
-				ForceNew: true,
-				DefaultFunc: func() (interface{}, error) {
-					return "BlockBlob", nil
-				},
+				Type:        schema.TypeString,
+				Required:    true,
+				ForceNew:    true,
 				Description: parameterDescriptions["type"],
 			},
 			"size": &schema.Schema{
