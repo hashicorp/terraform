@@ -21,3 +21,4 @@ variable "az_2" {
 variable "vpc_id" {
     description = "Your VPC ID"
 }
+
