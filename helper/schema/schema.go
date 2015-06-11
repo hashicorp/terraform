@@ -136,6 +136,8 @@ type Schema struct {
 	// logic. It is yielded the provided config value as an interface{} that is
 	// guaranteed to be of the proper Schema type, and it can yield warnings or
 	// errors based on inspection of that value.
+	//
+	// ValidateFunc currently only works for primitive types.
 	ValidateFunc SchemaValidateFunc
 }
 
@@ -511,6 +513,13 @@ func (m schemaMap) InternalValidate(topSchemaMap schemaMap) error {
 					return fmt.Errorf(
 						"%s: Elem must have only Type set", k)
 				}
+			}
+		}
+
+		if v.ValidateFunc != nil {
+			switch v.Type {
+			case TypeList, TypeSet, TypeMap:
+				return fmt.Errorf("ValidateFunc is only supported on primitives.")
 			}
 		}
 	}
@@ -1128,6 +1137,7 @@ func (m schemaMap) validatePrimitive(
 		return nil, nil
 	}
 
+	var decoded interface{}
 	switch schema.Type {
 	case TypeBool:
 		// Verify that we can parse this as the correct type
@@ -1135,26 +1145,34 @@ func (m schemaMap) validatePrimitive(
 		if err := mapstructure.WeakDecode(raw, &n); err != nil {
 			return nil, []error{err}
 		}
+		decoded = n
 	case TypeInt:
 		// Verify that we can parse this as an int
 		var n int
 		if err := mapstructure.WeakDecode(raw, &n); err != nil {
 			return nil, []error{err}
 		}
+		decoded = n
 	case TypeFloat:
 		// Verify that we can parse this as an int
 		var n float64
 		if err := mapstructure.WeakDecode(raw, &n); err != nil {
 			return nil, []error{err}
 		}
+		decoded = n
 	case TypeString:
 		// Verify that we can parse this as a string
 		var n string
 		if err := mapstructure.WeakDecode(raw, &n); err != nil {
 			return nil, []error{err}
 		}
+		decoded = n
 	default:
 		panic(fmt.Sprintf("Unknown validation type: %#v", schema.Type))
+	}
+
+	if schema.ValidateFunc != nil {
+		return schema.ValidateFunc(decoded)
 	}
 
 	return nil, nil
@@ -1184,16 +1202,6 @@ func (m schemaMap) validateType(
 	if schema.Removed != "" {
 		es = append(es, fmt.Errorf(
 			"%q: [REMOVED] %s", k, schema.Removed))
-	}
-
-	if len(es) == 0 && schema.ValidateFunc != nil {
-		ws2, es2 := schema.ValidateFunc(raw)
-		for _, w := range ws2 {
-			ws = append(ws, fmt.Sprintf("%q: %s", k, w))
-		}
-		for _, e := range es2 {
-			es = append(es, fmt.Errorf("%q: %s", k, e))
-		}
 	}
 
 	return ws, es

@@ -2796,6 +2796,20 @@ func TestSchemaMap_InternalValidate(t *testing.T) {
 			},
 			false,
 		},
+
+		// ValidateFunc on non-primitive
+		{
+			map[string]*Schema{
+				"foo": &Schema{
+					Type:     TypeMap,
+					Required: true,
+					ValidateFunc: func(v interface{}) (ws []string, es []error) {
+						return
+					},
+				},
+			},
+			true,
+		},
 	}
 
 	for i, tc := range cases {
@@ -3435,7 +3449,7 @@ func TestSchemaMap_Validate(t *testing.T) {
 			},
 			Err: true,
 			Errors: []error{
-				fmt.Errorf(`"validate_me": something is not right here`),
+				fmt.Errorf(`something is not right here`),
 			},
 		},
 
@@ -3454,6 +3468,23 @@ func TestSchemaMap_Validate(t *testing.T) {
 				"number": "NaN",
 			},
 			Err: true,
+		},
+		"ValidateFunc gets decoded type": {
+			Schema: map[string]*Schema{
+				"maybe": &Schema{
+					Type:     TypeBool,
+					Required: true,
+					ValidateFunc: func(v interface{}) (ws []string, es []error) {
+						if _, ok := v.(bool); !ok {
+							t.Fatalf("Expected bool, got: %#v", v)
+						}
+						return
+					},
+				},
+			},
+			Config: map[string]interface{}{
+				"maybe": "true",
+			},
 		},
 	}
 
