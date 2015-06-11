@@ -32,7 +32,6 @@ func resourceAzureSecurityGroupRule() *schema.Resource {
 				ForceNew:    true,
 				Description: parameterDescriptions["netsecgroup_secgroup_name"],
 			},
-			// TODO(aznashwan): update Sander's docs to remove default.
 			"type": &schema.Schema{
 				Type:        schema.TypeString,
 				Required:    true,
@@ -43,7 +42,6 @@ func resourceAzureSecurityGroupRule() *schema.Resource {
 				Required:    true,
 				Description: parameterDescriptions["netsecgroup_priority"],
 			},
-			// TODO(aznashwan): update Sander's docs to remove default.
 			"action": &schema.Schema{
 				Type:        schema.TypeString,
 				Required:    true,
@@ -69,7 +67,6 @@ func resourceAzureSecurityGroupRule() *schema.Resource {
 				Required:    true,
 				Description: parameterDescriptions["netsecgroup_dest_port_range"],
 			},
-			// TODO(aznashwan): update Sander's docs to remove default.
 			"protocol": &schema.Schema{
 				Type:        schema.TypeString,
 				Required:    true,

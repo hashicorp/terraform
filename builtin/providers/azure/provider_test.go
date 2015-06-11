@@ -18,6 +18,7 @@ const testAccSecurityGroupName = "terraform-security-group"
 // It is much more convenient to provide a Storage Service which
 // has been created beforehand as the creation of one takes a lot
 // and would greatly impede the multitude of tests which rely on one.
+// NOTE: the storage container should be located in `West US`.
 var testAccStorageServiceName = os.Getenv("AZURE_STORAGE")
 
 const testAccStorageContainerName = "terraform-testing-container"

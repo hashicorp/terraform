@@ -182,7 +182,7 @@ resource "azure_instance" "foo" {
 resource "azure_data_disk" "foo" {
     lun = 0
     size = 10
-    storage_service_name = "${azure_instance.foo.storage}"
+    storage_service_name = "${azure_instance.foo.storage_service_name}"
     virtual_machine = "${azure_instance.foo.id}"
 }`, testAccStorageServiceName)
 
@@ -201,7 +201,7 @@ resource "azure_data_disk" "foo" {
     lun = 1
     size = 10
     caching = "ReadOnly"
-    storage_service_name = "${azure_instance.foo.storage}"
+    storage_service_name = "${azure_instance.foo.storage_service_name}"
     virtual_machine = "${azure_instance.foo.id}"
 }`, testAccStorageServiceName)
 
@@ -220,7 +220,7 @@ resource "azure_instance" "bar" {
     name = "terraform-test2"
     image = "Ubuntu Server 14.04 LTS"
     size = "Basic_A1"
-    storage_service_name = "${azure_instance.foo.storage}"
+    storage_service_name = "${azure_instance.foo.storage_service_name}"
     location = "West US"
     username = "terraform"
     password = "Pass!admin123"
@@ -230,6 +230,6 @@ resource "azure_data_disk" "foo" {
     lun = 2
     size = 20
     caching = "ReadWrite"
-    storage_service_name = "${azure_instance.bar.storage}"
+    storage_service_name = "${azure_instance.bar.storage_service_name}"
     virtual_machine = "${azure_instance.bar.id}"
 }`, testAccStorageServiceName)

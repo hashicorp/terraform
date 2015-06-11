@@ -25,12 +25,9 @@ func resourceAzureStorageContainer() *schema.Resource {
 				Description: parameterDescriptions["name"],
 			},
 			"storage_service_name": &schema.Schema{
-				Type:     schema.TypeString,
-				Required: true,
-				ForceNew: true,
-				DefaultFunc: func() (interface{}, error) {
-					return "", nil
-				},
+				Type:        schema.TypeString,
+				Required:    true,
+				ForceNew:    true,
 				Description: parameterDescriptions["storage_service_name"],
 			},
 			"container_access_type": &schema.Schema{
