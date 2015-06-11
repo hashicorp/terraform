@@ -32,6 +32,8 @@ BUG FIXES:
   * command/apply: prevent output duplication when reporting errors [GH-2267]
   * provider/aws: fix panic when route has no cidr_block [GH-2215]
   * provider/aws: fix issue preventing destruction of IAM Roles [GH-2177]
+  * provider/aws: fix issue preventing destruction self referencing Securtity
+     Group Rules [GH-2305]
   * provider/aws: fix issue causing perpetual diff on ELB listeners
       when non-lowercase protocol strings were used [GH-2246]
   * provider/aws: corrected frankfurt S3 website region [GH-2259]
