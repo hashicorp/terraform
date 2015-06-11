@@ -2,7 +2,6 @@ package azure
 
 import (
 	"fmt"
-	"os"
 	"testing"
 
 	"github.com/Azure/azure-sdk-for-go/management"
@@ -356,6 +355,8 @@ resource "azure_security_group_rule" "foo" {
     source_port_range = "*"
     destination_address_prefix = "*"
     destination_port_range = "3389"
+	action = "Deny"
+	type = "Inbound"
     protocol = "TCP"
 }
 
@@ -410,6 +411,8 @@ resource "azure_security_group_rule" "foo" {
     source_port_range = "*"
     destination_address_prefix = "*"
     destination_port_range = "3389"
+	type = "Inbound"
+	action = "Deny"
     protocol = "TCP"
 }
 
@@ -426,6 +429,8 @@ resource "azure_security_group_rule" "bar" {
     source_port_range = "*"
     destination_address_prefix = "*"
     destination_port_range = "3389"
+	type = "Inbound"
+	action = "Deny"
     protocol = "TCP"
 }
 
