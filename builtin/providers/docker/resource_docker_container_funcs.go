@@ -211,15 +211,17 @@ func fetchDockerContainer(name string, client *dc.Client) (*dc.APIContainers, er
 		// Sometimes the Docker API prefixes container names with /
 		// like it does in these commands. But if there's no
 		// set name, it just uses the ID without a /...ugh.
-		var dockerContainerName string
-		if len(apiContainer.Names) > 0 {
-			dockerContainerName = strings.TrimLeft(apiContainer.Names[0], "/")
-		} else {
-			dockerContainerName = apiContainer.ID
-		}
-
-		if dockerContainerName == name {
-			return &apiContainer, nil
+		switch len(apiContainer.Names) {
+		case 0:
+			if apiContainer.ID == name {
+				return &apiContainer, nil
+			}
+		default:
+			for _, containerName := range apiContainer.Names {
+				if strings.TrimLeft(containerName, "/") == name {
+					return &apiContainer, nil
+				}
+			}
 		}
 	}
 
