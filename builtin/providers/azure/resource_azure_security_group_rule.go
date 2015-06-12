@@ -86,7 +86,6 @@ func resourceAzureSecurityGroupRuleCreate(d *schema.ResourceData, meta interface
 	// create and configure the RuleResponse:
 	name := d.Get("name").(string)
 	rule := netsecgroup.RuleRequest{
-		// TODO(aznashwan): security checks here:
 		Name:                     name,
 		Type:                     netsecgroup.RuleType(d.Get("type").(string)),
 		Priority:                 d.Get("priority").(int),
@@ -207,7 +206,6 @@ func resourceAzureSecurityGroupRuleUpdate(d *schema.ResourceData, meta interface
 
 	// else, start building up the rule request struct:
 	newRule := netsecgroup.RuleRequest{
-		// TODO(azhnashwan): Parameter check here:
 		Name:                     d.Get("name").(string),
 		Type:                     netsecgroup.RuleType(d.Get("type").(string)),
 		Priority:                 d.Get("priority").(int),
