@@ -17,7 +17,7 @@ it will attach that disk. Otherwise it will create and attach a new empty disk.
 resource "azure_data_disk" "data" {
     lun = 0
     size = 10
-    storage = "yourstorage"
+    storage_service_name = "yourstorage"
     virtual_machine = "server1"
 }
 ```
@@ -43,10 +43,10 @@ The following arguments are supported:
 * `caching` - (Optional) The caching behavior of data disk. Valid options are:
     `None`, `ReadOnly` and `ReadWrite` (defaults `None`)
 
-* `storage ` - (Optional) The name of an existing storage account within the
-    subscription which will be used to store the VHD of this disk. Required
-    if no value is supplied for `media_link`. Changing this forces a new
-    resource to be created.
+* `storage_service_name` - (Optional) The name of an existing storage account
+    within the subscription which will be used to store the VHD of this disk.
+    Required if no value is supplied for `media_link`. Changing this forces
+    a new resource to be created.
 
 * `media_link` - (Optional) The location of the blob in storage where the VHD
     of this disk will be created. The storage account where must be associated
