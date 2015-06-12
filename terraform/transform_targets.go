@@ -21,20 +21,27 @@ type TargetsTransformer struct {
 func (t *TargetsTransformer) Transform(g *Graph) error {
 	if len(t.Targets) > 0 {
 		// TODO: duplicated in OrphanTransformer; pull up parsing earlier
-		addrs, err := t.parseTargetAddresses()
+		targeted, excluded, err := t.parseTargetAddresses()
 		if err != nil {
 			return err
 		}
 
-		targetedNodes, err := t.selectTargetedNodes(g, addrs)
+		targetedNodes, err := t.selectTargetedNodes(g, targeted)
+		if err != nil {
+			return err
+		}
+		excludedNodes, err := t.selectTargetedNodes(g, excluded)
 		if err != nil {
 			return err
 		}
 
 		for _, v := range g.Vertices() {
 			if _, ok := v.(GraphNodeAddressable); ok {
-				if !targetedNodes.Include(v) {
+				if targetedNodes.Len() > 0 && !targetedNodes.Include(v) {
 					log.Printf("[DEBUG] Removing %s, filtered by targeting.", v)
+					g.Remove(v)
+				} else if excludedNodes.Len() > 0 && excludedNodes.Include(v) {
+					log.Printf("[DEBUG] Removing %s, filtered by targeting exclude.", v)
 					g.Remove(v)
 				}
 			}
@@ -43,16 +50,25 @@ func (t *TargetsTransformer) Transform(g *Graph) error {
 	return nil
 }
 
-func (t *TargetsTransformer) parseTargetAddresses() ([]ResourceAddress, error) {
-	addrs := make([]ResourceAddress, len(t.Targets))
-	for i, target := range t.Targets {
+func (t *TargetsTransformer) parseTargetAddresses() ([]ResourceAddress, []ResourceAddress, error) {
+	var targeted, excluded []ResourceAddress
+	for _, target := range t.Targets {
+		exclude := string(target[0]) == "!"
+		if exclude {
+			target = target[1:]
+			log.Printf("[DEBUG] Excluding %s", target)
+		}
 		ta, err := ParseResourceAddress(target)
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
-		addrs[i] = *ta
+		if exclude {
+			excluded = append(excluded, *ta)
+		} else {
+			targeted = append(targeted, *ta)
+		}
 	}
-	return addrs, nil
+	return targeted, excluded, nil
 }
 
 // Returns the list of targeted nodes. A targeted node is either addressed

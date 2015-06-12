@@ -69,3 +69,98 @@ aws_instance.metoo
 		t.Fatalf("bad:\n\nexpected:\n%s\n\ngot:\n%s\n", expected, actual)
 	}
 }
+
+func TestTargetsTransformer_exclude(t *testing.T) {
+	mod := testModule(t, "transform-targets-basic")
+
+	g := Graph{Path: RootModulePath}
+	{
+		tf := &ConfigTransformer{Module: mod}
+		if err := tf.Transform(&g); err != nil {
+			t.Fatalf("err: %s", err)
+		}
+	}
+
+	{
+		transform := &TargetsTransformer{Targets: []string{"!aws_instance.me"}}
+		if err := transform.Transform(&g); err != nil {
+			t.Fatalf("err: %s", err)
+		}
+	}
+
+	actual := strings.TrimSpace(g.String())
+	expected := strings.TrimSpace(`
+aws_instance.notme
+aws_instance.notmeeither
+aws_subnet.notme
+aws_vpc.notme
+	`)
+	if actual != expected {
+		t.Fatalf("bad:\n\nexpected:\n%s\n\ngot:\n%s\n", expected, actual)
+	}
+}
+
+func TestTargetsTransformer_exclude_destroy(t *testing.T) {
+	mod := testModule(t, "transform-targets-destroy")
+
+	g := Graph{Path: RootModulePath}
+	{
+		tf := &ConfigTransformer{Module: mod}
+		if err := tf.Transform(&g); err != nil {
+			t.Fatalf("err: %s", err)
+		}
+	}
+
+	{
+		transform := &TargetsTransformer{
+			Targets: []string{"!aws_instance.me"},
+			Destroy: true,
+		}
+		if err := transform.Transform(&g); err != nil {
+			t.Fatalf("err: %s", err)
+		}
+	}
+
+	actual := strings.TrimSpace(g.String())
+	expected := strings.TrimSpace(`
+aws_instance.notme
+aws_subnet.notme
+  aws_vpc.notme
+aws_vpc.notme
+	`)
+	if actual != expected {
+		t.Fatalf("bad:\n\nexpected:\n%s\n\ngot:\n%s\n", expected, actual)
+	}
+}
+
+func TestTargetsTransformer_include_exclude(t *testing.T) {
+	mod := testModule(t, "transform-targets-basic")
+
+	g := Graph{Path: RootModulePath}
+	{
+		tf := &ConfigTransformer{Module: mod}
+		if err := tf.Transform(&g); err != nil {
+			t.Fatalf("err: %s", err)
+		}
+	}
+
+	{
+		transform := &TargetsTransformer{
+			Targets: []string{
+				"aws_instance.me",
+				"!aws_subnet.me",
+			},
+		}
+		if err := transform.Transform(&g); err != nil {
+			t.Fatalf("err: %s", err)
+		}
+	}
+
+	actual := strings.TrimSpace(g.String())
+	expected := strings.TrimSpace(`
+aws_instance.me
+	`)
+	if actual != expected {
+		t.Fatalf("bad:\n\nexpected:\n%s\n\ngot:\n%s\n", expected, actual)
+	}
+}
