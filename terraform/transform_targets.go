@@ -41,6 +41,10 @@ type TargetsTransformer struct {
 	// that already have the targets parsed
 	ParsedTargets []ResourceAddress
 
+	// List of parsed excludes, provided by callers like ResourceCountTransform
+	// that already have the targets parsed
+	ParsedExcludes []ResourceAddress
+
 	// Set to true when we're in a `terraform destroy` or a
 	// `terraform plan -destroy`
 	Destroy bool
@@ -48,16 +52,21 @@ type TargetsTransformer struct {
 
 func (t *TargetsTransformer) Transform(g *Graph) error {
 	if len(t.Targets) > 0 && len(t.ParsedTargets) == 0 {
-		addrs, err := t.parseTargetAddresses()
+		targeted, excluded, err := t.parseTargetAddresses()
+		if err != nil {
+			return err
+		}
+		t.ParsedTargets = targeted
+		t.ParsedExcludes = excluded
+	}
+
+	if len(t.ParsedTargets) > 0 || len(t.ParsedExcludes) > 0 {
+		targetedNodes, err := t.selectTargetedNodes(g, t.ParsedTargets)
 		if err != nil {
 			return err
 		}
 
-		t.ParsedTargets = addrs
-	}
-
-	if len(t.ParsedTargets) > 0 {
-		targetedNodes, err := t.selectTargetedNodes(g, t.ParsedTargets)
+		excludedNodes, err := t.selectTargetedNodes(g, t.ParsedExcludes)
 		if err != nil {
 			return err
 		}
@@ -70,9 +79,14 @@ func (t *TargetsTransformer) Transform(g *Graph) error {
 			if vr, ok := v.(RemovableIfNotTargeted); ok {
 				removable = vr.RemoveIfNotTargeted()
 			}
-			if removable && !targetedNodes.Include(v) {
-				log.Printf("[DEBUG] Removing %q, filtered by targeting.", dag.VertexName(v))
-				g.Remove(v)
+			if removable {
+				if len(t.ParsedTargets) > 0 && !targetedNodes.Include(v) {
+					log.Printf("[DEBUG] Removing %q, filtered by targeting.", dag.VertexName(v))
+					g.Remove(v)
+				} else if len(t.ParsedExcludes) > 0 && excludedNodes.Include(v) {
+					log.Printf("[DEBUG] Removing %s, filtered by excluding.", dag.VertexName(v))
+					g.Remove(v)
+				}
 			}
 		}
 	}
@@ -80,17 +94,25 @@ func (t *TargetsTransformer) Transform(g *Graph) error {
 	return nil
 }
 
-func (t *TargetsTransformer) parseTargetAddresses() ([]ResourceAddress, error) {
-	addrs := make([]ResourceAddress, len(t.Targets))
-	for i, target := range t.Targets {
+func (t *TargetsTransformer) parseTargetAddresses() ([]ResourceAddress, []ResourceAddress, error) {
+	var targeted, excluded []ResourceAddress
+	for _, target := range t.Targets {
+		exclude := string(target[0]) == "!"
+		if exclude {
+			target = target[1:]
+			log.Printf("[DEBUG] Excluding %s", target)
+		}
 		ta, err := ParseResourceAddress(target)
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
-		addrs[i] = *ta
+		if exclude {
+			excluded = append(excluded, *ta)
+		} else {
+			targeted = append(targeted, *ta)
+		}
 	}
-
-	return addrs, nil
+	return targeted, excluded, nil
 }
 
 // Returns the list of targeted nodes. A targeted node is either addressed
