@@ -46,3 +46,14 @@ The following arguments are supported:
 * `certificate` - (Optional) The certificate used to authenticate with the
   Azure API. If a `settings_file` is not provided `certificate` is required.
   It can also be sourced from the `AZURE_CERTIFICATE` environment variable.
+
+## Testing:
+
+The following environment variables must be set for the running of the
+acceptance test suite:
+
+* A valid combination of the above which are required for authentification.
+
+* `AZURE_STORAGE` - The name of a storage account to be used in tests which
+  require a storage backend. The storage account needs to be located in
+  the Western US Azure region.
