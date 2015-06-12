@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
+	"time"
 
 	dc "github.com/fsouza/go-dockerclient"
 	"github.com/hashicorp/terraform/helper/schema"
@@ -18,6 +19,8 @@ func resourceDockerContainerCreate(d *schema.ResourceData, meta interface{}) err
 	if err := fetchLocalImages(&data, client); err != nil {
 		return err
 	}
+
+	delayStart := false
 
 	image := d.Get("image").(string)
 	if _, ok := data.DockerImages[image]; !ok {
@@ -106,6 +109,13 @@ func resourceDockerContainerCreate(d *schema.ResourceData, meta interface{}) err
 
 	if v, ok := d.GetOk("links"); ok {
 		hostConfig.Links = stringSetToStringSlice(v.(*schema.Set))
+		delayStart = true
+	}
+
+	// For instance, Docker will fail to start conatiners with links
+	// to other containers if the containers haven't started yet
+	if delayStart {
+		time.Sleep(3 * time.Second)
 	}
 
 	if err := client.StartContainer(retContainer.ID, hostConfig); err != nil {
