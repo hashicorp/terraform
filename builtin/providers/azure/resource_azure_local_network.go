@@ -45,10 +45,7 @@ func resourceAzureLocalNetworkConnection() *schema.Resource {
 // sourceAzureLocalNetworkConnectionCreate issues all the necessary API calls
 // to create a virtual network on Azure.
 func resourceAzureLocalNetworkConnectionCreate(d *schema.ResourceData, meta interface{}) error {
-	azureClient, ok := meta.(*Client)
-	if !ok {
-		return fmt.Errorf("Failed to convert to *Client, got: %T", meta)
-	}
+	azureClient := meta.(*Client)
 	mgmtClient := azureClient.mgmtClient
 	networkClient := virtualnetwork.NewClient(mgmtClient)
 
@@ -96,10 +93,7 @@ func resourceAzureLocalNetworkConnectionCreate(d *schema.ResourceData, meta inte
 // resourceAzureLocalNetworkConnectionRead does all the necessary API calls to
 // read the state of our local natwork from Azure.
 func resourceAzureLocalNetworkConnectionRead(d *schema.ResourceData, meta interface{}) error {
-	azureClient, ok := meta.(*Client)
-	if !ok {
-		return fmt.Errorf("Failed to convert to *Client, got: %T", meta)
-	}
+	azureClient := meta.(*Client)
 	mgmtClient := azureClient.mgmtClient
 	networkClient := virtualnetwork.NewClient(mgmtClient)
 
@@ -134,10 +128,7 @@ func resourceAzureLocalNetworkConnectionRead(d *schema.ResourceData, meta interf
 // resourceAzureLocalNetworkConnectionUpdate does all the necessary API calls
 // update the settings of our Local Network on Azure.
 func resourceAzureLocalNetworkConnectionUpdate(d *schema.ResourceData, meta interface{}) error {
-	azureClient, ok := meta.(*Client)
-	if !ok {
-		return fmt.Errorf("Failed to convert to *Client, got: %T", meta)
-	}
+	azureClient := meta.(*Client)
 	mgmtClient := azureClient.mgmtClient
 	networkClient := virtualnetwork.NewClient(mgmtClient)
 
@@ -194,10 +185,7 @@ func resourceAzureLocalNetworkConnectionUpdate(d *schema.ResourceData, meta inte
 // resourceAzureLocalNetworkConnectionExists does all the necessary API calls
 // to check if the local network already exists on Azure.
 func resourceAzureLocalNetworkConnectionExists(d *schema.ResourceData, meta interface{}) (bool, error) {
-	azureClient, ok := meta.(*Client)
-	if !ok {
-		return false, fmt.Errorf("Failed to convert to *Client, got: %T", meta)
-	}
+	azureClient := meta.(*Client)
 	mgmtClient := azureClient.mgmtClient
 	networkClient := virtualnetwork.NewClient(mgmtClient)
 
@@ -221,10 +209,7 @@ func resourceAzureLocalNetworkConnectionExists(d *schema.ResourceData, meta inte
 // resourceAzureLocalNetworkConnectionDelete does all the necessary API calls
 // to delete a local network off Azure.
 func resourceAzureLocalNetworkConnectionDelete(d *schema.ResourceData, meta interface{}) error {
-	azureClient, ok := meta.(*Client)
-	if !ok {
-		return fmt.Errorf("Failed to convert to *Client, got: %T", meta)
-	}
+	azureClient := meta.(*Client)
 	mgmtClient := azureClient.mgmtClient
 	networkClient := virtualnetwork.NewClient(mgmtClient)
 
