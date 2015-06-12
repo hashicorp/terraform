@@ -5,12 +5,11 @@ import (
 	"log"
 	"strings"
 
+	"github.com/Azure/azure-sdk-for-go/management"
+	"github.com/Azure/azure-sdk-for-go/management/networksecuritygroup"
+	"github.com/Azure/azure-sdk-for-go/management/virtualnetwork"
 	"github.com/hashicorp/terraform/helper/hashcode"
 	"github.com/hashicorp/terraform/helper/schema"
-	"github.com/mitchellh/mapstructure"
-	"github.com/svanharmelen/azure-sdk-for-go/management"
-	"github.com/svanharmelen/azure-sdk-for-go/management/networksecuritygroup"
-	"github.com/svanharmelen/azure-sdk-for-go/management/virtualnetwork"
 )
 
 const (
@@ -35,6 +34,14 @@ func resourceAzureVirtualNetwork() *schema.Resource {
 				Type:     schema.TypeList,
 				Required: true,
 				Elem:     &schema.Schema{Type: schema.TypeString},
+			},
+
+			"dns_servers_names": &schema.Schema{
+				Type:     schema.TypeList,
+				Optional: true,
+				Elem: &schema.Schema{
+					Type: schema.TypeString,
+				},
 			},
 
 			"subnet": &schema.Schema{
@@ -94,11 +101,7 @@ func resourceAzureVirtualNetworkCreate(d *schema.ResourceData, meta interface{})
 		}
 	}
 
-	network, err := createVirtualNetwork(d)
-	if err != nil {
-		return err
-	}
-
+	network := createVirtualNetwork(d)
 	nc.Configuration.VirtualNetworkSites = append(nc.Configuration.VirtualNetworkSites, network)
 
 	req, err := virtualnetwork.NewClient(mc).SetVirtualNetworkConfiguration(nc)
@@ -187,11 +190,7 @@ func resourceAzureVirtualNetworkUpdate(d *schema.ResourceData, meta interface{})
 	found := false
 	for i, n := range nc.Configuration.VirtualNetworkSites {
 		if n.Name == d.Id() {
-			network, err := createVirtualNetwork(d)
-			if err != nil {
-				return err
-			}
-
+			network := createVirtualNetwork(d)
 			nc.Configuration.VirtualNetworkSites[i] = network
 
 			found = true
@@ -263,15 +262,19 @@ func resourceAzureSubnetHash(v interface{}) int {
 	return hashcode.String(subnet)
 }
 
-func createVirtualNetwork(d *schema.ResourceData) (virtualnetwork.VirtualNetworkSite, error) {
-	var addressPrefix []string
-	err := mapstructure.WeakDecode(d.Get("address_space"), &addressPrefix)
-	if err != nil {
-		return virtualnetwork.VirtualNetworkSite{}, fmt.Errorf("Error decoding address_space: %s", err)
+func createVirtualNetwork(d *schema.ResourceData) virtualnetwork.VirtualNetworkSite {
+	// fetch address spaces:
+	var prefixes []string
+	for _, prefix := range d.Get("address_space").([]interface{}) {
+		prefixes = append(prefixes, prefix.(string))
 	}
 
-	addressSpace := virtualnetwork.AddressSpace{
-		AddressPrefix: addressPrefix,
+	// fetch DNS references:
+	var dnsRefs []virtualnetwork.DNSServerRef
+	for _, dns := range d.Get("dns_servers_names").([]interface{}) {
+		dnsRefs = append(dnsRefs, virtualnetwork.DNSServerRef{
+			Name: dns.(string),
+		})
 	}
 
 	// Add all subnets that are configured
@@ -287,11 +290,14 @@ func createVirtualNetwork(d *schema.ResourceData) (virtualnetwork.VirtualNetwork
 	}
 
 	return virtualnetwork.VirtualNetworkSite{
-		Name:         d.Get("name").(string),
-		Location:     d.Get("location").(string),
-		AddressSpace: addressSpace,
-		Subnets:      subnets,
-	}, nil
+		Name:     d.Get("name").(string),
+		Location: d.Get("location").(string),
+		AddressSpace: virtualnetwork.AddressSpace{
+			AddressPrefix: prefixes,
+		},
+		DNSServersRef: dnsRefs,
+		Subnets:       subnets,
+	}
 }
 
 func associateSecurityGroups(d *schema.ResourceData, meta interface{}) error {
