@@ -180,22 +180,7 @@ func (m *Meta) InputMode() terraform.InputMode {
 		return 0
 	}
 
-	if envVar := os.Getenv(InputModeEnvVar); envVar != "" {
-		if v, err := strconv.ParseBool(envVar); err == nil {
-			if !v {
-				return 0
-			}
-		}
-	}
-
-	var mode terraform.InputMode
-	mode |= terraform.InputModeProvider
-	if len(m.variables) == 0 && m.autoKey == "" {
-		mode |= terraform.InputModeVar
-		mode |= terraform.InputModeVarUnset
-	}
-
-	return mode
+	return terraform.InputModeStd
 }
 
 // State returns the state for this meta.
@@ -264,7 +249,7 @@ func (m *Meta) PersistState(s *terraform.State) error {
 
 // Input returns true if we should ask for input for context.
 func (m *Meta) Input() bool {
-	return !test && m.input && len(m.variables) == 0
+	return !test && m.input
 }
 
 // contextOpts returns the options to use to initialize a Terraform
