@@ -67,13 +67,5 @@ names to associate with this cache cluster
 
 The following attributes are exported:
 
-* `cluster_id`
-* `engine`
-* `engine_version`
-* `node_type`
-* `num_cache_nodes`
-* `parameter_group_name`
-* `port`
-* `subnet_group_name`
-* `security_group_names`
-* `security_group_ids`
+* `cache_nodes` - List of node objects including `id`, `address` and `port`.
+   Referenceable e.g. as `${aws_elasticache_cluster.bar.cache_nodes.0.address}`
