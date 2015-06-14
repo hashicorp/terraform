@@ -1000,14 +1000,6 @@ func TestSchemaMap_Diff(t *testing.T) {
 						Old: "2",
 						New: "3",
 					},
-					"ports.1": &terraform.ResourceAttrDiff{
-						Old: "1",
-						New: "1",
-					},
-					"ports.2": &terraform.ResourceAttrDiff{
-						Old: "2",
-						New: "2",
-					},
 					"ports.5": &terraform.ResourceAttrDiff{
 						Old: "",
 						New: "5",
@@ -1046,6 +1038,16 @@ func TestSchemaMap_Diff(t *testing.T) {
 					"ports.#": &terraform.ResourceAttrDiff{
 						Old: "2",
 						New: "0",
+					},
+					"ports.1": &terraform.ResourceAttrDiff{
+						Old:        "1",
+						New:        "0",
+						NewRemoved: true,
+					},
+					"ports.2": &terraform.ResourceAttrDiff{
+						Old:        "2",
+						New:        "0",
+						NewRemoved: true,
 					},
 				},
 			},
@@ -2064,6 +2066,11 @@ func TestSchemaMap_Diff(t *testing.T) {
 						New:         "0",
 						RequiresNew: true,
 					},
+					"instances.3": &terraform.ResourceAttrDiff{
+						Old:        "foo",
+						New:        "",
+						NewRemoved: true,
+					},
 				},
 			},
 
@@ -2342,6 +2349,140 @@ func TestSchemaMap_Diff(t *testing.T) {
 						New:         "123!",
 						NewExtra:    "123",
 						RequiresNew: true,
+					},
+				},
+			},
+
+			Err: false,
+		},
+
+		// #60: Change to set member not included in hash function
+		{
+			Schema: map[string]*Schema{
+				"test_set": &Schema{
+					Type:     TypeSet,
+					Optional: true,
+					Elem: &Resource{
+						Schema: map[string]*Schema{
+							"key": &Schema{
+								Type:     TypeInt,
+								Required: true,
+							},
+							"value": &Schema{
+								Type:     TypeString,
+								Required: true,
+							},
+						},
+					},
+					Set: func(v interface{}) int {
+						m := v.(map[string]interface{})
+						return m["key"].(int)
+					},
+				},
+			},
+
+			State: &terraform.InstanceState{
+				Attributes: map[string]string{
+					"test_set.#":       "2",
+					"test_set.1.key":   "1",
+					"test_set.1.value": "foo",
+					"test_set.2.key":   "2",
+					"test_set.2.value": "bar",
+				},
+			},
+
+			Config: map[string]interface{}{
+				"test_set": []map[string]interface{}{
+					{
+						"key":   1,
+						"value": "foo",
+					},
+					{
+						"key":   2,
+						"value": "not-bar-anymore",
+					},
+				},
+			},
+
+			Diff: &terraform.InstanceDiff{
+				Attributes: map[string]*terraform.ResourceAttrDiff{
+					"test_set.2.value": &terraform.ResourceAttrDiff{
+						Old: "bar",
+						New: "not-bar-anymore",
+					},
+				},
+			},
+
+			Err: false,
+		},
+
+		// #61: Change to set member included in hash function
+		{
+			Schema: map[string]*Schema{
+				"test_set": &Schema{
+					Type:     TypeSet,
+					Optional: true,
+					Elem: &Resource{
+						Schema: map[string]*Schema{
+							"key": &Schema{
+								Type:     TypeInt,
+								Required: true,
+							},
+							"value": &Schema{
+								Type:     TypeString,
+								Required: true,
+							},
+						},
+					},
+					Set: func(v interface{}) int {
+						m := v.(map[string]interface{})
+						return m["key"].(int)
+					},
+				},
+			},
+
+			State: &terraform.InstanceState{
+				Attributes: map[string]string{
+					"test_set.#":       "2",
+					"test_set.1.key":   "1",
+					"test_set.1.value": "foo",
+					"test_set.2.key":   "2",
+					"test_set.2.value": "bar",
+				},
+			},
+
+			Config: map[string]interface{}{
+				"test_set": []map[string]interface{}{
+					{
+						"key":   1,
+						"value": "foo",
+					},
+					{
+						"key":   3,
+						"value": "bar",
+					},
+				},
+			},
+
+			Diff: &terraform.InstanceDiff{
+				Attributes: map[string]*terraform.ResourceAttrDiff{
+					"test_set.2.key": &terraform.ResourceAttrDiff{
+						Old:        "2",
+						New:        "0",
+						NewRemoved: true,
+					},
+					"test_set.2.value": &terraform.ResourceAttrDiff{
+						Old:        "bar",
+						New:        "",
+						NewRemoved: true,
+					},
+					"test_set.3.key": &terraform.ResourceAttrDiff{
+						Old: "",
+						New: "3",
+					},
+					"test_set.3.value": &terraform.ResourceAttrDiff{
+						Old: "",
+						New: "bar",
 					},
 				},
 			},
