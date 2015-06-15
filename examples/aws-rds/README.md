@@ -1,4 +1,4 @@
-## Creating an RDS insatnce in AWS
+## Creating an RDS instance in AWS
 
 This example provides sample configuration for creating a mysql or postgres insatnce. For Oracle/SQL Servers, replace default values with appropriate values, they are not included in sample since the number of options are high.
 
