@@ -1,7 +1,7 @@
 ---
 layout: "aws"
 page_title: "AWS: aws_route53_health_check"
-sidebar_current: "docs-aws-resource-health-check"
+sidebar_current: "docs-aws-resource-route53-health-check"
 description: |-
   Provides a Route53 health check.
 ---
