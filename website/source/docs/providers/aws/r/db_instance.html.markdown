@@ -29,7 +29,7 @@ resource "aws_db_instance" "default" {
 
 ## Argument Reference
 
-For a more detailed documentation about the each argument refer to
+For more detailed documentation about each argument, refer to
 the [AWS official documentation](http://docs.aws.amazon.com/AmazonRDS/latest/CommandLineReference/CLIReference-cmd-ModifyDBInstance.html).
 
 The following arguments are supported:
