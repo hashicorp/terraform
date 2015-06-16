@@ -88,7 +88,7 @@ func resourceAzureStorageService() *schema.Resource {
 func resourceAzureStorageServiceCreate(d *schema.ResourceData, meta interface{}) error {
 	azureClient := meta.(*Client)
 	mgmtClient := azureClient.mgmtClient
-	storageServiceClient := storageservice.NewClient(mgmtClient)
+	storageServiceClient := azureClient.storageServiceClient
 
 	// get all the values:
 	log.Println("[INFO] Creating Azure Storage Service creation parameters.")
@@ -138,9 +138,7 @@ func resourceAzureStorageServiceCreate(d *schema.ResourceData, meta interface{})
 // resourceAzureStorageServiceRead does all the necessary API calls to
 // read the state of the storage service off Azure.
 func resourceAzureStorageServiceRead(d *schema.ResourceData, meta interface{}) error {
-	azureClient := meta.(*Client)
-	mgmtClient := azureClient.mgmtClient
-	storageServiceClient := storageservice.NewClient(mgmtClient)
+	storageServiceClient := meta.(*Client).storageServiceClient
 
 	// get our storage service:
 	log.Println("[INFO] Sending query about storage service to Azure.")
@@ -174,12 +172,7 @@ func resourceAzureStorageServiceRead(d *schema.ResourceData, meta interface{}) e
 // resourceAzureStorageServiceExists does all the necessary API calls to
 // check if the storage service exists on Azure.
 func resourceAzureStorageServiceExists(d *schema.ResourceData, meta interface{}) (bool, error) {
-	azureClient, ok := meta.(*Client)
-	if !ok {
-		return false, fmt.Errorf("Failed to convert to *Client, got: %T", meta)
-	}
-	mgmtClient := azureClient.mgmtClient
-	storageServiceClient := storageservice.NewClient(mgmtClient)
+	storageServiceClient := meta.(*Client).storageServiceClient
 
 	// get our storage service:
 	log.Println("[INFO] Sending query about storage service to Azure.")
@@ -203,17 +196,14 @@ func resourceAzureStorageServiceExists(d *schema.ResourceData, meta interface{})
 // resourceAzureStorageServiceDelete does all the necessary API calls to
 // delete the storage service off Azure.
 func resourceAzureStorageServiceDelete(d *schema.ResourceData, meta interface{}) error {
-	azureClient, ok := meta.(*Client)
-	if !ok {
-		return fmt.Errorf("Failed to convert to *Client, got: %T", meta)
-	}
+	azureClient := meta.(*Client)
 	mgmtClient := azureClient.mgmtClient
-	storageClient := storageservice.NewClient(mgmtClient)
+	storageServiceClient := azureClient.storageServiceClient
 
 	// issue the deletion:
 	name := d.Get("name").(string)
 	log.Println("[INFO] Issuing delete of storage service off Azure.")
-	reqID, err := storageClient.DeleteStorageService(name)
+	reqID, err := storageServiceClient.DeleteStorageService(name)
 	if err != nil {
 		return fmt.Errorf("Error whilst issuing deletion of storage service off Azure: %s", err)
 	}

@@ -81,7 +81,7 @@ func resourceAzureSecurityGroupRule() *schema.Resource {
 func resourceAzureSecurityGroupRuleCreate(d *schema.ResourceData, meta interface{}) error {
 	azureClient := meta.(*Client)
 	mgmtClient := azureClient.mgmtClient
-	netSecClient := netsecgroup.NewClient(mgmtClient)
+	secGroupClient := azureClient.secGroupClient
 
 	// create and configure the RuleResponse:
 	name := d.Get("name").(string)
@@ -99,7 +99,7 @@ func resourceAzureSecurityGroupRuleCreate(d *schema.ResourceData, meta interface
 
 	// send the create request to Azure:
 	log.Println("[INFO] Sending network security group rule creation request to Azure.")
-	reqID, err := netSecClient.SetNetworkSecurityGroupRule(
+	reqID, err := secGroupClient.SetNetworkSecurityGroupRule(
 		d.Get("security_group_name").(string),
 		rule,
 	)
@@ -119,14 +119,13 @@ func resourceAzureSecurityGroupRuleCreate(d *schema.ResourceData, meta interface
 // read the state of a network security group ruke off Azure.
 func resourceAzureSecurityGroupRuleRead(d *schema.ResourceData, meta interface{}) error {
 	azureClient := meta.(*Client)
-	mgmtClient := azureClient.mgmtClient
-	netSecClient := netsecgroup.NewClient(mgmtClient)
+	secGroupClient := azureClient.secGroupClient
 
 	secGroupName := d.Get("security_group_name").(string)
 
 	// get info on the network security group and check its rules for this one:
 	log.Println("[INFO] Sending network security group rule query to Azure.")
-	secgroup, err := netSecClient.GetNetworkSecurityGroup(secGroupName)
+	secgroup, err := secGroupClient.GetNetworkSecurityGroup(secGroupName)
 	if err != nil {
 		if !management.IsResourceNotFoundError(err) {
 			return fmt.Errorf("Error issuing network security group rules query: %s", err)
@@ -171,13 +170,13 @@ func resourceAzureSecurityGroupRuleRead(d *schema.ResourceData, meta interface{}
 func resourceAzureSecurityGroupRuleUpdate(d *schema.ResourceData, meta interface{}) error {
 	azureClient := meta.(*Client)
 	mgmtClient := azureClient.mgmtClient
-	netSecClient := netsecgroup.NewClient(mgmtClient)
+	secGroupClient := azureClient.secGroupClient
 
 	secGroupName := d.Get("security_group_name").(string)
 
 	// get info on the network security group and check its rules for this one:
 	log.Println("[INFO] Sending network security group rule query for update to Azure.")
-	secgroup, err := netSecClient.GetNetworkSecurityGroup(secGroupName)
+	secgroup, err := secGroupClient.GetNetworkSecurityGroup(secGroupName)
 	if err != nil {
 		if !management.IsResourceNotFoundError(err) {
 			return fmt.Errorf("Error issuing network security group rules query: %s", err)
@@ -219,7 +218,7 @@ func resourceAzureSecurityGroupRuleUpdate(d *schema.ResourceData, meta interface
 
 	// send the create request to Azure:
 	log.Println("[INFO] Sending network security group rule update request to Azure.")
-	reqID, err := netSecClient.SetNetworkSecurityGroupRule(
+	reqID, err := secGroupClient.SetNetworkSecurityGroupRule(
 		secGroupName,
 		newRule,
 	)
@@ -237,15 +236,13 @@ func resourceAzureSecurityGroupRuleUpdate(d *schema.ResourceData, meta interface
 // resourceAzureSecurityGroupRuleExists does all the necessary API calls to
 // check for the existence of the network security group rule on Azure.
 func resourceAzureSecurityGroupRuleExists(d *schema.ResourceData, meta interface{}) (bool, error) {
-	azureClient := meta.(*Client)
-	mgmtClient := azureClient.mgmtClient
-	netSecClient := netsecgroup.NewClient(mgmtClient)
+	secGroupClient := meta.(*Client).secGroupClient
 
 	secGroupName := d.Get("security_group_name").(string)
 
 	// get info on the network security group and search for our rule:
 	log.Println("[INFO] Sending network security group rule query for existence check to Azure.")
-	secgroup, err := netSecClient.GetNetworkSecurityGroup(secGroupName)
+	secgroup, err := secGroupClient.GetNetworkSecurityGroup(secGroupName)
 	if err != nil {
 		if !management.IsResourceNotFoundError(err) {
 			return false, fmt.Errorf("Error issuing network security group rules query: %s", err)
@@ -277,13 +274,13 @@ func resourceAzureSecurityGroupRuleExists(d *schema.ResourceData, meta interface
 func resourceAzureSecurityGroupRuleDelete(d *schema.ResourceData, meta interface{}) error {
 	azureClient := meta.(*Client)
 	mgmtClient := azureClient.mgmtClient
-	netSecClient := netsecgroup.NewClient(mgmtClient)
+	secGroupClient := azureClient.secGroupClient
 
 	secGroupName := d.Get("security_group_name").(string)
 
 	// get info on the network security group and search for our rule:
 	log.Println("[INFO] Sending network security group rule query for deletion to Azure.")
-	secgroup, err := netSecClient.GetNetworkSecurityGroup(secGroupName)
+	secgroup, err := secGroupClient.GetNetworkSecurityGroup(secGroupName)
 	if err != nil {
 		if management.IsResourceNotFoundError(err) {
 			// it meants that the network security group this rule belonged to has
@@ -300,7 +297,7 @@ func resourceAzureSecurityGroupRuleDelete(d *schema.ResourceData, meta interface
 	for _, rule := range secgroup.Rules {
 		if rule.Name == name {
 			// if not; we shall issue the delete:
-			reqID, err := netSecClient.DeleteNetworkSecurityGroupRule(secGroupName, name)
+			reqID, err := secGroupClient.DeleteNetworkSecurityGroupRule(secGroupName, name)
 			if err != nil {
 				return fmt.Errorf("Error sending network security group rule delete request to Azure: %s", err)
 			}

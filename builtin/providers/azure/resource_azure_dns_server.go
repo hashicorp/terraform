@@ -37,23 +37,14 @@ func resourceAzureDnsServer() *schema.Resource {
 // resourceAzureDnsServerCreate does all the necessary API calls
 // to create a new DNS server definition on Azure.
 func resourceAzureDnsServerCreate(d *schema.ResourceData, meta interface{}) error {
-	// first; check for the existence of the resource:
-	exists, err := resourceAzureDnsServerExists(d, meta)
-	if err != nil {
-		return err
-	}
-	if exists {
-		return fmt.Errorf("Azure DNS server definition already exists.")
-	}
-
 	azureClient := meta.(*Client)
 	mgmtClient := azureClient.mgmtClient
-	networkClient := virtualnetwork.NewClient(mgmtClient)
+	vnetClient := azureClient.vnetClient
 
 	log.Println("[INFO] Fetching current network configuration from Azure.")
 	azureClient.mutex.Lock()
 	defer azureClient.mutex.Unlock()
-	netConf, err := networkClient.GetVirtualNetworkConfiguration()
+	netConf, err := vnetClient.GetVirtualNetworkConfiguration()
 	if err != nil {
 		return fmt.Errorf("Failed to get the current network configuration from Azure: %s", err)
 	}
@@ -70,7 +61,7 @@ func resourceAzureDnsServerCreate(d *schema.ResourceData, meta interface{}) erro
 
 	// send the configuration back to Azure:
 	log.Println("[INFO] Sending updated network configuration back to Azure.")
-	reqID, err := networkClient.SetVirtualNetworkConfiguration(netConf)
+	reqID, err := vnetClient.SetVirtualNetworkConfiguration(netConf)
 	if err != nil {
 		return fmt.Errorf("Failed issuing update to network configuration: %s", err)
 	}
@@ -86,12 +77,10 @@ func resourceAzureDnsServerCreate(d *schema.ResourceData, meta interface{}) erro
 // resourceAzureDnsServerRead does all the necessary API calls to read
 // the state of the DNS server off Azure.
 func resourceAzureDnsServerRead(d *schema.ResourceData, meta interface{}) error {
-	azureClient := meta.(*Client)
-	mgmtClient := azureClient.mgmtClient
-	networkClient := virtualnetwork.NewClient(mgmtClient)
+	vnetClient := meta.(*Client).vnetClient
 
 	log.Println("[INFO] Fetching current network configuration from Azure.")
-	netConf, err := networkClient.GetVirtualNetworkConfiguration()
+	netConf, err := vnetClient.GetVirtualNetworkConfiguration()
 	if err != nil {
 		return fmt.Errorf("Failed to get the current network configuration from Azure: %s", err)
 	}
@@ -121,7 +110,7 @@ func resourceAzureDnsServerRead(d *schema.ResourceData, meta interface{}) error 
 func resourceAzureDnsServerUpdate(d *schema.ResourceData, meta interface{}) error {
 	azureClient := meta.(*Client)
 	mgmtClient := azureClient.mgmtClient
-	networkClient := virtualnetwork.NewClient(mgmtClient)
+	vnetClient := azureClient.vnetClient
 
 	var found bool
 	name := d.Get("name").(string)
@@ -131,7 +120,7 @@ func resourceAzureDnsServerUpdate(d *schema.ResourceData, meta interface{}) erro
 		log.Println("[INFO] Fetching current network configuration from Azure.")
 		azureClient.mutex.Lock()
 		defer azureClient.mutex.Unlock()
-		netConf, err := networkClient.GetVirtualNetworkConfiguration()
+		netConf, err := vnetClient.GetVirtualNetworkConfiguration()
 		if err != nil {
 			return fmt.Errorf("Failed to get the current network configuration from Azure: %s", err)
 		}
@@ -148,7 +137,7 @@ func resourceAzureDnsServerUpdate(d *schema.ResourceData, meta interface{}) erro
 		// if the config has changes, send the configuration back to Azure:
 		if found {
 			log.Println("[INFO] Sending updated network configuration back to Azure.")
-			reqID, err := networkClient.SetVirtualNetworkConfiguration(netConf)
+			reqID, err := vnetClient.SetVirtualNetworkConfiguration(netConf)
 			if err != nil {
 				return fmt.Errorf("Failed issuing update to network configuration: %s", err)
 			}
@@ -173,11 +162,10 @@ func resourceAzureDnsServerUpdate(d *schema.ResourceData, meta interface{}) erro
 // check if the DNS server definition alredy exists on Azure.
 func resourceAzureDnsServerExists(d *schema.ResourceData, meta interface{}) (bool, error) {
 	azureClient := meta.(*Client)
-	mgmtClient := azureClient.mgmtClient
-	networkClient := virtualnetwork.NewClient(mgmtClient)
+	vnetClient := azureClient.vnetClient
 
 	log.Println("[INFO] Fetching current network configuration from Azure.")
-	netConf, err := networkClient.GetVirtualNetworkConfiguration()
+	netConf, err := vnetClient.GetVirtualNetworkConfiguration()
 	if err != nil {
 		return false, fmt.Errorf("Failed to get the current network configuration from Azure: %s", err)
 	}
@@ -201,12 +189,12 @@ func resourceAzureDnsServerExists(d *schema.ResourceData, meta interface{}) (boo
 func resourceAzureDnsServerDelete(d *schema.ResourceData, meta interface{}) error {
 	azureClient := meta.(*Client)
 	mgmtClient := azureClient.mgmtClient
-	networkClient := virtualnetwork.NewClient(mgmtClient)
+	vnetClient := azureClient.vnetClient
 
 	log.Println("[INFO] Fetching current network configuration from Azure.")
 	azureClient.mutex.Lock()
 	defer azureClient.mutex.Unlock()
-	netConf, err := networkClient.GetVirtualNetworkConfiguration()
+	netConf, err := vnetClient.GetVirtualNetworkConfiguration()
 	if err != nil {
 		return fmt.Errorf("Failed to get the current network configuration from Azure: %s", err)
 	}
@@ -233,7 +221,7 @@ func resourceAzureDnsServerDelete(d *schema.ResourceData, meta interface{}) erro
 
 	// send the configuration back to Azure:
 	log.Println("[INFO] Sending updated network configuration back to Azure.")
-	reqID, err := networkClient.SetVirtualNetworkConfiguration(netConf)
+	reqID, err := vnetClient.SetVirtualNetworkConfiguration(netConf)
 	if err != nil {
 		return fmt.Errorf("Failed issuing update to network configuration: %s", err)
 	}

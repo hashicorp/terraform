@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/Azure/azure-sdk-for-go/management/virtualnetwork"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
 )
@@ -77,8 +76,8 @@ func testAccAzureLocalNetworkConnectionExists(name string) resource.TestCheckFun
 			return fmt.Errorf("Azure Local Network Connection ID not set.")
 		}
 
-		mgmtClient := testAccProvider.Meta().(*Client).mgmtClient
-		netConf, err := virtualnetwork.NewClient(mgmtClient).GetVirtualNetworkConfiguration()
+		vnetClient := testAccProvider.Meta().(*Client).vnetClient
+		netConf, err := vnetClient.GetVirtualNetworkConfiguration()
 		if err != nil {
 			return err
 		}
@@ -97,7 +96,7 @@ func testAccAzureLocalNetworkConnectionExists(name string) resource.TestCheckFun
 // testAccAzureLocalNetworkConnectionDestroyed checks whether the local network
 // connection has been destroyed on Azure or not.
 func testAccAzureLocalNetworkConnectionDestroyed(s *terraform.State) error {
-	mgmtClient := testAccProvider.Meta().(*Client).mgmtClient
+	vnetClient := testAccProvider.Meta().(*Client).vnetClient
 
 	for _, resource := range s.RootModule().Resources {
 		if resource.Type != "azure_local_network_connection" {
@@ -108,7 +107,7 @@ func testAccAzureLocalNetworkConnectionDestroyed(s *terraform.State) error {
 			return fmt.Errorf("Azure Local Network Connection ID not set.")
 		}
 
-		netConf, err := virtualnetwork.NewClient(mgmtClient).GetVirtualNetworkConfiguration()
+		netConf, err := vnetClient.GetVirtualNetworkConfiguration()
 		if err != nil {
 			return err
 		}

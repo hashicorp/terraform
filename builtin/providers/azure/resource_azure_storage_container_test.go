@@ -44,8 +44,8 @@ func testAccCheckAzureStorageContainerExists(name string) resource.TestCheckFunc
 			return fmt.Errorf("Azure Storage Container ID not set: %s", name)
 		}
 
-		mgmtClient := testAccProvider.Meta().(*Client).mgmtClient
-		blobClient, err := getStorageServiceBlobClient(mgmtClient, testAccStorageServiceName)
+		azureClient := testAccProvider.Meta().(*Client)
+		blobClient, err := azureClient.getStorageServiceBlobClient(testAccStorageServiceName)
 		if err != nil {
 			return err
 		}
@@ -68,8 +68,8 @@ func testAccCheckAzureStorageContainerDestroyed(s *terraform.State) error {
 			continue
 		}
 
-		mgmtClient := testAccProvider.Meta().(*Client).mgmtClient
-		blobClient, err := getStorageServiceBlobClient(mgmtClient, testAccStorageServiceName)
+		azureClient := testAccProvider.Meta().(*Client)
+		blobClient, err := azureClient.getStorageServiceBlobClient(testAccStorageServiceName)
 		if err != nil {
 			return err
 		}

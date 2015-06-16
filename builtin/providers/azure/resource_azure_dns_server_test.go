@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/Azure/azure-sdk-for-go/management/virtualnetwork"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
 )
@@ -69,8 +68,8 @@ func testAccCheckAzureDnsServerExists(name string) resource.TestCheckFunc {
 			return fmt.Errorf("No DNS Server ID set.")
 		}
 
-		mgmtClient := testAccProvider.Meta().(*Client).mgmtClient
-		netConf, err := virtualnetwork.NewClient(mgmtClient).GetVirtualNetworkConfiguration()
+		vnetClient := testAccProvider.Meta().(*Client).vnetClient
+		netConf, err := vnetClient.GetVirtualNetworkConfiguration()
 		if err != nil {
 			return fmt.Errorf("Failed fetching networking configuration: %s", err)
 		}
@@ -86,7 +85,7 @@ func testAccCheckAzureDnsServerExists(name string) resource.TestCheckFunc {
 }
 
 func testAccCheckAzureDnsServerDestroy(s *terraform.State) error {
-	mgmtClient := testAccProvider.Meta().(*Client).mgmtClient
+	vnetClient := testAccProvider.Meta().(*Client).vnetClient
 
 	for _, resource := range s.RootModule().Resources {
 		if resource.Type != "azure_dns_server" {
@@ -97,8 +96,7 @@ func testAccCheckAzureDnsServerDestroy(s *terraform.State) error {
 			return fmt.Errorf("No DNS Server ID is set.")
 		}
 
-		networkClient := virtualnetwork.NewClient(mgmtClient)
-		netConf, err := networkClient.GetVirtualNetworkConfiguration()
+		netConf, err := vnetClient.GetVirtualNetworkConfiguration()
 		if err != nil {
 			return fmt.Errorf("Error retrieving networking configuration from Azure: %s", err)
 		}
