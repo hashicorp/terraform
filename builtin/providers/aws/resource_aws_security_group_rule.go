@@ -263,6 +263,26 @@ func findResourceSecurityGroup(conn *ec2.EC2, id string) (*ec2.SecurityGroup, er
 	return resp.SecurityGroups[0], nil
 }
 
+// byUserIDAndGroup implements sort.Interface for []*ec2.UserIDGroupPairs based on
+// UserID and then the GroupID or GroupName field (only one should be set).
+type byUserIDAndGroup []*ec2.UserIDGroupPair
+
+func (b byUserIDAndGroup) Len() int      { return len(b) }
+func (b byUserIDAndGroup) Swap(i, j int) { b[i], b[j] = b[j], b[i] }
+func (b byUserIDAndGroup) Less(i, j int) bool {
+	if *b[i].UserID != *b[i].UserID {
+		return *b[i].UserID < *b[i].UserID
+	}
+	if b[i].GroupID != nil && b[j].GroupID != nil {
+		return *b[i].GroupID < *b[j].GroupID
+	}
+	if b[i].GroupName != nil && b[j].GroupName != nil {
+		return *b[i].GroupName < *b[j].GroupName
+	}
+
+	panic("mismatched security group rules, may be a terraform bug")
+}
+
 func ipPermissionIDHash(ruleType string, ip *ec2.IPPermission) string {
 	var buf bytes.Buffer
 	// for egress rules, an TCP rule of -1 is automatically added, in which case
@@ -285,6 +305,23 @@ func ipPermissionIDHash(ruleType string, ip *ec2.IPPermission) string {
 
 		for _, v := range s {
 			buf.WriteString(fmt.Sprintf("%s-", v))
+		}
+	}
+
+	if len(ip.UserIDGroupPairs) > 0 {
+		sort.Sort(byUserIDAndGroup(ip.UserIDGroupPairs))
+		for _, pair := range ip.UserIDGroupPairs {
+			buf.WriteString(fmt.Sprintf("%s-", *pair.UserID))
+			if pair.GroupID != nil {
+				buf.WriteString(fmt.Sprintf("%s-", *pair.GroupID))
+			} else {
+				buf.WriteString("-")
+			}
+			if pair.GroupName != nil {
+				buf.WriteString(fmt.Sprintf("%s-", *pair.GroupName))
+			} else {
+				buf.WriteString("-")
+			}
 		}
 	}
 
