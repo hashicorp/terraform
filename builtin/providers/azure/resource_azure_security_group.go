@@ -5,7 +5,6 @@ import (
 	"log"
 
 	"github.com/Azure/azure-sdk-for-go/management"
-	"github.com/Azure/azure-sdk-for-go/management/networksecuritygroup"
 	"github.com/hashicorp/terraform/helper/schema"
 )
 
@@ -39,7 +38,9 @@ func resourceAzureSecurityGroup() *schema.Resource {
 }
 
 func resourceAzureSecurityGroupCreate(d *schema.ResourceData, meta interface{}) (err error) {
-	mc := meta.(*Client).mgmtClient
+	azureClient := meta.(*Client)
+	mc := azureClient.mgmtClient
+	secGroupClient := azureClient.secGroupClient
 
 	name := d.Get("name").(string)
 
@@ -49,7 +50,7 @@ func resourceAzureSecurityGroupCreate(d *schema.ResourceData, meta interface{}) 
 		label = name
 	}
 
-	req, err := networksecuritygroup.NewClient(mc).CreateNetworkSecurityGroup(
+	req, err := secGroupClient.CreateNetworkSecurityGroup(
 		name,
 		label,
 		d.Get("location").(string),
@@ -69,9 +70,9 @@ func resourceAzureSecurityGroupCreate(d *schema.ResourceData, meta interface{}) 
 }
 
 func resourceAzureSecurityGroupRead(d *schema.ResourceData, meta interface{}) error {
-	mc := meta.(*Client).mgmtClient
+	secGroupClient := meta.(*Client).secGroupClient
 
-	sg, err := networksecuritygroup.NewClient(mc).GetNetworkSecurityGroup(d.Id())
+	sg, err := secGroupClient.GetNetworkSecurityGroup(d.Id())
 	if err != nil {
 		if management.IsResourceNotFoundError(err) {
 			d.SetId("")
@@ -87,10 +88,12 @@ func resourceAzureSecurityGroupRead(d *schema.ResourceData, meta interface{}) er
 }
 
 func resourceAzureSecurityGroupDelete(d *schema.ResourceData, meta interface{}) error {
-	mc := meta.(*Client).mgmtClient
+	azureClient := meta.(*Client)
+	mc := azureClient.mgmtClient
+	secGroupClient := azureClient.secGroupClient
 
 	log.Printf("[DEBUG] Deleting Network Security Group: %s", d.Id())
-	req, err := networksecuritygroup.NewClient(mc).DeleteNetworkSecurityGroup(d.Id())
+	req, err := secGroupClient.DeleteNetworkSecurityGroup(d.Id())
 	if err != nil {
 		return fmt.Errorf("Error deleting Network Security Group %s: %s", d.Id(), err)
 	}

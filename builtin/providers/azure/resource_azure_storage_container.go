@@ -49,10 +49,10 @@ func resourceAzureStorageContainer() *schema.Resource {
 // resourceAzureStorageContainerCreate does all the necessary API calls to
 // create the storage container on Azure.
 func resourceAzureStorageContainerCreate(d *schema.ResourceData, meta interface{}) error {
-	mgmtClient := meta.(*Client).mgmtClient
+	azureClient := meta.(*Client)
 	storName := d.Get("storage_service_name").(string)
 
-	blobClient, err := getStorageServiceBlobClient(mgmtClient, storName)
+	blobClient, err := azureClient.getStorageServiceBlobClient(storName)
 	if err != nil {
 		return err
 	}
@@ -72,10 +72,10 @@ func resourceAzureStorageContainerCreate(d *schema.ResourceData, meta interface{
 // resourceAzureStorageContainerRead does all the necessary API calls to
 // read the status of the storage container off Azure.
 func resourceAzureStorageContainerRead(d *schema.ResourceData, meta interface{}) error {
-	mgmtClient := meta.(*Client).mgmtClient
+	azureClient := meta.(*Client)
 	storName := d.Get("storage_service_name").(string)
 
-	blobClient, err := getStorageServiceBlobClient(mgmtClient, storName)
+	blobClient, err := azureClient.getStorageServiceBlobClient(storName)
 	if err != nil {
 		return err
 	}
@@ -119,10 +119,10 @@ func resourceAzureStorageContainerRead(d *schema.ResourceData, meta interface{})
 // resourceAzureStorageContainerExists does all the necessary API calls to
 // check if the storage container already exists on Azure.
 func resourceAzureStorageContainerExists(d *schema.ResourceData, meta interface{}) (bool, error) {
-	mgmtClient := meta.(*Client).mgmtClient
+	azureClient := meta.(*Client)
 	storName := d.Get("storage_service_name").(string)
 
-	blobClient, err := getStorageServiceBlobClient(mgmtClient, storName)
+	blobClient, err := azureClient.getStorageServiceBlobClient(storName)
 	if err != nil {
 		return false, err
 	}
@@ -144,10 +144,10 @@ func resourceAzureStorageContainerExists(d *schema.ResourceData, meta interface{
 // resourceAzureStorageContainerDelete does all the necessary API calls to
 // delete a storage container off Azure.
 func resourceAzureStorageContainerDelete(d *schema.ResourceData, meta interface{}) error {
-	mgmtClient := meta.(*Client).mgmtClient
+	azureClient := meta.(*Client)
 	storName := d.Get("storage_service_name").(string)
 
-	blobClient, err := getStorageServiceBlobClient(mgmtClient, storName)
+	blobClient, err := azureClient.getStorageServiceBlobClient(storName)
 	if err != nil {
 		return err
 	}

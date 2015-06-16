@@ -39,8 +39,8 @@ func testAccCheckAzureStorageQueueExists(name string) resource.TestCheckFunc {
 			return fmt.Errorf("Azure Storage Service Queue ID %s is missing.", name)
 		}
 
-		mgmtClient := testAccProvider.Meta().(*Client).mgmtClient
-		queueClient, err := getStorageServiceQueueClient(mgmtClient, testAccStorageServiceName)
+		azureClient := testAccProvider.Meta().(*Client)
+		queueClient, err := azureClient.getStorageServiceQueueClient(testAccStorageServiceName)
 		if err != nil {
 			return err
 		}
@@ -67,8 +67,8 @@ func testAccCheckAzureStorageQueueDeleted(s *terraform.State) error {
 			return fmt.Errorf("Azure Storage Service Queue ID %s is missing.", resource.Primary.ID)
 		}
 
-		mgmtClient := testAccProvider.Meta().(*Client).mgmtClient
-		queueClient, err := getStorageServiceQueueClient(mgmtClient, testAccStorageServiceName)
+		azureClient := testAccProvider.Meta().(*Client)
+		queueClient, err := azureClient.getStorageServiceQueueClient(testAccStorageServiceName)
 		if err != nil {
 			return err
 		}

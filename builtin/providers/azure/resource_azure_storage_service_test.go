@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/Azure/azure-sdk-for-go/management/storageservice"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
 )
@@ -42,15 +41,15 @@ func testAccAzureStorageServiceExists(name string) resource.TestCheckFunc {
 			return fmt.Errorf("Azure Storage Service ID not set.")
 		}
 
-		mgmtClient := testAccProvider.Meta().(*Client).mgmtClient
-		_, err := storageservice.NewClient(mgmtClient).GetStorageService(resource.Primary.ID)
+		storageServiceClient := testAccProvider.Meta().(*Client).storageServiceClient
+		_, err := storageServiceClient.GetStorageService(resource.Primary.ID)
 
 		return err
 	}
 }
 
 func testAccAzureStorageServiceDestroyed(s *terraform.State) error {
-	mgmgClient := testAccProvider.Meta().(*Client).mgmtClient
+	storageServiceClient := testAccProvider.Meta().(*Client).storageServiceClient
 
 	for _, resource := range s.RootModule().Resources {
 		if resource.Type != "azure_storage_service" {
@@ -61,7 +60,7 @@ func testAccAzureStorageServiceDestroyed(s *terraform.State) error {
 			return fmt.Errorf("Azure Storage Service ID not set.")
 		}
 
-		_, err := storageservice.NewClient(mgmgClient).GetStorageService(resource.Primary.ID)
+		_, err := storageServiceClient.GetStorageService(resource.Primary.ID)
 		return testAccResourceDestroyedErrorFilter("Storage Service", err)
 	}
 

@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"testing"
 
-	netsecgroup "github.com/Azure/azure-sdk-for-go/management/networksecuritygroup"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
 )
@@ -47,8 +46,7 @@ func testAccCheckAzureSecurityGroupRuleExists(name string) resource.TestCheckFun
 			return fmt.Errorf("Azure network security group rule ID not set: %s", name)
 		}
 
-		mgmtClient := testAccProvider.Meta().(*Client).mgmtClient
-		secGroupClient := netsecgroup.NewClient(mgmtClient)
+		secGroupClient := testAccProvider.Meta().(*Client).secGroupClient
 
 		secGroup, err := secGroupClient.GetNetworkSecurityGroup(testAccSecurityGroupName)
 		if err != nil {
@@ -75,8 +73,7 @@ func testAccCheckAzureSecurityGroupRuleDeleted(s *terraform.State) error {
 			return fmt.Errorf("Azure network security group ID not set.")
 		}
 
-		mgmtClient := testAccProvider.Meta().(*Client).mgmtClient
-		secGroupClient := netsecgroup.NewClient(mgmtClient)
+		secGroupClient := testAccProvider.Meta().(*Client).secGroupClient
 
 		secGroup, err := secGroupClient.GetNetworkSecurityGroup(testAccSecurityGroupName)
 		if err != nil {
