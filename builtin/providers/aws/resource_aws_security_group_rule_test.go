@@ -184,9 +184,9 @@ func TestAccAWSSecurityGroupRule_MultiIngress(t *testing.T) {
 	var group ec2.SecurityGroup
 
 	testMultiRuleCount := func(*terraform.State) error {
-		if len(group.IPPermissions) != 3 {
+		if len(group.IPPermissions) != 2 {
 			return fmt.Errorf("Wrong Security Group rule count, expected %d, got %d",
-				3, len(group.IPPermissions))
+				2, len(group.IPPermissions))
 		}
 
 		var rule *ec2.IPPermission
@@ -438,7 +438,6 @@ resource "aws_security_group_rule" "ingress_1" {
   cidr_blocks = ["10.0.0.0/8"]
 
   security_group_id = "${aws_security_group.web.id}"
-        source_security_group_id = "${aws_security_group.worker.id}"
 }
 
 resource "aws_security_group_rule" "ingress_2" {
