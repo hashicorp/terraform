@@ -35,9 +35,9 @@ func resourceAzureStorageQueue() *schema.Resource {
 // resourceAzureStorageQueueCreate does all the necessary API calls to
 // create a storage queue on Azure.
 func resourceAzureStorageQueueCreate(d *schema.ResourceData, meta interface{}) error {
-	mgmtClient := meta.(*Client).mgmtClient
+	azureClient := meta.(*Client)
 	storServName := d.Get("storage_service_name").(string)
-	queueClient, err := getStorageServiceQueueClient(mgmtClient, storServName)
+	queueClient, err := azureClient.getStorageServiceQueueClient(storServName)
 	if err != nil {
 		return err
 	}
@@ -57,9 +57,9 @@ func resourceAzureStorageQueueCreate(d *schema.ResourceData, meta interface{}) e
 // resourceAzureStorageQueueRead does all the necessary API calls to
 // read the state of the storage queue off Azure.
 func resourceAzureStorageQueueRead(d *schema.ResourceData, meta interface{}) error {
-	mgmtClient := meta.(*Client).mgmtClient
+	azureClient := meta.(*Client)
 	storServName := d.Get("storage_service_name").(string)
-	queueClient, err := getStorageServiceQueueClient(mgmtClient, storServName)
+	queueClient, err := azureClient.getStorageServiceQueueClient(storServName)
 	if err != nil {
 		return err
 	}
@@ -84,9 +84,9 @@ func resourceAzureStorageQueueRead(d *schema.ResourceData, meta interface{}) err
 // resourceAzureStorageQueueDelete does all the necessary API calls to
 // delete the storage queue off Azure.
 func resourceAzureStorageQueueDelete(d *schema.ResourceData, meta interface{}) error {
-	mgmtClient := meta.(*Client).mgmtClient
+	azureClient := meta.(*Client)
 	storServName := d.Get("storage_service_name").(string)
-	queueClient, err := getStorageServiceQueueClient(mgmtClient, storServName)
+	queueClient, err := azureClient.getStorageServiceQueueClient(storServName)
 	if err != nil {
 		return err
 	}

@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/Azure/azure-sdk-for-go/management/hostedservice"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
 )
@@ -78,14 +77,14 @@ func testAccCheckAzureHostedServiceExists(name string) resource.TestCheckFunc {
 			return fmt.Errorf("Resource's ID is not set.")
 		}
 
-		mgmtClient := testAccProvider.Meta().(*Client).mgmtClient
-		_, err := hostedservice.NewClient(mgmtClient).GetHostedService(resource.Primary.ID)
+		hostedServiceClient := testAccProvider.Meta().(*Client).hostedServiceClient
+		_, err := hostedServiceClient.GetHostedService(resource.Primary.ID)
 		return err
 	}
 }
 
 func testAccCheckAzureHostedServiceDestroyed(s *terraform.State) error {
-	mgmtClient := testAccProvider.Meta().(*Client).mgmtClient
+	hostedServiceClient := testAccProvider.Meta().(*Client).hostedServiceClient
 
 	for _, resource := range s.RootModule().Resources {
 		if resource.Type != "azure_hosted_service" {
@@ -96,7 +95,7 @@ func testAccCheckAzureHostedServiceDestroyed(s *terraform.State) error {
 			return fmt.Errorf("No Azure Hosted Service Resource found.")
 		}
 
-		_, err := hostedservice.NewClient(mgmtClient).GetHostedService(resource.Primary.ID)
+		_, err := hostedServiceClient.GetHostedService(resource.Primary.ID)
 
 		return testAccResourceDestroyedErrorFilter("Hosted Service", err)
 	}

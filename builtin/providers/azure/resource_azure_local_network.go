@@ -47,12 +47,12 @@ func resourceAzureLocalNetworkConnection() *schema.Resource {
 func resourceAzureLocalNetworkConnectionCreate(d *schema.ResourceData, meta interface{}) error {
 	azureClient := meta.(*Client)
 	mgmtClient := azureClient.mgmtClient
-	networkClient := virtualnetwork.NewClient(mgmtClient)
+	vnetClient := azureClient.vnetClient
 
 	log.Println("[INFO] Fetching current network configuration from Azure.")
 	azureClient.mutex.Lock()
 	defer azureClient.mutex.Unlock()
-	netConf, err := networkClient.GetVirtualNetworkConfiguration()
+	netConf, err := vnetClient.GetVirtualNetworkConfiguration()
 	if err != nil {
 		return fmt.Errorf("Failed to get the current network configuration from Azure: %s", err)
 	}
@@ -77,7 +77,7 @@ func resourceAzureLocalNetworkConnectionCreate(d *schema.ResourceData, meta inte
 
 	// send the configuration back to Azure:
 	log.Println("[INFO] Sending updated network configuration back to Azure.")
-	reqID, err := networkClient.SetVirtualNetworkConfiguration(netConf)
+	reqID, err := vnetClient.SetVirtualNetworkConfiguration(netConf)
 	if err != nil {
 		return fmt.Errorf("Failed setting updated network configuration: %s", err)
 	}
@@ -94,11 +94,10 @@ func resourceAzureLocalNetworkConnectionCreate(d *schema.ResourceData, meta inte
 // read the state of our local natwork from Azure.
 func resourceAzureLocalNetworkConnectionRead(d *schema.ResourceData, meta interface{}) error {
 	azureClient := meta.(*Client)
-	mgmtClient := azureClient.mgmtClient
-	networkClient := virtualnetwork.NewClient(mgmtClient)
+	vnetClient := azureClient.vnetClient
 
 	log.Println("[INFO] Fetching current network configuration from Azure.")
-	netConf, err := networkClient.GetVirtualNetworkConfiguration()
+	netConf, err := vnetClient.GetVirtualNetworkConfiguration()
 	if err != nil {
 		return fmt.Errorf("Failed to get the current network configuration from Azure: %s", err)
 	}
@@ -130,12 +129,12 @@ func resourceAzureLocalNetworkConnectionRead(d *schema.ResourceData, meta interf
 func resourceAzureLocalNetworkConnectionUpdate(d *schema.ResourceData, meta interface{}) error {
 	azureClient := meta.(*Client)
 	mgmtClient := azureClient.mgmtClient
-	networkClient := virtualnetwork.NewClient(mgmtClient)
+	vnetClient := azureClient.vnetClient
 
 	log.Println("[INFO] Fetching current network configuration from Azure.")
 	azureClient.mutex.Lock()
 	defer azureClient.mutex.Unlock()
-	netConf, err := networkClient.GetVirtualNetworkConfiguration()
+	netConf, err := vnetClient.GetVirtualNetworkConfiguration()
 	if err != nil {
 		return fmt.Errorf("Failed to get the current network configuration from Azure: %s", err)
 	}
@@ -169,7 +168,7 @@ func resourceAzureLocalNetworkConnectionUpdate(d *schema.ResourceData, meta inte
 	} else if cvpn || cprefixes {
 		// else, send the configuration back to Azure:
 		log.Println("[INFO] Sending updated network configuration back to Azure.")
-		reqID, err := networkClient.SetVirtualNetworkConfiguration(netConf)
+		reqID, err := vnetClient.SetVirtualNetworkConfiguration(netConf)
 		if err != nil {
 			return fmt.Errorf("Failed setting updated network configuration: %s", err)
 		}
@@ -185,12 +184,10 @@ func resourceAzureLocalNetworkConnectionUpdate(d *schema.ResourceData, meta inte
 // resourceAzureLocalNetworkConnectionExists does all the necessary API calls
 // to check if the local network already exists on Azure.
 func resourceAzureLocalNetworkConnectionExists(d *schema.ResourceData, meta interface{}) (bool, error) {
-	azureClient := meta.(*Client)
-	mgmtClient := azureClient.mgmtClient
-	networkClient := virtualnetwork.NewClient(mgmtClient)
+	vnetClient := meta.(*Client).vnetClient
 
 	log.Println("[INFO] Fetching current network configuration from Azure.")
-	netConf, err := networkClient.GetVirtualNetworkConfiguration()
+	netConf, err := vnetClient.GetVirtualNetworkConfiguration()
 	if err != nil {
 		return false, fmt.Errorf("Failed to get the current network configuration from Azure: %s", err)
 	}
@@ -211,12 +208,12 @@ func resourceAzureLocalNetworkConnectionExists(d *schema.ResourceData, meta inte
 func resourceAzureLocalNetworkConnectionDelete(d *schema.ResourceData, meta interface{}) error {
 	azureClient := meta.(*Client)
 	mgmtClient := azureClient.mgmtClient
-	networkClient := virtualnetwork.NewClient(mgmtClient)
+	vnetClient := azureClient.vnetClient
 
 	log.Println("[INFO] Fetching current network configuration from Azure.")
 	azureClient.mutex.Lock()
 	defer azureClient.mutex.Unlock()
-	netConf, err := networkClient.GetVirtualNetworkConfiguration()
+	netConf, err := vnetClient.GetVirtualNetworkConfiguration()
 	if err != nil {
 		return fmt.Errorf("Failed to get the current network configuration from Azure: %s", err)
 	}
@@ -236,7 +233,7 @@ func resourceAzureLocalNetworkConnectionDelete(d *schema.ResourceData, meta inte
 
 	// send the configuration back to Azure:
 	log.Println("[INFO] Sending updated network configuration back to Azure.")
-	reqID, err := networkClient.SetVirtualNetworkConfiguration(netConf)
+	reqID, err := vnetClient.SetVirtualNetworkConfiguration(netConf)
 	if err != nil {
 		return fmt.Errorf("Failed setting updated network configuration: %s", err)
 	}

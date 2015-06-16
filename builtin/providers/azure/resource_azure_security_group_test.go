@@ -48,8 +48,8 @@ func testAccCheckAzureSecurityGroupExists(
 			return fmt.Errorf("No Network Security Group ID is set")
 		}
 
-		mc := testAccProvider.Meta().(*Client).mgmtClient
-		sg, err := networksecuritygroup.NewClient(mc).GetNetworkSecurityGroup(rs.Primary.ID)
+		secGroupClient := testAccProvider.Meta().(*Client).secGroupClient
+		sg, err := secGroupClient.GetNetworkSecurityGroup(rs.Primary.ID)
 		if err != nil {
 			return err
 		}
@@ -65,7 +65,7 @@ func testAccCheckAzureSecurityGroupExists(
 }
 
 func testAccCheckAzureSecurityGroupDestroy(s *terraform.State) error {
-	mc := testAccProvider.Meta().(*Client).mgmtClient
+	secGroupClient := testAccProvider.Meta().(*Client).secGroupClient
 
 	for _, rs := range s.RootModule().Resources {
 		if rs.Type != "azure_security_group" {
@@ -76,7 +76,7 @@ func testAccCheckAzureSecurityGroupDestroy(s *terraform.State) error {
 			return fmt.Errorf("No Network Security Group ID is set")
 		}
 
-		_, err := networksecuritygroup.NewClient(mc).GetNetworkSecurityGroup(rs.Primary.ID)
+		_, err := secGroupClient.GetNetworkSecurityGroup(rs.Primary.ID)
 		if err == nil {
 			return fmt.Errorf("Network Security Group %s still exists", rs.Primary.ID)
 		}

@@ -168,7 +168,10 @@ func resourceAzureInstance() *schema.Resource {
 }
 
 func resourceAzureInstanceCreate(d *schema.ResourceData, meta interface{}) (err error) {
-	mc := meta.(*Client).mgmtClient
+	azureClient := meta.(*Client)
+	mc := azureClient.mgmtClient
+	hostedServiceClient := azureClient.hostedServiceClient
+	vmClient := azureClient.vmClient
 
 	name := d.Get("name").(string)
 
@@ -180,7 +183,7 @@ func resourceAzureInstanceCreate(d *schema.ResourceData, meta interface{}) (err 
 
 	// Retrieve the needed details of the image
 	configureForImage, osType, err := retrieveImageDetails(
-		mc,
+		meta,
 		d.Get("image").(string),
 		name,
 		d.Get("storage_service_name").(string),
@@ -203,7 +206,7 @@ func resourceAzureInstanceCreate(d *schema.ResourceData, meta interface{}) (err 
 	}
 
 	log.Printf("[DEBUG] Creating Cloud Service for instance: %s", name)
-	err = hostedservice.NewClient(mc).CreateHostedService(p)
+	err = hostedServiceClient.CreateHostedService(p)
 	if err != nil {
 		return fmt.Errorf("Error creating Cloud Service for instance %s: %s", name, err)
 	}
@@ -212,7 +215,7 @@ func resourceAzureInstanceCreate(d *schema.ResourceData, meta interface{}) (err 
 	// when we exit with an error
 	defer func(mc management.Client) {
 		if err != nil {
-			req, err := hostedservice.NewClient(mc).DeleteHostedService(name, true)
+			req, err := hostedServiceClient.DeleteHostedService(name, true)
 			if err != nil {
 				log.Printf("[DEBUG] Error cleaning up Cloud Service of instance %s: %s", name, err)
 			}
@@ -309,7 +312,7 @@ func resourceAzureInstanceCreate(d *schema.ResourceData, meta interface{}) (err 
 	}
 
 	log.Printf("[DEBUG] Creating the new instance...")
-	req, err := virtualmachine.NewClient(mc).CreateDeployment(role, name, options)
+	req, err := vmClient.CreateDeployment(role, name, options)
 	if err != nil {
 		return fmt.Errorf("Error creating instance %s: %s", name, err)
 	}
@@ -326,10 +329,12 @@ func resourceAzureInstanceCreate(d *schema.ResourceData, meta interface{}) (err 
 }
 
 func resourceAzureInstanceRead(d *schema.ResourceData, meta interface{}) error {
-	mc := meta.(*Client).mgmtClient
+	azureClient := meta.(*Client)
+	hostedServiceClient := azureClient.hostedServiceClient
+	vmClient := azureClient.vmClient
 
 	log.Printf("[DEBUG] Retrieving Cloud Service for instance: %s", d.Id())
-	cs, err := hostedservice.NewClient(mc).GetHostedService(d.Id())
+	cs, err := hostedServiceClient.GetHostedService(d.Id())
 	if err != nil {
 		return fmt.Errorf("Error retrieving Cloud Service of instance %s: %s", d.Id(), err)
 	}
@@ -338,7 +343,7 @@ func resourceAzureInstanceRead(d *schema.ResourceData, meta interface{}) error {
 	d.Set("location", cs.Location)
 
 	log.Printf("[DEBUG] Retrieving instance: %s", d.Id())
-	dpmt, err := virtualmachine.NewClient(mc).GetDeployment(d.Id(), d.Id())
+	dpmt, err := vmClient.GetDeployment(d.Id(), d.Id())
 	if err != nil {
 		if management.IsResourceNotFoundError(err) {
 			d.SetId("")
@@ -420,7 +425,9 @@ func resourceAzureInstanceRead(d *schema.ResourceData, meta interface{}) error {
 }
 
 func resourceAzureInstanceUpdate(d *schema.ResourceData, meta interface{}) error {
-	mc := meta.(*Client).mgmtClient
+	azureClient := meta.(*Client)
+	mc := azureClient.mgmtClient
+	vmClient := azureClient.vmClient
 
 	// First check if anything we can update changed, and if not just return
 	if !d.HasChange("size") && !d.HasChange("endpoint") && !d.HasChange("security_group") {
@@ -428,7 +435,7 @@ func resourceAzureInstanceUpdate(d *schema.ResourceData, meta interface{}) error
 	}
 
 	// Get the current role
-	role, err := virtualmachine.NewClient(mc).GetRole(d.Id(), d.Id(), d.Id())
+	role, err := vmClient.GetRole(d.Id(), d.Id(), d.Id())
 	if err != nil {
 		return fmt.Errorf("Error retrieving role of instance %s: %s", d.Id(), err)
 	}
@@ -482,7 +489,7 @@ func resourceAzureInstanceUpdate(d *schema.ResourceData, meta interface{}) error
 	}
 
 	// Update the adjusted role
-	req, err := virtualmachine.NewClient(mc).UpdateRole(d.Id(), d.Id(), d.Id(), *role)
+	req, err := vmClient.UpdateRole(d.Id(), d.Id(), d.Id(), *role)
 	if err != nil {
 		return fmt.Errorf("Error updating role of instance %s: %s", d.Id(), err)
 	}
@@ -496,10 +503,12 @@ func resourceAzureInstanceUpdate(d *schema.ResourceData, meta interface{}) error
 }
 
 func resourceAzureInstanceDelete(d *schema.ResourceData, meta interface{}) error {
-	mc := meta.(*Client).mgmtClient
+	azureClient := meta.(*Client)
+	mc := azureClient.mgmtClient
+	hostedServiceClient := azureClient.hostedServiceClient
 
 	log.Printf("[DEBUG] Deleting instance: %s", d.Id())
-	req, err := hostedservice.NewClient(mc).DeleteHostedService(d.Id(), true)
+	req, err := hostedServiceClient.DeleteHostedService(d.Id(), true)
 	if err != nil {
 		return fmt.Errorf("Error deleting instance %s: %s", d.Id(), err)
 	}
@@ -527,16 +536,21 @@ func resourceAzureEndpointHash(v interface{}) int {
 }
 
 func retrieveImageDetails(
-	mc management.Client,
+	meta interface{},
 	label string,
 	name string,
 	storage string) (func(*virtualmachine.Role) error, string, error) {
-	configureForImage, osType, VMLabels, err := retrieveVMImageDetails(mc, label)
+
+	azureClient := meta.(*Client)
+	vmImageClient := azureClient.vmImageClient
+	osImageClient := azureClient.osImageClient
+
+	configureForImage, osType, VMLabels, err := retrieveVMImageDetails(vmImageClient, label)
 	if err == nil {
 		return configureForImage, osType, nil
 	}
 
-	configureForImage, osType, OSLabels, err := retrieveOSImageDetails(mc, label, name, storage)
+	configureForImage, osType, OSLabels, err := retrieveOSImageDetails(osImageClient, label, name, storage)
 	if err == nil {
 		return configureForImage, osType, nil
 	}
@@ -546,9 +560,9 @@ func retrieveImageDetails(
 }
 
 func retrieveVMImageDetails(
-	mc management.Client,
+	vmImageClient virtualmachineimage.Client,
 	label string) (func(*virtualmachine.Role) error, string, []string, error) {
-	imgs, err := virtualmachineimage.NewClient(mc).ListVirtualMachineImages()
+	imgs, err := vmImageClient.ListVirtualMachineImages()
 	if err != nil {
 		return nil, "", nil, fmt.Errorf("Error retrieving image details: %s", err)
 	}
@@ -579,11 +593,11 @@ func retrieveVMImageDetails(
 }
 
 func retrieveOSImageDetails(
-	mc management.Client,
+	osImageClient osimage.OSImageClient,
 	label string,
 	name string,
 	storage string) (func(*virtualmachine.Role) error, string, []string, error) {
-	imgs, err := osimage.NewClient(mc).ListOSImages()
+	imgs, err := osImageClient.ListOSImages()
 	if err != nil {
 		return nil, "", nil, fmt.Errorf("Error retrieving image details: %s", err)
 	}

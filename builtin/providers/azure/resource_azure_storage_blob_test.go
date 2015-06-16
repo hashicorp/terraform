@@ -66,8 +66,8 @@ func testAccCheckAzureStorageBlobExists(name, typ string) resource.TestCheckFunc
 			return fmt.Errorf("Azure Storage Container ID not set: %s", name)
 		}
 
-		mgmtClient := testAccProvider.Meta().(*Client).mgmtClient
-		blobClient, err := getStorageServiceBlobClient(mgmtClient, testAccStorageServiceName)
+		azureClient := testAccProvider.Meta().(*Client)
+		blobClient, err := azureClient.getStorageServiceBlobClient(testAccStorageServiceName)
 		if err != nil {
 			return err
 		}
@@ -92,8 +92,8 @@ func testAccCheckAzureStorageBlobDeleted(typ string) resource.TestCheckFunc {
 				continue
 			}
 
-			mgmtClient := testAccProvider.Meta().(*Client).mgmtClient
-			blobClient, err := getStorageServiceBlobClient(mgmtClient, testAccStorageServiceName)
+			azureClient := testAccProvider.Meta().(*Client)
+			blobClient, err := azureClient.getStorageServiceBlobClient(testAccStorageServiceName)
 			if err != nil {
 				return err
 			}
