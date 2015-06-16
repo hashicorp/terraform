@@ -260,6 +260,39 @@ func resourceAwsInstance() *schema.Resource {
 				},
 			},
 
+			"volume": &schema.Schema{
+				Type:     schema.TypeSet,
+				Optional: true,
+				Computed: true,
+				ForceNew: true,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"device_name": &schema.Schema{
+							Type:     schema.TypeString,
+							Required: true,
+						},
+
+						"volume_id": &schema.Schema{
+							Type:     schema.TypeString,
+							Required: true,
+						},
+
+						"attached": &schema.Schema{
+							Type:     schema.TypeBool,
+							Computed: true,
+						},
+					},
+				},
+				Set: func(v interface{}) int {
+					var buf bytes.Buffer
+					m := v.(map[string]interface{})
+					buf.WriteString(fmt.Sprintf("%s-", m["device_name"].(string)))
+					buf.WriteString(fmt.Sprintf("%s-", m["volume_id"].(string)))
+					return hashcode.String(buf.String())
+				},
+			},
+
+
 			"root_block_device": &schema.Schema{
 				// TODO: This is a set because we don't support singleton
 				//       sub-resources today. We'll enforce that the set only ever has
@@ -401,6 +434,36 @@ func resourceAwsInstanceCreate(d *schema.ResourceData, meta interface{}) error {
 			"type": "ssh",
 			"host": *instance.PrivateIPAddress,
 		})
+	}
+
+	// Attach volumes
+	if v, ok := d.GetOk("volume"); ok {
+		vL := v.(*schema.Set).List()
+		for _, v := range vL {
+			vol := v.(map[string]interface{})
+
+			if v, ok := vol["attached"].(bool); ok && v {
+				// Already attached
+				break
+			}
+
+			attach := &ec2.AttachVolumeInput {
+				InstanceID: instance.InstanceID,
+				Device: aws.String(vol["device_name"].(string)),
+				VolumeID: aws.String(vol["volume_id"].(string)),
+			}
+
+			_, err := conn.AttachVolume(attach)
+			if err != nil {
+				return fmt.Errorf("Error attaching volume: %s", err)
+			}
+
+			vol["attached"] = true
+
+		}
+		if err := d.Set("volume", v); err != nil {
+			return err
+		}
 	}
 
 	// Set our attributes
