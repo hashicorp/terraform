@@ -5,10 +5,12 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"sort"
 	"strings"
 
 	"github.com/hashicorp/atlas-go/archive"
 	"github.com/hashicorp/atlas-go/v1"
+	"github.com/hashicorp/terraform/terraform"
 )
 
 type PushCommand struct {
@@ -22,7 +24,7 @@ type PushCommand struct {
 
 func (c *PushCommand) Run(args []string) int {
 	var atlasAddress, atlasToken string
-	var archiveVCS, moduleUpload bool
+	var archiveVCS, moduleUpload, force bool
 	var name string
 	args = c.Meta.process(args, true)
 	cmdFlags := c.Meta.flagSet("push")
@@ -32,6 +34,7 @@ func (c *PushCommand) Run(args []string) int {
 	cmdFlags.BoolVar(&moduleUpload, "upload-modules", true, "")
 	cmdFlags.StringVar(&name, "name", "", "")
 	cmdFlags.BoolVar(&archiveVCS, "vcs", true, "")
+	cmdFlags.BoolVar(&force, "force", true, "")
 	cmdFlags.Usage = func() { c.Ui.Error(c.Help()) }
 	if err := cmdFlags.Parse(args); err != nil {
 		return 1
@@ -125,6 +128,7 @@ func (c *PushCommand) Run(args []string) int {
 	}
 
 	// Get the variables we might already have
+	mismatchedVars := make([]string, 0)
 	vars, err := c.client.Get(name)
 	if err != nil {
 		c.Ui.Error(fmt.Sprintf(
@@ -133,10 +137,33 @@ func (c *PushCommand) Run(args []string) int {
 	}
 	for k, v := range vars {
 		// Local variables override remote ones
-		if _, exists := ctx.Variables()[k]; exists {
+		if lv, exists := ctx.Variables()[k]; exists {
+			if lv != v {
+				mismatchedVars = append(mismatchedVars, k)
+			}
 			continue
 		}
 		ctx.SetVariable(k, v)
+	}
+
+	// If there are any values that differed from Atlas, ask to confirm
+	if !force && len(mismatchedVars) > 0 {
+		sort.Strings(mismatchedVars)
+		v, err := c.UIInput().Input(&terraform.InputOpts{
+			Id:    "overwrite",
+			Query: "Overwrite the remote Terraform variables stored in Atlas?",
+			Description: fmt.Sprintf(
+				"Pushing will overwrite the following remote Terraform variables\n"+
+					"stored in Atlas:\n\n  %s", strings.Join(mismatchedVars, ", ")),
+		})
+		if err != nil {
+			c.Ui.Error(fmt.Sprintf("Error asking for confirmation: %s", err))
+			return 1
+		}
+		if v != "yes" {
+			c.Ui.Output("Overwrite cancelled.")
+			return 1
+		}
 	}
 
 	// Ask for input
@@ -220,6 +247,9 @@ Options:
 
   -vcs=true            If true (default), push will upload only files
                        comitted to your VCS, if detected.
+
+  -force=false         If true, Terraform will overwrite all variables in Atlas
+                       with the local variables without prompting.
 
 `
 	return strings.TrimSpace(helpText)
