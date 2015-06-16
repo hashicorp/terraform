@@ -17,6 +17,12 @@ description: |-
 			operating system and architecture. You can find SHA256 checksums
 			for packages <a href="https://dl.bintray.com/mitchellh/terraform/terraform_<%= latest_version %>_SHA256SUMS?direct">here</a>.
 			</p>
+
+			<p>
+			Each release archive is a <code>zip</code> file containing the Terraform binary
+			executables at the top level. These executables are meant to be extracted
+			to a location where they can be found by your shell.
+			</p>
 		</div>
 	</div>
 	<% product_versions.each do |os, versions| %>
