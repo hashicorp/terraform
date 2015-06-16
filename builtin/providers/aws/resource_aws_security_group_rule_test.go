@@ -7,6 +7,7 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
+	"github.com/aws/aws-sdk-go/aws/awsutil"
 	"github.com/aws/aws-sdk-go/service/ec2"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
@@ -92,15 +93,15 @@ func TestIpPermissionIDHash(t *testing.T) {
 	}{
 		{simple, "ingress", "sg-82613597"},
 		{egress, "egress", "sg-363054720"},
-		{egress_all, "egress", "sg-857124156"},
-		{vpc_security_group_source, "egress", "sg-1900174468"},
-		{security_group_source, "egress", "sg-1409919872"},
+		{egress_all, "egress", "sg-2766285362"},
+		{vpc_security_group_source, "egress", "sg-2661404947"},
+		{security_group_source, "egress", "sg-1841245863"},
 	}
 
 	for _, tc := range cases {
 		actual := ipPermissionIDHash(tc.Type, tc.Input)
 		if actual != tc.Output {
-			t.Errorf("input: %s - %#v\noutput: %s", tc.Type, tc.Input, actual)
+			t.Errorf("input: %s - %s\noutput: %s", tc.Type, awsutil.StringValue(tc.Input), actual)
 		}
 	}
 }
