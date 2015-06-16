@@ -16,7 +16,7 @@ func resourceAwsSecurityGroupRuleMigrateState(
 	switch v {
 	case 0:
 		log.Println("[INFO] Found AWS Security Group State v0; migrating to v1")
-		return migrateSGRuleStateV0toV1(is, meta)
+		return migrateSGRuleStateV0toV1(is)
 	default:
 		return is, fmt.Errorf("Unexpected schema version: %d", v)
 	}
@@ -24,20 +24,13 @@ func resourceAwsSecurityGroupRuleMigrateState(
 	return is, nil
 }
 
-func migrateSGRuleStateV0toV1(is *terraform.InstanceState, meta interface{}) (*terraform.InstanceState, error) {
+func migrateSGRuleStateV0toV1(is *terraform.InstanceState) (*terraform.InstanceState, error) {
 	if is.Empty() {
 		log.Println("[DEBUG] Empty InstanceState; nothing to migrate.")
 		return is, nil
 	}
 
-	conn := meta.(*AWSClient).ec2conn
-	sg_id := is.Attributes["security_group_id"]
-	sg, err := findResourceSecurityGroup(conn, sg_id)
-	if err != nil {
-		return nil, fmt.Errorf("[WARN] Error finding security group for Security Group migration")
-	}
-
-	perm, err := migrateExpandIPPerm(is.Attributes, sg)
+	perm, err := migrateExpandIPPerm(is.Attributes)
 
 	if err != nil {
 		return nil, fmt.Errorf("[WARN] Error making new IP Permission in Security Group migration")
@@ -51,7 +44,7 @@ func migrateSGRuleStateV0toV1(is *terraform.InstanceState, meta interface{}) (*t
 	return is, nil
 }
 
-func migrateExpandIPPerm(attrs map[string]string, sg *ec2.SecurityGroup) (*ec2.IPPermission, error) {
+func migrateExpandIPPerm(attrs map[string]string) (*ec2.IPPermission, error) {
 	var perm ec2.IPPermission
 	tp, err := strconv.Atoi(attrs["to_port"])
 	if err != nil {
@@ -69,11 +62,7 @@ func migrateExpandIPPerm(attrs map[string]string, sg *ec2.SecurityGroup) (*ec2.I
 
 	groups := make(map[string]bool)
 	if attrs["self"] == "true" {
-		if sg.VPCID != nil && *sg.VPCID != "" {
-			groups[*sg.GroupID] = true
-		} else {
-			groups[*sg.GroupName] = true
-		}
+		groups[attrs["security_group_id"]] = true
 	}
 
 	if attrs["source_security_group_id"] != "" {
@@ -91,12 +80,6 @@ func migrateExpandIPPerm(attrs map[string]string, sg *ec2.SecurityGroup) (*ec2.I
 		for i, name := range gl {
 			perm.UserIDGroupPairs[i] = &ec2.UserIDGroupPair{
 				GroupID: aws.String(name),
-			}
-
-			if sg.VPCID == nil || *sg.VPCID == "" {
-				perm.UserIDGroupPairs[i].GroupID = nil
-				perm.UserIDGroupPairs[i].GroupName = aws.String(name)
-				perm.UserIDGroupPairs[i].UserID = nil
 			}
 		}
 	}
