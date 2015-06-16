@@ -30,7 +30,7 @@ export VERSION="vX.Y.Z"
 # Edit version.go, setting VersionPrelease to empty string
 
 # Snapshot dependency information
-godep save
+godep save ./...
 mv Godeps/Godeps.json deps/$(echo $VERSION | sed 's/\./-/g').json
 rm -rf Godeps
 
