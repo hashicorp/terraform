@@ -1,6 +1,6 @@
 variable "identifier" {
 	default = "mydb-rds"
-    description = "Idnetifier for your DB"
+    description = "Identifier for your DB"
 }
 
 variable "storage" {
