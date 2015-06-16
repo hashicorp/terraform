@@ -101,8 +101,8 @@ func testAccCheckAzureDataDiskExists(
 			return err
 		}
 
-		mc := testAccProvider.Meta().(*Client).mgmtClient
-		d, err := virtualmachinedisk.NewClient(mc).GetDataDisk(vm, vm, vm, lun)
+		vmDiskClient := testAccProvider.Meta().(*Client).vmDiskClient
+		d, err := vmDiskClient.GetDataDisk(vm, vm, vm, lun)
 		if err != nil {
 			return err
 		}
@@ -138,7 +138,7 @@ func testAccCheckAzureDataDiskAttributes(
 }
 
 func testAccCheckAzureDataDiskDestroy(s *terraform.State) error {
-	mc := testAccProvider.Meta().(*Client).mgmtClient
+	vmDiskClient := testAccProvider.Meta().(*Client).vmDiskClient
 
 	for _, rs := range s.RootModule().Resources {
 		if rs.Type != "azure_data_disk" {
@@ -155,7 +155,7 @@ func testAccCheckAzureDataDiskDestroy(s *terraform.State) error {
 			return err
 		}
 
-		_, err = virtualmachinedisk.NewClient(mc).GetDataDisk(vm, vm, vm, lun)
+		_, err = vmDiskClient.GetDataDisk(vm, vm, vm, lun)
 		if err == nil {
 			return fmt.Errorf("Data disk %s still exists", rs.Primary.ID)
 		}

@@ -76,9 +76,7 @@ func resourceAzureHostedService() *schema.Resource {
 // resourceAzureHostedServiceCreate does all the necessary API calls
 // to create a hosted service on Azure.
 func resourceAzureHostedServiceCreate(d *schema.ResourceData, meta interface{}) error {
-	azureClient := meta.(*Client)
-	mgmtClient := azureClient.mgmtClient
-	hostedServiceClient := hostedservice.NewClient(mgmtClient)
+	hostedServiceClient := meta.(*Client).hostedServiceClient
 
 	serviceName := d.Get("name").(string)
 	location := d.Get("location").(string)
@@ -106,8 +104,7 @@ func resourceAzureHostedServiceCreate(d *schema.ResourceData, meta interface{}) 
 // resourceAzureHostedServiceRead does all the necessary API calls
 // to read the state of a hosted service from Azure.
 func resourceAzureHostedServiceRead(d *schema.ResourceData, meta interface{}) error {
-	azureClient := meta.(*Client)
-	hostedServiceClient := hostedservice.NewClient(azureClient.mgmtClient)
+	hostedServiceClient := meta.(*Client).hostedServiceClient
 
 	log.Println("[INFO] Querying for hosted service info.")
 	serviceName := d.Get("name").(string)
@@ -151,7 +148,7 @@ func resourceAzureHostedServiceUpdate(d *schema.ResourceData, meta interface{}) 
 func resourceAzureHostedServiceDelete(d *schema.ResourceData, meta interface{}) error {
 	azureClient := meta.(*Client)
 	mgmtClient := azureClient.mgmtClient
-	hostedServiceClient := hostedservice.NewClient(mgmtClient)
+	hostedServiceClient := azureClient.hostedServiceClient
 
 	log.Println("[INFO] Issuing hosted service deletion.")
 	serviceName := d.Get("name").(string)

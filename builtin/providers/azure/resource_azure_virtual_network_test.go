@@ -137,8 +137,8 @@ func testAccCheckAzureVirtualNetworkExists(
 			return fmt.Errorf("No Virtual Network ID is set")
 		}
 
-		mc := testAccProvider.Meta().(*Client).mgmtClient
-		nc, err := virtualnetwork.NewClient(mc).GetVirtualNetworkConfiguration()
+		vnetClient := testAccProvider.Meta().(*Client).vnetClient
+		nc, err := vnetClient.GetVirtualNetworkConfiguration()
 		if err != nil {
 			return err
 		}
@@ -172,7 +172,7 @@ func testAccCheckAzureVirtualNetworkAttributes(
 }
 
 func testAccCheckAzureVirtualNetworkDestroy(s *terraform.State) error {
-	mc := testAccProvider.Meta().(*Client).mgmtClient
+	vnetClient := testAccProvider.Meta().(*Client).vnetClient
 
 	for _, rs := range s.RootModule().Resources {
 		if rs.Type != "azure_virtual_network" {
@@ -183,7 +183,7 @@ func testAccCheckAzureVirtualNetworkDestroy(s *terraform.State) error {
 			return fmt.Errorf("No Virtual Network ID is set")
 		}
 
-		nc, err := virtualnetwork.NewClient(mc).GetVirtualNetworkConfiguration()
+		nc, err := vnetClient.GetVirtualNetworkConfiguration()
 		if err != nil {
 			return fmt.Errorf("Error retrieving Virtual Network Configuration: %s", err)
 		}

@@ -62,10 +62,10 @@ func resourceAzureStorageBlob() *schema.Resource {
 // resourceAzureStorageBlobCreate does all the necessary API calls to
 // create the storage blob on Azure.
 func resourceAzureStorageBlobCreate(d *schema.ResourceData, meta interface{}) error {
-	mgmtClient := meta.(*Client).mgmtClient
+	azureClient := meta.(*Client)
 	storName := d.Get("storage_service_name").(string)
 
-	blobClient, err := getStorageServiceBlobClient(mgmtClient, storName)
+	blobClient, err := azureClient.getStorageServiceBlobClient(storName)
 	if err != nil {
 		return err
 	}
@@ -94,6 +94,8 @@ func resourceAzureStorageBlobCreate(d *schema.ResourceData, meta interface{}) er
 // resourceAzureStorageBlobRead does all the necessary API calls to
 // read the status of the storage blob off Azure.
 func resourceAzureStorageBlobRead(d *schema.ResourceData, meta interface{}) error {
+	azureClient := meta.(*Client)
+
 	// check for it's existence:
 	exists, err := resourceAzureStorageBlobExists(d, meta)
 	if err != nil {
@@ -102,10 +104,9 @@ func resourceAzureStorageBlobRead(d *schema.ResourceData, meta interface{}) erro
 
 	// if it exists; read relevant information:
 	if exists {
-		mgmtClient := meta.(*Client).mgmtClient
 		storName := d.Get("storage_service_name").(string)
 
-		blobClient, err := getStorageServiceBlobClient(mgmtClient, storName)
+		blobClient, err := azureClient.getStorageServiceBlobClient(storName)
 		if err != nil {
 			return err
 		}
@@ -135,10 +136,10 @@ func resourceAzureStorageBlobUpdate(d *schema.ResourceData, meta interface{}) er
 // resourceAzureStorageBlobExists does all the necessary API calls to
 // check for the existence of the blob on Azure.
 func resourceAzureStorageBlobExists(d *schema.ResourceData, meta interface{}) (bool, error) {
-	mgmtClient := meta.(*Client).mgmtClient
+	azureClient := meta.(*Client)
 	storName := d.Get("storage_service_name").(string)
 
-	blobClient, err := getStorageServiceBlobClient(mgmtClient, storName)
+	blobClient, err := azureClient.getStorageServiceBlobClient(storName)
 	if err != nil {
 		return false, err
 	}
@@ -163,10 +164,10 @@ func resourceAzureStorageBlobExists(d *schema.ResourceData, meta interface{}) (b
 // resourceAzureStorageBlobDelete does all the necessary API calls to
 // delete the blob off Azure.
 func resourceAzureStorageBlobDelete(d *schema.ResourceData, meta interface{}) error {
-	mgmtClient := meta.(*Client).mgmtClient
+	azureClient := meta.(*Client)
 	storName := d.Get("storage_service_name").(string)
 
-	blobClient, err := getStorageServiceBlobClient(mgmtClient, storName)
+	blobClient, err := azureClient.getStorageServiceBlobClient(storName)
 	if err != nil {
 		return err
 	}
