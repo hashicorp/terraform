@@ -51,11 +51,10 @@ func resourceAwsSecurityGroupRule() *schema.Resource {
 			},
 
 			"cidr_blocks": &schema.Schema{
-				Type:          schema.TypeList,
-				Optional:      true,
-				ForceNew:      true,
-				Elem:          &schema.Schema{Type: schema.TypeString},
-				ConflictsWith: []string{"source_security_group_id"},
+				Type:     schema.TypeList,
+				Optional: true,
+				ForceNew: true,
+				Elem:     &schema.Schema{Type: schema.TypeString},
 			},
 
 			"security_group_id": &schema.Schema{
