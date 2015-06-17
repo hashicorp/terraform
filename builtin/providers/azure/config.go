@@ -9,6 +9,7 @@ import (
 	"github.com/Azure/azure-sdk-for-go/management/hostedservice"
 	"github.com/Azure/azure-sdk-for-go/management/networksecuritygroup"
 	"github.com/Azure/azure-sdk-for-go/management/osimage"
+	"github.com/Azure/azure-sdk-for-go/management/sql"
 	"github.com/Azure/azure-sdk-for-go/management/storageservice"
 	"github.com/Azure/azure-sdk-for-go/management/virtualmachine"
 	"github.com/Azure/azure-sdk-for-go/management/virtualmachinedisk"
@@ -35,6 +36,8 @@ type Client struct {
 	secGroupClient networksecuritygroup.SecurityGroupClient
 
 	osImageClient osimage.OSImageClient
+
+	sqlClient sql.SqlDatabaseClient
 
 	storageServiceClient storageservice.StorageServiceClient
 
@@ -107,6 +110,7 @@ func (c *Config) NewClientFromSettingsFile() (*Client, error) {
 		hostedServiceClient:  hostedservice.NewClient(mc),
 		secGroupClient:       networksecuritygroup.NewClient(mc),
 		osImageClient:        osimage.NewClient(mc),
+		sqlClient:            sql.NewClient(mc),
 		storageServiceClient: storageservice.NewClient(mc),
 		vmClient:             virtualmachine.NewClient(mc),
 		vmDiskClient:         virtualmachinedisk.NewClient(mc),
@@ -129,6 +133,7 @@ func (c *Config) NewClient() (*Client, error) {
 		hostedServiceClient:  hostedservice.NewClient(mc),
 		secGroupClient:       networksecuritygroup.NewClient(mc),
 		osImageClient:        osimage.NewClient(mc),
+		sqlClient:            sql.NewClient(mc),
 		storageServiceClient: storageservice.NewClient(mc),
 		vmClient:             virtualmachine.NewClient(mc),
 		vmDiskClient:         virtualmachinedisk.NewClient(mc),
