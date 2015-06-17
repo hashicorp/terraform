@@ -4,6 +4,8 @@ FEATURES:
 
   * **New provider: `azure`** [GH-2052, GH-2053, GH-2372, GH-2380]
   * **New resource: `aws_autoscaling_notification`** [GH-2197]
+  * **New resource: `aws_autoscaling_policy`** [GH-2201]
+  * **New resource: `aws_cloudwatch_metric_alarm`** [GH-2201]
   * **New resource: `aws_dynamodb_table`** [GH-2121]
   * **New resource: `aws_ecs_cluster`** [GH-1803]
   * **New resource: `aws_ecs_service`** [GH-1803]
