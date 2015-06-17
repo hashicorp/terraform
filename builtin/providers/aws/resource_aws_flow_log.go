@@ -17,12 +17,6 @@ func resourceAwsFlowLog() *schema.Resource {
 		Delete: resourceAwsLogFlowDelete,
 
 		Schema: map[string]*schema.Schema{
-			// "client_token": &schema.Schema{
-			// 	Type:     schema.TypeString,
-			// 	Optional: true,
-			// 	Computed: true,
-			// },
-
 			"iam_role_arn": &schema.Schema{
 				Type:     schema.TypeString,
 				Required: true,
@@ -31,8 +25,8 @@ func resourceAwsFlowLog() *schema.Resource {
 
 			"log_group_name": &schema.Schema{
 				Type:     schema.TypeString,
-				Optional: true,
-				Computed: true,
+                                Required: true,
+                                ForceNew: true,
 			},
 
 			"vpc_id": &schema.Schema{
