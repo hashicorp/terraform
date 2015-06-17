@@ -15,7 +15,7 @@ FEATURES:
   * **New remote state backend: `swift`**: You can now store remote state in
      a OpenStack Swift. [GH-2254]
   * command/output: support display of module outputs [GH-2102]
-  * core: keys() and values() funcs for map variables [GH-2198]
+  * core: `keys()` and `values()` funcs for map variables [GH-2198]
 
 IMPROVEMENTS:
 
