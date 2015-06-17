@@ -18,9 +18,11 @@ Usage: `terraform destroy [options] [dir]`
 Infrastructure managed by Terraform will be destroyed. This will ask for
 confirmation before destroying.
 
-This command accepts all the flags that the
-[apply command](/docs/commands/apply.html) accepts. If `-force` is
-set, then the destroy confirmation will not be shown.
+This command accepts all the arguments and flags that the [apply
+command](/docs/commands/apply.html) accepts, with the exception of a plan file
+argument.
+
+If `-force` is set, then the destroy confirmation will not be shown.
 
 The `-target` flag, instead of affecting "dependencies" will instead also
 destroy any resources that _depend on_ the target(s) specified.
