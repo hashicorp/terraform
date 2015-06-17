@@ -75,8 +75,10 @@ func resourceAwsIamPolicyAttachmentCreate(d *schema.ResourceData, meta interface
 			return fmt.Errorf("[WARN] Error attaching policy with IAM Policy Attach (%s), error:\n users - %v\n roles - %v\n groups - %v", name, userErr, roleErr, groupErr)
 		}
 	}
+	d.SetId(d.Get("name").(string))
 	return resourceAwsIamPolicyAttachmentRead(d, meta)
 }
+
 func resourceAwsIamPolicyAttachmentRead(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).iamconn
 	arn := d.Get("policy_arn").(string)
@@ -147,8 +149,9 @@ func resourceAwsIamPolicyAttachmentUpdate(d *schema.ResourceData, meta interface
 	if userErr != nil || roleErr != nil || groupErr != nil {
 		return fmt.Errorf("[WARN] Error updating user, role, or group list from IAM Policy Attach (%s):\n user error - %s\n role error - %s\n group error - %s", name, userErr, roleErr, groupErr)
 	}
-	return nil
+	return resourceAwsIamPolicyAttachmentRead(d, meta)
 }
+
 func resourceAwsIamPolicyAttachmentDelete(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).iamconn
 	name := d.Get("name").(string)
