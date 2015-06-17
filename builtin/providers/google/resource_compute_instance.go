@@ -246,6 +246,20 @@ func resourceComputeInstance() *schema.Resource {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
+
+			"automatic_restart": &schema.Schema{
+				Type:     schema.TypeBool,
+				Optional: true,
+				ForceNew: true,
+				Default:  false,
+			},
+
+			"preemptible": &schema.Schema{
+				Type:     schema.TypeBool,
+				Optional: true,
+				ForceNew: true,
+				Default:  false,
+			},
 		},
 	}
 }
@@ -469,6 +483,11 @@ func resourceComputeInstanceCreate(d *schema.ResourceData, meta interface{}) err
 		serviceAccounts = append(serviceAccounts, serviceAccount)
 	}
 
+	scheduling := &compute.Scheduling{
+		AutomaticRestart: d.Get("automatic_restart").(bool),
+		Preemptible:      d.Get("preemptible").(bool),
+	}
+
 	// Create the instance information
 	instance := compute.Instance{
 		CanIpForward:      d.Get("can_ip_forward").(bool),
@@ -480,6 +499,7 @@ func resourceComputeInstanceCreate(d *schema.ResourceData, meta interface{}) err
 		NetworkInterfaces: networkInterfaces,
 		Tags:              resourceInstanceTags(d),
 		ServiceAccounts:   serviceAccounts,
+		Scheduling:        scheduling,
 	}
 
 	log.Printf("[INFO] Requesting instance creation")
