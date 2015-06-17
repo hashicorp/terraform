@@ -38,3 +38,5 @@ The following arguments are supported:
 The following attributes are exported:
 
 * `id` - The Flow Log ID
+* `flow_log_status` - The status of the flow log (ex: `ACTIVE`)
+* `deliver_log_status` - The status of the logs delivery (ex: `SUCCESS`, `FAILED`)
