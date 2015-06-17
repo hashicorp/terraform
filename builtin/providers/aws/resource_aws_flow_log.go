@@ -25,8 +25,8 @@ func resourceAwsFlowLog() *schema.Resource {
 
 			"log_group_name": &schema.Schema{
 				Type:     schema.TypeString,
-                                Required: true,
-                                ForceNew: true,
+				Required: true,
+				ForceNew: true,
 			},
 
 			"vpc_id": &schema.Schema{
@@ -108,7 +108,7 @@ func resourceAwsLogFlowCreate(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	if len(resp.FlowLogIDs) > 1 {
-		return fmt.Errorf("Error: multiple Flow Logs created for (%s), error: %s", resourceId)
+		return fmt.Errorf("Error: multiple Flow Logs created for (%s)", resourceId)
 	}
 
 	d.SetId(*resp.FlowLogIDs[0])
