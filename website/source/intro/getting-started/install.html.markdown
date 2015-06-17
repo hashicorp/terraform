@@ -57,4 +57,10 @@ If you get an error that `terraform` could not be found, then your PATH
 environment variable was not setup properly. Please go back and ensure
 that your PATH variable contains the directory where Terraform was installed.
 
-Otherwise, Terraform is installed and ready to go!
+Otherwise, Terraform is installed and ready to go! Nice!
+
+## Next Step
+
+Time to [build infrastructure](/intro/getting-started/build.html)
+using a minimal Terraform configuration file. You will be able to
+examine Terraform's execution plan before you deploy it to AWS.
