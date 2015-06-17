@@ -267,13 +267,13 @@ func findResourceSecurityGroup(conn *ec2.EC2, id string) (*ec2.SecurityGroup, er
 	return resp.SecurityGroups[0], nil
 }
 
-// byUserIDAndGroup implements sort.Interface for []*ec2.UserIDGroupPairs based on
-// UserID and then the GroupID or GroupName field (only one should be set).
-type byUserIDAndGroup []*ec2.UserIDGroupPair
+// ByGroupPair implements sort.Interface for []*ec2.UserIDGroupPairs based on
+// GroupID or GroupName field (only one should be set).
+type ByGroupPair []*ec2.UserIDGroupPair
 
-func (b byUserIDAndGroup) Len() int      { return len(b) }
-func (b byUserIDAndGroup) Swap(i, j int) { b[i], b[j] = b[j], b[i] }
-func (b byUserIDAndGroup) Less(i, j int) bool {
+func (b ByGroupPair) Len() int      { return len(b) }
+func (b ByGroupPair) Swap(i, j int) { b[i], b[j] = b[j], b[i] }
+func (b ByGroupPair) Less(i, j int) bool {
 	if b[i].GroupID != nil && b[j].GroupID != nil {
 		return *b[i].GroupID < *b[j].GroupID
 	}
@@ -310,7 +310,7 @@ func ipPermissionIDHash(ruleType string, ip *ec2.IPPermission) string {
 	}
 
 	if len(ip.UserIDGroupPairs) > 0 {
-		sort.Sort(byUserIDAndGroup(ip.UserIDGroupPairs))
+		sort.Sort(ByGroupPair(ip.UserIDGroupPairs))
 		for _, pair := range ip.UserIDGroupPairs {
 			if pair.GroupID != nil {
 				buf.WriteString(fmt.Sprintf("%s-", *pair.GroupID))
