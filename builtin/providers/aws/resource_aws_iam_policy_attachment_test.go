@@ -9,8 +9,8 @@ import (
 	"testing"
 )
 
-func TestAccAWSPolicyAttach_basic(t *testing.T) {
-	var policy iam.GetPolicyOutput
+func TestAccAWSPolicyAttachment_basic(t *testing.T) {
+	var out iam.GetPolicyOutput
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -20,34 +20,90 @@ func TestAccAWSPolicyAttach_basic(t *testing.T) {
 			resource.TestStep{
 				Config: testAccAWSPolicyAttachConfig,
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckAWSPolicyAttachmentExists(),
-					testAccCheckAWSPolicyAttachmentAttributes(),
+					testAccCheckAWSPolicyAttachmentExists("aws_iam_policy_attachment.test-attachment", 3, &out),
+					testAccCheckAWSPolicyAttachmentAttributes([]string{"test-user"}, []string{"test-role"}, []string{"test-group"}, &out),
 				),
 			},
 			resource.TestStep{
 				Config: testAccAWSPolicyAttachConfigUpdate,
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckAWSPolicyAttachmentExists(),
-					testAccCheckAWSPolicyAttachmentAttributes(),
+					testAccCheckAWSPolicyAttachmentExists("aws_iam_policy_attachment.test-attachment", 6, &out),
+					testAccCheckAWSPolicyAttachmentAttributes([]string{"test-user3", "test-user3"}, []string{"test-role2", "test-role3"}, []string{"test-group2", "test-group3"}, &out),
 				),
 			},
 		},
 	})
 }
-
 func testAccCheckAWSPolicyAttachmentDestroy(s *terraform.State) error {
 
 	return nil
 }
 
-func testAccCheckAWSPolicyAttachmentExists(s *terraform.State) error {
-	conn := testAccProvider.Meta().(*AWSClient).iamconn
+func testAccCheckAWSPolicyAttachmentExists(n string, c int, out *iam.ListEntitiesForPolicyOutput) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		rs, ok := s.RootModule().Resources[n]
+		if !ok {
+			return fmt.Errorf("Not found: %s", n)
+		}
 
-	return nil
+		if rs.Primary.ID == "" {
+			return fmt.Errorf("No policy name is set")
+		}
+
+		conn := testAccProvider.Meta().(*AWSClient).iamconn
+		arn := rs.Primary.Attributes["policy_arn"]
+
+		resp, err := conn.GetPolicy(&iam.GetPolicyInput{
+			PolicyARN: aws.String(arn),
+		})
+		if err != nil {
+			return fmt.Errorf("Error: Policy (%s) not found", n)
+		}
+		if c != resp.Policy.AttachmentCount {
+			return fmt.Errorf("Error: Policy (%s) has wrong number of entities attached on initial creation", n)
+		}
+		resp2, err := conn.ListEntitiesForPolicy(&iam.ListEntitiesForPolicyOutput{
+			PolicyARN: aws.String(arn),
+		})
+		if err != nil {
+			return fmt.Errorf("Error: Failed to get entities for Policy (%s)", arn)
+		}
+
+		*out = *resp2
+		return nil
+	}
 }
-func testAccCheckAWSPolicyAttachmentAttributes() error {
+func testAccCheckAWSPolicyAttachmentAttributes(users []string, roles []string, groups []string, out *iam.ListEntitiesForPolicyOutput) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		uc := len(u)
+		rc := len(r)
+		gc := len(g)
 
-	return nil
+		for _, u := range users {
+			for _, pu := range out.PolicyUsers {
+				if u == *pu.UserName {
+					uc--
+				}
+			}
+		}
+		for _, r := range roles {
+			for _, pr := range out.PolicyRoles {
+				if r == *pu.RoleName {
+					rc--
+				}
+			}
+		}
+		for _, g := range users {
+			for _, pg := range out.PolicyGroups {
+				if g == *pu.GroupName {
+					gc--
+				}
+			}
+		}
+		if uc != 0 || rc != 0 || gc != 0 {
+			return fmt.Errorf("Error: Number of attached users, roles, or groups was incorrect:\n expected %d users and found %d\nexpected %d roles and found %d\nexpected %d groups and found %d", len(users), (len(users) - uc), len(roles), (len(roles) - rc), len(groups), (len(groups) - gc))
+		}
+	}
 }
 
 const testAccAWSPolicyAttachConfig = `
@@ -80,7 +136,7 @@ resource "aws_iam_policy" "policy" {
 EOF
 }
 
-resource "aws_iam_policy_attach" "test-attach" {
+resource "aws_iam_policy_attachment" "test-attach" {
     name = "test-attachment"
     users = ["${aws_iam_user.user.name}"]
     roles = ["${aws_iam_role.role.name}"]
@@ -137,7 +193,7 @@ resource "aws_iam_policy" "policy" {
 EOF
 }
 
-resource "aws_iam_policy_attach" "test-attach" {
+resource "aws_iam_policy_attachment" "test-attach" {
     name = "test-attachment"
     users = [
         "${aws_iam_user.user2.name}",
