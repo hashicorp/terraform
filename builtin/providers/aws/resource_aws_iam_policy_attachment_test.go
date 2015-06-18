@@ -10,7 +10,7 @@ import (
 )
 
 func TestAccAWSPolicyAttachment_basic(t *testing.T) {
-	var out iam.GetPolicyOutput
+	var out iam.ListEntitiesForPolicyOutput
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -39,7 +39,7 @@ func testAccCheckAWSPolicyAttachmentDestroy(s *terraform.State) error {
 	return nil
 }
 
-func testAccCheckAWSPolicyAttachmentExists(n string, c int, out *iam.ListEntitiesForPolicyOutput) resource.TestCheckFunc {
+func testAccCheckAWSPolicyAttachmentExists(n string, c int64, out *iam.ListEntitiesForPolicyOutput) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		rs, ok := s.RootModule().Resources[n]
 		if !ok {
@@ -59,10 +59,10 @@ func testAccCheckAWSPolicyAttachmentExists(n string, c int, out *iam.ListEntitie
 		if err != nil {
 			return fmt.Errorf("Error: Policy (%s) not found", n)
 		}
-		if c != resp.Policy.AttachmentCount {
+		if c != *resp.Policy.AttachmentCount {
 			return fmt.Errorf("Error: Policy (%s) has wrong number of entities attached on initial creation", n)
 		}
-		resp2, err := conn.ListEntitiesForPolicy(&iam.ListEntitiesForPolicyOutput{
+		resp2, err := conn.ListEntitiesForPolicy(&iam.ListEntitiesForPolicyInput{
 			PolicyARN: aws.String(arn),
 		})
 		if err != nil {
@@ -75,9 +75,9 @@ func testAccCheckAWSPolicyAttachmentExists(n string, c int, out *iam.ListEntitie
 }
 func testAccCheckAWSPolicyAttachmentAttributes(users []string, roles []string, groups []string, out *iam.ListEntitiesForPolicyOutput) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
-		uc := len(u)
-		rc := len(r)
-		gc := len(g)
+		uc := len(users)
+		rc := len(roles)
+		gc := len(groups)
 
 		for _, u := range users {
 			for _, pu := range out.PolicyUsers {
@@ -88,14 +88,14 @@ func testAccCheckAWSPolicyAttachmentAttributes(users []string, roles []string, g
 		}
 		for _, r := range roles {
 			for _, pr := range out.PolicyRoles {
-				if r == *pu.RoleName {
+				if r == *pr.RoleName {
 					rc--
 				}
 			}
 		}
 		for _, g := range users {
 			for _, pg := range out.PolicyGroups {
-				if g == *pu.GroupName {
+				if g == *pg.GroupName {
 					gc--
 				}
 			}
@@ -103,6 +103,7 @@ func testAccCheckAWSPolicyAttachmentAttributes(users []string, roles []string, g
 		if uc != 0 || rc != 0 || gc != 0 {
 			return fmt.Errorf("Error: Number of attached users, roles, or groups was incorrect:\n expected %d users and found %d\nexpected %d roles and found %d\nexpected %d groups and found %d", len(users), (len(users) - uc), len(roles), (len(roles) - rc), len(groups), (len(groups) - gc))
 		}
+		return nil
 	}
 }
 
