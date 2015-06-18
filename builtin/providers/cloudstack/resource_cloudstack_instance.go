@@ -168,10 +168,10 @@ func resourceCloudStackInstanceCreate(d *schema.ResourceData, meta interface{}) 
 	if userData, ok := d.GetOk("user_data"); ok {
                 //deployVirtualMachine uses POST, so max userdata is 32K
                 //https://github.com/xanzy/go-cloudstack/commit/c767de689df1faedfec69233763a7c5334bee1f6
-		if len(ud) > 32768 {
+		if len(userData.(string)) > 32768 {
 			return fmt.Errorf(
 				"The supplied user_data contains %d bytes before encoding, "+
-					"this exeeds the limit of 32768 bytes", len(ud))
+					"this exeeds the limit of 32768 bytes", len(userData.(string)))
 		}
 		ud := base64.StdEncoding.EncodeToString([]byte(userData.(string)))
 		p.SetUserdata(ud)
