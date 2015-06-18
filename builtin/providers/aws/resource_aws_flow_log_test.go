@@ -2,16 +2,18 @@ package aws
 
 import (
 	"fmt"
+	"os"
 	"testing"
 
+	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/ec2"
-	"github.com/hashicorp/aws-sdk-go/aws"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
 )
 
 func TestAccFlowLog_basic(t *testing.T) {
 	var flowLog ec2.FlowLog
+	lgn := os.Getenv("LOG_GROUP_NAME")
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -19,7 +21,7 @@ func TestAccFlowLog_basic(t *testing.T) {
 		CheckDestroy: testAccCheckFlowLogDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccFlowLogConfig_basic,
+				Config: fmt.Sprintf(testAccFlowLogConfig_basic, lgn),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckFlowLogExists("aws_flow_log.test_flow_log", &flowLog),
 					testAccCheckAWSFlowLogAttributes(&flowLog),
@@ -31,6 +33,7 @@ func TestAccFlowLog_basic(t *testing.T) {
 
 func TestAccFlowLog_subnet(t *testing.T) {
 	var flowLog ec2.FlowLog
+	lgn := os.Getenv("LOG_GROUP_NAME")
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
@@ -38,7 +41,7 @@ func TestAccFlowLog_subnet(t *testing.T) {
 		CheckDestroy: testAccCheckFlowLogDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccFlowLogConfig_subnet,
+				Config: fmt.Sprintf(testAccFlowLogConfig_subnet, lgn),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckFlowLogExists("aws_flow_log.test_flow_log_subnet", &flowLog),
 					testAccCheckAWSFlowLogAttributes(&flowLog),
@@ -152,7 +155,7 @@ resource "aws_flow_log" "test_flow_log" {
 resource "aws_flow_log" "test_flow_log_subnet" {
         # log_group_name needs to exist before hand
         # until we have a CloudWatch Log Group Resource
-        log_group_name = "tf-test-log-group"
+        log_group_name = "%s"
         iam_role_arn = "${aws_iam_role.test_role.arn}"
         subnet_id = "${aws_subnet.test_subnet.id}"
         traffic_type = "ALL"
@@ -201,7 +204,7 @@ EOF
 resource "aws_flow_log" "test_flow_log_subnet" {
         # log_group_name needs to exist before hand
         # until we have a CloudWatch Log Group Resource
-        log_group_name = "tf-test-log-group"
+        log_group_name = "%s"
         iam_role_arn = "${aws_iam_role.test_role.arn}"
         subnet_id = "${aws_subnet.test_subnet.id}"
         traffic_type = "ALL"
