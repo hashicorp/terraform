@@ -5,8 +5,8 @@ import (
 	"log"
 
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/awsutil"
 	"github.com/aws/aws-sdk-go/service/ec2"
-	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/helper/schema"
 )
 
@@ -102,6 +102,9 @@ func resourceAwsLogFlowCreate(d *schema.ResourceData, meta interface{}) error {
 		ResourceType:             aws.String(resourceType),
 		TrafficType:              aws.String(d.Get("traffic_type").(string)),
 	}
+
+	log.Printf(
+		"[DEBUG] Flow Log Create configuration: %s", awsutil.StringValue(opts))
 	resp, err := conn.CreateFlowLogs(opts)
 	if err != nil {
 		return fmt.Errorf("Error creating Flow Log for (%s), error: %s", resourceId, err)
@@ -149,6 +152,9 @@ func resourceAwsLogFlowRead(d *schema.ResourceData, meta interface{}) error {
 
 func resourceAwsLogFlowDelete(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).ec2conn
+
+	log.Printf(
+		"[DEBUG] Flow Log Destroy: %s", d.Id())
 	_, err := conn.DeleteFlowLogs(&ec2.DeleteFlowLogsInput{
 		FlowLogIDs: []*string{aws.String(d.Id())},
 	})
@@ -158,10 +164,4 @@ func resourceAwsLogFlowDelete(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	return nil
-}
-
-func flowLogStateRefreshFunc(conn *ec2.EC2, sn string) resource.StateRefreshFunc {
-	return func() (interface{}, string, error) {
-		return nil, "ok", nil
-	}
 }
