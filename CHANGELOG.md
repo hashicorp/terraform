@@ -2,8 +2,11 @@
 
 FEATURES:
 
-  * **New provider: `azure`** [GH-2053]
+  * **New provider: `azure`** [GH-2052, GH-2053, GH-2372, GH-2380]
   * **New resource: `aws_autoscaling_notification`** [GH-2197]
+  * **New resource: `aws_autoscaling_policy`** [GH-2201]
+  * **New resource: `aws_cloudwatch_metric_alarm`** [GH-2201]
+  * **New resource: `aws_dynamodb_table`** [GH-2121]
   * **New resource: `aws_ecs_cluster`** [GH-1803]
   * **New resource: `aws_ecs_service`** [GH-1803]
   * **New resource: `aws_ecs_task_definition`** [GH-1803]
@@ -14,7 +17,7 @@ FEATURES:
   * **New remote state backend: `swift`**: You can now store remote state in
      a OpenStack Swift. [GH-2254]
   * command/output: support display of module outputs [GH-2102]
-  * core: keys() and values() funcs for map variables [GH-2198]
+  * core: `keys()` and `values()` funcs for map variables [GH-2198]
 
 IMPROVEMENTS:
 
@@ -40,6 +43,8 @@ BUG FIXES:
       when non-lowercase protocol strings were used [GH-2246]
   * provider/aws: corrected frankfurt S3 website region [GH-2259]
   * provider/aws: `aws_elasticache_cluster` port is required [GH-2160]
+  * provider/template: fix issue causing "unknown variable" rendering errors
+      when an existing set of template variables is changed [GH-2386]
 
 ## 0.5.3 (June 1, 2015)
 
