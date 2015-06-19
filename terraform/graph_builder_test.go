@@ -196,6 +196,8 @@ aws_instance.db
 aws_instance.web
   aws_instance.db
 provider.aws
+provider.aws (close)
+  aws_instance.web
 `
 
 const testBuiltinGraphBuilderVerboseStr = `
@@ -213,8 +215,28 @@ aws_instance.web (destroy tainted)
 aws_instance.web (destroy)
   provider.aws
 provider.aws
+provider.aws (close)
+  aws_instance.web
 `
 
+const testBuiltinGraphBuilderMultiLevelStr = `
+module.foo.module.bar.output.value
+  module.foo.module.bar.var.bar
+module.foo.module.bar.plan-destroy
+module.foo.module.bar.var.bar
+  module.foo.var.foo
+module.foo.plan-destroy
+module.foo.var.foo
+root
+  module.foo.module.bar.output.value
+  module.foo.module.bar.plan-destroy
+  module.foo.plan-destroy
+`
+
+/*
+TODO: Commented out this const as it's likely this needs to
+be updated when the TestBuiltinGraphBuilder_modules test is
+enabled again.
 const testBuiltinGraphBuilderModuleStr = `
 aws_instance.web
   aws_instance.web (destroy)
@@ -231,17 +253,4 @@ module.consul (expanded)
   provider.aws
 provider.aws
 `
-
-const testBuiltinGraphBuilderMultiLevelStr = `
-module.foo.module.bar.output.value
-  module.foo.module.bar.var.bar
-module.foo.module.bar.plan-destroy
-module.foo.module.bar.var.bar
-  module.foo.var.foo
-module.foo.plan-destroy
-module.foo.var.foo
-root
-  module.foo.module.bar.output.value
-  module.foo.module.bar.plan-destroy
-  module.foo.plan-destroy
-`
+*/

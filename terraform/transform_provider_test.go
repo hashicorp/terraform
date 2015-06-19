@@ -30,6 +30,38 @@ func TestProviderTransformer(t *testing.T) {
 	}
 }
 
+func TestCloseProviderTransformer(t *testing.T) {
+	mod := testModule(t, "transform-provider-basic")
+
+	g := Graph{Path: RootModulePath}
+	{
+		tf := &ConfigTransformer{Module: mod}
+		if err := tf.Transform(&g); err != nil {
+			t.Fatalf("err: %s", err)
+		}
+	}
+
+	{
+		transform := &ProviderTransformer{}
+		if err := transform.Transform(&g); err != nil {
+			t.Fatalf("err: %s", err)
+		}
+	}
+
+	{
+		transform := &CloseProviderTransformer{}
+		if err := transform.Transform(&g); err != nil {
+			t.Fatalf("err: %s", err)
+		}
+	}
+
+	actual := strings.TrimSpace(g.String())
+	expected := strings.TrimSpace(testTransformCloseProviderBasicStr)
+	if actual != expected {
+		t.Fatalf("bad:\n\n%s", actual)
+	}
+}
+
 func TestMissingProviderTransformer(t *testing.T) {
 	mod := testModule(t, "transform-provider-basic")
 
@@ -41,9 +73,18 @@ func TestMissingProviderTransformer(t *testing.T) {
 		}
 	}
 
-	transform := &MissingProviderTransformer{Providers: []string{"foo"}}
-	if err := transform.Transform(&g); err != nil {
-		t.Fatalf("err: %s", err)
+	{
+		transform := &MissingProviderTransformer{Providers: []string{"foo"}}
+		if err := transform.Transform(&g); err != nil {
+			t.Fatalf("err: %s", err)
+		}
+	}
+
+	{
+		transform := &CloseProviderTransformer{}
+		if err := transform.Transform(&g); err != nil {
+			t.Fatalf("err: %s", err)
+		}
 	}
 
 	actual := strings.TrimSpace(g.String())
@@ -73,6 +114,13 @@ func TestPruneProviderTransformer(t *testing.T) {
 
 	{
 		transform := &ProviderTransformer{}
+		if err := transform.Transform(&g); err != nil {
+			t.Fatalf("err: %s", err)
+		}
+	}
+
+	{
+		transform := &CloseProviderTransformer{}
 		if err := transform.Transform(&g); err != nil {
 			t.Fatalf("err: %s", err)
 		}
@@ -112,6 +160,13 @@ func TestDisableProviderTransformer(t *testing.T) {
 
 	{
 		transform := &ProviderTransformer{}
+		if err := transform.Transform(&g); err != nil {
+			t.Fatalf("err: %s", err)
+		}
+	}
+
+	{
+		transform := &CloseProviderTransformer{}
 		if err := transform.Transform(&g); err != nil {
 			t.Fatalf("err: %s", err)
 		}
@@ -164,6 +219,13 @@ func TestDisableProviderTransformer_keep(t *testing.T) {
 	}
 
 	{
+		transform := &CloseProviderTransformer{}
+		if err := transform.Transform(&g); err != nil {
+			t.Fatalf("err: %s", err)
+		}
+	}
+
+	{
 		transform := &PruneProviderTransformer{}
 		if err := transform.Transform(&g); err != nil {
 			t.Fatalf("err: %s", err)
@@ -203,9 +265,19 @@ aws_instance.web
 provider.aws
 `
 
+const testTransformCloseProviderBasicStr = `
+aws_instance.web
+  provider.aws
+provider.aws
+provider.aws (close)
+  aws_instance.web
+`
+
 const testTransformMissingProviderBasicStr = `
 aws_instance.web
 provider.aws
+provider.aws (close)
+  aws_instance.web
 provider.foo
 `
 
@@ -213,12 +285,16 @@ const testTransformPruneProviderBasicStr = `
 foo_instance.web
   provider.foo
 provider.foo
+provider.foo (close)
+  foo_instance.web
 `
 
 const testTransformDisableProviderBasicStr = `
 module.child
   provider.aws (disabled)
   var.foo
+provider.aws (close)
+  module.child
 provider.aws (disabled)
 var.foo
 `
@@ -230,5 +306,8 @@ module.child
   provider.aws
   var.foo
 provider.aws
+provider.aws (close)
+  aws_instance.foo
+  module.child
 var.foo
 `
