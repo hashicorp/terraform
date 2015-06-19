@@ -32,6 +32,12 @@ func s3Factory(conf map[string]string) (Client, error) {
 		}
 	}
 
+	serverSideEncryption := false
+	_, ok = conf["encrypt"]
+	if ok {
+		serverSideEncryption = true
+	}
+
 	accessKeyId := conf["access_key"]
 	secretAccessKey := conf["secret_key"]
 
@@ -60,16 +66,18 @@ func s3Factory(conf map[string]string) (Client, error) {
 	nativeClient := s3.New(awsConfig)
 
 	return &S3Client{
-		nativeClient: nativeClient,
-		bucketName:   bucketName,
-		keyName:      keyName,
+		nativeClient:         nativeClient,
+		bucketName:           bucketName,
+		keyName:              keyName,
+		serverSideEncryption: serverSideEncryption,
 	}, nil
 }
 
 type S3Client struct {
-	nativeClient *s3.S3
-	bucketName   string
-	keyName      string
+	nativeClient         *s3.S3
+	bucketName           string
+	keyName              string
+	serverSideEncryption bool
 }
 
 func (c *S3Client) Get() (*Payload, error) {
@@ -113,13 +121,20 @@ func (c *S3Client) Put(data []byte) error {
 	contentType := "application/octet-stream"
 	contentLength := int64(len(data))
 
-	_, err := c.nativeClient.PutObject(&s3.PutObjectInput{
+	i := &s3.PutObjectInput{
 		ContentType:   &contentType,
 		ContentLength: &contentLength,
 		Body:          bytes.NewReader(data),
 		Bucket:        &c.bucketName,
 		Key:           &c.keyName,
-	})
+	}
+
+	if c.serverSideEncryption {
+		e := "AES256"
+		i.ServerSideEncryption = &e
+	}
+
+	_, err := c.nativeClient.PutObject(i)
 
 	if err == nil {
 		return nil
