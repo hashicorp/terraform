@@ -2,7 +2,7 @@
 
 FEATURES:
 
-  * **New provider: `azure`** [GH-2052, GH-2053, GH-2372, GH-2380]
+  * **New provider: `azure`** [GH-2052, GH-2053, GH-2372, GH-2380, GH-2394]
   * **New resource: `aws_autoscaling_notification`** [GH-2197]
   * **New resource: `aws_autoscaling_policy`** [GH-2201]
   * **New resource: `aws_cloudwatch_metric_alarm`** [GH-2201]
