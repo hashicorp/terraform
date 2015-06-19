@@ -94,6 +94,7 @@ func resourceAwsSecurityGroupRuleCreate(d *schema.ResourceData, meta interface{}
 
 	ruleType := d.Get("type").(string)
 
+	var autherr error
 	switch ruleType {
 	case "ingress":
 		log.Printf("[DEBUG] Authorizing security group %s %s rule: %s",
@@ -109,13 +110,7 @@ func resourceAwsSecurityGroupRuleCreate(d *schema.ResourceData, meta interface{}
 			req.GroupName = sg.GroupName
 		}
 
-		_, err := conn.AuthorizeSecurityGroupIngress(req)
-
-		if err != nil {
-			return fmt.Errorf(
-				"Error authorizing security group %s rules: %s",
-				"rules", err)
-		}
+		_, autherr = conn.AuthorizeSecurityGroupIngress(req)
 
 	case "egress":
 		log.Printf("[DEBUG] Authorizing security group %s %s rule: %#v",
@@ -126,16 +121,26 @@ func resourceAwsSecurityGroupRuleCreate(d *schema.ResourceData, meta interface{}
 			IPPermissions: []*ec2.IPPermission{perm},
 		}
 
-		_, err = conn.AuthorizeSecurityGroupEgress(req)
-
-		if err != nil {
-			return fmt.Errorf(
-				"Error authorizing security group %s rules: %s",
-				"rules", err)
-		}
+		_, autherr = conn.AuthorizeSecurityGroupEgress(req)
 
 	default:
 		return fmt.Errorf("Security Group Rule must be type 'ingress' or type 'egress'")
+	}
+
+	if autherr != nil {
+		if awsErr, ok := autherr.(awserr.Error); ok {
+			if awsErr.Code() == "InvalidPermission.Duplicate" {
+				return fmt.Errorf(`[WARN] A duplicate Security Group rule was found. This may be 
+a side effect of a now-fixed Terraform issue causing two security groups with 
+identical attributes but different source_security_group_ids to overwrite each 
+other in the state. See https://github.com/hashicorp/teraform/pull/2376 for more 
+information and instructions for recovery. Error message: %s`, awsErr.Message())
+			}
+		}
+
+		return fmt.Errorf(
+			"Error authorizing security group rule type %s: %s",
+			ruleType, autherr)
 	}
 
 	d.SetId(ipPermissionIDHash(ruleType, perm))
