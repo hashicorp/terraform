@@ -133,7 +133,7 @@ func resourceAwsSecurityGroupRuleCreate(d *schema.ResourceData, meta interface{}
 				return fmt.Errorf(`[WARN] A duplicate Security Group rule was found. This may be 
 a side effect of a now-fixed Terraform issue causing two security groups with 
 identical attributes but different source_security_group_ids to overwrite each 
-other in the state. See https://github.com/hashicorp/teraform/pull/2376 for more 
+other in the state. See https://github.com/hashicorp/terraform/pull/2376 for more 
 information and instructions for recovery. Error message: %s`, awsErr.Message())
 			}
 		}
