@@ -14,6 +14,13 @@ type GraphNodeProvisioner interface {
 	ProvisionerName() string
 }
 
+// GraphNodeCloseProvisioner is an interface that nodes that can be a close
+// provisioner must implement. The CloseProvisionerName returned is the name
+// of the provisioner they satisfy.
+type GraphNodeCloseProvisioner interface {
+	CloseProvisionerName() string
+}
+
 // GraphNodeProvisionerConsumer is an interface that nodes that require
 // a provisioner must implement. ProvisionedBy must return the name of the
 // provisioner to use.
@@ -47,6 +54,37 @@ func (t *ProvisionerTransformer) Transform(g *Graph) error {
 	}
 
 	return err
+}
+
+// CloseProvisionerTransformer is a GraphTransformer that adds nodes to the
+// graph that will close open provisioner connections that aren't needed
+// anymore. A provisioner connection is not needed anymore once all depended
+// resources in the graph are evaluated.
+type CloseProvisionerTransformer struct{}
+
+func (t *CloseProvisionerTransformer) Transform(g *Graph) error {
+	m := closeProvisionerVertexMap(g)
+	for _, v := range g.Vertices() {
+		if pv, ok := v.(GraphNodeProvisionerConsumer); ok {
+			for _, p := range pv.ProvisionedBy() {
+				source := m[p]
+
+				if source == nil {
+					// Create a new graphNodeCloseProvisioner and add it to the graph
+					source = &graphNodeCloseProvisioner{ProvisionerNameValue: p}
+					g.Add(source)
+
+					// Make sure we also add the new graphNodeCloseProvisioner to the map
+					// so we don't create and add any duplicate graphNodeCloseProvisioners.
+					m[p] = source
+				}
+
+				g.Connect(dag.BasicEdge(source, v))
+			}
+		}
+	}
+
+	return nil
 }
 
 // MissingProvisionerTransformer is a GraphTransformer that adds nodes
@@ -94,6 +132,75 @@ func (t *PruneProvisionerTransformer) Transform(g *Graph) error {
 	return nil
 }
 
+func provisionerVertexMap(g *Graph) map[string]dag.Vertex {
+	m := make(map[string]dag.Vertex)
+	for _, v := range g.Vertices() {
+		if pv, ok := v.(GraphNodeProvisioner); ok {
+			m[pv.ProvisionerName()] = v
+		}
+	}
+
+	return m
+}
+
+func closeProvisionerVertexMap(g *Graph) map[string]dag.Vertex {
+	m := make(map[string]dag.Vertex)
+	for _, v := range g.Vertices() {
+		if pv, ok := v.(GraphNodeCloseProvisioner); ok {
+			m[pv.CloseProvisionerName()] = v
+		}
+	}
+
+	return m
+}
+
+type graphNodeCloseProvisioner struct {
+	ProvisionerNameValue string
+}
+
+func (n *graphNodeCloseProvisioner) Name() string {
+	return fmt.Sprintf("provisioner.%s (close)", n.ProvisionerNameValue)
+}
+
+// GraphNodeEvalable impl.
+func (n *graphNodeCloseProvisioner) EvalTree() EvalNode {
+	return &EvalCloseProvisioner{Name: n.ProvisionerNameValue}
+}
+
+func (n *graphNodeCloseProvisioner) CloseProvisionerName() string {
+	return n.ProvisionerNameValue
+}
+
+// GraphNodeFlattenable impl.
+func (n *graphNodeCloseProvisioner) Flatten(p []string) (dag.Vertex, error) {
+	return &graphNodeCloseProvisionerFlat{
+		graphNodeCloseProvisioner: n,
+		PathValue:                 p,
+	}, nil
+}
+
+// Same as graphNodeCloseProvisioner, but for flattening
+type graphNodeCloseProvisionerFlat struct {
+	*graphNodeCloseProvisioner
+
+	PathValue []string
+}
+
+func (n *graphNodeCloseProvisionerFlat) Name() string {
+	return fmt.Sprintf(
+		"%s.%s", modulePrefixStr(n.PathValue), n.graphNodeCloseProvisioner.Name())
+}
+
+func (n *graphNodeCloseProvisionerFlat) Path() []string {
+	return n.PathValue
+}
+
+func (n *graphNodeCloseProvisionerFlat) ProvisionerName() string {
+	return fmt.Sprintf(
+		"%s.%s", modulePrefixStr(n.PathValue),
+		n.graphNodeCloseProvisioner.CloseProvisionerName())
+}
+
 type graphNodeMissingProvisioner struct {
 	ProvisionerNameValue string
 }
@@ -117,17 +224,6 @@ func (n *graphNodeMissingProvisioner) Flatten(p []string) (dag.Vertex, error) {
 		graphNodeMissingProvisioner: n,
 		PathValue:                   p,
 	}, nil
-}
-
-func provisionerVertexMap(g *Graph) map[string]dag.Vertex {
-	m := make(map[string]dag.Vertex)
-	for _, v := range g.Vertices() {
-		if pv, ok := v.(GraphNodeProvisioner); ok {
-			m[pv.ProvisionerName()] = v
-		}
-	}
-
-	return m
 }
 
 // Same as graphNodeMissingProvisioner, but for flattening
