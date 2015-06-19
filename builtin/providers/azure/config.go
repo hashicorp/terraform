@@ -37,7 +37,7 @@ type Client struct {
 
 	osImageClient osimage.OSImageClient
 
-	sqlClient sql.SqlDatabaseClient
+	sqlClient sql.SQLDatabaseClient
 
 	storageServiceClient storageservice.StorageServiceClient
 
