@@ -132,18 +132,39 @@ func resourceAwsEcsTaskDefinitionRead(d *schema.ResourceData, meta interface{}) 
 }
 
 func resourceAwsEcsTaskDefinitionUpdate(d *schema.ResourceData, meta interface{}) error {
-	return resourceAwsEcsTaskDefinitionCreate(d, meta)
+	oldArn := d.Get("arn").(string)
+
+	log.Printf("[DEBUG] Creating new revision of task definition %q", d.Id())
+	err := resourceAwsEcsTaskDefinitionCreate(d, meta)
+	if err != nil {
+		return err
+	}
+	log.Printf("[DEBUG] New revision of %q created: %q", d.Id(), d.Get("arn").(string))
+
+	log.Printf("[DEBUG] Deregistering old revision of task definition %q: %q", d.Id(), oldArn)
+	conn := meta.(*AWSClient).ecsconn
+	_, err = conn.DeregisterTaskDefinition(&ecs.DeregisterTaskDefinitionInput{
+		TaskDefinition: aws.String(oldArn),
+	})
+	if err != nil {
+		return err
+	}
+	log.Printf("[DEBUG] Old revision of task definition deregistered: %q", oldArn)
+
+	return resourceAwsEcsTaskDefinitionRead(d, meta)
 }
 
 func resourceAwsEcsTaskDefinitionDelete(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).ecsconn
 
-	// NOT YET IMPLEMENTED o_O
 	_, err := conn.DeregisterTaskDefinition(&ecs.DeregisterTaskDefinitionInput{
-		TaskDefinition: aws.String(d.Id()),
+		TaskDefinition: aws.String(d.Get("arn").(string)),
 	})
+	if err != nil {
+		return err
+	}
 
-	log.Printf("[DEBUG] Deregistering task definition %s returned %#v", d.Id(), err)
+	log.Printf("[DEBUG] Task definition %q deregistered.", d.Get("arn").(string))
 
 	return nil
 }
