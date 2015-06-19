@@ -408,7 +408,7 @@ func waitForASGCapacity(d *schema.ResourceData, meta interface{}) error {
 	}
 	wantELB := d.Get("min_elb_capacity").(int)
 
-	log.Printf("[DEBUG] Wanting for capacity: %d ASG, %d ELB", wantASG, wantELB)
+	log.Printf("[DEBUG] Waiting for capacity: %d ASG, %d ELB", wantASG, wantELB)
 
 	return resource.Retry(waitForASGCapacityTimeout, func() error {
 		g, err := getAwsAutoscalingGroup(d, meta)

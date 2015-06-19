@@ -34,6 +34,8 @@ func Provider() terraform.ResourceProvider {
 		ResourcesMap: map[string]*schema.Resource{
 			"azure_instance":                 resourceAzureInstance(),
 			"azure_data_disk":                resourceAzureDataDisk(),
+			"azure_sql_database_server":      resourceAzureSqlDatabaseServer(),
+			"azure_sql_database_service":     resourceAzureSqlDatabaseService(),
 			"azure_hosted_service":           resourceAzureHostedService(),
 			"azure_storage_service":          resourceAzureStorageService(),
 			"azure_storage_container":        resourceAzureStorageContainer(),
