@@ -30,6 +30,7 @@ func resourceAwsIAMServerCertificate() *schema.Resource {
 				Type:     schema.TypeString,
 				Optional: true,
 				ForceNew: true,
+				StateFunc: normalizeCert,
 			},
 
 			"path": &schema.Schema{
@@ -106,7 +107,7 @@ func resourceAwsIAMServerCertificateRead(d *schema.ResourceData, meta interface{
 	// these values should always be present, and have a default if not set in
 	// configuration, and so safe to reference with nil checks
 	d.Set("certificate_body", normalizeCert(resp.ServerCertificate.CertificateBody))
-	d.Set("certificate_chain", resp.ServerCertificate.CertificateChain)
+	d.Set("certificate_chain", normalizeCert(resp.ServerCertificate.CertificateChain))
 	d.Set("path", resp.ServerCertificate.ServerCertificateMetadata.Path)
 	d.Set("arn", resp.ServerCertificate.ServerCertificateMetadata.ARN)
 
