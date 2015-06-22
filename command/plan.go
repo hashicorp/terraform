@@ -189,7 +189,6 @@ Options:
   -var-file=foo       Set variables in the Terraform configuration from
                       a file. If "terraform.tfvars" is present, it will be
                       automatically loaded if this flag is not specified.
-
 `
 	return strings.TrimSpace(helpText)
 }
