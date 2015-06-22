@@ -31,6 +31,8 @@ IMPROVEMENTS:
       option to ignore TLS cert verification. [GH-2214]
   * provider/aws: ElastiCache Subnet Groups can be updated
       without destroying first [GH-2191]
+  * provider/aws: Normalize `certificate_chain` in `aws_iam_servier_certificate` to
+      prevent unnecessary replacement. [GH-2411]
   * provider/docker: `docker_container` has the `privileged`
       option. [GH-2227]
   * provider/openstack: allow `OS_AUTH_TOKEN` environment variable
