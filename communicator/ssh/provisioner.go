@@ -62,6 +62,15 @@ func parseConnectionInfo(s *terraform.InstanceState) (*connectionInfo, error) {
 		return nil, err
 	}
 
+	// To default Agent to true, we need to check the raw string, since the
+	// decoded boolean can't represent "absence of config".
+	//
+	// And if SSH_AUTH_SOCK is not set, there's no agent to connect to, so we
+	// shouldn't try.
+	if s.Ephemeral.ConnInfo["agent"] == "" && os.Getenv("SSH_AUTH_SOCK") != "" {
+		connInfo.Agent = true
+	}
+
 	if connInfo.User == "" {
 		connInfo.User = DefaultUser
 	}
