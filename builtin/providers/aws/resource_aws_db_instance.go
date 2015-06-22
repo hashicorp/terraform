@@ -3,6 +3,7 @@ package aws
 import (
 	"fmt"
 	"log"
+	"regexp"
 	"strings"
 	"time"
 
@@ -153,6 +154,20 @@ func resourceAwsDbInstance() *schema.Resource {
 			"final_snapshot_identifier": &schema.Schema{
 				Type:     schema.TypeString,
 				Optional: true,
+				ValidateFunc: func(v interface{}) (ws []string, es []error) {
+					fsi := v.(string)
+					if !regexp.MustCompile(`^[0-9A-Za-z-]+$`).MatchString(fsi) {
+						es = append(es, fmt.Errorf(
+							"only alphanumeric characters and hyphens allowed"))
+					}
+					if regexp.MustCompile(`--`).MatchString(fsi) {
+						es = append(es, fmt.Errorf("cannot contain two consecutive hyphens"))
+					}
+					if regexp.MustCompile(`-$`).MatchString(fsi) {
+						es = append(es, fmt.Errorf("cannot end in a hyphen"))
+					}
+					return
+				},
 			},
 
 			"db_subnet_group_name": &schema.Schema{

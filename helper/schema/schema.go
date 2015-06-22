@@ -131,6 +131,14 @@ type Schema struct {
 	// This string is the message shown to the user with instructions on
 	// what do to about the removed attribute.
 	Removed string
+
+	// ValidateFunc allows individual fields to define arbitrary validation
+	// logic. It is yielded the provided config value as an interface{} that is
+	// guaranteed to be of the proper Schema type, and it can yield warnings or
+	// errors based on inspection of that value.
+	//
+	// ValidateFunc currently only works for primitive types.
+	ValidateFunc SchemaValidateFunc
 }
 
 // SchemaDefaultFunc is a function called to return a default value for
@@ -172,6 +180,10 @@ type SchemaSetFunc func(interface{}) int
 // SchemaStateFunc is a function used to convert some type to a string
 // to be stored in the state.
 type SchemaStateFunc func(interface{}) string
+
+// SchemaValidateFunc is a function used to validate a single field in the
+// schema.
+type SchemaValidateFunc func(interface{}) ([]string, []error)
 
 func (s *Schema) GoString() string {
 	return fmt.Sprintf("*%#v", *s)
@@ -501,6 +513,13 @@ func (m schemaMap) InternalValidate(topSchemaMap schemaMap) error {
 					return fmt.Errorf(
 						"%s: Elem must have only Type set", k)
 				}
+			}
+		}
+
+		if v.ValidateFunc != nil {
+			switch v.Type {
+			case TypeList, TypeSet, TypeMap:
+				return fmt.Errorf("ValidateFunc is only supported on primitives.")
 			}
 		}
 	}
@@ -1118,6 +1137,7 @@ func (m schemaMap) validatePrimitive(
 		return nil, nil
 	}
 
+	var decoded interface{}
 	switch schema.Type {
 	case TypeBool:
 		// Verify that we can parse this as the correct type
@@ -1125,26 +1145,34 @@ func (m schemaMap) validatePrimitive(
 		if err := mapstructure.WeakDecode(raw, &n); err != nil {
 			return nil, []error{err}
 		}
+		decoded = n
 	case TypeInt:
 		// Verify that we can parse this as an int
 		var n int
 		if err := mapstructure.WeakDecode(raw, &n); err != nil {
 			return nil, []error{err}
 		}
+		decoded = n
 	case TypeFloat:
 		// Verify that we can parse this as an int
 		var n float64
 		if err := mapstructure.WeakDecode(raw, &n); err != nil {
 			return nil, []error{err}
 		}
+		decoded = n
 	case TypeString:
 		// Verify that we can parse this as a string
 		var n string
 		if err := mapstructure.WeakDecode(raw, &n); err != nil {
 			return nil, []error{err}
 		}
+		decoded = n
 	default:
 		panic(fmt.Sprintf("Unknown validation type: %#v", schema.Type))
+	}
+
+	if schema.ValidateFunc != nil {
+		return schema.ValidateFunc(decoded)
 	}
 
 	return nil, nil
