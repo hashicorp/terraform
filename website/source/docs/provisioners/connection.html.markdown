@@ -80,3 +80,24 @@ provisioner "file" {
 * `insecure` - Set to true to not validate the HTTPS certificate chain.
 
 * `cacert` - The CA certificate to validate against.
+
+<a id="bastion"></a>
+## Connecting through a Bastion Host with SSH
+
+The `ssh` connection additionally supports the following fields to facilitate a
+[bastion host](https://en.wikipedia.org/wiki/Bastion_host) connection.
+
+* `bastion_host` - Setting this enables the bastion Host connection. This host
+  will be connected to first, and the `host` connection will be made from there.
+
+* `bastion_port` - The port to use connect to the bastion host. Defaults to the
+  value of `port`.
+
+* `bastion_user` - The user to use to connect to the bastion host. Defaults to
+  the value of `user`.
+
+* `bastion_password` - The password we should use for the bastion host.
+  Defaults to the value of `password`.
+
+* `bastion_key_file` - The SSH key to use for the bastion host. Defaults to the
+  value of `key_file`.
