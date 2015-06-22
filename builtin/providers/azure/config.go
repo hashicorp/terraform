@@ -6,6 +6,7 @@ import (
 	"sync"
 
 	"github.com/Azure/azure-sdk-for-go/management"
+	"github.com/Azure/azure-sdk-for-go/management/affinitygroup"
 	"github.com/Azure/azure-sdk-for-go/management/hostedservice"
 	"github.com/Azure/azure-sdk-for-go/management/networksecuritygroup"
 	"github.com/Azure/azure-sdk-for-go/management/osimage"
@@ -31,13 +32,15 @@ type Config struct {
 type Client struct {
 	mgmtClient management.Client
 
+	affinityGroupClient affinitygroup.AffinityGroupClient
+
 	hostedServiceClient hostedservice.HostedServiceClient
 
 	secGroupClient networksecuritygroup.SecurityGroupClient
 
 	osImageClient osimage.OSImageClient
 
-	sqlClient sql.SqlDatabaseClient
+	sqlClient sql.SQLDatabaseClient
 
 	storageServiceClient storageservice.StorageServiceClient
 
@@ -107,6 +110,7 @@ func (c *Config) NewClientFromSettingsFile() (*Client, error) {
 
 	return &Client{
 		mgmtClient:           mc,
+		affinityGroupClient:  affinitygroup.NewClient(mc),
 		hostedServiceClient:  hostedservice.NewClient(mc),
 		secGroupClient:       networksecuritygroup.NewClient(mc),
 		osImageClient:        osimage.NewClient(mc),
@@ -130,6 +134,7 @@ func (c *Config) NewClient() (*Client, error) {
 
 	return &Client{
 		mgmtClient:           mc,
+		affinityGroupClient:  affinitygroup.NewClient(mc),
 		hostedServiceClient:  hostedservice.NewClient(mc),
 		secGroupClient:       networksecuritygroup.NewClient(mc),
 		osImageClient:        osimage.NewClient(mc),

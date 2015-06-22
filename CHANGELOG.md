@@ -2,8 +2,10 @@
 
 FEATURES:
 
-  * **New provider: `azure`** [GH-2052, GH-2053, GH-2372, GH-2380]
+  * **New provider: `azure`** [GH-2052, GH-2053, GH-2372, GH-2380, GH-2394]
   * **New resource: `aws_autoscaling_notification`** [GH-2197]
+  * **New resource: `aws_autoscaling_policy`** [GH-2201]
+  * **New resource: `aws_cloudwatch_metric_alarm`** [GH-2201]
   * **New resource: `aws_dynamodb_table`** [GH-2121]
   * **New resource: `aws_ecs_cluster`** [GH-1803]
   * **New resource: `aws_ecs_service`** [GH-1803]
@@ -35,6 +37,8 @@ BUG FIXES:
   * command/apply: prevent output duplication when reporting errors [GH-2267]
   * provider/aws: fix panic when route has no cidr_block [GH-2215]
   * provider/aws: fix issue preventing destruction of IAM Roles [GH-2177]
+  * provider/aws: fix issue where Security Group Rules could collide and fail 
+      to save to the state file correctly [GH-2376]
   * provider/aws: fix issue preventing destruction self referencing Securtity
      Group Rules [GH-2305]
   * provider/aws: fix issue causing perpetual diff on ELB listeners
